@@ -2775,6 +2775,15 @@
       Show card counter (deck audit)
     </label>
   </div>
+
+  <div class="dev-section">
+    <div class="dev-section-title">Event Log <span id="dev-log-count" style="color:var(--cream-dim);">(0)</span></div>
+    <div id="dev-event-log">No events yet.</div>
+    <div class="dev-row">
+      <button id="dev-log-copy" onclick="devLogCopy()">Copy All</button>
+      <button id="dev-log-clear" onclick="devLogClear()">Clear</button>
+    </div>
+  </div>
 </div>
 
 <style>
@@ -2786,6 +2795,12 @@
   .dev-bonus-item { display:flex; justify-content:space-between; align-items:center; padding:5px 8px; background:rgba(255,255,255,0.03); border-radius:4px; gap:8px; }
   .dev-bonus-name { font-family:'Cinzel',serif; font-size:9px; color:var(--cream); letter-spacing:1px; }
   .dev-bonus-add { font-family:'Cinzel',serif; font-size:9px; padding:3px 8px; background:rgba(201,168,76,0.1); border:1px solid rgba(201,168,76,0.3); border-radius:4px; color:var(--gold); cursor:pointer; white-space:nowrap; }
+  #dev-event-log { font-family:'Courier New',monospace; font-size:9px; color:var(--cream-dim); line-height:1.6; max-height:200px; overflow-y:auto; background:rgba(0,0,0,0.4); border-radius:4px; padding:6px 8px; white-space:pre-wrap; word-break:break-all; }
+  #dev-event-log .log-error { color:#ff6b6b; }
+  #dev-event-log .log-warn  { color:#f0c040; }
+  #dev-event-log .log-ok    { color:#5aaa5a; }
+  #dev-log-copy { font-family:'Cinzel',serif; font-size:9px; padding:4px 10px; background:rgba(201,168,76,0.1); border:1px solid rgba(201,168,76,0.3); border-radius:4px; color:var(--gold); cursor:pointer; }
+  #dev-log-clear { font-family:'Cinzel',serif; font-size:9px; padding:4px 10px; background:rgba(255,255,255,0.05); border:1px solid var(--border); border-radius:4px; color:var(--cream-dim); cursor:pointer; }
 </style>
 
 <!-- STATS OVERLAY -->
@@ -3041,6 +3056,50 @@ function startFromMenu() {
   document.getElementById('main-menu-overlay').classList.remove('show');
   startGame();
 }
+
+// ══════════════════════════════════════════════
+// DEBUG EVENT LOG
+// ══════════════════════════════════════════════
+const DBG_MAX = 80;
+const _dbgBuf = [];
+
+function dbgEvent(type, msg, data) {
+  const ts = new Date().toISOString().slice(11,23);
+  _dbgBuf.push({ ts, type, msg, data: data ? JSON.stringify(data) : '' });
+  if (_dbgBuf.length > DBG_MAX) _dbgBuf.shift();
+  _devLogRender();
+}
+
+function _devLogRender() {
+  const el = document.getElementById('dev-event-log');
+  const ct = document.getElementById('dev-log-count');
+  if (!el) return;
+  ct.textContent = `(${_dbgBuf.length})`;
+  el.innerHTML = _dbgBuf.slice().reverse().map(e => {
+    const cls = e.type === 'error' ? 'log-error' : e.type === 'warn' ? 'log-warn' : 'log-ok';
+    const data = e.data ? ` ${e.data}` : '';
+    return `<span class="${cls}">[${e.ts}] ${e.type.toUpperCase()} ${e.msg}${data}</span>`;
+  }).join('\n');
+}
+
+function devLogCopy() {
+  const text = _dbgBuf.map(e => `[${e.ts}] ${e.type.toUpperCase()} ${e.msg}${e.data ? ' ' + e.data : ''}`).join('\n');
+  navigator.clipboard?.writeText(text).then(() => {
+    const btn = document.getElementById('dev-log-copy');
+    const orig = btn.textContent; btn.textContent = 'Copied!';
+    setTimeout(() => { btn.textContent = orig; }, 1500);
+  });
+}
+
+function devLogClear() { _dbgBuf.length = 0; _devLogRender(); }
+
+// Capture uncaught JS errors into the log
+window.addEventListener('error', e => {
+  dbgEvent('error', e.message, { file: e.filename?.split('/').pop(), line: e.lineno, col: e.colno });
+});
+window.addEventListener('unhandledrejection', e => {
+  dbgEvent('error', String(e.reason));
+});
 
 // ══════════════════════════════════════════════
 // CONSTANTS
@@ -5027,14 +5086,17 @@ function deselect(r, c) {
 }
 
 function tryAddToSelection(r, c) {
-  if (selected.length >= limits.selection.current) return false;
-  if (isCellBlocked(r, c)) return false;
-  if (!cardCan(gridData[r]?.[c], 'select')) return false;
+  const _card = gridData[r]?.[c];
+  const _cs = _card ? `${_card.rank}${_card.suit}` : 'null';
+  if (selected.length >= limits.selection.current) { dbgEvent('warn', `add blocked: selection full [${r},${c}] ${_cs}`); return false; }
+  if (isCellBlocked(r, c)) { dbgEvent('warn', `add blocked: cell blocked [${r},${c}]`); return false; }
+  if (!cardCan(gridData[r]?.[c], 'select')) { dbgEvent('warn', `add blocked: cardCan=false [${r},${c}] ${_cs}`); return false; }
   const key = `${r}-${c}`;
   if (selected.some(([sr,sc]) => sr===r && sc===c)) return false;
   const reachable = getReachable();
-  if (reachable && !reachable.has(key)) return false;
+  if (reachable && !reachable.has(key)) { dbgEvent('warn', `add blocked: not reachable [${r},${c}]`); return false; }
   selected.push([r, c]);
+  dbgEvent('info', `selected [${r},${c}] ${_cs} (total:${selected.length})`);
   sfxCardSelect();
   scheduleAutoSubmit();
   render();
@@ -5043,15 +5105,18 @@ function tryAddToSelection(r, c) {
 
 // ── Tap handler (called on pointerup when pointer didn't move) ──
 function onCardTap(r, c) {
-  if (animating) return;
+  const _card = gridData[r]?.[c];
+  const _cardStr = _card ? `${_card.rank}${_card.suit}` : 'null';
+  dbgEvent('info', `tap [${r},${c}] ${_cardStr}`, { animating, bcPhase: bcSelectionPhase, swapPending: !!swapPending, selected: selected.length });
+  if (animating) { dbgEvent('warn', `tap blocked: animating`); return; }
   // Block null cells
-  if (gridData[r][c] === null) return;
+  if (gridData[r][c] === null) { dbgEvent('warn', `tap blocked: null cell [${r},${c}]`); return; }
   // Block boss-obstructed cells
-  if (isCellBlocked(r, c)) return;
+  if (isCellBlocked(r, c)) { dbgEvent('warn', `tap blocked: cell blocked [${r},${c}]`); return; }
   // Block challenge card taps
-  if (challengeActive && challengeCard && challengeCard.pos[0]===r && challengeCard.pos[1]===c) return;
+  if (challengeActive && challengeCard && challengeCard.pos[0]===r && challengeCard.pos[1]===c) { dbgEvent('warn', `tap blocked: challenge card`); return; }
   // Block non-swappable cards entirely (e.g. challenge card)
-  if (!cardCan(gridData[r]?.[c], 'select') && !cardCan(gridData[r]?.[c], 'swap')) return;
+  if (!cardCan(gridData[r]?.[c], 'select') && !cardCan(gridData[r]?.[c], 'swap')) { dbgEvent('warn', `tap blocked: cardCan=false`, { card: _cardStr }); return; }
 
   const now = Date.now();
   const isDoubleTap = lastTapCell &&
