@@ -2779,8 +2779,13 @@
   <div class="dev-section">
     <div class="dev-section-title">Event Log <span id="dev-log-count" style="color:var(--cream-dim);">(0)</span></div>
     <div id="dev-event-log">No events yet.</div>
+    <div style="display:flex;align-items:center;gap:8px;margin-top:2px;">
+      <span style="font-family:'Cinzel',serif;font-size:9px;color:var(--cream-dim);letter-spacing:1px;">COPY LAST</span>
+      <input id="dev-log-n" type="range" min="5" max="80" value="20" step="5" oninput="document.getElementById('dev-log-n-val').textContent=this.value" style="flex:1;accent-color:var(--gold);">
+      <span id="dev-log-n-val" style="font-family:'Courier New',monospace;font-size:10px;color:var(--gold);min-width:18px;">20</span>
+    </div>
     <div class="dev-row">
-      <button id="dev-log-copy" onclick="devLogCopy()">Copy All</button>
+      <button id="dev-log-copy" onclick="devLogCopy()">Copy</button>
       <button id="dev-log-clear" onclick="devLogClear()">Clear</button>
     </div>
   </div>
@@ -3083,7 +3088,9 @@ function _devLogRender() {
 }
 
 function devLogCopy() {
-  const text = _dbgBuf.map(e => `[${e.ts}] ${e.type.toUpperCase()} ${e.msg}${e.data ? ' ' + e.data : ''}`).join('\n');
+  const n = parseInt(document.getElementById('dev-log-n')?.value || '20');
+  const slice = _dbgBuf.slice(-n);
+  const text = slice.map(e => `[${e.ts}] ${e.type.toUpperCase()} ${e.msg}${e.data ? ' ' + e.data : ''}`).join('\n');
   navigator.clipboard?.writeText(text).then(() => {
     const btn = document.getElementById('dev-log-copy');
     const orig = btn.textContent; btn.textContent = 'Copied!';
@@ -3752,10 +3759,10 @@ function cardKey(rank, suit) { return `${rank}-${suit}`; }
 
 function getNeighbors(r, c) {
   const n = [];
-  if (r > 0) n.push([r-1,c]);
-  if (r < 4) n.push([r+1,c]);
-  if (c > 0) n.push([r,c-1]);
-  if (c < 4) n.push([r,c+1]);
+  if (r > 0)            n.push([r-1,c]);
+  if (r < gridRows - 1) n.push([r+1,c]);
+  if (c > 0)            n.push([r,c-1]);
+  if (c < gridCols - 1) n.push([r,c+1]);
   return n;
 }
 
