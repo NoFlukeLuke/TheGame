@@ -345,12 +345,67 @@
 
   /* Bonus carousel — right half */
   #totem-carousel-wrap { flex: 1; min-width: 0; overflow: hidden; padding-left: 8px; display: flex; flex-direction: column; justify-content: center; }
-  #totem-list { display: flex; flex-direction: column; gap: 2px; overflow-y: auto; }
+  #totem-list {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 4px;
+    align-items: center;
     overflow-y: auto;
     max-height: 52px;
     scrollbar-width: none;
   }
   #totem-list::-webkit-scrollbar { display: none; }
+  .totem-chip {
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    line-height: 1;
+    background: #1a1510;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    user-select: none;
+    transition: transform 0.1s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .totem-chip:hover, .totem-chip:focus {
+    transform: translateY(-2px);
+    border-color: var(--gold);
+    box-shadow: 0 2px 8px rgba(201,168,76,0.35);
+    outline: none;
+  }
+  #totem-tooltip {
+    position: fixed;
+    z-index: 300;
+    max-width: 200px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: #1a1a1a;
+    border: 1.5px solid var(--gold-dim);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.7);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.12s ease;
+  }
+  #totem-tooltip.show { opacity: 1; }
+  .totem-tooltip-name {
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--gold);
+    margin-bottom: 4px;
+    text-align: center;
+  }
+  .totem-tooltip-desc {
+    font-family: 'Crimson Pro', serif;
+    font-size: 11px;
+    line-height: 1.35;
+    color: var(--cream);
+    text-align: center;
+  }
   #bonus-list { display: flex; flex-direction: column; gap: 2px; }
   .bonus-tag { font-size: 7px; padding: 2px 4px; border-radius: 3px; border-left: 2px solid; font-family: 'Crimson Pro', serif; line-height: 1.3; }
   .bonus-tag.common { border-color: #8a9a6a; background: #1a1f10; color: #b0c090; }
@@ -491,8 +546,8 @@
 
   #grid {
     position: relative;
-    width: calc(5 * 57px + 4 * 3px + 6px);
-    height: calc(5 * 75px + 4 * 3px + 6px);
+    width: calc(5 * 57px + 4 * 3px + 6px);  /* fallback; JS overrides via applyGridMetricsToDOM */
+    height: calc(5 * 75px + 4 * 3px + 6px); /* fallback; JS overrides */
     padding: 3px;
     background: radial-gradient(ellipse at center, #1a2e1a 0%, #0e0c0a 80%);
     border-radius: 8px;
@@ -952,8 +1007,8 @@
 
   .card {
     position: absolute;
-    width: 57px;
-    height: 75px;
+    width: var(--card-w, 57px);
+    height: var(--card-h, 75px);
     background: var(--card-bg);
     border: 2px solid var(--card-border);
     border-radius: 5px;
@@ -1836,9 +1891,586 @@
     .bonus-option { min-width: 160px; max-width: 200px; }
   }
   */
+
+  /* ══════════════════════════════════════════════
+     BOSS SYSTEM
+     ══════════════════════════════════════════════ */
+  /* Blocked cell — a "stone" obstacle on the grid during boss fights.
+     Rendered as a div positioned in the same coordinate space as cards. */
+  .blocked-cell {
+    position: absolute;
+    width: 57px;
+    height: 75px;
+    border-radius: 6px;
+    background:
+      radial-gradient(circle at 30% 25%, #5a4a3a 0%, #2a2218 55%, #15110b 100%);
+    border: 1px solid #1a1410;
+    box-shadow:
+      inset 0 2px 4px rgba(255,255,255,0.08),
+      inset 0 -3px 6px rgba(0,0,0,0.6),
+      0 2px 4px rgba(0,0,0,0.5);
+    pointer-events: none;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(120,90,50,0.45);
+    font-size: 24px;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+  }
+  .blocked-cell::before {
+    content: '✦';
+    font-family: serif;
+  }
+  /* Stone card — boss-injected obstacle that occupies grid slots */
+  .stone-card {
+    position: absolute;
+    width: 57px;
+    height: 75px;
+    border-radius: 6px;
+    background:
+      radial-gradient(circle at 35% 30%, #6b5a48 0%, #3a2f24 60%, #1c1610 100%);
+    border: 2px solid #2a2218;
+    box-shadow:
+      inset 0 2px 5px rgba(255,255,255,0.1),
+      inset 0 -4px 8px rgba(0,0,0,0.7),
+      0 3px 6px rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(180,140,90,0.55);
+    font-size: 28px;
+    text-shadow: 0 2px 3px rgba(0,0,0,0.9);
+    cursor: pointer;
+  }
+  .stone-card.swap-pending {
+    box-shadow:
+      inset 0 2px 5px rgba(255,255,255,0.1),
+      inset 0 -4px 8px rgba(0,0,0,0.7),
+      0 0 16px rgba(232,184,75,0.7),
+      0 0 32px rgba(232,184,75,0.4);
+    border-color: var(--gold);
+  }
+  .stone-card .stone-glyph {
+    font-family: serif;
+    pointer-events: none;
+  }
+
+  /* Boss objective HUD — small panel above the grid */
+  #boss-objective-hud {
+    position: absolute;
+    top: -52px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(180deg, rgba(40,12,8,0.95), rgba(20,6,4,0.95));
+    border: 1px solid var(--red);
+    border-radius: 6px;
+    padding: 6px 16px;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.6), 0 0 16px rgba(192,57,43,0.3);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    z-index: 40;
+  }
+  #boss-objective-hud.show { opacity: 1; }
+  .boss-objective-label {
+    font-family: 'Cinzel', serif;
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--red);
+    margin-bottom: 2px;
+  }
+  .boss-objective-progress {
+    font-family: 'Cinzel', serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--cream);
+  }
+  #boss-bc-pools {
+    margin-top: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-width: 240px;
+  }
+  .boss-pool {
+    font-family: 'Cinzel', serif;
+    font-size: 9px;
+    letter-spacing: 0.5px;
+    line-height: 1.2;
+  }
+  .boss-pool-label { font-weight: 700; }
+  .pool-active   { color: var(--red); opacity: 1; }
+  .pool-inactive { color: var(--cream); opacity: 0.55; }
+  #grid.boss-active {
+    border-color: var(--red);
+    box-shadow: 0 0 24px rgba(192,57,43,0.35), inset 0 0 18px rgba(192,57,43,0.18);
+    animation: bossGridPulse 2s ease-in-out infinite;
+  }
+  @keyframes bossGridPulse {
+    0%, 100% { box-shadow: 0 0 24px rgba(192,57,43,0.35), inset 0 0 18px rgba(192,57,43,0.18); }
+    50%      { box-shadow: 0 0 36px rgba(192,57,43,0.55), inset 0 0 28px rgba(192,57,43,0.28); }
+  }
+
+  /* Boss banner — slides in at top of grid when boss starts */
+  #boss-banner {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) scale(0.6);
+    z-index: 60;
+    pointer-events: none;
+    opacity: 0;
+    text-align: center;
+    transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.2, 1.4, 0.4, 1);
+  }
+  #boss-banner.show {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  .boss-banner-title {
+    font-family: 'Cinzel', serif;
+    font-weight: 900;
+    font-size: 38px;
+    letter-spacing: 6px;
+    color: var(--red);
+    text-shadow:
+      0 0 12px rgba(192,57,43,0.7),
+      0 2px 8px rgba(0,0,0,0.9);
+    margin-bottom: 6px;
+  }
+  .boss-banner-sub {
+    font-family: 'Cinzel', serif;
+    font-size: 13px;
+    letter-spacing: 4px;
+    color: var(--cream);
+    text-transform: uppercase;
+  }
+
+  /* Boss timer — replaces the clock visually during boss */
+  #clock.boss-mode { color: var(--red); }
+  #clock-bar.boss-mode { background: linear-gradient(90deg, #c0392b, #e84a3a); }
+
+  /* Boss result overlay (win or loss flash) */
+  #boss-result {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 70;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+  }
+  #boss-result.show { opacity: 1; }
+  .boss-result-text {
+    font-family: 'Cinzel', serif;
+    font-weight: 900;
+    font-size: 42px;
+    letter-spacing: 8px;
+    text-shadow: 0 0 16px currentColor, 0 4px 12px rgba(0,0,0,0.8);
+  }
+  .boss-result-text.win  { color: var(--gold); }
+  .boss-result-text.loss { color: var(--red); }
+
+  /* ── Boss Reward Grid Overlay ── */
+  #reward-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(8,4,2,0.92);
+    z-index: 200;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  #reward-overlay.show { display: flex; }
+  #reward-header {
+    text-align: center;
+    margin-bottom: 16px;
+  }
+  #reward-title {
+    font-family: 'Cinzel', serif;
+    font-weight: 900;
+    font-size: 24px;
+    letter-spacing: 6px;
+    color: var(--gold);
+    text-shadow: 0 0 12px rgba(232,184,75,0.5);
+    margin-bottom: 4px;
+  }
+  #reward-sub {
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    letter-spacing: 1px;
+    color: var(--cream);
+    opacity: 0.8;
+    max-width: 320px;
+  }
+  #reward-grid {
+    display: grid;
+    /* columns/rows set dynamically by JS via style attribute */
+    gap: 8px;
+    margin: 20px 0;
+  }
+  .reward-cell {
+    position: relative;
+    border-radius: 6px;
+    border: 2px solid #2a2218;
+    background: linear-gradient(180deg, #1a1410, #0e0a06);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 6px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    color: var(--cream);
+    font-family: 'Cinzel', serif;
+    user-select: none;
+    width: 80px;
+    height: 80px;
+  }
+  .reward-cell.buff      { border-color: var(--gold); }
+  .reward-cell.debuff    { border-color: var(--red); }
+  .reward-cell.dest      { border-color: #8844cc; border-width: 2px; }
+  .reward-cell.dest .reward-tier { color: #bb88ff; }
+  .reward-cell.selected  {
+    box-shadow: 0 0 16px rgba(232,184,75,0.7), inset 0 0 12px rgba(232,184,75,0.3);
+    transform: scale(1.05);
+    border-color: var(--gold) !important;
+    border-width: 2px !important;
+  }
+  .reward-cell.selectable:not(.selected):hover { transform: scale(1.04); opacity: 1; }
+  .reward-cell.unselectable { opacity: 0.35; cursor: not-allowed; }
+  .reward-icon {
+    font-size: 22px;
+    margin-bottom: 4px;
+  }
+  .reward-label {
+    font-size: 9px;
+    line-height: 1.15;
+    letter-spacing: 0.5px;
+  }
+  .reward-tier {
+    position: absolute;
+    top: 2px; left: 4px;
+    font-size: 7px;
+    letter-spacing: 1px;
+    color: var(--gold);
+    opacity: 0.7;
+  }
+  #reward-footer {
+    text-align: center;
+    margin-top: 8px;
+  }
+  #reward-collected {
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    color: var(--cream);
+    margin-bottom: 10px;
+    max-width: 320px;
+    line-height: 1.4;
+  }
+  #reward-collected-list { color: var(--gold); }
+  #reward-btn-row {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+  }
+  #reward-confirm, #reward-clear {
+    font-family: 'Cinzel', serif;
+    font-size: 13px;
+    letter-spacing: 2px;
+    padding: 10px 28px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  #reward-confirm {
+    background: linear-gradient(180deg, #3a2814, #1a1208);
+    border: 2px solid var(--gold);
+    color: var(--gold);
+  }
+  #reward-confirm:disabled { opacity: 0.4; cursor: not-allowed; }
+  #reward-confirm:not(:disabled):hover { background: linear-gradient(180deg, #4a3018, #221610); }
+  #reward-clear {
+    background: linear-gradient(180deg, #1a1010, #0e0808);
+    border: 2px solid var(--cream-dim);
+    color: var(--cream-dim);
+  }
+  #reward-clear:disabled { opacity: 0.4; cursor: not-allowed; }
+  #reward-clear:not(:disabled):hover { border-color: var(--cream); color: var(--cream); }
+
+  /* ── LIMIT BREAK EVENT ── */
+  #limitbreak-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(6,3,2,0.95);
+    z-index: 260;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 18px;
+    overflow-y: auto;
+    gap: 16px;
+  }
+  #limitbreak-overlay.show { display: flex; }
+  #lb-title {
+    font-family: 'Cinzel', serif;
+    font-weight: 900;
+    font-size: 26px;
+    letter-spacing: 6px;
+    color: var(--gold);
+    text-shadow: 0 0 14px rgba(232,184,75,0.5);
+  }
+  #lb-sub {
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    letter-spacing: 1px;
+    color: var(--cream);
+    opacity: 0.8;
+    text-align: center;
+    max-width: 340px;
+    margin-top: -8px;
+  }
+  #lb-offers {
+    display: flex;
+    gap: 14px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin: 8px 0;
+  }
+  .lb-offer {
+    position: relative;
+    width: 120px;
+    min-height: 150px;
+    border-radius: 8px;
+    border: 2px solid var(--gold-dim);
+    background: linear-gradient(180deg, #1a1410, #0e0a06);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 14px 8px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    color: var(--cream);
+    font-family: 'Cinzel', serif;
+    user-select: none;
+  }
+  .lb-offer:hover:not(.disabled) { transform: translateY(-3px); border-color: var(--gold); }
+  .lb-offer.selected {
+    border-color: var(--gold);
+    box-shadow: 0 0 20px rgba(232,184,75,0.6), inset 0 0 14px rgba(232,184,75,0.25);
+    transform: translateY(-3px) scale(1.03);
+  }
+  .lb-offer.blind { border-color: #6a4caa; border-style: dashed; }
+  .lb-offer.blind.selected { border-color: #aa7ce0; box-shadow: 0 0 20px rgba(150,90,230,0.6); }
+  .lb-offer.disabled { opacity: 0.3; cursor: not-allowed; }
+  .lb-offer.maxed { opacity: 0.45; cursor: not-allowed; border-color: var(--cream-dim); }
+  .lb-offer-icon { font-size: 30px; margin-bottom: 8px; }
+  .lb-offer-label { font-size: 11px; letter-spacing: 0.5px; line-height: 1.2; margin-bottom: 6px; }
+  .lb-offer-desc { font-family: 'Crimson Pro', serif; font-size: 10px; color: var(--cream-dim); line-height: 1.25; }
+  .lb-offer-prog { font-size: 9px; color: var(--gold); margin-top: 6px; letter-spacing: 1px; }
+  .lb-offer-maxed-badge { font-size: 9px; color: var(--cream-dim); margin-top: 6px; letter-spacing: 2px; }
+  .lb-offer-tag { position: absolute; top: 4px; right: 6px; font-size: 8px; letter-spacing: 1px; color: var(--gold-dim); }
+  .lb-offer.blind .lb-offer-tag { color: #aa7ce0; }
+
+  #lb-sacrifice {
+    width: 100%;
+    max-width: 380px;
+    border-top: 1px solid var(--border);
+    padding-top: 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+  #lb-sacrifice-title { font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: 2px; color: var(--cream-dim); text-transform: uppercase; }
+  #lb-sacrifice-hint { font-family: 'Crimson Pro', serif; font-size: 11px; color: var(--cream-dim); text-align: center; max-width: 340px; line-height: 1.3; }
+  #lb-sacrifice-options { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  .lb-sac-btn {
+    font-family: 'Cinzel', serif;
+    font-size: 10px;
+    letter-spacing: 1px;
+    padding: 7px 12px;
+    border-radius: 5px;
+    background: linear-gradient(180deg, #2a1410, #160a08);
+    border: 1px solid var(--red);
+    color: var(--cream);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .lb-sac-btn:hover:not(:disabled) { background: linear-gradient(180deg, #3a1c14, #200e0a); }
+  .lb-sac-btn.active { border-color: var(--gold); color: var(--gold); box-shadow: 0 0 10px rgba(232,184,75,0.4); }
+  .lb-sac-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  #lb-confirm {
+    font-family: 'Cinzel', serif;
+    font-size: 14px;
+    letter-spacing: 3px;
+    padding: 12px 36px;
+    background: linear-gradient(180deg, #3a2814, #1a1208);
+    border: 2px solid var(--gold);
+    color: var(--gold);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-top: 8px;
+  }
+  #lb-confirm:disabled { opacity: 0.4; cursor: not-allowed; }
+  #lb-confirm:not(:disabled):hover { background: linear-gradient(180deg, #4a3018, #221610); }
+
+  /* ── MAIN MENU OVERLAY ── */
+  #main-menu-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(8, 4, 2, 0.98);
+    z-index: 9999;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  #main-menu-overlay.show { display: flex; }
+
+  #menu-container {
+    width: 100%;
+    max-width: 420px;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+
+  #menu-title {
+    font-family: 'Cinzel', serif;
+    font-size: 38px;
+    font-weight: 900;
+    color: var(--gold);
+    letter-spacing: 8px;
+    text-align: center;
+    text-shadow: 0 0 16px rgba(201,168,76,0.4);
+    margin-bottom: 12px;
+  }
+
+  #menu-tabs {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+  }
+
+  .menu-tab {
+    font-family: 'Cinzel', serif;
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    background: transparent;
+    border: none;
+    color: var(--cream-dim);
+    cursor: pointer;
+    padding: 6px 12px;
+    transition: color 0.15s ease;
+  }
+  .menu-tab.active {
+    color: var(--gold);
+    font-weight: 700;
+    text-shadow: 0 0 8px rgba(201,168,76,0.3);
+  }
+
+  .menu-content { display: none; flex-direction: column; gap: 10px; min-height: 300px; }
+  .menu-content.active { display: flex; }
+
+  .mode-select-btn {
+    background: #13110e;
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-align: left;
+  }
+  .mode-select-btn:hover { border-color: var(--gold-dim); transform: translateY(-2px); }
+  .mode-select-btn.selected {
+    border-color: var(--gold);
+    box-shadow: 0 0 16px rgba(201,168,76,0.25), inset 0 0 8px rgba(201,168,76,0.1);
+    background: #1a1610;
+  }
+
+  .mode-name {
+    font-family: 'Cinzel', serif;
+    font-size: 16px;
+    color: var(--cream);
+    font-weight: 700;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+  .mode-select-btn.selected .mode-name { color: var(--gold); }
+
+  .mode-desc {
+    font-family: 'Crimson Pro', serif;
+    font-size: 12px;
+    color: var(--cream-dim);
+    line-height: 1.4;
+  }
+
+  #menu-start-btn {
+    font-family: 'Cinzel', serif;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 4px;
+    color: #0e0c0a;
+    background: var(--gold);
+    border: 2px solid #e0bc5a;
+    border-radius: 6px;
+    padding: 14px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.15s;
+    margin-top: 12px;
+  }
+  #menu-start-btn:hover { background: #e0bc5a; transform: scale(1.02); }
+  #menu-start-btn:active { transform: scale(0.98); }
+
 </style>
 </head>
 <body>
+<div id="totem-tooltip" role="tooltip"></div>
+
+<div id="main-menu-overlay" class="show">
+  <div id="menu-container">
+    <div id="menu-title">POKER GRID</div>
+
+    <div id="menu-tabs">
+      <button class="menu-tab active" onclick="switchMenuTab(event,'modes')">Modes</button>
+      <button class="menu-tab" onclick="switchMenuTab(event,'options')">Options</button>
+      <button class="menu-tab" onclick="switchMenuTab(event,'history')">History</button>
+    </div>
+
+    <div id="menu-content-modes" class="menu-content active"></div>
+
+    <div id="menu-content-options" class="menu-content">
+      <p style="color:var(--cream-dim); text-align:center; font-family:'Crimson Pro', serif; font-size: 14px; margin-top: 20px;">
+        Settings coming soon.
+      </p>
+    </div>
+
+    <div id="menu-content-history" class="menu-content">
+      <p style="color:var(--cream-dim); text-align:center; font-family:'Crimson Pro', serif; font-size: 14px; margin-top: 20px;">
+        Run history coming soon.
+      </p>
+    </div>
+
+    <button id="menu-start-btn" onclick="startFromMenu()">START RUN</button>
+  </div>
+</div>
+
 <div id="stage">
 
 <!-- DECK HUD (debug) -->
@@ -1942,7 +2574,10 @@
       </div>
       <div id="focus-mult-readout" class="dim">×1.0</div>
     </div>
-    <div id="grid"></div>
+    <div id="grid">
+      <div id="boss-banner"><div class="boss-banner-title">BOSS</div><div class="boss-banner-sub" id="boss-banner-sub">Survive 3:00</div></div>
+      <div id="boss-result"><div class="boss-result-text" id="boss-result-text"></div></div>
+    </div>
     <div id="action-col">
       <button class="act-btn btn-discard" id="btn-discard" disabled>D&#10;I&#10;S&#10;C&#10;A&#10;R&#10;D<br><span id="disc-count" style="writing-mode:initial;transform:none;font-size:9px"></span></button>
       <button class="act-btn btn-play" id="btn-play" disabled>P&#10;L&#10;A&#10;Y</button>
@@ -2037,6 +2672,37 @@
     </div>
   </div>
 
+  <!-- BOSS -->
+  <div class="dev-section">
+    <div class="dev-section-title">Boss</div>
+    <div class="dev-row">
+      <button class="dev-btn" onclick="devTriggerBoss('stone_lord')">Stone Lord</button>
+      <button class="dev-btn" onclick="devTriggerBoss('voidwright')">Voidwright</button>
+    </div>
+    <div class="dev-row">
+      <button class="dev-btn" onclick="devTriggerBoss('hand_of_famine')">Hand of Famine</button>
+      <button class="dev-btn" onclick="devTriggerBoss('cornerless_king')">Cornerless King</button>
+    </div>
+    <div class="dev-row">
+      <button class="dev-btn" onclick="devEndBossWin()">End Boss (Win)</button>
+      <button class="dev-btn" onclick="devEndBossLose()">End Boss (Lose)</button>
+    </div>
+    <div class="dev-row">
+      <button class="dev-btn" onclick="devOpenRewardGrid()">Open Reward Grid</button>
+    </div>
+  </div>
+
+  <!-- EVENTS -->
+  <div class="dev-section">
+    <div class="dev-section-title">Events</div>
+    <div class="dev-row">
+      <button class="dev-btn" onclick="devTriggerEvent('limit_break')">Limit Break</button>
+      <button class="dev-btn" onclick="devTriggerEvent('shop')">Shop</button>
+    </div>
+    <div id="dev-limits-display" style="font-family:'Courier New',monospace;font-size:9px;color:var(--cream-dim);line-height:1.6;margin-top:4px;"></div>
+    <div class="dev-row" style="flex-wrap:wrap;gap:4px;" id="dev-limits-btns"></div>
+  </div>
+
   <!-- CARD FALL SPEED -->
   <div class="dev-section">
     <div class="dev-section-title">Card Fall Speed (interlude) <span id="dev-fall-val">1×</span></div>
@@ -2055,6 +2721,14 @@
     <input id="dev-bonus-search" type="text" placeholder="Search bonus name..." oninput="devFilterBonuses(this.value)"
       style="width:100%;background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--cream);font-family:'Crimson Pro',serif;font-size:13px;padding:6px 8px;border-radius:4px;margin-bottom:6px;">
     <div id="dev-bonus-list" style="display:flex;flex-direction:column;gap:4px;max-height:160px;overflow-y:auto;"></div>
+  </div>
+
+  <!-- ADD TOTEM -->
+  <div class="dev-section">
+    <div class="dev-section-title">Add Totem</div>
+    <input id="dev-totem-search" type="text" placeholder="Search totem name..." oninput="devFilterTotems(this.value)"
+      style="width:100%;background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--cream);font-family:'Crimson Pro',serif;font-size:13px;padding:6px 8px;border-radius:4px;margin-bottom:6px;">
+    <div id="dev-totem-list" style="display:flex;flex-direction:column;gap:4px;max-height:160px;overflow-y:auto;"></div>
   </div>
 
   <!-- ADD FOCUS -->
@@ -2210,6 +2884,37 @@
   <button id="shop-close">Leave Shop</button>
 </div>
 
+<!-- BOSS REWARD GRID OVERLAY -->
+<div id="reward-overlay">
+  <div id="reward-header">
+    <div id="reward-title">SPOILS OF VICTORY</div>
+    <div id="reward-sub">Select any connected group of cells to claim their rewards.</div>
+  </div>
+
+  <div id="reward-grid"></div>
+
+  <div id="reward-footer">
+    <div id="reward-collected">Claiming: <span id="reward-collected-list">—</span></div>
+    <div id="reward-btn-row">
+      <button id="reward-clear" disabled>Clear</button>
+      <button id="reward-confirm" disabled>Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- LIMIT BREAK EVENT OVERLAY -->
+<div id="limitbreak-overlay">
+  <div id="lb-title">LIMIT BREAK</div>
+  <div id="lb-sub">Choose one limit to break. Sacrifice to break a second.</div>
+  <div id="lb-offers"></div>
+  <div id="lb-sacrifice">
+    <div id="lb-sacrifice-title">Second Pick — Sacrifice</div>
+    <div id="lb-sacrifice-hint">Pick a second limit by giving something up.</div>
+    <div id="lb-sacrifice-options"></div>
+  </div>
+  <button id="lb-confirm" disabled>Confirm</button>
+</div>
+
 <!-- LEVEL UP OVERLAY -->
 <div id="levelup-overlay">
   <div id="levelup-title">LEVEL UP</div>
@@ -2253,11 +2958,147 @@
 
 <script>
 // ══════════════════════════════════════════════
+// MODES & FEATURE FLAGS
+// ══════════════════════════════════════════════
+const MODES = {
+  normal: {
+    id: 'normal',
+    name: 'Normal Mode',
+    desc: '3-Act structure. Play rounds, path through the reward grid, and defeat bosses.',
+    winCondition: 'boss_defeat',
+    enableBosses: true,
+    enableShops: true,
+    enableEvents: true,
+    autoRefillGrid: true,
+    timeIsCurrency: true,
+    autoPlayHands: false
+  },
+  survival: {
+    id: 'survival',
+    name: 'Survival Mode',
+    desc: 'The original prototype. Survive escalating goals for 20 minutes.',
+    winCondition: 'survive_20_min',
+    enableBosses: false,
+    enableShops: false,
+    enableEvents: false,
+    autoRefillGrid: true,
+    timeIsCurrency: false,
+    autoPlayHands: false
+  },
+  tetris: {
+    id: 'tetris',
+    name: 'Clear the Board',
+    desc: 'Cards do not refill automatically. Clear the grid before the time forces a drop.',
+    winCondition: 'clear_grid',
+    enableBosses: false,
+    enableShops: true,
+    enableEvents: false,
+    autoRefillGrid: false,
+    timeIsCurrency: true,
+    autoPlayHands: false
+  },
+  autoplay: {
+    id: 'autoplay',
+    name: 'Auto-Match',
+    desc: 'Correctly ordered hands automatically play themselves. Fast-paced chaining.',
+    winCondition: 'boss_defeat',
+    enableBosses: true,
+    enableShops: true,
+    enableEvents: true,
+    autoRefillGrid: true,
+    timeIsCurrency: true,
+    autoPlayHands: true
+  }
+};
+
+let ACTIVE_MODE = MODES.survival;
+
+function initMainMenu() {
+  renderMenuModes();
+  document.getElementById('main-menu-overlay').classList.add('show');
+}
+
+function switchMenuTab(e, tabId) {
+  document.querySelectorAll('.menu-tab').forEach(btn => btn.classList.remove('active'));
+  e.target.classList.add('active');
+  document.querySelectorAll('.menu-content').forEach(c => c.classList.remove('active'));
+  document.getElementById(`menu-content-${tabId}`).classList.add('active');
+}
+
+function renderMenuModes() {
+  const container = document.getElementById('menu-content-modes');
+  container.innerHTML = '';
+  Object.values(MODES).forEach(mode => {
+    const btn = document.createElement('div');
+    btn.className = `mode-select-btn ${ACTIVE_MODE.id === mode.id ? 'selected' : ''}`;
+    btn.innerHTML = `<div class="mode-name">${mode.name}</div><div class="mode-desc">${mode.desc}</div>`;
+    btn.onclick = () => { ACTIVE_MODE = mode; renderMenuModes(); };
+    container.appendChild(btn);
+  });
+}
+
+function startFromMenu() {
+  document.getElementById('main-menu-overlay').classList.remove('show');
+  startGame();
+}
+
+// ══════════════════════════════════════════════
 // CONSTANTS
 // ══════════════════════════════════════════════
-const CARD_H = 75, CARD_GAP = 3, CARD_STEP = CARD_H + CARD_GAP;
-const CARD_W = 57;
-const GRID_PAD = 3; // matches #grid padding
+// ── GRID METRICS (dynamic) ──
+// Card dimensions and grid dimensions are mutable; recomputeGridMetrics() resizes
+// cards to fit a fixed footprint as the grid grows. cellLeft/cellTop and all
+// animation paths read these live values, so resizing propagates everywhere.
+let CARD_H = 75, CARD_GAP = 3, CARD_STEP = CARD_H + CARD_GAP;
+let CARD_W = 57;
+let GRID_PAD = 3; // matches #grid padding
+
+let gridRows = 4; // playing-grid rows (set from limits at round start)
+let gridCols = 4; // playing-grid columns
+
+// Fixed footprint budget within the 420px design canvas (leaves edge buffer).
+// Cards shrink to fit; a minimum size lets the widest grids slightly exceed.
+const GRID_FOOTPRINT_W = 340; // target max grid width (px, design units)
+const GRID_FOOTPRINT_H = 392; // target max grid height (px, design units)
+const CARD_MIN_W = 40;        // floor — below this we let the footprint grow
+const CARD_MIN_H = 53;        // keeps 3:4ish aspect
+const CARD_ASPECT = 75 / 57;  // height / width, preserved on resize
+
+function recomputeGridMetrics() {
+  const cols = gridCols, rows = gridRows;
+  // Width available for cards = footprint - padding(both sides) - gaps
+  const innerW = GRID_FOOTPRINT_W - GRID_PAD * 2 - CARD_GAP * (cols - 1);
+  const innerH = GRID_FOOTPRINT_H - GRID_PAD * 2 - CARD_GAP * (rows - 1);
+  let w = Math.floor(innerW / cols);
+  let h = Math.floor(innerH / rows);
+  // Constrain to aspect ratio: pick the smaller-fitting dimension, derive the other
+  if (h / w > CARD_ASPECT) h = Math.round(w * CARD_ASPECT); // width-bound
+  else                     w = Math.round(h / CARD_ASPECT); // height-bound
+  // Never exceed the original 57×75 (don't upscale small grids past default)
+  w = Math.min(w, 57);
+  h = Math.min(h, 75);
+  // Apply minimum floor (grid may slightly exceed footprint here — acceptable)
+  w = Math.max(w, CARD_MIN_W);
+  h = Math.max(h, CARD_MIN_H);
+
+  CARD_W = w;
+  CARD_H = h;
+  CARD_STEP = CARD_H + CARD_GAP;
+
+  applyGridMetricsToDOM();
+}
+
+function applyGridMetricsToDOM() {
+  const gridEl = document.getElementById('grid');
+  if (!gridEl) return;
+  const totalW = gridCols * CARD_W + (gridCols - 1) * CARD_GAP + GRID_PAD * 2;
+  const totalH = gridRows * CARD_H + (gridRows - 1) * CARD_GAP + GRID_PAD * 2;
+  gridEl.style.width  = totalW + 'px';
+  gridEl.style.height = totalH + 'px';
+  // Push live card size to CSS custom props so .card / fonts can react
+  document.documentElement.style.setProperty('--card-w', CARD_W + 'px');
+  document.documentElement.style.setProperty('--card-h', CARD_H + 'px');
+}
 
 function cellLeft(c) { return GRID_PAD + c * (CARD_W + CARD_GAP); }
 function cellTop(r)  { return GRID_PAD + r * (CARD_H + CARD_GAP); }
@@ -2295,6 +3136,10 @@ function suitClass(suit) {
 // Central card capability gate — add new card types here, nowhere else
 function cardCan(card, action) {
   if (!card) return false;
+  if (card._isStone) {
+    // Stones can be drawn, fall, render, and be swapped. Nothing else.
+    return action === 'fall' || action === 'render' || action === 'swap' || action === 'draw';
+  }
   if (card._isBC) {
     // BCs fall, render, and swap like normal cards — but can't be selected or scored
     return action === 'fall' || action === 'render' || action === 'swap';
@@ -2523,6 +3368,65 @@ let leaves = 0;
 let handsPlayed = 0;
 let discards = 4;
 let swaps = 3;
+
+// ── LIMITS SYSTEM ──
+// Each limit has a current value, a base (starting) value, and a max cap.
+// Incrementing via Limit Break event or shop raises `current` by 1 up to `max`.
+// The game reads limits.X.current wherever it previously used a hard-coded cap.
+// hideMax: don't surface the max anywhere in UI (limit feels "open-ended").
+const LIMITS_DEF = [
+  { id: 'selection',   label: 'Selection Size',  icon: '✋', desc: 'Max cards selectable at once',      base: 3,   max: 9, hideMax: true },
+  { id: 'grid_rows',   label: 'Grid Rows',       icon: '⬍', desc: 'Rows in the playing grid',          base: 4,   max: 7 },
+  { id: 'grid_cols',   label: 'Grid Columns',    icon: '⬌', desc: 'Columns in the playing grid',       base: 4,   max: 7 },
+  { id: 'swaps',       label: 'Swaps/Round',      icon: '🔄', desc: 'Swaps granted at round start',      base: 3,   max: 8 },
+  { id: 'discards',    label: 'Discards/Round',   icon: '🗑', desc: 'Discards granted at round start',   base: 3,   max: 8 },
+  { id: 'round_time',  label: 'Round Time',       icon: '⏱', desc: 'Max seconds per round',             base: 180, max: 300 },
+  { id: 'reward_rows', label: 'Reward Grid Rows', icon: '⬍', desc: 'Rows of the reward grid',           base: 3,   max: 5 },
+  { id: 'reward_cols', label: 'Reward Grid Cols', icon: '⬌', desc: 'Columns of the reward grid',        base: 3,   max: 5 },
+  { id: 'reroll',      label: 'Shop Rerolls',     icon: '🎲', desc: 'Rerolls available per shop visit',  base: 3,   max: 6 },
+];
+const limits = {};
+LIMITS_DEF.forEach(def => {
+  limits[def.id] = { current: def.base, base: def.base, max: def.max };
+});
+
+// Helper: increment a limit by 1, returns true if successful
+function incrementLimit(id) {
+  const l = limits[id];
+  if (!l || l.current >= l.max) return false;
+  l.current++;
+  onLimitChanged(id);
+  return true;
+}
+// Helper: decrement a limit by 1 (for sacrifice), returns true if successful
+function decrementLimit(id) {
+  const l = limits[id];
+  if (!l || l.current <= 0) return false;
+  l.current--;
+  onLimitChanged(id);
+  return true;
+}
+// Returns the display string for a limit's progress, respecting hideMax
+function limitProgressStr(id, showNext) {
+  const def = LIMITS_DEF.find(d => d.id === id);
+  const l = limits[id];
+  if (def && def.hideMax) {
+    return showNext ? `${l.current} → ${l.current + 1}` : `${l.current}`;
+  }
+  return showNext ? `${l.current} → ${l.current + 1} / ${l.max}` : `${l.current} / ${l.max}`;
+}
+// Called after any limit change — applies immediate side effects
+function onLimitChanged(id) {
+  if (id === 'round_time') {
+    roundSeconds = Math.min(roundSeconds, limits.round_time.current);
+    updateClockUI();
+  }
+  if (id === 'swaps' || id === 'discards') {
+    render();
+  }
+  // grid_rows / grid_cols take effect at next round start (see grid sizing work)
+}
+// ── END LIMITS SYSTEM ──
 let accumulatedSwaps = 0;    // banked unused swaps (Reserves: Swaps)
 let accumulatedDiscards = 0; // banked unused discards (Reserves: Discards)
 let accumulatedSeconds = 0;  // banked unused round seconds (Reserves: Time)
@@ -2561,9 +3465,28 @@ const C = {
   handsThisRound: 0,
 };
 let acquiredBonuses = [];
+let acquiredTotems = [];
+
+// Totems — persistent UI bonuses (third entity alongside BCs and Jokers).
+// Acquired via shop (TBD); for now grantable via dev mode.
+const TOTEM_POOL = [
+  { id: 'free_swaps',       emoji: '🕊️', name: 'Free Swaps',     desc: 'Swapping cards costs no time.' },
+  { id: 'free_discards',    emoji: '🪶', name: 'Free Discards',  desc: 'Discarding costs no time.' },
+  { id: 'steady_hand',      emoji: '♾️', name: 'Steady Hand',    desc: 'Swaps no longer count against the swap limit, but cost 2× time.' },
+  { id: 'hoarder',          emoji: '🗑️', name: 'Hoarder',        desc: 'Discards no longer count against the discard limit, but cost 2× time.' },
+  { id: 'time_bank',        emoji: '⏳', name: 'Time Bank',      desc: '+30 seconds at the start of every round.' },
+  { id: 'inheritance',      emoji: '💰', name: 'Inheritance',    desc: 'Start each round with +5 coins.' },
+  { id: 'head_start',       emoji: '🌱', name: 'Head Start',     desc: 'Start each round at 10% of the round goal.' },
+  { id: 'combo_keeper',     emoji: '🔥', name: 'Combo Keeper',   desc: 'Streaks survive one non-streak hand. Re-arms after 2 streak hands.' },
+  { id: 'lucky_seven',      emoji: '🎯', name: 'Lucky Seven',    desc: 'Every 7th hand played gives +1 swap.' },
+];
 // streak tracking
 let lastHandType = null;
 let streakCount = 0;
+// Combo Keeper totem state — save is armed initially; consumed on off-type hand;
+// re-arms after 2 streak hands in a row following the off-type hand
+let streakSaveArmed = true;
+let streakSaveProgress = 0; // 0..2 — counts streak hands toward re-arm
 let lastHandTime = 0;
 let lastSwapTime = 0; // for Still Water bonus
 
@@ -2595,6 +3518,22 @@ let challengeOverlayTimer = null;
 let isChallengeBonusPick = false; // true when selectBonus is called from a challenge reward, not a level-up
 let nextShopTime = GAME_DURATION - 120; // first shop after 2 minutes elapsed
 let coins = 0;
+
+// ══════════════════════════════════════════════
+// BOSS SYSTEM (v1)
+// ══════════════════════════════════════════════
+const BOSS_LOOP_DURATION  = 360; // boss every 6 minutes
+const BOSS_WINDOW_DURATION = 180; // 3 minutes to survive
+const BOSS_BLOCKED_CELLS_MIN = 3;
+const BOSS_BLOCKED_CELLS_MAX = 5;
+
+let nextBossTime  = GAME_DURATION - BOSS_LOOP_DURATION; // first boss at 6-min mark elapsed
+let bossActive    = false;
+let bossSecondsLeft = 0;
+let bossInterval  = null;
+let blockedCells  = new Set(); // keys like "r-c"
+let bossNumber    = 0;
+let savedRoundSeconds = 0; // round timer value at boss start, to restore after
 
 // Permanent pip bonuses per card key "rank-suit"
 let permPips = {};   // { "A-♠": 3, ... }
@@ -2684,7 +3623,9 @@ function shuffle(arr) {
 
 function drawCard() {
   if (drawPile.length === 0) return null; // exhausted
-  const c = stampId(drawPile.shift());
+  let c = stampId(drawPile.shift());
+  // Famine modifier: bias drawn rank toward low cards
+  c = maybeFamineDrawSwap(c);
   updateDeckHud();
   return c;
 }
@@ -2711,15 +3652,16 @@ function flushPlayedDeck() {
 // ══════════════════════════════════════════════
 function initGridData() {
   const fullDeck = freshShuffledDeck();
-  // First 25 cards go on the grid, rest go to future deck
+  const cellCount = gridRows * gridCols;
+  // First cellCount cards go on the grid, rest go to future deck
   gridData = [];
-  for (let r = 0; r < 5; r++) {
+  for (let r = 0; r < gridRows; r++) {
     gridData[r] = [];
-    for (let c = 0; c < 5; c++) {
-      gridData[r][c] = fullDeck[r*5+c];
+    for (let c = 0; c < gridCols; c++) {
+      gridData[r][c] = fullDeck[r*gridCols+c];
     }
   }
-  drawPile = fullDeck.slice(25); // remaining 27 cards become the round's draw stack
+  drawPile = fullDeck.slice(cellCount); // remaining cards become the round's draw stack
   playedPile = [];
   bonusCardPos = null;
 }
@@ -2732,9 +3674,9 @@ function dealGrid() {
   const gridEl = document.getElementById('grid');
   if (gridEl) gridEl.querySelectorAll('.card[data-card-id], .bc-card').forEach(el => el.remove());
   gridData = [];
-  for (let r = 0; r < 5; r++) {
+  for (let r = 0; r < gridRows; r++) {
     gridData[r] = [];
-    for (let c = 0; c < 5; c++) {
+    for (let c = 0; c < gridCols; c++) {
       gridData[r][c] = drawCard() || null;
     }
   }
@@ -2779,8 +3721,11 @@ function getReachable() {
   if (selected.length === 0) return null; // all reachable
   const reachable = new Set(selected.map(([r,c])=>`${r}-${c}`));
   selected.forEach(([r,c]) => getNeighbors(r,c).forEach(([nr,nc]) => {
-    // Don't expose null/challenge cells as reachable
-    if (gridData[nr][nc] !== null) reachable.add(`${nr}-${nc}`);
+    const card = gridData[nr][nc];
+    if (card === null) return;            // empty cells unreachable
+    if (isCellBlocked(nr, nc)) return;    // voids unreachable
+    if (card._isStone) return;            // stones unreachable for selection
+    reachable.add(`${nr}-${nc}`);
   }));
   return reachable;
 }
@@ -2862,9 +3807,11 @@ function isSnake(cells) {
   return false;
 }
 
-const CORNERS = new Set(['0-0','0-4','4-0','4-4']);
-function cornerCells(cells) { return cells.filter(([r,c]) => CORNERS.has(`${r}-${c}`)); }
-function isOnEdge(cells) { return cells.every(([r,c]) => r===0||r===4||c===0||c===4); }
+function isCorner(r, c) {
+  return (r === 0 || r === gridRows - 1) && (c === 0 || c === gridCols - 1);
+}
+function cornerCells(cells) { return cells.filter(([r,c]) => isCorner(r, c)); }
+function isOnEdge(cells) { return cells.every(([r,c]) => r===0||r===gridRows-1||c===0||c===gridCols-1); }
 
 function canBeOrderedRun(cells) {
   // Get the rank value for each card in selection order
@@ -3214,7 +4161,11 @@ function calcScore(handName, cells) {
   return Math.round(s);
 }
 
-function hasBonus(id) { return acquiredBonuses.some(b => b.id === id); }
+function hasBonus(id) {
+  if (isBCDisabledByBoss(id)) return false;
+  return acquiredBonuses.some(b => b.id === id);
+}
+function hasTotem(id) { return acquiredTotems.some(t => t.id === id); }
 
 // Returns all row/col bonus entries matching this card position
 function getRowColBonusesForCell(r, c) {
@@ -3241,8 +4192,8 @@ function render() {
 
   const seenIds = new Set();
 
-  for (let r = 0; r < 5; r++) {
-    for (let c = 0; c < 5; c++) {
+  for (let r = 0; r < gridRows; r++) {
+    for (let c = 0; c < gridCols; c++) {
       const card = gridData[r][c];
       const key = `${r}-${c}`;
       const isChallenge = !!(challengeCard && challengeCard.pos[0]===r && challengeCard.pos[1]===c && card === null);
@@ -3254,91 +4205,64 @@ function render() {
       const cardId = isChallenge ? 'challenge' : String(card._id);
       seenIds.add(cardId);
 
+      // ── Stone card path (boss-injected obstacle) ──
+      if (!isChallenge && card._isStone) {
+        let div = existingEls[cardId];
+        if (!div) { div = document.createElement('div'); div.dataset.cardId = cardId; gridEl.appendChild(div); }
+        div.dataset.row = r; div.dataset.col = c;
+        div.style.left = cellLeft(c) + 'px';
+        if (!animating) div.style.top = cellTop(r) + 'px';
+        const isSwapPending = swapPending && swapPending[0]===r && swapPending[1]===c;
+        const { className, innerHTML } = renderCardAppearance(card, r, c, { isSwapPending });
+        div.className = className; div.innerHTML = innerHTML;
+        continue;
+      }
+
       // ── BC card path ──
       if (!isChallenge && card._isBC) {
         let div = existingEls[cardId];
-        if (!div) {
-          div = document.createElement('div');
-          div.dataset.cardId = cardId;
-          gridEl.appendChild(div);
-        }
-        div.dataset.row = r;
-        div.dataset.col = c;
+        if (!div) { div = document.createElement('div'); div.dataset.cardId = cardId; gridEl.appendChild(div); }
+        div.dataset.row = r; div.dataset.col = c;
         div.style.left = cellLeft(c) + 'px';
         if (!animating) div.style.top = cellTop(r) + 'px';
-        const isPending = pendingBCChoice && pendingBCChoice.id === card.bonus.id;
-        const stateClass = card._bcState === 'upgradeable' ? ' bc-upgradeable' : card._bcState === 'upgraded' ? ' bc-upgraded' : '';
-        div.className = `bc-card bc-tier-${card.bonus.tier}${isPending ? ' bc-pending' : ''}${stateClass}`;
-        const upgradeLabel = card._bcState === 'upgradeable' ? '<div class="bc-upgrade-indicator">U</div>' : '';
-        div.innerHTML = `<div class="bc-tier-label">${card.bonus.tier.charAt(0).toUpperCase()}</div><div class="bc-name">${card.bonus.name}</div>${upgradeLabel}`;
-        // Only new and upgradeable BCs are tappable — bcState is the authority
-        const tappable = card._bcState === 'new' || card._bcState === 'upgradeable';
-        div.onclick = tappable ? () => onBCTap(card.bonus) : null;
-        div.style.cursor = tappable ? 'pointer' : 'default';
+        const isPendingBC = !!(pendingBCChoice && pendingBCChoice.id === card.bonus.id);
+        const isSwapPending = swapPending && swapPending[0]===r && swapPending[1]===c;
+        const { className, innerHTML, isTappable } = renderCardAppearance(card, r, c, { isPendingBC, isSwapPending });
+        div.className = className; div.innerHTML = innerHTML;
+        div.onclick = isTappable ? () => onBCTap(card.bonus) : null;
+        div.style.cursor = isTappable ? 'pointer' : 'default';
         continue;
       }
       const isReach      = reachable ? reachable.has(key) : true;
-      const isBonus      = bonusCardPos && bonusCardPos[0]===r && bonusCardPos[1]===c;
-      const k            = isChallenge ? '' : cardKey(card.rank, card.suit);
-      const pp           = isChallenge ? 0 : (permPips[k] || 0);
-      const pm           = isChallenge ? 0 : (permMult[k] || 0);
-      const hasPip       = pp > 0, hasMult = pm > 0;
-      const isCombined   = !isChallenge && !!card.combined;
-      const isSwapPending= swapPending && swapPending[0]===r && swapPending[1]===c;
+      const isSwapPend   = swapPending && swapPending[0]===r && swapPending[1]===c;
       const isSel        = selected.some(([sr,sc])=>sr===r&&sc===c);
       const selIdx       = selected.findIndex(([sr,sc])=>sr===r&&sc===c);
       const isHandReady  = handReadyForSubmit && isSel;
       const isHandValid  = !isHandReady && isSel && !!bestHandResult;
-      const rcPips       = cellHasRowColBonus(r, c, 'rowcol_triple_pips') ? ' rc-pips' : '';
-      const rcMult       = cellHasRowColBonus(r, c, 'rowcol_mult')        ? ' rc-mult' : '';
-      const rcRetrigger  = cellHasRowColBonus(r, c, 'rowcol_retrigger')   ? ' rc-retrigger' : '';
-      const rcLeyline    = leyLinePos && leyLinePos.r===r && leyLinePos.c===c ? ' rc-leyline' : '';
 
-      const className = `card ${isChallenge ? 'challenge-card' : suitClass(card.suit)}${isSel?' selected':''}${isHandValid?' hand-valid':''}${isHandReady?' hand-ready':''}${isSwapPending?' swap-pending':''}${!isReach&&!isSel&&!isSwapPending&&!isChallenge?' unreachable':''}${isBonus?' bonus-card':''}${hasPip&&hasMult?' has-both':hasPip?' has-pip':hasMult?' has-mult':''}${rcPips}${rcMult}${rcRetrigger}${rcLeyline}`;
-
-      const combinedLabel = isCombined
-        ? `<div style="position:absolute;top:2px;right:3px;font-size:7px;font-family:'Cinzel',serif;color:#9b59b6;font-weight:700">${card.rank2}${card.suit2}</div>`
-        : '';
-
-      let innerHTML;
-      if (isChallenge) {
-        innerHTML = `<div class="challenge-badge">⚠️</div>`;
-      } else {
-        innerHTML = `
-          ${isSel ? `<div class="sel-num">${selIdx+1}</div>` : ''}
-          ${isBonus ? `<div class="bonus-star">⭐</div>` : ''}
-          ${combinedLabel}
-          <div class="rank">${card.rank}</div>
-          <div class="suit">${card.suit}</div>
-          ${pp ? `<div style="position:absolute;bottom:2px;left:3px;font-size:8px;font-family:'Cinzel',serif;color:#3a6fca;font-weight:700">+${pp}p</div>` : ''}
-          ${pm ? `<div style="position:absolute;bottom:2px;right:3px;font-size:8px;font-family:'Cinzel',serif;color:#c0392b;font-weight:700">+${pm}m</div>` : ''}
-        `;
-      }
+      const { className, innerHTML } = renderCardAppearance(card, r, c, {
+        isSel, selIdx, isHandReady, isHandValid,
+        isSwapPending: isSwapPend,
+        isReachable: isReach,
+        isChallenge,
+      });
 
       let div = existingEls[cardId];
       if (!div) {
-        // New card — create element, start it above the grid, transition into position
         div = document.createElement('div');
         div.dataset.cardId = cardId;
-        div.dataset.row = r;
-        div.dataset.col = c;
+        div.dataset.row = r; div.dataset.col = c;
         div.style.left = cellLeft(c) + 'px';
         div.style.top  = cellTop(r) + 'px';
         div.style.opacity = '1';
         gridEl.appendChild(div);
       }
-
-      // Update position — only set top for NEW cards (rAF manages existing card positions)
-      div.dataset.row = r;
-      div.dataset.col = c;
+      div.dataset.row = r; div.dataset.col = c;
       div.style.left = cellLeft(c) + 'px';
       if (!animating) div.style.top = cellTop(r) + 'px';
-
-      // Update classes and content
       div.className = className;
       div.innerHTML = innerHTML;
 
-      // Re-attach challenge event listeners if needed
       if (isChallenge) {
         div.addEventListener('click', e => { e.stopPropagation(); toggleChallengeTooltip(div); div.dataset.tooltipPinned = challengeTooltipVisible ? '1' : ''; });
         div.addEventListener('mouseenter', () => { if (!div.dataset.tooltipPinned) showChallengeTooltip(div); });
@@ -3363,7 +4287,7 @@ function render() {
     document.getElementById('hand-name').textContent = hand || (selected.length >= 2 ? 'No valid hand' : '—');
     const cardsEl = document.getElementById('selected-cards');
     cardsEl.innerHTML = '';
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < limits.selection.current; i++) {
       if (selected[i]) {
         const [r,c] = selected[i];
         const card = gridData[r][c];
@@ -3909,17 +4833,66 @@ function updateCoinsUI() {
   if (document.getElementById('shop-overlay').classList.contains('show')) refreshShopAffordability();
 }
 
-function updateBonusList() {
+function updateTotemList() {
   const el = document.getElementById('totem-list');
   if (!el) return;
-  if (acquiredBonuses.length === 0) {
+  if (acquiredTotems.length === 0) {
     el.innerHTML = '<span style="font-size:11px;color:var(--cream-dim)">None yet</span>';
     return;
   }
-  el.innerHTML = acquiredBonuses.map(b =>
-    `<div class="bonus-tag ${b.tier}"><strong>${b.name}</strong> — ${withSuitHalo(b.desc)}</div>`
+  el.innerHTML = acquiredTotems.map(t =>
+    `<div class="totem-chip" data-totem-id="${t.id}" tabindex="0" role="button" aria-label="${t.name}">${t.emoji}</div>`
   ).join('');
+  // Wire interactions
+  el.querySelectorAll('.totem-chip').forEach(chip => {
+    const id = chip.dataset.totemId;
+    chip.addEventListener('mouseenter', () => showTotemTooltip(chip, id));
+    chip.addEventListener('mouseleave', () => hideTotemTooltip());
+    chip.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const tt = document.getElementById('totem-tooltip');
+      if (tt && tt.dataset.totemId === id && tt.classList.contains('show')) hideTotemTooltip();
+      else showTotemTooltip(chip, id);
+    });
+  });
 }
+
+// Back-compat alias — older call sites updateBonusList() still re-render the rack
+function updateBonusList() { updateTotemList(); }
+
+function showTotemTooltip(chip, id) {
+  const totem = TOTEM_POOL.find(t => t.id === id);
+  if (!totem) return;
+  let tt = document.getElementById('totem-tooltip');
+  if (!tt) return;
+  tt.innerHTML = `
+    <div class="totem-tooltip-name">${totem.emoji} ${totem.name}</div>
+    <div class="totem-tooltip-desc">${totem.desc}</div>
+  `;
+  tt.dataset.totemId = id;
+  // Position above the chip, centered horizontally
+  const rect = chip.getBoundingClientRect();
+  tt.classList.add('show');
+  // Need to wait one frame for layout
+  requestAnimationFrame(() => {
+    const ttRect = tt.getBoundingClientRect();
+    let left = rect.left + rect.width / 2 - ttRect.width / 2;
+    let top = rect.top - ttRect.height - 8;
+    // Clamp to viewport
+    left = Math.max(6, Math.min(window.innerWidth - ttRect.width - 6, left));
+    if (top < 6) top = rect.bottom + 8;
+    tt.style.left = left + 'px';
+    tt.style.top = top + 'px';
+  });
+}
+function hideTotemTooltip() {
+  const tt = document.getElementById('totem-tooltip');
+  if (tt) { tt.classList.remove('show'); tt.dataset.totemId = ''; }
+}
+// Tap anywhere else dismisses tooltip
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.totem-chip') && !e.target.closest('#totem-tooltip')) hideTotemTooltip();
+}, true);
 
 // ══════════════════════════════════════════════
 // CARD INTERACTION — tap or swipe to select, double-tap to swap
@@ -3980,11 +4953,17 @@ function doSwap(r1, c1, r2, c2) {
   const tmp = gridData[r1][c1];
   gridData[r1][c1] = gridData[r2][c2];
   gridData[r2][c2] = tmp;
-  swaps--;
-  // Swap costs 10 seconds
-  roundSeconds = Math.max(1, roundSeconds - 10);
+  // Steady Hand: swaps don't count against limit (but cost 2× time below)
+  if (!hasTotem('steady_hand')) swaps--;
+  // Swap time cost — 10s default, 0s with Free Swaps, 20s with Steady Hand (and not Free Swaps)
+  let swapTimeCost = 10;
+  if (hasTotem('free_swaps')) swapTimeCost = 0;
+  else if (hasTotem('steady_hand')) swapTimeCost = 20;
+  if (swapTimeCost > 0) {
+    roundSeconds = Math.max(1, roundSeconds - swapTimeCost);
+    showTimeCost(`-${swapTimeCost}s`);
+  }
   updateClockUI();
-  showTimeCost('-10s');
   lastSwapTime = Date.now();
   resetFocusDecayTimer();
   // Restless: swapping adds 1 focus
@@ -4048,7 +5027,8 @@ function deselect(r, c) {
 }
 
 function tryAddToSelection(r, c) {
-  if (selected.length >= 5) return false;
+  if (selected.length >= limits.selection.current) return false;
+  if (isCellBlocked(r, c)) return false;
   if (!cardCan(gridData[r]?.[c], 'select')) return false;
   const key = `${r}-${c}`;
   if (selected.some(([sr,sc]) => sr===r && sc===c)) return false;
@@ -4066,6 +5046,8 @@ function onCardTap(r, c) {
   if (animating) return;
   // Block null cells
   if (gridData[r][c] === null) return;
+  // Block boss-obstructed cells
+  if (isCellBlocked(r, c)) return;
   // Block challenge card taps
   if (challengeActive && challengeCard && challengeCard.pos[0]===r && challengeCard.pos[1]===c) return;
   // Block non-swappable cards entirely (e.g. challenge card)
@@ -4166,6 +5148,12 @@ gridEl2.addEventListener('pointermove', e => {
       ps.moved = true;
       isSwiping = true;
       swipeStopped = false;
+      // Guard: don't start a swipe on a stone, BC, or void cell
+      const originCard = gridData[ps.r]?.[ps.c];
+      if (isCellBlocked(ps.r, ps.c) || !originCard || !cardCan(originCard, 'select')) {
+        swipeStopped = true;
+        return;
+      }
       // Only start fresh if no selection yet, or origin isn't part of selection
       const originKey = `${ps.r}-${ps.c}`;
       if (!selected.some(([sr,sc]) => sr===ps.r && sc===ps.c)) {
@@ -4186,13 +5174,17 @@ gridEl2.addEventListener('pointermove', e => {
         // Swiped over already-selected card — ignore (don't deselect during swipe)
         return;
       }
+      // Skip non-selectable cells (stones, BCs, voids)
+      if (isCellBlocked(r, c)) return;
+      const cardAtCell = gridData[r]?.[c];
+      if (!cardAtCell || !cardCan(cardAtCell, 'select')) return;
       const reachable = getReachable();
       if (reachable && !reachable.has(key)) {
         // Not reachable — stop swipe here, don't add
         swipeStopped = true;
         return;
       }
-      if (selected.length < 5) {
+      if (selected.length < limits.selection.current) {
         selected.push([r, c]);
         sfxCardSelect();
         scheduleAutoSubmit();
@@ -4247,6 +5239,15 @@ function playHand() {
   const scoreBeforeHand = score;
   score += finalScore;
   handsPlayed++;
+
+  // Boss objective progress
+  if (bossActive) checkBossObjective(hand, finalScore);
+
+  // Lucky Seven totem: every 7th hand grants +1 swap
+  if (hasTotem('lucky_seven') && handsPlayed % 7 === 0) {
+    swaps = Math.min(99, swaps + 1);
+    showMessage('🎯 LUCKY SEVEN — +1 SWAP', '#c9a84c');
+  }
   if (finalScore > highestHandScore) { highestHandScore = finalScore; highestHandName = hand; }
   if (hand === 'Full House' && hasBonus('full_house_streak')) fullHouseThisRound++;
 
@@ -4257,7 +5258,8 @@ function playHand() {
   checkUnlocks();
 
   // ── Check goal immediately after scoring ──
-  if (score >= cumulativeGoal && !goalReachedThisRound) {
+  // Suppressed during boss: legacy goal flow is replaced by boss objective system.
+  if (!bossActive && score >= cumulativeGoal && !goalReachedThisRound) {
     console.log('[GOAL] reached', { score, goal: cumulativeGoal, finalScore });
     goalReachedThisRound = true;
     roundEnded = true; // freeze input immediately
@@ -4331,8 +5333,26 @@ function playHand() {
 
   // Streak tracking
   const now = Date.now();
-  if (hand === lastHandType) { streakCount++; }
-  else { streakCount = 1; lastHandType = hand; }
+  if (hand === lastHandType) {
+    streakCount++;
+    // Re-arming progress for Combo Keeper
+    if (!streakSaveArmed) {
+      streakSaveProgress++;
+      if (streakSaveProgress >= 2) { streakSaveArmed = true; streakSaveProgress = 0; }
+    }
+  } else {
+    // Different hand type — would normally break the streak
+    if (hasTotem('combo_keeper') && streakSaveArmed && lastHandType !== null) {
+      // Save the streak: consume the save, leave streakCount + lastHandType intact
+      streakSaveArmed = false;
+      streakSaveProgress = 0;
+    } else {
+      streakCount = 1;
+      lastHandType = hand;
+      // Off-type hand without an active save resets re-arm progress too
+      streakSaveProgress = 0;
+    }
+  }
   lastHandTime = now;
 
   // Timer pause bonuses
@@ -4808,7 +5828,7 @@ function collectScoreParticles(handCells, gridEl) {
 
   // ── 2. BCs on grid: one particle per contributing BC ──
   // (placeholder — will require calcScore instrumentation to know per-BC contributions)
-  // for (let r = 0; r < 5; r++) for (let c = 0; c < 5; c++) {
+  // for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
   //   const cell = gridData[r][c];
   //   if (cell && cell._isBC) {
   //     const bcEl = gridEl.querySelector(`[data-card-id="${cell._id}"]`);
@@ -5203,14 +6223,31 @@ function handleDanceAbort(isGoalHand) {
 // ══════════════════════════════════════════════
 function doDiscard() {
   if (roundEnded || animating || selected.length === 0) return;
+  // Defensive: filter selection down to actually-discardable cards
+  const validSelected = selected.filter(([r,c]) => {
+    const card = gridData[r]?.[c];
+    return card && cardCan(card, 'discard');
+  });
+  if (validSelected.length === 0) {
+    selected = [];
+    render();
+    return;
+  }
+  selected = validSelected;
   const discardedCards = selected.map(([r,c]) => gridData[r][c]);
   selected.forEach(([r,c]) => discardToDrawPile(gridData[r][c]));
-  discards--;
-  // Discard costs 3s per card
-  const timeCost = discardedCards.length * 3;
-  roundSeconds = Math.max(1, roundSeconds - timeCost);
+  // Hoarder: discards don't count against limit (but cost 2× time below)
+  if (!hasTotem('hoarder')) discards--;
+  // Discard time cost — 3s/card default, 0s with Free Discards, 6s/card with Hoarder
+  let perCardCost = 3;
+  if (hasTotem('free_discards')) perCardCost = 0;
+  else if (hasTotem('hoarder')) perCardCost = 6;
+  const timeCost = discardedCards.length * perCardCost;
+  if (timeCost > 0) {
+    roundSeconds = Math.max(1, roundSeconds - timeCost);
+    showTimeCost(`-${timeCost}s`);
+  }
   updateClockUI();
-  showTimeCost(`-${timeCost}s`);
   // Track discard counts
   const count = discardedCards.length;
   cardsDiscardedTotal += count;
@@ -5282,6 +6319,115 @@ function pauseRound(seconds) {
 // ══════════════════════════════════════════════
 // GRAVITY ANIMATION (from gravity-test.html)
 // ══════════════════════════════════════════════
+
+// ── Single source of truth for card visual appearance ──────────────────────────
+// Returns { className, innerHTML } describing how a card looks at position (r,c).
+// Both render() and fall-animation paths call this — add a new card type here
+// once and both static and animated rendering automatically pick it up.
+//
+// Interaction state (isSel, isSwapPending, etc.) defaults to "no interaction"
+// so it's safe to call with just (card, r, c) from animation paths.
+function renderCardAppearance(card, r, c, {
+  isSel        = false,
+  selIdx       = -1,
+  isHandReady  = false,
+  isHandValid  = false,
+  isSwapPending = false,
+  isReachable  = true,
+  isChallenge  = false,
+  isPendingBC  = false,
+} = {}) {
+  // ── Stone (boss obstacle — falls normally, can't be played/discarded) ──
+  if (!isChallenge && card._isStone) {
+    return {
+      className: `card stone-card${isSwapPending ? ' swap-pending' : ''}`,
+      innerHTML: `<div class="stone-glyph">✦</div>`,
+    };
+  }
+
+  // ── Blessing Card (BC) ──
+  if (!isChallenge && card._isBC) {
+    const stateClass  = card._bcState === 'upgradeable' ? ' bc-upgradeable'
+                      : card._bcState === 'upgraded'    ? ' bc-upgraded' : '';
+    const upgradeLabel = card._bcState === 'upgradeable'
+      ? '<div class="bc-upgrade-indicator">U</div>' : '';
+    return {
+      className: `bc-card bc-tier-${card.bonus.tier}${isPendingBC ? ' bc-pending' : ''}${stateClass}`,
+      innerHTML: `<div class="bc-tier-label">${card.bonus.tier.charAt(0).toUpperCase()}</div>`
+               + `<div class="bc-name">${card.bonus.name}</div>${upgradeLabel}`,
+      isTappable: card._bcState === 'new' || card._bcState === 'upgradeable',
+    };
+  }
+
+  // ── Challenge card ──
+  if (isChallenge) {
+    return {
+      className: `card challenge-card`,
+      innerHTML: `<div class="challenge-badge">⚠️</div>`,
+    };
+  }
+
+  // ── Normal playing card (rank + suit, with all bonus decorations) ──
+  const k   = cardKey(card.rank, card.suit);
+  const pp  = permPips[k] || 0;
+  const pm  = permMult[k] || 0;
+  const hasPip = pp > 0, hasMult = pm > 0;
+  const isCombined = !!card.combined;
+  const isBonus = bonusCardPos && bonusCardPos[0] === r && bonusCardPos[1] === c;
+
+  const rcPips      = cellHasRowColBonus(r, c, 'rowcol_triple_pips') ? ' rc-pips'      : '';
+  const rcMult      = cellHasRowColBonus(r, c, 'rowcol_mult')        ? ' rc-mult'      : '';
+  const rcRetrigger = cellHasRowColBonus(r, c, 'rowcol_retrigger')   ? ' rc-retrigger' : '';
+  const rcLeyline   = leyLinePos && leyLinePos.r === r && leyLinePos.c === c ? ' rc-leyline' : '';
+
+  const bothClass = hasPip && hasMult ? ' has-both' : hasPip ? ' has-pip' : hasMult ? ' has-mult' : '';
+  const className = [
+    'card',
+    suitClass(card.suit),
+    isSel        ? 'selected'    : '',
+    isHandValid  ? 'hand-valid'  : '',
+    isHandReady  ? 'hand-ready'  : '',
+    isSwapPending ? 'swap-pending' : '',
+    (!isReachable && !isSel && !isSwapPending) ? 'unreachable' : '',
+    isBonus ? 'bonus-card' : '',
+    bothClass.trim(),
+    rcPips.trim(), rcMult.trim(), rcRetrigger.trim(), rcLeyline.trim(),
+  ].filter(Boolean).join(' ');
+
+  const combinedLabel = isCombined
+    ? `<div style="position:absolute;top:2px;right:3px;font-size:7px;font-family:'Cinzel',serif;color:#9b59b6;font-weight:700">${card.rank2}${card.suit2}</div>`
+    : '';
+
+  const innerHTML = `
+    ${isSel ? `<div class="sel-num">${selIdx + 1}</div>` : ''}
+    ${isBonus ? `<div class="bonus-star">⭐</div>` : ''}
+    ${combinedLabel}
+    <div class="rank">${card.rank}</div>
+    <div class="suit">${card.suit}</div>
+    ${pp ? `<div style="position:absolute;bottom:2px;left:3px;font-size:8px;font-family:'Cinzel',serif;color:#3a6fca;font-weight:700">+${pp}p</div>` : ''}
+    ${pm ? `<div style="position:absolute;bottom:2px;right:3px;font-size:8px;font-family:'Cinzel',serif;color:#c0392b;font-weight:700">+${pm}m</div>` : ''}
+  `;
+
+  return { className, innerHTML };
+}
+
+// Build a temp-anim element for a card falling or entering at (finalR, finalC).
+// Calls renderCardAppearance with no interaction state, then adds temp-anim class.
+// Future-proof: any new card type added to renderCardAppearance is automatically
+// handled here at no extra cost.
+function buildCardAnimEl(card, finalR, finalC) {
+  const el = document.createElement('div');
+  const { className, innerHTML } = renderCardAppearance(card, finalR, finalC);
+  el.className = className + ' temp-anim';
+  el.innerHTML = innerHTML;
+  el.style.position       = 'absolute';
+  el.style.width          = CARD_W + 'px';
+  el.style.height         = CARD_H + 'px';
+  el.style.pointerEvents  = 'none';
+  el.style.zIndex         = '10';
+  return el;
+}
+
 async function removeAndFall(removingCells, mode = 'play') {
   // Guard against re-entry while a fall is in progress
   if (animating) {
@@ -5343,23 +6489,44 @@ async function removeAndFall(removingCells, mode = 'play') {
   });
 
   // Build fall plan BEFORE touching gridData
+  // Voids ("blocked cells") are skipped entirely in the column. Cards stack to the
+  // bottom-most non-void rows; new cards fill the top-most non-void rows.
   const fallPlan = [];
   const newCards = [];
-  for (let col = 0; col < 5; col++) {
-    let removedBelow = 0;
-    for (let r = 4; r >= 0; r--) {
-      const k = `${r}-${col}`;
-      if (removing.has(k)) {
-        removedBelow++;
-      } else if (removedBelow > 0) {
-        fallPlan.push({ row: r, col, fallBy: removedBelow });
-        if (challengeCard && challengeCard.pos[0] === r && challengeCard.pos[1] === col) {
-          challengeCard.pos = [r + removedBelow, col];
-        }
+  for (let col = 0; col < gridCols; col++) {
+    // Playable rows in this column, ordered TOP-to-BOTTOM
+    const playableRows = [];
+    for (let r = 0; r < gridRows; r++) {
+      if (!isCellBlocked(r, col)) playableRows.push(r);
+    }
+    if (playableRows.length === 0) continue;
+
+    // Surviving cards in original top-to-bottom order
+    const survivors = [];
+    for (const r of playableRows) {
+      if (!removing.has(`${r}-${col}`) && gridData[r][col] !== null) {
+        survivors.push({ origRow: r, card: gridData[r][col] });
       }
     }
-    for (let i = 0; i < removedBelow; i++) {
-      newCards.push({ col, finalRow: i, fromAbove: removedBelow - i, card: drawCard() || null });
+    const removedCount = playableRows.length - survivors.length;
+
+    // Survivors pack to bottom of playableRows, preserving top-to-bottom order
+    // i.e. survivors[i] goes to playableRows[playableRows.length - survivors.length + i]
+    survivors.forEach((entry, i) => {
+      const targetRow = playableRows[playableRows.length - survivors.length + i];
+      if (targetRow !== entry.origRow) {
+        const fallBy = targetRow - entry.origRow;
+        fallPlan.push({ row: entry.origRow, col, fallBy });
+        if (challengeCard && challengeCard.pos[0] === entry.origRow && challengeCard.pos[1] === col) {
+          challengeCard.pos = [targetRow, col];
+        }
+      }
+    });
+
+    // New cards fill the top `removedCount` rows of playableRows
+    for (let i = 0; i < removedCount; i++) {
+      const finalRow = playableRows[i];
+      newCards.push({ col, finalRow, fromAbove: removedCount - i, card: drawCard() || null });
     }
   }
 
@@ -5396,15 +6563,9 @@ async function removeAndFall(removingCells, mode = 'play') {
     const startAt = Math.max(colBase, colReadyAt[col] || colBase);
     colReadyAt[col] = startAt + FALL_DUR * 0.6;
 
-    const tempEl = document.createElement('div');
-    if (card._isBC) {
-      tempEl.className = `bc-card bc-tier-${card.bonus.tier} temp-anim`;
-      tempEl.innerHTML = `<div class="bc-tier-label">${card.bonus.tier.charAt(0).toUpperCase()}</div><div class="bc-name">${card.bonus.name}</div>`;
-    } else {
-      tempEl.className = `card ${suitClass(card.suit)} temp-anim`;
-      tempEl.innerHTML = `<div class="rank">${card.rank}</div><div class="suit">${card.suit}</div>`;
-    }
-    tempEl.style.cssText = `position:absolute;width:${CARD_W}px;height:${CARD_H}px;left:${startX}px;top:${startY}px;pointer-events:none;z-index:10;`;
+    const tempEl = buildCardAnimEl(card, row + fallBy, col);
+    tempEl.style.left = startX + 'px';
+    tempEl.style.top  = startY + 'px';
     gridEl.appendChild(tempEl);
 
     fallAnims.push(tempEl.animate([
@@ -5432,15 +6593,11 @@ async function removeAndFall(removingCells, mode = 'play') {
     const entryStart = Math.max(colBase, colReadyAt[col] || colBase);
     colReadyAt[col] = entryStart + FALL_DUR * 0.6;
 
-    const tempEl = document.createElement('div');
-    if (card._isBC) {
-      tempEl.className = `bc-card bc-tier-${card.bonus.tier} temp-anim`;
-      tempEl.innerHTML = `<div class="bc-tier-label">${card.bonus.tier.charAt(0).toUpperCase()}</div><div class="bc-name">${card.bonus.name}</div>`;
-    } else {
-      tempEl.className = `card ${suitClass(card.suit)} temp-anim`;
-      tempEl.innerHTML = `<div class="rank">${card.rank}</div><div class="suit">${card.suit}</div>`;
-    }
-    tempEl.style.cssText = `position:absolute;width:${CARD_W}px;height:${CARD_H}px;left:${destX}px;top:${startY}px;opacity:0;pointer-events:none;z-index:10;`;
+    const tempEl = buildCardAnimEl(card, finalRow, col);
+    tempEl.style.left    = destX + 'px';
+    tempEl.style.top     = startY + 'px';
+    tempEl.style.opacity = '0';
+    gridEl.appendChild(tempEl);
     gridEl.appendChild(tempEl);
 
     enterAnims.push(tempEl.animate([
@@ -5460,25 +6617,31 @@ async function removeAndFall(removingCells, mode = 'play') {
 
   // Update gridData after animation completes
   removingCells.forEach(([r,c]) => { gridData[r][c] = null; });
-  for (let col = 0; col < 5; col++) {
-    let writeRow = 4;
-    for (let r = 4; r >= 0; r--) {
-      if (gridData[r][col] !== null) {
-        gridData[writeRow][col] = gridData[r][col];
-        if (writeRow !== r) gridData[r][col] = null;
-        writeRow--;
-      }
+  for (let col = 0; col < gridCols; col++) {
+    // Collect all cards currently in non-void rows, top-to-bottom
+    const playableRows = [];
+    for (let r = 0; r < gridRows; r++) if (!isCellBlocked(r, col)) playableRows.push(r);
+    const survivors = [];
+    for (const r of playableRows) {
+      if (gridData[r][col] !== null) survivors.push(gridData[r][col]);
+      gridData[r][col] = null; // clear; we'll repopulate below
     }
+    // Survivors pack to the bottom of playableRows (preserving order)
+    survivors.forEach((card, i) => {
+      const targetRow = playableRows[playableRows.length - survivors.length + i];
+      gridData[targetRow][col] = card;
+    });
+    // New cards fill top playable rows
     newCards.filter(n => n.col === col).forEach(({ finalRow, card }) => {
-      if (card) gridData[finalRow][col] = card;
+      if (card && !isCellBlocked(finalRow, col)) gridData[finalRow][col] = card;
     });
   }
 
   // Update challenge card position
   if (challengeCard) {
-    for (let col = 0; col < 5; col++) {
+    for (let col = 0; col < gridCols; col++) {
       if (challengeCard.pos[1] === col) {
-        for (let r = 0; r < 5; r++) {
+        for (let r = 0; r < gridRows; r++) {
           if (gridData[r][col] === null) { challengeCard.pos = [r, col]; break; }
         }
       }
@@ -5542,6 +6705,7 @@ function startRoundTimer() {
   if (roundInterval) clearInterval(roundInterval);
   roundInterval = setInterval(() => {
     if (pipeTimerPaused) return;
+    if (gameTimerPaused) return; // global pause covers menus/shop/events
     roundSeconds--;
     if (roundSeconds < 0) roundSeconds = 0;
     bonusCardTimer++;
@@ -5568,16 +6732,26 @@ function startTimers() {
     const m = Math.floor(gameSeconds/60);
     const s = gameSeconds%60;
     document.getElementById('game-timer').textContent = `${m}:${s.toString().padStart(2,'0')}`;
-    // Trigger shop every 2 minutes
+    // Trigger shop every 2 minutes — but defer during boss
     if (gameSeconds === nextShopTime) {
-      nextShopTime -= 120;
-      triggerShop();
+      if (bossActive) {
+        nextShopTime -= 1; // retry next second
+      } else {
+        nextShopTime -= 120;
+        triggerShop();
+      }
+    }
+    // Trigger boss every 6 minutes
+    if (gameSeconds === nextBossTime && !bossActive) {
+      nextBossTime -= BOSS_LOOP_DURATION;
+      triggerBoss();
     }
     if (gameSeconds <= 0) onGameEnd(false);
   }, 1000);
 }
 
 function updateClockUI() {
+  if (bossActive) return; // boss timer manages clock display itself
   const secs = Math.max(roundSeconds, 0);
   const m = Math.floor(secs/60);
   const s = secs%60;
@@ -5599,6 +6773,7 @@ function assignBonusCard() {
 function stopTimers() {
   clearInterval(roundInterval);
   clearInterval(gameInterval);
+  if (bossInterval) { clearInterval(bossInterval); bossInterval = null; }
   roundInterval = null;
   gameInterval = null;
   stopFocusDecay();
@@ -5656,8 +6831,903 @@ function showMessage(text, color) {
 }
 
 // ══════════════════════════════════════════════
-// LEVEL UP
+// BOSS SYSTEM
 // ══════════════════════════════════════════════
+// ══════════════════════════════════════════════
+// BOSS SYSTEM (v2)
+// ══════════════════════════════════════════════
+
+// Boss preset definitions. Each preset has:
+//   id, name, flavor (subtitle)
+//   objective: { type: 'score', target } | { type: 'hand', handName, count }
+//   modifiers: array of modifier ids (see applyBossModifiers)
+//   params: optional tuning (voidPattern, stoneInjectCount, swapsDelta, lockedHand, etc.)
+const BOSS_PRESETS = [
+  {
+    id: 'stone_lord',
+    name: 'THE STONE LORD',
+    flavor: 'Your deck turns to rubble',
+    objective: { type: 'score', target: 4000 },
+    modifiers: ['inject_stones'],
+    params: { stoneInjectCount: 5 }
+  },
+  {
+    id: 'voidwright',
+    name: 'THE VOIDWRIGHT',
+    flavor: 'Your blessings flicker',
+    objective: { type: 'score', target: 4500 },
+    modifiers: ['bc_pool_split'],
+    params: {}
+  },
+  {
+    id: 'hand_of_famine',
+    name: 'THE HAND OF FAMINE',
+    flavor: 'A withered deck offers little',
+    objective: { type: 'hand', handName: 'Flush', count: 2 },
+    modifiers: ['low_card_infusion'],
+    params: { lowCardWeight: 0.7 } // 70% of new cards drawn during boss are low (2–6)
+  },
+  {
+    id: 'cornerless_king',
+    name: 'THE CORNERLESS KING',
+    flavor: 'The edges hold no salvation',
+    objective: { type: 'score', target: 5000 },
+    modifiers: ['void_corners', 'reduce_swaps'],
+    params: { swapsDelta: -1 }
+  }
+];
+
+let currentBoss = null;         // active boss preset (clone)
+let bossObjectiveProgress = 0;  // score or hand-count progress
+let bossPhase = 1;              // 1 or 2 for split-phase bosses (Voidwright)
+let bossSwapsDelta = 0;         // applied to swaps for boss; restored on end
+let bcPoolA = new Set();        // for Voidwright phase 1 disabled BCs (by id)
+let bcPoolB = new Set();        // for Voidwright phase 2 disabled BCs
+let bossLowCardActive = false;  // for Famine
+let bossLockedHand = null;      // for hand-type lock modifier (not in roster v1 but framework-ready)
+
+// ── Cell helpers ──
+function isCellBlocked(r, c) {
+  return blockedCells.has(`${r}-${c}`);
+}
+
+function getVoidPattern(pattern) {
+  // Returns a Set of "r-c" keys, scaled to the current grid dimensions
+  const s = new Set();
+  const lastRow = gridRows - 1;
+  const lastCol = gridCols - 1;
+  const midRow  = Math.floor(gridRows / 2);
+  const midCol  = Math.floor(gridCols / 2);
+  switch (pattern) {
+    case 'corners':
+      s.add(`0-0`); s.add(`0-${lastCol}`); s.add(`${lastRow}-0`); s.add(`${lastRow}-${lastCol}`);
+      break;
+    case 'edges':
+      for (let c = 0; c < gridCols; c++) { s.add(`0-${c}`); s.add(`${lastRow}-${c}`); }
+      for (let r = 0; r < gridRows; r++) { s.add(`${r}-0`); s.add(`${r}-${lastCol}`); }
+      break;
+    case 'center':
+      s.add(`${midRow}-${midCol}`);
+      if (midRow - 1 >= 0) s.add(`${midRow-1}-${midCol}`);
+      if (midRow + 1 < gridRows) s.add(`${midRow+1}-${midCol}`);
+      if (midCol - 1 >= 0) s.add(`${midRow}-${midCol-1}`);
+      if (midCol + 1 < gridCols) s.add(`${midRow}-${midCol+1}`);
+      break;
+    case 'diagonal':
+      for (let i = 0; i < Math.min(gridRows, gridCols); i++) s.add(`${i}-${i}`);
+      break;
+    case 'random':
+    default: {
+      const all = [];
+      for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) all.push(`${r}-${c}`);
+      for (let i = all.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [all[i], all[j]] = [all[j], all[i]];
+      }
+      const n = 3 + Math.floor(Math.random() * 3); // 3-5
+      all.slice(0, n).forEach(k => s.add(k));
+    }
+  }
+  return s;
+}
+
+function renderBlockedCells() {
+  const gridEl = document.getElementById('grid');
+  gridEl.querySelectorAll('.blocked-cell').forEach(el => el.remove());
+  blockedCells.forEach(key => {
+    const [r, c] = key.split('-').map(Number);
+    const stone = document.createElement('div');
+    stone.className = 'blocked-cell';
+    stone.dataset.blockedKey = key;
+    stone.style.left = cellLeft(c) + 'px';
+    stone.style.top  = cellTop(r) + 'px';
+    gridEl.appendChild(stone);
+  });
+}
+
+function clearBlockedCellDOM() {
+  document.getElementById('grid').querySelectorAll('.blocked-cell').forEach(el => el.remove());
+}
+
+// ── Stone card helpers (the deck-injected type) ──
+function makeStoneCard() {
+  // Stones are normal card objects with a flag. They have a rank/suit so they
+  // can occupy a cell, but `cardCan` will refuse 'play', 'discard', 'select'.
+  // They CAN be 'swap' targets (handled in performSwap).
+  return { rank: '?', suit: 'stone', _isStone: true };
+}
+
+function injectStonesIntoDeck(count) {
+  // Insert `count` stone cards at random positions in the drawPile
+  for (let i = 0; i < count; i++) {
+    const pos = Math.floor(Math.random() * (drawPile.length + 1));
+    drawPile.splice(pos, 0, makeStoneCard());
+  }
+  updateDeckHud();
+}
+
+function purgeStonesFromDeck() {
+  // Remove all stones from drawPile, playedPile, and grid
+  drawPile = drawPile.filter(c => !c._isStone);
+  playedPile = playedPile.filter(c => !c._isStone);
+  for (let r = 0; r < gridRows; r++) {
+    for (let c = 0; c < gridCols; c++) {
+      if (gridData[r][c] && gridData[r][c]._isStone) {
+        gridData[r][c] = drawCard() || null; // refill with a real card
+      }
+    }
+  }
+  updateDeckHud();
+}
+
+// ── Boss objective checking ──
+function checkBossObjective(handName, handFinalScore) {
+  if (!bossActive || !currentBoss) return;
+  const obj = currentBoss.objective;
+  if (obj.type === 'score') {
+    // Use total `score` accumulated during this boss (we snapshot at start)
+    bossObjectiveProgress = score - bossScoreAtStart;
+    if (bossObjectiveProgress >= obj.target) {
+      endBoss(true);
+    }
+  } else if (obj.type === 'hand') {
+    if (handName === obj.handName) {
+      bossObjectiveProgress++;
+      if (bossObjectiveProgress >= obj.count) endBoss(true);
+    }
+  }
+  updateBossObjectiveUI();
+}
+let bossScoreAtStart = 0;
+
+function updateBossObjectiveUI() {
+  if (!bossActive || !currentBoss) return;
+  const obj = currentBoss.objective;
+  const el = document.getElementById('boss-objective-text');
+  if (!el) return;
+  if (obj.type === 'score') {
+    const prog = score - bossScoreAtStart;
+    el.textContent = `${Math.max(0, prog).toLocaleString()} / ${obj.target.toLocaleString()}`;
+  } else if (obj.type === 'hand') {
+    el.textContent = `${obj.handName}: ${bossObjectiveProgress} / ${obj.count}`;
+  }
+  // Voidwright: also update the pool display
+  const poolEl = document.getElementById('boss-bc-pools');
+  if (poolEl && currentBoss.modifiers.includes('bc_pool_split')) {
+    const phaseAActive = bossPhase === 1;
+    const aNames = [...bcPoolA].map(id => bcIdToName(id)).join(', ') || '(none)';
+    const bNames = [...bcPoolB].map(id => bcIdToName(id)).join(', ') || '(none)';
+    poolEl.innerHTML = `
+      <div class="boss-pool ${phaseAActive ? 'pool-active' : 'pool-inactive'}">
+        <span class="boss-pool-label">P1 OFF:</span> ${aNames}
+      </div>
+      <div class="boss-pool ${!phaseAActive ? 'pool-active' : 'pool-inactive'}">
+        <span class="boss-pool-label">P2 OFF:</span> ${bNames}
+      </div>
+    `;
+  }
+}
+function bcIdToName(id) {
+  const bc = (acquiredBonuses || []).find(b => b.id === id);
+  return bc ? bc.name : id;
+}
+
+// ── Boss modifier application ──
+function applyBossModifiers(preset) {
+  preset.modifiers.forEach(mod => {
+    switch (mod) {
+      case 'inject_stones':
+        injectStonesIntoDeck(preset.params.stoneInjectCount || 5);
+        break;
+      case 'void_corners':
+        blockedCells = getVoidPattern('corners');
+        break;
+      case 'void_random':
+        blockedCells = getVoidPattern('random');
+        break;
+      case 'void_edges':
+        blockedCells = getVoidPattern('edges');
+        break;
+      case 'void_center':
+        blockedCells = getVoidPattern('center');
+        break;
+      case 'reduce_swaps':
+        bossSwapsDelta = preset.params.swapsDelta || -1;
+        swaps = Math.max(0, swaps + bossSwapsDelta);
+        render();
+        break;
+      case 'low_card_infusion':
+        bossLowCardActive = true;
+        break;
+      case 'hand_lock':
+        bossLockedHand = preset.params.lockedHand || null;
+        break;
+      case 'bc_pool_split': {
+        // Randomly split owned BCs into two pools
+        const ownedIds = (typeof acquiredBonuses !== 'undefined' ? acquiredBonuses : []).map(b => b.id);
+        const shuffled = [...ownedIds];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+        const half = Math.ceil(shuffled.length / 2);
+        bcPoolA = new Set(shuffled.slice(0, half));
+        bcPoolB = new Set(shuffled.slice(half));
+        break;
+      }
+    }
+  });
+}
+
+function clearBossModifiers() {
+  // Restore swaps
+  if (bossSwapsDelta !== 0) {
+    swaps = Math.max(0, swaps - bossSwapsDelta);
+    render();
+    bossSwapsDelta = 0;
+  }
+  // Clear voids
+  blockedCells = new Set();
+  // Purge stones
+  purgeStonesFromDeck();
+  // Clear flags
+  bossLowCardActive = false;
+  bossLockedHand = null;
+  bcPoolA = new Set();
+  bcPoolB = new Set();
+  bossPhase = 1;
+}
+
+// Hook called every time a card is drawn — biases toward low cards during Famine
+function maybeFamineDrawSwap(card) {
+  if (!bossLowCardActive) return card;
+  if (!card || card._isStone) return card;
+  if (Math.random() > (currentBoss?.params?.lowCardWeight || 0.7)) return card;
+  // Replace card with a low rank (2–6), same suit
+  const lowRanks = ['2','3','4','5','6'];
+  return { ...card, rank: lowRanks[Math.floor(Math.random() * lowRanks.length)] };
+}
+
+// Is a BC currently disabled by Voidwright phase?
+function isBCDisabledByBoss(bcId) {
+  if (!bossActive) return false;
+  if (bossPhase === 1 && bcPoolA.has(bcId)) return true;
+  if (bossPhase === 2 && bcPoolB.has(bcId)) return true;
+  return false;
+}
+
+// ── Boss trigger / end ──
+function triggerBoss(presetOverride = null) {
+  if (bossActive) return;
+  // Pick preset (cycle or random; v1 random)
+  const preset = presetOverride
+    ? structuredClone(presetOverride)
+    : structuredClone(BOSS_PRESETS[bossNumber % BOSS_PRESETS.length]);
+  currentBoss = preset;
+  bossActive = true;
+  bossNumber++;
+  bossPhase = 1;
+  bossObjectiveProgress = 0;
+  bossScoreAtStart = score;
+
+  // Apply modifiers
+  applyBossModifiers(preset);
+
+  // Any cards sitting on now-void cells: return to draw pile
+  blockedCells.forEach(key => {
+    const [r, c] = key.split('-').map(Number);
+    const card = gridData[r][c];
+    if (card && !card._isBC) {
+      if (!card._isStone) discardToDrawPile(card);
+      gridData[r][c] = null;
+    } else if (card && card._isBC) {
+      gridData[r][c] = null;
+    }
+  });
+  // Clear pending selection over void
+  selected = selected.filter(([r, c]) => !isCellBlocked(r, c));
+
+  // Pause round timer (save value for restore)
+  savedRoundSeconds = roundSeconds;
+  if (roundInterval) { clearInterval(roundInterval); roundInterval = null; }
+
+  // Boss timer + UI
+  bossSecondsLeft = BOSS_WINDOW_DURATION;
+  document.getElementById('clock').classList.add('boss-mode');
+  document.getElementById('clock-bar').classList.add('boss-mode');
+  document.getElementById('grid').classList.add('boss-active');
+
+  updateBossClockDisplay();
+
+  // Banner
+  const banner = document.getElementById('boss-banner');
+  banner.querySelector('.boss-banner-title').textContent = preset.name;
+  document.getElementById('boss-banner-sub').textContent = preset.flavor;
+  banner.classList.add('show');
+  setTimeout(() => banner.classList.remove('show'), 2400);
+
+  // Objective HUD
+  showBossObjectiveHUD(preset);
+
+  // Render
+  renderBlockedCells();
+  render();
+
+  // Tick
+  bossInterval = setInterval(() => {
+    if (gameTimerPaused) return;
+    bossSecondsLeft--;
+    if (bossSecondsLeft < 0) bossSecondsLeft = 0;
+    updateBossClockDisplay();
+    // Phase switch at halfway for split-phase bosses
+    if (bossPhase === 1 && bossSecondsLeft === Math.floor(BOSS_WINDOW_DURATION / 2)) {
+      bossPhase = 2;
+      updateBossObjectiveUI(); // refresh pool display
+      showMessage('PHASE 2', 'var(--red)');
+    }
+    if (bossSecondsLeft <= 0) endBoss(false);
+  }, 1000);
+}
+
+function updateBossClockDisplay() {
+  const m = Math.floor(bossSecondsLeft / 60);
+  const s = bossSecondsLeft % 60;
+  document.getElementById('clock').textContent = `${m}:${s.toString().padStart(2,'0')}`;
+  document.getElementById('clock-bar').style.width = (bossSecondsLeft / BOSS_WINDOW_DURATION * 100) + '%';
+}
+
+function showBossObjectiveHUD(preset) {
+  let hud = document.getElementById('boss-objective-hud');
+  if (!hud) {
+    hud = document.createElement('div');
+    hud.id = 'boss-objective-hud';
+    document.getElementById('grid').appendChild(hud);
+  }
+  const obj = preset.objective;
+  const label = obj.type === 'score' ? 'OBJECTIVE: SCORE' : `OBJECTIVE: ${obj.handName.toUpperCase()}`;
+  hud.innerHTML = `
+    <div class="boss-objective-label">${label}</div>
+    <div class="boss-objective-progress" id="boss-objective-text"></div>
+    <div id="boss-bc-pools"></div>
+  `;
+  hud.classList.add('show');
+  updateBossObjectiveUI();
+}
+
+function hideBossObjectiveHUD() {
+  const hud = document.getElementById('boss-objective-hud');
+  if (hud) hud.classList.remove('show');
+}
+
+function endBoss(success) {
+  if (!bossActive) return;
+  bossActive = false;
+  if (bossInterval) { clearInterval(bossInterval); bossInterval = null; }
+
+  // Clean up modifiers (must happen BEFORE render)
+  clearBossModifiers();
+  clearBlockedCellDOM();
+  hideBossObjectiveHUD();
+  document.getElementById('grid').classList.remove('boss-active');
+  document.getElementById('clock').classList.remove('boss-mode');
+  document.getElementById('clock-bar').classList.remove('boss-mode');
+
+  // Result flash
+  const resultEl = document.getElementById('boss-result');
+  const resultText = document.getElementById('boss-result-text');
+  resultText.className = 'boss-result-text ' + (success ? 'win' : 'loss');
+  resultText.textContent = success ? 'VICTORY' : 'DEFEATED';
+  resultEl.classList.add('show');
+  setTimeout(() => resultEl.classList.remove('show'), 1500);
+
+  if (success) {
+    // Restore round timer
+    roundSeconds = savedRoundSeconds;
+    updateClockUI();
+    render();
+    // Show reward grid (replaces direct round resume — reward grid will resume when closed)
+    setTimeout(() => openRewardGrid(), 1000);
+  } else {
+    setTimeout(() => onGameEnd(true), 1200);
+  }
+
+  currentBoss = null;
+}
+
+// ══════════════════════════════════════════════
+// BOSS REWARD GRID (post-boss path-pick)
+// ══════════════════════════════════════════════
+// ── REWARD GRID ──
+// All cells are rewards (buff / debuff / dest). Player selects any orthogonally
+// connected group, then confirms. Grid size driven by limits.reward_rows/reward_cols.
+
+let rewardSelected = new Set(); // "r-c" keys
+let rewardCells    = [];        // NxN array of { kind, payload }
+let rewardConfirmed = false;
+
+function generateRewardContent() {
+  const ROWS = limits.reward_rows.current;
+  const COLS = limits.reward_cols.current;
+  const total = ROWS * COLS;
+
+  const buffs = [
+    { icon: '★', label: 'Random BC',     tier: 'rare',     apply: applyRewardRandomBC },
+    { icon: '◆', label: '+10 Pips Card', tier: 'common',   apply: applyRewardPipsCard },
+    { icon: '♛', label: 'Totem',         tier: 'legendary',apply: applyRewardTotem },
+    { icon: '⚡', label: '+1 Swap',       tier: 'common',   apply: () => { swaps += 1; render(); } },
+    { icon: '⏱', label: '+10s Round',    tier: 'common',   apply: () => { roundSeconds = Math.min(roundSeconds + 10, limits.round_time.current); updateClockUI(); } },
+    { icon: '💰', label: '+5 Coins',      tier: 'common',   apply: () => { coins += 5; updateCoinsUI(); } },
+  ];
+  const debuffs = [
+    { icon: '☠', label: '-1 Discard',    tier: 'penalty', apply: () => { discards = Math.max(0, discards - 1); render(); } },
+    { icon: '✖', label: 'Lose Random BC',tier: 'penalty', apply: applyRewardLoseBC },
+    { icon: '☁', label: '-5s Round',     tier: 'penalty', apply: () => { roundSeconds = Math.max(1, roundSeconds - 5); updateClockUI(); } },
+  ];
+  const destOptions = [
+    { icon: '🏪', label: 'Next: Shop',      tier: 'dest', apply: () => { pendingEventOverride = 'shop'; } },
+    { icon: '⚔', label: 'Next: Boss Rush',  tier: 'dest', apply: () => { pendingEventOverride = 'boss_rush'; } },
+    { icon: '💀', label: 'Next: Hard Boss',  tier: 'dest', apply: () => { pendingEventOverride = 'hard_boss'; } },
+  ];
+
+  function pickRand(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+  // Distribution: ~55% buffs, ~30% debuffs, 1 dest (replacing one debuff slot if grid >= 3x3)
+  // Scale with grid size
+  const numDest   = 1;
+  const numDebuff = Math.max(1, Math.floor(total * 0.28));
+  const numBuff   = total - numDest - numDebuff;
+
+  const pool = [];
+  for (let i = 0; i < numBuff;   i++) pool.push({ kind: 'buff',   payload: pickRand(buffs) });
+  for (let i = 0; i < numDebuff; i++) pool.push({ kind: 'debuff', payload: pickRand(debuffs) });
+  for (let i = 0; i < numDest;   i++) pool.push({ kind: 'dest',   payload: pickRand(destOptions) });
+
+  // Shuffle
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+
+  // Build ROWS x COLS grid
+  const grid = [];
+  let idx = 0;
+  for (let r = 0; r < ROWS; r++) {
+    grid[r] = [];
+    for (let c = 0; c < COLS; c++) {
+      grid[r][c] = pool[idx++];
+    }
+  }
+  return grid;
+}
+
+function applyRewardRandomBC() {
+  if (typeof BONUS_POOL === 'undefined') return;
+  const owned = new Set((acquiredBonuses || []).map(b => b.id));
+  const eligible = BONUS_POOL.filter(b => !owned.has(b.id));
+  if (eligible.length === 0) return;
+  const pick = eligible[Math.floor(Math.random() * eligible.length)];
+  acquiredBonuses.push({ ...pick });
+  showMessage(`+ ${pick.name}`, 'var(--gold)');
+}
+function applyRewardLoseBC() {
+  if (!acquiredBonuses || acquiredBonuses.length === 0) return;
+  const idx = Math.floor(Math.random() * acquiredBonuses.length);
+  const lost = acquiredBonuses.splice(idx, 1)[0];
+  showMessage(`- ${lost.name}`, 'var(--red)');
+}
+function applyRewardPipsCard() {
+  const cells = [];
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
+    const card = gridData[r][c];
+    if (card && !card._isBC && !card._isStone) cells.push(card);
+  }
+  if (cells.length === 0) return;
+  const card = cells[Math.floor(Math.random() * cells.length)];
+  const k = cardKey(card.rank, card.suit);
+  permPips[k] = (permPips[k] || 0) + 10;
+  render();
+  showMessage('+10 PIPS', 'var(--gold)');
+}
+function applyRewardTotem() {
+  if (typeof TOTEM_POOL === 'undefined') { showMessage('+ TOTEM', 'var(--gold)'); return; }
+  const owned = new Set((acquiredTotems || []).map(t => t.id));
+  const eligible = TOTEM_POOL.filter(t => !owned.has(t.id));
+  if (eligible.length === 0) return;
+  const pick = eligible[Math.floor(Math.random() * eligible.length)];
+  acquiredTotems.push({ ...pick });
+  showMessage(`+ ${pick.name}`, 'var(--gold)');
+}
+
+function openRewardGrid() {
+  gameTimerPaused = true;
+  rewardCells     = generateRewardContent();
+  rewardSelected  = new Set();
+  rewardConfirmed = false;
+  renderRewardGrid();
+  document.getElementById('reward-overlay').classList.add('show');
+}
+
+function renderRewardGrid() {
+  const ROWS = limits.reward_rows.current;
+  const COLS = limits.reward_cols.current;
+  const maxDim = Math.max(ROWS, COLS);
+  const cellPx = maxDim <= 3 ? 86 : maxDim === 4 ? 74 : 62;
+  const gridEl = document.getElementById('reward-grid');
+  gridEl.style.gridTemplateColumns = `repeat(${COLS}, ${cellPx}px)`;
+  gridEl.style.gridTemplateRows    = `repeat(${ROWS}, ${cellPx}px)`;
+  gridEl.innerHTML = '';
+
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const key  = `${r}-${c}`;
+      const cell = rewardCells[r][c];
+      const isSel = rewardSelected.has(key);
+      const canSel = isRewardCellSelectable(r, c);
+
+      const div = document.createElement('div');
+      div.className = [
+        'reward-cell',
+        cell.kind,
+        isSel   ? 'selected'    : '',
+        !isSel && canSel  ? 'selectable'  : '',
+        !isSel && !canSel ? 'unselectable': '',
+      ].filter(Boolean).join(' ');
+      div.dataset.r = r; div.dataset.c = c;
+
+      const p = cell.payload;
+      div.innerHTML = `
+        <div class="reward-tier">${p.tier.toUpperCase()}</div>
+        <div class="reward-icon">${p.icon}</div>
+        <div class="reward-label">${p.label}</div>
+      `;
+      div.onclick = () => onRewardCellClick(r, c);
+      gridEl.appendChild(div);
+    }
+  }
+
+  // Footer
+  const items = [...rewardSelected]
+    .map(key => { const [r,c] = key.split('-').map(Number); return rewardCells[r][c]; })
+    .filter(cell => cell.kind !== 'entry')
+    .map(cell => `${cell.payload.icon} ${cell.payload.label}`);
+  document.getElementById('reward-collected-list').textContent = items.length ? items.join('  ·  ') : '—';
+
+  const hasAny = rewardSelected.size > 0;
+  document.getElementById('reward-confirm').disabled = !hasAny;
+  document.getElementById('reward-clear').disabled   = !hasAny;
+}
+
+// A cell is selectable if: nothing selected yet (any cell), OR orthogonally adjacent to any selected cell and not already selected
+function isRewardCellSelectable(r, c) {
+  const key = `${r}-${c}`;
+  if (rewardSelected.has(key)) return false; // already selected
+  if (rewardSelected.size === 0) return true; // first pick — anything goes
+  // Must be orthogonally adjacent to at least one selected cell
+  const neighbors = [[r-1,c],[r+1,c],[r,c-1],[r,c+1]];
+  return neighbors.some(([nr,nc]) => rewardSelected.has(`${nr}-${nc}`));
+}
+
+function onRewardCellClick(r, c) {
+  if (rewardConfirmed) return;
+  const key = `${r}-${c}`;
+
+  // Clicking a selected cell deselects it (only if it's on the "fringe" — removing it
+  // wouldn't disconnect the remaining group)
+  if (rewardSelected.has(key)) {
+    // Check: would removing this cell leave the rest connected?
+    const remaining = new Set([...rewardSelected].filter(k => k !== key));
+    if (remaining.size === 0 || isGroupConnected(remaining)) {
+      rewardSelected.delete(key);
+      renderRewardGrid();
+    }
+    return;
+  }
+
+  if (!isRewardCellSelectable(r, c)) return;
+  rewardSelected.add(key);
+  renderRewardGrid();
+}
+
+// BFS connectivity check — ensures remaining selected cells are still one connected group
+function isGroupConnected(keySet) {
+  if (keySet.size <= 1) return true;
+  const [startKey] = keySet;
+  const visited = new Set([startKey]);
+  const queue = [startKey];
+  while (queue.length) {
+    const [r, c] = queue.shift().split('-').map(Number);
+    [[r-1,c],[r+1,c],[r,c-1],[r,c+1]].forEach(([nr,nc]) => {
+      const nk = `${nr}-${nc}`;
+      if (keySet.has(nk) && !visited.has(nk)) {
+        visited.add(nk);
+        queue.push(nk);
+      }
+    });
+  }
+  return visited.size === keySet.size;
+}
+
+function clearRewardSelection() {
+  if (rewardConfirmed) return;
+  rewardSelected = new Set();
+  renderRewardGrid();
+}
+
+function confirmRewardPath() {
+  if (rewardConfirmed || rewardSelected.size === 0) return;
+  rewardConfirmed = true;
+  rewardSelected.forEach(key => {
+    const [r, c] = key.split('-').map(Number);
+    const cell = rewardCells[r][c];
+    if (cell.payload && typeof cell.payload.apply === 'function') cell.payload.apply();
+  });
+  closeRewardGrid();
+}
+
+function closeRewardGrid() {
+  document.getElementById('reward-overlay').classList.remove('show');
+  rewardSelected  = new Set();
+  rewardCells     = [];
+  gameTimerPaused = false;
+  startRoundTimer();
+  render();
+}
+
+// Wire buttons
+(function wireRewardButtons() {
+  const confirm = document.getElementById('reward-confirm');
+  const clear   = document.getElementById('reward-clear');
+  if (confirm) confirm.addEventListener('click', confirmRewardPath);
+  if (clear)   clear.addEventListener('click', clearRewardSelection);
+})();
+
+// Placeholder — wired up when destination events are implemented
+let pendingEventOverride = null;
+
+// ── LIMIT BREAK EVENT ──
+// Offers 3 curated limits (2 known + 1 blind). Player breaks one for free.
+// Optionally breaks a second by sacrificing: -1 to another limit, OR a BC, OR a Totem.
+
+let lbOffers = [];          // [{ id, blind, revealed }]
+let lbPrimaryPick = null;   // offer index chosen as free pick
+let lbSecondPick = null;    // offer index chosen as sacrifice pick
+let lbSacrifice = null;     // { type:'limit'|'bc'|'totem', id }
+let lbConfirmed = false;
+
+function openLimitBreakEvent() {
+  gameTimerPaused = true;
+  lbPrimaryPick = null;
+  lbSecondPick  = null;
+  lbSacrifice   = null;
+  lbConfirmed   = false;
+
+  // Eligible = limits not yet maxed
+  const eligible = LIMITS_DEF.filter(def => limits[def.id].current < limits[def.id].max);
+  // If fewer than 3 eligible, offer what we can
+  const pool = [...eligible];
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  const chosen = pool.slice(0, 3);
+
+  // Last one is "blind" if we have a full set of 3
+  lbOffers = chosen.map((def, i) => ({
+    id: def.id,
+    blind: chosen.length === 3 && i === 2,
+    revealed: false,
+  }));
+
+  renderLimitBreak();
+  document.getElementById('limitbreak-overlay').classList.add('show');
+}
+
+function renderLimitBreak() {
+  const offersEl = document.getElementById('lb-offers');
+  offersEl.innerHTML = '';
+  lbOffers.forEach((offer, i) => {
+    const def = LIMITS_DEF.find(d => d.id === offer.id);
+    const l = limits[offer.id];
+    const isSel = (lbPrimaryPick === i || lbSecondPick === i);
+    const showBlind = offer.blind && !offer.revealed && !isSel;
+
+    const div = document.createElement('div');
+    div.className = `lb-offer ${offer.blind ? 'blind' : ''} ${isSel ? 'selected' : ''}`.trim();
+
+    if (showBlind) {
+      div.innerHTML = `
+        <div class="lb-offer-tag">?</div>
+        <div class="lb-offer-icon">❓</div>
+        <div class="lb-offer-label">MYSTERY</div>
+        <div class="lb-offer-desc">A hidden limit. Revealed on pick.</div>
+      `;
+    } else {
+      const prog = limitProgressStr(offer.id, true);
+      div.innerHTML = `
+        <div class="lb-offer-tag">${offer.blind ? '?' : ''}</div>
+        <div class="lb-offer-icon">${def.icon}</div>
+        <div class="lb-offer-label">${def.label}</div>
+        <div class="lb-offer-desc">${def.desc}</div>
+        <div class="lb-offer-prog">${prog}</div>
+      `;
+    }
+    div.onclick = () => onLbOfferClick(i);
+    offersEl.appendChild(div);
+  });
+
+  renderLbSacrifice();
+
+  const canConfirm = lbPrimaryPick !== null;
+  document.getElementById('lb-confirm').disabled = !canConfirm;
+}
+
+function onLbOfferClick(i) {
+  if (lbConfirmed) return;
+  const offer = lbOffers[i];
+
+  // First pick (free)
+  if (lbPrimaryPick === null) {
+    lbPrimaryPick = i;
+    if (offer.blind) offer.revealed = true;
+    renderLimitBreak();
+    return;
+  }
+  // Clicking the primary pick again deselects it (and clears second pick + sacrifice)
+  if (lbPrimaryPick === i) {
+    lbPrimaryPick = null;
+    lbSecondPick = null;
+    lbSacrifice = null;
+    renderLimitBreak();
+    return;
+  }
+  // Second pick requires a sacrifice — toggle selection, sacrifice chosen below
+  if (lbSecondPick === i) {
+    lbSecondPick = null;
+    lbSacrifice = null;
+    renderLimitBreak();
+    return;
+  }
+  lbSecondPick = i;
+  if (offer.blind) offer.revealed = true;
+  lbSacrifice = null; // must re-choose sacrifice for the new second pick
+  renderLimitBreak();
+}
+
+function renderLbSacrifice() {
+  const wrap = document.getElementById('lb-sacrifice');
+  const hint = document.getElementById('lb-sacrifice-hint');
+  const optsEl = document.getElementById('lb-sacrifice-options');
+
+  // Sacrifice section only relevant once a primary pick exists
+  if (lbPrimaryPick === null) {
+    wrap.style.opacity = '0.4';
+    hint.textContent = 'Choose your free pick first.';
+    optsEl.innerHTML = '';
+    return;
+  }
+  wrap.style.opacity = '1';
+
+  if (lbSecondPick === null) {
+    hint.textContent = 'Tap a second limit above, then choose what to sacrifice for it.';
+    optsEl.innerHTML = '';
+    return;
+  }
+
+  hint.textContent = 'Sacrifice one of these to break your second limit:';
+
+  const options = [];
+  // Limit sacrifices: any limit above 0 that isn't one of the two being broken
+  LIMITS_DEF.forEach(def => {
+    const l = limits[def.id];
+    const isBeingBroken = (lbOffers[lbPrimaryPick]?.id === def.id) || (lbOffers[lbSecondPick]?.id === def.id);
+    if (l.current > 0 && !isBeingBroken) {
+      options.push({ type: 'limit', id: def.id, label: `−1 ${def.icon} ${def.label}` });
+    }
+  });
+  // BC sacrifices
+  (acquiredBonuses || []).forEach((b, idx) => {
+    options.push({ type: 'bc', id: idx, label: `✖ BC: ${b.name}` });
+  });
+  // Totem sacrifices
+  (acquiredTotems || []).forEach((t, idx) => {
+    options.push({ type: 'totem', id: idx, label: `✖ ${t.emoji || '♛'} ${t.name}` });
+  });
+
+  if (options.length === 0) {
+    hint.textContent = 'Nothing left to sacrifice — your second pick is free!';
+    lbSacrifice = { type: 'none' };
+    optsEl.innerHTML = '';
+    return;
+  }
+
+  optsEl.innerHTML = '';
+  options.forEach(opt => {
+    const btn = document.createElement('button');
+    const isActive = lbSacrifice && lbSacrifice.type === opt.type && lbSacrifice.id === opt.id;
+    btn.className = `lb-sac-btn ${isActive ? 'active' : ''}`.trim();
+    btn.textContent = opt.label;
+    btn.onclick = () => {
+      lbSacrifice = { type: opt.type, id: opt.id };
+      renderLimitBreak();
+    };
+    optsEl.appendChild(btn);
+  });
+}
+
+function confirmLimitBreak() {
+  if (lbConfirmed || lbPrimaryPick === null) return;
+
+  // If a second pick is selected, it requires a valid sacrifice
+  if (lbSecondPick !== null && !lbSacrifice) {
+    showMessage('Choose a sacrifice for your second pick', 'var(--red)');
+    return;
+  }
+
+  lbConfirmed = true;
+
+  // Apply primary (free)
+  const primaryId = lbOffers[lbPrimaryPick].id;
+  incrementLimit(primaryId);
+  showMessage(`↑ ${LIMITS_DEF.find(d=>d.id===primaryId).label}`, 'var(--gold)');
+
+  // Apply second pick + sacrifice
+  if (lbSecondPick !== null && lbSacrifice) {
+    if (lbSacrifice.type === 'limit') {
+      decrementLimit(lbSacrifice.id);
+    } else if (lbSacrifice.type === 'bc') {
+      const lost = acquiredBonuses.splice(lbSacrifice.id, 1)[0];
+      if (lost) showMessage(`✖ ${lost.name}`, 'var(--red)');
+    } else if (lbSacrifice.type === 'totem') {
+      const lost = acquiredTotems.splice(lbSacrifice.id, 1)[0];
+      if (lost) showMessage(`✖ ${lost.name}`, 'var(--red)');
+    }
+    const secondId = lbOffers[lbSecondPick].id;
+    incrementLimit(secondId);
+    showMessage(`↑ ${LIMITS_DEF.find(d=>d.id===secondId).label}`, 'var(--gold)');
+  }
+
+  closeLimitBreak();
+}
+
+function closeLimitBreak() {
+  document.getElementById('limitbreak-overlay').classList.remove('show');
+  lbOffers = [];
+  lbPrimaryPick = null;
+  lbSecondPick = null;
+  lbSacrifice = null;
+  gameTimerPaused = false;
+  startRoundTimer();
+  render();
+}
+
+(function wireLimitBreak() {
+  const btn = document.getElementById('lb-confirm');
+  if (btn) btn.addEventListener('click', confirmLimitBreak);
+})();
+
+
+
+
 async function startInterlude() {
   interludeActive = true;
 
@@ -5744,14 +7814,14 @@ async function showLevelUpScreen_fallOnly() {
 
   // Snapshot BC positions before the fall
   const preservedBCs = [];
-  for (let r = 0; r < 5; r++) {
-    for (let c = 0; c < 5; c++) {
+  for (let r = 0; r < gridRows; r++) {
+    for (let c = 0; c < gridCols; c++) {
       if (gridData[r][c]?._isBC) preservedBCs.push({ r, c, card: gridData[r][c] });
     }
   }
 
   for (let r = 4; r >= 0; r--) {
-    for (let c = 0; c < 5; c++) {
+    for (let c = 0; c < gridCols; c++) {
       const card = gridData[r][c];
       if (!card) continue;
       const el = gridEl.querySelector(`[data-card-id="${card._id}"]`);
@@ -5767,7 +7837,7 @@ async function showLevelUpScreen_fallOnly() {
         }, 0);
       }));
     }
-    for (let c = 0; c < 5; c++) {
+    for (let c = 0; c < gridCols; c++) {
       const card = gridData[r][c];
       if (card && !card._isBC) {
         discardToPlayed(card);
@@ -6073,7 +8143,7 @@ async function show321Countdown() {
     if (refillDone) return;
     const elapsed  = performance.now() - refillStart;
     const progress = Math.min(elapsed / TOTAL_MS, 1);
-    roundSeconds   = Math.round(startSecs + (ROUND_DURATION - startSecs) * progress);
+    roundSeconds   = Math.round(startSecs + (limits.round_time.current - startSecs) * progress);
     updateClockUI();
     if (progress < 1) requestAnimationFrame(tickRefill);
     else refillDone = true;
@@ -6091,7 +8161,7 @@ async function show321Countdown() {
   }
 
   refillDone   = true;
-  roundSeconds = ROUND_DURATION;
+  roundSeconds = limits.round_time.current;
   updateClockUI();
   overlay.classList.remove('show');
 
@@ -6108,10 +8178,33 @@ function drainLevelUpQueue() {
 }
 
 function triggerLevelUp() {
+  // During a boss, the legacy goal-based level-up flow is suppressed.
+  // The new XP-grid level-up (Step 2) will replace this entirely; for now,
+  // we just skip the old round-reset to avoid disrupting the boss.
+  if (bossActive) return;
   clearInterval(roundInterval);
   roundInterval = null;
   goalReachedThisRound = false;
   roundEnded = false;
+
+  // Apply any pending grid-size changes for the new round, then resize cards.
+  // Must happen before BC re-placement and the deal animation populate gridData.
+  gridRows = limits.grid_rows.current;
+  gridCols = limits.grid_cols.current;
+  recomputeGridMetrics();
+  // Structurally conform gridData to the new dimensions, preserving in-bounds cells.
+  // (Out-of-bounds cells from a shrunk grid are simply dropped; their cards are
+  //  effectively returned via flushPlayedDeck on the next cycle.)
+  {
+    const newGrid = [];
+    for (let r = 0; r < gridRows; r++) {
+      newGrid[r] = [];
+      for (let c = 0; c < gridCols; c++) {
+        newGrid[r][c] = (gridData[r] && gridData[r][c] !== undefined) ? gridData[r][c] : null;
+      }
+    }
+    gridData = newGrid;
+  }
 
   level++;
   // Next level's increment (what you need to score above current total)
@@ -6127,13 +8220,27 @@ function triggerLevelUp() {
   if (hasBonus('reserves_time'))    accumulatedSeconds  = Math.min(99, accumulatedSeconds  + roundSeconds);
 
   // Base reset
-  const baseDiscards = hasBonus('second_harvest') ? 6 : hasBonus('well_stocked') ? 5 : 4;
-  const baseSwaps    = hasBonus('free_range') ? 2 : hasBonus('swap_shop') ? 5 : hasBonus('well_stocked') ? 4 : 3;
-  const baseSeconds  = Math.max(10, ROUND_DURATION - roundPenaltySeconds);
+  // Limit-break increments stack on top of bonus-derived base values as deltas,
+  // so existing bonus balance is preserved and limit breaks add extra.
+  const limitDiscardBonus = limits.discards.current   - limits.discards.base;
+  const limitSwapBonus    = limits.swaps.current      - limits.swaps.base;
+  const limitTimeBonus    = limits.round_time.current - limits.round_time.base;
+
+  const baseDiscards = (hasBonus('second_harvest') ? 6 : hasBonus('well_stocked') ? 5 : 4) + limitDiscardBonus;
+  const baseSwaps    = (hasBonus('free_range') ? 2 : hasBonus('swap_shop') ? 5 : hasBonus('well_stocked') ? 4 : 3) + limitSwapBonus;
+  const baseSeconds  = Math.max(10, (ROUND_DURATION - roundPenaltySeconds) + limitTimeBonus);
 
   discards     = Math.min(99, baseDiscards + accumulatedDiscards);
   swaps        = Math.min(99, baseSwaps    + accumulatedSwaps);
   roundSeconds = Math.min(99, baseSeconds  + accumulatedSeconds);
+
+  // ── Totem effects at round start ──
+  if (hasTotem('time_bank'))   roundSeconds = Math.min(99, roundSeconds + 30);
+  if (hasTotem('inheritance')) { coins += 5; updateCoinsUI(); }
+  if (hasTotem('head_start'))  score += Math.round(roundGoal * 0.10);
+  // Reset Combo Keeper state each round (totem starts each round armed)
+  streakSaveArmed = true;
+  streakSaveProgress = 0;
 
   // Clear accumulators now that they've been applied
   if (hasBonus('reserves_discards')) accumulatedDiscards = 0;
@@ -6155,7 +8262,7 @@ function triggerLevelUp() {
   if (hasBonus('tunnel_vision')) addFocus(5);
   // Reassign ley line position each level
   if (hasBonus('rowcol_perm_double') || rowColBonuses.some(b => b.id === 'rowcol_perm_double')) {
-    leyLinePos = { r: Math.floor(Math.random() * 5), c: Math.floor(Math.random() * 5) };
+    leyLinePos = { r: Math.floor(Math.random() * gridRows), c: Math.floor(Math.random() * gridCols) };
   }
   bonusCardPos = null;
   bonusCardTimer = 0;
@@ -6189,8 +8296,8 @@ async function showLevelUpScreen() {
 
   // ── Collect existing BCs ──
   const returningBCs = [];
-  for (let r = 0; r < 5; r++)
-    for (let c = 0; c < 5; c++)
+  for (let r = 0; r < gridRows; r++)
+    for (let c = 0; c < gridCols; c++)
       if (gridData[r][c]?._isBC)
         returningBCs.push({ ...gridData[r][c], _bcState: gridData[r][c]._bcState || 'acquired', savedRow: r, savedCol: c });
 
@@ -6223,8 +8330,8 @@ async function showLevelUpScreen() {
   const occupiedByReturning = new Set(returningBCs.map(bc => `${bc.savedRow}-${bc.savedCol}`));
   const spawnExcluded = new Set(['2-1','2-2','2-3']);
   const candidateCells = [];
-  for (let r = 0; r < 5; r++)
-    for (let c = 0; c < 5; c++)
+  for (let r = 0; r < gridRows; r++)
+    for (let c = 0; c < gridCols; c++)
       if (!occupiedByReturning.has(`${r}-${c}`) && !spawnExcluded.has(`${r}-${c}`))
         candidateCells.push([r, c]);
   // Shuffle candidates
@@ -6242,8 +8349,8 @@ async function showLevelUpScreen() {
 
   // Don't place new BCs into gridData yet — they live in the overlay during selection
   // Fill ALL cells with regular cards for now (BCs will be placed after pick)
-  for (let r = 0; r < 5; r++)
-    for (let c = 0; c < 5; c++)
+  for (let r = 0; r < gridRows; r++)
+    for (let c = 0; c < gridCols; c++)
       if (!gridData[r][c]) gridData[r][c] = drawCard() || null;
 
   // ── Hide grid visually until 3-2-1 fires — deal anims handle the reveal ──
@@ -6287,8 +8394,8 @@ function startNewRoundDealAnims() {
   const colReadyAt = {};
   dealAnims = [];
 
-  for (let c = 0; c < 5; c++) {
-    for (let r = 4; r >= 0; r--) {
+  for (let c = 0; c < gridCols; c++) {
+    for (let r = gridRows - 1; r >= 0; r--) {
       const card = gridData[r][c];
       if (!card) continue;
       const isBC  = card._isBC;
@@ -6296,23 +8403,17 @@ function startNewRoundDealAnims() {
 
       const destX      = cellLeft(c);
       const destY      = cellTop(r);
-      const fromAbove  = (5 - r);
+      const fromAbove  = (gridRows - r);
       const startY     = destY - fromAbove * CARD_STEP;
       const dropDist   = fromAbove * CARD_STEP;
       const colBase    = c * COL_OFFSET;
       const entryStart = Math.max(colBase, colReadyAt[c] || colBase);
       colReadyAt[c]    = entryStart + FALL_DUR * 0.6;
 
-      const tempEl = document.createElement('div');
-      if (isBC) {
-        const stateClass = card._bcState === 'upgradeable' ? ' bc-upgradeable' : card._bcState === 'upgraded' ? ' bc-upgraded' : '';
-        tempEl.className = `bc-card bc-tier-${bonus.tier} temp-anim${stateClass}`;
-        const upgradeLabel = card._bcState === 'upgradeable' ? '<div class="bc-upgrade-indicator">U</div>' : '';
-        tempEl.innerHTML = `<div class="bc-tier-label">${bonus.tier.charAt(0).toUpperCase()}</div><div class="bc-name">${bonus.name}</div>${upgradeLabel}`;
-      } else {
-        tempEl.className = `card ${suitClass(card.suit)} temp-anim`;
-        tempEl.innerHTML = `<div class="rank">${card.rank || ''}</div><div class="suit">${card.suit || ''}</div>`;
-      }
+      const tempEl = buildCardAnimEl(card, r, c);
+      tempEl.style.left    = destX + 'px';
+      tempEl.style.top     = startY + 'px';
+      tempEl.style.opacity = '0';
       tempEl.dataset.cardId = String(card._id);
       tempEl.dataset.row    = r;
       tempEl.dataset.col    = c;
@@ -6432,8 +8533,8 @@ function onBCTap(bonus) {
   if (!bcSelectionPhase) return;
   // Find the BC card to check its state
   let bcCard = null;
-  for (let r = 0; r < 5; r++)
-    for (let c = 0; c < 5; c++)
+  for (let r = 0; r < gridRows; r++)
+    for (let c = 0; c < gridCols; c++)
       if (gridData[r]?.[c]?._isBC && gridData[r][c].bonus.id === bonus.id)
         bcCard = gridData[r][c];
   if (!bcCard) return;
@@ -6454,8 +8555,8 @@ function showBCTooltip(bonus, readOnly = false) {
   let bcEl = null;
   gridEl.querySelectorAll('.bc-card').forEach(el => {
     const cardId = el.dataset.cardId;
-    for (let r = 0; r < 5; r++)
-      for (let c = 0; c < 5; c++)
+    for (let r = 0; r < gridRows; r++)
+      for (let c = 0; c < gridCols; c++)
         if (gridData[r]?.[c]?._isBC && gridData[r][c].bonus.id === bonus.id && String(gridData[r][c]._id) === cardId)
           bcEl = el;
   });
@@ -6570,16 +8671,16 @@ async function confirmBCSelection(bonus) {
 
   // Only remove NEW unchosen BCs — acquired/upgradeable/upgraded stay in the grid
   const unchosenCells = [];
-  for (let r = 0; r < 5; r++)
-    for (let c = 0; c < 5; c++) {
+  for (let r = 0; r < gridRows; r++)
+    for (let c = 0; c < gridCols; c++) {
       const cell = gridData[r][c];
       if (cell?._isBC && cell._bcState === 'new' && cell.bonus.id !== bonus.id)
         unchosenCells.push([r, c]);
     }
 
   // Mark chosen BC settled — acquired or upgraded depending on prior state
-  for (let r = 0; r < 5; r++)
-    for (let c = 0; c < 5; c++) {
+  for (let r = 0; r < gridRows; r++)
+    for (let c = 0; c < gridCols; c++) {
       const cell = gridData[r][c];
       if (!cell?._isBC || cell.bonus.id !== bonus.id) continue;
       cell._selectable = false;
@@ -6588,8 +8689,8 @@ async function confirmBCSelection(bonus) {
 
   // Apply bonus (stack if upgrading — option 4)
   const isUpgrade = (() => {
-    for (let r = 0; r < 5; r++)
-      for (let c = 0; c < 5; c++)
+    for (let r = 0; r < gridRows; r++)
+      for (let c = 0; c < gridCols; c++)
         if (gridData[r][c]?._isBC && gridData[r][c].bonus.id === bonus.id && gridData[r][c]._bcState === 'upgraded')
           return true;
     return false;
@@ -6630,12 +8731,12 @@ function selectBonus(bonus, fromBCFlow = false) {
   const positionalIds = ['rowcol_triple_pips','rowcol_mult','rowcol_retrigger','rowcol_perm_double'];
   if (positionalIds.includes(bonus.id)) {
     const axis = Math.random() < 0.5 ? 'row' : 'col';
-    const index = Math.floor(Math.random() * 5);
+    const index = Math.floor(Math.random() * (axis === 'row' ? gridRows : gridCols));
     rowColBonuses.push({ id: bonus.id, axis, index });
     bonus.desc = bonus.desc.replace('a specific row or column', `${axis} ${index + 1}`)
                             .replace('a specific grid intersection', `(${axis === 'row' ? 'row' : 'col'} ${index + 1})`);
     if (bonus.id === 'rowcol_perm_double') {
-      leyLinePos = { r: Math.floor(Math.random() * 5), c: Math.floor(Math.random() * 5) };
+      leyLinePos = { r: Math.floor(Math.random() * gridRows), c: Math.floor(Math.random() * gridCols) };
     }
   }
 
@@ -6841,8 +8942,8 @@ function openSvcPicker(title, sub, source, maxSelect, onConfirm) {
 
   // Grid cards (exclude BCs — they aren't real deck cards)
   if (source === 'grid' || source === 'both') {
-    for (let r = 0; r < 5; r++) {
-      for (let c = 0; c < 5; c++) {
+    for (let r = 0; r < gridRows; r++) {
+      for (let c = 0; c < gridCols; c++) {
         const card = gridData[r][c];
         if (card && !card._isBC) allCards.push({ ...card, loc: 'grid', r, c });
       }
@@ -6853,8 +8954,8 @@ function openSvcPicker(title, sub, source, maxSelect, onConfirm) {
   if (source === 'deck' || source === 'both') {
     const seen = new Set();
     // Mark grid cards as seen so deck section shows only off-grid cards
-    for (let r = 0; r < 5; r++)
-      for (let c = 0; c < 5; c++)
+    for (let r = 0; r < gridRows; r++)
+      for (let c = 0; c < gridCols; c++)
         if (gridData[r][c] && !gridData[r][c]._isBC) seen.add(cardKey(gridData[r][c].rank, gridData[r][c].suit));
     [...drawPile].forEach(card => {
       const k = cardKey(card.rank, card.suit);
@@ -7477,8 +9578,8 @@ function showDeck() {
 
   // Present — on grid (exclude BCs)
   const presentCards = [];
-  for (let r = 0; r < 5; r++)
-    for (let c = 0; c < 5; c++)
+  for (let r = 0; r < gridRows; r++)
+    for (let c = 0; c < gridCols; c++)
       if (gridData[r][c] && !gridData[r][c]._isBC) presentCards.push(gridData[r][c]);
 
   el.innerHTML = `
@@ -7509,6 +9610,8 @@ function pauseGame(hideGrid = true) {
   isPaused = true;
   clearInterval(roundInterval); roundInterval = null;
   clearInterval(gameInterval);  gameInterval  = null;
+  // Pause boss tick too if active
+  if (bossInterval) { clearInterval(bossInterval); bossInterval = null; }
   cancelAutoSubmit();
   if (hideGrid) {
     document.getElementById('pause-overlay').style.display = 'flex';
@@ -7523,14 +9626,44 @@ function resumeGame() {
   document.getElementById('pause-overlay').style.display = 'none';
   document.getElementById('grid').style.visibility = '';
   document.getElementById('btn-pause').textContent = '⏸ Pause';
-  startRoundTimer();
-  // Restart game timer
+  if (bossActive) {
+    // Resume boss tick instead of round timer
+    bossInterval = setInterval(() => {
+      if (gameTimerPaused) return;
+      bossSecondsLeft--;
+      if (bossSecondsLeft < 0) bossSecondsLeft = 0;
+      updateBossClockDisplay();
+      if (bossPhase === 1 && bossSecondsLeft === Math.floor(BOSS_WINDOW_DURATION / 2)) {
+        bossPhase = 2;
+        updateBossObjectiveUI();
+        showMessage('PHASE 2', 'var(--red)');
+      }
+      if (bossSecondsLeft <= 0) endBoss(false);
+    }, 1000);
+  } else {
+    startRoundTimer();
+  }
+  // Restart game timer — full version with boss & shop triggers
   gameInterval = setInterval(() => {
+    if (gameTimerPaused) return;
     gameSeconds--;
     const m = Math.floor(gameSeconds/60);
     const s = gameSeconds%60;
     document.getElementById('game-timer').textContent = `${m}:${s.toString().padStart(2,'0')}`;
-    if (gameSeconds === nextShopTime) { nextShopTime -= 120; triggerShop(); }
+    // Shop trigger — but defer during boss
+    if (gameSeconds === nextShopTime) {
+      if (bossActive) {
+        // Defer: re-check after boss ends
+        nextShopTime -= 1; // skip this tick, retry next second
+      } else {
+        nextShopTime -= 120;
+        triggerShop();
+      }
+    }
+    if (gameSeconds === nextBossTime && !bossActive) {
+      nextBossTime -= BOSS_LOOP_DURATION;
+      triggerBoss();
+    }
     if (gameSeconds <= 0) onGameEnd(false);
   }, 1000);
 }
@@ -7579,8 +9712,14 @@ function startGame() {
   level = 1;
   leaves = 0;
   handsPlayed = 0;
-  discards = 4;
-  swaps = 3;
+  // Reset limits to base values on new game
+  LIMITS_DEF.forEach(def => { limits[def.id] = { current: def.base, base: def.base, max: def.max }; });
+  discards = limits.discards.current;
+  swaps = limits.swaps.current;
+  // Sync playing-grid dimensions from limits and size the cards
+  gridRows = limits.grid_rows.current;
+  gridCols = limits.grid_cols.current;
+  recomputeGridMetrics();
   // Reset focus meter
   focusNodes = 0;
   focusCapacity = 3;
@@ -7663,6 +9802,21 @@ function startGame() {
   svcMode = null;
   svcPicked = [];
   nextShopTime = GAME_DURATION - 120;
+
+  // Reset boss state
+  if (bossInterval) { clearInterval(bossInterval); bossInterval = null; }
+  bossActive = false;
+  bossSecondsLeft = 0;
+  blockedCells = new Set();
+  bossNumber = 0;
+  savedRoundSeconds = 0;
+  nextBossTime = GAME_DURATION - BOSS_LOOP_DURATION;
+  document.getElementById('grid').classList.remove('boss-active');
+  document.getElementById('clock').classList.remove('boss-mode');
+  document.getElementById('clock-bar').classList.remove('boss-mode');
+  document.getElementById('boss-banner')?.classList.remove('show');
+  document.getElementById('boss-result')?.classList.remove('show');
+  document.getElementById('grid').querySelectorAll('.blocked-cell').forEach(el => el.remove());
 
   isPaused = false;
   document.getElementById('pause-overlay').style.display = 'none';
@@ -8409,6 +10563,8 @@ function openDevPanel() {
   const panel = document.getElementById('dev-panel');
   panel.style.display = 'flex';
   devFilterBonuses('');
+  devFilterTotems('');
+  devRenderLimits();
   stopTimers();
 }
 
@@ -8444,6 +10600,60 @@ function devOpenShop() {
   closeDevPanel();
   document.getElementById('shop-overlay').classList.add('show');
   renderShop();
+}
+
+function devTriggerBoss(presetId) {
+  closeDevPanel();
+  if (bossActive) return;
+  const preset = presetId
+    ? BOSS_PRESETS.find(p => p.id === presetId)
+    : BOSS_PRESETS[bossNumber % BOSS_PRESETS.length];
+  triggerBoss(preset);
+}
+function devEndBossWin() {
+  closeDevPanel();
+  if (bossActive) endBoss(true);
+}
+function devEndBossLose() {
+  closeDevPanel();
+  if (bossActive) endBoss(false);
+}
+function devOpenRewardGrid() {
+  closeDevPanel();
+  openRewardGrid();
+}
+
+function devTriggerEvent(eventId) {
+  closeDevPanel();
+  if (eventId === 'limit_break') {
+    openLimitBreakEvent();
+  } else if (eventId === 'shop') {
+    document.getElementById('shop-overlay').classList.add('show');
+    renderShop();
+  }
+}
+
+function devRenderLimits() {
+  const disp = document.getElementById('dev-limits-display');
+  const btns = document.getElementById('dev-limits-btns');
+  if (!disp || !btns) return;
+  disp.innerHTML = LIMITS_DEF.map(def => {
+    const l = limits[def.id];
+    const bar = '█'.repeat(l.current - l.base) + '░'.repeat(l.max - l.current);
+    const val = def.hideMax ? `${l.current}` : `${l.current}/${l.max}`;
+    return `${def.icon} ${def.label.padEnd(18,' ')} ${val.padEnd(6,' ')} ${bar}`;
+  }).join('<br>');
+  btns.innerHTML = LIMITS_DEF.map(def => {
+    const l = limits[def.id];
+    const atMax = l.current >= l.max;
+    return `<button class="dev-btn" style="font-size:9px;padding:3px 6px;" onclick="devIncrLimit('${def.id}')" ${atMax ? 'disabled style="opacity:0.4"' : ''}>+${def.icon}</button>`;
+  }).join('');
+}
+
+function devIncrLimit(id) {
+  const ok = incrementLimit(id);
+  if (ok) showMessage(`↑ ${LIMITS_DEF.find(d=>d.id===id)?.label}`, 'var(--gold)');
+  devRenderLimits();
 }
 
 function devSetFallSpeed(val) {
@@ -8544,9 +10754,41 @@ function devAddBonus(id) {
   setTimeout(() => { btn.textContent = '+ Add'; btn.style.color = ''; }, 1200);
 }
 
+function devFilterTotems(query) {
+  const list = document.getElementById('dev-totem-list');
+  if (!list) return;
+  const q = (query || '').toLowerCase();
+  const matches = TOTEM_POOL.filter(t => !q || t.name.toLowerCase().includes(q) || t.id.includes(q));
+  list.innerHTML = matches.slice(0, 30).map(t => {
+    const owned = hasTotem(t.id);
+    return `
+      <div class="dev-bonus-item">
+        <span class="dev-bonus-name">${t.emoji} ${t.name}${owned ? ' ✓' : ''}</span>
+        <button class="dev-bonus-add" onclick="devAddTotem('${t.id}')" ${owned ? 'disabled style="opacity:0.5;cursor:default;"' : ''}>
+          ${owned ? 'Owned' : '+ Add'}
+        </button>
+      </div>
+    `;
+  }).join('');
+}
+
+function devAddTotem(id) {
+  const totem = TOTEM_POOL.find(t => t.id === id);
+  if (!totem) return;
+  if (hasTotem(id)) return;
+  acquiredTotems.push(totem);
+  updateTotemList();
+  // Refresh dev list so the entry flips to "Owned"
+  const searchEl = document.getElementById('dev-totem-search');
+  devFilterTotems(searchEl ? searchEl.value : '');
+  const btn = event.target;
+  btn.textContent = '✓ Added';
+  btn.style.color = '#8bc34a';
+}
+
 // ── End of dev mode ──
 
-startGame();
+initMainMenu();
 initDevMode();
 
 // ── STAGE SCALING (zoom-based) ──
@@ -8556,6 +10798,8 @@ initDevMode();
 (function setupStageScaling() {
   const stage = document.getElementById('stage');
   if (!stage) return;
+  // Initial card-size pass so the grid renders at the right dimensions on first paint
+  recomputeGridMetrics();
   const DESIGN_W = 420;
   const DESIGN_H = 740;
   const BODY_PAD = 14; // matches body padding above; reserves visible buffer
