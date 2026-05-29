@@ -4279,7 +4279,7 @@ function render() {
         if (!div) { div = document.createElement('div'); div.dataset.cardId = cardId; gridEl.appendChild(div); }
         div.dataset.row = r; div.dataset.col = c;
         div.style.left = cellLeft(c) + 'px';
-        if (!animating) div.style.top = cellTop(r) + 'px';
+        if (!animating && !falling) div.style.top = cellTop(r) + "px";
         const isSwapPending = swapPending && swapPending[0]===r && swapPending[1]===c;
         const { className, innerHTML } = renderCardAppearance(card, r, c, { isSwapPending });
         div.className = className; div.innerHTML = innerHTML;
@@ -4292,7 +4292,7 @@ function render() {
         if (!div) { div = document.createElement('div'); div.dataset.cardId = cardId; gridEl.appendChild(div); }
         div.dataset.row = r; div.dataset.col = c;
         div.style.left = cellLeft(c) + 'px';
-        if (!animating) div.style.top = cellTop(r) + 'px';
+        if (!animating && !falling) div.style.top = cellTop(r) + "px";
         const isPendingBC = !!(pendingBCChoice && pendingBCChoice.id === card.bonus.id);
         const isSwapPending = swapPending && swapPending[0]===r && swapPending[1]===c;
         const { className, innerHTML, isTappable } = renderCardAppearance(card, r, c, { isPendingBC, isSwapPending });
@@ -4327,7 +4327,7 @@ function render() {
       }
       div.dataset.row = r; div.dataset.col = c;
       div.style.left = cellLeft(c) + 'px';
-      if (!animating) div.style.top = cellTop(r) + 'px';
+      if (!animating && !falling) div.style.top = cellTop(r) + "px";
       div.className = className;
       div.innerHTML = innerHTML;
 
@@ -6594,7 +6594,9 @@ async function removeAndFall(removingCells, mode = 'play') {
       const targetRow = playableRows[playableRows.length - survivors.length + i];
       if (targetRow !== entry.origRow) {
         const fallBy = targetRow - entry.origRow;
-        fallPlan.push({ row: entry.origRow, col, fallBy });
+        // Capture the card NOW — gridData is updated below (pre-animation), so the
+        // fall loop can no longer look it up by old position.
+        fallPlan.push({ row: entry.origRow, col, fallBy, card: entry.card });
         if (challengeCard && challengeCard.pos[0] === entry.origRow && challengeCard.pos[1] === col) {
           challengeCard.pos = [targetRow, col];
         }
@@ -6626,6 +6628,17 @@ async function removeAndFall(removingCells, mode = 'play') {
     });
   }
 
+  // Settle challenge card into the first empty cell of its column (data is now final)
+  if (challengeCard) {
+    for (let col = 0; col < gridCols; col++) {
+      if (challengeCard.pos[1] === col) {
+        for (let r = 0; r < gridRows; r++) {
+          if (gridData[r][col] === null) { challengeCard.pos = [r, col]; break; }
+        }
+      }
+    }
+  }
+
   // Transition: slide-out done, now entering fall phase — allow selection
   animating = false;
   falling = true;
@@ -6653,8 +6666,7 @@ async function removeAndFall(removingCells, mode = 'play') {
   const fallAnims = [];
   const sortedFallPlan = [...fallPlan].sort((a, b) => a.col !== b.col ? a.col - b.col : b.row - a.row);
 
-  sortedFallPlan.forEach(({ row, col, fallBy }) => {
-    const card = gridData[row][col];
+  sortedFallPlan.forEach(({ row, col, fallBy, card }) => {
     if (!card) return;
     const startX = cellLeft(col);
     const startY = cellTop(row);
@@ -6666,6 +6678,11 @@ async function removeAndFall(removingCells, mode = 'play') {
     const tempEl = buildCardAnimEl(card, row + fallBy, col);
     tempEl.style.left = startX + 'px';
     tempEl.style.top  = startY + 'px';
+    // Make falling cards selectable mid-air: tag with destination + enable hits
+    tempEl.dataset.row = row + fallBy;
+    tempEl.dataset.col = col;
+    tempEl.dataset.cardId = String(card._id);
+    tempEl.style.pointerEvents = 'auto';
     gridEl.appendChild(tempEl);
 
     fallAnims.push(tempEl.animate([
@@ -6697,7 +6714,11 @@ async function removeAndFall(removingCells, mode = 'play') {
     tempEl.style.left    = destX + 'px';
     tempEl.style.top     = startY + 'px';
     tempEl.style.opacity = '0';
-    gridEl.appendChild(tempEl);
+    // Make entering cards selectable mid-air: tag with destination + enable hits
+    tempEl.dataset.row = finalRow;
+    tempEl.dataset.col = col;
+    tempEl.dataset.cardId = String(card._id);
+    tempEl.style.pointerEvents = 'auto';
     gridEl.appendChild(tempEl);
 
     enterAnims.push(tempEl.animate([
