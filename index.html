@@ -2907,8 +2907,8 @@
 <!-- BOSS REWARD GRID OVERLAY -->
 <div id="reward-overlay">
   <div id="reward-header">
-    <div id="reward-title">SPOILS OF VICTORY</div>
-    <div id="reward-sub">Select any connected group of cells to claim their rewards.</div>
+    <div id="reward-title">ROUND REWARDS</div>
+    <div id="reward-sub">Choose any connected group. At most one destination.</div>
   </div>
 
   <div id="reward-grid"></div>
@@ -7339,8 +7339,8 @@ function endBoss(success) {
     roundSeconds = savedRoundSeconds;
     updateClockUI();
     render();
-    // Show reward grid (replaces direct round resume — reward grid will resume when closed)
-    setTimeout(() => openRewardGrid(), 1000);
+    // Show reward grid (boss context — closing it resumes the current round)
+    setTimeout(() => { rewardGridContext = 'boss'; openRewardGrid(); }, 1000);
   } else {
     setTimeout(() => onGameEnd(true), 1200);
   }
@@ -7358,7 +7358,8 @@ function endBoss(success) {
 let rewardSelected = new Set(); // "r-c" keys
 let rewardCells    = [];        // NxN array of { kind, payload }
 let rewardConfirmed = false;
-let rewardBudget   = 0;         // max cells claimable this visit (a "path length")
+let rewardGridContext = 'interlude'; // 'interlude' | 'boss' — determines what closeRewardGrid does
+let skipBCChoiceOverlay = false;    // set before drainLevelUpQueue when reward grid is the reward screen
 
 function generateRewardContent() {
   const ROWS = limits.reward_rows.current;
@@ -7458,9 +7459,6 @@ function openRewardGrid() {
   rewardCells     = generateRewardContent();
   rewardSelected  = new Set();
   rewardConfirmed = false;
-  // Budget = a "path length" through the grid. Defaults to the row count so you
-  // claim a route rather than the whole board. (Tune / replace per design.)
-  rewardBudget    = limits.reward_rows.current;
   renderRewardGrid();
   document.getElementById('reward-overlay').classList.add('show');
 }
@@ -7510,10 +7508,16 @@ function renderRewardGrid() {
     .map(cell => `${cell.payload.icon} ${cell.payload.label}`);
   document.getElementById('reward-collected-list').textContent = items.length ? items.join('  ·  ') : '—';
 
-  // Budget counter
+  // Subtitle: destination warning if a dest is selected
   const subEl = document.getElementById('reward-sub');
-  if (subEl && rewardBudget) {
-    subEl.textContent = `Claim a connected path — ${rewardSelected.size} / ${rewardBudget} cells chosen.`;
+  if (subEl) {
+    const selectedDest = [...rewardSelected].find(k => {
+      const [sr, sc] = k.split('-').map(Number);
+      return rewardCells[sr]?.[sc]?.kind === 'dest';
+    });
+    subEl.textContent = selectedDest
+      ? 'Destination locked in — confirm to set your route.'
+      : 'Choose any connected group. At most one destination.';
   }
 
   const hasAny = rewardSelected.size > 0;
@@ -7525,7 +7529,16 @@ function renderRewardGrid() {
 function isRewardCellSelectable(r, c) {
   const key = `${r}-${c}`;
   if (rewardSelected.has(key)) return false; // already selected
-  if (rewardBudget && rewardSelected.size >= rewardBudget) return false; // budget spent
+  // Destination rule: at most one dest tile per selection
+  const ROWS = limits.reward_rows.current;
+  const COLS = limits.reward_cols.current;
+  if (r >= 0 && r < ROWS && c >= 0 && c < COLS && rewardCells[r]?.[c]?.kind === 'dest') {
+    const alreadyHasDest = [...rewardSelected].some(k => {
+      const [sr, sc] = k.split('-').map(Number);
+      return rewardCells[sr]?.[sc]?.kind === 'dest';
+    });
+    if (alreadyHasDest) return false;
+  }
   if (rewardSelected.size === 0) return true; // first pick — anything goes
   // Must be orthogonally adjacent to at least one selected cell
   const neighbors = [[r-1,c],[r+1,c],[r,c-1],[r,c+1]];
@@ -7594,8 +7607,15 @@ function closeRewardGrid() {
   rewardSelected  = new Set();
   rewardCells     = [];
   gameTimerPaused = false;
-  startRoundTimer();
-  render();
+  if (rewardGridContext === 'interlude') {
+    // Reward grid replaced the BC choice — continue to the new round setup
+    skipBCChoiceOverlay = true;
+    drainLevelUpQueue();
+  } else {
+    // Boss fight: reward grid was mid-round, resume the current round
+    startRoundTimer();
+    render();
+  }
 }
 
 // Wire buttons
@@ -7858,15 +7878,13 @@ async function startInterlude() {
   // ── Stage 4: Balatro-style payout UI ──
   await showPayoutUI();
 
-  // (Removed: pulseAndRefillClock + score/progress pulses — 3-2-1 now handles clock refill,
-  //  and we want a tight transition from payout → BC pick → goal flash → 321.)
-
-  // ── Stage 7-8: full-screen BC choice (handled inside triggerLevelUp → showLevelUpScreen) ──
   interludeActive = false;
   sfxDuckGain.disconnect();
   sfxDuckGain = null;
 
-  drainLevelUpQueue();
+  // ── Reward grid replaces BC choice — player picks spoils, then new round setup runs ──
+  rewardGridContext = 'interlude';
+  openRewardGrid();
 }
 
 async function showLevelUpScreen_fallOnly() {
@@ -8470,17 +8488,30 @@ async function showLevelUpScreen() {
 
   animating = false; // allow BC taps immediately
 
-  // ── Show target slot glow on grid for each new BC ──
-  bcSelectionOptions.forEach(bonus => {
-    const slot = document.createElement('div');
-    slot.className = 'bc-target-slot';
-    slot.dataset.bonusId = bonus.id;
-    slot.style.cssText = `width:${CARD_W}px;height:${CARD_H}px;left:${cellLeft(bonus._targetCol)}px;top:${cellTop(bonus._targetRow)}px;`;
-    gridEl.appendChild(slot);
-  });
+  if (skipBCChoiceOverlay) {
+    // Reward grid already handled rewards — skip BC pick, go straight to new round
+    skipBCChoiceOverlay = false;
+    bcSelectionPhase = false;
+    showNextGoalFlash().then(() => show321Countdown()).then(() => {
+      gameTimerPaused = false;
+      sfxRoundStart();
+      startRoundTimer();
+      updateClockUI();
+      render();
+    });
+  } else {
+    // ── Show target slot glow on grid for each new BC ──
+    bcSelectionOptions.forEach(bonus => {
+      const slot = document.createElement('div');
+      slot.className = 'bc-target-slot';
+      slot.dataset.bonusId = bonus.id;
+      slot.style.cssText = `width:${CARD_W}px;height:${CARD_H}px;left:${cellLeft(bonus._targetCol)}px;top:${cellTop(bonus._targetRow)}px;`;
+      gridEl.appendChild(slot);
+    });
 
-  // ── Show BC choice overlay immediately (cards deal slowly behind it) ──
-  showBCChoiceOverlay();
+    // ── Show BC choice overlay immediately (cards deal slowly behind it) ──
+    showBCChoiceOverlay();
+  }
 }
 
 // ── Deal animations: called from show321Countdown when 3-2-1 starts ──
@@ -9900,6 +9931,12 @@ function startGame() {
   animating = false;
   falling = false;
   pendingAction = null;
+  pendingEventOverride = null;
+  rewardGridContext = 'interlude';
+  skipBCChoiceOverlay = false;
+  rewardSelected = new Set();
+  rewardCells = [];
+  rewardConfirmed = false;
   // Clear any leftover card elements from previous game
   document.getElementById('grid').querySelectorAll('.card').forEach(el => el.remove());
   roundGoal = BASE_GOAL;
@@ -10729,6 +10766,7 @@ function devEndBossLose() {
 }
 function devOpenRewardGrid() {
   closeDevPanel();
+  rewardGridContext = 'boss'; // dev open = mid-round, just resume the round when closed
   openRewardGrid();
 }
 
