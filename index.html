@@ -5372,9 +5372,10 @@ function playHand() {
     firstHandThisRound = false;
   }
 
-  // Heartwood — dead center (row2,col2)
-  if (hasBonus('heartwood') && handCells.some(([r,c])=>r===2&&c===2)) {
-    const k = cardKey(gridData[2][2].rank, gridData[2][2].suit);
+  // Heartwood — dead center card
+  const _hwR = Math.floor(gridRows / 2), _hwC = Math.floor(gridCols / 2);
+  if (hasBonus('heartwood') && handCells.some(([r,c])=>r===_hwR&&c===_hwC)) {
+    const k = cardKey(gridData[_hwR][_hwC].rank, gridData[_hwR][_hwC].suit);
     permPips[k] = (permPips[k]||0) + 5;
     permMult[k] = (permMult[k]||0) + 1;
   }
@@ -7853,7 +7854,7 @@ async function showLevelUpScreen_fallOnly() {
   gridEl.querySelectorAll('[data-card-id]').forEach(el => el.remove());
 
   // Reset gridData; BCs get restored to their snapshotted positions for refill
-  gridData = Array.from({length:5}, () => Array(5).fill(null));
+  gridData = Array.from({length:gridRows}, () => Array(gridCols).fill(null));
   preservedBCs.forEach(({r, c, card}) => { gridData[r][c] = card; });
   bonusCardPos = null;
   animating = false;
@@ -8313,22 +8314,24 @@ async function showLevelUpScreen() {
     };
   });
 
-  // Mark upgradeable
+  // Mark upgradeable — BCs in the middle row's inner columns qualify
+  const _bcMidRow = Math.floor(gridRows / 2);
+  const _bcInnerCols = Array.from({length: Math.max(0, gridCols - 2)}, (_, i) => i + 1);
   returningBCs.forEach(bc => {
-    if (bc.savedRow === 2 && [1,2,3].includes(bc.savedCol)) {
+    if (bc.savedRow === _bcMidRow && _bcInnerCols.includes(bc.savedCol)) {
       const cell = gridData[bc.savedRow][bc.savedCol];
       if (cell._bcState === 'acquired') cell._bcState = 'upgradeable';
     }
   });
 
-  // Determine available slots for new BCs
-  const spawnSlots = [1, 2, 3].filter(c => !gridData[2][c]);
+  // Determine available slots for new BCs (middle row, inner columns)
+  const spawnSlots = _bcInnerCols.filter(c => !gridData[_bcMidRow][c]);
   bcSelectionOptions = pickBonusOptions(spawnSlots.length);
   let bcIdCounter = 90000 + (level * 10);
 
-  // Pre-assign random target grid positions for new BCs (not in row 2 cols 1-3, not occupied by returning BC)
+  // Pre-assign random target grid positions for new BCs (excluding middle row inner cols)
   const occupiedByReturning = new Set(returningBCs.map(bc => `${bc.savedRow}-${bc.savedCol}`));
-  const spawnExcluded = new Set(['2-1','2-2','2-3']);
+  const spawnExcluded = new Set(_bcInnerCols.map(c => `${_bcMidRow}-${c}`));
   const candidateCells = [];
   for (let r = 0; r < gridRows; r++)
     for (let c = 0; c < gridCols; c++)
