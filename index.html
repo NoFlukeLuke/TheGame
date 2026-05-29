@@ -7358,6 +7358,7 @@ function endBoss(success) {
 let rewardSelected = new Set(); // "r-c" keys
 let rewardCells    = [];        // NxN array of { kind, payload }
 let rewardConfirmed = false;
+let rewardBudget   = 0;         // max cells claimable this visit (a "path length")
 
 function generateRewardContent() {
   const ROWS = limits.reward_rows.current;
@@ -7457,6 +7458,9 @@ function openRewardGrid() {
   rewardCells     = generateRewardContent();
   rewardSelected  = new Set();
   rewardConfirmed = false;
+  // Budget = a "path length" through the grid. Defaults to the row count so you
+  // claim a route rather than the whole board. (Tune / replace per design.)
+  rewardBudget    = limits.reward_rows.current;
   renderRewardGrid();
   document.getElementById('reward-overlay').classList.add('show');
 }
@@ -7506,6 +7510,12 @@ function renderRewardGrid() {
     .map(cell => `${cell.payload.icon} ${cell.payload.label}`);
   document.getElementById('reward-collected-list').textContent = items.length ? items.join('  ·  ') : '—';
 
+  // Budget counter
+  const subEl = document.getElementById('reward-sub');
+  if (subEl && rewardBudget) {
+    subEl.textContent = `Claim a connected path — ${rewardSelected.size} / ${rewardBudget} cells chosen.`;
+  }
+
   const hasAny = rewardSelected.size > 0;
   document.getElementById('reward-confirm').disabled = !hasAny;
   document.getElementById('reward-clear').disabled   = !hasAny;
@@ -7515,6 +7525,7 @@ function renderRewardGrid() {
 function isRewardCellSelectable(r, c) {
   const key = `${r}-${c}`;
   if (rewardSelected.has(key)) return false; // already selected
+  if (rewardBudget && rewardSelected.size >= rewardBudget) return false; // budget spent
   if (rewardSelected.size === 0) return true; // first pick — anything goes
   // Must be orthogonally adjacent to at least one selected cell
   const neighbors = [[r-1,c],[r+1,c],[r,c-1],[r,c+1]];
