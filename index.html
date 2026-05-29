@@ -3340,6 +3340,8 @@ const BONUS_POOL = [
 let gridData = [];        // gridData[row][col] = { rank, suit, bonusStar, permPips, permMult }
 let selected = [];        // array of [row,col] in order
 let animating = false;
+let falling = false;   // true during card fall animations — allows selection, queues play/discard
+let pendingAction = null; // 'play' | 'discard' — queued while falling
 let dealPhase = false; // true while deal anims are running — suppresses render() card placement
 
 let score = 0;
@@ -4452,8 +4454,8 @@ function render() {
   }
 
   // Buttons
-  document.getElementById('btn-play').disabled    = !bestHandResult || animating;
-  document.getElementById('btn-discard').disabled = selected.length === 0 || animating;
+  document.getElementById('btn-play').disabled    = !bestHandResult || (animating && !falling);
+  document.getElementById('btn-discard').disabled = selected.length === 0 || (animating && !falling);
   document.getElementById('disc-count').textContent = `(${discards})`;
   document.getElementById('swap-count').textContent  = swaps;
 }
@@ -4992,7 +4994,7 @@ function scheduleAutoSubmit() {
   autoSubmitTimer = setTimeout(() => {
     autoSubmitTimer = null;
     handReadyForSubmit = false;
-    if (!animating && selected.length >= 2) playHand();
+    if (!animating && !falling && selected.length >= 2) playHand();
   }, AUTO_SUBMIT_DELAY);
 }
 
@@ -5300,6 +5302,7 @@ gridEl2.addEventListener('contextmenu', e => e.preventDefault());
 // ══════════════════════════════════════════════
 function playHand() {
   if (roundEnded) return;
+  if (falling) { pendingAction = 'play'; dbgEvent('info', 'play queued (falling)'); return; }
   cancelAutoSubmit();
   console.log('[PLAY] entry', { score, goal: cumulativeGoal, goalReachedThisRound, bonusWindowActive, animating, hasDance: !!danceAbortController });
   cancelDance();
@@ -6295,7 +6298,9 @@ function handleDanceAbort(isGoalHand) {
 // DISCARD
 // ══════════════════════════════════════════════
 function doDiscard() {
-  if (roundEnded || animating || selected.length === 0) return;
+  if (roundEnded || animating) return;
+  if (falling) { if (selected.length > 0) { pendingAction = 'discard'; dbgEvent('info', 'discard queued (falling)'); } return; }
+  if (selected.length === 0) return;
   // Defensive: filter selection down to actually-discardable cards
   const validSelected = selected.filter(([r,c]) => {
     const card = gridData[r]?.[c];
@@ -6603,11 +6608,33 @@ async function removeAndFall(removingCells, mode = 'play') {
     }
   }
 
+  // Update gridData NOW (before animations) so selection during fall is accurate
+  removingCells.forEach(([r,c]) => { gridData[r][c] = null; });
+  for (let col = 0; col < gridCols; col++) {
+    const playableRows = [];
+    for (let r = 0; r < gridRows; r++) if (!isCellBlocked(r, col)) playableRows.push(r);
+    const survivors = [];
+    for (const r of playableRows) {
+      if (gridData[r][col] !== null) survivors.push(gridData[r][col]);
+      gridData[r][col] = null;
+    }
+    survivors.forEach((card, i) => {
+      gridData[playableRows[playableRows.length - survivors.length + i]][col] = card;
+    });
+    newCards.filter(n => n.col === col).forEach(({ finalRow, card }) => {
+      if (card && !isCellBlocked(finalRow, col)) gridData[finalRow][col] = card;
+    });
+  }
+
+  // Transition: slide-out done, now entering fall phase — allow selection
+  animating = false;
+  falling = true;
+
   // Hide only the persistent elements for cards that will be animated as temp elements
   const fallingIds = new Set();
-  fallPlan.forEach(({ row, col }) => {
-    const card = gridData[row][col];
-    if (card && card._id) fallingIds.add(String(card._id));
+  fallPlan.forEach(({ row, col, fallBy }) => {
+    const destCard = gridData[row + fallBy]?.[col];
+    if (destCard && destCard._id) fallingIds.add(String(destCard._id));
   });
   gridEl.querySelectorAll('[data-card-id]').forEach(el => {
     if (fallingIds.has(el.dataset.cardId)) el.style.visibility = 'hidden';
@@ -6688,43 +6715,16 @@ async function removeAndFall(removingCells, mode = 'play') {
   gridEl.querySelectorAll('.temp-anim').forEach(el => el.remove());
   gridEl.querySelectorAll('[data-card-id]').forEach(el => el.remove());
 
-  // Update gridData after animation completes
-  removingCells.forEach(([r,c]) => { gridData[r][c] = null; });
-  for (let col = 0; col < gridCols; col++) {
-    // Collect all cards currently in non-void rows, top-to-bottom
-    const playableRows = [];
-    for (let r = 0; r < gridRows; r++) if (!isCellBlocked(r, col)) playableRows.push(r);
-    const survivors = [];
-    for (const r of playableRows) {
-      if (gridData[r][col] !== null) survivors.push(gridData[r][col]);
-      gridData[r][col] = null; // clear; we'll repopulate below
-    }
-    // Survivors pack to the bottom of playableRows (preserving order)
-    survivors.forEach((card, i) => {
-      const targetRow = playableRows[playableRows.length - survivors.length + i];
-      gridData[targetRow][col] = card;
-    });
-    // New cards fill top playable rows
-    newCards.filter(n => n.col === col).forEach(({ finalRow, card }) => {
-      if (card && !isCellBlocked(finalRow, col)) gridData[finalRow][col] = card;
-    });
-  }
-
-  // Update challenge card position
-  if (challengeCard) {
-    for (let col = 0; col < gridCols; col++) {
-      if (challengeCard.pos[1] === col) {
-        for (let r = 0; r < gridRows; r++) {
-          if (gridData[r][col] === null) { challengeCard.pos = [r, col]; break; }
-        }
-      }
-    }
-  }
-
-  selected = [];
-  animating = false;
+  // gridData was already updated before animations — just clear selection and finish
+  falling = false;
   console.log('[FALL] complete');
+
+  const queued = pendingAction;
+  pendingAction = null;
   render();
+
+  if (queued === 'play') { dbgEvent('info', 'executing queued play'); playHand(); }
+  else if (queued === 'discard') { dbgEvent('info', 'executing queued discard'); doDiscard(); }
 }
 
 
@@ -9866,6 +9866,8 @@ function startGame() {
   document.getElementById('selected-cards').innerHTML = '';
   selected = [];
   animating = false;
+  falling = false;
+  pendingAction = null;
   // Clear any leftover card elements from previous game
   document.getElementById('grid').querySelectorAll('.card').forEach(el => el.remove());
   roundGoal = BASE_GOAL;
