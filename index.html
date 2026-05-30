@@ -2152,8 +2152,22 @@
   }
   .reward-label {
     font-size: 9px;
-    line-height: 1.15;
+    line-height: 1.2;
     letter-spacing: 0.5px;
+    max-width: 100%;
+    overflow-wrap: break-word;
+  }
+  .reward-desc {
+    font-size: 7px;
+    line-height: 1.2;
+    color: var(--cream);
+    opacity: 0.65;
+    margin-top: 2px;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    max-width: 100%;
   }
   .reward-tier {
     position: absolute;
@@ -2980,7 +2994,7 @@
 </div>
 
 <script>
-const BUILD = '2026-05-30 · r12';
+const BUILD = '2026-05-30 · r13';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -7384,24 +7398,22 @@ function generateRewardContent() {
   const ROWS = limits.reward_rows.current;
   const COLS = limits.reward_cols.current;
 
-  // Weighted buff pool — weights sum to 100 for easy tuning
-  // Joker slot reserved (no system yet)
-  const buffs = [
-    { weight: 75, icon: '★', label: 'BC',          tier: 'rare',      apply: applyRewardRandomBC },
-    { weight: 10, icon: '♛', label: 'Totem',        tier: 'legendary', apply: applyRewardTotem },
-    { weight:  6, icon: '🗑', label: '+1 Discard',   tier: 'common',    apply: () => { discards += 1; render(); } },
-    { weight:  6, icon: '⚡', label: '+1 Swap',      tier: 'common',    apply: () => { swaps += 1; render(); } },
-    { weight:  3, icon: '⏱', label: '+15s Round',   tier: 'common',    apply: () => { roundSeconds = Math.min(roundSeconds + 15, limits.round_time.current); updateClockUI(); } },
+  // Weighted buff categories (weights sum to 100)
+  const buffCategories = [
+    { weight: 75, kind: 'bc' },
+    { weight: 10, kind: 'totem' },
+    { weight:  6, kind: 'discard' },
+    { weight:  6, kind: 'swap' },
+    { weight:  3, kind: 'time' },
   ];
   const debuffs = [
     { icon: '☠', label: '-1 Discard',    tier: 'penalty', apply: () => { discards = Math.max(0, discards - 1); render(); } },
     { icon: '✖', label: 'Lose Random BC',tier: 'penalty', apply: applyRewardLoseBC },
     { icon: '☁', label: '-5s Round',     tier: 'penalty', apply: () => { roundSeconds = Math.max(1, roundSeconds - 5); updateClockUI(); } },
   ];
-  // One destination tile — random event. No destination = defaults to Normal Round.
   const destOptions = [
     { icon: '🏪', label: 'Next: Shop',  tier: 'dest', apply: () => { pendingEventOverride = 'shop'; } },
-    { icon: '🏪', label: 'Next: Shop',  tier: 'dest', apply: () => { pendingEventOverride = 'shop'; } }, // 2×
+    { icon: '🏪', label: 'Next: Shop',  tier: 'dest', apply: () => { pendingEventOverride = 'shop'; } },
     { icon: '🎲', label: 'Next: Event', tier: 'dest', apply: () => { pendingEventOverride = 'event'; } },
   ];
 
@@ -7418,6 +7430,30 @@ function generateRewardContent() {
     return a;
   }
 
+  // Pre-pick BC at generation time so the tile shows the exact card
+  function makeBCPayload() {
+    if (typeof BONUS_POOL === 'undefined') return { icon: '★', label: 'BC', tier: 'rare', apply: applyRewardRandomBC };
+    const owned = new Set((acquiredBonuses || []).map(b => b.id));
+    const eligible = BONUS_POOL.filter(b => !owned.has(b.id));
+    if (eligible.length === 0) return { icon: '★', label: 'BC', tier: 'rare', apply: applyRewardRandomBC };
+    const pick = eligible[Math.floor(Math.random() * eligible.length)];
+    return {
+      icon: '★', label: pick.name, desc: pick.desc, tier: pick.tier || 'rare',
+      apply: () => { acquiredBonuses.push({ ...pick }); selectBonus(pick, false); showMessage(`+ ${pick.name}`, 'var(--gold)'); render(); }
+    };
+  }
+
+  function makeBuff() {
+    const cat = weightedPick(buffCategories);
+    switch (cat.kind) {
+      case 'bc':      return makeBCPayload();
+      case 'totem':   return { icon: '♛', label: 'Totem',        tier: 'legendary', apply: applyRewardTotem };
+      case 'discard': return { icon: '🗑', label: '+1 Discard',   tier: 'common',    apply: () => { discards += 1; render(); } };
+      case 'swap':    return { icon: '⚡', label: '+1 Swap',      tier: 'common',    apply: () => { swaps += 1; render(); } };
+      case 'time':    return { icon: '⏱', label: '+15s Round',   tier: 'common',    apply: () => { roundSeconds = Math.min(roundSeconds + 15, limits.round_time.current); updateClockUI(); } };
+    }
+  }
+
   // Checkerboard: (r+c) even → buff/dest slot, (r+c) odd → debuff slot
   const buffPos   = [];
   const debuffPos = [];
@@ -7431,10 +7467,10 @@ function generateRewardContent() {
   // One destination in a random buff slot
   grid[shuffledBuff[0][0]][shuffledBuff[0][1]] = { kind: 'dest', payload: pickRand(destOptions) };
 
-  // Fill remaining buff positions (weighted — ~75% BC, rest minor bonuses)
+  // Fill remaining buff positions
   for (let i = 1; i < shuffledBuff.length; i++) {
     const [r, c] = shuffledBuff[i];
-    grid[r][c] = { kind: 'buff', payload: weightedPick(buffs) };
+    grid[r][c] = { kind: 'buff', payload: makeBuff() };
   }
 
   // Fill all debuff positions
@@ -7524,6 +7560,7 @@ function renderRewardGrid() {
         <div class="reward-tier">${p.tier.toUpperCase()}</div>
         <div class="reward-icon">${p.icon}</div>
         <div class="reward-label">${p.label}</div>
+        ${p.desc ? `<div class="reward-desc">${p.desc}</div>` : ''}
       `;
       div.onclick = () => onRewardCellClick(r, c);
       gridEl.appendChild(div);
