@@ -2573,6 +2573,11 @@
         <span class="panel-title">Totems</span>
         <div id="totem-list"><span style="font-size:9px;color:var(--cream-dim)">None yet</span></div>
       </div>
+      <!-- Joker section -->
+      <div id="joker-carousel-wrap">
+        <span class="panel-title">Jokers</span>
+        <div id="joker-list"><span style="font-size:9px;color:var(--cream-dim)">None yet</span></div>
+      </div>
     </div>
 
   </div>
@@ -2717,6 +2722,19 @@
       <button class="dev-btn" onclick="devTriggerEvent('limit_break')">Limit Break</button>
       <button class="dev-btn" onclick="devTriggerEvent('shop')">Shop</button>
     </div>
+    <div class="dev-row">
+      <button class="dev-btn" onclick="devTriggerEvent('confluence')">Confluence</button>
+      <button class="dev-btn" onclick="devTriggerEvent('crossroads')">Crossroads</button>
+      <button class="dev-btn" onclick="devTriggerEvent('gamble')">Gamble</button>
+    </div>
+    <div class="dev-row">
+      <button class="dev-btn" onclick="devTriggerEvent('merchant')">Merchant</button>
+      <button class="dev-btn" onclick="devTriggerEvent('altar')">Altar</button>
+      <button class="dev-btn" onclick="devTriggerEvent('spring')">Spring</button>
+    </div>
+    <div class="dev-row">
+      <button class="dev-btn" onclick="devTriggerEvent('twin_path')">Twin Path</button>
+    </div>
     <div id="dev-limits-display" style="font-family:'Courier New',monospace;font-size:9px;color:var(--cream-dim);line-height:1.6;margin-top:4px;"></div>
     <div class="dev-row" style="flex-wrap:wrap;gap:4px;" id="dev-limits-btns"></div>
   </div>
@@ -2747,6 +2765,15 @@
     <input id="dev-totem-search" type="text" placeholder="Search totem name..." oninput="devFilterTotems(this.value)"
       style="width:100%;background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--cream);font-family:'Crimson Pro',serif;font-size:13px;padding:6px 8px;border-radius:4px;margin-bottom:6px;">
     <div id="dev-totem-list" style="display:flex;flex-direction:column;gap:4px;max-height:160px;overflow-y:auto;"></div>
+  </div>
+
+  <!-- ADD JOKER -->
+  <div class="dev-section">
+    <div class="dev-section-title">Add Joker</div>
+    <div class="dev-row" style="flex-wrap:wrap;gap:4px;">
+      <!-- populated by JS -->
+    </div>
+    <div id="dev-joker-list" style="display:flex;flex-direction:column;gap:4px;max-height:120px;overflow-y:auto;margin-top:4px;"></div>
   </div>
 
   <!-- ADD FOCUS -->
@@ -2824,6 +2851,107 @@
   #dev-event-log .log-ok    { color:#5aaa5a; }
   #dev-log-copy { font-family:'Cinzel',serif; font-size:9px; padding:4px 10px; background:rgba(201,168,76,0.1); border:1px solid rgba(201,168,76,0.3); border-radius:4px; color:var(--gold); cursor:pointer; }
   #dev-log-clear { font-family:'Cinzel',serif; font-size:9px; padding:4px 10px; background:rgba(255,255,255,0.05); border:1px solid var(--border); border-radius:4px; color:var(--cream-dim); cursor:pointer; }
+
+  /* ── EVENT OVERLAY ── */
+  #event-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.93);
+    z-index: 300;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 36px 20px 24px;
+    overflow-y: auto;
+    gap: 0;
+  }
+  #event-overlay.show { display: flex; }
+  #event-eyebrow { font-family:'Cinzel',serif; font-size:9px; letter-spacing:4px; color:var(--gold-dim); text-transform:uppercase; margin-bottom:4px; }
+  #event-name   { font-family:'Cinzel',serif; font-size:26px; font-weight:900; color:var(--gold); letter-spacing:3px; text-align:center; margin-bottom:6px; }
+  #event-flavor { font-size:12px; color:var(--cream-dim); font-family:'Crimson Pro',serif; text-align:center; max-width:320px; line-height:1.5; margin-bottom:20px; }
+  #event-body   { display:flex; flex-direction:column; align-items:center; gap:10px; width:100%; max-width:360px; }
+  #event-actions { display:flex; gap:12px; margin-top:20px; }
+
+  /* Generic event choice card */
+  .event-choice {
+    width: 100%; box-sizing: border-box;
+    background: linear-gradient(160deg,#1e1a0e,#0e0a06);
+    border: 2px solid var(--gold-dim);
+    border-radius: 8px; padding: 12px 14px;
+    cursor: pointer; transition: all 0.14s; text-align:left;
+    font-family:'Cinzel',serif; color:var(--cream); user-select:none;
+  }
+  .event-choice:hover  { border-color:var(--gold); transform:translateY(-1px); }
+  .event-choice.selected { border-color:var(--gold); box-shadow:0 0 14px rgba(201,168,76,0.45); }
+  .event-choice.debuff  { border-color:var(--red); background:linear-gradient(160deg,#1e0b0b,#0e0606); }
+  .event-choice.selected.debuff { box-shadow:0 0 14px rgba(192,57,43,0.45); }
+  .event-choice.locked  { opacity:0.35; cursor:not-allowed; }
+  .ec-top  { display:flex; align-items:center; gap:8px; }
+  .ec-icon { font-size:20px; flex-shrink:0; }
+  .ec-info { flex:1; min-width:0; }
+  .ec-rarity { font-size:8px; letter-spacing:1.5px; color:var(--gold-dim); text-transform:uppercase; }
+  .ec-name   { font-size:11px; letter-spacing:1px; color:var(--gold); margin-top:1px; }
+  .ec-desc   { font-size:11px; color:var(--cream-dim); font-family:'Crimson Pro',serif; margin-top:5px; line-height:1.4; }
+  .ec-cost   { font-size:10px; color:var(--red); margin-top:4px; }
+  .ec-tag    { display:inline-block; font-size:8px; letter-spacing:1px; padding:1px 5px; border-radius:3px; background:rgba(201,168,76,0.12); color:var(--gold-dim); margin-top:4px; margin-right:3px; }
+
+  /* Confluence theme buttons */
+  .event-theme-row { display:flex; gap:8px; width:100%; justify-content:center; flex-wrap:wrap; }
+  .event-theme-btn {
+    flex:1; min-width:60px; max-width:90px;
+    background:#1a1410; border:2px solid var(--border);
+    border-radius:8px; padding:10px 6px;
+    cursor:pointer; text-align:center; font-family:'Cinzel',serif;
+    color:var(--cream); transition:all 0.14s; user-select:none;
+  }
+  .event-theme-btn:hover { border-color:var(--gold-dim); }
+  .event-theme-btn.selected { border-color:var(--gold); background:#241e10; }
+  .etb-icon { font-size:18px; }
+  .etb-name { font-size:8px; letter-spacing:1px; color:var(--gold-dim); text-transform:uppercase; margin-top:4px; }
+
+  /* Gamble doors */
+  .door-row { display:flex; gap:12px; justify-content:center; }
+  .event-door {
+    width:88px; height:116px;
+    background:linear-gradient(180deg,#1e1a0e,#0e0a06);
+    border:2px solid var(--gold-dim); border-radius:8px;
+    cursor:pointer; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; transition:all 0.14s;
+    user-select:none;
+  }
+  .event-door:hover:not(.chosen):not(.revealed) { border-color:var(--gold); }
+  .event-door.chosen  { border-color:var(--gold); box-shadow:0 0 14px rgba(201,168,76,0.5); }
+  .event-door.revealed-good { border-color:var(--green); cursor:default; }
+  .event-door.revealed-bad  { border-color:var(--red);   cursor:default; }
+  .door-num  { font-family:'Cinzel',serif; font-size:22px; color:var(--gold-dim); }
+  .door-inner { display:none; flex-direction:column; align-items:center; gap:4px; padding:8px; text-align:center; }
+  .event-door.revealed .door-num   { display:none; }
+  .event-door.revealed .door-inner { display:flex; }
+  .door-icon { font-size:20px; }
+  .door-dname { font-size:8px; letter-spacing:1px; color:var(--cream); font-family:'Cinzel',serif; }
+
+  /* Joker chips in HUD */
+  #joker-carousel-wrap { flex:1; min-width:0; overflow:hidden; padding-left:8px; display:flex; flex-direction:column; justify-content:center; }
+  #joker-list { display:flex; gap:4px; overflow-x:auto; scrollbar-width:none; padding-bottom:2px; }
+  #joker-list::-webkit-scrollbar { display:none; }
+  .joker-chip {
+    flex-shrink:0; width:28px; height:28px; border-radius:6px;
+    background:#1a1410; border:1px solid var(--gold-dim);
+    display:flex; align-items:center; justify-content:center;
+    font-size:14px; cursor:pointer; transition:all 0.12s; user-select:none;
+  }
+  .joker-chip:hover { border-color:var(--gold); background:#241e10; }
+  .joker-chip.activatable { border-color:var(--green); box-shadow:0 0 6px rgba(90,158,90,0.5); }
+  #joker-tooltip {
+    position:fixed; z-index:400; pointer-events:none;
+    background:#1e1a0e; border:1px solid var(--gold);
+    border-radius:6px; padding:8px 10px; max-width:200px;
+    opacity:0; transition:opacity 0.15s; font-family:'Cinzel',serif;
+  }
+  #joker-tooltip.show { opacity:1; }
+  .joker-tooltip-name { font-size:11px; color:var(--gold); margin-bottom:3px; }
+  .joker-tooltip-desc { font-size:10px; color:var(--cream-dim); font-family:'Crimson Pro',serif; line-height:1.4; }
+  .joker-tooltip-uses { font-size:9px; color:var(--gold-dim); margin-top:4px; }
 </style>
 
 <!-- STATS OVERLAY -->
@@ -2940,6 +3068,21 @@
   </div>
 </div>
 
+<!-- EVENT OVERLAY (all node events render here) -->
+<div id="event-overlay">
+  <div id="event-eyebrow">EVENT</div>
+  <div id="event-name">—</div>
+  <div id="event-flavor"></div>
+  <div id="event-body"></div>
+  <div id="event-actions">
+    <button id="event-skip" onclick="closeEvent()">Skip</button>
+    <button id="event-confirm" disabled onclick="confirmEvent()">Confirm</button>
+  </div>
+</div>
+
+<!-- JOKER TOOLTIP -->
+<div id="joker-tooltip"></div>
+
 <!-- LIMIT BREAK EVENT OVERLAY -->
 <div id="limitbreak-overlay">
   <div id="lb-title">LIMIT BREAK</div>
@@ -2995,7 +3138,7 @@
 </div>
 
 <script>
-const BUILD = '2026-05-30 · r15';
+const BUILD = '2026-05-30 · r16';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -3568,6 +3711,35 @@ const TOTEM_POOL = [
   { id: 'combo_keeper',     emoji: '🔥', name: 'Combo Keeper',   desc: 'Streaks survive one non-streak hand. Re-arms after 2 streak hands.' },
   { id: 'lucky_seven',      emoji: '🎯', name: 'Lucky Seven',    desc: 'Every 7th hand played gives +1 swap.' },
 ];
+// ── JOKER POOL ──
+// Jokers are one-shot or limited-use cards with conditional activations.
+// activationType: 'manual_discard' | 'on_score' | 'passive' | 'round_start' | 'round_end'
+// durability: number of uses, or 'infinite'
+// handReq: optional scoring condition ('4card','run','flush','straight','any')
+// tags: array of keyword strings for Confluence event theming
+const JOKER_POOL = [
+  { id:'time_jar',      name:'Time Jar',       emoji:'⌛', rarity:'common',    activationType:'manual_discard', handReq:'4card',   durability:1,         tags:['time'],           desc:'Discard with a valid 4-card hand: +16s this round.' },
+  { id:'glass_cannon',  name:'Glass Cannon',   emoji:'🔮', rarity:'rare',      activationType:'manual_discard', handReq:null,      durability:1,         tags:['scoring'],        desc:'Discard: your next hand scores double.' },
+  { id:'lucky_charm',   name:'Lucky Charm',    emoji:'🍀', rarity:'common',    activationType:'round_start',    handReq:null,      durability:5,         tags:['resource'],       desc:'Start of each round: +1 swap. (5 uses)' },
+  { id:'reset_stone',   name:'Reset Stone',    emoji:'🪨', rarity:'common',    activationType:'manual_discard', handReq:null,      durability:1,         tags:['resource'],       desc:'Discard: refill swaps and discards to max.' },
+  { id:'double_down',   name:'Double Down',    emoji:'🎲', rarity:'rare',      activationType:'manual_discard', handReq:'run',     durability:1,         tags:['scoring','run'],  desc:'Discard with any run: that hand scores twice.' },
+  { id:'debt_collector',name:'Debt Collector', emoji:'💸', rarity:'rare',      activationType:'manual_discard', handReq:null,      durability:1,         tags:['coins'],          desc:'Discard: lose 10s of round time, gain 20 coins.' },
+  { id:'ember',         name:'Ember',          emoji:'🕯️', rarity:'common',    activationType:'round_start',    handReq:null,      durability:'infinite', tags:['time'],           desc:'Each round start: +2s per totem you own.' },
+  { id:'the_fool',      name:'The Fool',       emoji:'🃏', rarity:'legendary', activationType:'passive',        handReq:null,      durability:'infinite', tags:['scoring'],        desc:'Once per round, your lowest-scoring hand type acts as the tier above.' },
+  { id:'phantom_hand',  name:'Phantom Hand',   emoji:'👻', rarity:'rare',      activationType:'on_score',       handReq:'flush',   durability:3,         tags:['suit','scoring'], desc:'On scoring a Flush: +10 pips per card not in the hand. (3 uses)' },
+  { id:'wildcard',      name:'Wild Card',      emoji:'🌀', rarity:'legendary', activationType:'passive',        handReq:null,      durability:'infinite', tags:['suit'],           desc:'The lowest-ranked card in any scored hand counts as the most beneficial suit.' },
+  { id:'hourglass',     name:'Hourglass',      emoji:'⏳', rarity:'rare',      activationType:'manual_discard', handReq:null,      durability:1,         tags:['time'],           desc:'Discard: pause the round timer for 8 seconds.' },
+  { id:'wildfire_joker',name:'Wildfire',       emoji:'🔥', rarity:'legendary', activationType:'on_score',       handReq:'straight',durability:2,         tags:['run','scoring'],  desc:'On scoring a Straight: the next hand of any kind scores as a Straight Flush. (2 uses)' },
+];
+
+// Joker runtime state — each entry: { ...JOKER_POOL def, usesLeft }
+let acquiredJokers = [];
+// One-shot effect flags consumed by scoring/round logic
+let jokerNextHandDouble = false; // glass_cannon
+
+// Altar effect tracking — investments that pay off over future rounds
+let altarEffects = []; // [{ type:'mult_boost'|'time_boost'|'goal_reduce', value, roundsLeft }]
+
 // streak tracking
 let lastHandType = null;
 let streakCount = 0;
@@ -7703,6 +7875,9 @@ function closeRewardGrid() {
     if (override === 'shop') {
       shopFromNodeFlow = true;
       triggerShop(); // shop close → drainLevelUpQueue (wired in shop-close handler)
+    } else if (override === 'event') {
+      shopFromNodeFlow = false;
+      openEvent(() => drainLevelUpQueue());
     } else {
       drainLevelUpQueue();
     }
@@ -7944,6 +8119,834 @@ function closeLimitBreak() {
   const btn = document.getElementById('lb-confirm');
   if (btn) btn.addEventListener('click', confirmLimitBreak);
 })();
+
+// ══════════════════════════════════════════════
+// JOKER SYSTEM
+// ══════════════════════════════════════════════
+function grantJoker(jokerDef) {
+  if (acquiredJokers.some(j => j.id === jokerDef.id)) return;
+  const j = { ...jokerDef, usesLeft: jokerDef.durability };
+  acquiredJokers.push(j);
+  renderJokerList();
+  showMessage(`+ ${jokerDef.name}`, 'var(--green)');
+}
+
+function consumeJokerUse(id) {
+  const j = acquiredJokers.find(j => j.id === id);
+  if (!j || j.usesLeft === 'infinite') return;
+  j.usesLeft--;
+  if (j.usesLeft <= 0) {
+    acquiredJokers = acquiredJokers.filter(j => j.id !== id);
+    showMessage(`${j.name} consumed`, 'var(--cream-dim)');
+  }
+  renderJokerList();
+}
+
+function fireJokersAtRoundStart() {
+  acquiredJokers.filter(j => j.activationType === 'round_start').forEach(j => {
+    if (j.usesLeft === 'infinite' || j.usesLeft > 0) {
+      applyJokerEffect(j.id);
+      consumeJokerUse(j.id);
+    }
+  });
+}
+
+function applyJokerEffect(id) {
+  switch (id) {
+    case 'lucky_charm':
+      swaps = Math.min(swaps + 1, limits.swaps.current + 10);
+      render();
+      break;
+    case 'reset_stone':
+      swaps = limits.swaps.current;
+      discards = limits.discards.current;
+      render();
+      showMessage('Swaps & Discards restored!', 'var(--gold)');
+      break;
+    case 'time_jar':
+      roundSeconds = Math.min(roundSeconds + 16, limits.round_time.current + 60);
+      updateClockUI();
+      showMessage('+16s', 'var(--gold)');
+      break;
+    case 'glass_cannon':
+      jokerNextHandDouble = true;
+      showMessage('Next hand scores double!', 'var(--gold)');
+      break;
+    case 'debt_collector':
+      roundSeconds = Math.max(1, roundSeconds - 10);
+      coins += 20;
+      updateClockUI(); updateCoinsUI();
+      showMessage('-10s · +20 coins', 'var(--gold)');
+      break;
+    case 'hourglass':
+      // Pause handled via existing pause mechanic — simplified: +8s
+      roundSeconds = Math.min(roundSeconds + 8, limits.round_time.current + 60);
+      updateClockUI();
+      showMessage('+8s (Hourglass)', 'var(--gold)');
+      break;
+    case 'ember':
+      { const bonus = acquiredTotems.length * 2;
+        if (bonus > 0) { roundSeconds = Math.min(roundSeconds + bonus, limits.round_time.current + 60); updateClockUI(); showMessage(`+${bonus}s (Ember)`, 'var(--gold)'); } }
+      break;
+    // Passive jokers (the_fool, wildcard, phantom_hand, double_down, wildfire_joker)
+    // are handled in scoring hooks — effects registered via flags or checked inline
+    default: break;
+  }
+}
+
+function renderJokerList() {
+  const el = document.getElementById('joker-list');
+  if (!el) return;
+  if (acquiredJokers.length === 0) {
+    el.innerHTML = '<span style="font-size:9px;color:var(--cream-dim)">None yet</span>';
+    return;
+  }
+  el.innerHTML = acquiredJokers.map(j =>
+    `<div class="joker-chip" data-joker-id="${j.id}" tabindex="0" role="button" aria-label="${j.name}">${j.emoji}</div>`
+  ).join('');
+  el.querySelectorAll('.joker-chip').forEach(chip => {
+    const id = chip.dataset.jokerId;
+    chip.addEventListener('click', () => showJokerTooltip(id, chip));
+    chip.addEventListener('blur', hideJokerTooltip);
+    chip.addEventListener('keydown', e => { if (e.key === 'Enter') showJokerTooltip(id, chip); });
+  });
+}
+
+function showJokerTooltip(id, chip) {
+  const j = acquiredJokers.find(j => j.id === id);
+  if (!j) return;
+  const tt = document.getElementById('joker-tooltip');
+  const uses = j.usesLeft === 'infinite' ? '∞ uses' : `${j.usesLeft} use${j.usesLeft !== 1 ? 's' : ''} left`;
+  tt.innerHTML = `<div class="joker-tooltip-name">${j.emoji} ${j.name}</div><div class="joker-tooltip-desc">${j.desc}</div><div class="joker-tooltip-uses">${uses}</div>`;
+  tt.dataset.jokerId = id;
+  const r = chip.getBoundingClientRect();
+  tt.style.left = Math.min(r.left, window.innerWidth - 220) + 'px';
+  tt.style.top  = (r.bottom + 6) + 'px';
+  tt.classList.add('show');
+}
+function hideJokerTooltip() {
+  const tt = document.getElementById('joker-tooltip');
+  if (tt) { tt.classList.remove('show'); tt.dataset.jokerId = ''; }
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('.joker-chip') && !e.target.closest('#joker-tooltip')) hideJokerTooltip();
+});
+
+// ══════════════════════════════════════════════
+// EVENT SYSTEM
+// ══════════════════════════════════════════════
+
+const CONFLUENCE_THEMES = [
+  { id:'time',      icon:'⏱',  name:'Time',      desc:'Bend the clock.',           bcTags:['time'],              totemIds:['time_bank','free_swaps','free_discards'], jokerTags:['time'] },
+  { id:'suits',     icon:'♥',  name:'Suits',     desc:'One family, one purpose.',  bcTags:['suit'],              totemIds:[],                                        jokerTags:['suit'] },
+  { id:'resources', icon:'🔄', name:'Resources', desc:'Discards and swaps as power.', bcTags:['resource','discard'], totemIds:['hoarder','steady_hand'],             jokerTags:['resource'] },
+  { id:'focus',     icon:'🎯', name:'Focus',     desc:'Concentration unlocks mastery.', bcTags:['focus'],         totemIds:['lucky_seven','combo_keeper'],           jokerTags:['focus'] },
+  { id:'scaling',   icon:'📈', name:'Scaling',   desc:'Grow stronger with each hand.', bcTags:['scaling','mult'], totemIds:['head_start'],                          jokerTags:['scaling'] },
+];
+
+// Shared mutable state for the active event
+let eventState = {};
+let activeEventId = null;
+// afterEvent callback — called by closeEvent to continue game flow
+let afterEventFn = null;
+
+function openEvent(afterFn) {
+  afterEventFn = afterFn || (() => drainLevelUpQueue());
+  const pool = ['confluence','crossroads','gamble','merchant','altar','spring','twin_path'];
+  activeEventId = pool[Math.floor(Math.random() * pool.length)];
+  eventState = {};
+  renderEventShell(activeEventId);
+  document.getElementById('event-overlay').classList.add('show');
+}
+
+function closeEvent() {
+  document.getElementById('event-overlay').classList.remove('show');
+  activeEventId = null;
+  eventState = {};
+  const fn = afterEventFn;
+  afterEventFn = null;
+  if (fn) fn();
+}
+
+function setEventConfirm(enabled) {
+  const btn = document.getElementById('event-confirm');
+  if (btn) btn.disabled = !enabled;
+}
+
+function confirmEvent() {
+  if (!activeEventId) return;
+  const handlers = {
+    confluence:  confirmConfluence,
+    crossroads:  confirmCrossroads,
+    gamble:      confirmGamble,
+    merchant:    confirmMerchant,
+    altar:       confirmAltar,
+    spring:      confirmSpring,
+    twin_path:   confirmTwinPath,
+  };
+  if (handlers[activeEventId]) handlers[activeEventId]();
+  else closeEvent();
+}
+
+// ─── Shell renderer ───
+const EVENT_META = {
+  confluence: { name:'The Confluence',      flavor:'Choose a keyword. Then choose your reward.' },
+  crossroads:  { name:'The Crossroads',      flavor:'Every gain demands a sacrifice. Choose wisely.' },
+  gamble:      { name:'The Gamble',          flavor:'Fortune favours the bold.' },
+  merchant:    { name:'Wandering Merchant',  flavor:'A rare visitor offers wares unavailable elsewhere.' },
+  altar:       { name:'The Altar',           flavor:'Invest now. Reap rewards across the coming rounds.' },
+  spring:      { name:'Cleansing Spring',    flavor:'The water runs clear. Something may be washed away.' },
+  twin_path:   { name:'Twin Path',           flavor:'Two gifts. One shadow.' },
+};
+
+function renderEventShell(id) {
+  const meta = EVENT_META[id];
+  document.getElementById('event-name').textContent   = meta.name;
+  document.getElementById('event-flavor').textContent = meta.flavor;
+  document.getElementById('event-body').innerHTML = '';
+  document.getElementById('event-confirm').disabled = true;
+  document.getElementById('event-skip').style.display = 'inline-block';
+  const renderers = {
+    confluence: renderConfluence,
+    crossroads:  renderCrossroads,
+    gamble:      renderGamble,
+    merchant:    renderMerchant,
+    altar:       renderAltar,
+    spring:      renderSpring,
+    twin_path:   renderTwinPath,
+  };
+  if (renderers[id]) renderers[id]();
+}
+
+// ─── helper: build a choice card DOM element ───
+function makeChoiceEl(opts) {
+  // opts: { icon, rarity, name, desc, cost, cls, onClick }
+  const div = document.createElement('div');
+  div.className = 'event-choice' + (opts.cls ? ' ' + opts.cls : '');
+  div.innerHTML = `
+    <div class="ec-top">
+      <div class="ec-icon">${opts.icon || '★'}</div>
+      <div class="ec-info">
+        <div class="ec-rarity">${opts.rarity || ''}</div>
+        <div class="ec-name">${opts.name}</div>
+      </div>
+    </div>
+    <div class="ec-desc">${opts.desc || ''}</div>
+    ${opts.cost ? `<div class="ec-cost">${opts.cost}</div>` : ''}
+  `;
+  if (opts.onClick) div.addEventListener('click', opts.onClick);
+  return div;
+}
+
+// ══════════════════════════════════════════════
+// EVENT: CONFLUENCE
+// ══════════════════════════════════════════════
+function confluencePoolForTheme(theme) {
+  const ownedBC     = new Set((acquiredBonuses  || []).map(b => b.id));
+  const ownedTotems = new Set((acquiredTotems   || []).map(t => t.id));
+  const ownedJokers = new Set((acquiredJokers   || []).map(j => j.id));
+  const items = [];
+  BONUS_POOL.filter(b => !ownedBC.has(b.id) && b.tags?.some(t => theme.bcTags.includes(t)))
+    .forEach(b => items.push({ type:'bc', icon:'★', name:b.name, desc:b.desc, rarity:b.tier, payload:b }));
+  theme.totemIds.forEach(id => {
+    const t = TOTEM_POOL.find(t => t.id === id);
+    if (t && !ownedTotems.has(t.id))
+      items.push({ type:'totem', icon:t.emoji, name:t.name, desc:t.desc, rarity:'legendary', payload:t });
+  });
+  JOKER_POOL.filter(j => !ownedJokers.has(j.id) && j.tags?.some(t => theme.jokerTags.includes(t)))
+    .forEach(j => items.push({ type:'joker', icon:j.emoji, name:j.name, desc:j.desc, rarity:j.rarity, payload:j }));
+  // shuffle and cap at 3
+  const a = [...items]; for (let i = a.length-1; i > 0; i--) { const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+  return a.slice(0, 3);
+}
+
+function renderConfluence() {
+  eventState.phase = 'theme';
+  eventState.selectedTheme = null;
+  eventState.selectedItem  = null;
+  // Pick 3 random themes
+  const themes = [...CONFLUENCE_THEMES]; for (let i=themes.length-1; i>0; i--) { const j=Math.floor(Math.random()*(i+1)); [themes[i],themes[j]]=[themes[j],themes[i]]; }
+  eventState.themes = themes.slice(0, 3);
+  const body = document.getElementById('event-body');
+  const lbl = document.createElement('div');
+  lbl.style.cssText = 'font-family:Cinzel,serif;font-size:9px;letter-spacing:2px;color:var(--gold-dim);margin-bottom:4px';
+  lbl.textContent = 'CHOOSE A THEME';
+  body.appendChild(lbl);
+  const row = document.createElement('div');
+  row.className = 'event-theme-row';
+  eventState.themes.forEach((theme, i) => {
+    const btn = document.createElement('div');
+    btn.className = 'event-theme-btn';
+    btn.innerHTML = `<div class="etb-icon">${theme.icon}</div><div class="etb-name">${theme.name}</div>`;
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.event-theme-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      eventState.selectedTheme = theme;
+      showConfluenceItems(theme);
+    });
+    row.appendChild(btn);
+  });
+  body.appendChild(row);
+  eventState.itemsContainer = document.createElement('div');
+  eventState.itemsContainer.style.cssText = 'width:100%;display:flex;flex-direction:column;gap:10px;margin-top:8px;';
+  body.appendChild(eventState.itemsContainer);
+}
+
+function showConfluenceItems(theme) {
+  const pool = confluencePoolForTheme(theme);
+  eventState.items = pool;
+  eventState.selectedItem = null;
+  setEventConfirm(false);
+  const c = eventState.itemsContainer;
+  c.innerHTML = '';
+  if (pool.length === 0) {
+    c.innerHTML = '<div style="color:var(--cream-dim);font-size:11px;text-align:center">Nothing available for this theme.</div>';
+    setEventConfirm(true); // allow skip
+    return;
+  }
+  const lbl = document.createElement('div');
+  lbl.style.cssText = 'font-family:Cinzel,serif;font-size:9px;letter-spacing:2px;color:var(--gold-dim)';
+  lbl.textContent = 'CHOOSE A REWARD';
+  c.appendChild(lbl);
+  pool.forEach(item => {
+    const el = makeChoiceEl({ icon:item.icon, rarity:item.rarity, name:item.name, desc:item.desc,
+      onClick: () => {
+        c.querySelectorAll('.event-choice').forEach(e => e.classList.remove('selected'));
+        el.classList.add('selected');
+        eventState.selectedItem = item;
+        setEventConfirm(true);
+      }
+    });
+    c.appendChild(el);
+  });
+}
+
+function confirmConfluence() {
+  const item = eventState.selectedItem;
+  if (!item) { closeEvent(); return; }
+  if (item.type === 'bc') {
+    acquiredBonuses.push({ ...item.payload });
+    selectBonus(item.payload, false);
+    showMessage(`+ ${item.name}`, 'var(--gold)');
+    render();
+  } else if (item.type === 'totem') {
+    acquiredTotems.push({ ...item.payload });
+    renderTotemList?.();
+    showMessage(`+ ${item.name}`, 'var(--gold)');
+  } else if (item.type === 'joker') {
+    grantJoker(item.payload);
+  }
+  closeEvent();
+}
+
+// ══════════════════════════════════════════════
+// EVENT: CROSSROADS
+// ══════════════════════════════════════════════
+function buildCrossroadsTrades() {
+  const trades = [];
+  // Trade 1: always available — pay coins for a legendary BC
+  if (coins >= 12) {
+    const ownedBC = new Set((acquiredBonuses||[]).map(b=>b.id));
+    const legends = BONUS_POOL.filter(b => !ownedBC.has(b.id) && b.tier === 'legendary');
+    if (legends.length > 0) {
+      const pick = legends[Math.floor(Math.random()*legends.length)];
+      trades.push({ icon:'💰', name:`Pay 12 coins: ${pick.name}`, desc:`Lose 12 coins. Gain the legendary BC "${pick.name}". ${pick.desc}`, rarity:'legendary',
+        apply: () => { coins -= 12; acquiredBonuses.push({...pick}); selectBonus(pick,false); showMessage(`+ ${pick.name}`, 'var(--gold)'); render(); updateCoinsUI(); } });
+    }
+  }
+  // Trade 2: sacrifice a totem for 2 BCs
+  if (acquiredTotems.length > 0) {
+    const t = acquiredTotems[Math.floor(Math.random()*acquiredTotems.length)];
+    trades.push({ icon:'⚖️', name:`Sacrifice ${t.emoji} ${t.name}: 2 BCs`, desc:`Lose "${t.name}" forever. Gain 2 random BCs immediately.`, rarity:'rare',
+      apply: () => {
+        acquiredTotems = acquiredTotems.filter(x=>x.id!==t.id); renderTotemList?.();
+        for (let i=0;i<2;i++) applyRewardRandomBC();
+        showMessage('Sacrificed totem · 2 BCs gained', 'var(--gold)'); render();
+      }
+    });
+  }
+  // Trade 3: permanent discard reduction for a legendary BC
+  if (limits.discards.current > 1) {
+    const ownedBC = new Set((acquiredBonuses||[]).map(b=>b.id));
+    const legends = BONUS_POOL.filter(b => !ownedBC.has(b.id) && b.tier === 'legendary');
+    if (legends.length > 0) {
+      const pick = legends[Math.floor(Math.random()*legends.length)];
+      trades.push({ icon:'🍂', name:`−1 Discard/round: ${pick.name}`, desc:`Permanently lose 1 discard per round. Gain the legendary "${pick.name}". ${pick.desc}`, rarity:'legendary',
+        apply: () => {
+          limits.discards.current = Math.max(1, limits.discards.current - 1);
+          discards = Math.min(discards, limits.discards.current);
+          acquiredBonuses.push({...pick}); selectBonus(pick,false);
+          showMessage(`+ ${pick.name} · −1 Discard`, 'var(--gold)'); render();
+        }
+      });
+    }
+  }
+  // Trade 4: sacrifice a joker for a higher-rarity joker
+  if (acquiredJokers.length > 0) {
+    const j = acquiredJokers[Math.floor(Math.random()*acquiredJokers.length)];
+    const rarityUp = { common:'rare', rare:'legendary' };
+    const nextRarity = rarityUp[j.rarity];
+    if (nextRarity) {
+      const ownedJ = new Set(acquiredJokers.map(x=>x.id));
+      const eligible = JOKER_POOL.filter(x=>!ownedJ.has(x.id) && x.rarity===nextRarity);
+      if (eligible.length > 0) {
+        const pick = eligible[Math.floor(Math.random()*eligible.length)];
+        trades.push({ icon:'🔁', name:`Upgrade Joker: ${pick.emoji} ${pick.name}`, desc:`Lose "${j.name}". Gain the ${nextRarity} joker "${pick.name}". ${pick.desc}`, rarity:nextRarity,
+          apply: () => { acquiredJokers = acquiredJokers.filter(x=>x.id!==j.id); grantJoker(pick); showMessage(`Joker upgraded!`, 'var(--gold)'); }
+        });
+      }
+    }
+  }
+  // Always-available fallback
+  if (trades.length === 0) {
+    trades.push({ icon:'⏱', name:'−10s/round: +1 Swap & Discard', desc:'Permanently lose 10s of round time. Permanently gain +1 swap and +1 discard per round.', rarity:'rare',
+      apply: () => {
+        limits.round_time.current = Math.max(30, limits.round_time.current - 10);
+        limits.swaps.current++;  limits.discards.current++;
+        swaps = Math.min(swaps+1, limits.swaps.current);
+        discards = Math.min(discards+1, limits.discards.current);
+        showMessage('−10s · +1 Swap · +1 Discard', 'var(--gold)'); render();
+      }
+    });
+  }
+  // Shuffle and cap at 3
+  const a = [...trades]; for (let i=a.length-1;i>0;i--) { const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+  return a.slice(0,3);
+}
+
+function renderCrossroads() {
+  eventState.trades = buildCrossroadsTrades();
+  eventState.selectedTrade = null;
+  const body = document.getElementById('event-body');
+  eventState.trades.forEach(trade => {
+    const el = makeChoiceEl({ icon:trade.icon, rarity:trade.rarity, name:trade.name, desc:trade.desc,
+      onClick: () => {
+        body.querySelectorAll('.event-choice').forEach(e=>e.classList.remove('selected'));
+        el.classList.add('selected');
+        eventState.selectedTrade = trade;
+        setEventConfirm(true);
+      }
+    });
+    body.appendChild(el);
+  });
+}
+
+function confirmCrossroads() {
+  if (eventState.selectedTrade) { eventState.selectedTrade.apply(); }
+  closeEvent();
+}
+
+// ══════════════════════════════════════════════
+// EVENT: GAMBLE
+// ══════════════════════════════════════════════
+function renderGamble() {
+  // Randomly choose sub-variant
+  eventState.gambleMode = Math.random() < 0.5 ? 'doors' : 'double';
+  if (acquiredBonuses.length === 0) eventState.gambleMode = 'doors'; // can't stake if nothing owned
+  if (eventState.gambleMode === 'doors') renderGambleDoors();
+  else renderGambleDouble();
+}
+
+function buildDoorPrize(tier) {
+  // tier: 'legendary' | 'good' | 'bad'
+  const ownedBC = new Set((acquiredBonuses||[]).map(b=>b.id));
+  const ownedT  = new Set((acquiredTotems ||[]).map(t=>t.id));
+  if (tier === 'legendary') {
+    const pool = BONUS_POOL.filter(b=>!ownedBC.has(b.id) && b.tier==='legendary');
+    if (pool.length>0) { const p=pool[Math.floor(Math.random()*pool.length)]; return { icon:'★', name:p.name, desc:p.desc, cls:'revealed-good', apply:()=>{acquiredBonuses.push({...p});selectBonus(p,false);showMessage(`+ ${p.name}`,'var(--gold)');render();} }; }
+    // fallback: totem
+    const tp = TOTEM_POOL.filter(t=>!ownedT.has(t.id));
+    if (tp.length>0) { const p=tp[Math.floor(Math.random()*tp.length)]; return { icon:p.emoji, name:p.name, desc:p.desc, cls:'revealed-good', apply:()=>{acquiredTotems.push({...p});renderTotemList?.();showMessage(`+ ${p.name}`,'var(--gold)');} }; }
+  }
+  if (tier === 'good') {
+    const pool = BONUS_POOL.filter(b=>!ownedBC.has(b.id) && (b.tier==='rare'||b.tier==='common'));
+    if (pool.length>0) { const p=pool[Math.floor(Math.random()*pool.length)]; return { icon:'★', name:p.name, desc:p.desc, cls:'revealed-good', apply:()=>{acquiredBonuses.push({...p});selectBonus(p,false);showMessage(`+ ${p.name}`,'var(--gold)');render();} }; }
+  }
+  if (tier === 'bad') {
+    const bads = [
+      { icon:'☠', name:'−1 Discard', desc:'Lose 1 discard this round.', cls:'revealed-bad', apply:()=>{discards=Math.max(0,discards-1);render();showMessage('−1 Discard','var(--red)');} },
+      { icon:'☁', name:'−8s Round',  desc:'Lose 8 seconds right now.',  cls:'revealed-bad', apply:()=>{roundSeconds=Math.max(1,roundSeconds-8);updateClockUI();showMessage('−8s','var(--red)');} },
+      { icon:'✖', name:'Nothing',    desc:'This door was empty.',        cls:'revealed-bad', apply:()=>{showMessage('Empty door','var(--cream-dim)');} },
+    ];
+    return bads[Math.floor(Math.random()*bads.length)];
+  }
+  return { icon:'?', name:'Unknown', desc:'', cls:'revealed-bad', apply:()=>{} };
+}
+
+function renderGambleDoors() {
+  // Assign prizes to 3 doors secretly
+  const prizes = ['legendary','good','bad'];
+  for (let i=prizes.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[prizes[i],prizes[j]]=[prizes[j],prizes[i]];}
+  eventState.doorPrizes = prizes.map(t => buildDoorPrize(t));
+  eventState.chosenDoor = null;
+  eventState.doorsRevealed = false;
+  const body = document.getElementById('event-body');
+  const label = document.createElement('div');
+  label.style.cssText = 'font-family:Cinzel,serif;font-size:9px;letter-spacing:2px;color:var(--gold-dim);margin-bottom:8px';
+  label.textContent = 'CHOOSE A DOOR';
+  body.appendChild(label);
+  const row = document.createElement('div');
+  row.className = 'door-row';
+  [0,1,2].forEach(i => {
+    const door = document.createElement('div');
+    door.className = 'event-door';
+    door.innerHTML = `<div class="door-num">${i+1}</div><div class="door-inner"><div class="door-icon"></div><div class="door-dname"></div></div>`;
+    door.addEventListener('click', () => {
+      if (eventState.doorsRevealed) return;
+      row.querySelectorAll('.event-door').forEach(d=>d.classList.remove('chosen'));
+      door.classList.add('chosen');
+      eventState.chosenDoor = i;
+      setEventConfirm(true);
+    });
+    row.appendChild(door);
+  });
+  body.appendChild(row);
+}
+
+function confirmGamble() {
+  if (eventState.gambleMode === 'doors') {
+    if (eventState.chosenDoor === null) { closeEvent(); return; }
+    // Reveal all doors
+    const doors = document.querySelectorAll('.event-door');
+    eventState.doorPrizes.forEach((prize, i) => {
+      const d = doors[i];
+      d.classList.add('revealed');
+      d.classList.add(prize.cls);
+      d.querySelector('.door-icon').textContent = prize.icon;
+      d.querySelector('.door-dname').textContent = prize.name;
+    });
+    eventState.doorsRevealed = true;
+    // Apply chosen door's prize
+    eventState.doorPrizes[eventState.chosenDoor].apply();
+    setEventConfirm(false);
+    document.getElementById('event-skip').textContent = 'Continue';
+  } else {
+    // Double or Nothing result
+    const won = Math.random() < 0.6;
+    if (won) {
+      showMessage('You won the gamble!', 'var(--gold)');
+      // Grant a random BC as bonus
+      applyRewardRandomBC();
+    } else {
+      showMessage('Lost the gamble!', 'var(--red)');
+      // Lose the staked BC
+      if (eventState.stakedBC) {
+        acquiredBonuses = acquiredBonuses.filter(b=>b.id !== eventState.stakedBC.id);
+        render();
+        showMessage(`Lost ${eventState.stakedBC.name}`, 'var(--red)');
+      }
+    }
+    closeEvent();
+  }
+}
+
+function renderGambleDouble() {
+  eventState.stakedBC = null;
+  const body = document.getElementById('event-body');
+  const info = document.createElement('div');
+  info.style.cssText = 'font-size:12px;color:var(--cream-dim);font-family:Crimson Pro,serif;text-align:center;max-width:300px;margin-bottom:10px;line-height:1.5';
+  info.textContent = '60% chance: keep your BC and gain another. 40% chance: lose your BC. Choose one to stake.';
+  body.appendChild(info);
+  const ownedBC = acquiredBonuses || [];
+  if (ownedBC.length === 0) {
+    body.innerHTML += '<div style="color:var(--cream-dim);font-size:11px">You have no BCs to stake.</div>';
+    setEventConfirm(true); return;
+  }
+  ownedBC.forEach(bc => {
+    const el = makeChoiceEl({ icon:'★', rarity:bc.tier, name:bc.name, desc:bc.desc,
+      onClick: () => {
+        body.querySelectorAll('.event-choice').forEach(e=>e.classList.remove('selected'));
+        el.classList.add('selected');
+        eventState.stakedBC = bc;
+        setEventConfirm(true);
+      }
+    });
+    body.appendChild(el);
+  });
+}
+
+// ══════════════════════════════════════════════
+// EVENT: WANDERING MERCHANT
+// ══════════════════════════════════════════════
+function renderMerchant() {
+  // 2 legendary/rare BCs + 1 joker or totem — all free (it's a gift event, not a shop)
+  const ownedBC     = new Set((acquiredBonuses||[]).map(b=>b.id));
+  const ownedTotems = new Set((acquiredTotems ||[]).map(t=>t.id));
+  const ownedJokers = new Set((acquiredJokers ||[]).map(j=>j.id));
+  const legends = BONUS_POOL.filter(b=>!ownedBC.has(b.id) && (b.tier==='legendary'||b.tier==='rare'));
+  const totems  = TOTEM_POOL.filter(t=>!ownedTotems.has(t.id));
+  const jokers  = JOKER_POOL.filter(j=>!ownedJokers.has(j.id) && (j.rarity==='rare'||j.rarity==='legendary'));
+  const sh = a => { const r=[...a]; for(let i=r.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[r[i],r[j]]=[r[j],r[i]];} return r; };
+  const items = [];
+  sh(legends).slice(0,2).forEach(b => items.push({ type:'bc', icon:'★', rarity:b.tier, name:b.name, desc:b.desc, payload:b }));
+  if (totems.length>0 && Math.random()<0.5) { const t=sh(totems)[0]; items.push({ type:'totem', icon:t.emoji, rarity:'legendary', name:t.name, desc:t.desc, payload:t }); }
+  else if (jokers.length>0) { const j=sh(jokers)[0]; items.push({ type:'joker', icon:j.emoji, rarity:j.rarity, name:j.name, desc:j.desc, payload:j }); }
+  // cap at 3, shuffle
+  eventState.merchantItems = sh(items).slice(0,3);
+  eventState.merchantPick  = null;
+  const body = document.getElementById('event-body');
+  const lbl = document.createElement('div');
+  lbl.style.cssText = 'font-family:Cinzel,serif;font-size:9px;letter-spacing:2px;color:var(--gold-dim);margin-bottom:4px';
+  lbl.textContent = 'TAKE ONE — FREE OF CHARGE';
+  body.appendChild(lbl);
+  if (eventState.merchantItems.length === 0) {
+    body.innerHTML += '<div style="color:var(--cream-dim);font-size:11px;text-align:center">The merchant has nothing new to offer.</div>';
+    setEventConfirm(true); return;
+  }
+  eventState.merchantItems.forEach(item => {
+    const el = makeChoiceEl({ icon:item.icon, rarity:item.rarity, name:item.name, desc:item.desc,
+      onClick: () => {
+        body.querySelectorAll('.event-choice').forEach(e=>e.classList.remove('selected'));
+        el.classList.add('selected');
+        eventState.merchantPick = item;
+        setEventConfirm(true);
+      }
+    });
+    body.appendChild(el);
+  });
+}
+
+function confirmMerchant() {
+  const item = eventState.merchantPick;
+  if (!item) { closeEvent(); return; }
+  if (item.type === 'bc') { acquiredBonuses.push({...item.payload}); selectBonus(item.payload,false); showMessage(`+ ${item.name}`,'var(--gold)'); render(); }
+  else if (item.type === 'totem') { acquiredTotems.push({...item.payload}); renderTotemList?.(); showMessage(`+ ${item.name}`,'var(--gold)'); }
+  else if (item.type === 'joker') { grantJoker(item.payload); }
+  closeEvent();
+}
+
+// ══════════════════════════════════════════════
+// EVENT: ALTAR
+// ══════════════════════════════════════════════
+function renderAltar() {
+  const offerings = [
+    { icon:'🕯️', name:'3-Round Boost', rarity:'rare',
+      desc:'Sacrifice 2 discards now. For the next 3 rounds, all hands score +3 mult.',
+      cost:'−2 Discards',
+      canTake: () => discards >= 2,
+      apply: () => { discards = Math.max(0, discards-2); altarEffects.push({ type:'mult_boost', value:3, roundsLeft:3 }); showMessage('Altar: +3 mult for 3 rounds', 'var(--gold)'); render(); }
+    },
+    { icon:'⌛', name:'Time Offering', rarity:'rare',
+      desc:'Sacrifice 10 coins. Next 2 rounds begin with +20 extra seconds.',
+      cost:'−10 Coins',
+      canTake: () => coins >= 10,
+      apply: () => { coins -= 10; updateCoinsUI(); altarEffects.push({ type:'time_boost', value:20, roundsLeft:2 }); showMessage('Altar: +20s for 2 rounds', 'var(--gold)'); }
+    },
+    { icon:'🌑', name:'Dark Bargain', rarity:'legendary',
+      desc:'Sacrifice a random owned BC. The next 4 rounds score at 1.5× goal — but goal is halved.',
+      cost:'−1 Random BC',
+      canTake: () => acquiredBonuses.length > 0,
+      apply: () => {
+        const i=Math.floor(Math.random()*acquiredBonuses.length);
+        const lost=acquiredBonuses.splice(i,1)[0];
+        altarEffects.push({ type:'goal_reduce', value:0.5, roundsLeft:4 });
+        showMessage(`Sacrificed ${lost.name} · Goal halved × 4 rounds`, 'var(--gold)'); render();
+      }
+    },
+  ];
+  eventState.altarPick = null;
+  const body = document.getElementById('event-body');
+  offerings.forEach(off => {
+    const locked = !off.canTake();
+    const el = makeChoiceEl({ icon:off.icon, rarity:off.rarity, name:off.name, desc:off.desc, cost:off.cost,
+      cls: locked ? 'locked' : '',
+      onClick: () => {
+        if (locked) return;
+        body.querySelectorAll('.event-choice').forEach(e=>e.classList.remove('selected'));
+        el.classList.add('selected');
+        eventState.altarPick = off;
+        setEventConfirm(true);
+      }
+    });
+    body.appendChild(el);
+  });
+}
+
+function confirmAltar() {
+  if (eventState.altarPick) { eventState.altarPick.apply(); }
+  closeEvent();
+}
+
+// ── Altar tick: called at start of each round ──
+function tickAltarEffects() {
+  altarEffects.forEach(eff => {
+    if (eff.type === 'time_boost') {
+      roundSeconds = Math.min(roundSeconds + eff.value, limits.round_time.current + 60);
+      updateClockUI();
+    }
+    eff.roundsLeft--;
+  });
+  altarEffects = altarEffects.filter(e => e.roundsLeft > 0);
+}
+
+function getAltarMultBoost() {
+  return altarEffects.filter(e => e.type === 'mult_boost').reduce((s,e) => s + e.value, 0);
+}
+
+function getAltarGoalMultiplier() {
+  const eff = altarEffects.find(e => e.type === 'goal_reduce');
+  return eff ? eff.value : 1;
+}
+
+// ══════════════════════════════════════════════
+// EVENT: CLEANSING SPRING
+// ══════════════════════════════════════════════
+function renderSpring() {
+  eventState.springPick = null;
+  const body = document.getElementById('event-body');
+  const info = document.createElement('div');
+  info.style.cssText = 'font-size:12px;color:var(--cream-dim);font-family:Crimson Pro,serif;text-align:center;max-width:300px;margin-bottom:12px;line-height:1.5;';
+  info.textContent = 'Remove one card permanently from your deck — no cost, no replacement. Or restore lost resources.';
+  body.appendChild(info);
+
+  // Option A: Remove a card from draw pile
+  const removeOpt = makeChoiceEl({
+    icon:'🍂', rarity:'rare', name:'Purge a Card',
+    desc:`Remove one card from your deck permanently. Choose from your draw pile (${drawPile.length} cards).`,
+    onClick: () => {
+      body.querySelectorAll('.event-choice').forEach(e=>e.classList.remove('selected'));
+      removeOpt.classList.add('selected');
+      eventState.springPick = 'remove_card';
+      setEventConfirm(true);
+      showSpringCardPicker();
+    }
+  });
+  body.appendChild(removeOpt);
+
+  // Option B: Restore swaps and discards to max
+  const restoreOpt = makeChoiceEl({
+    icon:'💧', rarity:'common', name:'Cleanse Resources',
+    desc:'Restore swaps and discards to their maximum for this round.',
+    onClick: () => {
+      body.querySelectorAll('.event-choice').forEach(e=>e.classList.remove('selected'));
+      restoreOpt.classList.add('selected');
+      eventState.springPick = 'restore_resources';
+      setEventConfirm(true);
+      document.getElementById('spring-card-picker')?.remove();
+    }
+  });
+  body.appendChild(restoreOpt);
+
+  // Option C: Remove a random debuff from reward history (noop if none, but always show)
+  const cleanseOpt = makeChoiceEl({
+    icon:'✨', rarity:'rare', name:'Cleanse a Debuff',
+    desc:'Reverse one of the permanent debuffs applied in previous reward grids (+1 Discard or +5s restored).',
+    onClick: () => {
+      body.querySelectorAll('.event-choice').forEach(e=>e.classList.remove('selected'));
+      cleanseOpt.classList.add('selected');
+      eventState.springPick = 'cleanse_debuff';
+      setEventConfirm(true);
+      document.getElementById('spring-card-picker')?.remove();
+    }
+  });
+  body.appendChild(cleanseOpt);
+  eventState.cardToRemove = null;
+}
+
+function showSpringCardPicker() {
+  const existing = document.getElementById('spring-card-picker');
+  if (existing) existing.remove();
+  const body = document.getElementById('event-body');
+  const wrap = document.createElement('div');
+  wrap.id = 'spring-card-picker';
+  wrap.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:8px;max-width:340px';
+  const pool = [...drawPile];
+  const seen = new Set();
+  pool.forEach((card, i) => {
+    const key = card.rank + card.suit;
+    if (seen.has(key)) return; seen.add(key);
+    const chip = document.createElement('div');
+    chip.style.cssText = `padding:4px 8px;border-radius:5px;border:1px solid var(--gold-dim);font-family:Cinzel,serif;font-size:11px;cursor:pointer;background:#1a1410;color:${['♥','♦'].includes(card.suit)?'#c0392b':'var(--cream)'}`;
+    chip.textContent = card.rank + card.suit;
+    chip.addEventListener('click', () => {
+      wrap.querySelectorAll('div').forEach(c=>c.style.boxShadow='');
+      chip.style.boxShadow = '0 0 8px rgba(201,168,76,0.6)';
+      chip.style.borderColor = 'var(--gold)';
+      eventState.cardToRemove = card;
+    });
+    wrap.appendChild(chip);
+  });
+  body.appendChild(wrap);
+}
+
+function confirmSpring() {
+  switch (eventState.springPick) {
+    case 'remove_card':
+      if (eventState.cardToRemove) {
+        const c = eventState.cardToRemove;
+        const idx = drawPile.findIndex(x=>x.rank===c.rank&&x.suit===c.suit);
+        if (idx >= 0) { drawPile.splice(idx,1); showMessage(`${c.rank}${c.suit} removed from deck`, 'var(--gold)'); }
+      } break;
+    case 'restore_resources':
+      swaps = limits.swaps.current;
+      discards = limits.discards.current;
+      render(); showMessage('Swaps & Discards restored!', 'var(--gold)'); break;
+    case 'cleanse_debuff':
+      // Reverse one small debuff — restore a discard or 5s
+      discards = Math.min(discards + 1, limits.discards.current + 2);
+      render(); showMessage('+1 Discard restored', 'var(--gold)'); break;
+  }
+  closeEvent();
+}
+
+// ══════════════════════════════════════════════
+// EVENT: TWIN PATH
+// ══════════════════════════════════════════════
+function renderTwinPath() {
+  const ownedBC = new Set((acquiredBonuses||[]).map(b=>b.id));
+  const pool = BONUS_POOL.filter(b=>!ownedBC.has(b.id));
+  const sh = a => { const r=[...a]; for(let i=r.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[r[i],r[j]]=[r[j],r[i]];} return r; };
+  const picks = sh(pool).slice(0,2);
+  const shadow = [
+    { icon:'☁', name:'−5s This Round', desc:'Lose 5 seconds immediately.',     apply:()=>{roundSeconds=Math.max(1,roundSeconds-5);updateClockUI();showMessage('−5s (Twin Path shadow)','var(--red)');} },
+    { icon:'☠', name:'−1 Discard',    desc:'Lose 1 discard permanently.',      apply:()=>{limits.discards.current=Math.max(1,limits.discards.current-1);discards=Math.min(discards,limits.discards.current);render();showMessage('−1 Discard (Twin Path shadow)','var(--red)');} },
+    { icon:'✖', name:'−1 Swap',       desc:'Lose 1 swap permanently.',         apply:()=>{limits.swaps.current=Math.max(0,limits.swaps.current-1);swaps=Math.min(swaps,limits.swaps.current);render();showMessage('−1 Swap (Twin Path shadow)','var(--red)');} },
+    { icon:'🌑', name:'Goal +15%',     desc:'This round\'s goal increases 15%.', apply:()=>{roundGoal=Math.floor(roundGoal*1.15);showMessage('Goal +15% (Twin Path shadow)','var(--red)');} },
+  ];
+  eventState.shadow = shadow[Math.floor(Math.random()*shadow.length)];
+  eventState.twinBCs = picks;
+  eventState.twinAccepted = false;
+  const body = document.getElementById('event-body');
+
+  const lbl = document.createElement('div');
+  lbl.style.cssText='font-family:Cinzel,serif;font-size:9px;letter-spacing:2px;color:var(--gold-dim);margin-bottom:4px';
+  lbl.textContent='YOU GAIN BOTH — OR NEITHER';
+  body.appendChild(lbl);
+
+  picks.forEach(bc => {
+    body.appendChild(makeChoiceEl({ icon:'★', rarity:bc.tier, name:bc.name, desc:bc.desc }));
+  });
+
+  const shadowEl = makeChoiceEl({ icon: eventState.shadow.icon, name: eventState.shadow.name, desc: eventState.shadow.desc, cls:'debuff' });
+  shadowEl.style.marginTop = '6px';
+  const shadowLbl = document.createElement('div');
+  shadowLbl.style.cssText='font-family:Cinzel,serif;font-size:9px;letter-spacing:2px;color:var(--red);margin-top:8px;margin-bottom:4px';
+  shadowLbl.textContent='THE SHADOW (always applies)';
+  body.appendChild(shadowLbl);
+  body.appendChild(shadowEl);
+
+  const acceptBtn = document.createElement('button');
+  acceptBtn.textContent = 'Accept Both + Shadow';
+  acceptBtn.style.cssText='margin-top:12px;';
+  acceptBtn.addEventListener('click', () => {
+    eventState.twinAccepted = true;
+    acceptBtn.disabled = true;
+    setEventConfirm(true);
+  });
+  body.appendChild(acceptBtn);
+  document.getElementById('event-skip').textContent = 'Decline (Take Nothing)';
+}
+
+function confirmTwinPath() {
+  if (eventState.twinAccepted) {
+    (eventState.twinBCs || []).forEach(bc => {
+      acquiredBonuses.push({...bc}); selectBonus(bc,false); showMessage(`+ ${bc.name}`,'var(--gold)');
+    });
+    render();
+    eventState.shadow.apply();
+  }
+  closeEvent();
+}
 
 
 
@@ -8468,6 +9471,8 @@ function triggerLevelUp() {
   firstHandThisRound = true;
   cardsDiscardedRound = 0;
   fullHouseThisRound = 0;
+  tickAltarEffects();
+  fireJokersAtRoundStart();
   // Reset focus meter at start of every round (chunk 2 will add notch-fall animation)
   focusNodes = 0;
   focusAnimQueue = [];
@@ -10050,6 +11055,11 @@ function startGame() {
   unlockedHands = new Set(startKeys);
   handsPendingUnlock = [];
   acquiredBonuses = [];
+  acquiredTotems  = [];
+  acquiredJokers  = [];
+  altarEffects    = [];
+  jokerNextHandDouble = false;
+  renderJokerList();
   // Reset all counters
   Object.keys(C).forEach(k => C[k] = (typeof C[k] === 'boolean' ? false : 0));
   permPips = {};
@@ -10867,6 +11877,7 @@ function openDevPanel() {
   devFilterBonuses('');
   devFilterTotems('');
   devRenderLimits();
+  devRenderJokers();
   stopTimers();
 }
 
@@ -10933,6 +11944,16 @@ function devTriggerEvent(eventId) {
   } else if (eventId === 'shop') {
     document.getElementById('shop-overlay').classList.add('show');
     renderShop();
+  } else {
+    // All node events
+    const nodeEvents = ['confluence','crossroads','gamble','merchant','altar','spring','twin_path'];
+    if (nodeEvents.includes(eventId)) {
+      afterEventFn = () => {};
+      activeEventId = eventId;
+      eventState = {};
+      renderEventShell(eventId);
+      document.getElementById('event-overlay').classList.add('show');
+    }
   }
 }
 
@@ -11087,6 +12108,26 @@ function devAddTotem(id) {
   const btn = event.target;
   btn.textContent = '✓ Added';
   btn.style.color = '#8bc34a';
+}
+
+function devRenderJokers() {
+  const list = document.getElementById('dev-joker-list');
+  if (!list) return;
+  list.innerHTML = JOKER_POOL.map(j => {
+    const owned = acquiredJokers.some(x=>x.id===j.id);
+    return `<div class="dev-bonus-item">
+      <span class="dev-bonus-name">${j.emoji} ${j.name} <span style="color:var(--gold-dim);font-size:9px">${j.rarity}</span>${owned?' ✓':''}</span>
+      <button class="dev-bonus-add" onclick="devAddJoker('${j.id}')" ${owned?'disabled style="opacity:0.5"':''}>
+        ${owned?'Owned':'+ Add'}
+      </button>
+    </div>`;
+  }).join('');
+}
+function devAddJoker(id) {
+  const j = JOKER_POOL.find(x=>x.id===id);
+  if (!j) return;
+  grantJoker(j);
+  devRenderJokers();
 }
 
 // ── End of dev mode ──
