@@ -7409,34 +7409,38 @@ function generateRewardContent() {
   ];
 
   function pickRand(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
-
-  // Distribution: 2 destinations always present; rest split ~60% buffs, ~20% debuffs
-  const numDest   = 2;
-  const numDebuff = Math.max(1, Math.floor(total * 0.20));
-  const numBuff   = total - numDest - numDebuff;
-
-  const pool = [];
-  for (let i = 0; i < numBuff;   i++) pool.push({ kind: 'buff',   payload: pickRand(buffs) });
-  for (let i = 0; i < numDebuff; i++) pool.push({ kind: 'debuff', payload: pickRand(debuffs) });
-  // Always: one Normal Round dest, one random dest
-  pool.push({ kind: 'dest', payload: normalRoundDest });
-  pool.push({ kind: 'dest', payload: pickRand(randomDestOptions) });
-
-  // Shuffle
-  for (let i = pool.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [pool[i], pool[j]] = [pool[j], pool[i]];
+  function shuffled(arr) {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+    return a;
   }
 
-  // Build ROWS x COLS grid
-  const grid = [];
-  let idx = 0;
-  for (let r = 0; r < ROWS; r++) {
-    grid[r] = [];
-    for (let c = 0; c < COLS; c++) {
-      grid[r][c] = pool[idx++];
-    }
+  // Split positions by checkerboard: (r+c) even → buff/dest, (r+c) odd → debuff
+  const buffPos   = [];
+  const debuffPos = [];
+  for (let r = 0; r < ROWS; r++)
+    for (let c = 0; c < COLS; c++)
+      ((r + c) % 2 === 0 ? buffPos : debuffPos).push([r, c]);
+
+  // Shuffle buff positions so the 2 destinations land in random buff slots
+  const shuffledBuff = shuffled(buffPos);
+  const grid = Array.from({length: ROWS}, () => Array(COLS).fill(null));
+
+  // Place destinations in the first 2 buff positions
+  grid[shuffledBuff[0][0]][shuffledBuff[0][1]] = { kind: 'dest', payload: normalRoundDest };
+  grid[shuffledBuff[1][0]][shuffledBuff[1][1]] = { kind: 'dest', payload: pickRand(randomDestOptions) };
+
+  // Fill remaining buff positions
+  for (let i = 2; i < shuffledBuff.length; i++) {
+    const [r, c] = shuffledBuff[i];
+    grid[r][c] = { kind: 'buff', payload: pickRand(buffs) };
   }
+
+  // Fill all debuff positions
+  for (const [r, c] of debuffPos) {
+    grid[r][c] = { kind: 'debuff', payload: pickRand(debuffs) };
+  }
+
   return grid;
 }
 
