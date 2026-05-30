@@ -2994,7 +2994,7 @@
 </div>
 
 <script>
-const BUILD = '2026-05-30 · r13';
+const BUILD = '2026-05-30 · r14';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -9588,6 +9588,7 @@ function updateCounters(hand, handCells) {
 }
 
 function checkUnlocks() {
+  if (ACTIVE_MODE.id === 'normal') return;
   const toCheck = [
     { key:'run4',         cond: () => C.run3 >= 10 || C.fours >= 20 },
     { key:'pair',         cond: () => C.sandwich >= 10 || C.twos >= 20 },
@@ -9609,6 +9610,7 @@ function checkUnlocks() {
 }
 
 function triggerUnlock(key) {
+  if (ACTIVE_MODE.id === 'normal') return;
   if (unlockedHands.has(key)) return;
   unlockedHands.add(key);
   handsPendingUnlock.push(key);
@@ -10040,8 +10042,11 @@ function startGame() {
   pipeTimerPaused = false;
   pauseSecondsLeft = 0;
   if (pauseTimer) { clearTimeout(pauseTimer); pauseTimer = null; }
-  activeHands = new Set(['run3','threeofakind','twopair','fourofakind']);
-  unlockedHands = new Set(['run3','threeofakind','twopair','fourofakind']);
+  const ALL_HAND_KEYS = ['run3','sandwich','threeofakind','fourofakind','run4','pair','twopair','straight','flush','fullhouse','straightflush','highcard','blackjack'];
+  const BASE_HAND_KEYS = ['run3','threeofakind','twopair','fourofakind'];
+  const startKeys = ACTIVE_MODE.id === 'normal' ? ALL_HAND_KEYS : BASE_HAND_KEYS;
+  activeHands = new Set(startKeys);
+  unlockedHands = new Set(startKeys);
   handsPendingUnlock = [];
   acquiredBonuses = [];
   // Reset all counters
