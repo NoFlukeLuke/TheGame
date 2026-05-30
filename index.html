@@ -2980,7 +2980,7 @@
 </div>
 
 <script>
-const BUILD = '2026-05-30 · r11';
+const BUILD = '2026-05-30 · r12';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -7383,31 +7383,34 @@ let skipBCChoiceOverlay = false;    // set before drainLevelUpQueue when reward 
 function generateRewardContent() {
   const ROWS = limits.reward_rows.current;
   const COLS = limits.reward_cols.current;
-  const total = ROWS * COLS;
 
+  // Weighted buff pool — weights sum to 100 for easy tuning
+  // Joker slot reserved (no system yet)
   const buffs = [
-    { icon: '★', label: 'Random BC',     tier: 'rare',     apply: applyRewardRandomBC },
-    { icon: '◆', label: '+10 Pips Card', tier: 'common',   apply: applyRewardPipsCard },
-    { icon: '♛', label: 'Totem',         tier: 'legendary',apply: applyRewardTotem },
-    { icon: '⚡', label: '+1 Swap',       tier: 'common',   apply: () => { swaps += 1; render(); } },
-    { icon: '⏱', label: '+10s Round',    tier: 'common',   apply: () => { roundSeconds = Math.min(roundSeconds + 10, limits.round_time.current); updateClockUI(); } },
-    { icon: '💰', label: '+5 Coins',      tier: 'common',   apply: () => { coins += 5; updateCoinsUI(); } },
+    { weight: 75, icon: '★', label: 'BC',          tier: 'rare',      apply: applyRewardRandomBC },
+    { weight: 10, icon: '♛', label: 'Totem',        tier: 'legendary', apply: applyRewardTotem },
+    { weight:  6, icon: '🗑', label: '+1 Discard',   tier: 'common',    apply: () => { discards += 1; render(); } },
+    { weight:  6, icon: '⚡', label: '+1 Swap',      tier: 'common',    apply: () => { swaps += 1; render(); } },
+    { weight:  3, icon: '⏱', label: '+15s Round',   tier: 'common',    apply: () => { roundSeconds = Math.min(roundSeconds + 15, limits.round_time.current); updateClockUI(); } },
   ];
   const debuffs = [
     { icon: '☠', label: '-1 Discard',    tier: 'penalty', apply: () => { discards = Math.max(0, discards - 1); render(); } },
     { icon: '✖', label: 'Lose Random BC',tier: 'penalty', apply: applyRewardLoseBC },
     { icon: '☁', label: '-5s Round',     tier: 'penalty', apply: () => { roundSeconds = Math.max(1, roundSeconds - 5); updateClockUI(); } },
   ];
-  // Destination 1: always a Normal Round (safe path)
-  const normalRoundDest = { icon: '▶', label: 'Normal Round', tier: 'dest',
-    apply: () => { pendingEventOverride = 'normal'; } };
-  // Destination 2: random event (shop, special event, etc.)
-  const randomDestOptions = [
-    { icon: '🏪', label: 'Next: Shop',    tier: 'dest', apply: () => { pendingEventOverride = 'shop'; } },
-    { icon: '🎲', label: 'Next: Event',   tier: 'dest', apply: () => { pendingEventOverride = 'event'; } },
-    { icon: '🏪', label: 'Next: Shop',    tier: 'dest', apply: () => { pendingEventOverride = 'shop'; } }, // weighted 2×
+  // One destination tile — random event. No destination = defaults to Normal Round.
+  const destOptions = [
+    { icon: '🏪', label: 'Next: Shop',  tier: 'dest', apply: () => { pendingEventOverride = 'shop'; } },
+    { icon: '🏪', label: 'Next: Shop',  tier: 'dest', apply: () => { pendingEventOverride = 'shop'; } }, // 2×
+    { icon: '🎲', label: 'Next: Event', tier: 'dest', apply: () => { pendingEventOverride = 'event'; } },
   ];
 
+  function weightedPick(arr) {
+    const total = arr.reduce((s, x) => s + (x.weight || 1), 0);
+    let rng = Math.random() * total;
+    for (const x of arr) { rng -= (x.weight || 1); if (rng <= 0) return x; }
+    return arr[arr.length - 1];
+  }
   function pickRand(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
   function shuffled(arr) {
     const a = [...arr];
@@ -7415,25 +7418,23 @@ function generateRewardContent() {
     return a;
   }
 
-  // Split positions by checkerboard: (r+c) even → buff/dest, (r+c) odd → debuff
+  // Checkerboard: (r+c) even → buff/dest slot, (r+c) odd → debuff slot
   const buffPos   = [];
   const debuffPos = [];
   for (let r = 0; r < ROWS; r++)
     for (let c = 0; c < COLS; c++)
       ((r + c) % 2 === 0 ? buffPos : debuffPos).push([r, c]);
 
-  // Shuffle buff positions so the 2 destinations land in random buff slots
   const shuffledBuff = shuffled(buffPos);
   const grid = Array.from({length: ROWS}, () => Array(COLS).fill(null));
 
-  // Place destinations in the first 2 buff positions
-  grid[shuffledBuff[0][0]][shuffledBuff[0][1]] = { kind: 'dest', payload: normalRoundDest };
-  grid[shuffledBuff[1][0]][shuffledBuff[1][1]] = { kind: 'dest', payload: pickRand(randomDestOptions) };
+  // One destination in a random buff slot
+  grid[shuffledBuff[0][0]][shuffledBuff[0][1]] = { kind: 'dest', payload: pickRand(destOptions) };
 
-  // Fill remaining buff positions
-  for (let i = 2; i < shuffledBuff.length; i++) {
+  // Fill remaining buff positions (weighted — ~75% BC, rest minor bonuses)
+  for (let i = 1; i < shuffledBuff.length; i++) {
     const [r, c] = shuffledBuff[i];
-    grid[r][c] = { kind: 'buff', payload: pickRand(buffs) };
+    grid[r][c] = { kind: 'buff', payload: weightedPick(buffs) };
   }
 
   // Fill all debuff positions
