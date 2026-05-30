@@ -2573,11 +2573,6 @@
         <span class="panel-title">Totems</span>
         <div id="totem-list"><span style="font-size:9px;color:var(--cream-dim)">None yet</span></div>
       </div>
-      <!-- Joker section -->
-      <div id="joker-carousel-wrap">
-        <span class="panel-title">Jokers</span>
-        <div id="joker-list"><span style="font-size:9px;color:var(--cream-dim)">None yet</span></div>
-      </div>
     </div>
 
   </div>
@@ -2930,28 +2925,25 @@
   .door-icon { font-size:20px; }
   .door-dname { font-size:8px; letter-spacing:1px; color:var(--cream); font-family:'Cinzel',serif; }
 
-  /* Joker chips in HUD */
-  #joker-carousel-wrap { flex:1; min-width:0; overflow:hidden; padding-left:8px; display:flex; flex-direction:column; justify-content:center; }
-  #joker-list { display:flex; gap:4px; overflow-x:auto; scrollbar-width:none; padding-bottom:2px; }
-  #joker-list::-webkit-scrollbar { display:none; }
-  .joker-chip {
-    flex-shrink:0; width:28px; height:28px; border-radius:6px;
-    background:#1a1410; border:1px solid var(--gold-dim);
-    display:flex; align-items:center; justify-content:center;
-    font-size:14px; cursor:pointer; transition:all 0.12s; user-select:none;
+  /* Joker grid cards */
+  .joker-card {
+    background: linear-gradient(160deg,#160d22,#0a0612) !important;
+    border: 2px solid #8844cc !important;
+    box-shadow: 0 0 8px rgba(136,68,204,0.4);
   }
-  .joker-chip:hover { border-color:var(--gold); background:#241e10; }
-  .joker-chip.activatable { border-color:var(--green); box-shadow:0 0 6px rgba(90,158,90,0.5); }
-  #joker-tooltip {
-    position:fixed; z-index:400; pointer-events:none;
-    background:#1e1a0e; border:1px solid var(--gold);
-    border-radius:6px; padding:8px 10px; max-width:200px;
-    opacity:0; transition:opacity 0.15s; font-family:'Cinzel',serif;
+  .joker-card-emoji { font-size:18px; }
+  .joker-card-name  { font-size:7px; color:#cc88ff; font-family:'Cinzel',serif; letter-spacing:0.3px; text-align:center; line-height:1.2; }
+  .joker-card-uses  { font-size:8px; color:var(--gold-dim); margin-top:2px; }
+  /* Joker tooltip (shown on single-tap, like BC tooltip) */
+  .joker-tooltip {
+    position: absolute; z-index: 50;
+    background:#1e1a0e; border:1px solid #8844cc;
+    border-radius:6px; padding:8px 10px; max-width:180px;
+    font-family:'Cinzel',serif; pointer-events:none;
   }
-  #joker-tooltip.show { opacity:1; }
-  .joker-tooltip-name { font-size:11px; color:var(--gold); margin-bottom:3px; }
+  .joker-tooltip-name { font-size:11px; color:#cc88ff; margin-bottom:3px; }
   .joker-tooltip-desc { font-size:10px; color:var(--cream-dim); font-family:'Crimson Pro',serif; line-height:1.4; }
-  .joker-tooltip-uses { font-size:9px; color:var(--gold-dim); margin-top:4px; }
+  .joker-tooltip-hint { font-size:8px; color:var(--gold-dim); margin-top:5px; letter-spacing:0.5px; }
 </style>
 
 <!-- STATS OVERLAY -->
@@ -3080,9 +3072,6 @@
   </div>
 </div>
 
-<!-- JOKER TOOLTIP -->
-<div id="joker-tooltip"></div>
-
 <!-- LIMIT BREAK EVENT OVERLAY -->
 <div id="limitbreak-overlay">
   <div id="lb-title">LIMIT BREAK</div>
@@ -3138,7 +3127,7 @@
 </div>
 
 <script>
-const BUILD = '2026-05-30 · r16';
+const BUILD = '2026-05-30 · r17';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -3370,8 +3359,13 @@ function cardCan(card, action) {
     return action === 'fall' || action === 'render' || action === 'swap' || action === 'draw';
   }
   if (card._isBC) {
-    // BCs fall, render, and swap like normal cards — but can't be selected or scored
+    // BCs fall, render, and swap like normal cards — but can't be selected, scored, or discarded
     return action === 'fall' || action === 'render' || action === 'swap';
+  }
+  if (card._isJoker) {
+    // Jokers behave like normal cards: fall, render, swap, select, discard
+    // (discarding a joker consumes it and triggers its effect)
+    return action === 'fall' || action === 'render' || action === 'swap' || action === 'select' || action === 'discard';
   }
   if (card.isChallenge) {
     return action === 'render';
@@ -3732,10 +3726,9 @@ const JOKER_POOL = [
   { id:'wildfire_joker',name:'Wildfire',       emoji:'🔥', rarity:'legendary', activationType:'on_score',       handReq:'straight',durability:2,         tags:['run','scoring'],  desc:'On scoring a Straight: the next hand of any kind scores as a Straight Flush. (2 uses)' },
 ];
 
-// Joker runtime state — each entry: { ...JOKER_POOL def, usesLeft }
-let acquiredJokers = [];
 // One-shot effect flags consumed by scoring/round logic
 let jokerNextHandDouble = false; // glass_cannon
+let grantedJokerIds = new Set(); // dedup: tracks which joker IDs have been granted
 
 // Altar effect tracking — investments that pay off over future rounds
 let altarEffects = []; // [{ type:'mult_boost'|'time_boost'|'goal_reduce', value, roundsLeft }]
@@ -3898,7 +3891,14 @@ function drawCard() {
 
 // Discard action — card goes to BACK of draw pile (re-enters only after every other card seen)
 function discardToDrawPile(card) {
-  if (cardCan(card, 'discard')) { drawPile.push({ rank: card.rank, suit: card.suit }); updateDeckHud(); }
+  if (!cardCan(card, 'discard')) return;
+  if (card._isJoker) {
+    // Discarding a joker triggers its effect and consumes it (does not return to pile)
+    applyJokerGridEffect(card.jokerId, -1, -1);
+    showMessage(`${JOKER_POOL.find(j=>j.id===card.jokerId)?.name||'Joker'} consumed`, '#cc88ff');
+    return;
+  }
+  drawPile.push({ rank: card.rank, suit: card.suit }); updateDeckHud();
 }
 
 // Scored card — held out until round ends
@@ -4429,8 +4429,15 @@ function calcScore(handName, cells) {
 
 function hasBonus(id) {
   if (isBCDisabledByBoss(id)) return false;
-  return acquiredBonuses.some(b => b.id === id);
+  for (let r = 0; r < gridRows; r++)
+    for (let c = 0; c < gridCols; c++) {
+      const cell = gridData[r][c];
+      if (cell?._isBC && cell.bonus?.id === id) return true;
+    }
+  return false;
 }
+// For dedup only — checks acquiredBonuses (BC was ever granted, may not be on grid)
+function ownsBonus(id) { return acquiredBonuses.some(b => b.id === id); }
 function hasTotem(id) { return acquiredTotems.some(t => t.id === id); }
 
 // Returns all row/col bonus entries matching this card position
@@ -4481,6 +4488,22 @@ function render() {
         const isSwapPending = swapPending && swapPending[0]===r && swapPending[1]===c;
         const { className, innerHTML } = renderCardAppearance(card, r, c, { isSwapPending });
         div.className = className; div.innerHTML = innerHTML;
+        continue;
+      }
+
+      // ── Joker card path ──
+      if (!isChallenge && card._isJoker) {
+        const def = JOKER_POOL.find(j => j.id === card.jokerId);
+        let div = existingEls[cardId];
+        if (!div) { div = document.createElement('div'); div.dataset.cardId = cardId; gridEl.appendChild(div); }
+        div.dataset.row = r; div.dataset.col = c;
+        div.style.left = cellLeft(c) + 'px';
+        if (!animating && !falling) div.style.top = cellTop(r) + 'px';
+        const isSwapPendingJ = swapPending && swapPending[0]===r && swapPending[1]===c;
+        const usesStr = card._usesLeft === 'infinite' ? '∞' : card._usesLeft;
+        div.className = 'bc-card joker-card' + (isSwapPendingJ ? ' swap-pending' : '');
+        div.innerHTML = `<div class="joker-card-emoji">${def?.emoji||'🃏'}</div><div class="joker-card-name">${def?.name||'Joker'}</div><div class="joker-card-uses">${usesStr}</div>`;
+        div.onclick = () => onCardTap(r, c);
         continue;
       }
 
@@ -5207,6 +5230,12 @@ function cardAt(el) {
 }
 
 function doSwap(r1, c1, r2, c2) {
+  // Guard: block swap when out of swaps (Steady Hand bypasses limit)
+  if (swaps <= 0 && !hasTotem('steady_hand')) {
+    const btn = document.getElementById('btn-swap');
+    if (btn) { btn.style.borderColor='var(--red)'; btn.style.color='var(--red)'; setTimeout(()=>{btn.style.borderColor='';btn.style.color='';},500); }
+    swapPending = null; render(); return;
+  }
   const notAdjacent = Math.abs(r1-r2) + Math.abs(c1-c2) !== 1;
   if (notAdjacent && !hasBonus('free_range')) {
     const btn = document.getElementById('btn-swap');
@@ -5329,6 +5358,32 @@ function onCardTap(r, c) {
   const isDoubleTap = lastTapCell &&
     lastTapCell[0] === r && lastTapCell[1] === c &&
     (now - lastTapTime) < DOUBLE_TAP_MS;
+
+  // Joker — single tap shows tooltip, double-tap activates effect
+  if (!bcSelectionPhase && gridData[r]?.[c]?._isJoker) {
+    if (isDoubleTap) {
+      hideJokerGridTooltip();
+      const card = gridData[r][c];
+      const def = JOKER_POOL.find(j => j.id === card.jokerId);
+      if (def && (def.activationType === 'manual_discard' || def.activationType === 'on_score' || def.activationType === 'passive')) {
+        applyJokerGridEffect(card.jokerId, r, c);
+        if (card._usesLeft !== 'infinite') {
+          card._usesLeft--;
+          if (card._usesLeft <= 0) {
+            gridData[r][c] = null;
+            showMessage(`${def.name} consumed`, 'var(--cream-dim)');
+          }
+        }
+        render();
+      }
+      lastTapTime = 0; lastTapCell = null;
+      return;
+    }
+    hideJokerGridTooltip();
+    showJokerGridTooltip(r, c, gridData[r][c]);
+    lastTapCell = [r, c]; lastTapTime = now;
+    return;
+  }
 
   // BC during normal play — single tap shows read-only tooltip, double-tap enters swap
   if (!bcSelectionPhase && gridData[r]?.[c]?._isBC) {
@@ -7612,7 +7667,7 @@ function generateRewardContent() {
     const pick = eligible[Math.floor(Math.random() * eligible.length)];
     return {
       icon: '★', label: pick.name, desc: pick.desc, tier: pick.tier || 'rare',
-      apply: () => { acquiredBonuses.push({ ...pick }); selectBonus(pick, false); showMessage(`+ ${pick.name}`, 'var(--gold)'); render(); }
+      apply: () => injectBCAfterReward(pick)
     };
   }
 
@@ -7654,20 +7709,54 @@ function generateRewardContent() {
   return grid;
 }
 
+// Place a BC card physically on the grid (middle-row inner col, displacing if needed).
+// Use this any time a BC is granted outside the normal level-up BC selection flow.
+function injectBCAfterReward(bonus) {
+  if (!bonus) return;
+  const midRow = Math.floor(gridRows / 2);
+  const allCols = Array.from({length: gridCols}, (_, i) => i).sort(() => Math.random() - 0.5);
+  // Prefer inner cols for aesthetic placement
+  const innerCols = allCols.filter(c => c > 0 && c < gridCols - 1);
+  const searchOrder = [...innerCols, ...allCols.filter(c => !innerCols.includes(c))];
+  let targetRow = midRow, targetCol = searchOrder[0] ?? 0;
+  for (const c of searchOrder) {
+    if (!gridData[midRow]?.[c]?._isBC && !gridData[midRow]?.[c]?._isJoker) { targetCol = c; break; }
+  }
+  // Fallback: any non-BC, non-joker cell in the grid
+  if (gridData[targetRow]?.[targetCol]?._isBC) {
+    outer: for (let r = 0; r < gridRows; r++)
+      for (const c of searchOrder)
+        if (!gridData[r]?.[c]?._isBC && !gridData[r]?.[c]?._isJoker) { targetRow = r; targetCol = c; break outer; }
+  }
+  // Salvage displaced card
+  const displaced = gridData[targetRow][targetCol];
+  if (displaced && !displaced._isBC && !displaced._isJoker && displaced.rank) drawPile.push({ rank: displaced.rank, suit: displaced.suit });
+  const bcId = 90000 + (Date.now() % 9000);
+  gridData[targetRow][targetCol] = { rank: null, suit: null, _isBC: true, _selectable: false, _bcState: 'acquired', bonus, _id: bcId };
+  selectBonus(bonus, true); // handles acquiredBonuses.push + positional assignment
+  render();
+}
+
 function applyRewardRandomBC() {
   if (typeof BONUS_POOL === 'undefined') return;
   const owned = new Set((acquiredBonuses || []).map(b => b.id));
   const eligible = BONUS_POOL.filter(b => !owned.has(b.id));
   if (eligible.length === 0) return;
   const pick = eligible[Math.floor(Math.random() * eligible.length)];
-  acquiredBonuses.push({ ...pick });
-  showMessage(`+ ${pick.name}`, 'var(--gold)');
+  injectBCAfterReward(pick);
 }
 function applyRewardLoseBC() {
-  if (!acquiredBonuses || acquiredBonuses.length === 0) return;
-  const idx = Math.floor(Math.random() * acquiredBonuses.length);
-  const lost = acquiredBonuses.splice(idx, 1)[0];
+  // Remove a random BC card from the grid
+  const bcCells = [];
+  for (let r = 0; r < gridRows; r++)
+    for (let c = 0; c < gridCols; c++)
+      if (gridData[r]?.[c]?._isBC) bcCells.push([r, c]);
+  if (bcCells.length === 0) { showMessage('No BCs to lose', 'var(--cream-dim)'); return; }
+  const [r, c] = bcCells[Math.floor(Math.random() * bcCells.length)];
+  const lost = gridData[r][c].bonus;
+  gridData[r][c] = null;
   showMessage(`- ${lost.name}`, 'var(--red)');
+  render();
 }
 function applyRewardPipsCard() {
   const cells = [];
@@ -8121,116 +8210,111 @@ function closeLimitBreak() {
 })();
 
 // ══════════════════════════════════════════════
-// JOKER SYSTEM
+// JOKER SYSTEM — physical deck cards
 // ══════════════════════════════════════════════
+// Jokers live in the deck as special cards (_isJoker:true).
+// They fall onto the grid, can be swapped/discarded/selected.
+// Single-tap: show tooltip. Double-tap: activate effect.
+// manual_discard jokers: double-tap to activate + consume.
+// round_start jokers: fire automatically at round start.
+// passive jokers: effect always active while on grid.
+
+let grantedJokerIds = new Set(); // dedup tracking
+
 function grantJoker(jokerDef) {
-  if (acquiredJokers.some(j => j.id === jokerDef.id)) return;
-  const j = { ...jokerDef, usesLeft: jokerDef.durability };
-  acquiredJokers.push(j);
-  renderJokerList();
-  showMessage(`+ ${jokerDef.name}`, 'var(--green)');
+  const card = {
+    _isJoker: true, jokerId: jokerDef.id,
+    rank: null, suit: null,
+    _id: 80000 + (Date.now() % 10000),
+    _usesLeft: jokerDef.durability,
+  };
+  drawPile.push(card);
+  grantedJokerIds.add(jokerDef.id);
+  updateDeckHud?.();
+  showMessage(`+ ${jokerDef.name}`, '#cc88ff');
 }
 
-function consumeJokerUse(id) {
-  const j = acquiredJokers.find(j => j.id === id);
-  if (!j || j.usesLeft === 'infinite') return;
-  j.usesLeft--;
-  if (j.usesLeft <= 0) {
-    acquiredJokers = acquiredJokers.filter(j => j.id !== id);
-    showMessage(`${j.name} consumed`, 'var(--cream-dim)');
-  }
-  renderJokerList();
+function hasJokerOnGrid(id) {
+  for (let r = 0; r < gridRows; r++)
+    for (let c = 0; c < gridCols; c++)
+      if (gridData[r]?.[c]?._isJoker && gridData[r][c].jokerId === id) return true;
+  return false;
 }
 
 function fireJokersAtRoundStart() {
-  acquiredJokers.filter(j => j.activationType === 'round_start').forEach(j => {
-    if (j.usesLeft === 'infinite' || j.usesLeft > 0) {
-      applyJokerEffect(j.id);
-      consumeJokerUse(j.id);
+  for (let r = 0; r < gridRows; r++) {
+    for (let c = 0; c < gridCols; c++) {
+      const card = gridData[r][c];
+      if (!card?._isJoker) continue;
+      const def = JOKER_POOL.find(j => j.id === card.jokerId);
+      if (!def || def.activationType !== 'round_start') continue;
+      applyJokerGridEffect(def.id, r, c);
+      if (card._usesLeft !== 'infinite') {
+        card._usesLeft--;
+        if (card._usesLeft <= 0) { gridData[r][c] = null; showMessage(`${def.name} consumed`, 'var(--cream-dim)'); }
+      }
     }
-  });
+  }
 }
 
-function applyJokerEffect(id) {
+function applyJokerGridEffect(id, r, c) {
   switch (id) {
     case 'lucky_charm':
-      swaps = Math.min(swaps + 1, limits.swaps.current + 10);
-      render();
-      break;
+      swaps = Math.min(swaps + 1, limits.swaps.current + 10); render();
+      showMessage('+1 Swap (Lucky Charm)', 'var(--gold)'); break;
     case 'reset_stone':
-      swaps = limits.swaps.current;
-      discards = limits.discards.current;
-      render();
-      showMessage('Swaps & Discards restored!', 'var(--gold)');
-      break;
+      swaps = limits.swaps.current; discards = limits.discards.current;
+      render(); showMessage('Swaps & Discards restored!', 'var(--gold)'); break;
     case 'time_jar':
       roundSeconds = Math.min(roundSeconds + 16, limits.round_time.current + 60);
-      updateClockUI();
-      showMessage('+16s', 'var(--gold)');
-      break;
+      updateClockUI(); showMessage('+16s (Time Jar)', 'var(--gold)'); break;
     case 'glass_cannon':
       jokerNextHandDouble = true;
-      showMessage('Next hand scores double!', 'var(--gold)');
-      break;
+      showMessage('Next hand scores double!', 'var(--gold)'); break;
     case 'debt_collector':
       roundSeconds = Math.max(1, roundSeconds - 10);
-      coins += 20;
-      updateClockUI(); updateCoinsUI();
-      showMessage('-10s · +20 coins', 'var(--gold)');
-      break;
+      coins += 20; updateClockUI(); updateCoinsUI();
+      showMessage('-10s · +20 coins', 'var(--gold)'); break;
     case 'hourglass':
-      // Pause handled via existing pause mechanic — simplified: +8s
       roundSeconds = Math.min(roundSeconds + 8, limits.round_time.current + 60);
-      updateClockUI();
-      showMessage('+8s (Hourglass)', 'var(--gold)');
-      break;
+      updateClockUI(); showMessage('+8s (Hourglass)', 'var(--gold)'); break;
     case 'ember':
       { const bonus = acquiredTotems.length * 2;
         if (bonus > 0) { roundSeconds = Math.min(roundSeconds + bonus, limits.round_time.current + 60); updateClockUI(); showMessage(`+${bonus}s (Ember)`, 'var(--gold)'); } }
       break;
-    // Passive jokers (the_fool, wildcard, phantom_hand, double_down, wildfire_joker)
-    // are handled in scoring hooks — effects registered via flags or checked inline
-    default: break;
+    case 'double_down':
+      jokerNextHandDouble = true;
+      showMessage('Next run scores twice! (Double Down)', 'var(--gold)'); break;
+    default:
+      showMessage(`${JOKER_POOL.find(j=>j.id===id)?.name||'Joker'} activated!`, '#cc88ff'); break;
   }
 }
 
-function renderJokerList() {
-  const el = document.getElementById('joker-list');
-  if (!el) return;
-  if (acquiredJokers.length === 0) {
-    el.innerHTML = '<span style="font-size:9px;color:var(--cream-dim)">None yet</span>';
-    return;
-  }
-  el.innerHTML = acquiredJokers.map(j =>
-    `<div class="joker-chip" data-joker-id="${j.id}" tabindex="0" role="button" aria-label="${j.name}">${j.emoji}</div>`
-  ).join('');
-  el.querySelectorAll('.joker-chip').forEach(chip => {
-    const id = chip.dataset.jokerId;
-    chip.addEventListener('click', () => showJokerTooltip(id, chip));
-    chip.addEventListener('blur', hideJokerTooltip);
-    chip.addEventListener('keydown', e => { if (e.key === 'Enter') showJokerTooltip(id, chip); });
-  });
+function showJokerGridTooltip(r, c, card) {
+  hideJokerGridTooltip();
+  const def = JOKER_POOL.find(j => j.id === card.jokerId);
+  if (!def) return;
+  const gridEl = document.getElementById('grid');
+  const jokerEl = gridEl?.querySelector(`[data-card-id="${card._id}"]`);
+  if (!jokerEl) return;
+  const uses = card._usesLeft === 'infinite' ? '∞ uses' : `${card._usesLeft} use${card._usesLeft !== 1 ? 's' : ''} left`;
+  const tip = document.createElement('div');
+  tip.id = 'joker-grid-tooltip';
+  tip.className = 'joker-tooltip';
+  tip.innerHTML = `<div class="joker-tooltip-name">${def.emoji} ${def.name}</div><div class="joker-tooltip-desc">${def.desc}</div><div class="joker-tooltip-uses">${uses}</div><div class="joker-tooltip-hint">DOUBLE-TAP TO ACTIVATE</div>`;
+  tip.style.opacity = '0';
+  gridEl.appendChild(tip);
+  void tip.offsetWidth;
+  const gRect = gridEl.getBoundingClientRect();
+  const eRect = jokerEl.getBoundingClientRect();
+  const tipW = tip.offsetWidth, tipH = tip.offsetHeight;
+  tip.style.left = Math.max(2, eRect.left - gRect.left + eRect.width/2 - tipW/2) + 'px';
+  tip.style.top  = Math.max(2, eRect.top - gRect.top - tipH - 8) + 'px';
+  tip.style.opacity = '1';
 }
-
-function showJokerTooltip(id, chip) {
-  const j = acquiredJokers.find(j => j.id === id);
-  if (!j) return;
-  const tt = document.getElementById('joker-tooltip');
-  const uses = j.usesLeft === 'infinite' ? '∞ uses' : `${j.usesLeft} use${j.usesLeft !== 1 ? 's' : ''} left`;
-  tt.innerHTML = `<div class="joker-tooltip-name">${j.emoji} ${j.name}</div><div class="joker-tooltip-desc">${j.desc}</div><div class="joker-tooltip-uses">${uses}</div>`;
-  tt.dataset.jokerId = id;
-  const r = chip.getBoundingClientRect();
-  tt.style.left = Math.min(r.left, window.innerWidth - 220) + 'px';
-  tt.style.top  = (r.bottom + 6) + 'px';
-  tt.classList.add('show');
+function hideJokerGridTooltip() {
+  document.getElementById('joker-grid-tooltip')?.remove();
 }
-function hideJokerTooltip() {
-  const tt = document.getElementById('joker-tooltip');
-  if (tt) { tt.classList.remove('show'); tt.dataset.jokerId = ''; }
-}
-document.addEventListener('click', e => {
-  if (!e.target.closest('.joker-chip') && !e.target.closest('#joker-tooltip')) hideJokerTooltip();
-});
 
 // ══════════════════════════════════════════════
 // EVENT SYSTEM
@@ -8344,7 +8428,7 @@ function makeChoiceEl(opts) {
 function confluencePoolForTheme(theme) {
   const ownedBC     = new Set((acquiredBonuses  || []).map(b => b.id));
   const ownedTotems = new Set((acquiredTotems   || []).map(t => t.id));
-  const ownedJokers = new Set((acquiredJokers   || []).map(j => j.id));
+  const ownedJokers = grantedJokerIds;
   const items = [];
   BONUS_POOL.filter(b => !ownedBC.has(b.id) && b.tags?.some(t => theme.bcTags.includes(t)))
     .forEach(b => items.push({ type:'bc', icon:'★', name:b.name, desc:b.desc, rarity:b.tier, payload:b }));
@@ -8425,10 +8509,7 @@ function confirmConfluence() {
   const item = eventState.selectedItem;
   if (!item) { closeEvent(); return; }
   if (item.type === 'bc') {
-    acquiredBonuses.push({ ...item.payload });
-    selectBonus(item.payload, false);
-    showMessage(`+ ${item.name}`, 'var(--gold)');
-    render();
+    injectBCAfterReward(item.payload);
   } else if (item.type === 'totem') {
     acquiredTotems.push({ ...item.payload });
     renderTotemList?.();
@@ -8451,7 +8532,7 @@ function buildCrossroadsTrades() {
     if (legends.length > 0) {
       const pick = legends[Math.floor(Math.random()*legends.length)];
       trades.push({ icon:'💰', name:`Pay 12 coins: ${pick.name}`, desc:`Lose 12 coins. Gain the legendary BC "${pick.name}". ${pick.desc}`, rarity:'legendary',
-        apply: () => { coins -= 12; acquiredBonuses.push({...pick}); selectBonus(pick,false); showMessage(`+ ${pick.name}`, 'var(--gold)'); render(); updateCoinsUI(); } });
+        apply: () => { coins -= 12; updateCoinsUI(); injectBCAfterReward(pick); } });
     }
   }
   // Trade 2: sacrifice a totem for 2 BCs
@@ -8475,24 +8556,26 @@ function buildCrossroadsTrades() {
         apply: () => {
           limits.discards.current = Math.max(1, limits.discards.current - 1);
           discards = Math.min(discards, limits.discards.current);
-          acquiredBonuses.push({...pick}); selectBonus(pick,false);
-          showMessage(`+ ${pick.name} · −1 Discard`, 'var(--gold)'); render();
+          injectBCAfterReward(pick);
+          showMessage(`+ ${pick.name} · −1 Discard`, 'var(--gold)');
         }
       });
     }
   }
-  // Trade 4: sacrifice a joker for a higher-rarity joker
-  if (acquiredJokers.length > 0) {
-    const j = acquiredJokers[Math.floor(Math.random()*acquiredJokers.length)];
+  // Trade 4: sacrifice a joker (on grid) for a higher-rarity joker
+  const gridJokers = [];
+  for (let r=0;r<gridRows;r++) for (let c=0;c<gridCols;c++) if (gridData[r]?.[c]?._isJoker) gridJokers.push({r,c,card:gridData[r][c]});
+  if (gridJokers.length > 0) {
+    const entry = gridJokers[Math.floor(Math.random()*gridJokers.length)];
+    const j = JOKER_POOL.find(x=>x.id===entry.card.jokerId) || { rarity:'common', name:'Joker' };
     const rarityUp = { common:'rare', rare:'legendary' };
     const nextRarity = rarityUp[j.rarity];
     if (nextRarity) {
-      const ownedJ = new Set(acquiredJokers.map(x=>x.id));
-      const eligible = JOKER_POOL.filter(x=>!ownedJ.has(x.id) && x.rarity===nextRarity);
+      const eligible = JOKER_POOL.filter(x=>!grantedJokerIds.has(x.id) && x.rarity===nextRarity);
       if (eligible.length > 0) {
         const pick = eligible[Math.floor(Math.random()*eligible.length)];
         trades.push({ icon:'🔁', name:`Upgrade Joker: ${pick.emoji} ${pick.name}`, desc:`Lose "${j.name}". Gain the ${nextRarity} joker "${pick.name}". ${pick.desc}`, rarity:nextRarity,
-          apply: () => { acquiredJokers = acquiredJokers.filter(x=>x.id!==j.id); grantJoker(pick); showMessage(`Joker upgraded!`, 'var(--gold)'); }
+          apply: () => { gridData[entry.r][entry.c]=null; grantedJokerIds.delete(j.id); grantJoker(pick); showMessage(`Joker upgraded!`, 'var(--gold)'); render(); }
         });
       }
     }
@@ -8553,14 +8636,14 @@ function buildDoorPrize(tier) {
   const ownedT  = new Set((acquiredTotems ||[]).map(t=>t.id));
   if (tier === 'legendary') {
     const pool = BONUS_POOL.filter(b=>!ownedBC.has(b.id) && b.tier==='legendary');
-    if (pool.length>0) { const p=pool[Math.floor(Math.random()*pool.length)]; return { icon:'★', name:p.name, desc:p.desc, cls:'revealed-good', apply:()=>{acquiredBonuses.push({...p});selectBonus(p,false);showMessage(`+ ${p.name}`,'var(--gold)');render();} }; }
+    if (pool.length>0) { const p=pool[Math.floor(Math.random()*pool.length)]; return { icon:'★', name:p.name, desc:p.desc, cls:'revealed-good', apply:()=>injectBCAfterReward(p) }; }
     // fallback: totem
     const tp = TOTEM_POOL.filter(t=>!ownedT.has(t.id));
     if (tp.length>0) { const p=tp[Math.floor(Math.random()*tp.length)]; return { icon:p.emoji, name:p.name, desc:p.desc, cls:'revealed-good', apply:()=>{acquiredTotems.push({...p});renderTotemList?.();showMessage(`+ ${p.name}`,'var(--gold)');} }; }
   }
   if (tier === 'good') {
     const pool = BONUS_POOL.filter(b=>!ownedBC.has(b.id) && (b.tier==='rare'||b.tier==='common'));
-    if (pool.length>0) { const p=pool[Math.floor(Math.random()*pool.length)]; return { icon:'★', name:p.name, desc:p.desc, cls:'revealed-good', apply:()=>{acquiredBonuses.push({...p});selectBonus(p,false);showMessage(`+ ${p.name}`,'var(--gold)');render();} }; }
+    if (pool.length>0) { const p=pool[Math.floor(Math.random()*pool.length)]; return { icon:'★', name:p.name, desc:p.desc, cls:'revealed-good', apply:()=>injectBCAfterReward(p) }; }
   }
   if (tier === 'bad') {
     const bads = [
@@ -8672,10 +8755,9 @@ function renderMerchant() {
   // 2 legendary/rare BCs + 1 joker or totem — all free (it's a gift event, not a shop)
   const ownedBC     = new Set((acquiredBonuses||[]).map(b=>b.id));
   const ownedTotems = new Set((acquiredTotems ||[]).map(t=>t.id));
-  const ownedJokers = new Set((acquiredJokers ||[]).map(j=>j.id));
   const legends = BONUS_POOL.filter(b=>!ownedBC.has(b.id) && (b.tier==='legendary'||b.tier==='rare'));
   const totems  = TOTEM_POOL.filter(t=>!ownedTotems.has(t.id));
-  const jokers  = JOKER_POOL.filter(j=>!ownedJokers.has(j.id) && (j.rarity==='rare'||j.rarity==='legendary'));
+  const jokers  = JOKER_POOL.filter(j=>!grantedJokerIds.has(j.id) && (j.rarity==='rare'||j.rarity==='legendary'));
   const sh = a => { const r=[...a]; for(let i=r.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[r[i],r[j]]=[r[j],r[i]];} return r; };
   const items = [];
   sh(legends).slice(0,2).forEach(b => items.push({ type:'bc', icon:'★', rarity:b.tier, name:b.name, desc:b.desc, payload:b }));
@@ -8709,7 +8791,7 @@ function renderMerchant() {
 function confirmMerchant() {
   const item = eventState.merchantPick;
   if (!item) { closeEvent(); return; }
-  if (item.type === 'bc') { acquiredBonuses.push({...item.payload}); selectBonus(item.payload,false); showMessage(`+ ${item.name}`,'var(--gold)'); render(); }
+  if (item.type === 'bc') { injectBCAfterReward(item.payload); }
   else if (item.type === 'totem') { acquiredTotems.push({...item.payload}); renderTotemList?.(); showMessage(`+ ${item.name}`,'var(--gold)'); }
   else if (item.type === 'joker') { grantJoker(item.payload); }
   closeEvent();
@@ -8939,10 +9021,7 @@ function renderTwinPath() {
 
 function confirmTwinPath() {
   if (eventState.twinAccepted) {
-    (eventState.twinBCs || []).forEach(bc => {
-      acquiredBonuses.push({...bc}); selectBonus(bc,false); showMessage(`+ ${bc.name}`,'var(--gold)');
-    });
-    render();
+    (eventState.twinBCs || []).forEach(bc => injectBCAfterReward(bc));
     eventState.shadow.apply();
   }
   closeEvent();
@@ -11056,10 +11135,9 @@ function startGame() {
   handsPendingUnlock = [];
   acquiredBonuses = [];
   acquiredTotems  = [];
-  acquiredJokers  = [];
+  grantedJokerIds = new Set();
   altarEffects    = [];
   jokerNextHandDouble = false;
-  renderJokerList();
   // Reset all counters
   Object.keys(C).forEach(k => C[k] = (typeof C[k] === 'boolean' ? false : 0));
   permPips = {};
@@ -12114,11 +12192,11 @@ function devRenderJokers() {
   const list = document.getElementById('dev-joker-list');
   if (!list) return;
   list.innerHTML = JOKER_POOL.map(j => {
-    const owned = acquiredJokers.some(x=>x.id===j.id);
+    const owned = grantedJokerIds.has(j.id);
     return `<div class="dev-bonus-item">
       <span class="dev-bonus-name">${j.emoji} ${j.name} <span style="color:var(--gold-dim);font-size:9px">${j.rarity}</span>${owned?' ✓':''}</span>
       <button class="dev-bonus-add" onclick="devAddJoker('${j.id}')" ${owned?'disabled style="opacity:0.5"':''}>
-        ${owned?'Owned':'+ Add'}
+        ${owned?'Granted':'+ Add'}
       </button>
     </div>`;
   }).join('');
