@@ -3590,7 +3590,7 @@ let coins = 0;
 // ══════════════════════════════════════════════
 // BOSS SYSTEM (v1)
 // ══════════════════════════════════════════════
-const BOSS_LOOP_DURATION  = 360; // boss every 6 minutes
+const BOSS_LOOP_DURATION  = 360; // boss every 6 minutes (used in timer-based modes only)
 const BOSS_WINDOW_DURATION = 180; // 3 minutes to survive
 const BOSS_BLOCKED_CELLS_MIN = 3;
 const BOSS_BLOCKED_CELLS_MAX = 5;
@@ -3601,7 +3601,13 @@ let bossSecondsLeft = 0;
 let bossInterval  = null;
 let blockedCells  = new Set(); // keys like "r-c"
 let bossNumber    = 0;
-let savedRoundSeconds = 0; // round timer value at boss start, to restore after
+let savedRoundSeconds = 0; // round timer value at boss start
+
+// ── Node-based progression (Normal Mode) ──
+// Each act = 5 normal events + 1 forced boss = 6 nodes. Three acts = 18 nodes total.
+let actNumber         = 1;     // current act (1–3)
+let nodeInAct         = 0;     // events completed in current act (0–4 normal; at 5 → boss)
+let forceBossNextRound = false; // triggers boss after next round deal animation
 
 // Permanent pip bonuses per card key "rank-suit"
 let permPips = {};   // { "A-♠": 3, ... }
@@ -6826,21 +6832,22 @@ function startTimers() {
     const m = Math.floor(gameSeconds/60);
     const s = gameSeconds%60;
     document.getElementById('game-timer').textContent = `${m}:${s.toString().padStart(2,'0')}`;
-    // Trigger shop every 2 minutes — but defer during boss
-    if (gameSeconds === nextShopTime) {
-      if (bossActive) {
-        nextShopTime -= 1; // retry next second
-      } else {
-        nextShopTime -= 120;
-        triggerShop();
+    // Timer-based progression — skipped in Normal mode (node-based instead)
+    if (ACTIVE_MODE.id !== 'normal') {
+      if (gameSeconds === nextShopTime) {
+        if (bossActive) {
+          nextShopTime -= 1;
+        } else {
+          nextShopTime -= 120;
+          triggerShop();
+        }
       }
+      if (gameSeconds === nextBossTime && !bossActive) {
+        nextBossTime -= BOSS_LOOP_DURATION;
+        triggerBoss();
+      }
+      if (gameSeconds <= 0) onGameEnd(false);
     }
-    // Trigger boss every 6 minutes
-    if (gameSeconds === nextBossTime && !bossActive) {
-      nextBossTime -= BOSS_LOOP_DURATION;
-      triggerBoss();
-    }
-    if (gameSeconds <= 0) onGameEnd(false);
   }, 1000);
 }
 
@@ -7335,12 +7342,17 @@ function endBoss(success) {
   setTimeout(() => resultEl.classList.remove('show'), 1500);
 
   if (success) {
-    // Restore round timer
-    roundSeconds = savedRoundSeconds;
-    updateClockUI();
     render();
-    // Show reward grid (boss context — closing it resumes the current round)
-    setTimeout(() => { rewardGridContext = 'boss'; openRewardGrid(); }, 1000);
+    if (ACTIVE_MODE.id === 'normal') {
+      // Node-based: post-boss reward grid is an interlude that starts the next act.
+      // nodeInAct stays at 5 so closeRewardGrid knows to reset it and advance actNumber.
+      setTimeout(() => { rewardGridContext = 'interlude'; openRewardGrid(); }, 1000);
+    } else {
+      // Timer-based modes: restore round timer and resume the interrupted round
+      roundSeconds = savedRoundSeconds;
+      updateClockUI();
+      setTimeout(() => { rewardGridContext = 'boss'; openRewardGrid(); }, 1000);
+    }
   } else {
     setTimeout(() => onGameEnd(true), 1200);
   }
@@ -7379,24 +7391,29 @@ function generateRewardContent() {
     { icon: '✖', label: 'Lose Random BC',tier: 'penalty', apply: applyRewardLoseBC },
     { icon: '☁', label: '-5s Round',     tier: 'penalty', apply: () => { roundSeconds = Math.max(1, roundSeconds - 5); updateClockUI(); } },
   ];
-  const destOptions = [
-    { icon: '🏪', label: 'Next: Shop',      tier: 'dest', apply: () => { pendingEventOverride = 'shop'; } },
-    { icon: '⚔', label: 'Next: Boss Rush',  tier: 'dest', apply: () => { pendingEventOverride = 'boss_rush'; } },
-    { icon: '💀', label: 'Next: Hard Boss',  tier: 'dest', apply: () => { pendingEventOverride = 'hard_boss'; } },
+  // Destination 1: always a Normal Round (safe path)
+  const normalRoundDest = { icon: '▶', label: 'Normal Round', tier: 'dest',
+    apply: () => { pendingEventOverride = 'normal'; } };
+  // Destination 2: random event (shop, special event, etc.)
+  const randomDestOptions = [
+    { icon: '🏪', label: 'Next: Shop',    tier: 'dest', apply: () => { pendingEventOverride = 'shop'; } },
+    { icon: '🎲', label: 'Next: Event',   tier: 'dest', apply: () => { pendingEventOverride = 'event'; } },
+    { icon: '🏪', label: 'Next: Shop',    tier: 'dest', apply: () => { pendingEventOverride = 'shop'; } }, // weighted 2×
   ];
 
   function pickRand(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 
-  // Distribution: ~55% buffs, ~30% debuffs, 1 dest (replacing one debuff slot if grid >= 3x3)
-  // Scale with grid size
-  const numDest   = 1;
-  const numDebuff = Math.max(1, Math.floor(total * 0.28));
+  // Distribution: 2 destinations always present; rest split ~60% buffs, ~20% debuffs
+  const numDest   = 2;
+  const numDebuff = Math.max(1, Math.floor(total * 0.20));
   const numBuff   = total - numDest - numDebuff;
 
   const pool = [];
   for (let i = 0; i < numBuff;   i++) pool.push({ kind: 'buff',   payload: pickRand(buffs) });
   for (let i = 0; i < numDebuff; i++) pool.push({ kind: 'debuff', payload: pickRand(debuffs) });
-  for (let i = 0; i < numDest;   i++) pool.push({ kind: 'dest',   payload: pickRand(destOptions) });
+  // Always: one Normal Round dest, one random dest
+  pool.push({ kind: 'dest', payload: normalRoundDest });
+  pool.push({ kind: 'dest', payload: pickRand(randomDestOptions) });
 
   // Shuffle
   for (let i = pool.length - 1; i > 0; i--) {
@@ -7607,12 +7624,28 @@ function closeRewardGrid() {
   rewardSelected  = new Set();
   rewardCells     = [];
   gameTimerPaused = false;
+
   if (rewardGridContext === 'interlude') {
-    // Reward grid replaced the BC choice — continue to the new round setup
     skipBCChoiceOverlay = true;
+
+    if (ACTIVE_MODE.id === 'normal') {
+      if (nodeInAct === 5) {
+        // This was the post-boss reward grid → transition to next act
+        nodeInAct = 0;
+        actNumber++;
+        // TODO: if actNumber > 3 → win game
+      } else {
+        nodeInAct++;
+        if (nodeInAct === 5) {
+          // Five events complete — next node is the forced boss
+          forceBossNextRound = true;
+        }
+      }
+    }
+
     drainLevelUpQueue();
   } else {
-    // Boss fight: reward grid was mid-round, resume the current round
+    // Boss context (non-Normal modes): reward grid was mid-round, resume it
     startRoundTimer();
     render();
   }
@@ -8495,9 +8528,14 @@ async function showLevelUpScreen() {
     showNextGoalFlash().then(() => show321Countdown()).then(() => {
       gameTimerPaused = false;
       sfxRoundStart();
-      startRoundTimer();
       updateClockUI();
       render();
+      if (forceBossNextRound) {
+        forceBossNextRound = false;
+        triggerBoss(); // boss takes over timing — do NOT call startRoundTimer()
+      } else {
+        startRoundTimer();
+      }
     });
   } else {
     // ── Show target slot glow on grid for each new BC ──
@@ -9788,21 +9826,22 @@ function resumeGame() {
     const m = Math.floor(gameSeconds/60);
     const s = gameSeconds%60;
     document.getElementById('game-timer').textContent = `${m}:${s.toString().padStart(2,'0')}`;
-    // Shop trigger — but defer during boss
-    if (gameSeconds === nextShopTime) {
-      if (bossActive) {
-        // Defer: re-check after boss ends
-        nextShopTime -= 1; // skip this tick, retry next second
-      } else {
-        nextShopTime -= 120;
-        triggerShop();
+    // Timer-based progression — skipped in Normal mode (node-based instead)
+    if (ACTIVE_MODE.id !== 'normal') {
+      if (gameSeconds === nextShopTime) {
+        if (bossActive) {
+          nextShopTime -= 1;
+        } else {
+          nextShopTime -= 120;
+          triggerShop();
+        }
       }
+      if (gameSeconds === nextBossTime && !bossActive) {
+        nextBossTime -= BOSS_LOOP_DURATION;
+        triggerBoss();
+      }
+      if (gameSeconds <= 0) onGameEnd(false);
     }
-    if (gameSeconds === nextBossTime && !bossActive) {
-      nextBossTime -= BOSS_LOOP_DURATION;
-      triggerBoss();
-    }
-    if (gameSeconds <= 0) onGameEnd(false);
   }, 1000);
 }
 
@@ -9937,6 +9976,9 @@ function startGame() {
   rewardSelected = new Set();
   rewardCells = [];
   rewardConfirmed = false;
+  actNumber = 1;
+  nodeInAct = 0;
+  forceBossNextRound = false;
   // Clear any leftover card elements from previous game
   document.getElementById('grid').querySelectorAll('.card').forEach(el => el.remove());
   roundGoal = BASE_GOAL;
