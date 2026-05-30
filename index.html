@@ -2469,6 +2469,7 @@
     </div>
 
     <button id="menu-start-btn" onclick="startFromMenu()">START RUN</button>
+    <div style="margin-top:12px;font-family:monospace;font-size:10px;color:rgba(201,168,76,0.35);text-align:center;letter-spacing:1px;" id="menu-build-stamp"></div>
   </div>
 </div>
 
@@ -2629,6 +2630,7 @@
 <div id="dev-panel" style="display:none;position:fixed;inset:0;z-index:499;overflow-y:auto;background:rgba(0,0,0,0.92);padding:16px;flex-direction:column;gap:12px;">
   <div style="display:flex;justify-content:space-between;align-items:center;">
     <span style="font-family:'Cinzel',serif;font-size:12px;letter-spacing:3px;color:var(--gold);">DEV MODE</span>
+    <span id="build-stamp" style="font-family:monospace;font-size:10px;color:rgba(201,168,76,0.5);letter-spacing:1px;"></span>
     <button onclick="toggleDevPanel()" style="font-family:'Cinzel',serif;font-size:10px;background:none;border:1px solid var(--border);color:var(--cream);padding:4px 10px;border-radius:4px;cursor:pointer;">CLOSE</button>
   </div>
 
@@ -2978,6 +2980,8 @@
 </div>
 
 <script>
+const BUILD = '2026-05-30 · r10';
+
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
@@ -11063,6 +11067,12 @@ initDevMode();
   window.addEventListener('resize', update);
   window.addEventListener('orientationchange', update);
   update();
+})();
+
+// Stamp build string into both visible locations
+(function() {
+  const els = ['build-stamp', 'menu-build-stamp'];
+  els.forEach(id => { const el = document.getElementById(id); if (el) el.textContent = BUILD; });
 })();
 </script>
 </div><!-- /#stage -->
