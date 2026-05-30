@@ -6866,8 +6866,8 @@ function updateClockUI() {
 }
 
 function assignBonusCard() {
-  const r = Math.floor(Math.random()*5);
-  const c = Math.floor(Math.random()*5);
+  const r = Math.floor(Math.random() * gridRows);
+  const c = Math.floor(Math.random() * gridCols);
   bonusCardPos = [r,c];
   render();
 }
@@ -7991,13 +7991,13 @@ async function showLevelUpScreen_fallOnly() {
     }
   }
 
-  for (let r = 4; r >= 0; r--) {
+  for (let r = gridRows - 1; r >= 0; r--) {
     for (let c = 0; c < gridCols; c++) {
       const card = gridData[r][c];
       if (!card) continue;
       const el = gridEl.querySelector(`[data-card-id="${card._id}"]`);
       if (!el) continue;
-      const delay = (4 - r) * 110 + c * 30;
+      const delay = (gridRows - 1 - r) * 110 + c * 30;
       const fallDist = gridBottom - parseFloat(el.style.top || cellTop(r));
       fallPromises.push(new Promise(res => {
         setTimeout(() => {
@@ -8442,7 +8442,7 @@ function triggerLevelUp() {
   // Sapling bonus — give perm pips to 3 random cards
   if (hasBonus('sapling')) {
     for (let i = 0; i < 3; i++) {
-      const r = Math.floor(Math.random()*5), c = Math.floor(Math.random()*5);
+      const r = Math.floor(Math.random() * gridRows), c = Math.floor(Math.random() * gridCols);
       const card = gridData[r]?.[c];
       if (card && !card._isBC && card.rank) {
         const k = cardKey(card.rank, card.suit);
