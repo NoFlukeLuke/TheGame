@@ -1854,7 +1854,8 @@
   #end-overlay.show { display: flex; }
   #end-title { font-family: 'Cinzel', serif; font-size: 42px; font-weight: 900; letter-spacing: 8px; }
   #end-title.gameover { color: var(--red); }
-  #end-title.timeup { color: var(--gold); }
+  #end-title.timeup   { color: var(--gold); }
+  #end-title.victory  { color: #88ffbb; text-shadow: 0 0 20px rgba(136,255,187,0.6); }
   #end-stats { text-align: center; font-family: 'Crimson Pro', serif; font-size: 18px; line-height: 2.2; color: var(--cream); }
   #end-stats strong { color: var(--gold); font-family: 'Cinzel', serif; }
   .end-btn {
@@ -2483,8 +2484,8 @@
 
 <!-- TOP BAR -->
 <div id="top-bar">
-  <div class="top-stat">
-    <span class="top-label">Game Timer</span>
+  <div id="game-timer-stat" class="top-stat">
+    <span class="top-label" id="game-timer-label">Game Timer</span>
     <span class="top-value gold" id="game-timer">20:00</span>
   </div>
   <div class="top-stat">
@@ -6829,11 +6830,11 @@ function startTimers() {
   gameInterval = setInterval(() => {
     if (gameTimerPaused) return;
     gameSeconds--;
-    const m = Math.floor(gameSeconds/60);
-    const s = gameSeconds%60;
-    document.getElementById('game-timer').textContent = `${m}:${s.toString().padStart(2,'0')}`;
-    // Timer-based progression — skipped in Normal mode (node-based instead)
     if (ACTIVE_MODE.id !== 'normal') {
+      const m = Math.floor(gameSeconds/60);
+      const s = gameSeconds%60;
+      document.getElementById('game-timer').textContent = `${m}:${s.toString().padStart(2,'0')}`;
+      // Timer-based progression
       if (gameSeconds === nextShopTime) {
         if (bossActive) {
           nextShopTime -= 1;
@@ -7273,6 +7274,7 @@ function triggerBoss(presetOverride = null) {
   // Render
   renderBlockedCells();
   render();
+  updateActProgressUI();
 
   // Tick
   bossInterval = setInterval(() => {
@@ -7332,6 +7334,7 @@ function endBoss(success) {
   document.getElementById('grid').classList.remove('boss-active');
   document.getElementById('clock').classList.remove('boss-mode');
   document.getElementById('clock-bar').classList.remove('boss-mode');
+  updateActProgressUI();
 
   // Result flash
   const resultEl = document.getElementById('boss-result');
@@ -7630,22 +7633,34 @@ function closeRewardGrid() {
 
     if (ACTIVE_MODE.id === 'normal') {
       if (nodeInAct === 5) {
-        // This was the post-boss reward grid → transition to next act
+        // Post-boss reward grid — transition to next act
         nodeInAct = 0;
         actNumber++;
-        // TODO: if actNumber > 3 → win game
+        updateActProgressUI();
+        if (actNumber > 3) {
+          onGameWin();
+          return;
+        }
       } else {
         nodeInAct++;
+        updateActProgressUI();
         if (nodeInAct === 5) {
-          // Five events complete — next node is the forced boss
           forceBossNextRound = true;
         }
       }
     }
 
-    drainLevelUpQueue();
+    // Route based on destination tile the player selected (if any)
+    const override = pendingEventOverride;
+    pendingEventOverride = null;
+    if (override === 'shop') {
+      shopFromNodeFlow = true;
+      triggerShop(); // shop close → drainLevelUpQueue (wired in shop-close handler)
+    } else {
+      drainLevelUpQueue();
+    }
   } else {
-    // Boss context (non-Normal modes): reward grid was mid-round, resume it
+    // Timer-based modes: reward grid was mid-round, resume it
     startRoundTimer();
     render();
   }
@@ -7659,8 +7674,8 @@ function closeRewardGrid() {
   if (clear)   clear.addEventListener('click', clearRewardSelection);
 })();
 
-// Placeholder — wired up when destination events are implemented
-let pendingEventOverride = null;
+let pendingEventOverride = null; // 'normal' | 'shop' | 'event' — set by reward grid dest tiles
+let shopFromNodeFlow    = false;  // true when shop was opened mid-interlude; close → drainLevelUpQueue
 
 // ── LIMIT BREAK EVENT ──
 // Offers 3 curated limits (2 known + 1 blind). Player breaks one for free.
@@ -8940,6 +8955,47 @@ function selectBonus(bonus, fromBCFlow = false) {
 // ══════════════════════════════════════════════
 // GAME END
 // ══════════════════════════════════════════════
+function updateActProgressUI() {
+  const labelEl = document.getElementById('game-timer-label');
+  const valEl   = document.getElementById('game-timer');
+  if (!labelEl || !valEl) return;
+  if (ACTIVE_MODE.id === 'normal') {
+    labelEl.textContent = 'Progress';
+    if (bossActive) {
+      valEl.textContent  = `ACT ${actNumber} · BOSS`;
+      valEl.style.color  = '#ff6b6b';
+    } else {
+      valEl.textContent  = `ACT ${actNumber} · ${nodeInAct}/5`;
+      valEl.style.color  = '';
+    }
+  } else {
+    labelEl.textContent = 'Game Timer';
+    valEl.style.color   = '';
+    // Timer loop keeps the value up to date in non-Normal modes
+  }
+}
+
+function onGameWin() {
+  stopTimers();
+  const overlay = document.getElementById('end-overlay');
+  const title   = document.getElementById('end-title');
+  title.textContent = 'VICTORY';
+  title.className   = 'victory';
+
+  const secondsPlayed = Math.floor((Date.now() - gameStartTime) / 1000);
+  const m = Math.floor(secondsPlayed / 60);
+  const s = secondsPlayed % 60;
+  document.getElementById('end-stats').innerHTML = `
+    Run Complete: <strong>3 Acts</strong><br>
+    Total Score: <strong>${score.toLocaleString()}</strong><br>
+    Time Played: <strong>${m}:${s.toString().padStart(2,'0')}</strong><br>
+    Levels Cleared: <strong>${level}</strong><br>
+    Hands Played: <strong>${handsPlayed}</strong><br>
+    Best Hand: <strong>${highestHandName ? `${highestHandName} (${highestHandScore.toLocaleString()})` : '—'}</strong>
+  `;
+  overlay.classList.add('show');
+}
+
 function onGameEnd(gameover) {
   stopTimers();
   const overlay = document.getElementById('end-overlay');
@@ -9411,7 +9467,12 @@ document.getElementById('shop-close').addEventListener('click', () => {
   closeSvcPicker();
   shopCards = [];
   gameTimerPaused = false;
-  startRoundTimer();
+  if (shopFromNodeFlow) {
+    shopFromNodeFlow = false;
+    drainLevelUpQueue(); // continue to next round (node-based flow)
+  } else {
+    startRoundTimer();
+  }
 });
 
 // ══════════════════════════════════════════════
@@ -9819,15 +9880,14 @@ function resumeGame() {
   } else {
     startRoundTimer();
   }
-  // Restart game timer — full version with boss & shop triggers
+  // Restart game timer
   gameInterval = setInterval(() => {
     if (gameTimerPaused) return;
     gameSeconds--;
-    const m = Math.floor(gameSeconds/60);
-    const s = gameSeconds%60;
-    document.getElementById('game-timer').textContent = `${m}:${s.toString().padStart(2,'0')}`;
-    // Timer-based progression — skipped in Normal mode (node-based instead)
     if (ACTIVE_MODE.id !== 'normal') {
+      const m = Math.floor(gameSeconds/60);
+      const s = gameSeconds%60;
+      document.getElementById('game-timer').textContent = `${m}:${s.toString().padStart(2,'0')}`;
       if (gameSeconds === nextShopTime) {
         if (bossActive) {
           nextShopTime -= 1;
@@ -9979,6 +10039,8 @@ function startGame() {
   actNumber = 1;
   nodeInAct = 0;
   forceBossNextRound = false;
+  shopFromNodeFlow = false;
+  updateActProgressUI();
   // Clear any leftover card elements from previous game
   document.getElementById('grid').querySelectorAll('.card').forEach(el => el.remove());
   roundGoal = BASE_GOAL;
