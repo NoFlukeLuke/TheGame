@@ -2119,7 +2119,7 @@
     position: relative;
     border-radius: 6px;
     border: 2px solid #2a2218;
-    background: linear-gradient(180deg, #1a1410, #0e0a06);
+    background: linear-gradient(160deg, #1a1410, #0e0a06);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -2131,12 +2131,13 @@
     color: var(--cream);
     font-family: 'Cinzel', serif;
     user-select: none;
-    width: 80px;
-    height: 80px;
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
   }
-  .reward-cell.buff      { border-color: var(--gold); }
-  .reward-cell.debuff    { border-color: var(--red); }
-  .reward-cell.dest      { border-color: #8844cc; border-width: 2px; }
+  .reward-cell.buff      { border-color: var(--gold);  background: linear-gradient(160deg, #1e1a0e, #0e0a06); }
+  .reward-cell.debuff    { border-color: var(--red);   background: linear-gradient(160deg, #1e0b0b, #0e0606); }
+  .reward-cell.dest      { border-color: #8844cc; border-width: 2px; background: linear-gradient(160deg, #160d22, #0a0612); }
   .reward-cell.dest .reward-tier { color: #bb88ff; }
   .reward-cell.selected  {
     box-shadow: 0 0 16px rgba(232,184,75,0.7), inset 0 0 12px rgba(232,184,75,0.3);
@@ -2994,7 +2995,7 @@
 </div>
 
 <script>
-const BUILD = '2026-05-30 · r14';
+const BUILD = '2026-05-30 · r15';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
