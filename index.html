@@ -1100,6 +1100,8 @@
     background: #f8f0ff;
   }
   .card.bonus-card { border-color: #e8b84b !important; box-shadow: 0 0 8px rgba(232,184,75,0.6); }
+  .card.exalted   { border-color: #ffd700 !important; box-shadow: 0 0 10px 2px rgba(255,215,0,0.7), inset 0 0 8px rgba(255,215,0,0.25); }
+  .card.corrupted { border-color: #8844cc !important; box-shadow: 0 0 10px 2px rgba(136,68,204,0.7), inset 0 0 8px rgba(136,68,204,0.3); }
 
   /* ── Challenge card ── */
   @keyframes challenge-pulse {
@@ -3127,7 +3129,7 @@
 </div>
 
 <script>
-const BUILD = '2026-05-30 · r17';
+const BUILD = '2026-05-30 · r18';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -3706,24 +3708,33 @@ const TOTEM_POOL = [
   { id: 'lucky_seven',      emoji: '🎯', name: 'Lucky Seven',    desc: 'Every 7th hand played gives +1 swap.' },
 ];
 // ── JOKER POOL ──
-// Jokers are one-shot or limited-use cards with conditional activations.
-// activationType: 'manual_discard' | 'on_score' | 'passive' | 'round_start' | 'round_end'
-// durability: number of uses, or 'infinite'
-// handReq: optional scoring condition ('4card','run','flush','straight','any')
-// tags: array of keyword strings for Confluence event theming
+// Jokers live in the deck as special cards (_isJoker:true). They fall onto the grid,
+// can be swapped/discarded/selected/played like normal cards.
+// activation describes HOW the joker's effect fires:
+//   'wildcard'    — participates in hand detection (rank/suit flexible)
+//   'on_play'     — fires when the joker is part of a played hand
+//   'on_discard'  — fires when the joker is discarded
+//   'on_swap'     — fires when the joker is moved by a swap (either direction)
+//   'on_draw'     — fires when the joker is dealt onto the grid
+//   'round_start' — fires at the start of each round while on the grid
+//   'round_end'   — fires at round end / interest calc while on the grid
+//   'passive'     — effect always active while on the grid
+//   'double_tap'  — fires when the joker is double-tapped
+// wild: 'rank' | 'suit' | 'both' (only for activation:'wildcard')
+// durability: number of charges (per GAME), or 'infinite'
+// defaultRank/defaultSuit: optional fixed identity (most jokers leave these null)
+// TBD: tags marked needsResolve have simplified placeholder behavior pending design
 const JOKER_POOL = [
-  { id:'time_jar',      name:'Time Jar',       emoji:'⌛', rarity:'common',    activationType:'manual_discard', handReq:'4card',   durability:1,         tags:['time'],           desc:'Discard with a valid 4-card hand: +16s this round.' },
-  { id:'glass_cannon',  name:'Glass Cannon',   emoji:'🔮', rarity:'rare',      activationType:'manual_discard', handReq:null,      durability:1,         tags:['scoring'],        desc:'Discard: your next hand scores double.' },
-  { id:'lucky_charm',   name:'Lucky Charm',    emoji:'🍀', rarity:'common',    activationType:'round_start',    handReq:null,      durability:5,         tags:['resource'],       desc:'Start of each round: +1 swap. (5 uses)' },
-  { id:'reset_stone',   name:'Reset Stone',    emoji:'🪨', rarity:'common',    activationType:'manual_discard', handReq:null,      durability:1,         tags:['resource'],       desc:'Discard: refill swaps and discards to max.' },
-  { id:'double_down',   name:'Double Down',    emoji:'🎲', rarity:'rare',      activationType:'manual_discard', handReq:'run',     durability:1,         tags:['scoring','run'],  desc:'Discard with any run: that hand scores twice.' },
-  { id:'debt_collector',name:'Debt Collector', emoji:'💸', rarity:'rare',      activationType:'manual_discard', handReq:null,      durability:1,         tags:['coins'],          desc:'Discard: lose 10s of round time, gain 20 coins.' },
-  { id:'ember',         name:'Ember',          emoji:'🕯️', rarity:'common',    activationType:'round_start',    handReq:null,      durability:'infinite', tags:['time'],           desc:'Each round start: +2s per totem you own.' },
-  { id:'the_fool',      name:'The Fool',       emoji:'🃏', rarity:'legendary', activationType:'passive',        handReq:null,      durability:'infinite', tags:['scoring'],        desc:'Once per round, your lowest-scoring hand type acts as the tier above.' },
-  { id:'phantom_hand',  name:'Phantom Hand',   emoji:'👻', rarity:'rare',      activationType:'on_score',       handReq:'flush',   durability:3,         tags:['suit','scoring'], desc:'On scoring a Flush: +10 pips per card not in the hand. (3 uses)' },
-  { id:'wildcard',      name:'Wild Card',      emoji:'🌀', rarity:'legendary', activationType:'passive',        handReq:null,      durability:'infinite', tags:['suit'],           desc:'The lowest-ranked card in any scored hand counts as the most beneficial suit.' },
-  { id:'hourglass',     name:'Hourglass',      emoji:'⏳', rarity:'rare',      activationType:'manual_discard', handReq:null,      durability:1,         tags:['time'],           desc:'Discard: pause the round timer for 8 seconds.' },
-  { id:'wildfire_joker',name:'Wildfire',       emoji:'🔥', rarity:'legendary', activationType:'on_score',       handReq:'straight',durability:2,         tags:['run','scoring'],  desc:'On scoring a Straight: the next hand of any kind scores as a Straight Flush. (2 uses)' },
+  { id:'the_queen',     name:'The Queen',      emoji:'👑', rarity:'legendary', activation:'wildcard',   wild:'rank', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['wildrank','scoring'],        desc:'Wild rank — becomes the rank that makes the best hand. (Reach + queen-retrigger: TBD)', needsResolve:true },
+  { id:'warehouse',     name:'Warehouse',      emoji:'🏭', rarity:'rare',      activation:'wildcard',   wild:'suit', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['wildsuit','suit'],           desc:'Wild suit — becomes any suit to complete a flush. Has no rank.' },
+  { id:'good_friend',   name:'The Good Friend',emoji:'🤝', rarity:'rare',      activation:'on_play',    durability:3,          defaultRank:null, defaultSuit:null, tags:['exalt','position'],          desc:'Play it as part of a hand: exalts all adjacent cards. (3 charges)' },
+  { id:'not_a_friend',  name:'Not a Friend',   emoji:'🗡️', rarity:'rare',      activation:'on_discard', durability:3,          defaultRank:null, defaultSuit:null, tags:['corrupt','position'],        desc:'Discard it: corrupts all adjacent cards. (3 charges)' },
+  { id:'shepherd',      name:'Shepherd',       emoji:'🐑', rarity:'common',    activation:'on_draw',    durability:'infinite', defaultRank:null, defaultSuit:null, tags:['exalt'],                     desc:'When drawn onto the grid, exalts 1 random card.' },
+  { id:'idol',          name:'Idol',           emoji:'🗿', rarity:'rare',      activation:'round_end',  durability:1,          defaultRank:null, defaultSuit:null, tags:['coins'],                     desc:'Finish the round with this on your board to earn triple interest. (Once)' },
+  { id:'shortcut',      name:'Shortcut',       emoji:'⏩', rarity:'legendary', activation:'on_play',    durability:1,          defaultRank:null, defaultSuit:null, tags:['challenge'],                 desc:'Play it in any 4-card hand to instantly complete the active challenge. (Once)' },
+  { id:'fight_power',   name:'Fight the Power',emoji:'⚔️', rarity:'legendary', activation:'passive',    durability:'infinite', defaultRank:null, defaultSuit:null, tags:['boss'],                      desc:'While on the grid, all boss effects are ignored.' },
+  { id:'dazed',         name:'Dazed & Confused',emoji:'😵', rarity:'rare',     activation:'on_swap',    durability:'infinite', defaultRank:null, defaultSuit:null, tags:['grid'],                      desc:'When swapped, reshuffles every card on the grid.' },
+  { id:'pivot',         name:'Pivot!',         emoji:'🔃', rarity:'common',    activation:'on_swap',    durability:3,          defaultRank:null, defaultSuit:null, tags:['resource','scoring'],        desc:'When swapped, that swap is free and both swapped cards gain +5 mult permanently. (3 charges)' },
 ];
 
 // One-shot effect flags consumed by scoring/round logic
@@ -3892,22 +3903,31 @@ function drawCard() {
 // Discard action — card goes to BACK of draw pile (re-enters only after every other card seen)
 function discardToDrawPile(card) {
   if (!cardCan(card, 'discard')) return;
-  if (card._isJoker) {
-    // Discarding a joker triggers its effect and consumes it (does not return to pile)
-    applyJokerGridEffect(card.jokerId, -1, -1);
-    showMessage(`${JOKER_POOL.find(j=>j.id===card.jokerId)?.name||'Joker'} consumed`, '#cc88ff');
-    return;
-  }
+  // Jokers are consumed on discard (their on_discard effect is fired by the caller
+  // with grid position); they are not returned to the draw pile.
+  if (card._isJoker) { updateDeckHud(); return; }
   drawPile.push({ rank: card.rank, suit: card.suit }); updateDeckHud();
 }
 
 // Scored card — held out until round ends
 function discardToPlayed(card) {
-  if (cardCan(card, 'discard')) { playedPile.push({ rank: card.rank, suit: card.suit }); updateDeckHud(); }
+  if (!cardCan(card, 'discard')) return;
+  // Jokers cycle back into the deck preserving identity & remaining charges
+  // (unless fully consumed, in which case they're dropped).
+  if (card._isJoker) {
+    if (card._usesLeft === 'infinite' || card._usesLeft > 0) {
+      playedPile.push({ _isJoker: true, jokerId: card.jokerId, rank: card.rank, suit: card.suit, _id: card._id, _usesLeft: card._usesLeft, _drawFired: false });
+      updateDeckHud();
+    }
+    return;
+  }
+  playedPile.push({ rank: card.rank, suit: card.suit }); updateDeckHud();
 }
 
 // At round end: reshuffle played cards back into the draw pile (fresh order)
 function flushPlayedDeck() {
+  // Reset joker on_draw flags so they can re-fire when next dealt
+  [...drawPile, ...playedPile].forEach(c => { if (c?._isJoker) c._drawFired = false; });
   drawPile = shuffle([...drawPile, ...playedPile]);
   playedPile = [];
   updateDeckHud();
@@ -4114,28 +4134,73 @@ function spanStats(cells) {
 // Find all valid subsets of selected cells, score each,
 // return { hand, handCells, penaltyCells, score }
 // ══════════════════════════════════════════════
+// Wild-joker assignment heuristics — pick rank/suit that best helps the hand.
+// TBD: optimal run-completion; current picks modal rank/suit (completes pairs/flushes).
+function bestWildRank(normalCards) {
+  if (normalCards.length === 0) return 'A';
+  const counts = {};
+  normalCards.forEach(c => { if (c.rank) counts[c.rank] = (counts[c.rank]||0)+1; });
+  let best = null, bestN = -1;
+  Object.entries(counts).forEach(([rank, n]) => {
+    if (n > bestN || (n === bestN && cardPips(rank) > cardPips(best))) { best = rank; bestN = n; }
+  });
+  return best || normalCards[0].rank || 'A';
+}
+function bestWildSuit(normalCards) {
+  if (normalCards.length === 0) return '♠';
+  const counts = {};
+  normalCards.forEach(c => { if (c.suit) counts[c.suit] = (counts[c.suit]||0)+1; });
+  let best = null, bestN = -1;
+  Object.entries(counts).forEach(([suit, n]) => { if (n > bestN) { best = suit; bestN = n; } });
+  return best || '♠';
+}
+
 function findBestHand(cells) {
   // Filter out any null cells (challenge card position)
   cells = cells.filter(([r,c]) => gridData[r][c] !== null);
   if (cells.length < 2) return null;
 
+  // Jokers: wild jokers get a temporary rank/suit and join detection;
+  // non-wild jokers ride along (excluded from the poker combination, no penalty).
+  const normalCards = cells.filter(([r,c]) => !gridData[r][c]._isJoker).map(([r,c]) => gridData[r][c]);
+  const wildAssignments = [];
+  const detectionCells = [];
+  for (const [r, c] of cells) {
+    const card = gridData[r][c];
+    if (!card._isJoker) { detectionCells.push([r, c]); continue; }
+    const def = jokerDef(card);
+    if (def?.activation === 'wildcard') {
+      const orig = { rank: card.rank, suit: card.suit };
+      if (def.wild === 'rank' || def.wild === 'both') card.rank = bestWildRank(normalCards);
+      if (def.wild === 'suit' || def.wild === 'both') card.suit = bestWildSuit(normalCards);
+      if (card.rank == null) card.rank = bestWildRank(normalCards);
+      if (card.suit == null) card.suit = bestWildSuit(normalCards);
+      wildAssignments.push({ card, orig });
+      detectionCells.push([r, c]);
+    }
+    // non-wild jokers: omitted from detectionCells
+  }
+  const restoreWilds = () => wildAssignments.forEach(({ card, orig }) => { card.rank = orig.rank; card.suit = orig.suit; });
+
+  if (detectionCells.length < 2) { restoreWilds(); return null; }
+
   // Generate all subsets of size 2-5 that are orthogonally connected
   const subsets = [];
-  const n = cells.length;
+  const n = detectionCells.length;
   for (let mask = 1; mask < (1 << n); mask++) {
-    const subset = cells.filter((_, i) => mask & (1 << i));
+    const subset = detectionCells.filter((_, i) => mask & (1 << i));
     if (subset.length < 2 || subset.length > 5) continue;
     if (!isConnected(subset)) continue;
     const hand = detectHand(subset);
     if (hand) subsets.push({ hand, handCells: subset });
   }
 
-  if (subsets.length === 0) return null;
+  if (subsets.length === 0) { restoreWilds(); return null; }
 
   // Score each valid subset with bonuses, pick highest
   let best = null;
   for (const { hand, handCells } of subsets) {
-    const penaltyCells = cells.filter(c => !handCells.some(([r,col]) => r===c[0] && col===c[1]));
+    const penaltyCells = detectionCells.filter(c => !handCells.some(([r,col]) => r===c[0] && col===c[1]));
     const penaltyPips = penaltyCells.reduce((sum, [r,c]) => sum + cardPips(gridData[r][c].rank), 0);
     const rawScore = calcScore(hand, handCells);
     const finalScore = Math.max(0, rawScore - penaltyPips);
@@ -4143,6 +4208,7 @@ function findBestHand(cells) {
       best = { hand, handCells, penaltyCells, rawScore, penaltyPips, finalScore };
     }
   }
+  restoreWilds();
   return best;
 }
 function detectHand(cells) {
@@ -4220,6 +4286,32 @@ function detectHand(cells) {
 // ══════════════════════════════════════════════
 // SCORING
 // ══════════════════════════════════════════════
+// ── Exalt / Corrupt suit effects ──
+// Per-card flags _exalted / _corrupted grant enhanced suit effects.
+// Returns { pips, mult, coins, time } totals across the given cards.
+// Exalted: ♣ +8 pips, ♥ +3s, ♦ +2 coins, ♠ +2 mult.
+// Corrupted: stronger but with a cost — ♣ +12 pips/−1 coin, ♥ +5s/−3 mult,
+//            ♦ +4 coins/−2s, ♠ +4 mult/−2s.  TBD: balance pass.
+function exaltCorruptTotals(cards) {
+  let pips = 0, mult = 0, coins = 0, time = 0;
+  cards.forEach(c => {
+    if (!c) return;
+    if (c._exalted) {
+      if (c.suit === '♣') pips += 8;
+      else if (c.suit === '♥') time += 3;
+      else if (c.suit === '♦') coins += 2;
+      else if (c.suit === '♠') mult += 2;
+    }
+    if (c._corrupted) {
+      if (c.suit === '♣') { pips += 12; coins -= 1; }
+      else if (c.suit === '♥') { time += 5; mult -= 3; }
+      else if (c.suit === '♦') { coins += 4; time -= 2; }
+      else if (c.suit === '♠') { mult += 4; time -= 2; }
+    }
+  });
+  return { pips, mult, coins, time };
+}
+
 function calcScore(handName, cells) {
   const base = HAND_BASE[handName];
   if (!base) return 0;
@@ -4358,6 +4450,12 @@ function calcScore(handName, cells) {
   // ♥ Hearts → +0.5 mult each (+1 with Devoted)
   const heartCount = cards.filter(c => c.suit === '♥' || (c.combined && c.suit2 === '♥')).length;
   mult += heartCount * (hasBonus('heart_double') ? 1 : 0.5);
+
+  // Exalt / Corrupt — pip & mult contributions (coins & time applied in playHand)
+  const _ec = exaltCorruptTotals(cards);
+  totalPips += _ec.pips;
+  mult += _ec.mult;
+  if (mult < 1) mult = 1; // corruption can't drop mult below 1
 
   // Trinity Run: +9 mult for runs with 3/6/9
   if (hasBonus('threes_run') && hasTrinityRank) mult += 9;
@@ -4500,10 +4598,12 @@ function render() {
         div.style.left = cellLeft(c) + 'px';
         if (!animating && !falling) div.style.top = cellTop(r) + 'px';
         const isSwapPendingJ = swapPending && swapPending[0]===r && swapPending[1]===c;
+        const selIdxJ = selected.findIndex(([sr,sc]) => sr===r && sc===c);
         const usesStr = card._usesLeft === 'infinite' ? '∞' : card._usesLeft;
-        div.className = 'bc-card joker-card' + (isSwapPendingJ ? ' swap-pending' : '');
-        div.innerHTML = `<div class="joker-card-emoji">${def?.emoji||'🃏'}</div><div class="joker-card-name">${def?.name||'Joker'}</div><div class="joker-card-uses">${usesStr}</div>`;
+        div.className = 'bc-card joker-card' + (isSwapPendingJ ? ' swap-pending' : '') + (selIdxJ >= 0 ? ' selected' : '');
+        div.innerHTML = `${selIdxJ >= 0 ? `<div class="sel-num">${selIdxJ+1}</div>` : ''}<div class="joker-card-emoji">${def?.emoji||'🃏'}</div><div class="joker-card-name">${def?.name||'Joker'}</div><div class="joker-card-uses">${usesStr}</div>`;
         div.onclick = () => onCardTap(r, c);
+        attachJokerLongPress(div, r, c);
         continue;
       }
 
@@ -5230,8 +5330,14 @@ function cardAt(el) {
 }
 
 function doSwap(r1, c1, r2, c2) {
-  // Guard: block swap when out of swaps (Steady Hand bypasses limit)
-  if (swaps <= 0 && !hasTotem('steady_hand')) {
+  // Pivot: if either card is a Pivot joker, this swap is free + buffs both cards.
+  const cardA = gridData[r1]?.[c1], cardB = gridData[r2]?.[c2];
+  const isPivotSwap = (cardA?._isJoker && jokerDef(cardA)?.id === 'pivot') ||
+                      (cardB?._isJoker && jokerDef(cardB)?.id === 'pivot');
+  const freeThisSwap = isPivotSwap || jokerFreeSwapPending;
+
+  // Guard: block swap when out of swaps (Steady Hand or a free swap bypasses limit)
+  if (swaps <= 0 && !hasTotem('steady_hand') && !freeThisSwap) {
     const btn = document.getElementById('btn-swap');
     if (btn) { btn.style.borderColor='var(--red)'; btn.style.color='var(--red)'; setTimeout(()=>{btn.style.borderColor='';btn.style.color='';},500); }
     swapPending = null; render(); return;
@@ -5248,11 +5354,24 @@ function doSwap(r1, c1, r2, c2) {
   const tmp = gridData[r1][c1];
   gridData[r1][c1] = gridData[r2][c2];
   gridData[r2][c2] = tmp;
-  // Steady Hand: swaps don't count against limit (but cost 2× time below)
-  if (!hasTotem('steady_hand')) swaps--;
-  // Swap time cost — 10s default, 0s with Free Swaps, 20s with Steady Hand (and not Free Swaps)
+
+  // Pivot: buff both swapped (non-joker) cards with +5 permanent mult
+  if (isPivotSwap) {
+    [[r1,c1],[r2,c2]].forEach(([r,c]) => {
+      const card = gridData[r][c];
+      if (card && !card._isJoker && card.rank) {
+        const k = cardKey(card.rank, card.suit);
+        permMult[k] = (permMult[k] || 0) + 5;
+      }
+    });
+  }
+
+  // Swap charge — skipped on a free swap; Steady Hand bypasses the limit
+  if (!hasTotem('steady_hand') && !freeThisSwap) swaps--;
+  if (jokerFreeSwapPending) jokerFreeSwapPending = false;
+  // Swap time cost — 10s default, 0s when free/Free Swaps, 20s with Steady Hand
   let swapTimeCost = 10;
-  if (hasTotem('free_swaps')) swapTimeCost = 0;
+  if (freeThisSwap || hasTotem('free_swaps')) swapTimeCost = 0;
   else if (hasTotem('steady_hand')) swapTimeCost = 20;
   if (swapTimeCost > 0) {
     roundSeconds = Math.max(1, roundSeconds - swapTimeCost);
@@ -5266,6 +5385,8 @@ function doSwap(r1, c1, r2, c2) {
   if (hasBonus('swap_pause')) pauseRound(4);
   selected = [];
   swapPending = null;
+  // on_swap jokers (Dazed reshuffle, Pivot charge/message) fire after the swap
+  fireJokersOnSwap(r1, c1, r2, c2);
   render();
 }
 
@@ -5359,30 +5480,19 @@ function onCardTap(r, c) {
     lastTapCell[0] === r && lastTapCell[1] === c &&
     (now - lastTapTime) < DOUBLE_TAP_MS;
 
-  // Joker — single tap shows tooltip, double-tap activates effect
+  // Jokers select/swap like normal cards (tooltip shown via long-press).
+  // double_tap-activated jokers (none in current pool) would intercept here:
   if (!bcSelectionPhase && gridData[r]?.[c]?._isJoker) {
-    if (isDoubleTap) {
+    const jdef = jokerDef(gridData[r][c]);
+    if (jdef?.activation === 'double_tap' && isDoubleTap) {
       hideJokerGridTooltip();
-      const card = gridData[r][c];
-      const def = JOKER_POOL.find(j => j.id === card.jokerId);
-      if (def && (def.activationType === 'manual_discard' || def.activationType === 'on_score' || def.activationType === 'passive')) {
-        applyJokerGridEffect(card.jokerId, r, c);
-        if (card._usesLeft !== 'infinite') {
-          card._usesLeft--;
-          if (card._usesLeft <= 0) {
-            gridData[r][c] = null;
-            showMessage(`${def.name} consumed`, 'var(--cream-dim)');
-          }
-        }
-        render();
-      }
+      applyJokerGridEffect(jdef.id, r, c);
+      consumeJokerCharge(gridData[r][c], r, c);
+      render();
       lastTapTime = 0; lastTapCell = null;
       return;
     }
-    hideJokerGridTooltip();
-    showJokerGridTooltip(r, c, gridData[r][c]);
-    lastTapCell = [r, c]; lastTapTime = now;
-    return;
+    // otherwise fall through to normal selection/swap handling below
   }
 
   // BC during normal play — single tap shows read-only tooltip, double-tap enters swap
@@ -5562,6 +5672,7 @@ function playHand() {
   const result = findBestHand(selected);
   if (!result) { console.log('[PLAY] no result, exiting'); return; }
 
+  const playedCells = [...selected]; // capture before any path clears selection (for on_play jokers)
   const { hand, handCells, penaltyCells, penaltyPips, finalScore } = result;
   console.log('[PLAY] hand result', { hand, finalScore, scoreAfterAdd: score + finalScore });
   const scoreBeforeHand = score;
@@ -5581,6 +5692,9 @@ function playHand() {
 
   // Check challenge progress
   if (challengeActive) checkChallengeAfterHand(result, handCells);
+
+  // on_play jokers (Good Friend exalt, Shortcut challenge-complete) fire when played
+  fireJokersOnPlay(playedCells, handCells);
 
   updateCounters(hand, handCells);
   checkUnlocks();
@@ -5730,6 +5844,14 @@ function playHand() {
   const allSpades = scoringCards.length >= 4 && scoringCards.every(c => c.suit === '♠' || (c.combined && c.suit2 === '♠'));
 
   // ♥ and ♣ effects handled in calcScore (with doubler flags)
+
+  // ── Exalt / Corrupt — coins & time (pips & mult applied in calcScore) ──
+  const _ecPlay = exaltCorruptTotals(scoringCards);
+  if (_ecPlay.coins !== 0) { coins = Math.max(0, coins + _ecPlay.coins); updateCoinsUI(); }
+  if (_ecPlay.time !== 0) {
+    roundSeconds = Math.max(1, Math.min(roundSeconds + _ecPlay.time, ROUND_DURATION));
+    updateClockUI();
+  }
 
   // ── Card value effects (after scoring) ──
   const scoringRanks = scoringCards.map(c => c.rank);
@@ -6566,7 +6688,18 @@ function doDiscard() {
   }
   selected = validSelected;
   const discardedCards = selected.map(([r,c]) => gridData[r][c]);
-  selected.forEach(([r,c]) => discardToDrawPile(gridData[r][c]));
+  // on_discard jokers (Not a Friend corrupt) fire with their grid position before removal
+  selected.forEach(([r,c]) => {
+    const card = gridData[r]?.[c];
+    if (card?._isJoker) {
+      const def = jokerDef(card);
+      if (def?.activation === 'on_discard') {
+        applyJokerGridEffect(def.id, r, c);
+        consumeJokerCharge(card, r, c);
+      }
+    }
+  });
+  selected.forEach(([r,c]) => { if (gridData[r]?.[c]) discardToDrawPile(gridData[r][c]); });
   // Hoarder: discards don't count against limit (but cost 2× time below)
   if (!hasTotem('hoarder')) discards--;
   // Discard time cost — 3s/card default, 0s with Free Discards, 6s/card with Hoarder
@@ -6721,6 +6854,8 @@ function renderCardAppearance(card, r, c, {
     isSwapPending ? 'swap-pending' : '',
     (!isReachable && !isSel && !isSwapPending) ? 'unreachable' : '',
     isBonus ? 'bonus-card' : '',
+    card._exalted ? 'exalted' : '',
+    card._corrupted ? 'corrupted' : '',
     bothClass.trim(),
     rcPips.trim(), rcMult.trim(), rcRetrigger.trim(), rcLeyline.trim(),
   ].filter(Boolean).join(' ');
@@ -7236,6 +7371,7 @@ let bossLockedHand = null;      // for hand-type lock modifier (not in roster v1
 
 // ── Cell helpers ──
 function isCellBlocked(r, c) {
+  if (typeof bossEffectsIgnored === 'function' && bossEffectsIgnored()) return false; // Fight the Power
   return blockedCells.has(`${r}-${c}`);
 }
 
@@ -7449,7 +7585,8 @@ function clearBossModifiers() {
 // Hook called every time a card is drawn — biases toward low cards during Famine
 function maybeFamineDrawSwap(card) {
   if (!bossLowCardActive) return card;
-  if (!card || card._isStone) return card;
+  if (!card || card._isStone || card._isJoker) return card;
+  if (hasJokerOnGrid('fight_power')) return card; // Fight the Power ignores boss effects
   if (Math.random() > (currentBoss?.params?.lowCardWeight || 0.7)) return card;
   // Replace card with a low rank (2–6), same suit
   const lowRanks = ['2','3','4','5','6'];
@@ -7459,6 +7596,7 @@ function maybeFamineDrawSwap(card) {
 // Is a BC currently disabled by Voidwright phase?
 function isBCDisabledByBoss(bcId) {
   if (!bossActive) return false;
+  if (hasJokerOnGrid('fight_power')) return false; // Fight the Power ignores boss effects
   if (bossPhase === 1 && bcPoolA.has(bcId)) return true;
   if (bossPhase === 2 && bcPoolB.has(bcId)) return true;
   return false;
@@ -8213,25 +8351,25 @@ function closeLimitBreak() {
 // JOKER SYSTEM — physical deck cards
 // ══════════════════════════════════════════════
 // Jokers live in the deck as special cards (_isJoker:true).
-// They fall onto the grid, can be swapped/discarded/selected.
-// Single-tap: show tooltip. Double-tap: activate effect.
-// manual_discard jokers: double-tap to activate + consume.
-// round_start jokers: fire automatically at round start.
-// passive jokers: effect always active while on grid.
+// They fall onto the grid and can be swapped/discarded/selected/played.
+// LONG-PRESS: show tooltip (jokers may need single-tap to select for a hand).
+// Activation depends on def.activation (see JOKER_POOL header).
 
-let grantedJokerIds = new Set(); // dedup tracking
+let jokerFreeSwapPending = false; // pivot: next swap costs no swap-charge/time
 
-function grantJoker(jokerDef) {
+function jokerDef(card) { return JOKER_POOL.find(j => j.id === card.jokerId); }
+
+function grantJoker(def) {
   const card = {
-    _isJoker: true, jokerId: jokerDef.id,
-    rank: null, suit: null,
-    _id: 80000 + (Date.now() % 10000),
-    _usesLeft: jokerDef.durability,
+    _isJoker: true, jokerId: def.id,
+    rank: def.defaultRank ?? null, suit: def.defaultSuit ?? null,
+    _id: 80000 + (Date.now() % 10000) + Math.floor(Math.random()*100),
+    _usesLeft: def.durability,
   };
   drawPile.push(card);
-  grantedJokerIds.add(jokerDef.id);
+  grantedJokerIds.add(def.id);
   updateDeckHud?.();
-  showMessage(`+ ${jokerDef.name}`, '#cc88ff');
+  showMessage(`+ ${def.name}`, '#cc88ff');
 }
 
 function hasJokerOnGrid(id) {
@@ -8241,53 +8379,151 @@ function hasJokerOnGrid(id) {
   return false;
 }
 
+// Boss-immunity check used by isCellBlocked / isBCDisabledByBoss / boss objective
+function bossEffectsIgnored() { return hasJokerOnGrid('fight_power'); }
+
+// Consume one charge from a joker card at [r,c]; remove from grid when depleted.
+function consumeJokerCharge(card, r, c) {
+  if (!card || card._usesLeft === 'infinite') return;
+  card._usesLeft--;
+  if (card._usesLeft <= 0) {
+    if (r >= 0 && c >= 0) gridData[r][c] = null;
+    showMessage(`${jokerDef(card)?.name || 'Joker'} consumed`, 'var(--cream-dim)');
+  }
+}
+
+// ── Exalt / Corrupt helpers ──
+function exaltCard(r, c) {
+  const card = gridData[r]?.[c];
+  if (!card || card._isJoker || card._isBC || card._isStone || !card.rank) return;
+  card._corrupted = false;
+  card._exalted = true;
+}
+function corruptCard(r, c) {
+  const card = gridData[r]?.[c];
+  if (!card || card._isJoker || card._isBC || card._isStone || !card.rank) return;
+  card._exalted = false;
+  card._corrupted = true;
+}
+function exaltRandomCard() {
+  const opts = [];
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
+    const card = gridData[r][c];
+    if (card && !card._isJoker && !card._isBC && !card._isStone && card.rank && !card._exalted) opts.push([r, c]);
+  }
+  if (opts.length === 0) return;
+  const [r, c] = opts[Math.floor(Math.random() * opts.length)];
+  exaltCard(r, c);
+}
+function getNeighborsAll(r, c) {
+  const out = [];
+  for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+    if (dr === 0 && dc === 0) continue;
+    const nr = r + dr, nc = c + dc;
+    if (nr >= 0 && nr < gridRows && nc >= 0 && nc < gridCols) out.push([nr, nc]);
+  }
+  return out;
+}
+
+// ── round_start jokers (none in current pool, kept for framework) ──
 function fireJokersAtRoundStart() {
   for (let r = 0; r < gridRows; r++) {
     for (let c = 0; c < gridCols; c++) {
       const card = gridData[r][c];
       if (!card?._isJoker) continue;
-      const def = JOKER_POOL.find(j => j.id === card.jokerId);
-      if (!def || def.activationType !== 'round_start') continue;
+      const def = jokerDef(card);
+      if (!def || def.activation !== 'round_start') continue;
       applyJokerGridEffect(def.id, r, c);
-      if (card._usesLeft !== 'infinite') {
-        card._usesLeft--;
-        if (card._usesLeft <= 0) { gridData[r][c] = null; showMessage(`${def.name} consumed`, 'var(--cream-dim)'); }
+      consumeJokerCharge(card, r, c);
+    }
+  }
+}
+
+// ── on_draw jokers: fire when a joker lands on the grid (called after deal) ──
+function fireJokersOnDraw() {
+  for (let r = 0; r < gridRows; r++) {
+    for (let c = 0; c < gridCols; c++) {
+      const card = gridData[r][c];
+      if (!card?._isJoker || card._drawFired) continue;
+      const def = jokerDef(card);
+      if (!def) continue;
+      card._drawFired = true; // only fire once per landing
+      if (def.activation === 'on_draw') {
+        applyJokerGridEffect(def.id, r, c);
+        consumeJokerCharge(card, r, c);
       }
     }
   }
 }
 
+// ── on_play jokers: fire when a joker is part of a played hand ──
+// Called from playHand with the full set of selected cells.
+function fireJokersOnPlay(selectedCells, handCells) {
+  selectedCells.forEach(([r, c]) => {
+    const card = gridData[r]?.[c];
+    if (!card?._isJoker) return;
+    const def = jokerDef(card);
+    if (!def || def.activation !== 'on_play') return;
+    // shortcut requires a 4-card hand
+    if (def.id === 'shortcut' && handCells.length !== 4) return;
+    applyJokerGridEffect(def.id, r, c);
+    consumeJokerCharge(card, r, c);
+  });
+}
+
+// ── on_swap jokers: fire when a joker is one of the two swapped cells ──
+function fireJokersOnSwap(r1, c1, r2, c2) {
+  [[r1, c1], [r2, c2]].forEach(([r, c]) => {
+    const card = gridData[r]?.[c];
+    if (!card?._isJoker) return;
+    const def = jokerDef(card);
+    if (!def || def.activation !== 'on_swap') return;
+    applyJokerGridEffect(def.id, r, c);
+    consumeJokerCharge(card, r, c);
+  });
+}
+
 function applyJokerGridEffect(id, r, c) {
   switch (id) {
-    case 'lucky_charm':
-      swaps = Math.min(swaps + 1, limits.swaps.current + 10); render();
-      showMessage('+1 Swap (Lucky Charm)', 'var(--gold)'); break;
-    case 'reset_stone':
-      swaps = limits.swaps.current; discards = limits.discards.current;
-      render(); showMessage('Swaps & Discards restored!', 'var(--gold)'); break;
-    case 'time_jar':
-      roundSeconds = Math.min(roundSeconds + 16, limits.round_time.current + 60);
-      updateClockUI(); showMessage('+16s (Time Jar)', 'var(--gold)'); break;
-    case 'glass_cannon':
-      jokerNextHandDouble = true;
-      showMessage('Next hand scores double!', 'var(--gold)'); break;
-    case 'debt_collector':
-      roundSeconds = Math.max(1, roundSeconds - 10);
-      coins += 20; updateClockUI(); updateCoinsUI();
-      showMessage('-10s · +20 coins', 'var(--gold)'); break;
-    case 'hourglass':
-      roundSeconds = Math.min(roundSeconds + 8, limits.round_time.current + 60);
-      updateClockUI(); showMessage('+8s (Hourglass)', 'var(--gold)'); break;
-    case 'ember':
-      { const bonus = acquiredTotems.length * 2;
-        if (bonus > 0) { roundSeconds = Math.min(roundSeconds + bonus, limits.round_time.current + 60); updateClockUI(); showMessage(`+${bonus}s (Ember)`, 'var(--gold)'); } }
+    case 'good_friend':
+      getNeighborsAll(r, c).forEach(([nr, nc]) => exaltCard(nr, nc));
+      showMessage('The Good Friend exalts neighbors!', '#ffd700'); render(); break;
+    case 'not_a_friend':
+      getNeighborsAll(r, c).forEach(([nr, nc]) => corruptCard(nr, nc));
+      showMessage('Not a Friend corrupts neighbors!', '#cc88ff'); render(); break;
+    case 'shepherd':
+      exaltRandomCard();
+      showMessage('Shepherd exalts a card', '#ffd700'); render(); break;
+    case 'shortcut':
+      if (challengeActive) { resolveChallenge(true); showMessage('Shortcut — challenge complete!', 'var(--gold)'); }
+      else showMessage('Shortcut — no active challenge', 'var(--cream-dim)');
       break;
-    case 'double_down':
-      jokerNextHandDouble = true;
-      showMessage('Next run scores twice! (Double Down)', 'var(--gold)'); break;
+    case 'dazed':
+      reshuffleGrid();
+      showMessage('Dazed & Confused — grid reshuffled!', '#cc88ff'); break;
+    case 'pivot':
+      // Free swap + buff are applied inline in doSwap; this just announces.
+      showMessage('Pivot! Free swap + cards buffed', 'var(--gold)'); break;
+    case 'idol':
+      // handled in interest calc (round_end); no immediate effect
+      break;
     default:
       showMessage(`${JOKER_POOL.find(j=>j.id===id)?.name||'Joker'} activated!`, '#cc88ff'); break;
   }
+}
+
+// Reshuffle every non-joker card currently on the grid (Dazed & Confused).
+function reshuffleGrid() {
+  const cards = [];
+  const slots = [];
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
+    const card = gridData[r][c];
+    if (card && !card._isJoker) { cards.push(card); slots.push([r, c]); }
+  }
+  for (let i = cards.length - 1; i > 0; i--) { const j = Math.floor(Math.random()*(i+1)); [cards[i],cards[j]]=[cards[j],cards[i]]; }
+  slots.forEach(([r, c], i) => { gridData[r][c] = cards[i]; });
+  selected = [];
+  render();
 }
 
 function showJokerGridTooltip(r, c, card) {
@@ -8315,6 +8551,33 @@ function showJokerGridTooltip(r, c, card) {
 function hideJokerGridTooltip() {
   document.getElementById('joker-grid-tooltip')?.remove();
 }
+
+// Long-press (500ms) on a joker card shows its tooltip and suppresses the click.
+function attachJokerLongPress(el, r, c) {
+  let timer = null, longFired = false;
+  const start = () => {
+    longFired = false;
+    timer = setTimeout(() => {
+      longFired = true;
+      hideJokerGridTooltip();
+      const card = gridData[r]?.[c];
+      if (card?._isJoker) showJokerGridTooltip(r, c, card);
+    }, 500);
+  };
+  const cancel = () => { if (timer) { clearTimeout(timer); timer = null; } };
+  el.onpointerdown = start;
+  el.onpointerup   = cancel;
+  el.onpointerleave = () => { cancel(); };
+  // Suppress the click that follows a long-press
+  el.onclick = (e) => {
+    if (longFired) { longFired = false; e.stopPropagation(); return; }
+    onCardTap(r, c);
+  };
+}
+// Dismiss joker tooltip on any tap elsewhere
+document.addEventListener('pointerdown', e => {
+  if (!e.target.closest('.joker-card') && !e.target.closest('#joker-grid-tooltip')) hideJokerGridTooltip();
+});
 
 // ══════════════════════════════════════════════
 // EVENT SYSTEM
@@ -9169,7 +9432,17 @@ async function showPayoutUI() {
   const sleep = ms => new Promise(r => setTimeout(r, ms));
 
   // Calculate payouts
-  const interestCoins  = Math.floor(coins / 10);
+  // Idol: triple interest if still on the board at round end (consumes one charge)
+  let interestMult = 1;
+  if (hasJokerOnGrid('idol')) {
+    interestMult = 3;
+    for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
+      const card = gridData[r]?.[c];
+      if (card?._isJoker && card.jokerId === 'idol') { consumeJokerCharge(card, r, c); }
+    }
+    showMessage('🗿 Idol — triple interest!', 'var(--gold)');
+  }
+  const interestCoins  = Math.floor(coins / 10) * interestMult;
   const wagesCoins     = level;
   const efficiencyCoins = Math.floor(frozenRoundSeconds / 10);
   const totalCoins     = interestCoins + wagesCoins + efficiencyCoins;
@@ -9552,6 +9825,7 @@ function triggerLevelUp() {
   fullHouseThisRound = 0;
   tickAltarEffects();
   fireJokersAtRoundStart();
+  fireJokersOnDraw();
   // Reset focus meter at start of every round (chunk 2 will add notch-fall animation)
   focusNodes = 0;
   focusAnimQueue = [];
@@ -11138,6 +11412,7 @@ function startGame() {
   grantedJokerIds = new Set();
   altarEffects    = [];
   jokerNextHandDouble = false;
+  jokerFreeSwapPending = false;
   // Reset all counters
   Object.keys(C).forEach(k => C[k] = (typeof C[k] === 'boolean' ? false : 0));
   permPips = {};
