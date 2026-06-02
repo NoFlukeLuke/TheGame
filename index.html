@@ -127,6 +127,15 @@
   }
   .box-popping { animation: box-pop 0.55s ease forwards; }
 
+  @keyframes bc-score-bounce {
+    0%   { transform: translateY(0) scale(1); }
+    28%  { transform: translateY(-9px) scale(1.13); }
+    55%  { transform: translateY(2px) scale(0.97); }
+    78%  { transform: translateY(-4px) scale(1.05); }
+    100% { transform: translateY(0) scale(1); }
+  }
+  .bc-card.bc-scoring { animation: bc-score-bounce 0.55s ease forwards !important; }
+
   /* ── END SCORE ANIMATION SYSTEM ── */
   #deck-hud {
     position: absolute;
@@ -1120,7 +1129,7 @@
   /* ── Bonus Cards (BCs) ── */
   .bc-card {
     position: absolute;
-    width: 57px; height: 75px;
+    width: var(--card-w, 57px); height: var(--card-h, 75px);
     border-radius: 5px;
     display: flex; flex-direction: column;
     align-items: center; justify-content: center;
@@ -1130,6 +1139,7 @@
     z-index: 5;
     will-change: top, opacity;
     transition: top 0.32s cubic-bezier(0.4,0,0.2,1), left 0.32s cubic-bezier(0.4,0,0.2,1);
+    overflow: hidden;
   }
   .bc-card.bc-tier-common {
     background: linear-gradient(160deg, #1a2a1a 0%, #0f1f0f 100%);
@@ -1153,7 +1163,7 @@
   }
   .bc-tier-label {
     font-family: 'Cinzel', serif;
-    font-size: 9px; font-weight: 700; letter-spacing: 0.05em;
+    font-size: calc(var(--card-h, 75px) * 0.12); font-weight: 700; letter-spacing: 0.05em;
     opacity: 0.6;
   }
   .bc-tier-common  .bc-tier-label { color: #6aaa6a; }
@@ -1161,9 +1171,9 @@
   .bc-tier-legendary .bc-tier-label { color: #e8b84b; }
   .bc-name {
     font-family: 'Cinzel', serif;
-    font-size: 8px; font-weight: 600;
+    font-size: calc(var(--card-h, 75px) * 0.105); font-weight: 600;
     text-align: center; line-height: 1.2;
-    padding: 0 4px;
+    padding: 0 3px;
     color: #ddd;
   }
   .bc-desc {
@@ -1179,7 +1189,7 @@
     z-index: 30;
     opacity: 0;
     transition: opacity 0.15s ease;
-    pointer-events: none;
+    pointer-events: auto;
     max-width: 160px;
     padding: 8px 10px;
     border-radius: 8px;
@@ -1208,6 +1218,15 @@
     color: #e8b84b; text-align: center;
     animation: bc-confirm-pulse 0.7s ease-in-out infinite alternate;
   }
+  .bc-tooltip-discard {
+    display: block; width: 100%; margin-top: 6px;
+    padding: 4px 8px; border-radius: 4px;
+    background: rgba(180,40,40,0.18); border: 1px solid rgba(180,40,40,0.5);
+    color: #e07070; font-family: 'Cinzel', serif; font-size: 8px;
+    letter-spacing: 0.5px; cursor: pointer;
+    transition: background 0.12s;
+  }
+  .bc-tooltip-discard:hover { background: rgba(180,40,40,0.35); }
   .bc-confirm {
     font-family: 'Cinzel', serif;
     font-size: 7px; font-weight: 700;
@@ -1496,6 +1515,7 @@
   .deck-chip.dc-past { opacity: 0.28; filter: grayscale(0.6); }
   .deck-chip.has-pip  { border-bottom-color: #3a6fca !important; }
   .deck-chip.has-mult { border-top-color: #c0392b !important; }
+  .deck-chip.deck-chip-joker { background: rgba(136,68,204,0.22); border: 1px solid #8844cc; font-size: 14px; color: #cc88ff; padding: 0 5px; }
     #unlock-overlay {
     display: none;
     position: fixed; inset: 0;
@@ -1828,6 +1848,14 @@
     font-family: 'Crimson Pro', serif; font-size: 11px; font-style: italic;
     color: rgba(255,255,255,0.25); letter-spacing: 0.05em;
   }
+  #bc-choice-skip {
+    margin-top: 10px; padding: 6px 18px; border-radius: 16px;
+    background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.18);
+    color: rgba(255,255,255,0.35); font-family: 'Cinzel', serif; font-size: 9px;
+    letter-spacing: 1px; cursor: pointer; text-transform: uppercase;
+    transition: background 0.12s, color 0.12s;
+  }
+  #bc-choice-skip:hover { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.55); }
   /* Glowing target slot on the grid behind the overlay */
   .bc-target-slot {
     position: absolute; pointer-events: none;
@@ -2933,9 +2961,9 @@
     border: 2px solid #8844cc !important;
     box-shadow: 0 0 8px rgba(136,68,204,0.4);
   }
-  .joker-card-emoji { font-size:18px; }
-  .joker-card-name  { font-size:7px; color:#cc88ff; font-family:'Cinzel',serif; letter-spacing:0.3px; text-align:center; line-height:1.2; }
-  .joker-card-uses  { font-size:8px; color:var(--gold-dim); margin-top:2px; }
+  .joker-card-emoji { font-size:calc(var(--card-h, 75px) * 0.25); line-height:1; }
+  .joker-card-name  { font-size:calc(var(--card-h, 75px) * 0.095); color:#cc88ff; font-family:'Cinzel',serif; letter-spacing:0.3px; text-align:center; line-height:1.2; padding:0 2px; }
+  .joker-card-uses  { font-size:calc(var(--card-h, 75px) * 0.105); color:var(--gold-dim); margin-top:1px; }
   /* Joker tooltip (shown on single-tap, like BC tooltip) */
   .joker-tooltip {
     position: absolute; z-index: 50;
@@ -3106,6 +3134,7 @@
   </div>
   <div id="bc-choice-cards"></div>
   <div id="bc-choice-hint">Tap to preview · Tap again to choose</div>
+  <button id="bc-choice-skip">Pass — No Bonus</button>
 </div>
 
 <!-- CHALLENGE TOOLTIP -->
@@ -3129,7 +3158,7 @@
 </div>
 
 <script>
-const BUILD = '2026-05-30 · r18';
+const BUILD = '2026-06-02 · r19';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -5351,6 +5380,12 @@ function doSwap(r1, c1, r2, c2) {
     render();
     return;
   }
+  // Capture card IDs and old positions for FLIP animation (before data swap)
+  const _swId1 = gridData[r1]?.[c1]?._id;
+  const _swId2 = gridData[r2]?.[c2]?._id;
+  const _swDx = cellLeft(c2) - cellLeft(c1);
+  const _swDy = cellTop(r2) - cellTop(r1);
+
   const tmp = gridData[r1][c1];
   gridData[r1][c1] = gridData[r2][c2];
   gridData[r2][c2] = tmp;
@@ -5388,6 +5423,15 @@ function doSwap(r1, c1, r2, c2) {
   // on_swap jokers (Dazed reshuffle, Pivot charge/message) fire after the swap
   fireJokersOnSwap(r1, c1, r2, c2);
   render();
+  // FLIP swap animation: snap to new position in render(), then animate back from old
+  if (_swDx * _swDx + _swDy * _swDy > 0) {
+    const _swGridEl = document.getElementById('grid');
+    const _el1 = _swId1 ? _swGridEl.querySelector(`[data-card-id="${_swId1}"]`) : null;
+    const _el2 = _swId2 ? _swGridEl.querySelector(`[data-card-id="${_swId2}"]`) : null;
+    const _dur = 220, _ease = 'cubic-bezier(0.25,0.46,0.45,0.94)';
+    if (_el1) _el1.animate([{ transform:`translate(${-_swDx}px,${-_swDy}px) scale(1.09)`,offset:0 },{ transform:'translate(0,0) scale(1)',offset:1 }], { duration: _dur, easing: _ease });
+    if (_el2) _el2.animate([{ transform:`translate(${_swDx}px,${_swDy}px) scale(1.09)`,offset:0 },{ transform:'translate(0,0) scale(1)',offset:1 }], { duration: _dur, easing: _ease });
+  }
 }
 
 // Remove a card from selection, then keep only the largest connected component.
@@ -5711,7 +5755,7 @@ function playHand() {
     let levelsEarned = 0;
     while (tempScore >= tempGoal) {
       levelsEarned++;
-      tempGoal += Math.round(Math.round(BASE_GOAL * Math.pow(GOAL_SCALE, level + levelsEarned - 1)) / 50) * 50;
+      tempGoal += Math.round(Math.round(BASE_GOAL * Math.pow(GOAL_SCALE, level + levelsEarned - 1)) / 500) * 500;
     }
     const extras = levelsEarned - 1;
     if (extras > 0) {
@@ -6397,8 +6441,8 @@ async function playScoreDance(result, toRemove, isGoalHand = false) {
 
   // ── 1. Card pop + suit glow, staggered via CSS animation-delay ──
   const gridEl = document.getElementById('grid');
-  const STAGGER_MS = 150;
-  const POP_MS    = 700;
+  const STAGGER_MS = 180;
+  const POP_MS    = 900;
   handCells.forEach(([r,c], i) => {
     const card = gridData[r][c];
     if (!card) return;
@@ -6415,6 +6459,19 @@ async function playScoreDance(result, toRemove, isGoalHand = false) {
 
   // Wait for last card's pop to fully finish
   await wait(handCells.length * STAGGER_MS + POP_MS);
+
+  // Pulse active BC cards on the grid to celebrate their contribution
+  const _bcGridEl = document.getElementById('grid');
+  if (_bcGridEl) {
+    _bcGridEl.querySelectorAll('.bc-card:not(.bc-dimmed)').forEach((bcEl, i) => {
+      setTimeout(() => {
+        bcEl.classList.remove('bc-scoring');
+        void bcEl.offsetWidth;
+        bcEl.classList.add('bc-scoring');
+        setTimeout(() => bcEl.classList.remove('bc-scoring'), 560);
+      }, i * 55);
+    });
+  }
   if (sig.aborted) { handleDanceAbort(isGoalHand); return; }
 
   // ── 2. Collect particles BEFORE removing cards (gridData gets nulled by removeAndFall) ──
@@ -6450,8 +6507,8 @@ async function playScoreDance(result, toRemove, isGoalHand = false) {
   let runningPips = basePips;
   let runningMult = baseMult;
 
-  const PIP_STAGGER = 80;
-  const MULT_STAGGER = 100;
+  const PIP_STAGGER = 100;
+  const MULT_STAGGER = 120;
 
   particles.pip.forEach((p, i) => {
     flyParticle({
@@ -6460,7 +6517,7 @@ async function playScoreDance(result, toRemove, isGoalHand = false) {
       label: p.label,
       color: p.color,
       delay: i * PIP_STAGGER,
-      duration: 520,
+      duration: 620,
       onLand: () => {
         // Add this particle's value to the running pips count
         const v = parseFloat(p.label.replace(/[+×]/g, '')) || 0;
@@ -6483,7 +6540,7 @@ async function playScoreDance(result, toRemove, isGoalHand = false) {
       label: m.label,
       color: m.color,
       delay: multStartDelay + i * MULT_STAGGER,
-      duration: 480,
+      duration: 560,
       onLand: () => {
         const v = parseFloat(m.label.replace(/[+×]/g, '')) || 0;
         runningMult += v;
@@ -6806,6 +6863,16 @@ function renderCardAppearance(card, r, c, {
     return {
       className: `card stone-card${isSwapPending ? ' swap-pending' : ''}`,
       innerHTML: `<div class="stone-glyph">✦</div>`,
+    };
+  }
+
+  // ── Joker card ──
+  if (!isChallenge && card._isJoker) {
+    const def = JOKER_POOL.find(j => j.id === card.jokerId);
+    const usesStr = card._usesLeft === 'infinite' ? '∞' : card._usesLeft;
+    return {
+      className: `bc-card joker-card${isSwapPending ? ' swap-pending' : ''}`,
+      innerHTML: `<div class="joker-card-emoji">${def?.emoji||'🃏'}</div><div class="joker-card-name">${def?.name||'Joker'}</div><div class="joker-card-uses">${usesStr}</div>`,
     };
   }
 
@@ -7357,6 +7424,14 @@ const BOSS_PRESETS = [
     objective: { type: 'score', target: 5000 },
     modifiers: ['void_corners', 'reduce_swaps'],
     params: { swapsDelta: -1 }
+  },
+  {
+    id: 'the_hollow',
+    name: 'THE HOLLOW',
+    flavor: 'Cards crumble into nothing',
+    objective: { type: 'score', target: 4500 },
+    modifiers: ['periodic_null'],
+    params: { nullIntervalSecs: 8, nullCount: 1 }
   }
 ];
 
@@ -7368,6 +7443,7 @@ let bcPoolA = new Set();        // for Voidwright phase 1 disabled BCs (by id)
 let bcPoolB = new Set();        // for Voidwright phase 2 disabled BCs
 let bossLowCardActive = false;  // for Famine
 let bossLockedHand = null;      // for hand-type lock modifier (not in roster v1 but framework-ready)
+let bossNullInterval = null;    // for The Hollow periodic null modifier
 
 // ── Cell helpers ──
 function isCellBlocked(r, c) {
@@ -7559,6 +7635,33 @@ function applyBossModifiers(preset) {
         bcPoolB = new Set(shuffled.slice(half));
         break;
       }
+      case 'periodic_null': {
+        const intervalSecs = preset.params.nullIntervalSecs || 8;
+        const count = preset.params.nullCount || 1;
+        bossNullInterval = setInterval(() => {
+          if (gameTimerPaused || roundEnded) return;
+          // Replace `count` random normal cards (not BCs/Jokers) with null
+          const candidates = [];
+          for (let r = 0; r < gridRows; r++)
+            for (let c = 0; c < gridCols; c++) {
+              const card = gridData[r]?.[c];
+              if (card && !card._isBC && !card._isJoker && !card._isStone && card.rank)
+                candidates.push([r, c]);
+            }
+          for (let k = 0; k < count && candidates.length > 0; k++) {
+            const idx = Math.floor(Math.random() * candidates.length);
+            const [r, c] = candidates.splice(idx, 1)[0];
+            if (gridData[r]?.[c]) {
+              const displaced = gridData[r][c];
+              if (displaced && displaced.rank) discardToDrawPile(displaced);
+              gridData[r][c] = null;
+            }
+          }
+          showMessage('The Hollow claims a card', 'var(--red)');
+          render();
+        }, intervalSecs * 1000);
+        break;
+      }
     }
   });
 }
@@ -7580,6 +7683,7 @@ function clearBossModifiers() {
   bcPoolA = new Set();
   bcPoolB = new Set();
   bossPhase = 1;
+  if (bossNullInterval) { clearInterval(bossNullInterval); bossNullInterval = null; }
 }
 
 // Hook called every time a card is drawn — biases toward low cards during Famine
@@ -7766,10 +7870,11 @@ function generateRewardContent() {
 
   // Weighted buff categories (weights sum to 100)
   const buffCategories = [
-    { weight: 75, kind: 'bc' },
-    { weight: 10, kind: 'totem' },
+    { weight: 62, kind: 'bc' },
+    { weight: 15, kind: 'joker' },
+    { weight:  9, kind: 'totem' },
     { weight:  6, kind: 'discard' },
-    { weight:  6, kind: 'swap' },
+    { weight:  5, kind: 'swap' },
     { weight:  3, kind: 'time' },
   ];
   const debuffs = [
@@ -7809,10 +7914,21 @@ function generateRewardContent() {
     };
   }
 
+  function makeJokerPayload() {
+    const eligible = JOKER_POOL.filter(j => !grantedJokerIds.has(j.id));
+    if (!eligible.length) return makeBCPayload(); // fallback
+    const pick = eligible[Math.floor(Math.random() * eligible.length)];
+    return {
+      icon: pick.emoji || '🃏', label: pick.name, desc: pick.desc, tier: pick.rarity || 'rare',
+      apply: () => grantJoker(pick)
+    };
+  }
+
   function makeBuff() {
     const cat = weightedPick(buffCategories);
     switch (cat.kind) {
       case 'bc':      return makeBCPayload();
+      case 'joker':   return makeJokerPayload();
       case 'totem':   return { icon: '♛', label: 'Totem',        tier: 'legendary', apply: applyRewardTotem };
       case 'discard': return { icon: '🗑', label: '+1 Discard',   tier: 'common',    apply: () => { discards += 1; render(); } };
       case 'swap':    return { icon: '⚡', label: '+1 Swap',      tier: 'common',    apply: () => { swaps += 1; render(); } };
@@ -9443,9 +9559,8 @@ async function showPayoutUI() {
     showMessage('🗿 Idol — triple interest!', 'var(--gold)');
   }
   const interestCoins  = Math.floor(coins / 10) * interestMult;
-  const wagesCoins     = level;
   const efficiencyCoins = Math.floor(frozenRoundSeconds / 10);
-  const totalCoins     = interestCoins + wagesCoins + efficiencyCoins;
+  const totalCoins     = interestCoins + efficiencyCoins;
 
   // Build overlay
   const el = document.createElement('div');
@@ -9460,16 +9575,6 @@ async function showPayoutUI() {
         </div>
         <div class="pl-right">
           <span class="pl-coins" id="po-interest">0</span>
-          <span class="pl-sym">◆</span>
-        </div>
-      </div>
-      <div class="payout-line" id="po-line-wages">
-        <div class="pl-left">
-          <div class="pl-name">Wages</div>
-          <div class="pl-desc">1 per level completed</div>
-        </div>
-        <div class="pl-right">
-          <span class="pl-coins" id="po-wages">0</span>
           <span class="pl-sym">◆</span>
         </div>
       </div>
@@ -9541,15 +9646,7 @@ async function showPayoutUI() {
   updateCoinsUI();
   await ffSleep(400);
 
-  // ── 2. Wages ──
-  el.querySelector('#po-line-wages').classList.add('show');
-  await ffSleep(500);
-  await animateCount('po-wages', wagesCoins);
-  coins += wagesCoins;
-  updateCoinsUI();
-  await ffSleep(400);
-
-  // ── 3. Efficiency — rapid clock countdown ──
+  // ── 2. Efficiency — rapid clock countdown ──
   el.querySelector('#po-line-efficiency').classList.add('show');
   await ffSleep(600);
   const clockEl = el.querySelector('#po-clock');
@@ -9781,7 +9878,7 @@ function triggerLevelUp() {
 
   level++;
   // Next level's increment (what you need to score above current total)
-  roundGoal = Math.round(Math.round(BASE_GOAL * Math.pow(GOAL_SCALE, level - 1)) / 50) * 50;
+  roundGoal = Math.round(Math.round(BASE_GOAL * Math.pow(GOAL_SCALE, level - 1)) / 500) * 500;
   cumulativeGoal += roundGoal;
 
   // Reset round (but NOT score — it's cumulative)
@@ -9844,16 +9941,22 @@ function triggerLevelUp() {
   bonusCardTimer = 0;
   selected = [];
 
-  // Sapling bonus — give perm pips to 3 random cards
+  // Sapling bonus — give perm pips to 3 distinct normal cards
   if (hasBonus('sapling')) {
-    for (let i = 0; i < 3; i++) {
-      const r = Math.floor(Math.random() * gridRows), c = Math.floor(Math.random() * gridCols);
-      const card = gridData[r]?.[c];
-      if (card && !card._isBC && card.rank) {
-        const k = cardKey(card.rank, card.suit);
-        permPips[k] = (permPips[k]||0) + 2;
+    const eligible = [];
+    for (let r = 0; r < gridRows; r++)
+      for (let c = 0; c < gridCols; c++) {
+        const card = gridData[r]?.[c];
+        if (card && !card._isBC && !card._isJoker && !card._isStone && card.rank)
+          eligible.push(card);
       }
-    }
+    // supplement with draw pile if not enough on grid
+    drawPile.forEach(card => { if (card && !card._isBC && !card._isJoker && !card._isStone && card.rank) eligible.push(card); });
+    for (let i = eligible.length - 1; i > 0; i--) { const j = Math.floor(Math.random()*(i+1)); [eligible[i],eligible[j]]=[eligible[j],eligible[i]]; }
+    eligible.slice(0, 3).forEach(card => {
+      const k = cardKey(card.rank, card.suit);
+      permPips[k] = (permPips[k]||0) + 2;
+    });
   }
 
   updateScoreUI();
@@ -10052,7 +10155,7 @@ function showBCChoiceOverlay() {
       card.innerHTML = `
         <div class="bc-choice-tier">${bonus.tier}</div>
         <div class="bc-choice-name">${bonus.name}</div>
-        <div class="bc-choice-desc">${withSuitHalo(bonus.desc)}</div>
+        <div class="bc-choice-desc">${withSuitHalo(bcLiveDesc(bonus))}</div>
         ${isPending ? '<div class="bc-choice-confirm">Tap to confirm</div>' : ''}
       `;
       card.addEventListener('click', () => {
@@ -10072,6 +10175,19 @@ function showBCChoiceOverlay() {
 
   renderCards();
   overlay.classList.add('show');
+
+  // Skip button — pass on the bonus choice
+  const skipBtn = document.getElementById('bc-choice-skip');
+  if (skipBtn) {
+    skipBtn.onclick = () => {
+      clearInterval(levelupTimer);
+      overlay.classList.remove('show');
+      document.querySelectorAll('.bc-target-slot').forEach(el => el.remove());
+      bcSelectionPhase = false;
+      drainLevelUpQueue();
+    };
+  }
+
   startBCTimer();
 }
 function startBCTimer() {
@@ -10145,6 +10261,21 @@ function onBCTap(bonus) {
   }
 }
 
+// Returns a live description with current accumulated values for scaling BCs
+function bcLiveDesc(bonus) {
+  const base = bonus.desc;
+  switch (bonus.id) {
+    case 'fives_discard':  return base + (bonusMult_fives  > 0 ? ` [now: +${bonusMult_fives} pips]`  : '');
+    case 'nines_mult':     return base + (bonusMult_nines  > 0 ? ` [now: +${bonusMult_nines} mult]`  : '');
+    case 'tens_mult':      return base + (bonusMult_tens   > 0 ? ` [now: +${bonusMult_tens} mult]`   : '');
+    case 'sapling':        return `Each level, 3 random cards permanently gain +2 pips. [${level - 1} levels applied]`;
+    case 'high_card_mult': return `High Card scores +(level × 2) mult. [now: +${level * 2} mult]`;
+    case 'high_card_pips': return `High Card: card pips × level. [now: ×${level}]`;
+    case 'rising_tide':    return `Base mult increases by +1 for each level reached. [now: +${level - 1} mult]`;
+    default: return base;
+  }
+}
+
 function showBCTooltip(bonus, readOnly = false) {
   hideBCTooltip();
   const gridEl = document.getElementById('grid');
@@ -10162,9 +10293,20 @@ function showBCTooltip(bonus, readOnly = false) {
   tip.id = 'bc-tooltip';
   tip.className = `bc-tooltip bc-tier-${bonus.tier}`;
   const hint = readOnly ? '' : `<div class="bc-tooltip-hint">Tap again to pick</div>`;
-  tip.innerHTML = `<div class="bc-tooltip-name">${bonus.name}</div><div class="bc-tooltip-desc">${withSuitHalo(bonus.desc)}</div>${hint}`;
+  const liveDesc = bcLiveDesc(bonus);
+  const discardBtn = readOnly ? `<button class="bc-tooltip-discard" id="bc-tooltip-discard-btn">Discard BC</button>` : '';
+  tip.innerHTML = `<div class="bc-tooltip-name">${bonus.name}</div><div class="bc-tooltip-desc">${withSuitHalo(liveDesc)}</div>${hint}${discardBtn}`;
   tip.style.opacity = '0';
   gridEl.appendChild(tip);
+
+  // Wire discard button
+  if (readOnly) {
+    tip.querySelector('#bc-tooltip-discard-btn')?.addEventListener('click', e => {
+      e.stopPropagation();
+      discardBCFromGrid(bonus);
+    });
+  }
+
   void tip.offsetWidth;
 
   // Position using bounding rects — works regardless of animation state
@@ -10177,6 +10319,23 @@ function showBCTooltip(bonus, readOnly = false) {
   tip.style.left = Math.max(2, leftRelative) + 'px';
   tip.style.top  = Math.max(2, topRelative) + 'px';
   tip.style.opacity = '1';
+}
+
+function discardBCFromGrid(bonus) {
+  hideBCTooltip();
+  for (let r = 0; r < gridRows; r++) {
+    for (let c = 0; c < gridCols; c++) {
+      const card = gridData[r]?.[c];
+      if (card?._isBC && card.bonus.id === bonus.id) {
+        gridData[r][c] = drawCard() || null;
+        const idx = acquiredBonuses.findIndex(b => b.id === bonus.id);
+        if (idx >= 0) acquiredBonuses.splice(idx, 1);
+        showMessage(`Discarded: ${bonus.name}`, 'var(--cream-dim)');
+        render();
+        return;
+      }
+    }
+  }
 }
 function hideBCTooltip() {
   const tip = document.getElementById('bc-tooltip');
@@ -11193,6 +11352,12 @@ function showDeck() {
   }
 
   function makeChip(card, state) {
+    if (card._isJoker) {
+      const def = JOKER_POOL.find(j => j.id === card.jokerId);
+      const stateClass = state === 'present' ? ' dc-present' : state === 'past' ? ' dc-past' : '';
+      const uses = card._usesLeft === 'infinite' ? '∞' : card._usesLeft;
+      return `<span class="deck-chip deck-chip-joker${stateClass}" title="${def?.name||'Joker'}: ${def?.desc||''} (${uses} uses)">${def?.emoji||'🃏'}</span>`;
+    }
     const k = cardKey(card.rank, card.suit);
     const pp = permPips[k] || 0;
     const pm = permMult[k] || 0;
@@ -11220,11 +11385,25 @@ function showDeck() {
     }).join('');
   }
 
-  // Present — on grid (exclude BCs)
+  // Present — on grid (exclude BCs and jokers)
   const presentCards = [];
+  const presentJokers = [];
   for (let r = 0; r < gridRows; r++)
-    for (let c = 0; c < gridCols; c++)
-      if (gridData[r][c] && !gridData[r][c]._isBC) presentCards.push(gridData[r][c]);
+    for (let c = 0; c < gridCols; c++) {
+      const card = gridData[r][c];
+      if (card && !card._isBC && card._isJoker) presentJokers.push(card);
+      else if (card && !card._isBC && !card._isJoker) presentCards.push(card);
+    }
+  const drawJokers = drawPile.filter(c => c._isJoker);
+  const drawNormal = drawPile.filter(c => !c._isJoker);
+  const playedJokers = playedPile.filter(c => c._isJoker);
+  const playedNormal = playedPile.filter(c => !c._isJoker);
+  const allJokers = [...presentJokers, ...drawJokers, ...playedJokers];
+
+  function makeJokerSection() {
+    if (!allJokers.length) return '<span style="font-size:11px;color:var(--cream-dim)">None</span>';
+    return allJokers.map(card => makeChip(card, presentJokers.includes(card) ? 'present' : playedJokers.includes(card) ? 'past' : 'future')).join('');
+  }
 
   el.innerHTML = `
     <div class="deck-section">
@@ -11232,13 +11411,17 @@ function showDeck() {
       <div class="deck-cards">${makeSectionHtml(presentCards, 'present')}</div>
     </div>
     <div class="deck-section">
-      <span class="deck-section-title">Draw Pile (${drawPile.length})</span>
-      <div class="deck-cards">${makeSectionHtml(drawPile, 'future')}</div>
+      <span class="deck-section-title">Draw Pile (${drawNormal.length})</span>
+      <div class="deck-cards">${makeSectionHtml(drawNormal, 'future')}</div>
     </div>
     <div class="deck-section">
-      <span class="deck-section-title">Played — Returns Next Round (${playedPile.length})</span>
-      <div class="deck-cards">${makeSectionHtml(playedPile, 'past')}</div>
+      <span class="deck-section-title">Played — Returns Next Round (${playedNormal.length})</span>
+      <div class="deck-cards">${makeSectionHtml(playedNormal, 'past')}</div>
     </div>
+    ${allJokers.length ? `<div class="deck-section">
+      <span class="deck-section-title">Jokers (${allJokers.length})</span>
+      <div class="deck-cards">${makeJokerSection()}</div>
+    </div>` : ''}
   `;
   document.getElementById('deck-overlay').classList.add('show');
 }
