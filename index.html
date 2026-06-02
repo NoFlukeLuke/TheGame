@@ -3158,7 +3158,7 @@
 </div>
 
 <script>
-const BUILD = '2026-06-02 · r19';
+const BUILD = '2026-06-02 · r20';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -4341,7 +4341,7 @@ function exaltCorruptTotals(cards) {
   return { pips, mult, coins, time };
 }
 
-function calcScore(handName, cells) {
+function calcScore(handName, cells, contrib = null) {
   const base = HAND_BASE[handName];
   if (!base) return 0;
   const cards = cells.map(([r,c]) => gridData[r][c]);
@@ -4354,96 +4354,108 @@ function calcScore(handName, cells) {
   // Rising Tide: +1 base mult per level
   const risingTideBonus = hasBonus('rising_tide') ? (level - 1) : 0;
 
+  // ── contrib tracking: accumulate per-BC pip/mult deltas ──
+  const _cp = contrib !== null ? {} : null;
+  const _cm = contrib !== null ? {} : null;
+  const bPip  = (id, d) => { if (_cp !== null && d) _cp[id] = (_cp[id]||0)+d; };
+  const bMult = (id, d) => { if (_cm !== null && d) _cm[id] = (_cm[id]||0)+d; };
+
   // Process cards sequentially so Knave Power can multiply running total
   cells.forEach(([r, c]) => {
     const card = gridData[r][c];
     const baseRank = card.rank;
-    let rawPips = hasBonus('face_value') && ['J','Q','K'].includes(baseRank) ? 15 : cardPips(baseRank);
-    if (hasBonus('humble_roots') && rawPips < 6) rawPips *= 3;
-    if (hasBonus('high_card_pips') && handName === 'High Card') rawPips *= level;
+    const _origPips = cardPips(baseRank);
+    let rawPips = hasBonus('face_value') && ['J','Q','K'].includes(baseRank) ? 15 : _origPips;
+    bPip('face_value', rawPips - _origPips);
+    if (hasBonus('humble_roots') && rawPips < 6) { const _b = rawPips; rawPips *= 3; bPip('humble_roots', rawPips - _b); }
+    if (hasBonus('high_card_pips') && handName === 'High Card') { const _b = rawPips; rawPips *= level; bPip('high_card_pips', rawPips - _b); }
     let cp = rawPips;
-    if (hasBonus('rich_soil')) cp += 1;
-    if (hasBonus('fertile_ground')) cp += 3;
-    if (hasBonus('court_of_leaves') && ['J','Q','K'].includes(baseRank)) cp += 3;
-    if (hasBonus('before_the_tide') && cardPips(baseRank) < 6) cp += cardPips(baseRank) * 5; // 6× total (1× base + 5×)
-    else if (hasBonus('low_tide') && cardPips(baseRank) < 6) cp += 6;
-    if (hasBonus('first_light') && baseRank === 'A') cp += 5;
-    cp += (permPips[cardKey(card.rank, card.suit)] || 0);
+    if (hasBonus('rich_soil')) { cp += 1; bPip('rich_soil', 1); }
+    if (hasBonus('fertile_ground')) { cp += 3; bPip('fertile_ground', 3); }
+    if (hasBonus('court_of_leaves') && ['J','Q','K'].includes(baseRank)) { cp += 3; bPip('court_of_leaves', 3); }
+    if (hasBonus('before_the_tide') && cardPips(baseRank) < 6) { const _a = cardPips(baseRank) * 5; cp += _a; bPip('before_the_tide', _a); }
+    else if (hasBonus('low_tide') && cardPips(baseRank) < 6) { cp += 6; bPip('low_tide', 6); }
+    if (hasBonus('first_light') && baseRank === 'A') { cp += 5; bPip('first_light', 5); }
+    const _pp = permPips[cardKey(card.rank, card.suit)] || 0;
+    cp += _pp;
+    bPip('sapling', _pp);
     // Row/col triple pips — applies after all other pip bonuses
     if (cellHasRowColBonus(r, c, 'rowcol_triple_pips')) cp *= 3;
     totalPips += cp;
-    if (hasBonus('knave_power') && baseRank === 'J') totalPips *= 2;
+    if (hasBonus('knave_power') && baseRank === 'J') { const _b = totalPips; totalPips *= 2; bPip('knave_power', totalPips - _b); }
   });
 
   // Hidden pair bonus
   const rankCounts = {};
   cards.forEach(c => rankCounts[c.rank] = (rankCounts[c.rank]||0)+1);
   const hasPairInHand = Object.values(rankCounts).some(v => v >= 2);
-  if (hasBonus('hidden_pair') && hasPairInHand) totalPips += 10;
+  if (hasBonus('hidden_pair') && hasPairInHand) { totalPips += 10; bPip('hidden_pair', 10); }
 
   // Early bird / night owl
-  if (hasBonus('early_bird') && roundSeconds > 50) totalPips += 20;
+  if (hasBonus('early_bird') && roundSeconds > 50) { totalPips += 20; bPip('early_bird', 20); }
 
   // Kindling streak
-  if (hasBonus('kindling') && streakCount > 0) totalPips += 4 * streakCount;
+  if (hasBonus('kindling') && streakCount > 0) { const _a = 4 * streakCount; totalPips += _a; bPip('kindling', _a); }
 
-  // ♣ Clubs → +5 pips each (+10 with Hard Labour)
+  // Clubs: +5 pips each (+10 with Hard Labour)
   const clubCount = cards.filter(c => c.suit === '♣' || (c.combined && c.suit2 === '♣')).length;
   totalPips += clubCount * (hasBonus('club_double') ? 10 : 5);
 
-  // Spade Flood: all-♠ hand of 4+ adds roundSeconds × 2 as pips
+  // Spade Flood: all-Spade hand of 4+ adds roundSeconds x 2 as pips
   const allSpadesCalc = cards.length >= 4 && cards.every(c => c.suit === '♠' || (c.combined && c.suit2 === '♠'));
-  if (hasBonus('spade_flood') && allSpadesCalc) totalPips += roundSeconds * 2;
+  if (hasBonus('spade_flood') && allSpadesCalc) { const _a = roundSeconds * 2; totalPips += _a; bPip('spade_flood', _a); }
 
-  // Sands of Time: remaining round seconds ÷ 2 as bonus pips
-  if (hasBonus('sands_of_time')) totalPips += Math.floor(roundSeconds / 2);
+  // Sands of Time: remaining round seconds / 2 as bonus pips
+  if (hasBonus('sands_of_time')) { const _a = Math.floor(roundSeconds / 2); totalPips += _a; bPip('sands_of_time', _a); }
 
   // Compost: +3 pips per card discarded this round
-  if (hasBonus('discard_pips')) totalPips += cardsDiscardedRound * 3;
+  if (hasBonus('discard_pips')) { const _a = cardsDiscardedRound * 3; totalPips += _a; bPip('discard_pips', _a); }
 
   // Penny Saved: accumulated bonus pips from discarded 5s
-  if (hasBonus('fives_discard')) totalPips += bonusMult_fives;
+  if (hasBonus('fives_discard')) { totalPips += bonusMult_fives; bPip('fives_discard', bonusMult_fives); }
 
-  // Trinity Run: runs containing 3, 6, or 9 get +9 mult (added to mult section below)
+  // Trinity Run: +9 mult for runs with 3/6/9 (added to mult section below)
   const hasTrinityRank = (['Run of 3','Run of 4','Straight','Straight Flush'].includes(handName)) &&
     cards.some(c => ['3','6','9'].includes(c.rank));
 
   // 2. Base mult + bonuses
   let mult = base.mult;
 
-  if (risingTideBonus > 0) mult += risingTideBonus;
-  if (hasBonus('steady_pace')) mult += 1;
-  if (hasBonus('momentum') && (Date.now() - lastHandTime) < 5000) mult += 2;
-  if (hasBonus('night_owl') && roundSeconds < 10) mult += 3;
-  if (hasBonus('wildfire') && streakCount >= 2) mult += 2;
+  if (risingTideBonus > 0) { mult += risingTideBonus; bMult('rising_tide', risingTideBonus); }
+  if (hasBonus('steady_pace')) { mult += 1; bMult('steady_pace', 1); }
+  if (hasBonus('momentum') && (Date.now() - lastHandTime) < 5000) { mult += 2; bMult('momentum', 2); }
+  if (hasBonus('night_owl') && roundSeconds < 10) { mult += 3; bMult('night_owl', 3); }
+  if (hasBonus('wildfire') && streakCount >= 2) { mult += 2; bMult('wildfire', 2); }
   if (hasBonus('still_water') && lastSwapTime === 0) {
     // No swap used this round — +5 mult per 10s elapsed in round
     const elapsed = ROUND_DURATION - roundSeconds;
-    mult += 5 * Math.floor(elapsed / 10);
+    const _a = 5 * Math.floor(elapsed / 10);
+    mult += _a; bMult('still_water', _a);
   } else if (hasBonus('still_water') && lastSwapTime > 0) {
     // Swap was used — count seconds since last swap
     const secsSinceSwap = Math.floor((Date.now() - lastSwapTime) / 1000);
-    mult += 5 * Math.floor(secsSinceSwap / 10);
+    const _a = 5 * Math.floor(secsSinceSwap / 10);
+    mult += _a; bMult('still_water', _a);
   }
 
   // Hand-specific mult
   if (handName === 'Run of 3') {
-    if (hasBonus('deep_roots')) mult += 1;
-    if (hasBonus('overgrowth')) mult += 2;
+    if (hasBonus('deep_roots')) { mult += 1; bMult('deep_roots', 1); }
+    if (hasBonus('overgrowth')) { mult += 2; bMult('overgrowth', 2); }
   }
   if (handName === 'Three of a Kind') {
-    if (hasBonus('kindred')) mult += 1;
+    if (hasBonus('kindred')) { mult += 1; bMult('kindred', 1); }
   }
   const isRun = ['Run of 3','Run of 4','Straight','Straight Flush'].includes(handName);
-  if (hasBonus('long_road') && isRun) mult += 2 * cells.length;
+  if (hasBonus('long_road') && isRun) { const _a = 2 * cells.length; mult += _a; bMult('long_road', _a); }
   if (handName === 'Flush') {
-    if (hasBonus('tidal_force')) mult += 4;
+    if (hasBonus('tidal_force')) { mult += 4; bMult('tidal_force', 4); }
   }
   if (handName === 'Four of a Kind') {
-    if (hasBonus('rare_bloom')) mult += 12;
+    if (hasBonus('rare_bloom')) { mult += 12; bMult('rare_bloom', 12); }
   }
-  if (handName === 'Two Pair' && hasBonus('two_pair_mult')) mult += 10;
-  if (handName === 'High Card' && hasBonus('high_card_mult')) mult += level * 2;
+  if (handName === 'Two Pair' && hasBonus('two_pair_mult')) { mult += 10; bMult('two_pair_mult', 10); }
+  if (handName === 'High Card' && hasBonus('high_card_mult')) { const _a = level * 2; mult += _a; bMult('high_card_mult', _a); }
 
   // Row/col +2 mult per affected card
   cells.forEach(([r, c]) => {
@@ -4455,28 +4467,32 @@ function calcScore(handName, cells) {
   if (hasBonus('shape_line') && isStraightLine(cells)) {
     const firstPips = cardPips(gridData[cells[0][0]][cells[0][1]].rank);
     const lastPips  = cardPips(gridData[cells[cells.length-1][0]][cells[cells.length-1][1]].rank);
-    mult += firstPips + lastPips;
+    const _a = firstPips + lastPips; mult += _a; bMult('shape_line', _a);
   }
 
   // Shape: snake — +2 mult per card
-  if (hasBonus('shape_snake') && isSnake(cells)) mult += cells.length * 2;
+  if (hasBonus('shape_snake') && isSnake(cells)) { const _a = cells.length * 2; mult += _a; bMult('shape_snake', _a); }
 
   // Batch C — positional conditions
-  if (hasBonus('edge_pips') && isOnEdge(cells)) totalPips += cells.length * 15;
+  if (hasBonus('edge_pips') && isOnEdge(cells)) { const _a = cells.length * 15; totalPips += _a; bPip('edge_pips', _a); }
   const { rowSpan, colSpan } = spanStats(cells);
   if (hasBonus('wide_span_mult')) {
     if (colSpan >= 4) mult += 24;
     if (rowSpan >= 4) mult += 24;
     mult += Math.max(0, colSpan - 1) * 5;
     totalPips += Math.max(0, rowSpan - 1) * 20;
+    bPip('wide_span_mult', Math.max(0, rowSpan - 1) * 20);
+    bMult('wide_span_mult', (colSpan >= 4 ? 24 : 0) + (rowSpan >= 4 ? 24 : 0) + Math.max(0, colSpan - 1) * 5);
   }
 
   // Perm mult
   cards.forEach(card => {
-    mult += (permMult[cardKey(card.rank, card.suit)] || 0);
+    const _pm = permMult[cardKey(card.rank, card.suit)] || 0;
+    mult += _pm;
+    bMult('perm_mult', _pm);
   });
 
-  // ♥ Hearts → +0.5 mult each (+1 with Devoted)
+  // Hearts: +0.5 mult each (+1 with Devoted)
   const heartCount = cards.filter(c => c.suit === '♥' || (c.combined && c.suit2 === '♥')).length;
   mult += heartCount * (hasBonus('heart_double') ? 1 : 0.5);
 
@@ -4487,13 +4503,13 @@ function calcScore(handName, cells) {
   if (mult < 1) mult = 1; // corruption can't drop mult below 1
 
   // Trinity Run: +9 mult for runs with 3/6/9
-  if (hasBonus('threes_run') && hasTrinityRank) mult += 9;
+  if (hasBonus('threes_run') && hasTrinityRank) { mult += 9; bMult('threes_run', 9); }
 
   // Cloud Nine: accumulated mult from forgotten 9s
-  if (hasBonus('nines_mult')) mult += bonusMult_nines;
+  if (hasBonus('nines_mult')) { mult += bonusMult_nines; bMult('nines_mult', bonusMult_nines); }
 
   // Perfect Ten: accumulated mult from discard milestones
-  if (hasBonus('tens_mult')) mult += bonusMult_tens;
+  if (hasBonus('tens_mult')) { mult += bonusMult_tens; bMult('tens_mult', bonusMult_tens); }
 
   // 3. Base score
   // Capture pre-focus mult so the score dance can show the focus beat separately
@@ -4502,7 +4518,7 @@ function calcScore(handName, cells) {
   const fMult = focusMultiplier();
   // Flow State: +10 pips per card scored while focus mult >= 1.5
   if (hasBonus('flow_state') && fMult >= 1.5) {
-    totalPips += 10 * cards.length;
+    const _a = 10 * cards.length; totalPips += _a; bPip('flow_state', _a);
   }
   if (fMult > 1) {
     mult = Math.round(mult * fMult * 10) / 10;
@@ -4513,7 +4529,7 @@ function calcScore(handName, cells) {
 
   let s = totalPips * mult;
 
-  // 4. ×score multipliers
+  // 4. x score multipliers
   if (handName === 'Sandwich' && hasBonus('rye_bread')) s *= 2;
   if (hasBonus('echo_hand') && streakCount >= 2) s *= 1.5;
   if (handName === 'Full House' && hasBonus('full_house_streak') && fullHouseThisRound > 0) s *= Math.pow(1.5, fullHouseThisRound);
@@ -4542,7 +4558,7 @@ function calcScore(handName, cells) {
   if (hasBonus('lucky_sevens') && cards.some(c=>c.rank==='7')) s *= 2;
   if (hasBonus('ninesong') && totalPips % 9 === 0) s *= 3;
   if (pipeTimerPaused && hasBonus('frozen_moment')) s *= 2;
-  // ── Shape bonuses ──
+  // Shape bonuses
   if (hasBonus('shape_square') && isSquare(cells)) s *= 4;
   if (hasBonus('shape_cross')  && isCross(cells))  s *= 3;
   if (hasBonus('two_corners')  && cornerCells(cells).length >= 2) s *= 4;
@@ -4550,6 +4566,15 @@ function calcScore(handName, cells) {
   if (hasBonus('shape_snake')  && isSnake(cells))  { /* mult added above */ }
 
   if (hasBonusCard) s *= 2;
+
+  // Push accumulated contrib entries (pip then mult, skip zeros)
+  if (contrib !== null) {
+    if (_cp) Object.entries(_cp).forEach(([id, d]) => { if (d > 0) contrib.push({type:'pip',source:'bc',id,delta:d}); });
+    if (_cm) Object.entries(_cm).forEach(([id, d]) => { if (d > 0) contrib.push({type:'mult',source:'bc',id,delta:Math.round(d*10)/10}); });
+    if (clubCount > 0) contrib.push({type:'pip',source:'suit',id:'♣',delta:clubCount*(hasBonus('club_double')?10:5)});
+    if (_ec.pips > 0) contrib.push({type:'pip',source:'exalt',id:'_exalt',delta:_ec.pips});
+    if (_ec.mult > 0) contrib.push({type:'mult',source:'exalt',id:'_exalt',delta:Math.round(_ec.mult*10)/10});
+  }
 
   return Math.round(s);
 }
@@ -6319,20 +6344,17 @@ function collectScoreParticles(handCells, gridEl) {
         sourceType: 'card',
       });
     }
+    // Clubs also emit a pip bonus particle (suit effect: +5 or +10)
+    if (card.suit === '♣' || (card.combined && card.suit2 === '♣')) {
+      const clubBonus = hasBonus('club_double') ? 10 : 5;
+      pip.push({
+        sourceRect: rect,
+        label: '+' + clubBonus,
+        color: '#2255cc',
+        sourceType: 'suit',
+      });
+    }
   });
-
-  // ── 2. BCs on grid: one particle per contributing BC ──
-  // (placeholder — will require calcScore instrumentation to know per-BC contributions)
-  // for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
-  //   const cell = gridData[r][c];
-  //   if (cell && cell._isBC) {
-  //     const bcEl = gridEl.querySelector(`[data-card-id="${cell._id}"]`);
-  //     if (bcEl) { ... }
-  //   }
-  // }
-
-  // ── 3. Totems in UI: one particle per contributing totem ──
-  // (placeholder — same as above)
 
   return { pip, mult };
 }
@@ -6478,6 +6500,58 @@ async function playScoreDance(result, toRemove, isGoalHand = false) {
   const gridEl2 = document.getElementById('grid');
   const particles = collectScoreParticles(handCells, gridEl2);
 
+  const PIP_STAGGER  = 100;
+  const MULT_STAGGER = 120;
+
+  // ── BC/bonus contrib: call calcScore again with a contrib array for breakdown ──
+  const savedPreFocusMult2 = lastPreFocusMult;
+  const bcContrib = [];
+  calcScore(hand, handCells, bcContrib);
+  lastPreFocusMult = savedPreFocusMult2; // restore so focus beat uses correct value
+
+  // Count card-only particles (before BC particles are appended)
+  const cardPipCount  = particles.pip.length;
+  const cardMultCount = particles.mult.length;
+
+  // BC particles start after all card pip particles have been launched
+  const BC_PIP_START  = cardPipCount * PIP_STAGGER + 100;
+  const BC_MULT_START = BC_PIP_START + 150;
+  const BC_STAGGER    = 90;
+  let bcPipIdx = 0;
+  let bcMultIdx = 0;
+
+  // Find BC DOM element on the grid
+  const _findBCEl = id => {
+    for (let r = 0; r < gridRows; r++)
+      for (let c = 0; c < gridCols; c++) {
+        const cell = gridData[r][c];
+        if (cell?._isBC && cell.bonus?.id === id)
+          return gridEl2.querySelector(`[data-card-id="${cell._id}"]`);
+      }
+    return null;
+  };
+
+  bcContrib.forEach(({ type, source, id, delta }) => {
+    if (!delta || delta <= 0) return;
+    let el = null;
+    if (source === 'bc') el = _findBCEl(id);
+    // suit / exalt particles skip (played cards about to be removed)
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    if (type === 'pip') {
+      particles.pip.push({
+        sourceRect: rect, label: '+' + Math.round(delta), color: '#d4a857',
+        sourceType: 'bc', _explicitDelay: BC_PIP_START + bcPipIdx++ * BC_STAGGER,
+      });
+    } else {
+      particles.mult.push({
+        sourceRect: rect, label: '+' + (Number.isInteger(delta) ? delta : delta.toFixed(1)),
+        color: '#b07dea', sourceType: 'bc',
+        _explicitDelay: BC_MULT_START + bcMultIdx++ * BC_STAGGER,
+      });
+    }
+  });
+
   // Save card data and remove cards (skip for goal hands — salute will use cards in place)
   const savedCards = handCells.map(([r,c]) => ({ card: gridData[r][c], r, c }));
   if (!isGoalHand) {
@@ -6507,23 +6581,15 @@ async function playScoreDance(result, toRemove, isGoalHand = false) {
   let runningPips = basePips;
   let runningMult = baseMult;
 
-  const PIP_STAGGER = 100;
-  const MULT_STAGGER = 120;
-
   particles.pip.forEach((p, i) => {
+    const delay = p._explicitDelay !== undefined ? p._explicitDelay : i * PIP_STAGGER;
     flyParticle({
-      sourceRect: p.sourceRect,
-      targetRect: pipsBoxRect,
-      label: p.label,
-      color: p.color,
-      delay: i * PIP_STAGGER,
-      duration: 620,
+      sourceRect: p.sourceRect, targetRect: pipsBoxRect,
+      label: p.label, color: p.color, delay, duration: 620,
       onLand: () => {
-        // Add this particle's value to the running pips count
         const v = parseFloat(p.label.replace(/[+×]/g, '')) || 0;
         runningPips += v;
         pipsValEl.textContent = Math.round(runningPips);
-        // Brief pulse
         pipsValEl.style.animation = 'none'; void pipsValEl.offsetWidth;
         pipsValEl.style.animation = 'val-tick 0.18s ease';
         sfxParticleStep('pip');
@@ -6531,16 +6597,13 @@ async function playScoreDance(result, toRemove, isGoalHand = false) {
     });
   });
 
-  // ── 4. Fire mult particles slightly after pips start ──
-  const multStartDelay = Math.min(particles.pip.length * PIP_STAGGER * 0.5, 400);
+  // ── 4. Fire mult particles slightly after card pips start ──
+  const multStartDelay = Math.min(cardPipCount * PIP_STAGGER * 0.5, 400);
   particles.mult.forEach((m, i) => {
+    const delay = m._explicitDelay !== undefined ? m._explicitDelay : (multStartDelay + i * MULT_STAGGER);
     flyParticle({
-      sourceRect: m.sourceRect,
-      targetRect: multBoxRect,
-      label: m.label,
-      color: m.color,
-      delay: multStartDelay + i * MULT_STAGGER,
-      duration: 560,
+      sourceRect: m.sourceRect, targetRect: multBoxRect,
+      label: m.label, color: m.color, delay, duration: 560,
       onLand: () => {
         const v = parseFloat(m.label.replace(/[+×]/g, '')) || 0;
         runningMult += v;
@@ -6552,9 +6615,11 @@ async function playScoreDance(result, toRemove, isGoalHand = false) {
     });
   });
 
-  // ── 5. Score ticker — starts with first pip particle (or after focus beat if active) ──
-  const pipParticleEnd  = particles.pip.length  * PIP_STAGGER + 520;
-  const multParticleEnd = multStartDelay + particles.mult.length * MULT_STAGGER + 480;
+  // ── 5. Score ticker — uses the latest particle land time (card + BC particles) ──
+  const _lastPipDelay  = particles.pip.reduce( (mx, p, i) => Math.max(mx, p._explicitDelay !== undefined ? p._explicitDelay : i * PIP_STAGGER), 0);
+  const _lastMultDelay = particles.mult.reduce((mx, m, i) => Math.max(mx, m._explicitDelay !== undefined ? m._explicitDelay : (multStartDelay + i * MULT_STAGGER)), 0);
+  const pipParticleEnd  = _lastPipDelay  + 620;
+  const multParticleEnd = _lastMultDelay + 480;
   const lastLand        = Math.max(pipParticleEnd, multParticleEnd);
 
   // Focus beat: if focus multiplier is active, hold the score ticker until after
