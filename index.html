@@ -3024,6 +3024,37 @@
   .ec-cost   { font-size:10px; color:var(--red); margin-top:4px; }
   .ec-tag    { display:inline-block; font-size:8px; letter-spacing:1px; padding:1px 5px; border-radius:3px; background:rgba(201,168,76,0.12); color:var(--gold-dim); margin-top:4px; margin-right:3px; }
 
+  /* ── BC Lose Picker Overlay ── */
+  #bc-lose-picker {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.95);
+    z-index: 500;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 36px 20px 24px;
+    overflow-y: auto;
+    gap: 0;
+  }
+  #bc-lose-picker.show { display: flex; }
+  #blp-title { font-family:'Cinzel',serif; font-size:22px; font-weight:900; color:var(--red); letter-spacing:3px; text-align:center; margin-bottom:6px; }
+  #blp-sub   { font-size:12px; color:var(--cream-dim); font-family:'Crimson Pro',serif; text-align:center; margin-bottom:20px; }
+  #blp-list  { display:flex; flex-direction:column; gap:8px; width:100%; max-width:360px; }
+  #blp-actions { margin-top:20px; }
+  .blp-item {
+    width:100%; box-sizing:border-box;
+    background:linear-gradient(160deg,#1a0e0e,#0e0606);
+    border:2px solid var(--border); border-radius:8px; padding:12px 14px;
+    cursor:pointer; transition:all 0.14s; text-align:left;
+    font-family:'Cinzel',serif; color:var(--cream); user-select:none;
+  }
+  .blp-item:hover  { border-color:var(--red); }
+  .blp-item.selected { border-color:var(--red); box-shadow:0 0 14px rgba(192,57,43,0.45); }
+  .blp-item-name  { font-size:12px; letter-spacing:1px; color:var(--cream); }
+  .blp-item-tier  { font-size:8px; letter-spacing:1.5px; color:var(--gold-dim); text-transform:uppercase; margin-bottom:3px; }
+  .blp-item-desc  { font-size:11px; color:var(--cream-dim); font-family:'Crimson Pro',serif; margin-top:4px; line-height:1.4; }
+
   /* Confluence theme buttons */
   .event-theme-row { display:flex; gap:8px; width:100%; justify-content:center; flex-wrap:wrap; }
   .event-theme-btn {
@@ -3197,6 +3228,16 @@
   </div>
 </div>
 
+<!-- BC LOSE PICKER OVERLAY -->
+<div id="bc-lose-picker">
+  <div id="blp-title">CHOOSE A BONUS CARD TO LOSE</div>
+  <div id="blp-sub">Select one — it will be removed permanently.</div>
+  <div id="blp-list"></div>
+  <div id="blp-actions">
+    <button id="blp-confirm" disabled onclick="confirmBCLosePicker()">Remove Selected</button>
+  </div>
+</div>
+
 <!-- EVENT OVERLAY (all node events render here) -->
 <div id="event-overlay">
   <div id="event-eyebrow">EVENT</div>
@@ -3265,7 +3306,7 @@
 </div>
 
 <script>
-const BUILD = '2026-06-04 · r30';
+const BUILD = '2026-06-04 · r31';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -8237,7 +8278,7 @@ function generateRewardContent() {
   ];
   const debuffs = [
     { icon: '☠', label: '-1 Discard',    tier: 'penalty', apply: () => { discards = Math.max(0, discards - 1); render(); } },
-    { icon: '✖', label: 'Lose Random BC',tier: 'penalty', apply: applyRewardLoseBC },
+    { icon: '✖', label: 'Lose a BC',      tier: 'penalty', apply: applyRewardLoseBC },
     { icon: '☁', label: '-5s Round',     tier: 'penalty', apply: () => { roundSeconds = Math.max(1, roundSeconds - 5); updateClockUI(); } },
   ];
   const destOptions = [
@@ -8365,26 +8406,65 @@ function applyRewardRandomBC() {
   injectBCAfterReward(pick);
 }
 function applyRewardLoseBC() {
+  // Collect all current BCs — either from tray or grid
+  let options = [];
   if (bcTrayMode) {
-    if (bcTray.length === 0) { showMessage('No BCs to lose', 'var(--cream-dim)'); return; }
-    const lost = bcTray.splice(Math.floor(Math.random() * bcTray.length), 1)[0];
-    const idx = acquiredBonuses.findIndex(b => b.id === lost.id);
-    if (idx >= 0) acquiredBonuses.splice(idx, 1);
-    showMessage(`- ${lost.name}`, 'var(--red)');
-    renderBCTray();
-    return;
+    options = bcTray.map((bonus, idx) => ({ bonus, source: 'tray', idx }));
+  } else {
+    for (let r = 0; r < gridRows; r++)
+      for (let c = 0; c < gridCols; c++)
+        if (gridData[r]?.[c]?._isBC) options.push({ bonus: gridData[r][c].bonus, source: 'grid', r, c });
   }
-  // Remove a random BC card from the grid
-  const bcCells = [];
-  for (let r = 0; r < gridRows; r++)
-    for (let c = 0; c < gridCols; c++)
-      if (gridData[r]?.[c]?._isBC) bcCells.push([r, c]);
-  if (bcCells.length === 0) { showMessage('No BCs to lose', 'var(--cream-dim)'); return; }
-  const [r, c] = bcCells[Math.floor(Math.random() * bcCells.length)];
-  const lost = gridData[r][c].bonus;
-  gridData[r][c] = null;
-  showMessage(`- ${lost.name}`, 'var(--red)');
-  render();
+  if (options.length === 0) { showMessage('No BCs to lose', 'var(--cream-dim)'); return; }
+  openBCLosePicker(options);
+}
+
+let _blpOptions   = [];
+let _blpSelected  = -1;
+
+function openBCLosePicker(options) {
+  _blpOptions  = options;
+  _blpSelected = -1;
+  const list = document.getElementById('blp-list');
+  list.innerHTML = '';
+  options.forEach((opt, i) => {
+    const el = document.createElement('div');
+    el.className = 'blp-item';
+    el.innerHTML = `<div class="blp-item-tier">${opt.bonus.tier || 'common'}</div>`
+                 + `<div class="blp-item-name">${opt.bonus.name}</div>`
+                 + `<div class="blp-item-desc">${opt.bonus.desc || ''}</div>`;
+    el.addEventListener('click', () => selectBLPItem(i));
+    list.appendChild(el);
+  });
+  document.getElementById('blp-confirm').disabled = true;
+  document.getElementById('bc-lose-picker').classList.add('show');
+}
+
+function selectBLPItem(i) {
+  _blpSelected = i;
+  document.querySelectorAll('.blp-item').forEach((el, idx) => el.classList.toggle('selected', idx === i));
+  document.getElementById('blp-confirm').disabled = false;
+}
+
+function confirmBCLosePicker() {
+  if (_blpSelected < 0) return;
+  const opt = _blpOptions[_blpSelected];
+  if (!opt) return;
+  document.getElementById('bc-lose-picker').classList.remove('show');
+
+  if (opt.source === 'tray') {
+    bcTray.splice(opt.idx, 1);
+    const ai = acquiredBonuses.findIndex(b => b.id === opt.bonus.id);
+    if (ai >= 0) acquiredBonuses.splice(ai, 1);
+    showMessage(`- ${opt.bonus.name}`, 'var(--red)');
+    renderBCTray();
+  } else {
+    gridData[opt.r][opt.c] = null;
+    const ai = acquiredBonuses.findIndex(b => b.id === opt.bonus.id);
+    if (ai >= 0) acquiredBonuses.splice(ai, 1);
+    showMessage(`- ${opt.bonus.name}`, 'var(--red)');
+    render();
+  }
 }
 function applyRewardPipsCard() {
   const cells = [];
