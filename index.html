@@ -3260,7 +3260,7 @@
 </div>
 
 <script>
-const BUILD = '2026-06-04 · r28';
+const BUILD = '2026-06-04 · r29';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -3537,8 +3537,8 @@ const BONUS_POOL = [
   { id:'perfect_storm',  name:'Perfect Storm',       tier:'legendary', desc:'Straight Flush ×5 score' },
   { id:'rye_bread',      name:'Rye Bread',           tier:'rare',      desc:'Sandwich ×2 score' },
   { id:'sandwich_fill',  name:'Sandwich Artist',     tier:'common',    desc:'Sandwich hands score +4 pips per card' },
-  { id:'high_card_mult', name:'Lone Wolf',           tier:'common',    desc:'High Card scores +(level × 2) mult' },
-  { id:'high_card_pips', name:'Underdog',            tier:'rare',      desc:'High Card: card pips × level' },
+  { id:'summit',     name:'Summit',     tier:'common', desc:'The highest-ranking card in each hand scores +(level x 4) pips.' },
+  { id:'last_stand', name:'Last Stand', tier:'rare',   desc:'If your score is below the round goal when you play, that hand scores x2.' },
   { id:'light_touch',    name:'Nimble',              tier:'common',    desc:'2-card hands score +5 mult' },
   { id:'heavy_hand',     name:'Full Load',           tier:'rare',      desc:'5-card hands score +6 pips per card' },
   { id:'blackjack_bonus', name:'Twenty-One',         tier:'legendary', desc:'If the face values of your cards total exactly 21, score ×3' },
@@ -3835,7 +3835,7 @@ let handsPendingUnlock = []; // queue of hands to show unlock screen for
 const C = {
   run3: 0, run4: 0, sandwich: 0, pair: 0, twopair: 0,
   threeofakind: 0, fourofakind: 0, straight: 0, flush: 0,
-  fullhouse: 0, straightflush: 0, highcard: 0, blackjack: 0,
+  fullhouse: 0, straightflush: 0, blackjack: 0,
   flow3: 0, flow4: 0,
   // card value counters
   twos: 0, fours: 0, aces: 0, faces: 0, hearts: 0,
@@ -4524,6 +4524,8 @@ function calcScore(handName, cells, contrib = null) {
   const bMult = (id, d) => { if (_cm !== null && d) _cm[id] = (_cm[id]||0)+d; };
 
   // Process cards sequentially so Knave Power can multiply running total
+  const _handMaxRankVal = hasBonus('summit')
+    ? Math.max(...cells.map(([_r,_c]) => RANK_ORDER[gridData[_r][_c]?.rank] || 0)) : -1;
   cells.forEach(([r, c]) => {
     const card = gridData[r][c];
     const baseRank = card.rank;
@@ -4531,7 +4533,7 @@ function calcScore(handName, cells, contrib = null) {
     let rawPips = hasBonus('face_value') && ['J','Q','K'].includes(baseRank) ? 15 : _origPips;
     bPip('face_value', rawPips - _origPips);
     if (hasBonus('humble_roots') && rawPips < 6) { const _b = rawPips; rawPips *= 3; bPip('humble_roots', rawPips - _b); }
-    if (hasBonus('high_card_pips') && handName === 'High Card') { const _b = rawPips; rawPips *= level; bPip('high_card_pips', rawPips - _b); }
+    if (hasBonus('summit') && (RANK_ORDER[baseRank] || 0) === _handMaxRankVal) { const _b = level * 4; rawPips += _b; bPip('summit', _b); }
     let cp = rawPips;
     if (hasBonus('rich_soil')) { cp += 2; bPip('rich_soil', 2); }
     if (hasBonus('fertile_ground')) { cp += 3; bPip('fertile_ground', 3); }
@@ -4640,7 +4642,6 @@ function calcScore(handName, cells, contrib = null) {
     if (hasBonus('rare_bloom')) { mult += 12; bMult('rare_bloom', 12); }
   }
   if (handName === 'Two Pair' && hasBonus('two_pair_mult')) { mult += 5; bMult('two_pair_mult', 5); }
-  if (handName === 'High Card' && hasBonus('high_card_mult')) { const _a = level * 2; mult += _a; bMult('high_card_mult', _a); }
 
   // Row/col +2 mult per affected card
   cells.forEach(([r, c]) => {
@@ -4781,6 +4782,7 @@ function calcScore(handName, cells, contrib = null) {
 
   // 4. x score multipliers
   if (handName === 'Sandwich' && hasBonus('rye_bread')) s *= 2;
+  if (hasBonus('last_stand') && score < roundGoal) s *= 2;
   if (hasBonus('echo_hand') && streakCount >= 2) s *= 1.5;
   if (handName === 'Full House' && hasBonus('full_house_streak') && fullHouseThisRound > 0) s *= Math.pow(1.5, fullHouseThisRound);
   // Blackjack: raw face values total exactly 21
@@ -5649,8 +5651,8 @@ function doSwap(r1, c1, r2, c2) {
   const notAdjacent = Math.abs(r1-r2) + Math.abs(c1-c2) !== 1;
   if (notAdjacent && !hasBonus('free_range')) {
     const btn = document.getElementById('btn-swap');
-    btn.style.borderColor = 'var(--red)'; btn.style.color = 'var(--red)';
-    setTimeout(() => { btn.style.borderColor = ''; btn.style.color = ''; }, 500);
+    if (btn) { btn.style.borderColor = 'var(--red)'; btn.style.color = 'var(--red)';
+      setTimeout(() => { btn.style.borderColor = ''; btn.style.color = ''; }, 500); }
     swapPending = null;
     render();
     return;
@@ -7303,6 +7305,8 @@ async function removeAndFall(removingCells, mode = 'play') {
   const challengeKey = challengeCard ? `${challengeCard.pos[0]}-${challengeCard.pos[1]}` : null;
   removingCells = removingCells.filter(([r,c]) => `${r}-${c}` !== challengeKey);
   const removing = new Set(removingCells.map(([r,c])=>`${r}-${c}`));
+  // Clear swap mode if the pending card is about to be removed
+  if (swapPending && removing.has(`${swapPending[0]}-${swapPending[1]}`)) swapPending = null;
 
   // Only play mode routes cards to the played pile.
   // Discard mode: the caller (doDiscard) already pushed cards to the back of the draw pile.
@@ -8251,9 +8255,10 @@ function generateRewardContent() {
   function makeJokerPayload() {
     const eligible = JOKER_POOL.filter(j => !grantedJokerIds.has(j.id));
     if (!eligible.length) return makeBCPayload(); // fallback
-    const pick = eligible[Math.floor(Math.random() * eligible.length)];
+    const [pick] = pickJokerByRarity(1, grantedJokerIds);
+    if (!pick) return makeBCPayload();
     return {
-      icon: pick.emoji || '🃏', label: pick.name, desc: pick.desc, tier: pick.rarity || 'rare',
+      icon: pick.emoji || '\u{1F0CF}', label: pick.name, desc: pick.desc, tier: pick.rarity || 'rare',
       apply: () => grantJoker(pick)
     };
   }
@@ -10711,8 +10716,7 @@ function bcLiveDesc(bonus) {
     case 'nines_mult':     return base + (bonusMult_nines  > 0 ? ` [now: +${bonusMult_nines} mult]`  : '');
     case 'tens_mult':      return base + (bonusMult_tens   > 0 ? ` [now: +${bonusMult_tens} mult]`   : '');
     case 'sapling':        return `Each level, 3 random cards permanently gain +2 pips. [${level - 1} levels applied]`;
-    case 'high_card_mult': return `High Card scores +(level × 2) mult. [now: +${level * 2} mult]`;
-    case 'high_card_pips': return `High Card: card pips × level. [now: ×${level}]`;
+    case 'summit':     return `The highest-ranking card in each hand scores +(level x 4) pips. [now: +${level * 4} pips]`;
     case 'rising_tide':    return `Base mult increases by +1 for each level reached. [now: +${level - 1} mult]`;
     case 'compound_mult':  return base + (bonusMult_compound > 0 ? ` [now: +${bonusMult_compound.toFixed(1)} mult]` : '');
     case 'prolific':       return base + (bonusPips_prolific > 0 ? ` [now: +${bonusPips_prolific} pips]` : '');
@@ -11156,21 +11160,90 @@ function shopLimitPrice(def) {
   return SHOP_LIMIT_BASE + (limits[def.id].current - limits[def.id].base) * 5;
 }
 
+// Picks `count` jokers using weighted rarity tiers: common 60%, rare 28%, epic 10%, legendary 2%.
+// Cascades to lower rarity if the rolled tier has no available jokers.
+function pickJokerByRarity(count, excluded) {
+  const TIER_ORDER   = ['common', 'rare', 'epic', 'legendary'];
+  const TIER_WEIGHTS = [60, 28, 10, 2];
+  const result = [];
+  const usedIds = new Set(excluded);
+  for (let i = 0; i < count; i++) {
+    const pool = JOKER_POOL.filter(j => !usedIds.has(j.id));
+    if (!pool.length) break;
+    const roll = Math.random() * 100;
+    let cum = 0, targetIdx = 0;
+    for (let ti = 0; ti < TIER_WEIGHTS.length; ti++) {
+      cum += TIER_WEIGHTS[ti];
+      if (roll < cum) { targetIdx = ti; break; }
+    }
+    let pick = null;
+    for (let ti = targetIdx; ti >= 0 && !pick; ti--) {
+      const tp = pool.filter(j => j.rarity === TIER_ORDER[ti]);
+      if (tp.length) pick = tp[Math.floor(Math.random() * tp.length)];
+    }
+    if (!pick) pick = pool[Math.floor(Math.random() * pool.length)];
+    result.push(pick);
+    usedIds.add(pick.id);
+  }
+  return result;
+}
+
+function _grantedJokerSet() {
+  const s = new Set();
+  [...drawPile, ...playedPile].forEach(c => { if (c._isJoker) s.add(c.jokerId); });
+  for (let r = 0; r < gridRows; r++)
+    for (let c = 0; c < gridCols; c++)
+      if (gridData[r]?.[c]?._isJoker) s.add(gridData[r][c].jokerId);
+  return s;
+}
+
 function generateShopItems() {
   const ownedBcIds    = new Set(acquiredBonuses.map(b => b.id));
   const ownedTotemIds = new Set(acquiredTotems.map(t => t.id));
-  const grantedJokers = new Set();
-  [...drawPile, ...playedPile].forEach(c => { if (c._isJoker) grantedJokers.add(c.jokerId); });
-  for (let r = 0; r < gridRows; r++)
-    for (let c = 0; c < gridCols; c++)
-      if (gridData[r]?.[c]?._isJoker) grantedJokers.add(gridData[r][c].jokerId);
+  const grantedJokers = _grantedJokerSet();
 
   const bcs    = shuffle(BONUS_POOL.filter(b => !ownedBcIds.has(b.id))).slice(0, 3);
   const lims   = shuffle(LIMITS_DEF.filter(d => limits[d.id].current < limits[d.id].max)).slice(0, 2);
   const totems = shuffle(TOTEM_POOL.filter(t => !ownedTotemIds.has(t.id))).slice(0, 2);
-  const jokers = shuffle(JOKER_POOL.filter(j => !grantedJokers.has(j.id))).slice(0, 3);
+  const jokers = pickJokerByRarity(3, grantedJokers);
 
   shopItems = { bcs, limits: lims, totems, jokers };
+}
+
+// Reroll: only regenerate unpurchased slots; purchased slots remain as sold.
+function rerollShopItems() {
+  const ownedBcIds    = new Set(acquiredBonuses.map(b => b.id));
+  const ownedTotemIds = new Set(acquiredTotems.map(t => t.id));
+  const grantedJokers = _grantedJokerSet();
+
+  // BCs
+  const usedBcIds = new Set(ownedBcIds);
+  shopItems.bcs.forEach((bc, i) => { if (bc && shopPurchased.has(`bc-${i}`)) usedBcIds.add(bc.id); });
+  const freshBCs = shuffle(BONUS_POOL.filter(b => !usedBcIds.has(b.id)));
+  let bi = 0;
+  shopItems.bcs = shopItems.bcs.map((bc, i) => shopPurchased.has(`bc-${i}`) ? bc : (freshBCs[bi++] || bc));
+
+  // Limits
+  const usedLimIds = new Set();
+  shopItems.limits.forEach((d, i) => { if (d && shopPurchased.has(`limit-${i}`)) usedLimIds.add(d.id); });
+  const freshLims = shuffle(LIMITS_DEF.filter(d => limits[d.id].current < limits[d.id].max && !usedLimIds.has(d.id)));
+  let li = 0;
+  shopItems.limits = shopItems.limits.map((d, i) => shopPurchased.has(`limit-${i}`) ? d : (freshLims[li++] || d));
+
+  // Totems
+  const usedTotIds = new Set(ownedTotemIds);
+  shopItems.totems.forEach((t, i) => { if (t && shopPurchased.has(`totem-${i}`)) usedTotIds.add(t.id); });
+  const freshTots = shuffle(TOTEM_POOL.filter(t => !usedTotIds.has(t.id)));
+  let ti = 0;
+  shopItems.totems = shopItems.totems.map((t, i) => shopPurchased.has(`totem-${i}`) ? t : (freshTots[ti++] || t));
+
+  // Jokers
+  const usedJkIds = new Set(grantedJokers);
+  shopItems.jokers.forEach((j, i) => { if (j && shopPurchased.has(`joker-${i}`)) usedJkIds.add(j.id); });
+  const slotsToFill = shopItems.jokers.filter((_, i) => !shopPurchased.has(`joker-${i}`)).length;
+  const freshJks = pickJokerByRarity(slotsToFill, usedJkIds);
+  let ji = 0;
+  shopItems.jokers = shopItems.jokers.map((j, i) => shopPurchased.has(`joker-${i}`) ? j : (freshJks[ji++] || j));
 }
 
 function triggerShop() {
@@ -11404,7 +11477,7 @@ function doShopReroll() {
     updateCoinsUI();
   }
   shopRerollCount++;
-  generateShopItems();
+  rerollShopItems();
   renderShop();
 }
 
@@ -11743,7 +11816,6 @@ const HAND_DEFS = {
   flush:       { name:'Flush',         key:'flush',       desc:'Five cards of the same suit.' },
   fullhouse:   { name:'Full House',    key:'fullhouse',   desc:'Three of a kind plus a pair.' },
   straightflush:{ name:'Straight Flush',key:'straightflush',desc:'Five cards in sequence, all the same suit.' },
-  highcard:    { name:'High Card',     key:'highcard',    desc:'Any single card. Simple, but sometimes all you need.' },
   blackjack:   { name:'Blackjack',     key:'blackjack',   desc:'Any connected cards whose pip values total exactly 21.' },
 };
 
@@ -11767,7 +11839,7 @@ function updateCounters(hand, handCells) {
     'Pair': 'pair', 'Two Pair': 'twopair', 'Three of a Kind': 'threeofakind',
     'Four of a Kind': 'fourofakind', 'Straight': 'straight', 'Flush': 'flush',
     'Full House': 'fullhouse', 'Straight Flush': 'straightflush',
-    'High Card': 'highcard', 'Blackjack': 'blackjack',
+    'Blackjack': 'blackjack',
   };
   const handKey = handKeyMap[hand];
   if (handKey && C[handKey] !== undefined) C[handKey]++;
@@ -11935,10 +12007,6 @@ const UNLOCK_PROGRESS = [
   { key:'straightflush',name:'Straight Flush',paths:[
     { label:'Flow 3s', cur:()=>C.flow3, goal:5 },
     { label:'Flow 4s', cur:()=>C.flow4, goal:2 },
-  ]},
-  { key:'highcard',     name:'High Card',     paths:[
-    { label:'Aces played', cur:()=>C.aces, goal:25 },
-    { label:'Goal in last second', cur:()=>C.goalInLastSecond?1:0, goal:1 },
   ]},
   { key:'blackjack',    name:'Blackjack',     paths:[
     { label:'Raw pips = 21 (any hand)', cur:()=>'-', goal:1 },
