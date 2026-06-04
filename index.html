@@ -3187,7 +3187,7 @@
 </div>
 
 <script>
-const BUILD = '2026-06-04 · r23';
+const BUILD = '2026-06-04 · r24';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -3824,10 +3824,28 @@ const JOKER_POOL = [
   { id:'fight_power',   name:'Fight the Power',emoji:'⚔️', rarity:'legendary', activation:'passive',    durability:'infinite', defaultRank:null, defaultSuit:null, tags:['boss'],                      desc:'While on the grid, all boss effects are ignored.' },
   { id:'dazed',         name:'Dazed & Confused',emoji:'😵', rarity:'rare',     activation:'on_swap',    durability:'infinite', defaultRank:null, defaultSuit:null, tags:['grid'],                      desc:'When swapped, reshuffles every card on the grid.' },
   { id:'pivot',         name:'Pivot!',         emoji:'🔃', rarity:'common',    activation:'on_swap',    durability:3,          defaultRank:null, defaultSuit:null, tags:['resource','scoring'],        desc:'When swapped, that swap is free and both swapped cards gain +5 mult permanently. (3 charges)' },
+  // ── Play-based ──
+  { id:'echo_play',      name:'Echo',           emoji:'🔁', rarity:'epic',      activation:'on_play',    durability:3,          defaultRank:null, defaultSuit:null, tags:['scoring'],           desc:'Play this in any hand: that hand scores twice. (3 charges)' },
+  { id:'the_naturalist', name:'Naturalist',     emoji:'🌿', rarity:'rare',      activation:'on_play',    durability:'infinite', defaultRank:null, defaultSuit:null, tags:['scoring','pips'],     desc:'Play this: each other scored card permanently gains +2 pips.' },
+  { id:'bellhop',        name:'Bellhop',        emoji:'🛎️', rarity:'common',    activation:'on_play',    durability:5,          defaultRank:null, defaultSuit:null, tags:['resource'],           desc:'Play this: gain +2 swaps and +1 discard. (5 charges)' },
+  // ── Discard-based ──
+  { id:'the_bomb',       name:'Bomb',           emoji:'💣', rarity:'epic',      activation:'on_discard', durability:2,          defaultRank:null, defaultSuit:null, tags:['scoring','pips'],     desc:'Discard this: every card on the grid permanently gains +3 pips. (2 charges)' },
+  { id:'the_legacy',     name:'Legacy',         emoji:'📜', rarity:'rare',      activation:'on_discard', durability:3,          defaultRank:null, defaultSuit:null, tags:['scoring'],           desc:'Discard this: the next hand played scores ×3. (3 charges)' },
+  { id:'cash_out',       name:'Cash Out',       emoji:'💰', rarity:'common',    activation:'on_discard', durability:4,          defaultRank:null, defaultSuit:null, tags:['resource','coins'],   desc:'Discard this: gain 10 coins. (4 charges)' },
+  // ── Swap-based ──
+  { id:'lightning_rod',  name:'Lightning Rod',  emoji:'⚡', rarity:'rare',      activation:'on_swap',    durability:'infinite', defaultRank:null, defaultSuit:null, tags:['scoring','pips'],     desc:'When swapped, the card it traded with permanently gains +5 pips.' },
+  { id:'the_catalyst',   name:'Catalyst',       emoji:'🧪', rarity:'rare',      activation:'on_swap',    durability:'infinite', defaultRank:null, defaultSuit:null, tags:['scoring','mult'],     desc:'When swapped, the card it traded with permanently gains +1 mult.' },
+  { id:'the_wanderer',   name:'Wanderer',       emoji:'🧭', rarity:'common',    activation:'on_swap',    durability:'infinite', defaultRank:null, defaultSuit:null, tags:['resource'],           desc:'When swapped, refunds the swap (+1 swap back).' },
+  // ── Double-tap-based ──
+  { id:'amplifier',      name:'Amplifier',      emoji:'📢', rarity:'common',    activation:'double_tap', durability:5,          defaultRank:null, defaultSuit:null, tags:['scoring','mult'],     desc:'Double-tap: the next hand scores +5 mult. (5 charges)' },
+  { id:'time_keeper',    name:'Time Keeper',    emoji:'⏱️', rarity:'common',    activation:'double_tap', durability:4,          defaultRank:null, defaultSuit:null, tags:['resource','time'],    desc:'Double-tap: add +20 seconds to this round. (4 charges)' },
+  { id:'piggy_bank',     name:'Piggy Bank',     emoji:'🐷', rarity:'common',    activation:'double_tap', durability:5,          defaultRank:null, defaultSuit:null, tags:['resource','coins'],   desc:'Double-tap: gain 5 coins. (5 charges)' },
 ];
 
 // One-shot effect flags consumed by scoring/round logic
-let jokerNextHandDouble = false; // glass_cannon
+let jokerNextHandDouble = false; // Echo: next hand scores twice
+let jokerLegacyMult    = false; // Legacy: next hand ×3
+let jokerAmplifierMult = 0;     // Amplifier: accumulated bonus mult for next hand
 let grantedJokerIds = new Set(); // dedup: tracks which joker IDs have been granted
 
 // Altar effect tracking — investments that pay off over future rounds
@@ -4490,7 +4508,7 @@ function calcScore(handName, cells, contrib = null) {
     cards.some(c => ['3','6','9'].includes(c.rank));
 
   // 2. Base mult + bonuses
-  let mult = base.mult;
+  let mult = base.mult + jokerAmplifierMult;
 
   if (risingTideBonus > 0) { mult += risingTideBonus; bMult('rising_tide', risingTideBonus); }
   if (hasBonus('steady_pace')) { mult += 1; bMult('steady_pace', 1); }
@@ -5881,6 +5899,9 @@ function playHand() {
   console.log('[PLAY] hand result', { hand, finalScore, scoreAfterAdd: score + finalScore });
   const scoreBeforeHand = score;
   score += finalScore;
+  if (jokerNextHandDouble) { score += finalScore; jokerNextHandDouble = false; }
+  if (jokerLegacyMult)     { score += finalScore * 2; jokerLegacyMult = false; } // ×3 total = base + 2× extra
+  if (jokerAmplifierMult) jokerAmplifierMult = 0;
   handsPlayed++;
 
   // Boss objective progress
@@ -8782,6 +8803,22 @@ function fireJokersOnPlay(selectedCells, handCells) {
     if (!def || def.activation !== 'on_play') return;
     // shortcut requires a 4-card hand
     if (def.id === 'shortcut' && handCells.length !== 4) return;
+    // Naturalist: each OTHER scored card permanently gains +2 pips
+    if (def.id === 'the_naturalist') {
+      let buffed = 0;
+      handCells.forEach(([hr, hc]) => {
+        if (hr === r && hc === c) return; // skip the joker itself
+        const hc2 = gridData[hr]?.[hc];
+        if (hc2 && !hc2._isJoker && !hc2._isBC && hc2.rank) {
+          const k = cardKey(hc2.rank, hc2.suit);
+          permPips[k] = (permPips[k] || 0) + 2;
+          buffed++;
+        }
+      });
+      if (buffed > 0) showMessage(`🌿 Naturalist — ${buffed} card${buffed>1?'s':''} +2 pips!`, '#6aaa6a');
+      consumeJokerCharge(card, r, c);
+      return;
+    }
     applyJokerGridEffect(def.id, r, c);
     consumeJokerCharge(card, r, c);
   });
@@ -8789,11 +8826,31 @@ function fireJokersOnPlay(selectedCells, handCells) {
 
 // ── on_swap jokers: fire when a joker is one of the two swapped cells ──
 function fireJokersOnSwap(r1, c1, r2, c2) {
-  [[r1, c1], [r2, c2]].forEach(([r, c]) => {
+  [[r1, c1, r2, c2], [r2, c2, r1, c1]].forEach(([r, c, or2, oc2]) => {
     const card = gridData[r]?.[c];
     if (!card?._isJoker) return;
     const def = jokerDef(card);
     if (!def || def.activation !== 'on_swap') return;
+    if (def.id === 'lightning_rod') {
+      const other = gridData[or2]?.[oc2];
+      if (other && !other._isJoker && !other._isBC && other.rank) {
+        const k = cardKey(other.rank, other.suit);
+        permPips[k] = (permPips[k] || 0) + 5;
+        showMessage('⚡ Lightning Rod — +5 pips!', '#ffd700');
+        render();
+      }
+      consumeJokerCharge(card, r, c); return;
+    }
+    if (def.id === 'the_catalyst') {
+      const other = gridData[or2]?.[oc2];
+      if (other && !other._isJoker && !other._isBC && other.rank) {
+        const k = cardKey(other.rank, other.suit);
+        permMult[k] = (permMult[k] || 0) + 1;
+        showMessage('🧪 Catalyst — +1 perm mult!', '#cc88ff');
+        render();
+      }
+      consumeJokerCharge(card, r, c); return;
+    }
     applyJokerGridEffect(def.id, r, c);
     consumeJokerCharge(card, r, c);
   });
@@ -8823,6 +8880,43 @@ function applyJokerGridEffect(id, r, c) {
     case 'idol':
       // handled in interest calc (round_end); no immediate effect
       break;
+    case 'echo_play':
+      jokerNextHandDouble = true;
+      showMessage('🔁 Echo — next hand scores twice!', '#ffd700'); break;
+    case 'bellhop':
+      swaps += 2; discards = Math.min(99, discards + 1); render();
+      showMessage('🛎️ Bellhop — +2 swaps, +1 discard!', '#ffd700'); break;
+    case 'the_bomb': {
+      let _cnt = 0;
+      for (let _r = 0; _r < gridRows; _r++)
+        for (let _c = 0; _c < gridCols; _c++) {
+          const _card = gridData[_r]?.[_c];
+          if (_card && !_card._isJoker && !_card._isBC && !_card._isStone && _card.rank) {
+            const _k = cardKey(_card.rank, _card.suit);
+            permPips[_k] = (_k in permPips ? permPips[_k] : 0) + 3;
+            _cnt++;
+          }
+        }
+      showMessage(`💣 Bomb — ${_cnt} cards +3 pips!`, '#ffd700'); render(); break;
+    }
+    case 'the_legacy':
+      jokerLegacyMult = true;
+      showMessage('📜 Legacy — next hand ×3!', '#ffd700'); break;
+    case 'cash_out':
+      coins += 10; updateCoinsUI();
+      showMessage('💰 Cash Out — +10 coins!', 'var(--gold)'); break;
+    case 'the_wanderer':
+      swaps = Math.min(99, swaps + 1); render();
+      showMessage('🧭 Wanderer — swap refunded!', 'var(--gold)'); break;
+    case 'amplifier':
+      jokerAmplifierMult += 5;
+      showMessage('📢 Amplifier — next hand +5 mult!', 'var(--gold)'); break;
+    case 'time_keeper':
+      roundSeconds = Math.min(roundSeconds + 20, ROUND_DURATION); updateClockUI();
+      showMessage('⏱️ Time Keeper — +20s!', 'var(--gold)'); break;
+    case 'piggy_bank':
+      coins += 5; updateCoinsUI();
+      showMessage('🐷 Piggy Bank — +5 coins!', 'var(--gold)'); break;
     default:
       showMessage(`${JOKER_POOL.find(j=>j.id===id)?.name||'Joker'} activated!`, '#cc88ff'); break;
   }
@@ -8853,7 +8947,12 @@ function showJokerGridTooltip(r, c, card) {
   const tip = document.createElement('div');
   tip.id = 'joker-grid-tooltip';
   tip.className = 'joker-tooltip';
-  tip.innerHTML = `<div class="joker-tooltip-name">${def.emoji} ${def.name}</div><div class="joker-tooltip-desc">${def.desc}</div><div class="joker-tooltip-uses">${uses}</div><div class="joker-tooltip-hint">DOUBLE-TAP TO ACTIVATE</div>`;
+  const _hint = def.activation === 'double_tap' ? 'DOUBLE-TAP TO ACTIVATE'
+              : def.activation === 'on_play' ? 'SELECT &amp; PLAY TO ACTIVATE'
+              : def.activation === 'on_discard' ? 'SELECT &amp; DISCARD TO ACTIVATE'
+              : def.activation === 'on_swap' ? 'SWAP TO ACTIVATE'
+              : 'LONG-PRESS FOR TOOLTIP';
+    tip.innerHTML = `<div class="joker-tooltip-name">${def.emoji} ${def.name}</div><div class="joker-tooltip-desc">${def.desc}</div><div class="joker-tooltip-uses">${uses}</div><div class="joker-tooltip-hint">${_hint}</div>`;
   tip.style.opacity = '0';
   gridEl.appendChild(tip);
   void tip.offsetWidth;
@@ -11890,6 +11989,8 @@ function startGame() {
   grantedJokerIds = new Set();
   altarEffects    = [];
   jokerNextHandDouble = false;
+  jokerLegacyMult    = false;
+  jokerAmplifierMult = 0;
   jokerFreeSwapPending = false;
   // Reset all counters
   Object.keys(C).forEach(k => C[k] = (typeof C[k] === 'boolean' ? false : 0));
