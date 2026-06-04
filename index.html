@@ -3187,7 +3187,7 @@
 </div>
 
 <script>
-const BUILD = '2026-06-02 · r22';
+const BUILD = '2026-06-04 · r23';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -3506,8 +3506,8 @@ const BONUS_POOL = [
   { id:'echo_hand',      name:'Echo Hand',           tier:'common',    desc:'Playing the same hand type twice in a row scores ×1.5' },
   { id:'hot_streak',     name:'On Fire',             tier:'rare',      desc:'Streak of 4+ same hand adds +1 mult per count beyond 3' },
   // ── Suit conditions ──
-  { id:'heart_double',   name:'Devoted',             tier:'rare',      tags:['suit','mult'], desc:'Each scored heart adds +1 mult instead of +0.5' },
-  { id:'club_double',    name:'Hard Labour',         tier:'rare',      tags:['suit','pips'], desc:'Each scored club adds +10 pips instead of +5' },
+  { id:'heart_double',   name:'Devoted',             tier:'rare',      tags:['suit','mult'], desc:'Each scored heart adds +1 mult' },
+  { id:'club_double',    name:'Hard Labour',         tier:'rare',      tags:['suit','pips'], desc:'Each scored club adds +10 pips' },
   { id:'monochrome',     name:'Black & Red',         tier:'common',    desc:'All-red (hearts/diamonds) or all-black (clubs/spades) hand scores +3 mult' },
   { id:'full_color',     name:'Rainbow',             tier:'rare',      desc:'Hand containing all four suits scores +4 mult' },
   { id:'balanced_diet',  name:'Balanced',            tier:'rare',      desc:'Hand with exactly 2 different suits scores +2 mult' },
@@ -4468,9 +4468,9 @@ function calcScore(handName, cells, contrib = null) {
   // Kindling streak
   if (hasBonus('kindling') && streakCount > 0) { const _a = 4 * streakCount; totalPips += _a; bPip('kindling', _a); }
 
-  // Clubs: +5 pips each (+10 with Hard Labour)
+  // Clubs: neutral by default; +10 pips each with Hard Labour BC
   const clubCount = cards.filter(c => c.suit === '♣' || (c.combined && c.suit2 === '♣')).length;
-  totalPips += clubCount * (hasBonus('club_double') ? 10 : 5);
+  if (hasBonus('club_double') && clubCount > 0) { totalPips += clubCount * 10; bPip('club_double', clubCount * 10); }
 
   // Spade Flood: all-Spade hand of 4+ adds roundSeconds x 2 as pips
   const allSpadesCalc = cards.length >= 4 && cards.every(c => c.suit === '♠' || (c.combined && c.suit2 === '♠'));
@@ -4563,9 +4563,9 @@ function calcScore(handName, cells, contrib = null) {
     bMult('perm_mult', _pm);
   });
 
-  // Hearts: +0.5 mult each (+1 with Devoted)
+  // Hearts: neutral by default; +1 mult each with Devoted BC
   const heartCount = cards.filter(c => c.suit === '♥' || (c.combined && c.suit2 === '♥')).length;
-  mult += heartCount * (hasBonus('heart_double') ? 1 : 0.5);
+  if (hasBonus('heart_double') && heartCount > 0) { mult += heartCount * 1; bMult('heart_double', heartCount * 1); }
 
   // Exalt / Corrupt — pip & mult contributions (coins & time applied in playHand)
   const _ec = exaltCorruptTotals(cards);
@@ -4940,14 +4940,11 @@ function render() {
     if (hasBonus('early_bird') && roundSeconds>50) bonusLines.push({ label:'Early Bird', val:'+20 pips', type:'pip' });
     if (hasBonus('kindling') && streakCount>0) bonusLines.push({ label:`Kindling ×${streakCount}`, val:`+${4*streakCount} pips`, type:'pip' });
 
-    const spadeCnt   = cards.filter(c => c.suit==='♠'||(c.combined&&c.suit2==='♠')).length;
-    const clubCnt    = cards.filter(c => c.suit==='♣'||(c.combined&&c.suit2==='♣')).length;
-    const heartCnt   = cards.filter(c => c.suit==='♥'||(c.combined&&c.suit2==='♥')).length;
-    const diamondCnt = cards.filter(c => c.suit==='♦'||(c.combined&&c.suit2==='♦')).length;
-    if (spadeCnt)   bonusLines.push({ label:`♠ Spades ×${spadeCnt}`,    val:`+${spadeCnt}s time`,                 type:'time' });
-    if (clubCnt)    bonusLines.push({ label:`♣ Clubs ×${clubCnt}`,      val:`+${clubCnt*5} pips`,                 type:'pip' });
-    if (heartCnt)   bonusLines.push({ label:`♥ Hearts ×${heartCnt}`,    val:`+${(heartCnt*0.5).toFixed(1)} mult`, type:'mult' });
-    if (diamondCnt) bonusLines.push({ label:`♦ Diamonds ×${diamondCnt}`,val:`+${diamondCnt} coins`,               type:'coin' });
+    // Suits neutral by default — preview only shows active BC effects
+    const clubCnt  = cards.filter(c => c.suit==='♣'||(c.combined&&c.suit2==='♣')).length;
+    const heartCnt = cards.filter(c => c.suit==='♥'||(c.combined&&c.suit2==='♥')).length;
+    if (clubCnt  && hasBonus('club_double'))  bonusLines.push({ label:`♣ Hard Labour ×${clubCnt}`,  val:`+${clubCnt*10} pips`, type:'pip' });
+    if (heartCnt && hasBonus('heart_double')) bonusLines.push({ label:`♥ Devoted ×${heartCnt}`,     val:`+${heartCnt} mult`,   type:'mult' });
 
     breakdownEl.innerHTML = `
       <div class="sb-row"><span class="sb-label">Base pips (lv${level})</span><span class="sb-value">${scaledBasePips}</span></div>
@@ -6041,25 +6038,10 @@ function playHand() {
   // ── Suit effects (applied per scoring card) ──
   const scoringCards = result.handCells.map(([r,c]) => gridData[r][c]);
 
-  // ♦ Diamonds → +1 coin each (+2 with Appraised)
-  const diamondCoins = scoringCards.filter(c => c.suit === '♦' || (c.combined && c.suit2 === '♦')).length;
-  const coinPerDiamond = hasBonus('diamond_double') ? 2 : 1;
-  if (diamondCoins > 0) { coins += diamondCoins * coinPerDiamond; updateCoinsUI(); }
+  // Suits are neutral by default — effects only via exalt/corrupt or BCs.
+  // (♥ and ♣ BCs handled in calcScore; ♦/♠ base effects removed with neutral suits)
 
-  // ♠ Spades → +1s each (+2s with Sharp Edge)
-  const spadeCount = scoringCards.filter(c => c.suit === '♠' || (c.combined && c.suit2 === '♠')).length;
-  const secsPerSpade = hasBonus('spade_double') ? 2 : 1;
-  if (spadeCount > 0) {
-    roundSeconds = Math.min(roundSeconds + spadeCount * secsPerSpade, ROUND_DURATION);
-    updateClockUI();
-    showSuitEffect(`♠ +${spadeCount * secsPerSpade}s`, 'var(--suit-spades)');
-  }
-
-  // Spade Flood: all-♠ hand of 4+ cards adds roundSeconds × 2 as pips (handled in calcScore)
-  // (flag computed here for reference)
-  const allSpades = scoringCards.length >= 4 && scoringCards.every(c => c.suit === '♠' || (c.combined && c.suit2 === '♠'));
-
-  // ♥ and ♣ effects handled in calcScore (with doubler flags)
+  // Spade Flood BC still needs allSpades flag (computed in calcScore via spade_flood)
 
   // ── Exalt / Corrupt — coins & time (pips & mult applied in calcScore) ──
   const _ecPlay = exaltCorruptTotals(scoringCards);
@@ -6476,25 +6458,13 @@ function collectScoreParticles(handCells, gridEl) {
       color: suitColor(card.suit),
       sourceType: 'card',
     });
-    // Hearts also emit mult particle
-    if (card.suit === '♥') {
-      const heartMult = hasBonus('heart_double') ? 1 : 0.5;
-      mult.push({
-        sourceRect: rect,
-        label: '+' + heartMult,
-        color: '#c0353e',
-        sourceType: 'card',
-      });
+    // Hearts emit mult particle only when Devoted BC is active
+    if (card.suit === '♥' && hasBonus('heart_double')) {
+      mult.push({ sourceRect: rect, label: '+1', color: '#c0353e', sourceType: 'card' });
     }
-    // Clubs also emit a pip bonus particle (suit effect: +5 or +10)
-    if (card.suit === '♣' || (card.combined && card.suit2 === '♣')) {
-      const clubBonus = hasBonus('club_double') ? 10 : 5;
-      pip.push({
-        sourceRect: rect,
-        label: '+' + clubBonus,
-        color: '#2255cc',
-        sourceType: 'suit',
-      });
+    // Clubs emit pip particle only when Hard Labour BC is active
+    if ((card.suit === '♣' || (card.combined && card.suit2 === '♣')) && hasBonus('club_double')) {
+      pip.push({ sourceRect: rect, label: '+10', color: '#2255cc', sourceType: 'suit' });
     }
   });
 
