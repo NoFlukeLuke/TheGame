@@ -3167,7 +3167,7 @@
 </div>
 
 <script>
-const BUILD = '2026-06-02 · r20';
+const BUILD = '2026-06-02 · r21';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -7546,6 +7546,15 @@ function _onRoundEndCore() {
     showMessage('SECOND CHANCE', '#c9a84c');
     return;
   }
+  if (hasTotem('safety_net') && !safetyNetUsed) {
+    safetyNetUsed = true;
+    roundSeconds = 30;
+    updateClockUI();
+    flashScore(0);
+    showMessage('🪢 Safety Net — 30s extension!', 'var(--gold)');
+    startRoundTimer();
+    return;
+  }
   onGameEnd(true);
 }
 
@@ -8883,7 +8892,7 @@ const CONFLUENCE_THEMES = [
   { id:'suits',     icon:'♥',  name:'Suits',     desc:'One family, one purpose.',  bcTags:['suit'],              totemIds:[],                                        jokerTags:['suit'] },
   { id:'resources', icon:'🔄', name:'Resources', desc:'Discards and swaps as power.', bcTags:['resource','discard'], totemIds:['hoarder','steady_hand'],             jokerTags:['resource'] },
   { id:'focus',     icon:'🎯', name:'Focus',     desc:'Concentration unlocks mastery.', bcTags:['focus'],         totemIds:['lucky_seven','combo_keeper'],           jokerTags:['focus'] },
-  { id:'scaling',   icon:'📈', name:'Scaling',   desc:'Grow stronger with each hand.', bcTags:['scaling','mult'], totemIds:['head_start'],                          jokerTags:['scaling'] },
+  { id:'scaling',   icon:'📈', name:'Scaling',   desc:'Grow stronger with each hand.', bcTags:['scaling','mult'], totemIds:[],                          jokerTags:['scaling'] },
 ];
 
 // Shared mutable state for the active event
@@ -10086,7 +10095,8 @@ function triggerLevelUp() {
   // ── Totem effects at round start ──
   if (hasTotem('time_bank'))   roundSeconds = Math.min(99, roundSeconds + 30);
   if (hasTotem('inheritance')) { coins += 5; updateCoinsUI(); }
-  if (hasTotem('head_start'))  score += Math.round(roundGoal * 0.10);
+  if (hasTotem('extra_swaps'))    swaps    = Math.min(99, swaps    + 2);
+  if (hasTotem('extra_discards')) discards = Math.min(99, discards + 2);
   // Reset Combo Keeper state each round (totem starts each round armed)
   streakSaveArmed = true;
   streakSaveProgress = 0;
@@ -11784,6 +11794,13 @@ function startGame() {
   bonusMult_fives = 0;
   bonusMult_nines = 0;
   bonusMult_tens = 0;
+  bonusMult_compound = 0;
+  bonusPips_prolific = 0;
+  bonusMult_jackpot  = 0;
+  jackpotFired       = false;
+  safetyNetUsed      = false;
+  handsPlayedRound   = 0;
+  handTypesRound     = new Set();
   cardsDiscardedTotal = 0;
   cardsDiscardedRound = 0;
   cardsScoredTotal = 0;
