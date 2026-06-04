@@ -3187,7 +3187,7 @@
 </div>
 
 <script>
-const BUILD = '2026-06-04 · r26';
+const BUILD = '2026-06-04 · r27';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -3437,37 +3437,37 @@ function cardCan(card, action) {
 // ── BONUS POOL (subset for prototype) ──
 const BONUS_POOL = [
   // ── Runs ──
-  { id:'deep_roots',     name:'Deep Roots',         tier:'common',    desc:'Run of 3 scores +1 mult' },
-  { id:'overgrowth',     name:'Overgrowth',          tier:'common',    desc:'Run of 3 scores +2 mult' },
+  { id:'deep_roots',     name:'Deep Roots',         tier:'common',    desc:'Run of 3 scores +2 mult' },
+  { id:'overgrowth',     name:'Overgrowth',          tier:'common',    desc:'Run of 3 scores +20 pips' },
   { id:'ancient_grove',  name:'Ancient Grove',       tier:'legendary', desc:'Run of 3 ×2 score' },
   { id:'long_road',      name:'Long Road',           tier:'rare',      desc:'Any run scores +2 mult per card' },
   { id:'river_run',      name:'River Run',           tier:'rare',      desc:'Straight ×2 score' },
   { id:'torrent',        name:'Torrent',             tier:'legendary', desc:'Runs longer than 3 multiply score — ×2 for Run of 4, ×4 for Straight or Straight Flush' },
-  { id:'correct_run',    name:'In Order',            tier:'common',    desc:'Runs selected in ascending or descending order score ×2' },
-  { id:'worn_path',      name:'Worn Path',           tier:'common',    desc:'Straight scores +10 pips' },
+  { id:'correct_run',    name:'In Order',            tier:'rare',      desc:'Runs selected in ascending or descending order score ×2' },
+  { id:'worn_path',      name:'Worn Path',           tier:'common',    desc:'Straight scores +20 pips' },
   // ── Pairs / sets ──
   { id:'kindred',        name:'Kindred',             tier:'common',    desc:'Three of a Kind scores +1 mult' },
   { id:'trinity',        name:'Trinity',             tier:'epic',      desc:'Three of a Kind ×2 score' },
-  { id:'twin_sprouts',   name:'Twin Sprouts',        tier:'common',    desc:'Pair scores +5 pips' },
-  { id:'double_bloom',   name:'Double Bloom',        tier:'rare',      desc:'Any hand containing a pair ×2 score' },
-  { id:'hidden_pair',    name:'Hidden Pair',         tier:'common',    desc:'Hands containing a pair score +10 pips' },
+  { id:'twin_sprouts',   name:'Twin Sprouts',        tier:'common',    desc:'Pair scores +15 pips' },
+  { id:'double_bloom',   name:'Double Bloom',        tier:'epic',      desc:'Any hand containing a pair ×2 score' },
+  { id:'hidden_pair',    name:'Hidden Pair',         tier:'common',    desc:'Hands containing a pair score +12 pips' },
   { id:'high_pair',      name:'High Pair',           tier:'common',    desc:'Pairs of 10s or higher score +5 pips per matching card' },
   { id:'rare_bloom',     name:'Rare Bloom',          tier:'rare',      desc:'Four of a Kind scores +12 mult' },
   { id:'full_house_streak', name:'House Rules',      tier:'rare',      desc:'Each Full House this round scores ×1.5 more than the last' },
-  { id:'triple_threat',  name:'Triple Threat',       tier:'common',    desc:'Full House adds +12 pips' },
+  { id:'triple_threat',  name:'Triple Threat',       tier:'common',    desc:'Full House adds +20 pips' },
   { id:'pair_pips',      name:'Pair Up',             tier:'common',    desc:'Two Pair adds +3 pips per card' },
-  { id:'two_pair_mult',  name:'Double Dutch',        tier:'common',    desc:'Two Pair scores +10 mult' },
+  { id:'two_pair_mult',  name:'Double Dutch',        tier:'common',    desc:'Two Pair scores +5 mult' },
   // ── Flush / special hand types ──
-  { id:'enriched',       name:'Enriched',            tier:'common',    desc:'Flush scores +10 pips' },
+  { id:'enriched',       name:'Enriched',            tier:'common',    desc:'Flush scores +15 pips' },
   { id:'tidal_force',    name:'Tidal Force',         tier:'rare',      desc:'Flush scores +4 mult' },
   { id:'deluge',         name:'Deluge',              tier:'epic',      desc:'Flush ×2 score' },
   { id:'perfect_storm',  name:'Perfect Storm',       tier:'legendary', desc:'Straight Flush ×5 score' },
-  { id:'rye_bread',      name:'Rye Bread',           tier:'epic',      desc:'Sandwich ×2 score' },
+  { id:'rye_bread',      name:'Rye Bread',           tier:'rare',      desc:'Sandwich ×2 score' },
   { id:'sandwich_fill',  name:'Sandwich Artist',     tier:'common',    desc:'Sandwich hands score +4 pips per card' },
   { id:'high_card_mult', name:'Lone Wolf',           tier:'common',    desc:'High Card scores +(level × 2) mult' },
   { id:'high_card_pips', name:'Underdog',            tier:'rare',      desc:'High Card: card pips × level' },
   { id:'light_touch',    name:'Nimble',              tier:'common',    desc:'2-card hands score +5 mult' },
-  { id:'heavy_hand',     name:'Full Load',           tier:'rare',      desc:'5-card hands score +4 pips per card' },
+  { id:'heavy_hand',     name:'Full Load',           tier:'rare',      desc:'5-card hands score +6 pips per card' },
   { id:'blackjack_bonus', name:'Twenty-One',         tier:'legendary', desc:'If the face values of your cards total exactly 21, score ×3' },
   // ── Rank-specific pips / mult ──
   { id:'first_light',    name:'First Light',         tier:'common',    desc:'Aces score +5 pips' },
@@ -3478,14 +3478,14 @@ const BONUS_POOL = [
   { id:'jack_mult',      name:"Knave's Gambit",      tier:'common',    desc:'Jacks add +2 mult each' },
   { id:'ten_strong',     name:'Tens Strong',         tier:'common',    desc:'Tens score +7 pips each' },
   { id:'power_two',      name:'Power of Two',        tier:'common',    desc:'Cards ranked 2 score +4 pips each' },
-  { id:'lucky_three',    name:'Triple Lucky',        tier:'common',    desc:'Any 3 in a hand adds +3 mult' },
+  { id:'lucky_three',    name:'Triple Lucky',        tier:'common',    desc:'Any 3 in a hand adds +2 mult' },
   { id:'knave_power',    name:'Knave Power',         tier:'rare',      desc:'Each Jack in hand doubles running pips when scored' },
   { id:'humble_roots',   name:'Humble Roots',        tier:'common',    desc:'Cards below 6 contribute triple pips' },
   { id:'low_tide',       name:'Low Tide',            tier:'common',    desc:'Cards below 6 score +6 pips' },
   { id:'before_the_tide', name:'Before the Tide',    tier:'legendary', desc:'Cards below 6 score 6× their base pip value instead' },
   { id:'royal_trio',     name:'Royal Trio',          tier:'epic',      desc:'A hand containing K, Q, and J scores ×2' },
   // ── Per-card pip bonuses ──
-  { id:'rich_soil',      name:'Rich Soil',           tier:'common',    desc:'All cards score +1 pip' },
+  { id:'rich_soil',      name:'Rich Soil',           tier:'common',    desc:'All cards score +2 pips' },
   { id:'fertile_ground', name:'Fertile Ground',      tier:'rare',      desc:'All cards score +3 pips' },
   { id:'first_fruits',   name:'First Fruits',        tier:'rare',      desc:'Each card in first hand each round permanently gains +2 pips' },
   { id:'sapling',        name:'Sapling',             tier:'rare',      desc:'Each level, 3 cards permanently gain +2 pips' },
@@ -3497,7 +3497,7 @@ const BONUS_POOL = [
   { id:'patience_reward', name:'Patient Hunter',     tier:'rare',      desc:'Hands played more than 15s after the previous score +3 mult' },
   { id:'steady_pace',    name:'Steady Pace',         tier:'common',    desc:'Each hand played scores +1 mult' },
   { id:'momentum',       name:'Momentum',            tier:'common',    desc:'Consecutive hand within 5s scores +2 mult' },
-  { id:'first_play',     name:'Head Start',          tier:'common',    desc:'First hand each round scores +3 mult' },
+  { id:'first_play',     name:'Head Start',          tier:'common',    desc:'First hand each round scores +2 mult' },
   { id:'still_water',    name:'Still Water',         tier:'rare',      desc:'+5 mult for every 10 seconds elapsed without using a swap' },
   { id:'frozen_moment',  name:'Frozen Moment',       tier:'epic',      desc:'Hands while timer paused score ×2' },
   // ── Streaks ──
@@ -3519,17 +3519,17 @@ const BONUS_POOL = [
   { id:'odd_squad',      name:'Odd Fellows',         tier:'rare',      desc:'Hands with only odd-ranked cards (A,3,5,7,9,J,K) score +3 mult' },
   // ── Rank diversity ──
   { id:'number_crunch',  name:'Diversity',           tier:'rare',      desc:'Hands with 4+ different ranks score +2 mult' },
-  { id:'same_kind',      name:'All In',              tier:'epic',      desc:'Hands where 3+ cards share the same rank score +2 mult per matching card' },
+  { id:'same_kind',      name:'All In',              tier:'rare',      desc:'Hands where 3+ cards share the same rank score +2 mult per matching card' },
   // ── Position ──
   { id:'rowcol_triple_pips', name:'Triple Pips',     tier:'rare',      tags:['pips','position'], desc:'Cards scored in a specific row or column contribute triple pips' },
   { id:'rowcol_mult',    name:'Power Line',          tier:'rare',      tags:['mult','position'], desc:'Cards scored in a specific row or column each add +2 mult' },
-  { id:'rowcol_retrigger', name:'Echo Line',         tier:'rare',      tags:['retrigger','position'], desc:'Cards scored in a specific row or column trigger their effects twice' },
+  { id:'rowcol_retrigger', name:'Echo Line',         tier:'rare',      tags:['retrigger','position'], desc:'Cards scored in a specific row or column score their pips twice' },
   { id:'rowcol_perm_double', name:'Ley Line',        tier:'epic',      tags:['pips','position','scaling'], desc:'Cards scored at a specific grid intersection permanently double their pips (resets each level)' },
   { id:'shape_square',   name:'Four Corners',        tier:'epic',      tags:['position','shape'], desc:'A 2×2 hand scores ×4' },
   { id:'shape_cross',    name:'Crossroads',          tier:'rare',      tags:['position','shape'], desc:'A + shaped hand scores ×3' },
   { id:'shape_line',     name:'Straight Shot',       tier:'common',    tags:['position','shape','mult'], desc:"All-row or all-column hands add the first and last card's pip values to mult" },
   { id:'shape_snake',    name:'Snake',               tier:'rare',      tags:['position','shape','mult'], desc:'A hand that changes direction every step scores +2 mult per card' },
-  { id:'corner_retrigger', name:'Corner Power',      tier:'rare',      tags:['position','retrigger'], desc:'Cards in corner cells retrigger their card-tied bonuses once more' },
+  { id:'corner_retrigger', name:'Corner Power',      tier:'rare',      tags:['position','retrigger'], desc:'Cards in corner cells score their pips twice' },
   { id:'two_corners',    name:'Diagonal',            tier:'epic',      tags:['position','score'], desc:'A hand containing 2 corner cells scores ×4' },
   { id:'edge_pips',      name:'On the Edge',         tier:'common',    tags:['position','pips'], desc:'Hands where all cards are on the outer edge score +15 pips per card' },
   { id:'wide_span_mult', name:'Wide Reach',          tier:'rare',      tags:['position','mult','pips'], desc:'Hands spanning 4+ rows or columns score +24 mult. +5 mult per extra column, +20 pips per extra row' },
@@ -3546,8 +3546,8 @@ const BONUS_POOL = [
   { id:'tens_mult',      name:'Perfect Ten',         tier:'rare',      tags:['scaling','mult','value'], desc:'Every 10 cards discarded permanently adds +1 mult to this bonus' },
   { id:'sixes_perm',     name:'Lucky Roll',          tier:'rare',      tags:['scaling','mult','value'], desc:'Every 6th card scored gains a random +1–6 mult permanently' },
   { id:'fours_perm',     name:'Steady Fours',        tier:'common',    tags:['scaling','pips','value'], desc:'4-card hands permanently give the 4th card +4 pips' },
-  { id:'twos_retrigger', name:'Double Take',         tier:'rare',      tags:['retrigger','value'], desc:'The 2nd card scored retriggers its effects 3× total' },
-  { id:'eights_retrigger', name:'Octave',            tier:'epic',      tags:['retrigger','value'], desc:'Each scored 8 has a 1-in-8 chance to retrigger all card effects once more' },
+  { id:'twos_retrigger', name:'Double Take',         tier:'common',    tags:['retrigger','value'], desc:'Each 2 scored counts its pips twice' },
+  { id:'eights_retrigger', name:'Octave',            tier:'common',    tags:['retrigger','value'], desc:'Each 8 scored counts its pips twice' },
   { id:'snowball',       name:'Snowball',            tier:'epic',      desc:'After any hand scoring 500+ pips, each scored card permanently gains +2 pips' },
   { id:'big_win',        name:'Jackpot',             tier:'legendary', desc:'The first time a single hand scores 10,000+, permanently add +5 mult to this bonus' },
   { id:'queens_upgrade', name:'Royal Favour',        tier:'epic',      tags:['scaling','grid','value'], desc:'After scoring, cards adjacent to Queens permanently gain +1 rank' },
@@ -3559,7 +3559,7 @@ const BONUS_POOL = [
   { id:'dark_matter',    name:'Dark Matter',         tier:'rare',      desc:'Corrupted cards in a hand add +5 pips each' },
   // ── Diverse conditions ──
   { id:'combo_score',    name:'Combo Score',         tier:'common',    desc:'+2 mult for every distinct hand type played this round' },
-  { id:'escalation',     name:'Escalation',          tier:'epic',      desc:'For each hand beyond the 5th in a round, score +1 mult' },
+  { id:'escalation',     name:'Escalation',          tier:'rare',      desc:'For each hand beyond the 5th in a round, score +1 mult' },
   // ── Focus ──
   { id:'meditation',     name:'Meditation',          tier:'common',    tags:['focus'], desc:'Focus decays 1 second slower' },
   { id:'tunnel_vision',  name:'Tunnel Vision',       tier:'common',    tags:['focus'], desc:'Start each round with 5 focus' },
@@ -3571,7 +3571,7 @@ const BONUS_POOL = [
   { id:'kaleidoscope',   name:'Kaleidoscope',        tier:'rare',      tags:['focus'], desc:'Playing one of each suit in a hand adds 4 focus' },
   { id:'flow_state',     name:'Flow State',          tier:'rare',      tags:['focus','pips'], desc:'While focus is ×1.5 or higher, +10 pips per card scored' },
   // ── Legendary ──
-  { id:'heartwood',      name:'Heartwood',           tier:'legendary', desc:'Dead center card permanently gains +5 pips & +1 mult each time scored' },
+  { id:'heartwood',      name:'Heartwood',           tier:'epic',      desc:'Dead center card permanently gains +5 pips & +1 mult each time scored' },
 ];
 
 // ══════════════════════════════════════════════
@@ -4460,7 +4460,7 @@ function calcScore(handName, cells, contrib = null) {
     if (hasBonus('humble_roots') && rawPips < 6) { const _b = rawPips; rawPips *= 3; bPip('humble_roots', rawPips - _b); }
     if (hasBonus('high_card_pips') && handName === 'High Card') { const _b = rawPips; rawPips *= level; bPip('high_card_pips', rawPips - _b); }
     let cp = rawPips;
-    if (hasBonus('rich_soil')) { cp += 1; bPip('rich_soil', 1); }
+    if (hasBonus('rich_soil')) { cp += 2; bPip('rich_soil', 2); }
     if (hasBonus('fertile_ground')) { cp += 3; bPip('fertile_ground', 3); }
     if (hasBonus('court_of_leaves') && ['J','Q','K'].includes(baseRank)) { cp += 3; bPip('court_of_leaves', 3); }
     if (hasBonus('before_the_tide') && cardPips(baseRank) < 6) { const _a = cardPips(baseRank) * 5; cp += _a; bPip('before_the_tide', _a); }
@@ -4475,6 +4475,21 @@ function calcScore(handName, cells, contrib = null) {
     bPip('sapling', _pp);
     // Row/col triple pips — applies after all other pip bonuses
     if (cellHasRowColBonus(r, c, 'rowcol_triple_pips')) cp *= 3;
+    // Retrigger: certain conditions score this card's pips an extra time
+    let _retrig = 1;
+    const _r2 = hasBonus('twos_retrigger') && baseRank === '2';
+    const _r8 = hasBonus('eights_retrigger') && baseRank === '8';
+    const _rc = hasBonus('corner_retrigger') && isCorner(r, c);
+    const _rl = cellHasRowColBonus(r, c, 'rowcol_retrigger');
+    if (_r2) _retrig++; if (_r8) _retrig++; if (_rc) _retrig++; if (_rl) _retrig++;
+    if (_retrig > 1) {
+      const _pre = cp; cp *= _retrig;
+      const _extra = cp - _pre;
+      if (_r2) bPip('twos_retrigger', _pre);
+      else if (_r8) bPip('eights_retrigger', _pre);
+      else if (_rc) bPip('corner_retrigger', _pre);
+      else if (_rl) bPip('rowcol_retrigger', _pre);
+    }
     totalPips += cp;
     if (hasBonus('knave_power') && baseRank === 'J') { const _b = totalPips; totalPips *= 2; bPip('knave_power', totalPips - _b); }
   });
@@ -4483,7 +4498,10 @@ function calcScore(handName, cells, contrib = null) {
   const rankCounts = {};
   cards.forEach(c => rankCounts[c.rank] = (rankCounts[c.rank]||0)+1);
   const hasPairInHand = Object.values(rankCounts).some(v => v >= 2);
-  if (hasBonus('hidden_pair') && hasPairInHand) { totalPips += 10; bPip('hidden_pair', 10); }
+  if (hasBonus('hidden_pair') && hasPairInHand) { totalPips += 12; bPip('hidden_pair', 12); }
+  if (hasBonus('twin_sprouts') && handName === 'Pair')   { totalPips += 15; bPip('twin_sprouts', 15); }
+  if (hasBonus('worn_path')    && handName === 'Straight'){ totalPips += 20; bPip('worn_path', 20); }
+  if (hasBonus('enriched')     && handName === 'Flush')   { totalPips += 15; bPip('enriched', 15); }
 
   // Early bird / night owl
   if (hasBonus('early_bird') && roundSeconds > 50) { totalPips += 20; bPip('early_bird', 20); }
@@ -4534,8 +4552,8 @@ function calcScore(handName, cells, contrib = null) {
 
   // Hand-specific mult
   if (handName === 'Run of 3') {
-    if (hasBonus('deep_roots')) { mult += 1; bMult('deep_roots', 1); }
-    if (hasBonus('overgrowth')) { mult += 2; bMult('overgrowth', 2); }
+    if (hasBonus('deep_roots')) { mult += 2; bMult('deep_roots', 2); }
+    if (hasBonus('overgrowth')) { totalPips += 20; bPip('overgrowth', 20); }
   }
   if (handName === 'Three of a Kind') {
     if (hasBonus('kindred')) { mult += 1; bMult('kindred', 1); }
@@ -4548,7 +4566,7 @@ function calcScore(handName, cells, contrib = null) {
   if (handName === 'Four of a Kind') {
     if (hasBonus('rare_bloom')) { mult += 12; bMult('rare_bloom', 12); }
   }
-  if (handName === 'Two Pair' && hasBonus('two_pair_mult')) { mult += 10; bMult('two_pair_mult', 10); }
+  if (handName === 'Two Pair' && hasBonus('two_pair_mult')) { mult += 5; bMult('two_pair_mult', 5); }
   if (handName === 'High Card' && hasBonus('high_card_mult')) { const _a = level * 2; mult += _a; bMult('high_card_mult', _a); }
 
   // Row/col +2 mult per affected card
@@ -4612,13 +4630,13 @@ function calcScore(handName, cells, contrib = null) {
   const _threeCount = cards.filter(c => c.rank === '3').length;
   if (hasBonus('wild_heart') && _aceCount)   { const _a = _aceCount * 2;    mult += _a; bMult('wild_heart', _a); }
   if (hasBonus('jack_mult')  && _jackCount2) { const _a = _jackCount2 * 2;  mult += _a; bMult('jack_mult', _a); }
-  if (hasBonus('lucky_three') && _threeCount){ mult += 3; bMult('lucky_three', 3); }
+  if (hasBonus('lucky_three') && _threeCount){ mult += 2; bMult('lucky_three', 2); }
   // Hand-size
   if (hasBonus('light_touch') && cells.length === 2) { mult += 5; bMult('light_touch', 5); }
   // Timing mult
   if (hasBonus('closing_time') && roundSeconds <= 15) { mult += 5; bMult('closing_time', 5); }
   if (hasBonus('patience_reward') && lastHandTime > 0 && (Date.now() - lastHandTime) > 15000) { mult += 3; bMult('patience_reward', 3); }
-  if (hasBonus('first_play') && handsPlayedRound === 0) { mult += 3; bMult('first_play', 3); }
+  if (hasBonus('first_play') && handsPlayedRound === 0) { mult += 2; bMult('first_play', 2); }
   // Streak
   if (hasBonus('hot_streak') && streakCount >= 4) { const _a = streakCount - 3; mult += _a; bMult('hot_streak', _a); }
   // Suit conditions
@@ -4659,10 +4677,10 @@ function calcScore(handName, cells, contrib = null) {
     totalPips += _hpCount * 5; bPip('high_pair', _hpCount * 5);
   }
   // Hand type: specific pip bonuses
-  if (hasBonus('triple_threat') && handName === 'Full House') { totalPips += 12; bPip('triple_threat', 12); }
+  if (hasBonus('triple_threat') && handName === 'Full House') { totalPips += 20; bPip('triple_threat', 20); }
   if (hasBonus('pair_pips') && handName === 'Two Pair') { const _a = cells.length * 3; totalPips += _a; bPip('pair_pips', _a); }
   if (hasBonus('sandwich_fill') && handName === 'Sandwich') { const _a = cells.length * 4; totalPips += _a; bPip('sandwich_fill', _a); }
-  if (hasBonus('heavy_hand') && cells.length === 5) { const _a = cells.length * 4; totalPips += _a; bPip('heavy_hand', _a); }
+  if (hasBonus('heavy_hand') && cells.length === 5) { const _a = cells.length * 6; totalPips += _a; bPip('heavy_hand', _a); }
   // Quick draw timing pip
   if (hasBonus('quick_draw') && lastHandTime > 0 && (Date.now() - lastHandTime) < 3000) { const _a = cells.length * 3; totalPips += _a; bPip('quick_draw', _a); }
   // Escalation: +1 mult per hand beyond 5th
