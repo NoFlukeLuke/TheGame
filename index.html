@@ -421,6 +421,17 @@
   .bonus-tag.rare { border-color: var(--gold-dim); background: #1f1a0a; color: var(--gold); }
   .bonus-tag.legendary { border-color: #c060a0; background: #1a0f18; color: #e090d0; }
 
+  /* ── BC Tray (tray mode: BCs live in panel instead of grid) ── */
+  #bc-tray-area { flex: 1; min-width: 0; padding-right: 8px; border-right: 1px solid var(--border); display: flex; flex-direction: column; justify-content: center; overflow: hidden; }
+  #bc-tray-list { display: flex; flex-direction: row; flex-wrap: wrap; gap: 3px; max-height: 60px; overflow-y: auto; scrollbar-width: none; align-content: flex-start; padding: 2px 0; }
+  #bc-tray-list::-webkit-scrollbar { display: none; }
+  .bc-tray-chip { width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-family: 'Cinzel', serif; font-size: 9px; font-weight: 700; border-radius: 4px; cursor: pointer; border: 1.5px solid; user-select: none; transition: transform 0.1s ease, box-shadow 0.15s ease; }
+  .bc-tray-chip:hover { transform: translateY(-1px); box-shadow: 0 2px 6px rgba(0,0,0,0.5); }
+  .bc-tray-chip.bc-tier-common    { border-color: #4a7a4a; color: #6aaa6a; background: #0d1208; }
+  .bc-tray-chip.bc-tier-rare      { border-color: #3a6fca; color: #6a9fea; background: #0a1020; }
+  .bc-tray-chip.bc-tier-epic      { border-color: #9b4dca; color: #c07aee; background: #130a1a; }
+  .bc-tray-chip.bc-tier-legendary { border-color: #e8b84b; color: #e8b84b; background: #160e00; }
+
   /* ── Focus Meter (formerly Fate Meter) ── */
   #focus-meter-wrap {
     display: flex;
@@ -2607,6 +2618,11 @@
         <div id="selected-cards"></div>
         <div id="hand-name">—</div>
       </div>
+      <!-- BC Tray (visible only in bcTrayMode) -->
+      <div id="bc-tray-area" style="display:none">
+        <span class="panel-title">Bonuses</span>
+        <div id="bc-tray-list"></div>
+      </div>
       <!-- Totem section -->
       <div id="totem-carousel-wrap">
         <span class="panel-title">Totems</span>
@@ -2852,6 +2868,10 @@
     <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;">
       <input id="dev-deck-hud-toggle" type="checkbox" onchange="toggleDeckHud(this.checked)" style="accent-color:var(--gold);">
       Show card counter (deck audit)
+    </label>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;margin-top:6px;">
+      <input id="dev-bc-tray-toggle" type="checkbox" onchange="toggleBCTrayMode(this.checked)" style="accent-color:var(--gold);">
+      BC Tray Mode (BCs in panel, not grid)
     </label>
   </div>
 
@@ -3167,7 +3187,7 @@
 </div>
 
 <script>
-const BUILD = '2026-06-02 · r21';
+const BUILD = '2026-06-02 · r22';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -3754,6 +3774,8 @@ const C = {
 };
 let acquiredBonuses = [];
 let acquiredTotems = [];
+let bcTrayMode = false;   // dev toggle: BCs live in the panel tray instead of grid cells
+let bcTray = [];          // bonus objects currently in the tray
 
 // Totems — persistent UI bonuses (third entity alongside BCs and Jokers).
 // Acquired via shop (TBD); for now grantable via dev mode.
@@ -4697,6 +4719,7 @@ function calcScore(handName, cells, contrib = null) {
 
 function hasBonus(id) {
   if (isBCDisabledByBoss(id)) return false;
+  if (bcTrayMode && bcTray.some(b => b.id === id)) return true;
   for (let r = 0; r < gridRows; r++)
     for (let c = 0; c < gridCols; c++) {
       const cell = gridData[r][c];
@@ -6641,6 +6664,10 @@ async function playScoreDance(result, toRemove, isGoalHand = false) {
 
   // Find BC DOM element on the grid
   const _findBCEl = id => {
+    if (bcTrayMode) {
+      const chip = document.querySelector(`.bc-tray-chip[data-bonus-id="${id}"]`);
+      if (chip) return chip;
+    }
     for (let r = 0; r < gridRows; r++)
       for (let c = 0; c < gridCols; c++) {
         const cell = gridData[r][c];
@@ -8155,6 +8182,12 @@ function generateRewardContent() {
 // Use this any time a BC is granted outside the normal level-up BC selection flow.
 function injectBCAfterReward(bonus) {
   if (!bonus) return;
+  if (bcTrayMode) {
+    bcTray.push(bonus);
+    selectBonus(bonus, true);
+    renderBCTray();
+    return;
+  }
   const midRow = Math.floor(gridRows / 2);
   const allCols = Array.from({length: gridCols}, (_, i) => i).sort(() => Math.random() - 0.5);
   // Prefer inner cols for aesthetic placement
@@ -8188,6 +8221,15 @@ function applyRewardRandomBC() {
   injectBCAfterReward(pick);
 }
 function applyRewardLoseBC() {
+  if (bcTrayMode) {
+    if (bcTray.length === 0) { showMessage('No BCs to lose', 'var(--cream-dim)'); return; }
+    const lost = bcTray.splice(Math.floor(Math.random() * bcTray.length), 1)[0];
+    const idx = acquiredBonuses.findIndex(b => b.id === lost.id);
+    if (idx >= 0) acquiredBonuses.splice(idx, 1);
+    showMessage(`- ${lost.name}`, 'var(--red)');
+    renderBCTray();
+    return;
+  }
   // Remove a random BC card from the grid
   const bcCells = [];
   for (let r = 0; r < gridRows; r++)
@@ -10533,6 +10575,97 @@ function hideBCTooltip() {
   if (tip) tip.remove();
 }
 
+// ── BC Tray: render chips for all tray BCs ──
+function renderBCTray() {
+  const list = document.getElementById('bc-tray-list');
+  if (!list) return;
+  list.innerHTML = '';
+  bcTray.forEach(bonus => {
+    const chip = document.createElement('div');
+    chip.className = `bc-tray-chip bc-tier-${bonus.tier}`;
+    chip.textContent = bonus.tier.charAt(0).toUpperCase();
+    chip.dataset.bonusId = bonus.id;
+    chip.title = bonus.name;
+    chip.addEventListener('click', e => {
+      e.stopPropagation();
+      const existing = document.getElementById('bc-tooltip');
+      if (existing) { hideBCTooltip(); return; }
+      showBCTrayTooltip(bonus, chip);
+    });
+    list.appendChild(chip);
+  });
+}
+
+function showBCTrayTooltip(bonus, anchorEl) {
+  hideBCTooltip();
+  const tip = document.createElement('div');
+  tip.id = 'bc-tooltip';
+  tip.className = `bc-tooltip bc-tier-${bonus.tier}`;
+  const liveDesc = bcLiveDesc(bonus);
+  tip.innerHTML = `<div class="bc-tooltip-name">${bonus.name}</div><div class="bc-tooltip-desc">${withSuitHalo(liveDesc)}</div><button class="bc-tooltip-discard" id="bc-tooltip-discard-btn">Discard BC</button>`;
+  tip.style.cssText = 'position:fixed;opacity:0;z-index:300;';
+  document.body.appendChild(tip);
+  tip.querySelector('#bc-tooltip-discard-btn')?.addEventListener('click', e => {
+    e.stopPropagation();
+    discardBCFromTray(bonus);
+  });
+  void tip.offsetWidth;
+  const ar = anchorEl.getBoundingClientRect();
+  const tipW = tip.offsetWidth || 180;
+  const tipH = tip.offsetHeight || 80;
+  let left = ar.left + ar.width / 2 - tipW / 2;
+  let top  = ar.top - tipH - 8;
+  left = Math.max(4, Math.min(window.innerWidth - tipW - 4, left));
+  if (top < 4) top = ar.bottom + 8;
+  tip.style.left = left + 'px';
+  tip.style.top  = top + 'px';
+  tip.style.opacity = '1';
+}
+
+function discardBCFromTray(bonus) {
+  hideBCTooltip();
+  const idx = bcTray.findIndex(b => b.id === bonus.id);
+  if (idx >= 0) bcTray.splice(idx, 1);
+  const aidx = acquiredBonuses.findIndex(b => b.id === bonus.id);
+  if (aidx >= 0) acquiredBonuses.splice(aidx, 1);
+  showMessage(`Discarded: ${bonus.name}`, 'var(--cream-dim)');
+  renderBCTray();
+}
+
+// ── Toggle BC Tray mode (dev panel) ──
+function toggleBCTrayMode(on) {
+  bcTrayMode = on;
+  const trayArea = document.getElementById('bc-tray-area');
+  const previewArea = document.getElementById('hand-preview-area');
+  if (trayArea) trayArea.style.display = on ? 'flex' : 'none';
+  if (previewArea) previewArea.style.display = on ? 'none' : 'flex';
+  if (on) {
+    // Move all existing grid BCs into the tray
+    for (let r = 0; r < gridRows; r++) {
+      for (let c = 0; c < gridCols; c++) {
+        const cell = gridData[r][c];
+        if (cell?._isBC) {
+          bcTray.push(cell.bonus);
+          gridData[r][c] = drawCard() || null;
+        }
+      }
+    }
+    renderBCTray();
+    render();
+  } else {
+    // Move tray BCs back onto the grid
+    const toInject = [...bcTray];
+    bcTray = [];
+    // Remove from acquiredBonuses temporarily (injectBCAfterReward -> selectBonus re-adds)
+    toInject.forEach(b => {
+      const idx = acquiredBonuses.findIndex(ab => ab.id === b.id);
+      if (idx >= 0) acquiredBonuses.splice(idx, 1);
+    });
+    toInject.forEach(b => injectBCAfterReward(b));
+    renderBCTray();
+  }
+}
+
 async function confirmFullscreenBCSelection(bonus) {
   clearInterval(levelupTimer);
   bcSelectionPhase = false;
@@ -11783,6 +11916,7 @@ function startGame() {
   handsPendingUnlock = [];
   acquiredBonuses = [];
   acquiredTotems  = [];
+  bcTray          = [];
   grantedJokerIds = new Set();
   altarEffects    = [];
   jokerNextHandDouble = false;
