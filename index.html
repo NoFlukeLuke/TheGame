@@ -1572,65 +1572,135 @@
   #shop-overlay {
     display: none;
     position: fixed; inset: 0;
-    background: rgba(0,0,0,0.95);
+    background: rgba(0,0,0,0.96);
     z-index: 250;
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
-    padding: 28px 20px;
+    padding: 18px 14px;
     overflow-y: auto;
-    gap: 22px;
+    gap: 14px;
   }
   #shop-overlay.show { display: flex; }
 
-  #shop-header { display: flex; flex-direction: column; align-items: center; gap: 6px; }
-  #shop-title { font-family: 'Cinzel', serif; font-size: 30px; font-weight: 900; color: var(--gold); letter-spacing: 6px; }
-  #shop-sub { font-size: 12px; color: var(--cream-dim); font-family: 'Cinzel', serif; letter-spacing: 2px; }
-  #shop-coins { font-family: 'Cinzel', serif; font-size: 20px; color: var(--gold); }
+  #shop-header { display: flex; align-items: center; justify-content: space-between; width: 100%; max-width: 800px; }
+  #shop-title { font-family: 'Cinzel', serif; font-size: 26px; font-weight: 900; color: var(--gold); letter-spacing: 5px; }
+  #shop-coins { font-family: 'Cinzel', serif; font-size: 18px; color: var(--gold); }
 
-  /* For sale cards */
-  #shop-cards-section { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%; max-width: 760px; }
-  #shop-cards-title { font-family: 'Cinzel', serif; font-size: 9px; letter-spacing: 3px; color: var(--gold-dim); text-transform: uppercase; align-self: flex-start; }
-  #shop-cards-row { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+  /* ── Shop main grid (2×2) ── */
+  #shop-main-grid {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto;
+    gap: 10px;
+    width: 100%; max-width: 800px;
+  }
+  #shop-bc-section     { grid-column: 1; grid-row: 1; }
+  #shop-limits-section { grid-column: 2; grid-row: 1; }
+  #shop-totem-section  { grid-column: 1; grid-row: 2; }
+  #shop-joker-section  { grid-column: 2; grid-row: 2; }
 
-  .shop-card-item {
-    display: flex; flex-direction: column; align-items: center; gap: 6px;
-    cursor: pointer;
+  .shop-section {
+    background: #0e0c08; border: 1px solid #2a2010;
+    border-radius: 8px; padding: 10px 12px;
+    display: flex; flex-direction: column; gap: 8px;
   }
-  .shop-card-face {
-    width: 62px; height: 88px;
-    background: var(--card-bg); border: 2px solid var(--card-border);
-    border-radius: 7px; display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    font-family: 'Cinzel', serif; font-size: 18px; font-weight: 700;
-    color: #1a1510; position: relative;
-    transition: border-color 0.12s, transform 0.12s, box-shadow 0.12s;
+  .shop-section-label {
+    font-family: 'Cinzel', serif; font-size: 9px; letter-spacing: 3px;
+    color: var(--gold-dim); text-transform: uppercase;
   }
-  .shop-card-face:hover { transform: translateY(-4px); box-shadow: 0 6px 20px rgba(201,168,76,0.3); border-color: var(--gold); }
-  .shop-card-face.purchased { opacity: 0.35; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
-  .shop-card-face.suit-hearts   { color: var(--suit-hearts); }
-  .shop-card-face.suit-diamonds { color: var(--suit-diamonds); }
-  .shop-card-face.suit-spades   { color: var(--suit-spades); }
-  .shop-card-face.suit-clubs    { color: var(--suit-clubs); }
-  .shop-card-face .sc-suit { font-size: 14px; margin-top: 2px; }
-  .shop-card-face .sc-bonus {
-    position: absolute; bottom: 3px; left: 0; right: 0;
-    text-align: center; font-size: 8px; font-family: 'Cinzel', serif;
-    color: #3a6fca; font-weight: 700; line-height: 1;
-  }
-  .shop-card-face .sc-bonus.mult { color: #c0392b; }
-  .shop-card-face .sc-bonus.both { color: #9b59b6; }
-  .shop-card-price {
-    font-family: 'Cinzel', serif; font-size: 12px;
-    color: var(--gold); letter-spacing: 1px;
-  }
-  .shop-card-price.cant-afford { color: var(--red); }
+  .shop-items-row { display: flex; gap: 10px; flex-wrap: wrap; }
 
-  /* Services */
-  #shop-services { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 760px; }
-  #shop-services-title { font-family: 'Cinzel', serif; font-size: 9px; letter-spacing: 3px; color: var(--gold-dim); text-transform: uppercase; }
-  #shop-services-row { display: flex; gap: 12px; flex-wrap: wrap; }
+  /* Generic shop item wrapper */
+  .shop-item { display: flex; flex-direction: column; align-items: center; gap: 5px; cursor: pointer; }
+  .shop-item.purchased { cursor: default; }
 
+  /* BC card in shop */
+  .shop-bc-card {
+    width: 80px; height: 106px; border-radius: 7px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 3px; padding: 5px 4px;
+    transition: transform 0.12s, box-shadow 0.12s;
+  }
+  .shop-bc-card:hover { transform: translateY(-4px); }
+  .shop-item.purchased .shop-bc-card { opacity: 0.38; transform: none !important; }
+  .shop-bc-card .bc-tier-label { font-size: 8px; }
+  .shop-bc-card .bc-name { font-size: 9px; text-align: center; }
+  .shop-bc-desc { font-family: 'Crimson Pro', serif; font-size: 8px; color: #aaa; text-align: center; line-height: 1.3; padding: 0 2px; }
+  .shop-bc-card.bc-tier-common    { background: linear-gradient(160deg,#1a2a1a,#0f1f0f); border: 2px solid #4a7a4a; box-shadow: 0 0 6px rgba(74,122,74,0.3); }
+  .shop-bc-card.bc-tier-rare      { background: linear-gradient(160deg,#0d1a2e,#0a1020); border: 2px solid #3a6fca; box-shadow: 0 0 8px rgba(58,111,202,0.4); }
+  .shop-bc-card.bc-tier-epic      { background: linear-gradient(160deg,#1a0a2e,#0f0620); border: 2px solid #9b4dca; box-shadow: 0 0 8px rgba(155,77,202,0.4); }
+  .shop-bc-card.bc-tier-legendary { background: linear-gradient(160deg,#2a1a00,#1a1000); border: 2px solid #e8b84b; box-shadow: 0 0 10px rgba(232,184,75,0.5); animation: bc-legendary-pulse 2s ease-in-out infinite; }
+  .shop-bc-card:hover { transform: translateY(-4px); box-shadow: 0 6px 20px rgba(201,168,76,0.2) !important; }
+
+  /* Limit card in shop */
+  .shop-limit-card {
+    width: 106px; height: 88px;
+    background: linear-gradient(160deg,#0e1a1a,#080f0f);
+    border: 2px solid #2a6a5a; border-radius: 7px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 3px; padding: 6px;
+    transition: transform 0.12s, box-shadow 0.12s;
+  }
+  .shop-limit-card:hover { transform: translateY(-4px); box-shadow: 0 6px 18px rgba(42,106,90,0.35); }
+  .shop-item.purchased .shop-limit-card,
+  .shop-limit-card.maxed { opacity: 0.38; transform: none !important; cursor: default; }
+  .shop-limit-icon  { font-size: 20px; }
+  .shop-limit-label { font-family: 'Cinzel', serif; font-size: 9px; color: #5ad4c0; text-align: center; }
+  .shop-limit-progress { font-family: 'Cinzel', serif; font-size: 11px; color: #eee; }
+  .shop-limit-desc  { font-family: 'Crimson Pro', serif; font-size: 8px; color: #888; text-align: center; line-height: 1.3; }
+
+  /* Totem card in shop */
+  .shop-totem-card {
+    width: 80px; height: 106px;
+    background: linear-gradient(160deg,#1a1500,#0e0e00);
+    border: 2px solid #b8860b; border-radius: 7px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 3px; padding: 6px 4px;
+    transition: transform 0.12s, box-shadow 0.12s;
+  }
+  .shop-totem-card:hover { transform: translateY(-4px); box-shadow: 0 6px 18px rgba(184,134,11,0.3); }
+  .shop-item.purchased .shop-totem-card { opacity: 0.38; transform: none !important; }
+  .shop-totem-emoji { font-size: 22px; }
+  .shop-totem-name  { font-family: 'Cinzel', serif; font-size: 9px; color: #d4a017; text-align: center; }
+  .shop-totem-desc  { font-family: 'Crimson Pro', serif; font-size: 8px; color: #aaa; text-align: center; line-height: 1.3; }
+
+  /* Joker card in shop */
+  .shop-joker-card {
+    width: 80px; height: 106px; border-radius: 7px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 3px; padding: 5px 4px;
+    transition: transform 0.12s, box-shadow 0.12s;
+  }
+  .shop-joker-card:hover { transform: translateY(-4px); }
+  .shop-item.purchased .shop-joker-card { opacity: 0.38; transform: none !important; }
+  .shop-joker-card.jk-rarity-common    { background: linear-gradient(160deg,#1a1a12,#111108); border: 2px solid #7a7a4a; box-shadow: 0 0 6px rgba(122,122,74,0.3); }
+  .shop-joker-card.jk-rarity-rare      { background: linear-gradient(160deg,#0d1a2e,#0a1020); border: 2px solid #3a6fca; box-shadow: 0 0 8px rgba(58,111,202,0.4); }
+  .shop-joker-card.jk-rarity-epic      { background: linear-gradient(160deg,#1a0a2e,#0f0620); border: 2px solid #9b4dca; box-shadow: 0 0 8px rgba(155,77,202,0.4); }
+  .shop-joker-card.jk-rarity-legendary { background: linear-gradient(160deg,#2a1a00,#1a1000); border: 2px solid #e8b84b; box-shadow: 0 0 10px rgba(232,184,75,0.5); }
+  .shop-joker-emoji   { font-size: 22px; }
+  .shop-joker-name    { font-family: 'Cinzel', serif; font-size: 9px; color: #ddd; text-align: center; }
+  .shop-joker-desc    { font-family: 'Crimson Pro', serif; font-size: 8px; color: #aaa; text-align: center; line-height: 1.3; }
+  .shop-joker-charges { font-family: 'Cinzel', serif; font-size: 7px; color: #888; }
+
+  /* Price tag */
+  .shop-item-price { font-family: 'Cinzel', serif; font-size: 11px; color: var(--gold); }
+  .shop-item-price.cant-afford { color: var(--red); }
+  .shop-item-price.purchased   { color: var(--cream-dim); }
+
+  /* Footer row */
+  #shop-footer-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; justify-content: center; }
+  #shop-reroll-btn {
+    font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: 1px;
+    text-transform: uppercase; padding: 9px 20px; border-radius: 6px;
+    cursor: pointer; border: 2px solid #7a5a2a;
+    background: #1a1000; color: #d4a017; transition: all 0.15s;
+  }
+  #shop-reroll-btn:hover:not(:disabled) { border-color: var(--gold); color: var(--gold); background: #2a1800; }
+  #shop-reroll-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  #shop-reroll-info { font-family: 'Crimson Pro', serif; font-size: 11px; color: var(--cream-dim); }
+
+  /* Legacy services (hidden) */
   .svc-btn {
     display: flex; flex-direction: column; gap: 4px;
     background: #1a1510; border: 1px solid var(--border);
@@ -3033,60 +3103,37 @@
 <div id="shop-overlay">
   <div id="shop-header">
     <div id="shop-title">THE SHOP</div>
-    <div id="shop-sub">Every two minutes — game timer paused</div>
     <div id="shop-coins">💰 <span id="shop-coins-val">0</span></div>
   </div>
 
-  <!-- Cards for sale -->
-  <div id="shop-cards-section">
-    <div id="shop-cards-title">Cards for Sale — 2 coins each</div>
-    <div id="shop-cards-row"></div>
-  </div>
-
-  <!-- Services -->
-  <div id="shop-services">
-    <div id="shop-services-title">Services</div>
-    <div id="shop-services-row">
-      <button class="svc-btn" id="svc-remove-btn">
-        <div class="svc-icon">🍂</div>
-        <div class="svc-name">Remove</div>
-        <div class="svc-desc">Remove a card from your deck permanently</div>
-        <div class="svc-price" id="svc-remove-price">1 coin</div>
-      </button>
-      <button class="svc-btn" id="svc-duplicate-btn">
-        <div class="svc-icon">🌱</div>
-        <div class="svc-name">Duplicate</div>
-        <div class="svc-desc">Add a copy of a card to your deck</div>
-        <div class="svc-price" id="svc-duplicate-price">3 coins</div>
-      </button>
-      <button class="svc-btn" id="svc-suit-btn">
-        <div class="svc-icon">🔄</div>
-        <div class="svc-name">Change Suit</div>
-        <div class="svc-desc">Change the suit of 2 cards</div>
-        <div class="svc-price" id="svc-suit-price">2 coins</div>
-      </button>
-      <button class="svc-btn" id="svc-combine-btn">
-        <div class="svc-icon">⚗️</div>
-        <div class="svc-name">Combine</div>
-        <div class="svc-desc">Merge 2 cards into one dual-identity card</div>
-        <div class="svc-price" id="svc-combine-price">5 coins</div>
-      </button>
-      <button class="svc-btn" id="svc-swaps-btn">
-        <div class="svc-icon">↔️</div>
-        <div class="svc-name">+1 Swap</div>
-        <div class="svc-desc">Permanently gain 1 extra swap per round</div>
-        <div class="svc-price" id="svc-swaps-price">10 coins</div>
-      </button>
-      <button class="svc-btn" id="svc-discards-btn">
-        <div class="svc-icon">🍃</div>
-        <div class="svc-name">+1 Discard</div>
-        <div class="svc-desc">Permanently gain 1 extra discard per round</div>
-        <div class="svc-price" id="svc-discards-price">10 coins</div>
-      </button>
+  <!-- 2×2 item grid: BCs + Limits (top), Totems + Jokers (bottom) -->
+  <div id="shop-main-grid">
+    <div id="shop-bc-section" class="shop-section">
+      <div class="shop-section-label">Bonus Cards</div>
+      <div id="shop-bc-row" class="shop-items-row"></div>
+    </div>
+    <div id="shop-limits-section" class="shop-section">
+      <div class="shop-section-label">Upgrades</div>
+      <div id="shop-limits-row" class="shop-items-row"></div>
+    </div>
+    <div id="shop-totem-section" class="shop-section">
+      <div class="shop-section-label">Totems</div>
+      <div id="shop-totem-row" class="shop-items-row"></div>
+    </div>
+    <div id="shop-joker-section" class="shop-section">
+      <div class="shop-section-label">Jokers</div>
+      <div id="shop-joker-row" class="shop-items-row"></div>
     </div>
   </div>
 
-  <!-- Service card picker (shown when a service is active) -->
+  <!-- Footer: reroll + leave -->
+  <div id="shop-footer-row">
+    <button id="shop-reroll-btn">🎲 Reroll — <span id="shop-reroll-cost">8</span> coins</button>
+    <span id="shop-reroll-info"></span>
+    <button id="shop-close">Leave Shop</button>
+  </div>
+
+  <!-- Legacy service picker (kept for future use, hidden by default) -->
   <div id="svc-picker">
     <div id="svc-picker-title">Select a card</div>
     <div id="svc-picker-sub"></div>
@@ -3097,8 +3144,34 @@
       <button id="svc-cancel">Cancel</button>
     </div>
   </div>
+</div>
 
-  <button id="shop-close">Leave Shop</button>
+<!-- Hidden legacy service buttons (kept for future re-use) -->
+<div id="shop-legacy-services" style="display:none">
+  <button class="svc-btn" id="svc-remove-btn">
+    <div class="svc-icon">🍂</div><div class="svc-name">Remove</div>
+    <div class="svc-price" id="svc-remove-price">3 coins</div>
+  </button>
+  <button class="svc-btn" id="svc-duplicate-btn">
+    <div class="svc-icon">🌱</div><div class="svc-name">Duplicate</div>
+    <div class="svc-price" id="svc-duplicate-price">4 coins</div>
+  </button>
+  <button class="svc-btn" id="svc-suit-btn">
+    <div class="svc-icon">🔄</div><div class="svc-name">Change Suit</div>
+    <div class="svc-price" id="svc-suit-price">4 coins</div>
+  </button>
+  <button class="svc-btn" id="svc-combine-btn">
+    <div class="svc-icon">⚗️</div><div class="svc-name">Combine</div>
+    <div class="svc-price" id="svc-combine-price">5 coins</div>
+  </button>
+  <button class="svc-btn" id="svc-swaps-btn">
+    <div class="svc-icon">↔️</div><div class="svc-name">+1 Swap</div>
+    <div class="svc-price" id="svc-swaps-price">10 coins</div>
+  </button>
+  <button class="svc-btn" id="svc-discards-btn">
+    <div class="svc-icon">🍃</div><div class="svc-name">+1 Discard</div>
+    <div class="svc-price" id="svc-discards-price">10 coins</div>
+  </button>
 </div>
 
 <!-- BOSS REWARD GRID OVERLAY -->
@@ -3187,7 +3260,7 @@
 </div>
 
 <script>
-const BUILD = '2026-06-04 · r27';
+const BUILD = '2026-06-04 · r28';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -11056,133 +11129,289 @@ document.getElementById('btn-discard').addEventListener('click', doDiscard);
 // ══════════════════════════════════════════════
 // SHOP SYSTEM
 // ══════════════════════════════════════════════
-const SHOP_PRICES = { buy: 4, remove: 3, duplicate: 4, suit: 4, combine: 5, swaps: 10, discards: 10 };
-const SHOP_SVC_MAX = { remove: 3, duplicate: 3, suit: 3, combine: 3, swaps: 1, discards: 1 };
 
-// Persists across shop visits — drives price escalation
+// ── Legacy service infrastructure (kept, buttons hidden) ──
+const SHOP_PRICES   = { buy: 4, remove: 3, duplicate: 4, suit: 4, combine: 5, swaps: 10, discards: 10 };
+const SHOP_SVC_MAX  = { remove: 3, duplicate: 3, suit: 3, combine: 3, swaps: 1, discards: 1 };
 let shopPurchaseCount = { buy: 0, remove: 0, duplicate: 0, suit: 0, combine: 0, swaps: 0, discards: 0 };
-
-function shopPrice(key) {
-  return Math.round(SHOP_PRICES[key] * Math.pow(1.2, shopPurchaseCount[key] || 0));
-}
-
-// Cards currently for sale this shop visit
-let shopCards = [];
-let shopPurchased = new Set(); // indices of bought cards
+function shopPrice(key) { return Math.round(SHOP_PRICES[key] * Math.pow(1.2, shopPurchaseCount[key] || 0)); }
 let shopSvcUsed = { remove: 0, duplicate: 0, suit: 0, combine: 0, swaps: 0, discards: 0 };
 
 // Service state machine
-let svcMode = null; // 'remove' | 'duplicate' | 'suit' | 'combine'
-let svcStep = 0;    // which selection step we're on (combine needs 2)
-let svcPicked = []; // { rank, suit, loc } where loc is 'grid'|'deck'
+let svcMode = null;
+let svcStep = 0;
+let svcPicked = [];
+
+// ── New shop state ──
+const SHOP_BC_PRICES    = { common: 5, rare: 8, epic: 12, legendary: 18 };
+const SHOP_TOTEM_PRICE  = 10;
+const SHOP_JOKER_PRICES = { common: 8, rare: 12, epic: 16, legendary: 22 };
+const SHOP_LIMIT_BASE   = 15; // coins; +5 per upgrade already purchased
+
+let shopItems       = null; // { bcs:[], limits:[], totems:[], jokers:[] }
+let shopPurchased   = new Set();
+let shopRerollCount = 0;
+
+function shopLimitPrice(def) {
+  return SHOP_LIMIT_BASE + (limits[def.id].current - limits[def.id].base) * 5;
+}
+
+function generateShopItems() {
+  const ownedBcIds    = new Set(acquiredBonuses.map(b => b.id));
+  const ownedTotemIds = new Set(acquiredTotems.map(t => t.id));
+  const grantedJokers = new Set();
+  [...drawPile, ...playedPile].forEach(c => { if (c._isJoker) grantedJokers.add(c.jokerId); });
+  for (let r = 0; r < gridRows; r++)
+    for (let c = 0; c < gridCols; c++)
+      if (gridData[r]?.[c]?._isJoker) grantedJokers.add(gridData[r][c].jokerId);
+
+  const bcs    = shuffle(BONUS_POOL.filter(b => !ownedBcIds.has(b.id))).slice(0, 3);
+  const lims   = shuffle(LIMITS_DEF.filter(d => limits[d.id].current < limits[d.id].max)).slice(0, 2);
+  const totems = shuffle(TOTEM_POOL.filter(t => !ownedTotemIds.has(t.id))).slice(0, 2);
+  const jokers = shuffle(JOKER_POOL.filter(j => !grantedJokers.has(j.id))).slice(0, 3);
+
+  shopItems = { bcs, limits: lims, totems, jokers };
+}
 
 function triggerShop() {
   clearInterval(roundInterval);
   roundInterval = null;
   gameTimerPaused = true;
   sfxShopOpen();
-
-  // Generate 5 cards for sale with random bonus chance
-  shopCards = [];
-  shopPurchased = new Set();
-  shopSvcUsed = { remove: 0, duplicate: 0, suit: 0, combine: 0, swaps: 0, discards: 0 };
-
-  // Shop cards are freshly generated — completely independent of the player's deck
-  // Generate raw rank/suit pairs without stampId to avoid consuming _id counter values
-  const allPairs = [];
-  for (const s of SUITS) for (const r of RANKS) allPairs.push({ rank: r, suit: s });
-  const shopPool = shuffle(allPairs);
-  for (let i = 0; i < 5; i++) {
-    const card = shopPool[i];
-    const roll = Math.random();
-    let bonusPips = 0, bonusMult = 0;
-    if (roll < 0.15) bonusPips = Math.floor(Math.random() * 3) + 1;
-    else if (roll < 0.25) bonusMult = 1;
-    else if (roll < 0.28) { bonusPips = 2; bonusMult = 1; }
-    shopCards.push({ rank: card.rank, suit: card.suit, bonusPips, bonusMult });
-  }
-
+  shopPurchased   = new Set();
+  shopRerollCount = 0;
+  shopSvcUsed     = { remove: 0, duplicate: 0, suit: 0, combine: 0, swaps: 0, discards: 0 };
+  generateShopItems();
   renderShop();
   document.getElementById('shop-overlay').classList.add('show');
 }
 
 function renderShop() {
   document.getElementById('shop-coins-val').textContent = coins;
-
-  const row = document.getElementById('shop-cards-row');
-  row.innerHTML = '';
-  const buyPrice = shopPrice('buy');
-  shopCards.forEach((card, i) => {
-    const purchased = shopPurchased.has(i);
-    const canAfford = coins >= buyPrice;
-    const sc = suitClass(card.suit);
-    let bonusText = '', bonusCls = '';
-    if (card.bonusPips && card.bonusMult) { bonusText = `+${card.bonusPips}p +${card.bonusMult}m`; bonusCls = 'both'; }
-    else if (card.bonusPips) { bonusText = `+${card.bonusPips} pips`; }
-    else if (card.bonusMult) { bonusText = `+${card.bonusMult} mult`; bonusCls = 'mult'; }
-
-    const item = document.createElement('div');
-    item.className = 'shop-card-item';
-    item.innerHTML = `
-      <div class="shop-card-face ${sc}${purchased ? ' purchased' : ''}">
-        ${card.rank}<div class="sc-suit">${card.suit}</div>
-        ${bonusText ? `<div class="sc-bonus ${bonusCls}">${bonusText}</div>` : ''}
-      </div>
-      <div class="shop-card-price${!canAfford && !purchased ? ' cant-afford' : ''}">
-        ${purchased ? '✓ Bought' : `💰 ${buyPrice}`}
-      </div>
-    `;
-    if (!purchased) {
-      item.querySelector('.shop-card-face').addEventListener('click', () => buyShopCard(i));
-    }
-    row.appendChild(item);
-  });
-
-  refreshShopAffordability();
+  if (!shopItems) return;
+  renderShopBCs();
+  renderShopLimits();
+  renderShopTotems();
+  renderShopJokers();
+  renderShopFooter();
 }
 
-function buyShopCard(i) {
-  const price = shopPrice('buy');
-  if (shopPurchased.has(i) || coins < price) return;
+function renderShopBCs() {
+  const row = document.getElementById('shop-bc-row');
+  if (!row) return;
+  row.innerHTML = '';
+  shopItems.bcs.forEach((bc, i) => {
+    const key = `bc-${i}`;
+    const purchased = shopPurchased.has(key);
+    const price = SHOP_BC_PRICES[bc.tier] || 8;
+    const canAfford = coins >= price;
+    const tier = bc.tier || 'common';
+    const item = document.createElement('div');
+    item.className = `shop-item${purchased ? ' purchased' : ''}`;
+    item.innerHTML = `
+      <div class="shop-bc-card bc-tier-${tier}">
+        <div class="bc-tier-label">${tier.toUpperCase()}</div>
+        <div class="bc-name">${bc.name}</div>
+        <div class="shop-bc-desc">${bcLiveDesc(bc)}</div>
+      </div>
+      <div class="shop-item-price${purchased ? ' purchased' : (!canAfford ? ' cant-afford' : '')}">
+        ${purchased ? '\u2713' : '💰' + price}
+      </div>`;
+    if (!purchased) item.querySelector('.shop-bc-card').addEventListener('click', () => buyShopBC(i));
+    row.appendChild(item);
+  });
+}
+
+function renderShopLimits() {
+  const row = document.getElementById('shop-limits-row');
+  if (!row) return;
+  row.innerHTML = '';
+  shopItems.limits.forEach((def, i) => {
+    const key = `limit-${i}`;
+    const purchased = shopPurchased.has(key);
+    const maxed = limits[def.id].current >= limits[def.id].max;
+    const price = shopLimitPrice(def);
+    const canAfford = coins >= price;
+    const cur = limits[def.id].current;
+    const next = Math.min(cur + 1, limits[def.id].max);
+    const item = document.createElement('div');
+    item.className = `shop-item${purchased || maxed ? ' purchased' : ''}`;
+    item.innerHTML = `
+      <div class="shop-limit-card${maxed ? ' maxed' : ''}">
+        <div class="shop-limit-icon">${def.icon}</div>
+        <div class="shop-limit-label">${def.label}</div>
+        <div class="shop-limit-progress">${cur} → ${next}</div>
+        <div class="shop-limit-desc">${def.desc}</div>
+      </div>
+      <div class="shop-item-price${purchased || maxed ? ' purchased' : (!canAfford ? ' cant-afford' : '')}">
+        ${maxed ? 'MAXED' : purchased ? '\u2713' : '💰' + price}
+      </div>`;
+    if (!purchased && !maxed) item.querySelector('.shop-limit-card').addEventListener('click', () => buyShopLimit(i));
+    row.appendChild(item);
+  });
+}
+
+function renderShopTotems() {
+  const row = document.getElementById('shop-totem-row');
+  if (!row) return;
+  row.innerHTML = '';
+  shopItems.totems.forEach((totem, i) => {
+    const key = `totem-${i}`;
+    const purchased = shopPurchased.has(key);
+    const canAfford = coins >= SHOP_TOTEM_PRICE;
+    const item = document.createElement('div');
+    item.className = `shop-item${purchased ? ' purchased' : ''}`;
+    item.innerHTML = `
+      <div class="shop-totem-card">
+        <div class="shop-totem-emoji">${totem.emoji}</div>
+        <div class="shop-totem-name">${totem.name}</div>
+        <div class="shop-totem-desc">${totem.desc}</div>
+      </div>
+      <div class="shop-item-price${purchased ? ' purchased' : (!canAfford ? ' cant-afford' : '')}">
+        ${purchased ? '\u2713' : '💰' + SHOP_TOTEM_PRICE}
+      </div>`;
+    if (!purchased) item.querySelector('.shop-totem-card').addEventListener('click', () => buyShopTotem(i));
+    row.appendChild(item);
+  });
+}
+
+function renderShopJokers() {
+  const row = document.getElementById('shop-joker-row');
+  if (!row) return;
+  row.innerHTML = '';
+  shopItems.jokers.forEach((joker, i) => {
+    const key = `joker-${i}`;
+    const purchased = shopPurchased.has(key);
+    const price = SHOP_JOKER_PRICES[joker.rarity] || 12;
+    const canAfford = coins >= price;
+    const charges = joker.durability === 'infinite' ? '\u221e' : `${joker.durability}\u00d7`;
+    const item = document.createElement('div');
+    item.className = `shop-item${purchased ? ' purchased' : ''}`;
+    item.innerHTML = `
+      <div class="shop-joker-card jk-rarity-${joker.rarity || 'common'}">
+        <div class="shop-joker-emoji">${joker.emoji || '🃏'}</div>
+        <div class="shop-joker-name">${joker.name}</div>
+        <div class="shop-joker-desc">${joker.desc}</div>
+        <div class="shop-joker-charges">${charges}</div>
+      </div>
+      <div class="shop-item-price${purchased ? ' purchased' : (!canAfford ? ' cant-afford' : '')}">
+        ${purchased ? '\u2713' : '💰' + price}
+      </div>`;
+    if (!purchased) item.querySelector('.shop-joker-card').addEventListener('click', () => buyShopJoker(i));
+    row.appendChild(item);
+  });
+}
+
+function renderShopFooter() {
+  const maxRerolls = limits.reroll ? limits.reroll.current : 3;
+  const isDebuff   = shopRerollCount >= maxRerolls;
+  const nextCost   = 8 + shopRerollCount * 2;
+  const costEl  = document.getElementById('shop-reroll-cost');
+  const infoEl  = document.getElementById('shop-reroll-info');
+  if (costEl) costEl.textContent = isDebuff ? 'debuff' : nextCost;
+  if (infoEl) infoEl.textContent = isDebuff
+    ? 'cost: corrupts a grid card'
+    : `${maxRerolls - shopRerollCount} reroll${maxRerolls - shopRerollCount !== 1 ? 's' : ''} left`;
+  const btn = document.getElementById('shop-reroll-btn');
+  if (btn) btn.disabled = isDebuff && !hasGridCardForDebuff();
+}
+
+function hasGridCardForDebuff() {
+  for (let r = 0; r < gridRows; r++)
+    for (let c = 0; c < gridCols; c++) {
+      const card = gridData[r]?.[c];
+      if (card && !card._isBC && !card._isJoker && !card._isStone && card.rank) return true;
+    }
+  return false;
+}
+
+function buyShopBC(i) {
+  const bc = shopItems?.bcs[i];
+  const key = `bc-${i}`;
+  if (!bc || shopPurchased.has(key)) return;
+  const price = SHOP_BC_PRICES[bc.tier] || 8;
+  if (coins < price) { showMessage('Not enough coins', 'var(--red)'); return; }
   coins -= price;
-  shopPurchaseCount.buy++;
-  shopPurchased.add(i);
-  const card = shopCards[i];
-  const k = cardKey(card.rank, card.suit);
-  if (card.bonusPips) permPips[k] = (permPips[k] || 0) + card.bonusPips;
-  if (card.bonusMult) permMult[k] = (permMult[k] || 0) + card.bonusMult;
-  drawPile.push({ rank: card.rank, suit: card.suit });
+  shopPurchased.add(key);
+  injectBCAfterReward(bc);
   renderShop();
   updateCoinsUI();
 }
 
+function buyShopLimit(i) {
+  const def = shopItems?.limits[i];
+  const key = `limit-${i}`;
+  if (!def || shopPurchased.has(key)) return;
+  if (limits[def.id].current >= limits[def.id].max) return;
+  const price = shopLimitPrice(def);
+  if (coins < price) { showMessage('Not enough coins', 'var(--red)'); return; }
+  coins -= price;
+  shopPurchased.add(key);
+  incrementLimit(def.id);
+  onLimitChanged(def.id);
+  renderShop();
+  updateCoinsUI();
+  showMessage(`${def.icon} ${def.label} upgraded!`, '#5ad4c0');
+}
+
+function buyShopTotem(i) {
+  const totem = shopItems?.totems[i];
+  const key = `totem-${i}`;
+  if (!totem || shopPurchased.has(key)) return;
+  if (coins < SHOP_TOTEM_PRICE) { showMessage('Not enough coins', 'var(--red)'); return; }
+  coins -= SHOP_TOTEM_PRICE;
+  shopPurchased.add(key);
+  acquiredTotems.push({ ...totem });
+  updateTotemList();
+  renderShop();
+  updateCoinsUI();
+  showMessage(`${totem.emoji} ${totem.name}!`, '#d4a017');
+}
+
+function buyShopJoker(i) {
+  const joker = shopItems?.jokers[i];
+  const key = `joker-${i}`;
+  if (!joker || shopPurchased.has(key)) return;
+  const price = SHOP_JOKER_PRICES[joker.rarity] || 12;
+  if (coins < price) { showMessage('Not enough coins', 'var(--red)'); return; }
+  coins -= price;
+  shopPurchased.add(key);
+  grantJoker(joker);
+  renderShop();
+  updateCoinsUI();
+  showMessage(`${joker.emoji} ${joker.name}!`, '#c07aee');
+}
+
+function doShopReroll() {
+  const maxRerolls = limits.reroll ? limits.reroll.current : 3;
+  const isDebuff   = shopRerollCount >= maxRerolls;
+  if (isDebuff) {
+    const targets = [];
+    for (let r = 0; r < gridRows; r++)
+      for (let c = 0; c < gridCols; c++) {
+        const card = gridData[r]?.[c];
+        if (card && !card._isBC && !card._isJoker && !card._isStone && card.rank) targets.push([r, c]);
+      }
+    if (targets.length === 0) { showMessage('No cards to corrupt!', 'var(--red)'); return; }
+    const [tr, tc] = targets[Math.floor(Math.random() * targets.length)];
+    corruptCard(tr, tc);
+    render();
+    showMessage('💀 Reroll: a card was corrupted!', '#9b4dca');
+  } else {
+    const cost = 8 + shopRerollCount * 2;
+    if (coins < cost) { showMessage('Not enough coins', 'var(--red)'); return; }
+    coins -= cost;
+    updateCoinsUI();
+  }
+  shopRerollCount++;
+  generateShopItems();
+  renderShop();
+}
+
+document.getElementById('shop-reroll-btn').addEventListener('click', doShopReroll);
+
 function refreshShopAffordability() {
-  const buyPrice = shopPrice('buy');
-  document.querySelectorAll('.shop-card-price').forEach(el => {
-    if (!el.textContent.includes('✓'))
-      el.classList.toggle('cant-afford', coins < buyPrice);
-  });
-  const svcDefs = [
-    { id: 'svc-remove-btn',    key: 'remove' },
-    { id: 'svc-duplicate-btn', key: 'duplicate' },
-    { id: 'svc-suit-btn',      key: 'suit' },
-    { id: 'svc-combine-btn',   key: 'combine' },
-    { id: 'svc-swaps-btn',     key: 'swaps' },
-    { id: 'svc-discards-btn',  key: 'discards' },
-  ];
-  svcDefs.forEach(({ id, key }) => {
-    const btn = document.getElementById(id);
-    if (!btn) return;
-    const price = shopPrice(key);
-    const capped = shopSvcUsed[key] >= SHOP_SVC_MAX[key];
-    const cantAfford = coins < price;
-    btn.disabled = capped || cantAfford;
-    const priceEl = btn.querySelector('.svc-price');
-    if (priceEl) {
-      priceEl.classList.toggle('cant-afford', capped || cantAfford);
-      priceEl.textContent = capped ? 'Sold out' : `${price} coin${price !== 1 ? 's' : ''}`;
-    }
-  });
+  if (shopItems) renderShop();
 }
 
 // ── Build the card picker for services ──
@@ -11493,7 +11722,7 @@ document.getElementById('svc-cancel').addEventListener('click', () => {
 document.getElementById('shop-close').addEventListener('click', () => {
   document.getElementById('shop-overlay').classList.remove('show');
   closeSvcPicker();
-  shopCards = [];
+  shopItems = null;
   gameTimerPaused = false;
   if (shopFromNodeFlow) {
     shopFromNodeFlow = false;
@@ -12123,8 +12352,9 @@ function startGame() {
   roundGoal = BASE_GOAL;
   cumulativeGoal = BASE_GOAL;
   coins = 0;
-  shopCards = [];
+  shopItems = null;
   shopPurchased = new Set();
+  shopRerollCount = 0;
   shopPurchaseCount = { buy: 0, remove: 0, duplicate: 0, suit: 0, combine: 0, swaps: 0, discards: 0 };
   svcMode = null;
   svcPicked = [];
