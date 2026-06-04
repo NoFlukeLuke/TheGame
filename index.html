@@ -2854,6 +2854,11 @@
     </div>
     <div class="dev-row">
       <button class="dev-btn" onclick="devTriggerEvent('twin_path')">Twin Path</button>
+      <button class="dev-btn" onclick="devTriggerEvent('forge')">Forge</button>
+      <button class="dev-btn" onclick="devTriggerEvent('bargain')">Bargain</button>
+    </div>
+    <div class="dev-row">
+      <button class="dev-btn" onclick="devTriggerEvent('wager')">Wager</button>
     </div>
     <div id="dev-limits-display" style="font-family:'Courier New',monospace;font-size:9px;color:var(--cream-dim);line-height:1.6;margin-top:4px;"></div>
     <div class="dev-row" style="flex-wrap:wrap;gap:4px;" id="dev-limits-btns"></div>
@@ -3260,7 +3265,7 @@
 </div>
 
 <script>
-const BUILD = '2026-06-04 · r29';
+const BUILD = '2026-06-04 · r30';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -3994,6 +3999,9 @@ let forceBossNextRound = false; // triggers boss after next round deal animation
 // Permanent pip bonuses per card key "rank-suit"
 let permPips = {};   // { "A-♠": 3, ... }
 let permMult = {};   // { "A-♠": 1, ... }
+let permXPips  = {}; // { "A-♠": 2, ... } multiplies that card's pip contribution (default 1)
+let permXMult  = {}; // { "A-♠": 2, ... } multiplies total mult per scored card of this key (default 1)
+let permRetrig = {}; // { "A-♠": 1, ... } extra times this card scores its pips (default 0)
 
 // ── Scaling bonus accumulators ──
 let bonusMult_fives   = 0;
@@ -4545,9 +4553,13 @@ function calcScore(handName, cells, contrib = null) {
     if (hasBonus('ten_strong') && baseRank === '10') { cp += 7; bPip('ten_strong', 7); }
     if (hasBonus('king_guard') && baseRank === 'K') { cp += 8; bPip('king_guard', 8); }
     if (hasBonus('dark_matter') && card._corrupted) { cp += 5; bPip('dark_matter', 5); }
-    const _pp = permPips[cardKey(card.rank, card.suit)] || 0;
+    const _eKey = cardKey(card.rank, card.suit);
+    const _pp = permPips[_eKey] || 0;
     cp += _pp;
     bPip('sapling', _pp);
+    // Permanent ×pips enhancement (The Forge / Bargain / Wager events)
+    const _xp = permXPips[_eKey] || 1;
+    if (_xp !== 1) { const _preXp = cp; cp *= _xp; bPip('sapling', cp - _preXp); }
     // Row/col triple pips — applies after all other pip bonuses
     if (cellHasRowColBonus(r, c, 'rowcol_triple_pips')) cp *= 3;
     // Retrigger: certain conditions score this card's pips an extra time
@@ -4556,7 +4568,9 @@ function calcScore(handName, cells, contrib = null) {
     const _r8 = hasBonus('eights_retrigger') && baseRank === '8';
     const _rc = hasBonus('corner_retrigger') && isCorner(r, c);
     const _rl = cellHasRowColBonus(r, c, 'rowcol_retrigger');
+    const _re = permRetrig[_eKey] || 0;  // permanent per-card retrigger (events)
     if (_r2) _retrig++; if (_r8) _retrig++; if (_rc) _retrig++; if (_rl) _retrig++;
+    _retrig += _re;
     if (_retrig > 1) {
       const _pre = cp; cp *= _retrig;
       const _extra = cp - _pre;
@@ -4564,6 +4578,7 @@ function calcScore(handName, cells, contrib = null) {
       else if (_r8) bPip('eights_retrigger', _pre);
       else if (_rc) bPip('corner_retrigger', _pre);
       else if (_rl) bPip('rowcol_retrigger', _pre);
+      else if (_re) bPip('sapling', _extra);
     }
     totalPips += cp;
     if (hasBonus('knave_power') && baseRank === 'J') { const _b = totalPips; totalPips *= 2; bPip('knave_power', totalPips - _b); }
@@ -4676,6 +4691,11 @@ function calcScore(handName, cells, contrib = null) {
     const _pm = permMult[cardKey(card.rank, card.suit)] || 0;
     mult += _pm;
     bMult('perm_mult', _pm);
+  });
+  // Permanent ×mult enhancement (The Forge / Bargain / Wager events)
+  cards.forEach(card => {
+    const _xm = permXMult[cardKey(card.rank, card.suit)] || 1;
+    if (_xm !== 1) { const _preXm = mult; mult *= _xm; bMult('perm_mult', mult - _preXm); }
   });
 
   // Hearts: neutral by default; +1 mult each with Devoted BC
@@ -9147,7 +9167,7 @@ let afterEventFn = null;
 
 function openEvent(afterFn) {
   afterEventFn = afterFn || (() => drainLevelUpQueue());
-  const pool = ['confluence','crossroads','gamble','merchant','altar','spring','twin_path'];
+  const pool = ['confluence','crossroads','gamble','merchant','altar','spring','twin_path','forge','bargain','wager'];
   activeEventId = pool[Math.floor(Math.random() * pool.length)];
   eventState = {};
   renderEventShell(activeEventId);
@@ -9178,6 +9198,9 @@ function confirmEvent() {
     altar:       confirmAltar,
     spring:      confirmSpring,
     twin_path:   confirmTwinPath,
+    forge:       confirmForge,
+    bargain:     confirmBargain,
+    wager:       confirmWager,
   };
   if (handlers[activeEventId]) handlers[activeEventId]();
   else closeEvent();
@@ -9192,6 +9215,9 @@ const EVENT_META = {
   altar:       { name:'The Altar',           flavor:'Invest now. Reap rewards across the coming rounds.' },
   spring:      { name:'Cleansing Spring',    flavor:'The water runs clear. Something may be washed away.' },
   twin_path:   { name:'Twin Path',           flavor:'Two gifts. One shadow.' },
+  forge:       { name:'The Forge',           flavor:'Heat, hammer, and a card made mighty.' },
+  bargain:     { name:'The Bargain',         flavor:'Every gain has its price in flesh.' },
+  wager:       { name:'The Wager',           flavor:'One flip. Fortune or ruin.' },
 };
 
 function renderEventShell(id) {
@@ -9201,6 +9227,7 @@ function renderEventShell(id) {
   document.getElementById('event-body').innerHTML = '';
   document.getElementById('event-confirm').disabled = true;
   document.getElementById('event-skip').style.display = 'inline-block';
+  document.getElementById('event-skip').textContent = 'Skip';
   const renderers = {
     confluence: renderConfluence,
     crossroads:  renderCrossroads,
@@ -9209,6 +9236,9 @@ function renderEventShell(id) {
     altar:       renderAltar,
     spring:      renderSpring,
     twin_path:   renderTwinPath,
+    forge:       renderForge,
+    bargain:     renderBargain,
+    wager:       renderWager,
   };
   if (renderers[id]) renderers[id]();
 }
@@ -9557,6 +9587,216 @@ function renderGambleDouble() {
     });
     body.appendChild(el);
   });
+}
+
+// ══════════════════════════════════════════════
+// CARD-ENHANCEMENT HELPERS (shared by Forge / Bargain / Wager events)
+// ══════════════════════════════════════════════
+// Every distinct real card sitting in the player's deck (grid + draw + played).
+function allDeckCards() {
+  const out = [];
+  for (let r = 0; r < gridRows; r++)
+    for (let c = 0; c < gridCols; c++) {
+      const cd = gridData[r]?.[c];
+      if (cd && !cd._isBC && !cd._isJoker && !cd._isStone && cd.rank) out.push(cd);
+    }
+  drawPile.forEach(cd => { if (cd && !cd._isJoker && cd.rank) out.push(cd); });
+  playedPile.forEach(cd => { if (cd && !cd._isJoker && cd.rank) out.push(cd); });
+  return out;
+}
+function randomDeckCard() {
+  const all = allDeckCards();
+  return all.length ? all[Math.floor(Math.random() * all.length)] : null;
+}
+// Apply a permanent enhancement to every card sharing this rank/suit key.
+function enhanceCardKey(key, e) {
+  if (e.pips)   permPips[key]   = (permPips[key]   || 0) + e.pips;
+  if (e.mult)   permMult[key]   = (permMult[key]   || 0) + e.mult;
+  if (e.xpips)  permXPips[key]  = (permXPips[key]  || 1) * e.xpips;
+  if (e.xmult)  permXMult[key]  = (permXMult[key]  || 1) * e.xmult;
+  if (e.retrig) permRetrig[key] = (permRetrig[key] || 0) + e.retrig;
+  if (e.subpips) permPips[key]  = Math.max(0, (permPips[key] || 0) - e.subpips);
+}
+function copyCardToDeck(card) {
+  if (!card) return;
+  drawPile.push({ rank: card.rank, suit: card.suit });
+  drawPile = shuffle(drawPile);
+  expectedDeckTotal++;
+  updateDeckHud?.();
+}
+// Remove up to n random non-joker cards from the off-grid piles (draw then played).
+function removeRandomDeckCards(n) {
+  let removed = 0;
+  while (removed < n) {
+    const candidates = [];
+    drawPile.forEach((c, i)   => { if (!c._isJoker) candidates.push(['draw', i]); });
+    playedPile.forEach((c, i) => { if (!c._isJoker) candidates.push(['played', i]); });
+    if (!candidates.length) break;
+    const [pile, idx] = candidates[Math.floor(Math.random() * candidates.length)];
+    (pile === 'draw' ? drawPile : playedPile).splice(idx, 1);
+    removed++;
+    expectedDeckTotal--;
+  }
+  updateDeckHud?.();
+  return removed;
+}
+function cardLabel(card) { return card ? `${card.rank}${card.suit}` : 'a card'; }
+
+// ══════════════════════════════════════════════
+// EVENT: THE FORGE  (this-or-that card enhancement)
+// ══════════════════════════════════════════════
+function renderForge() {
+  const body = document.getElementById('event-body');
+  const all = allDeckCards();
+  if (!all.length) {
+    body.innerHTML = '<div style="color:var(--cream-dim);font-size:11px;text-align:center">No cards to enhance.</div>';
+    setEventConfirm(true); return;
+  }
+  const lbl = document.createElement('div');
+  lbl.style.cssText = 'font-family:Cinzel,serif;font-size:9px;letter-spacing:2px;color:var(--gold-dim);margin-bottom:4px';
+  lbl.textContent = 'CHOOSE ONE ENHANCEMENT';
+  body.appendChild(lbl);
+
+  // Pick 3 distinct random target cards (or reuse if deck is tiny)
+  const sh = a => { const r=[...a]; for(let i=r.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[r[i],r[j]]=[r[j],r[i]];} return r; };
+  const picks = sh(all);
+  const target = i => picks[i % picks.length];
+
+  const boons = [
+    (t) => ({ icon:'🔨', rarity:'common', name:`Temper ${cardLabel(t)}`, desc:`${cardLabel(t)} permanently gains +30 pips.`,
+              apply:()=>{ enhanceCardKey(cardKey(t.rank,t.suit), {pips:30}); showMessage(`${cardLabel(t)} +30 pips`, 'var(--gold)'); } }),
+    (t) => ({ icon:'⚒️', rarity:'rare', name:`Sharpen ${cardLabel(t)}`, desc:`${cardLabel(t)} permanently scores ×2 pips.`,
+              apply:()=>{ enhanceCardKey(cardKey(t.rank,t.suit), {xpips:2}); showMessage(`${cardLabel(t)} ×2 pips`, 'var(--gold)'); } }),
+    (t) => ({ icon:'✨', rarity:'common', name:`Empower ${cardLabel(t)}`, desc:`${cardLabel(t)} permanently gains +5 mult.`,
+              apply:()=>{ enhanceCardKey(cardKey(t.rank,t.suit), {mult:5}); showMessage(`${cardLabel(t)} +5 mult`, 'var(--gold)'); } }),
+    (t) => ({ icon:'💥', rarity:'epic', name:`Overcharge ${cardLabel(t)}`, desc:`${cardLabel(t)} permanently scores ×2 mult.`,
+              apply:()=>{ enhanceCardKey(cardKey(t.rank,t.suit), {xmult:2}); showMessage(`${cardLabel(t)} ×2 mult`, 'var(--gold)'); } }),
+    (t) => ({ icon:'🔁', rarity:'rare', name:`Echo ${cardLabel(t)}`, desc:`${cardLabel(t)} permanently scores its pips twice.`,
+              apply:()=>{ enhanceCardKey(cardKey(t.rank,t.suit), {retrig:1}); showMessage(`${cardLabel(t)} retriggers`, 'var(--gold)'); } }),
+  ];
+  const chosen = sh(boons).slice(0, 3).map((make, i) => make(target(i)));
+  eventState.forgeChoice = null;
+  chosen.forEach(opt => {
+    const el = makeChoiceEl({ icon:opt.icon, rarity:opt.rarity, name:opt.name, desc:opt.desc,
+      onClick: () => {
+        body.querySelectorAll('.event-choice').forEach(e=>e.classList.remove('selected'));
+        el.classList.add('selected');
+        eventState.forgeChoice = opt;
+        setEventConfirm(true);
+      }
+    });
+    body.appendChild(el);
+  });
+}
+function confirmForge() {
+  if (eventState.forgeChoice) { eventState.forgeChoice.apply(); render(); }
+  closeEvent();
+}
+
+// ══════════════════════════════════════════════
+// EVENT: THE BARGAIN  (sacrifice to get more)
+// ══════════════════════════════════════════════
+function buildBargainTrades() {
+  const offGrid = drawPile.filter(c=>!c._isJoker).length + playedPile.filter(c=>!c._isJoker).length;
+  const trades = [];
+  if (offGrid >= 2) {
+    trades.push({ icon:'⚖️', rarity:'rare', name:'Blood Price', desc:'Remove 2 random cards from your deck. A random remaining card permanently scores ×3 pips.',
+      apply:()=>{ removeRandomDeckCards(2); const t=randomDeckCard(); if(t){ enhanceCardKey(cardKey(t.rank,t.suit), {xpips:3}); showMessage(`${cardLabel(t)} ×3 pips`, 'var(--gold)'); } } });
+  }
+  trades.push({ icon:'🕯️', rarity:'rare', name:'Time Tithe', desc:'Permanently lose 8s of round time. Copy a random card; that card permanently gains +20 pips.',
+    apply:()=>{ limits.round_time.current=Math.max(30, limits.round_time.current-8); const t=randomDeckCard(); if(t){ copyCardToDeck(t); enhanceCardKey(cardKey(t.rank,t.suit), {pips:20}); showMessage(`Copied ${cardLabel(t)} · +20 pips`, 'var(--gold)'); } } });
+  if (coins >= 10) {
+    trades.push({ icon:'🪙', rarity:'epic', name:'The Toll', desc:'Lose 10 coins. A random card permanently retriggers and scores ×2 mult.',
+      apply:()=>{ coins-=10; updateCoinsUI(); const t=randomDeckCard(); if(t){ enhanceCardKey(cardKey(t.rank,t.suit), {retrig:1, xmult:2}); showMessage(`${cardLabel(t)} retrigger + ×2 mult`, 'var(--gold)'); } } });
+  }
+  if (offGrid >= 3) {
+    trades.push({ icon:'🗑️', rarity:'epic', name:'Purge', desc:'Remove 3 random cards from your deck. Gain +2 permanent swaps and a random card gains +40 pips.',
+      apply:()=>{ removeRandomDeckCards(3); limits.swaps.current+=2; swaps=Math.min(swaps+2, limits.swaps.current); const t=randomDeckCard(); if(t){ enhanceCardKey(cardKey(t.rank,t.suit), {pips:40}); showMessage(`+2 swaps · ${cardLabel(t)} +40 pips`, 'var(--gold)'); } } });
+  }
+  // Always-available fallback
+  if (trades.length === 0) {
+    trades.push({ icon:'🕯️', rarity:'common', name:'Last Ember', desc:'Lose 5s of round time. A random card permanently gains +15 pips.',
+      apply:()=>{ limits.round_time.current=Math.max(30, limits.round_time.current-5); const t=randomDeckCard(); if(t){ enhanceCardKey(cardKey(t.rank,t.suit), {pips:15}); showMessage(`${cardLabel(t)} +15 pips`, 'var(--gold)'); } } });
+  }
+  const a=[...trades]; for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+  return a.slice(0,3);
+}
+function renderBargain() {
+  eventState.bargainTrades = buildBargainTrades();
+  eventState.bargainChoice = null;
+  const body = document.getElementById('event-body');
+  const lbl = document.createElement('div');
+  lbl.style.cssText = 'font-family:Cinzel,serif;font-size:9px;letter-spacing:2px;color:var(--gold-dim);margin-bottom:4px';
+  lbl.textContent = 'PAY THE PRICE';
+  body.appendChild(lbl);
+  eventState.bargainTrades.forEach(trade => {
+    const el = makeChoiceEl({ icon:trade.icon, rarity:trade.rarity, name:trade.name, desc:trade.desc,
+      onClick: () => {
+        body.querySelectorAll('.event-choice').forEach(e=>e.classList.remove('selected'));
+        el.classList.add('selected');
+        eventState.bargainChoice = trade;
+        setEventConfirm(true);
+      }
+    });
+    body.appendChild(el);
+  });
+}
+function confirmBargain() {
+  if (eventState.bargainChoice) { eventState.bargainChoice.apply(); render(); }
+  closeEvent();
+}
+
+// ══════════════════════════════════════════════
+// EVENT: THE WAGER  (coin flip — get more or lose more)
+// ══════════════════════════════════════════════
+function renderWager() {
+  const body = document.getElementById('event-body');
+  if (!allDeckCards().length) {
+    body.innerHTML = '<div style="color:var(--cream-dim);font-size:11px;text-align:center">No cards to wager.</div>';
+    setEventConfirm(true); return;
+  }
+  eventState.wagerStake = null;
+  eventState.wagerResolved = false;
+  const lbl = document.createElement('div');
+  lbl.style.cssText = 'font-family:Cinzel,serif;font-size:9px;letter-spacing:2px;color:var(--gold-dim);margin-bottom:4px';
+  lbl.textContent = 'CHOOSE YOUR STAKE — THEN FLIP';
+  body.appendChild(lbl);
+  const stakes = [
+    { icon:'🪙', rarity:'common', name:'Modest — 70%', desc:'Heads: a random card scores ×2 pips. Tails: that card loses 10 pips.', odds:0.70,
+      win:(t)=>{ enhanceCardKey(cardKey(t.rank,t.suit), {xpips:2}); return `${cardLabel(t)} ×2 pips!`; },
+      lose:(t)=>{ enhanceCardKey(cardKey(t.rank,t.suit), {subpips:10}); return `${cardLabel(t)} −10 pips.`; } },
+    { icon:'🎲', rarity:'rare', name:'Bold — 55%', desc:'Heads: a random card scores ×3 pips and retriggers. Tails: that card is removed from your deck.', odds:0.55,
+      win:(t)=>{ enhanceCardKey(cardKey(t.rank,t.suit), {xpips:3, retrig:1}); return `${cardLabel(t)} ×3 pips + retrigger!`; },
+      lose:(t)=>{ removeRandomDeckCards(1); return `${cardLabel(t)} lost.`; } },
+    { icon:'💀', rarity:'epic', name:'Reckless — 40%', desc:'Heads: a random card scores ×4 pips, ×2 mult and retriggers. Tails: 2 random cards are removed.', odds:0.40,
+      win:(t)=>{ enhanceCardKey(cardKey(t.rank,t.suit), {xpips:4, xmult:2, retrig:1}); return `${cardLabel(t)} ×4 pips, ×2 mult + retrigger!`; },
+      lose:(t)=>{ removeRandomDeckCards(2); return `2 cards lost.`; } },
+  ];
+  stakes.forEach(stake => {
+    const el = makeChoiceEl({ icon:stake.icon, rarity:stake.rarity, name:stake.name, desc:stake.desc,
+      onClick: () => {
+        if (eventState.wagerResolved) return;
+        body.querySelectorAll('.event-choice').forEach(e=>e.classList.remove('selected'));
+        el.classList.add('selected');
+        eventState.wagerStake = stake;
+        setEventConfirm(true);
+      }
+    });
+    body.appendChild(el);
+  });
+}
+function confirmWager() {
+  const stake = eventState.wagerStake;
+  if (!stake || eventState.wagerResolved) { closeEvent(); return; }
+  eventState.wagerResolved = true;
+  const target = randomDeckCard();
+  const won = Math.random() < stake.odds;
+  let msg = '';
+  if (target) msg = won ? stake.win(target) : stake.lose(target);
+  render();
+  showMessage(won ? `HEADS — ${msg}` : `TAILS — ${msg}`, won ? 'var(--gold)' : 'var(--red)');
+  setEventConfirm(false);
+  document.getElementById('event-skip').textContent = 'Continue';
 }
 
 // ══════════════════════════════════════════════
@@ -11470,6 +11710,12 @@ function doShopReroll() {
     corruptCard(tr, tc);
     render();
     showMessage('💀 Reroll: a card was corrupted!', '#9b4dca');
+    // Debuff reroll fully refills the shop — purchased/empty slots come back stocked
+    shopRerollCount++;
+    shopPurchased = new Set();
+    generateShopItems();
+    renderShop();
+    return;
   } else {
     const cost = 8 + shopRerollCount * 2;
     if (coins < cost) { showMessage('Not enough coins', 'var(--red)'); return; }
@@ -12367,6 +12613,9 @@ function startGame() {
   Object.keys(C).forEach(k => C[k] = (typeof C[k] === 'boolean' ? false : 0));
   permPips = {};
   permMult = {};
+  permXPips  = {};
+  permXMult  = {};
+  permRetrig = {};
   bonusMult_fives = 0;
   bonusMult_nines = 0;
   bonusMult_tens = 0;
@@ -13259,7 +13508,7 @@ function devTriggerEvent(eventId) {
     renderShop();
   } else {
     // All node events
-    const nodeEvents = ['confluence','crossroads','gamble','merchant','altar','spring','twin_path'];
+    const nodeEvents = ['confluence','crossroads','gamble','merchant','altar','spring','twin_path','forge','bargain','wager'];
     if (nodeEvents.includes(eventId)) {
       afterEventFn = () => {};
       activeEventId = eventId;
