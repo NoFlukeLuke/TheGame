@@ -3187,7 +3187,7 @@
 </div>
 
 <script>
-const BUILD = '2026-06-04 · r25';
+const BUILD = '2026-06-04 · r26';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -10623,6 +10623,10 @@ function bcLiveDesc(bonus) {
     case 'high_card_mult': return `High Card scores +(level × 2) mult. [now: +${level * 2} mult]`;
     case 'high_card_pips': return `High Card: card pips × level. [now: ×${level}]`;
     case 'rising_tide':    return `Base mult increases by +1 for each level reached. [now: +${level - 1} mult]`;
+    case 'compound_mult':  return base + (bonusMult_compound > 0 ? ` [now: +${bonusMult_compound.toFixed(1)} mult]` : '');
+    case 'prolific':       return base + (bonusPips_prolific > 0 ? ` [now: +${bonusPips_prolific} pips]` : '');
+    case 'big_win':        return base + (jackpotFired ? ` [active: +${bonusMult_jackpot} mult]` : '');
+    case 'veteran_bonus':  return `+2 pips per level reached this run. [now: +${(level - 1) * 2} pips]`;
     default: return base;
   }
 }
