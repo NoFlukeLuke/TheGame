@@ -184,6 +184,95 @@
     position: relative;
   }
 
+  /* ── LANDSCAPE / WIDE LAYOUT ──
+     JS adds .landscape to #stage when availW > availH && availW >= 480.
+     Design canvas switches from 420×740 to 760×420.
+     #top-bar becomes a narrow vertical left column.
+     #main becomes flex-row: info panels (left) + grid+buttons (right).  */
+  #stage.landscape {
+    width: 760px;
+    height: 420px;
+    flex-direction: row;
+    align-items: stretch;
+    padding: 5px;
+    gap: 5px;
+  }
+  #stage.landscape #top-bar {
+    flex-direction: column;
+    width: 68px; min-width: 68px; max-width: 68px;
+    height: 100%; max-width: unset;
+    justify-content: space-around;
+    padding: 6px 4px;
+    gap: 4px;
+    flex-shrink: 0;
+    align-items: center;
+  }
+  #stage.landscape .top-label { font-size: 7px; }
+  #stage.landscape .top-value { font-size: 13px; }
+  #stage.landscape #clock { font-size: 18px; letter-spacing: 1px; }
+  #stage.landscape #clock-bar-wrap { width: 52px; }
+  #stage.landscape #skip-btn { font-size: 7px; padding: 2px 4px; }
+  #stage.landscape #main {
+    flex-direction: row;
+    flex: 1;
+    min-width: 0;
+    align-items: stretch;
+    max-width: none;
+    width: auto;
+    gap: 5px;
+  }
+  #stage.landscape #top-strip {
+    flex-direction: column;
+    width: 160px;
+    flex-shrink: 0;
+    height: 100%;
+    gap: 5px;
+    align-items: stretch;
+  }
+  #stage.landscape #score-panel {
+    height: 90px;
+    flex-shrink: 0;
+  }
+  #stage.landscape #bonus-panel {
+    flex: 1;
+    height: auto;
+    min-height: 0;
+    flex-direction: column;
+    width: 100%;
+    padding: 6px;
+    overflow: hidden;
+  }
+  #stage.landscape #bonus-panel #hand-preview-area {
+    flex-direction: column;
+    flex: 0 0 auto;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    padding-right: 0;
+    padding-bottom: 6px;
+    margin-bottom: 6px;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  #stage.landscape #bonus-panel #hand-name { font-size: 11px; }
+  #stage.landscape #bonus-panel #totem-carousel-wrap {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding-left: 0;
+  }
+  #stage.landscape #bonus-panel #bc-tray-area {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    border-right: none;
+    padding-right: 0;
+  }
+  #stage.landscape #grid-and-buttons {
+    flex: 1;
+    min-width: 0;
+    justify-content: center;
+  }
+
   /* ── TOP BAR ── */
   #top-bar {
     width: 100%;
@@ -1345,12 +1434,12 @@
   .card.has-both { border-left-color: #3a6fca; border-right-color: #c0392b; border-bottom-color: #9b59b6; }
   .card .rank {
     font-family: 'Cinzel', serif;
-    font-size: 18px;
+    font-size: calc(var(--card-h, 75px) * 0.24);
     font-weight: 700;
     line-height: 1;
     color: #1a1510;
   }
-  .card .suit { font-size: 22px; line-height: 1; margin-top: 1px; color: #1a1510; }
+  .card .suit { font-size: calc(var(--card-h, 75px) * 0.293); line-height: 1; margin-top: 1px; color: #1a1510; }
   .card.suit-hearts .rank,   .card.suit-hearts .suit   { color: var(--suit-hearts); }
   .card.suit-diamonds .rank, .card.suit-diamonds .suit { color: var(--suit-diamonds); }
   .card.suit-spades .rank,   .card.suit-spades .suit   { color: var(--suit-spades); }
@@ -2268,25 +2357,25 @@
   .reward-cell.selectable:not(.selected):hover { transform: scale(1.04); opacity: 1; }
   .reward-cell.unselectable { opacity: 0.35; cursor: not-allowed; }
   .reward-icon {
-    font-size: 22px;
+    font-size: 28px;
     margin-bottom: 4px;
   }
   .reward-label {
-    font-size: 9px;
+    font-size: 11px;
     line-height: 1.2;
     letter-spacing: 0.5px;
     max-width: 100%;
     overflow-wrap: break-word;
   }
   .reward-desc {
-    font-size: 7px;
+    font-size: 9px;
     line-height: 1.2;
     color: var(--cream);
     opacity: 0.65;
-    margin-top: 2px;
+    margin-top: 3px;
     overflow: hidden;
     display: -webkit-box;
-    -webkit-line-clamp: 2;
+    -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     max-width: 100%;
   }
@@ -3306,7 +3395,7 @@
 </div>
 
 <script>
-const BUILD = '2026-06-04 · r32';
+const BUILD = '2026-06-04 · r33';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -3455,8 +3544,8 @@ let gridCols = 4; // playing-grid columns
 
 // Fixed footprint budget within the 420px design canvas (leaves edge buffer).
 // Cards shrink to fit; a minimum size lets the widest grids slightly exceed.
-const GRID_FOOTPRINT_W = 340; // target max grid width (px, design units)
-const GRID_FOOTPRINT_H = 392; // target max grid height (px, design units)
+let GRID_FOOTPRINT_W = 340; // target max grid width (px, design units)
+let GRID_FOOTPRINT_H = 392; // target max grid height (px, design units)
 const CARD_MIN_W = 40;        // floor — below this we let the footprint grow
 const CARD_MIN_H = 53;        // keeps 3:4ish aspect
 const CARD_ASPECT = 75 / 57;  // height / width, preserved on resize
@@ -3471,9 +3560,10 @@ function recomputeGridMetrics() {
   // Constrain to aspect ratio: pick the smaller-fitting dimension, derive the other
   if (h / w > CARD_ASPECT) h = Math.round(w * CARD_ASPECT); // width-bound
   else                     w = Math.round(h / CARD_ASPECT); // height-bound
-  // Never exceed the original 57×75 (don't upscale small grids past default)
-  w = Math.min(w, 57);
-  h = Math.min(h, 75);
+  // In portrait, cap at default card size to avoid upscaling small grids.
+  // In landscape the footprint is already expanded, so no cap needed.
+  const _isLandscape = document.getElementById('stage')?.classList.contains('landscape');
+  if (!_isLandscape) { w = Math.min(w, 57); h = Math.min(h, 75); }
   // Apply minimum floor (grid may slightly exceed footprint here — acceptable)
   w = Math.max(w, CARD_MIN_W);
   h = Math.max(h, CARD_MIN_H);
@@ -8495,18 +8585,30 @@ function openRewardGrid() {
   rewardCells     = generateRewardContent();
   rewardSelected  = new Set();
   rewardConfirmed = false;
+  document.getElementById('reward-overlay').classList.add('show'); // show first so offsetHeight is accurate
   renderRewardGrid();
-  document.getElementById('reward-overlay').classList.add('show');
 }
 
 function renderRewardGrid() {
   const ROWS = limits.reward_rows.current;
   const COLS = limits.reward_cols.current;
-  const maxDim = Math.max(ROWS, COLS);
-  const cellPx = maxDim <= 3 ? 86 : maxDim === 4 ? 74 : 62;
   const gridEl = document.getElementById('reward-grid');
-  gridEl.style.gridTemplateColumns = `repeat(${COLS}, ${cellPx}px)`;
-  gridEl.style.gridTemplateRows    = `repeat(${ROWS}, ${cellPx}px)`;
+  // Compute cell dimensions to fill the overlay while keeping playing-card aspect ratio.
+  // CARD_ASPECT = height/width ≈ 1.316 (matches game grid cards).
+  const _hdrH  = document.getElementById('reward-header')?.offsetHeight || 72;
+  const _ftrH  = document.getElementById('reward-footer')?.offsetHeight || 60;
+  const _padY  = 40;  // overlay: 20px padding top + bottom
+  const _padX  = 40;  // overlay: 20px padding left + right
+  const _gap   = 8;   // gap between reward cells (px)
+  const _avW   = window.innerWidth  - _padX;
+  const _avH   = window.innerHeight - _padY - _hdrH - _ftrH - 48; // 48 = grid margin-top+bottom + some buffer
+  const _cwW   = Math.floor((_avW - (COLS - 1) * _gap) / COLS);    // max cellW from width budget
+  const _cwH   = Math.floor((_avH - (ROWS - 1) * _gap) / ROWS / CARD_ASPECT); // max cellW from height budget
+  const _cellW = Math.max(60, Math.min(_cwW, _cwH, 160));           // clamp: min 60, max 160
+  const _cellH = Math.round(_cellW * CARD_ASPECT);
+  gridEl.style.gridTemplateColumns = `repeat(${COLS}, ${_cellW}px)`;
+  gridEl.style.gridTemplateRows    = `repeat(${ROWS}, ${_cellH}px)`;
+  gridEl.style.gap = `${_gap}px`;
   gridEl.innerHTML = '';
 
   for (let r = 0; r < ROWS; r++) {
@@ -13835,26 +13937,31 @@ initMainMenu();
 initDevMode();
 
 // ── STAGE SCALING (zoom-based) ──
-// Computes a uniform zoom factor that fits the 420×740 design canvas
-// inside the available viewport (minus body padding for side buffer).
+// Computes a uniform zoom factor that fits the design canvas inside the viewport.
+// Portrait: 420×740 canvas (default). Landscape/wide: 760×420 canvas.
 // Letterbox area shows the body's green-felt background.
 (function setupStageScaling() {
   const stage = document.getElementById('stage');
   if (!stage) return;
-  // Initial card-size pass so the grid renders at the right dimensions on first paint
-  recomputeGridMetrics();
-  const DESIGN_W = 420;
-  const DESIGN_H = 740;
   const BODY_PAD = 14; // matches body padding above; reserves visible buffer
   function update() {
-    const availW = window.innerWidth - BODY_PAD * 2;
+    const availW = window.innerWidth  - BODY_PAD * 2;
     const availH = window.innerHeight - BODY_PAD * 2;
+    // Landscape when wider than tall AND wide enough to be meaningful
+    const isLandscape = availW > availH && availW >= 480;
+    const DESIGN_W = isLandscape ? 760 : 420;
+    const DESIGN_H = isLandscape ? 420 : 740;
     const z = Math.min(availW / DESIGN_W, availH / DESIGN_H);
     stage.style.setProperty('--stage-zoom', z);
+    stage.classList.toggle('landscape', isLandscape);
+    // Grid footprint: larger in landscape so cards can grow to fill space
+    GRID_FOOTPRINT_W = isLandscape ? 395 : 340;
+    GRID_FOOTPRINT_H = isLandscape ? 390 : 392;
+    recomputeGridMetrics();
   }
   window.addEventListener('resize', update);
   window.addEventListener('orientationchange', update);
-  update();
+  update(); // initial run — also handles the first recomputeGridMetrics
 })();
 
 // Stamp build string into both visible locations
