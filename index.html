@@ -3306,7 +3306,7 @@
 </div>
 
 <script>
-const BUILD = '2026-06-04 · r31';
+const BUILD = '2026-06-04 · r32';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -4973,7 +4973,7 @@ function render() {
         div.className = 'bc-card joker-card' + (isSwapPendingJ ? ' swap-pending' : '') + (selIdxJ >= 0 ? ' selected' : '');
         div.innerHTML = `${selIdxJ >= 0 ? `<div class="sel-num">${selIdxJ+1}</div>` : ''}<div class="joker-card-emoji">${def?.emoji||'🃏'}</div><div class="joker-card-name">${def?.name||'Joker'}</div><div class="joker-card-uses">${usesStr}</div>`;
         div.onclick = () => onCardTap(r, c);
-        attachJokerLongPress(div, r, c);
+        attachLongPress(div, r, c);
         continue;
       }
 
@@ -4990,6 +4990,7 @@ function render() {
         div.className = className; div.innerHTML = innerHTML;
         div.onclick = isTappable ? () => onBCTap(card.bonus) : null;
         div.style.cursor = isTappable ? 'pointer' : 'default';
+        attachLongPress(div, r, c);
         continue;
       }
       const isReach      = reachable ? reachable.has(key) : true;
@@ -5021,6 +5022,7 @@ function render() {
       if (!animating && !falling) div.style.top = cellTop(r) + "px";
       div.className = className;
       div.innerHTML = innerHTML;
+      if (!isChallenge) attachLongPress(div, r, c);
 
       if (isChallenge) {
         div.addEventListener('click', e => { e.stopPropagation(); toggleChallengeTooltip(div); div.dataset.tooltipPinned = challengeTooltipVisible ? '1' : ''; });
@@ -5855,6 +5857,7 @@ function tryAddToSelection(r, c) {
 
 // ── Tap handler (called on pointerup when pointer didn't move) ──
 function onCardTap(r, c) {
+  if (_longPressActive) { _longPressActive = false; return; }
   const _card = gridData[r]?.[c];
   const _cardStr = _card ? `${_card.rank}${_card.suit}` : 'null';
   dbgEvent('info', `tap [${r},${c}] ${_cardStr}`, { animating, bcPhase: bcSelectionPhase, swapPending: !!swapPending, selected: selected.length });
@@ -5888,10 +5891,10 @@ function onCardTap(r, c) {
     // otherwise fall through to normal selection/swap handling below
   }
 
-  // BC during normal play — single tap shows read-only tooltip, double-tap enters swap
+  // BC during normal play — double-tap enters swap; long-press shows tooltip
   if (!bcSelectionPhase && gridData[r]?.[c]?._isBC) {
     if (isDoubleTap) {
-      hideBCTooltip();
+      hideCardTooltip();
       cancelAutoSubmit();
       swapPending = [r, c];
       selected = [];
@@ -5899,8 +5902,6 @@ function onCardTap(r, c) {
       render();
       return;
     }
-    const existing = document.getElementById('bc-tooltip');
-    if (existing) { hideBCTooltip(); } else { showBCTooltip(gridData[r][c].bonus, true); }
     lastTapCell = [r, c]; lastTapTime = now;
     return;
   }
@@ -6034,9 +6035,9 @@ gridEl2.addEventListener('pointerup', e => {
       render();
       return;
     }
-    // During normal play, dismiss read-only BC tooltip if tapping a non-BC cell
+    // During normal play, dismiss any card tooltip if tapping a non-BC cell
     if (!bcSelectionPhase && !gridData[ps.r]?.[ps.c]?._isBC) {
-      hideBCTooltip();
+      hideCardTooltip();
     }
     onCardTap(ps.r, ps.c);
   }
@@ -9200,31 +9201,87 @@ function hideJokerGridTooltip() {
   document.getElementById('joker-grid-tooltip')?.remove();
 }
 
-// Long-press (500ms) on a joker card shows its tooltip and suppresses the click.
-function attachJokerLongPress(el, r, c) {
+// ── Unified long-press tooltip system ──────────────────────────────────────
+
+let _longPressActive = false; // blocks onCardTap grid-pointerup call right after a long-press fires
+
+function hideCardTooltip() {
+  hideBCTooltip();
+  hideJokerGridTooltip();
+  document.getElementById('card-enh-tooltip')?.remove();
+}
+
+function showCardTooltip(r, c) {
+  hideCardTooltip();
+  const card = gridData[r]?.[c];
+  if (!card) return;
+  if (card._isBC)    { showBCTooltip(card.bonus, true); return; }
+  if (card._isJoker) { showJokerGridTooltip(r, c, card); return; }
+  // Normal card — show enhancement tooltip only if something to show
+  const k  = cardKey(card.rank, card.suit);
+  const pp = permPips[k]   || 0;
+  const pm = permMult[k]   || 0;
+  const xp = permXPips[k]  || 1;
+  const xm = permXMult[k]  || 1;
+  const re = permRetrig[k] || 0;
+  if (!pp && !pm && xp <= 1 && xm <= 1 && !re && !card._exalted && !card._corrupted) return;
+  const gridEl  = document.getElementById('grid');
+  const cardEl  = gridEl?.querySelector(`[data-card-id="${card._id}"]`);
+  if (!cardEl) return;
+  const lines = [];
+  if (pp)     lines.push(`+${pp} pips`);
+  if (pm)     lines.push(`+${pm} mult`);
+  if (xp > 1) lines.push(`×${xp} pip score`);
+  if (xm > 1) lines.push(`×${xm} mult`);
+  if (re)     lines.push(`+${re} retrigger`);
+  if (card._exalted)   lines.push('Exalted');
+  if (card._corrupted) lines.push('Corrupted');
+  const tip = document.createElement('div');
+  tip.id = 'card-enh-tooltip';
+  tip.className = 'joker-tooltip';
+  tip.innerHTML = `<div class="joker-tooltip-name">${card.rank}${card.suit}</div>`
+                + `<div class="joker-tooltip-desc">${lines.join('<br>')}</div>`;
+  tip.style.opacity = '0';
+  gridEl.appendChild(tip);
+  void tip.offsetWidth;
+  const gRect = gridEl.getBoundingClientRect();
+  const eRect = cardEl.getBoundingClientRect();
+  const tipW  = tip.offsetWidth, tipH = tip.offsetHeight;
+  tip.style.left = Math.max(2, eRect.left - gRect.left + eRect.width / 2 - tipW / 2) + 'px';
+  tip.style.top  = Math.max(2, eRect.top  - gRect.top  - tipH - 8) + 'px';
+  tip.style.opacity = '1';
+}
+
+// Long-press (500ms) on any card shows its tooltip; suppresses the click that follows.
+function attachLongPress(el, r, c) {
   let timer = null, longFired = false;
   const start = () => {
     longFired = false;
     timer = setTimeout(() => {
       longFired = true;
-      hideJokerGridTooltip();
-      const card = gridData[r]?.[c];
-      if (card?._isJoker) showJokerGridTooltip(r, c, card);
+      _longPressActive = true;
+      showCardTooltip(r, c);
     }, 500);
   };
   const cancel = () => { if (timer) { clearTimeout(timer); timer = null; } };
-  el.onpointerdown = start;
-  el.onpointerup   = cancel;
-  el.onpointerleave = () => { cancel(); };
-  // Suppress the click that follows a long-press
+  el.onpointerdown  = start;
+  el.onpointerup    = cancel;
+  el.onpointerleave = cancel;
+  const prev = el.onclick;
   el.onclick = (e) => {
     if (longFired) { longFired = false; e.stopPropagation(); return; }
-    onCardTap(r, c);
+    if (prev) prev.call(el, e);
   };
 }
-// Dismiss joker tooltip on any tap elsewhere
+
+// Dismiss any card tooltip when tapping outside a card or tooltip element
 document.addEventListener('pointerdown', e => {
-  if (!e.target.closest('.joker-card') && !e.target.closest('#joker-grid-tooltip')) hideJokerGridTooltip();
+  if (!e.target.closest('.bc-card') &&
+      !e.target.closest('#bc-tooltip') &&
+      !e.target.closest('#joker-grid-tooltip') &&
+      !e.target.closest('#card-enh-tooltip')) {
+    hideCardTooltip();
+  }
 });
 
 // ══════════════════════════════════════════════
