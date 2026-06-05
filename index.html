@@ -3430,7 +3430,7 @@
 </div>
 
 <script>
-const BUILD = '2026-06-05 · r37';
+const BUILD = '2026-06-05 · r38';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -6023,9 +6023,8 @@ function onCardTap(r, c) {
     if (jdef?.activation === 'double_tap' && isDoubleTap) {
       hideJokerGridTooltip();
       applyJokerGridEffect(jdef.id, r, c);
-      consumeJokerCharge(gridData[r][c], r, c);
-      render();
       lastTapTime = 0; lastTapCell = null;
+      discardJokerAfterTrigger(gridData[r][c], r, c);
       return;
     }
     // otherwise fall through to normal selection/swap handling below
@@ -9115,6 +9114,20 @@ function consumeJokerCharge(card, r, c) {
   }
 }
 
+// Always removes the joker from the grid after a single trigger (double_tap / on_swap).
+// Uses are decremented first; if charges remain the joker goes to playedPile so it
+// can be redrawn next round.  If exhausted it's dropped permanently.
+// delay (ms) lets a preceding animation finish before the removal starts.
+function discardJokerAfterTrigger(card, r, c, delay = 0) {
+  if (!card) return;
+  if (card._usesLeft !== 'infinite') card._usesLeft--;
+  if (card._usesLeft !== 'infinite' && card._usesLeft <= 0)
+    showMessage(`${jokerDef(card)?.name || 'Joker'} consumed`, 'var(--cream-dim)');
+  const go = () => { if (gridData[r]?.[c] === card) removeAndFall([[r, c]], 'play'); };
+  if (delay > 0) setTimeout(go, delay);
+  else go();
+}
+
 // ── Exalt / Corrupt helpers ──
 function exaltCard(r, c) {
   const card = gridData[r]?.[c];
@@ -9225,9 +9238,7 @@ function fireJokersOnSwap(r1, c1, r2, c2) {
         showMessage('⚡ Lightning Rod — +5 pips!', '#ffd700');
         render();
       }
-      consumeJokerCharge(card, r, c); return;
-    }
-    if (def.id === 'the_catalyst') {
+    } else if (def.id === 'the_catalyst') {
       const other = gridData[or2]?.[oc2];
       if (other && !other._isJoker && !other._isBC && other.rank) {
         const k = cardKey(other.rank, other.suit);
@@ -9235,10 +9246,11 @@ function fireJokersOnSwap(r1, c1, r2, c2) {
         showMessage('🧪 Catalyst — +1 perm mult!', '#cc88ff');
         render();
       }
-      consumeJokerCharge(card, r, c); return;
+    } else {
+      applyJokerGridEffect(def.id, r, c);
     }
-    applyJokerGridEffect(def.id, r, c);
-    consumeJokerCharge(card, r, c);
+    // Discard after the swap flip animation (~220ms) so visuals don't conflict
+    discardJokerAfterTrigger(card, r, c, 250);
   });
 }
 
@@ -9333,10 +9345,10 @@ function showJokerGridTooltip(r, c, card) {
   const tip = document.createElement('div');
   tip.id = 'joker-grid-tooltip';
   tip.className = 'joker-tooltip';
-  const _hint = def.activation === 'double_tap' ? 'DOUBLE-TAP TO ACTIVATE'
+  const _hint = def.activation === 'double_tap' ? 'DOUBLE-TAP · DISCARDS AFTER USE'
               : def.activation === 'on_play' ? 'SELECT &amp; PLAY TO ACTIVATE'
               : def.activation === 'on_discard' ? 'SELECT &amp; DISCARD TO ACTIVATE'
-              : def.activation === 'on_swap' ? 'SWAP TO ACTIVATE'
+              : def.activation === 'on_swap' ? 'SWAP TO ACTIVATE · DISCARDS AFTER'
               : 'LONG-PRESS FOR TOOLTIP';
     tip.innerHTML = `<div class="joker-tooltip-name">${def.emoji} ${def.name}</div><div class="joker-tooltip-desc">${def.desc}</div><div class="joker-tooltip-uses">${uses}</div><div class="joker-tooltip-hint">${_hint}</div>`;
   tip.style.opacity = '0';
