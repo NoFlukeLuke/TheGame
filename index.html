@@ -287,9 +287,9 @@
     grid-row: 1 / 3;
     flex: 1;
     min-width: 0;
+    min-height: 0;
     justify-content: center;
   }
-  #stage.landscape #grid { align-self: center; }
 
   /* ── TOP BAR ── */
   #top-bar {
@@ -664,7 +664,22 @@
     display: flex;
     gap: 4px;
     align-items: stretch;
-    flex-shrink: 0;
+    flex: 1 1 auto;
+    min-height: 0;
+    min-width: 0;
+    position: relative;
+  }
+  /* Grid slot: flex:1 area between focus meter and action buttons. The grid is
+     sized (in JS) to exactly fit this MEASURED slot, so cards never overflow
+     into the buttons regardless of grid dimensions or orientation. */
+  #grid-slot {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: visible;
     position: relative;
   }
 
@@ -2823,9 +2838,11 @@
       </div>
       <div id="focus-mult-readout" class="dim">×1.0</div>
     </div>
-    <div id="grid">
-      <div id="boss-banner"><div class="boss-banner-title">BOSS</div><div class="boss-banner-sub" id="boss-banner-sub">Survive 3:00</div></div>
-      <div id="boss-result"><div class="boss-result-text" id="boss-result-text"></div></div>
+    <div id="grid-slot">
+      <div id="grid">
+        <div id="boss-banner"><div class="boss-banner-title">BOSS</div><div class="boss-banner-sub" id="boss-banner-sub">Survive 3:00</div></div>
+        <div id="boss-result"><div class="boss-result-text" id="boss-result-text"></div></div>
+      </div>
     </div>
     <div id="action-col">
       <button class="act-btn btn-discard" id="btn-discard" disabled>D&#10;I&#10;S&#10;C&#10;A&#10;R&#10;D<br><span id="disc-count" style="writing-mode:initial;transform:none;font-size:9px"></span></button>
@@ -3413,7 +3430,7 @@
 </div>
 
 <script>
-const BUILD = '2026-06-05 · r36';
+const BUILD = '2026-06-05 · r37';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -3560,29 +3577,44 @@ let GRID_PAD = 3; // matches #grid padding
 let gridRows = 4; // playing-grid rows (set from limits at round start)
 let gridCols = 4; // playing-grid columns
 
-// Fixed footprint budget within the 420px design canvas (leaves edge buffer).
-// Cards shrink to fit; a minimum size lets the widest grids slightly exceed.
-let GRID_FOOTPRINT_W = 340; // target max grid width (px, design units)
-let GRID_FOOTPRINT_H = 392; // target max grid height (px, design units)
-const CARD_MIN_W = 40;        // floor — below this we let the footprint grow
-const CARD_MIN_H = 53;        // keeps 3:4ish aspect
+// Fallback footprint (design px), used only if the grid slot can't be measured
+// yet (e.g. before first layout). Normally the slot is measured live.
+let GRID_FOOTPRINT_W = 320; // fallback grid width  (design px)
+let GRID_FOOTPRINT_H = 392; // fallback grid height (design px)
+const CARD_MIN_W = 40;        // floor — below this cards stop shrinking
+const CARD_MIN_H = 53;        // keeps playing-card aspect
 const CARD_ASPECT = 75 / 57;  // height / width, preserved on resize
+
+// Measure the real, in-canvas slot the grid occupies (in DESIGN px, i.e. before
+// the #stage CSS zoom). The slot is a flex:1 box between the focus meter and the
+// action buttons, so its size is stable and independent of the grid's contents.
+function measureGridSlot() {
+  const slot  = document.getElementById('grid-slot');
+  const stage = document.getElementById('stage');
+  if (!slot || !stage) return { w: GRID_FOOTPRINT_W, h: GRID_FOOTPRINT_H };
+  const zoom = parseFloat(getComputedStyle(stage).getPropertyValue('--stage-zoom')) || 1;
+  const rect = slot.getBoundingClientRect();
+  const w = rect.width  / zoom;
+  const h = rect.height / zoom;
+  // Guard against pre-layout / hidden states returning ~0.
+  if (w < 40 || h < 40) return { w: GRID_FOOTPRINT_W, h: GRID_FOOTPRINT_H };
+  return { w, h };
+}
 
 function recomputeGridMetrics() {
   const cols = gridCols, rows = gridRows;
-  // Width available for cards = footprint - padding(both sides) - gaps
-  const innerW = GRID_FOOTPRINT_W - GRID_PAD * 2 - CARD_GAP * (cols - 1);
-  const innerH = GRID_FOOTPRINT_H - GRID_PAD * 2 - CARD_GAP * (rows - 1);
+  // Fit cards to the MEASURED slot so the grid always fills the available area
+  // without ever overflowing onto the action buttons (any orientation/size).
+  const slot   = measureGridSlot();
+  const innerW = slot.w - GRID_PAD * 2 - CARD_GAP * (cols - 1);
+  const innerH = slot.h - GRID_PAD * 2 - CARD_GAP * (rows - 1);
   let w = Math.floor(innerW / cols);
   let h = Math.floor(innerH / rows);
-  // Constrain to aspect ratio: pick the smaller-fitting dimension, derive the other
+  // Constrain to playing-card aspect: take whichever dimension is the tighter fit.
   if (h / w > CARD_ASPECT) h = Math.round(w * CARD_ASPECT); // width-bound
   else                     w = Math.round(h / CARD_ASPECT); // height-bound
-  // In portrait, cap at default card size to avoid upscaling small grids.
-  // In landscape the footprint is already expanded, so no cap needed.
-  const _isLandscape = document.getElementById('stage')?.classList.contains('landscape');
-  if (!_isLandscape) { w = Math.min(w, 57); h = Math.min(h, 75); }
-  // Apply minimum floor (grid may slightly exceed footprint here — acceptable)
+  // Minimum floor (huge grids may slightly exceed the slot — acceptable, the
+  // slot has overflow:visible so they just spill a touch, not onto buttons).
   w = Math.max(w, CARD_MIN_W);
   h = Math.max(h, CARD_MIN_H);
 
@@ -13972,16 +14004,20 @@ initDevMode();
     const z = Math.min(availW / DESIGN_W, availH / DESIGN_H);
     stage.style.setProperty('--stage-zoom', z);
     stage.classList.toggle('landscape', isLandscape);
-    // Grid footprint: budget matches available column space after sidebar/action-col.
-    // Larger CARD_GAP in landscape keeps cards visually separated at bigger card sizes.
+    // Larger inter-card gap in landscape keeps bigger cards visually separated.
     CARD_GAP = isLandscape ? 5 : 3;
-    GRID_FOOTPRINT_W = isLandscape ? 395 : 340;
+    // Fallback footprints (only used if the slot can't be measured pre-layout).
+    GRID_FOOTPRINT_W = isLandscape ? 380 : 320;
     GRID_FOOTPRINT_H = isLandscape ? 408 : 392;
+    // Card sizing now measures the real grid slot — recompute after the class
+    // toggle/zoom have been applied so the measurement reflects this layout.
     recomputeGridMetrics();
   }
   window.addEventListener('resize', update);
   window.addEventListener('orientationchange', update);
   update(); // initial run — also handles the first recomputeGridMetrics
+  // One more pass after first paint, in case fonts/layout shifted the slot size.
+  requestAnimationFrame(update);
 })();
 
 // Stamp build string into both visible locations
