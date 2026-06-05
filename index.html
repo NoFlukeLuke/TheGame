@@ -190,7 +190,7 @@
      #top-bar becomes a narrow vertical left column.
      #main becomes flex-row: info panels (left) + grid+buttons (right).  */
   #stage.landscape {
-    width: 760px;
+    width: 747px;
     height: 420px;
     flex-direction: row;
     align-items: stretch;
@@ -288,6 +288,7 @@
     flex: 1;
     min-width: 0;
     justify-content: center;
+    align-items: center;
   }
 
   /* ── TOP BAR ── */
@@ -3412,7 +3413,7 @@
 </div>
 
 <script>
-const BUILD = '2026-06-04 · r34';
+const BUILD = '2026-06-05 · r35';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -13966,14 +13967,14 @@ initDevMode();
     const availH = window.innerHeight - BODY_PAD * 2;
     // Landscape when wider than tall AND wide enough to be meaningful
     const isLandscape = availW > availH && availW >= 480;
-    const DESIGN_W = isLandscape ? 760 : 420;
+    const DESIGN_W = isLandscape ? 747 : 420;
     const DESIGN_H = isLandscape ? 420 : 740;
     const z = Math.min(availW / DESIGN_W, availH / DESIGN_H);
     stage.style.setProperty('--stage-zoom', z);
     stage.classList.toggle('landscape', isLandscape);
-    // Grid footprint: larger in landscape so cards can grow to fill space
+    // Grid footprint: budget matches available column space after sidebar/action-col
     GRID_FOOTPRINT_W = isLandscape ? 395 : 340;
-    GRID_FOOTPRINT_H = isLandscape ? 390 : 392;
+    GRID_FOOTPRINT_H = isLandscape ? 408 : 392;
     recomputeGridMetrics();
   }
   window.addEventListener('resize', update);
