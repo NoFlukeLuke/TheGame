@@ -288,8 +288,8 @@
     flex: 1;
     min-width: 0;
     justify-content: center;
-    align-items: center;
   }
+  #stage.landscape #grid { align-self: center; }
 
   /* ── TOP BAR ── */
   #top-bar {
@@ -2127,8 +2127,8 @@
      Rendered as a div positioned in the same coordinate space as cards. */
   .blocked-cell {
     position: absolute;
-    width: 57px;
-    height: 75px;
+    width: var(--card-w, 57px);
+    height: var(--card-h, 75px);
     border-radius: 6px;
     background:
       radial-gradient(circle at 30% 25%, #5a4a3a 0%, #2a2218 55%, #15110b 100%);
@@ -2153,8 +2153,8 @@
   /* Stone card — boss-injected obstacle that occupies grid slots */
   .stone-card {
     position: absolute;
-    width: 57px;
-    height: 75px;
+    width: var(--card-w, 57px);
+    height: var(--card-h, 75px);
     border-radius: 6px;
     background:
       radial-gradient(circle at 35% 30%, #6b5a48 0%, #3a2f24 60%, #1c1610 100%);
@@ -3413,7 +3413,7 @@
 </div>
 
 <script>
-const BUILD = '2026-06-05 · r35';
+const BUILD = '2026-06-05 · r36';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -13972,7 +13972,9 @@ initDevMode();
     const z = Math.min(availW / DESIGN_W, availH / DESIGN_H);
     stage.style.setProperty('--stage-zoom', z);
     stage.classList.toggle('landscape', isLandscape);
-    // Grid footprint: budget matches available column space after sidebar/action-col
+    // Grid footprint: budget matches available column space after sidebar/action-col.
+    // Larger CARD_GAP in landscape keeps cards visually separated at bigger card sizes.
+    CARD_GAP = isLandscape ? 5 : 3;
     GRID_FOOTPRINT_W = isLandscape ? 395 : 340;
     GRID_FOOTPRINT_H = isLandscape ? 408 : 392;
     recomputeGridMetrics();
