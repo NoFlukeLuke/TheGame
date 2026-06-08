@@ -3430,7 +3430,7 @@
 </div>
 
 <script>
-const BUILD = '2026-06-08 · r40';
+const BUILD = '2026-06-08 · r41';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -5622,6 +5622,10 @@ function isFocusDecayPaused() {
 
 function focusDecayTick() {
   if (isFocusDecayPaused()) return;
+  // Don't decay mid-animation — removeFocus() would mutate focusNodes and re-sync the
+  // meter while addFocus()'s fill animation is still in flight, causing the visual
+  // "jump up then get wiped" desync.
+  if (focusAnimRunning) return;
   if (focusNodes <= 0) return;
   removeFocus(1);
 }
@@ -6390,8 +6394,9 @@ function playHand() {
       if (n === 3 && !_card._corrupted && !_card._exalted) { exaltCard(_r, _c); showMessage('♣ Club exalted!', '#ffd700'); }
       if (n >= 6 && !_card._corrupted)                     { corruptCard(_r, _c); showMessage('♣ Club corrupted by overplay!', '#cc88ff'); }
     } else if (_card.suit === '♦') {
-      if (coinsAtPlay < 10 && !_card._corrupted && !_card._exalted) { exaltCard(_r, _c); showMessage('♦ Diamond exalted by scarcity!', '#ffd700'); }
-      else if (coinsAtPlay > 50 && !_card._exalted && !_card._corrupted) { corruptCard(_r, _c); showMessage('♦ Diamond corrupted by wealth!', '#cc88ff'); }
+      // Gated on play count (like other suits) so diamonds don't exalt on every early play. Balance TBD.
+      if (n >= 3 && coinsAtPlay < 10 && !_card._corrupted && !_card._exalted) { exaltCard(_r, _c); showMessage('♦ Diamond exalted by scarcity!', '#ffd700'); }
+      else if (n >= 3 && coinsAtPlay > 50 && !_card._exalted && !_card._corrupted) { corruptCard(_r, _c); showMessage('♦ Diamond corrupted by wealth!', '#cc88ff'); }
     }
   });
   if (_ecPlay.coins !== 0) { coins = Math.max(0, coins + _ecPlay.coins); updateCoinsUI(); }
@@ -10578,6 +10583,11 @@ async function showPayoutUI() {
   const interestCoins  = Math.floor(coins / 10) * interestMult;
   const efficiencyCoins = Math.floor(frozenRoundSeconds / 10);
   const totalCoins     = interestCoins + efficiencyCoins;
+  // Show the Idol's tripled interest right on the payout breakdown.
+  const interestName = interestMult > 1 ? `Interest <span style="color:#f5c042;">🗿 ×${interestMult}</span>` : 'Interest';
+  const interestDesc = interestMult > 1
+    ? `10% of <span style="color:#f5c042;">◆ ${coins}</span> × ${interestMult} (Idol)`
+    : `10% of <span style="color:#f5c042;">◆ ${coins}</span>`;
 
   // Build overlay
   const el = document.createElement('div');
@@ -10587,8 +10597,8 @@ async function showPayoutUI() {
     <div class="payout-lines">
       <div class="payout-line" id="po-line-interest">
         <div class="pl-left">
-          <div class="pl-name">Interest</div>
-          <div class="pl-desc">10% of <span style="color:#f5c042;">◆ ${coins}</span></div>
+          <div class="pl-name">${interestName}</div>
+          <div class="pl-desc">${interestDesc}</div>
         </div>
         <div class="pl-right">
           <span class="pl-coins" id="po-interest">0</span>
@@ -10848,7 +10858,11 @@ async function show321Countdown() {
   }
 
   refillDone   = true;
-  roundSeconds = limits.round_time.current;
+  // Keep the round-start value triggerLevelUp/startGame already computed (it includes
+  // carry-over time, +15s buffs, etc.), but cap it at the penalized round-time limit so
+  // permanent "-5s round cap" debuffs (roundPenaltySeconds) actually stick. Previously this
+  // line force-reset to the full limit, silently wiping every time penalty.
+  roundSeconds = Math.max(10, Math.min(roundSeconds, limits.round_time.current - roundPenaltySeconds));
   updateClockUI();
   overlay.classList.remove('show');
 
@@ -11094,7 +11108,12 @@ async function showLevelUpScreen() {
   // ── Hide grid visually until 3-2-1 fires — deal anims handle the reveal ──
   dealPhase = true;
   // Remove all card DOM elements from the previous round immediately
-  document.getElementById('grid')?.querySelectorAll('[data-card-id]').forEach(el => el.remove());
+  const _gridEl = document.getElementById('grid');
+  _gridEl?.querySelectorAll('[data-card-id]').forEach(el => el.remove());
+  // Defensive: scrub any leftover boss visual state so a post-boss round starts clean
+  // (blocked-cell overlays, stray temp-anim clones, boss-active styling).
+  _gridEl?.querySelectorAll('.blocked-cell, .temp-anim').forEach(el => el.remove());
+  _gridEl?.classList.remove('boss-active');
 
   // ── Grid is now populated; deal animations start in show321Countdown ──
   dealAnims = [];
