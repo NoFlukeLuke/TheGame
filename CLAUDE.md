@@ -7,9 +7,9 @@ A single-file HTML/JS roguelike poker game. Everything lives in **`index.html`**
 
 ## Workflow
 
-- **Develop on branch** `claude/setup-poker-game-lT61p`.
-- **Deploy:** push to both the feature branch AND `main` (`git push origin claude/setup-poker-game-lT61p:main`). Pages serves from `main`.
-- **Build stamp:** bump the `BUILD` constant (near top of `<script>`, e.g. `'2026-05-30 · r18'` → `r19`) on every commit. It shows in the menu footer + dev panel so the owner can confirm mobile cache is fresh. Increment the `rN` each commit.
+- **Develop on branch** `claude/game-bugs-polish-2Wxhi`.
+- **Deploy:** push to both the feature branch AND `main` (`git push origin claude/game-bugs-polish-2Wxhi:main`). Pages serves from `main`.
+- **Build stamp:** bump the `BUILD` constant (near top of `<script>`, e.g. `'2026-06-08 · r39'` → `r40`) on every commit. It shows in the menu footer + dev panel so the owner can confirm mobile cache is fresh. Increment the `rN` each commit.
 - **Commit messages:** detailed, since a fresh Claude session re-orients from git history. End with the session URL line.
 - After editing, validate syntax:
   ```
@@ -28,6 +28,9 @@ The game is a grid of playing cards. You select orthogonally-connected cards to 
 - `score`, `coins`, `swaps`, `discards`, `roundSeconds`, `level`, `roundGoal`/`cumulativeGoal`.
 - `limits` / `LIMITS_DEF` — upgradeable caps (grid size, round time, swaps, discards, reward grid size).
 - `ACTIVE_MODE` — `.id === 'normal'` is the main 3-Act node mode; other modes are timer-based (legacy).
+
+### Layout / scaling — "one fixed canvas, scaled" (owner's explicit choice)
+The stage (`#stage`, 420×740 portrait / 747×420 landscape) is a single fixed-size canvas scaled uniformly via CSS `zoom: var(--stage-zoom)`, like a scaled image — **not** a responsive/fluid reflow layout. Card sizing is computed by `recomputeGridMetrics()` from the REAL measured DOM slot (`measureGridSlot()` → `#grid-slot.getBoundingClientRect()` ÷ zoom), not guessed footprint constants — this is what fixed a nasty grid/button overlap regression. If you ever need to change layout, preserve this architecture; don't switch to fluid reflow.
 
 ### Card types (flags on the card object)
 - **Normal card:** `{ rank, suit, _id }`.
@@ -60,13 +63,15 @@ Jokers are physical deck cards. They fall, swap, get discarded, and get played l
 | `wildcard` | participates in hand detection (`wild:'rank'/'suit'/'both'`) | `findBestHand` (`bestWildRank`/`bestWildSuit`) |
 | `on_play` | joker is part of a played hand | `fireJokersOnPlay` in `playHand` |
 | `on_discard` | joker is discarded | `doDiscard` (has grid position) |
-| `on_swap` | joker is moved by a swap (either direction) | `fireJokersOnSwap` in `doSwap` |
+| `on_swap` | joker is moved by a swap (either direction); **once per round, see below** | `fireJokersOnSwap` in `doSwap` |
 | `on_draw` | joker lands on the grid | `fireJokersOnDraw` (round start) |
 | `round_start` / `round_end` | round boundaries | round-start sweep / interest calc |
 | `passive` | always while on grid | checked inline (e.g. `fight_power` via `bossEffectsIgnored()`) |
-| `double_tap` | double-tapped | `onCardTap` intercept (framework; none in pool yet) |
+| `double_tap` | double-tapped; **once per round, see below** | `onCardTap` intercept |
 
-Effects live in `applyJokerGridEffect(id, r, c)`. `consumeJokerCharge` decrements/removes. `grantJoker(def)` adds one to the draw pile.
+Effects live in `applyJokerGridEffect(id, r, c)`. `consumeJokerCharge` decrements/removes (used by most activation types). `grantJoker(def)` adds one to the draw pile.
+
+**`double_tap` / `on_swap` — once-per-round lock (not discard-on-use):** These jokers stay physically on the grid after firing. `jokerCanActivateThisRound(card)` gates activation (checks `_usedThisRound` + remaining `_usesLeft`); `lockJokerForRound(card)` sets `_usedThisRound = true` and decrements `_usesLeft` after a successful trigger. The lock is cleared for every joker on the grid in the round-start sweep (search `_usedThisRound = false`, right before `fireJokersAtRoundStart()`). Once `_usesLeft` hits 0 the joker just sits inert — it is **not** auto-removed; it can still leave the grid normally by being played in a hand or discarded by the player. Grid tooltips show "ONCE PER ROUND" / "USED THIS ROUND" for these.
 
 ## Events (node-based, Normal mode)
 
