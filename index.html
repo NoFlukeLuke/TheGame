@@ -2707,7 +2707,7 @@
 
     <div id="menu-tabs">
       <button class="menu-tab active" onclick="switchMenuTab(event,'modes')">Modes</button>
-      <button class="menu-tab" onclick="switchMenuTab(event,'options')">Options</button>
+      <button class="menu-tab" onclick="openSettingsFromMenu()">Settings</button>
       <button class="menu-tab" onclick="switchMenuTab(event,'history')">History</button>
     </div>
 
@@ -3069,8 +3069,8 @@
       Show card counter (deck audit)
     </label>
     <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;margin-top:6px;">
-      <input id="dev-bc-tray-toggle" type="checkbox" onchange="toggleBCTrayMode(this.checked)" style="accent-color:var(--gold);">
-      BC Tray Mode (BCs in panel, not grid)
+      <input id="dev-bc-tray-toggle" type="checkbox" onchange="toggleBCTrayMode(!this.checked)" style="accent-color:var(--gold);">
+      Place Bonus Cards on the grid (off = side tray)
     </label>
   </div>
 
@@ -3430,7 +3430,7 @@
 </div>
 
 <script>
-const BUILD = '2026-06-08 · r39';
+const BUILD = '2026-06-08 · r40';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -3486,7 +3486,7 @@ const MODES = {
   }
 };
 
-let ACTIVE_MODE = MODES.survival;
+let ACTIVE_MODE = MODES.normal;
 
 function initMainMenu() {
   renderMenuModes();
@@ -3647,7 +3647,6 @@ const RANK_PIPS  = {A:11,J:10,Q:10,K:10};
 
 const HAND_BASE = {
   'Run of 3':        { pips:20, mult:3 },
-  'Sandwich':        { pips:10, mult:2 },
   'Pair':            { pips:20, mult:2 },
   'Two Pair':        { pips:20, mult:2 },
   'Three of a Kind': { pips:30, mult:3 },
@@ -3721,8 +3720,6 @@ const BONUS_POOL = [
   { id:'tidal_force',    name:'Tidal Force',         tier:'rare',      desc:'Flush scores +4 mult' },
   { id:'deluge',         name:'Deluge',              tier:'epic',      desc:'Flush ×2 score' },
   { id:'perfect_storm',  name:'Perfect Storm',       tier:'legendary', desc:'Straight Flush ×5 score' },
-  { id:'rye_bread',      name:'Rye Bread',           tier:'rare',      desc:'Sandwich ×2 score' },
-  { id:'sandwich_fill',  name:'Sandwich Artist',     tier:'common',    desc:'Sandwich hands score +4 pips per card' },
   { id:'summit',     name:'Summit',     tier:'common', desc:'The highest-ranking card in each hand scores +(level x 4) pips.' },
   { id:'last_stand', name:'Last Stand', tier:'rare',   desc:'If your score is below the round goal when you play, that hand scores x2.' },
   { id:'light_touch',    name:'Nimble',              tier:'common',    desc:'2-card hands score +5 mult' },
@@ -4019,7 +4016,7 @@ let handsPendingUnlock = []; // queue of hands to show unlock screen for
 
 // ── PER-GAME COUNTERS ──
 const C = {
-  run3: 0, run4: 0, sandwich: 0, pair: 0, twopair: 0,
+  run3: 0, run4: 0, pair: 0, twopair: 0,
   threeofakind: 0, fourofakind: 0, straight: 0, flush: 0,
   fullhouse: 0, straightflush: 0, blackjack: 0,
   flow3: 0, flow4: 0,
@@ -4033,7 +4030,7 @@ const C = {
 };
 let acquiredBonuses = [];
 let acquiredTotems = [];
-let bcTrayMode = false;
+let bcTrayMode = true;   // default: Bonus Cards live in the side tray, NOT on the grid (dev toggle re-enables grid placement)
 // Per-card-type tracking for exalt/corrupt triggers (key: cardKey(rank,suit))
 let cardPlayCount  = {};   // times scored this run
 let cardSwapCount  = {};   // times swapped this run
@@ -4149,7 +4146,20 @@ let heldBackScore = 0; // score temporarily withheld from display during goal da
 // ── Challenge card state ──
 let challengeCard = null;
 let challengeActive = false;
-let roundPenaltySeconds = 0;
+let roundPenaltySeconds = 0;       // PERMANENT: seconds shaved off the round-time cap (stacks; reward "-5s round cap")
+// ── Reward-grid time/resource debuffs ──
+// Permanent (stack forever, reset only on new game):
+let extraPlayCostPerm    = 0;      // +seconds added to the cost of playing a hand
+let extraDiscardCostPerm = 0;      // +seconds added per discarded card
+// Next-round-only (folded into next round at round start, then cleared). +buff / -penalty:
+let nextRoundDiscardDelta = 0;     // change to next round's discard count
+let nextRoundSwapDelta    = 0;     // change to next round's swap count
+let nextRoundSecondsDelta = 0;     // change to next round's starting seconds (+15s buff)
+let nextRoundPlayCost     = 0;     // +seconds to hand cost, next round only
+let nextRoundDiscardCost  = 0;     // +seconds per discarded card, next round only
+// Active for the CURRENT round (recomputed each round = permanent + next-round):
+let playHandCostThisRound = 0;     // extra seconds per hand this round
+let discardCostThisRound  = 0;     // extra seconds per discarded card this round
 let challengeOverlayTimer = null;
 let isChallengeBonusPick = false; // true when selectBonus is called from a challenge reward, not a level-up
 let nextShopTime = GAME_DURATION - 120; // first shop after 2 minutes elapsed
@@ -4645,20 +4655,6 @@ function detectHand(cells) {
   if (activeHands.has('threeofakind') && counts[0]>=3 && (n===3||n===5)) return 'Three of a Kind';
   if (activeHands.has('twopair') && n>=4 && counts[0]>=2 && counts[1]>=2) return 'Two Pair';
   if (activeHands.has('run4') && n===4 && isStr) return 'Run of 4';
-  if (activeHands.has('sandwich') && n===3 && counts[0]>=2 && counts[1]>=1) {
-    let pairRank = null;
-    for (const [rank, cnt] of Object.entries(rankCounts)) { if (cnt >= 2) { pairRank = rank; break; } }
-    if (pairRank) {
-      const pairCells = cells.filter(([r,c]) => {
-        const card = gridData[r][c];
-        return card.rank === pairRank || (card.combined && card.rank2 === pairRank);
-      });
-      if (pairCells.length >= 2) {
-        const [r1,c1] = pairCells[0], [r2,c2] = pairCells[1];
-        if (Math.abs(r1-r2)+Math.abs(c1-c2) !== 1) return 'Sandwich';
-      }
-    }
-  }
   if (activeHands.has('run3') && n===3 && isStr) return 'Run of 3';
   if (activeHands.has('pair') && n===2 && counts[0]>=2) return 'Pair';
   if (activeHands.has('pair') && n>=3 && counts[0]>=2 && counts[1]>=1 && n<=5) return 'Pair';
@@ -4954,7 +4950,6 @@ function calcScore(handName, cells, contrib = null) {
   // Hand type: specific pip bonuses
   if (hasBonus('triple_threat') && handName === 'Full House') { totalPips += 20; bPip('triple_threat', 20); }
   if (hasBonus('pair_pips') && handName === 'Two Pair') { const _a = cells.length * 3; totalPips += _a; bPip('pair_pips', _a); }
-  if (hasBonus('sandwich_fill') && handName === 'Sandwich') { const _a = cells.length * 4; totalPips += _a; bPip('sandwich_fill', _a); }
   if (hasBonus('heavy_hand') && cells.length === 5) { const _a = cells.length * 6; totalPips += _a; bPip('heavy_hand', _a); }
   // Quick draw timing pip
   if (hasBonus('quick_draw') && lastHandTime > 0 && (Date.now() - lastHandTime) < 3000) { const _a = cells.length * 3; totalPips += _a; bPip('quick_draw', _a); }
@@ -4982,7 +4977,6 @@ function calcScore(handName, cells, contrib = null) {
   let s = totalPips * mult;
 
   // 4. x score multipliers
-  if (handName === 'Sandwich' && hasBonus('rye_bread')) s *= 2;
   if (hasBonus('last_stand') && score < roundGoal) s *= 2;
   if (hasBonus('echo_hand') && streakCount >= 2) s *= 1.5;
   if (handName === 'Full House' && hasBonus('full_house_streak') && fullHouseThisRound > 0) s *= Math.pow(1.5, fullHouseThisRound);
@@ -6310,8 +6304,8 @@ function playHand() {
   }
   resetFocusDecayTimer();
 
-  // ── 5-second hand cost (manual plays only) ──
-  roundSeconds = Math.max(0, roundSeconds - 5);
+  // ── Hand time cost (manual plays only): base 5s + reward-grid time penalties ──
+  roundSeconds = Math.max(0, roundSeconds - (5 + (playHandCostThisRound || 0)));
   updateClockUI();
 
   // Streak tracking
@@ -7295,10 +7289,11 @@ function doDiscard() {
   selected.forEach(([r,c]) => { if (gridData[r]?.[c]) discardToDrawPile(gridData[r][c]); });
   // Hoarder: discards don't count against limit (but cost 2× time below)
   if (!hasTotem('hoarder')) discards--;
-  // Discard time cost — 3s/card default, 0s with Free Discards, 6s/card with Hoarder
+  // Discard time cost — 3s/card default, 0s with Free Discards, 6s/card with Hoarder.
+  // Reward-grid time penalties add to the per-card cost (unless discards are free).
   let perCardCost = 3;
   if (hasTotem('free_discards')) perCardCost = 0;
-  else if (hasTotem('hoarder')) perCardCost = 6;
+  else { if (hasTotem('hoarder')) perCardCost = 6; perCardCost += (discardCostThisRound || 0); }
   const usingFreeDiscard = perCardCost > 0 && freeDiscardsLeft > 0;
   if (usingFreeDiscard) freeDiscardsLeft--;
   const timeCost = usingFreeDiscard ? 0 : discardedCards.length * perCardCost;
@@ -8421,10 +8416,36 @@ function generateRewardContent() {
     { weight:  5, kind: 'swap' },
     { weight:  3, kind: 'time' },
   ];
+  // Hover projections (computed when the grid opens, reflecting current standing debuffs).
+  const _proj    = computeRoundResources();
+  const _capNow  = Math.max(10, Math.max(ROUND_DURATION, limits.round_time.current) - roundPenaltySeconds);
+  const _handNow = 5 + extraPlayCostPerm + nextRoundPlayCost;
+  const _discNow = 3 + extraDiscardCostPerm + nextRoundDiscardCost;
   const debuffs = [
-    { icon: '☠', label: '-1 Discard',    tier: 'penalty', apply: () => { discards = Math.max(0, discards - 1); render(); } },
-    { icon: '✖', label: 'Lose a BC',      tier: 'penalty', apply: applyRewardLoseBC },
-    { icon: '☁', label: '-5s Round',     tier: 'penalty', apply: () => { roundSeconds = Math.max(1, roundSeconds - 5); updateClockUI(); } },
+    { icon: '☁', label: '-5s Round Cap', tier: 'penalty',
+      desc: `Round cap: ${formatTime(_capNow)} → ${formatTime(Math.max(10, _capNow - 5))} · permanent, stacks`,
+      apply: () => { roundPenaltySeconds += 5; showMessage('Round cap -5s (permanent)', 'var(--red)'); } },
+    { icon: '☠', label: '-1 Discard', tier: 'penalty',
+      desc: `Next round discards: ${_proj.discards} → ${Math.max(0, _proj.discards - 1)} · next round only`,
+      apply: () => { nextRoundDiscardDelta -= 1; showMessage('-1 discard next round', 'var(--red)'); } },
+    { icon: '✖', label: '-1 Swap', tier: 'penalty',
+      desc: `Next round swaps: ${_proj.swaps} → ${Math.max(0, _proj.swaps - 1)} · next round only`,
+      apply: () => { nextRoundSwapDelta -= 1; showMessage('-1 swap next round', 'var(--red)'); } },
+    { icon: '💔', label: 'Lose a BC', tier: 'penalty',
+      desc: 'Discard one random Bonus Card you own.',
+      apply: applyRewardLoseBC },
+    { icon: '🐌', label: 'Hands +2s', tier: 'penalty',
+      desc: `Hand cost: ${_handNow}s → ${_handNow + 2}s each · permanent, stacks`,
+      apply: () => { extraPlayCostPerm += 2; showMessage('Playing a hand costs +2s (permanent)', 'var(--red)'); } },
+    { icon: '⌛', label: 'Hands +5s · 1rd', tier: 'penalty',
+      desc: `Next round hand cost: ${_handNow}s → ${_handNow + 5}s each · next round only`,
+      apply: () => { nextRoundPlayCost += 5; showMessage('Hands cost +5s next round', 'var(--red)'); } },
+    { icon: '🐌', label: 'Discards +2s', tier: 'penalty',
+      desc: `Discard cost: ${_discNow}s → ${_discNow + 2}s per card · permanent, stacks`,
+      apply: () => { extraDiscardCostPerm += 2; showMessage('Discarding costs +2s/card (permanent)', 'var(--red)'); } },
+    { icon: '⌛', label: 'Discards +5s · 1rd', tier: 'penalty',
+      desc: `Next round discard cost: ${_discNow}s → ${_discNow + 5}s per card · next round only`,
+      apply: () => { nextRoundDiscardCost += 5; showMessage('Discards cost +5s/card next round', 'var(--red)'); } },
   ];
   const destOptions = [
     { icon: '🏪', label: 'Next: Shop',  tier: 'dest', apply: () => { pendingEventOverride = 'shop'; } },
@@ -8475,9 +8496,15 @@ function generateRewardContent() {
       case 'bc':      return makeBCPayload();
       case 'joker':   return makeJokerPayload();
       case 'totem':   return { icon: '♛', label: 'Totem',        tier: 'legendary', apply: applyRewardTotem };
-      case 'discard': return { icon: '🗑', label: '+1 Discard',   tier: 'common',    apply: () => { discards += 1; render(); } };
-      case 'swap':    return { icon: '⚡', label: '+1 Swap',      tier: 'common',    apply: () => { swaps += 1; render(); } };
-      case 'time':    return { icon: '⏱', label: '+15s Round',   tier: 'common',    apply: () => { roundSeconds = Math.min(roundSeconds + 15, limits.round_time.current); updateClockUI(); } };
+      case 'discard': return { icon: '🗑', label: '+1 Discard',   tier: 'common',
+                               desc: `Next round discards: ${_proj.discards} → ${_proj.discards + 1}`,
+                               apply: () => { nextRoundDiscardDelta += 1; showMessage('+1 discard next round', 'var(--gold)'); } };
+      case 'swap':    return { icon: '⚡', label: '+1 Swap',      tier: 'common',
+                               desc: `Next round swaps: ${_proj.swaps} → ${_proj.swaps + 1}`,
+                               apply: () => { nextRoundSwapDelta += 1; showMessage('+1 swap next round', 'var(--gold)'); } };
+      case 'time':    return { icon: '⏱', label: '+15s Round',   tier: 'common',
+                               desc: `Next round starts with +15s`,
+                               apply: () => { nextRoundSecondsDelta += 15; showMessage('+15s next round', 'var(--gold)'); } };
     }
   }
 
@@ -8836,8 +8863,19 @@ function closeRewardGrid() {
       drainLevelUpQueue();
     }
   } else {
-    // Timer-based modes: reward grid was mid-round, resume it
+    // Timer-based / dev mid-round: no round-start reset follows, so apply any pending
+    // reward deltas to the LIVE round now (otherwise they'd be silently lost).
+    const _secCap = Math.max(ROUND_DURATION, limits.round_time.current);
+    discards     = Math.max(0, discards + nextRoundDiscardDelta);
+    swaps        = Math.max(0, swaps    + nextRoundSwapDelta);
+    roundSeconds = Math.max(1, Math.min(_secCap, roundSeconds + nextRoundSecondsDelta));
+    if (roundPenaltySeconds > 0) roundSeconds = Math.max(1, Math.min(roundSeconds, _secCap - roundPenaltySeconds));
+    playHandCostThisRound = extraPlayCostPerm    + nextRoundPlayCost;
+    discardCostThisRound  = extraDiscardCostPerm + nextRoundDiscardCost;
+    nextRoundDiscardDelta = 0; nextRoundSwapDelta = 0; nextRoundSecondsDelta = 0;
+    nextRoundPlayCost = 0; nextRoundDiscardCost = 0;
     startRoundTimer();
+    updateClockUI();
     render();
   }
 }
@@ -10826,6 +10864,32 @@ function drainLevelUpQueue() {
   triggerLevelUp();
 }
 
+// Compute the resource values (discards / swaps / seconds) a new round should start with.
+// Single source of truth — used by the round-start reset AND by reward-grid hover projections.
+// Folds in limit-breaks, carry-over totems, round-start totems, and pending next-round deltas.
+function computeRoundResources() {
+  const limitDiscardBonus = limits.discards.current   - limits.discards.base;
+  const limitSwapBonus    = limits.swaps.current      - limits.swaps.base;
+  const limitTimeBonus    = limits.round_time.current - limits.round_time.base;
+
+  const baseDiscards = 4 + limitDiscardBonus + (hasTotem('extra_discards') ? 2 : 0);
+  const baseSwaps    = (hasTotem('free_range_t') ? 2 : 3) + limitSwapBonus + (hasTotem('extra_swaps') ? 2 : 0);
+  // Round-time cap = full duration minus permanent penalties, plus any limit-break bonus.
+  const baseSeconds  = Math.max(10, (ROUND_DURATION - roundPenaltySeconds) + limitTimeBonus);
+  const secCap = Math.max(ROUND_DURATION, limits.round_time.current);
+
+  let d   = Math.min(99, baseDiscards + accumulatedDiscards) + nextRoundDiscardDelta;
+  let s   = Math.min(99, baseSwaps    + accumulatedSwaps)    + nextRoundSwapDelta;
+  let sec = Math.min(secCap, baseSeconds + accumulatedSeconds + nextRoundSecondsDelta);
+
+  // Round-start totem effects.
+  if (hasTotem('time_bank'))      sec = Math.min(secCap, sec + 30);
+  if (hasTotem('extra_swaps'))    s += 2;
+  if (hasTotem('extra_discards')) d += 2;
+
+  return { discards: Math.max(0, d), swaps: Math.max(0, s), seconds: Math.max(1, sec) };
+}
+
 function triggerLevelUp() {
   // During a boss, the legacy goal-based level-up flow is suppressed.
   // The new XP-grid level-up (Step 2) will replace this entirely; for now,
@@ -10868,26 +10932,20 @@ function triggerLevelUp() {
   if (hasTotem('carry_discards')) accumulatedDiscards = Math.min(8, accumulatedDiscards + discards);
   if (hasTotem('carry_time'))     accumulatedSeconds  = Math.min(60, accumulatedSeconds + roundSeconds);
 
-  // Base reset
-  // Limit-break increments stack on top of bonus-derived base values as deltas,
-  // so existing bonus balance is preserved and limit breaks add extra.
-  const limitDiscardBonus = limits.discards.current   - limits.discards.base;
-  const limitSwapBonus    = limits.swaps.current      - limits.swaps.base;
-  const limitTimeBonus    = limits.round_time.current - limits.round_time.base;
-
-  const baseDiscards = 4 + limitDiscardBonus + (hasTotem('extra_discards') ? 2 : 0);
-  const baseSwaps    = (hasTotem('free_range_t') ? 2 : 3) + limitSwapBonus + (hasTotem('extra_swaps') ? 2 : 0);
-  const baseSeconds  = Math.max(10, (ROUND_DURATION - roundPenaltySeconds) + limitTimeBonus);
-
-  discards     = Math.min(99, baseDiscards + accumulatedDiscards);
-  swaps        = Math.min(99, baseSwaps    + accumulatedSwaps);
-  roundSeconds = Math.min(99, baseSeconds  + accumulatedSeconds);
+  // Base reset — resource values computed by computeRoundResources() (single source of truth).
+  const _rr = computeRoundResources();
+  discards     = _rr.discards;
+  swaps        = _rr.swaps;
+  roundSeconds = _rr.seconds;
+  // Per-action time-cost debuffs active this round = permanent + next-round-only.
+  playHandCostThisRound = extraPlayCostPerm    + nextRoundPlayCost;
+  discardCostThisRound  = extraDiscardCostPerm + nextRoundDiscardCost;
+  // Next-round-only deltas have now been folded in — clear them.
+  nextRoundDiscardDelta = 0; nextRoundSwapDelta = 0; nextRoundSecondsDelta = 0;
+  nextRoundPlayCost = 0; nextRoundDiscardCost = 0;
 
   // ── Totem effects at round start ──
-  if (hasTotem('time_bank'))   roundSeconds = Math.min(99, roundSeconds + 30);
   if (hasTotem('inheritance')) { coins += 5; updateCoinsUI(); }
-  if (hasTotem('extra_swaps'))    swaps    = Math.min(99, swaps    + 2);
-  if (hasTotem('extra_discards')) discards = Math.min(99, discards + 2);
   // Reset Combo Keeper state each round (totem starts each round armed)
   streakSaveArmed = true;
   streakSaveProgress = 0;
@@ -11398,6 +11456,15 @@ function discardBCFromTray(bonus) {
   const aidx = acquiredBonuses.findIndex(b => b.id === bonus.id);
   if (aidx >= 0) acquiredBonuses.splice(aidx, 1);
   showMessage(`Discarded: ${bonus.name}`, 'var(--cream-dim)');
+  renderBCTray();
+}
+
+// Sync the BC tray / hand-preview panel visibility to the current bcTrayMode (no card migration).
+function syncBCTrayUI() {
+  const trayArea = document.getElementById('bc-tray-area');
+  const previewArea = document.getElementById('hand-preview-area');
+  if (trayArea) trayArea.style.display = bcTrayMode ? 'flex' : 'none';
+  if (previewArea) previewArea.style.display = bcTrayMode ? 'none' : 'flex';
   renderBCTray();
 }
 
@@ -12393,7 +12460,7 @@ const UNLOCK_BONUS_POOL = {
 function updateCounters(hand, handCells) {
   // Map hand name to counter key
   const handKeyMap = {
-    'Run of 3': 'run3', 'Run of 4': 'run4', 'Sandwich': 'sandwich',
+    'Run of 3': 'run3', 'Run of 4': 'run4',
     'Pair': 'pair', 'Two Pair': 'twopair', 'Three of a Kind': 'threeofakind',
     'Four of a Kind': 'fourofakind', 'Straight': 'straight', 'Flush': 'flush',
     'Full House': 'fullhouse', 'Straight Flush': 'straightflush',
@@ -12432,8 +12499,8 @@ function checkUnlocks() {
   if (ACTIVE_MODE.id === 'normal') return;
   const toCheck = [
     { key:'run4',         cond: () => C.run3 >= 10 || C.fours >= 20 },
-    { key:'pair',         cond: () => C.sandwich >= 10 || C.twos >= 20 },
-    { key:'twopair',      cond: () => (C.sandwich + C.pair) >= 20 },
+    { key:'pair',         cond: () => C.twos >= 20 },
+    { key:'twopair',      cond: () => C.pair >= 20 },
     { key:'straight',     cond: () => C.run4 >= 10 },
     { key:'flush',        cond: () => C.sameSuitHands >= 5 || C.hearts >= 100 },
     { key:'fullhouse',    cond: () => C.threeofakind >= 5 },
@@ -12546,11 +12613,10 @@ const UNLOCK_PROGRESS = [
     { label:'Fours played', cur:()=>C.fours, goal:20 },
   ]},
   { key:'pair',         name:'Pair',          paths:[
-    { label:'Sandwiches', cur:()=>C.sandwich, goal:10 },
     { label:'Twos played', cur:()=>C.twos, goal:20 },
   ]},
   { key:'twopair',      name:'Two Pair',       paths:[
-    { label:'Sandwiches + Pairs', cur:()=>C.sandwich+C.pair, goal:20 },
+    { label:'Pairs played', cur:()=>C.pair, goal:20 },
   ]},
   { key:'straight',     name:'Straight',      paths:[
     { label:'Runs of 4', cur:()=>C.run4, goal:10 },
@@ -12575,7 +12641,6 @@ const UNLOCK_PROGRESS = [
 
 const HAND_FORMULAS = {
   'Run of 3':        'Base 20 pips × 3 mult',
-  'Sandwich':        'Base 10 pips × 2 mult',
   'Three of a Kind': 'Base 30 pips × 3 mult',
   'Four of a Kind':  'Base 60 pips × 7 mult',
   'Run of 4':        'Base 28 pips × 4 mult',
@@ -12590,7 +12655,7 @@ const HAND_FORMULAS = {
 };
 
 const HAND_KEY_TO_NAME = {
-  run3:'Run of 3', sandwich:'Sandwich', threeofakind:'Three of a Kind',
+  run3:'Run of 3', threeofakind:'Three of a Kind',
   fourofakind:'Four of a Kind', run4:'Run of 4', pair:'Pair', twopair:'Two Pair',
   straight:'Straight', flush:'Flush', fullhouse:'Full House',
   straightflush:'Straight Flush', highcard:'High Card', blackjack:'Blackjack',
@@ -12892,6 +12957,10 @@ function startGame() {
   challengeCard = null;
   challengeActive = false;
   roundPenaltySeconds = 0;
+  extraPlayCostPerm = 0; extraDiscardCostPerm = 0;
+  nextRoundDiscardDelta = 0; nextRoundSwapDelta = 0; nextRoundSecondsDelta = 0;
+  nextRoundPlayCost = 0; nextRoundDiscardCost = 0;
+  playHandCostThisRound = 0; discardCostThisRound = 0;
   clearTimeout(challengeOverlayTimer);
   document.getElementById('challenge-overlay').classList.remove('show');
   // Reset goal/level-up queue
@@ -12903,7 +12972,7 @@ function startGame() {
   pipeTimerPaused = false;
   pauseSecondsLeft = 0;
   if (pauseTimer) { clearTimeout(pauseTimer); pauseTimer = null; }
-  const ALL_HAND_KEYS = ['run3','sandwich','threeofakind','fourofakind','run4','pair','twopair','straight','flush','fullhouse','straightflush','highcard','blackjack'];
+  const ALL_HAND_KEYS = ['run3','threeofakind','fourofakind','run4','pair','twopair','straight','flush','fullhouse','straightflush','highcard','blackjack'];
   const BASE_HAND_KEYS = ['run3','threeofakind','twopair','fourofakind'];
   const startKeys = ACTIVE_MODE.id === 'normal' ? ALL_HAND_KEYS : BASE_HAND_KEYS;
   activeHands = new Set(startKeys);
@@ -12912,6 +12981,7 @@ function startGame() {
   acquiredBonuses = [];
   acquiredTotems  = [];
   bcTray          = [];
+  syncBCTrayUI();   // show the BC tray (or grid-preview) to match bcTrayMode for the new game
   cardPlayCount   = {};
   cardSwapCount   = {};
   cardDealtCount  = {};
@@ -13706,6 +13776,8 @@ function initDevMode() {
   if (toggle) toggle.checked = devMode;
   const hudToggle = document.getElementById('dev-deck-hud-toggle');
   if (hudToggle) hudToggle.checked = showDeckHud;
+  const bcToggle = document.getElementById('dev-bc-tray-toggle');
+  if (bcToggle) bcToggle.checked = !bcTrayMode;   // checked = BCs placed on grid
   applyDeckHudVisibility();
   // Focus dev controls — restore persisted values
   const decaySlider = document.getElementById('dev-focus-decay-slider');
@@ -13744,10 +13816,25 @@ function toggleDevPanel() {
   devPanelOpen ? closeDevPanel() : openDevPanel();
 }
 
+// Opened as the "Settings" screen from the main menu (no game running yet).
+// The dev panel doubles as settings; toggles set here (BCs on grid, card counter)
+// persist into the game you start. Closing returns to the menu.
+let devPanelFromMenu = false;
+function openSettingsFromMenu() {
+  devPanelFromMenu = true;
+  document.getElementById('main-menu-overlay').classList.remove('show');
+  openDevPanel();
+}
+
 function openDevPanel() {
   devPanelOpen = true;
   const panel = document.getElementById('dev-panel');
   panel.style.display = 'flex';
+  // Reflect current toggle states so the checkboxes match reality.
+  const hudToggle = document.getElementById('dev-deck-hud-toggle');
+  if (hudToggle) hudToggle.checked = showDeckHud;
+  const bcToggle = document.getElementById('dev-bc-tray-toggle');
+  if (bcToggle) bcToggle.checked = !bcTrayMode;   // checked = BCs placed on grid
   devFilterBonuses('');
   devFilterTotems('');
   devRenderLimits();
@@ -13758,6 +13845,13 @@ function openDevPanel() {
 function closeDevPanel() {
   devPanelOpen = false;
   document.getElementById('dev-panel').style.display = 'none';
+  if (devPanelFromMenu) {
+    // Return to the main menu — do NOT start game timers (no game is running).
+    devPanelFromMenu = false;
+    renderMenuModes();
+    document.getElementById('main-menu-overlay').classList.add('show');
+    return;
+  }
   if (!isPaused) startTimers();
 }
 
