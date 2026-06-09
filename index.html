@@ -3430,7 +3430,7 @@
 </div>
 
 <script>
-const BUILD = '2026-06-08 · r43';
+const BUILD = '2026-06-08 · r44';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -6400,9 +6400,12 @@ function playHand() {
       if (n === 3 && !_card._corrupted && !_card._exalted) { exaltCard(_r, _c); showMessage('♣ Club exalted!', '#ffd700'); }
       if (n >= 6 && !_card._corrupted)                     { corruptCard(_r, _c); showMessage('♣ Club corrupted by overplay!', '#cc88ff'); }
     } else if (_card.suit === '♦') {
-      // Gated on play count (like other suits) so diamonds don't exalt on every early play. Balance TBD.
-      if (n >= 3 && coinsAtPlay < 10 && !_card._corrupted && !_card._exalted) { exaltCard(_r, _c); showMessage('♦ Diamond exalted by scarcity!', '#ffd700'); }
-      else if (n >= 3 && coinsAtPlay > 50 && !_card._exalted && !_card._corrupted) { corruptCard(_r, _c); showMessage('♦ Diamond corrupted by wealth!', '#cc88ff'); }
+      // Wealth suit: a well-worn diamond transforms only at an extreme of fortune.
+      // Tuned harder (r44): needs 5+ plays (was 3) AND a wider coin gate (<6 / >65,
+      // was <10 / >50), so it triggers occasionally instead of on nearly every hand.
+      // Numbers are easy to dial.
+      if (n >= 5 && coinsAtPlay < 6  && !_card._corrupted && !_card._exalted) { exaltCard(_r, _c); showMessage('♦ Diamond exalted by scarcity!', '#ffd700'); }
+      else if (n >= 5 && coinsAtPlay > 65 && !_card._exalted && !_card._corrupted) { corruptCard(_r, _c); showMessage('♦ Diamond corrupted by wealth!', '#cc88ff'); }
     }
   });
   if (_ecPlay.coins !== 0) { coins = Math.max(0, coins + _ecPlay.coins); updateCoinsUI(); }
