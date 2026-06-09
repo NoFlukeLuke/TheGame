@@ -3430,7 +3430,7 @@
 </div>
 
 <script>
-const BUILD = '2026-06-08 · r42';
+const BUILD = '2026-06-08 · r43';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -6218,8 +6218,12 @@ function playHand() {
   if (jokerAmplifierMult) jokerAmplifierMult = 0;
   handsPlayed++;
 
-  // Boss objective progress
-  if (bossActive) checkBossObjective(hand, finalScore);
+  // Boss objective progress.
+  // Snapshot boss state BEFORE checkBossObjective — a boss-winning hand calls endBoss(),
+  // which flips bossActive to false; without this snapshot the normal goal-reach below
+  // would then also fire, double-running the interlude (boss grid + payout + new grid).
+  const _bossThisHand = bossActive;
+  if (_bossThisHand) checkBossObjective(hand, finalScore);
 
   // Lucky Seven totem: every 7th hand grants +1 swap
   if (hasTotem('lucky_seven') && handsPlayed % 7 === 0) {
@@ -6239,8 +6243,10 @@ function playHand() {
   checkUnlocks();
 
   // ── Check goal immediately after scoring ──
-  // Suppressed during boss: legacy goal flow is replaced by boss objective system.
-  if (!bossActive && score >= cumulativeGoal && !goalReachedThisRound) {
+  // Suppressed during/just-after a boss: the boss objective system + post-boss reward
+  // grid handle progression. (_bossThisHand catches the boss-winning hand, where endBoss
+  // already set bossActive=false above.)
+  if (!_bossThisHand && !bossActive && score >= cumulativeGoal && !goalReachedThisRound) {
     console.log('[GOAL] reached', { score, goal: cumulativeGoal, finalScore });
     goalReachedThisRound = true;
     roundEnded = true; // freeze input immediately
