@@ -53,15 +53,15 @@ Per-card flags `_exalted` / `_corrupted` are the *only* source of suit effects n
 - **Corrupted:** ♣ +20 pips/−2 coins · ♥ +6s/−8 pips · ♦ +3 coins/−2 mult · ♠ +4 mult/−5s.
 - Visual: `.exalted` (gold glow) / `.corrupted` (purple glow). **Balance still TBD** — numbers are tunable.
 
-**How a card transforms** (triggered per scoring card in `playHand`, keyed by `cardPlayCount[rank+suit]` = times that card has been played this game):
-| suit | exalts when | corrupts when |
-|---|---|---|
-| ♥ | played **2×** | — |
-| ♣ | played **3×** | played **6×+** (overplay) |
-| ♠ | played **5×** | played **10×** (overexposure) |
-| ♦ | played **5×+** AND coins **< 6** (scarcity) | played **5×+** AND coins **> 65** (wealth) |
+**How a card transforms** — each suit watches a *different* action, tracked by three per-card counters: `cardPlayCount` (times scored), `cardSwapCount` (times swapped), `cardDealtCount` (times dealt onto the grid):
+| suit | exalts when | corrupts when | wired in |
+|---|---|---|---|
+| ♥ | **played** 2× | **swapped** 3× | exalt in `playHand`; corrupt in `doSwap` |
+| ♣ | played 3× | played 6×+ (overplay) | `playHand` |
+| ♠ | **dealt** 5× | **dealt** 10× (overexposure) | round-start sweep (search `cardDealtCount`) |
+| ♦ | played 5×+ AND coins **< 6** (scarcity) | played 5×+ AND coins **> 65** (wealth) | `playHand` |
 
-Diamonds are the only condition-on-state suit — tuned harder in r44 (was 3 plays / <10 / >50). All thresholds are easy to dial in that block.
+So hearts split their two transforms across two actions (play it to bless, swap it too much to sour), spades transform just by recurring on the grid, and clubs/diamonds are play-driven. Diamonds are the only state-conditioned suit — tuned harder in r44 (was 3 plays / <10 / >50). Thresholds live in **three** blocks: the `playHand` per-card loop (♥ exalt, ♣, ♦), the `doSwap` ♥ block (♥ corrupt), and the round-start ♠ sweep.
 
 ## Joker system (`JOKER_POOL`)
 
