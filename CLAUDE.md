@@ -7,9 +7,9 @@ A single-file HTML/JS roguelike poker game. Everything lives in **`index.html`**
 
 ## Workflow
 
-- **Develop on branch** `claude/game-bugs-polish-2Wxhi`.
-- **Deploy:** push to both the feature branch AND `main` (`git push origin claude/game-bugs-polish-2Wxhi:main`). Pages serves from `main`.
-- **Build stamp:** bump the `BUILD` constant (near top of `<script>`, e.g. `'2026-06-08 · r39'` → `r40`) on every commit. It shows in the menu footer + dev panel so the owner can confirm mobile cache is fresh. Increment the `rN` each commit.
+- **Develop on branch** `claude/wizardly-knuth-5d2q3d`.
+- **Deploy:** push to both the feature branch AND `main` (`git push origin claude/wizardly-knuth-5d2q3d:main`). Pages serves from `main`.
+- **Build stamp:** bump the `BUILD` constant (near top of `<script>`, currently `'2026-06-08 · r44'`) on every commit. It shows in the menu footer + dev panel so the owner can confirm mobile cache is fresh. Increment the `rN` each commit.
 - **Commit messages:** detailed, since a fresh Claude session re-orients from git history. End with the session URL line.
 - After editing, validate syntax:
   ```
@@ -43,15 +43,25 @@ The stage (`#stage`, 420×740 portrait / 747×420 landscape) is a single fixed-s
 
 ### Scoring (`calcScore(handName, cells)` + `playHand()`)
 - `calcScore` returns the numeric score: base pips (level-scaled) + per-card pips + bonuses, × mult, × score-multipliers.
-- **Default suit effects:** ♣ +5 pips & ♥ +0.5 mult (in `calcScore`); ♦ +1 coin & ♠ +1s (in `playHand`). *(Owner is reconsidering whether suits should be neutral by default — see exalt/corrupt below.)*
+- **Suits are NEUTRAL by default** (owner's decision, now shipped). A plain card scores only its pips × mult — no per-suit coin/time/pip/mult bonus. Suit effects come *only* from exalt/corrupt (below) or BCs (♥/♣ BCs in `calcScore`; Spade Flood etc.). The old defaults (♣ pips, ♥ mult, ♦ coin, ♠ time) are gone — see the "suits are neutral" comment in `playHand`.
 - `findBestHand(cells)` brute-forces all connected 2–5 card subsets, scores each, returns the best. Handles wild jokers (temp rank/suit) and drops non-wild jokers from detection.
 - `detectHand(cells)` returns the hand-type string. `activeHands` Set gates which hands are scorable (in Normal mode ALL hands are active from the start).
 
 ### Exalt / Corrupt (`exaltCorruptTotals`, `exaltCard`, `corruptCard`)
-Per-card flags `_exalted` / `_corrupted` grant enhanced suit effects on top of defaults:
-- Exalted: ♣+8 pips, ♥+3s, ♦+2 coins, ♠+2 mult.
-- Corrupted: ♣+12 pips/−1 coin, ♥+5s/−3 mult, ♦+4 coins/−2s, ♠+4 mult/−2s.
-- Visual: `.exalted` (gold glow) / `.corrupted` (purple glow). **Balance is TBD** — numbers are placeholders.
+Per-card flags `_exalted` / `_corrupted` are the *only* source of suit effects now (suits are otherwise neutral). Totals computed in `exaltCorruptTotals` (pips/mult fold into `calcScore`; coins/time applied in `playHand`):
+- **Exalted:** ♣ +10 pips · ♥ +3s · ♦ +2 coins · ♠ +2 mult.
+- **Corrupted:** ♣ +20 pips/−2 coins · ♥ +6s/−8 pips · ♦ +3 coins/−2 mult · ♠ +4 mult/−5s.
+- Visual: `.exalted` (gold glow) / `.corrupted` (purple glow). **Balance still TBD** — numbers are tunable.
+
+**How a card transforms** (triggered per scoring card in `playHand`, keyed by `cardPlayCount[rank+suit]` = times that card has been played this game):
+| suit | exalts when | corrupts when |
+|---|---|---|
+| ♥ | played **2×** | — |
+| ♣ | played **3×** | played **6×+** (overplay) |
+| ♠ | played **5×** | played **10×** (overexposure) |
+| ♦ | played **5×+** AND coins **< 6** (scarcity) | played **5×+** AND coins **> 65** (wealth) |
+
+Diamonds are the only condition-on-state suit — tuned harder in r44 (was 3 plays / <10 / >50). All thresholds are easy to dial in that block.
 
 ## Joker system (`JOKER_POOL`)
 
@@ -79,7 +89,14 @@ Reward grid destination tiles set `pendingEventOverride` → `closeRewardGrid()`
 
 ## Shop
 
-`triggerShop()` / `renderShop()`. Currently: cards for sale + card services (remove/duplicate/change-suit/combine/buy swaps/discards). **Owner wants a redesign** to 3 BCs / 3 cards / 3 jokers / 3 totems — not yet done.
+`triggerShop()` → `generateShopItems()` → `renderShop()`. **Redesigned** (the old "cards for sale + services" layout is gone). `shopItems` now holds curated rows, each rendered by its own function:
+- **3 BCs** (`renderShopBCs`, priced by tier via `SHOP_BC_PRICES`).
+- **3 jokers** (`renderShopJokers`, `pickJokerByRarity`, `SHOP_JOKER_PRICES`).
+- **2 totems** (`renderShopTotems`, flat `SHOP_TOTEM_PRICE`).
+- **2 limit upgrades** (`renderShopLimits`, scaling cost via `limitPrice`).
+- **Footer** (`renderShopFooter`): card services (remove/duplicate/change-suit/combine, capped by `SHOP_SVC_MAX`) + buy swaps/discards + **reroll** (`rerollShopItems`, which only refreshes *unpurchased* slots).
+
+Owned BCs/totems and already-granted jokers are filtered out of the pools so the shop never offers a duplicate.
 
 ## Progression (Normal mode)
 3 Acts × (5 events + 1 boss) = 18 nodes. `actNumber` (1–3), `nodeInAct` (0–4, boss at 5). `forceBossNextRound` triggers the boss after the next deal. Win at `actNumber > 3` → `onGameWin()`.
