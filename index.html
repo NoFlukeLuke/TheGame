@@ -3430,7 +3430,7 @@
 </div>
 
 <script>
-const BUILD = '2026-06-08 · r41';
+const BUILD = '2026-06-08 · r42';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -7807,7 +7807,9 @@ function startRoundTimer() {
 }
 
 function startTimers() {
-  startRoundTimer();
+  // During a boss the boss timer owns the clock; don't also start the round timer.
+  if (bossActive) startBossTimer();
+  else startRoundTimer();
 
   // Game timer
   gameInterval = setInterval(() => {
@@ -8309,26 +8311,35 @@ function triggerBoss(presetOverride = null) {
   updateActProgressUI();
 
   // Tick
-  bossInterval = setInterval(() => {
-    if (gameTimerPaused) return;
-    bossSecondsLeft--;
-    if (bossSecondsLeft < 0) bossSecondsLeft = 0;
-    updateBossClockDisplay();
-    // Phase switch at halfway for split-phase bosses
-    if (bossPhase === 1 && bossSecondsLeft === Math.floor(BOSS_WINDOW_DURATION / 2)) {
-      bossPhase = 2;
-      updateBossObjectiveUI(); // refresh pool display
-      showMessage('PHASE 2', 'var(--red)');
-    }
-    if (bossSecondsLeft <= 0) endBoss(false);
-  }, 1000);
+  startBossTimer();
 }
 
 function updateBossClockDisplay() {
+  if (!bossActive) return; // never clobber the round clock when no boss is running
   const m = Math.floor(bossSecondsLeft / 60);
   const s = bossSecondsLeft % 60;
   document.getElementById('clock').textContent = `${m}:${s.toString().padStart(2,'0')}`;
   document.getElementById('clock-bar').style.width = (bossSecondsLeft / BOSS_WINDOW_DURATION * 100) + '%';
+}
+
+// Single source of truth for the boss countdown. Clears any existing boss interval first
+// (so it can't be double-started) and self-terminates if bossActive ever goes false (so an
+// orphaned timer can't keep writing the clock — the cause of the "clock flickers to 0" bug).
+function startBossTimer() {
+  if (bossInterval) { clearInterval(bossInterval); bossInterval = null; }
+  bossInterval = setInterval(() => {
+    if (!bossActive) { clearInterval(bossInterval); bossInterval = null; return; }
+    if (gameTimerPaused) return;
+    bossSecondsLeft--;
+    if (bossSecondsLeft < 0) bossSecondsLeft = 0;
+    updateBossClockDisplay();
+    if (bossPhase === 1 && bossSecondsLeft === Math.floor(BOSS_WINDOW_DURATION / 2)) {
+      bossPhase = 2;
+      updateBossObjectiveUI();
+      showMessage('PHASE 2', 'var(--red)');
+    }
+    if (bossSecondsLeft <= 0) endBoss(false);
+  }, 1000);
 }
 
 function showBossObjectiveHUD(preset) {
@@ -12857,19 +12868,7 @@ function resumeGame() {
   document.getElementById('grid').style.visibility = '';
   document.getElementById('btn-pause').textContent = '⏸ Pause';
   if (bossActive) {
-    // Resume boss tick instead of round timer
-    bossInterval = setInterval(() => {
-      if (gameTimerPaused) return;
-      bossSecondsLeft--;
-      if (bossSecondsLeft < 0) bossSecondsLeft = 0;
-      updateBossClockDisplay();
-      if (bossPhase === 1 && bossSecondsLeft === Math.floor(BOSS_WINDOW_DURATION / 2)) {
-        bossPhase = 2;
-        updateBossObjectiveUI();
-        showMessage('PHASE 2', 'var(--red)');
-      }
-      if (bossSecondsLeft <= 0) endBoss(false);
-    }, 1000);
+    startBossTimer(); // resume boss tick instead of round timer
   } else {
     startRoundTimer();
   }
