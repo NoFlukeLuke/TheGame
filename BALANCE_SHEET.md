@@ -58,26 +58,32 @@ preserving its order and comments, and prints every `old → new` change.
 | `description` | the in-game text **— this is where the actual numbers live today** |
 | `notes` | flags like "needsResolve / TBD" |
 
-## What's tunable vs structural
+## What's wired so far (and what isn't)
 
-Most entities expose their numbers in `params_json`. Some are **structural** —
-their behavior has no single number to tune (wild jokers, shape-detection
-geometry like Four Corners, rank-shifting like Royal Favour, and the retrigger
-plumbing). Those have a blank `params_json` and a `notes` of
-"structural — no tunable value". Changing those means changing logic, not a
-number — ask and I'll do it.
+This is built on the current game (r45). The round-trip currently covers the
+**scoring core** — everything in `calcScore` plus the exalt/corrupt suit tables
+— which is ~88 of the tunable values and the bulk of a balance sweep. Each of
+those shows its number(s) in `params_json` and edits round-trip both ways.
 
-`description` text **auto-syncs** to the numbers. Each has a template in
-`DESC_TEMPLATES` (in `index.html`) with `{param}` tokens filled from `BAL` at
-load — so changing Deep Roots from +1 to +3 mult updates its in-game tooltip
-automatically. Only two params-bearing bonuses are still hand-written, because
-their displayed number is *derived* and can't be a direct token: **Before the
-Tide** ("6×" = `extra_mult` 5 + 1) and **Head Start** ("10%" = `goal_fraction`
-0.1). If you retune those, edit their `desc` wording by hand too.
+**Not yet wired** (shows blank `params_json`, marked "structural — no tunable
+value"): two groups.
+1. Genuinely structural effects — wild jokers, shape-detection geometry (Four
+   Corners), rank-shifters, retrigger plumbing. These have no single number.
+2. The **play/round-side** numbers that live in `playHand` and the totem/discard
+   code rather than `calcScore`: the accumulator increments (Penny Saved +5,
+   Cloud Nine +9, Perfect Ten +1, Lucky Roll, Steady Fours +4), the permanent
+   gains (First Fruits, Heartwood, Sapling), and the totems (Time Bank +30,
+   Inheritance +5, Lucky Seven) and swap/discard time costs. These are wirable —
+   it's just a second slice I can add on request.
+
+`description` text **auto-syncs** to the numbers for wired entities (83
+templates). Each has a `{param}` template in `DESC_TEMPLATES` (in `index.html`)
+filled from `BAL` at load, so changing a value updates the in-game tooltip too.
+A few whose wording is a *derived* number (e.g. Before the Tide's "6×" = a base
++1) keep hand-written text.
 
 ## System rows
 
-A few rows have `entity_type = System`: the default per-suit effects
-(`_suit_defaults`), the exalt/corrupt suit tables (`_exalt` / `_corrupt`), and
-base time costs (`_resources`). These are prime balance-sweep targets and
-round-trip exactly like the entities.
+A few rows have `entity_type = System`: the exalt/corrupt suit tables
+(`_exalt` / `_corrupt`). These are prime balance-sweep targets and round-trip
+exactly like the entities.

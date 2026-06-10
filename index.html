@@ -3430,7 +3430,7 @@
 </div>
 
 <script>
-const BUILD = '2026-06-08 · r45';
+const BUILD = '2026-06-10 · r46';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -4670,21 +4670,217 @@ function detectHand(cells) {
 // Returns { pips, mult, coins, time } totals across the given cards.
 // Exalted:   ♣ +10 pips | ♦ +3 coins | ♥ +2 mult | ♠ +4 time
 // Corrupted: ♣ +25 pips/-3 mult | ♦ +5 coins/-20 pips | ♥ +5 mult/-5 time | ♠ +7 time/-8 coins
+// ══════════════════════════════════════════════
+// BALANCE CONFIG (BAL) — single source of truth for tunable numbers
+// ══════════════════════════════════════════════
+// Pulled out of calcScore / exaltCorruptTotals so a balance sweep can edit them
+// in one place. Defaults EQUAL the original literals (behaviour-preserving).
+// Round-trip: tools/gen_balance_sheet.js (BAL→CSV) + tools/apply_balance_sheet.js
+// (CSV→BAL). Conditional thresholds/windows stay hardcoded; these are the
+// headline magnitudes per bonus. Entities not listed are structural.
+const BAL = {
+  rich_soil: { pips: 2 },
+  fertile_ground: { pips: 3 },
+  court_of_leaves: { pips: 3 },
+  low_tide: { pips: 6 },
+  first_light: { pips: 5 },
+  power_two: { pips: 4 },
+  ten_strong: { pips: 7 },
+  king_guard: { pips: 8 },
+  dark_matter: { pips: 5 },
+  face_value: { face_pips: 15 },
+  humble_roots: { pip_mult: 3 },
+  summit: { pips_per_level: 4 },
+  before_the_tide: { extra_mult: 5 },
+  knave_power: { run_mult: 2 },
+  rowcol_triple_pips: { pip_mult: 3 },
+  hidden_pair: { pips: 12 },
+  twin_sprouts: { pips: 15 },
+  worn_path: { pips: 20 },
+  enriched: { pips: 15 },
+  overgrowth: { pips: 20 },
+  triple_threat: { pips: 20 },
+  early_bird: { pips: 20 },
+  kindling: { pips_per_streak: 4 },
+  spade_flood: { time_mult: 2 },
+  sands_of_time: { divisor: 2 },
+  discard_pips: { pips_per_discard: 3 },
+  edge_pips: { pips_per_card: 15 },
+  veteran_bonus: { pips_per_level: 2 },
+  high_pair: { pips_per_card: 5 },
+  pair_pips: { pips_per_card: 3 },
+  heavy_hand: { pips_per_card: 6 },
+  quick_draw: { pips_per_card: 3 },
+  flow_state: { pips_per_card: 10 },
+  club_double: { club_pips: 10 },
+  steady_pace: { mult: 1 },
+  momentum: { mult: 2 },
+  night_owl: { mult: 3 },
+  wildfire: { mult: 2 },
+  deep_roots: { mult: 2 },
+  kindred: { mult: 1 },
+  tidal_force: { mult: 4 },
+  rare_bloom: { mult: 12 },
+  two_pair_mult: { mult: 5 },
+  threes_run: { mult: 9 },
+  lucky_three: { mult: 2 },
+  light_touch: { mult: 5 },
+  closing_time: { mult: 5 },
+  patience_reward: { mult: 3 },
+  first_play: { mult: 2 },
+  monochrome: { mult: 3 },
+  full_color: { mult: 4 },
+  balanced_diet: { mult: 2 },
+  number_crunch: { mult: 2 },
+  even_score: { mult: 3 },
+  odd_squad: { mult: 3 },
+  long_road: { mult_per_card: 2 },
+  shape_snake: { mult_per_card: 2 },
+  still_water: { mult_per_interval: 5 },
+  wild_heart: { mult_per_ace: 2 },
+  jack_mult: { mult_per_jack: 2 },
+  same_kind: { mult_per_match: 2 },
+  column_rush: { mult_per_card: 2 },
+  row_power: { mult_per_card: 2 },
+  combo_score: { mult_per_type: 2 },
+  heart_double: { heart_mult: 1 },
+  last_stand: { score_mult: 2 },
+  echo_hand: { score_mult: 1.5 },
+  full_house_streak: { score_base: 1.5 },
+  blackjack_bonus: { score_mult: 3 },
+  ancient_grove: { score_mult: 2 },
+  trinity: { score_mult: 2 },
+  double_bloom: { score_mult: 2 },
+  river_run: { score_mult: 2 },
+  torrent: { run4_mult: 2, big_mult: 4 },
+  deluge: { score_mult: 2 },
+  perfect_storm: { score_mult: 5 },
+  extinction: { score_mult: 2 },
+  lucky_sevens: { score_mult: 2 },
+  ninesong: { score_mult: 3 },
+  frozen_moment: { score_mult: 2 },
+  royal_trio: { score_mult: 2 },
+  prime_time: { score_mult: 2 },
+  shape_square: { score_mult: 4 },
+  shape_cross: { score_mult: 3 },
+  two_corners: { score_mult: 4 },
+  correct_run: { score_mult: 2 },
+  _exalt: { club_pips: 10, diamond_coins: 3, heart_mult: 2, spade_time: 4 },
+  _corrupt: { club_pips: 25, club_mult: -3, diamond_coins: 5, diamond_pips: -20, heart_mult: 5, heart_time: -5, spade_time: 7, spade_coins: -8 },
+};
+
+// ── Description templates — keep tooltip text in sync with BAL numbers ──
+// {param} tokens are filled from BAL[id] at load (applyBalDescriptions), so a
+// value change via the balance sheet updates the in-game description too. Only
+// entities whose wording maps unambiguously to their params are listed.
+const DESC_TEMPLATES = {
+  deep_roots: 'Run of 3 scores +{mult} mult',
+  overgrowth: 'Run of 3 scores +{pips} pips',
+  ancient_grove: 'Run of 3 ×{score_mult} score',
+  long_road: 'Any run scores +{mult_per_card} mult per card',
+  river_run: 'Straight ×{score_mult} score',
+  correct_run: 'Runs selected in ascending or descending order score ×{score_mult}',
+  worn_path: 'Straight scores +{pips} pips',
+  kindred: 'Three of a Kind scores +{mult} mult',
+  trinity: 'Three of a Kind ×{score_mult} score',
+  twin_sprouts: 'Pair scores +{pips} pips',
+  double_bloom: 'Any hand containing a pair ×{score_mult} score',
+  hidden_pair: 'Hands containing a pair score +{pips} pips',
+  high_pair: 'Pairs of 10s or higher score +{pips_per_card} pips per matching card',
+  rare_bloom: 'Four of a Kind scores +{mult} mult',
+  full_house_streak: 'Each Full House this round scores ×{score_base} more than the last',
+  triple_threat: 'Full House adds +{pips} pips',
+  pair_pips: 'Two Pair adds +{pips_per_card} pips per card',
+  two_pair_mult: 'Two Pair scores +{mult} mult',
+  enriched: 'Flush scores +{pips} pips',
+  tidal_force: 'Flush scores +{mult} mult',
+  deluge: 'Flush ×{score_mult} score',
+  perfect_storm: 'Straight Flush ×{score_mult} score',
+  summit: 'The highest-ranking card in each hand scores +(level x {pips_per_level}) pips.',
+  light_touch: '2-card hands score +{mult} mult',
+  heavy_hand: '5-card hands score +{pips_per_card} pips per card',
+  blackjack_bonus: 'If the face values of your cards total exactly 21, score ×{score_mult}',
+  first_light: 'Aces score +{pips} pips',
+  wild_heart: 'Aces add +{mult_per_ace} mult each',
+  face_value: 'Face cards (J/Q/K) are worth {face_pips} pips',
+  court_of_leaves: 'Face cards (J/Q/K) score +{pips} pips',
+  king_guard: 'Kings score +{pips} pips each',
+  jack_mult: 'Jacks add +{mult_per_jack} mult each',
+  ten_strong: 'Tens score +{pips} pips each',
+  power_two: 'Cards ranked 2 score +{pips} pips each',
+  lucky_three: 'Any 3 in a hand adds +{mult} mult',
+  royal_trio: 'A hand containing K, Q, and J scores ×{score_mult}',
+  rich_soil: 'All cards score +{pips} pips',
+  fertile_ground: 'All cards score +{pips} pips',
+  early_bird: 'Hands in first 10s score +{pips} pips',
+  night_owl: 'Hands in last 10s score +{mult} mult',
+  closing_time: 'Hands played with 15s or less remaining score +{mult} mult',
+  patience_reward: 'Hands played more than 15s after the previous score +{mult} mult',
+  steady_pace: 'Each hand played scores +{mult} mult',
+  momentum: 'Consecutive hand within 5s scores +{mult} mult',
+  first_play: 'First hand each round scores +{mult} mult',
+  still_water: '+{mult_per_interval} mult for every 10 seconds elapsed without using a swap',
+  frozen_moment: 'Hands while timer paused score ×{score_mult}',
+  kindling: 'Same hand streak scores +{pips_per_streak} pips × streak',
+  wildfire: '3 same hands in a row scores +{mult} mult',
+  echo_hand: 'Playing the same hand type twice in a row scores ×{score_mult}',
+  heart_double: 'Each scored heart adds +{heart_mult} mult',
+  club_double: 'Each scored club adds +{club_pips} pips',
+  monochrome: 'All-red (hearts/diamonds) or all-black (clubs/spades) hand scores +{mult} mult',
+  full_color: 'Hand containing all four suits scores +{mult} mult',
+  lucky_sevens: '7s ×{score_mult} score',
+  ninesong: 'If pip total is multiple of 9, ×{score_mult} score',
+  even_score: 'Hands with only even-ranked cards (2,4,6,8,10,Q) score +{mult} mult',
+  number_crunch: 'Hands with 4+ different ranks score +{mult} mult',
+  same_kind: 'Hands where 3+ cards share the same rank score +{mult_per_match} mult per matching card',
+  shape_square: 'A 2×2 hand scores ×{score_mult}',
+  shape_cross: 'A + shaped hand scores ×{score_mult}',
+  shape_snake: 'A hand that changes direction every step scores +{mult_per_card} mult per card',
+  two_corners: 'A hand containing 2 corner cells scores ×{score_mult}',
+  edge_pips: 'Hands where all cards are on the outer edge score +{pips_per_card} pips per card',
+  column_rush: 'All cards in the same column add +{mult_per_card} mult per card',
+  row_power: 'All cards in the same row add +{mult_per_card} mult per card',
+  veteran_bonus: '+{pips_per_level} pips per level reached this run',
+  sands_of_time: 'Current round time remaining ÷ {divisor} added as pips',
+  discard_pips: '+{pips_per_discard} pips per card discarded this round',
+  dark_matter: 'Corrupted cards in a hand add +{pips} pips each',
+  combo_score: '+{mult_per_type} mult for every distinct hand type played this round',
+  flow_state: 'While focus is ×1.5 or higher, +{pips_per_card} pips per card scored',
+  torrent: 'Runs longer than 3 multiply score — ×{run4_mult} for Run of 4, ×{big_mult} for Straight or Straight Flush',
+  knave_power: 'Each Jack in hand multiplies running pips ×{run_mult} when scored',
+  humble_roots: 'Cards below 6 contribute {pip_mult}× pips',
+  low_tide: 'Cards below 6 score +{pips} pips',
+  spade_flood: '4 or 5-card all-spade hands add {time_mult}× the remaining round time as pips',
+  rowcol_triple_pips: 'Cards scored in a specific row or column contribute {pip_mult}× pips',
+  quick_draw: 'Hands played within 3 seconds of the previous score +{pips_per_card} pips per card',
+  balanced_diet: 'Hand with exactly 2 different suits scores +{mult} mult',
+  odd_squad: 'Hands with only odd-ranked cards (A,3,5,7,9,J,K) score +{mult} mult',
+  prime_time: 'Hands where all cards have prime pip values (2,3,5,7) score ×{score_mult}',
+  last_stand: 'If your score is below the round goal when you play, that hand scores x{score_mult}.',
+};
+function fillDescTemplate(t, p) { return t.replace(/\{(\w+)\}/g, (m, k) => (k in p ? p[k] : m)); }
+function applyBalDescriptions() {
+  [BONUS_POOL, JOKER_POOL, TOTEM_POOL].forEach(pool => pool.forEach(e => {
+    if (DESC_TEMPLATES[e.id] && BAL[e.id]) e.desc = fillDescTemplate(DESC_TEMPLATES[e.id], BAL[e.id]);
+  }));
+}
+applyBalDescriptions();
+
 function exaltCorruptTotals(cards) {
   let pips = 0, mult = 0, coins = 0, time = 0;
   cards.forEach(c => {
     if (!c) return;
     if (c._exalted) {
-      if      (c.suit === '♣') pips  += 10;          // exalted club:    +10 pips
-      else if (c.suit === '♦') coins += 3;           // exalted diamond: +3 coins
-      else if (c.suit === '♥') mult  += 2;           // exalted heart:   +2 mult
-      else if (c.suit === '♠') time  += 4;           // exalted spade:   +4 time
+      if      (c.suit === '♣') pips  += BAL._exalt.club_pips;          // exalted club:    +10 pips
+      else if (c.suit === '♦') coins += BAL._exalt.diamond_coins;           // exalted diamond: +3 coins
+      else if (c.suit === '♥') mult  += BAL._exalt.heart_mult;           // exalted heart:   +2 mult
+      else if (c.suit === '♠') time  += BAL._exalt.spade_time;           // exalted spade:   +4 time
     }
     if (c._corrupted) {
-      if      (c.suit === '♣') { pips  += 25; mult  -= 3;  }  // corrupted club:    +25 pips  -3 mult
-      else if (c.suit === '♦') { coins += 5;  pips  -= 20; }  // corrupted diamond: +5 coins  -20 pips
-      else if (c.suit === '♥') { mult  += 5;  time  -= 5;  }  // corrupted heart:   +5 mult   -5 time
-      else if (c.suit === '♠') { time  += 7;  coins -= 8;  }  // corrupted spade:   +7 time   -8 coins
+      if      (c.suit === '♣') { pips  += BAL._corrupt.club_pips; mult  += BAL._corrupt.club_mult;  }  // corrupted club:    +25 pips  -3 mult
+      else if (c.suit === '♦') { coins += BAL._corrupt.diamond_coins;  pips  += BAL._corrupt.diamond_pips; }  // corrupted diamond: +5 coins  -20 pips
+      else if (c.suit === '♥') { mult  += BAL._corrupt.heart_mult;  time  += BAL._corrupt.heart_time;  }  // corrupted heart:   +5 mult   -5 time
+      else if (c.suit === '♠') { time  += BAL._corrupt.spade_time;  coins += BAL._corrupt.spade_coins;  }  // corrupted spade:   +7 time   -8 coins
     }
   });
   return { pips, mult, coins, time };
@@ -4716,21 +4912,21 @@ function calcScore(handName, cells, contrib = null) {
     const card = gridData[r][c];
     const baseRank = card.rank;
     const _origPips = cardPips(baseRank);
-    let rawPips = hasBonus('face_value') && ['J','Q','K'].includes(baseRank) ? 15 : _origPips;
+    let rawPips = hasBonus('face_value') && ['J','Q','K'].includes(baseRank) ? BAL.face_value.face_pips : _origPips;
     bPip('face_value', rawPips - _origPips);
-    if (hasBonus('humble_roots') && rawPips < 6) { const _b = rawPips; rawPips *= 3; bPip('humble_roots', rawPips - _b); }
-    if (hasBonus('summit') && (RANK_ORDER[baseRank] || 0) === _handMaxRankVal) { const _b = level * 4; rawPips += _b; bPip('summit', _b); }
+    if (hasBonus('humble_roots') && rawPips < 6) { const _b = rawPips; rawPips *= BAL.humble_roots.pip_mult; bPip('humble_roots', rawPips - _b); }
+    if (hasBonus('summit') && (RANK_ORDER[baseRank] || 0) === _handMaxRankVal) { const _b = level * BAL.summit.pips_per_level; rawPips += _b; bPip('summit', _b); }
     let cp = rawPips;
-    if (hasBonus('rich_soil')) { cp += 2; bPip('rich_soil', 2); }
-    if (hasBonus('fertile_ground')) { cp += 3; bPip('fertile_ground', 3); }
-    if (hasBonus('court_of_leaves') && ['J','Q','K'].includes(baseRank)) { cp += 3; bPip('court_of_leaves', 3); }
-    if (hasBonus('before_the_tide') && cardPips(baseRank) < 6) { const _a = cardPips(baseRank) * 5; cp += _a; bPip('before_the_tide', _a); }
-    else if (hasBonus('low_tide') && cardPips(baseRank) < 6) { cp += 6; bPip('low_tide', 6); }
-    if (hasBonus('first_light') && baseRank === 'A') { cp += 5; bPip('first_light', 5); }
-    if (hasBonus('power_two') && baseRank === '2') { cp += 4; bPip('power_two', 4); }
-    if (hasBonus('ten_strong') && baseRank === '10') { cp += 7; bPip('ten_strong', 7); }
-    if (hasBonus('king_guard') && baseRank === 'K') { cp += 8; bPip('king_guard', 8); }
-    if (hasBonus('dark_matter') && card._corrupted) { cp += 5; bPip('dark_matter', 5); }
+    if (hasBonus('rich_soil')) { cp += BAL.rich_soil.pips; bPip('rich_soil', BAL.rich_soil.pips); }
+    if (hasBonus('fertile_ground')) { cp += BAL.fertile_ground.pips; bPip('fertile_ground', BAL.fertile_ground.pips); }
+    if (hasBonus('court_of_leaves') && ['J','Q','K'].includes(baseRank)) { cp += BAL.court_of_leaves.pips; bPip('court_of_leaves', BAL.court_of_leaves.pips); }
+    if (hasBonus('before_the_tide') && cardPips(baseRank) < 6) { const _a = cardPips(baseRank) * BAL.before_the_tide.extra_mult; cp += _a; bPip('before_the_tide', _a); }
+    else if (hasBonus('low_tide') && cardPips(baseRank) < 6) { cp += BAL.low_tide.pips; bPip('low_tide', BAL.low_tide.pips); }
+    if (hasBonus('first_light') && baseRank === 'A') { cp += BAL.first_light.pips; bPip('first_light', BAL.first_light.pips); }
+    if (hasBonus('power_two') && baseRank === '2') { cp += BAL.power_two.pips; bPip('power_two', BAL.power_two.pips); }
+    if (hasBonus('ten_strong') && baseRank === '10') { cp += BAL.ten_strong.pips; bPip('ten_strong', BAL.ten_strong.pips); }
+    if (hasBonus('king_guard') && baseRank === 'K') { cp += BAL.king_guard.pips; bPip('king_guard', BAL.king_guard.pips); }
+    if (hasBonus('dark_matter') && card._corrupted) { cp += BAL.dark_matter.pips; bPip('dark_matter', BAL.dark_matter.pips); }
     const _eKey = cardKey(card.rank, card.suit);
     const _pp = permPips[_eKey] || 0;
     cp += _pp;
@@ -4739,7 +4935,7 @@ function calcScore(handName, cells, contrib = null) {
     const _xp = permXPips[_eKey] || 1;
     if (_xp !== 1) { const _preXp = cp; cp *= _xp; bPip('sapling', cp - _preXp); }
     // Row/col triple pips — applies after all other pip bonuses
-    if (cellHasRowColBonus(r, c, 'rowcol_triple_pips')) cp *= 3;
+    if (cellHasRowColBonus(r, c, 'rowcol_triple_pips')) cp *= BAL.rowcol_triple_pips.pip_mult;
     // Retrigger: certain conditions score this card's pips an extra time
     let _retrig = 1;
     const _r2 = hasBonus('twos_retrigger') && baseRank === '2';
@@ -4759,37 +4955,37 @@ function calcScore(handName, cells, contrib = null) {
       else if (_re) bPip('sapling', _extra);
     }
     totalPips += cp;
-    if (hasBonus('knave_power') && baseRank === 'J') { const _b = totalPips; totalPips *= 2; bPip('knave_power', totalPips - _b); }
+    if (hasBonus('knave_power') && baseRank === 'J') { const _b = totalPips; totalPips *= BAL.knave_power.run_mult; bPip('knave_power', totalPips - _b); }
   });
 
   // Hidden pair bonus
   const rankCounts = {};
   cards.forEach(c => rankCounts[c.rank] = (rankCounts[c.rank]||0)+1);
   const hasPairInHand = Object.values(rankCounts).some(v => v >= 2);
-  if (hasBonus('hidden_pair') && hasPairInHand) { totalPips += 12; bPip('hidden_pair', 12); }
-  if (hasBonus('twin_sprouts') && handName === 'Pair')   { totalPips += 15; bPip('twin_sprouts', 15); }
-  if (hasBonus('worn_path')    && handName === 'Straight'){ totalPips += 20; bPip('worn_path', 20); }
-  if (hasBonus('enriched')     && handName === 'Flush')   { totalPips += 15; bPip('enriched', 15); }
+  if (hasBonus('hidden_pair') && hasPairInHand) { totalPips += BAL.hidden_pair.pips; bPip('hidden_pair', BAL.hidden_pair.pips); }
+  if (hasBonus('twin_sprouts') && handName === 'Pair')   { totalPips += BAL.twin_sprouts.pips; bPip('twin_sprouts', BAL.twin_sprouts.pips); }
+  if (hasBonus('worn_path')    && handName === 'Straight'){ totalPips += BAL.worn_path.pips; bPip('worn_path', BAL.worn_path.pips); }
+  if (hasBonus('enriched')     && handName === 'Flush')   { totalPips += BAL.enriched.pips; bPip('enriched', BAL.enriched.pips); }
 
   // Early bird / night owl
-  if (hasBonus('early_bird') && roundSeconds > 50) { totalPips += 20; bPip('early_bird', 20); }
+  if (hasBonus('early_bird') && roundSeconds > 50) { totalPips += BAL.early_bird.pips; bPip('early_bird', BAL.early_bird.pips); }
 
   // Kindling streak
-  if (hasBonus('kindling') && streakCount > 0) { const _a = 4 * streakCount; totalPips += _a; bPip('kindling', _a); }
+  if (hasBonus('kindling') && streakCount > 0) { const _a = BAL.kindling.pips_per_streak * streakCount; totalPips += _a; bPip('kindling', _a); }
 
   // Clubs: neutral by default; +10 pips each with Hard Labour BC
   const clubCount = cards.filter(c => c.suit === '♣' || (c.combined && c.suit2 === '♣')).length;
-  if (hasBonus('club_double') && clubCount > 0) { totalPips += clubCount * 10; bPip('club_double', clubCount * 10); }
+  if (hasBonus('club_double') && clubCount > 0) { totalPips += clubCount * BAL.club_double.club_pips; bPip('club_double', clubCount * BAL.club_double.club_pips); }
 
   // Spade Flood: all-Spade hand of 4+ adds roundSeconds x 2 as pips
   const allSpadesCalc = cards.length >= 4 && cards.every(c => c.suit === '♠' || (c.combined && c.suit2 === '♠'));
-  if (hasBonus('spade_flood') && allSpadesCalc) { const _a = roundSeconds * 2; totalPips += _a; bPip('spade_flood', _a); }
+  if (hasBonus('spade_flood') && allSpadesCalc) { const _a = roundSeconds * BAL.spade_flood.time_mult; totalPips += _a; bPip('spade_flood', _a); }
 
   // Sands of Time: remaining round seconds / 2 as bonus pips
-  if (hasBonus('sands_of_time')) { const _a = Math.floor(roundSeconds / 2); totalPips += _a; bPip('sands_of_time', _a); }
+  if (hasBonus('sands_of_time')) { const _a = Math.floor(roundSeconds / BAL.sands_of_time.divisor); totalPips += _a; bPip('sands_of_time', _a); }
 
   // Compost: +3 pips per card discarded this round
-  if (hasBonus('discard_pips')) { const _a = cardsDiscardedRound * 3; totalPips += _a; bPip('discard_pips', _a); }
+  if (hasBonus('discard_pips')) { const _a = cardsDiscardedRound * BAL.discard_pips.pips_per_discard; totalPips += _a; bPip('discard_pips', _a); }
 
   // Penny Saved: accumulated bonus pips from discarded 5s
   if (hasBonus('fives_discard')) { totalPips += bonusMult_fives; bPip('fives_discard', bonusMult_fives); }
@@ -4802,39 +4998,39 @@ function calcScore(handName, cells, contrib = null) {
   let mult = base.mult + jokerAmplifierMult;
 
   if (risingTideBonus > 0) { mult += risingTideBonus; bMult('rising_tide', risingTideBonus); }
-  if (hasBonus('steady_pace')) { mult += 1; bMult('steady_pace', 1); }
-  if (hasBonus('momentum') && (Date.now() - lastHandTime) < 5000) { mult += 2; bMult('momentum', 2); }
-  if (hasBonus('night_owl') && roundSeconds < 10) { mult += 3; bMult('night_owl', 3); }
-  if (hasBonus('wildfire') && streakCount >= 2) { mult += 2; bMult('wildfire', 2); }
+  if (hasBonus('steady_pace')) { mult += BAL.steady_pace.mult; bMult('steady_pace', BAL.steady_pace.mult); }
+  if (hasBonus('momentum') && (Date.now() - lastHandTime) < 5000) { mult += BAL.momentum.mult; bMult('momentum', BAL.momentum.mult); }
+  if (hasBonus('night_owl') && roundSeconds < 10) { mult += BAL.night_owl.mult; bMult('night_owl', BAL.night_owl.mult); }
+  if (hasBonus('wildfire') && streakCount >= 2) { mult += BAL.wildfire.mult; bMult('wildfire', BAL.wildfire.mult); }
   if (hasBonus('still_water') && lastSwapTime === 0) {
     // No swap used this round — +5 mult per 10s elapsed in round
     const elapsed = ROUND_DURATION - roundSeconds;
-    const _a = 5 * Math.floor(elapsed / 10);
+    const _a = BAL.still_water.mult_per_interval * Math.floor(elapsed / 10);
     mult += _a; bMult('still_water', _a);
   } else if (hasBonus('still_water') && lastSwapTime > 0) {
     // Swap was used — count seconds since last swap
     const secsSinceSwap = Math.floor((Date.now() - lastSwapTime) / 1000);
-    const _a = 5 * Math.floor(secsSinceSwap / 10);
+    const _a = BAL.still_water.mult_per_interval * Math.floor(secsSinceSwap / 10);
     mult += _a; bMult('still_water', _a);
   }
 
   // Hand-specific mult
   if (handName === 'Run of 3') {
-    if (hasBonus('deep_roots')) { mult += 2; bMult('deep_roots', 2); }
-    if (hasBonus('overgrowth')) { totalPips += 20; bPip('overgrowth', 20); }
+    if (hasBonus('deep_roots')) { mult += BAL.deep_roots.mult; bMult('deep_roots', BAL.deep_roots.mult); }
+    if (hasBonus('overgrowth')) { totalPips += BAL.overgrowth.pips; bPip('overgrowth', BAL.overgrowth.pips); }
   }
   if (handName === 'Three of a Kind') {
-    if (hasBonus('kindred')) { mult += 1; bMult('kindred', 1); }
+    if (hasBonus('kindred')) { mult += BAL.kindred.mult; bMult('kindred', BAL.kindred.mult); }
   }
   const isRun = ['Run of 3','Run of 4','Straight','Straight Flush'].includes(handName);
-  if (hasBonus('long_road') && isRun) { const _a = 2 * cells.length; mult += _a; bMult('long_road', _a); }
+  if (hasBonus('long_road') && isRun) { const _a = BAL.long_road.mult_per_card * cells.length; mult += _a; bMult('long_road', _a); }
   if (handName === 'Flush') {
-    if (hasBonus('tidal_force')) { mult += 4; bMult('tidal_force', 4); }
+    if (hasBonus('tidal_force')) { mult += BAL.tidal_force.mult; bMult('tidal_force', BAL.tidal_force.mult); }
   }
   if (handName === 'Four of a Kind') {
-    if (hasBonus('rare_bloom')) { mult += 12; bMult('rare_bloom', 12); }
+    if (hasBonus('rare_bloom')) { mult += BAL.rare_bloom.mult; bMult('rare_bloom', BAL.rare_bloom.mult); }
   }
-  if (handName === 'Two Pair' && hasBonus('two_pair_mult')) { mult += 5; bMult('two_pair_mult', 5); }
+  if (handName === 'Two Pair' && hasBonus('two_pair_mult')) { mult += BAL.two_pair_mult.mult; bMult('two_pair_mult', BAL.two_pair_mult.mult); }
 
   // Row/col +2 mult per affected card
   cells.forEach(([r, c]) => {
@@ -4850,10 +5046,10 @@ function calcScore(handName, cells, contrib = null) {
   }
 
   // Shape: snake — +2 mult per card
-  if (hasBonus('shape_snake') && isSnake(cells)) { const _a = cells.length * 2; mult += _a; bMult('shape_snake', _a); }
+  if (hasBonus('shape_snake') && isSnake(cells)) { const _a = cells.length * BAL.shape_snake.mult_per_card; mult += _a; bMult('shape_snake', _a); }
 
   // Batch C — positional conditions
-  if (hasBonus('edge_pips') && isOnEdge(cells)) { const _a = cells.length * 15; totalPips += _a; bPip('edge_pips', _a); }
+  if (hasBonus('edge_pips') && isOnEdge(cells)) { const _a = cells.length * BAL.edge_pips.pips_per_card; totalPips += _a; bPip('edge_pips', _a); }
   const { rowSpan, colSpan } = spanStats(cells);
   if (hasBonus('wide_span_mult')) {
     if (colSpan >= 4) mult += 24;
@@ -4878,7 +5074,7 @@ function calcScore(handName, cells, contrib = null) {
 
   // Hearts: neutral by default; +1 mult each with Devoted BC
   const heartCount = cards.filter(c => c.suit === '♥' || (c.combined && c.suit2 === '♥')).length;
-  if (hasBonus('heart_double') && heartCount > 0) { mult += heartCount * 1; bMult('heart_double', heartCount * 1); }
+  if (hasBonus('heart_double') && heartCount > 0) { mult += heartCount * BAL.heart_double.heart_mult; bMult('heart_double', heartCount * BAL.heart_double.heart_mult); }
 
   // Exalt / Corrupt — pip & mult contributions (coins & time applied in playHand)
   const _ec = exaltCorruptTotals(cards);
@@ -4887,7 +5083,7 @@ function calcScore(handName, cells, contrib = null) {
   if (mult < 1) mult = 1; // corruption can't drop mult below 1
 
   // Trinity Run: +9 mult for runs with 3/6/9
-  if (hasBonus('threes_run') && hasTrinityRank) { mult += 9; bMult('threes_run', 9); }
+  if (hasBonus('threes_run') && hasTrinityRank) { mult += BAL.threes_run.mult; bMult('threes_run', BAL.threes_run.mult); }
 
   // Cloud Nine: accumulated mult from forgotten 9s
   if (hasBonus('nines_mult')) { mult += bonusMult_nines; bMult('nines_mult', bonusMult_nines); }
@@ -4900,44 +5096,44 @@ function calcScore(handName, cells, contrib = null) {
   const _aceCount   = cards.filter(c => c.rank === 'A').length;
   const _jackCount2 = cards.filter(c => c.rank === 'J').length;
   const _threeCount = cards.filter(c => c.rank === '3').length;
-  if (hasBonus('wild_heart') && _aceCount)   { const _a = _aceCount * 2;    mult += _a; bMult('wild_heart', _a); }
-  if (hasBonus('jack_mult')  && _jackCount2) { const _a = _jackCount2 * 2;  mult += _a; bMult('jack_mult', _a); }
-  if (hasBonus('lucky_three') && _threeCount){ mult += 2; bMult('lucky_three', 2); }
+  if (hasBonus('wild_heart') && _aceCount)   { const _a = _aceCount * BAL.wild_heart.mult_per_ace;    mult += _a; bMult('wild_heart', _a); }
+  if (hasBonus('jack_mult')  && _jackCount2) { const _a = _jackCount2 * BAL.jack_mult.mult_per_jack;  mult += _a; bMult('jack_mult', _a); }
+  if (hasBonus('lucky_three') && _threeCount){ mult += BAL.lucky_three.mult; bMult('lucky_three', BAL.lucky_three.mult); }
   // Hand-size
-  if (hasBonus('light_touch') && cells.length === 2) { mult += 5; bMult('light_touch', 5); }
+  if (hasBonus('light_touch') && cells.length === 2) { mult += BAL.light_touch.mult; bMult('light_touch', BAL.light_touch.mult); }
   // Timing mult
-  if (hasBonus('closing_time') && roundSeconds <= 15) { mult += 5; bMult('closing_time', 5); }
-  if (hasBonus('patience_reward') && lastHandTime > 0 && (Date.now() - lastHandTime) > 15000) { mult += 3; bMult('patience_reward', 3); }
-  if (hasBonus('first_play') && handsPlayedRound === 0) { mult += 2; bMult('first_play', 2); }
+  if (hasBonus('closing_time') && roundSeconds <= 15) { mult += BAL.closing_time.mult; bMult('closing_time', BAL.closing_time.mult); }
+  if (hasBonus('patience_reward') && lastHandTime > 0 && (Date.now() - lastHandTime) > 15000) { mult += BAL.patience_reward.mult; bMult('patience_reward', BAL.patience_reward.mult); }
+  if (hasBonus('first_play') && handsPlayedRound === 0) { mult += BAL.first_play.mult; bMult('first_play', BAL.first_play.mult); }
   // Streak
   if (hasBonus('hot_streak') && streakCount >= 4) { const _a = streakCount - 3; mult += _a; bMult('hot_streak', _a); }
   // Suit conditions
   const _allRed   = cards.every(c => c.suit === '♥' || c.suit === '♦');
   const _allBlack = cards.every(c => c.suit === '♣' || c.suit === '♠');
-  if (hasBonus('monochrome') && (_allRed || _allBlack)) { mult += 3; bMult('monochrome', 3); }
+  if (hasBonus('monochrome') && (_allRed || _allBlack)) { mult += BAL.monochrome.mult; bMult('monochrome', BAL.monochrome.mult); }
   const _suitSet = new Set(cards.map(c => c.suit));
-  if (hasBonus('full_color') && _suitSet.size === 4) { mult += 4; bMult('full_color', 4); }
-  if (hasBonus('balanced_diet') && _suitSet.size === 2) { mult += 2; bMult('balanced_diet', 2); }
+  if (hasBonus('full_color') && _suitSet.size === 4) { mult += BAL.full_color.mult; bMult('full_color', BAL.full_color.mult); }
+  if (hasBonus('balanced_diet') && _suitSet.size === 2) { mult += BAL.balanced_diet.mult; bMult('balanced_diet', BAL.balanced_diet.mult); }
   // Rank diversity
   const _rankSet = new Set(cards.map(c => c.rank));
-  if (hasBonus('number_crunch') && _rankSet.size >= 4) { mult += 2; bMult('number_crunch', 2); }
+  if (hasBonus('number_crunch') && _rankSet.size >= 4) { mult += BAL.number_crunch.mult; bMult('number_crunch', BAL.number_crunch.mult); }
   // Same-kind bonus
   const _rankCounts2 = {};
   cards.forEach(c => _rankCounts2[c.rank] = (_rankCounts2[c.rank]||0)+1);
   const _maxCount = Math.max(...Object.values(_rankCounts2));
-  if (hasBonus('same_kind') && _maxCount >= 3) { const _a = _maxCount * 2; mult += _a; bMult('same_kind', _a); }
+  if (hasBonus('same_kind') && _maxCount >= 3) { const _a = _maxCount * BAL.same_kind.mult_per_match; mult += _a; bMult('same_kind', _a); }
   // Even/odd rank
   const _rankIsEven = r => ['2','4','6','8','10','Q'].includes(r);
   const _rankIsOdd  = r => ['A','3','5','7','9','J','K'].includes(r);
-  if (hasBonus('even_score') && cards.every(c => _rankIsEven(c.rank))) { mult += 3; bMult('even_score', 3); }
-  if (hasBonus('odd_squad')  && cards.every(c => _rankIsOdd(c.rank)))  { mult += 3; bMult('odd_squad', 3); }
+  if (hasBonus('even_score') && cards.every(c => _rankIsEven(c.rank))) { mult += BAL.even_score.mult; bMult('even_score', BAL.even_score.mult); }
+  if (hasBonus('odd_squad')  && cards.every(c => _rankIsOdd(c.rank)))  { mult += BAL.odd_squad.mult; bMult('odd_squad', BAL.odd_squad.mult); }
   // Position: column/row
   const _allSameCol = cells.every(([, cc]) => cc === cells[0][1]);
   const _allSameRow = cells.every(([rr]) => rr === cells[0][0]);
-  if (hasBonus('column_rush') && _allSameCol) { const _a = cells.length * 2; mult += _a; bMult('column_rush', _a); }
-  if (hasBonus('row_power')   && _allSameRow) { const _a = cells.length * 2; mult += _a; bMult('row_power', _a); }
+  if (hasBonus('column_rush') && _allSameCol) { const _a = cells.length * BAL.column_rush.mult_per_card; mult += _a; bMult('column_rush', _a); }
+  if (hasBonus('row_power')   && _allSameRow) { const _a = cells.length * BAL.row_power.mult_per_card; mult += _a; bMult('row_power', _a); }
   // Level scaling
-  if (hasBonus('veteran_bonus')) { const _a = (level - 1) * 2; totalPips += _a; bPip('veteran_bonus', _a); }
+  if (hasBonus('veteran_bonus')) { const _a = (level - 1) * BAL.veteran_bonus.pips_per_level; totalPips += _a; bPip('veteran_bonus', _a); }
   // Accumulating scalers
   if (hasBonus('compound_mult') && bonusMult_compound > 0) { mult += bonusMult_compound; bMult('compound_mult', bonusMult_compound); }
   if (hasBonus('prolific') && bonusPips_prolific > 0) { totalPips += bonusPips_prolific; bPip('prolific', bonusPips_prolific); }
@@ -4946,18 +5142,18 @@ function calcScore(handName, cells, contrib = null) {
   const _hasPairOfHighCards = cards.some(c => ['10','J','Q','K'].includes(c.rank) && cards.filter(x => x.rank === c.rank).length >= 2);
   if (hasBonus('high_pair') && _hasPairOfHighCards) {
     const _hpCount = Object.entries(_rankCounts2).filter(([r,n]) => ['10','J','Q','K'].includes(r) && n >= 2).reduce((s,[,n]) => s+n, 0);
-    totalPips += _hpCount * 5; bPip('high_pair', _hpCount * 5);
+    totalPips += _hpCount * BAL.high_pair.pips_per_card; bPip('high_pair', _hpCount * BAL.high_pair.pips_per_card);
   }
   // Hand type: specific pip bonuses
-  if (hasBonus('triple_threat') && handName === 'Full House') { totalPips += 20; bPip('triple_threat', 20); }
-  if (hasBonus('pair_pips') && handName === 'Two Pair') { const _a = cells.length * 3; totalPips += _a; bPip('pair_pips', _a); }
-  if (hasBonus('heavy_hand') && cells.length === 5) { const _a = cells.length * 6; totalPips += _a; bPip('heavy_hand', _a); }
+  if (hasBonus('triple_threat') && handName === 'Full House') { totalPips += BAL.triple_threat.pips; bPip('triple_threat', BAL.triple_threat.pips); }
+  if (hasBonus('pair_pips') && handName === 'Two Pair') { const _a = cells.length * BAL.pair_pips.pips_per_card; totalPips += _a; bPip('pair_pips', _a); }
+  if (hasBonus('heavy_hand') && cells.length === 5) { const _a = cells.length * BAL.heavy_hand.pips_per_card; totalPips += _a; bPip('heavy_hand', _a); }
   // Quick draw timing pip
-  if (hasBonus('quick_draw') && lastHandTime > 0 && (Date.now() - lastHandTime) < 3000) { const _a = cells.length * 3; totalPips += _a; bPip('quick_draw', _a); }
+  if (hasBonus('quick_draw') && lastHandTime > 0 && (Date.now() - lastHandTime) < 3000) { const _a = cells.length * BAL.quick_draw.pips_per_card; totalPips += _a; bPip('quick_draw', _a); }
   // Escalation: +1 mult per hand beyond 5th
   if (hasBonus('escalation') && handsPlayedRound >= 5) { const _a = handsPlayedRound - 5; mult += _a; bMult('escalation', _a); }
   // Combo score: +2 mult per distinct hand type played this round
-  if (hasBonus('combo_score') && handTypesRound.size > 0) { const _a = handTypesRound.size * 2; mult += _a; bMult('combo_score', _a); }
+  if (hasBonus('combo_score') && handTypesRound.size > 0) { const _a = handTypesRound.size * BAL.combo_score.mult_per_type; mult += _a; bMult('combo_score', _a); }
 
   // 3. Base score
   // Capture pre-focus mult so the score dance can show the focus beat separately
@@ -4966,7 +5162,7 @@ function calcScore(handName, cells, contrib = null) {
   const fMult = focusMultiplier();
   // Flow State: +10 pips per card scored while focus mult >= 1.5
   if (hasBonus('flow_state') && fMult >= 1.5) {
-    const _a = 10 * cards.length; totalPips += _a; bPip('flow_state', _a);
+    const _a = BAL.flow_state.pips_per_card * cards.length; totalPips += _a; bPip('flow_state', _a);
   }
   if (fMult > 1) {
     mult = Math.round(mult * fMult * 10) / 10;
@@ -4980,41 +5176,41 @@ function calcScore(handName, cells, contrib = null) {
   let s = totalPips * mult;
 
   // 4. x score multipliers
-  if (hasBonus('last_stand') && score < roundGoal) s *= 2;
-  if (hasBonus('echo_hand') && streakCount >= 2) s *= 1.5;
-  if (handName === 'Full House' && hasBonus('full_house_streak') && fullHouseThisRound > 0) s *= Math.pow(1.5, fullHouseThisRound);
+  if (hasBonus('last_stand') && score < roundGoal) s *= BAL.last_stand.score_mult;
+  if (hasBonus('echo_hand') && streakCount >= 2) s *= BAL.echo_hand.score_mult;
+  if (handName === 'Full House' && hasBonus('full_house_streak') && fullHouseThisRound > 0) s *= Math.pow(BAL.full_house_streak.score_base, fullHouseThisRound);
   // Blackjack: raw face values total exactly 21
   if (hasBonus('blackjack_bonus')) {
     const faceTotal = cards.reduce((sum, c) => {
       const v = c.rank === 'A' ? 11 : ['J','Q','K'].includes(c.rank) ? 10 : parseInt(c.rank);
       return sum + (isNaN(v) ? 0 : v);
     }, 0);
-    if (faceTotal === 21) s *= 3;
+    if (faceTotal === 21) s *= BAL.blackjack_bonus.score_mult;
   }
-  if (handName === 'Run of 3' && hasBonus('ancient_grove')) s *= 2;
-  if (handName === 'Three of a Kind' && hasBonus('trinity')) s *= 2;
+  if (handName === 'Run of 3' && hasBonus('ancient_grove')) s *= BAL.ancient_grove.score_mult;
+  if (handName === 'Three of a Kind' && hasBonus('trinity')) s *= BAL.trinity.score_mult;
   if (hasBonus('double_bloom')) {
     const ranks = cards.map(c => c.rank);
     const hasPair = ranks.some(r => ranks.filter(x => x === r).length >= 2);
-    if (hasPair) s *= 2;
+    if (hasPair) s *= BAL.double_bloom.score_mult;
   }
-  if (handName === 'Straight' && hasBonus('river_run')) s *= 2;
+  if (handName === 'Straight' && hasBonus('river_run')) s *= BAL.river_run.score_mult;
   if (['Run of 4','Straight','Straight Flush'].includes(handName) && hasBonus('torrent')) {
-    s *= (handName === 'Run of 4') ? 2 : 4;
+    s *= (handName === 'Run of 4') ? BAL.torrent.run4_mult : BAL.torrent.big_mult;
   }
-  if (handName === 'Flush' && hasBonus('deluge')) s *= 2;
-  if (handName === 'Straight Flush' && hasBonus('perfect_storm')) s *= 5;
-  if (handName === 'Four of a Kind' && hasBonus('extinction')) s *= 2;
-  if (hasBonus('lucky_sevens') && cards.some(c=>c.rank==='7')) s *= 2;
-  if (hasBonus('ninesong') && totalPips % 9 === 0) s *= 3;
-  if (pipeTimerPaused && hasBonus('frozen_moment')) s *= 2;
-  if (hasBonus('royal_trio') && cards.some(c=>c.rank==='K') && cards.some(c=>c.rank==='Q') && cards.some(c=>c.rank==='J')) s *= 2;
-  if (hasBonus('prime_time') && cards.every(c => ['2','3','5','7'].includes(c.rank))) s *= 2;
+  if (handName === 'Flush' && hasBonus('deluge')) s *= BAL.deluge.score_mult;
+  if (handName === 'Straight Flush' && hasBonus('perfect_storm')) s *= BAL.perfect_storm.score_mult;
+  if (handName === 'Four of a Kind' && hasBonus('extinction')) s *= BAL.extinction.score_mult;
+  if (hasBonus('lucky_sevens') && cards.some(c=>c.rank==='7')) s *= BAL.lucky_sevens.score_mult;
+  if (hasBonus('ninesong') && totalPips % 9 === 0) s *= BAL.ninesong.score_mult;
+  if (pipeTimerPaused && hasBonus('frozen_moment')) s *= BAL.frozen_moment.score_mult;
+  if (hasBonus('royal_trio') && cards.some(c=>c.rank==='K') && cards.some(c=>c.rank==='Q') && cards.some(c=>c.rank==='J')) s *= BAL.royal_trio.score_mult;
+  if (hasBonus('prime_time') && cards.every(c => ['2','3','5','7'].includes(c.rank))) s *= BAL.prime_time.score_mult;
   // Shape bonuses
-  if (hasBonus('shape_square') && isSquare(cells)) s *= 4;
-  if (hasBonus('shape_cross')  && isCross(cells))  s *= 3;
-  if (hasBonus('two_corners')  && cornerCells(cells).length >= 2) s *= 4;
-  if (hasBonus('correct_run') && isRun && canBeOrderedRun(cells)) s *= 2;
+  if (hasBonus('shape_square') && isSquare(cells)) s *= BAL.shape_square.score_mult;
+  if (hasBonus('shape_cross')  && isCross(cells))  s *= BAL.shape_cross.score_mult;
+  if (hasBonus('two_corners')  && cornerCells(cells).length >= 2) s *= BAL.two_corners.score_mult;
+  if (hasBonus('correct_run') && isRun && canBeOrderedRun(cells)) s *= BAL.correct_run.score_mult;
   if (hasBonus('shape_snake')  && isSnake(cells))  { /* mult added above */ }
 
   if (hasBonusCard) s *= 2;
@@ -5023,7 +5219,7 @@ function calcScore(handName, cells, contrib = null) {
   if (contrib !== null) {
     if (_cp) Object.entries(_cp).forEach(([id, d]) => { if (d > 0) contrib.push({type:'pip',source:'bc',id,delta:d}); });
     if (_cm) Object.entries(_cm).forEach(([id, d]) => { if (d > 0) contrib.push({type:'mult',source:'bc',id,delta:Math.round(d*10)/10}); });
-    if (clubCount > 0) contrib.push({type:'pip',source:'suit',id:'♣',delta:clubCount*(hasBonus('club_double')?10:5)});
+    if (clubCount > 0) contrib.push({type:'pip',source:'suit',id:'♣',delta:clubCount*(hasBonus('club_double')?BAL.club_double.club_pips:5)});
     if (_ec.pips > 0) contrib.push({type:'pip',source:'exalt',id:'_exalt',delta:_ec.pips});
     if (_ec.mult > 0) contrib.push({type:'mult',source:'exalt',id:'_exalt',delta:Math.round(_ec.mult*10)/10});
   }
