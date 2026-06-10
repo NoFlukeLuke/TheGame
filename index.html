@@ -3129,7 +3129,7 @@
 </div>
 
 <script>
-const BUILD = '2026-06-10 · r20';
+const BUILD = '2026-06-10 · r21';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -3914,6 +3914,25 @@ const DESC_TEMPLATES = {
   time_bank: '+{seconds} seconds at the start of every round.',
   inheritance: 'Start each round with +{coins} coins.',
   lucky_seven: 'Every {interval_hands}th hand played gives +{swaps} swap.',
+  // ── wired with light rewording so each number is a token ──
+  torrent: 'Runs longer than 3 multiply score — ×{run4_mult} for Run of 4, ×{big_mult} for Straight or Straight Flush',
+  early_bird: 'Hands in first 10s score +{pips} pips',
+  low_tide: 'Cards below 6 score +{pips} pips',
+  deep_breath: 'Run of 3 pauses round timer {pause_seconds}s',
+  momentum: 'Consecutive hand within 5s scores +{mult} mult',
+  knave_power: 'Each Jack in hand multiplies running pips ×{run_mult} when scored',
+  humble_roots: 'Cards below 6 contribute {pip_mult}× pips',
+  long_pause: '4-card hands pause the round timer {pause_seconds}s',
+  threes_run: 'Runs containing a 3, 6, or 9 score +{mult} mult',
+  fours_perm: '4-card hands permanently give the 4th card +{pips} pips',
+  fives_discard: 'Each 5 discarded or played permanently adds +{pips_per_five} pips to this bonus',
+  sixes_perm: 'Every {interval}th card scored gains a random +{roll_min}–{roll_max} mult permanently',
+  nines_mult: 'Each 9 scored is forgotten and permanently adds +{mult_per_nine} mult to this bonus',
+  spade_flood: '4 or 5-card all-♠ hands add {time_mult}× the remaining round time as pips',
+  rowcol_triple_pips: 'Cards scored in a specific row or column contribute {pip_mult}× pips',
+  idol: 'Finish the round with this on your board to earn {interest_mult}× interest. (Once)',
+  steady_hand: 'Swaps no longer count against the swap limit, but cost {swap_seconds}s each.',
+  hoarder: 'Discards no longer count against the discard limit, but cost {discard_seconds_per_card}s per card.',
 };
 
 // Fill {param} tokens in a template from a params object.

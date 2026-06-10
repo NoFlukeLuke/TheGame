@@ -67,12 +67,13 @@ plumbing). Those have a blank `params_json` and a `notes` of
 "structural — no tunable value". Changing those means changing logic, not a
 number — ask and I'll do it.
 
-`description` text **auto-syncs** to the numbers for most entities. Each has a
-template in `DESC_TEMPLATES` (in `index.html`) with `{param}` tokens filled from
-`BAL` at load — so changing Deep Roots from +1 to +3 mult updates its in-game
-tooltip automatically. A handful whose wording uses word-numbers ("triple",
-"doubles", "6× total") keep hand-written text; those are the same ids skipped in
-`DESC_TEMPLATES`, and you'd edit their wording by hand if you retune them.
+`description` text **auto-syncs** to the numbers. Each has a template in
+`DESC_TEMPLATES` (in `index.html`) with `{param}` tokens filled from `BAL` at
+load — so changing Deep Roots from +1 to +3 mult updates its in-game tooltip
+automatically. Only two params-bearing bonuses are still hand-written, because
+their displayed number is *derived* and can't be a direct token: **Before the
+Tide** ("6×" = `extra_mult` 5 + 1) and **Head Start** ("10%" = `goal_fraction`
+0.1). If you retune those, edit their `desc` wording by hand too.
 
 ## System rows
 

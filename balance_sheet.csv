@@ -45,9 +45,9 @@ Bonus Card,carpe_diem,Carpe Diem,,legendary,9,time,always / passive,,,,,,,,1,,,,
 Bonus Card,lucky_sevens,Lucky Sevens,"{""score_mult"":2}",legendary,9,score-multiplier,card-specific,,,,,,1,,1,,,,,,,,7s ×2 score,
 Bonus Card,ninesong,Ninesong,"{""score_mult"":3}",rare,6,score-multiplier,always / passive,,,,,,,,,,,,,,,,"If pip total is multiple of 9, ×3 score",
 Bonus Card,momentum,Momentum,"{""mult"":2,""window_ms"":5000}",rare,6,mult,card-specific,,,,,,,,1,,,,,,,,Consecutive hand within 5s scores +2 mult,
-Bonus Card,knave_power,Knave Power,"{""run_mult"":2}",rare,6,pips,card-specific,,,,,,1,,,,,,,,,,Each Jack in hand doubles running pips when scored,
+Bonus Card,knave_power,Knave Power,"{""run_mult"":2}",rare,6,pips,card-specific,,,,,,1,,,,,,,,,,Each Jack in hand multiplies running pips ×2 when scored,
 Bonus Card,face_value,Face Value,"{""face_pips"":15}",common,3,pips,card-specific,,,,,,,,,,,,,,,,Face cards (J/Q/K) are worth 15 pips,
-Bonus Card,humble_roots,Humble Roots,"{""pip_mult"":3}",common,3,pips,always / passive,,,,,,,,,,,,,,,,Cards below 6 contribute triple pips,
+Bonus Card,humble_roots,Humble Roots,"{""pip_mult"":3}",common,3,pips,always / passive,,,,,,,,,,,,,,,,Cards below 6 contribute 3× pips,
 Bonus Card,echo_hand,Echo Hand,"{""score_mult"":1.5}",rare,6,score-multiplier,spatial,,,,,1,,,,,,,,,,,Playing the same hand type twice in a row scores ×1.5,
 Bonus Card,rising_tide,Rising Tide,"{""mult_per_level"":1}",common,3,mult,always / passive,,,,,,,,,,,,,1,,,Base mult increases by +1 for each level reached,
 Bonus Card,rye_bread,Rye Bread,"{""score_mult"":2}",legendary,9,score-multiplier,hand-type,,,1,,,,,,,,,,,,,Sandwich ×2 score,
@@ -69,7 +69,7 @@ Bonus Card,kings_downgrade,King's Toll,,legendary,9,utility,spatial,,,,,1,1,,,,,
 Bonus Card,aces_absorb,Ace Absorb,,legendary,9,utility,spatial,,,,,1,1,,,,,1,,1,,scaling value,"When an Ace scores, one random adjacent card is forgotten and its bonuses added to the Ace (once per hand)",structural — no tunable value
 Bonus Card,swap_pause,Still Waters,,rare,6,resource,on-swap,,,,,,,,1,,1,,,,,time resource,Each swap pauses the round timer 4s,structural — no tunable value
 Bonus Card,discard_pips,Compost,"{""pips_per_discard"":3}",common,3,pips,on-discard,,,,,,,,,,1,,,,,pips discard,+3 pips per card discarded this round,
-Bonus Card,spade_flood,Spade Flood,"{""time_mult"":2}",legendary,9,pips,suit-specific,,,,1,,,1,1,,,,,,,suit pips time,4 or 5-card all-♠ hands add twice the remaining round time as pips,
+Bonus Card,spade_flood,Spade Flood,"{""time_mult"":2}",legendary,9,pips,suit-specific,,,,1,,,1,1,,,,,,,suit pips time,4 or 5-card all-♠ hands add 2× the remaining round time as pips,
 Bonus Card,heart_double,Devoted,"{""heart_mult"":1}",rare,6,mult,suit-specific,,,,,,,1,,,,,,,,suit mult,Each ♥ scored adds +1 mult instead of +0.5,
 Bonus Card,spade_double,Sharp Edge,"{""spade_seconds"":2}",rare,6,time,suit-specific,,,,,,,1,1,,,,,,,suit time,Each ♠ scored adds +2s instead of +1s,
 Bonus Card,club_double,Hard Labour,"{""club_pips"":10}",rare,6,pips,suit-specific,,,,,,,1,,,,,,,,suit pips,Each ♣ scored adds +10 pips instead of +5,
@@ -79,7 +79,7 @@ Bonus Card,two_pair_mult,Double Dutch,"{""mult"":10}",common,3,mult,card-specifi
 Bonus Card,high_card_mult,Lone Wolf,"{""mult_per_level"":2}",common,3,score-multiplier,hand-type,,,1,,,,,,,,,,,,mult hand highcard level,High Card scores +(level × 2) mult,
 Bonus Card,high_card_pips,Underdog,,rare,6,pips,hand-type,,,1,,,,,,,,,,,,pips hand highcard level,High Card: card pips × level,structural — no tunable value
 Bonus Card,blackjack_bonus,Twenty-One,"{""score_mult"":3,""target"":21}",legendary,9,score-multiplier,hand-type,,,1,1,,1,,,,,,,,,score hand blackjack value,"If the face values of your cards total exactly 21, score ×3",
-Bonus Card,rowcol_triple_pips,Triple Pips,"{""pip_mult"":3}",rare,6,pips,spatial,,,,,1,,,,,,,,,,pips position,Cards scored in a specific row or column contribute triple pips,
+Bonus Card,rowcol_triple_pips,Triple Pips,"{""pip_mult"":3}",rare,6,pips,spatial,,,,,1,,,,,,,,,,pips position,Cards scored in a specific row or column contribute 3× pips,
 Bonus Card,rowcol_mult,Power Line,"{""mult_per_card"":2}",rare,6,mult,spatial,,,,,1,,,,,,,,,,mult position,Cards scored in a specific row or column each add +2 mult,
 Bonus Card,rowcol_retrigger,Echo Line,,rare,6,retrigger,spatial,,,,,1,,,,,,,,,1,retrigger position,Cards scored in a specific row or column trigger their effects twice,structural — no tunable value
 Bonus Card,rowcol_perm_double,Ley Line,,legendary,9,score-multiplier,spatial,,,,,1,,,,,,,,1,,pips position scaling,Cards scored at a specific grid intersection permanently double their pips (resets each level),structural — no tunable value
@@ -106,15 +106,15 @@ Joker,warehouse,Warehouse,,rare,6,wildcard,suit-specific,wildcard,infinite,1,,,,
 Joker,good_friend,The Good Friend,,rare,6,exalt/corrupt,spatial,on_play,3,,,1,,,,,,,,,,exalt position,Play it as part of a hand: exalts all adjacent cards. (3 charges),structural — no tunable value
 Joker,not_a_friend,Not a Friend,,rare,6,exalt/corrupt,spatial,on_discard,3,,,1,,,,,1,,,,,corrupt position,Discard it: corrupts all adjacent cards. (3 charges),structural — no tunable value
 Joker,shepherd,Shepherd,,common,3,exalt/corrupt,spatial,on_draw,infinite,,,1,,,,,,,,,,exalt,"When drawn onto the grid, exalts 1 random card.",structural — no tunable value
-Joker,idol,Idol,"{""interest_mult"":3}",rare,6,coins,round_end,round_end,1,,,,,,,1,,,,,,coins,Finish the round with this on your board to earn triple interest. (Once),
+Joker,idol,Idol,"{""interest_mult"":3}",rare,6,coins,round_end,round_end,1,,,,,,,1,,,,,,coins,Finish the round with this on your board to earn 3× interest. (Once),
 Joker,shortcut,Shortcut,,legendary,9,challenge,hand-size,on_play,1,,1,,,,,,,,,,,challenge,Play it in any 4-card hand to instantly complete the active challenge. (Once),structural — no tunable value
 Joker,fight_power,Fight the Power,,legendary,9,boss,spatial,passive,infinite,,,1,,,,,,,,,,boss,"While on the grid, all boss effects are ignored.",structural — no tunable value
 Joker,dazed,Dazed & Confused,,rare,6,resource,spatial,on_swap,infinite,,,1,,,,,1,,,,,grid,"When swapped, reshuffles every card on the grid.",structural — no tunable value
 Joker,pivot,Pivot!,"{""mult"":5}",common,3,mult,on-swap,on_swap,3,,,,,,,,1,,,1,,resource scoring,"When swapped, that swap is free and both swapped cards gain +5 mult permanently. (3 charges)",
 Totem,free_swaps,Free Swaps,,,,resource,on-swap,,persistent,,,,,,,,1,,,,,,Swapping cards costs no time.,structural — no tunable value
 Totem,free_discards,Free Discards,,,,resource,on-discard,,persistent,,,,,,,,1,,,,,,Discarding costs no time.,structural — no tunable value
-Totem,steady_hand,Steady Hand,"{""swap_seconds"":20}",,,resource,on-swap,,persistent,,,,,,,,1,,,,,,"Swaps no longer count against the swap limit, but cost 2× time.",
-Totem,hoarder,Hoarder,"{""discard_seconds_per_card"":6}",,,resource,on-discard,,persistent,,,,,,,,1,,,,,,"Discards no longer count against the discard limit, but cost 2× time.",
+Totem,steady_hand,Steady Hand,"{""swap_seconds"":20}",,,resource,on-swap,,persistent,,,,,,,,1,,,,,,"Swaps no longer count against the swap limit, but cost 20s each.",
+Totem,hoarder,Hoarder,"{""discard_seconds_per_card"":6}",,,resource,on-discard,,persistent,,,,,,,,1,,,,,,"Discards no longer count against the discard limit, but cost 6s per card.",
 Totem,time_bank,Time Bank,"{""seconds"":30}",,,time,time-based,,persistent,,,,,,1,,,,,,,,+30 seconds at the start of every round.,
 Totem,inheritance,Inheritance,"{""coins"":5}",,,coins,time-based,,persistent,,,,,,,1,,,,,,,Start each round with +5 coins.,
 Totem,head_start,Head Start,"{""goal_fraction"":0.1}",,,utility,time-based,,persistent,,,,,,,,,,,,,,Start each round at 10% of the round goal.,
