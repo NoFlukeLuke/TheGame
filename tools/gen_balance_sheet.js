@@ -37,6 +37,19 @@ function extractBAL() {
   return eval('(' + m[1] + ')');
 }
 const BAL = extractBAL();
+
+// Render the same templated descriptions the game shows at runtime, so the
+// sheet's description column matches in-game text.
+let DESC_TEMPLATES = {};
+const dtMatch = html.match(/const DESC_TEMPLATES = (\{[\s\S]*?\n\});/);
+if (dtMatch) DESC_TEMPLATES = eval('(' + dtMatch[1] + ')'); // eslint-disable-line no-eval
+function renderDesc(id, fallback) {
+  if (DESC_TEMPLATES[id] && BAL[id]) {
+    return DESC_TEMPLATES[id].replace(/\{(\w+)\}/g, (m, k) => (k in BAL[id] ? BAL[id][k] : m));
+  }
+  return fallback;
+}
+
 const paramsJson = id => (id in BAL) ? JSON.stringify(BAL[id]) : '';
 const usedBalKeys = new Set();
 function pj(id) { if (id in BAL) usedBalKeys.add(id); return paramsJson(id); }
@@ -136,7 +149,7 @@ BONUS_POOL.forEach(b => {
     'Bonus Card', b.id, b.name, p, b.tier, COST_BY_TIER[b.tier] ?? '',
     classifyBuffType(b.desc, b.tags), classifyTrigger(b.desc, b.tags, null), '', '',
     ...CATEGORIES.map(c => cats[c]),
-    (b.tags || []).join(' '), b.desc, p ? '' : STRUCTURAL,
+    (b.tags || []).join(' '), renderDesc(b.id, b.desc), p ? '' : STRUCTURAL,
   ]);
 });
 
@@ -149,7 +162,7 @@ JOKER_POOL.forEach(j => {
     classifyBuffType(j.desc, j.tags), classifyTrigger(j.desc, j.tags, j.activation),
     j.activation, j.durability,
     ...CATEGORIES.map(c => cats[c]),
-    (j.tags || []).join(' '), j.desc, note,
+    (j.tags || []).join(' '), renderDesc(j.id, j.desc), note,
   ]);
 });
 
@@ -160,7 +173,7 @@ TOTEM_POOL.forEach(t => {
     'Totem', t.id, t.name, p, '', '',
     classifyBuffType(t.desc, t.tags), classifyTrigger(t.desc, t.tags, null), '', 'persistent',
     ...CATEGORIES.map(c => cats[c]),
-    (t.tags || []).join(' '), t.desc, p ? '' : STRUCTURAL,
+    (t.tags || []).join(' '), renderDesc(t.id, t.desc), p ? '' : STRUCTURAL,
   ]);
 });
 

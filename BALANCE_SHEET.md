@@ -4,6 +4,20 @@
 Bonus Cards, Jokers, and Totems — in one place, ready to open in Excel or
 Google Sheets and sort/filter for a balance sweep.
 
+## Where do I actually edit the values?
+
+You edit the **`params_json`** column. Two ways:
+
+1. **Locally (Excel / Numbers / LibreOffice):** open `balance_sheet.csv`, change
+   the number inside e.g. `{"mult":1}`, save as CSV, then run
+   `node tools/apply_balance_sheet.js`.
+2. **Google Sheets:** I can upload the CSV to your Google Drive as a Sheet (it
+   converts automatically). You edit it there, then to push changes back you
+   download it as CSV (File → Download → Comma-separated values), drop it in over
+   `balance_sheet.csv`, and run `apply`. It's not a *live* link — Google Sheets
+   can't write into the GitHub repo by itself — but it's a clean edit-there /
+   sync-back loop. Ask me and I'll create the Sheet.
+
 ## The round-trip (edit numbers → game updates)
 
 The tunable numbers live in one place in the code: a `BAL` config object in
@@ -53,9 +67,12 @@ plumbing). Those have a blank `params_json` and a `notes` of
 "structural — no tunable value". Changing those means changing logic, not a
 number — ask and I'll do it.
 
-`description` text is **not** auto-synced to the numbers. If you change, say,
-Deep Roots from +1 to +3 mult, update its description too (or ask me to make
-descriptions auto-generate from `BAL`).
+`description` text **auto-syncs** to the numbers for most entities. Each has a
+template in `DESC_TEMPLATES` (in `index.html`) with `{param}` tokens filled from
+`BAL` at load — so changing Deep Roots from +1 to +3 mult updates its in-game
+tooltip automatically. A handful whose wording uses word-numbers ("triple",
+"doubles", "6× total") keep hand-written text; those are the same ids skipped in
+`DESC_TEMPLATES`, and you'd edit their wording by hand if you retune them.
 
 ## System rows
 

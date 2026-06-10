@@ -3129,7 +3129,7 @@
 </div>
 
 <script>
-const BUILD = '2026-06-10 · r19';
+const BUILD = '2026-06-10 · r20';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -3849,6 +3849,84 @@ const BAL = {
   _exalt:           { club_pips: 8, heart_time: 3, diamond_coins: 2, spade_mult: 2 },
   _corrupt:         { club_pips: 12, club_coins: -1, heart_time: 5, heart_mult: -3, diamond_coins: 4, diamond_time: -2, spade_mult: 4, spade_time: -2 },
 };
+
+// ── Description templates — keep tooltip text in sync with BAL numbers ──
+// Each string has {param} tokens filled from BAL[id] at load, so a value change
+// (via the balance sheet) updates the in-game description automatically. Only
+// entities whose wording maps unambiguously to their params are listed here;
+// the rest keep their hand-written desc (see tools/gen_balance_sheet.js notes).
+const DESC_TEMPLATES = {
+  deep_roots: 'Run of 3 scores +{mult} mult',
+  overgrowth: 'Run of 3 scores +{mult} mult',
+  ancient_grove: 'Run of 3 ×{score_mult} score',
+  rich_soil: 'All cards score +{pips} pip',
+  fertile_ground: 'All cards score +{pips} pips',
+  kindred: 'Three of a Kind scores +{mult} mult',
+  trinity: 'Three of a Kind ×{score_mult} score',
+  double_bloom: 'Any hand containing a pair ×{score_mult} score',
+  long_road: 'Any hand containing a run scores +{mult_per_card} mult per card in the run',
+  river_run: 'Straight ×{score_mult} score',
+  deluge: 'Flush ×{score_mult} score',
+  rare_bloom: 'Four of a Kind scores +{mult} mult',
+  perfect_storm: 'Straight Flush ×{score_mult} score',
+  night_owl: 'Hands in last {seconds_threshold}s score +{mult} mult',
+  steady_pace: 'Each hand played scores +{mult} mult',
+  kindling: 'Same hand streak scores +{pips_per_streak} pips × streak',
+  wildfire: '3 same hands in a row scores +{mult} mult',
+  sapling: 'Each level, {cards} cards permanently gain +{pips} pips',
+  still_water: '+{mult_per_interval} mult for every {interval_seconds} seconds elapsed without using a swap',
+  hidden_pair: 'Hands containing a pair score +{pips} pips',
+  court_of_leaves: 'Face cards (J/Q/K) score +{pips} pips',
+  first_light: 'Aces score +{pips} pips',
+  heartwood: 'Dead center card permanently gains +{pips} pips & +{mult} mult each time scored',
+  first_fruits: 'Each card in first hand each round permanently gains +{pips} pips',
+  frozen_moment: 'Hands while timer paused score ×{score_mult}',
+  stale: 'Sandwich pauses round timer {pause_seconds}s',
+  lucky_sevens: '7s ×{score_mult} score',
+  ninesong: 'If pip total is multiple of 9, ×{score_mult} score',
+  face_value: 'Face cards (J/Q/K) are worth {face_pips} pips',
+  echo_hand: 'Playing the same hand type twice in a row scores ×{score_mult}',
+  rising_tide: 'Base mult increases by +{mult_per_level} for each level reached',
+  rye_bread: 'Sandwich ×{score_mult} score',
+  held_breath: 'Every hand played pauses the round timer {pause_seconds}s',
+  sands_of_time: 'Current round time remaining ÷ {divisor} added as pips',
+  sixes_swap: 'Gain +{swaps_per_six} swap each time a 6 is scored',
+  tens_mult: 'Every {discards_per_milestone} cards discarded permanently adds +{mult_per_milestone} mult to this bonus',
+  discard_pips: '+{pips_per_discard} pips per card discarded this round',
+  heart_double: 'Each ♥ scored adds +{heart_mult} mult instead of +0.5',
+  spade_double: 'Each ♠ scored adds +{spade_seconds}s instead of +1s',
+  club_double: 'Each ♣ scored adds +{club_pips} pips instead of +5',
+  diamond_double: 'Each ♦ scored earns +{diamond_coins} coins instead of +1',
+  full_house_streak: 'Each Full House this round scores ×{score_base} more than the last (resets each level)',
+  two_pair_mult: 'Two Pair scores +{mult} mult',
+  high_card_mult: 'High Card scores +(level × {mult_per_level}) mult',
+  blackjack_bonus: 'If the face values of your cards total exactly {target}, score ×{score_mult}',
+  rowcol_mult: 'Cards scored in a specific row or column each add +{mult_per_card} mult',
+  shape_square: 'A 2×2 hand scores ×{score_mult} pips',
+  shape_cross: 'A + shaped hand scores ×{score_mult}',
+  shape_snake: 'A hand that changes direction every step (no 3 cards in a row or column) scores +{mult_per_card} mult per card',
+  two_corners: 'A hand containing 2 corner cells scores ×{score_mult}',
+  correct_run: 'Runs selected in consecutive ascending or descending order score ×{score_mult}',
+  edge_pips: 'Hands where all cards are on the outer edge score +{pips_per_card} pips per card',
+  wide_span_mult: 'Hands spanning 4+ rows or columns score +{col_mult} mult. +{per_extra_col_mult} mult per extra column, +{per_extra_row_pips} pips per extra row',
+  flow_state: 'While focus is ×{focus_threshold} or higher, +{pips_per_card} pips per card scored',
+  pivot: 'When swapped, that swap is free and both swapped cards gain +{mult} mult permanently. (3 charges)',
+  time_bank: '+{seconds} seconds at the start of every round.',
+  inheritance: 'Start each round with +{coins} coins.',
+  lucky_seven: 'Every {interval_hands}th hand played gives +{swaps} swap.',
+};
+
+// Fill {param} tokens in a template from a params object.
+function fillDescTemplate(t, p) {
+  return t.replace(/\{(\w+)\}/g, (m, k) => (k in p ? p[k] : m));
+}
+// Render templated descriptions once at load so every desc reader stays synced.
+function applyBalDescriptions() {
+  [BONUS_POOL, JOKER_POOL, TOTEM_POOL].forEach(pool => pool.forEach(e => {
+    if (DESC_TEMPLATES[e.id] && BAL[e.id]) e.desc = fillDescTemplate(DESC_TEMPLATES[e.id], BAL[e.id]);
+  }));
+}
+applyBalDescriptions();
 
 // One-shot effect flags consumed by scoring/round logic
 let jokerNextHandDouble = false; // glass_cannon
