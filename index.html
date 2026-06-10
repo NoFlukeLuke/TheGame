@@ -3430,7 +3430,7 @@
 </div>
 
 <script>
-const BUILD = '2026-06-08 · r44';
+const BUILD = '2026-06-08 · r45';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -3998,6 +3998,7 @@ let swapMode = false;
 let swapFirst = null;
 
 let roundSeconds = ROUND_DURATION;
+let roundStartSeconds = ROUND_DURATION; // roundSeconds value when this round's timer started (♠ "first 30s" exalt window)
 let gameSeconds = GAME_DURATION;
 let roundInterval = null;
 let gameInterval = null;
@@ -4667,23 +4668,23 @@ function detectHand(cells) {
 // ── Exalt / Corrupt suit effects ──
 // Per-card flags _exalted / _corrupted grant enhanced suit effects.
 // Returns { pips, mult, coins, time } totals across the given cards.
-// Exalted:   ♣ +10 pips  | ♥ +3s        | ♦ +2 coins       | ♠ +2 mult
-// Corrupted: ♣ +20/-2c   | ♥ +6s/-8pips | ♦ +3coins/-2mult | ♠ +4mult/-5s
+// Exalted:   ♣ +10 pips | ♦ +3 coins | ♥ +2 mult | ♠ +4 time
+// Corrupted: ♣ +25 pips/-3 mult | ♦ +5 coins/-20 pips | ♥ +5 mult/-5 time | ♠ +7 time/-8 coins
 function exaltCorruptTotals(cards) {
   let pips = 0, mult = 0, coins = 0, time = 0;
   cards.forEach(c => {
     if (!c) return;
     if (c._exalted) {
       if      (c.suit === '♣') pips  += 10;          // exalted club:    +10 pips
-      else if (c.suit === '♥') time  += 3;           // exalted heart:   +3s
-      else if (c.suit === '♦') coins += 2;           // exalted diamond: +2 coins
-      else if (c.suit === '♠') mult  += 2;           // exalted spade:   +2 mult
+      else if (c.suit === '♦') coins += 3;           // exalted diamond: +3 coins
+      else if (c.suit === '♥') mult  += 2;           // exalted heart:   +2 mult
+      else if (c.suit === '♠') time  += 4;           // exalted spade:   +4 time
     }
     if (c._corrupted) {
-      if      (c.suit === '♣') { pips  += 20; coins -= 2; }  // corrupted club:    +20 pips  -2 coins
-      else if (c.suit === '♥') { time  += 6;  pips  -= 8; }  // corrupted heart:   +6s       -8 pips
-      else if (c.suit === '♦') { coins += 3;  mult  -= 2; }  // corrupted diamond: +3 coins  -2 mult
-      else if (c.suit === '♠') { mult  += 4;  time  -= 5; }  // corrupted spade:   +4 mult   -5s
+      if      (c.suit === '♣') { pips  += 25; mult  -= 3;  }  // corrupted club:    +25 pips  -3 mult
+      else if (c.suit === '♦') { coins += 5;  pips  -= 20; }  // corrupted diamond: +5 coins  -20 pips
+      else if (c.suit === '♥') { mult  += 5;  time  -= 5;  }  // corrupted heart:   +5 mult   -5 time
+      else if (c.suit === '♠') { time  += 7;  coins -= 8;  }  // corrupted spade:   +7 time   -8 coins
     }
   });
   return { pips, mult, coins, time };
@@ -4973,6 +4974,8 @@ function calcScore(handName, cells, contrib = null) {
   // Expose mult so playHand can use it; focus generation now uses hand type, not mult
   lastCalcMult = mult;
   lastCalcPips = totalPips;
+
+  if (totalPips < 0) totalPips = 0; // corrupt costs can't push a hand into score debt
 
   let s = totalPips * mult;
 
@@ -5896,16 +5899,13 @@ function doSwap(r1, c1, r2, c2) {
   resetFocusDecayTimer();
   // Restless: swapping adds 1 focus
   if (hasBonus('restless')) addFocus(1);
-  // Exalt/corrupt tracking: ♥ corrupt after 3 swaps
+  // ♥ corruption: a swapped heart goes "on probation" — it must appear in the next scored
+  // hand or it corrupts (resolved in playHand; also corrupts if discarded). Re-swapping
+  // just re-arms the flag (fresh chance). Already-locked hearts are unaffected.
   [[r1,c1],[r2,c2]].forEach(([_r,_c]) => {
     const _card = gridData[_r]?.[_c];
-    if (!_card || _card._isJoker || _card._isBC || !_card.rank || _card.suit !== '♥') return;
-    const _k = cardKey(_card.rank, _card.suit);
-    cardSwapCount[_k] = (cardSwapCount[_k] || 0) + 1;
-    if (cardSwapCount[_k] >= 3 && !_card._exalted && !_card._corrupted) {
-      corruptCard(_r, _c);
-      showMessage('♥ heart corrupted by too many swaps', '#cc88ff');
-    }
+    if (!_card || _card.suit !== '♥' || _card._exalted || _card._corrupted) return;
+    _card._heartSwapPending = true;
   });
   selected = [];
   swapPending = null;
@@ -6386,28 +6386,59 @@ function playHand() {
 
   // ── Exalt / Corrupt — coins & time (pips & mult applied in calcScore) ──
   const _ecPlay = exaltCorruptTotals(scoringCards);
-  // Track plays per card and trigger exalt/corrupt
-  const coinsAtPlay = coins; // snapshot before payout
+  // ── Exalt / Corrupt triggers (per scored card; state is permanent + mutually exclusive) ──
+  // Counters live ON the card object so they track the individual card and survive deck
+  // cycling. ♣ exalt = in a 3+-club hand 2×; ♣ corrupt = lone club in a hand 2×.
+  // ♥ exalt = only heart in a hand 2× (♥ corrupt is swap-driven, resolved below + on discard).
+  // ♠ exalt = played within first 30s of the round 2× (♠ corrupt is discard-driven).
+  // ♦ exalt = played while coins < 5, 2×; ♦ corrupt = played while coins > 65, 2×.
+  const coinsAtPlay   = coins; // snapshot before payout
+  const _clubsInHand  = handCells.reduce((n,[r,c]) => n + (gridData[r]?.[c]?.suit === '♣' ? 1 : 0), 0);
+  const _heartsInHand = handCells.reduce((n,[r,c]) => n + (gridData[r]?.[c]?.suit === '♥' ? 1 : 0), 0);
+  const _spadeEarly   = (roundStartSeconds - roundSeconds) < 30; // within first 30s of the round timer
   handCells.forEach(([_r,_c]) => {
     const _card = gridData[_r]?.[_c];
-    if (!_card || _card._isJoker || _card._isBC || !_card.rank) return;
-    const _k = cardKey(_card.rank, _card.suit);
-    cardPlayCount[_k] = (cardPlayCount[_k] || 0) + 1;
-    const n = cardPlayCount[_k];
-    if (_card.suit === '♥') {
-      if (n === 2 && !_card._corrupted && !_card._exalted) { exaltCard(_r, _c); showMessage('♥ Heart exalted!', '#ffd700'); }
-    } else if (_card.suit === '♣') {
-      if (n === 3 && !_card._corrupted && !_card._exalted) { exaltCard(_r, _c); showMessage('♣ Club exalted!', '#ffd700'); }
-      if (n >= 6 && !_card._corrupted)                     { corruptCard(_r, _c); showMessage('♣ Club corrupted by overplay!', '#cc88ff'); }
+    if (!_card || _card._isJoker || _card._isBC || _card._isStone || !_card.rank) return;
+    if (_card._exalted || _card._corrupted) return; // already locked
+    if (_card.suit === '♣') {
+      if (_clubsInHand >= 3) {
+        _card._clubPackPlays = (_card._clubPackPlays || 0) + 1;
+        if (_card._clubPackPlays >= 2) { exaltCard(_r, _c); showMessage('♣ Club exalted — strength in numbers!', '#ffd700'); }
+      } else if (_clubsInHand === 1) {
+        _card._clubSoloPlays = (_card._clubSoloPlays || 0) + 1;
+        if (_card._clubSoloPlays >= 2) { corruptCard(_r, _c); showMessage('♣ Club corrupted — solo glory!', '#cc88ff'); }
+      }
+    } else if (_card.suit === '♥') {
+      if (_heartsInHand === 1) {
+        _card._heartSoloPlays = (_card._heartSoloPlays || 0) + 1;
+        if (_card._heartSoloPlays >= 2) { exaltCard(_r, _c); showMessage('♥ Heart exalted — stood alone!', '#ffd700'); }
+      }
+    } else if (_card.suit === '♠') {
+      if (_spadeEarly) {
+        _card._spadeEarlyPlays = (_card._spadeEarlyPlays || 0) + 1;
+        if (_card._spadeEarlyPlays >= 2) { exaltCard(_r, _c); showMessage('♠ Spade exalted — early strike!', '#ffd700'); }
+      }
     } else if (_card.suit === '♦') {
-      // Wealth suit: a well-worn diamond transforms only at an extreme of fortune.
-      // Tuned harder (r44): needs 5+ plays (was 3) AND a wider coin gate (<6 / >65,
-      // was <10 / >50), so it triggers occasionally instead of on nearly every hand.
-      // Numbers are easy to dial.
-      if (n >= 5 && coinsAtPlay < 6  && !_card._corrupted && !_card._exalted) { exaltCard(_r, _c); showMessage('♦ Diamond exalted by scarcity!', '#ffd700'); }
-      else if (n >= 5 && coinsAtPlay > 65 && !_card._exalted && !_card._corrupted) { corruptCard(_r, _c); showMessage('♦ Diamond corrupted by wealth!', '#cc88ff'); }
+      if (coinsAtPlay < 5) {
+        _card._diaPoorPlays = (_card._diaPoorPlays || 0) + 1;
+        if (_card._diaPoorPlays >= 2) { exaltCard(_r, _c); showMessage('♦ Diamond exalted — scarcity!', '#ffd700'); }
+      } else if (coinsAtPlay > 65) {
+        _card._diaRichPlays = (_card._diaRichPlays || 0) + 1;
+        if (_card._diaRichPlays >= 2) { corruptCard(_r, _c); showMessage('♦ Diamond corrupted — excess!', '#cc88ff'); }
+      }
     }
   });
+  // ♥ corruption resolution: a swap-pending heart must appear in THIS scored hand or it sours.
+  for (let _hr = 0; _hr < gridRows; _hr++) for (let _hc = 0; _hc < gridCols; _hc++) {
+    const _h = gridData[_hr]?.[_hc];
+    if (!_h || _h.suit !== '♥' || !_h._heartSwapPending) continue;
+    const _inHand = handCells.some(([r,c]) => r === _hr && c === _hc);
+    _h._heartSwapPending = false; // resolved either way
+    if (!_inHand && !_h._exalted && !_h._corrupted) {
+      corruptCard(_hr, _hc);
+      showMessage('♥ Heart corrupted — swapped, then left behind', '#cc88ff');
+    }
+  }
   if (_ecPlay.coins !== 0) { coins = Math.max(0, coins + _ecPlay.coins); updateCoinsUI(); }
   if (_ecPlay.time !== 0) {
     roundSeconds = Math.max(1, Math.min(roundSeconds + _ecPlay.time, ROUND_DURATION));
@@ -7289,6 +7320,19 @@ function doDiscard() {
   }
   selected = validSelected;
   const discardedCards = selected.map(([r,c]) => gridData[r][c]);
+  // ♠ corrupts after being discarded 2×; a swap-pending ♥ counts as "not played" → corrupt.
+  // Flags are set on the card object directly since it's leaving the grid (persists in the pile).
+  discardedCards.forEach(card => {
+    if (!card || card._isJoker || card._isBC || card._isStone || !card.rank) return;
+    if (card._exalted || card._corrupted) return;
+    if (card.suit === '♠') {
+      card._spadeDiscards = (card._spadeDiscards || 0) + 1;
+      if (card._spadeDiscards >= 2) { card._exalted = false; card._corrupted = true; showMessage('♠ Spade corrupted — discarded one too many times', '#cc88ff'); }
+    } else if (card.suit === '♥' && card._heartSwapPending) {
+      card._exalted = false; card._corrupted = true; card._heartSwapPending = false;
+      showMessage('♥ Heart corrupted — discarded after a swap', '#cc88ff');
+    }
+  });
   // on_discard jokers (Not a Friend corrupt) fire with their grid position before removal
   selected.forEach(([r,c]) => {
     const card = gridData[r]?.[c];
@@ -7801,6 +7845,7 @@ function showSuitEffect(text, color) {
 // ══════════════════════════════════════════════
 function startRoundTimer() {
   if (roundInterval) clearInterval(roundInterval);
+  roundStartSeconds = roundSeconds; // mark the start of the countdown for ♠ "first 30s" exalt
   roundInterval = setInterval(() => {
     if (pipeTimerPaused) return;
     if (gameTimerPaused) return; // global pause covers menus/shop/events
@@ -11003,16 +11048,7 @@ function triggerLevelUp() {
     if (_jcard?._isJoker) _jcard._usedThisRound = false;
   }
   fireJokersAtRoundStart();
-  // Track dealt counts and apply ♠ exalt/corrupt triggers
-  for (let _r = 0; _r < gridRows; _r++) for (let _c = 0; _c < gridCols; _c++) {
-    const _card = gridData[_r][_c];
-    if (!_card || _card._isJoker || _card._isBC || _card._isStone || !_card.rank || _card.suit !== '♠') continue;
-    const _k = cardKey(_card.rank, _card.suit);
-    cardDealtCount[_k] = (cardDealtCount[_k] || 0) + 1;
-    const _n = cardDealtCount[_k];
-    if (_n === 5 && !_card._exalted && !_card._corrupted) { exaltCard(_r, _c); showMessage('♠ Spade exalted by familiarity!', '#ffd700'); }
-    else if (_n === 10 && !_card._corrupted)               { corruptCard(_r, _c); showMessage('♠ Spade corrupted by overexposure!', '#cc88ff'); }
-  }
+  // (♠ exalt/corrupt is now play/discard-driven — handled in playHand and doDiscard, not at deal)
   fireJokersOnDraw();
   // Reset focus meter at start of every round (chunk 2 will add notch-fall animation)
   focusNodes = 0;

@@ -47,21 +47,21 @@ The stage (`#stage`, 420×740 portrait / 747×420 landscape) is a single fixed-s
 - `findBestHand(cells)` brute-forces all connected 2–5 card subsets, scores each, returns the best. Handles wild jokers (temp rank/suit) and drops non-wild jokers from detection.
 - `detectHand(cells)` returns the hand-type string. `activeHands` Set gates which hands are scorable (in Normal mode ALL hands are active from the start).
 
-### Exalt / Corrupt (`exaltCorruptTotals`, `exaltCard`, `corruptCard`)
-Per-card flags `_exalted` / `_corrupted` are the *only* source of suit effects now (suits are otherwise neutral). Totals computed in `exaltCorruptTotals` (pips/mult fold into `calcScore`; coins/time applied in `playHand`):
-- **Exalted:** ♣ +10 pips · ♥ +3s · ♦ +2 coins · ♠ +2 mult.
-- **Corrupted:** ♣ +20 pips/−2 coins · ♥ +6s/−8 pips · ♦ +3 coins/−2 mult · ♠ +4 mult/−5s.
-- Visual: `.exalted` (gold glow) / `.corrupted` (purple glow). **Balance still TBD** — numbers are tunable.
+### Exalt / Corrupt (`exaltCorruptTotals`, `exaltCard`, `corruptCard`) — r45 spec
+Per-card flags `_exalted` / `_corrupted` are the *only* source of suit effects now (suits are otherwise neutral). State is **permanent + mutually exclusive** (whichever locks first wins; `exaltCard`/`corruptCard` clear the other). Buff totals computed in `exaltCorruptTotals` (pips/mult fold into `calcScore`; coins/time applied in `playHand`):
+- **Exalted:** ♣ +10 pips · ♦ +3 coins · ♥ +2 mult · ♠ +4 time.
+- **Corrupted (buff / cost):** ♣ +25 pips / −3 mult · ♦ +5 coins / −20 pips · ♥ +5 mult / −5 time · ♠ +7 time / −8 coins.
+- Buffs/costs apply **per scored card** (3 corrupt clubs = +75 pips / −9 mult). Costs floor the resource at 0 (no debt): hand pips floored before `s = totalPips*mult`, mult floored at 1, coins/time `Math.max`'d. Visual: `.exalted` gold glow / `.corrupted` purple glow.
 
-**How a card transforms** — each suit watches a *different* action, tracked by three per-card counters: `cardPlayCount` (times scored), `cardSwapCount` (times swapped), `cardDealtCount` (times dealt onto the grid):
-| suit | exalts when | corrupts when | wired in |
-|---|---|---|---|
-| ♥ | **played** 2× | **swapped** 3× | exalt in `playHand`; corrupt in `doSwap` |
-| ♣ | played 3× | played 6×+ (overplay) | `playHand` |
-| ♠ | **dealt** 5× | **dealt** 10× (overexposure) | round-start sweep (search `cardDealtCount`) |
-| ♦ | played 5×+ AND coins **< 6** (scarcity) | played 5×+ AND coins **> 65** (wealth) | `playHand` |
+**Triggers** — each suit watches a different action. Counters live **on the card object** (e.g. `_clubPackPlays`) so they track the individual card and survive deck cycling; they reset only on `newGame`.
+| suit | exalts when | corrupts when |
+|---|---|---|
+| ♣ | in a hand with **3+ clubs**, 2× (`_clubPackPlays`) | **lone club** in a hand, 2× (`_clubSoloPlays`) |
+| ♥ | **only heart** in a hand, 2× (`_heartSoloPlays`) | swapped, then **misses the next scored hand**, 1× (`_heartSwapPending`) |
+| ♠ | played in **first 30s** of round, 2× (`_spadeEarlyPlays`) | **discarded** 2× (`_spadeDiscards`) |
+| ♦ | played while coins **< 5**, 2× (`_diaPoorPlays`) | played while coins **> 65**, 2× (`_diaRichPlays`) |
 
-So hearts split their two transforms across two actions (play it to bless, swap it too much to sour), spades transform just by recurring on the grid, and clubs/diamonds are play-driven. Diamonds are the only state-conditioned suit — tuned harder in r44 (was 3 plays / <10 / >50). Thresholds live in **three** blocks: the `playHand` per-card loop (♥ exalt, ♣, ♦), the `doSwap` ♥ block (♥ corrupt), and the round-start ♠ sweep.
+Wiring: clubs/hearts-exalt/spades-exalt/diamonds all fire in the `playHand` per-card loop. **♥ corruption** is a two-step flow — `doSwap` sets `_heartSwapPending`; the next scored hand resolves it (in hand → flag cleared/safe; absent → corrupt). A pending ♥ that's discarded corrupts immediately (`doDiscard`). **♠ corruption** also fires in `doDiscard`. Spade exalt needs `roundStartSeconds` (captured in `startRoundTimer`); window = `(roundStartSeconds - roundSeconds) < 30`.
 
 ## Joker system (`JOKER_POOL`)
 
