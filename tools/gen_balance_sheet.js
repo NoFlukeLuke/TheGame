@@ -29,6 +29,18 @@ const BONUS_POOL = extractArray('BONUS_POOL');
 const TOTEM_POOL = extractArray('TOTEM_POOL');
 const JOKER_POOL = extractArray('JOKER_POOL');
 
+// BAL holds the tunable numbers (see index.html). params_json column.
+function extractBAL() {
+  const m = html.match(/const BAL = (\{[\s\S]*?\n\});/);
+  if (!m) throw new Error('could not find BAL');
+  // eslint-disable-next-line no-eval
+  return eval('(' + m[1] + ')');
+}
+const BAL = extractBAL();
+const paramsJson = id => (id in BAL) ? JSON.stringify(BAL[id]) : '';
+const usedBalKeys = new Set();
+function pj(id) { if (id in BAL) usedBalKeys.add(id); return paramsJson(id); }
+
 // ── Suggested base cost by rarity/tier (a starting point for the sweep) ──
 const COST_BY_TIER = { common: 3, rare: 6, legendary: 9 };
 
@@ -101,7 +113,7 @@ function classifyCategories(desc, tags) {
 
 // ── CSV assembly ────────────────────────────────────────────────────────────
 const headers = [
-  'entity_type', 'id', 'name', 'rarity', 'base_cost',
+  'entity_type', 'id', 'name', 'params_json', 'rarity', 'base_cost',
   'buff_type', 'trigger', 'activation', 'charges',
   ...CATEGORIES.map(c => 'cat_' + c),
   'tags', 'description', 'notes',
@@ -115,34 +127,60 @@ function esc(v) {
 
 const rows = [];
 
+const STRUCTURAL = 'structural — no tunable value';
+
 BONUS_POOL.forEach(b => {
   const cats = classifyCategories(b.desc, b.tags);
+  const p = pj(b.id);
   rows.push([
-    'Bonus Card', b.id, b.name, b.tier, COST_BY_TIER[b.tier] ?? '',
+    'Bonus Card', b.id, b.name, p, b.tier, COST_BY_TIER[b.tier] ?? '',
     classifyBuffType(b.desc, b.tags), classifyTrigger(b.desc, b.tags, null), '', '',
     ...CATEGORIES.map(c => cats[c]),
-    (b.tags || []).join(' '), b.desc, '',
+    (b.tags || []).join(' '), b.desc, p ? '' : STRUCTURAL,
   ]);
 });
 
 JOKER_POOL.forEach(j => {
   const cats = classifyCategories(j.desc, j.tags);
+  const p = pj(j.id);
+  const note = [p ? '' : STRUCTURAL, j.needsResolve ? 'needsResolve / TBD' : ''].filter(Boolean).join('; ');
   rows.push([
-    'Joker', j.id, j.name, j.rarity, COST_BY_TIER[j.rarity] ?? '',
+    'Joker', j.id, j.name, p, j.rarity, COST_BY_TIER[j.rarity] ?? '',
     classifyBuffType(j.desc, j.tags), classifyTrigger(j.desc, j.tags, j.activation),
     j.activation, j.durability,
     ...CATEGORIES.map(c => cats[c]),
-    (j.tags || []).join(' '), j.desc, j.needsResolve ? 'needsResolve / TBD behavior' : '',
+    (j.tags || []).join(' '), j.desc, note,
   ]);
 });
 
 TOTEM_POOL.forEach(t => {
   const cats = classifyCategories(t.desc, t.tags);
+  const p = pj(t.id);
   rows.push([
-    'Totem', t.id, t.name, '', '',
+    'Totem', t.id, t.name, p, '', '',
     classifyBuffType(t.desc, t.tags), classifyTrigger(t.desc, t.tags, null), '', 'persistent',
     ...CATEGORIES.map(c => cats[c]),
-    (t.tags || []).join(' '), t.desc, '',
+    (t.tags || []).join(' '), t.desc, p ? '' : STRUCTURAL,
+  ]);
+});
+
+// System knobs in BAL not tied to a pool entity (suit defaults, exalt/corrupt,
+// resource time costs, plus any phantom bonuses referenced only in code).
+const SYSTEM_DESC = {
+  _suit_defaults: 'Default per-suit effects when no bonus is active',
+  _resources:     'Base time costs: swap, discard/card, hand play',
+  _exalt:         'Exalted-card per-suit effects',
+  _corrupt:       'Corrupted-card per-suit effects',
+  tidal_force:    'Flush +mult (not in current pool)',
+  extinction:     'Four of a Kind ×score (not in current pool)',
+};
+Object.keys(BAL).filter(id => !usedBalKeys.has(id)).forEach(id => {
+  const blank = CATEGORIES.map(() => '');
+  rows.push([
+    'System', id, id.replace(/^_/, '').replace(/_/g, ' '), JSON.stringify(BAL[id]), '', '',
+    '', '', '', '',
+    ...blank,
+    '', SYSTEM_DESC[id] || '', '',
   ]);
 });
 

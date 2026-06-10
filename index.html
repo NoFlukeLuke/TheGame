@@ -3129,7 +3129,7 @@
 </div>
 
 <script>
-const BUILD = '2026-05-30 · r18';
+const BUILD = '2026-06-10 · r19';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -3737,6 +3737,119 @@ const JOKER_POOL = [
   { id:'pivot',         name:'Pivot!',         emoji:'🔃', rarity:'common',    activation:'on_swap',    durability:3,          defaultRank:null, defaultSuit:null, tags:['resource','scoring'],        desc:'When swapped, that swap is free and both swapped cards gain +5 mult permanently. (3 charges)' },
 ];
 
+// ══════════════════════════════════════════════
+// BALANCE CONFIG (BAL) — single source of truth for tunable numbers
+// ══════════════════════════════════════════════
+// Every value here used to be a hardcoded literal inside calcScore / playHand /
+// the suit + totem logic. They've been pulled out so a balance sweep can edit
+// them in one place. The defaults below EQUAL the original literals, so the
+// game plays identically until a number is changed.
+//
+// ROUND-TRIP: tools/gen_balance_sheet.js reads BAL → balance_sheet.csv (the
+// params_json column). Edit numbers in the sheet, then
+// tools/apply_balance_sheet.js writes them back into this BAL block.
+//
+// Entries keyed by entity id. System knobs use a leading underscore. Entities
+// not listed here are "structural" (wildcards, shape geometry, rank-shifts,
+// retrigger plumbing) and have no single tunable number.
+const BAL = {
+  // ── Per-card pip bonuses ──
+  rich_soil:        { pips: 1 },
+  fertile_ground:   { pips: 3 },
+  court_of_leaves:  { pips: 3 },
+  first_light:      { pips: 5 },
+  low_tide:         { pips: 6 },
+  before_the_tide:  { extra_mult: 5 },        // cp += basePips × extra_mult (6× total)
+  face_value:       { face_pips: 15 },
+  humble_roots:     { pip_mult: 3 },
+  knave_power:      { run_mult: 2 },
+  rowcol_triple_pips: { pip_mult: 3 },
+  // ── Flat pip bonuses ──
+  hidden_pair:      { pips: 10 },
+  early_bird:       { pips: 20, seconds_threshold: 50 },
+  kindling:         { pips_per_streak: 4 },
+  spade_flood:      { time_mult: 2 },
+  sands_of_time:    { divisor: 2 },
+  discard_pips:     { pips_per_discard: 3 },
+  edge_pips:        { pips_per_card: 15 },
+  flow_state:       { pips_per_card: 10, focus_threshold: 1.5 },
+  // ── Mult bonuses ──
+  rising_tide:      { mult_per_level: 1 },
+  steady_pace:      { mult: 1 },
+  momentum:         { mult: 2, window_ms: 5000 },
+  night_owl:        { mult: 3, seconds_threshold: 10 },
+  wildfire:         { mult: 2, streak_min: 2 },
+  still_water:      { mult_per_interval: 5, interval_seconds: 10 },
+  deep_roots:       { mult: 1 },
+  overgrowth:       { mult: 2 },
+  kindred:          { mult: 1 },
+  long_road:        { mult_per_card: 2 },
+  tidal_force:      { mult: 4 },
+  rare_bloom:       { mult: 12 },
+  two_pair_mult:    { mult: 10 },
+  high_card_mult:   { mult_per_level: 2 },
+  rowcol_mult:      { mult_per_card: 2 },
+  shape_snake:      { mult_per_card: 2 },
+  threes_run:       { mult: 9 },
+  wide_span_mult:   { col_mult: 24, row_mult: 24, per_extra_col_mult: 5, per_extra_row_pips: 20 },
+  // ── ×score multipliers ──
+  rye_bread:        { score_mult: 2 },
+  echo_hand:        { score_mult: 1.5 },
+  full_house_streak:{ score_base: 1.5 },      // ×score_base ^ (full houses so far)
+  blackjack_bonus:  { score_mult: 3, target: 21 },
+  ancient_grove:    { score_mult: 2 },
+  trinity:          { score_mult: 2 },
+  double_bloom:     { score_mult: 2 },
+  river_run:        { score_mult: 2 },
+  torrent:          { run4_mult: 2, big_mult: 4 },
+  deluge:           { score_mult: 2 },
+  perfect_storm:    { score_mult: 5 },
+  extinction:       { score_mult: 2 },
+  lucky_sevens:     { score_mult: 2 },
+  ninesong:         { score_mult: 3 },
+  frozen_moment:    { score_mult: 2 },
+  shape_square:     { score_mult: 4 },
+  shape_cross:      { score_mult: 3 },
+  two_corners:      { score_mult: 4 },
+  correct_run:      { score_mult: 2 },
+  // ── Pause / time bonuses ──
+  deep_breath:      { pause_seconds: 3 },
+  stale:            { pause_seconds: 2 },
+  long_pause:       { pause_seconds: 4 },
+  held_breath:      { pause_seconds: 1 },
+  // ── Permanent-gain & accumulator bonuses ──
+  first_fruits:     { pips: 2 },
+  heartwood:        { pips: 5, mult: 1 },
+  fours_perm:       { pips: 4 },
+  fives_discard:    { pips_per_five: 5 },
+  nines_mult:       { mult_per_nine: 9 },
+  tens_mult:        { mult_per_milestone: 1, discards_per_milestone: 10 },
+  sixes_swap:       { swaps_per_six: 1 },
+  sixes_perm:       { roll_min: 1, roll_max: 6, interval: 6 },
+  sapling:          { pips: 2, cards: 3 },
+  // ── Suit doublers (BCs) ──
+  club_double:      { club_pips: 10 },
+  heart_double:     { heart_mult: 1 },
+  spade_double:     { spade_seconds: 2 },
+  diamond_double:   { diamond_coins: 2 },
+  // ── Jokers ──
+  pivot:            { mult: 5 },              // +mult to both swapped cards
+  idol:             { interest_mult: 3 },     // ×interest at round end
+  // ── Totems ──
+  time_bank:        { seconds: 30 },
+  inheritance:      { coins: 5 },
+  head_start:       { goal_fraction: 0.10 },
+  lucky_seven:      { interval_hands: 7, swaps: 1 },
+  steady_hand:      { swap_seconds: 20 },
+  hoarder:          { discard_seconds_per_card: 6 },
+  // ── System: default suit effects (no bonus active) ──
+  _suit_defaults:   { club_pips: 5, heart_mult: 0.5, diamond_coins: 1, spade_seconds: 1 },
+  _resources:       { swap_seconds: 10, discard_seconds_per_card: 3, hand_play_seconds: 5 },
+  // ── System: exalt / corrupt per-suit effects ──
+  _exalt:           { club_pips: 8, heart_time: 3, diamond_coins: 2, spade_mult: 2 },
+  _corrupt:         { club_pips: 12, club_coins: -1, heart_time: 5, heart_mult: -3, diamond_coins: 4, diamond_time: -2, spade_mult: 4, spade_time: -2 },
+};
+
 // One-shot effect flags consumed by scoring/round logic
 let jokerNextHandDouble = false; // glass_cannon
 let grantedJokerIds = new Set(); // dedup: tracks which joker IDs have been granted
@@ -4297,16 +4410,16 @@ function exaltCorruptTotals(cards) {
   cards.forEach(c => {
     if (!c) return;
     if (c._exalted) {
-      if (c.suit === '♣') pips += 8;
-      else if (c.suit === '♥') time += 3;
-      else if (c.suit === '♦') coins += 2;
-      else if (c.suit === '♠') mult += 2;
+      if (c.suit === '♣') pips += BAL._exalt.club_pips;
+      else if (c.suit === '♥') time += BAL._exalt.heart_time;
+      else if (c.suit === '♦') coins += BAL._exalt.diamond_coins;
+      else if (c.suit === '♠') mult += BAL._exalt.spade_mult;
     }
     if (c._corrupted) {
-      if (c.suit === '♣') { pips += 12; coins -= 1; }
-      else if (c.suit === '♥') { time += 5; mult -= 3; }
-      else if (c.suit === '♦') { coins += 4; time -= 2; }
-      else if (c.suit === '♠') { mult += 4; time -= 2; }
+      if (c.suit === '♣') { pips += BAL._corrupt.club_pips; coins += BAL._corrupt.club_coins; }
+      else if (c.suit === '♥') { time += BAL._corrupt.heart_time; mult += BAL._corrupt.heart_mult; }
+      else if (c.suit === '♦') { coins += BAL._corrupt.diamond_coins; time += BAL._corrupt.diamond_time; }
+      else if (c.suit === '♠') { mult += BAL._corrupt.spade_mult; time += BAL._corrupt.spade_time; }
     }
   });
   return { pips, mult, coins, time };
@@ -4329,48 +4442,48 @@ function calcScore(handName, cells) {
   cells.forEach(([r, c]) => {
     const card = gridData[r][c];
     const baseRank = card.rank;
-    let rawPips = hasBonus('face_value') && ['J','Q','K'].includes(baseRank) ? 15 : cardPips(baseRank);
-    if (hasBonus('humble_roots') && rawPips < 6) rawPips *= 3;
+    let rawPips = hasBonus('face_value') && ['J','Q','K'].includes(baseRank) ? BAL.face_value.face_pips : cardPips(baseRank);
+    if (hasBonus('humble_roots') && rawPips < 6) rawPips *= BAL.humble_roots.pip_mult;
     if (hasBonus('high_card_pips') && handName === 'High Card') rawPips *= level;
     let cp = rawPips;
-    if (hasBonus('rich_soil')) cp += 1;
-    if (hasBonus('fertile_ground')) cp += 3;
-    if (hasBonus('court_of_leaves') && ['J','Q','K'].includes(baseRank)) cp += 3;
-    if (hasBonus('before_the_tide') && cardPips(baseRank) < 6) cp += cardPips(baseRank) * 5; // 6× total (1× base + 5×)
-    else if (hasBonus('low_tide') && cardPips(baseRank) < 6) cp += 6;
-    if (hasBonus('first_light') && baseRank === 'A') cp += 5;
+    if (hasBonus('rich_soil')) cp += BAL.rich_soil.pips;
+    if (hasBonus('fertile_ground')) cp += BAL.fertile_ground.pips;
+    if (hasBonus('court_of_leaves') && ['J','Q','K'].includes(baseRank)) cp += BAL.court_of_leaves.pips;
+    if (hasBonus('before_the_tide') && cardPips(baseRank) < 6) cp += cardPips(baseRank) * BAL.before_the_tide.extra_mult; // (1× base + extra_mult×)
+    else if (hasBonus('low_tide') && cardPips(baseRank) < 6) cp += BAL.low_tide.pips;
+    if (hasBonus('first_light') && baseRank === 'A') cp += BAL.first_light.pips;
     cp += (permPips[cardKey(card.rank, card.suit)] || 0);
     // Row/col triple pips — applies after all other pip bonuses
-    if (cellHasRowColBonus(r, c, 'rowcol_triple_pips')) cp *= 3;
+    if (cellHasRowColBonus(r, c, 'rowcol_triple_pips')) cp *= BAL.rowcol_triple_pips.pip_mult;
     totalPips += cp;
-    if (hasBonus('knave_power') && baseRank === 'J') totalPips *= 2;
+    if (hasBonus('knave_power') && baseRank === 'J') totalPips *= BAL.knave_power.run_mult;
   });
 
   // Hidden pair bonus
   const rankCounts = {};
   cards.forEach(c => rankCounts[c.rank] = (rankCounts[c.rank]||0)+1);
   const hasPairInHand = Object.values(rankCounts).some(v => v >= 2);
-  if (hasBonus('hidden_pair') && hasPairInHand) totalPips += 10;
+  if (hasBonus('hidden_pair') && hasPairInHand) totalPips += BAL.hidden_pair.pips;
 
   // Early bird / night owl
-  if (hasBonus('early_bird') && roundSeconds > 50) totalPips += 20;
+  if (hasBonus('early_bird') && roundSeconds > BAL.early_bird.seconds_threshold) totalPips += BAL.early_bird.pips;
 
   // Kindling streak
-  if (hasBonus('kindling') && streakCount > 0) totalPips += 4 * streakCount;
+  if (hasBonus('kindling') && streakCount > 0) totalPips += BAL.kindling.pips_per_streak * streakCount;
 
-  // ♣ Clubs → +5 pips each (+10 with Hard Labour)
+  // ♣ Clubs → pips each (more with Hard Labour)
   const clubCount = cards.filter(c => c.suit === '♣' || (c.combined && c.suit2 === '♣')).length;
-  totalPips += clubCount * (hasBonus('club_double') ? 10 : 5);
+  totalPips += clubCount * (hasBonus('club_double') ? BAL.club_double.club_pips : BAL._suit_defaults.club_pips);
 
-  // Spade Flood: all-♠ hand of 4+ adds roundSeconds × 2 as pips
+  // Spade Flood: all-♠ hand of 4+ adds roundSeconds × time_mult as pips
   const allSpadesCalc = cards.length >= 4 && cards.every(c => c.suit === '♠' || (c.combined && c.suit2 === '♠'));
-  if (hasBonus('spade_flood') && allSpadesCalc) totalPips += roundSeconds * 2;
+  if (hasBonus('spade_flood') && allSpadesCalc) totalPips += roundSeconds * BAL.spade_flood.time_mult;
 
-  // Sands of Time: remaining round seconds ÷ 2 as bonus pips
-  if (hasBonus('sands_of_time')) totalPips += Math.floor(roundSeconds / 2);
+  // Sands of Time: remaining round seconds ÷ divisor as bonus pips
+  if (hasBonus('sands_of_time')) totalPips += Math.floor(roundSeconds / BAL.sands_of_time.divisor);
 
-  // Compost: +3 pips per card discarded this round
-  if (hasBonus('discard_pips')) totalPips += cardsDiscardedRound * 3;
+  // Compost: pips per card discarded this round
+  if (hasBonus('discard_pips')) totalPips += cardsDiscardedRound * BAL.discard_pips.pips_per_discard;
 
   // Penny Saved: accumulated bonus pips from discarded 5s
   if (hasBonus('fives_discard')) totalPips += bonusMult_fives;
@@ -4383,43 +4496,43 @@ function calcScore(handName, cells) {
   let mult = base.mult;
 
   if (risingTideBonus > 0) mult += risingTideBonus;
-  if (hasBonus('steady_pace')) mult += 1;
-  if (hasBonus('momentum') && (Date.now() - lastHandTime) < 5000) mult += 2;
-  if (hasBonus('night_owl') && roundSeconds < 10) mult += 3;
-  if (hasBonus('wildfire') && streakCount >= 2) mult += 2;
+  if (hasBonus('steady_pace')) mult += BAL.steady_pace.mult;
+  if (hasBonus('momentum') && (Date.now() - lastHandTime) < BAL.momentum.window_ms) mult += BAL.momentum.mult;
+  if (hasBonus('night_owl') && roundSeconds < BAL.night_owl.seconds_threshold) mult += BAL.night_owl.mult;
+  if (hasBonus('wildfire') && streakCount >= BAL.wildfire.streak_min) mult += BAL.wildfire.mult;
   if (hasBonus('still_water') && lastSwapTime === 0) {
-    // No swap used this round — +5 mult per 10s elapsed in round
+    // No swap used this round — +mult per interval elapsed in round
     const elapsed = ROUND_DURATION - roundSeconds;
-    mult += 5 * Math.floor(elapsed / 10);
+    mult += BAL.still_water.mult_per_interval * Math.floor(elapsed / BAL.still_water.interval_seconds);
   } else if (hasBonus('still_water') && lastSwapTime > 0) {
     // Swap was used — count seconds since last swap
     const secsSinceSwap = Math.floor((Date.now() - lastSwapTime) / 1000);
-    mult += 5 * Math.floor(secsSinceSwap / 10);
+    mult += BAL.still_water.mult_per_interval * Math.floor(secsSinceSwap / BAL.still_water.interval_seconds);
   }
 
   // Hand-specific mult
   if (handName === 'Run of 3') {
-    if (hasBonus('deep_roots')) mult += 1;
-    if (hasBonus('overgrowth')) mult += 2;
+    if (hasBonus('deep_roots')) mult += BAL.deep_roots.mult;
+    if (hasBonus('overgrowth')) mult += BAL.overgrowth.mult;
   }
   if (handName === 'Three of a Kind') {
-    if (hasBonus('kindred')) mult += 1;
+    if (hasBonus('kindred')) mult += BAL.kindred.mult;
   }
   const isRun = ['Run of 3','Run of 4','Straight','Straight Flush'].includes(handName);
-  if (hasBonus('long_road') && isRun) mult += 2 * cells.length;
+  if (hasBonus('long_road') && isRun) mult += BAL.long_road.mult_per_card * cells.length;
   if (handName === 'Flush') {
-    if (hasBonus('tidal_force')) mult += 4;
+    if (hasBonus('tidal_force')) mult += BAL.tidal_force.mult;
   }
   if (handName === 'Four of a Kind') {
-    if (hasBonus('rare_bloom')) mult += 12;
+    if (hasBonus('rare_bloom')) mult += BAL.rare_bloom.mult;
   }
-  if (handName === 'Two Pair' && hasBonus('two_pair_mult')) mult += 10;
-  if (handName === 'High Card' && hasBonus('high_card_mult')) mult += level * 2;
+  if (handName === 'Two Pair' && hasBonus('two_pair_mult')) mult += BAL.two_pair_mult.mult;
+  if (handName === 'High Card' && hasBonus('high_card_mult')) mult += level * BAL.high_card_mult.mult_per_level;
 
-  // Row/col +2 mult per affected card
+  // Row/col mult per affected card
   cells.forEach(([r, c]) => {
     const matches = rowColBonuses.filter(b => b.id === 'rowcol_mult' && ((b.axis === 'row' && b.index === r) || (b.axis === 'col' && b.index === c)));
-    mult += matches.length * 2;
+    mult += matches.length * BAL.rowcol_mult.mult_per_card;
   });
 
   // Shape: straight line — add first + last card pip values to mult
@@ -4429,17 +4542,17 @@ function calcScore(handName, cells) {
     mult += firstPips + lastPips;
   }
 
-  // Shape: snake — +2 mult per card
-  if (hasBonus('shape_snake') && isSnake(cells)) mult += cells.length * 2;
+  // Shape: snake — mult per card
+  if (hasBonus('shape_snake') && isSnake(cells)) mult += cells.length * BAL.shape_snake.mult_per_card;
 
   // Batch C — positional conditions
-  if (hasBonus('edge_pips') && isOnEdge(cells)) totalPips += cells.length * 15;
+  if (hasBonus('edge_pips') && isOnEdge(cells)) totalPips += cells.length * BAL.edge_pips.pips_per_card;
   const { rowSpan, colSpan } = spanStats(cells);
   if (hasBonus('wide_span_mult')) {
-    if (colSpan >= 4) mult += 24;
-    if (rowSpan >= 4) mult += 24;
-    mult += Math.max(0, colSpan - 1) * 5;
-    totalPips += Math.max(0, rowSpan - 1) * 20;
+    if (colSpan >= 4) mult += BAL.wide_span_mult.col_mult;
+    if (rowSpan >= 4) mult += BAL.wide_span_mult.row_mult;
+    mult += Math.max(0, colSpan - 1) * BAL.wide_span_mult.per_extra_col_mult;
+    totalPips += Math.max(0, rowSpan - 1) * BAL.wide_span_mult.per_extra_row_pips;
   }
 
   // Perm mult
@@ -4447,9 +4560,9 @@ function calcScore(handName, cells) {
     mult += (permMult[cardKey(card.rank, card.suit)] || 0);
   });
 
-  // ♥ Hearts → +0.5 mult each (+1 with Devoted)
+  // ♥ Hearts → mult each (more with Devoted)
   const heartCount = cards.filter(c => c.suit === '♥' || (c.combined && c.suit2 === '♥')).length;
-  mult += heartCount * (hasBonus('heart_double') ? 1 : 0.5);
+  mult += heartCount * (hasBonus('heart_double') ? BAL.heart_double.heart_mult : BAL._suit_defaults.heart_mult);
 
   // Exalt / Corrupt — pip & mult contributions (coins & time applied in playHand)
   const _ec = exaltCorruptTotals(cards);
@@ -4457,8 +4570,8 @@ function calcScore(handName, cells) {
   mult += _ec.mult;
   if (mult < 1) mult = 1; // corruption can't drop mult below 1
 
-  // Trinity Run: +9 mult for runs with 3/6/9
-  if (hasBonus('threes_run') && hasTrinityRank) mult += 9;
+  // Trinity Run: +mult for runs with 3/6/9
+  if (hasBonus('threes_run') && hasTrinityRank) mult += BAL.threes_run.mult;
 
   // Cloud Nine: accumulated mult from forgotten 9s
   if (hasBonus('nines_mult')) mult += bonusMult_nines;
@@ -4472,8 +4585,8 @@ function calcScore(handName, cells) {
   // Apply focus multiplier (multiplies the final mult; no effect below threshold of 10 nodes)
   const fMult = focusMultiplier();
   // Flow State: +10 pips per card scored while focus mult >= 1.5
-  if (hasBonus('flow_state') && fMult >= 1.5) {
-    totalPips += 10 * cards.length;
+  if (hasBonus('flow_state') && fMult >= BAL.flow_state.focus_threshold) {
+    totalPips += BAL.flow_state.pips_per_card * cards.length;
   }
   if (fMult > 1) {
     mult = Math.round(mult * fMult * 10) / 10;
@@ -4485,39 +4598,39 @@ function calcScore(handName, cells) {
   let s = totalPips * mult;
 
   // 4. ×score multipliers
-  if (handName === 'Sandwich' && hasBonus('rye_bread')) s *= 2;
-  if (hasBonus('echo_hand') && streakCount >= 2) s *= 1.5;
-  if (handName === 'Full House' && hasBonus('full_house_streak') && fullHouseThisRound > 0) s *= Math.pow(1.5, fullHouseThisRound);
-  // Blackjack: raw face values total exactly 21
+  if (handName === 'Sandwich' && hasBonus('rye_bread')) s *= BAL.rye_bread.score_mult;
+  if (hasBonus('echo_hand') && streakCount >= 2) s *= BAL.echo_hand.score_mult;
+  if (handName === 'Full House' && hasBonus('full_house_streak') && fullHouseThisRound > 0) s *= Math.pow(BAL.full_house_streak.score_base, fullHouseThisRound);
+  // Blackjack: raw face values total exactly target
   if (hasBonus('blackjack_bonus')) {
     const faceTotal = cards.reduce((sum, c) => {
       const v = c.rank === 'A' ? 11 : ['J','Q','K'].includes(c.rank) ? 10 : parseInt(c.rank);
       return sum + (isNaN(v) ? 0 : v);
     }, 0);
-    if (faceTotal === 21) s *= 3;
+    if (faceTotal === BAL.blackjack_bonus.target) s *= BAL.blackjack_bonus.score_mult;
   }
-  if (handName === 'Run of 3' && hasBonus('ancient_grove')) s *= 2;
-  if (handName === 'Three of a Kind' && hasBonus('trinity')) s *= 2;
+  if (handName === 'Run of 3' && hasBonus('ancient_grove')) s *= BAL.ancient_grove.score_mult;
+  if (handName === 'Three of a Kind' && hasBonus('trinity')) s *= BAL.trinity.score_mult;
   if (hasBonus('double_bloom')) {
     const ranks = cards.map(c => c.rank);
     const hasPair = ranks.some(r => ranks.filter(x => x === r).length >= 2);
-    if (hasPair) s *= 2;
+    if (hasPair) s *= BAL.double_bloom.score_mult;
   }
-  if (handName === 'Straight' && hasBonus('river_run')) s *= 2;
+  if (handName === 'Straight' && hasBonus('river_run')) s *= BAL.river_run.score_mult;
   if (['Run of 4','Straight','Straight Flush'].includes(handName) && hasBonus('torrent')) {
-    s *= (handName === 'Run of 4') ? 2 : 4;
+    s *= (handName === 'Run of 4') ? BAL.torrent.run4_mult : BAL.torrent.big_mult;
   }
-  if (handName === 'Flush' && hasBonus('deluge')) s *= 2;
-  if (handName === 'Straight Flush' && hasBonus('perfect_storm')) s *= 5;
-  if (handName === 'Four of a Kind' && hasBonus('extinction')) s *= 2;
-  if (hasBonus('lucky_sevens') && cards.some(c=>c.rank==='7')) s *= 2;
-  if (hasBonus('ninesong') && totalPips % 9 === 0) s *= 3;
-  if (pipeTimerPaused && hasBonus('frozen_moment')) s *= 2;
+  if (handName === 'Flush' && hasBonus('deluge')) s *= BAL.deluge.score_mult;
+  if (handName === 'Straight Flush' && hasBonus('perfect_storm')) s *= BAL.perfect_storm.score_mult;
+  if (handName === 'Four of a Kind' && hasBonus('extinction')) s *= BAL.extinction.score_mult;
+  if (hasBonus('lucky_sevens') && cards.some(c=>c.rank==='7')) s *= BAL.lucky_sevens.score_mult;
+  if (hasBonus('ninesong') && totalPips % 9 === 0) s *= BAL.ninesong.score_mult;
+  if (pipeTimerPaused && hasBonus('frozen_moment')) s *= BAL.frozen_moment.score_mult;
   // ── Shape bonuses ──
-  if (hasBonus('shape_square') && isSquare(cells)) s *= 4;
-  if (hasBonus('shape_cross')  && isCross(cells))  s *= 3;
-  if (hasBonus('two_corners')  && cornerCells(cells).length >= 2) s *= 4;
-  if (hasBonus('correct_run') && isRun && canBeOrderedRun(cells)) s *= 2;
+  if (hasBonus('shape_square') && isSquare(cells)) s *= BAL.shape_square.score_mult;
+  if (hasBonus('shape_cross')  && isCross(cells))  s *= BAL.shape_cross.score_mult;
+  if (hasBonus('two_corners')  && cornerCells(cells).length >= 2) s *= BAL.two_corners.score_mult;
+  if (hasBonus('correct_run') && isRun && canBeOrderedRun(cells)) s *= BAL.correct_run.score_mult;
   if (hasBonus('shape_snake')  && isSnake(cells))  { /* mult added above */ }
 
   if (hasBonusCard) s *= 2;
@@ -5355,13 +5468,13 @@ function doSwap(r1, c1, r2, c2) {
   gridData[r1][c1] = gridData[r2][c2];
   gridData[r2][c2] = tmp;
 
-  // Pivot: buff both swapped (non-joker) cards with +5 permanent mult
+  // Pivot: buff both swapped (non-joker) cards with permanent mult
   if (isPivotSwap) {
     [[r1,c1],[r2,c2]].forEach(([r,c]) => {
       const card = gridData[r][c];
       if (card && !card._isJoker && card.rank) {
         const k = cardKey(card.rank, card.suit);
-        permMult[k] = (permMult[k] || 0) + 5;
+        permMult[k] = (permMult[k] || 0) + BAL.pivot.mult;
       }
     });
   }
@@ -5369,10 +5482,10 @@ function doSwap(r1, c1, r2, c2) {
   // Swap charge — skipped on a free swap; Steady Hand bypasses the limit
   if (!hasTotem('steady_hand') && !freeThisSwap) swaps--;
   if (jokerFreeSwapPending) jokerFreeSwapPending = false;
-  // Swap time cost — 10s default, 0s when free/Free Swaps, 20s with Steady Hand
-  let swapTimeCost = 10;
+  // Swap time cost — default, 0s when free/Free Swaps, steady_hand override
+  let swapTimeCost = BAL._resources.swap_seconds;
   if (freeThisSwap || hasTotem('free_swaps')) swapTimeCost = 0;
-  else if (hasTotem('steady_hand')) swapTimeCost = 20;
+  else if (hasTotem('steady_hand')) swapTimeCost = BAL.steady_hand.swap_seconds;
   if (swapTimeCost > 0) {
     roundSeconds = Math.max(1, roundSeconds - swapTimeCost);
     showTimeCost(`-${swapTimeCost}s`);
@@ -5683,8 +5796,8 @@ function playHand() {
   if (bossActive) checkBossObjective(hand, finalScore);
 
   // Lucky Seven totem: every 7th hand grants +1 swap
-  if (hasTotem('lucky_seven') && handsPlayed % 7 === 0) {
-    swaps = Math.min(99, swaps + 1);
+  if (hasTotem('lucky_seven') && handsPlayed % BAL.lucky_seven.interval_hands === 0) {
+    swaps = Math.min(99, swaps + BAL.lucky_seven.swaps);
     showMessage('🎯 LUCKY SEVEN — +1 SWAP', '#c9a84c');
   }
   if (finalScore > highestHandScore) { highestHandScore = finalScore; highestHandName = hand; }
@@ -5769,8 +5882,8 @@ function playHand() {
   }
   resetFocusDecayTimer();
 
-  // ── 5-second hand cost (manual plays only) ──
-  roundSeconds = Math.max(0, roundSeconds - 5);
+  // ── hand play time cost (manual plays only) ──
+  roundSeconds = Math.max(0, roundSeconds - BAL._resources.hand_play_seconds);
   updateClockUI();
 
   // Streak tracking
@@ -5798,17 +5911,17 @@ function playHand() {
   lastHandTime = now;
 
   // Timer pause bonuses
-  if (hasBonus('deep_breath') && hand === 'Run of 3') pauseRound(3);
-  if (hasBonus('stale') && hand === 'Sandwich') pauseRound(2);
-  if (hasBonus('long_pause') && result.handCells.length === 4) pauseRound(4);
-  if (hasBonus('held_breath')) pauseRound(1);
+  if (hasBonus('deep_breath') && hand === 'Run of 3') pauseRound(BAL.deep_breath.pause_seconds);
+  if (hasBonus('stale') && hand === 'Sandwich') pauseRound(BAL.stale.pause_seconds);
+  if (hasBonus('long_pause') && result.handCells.length === 4) pauseRound(BAL.long_pause.pause_seconds);
+  if (hasBonus('held_breath')) pauseRound(BAL.held_breath.pause_seconds);
 
   // First hand this round
   if (firstHandThisRound) {
     if (hasBonus('first_fruits')) {
       handCells.forEach(([r,c]) => {
         const k = cardKey(gridData[r][c].rank, gridData[r][c].suit);
-        permPips[k] = (permPips[k]||0) + 2;
+        permPips[k] = (permPips[k]||0) + BAL.first_fruits.pips;
       });
     }
     firstHandThisRound = false;
@@ -5818,8 +5931,8 @@ function playHand() {
   const _hwR = Math.floor(gridRows / 2), _hwC = Math.floor(gridCols / 2);
   if (hasBonus('heartwood') && handCells.some(([r,c])=>r===_hwR&&c===_hwC)) {
     const k = cardKey(gridData[_hwR][_hwC].rank, gridData[_hwR][_hwC].suit);
-    permPips[k] = (permPips[k]||0) + 5;
-    permMult[k] = (permMult[k]||0) + 1;
+    permPips[k] = (permPips[k]||0) + BAL.heartwood.pips;
+    permMult[k] = (permMult[k]||0) + BAL.heartwood.mult;
   }
 
   // ── Suit effects (applied per scoring card) ──
@@ -5827,12 +5940,12 @@ function playHand() {
 
   // ♦ Diamonds → +1 coin each (+2 with Appraised)
   const diamondCoins = scoringCards.filter(c => c.suit === '♦' || (c.combined && c.suit2 === '♦')).length;
-  const coinPerDiamond = hasBonus('diamond_double') ? 2 : 1;
+  const coinPerDiamond = hasBonus('diamond_double') ? BAL.diamond_double.diamond_coins : BAL._suit_defaults.diamond_coins;
   if (diamondCoins > 0) { coins += diamondCoins * coinPerDiamond; updateCoinsUI(); }
 
-  // ♠ Spades → +1s each (+2s with Sharp Edge)
+  // ♠ Spades → seconds each (more with Sharp Edge)
   const spadeCount = scoringCards.filter(c => c.suit === '♠' || (c.combined && c.suit2 === '♠')).length;
-  const secsPerSpade = hasBonus('spade_double') ? 2 : 1;
+  const secsPerSpade = hasBonus('spade_double') ? BAL.spade_double.spade_seconds : BAL._suit_defaults.spade_seconds;
   if (spadeCount > 0) {
     roundSeconds = Math.min(roundSeconds + spadeCount * secsPerSpade, ROUND_DURATION);
     updateClockUI();
@@ -5866,23 +5979,23 @@ function playHand() {
     });
   }
 
-  // Sixes swap: gain +1 swap per 6 scored
+  // Sixes swap: gain swaps per 6 scored
   if (hasBonus('sixes_swap')) {
     const sixCount = scoringCards.filter(c => c.rank === '6').length;
-    if (sixCount > 0) { swaps += sixCount; render(); }
+    if (sixCount > 0) { swaps += sixCount * BAL.sixes_swap.swaps_per_six; render(); }
   }
 
   // Penny Saved: 5s scored also count
   if (hasBonus('fives_discard')) {
     const fivesPlayed = scoringCards.filter(c => c.rank === '5').length;
-    bonusMult_fives += fivesPlayed * 5;
+    bonusMult_fives += fivesPlayed * BAL.fives_discard.pips_per_five;
   }
 
-  // Cloud Nine: each 9 scored is forgotten, adds +9 to bonus mult
+  // Cloud Nine: each 9 scored is forgotten, adds to bonus mult
   if (hasBonus('nines_mult')) {
     scoringCards.forEach(card => {
       if (card.rank === '9') {
-        bonusMult_nines += 9;
+        bonusMult_nines += BAL.nines_mult.mult_per_nine;
         // Remove this specific card from future/past decks
         let removed = false;
         drawPile = drawPile.filter(c => {
@@ -5898,19 +6011,19 @@ function playHand() {
     });
   }
 
-  // Fours perm: 4-card hand permanently gives 4th card +4 pips
+  // Fours perm: 4-card hand permanently gives 4th card +pips
   if (hasBonus('fours_perm') && result.handCells.length === 4) {
     const fourthCell = result.handCells[3];
     const k = cardKey(gridData[fourthCell[0]][fourthCell[1]].rank, gridData[fourthCell[0]][fourthCell[1]].suit);
-    permPips[k] = (permPips[k] || 0) + 4;
+    permPips[k] = (permPips[k] || 0) + BAL.fours_perm.pips;
   }
 
   // Track cards scored for Lucky Roll (sixes_perm)
   if (hasBonus('sixes_perm')) {
     scoringCards.forEach(card => {
       cardsScoredTotal++;
-      if (cardsScoredTotal % 6 === 0) {
-        const roll = Math.floor(Math.random() * 6) + 1;
+      if (cardsScoredTotal % BAL.sixes_perm.interval === 0) {
+        const roll = Math.floor(Math.random() * (BAL.sixes_perm.roll_max - BAL.sixes_perm.roll_min + 1)) + BAL.sixes_perm.roll_min;
         const k = cardKey(card.rank, card.suit);
         permMult[k] = (permMult[k] || 0) + roll;
       }
@@ -6702,10 +6815,10 @@ function doDiscard() {
   selected.forEach(([r,c]) => { if (gridData[r]?.[c]) discardToDrawPile(gridData[r][c]); });
   // Hoarder: discards don't count against limit (but cost 2× time below)
   if (!hasTotem('hoarder')) discards--;
-  // Discard time cost — 3s/card default, 0s with Free Discards, 6s/card with Hoarder
-  let perCardCost = 3;
+  // Discard time cost — default/card, 0s with Free Discards, hoarder override
+  let perCardCost = BAL._resources.discard_seconds_per_card;
   if (hasTotem('free_discards')) perCardCost = 0;
-  else if (hasTotem('hoarder')) perCardCost = 6;
+  else if (hasTotem('hoarder')) perCardCost = BAL.hoarder.discard_seconds_per_card;
   const timeCost = discardedCards.length * perCardCost;
   if (timeCost > 0) {
     roundSeconds = Math.max(1, roundSeconds - timeCost);
@@ -6716,16 +6829,16 @@ function doDiscard() {
   const count = discardedCards.length;
   cardsDiscardedTotal += count;
   cardsDiscardedRound += count;
-  // Penny Saved: each 5 discarded adds +5 pips to bonus
+  // Penny Saved: each 5 discarded adds pips to bonus
   if (hasBonus('fives_discard')) {
     const fivesCount = discardedCards.filter(c => c.rank === '5').length;
-    bonusMult_fives += fivesCount * 5;
+    bonusMult_fives += fivesCount * BAL.fives_discard.pips_per_five;
   }
-  // Perfect Ten: every 10 total discards adds +1 mult
+  // Perfect Ten: every N total discards adds mult
   if (hasBonus('tens_mult')) {
-    const prevTens = Math.floor((cardsDiscardedTotal - count) / 10);
-    const newTens  = Math.floor(cardsDiscardedTotal / 10);
-    bonusMult_tens += (newTens - prevTens);
+    const prevTens = Math.floor((cardsDiscardedTotal - count) / BAL.tens_mult.discards_per_milestone);
+    const newTens  = Math.floor(cardsDiscardedTotal / BAL.tens_mult.discards_per_milestone);
+    bonusMult_tens += (newTens - prevTens) * BAL.tens_mult.mult_per_milestone;
   }
   sfxFlipShuffle();
   resetFocusDecayTimer();
@@ -9435,7 +9548,7 @@ async function showPayoutUI() {
   // Idol: triple interest if still on the board at round end (consumes one charge)
   let interestMult = 1;
   if (hasJokerOnGrid('idol')) {
-    interestMult = 3;
+    interestMult = BAL.idol.interest_mult;
     for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
       const card = gridData[r]?.[c];
       if (card?._isJoker && card.jokerId === 'idol') { consumeJokerCharge(card, r, c); }
@@ -9808,9 +9921,9 @@ function triggerLevelUp() {
   roundSeconds = Math.min(99, baseSeconds  + accumulatedSeconds);
 
   // ── Totem effects at round start ──
-  if (hasTotem('time_bank'))   roundSeconds = Math.min(99, roundSeconds + 30);
-  if (hasTotem('inheritance')) { coins += 5; updateCoinsUI(); }
-  if (hasTotem('head_start'))  score += Math.round(roundGoal * 0.10);
+  if (hasTotem('time_bank'))   roundSeconds = Math.min(99, roundSeconds + BAL.time_bank.seconds);
+  if (hasTotem('inheritance')) { coins += BAL.inheritance.coins; updateCoinsUI(); }
+  if (hasTotem('head_start'))  score += Math.round(roundGoal * BAL.head_start.goal_fraction);
   // Reset Combo Keeper state each round (totem starts each round armed)
   streakSaveArmed = true;
   streakSaveProgress = 0;
@@ -9846,12 +9959,12 @@ function triggerLevelUp() {
 
   // Sapling bonus — give perm pips to 3 random cards
   if (hasBonus('sapling')) {
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < BAL.sapling.cards; i++) {
       const r = Math.floor(Math.random() * gridRows), c = Math.floor(Math.random() * gridCols);
       const card = gridData[r]?.[c];
       if (card && !card._isBC && card.rank) {
         const k = cardKey(card.rank, card.suit);
-        permPips[k] = (permPips[k]||0) + 2;
+        permPips[k] = (permPips[k]||0) + BAL.sapling.pips;
       }
     }
   }

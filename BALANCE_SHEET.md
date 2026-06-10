@@ -4,17 +4,26 @@
 Bonus Cards, Jokers, and Totems — in one place, ready to open in Excel or
 Google Sheets and sort/filter for a balance sweep.
 
-## How it's made
+## The round-trip (edit numbers → game updates)
 
-It's generated from the live game code so it never drifts out of date. After
-you add or change entities in `index.html`, regenerate it with:
+The tunable numbers live in one place in the code: a `BAL` config object in
+`index.html`. The sheet round-trips with it:
 
 ```
-node tools/gen_balance_sheet.js
+node tools/gen_balance_sheet.js     # code  → sheet   (refresh the CSV)
+# ...edit the params_json column in Excel / Google Sheets, save as CSV...
+node tools/apply_balance_sheet.js   # sheet → code    (writes values into BAL)
 ```
 
-That re-reads the three pools (`BONUS_POOL`, `TOTEM_POOL`, `JOKER_POOL`) and
-rewrites the CSV.
+After `apply`, validate and commit `index.html` as usual:
+
+```
+node -e "const h=require('fs').readFileSync('index.html','utf8');new Function(h.match(/<script>([\s\S]*)<\/script>/)[1]);console.log('OK')"
+```
+
+`gen` re-reads the three pools (`BONUS_POOL`, `TOTEM_POOL`, `JOKER_POOL`) plus
+`BAL`, so it never drifts. `apply` only rewrites values inside the `BAL` block,
+preserving its order and comments, and prints every `old → new` change.
 
 ## The columns
 
@@ -24,6 +33,7 @@ rewrites the CSV.
 | `id` | internal code id (don't change) |
 | `name` | display name |
 | `rarity` | common / rare / legendary (blank for totems) |
+| `params_json` | **the tunable numbers** — e.g. `{"mult":1}` or `{"pips":5,"mult":1}`. Edit the number(s) inside; `apply` writes them into the game. Blank = a structural entity with no single tunable number (see `notes`). |
 | `base_cost` | **suggested** starting cost by rarity (3/6/9). Edit freely — this is a sweep input, not read by the game yet. |
 | `buff_type` | the main effect: pips, mult, score-multiplier, retrigger, focus, time, coins, resource, wildcard, exalt/corrupt, boss, challenge, utility |
 | `trigger` | what makes it fire: spatial, hand-type, hand-size, card-specific, suit-specific, streak, time-based, on-swap, on-discard, on_play, passive, etc. |
@@ -34,13 +44,22 @@ rewrites the CSV.
 | `description` | the in-game text **— this is where the actual numbers live today** |
 | `notes` | flags like "needsResolve / TBD" |
 
-## Important: editing the sheet does NOT change the game (yet)
+## What's tunable vs structural
 
-The real numeric values are baked into the description text and the scoring
-functions (`calcScore`, `applyJokerGridEffect`) in `index.html`, not stored as
-editable data. So this sheet is for **planning** the sweep — decide the new
-numbers here, and then we apply them back into the code.
+Most entities expose their numbers in `params_json`. Some are **structural** —
+their behavior has no single number to tune (wild jokers, shape-detection
+geometry like Four Corners, rank-shifting like Royal Favour, and the retrigger
+plumbing). Those have a blank `params_json` and a `notes` of
+"structural — no tunable value". Changing those means changing logic, not a
+number — ask and I'll do it.
 
-If you want a true round-trip (edit a number in the sheet → game updates), the
-next step is to refactor each entity so its numbers live in the data
-definitions, then have the game read those. Ask and I'll scope that out.
+`description` text is **not** auto-synced to the numbers. If you change, say,
+Deep Roots from +1 to +3 mult, update its description too (or ask me to make
+descriptions auto-generate from `BAL`).
+
+## System rows
+
+A few rows have `entity_type = System`: the default per-suit effects
+(`_suit_defaults`), the exalt/corrupt suit tables (`_exalt` / `_corrupt`), and
+base time costs (`_resources`). These are prime balance-sweep targets and
+round-trip exactly like the entities.
