@@ -43,7 +43,7 @@ Bonus Card,before_the_tide,Before the Tide,"{""extra_mult"":5}",legendary,12,sco
 Bonus Card,royal_trio,Royal Trio,"{""score_mult"":2}",epic,9,score-multiplier,always / passive,,,,,,,,,,,,,,,,"A hand containing K, Q, and J scores ×2",
 Bonus Card,rich_soil,Rich Soil,"{""pips"":2}",common,3,pips,always / passive,,,,,,,,,,,,,,,,All cards score +2 pips,
 Bonus Card,fertile_ground,Fertile Ground,"{""pips"":3}",rare,6,pips,always / passive,,,,,,,,,,,,,,,,All cards score +3 pips,
-Bonus Card,first_fruits,First Fruits,,rare,6,pips,hand-size,,,,,,,,,,,,,1,,,Each card in first hand each round permanently gains +2 pips,structural — no tunable value
+Bonus Card,first_fruits,First Fruits,"{""pips"":2}",rare,6,pips,hand-size,,,,,,,,,,,,,1,,,Each card in first hand each round permanently gains +2 pips,
 Bonus Card,sapling,Sapling,,rare,6,pips,always / passive,,,,,,,,,,,,,1,,,"Each level, 3 cards permanently gain +2 pips",structural — no tunable value
 Bonus Card,early_bird,Early Bird,"{""pips"":20}",common,3,pips,time-based,,,,,,,,1,,,,,,,,Hands in first 10s score +20 pips,
 Bonus Card,night_owl,Night Owl,"{""mult"":3}",common,3,mult,time-based,,,,,,,,1,,,,,,,,Hands in last 10s score +3 mult,
@@ -87,17 +87,17 @@ Bonus Card,column_rush,Column Rush,"{""mult_per_card"":2}",common,3,mult,spatial
 Bonus Card,row_power,Row Power,"{""mult_per_card"":2}",common,3,mult,spatial,,,,,1,,,,,,,,,,,All cards in the same row add +2 mult per card,
 Bonus Card,rising_tide,Rising Tide,,common,3,mult,always / passive,,,,,,,,,,,,,1,,,Base mult increases by +1 for each level reached,structural — no tunable value
 Bonus Card,veteran_bonus,Veteran,"{""pips_per_level"":2}",common,3,pips,always / passive,,,,,,,,,,,,,,,,+2 pips per level reached this run,
-Bonus Card,compound_mult,Compound,,epic,9,mult,always / passive,,,,,,,,,,,1,,1,,,Each hand played permanently adds +0.1 mult to this bonus,structural — no tunable value
-Bonus Card,prolific,Prolific,,rare,6,pips,always / passive,,,,,,,,,,,1,,1,,,Each hand played permanently adds +1 pip to this bonus,structural — no tunable value
-Bonus Card,fives_discard,Penny Saved,,rare,6,pips,on-discard,,,,,,1,,,,1,,,1,,scaling pips value,Each 5 discarded or played permanently adds +5 pips to this bonus,structural — no tunable value
-Bonus Card,nines_mult,Cloud Nine,,rare,6,mult,always / passive,,,,,,1,,,,,,,1,,scaling mult value,Each 9 scored permanently adds +9 mult to this bonus,structural — no tunable value
-Bonus Card,tens_mult,Perfect Ten,,rare,6,mult,on-discard,,,,,,1,,,,1,,,1,,scaling mult value,Every 10 cards discarded permanently adds +1 mult to this bonus,structural — no tunable value
-Bonus Card,sixes_perm,Lucky Roll,,rare,6,mult,always / passive,,,,,,1,,,,,,,1,,scaling mult value,Every 6th card scored gains a random +1–6 mult permanently,structural — no tunable value
-Bonus Card,fours_perm,Steady Fours,,common,3,pips,hand-size,,,,1,,1,,,,,,,1,,scaling pips value,4-card hands permanently give the 4th card +4 pips,structural — no tunable value
+Bonus Card,compound_mult,Compound,"{""mult_per_hand"":0.1}",epic,9,mult,always / passive,,,,,,,,,,,1,,1,,,Each hand played permanently adds +0.1 mult to this bonus,
+Bonus Card,prolific,Prolific,"{""pips_per_hand"":1}",rare,6,pips,always / passive,,,,,,,,,,,1,,1,,,Each hand played permanently adds +1 pip to this bonus,
+Bonus Card,fives_discard,Penny Saved,"{""pips_per_five"":5}",rare,6,pips,on-discard,,,,,,1,,,,1,,,1,,scaling pips value,Each 5 discarded or played permanently adds +5 pips to this bonus,
+Bonus Card,nines_mult,Cloud Nine,"{""mult_per_nine"":9}",rare,6,mult,always / passive,,,,,,1,,,,,,,1,,scaling mult value,Each 9 scored permanently adds +9 mult to this bonus,
+Bonus Card,tens_mult,Perfect Ten,"{""mult_per_milestone"":1,""discards_per_milestone"":10}",rare,6,mult,on-discard,,,,,,1,,,,1,,,1,,scaling mult value,Every 10 cards discarded permanently adds +1 mult to this bonus,
+Bonus Card,sixes_perm,Lucky Roll,"{""roll_min"":1,""roll_max"":6,""interval"":6}",rare,6,mult,always / passive,,,,,,1,,,,,,,1,,scaling mult value,Every 6th card scored gains a random +1–6 mult permanently,
+Bonus Card,fours_perm,Steady Fours,"{""pips"":4}",common,3,pips,hand-size,,,,1,,1,,,,,,,1,,scaling pips value,4-card hands permanently give the 4th card +4 pips,
 Bonus Card,twos_retrigger,Double Take,,common,3,retrigger,always / passive,,,,,,1,,,,,,,,1,retrigger value,Each 2 scored counts its pips twice,structural — no tunable value
 Bonus Card,eights_retrigger,Octave,,common,3,retrigger,always / passive,,,,,,1,,,,,,,,1,retrigger value,Each 8 scored counts its pips twice,structural — no tunable value
-Bonus Card,snowball,Snowball,,epic,9,pips,always / passive,,,,,,,,,,,,,1,,,"After any hand scoring 500+ pips, each scored card permanently gains +2 pips",structural — no tunable value
-Bonus Card,big_win,Jackpot,,legendary,12,mult,always / passive,,,,,,,,,,,,,1,,,"The first time a single hand scores 10,000+, permanently add +5 mult to this bonus",structural — no tunable value
+Bonus Card,snowball,Snowball,"{""pips"":2,""score_threshold"":500}",epic,9,pips,always / passive,,,,,,,,,,,,,1,,,"After any hand scoring 500+ pips, each scored card permanently gains +2 pips",
+Bonus Card,big_win,Jackpot,"{""mult"":5,""score_threshold"":10000}",legendary,12,mult,always / passive,,,,,,,,,,,,,1,,,"The first time a single hand scores 10,000+, permanently add +5 mult to this bonus",
 Bonus Card,queens_upgrade,Royal Favour,,epic,9,utility,spatial,,,,,1,1,,,,,,,1,,scaling grid value,"After scoring, cards adjacent to Queens permanently gain +1 rank",structural — no tunable value
 Bonus Card,aces_absorb,Ace Absorb,,legendary,12,utility,spatial,,,,,1,1,,,,,1,,1,,scaling value,"When an Ace scores, one random adjacent card is forgotten and its bonuses added to the Ace (once per hand)",structural — no tunable value
 Bonus Card,sands_of_time,Sands of Time,"{""divisor"":2}",rare,6,score-multiplier,time-based,,,,,,,,,,,,,,,,Current round time remaining ÷ 2 added as pips,
@@ -115,45 +115,46 @@ Bonus Card,cull,Cull,,common,3,focus,on-discard,,,,,,,,,,1,,1,,,focus,Using a di
 Bonus Card,expanse,Expanse,,common,3,focus,always / passive,,,,,,,,,,,,1,,,focus,"Each time you hit max focus, increase max focus capacity by 1",structural — no tunable value
 Bonus Card,kaleidoscope,Kaleidoscope,,rare,6,focus,suit-specific,,,,,,,,,,,,1,,,focus,Playing one of each suit in a hand adds 4 focus,structural — no tunable value
 Bonus Card,flow_state,Flow State,"{""pips_per_card"":10}",rare,6,score-multiplier,always / passive,,,,,,,,,,,,1,,,focus pips,"While focus is ×1.5 or higher, +10 pips per card scored",
-Bonus Card,heartwood,Heartwood,,epic,9,mult,spatial,,,,,1,,,,,,,,1,,,Dead center card permanently gains +5 pips & +1 mult each time scored,structural — no tunable value
+Bonus Card,heartwood,Heartwood,"{""pips"":5,""mult"":1}",epic,9,mult,spatial,,,,,1,,,,,,,,1,,,Dead center card permanently gains +5 pips & +1 mult each time scored,
 Joker,the_queen,The Queen,,legendary,12,wildcard,card-specific,wildcard,infinite,,,,1,,,,,,,,1,wildrank scoring,Wild rank — becomes the rank that makes the best hand. (Reach + queen-retrigger: TBD),structural — no tunable value; needsResolve / TBD
 Joker,warehouse,Warehouse,,rare,6,wildcard,suit-specific,wildcard,infinite,1,,,,1,,,,,,,,wildsuit suit,Wild suit — becomes any suit to complete a flush. Has no rank.,structural — no tunable value
 Joker,good_friend,The Good Friend,,rare,6,exalt/corrupt,spatial,on_play,3,,,1,,,,,,,,,,exalt position,Play it as part of a hand: exalts all adjacent cards. (3 charges),structural — no tunable value
 Joker,not_a_friend,Not a Friend,,rare,6,exalt/corrupt,spatial,on_discard,3,,,1,,,,,1,,,,,corrupt position,Discard it: corrupts all adjacent cards. (3 charges),structural — no tunable value
 Joker,shepherd,Shepherd,,common,3,exalt/corrupt,spatial,on_draw,infinite,,,1,,,,,,,,,,exalt,"When drawn onto the grid, exalts 1 random card.",structural — no tunable value
-Joker,idol,Idol,,rare,6,coins,round_end,round_end,1,,,,,,,1,,,,,,coins,Finish the round with this on your board to earn triple interest. (Once),structural — no tunable value
+Joker,idol,Idol,"{""interest_mult"":3}",rare,6,coins,round_end,round_end,1,,,,,,,1,,,,,,coins,Finish the round with this on your board to earn 3× interest. (Once),
 Joker,shortcut,Shortcut,,legendary,12,challenge,hand-size,on_play,1,,1,,,,,,,,,,,challenge,Play it in any 4-card hand to instantly complete the active challenge. (Once),structural — no tunable value
 Joker,fight_power,Fight the Power,,legendary,12,boss,spatial,passive,infinite,,,1,,,,,,,,,,boss,"While on the grid, all boss effects are ignored.",structural — no tunable value
 Joker,dazed,Dazed & Confused,,rare,6,resource,spatial,on_swap,infinite,,,1,,,,,1,,,,,grid,"When swapped, reshuffles every card on the grid.",structural — no tunable value
-Joker,pivot,Pivot!,,common,3,mult,on-swap,on_swap,3,,,,,,,,1,,,1,,resource scoring,"When swapped, that swap is free and both swapped cards gain +5 mult permanently. (3 charges)",structural — no tunable value
+Joker,pivot,Pivot!,"{""mult"":5}",common,3,mult,on-swap,on_swap,3,,,,,,,,1,,,1,,resource scoring,"When swapped, that swap is free and both swapped cards gain +5 mult permanently. (3 charges)",
 Joker,echo_play,Echo,,epic,9,utility,on_play,on_play,3,,,,,,,,,,,,,scoring,Play this in any hand: that hand scores twice. (3 charges),structural — no tunable value
-Joker,the_naturalist,Naturalist,,rare,6,pips,on_play,on_play,infinite,,,,,,,,,,,1,,scoring pips,Play this: each other scored card permanently gains +2 pips.,structural — no tunable value
-Joker,bellhop,Bellhop,,common,3,resource,on-swap,on_play,5,,,,,,,,1,,,,,resource,Play this: gain +2 swaps and +1 discard. (5 charges),structural — no tunable value
-Joker,the_bomb,Bomb,,epic,9,pips,spatial,on_discard,2,,,1,,,,,1,,,1,,scoring pips,Discard this: every card on the grid permanently gains +3 pips. (2 charges),structural — no tunable value
-Joker,the_legacy,Legacy,,rare,6,score-multiplier,on-discard,on_discard,3,,,,,,,,1,1,,,,scoring,Discard this: the next hand played scores ×3. (3 charges),structural — no tunable value
-Joker,cash_out,Cash Out,,common,3,coins,on-discard,on_discard,4,,,,,,,1,1,,,,,resource coins,Discard this: gain 10 coins. (4 charges),structural — no tunable value
-Joker,lightning_rod,Lightning Rod,,rare,6,pips,on-swap,on_swap,infinite,,,,,,,,1,,,1,,scoring pips,"When swapped, the card it traded with permanently gains +5 pips.",structural — no tunable value
-Joker,the_catalyst,Catalyst,,rare,6,mult,on-swap,on_swap,infinite,,,,,,,,1,,,1,,scoring mult,"When swapped, the card it traded with permanently gains +1 mult.",structural — no tunable value
-Joker,the_wanderer,Wanderer,,common,3,resource,on-swap,on_swap,infinite,,,,,,,,1,,,,,resource,"When swapped, refunds the swap (+1 swap back).",structural — no tunable value
-Joker,amplifier,Amplifier,,common,3,mult,double_tap,double_tap,5,,,,,,,,,,,,,scoring mult,Double-tap: the next hand scores +5 mult. (5 charges),structural — no tunable value
-Joker,time_keeper,Time Keeper,,common,3,resource,double_tap,double_tap,4,,,,,,1,,1,,,,,resource time,Double-tap: add +20 seconds to this round. (4 charges),structural — no tunable value
-Joker,piggy_bank,Piggy Bank,,common,3,coins,double_tap,double_tap,5,,,,,,,1,1,,,,,resource coins,Double-tap: gain 5 coins. (5 charges),structural — no tunable value
+Joker,the_naturalist,Naturalist,"{""pips"":2}",rare,6,pips,on_play,on_play,infinite,,,,,,,,,,,1,,scoring pips,Play this: each other scored card permanently gains +2 pips.,
+Joker,bellhop,Bellhop,"{""swaps"":2,""discards"":1}",common,3,resource,on-swap,on_play,5,,,,,,,,1,,,,,resource,Play this: gain +2 swaps and +1 discard. (5 charges),
+Joker,the_bomb,Bomb,"{""pips"":3}",epic,9,pips,spatial,on_discard,2,,,1,,,,,1,,,1,,scoring pips,Discard this: every card on the grid permanently gains +3 pips. (2 charges),
+Joker,the_legacy,Legacy,"{""extra_mult"":2}",rare,6,score-multiplier,on-discard,on_discard,3,,,,,,,,1,1,,,,scoring,Discard this: the next hand played scores ×3. (3 charges),
+Joker,cash_out,Cash Out,"{""coins"":10}",common,3,coins,on-discard,on_discard,4,,,,,,,1,1,,,,,resource coins,Discard this: gain 10 coins. (4 charges),
+Joker,lightning_rod,Lightning Rod,"{""pips"":5}",rare,6,pips,on-swap,on_swap,infinite,,,,,,,,1,,,1,,scoring pips,"When swapped, the card it traded with permanently gains +5 pips.",
+Joker,the_catalyst,Catalyst,"{""mult"":1}",rare,6,mult,on-swap,on_swap,infinite,,,,,,,,1,,,1,,scoring mult,"When swapped, the card it traded with permanently gains +1 mult.",
+Joker,the_wanderer,Wanderer,"{""swaps"":1}",common,3,resource,on-swap,on_swap,infinite,,,,,,,,1,,,,,resource,"When swapped, refunds the swap (+1 swap back).",
+Joker,amplifier,Amplifier,"{""mult"":5}",common,3,mult,double_tap,double_tap,5,,,,,,,,,,,,,scoring mult,Double-tap: the next hand scores +5 mult. (5 charges),
+Joker,time_keeper,Time Keeper,"{""seconds"":20}",common,3,resource,double_tap,double_tap,4,,,,,,1,,1,,,,,resource time,Double-tap: add +20 seconds to this round. (4 charges),
+Joker,piggy_bank,Piggy Bank,"{""coins"":5}",common,3,coins,double_tap,double_tap,5,,,,,,,1,1,,,,,resource coins,Double-tap: gain 5 coins. (5 charges),
 Totem,free_swaps,Free Swaps,,,,resource,on-swap,,persistent,,,,,,,,1,,,,,,Swapping cards costs no time.,structural — no tunable value
 Totem,free_discards,Free Discards,,,,resource,on-discard,,persistent,,,,,,,,1,,,,,,Discarding costs no time.,structural — no tunable value
-Totem,steady_hand,Steady Hand,,,,resource,on-swap,,persistent,,,,,,,,1,,,,,,"Swaps no longer count against the swap limit, but cost 2× time.",structural — no tunable value
-Totem,hoarder,Hoarder,,,,resource,on-discard,,persistent,,,,,,,,1,,,,,,"Discards no longer count against the discard limit, but cost 2× time.",structural — no tunable value
-Totem,time_bank,Time Bank,,,,time,time-based,,persistent,,,,,,1,,,,,,,,+30 seconds at the start of every round.,structural — no tunable value
-Totem,inheritance,Inheritance,,,,coins,time-based,,persistent,,,,,,,1,,,,,,,Start each round with +5 coins.,structural — no tunable value
+Totem,steady_hand,Steady Hand,"{""swap_seconds"":20}",,,resource,on-swap,,persistent,,,,,,,,1,,,,,,"Swaps no longer count against the swap limit, but cost 20s each.",
+Totem,hoarder,Hoarder,"{""discard_seconds_per_card"":6}",,,resource,on-discard,,persistent,,,,,,,,1,,,,,,"Discards no longer count against the discard limit, but cost 6s per card.",
+Totem,time_bank,Time Bank,"{""seconds"":30}",,,time,time-based,,persistent,,,,,,1,,,,,,,,+30 seconds at the start of every round.,
+Totem,inheritance,Inheritance,"{""coins"":5}",,,coins,time-based,,persistent,,,,,,,1,,,,,,,Start each round with +5 coins.,
 Totem,combo_keeper,Combo Keeper,,,,utility,streak,,persistent,,,,,,,,,,,1,,,Streaks survive one non-streak hand. Re-arms after 2 streak hands.,structural — no tunable value
-Totem,lucky_seven,Lucky Seven,,,,resource,on-swap,,persistent,,,,,,,,1,1,,,,,Every 7th hand played gives +1 swap.,structural — no tunable value
-Totem,extra_swaps,Swap Shop,,,,resource,on-swap,,persistent,,,,,,,,1,,,,,,Start each round with +2 extra swaps.,structural — no tunable value
-Totem,extra_discards,Harvest,,,,resource,on-discard,,persistent,,,,,,,,1,,,,,,Start each round with +2 extra discards.,structural — no tunable value
-Totem,carry_swaps,Pack Rat,,,,resource,on-swap,,persistent,,,,,,,,1,,,1,,,Unused swaps carry over to the next round (max 8).,structural — no tunable value
-Totem,carry_discards,Collector,,,,resource,on-discard,,persistent,,,,,,,,1,,,1,,,Unused discards carry over to the next round (max 8).,structural — no tunable value
-Totem,carry_time,Clock Tower,,,,time,always / passive,,persistent,,,,,,1,,,,,1,,,Unused round seconds carry over (max 60s).,structural — no tunable value
+Totem,lucky_seven,Lucky Seven,"{""interval_hands"":7,""swaps"":1}",,,resource,on-swap,,persistent,,,,,,,,1,1,,,,,Every 7th hand played gives +1 swap.,
+Totem,extra_swaps,Swap Shop,"{""swaps"":2}",,,resource,on-swap,,persistent,,,,,,,,1,,,,,,Start each round with +2 extra swaps.,
+Totem,extra_discards,Harvest,"{""discards"":2}",,,resource,on-discard,,persistent,,,,,,,,1,,,,,,Start each round with +2 extra discards.,
+Totem,carry_swaps,Pack Rat,"{""max"":8}",,,resource,on-swap,,persistent,,,,,,,,1,,,1,,,Unused swaps carry over to the next round (max 8).,
+Totem,carry_discards,Collector,"{""max"":8}",,,resource,on-discard,,persistent,,,,,,,,1,,,1,,,Unused discards carry over to the next round (max 8).,
+Totem,carry_time,Clock Tower,"{""max_seconds"":60}",,,time,always / passive,,persistent,,,,,,1,,,,,1,,,Unused round seconds carry over (max 60s).,
 Totem,safety_net,Safety Net,,,,utility,always / passive,,persistent,,,,,,1,,,,,,,,"Once per game: if you miss the round goal, gain a 30s extension instead of failing.",structural — no tunable value
 Totem,free_range_t,Free Range,,,,resource,spatial,,persistent,,,1,1,,,,1,,,,,,"Can swap any two non-adjacent cards, but limited to 2 swaps per round.",structural — no tunable value
 System,threes_run,threes run,"{""mult"":9}",,,,,,,,,,,,,,,,,,,,,
 System,extinction,extinction,"{""score_mult"":2}",,,,,,,,,,,,,,,,,,,,Four of a Kind ×score (not in current pool),
+System,_resources,resources,"{""swap_seconds"":10,""discard_seconds_per_card"":3}",,,,,,,,,,,,,,,,,,,,"Base time costs: swap, discard/card, hand play",
 System,_exalt,exalt,"{""club_pips"":10,""diamond_coins"":3,""heart_mult"":2,""spade_time"":4}",,,,,,,,,,,,,,,,,,,,Exalted-card per-suit effects,
 System,_corrupt,corrupt,"{""club_pips"":25,""club_mult"":-3,""diamond_coins"":5,""diamond_pips"":-20,""heart_mult"":5,""heart_time"":-5,""spade_time"":7,""spade_coins"":-8}",,,,,,,,,,,,,,,,,,,,Corrupted-card per-suit effects,

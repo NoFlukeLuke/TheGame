@@ -3430,7 +3430,7 @@
 </div>
 
 <script>
-const BUILD = '2026-06-10 · r46';
+const BUILD = '2026-06-10 · r47';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -4765,6 +4765,45 @@ const BAL = {
   shape_cross: { score_mult: 3 },
   two_corners: { score_mult: 4 },
   correct_run: { score_mult: 2 },
+  // ── play/round-side: accumulators & permanent gains ──
+  snowball: { pips: 2, score_threshold: 500 },
+  first_fruits: { pips: 2 },
+  heartwood: { pips: 5, mult: 1 },
+  fours_perm: { pips: 4 },
+  fives_discard: { pips_per_five: 5 },
+  nines_mult: { mult_per_nine: 9 },
+  tens_mult: { mult_per_milestone: 1, discards_per_milestone: 10 },
+  sixes_perm: { roll_min: 1, roll_max: 6, interval: 6 },
+  compound_mult: { mult_per_hand: 0.1 },
+  prolific: { pips_per_hand: 1 },
+  big_win: { mult: 5, score_threshold: 10000 },
+  // ── jokers ──
+  pivot: { mult: 5 },
+  idol: { interest_mult: 3 },
+  the_legacy: { extra_mult: 2 },
+  the_naturalist: { pips: 2 },
+  lightning_rod: { pips: 5 },
+  the_catalyst: { mult: 1 },
+  the_bomb: { pips: 3 },
+  bellhop: { swaps: 2, discards: 1 },
+  cash_out: { coins: 10 },
+  the_wanderer: { swaps: 1 },
+  amplifier: { mult: 5 },
+  time_keeper: { seconds: 20 },
+  piggy_bank: { coins: 5 },
+  // ── totems ──
+  time_bank: { seconds: 30 },
+  inheritance: { coins: 5 },
+  lucky_seven: { interval_hands: 7, swaps: 1 },
+  steady_hand: { swap_seconds: 20 },
+  hoarder: { discard_seconds_per_card: 6 },
+  extra_swaps: { swaps: 2 },
+  extra_discards: { discards: 2 },
+  carry_swaps: { max: 8 },
+  carry_discards: { max: 8 },
+  carry_time: { max_seconds: 60 },
+  // ── system: base resource time costs ──
+  _resources: { swap_seconds: 10, discard_seconds_per_card: 3 },
   _exalt: { club_pips: 10, diamond_coins: 3, heart_mult: 2, spade_time: 4 },
   _corrupt: { club_pips: 25, club_mult: -3, diamond_coins: 5, diamond_pips: -20, heart_mult: 5, heart_time: -5, spade_time: 7, spade_coins: -8 },
 };
@@ -4857,6 +4896,39 @@ const DESC_TEMPLATES = {
   odd_squad: 'Hands with only odd-ranked cards (A,3,5,7,9,J,K) score +{mult} mult',
   prime_time: 'Hands where all cards have prime pip values (2,3,5,7) score ×{score_mult}',
   last_stand: 'If your score is below the round goal when you play, that hand scores x{score_mult}.',
+  first_fruits: 'Each card in first hand each round permanently gains +{pips} pips',
+  compound_mult: 'Each hand played permanently adds +{mult_per_hand} mult to this bonus',
+  prolific: 'Each hand played permanently adds +{pips_per_hand} pip to this bonus',
+  tens_mult: 'Every {discards_per_milestone} cards discarded permanently adds +{mult_per_milestone} mult to this bonus',
+  snowball: 'After any hand scoring {score_threshold}+ pips, each scored card permanently gains +{pips} pips',
+  heartwood: 'Dead center card permanently gains +{pips} pips & +{mult} mult each time scored',
+  pivot: 'When swapped, that swap is free and both swapped cards gain +{mult} mult permanently. (3 charges)',
+  the_naturalist: 'Play this: each other scored card permanently gains +{pips} pips.',
+  bellhop: 'Play this: gain +{swaps} swaps and +{discards} discard. (5 charges)',
+  the_bomb: 'Discard this: every card on the grid permanently gains +{pips} pips. (2 charges)',
+  cash_out: 'Discard this: gain {coins} coins. (4 charges)',
+  lightning_rod: 'When swapped, the card it traded with permanently gains +{pips} pips.',
+  the_catalyst: 'When swapped, the card it traded with permanently gains +{mult} mult.',
+  the_wanderer: 'When swapped, refunds the swap (+{swaps} swap back).',
+  time_keeper: 'Double-tap: add +{seconds} seconds to this round. (4 charges)',
+  time_bank: '+{seconds} seconds at the start of every round.',
+  inheritance: 'Start each round with +{coins} coins.',
+  lucky_seven: 'Every {interval_hands}th hand played gives +{swaps} swap.',
+  extra_swaps: 'Start each round with +{swaps} extra swaps.',
+  extra_discards: 'Start each round with +{discards} extra discards.',
+  carry_swaps: 'Unused swaps carry over to the next round (max {max}).',
+  carry_discards: 'Unused discards carry over to the next round (max {max}).',
+  carry_time: 'Unused round seconds carry over (max {max_seconds}s).',
+  fives_discard: 'Each 5 discarded or played permanently adds +{pips_per_five} pips to this bonus',
+  nines_mult: 'Each 9 scored permanently adds +{mult_per_nine} mult to this bonus',
+  sixes_perm: 'Every {interval}th card scored gains a random +{roll_min}–{roll_max} mult permanently',
+  fours_perm: '4-card hands permanently give the 4th card +{pips} pips',
+  big_win: 'The first time a single hand scores 10,000+, permanently add +{mult} mult to this bonus',
+  idol: 'Finish the round with this on your board to earn {interest_mult}× interest. (Once)',
+  amplifier: 'Double-tap: the next hand scores +{mult} mult. (5 charges)',
+  piggy_bank: 'Double-tap: gain {coins} coins. (5 charges)',
+  steady_hand: 'Swaps no longer count against the swap limit, but cost {swap_seconds}s each.',
+  hoarder: 'Discards no longer count against the discard limit, but cost {discard_seconds_per_card}s per card.',
 };
 function fillDescTemplate(t, p) { return t.replace(/\{(\w+)\}/g, (m, k) => (k in p ? p[k] : m)); }
 function applyBalDescriptions() {
@@ -6073,7 +6145,7 @@ function doSwap(r1, c1, r2, c2) {
       const card = gridData[r][c];
       if (card && !card._isJoker && card.rank) {
         const k = cardKey(card.rank, card.suit);
-        permMult[k] = (permMult[k] || 0) + 5;
+        permMult[k] = (permMult[k] || 0) + BAL.pivot.mult;
       }
     });
   }
@@ -6082,10 +6154,10 @@ function doSwap(r1, c1, r2, c2) {
   if (!hasTotem('steady_hand') && !freeThisSwap) swaps--;
   if (jokerFreeSwapPending) jokerFreeSwapPending = false;
   // Swap time cost — 0s for first 2 swaps/round, 0s with Free Swaps, 20s with Steady Hand, else 10s
-  let swapTimeCost = 10;
+  let swapTimeCost = BAL._resources.swap_seconds;
   if (freeThisSwap || hasTotem('free_swaps')) swapTimeCost = 0;
   else if (freeSwapsLeft > 0) { freeSwapsLeft--; swapTimeCost = 0; }
-  else if (hasTotem('steady_hand')) swapTimeCost = 20;
+  else if (hasTotem('steady_hand')) swapTimeCost = BAL.steady_hand.swap_seconds;
   if (swapTimeCost > 0) {
     roundSeconds = Math.max(1, roundSeconds - swapTimeCost);
     showTimeCost(`-${swapTimeCost}s`);
@@ -6410,7 +6482,7 @@ function playHand() {
   const scoreBeforeHand = score;
   score += finalScore;
   if (jokerNextHandDouble) { score += finalScore; jokerNextHandDouble = false; }
-  if (jokerLegacyMult)     { score += finalScore * 2; jokerLegacyMult = false; } // ×3 total = base + 2× extra
+  if (jokerLegacyMult)     { score += finalScore * BAL.the_legacy.extra_mult; jokerLegacyMult = false; } // ×3 total = base + 2× extra
   if (jokerAmplifierMult) jokerAmplifierMult = 0;
   handsPlayed++;
 
@@ -6422,8 +6494,8 @@ function playHand() {
   if (_bossThisHand) checkBossObjective(hand, finalScore);
 
   // Lucky Seven totem: every 7th hand grants +1 swap
-  if (hasTotem('lucky_seven') && handsPlayed % 7 === 0) {
-    swaps = Math.min(99, swaps + 1);
+  if (hasTotem('lucky_seven') && handsPlayed % BAL.lucky_seven.interval_hands === 0) {
+    swaps = Math.min(99, swaps + BAL.lucky_seven.swaps);
     showMessage('🎯 LUCKY SEVEN — +1 SWAP', '#c9a84c');
   }
   if (finalScore > highestHandScore) { highestHandScore = finalScore; highestHandName = hand; }
@@ -6541,14 +6613,14 @@ function playHand() {
   // ── Accumulating BC effects (post-hand) ──
   handsPlayedRound++;
   handTypesRound.add(hand);
-  if (hasBonus('compound_mult')) bonusMult_compound = Math.round((bonusMult_compound + 0.1) * 10) / 10;
-  if (hasBonus('prolific')) bonusPips_prolific++;
-  if (hasBonus('big_win') && !jackpotFired && finalScore >= 10000) { jackpotFired = true; bonusMult_jackpot += 5; showMessage('Jackpot! +5 mult permanently', 'var(--gold)'); }
-  if (hasBonus('snowball') && lastCalcPips >= 500) {
+  if (hasBonus('compound_mult')) bonusMult_compound = Math.round((bonusMult_compound + BAL.compound_mult.mult_per_hand) * 10) / 10;
+  if (hasBonus('prolific')) bonusPips_prolific += BAL.prolific.pips_per_hand;
+  if (hasBonus('big_win') && !jackpotFired && finalScore >= BAL.big_win.score_threshold) { jackpotFired = true; bonusMult_jackpot += BAL.big_win.mult; showMessage('Jackpot! +5 mult permanently', 'var(--gold)'); }
+  if (hasBonus('snowball') && lastCalcPips >= BAL.snowball.score_threshold) {
     result.handCells.forEach(([r,c]) => {
       const card = gridData[r]?.[c]; if (!card || !card.rank) return;
       const k = cardKey(card.rank, card.suit);
-      permPips[k] = (permPips[k]||0) + 2;
+      permPips[k] = (permPips[k]||0) + BAL.snowball.pips;
     });
     showMessage('Snowball! +2 pips to scored cards', '#e8c56b');
   }
@@ -6558,7 +6630,7 @@ function playHand() {
     if (hasBonus('first_fruits')) {
       handCells.forEach(([r,c]) => {
         const k = cardKey(gridData[r][c].rank, gridData[r][c].suit);
-        permPips[k] = (permPips[k]||0) + 2;
+        permPips[k] = (permPips[k]||0) + BAL.first_fruits.pips;
       });
     }
     firstHandThisRound = false;
@@ -6568,8 +6640,8 @@ function playHand() {
   const _hwR = Math.floor(gridRows / 2), _hwC = Math.floor(gridCols / 2);
   if (hasBonus('heartwood') && handCells.some(([r,c])=>r===_hwR&&c===_hwC)) {
     const k = cardKey(gridData[_hwR][_hwC].rank, gridData[_hwR][_hwC].suit);
-    permPips[k] = (permPips[k]||0) + 5;
-    permMult[k] = (permMult[k]||0) + 1;
+    permPips[k] = (permPips[k]||0) + BAL.heartwood.pips;
+    permMult[k] = (permMult[k]||0) + BAL.heartwood.mult;
   }
 
   // ── Suit effects (applied per scoring card) ──
@@ -6658,14 +6730,14 @@ function playHand() {
   // Penny Saved: 5s scored also count
   if (hasBonus('fives_discard')) {
     const fivesPlayed = scoringCards.filter(c => c.rank === '5').length;
-    bonusMult_fives += fivesPlayed * 5;
+    bonusMult_fives += fivesPlayed * BAL.fives_discard.pips_per_five;
   }
 
   // Cloud Nine: each 9 scored is forgotten, adds +9 to bonus mult
   if (hasBonus('nines_mult')) {
     scoringCards.forEach(card => {
       if (card.rank === '9') {
-        bonusMult_nines += 9;
+        bonusMult_nines += BAL.nines_mult.mult_per_nine;
         // Remove this specific card from future/past decks
         let removed = false;
         drawPile = drawPile.filter(c => {
@@ -6685,15 +6757,15 @@ function playHand() {
   if (hasBonus('fours_perm') && result.handCells.length === 4) {
     const fourthCell = result.handCells[3];
     const k = cardKey(gridData[fourthCell[0]][fourthCell[1]].rank, gridData[fourthCell[0]][fourthCell[1]].suit);
-    permPips[k] = (permPips[k] || 0) + 4;
+    permPips[k] = (permPips[k] || 0) + BAL.fours_perm.pips;
   }
 
   // Track cards scored for Lucky Roll (sixes_perm)
   if (hasBonus('sixes_perm')) {
     scoringCards.forEach(card => {
       cardsScoredTotal++;
-      if (cardsScoredTotal % 6 === 0) {
-        const roll = Math.floor(Math.random() * 6) + 1;
+      if (cardsScoredTotal % BAL.sixes_perm.interval === 0) {
+        const roll = Math.floor(Math.random() * (BAL.sixes_perm.roll_max - BAL.sixes_perm.roll_min + 1)) + BAL.sixes_perm.roll_min;
         const k = cardKey(card.rank, card.suit);
         permMult[k] = (permMult[k] || 0) + roll;
       }
@@ -7545,9 +7617,9 @@ function doDiscard() {
   if (!hasTotem('hoarder')) discards--;
   // Discard time cost — 3s/card default, 0s with Free Discards, 6s/card with Hoarder.
   // Reward-grid time penalties add to the per-card cost (unless discards are free).
-  let perCardCost = 3;
+  let perCardCost = BAL._resources.discard_seconds_per_card;
   if (hasTotem('free_discards')) perCardCost = 0;
-  else { if (hasTotem('hoarder')) perCardCost = 6; perCardCost += (discardCostThisRound || 0); }
+  else { if (hasTotem('hoarder')) perCardCost = BAL.hoarder.discard_seconds_per_card; perCardCost += (discardCostThisRound || 0); }
   const usingFreeDiscard = perCardCost > 0 && freeDiscardsLeft > 0;
   if (usingFreeDiscard) freeDiscardsLeft--;
   const timeCost = usingFreeDiscard ? 0 : discardedCards.length * perCardCost;
@@ -7563,13 +7635,13 @@ function doDiscard() {
   // Penny Saved: each 5 discarded adds +5 pips to bonus
   if (hasBonus('fives_discard')) {
     const fivesCount = discardedCards.filter(c => c.rank === '5').length;
-    bonusMult_fives += fivesCount * 5;
+    bonusMult_fives += fivesCount * BAL.fives_discard.pips_per_five;
   }
   // Perfect Ten: every 10 total discards adds +1 mult
   if (hasBonus('tens_mult')) {
-    const prevTens = Math.floor((cardsDiscardedTotal - count) / 10);
-    const newTens  = Math.floor(cardsDiscardedTotal / 10);
-    bonusMult_tens += (newTens - prevTens);
+    const prevTens = Math.floor((cardsDiscardedTotal - count) / BAL.tens_mult.discards_per_milestone);
+    const newTens  = Math.floor(cardsDiscardedTotal / BAL.tens_mult.discards_per_milestone);
+    bonusMult_tens += (newTens - prevTens) * BAL.tens_mult.mult_per_milestone;
   }
   sfxFlipShuffle();
   resetFocusDecayTimer();
@@ -9519,7 +9591,7 @@ function fireJokersOnPlay(selectedCells, handCells) {
         const hc2 = gridData[hr]?.[hc];
         if (hc2 && !hc2._isJoker && !hc2._isBC && hc2.rank) {
           const k = cardKey(hc2.rank, hc2.suit);
-          permPips[k] = (permPips[k] || 0) + 2;
+          permPips[k] = (permPips[k] || 0) + BAL.the_naturalist.pips;
           buffed++;
         }
       });
@@ -9544,7 +9616,7 @@ function fireJokersOnSwap(r1, c1, r2, c2) {
       const other = gridData[or2]?.[oc2];
       if (other && !other._isJoker && !other._isBC && other.rank) {
         const k = cardKey(other.rank, other.suit);
-        permPips[k] = (permPips[k] || 0) + 5;
+        permPips[k] = (permPips[k] || 0) + BAL.lightning_rod.pips;
         showMessage('⚡ Lightning Rod — +5 pips!', '#ffd700');
         render();
       }
@@ -9552,7 +9624,7 @@ function fireJokersOnSwap(r1, c1, r2, c2) {
       const other = gridData[or2]?.[oc2];
       if (other && !other._isJoker && !other._isBC && other.rank) {
         const k = cardKey(other.rank, other.suit);
-        permMult[k] = (permMult[k] || 0) + 1;
+        permMult[k] = (permMult[k] || 0) + BAL.the_catalyst.mult;
         showMessage('🧪 Catalyst — +1 perm mult!', '#cc88ff');
         render();
       }
@@ -9591,7 +9663,7 @@ function applyJokerGridEffect(id, r, c) {
       jokerNextHandDouble = true;
       showMessage('🔁 Echo — next hand scores twice!', '#ffd700'); break;
     case 'bellhop':
-      swaps += 2; discards = Math.min(99, discards + 1); render();
+      swaps += BAL.bellhop.swaps; discards = Math.min(99, discards + BAL.bellhop.discards); render();
       showMessage('🛎️ Bellhop — +2 swaps, +1 discard!', '#ffd700'); break;
     case 'the_bomb': {
       let _cnt = 0;
@@ -9600,7 +9672,7 @@ function applyJokerGridEffect(id, r, c) {
           const _card = gridData[_r]?.[_c];
           if (_card && !_card._isJoker && !_card._isBC && !_card._isStone && _card.rank) {
             const _k = cardKey(_card.rank, _card.suit);
-            permPips[_k] = (_k in permPips ? permPips[_k] : 0) + 3;
+            permPips[_k] = (_k in permPips ? permPips[_k] : 0) + BAL.the_bomb.pips;
             _cnt++;
           }
         }
@@ -9610,19 +9682,19 @@ function applyJokerGridEffect(id, r, c) {
       jokerLegacyMult = true;
       showMessage('📜 Legacy — next hand ×3!', '#ffd700'); break;
     case 'cash_out':
-      coins += 10; updateCoinsUI();
+      coins += BAL.cash_out.coins; updateCoinsUI();
       showMessage('💰 Cash Out — +10 coins!', 'var(--gold)'); break;
     case 'the_wanderer':
-      swaps = Math.min(99, swaps + 1); render();
+      swaps = Math.min(99, swaps + BAL.the_wanderer.swaps); render();
       showMessage('🧭 Wanderer — swap refunded!', 'var(--gold)'); break;
     case 'amplifier':
-      jokerAmplifierMult += 5;
+      jokerAmplifierMult += BAL.amplifier.mult;
       showMessage('📢 Amplifier — next hand +5 mult!', 'var(--gold)'); break;
     case 'time_keeper':
-      roundSeconds = Math.min(roundSeconds + 20, ROUND_DURATION); updateClockUI();
+      roundSeconds = Math.min(roundSeconds + BAL.time_keeper.seconds, ROUND_DURATION); updateClockUI();
       showMessage('⏱️ Time Keeper — +20s!', 'var(--gold)'); break;
     case 'piggy_bank':
-      coins += 5; updateCoinsUI();
+      coins += BAL.piggy_bank.coins; updateCoinsUI();
       showMessage('🐷 Piggy Bank — +5 coins!', 'var(--gold)'); break;
     default:
       showMessage(`${JOKER_POOL.find(j=>j.id===id)?.name||'Joker'} activated!`, '#cc88ff'); break;
@@ -10834,7 +10906,7 @@ async function showPayoutUI() {
   // Idol: triple interest if still on the board at round end (consumes one charge)
   let interestMult = 1;
   if (hasJokerOnGrid('idol')) {
-    interestMult = 3;
+    interestMult = BAL.idol.interest_mult;
     for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
       const card = gridData[r]?.[c];
       if (card?._isJoker && card.jokerId === 'idol') { consumeJokerCharge(card, r, c); }
@@ -11147,8 +11219,8 @@ function computeRoundResources() {
   const limitSwapBonus    = limits.swaps.current      - limits.swaps.base;
   const limitTimeBonus    = limits.round_time.current - limits.round_time.base;
 
-  const baseDiscards = 4 + limitDiscardBonus + (hasTotem('extra_discards') ? 2 : 0);
-  const baseSwaps    = (hasTotem('free_range_t') ? 2 : 3) + limitSwapBonus + (hasTotem('extra_swaps') ? 2 : 0);
+  const baseDiscards = 4 + limitDiscardBonus + (hasTotem('extra_discards') ? BAL.extra_discards.discards : 0);
+  const baseSwaps    = (hasTotem('free_range_t') ? 2 : 3) + limitSwapBonus + (hasTotem('extra_swaps') ? BAL.extra_swaps.swaps : 0);
   // Round-time cap = full duration minus permanent penalties, plus any limit-break bonus.
   const baseSeconds  = Math.max(10, (ROUND_DURATION - roundPenaltySeconds) + limitTimeBonus);
   const secCap = Math.max(ROUND_DURATION, limits.round_time.current);
@@ -11158,9 +11230,9 @@ function computeRoundResources() {
   let sec = Math.min(secCap, baseSeconds + accumulatedSeconds + nextRoundSecondsDelta);
 
   // Round-start totem effects.
-  if (hasTotem('time_bank'))      sec = Math.min(secCap, sec + 30);
-  if (hasTotem('extra_swaps'))    s += 2;
-  if (hasTotem('extra_discards')) d += 2;
+  if (hasTotem('time_bank'))      sec = Math.min(secCap, sec + BAL.time_bank.seconds);
+  if (hasTotem('extra_swaps'))    s += BAL.extra_swaps.swaps;
+  if (hasTotem('extra_discards')) d += BAL.extra_discards.discards;
 
   return { discards: Math.max(0, d), swaps: Math.max(0, s), seconds: Math.max(1, sec) };
 }
@@ -11203,9 +11275,9 @@ function triggerLevelUp() {
   flushPlayedDeck(); // played cards rejoin the pool for the new round
 
   // Bank unused resources before resetting
-  if (hasTotem('carry_swaps'))    accumulatedSwaps    = Math.min(8, accumulatedSwaps    + swaps);
-  if (hasTotem('carry_discards')) accumulatedDiscards = Math.min(8, accumulatedDiscards + discards);
-  if (hasTotem('carry_time'))     accumulatedSeconds  = Math.min(60, accumulatedSeconds + roundSeconds);
+  if (hasTotem('carry_swaps'))    accumulatedSwaps    = Math.min(BAL.carry_swaps.max, accumulatedSwaps    + swaps);
+  if (hasTotem('carry_discards')) accumulatedDiscards = Math.min(BAL.carry_discards.max, accumulatedDiscards + discards);
+  if (hasTotem('carry_time'))     accumulatedSeconds  = Math.min(BAL.carry_time.max_seconds, accumulatedSeconds + roundSeconds);
 
   // Base reset — resource values computed by computeRoundResources() (single source of truth).
   const _rr = computeRoundResources();
@@ -11220,7 +11292,7 @@ function triggerLevelUp() {
   nextRoundPlayCost = 0; nextRoundDiscardCost = 0;
 
   // ── Totem effects at round start ──
-  if (hasTotem('inheritance')) { coins += 5; updateCoinsUI(); }
+  if (hasTotem('inheritance')) { coins += BAL.inheritance.coins; updateCoinsUI(); }
   // Reset Combo Keeper state each round (totem starts each round armed)
   streakSaveArmed = true;
   streakSaveProgress = 0;

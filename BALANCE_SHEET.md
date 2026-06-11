@@ -58,23 +58,23 @@ preserving its order and comments, and prints every `old → new` change.
 | `description` | the in-game text **— this is where the actual numbers live today** |
 | `notes` | flags like "needsResolve / TBD" |
 
-## What's wired so far (and what isn't)
+## What's wired (and what isn't)
 
-This is built on the current game (r45). The round-trip currently covers the
-**scoring core** — everything in `calcScore` plus the exalt/corrupt suit tables
-— which is ~88 of the tunable values and the bulk of a balance sweep. Each of
-those shows its number(s) in `params_json` and edits round-trip both ways.
+This is built on the current game (r45). The round-trip covers **118 of the 154
+entities** — the scoring core (`calcScore` + exalt/corrupt tables), the
+play/round-side accumulators and permanent gains (Penny Saved, Cloud Nine,
+Perfect Ten, Lucky Roll, Steady Fours, First Fruits, Heartwood, Snowball,
+Compound, Prolific, Jackpot), all the numeric **jokers** (Pivot, Idol, Bomb,
+Naturalist, Lightning Rod, Catalyst, Bellhop, Cash Out, Wanderer, Amplifier,
+Time Keeper, Piggy Bank, Legacy), and the **totems** + base swap/discard time
+costs. Each shows its number(s) in `params_json` and round-trips both ways.
 
-**Not yet wired** (shows blank `params_json`, marked "structural — no tunable
-value"): two groups.
-1. Genuinely structural effects — wild jokers, shape-detection geometry (Four
-   Corners), rank-shifters, retrigger plumbing. These have no single number.
-2. The **play/round-side** numbers that live in `playHand` and the totem/discard
-   code rather than `calcScore`: the accumulator increments (Penny Saved +5,
-   Cloud Nine +9, Perfect Ten +1, Lucky Roll, Steady Fours +4), the permanent
-   gains (First Fruits, Heartwood, Sapling), and the totems (Time Bank +30,
-   Inheritance +5, Lucky Seven) and swap/discard time costs. These are wirable —
-   it's just a second slice I can add on request.
+**Not wired** (~36 rows, blank `params_json`, marked "structural — no tunable
+value"): genuinely structural effects with no single number — wild jokers,
+shape-detection geometry (Four Corners), rank-shifters (Royal Favour), the
+retrigger/double-score plumbing (Echo, Octave), the focus BCs (flag-based), and
+a couple whose displayed number is *derived* (Legacy's ×3, Before the Tide's
+6×). Changing those means changing logic, not a number — ask and I'll do it.
 
 `description` text **auto-syncs** to the numbers for wired entities (83
 templates). Each has a `{param}` template in `DESC_TEMPLATES` (in `index.html`)
