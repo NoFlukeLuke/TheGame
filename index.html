@@ -1694,44 +1694,63 @@
   #shop-overlay {
     display: none;
     position: fixed; inset: 0;
-    background: rgba(0,0,0,0.96);
+    background: radial-gradient(ellipse at 50% 0%, #16120a 0%, #0a0806 70%);
     z-index: 250;
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
-    padding: 18px 14px;
-    overflow-y: auto;
-    gap: 14px;
+    padding: 14px 12px;
+    overflow: hidden;            /* stacked shelves are sized to fit — never scroll */
+    gap: 10px;
   }
   #shop-overlay.show { display: flex; }
 
-  #shop-header { display: flex; align-items: center; justify-content: space-between; width: 100%; max-width: 800px; }
+  #shop-header { display: flex; align-items: baseline; justify-content: space-between; width: 100%; max-width: 640px; }
   #shop-title { font-family: 'Cinzel', serif; font-size: 26px; font-weight: 900; color: var(--gold); letter-spacing: 5px; }
   #shop-coins { font-family: 'Cinzel', serif; font-size: 18px; color: var(--gold); }
 
-  /* ── Shop main grid (2×2) ── */
+  /* ── Shop: stacked shelves (one labeled row per category) ── */
   #shop-main-grid {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    grid-template-rows: auto auto;
-    gap: 10px;
-    width: 100%; max-width: 800px;
+    display: flex; flex-direction: column;
+    gap: 8px;
+    width: 100%; max-width: 640px;
+    flex: 1 1 auto; min-height: 0;   /* fill the space between header and footer */
   }
-  #shop-trick-section     { grid-column: 1; grid-row: 1; }
-  #shop-limits-section { grid-column: 2; grid-row: 1; }
-  #shop-knack-section  { grid-column: 1; grid-row: 2; }
-  #shop-sleight-section  { grid-column: 2; grid-row: 2; }
+  .shop-shelf {
+    display: flex; align-items: stretch; gap: 8px;
+    background: linear-gradient(180deg,#13100a,#0c0a06);
+    border: 1px solid #2a2010; border-left: 3px solid #3a2c12;
+    border-radius: 8px; padding: 6px 10px 6px 8px;
+    flex: 1 1 0; min-height: 0;      /* shelves share the vertical space evenly */
+  }
+  .shop-shelf-label {
+    flex: 0 0 56px; display: flex; align-items: center;
+    font-family: 'Cinzel', serif; font-size: 10px; font-weight: 700;
+    letter-spacing: 2px; color: var(--gold-dim); text-transform: uppercase;
+    line-height: 1.15;
+  }
+  .shop-shelf-items {
+    flex: 1 1 0; min-width: 0;
+    display: flex; gap: 8px; align-items: stretch; justify-content: flex-start;
+    overflow-x: auto; overflow-y: hidden;   /* safety on very narrow phones; vertical never scrolls */
+  }
+  /* color-code each shelf's accent edge */
+  #shop-trick-shelf   { border-left-color: #4a7a4a; }
+  #shop-sleight-shelf { border-left-color: #3a6fca; }
+  #shop-knack-shelf   { border-left-color: #b8860b; }
+  #shop-limits-shelf  { border-left-color: #2a6a5a; }
 
-  .shop-section {
-    background: #0e0c08; border: 1px solid #2a2010;
-    border-radius: 8px; padding: 10px 12px;
-    display: flex; flex-direction: column; gap: 8px;
+  /* In a shelf, items fill the shelf height; the card (a column) flexes its height to fit,
+     capped so it never over-stretches on tall/desktop screens. Width stays card-shaped. */
+  .shop-shelf .shop-item { height: 100%; flex: 0 0 auto; justify-content: center; gap: 3px; }
+  .shop-shelf .shop-trick-card,
+  .shop-shelf .shop-knack-card,
+  .shop-shelf .shop-sleight-card {
+    width: 76px; height: auto; flex: 1 1 0; min-height: 0; max-height: 128px; overflow: hidden;
   }
-  .shop-section-label {
-    font-family: 'Cinzel', serif; font-size: 9px; letter-spacing: 3px;
-    color: var(--gold-dim); text-transform: uppercase;
+  .shop-shelf .shop-limit-card {
+    width: 100px; height: auto; flex: 1 1 0; min-height: 0; max-height: 128px; overflow: hidden;
   }
-  .shop-items-row { display: flex; gap: 10px; flex-wrap: wrap; }
 
   /* Generic shop item wrapper */
   .shop-item { display: flex; flex-direction: column; align-items: center; gap: 5px; cursor: pointer; }
@@ -1811,7 +1830,11 @@
   .shop-item-price.purchased   { color: var(--cream-dim); }
 
   /* Footer row */
-  #shop-footer-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; justify-content: center; }
+  #shop-footer-row {
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap; justify-content: center;
+    width: 100%; max-width: 640px; flex: 0 0 auto;
+    padding-top: 10px; border-top: 1px solid #2a2010;
+  }
   #shop-reroll-btn {
     font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: 1px;
     text-transform: uppercase; padding: 9px 20px; border-radius: 6px;
@@ -2885,6 +2908,10 @@
       <span>Dev Mode</span>
       <input type="checkbox" id="dev-mode-toggle" style="width:18px;height:18px;cursor:pointer;" onchange="toggleDevMode(this.checked)">
     </label>
+    <label style="display:flex;align-items:center;justify-content:space-between;width:100%;font-family:'Cinzel',serif;font-size:10px;letter-spacing:1px;cursor:pointer;">
+      <span title="Suit cards transform (gold/purple) and change scoring. Off by default.">Exalt / Corrupt</span>
+      <input type="checkbox" id="exalt-corrupt-toggle" style="width:18px;height:18px;cursor:pointer;" onchange="toggleExaltCorrupt(this.checked)">
+    </label>
   </div>
 </div>
 
@@ -3266,23 +3293,23 @@
     <div id="shop-coins">💰 <span id="shop-coins-val">0</span></div>
   </div>
 
-  <!-- 2×2 item grid: Tricks + Limits (top), Knacks + Sleights (bottom) -->
+  <!-- Stacked shelves: one labeled row per category (Tricks, Sleights, Knacks, Upgrades) -->
   <div id="shop-main-grid">
-    <div id="shop-trick-section" class="shop-section">
-      <div class="shop-section-label">Tricks</div>
-      <div id="shop-trick-row" class="shop-items-row"></div>
+    <div id="shop-trick-shelf" class="shop-shelf">
+      <div class="shop-shelf-label">Tricks</div>
+      <div id="shop-trick-row" class="shop-shelf-items"></div>
     </div>
-    <div id="shop-limits-section" class="shop-section">
-      <div class="shop-section-label">Upgrades</div>
-      <div id="shop-limits-row" class="shop-items-row"></div>
+    <div id="shop-sleight-shelf" class="shop-shelf">
+      <div class="shop-shelf-label">Sleights</div>
+      <div id="shop-sleight-row" class="shop-shelf-items"></div>
     </div>
-    <div id="shop-knack-section" class="shop-section">
-      <div class="shop-section-label">Knacks</div>
-      <div id="shop-knack-row" class="shop-items-row"></div>
+    <div id="shop-knack-shelf" class="shop-shelf">
+      <div class="shop-shelf-label">Knacks</div>
+      <div id="shop-knack-row" class="shop-shelf-items"></div>
     </div>
-    <div id="shop-sleight-section" class="shop-section">
-      <div class="shop-section-label">Sleights</div>
-      <div id="shop-sleight-row" class="shop-items-row"></div>
+    <div id="shop-limits-shelf" class="shop-shelf">
+      <div class="shop-shelf-label">Upgrades</div>
+      <div id="shop-limits-row" class="shop-shelf-items"></div>
     </div>
   </div>
 
@@ -3430,7 +3457,7 @@
 </div>
 
 <script>
-const BUILD = '2026-06-13 · r49';
+const BUILD = '2026-06-15 · r50';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -4161,6 +4188,10 @@ let nextRoundDiscardCost  = 0;     // +seconds per discarded card, next round on
 // Active for the CURRENT round (recomputed each round = permanent + next-round):
 let playHandCostThisRound = 0;     // extra seconds per hand this round
 let discardCostThisRound  = 0;     // extra seconds per discarded card this round
+// Exalt/Corrupt suit mechanic — PAUSED by default (owner request: it was interfering
+// with hand submission). Toggle in the pause-menu Settings. Persisted across sessions.
+// When off: cards never get exalted/corrupted, existing flags grant no buffs, no glow.
+let exaltCorruptEnabled = (localStorage.getItem('exaltCorruptEnabled') === 'true');
 let challengeOverlayTimer = null;
 let isChallengeTrickPick = false; // true when selectTrick is called from a challenge reward, not a level-up
 let nextShopTime = GAME_DURATION - 120; // first shop after 2 minutes elapsed
@@ -4940,6 +4971,7 @@ applyBalDescriptions();
 
 function exaltCorruptTotals(cards) {
   let pips = 0, mult = 0, coins = 0, time = 0;
+  if (!exaltCorruptEnabled) return { pips, mult, coins, time }; // mechanic paused → no suit buffs
   cards.forEach(c => {
     if (!c) return;
     if (c._exalted) {
@@ -6170,7 +6202,7 @@ function doSwap(r1, c1, r2, c2) {
   // ♥ corruption: a swapped heart goes "on probation" — it must appear in the next scored
   // hand or it corrupts (resolved in playHand; also corrupts if discarded). Re-swapping
   // just re-arms the flag (fresh chance). Already-locked hearts are unaffected.
-  [[r1,c1],[r2,c2]].forEach(([_r,_c]) => {
+  if (exaltCorruptEnabled) [[r1,c1],[r2,c2]].forEach(([_r,_c]) => {
     const _card = gridData[_r]?.[_c];
     if (!_card || _card.suit !== '♥' || _card._exalted || _card._corrupted) return;
     _card._heartSwapPending = true;
@@ -6582,9 +6614,10 @@ function playHand() {
   }
   resetFocusDecayTimer();
 
-  // ── Hand time cost (manual plays only): base 5s + reward-grid time penalties ──
-  roundSeconds = Math.max(0, roundSeconds - (5 + (playHandCostThisRound || 0)));
-  updateClockUI();
+  // ── Playing a hand no longer costs time (owner request). ──
+  // Previously each manual play cost 5s + any reward-grid time penalties; that drain is removed.
+  // (playHandCostThisRound from reward-grid debuffs is now inert — left in place so those events
+  //  still parse, but hands are free to play.)
 
   // Streak tracking
   const now = Date.now();
@@ -6660,6 +6693,7 @@ function playHand() {
   // ♥ exalt = only heart in a hand 2× (♥ corrupt is swap-driven, resolved below + on discard).
   // ♠ exalt = played within first 30s of the round 2× (♠ corrupt is discard-driven).
   // ♦ exalt = played while coins < 5, 2×; ♦ corrupt = played while coins > 65, 2×.
+  if (exaltCorruptEnabled) { // ── triggers skipped entirely while the mechanic is paused ──
   const coinsAtPlay   = coins; // snapshot before payout
   const _clubsInHand  = handCells.reduce((n,[r,c]) => n + (gridData[r]?.[c]?.suit === '♣' ? 1 : 0), 0);
   const _heartsInHand = handCells.reduce((n,[r,c]) => n + (gridData[r]?.[c]?.suit === '♥' ? 1 : 0), 0);
@@ -6707,6 +6741,7 @@ function playHand() {
       showMessage('♥ Heart corrupted — swapped, then left behind', '#cc88ff');
     }
   }
+  } // end exaltCorruptEnabled trigger block
   if (_ecPlay.coins !== 0) { coins = Math.max(0, coins + _ecPlay.coins); updateCoinsUI(); }
   if (_ecPlay.time !== 0) {
     roundSeconds = Math.max(1, Math.min(roundSeconds + _ecPlay.time, ROUND_DURATION));
@@ -7590,6 +7625,7 @@ function doDiscard() {
   const discardedCards = selected.map(([r,c]) => gridData[r][c]);
   // ♠ corrupts after being discarded 2×; a swap-pending ♥ counts as "not played" → corrupt.
   // Flags are set on the card object directly since it's leaving the grid (persists in the pile).
+  if (exaltCorruptEnabled) // ── discard-driven corruption skipped while the mechanic is paused ──
   discardedCards.forEach(card => {
     if (!card || card._isSleight || card._isTrick || card._isStone || !card.rank) return;
     if (card._exalted || card._corrupted) return;
@@ -7780,8 +7816,8 @@ function renderCardAppearance(card, r, c, {
     isSwapPending ? 'swap-pending' : '',
     (!isReachable && !isSel && !isSwapPending) ? 'unreachable' : '',
     isTrick ? 'trick-card' : '',
-    card._exalted ? 'exalted' : '',
-    card._corrupted ? 'corrupted' : '',
+    (exaltCorruptEnabled && card._exalted) ? 'exalted' : '',
+    (exaltCorruptEnabled && card._corrupted) ? 'corrupted' : '',
     bothClass.trim(),
     rcPips.trim(), rcMult.trim(), rcRetrigger.trim(), rcLeyline.trim(),
   ].filter(Boolean).join(' ');
@@ -9511,12 +9547,14 @@ function lockSleightForRound(card) {
 
 // ── Exalt / Corrupt helpers ──
 function exaltCard(r, c) {
+  if (!exaltCorruptEnabled) return; // mechanic paused
   const card = gridData[r]?.[c];
   if (!card || card._isSleight || card._isTrick || card._isStone || !card.rank) return;
   card._corrupted = false;
   card._exalted = true;
 }
 function corruptCard(r, c) {
+  if (!exaltCorruptEnabled) return; // mechanic paused
   const card = gridData[r]?.[c];
   if (!card || card._isSleight || card._isTrick || card._isStone || !card.rank) return;
   card._exalted = false;
@@ -14105,6 +14143,8 @@ function toggleDeckHud(on) {
 function initDevMode() {
   const toggle = document.getElementById('dev-mode-toggle');
   if (toggle) toggle.checked = devMode;
+  const ecToggle = document.getElementById('exalt-corrupt-toggle');
+  if (ecToggle) ecToggle.checked = exaltCorruptEnabled;
   const hudToggle = document.getElementById('dev-deck-hud-toggle');
   if (hudToggle) hudToggle.checked = showDeckHud;
   const trickToggle = document.getElementById('dev-trick-tray-toggle');
@@ -14135,6 +14175,13 @@ function toggleDevMode(on) {
   devMode = on;
   localStorage.setItem('devMode', on);
   applyDevMode();
+}
+
+// Exalt/Corrupt suit mechanic toggle (pause-menu Settings). Off by default.
+function toggleExaltCorrupt(on) {
+  exaltCorruptEnabled = !!on;
+  localStorage.setItem('exaltCorruptEnabled', exaltCorruptEnabled);
+  if (typeof render === 'function') render(); // refresh glows immediately
 }
 
 function applyDevMode() {
