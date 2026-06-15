@@ -1308,6 +1308,23 @@
   .trick-tier-rare    .trick-tier-label { color: #6a9fea; }
   .trick-tier-epic    .trick-tier-label { color: #9b4dca; }
   .trick-tier-legendary .trick-tier-label { color: #e8b84b; }
+  /* Mythic tier (crimson) */
+  .trick-card.trick-tier-mythic {
+    background: linear-gradient(160deg, #2a0012 0%, #16000a 100%);
+    border: 2px solid #ff4d6d;
+    box-shadow: 0 0 12px rgba(255,77,109,0.6);
+    animation: trick-mythic-pulse 2s ease-in-out infinite;
+  }
+  @keyframes trick-mythic-pulse {
+    0%, 100% { box-shadow: 0 0 10px rgba(255,77,109,0.5); }
+    50%       { box-shadow: 0 0 22px rgba(255,77,109,0.95); }
+  }
+  .trick-tier-mythic .trick-tier-label { color: #ff4d6d; }
+  .trick-tray-chip.trick-tier-mythic { border-color: #ff4d6d; color: #ff4d6d; background: #16000a; }
+  #trick-tooltip.trick-tier-mythic { border-color: #ff4d6d; }
+  .shop-trick-card.trick-tier-mythic { background: linear-gradient(160deg,#2a0012,#16000a); border: 2px solid #ff4d6d; box-shadow: 0 0 10px rgba(255,77,109,0.5); animation: trick-mythic-pulse 2s ease-in-out infinite; }
+  .trick-choice-card.tier-mythic { border: 2px solid #ff4d6d; box-shadow: 0 0 16px rgba(255,77,109,0.4); animation: trick-mythic-pulse 2s ease-in-out infinite; }
+  .tier-mythic .trick-choice-tier { color: #ff4d6d; }
   .trick-name {
     font-family: 'Cinzel', serif;
     font-size: calc(var(--card-h, 75px) * 0.105); font-weight: 600;
@@ -3457,7 +3474,7 @@
 </div>
 
 <script>
-const BUILD = '2026-06-15 · r50';
+const BUILD = '2026-06-15 · r51';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -3722,13 +3739,13 @@ function cardCan(card, action) {
 // ── TRICK POOL (subset for prototype) ──
 const TRICK_POOL = [
   // ── Runs ──
-  { id:'deep_roots',     name:'Deep Roots',         tier:'common',    desc:'Run of 3 scores +2 mult' },
-  { id:'overgrowth',     name:'Overgrowth',          tier:'common',    desc:'Run of 3 scores +20 pips' },
-  { id:'ancient_grove',  name:'Ancient Grove',       tier:'legendary', desc:'Run of 3 ×2 score' },
-  { id:'long_road',      name:'Long Road',           tier:'rare',      desc:'Any run scores +2 mult per card' },
-  { id:'river_run',      name:'River Run',           tier:'rare',      desc:'Straight ×2 score' },
-  { id:'torrent',        name:'Torrent',             tier:'legendary', desc:'Runs longer than 3 multiply score — ×2 for Run of 4, ×4 for Straight or Straight Flush' },
-  { id:'correct_run',    name:'In Order',            tier:'rare',      desc:'Runs selected in ascending or descending order score ×2' },
+  { id:'overgrowth',     name:'Cascade',             tier:'common',    desc:'Runs score +10 pips per card' },
+  { id:'long_road',      name:'Storm',               tier:'common',    desc:'Runs score +2 mult per card' },
+  { id:'river_run',      name:'Torrent',             tier:'rare',      desc:'Runs add +1 Focus per card' },
+  { id:'ancient_grove',  name:'Flash Flood',         tier:'legendary', desc:'Runs of 4+ cards instantly advance Focus to the next threshold' },
+  { id:'correct_run',    name:'Rogue Wave',          tier:'mythic',    desc:'Runs played in correct sequential order score +80 pips and +16 mult, and add +4 Focus, per card' },
+  { id:'tide_table',     name:'Tide Table',          tier:'epic',      desc:'Runs ×mult, building +×0.75 per Run scored this round' },
+  { id:'undertow',       name:'Undertow',            tier:'epic',      desc:'Runs ×1.5 pips, plus ×0.5 more per card beyond 3' },
   { id:'worn_path',      name:'Worn Path',           tier:'common',    desc:'Straight scores +20 pips' },
   // ── Pairs / sets ──
   { id:'kindred',        name:'Kindred',             tier:'common',    desc:'Three of a Kind scores +1 mult' },
@@ -4235,6 +4252,7 @@ let bonusPips_prolific  = 0;   // Prolific Trick: +1 pip per hand played
 let bonusMult_jackpot   = 0;   // Jackpot (big_win) Trick: +5 when score 10k+
 let jackpotFired        = false; // big_win fires only once
 let handsPlayedRound    = 0;   // count of hands played this round
+let runsPlayedRound     = 0;   // count of Runs scored this round (Tide Table)
 let handTypesRound      = new Set(); // distinct hand types played this round
 let safetyNetUsed       = false; // safety_net knack: once per game
 let cardsDiscardedTotal = 0;
@@ -4550,6 +4568,13 @@ function canBeOrderedRun(cells) {
   return tryCombos(0, []);
 }
 
+// Order cards are scored in. Default: reading order (top→bottom, left→right).
+// A future Knack ('selection_scoring') flips this back to selection (tap) order.
+function scoringOrderCells(cells) {
+  if (hasKnack('selection_scoring')) return cells.slice();
+  return cells.slice().sort((a,b) => a[0] !== b[0] ? a[0] - b[0] : a[1] - b[1]);
+}
+
 function spanStats(cells) {
   const rows = [...new Set(cells.map(([r])=>r))];
   const cols = [...new Set(cells.map(([,c])=>c))];
@@ -4729,7 +4754,7 @@ const BAL = {
   twin_sprouts: { pips: 15 },
   worn_path: { pips: 20 },
   enriched: { pips: 15 },
-  overgrowth: { pips: 20 },
+  overgrowth: { pips_per_card: 10 },
   triple_threat: { pips: 20 },
   early_bird: { pips: 20 },
   kindling: { pips_per_streak: 4 },
@@ -4748,7 +4773,6 @@ const BAL = {
   momentum: { mult: 2 },
   night_owl: { mult: 3 },
   wildfire: { mult: 2 },
-  deep_roots: { mult: 2 },
   kindred: { mult: 1 },
   tidal_force: { mult: 4 },
   rare_bloom: { mult: 12 },
@@ -4779,11 +4803,10 @@ const BAL = {
   echo_hand: { score_mult: 1.5 },
   full_house_streak: { score_base: 1.5 },
   blackjack_bonus: { score_mult: 3 },
-  ancient_grove: { score_mult: 2 },
+  ancient_grove: { min_run_len: 4 },
   trinity: { score_mult: 2 },
   double_bloom: { score_mult: 2 },
-  river_run: { score_mult: 2 },
-  torrent: { run4_mult: 2, big_mult: 4 },
+  river_run: { focus_per_card: 1 },
   deluge: { score_mult: 2 },
   perfect_storm: { score_mult: 5 },
   extinction: { score_mult: 2 },
@@ -4795,7 +4818,9 @@ const BAL = {
   shape_square: { score_mult: 4 },
   shape_cross: { score_mult: 3 },
   two_corners: { score_mult: 4 },
-  correct_run: { score_mult: 2 },
+  correct_run: { pips_per_card: 80, mult_per_card: 16, focus_per_card: 4 },
+  tide_table: { mult_step: 0.75 },
+  undertow: { pip_mult_base: 1.5, pip_mult_step: 0.5 },
   // ── play/round-side: accumulators & permanent gains ──
   snowball: { pips: 2, score_threshold: 500 },
   first_fruits: { pips: 2 },
@@ -4844,12 +4869,10 @@ const BAL = {
 // value change via the balance sheet updates the in-game description too. Only
 // entities whose wording maps unambiguously to their params are listed.
 const DESC_TEMPLATES = {
-  deep_roots: 'Run of 3 scores +{mult} mult',
-  overgrowth: 'Run of 3 scores +{pips} pips',
-  ancient_grove: 'Run of 3 ×{score_mult} score',
-  long_road: 'Any run scores +{mult_per_card} mult per card',
-  river_run: 'Straight ×{score_mult} score',
-  correct_run: 'Runs selected in ascending or descending order score ×{score_mult}',
+  overgrowth: 'Runs score +{pips_per_card} pips per card',
+  long_road: 'Runs score +{mult_per_card} mult per card',
+  river_run: 'Runs add +{focus_per_card} Focus per card',
+  correct_run: 'Runs played in correct sequential order score +{pips_per_card} pips and +{mult_per_card} mult, and add +{focus_per_card} Focus, per card',
   worn_path: 'Straight scores +{pips} pips',
   kindred: 'Three of a Kind scores +{mult} mult',
   trinity: 'Three of a Kind ×{score_mult} score',
@@ -4916,7 +4939,6 @@ const DESC_TEMPLATES = {
   dark_matter: 'Corrupted cards in a hand add +{pips} pips each',
   combo_score: '+{mult_per_type} mult for every distinct hand type played this round',
   flow_state: 'While focus is ×1.5 or higher, +{pips_per_card} pips per card scored',
-  torrent: 'Runs longer than 3 multiply score — ×{run4_mult} for Run of 4, ×{big_mult} for Straight or Straight Flush',
   knave_power: 'Each Jack in hand multiplies running pips ×{run_mult} when scored',
   humble_roots: 'Cards below 6 contribute {pip_mult}× pips',
   low_tide: 'Cards below 6 score +{pips} pips',
@@ -4993,7 +5015,8 @@ function exaltCorruptTotals(cards) {
 function calcScore(handName, cells, contrib = null) {
   const base = HAND_BASE[handName];
   if (!base) return 0;
-  const cards = cells.map(([r,c]) => gridData[r][c]);
+  const _scoreCells = scoringOrderCells(cells);
+  const cards = _scoreCells.map(([r,c]) => gridData[r][c]);
   const hasTrickCard = trickCardPos && cells.some(([r,c]) => r===trickCardPos[0] && c===trickCardPos[1]);
 
   // 1. Base pips (scaled by level) + card pips
@@ -5012,7 +5035,7 @@ function calcScore(handName, cells, contrib = null) {
   // Process cards sequentially so Knave Power can multiply running total
   const _handMaxRankVal = hasTrick('summit')
     ? Math.max(...cells.map(([_r,_c]) => RANK_ORDER[gridData[_r][_c]?.rank] || 0)) : -1;
-  cells.forEach(([r, c]) => {
+  _scoreCells.forEach(([r, c]) => {
     const card = gridData[r][c];
     const baseRank = card.rank;
     const _origPips = cardPips(baseRank);
@@ -5119,15 +5142,16 @@ function calcScore(handName, cells, contrib = null) {
   }
 
   // Hand-specific mult
-  if (handName === 'Run of 3') {
-    if (hasTrick('deep_roots')) { mult += BAL.deep_roots.mult; bMult('deep_roots', BAL.deep_roots.mult); }
-    if (hasTrick('overgrowth')) { totalPips += BAL.overgrowth.pips; bPip('overgrowth', BAL.overgrowth.pips); }
-  }
   if (handName === 'Three of a Kind') {
     if (hasTrick('kindred')) { mult += BAL.kindred.mult; bMult('kindred', BAL.kindred.mult); }
   }
   const isRun = ['Run of 3','Run of 4','Straight','Straight Flush'].includes(handName);
+  if (hasTrick('overgrowth') && isRun) { const _a = BAL.overgrowth.pips_per_card * cells.length; totalPips += _a; bPip('overgrowth', _a); }
   if (hasTrick('long_road') && isRun) { const _a = BAL.long_road.mult_per_card * cells.length; mult += _a; bMult('long_road', _a); }
+  if (hasTrick('correct_run') && isRun && canBeOrderedRun(cells)) {
+    const _ap = BAL.correct_run.pips_per_card * cells.length; totalPips += _ap; bPip('correct_run', _ap);
+    const _am = BAL.correct_run.mult_per_card * cells.length; mult += _am; bMult('correct_run', _am);
+  }
   if (handName === 'Flush') {
     if (hasTrick('tidal_force')) { mult += BAL.tidal_force.mult; bMult('tidal_force', BAL.tidal_force.mult); }
   }
@@ -5144,8 +5168,8 @@ function calcScore(handName, cells, contrib = null) {
 
   // Shape: straight line — add first + last card pip values to mult
   if (hasTrick('shape_line') && isStraightLine(cells)) {
-    const firstPips = cardPips(gridData[cells[0][0]][cells[0][1]].rank);
-    const lastPips  = cardPips(gridData[cells[cells.length-1][0]][cells[cells.length-1][1]].rank);
+    const firstPips = cardPips(gridData[_scoreCells[0][0]][_scoreCells[0][1]].rank);
+    const lastPips  = cardPips(gridData[_scoreCells[_scoreCells.length-1][0]][_scoreCells[_scoreCells.length-1][1]].rank);
     const _a = firstPips + lastPips; mult += _a; bMult('shape_line', _a);
   }
 
@@ -5259,6 +5283,16 @@ function calcScore(handName, cells, contrib = null) {
   // Combo score: +2 mult per distinct hand type played this round
   if (hasTrick('combo_score') && handTypesRound.size > 0) { const _a = handTypesRound.size * BAL.combo_score.mult_per_type; mult += _a; bMult('combo_score', _a); }
 
+  // Run multipliers (epic) — applied after additive pip/mult bonuses
+  if (isRun && hasTrick('undertow')) {
+    const _um = BAL.undertow.pip_mult_base + BAL.undertow.pip_mult_step * Math.max(0, cells.length - 3);
+    const _pre = totalPips; totalPips = Math.round(totalPips * _um); bPip('undertow', totalPips - _pre);
+  }
+  if (isRun && hasTrick('tide_table')) {
+    const _tm = 1 + BAL.tide_table.mult_step * (runsPlayedRound + 1);
+    const _pre = mult; mult = Math.round(mult * _tm * 10) / 10; bMult('tide_table', mult - _pre);
+  }
+
   // 3. Base score
   // Capture pre-focus mult so the score dance can show the focus beat separately
   lastPreFocusMult = mult;
@@ -5291,16 +5325,11 @@ function calcScore(handName, cells, contrib = null) {
     }, 0);
     if (faceTotal === 21) s *= BAL.blackjack_bonus.score_mult;
   }
-  if (handName === 'Run of 3' && hasTrick('ancient_grove')) s *= BAL.ancient_grove.score_mult;
   if (handName === 'Three of a Kind' && hasTrick('trinity')) s *= BAL.trinity.score_mult;
   if (hasTrick('double_bloom')) {
     const ranks = cards.map(c => c.rank);
     const hasPair = ranks.some(r => ranks.filter(x => x === r).length >= 2);
     if (hasPair) s *= BAL.double_bloom.score_mult;
-  }
-  if (handName === 'Straight' && hasTrick('river_run')) s *= BAL.river_run.score_mult;
-  if (['Run of 4','Straight','Straight Flush'].includes(handName) && hasTrick('torrent')) {
-    s *= (handName === 'Run of 4') ? BAL.torrent.run4_mult : BAL.torrent.big_mult;
   }
   if (handName === 'Flush' && hasTrick('deluge')) s *= BAL.deluge.score_mult;
   if (handName === 'Straight Flush' && hasTrick('perfect_storm')) s *= BAL.perfect_storm.score_mult;
@@ -5314,7 +5343,6 @@ function calcScore(handName, cells, contrib = null) {
   if (hasTrick('shape_square') && isSquare(cells)) s *= BAL.shape_square.score_mult;
   if (hasTrick('shape_cross')  && isCross(cells))  s *= BAL.shape_cross.score_mult;
   if (hasTrick('two_corners')  && cornerCells(cells).length >= 2) s *= BAL.two_corners.score_mult;
-  if (hasTrick('correct_run') && isRun && canBeOrderedRun(cells)) s *= BAL.correct_run.score_mult;
   if (hasTrick('shape_snake')  && isSnake(cells))  { /* mult added above */ }
 
   if (hasTrickCard) s *= 2;
@@ -5540,15 +5568,13 @@ function render() {
         : 5 * Math.floor((Date.now() - lastSwapTime) / 10000);
       if (swMult > 0) bonusLines.push({ label:'Still Water', val:`+${swMult} mult`, type:'mult' });
     }
-    if (hasTrick('deep_roots') && hand==='Run of 3') bonusLines.push({ label:'Deep Roots', val:'+1 mult', type:'mult' });
-    if (hasTrick('overgrowth') && hand==='Run of 3') bonusLines.push({ label:'Overgrowth', val:'+2 mult', type:'mult' });
+    const _isRunLine = ['Run of 3','Run of 4','Straight','Straight Flush'].includes(hand);
+    if (hasTrick('overgrowth') && _isRunLine) bonusLines.push({ label:'Cascade', val:`+${10*cards.length} pips`, type:'pip' });
     if (hasTrick('kindred') && hand==='Three of a Kind') bonusLines.push({ label:'Kindred', val:'+1 mult', type:'mult' });
-    if (hasTrick('long_road') && ['Run of 3','Run of 4','Straight','Straight Flush'].includes(hand)) bonusLines.push({ label:'Long Road', val:`+${2*cards.length} mult`, type:'mult' });
+    if (hasTrick('long_road') && _isRunLine) bonusLines.push({ label:'Storm', val:`+${2*cards.length} mult`, type:'mult' });
     if (hasTrick('rare_bloom') && hand==='Four of a Kind') bonusLines.push({ label:'Rare Bloom', val:'+12 mult', type:'mult' });
-    if (hasTrick('ancient_grove') && hand==='Run of 3') bonusLines.push({ label:'Ancient Grove', val:'×2 score', type:'score' });
+    if (hasTrick('correct_run') && _isRunLine && canBeOrderedRun(handCells)) bonusLines.push({ label:'Rogue Wave', val:`+${80*cards.length} pips`, type:'pip' });
     if (hasTrick('trinity') && hand==='Three of a Kind') bonusLines.push({ label:'Trinity', val:'×2 score', type:'score' });
-    if (hasTrick('river_run') && hand==='Straight') bonusLines.push({ label:'River Run', val:'×2 score', type:'score' });
-    if (hasTrick('torrent') && ['Run of 4','Straight','Straight Flush'].includes(hand)) { const tv = hand==='Run of 4'?2:4; bonusLines.push({ label:'Torrent', val:`×${tv} score`, type:'score' }); }
     if (hasTrick('deluge') && hand==='Flush') bonusLines.push({ label:'Deluge', val:'×2 score', type:'score' });
     if (hasTrick('perfect_storm') && hand==='Straight Flush') bonusLines.push({ label:'Perfect Storm', val:'×5 score', type:'score' });
     if (hasTrick('lucky_sevens') && cards.some(c=>c.rank==='7')) bonusLines.push({ label:'Lucky Sevens', val:'×2 score', type:'score' });
@@ -6609,7 +6635,16 @@ function playHand() {
       });
       if (suitsInHand.size >= 4) totalFocus += 4;
     }
+    // Run focus tricks: Torrent (+1/card), Rogue Wave (+4/card if played in sequence)
+    const _isRunHand = ['Run of 3','Run of 4','Straight','Straight Flush'].includes(hand);
+    if (_isRunHand && hasTrick('river_run')) totalFocus += handCells.length * BAL.river_run.focus_per_card;
+    if (_isRunHand && hasTrick('correct_run') && canBeOrderedRun(handCells)) totalFocus += handCells.length * BAL.correct_run.focus_per_card;
     if (totalFocus > 0) addFocus(totalFocus);
+    // Flash Flood: runs of 4+ cards instantly advance focus to the next threshold
+    if (_isRunHand && handCells.length >= 4 && hasTrick('ancient_grove')) {
+      const _nt = (Math.floor(focusNodes / FOCUS_THRESHOLD) + 1) * FOCUS_THRESHOLD;
+      addFocus(_nt - focusNodes);
+    }
     console.log('[FOCUS] hand=' + hand + ' base=' + handFocus + ' speedBonus=' + speedBonus + ' total=' + totalFocus + ' t=' + secondsSinceLast.toFixed(2) + 's');
   }
   resetFocusDecayTimer();
@@ -6646,6 +6681,7 @@ function playHand() {
   // ── Accumulating Trick effects (post-hand) ──
   handsPlayedRound++;
   handTypesRound.add(hand);
+  if (['Run of 3','Run of 4','Straight','Straight Flush'].includes(hand)) runsPlayedRound++;
   if (hasTrick('compound_mult')) bonusMult_compound = Math.round((bonusMult_compound + BAL.compound_mult.mult_per_hand) * 10) / 10;
   if (hasTrick('prolific')) bonusPips_prolific += BAL.prolific.pips_per_hand;
   if (hasTrick('big_win') && !jackpotFired && finalScore >= BAL.big_win.score_threshold) { jackpotFired = true; bonusMult_jackpot += BAL.big_win.mult; showMessage('Jackpot! +5 mult permanently', 'var(--gold)'); }
@@ -11345,6 +11381,7 @@ function triggerLevelUp() {
   freeDiscardsLeft = 2;
   cardsDiscardedRound = 0;
   handsPlayedRound = 0;
+  runsPlayedRound  = 0;
   handTypesRound   = new Set();
   fullHouseThisRound = 0;
   tickAltarEffects();
@@ -12147,7 +12184,7 @@ let svcStep = 0;
 let svcPicked = [];
 
 // ── New shop state ──
-const SHOP_TRICK_PRICES    = { common: 5, rare: 8, epic: 12, legendary: 18 };
+const SHOP_TRICK_PRICES    = { common: 5, rare: 8, epic: 12, legendary: 18, mythic: 25 };
 const SHOP_KNACK_PRICE  = 10;
 const SHOP_SLEIGHT_PRICES = { common: 8, rare: 12, epic: 16, legendary: 22 };
 const SHOP_LIMIT_BASE   = 15; // coins; +5 per upgrade already purchased
@@ -12830,10 +12867,10 @@ const UNLOCK_TRICK_POOL = {
   run4:         ['overgrowth','fertile_ground','early_bird'],
   pair:         ['twin_sprouts','mirror_lake','hidden_pair'],
   twopair:      ['twin_sprouts','steady_pace','kindling'],
-  straight:     ['worn_path','long_road','river_run','torrent'],
+  straight:     ['worn_path','long_road','river_run','correct_run'],
   flush:        ['enriched','tidal_force','deluge'],
   fullhouse:    ['hidden_triple','steady_pace','wildfire'],
-  straightflush:['perfect_storm','enriched','long_road','torrent'],
+  straightflush:['perfect_storm','enriched','long_road','tide_table'],
   highcard:     ['rich_soil','first_light','court_of_leaves'],
   blackjack:    ['ninesong','lucky_sevens','steady_pace'],
 };
@@ -13376,6 +13413,7 @@ function startGame() {
   jackpotFired       = false;
   safetyNetUsed      = false;
   handsPlayedRound   = 0;
+  runsPlayedRound    = 0;
   handTypesRound     = new Set();
   cardsDiscardedTotal = 0;
   freeSwapsLeft    = 2;
