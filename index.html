@@ -3482,7 +3482,7 @@
 </div>
 
 <script>
-const BUILD = '2026-06-16 · r54';
+const BUILD = '2026-06-16 · r55';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -6566,9 +6566,12 @@ function playHand() {
   if (animating) { pendingAction = 'play'; dbgEvent('info', 'play queued (animating)'); scheduleQueuedRetry(); return; }
   cancelAutoSubmit();
   console.log('[PLAY] entry', { score, goal: cumulativeGoal, goalReachedThisRound, bonusWindowActive, animating, hasDance: !!danceAbortController });
-  cancelDance();
   const result = findBestHand(selected);
   if (!result) { dbgEvent('warn', 'play: no valid hand', { selected: selected.length, animating, falling, roundEnded, dance: !!danceAbortController, swapPending: !!swapPending, swiping: isSwiping }); console.log('[PLAY] no result, exiting'); return; }
+  // Abort any prior in-flight score dance ONLY now that we have a real hand to play.
+  // (A spurious double-fire of Play on a now-empty selection must NOT cancel the
+  //  in-progress dance — that was the "cards wiggle but never score" bug.)
+  cancelDance();
 
   const playedCells = [...selected]; // capture before any path clears selection (for on_play sleights)
   const { hand, handCells, penaltyCells, penaltyPips, finalScore } = result;
@@ -12203,7 +12206,16 @@ function onGameEnd(gameover) {
 // ══════════════════════════════════════════════
 // BUTTON EVENTS
 // ══════════════════════════════════════════════
-document.getElementById('btn-play').addEventListener('click', () => { cancelAutoSubmit(); playHand(); });
+let _lastPlayClick = 0;
+document.getElementById('btn-play').addEventListener('click', () => {
+  // Debounce: mobile taps can fire the click twice ~150-200ms apart, and the second
+  // call would abort the first hand's score animation. Ignore a 2nd press within 250ms.
+  const _now = Date.now();
+  if (_now - _lastPlayClick < 250) { dbgEvent('info', 'play double-click ignored'); return; }
+  _lastPlayClick = _now;
+  cancelAutoSubmit();
+  playHand();
+});
 document.getElementById('btn-discard').addEventListener('click', doDiscard);
 
 // ══════════════════════════════════════════════
