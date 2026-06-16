@@ -3482,7 +3482,7 @@
 </div>
 
 <script>
-const BUILD = '2026-06-16 · r53';
+const BUILD = '2026-06-16 · r54';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -6458,9 +6458,9 @@ function onCardTap(r, c) {
 const gridEl2 = document.getElementById('grid');
 
 gridEl2.addEventListener('pointerdown', e => {
-  if (animating || roundEnded) return;
+  if (animating || roundEnded) { dbgEvent('warn', 'grid input blocked', { animating, roundEnded, falling, dance: !!danceAbortController }); return; }
   const cell = cardAt(e.target);
-  if (!cell) return;
+  if (!cell) { dbgEvent('warn', 'tap missed a card (overlay covering grid?)', { tgt: String(e.target?.id || e.target?.className || e.target?.tagName || '?').slice(0,48) }); return; }
   gridEl2.setPointerCapture(e.pointerId);
   isSwiping = false;
   swipeStopped = false;
@@ -6519,6 +6519,7 @@ gridEl2.addEventListener('pointermove', e => {
       }
       if (selected.length < limits.selection.current) {
         selected.push([r, c]);
+        dbgEvent('info', `swipe-add [${r},${c}] (total:${selected.length})`);
         sfxCardSelect();
         scheduleAutoSubmit();
         render();
@@ -6567,7 +6568,7 @@ function playHand() {
   console.log('[PLAY] entry', { score, goal: cumulativeGoal, goalReachedThisRound, bonusWindowActive, animating, hasDance: !!danceAbortController });
   cancelDance();
   const result = findBestHand(selected);
-  if (!result) { dbgEvent('warn', 'play: no valid hand from selection', { selected: selected.length }); console.log('[PLAY] no result, exiting'); return; }
+  if (!result) { dbgEvent('warn', 'play: no valid hand', { selected: selected.length, animating, falling, roundEnded, dance: !!danceAbortController, swapPending: !!swapPending, swiping: isSwiping }); console.log('[PLAY] no result, exiting'); return; }
 
   const playedCells = [...selected]; // capture before any path clears selection (for on_play sleights)
   const { hand, handCells, penaltyCells, penaltyPips, finalScore } = result;
