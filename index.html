@@ -3482,7 +3482,7 @@
 </div>
 
 <script>
-const BUILD = '2026-06-16 · r52';
+const BUILD = '2026-06-16 · r53';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -6156,6 +6156,25 @@ function cancelAutoSubmit() {
   handReadyForSubmit = false;
 }
 
+// Watchdog: a play/discard submitted mid-animation is queued (pendingAction), then
+// auto-executed here once the animating/falling flags settle. Double-safe with the
+// falling-complete flush — whichever fires first clears pendingAction atomically.
+let _queuedRetries = 0;
+function scheduleQueuedRetry() {
+  _queuedRetries = 0;
+  (function retry() {
+    if (!pendingAction) return;
+    if (animating || falling) {
+      if (_queuedRetries++ > 60) { dbgEvent('warn', 'queued action timed out', { pendingAction }); pendingAction = null; return; }
+      setTimeout(retry, 60); return;
+    }
+    const q = pendingAction; pendingAction = null;
+    dbgEvent('info', 'executing queued ' + q + ' (animation settled)');
+    if (q === 'play') playHand();
+    else if (q === 'discard') doDiscard();
+  })();
+}
+
 function scheduleAutoSubmit() {
   cancelAutoSubmit();
   if (danceAbortController) return; // dance in progress, don't schedule
@@ -6541,16 +6560,18 @@ gridEl2.addEventListener('contextmenu', e => e.preventDefault());
 // PLAY HAND
 // ══════════════════════════════════════════════
 function playHand() {
-  if (roundEnded) return;
-  if (falling) { pendingAction = 'play'; dbgEvent('info', 'play queued (falling)'); return; }
+  if (roundEnded) { dbgEvent('warn', 'play ignored (round ended)'); return; }
+  if (falling)   { pendingAction = 'play'; dbgEvent('info', 'play queued (falling)'); return; }
+  if (animating) { pendingAction = 'play'; dbgEvent('info', 'play queued (animating)'); scheduleQueuedRetry(); return; }
   cancelAutoSubmit();
   console.log('[PLAY] entry', { score, goal: cumulativeGoal, goalReachedThisRound, bonusWindowActive, animating, hasDance: !!danceAbortController });
   cancelDance();
   const result = findBestHand(selected);
-  if (!result) { console.log('[PLAY] no result, exiting'); return; }
+  if (!result) { dbgEvent('warn', 'play: no valid hand from selection', { selected: selected.length }); console.log('[PLAY] no result, exiting'); return; }
 
   const playedCells = [...selected]; // capture before any path clears selection (for on_play sleights)
   const { hand, handCells, penaltyCells, penaltyPips, finalScore } = result;
+  dbgEvent('ok', 'play ' + hand, { finalScore, cards: handCells.length });
   console.log('[PLAY] hand result', { hand, finalScore, scoreAfterAdd: score + finalScore });
   const scoreBeforeHand = score;
   score += finalScore;
@@ -6622,14 +6643,8 @@ function playHand() {
     return;
   }
 
-  // Normal path — block if animation still running to avoid stale grid state
-  if (animating) {
-    console.log('[PLAY] normal path BLOCKED by animating flag — score reverted', { finalScore });
-    score -= finalScore;
-    handsPlayed--;
-    if (hand === 'Full House' && hasTrick('full_house_streak')) fullHouseThisRound--;
-    return;
-  }
+  // (Animating is guarded at the top of playHand now — a hand submitted mid-animation
+  //  is queued and auto-executed once the animation settles, instead of silently failing.)
 
   // ── Generate focus: hand-type complexity + speed bonus ──
   {
