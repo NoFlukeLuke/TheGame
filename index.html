@@ -645,9 +645,12 @@
     40%  { box-shadow: 0 0 18px 5px rgba(122, 80, 192, 0.9); }
     100% { box-shadow: 0 0 0 0 rgba(122, 80, 192, 0.0); }
   }
-  #mult-box.focus-beat {
+  #mult-box.focus-beat, #focus-box.focus-beat {
     animation: multBoxFocusBeat 0.4s ease-out;
   }
+  /* Clock paused (Pause mechanic) — frozen countdown pulses blue */
+  #clock.clock-paused { color: #5aa9e6; animation: clockPausePulse 0.9s ease-in-out infinite; }
+  @keyframes clockPausePulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
   @keyframes focusNodePop {
     0%   { transform: scaleX(1); }
     50%  { transform: scaleX(1.5); }
@@ -2824,6 +2827,11 @@
             <div class="subbox-label">MULT</div>
             <div class="subbox-val" id="mult-val">0</div>
           </div>
+          <div class="subbox-times">×</div>
+          <div class="score-subbox" id="focus-box">
+            <div class="subbox-label">FOCUS</div>
+            <div class="subbox-val" id="focus-val">×1</div>
+          </div>
         </div>
         <!-- Center: current score (dance overlay covers this) -->
         <div id="score-center">
@@ -3474,7 +3482,7 @@
 </div>
 
 <script>
-const BUILD = '2026-06-15 · r51';
+const BUILD = '2026-06-16 · r52';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -3746,6 +3754,7 @@ const TRICK_POOL = [
   { id:'correct_run',    name:'Rogue Wave',          tier:'mythic',    desc:'Runs played in correct sequential order score +80 pips and +16 mult, and add +4 Focus, per card' },
   { id:'tide_table',     name:'Tide Table',          tier:'epic',      desc:'Runs ×mult, building +×0.75 per Run scored this round' },
   { id:'undertow',       name:'Undertow',            tier:'epic',      desc:'Runs ×1.5 pips, plus ×0.5 more per card beyond 3' },
+  { id:'high_water',     name:'High Water',          tier:'epic',      desc:'After 3 Runs each round, every Run pauses the clock for its card count in seconds' },
   { id:'worn_path',      name:'Worn Path',           tier:'common',    desc:'Straight scores +20 pips' },
   // ── Pairs / sets ──
   { id:'kindred',        name:'Kindred',             tier:'common',    desc:'Three of a Kind scores +1 mult' },
@@ -3895,6 +3904,7 @@ const FOCUS_THRESHOLD = 10; // nodes per charge
 let focusCapacity   = 3;   // max charges (modifiable by Expanse bonus)
 const FOCUS_COLORS  = ['#54af88','#3a8fbf','#7a50c0','#9a30d0'];
 let lastCalcMult   = 0;   // set by calcScore so playHand can generate focus from it
+let lastCalcFocus  = 1;   // focus multiplier applied to the last scored hand (FOCUS box)
 let lastPreFocusMult = 0; // mult before focus multiplier applied — used by score dance
 let focusNodeEls    = [];  // bottom=index 0, top=index 9 (10 per active segment)
 let focusAnimQueue  = [];  // pending node indices to animate
@@ -5294,20 +5304,16 @@ function calcScore(handName, cells, contrib = null) {
   }
 
   // 3. Base score
-  // Capture pre-focus mult so the score dance can show the focus beat separately
-  lastPreFocusMult = mult;
-  // Apply focus multiplier (multiplies the final mult; no effect below threshold of 10 nodes)
   const fMult = focusMultiplier();
   // Flow State: +10 pips per card scored while focus mult >= 1.5
   if (hasTrick('flow_state') && fMult >= 1.5) {
     const _a = BAL.flow_state.pips_per_card * cards.length; totalPips += _a; bPip('flow_state', _a);
   }
-  if (fMult > 1) {
-    mult = Math.round(mult * fMult * 10) / 10;
-  }
-  // Expose mult so playHand can use it; focus generation now uses hand type, not mult
-  lastCalcMult = mult;
+  // MULT stays "pure" — Focus is a SEPARATE third multiplier applied at the end (see below).
+  lastPreFocusMult = mult;   // kept for dance compatibility (now == pure mult)
+  lastCalcMult = mult;       // pure mult for the MULT box
   lastCalcPips = totalPips;
+  lastCalcFocus = fMult;     // focus multiplier for the FOCUS box
 
   if (totalPips < 0) totalPips = 0; // corrupt costs can't push a hand into score debt
 
@@ -5346,6 +5352,9 @@ function calcScore(handName, cells, contrib = null) {
   if (hasTrick('shape_snake')  && isSnake(cells))  { /* mult added above */ }
 
   if (hasTrickCard) s *= 2;
+
+  // 5. Focus multiplier — separate third element, applied at the very end of the sequence
+  if (fMult > 1) s *= fMult;
 
   // Push accumulated contrib entries (pip then mult, skip zeros)
   if (contrib !== null) {
@@ -5540,6 +5549,9 @@ function render() {
       if (pipsEl) animateDigitEl(pipsEl, 0);
       if (multEl) animateDigitEl(multEl, 0);
     }
+    // FOCUS box tracks the live focus multiplier (what would apply to the next hand)
+    const _fvEl = document.getElementById('focus-val');
+    if (_fvEl) { const _fm = focusMultiplier(); _fvEl.textContent = (_fm === 1) ? '×1' : '×' + _fm.toFixed(1); }
   }
 
   // Score breakdown
@@ -5739,9 +5751,12 @@ function syncFocusMeterState() {
 
 // Updates the multiplier readout text + active/dim state. Optionally pulses.
 function updateFocusMultReadout(pulse = false) {
+  const mult = focusMultiplier();
+  // FOCUS score box mirrors the live focus multiplier (suppressed mid-dance; the dance drives it)
+  const fvEl = document.getElementById('focus-val');
+  if (fvEl && !danceAbortController) fvEl.textContent = (mult === 1) ? '×1' : '×' + mult.toFixed(1);
   const el = document.getElementById('focus-mult-readout');
   if (!el) return;
-  const mult = focusMultiplier();
   el.textContent = '×' + mult.toFixed(1);
   const active = focusNodes > FOCUS_THRESHOLD;
   el.classList.toggle('active', active);
@@ -6645,6 +6660,8 @@ function playHand() {
       const _nt = (Math.floor(focusNodes / FOCUS_THRESHOLD) + 1) * FOCUS_THRESHOLD;
       addFocus(_nt - focusNodes);
     }
+    // High Water: after 3 Runs this round, each further Run pauses the clock by its card count
+    if (_isRunHand && runsPlayedRound >= 3 && hasTrick('high_water')) pauseRound(handCells.length);
     console.log('[FOCUS] hand=' + hand + ' base=' + handFocus + ' speedBonus=' + speedBonus + ' total=' + totalFocus + ' t=' + secondsSinceLast.toFixed(2) + 's');
   }
   resetFocusDecayTimer();
@@ -7303,6 +7320,7 @@ async function playScoreDance(result, toRemove, isGoalHand = false) {
   const { hand, handCells, finalScore } = result;
   const targetPips  = lastCalcPips;
   const targetMult  = Math.round(lastCalcMult * 10) / 10;
+  const targetFocus = lastCalcFocus;
   const scoreAfter  = score;
   const scoreBefore = score - finalScore;
 
@@ -7411,6 +7429,7 @@ async function playScoreDance(result, toRemove, isGoalHand = false) {
   // ── 3. Pip particles fly + ticking ──
   const pipsValEl = document.getElementById('pips-val');
   const multValEl = document.getElementById('mult-val');
+  const focusValEl = document.getElementById('focus-val');
   const scoreEl   = document.getElementById('score-total-num');
 
   const base       = HAND_BASE[hand] || { pips: 0, mult: 1 };
@@ -7474,7 +7493,7 @@ async function playScoreDance(result, toRemove, isGoalHand = false) {
   // Focus beat: if focus multiplier is active, hold the score ticker until after
   // the mult particles finish and the focus beat plays (purple pulse on meter +
   // mult box, mult ticks rapidly from pre-focus to post-focus value).
-  const focusActive   = focusMultiplier() > 1;
+  const focusActive   = targetFocus > 1;
   const focusBeatMs   = focusActive ? focusBeatDurationMs : 0;
   const tickerStartDelay = focusActive ? multParticleEnd + 80 : 0;
   const scoreDur      = lastLand + 350; // ticker duration once it starts
@@ -7484,35 +7503,32 @@ async function playScoreDance(result, toRemove, isGoalHand = false) {
   let goalFlashFired = false;
   const goalCrossedAt = isGoalHand ? cumulativeGoal : Infinity;
 
-  // Focus beat handler — fires after mult particles finish
+  // Focus beat — fires after mult particles finish. MULT stays pure; the FOCUS box
+  // pops from ×1 up to the applied focus multiplier, then the score climbs by it.
+  if (focusActive && focusValEl) focusValEl.textContent = '×1';
   if (focusActive) {
     setTimeout(() => {
       if (sig.aborted) return;
-      // Snap mult to pre-focus value so the beat clearly shows the jump
-      const preFocusDisplay = Math.round(lastPreFocusMult * 10) / 10;
-      multValEl.textContent = (preFocusDisplay % 1 === 0) ? preFocusDisplay : preFocusDisplay.toFixed(1);
-
-      // Trigger meter + mult box pulses
+      // Trigger meter + focus box pulses
       const meterEl = document.getElementById('focus-meter-wrap');
       if (meterEl) {
         meterEl.classList.remove('beat');
         void meterEl.offsetWidth;
         meterEl.classList.add('beat');
       }
-      const multBoxEl = document.getElementById('mult-box');
-      if (multBoxEl) {
-        multBoxEl.classList.remove('focus-beat');
-        void multBoxEl.offsetWidth;
-        multBoxEl.classList.add('focus-beat');
+      const focusBoxEl = document.getElementById('focus-box');
+      if (focusBoxEl) {
+        focusBoxEl.classList.remove('focus-beat');
+        void focusBoxEl.offsetWidth;
+        focusBoxEl.classList.add('focus-beat');
       }
       // Pulse the readout
       updateFocusMultReadout(true);
       // Sound
       sfxFocusBeat();
 
-      // Tick mult rapidly from pre-focus to post-focus over ~120ms
-      const tickMs = Math.min(focusBeatMs - 80, 160);
-      tickValue(multValEl, lastPreFocusMult, targetMult, tickMs);
+      // Snap the FOCUS box to the applied multiplier
+      if (focusValEl) focusValEl.textContent = '×' + (targetFocus % 1 === 0 ? targetFocus : targetFocus.toFixed(1));
     }, multParticleEnd);
   }
 
@@ -7620,6 +7636,8 @@ function handleDanceAbort(isGoalHand) {
   const multValEl = document.getElementById('mult-val');
   if (pipsValEl) pipsValEl.textContent = '0';
   if (multValEl) multValEl.textContent = '0';
+  const focusValEl = document.getElementById('focus-val');
+  if (focusValEl) { const fm = focusMultiplier(); focusValEl.textContent = (fm === 1) ? '×1' : '×' + fm.toFixed(1); }
   if (isGoalHand) {
     score += heldBackScore;
     heldBackScore = 0;
@@ -7752,18 +7770,22 @@ function showTimeCost(label) {
 }
 
 function pauseRound(seconds) {
-  if (hasTrick('carpe_diem')) {
-    pauseSecondsLeft += seconds;
-  } else {
-    pauseSecondsLeft = seconds;
-  }
+  // Pauses always stack — an active pause is extended, not reset.
+  pauseSecondsLeft += seconds;
   pipeTimerPaused = true;
+  const clockEl = document.getElementById('clock');
+  if (clockEl) clockEl.classList.add('clock-paused');
   if (pauseTimer) clearTimeout(pauseTimer);
   // count down pause
   const tick = () => {
     pauseSecondsLeft--;
-    if (pauseSecondsLeft <= 0) { pipeTimerPaused = false; pauseSecondsLeft = 0; }
-    else pauseTimer = setTimeout(tick, 1000);
+    if (pauseSecondsLeft <= 0) {
+      pipeTimerPaused = false; pauseSecondsLeft = 0;
+      if (clockEl) clockEl.classList.remove('clock-paused');
+      updateClockUI();
+    } else {
+      pauseTimer = setTimeout(tick, 1000);
+    }
   };
   pauseTimer = setTimeout(tick, 1000);
 }
@@ -8240,6 +8262,7 @@ function updateClockUI() {
   const barEl = document.getElementById('clock-bar');
   clockEl.textContent = `${m}:${s.toString().padStart(2,'0')}`;
   barEl.style.width = (secs/ROUND_DURATION*100)+'%';
+  clockEl.classList.toggle('clock-paused', pipeTimerPaused);
   if (secs <= 10) { clockEl.classList.add('urgent'); barEl.classList.add('urgent'); }
   else { clockEl.classList.remove('urgent'); barEl.classList.remove('urgent'); }
 }
@@ -13343,6 +13366,7 @@ function startGame() {
   focusAnimQueue = [];
   focusAnimRunning = false;
   lastCalcMult = 0;
+  lastCalcFocus = 1;
   lastPreFocusMult = 0;
   buildFocusMeter();
   syncFocusMeterState();
