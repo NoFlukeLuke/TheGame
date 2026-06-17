@@ -62,6 +62,10 @@ Pattern: **"[Subject] score(s) +N …"** — never give / adds / worth / contrib
 ## Money & time
 - **Coins**, never "gold".
 - Round clock: **pause the clock for N seconds**; a pause can be extended by another pause (durations stack).
+- **Round-time fractions are DYNAMIC.** "First / middle / last third of the round" (and any
+  fractional timing) is computed against the round's *actual* starting length
+  (`roundStartSeconds` via `roundFractionRemaining()`), never a hardcoded constant — so it
+  tracks shortened or extended rounds. (Absolute thresholds like "with 30 seconds left" stay absolute.)
 
 ## Scoring order (engine fact)
 - Cards are scored in **selection (tap) order**, preserved from `selected` → `findBestHand` → `calcScore`.
