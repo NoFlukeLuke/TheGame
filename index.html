@@ -3482,7 +3482,7 @@
 </div>
 
 <script>
-const BUILD = '2026-06-16 · r57';
+const BUILD = '2026-06-16 · r58';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -3769,10 +3769,9 @@ const TRICK_POOL = [
   { id:'eye_of_storm',   name:'Eye of the Storm',    tier:'epic',      desc:'Hands played in the middle third of the round retrigger the highest-ranked card(s)' },
   { id:'ripple',         name:'Ripple',              tier:'rare',      desc:'Once every 30s, cards adjacent in rank to another card in the hand retrigger' },
   // ── Flush / special hand types ──
-  { id:'enriched',       name:'Enriched',            tier:'common',    desc:'Flush scores +15 pips' },
-  { id:'tidal_force',    name:'Tidal Force',         tier:'rare',      desc:'Flush scores +4 mult' },
-  { id:'deluge',         name:'Deluge',              tier:'epic',      desc:'Flush ×2 score' },
-  { id:'perfect_storm',  name:'Perfect Storm',       tier:'legendary', desc:'Straight Flush ×5 score' },
+  { id:'enriched',       name:'Enriched',            tier:'common',    desc:'Flushes score +40 pips' },
+  { id:'tidal_force',    name:'Tidal Forces',        tier:'common',    desc:'Flushes score +10 mult' },
+  { id:'deluge',         name:'Deluge',              tier:'rare',      desc:'Flushes add +5 seconds to the clock' },
   { id:'summit',     name:'Summit',     tier:'common', desc:'The highest-ranking card in each hand scores +(level x 4) pips.' },
   { id:'last_stand', name:'Last Stand', tier:'rare',   desc:'If your score is below the round goal when you play, that hand scores x2.' },
   { id:'light_touch',    name:'Nimble',              tier:'common',    desc:'2-card hands score +5 mult' },
@@ -3815,11 +3814,10 @@ const TRICK_POOL = [
   { id:'echo_hand',      name:'Echo Hand',           tier:'common',    desc:'Playing the same hand type twice in a row scores ×1.5' },
   { id:'hot_streak',     name:'On Fire',             tier:'rare',      desc:'Streak of 4+ same hand adds +1 mult per count beyond 3' },
   // ── Suit conditions ──
-  { id:'heart_double',   name:'Devoted',             tier:'rare',      tags:['suit','mult'], desc:'Each scored heart adds +1 mult' },
-  { id:'club_double',    name:'Hard Labour',         tier:'rare',      tags:['suit','pips'], desc:'Each scored club adds +10 pips' },
-  { id:'monochrome',     name:'Black & Red',         tier:'common',    desc:'All-red (hearts/diamonds) or all-black (clubs/spades) hand scores +3 mult' },
-  { id:'full_color',     name:'Rainbow',             tier:'rare',      desc:'Hand containing all four suits scores +4 mult' },
-  { id:'balanced_diet',  name:'Balanced',            tier:'rare',      desc:'Hand with exactly 2 different suits scores +2 mult' },
+  { id:'club_double',    name:'Hard Labour',         tier:'mythic',    tags:['suit','pips'], desc:'Each club scored adds escalating pips — +5, doubling per club; retriggers count' },
+  { id:'monochrome',     name:'Blood Diamonds',      tier:'epic',      desc:'Hands with at least one heart and one diamond grant +1 coin and +10 seconds' },
+  { id:'full_color',     name:'Rainbow',             tier:'rare',      desc:'Hands with all four suits score +16 pips and +4 mult per card' },
+  { id:'balanced_diet',  name:'Balance',             tier:'common',    desc:'Hands with exactly 2 suits score +2 mult per card' },
   // ── Number magic ──
   { id:'lucky_sevens',   name:'Lucky Sevens',        tier:'epic',      desc:'7s ×2 score' },
   { id:'ninesong',       name:'Ninesong',            tier:'epic',      desc:'If pip total is multiple of 9, ×3 score' },
@@ -3863,8 +3861,7 @@ const TRICK_POOL = [
   // ── Situational pip ──
   { id:'sands_of_time',  name:'Sands of Time',       tier:'rare',      desc:'Current round time remaining ÷ 2 added as pips' },
   { id:'discard_pips',   name:'Compost',             tier:'common',    tags:['pips','discard'], desc:'+3 pips per card discarded this round' },
-  { id:'spade_flood',    name:'Spade Flood',         tier:'epic',      tags:['suit','pips'], desc:'4 or 5-card all-spade hands add twice the remaining round time as pips' },
-  { id:'dark_matter',    name:'Dark Matter',         tier:'rare',      desc:'Corrupted cards in a hand add +5 pips each' },
+  { id:'spade_flood',    name:'Dark Matter',         tier:'rare',      tags:['suit','pips'], desc:'All-spade hands add half the remaining round time as pips' },
   // ── Diverse conditions ──
   { id:'combo_score',    name:'Combo Score',         tier:'common',    desc:'+2 mult for every distinct hand type played this round' },
   { id:'escalation',     name:'Escalation',          tier:'rare',      desc:'For each hand beyond the 5th in a round, score +1 mult' },
@@ -3876,7 +3873,7 @@ const TRICK_POOL = [
   { id:'restless',       name:'Restless',            tier:'common',    tags:['focus'], desc:'Swapping adds 1 focus' },
   { id:'cull',           name:'Cull',                tier:'common',    tags:['focus'], desc:'Using a discard adds 1 focus' },
   { id:'expanse',        name:'Expanse',             tier:'common',    tags:['focus'], desc:'Each time you hit max focus, increase max focus capacity by 1' },
-  { id:'kaleidoscope',   name:'Kaleidoscope',        tier:'rare',      tags:['focus'], desc:'Playing one of each suit in a hand adds 4 focus' },
+  { id:'kaleidoscope',   name:'Kaleidoscope',        tier:'rare',      tags:['focus'], desc:'Playing one or more of each suit in a hand adds +4 Focus' },
   { id:'flow_state',     name:'Flow State',          tier:'rare',      tags:['focus','pips'], desc:'While focus is ×1.5 or higher, +10 pips per card scored' },
   // ── Legendary ──
   { id:'heartwood',      name:'Heartwood',           tier:'epic',      desc:'Dead center card permanently gains +5 pips & +1 mult each time scored' },
@@ -4776,12 +4773,12 @@ const BAL = {
   hidden_pair: { pips: 12 },
   twin_sprouts: { pips: 15 },
   worn_path: { pips: 20 },
-  enriched: { pips: 15 },
+  enriched: { pips: 40 },
   overgrowth: { pips_per_card: 10 },
   triple_threat: { pips: 20 },
   early_bird: { pips: 20 },
   kindling: { pips_per_streak: 4 },
-  spade_flood: { time_mult: 2 },
+  spade_flood: { time_div: 2 },
   sands_of_time: { divisor: 2 },
   discard_pips: { pips_per_discard: 3 },
   edge_pips: { pips_per_card: 15 },
@@ -4791,13 +4788,13 @@ const BAL = {
   heavy_hand: { pips_per_card: 6 },
   quick_draw: { pips_per_card: 3 },
   flow_state: { pips_per_card: 10 },
-  club_double: { club_pips: 10 },
+  club_double: { base: 5 },
   steady_pace: { mult: 1 },
   momentum: { mult: 2 },
   night_owl: { mult: 3 },
   wildfire: { mult: 2 },
   kindred: { mult_per_card: 3 },
-  tidal_force: { mult: 4 },
+  tidal_force: { mult: 10 },
   rare_bloom: { perm_pips: 8 },
   two_pair_mult: { focus: 16, window_ms: 30000, need_count: 3 },
   threes_run: { mult: 9 },
@@ -4806,9 +4803,9 @@ const BAL = {
   closing_time: { mult: 5 },
   patience_reward: { mult: 3 },
   first_play: { mult: 2 },
-  monochrome: { mult: 3 },
-  full_color: { mult: 4 },
-  balanced_diet: { mult: 2 },
+  monochrome: { coins: 1, seconds: 10 },
+  full_color: { pips_per_card: 16, mult_per_card: 4 },
+  balanced_diet: { mult_per_card: 2 },
   number_crunch: { mult: 2 },
   even_score: { mult: 3 },
   odd_squad: { mult: 3 },
@@ -4832,7 +4829,7 @@ const BAL = {
   richter: { mult_mult: 3 },
   ripple: { cooldown_ms: 30000 },
   river_run: { focus_per_card: 1 },
-  deluge: { score_mult: 2 },
+  deluge: { seconds: 5 },
   perfect_storm: { score_mult: 5 },
   extinction: { score_mult: 2 },
   lucky_sevens: { score_mult: 2 },
@@ -4899,9 +4896,6 @@ const DESC_TEMPLATES = {
   river_run: 'Runs add +{focus_per_card} Focus per card',
   correct_run: 'Runs played in correct sequential order score +{pips_per_card} pips and +{mult_per_card} mult, and add +{focus_per_card} Focus, per card',
   worn_path: 'Straight scores +{pips} pips',
-  enriched: 'Flush scores +{pips} pips',
-  tidal_force: 'Flush scores +{mult} mult',
-  deluge: 'Flush ×{score_mult} score',
   perfect_storm: 'Straight Flush ×{score_mult} score',
   summit: 'The highest-ranking card in each hand scores +(level x {pips_per_level}) pips.',
   light_touch: '2-card hands score +{mult} mult',
@@ -4932,9 +4926,6 @@ const DESC_TEMPLATES = {
   wildfire: '3 same hands in a row scores +{mult} mult',
   echo_hand: 'Playing the same hand type twice in a row scores ×{score_mult}',
   heart_double: 'Each scored heart adds +{heart_mult} mult',
-  club_double: 'Each scored club adds +{club_pips} pips',
-  monochrome: 'All-red (hearts/diamonds) or all-black (clubs/spades) hand scores +{mult} mult',
-  full_color: 'Hand containing all four suits scores +{mult} mult',
   lucky_sevens: '7s ×{score_mult} score',
   ninesong: 'If pip total is multiple of 9, ×{score_mult} score',
   even_score: 'Hands with only even-ranked cards (2,4,6,8,10,Q) score +{mult} mult',
@@ -4955,10 +4946,8 @@ const DESC_TEMPLATES = {
   knave_power: 'Each Jack in hand multiplies running pips ×{run_mult} when scored',
   humble_roots: 'Cards below 6 contribute {pip_mult}× pips',
   low_tide: 'Cards below 6 score +{pips} pips',
-  spade_flood: '4 or 5-card all-spade hands add {time_mult}× the remaining round time as pips',
   rowcol_triple_pips: 'Cards scored in a specific row or column contribute {pip_mult}× pips',
   quick_draw: 'Hands played within 3 seconds of the previous score +{pips_per_card} pips per card',
-  balanced_diet: 'Hand with exactly 2 different suits scores +{mult} mult',
   odd_squad: 'Hands with only odd-ranked cards (A,3,5,7,9,J,K) score +{mult} mult',
   prime_time: 'Hands where all cards have prime pip values (2,3,5,7) score ×{score_mult}',
   last_stand: 'If your score is below the round goal when you play, that hand scores x{score_mult}.',
@@ -5062,6 +5051,7 @@ function calcScore(handName, cells, contrib = null) {
       if (_scoreCells.some(([_r2,_c2]) => (_r2!==_rr||_c2!==_cc) && gridData[_r2][_c2] && _withinOneRank(_c0.rank, gridData[_r2][_c2].rank))) _rippleSet.add(`${_rr}-${_cc}`);
     });
   }
+  let _clubHits = 0; // Hard Labour: counts club scoring hits, including retriggers
   _scoreCells.forEach(([r, c]) => {
     const card = gridData[r][c];
     const baseRank = card.rank;
@@ -5102,6 +5092,7 @@ function calcScore(handName, cells, contrib = null) {
     if (_r2) _retrig++; if (_r8) _retrig++; if (_rc) _retrig++; if (_rl) _retrig++;
     if (_res) _retrig++; if (_rip) _retrig++;
     _retrig += _re;
+    if (hasTrick('club_double') && (card.suit === '♣' || (card.combined && card.suit2 === '♣'))) _clubHits += _retrig;
     if (_retrig > 1) {
       const _pre = cp; cp *= _retrig;
       const _extra = cp - _pre;
@@ -5134,11 +5125,11 @@ function calcScore(handName, cells, contrib = null) {
 
   // Clubs: neutral by default; +10 pips each with Hard Labour Trick
   const clubCount = cards.filter(c => c.suit === '♣' || (c.combined && c.suit2 === '♣')).length;
-  if (hasTrick('club_double') && clubCount > 0) { totalPips += clubCount * BAL.club_double.club_pips; bPip('club_double', clubCount * BAL.club_double.club_pips); }
+  if (hasTrick('club_double') && _clubHits > 0) { const _a = BAL.club_double.base * (Math.pow(2, _clubHits) - 1); totalPips += _a; bPip('club_double', _a); }
 
   // Spade Flood: all-Spade hand of 4+ adds roundSeconds x 2 as pips
-  const allSpadesCalc = cards.length >= 4 && cards.every(c => c.suit === '♠' || (c.combined && c.suit2 === '♠'));
-  if (hasTrick('spade_flood') && allSpadesCalc) { const _a = roundSeconds * BAL.spade_flood.time_mult; totalPips += _a; bPip('spade_flood', _a); }
+  const allSpadesCalc = cards.every(c => c.suit === '♠' || (c.combined && c.suit2 === '♠'));
+  if (hasTrick('spade_flood') && allSpadesCalc) { const _a = Math.floor(roundSeconds / BAL.spade_flood.time_div); totalPips += _a; bPip('spade_flood', _a); }
 
   // Sands of Time: remaining round seconds / 2 as trick pips
   if (hasTrick('sands_of_time')) { const _a = Math.floor(roundSeconds / BAL.sands_of_time.divisor); totalPips += _a; bPip('sands_of_time', _a); }
@@ -5262,10 +5253,9 @@ function calcScore(handName, cells, contrib = null) {
   // Suit conditions
   const _allRed   = cards.every(c => c.suit === '♥' || c.suit === '♦');
   const _allBlack = cards.every(c => c.suit === '♣' || c.suit === '♠');
-  if (hasTrick('monochrome') && (_allRed || _allBlack)) { mult += BAL.monochrome.mult; bMult('monochrome', BAL.monochrome.mult); }
   const _suitSet = new Set(cards.map(c => c.suit));
-  if (hasTrick('full_color') && _suitSet.size === 4) { mult += BAL.full_color.mult; bMult('full_color', BAL.full_color.mult); }
-  if (hasTrick('balanced_diet') && _suitSet.size === 2) { mult += BAL.balanced_diet.mult; bMult('balanced_diet', BAL.balanced_diet.mult); }
+  if (hasTrick('full_color') && _suitSet.size === 4) { const _ap = BAL.full_color.pips_per_card * cells.length; totalPips += _ap; bPip('full_color', _ap); const _am = BAL.full_color.mult_per_card * cells.length; mult += _am; bMult('full_color', _am); }
+  if (hasTrick('balanced_diet') && _suitSet.size === 2) { const _a = BAL.balanced_diet.mult_per_card * cells.length; mult += _a; bMult('balanced_diet', _a); }
   // Rank diversity
   const _rankSet = new Set(cards.map(c => c.rank));
   if (hasTrick('number_crunch') && _rankSet.size >= 4) { mult += BAL.number_crunch.mult; bMult('number_crunch', BAL.number_crunch.mult); }
@@ -5346,7 +5336,6 @@ function calcScore(handName, cells, contrib = null) {
     }, 0);
     if (faceTotal === 21) s *= BAL.blackjack_bonus.score_mult;
   }
-  if (handName === 'Flush' && hasTrick('deluge')) s *= BAL.deluge.score_mult;
   if (handName === 'Straight Flush' && hasTrick('perfect_storm')) s *= BAL.perfect_storm.score_mult;
   if (handName === 'Four of a Kind' && hasTrick('extinction')) s *= BAL.extinction.score_mult;
   if (hasTrick('lucky_sevens') && cards.some(c=>c.rank==='7')) s *= BAL.lucky_sevens.score_mult;
@@ -5369,7 +5358,6 @@ function calcScore(handName, cells, contrib = null) {
   if (contrib !== null) {
     if (_cp) Object.entries(_cp).forEach(([id, d]) => { if (d > 0) contrib.push({type:'pip',source:'trick',id,delta:d}); });
     if (_cm) Object.entries(_cm).forEach(([id, d]) => { if (d > 0) contrib.push({type:'mult',source:'trick',id,delta:Math.round(d*10)/10}); });
-    if (clubCount > 0) contrib.push({type:'pip',source:'suit',id:'♣',delta:clubCount*(hasTrick('club_double')?BAL.club_double.club_pips:5)});
     if (_ec.pips > 0) contrib.push({type:'pip',source:'exalt',id:'_exalt',delta:_ec.pips});
     if (_ec.mult > 0) contrib.push({type:'mult',source:'exalt',id:'_exalt',delta:Math.round(_ec.mult*10)/10});
   }
@@ -5596,8 +5584,6 @@ function render() {
     if (hasTrick('trinity') && _setMax >= 2) bonusLines.push({ label:'Shock', val:`+${12*_setMax} pips`, type:'pip' });
     if (hasTrick('long_road') && _isRunLine) bonusLines.push({ label:'Storm', val:`+${2*cards.length} mult`, type:'mult' });
     if (hasTrick('correct_run') && _isRunLine && canBeOrderedRun(handCells)) bonusLines.push({ label:'Rogue Wave', val:`+${80*cards.length} pips`, type:'pip' });
-    if (hasTrick('deluge') && hand==='Flush') bonusLines.push({ label:'Deluge', val:'×2 score', type:'score' });
-    if (hasTrick('perfect_storm') && hand==='Straight Flush') bonusLines.push({ label:'Perfect Storm', val:'×5 score', type:'score' });
     if (hasTrick('lucky_sevens') && cards.some(c=>c.rank==='7')) bonusLines.push({ label:'Lucky Sevens', val:'×2 score', type:'score' });
     if (hasTrickCard) bonusLines.push({ label:'⭐ Trick', val:'×2 score', type:'score' });
     if (hasTrick('early_bird') && roundSeconds>50) bonusLines.push({ label:'Early Bird', val:'+20 pips', type:'pip' });
@@ -5606,8 +5592,7 @@ function render() {
     // Suits neutral by default — preview only shows active Trick effects
     const clubCnt  = cards.filter(c => c.suit==='♣'||(c.combined&&c.suit2==='♣')).length;
     const heartCnt = cards.filter(c => c.suit==='♥'||(c.combined&&c.suit2==='♥')).length;
-    if (clubCnt  && hasTrick('club_double'))  bonusLines.push({ label:`♣ Hard Labour ×${clubCnt}`,  val:`+${clubCnt*10} pips`, type:'pip' });
-    if (heartCnt && hasTrick('heart_double')) bonusLines.push({ label:`♥ Devoted ×${heartCnt}`,     val:`+${heartCnt} mult`,   type:'mult' });
+    if (clubCnt  && hasTrick('club_double'))  bonusLines.push({ label:'♣ Hard Labour', val:`+${5*(Math.pow(2,clubCnt)-1)} pips`, type:'pip' });
 
     breakdownEl.innerHTML = `
       <div class="sb-row"><span class="sb-label">Base pips (lv${level})</span><span class="sb-value">${scaledBasePips}</span></div>
@@ -6718,6 +6703,16 @@ function playHand() {
   }
   resetFocusDecayTimer();
 
+  // Deluge: Flushes add seconds to the clock
+  if (hand === 'Flush' && hasTrick('deluge')) { roundSeconds += BAL.deluge.seconds; updateClockUI(); showMessage('Deluge! +' + BAL.deluge.seconds + 's', '#5aa9e6'); }
+  // Blood Diamonds: a hand with at least one heart AND one diamond grants +1 coin and +10s
+  if (hasTrick('monochrome')) {
+    const _bdc = handCells.map(([r,c]) => gridData[r]?.[c]).filter(Boolean);
+    const _hasHeart = _bdc.some(c => c.suit === '♥' || (c.combined && c.suit2 === '♥'));
+    const _hasDia   = _bdc.some(c => c.suit === '♦' || (c.combined && c.suit2 === '♦'));
+    if (_hasHeart && _hasDia) { coins += BAL.monochrome.coins; updateCoinsUI(); roundSeconds += BAL.monochrome.seconds; updateClockUI(); showMessage('Blood Diamonds! +' + BAL.monochrome.coins + ' coin, +' + BAL.monochrome.seconds + 's', '#c0353e'); }
+  }
+
   // ── Playing a hand no longer costs time (owner request). ──
   // Previously each manual play cost 5s + any reward-grid time penalties; that drain is removed.
   // (playHandCostThisRound from reward-grid debuffs is now inert — left in place so those events
@@ -7266,14 +7261,6 @@ function collectScoreParticles(handCells, gridEl) {
       color: suitColor(card.suit),
       sourceType: 'card',
     });
-    // Hearts emit mult particle only when Devoted Trick is active
-    if (card.suit === '♥' && hasTrick('heart_double')) {
-      mult.push({ sourceRect: rect, label: '+1', color: '#c0353e', sourceType: 'card' });
-    }
-    // Clubs emit pip particle only when Hard Labour Trick is active
-    if ((card.suit === '♣' || (card.combined && card.suit2 === '♣')) && hasTrick('club_double')) {
-      pip.push({ sourceRect: rect, label: '+10', color: '#2255cc', sourceType: 'suit' });
-    }
   });
 
   return { pip, mult };
@@ -12960,7 +12947,7 @@ const UNLOCK_TRICK_POOL = {
   straight:     ['worn_path','long_road','river_run','correct_run'],
   flush:        ['enriched','tidal_force','deluge'],
   fullhouse:    ['hidden_triple','steady_pace','wildfire'],
-  straightflush:['perfect_storm','enriched','long_road','tide_table'],
+  straightflush:['enriched','tidal_force','full_color','tide_table'],
   highcard:     ['rich_soil','first_light','court_of_leaves'],
   blackjack:    ['ninesong','lucky_sevens','steady_pace'],
 };
