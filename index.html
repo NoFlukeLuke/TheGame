@@ -1839,6 +1839,7 @@
   .shop-sleight-card.jk-rarity-rare      { background: linear-gradient(160deg,#0d1a2e,#0a1020); border: 2px solid #3a6fca; box-shadow: 0 0 8px rgba(58,111,202,0.4); }
   .shop-sleight-card.jk-rarity-epic      { background: linear-gradient(160deg,#1a0a2e,#0f0620); border: 2px solid #9b4dca; box-shadow: 0 0 8px rgba(155,77,202,0.4); }
   .shop-sleight-card.jk-rarity-legendary { background: linear-gradient(160deg,#2a1a00,#1a1000); border: 2px solid #e8b84b; box-shadow: 0 0 10px rgba(232,184,75,0.5); }
+  .shop-sleight-card.jk-rarity-mythic { background: linear-gradient(160deg,#2a0010,#16000a); border: 2px solid #ff4d6d; box-shadow: 0 0 10px rgba(255,77,109,0.5); }
   .shop-sleight-emoji   { font-size: 22px; }
   .shop-sleight-name    { font-family: 'Cinzel', serif; font-size: 9px; color: #ddd; text-align: center; }
   .shop-sleight-desc    { font-family: 'Crimson Pro', serif; font-size: 8px; color: #aaa; text-align: center; line-height: 1.3; }
@@ -3275,6 +3276,24 @@
   .sleight-card-emoji { font-size:calc(var(--card-h, 75px) * 0.25); line-height:1; }
   .sleight-card-name  { font-size:calc(var(--card-h, 75px) * 0.095); color:#cc88ff; font-family:'Cinzel',serif; letter-spacing:0.3px; text-align:center; line-height:1.2; padding:0 2px; }
   .sleight-card-uses  { font-size:calc(var(--card-h, 75px) * 0.105); color:var(--gold-dim); margin-top:1px; }
+  /* Aim sleights (Reflect, Soul Mirror) + Mirror tray chip */
+  .sleight-aim-inner {
+    width:100%; height:100%; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:2px;
+    transform-style:preserve-3d;
+    transition: transform .3s cubic-bezier(.22,.61,.36,1);
+  }
+  .aim-arrow {
+    position:absolute; left:50%; top:50%; line-height:1; pointer-events:none;
+    font-size:calc(var(--card-h, 75px) * 0.22); font-weight:700;
+    color:var(--gold); text-shadow:0 0 6px rgba(232,184,75,0.85);
+    transition: transform .3s ease;
+  }
+  .aim-arrow.aim-up    { transform: translate(-50%,-50%) translateY(calc(var(--card-h, 75px) * -0.36)); }
+  .aim-arrow.aim-down  { transform: translate(-50%,-50%) translateY(calc(var(--card-h, 75px) *  0.36)); }
+  .aim-arrow.aim-left  { transform: translate(-50%,-50%) translateX(calc(var(--card-h, 75px) * -0.30)); }
+  .aim-arrow.aim-right { transform: translate(-50%,-50%) translateX(calc(var(--card-h, 75px) *  0.30)); }
+  .trick-tray-chip.trick-mirror { transition: transform .2s ease; }
   /* Sleight tooltip (shown on single-tap, like Trick tooltip) */
   .sleight-tooltip {
     position: absolute; z-index: 50;
@@ -3482,7 +3501,7 @@
 </div>
 
 <script>
-const BUILD = '2026-06-16 · r58';
+const BUILD = '2026-06-16 · r59';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -3733,8 +3752,9 @@ function cardCan(card, action) {
     return action === 'fall' || action === 'render' || action === 'swap';
   }
   if (card._isSleight) {
-    // Sleights behave like normal cards: fall, render, swap, select, discard
-    // (discarding a sleight consumes it and triggers its effect)
+    // Aim sleights are fixtures: fall & render only — never swapped, discarded, or selected
+    // (so a single tap is free to rotate aim).
+    if (AIM_SLEIGHTS.has(sleightDef(card)?.id)) return action === 'fall' || action === 'render';
     return action === 'fall' || action === 'render' || action === 'swap' || action === 'select' || action === 'discard';
   }
   if (card.isChallenge) {
@@ -3862,6 +3882,7 @@ const TRICK_POOL = [
   { id:'sands_of_time',  name:'Sands of Time',       tier:'rare',      desc:'Current round time remaining ÷ 2 added as pips' },
   { id:'discard_pips',   name:'Compost',             tier:'common',    tags:['pips','discard'], desc:'+3 pips per card discarded this round' },
   { id:'spade_flood',    name:'Dark Matter',         tier:'rare',      tags:['suit','pips'], desc:'All-spade hands add half the remaining round time as pips' },
+  { id:'mirror',         name:'Mirror',              tier:'rare',      tags:['utility'], desc:'Tap to tilt left or right; borrows the effect of the Trick on that side. Facing an empty slot = no effect.' },
   // ── Diverse conditions ──
   { id:'combo_score',    name:'Combo Score',         tier:'common',    desc:'+2 mult for every distinct hand type played this round' },
   { id:'escalation',     name:'Escalation',          tier:'rare',      desc:'For each hand beyond the 5th in a round, score +1 mult' },
@@ -4151,7 +4172,56 @@ const SLEIGHT_POOL = [
   { id:'amplifier',      name:'Amplifier',      emoji:'📢', rarity:'common',    activation:'double_tap', durability:5,          defaultRank:null, defaultSuit:null, tags:['scoring','mult'],     desc:'Double-tap: the next hand scores +5 mult. (5 charges)' },
   { id:'time_keeper',    name:'Time Keeper',    emoji:'⏱️', rarity:'common',    activation:'double_tap', durability:4,          defaultRank:null, defaultSuit:null, tags:['resource','time'],    desc:'Double-tap: add +20 seconds to this round. (4 charges)' },
   { id:'piggy_bank',     name:'Piggy Bank',     emoji:'🐷', rarity:'common',    activation:'double_tap', durability:5,          defaultRank:null, defaultSuit:null, tags:['resource','coins'],   desc:'Double-tap: gain 5 coins. (5 charges)' },
+  // ── Aim-based (fixtures: tap to rotate aim; cannot be swapped or discarded) ──
+  { id:'reflect',     name:'Reflect',     emoji:'🪞', rarity:'epic',   activation:'aim', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['retrigger','position'], desc:'Tap to rotate its aim (up→right→down→left). The card it faces retriggers once when a hand scores. Cannot be swapped or discarded.' },
+  { id:'soul_mirror', name:'Soul Mirror', emoji:'👁️', rarity:'mythic', activation:'aim', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['retrigger','rank'],     desc:'Tap to rotate its aim. While it faces a card, every scored card of that rank retriggers — anywhere on the grid. Multiple Soul Mirrors stack. Cannot be swapped or discarded.' },
 ];
+
+// ── Aim sleights (Reflect, Soul Mirror): fixtures that point at an adjacent cell ──
+const AIM_SLEIGHTS = new Set(['reflect','soul_mirror']);
+const AIM_ORDER = ['up','right','down','left'];
+const AIM_DELTA = { up:[-1,0], right:[0,1], down:[1,0], left:[0,-1] };
+const AIM_TILT  = { up:'rotateX(25deg)', down:'rotateX(-25deg)', right:'rotateY(25deg)', left:'rotateY(-25deg)' };
+const AIM_ARROW = { up:'↑', right:'→', down:'↓', left:'←' };
+function cycleSleightAim(card) {
+  const i = AIM_ORDER.indexOf(card._aimDir || 'up');
+  card._aimDir = AIM_ORDER[(i + 1) % AIM_ORDER.length];
+}
+function aimTargetCell(card, r, c) {
+  const [dr, dc] = AIM_DELTA[card._aimDir || 'up'];
+  const ar = r + dr, ac = c + dc;
+  if (ar < 0 || ac < 0 || ar >= gridRows || ac >= gridCols) return null;
+  return [ar, ac];
+}
+function findAimSleight(id) {
+  for (let r = 0; r < gridRows; r++)
+    for (let c = 0; c < gridCols; c++) {
+      const cell = gridData[r]?.[c];
+      if (cell?._isSleight && sleightDef(cell)?.id === id) return { card: cell, r, c };
+    }
+  return null;
+}
+// Reflect: true if a Reflect currently aims at cell (r,c)
+function reflectAimsAt(r, c) {
+  const f = findAimSleight('reflect');
+  if (!f) return false;
+  const t = aimTargetCell(f.card, f.r, f.c);
+  return !!t && t[0] === r && t[1] === c;
+}
+// Soul Mirror: how many Soul Mirrors currently face a card of this rank (they stack)
+function soulMirrorRankCount(rank) {
+  let n = 0;
+  for (let r = 0; r < gridRows; r++)
+    for (let c = 0; c < gridCols; c++) {
+      const cell = gridData[r]?.[c];
+      if (!cell?._isSleight || sleightDef(cell)?.id !== 'soul_mirror') continue;
+      const t = aimTargetCell(cell, r, c);
+      if (!t) continue;
+      const tc = gridData[t[0]]?.[t[1]];
+      if (tc && tc.rank === rank) n++;
+    }
+  return n;
+}
 
 // One-shot effect flags consumed by scoring/round logic
 let sleightNextHandDouble = false; // Echo: next hand scores twice
@@ -5088,9 +5158,12 @@ function calcScore(handName, cells, contrib = null) {
     const _rl = cellHasRowColBonus(r, c, 'rowcol_retrigger');
     const _res = _eyeStorm && _rankHigh(baseRank) === _eyeMax;
     const _rip = _rippleReady && _rippleSet.has(`${r}-${c}`);
+    const _refl = reflectAimsAt(r, c);
+    const _soul = soulMirrorRankCount(baseRank);
     const _re = permRetrig[_eKey] || 0;  // permanent per-card retrigger (events)
     if (_r2) _retrig++; if (_r8) _retrig++; if (_rc) _retrig++; if (_rl) _retrig++;
     if (_res) _retrig++; if (_rip) _retrig++;
+    if (_refl) _retrig++; _retrig += _soul;
     _retrig += _re;
     if (hasTrick('club_double') && (card.suit === '♣' || (card.combined && card.suit2 === '♣'))) _clubHits += _retrig;
     if (_retrig > 1) {
@@ -5102,6 +5175,8 @@ function calcScore(handName, cells, contrib = null) {
       else if (_rl) bPip('rowcol_retrigger', _pre);
       else if (_res) bPip('eye_of_storm', _pre);
       else if (_rip) bPip('ripple', _pre);
+      else if (_refl) bPip('reflect', _pre);
+      else if (_soul) bPip('soul_mirror', _pre);
       else if (_re) bPip('sapling', _extra);
     }
     totalPips += cp;
@@ -5367,6 +5442,7 @@ function calcScore(handName, cells, contrib = null) {
 
 function hasTrick(id) {
   if (isTrickDisabledByBoss(id)) return false;
+  if (trickTrayMode && id !== 'mirror' && mirrorBorrowsId(id)) return true;
   if (trickTrayMode && trickTray.some(b => b.id === id)) return true;
   for (let r = 0; r < gridRows; r++)
     for (let c = 0; c < gridCols; c++) {
@@ -5378,6 +5454,19 @@ function hasTrick(id) {
 // For dedup only — checks acquiredTricks (Trick was ever granted, may not be on grid)
 function ownsTrick(id) { return acquiredTricks.some(b => b.id === id); }
 function hasKnack(id) { return acquiredKnacks.some(t => t.id === id); }
+// Mirror Trick: borrows the effect of the tray Trick on its tilted side (-1 left / +1 right).
+function mirrorBorrowsId(id) {
+  for (let i = 0; i < trickTray.length; i++) {
+    const t = trickTray[i];
+    if (t.id !== 'mirror') continue;
+    const dir = (t._lockedDir != null) ? t._lockedDir : t._tiltDir;
+    if (!dir) continue;
+    const n = trickTray[i + dir];
+    if (!n || n.id === 'mirror') continue;
+    if (n.id === id) return true;
+  }
+  return false;
+}
 
 // Returns all row/col bonus entries matching this card position
 function getRowColBonusesForCell(r, c) {
@@ -5441,6 +5530,20 @@ function render() {
         const isSwapPendingJ = swapPending && swapPending[0]===r && swapPending[1]===c;
         const selIdxJ = selected.findIndex(([sr,sc]) => sr===r && sc===c);
         const usesStr = card._usesLeft === 'infinite' ? '∞' : card._usesLeft;
+        const _isAim = AIM_SLEIGHTS.has(def?.id);
+        if (_isAim) {
+          const dir = card._aimDir || (card._aimDir = 'up');
+          div.className = 'trick-card sleight-card aim-sleight' + (selIdxJ >= 0 ? ' selected' : '');
+          div.innerHTML =
+            `<div class="sleight-aim-inner" style="transform:perspective(360px) ${AIM_TILT[dir]}">` +
+              `<div class="sleight-card-emoji">${def?.emoji||'🪞'}</div>` +
+              `<div class="sleight-card-name">${def?.name||'Sleight'}</div>` +
+            `</div>` +
+            `<div class="aim-arrow aim-${dir}">${AIM_ARROW[dir]}</div>`;
+          div.onclick = () => onCardTap(r, c);
+          attachLongPress(div, r, c);
+          continue;
+        }
         div.className = 'trick-card sleight-card' + (isSwapPendingJ ? ' swap-pending' : '') + (selIdxJ >= 0 ? ' selected' : '');
         div.innerHTML = `${selIdxJ >= 0 ? `<div class="sel-num">${selIdxJ+1}</div>` : ''}<div class="sleight-card-emoji">${def?.emoji||'🃏'}</div><div class="sleight-card-name">${def?.name||'Sleight'}</div><div class="sleight-card-uses">${usesStr}</div>`;
         div.onclick = () => onCardTap(r, c);
@@ -6361,6 +6464,15 @@ function onCardTap(r, c) {
   // Block challenge card taps
   if (challengeActive && challengeCard && challengeCard.pos[0]===r && challengeCard.pos[1]===c) { dbgEvent('warn', `tap blocked: challenge card`); return; }
   // Block non-swappable cards entirely (e.g. challenge card)
+  // Aim sleights (Reflect, Soul Mirror): a single tap rotates aim; no select/swap.
+  {
+    const _ac = gridData[r]?.[c];
+    if (_ac?._isSleight && AIM_SLEIGHTS.has(sleightDef(_ac)?.id)) {
+      cycleSleightAim(_ac);
+      render();
+      return;
+    }
+  }
   if (!cardCan(gridData[r]?.[c], 'select') && !cardCan(gridData[r]?.[c], 'swap')) { dbgEvent('warn', `tap blocked: cardCan=false`, { card: _cardStr }); return; }
 
   const now = Date.now();
@@ -11895,6 +12007,29 @@ function renderTrickTray() {
   list.innerHTML = '';
   trickTray.forEach(trick => {
     const chip = document.createElement('div');
+    if (trick.id === 'mirror') {
+      const dir = trick._tiltDir; // -1 left, +1 right, undefined = not aimed
+      chip.className = `trick-tray-chip trick-tier-${trick.tier} trick-mirror`;
+      chip.textContent = dir === -1 ? '◀' : dir === 1 ? '▶' : '◆';
+      chip.style.transform = dir === -1 ? 'skewX(10deg)' : dir === 1 ? 'skewX(-10deg)' : 'none';
+      chip.dataset.trickId = trick.id;
+      chip.title = trick.name + ' — tap to aim left/right';
+      chip.addEventListener('click', e => {           // single tap cycles borrow direction
+        e.stopPropagation();
+        trick._tiltDir = (trick._tiltDir === -1) ? 1 : -1;
+        renderTrickTray();
+      });
+      let lpTimer = null;                              // long-press shows tooltip / discard
+      const startLP = () => { lpTimer = setTimeout(() => { hideTrickTooltip(); showTrickTrayTooltip(trick, chip); }, 450); };
+      const cancelLP = () => { if (lpTimer) { clearTimeout(lpTimer); lpTimer = null; } };
+      chip.addEventListener('touchstart', startLP, { passive:true });
+      chip.addEventListener('touchend', cancelLP);
+      chip.addEventListener('mousedown', startLP);
+      chip.addEventListener('mouseup', cancelLP);
+      chip.addEventListener('mouseleave', cancelLP);
+      list.appendChild(chip);
+      return;
+    }
     chip.className = `trick-tray-chip trick-tier-${trick.tier}`;
     chip.textContent = trick.tier.charAt(0).toUpperCase();
     chip.dataset.trickId = trick.id;
@@ -12263,7 +12398,7 @@ let svcPicked = [];
 // ── New shop state ──
 const SHOP_TRICK_PRICES    = { common: 5, rare: 8, epic: 12, legendary: 18, mythic: 25 };
 const SHOP_KNACK_PRICE  = 10;
-const SHOP_SLEIGHT_PRICES = { common: 8, rare: 12, epic: 16, legendary: 22 };
+const SHOP_SLEIGHT_PRICES = { common: 8, rare: 12, epic: 16, legendary: 22, mythic: 28 };
 const SHOP_LIMIT_BASE   = 15; // coins; +5 per upgrade already purchased
 
 let shopItems       = null; // { tricks:[], limits:[], knacks:[], sleights:[] }
@@ -12277,8 +12412,8 @@ function shopLimitPrice(def) {
 // Picks `count` sleights using weighted rarity tiers: common 60%, rare 28%, epic 10%, legendary 2%.
 // Cascades to lower rarity if the rolled tier has no available sleights.
 function pickSleightByRarity(count, excluded) {
-  const TIER_ORDER   = ['common', 'rare', 'epic', 'legendary'];
-  const TIER_WEIGHTS = [60, 28, 10, 2];
+  const TIER_ORDER   = ['common', 'rare', 'epic', 'legendary', 'mythic'];
+  const TIER_WEIGHTS = [59, 28, 10, 2, 1];
   const result = [];
   const usedIds = new Set(excluded);
   for (let i = 0; i < count; i++) {
