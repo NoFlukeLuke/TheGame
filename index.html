@@ -3501,7 +3501,7 @@
 </div>
 
 <script>
-const BUILD = '2026-06-16 · r59';
+const BUILD = '2026-06-16 · r60';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -5099,10 +5099,9 @@ function calcScore(handName, cells, contrib = null) {
   const risingTideBonus = hasTrick('rising_tide') ? (level - 1) : 0;
 
   // ── contrib tracking: accumulate per-Trick pip/mult deltas ──
-  const _cp = contrib !== null ? {} : null;
-  const _cm = contrib !== null ? {} : null;
-  const bPip  = (id, d) => { if (_cp !== null && d) _cp[id] = (_cp[id]||0)+d; };
-  const bMult = (id, d) => { if (_cm !== null && d) _cm[id] = (_cm[id]||0)+d; };
+  const _cp = {}, _cm = {};  // per-Trick pip/mult deltas (always tracked so Mirror can duplicate them)
+  const bPip  = (id, d) => { if (d) _cp[id] = (_cp[id]||0)+d; };
+  const bMult = (id, d) => { if (d) _cm[id] = (_cm[id]||0)+d; };
 
   // Process cards sequentially so Knave Power can multiply running total
   const _handMaxRankVal = hasTrick('summit')
@@ -5370,6 +5369,12 @@ function calcScore(handName, cells, contrib = null) {
   // Combo score: +2 mult per distinct hand type played this round
   if (hasTrick('combo_score') && handTypesRound.size > 0) { const _a = handTypesRound.size * BAL.combo_score.mult_per_type; mult += _a; bMult('combo_score', _a); }
 
+  // Mirror (Blueprint): duplicate each borrowed Trick's pip/mult contribution this hand
+  mirroredTrickIds().forEach(mid => {
+    if (_cp[mid]) { const _d = _cp[mid]; totalPips += _d; bPip('mirror', _d); }
+    if (_cm[mid]) { const _d = _cm[mid]; mult += _d; bMult('mirror', _d); }
+  });
+
   // Run multipliers (epic) — applied after additive pip/mult bonuses
   if (isRun && hasTrick('undertow')) {
     const _um = BAL.undertow.pip_mult_base + BAL.undertow.pip_mult_step * Math.max(0, cells.length - 3);
@@ -5442,7 +5447,6 @@ function calcScore(handName, cells, contrib = null) {
 
 function hasTrick(id) {
   if (isTrickDisabledByBoss(id)) return false;
-  if (trickTrayMode && id !== 'mirror' && mirrorBorrowsId(id)) return true;
   if (trickTrayMode && trickTray.some(b => b.id === id)) return true;
   for (let r = 0; r < gridRows; r++)
     for (let c = 0; c < gridCols; c++) {
@@ -5455,7 +5459,12 @@ function hasTrick(id) {
 function ownsTrick(id) { return acquiredTricks.some(b => b.id === id); }
 function hasKnack(id) { return acquiredKnacks.some(t => t.id === id); }
 // Mirror Trick: borrows the effect of the tray Trick on its tilted side (-1 left / +1 right).
-function mirrorBorrowsId(id) {
+// Mirror Trick (Blueprint-style): ids of tray Tricks currently borrowed by a Mirror — the
+// neighbour on its tilted side (-1 left / +1 right). Each borrowed trick's pip/mult
+// contribution this hand is duplicated in calcScore. Multiple Mirrors stack.
+function mirroredTrickIds() {
+  const ids = [];
+  if (!trickTrayMode) return ids;
   for (let i = 0; i < trickTray.length; i++) {
     const t = trickTray[i];
     if (t.id !== 'mirror') continue;
@@ -5463,9 +5472,9 @@ function mirrorBorrowsId(id) {
     if (!dir) continue;
     const n = trickTray[i + dir];
     if (!n || n.id === 'mirror') continue;
-    if (n.id === id) return true;
+    ids.push(n.id);
   }
-  return false;
+  return ids;
 }
 
 // Returns all row/col bonus entries matching this card position
