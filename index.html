@@ -3501,7 +3501,7 @@
 </div>
 
 <script>
-const BUILD = '2026-06-16 · r61';
+const BUILD = '2026-06-16 · r62';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -3799,7 +3799,7 @@ const TRICK_POOL = [
   { id:'blackjack_bonus', name:'Twenty-One',         tier:'legendary', desc:'If the face values of your cards total exactly 21, score ×3' },
   // ── Rank-specific pips / mult ──
   { id:'first_light',    name:'First Light',         tier:'common',    desc:'Aces are worth 21 pips' },
-  { id:'wild_heart',     name:"Ace's Blessing",      tier:'common',    desc:'Aces add +2 mult each' },
+  { id:'wild_heart',     name:'Inspirato',           tier:'epic',      desc:'When an Ace scores, prime your first and last Tricks (each fires twice its next hand)' },
   { id:'face_value',     name:'Face Value',          tier:'common',    desc:'Face cards (J/Q/K) are worth 15 pips' },
   { id:'king_guard',     name:'Men of Repute',       tier:'common',    desc:'Kings and Jacks score +5 pips and +1 mult each' },
   { id:'knave_power',    name:'Knave for the People', tier:'legendary', desc:'Each Jack on the grid multiplies total pips ×2' },
@@ -3866,7 +3866,8 @@ const TRICK_POOL = [
   { id:'tens_mult',      name:'Perfect Ten',         tier:'rare',      tags:['scaling','mult','value'], desc:'Every 10 cards discarded permanently adds +1 mult to this trick' },
   { id:'sixes_perm',     name:'D6',                  tier:'epic',      tags:['scaling','pips','value'], desc:'Every 6th card scored permanently gains a random +1–6 pips' },
   { id:'fours_perm',     name:'Middle Management',   tier:'common',    tags:['scaling','pips','value'], desc:'4-card hands permanently give the 4th card +4 pips' },
-  { id:'twos_retrigger', name:'Double Take',         tier:'common',    tags:['retrigger','value'], desc:'Each 2 scored counts its pips twice' },
+  { id:'twos_retrigger', name:'Double Take',         tier:'rare',      tags:['retrigger','value'], desc:'Each 2 scored duplicates your most recently acquired Trick’s effect' },
+  { id:'prime_times',    name:'Prime Times',         tier:'rare',      tags:['retrigger','prime'], desc:'When a prime-rank card (A,2,3,5,7) scores, prime your next Trick — cycling 1st→2nd→3rd→5th→7th' },
   { id:'eights_retrigger', name:'Sideways to Infinity', tier:'rare',   tags:['retrigger','value'], desc:'Each 8 in a hand scores a number of times equal to the number of 8s in that hand' },
   { id:'snowball',       name:'Snowball',            tier:'epic',      desc:'After any hand scoring 500+ pips, each scored card permanently gains +2 pips' },
   { id:'big_win',        name:'Jackpot',             tier:'legendary', desc:'The first time a single hand scores 10,000+, permanently add +5 mult to this trick' },
@@ -4325,6 +4326,7 @@ let handsPlayedRound    = 0;   // count of hands played this round
 let runsPlayedRound     = 0;   // count of Runs scored this round (Tide Table)
 let _ddPairTimes        = [];  // timestamps of recent pair-hands (Double Dutch)
 let _rippleLastFire     = -100000; // last time Ripple's retrigger fired (30s cooldown)
+let _primeTimesCursor   = 0;   // Prime Times: cycles tray positions 1st→2nd→3rd→5th→7th
 let handTypesRound      = new Set(); // distinct hand types played this round
 let safetyNetUsed       = false; // safety_net knack: once per game
 let cardsDiscardedTotal = 0;
@@ -4965,7 +4967,6 @@ const DESC_TEMPLATES = {
   light_touch: '2-card hands score +{mult} mult',
   heavy_hand: '5-card hands score +{pips_per_card} pips per card',
   blackjack_bonus: 'If the face values of your cards total exactly 21, score ×{score_mult}',
-  wild_heart: 'Aces add +{mult_per_ace} mult each',
   face_value: 'Face cards (J/Q/K) are worth {face_pips} pips',
   court_of_leaves: 'Face cards (J/Q/K) score +{pips} pips',
   jack_mult: 'Jacks add +{mult_per_jack} mult each',
@@ -5133,7 +5134,7 @@ function calcScore(handName, cells, contrib = null) {
     if (cellHasRowColBonus(r, c, 'rowcol_triple_pips')) cp *= BAL.rowcol_triple_pips.pip_mult;
     // Retrigger: certain conditions score this card's pips an extra time
     let _retrig = 1;
-    const _r2 = hasTrick('twos_retrigger') && baseRank === '2';
+    const _r2 = false; // Double Take redesigned — now duplicates a Trick, not the 2 card
     const _r8 = hasTrick('eights_retrigger') && baseRank === '8';
     const _rc = hasTrick('corner_retrigger') && isCorner(r, c);
     const _rl = cellHasRowColBonus(r, c, 'rowcol_retrigger');
@@ -5294,7 +5295,6 @@ function calcScore(handName, cells, contrib = null) {
   const _aceCount   = cards.filter(c => c.rank === 'A').length;
   const _jackCount2 = cards.filter(c => c.rank === 'J').length;
   const _threeCount = cards.filter(c => c.rank === '3').length;
-  if (hasTrick('wild_heart') && _aceCount)   { const _a = _aceCount * BAL.wild_heart.mult_per_ace;    mult += _a; bMult('wild_heart', _a); }
   if (hasTrick('jack_mult')  && _jackCount2) { const _a = _jackCount2 * BAL.jack_mult.mult_per_jack;  mult += _a; bMult('jack_mult', _a); }
   if (hasTrick('lucky_three') && _threeCount){ mult += BAL.lucky_three.mult; bMult('lucky_three', BAL.lucky_three.mult); }
   // Hand-size
@@ -5374,6 +5374,23 @@ function calcScore(handName, cells, contrib = null) {
     if (_cp[mid]) { const _d = _cp[mid]; totalPips += _d; bPip('mirror', _d); }
     if (_cm[mid]) { const _d = _cm[mid]; mult += _d; bMult('mirror', _d); }
   });
+  // Primed Tricks (Inspirato / Prime Times): a primed Trick fires its effect an extra time
+  // per prime stack the hand it naturally contributes. Stacks are consumed in playHand.
+  if (trickTrayMode) trickTray.forEach(t => {
+    if (!t._primed || t._primed <= 0) return;
+    const _pd = _cp[t.id] || 0, _md = _cm[t.id] || 0;
+    if (!_pd && !_md) return;
+    for (let k = 0; k < t._primed; k++) { if (_pd) { totalPips += _pd; bPip('primed', _pd); } if (_md) { mult += _md; bMult('primed', _md); } }
+  });
+  // Double Take: each scored 2 duplicates your most recently acquired Trick's contribution
+  if (hasTrick('twos_retrigger') && trickTrayMode) {
+    const _t2 = cards.filter(c => c.rank === '2').length;
+    if (_t2 > 0) {
+      let _mr = null;
+      for (let i = trickTray.length - 1; i >= 0; i--) { const _tk = trickTray[i]; if (_tk.id !== 'twos_retrigger' && _tk.id !== 'mirror') { _mr = _tk; break; } }
+      if (_mr) { const _pd = _cp[_mr.id] || 0, _md = _cm[_mr.id] || 0; for (let k = 0; k < _t2; k++) { if (_pd) { totalPips += _pd; bPip('twos_retrigger', _pd); } if (_md) { mult += _md; bMult('twos_retrigger', _md); } } }
+    }
+  }
 
   // 3. Base score
   const fMult = focusMultiplier();
@@ -6856,6 +6873,28 @@ function playHand() {
   handsPlayedRound++;
   handTypesRound.add(hand);
   if (['Run of 3','Run of 4','Straight','Straight Flush'].includes(hand)) runsPlayedRound++;
+  // ── Priming (Inspirato / Prime Times) ──
+  if (trickTrayMode) {
+    // Consume primes that contributed this hand (their extra trigger already fired in scoring)
+    if (trickTray.some(t => t._primed > 0)) {
+      const _pc = []; calcScore(hand, handCells, _pc);
+      const _ids = new Set(_pc.map(e => e.id));
+      trickTray.forEach(t => { if (t._primed > 0 && _ids.has(t.id)) t._primed = Math.max(0, t._primed - 1); });
+    }
+    // Inspirato: a scored Ace primes the first and last tray Tricks
+    if (hasTrick('wild_heart') && trickTray.length && handCells.some(([r,c]) => gridData[r]?.[c]?.rank === 'A')) {
+      trickTray[0]._primed = (trickTray[0]._primed || 0) + 1;
+      const _last = trickTray[trickTray.length - 1];
+      if (_last !== trickTray[0]) _last._primed = (_last._primed || 0) + 1;
+    }
+    // Prime Times: a scored prime rank primes the next Trick, cycling tray positions 1st→2nd→3rd→5th→7th
+    if (hasTrick('prime_times') && trickTray.length && handCells.some(([r,c]) => ['A','2','3','5','7'].includes(gridData[r]?.[c]?.rank))) {
+      const _cyc = [0,1,2,4,6];
+      const _tt = trickTray[_cyc[_primeTimesCursor % _cyc.length]];
+      _primeTimesCursor = (_primeTimesCursor + 1) % _cyc.length;
+      if (_tt) _tt._primed = (_tt._primed || 0) + 1;
+    }
+  }
   if (hasTrick('compound_mult')) bonusMult_compound = Math.round((bonusMult_compound + BAL.compound_mult.mult_per_hand) * 10) / 10;
   if (hasTrick('prolific')) bonusPips_prolific += BAL.prolific.pips_per_hand;
   if (hasTrick('big_win') && !jackpotFired && finalScore >= BAL.big_win.score_threshold) { jackpotFired = true; bonusMult_jackpot += BAL.big_win.mult; showMessage('Jackpot! +5 mult permanently', 'var(--gold)'); }
