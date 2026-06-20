@@ -9,21 +9,20 @@
   :root{
     --gold:#f5c042; --gold-dim:#c9a84c; --cream:#f4ead5; --cream-dim:#9a8f7a;
     --red:#c0353e; --blue:#5a8fe0; --purple:#b07dea; --trick:#d4a857;
-    --bg:#15110c; --panel:#1f1a12; --line:rgba(245,192,66,0.18);
-    /* tunables (driven by sliders) */
-    --jig-dur:420ms; --jig-rot:8deg; --jig-lift:10px; --particle-scale:1;
+    --panel:#1f1a12; --line:rgba(245,192,66,0.18);
+    /* tunables (driven by controls) */
+    --anim-dur:420ms; --anim-mag:1; --hl:0.35; --particle-scale:1;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   body{
     margin:0;background:radial-gradient(circle at 50% 0%,#241d13,#0d0a06 70%);
     color:var(--cream);font-family:'Cinzel',serif;
     min-height:100vh;display:flex;flex-direction:column;align-items:center;
-    padding:10px 10px 40px;
+    padding:10px 10px 50px;
   }
   h1{font-size:15px;letter-spacing:3px;color:var(--gold);margin:6px 0 2px;font-weight:700;}
   .sub{font-size:10px;letter-spacing:1px;color:var(--cream-dim);margin-bottom:10px;text-align:center;line-height:1.5;}
 
-  /* layout chooser */
   .chooser{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;justify-content:center;}
   .chooser button{
     font-family:'Cinzel',serif;font-size:10px;letter-spacing:1px;text-transform:uppercase;
@@ -32,27 +31,24 @@
   }
   .chooser button.active{color:var(--gold);border-color:rgba(245,192,66,0.6);background:rgba(245,192,66,0.10);}
 
-  /* fixed portrait stage like the game */
   .stage{width:380px;max-width:100%;background:rgba(0,0,0,0.25);border:1px solid var(--line);
     border-radius:12px;padding:10px;}
 
-  /* score strip */
-  .score-strip{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px;
-    background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 8px;}
-  .sbox{display:flex;flex-direction:column;align-items:center;min-width:54px;}
+  .score-strip{display:flex;align-items:center;justify-content:center;gap:7px;margin-bottom:10px;
+    background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 6px;}
+  .sbox{display:flex;flex-direction:column;align-items:center;min-width:50px;}
   .sbox .lbl{font-size:8px;letter-spacing:1px;color:var(--cream-dim);}
-  .sbox .val{font-size:22px;font-weight:700;color:var(--cream);line-height:1.1;}
+  .sbox .val{font-size:21px;font-weight:700;color:var(--cream);line-height:1.1;}
   #pips-box .val{color:var(--blue);} #mult-box .val{color:var(--red);} #focus-box .val{color:var(--purple);}
-  .op{font-size:16px;color:var(--cream-dim);}
-  .score-final{margin-left:6px;display:flex;flex-direction:column;align-items:center;}
+  .op{font-size:15px;color:var(--cream-dim);}
+  .score-final{margin-left:5px;display:flex;flex-direction:column;align-items:center;}
   .score-final .lbl{font-size:8px;letter-spacing:1px;color:var(--gold-dim);}
-  .score-final .val{font-size:24px;font-weight:700;color:var(--gold);}
+  .score-final .val{font-size:23px;font-weight:700;color:var(--gold);}
   .pulse{animation:pulse .18s ease;}
-  @keyframes pulse{0%{transform:scale(1);}40%{transform:scale(1.28);}100%{transform:scale(1);}}
+  @keyframes pulse{0%{transform:scale(1);}40%{transform:scale(1.26);}100%{transform:scale(1);}}
   .focus-beat{animation:fbeat .5s ease;}
-  @keyframes fbeat{0%{transform:scale(1);filter:drop-shadow(0 0 0 var(--purple));}40%{transform:scale(1.35);filter:drop-shadow(0 0 12px var(--purple));}100%{transform:scale(1);}}
+  @keyframes fbeat{0%{transform:scale(1);filter:drop-shadow(0 0 0 var(--purple));}40%{transform:scale(1.32);filter:drop-shadow(0 0 12px var(--purple));}100%{transform:scale(1);}}
 
-  /* the dance panel — the part we're prototyping */
   .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px;
     display:flex;flex-direction:column;gap:6px;overflow:hidden;}
   .row{display:flex;align-items:center;gap:6px;min-height:56px;}
@@ -60,7 +56,6 @@
     transform:rotate(180deg);text-transform:uppercase;flex:0 0 auto;opacity:.7;}
   .row-items{display:flex;gap:6px;align-items:center;flex:1;flex-wrap:nowrap;}
 
-  /* cards & chips */
   .card{width:38px;height:54px;border-radius:6px;background:#f4ead5;color:#1a1a1a;
     display:flex;flex-direction:column;align-items:center;justify-content:center;
     font-weight:700;box-shadow:0 2px 5px rgba(0,0,0,.5);flex:0 0 auto;position:relative;}
@@ -73,54 +68,71 @@
   .chip .emoji{font-size:18px;line-height:1;}
   .chip .nm{font-size:7px;letter-spacing:.3px;color:var(--cream-dim);max-width:60px;text-align:center;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .dim{opacity:.32;transition:opacity .2s;}
+  .dim{opacity:.3;transition:opacity .2s;}
 
-  /* the jiggle (tunable via CSS vars) */
-  .jiggle{animation:jiggle var(--jig-dur) ease;z-index:5;}
-  @keyframes jiggle{
-    0%{transform:translateY(0) rotate(0) scale(1);}
-    25%{transform:translateY(calc(var(--jig-lift)*-1)) rotate(calc(var(--jig-rot)*-1)) scale(1.12);}
-    55%{transform:translateY(calc(var(--jig-lift)*-0.4)) rotate(var(--jig-rot)) scale(1.14);}
-    100%{transform:translateY(0) rotate(0) scale(1);}
-  }
-  /* spotlight layout: active entity grows big */
-  .spot{animation:spot var(--jig-dur) ease;z-index:8;
-    box-shadow:0 0 22px 6px rgba(245,192,66,.55);}
-  @keyframes spot{
-    0%{transform:scale(1);}30%{transform:scale(1.75) translateY(-6px);}
-    70%{transform:scale(1.75) translateY(-6px);}100%{transform:scale(1);}
+  /* subtle highlight applied to whatever is currently scoring (separate from motion) */
+  .active-hl{
+    box-shadow:0 0 calc(16px*var(--hl)) calc(3px*var(--hl)) rgba(245,192,66,calc(0.6*var(--hl)));
+    filter:brightness(calc(1 + 0.16*var(--hl)));
+    transition:box-shadow .12s ease, filter .12s ease;
   }
 
-  /* flying particle */
-  .particle{position:fixed;z-index:50;font-weight:700;pointer-events:none;will-change:transform,opacity;
-    font-size:calc(15px * var(--particle-scale));text-shadow:0 1px 4px rgba(0,0,0,.8);}
+  /* ── 12 animation types (magnitude scaled by --anim-mag) ── */
+  .a-jiggle{animation:a-jiggle var(--anim-dur) ease;}
+  @keyframes a-jiggle{0%{transform:none;}25%{transform:rotate(calc(-8deg*var(--anim-mag))) translateY(calc(-8px*var(--anim-mag))) scale(calc(1 + .10*var(--anim-mag)));}55%{transform:rotate(calc(7deg*var(--anim-mag))) translateY(calc(-3px*var(--anim-mag))) scale(calc(1 + .11*var(--anim-mag)));}100%{transform:none;}}
+  .a-pop{animation:a-pop var(--anim-dur) cubic-bezier(.34,1.56,.64,1);}
+  @keyframes a-pop{0%{transform:scale(1);}40%{transform:scale(calc(1 + .30*var(--anim-mag)));}70%{transform:scale(calc(1 - .05*var(--anim-mag)));}100%{transform:scale(1);}}
+  .a-pulse{animation:a-pulse var(--anim-dur) ease;}
+  @keyframes a-pulse{0%{transform:scale(1);}50%{transform:scale(calc(1 + .12*var(--anim-mag)));}100%{transform:scale(1);}}
+  .a-shake{animation:a-shake var(--anim-dur) ease;}
+  @keyframes a-shake{0%,100%{transform:translateX(0);}20%{transform:translateX(calc(-7px*var(--anim-mag)));}40%{transform:translateX(calc(7px*var(--anim-mag)));}60%{transform:translateX(calc(-5px*var(--anim-mag)));}80%{transform:translateX(calc(5px*var(--anim-mag)));}}
+  .a-flip{animation:a-flip var(--anim-dur) ease;}
+  @keyframes a-flip{0%{transform:perspective(320px) rotateY(0);}100%{transform:perspective(320px) rotateY(360deg);}}
+  .a-lift{animation:a-lift var(--anim-dur) cubic-bezier(.34,1.4,.5,1);}
+  @keyframes a-lift{0%{transform:translateY(0);}45%{transform:translateY(calc(-16px*var(--anim-mag)));}100%{transform:translateY(0);}}
+  .a-sway{animation:a-sway var(--anim-dur) ease-in-out;}
+  @keyframes a-sway{0%{transform:rotate(0);}30%{transform:rotate(calc(-11deg*var(--anim-mag)));}70%{transform:rotate(calc(11deg*var(--anim-mag)));}100%{transform:rotate(0);}}
+  .a-flash{animation:a-flash var(--anim-dur) ease;}
+  @keyframes a-flash{0%{filter:brightness(1);transform:scale(1);}40%{filter:brightness(calc(1 + .7*var(--anim-mag)));transform:scale(calc(1 + .03*var(--anim-mag)));}100%{filter:brightness(1);transform:scale(1);}}
+  .a-squash{animation:a-squash var(--anim-dur) ease;}
+  @keyframes a-squash{0%{transform:scale(1,1);}30%{transform:scale(calc(1 - .12*var(--anim-mag)),calc(1 + .16*var(--anim-mag)));}60%{transform:scale(calc(1 + .12*var(--anim-mag)),calc(1 - .10*var(--anim-mag)));}100%{transform:scale(1,1);}}
+  .a-heartbeat{animation:a-heartbeat var(--anim-dur) ease;}
+  @keyframes a-heartbeat{0%{transform:scale(1);}18%{transform:scale(calc(1 + .16*var(--anim-mag)));}34%{transform:scale(1);}54%{transform:scale(calc(1 + .16*var(--anim-mag)));}100%{transform:scale(1);}}
+  .a-spin{animation:a-spin var(--anim-dur) ease;}
+  @keyframes a-spin{0%{transform:rotate(0);}100%{transform:rotate(360deg);}}
+  .a-nudge{animation:a-nudge var(--anim-dur) ease;}
+  @keyframes a-nudge{0%{transform:translateY(0);}50%{transform:translateY(calc(-6px*var(--anim-mag)));}100%{transform:translateY(0);}}
+  .a-none{}
 
-  /* layout variants */
-  .panel.tall .row.hand{min-height:84px;}
+  .panel.tall .row.hand{min-height:86px;}
   .panel.tall .row.hand .card{width:48px;height:68px;}
-  .panel.tall .row.tricks,.panel.tall .row.knacks{min-height:48px;}
+  .panel.tall .row.tricks,.panel.tall .row.knacks{min-height:46px;}
 
-  .panel.spotlight{min-height:200px;}
+  .particle{position:fixed;z-index:50;font-weight:700;pointer-events:none;will-change:transform,opacity;
+    font-size:calc(15px * var(--particle-scale));text-shadow:0 1px 4px rgba(0,0,0,.85);}
 
-  /* controls */
   .controls{width:380px;max-width:100%;margin-top:12px;}
   .btnrow{display:flex;gap:8px;margin-bottom:12px;}
   .btnrow button{flex:1;font-family:'Cinzel',serif;font-size:11px;letter-spacing:1px;
     padding:11px;border-radius:8px;cursor:pointer;text-transform:uppercase;font-weight:700;}
   #play-btn{background:rgba(245,192,66,0.16);border:1px solid rgba(245,192,66,0.55);color:var(--gold);}
   #interrupt-btn{background:rgba(192,53,62,0.14);border:1px solid rgba(192,53,62,0.5);color:#e8848c;}
-  .slider{margin-bottom:9px;}
-  .slider .lab{display:flex;justify-content:space-between;font-size:9px;letter-spacing:.5px;
-    color:var(--cream-dim);margin-bottom:2px;}
-  .slider .lab b{color:var(--gold);font-weight:700;}
+  .ctl{margin-bottom:10px;}
+  .ctl .lab{display:flex;justify-content:space-between;font-size:9px;letter-spacing:.5px;
+    color:var(--cream-dim);margin-bottom:3px;}
+  .ctl .lab b{color:var(--gold);font-weight:700;}
   input[type=range]{width:100%;accent-color:var(--gold);}
-  .note{font-size:9px;color:var(--cream-dim);line-height:1.5;margin-top:10px;text-align:center;}
+  select{width:100%;font-family:'Cinzel',serif;font-size:12px;padding:8px;border-radius:7px;
+    background:var(--panel);color:var(--gold);border:1px solid rgba(245,192,66,0.5);}
+  .group-title{font-size:9px;letter-spacing:2px;color:rgba(245,192,66,.55);text-transform:uppercase;
+    margin:16px 0 8px;border-bottom:1px solid var(--line);padding-bottom:4px;}
+  .note{font-size:9px;color:var(--cream-dim);line-height:1.5;margin-top:12px;text-align:center;}
   .hand-name{text-align:center;font-size:10px;letter-spacing:2px;color:var(--gold-dim);margin-bottom:6px;text-transform:uppercase;}
 </style>
 </head>
 <body>
   <h1>SCORING DANCE — LAYOUT PREVIEW</h1>
-  <div class="sub">A throwaway mockup. Pick a layout, hit PLAY, and tune the feel.<br>Nothing here touches the real game.</div>
+  <div class="sub">A throwaway mockup. Pick a layout + motion, hit PLAY, tune the feel.<br>Nothing here touches the real game.</div>
 
   <div class="chooser" id="chooser">
     <button data-layout="rows" class="active">3 Rows (in place)</button>
@@ -137,7 +149,6 @@
       <div class="sbox" id="focus-box"><span class="lbl">FOCUS</span><span class="val" id="focus-val">×1</span></div>
       <div class="score-final"><span class="lbl">SCORE</span><span class="val" id="score-val">0</span></div>
     </div>
-
     <div class="hand-name" id="hand-name">Three of a Kind · Sevens</div>
     <div class="panel rows" id="panel"></div>
   </div>
@@ -148,222 +159,224 @@
       <button id="interrupt-btn">⏭ Submit next (interrupt)</button>
     </div>
 
-    <div class="slider">
-      <div class="lab"><span>Tick rest (rest between contributions)</span><b id="v-rest">500 ms</b></div>
-      <input type="range" id="s-rest" min="100" max="1200" step="50" value="500">
+    <div class="group-title">Motion</div>
+    <div class="ctl">
+      <div class="lab"><span>Animation type</span></div>
+      <select id="anim-type">
+        <option value="jiggle">Jiggle — wobble + lift</option>
+        <option value="pop">Pop — springy scale-up</option>
+        <option value="pulse">Pulse — gentle throb</option>
+        <option value="shake">Shake — quick side-to-side</option>
+        <option value="lift">Lift — rise & settle</option>
+        <option value="nudge">Nudge — small bump up (subtle)</option>
+        <option value="sway">Sway — pendulum tilt</option>
+        <option value="flash">Flash — brighten, barely moves</option>
+        <option value="squash">Squash & stretch — cartoony</option>
+        <option value="heartbeat">Heartbeat — double pulse</option>
+        <option value="flip">Flip — card flip (360°)</option>
+        <option value="spin">Spin — full rotate</option>
+        <option value="none">None — highlight only</option>
+      </select>
     </div>
-    <div class="slider">
-      <div class="lab"><span>Jiggle length</span><b id="v-jdur">420 ms</b></div>
-      <input type="range" id="s-jdur" min="150" max="900" step="30" value="420">
+    <div class="ctl">
+      <div class="lab"><span>Animation length</span><b id="v-adur">420 ms</b></div>
+      <input type="range" id="s-adur" min="120" max="1000" step="20" value="420">
     </div>
-    <div class="slider">
-      <div class="lab"><span>Jiggle aggressiveness</span><b id="v-jstr">100%</b></div>
-      <input type="range" id="s-jstr" min="20" max="220" step="10" value="100">
+    <div class="ctl">
+      <div class="lab"><span>Animation intensity</span><b id="v-amag">100%</b></div>
+      <input type="range" id="s-amag" min="20" max="220" step="10" value="100">
     </div>
-    <div class="slider">
+    <div class="ctl">
+      <div class="lab"><span>Highlight intensity (glow on the active entity)</span><b id="v-hl">35%</b></div>
+      <input type="range" id="s-hl" min="0" max="150" step="5" value="35">
+    </div>
+
+    <div class="group-title">Timing</div>
+    <div class="ctl">
+      <div class="lab"><span>Tick rest (pause between contributions)</span><b id="v-rest">500 ms</b></div>
+      <input type="range" id="s-rest" min="100" max="1200" step="25" value="500">
+    </div>
+    <div class="ctl">
+      <div class="lab"><span>Particle flight speed</span><b id="v-pspd">520 ms</b></div>
+      <input type="range" id="s-pspd" min="150" max="900" step="20" value="520">
+    </div>
+    <div class="ctl">
+      <div class="lab"><span>Score climb duration</span><b id="v-sdur">900 ms</b></div>
+      <input type="range" id="s-sdur" min="300" max="1800" step="50" value="900">
+    </div>
+    <div class="ctl">
+      <div class="lab"><span>Fast-forward speed (on interrupt)</span><b id="v-ff">25×</b></div>
+      <input type="range" id="s-ff" min="8" max="50" step="1" value="25">
+    </div>
+
+    <div class="group-title">Particles</div>
+    <div class="ctl">
       <div class="lab"><span>Particle size</span><b id="v-psz">100%</b></div>
       <input type="range" id="s-psz" min="50" max="260" step="10" value="100">
     </div>
 
     <div class="note">
-      The clock keeps ticking during the dance. <b>Submit next (interrupt)</b> demos
-      what happens mid-animation: the current dance snaps forward at ~25× to land on
-      its total, then the next hand begins.
+      The clock keeps ticking during the dance. <b>Submit next (interrupt)</b> snaps the
+      current dance forward at the fast-forward speed to land on its total, then the next
+      hand begins. Cards <i>and</i> Tricks/Knacks animate on preview timing.
     </div>
   </div>
 
 <script>
-// ── Example hand data ──────────────────────────────────────────────
-// Cards contribute pips; Tricks/Knacks (TSKs) contribute pips or mult.
+// ── Example hand ──
 const HAND = {
-  base: { pips: 30, mult: 3 },           // Three of a Kind base (preset before dance)
-  cards: [
-    { r:'7', s:'♥', red:true,  pip:7 },
-    { r:'7', s:'♣', red:false, pip:7 },
-    { r:'K', s:'♠', red:false, pip:10 },
-    { r:'3', s:'♦', red:true,  pip:3 },
-    { r:'7', s:'♦', red:true,  pip:7 },
+  base:{pips:30,mult:3},
+  cards:[
+    {r:'7',s:'♥',red:true, pip:7},
+    {r:'7',s:'♣',red:false,pip:7},
+    {r:'K',s:'♠',red:false,pip:10},
+    {r:'3',s:'♦',red:true, pip:3},
+    {r:'7',s:'♦',red:true, pip:7},
   ],
-  tricks: [
-    { id:'rich_soil', emoji:'🌱', nm:'Rich Soil', kind:'pip',  amt:10 },
-    { id:'quake',     emoji:'⛰️', nm:'Quake',     kind:'mult', amt:6  },
-    { id:'kindling',  emoji:'🔥', nm:'Kindling',  kind:'pip',  amt:4  },
+  tricks:[
+    {emoji:'🌱',nm:'Rich Soil',kind:'pip', amt:10},
+    {emoji:'⛰️',nm:'Quake',    kind:'mult',amt:6},
+    {emoji:'🔥',nm:'Kindling', kind:'pip', amt:4},
   ],
-  knacks: [
-    { id:'timebank', emoji:'⏳', nm:'Time Bank', kind:'pip', amt:5 },
-  ],
-  focus: 1.5,
+  knacks:[ {emoji:'⏳',nm:'Time Bank',kind:'pip',amt:5} ],
+  focus:1.5,
 };
+const ANIM_CLASSES=['a-jiggle','a-pop','a-pulse','a-shake','a-flip','a-lift','a-sway','a-flash','a-squash','a-heartbeat','a-spin','a-nudge','a-none'];
 
-// ── tunables ──
-let TICK_REST = 500, FF = false;
-const $ = id => document.getElementById(id);
+// tunables
+let TICK_REST=500, PARTICLE_SPEED=520, SCORE_DUR=900, FF_MULT=25, ANIM_DUR=420, FF=false;
+const $=id=>document.getElementById(id);
 
-// ── slider wiring ──
 function syncVars(){
-  document.documentElement.style.setProperty('--jig-dur', $('s-jdur').value+'ms');
-  const str = (+$('s-jstr').value)/100;
-  document.documentElement.style.setProperty('--jig-rot', (8*str)+'deg');
-  document.documentElement.style.setProperty('--jig-lift', (10*str)+'px');
-  document.documentElement.style.setProperty('--particle-scale', (+$('s-psz').value)/100);
-  TICK_REST = +$('s-rest').value;
-  $('v-rest').textContent = TICK_REST+' ms';
-  $('v-jdur').textContent = $('s-jdur').value+' ms';
-  $('v-jstr').textContent = $('s-jstr').value+'%';
-  $('v-psz').textContent  = $('s-psz').value+'%';
+  ANIM_DUR=+$('s-adur').value;
+  document.documentElement.style.setProperty('--anim-dur',ANIM_DUR+'ms');
+  document.documentElement.style.setProperty('--anim-mag',(+$('s-amag').value)/100);
+  document.documentElement.style.setProperty('--hl',(+$('s-hl').value)/100);
+  document.documentElement.style.setProperty('--particle-scale',(+$('s-psz').value)/100);
+  TICK_REST=+$('s-rest').value; PARTICLE_SPEED=+$('s-pspd').value; SCORE_DUR=+$('s-sdur').value; FF_MULT=+$('s-ff').value;
+  $('v-adur').textContent=ANIM_DUR+' ms';
+  $('v-amag').textContent=$('s-amag').value+'%';
+  $('v-hl').textContent=$('s-hl').value+'%';
+  $('v-rest').textContent=TICK_REST+' ms';
+  $('v-pspd').textContent=PARTICLE_SPEED+' ms';
+  $('v-sdur').textContent=SCORE_DUR+' ms';
+  $('v-ff').textContent=FF_MULT+'×';
+  $('v-psz').textContent=$('s-psz').value+'%';
 }
-['s-rest','s-jdur','s-jstr','s-psz'].forEach(id=>$(id).addEventListener('input',syncVars));
+['s-adur','s-amag','s-hl','s-rest','s-pspd','s-sdur','s-ff','s-psz'].forEach(id=>$(id).addEventListener('input',syncVars));
 syncVars();
 
-// ── layout chooser ──
-let LAYOUT = 'rows';
-$('chooser').addEventListener('click', e=>{
-  const b = e.target.closest('button'); if(!b) return;
+let LAYOUT='rows', ANIM='jiggle';
+$('anim-type').addEventListener('change',e=>ANIM=e.target.value);
+$('chooser').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b)return;
   document.querySelectorAll('#chooser button').forEach(x=>x.classList.remove('active'));
-  b.classList.add('active');
-  LAYOUT = b.dataset.layout;
-  renderPanel();
+  b.classList.add('active'); LAYOUT=b.dataset.layout; renderPanel();
 });
 
-// ── render the dance panel for the current layout ──
-function cardEl(c){
-  const d=document.createElement('div');
-  d.className='card'+(c.red?' red':''); d.dataset.kind='card';
-  d.innerHTML=`<span class="r">${c.r}</span><span class="s">${c.s}</span>`;
-  return d;
-}
-function chipEl(t, isKnack){
-  const d=document.createElement('div');
-  d.className='chip'+(isKnack?' knack':'');
-  d.innerHTML=`<span class="emoji">${t.emoji}</span><span class="nm">${t.nm}</span>`;
-  return d;
-}
+function cardEl(c){const d=document.createElement('div');d.className='card'+(c.red?' red':'');
+  d.innerHTML=`<span class="r">${c.r}</span><span class="s">${c.s}</span>`;return d;}
+function chipEl(t,k){const d=document.createElement('div');d.className='chip'+(k?' knack':'');
+  d.innerHTML=`<span class="emoji">${t.emoji}</span><span class="nm">${t.nm}</span>`;return d;}
 function renderPanel(){
   const p=$('panel'); p.className='panel '+LAYOUT; p.innerHTML='';
-  const mkRow=(cls,label,items,builder,isKnack)=>{
-    const row=document.createElement('div'); row.className='row '+cls;
-    const rl=document.createElement('div'); rl.className='row-label'; rl.textContent=label;
-    const ri=document.createElement('div'); ri.className='row-items';
-    items.forEach(it=>ri.appendChild(builder(it,isKnack)));
-    row.appendChild(rl); row.appendChild(ri); p.appendChild(row);
-    return ri;
-  };
-  mkRow('hand','Hand',HAND.cards,cardEl);
-  mkRow('tricks','Tricks',HAND.tricks,(t)=>chipEl(t,false));
-  mkRow('knacks','Knacks',HAND.knacks,(t)=>chipEl(t,true));
+  const mk=(cls,label,items,b,k)=>{const row=document.createElement('div');row.className='row '+cls;
+    const rl=document.createElement('div');rl.className='row-label';rl.textContent=label;
+    const ri=document.createElement('div');ri.className='row-items';
+    items.forEach(it=>ri.appendChild(b(it,k)));row.appendChild(rl);row.appendChild(ri);p.appendChild(row);};
+  mk('hand','Hand',HAND.cards,cardEl);
+  mk('tricks','Tricks',HAND.tricks,(t)=>chipEl(t,false));
+  mk('knacks','Knacks',HAND.knacks,(t)=>chipEl(t,true));
 }
 renderPanel();
 
-// ── helpers ──
-const wait = ms => new Promise(r=>setTimeout(r, FF ? Math.max(8, ms/25) : ms));
-function flyParticle(srcEl, targetEl, label, color){
-  const a=srcEl.getBoundingClientRect(), b=targetEl.getBoundingClientRect();
-  const el=document.createElement('div'); el.className='particle'; el.textContent=label; el.style.color=color;
-  el.style.left=(a.left+a.width/2)+'px'; el.style.top=(a.top+a.height/2)+'px';
-  document.body.appendChild(el);
-  const dx=(b.left+b.width/2)-(a.left+a.width/2), dy=(b.top+b.height/2)-(a.top+a.height/2);
-  const dur = FF ? 90 : 520;
+const wait=ms=>new Promise(r=>setTimeout(r,FF?Math.max(8,ms/FF_MULT):ms));
+function flyParticle(srcEl,targetEl,label,color){
+  const a=srcEl.getBoundingClientRect(),b=targetEl.getBoundingClientRect();
+  const el=document.createElement('div');el.className='particle';el.textContent=label;el.style.color=color;
+  el.style.left=(a.left+a.width/2)+'px';el.style.top=(a.top+a.height/2)+'px';document.body.appendChild(el);
+  const dx=(b.left+b.width/2)-(a.left+a.width/2),dy=(b.top+b.height/2)-(a.top+a.height/2);
+  const dur=FF?Math.max(60,PARTICLE_SPEED/FF_MULT):PARTICLE_SPEED;
   el.animate([
     {transform:'translate(-50%,-50%) scale(.6)',opacity:0},
     {transform:'translate(-50%,-50%) scale(1.15)',opacity:1,offset:.2},
     {transform:`translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(.9)`,opacity:0},
   ],{duration:dur,easing:'cubic-bezier(.3,.7,.4,1)',fill:'forwards'});
+  setTimeout(()=>el.remove(),dur+50);
   return new Promise(r=>setTimeout(r,dur));
 }
-function bump(el){ el.classList.remove('pulse'); void el.offsetWidth; el.classList.add('pulse'); }
-function jiggle(el){
-  const cls = LAYOUT==='spotlight' ? 'spot' : 'jiggle';
-  el.classList.remove('jiggle','spot'); void el.offsetWidth; el.classList.add(cls);
+function bump(el){el.classList.remove('pulse');void el.offsetWidth;el.classList.add('pulse');}
+function reactor(el){
+  el.classList.remove(...ANIM_CLASSES);
+  if(ANIM!=='none'){ void el.offsetWidth; el.classList.add('a-'+ANIM); }
+  el.classList.add('active-hl');
+  setTimeout(()=>el.classList.remove('active-hl'), (FF?ANIM_DUR/FF_MULT:ANIM_DUR)+140);
 }
 
-// running state
-let pips=0, mult=0, focus=1, score=0, running=false, danceToken=0;
+let pips=0,mult=0,focus=1,score=0,running=false,danceToken=0;
 function setVals(){
-  $('pips-val').textContent = Math.round(pips);
-  $('mult-val').textContent = (mult%1===0)?mult:mult.toFixed(1);
-  $('focus-val').textContent = '×'+((focus%1===0)?focus:focus.toFixed(1));
-  $('score-val').textContent = Math.round(score).toLocaleString();
+  $('pips-val').textContent=Math.round(pips);
+  $('mult-val').textContent=(mult%1===0)?mult:mult.toFixed(1);
+  $('focus-val').textContent='×'+((focus%1===0)?focus:focus.toFixed(1));
+  $('score-val').textContent=Math.round(score).toLocaleString();
 }
-
-// Build the ordered beat list (source element + contribution)
 function buildBeats(){
   const beats=[];
-  const cardEls = document.querySelectorAll('#panel .row.hand .card');
-  HAND.cards.forEach((c,i)=>beats.push({el:cardEls[i], kind:'pip', amt:c.pip, color:'var(--blue)'}));
-  const trickEls = document.querySelectorAll('#panel .row.tricks .chip');
-  HAND.tricks.forEach((t,i)=>beats.push({el:trickEls[i], kind:t.kind, amt:t.amt,
-    color:t.kind==='pip'?'var(--trick)':'var(--purple)'}));
-  const knackEls = document.querySelectorAll('#panel .row.knacks .chip');
-  HAND.knacks.forEach((t,i)=>beats.push({el:knackEls[i], kind:t.kind, amt:t.amt, color:'var(--blue)'}));
+  const ce=document.querySelectorAll('#panel .row.hand .card');
+  HAND.cards.forEach((c,i)=>beats.push({el:ce[i],kind:'pip',amt:c.pip,color:'var(--blue)'}));
+  const te=document.querySelectorAll('#panel .row.tricks .chip');
+  HAND.tricks.forEach((t,i)=>beats.push({el:te[i],kind:t.kind,amt:t.amt,color:t.kind==='pip'?'var(--trick)':'var(--purple)'}));
+  const ke=document.querySelectorAll('#panel .row.knacks .chip');
+  HAND.knacks.forEach((t,i)=>beats.push({el:ke[i],kind:t.kind,amt:t.amt,color:'var(--blue)'}));
   return beats;
 }
-
 async function playDance(){
-  const myToken = ++danceToken;
-  running=true; FF=false;
-  // reset
-  pips=HAND.base.pips; mult=HAND.base.mult; focus=1; score=0; setVals();
+  const tok=++danceToken; running=true; FF=false;
+  pips=HAND.base.pips;mult=HAND.base.mult;focus=1;score=0;setVals();
   document.querySelectorAll('#panel .dim').forEach(e=>e.classList.remove('dim'));
-  bump($('pips-box')); bump($('mult-box'));
-  await wait(TICK_REST);
-  if(myToken!==danceToken) return;
-
-  const beats = buildBeats();
-  for(const beat of beats){
-    if(myToken!==danceToken) return;
+  bump($('pips-box'));bump($('mult-box'));
+  await wait(TICK_REST); if(tok!==danceToken)return;
+  for(const beat of buildBeats()){
+    if(tok!==danceToken)return;
     if(LAYOUT==='spotlight'){
       document.querySelectorAll('#panel .card,#panel .chip').forEach(e=>e.classList.add('dim'));
       beat.el.classList.remove('dim');
     }
-    jiggle(beat.el);
-    const box = beat.kind==='pip' ? $('pips-box') : $('mult-box');
-    await flyParticle(beat.el, box, '+'+beat.amt, beat.color);
-    if(beat.kind==='pip') pips+=beat.amt; else mult+=beat.amt;
-    setVals(); bump(box);
+    reactor(beat.el);
+    const box=beat.kind==='pip'?$('pips-box'):$('mult-box');
+    await flyParticle(beat.el,box,'+'+beat.amt,beat.color);
+    if(beat.kind==='pip')pips+=beat.amt; else mult+=beat.amt;
+    setVals();bump(box);
     await wait(TICK_REST);
   }
-  if(myToken!==danceToken) return;
-
-  // focus beat
+  if(tok!==danceToken)return;
   if(HAND.focus>1){
     document.querySelectorAll('#panel .dim').forEach(e=>e.classList.remove('dim'));
     focus=HAND.focus;
-    $('focus-box').classList.remove('focus-beat'); void $('focus-box').offsetWidth;
-    $('focus-box').classList.add('focus-beat');
-    setVals();
-    await wait(TICK_REST);
-    if(myToken!==danceToken) return;
+    $('focus-box').classList.remove('focus-beat');void $('focus-box').offsetWidth;$('focus-box').classList.add('focus-beat');
+    setVals(); await wait(TICK_REST); if(tok!==danceToken)return;
   }
-
-  // score climb
-  const target = Math.round(pips*mult*focus);
-  const dur = FF?160:900, start=performance.now();
+  const target=Math.round(pips*mult*focus);
+  const dur=FF?Math.max(120,SCORE_DUR/FF_MULT):SCORE_DUR, start=performance.now();
   await new Promise(res=>{
     function tick(now){
-      if(myToken!==danceToken){res();return;}
-      const t=Math.min((now-start)/(FF?160:dur),1), e=1-Math.pow(1-t,3);
-      score=target*e; setVals();
-      if(t<1) requestAnimationFrame(tick); else {score=target;setVals();res();}
+      if(tok!==danceToken){res();return;}
+      const t=Math.min((now-start)/dur,1),e=1-Math.pow(1-t,3);
+      score=target*e;setVals();
+      if(t<1)requestAnimationFrame(tick);else{score=target;setVals();res();}
     }
     requestAnimationFrame(tick);
   });
-  if(myToken!==danceToken) return;
-  bump($('score-val'));
-  running=false; FF=false;
+  if(tok!==danceToken)return;
+  bump($('score-val')); running=false; FF=false;
 }
-
-$('play-btn').addEventListener('click', ()=>{ playDance(); });
-
-// Interrupt: fast-forward current dance at 25x to its total, then start the next.
-$('interrupt-btn').addEventListener('click', async ()=>{
+$('play-btn').addEventListener('click',()=>playDance());
+$('interrupt-btn').addEventListener('click',async()=>{
   if(running){
-    FF=true;                          // remaining waits/particles run at ~25x
-    // let the in-flight dance race to completion
-    const waited = danceToken;
-    let guard=0;
-    while(running && waited===danceToken && guard++<400){ await new Promise(r=>setTimeout(r,16)); }
+    FF=true; const t=danceToken; let g=0;
+    while(running&&t===danceToken&&g++<400){await new Promise(r=>setTimeout(r,16));}
   }
-  playDance();                        // next hand begins
+  playDance();
 });
 </script>
 </body>
