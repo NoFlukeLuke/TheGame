@@ -10,9 +10,7 @@
     --gold:#f5c042; --gold-dim:#c9a84c; --cream:#f4ead5; --cream-dim:#9a8f7a;
     --red:#c0353e; --blue:#5a8fe0; --purple:#b07dea; --trick:#d4a857;
     --panel:#1f1a12; --line:rgba(245,192,66,0.18);
-    --hl:0.35; --particle-scale:1;
-    /* per-element defaults; reactor overrides per layer */
-    --anim-dur:420ms; --anim-mag:1;
+    --particle-scale:1; --anim-dur:420ms; --anim-mag:1; --jit:0;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   body{margin:0;background:radial-gradient(circle at 50% 0%,#241d13,#0d0a06 70%);
@@ -50,7 +48,6 @@
     transform:rotate(180deg);text-transform:uppercase;flex:0 0 auto;opacity:.7;}
   .row-items{display:flex;gap:6px;align-items:center;flex:1;flex-wrap:nowrap;}
 
-  /* fx-outer is layer A; the card/chip itself is layer B. Nesting composes the transforms. */
   .fx-outer{display:inline-flex;flex:0 0 auto;transform-origin:center;}
   .card{width:38px;height:54px;border-radius:6px;background:#f4ead5;color:#1a1a1a;transform-origin:center;
     display:flex;flex-direction:column;align-items:center;justify-content:center;
@@ -66,8 +63,16 @@
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .dim{opacity:.3;transition:opacity .2s;}
 
-  .active-hl{box-shadow:0 0 calc(16px*var(--hl)) calc(3px*var(--hl)) rgba(245,192,66,calc(0.6*var(--hl)));
-    filter:brightness(calc(1 + 0.16*var(--hl)));transition:box-shadow .12s ease, filter .12s ease;}
+  /* rapid in-place jitter while a trick is "charging" (violence scales with --jit) */
+  .jittering{animation:jitter .1s linear infinite;}
+  @keyframes jitter{
+    0%{transform:translate(0,0) rotate(0) scale(1);}
+    20%{transform:translate(calc(-0.9px*var(--jit)),calc(0.7px*var(--jit))) rotate(calc(-1.1deg*var(--jit))) scale(calc(1 + .015*var(--jit)));}
+    40%{transform:translate(calc(0.9px*var(--jit)),calc(-0.7px*var(--jit))) rotate(calc(1.1deg*var(--jit))) scale(calc(1 + .015*var(--jit)));}
+    60%{transform:translate(calc(-0.6px*var(--jit)),calc(-0.5px*var(--jit))) rotate(calc(-0.7deg*var(--jit))) scale(calc(1 + .01*var(--jit)));}
+    80%{transform:translate(calc(0.6px*var(--jit)),calc(0.5px*var(--jit))) rotate(calc(0.7deg*var(--jit))) scale(1);}
+    100%{transform:translate(0,0) rotate(0) scale(1);}
+  }
 
   /* ── motions (magnitude scaled by each element's own --anim-mag/--anim-dur) ── */
   .a-jiggle{animation:a-jiggle var(--anim-dur) ease;}
@@ -80,6 +85,8 @@
   @keyframes a-shake{0%,100%{transform:translateX(0);}20%{transform:translateX(calc(-7px*var(--anim-mag)));}40%{transform:translateX(calc(7px*var(--anim-mag)));}60%{transform:translateX(calc(-5px*var(--anim-mag)));}80%{transform:translateX(calc(5px*var(--anim-mag)));}}
   .a-flip{animation:a-flip var(--anim-dur) ease;}
   @keyframes a-flip{0%{transform:perspective(320px) rotateY(0);}100%{transform:perspective(320px) rotateY(360deg);}}
+  .a-flipv{animation:a-flipv var(--anim-dur) ease;}
+  @keyframes a-flipv{0%{transform:perspective(320px) rotateX(0);}100%{transform:perspective(320px) rotateX(360deg);}}
   .a-lift{animation:a-lift var(--anim-dur) cubic-bezier(.34,1.4,.5,1);}
   @keyframes a-lift{0%{transform:translateY(0);}45%{transform:translateY(calc(-16px*var(--anim-mag)));}100%{transform:translateY(0);}}
   .a-sway{animation:a-sway var(--anim-dur) ease-in-out;}
@@ -123,7 +130,7 @@
 </head>
 <body>
   <h1>SCORING DANCE — LAYOUT PREVIEW</h1>
-  <div class="sub">Combine two motions (A + B), each with its own sliders.<br>Throwaway mockup — nothing here touches the real game.</div>
+  <div class="sub">Tricks "charge" (jitter, building) as cards trigger them, then release.<br>Throwaway mockup — nothing here touches the real game.</div>
 
   <div class="chooser" id="chooser">
     <button data-layout="rows" class="active">3 Rows (in place)</button>
@@ -140,7 +147,7 @@
       <div class="sbox" id="focus-box"><span class="lbl">FOCUS</span><span class="val" id="focus-val">×1</span></div>
       <div class="score-final"><span class="lbl">SCORE</span><span class="val" id="score-val">0</span></div>
     </div>
-    <div class="hand-name" id="hand-name">Three of a Kind · Sevens</div>
+    <div class="hand-name" id="hand-name">Full House · Kings over Fours</div>
     <div class="panel rows" id="panel"></div>
   </div>
 
@@ -171,6 +178,12 @@
     <div class="group-title">Highlight</div>
     <div class="ctl"><div class="lab"><span>Highlight intensity (glow on active entity)</span><b id="v-hl">35%</b></div>
       <input type="range" id="s-hl" min="0" max="150" step="5" value="35"></div>
+    <div class="ctl"><div class="lab"><span>Highlight speed (fade in/out)</span><b id="v-hldur">300 ms</b></div>
+      <input type="range" id="s-hldur" min="100" max="700" step="20" value="300"></div>
+
+    <div class="group-title">Charge (per-card trick jitter)</div>
+    <div class="ctl"><div class="lab"><span>Jitter build-up per trigger</span><b id="v-jit">100%</b></div>
+      <input type="range" id="s-jit" min="20" max="220" step="10" value="100"></div>
 
     <div class="group-title">Timing</div>
     <div class="ctl"><div class="lab"><span>Tick rest (pause between contributions)</span><b id="v-rest">500 ms</b></div>
@@ -186,47 +199,50 @@
     <div class="ctl"><div class="lab"><span>Particle size</span><b id="v-psz">100%</b></div>
       <input type="range" id="s-psz" min="50" max="260" step="10" value="100"></div>
 
-    <div class="note">Set Motion B to <b>None</b> for a single animation. The clock keeps ticking during the
-      dance; <b>Submit next (interrupt)</b> snaps the current dance forward at the fast-forward speed to its
-      total, then the next hand begins.</div>
+    <div class="note">Both tricks here are <b>per-card</b> (Rich Soil +2/card, Fertile Ground +3/card): they jitter
+      harder with each card, then release their total. Set Motion B to <b>None</b> for one animation.</div>
   </div>
 
 <script>
+// ── Example: Full House, Kings over Fours, with two PER-CARD tricks ──
 const HAND={
-  base:{pips:30,mult:3},
-  cards:[{r:'7',s:'♥',red:true,pip:7},{r:'7',s:'♣',red:false,pip:7},{r:'K',s:'♠',red:false,pip:10},{r:'3',s:'♦',red:true,pip:3},{r:'7',s:'♦',red:true,pip:7}],
-  tricks:[{emoji:'🌱',nm:'Rich Soil',kind:'pip',amt:10},{emoji:'⛰️',nm:'Quake',kind:'mult',amt:6},{emoji:'🔥',nm:'Kindling',kind:'pip',amt:4}],
+  base:{pips:40,mult:4},
+  cards:[{r:'K',s:'♥',red:true,pip:10},{r:'K',s:'♠',red:false,pip:10},{r:'K',s:'♦',red:true,pip:10},{r:'4',s:'♣',red:false,pip:4},{r:'4',s:'♦',red:true,pip:4}],
+  // perCard tricks trigger on every card; amt is the PER-CARD pip value.
+  tricks:[
+    {emoji:'🌱',nm:'Rich Soil',perCard:true,kind:'pip',amt:2},
+    {emoji:'🍃',nm:'Fertile Ground',perCard:true,kind:'pip',amt:3},
+  ],
   knacks:[{emoji:'⏳',nm:'Time Bank',kind:'pip',amt:5}],
   focus:1.5,
 };
 const MOTIONS=[
-  ['none','None'],['jiggle','Jiggle — wobble + lift'],['pop','Pop — springy scale-up'],
-  ['pulse','Pulse — gentle throb'],['shake','Shake — side-to-side'],['lift','Lift — rise & settle'],
-  ['nudge','Nudge — small bump up'],['sway','Sway — pendulum tilt'],['flash','Flash — brighten, barely moves'],
-  ['squash','Squash & stretch'],['heartbeat','Heartbeat — double pulse'],['flip','Flip — card flip'],['spin','Spin — full rotate'],
+  ['none','None'],['jiggle','Jiggle — wobble + lift'],['pop','Pop — springy scale-up'],['pulse','Pulse — gentle throb'],
+  ['shake','Shake — side-to-side'],['lift','Lift — rise & settle'],['nudge','Nudge — small bump up'],
+  ['sway','Sway — pendulum tilt'],['flash','Flash — brighten, barely moves'],['squash','Squash & stretch'],
+  ['heartbeat','Heartbeat — double pulse'],['flip','Flip — left/right (360°)'],['flipv','Flip — top over bottom (360°)'],['spin','Spin — full rotate'],
 ];
 const ANIM_CLASSES=MOTIONS.filter(m=>m[0]!=='none').map(m=>'a-'+m[0]);
 function fillSelect(id,def){const s=document.getElementById(id);
-  MOTIONS.forEach(([v,l])=>{const o=document.createElement('option');o.value=v;o.textContent=l;s.appendChild(o);});
-  s.value=def;}
+  MOTIONS.forEach(([v,l])=>{const o=document.createElement('option');o.value=v;o.textContent=l;s.appendChild(o);});s.value=def;}
 fillSelect('anim-a','jiggle'); fillSelect('anim-b','none');
 
-let TICK_REST=500,PARTICLE_SPEED=520,SCORE_DUR=900,FF_MULT=25,FF=false;
+let TICK_REST=500,PARTICLE_SPEED=520,SCORE_DUR=900,FF_MULT=25,HL=0.35,HL_DUR=300,JIT_SCALE=1,FF=false;
 let A={type:'jiggle',dur:420,mag:1}, B={type:'none',dur:420,mag:1};
 const $=id=>document.getElementById(id);
 function sync(){
   A={type:$('anim-a').value,dur:+$('s-adurA').value,mag:(+$('s-amagA').value)/100};
   B={type:$('anim-b').value,dur:+$('s-adurB').value,mag:(+$('s-amagB').value)/100};
-  document.documentElement.style.setProperty('--hl',(+$('s-hl').value)/100);
+  HL=(+$('s-hl').value)/100; HL_DUR=+$('s-hldur').value; JIT_SCALE=(+$('s-jit').value)/100;
   document.documentElement.style.setProperty('--particle-scale',(+$('s-psz').value)/100);
   TICK_REST=+$('s-rest').value;PARTICLE_SPEED=+$('s-pspd').value;SCORE_DUR=+$('s-sdur').value;FF_MULT=+$('s-ff').value;
-  $('v-adurA').textContent=A.dur+' ms'; $('v-amagA').textContent=$('s-amagA').value+'%';
-  $('v-adurB').textContent=B.dur+' ms'; $('v-amagB').textContent=$('s-amagB').value+'%';
-  $('v-hl').textContent=$('s-hl').value+'%'; $('v-rest').textContent=TICK_REST+' ms';
-  $('v-pspd').textContent=PARTICLE_SPEED+' ms'; $('v-sdur').textContent=SCORE_DUR+' ms';
-  $('v-ff').textContent=FF_MULT+'×'; $('v-psz').textContent=$('s-psz').value+'%';
+  $('v-adurA').textContent=A.dur+' ms';$('v-amagA').textContent=$('s-amagA').value+'%';
+  $('v-adurB').textContent=B.dur+' ms';$('v-amagB').textContent=$('s-amagB').value+'%';
+  $('v-hl').textContent=$('s-hl').value+'%';$('v-hldur').textContent=HL_DUR+' ms';$('v-jit').textContent=$('s-jit').value+'%';
+  $('v-rest').textContent=TICK_REST+' ms';$('v-pspd').textContent=PARTICLE_SPEED+' ms';
+  $('v-sdur').textContent=SCORE_DUR+' ms';$('v-ff').textContent=FF_MULT+'×';$('v-psz').textContent=$('s-psz').value+'%';
 }
-['anim-a','anim-b','s-adurA','s-amagA','s-adurB','s-amagB','s-hl','s-rest','s-pspd','s-sdur','s-ff','s-psz']
+['anim-a','anim-b','s-adurA','s-amagA','s-adurB','s-amagB','s-hl','s-hldur','s-jit','s-rest','s-pspd','s-sdur','s-ff','s-psz']
   .forEach(id=>$(id).addEventListener('input',sync));
 sync();
 
@@ -271,59 +287,102 @@ function applyLayer(elem,layer){
   elem.style.setProperty('--anim-dur',layer.dur+'ms');
   if(layer.type!=='none'){void elem.offsetWidth;elem.classList.add('a-'+layer.type);}
 }
-function reactor(card){
-  const outer=card.parentElement;             // fx-outer = layer A
-  applyLayer(outer,A);                          // base motion
-  applyLayer(card,B);                           // layered motion (composes via nesting)
-  card.classList.add('active-hl');
-  const hold=Math.max(A.dur,B.dur)+140;
-  setTimeout(()=>card.classList.remove('active-hl'),FF?hold/FF_MULT:hold);
+// Soft glow on the active entity — runs via WAAPI (box-shadow) so it coexists with
+// the transform-based motion animations. Fades in then out (ease-in-out).
+function highlight(el){
+  if(HL<=0)return;
+  const g=`0 0 ${(16*HL).toFixed(1)}px ${(3*HL).toFixed(1)}px rgba(245,192,66,${(0.6*HL).toFixed(2)})`;
+  el.animate([{boxShadow:'0 0 0 0 rgba(245,192,66,0)'},{boxShadow:g,offset:.45},{boxShadow:'0 0 0 0 rgba(245,192,66,0)'}],
+    {duration:FF?Math.max(70,HL_DUR/FF_MULT):HL_DUR,easing:'ease-in-out'});
 }
+function reactor(el){const outer=el.parentElement;applyLayer(outer,A);applyLayer(el,B);highlight(el);}
+function agitate(chip,level){chip.style.setProperty('--jit',(level*JIT_SCALE).toFixed(2));
+  if(!chip.classList.contains('jittering'))chip.classList.add('jittering');}
+function stopJitter(chip){chip.classList.remove('jittering');chip.style.removeProperty('--jit');}
 
 let pips=0,mult=0,focus=1,score=0,running=false,danceToken=0;
 function setVals(){$('pips-val').textContent=Math.round(pips);
   $('mult-val').textContent=(mult%1===0)?mult:mult.toFixed(1);
   $('focus-val').textContent='×'+((focus%1===0)?focus:focus.toFixed(1));
   $('score-val').textContent=Math.round(score).toLocaleString();}
-function buildBeats(){const beats=[];
-  const ce=document.querySelectorAll('#panel .row.hand .card');
-  HAND.cards.forEach((c,i)=>beats.push({el:ce[i],kind:'pip',amt:c.pip,color:'var(--blue)'}));
-  const te=document.querySelectorAll('#panel .row.tricks .chip');
-  HAND.tricks.forEach((t,i)=>beats.push({el:te[i],kind:t.kind,amt:t.amt,color:t.kind==='pip'?'var(--trick)':'var(--purple)'}));
-  const ke=document.querySelectorAll('#panel .row.knacks .chip');
-  HAND.knacks.forEach((t,i)=>beats.push({el:ke[i],kind:t.kind,amt:t.amt,color:'var(--blue)'}));
-  return beats;}
+
 async function playDance(){
   const tok=++danceToken;running=true;FF=false;
   pips=HAND.base.pips;mult=HAND.base.mult;focus=1;score=0;setVals();
   document.querySelectorAll('#panel .dim').forEach(e=>e.classList.remove('dim'));
+  document.querySelectorAll('#panel .jittering').forEach(stopJitter);
   bump($('pips-box'));bump($('mult-box'));
   await wait(TICK_REST);if(tok!==danceToken)return;
-  for(const beat of buildBeats()){
+
+  const trickEls=[...document.querySelectorAll('#panel .row.tricks .chip')];
+  const knackEls=[...document.querySelectorAll('#panel .row.knacks .chip')];
+  const cardEls =[...document.querySelectorAll('#panel .row.hand .card')];
+  const agit={}; // trick index -> trigger count
+
+  // ── CARD PHASE: cards score; per-card tricks charge (jitter ramps) ──
+  for(let i=0;i<HAND.cards.length;i++){
     if(tok!==danceToken)return;
-    if(LAYOUT==='spotlight'){document.querySelectorAll('#panel .card,#panel .chip').forEach(e=>e.classList.add('dim'));beat.el.classList.remove('dim');}
-    reactor(beat.el);
-    const box=beat.kind==='pip'?$('pips-box'):$('mult-box');
-    await flyParticle(beat.el,box,'+'+beat.amt,beat.color);
-    if(beat.kind==='pip')pips+=beat.amt;else mult+=beat.amt;
+    const card=cardEls[i];
+    if(LAYOUT==='spotlight'){document.querySelectorAll('#panel .card,#panel .chip').forEach(e=>e.classList.add('dim'));
+      card.classList.remove('dim');document.querySelectorAll('#panel .jittering').forEach(e=>e.classList.remove('dim'));}
+    reactor(card);
+    HAND.tricks.forEach((t,ti)=>{ if(t.perCard){ agit[ti]=(agit[ti]||0)+1; agitate(trickEls[ti],agit[ti]); }});
+    await flyParticle(card,$('pips-box'),'+'+HAND.cards[i].pip,'var(--blue)');
+    pips+=HAND.cards[i].pip;setVals();bump($('pips-box'));
+    await wait(TICK_REST);
+  }
+  if(tok!==danceToken)return;
+  document.querySelectorAll('#panel .dim').forEach(e=>e.classList.remove('dim'));
+
+  // ── TRICK PHASE: each trick stops jittering and RELEASES its accumulated total ──
+  for(let ti=0;ti<HAND.tricks.length;ti++){
+    if(tok!==danceToken)return;
+    const t=HAND.tricks[ti],chip=trickEls[ti];
+    const total=t.perCard ? t.amt*HAND.cards.length : t.amt;
+    if(LAYOUT==='spotlight'){document.querySelectorAll('#panel .card,#panel .chip').forEach(e=>e.classList.add('dim'));chip.classList.remove('dim');}
+    stopJitter(chip);
+    reactor(chip);
+    const box=t.kind==='pip'?$('pips-box'):$('mult-box');
+    await flyParticle(chip,box,'+'+total,t.kind==='pip'?'var(--trick)':'var(--purple)');
+    if(t.kind==='pip')pips+=total;else mult+=total;
     setVals();bump(box);
     await wait(TICK_REST);
   }
   if(tok!==danceToken)return;
-  if(HAND.focus>1){document.querySelectorAll('#panel .dim').forEach(e=>e.classList.remove('dim'));
-    focus=HAND.focus;$('focus-box').classList.remove('focus-beat');void $('focus-box').offsetWidth;$('focus-box').classList.add('focus-beat');
+  document.querySelectorAll('#panel .dim').forEach(e=>e.classList.remove('dim'));
+
+  // ── KNACK PHASE ──
+  for(let ki=0;ki<HAND.knacks.length;ki++){
+    if(tok!==danceToken)return;
+    const t=HAND.knacks[ki],chip=knackEls[ki];
+    if(LAYOUT==='spotlight'){document.querySelectorAll('#panel .card,#panel .chip').forEach(e=>e.classList.add('dim'));chip.classList.remove('dim');}
+    reactor(chip);
+    const box=t.kind==='pip'?$('pips-box'):$('mult-box');
+    await flyParticle(chip,box,'+'+t.amt,'var(--blue)');
+    if(t.kind==='pip')pips+=t.amt;else mult+=t.amt;
+    setVals();bump(box);
+    await wait(TICK_REST);
+  }
+  if(tok!==danceToken)return;
+  document.querySelectorAll('#panel .dim').forEach(e=>e.classList.remove('dim'));
+
+  // ── FOCUS beat ──
+  if(HAND.focus>1){focus=HAND.focus;
+    $('focus-box').classList.remove('focus-beat');void $('focus-box').offsetWidth;$('focus-box').classList.add('focus-beat');
     setVals();await wait(TICK_REST);if(tok!==danceToken)return;}
+
+  // ── SCORE climb ──
   const target=Math.round(pips*mult*focus);
   const dur=FF?Math.max(120,SCORE_DUR/FF_MULT):SCORE_DUR,start=performance.now();
   await new Promise(res=>{function tick(now){if(tok!==danceToken){res();return;}
-    const t=Math.min((now-start)/dur,1),e=1-Math.pow(1-t,3);score=target*e;setVals();
-    if(t<1)requestAnimationFrame(tick);else{score=target;setVals();res();}}requestAnimationFrame(tick);});
+    const tt=Math.min((now-start)/dur,1),e=1-Math.pow(1-tt,3);score=target*e;setVals();
+    if(tt<1)requestAnimationFrame(tick);else{score=target;setVals();res();}}requestAnimationFrame(tick);});
   if(tok!==danceToken)return;
   bump($('score-val'));running=false;FF=false;
 }
 $('play-btn').addEventListener('click',()=>playDance());
 $('interrupt-btn').addEventListener('click',async()=>{
-  if(running){FF=true;const t=danceToken;let g=0;while(running&&t===danceToken&&g++<400){await new Promise(r=>setTimeout(r,16));}}
+  if(running){FF=true;const t=danceToken;let g=0;while(running&&t===danceToken&&g++<500){await new Promise(r=>setTimeout(r,16));}}
   playDance();
 });
 </script>
