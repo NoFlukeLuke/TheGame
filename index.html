@@ -818,6 +818,46 @@
     text-transform: uppercase;
     margin-bottom: 20px;
   }
+  /* Payout tabs + contributions view */
+  .payout-tabs { display: flex; gap: 6px; margin: -8px 0 16px; }
+  .payout-tab {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.10);
+    color: var(--cream-dim);
+    font-family: 'Cinzel', serif;
+    font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
+    padding: 6px 14px; border-radius: 6px; cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .payout-tab.active {
+    color: var(--gold);
+    border-color: rgba(245,192,66,0.5);
+    background: rgba(245,192,66,0.10);
+  }
+  #po-view-contrib { width: 100%; max-width: 320px; }
+  .contrib-head {
+    font-family: 'Cinzel', serif;
+    font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
+    color: var(--cream-dim); text-align: center; margin-bottom: 12px;
+  }
+  .contrib-scroll { max-height: 46vh; overflow-y: auto; padding-right: 4px; }
+  .contrib-group-title {
+    font-family: 'Cinzel', serif;
+    font-size: 9px; letter-spacing: 2px; text-transform: uppercase;
+    color: rgba(245,192,66,0.55); margin: 12px 0 4px;
+  }
+  .contrib-group-title:first-child { margin-top: 0; }
+  .contrib-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 6px 2px; border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  .contrib-label { font-size: 12px; color: var(--cream); display: flex; align-items: center; gap: 6px; }
+  .contrib-count { font-size: 9px; color: var(--cream-dim); opacity: 0.7; }
+  .contrib-val { font-size: 12px; font-weight: 600; }
+  .contrib-val.contrib-pip  { color: #6fb3ff; }
+  .contrib-val.contrib-mult { color: #ff6f7a; }
+  .contrib-empty { text-align: center; color: var(--cream-dim); font-size: 12px; padding: 24px 0; }
+
   .payout-lines { width: 100%; max-width: 300px; }
   .payout-line {
     display: flex;
@@ -3501,7 +3541,7 @@
 </div>
 
 <script>
-const BUILD = '2026-06-16 · r62';
+const BUILD = '2026-06-20 · r63';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -4323,6 +4363,10 @@ let bonusPips_prolific  = 0;   // Prolific Trick: +1 pip per hand played
 let bonusMult_jackpot   = 0;   // Jackpot (big_win) Trick: +5 when score 10k+
 let jackpotFired        = false; // big_win fires only once
 let handsPlayedRound    = 0;   // count of hands played this round
+// Per-round contribution tally for the Payout > Contributions tab.
+// roundContributions[label|kind] = { label, kind, amount, count }
+let roundContributions  = {};
+let roundHandsScored    = 0;
 let runsPlayedRound     = 0;   // count of Runs scored this round (Tide Table)
 let _ddPairTimes        = [];  // timestamps of recent pair-hands (Double Dutch)
 let _rippleLastFire     = -100000; // last time Ripple's retrigger fired (30s cooldown)
@@ -5442,6 +5486,86 @@ function calcScore(handName, cells, contrib = null) {
   }
 
   return Math.round(s);
+}
+
+// ══════════════════════════════════════════════
+// PER-ROUND CONTRIBUTION TALLY (Payout > Contributions tab)
+// Reuses calcScore's built-in `contrib` output (per-Trick + exalt pip/mult
+// deltas) — no separate scoring math, so it can't drift from the real score.
+// ══════════════════════════════════════════════
+function contribDisplayName(source, id) {
+  if (source === 'exalt') return 'Exalt / Corrupt';
+  const def = TRICK_POOL.find(t => t.id === id);
+  return def ? def.name : id;
+}
+
+function foldContribution(label, kind, amount) {
+  if (!amount) return;
+  const key = label + '|' + kind;
+  let e = roundContributions[key];
+  if (!e) e = roundContributions[key] = { label, kind, amount: 0, count: 0 };
+  e.amount += amount;
+  e.count++;
+}
+
+// Snapshot a hand's contribution rows from PRISTINE state (call early in playHand,
+// before per-hand mutations like Ripple cooldown / Snowball permPips change the
+// numbers). Returns rows to fold later; does not touch the tally yet.
+function captureRoundContrib(result) {
+  if (!result) return null;
+  const { hand, handCells } = result;
+  const rows = [];
+  // Bonus-entity contributions (Tricks + exalt) straight from calcScore.
+  const contrib = [];
+  calcScore(hand, handCells, contrib);
+  contrib.forEach(e => rows.push({ label: contribDisplayName(e.source, e.id), kind: e.type, amount: e.delta }));
+  // Base + raw card pips (everything not attributed to a bonus entity).
+  const base = HAND_BASE[hand];
+  if (base) {
+    const levelScale = Math.pow(1.1, level - 1);
+    let cardPipsTotal = Math.round(base.pips * levelScale);
+    handCells.forEach(([r, c]) => { const card = gridData[r]?.[c]; if (card?.rank) cardPipsTotal += cardPips(card.rank); });
+    rows.push({ label: 'Base + card pips', kind: 'pip', amount: cardPipsTotal });
+  }
+  return rows;
+}
+
+// Fold a captured snapshot into the round tally (call once, at a commit point).
+function commitRoundContrib(rows) {
+  if (!rows) return;
+  roundHandsScored++;
+  rows.forEach(r => foldContribution(r.label, r.kind, r.amount));
+}
+
+function fmtContribution(e) {
+  const r1 = n => (Math.round(n * 10) / 10);
+  switch (e.kind) {
+    case 'pip':  return `+${Math.round(e.amount)} pips`;
+    case 'mult': return `+${r1(e.amount)} mult`;
+    default:     return String(e.amount);
+  }
+}
+
+// Build the per-round contribution breakdown as HTML rows, grouped by kind.
+function roundContributionRowsHTML() {
+  const entries = Object.values(roundContributions);
+  if (!entries.length || roundHandsScored === 0) {
+    return `<div class="contrib-empty">No hands scored this round.</div>`;
+  }
+  let html = '';
+  [{ kind: 'pip', title: 'Pips' }, { kind: 'mult', title: 'Mult' }].forEach(g => {
+    const rows = entries.filter(e => e.kind === g.kind).sort((a, b) => b.amount - a.amount);
+    if (!rows.length) return;
+    html += `<div class="contrib-group-title">${g.title}</div>`;
+    rows.forEach(e => {
+      const note = e.count > 1 ? `<span class="contrib-count">${e.count} hands</span>` : '';
+      html += `<div class="contrib-row">
+        <span class="contrib-label">${withSuitHalo(e.label)}${note}</span>
+        <span class="contrib-val contrib-${e.kind}">${fmtContribution(e)}</span>
+      </div>`;
+    });
+  });
+  return html;
 }
 
 function hasTrick(id) {
@@ -6685,6 +6809,9 @@ function playHand() {
 
   const playedCells = [...selected]; // capture before any path clears selection (for on_play sleights)
   const { hand, handCells, penaltyCells, penaltyPips, finalScore } = result;
+  // Snapshot contribution breakdown now, from pristine pre-mutation state.
+  // Folded into the round tally at the commit points below (goal / normal).
+  const _contribSnapshot = captureRoundContrib(result);
   dbgEvent('ok', 'play ' + hand, { finalScore, cards: handCells.length });
   console.log('[PLAY] hand result', { hand, finalScore, scoreAfterAdd: score + finalScore });
   const scoreBeforeHand = score;
@@ -6742,6 +6869,7 @@ function playHand() {
     }
     const toRemove = [...selected];
     selected = [];
+    commitRoundContrib(_contribSnapshot); // goal-clearing hand counts toward the tally
     // Run the score animation; goal interlude fires at end of dance via isGoalHand path
     playScoreDance(result, toRemove, true /* goalHand */);
     return;
@@ -7124,6 +7252,7 @@ function playHand() {
   const toRemove = [...selected];
   selected = [];
 
+  commitRoundContrib(_contribSnapshot); // committed (non-goal) hand counts toward the tally
   // Kick off the score dance — it handles updateScoreUI, removeAndFall, levelUp
   playScoreDance(result, toRemove);
 }
@@ -11220,6 +11349,15 @@ async function showPayoutUI() {
   el.id = 'payout-overlay';
   el.innerHTML = `
     <div class="payout-title">Payout</div>
+    <div class="payout-tabs">
+      <button class="payout-tab active" id="po-tab-payout-btn">Payout</button>
+      <button class="payout-tab" id="po-tab-contrib-btn">Contributions</button>
+    </div>
+    <div id="po-view-contrib" class="po-view" style="display:none">
+      <div class="contrib-head">This round · ${roundHandsScored} hand${roundHandsScored===1?'':'s'} scored</div>
+      <div class="contrib-scroll">${roundContributionRowsHTML()}</div>
+    </div>
+    <div id="po-view-payout" class="po-view">
     <div class="payout-lines">
       <div class="payout-line" id="po-line-interest">
         <div class="pl-left">
@@ -11248,9 +11386,25 @@ async function showPayoutUI() {
       <span class="pt-label">Total</span>
       <span class="pt-coins" id="po-total-coins">0 ◆</span>
     </div>
+    </div>
     <button class="payout-valued-btn" id="po-valued">Valued.</button>
     <button class="payout-ff-btn" id="po-ff" title="Fast forward">»</button>`;
   document.body.appendChild(el);
+
+  // Tab switching: Payout (coin animation) vs Contributions (round breakdown)
+  const viewPayout  = el.querySelector('#po-view-payout');
+  const viewContrib = el.querySelector('#po-view-contrib');
+  const tabPayout   = el.querySelector('#po-tab-payout-btn');
+  const tabContrib  = el.querySelector('#po-tab-contrib-btn');
+  tabPayout.onclick = () => {
+    tabPayout.classList.add('active'); tabContrib.classList.remove('active');
+    viewPayout.style.display = ''; viewContrib.style.display = 'none';
+  };
+  tabContrib.onclick = () => {
+    tabContrib.classList.add('active'); tabPayout.classList.remove('active');
+    viewContrib.style.display = ''; viewPayout.style.display = 'none';
+  };
+
   await wait(50);
   el.classList.add('show');
   await wait(400);
@@ -11353,7 +11507,7 @@ async function showPayoutUI() {
 
   // ── Crossfade out payout *content* but keep the dark background up for continuity ──
   // The bg stays visible until the Trick pick overlay (which has its own dark bg) takes over.
-  el.querySelectorAll('.payout-line, .payout-divider, .payout-total, .payout-valued-btn, .payout-ff-btn, .payout-title')
+  el.querySelectorAll('.payout-line, .payout-divider, .payout-total, .payout-valued-btn, .payout-ff-btn, .payout-title, .payout-tabs, .po-view')
     .forEach(node => { node.style.transition = 'opacity 0.25s ease'; node.style.opacity = '0'; });
   await wait(280);
   // Remove just the content; the overlay's own dark bg fades away when next-goal-bg or trick-choice take over
@@ -11603,6 +11757,8 @@ function triggerLevelUp() {
   runsPlayedRound  = 0;
   handTypesRound   = new Set();
   fullHouseThisRound = 0;
+  roundContributions = {};
+  roundHandsScored = 0;
   tickAltarEffects();
   // Reset the once-per-round activation lock on double_tap / on_swap sleights
   for (let _jr = 0; _jr < gridRows; _jr++) for (let _jc = 0; _jc < gridCols; _jc++) {
