@@ -10,30 +10,24 @@
     --gold:#f5c042; --gold-dim:#c9a84c; --cream:#f4ead5; --cream-dim:#9a8f7a;
     --red:#c0353e; --blue:#5a8fe0; --purple:#b07dea; --trick:#d4a857;
     --panel:#1f1a12; --line:rgba(245,192,66,0.18);
-    /* tunables (driven by controls) */
-    --anim-dur:420ms; --anim-mag:1; --hl:0.35; --particle-scale:1;
+    --hl:0.35; --particle-scale:1;
+    /* per-element defaults; reactor overrides per layer */
+    --anim-dur:420ms; --anim-mag:1;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-  body{
-    margin:0;background:radial-gradient(circle at 50% 0%,#241d13,#0d0a06 70%);
-    color:var(--cream);font-family:'Cinzel',serif;
-    min-height:100vh;display:flex;flex-direction:column;align-items:center;
-    padding:10px 10px 50px;
-  }
+  body{margin:0;background:radial-gradient(circle at 50% 0%,#241d13,#0d0a06 70%);
+    color:var(--cream);font-family:'Cinzel',serif;min-height:100vh;display:flex;
+    flex-direction:column;align-items:center;padding:10px 10px 50px;}
   h1{font-size:15px;letter-spacing:3px;color:var(--gold);margin:6px 0 2px;font-weight:700;}
   .sub{font-size:10px;letter-spacing:1px;color:var(--cream-dim);margin-bottom:10px;text-align:center;line-height:1.5;}
 
   .chooser{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;justify-content:center;}
-  .chooser button{
-    font-family:'Cinzel',serif;font-size:10px;letter-spacing:1px;text-transform:uppercase;
+  .chooser button{font-family:'Cinzel',serif;font-size:10px;letter-spacing:1px;text-transform:uppercase;
     color:var(--cream-dim);background:rgba(255,255,255,0.04);border:1px solid var(--line);
-    padding:7px 12px;border-radius:7px;cursor:pointer;transition:.15s;
-  }
+    padding:7px 12px;border-radius:7px;cursor:pointer;transition:.15s;}
   .chooser button.active{color:var(--gold);border-color:rgba(245,192,66,0.6);background:rgba(245,192,66,0.10);}
 
-  .stage{width:380px;max-width:100%;background:rgba(0,0,0,0.25);border:1px solid var(--line);
-    border-radius:12px;padding:10px;}
-
+  .stage{width:380px;max-width:100%;background:rgba(0,0,0,0.25);border:1px solid var(--line);border-radius:12px;padding:10px;}
   .score-strip{display:flex;align-items:center;justify-content:center;gap:7px;margin-bottom:10px;
     background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 6px;}
   .sbox{display:flex;flex-direction:column;align-items:center;min-width:50px;}
@@ -56,13 +50,15 @@
     transform:rotate(180deg);text-transform:uppercase;flex:0 0 auto;opacity:.7;}
   .row-items{display:flex;gap:6px;align-items:center;flex:1;flex-wrap:nowrap;}
 
-  .card{width:38px;height:54px;border-radius:6px;background:#f4ead5;color:#1a1a1a;
+  /* fx-outer is layer A; the card/chip itself is layer B. Nesting composes the transforms. */
+  .fx-outer{display:inline-flex;flex:0 0 auto;transform-origin:center;}
+  .card{width:38px;height:54px;border-radius:6px;background:#f4ead5;color:#1a1a1a;transform-origin:center;
     display:flex;flex-direction:column;align-items:center;justify-content:center;
-    font-weight:700;box-shadow:0 2px 5px rgba(0,0,0,.5);flex:0 0 auto;position:relative;}
+    font-weight:700;box-shadow:0 2px 5px rgba(0,0,0,.5);position:relative;}
   .card .r{font-size:16px;line-height:1;} .card .s{font-size:13px;line-height:1;}
   .card.red{color:#a0030b;}
   .chip{height:44px;min-width:44px;padding:0 8px;border-radius:8px;display:flex;flex-direction:column;
-    align-items:center;justify-content:center;gap:1px;flex:0 0 auto;position:relative;
+    align-items:center;justify-content:center;gap:1px;position:relative;transform-origin:center;
     background:rgba(212,168,87,0.12);border:1px solid rgba(212,168,87,0.45);}
   .chip.knack{background:rgba(90,143,224,0.12);border-color:rgba(90,143,224,0.45);}
   .chip .emoji{font-size:18px;line-height:1;}
@@ -70,14 +66,10 @@
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .dim{opacity:.3;transition:opacity .2s;}
 
-  /* subtle highlight applied to whatever is currently scoring (separate from motion) */
-  .active-hl{
-    box-shadow:0 0 calc(16px*var(--hl)) calc(3px*var(--hl)) rgba(245,192,66,calc(0.6*var(--hl)));
-    filter:brightness(calc(1 + 0.16*var(--hl)));
-    transition:box-shadow .12s ease, filter .12s ease;
-  }
+  .active-hl{box-shadow:0 0 calc(16px*var(--hl)) calc(3px*var(--hl)) rgba(245,192,66,calc(0.6*var(--hl)));
+    filter:brightness(calc(1 + 0.16*var(--hl)));transition:box-shadow .12s ease, filter .12s ease;}
 
-  /* ── 12 animation types (magnitude scaled by --anim-mag) ── */
+  /* ── motions (magnitude scaled by each element's own --anim-mag/--anim-dur) ── */
   .a-jiggle{animation:a-jiggle var(--anim-dur) ease;}
   @keyframes a-jiggle{0%{transform:none;}25%{transform:rotate(calc(-8deg*var(--anim-mag))) translateY(calc(-8px*var(--anim-mag))) scale(calc(1 + .10*var(--anim-mag)));}55%{transform:rotate(calc(7deg*var(--anim-mag))) translateY(calc(-3px*var(--anim-mag))) scale(calc(1 + .11*var(--anim-mag)));}100%{transform:none;}}
   .a-pop{animation:a-pop var(--anim-dur) cubic-bezier(.34,1.56,.64,1);}
@@ -102,7 +94,6 @@
   @keyframes a-spin{0%{transform:rotate(0);}100%{transform:rotate(360deg);}}
   .a-nudge{animation:a-nudge var(--anim-dur) ease;}
   @keyframes a-nudge{0%{transform:translateY(0);}50%{transform:translateY(calc(-6px*var(--anim-mag)));}100%{transform:translateY(0);}}
-  .a-none{}
 
   .panel.tall .row.hand{min-height:86px;}
   .panel.tall .row.hand .card{width:48px;height:68px;}
@@ -112,27 +103,27 @@
     font-size:calc(15px * var(--particle-scale));text-shadow:0 1px 4px rgba(0,0,0,.85);}
 
   .controls{width:380px;max-width:100%;margin-top:12px;}
-  .btnrow{display:flex;gap:8px;margin-bottom:12px;}
+  .btnrow{display:flex;gap:8px;margin-bottom:8px;}
   .btnrow button{flex:1;font-family:'Cinzel',serif;font-size:11px;letter-spacing:1px;
     padding:11px;border-radius:8px;cursor:pointer;text-transform:uppercase;font-weight:700;}
   #play-btn{background:rgba(245,192,66,0.16);border:1px solid rgba(245,192,66,0.55);color:var(--gold);}
   #interrupt-btn{background:rgba(192,53,62,0.14);border:1px solid rgba(192,53,62,0.5);color:#e8848c;}
   .ctl{margin-bottom:10px;}
-  .ctl .lab{display:flex;justify-content:space-between;font-size:9px;letter-spacing:.5px;
-    color:var(--cream-dim);margin-bottom:3px;}
+  .ctl .lab{display:flex;justify-content:space-between;font-size:9px;letter-spacing:.5px;color:var(--cream-dim);margin-bottom:3px;}
   .ctl .lab b{color:var(--gold);font-weight:700;}
   input[type=range]{width:100%;accent-color:var(--gold);}
   select{width:100%;font-family:'Cinzel',serif;font-size:12px;padding:8px;border-radius:7px;
     background:var(--panel);color:var(--gold);border:1px solid rgba(245,192,66,0.5);}
   .group-title{font-size:9px;letter-spacing:2px;color:rgba(245,192,66,.55);text-transform:uppercase;
     margin:16px 0 8px;border-bottom:1px solid var(--line);padding-bottom:4px;}
+  .layerbox{border:1px solid var(--line);border-radius:9px;padding:9px;margin-bottom:10px;}
   .note{font-size:9px;color:var(--cream-dim);line-height:1.5;margin-top:12px;text-align:center;}
   .hand-name{text-align:center;font-size:10px;letter-spacing:2px;color:var(--gold-dim);margin-bottom:6px;text-transform:uppercase;}
 </style>
 </head>
 <body>
   <h1>SCORING DANCE — LAYOUT PREVIEW</h1>
-  <div class="sub">A throwaway mockup. Pick a layout + motion, hit PLAY, tune the feel.<br>Nothing here touches the real game.</div>
+  <div class="sub">Combine two motions (A + B), each with its own sliders.<br>Throwaway mockup — nothing here touches the real game.</div>
 
   <div class="chooser" id="chooser">
     <button data-layout="rows" class="active">3 Rows (in place)</button>
@@ -159,135 +150,104 @@
       <button id="interrupt-btn">⏭ Submit next (interrupt)</button>
     </div>
 
-    <div class="group-title">Motion</div>
-    <div class="ctl">
-      <div class="lab"><span>Animation type</span></div>
-      <select id="anim-type">
-        <option value="jiggle">Jiggle — wobble + lift</option>
-        <option value="pop">Pop — springy scale-up</option>
-        <option value="pulse">Pulse — gentle throb</option>
-        <option value="shake">Shake — quick side-to-side</option>
-        <option value="lift">Lift — rise & settle</option>
-        <option value="nudge">Nudge — small bump up (subtle)</option>
-        <option value="sway">Sway — pendulum tilt</option>
-        <option value="flash">Flash — brighten, barely moves</option>
-        <option value="squash">Squash & stretch — cartoony</option>
-        <option value="heartbeat">Heartbeat — double pulse</option>
-        <option value="flip">Flip — card flip (360°)</option>
-        <option value="spin">Spin — full rotate</option>
-        <option value="none">None — highlight only</option>
-      </select>
+    <div class="group-title">Motion A (base layer)</div>
+    <div class="layerbox">
+      <div class="ctl"><select id="anim-a"></select></div>
+      <div class="ctl"><div class="lab"><span>A · length</span><b id="v-adurA">420 ms</b></div>
+        <input type="range" id="s-adurA" min="120" max="1000" step="20" value="420"></div>
+      <div class="ctl"><div class="lab"><span>A · intensity</span><b id="v-amagA">100%</b></div>
+        <input type="range" id="s-amagA" min="20" max="220" step="10" value="100"></div>
     </div>
-    <div class="ctl">
-      <div class="lab"><span>Animation length</span><b id="v-adur">420 ms</b></div>
-      <input type="range" id="s-adur" min="120" max="1000" step="20" value="420">
+
+    <div class="group-title">Motion B (layered on top)</div>
+    <div class="layerbox">
+      <div class="ctl"><select id="anim-b"></select></div>
+      <div class="ctl"><div class="lab"><span>B · length</span><b id="v-adurB">420 ms</b></div>
+        <input type="range" id="s-adurB" min="120" max="1000" step="20" value="420"></div>
+      <div class="ctl"><div class="lab"><span>B · intensity</span><b id="v-amagB">100%</b></div>
+        <input type="range" id="s-amagB" min="20" max="220" step="10" value="100"></div>
     </div>
-    <div class="ctl">
-      <div class="lab"><span>Animation intensity</span><b id="v-amag">100%</b></div>
-      <input type="range" id="s-amag" min="20" max="220" step="10" value="100">
-    </div>
-    <div class="ctl">
-      <div class="lab"><span>Highlight intensity (glow on the active entity)</span><b id="v-hl">35%</b></div>
-      <input type="range" id="s-hl" min="0" max="150" step="5" value="35">
-    </div>
+
+    <div class="group-title">Highlight</div>
+    <div class="ctl"><div class="lab"><span>Highlight intensity (glow on active entity)</span><b id="v-hl">35%</b></div>
+      <input type="range" id="s-hl" min="0" max="150" step="5" value="35"></div>
 
     <div class="group-title">Timing</div>
-    <div class="ctl">
-      <div class="lab"><span>Tick rest (pause between contributions)</span><b id="v-rest">500 ms</b></div>
-      <input type="range" id="s-rest" min="100" max="1200" step="25" value="500">
-    </div>
-    <div class="ctl">
-      <div class="lab"><span>Particle flight speed</span><b id="v-pspd">520 ms</b></div>
-      <input type="range" id="s-pspd" min="150" max="900" step="20" value="520">
-    </div>
-    <div class="ctl">
-      <div class="lab"><span>Score climb duration</span><b id="v-sdur">900 ms</b></div>
-      <input type="range" id="s-sdur" min="300" max="1800" step="50" value="900">
-    </div>
-    <div class="ctl">
-      <div class="lab"><span>Fast-forward speed (on interrupt)</span><b id="v-ff">25×</b></div>
-      <input type="range" id="s-ff" min="8" max="50" step="1" value="25">
-    </div>
+    <div class="ctl"><div class="lab"><span>Tick rest (pause between contributions)</span><b id="v-rest">500 ms</b></div>
+      <input type="range" id="s-rest" min="100" max="1200" step="25" value="500"></div>
+    <div class="ctl"><div class="lab"><span>Particle flight speed</span><b id="v-pspd">520 ms</b></div>
+      <input type="range" id="s-pspd" min="150" max="900" step="20" value="520"></div>
+    <div class="ctl"><div class="lab"><span>Score climb duration</span><b id="v-sdur">900 ms</b></div>
+      <input type="range" id="s-sdur" min="300" max="1800" step="50" value="900"></div>
+    <div class="ctl"><div class="lab"><span>Fast-forward speed (on interrupt)</span><b id="v-ff">25×</b></div>
+      <input type="range" id="s-ff" min="8" max="50" step="1" value="25"></div>
 
     <div class="group-title">Particles</div>
-    <div class="ctl">
-      <div class="lab"><span>Particle size</span><b id="v-psz">100%</b></div>
-      <input type="range" id="s-psz" min="50" max="260" step="10" value="100">
-    </div>
+    <div class="ctl"><div class="lab"><span>Particle size</span><b id="v-psz">100%</b></div>
+      <input type="range" id="s-psz" min="50" max="260" step="10" value="100"></div>
 
-    <div class="note">
-      The clock keeps ticking during the dance. <b>Submit next (interrupt)</b> snaps the
-      current dance forward at the fast-forward speed to land on its total, then the next
-      hand begins. Cards <i>and</i> Tricks/Knacks animate on preview timing.
-    </div>
+    <div class="note">Set Motion B to <b>None</b> for a single animation. The clock keeps ticking during the
+      dance; <b>Submit next (interrupt)</b> snaps the current dance forward at the fast-forward speed to its
+      total, then the next hand begins.</div>
   </div>
 
 <script>
-// ── Example hand ──
-const HAND = {
+const HAND={
   base:{pips:30,mult:3},
-  cards:[
-    {r:'7',s:'♥',red:true, pip:7},
-    {r:'7',s:'♣',red:false,pip:7},
-    {r:'K',s:'♠',red:false,pip:10},
-    {r:'3',s:'♦',red:true, pip:3},
-    {r:'7',s:'♦',red:true, pip:7},
-  ],
-  tricks:[
-    {emoji:'🌱',nm:'Rich Soil',kind:'pip', amt:10},
-    {emoji:'⛰️',nm:'Quake',    kind:'mult',amt:6},
-    {emoji:'🔥',nm:'Kindling', kind:'pip', amt:4},
-  ],
-  knacks:[ {emoji:'⏳',nm:'Time Bank',kind:'pip',amt:5} ],
+  cards:[{r:'7',s:'♥',red:true,pip:7},{r:'7',s:'♣',red:false,pip:7},{r:'K',s:'♠',red:false,pip:10},{r:'3',s:'♦',red:true,pip:3},{r:'7',s:'♦',red:true,pip:7}],
+  tricks:[{emoji:'🌱',nm:'Rich Soil',kind:'pip',amt:10},{emoji:'⛰️',nm:'Quake',kind:'mult',amt:6},{emoji:'🔥',nm:'Kindling',kind:'pip',amt:4}],
+  knacks:[{emoji:'⏳',nm:'Time Bank',kind:'pip',amt:5}],
   focus:1.5,
 };
-const ANIM_CLASSES=['a-jiggle','a-pop','a-pulse','a-shake','a-flip','a-lift','a-sway','a-flash','a-squash','a-heartbeat','a-spin','a-nudge','a-none'];
+const MOTIONS=[
+  ['none','None'],['jiggle','Jiggle — wobble + lift'],['pop','Pop — springy scale-up'],
+  ['pulse','Pulse — gentle throb'],['shake','Shake — side-to-side'],['lift','Lift — rise & settle'],
+  ['nudge','Nudge — small bump up'],['sway','Sway — pendulum tilt'],['flash','Flash — brighten, barely moves'],
+  ['squash','Squash & stretch'],['heartbeat','Heartbeat — double pulse'],['flip','Flip — card flip'],['spin','Spin — full rotate'],
+];
+const ANIM_CLASSES=MOTIONS.filter(m=>m[0]!=='none').map(m=>'a-'+m[0]);
+function fillSelect(id,def){const s=document.getElementById(id);
+  MOTIONS.forEach(([v,l])=>{const o=document.createElement('option');o.value=v;o.textContent=l;s.appendChild(o);});
+  s.value=def;}
+fillSelect('anim-a','jiggle'); fillSelect('anim-b','none');
 
-// tunables
-let TICK_REST=500, PARTICLE_SPEED=520, SCORE_DUR=900, FF_MULT=25, ANIM_DUR=420, FF=false;
+let TICK_REST=500,PARTICLE_SPEED=520,SCORE_DUR=900,FF_MULT=25,FF=false;
+let A={type:'jiggle',dur:420,mag:1}, B={type:'none',dur:420,mag:1};
 const $=id=>document.getElementById(id);
-
-function syncVars(){
-  ANIM_DUR=+$('s-adur').value;
-  document.documentElement.style.setProperty('--anim-dur',ANIM_DUR+'ms');
-  document.documentElement.style.setProperty('--anim-mag',(+$('s-amag').value)/100);
+function sync(){
+  A={type:$('anim-a').value,dur:+$('s-adurA').value,mag:(+$('s-amagA').value)/100};
+  B={type:$('anim-b').value,dur:+$('s-adurB').value,mag:(+$('s-amagB').value)/100};
   document.documentElement.style.setProperty('--hl',(+$('s-hl').value)/100);
   document.documentElement.style.setProperty('--particle-scale',(+$('s-psz').value)/100);
-  TICK_REST=+$('s-rest').value; PARTICLE_SPEED=+$('s-pspd').value; SCORE_DUR=+$('s-sdur').value; FF_MULT=+$('s-ff').value;
-  $('v-adur').textContent=ANIM_DUR+' ms';
-  $('v-amag').textContent=$('s-amag').value+'%';
-  $('v-hl').textContent=$('s-hl').value+'%';
-  $('v-rest').textContent=TICK_REST+' ms';
-  $('v-pspd').textContent=PARTICLE_SPEED+' ms';
-  $('v-sdur').textContent=SCORE_DUR+' ms';
-  $('v-ff').textContent=FF_MULT+'×';
-  $('v-psz').textContent=$('s-psz').value+'%';
+  TICK_REST=+$('s-rest').value;PARTICLE_SPEED=+$('s-pspd').value;SCORE_DUR=+$('s-sdur').value;FF_MULT=+$('s-ff').value;
+  $('v-adurA').textContent=A.dur+' ms'; $('v-amagA').textContent=$('s-amagA').value+'%';
+  $('v-adurB').textContent=B.dur+' ms'; $('v-amagB').textContent=$('s-amagB').value+'%';
+  $('v-hl').textContent=$('s-hl').value+'%'; $('v-rest').textContent=TICK_REST+' ms';
+  $('v-pspd').textContent=PARTICLE_SPEED+' ms'; $('v-sdur').textContent=SCORE_DUR+' ms';
+  $('v-ff').textContent=FF_MULT+'×'; $('v-psz').textContent=$('s-psz').value+'%';
 }
-['s-adur','s-amag','s-hl','s-rest','s-pspd','s-sdur','s-ff','s-psz'].forEach(id=>$(id).addEventListener('input',syncVars));
-syncVars();
+['anim-a','anim-b','s-adurA','s-amagA','s-adurB','s-amagB','s-hl','s-rest','s-pspd','s-sdur','s-ff','s-psz']
+  .forEach(id=>$(id).addEventListener('input',sync));
+sync();
 
-let LAYOUT='rows', ANIM='jiggle';
-$('anim-type').addEventListener('change',e=>ANIM=e.target.value);
-$('chooser').addEventListener('click',e=>{
-  const b=e.target.closest('button'); if(!b)return;
+let LAYOUT='rows';
+$('chooser').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
   document.querySelectorAll('#chooser button').forEach(x=>x.classList.remove('active'));
-  b.classList.add('active'); LAYOUT=b.dataset.layout; renderPanel();
-});
+  b.classList.add('active');LAYOUT=b.dataset.layout;renderPanel();});
 
+function wrap(el){const o=document.createElement('div');o.className='fx-outer';o.appendChild(el);return o;}
 function cardEl(c){const d=document.createElement('div');d.className='card'+(c.red?' red':'');
-  d.innerHTML=`<span class="r">${c.r}</span><span class="s">${c.s}</span>`;return d;}
+  d.innerHTML=`<span class="r">${c.r}</span><span class="s">${c.s}</span>`;return wrap(d);}
 function chipEl(t,k){const d=document.createElement('div');d.className='chip'+(k?' knack':'');
-  d.innerHTML=`<span class="emoji">${t.emoji}</span><span class="nm">${t.nm}</span>`;return d;}
-function renderPanel(){
-  const p=$('panel'); p.className='panel '+LAYOUT; p.innerHTML='';
+  d.innerHTML=`<span class="emoji">${t.emoji}</span><span class="nm">${t.nm}</span>`;return wrap(d);}
+function renderPanel(){const p=$('panel');p.className='panel '+LAYOUT;p.innerHTML='';
   const mk=(cls,label,items,b,k)=>{const row=document.createElement('div');row.className='row '+cls;
     const rl=document.createElement('div');rl.className='row-label';rl.textContent=label;
     const ri=document.createElement('div');ri.className='row-items';
     items.forEach(it=>ri.appendChild(b(it,k)));row.appendChild(rl);row.appendChild(ri);p.appendChild(row);};
   mk('hand','Hand',HAND.cards,cardEl);
   mk('tricks','Tricks',HAND.tricks,(t)=>chipEl(t,false));
-  mk('knacks','Knacks',HAND.knacks,(t)=>chipEl(t,true));
-}
+  mk('knacks','Knacks',HAND.knacks,(t)=>chipEl(t,true));}
 renderPanel();
 
 const wait=ms=>new Promise(r=>setTimeout(r,FF?Math.max(8,ms/FF_MULT):ms));
@@ -297,85 +257,73 @@ function flyParticle(srcEl,targetEl,label,color){
   el.style.left=(a.left+a.width/2)+'px';el.style.top=(a.top+a.height/2)+'px';document.body.appendChild(el);
   const dx=(b.left+b.width/2)-(a.left+a.width/2),dy=(b.top+b.height/2)-(a.top+a.height/2);
   const dur=FF?Math.max(60,PARTICLE_SPEED/FF_MULT):PARTICLE_SPEED;
-  el.animate([
-    {transform:'translate(-50%,-50%) scale(.6)',opacity:0},
+  el.animate([{transform:'translate(-50%,-50%) scale(.6)',opacity:0},
     {transform:'translate(-50%,-50%) scale(1.15)',opacity:1,offset:.2},
-    {transform:`translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(.9)`,opacity:0},
-  ],{duration:dur,easing:'cubic-bezier(.3,.7,.4,1)',fill:'forwards'});
+    {transform:`translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(.9)`,opacity:0}],
+    {duration:dur,easing:'cubic-bezier(.3,.7,.4,1)',fill:'forwards'});
   setTimeout(()=>el.remove(),dur+50);
   return new Promise(r=>setTimeout(r,dur));
 }
 function bump(el){el.classList.remove('pulse');void el.offsetWidth;el.classList.add('pulse');}
-function reactor(el){
-  el.classList.remove(...ANIM_CLASSES);
-  if(ANIM!=='none'){ void el.offsetWidth; el.classList.add('a-'+ANIM); }
-  el.classList.add('active-hl');
-  setTimeout(()=>el.classList.remove('active-hl'), (FF?ANIM_DUR/FF_MULT:ANIM_DUR)+140);
+function applyLayer(elem,layer){
+  elem.classList.remove(...ANIM_CLASSES);
+  elem.style.setProperty('--anim-mag',layer.mag);
+  elem.style.setProperty('--anim-dur',layer.dur+'ms');
+  if(layer.type!=='none'){void elem.offsetWidth;elem.classList.add('a-'+layer.type);}
+}
+function reactor(card){
+  const outer=card.parentElement;             // fx-outer = layer A
+  applyLayer(outer,A);                          // base motion
+  applyLayer(card,B);                           // layered motion (composes via nesting)
+  card.classList.add('active-hl');
+  const hold=Math.max(A.dur,B.dur)+140;
+  setTimeout(()=>card.classList.remove('active-hl'),FF?hold/FF_MULT:hold);
 }
 
 let pips=0,mult=0,focus=1,score=0,running=false,danceToken=0;
-function setVals(){
-  $('pips-val').textContent=Math.round(pips);
+function setVals(){$('pips-val').textContent=Math.round(pips);
   $('mult-val').textContent=(mult%1===0)?mult:mult.toFixed(1);
   $('focus-val').textContent='×'+((focus%1===0)?focus:focus.toFixed(1));
-  $('score-val').textContent=Math.round(score).toLocaleString();
-}
-function buildBeats(){
-  const beats=[];
+  $('score-val').textContent=Math.round(score).toLocaleString();}
+function buildBeats(){const beats=[];
   const ce=document.querySelectorAll('#panel .row.hand .card');
   HAND.cards.forEach((c,i)=>beats.push({el:ce[i],kind:'pip',amt:c.pip,color:'var(--blue)'}));
   const te=document.querySelectorAll('#panel .row.tricks .chip');
   HAND.tricks.forEach((t,i)=>beats.push({el:te[i],kind:t.kind,amt:t.amt,color:t.kind==='pip'?'var(--trick)':'var(--purple)'}));
   const ke=document.querySelectorAll('#panel .row.knacks .chip');
   HAND.knacks.forEach((t,i)=>beats.push({el:ke[i],kind:t.kind,amt:t.amt,color:'var(--blue)'}));
-  return beats;
-}
+  return beats;}
 async function playDance(){
-  const tok=++danceToken; running=true; FF=false;
+  const tok=++danceToken;running=true;FF=false;
   pips=HAND.base.pips;mult=HAND.base.mult;focus=1;score=0;setVals();
   document.querySelectorAll('#panel .dim').forEach(e=>e.classList.remove('dim'));
   bump($('pips-box'));bump($('mult-box'));
-  await wait(TICK_REST); if(tok!==danceToken)return;
+  await wait(TICK_REST);if(tok!==danceToken)return;
   for(const beat of buildBeats()){
     if(tok!==danceToken)return;
-    if(LAYOUT==='spotlight'){
-      document.querySelectorAll('#panel .card,#panel .chip').forEach(e=>e.classList.add('dim'));
-      beat.el.classList.remove('dim');
-    }
+    if(LAYOUT==='spotlight'){document.querySelectorAll('#panel .card,#panel .chip').forEach(e=>e.classList.add('dim'));beat.el.classList.remove('dim');}
     reactor(beat.el);
     const box=beat.kind==='pip'?$('pips-box'):$('mult-box');
     await flyParticle(beat.el,box,'+'+beat.amt,beat.color);
-    if(beat.kind==='pip')pips+=beat.amt; else mult+=beat.amt;
+    if(beat.kind==='pip')pips+=beat.amt;else mult+=beat.amt;
     setVals();bump(box);
     await wait(TICK_REST);
   }
   if(tok!==danceToken)return;
-  if(HAND.focus>1){
-    document.querySelectorAll('#panel .dim').forEach(e=>e.classList.remove('dim'));
-    focus=HAND.focus;
-    $('focus-box').classList.remove('focus-beat');void $('focus-box').offsetWidth;$('focus-box').classList.add('focus-beat');
-    setVals(); await wait(TICK_REST); if(tok!==danceToken)return;
-  }
+  if(HAND.focus>1){document.querySelectorAll('#panel .dim').forEach(e=>e.classList.remove('dim'));
+    focus=HAND.focus;$('focus-box').classList.remove('focus-beat');void $('focus-box').offsetWidth;$('focus-box').classList.add('focus-beat');
+    setVals();await wait(TICK_REST);if(tok!==danceToken)return;}
   const target=Math.round(pips*mult*focus);
-  const dur=FF?Math.max(120,SCORE_DUR/FF_MULT):SCORE_DUR, start=performance.now();
-  await new Promise(res=>{
-    function tick(now){
-      if(tok!==danceToken){res();return;}
-      const t=Math.min((now-start)/dur,1),e=1-Math.pow(1-t,3);
-      score=target*e;setVals();
-      if(t<1)requestAnimationFrame(tick);else{score=target;setVals();res();}
-    }
-    requestAnimationFrame(tick);
-  });
+  const dur=FF?Math.max(120,SCORE_DUR/FF_MULT):SCORE_DUR,start=performance.now();
+  await new Promise(res=>{function tick(now){if(tok!==danceToken){res();return;}
+    const t=Math.min((now-start)/dur,1),e=1-Math.pow(1-t,3);score=target*e;setVals();
+    if(t<1)requestAnimationFrame(tick);else{score=target;setVals();res();}}requestAnimationFrame(tick);});
   if(tok!==danceToken)return;
-  bump($('score-val')); running=false; FF=false;
+  bump($('score-val'));running=false;FF=false;
 }
 $('play-btn').addEventListener('click',()=>playDance());
 $('interrupt-btn').addEventListener('click',async()=>{
-  if(running){
-    FF=true; const t=danceToken; let g=0;
-    while(running&&t===danceToken&&g++<400){await new Promise(r=>setTimeout(r,16));}
-  }
+  if(running){FF=true;const t=danceToken;let g=0;while(running&&t===danceToken&&g++<400){await new Promise(r=>setTimeout(r,16));}}
   playDance();
 });
 </script>
