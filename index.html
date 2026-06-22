@@ -239,15 +239,48 @@
     justify-content: space-between;
   }
   #stage.landscape #score-panel {
-    height: 90px;
+    height: 138px;
     flex-shrink: 0;
+    padding: 0 6px;
   }
-  #stage.landscape #score-total-num { font-size: 18px; }
-  #stage.landscape #score-to-go { font-size: 13px; }
+  /* Narrow 160px column → stack the three sections vertically instead of cramming
+     them into one row (which overflowed and looked broken on desktop). */
+  #stage.landscape #score-panel-inner {
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+    padding: 6px 0;
+  }
+  #stage.landscape #score-center {
+    flex: 0 0 auto;
+    height: auto;
+    order: 1;
+  }
+  #stage.landscape #score-subboxes {
+    flex: 0 0 auto;
+    width: 100%;
+    height: auto;
+    order: 2;
+    border-right: none;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    padding: 5px 2px;
+  }
+  #stage.landscape #score-left {
+    flex: 0 0 auto;
+    width: 100%;
+    order: 3;
+    border-left: none;
+    padding: 0;
+  }
+  #stage.landscape #score-progress-bar-wrap { width: 70%; }
+  #stage.landscape .score-subbox { height: 42px; max-height: 42px; }
+  #stage.landscape #score-total-num { font-size: 22px; }
+  #stage.landscape #score-to-go { font-size: 16px; }
   #stage.landscape #score-goal-label { font-size: 8px; }
   #stage.landscape #score-total-label { font-size: 8px; }
-  #stage.landscape .subbox-val { font-size: 14px; }
-  #stage.landscape .subbox-label { font-size: 7px; }
+  #stage.landscape .subbox-val { font-size: 15px; }
+  #stage.landscape .subbox-label { font-size: 6px; }
   #stage.landscape #trick-panel {
     flex: 1;
     height: auto;
@@ -497,6 +530,10 @@
     position: fixed;
     z-index: 300;
     max-width: 200px;
+    box-sizing: border-box;
+    white-space: normal;
+    overflow-wrap: break-word;
+    word-break: break-word;
     padding: 8px 10px;
     border-radius: 8px;
     background: #1a1a1a;
@@ -1389,7 +1426,11 @@
     opacity: 0;
     transition: opacity 0.15s ease;
     pointer-events: auto;
-    max-width: 160px;
+    max-width: 200px;
+    box-sizing: border-box;
+    white-space: normal;
+    overflow-wrap: break-word;
+    word-break: break-word;
     padding: 8px 10px;
     border-radius: 8px;
     background: #1a1a1a;
@@ -1494,6 +1535,8 @@
     display: none; position: fixed; z-index: 1300;
     background: #1a0505; border: 1px solid #aa2222;
     border-radius: 8px; padding: 10px 14px; max-width: 240px;
+    box-sizing: border-box; white-space: normal;
+    overflow-wrap: break-word; word-break: break-word;
     font-family: 'Cinzel', serif; color: #f4aaaa;
     font-size: 11px; line-height: 1.5; letter-spacing: 0.5px;
     box-shadow: 0 0 16px rgba(180,30,30,0.5);
@@ -3338,7 +3381,9 @@
   .sleight-tooltip {
     position: absolute; z-index: 50;
     background:#1e1a0e; border:1px solid #8844cc;
-    border-radius:6px; padding:8px 10px; max-width:180px;
+    border-radius:6px; padding:8px 10px; max-width:200px;
+    box-sizing: border-box; white-space: normal;
+    overflow-wrap: break-word; word-break: break-word;
     font-family:'Cinzel',serif; pointer-events:none;
   }
   .sleight-tooltip-name { font-size:11px; color:#cc88ff; margin-bottom:3px; }
@@ -3541,7 +3586,7 @@
 </div>
 
 <script>
-const BUILD = '2026-06-20 · r63';
+const BUILD = '2026-06-22 · r64';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -3717,8 +3762,12 @@ function recomputeGridMetrics() {
   // Fit cards to the MEASURED slot so the grid always fills the available area
   // without ever overflowing onto the action buttons (any orientation/size).
   const slot   = measureGridSlot();
-  const innerW = slot.w - GRID_PAD * 2 - CARD_GAP * (cols - 1);
-  const innerH = slot.h - GRID_PAD * 2 - CARD_GAP * (rows - 1);
+  // Reserve a small safety margin on every side so the grid never touches (and
+  // never spills onto) the focus meter on the left or the action buttons on the
+  // right — even after rounding. Fixes the "buttons overlap the grid" issue.
+  const SLOT_SAFETY = 5;
+  const innerW = slot.w - SLOT_SAFETY * 2 - GRID_PAD * 2 - CARD_GAP * (cols - 1);
+  const innerH = slot.h - SLOT_SAFETY * 2 - GRID_PAD * 2 - CARD_GAP * (rows - 1);
   let w = Math.floor(innerW / cols);
   let h = Math.floor(innerH / rows);
   // Constrain to playing-card aspect: take whichever dimension is the tighter fit.
@@ -10220,10 +10269,12 @@ function showCardTooltip(r, c) {
   tip.style.opacity = '1';
 }
 
-// Long-press (500ms) on any card shows its tooltip; suppresses the click that follows.
+// Touch: tap-and-hold shows the tooltip. Desktop: hover shows it (no click-and-hold).
 function attachLongPress(el, r, c) {
   let timer = null, longFired = false;
-  const start = () => {
+  const cancel = () => { if (timer) { clearTimeout(timer); timer = null; } };
+  const start = (e) => {
+    if (e.pointerType === 'mouse') return; // desktop uses hover, not click-and-hold
     longFired = false;
     timer = setTimeout(() => {
       longFired = true;
@@ -10231,10 +10282,12 @@ function attachLongPress(el, r, c) {
       showCardTooltip(r, c);
     }, 500);
   };
-  const cancel = () => { if (timer) { clearTimeout(timer); timer = null; } };
   el.onpointerdown  = start;
   el.onpointerup    = cancel;
-  el.onpointerleave = cancel;
+  // Desktop hover in/out shows & hides the tooltip (only when no button is held —
+  // a held button means a swipe-select is in progress, not a hover).
+  el.onpointerenter = (e) => { if (e.pointerType === 'mouse' && e.buttons === 0) showCardTooltip(r, c); };
+  el.onpointerleave = (e) => { cancel(); if (e.pointerType === 'mouse') hideCardTooltip(); };
   const prev = el.onclick;
   el.onclick = (e) => {
     if (longFired) { longFired = false; e.stopPropagation(); return; }
