@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Dance Preview — TheGame</title>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&display=swap" rel="stylesheet">
 <style>
@@ -13,19 +13,24 @@
     --particle-scale:1; --anim-dur:420ms; --anim-mag:1; --jit:0;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
   body{margin:0;background:radial-gradient(circle at 50% 0%,#241d13,#0d0a06 70%);
-    color:var(--cream);font-family:'Cinzel',serif;min-height:100vh;display:flex;
-    flex-direction:column;align-items:center;padding:10px 10px 50px;}
-  h1{font-size:15px;letter-spacing:3px;color:var(--gold);margin:6px 0 2px;font-weight:700;}
-  .sub{font-size:10px;letter-spacing:1px;color:var(--cream-dim);margin-bottom:10px;text-align:center;line-height:1.5;}
+    color:var(--cream);font-family:'Cinzel',serif;display:flex;flex-direction:column;
+    padding:8px 12px;overflow:hidden;}
+  h1{font-size:13px;letter-spacing:3px;color:var(--gold);margin:2px 0;font-weight:700;text-align:center;}
+  .sub{font-size:9px;letter-spacing:1px;color:var(--cream-dim);margin-bottom:8px;text-align:center;line-height:1.4;}
 
-  .chooser{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;justify-content:center;}
+  .app{display:flex;gap:18px;flex:1;min-height:0;width:100%;max-width:1180px;margin:0 auto;}
+  .left{flex:0 0 auto;width:380px;display:flex;flex-direction:column;gap:8px;}
+  .right{flex:1;min-width:0;column-count:2;column-gap:14px;overflow:hidden;align-content:flex-start;}
+
+  .chooser{display:flex;gap:6px;flex-wrap:wrap;}
   .chooser button{font-family:'Cinzel',serif;font-size:10px;letter-spacing:1px;text-transform:uppercase;
     color:var(--cream-dim);background:rgba(255,255,255,0.04);border:1px solid var(--line);
     padding:7px 12px;border-radius:7px;cursor:pointer;transition:.15s;}
   .chooser button.active{color:var(--gold);border-color:rgba(245,192,66,0.6);background:rgba(245,192,66,0.10);}
 
-  .stage{width:380px;max-width:100%;background:rgba(0,0,0,0.25);border:1px solid var(--line);border-radius:12px;padding:10px;}
+  .stage{background:rgba(0,0,0,0.25);border:1px solid var(--line);border-radius:12px;padding:10px;}
   .score-strip{display:flex;align-items:flex-start;justify-content:center;gap:7px;margin-bottom:10px;
     background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 6px;}
   .sbox{display:flex;flex-direction:column;align-items:center;min-width:52px;}
@@ -65,7 +70,6 @@
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .dim{opacity:.3;transition:opacity .2s;}
 
-  /* JITTER — ongoing "charge" on the chip itself (violence scales with --jit) */
   .jittering{animation:jitter .1s linear infinite;}
   @keyframes jitter{
     0%{transform:translate(0,0) rotate(0) scale(1);}
@@ -76,7 +80,6 @@
     100%{transform:translate(0,0) rotate(0) scale(1);}
   }
 
-  /* ── motions (used by Activation A/B + Trigger; magnitude scaled per element) ── */
   .a-jiggle{animation:a-jiggle var(--anim-dur) ease;}
   @keyframes a-jiggle{0%{transform:none;}25%{transform:rotate(calc(-8deg*var(--anim-mag))) translateY(calc(-8px*var(--anim-mag))) scale(calc(1 + .10*var(--anim-mag)));}55%{transform:rotate(calc(7deg*var(--anim-mag))) translateY(calc(-3px*var(--anim-mag))) scale(calc(1 + .11*var(--anim-mag)));}100%{transform:none;}}
   .a-pop{animation:a-pop var(--anim-dur) cubic-bezier(.34,1.56,.64,1);}
@@ -111,113 +114,121 @@
   .particle{position:fixed;z-index:50;font-weight:700;pointer-events:none;will-change:transform,opacity;
     font-size:calc(15px * var(--particle-scale));text-shadow:0 1px 4px rgba(0,0,0,.85);}
 
-  .controls{width:380px;max-width:100%;margin-top:12px;}
-  .btnrow{display:flex;gap:8px;margin-bottom:8px;}
+  .btnrow{display:flex;gap:8px;}
   .btnrow button{flex:1;font-family:'Cinzel',serif;font-size:11px;letter-spacing:1px;
     padding:11px;border-radius:8px;cursor:pointer;text-transform:uppercase;font-weight:700;}
   #play-btn{background:rgba(245,192,66,0.16);border:1px solid rgba(245,192,66,0.55);color:var(--gold);}
   #interrupt-btn{background:rgba(192,53,62,0.14);border:1px solid rgba(192,53,62,0.5);color:#e8848c;}
-  .ctl{margin-bottom:10px;}
-  .ctl .lab{display:flex;justify-content:space-between;font-size:9px;letter-spacing:.5px;color:var(--cream-dim);margin-bottom:3px;}
-  .ctl .lab b{color:var(--gold);font-weight:700;}
-  input[type=range]{width:100%;accent-color:var(--gold);}
-  select{width:100%;font-family:'Cinzel',serif;font-size:12px;padding:8px;border-radius:7px;
-    background:var(--panel);color:var(--gold);border:1px solid rgba(245,192,66,0.5);}
-  .group-title{font-size:9px;letter-spacing:2px;color:rgba(245,192,66,.55);text-transform:uppercase;
-    margin:16px 0 8px;border-bottom:1px solid var(--line);padding-bottom:4px;}
+
+  /* right-column control groups */
+  .group{break-inside:avoid;display:inline-block;width:100%;border:1px solid var(--line);
+    border-radius:9px;padding:7px 9px 3px;margin:0 0 9px;background:rgba(0,0,0,0.15);}
+  .group-title{font-size:9px;letter-spacing:1.5px;color:rgba(245,192,66,.6);text-transform:uppercase;
+    margin-bottom:6px;}
   .group-title small{color:var(--cream-dim);letter-spacing:.5px;text-transform:none;font-size:8px;}
-  .layerbox{border:1px solid var(--line);border-radius:9px;padding:9px;margin-bottom:10px;}
-  .note{font-size:9px;color:var(--cream-dim);line-height:1.5;margin-top:12px;text-align:center;}
-  .hand-name{text-align:center;font-size:10px;letter-spacing:2px;color:var(--gold-dim);margin-bottom:6px;text-transform:uppercase;}
+  .ctl{margin-bottom:7px;}
+  .ctl .lab{display:flex;justify-content:space-between;font-size:8.5px;letter-spacing:.3px;color:var(--cream-dim);margin-bottom:2px;}
+  .ctl .lab b{color:var(--gold);font-weight:700;}
+  input[type=range]{width:100%;accent-color:var(--gold);height:14px;}
+  select{width:100%;font-family:'Cinzel',serif;font-size:11px;padding:6px;border-radius:6px;margin-bottom:7px;
+    background:var(--panel);color:var(--gold);border:1px solid rgba(245,192,66,0.5);}
+  .note{break-inside:avoid;font-size:8.5px;color:var(--cream-dim);line-height:1.5;}
+
+  @media (max-width:780px){
+    body{overflow:auto;}
+    .app{flex-direction:column;}
+    .left{width:100%;}
+    .right{column-count:1;overflow:visible;}
+  }
 </style>
 </head>
 <body>
   <h1>SCORING DANCE — LAYOUT PREVIEW</h1>
-  <div class="sub">3 animations: Activation (scoring), Trigger (card sets off a trick), Jitter (charge).<br>Throwaway mockup — nothing here touches the real game.</div>
+  <div class="sub">3 animations: Activation (scoring) · Trigger (card sets off a trick) · Jitter (charge). Throwaway mockup — doesn't touch the real game.</div>
 
-  <div class="chooser" id="chooser">
-    <button data-layout="rows" class="active">3 Rows (in place)</button>
-    <button data-layout="tall">Tall hand row</button>
-    <button data-layout="spotlight">Spotlight</button>
-  </div>
-
-  <div class="stage">
-    <div class="score-strip">
-      <div class="sbox" id="pips-box"><span class="lbl">PIPS</span><span class="val" id="pips-val">0</span></div>
-      <span class="op">×</span>
-      <div class="sbox" id="mult-box"><span class="lbl">MULT</span><span class="val" id="mult-val">0</span></div>
-      <span class="op">×</span>
-      <div class="sbox" id="focus-box"><span class="lbl">FOCUS</span><span class="val" id="focus-val">×1.6</span>
-        <span class="focus-live" id="focus-live">now ×1.6</span></div>
-      <div class="score-final"><span class="lbl">SCORE</span><span class="val" id="score-val">0</span></div>
-    </div>
-    <div class="hand-name" id="hand-name">Full House · Kings over Fours</div>
-    <div class="panel rows" id="panel"></div>
-  </div>
-
-  <div class="controls">
-    <div class="btnrow">
-      <button id="play-btn">▶ Play example</button>
-      <button id="interrupt-btn">⏭ Submit next (interrupt)</button>
-    </div>
-
-    <div class="group-title">Activation — Motion A <small>(card scores / trick releases)</small></div>
-    <div class="layerbox">
-      <div class="ctl"><select id="anim-a"></select></div>
-      <div class="ctl"><div class="lab"><span>A · length</span><b id="v-adurA">420 ms</b></div>
-        <input type="range" id="s-adurA" min="120" max="1000" step="20" value="420"></div>
-      <div class="ctl"><div class="lab"><span>A · intensity</span><b id="v-amagA">100%</b></div>
-        <input type="range" id="s-amagA" min="20" max="220" step="10" value="100"></div>
+  <div class="app">
+    <div class="left">
+      <div class="chooser" id="chooser">
+        <button data-layout="rows" class="active">3 Rows</button>
+        <button data-layout="tall">Tall hand</button>
+        <button data-layout="spotlight">Spotlight</button>
+      </div>
+      <div class="stage">
+        <div class="score-strip">
+          <div class="sbox" id="pips-box"><span class="lbl">PIPS</span><span class="val" id="pips-val">0</span></div>
+          <span class="op">×</span>
+          <div class="sbox" id="mult-box"><span class="lbl">MULT</span><span class="val" id="mult-val">0</span></div>
+          <span class="op">×</span>
+          <div class="sbox" id="focus-box"><span class="lbl">FOCUS</span><span class="val" id="focus-val">×1.6</span>
+            <span class="focus-live" id="focus-live">now ×1.6</span></div>
+          <div class="score-final"><span class="lbl">SCORE</span><span class="val" id="score-val">0</span></div>
+        </div>
+        <div class="hand-name" id="hand-name" style="text-align:center;font-size:10px;letter-spacing:2px;color:var(--gold-dim);margin-bottom:6px;text-transform:uppercase;">Full House · Kings over Fours</div>
+        <div class="panel rows" id="panel"></div>
+      </div>
+      <div class="btnrow">
+        <button id="play-btn">▶ Play example</button>
+        <button id="interrupt-btn">⏭ Submit next</button>
+      </div>
     </div>
 
-    <div class="group-title">Activation — Motion B <small>(layered on top)</small></div>
-    <div class="layerbox">
-      <div class="ctl"><select id="anim-b"></select></div>
-      <div class="ctl"><div class="lab"><span>B · length</span><b id="v-adurB">420 ms</b></div>
-        <input type="range" id="s-adurB" min="120" max="1000" step="20" value="420"></div>
-      <div class="ctl"><div class="lab"><span>B · intensity</span><b id="v-amagB">100%</b></div>
-        <input type="range" id="s-amagB" min="20" max="220" step="10" value="100"></div>
+    <div class="right">
+      <div class="group">
+        <div class="group-title">Activation A <small>(card scores / trick releases)</small></div>
+        <select id="anim-a"></select>
+        <div class="ctl"><div class="lab"><span>A · length</span><b id="v-adurA">420 ms</b></div>
+          <input type="range" id="s-adurA" min="120" max="1000" step="20" value="420"></div>
+        <div class="ctl"><div class="lab"><span>A · intensity</span><b id="v-amagA">100%</b></div>
+          <input type="range" id="s-amagA" min="20" max="220" step="10" value="100"></div>
+      </div>
+      <div class="group">
+        <div class="group-title">Activation B <small>(layered on top)</small></div>
+        <select id="anim-b"></select>
+        <div class="ctl"><div class="lab"><span>B · length</span><b id="v-adurB">420 ms</b></div>
+          <input type="range" id="s-adurB" min="120" max="1000" step="20" value="420"></div>
+        <div class="ctl"><div class="lab"><span>B · intensity</span><b id="v-amagB">100%</b></div>
+          <input type="range" id="s-amagB" min="20" max="220" step="10" value="100"></div>
+      </div>
+      <div class="group">
+        <div class="group-title">Trigger <small>(trick reacts as a card sets it off)</small></div>
+        <select id="anim-t"></select>
+        <div class="ctl"><div class="lab"><span>Trigger · length</span><b id="v-tdur">260 ms</b></div>
+          <input type="range" id="s-tdur" min="100" max="800" step="20" value="260"></div>
+        <div class="ctl"><div class="lab"><span>Trigger · intensity</span><b id="v-tmag">70%</b></div>
+          <input type="range" id="s-tmag" min="20" max="220" step="10" value="70"></div>
+      </div>
+      <div class="group">
+        <div class="group-title">Jitter <small>(accelerating charge)</small></div>
+        <div class="ctl"><div class="lab"><span>Initial intensity</span><b id="v-jit0">40%</b></div>
+          <input type="range" id="s-jit0" min="5" max="150" step="5" value="40"></div>
+        <div class="ctl"><div class="lab"><span>Scaling factor</span><b id="v-jitg">60%</b></div>
+          <input type="range" id="s-jitg" min="0" max="150" step="5" value="60"></div>
+      </div>
+      <div class="group">
+        <div class="group-title">Highlight</div>
+        <div class="ctl"><div class="lab"><span>Intensity</span><b id="v-hl">35%</b></div>
+          <input type="range" id="s-hl" min="0" max="150" step="5" value="35"></div>
+        <div class="ctl"><div class="lab"><span>Speed (fade in/out)</span><b id="v-hldur">300 ms</b></div>
+          <input type="range" id="s-hldur" min="100" max="700" step="20" value="300"></div>
+      </div>
+      <div class="group">
+        <div class="group-title">Timing</div>
+        <div class="ctl"><div class="lab"><span>Tick rest</span><b id="v-rest">500 ms</b></div>
+          <input type="range" id="s-rest" min="100" max="1200" step="25" value="500"></div>
+        <div class="ctl"><div class="lab"><span>Particle flight</span><b id="v-pspd">520 ms</b></div>
+          <input type="range" id="s-pspd" min="150" max="900" step="20" value="520"></div>
+        <div class="ctl"><div class="lab"><span>Score climb</span><b id="v-sdur">900 ms</b></div>
+          <input type="range" id="s-sdur" min="300" max="1800" step="50" value="900"></div>
+        <div class="ctl"><div class="lab"><span>Fast-forward (interrupt)</span><b id="v-ff">25×</b></div>
+          <input type="range" id="s-ff" min="8" max="50" step="1" value="25"></div>
+      </div>
+      <div class="group">
+        <div class="group-title">Particles</div>
+        <div class="ctl"><div class="lab"><span>Size</span><b id="v-psz">100%</b></div>
+          <input type="range" id="s-psz" min="50" max="260" step="10" value="100"></div>
+      </div>
+      <div class="note">FOCUS: big number tracks <b>live</b> focus when idle; on PLAY it <b>locks</b> to the value used for the hand while "now ×" keeps tracking live.</div>
     </div>
-
-    <div class="group-title">Trigger <small>(trick reacts as a card sets it off)</small></div>
-    <div class="layerbox">
-      <div class="ctl"><select id="anim-t"></select></div>
-      <div class="ctl"><div class="lab"><span>Trigger · length</span><b id="v-tdur">260 ms</b></div>
-        <input type="range" id="s-tdur" min="100" max="800" step="20" value="260"></div>
-      <div class="ctl"><div class="lab"><span>Trigger · intensity</span><b id="v-tmag">70%</b></div>
-        <input type="range" id="s-tmag" min="20" max="220" step="10" value="70"></div>
-    </div>
-
-    <div class="group-title">Jitter <small>(charge build-up, accelerating)</small></div>
-    <div class="layerbox">
-      <div class="ctl"><div class="lab"><span>Initial intensity (first trigger)</span><b id="v-jit0">40%</b></div>
-        <input type="range" id="s-jit0" min="5" max="150" step="5" value="40"></div>
-      <div class="ctl"><div class="lab"><span>Scaling factor (growth per trigger)</span><b id="v-jitg">60%</b></div>
-        <input type="range" id="s-jitg" min="0" max="150" step="5" value="60"></div>
-    </div>
-
-    <div class="group-title">Highlight</div>
-    <div class="ctl"><div class="lab"><span>Highlight intensity</span><b id="v-hl">35%</b></div>
-      <input type="range" id="s-hl" min="0" max="150" step="5" value="35"></div>
-    <div class="ctl"><div class="lab"><span>Highlight speed (fade in/out)</span><b id="v-hldur">300 ms</b></div>
-      <input type="range" id="s-hldur" min="100" max="700" step="20" value="300"></div>
-
-    <div class="group-title">Timing</div>
-    <div class="ctl"><div class="lab"><span>Tick rest (between contributions)</span><b id="v-rest">500 ms</b></div>
-      <input type="range" id="s-rest" min="100" max="1200" step="25" value="500"></div>
-    <div class="ctl"><div class="lab"><span>Particle flight speed</span><b id="v-pspd">520 ms</b></div>
-      <input type="range" id="s-pspd" min="150" max="900" step="20" value="520"></div>
-    <div class="ctl"><div class="lab"><span>Score climb duration</span><b id="v-sdur">900 ms</b></div>
-      <input type="range" id="s-sdur" min="300" max="1800" step="50" value="900"></div>
-    <div class="ctl"><div class="lab"><span>Fast-forward speed (on interrupt)</span><b id="v-ff">25×</b></div>
-      <input type="range" id="s-ff" min="8" max="50" step="1" value="25"></div>
-
-    <div class="group-title">Particles</div>
-    <div class="ctl"><div class="lab"><span>Particle size</span><b id="v-psz">100%</b></div>
-      <input type="range" id="s-psz" min="50" max="260" step="10" value="100"></div>
-
-    <div class="note">FOCUS demo: the big number tracks <b>live</b> focus (decaying) when idle; on PLAY it
-      <b>locks</b> to the value used for that hand while the small "now ×" keeps tracking live focus.</div>
   </div>
 
 <script>
@@ -310,20 +321,15 @@ function highlight(el,scale){scale=scale||1; if(HL<=0)return;
   el.animate([{boxShadow:'0 0 0 0 rgba(245,192,66,0)'},{boxShadow:g,offset:.45},{boxShadow:'0 0 0 0 rgba(245,192,66,0)'}],
     {duration:FF?Math.max(70,HL_DUR/FF_MULT):HL_DUR,easing:'ease-in-out'});}
 
-// ACTIVATION = Motion A (on fx-outer) + Motion B (on inner) + highlight. Used when a
-// card scores or a trick releases.
 function activate(el){const outer=el.parentElement;applyMotion(outer,A);applyMotion(el,B);highlight(el,1);}
-// TRIGGER = a quick reaction on the trick (on its fx-outer, so it composes with the chip's jitter),
-// plus a step-up in the jitter charge.
 function triggerReact(chip,n){applyMotion(chip.parentElement,T);
-  const jitVal=JIT0 + JITG*Math.pow(Math.max(0,n-1),1.8);   // accelerating ramp
+  const jitVal=JIT0 + JITG*Math.pow(Math.max(0,n-1),1.8);
   chip.style.setProperty('--jit',jitVal.toFixed(2));
   if(!chip.classList.contains('jittering'))chip.classList.add('jittering');
   highlight(chip,0.5);}
 function stopJitter(chip){chip.classList.remove('jittering');chip.style.removeProperty('--jit');
   chip.parentElement.classList.remove(...ANIM_CLASSES);}
 
-// ── FOCUS: live value decays continuously; locks during a dance ──
 let liveFocus=1.6, lockedFocus=1.6, dancing=false;
 function updateFocusUI(){
   const fv=$('focus-val'),fl=$('focus-live');
@@ -344,7 +350,7 @@ function setVals(){$('pips-val').textContent=Math.round(pips);
 async function playDance(){
   const tok=++danceToken;running=true;FF=false;
   pips=HAND.base.pips;mult=HAND.base.mult;score=0;setVals();
-  dancing=true; lockedFocus=liveFocus; updateFocusUI();   // lock focus used for this hand
+  dancing=true; lockedFocus=liveFocus; updateFocusUI();
   document.querySelectorAll('#panel .dim').forEach(e=>e.classList.remove('dim'));
   document.querySelectorAll('#panel .jittering').forEach(stopJitter);
   bump($('pips-box'));bump($('mult-box'));
@@ -355,7 +361,6 @@ async function playDance(){
   const cardEls =[...document.querySelectorAll('#panel .row.hand .card')];
   const agit={};
 
-  // CARD PHASE — cards score (activation); per-card tricks react (trigger) + charge (jitter)
   for(let i=0;i<HAND.cards.length;i++){
     if(tok!==danceToken){dancing=false;return;}
     const card=cardEls[i];
@@ -370,7 +375,6 @@ async function playDance(){
   if(tok!==danceToken){dancing=false;return;}
   document.querySelectorAll('#panel .dim').forEach(e=>e.classList.remove('dim'));
 
-  // TRICK PHASE — stop jitter, RELEASE accumulated total (activation)
   for(let ti=0;ti<HAND.tricks.length;ti++){
     if(tok!==danceToken){dancing=false;return;}
     const t=HAND.tricks[ti],chip=trickEls[ti],total=t.perCard?t.amt*HAND.cards.length:t.amt;
@@ -384,7 +388,6 @@ async function playDance(){
   if(tok!==danceToken){dancing=false;return;}
   document.querySelectorAll('#panel .dim').forEach(e=>e.classList.remove('dim'));
 
-  // KNACK PHASE
   for(let ki=0;ki<HAND.knacks.length;ki++){
     if(tok!==danceToken){dancing=false;return;}
     const t=HAND.knacks[ki],chip=knackEls[ki];
@@ -398,11 +401,9 @@ async function playDance(){
   if(tok!==danceToken){dancing=false;return;}
   document.querySelectorAll('#panel .dim').forEach(e=>e.classList.remove('dim'));
 
-  // FOCUS beat — apply the locked focus
   $('focus-box').classList.remove('focus-beat');void $('focus-box').offsetWidth;$('focus-box').classList.add('focus-beat');
   await wait(TICK_REST);if(tok!==danceToken){dancing=false;return;}
 
-  // SCORE climb (uses locked focus)
   const target=Math.round(pips*mult*lockedFocus);
   const dur=FF?Math.max(120,SCORE_DUR/FF_MULT):SCORE_DUR,start=performance.now();
   await new Promise(res=>{function tick(now){if(tok!==danceToken){res();return;}
