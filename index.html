@@ -1869,6 +1869,7 @@
   .shop-trick-card:hover { transform: translateY(-4px); }
   .shop-item.purchased .shop-trick-card { opacity: 0.38; transform: none !important; }
   .shop-trick-card .trick-tier-label { font-size: 8px; }
+  .shop-trick-emoji { font-size: 30px; line-height: 1; margin: 2px 0; }
   .shop-trick-card .trick-name { font-size: 9px; text-align: center; }
   .shop-trick-desc { font-family: 'Crimson Pro', serif; font-size: 8px; color: #aaa; text-align: center; line-height: 1.3; padding: 0 2px; }
   .shop-trick-card.trick-tier-common    { background: linear-gradient(160deg,#1a2a1a,#0f1f0f); border: 2px solid #4a7a4a; box-shadow: 0 0 6px rgba(74,122,74,0.3); }
@@ -2165,9 +2166,16 @@
   .tier-rare    .trick-choice-tier { color: #6a9fea; }
   .tier-epic    .trick-choice-tier { color: #9b4dca; }
   .tier-legendary .trick-choice-tier { color: #e8b84b; }
+  .trick-choice-emoji {
+    font-size: 34px; line-height: 1; margin: 2px 0;
+  }
   .trick-choice-name {
     font-family: 'Cinzel', serif; font-size: 13px; font-weight: 700;
     color: var(--cream); text-align: center; line-height: 1.3;
+  }
+  .trick-choice-hold {
+    font-family: 'Crimson Pro', serif; font-size: 9px; font-style: italic;
+    color: rgba(255,255,255,0.3); text-align: center; letter-spacing: 0.03em;
   }
   .trick-choice-desc {
     font-family: 'Crimson Pro', serif; font-size: 12px; line-height: 1.4;
@@ -3586,7 +3594,7 @@
 </div>
 
 <script>
-const BUILD = '2026-06-22 · r64';
+const BUILD = '2026-06-22 · r65';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -3983,6 +3991,33 @@ const TRICK_POOL = [
   // ── Legendary ──
   { id:'heartwood',      name:'Heartwood',           tier:'epic',      desc:'Dead center card permanently gains +5 pips & +1 mult each time scored' },
 ];
+
+// ── Trick category → emoji ──
+// One emoji per effect category (mirrors the section groupings in TRICK_POOL).
+// Used on the reward-pick and shop cards so each Trick shows emoji + name, with
+// the full description reserved for the tooltip.
+const TRICK_CATEGORIES = [
+  { emoji:'🪜', ids:['overgrowth','long_road','river_run','ancient_grove','correct_run','tide_table','undertow','high_water','worn_path'] }, // Runs
+  { emoji:'👯', ids:['kindred','trinity','double_bloom','high_pair','rare_bloom','full_house_streak','pair_pips','two_pair_mult','richter','eye_of_storm','ripple'] }, // Pairs / sets
+  { emoji:'🎴', ids:['enriched','tidal_force','deluge','summit','last_stand','light_touch','heavy_hand','blackjack_bonus'] }, // Flush / special hands
+  { emoji:'👑', ids:['first_light','wild_heart','face_value','king_guard','knave_power','humble_roots','before_the_tide','royal_trio'] }, // Rank-specific
+  { emoji:'🌱', ids:['rich_soil','fertile_ground','first_fruits','sapling'] }, // Per-card pips
+  { emoji:'⏱️', ids:['early_bird','night_owl','closing_time','quick_draw','patience_reward','steady_pace','momentum','first_play','still_water','frozen_moment'] }, // Timing
+  { emoji:'🔥', ids:['kindling','wildfire','echo_hand','hot_streak'] }, // Streaks
+  { emoji:'🎨', ids:['club_double','monochrome','full_color','balanced_diet'] }, // Suit conditions
+  { emoji:'🔢', ids:['lucky_sevens','ninesong','prime_time','even_score','odd_squad'] }, // Number magic
+  { emoji:'🌈', ids:['number_crunch'] }, // Rank diversity
+  { emoji:'📍', ids:['rowcol_triple_pips','rowcol_mult','rowcol_retrigger','rowcol_perm_double','shape_square','shape_cross','shape_line','shape_snake','corner_retrigger','two_corners','edge_pips','wide_span_mult','column_rush','row_power'] }, // Position
+  { emoji:'📈', ids:['rising_tide','veteran_bonus'] }, // Level scaling
+  { emoji:'🧮', ids:['compound_mult','prolific','fives_discard','nines_mult','tens_mult','sixes_perm','fours_perm','twos_retrigger','prime_times','eights_retrigger','snowball','big_win','queens_upgrade','aces_absorb'] }, // Accumulating
+  { emoji:'🎲', ids:['sands_of_time','discard_pips','spade_flood','mirror'] }, // Situational pip
+  { emoji:'🔀', ids:['combo_score','escalation'] }, // Diverse conditions
+  { emoji:'🎯', ids:['meditation','tunnel_vision','first_wind','rhythm','restless','cull','expanse','kaleidoscope','flow_state'] }, // Focus
+  { emoji:'⭐', ids:['heartwood'] }, // Legendary misc
+];
+const TRICK_EMOJI = {};
+TRICK_CATEGORIES.forEach(cat => cat.ids.forEach(id => { TRICK_EMOJI[id] = cat.emoji; }));
+function trickEmoji(trick) { return (trick && TRICK_EMOJI[trick.id]) || '✦'; }
 
 // ══════════════════════════════════════════════
 // STATE
@@ -12057,11 +12092,14 @@ function showTrickChoiceOverlay() {
       card.className = `trick-choice-card tier-${trick.tier}${isPending ? ' trick-choice-pending' : ''}`;
       card.innerHTML = `
         <div class="trick-choice-tier">${trick.tier}</div>
+        <div class="trick-choice-emoji">${trickEmoji(trick)}</div>
         <div class="trick-choice-name">${trick.name}</div>
-        <div class="trick-choice-desc">${withSuitHalo(trickLiveDesc(trick))}</div>
-        ${isPending ? '<div class="trick-choice-confirm">Tap to confirm</div>' : ''}
+        ${isPending ? '<div class="trick-choice-confirm">Tap to confirm</div>' : '<div class="trick-choice-hold">hover / hold for details</div>'}
       `;
+      attachHoverHold(card, () => showTrickDescTooltip(trick, card), hideTrickDescTooltip);
       card.addEventListener('click', () => {
+        if (card._lpFired) { card._lpFired = false; return; } // long-press = read, not select
+        hideTrickDescTooltip();
         if (overlay._pendingChoice === trick) {
           // Confirm
           overlay.classList.remove('show');
@@ -12246,6 +12284,62 @@ function discardTrickFromGrid(trick) {
 function hideTrickTooltip() {
   const tip = document.getElementById('trick-tooltip');
   if (tip) tip.remove();
+}
+
+// ── Overlay Trick tooltip (reward-pick & shop) ──────────────────────────────
+// A standalone bubble positioned next to an arbitrary anchor element (not the
+// grid), so the full description can live in a tooltip on those screens.
+let _descTipTimer = null;
+function showTrickDescTooltip(trick, anchorEl) {
+  hideTrickDescTooltip();
+  if (!trick || !anchorEl) return;
+  const tip = document.createElement('div');
+  tip.id = 'trick-desc-tooltip';
+  tip.className = `trick-tooltip trick-tier-${trick.tier}`;
+  tip.style.position = 'fixed';
+  tip.style.zIndex = '2000';
+  tip.style.maxWidth = '260px';
+  tip.style.minWidth = '150px';
+  tip.style.pointerEvents = 'none';
+  tip.innerHTML = `<div class="trick-tooltip-name">${trick.name}</div>`
+                + `<div class="trick-tooltip-desc">${withSuitHalo(trickLiveDesc(trick))}</div>`;
+  tip.style.opacity = '0';
+  document.body.appendChild(tip);
+  void tip.offsetWidth;
+  const aRect = anchorEl.getBoundingClientRect();
+  const tipW = tip.offsetWidth, tipH = tip.offsetHeight;
+  let left = aRect.left + aRect.width / 2 - tipW / 2;
+  left = Math.max(6, Math.min(window.innerWidth - tipW - 6, left));
+  let top = aRect.top - tipH - 8;
+  if (top < 6) top = aRect.bottom + 8;  // flip below if no room above
+  tip.style.left = left + 'px';
+  tip.style.top  = top + 'px';
+  tip.style.opacity = '1';
+  clearTimeout(_descTipTimer);
+  _descTipTimer = setTimeout(hideTrickDescTooltip, 6000); // auto-dismiss safety
+}
+function hideTrickDescTooltip() {
+  clearTimeout(_descTipTimer);
+  document.getElementById('trick-desc-tooltip')?.remove();
+}
+
+// Wire hover (desktop) + tap-and-hold (mobile) on an element to show/hide a
+// tooltip. Sets el._lpFired after a touch long-press so the click handler can
+// skip its normal action (so "hold to read" doesn't also buy/select).
+function attachHoverHold(el, showFn, hideFn) {
+  let timer = null;
+  const cancel = () => { if (timer) { clearTimeout(timer); timer = null; } };
+  el.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse' && e.buttons === 0) showFn(); });
+  el.addEventListener('pointerleave', e => { cancel(); if (e.pointerType === 'mouse') hideFn(); });
+  el.addEventListener('pointerdown', e => {
+    if (e.pointerType === 'mouse') return; // desktop uses hover
+    el._lpFired = false;
+    cancel();
+    timer = setTimeout(() => { el._lpFired = true; showFn(); }, 400);
+  });
+  el.addEventListener('pointermove', cancel);
+  el.addEventListener('pointerup', cancel);
+  el.addEventListener('pointercancel', cancel);
 }
 
 // ── Trick Tray: render chips for all tray Tricks ──
@@ -12781,13 +12875,19 @@ function renderShopTricks() {
     item.innerHTML = `
       <div class="shop-trick-card trick-tier-${tier}">
         <div class="trick-tier-label">${tier.toUpperCase()}</div>
+        <div class="shop-trick-emoji">${trickEmoji(trick)}</div>
         <div class="trick-name">${trick.name}</div>
-        <div class="shop-trick-desc">${trickLiveDesc(trick)}</div>
       </div>
       <div class="shop-item-price${purchased ? ' purchased' : (!canAfford ? ' cant-afford' : '')}">
         ${purchased ? '\u2713' : '💰' + price}
       </div>`;
-    if (!purchased) item.querySelector('.shop-trick-card').addEventListener('click', () => buyShopTrick(i));
+    const cardEl = item.querySelector('.shop-trick-card');
+    attachHoverHold(cardEl, () => showTrickDescTooltip(trick, cardEl), hideTrickDescTooltip);
+    if (!purchased) cardEl.addEventListener('click', () => {
+      if (cardEl._lpFired) { cardEl._lpFired = false; return; } // long-press = read, not buy
+      hideTrickDescTooltip();
+      buyShopTrick(i);
+    });
     row.appendChild(item);
   });
 }
