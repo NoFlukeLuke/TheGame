@@ -1,19 +1,44 @@
 # TheGame — Roguelike Poker
 
-A single-file HTML/JS roguelike poker game. Everything lives in **`index.html`** — there is no build step, no framework, no dependencies. Open it in a browser and it runs.
+An HTML/JS roguelike poker game. The bulk of it lives in **`index.html`** — no build step, no framework, no dependencies. Open it in a browser and it runs.
 
 - **Live site:** https://noflukeluke.github.io/TheGame/ (GitHub Pages, auto-deploys from `main`)
 - **Owner:** non-technical developer — explain changes plainly, avoid jargon dumps.
+
+## File layout
+
+We're gradually pulling large **content lists** out of `index.html` into their own
+files under `data/`, so editing content doesn't mean opening the whole 12k-line
+file. These are loaded as plain `<script src="data/…">` tags **before** the main
+script, so their `const`s are normal globals the game can read (no imports, no
+build step). **Load order matters: data files must come before the main script.**
+
+- `data/bonuses.js` — `BONUS_POOL`, the list of Bonus Cards (BCs). Edit bonus
+  data (names, descriptions, tiers, tags) here. *Note:* a bonus's **effect**
+  (scoring math) still lives in `index.html` (mainly `calcScore`/`playHand`),
+  looked up by id via `hasBonus('…')`. Editing text/numbers is self-contained;
+  a brand-new mechanic may also touch `index.html`.
+
+Everything else (jokers, bosses, events, all logic) is still in `index.html`.
+Likely next candidates to split the same way: `JOKER_POOL`, `BOSS_PRESETS`.
 
 ## Workflow
 
 - **Develop on branch** `claude/setup-poker-game-lT61p`.
 - **Deploy:** push to both the feature branch AND `main` (`git push origin claude/setup-poker-game-lT61p:main`). Pages serves from `main`.
 - **Build stamp:** bump the `BUILD` constant (near top of `<script>`, e.g. `'2026-05-30 · r18'` → `r19`) on every commit. It shows in the menu footer + dev panel so the owner can confirm mobile cache is fresh. Increment the `rN` each commit.
+- **Cache-busting for data files:** each `<script src="data/…?v=rN">` tag carries a
+  `?v=` version. **When you change a `data/` file, bump its `?v=` to match the new
+  `BUILD` rN** (e.g. `?v=r19`). The `BUILD` stamp only forces phones to re-fetch
+  `index.html`; the `?v=` is what forces them to re-fetch the data file. A changed
+  data file with a stale `?v=` = the phone keeps using the OLD cached version and
+  your edit appears to "do nothing". Simplest habit: bump `BUILD` *and* every
+  `?v=` together each commit.
 - **Commit messages:** detailed, since a fresh Claude session re-orients from git history. End with the session URL line.
-- After editing, validate syntax:
+- After editing, validate syntax (covers both the inline script and the data files):
   ```
   node -e "const h=require('fs').readFileSync('index.html','utf8');new Function(h.match(/<script>([\s\S]*)<\/script>/)[1]);console.log('OK')"
+  node --check data/bonuses.js
   ```
 
 ## Core architecture
@@ -31,7 +56,7 @@ The game is a grid of playing cards. You select orthogonally-connected cards to 
 
 ### Card types (flags on the card object)
 - **Normal card:** `{ rank, suit, _id }`.
-- **BC (Bonus Card):** `_isBC:true`, `bonus:{id,name,desc,tier}`. A scoring buff that **only works while physically on the grid**. `hasBonus(id)` scans `gridData`, not an owned-list. Place new BCs with `injectBCAfterReward(bonus)`. `acquiredBonuses[]` tracks ever-owned (for dedup via `ownsBonus`).
+- **BC (Bonus Card):** `_isBC:true`, `bonus:{id,name,desc,tier}`. A scoring buff that **only works while physically on the grid**. The bonus **data list (`BONUS_POOL`) lives in `data/bonuses.js`**; the bonus **effects** live in `index.html` (`calcScore`/`playHand`), looked up by id. `hasBonus(id)` scans `gridData`, not an owned-list. Place new BCs with `injectBCAfterReward(bonus)`. `acquiredBonuses[]` tracks ever-owned (for dedup via `ownsBonus`).
 - **Joker:** `_isJoker:true`, `jokerId`, `_usesLeft`. A deck card with conditional activations (see below).
 - **Stone:** `_isStone:true` — inert obstacle.
 - **Totem:** NOT a card. Persistent rule-changer in `acquiredTotems[]`, shown in HUD. `hasTotem(id)`.
