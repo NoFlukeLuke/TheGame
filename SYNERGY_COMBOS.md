@@ -58,11 +58,31 @@ These are well-tuned for scarcity — a player ends a ~15-level run with roughly
 
 ### Recommended pool sizes
 
-| Entity | Acquire / run | → Pool target | Have now (r65) | Action |
-|---|---|---|---|---|
-| **Sleights** | ~5–7 | **24–30** | ~25 | keep; +3–5 for variety |
-| **Knacks** | ~3–4 | **16–20** | 14 | **add ~4–6** |
-| **Tricks** | ~12–18 | **100+** | ~125 | keep huge (connective tissue) |
+| Entity | Seen / run | Acquire / run | → Pool target | Have now (r65) | Action |
+|---|---|---|---|---|---|
+| **Sleights** | ~12–15 | ~5–7 | **24–30** | ~25 | keep; +3–5 for variety |
+| **Knacks** | ~6–8 | ~3–4 | **16–20** | 14 | **add ~4–6** |
+| **Tricks** | **~50** | ~25–35 | **~150** | ~125 | grow to ~150 |
+
+### Trick economy (firm numbers — owner-specified)
+- Pool **~150**; player **sees ~50** per run = **33% exposure** (healthy "see a
+  third"). Don't exceed ~150 — returns flatten and balance load climbs.
+- Reward grid is **4×4 = 16 nodes**, ~8 positive, **≥5 of them tricks**. That's
+  62% of positive rewards — almost exactly the existing `trick 62` drop weight,
+  so it's internally consistent, not a new rule.
+- **20 normal rounds** → 20 grids × 5 = 100 trick-offer slots; pathing + the
+  owned-filter collapse that to ~50 *distinct seen*. Consistent.
+- **Combo math that results:** P(see a specific trick)=50/150=1/3 →
+  P(see both of a 2-trick combo)≈11% → after having to *pick* them, ~5–8% per
+  named combo → with 8–10 families, assemble *some* ≈50% of runs. ✓ on target.
+
+### ⚠ Two levers this exposes
+1. **No tray cap today** (`index.html:9385` pushes unbounded). With ~50 seen and
+   no cap you *keep* ~25–35 tricks — board soup that buries combo pieces. Add a
+   **soft tray cap** or a sell/replace step so tricks feel *chosen*.
+2. **Tier-weighting vs keystones.** Combo payoff tricks skew rare/epic; if the
+   grid leans common, the keystone's see-rate drops below 1/3 and combos drift
+   too rare. Don't make *every* keystone top-tier, or guarantee a high-tier node.
 
 ### The key insight: many rare combos = reliably get one
 A *specific* 2-sleight combo is ~4–10% per run with these pools. That feels too
@@ -77,10 +97,11 @@ So the real lever is **number of distinct combo families.** Target **8–10**.
 
 ## 3. Run structure & vocabulary (proposed)
 
-The old 24-level number was back-solved and is too long for scarcity to hold.
+The old 24-level number was back-solved. Current plan: **20 normal rounds**.
 
-- **3 Eras × 5 Levels = 15 levels.** Boss = the 5th Level of each Era.
-  (Go to 4 Eras only if playtests feel short.)
+- **4 Eras × 5 Levels = 20 normal rounds** (+ a boss as the 5th Level of each
+  Era). This is the longer option; drop to 3 Eras (15) if pacing drags. The
+  trick economy above assumes 20 normal rounds = 20 reward grids.
 - **Vocab** (leaning into the loose time theme):
   - one round timer = **Level**
   - a set of 5 levels + boss = **Era** (bosses end "an Era"; can be named, e.g.
