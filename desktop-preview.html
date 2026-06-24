@@ -237,9 +237,10 @@
     <label class="inl"><input type="checkbox" id="tg-snap" checked> snap</label>
     <label class="inl">step <input type="number" id="snap-step" value="10" min="1" max="50"></label>
     <label class="inl"><input type="checkbox" id="tg-anim" checked> animate clock</label>
+    <button class="tbtn" id="btn-reset">↺ Game layout</button>
     <button class="tbtn danger" id="btn-clear">Clear</button>
     <button class="tbtn primary" id="btn-export">Export ▸</button>
-    <span class="sub">preview r1</span>
+    <span class="sub">preview r2</span>
   </div>
 
   <div id="body">
@@ -381,6 +382,43 @@ function shapeHTML(n){
 }
 function escapeHtml(s){ return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
 
+/* ════════════════ DEFAULT LAYOUT ════════════════
+   Approximates the live game's CURRENT desktop/landscape arrangement
+   (index.html r65), mapped into the 1280×720 canvas. Left stat column,
+   a 270-wide info column (score → trick/knacks → secondary buttons), and
+   the play area (focus meter · card grid · Discard/Play/swap). The new
+   visual clock is intentionally excluded — it doesn't exist in-game yet. */
+const DEFAULT_LAYOUT = [
+  // left stat column
+  { type:'deck_hud',      x:10,   y:10,  w:120, h:110 },
+  { type:'stat_timer',    x:10,   y:130, w:120, h:70  },
+  { type:'stat_level',    x:10,   y:210, w:120, h:60  },
+  { type:'clock_numeric', x:10,   y:280, w:120, h:110 },
+  { type:'stat_hands',    x:10,   y:400, w:120, h:60  },
+  { type:'stat_coins',    x:10,   y:470, w:120, h:70  },
+  // info column: score panel
+  { type:'score_total',   x:140,  y:10,  w:270, h:70  },
+  { type:'score_pips',    x:140,  y:90,  w:86,  h:70  },
+  { type:'score_mult',    x:232,  y:90,  w:86,  h:70  },
+  { type:'score_focus',   x:324,  y:90,  w:86,  h:70  },
+  { type:'score_goal',    x:140,  y:170, w:270, h:80  },
+  // info column: trick/knack panel
+  { type:'hand_preview',  x:140,  y:270, w:270, h:110 },
+  { type:'hand_name',     x:140,  y:390, w:270, h:40  },
+  { type:'knacks',        x:140,  y:440, w:270, h:100 },
+  { type:'tricks',        x:140,  y:550, w:270, h:100 },
+  // info column: secondary buttons
+  { type:'btn_stats',     x:140,  y:660, w:86,  h:46  },
+  { type:'btn_deck',      x:232,  y:660, w:86,  h:46  },
+  { type:'btn_pause',     x:324,  y:660, w:86,  h:46  },
+  // play area
+  { type:'focus_meter',   x:430,  y:10,  w:40,  h:696 },
+  { type:'card_grid',     x:480,  y:10,  w:650, h:696, rows:4, cols:4 },
+  { type:'btn_discard',   x:1150, y:10,  w:120, h:300 },
+  { type:'btn_play',      x:1150, y:320, w:120, h:300 },
+  { type:'swap_ind',      x:1150, y:640, w:120, h:66  },
+];
+
 /* ════════════════ DOM refs ════════════════ */
 const canvasEl = document.getElementById('canvas');
 const gridCanvas = document.getElementById('grid-layer');
@@ -449,17 +487,27 @@ function findFreeSpot(w,h){
   }
   return {x:0,y:0};
 }
+function createNode(type, x, y, w, h, extra){
+  const def = LIB[type];
+  const n = { id:uid++, type, x, y, w, h, locked:false };
+  if (def.isGrid){ n.rows=(extra&&extra.rows)||def.rows; n.cols=(extra&&extra.cols)||def.cols; }
+  if (def.shape){ Object.assign(n, { shape:def.shape, fill:def.fill, stroke:def.stroke, textColor:def.textColor, fontSize:def.fontSize, text:def.text }); }
+  nodes.push(n);
+  buildNodeEl(n);
+  return n;
+}
 function addNode(type){
   const def = LIB[type];
   const w = snapV(def.w), h = snapV(def.h);
   const {x,y} = findFreeSpot(w,h);
-  const n = { id:uid++, type, x, y, w, h, locked:false };
-  if (def.isGrid){ n.rows=def.rows; n.cols=def.cols; }
-  if (def.shape){ Object.assign(n, { shape:def.shape, fill:def.fill, stroke:def.stroke, textColor:def.textColor, fontSize:def.fontSize, text:def.text }); }
-  nodes.push(n);
-  buildNodeEl(n);
+  const n = createNode(type, x, y, w, h);
   select(n.id);
   save();
+}
+function seedDefault(){
+  nodes.forEach(n=>n._el&&n._el.remove()); nodes=[]; selId=null; uid=1;
+  DEFAULT_LAYOUT.forEach(s=>createNode(s.type, s.x, s.y, s.w, s.h, s.rows?{rows:s.rows,cols:s.cols}:null));
+  deselect();
 }
 function buildNodeEl(n){
   const def = LIB[n.type];
@@ -669,10 +717,11 @@ function save(){
 }
 function load(){
   try{
-    const raw=localStorage.getItem(LS_KEY); if(!raw)return;
+    const raw=localStorage.getItem(LS_KEY);
+    if(!raw){ seedDefault(); save(); return; }      // first visit → start from current game layout
     const data=JSON.parse(raw); uid=data.uid||1;
     (data.nodes||[]).forEach(n=>{ if(!LIB[n.type])return; delete n._el; nodes.push(n); buildNodeEl(n); });
-  }catch(e){}
+  }catch(e){ seedDefault(); }
 }
 function clearAll(){
   if (!confirm('Clear the whole canvas?')) return;
@@ -756,6 +805,7 @@ document.getElementById('tg-grid').addEventListener('change',e=>canvasEl.classLi
 document.getElementById('tg-snap').addEventListener('change',e=>snapOn=e.target.checked);
 document.getElementById('snap-step').addEventListener('change',e=>{ snap=Math.max(1,parseInt(e.target.value)||10); drawGrid(); });
 document.getElementById('tg-anim').addEventListener('change',e=>animOn=e.target.checked);
+document.getElementById('btn-reset').onclick=()=>{ if(confirm('Reset the canvas to the current game layout? This replaces what you have now.')){ seedDefault(); save(); } };
 document.getElementById('btn-clear').onclick=clearAll;
 document.getElementById('btn-export').onclick=openExport;
 document.getElementById('tab-json').onclick=()=>setExportMode('json');
