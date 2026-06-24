@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>TheGame — Desktop Layout Editor</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Crimson+Pro:wght@300;400&display=swap');
+
+  /* ── Game palette (matches index.html r65) ── */
+  :root{
+    --bg:#0e0c0a; --gold:#c9a84c; --gold-dim:#7a6030; --red:#c0392b; --green:#5a9e5a;
+    --cream:#f0e6c8; --cream-dim:#8a7d60; --panel:#13110e; --border:#3a3020;
+    --card-bg:#f5efe0; --card-border:#d4c89a;
+    --suit-hearts:#A0030B; --suit-diamonds:#EC9F05; --suit-spades:#000000; --suit-clubs:#2255cc;
+    /* editor chrome */
+    --ed-bg:#15130f; --ed-panel:#1d1a14; --ed-border:#332c1d; --ed-accent:#c9a84c;
+    --VW:1280; --VH:720; /* virtual landscape canvas (16:9) */
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; height:100%; background:var(--ed-bg); color:var(--cream);
+    font-family:'Crimson Pro',serif; overflow:hidden; -webkit-user-select:none; user-select:none; }
+
+  /* ── App shell ── */
+  #app{ display:grid; grid-template-rows:auto 1fr; height:100%; }
+  #toolbar{ display:flex; align-items:center; gap:10px; padding:8px 12px; background:var(--ed-panel);
+    border-bottom:1px solid var(--ed-border); flex-wrap:wrap; }
+  #toolbar .ttl{ font-family:'Cinzel',serif; font-weight:900; letter-spacing:2px; color:var(--gold); font-size:14px; }
+  #toolbar .sub{ font-size:11px; color:var(--cream-dim); letter-spacing:1px; }
+  #toolbar .spacer{ flex:1; }
+  .tbtn{ font-family:'Cinzel',serif; font-size:11px; letter-spacing:1px; color:var(--cream);
+    background:#262017; border:1px solid var(--ed-border); border-radius:6px; padding:6px 10px; cursor:pointer; }
+  .tbtn:hover{ border-color:var(--gold); }
+  .tbtn.on{ background:var(--gold); color:#0e0c0a; border-color:var(--gold); }
+  .tbtn.primary{ background:var(--gold); color:#0e0c0a; border-color:var(--gold); font-weight:700; }
+  .tbtn.danger:hover{ border-color:var(--red); color:#ff8a7a; }
+  #toolbar label.inl{ display:flex; align-items:center; gap:5px; font-size:11px; color:var(--cream-dim); }
+  #toolbar input[type=number]{ width:46px; background:#0d0b08; border:1px solid var(--ed-border);
+    color:var(--cream); border-radius:4px; padding:3px 4px; font-family:'Courier New',monospace; }
+
+  #body{ display:grid; grid-template-columns:210px 1fr 230px; min-height:0; }
+
+  /* ── Palette ── */
+  #palette{ background:var(--ed-panel); border-right:1px solid var(--ed-border); overflow-y:auto; padding:10px; }
+  .pal-cat{ font-family:'Cinzel',serif; font-size:9px; letter-spacing:2px; color:var(--gold-dim);
+    text-transform:uppercase; margin:14px 0 6px; border-bottom:1px solid var(--ed-border); padding-bottom:3px; }
+  .pal-cat:first-child{ margin-top:0; }
+  .pal-item{ display:flex; align-items:center; gap:7px; width:100%; text-align:left; cursor:pointer;
+    background:#221d15; border:1px solid var(--ed-border); border-radius:6px; padding:6px 8px; margin-bottom:5px;
+    color:var(--cream); font-family:'Crimson Pro',serif; font-size:12px; }
+  .pal-item:hover{ border-color:var(--gold); background:#2a2418; }
+  .pal-item .ic{ font-size:14px; width:18px; text-align:center; }
+  .pal-hint{ font-size:10px; color:var(--cream-dim); line-height:1.4; margin-top:4px; }
+
+  /* ── Stage + canvas ── */
+  #stage{ position:relative; display:flex; align-items:center; justify-content:center;
+    overflow:hidden; background:#0a0908;
+    background-image:radial-gradient(ellipse at center, #161310 0%, #0a0908 75%); }
+  #canvas{ position:relative; background:var(--bg);
+    background-image:radial-gradient(ellipse at 50% 42%, #14110d 0%, var(--bg) 80%);
+    box-shadow:0 0 0 1px var(--ed-border), 0 10px 50px rgba(0,0,0,0.6); overflow:hidden; }
+  #grid-layer{ position:absolute; inset:0; pointer-events:none; z-index:0; }
+  #canvas.no-grid #grid-layer{ display:none; }
+
+  /* placed component wrapper */
+  .node{ position:absolute; z-index:1; outline:1px dashed transparent; }
+  .node.selected{ z-index:50; outline:1.5px solid var(--gold); outline-offset:1px; }
+  .node.bad{ outline:1.5px solid var(--red) !important; }
+  .node.locked{ cursor:not-allowed; }
+  .node .node-inner{ width:100%; height:100%; overflow:hidden; pointer-events:none; }
+  .node .tag{ position:absolute; top:-15px; left:0; font-size:9px; color:var(--gold-dim);
+    font-family:'Cinzel',serif; letter-spacing:1px; white-space:nowrap; opacity:0; transition:opacity .1s; }
+  .node.selected .tag{ opacity:1; }
+  /* resize handles */
+  .h{ position:absolute; width:11px; height:11px; background:var(--gold); border:1px solid #0e0c0a;
+    border-radius:2px; z-index:60; display:none; }
+  .node.selected .h{ display:block; }
+  .node.locked .h{ display:none; }
+  .h.nw{ left:-6px; top:-6px; cursor:nwse-resize; }
+  .h.ne{ right:-6px; top:-6px; cursor:nesw-resize; }
+  .h.sw{ left:-6px; bottom:-6px; cursor:nesw-resize; }
+  .h.se{ right:-6px; bottom:-6px; cursor:nwse-resize; }
+  .h.n{ left:50%; top:-6px; transform:translateX(-50%); cursor:ns-resize; }
+  .h.s{ left:50%; bottom:-6px; transform:translateX(-50%); cursor:ns-resize; }
+  .h.w{ left:-6px; top:50%; transform:translateY(-50%); cursor:ew-resize; }
+  .h.e{ right:-6px; top:50%; transform:translateY(-50%); cursor:ew-resize; }
+
+  /* ── Inspector ── */
+  #inspector{ background:var(--ed-panel); border-left:1px solid var(--ed-border); overflow-y:auto; padding:12px; }
+  #inspector h3{ font-family:'Cinzel',serif; font-size:11px; letter-spacing:2px; color:var(--gold);
+    margin:0 0 10px; text-transform:uppercase; }
+  #inspector .empty{ font-size:12px; color:var(--cream-dim); line-height:1.5; }
+  .insp-row{ display:flex; gap:6px; margin-bottom:7px; }
+  .insp-field{ flex:1; }
+  .insp-field label{ display:block; font-size:9px; letter-spacing:1px; color:var(--cream-dim);
+    text-transform:uppercase; margin-bottom:2px; }
+  .insp-field input, .insp-field textarea, .insp-field select{ width:100%; background:#0d0b08;
+    border:1px solid var(--ed-border); color:var(--cream); border-radius:4px; padding:5px 6px;
+    font-family:'Courier New',monospace; font-size:12px; }
+  .insp-field textarea{ font-family:'Crimson Pro',serif; resize:vertical; min-height:46px; }
+  .insp-field input[type=color]{ height:30px; padding:2px; cursor:pointer; }
+  .insp-actions{ display:flex; gap:6px; margin-top:12px; }
+  .insp-actions .tbtn{ flex:1; text-align:center; }
+  .insp-note{ font-size:10px; color:var(--cream-dim); margin-top:10px; line-height:1.4; }
+
+  /* ── Export modal ── */
+  #modal{ position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:500; display:none;
+    align-items:center; justify-content:center; padding:24px; }
+  #modal.show{ display:flex; }
+  #modal .box{ width:min(760px,100%); max-height:86vh; background:var(--ed-panel);
+    border:1px solid var(--gold); border-radius:10px; padding:16px; display:flex; flex-direction:column; gap:10px; }
+  #modal h3{ font-family:'Cinzel',serif; color:var(--gold); margin:0; letter-spacing:1px; }
+  #modal .tabs{ display:flex; gap:6px; }
+  #modal textarea{ flex:1; min-height:340px; background:#0d0b08; border:1px solid var(--ed-border);
+    color:var(--cream); border-radius:6px; padding:10px; font-family:'Courier New',monospace; font-size:12px;
+    white-space:pre; overflow:auto; }
+  #modal .row{ display:flex; gap:8px; justify-content:flex-end; }
+
+  /* ════════════════════════════════════════════════════════
+     GAME-LOOKALIKE COMPONENT STYLES (mirrors index.html r65)
+     ════════════════════════════════════════════════════════ */
+  .g-panel{ background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:6px 8px;
+    width:100%; height:100%; display:flex; flex-direction:column; }
+  .g-chip{ background:#0a0808; border:1px solid var(--border); border-radius:4px; text-align:center;
+    width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:4px; }
+  .g-chip .lab{ font-family:'Cinzel',serif; font-size:9px; letter-spacing:1px; color:var(--cream-dim); line-height:1; }
+  .g-chip .val{ font-family:'Cinzel',serif; font-size:22px; font-weight:700; line-height:1.1; color:var(--cream); }
+  .g-chip .val.gold{ color:var(--gold); }
+
+  .g-stat{ width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; }
+  .g-stat .lab{ font-family:'Cinzel',serif; font-size:9px; letter-spacing:1px; color:var(--gold-dim); text-transform:uppercase; }
+  .g-stat .val{ font-family:'Cinzel',serif; font-size:18px; font-weight:700; color:var(--cream); line-height:1.1; }
+  .g-stat .val.gold{ color:var(--gold); }
+
+  .g-total{ width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    background:var(--panel); border:1px solid var(--border); border-radius:6px; }
+  .g-total .lab{ font-family:'Cinzel',serif; font-size:9px; letter-spacing:2px; color:var(--gold-dim); text-transform:uppercase; }
+  .g-total .num{ font-family:'Cinzel',serif; font-size:30px; font-weight:900; color:var(--cream); line-height:1; }
+
+  .g-goal{ width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
+    background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:6px; }
+  .g-goal .lab{ font-family:'Cinzel',serif; font-size:9px; letter-spacing:2px; color:var(--gold-dim); text-transform:uppercase; }
+  .g-goal .num{ font-family:'Cinzel',serif; font-size:20px; font-weight:700; color:var(--cream); line-height:1; }
+  .g-bar{ width:85%; height:5px; background:#2a2010; border-radius:3px; overflow:hidden; border:1px solid var(--border); }
+  .g-bar > i{ display:block; height:100%; width:42%; background:linear-gradient(90deg,var(--gold-dim),var(--gold)); }
+
+  .g-clockn{ width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; }
+  .g-clockn .t{ font-family:'Cinzel',serif; font-size:26px; font-weight:900; color:var(--gold); letter-spacing:2px;
+    text-shadow:0 0 20px rgba(201,168,76,0.3); }
+  .g-clockn .bar{ width:80px; height:4px; background:#2a2010; border:1px solid var(--border); border-radius:4px; overflow:hidden; }
+  .g-clockn .bar > i{ display:block; height:100%; width:70%; background:linear-gradient(90deg,var(--gold-dim),var(--gold)); }
+  .g-clockn .skip{ font-family:'Cinzel',serif; font-size:9px; color:var(--gold-dim); border:1px solid var(--border);
+    border-radius:4px; padding:2px 6px; }
+
+  /* NEW vertical draining visual clock */
+  .g-vclock{ width:100%; height:100%; position:relative; display:flex; flex-direction:column; }
+  .g-vclock .track{ position:relative; flex:1; background:#1c1407; border:1px solid var(--border);
+    border-radius:7px; overflow:hidden; }
+  .g-vclock .fill{ position:absolute; left:0; right:0; bottom:0; height:62%;
+    background:linear-gradient(180deg,var(--gold),var(--gold-dim)); transition:height .12s linear; }
+  .g-vclock .band{ position:absolute; left:0; right:0; bottom:33%; height:34%;
+    background:repeating-linear-gradient(45deg, rgba(201,168,76,0.18) 0 6px, rgba(201,168,76,0.06) 6px 12px);
+    border-top:1px dashed rgba(201,168,76,0.5); border-bottom:1px dashed rgba(201,168,76,0.5); }
+  .g-vclock .band .blab{ position:absolute; right:3px; top:50%; transform:translateY(-50%);
+    font-family:'Cinzel',serif; font-size:9px; color:var(--gold); writing-mode:vertical-rl; letter-spacing:1px; }
+  .g-vclock .tick{ position:absolute; left:0; right:0; bottom:25%; height:0; border-top:2px solid var(--red); }
+  .g-vclock .tick .tl{ position:absolute; right:2px; top:2px; font-size:10px; }
+  .g-vclock .cap{ text-align:center; font-family:'Cinzel',serif; font-size:8px; letter-spacing:1px;
+    color:var(--gold-dim); margin-top:3px; }
+
+  .g-deck{ width:100%; height:100%; background:var(--panel); border:1px solid var(--border); border-radius:6px;
+    padding:6px 8px; display:flex; flex-direction:column; justify-content:center; gap:3px; }
+  .g-deck .r{ display:flex; justify-content:space-between; gap:10px; font-family:'Courier New',monospace; font-size:12px; }
+  .g-deck .r .k{ color:var(--cream-dim); } .g-deck .r .v{ color:var(--cream); }
+  .g-deck .r.tot .v{ color:var(--gold); font-weight:700; }
+
+  .g-hand{ width:100%; height:100%; display:flex; align-items:center; justify-content:center; gap:4px;
+    background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:6px; }
+  .g-handname{ width:100%; height:100%; display:flex; align-items:center; justify-content:center;
+    font-family:'Cinzel',serif; font-size:14px; color:var(--gold); letter-spacing:1px; }
+
+  .g-knacks, .g-tricks{ width:100%; height:100%; background:var(--panel); border:1px solid var(--border);
+    border-radius:6px; padding:6px; display:flex; flex-direction:column; gap:4px; }
+  .g-knacks .pt, .g-tricks .pt{ font-family:'Cinzel',serif; font-size:8px; letter-spacing:2px; color:var(--gold-dim); text-transform:uppercase; }
+  .g-knacks .row, .g-tricks .row{ display:flex; flex-wrap:wrap; gap:4px; align-content:flex-start; flex:1; overflow:hidden; }
+  .knack-chip{ width:26px; height:26px; display:flex; align-items:center; justify-content:center; font-size:15px;
+    background:#1a1510; border:1px solid var(--border); border-radius:6px; }
+  .trick-chip{ font-family:'Cinzel',serif; font-size:10px; padding:3px 7px; border-radius:5px; background:#16130d; border:1px solid; }
+  .trick-chip.common{ color:#6aaa6a; border-color:#3c5a3c; }
+  .trick-chip.rare{ color:#6a9fea; border-color:#33507a; }
+  .trick-chip.epic{ color:#9b4dca; border-color:#5a3070; }
+
+  .g-grid{ width:100%; height:100%; background:radial-gradient(ellipse at center,#1a2e1a 0%,#0e0c0a 80%);
+    border:1px solid var(--border); border-radius:8px; padding:3px; display:flex; align-items:center; justify-content:center; }
+  .g-grid .holder{ display:grid; gap:3px; }
+  .dl-card{ background:var(--card-bg); border:2px solid var(--card-border); border-radius:5px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  .dl-card .rank{ font-family:'Cinzel',serif; font-weight:700; line-height:1; color:#1a1510; }
+  .dl-card .suit{ line-height:1; color:#1a1510; }
+  .dl-card.suit-hearts .rank,.dl-card.suit-hearts .suit{ color:var(--suit-hearts); }
+  .dl-card.suit-diamonds .rank,.dl-card.suit-diamonds .suit{ color:var(--suit-diamonds); }
+  .dl-card.suit-spades .rank,.dl-card.suit-spades .suit{ color:var(--suit-spades); }
+  .dl-card.suit-clubs .rank,.dl-card.suit-clubs .suit{ color:var(--suit-clubs); }
+  .dl-card.sel{ border-color:#4a9eff; box-shadow:0 0 6px rgba(74,158,255,0.5); }
+  .dl-card.exalt{ box-shadow:0 0 8px 2px rgba(201,168,76,0.7); border-color:var(--gold); }
+
+  .g-focus{ width:100%; height:100%; background:var(--panel); border:1px solid var(--border); border-radius:6px;
+    display:flex; align-items:center; gap:6px; padding:6px 8px; }
+  .g-focus .dots{ display:flex; gap:3px; }
+  .g-focus .dot{ width:8px; height:8px; border-radius:50%; background:#2a2010; border:1px solid var(--gold-dim); }
+  .g-focus .dot.on{ background:var(--gold); }
+  .g-focus .meter{ flex:1; height:8px; background:#2a2010; border:1px solid var(--border); border-radius:4px; overflow:hidden; }
+  .g-focus .meter > i{ display:block; height:100%; width:55%; background:linear-gradient(90deg,var(--gold-dim),var(--gold)); }
+
+  .g-actbtn{ width:100%; height:100%; display:flex; align-items:center; justify-content:center; text-align:center;
+    font-family:'Cinzel',serif; font-size:12px; letter-spacing:2px; text-transform:uppercase; border-radius:6px; border:2px solid; }
+  .g-actbtn.play{ background:var(--gold); border-color:var(--gold); color:#0e0c0a; font-weight:700; writing-mode:vertical-rl; }
+  .g-actbtn.discard{ background:rgba(192,57,43,0.9); border-color:var(--red); color:#fff; writing-mode:vertical-rl; }
+  .g-actbtn.secondary{ background:#1a1510; border-color:var(--border); color:var(--cream); font-size:11px; }
+  .g-swap{ width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    font-family:'Cinzel',serif; font-size:13px; color:var(--cream-dim); border:1px solid var(--border);
+    border-radius:6px; background:#1a1510; gap:2px; }
+  .g-swap b{ color:var(--gold); font-size:15px; }
+
+  /* custom shapes */
+  .g-shape{ width:100%; height:100%; display:flex; align-items:center; justify-content:center;
+    text-align:center; padding:6px; font-family:'Cinzel',serif; font-size:14px; overflow:hidden; word-break:break-word; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="toolbar">
+    <span class="ttl">LAYOUT EDITOR</span>
+    <span class="sub" id="layoutmode">Landscape · 16:9 (1280×720)</span>
+    <span class="spacer"></span>
+    <label class="inl"><input type="checkbox" id="tg-grid" checked> grid</label>
+    <label class="inl"><input type="checkbox" id="tg-snap" checked> snap</label>
+    <label class="inl">step <input type="number" id="snap-step" value="10" min="1" max="50"></label>
+    <label class="inl"><input type="checkbox" id="tg-anim" checked> animate clock</label>
+    <button class="tbtn danger" id="btn-clear">Clear</button>
+    <button class="tbtn primary" id="btn-export">Export ▸</button>
+    <span class="sub">preview r1</span>
+  </div>
+
+  <div id="body">
+    <!-- PALETTE -->
+    <div id="palette">
+      <div class="pal-hint">Click an item to drop it on the canvas. Then drag to move, grab a handle to resize. Overlap is blocked. Layout auto-saves.</div>
+      <div id="pal-list"></div>
+    </div>
+
+    <!-- STAGE -->
+    <div id="stage">
+      <div id="canvas">
+        <canvas id="grid-layer"></canvas>
+      </div>
+    </div>
+
+    <!-- INSPECTOR -->
+    <div id="inspector">
+      <div id="insp-empty" class="empty">
+        Nothing selected.<br><br>
+        • Click a palette item to add it.<br>
+        • Click a component to select &amp; edit it.<br>
+        • Drag to move · handles to resize.<br>
+        • Arrow keys nudge · Delete removes.<br>
+        • Shapes can hold custom text.
+      </div>
+      <div id="insp-body" style="display:none;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- EXPORT MODAL -->
+<div id="modal">
+  <div class="box">
+    <h3>Export Layout</h3>
+    <div class="tabs">
+      <button class="tbtn on" id="tab-json">JSON</button>
+      <button class="tbtn" id="tab-css">CSS (%)</button>
+    </div>
+    <textarea id="export-out" readonly></textarea>
+    <div class="row">
+      <button class="tbtn" id="btn-copy">Copy</button>
+      <button class="tbtn" id="btn-download">Download</button>
+      <button class="tbtn" id="btn-close-modal">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ════════════════════════════════════════════════════════════════
+   TheGame — Desktop Layout Editor
+   Fixed-coordinate, proportional (Balatro-style) layout mockup tool.
+   Components are stored in VIRTUAL units (1280×720) and rendered at a
+   scale that fits the window, so every layout is resolution-independent.
+   Standalone file — does NOT touch the live game.
+   ════════════════════════════════════════════════════════════════ */
+
+const VW = 1280, VH = 720;            // virtual landscape canvas
+let scale = 1;                        // screen px per virtual unit
+let snap = 10, snapOn = true, animOn = true;
+let nodes = [];                       // placed components
+let selId = null;
+let uid = 1;
+const LS_KEY = 'thegame_desktop_layout_v1';
+
+/* ── Sample data for semi-live components ── */
+const RANKS = ['A','K','Q','J','10','9','8','7','6','5','4','3','2'];
+const SUITS = [['♥','hearts'],['♦','diamonds'],['♠','spades'],['♣','clubs']];
+function randCard(){ const s = SUITS[Math.floor(Math.random()*4)]; return { r:RANKS[Math.floor(Math.random()*RANKS.length)], sym:s[0], cls:s[1] }; }
+
+/* ════════════════ COMPONENT LIBRARY ════════════════
+   w/h are default sizes in virtual units. build() returns innerHTML. */
+const LIB = {
+  // ── Score line ──
+  score_pips:  { cat:'Score', label:'Pips',  ic:'➕', w:90, h:90,  build:()=>`<div class="g-chip"><div class="lab">PIPS</div><div class="val">128</div></div>` },
+  score_mult:  { cat:'Score', label:'Mult',  ic:'✖', w:90, h:90,  build:()=>`<div class="g-chip"><div class="lab">MULT</div><div class="val">7</div></div>` },
+  score_focus: { cat:'Score', label:'Focus (chip)', ic:'◎', w:90, h:90, build:()=>`<div class="g-chip"><div class="lab">FOCUS</div><div class="val gold">×2</div></div>` },
+  score_total: { cat:'Score', label:'Score total', ic:'∑', w:160, h:100, build:()=>`<div class="g-total"><div class="lab">Score</div><div class="num">1,840</div></div>` },
+  score_goal:  { cat:'Score', label:'Goal + bar', ic:'🎯', w:170, h:100, build:()=>`<div class="g-goal"><div class="lab">Goal</div><div class="num">2,500</div><div class="g-bar"><i></i></div></div>` },
+
+  // ── Top stats ──
+  stat_timer:  { cat:'Stats', label:'Game timer', ic:'⏱', w:110, h:64, build:()=>`<div class="g-stat"><div class="lab">Game Timer</div><div class="val gold">18:42</div></div>` },
+  stat_level:  { cat:'Stats', label:'Level', ic:'#', w:90, h:64, build:()=>`<div class="g-stat"><div class="lab">Level</div><div class="val">3</div></div>` },
+  stat_hands:  { cat:'Stats', label:'Hands', ic:'✋', w:90, h:64, build:()=>`<div class="g-stat"><div class="lab">Hands</div><div class="val">5</div></div>` },
+  stat_coins:  { cat:'Stats', label:'Coins', ic:'💰', w:100, h:64, build:()=>`<div class="g-stat"><div class="lab">Coins</div><div class="val gold">💰 42</div></div>` },
+
+  // ── Clock ──
+  clock_numeric:{ cat:'Clock', label:'Numeric clock', ic:'🕐', w:120, h:90, build:()=>`<div class="g-clockn"><div class="t">1:04</div><div class="bar"><i></i></div><div class="skip">Skip »</div></div>` },
+  clock_visual: { cat:'Clock', label:'Visual clock (NEW)', ic:'📊', w:46, h:420, build:()=>
+    `<div class="g-vclock"><div class="track">`+
+    `<div class="fill"></div>`+
+    `<div class="band"><span class="blab">2× BONUS</span></div>`+
+    `<div class="tick"><span class="tl">⚠</span></div>`+
+    `</div><div class="cap">TIME</div></div>` },
+
+  // ── Play area ──
+  deck_hud:   { cat:'Play Area', label:'Deck HUD', ic:'🃏', w:130, h:110, build:()=>
+    `<div class="g-deck"><div class="r tot"><span class="k">Total</span><span class="v">52</span></div>`+
+    `<div class="r"><span class="k">Draw</span><span class="v">31</span></div>`+
+    `<div class="r"><span class="k">Played</span><span class="v">5</span></div>`+
+    `<div class="r"><span class="k">Grid</span><span class="v">16</span></div></div>` },
+  hand_preview:{ cat:'Play Area', label:'Hand preview', ic:'🂡', w:240, h:120, build:()=>{
+    const cs=[randCard(),randCard(),randCard()];
+    return `<div class="g-hand">`+cs.map(c=>`<div class="dl-card sel suit-${c.cls}" style="width:50px;height:66px;"><div class="rank" style="font-size:16px;">${c.r}</div><div class="suit" style="font-size:20px;">${c.sym}</div></div>`).join('')+`</div>`; } },
+  hand_name:  { cat:'Play Area', label:'Hand name', ic:'🏷', w:160, h:42, build:()=>`<div class="g-handname">Three of a Kind</div>` },
+  knacks:     { cat:'Play Area', label:'Knacks', ic:'✨', w:220, h:80, build:()=>
+    `<div class="g-knacks"><div class="pt">Knacks</div><div class="row">`+
+    ['✨','🔥','💰','🍀','⚡','🌙'].map(e=>`<div class="knack-chip">${e}</div>`).join('')+`</div></div>` },
+  tricks:     { cat:'Play Area', label:'Tricks', ic:'🎴', w:220, h:80, build:()=>
+    `<div class="g-tricks"><div class="pt">Tricks</div><div class="row">`+
+    `<span class="trick-chip common">Pair+</span><span class="trick-chip rare">Flush⚡</span>`+
+    `<span class="trick-chip epic">Straight★</span><span class="trick-chip common">High♦</span></div></div>` },
+  card_grid:  { cat:'Play Area', label:'Card grid', ic:'⬛', w:360, h:380, rows:4, cols:4, build:()=>`<div class="g-grid"><div class="holder"></div></div>`, isGrid:true },
+  focus_meter:{ cat:'Play Area', label:'Focus meter', ic:'🔆', w:210, h:50, build:()=>
+    `<div class="g-focus"><div class="dots"><span class="dot on"></span><span class="dot on"></span><span class="dot"></span></div>`+
+    `<div class="meter"><i></i></div></div>` },
+
+  // ── Actions ──
+  btn_play:    { cat:'Actions', label:'Play button', ic:'▶', w:64, h:170, build:()=>`<div class="g-actbtn play">PLAY</div>` },
+  btn_discard: { cat:'Actions', label:'Discard button', ic:'🗑', w:64, h:170, build:()=>`<div class="g-actbtn discard">DISCARD</div>` },
+  swap_ind:    { cat:'Actions', label:'Swap indicator', ic:'🔄', w:64, h:72, build:()=>`<div class="g-swap">🔄<b>3</b></div>` },
+  btn_stats:   { cat:'Actions', label:'Stats button', ic:'📊', w:96, h:42, build:()=>`<div class="g-actbtn secondary">📊 Stats</div>` },
+  btn_deck:    { cat:'Actions', label:'Deck button', ic:'🃏', w:96, h:42, build:()=>`<div class="g-actbtn secondary">🃏 Deck</div>` },
+  btn_pause:   { cat:'Actions', label:'Pause button', ic:'⏸', w:96, h:42, build:()=>`<div class="g-actbtn secondary">⏸ Pause</div>` },
+
+  // ── Custom ──
+  shape_rect:    { cat:'Custom', label:'Rectangle + text', ic:'▭', w:160, h:100, shape:'rect',
+    fill:'#1d1a14', stroke:'#c9a84c', textColor:'#f0e6c8', fontSize:14, text:'Text…',
+    build:(n)=>shapeHTML(n) },
+  shape_ellipse: { cat:'Custom', label:'Ellipse + text', ic:'◯', w:140, h:140, shape:'ellipse',
+    fill:'#1d1a14', stroke:'#c9a84c', textColor:'#f0e6c8', fontSize:14, text:'Text…',
+    build:(n)=>shapeHTML(n) },
+};
+
+function shapeHTML(n){
+  const radius = n.shape==='ellipse' ? '50%' : '8px';
+  return `<div class="g-shape" style="background:${n.fill};border:2px solid ${n.stroke};border-radius:${radius};color:${n.textColor};font-size:${n.fontSize}px;">${escapeHtml(n.text||'')}</div>`;
+}
+function escapeHtml(s){ return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+
+/* ════════════════ DOM refs ════════════════ */
+const canvasEl = document.getElementById('canvas');
+const gridCanvas = document.getElementById('grid-layer');
+const stageEl = document.getElementById('stage');
+
+/* ════════════════ PALETTE ════════════════ */
+function buildPalette(){
+  const host = document.getElementById('pal-list');
+  const cats = {};
+  for (const [type,def] of Object.entries(LIB)){ (cats[def.cat] ||= []).push([type,def]); }
+  host.innerHTML = '';
+  for (const [cat,items] of Object.entries(cats)){
+    const h = document.createElement('div'); h.className='pal-cat'; h.textContent=cat; host.appendChild(h);
+    for (const [type,def] of items){
+      const b = document.createElement('button'); b.className='pal-item';
+      b.innerHTML = `<span class="ic">${def.ic}</span><span>${def.label}</span>`;
+      b.onclick = ()=>addNode(type);
+      host.appendChild(b);
+    }
+  }
+}
+
+/* ════════════════ SCALE / GRID ════════════════ */
+function computeScale(){
+  const r = stageEl.getBoundingClientRect();
+  const margin = 28;
+  scale = Math.min((r.width-margin)/VW, (r.height-margin)/VH);
+  canvasEl.style.width  = (VW*scale)+'px';
+  canvasEl.style.height = (VH*scale)+'px';
+  drawGrid();
+  renderAll();
+}
+function drawGrid(){
+  const w = VW*scale, h = VH*scale;
+  gridCanvas.width = w; gridCanvas.height = h;
+  const ctx = gridCanvas.getContext('2d');
+  ctx.clearRect(0,0,w,h);
+  const step = snap*scale;
+  if (step >= 3){
+    ctx.strokeStyle = 'rgba(255,255,255,0.05)'; ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let x=0; x<=VW; x+=snap){ const px=Math.round(x*scale)+0.5; ctx.moveTo(px,0); ctx.lineTo(px,h); }
+    for (let y=0; y<=VH; y+=snap){ const py=Math.round(y*scale)+0.5; ctx.moveTo(0,py); ctx.lineTo(w,py); }
+    ctx.stroke();
+  }
+  // major lines every 100 virtual units
+  ctx.strokeStyle = 'rgba(201,168,76,0.12)'; ctx.lineWidth = 1; ctx.beginPath();
+  for (let x=0; x<=VW; x+=100){ const px=Math.round(x*scale)+0.5; ctx.moveTo(px,0); ctx.lineTo(px,h); }
+  for (let y=0; y<=VH; y+=100){ const py=Math.round(y*scale)+0.5; ctx.moveTo(0,py); ctx.lineTo(w,py); }
+  ctx.stroke();
+}
+
+/* ════════════════ NODES ════════════════ */
+function snapV(v){ return snapOn ? Math.round(v/snap)*snap : Math.round(v); }
+function rectsOverlap(a,b){ return a.x < b.x+b.w && a.x+a.w > b.x && a.y < b.y+b.h && a.y+a.h > b.y; }
+function collides(cand, ignoreId){
+  if (cand.x<0 || cand.y<0 || cand.x+cand.w>VW || cand.y+cand.h>VH) return true;
+  for (const n of nodes){ if (n.id===ignoreId) continue; if (rectsOverlap(cand,n)) return true; }
+  return false;
+}
+function findFreeSpot(w,h){
+  for (let y=0; y<=VH-h; y+=snap){
+    for (let x=0; x<=VW-w; x+=snap){
+      if (!collides({x,y,w,h}, -1)) return {x,y};
+    }
+  }
+  return {x:0,y:0};
+}
+function addNode(type){
+  const def = LIB[type];
+  const w = snapV(def.w), h = snapV(def.h);
+  const {x,y} = findFreeSpot(w,h);
+  const n = { id:uid++, type, x, y, w, h, locked:false };
+  if (def.isGrid){ n.rows=def.rows; n.cols=def.cols; }
+  if (def.shape){ Object.assign(n, { shape:def.shape, fill:def.fill, stroke:def.stroke, textColor:def.textColor, fontSize:def.fontSize, text:def.text }); }
+  nodes.push(n);
+  buildNodeEl(n);
+  select(n.id);
+  save();
+}
+function buildNodeEl(n){
+  const def = LIB[n.type];
+  const el = document.createElement('div');
+  el.className = 'node'; el.dataset.id = n.id;
+  el.innerHTML = `<span class="tag">${def.label}</span><div class="node-inner">${def.build(n)}</div>`+
+    ['nw','ne','sw','se','n','s','e','w'].map(h=>`<span class="h ${h}" data-h="${h}"></span>`).join('');
+  canvasEl.appendChild(el);
+  n._el = el;
+  attachInteractions(n, el);
+  renderNode(n);
+  if (def.isGrid) layoutGrid(n);
+}
+function renderNode(n){
+  if (!n._el) return;
+  n._el.style.left   = (n.x*scale)+'px';
+  n._el.style.top    = (n.y*scale)+'px';
+  n._el.style.width  = (n.w*scale)+'px';
+  n._el.style.height = (n.h*scale)+'px';
+  n._el.classList.toggle('locked', !!n.locked);
+}
+function renderAll(){ nodes.forEach(n=>{ renderNode(n); if (LIB[n.type].isGrid) layoutGrid(n); }); }
+
+function layoutGrid(n){
+  const holder = n._el.querySelector('.holder');
+  if (!holder) return;
+  const rows=n.rows, cols=n.cols, gap=3;
+  const innerPad = 6; // .g-grid padding(3) *2
+  const availW = n.w*scale - innerPad - 2;
+  const availH = n.h*scale - innerPad - 2;
+  // card ratio 57:75
+  let cardH = Math.min((availH - gap*(rows-1))/rows, ((availW - gap*(cols-1))/cols)*(75/57));
+  cardH = Math.max(cardH, 6);
+  const cardW = cardH*57/75;
+  holder.style.gridTemplateColumns = `repeat(${cols}, ${cardW}px)`;
+  holder.style.gridAutoRows = cardH+'px';
+  // rebuild cards only if count changed
+  if (holder.childElementCount !== rows*cols || holder._sig !== rows+'x'+cols){
+    holder.innerHTML='';
+    for (let i=0;i<rows*cols;i++){
+      const c = randCard();
+      const sel = (i===5||i===6) ? ' sel' : '';
+      const ex  = (i===10) ? ' exalt' : '';
+      const d = document.createElement('div');
+      d.className = `dl-card suit-${c.cls}${sel}${ex}`;
+      d.innerHTML = `<div class="rank">${c.r}</div><div class="suit">${c.sym}</div>`;
+      holder.appendChild(d);
+    }
+    holder._sig = rows+'x'+cols;
+  }
+  holder.querySelectorAll('.dl-card').forEach(d=>{
+    d.style.width=cardW+'px'; d.style.height=cardH+'px';
+    d.querySelector('.rank').style.fontSize=(cardH*0.24)+'px';
+    d.querySelector('.suit').style.fontSize=(cardH*0.293)+'px';
+  });
+}
+
+/* ════════════════ INTERACTION (move + resize) ════════════════ */
+function attachInteractions(n, el){
+  el.addEventListener('pointerdown', e=>{
+    if (e.target.classList.contains('h')) return; // handled below
+    select(n.id);
+    if (n.locked) return;
+    startDrag(n, e);
+  });
+  el.querySelectorAll('.h').forEach(h=>{
+    h.addEventListener('pointerdown', e=>{ e.stopPropagation(); select(n.id); if(!n.locked) startResize(n, e, h.dataset.h); });
+  });
+  el.addEventListener('dblclick', e=>{
+    if (LIB[n.type].shape){ const ta=document.getElementById('f-text'); if(ta){ ta.focus(); ta.select(); } }
+  });
+}
+function startDrag(n, e){
+  const sx=e.clientX, sy=e.clientY, ox=n.x, oy=n.y;
+  let last={x:ox,y:oy};
+  function move(ev){
+    let nx = snapV(ox + (ev.clientX-sx)/scale);
+    let ny = snapV(oy + (ev.clientY-sy)/scale);
+    nx = Math.max(0, Math.min(VW-n.w, nx));
+    ny = Math.max(0, Math.min(VH-n.h, ny));
+    const cand={x:nx,y:ny,w:n.w,h:n.h};
+    if (!collides(cand, n.id)){ n.x=nx; n.y=ny; last={x:nx,y:ny}; n._el.classList.remove('bad'); }
+    else { n._el.classList.add('bad'); }
+    renderNode(n);
+  }
+  function up(){ document.removeEventListener('pointermove',move); document.removeEventListener('pointerup',up);
+    n.x=last.x; n.y=last.y; n._el.classList.remove('bad'); renderNode(n); refreshInspector(); save(); }
+  document.addEventListener('pointermove',move); document.addEventListener('pointerup',up);
+}
+function startResize(n, e, dir){
+  const sx=e.clientX, sy=e.clientY, o={x:n.x,y:n.y,w:n.w,h:n.h};
+  const MIN=20;
+  let last={...o};
+  function move(ev){
+    const dx=(ev.clientX-sx)/scale, dy=(ev.clientY-sy)/scale;
+    let {x,y,w,h}=o;
+    if (dir.includes('e')) w = o.w+dx;
+    if (dir.includes('s')) h = o.h+dy;
+    if (dir.includes('w')){ w = o.w-dx; x = o.x+dx; }
+    if (dir.includes('n')){ h = o.h-dy; y = o.y+dy; }
+    // snap edges
+    if (dir.includes('e')) w = snapV(w);
+    if (dir.includes('s')) h = snapV(h);
+    if (dir.includes('w')){ const nx=snapV(x); w += (x-nx); x=nx; }
+    if (dir.includes('n')){ const ny=snapV(y); h += (y-ny); y=ny; }
+    w=Math.max(MIN,w); h=Math.max(MIN,h);
+    x=Math.max(0,x); y=Math.max(0,y);
+    if (x+w>VW) w=VW-x; if (y+h>VH) h=VH-y;
+    const cand={x,y,w,h};
+    if (!collides(cand, n.id)){ Object.assign(n,cand); last={...cand}; n._el.classList.remove('bad'); }
+    else n._el.classList.add('bad');
+    renderNode(n);
+    if (LIB[n.type].isGrid) layoutGrid(n);
+  }
+  function up(){ document.removeEventListener('pointermove',move); document.removeEventListener('pointerup',up);
+    Object.assign(n,last); n._el.classList.remove('bad'); renderNode(n); if(LIB[n.type].isGrid) layoutGrid(n);
+    refreshInspector(); save(); }
+  document.addEventListener('pointermove',move); document.addEventListener('pointerup',up);
+}
+
+/* ════════════════ SELECTION + INSPECTOR ════════════════ */
+function select(id){
+  selId=id;
+  nodes.forEach(n=> n._el && n._el.classList.toggle('selected', n.id===id));
+  refreshInspector();
+}
+function deselect(){ selId=null; nodes.forEach(n=> n._el && n._el.classList.remove('selected')); refreshInspector(); }
+function selectedNode(){ return nodes.find(n=>n.id===selId); }
+
+function refreshInspector(){
+  const n = selectedNode();
+  const empty=document.getElementById('insp-empty'), body=document.getElementById('insp-body');
+  if (!n){ empty.style.display='block'; body.style.display='none'; return; }
+  empty.style.display='none'; body.style.display='block';
+  const def=LIB[n.type];
+  let html = `<h3>${def.label}</h3>`;
+  html += `<div class="insp-row">
+      <div class="insp-field"><label>X</label><input type="number" id="f-x" value="${n.x}"></div>
+      <div class="insp-field"><label>Y</label><input type="number" id="f-y" value="${n.y}"></div>
+    </div>
+    <div class="insp-row">
+      <div class="insp-field"><label>W</label><input type="number" id="f-w" value="${n.w}"></div>
+      <div class="insp-field"><label>H</label><input type="number" id="f-h" value="${n.h}"></div>
+    </div>`;
+  if (def.isGrid){
+    html += `<div class="insp-row">
+      <div class="insp-field"><label>Rows (1-7)</label><input type="number" id="f-rows" min="1" max="7" value="${n.rows}"></div>
+      <div class="insp-field"><label>Cols (1-7)</label><input type="number" id="f-cols" min="1" max="7" value="${n.cols}"></div>
+    </div><div class="insp-note">Cards keep a strict 57:75 ratio and rescale to fill the box.</div>`;
+  }
+  if (def.shape){
+    html += `<div class="insp-field" style="margin-bottom:7px;"><label>Text</label><textarea id="f-text">${escapeHtml(n.text||'')}</textarea></div>
+      <div class="insp-row">
+        <div class="insp-field"><label>Fill</label><input type="color" id="f-fill" value="${n.fill}"></div>
+        <div class="insp-field"><label>Border</label><input type="color" id="f-stroke" value="${n.stroke}"></div>
+      </div>
+      <div class="insp-row">
+        <div class="insp-field"><label>Text color</label><input type="color" id="f-tc" value="${n.textColor}"></div>
+        <div class="insp-field"><label>Font px</label><input type="number" id="f-fs" value="${n.fontSize}"></div>
+      </div>`;
+  }
+  const pctX=(n.x/VW*100).toFixed(2), pctY=(n.y/VH*100).toFixed(2), pctW=(n.w/VW*100).toFixed(2), pctH=(n.h/VH*100).toFixed(2);
+  html += `<div class="insp-note">Proportional: left ${pctX}% · top ${pctY}% · w ${pctW}% · h ${pctH}%</div>`;
+  html += `<div class="insp-row" style="margin-top:8px;">
+      <label class="inl" style="font-size:11px;color:var(--cream-dim);"><input type="checkbox" id="f-lock" ${n.locked?'checked':''}> lock</label>
+    </div>`;
+  html += `<div class="insp-actions">
+      <button class="tbtn" id="f-dup">Duplicate</button>
+      <button class="tbtn danger" id="f-del">Delete</button>
+    </div>`;
+  body.innerHTML = html;
+  wireInspector(n, def);
+}
+function wireInspector(n, def){
+  const upd=(prop,val,reflow)=>{ n[prop]=val; clampNode(n); renderNode(n); if(reflow&&def.isGrid)layoutGrid(n); if(def.shape)rebuildShape(n); save(); };
+  const bind=(id,prop,mn,mx)=>{ const el=document.getElementById(id); if(!el)return;
+    el.addEventListener('input',()=>{ let v=parseInt(el.value)||0; if(mn!=null)v=Math.max(mn,v); if(mx!=null)v=Math.min(mx,v); upd(prop,v,false); refreshPct(); }); };
+  bind('f-x','x',0,VW); bind('f-y','y',0,VH); bind('f-w','w',20,VW); bind('f-h','h',20,VH);
+  if (def.isGrid){
+    ['f-rows','f-cols'].forEach((id,i)=>{ const el=document.getElementById(id); el.addEventListener('input',()=>{
+      let v=Math.max(1,Math.min(7,parseInt(el.value)||1)); n[i?'cols':'rows']=v; layoutGrid(n); save(); }); });
+  }
+  if (def.shape){
+    const t=document.getElementById('f-text'); t.addEventListener('input',()=>{ n.text=t.value; rebuildShape(n); save(); });
+    [['f-fill','fill'],['f-stroke','stroke'],['f-tc','textColor']].forEach(([id,p])=>{
+      document.getElementById(id).addEventListener('input',e=>{ n[p]=e.target.value; rebuildShape(n); save(); }); });
+    document.getElementById('f-fs').addEventListener('input',e=>{ n.fontSize=parseInt(e.target.value)||14; rebuildShape(n); save(); });
+  }
+  document.getElementById('f-lock').addEventListener('change',e=>{ n.locked=e.target.checked; renderNode(n); save(); });
+  document.getElementById('f-del').onclick=()=>removeNode(n.id);
+  document.getElementById('f-dup').onclick=()=>duplicateNode(n);
+  function refreshPct(){ /* light refresh of pct note without rebuilding inputs */ }
+}
+function clampNode(n){ n.x=Math.max(0,Math.min(VW-n.w,n.x)); n.y=Math.max(0,Math.min(VH-n.h,n.y)); }
+function rebuildShape(n){ n._el.querySelector('.node-inner').innerHTML = shapeHTML(n); }
+function removeNode(id){ const i=nodes.findIndex(n=>n.id===id); if(i<0)return; nodes[i]._el.remove(); nodes.splice(i,1); if(selId===id)deselect(); save(); }
+function duplicateNode(src){
+  const w=src.w,h=src.h; const {x,y}=findFreeSpot(w,h);
+  const n=JSON.parse(JSON.stringify({...src,_el:undefined})); n.id=uid++; n.x=x; n.y=y; delete n._el;
+  nodes.push(n); buildNodeEl(n); select(n.id); save();
+}
+
+/* ════════════════ PERSISTENCE ════════════════ */
+function save(){
+  const data = { v:1, nodes: nodes.map(n=>{ const o={...n}; delete o._el; return o; }), uid };
+  try{ localStorage.setItem(LS_KEY, JSON.stringify(data)); }catch(e){}
+}
+function load(){
+  try{
+    const raw=localStorage.getItem(LS_KEY); if(!raw)return;
+    const data=JSON.parse(raw); uid=data.uid||1;
+    (data.nodes||[]).forEach(n=>{ if(!LIB[n.type])return; delete n._el; nodes.push(n); buildNodeEl(n); });
+  }catch(e){}
+}
+function clearAll(){
+  if (!confirm('Clear the whole canvas?')) return;
+  nodes.forEach(n=>n._el&&n._el.remove()); nodes=[]; selId=null; uid=1; deselect(); save();
+}
+
+/* ════════════════ EXPORT ════════════════ */
+function exportJSON(){
+  const out = {
+    canvas:{ vw:VW, vh:VH, aspect:'16:9', orientation:'landscape' },
+    snap, count:nodes.length,
+    components: nodes.map(n=>{
+      const base={ type:n.type, label:LIB[n.type].label,
+        x:n.x, y:n.y, w:n.w, h:n.h,
+        leftPct:+(n.x/VW*100).toFixed(3), topPct:+(n.y/VH*100).toFixed(3),
+        widthPct:+(n.w/VW*100).toFixed(3), heightPct:+(n.h/VH*100).toFixed(3) };
+      if (LIB[n.type].isGrid){ base.rows=n.rows; base.cols=n.cols; }
+      if (LIB[n.type].shape){ base.shape=n.shape; base.text=n.text; base.fill=n.fill; base.stroke=n.stroke; base.textColor=n.textColor; base.fontSize=n.fontSize; }
+      return base;
+    })
+  };
+  return JSON.stringify(out, null, 2);
+}
+function exportCSS(){
+  let s = `/* Desktop layout — landscape 16:9. Positions are % of the play area,\n`+
+          `   so the whole UI scales proportionally (Balatro-style).\n`+
+          `   Apply these to absolutely-positioned elements inside a 16:9 container. */\n\n`;
+  const counts={};
+  nodes.forEach(n=>{
+    counts[n.type]=(counts[n.type]||0)+1;
+    const suffix = counts[n.type]>1 ? '-'+counts[n.type] : '';
+    s += `/* ${LIB[n.type].label}${suffix} */\n`;
+    s += `.dl-${n.type.replace(/_/g,'-')}${suffix}{\n`;
+    s += `  position:absolute;\n`;
+    s += `  left:${(n.x/VW*100).toFixed(3)}%;  top:${(n.y/VH*100).toFixed(3)}%;\n`;
+    s += `  width:${(n.w/VW*100).toFixed(3)}%; height:${(n.h/VH*100).toFixed(3)}%;\n`;
+    if (LIB[n.type].isGrid) s += `  /* grid ${n.rows} rows × ${n.cols} cols, cards 57:75 */\n`;
+    s += `}\n\n`;
+  });
+  return s;
+}
+let exportMode='json';
+function openExport(){ document.getElementById('modal').classList.add('show'); setExportMode('json'); }
+function setExportMode(m){
+  exportMode=m;
+  document.getElementById('tab-json').classList.toggle('on',m==='json');
+  document.getElementById('tab-css').classList.toggle('on',m==='css');
+  document.getElementById('export-out').value = m==='json'?exportJSON():exportCSS();
+}
+
+/* ════════════════ CLOCK ANIMATION ════════════════ */
+function tickClocks(){
+  if (animOn){
+    nodes.forEach(n=>{
+      if (n.type==='clock_visual' && n._el){
+        const fill=n._el.querySelector('.fill'); if(!fill)return;
+        let h=parseFloat(fill.dataset.h||'62'); h-=0.6; if(h<=0)h=100;
+        fill.dataset.h=h; fill.style.height=h+'%';
+      }
+    });
+  }
+  requestAnimationFrame(()=>setTimeout(tickClocks,80));
+}
+
+/* ════════════════ EVENTS ════════════════ */
+canvasEl.addEventListener('pointerdown', e=>{ if(e.target===canvasEl||e.target===gridCanvas) deselect(); });
+document.addEventListener('keydown', e=>{
+  const n=selectedNode(); if(!n) return;
+  const tag=document.activeElement && document.activeElement.tagName;
+  if (tag==='INPUT'||tag==='TEXTAREA') return;
+  if (e.key==='Delete'||e.key==='Backspace'){ e.preventDefault(); removeNode(n.id); return; }
+  const step = e.shiftKey?1:snap;
+  let moved=false, c={x:n.x,y:n.y,w:n.w,h:n.h};
+  if (e.key==='ArrowLeft'){ c.x-=step; moved=true; } if (e.key==='ArrowRight'){ c.x+=step; moved=true; }
+  if (e.key==='ArrowUp'){ c.y-=step; moved=true; } if (e.key==='ArrowDown'){ c.y+=step; moved=true; }
+  if (moved && !n.locked){ e.preventDefault(); c.x=Math.max(0,Math.min(VW-n.w,c.x)); c.y=Math.max(0,Math.min(VH-n.h,c.y));
+    if(!collides(c,n.id)){ n.x=c.x; n.y=c.y; renderNode(n); refreshInspector(); save(); } }
+});
+
+document.getElementById('tg-grid').addEventListener('change',e=>canvasEl.classList.toggle('no-grid',!e.target.checked));
+document.getElementById('tg-snap').addEventListener('change',e=>snapOn=e.target.checked);
+document.getElementById('snap-step').addEventListener('change',e=>{ snap=Math.max(1,parseInt(e.target.value)||10); drawGrid(); });
+document.getElementById('tg-anim').addEventListener('change',e=>animOn=e.target.checked);
+document.getElementById('btn-clear').onclick=clearAll;
+document.getElementById('btn-export').onclick=openExport;
+document.getElementById('tab-json').onclick=()=>setExportMode('json');
+document.getElementById('tab-css').onclick=()=>setExportMode('css');
+document.getElementById('btn-close-modal').onclick=()=>document.getElementById('modal').classList.remove('show');
+document.getElementById('btn-copy').onclick=()=>{ const t=document.getElementById('export-out'); t.select();
+  navigator.clipboard?.writeText(t.value); const b=document.getElementById('btn-copy'); b.textContent='Copied!'; setTimeout(()=>b.textContent='Copy',1200); };
+document.getElementById('btn-download').onclick=()=>{
+  const ext=exportMode==='json'?'json':'css'; const blob=new Blob([document.getElementById('export-out').value],{type:'text/plain'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='desktop-layout.'+ext; a.click(); };
+
+window.addEventListener('resize', computeScale);
+
+/* ════════════════ BOOT ════════════════ */
+buildPalette();
+load();
+computeScale();
+tickClocks();
+</script>
+</body>
+</html>
