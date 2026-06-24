@@ -236,11 +236,12 @@
     <label class="inl"><input type="checkbox" id="tg-grid" checked> grid</label>
     <label class="inl"><input type="checkbox" id="tg-snap" checked> snap</label>
     <label class="inl">step <input type="number" id="snap-step" value="10" min="1" max="50"></label>
+    <label class="inl"><input type="checkbox" id="tg-overlap"> allow overlap</label>
     <label class="inl"><input type="checkbox" id="tg-anim" checked> animate clock</label>
     <button class="tbtn" id="btn-reset">↺ Game layout</button>
     <button class="tbtn danger" id="btn-clear">Clear</button>
     <button class="tbtn primary" id="btn-export">Export ▸</button>
-    <span class="sub">preview r2</span>
+    <span class="sub">preview r3</span>
   </div>
 
   <div id="body">
@@ -301,7 +302,7 @@
 
 const VW = 1280, VH = 720;            // virtual landscape canvas
 let scale = 1;                        // screen px per virtual unit
-let snap = 10, snapOn = true, animOn = true;
+let snap = 10, snapOn = true, animOn = true, allowOverlap = false;
 let nodes = [];                       // placed components
 let selId = null;
 let uid = 1;
@@ -582,25 +583,23 @@ function attachInteractions(n, el){
 }
 function startDrag(n, e){
   const sx=e.clientX, sy=e.clientY, ox=n.x, oy=n.y;
-  let last={x:ox,y:oy};
   function move(ev){
     let nx = snapV(ox + (ev.clientX-sx)/scale);
     let ny = snapV(oy + (ev.clientY-sy)/scale);
     nx = Math.max(0, Math.min(VW-n.w, nx));
     ny = Math.max(0, Math.min(VH-n.h, ny));
-    const cand={x:nx,y:ny,w:n.w,h:n.h};
-    if (!collides(cand, n.id)){ n.x=nx; n.y=ny; last={x:nx,y:ny}; n._el.classList.remove('bad'); }
-    else { n._el.classList.add('bad'); }
+    n.x=nx; n.y=ny;                              // follow cursor freely — slide past others
+    n._el.classList.toggle('bad', !allowOverlap && collides({x:nx,y:ny,w:n.w,h:n.h}, n.id));
     renderNode(n);
   }
   function up(){ document.removeEventListener('pointermove',move); document.removeEventListener('pointerup',up);
-    n.x=last.x; n.y=last.y; n._el.classList.remove('bad'); renderNode(n); refreshInspector(); save(); }
+    if (!allowOverlap && collides({x:n.x,y:n.y,w:n.w,h:n.h}, n.id)){ n.x=ox; n.y=oy; }  // dropped on something → snap back
+    n._el.classList.remove('bad'); renderNode(n); refreshInspector(); save(); }
   document.addEventListener('pointermove',move); document.addEventListener('pointerup',up);
 }
 function startResize(n, e, dir){
   const sx=e.clientX, sy=e.clientY, o={x:n.x,y:n.y,w:n.w,h:n.h};
   const MIN=20;
-  let last={...o};
   function move(ev){
     const dx=(ev.clientX-sx)/scale, dy=(ev.clientY-sy)/scale;
     let {x,y,w,h}=o;
@@ -616,14 +615,14 @@ function startResize(n, e, dir){
     w=Math.max(MIN,w); h=Math.max(MIN,h);
     x=Math.max(0,x); y=Math.max(0,y);
     if (x+w>VW) w=VW-x; if (y+h>VH) h=VH-y;
-    const cand={x,y,w,h};
-    if (!collides(cand, n.id)){ Object.assign(n,cand); last={...cand}; n._el.classList.remove('bad'); }
-    else n._el.classList.add('bad');
+    Object.assign(n,{x,y,w,h});                  // resize freely; validate on release
+    n._el.classList.toggle('bad', !allowOverlap && collides({x,y,w,h}, n.id));
     renderNode(n);
     if (LIB[n.type].isGrid) layoutGrid(n);
   }
   function up(){ document.removeEventListener('pointermove',move); document.removeEventListener('pointerup',up);
-    Object.assign(n,last); n._el.classList.remove('bad'); renderNode(n); if(LIB[n.type].isGrid) layoutGrid(n);
+    if (!allowOverlap && collides({x:n.x,y:n.y,w:n.w,h:n.h}, n.id)) Object.assign(n,o);  // invalid → revert
+    n._el.classList.remove('bad'); renderNode(n); if(LIB[n.type].isGrid) layoutGrid(n);
     refreshInspector(); save(); }
   document.addEventListener('pointermove',move); document.addEventListener('pointerup',up);
 }
@@ -798,13 +797,14 @@ document.addEventListener('keydown', e=>{
   if (e.key==='ArrowLeft'){ c.x-=step; moved=true; } if (e.key==='ArrowRight'){ c.x+=step; moved=true; }
   if (e.key==='ArrowUp'){ c.y-=step; moved=true; } if (e.key==='ArrowDown'){ c.y+=step; moved=true; }
   if (moved && !n.locked){ e.preventDefault(); c.x=Math.max(0,Math.min(VW-n.w,c.x)); c.y=Math.max(0,Math.min(VH-n.h,c.y));
-    if(!collides(c,n.id)){ n.x=c.x; n.y=c.y; renderNode(n); refreshInspector(); save(); } }
+    if(allowOverlap || !collides(c,n.id)){ n.x=c.x; n.y=c.y; renderNode(n); refreshInspector(); save(); } }
 });
 
 document.getElementById('tg-grid').addEventListener('change',e=>canvasEl.classList.toggle('no-grid',!e.target.checked));
 document.getElementById('tg-snap').addEventListener('change',e=>snapOn=e.target.checked);
 document.getElementById('snap-step').addEventListener('change',e=>{ snap=Math.max(1,parseInt(e.target.value)||10); drawGrid(); });
 document.getElementById('tg-anim').addEventListener('change',e=>animOn=e.target.checked);
+document.getElementById('tg-overlap').addEventListener('change',e=>allowOverlap=e.target.checked);
 document.getElementById('btn-reset').onclick=()=>{ if(confirm('Reset the canvas to the current game layout? This replaces what you have now.')){ seedDefault(); save(); } };
 document.getElementById('btn-clear').onclick=clearAll;
 document.getElementById('btn-export').onclick=openExport;
