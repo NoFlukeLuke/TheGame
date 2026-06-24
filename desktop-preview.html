@@ -65,7 +65,7 @@
   /* placed component wrapper */
   .node{ position:absolute; z-index:1; outline:1px dashed transparent; }
   .node.selected{ z-index:50; outline:1.5px solid var(--gold); outline-offset:1px; }
-  .node.bad{ outline:1.5px solid var(--red) !important; }
+  .node.overlapping{ box-shadow:0 0 0 2px var(--red), 0 0 12px rgba(192,57,43,0.55); }
   .node.locked{ cursor:not-allowed; }
   .node .node-inner{ width:100%; height:100%; overflow:hidden; pointer-events:none; }
   .node .tag{ position:absolute; top:-15px; left:0; font-size:9px; color:var(--gold-dim);
@@ -236,12 +236,11 @@
     <label class="inl"><input type="checkbox" id="tg-grid" checked> grid</label>
     <label class="inl"><input type="checkbox" id="tg-snap" checked> snap</label>
     <label class="inl">step <input type="number" id="snap-step" value="10" min="1" max="50"></label>
-    <label class="inl"><input type="checkbox" id="tg-overlap"> allow overlap</label>
     <label class="inl"><input type="checkbox" id="tg-anim" checked> animate clock</label>
     <button class="tbtn" id="btn-reset">↺ Game layout</button>
     <button class="tbtn danger" id="btn-clear">Clear</button>
     <button class="tbtn primary" id="btn-export">Export ▸</button>
-    <span class="sub">preview r3</span>
+    <span class="sub">preview r4</span>
   </div>
 
   <div id="body">
@@ -302,7 +301,7 @@
 
 const VW = 1280, VH = 720;            // virtual landscape canvas
 let scale = 1;                        // screen px per virtual unit
-let snap = 10, snapOn = true, animOn = true, allowOverlap = false;
+let snap = 10, snapOn = true, animOn = true;
 let nodes = [];                       // placed components
 let selId = null;
 let uid = 1;
@@ -475,6 +474,13 @@ function drawGrid(){
 /* ════════════════ NODES ════════════════ */
 function snapV(v){ return snapOn ? Math.round(v/snap)*snap : Math.round(v); }
 function rectsOverlap(a,b){ return a.x < b.x+b.w && a.x+a.w > b.x && a.y < b.y+b.h && a.y+a.h > b.y; }
+function updateOverlaps(){
+  const over = new Set();
+  for (let i=0;i<nodes.length;i++) for (let j=i+1;j<nodes.length;j++){
+    if (rectsOverlap(nodes[i],nodes[j])){ over.add(nodes[i].id); over.add(nodes[j].id); }
+  }
+  nodes.forEach(n=> n._el && n._el.classList.toggle('overlapping', over.has(n.id)));
+}
 function collides(cand, ignoreId){
   if (cand.x<0 || cand.y<0 || cand.x+cand.w>VW || cand.y+cand.h>VH) return true;
   for (const n of nodes){ if (n.id===ignoreId) continue; if (rectsOverlap(cand,n)) return true; }
@@ -588,13 +594,11 @@ function startDrag(n, e){
     let ny = snapV(oy + (ev.clientY-sy)/scale);
     nx = Math.max(0, Math.min(VW-n.w, nx));
     ny = Math.max(0, Math.min(VH-n.h, ny));
-    n.x=nx; n.y=ny;                              // follow cursor freely — slide past others
-    n._el.classList.toggle('bad', !allowOverlap && collides({x:nx,y:ny,w:n.w,h:n.h}, n.id));
-    renderNode(n);
+    n.x=nx; n.y=ny;                              // free placement — overlap is only indicated, never blocked
+    renderNode(n); updateOverlaps();
   }
   function up(){ document.removeEventListener('pointermove',move); document.removeEventListener('pointerup',up);
-    if (!allowOverlap && collides({x:n.x,y:n.y,w:n.w,h:n.h}, n.id)){ n.x=ox; n.y=oy; }  // dropped on something → snap back
-    n._el.classList.remove('bad'); renderNode(n); refreshInspector(); save(); }
+    renderNode(n); refreshInspector(); save(); }
   document.addEventListener('pointermove',move); document.addEventListener('pointerup',up);
 }
 function startResize(n, e, dir){
@@ -615,14 +619,12 @@ function startResize(n, e, dir){
     w=Math.max(MIN,w); h=Math.max(MIN,h);
     x=Math.max(0,x); y=Math.max(0,y);
     if (x+w>VW) w=VW-x; if (y+h>VH) h=VH-y;
-    Object.assign(n,{x,y,w,h});                  // resize freely; validate on release
-    n._el.classList.toggle('bad', !allowOverlap && collides({x,y,w,h}, n.id));
-    renderNode(n);
+    Object.assign(n,{x,y,w,h});                  // resize freely; overlap only indicated, never blocked
+    renderNode(n); updateOverlaps();
     if (LIB[n.type].isGrid) layoutGrid(n);
   }
   function up(){ document.removeEventListener('pointermove',move); document.removeEventListener('pointerup',up);
-    if (!allowOverlap && collides({x:n.x,y:n.y,w:n.w,h:n.h}, n.id)) Object.assign(n,o);  // invalid → revert
-    n._el.classList.remove('bad'); renderNode(n); if(LIB[n.type].isGrid) layoutGrid(n);
+    renderNode(n); if(LIB[n.type].isGrid) layoutGrid(n);
     refreshInspector(); save(); }
   document.addEventListener('pointermove',move); document.addEventListener('pointerup',up);
 }
@@ -713,6 +715,7 @@ function duplicateNode(src){
 function save(){
   const data = { v:1, nodes: nodes.map(n=>{ const o={...n}; delete o._el; return o; }), uid };
   try{ localStorage.setItem(LS_KEY, JSON.stringify(data)); }catch(e){}
+  updateOverlaps();   // refresh red overlap glow after any add/move/resize/delete/edit
 }
 function load(){
   try{
@@ -797,14 +800,13 @@ document.addEventListener('keydown', e=>{
   if (e.key==='ArrowLeft'){ c.x-=step; moved=true; } if (e.key==='ArrowRight'){ c.x+=step; moved=true; }
   if (e.key==='ArrowUp'){ c.y-=step; moved=true; } if (e.key==='ArrowDown'){ c.y+=step; moved=true; }
   if (moved && !n.locked){ e.preventDefault(); c.x=Math.max(0,Math.min(VW-n.w,c.x)); c.y=Math.max(0,Math.min(VH-n.h,c.y));
-    if(allowOverlap || !collides(c,n.id)){ n.x=c.x; n.y=c.y; renderNode(n); refreshInspector(); save(); } }
+    n.x=c.x; n.y=c.y; renderNode(n); refreshInspector(); save(); }
 });
 
 document.getElementById('tg-grid').addEventListener('change',e=>canvasEl.classList.toggle('no-grid',!e.target.checked));
 document.getElementById('tg-snap').addEventListener('change',e=>snapOn=e.target.checked);
 document.getElementById('snap-step').addEventListener('change',e=>{ snap=Math.max(1,parseInt(e.target.value)||10); drawGrid(); });
 document.getElementById('tg-anim').addEventListener('change',e=>animOn=e.target.checked);
-document.getElementById('tg-overlap').addEventListener('change',e=>allowOverlap=e.target.checked);
 document.getElementById('btn-reset').onclick=()=>{ if(confirm('Reset the canvas to the current game layout? This replaces what you have now.')){ seedDefault(); save(); } };
 document.getElementById('btn-clear').onclick=clearAll;
 document.getElementById('btn-export').onclick=openExport;
@@ -823,6 +825,7 @@ window.addEventListener('resize', computeScale);
 buildPalette();
 load();
 computeScale();
+updateOverlaps();
 tickClocks();
 </script>
 </body>
