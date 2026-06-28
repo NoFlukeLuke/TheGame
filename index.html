@@ -3604,7 +3604,7 @@
 </div>
 
 <script>
-const BUILD = '2026-06-28 · r67';
+const BUILD = '2026-06-28 · r68';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -4263,6 +4263,7 @@ const KNACK_POOL = [
   { id:'free_range_t',    emoji:'🦅',  name:'Free Range',       desc:'Can swap any two non-adjacent cards, but limited to 2 swaps per round.' },
   { id:'long_pause',      emoji:'🦉',  name:'Long Pause',       desc:'All clock pauses last 1.5× as long.' },
   { id:'snooze',          emoji:'😴',  name:'Snooze',           desc:'Once per round, when a pause ends, add +10 seconds to the round clock.' },
+  { id:'sundial',         emoji:'🌇',  name:'Sundial',          desc:'Hands where every card shares a column pause the clock for 8 seconds.' },
 ];
 // ── SLEIGHT POOL ──
 // Sleights live in the deck as special cards (_isSleight:true). They fall onto the grid,
@@ -4297,7 +4298,6 @@ const SLEIGHT_POOL = [
   { id:'the_naturalist', name:'Naturalist',     emoji:'🌿', rarity:'rare',      activation:'on_play',    durability:'infinite', defaultRank:null, defaultSuit:null, tags:['scoring','pips'],     desc:'Play this: each other scored card permanently gains +2 pips.' },
   { id:'bellhop',        name:'Bellhop',        emoji:'🛎️', rarity:'common',    activation:'on_play',    durability:5,          defaultRank:null, defaultSuit:null, tags:['resource'],           desc:'Play this: gain +2 swaps and +1 discard. (5 charges)' },
   { id:'metronome',      name:'Metronome',      emoji:'🥁', rarity:'rare',      activation:'on_play',    durability:3,          defaultRank:null, defaultSuit:null, tags:['time'],               desc:'Play this in a hand of a different type than your previous hand: pause the clock for 5 seconds. (3 charges)' },
-  { id:'sundial',        name:'Sundial',        emoji:'🌇', rarity:'rare',      activation:'on_play',    durability:3,          defaultRank:null, defaultSuit:null, tags:['time','position'],    desc:'Play this in a hand where every card shares a column: pause the clock for 8 seconds. (3 charges)' },
   // ── Discard-based ──
   { id:'the_bomb',       name:'Bomb',           emoji:'💣', rarity:'epic',      activation:'on_discard', durability:2,          defaultRank:null, defaultSuit:null, tags:['scoring','pips'],     desc:'Discard this: every card on the grid permanently gains +3 pips. (2 charges)' },
   { id:'the_legacy',     name:'Legacy',         emoji:'📜', rarity:'rare',      activation:'on_discard', durability:3,          defaultRank:null, defaultSuit:null, tags:['scoring'],           desc:'Discard this: the next hand played scores ×3. (3 charges)' },
@@ -7094,6 +7094,8 @@ function playHand() {
     }
     // High Water: after 3 Runs this round, each further Run pauses the clock by its card count
     if (_isRunHand && runsPlayedRound >= 3 && hasTrick('high_water')) pauseRound(handCells.length);
+    // Sundial knack: a hand where every card shares a column pauses the clock
+    if (hasKnack('sundial') && handCells.length > 0 && handCells.every(([, hc]) => hc === handCells[0][1])) pauseRound(BAL.sundial.seconds);
     // Double Jeopardy: the first time the marked card is scored this round, pause the clock 15s (once per round)
     if (hasTrick('double_jeopardy') && !djUsedThisRound && doubleJeopardyPos && handCells.some(([r,c]) => r === doubleJeopardyPos.r && c === doubleJeopardyPos.c)) {
       pauseRound(BAL.double_jeopardy.pause_seconds);
@@ -10217,13 +10219,6 @@ function fireSleightsOnPlay(selectedCells, handCells, hand) {
     if (def.id === 'metronome') {
       if (lastHandType === null || hand === lastHandType) return;
       pauseRound(BAL.metronome.seconds);
-      consumeSleightCharge(card, r, c);
-      return;
-    }
-    // Sundial: every card in the hand shares a column
-    if (def.id === 'sundial') {
-      if (!handCells.every(([, hc]) => hc === handCells[0][1])) return;
-      pauseRound(BAL.sundial.seconds);
       consumeSleightCharge(card, r, c);
       return;
     }
