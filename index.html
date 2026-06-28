@@ -3604,7 +3604,7 @@
 </div>
 
 <script>
-const BUILD = '2026-06-28 · r68';
+const BUILD = '2026-06-28 · r69';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -4262,7 +4262,6 @@ const KNACK_POOL = [
   { id:'safety_net',      emoji:'🪢',  name:'Safety Net',       desc:'Once per game: if you miss the round goal, gain a 30s extension instead of failing.' },
   { id:'free_range_t',    emoji:'🦅',  name:'Free Range',       desc:'Can swap any two non-adjacent cards, but limited to 2 swaps per round.' },
   { id:'long_pause',      emoji:'🦉',  name:'Long Pause',       desc:'All clock pauses last 1.5× as long.' },
-  { id:'snooze',          emoji:'😴',  name:'Snooze',           desc:'Once per round, when a pause ends, add +10 seconds to the round clock.' },
   { id:'sundial',         emoji:'🌇',  name:'Sundial',          desc:'Hands where every card shares a column pause the clock for 8 seconds.' },
 ];
 // ── SLEIGHT POOL ──
@@ -4308,7 +4307,7 @@ const SLEIGHT_POOL = [
   { id:'the_wanderer',   name:'Wanderer',       emoji:'🧭', rarity:'common',    activation:'on_swap',    durability:'infinite', defaultRank:null, defaultSuit:null, tags:['resource'],           desc:'When swapped, refunds the swap (+1 swap back).' },
   // ── Double-tap-based ──
   { id:'amplifier',      name:'Amplifier',      emoji:'📢', rarity:'common',    activation:'double_tap', durability:5,          defaultRank:null, defaultSuit:null, tags:['scoring','mult'],     desc:'Double-tap: the next hand scores +5 mult. (5 charges)' },
-  { id:'time_keeper',    name:'Time Keeper',    emoji:'⏱️', rarity:'common',    activation:'double_tap', durability:4,          defaultRank:null, defaultSuit:null, tags:['resource','time'],    desc:'Double-tap: add +20 seconds to this round. (4 charges)' },
+  { id:'snooze',         name:'Snooze',         emoji:'😴', rarity:'common',    activation:'double_tap', durability:3,          defaultRank:null, defaultSuit:null, tags:['time'],                desc:'Double-tap: pause the clock for 10 seconds. (3 charges)' },
   { id:'piggy_bank',     name:'Piggy Bank',     emoji:'🐷', rarity:'common',    activation:'double_tap', durability:5,          defaultRank:null, defaultSuit:null, tags:['resource','coins'],   desc:'Double-tap: gain 5 coins. (5 charges)' },
   // ── Aim-based (fixtures: tap to rotate aim; cannot be swapped or discarded) ──
   { id:'reflect',     name:'Reflect',     emoji:'🪞', rarity:'epic',   activation:'aim', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['retrigger','position'], desc:'Tap to rotate its aim (up→right→down→left). The card it faces retriggers once when a hand scores. Cannot be swapped or discarded.' },
@@ -4387,7 +4386,6 @@ let pausedSecondsRound = 0;   // total seconds the clock has spent paused this r
 let pauseInstanceGame = 0;    // PER GAME: number of clock pauses triggered (Hummingbird); reset only at newGame
 let retriggersThisRound = 0;  // count of card retriggers in scored hands this round (Cuckoo's pause length)
 let _lastHandRetrigs = 0;     // extra retriggers in the most recent calcScore of a real hand (read in playHand)
-let snoozeUsedThisRound = false; // Snooze knack: refunds once per round
 let cuckooNextMinute = 0;     // next roundStartSeconds-roundSeconds threshold for Cuckoo's pause
 let doubleJeopardyPos = null; // { r, c } — marked tile (Double Jeopardy); fires once per round
 let djUsedThisRound = false;  // Double Jeopardy has already fired its pause this round
@@ -5104,7 +5102,6 @@ const BAL = {
   cash_out: { coins: 10 },
   the_wanderer: { swaps: 1 },
   amplifier: { mult: 5 },
-  time_keeper: { seconds: 20 },
   piggy_bank: { coins: 5 },
   // ── knacks ──
   time_bank: { seconds: 30 },
@@ -5178,7 +5175,6 @@ const DESC_TEMPLATES = {
   lightning_rod: 'When swapped, the card it traded with permanently gains +{pips} pips.',
   the_catalyst: 'When swapped, the card it traded with permanently gains +{mult} mult.',
   the_wanderer: 'When swapped, refunds the swap (+{swaps} swap back).',
-  time_keeper: 'Double-tap: add +{seconds} seconds to this round. (4 charges)',
   time_bank: '+{seconds} seconds at the start of every round.',
   inheritance: 'Start each round with +{coins} coins.',
   lucky_seven: 'Every {interval_hands}th hand played gives +{swaps} swap.',
@@ -8277,10 +8273,6 @@ function pauseRound(seconds) {
       firstPauseActive = false; // the first continuous pause stretch is over (Vulture)
       if (clockEl) clockEl.classList.remove('clock-paused');
       updateClockUI();
-      // Snooze knack: once per round, refund seconds to the round clock when a pause ends
-      if (hasKnack('snooze') && !snoozeUsedThisRound) {
-        roundSeconds += BAL.snooze.seconds; updateClockUI(); snoozeUsedThisRound = true;
-      }
     } else {
       pauseTimer = setTimeout(tick, 1000);
     }
@@ -10329,9 +10321,9 @@ function applySleightGridEffect(id, r, c) {
     case 'amplifier':
       sleightAmplifierMult += BAL.amplifier.mult;
       showMessage('📢 Amplifier — next hand +5 mult!', 'var(--gold)'); break;
-    case 'time_keeper':
-      roundSeconds = Math.min(roundSeconds + BAL.time_keeper.seconds, ROUND_DURATION); updateClockUI();
-      showMessage('⏱️ Time Keeper — +20s!', 'var(--gold)'); break;
+    case 'snooze':
+      pauseRound(BAL.snooze.seconds);
+      showMessage('😴 Snooze — clock paused 10s!', 'var(--gold)'); break;
     case 'piggy_bank':
       coins += BAL.piggy_bank.coins; updateCoinsUI();
       showMessage('🐷 Piggy Bank — +5 coins!', 'var(--gold)'); break;
@@ -12008,7 +12000,6 @@ function triggerLevelUp() {
   // ── Timing/Streak batch: pause-themed Trick state, reset each round ──
   pausedSecondsRound = 0;
   retriggersThisRound = 0;
-  snoozeUsedThisRound = false;
   cuckooNextMinute = BAL.cuckoo.interval_seconds;
   doubleJeopardyPos = hasTrick('double_jeopardy') ? { r: Math.floor(Math.random() * gridRows), c: Math.floor(Math.random() * gridCols) } : null;
   djUsedThisRound = false;

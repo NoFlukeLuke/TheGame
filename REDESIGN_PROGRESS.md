@@ -62,6 +62,34 @@ Subject-first "scores +N"; resources are "added" (+N Focus/seconds/coins); **no 
 - **`escalation`** still needs a new name (the CSV routed it to "Dark Matter", but `spade_flood` took that name first).
 - Backlog from CSV rows 168–215 (new trick ideas), keyword/tag system ("Move as One"), a stat screen with counters (for meta tricks), and a "specify row/col" knack + event (the rowcol tricks currently assign randomly).
 
+## NEXT BATCH IDEA (parked by owner, do in a fresh chat) — Time-Rewind family
+Owner wants a **new bonus category that rewinds the clock** (moves it *backward*), to pair with
+the pause-theme Timing/Streak batch (shipped r66–r68: Cuckoo/Woodpecker/Albatross/etc.). The hook:
+rewind lets you **re-cross "on the minute" boundaries to re-proc minute-triggered bonuses**.
+
+Scope owner sketched: ~4–6 entities total —
+- **3 with "on the minute mark" / interval triggers** (siblings of Cuckoo's 60s tick + Woodpecker's
+  30s blocks). e.g. "every 60s: +X", "every 30s: mark/grant", "at each minute: bank something".
+- **3–4 that rewind time** (clock moves backward / earlier).
+
+**Design question to answer in that chat: how is REWIND different from PAUSE, beyond "2× the time"?**
+Pause = clock *frozen* (timeline suspended, you act for free). Rewind = clock moves *backward*
+(you re-enter earlier time). That difference unlocks effects pause can't:
+1. **Re-proc time-gated triggers** — rewinding past a minute mark re-arms/re-fires Cuckoo, resets
+   Woodpecker's active/off block, re-crosses Swift/Albatross thresholds. (This is the combo the
+   owner explicitly wants — rewind as a *minute-trigger replay engine*.)
+2. **Reset cooldowns** — Ripple's 30s, Double Dutch's window, High Water's run count "as if time
+   un-passed."
+3. **Re-arm once-per-round locks** — unlock a spent double_tap / on_swap sleight again this round
+   (and possibly Double Jeopardy / Snooze).
+4. **Undo recent state** (bigger build-around) — restore the last discarded/scored card to the grid,
+   or refund the last swap/discard, or restore decayed Focus nodes.
+5. **Risk/identity** — pure "rewind = +2× pause seconds" is the boring version; lean into replay/undo
+   so rewind reads as *manipulating the timeline*, not just *more time*.
+Suggested split: keep pause = "free actions now," make rewind = "replay the timeline / re-trigger."
+Reuse existing infra: `cuckooNextMinute`, `woodpeckerActiveBlock`, `roundStartSeconds`,
+`_elapsedRound` in `startRoundTimer`; `pauseRound()` for the pause side.
+
 ## Known minor flags (not bugs, watch on playtest)
 - Mirror duplicates a borrowed Trick's pip/mult contribution; it does NOT yet copy Focus/time/coin effects, and uses the base (pre-retrigger) amount; additive copies are added after the multiplier stage.
 - Prime consumption re-derives "did it trigger?" after per-hand bookkeeping → a primed *timing-gated* Trick could consume a stack a hand off.
