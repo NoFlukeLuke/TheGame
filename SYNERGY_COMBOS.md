@@ -85,14 +85,22 @@ These are well-tuned for scarcity — a player ends a ~15-level run with roughly
    in grid mode, where tricks occupy scoring cells.) This doubles as the "soft
    cap" and adds a dial to the limit-manipulation game.
    ```js
-   { id:'trick_slots', label:'Trick Slots', icon:'✦', desc:'Max Tricks you can keep', base:5, max:10 }
+   { id:'trick_slots', label:'Trick Slots', icon:'✦', desc:'Max Tricks you can keep', base:4, max:10, weight:0.4 }
    ```
-   - Base **5–6**, max **10–12**: a 5-piece combo fills a fresh tray (forces
-     "combo *or* general build"); a maxed run holds a combo + a few support
-     tricks. Player routinely hits the cap → sell/replace tension stays live.
+   - **Base 4** (DECIDED), max **10–12**: a 5-piece combo can't fit a fresh tray
+     (forces hard "combo *or* general build" choices early); a maxed run holds a
+     combo + a few support tricks. Player routinely hits the cap → sell/replace
+     tension stays live.
    - **Keep `base` fixed** (don't randomize the start — combos reward planning).
      For run variance, inject it visibly via a knack ("+2 Trick Slots") or an
      Era-1 event, not baked-in randomness.
+   - **Make the *upgrade* rare (DECIDED).** Today limits are offered by uniform
+     `shuffle().slice()` in both the shop (`index.html:12797`) and the Limit
+     Break event (`9754`) — there is **no weighting table** (only sleights are
+     rarity-weighted). Add an optional `weight` to `LIMITS_DEF` (default 1) and a
+     shared weighted-pick helper used by both spots. `trick_slots` weight ~**0.4**
+     → ~8% of shop visits, ~40–50% of runs see it offered. Tune after playtest.
+     This also retroactively gives every limit a tunable appearance rate.
 2. **Tier-weighting vs keystones.** Combo payoff tricks skew rare/epic; if the
    grid leans common, the keystone's see-rate drops below 1/3 and combos drift
    too rare. Don't make *every* keystone top-tier, or guarantee a high-tier node.
