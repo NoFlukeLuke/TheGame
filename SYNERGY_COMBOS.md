@@ -77,9 +77,22 @@ These are well-tuned for scarcity — a player ends a ~15-level run with roughly
   named combo → with 8–10 families, assemble *some* ≈50% of runs. ✓ on target.
 
 ### ⚠ Two levers this exposes
-1. **No tray cap today** (`index.html:9385` pushes unbounded). With ~50 seen and
-   no cap you *keep* ~25–35 tricks — board soup that buries combo pieces. Add a
-   **soft tray cap** or a sell/replace step so tricks feel *chosen*.
+1. **Trick capacity = a new limit (DECIDED).** Tricks are uncapped today
+   (`index.html:9385`), so ~50 seen → ~25–35 kept = board soup that buries combo
+   pieces. Fix: give Tricks their **own entry in `LIMITS_DEF`** — *not* tied to
+   grid size or hand size, because in **tray mode** (the default) tricks live off
+   the grid and shouldn't be welded to it. (Coupling to the grid only makes sense
+   in grid mode, where tricks occupy scoring cells.) This doubles as the "soft
+   cap" and adds a dial to the limit-manipulation game.
+   ```js
+   { id:'trick_slots', label:'Trick Slots', icon:'✦', desc:'Max Tricks you can keep', base:5, max:10 }
+   ```
+   - Base **5–6**, max **10–12**: a 5-piece combo fills a fresh tray (forces
+     "combo *or* general build"); a maxed run holds a combo + a few support
+     tricks. Player routinely hits the cap → sell/replace tension stays live.
+   - **Keep `base` fixed** (don't randomize the start — combos reward planning).
+     For run variance, inject it visibly via a knack ("+2 Trick Slots") or an
+     Era-1 event, not baked-in randomness.
 2. **Tier-weighting vs keystones.** Combo payoff tricks skew rare/epic; if the
    grid leans common, the keystone's see-rate drops below 1/3 and combos drift
    too rare. Don't make *every* keystone top-tier, or guarantee a high-tier node.
