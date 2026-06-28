@@ -3604,7 +3604,7 @@
 </div>
 
 <script>
-const BUILD = '2026-06-28 · r66';
+const BUILD = '2026-06-28 · r67';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -4262,7 +4262,7 @@ const KNACK_POOL = [
   { id:'safety_net',      emoji:'🪢',  name:'Safety Net',       desc:'Once per game: if you miss the round goal, gain a 30s extension instead of failing.' },
   { id:'free_range_t',    emoji:'🦅',  name:'Free Range',       desc:'Can swap any two non-adjacent cards, but limited to 2 swaps per round.' },
   { id:'long_pause',      emoji:'🦉',  name:'Long Pause',       desc:'All clock pauses last 1.5× as long.' },
-  { id:'snooze',          emoji:'😴',  name:'Snooze',           desc:'Once per round, when a pause ends, add +5 seconds to the round clock.' },
+  { id:'snooze',          emoji:'😴',  name:'Snooze',           desc:'Once per round, when a pause ends, add +10 seconds to the round clock.' },
 ];
 // ── SLEIGHT POOL ──
 // Sleights live in the deck as special cards (_isSleight:true). They fall onto the grid,
@@ -5032,7 +5032,7 @@ const BAL = {
   metronome: { seconds: 5 },
   sundial: { seconds: 8 },
   long_pause: { multiplier: 1.5 },
-  snooze: { seconds: 5 },
+  snooze: { seconds: 10 },
   kindred: { mult_per_card: 3 },
   tidal_force: { mult: 10 },
   rare_bloom: { perm_pips: 8 },
