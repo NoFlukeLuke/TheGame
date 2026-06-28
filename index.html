@@ -1252,6 +1252,16 @@
     border-color: rgba(160,3,11,0.4);
   }
   .card.rc-leyline { background: rgba(240,192,64,0.15); box-shadow: inset 0 0 0 1px rgba(240,192,64,0.4); }
+  .card.rc-jeopardy { background: rgba(200,60,60,0.15); box-shadow: inset 0 0 0 1px rgba(200,60,60,0.5); }
+  .card.rc-woodpecker { background: rgba(90,170,90,0.15); box-shadow: inset 0 0 0 1px rgba(90,170,90,0.5); animation: wp-peck 0.16s ease-in-out 5; }
+  .card.rc-woodpecker::after { content:''; position:absolute; inset:0; border-radius:inherit; pointer-events:none; animation: wp-ripple 0.34s ease-out 5; }
+  @keyframes wp-peck { 0%,100% { transform: scale(1); } 50% { transform: scale(0.9); } }
+  @keyframes wp-ripple { 0% { box-shadow: 0 0 0 0 rgba(90,170,90,0.5); } 100% { box-shadow: 0 0 0 12px rgba(90,170,90,0); } }
+  /* Permanent-buff corner tally bands (thin=1, thick=5) */
+  .buff-band { position:absolute; width:12px; height:2px; border-radius:1px; pointer-events:none; z-index:6; opacity:0.92; }
+  .buff-band.bb-thick { height:4px; }
+  .buff-band.bb-tl, .buff-band.bb-br { transform: rotate(-45deg); transform-origin: center; }
+  .buff-band.bb-tr, .buff-band.bb-bl { transform: rotate(45deg);  transform-origin: center; }
   .card.selected {
     border-color: #4a9eff;
     border-width: 1px;
@@ -3541,7 +3551,7 @@
 </div>
 
 <script>
-const BUILD = '2026-06-20 · r63';
+const BUILD = '2026-06-28 · r66';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -3852,21 +3862,26 @@ const TRICK_POOL = [
   { id:'first_fruits',   name:'First Fruits',        tier:'rare',      desc:'Each card in first hand each round permanently gains +2 pips' },
   { id:'sapling',        name:'Sapling',             tier:'rare',      desc:'Each level, 3 cards permanently gain +2 pips' },
   // ── Timing ──
-  { id:'early_bird',     name:'Early Bird',          tier:'common',    desc:'Hands in first 10s score +20 pips' },
-  { id:'night_owl',      name:'Night Owl',           tier:'common',    desc:'Hands in last 10s score +3 mult' },
-  { id:'closing_time',   name:'Closing Time',        tier:'rare',      desc:'Hands played with 15s or less remaining score +5 mult' },
-  { id:'quick_draw',     name:'Quick Draw',          tier:'common',    desc:'Hands played within 3 seconds of the previous score +3 pips per card' },
-  { id:'patience_reward', name:'Patient Hunter',     tier:'rare',      desc:'Hands played more than 15s after the previous score +3 mult' },
-  { id:'steady_pace',    name:'Steady Pace',         tier:'common',    desc:'Each hand played scores +1 mult' },
-  { id:'momentum',       name:'Momentum',            tier:'common',    desc:'Consecutive hand within 5s scores +2 mult' },
-  { id:'first_play',     name:'Head Start',          tier:'common',    desc:'First hand each round scores +2 mult' },
-  { id:'still_water',    name:'Still Water',         tier:'rare',      desc:'+5 mult for every 10 seconds elapsed without using a swap' },
-  { id:'frozen_moment',  name:'Frozen Moment',       tier:'epic',      desc:'Hands while timer paused score ×2' },
+  { id:'early_bird',     name:'Early Bird',          tier:'common',    desc:'Hands played in the first third of the round score +3 pips per card' },
+  { id:'night_owl',      name:'Night Owl',           tier:'common',    desc:'Hands played in the last third of the round score +1 mult per card' },
+  { id:'closing_time',   name:'Near Extinction',     tier:'rare',      desc:'When less than a quarter of the round remains, each scored card retriggers' },
+  { id:'quick_draw',     name:'Quick Draw',          tier:'common',    desc:'Hands played within 3 seconds of the previous permanently add +1 max Focus capacity' },
+  { id:'patience_reward', name:'The Heron',          tier:'rare',      desc:'Hands played 15+ round-seconds after the previous score +3 mult' },
+  { id:'first_play',     name:'Head Start',          tier:'common',    desc:'The first hand each round adds +5 Focus' },
+  { id:'still_water',    name:'Eagle Eye',           tier:'rare',      desc:'+5 mult for every 10 seconds elapsed without using a swap' },
+  { id:'frozen_moment',  name:'The Falcon',          tier:'epic',      desc:'Hands played while the clock is paused add +10 Focus' },
+  { id:'swift',          name:'The Swift',           tier:'rare',      desc:'+1 mult for every 3 seconds elapsed this round' },
+  { id:'cuckoo',         name:'The Cuckoo',          tier:'epic',      desc:'Every 60 seconds of round time, pause the clock by 1 second for each retrigger that has happened this round' },
+  { id:'double_jeopardy', name:'Double Jeopardy',    tier:'epic',      desc:'At round start, one random card is marked. The first time you score it, pause the clock for 15 seconds' },
+  { id:'woodpecker',     name:'The Woodpecker',      tier:'rare',      desc:'In alternating 30-second blocks a random card is marked. Scoring a marked card retriggers it twice' },
+  { id:'hummingbird',    name:'The Hummingbird',     tier:'rare',      desc:'+2 mult for every clock pause triggered this game' },
+  { id:'albatross',      name:'The Albatross',       tier:'rare',      desc:'+5 pips for every second the clock has spent paused this round' },
+  { id:'vulture',        name:'The Vulture',         tier:'epic',      desc:'Cards discarded during the round’s first clock pause permanently gain: when scored, pause the clock for 1 second' },
+  { id:'phoenix',        name:'The Phoenix',         tier:'mythic',    desc:'While the clock is paused, the Focus multiplier applies twice' },
   // ── Streaks ──
   { id:'kindling',       name:'Kindling',            tier:'common',    desc:'Same hand streak scores +4 pips × streak' },
   { id:'wildfire',       name:'Wildfire',            tier:'rare',      desc:'3 same hands in a row scores +2 mult' },
-  { id:'echo_hand',      name:'Echo Hand',           tier:'common',    desc:'Playing the same hand type twice in a row scores ×1.5' },
-  { id:'hot_streak',     name:'On Fire',             tier:'rare',      desc:'Streak of 4+ same hand adds +1 mult per count beyond 3' },
+  { id:'echo_hand',      name:'Echoes',              tier:'common',    desc:'Playing the same hand type as the previous hand retriggers each card' },
   // ── Suit conditions ──
   { id:'club_double',    name:'Hard Labour',         tier:'mythic',    tags:['suit','pips'], desc:'Each club scored adds escalating pips — +5, doubling per club; retriggers count' },
   { id:'monochrome',     name:'Blood Diamonds',      tier:'epic',      desc:'Hands with at least one heart and one diamond grant +1 coin and +10 seconds' },
@@ -4162,6 +4177,8 @@ const KNACK_POOL = [
   { id:'carry_time',      emoji:'🕰️',  name:'Clock Tower',      desc:'Unused round seconds carry over (max 60s).' },
   { id:'safety_net',      emoji:'🪢',  name:'Safety Net',       desc:'Once per game: if you miss the round goal, gain a 30s extension instead of failing.' },
   { id:'free_range_t',    emoji:'🦅',  name:'Free Range',       desc:'Can swap any two non-adjacent cards, but limited to 2 swaps per round.' },
+  { id:'long_pause',      emoji:'🦉',  name:'Long Pause',       desc:'All clock pauses last 1.5× as long.' },
+  { id:'snooze',          emoji:'😴',  name:'Snooze',           desc:'Once per round, when a pause ends, add +5 seconds to the round clock.' },
 ];
 // ── SLEIGHT POOL ──
 // Sleights live in the deck as special cards (_isSleight:true). They fall onto the grid,
@@ -4195,6 +4212,8 @@ const SLEIGHT_POOL = [
   { id:'echo_play',      name:'Echo',           emoji:'🔁', rarity:'epic',      activation:'on_play',    durability:3,          defaultRank:null, defaultSuit:null, tags:['scoring'],           desc:'Play this in any hand: that hand scores twice. (3 charges)' },
   { id:'the_naturalist', name:'Naturalist',     emoji:'🌿', rarity:'rare',      activation:'on_play',    durability:'infinite', defaultRank:null, defaultSuit:null, tags:['scoring','pips'],     desc:'Play this: each other scored card permanently gains +2 pips.' },
   { id:'bellhop',        name:'Bellhop',        emoji:'🛎️', rarity:'common',    activation:'on_play',    durability:5,          defaultRank:null, defaultSuit:null, tags:['resource'],           desc:'Play this: gain +2 swaps and +1 discard. (5 charges)' },
+  { id:'metronome',      name:'Metronome',      emoji:'🥁', rarity:'rare',      activation:'on_play',    durability:3,          defaultRank:null, defaultSuit:null, tags:['time'],               desc:'Play this in a hand of a different type than your previous hand: pause the clock for 5 seconds. (3 charges)' },
+  { id:'sundial',        name:'Sundial',        emoji:'🌇', rarity:'rare',      activation:'on_play',    durability:3,          defaultRank:null, defaultSuit:null, tags:['time','position'],    desc:'Play this in a hand where every card shares a column: pause the clock for 8 seconds. (3 charges)' },
   // ── Discard-based ──
   { id:'the_bomb',       name:'Bomb',           emoji:'💣', rarity:'epic',      activation:'on_discard', durability:2,          defaultRank:null, defaultSuit:null, tags:['scoring','pips'],     desc:'Discard this: every card on the grid permanently gains +3 pips. (2 charges)' },
   { id:'the_legacy',     name:'Legacy',         emoji:'📜', rarity:'rare',      activation:'on_discard', durability:3,          defaultRank:null, defaultSuit:null, tags:['scoring'],           desc:'Discard this: the next hand played scores ×3. (3 charges)' },
@@ -4276,6 +4295,22 @@ let streakSaveArmed = true;
 let streakSaveProgress = 0; // 0..2 — counts streak hands toward re-arm
 let lastHandTime = 0;
 let lastSwapTime = 0; // for Still Water trick
+let lastHandRoundSeconds = null; // roundSeconds value when the previous hand was scored (Heron)
+let lastSwapRoundSeconds = null; // roundSeconds value when the previous swap occurred (Eagle Eye)
+
+// ── Timing/Streak batch: pause-themed Trick state ──
+let pausedSecondsRound = 0;   // total seconds the clock has spent paused this round (Albatross)
+let pauseInstanceGame = 0;    // PER GAME: number of clock pauses triggered (Hummingbird); reset only at newGame
+let retriggersThisRound = 0;  // count of card retriggers in scored hands this round (Cuckoo's pause length)
+let _lastHandRetrigs = 0;     // extra retriggers in the most recent calcScore of a real hand (read in playHand)
+let snoozeUsedThisRound = false; // Snooze knack: refunds once per round
+let cuckooNextMinute = 0;     // next roundStartSeconds-roundSeconds threshold for Cuckoo's pause
+let doubleJeopardyPos = null; // { r, c } — marked tile (Double Jeopardy); fires once per round
+let djUsedThisRound = false;  // Double Jeopardy has already fired its pause this round
+let firstPauseStartedRound = false; // a clock pause has begun this round (Vulture's "first pause" gate)
+let firstPauseActive = false; // currently inside the round's first continuous pause stretch (Vulture)
+let woodpeckerPos = null;       // { r, c } — marked tile (Woodpecker) during an active 30s block
+let woodpeckerActiveBlock = -1; // index of the 30s block already handled (even = active/marked, odd = off)
 
 let resilience = false; // once per game second chance
 let resilienceUsed = false;
@@ -4886,7 +4921,7 @@ const BAL = {
   enriched: { pips: 40 },
   overgrowth: { pips_per_card: 10 },
   triple_threat: { pips: 20 },
-  early_bird: { pips: 20 },
+  early_bird: { pips_per_card: 3 },
   kindling: { pips_per_streak: 4 },
   spade_flood: { time_div: 2 },
   sands_of_time: { divisor: 2 },
@@ -4896,13 +4931,24 @@ const BAL = {
   high_pair: { focus_per_card: 2 },
   pair_pips: { pip_mult: 2 },
   heavy_hand: { pips_per_card: 6 },
-  quick_draw: { pips_per_card: 3 },
+  quick_draw: { window_ms: 3000 },
   flow_state: { pips_per_card: 10 },
   club_double: { base: 5 },
-  steady_pace: { mult: 1 },
-  momentum: { mult: 2 },
-  night_owl: { mult: 3 },
+  night_owl: { mult_per_card: 1 },
   wildfire: { mult: 2 },
+  frozen_moment: { focus: 10 },
+  swift: { mult_per_interval: 1, interval_seconds: 3 },
+  cuckoo: { interval_seconds: 60 },
+  double_jeopardy: { pause_seconds: 15 },
+  woodpecker: { interval_seconds: 60, retrigger_count: 2 },
+  hummingbird: { mult_per_pause: 2 },
+  albatross: { pips_per_second: 5 },
+  vulture: { pause_seconds: 1 },
+  phoenix: {},
+  metronome: { seconds: 5 },
+  sundial: { seconds: 8 },
+  long_pause: { multiplier: 1.5 },
+  snooze: { seconds: 5 },
   kindred: { mult_per_card: 3 },
   tidal_force: { mult: 10 },
   rare_bloom: { perm_pips: 8 },
@@ -4910,9 +4956,8 @@ const BAL = {
   threes_run: { mult: 9 },
   lucky_three: { mult: 2 },
   light_touch: { mult: 5 },
-  closing_time: { mult: 5 },
-  patience_reward: { mult: 3 },
-  first_play: { mult: 2 },
+  patience_reward: { mult: 3, seconds: 15 },
+  first_play: { focus: 5 },
   monochrome: { coins: 1, seconds: 10 },
   full_color: { pips_per_card: 16, mult_per_card: 4 },
   balanced_diet: { mult_per_card: 2 },
@@ -4930,7 +4975,6 @@ const BAL = {
   combo_score: { mult_per_type: 2 },
   heart_double: { heart_mult: 1 },
   last_stand: { score_mult: 2 },
-  echo_hand: { score_mult: 1.5 },
   full_house_streak: { score_base: 1.5 },
   blackjack_bonus: { score_mult: 3 },
   ancient_grove: { min_run_len: 4 },
@@ -4944,7 +4988,6 @@ const BAL = {
   extinction: { score_mult: 2 },
   lucky_sevens: { focus: 3 },
   ninesong: { seconds: 3, mult: 9, focus: 3 },
-  frozen_moment: { score_mult: 2 },
   royal_trio: { mult_mult: 2 },
   prime_time: { pips_per_card: 23 },
   shape_square: { score_mult: 4 },
@@ -5019,18 +5062,6 @@ const DESC_TEMPLATES = {
   lucky_three: 'Any 3 in a hand adds +{mult} mult',
   rich_soil: 'All cards score +{pips} pips',
   fertile_ground: 'All cards score +{pips} pips',
-  early_bird: 'Hands in first 10s score +{pips} pips',
-  night_owl: 'Hands in last 10s score +{mult} mult',
-  closing_time: 'Hands played with 15s or less remaining score +{mult} mult',
-  patience_reward: 'Hands played more than 15s after the previous score +{mult} mult',
-  steady_pace: 'Each hand played scores +{mult} mult',
-  momentum: 'Consecutive hand within 5s scores +{mult} mult',
-  first_play: 'First hand each round scores +{mult} mult',
-  still_water: '+{mult_per_interval} mult for every 10 seconds elapsed without using a swap',
-  frozen_moment: 'Hands while timer paused score ×{score_mult}',
-  kindling: 'Same hand streak scores +{pips_per_streak} pips × streak',
-  wildfire: '3 same hands in a row scores +{mult} mult',
-  echo_hand: 'Playing the same hand type twice in a row scores ×{score_mult}',
   heart_double: 'Each scored heart adds +{heart_mult} mult',
   number_crunch: 'Hands with 4+ different ranks score +{mult} mult',
   shape_square: 'A 2×2 hand scores ×{score_mult}',
@@ -5048,7 +5079,6 @@ const DESC_TEMPLATES = {
   flow_state: 'While focus is ×1.5 or higher, +{pips_per_card} pips per card scored',
   low_tide: 'Cards below 6 score +{pips} pips',
   rowcol_triple_pips: 'Cards scored in a specific row or column contribute {pip_mult}× pips',
-  quick_draw: 'Hands played within 3 seconds of the previous score +{pips_per_card} pips per card',
   last_stand: 'If your score is below the round goal when you play, that hand scores x{score_mult}.',
   first_fruits: 'Each card in first hand each round permanently gains +{pips} pips',
   compound_mult: 'Each hand played permanently adds +{mult_per_hand} mult to this trick',
@@ -5118,6 +5148,9 @@ function calcScore(handName, cells, contrib = null) {
   const _scoreCells = scoringOrderCells(cells);
   const cards = _scoreCells.map(([r,c]) => gridData[r][c]);
   const hasTrickCard = trickCardPos && cells.some(([r,c]) => r===trickCardPos[0] && c===trickCardPos[1]);
+  // Predicted post-update streak count for THIS hand (playHand updates streakCount/lastHandType
+  // only after calcScore runs, so reading streakCount directly here is one hand stale).
+  const _effStreak = (lastHandType !== null && handName === lastHandType) ? streakCount + 1 : 1;
 
   // 1. Base pips (scaled by level) + card pips
   const levelScale = Math.pow(1.1, level - 1);
@@ -5149,6 +5182,7 @@ function calcScore(handName, cells, contrib = null) {
     });
   }
   let _clubHits = 0; // Hard Labour: counts club scoring hits, including retriggers
+  let _handRetrigs = 0; // Cuckoo: extra retriggers in this hand (committed to retriggersThisRound in playHand)
   const _eightCount = hasTrick('eights_retrigger') ? cards.filter(c => c.rank === '8').length : 0;
   _scoreCells.forEach(([r, c]) => {
     const card = gridData[r][c];
@@ -5187,14 +5221,19 @@ function calcScore(handName, cells, contrib = null) {
     const _refl = reflectAimsAt(r, c);
     const _soul = soulMirrorRankCount(baseRank);
     const _re = permRetrig[_eKey] || 0;  // permanent per-card retrigger (events)
+    const _rne = hasTrick('closing_time') && roundFractionRemaining() < 0.25; // Near Extinction
+    const _ech = hasTrick('echo_hand') && _effStreak >= 2; // Echoes
+    const _wp = hasTrick('woodpecker') && woodpeckerPos && r === woodpeckerPos.r && c === woodpeckerPos.c; // Woodpecker
     if (_r2) _retrig++; if (_r8) _retrig += (_eightCount - 1); if (_rc) _retrig++; if (_rl) _retrig++;
     if (_res) _retrig++; if (_rip) _retrig++;
     if (_refl) _retrig++; _retrig += _soul;
     _retrig += _re;
+    if (_rne) _retrig++; if (_ech) _retrig++; if (_wp) _retrig += BAL.woodpecker.retrigger_count;
     if (hasTrick('club_double') && (card.suit === '♣' || (card.combined && card.suit2 === '♣'))) _clubHits += _retrig;
     if (_retrig > 1) {
       const _pre = cp; cp *= _retrig;
       const _extra = cp - _pre;
+      _handRetrigs += (_retrig - 1); // Cuckoo counts retriggers this round
       if (_r2) bPip('twos_retrigger', _pre);
       else if (_r8) bPip('eights_retrigger', _pre);
       else if (_rc) bPip('corner_retrigger', _pre);
@@ -5204,9 +5243,13 @@ function calcScore(handName, cells, contrib = null) {
       else if (_refl) bPip('reflect', _pre);
       else if (_soul) bPip('soul_mirror', _pre);
       else if (_re) bPip('sapling', _extra);
+      else if (_rne) bPip('closing_time', _pre);
+      else if (_ech) bPip('echo_hand', _pre);
+      else if (_wp) bPip('woodpecker', _extra);
     }
     totalPips += cp;
   });
+  _lastHandRetrigs = _handRetrigs; // snapshot for Cuckoo (read after captureRoundContrib in playHand)
 
   // Hidden pair trick
   const rankCounts = {};
@@ -5217,11 +5260,14 @@ function calcScore(handName, cells, contrib = null) {
   if (hasTrick('worn_path')    && handName === 'Straight'){ totalPips += BAL.worn_path.pips; bPip('worn_path', BAL.worn_path.pips); }
   if (hasTrick('enriched')     && handName === 'Flush')   { totalPips += BAL.enriched.pips; bPip('enriched', BAL.enriched.pips); }
 
-  // Early bird / night owl
-  if (hasTrick('early_bird') && roundSeconds > 50) { totalPips += BAL.early_bird.pips; bPip('early_bird', BAL.early_bird.pips); }
+  // Early bird: first third of the round, +pips per card
+  if (hasTrick('early_bird') && roundFractionRemaining() > 2/3) { const _a = BAL.early_bird.pips_per_card * cells.length; totalPips += _a; bPip('early_bird', _a); }
 
-  // Kindling streak
-  if (hasTrick('kindling') && streakCount > 0) { const _a = BAL.kindling.pips_per_streak * streakCount; totalPips += _a; bPip('kindling', _a); }
+  // Kindling streak: +pips per streak hand beyond the first
+  if (hasTrick('kindling') && _effStreak > 1) { const _a = BAL.kindling.pips_per_streak * (_effStreak - 1); totalPips += _a; bPip('kindling', _a); }
+
+  // Albatross: +5 pips for every second the clock has spent paused this round
+  if (hasTrick('albatross') && pausedSecondsRound > 0) { const _a = pausedSecondsRound * BAL.albatross.pips_per_second; totalPips += _a; bPip('albatross', _a); }
 
   // Clubs: neutral by default; +10 pips each with Hard Labour Trick
   const clubCount = cards.filter(c => c.suit === '♣' || (c.combined && c.suit2 === '♣')).length;
@@ -5248,20 +5294,21 @@ function calcScore(handName, cells, contrib = null) {
   let mult = base.mult + sleightAmplifierMult;
 
   if (risingTideBonus > 0) { mult += risingTideBonus; bMult('rising_tide', risingTideBonus); }
-  if (hasTrick('steady_pace')) { mult += BAL.steady_pace.mult; bMult('steady_pace', BAL.steady_pace.mult); }
-  if (hasTrick('momentum') && (Date.now() - lastHandTime) < 5000) { mult += BAL.momentum.mult; bMult('momentum', BAL.momentum.mult); }
-  if (hasTrick('night_owl') && roundSeconds < 10) { mult += BAL.night_owl.mult; bMult('night_owl', BAL.night_owl.mult); }
-  if (hasTrick('wildfire') && streakCount >= 2) { mult += BAL.wildfire.mult; bMult('wildfire', BAL.wildfire.mult); }
-  if (hasTrick('still_water') && lastSwapTime === 0) {
-    // No swap used this round — +5 mult per 10s elapsed in round
-    const elapsed = ROUND_DURATION - roundSeconds;
-    const _a = BAL.still_water.mult_per_interval * Math.floor(elapsed / 10);
-    mult += _a; bMult('still_water', _a);
-  } else if (hasTrick('still_water') && lastSwapTime > 0) {
-    // Swap was used — count seconds since last swap
-    const secsSinceSwap = Math.floor((Date.now() - lastSwapTime) / 1000);
-    const _a = BAL.still_water.mult_per_interval * Math.floor(secsSinceSwap / 10);
-    mult += _a; bMult('still_water', _a);
+  // Night owl: last third of the round, +mult per card
+  if (hasTrick('night_owl') && roundFractionRemaining() <= 1/3) { const _a = BAL.night_owl.mult_per_card * cells.length; mult += _a; bMult('night_owl', _a); }
+  // Wildfire: 3+ same hands in a row
+  if (hasTrick('wildfire') && _effStreak >= 3) { mult += BAL.wildfire.mult; bMult('wildfire', BAL.wildfire.mult); }
+  // Hummingbird: +mult per clock pause triggered this game (uncapped)
+  if (hasTrick('hummingbird') && pauseInstanceGame > 0) { const _a = pauseInstanceGame * BAL.hummingbird.mult_per_pause; mult += _a; bMult('hummingbird', _a); }
+  // The Swift: +mult for every N seconds of round time elapsed
+  if (hasTrick('swift')) { const _e = Math.max(0, roundStartSeconds - roundSeconds); const _a = Math.floor(_e / BAL.swift.interval_seconds) * BAL.swift.mult_per_interval; if (_a) { mult += _a; bMult('swift', _a); } }
+  // Eagle Eye: +mult per 10 round-seconds elapsed since the last swap (or round start if none yet)
+  if (hasTrick('still_water')) {
+    const elapsedSinceSwap = lastSwapRoundSeconds !== null
+      ? Math.max(0, lastSwapRoundSeconds - roundSeconds)
+      : Math.max(0, roundStartSeconds - roundSeconds);
+    const _a = BAL.still_water.mult_per_interval * Math.floor(elapsedSinceSwap / 10);
+    if (_a) { mult += _a; bMult('still_water', _a); }
   }
 
   // Hand-specific mult
@@ -5343,12 +5390,9 @@ function calcScore(handName, cells, contrib = null) {
   if (hasTrick('lucky_three') && _threeCount){ mult += BAL.lucky_three.mult; bMult('lucky_three', BAL.lucky_three.mult); }
   // Hand-size
   if (hasTrick('light_touch') && cells.length === 2) { mult += BAL.light_touch.mult; bMult('light_touch', BAL.light_touch.mult); }
-  // Timing mult
-  if (hasTrick('closing_time') && roundSeconds <= 15) { mult += BAL.closing_time.mult; bMult('closing_time', BAL.closing_time.mult); }
-  if (hasTrick('patience_reward') && lastHandTime > 0 && (Date.now() - lastHandTime) > 15000) { mult += BAL.patience_reward.mult; bMult('patience_reward', BAL.patience_reward.mult); }
-  if (hasTrick('first_play') && handsPlayedRound === 0) { mult += BAL.first_play.mult; bMult('first_play', BAL.first_play.mult); }
-  // Streak
-  if (hasTrick('hot_streak') && streakCount >= 4) { const _a = streakCount - 3; mult += _a; bMult('hot_streak', _a); }
+  // Timing mult — Near Extinction's retrigger is handled in the per-card loop above.
+  // The Heron: hands played 15+ round-seconds after the previous score +mult
+  if (hasTrick('patience_reward') && lastHandRoundSeconds !== null && (lastHandRoundSeconds - roundSeconds) >= BAL.patience_reward.seconds) { mult += BAL.patience_reward.mult; bMult('patience_reward', BAL.patience_reward.mult); }
   // Suit conditions
   const _allRed   = cards.every(c => c.suit === '♥' || c.suit === '♦');
   const _allBlack = cards.every(c => c.suit === '♣' || c.suit === '♠');
@@ -5390,8 +5434,6 @@ function calcScore(handName, cells, contrib = null) {
   if (hasTrick('triple_threat') && handName === 'Full House') { totalPips += BAL.triple_threat.pips; bPip('triple_threat', BAL.triple_threat.pips); }
   if (hasTrick('heavy_hand') && cells.length === 5) { const _a = cells.length * BAL.heavy_hand.pips_per_card; totalPips += _a; bPip('heavy_hand', _a); }
   if (hasTrick('prime_time')) { const _pc = cards.filter(c => ['A','2','3','5','7'].includes(c.rank)).length; if (_pc >= 3) { const _a = cells.length * BAL.prime_time.pips_per_card; totalPips += _a; bPip('prime_time', _a); } }
-  // Quick draw timing pip
-  if (hasTrick('quick_draw') && lastHandTime > 0 && (Date.now() - lastHandTime) < 3000) { const _a = cells.length * BAL.quick_draw.pips_per_card; totalPips += _a; bPip('quick_draw', _a); }
   // Escalation: +1 mult per hand beyond 5th
   if (hasTrick('escalation') && handsPlayedRound >= 5) { const _a = handsPlayedRound - 5; mult += _a; bMult('escalation', _a); }
   // Combo score: +2 mult per distinct hand type played this round
@@ -5413,6 +5455,7 @@ function calcScore(handName, cells, contrib = null) {
   // Rank multipliers
   if (hasTrick('royal_trio') && cards.some(c=>c.rank==='K') && cards.some(c=>c.rank==='Q') && cards.some(c=>c.rank==='J')) { const _pre = mult; mult = Math.round(mult * BAL.royal_trio.mult_mult * 10) / 10; bMult('royal_trio', mult - _pre); }
   if (hasTrick('knave_power')) { let _jg = 0; for (let _gr=0; _gr<gridRows; _gr++) for (let _gc=0; _gc<gridCols; _gc++) { const _cc = gridData[_gr]?.[_gc]; if (_cc && !_cc._isSleight && !_cc._isTrick && _cc.rank === 'J') _jg++; } if (_jg > 0) { const _pre = totalPips; totalPips = Math.round(totalPips * Math.pow(BAL.knave_power.per_jack, _jg)); bPip('knave_power', totalPips - _pre); } }
+  // Phoenix: while paused, the Focus multiplier applies twice — handled at the Focus step below.
   // Mirror (Blueprint): duplicate each borrowed Trick's pip/mult contribution (incl. the multipliers above)
   mirroredTrickIds().forEach(mid => {
     if (_cp[mid]) { const _d = _cp[mid]; totalPips += _d; bPip('mirror', _d); }
@@ -5454,7 +5497,7 @@ function calcScore(handName, cells, contrib = null) {
 
   // 4. x score multipliers
   if (hasTrick('last_stand') && score < roundGoal) s *= BAL.last_stand.score_mult;
-  if (hasTrick('echo_hand') && streakCount >= 2) s *= BAL.echo_hand.score_mult;
+  // Echoes: same hand type as the previous hand retriggers each card (handled in the per-card loop above).
   // Blackjack: raw face values total exactly 21
   if (hasTrick('blackjack_bonus')) {
     const faceTotal = cards.reduce((sum, c) => {
@@ -5465,7 +5508,7 @@ function calcScore(handName, cells, contrib = null) {
   }
   if (handName === 'Straight Flush' && hasTrick('perfect_storm')) s *= BAL.perfect_storm.score_mult;
   if (handName === 'Four of a Kind' && hasTrick('extinction')) s *= BAL.extinction.score_mult;
-  if (pipeTimerPaused && hasTrick('frozen_moment')) s *= BAL.frozen_moment.score_mult;
+  // The Falcon: Focus-doubling while paused is handled in playHand's focus-generation block.
   // Shape bonuses
   if (hasTrick('shape_square') && isSquare(cells)) s *= BAL.shape_square.score_mult;
   if (hasTrick('shape_cross')  && isCross(cells))  s *= BAL.shape_cross.score_mult;
@@ -5476,6 +5519,8 @@ function calcScore(handName, cells, contrib = null) {
 
   // 5. Focus multiplier — separate third element, applied at the very end of the sequence
   if (fMult > 1) s *= fMult;
+  // Phoenix: while the clock is paused, the Focus multiplier applies a second time
+  if (hasTrick('phoenix') && pipeTimerPaused && fMult > 1) s *= fMult;
 
   // Push accumulated contrib entries (pip then mult, skip zeros)
   if (contrib !== null) {
@@ -5801,14 +5846,16 @@ function render() {
     if (hasTrick('rich_soil')) bonusLines.push({ label:'Rich Soil', val:`+${handCells.length} pips`, type:'pip' });
     if (hasTrick('fertile_ground')) bonusLines.push({ label:'Fertile Ground', val:`+${handCells.length*3} pips`, type:'pip' });
     if (hasTrick('court_of_leaves') && cards.some(c=>['J','Q','K'].includes(c.rank))) bonusLines.push({ label:'Court of Leaves', val:'+pips', type:'pip' });
-    if (hasTrick('steady_pace')) bonusLines.push({ label:'Steady Pace', val:'+1 mult', type:'mult' });
-    if (hasTrick('momentum') && (Date.now()-lastHandTime)<5000) bonusLines.push({ label:'Momentum', val:'+2 mult', type:'mult' });
     if (hasTrick('still_water')) {
-      const swMult = lastSwapTime === 0
-        ? 5 * Math.floor((ROUND_DURATION - roundSeconds) / 10)
-        : 5 * Math.floor((Date.now() - lastSwapTime) / 10000);
-      if (swMult > 0) bonusLines.push({ label:'Still Water', val:`+${swMult} mult`, type:'mult' });
+      const elapsedSinceSwap = lastSwapRoundSeconds !== null
+        ? Math.max(0, lastSwapRoundSeconds - roundSeconds)
+        : Math.max(0, roundStartSeconds - roundSeconds);
+      const swMult = BAL.still_water.mult_per_interval * Math.floor(elapsedSinceSwap / 10);
+      if (swMult > 0) bonusLines.push({ label:'Eagle Eye', val:`+${swMult} mult`, type:'mult' });
     }
+    if (hasTrick('swift')) { const _e = Math.max(0, roundStartSeconds - roundSeconds); const _sw = Math.floor(_e / BAL.swift.interval_seconds) * BAL.swift.mult_per_interval; if (_sw > 0) bonusLines.push({ label:'The Swift', val:`+${_sw} mult`, type:'mult' }); }
+    if (hasTrick('hummingbird') && pauseInstanceGame > 0) bonusLines.push({ label:'Hummingbird', val:`+${pauseInstanceGame*BAL.hummingbird.mult_per_pause} mult`, type:'mult' });
+    if (hasTrick('albatross') && pausedSecondsRound > 0) bonusLines.push({ label:'Albatross', val:`+${pausedSecondsRound*BAL.albatross.pips_per_second} pips`, type:'pip' });
     const _isRunLine = ['Run of 3','Run of 4','Straight','Straight Flush'].includes(hand);
     const _setMax = (() => { const m = {}; cards.forEach(c => m[c.rank] = (m[c.rank]||0)+1); return Math.max(0, ...Object.values(m)); })();
     if (hasTrick('overgrowth') && _isRunLine) bonusLines.push({ label:'Cascade', val:`+${10*cards.length} pips`, type:'pip' });
@@ -5817,8 +5864,11 @@ function render() {
     if (hasTrick('long_road') && _isRunLine) bonusLines.push({ label:'Storm', val:`+${2*cards.length} mult`, type:'mult' });
     if (hasTrick('correct_run') && _isRunLine && canBeOrderedRun(handCells)) bonusLines.push({ label:'Rogue Wave', val:`+${80*cards.length} pips`, type:'pip' });
     if (hasTrickCard) bonusLines.push({ label:'⭐ Trick', val:'×2 score', type:'score' });
-    if (hasTrick('early_bird') && roundSeconds>50) bonusLines.push({ label:'Early Bird', val:'+20 pips', type:'pip' });
-    if (hasTrick('kindling') && streakCount>0) bonusLines.push({ label:`Kindling ×${streakCount}`, val:`+${4*streakCount} pips`, type:'pip' });
+    if (hasTrick('early_bird') && roundFractionRemaining()>2/3) bonusLines.push({ label:'Early Bird', val:`+${BAL.early_bird.pips_per_card*cards.length} pips`, type:'pip' });
+    if (hasTrick('kindling')) {
+      const _previewStreak = (lastHandType !== null && hand === lastHandType) ? streakCount + 1 : 1;
+      if (_previewStreak > 1) bonusLines.push({ label:`Kindling ×${_previewStreak-1}`, val:`+${4*(_previewStreak-1)} pips`, type:'pip' });
+    }
 
     // Suits neutral by default — preview only shows active Trick effects
     const clubCnt  = cards.filter(c => c.suit==='♣'||(c.combined&&c.suit2==='♣')).length;
@@ -6186,7 +6236,8 @@ function isFocusDecayPaused() {
   return (typeof isPaused !== 'undefined' && isPaused)
       || (typeof interludeActive !== 'undefined' && interludeActive)
       || (typeof gameTimerPaused !== 'undefined' && gameTimerPaused)
-      || (typeof roundEnded !== 'undefined' && roundEnded);
+      || (typeof roundEnded !== 'undefined' && roundEnded)
+      || (typeof pipeTimerPaused !== 'undefined' && pipeTimerPaused);
 }
 
 function focusDecayTick() {
@@ -6481,6 +6532,7 @@ function doSwap(r1, c1, r2, c2) {
   }
   updateClockUI();
   lastSwapTime = Date.now();
+  lastSwapRoundSeconds = roundSeconds; // for Eagle Eye
   resetFocusDecayTimer();
   // Restless: swapping adds 1 focus
   if (hasTrick('restless')) addFocus(1);
@@ -6812,6 +6864,8 @@ function playHand() {
   // Snapshot contribution breakdown now, from pristine pre-mutation state.
   // Folded into the round tally at the commit points below (goal / normal).
   const _contribSnapshot = captureRoundContrib(result);
+  // Cuckoo: tally this hand's retriggers (captureRoundContrib just ran calcScore on the real hand).
+  if (hasTrick('cuckoo')) retriggersThisRound += _lastHandRetrigs;
   dbgEvent('ok', 'play ' + hand, { finalScore, cards: handCells.length });
   console.log('[PLAY] hand result', { hand, finalScore, scoreAfterAdd: score + finalScore });
   const scoreBeforeHand = score;
@@ -6840,7 +6894,7 @@ function playHand() {
   if (challengeActive) checkChallengeAfterHand(result, handCells);
 
   // on_play sleights (Good Friend exalt, Shortcut challenge-complete) fire when played
-  fireSleightsOnPlay(playedCells, handCells);
+  fireSleightsOnPlay(playedCells, handCells, hand);
 
   updateCounters(hand, handCells);
   checkUnlocks();
@@ -6925,7 +6979,11 @@ function playHand() {
     if (hasTrick('lucky_sevens')) { const _sv = handCells.filter(([r,c]) => gridData[r]?.[c]?.rank === '7').length; if (_sv) totalFocus += _sv * BAL.lucky_sevens.focus; }
     // Threepeat: hand pip-sum divisible by 3 → +3 Focus
     if (hasTrick('ninesong')) { const _ps = handCells.reduce((s,[r,c]) => s + (gridData[r]?.[c] ? cardPips(gridData[r][c].rank) : 0), 0); if (_ps % 3 === 0) totalFocus += BAL.ninesong.focus; }
+    // The Falcon: hands played while the clock is paused add +10 Focus
+    if (hasTrick('frozen_moment') && pipeTimerPaused) totalFocus += BAL.frozen_moment.focus;
     if (totalFocus > 0) addFocus(totalFocus);
+    // Quick Draw: hands played within 3 seconds of the previous permanently add +1 max Focus capacity
+    if (hasTrick('quick_draw') && lastHandTime > 0 && secondsSinceLast * 1000 < BAL.quick_draw.window_ms) focusCapacity++;
     // Flash Flood: runs of 4+ cards instantly advance focus to the next threshold
     if (_isRunHand && handCells.length >= 4 && hasTrick('ancient_grove')) {
       const _nt = (Math.floor(focusNodes / FOCUS_THRESHOLD) + 1) * FOCUS_THRESHOLD;
@@ -6952,6 +7010,18 @@ function playHand() {
     }
     // High Water: after 3 Runs this round, each further Run pauses the clock by its card count
     if (_isRunHand && runsPlayedRound >= 3 && hasTrick('high_water')) pauseRound(handCells.length);
+    // Double Jeopardy: the first time the marked card is scored this round, pause the clock 15s (once per round)
+    if (hasTrick('double_jeopardy') && !djUsedThisRound && doubleJeopardyPos && handCells.some(([r,c]) => r === doubleJeopardyPos.r && c === doubleJeopardyPos.c)) {
+      pauseRound(BAL.double_jeopardy.pause_seconds);
+      djUsedThisRound = true;
+      doubleJeopardyPos = null; // mark consumed; highlight clears
+    }
+    // Vulture buff: any scored card carrying the permanent "+Ns pause" buff pauses the clock by
+    // its total seconds. Not gated on hasTrick — the buff lives on the card and persists if Vulture leaves.
+    {
+      const _vc = handCells.reduce((n,[r,c]) => n + (gridData[r]?.[c]?._vulturePause || 0), 0);
+      if (_vc) pauseRound(_vc);
+    }
     console.log('[FOCUS] hand=' + hand + ' base=' + handFocus + ' speedBonus=' + speedBonus + ' total=' + totalFocus + ' t=' + secondsSinceLast.toFixed(2) + 's');
   }
   resetFocusDecayTimer();
@@ -6996,6 +7066,7 @@ function playHand() {
     }
   }
   lastHandTime = now;
+  lastHandRoundSeconds = roundSeconds; // for The Heron, snapshotted AFTER this hand's own check above
 
   // ── Accumulating Trick effects (post-hand) ──
   handsPlayedRound++;
@@ -7049,6 +7120,8 @@ function playHand() {
         permPips[k] = (permPips[k]||0) + BAL.first_fruits.pips;
       });
     }
+    // Head Start: the first hand each round adds +5 Focus
+    if (hasTrick('first_play')) addFocus(BAL.first_play.focus);
     firstHandThisRound = false;
   }
 
@@ -8002,6 +8075,8 @@ function doDiscard() {
   const discardedCards = selected.map(([r,c]) => gridData[r][c]);
   // Lucky Sevens: +3 Focus per 7 discarded
   if (hasTrick('lucky_sevens')) { const _sv = discardedCards.filter(c => c?.rank === '7').length; if (_sv) addFocus(_sv * BAL.lucky_sevens.focus); }
+  // The Vulture: cards discarded during the round's first clock pause gain a permanent "pause on score" buff (stacks)
+  if (hasTrick('vulture') && firstPauseActive) discardedCards.forEach(c => { if (c) c._vulturePause = (c._vulturePause || 0) + BAL.vulture.pause_seconds; });
   // ♠ corrupts after being discarded 2×; a swap-pending ♥ counts as "not played" → corrupt.
   // Flags are set on the card object directly since it's leaving the grid (persists in the pile).
   if (exaltCorruptEnabled) // ── discard-driven corruption skipped while the mechanic is paused ──
@@ -8095,6 +8170,12 @@ function showTimeCost(label) {
 }
 
 function pauseRound(seconds) {
+  // Long Pause knack: all pauses are 1.5x longer
+  if (hasKnack('long_pause')) seconds *= BAL.long_pause.multiplier;
+  pauseInstanceGame++; // Hummingbird (counts every pause triggered this game)
+  // The Vulture: mark the start of the round's FIRST continuous pause stretch. An extension
+  // landing while already paused does NOT start a new stretch (pipeTimerPaused is still true).
+  if (!pipeTimerPaused && !firstPauseStartedRound) { firstPauseStartedRound = true; firstPauseActive = true; }
   // Pauses always stack — an active pause is extended, not reset.
   pauseSecondsLeft += seconds;
   pipeTimerPaused = true;
@@ -8104,10 +8185,16 @@ function pauseRound(seconds) {
   // count down pause
   const tick = () => {
     pauseSecondsLeft--;
+    pausedSecondsRound++; // Albatross
     if (pauseSecondsLeft <= 0) {
       pipeTimerPaused = false; pauseSecondsLeft = 0;
+      firstPauseActive = false; // the first continuous pause stretch is over (Vulture)
       if (clockEl) clockEl.classList.remove('clock-paused');
       updateClockUI();
+      // Snooze knack: once per round, refund seconds to the round clock when a pause ends
+      if (hasKnack('snooze') && !snoozeUsedThisRound) {
+        roundSeconds += BAL.snooze.seconds; updateClockUI(); snoozeUsedThisRound = true;
+      }
     } else {
       pauseTimer = setTimeout(tick, 1000);
     }
@@ -8118,6 +8205,22 @@ function pauseRound(seconds) {
 // ══════════════════════════════════════════════
 // GRAVITY ANIMATION (from gravity-test.html)
 // ══════════════════════════════════════════════
+
+// Permanent-buff corner indicators: diagonal tally bands (thin = 1, thick = 5),
+// stacked inward from a corner. pips=blue/top-left, mult=red/top-right,
+// time=black/bottom-right, coins=gold/bottom-left.
+function buffBandHTML(corner, count, color) {
+  if (!count || count <= 0) return '';
+  const segs = [];
+  for (let i = 0; i < Math.floor(count / 5); i++) segs.push('bb-thick');
+  for (let i = 0; i < count % 5; i++) segs.push('bb-thin');
+  const edge = { tl:'top', tr:'top', br:'bottom', bl:'bottom' }[corner];
+  const side = { tl:'left', tr:'right', br:'right', bl:'left' }[corner];
+  return segs.map((cls, i) => {
+    const o = 2 + i * 3; // px inward from the corner along the diagonal
+    return `<div class="buff-band bb-${corner} ${cls}" style="${edge}:${o}px;${side}:${o}px;background:${color};"></div>`;
+  }).join('');
+}
 
 // ── Single source of truth for card visual appearance ──────────────────────────
 // Returns { className, innerHTML } describing how a card looks at position (r,c).
@@ -8188,6 +8291,8 @@ function renderCardAppearance(card, r, c, {
   const rcMult      = cellHasRowColBonus(r, c, 'rowcol_mult')        ? ' rc-mult'      : '';
   const rcRetrigger = cellHasRowColBonus(r, c, 'rowcol_retrigger')   ? ' rc-retrigger' : '';
   const rcLeyline   = leyLinePos && leyLinePos.r === r && leyLinePos.c === c ? ' rc-leyline' : '';
+  const rcJeopardy  = doubleJeopardyPos && doubleJeopardyPos.r === r && doubleJeopardyPos.c === c ? ' rc-jeopardy' : '';
+  const rcWoodpecker = woodpeckerPos && woodpeckerPos.r === r && woodpeckerPos.c === c ? ' rc-woodpecker' : '';
 
   const bothClass = hasPip && hasMult ? ' has-both' : hasPip ? ' has-pip' : hasMult ? ' has-mult' : '';
   const className = [
@@ -8202,7 +8307,7 @@ function renderCardAppearance(card, r, c, {
     (exaltCorruptEnabled && card._exalted) ? 'exalted' : '',
     (exaltCorruptEnabled && card._corrupted) ? 'corrupted' : '',
     bothClass.trim(),
-    rcPips.trim(), rcMult.trim(), rcRetrigger.trim(), rcLeyline.trim(),
+    rcPips.trim(), rcMult.trim(), rcRetrigger.trim(), rcLeyline.trim(), rcJeopardy.trim(), rcWoodpecker.trim(),
   ].filter(Boolean).join(' ');
 
   const combinedLabel = isCombined
@@ -8217,6 +8322,9 @@ function renderCardAppearance(card, r, c, {
     <div class="suit">${card.suit}</div>
     ${pp ? `<div style="position:absolute;bottom:2px;left:3px;font-size:8px;font-family:'Cinzel',serif;color:#3a6fca;font-weight:700">+${pp}p</div>` : ''}
     ${pm ? `<div style="position:absolute;bottom:2px;right:3px;font-size:8px;font-family:'Cinzel',serif;color:#c0392b;font-weight:700">+${pm}m</div>` : ''}
+    ${buffBandHTML('tl', pp, '#3a6fca')}
+    ${buffBandHTML('tr', pm, '#c0392b')}
+    ${buffBandHTML('br', card._vulturePause || 0, '#111')}
   `;
 
   return { className, innerHTML };
@@ -8540,6 +8648,22 @@ function startRoundTimer() {
     if (roundSeconds < 0) roundSeconds = 0;
     trickCardTimer++;
     if (trickCardTimer >= TRICK_CARD_INTERVAL) { trickCardTimer = 0; assignTrickCard(); }
+    const _elapsedRound = roundStartSeconds - roundSeconds;
+    // The Cuckoo: every 60s of round time, pause the clock by 1s for each retrigger so far this round
+    if (hasTrick('cuckoo') && _elapsedRound >= cuckooNextMinute) {
+      cuckooNextMinute += BAL.cuckoo.interval_seconds;
+      if (retriggersThisRound > 0) pauseRound(retriggersThisRound);
+    }
+    // The Woodpecker: marking runs in alternating 30s blocks — active 0–30s, off 30–60s, active 60–90s, …
+    // During an active block one random card is marked (pecking animation); during an off block nothing is marked.
+    if (hasTrick('woodpecker')) {
+      const _blk = Math.floor(_elapsedRound / 30);
+      if (_blk !== woodpeckerActiveBlock) {
+        woodpeckerActiveBlock = _blk;
+        woodpeckerPos = (_blk % 2 === 0) ? { r: Math.floor(Math.random() * gridRows), c: Math.floor(Math.random() * gridCols) } : null;
+        if (!animating && !falling) render(); // show/clear the highlight + trigger the peck animation
+      }
+    }
     updateClockUI();
     if (roundSeconds <= 0) onRoundEnd();
   }, 1000);
@@ -9997,7 +10121,7 @@ function fireSleightsOnDraw() {
 
 // ── on_play sleights: fire when a sleight is part of a played hand ──
 // Called from playHand with the full set of selected cells.
-function fireSleightsOnPlay(selectedCells, handCells) {
+function fireSleightsOnPlay(selectedCells, handCells, hand) {
   selectedCells.forEach(([r, c]) => {
     const card = gridData[r]?.[c];
     if (!card?._isSleight) return;
@@ -10005,6 +10129,20 @@ function fireSleightsOnPlay(selectedCells, handCells) {
     if (!def || def.activation !== 'on_play') return;
     // shortcut requires a 4-card hand
     if (def.id === 'shortcut' && handCells.length !== 4) return;
+    // Metronome: hand type differs from the previous hand played
+    if (def.id === 'metronome') {
+      if (lastHandType === null || hand === lastHandType) return;
+      pauseRound(BAL.metronome.seconds);
+      consumeSleightCharge(card, r, c);
+      return;
+    }
+    // Sundial: every card in the hand shares a column
+    if (def.id === 'sundial') {
+      if (!handCells.every(([, hc]) => hc === handCells[0][1])) return;
+      pauseRound(BAL.sundial.seconds);
+      consumeSleightCharge(card, r, c);
+      return;
+    }
     // Naturalist: each OTHER scored card permanently gains +2 pips
     if (def.id === 'the_naturalist') {
       let buffed = 0;
@@ -11749,6 +11887,8 @@ function triggerLevelUp() {
   if (hasKnack('carry_swaps'))    accumulatedSwaps    = 0;
   if (hasKnack('carry_time'))     accumulatedSeconds  = 0;
   lastSwapTime = 0;
+  lastSwapRoundSeconds = null;
+  lastHandRoundSeconds = null;
   firstHandThisRound = true;
   freeSwapsLeft    = 2;
   freeDiscardsLeft = 2;
@@ -11782,6 +11922,17 @@ function triggerLevelUp() {
   if (hasTrick('rowcol_perm_double') || rowColBonuses.some(b => b.id === 'rowcol_perm_double')) {
     leyLinePos = { r: Math.floor(Math.random() * gridRows), c: Math.floor(Math.random() * gridCols) };
   }
+  // ── Timing/Streak batch: pause-themed Trick state, reset each round ──
+  pausedSecondsRound = 0;
+  retriggersThisRound = 0;
+  snoozeUsedThisRound = false;
+  cuckooNextMinute = BAL.cuckoo.interval_seconds;
+  doubleJeopardyPos = hasTrick('double_jeopardy') ? { r: Math.floor(Math.random() * gridRows), c: Math.floor(Math.random() * gridCols) } : null;
+  djUsedThisRound = false;
+  firstPauseStartedRound = false;
+  firstPauseActive = false;
+  woodpeckerPos = null;
+  woodpeckerActiveBlock = -1;
   trickCardPos = null;
   trickCardTimer = 0;
   selected = [];
@@ -12072,7 +12223,7 @@ function updateLUClockUI() {
 function pickTrickOptions(n) {
   const pool = [...TRICK_POOL];
   // Don't offer already acquired bonuses (except stackable ones)
-  const stackableIds = ['rich_soil','fertile_ground','steady_pace','rowcol_triple_pips','rowcol_mult','rowcol_retrigger','rowcol_perm_double'];
+  const stackableIds = ['rich_soil','fertile_ground','rowcol_triple_pips','rowcol_mult','rowcol_retrigger','rowcol_perm_double'];
   const filtered = pool.filter(b => !acquiredTricks.some(a => a.id === b.id && !stackableIds.includes(b.id)));
   const shuffled = shuffle(filtered);
   // Weight: common 9×, rare 3×, legendary 1× 
@@ -13276,10 +13427,10 @@ const UNLOCK_TRICK_POOL = {
   twopair:      ['pair_pips','two_pair_mult','kindred'],
   straight:     ['worn_path','long_road','river_run','correct_run'],
   flush:        ['enriched','tidal_force','deluge'],
-  fullhouse:    ['hidden_triple','steady_pace','wildfire'],
+  fullhouse:    ['hidden_triple','kindling','wildfire'],
   straightflush:['enriched','tidal_force','full_color','tide_table'],
   highcard:     ['rich_soil','first_light','face_value'],
-  blackjack:    ['ninesong','lucky_sevens','steady_pace'],
+  blackjack:    ['ninesong','lucky_sevens','first_play'],
 };
 
 function updateCounters(hand, handCells) {
@@ -13785,6 +13936,7 @@ function startGame() {
   heldBackScore = 0;
   pipeTimerPaused = false;
   pauseSecondsLeft = 0;
+  pauseInstanceGame = 0; // Hummingbird's per-game pause counter — reset only here
   if (pauseTimer) { clearTimeout(pauseTimer); pauseTimer = null; }
   const ALL_HAND_KEYS = ['run3','threeofakind','fourofakind','run4','pair','twopair','straight','flush','fullhouse','straightflush','highcard','blackjack'];
   const BASE_HAND_KEYS = ['run3','threeofakind','twopair','fourofakind'];
