@@ -1,12 +1,18 @@
-# Redesign Progress & Handoff (as of build r62)
+# Redesign Progress & Handoff (as of build r69)
 
 Companion to `GLOSSARY.md` (house style) and `CLAUDE.md` (architecture). This tracks the
 trick/sleight/knack redesign driven by the owner's CSV (`bonus_redesign_6.15.26.csv`,
 uploaded per-session) plus occasional supplemental docs.
 
-## Workflow (unchanged)
-- Develop on `claude/blissful-gates-tovszv`; ship = `git push origin HEAD && git push origin HEAD:main` (Pages serves `main`).
-- Bump the `BUILD` constant every commit (currently `r62`). Validate syntax:
+## Workflow
+- Branch: develop on whatever `claude/*` branch the session is assigned, then ship =
+  `git push origin HEAD:<feature> && git push origin HEAD:main` (Pages serves `main`).
+  (The r63–r69 work happened on `claude/tricks-redesign-impl-dortua`; older entries
+  referenced `claude/blissful-gates-tovszv`. The branch name is not load-bearing — `main`
+  is the source of truth.) The owner sometimes commits to `main` directly between sessions,
+  so **always `git fetch origin main` and merge before pushing** (r66 had to merge owner's
+  r64/r65 commits).
+- Bump the `BUILD` constant every commit (currently `r69`). Validate syntax:
   `node -e "const h=require('fs').readFileSync('index.html','utf8');new Function(h.match(/<script>([\s\S]*)<\/script>/)[1]);console.log('OK')"`
 - Per batch: spec the tricks in glossary style → owner confirms/tweaks → build → ship. Owner is non-technical; explain plainly.
 
@@ -23,6 +29,15 @@ uploaded per-session) plus occasional supplemental docs.
 - **r60** — Mirror = Blueprint (real duplication of a borrowed Trick's contribution).
 - **r61** — Batch 4 (rank-specific scoring tricks) + Mirror extended to duplicate multiplier/on-grid tricks (e.g. Knave).
 - **r62** — Priming system + Inspirato, Prime Times, Double Take.
+- **r63** — Payout > Contributions tab (per-round bonus-entity breakdown).
+- **r64–r65** — (owner's own commits) tooltip + scaling fixes; emoji + name on reward/shop cards.
+- **r66** — **Batch 5 (Timing/Streak)** + the pause-theme bird sub-family (see Batches DONE).
+  Visual systems added: Woodpecker peck/ripple animation; permanent-buff corner tally bands
+  (`buffBandHTML`). Merged owner's r64/r65 in.
+- **r67** — Snooze knack refund 5s → 10s.
+- **r68** — Sundial: sleight → **knack** (column-only hands pause 8s). First *conditional* knack.
+- **r69** — Snooze: knack → **double-tap sleight** (10s pause); removed **Time Keeper**.
+  Parked the **Time-Rewind** batch idea (see its own section below).
 
 ## Batches DONE
 1. **Runs** — Cascade, Storm, Torrent, Flash Flood, Rogue Wave, Tide Table, Undertow.
@@ -30,9 +45,20 @@ uploaded per-session) plus occasional supplemental docs.
 3. **Flushes & Suits** — Enriched, Tidal Forces, Deluge, Rainbow, Balance, Blood Diamonds, Dark Matter, Kaleidoscope, Hard Labour.
 4. **Rank-specific** — First Light, Face Value, Men of Repute, Unsummit, Every Day Essentials, Get Even, Odd One In, Prime Time, Heads of State, Knave for the People, Gnomes, Threepeat, Lucky Sevens, D6, Sideways to Infinity, Middle Management, **+ Inspirato, Prime Times, Double Take** (the priming-system tricks).
 - Mythomania (Reflect, Soul Mirror, Mirror) shipped alongside.
+5. **Timing/Streak** — Early Bird, Night Owl, Near Extinction, Quick Draw, The Heron, Head Start,
+   Eagle Eye, Kindling, Wildfire, Echoes (originals redesigned) **+ pause-theme bird sub-family:**
+   The Falcon (+10 Focus while paused), The Swift (+1 mult/3s elapsed), The Cuckoo (each minute,
+   pause 1s per retrigger this round), Double Jeopardy (round-start marked tile → 15s pause once/round),
+   The Woodpecker (alternating 30s blocks mark a card that retriggers twice; peck/ripple anim),
+   The Hummingbird (+2 mult per pause this *game*), The Albatross (+5 pips/sec paused this round),
+   The Phoenix (Focus mult applies twice while paused), The Vulture (cards discarded during the
+   round's first pause permanently gain "pause Ns when scored"; corner tally-band buff display).
+   Sleights: Metronome (on_play, diff hand type → pause 5s), Snooze (double-tap → pause 10s).
+   Knacks: Long Pause (pauses 1.5×), Sundial (column-only hands pause 8s). Removed Time Keeper.
 
 ## Batches REMAINING (next)
-**Timing/Streak → Grid/Position → Focus-centric → Scaling/Permanent → Sleights → Knacks → New & curses.**
+**Grid/Position → Focus-centric → Scaling/Permanent → Sleights → Knacks → New & curses.**
+Plus the parked **Time-Rewind** family (its own section below).
 
 ## Key systems/mechanics (where to look in index.html)
 - **Tricks** live in a tray (`trickTrayMode`); `hasTrick(id)` gates effects. `TRICK_POOL`, `BAL` (constants), `DESC_TEMPLATES` (filled into pool `desc` at init IF a template + BAL entry exist — so when redesigning a trick you MUST update or delete its template or it overwrites the new desc with stale/`undefined` text).
