@@ -3604,7 +3604,7 @@
 </div>
 
 <script>
-const BUILD = '2026-06-28 · r69';
+const BUILD = '2026-06-28 · r70';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -3929,11 +3929,11 @@ const TRICK_POOL = [
   { id:'frozen_moment',  name:'The Falcon',          tier:'epic',      desc:'Hands played while the clock is paused add +10 Focus' },
   { id:'swift',          name:'The Swift',           tier:'rare',      desc:'+1 mult for every 3 seconds elapsed this round' },
   { id:'cuckoo',         name:'The Cuckoo',          tier:'epic',      desc:'Every 60 seconds of round time, pause the clock by 1 second for each retrigger that has happened this round' },
-  { id:'double_jeopardy', name:'Double Jeopardy',    tier:'epic',      desc:'At round start, one random card is marked. The first time you score it, pause the clock for 15 seconds' },
+  { id:'double_jeopardy', name:'Double Jeopardy',    tier:'epic',      desc:'Once per round: a random card is marked at round start; the first time you score it, pause the clock for 15 seconds' },
   { id:'woodpecker',     name:'The Woodpecker',      tier:'rare',      desc:'In alternating 30-second blocks a random card is marked. Scoring a marked card retriggers it twice' },
   { id:'hummingbird',    name:'The Hummingbird',     tier:'rare',      desc:'+2 mult for every clock pause triggered this game' },
   { id:'albatross',      name:'The Albatross',       tier:'rare',      desc:'+5 pips for every second the clock has spent paused this round' },
-  { id:'vulture',        name:'The Vulture',         tier:'epic',      desc:'Cards discarded during the round’s first clock pause permanently gain: when scored, pause the clock for 1 second' },
+  { id:'vulture',        name:'The Vulture',         tier:'epic',      desc:'The first hand of cards discarded while the clock is paused permanently gain: pause the clock 1 second each time they score (retriggers stack)' },
   { id:'phoenix',        name:'The Phoenix',         tier:'mythic',    desc:'While the clock is paused, the Focus multiplier applies twice' },
   // ── Streaks ──
   { id:'kindling',       name:'Kindling',            tier:'common',    desc:'Same hand streak scores +4 pips × streak' },
@@ -4389,8 +4389,8 @@ let _lastHandRetrigs = 0;     // extra retriggers in the most recent calcScore o
 let cuckooNextMinute = 0;     // next roundStartSeconds-roundSeconds threshold for Cuckoo's pause
 let doubleJeopardyPos = null; // { r, c } — marked tile (Double Jeopardy); fires once per round
 let djUsedThisRound = false;  // Double Jeopardy has already fired its pause this round
-let firstPauseStartedRound = false; // a clock pause has begun this round (Vulture's "first pause" gate)
-let firstPauseActive = false; // currently inside the round's first continuous pause stretch (Vulture)
+let vultureMarkedThisRound = false; // Vulture has already buffed the first discard-batch made while paused this round
+let _lastHandVultureSeconds = 0; // sum of Vulture buff-seconds fired (retrigger-aware) in the last real calcScore
 let woodpeckerPos = null;       // { r, c } — marked tile (Woodpecker) during an active 30s block
 let woodpeckerActiveBlock = -1; // index of the 30s block already handled (even = active/marked, odd = off)
 
@@ -5263,6 +5263,7 @@ function calcScore(handName, cells, contrib = null) {
   }
   let _clubHits = 0; // Hard Labour: counts club scoring hits, including retriggers
   let _handRetrigs = 0; // Cuckoo: extra retriggers in this hand (committed to retriggersThisRound in playHand)
+  let _vultureFires = 0; // Vulture: total buff-seconds fired this hand, counting retriggers
   const _eightCount = hasTrick('eights_retrigger') ? cards.filter(c => c.rank === '8').length : 0;
   _scoreCells.forEach(([r, c]) => {
     const card = gridData[r][c];
@@ -5310,6 +5311,7 @@ function calcScore(handName, cells, contrib = null) {
     _retrig += _re;
     if (_rne) _retrig++; if (_ech) _retrig++; if (_wp) _retrig += BAL.woodpecker.retrigger_count;
     if (hasTrick('club_double') && (card.suit === '♣' || (card.combined && card.suit2 === '♣'))) _clubHits += _retrig;
+    if (card._vulturePause) _vultureFires += card._vulturePause * _retrig; // Vulture buff fires once per (re)trigger
     if (_retrig > 1) {
       const _pre = cp; cp *= _retrig;
       const _extra = cp - _pre;
@@ -5330,6 +5332,7 @@ function calcScore(handName, cells, contrib = null) {
     totalPips += cp;
   });
   _lastHandRetrigs = _handRetrigs; // snapshot for Cuckoo (read after captureRoundContrib in playHand)
+  _lastHandVultureSeconds = _vultureFires; // snapshot for Vulture (retrigger-aware pause seconds)
 
   // Hidden pair trick
   const rankCounts = {};
@@ -6946,6 +6949,8 @@ function playHand() {
   const _contribSnapshot = captureRoundContrib(result);
   // Cuckoo: tally this hand's retriggers (captureRoundContrib just ran calcScore on the real hand).
   if (hasTrick('cuckoo')) retriggersThisRound += _lastHandRetrigs;
+  // Vulture: retrigger-aware pause-seconds from buffed cards in this hand (same fresh snapshot).
+  const _vultureSec = _lastHandVultureSeconds;
   dbgEvent('ok', 'play ' + hand, { finalScore, cards: handCells.length });
   console.log('[PLAY] hand result', { hand, finalScore, scoreAfterAdd: score + finalScore });
   const scoreBeforeHand = score;
@@ -7098,12 +7103,9 @@ function playHand() {
       djUsedThisRound = true;
       doubleJeopardyPos = null; // mark consumed; highlight clears
     }
-    // Vulture buff: any scored card carrying the permanent "+Ns pause" buff pauses the clock by
-    // its total seconds. Not gated on hasTrick — the buff lives on the card and persists if Vulture leaves.
-    {
-      const _vc = handCells.reduce((n,[r,c]) => n + (gridData[r]?.[c]?._vulturePause || 0), 0);
-      if (_vc) pauseRound(_vc);
-    }
+    // Vulture buff: scored cards carrying the permanent "+Ns pause" buff pause the clock, counting
+    // retriggers (each (re)trigger fires the buff). Not gated on hasTrick — the buff lives on the card.
+    if (_vultureSec) pauseRound(_vultureSec);
     console.log('[FOCUS] hand=' + hand + ' base=' + handFocus + ' speedBonus=' + speedBonus + ' total=' + totalFocus + ' t=' + secondsSinceLast.toFixed(2) + 's');
   }
   resetFocusDecayTimer();
@@ -8158,7 +8160,10 @@ function doDiscard() {
   // Lucky Sevens: +3 Focus per 7 discarded
   if (hasTrick('lucky_sevens')) { const _sv = discardedCards.filter(c => c?.rank === '7').length; if (_sv) addFocus(_sv * BAL.lucky_sevens.focus); }
   // The Vulture: cards discarded during the round's first clock pause gain a permanent "pause on score" buff (stacks)
-  if (hasTrick('vulture') && firstPauseActive) discardedCards.forEach(c => { if (c) c._vulturePause = (c._vulturePause || 0) + BAL.vulture.pause_seconds; });
+  if (hasTrick('vulture') && pipeTimerPaused && !vultureMarkedThisRound) {
+    discardedCards.forEach(c => { if (c) c._vulturePause = (c._vulturePause || 0) + BAL.vulture.pause_seconds; });
+    vultureMarkedThisRound = true; // only the first hand discarded while paused is buffed
+  }
   // ♠ corrupts after being discarded 2×; a swap-pending ♥ counts as "not played" → corrupt.
   // Flags are set on the card object directly since it's leaving the grid (persists in the pile).
   if (exaltCorruptEnabled) // ── discard-driven corruption skipped while the mechanic is paused ──
@@ -8255,9 +8260,6 @@ function pauseRound(seconds) {
   // Long Pause knack: all pauses are 1.5x longer
   if (hasKnack('long_pause')) seconds *= BAL.long_pause.multiplier;
   pauseInstanceGame++; // Hummingbird (counts every pause triggered this game)
-  // The Vulture: mark the start of the round's FIRST continuous pause stretch. An extension
-  // landing while already paused does NOT start a new stretch (pipeTimerPaused is still true).
-  if (!pipeTimerPaused && !firstPauseStartedRound) { firstPauseStartedRound = true; firstPauseActive = true; }
   // Pauses always stack — an active pause is extended, not reset.
   pauseSecondsLeft += seconds;
   pipeTimerPaused = true;
@@ -8270,7 +8272,6 @@ function pauseRound(seconds) {
     pausedSecondsRound++; // Albatross
     if (pauseSecondsLeft <= 0) {
       pipeTimerPaused = false; pauseSecondsLeft = 0;
-      firstPauseActive = false; // the first continuous pause stretch is over (Vulture)
       if (clockEl) clockEl.classList.remove('clock-paused');
       updateClockUI();
     } else {
@@ -12003,8 +12004,7 @@ function triggerLevelUp() {
   cuckooNextMinute = BAL.cuckoo.interval_seconds;
   doubleJeopardyPos = hasTrick('double_jeopardy') ? { r: Math.floor(Math.random() * gridRows), c: Math.floor(Math.random() * gridCols) } : null;
   djUsedThisRound = false;
-  firstPauseStartedRound = false;
-  firstPauseActive = false;
+  vultureMarkedThisRound = false;
   woodpeckerPos = null;
   woodpeckerActiveBlock = -1;
   trickCardPos = null;
