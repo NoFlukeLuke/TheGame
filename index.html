@@ -3604,7 +3604,7 @@
 </div>
 
 <script>
-const BUILD = '2026-06-28 · r70';
+const BUILD = '2026-06-28 · r71';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -3933,7 +3933,7 @@ const TRICK_POOL = [
   { id:'woodpecker',     name:'The Woodpecker',      tier:'rare',      desc:'In alternating 30-second blocks a random card is marked. Scoring a marked card retriggers it twice' },
   { id:'hummingbird',    name:'The Hummingbird',     tier:'rare',      desc:'+2 mult for every clock pause triggered this game' },
   { id:'albatross',      name:'The Albatross',       tier:'rare',      desc:'+5 pips for every second the clock has spent paused this round' },
-  { id:'vulture',        name:'The Vulture',         tier:'epic',      desc:'The first hand of cards discarded while the clock is paused permanently gain: pause the clock 1 second each time they score (retriggers stack)' },
+  { id:'vulture',        name:'The Vulture',         tier:'epic',      desc:'Cards discarded during the round’s first clock pause permanently gain: pause the clock 1 second each time they score (retriggers stack)' },
   { id:'phoenix',        name:'The Phoenix',         tier:'mythic',    desc:'While the clock is paused, the Focus multiplier applies twice' },
   // ── Streaks ──
   { id:'kindling',       name:'Kindling',            tier:'common',    desc:'Same hand streak scores +4 pips × streak' },
@@ -4263,6 +4263,7 @@ const KNACK_POOL = [
   { id:'free_range_t',    emoji:'🦅',  name:'Free Range',       desc:'Can swap any two non-adjacent cards, but limited to 2 swaps per round.' },
   { id:'long_pause',      emoji:'🦉',  name:'Long Pause',       desc:'All clock pauses last 1.5× as long.' },
   { id:'sundial',         emoji:'🌇',  name:'Sundial',          desc:'Hands where every card shares a column pause the clock for 8 seconds.' },
+  { id:'metronome',       emoji:'🥁',  name:'Metronome',        desc:'Each round a hand type you can make is chosen; playing that hand type pauses the clock for 5 seconds.' },
 ];
 // ── SLEIGHT POOL ──
 // Sleights live in the deck as special cards (_isSleight:true). They fall onto the grid,
@@ -4296,7 +4297,7 @@ const SLEIGHT_POOL = [
   { id:'echo_play',      name:'Echo',           emoji:'🔁', rarity:'epic',      activation:'on_play',    durability:3,          defaultRank:null, defaultSuit:null, tags:['scoring'],           desc:'Play this in any hand: that hand scores twice. (3 charges)' },
   { id:'the_naturalist', name:'Naturalist',     emoji:'🌿', rarity:'rare',      activation:'on_play',    durability:'infinite', defaultRank:null, defaultSuit:null, tags:['scoring','pips'],     desc:'Play this: each other scored card permanently gains +2 pips.' },
   { id:'bellhop',        name:'Bellhop',        emoji:'🛎️', rarity:'common',    activation:'on_play',    durability:5,          defaultRank:null, defaultSuit:null, tags:['resource'],           desc:'Play this: gain +2 swaps and +1 discard. (5 charges)' },
-  { id:'metronome',      name:'Metronome',      emoji:'🥁', rarity:'rare',      activation:'on_play',    durability:3,          defaultRank:null, defaultSuit:null, tags:['time'],               desc:'Play this in a hand of a different type than your previous hand: pause the clock for 5 seconds. (3 charges)' },
+  { id:'syncopation',    name:'Syncopation',    emoji:'🎼', rarity:'rare',      activation:'on_play',    durability:3,          defaultRank:null, defaultSuit:null, tags:['time'],               desc:'Play this in a hand of a different type than your previous hand: pause the clock for 12 seconds. (3 charges)' },
   // ── Discard-based ──
   { id:'the_bomb',       name:'Bomb',           emoji:'💣', rarity:'epic',      activation:'on_discard', durability:2,          defaultRank:null, defaultSuit:null, tags:['scoring','pips'],     desc:'Discard this: every card on the grid permanently gains +3 pips. (2 charges)' },
   { id:'the_legacy',     name:'Legacy',         emoji:'📜', rarity:'rare',      activation:'on_discard', durability:3,          defaultRank:null, defaultSuit:null, tags:['scoring'],           desc:'Discard this: the next hand played scores ×3. (3 charges)' },
@@ -4307,7 +4308,8 @@ const SLEIGHT_POOL = [
   { id:'the_wanderer',   name:'Wanderer',       emoji:'🧭', rarity:'common',    activation:'on_swap',    durability:'infinite', defaultRank:null, defaultSuit:null, tags:['resource'],           desc:'When swapped, refunds the swap (+1 swap back).' },
   // ── Double-tap-based ──
   { id:'amplifier',      name:'Amplifier',      emoji:'📢', rarity:'common',    activation:'double_tap', durability:5,          defaultRank:null, defaultSuit:null, tags:['scoring','mult'],     desc:'Double-tap: the next hand scores +5 mult. (5 charges)' },
-  { id:'snooze',         name:'Snooze',         emoji:'😴', rarity:'common',    activation:'double_tap', durability:3,          defaultRank:null, defaultSuit:null, tags:['time'],                desc:'Double-tap: pause the clock for 10 seconds. (3 charges)' },
+  { id:'snooze',         name:'Snooze Button',  emoji:'😴', rarity:'common',    activation:'double_tap', durability:5,          defaultRank:null, defaultSuit:null, tags:['time'],                desc:'Double-tap: pause the clock for 10 seconds. (5 charges)' },
+  { id:'shady_tree',     name:'Shady Tree',     emoji:'🌳', rarity:'rare',      activation:'on_play',    durability:10,         defaultRank:null, defaultSuit:null, tags:['time','position'],    desc:'Play this from the round’s shady column to pause the clock. Pauses for its remaining charges (10 → 1), −1 each use; destroyed at 0.' },
   { id:'piggy_bank',     name:'Piggy Bank',     emoji:'🐷', rarity:'common',    activation:'double_tap', durability:5,          defaultRank:null, defaultSuit:null, tags:['resource','coins'],   desc:'Double-tap: gain 5 coins. (5 charges)' },
   // ── Aim-based (fixtures: tap to rotate aim; cannot be swapped or discarded) ──
   { id:'reflect',     name:'Reflect',     emoji:'🪞', rarity:'epic',   activation:'aim', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['retrigger','position'], desc:'Tap to rotate its aim (up→right→down→left). The card it faces retriggers once when a hand scores. Cannot be swapped or discarded.' },
@@ -4389,10 +4391,25 @@ let _lastHandRetrigs = 0;     // extra retriggers in the most recent calcScore o
 let cuckooNextMinute = 0;     // next roundStartSeconds-roundSeconds threshold for Cuckoo's pause
 let doubleJeopardyPos = null; // { r, c } — marked tile (Double Jeopardy); fires once per round
 let djUsedThisRound = false;  // Double Jeopardy has already fired its pause this round
-let vultureMarkedThisRound = false; // Vulture has already buffed the first discard-batch made while paused this round
+let firstPauseStartedRound = false; // a clock pause has begun this round (Vulture's "first pause" gate)
+let firstPauseActive = false; // currently inside the round's first continuous pause stretch (Vulture)
 let _lastHandVultureSeconds = 0; // sum of Vulture buff-seconds fired (retrigger-aware) in the last real calcScore
 let woodpeckerPos = null;       // { r, c } — marked tile (Woodpecker) during an active 30s block
 let woodpeckerActiveBlock = -1; // index of the 30s block already handled (even = active/marked, odd = off)
+let metronomeHandType = null;   // Metronome knack: the hand type that pauses the clock this round
+let shadyColumn = 0;            // Shady Tree sleight: the "shady" column this round
+
+// Hand types the player can actually make given their current Selection Size cap.
+// Used so we never assign a target hand a small hand-size can't build (e.g. no Flush at cap 3).
+function achievableHandTypes() {
+  const cap = limits.selection.current;
+  const t = [];
+  if (cap >= 2) t.push('Pair');
+  if (cap >= 3) t.push('Three of a Kind', 'Run of 3');
+  if (cap >= 4) t.push('Two Pair', 'Four of a Kind', 'Run of 4');
+  if (cap >= 5) t.push('Straight', 'Flush', 'Full House', 'Straight Flush');
+  return t;
+}
 
 let resilience = false; // once per game second chance
 let resilienceUsed = false;
@@ -5028,6 +5045,7 @@ const BAL = {
   vulture: { pause_seconds: 1 },
   phoenix: {},
   metronome: { seconds: 5 },
+  syncopation: { seconds: 12 },
   sundial: { seconds: 8 },
   long_pause: { multiplier: 1.5 },
   snooze: { seconds: 10 },
@@ -7097,6 +7115,8 @@ function playHand() {
     if (_isRunHand && runsPlayedRound >= 3 && hasTrick('high_water')) pauseRound(handCells.length);
     // Sundial knack: a hand where every card shares a column pauses the clock
     if (hasKnack('sundial') && handCells.length > 0 && handCells.every(([, hc]) => hc === handCells[0][1])) pauseRound(BAL.sundial.seconds);
+    // Metronome knack: playing this round's target hand type pauses the clock
+    if (hasKnack('metronome') && hand === metronomeHandType) pauseRound(BAL.metronome.seconds);
     // Double Jeopardy: the first time the marked card is scored this round, pause the clock 15s (once per round)
     if (hasTrick('double_jeopardy') && !djUsedThisRound && doubleJeopardyPos && handCells.some(([r,c]) => r === doubleJeopardyPos.r && c === doubleJeopardyPos.c)) {
       pauseRound(BAL.double_jeopardy.pause_seconds);
@@ -8160,10 +8180,7 @@ function doDiscard() {
   // Lucky Sevens: +3 Focus per 7 discarded
   if (hasTrick('lucky_sevens')) { const _sv = discardedCards.filter(c => c?.rank === '7').length; if (_sv) addFocus(_sv * BAL.lucky_sevens.focus); }
   // The Vulture: cards discarded during the round's first clock pause gain a permanent "pause on score" buff (stacks)
-  if (hasTrick('vulture') && pipeTimerPaused && !vultureMarkedThisRound) {
-    discardedCards.forEach(c => { if (c) c._vulturePause = (c._vulturePause || 0) + BAL.vulture.pause_seconds; });
-    vultureMarkedThisRound = true; // only the first hand discarded while paused is buffed
-  }
+  if (hasTrick('vulture') && firstPauseActive) discardedCards.forEach(c => { if (c) c._vulturePause = (c._vulturePause || 0) + BAL.vulture.pause_seconds; });
   // ♠ corrupts after being discarded 2×; a swap-pending ♥ counts as "not played" → corrupt.
   // Flags are set on the card object directly since it's leaving the grid (persists in the pile).
   if (exaltCorruptEnabled) // ── discard-driven corruption skipped while the mechanic is paused ──
@@ -8260,6 +8277,9 @@ function pauseRound(seconds) {
   // Long Pause knack: all pauses are 1.5x longer
   if (hasKnack('long_pause')) seconds *= BAL.long_pause.multiplier;
   pauseInstanceGame++; // Hummingbird (counts every pause triggered this game)
+  // The Vulture: mark the start of the round's FIRST continuous pause stretch. An extension
+  // landing while already paused does NOT start a new stretch (pipeTimerPaused is still true).
+  if (!pipeTimerPaused && !firstPauseStartedRound) { firstPauseStartedRound = true; firstPauseActive = true; }
   // Pauses always stack — an active pause is extended, not reset.
   pauseSecondsLeft += seconds;
   pipeTimerPaused = true;
@@ -8272,6 +8292,7 @@ function pauseRound(seconds) {
     pausedSecondsRound++; // Albatross
     if (pauseSecondsLeft <= 0) {
       pipeTimerPaused = false; pauseSecondsLeft = 0;
+      firstPauseActive = false; // the first continuous pause stretch is over (Vulture)
       if (clockEl) clockEl.classList.remove('clock-paused');
       updateClockUI();
     } else {
@@ -10208,10 +10229,18 @@ function fireSleightsOnPlay(selectedCells, handCells, hand) {
     if (!def || def.activation !== 'on_play') return;
     // shortcut requires a 4-card hand
     if (def.id === 'shortcut' && handCells.length !== 4) return;
-    // Metronome: hand type differs from the previous hand played
-    if (def.id === 'metronome') {
+    // Syncopation: hand type differs from the previous hand played
+    if (def.id === 'syncopation') {
       if (lastHandType === null || hand === lastHandType) return;
-      pauseRound(BAL.metronome.seconds);
+      pauseRound(BAL.syncopation.seconds);
+      consumeSleightCharge(card, r, c);
+      return;
+    }
+    // Shady Tree: only fires when played from the round's "shady" column; pause = remaining charges
+    // (10 → 1), which drop by 1 each use; the sleight is destroyed when it hits 0 (consumeSleightCharge).
+    if (def.id === 'shady_tree') {
+      if (c !== shadyColumn) return;
+      pauseRound(card._usesLeft != null ? card._usesLeft : def.durability);
       consumeSleightCharge(card, r, c);
       return;
     }
@@ -12004,9 +12033,18 @@ function triggerLevelUp() {
   cuckooNextMinute = BAL.cuckoo.interval_seconds;
   doubleJeopardyPos = hasTrick('double_jeopardy') ? { r: Math.floor(Math.random() * gridRows), c: Math.floor(Math.random() * gridCols) } : null;
   djUsedThisRound = false;
-  vultureMarkedThisRound = false;
+  firstPauseStartedRound = false;
+  firstPauseActive = false;
   woodpeckerPos = null;
   woodpeckerActiveBlock = -1;
+  // Metronome knack: pick this round's target hand type from those the player can actually make.
+  if (hasKnack('metronome')) {
+    const _ach = achievableHandTypes();
+    metronomeHandType = _ach[Math.floor(Math.random() * _ach.length)] || null;
+    if (metronomeHandType) showMessage('🥁 Metronome: ' + metronomeHandType, '#5aa9e6');
+  } else metronomeHandType = null;
+  // Shady Tree sleight: pick this round's "shady" column.
+  shadyColumn = Math.floor(Math.random() * gridCols);
   trickCardPos = null;
   trickCardTimer = 0;
   selected = [];

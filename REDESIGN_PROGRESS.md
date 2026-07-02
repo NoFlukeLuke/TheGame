@@ -80,6 +80,21 @@ Subject-first "scores +N"; resources are "added" (+N Focus/seconds/coins); **no 
 - **Remove:** delete the `TRICK_POOL` def. Its old `calcScore` lines become inert automatically (`hasTrick` returns false), so they can be left — but scrub `DESC_TEMPLATES`, theme pools (`THEME_*`), unlock pools, and carousel lines that show stale text.
 - **Verify:** syntax check; grep for dangling refs; check no duplicate display names (script in r62 commit history).
 
+## PLANNED SYSTEM (owner-requested) — universal retrigger + trigger/static tag
+Owner's direction: **eventually every bonus (trick/sleight/knack) that fires a number-related
+effect should be retriggerable.** Plan:
+- Add a **`triggerType` tag to every bonus: `'trigger'` vs `'static'`.**
+  - **trigger** = fires an effect in response to something (a scored hand, a pause, the minute
+    mark, a discard). These must be able to fire *again* (retrigger).
+  - **static** = just true while owned, no firing moment (e.g. a knack that grants +2 discards).
+    Not retriggerable — nothing to re-fire.
+- Build a **general retrigger engine** that works for sleights and knacks too, not just the
+  per-card pip loop in `calcScore`. Today only pip-scoring retriggers (Woodpecker/corner/row-col/
+  etc.); sleight *activations* (on_play/double_tap) and knack effects do **not** retrigger yet
+  (see the Vulture-buff workaround: it stacks with retriggers only because it rides the pip loop).
+- Until then, "retrigger" is pip-only; anything time/coin/Focus/activation-based needs the new engine.
+This pairs with the deferred **Force-trigger** system (fire a condition that isn't met) below.
+
 ## Open decisions / deferred
 - **ID→name cleanup pass (FINAL, owner-requested):** rename every internal `id` to match its display name (e.g. `kindred`→`quake`). Deferred to the very end to avoid breaking references mid-redesign. Treat like the Joker→Sleight rename.
 - **Force-trigger system:** deferred until a Trick needs it (fires even when its condition isn't met — distinct from priming/retrigger).
