@@ -67,7 +67,7 @@
   .node.selected{ z-index:50; outline:1.5px solid var(--gold); outline-offset:1px; }
   .node.overlapping{ box-shadow:0 0 0 2px var(--red), 0 0 12px rgba(192,57,43,0.55); }
   .node.locked{ cursor:not-allowed; }
-  .node .node-inner{ width:100%; height:100%; overflow:hidden; pointer-events:none; }
+  .node .node-inner{ width:100%; height:100%; overflow:hidden; pointer-events:none; container-type:size; }
   .node .tag{ position:absolute; top:-15px; left:0; font-size:9px; color:var(--gold-dim);
     font-family:'Cinzel',serif; letter-spacing:1px; white-space:nowrap; opacity:0; transition:opacity .1s; }
   .node.selected .tag{ opacity:1; }
@@ -123,32 +123,31 @@
     width:100%; height:100%; display:flex; flex-direction:column; }
   .g-chip{ background:#0a0808; border:1px solid var(--border); border-radius:4px; text-align:center;
     width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:4px; }
-  .g-chip .lab{ font-family:'Cinzel',serif; font-size:9px; letter-spacing:1px; color:var(--cream-dim); line-height:1; }
-  .g-chip .val{ font-family:'Cinzel',serif; font-size:22px; font-weight:700; line-height:1.1; color:var(--cream); }
+  .g-chip .lab{ font-family:'Cinzel',serif; font-size:clamp(6px,15cqh,12px); letter-spacing:1px; color:var(--cream-dim); line-height:1; }
+  .g-chip .val{ font-family:'Cinzel',serif; font-size:min(48cqw,56cqh); font-weight:700; line-height:1.05; color:var(--cream); }
   .g-chip .val.gold{ color:var(--gold); }
+  .g-chip.chip-focus .val{ font-size:min(40cqw,46cqh); }   /* focus a touch smaller than pips/mult */
 
   .g-stat{ width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; }
-  .g-stat .lab{ font-family:'Cinzel',serif; font-size:9px; letter-spacing:1px; color:var(--gold-dim); text-transform:uppercase; }
-  .g-stat .val{ font-family:'Cinzel',serif; font-size:18px; font-weight:700; color:var(--cream); line-height:1.1; }
+  .g-stat .lab{ font-family:'Cinzel',serif; font-size:clamp(6px,16cqh,12px); letter-spacing:1px; color:var(--gold-dim); text-transform:uppercase; }
+  .g-stat .val{ font-family:'Cinzel',serif; font-size:min(46cqw,52cqh); font-weight:700; color:var(--cream); line-height:1.05; }
   .g-stat .val.gold{ color:var(--gold); }
 
   .g-total{ width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center;
     background:var(--panel); border:1px solid var(--border); border-radius:6px; }
-  .g-total .lab{ font-family:'Cinzel',serif; font-size:9px; letter-spacing:2px; color:var(--gold-dim); text-transform:uppercase; }
-  .g-total .num{ font-family:'Cinzel',serif; font-size:30px; font-weight:900; color:var(--cream); line-height:1; }
+  .g-total .lab{ font-family:'Cinzel',serif; font-size:clamp(6px,14cqh,12px); letter-spacing:2px; color:var(--gold-dim); text-transform:uppercase; }
+  .g-total .num{ font-family:'Cinzel',serif; font-size:min(34cqw,62cqh); font-weight:900; color:var(--cream); line-height:1; }
 
   .g-goal{ width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
     background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:6px; }
-  .g-goal .lab{ font-family:'Cinzel',serif; font-size:9px; letter-spacing:2px; color:var(--gold-dim); text-transform:uppercase; }
-  .g-goal .num{ font-family:'Cinzel',serif; font-size:20px; font-weight:700; color:var(--cream); line-height:1; }
+  .g-goal .lab{ font-family:'Cinzel',serif; font-size:clamp(6px,13cqh,11px); letter-spacing:2px; color:var(--gold-dim); text-transform:uppercase; }
+  .g-goal .num{ font-family:'Cinzel',serif; font-size:min(30cqw,42cqh); font-weight:700; color:var(--cream); line-height:1; }
   .g-bar{ width:85%; height:5px; background:#2a2010; border-radius:3px; overflow:hidden; border:1px solid var(--border); }
   .g-bar > i{ display:block; height:100%; width:42%; background:linear-gradient(90deg,var(--gold-dim),var(--gold)); }
 
-  .g-clockn{ width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; }
-  .g-clockn .t{ font-family:'Cinzel',serif; font-size:26px; font-weight:900; color:var(--gold); letter-spacing:2px;
-    text-shadow:0 0 20px rgba(201,168,76,0.3); }
-  .g-clockn .skip{ font-family:'Cinzel',serif; font-size:9px; color:var(--gold-dim); border:1px solid var(--border);
-    border-radius:4px; padding:2px 6px; }
+  .g-clockn{ width:100%; height:100%; display:flex; align-items:center; justify-content:center; }
+  .g-clockn .t{ font-family:'Cinzel',serif; font-size:min(45cqw,85cqh); font-weight:900; color:var(--gold); letter-spacing:2px;
+    line-height:1; text-shadow:0 0 20px rgba(201,168,76,0.3); }
 
   /* Visual clock — orientation-aware. Horizontal drains right→left; vertical drains top→down. */
   .g-vclock{ width:100%; height:100%; position:relative; display:flex; }
@@ -184,7 +183,7 @@
   .g-hand{ width:100%; height:100%; display:flex; align-items:center; justify-content:center; gap:4px;
     background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:6px; }
   .g-handname{ width:100%; height:100%; display:flex; align-items:center; justify-content:center;
-    font-family:'Cinzel',serif; font-size:14px; color:var(--gold); letter-spacing:1px; }
+    font-family:'Cinzel',serif; font-size:min(11cqw,65cqh); color:var(--gold); letter-spacing:1px; line-height:1; white-space:nowrap; }
 
   .g-knacks, .g-tricks{ width:100%; height:100%; background:var(--panel); border:1px solid var(--border);
     border-radius:6px; padding:6px; display:flex; flex-direction:column; gap:4px; }
@@ -253,7 +252,7 @@
     <button class="tbtn danger" id="btn-clear">Clear</button>
     <button class="tbtn" id="btn-import">◂ Import</button>
     <button class="tbtn primary" id="btn-export">Export ▸</button>
-    <span class="sub">preview r5</span>
+    <span class="sub">preview r6</span>
   </div>
 
   <div id="body">
@@ -344,7 +343,7 @@ const LIB = {
   // ── Score line ──
   score_pips:  { cat:'Score', label:'Pips',  ic:'➕', w:90, h:90,  build:()=>`<div class="g-chip"><div class="lab">PIPS</div><div class="val">128</div></div>` },
   score_mult:  { cat:'Score', label:'Mult',  ic:'✖', w:90, h:90,  build:()=>`<div class="g-chip"><div class="lab">MULT</div><div class="val">7</div></div>` },
-  score_focus: { cat:'Score', label:'Focus (chip)', ic:'◎', w:90, h:90, build:()=>`<div class="g-chip"><div class="lab">FOCUS</div><div class="val gold">×2</div></div>` },
+  score_focus: { cat:'Score', label:'Focus (chip)', ic:'◎', w:90, h:90, build:()=>`<div class="g-chip chip-focus"><div class="lab">FOCUS</div><div class="val gold">×2</div></div>` },
   score_total: { cat:'Score', label:'Score total', ic:'∑', w:160, h:100, build:()=>`<div class="g-total"><div class="lab">Score</div><div class="num">1,840</div></div>` },
   score_goal:  { cat:'Score', label:'Goal + bar', ic:'🎯', w:170, h:100, build:()=>`<div class="g-goal"><div class="lab">Goal</div><div class="num">2,500</div><div class="g-bar"><i></i></div></div>` },
 
@@ -355,7 +354,7 @@ const LIB = {
   stat_coins:  { cat:'Stats', label:'Coins', ic:'💰', w:100, h:64, build:()=>`<div class="g-stat"><div class="lab">Coins</div><div class="val gold">💰 42</div></div>` },
 
   // ── Clock ──
-  clock_numeric:{ cat:'Clock', label:'Numeric clock', ic:'🕐', w:110, h:60, build:()=>`<div class="g-clockn"><div class="t">1:04</div><div class="skip">Skip »</div></div>` },
+  clock_numeric:{ cat:'Clock', label:'Numeric clock', ic:'🕐', w:110, h:50, build:()=>`<div class="g-clockn"><div class="t">1:04</div></div>` },
   clock_visual: { cat:'Clock', label:'Visual clock bar', ic:'📊', w:420, h:48, build:()=>`<div class="g-vclock"></div>` },  // filled by layoutClock (orientation-aware)
 
   // ── Play area ──
