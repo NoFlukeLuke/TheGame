@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>TheGame — Palette Reimagining</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Crimson+Pro:wght@300;400&family=Orbitron:wght@500;700;900&family=Righteous&family=Monoton&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Crimson+Pro:wght@300;400&family=Orbitron:wght@500;700;900&family=Righteous&family=Monoton&family=Pixelify+Sans:wght@400;600;700&family=VT323&family=Silkscreen:wght@400;700&family=Press+Start+2P&display=swap');
   *{ box-sizing:border-box; }
   html,body{ margin:0; min-height:100%; background:#08080b; color:#e8e6ea; font-family:'Crimson Pro',serif; -webkit-text-size-adjust:100%; }
 
@@ -24,6 +24,12 @@
   .pal-btn .sw i{ flex:1; }
   .pal-btn .nm{ font-family:'Orbitron',sans-serif; font-size:8px; letter-spacing:.3px; color:#cfcbd6; white-space:nowrap; }
   .hint{ font-size:11px; color:#77737f; }
+  .pxwrap{ display:flex; align-items:center; gap:6px; }
+  #pixel-toggle{ font-family:'Orbitron',sans-serif; font-size:10px; letter-spacing:1px; cursor:pointer; padding:6px 9px;
+    border-radius:8px; border:1px solid #33333c; background:#191920; color:#cfcbd6; }
+  #pixel-toggle.on{ border-color:#37e6ff; color:#37e6ff; box-shadow:0 0 10px rgba(55,230,255,.45); }
+  #pixel-font{ font-family:'Orbitron',sans-serif; font-size:10px; background:#191920; color:#cfcbd6;
+    border:1px solid #33333c; border-radius:8px; padding:5px 4px; }
 
   /* ══════════ SCENE — every colour + the display font + glow come from the palette ══════════ */
   #stage{ display:flex; justify-content:center; padding:20px 14px; }
@@ -34,7 +40,7 @@
     --display:'Cinzel';
     width:min(1000px,100%); background:var(--bg); border:1px solid var(--border); border-radius:16px; padding:16px;
     display:grid; grid-template-columns:340px 1fr; gap:14px; box-shadow:0 20px 60px rgba(0,0,0,0.6);
-    transition:background .3s, border-color .3s; }
+    transition:background .3s, border-color .3s; position:relative; }
   @media (max-width:720px){ #frame{ grid-template-columns:1fr; } }
   .col{ display:flex; flex-direction:column; gap:10px; min-width:0; }
   .disp{ font-family:var(--display),'Cinzel',serif; }
@@ -106,6 +112,23 @@
   #frame.glow .clock-bar .fill{ box-shadow:0 0 14px var(--gold); }
   #frame.glow{ box-shadow:0 20px 70px rgba(0,0,0,0.7), 0 0 40px color-mix(in srgb,var(--gold) 12%, transparent); }
 
+  /* ── PIXEL TREATMENT (toggled via .pixel) — pixel font, hard corners, scanlines ── */
+  #frame.pixel{ -webkit-font-smoothing:none; image-rendering:pixelated; letter-spacing:0; }
+  #frame.pixel .clock-t{ font-size:20px; letter-spacing:0; }
+  #frame.pixel .chip .val{ font-size:16px; }
+  #frame.pixel .box .num.big{ font-size:19px; }
+  #frame.pixel .box .num.mid{ font-size:15px; }
+  #frame.pixel .chip .lab, #frame.pixel .box .lab, #frame.pixel .tray .pt{ font-size:7px; letter-spacing:1px; }
+  #frame.pixel .trick{ font-size:9px; }
+  #frame.pixel .btn{ font-size:10px; letter-spacing:1px; }
+  #frame.pixel .card .rk{ font-size:clamp(8px,1.9vw,14px); }
+  #frame.pixel .card .st{ font-size:clamp(11px,2.4vw,18px); }
+  #frame.pixel, #frame.pixel .chip, #frame.pixel .box, #frame.pixel .tray, #frame.pixel .clock-bar,
+  #frame.pixel .btn, #frame.pixel .card, #frame.pixel .knack, #frame.pixel .trick, #frame.pixel .focus,
+  #frame.pixel #grid, #frame.pixel .prog{ border-radius:0; }
+  #frame.pixel::after{ content:''; position:absolute; inset:0; pointer-events:none; z-index:5;
+    background:repeating-linear-gradient(0deg, rgba(0,0,0,0.16) 0 1px, transparent 1px 3px); mix-blend-mode:multiply; }
+
   /* swatches */
   #swatches{ max-width:1000px; margin:0 auto; padding:6px 18px 34px; display:flex; flex-wrap:wrap; gap:10px; }
   .swatch{ display:flex; flex-direction:column; align-items:center; gap:3px; width:72px; }
@@ -120,6 +143,15 @@
     <span class="now" id="now">—</span>
     <span class="spacer"></span>
     <span class="hint">click a palette · ← → to cycle</span>
+    <div class="pxwrap">
+      <button id="pixel-toggle">PIXEL: OFF</button>
+      <select id="pixel-font" title="pixel font">
+        <option value="Pixelify Sans">Pixelify Sans</option>
+        <option value="VT323">VT323 (terminal)</option>
+        <option value="Silkscreen">Silkscreen</option>
+        <option value="Press Start 2P">Press Start 2P</option>
+      </select>
+    </div>
     <div id="pal-btns"></div>
   </div>
 
@@ -218,15 +250,17 @@ function buildGrid(){
     const d=document.createElement('div'); d.className='card '+s[1]+(special[i]?(' '+special[i]):'');
     d.innerHTML=`<div class="rk">${r}</div><div class="st">${s[0]}</div>`; g.appendChild(d); }
 }
-let cur=0;
+let cur=0, pixelOn=false, pixelFont='Pixelify Sans';
 function applyPalette(idx){
+  cur=idx;
   const p=PALETTES[idx];
   for(const [k,v] of Object.entries(p.vars)) frame.style.setProperty('--'+k, v);
-  frame.style.setProperty('--display', "'"+p.display+"'");
+  frame.style.setProperty('--display', pixelOn ? ("'"+pixelFont+"'") : ("'"+p.display+"'"));
   frame.classList.toggle('glow', !!p.glow);
-  document.getElementById('now').textContent=(idx+1)+' / '+PALETTES.length+' · '+p.name+(p.glow?' · GLOW':'');
+  frame.classList.toggle('pixel', pixelOn);
+  document.getElementById('now').textContent=(idx+1)+' / '+PALETTES.length+' · '+p.name+(p.glow?' · GLOW':'')+(pixelOn?' · PIXEL':'');
   document.querySelectorAll('.pal-btn').forEach((b,i)=>b.classList.toggle('active',i===idx));
-  renderSwatches(p); cur=idx;
+  renderSwatches(p);
 }
 function renderSwatches(p){
   const host=document.getElementById('swatches'); host.innerHTML='';
@@ -246,6 +280,10 @@ document.addEventListener('keydown',e=>{
   if(e.key==='ArrowRight') applyPalette((cur+1)%PALETTES.length);
   if(e.key==='ArrowLeft') applyPalette((cur-1+PALETTES.length)%PALETTES.length);
 });
+document.getElementById('pixel-toggle').addEventListener('click',function(){
+  pixelOn=!pixelOn; this.classList.toggle('on',pixelOn); this.textContent='PIXEL: '+(pixelOn?'ON':'OFF'); applyPalette(cur);
+});
+document.getElementById('pixel-font').addEventListener('change',e=>{ pixelFont=e.target.value; if(pixelOn) applyPalette(cur); });
 buildGrid(); buildButtons(); applyPalette(0);
 </script>
 </body>
