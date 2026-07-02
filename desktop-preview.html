@@ -104,17 +104,17 @@
   .insp-note{ font-size:10px; color:var(--cream-dim); margin-top:10px; line-height:1.4; }
 
   /* ── Export modal ── */
-  #modal{ position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:500; display:none;
+  #modal, #import-modal{ position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:500; display:none;
     align-items:center; justify-content:center; padding:24px; }
-  #modal.show{ display:flex; }
-  #modal .box{ width:min(760px,100%); max-height:86vh; background:var(--ed-panel);
+  #modal.show, #import-modal.show{ display:flex; }
+  #modal .box, #import-modal .box{ width:min(760px,100%); max-height:86vh; background:var(--ed-panel);
     border:1px solid var(--gold); border-radius:10px; padding:16px; display:flex; flex-direction:column; gap:10px; }
-  #modal h3{ font-family:'Cinzel',serif; color:var(--gold); margin:0; letter-spacing:1px; }
+  #modal h3, #import-modal h3{ font-family:'Cinzel',serif; color:var(--gold); margin:0; letter-spacing:1px; }
   #modal .tabs{ display:flex; gap:6px; }
-  #modal textarea{ flex:1; min-height:340px; background:#0d0b08; border:1px solid var(--ed-border);
+  #modal textarea, #import-modal textarea{ flex:1; min-height:340px; background:#0d0b08; border:1px solid var(--ed-border);
     color:var(--cream); border-radius:6px; padding:10px; font-family:'Courier New',monospace; font-size:12px;
     white-space:pre; overflow:auto; }
-  #modal .row{ display:flex; gap:8px; justify-content:flex-end; }
+  #modal .row, #import-modal .row{ display:flex; gap:8px; justify-content:flex-end; }
 
   /* ════════════════════════════════════════════════════════
      GAME-LOOKALIKE COMPONENT STYLES (mirrors index.html r65)
@@ -147,26 +147,33 @@
   .g-clockn{ width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; }
   .g-clockn .t{ font-family:'Cinzel',serif; font-size:26px; font-weight:900; color:var(--gold); letter-spacing:2px;
     text-shadow:0 0 20px rgba(201,168,76,0.3); }
-  .g-clockn .bar{ width:80px; height:4px; background:#2a2010; border:1px solid var(--border); border-radius:4px; overflow:hidden; }
-  .g-clockn .bar > i{ display:block; height:100%; width:70%; background:linear-gradient(90deg,var(--gold-dim),var(--gold)); }
   .g-clockn .skip{ font-family:'Cinzel',serif; font-size:9px; color:var(--gold-dim); border:1px solid var(--border);
     border-radius:4px; padding:2px 6px; }
 
-  /* NEW vertical draining visual clock */
-  .g-vclock{ width:100%; height:100%; position:relative; display:flex; flex-direction:column; }
-  .g-vclock .track{ position:relative; flex:1; background:#1c1407; border:1px solid var(--border);
-    border-radius:7px; overflow:hidden; }
-  .g-vclock .fill{ position:absolute; left:0; right:0; bottom:0; height:62%;
-    background:linear-gradient(180deg,var(--gold),var(--gold-dim)); transition:height .12s linear; }
-  .g-vclock .band{ position:absolute; left:0; right:0; bottom:33%; height:34%;
-    background:repeating-linear-gradient(45deg, rgba(201,168,76,0.18) 0 6px, rgba(201,168,76,0.06) 6px 12px);
-    border-top:1px dashed rgba(201,168,76,0.5); border-bottom:1px dashed rgba(201,168,76,0.5); }
-  .g-vclock .band .blab{ position:absolute; right:3px; top:50%; transform:translateY(-50%);
-    font-family:'Cinzel',serif; font-size:9px; color:var(--gold); writing-mode:vertical-rl; letter-spacing:1px; }
-  .g-vclock .tick{ position:absolute; left:0; right:0; bottom:25%; height:0; border-top:2px solid var(--red); }
-  .g-vclock .tick .tl{ position:absolute; right:2px; top:2px; font-size:10px; }
-  .g-vclock .cap{ text-align:center; font-family:'Cinzel',serif; font-size:8px; letter-spacing:1px;
-    color:var(--gold-dim); margin-top:3px; }
+  /* Visual clock — orientation-aware. Horizontal drains right→left; vertical drains top→down. */
+  .g-vclock{ width:100%; height:100%; position:relative; display:flex; }
+  .g-vclock.vert{ flex-direction:column; }
+  .g-vclock.horiz{ flex-direction:row; align-items:center; }
+  .g-vclock .track{ position:relative; background:#1c1407; border:1px solid var(--border); border-radius:7px; overflow:hidden; }
+  .g-vclock.vert .track{ flex:1; width:100%; }
+  .g-vclock.horiz .track{ flex:1; height:100%; }
+  .g-vclock .fill{ position:absolute; transition:width .12s linear, height .12s linear; }
+  .g-vclock.vert .fill{ left:0; right:0; bottom:0; height:62%; background:linear-gradient(180deg,var(--gold),var(--gold-dim)); }
+  .g-vclock.horiz .fill{ left:0; top:0; bottom:0; width:62%; background:linear-gradient(90deg,var(--gold-dim),var(--gold)); }
+  .g-vclock .band{ position:absolute; background:repeating-linear-gradient(45deg, rgba(201,168,76,0.18) 0 6px, rgba(201,168,76,0.06) 6px 12px); }
+  .g-vclock.vert .band{ left:0; right:0; bottom:33%; height:34%; border-top:1px dashed rgba(201,168,76,0.5); border-bottom:1px dashed rgba(201,168,76,0.5); }
+  .g-vclock.horiz .band{ top:0; bottom:0; left:33%; width:34%; border-left:1px dashed rgba(201,168,76,0.5); border-right:1px dashed rgba(201,168,76,0.5); }
+  .g-vclock .blab{ position:absolute; font-family:'Cinzel',serif; font-size:9px; color:var(--gold); letter-spacing:1px; }
+  .g-vclock.vert .blab{ right:3px; top:50%; transform:translateY(-50%); writing-mode:vertical-rl; }
+  .g-vclock.horiz .blab{ left:50%; top:50%; transform:translate(-50%,-50%); white-space:nowrap; }
+  .g-vclock .tick{ position:absolute; }
+  .g-vclock.vert .tick{ left:0; right:0; bottom:25%; border-top:2px solid var(--red); }
+  .g-vclock.horiz .tick{ top:0; bottom:0; left:25%; border-left:2px solid var(--red); }
+  .g-vclock .tl{ position:absolute; font-size:10px; }
+  .g-vclock.vert .tl{ right:2px; top:2px; }
+  .g-vclock.horiz .tl{ left:2px; top:1px; }
+  .g-vclock .cap{ font-family:'Cinzel',serif; font-size:8px; letter-spacing:1px; color:var(--gold-dim); }
+  .g-vclock.vert .cap{ text-align:center; margin-top:3px; }
 
   .g-deck{ width:100%; height:100%; background:var(--panel); border:1px solid var(--border); border-radius:6px;
     padding:6px 8px; display:flex; flex-direction:column; justify-content:center; gap:3px; }
@@ -209,8 +216,13 @@
   .g-focus .dots{ display:flex; gap:3px; }
   .g-focus .dot{ width:8px; height:8px; border-radius:50%; background:#2a2010; border:1px solid var(--gold-dim); }
   .g-focus .dot.on{ background:var(--gold); }
-  .g-focus .meter{ flex:1; height:8px; background:#2a2010; border:1px solid var(--border); border-radius:4px; overflow:hidden; }
+  .g-focus .meter{ flex:1; height:8px; background:#2a2010; border:1px solid var(--border); border-radius:4px; overflow:hidden; position:relative; }
   .g-focus .meter > i{ display:block; height:100%; width:55%; background:linear-gradient(90deg,var(--gold-dim),var(--gold)); }
+  /* vertical variant (tall thin placement beside the grid) */
+  .g-focus.vert{ flex-direction:column-reverse; }
+  .g-focus.vert .dots{ flex-direction:column; }
+  .g-focus.vert .meter{ width:8px; height:auto; flex:1; }
+  .g-focus.vert .meter > i{ position:absolute; bottom:0; left:0; right:0; width:100%; height:55%; background:linear-gradient(0deg,var(--gold-dim),var(--gold)); }
 
   .g-actbtn{ width:100%; height:100%; display:flex; align-items:center; justify-content:center; text-align:center;
     font-family:'Cinzel',serif; font-size:12px; letter-spacing:2px; text-transform:uppercase; border-radius:6px; border:2px solid; }
@@ -239,8 +251,9 @@
     <label class="inl"><input type="checkbox" id="tg-anim" checked> animate clock</label>
     <button class="tbtn" id="btn-reset">↺ Game layout</button>
     <button class="tbtn danger" id="btn-clear">Clear</button>
+    <button class="tbtn" id="btn-import">◂ Import</button>
     <button class="tbtn primary" id="btn-export">Export ▸</button>
-    <span class="sub">preview r4</span>
+    <span class="sub">preview r5</span>
   </div>
 
   <div id="body">
@@ -289,6 +302,19 @@
   </div>
 </div>
 
+<!-- IMPORT MODAL -->
+<div id="import-modal">
+  <div class="box">
+    <h3>Import Layout</h3>
+    <div class="sub" style="font-size:11px;color:var(--cream-dim);">Paste an exported layout JSON and Apply. This replaces the current canvas (auto-saved, so Export first if you want to keep it).</div>
+    <textarea id="import-in" placeholder="Paste layout JSON here…"></textarea>
+    <div class="row">
+      <button class="tbtn primary" id="btn-apply-import">Apply</button>
+      <button class="tbtn" id="btn-close-import">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <script>
 "use strict";
 /* ════════════════════════════════════════════════════════════════
@@ -329,13 +355,8 @@ const LIB = {
   stat_coins:  { cat:'Stats', label:'Coins', ic:'💰', w:100, h:64, build:()=>`<div class="g-stat"><div class="lab">Coins</div><div class="val gold">💰 42</div></div>` },
 
   // ── Clock ──
-  clock_numeric:{ cat:'Clock', label:'Numeric clock', ic:'🕐', w:120, h:90, build:()=>`<div class="g-clockn"><div class="t">1:04</div><div class="bar"><i></i></div><div class="skip">Skip »</div></div>` },
-  clock_visual: { cat:'Clock', label:'Visual clock (NEW)', ic:'📊', w:46, h:420, build:()=>
-    `<div class="g-vclock"><div class="track">`+
-    `<div class="fill"></div>`+
-    `<div class="band"><span class="blab">2× BONUS</span></div>`+
-    `<div class="tick"><span class="tl">⚠</span></div>`+
-    `</div><div class="cap">TIME</div></div>` },
+  clock_numeric:{ cat:'Clock', label:'Numeric clock', ic:'🕐', w:110, h:60, build:()=>`<div class="g-clockn"><div class="t">1:04</div><div class="skip">Skip »</div></div>` },
+  clock_visual: { cat:'Clock', label:'Visual clock bar', ic:'📊', w:420, h:48, build:()=>`<div class="g-vclock"></div>` },  // filled by layoutClock (orientation-aware)
 
   // ── Play area ──
   deck_hud:   { cat:'Play Area', label:'Deck HUD', ic:'🃏', w:130, h:110, build:()=>
@@ -526,7 +547,7 @@ function buildNodeEl(n){
   n._el = el;
   attachInteractions(n, el);
   renderNode(n);
-  if (def.isGrid) layoutGrid(n);
+  postLayout(n);
 }
 function renderNode(n){
   if (!n._el) return;
@@ -536,7 +557,33 @@ function renderNode(n){
   n._el.style.height = (n.h*scale)+'px';
   n._el.classList.toggle('locked', !!n.locked);
 }
-function renderAll(){ nodes.forEach(n=>{ renderNode(n); if (LIB[n.type].isGrid) layoutGrid(n); }); }
+function renderAll(){ nodes.forEach(n=>{ renderNode(n); postLayout(n); }); }
+
+/* dispatch per-type "after size changed" layout work */
+function postLayout(n){
+  const def = LIB[n.type];
+  if (def.isGrid) layoutGrid(n);
+  else if (n.type==='clock_visual') layoutClock(n);
+  else if (n.type==='focus_meter') layoutFocus(n);
+}
+function layoutClock(n){
+  const root = n._el.querySelector('.g-vclock'); if(!root) return;
+  const horiz = n.w >= n.h;
+  const orient = horiz?'h':'v';
+  if (root.dataset.orient === orient) return;      // only rebuild when orientation flips
+  root.dataset.orient = orient;
+  root.className = 'g-vclock ' + (horiz?'horiz':'vert');
+  const inner = `<div class="track"><div class="fill"></div><div class="band"><span class="blab">2× BONUS</span></div><div class="tick"><span class="tl">⚠</span></div></div>`;
+  root.innerHTML = horiz ? inner : inner + `<div class="cap">TIME</div>`;
+  const fill = root.querySelector('.fill');
+  fill.dataset.p = '62';
+  if (horiz){ fill.style.width='62%'; fill.style.height='100%'; } else { fill.style.height='62%'; fill.style.width='100%'; }
+}
+function layoutFocus(n){
+  const root = n._el.querySelector('.g-focus'); if(!root) return;
+  const vert = n.h > n.w*1.4;
+  root.classList.toggle('vert', vert);
+}
 
 function layoutGrid(n){
   const holder = n._el.querySelector('.holder');
@@ -621,10 +668,10 @@ function startResize(n, e, dir){
     if (x+w>VW) w=VW-x; if (y+h>VH) h=VH-y;
     Object.assign(n,{x,y,w,h});                  // resize freely; overlap only indicated, never blocked
     renderNode(n); updateOverlaps();
-    if (LIB[n.type].isGrid) layoutGrid(n);
+    postLayout(n);
   }
   function up(){ document.removeEventListener('pointermove',move); document.removeEventListener('pointerup',up);
-    renderNode(n); if(LIB[n.type].isGrid) layoutGrid(n);
+    renderNode(n); postLayout(n);
     refreshInspector(); save(); }
   document.addEventListener('pointermove',move); document.addEventListener('pointerup',up);
 }
@@ -774,14 +821,32 @@ function setExportMode(m){
   document.getElementById('export-out').value = m==='json'?exportJSON():exportCSS();
 }
 
+/* ════════════════ IMPORT ════════════════ */
+function applyImport(text){
+  let data; try{ data=JSON.parse(text); }catch(e){ alert('That is not valid JSON.'); return false; }
+  const comps = data.components || data.nodes;
+  if (!Array.isArray(comps)){ alert('No "components" array found in that JSON.'); return false; }
+  nodes.forEach(n=>n._el&&n._el.remove()); nodes=[]; selId=null; uid=1;
+  comps.forEach(c=>{ if(!LIB[c.type]) return;
+    const def=LIB[c.type];
+    const n=createNode(c.type, +c.x||0, +c.y||0, +c.w||def.w, +c.h||def.h,
+      def.isGrid?{rows:c.rows||def.rows, cols:c.cols||def.cols}:null);
+    if (def.shape){ ['shape','text','fill','stroke','textColor','fontSize'].forEach(k=>{ if(c[k]!=null) n[k]=c[k]; }); rebuildShape(n); }
+  });
+  deselect(); save();
+  return true;
+}
+
 /* ════════════════ CLOCK ANIMATION ════════════════ */
 function tickClocks(){
   if (animOn){
     nodes.forEach(n=>{
       if (n.type==='clock_visual' && n._el){
         const fill=n._el.querySelector('.fill'); if(!fill)return;
-        let h=parseFloat(fill.dataset.h||'62'); h-=0.6; if(h<=0)h=100;
-        fill.dataset.h=h; fill.style.height=h+'%';
+        let p=parseFloat(fill.dataset.p||'62'); p-=0.6; if(p<=0)p=100;
+        fill.dataset.p=p;
+        if (n.w>=n.h) fill.style.width=p+'%';   // horizontal: drains right→left
+        else fill.style.height=p+'%';           // vertical: drains top→down
       }
     });
   }
@@ -810,6 +875,9 @@ document.getElementById('tg-anim').addEventListener('change',e=>animOn=e.target.
 document.getElementById('btn-reset').onclick=()=>{ if(confirm('Reset the canvas to the current game layout? This replaces what you have now.')){ seedDefault(); save(); } };
 document.getElementById('btn-clear').onclick=clearAll;
 document.getElementById('btn-export').onclick=openExport;
+document.getElementById('btn-import').onclick=()=>{ document.getElementById('import-in').value=''; document.getElementById('import-modal').classList.add('show'); };
+document.getElementById('btn-close-import').onclick=()=>document.getElementById('import-modal').classList.remove('show');
+document.getElementById('btn-apply-import').onclick=()=>{ if(applyImport(document.getElementById('import-in').value)) document.getElementById('import-modal').classList.remove('show'); };
 document.getElementById('tab-json').onclick=()=>setExportMode('json');
 document.getElementById('tab-css').onclick=()=>setExportMode('css');
 document.getElementById('btn-close-modal').onclick=()=>document.getElementById('modal').classList.remove('show');
