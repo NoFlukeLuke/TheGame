@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TheGame — Palette Preview</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Crimson+Pro:wght@300;400&display=swap');
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; min-height:100%; background:#0a0a0c; color:#e8e6ea;
+    font-family:'Crimson Pro',serif; -webkit-text-size-adjust:100%; }
+
+  /* page chrome (neutral, palette-independent) */
+  #bar{ position:sticky; top:0; z-index:10; background:#111114; border-bottom:1px solid #26262c;
+    padding:10px 14px; display:flex; flex-wrap:wrap; align-items:center; gap:10px; }
+  #bar .ttl{ font-family:'Cinzel',serif; font-weight:900; letter-spacing:2px; font-size:15px; color:#d8c26a; }
+  #bar .now{ font-family:'Cinzel',serif; font-size:12px; color:#9a96a2; letter-spacing:1px; }
+  #bar .spacer{ flex:1; }
+  #pal-btns{ display:flex; flex-wrap:wrap; gap:6px; }
+  .pal-btn{ cursor:pointer; border:1px solid #33333c; border-radius:8px; padding:5px 6px 6px; background:#191920;
+    display:flex; flex-direction:column; align-items:center; gap:4px; min-width:74px; }
+  .pal-btn.active{ border-color:#d8c26a; box-shadow:0 0 0 1px #d8c26a; }
+  .pal-btn .sw{ display:flex; gap:0; border-radius:4px; overflow:hidden; width:64px; height:16px; }
+  .pal-btn .sw i{ flex:1; }
+  .pal-btn .nm{ font-family:'Cinzel',serif; font-size:9px; letter-spacing:.5px; color:#cfcbd6; white-space:nowrap; }
+  .hint{ font-size:11px; color:#77737f; }
+
+  /* ══════════ SCENE (all colors from palette vars set on #frame) ══════════ */
+  #stage{ display:flex; justify-content:center; padding:20px 14px; }
+  #frame{
+    /* palette variables are injected here by JS; these are just fallbacks */
+    --bg:#0e0c0a; --panel:#13110e; --border:#3a3020; --gold:#c9a84c; --gold-dim:#7a6030;
+    --cream:#f0e6c8; --cream-dim:#8a7d60; --card-bg:#f5efe0; --card-border:#d4c89a;
+    --sh:#A0030B; --sd:#EC9F05; --ss:#000; --sc:#2255cc; --pos:#5a9e5a; --neg:#c0392b; --corrupt:#7a3fb0;
+    width:min(1000px,100%); background:var(--bg); border:1px solid var(--border); border-radius:16px;
+    padding:16px; display:grid; grid-template-columns:340px 1fr; gap:14px;
+    box-shadow:0 20px 60px rgba(0,0,0,0.55); transition:background .25s, border-color .25s;
+  }
+  @media (max-width:720px){ #frame{ grid-template-columns:1fr; } }
+
+  .col{ display:flex; flex-direction:column; gap:10px; min-width:0; }
+
+  /* clock strip */
+  .clockrow{ display:flex; gap:8px; align-items:stretch; height:46px; }
+  .clock-t{ font-family:'Cinzel',serif; font-weight:900; font-size:26px; color:var(--gold); letter-spacing:2px;
+    display:flex; align-items:center; text-shadow:0 0 18px color-mix(in srgb, var(--gold) 40%, transparent); }
+  .clock-bar{ flex:1; position:relative; background:color-mix(in srgb, var(--gold) 14%, #000);
+    border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+  .clock-bar .fill{ position:absolute; left:0; top:0; bottom:0; width:64%;
+    background:linear-gradient(90deg, var(--gold-dim), var(--gold)); }
+  .clock-bar .band{ position:absolute; top:0; bottom:0; left:34%; width:32%;
+    background:repeating-linear-gradient(45deg, color-mix(in srgb,var(--gold) 22%,transparent) 0 6px, transparent 6px 12px);
+    border-left:1px dashed color-mix(in srgb,var(--gold) 55%,transparent); border-right:1px dashed color-mix(in srgb,var(--gold) 55%,transparent); }
+
+  /* chips */
+  .chips{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
+  .chip{ background:color-mix(in srgb, var(--bg) 70%, #000); border:1px solid var(--border); border-radius:6px;
+    padding:6px 4px; text-align:center; }
+  .chip .lab{ font-family:'Cinzel',serif; font-size:9px; letter-spacing:1px; color:var(--cream-dim); }
+  .chip .val{ font-family:'Cinzel',serif; font-size:24px; font-weight:700; color:var(--cream); line-height:1.1; }
+  .chip .val.gold{ color:var(--gold); }
+
+  .scorerow{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .box{ background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:8px; text-align:center; }
+  .box .lab{ font-family:'Cinzel',serif; font-size:9px; letter-spacing:2px; color:var(--gold-dim); text-transform:uppercase; }
+  .box .num{ font-family:'Cinzel',serif; font-weight:900; color:var(--cream); line-height:1; }
+  .box .num.big{ font-size:30px; }
+  .box .num.mid{ font-size:22px; }
+  .prog{ margin-top:6px; height:6px; background:color-mix(in srgb,var(--gold) 14%,#000); border:1px solid var(--border);
+    border-radius:4px; overflow:hidden; }
+  .prog > i{ display:block; height:100%; width:46%; background:linear-gradient(90deg,var(--gold-dim),var(--gold)); }
+
+  .tray{ background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:8px; }
+  .tray .pt{ font-family:'Cinzel',serif; font-size:8px; letter-spacing:2px; color:var(--gold-dim); text-transform:uppercase; margin-bottom:6px; }
+  .tray .row{ display:flex; flex-wrap:wrap; gap:6px; }
+  .knack{ width:30px; height:30px; display:flex; align-items:center; justify-content:center; font-size:16px;
+    background:color-mix(in srgb, var(--bg) 55%, #000); border:1px solid var(--border); border-radius:7px; }
+  .trick{ font-family:'Cinzel',serif; font-size:11px; padding:4px 9px; border-radius:6px;
+    background:color-mix(in srgb, var(--panel) 70%, #000); border:1px solid var(--gold-dim); color:var(--cream); }
+  .trick.pos{ border-color:var(--pos); color:var(--pos); }
+  .trick.corrupt{ border-color:var(--corrupt); color:color-mix(in srgb,var(--corrupt) 70%, var(--cream)); }
+
+  .btns{ display:flex; gap:8px; }
+  .btn{ flex:1; font-family:'Cinzel',serif; font-size:13px; font-weight:700; letter-spacing:2px; text-transform:uppercase;
+    text-align:center; padding:12px 6px; border-radius:8px; border:2px solid; }
+  .btn.play{ background:var(--gold); border-color:var(--gold); color:var(--bg); }
+  .btn.discard{ background:color-mix(in srgb, var(--neg) 88%, #000); border-color:var(--neg); color:#fff; }
+  .btn.swap{ flex:0 0 66px; background:color-mix(in srgb, var(--bg) 55%,#000); border:1px solid var(--border);
+    color:var(--cream-dim); font-size:12px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; }
+  .btn.swap b{ color:var(--gold); }
+
+  /* card grid */
+  #play{ display:flex; gap:10px; }
+  #grid{ flex:1; background:radial-gradient(ellipse at center, color-mix(in srgb, var(--pos) 22%, var(--bg)) 0%, var(--bg) 80%);
+    border:1px solid var(--border); border-radius:10px; padding:8px;
+    display:grid; grid-template-columns:repeat(5,1fr); gap:6px; align-content:center; }
+  .card{ aspect-ratio:57/75; background:var(--card-bg); border:2px solid var(--card-border); border-radius:6px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  .card .rk{ font-family:'Cinzel',serif; font-weight:700; font-size:clamp(11px,2.4vw,20px); line-height:1; color:#1a1510; }
+  .card .st{ font-size:clamp(13px,2.9vw,24px); line-height:1; }
+  .card.h .rk,.card.h .st{ color:var(--sh); }
+  .card.d .rk,.card.d .st{ color:var(--sd); }
+  .card.s .rk,.card.s .st{ color:var(--ss); }
+  .card.c .rk,.card.c .st{ color:var(--sc); }
+  .card.sel{ border-color:#4a9eff; box-shadow:0 0 8px rgba(74,158,255,.6); transform:translateY(-3px); }
+  .card.exalt{ border-color:var(--gold); box-shadow:0 0 12px 2px color-mix(in srgb, var(--gold) 75%, transparent);
+    animation:glow 1.6s ease-in-out infinite; }
+  .card.corrupt{ border-color:var(--corrupt); box-shadow:0 0 12px 2px color-mix(in srgb, var(--corrupt) 70%, transparent); }
+  @keyframes glow{ 0%,100%{ box-shadow:0 0 8px 1px color-mix(in srgb,var(--gold) 55%,transparent);} 50%{ box-shadow:0 0 16px 4px color-mix(in srgb,var(--gold) 90%,transparent);} }
+  .focus{ width:22px; background:var(--panel); border:1px solid var(--border); border-radius:8px; position:relative; overflow:hidden; }
+  .focus .f{ position:absolute; left:0; right:0; bottom:0; height:58%; background:linear-gradient(0deg,var(--gold-dim),var(--gold)); }
+
+  /* swatches */
+  #swatches{ max-width:1000px; margin:0 auto; padding:6px 18px 30px; display:flex; flex-wrap:wrap; gap:10px; }
+  .swatch{ display:flex; flex-direction:column; align-items:center; gap:3px; width:74px; }
+  .swatch .c{ width:56px; height:34px; border-radius:6px; border:1px solid rgba(255,255,255,.15); }
+  .swatch .l{ font-size:9px; color:#8a8792; letter-spacing:.3px; text-align:center; }
+  .swatch .hx{ font-family:'Courier New',monospace; font-size:9px; color:#b8b4c0; }
+</style>
+</head>
+<body>
+  <div id="bar">
+    <span class="ttl">PALETTE PREVIEW</span>
+    <span class="now" id="now">—</span>
+    <span class="spacer"></span>
+    <span class="hint">click a palette · ← → to cycle</span>
+    <div id="pal-btns"></div>
+  </div>
+
+  <div id="stage">
+    <div id="frame">
+      <div class="col" id="info">
+        <div class="clockrow">
+          <div class="clock-t">1:04</div>
+          <div class="clock-bar"><div class="fill"></div><div class="band"></div></div>
+        </div>
+        <div class="chips">
+          <div class="chip"><div class="lab">PIPS</div><div class="val">128</div></div>
+          <div class="chip"><div class="lab">MULT</div><div class="val">7</div></div>
+          <div class="chip"><div class="lab">FOCUS</div><div class="val gold">×2</div></div>
+        </div>
+        <div class="scorerow">
+          <div class="box"><div class="lab">Score</div><div class="num big">1,840</div></div>
+          <div class="box"><div class="lab">Goal</div><div class="num mid">2,500</div><div class="prog"><i></i></div></div>
+        </div>
+        <div class="tray">
+          <div class="pt">Tricks</div>
+          <div class="row"><span class="trick pos">Pair+</span><span class="trick">Flush⚡</span><span class="trick corrupt">Hex♠</span></div>
+        </div>
+        <div class="tray">
+          <div class="pt">Knacks</div>
+          <div class="row"><span class="knack">✨</span><span class="knack">🔥</span><span class="knack">💰</span><span class="knack">🍀</span><span class="knack">⚡</span></div>
+        </div>
+        <div class="btns">
+          <div class="btn play">Play</div>
+          <div class="btn discard">Discard</div>
+          <div class="btn swap">🔄<b>3</b></div>
+        </div>
+      </div>
+
+      <div class="col" id="playcol">
+        <div id="play">
+          <div class="focus"><div class="f"></div></div>
+          <div id="grid"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="swatches"></div>
+
+<script>
+"use strict";
+/* Palettes: each maps the game's colour roles. "fix the colors" starter set —
+   Classic is the current game for reference; the rest are alternatives. */
+const PALETTES = [
+  { name:'Classic Gold', vars:{ bg:'#0e0c0a', panel:'#13110e', border:'#3a3020', gold:'#c9a84c', 'gold-dim':'#7a6030',
+      cream:'#f0e6c8', 'cream-dim':'#8a7d60', 'card-bg':'#f5efe0', 'card-border':'#d4c89a',
+      sh:'#a0030b', sd:'#ec9f05', ss:'#111111', sc:'#2255cc', pos:'#5a9e5a', neg:'#c0392b', corrupt:'#7a3fb0' } },
+
+  { name:'Midnight Jewel', vars:{ bg:'#0d1220', panel:'#141b2e', border:'#2a3550', gold:'#e3b24a', 'gold-dim':'#8a6d2a',
+      cream:'#eef2fb', 'cream-dim':'#8b95ad', 'card-bg':'#f7f4ec', 'card-border':'#c9cfe0',
+      sh:'#e23b52', sd:'#f2a93b', ss:'#1a2238', sc:'#3d7be8', pos:'#4bbf87', neg:'#e2554b', corrupt:'#9b6cff' } },
+
+  { name:'Emerald Table', vars:{ bg:'#0c1a12', panel:'#10241a', border:'#1f4030', gold:'#d8b45a', 'gold-dim':'#7f6a2e',
+      cream:'#eef3ea', 'cream-dim':'#8ea08c', 'card-bg':'#f6f1e4', 'card-border':'#cdd6bf',
+      sh:'#c0392b', sd:'#e08a1e', ss:'#12241a', sc:'#2f6fb0', pos:'#57b06a', neg:'#d0453a', corrupt:'#8e5bd0' } },
+
+  { name:'Neon Noir', vars:{ bg:'#0b0a14', panel:'#14121f', border:'#2e2947', gold:'#43e8d8', 'gold-dim':'#1f8f85',
+      cream:'#f3f0ff', 'cream-dim':'#9a93b8', 'card-bg':'#f4f2fb', 'card-border':'#cfc9e6',
+      sh:'#ff4d7d', sd:'#ffb43b', ss:'#201b33', sc:'#46b6ff', pos:'#4ee6a0', neg:'#ff5470', corrupt:'#c14dff' } },
+
+  { name:'Crimson & Ash', vars:{ bg:'#12100f', panel:'#1b1817', border:'#3a302c', gold:'#d1483f', 'gold-dim':'#7a2b26',
+      cream:'#f2e9e2', 'cream-dim':'#9a8a82', 'card-bg':'#f4efe6', 'card-border':'#d6c8bb',
+      sh:'#b12b2b', sd:'#d98a2b', ss:'#1b1817', sc:'#3f74b0', pos:'#5a9e5a', neg:'#d1483f', corrupt:'#8a4fb0' } },
+
+  { name:'Arcane Violet', vars:{ bg:'#100b18', panel:'#1a1226', border:'#362447', gold:'#caa6ff', 'gold-dim':'#6a4a9a',
+      cream:'#efe9f7', 'cream-dim':'#9a8db0', 'card-bg':'#f5f1f8', 'card-border':'#d3c9e2',
+      sh:'#e2496a', sd:'#eaa63a', ss:'#1a1226', sc:'#6a8cff', pos:'#57c08a', neg:'#e2496a', corrupt:'#ff5ce0' } },
+];
+
+const SWATCH_KEYS = [
+  ['bg','Background'],['panel','Panel'],['border','Border'],['gold','Accent'],['cream','Text'],
+  ['card-bg','Card'],['sh','♥'],['sd','♦'],['ss','♠'],['sc','♣'],['pos','Good'],['neg','Bad'],['corrupt','Corrupt']
+];
+
+const frame = document.getElementById('frame');
+const RANKS=['A','K','Q','J','10','9','8','7'];
+const SUITS=[['♥','h'],['♦','d'],['♠','s'],['♣','c']];
+
+// build a representative 5×4 grid: all suits, one selected, one exalted, one corrupted
+function buildGrid(){
+  const g=document.getElementById('grid'); g.innerHTML='';
+  const special={ 6:'sel', 7:'sel', 12:'exalt', 17:'corrupt' };
+  for(let i=0;i<20;i++){
+    const s=SUITS[i%4], r=RANKS[(i*3)%RANKS.length];
+    const d=document.createElement('div');
+    d.className='card '+s[1]+(special[i]?(' '+special[i]):'');
+    d.innerHTML=`<div class="rk">${r}</div><div class="st">${s[0]}</div>`;
+    g.appendChild(d);
+  }
+}
+
+function applyPalette(idx){
+  const p=PALETTES[idx];
+  for(const [k,v] of Object.entries(p.vars)) frame.style.setProperty('--'+k, v);
+  document.getElementById('now').textContent = (idx+1)+' / '+PALETTES.length+' · '+p.name;
+  document.querySelectorAll('.pal-btn').forEach((b,i)=>b.classList.toggle('active', i===idx));
+  renderSwatches(p);
+  cur=idx;
+}
+function renderSwatches(p){
+  const host=document.getElementById('swatches'); host.innerHTML='';
+  for(const [k,label] of SWATCH_KEYS){
+    const v=p.vars[k]; if(!v) continue;
+    const el=document.createElement('div'); el.className='swatch';
+    el.innerHTML=`<div class="c" style="background:${v}"></div><div class="l">${label}</div><div class="hx">${v}</div>`;
+    host.appendChild(el);
+  }
+}
+function buildButtons(){
+  const host=document.getElementById('pal-btns');
+  PALETTES.forEach((p,i)=>{
+    const b=document.createElement('button'); b.className='pal-btn';
+    const keys=['bg','panel','gold','card-bg','sh'];
+    b.innerHTML=`<span class="sw">${keys.map(k=>`<i style="background:${p.vars[k]}"></i>`).join('')}</span><span class="nm">${p.name}</span>`;
+    b.onclick=()=>applyPalette(i);
+    host.appendChild(b);
+  });
+}
+
+let cur=0;
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'){ applyPalette((cur+1)%PALETTES.length); }
+  if(e.key==='ArrowLeft'){ applyPalette((cur-1+PALETTES.length)%PALETTES.length); }
+});
+
+buildGrid(); buildButtons(); applyPalette(0);
+</script>
+</body>
+</html>
