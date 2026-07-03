@@ -3604,7 +3604,7 @@
 </div>
 
 <script>
-const BUILD = '2026-06-28 · r71';
+const BUILD = '2026-06-28 · r72';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -4310,6 +4310,7 @@ const SLEIGHT_POOL = [
   { id:'amplifier',      name:'Amplifier',      emoji:'📢', rarity:'common',    activation:'double_tap', durability:5,          defaultRank:null, defaultSuit:null, tags:['scoring','mult'],     desc:'Double-tap: the next hand scores +5 mult. (5 charges)' },
   { id:'snooze',         name:'Snooze Button',  emoji:'😴', rarity:'common',    activation:'double_tap', durability:5,          defaultRank:null, defaultSuit:null, tags:['time'],                desc:'Double-tap: pause the clock for 10 seconds. (5 charges)' },
   { id:'shady_tree',     name:'Shady Tree',     emoji:'🌳', rarity:'rare',      activation:'on_play',    durability:10,         defaultRank:null, defaultSuit:null, tags:['time','position'],    desc:'Play this from the round’s shady column to pause the clock. Pauses for its remaining charges (10 → 1), −1 each use; destroyed at 0.' },
+  { id:'stopwatch',      name:'Stopwatch',      emoji:'⏱️', rarity:'epic',      activation:'double_tap', durability:60,         defaultRank:null, defaultSuit:null, tags:['time'],                desc:'Double-tap: freeze the clock until you next play a hand (swaps and discards keep it frozen). Holds up to 60 paused seconds total, drained 1 per second; destroyed at 0.' },
   { id:'piggy_bank',     name:'Piggy Bank',     emoji:'🐷', rarity:'common',    activation:'double_tap', durability:5,          defaultRank:null, defaultSuit:null, tags:['resource','coins'],   desc:'Double-tap: gain 5 coins. (5 charges)' },
   // ── Aim-based (fixtures: tap to rotate aim; cannot be swapped or discarded) ──
   { id:'reflect',     name:'Reflect',     emoji:'🪞', rarity:'epic',   activation:'aim', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['retrigger','position'], desc:'Tap to rotate its aim (up→right→down→left). The card it faces retriggers once when a hand scores. Cannot be swapped or discarded.' },
@@ -4398,6 +4399,9 @@ let woodpeckerPos = null;       // { r, c } — marked tile (Woodpecker) during 
 let woodpeckerActiveBlock = -1; // index of the 30s block already handled (even = active/marked, odd = off)
 let metronomeHandType = null;   // Metronome knack: the hand type that pauses the clock this round
 let shadyColumn = 0;            // Shady Tree sleight: the "shady" column this round
+let stopwatchActive = false;    // Stopwatch sleight: clock frozen until the next hand's scoring animation ends
+let stopwatchTimer = null;      // interval draining the Stopwatch second-budget while frozen
+let stopwatchCardPos = null;    // { card, r, c } of the active Stopwatch
 
 // Hand types the player can actually make given their current Selection Size cap.
 // Used so we never assign a target hand a small hand-size can't build (e.g. no Flush at cap 3).
@@ -6768,6 +6772,17 @@ function onCardTap(r, c) {
     if (jdef?.activation === 'double_tap' && isDoubleTap) {
       const jcard = gridData[r][c];
       lastTapTime = 0; lastTapCell = null;
+      // Stopwatch: custom freeze (not the once-per-round-locked charge model). Double-tap toggles.
+      if (jdef.id === 'stopwatch') {
+        hideSleightGridTooltip();
+        if (stopwatchActive && stopwatchCardPos && stopwatchCardPos.card === jcard) {
+          endStopwatch(); showMessage('⏱️ Stopwatch — stopped', 'var(--cream-dim)');
+        } else if (!stopwatchActive) {
+          if (jcard._usesLeft !== 'infinite' && jcard._usesLeft <= 0) showMessage('Stopwatch is spent', 'var(--cream-dim)');
+          else startStopwatch(jcard, r, c);
+        }
+        return;
+      }
       if (!sleightCanActivateThisRound(jcard)) {
         showMessage(`${jdef.name} already used this round`, 'var(--cream-dim)');
         return;
@@ -8092,6 +8107,8 @@ async function playScoreDance(result, toRemove, isGoalHand = false) {
 
   // ── 6. Settle ──
   danceAbortController = null;
+  // Stopwatch: the pause lasts through scoring (so while-paused bonuses fire), then releases now.
+  if (stopwatchActive) endStopwatch();
   if (pipsValEl) pipsValEl.textContent = '0';
   if (multValEl) multValEl.textContent = '0';
 
@@ -8131,6 +8148,7 @@ async function playScoreDance(result, toRemove, isGoalHand = false) {
 
 function handleDanceAbort(isGoalHand) {
   danceAbortController = null;
+  if (stopwatchActive) endStopwatch(); // release the Stopwatch freeze if the dance was cut short
   updateScoreUI();
   const pipsValEl = document.getElementById('pips-val');
   const multValEl = document.getElementById('mult-val');
@@ -8291,15 +8309,59 @@ function pauseRound(seconds) {
     pauseSecondsLeft--;
     pausedSecondsRound++; // Albatross
     if (pauseSecondsLeft <= 0) {
-      pipeTimerPaused = false; pauseSecondsLeft = 0;
+      pauseSecondsLeft = 0;
       firstPauseActive = false; // the first continuous pause stretch is over (Vulture)
-      if (clockEl) clockEl.classList.remove('clock-paused');
+      // Don't unfreeze if a Stopwatch is still holding the clock frozen.
+      if (!stopwatchActive) { pipeTimerPaused = false; if (clockEl) clockEl.classList.remove('clock-paused'); }
       updateClockUI();
     } else {
       pauseTimer = setTimeout(tick, 1000);
     }
   };
   pauseTimer = setTimeout(tick, 1000);
+}
+
+// ── Stopwatch sleight ─────────────────────────────────────────────────────────
+// Freezes the clock (a NORMAL pause, so Phoenix/Falcon etc. still apply) until the
+// next played hand's scoring animation settles. Swaps/discards/selection keep it
+// frozen. Drains its 60-second budget (_usesLeft) 1 per frozen second; destroyed at 0.
+function startStopwatch(card, r, c) {
+  if (stopwatchActive || !card) return;
+  if (card._usesLeft !== 'infinite' && card._usesLeft <= 0) return;
+  stopwatchActive = true;
+  stopwatchCardPos = { card, r, c };
+  pipeTimerPaused = true;
+  const clockEl = document.getElementById('clock');
+  if (clockEl) clockEl.classList.add('clock-paused');
+  showMessage('⏱️ Stopwatch — clock frozen', '#5aa9e6');
+  if (stopwatchTimer) clearInterval(stopwatchTimer);
+  stopwatchTimer = setInterval(() => {
+    if (!stopwatchActive) { clearInterval(stopwatchTimer); stopwatchTimer = null; return; }
+    if (gameTimerPaused) return; // don't drain while a menu/shop/event has the game suspended
+    if (card._usesLeft === 'infinite') return;
+    card._usesLeft--;
+    pausedSecondsRound++; // Albatross counts frozen seconds
+    if (card._usesLeft <= 0) {
+      // budget spent → destroy the sleight (find it by reference; a discard-fall may have moved it) and release
+      for (let rr = 0; rr < gridRows; rr++) for (let cc = 0; cc < gridCols; cc++) if (gridData[rr]?.[cc] === card) gridData[rr][cc] = null;
+      endStopwatch();
+      showMessage('Stopwatch consumed', 'var(--cream-dim)');
+      render();
+    }
+  }, 1000);
+}
+function endStopwatch() {
+  if (!stopwatchActive && !stopwatchTimer) return;
+  stopwatchActive = false;
+  stopwatchCardPos = null;
+  if (stopwatchTimer) { clearInterval(stopwatchTimer); stopwatchTimer = null; }
+  // Only actually release the clock if no normal pause is still counting down.
+  if (pauseSecondsLeft <= 0) {
+    pipeTimerPaused = false;
+    const clockEl = document.getElementById('clock');
+    if (clockEl) clockEl.classList.remove('clock-paused');
+    updateClockUI();
+  }
 }
 
 // ══════════════════════════════════════════════
@@ -10388,7 +10450,8 @@ function showSleightGridTooltip(r, c, card) {
   tip.id = 'sleight-grid-tooltip';
   tip.className = 'sleight-tooltip';
   const _usedLock = card._usedThisRound ? ' · USED THIS ROUND' : '';
-  const _hint = def.activation === 'double_tap' ? `DOUBLE-TAP TO ACTIVATE · ONCE PER ROUND${_usedLock}`
+  const _hint = def.id === 'stopwatch' ? 'DOUBLE-TAP TO FREEZE THE CLOCK'
+              : def.activation === 'double_tap' ? `DOUBLE-TAP TO ACTIVATE · ONCE PER ROUND${_usedLock}`
               : def.activation === 'on_play' ? 'SELECT &amp; PLAY TO ACTIVATE'
               : def.activation === 'on_discard' ? 'SELECT &amp; DISCARD TO ACTIVATE'
               : def.activation === 'on_swap' ? `SWAP TO ACTIVATE · ONCE PER ROUND${_usedLock}`
@@ -12045,6 +12108,10 @@ function triggerLevelUp() {
   } else metronomeHandType = null;
   // Shady Tree sleight: pick this round's "shady" column.
   shadyColumn = Math.floor(Math.random() * gridCols);
+  // Stopwatch: clear any lingering freeze/timer from the previous round.
+  stopwatchActive = false;
+  if (stopwatchTimer) { clearInterval(stopwatchTimer); stopwatchTimer = null; }
+  stopwatchCardPos = null;
   trickCardPos = null;
   trickCardTimer = 0;
   selected = [];
@@ -14114,6 +14181,7 @@ function startGame() {
   pipeTimerPaused = false;
   pauseSecondsLeft = 0;
   pauseInstanceGame = 0; // Hummingbird's per-game pause counter — reset only here
+  stopwatchActive = false; if (stopwatchTimer) { clearInterval(stopwatchTimer); stopwatchTimer = null; } stopwatchCardPos = null;
   if (pauseTimer) { clearTimeout(pauseTimer); pauseTimer = null; }
   const ALL_HAND_KEYS = ['run3','threeofakind','fourofakind','run4','pair','twopair','straight','flush','fullhouse','straightflush','highcard','blackjack'];
   const BASE_HAND_KEYS = ['run3','threeofakind','twopair','fourofakind'];
