@@ -133,17 +133,17 @@
   .g-stat .val{ font-family:'Cinzel',serif; font-size:min(46cqw,52cqh); font-weight:700; color:var(--cream); line-height:1.05; }
   .g-stat .val.gold{ color:var(--gold); }
 
-  .g-total{ width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center;
-    background:var(--panel); border:1px solid var(--border); border-radius:6px; }
-  .g-total .lab{ font-family:'Cinzel',serif; font-size:clamp(6px,14cqh,12px); letter-spacing:2px; color:var(--gold-dim); text-transform:uppercase; }
-  .g-total .num{ font-family:'Cinzel',serif; font-size:min(34cqw,62cqh); font-weight:900; color:var(--cream); line-height:1; }
-
-  .g-goal{ width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
-    background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:6px; }
-  .g-goal .lab{ font-family:'Cinzel',serif; font-size:clamp(6px,13cqh,11px); letter-spacing:2px; color:var(--gold-dim); text-transform:uppercase; }
-  .g-goal .num{ font-family:'Cinzel',serif; font-size:min(30cqw,42cqh); font-weight:700; color:var(--cream); line-height:1; }
-  .g-bar{ width:85%; height:5px; background:#2a2010; border-radius:3px; overflow:hidden; border:1px solid var(--border); }
-  .g-bar > i{ display:block; height:100%; width:42%; background:linear-gradient(90deg,var(--gold-dim),var(--gold)); }
+  /* Score total + Goal share one block layout: label pinned top, big number
+     vertically CENTERED (so the numbers line up across both blocks at the same
+     height), same font size; Goal adds a thicker progress bar flush to the bottom. */
+  .g-scoreblock{ position:relative; width:100%; height:100%; background:var(--panel); border:1px solid var(--border);
+    border-radius:6px; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  .g-scoreblock .sb-lab{ position:absolute; top:5px; left:0; right:0; text-align:center;
+    font-family:'Cinzel',serif; font-size:clamp(6px,13cqh,11px); letter-spacing:2px; color:var(--gold-dim); text-transform:uppercase; }
+  .g-scoreblock .sb-num{ font-family:'Cinzel',serif; font-weight:900; color:var(--cream); line-height:1; font-size:min(28cqw,46cqh); }
+  .g-scoreblock .sb-bar{ position:absolute; left:0; right:0; bottom:0; height:9px; background:#2a2010; overflow:hidden;
+    border-top:1px solid var(--border); }
+  .g-scoreblock .sb-bar > i{ display:block; height:100%; width:46%; background:linear-gradient(90deg,var(--gold-dim),var(--gold)); }
 
   .g-clockn{ width:100%; height:100%; display:flex; align-items:center; justify-content:center; }
   .g-clockn .t{ font-family:'Cinzel',serif; font-size:min(45cqw,85cqh); font-weight:900; color:var(--gold); letter-spacing:2px;
@@ -272,7 +272,7 @@
     <button class="tbtn danger" id="btn-clear">Clear</button>
     <button class="tbtn" id="btn-import">◂ Import</button>
     <button class="tbtn primary" id="btn-export">Export ▸</button>
-    <span class="sub">preview r7</span>
+    <span class="sub">preview r8</span>
   </div>
 
   <div id="body">
@@ -364,8 +364,8 @@ const LIB = {
   score_pips:  { cat:'Score', label:'Pips',  ic:'➕', w:90, h:90,  build:()=>`<div class="g-chip"><div class="lab">PIPS</div><div class="val">128</div></div>` },
   score_mult:  { cat:'Score', label:'Mult',  ic:'✖', w:90, h:90,  build:()=>`<div class="g-chip"><div class="lab">MULT</div><div class="val">7</div></div>` },
   score_focus: { cat:'Score', label:'Focus (chip)', ic:'◎', w:90, h:90, build:()=>`<div class="g-chip chip-focus"><div class="lab">FOCUS</div><div class="val gold">×2</div></div>` },
-  score_total: { cat:'Score', label:'Score total', ic:'∑', w:160, h:100, build:()=>`<div class="g-total"><div class="lab">Score</div><div class="num">1,840</div></div>` },
-  score_goal:  { cat:'Score', label:'Goal + bar', ic:'🎯', w:170, h:100, build:()=>`<div class="g-goal"><div class="lab">Goal</div><div class="num">2,500</div><div class="g-bar"><i></i></div></div>` },
+  score_total: { cat:'Score', label:'Score total', ic:'∑', w:160, h:100, build:()=>`<div class="g-scoreblock"><div class="sb-lab">Score</div><div class="sb-num">1,840</div></div>` },
+  score_goal:  { cat:'Score', label:'Goal + bar', ic:'🎯', w:170, h:100, build:()=>`<div class="g-scoreblock"><div class="sb-lab">Goal</div><div class="sb-num">2,500</div><div class="sb-bar"><i></i></div></div>` },
 
   // ── Top stats ──
   stat_timer:  { cat:'Stats', label:'Game timer', ic:'⏱', w:110, h:64, build:()=>`<div class="g-stat"><div class="lab">Game Timer</div><div class="val gold">18:42</div></div>` },
@@ -411,7 +411,7 @@ const LIB = {
     `<div class="ci-row"><span>Cash out</span><span class="gd">+18</span></div></div>` },
   interact_costs: { cat:'Info', label:'Interact costs', ic:'⏱', w:130, h:90, build:()=>
     `<div class="g-costs"><div class="cost-h">Time Cost</div>`+
-    `<div class="cost-r"><span>Play</span><span>5s</span></div>`+
+    `<div class="cost-r"><span>Play</span><span>0s</span></div>`+
     `<div class="cost-r"><span>Discard</span><span>3s</span></div>`+
     `<div class="cost-r"><span>Swap</span><span>4s</span></div></div>` },
   btn_stats:   { cat:'Actions', label:'Stats button', ic:'📊', w:96, h:42, build:()=>`<div class="g-actbtn secondary">📊 Stats</div>` },
