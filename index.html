@@ -2883,6 +2883,67 @@
   #menu-start-btn:hover { background: #e0bc5a; transform: scale(1.02); }
   #menu-start-btn:active { transform: scale(0.98); }
 
+  /* ═══════════════ v7 FIXED-COORDINATE LANDSCAPE (r73) ═══════════════
+     Overrides the legacy flexbox landscape rules above via source order.
+     Wrapper divs become display:contents so the real leaf elements can be
+     absolutely positioned against #stage at the designed v7 proportions
+     (% of the 747×420 landscape stage = the editor's 1280×720 percentages). */
+  #stage.landscape { display:block; position:relative; width:747px; height:420px; padding:0; overflow:visible; }
+  #stage.landscape #top-bar, #stage.landscape #main, #stage.landscape #top-strip,
+  #stage.landscape #score-panel, #stage.landscape #score-panel-inner, #stage.landscape #trick-panel,
+  #stage.landscape #hand-preview-area, #stage.landscape #grid-and-buttons,
+  #stage.landscape #action-col, #stage.landscape #action-row-2 { display:contents; }
+  /* elements not used in the v7 landscape */
+  #stage.landscape #deck-hud,
+  #stage.landscape #game-timer-stat,
+  #stage.landscape #top-bar .top-stat,
+  #stage.landscape #clock-bar-wrap { display:none !important; }
+  /* new v7-only blocks show only in landscape */
+  .v7-ls { display:none; }
+  #stage.landscape .v7-ls { display:flex; }
+  /* shared panel chrome for repositioned + new blocks */
+  #stage.landscape #score-center, #stage.landscape #score-left, #stage.landscape #score-subboxes,
+  #stage.landscape #selected-cards, #stage.landscape #knack-carousel-wrap, #stage.landscape #trick-tray-area,
+  #stage.landscape #vclock, #stage.landscape #run-progress, #stage.landscape #coin-info, #stage.landscape #interact-costs {
+    position:absolute; box-sizing:border-box; margin:0; background:var(--panel); border:1px solid var(--border); border-radius:6px; }
+  /* placements (percentages of the 747×420 stage) */
+  #stage.landscape #score-center   { left:1.56%;  top:2.78%;  width:16.41%; height:12.5%;  display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  #stage.landscape #score-left     { left:19.53%; top:2.78%;  width:14.84%; height:12.5%;  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; padding:4px; }
+  #stage.landscape #clock-area     { position:absolute; left:40.63%; top:4.17%; width:7.03%; height:6%; display:flex; align-items:center; justify-content:center; background:none; border:none; padding:0; }
+  #stage.landscape #vclock         { left:48.44%; top:2.78%; width:40.63%; height:6.94%; overflow:hidden; display:block; }
+  #stage.landscape #score-subboxes { left:1.56%;  top:18.06%; width:32.81%; height:11.11%; display:flex; flex-direction:row; align-items:stretch; justify-content:space-around; gap:4px; padding:4px; border-right:none; border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
+  #stage.landscape #selected-cards { left:1.56%;  top:31.94%; width:32.81%; height:15.28%; display:flex; align-items:center; justify-content:center; gap:3px; padding:4px; background:var(--panel); border:1px solid var(--border); border-radius:6px; }
+  #stage.landscape #hand-name      { position:absolute; left:1.56%; top:47.22%; width:32.81%; height:4.44%; display:flex; align-items:center; justify-content:center; background:none; border:none; margin:0; }
+  #stage.landscape #knack-carousel-wrap { left:1.56%; top:51.39%; width:32.81%; height:6.94%; display:flex; align-items:center; gap:5px; padding:2px 6px; overflow:hidden; }
+  #stage.landscape #trick-tray-area { left:1.56%; top:59.72%; width:32.81%; height:13.89%; display:flex !important; flex-direction:column; padding:4px 6px; overflow:hidden; }
+  #stage.landscape #interact-costs { left:1.56%; top:76.39%; width:14.84%; height:12.5%; flex-direction:column; justify-content:center; padding:3px 6px; gap:1px; }
+  #stage.landscape #coin-info      { left:17.19%; top:76.39%; width:17.19%; height:12.5%; flex-direction:column; justify-content:center; padding:3px 7px; gap:1px; }
+  #stage.landscape #btn-stats      { position:absolute; left:1.56%; top:91.67%; width:10.16%; height:6.39%; }
+  #stage.landscape #btn-deck       { position:absolute; left:13.28%; top:91.67%; width:10.16%; height:6.39%; }
+  #stage.landscape #btn-pause      { position:absolute; left:25%;    top:91.67%; width:9.38%;  height:6.39%; }
+  #stage.landscape #focus-meter-wrap { position:absolute; left:35.94%; top:1.39%; width:2.34%; height:96.67%; }
+  #stage.landscape #grid-slot      { position:absolute; left:39.84%; top:11.11%; width:49.22%; height:86.11%; }
+  #stage.landscape #run-progress   { left:90.63%; top:1.39%; width:8.59%; height:8.33%; flex-direction:column; align-items:center; justify-content:center; gap:3px; padding:3px; }
+  #stage.landscape #btn-discard    { position:absolute; left:91.41%; top:11.11%; width:7.81%; height:29.17%; }
+  #stage.landscape #btn-play       { position:absolute; left:91.41%; top:41.67%; width:7.81%; height:38.89%; }
+  #stage.landscape #swap-indicator { position:absolute; left:91.41%; top:81.94%; width:7.81%; height:15.28%; }
+  /* new-block internals */
+  #vclock-fill { position:absolute; left:0; top:0; bottom:0; width:64%; background:linear-gradient(90deg,var(--gold-dim),var(--gold)); transition:width .25s linear; }
+  #vclock-band { position:absolute; top:0; bottom:0; left:33%; width:34%; background:repeating-linear-gradient(45deg, rgba(201,168,76,0.18) 0 6px, transparent 6px 12px); border-left:1px dashed rgba(201,168,76,0.5); border-right:1px dashed rgba(201,168,76,0.5); }
+  #coin-info .ci-main { font-family:'Cinzel',serif; color:var(--gold); font-weight:700; font-size:15px; line-height:1; display:flex; align-items:baseline; gap:4px; }
+  #coin-info .ci-main b { font-size:19px; }
+  #coin-info .ci-row { display:flex; justify-content:space-between; font-family:'Courier New',monospace; font-size:8px; color:var(--cream-dim); }
+  #coin-info .ci-row .pos { color:var(--green); }
+  #interact-costs .ic-h { font-family:'Cinzel',serif; font-size:7px; letter-spacing:1px; color:var(--gold-dim); text-transform:uppercase; text-align:center; }
+  #interact-costs .ic-r { display:flex; justify-content:space-between; font-family:'Courier New',monospace; font-size:9px; color:var(--cream); }
+  #interact-costs .ic-r span:last-child { color:var(--gold); font-weight:700; }
+  #run-progress .rp-act { font-family:'Cinzel',serif; font-size:11px; font-weight:700; color:var(--gold); letter-spacing:1px; line-height:1; }
+  #run-progress .rp-nodes { display:flex; gap:3px; align-items:center; }
+  #run-progress .rp-nodes span { width:6px; height:6px; border-radius:50%; background:#2a2010; border:1px solid var(--gold-dim); box-sizing:border-box; }
+  #run-progress .rp-nodes span.on { background:var(--gold); border-color:var(--gold); }
+  #run-progress .rp-nodes span.cur { background:var(--cream); border-color:var(--cream); }
+  #run-progress .rp-nodes .boss { width:auto; height:auto; border:none; background:none; color:var(--red); font-size:10px; }
+
 </style>
 </head>
 <body>
@@ -3048,6 +3109,24 @@
     <button class="act-btn btn-secondary" id="btn-stats">📊 Stats</button>
     <button class="act-btn btn-secondary" id="btn-deck">🃏 Deck</button>
     <button class="act-btn btn-secondary" id="btn-pause">⏸ Pause</button>
+  </div>
+
+  <!-- v7 landscape-only blocks (hidden in portrait) -->
+  <div id="vclock" class="v7-ls"><div id="vclock-band"></div><div id="vclock-fill"></div></div>
+  <div id="run-progress" class="v7-ls">
+    <div class="rp-act">ACT 1</div>
+    <div class="rp-nodes"><span></span><span></span><span></span><span></span><span></span><span class="boss">&#9760;</span></div>
+  </div>
+  <div id="coin-info" class="v7-ls">
+    <div class="ci-main">&#128176;<b id="ci-gold">0</b></div>
+    <div class="ci-row"><span>Interest</span><span class="pos" id="ci-interest">+0</span></div>
+    <div class="ci-row"><span>Cash out</span><span id="ci-cashout">+0</span></div>
+  </div>
+  <div id="interact-costs" class="v7-ls">
+    <div class="ic-h">Time Cost</div>
+    <div class="ic-r"><span>Play</span><span id="ic-play">0s</span></div>
+    <div class="ic-r"><span>Discard</span><span>3s</span></div>
+    <div class="ic-r"><span>Swap</span><span>4s</span></div>
   </div>
 
   <!-- Hidden elements still needed by render() -->
@@ -3689,7 +3768,7 @@
 </div>
 
 <script>
-const BUILD = '2026-07-18 · r77';
+const BUILD = '2026-07-18 · r77+v7';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -6576,6 +6655,7 @@ function updateScoreUI() {
   document.getElementById('hands-display').textContent = handsPlayed;
   document.getElementById('level-display').textContent = level;
   updateCoinsUI();
+  updateRunProgressUI();
 }
 
 // Called from dance to update live pips/mult sub-boxes
@@ -6590,7 +6670,18 @@ function updateDanceSubboxes(pips, mult) {
 
 function updateCoinsUI() {
   document.getElementById('coins-display').textContent = '💰 ' + coins;
+  const cg = document.getElementById('ci-gold'); if (cg) cg.textContent = coins;
   if (document.getElementById('shop-overlay').classList.contains('show')) refreshShopAffordability();
+}
+
+// v7 landscape: run-progress block (Act + node pips)
+function updateRunProgressUI() {
+  const rp = document.getElementById('run-progress'); if (!rp) return;
+  const act = rp.querySelector('.rp-act'); if (act) act.textContent = 'ACT ' + actNumber;
+  rp.querySelectorAll('.rp-nodes span:not(.boss)').forEach((s, i) => {
+    s.classList.toggle('on', i < nodeInAct);
+    s.classList.toggle('cur', i === nodeInAct);
+  });
 }
 
 function updateKnackList() {
@@ -9211,6 +9302,7 @@ function updateClockUI() {
   const barEl = document.getElementById('clock-bar');
   clockEl.textContent = `${m}:${s.toString().padStart(2,'0')}`;
   barEl.style.width = (secs/ROUND_DURATION*100)+'%';
+  const vf = document.getElementById('vclock-fill'); if (vf) vf.style.width = (secs/ROUND_DURATION*100)+'%';
   clockEl.classList.toggle('clock-paused', pipeTimerPaused);
   if (secs <= 10) { clockEl.classList.add('urgent'); barEl.classList.add('urgent'); }
   else { clockEl.classList.remove('urgent'); barEl.classList.remove('urgent'); }
