@@ -3604,7 +3604,7 @@
 </div>
 
 <script>
-const BUILD = '2026-06-28 · r72';
+const BUILD = '2026-06-28 · r73';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -5594,7 +5594,8 @@ function calcScore(handName, cells, contrib = null) {
   lastPreFocusMult = mult;   // kept for dance compatibility (now == pure mult)
   lastCalcMult = mult;       // pure mult for the MULT box
   lastCalcPips = totalPips;
-  lastCalcFocus = fMult;     // focus multiplier for the FOCUS box
+  // focus multiplier for the FOCUS box — Phoenix (paused) applies it twice, so show the doubled value
+  lastCalcFocus = (hasTrick('phoenix') && pipeTimerPaused && fMult > 1) ? fMult * 2 : fMult;
 
   if (totalPips < 0) totalPips = 0; // corrupt costs can't push a hand into score debt
 
