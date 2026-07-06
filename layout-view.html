@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>TheGame — Desktop Layout Editor</title>
+<title>TheGame — Layout Preview</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Crimson+Pro:wght@300;400&display=swap');
 
@@ -266,6 +266,14 @@
   /* custom shapes */
   .g-shape{ width:100%; height:100%; display:flex; align-items:center; justify-content:center;
     text-align:center; padding:6px; font-family:'Cinzel',serif; font-size:14px; overflow:hidden; word-break:break-word; }
+
+  /* ===== VIEW MODE (generated mobile viewer) ===== */
+  body.view-mode #toolbar, body.view-mode #palette, body.view-mode #inspector,
+  body.view-mode #modal, body.view-mode #import-modal{ display:none !important; }
+  body.view-mode #body{ display:block; }
+  body.view-mode #stage{ position:fixed; inset:0; padding:0; }
+  body.view-mode #grid-layer{ display:none; }
+  body.view-mode .node{ outline:none !important; }
 </style>
 </head>
 <body>
@@ -934,10 +942,11 @@ document.getElementById('btn-download').onclick=()=>{
 window.addEventListener('resize', computeScale);
 
 /* ════════════════ BOOT ════════════════ */
-buildPalette();
-load();
+/* view-mode boot (generated mobile viewer) */
+document.body.classList.add('view-mode');
+seedDefault();                       // render the current default layout (v7)
+canvasEl.style.pointerEvents='none'; // read-only
 computeScale();
-updateOverlaps();
 tickClocks();
 </script>
 </body>
