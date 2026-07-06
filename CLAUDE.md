@@ -34,7 +34,7 @@ The stage (`#stage`, 420×740 portrait / 747×420 landscape) is a single fixed-s
 
 ### Card types (flags on the card object)
 - **Normal card:** `{ rank, suit, _id }`.
-- **Trick** (formerly *Bonus Card / BC*): `_isTrick:true`, `trick:{id,name,desc,tier}`. A scoring buff that **only works while physically on the grid**. `hasTrick(id)` scans `gridData`, not an owned-list. Place new Tricks with `injectTrickAfterReward(trick)`. `acquiredTricks[]` tracks ever-owned (for dedup via `ownsTrick`).
+- **Trick** (formerly *Bonus Card / BC*): `trick:{id,name,desc,tier}`. A scoring buff. **As of the trick redesign (r66+), Tricks do NOT live on the grid** — they sit in a persistent **side tray** (`trickTray[]`, rendered by `renderTrickTray()` into `#trick-tray-list`; `trickTrayMode` defaults to `true`, grid placement is a dev-only toggle). `hasTrick(id)` checks the tray in tray mode (falls back to scanning `gridData` only when grid placement is toggled on). `acquiredTricks[]` tracks ever-owned (for dedup via `ownsTrick`). **NOTE: Sleights (below), not Tricks, are the entities that physically live on the grid.**
 - **Sleight** (formerly *Joker*): `_isSleight:true`, `sleightId`, `_usesLeft`. A deck card with conditional activations (see below).
 - **Stone:** `_isStone:true` — inert obstacle.
 - **Knack** (formerly *Totem*): NOT a card. Persistent rule-changer in `acquiredKnacks[]`, shown in HUD. `hasKnack(id)`.

@@ -2911,7 +2911,12 @@
   #stage.landscape #score-left     { left:19.53%; top:2.78%;  width:14.84%; height:12.5%;  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; padding:4px; }
   #stage.landscape #clock-area     { position:absolute; left:40.63%; top:4.17%; width:7.03%; height:6%; display:flex; align-items:center; justify-content:center; background:none; border:none; padding:0; }
   #stage.landscape #vclock         { left:48.44%; top:2.78%; width:40.63%; height:6.94%; overflow:hidden; display:block; }
-  #stage.landscape #score-subboxes { left:1.56%;  top:18.06%; width:32.81%; height:11.11%; display:flex; flex-direction:row; align-items:stretch; justify-content:space-around; gap:4px; padding:4px; border-right:none; border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
+  #stage.landscape #score-subboxes { left:1.56%;  top:18.06%; width:32.81%; height:11.11%; display:flex; flex-direction:row; align-items:stretch; justify-content:space-around; gap:4px; padding:4px 4px 9px; border-right:none; border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
+  #stage.landscape .score-subbox { display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  #stage.landscape #knack-carousel-wrap .panel-title, #stage.landscape #trick-tray-area .panel-title { display:none; }
+  #stage.landscape #selected-cards .mini-card, #stage.landscape #selected-cards .mini-card-empty { width:34px; height:44px; }
+  #stage.landscape #selected-cards .mini-rank { font-size:13px; }
+  #stage.landscape #selected-cards .mini-suit { font-size:11px; }
   #stage.landscape #selected-cards { left:1.56%;  top:31.94%; width:32.81%; height:15.28%; display:flex; align-items:center; justify-content:center; gap:3px; padding:4px; background:var(--panel); border:1px solid var(--border); border-radius:6px; }
   #stage.landscape #hand-name      { position:absolute; left:1.56%; top:47.22%; width:32.81%; height:4.44%; display:flex; align-items:center; justify-content:center; background:none; border:none; margin:0; }
   #stage.landscape #knack-carousel-wrap { left:1.56%; top:51.39%; width:32.81%; height:6.94%; display:flex; align-items:center; gap:5px; padding:2px 6px; overflow:hidden; }
@@ -2921,7 +2926,7 @@
   #stage.landscape #btn-stats      { position:absolute; left:1.56%; top:91.67%; width:10.16%; height:6.39%; }
   #stage.landscape #btn-deck       { position:absolute; left:13.28%; top:91.67%; width:10.16%; height:6.39%; }
   #stage.landscape #btn-pause      { position:absolute; left:25%;    top:91.67%; width:9.38%;  height:6.39%; }
-  #stage.landscape #focus-meter-wrap { position:absolute; left:35.94%; top:1.39%; width:2.34%; height:96.67%; }
+  #stage.landscape #focus-meter-wrap { position:absolute; left:35.5%; top:1.39%; width:3.5%; height:96.67%; }
   #stage.landscape #grid-slot      { position:absolute; left:39.84%; top:11.11%; width:49.22%; height:86.11%; }
   #stage.landscape #run-progress   { left:90.63%; top:1.39%; width:8.59%; height:8.33%; flex-direction:column; align-items:center; justify-content:center; gap:3px; padding:3px; }
   #stage.landscape #btn-discard    { position:absolute; left:91.41%; top:11.11%; width:7.81%; height:29.17%; }
@@ -3071,7 +3076,7 @@
       <!-- Knack section -->
       <div id="knack-carousel-wrap">
         <span class="panel-title">Knacks</span>
-        <div id="knack-list"><span style="font-size:9px;color:var(--cream-dim)">None yet</span></div>
+        <div id="knack-list"><span style="font-size:9px;color:var(--cream-dim)">No knacks</span></div>
       </div>
     </div>
 
@@ -6688,7 +6693,7 @@ function updateKnackList() {
   const el = document.getElementById('knack-list');
   if (!el) return;
   if (acquiredKnacks.length === 0) {
-    el.innerHTML = '<span style="font-size:11px;color:var(--cream-dim)">None yet</span>';
+    el.innerHTML = '<span style="font-size:11px;color:var(--cream-dim)">No knacks</span>';
     return;
   }
   el.innerHTML = acquiredKnacks.map(t =>
@@ -13247,6 +13252,10 @@ function renderTrickTray() {
     countEl.style.color = trickTray.length >= trickCapacity() ? 'var(--red)' : 'var(--gold-dim)';
   }
   list.innerHTML = '';
+  if (trickTray.length === 0) {
+    list.innerHTML = '<span style="font-size:11px;color:var(--cream-dim)">No tricks</span>';
+    return;
+  }
   trickTray.forEach(trick => {
     const chip = document.createElement('div');
     if (trick.id === 'mirror') {
