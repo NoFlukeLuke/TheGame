@@ -3604,7 +3604,7 @@
 </div>
 
 <script>
-const BUILD = '2026-06-28 · r73';
+const BUILD = '2026-07-07 · r74';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -4044,9 +4044,9 @@ let falling = false;   // true during card fall animations — allows selection,
 let pendingAction = null; // 'play' | 'discard' — queued while falling
 let dealPhase = false; // true while deal anims are running — suppresses render() card placement
 
-let score = 0;
-let cumulativeGoal = BASE_GOAL; // running total threshold for next level
-let roundGoal = BASE_GOAL;      // current level's increment (for display)
+let score = 0;      // current round's score — resets to 0 at the start of every round
+let totalScore = 0; // lifetime total banked from completed rounds; display-only (end-of-run screens)
+let roundGoal = BASE_GOAL;      // this round's score target, from zero
 let level = 1;
 
 // ── Focus Meter (formerly Fate Meter) ──
@@ -6431,10 +6431,10 @@ function updateScoreUI() {
   if (scoreDisplayEl && scoreDisplayEl.style.visibility !== 'hidden') {
     scoreDisplayEl.textContent = score.toLocaleString();
   }
-  const pct = Math.min(score / cumulativeGoal, 1);
+  const pct = Math.min(score / roundGoal, 1);
   const bar = document.getElementById('score-progress-bar');
   if (bar) bar.style.width = Math.round(pct * 100) + '%';
-  document.getElementById('goal-display').textContent = cumulativeGoal.toLocaleString();
+  document.getElementById('goal-display').textContent = roundGoal.toLocaleString();
   document.getElementById('hands-display').textContent = handsPlayed;
   document.getElementById('level-display').textContent = level;
   updateCoinsUI();
@@ -6968,7 +6968,7 @@ function playHand() {
   if (falling)   { pendingAction = 'play'; dbgEvent('info', 'play queued (falling)'); return; }
   if (animating) { pendingAction = 'play'; dbgEvent('info', 'play queued (animating)'); scheduleQueuedRetry(); return; }
   cancelAutoSubmit();
-  console.log('[PLAY] entry', { score, goal: cumulativeGoal, goalReachedThisRound, bonusWindowActive, animating, hasDance: !!danceAbortController });
+  console.log('[PLAY] entry', { score, goal: roundGoal, goalReachedThisRound, bonusWindowActive, animating, hasDance: !!danceAbortController });
   const result = findBestHand(selected);
   if (!result) { dbgEvent('warn', 'play: no valid hand', { selected: selected.length, animating, falling, roundEnded, dance: !!danceAbortController, swapPending: !!swapPending, swiping: isSwiping }); console.log('[PLAY] no result, exiting'); return; }
   // Abort any prior in-flight score dance ONLY now that we have a real hand to play.
@@ -7022,24 +7022,10 @@ function playHand() {
   // Suppressed during/just-after a boss: the boss objective system + post-boss reward
   // grid handle progression. (_bossThisHand catches the boss-winning hand, where endBoss
   // already set bossActive=false above.)
-  if (!_bossThisHand && !bossActive && score >= cumulativeGoal && !goalReachedThisRound) {
-    console.log('[GOAL] reached', { score, goal: cumulativeGoal, finalScore });
+  if (!_bossThisHand && !bossActive && score >= roundGoal && !goalReachedThisRound) {
+    console.log('[GOAL] reached', { score, goal: roundGoal, finalScore });
     goalReachedThisRound = true;
     roundEnded = true; // freeze input immediately
-    // Count how many goals this hand clears
-    let tempScore = score;
-    let tempGoal = cumulativeGoal;
-    let levelsEarned = 0;
-    while (tempScore >= tempGoal) {
-      levelsEarned++;
-      tempGoal += Math.round(Math.round(BASE_GOAL * Math.pow(GOAL_SCALE, level + levelsEarned - 1)) / 500) * 500;
-    }
-    const extras = levelsEarned - 1;
-    if (extras > 0) {
-      pendingLevelUps += extras;
-      coins += extras * 5;
-      updateCoinsUI();
-    }
     const toRemove = [...selected];
     selected = [];
     commitRoundContrib(_contribSnapshot); // goal-clearing hand counts toward the tally
@@ -8017,7 +8003,7 @@ async function playScoreDance(result, toRemove, isGoalHand = false) {
 
   // If this is a goal-crossing hand, watch the score and flash when crossed
   let goalFlashFired = false;
-  const goalCrossedAt = isGoalHand ? cumulativeGoal : Infinity;
+  const goalCrossedAt = isGoalHand ? roundGoal : Infinity;
 
   // Focus beat — fires after mult particles finish. MULT stays pure; the FOCUS box
   // pops from ×1 up to the applied focus multiplier, then the score climbs by it.
@@ -8918,7 +8904,7 @@ function onRoundEnd() {
 
 function _onRoundEndCore() {
   // goalReachedThisRound means the goal hand was already played even if the dance is still running
-  if (score >= cumulativeGoal || goalReachedThisRound) {
+  if (score >= roundGoal || goalReachedThisRound) {
     cancelDance();
     suppressScoreDisplay = false;
     if (heldBackScore > 0) { score += heldBackScore; heldBackScore = 0; }
@@ -11890,7 +11876,7 @@ async function showNextGoalFlash() {
   bg.classList.add('show');
   await new Promise(res => setTimeout(res, 250));
 
-  numEl.textContent = cumulativeGoal.toLocaleString();
+  numEl.textContent = roundGoal.toLocaleString();
   el.classList.remove('show');
   el.style.cssText = '';
   void el.offsetWidth;
@@ -12021,11 +12007,12 @@ function triggerLevelUp() {
   }
 
   level++;
-  // Next level's increment (what you need to score above current total)
+  // This round's score target, from zero
   roundGoal = Math.round(Math.round(BASE_GOAL * Math.pow(GOAL_SCALE, level - 1)) / 500) * 500;
-  cumulativeGoal += roundGoal;
+  totalScore += score; // bank the completed round's score for the end-of-run display
+  score = 0;           // fresh round, fresh score
 
-  // Reset round (but NOT score — it's cumulative)
+  // Reset round
   flushPlayedDeck(); // played cards rejoin the pool for the new round
 
   // Bank unused resources before resetting
@@ -12917,7 +12904,7 @@ function onGameWin() {
   const s = secondsPlayed % 60;
   document.getElementById('end-stats').innerHTML = `
     Run Complete: <strong>3 Acts</strong><br>
-    Total Score: <strong>${score.toLocaleString()}</strong><br>
+    Total Score: <strong>${(totalScore + score).toLocaleString()}</strong><br>
     Time Played: <strong>${m}:${s.toString().padStart(2,'0')}</strong><br>
     Levels Cleared: <strong>${level}</strong><br>
     Hands Played: <strong>${handsPlayed}</strong><br>
@@ -12939,7 +12926,7 @@ function onGameEnd(gameover) {
   const timePlayed = `${m}:${s.toString().padStart(2,'0')}`;
 
   document.getElementById('end-stats').innerHTML = `
-    Total Score: <strong>${score.toLocaleString()}</strong><br>
+    Total Score: <strong>${(totalScore + score).toLocaleString()}</strong><br>
     Time Lasted: <strong>${timePlayed}</strong><br>
     Level Reached: <strong>${level}</strong><br>
     Hands Played: <strong>${handsPlayed}</strong><br>
@@ -14262,7 +14249,7 @@ function startGame() {
   // Clear any leftover card elements from previous game
   document.getElementById('grid').querySelectorAll('.card').forEach(el => el.remove());
   roundGoal = BASE_GOAL;
-  cumulativeGoal = BASE_GOAL;
+  totalScore = 0;
   coins = 0;
   shopItems = null;
   shopPurchased = new Set();
@@ -15089,7 +15076,7 @@ function devSetCoins(n) { coins = n; updateCoinsUI(); }
 function devAddScore(n) { score += n; updateScoreUI(); }
 
 function devWinRound() {
-  score = cumulativeGoal + 1;
+  score = roundGoal + 1;
   updateScoreUI();
   closeDevPanel();
 }
