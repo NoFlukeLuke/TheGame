@@ -131,6 +131,21 @@ Suggested split: keep pause = "free actions now," make rewind = "replay the time
 Reuse existing infra: `cuckooNextMinute`, `woodpeckerActiveBlock`, `roundStartSeconds`,
 `_elapsedRound` in `startRoundTimer`; `pauseRound()` for the pause side.
 
+## Loose ends from the pause/timing batch (r66–r73) — decisions/checks still open
+All shipped & working; these are open *choices*, not bugs:
+- **Shady Tree name** — shipped as "Shady Tree"; owner may rename. Options floated:
+  Siesta, Hammock, Willow, Respite, Canopy, The Oak.
+- **The Falcon** — shipped as "+10 Focus while paused". Owner once described it as *doubling*
+  focus; confirm whether they want +10 (current) or ×2. (The Phoenix is the one that doubles the
+  Focus *multiplier* while paused.)
+- **achievableHandTypes() applied game-wide** — built and used for the Metronome knack's
+  round target. Owner wants the same "only ask for hand types the current Selection Size can
+  build" rule applied everywhere a hand-type target is assigned (events/challenges) — NOT done yet.
+- **Visual checks (need real device eyes)** — the permanent-buff corner tally-bands (angle/spacing)
+  and the Woodpecker peck/ripple animation were shipped unverified. Stopwatch was playtested OK.
+- **Stopwatch minor** — if a Stopwatch release chains into a normal pause, both timers briefly
+  co-run and double-count `pausedSecondsRound` (tiny Albatross over-credit). Not fixed.
+
 ## Known minor flags (not bugs, watch on playtest)
 - Mirror duplicates a borrowed Trick's pip/mult contribution; it does NOT yet copy Focus/time/coin effects, and uses the base (pre-retrigger) amount; additive copies are added after the multiplier stage.
 - Prime consumption re-derives "did it trigger?" after per-hand bookkeeping → a primed *timing-gated* Trick could consume a stack a hand off.
