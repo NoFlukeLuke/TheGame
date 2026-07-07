@@ -77,20 +77,18 @@ These are well-tuned for scarcity — a player ends a ~15-level run with roughly
   named combo → with 8–10 families, assemble *some* ≈50% of runs. ✓ on target.
 
 ### ⚠ Two levers this exposes
-1. **Trick capacity = a new limit (DECIDED).** Tricks are uncapped today
-   (`index.html:9385`), so ~50 seen → ~25–35 kept = board soup that buries combo
-   pieces. Fix: give Tricks their **own entry in `LIMITS_DEF`** — *not* tied to
-   grid size or hand size, because in **tray mode** (the default) tricks live off
-   the grid and shouldn't be welded to it. (Coupling to the grid only makes sense
-   in grid mode, where tricks occupy scoring cells.) This doubles as the "soft
-   cap" and adds a dial to the limit-manipulation game.
+1. **Trick capacity = a new limit (SHIPPED r74).** Tricks were uncapped, so
+   ~50 seen → ~25–35 kept = board soup that buries combo pieces. Fixed: Tricks
+   have their **own `LIMITS_DEF` entry** — *not* tied to grid size or hand size,
+   because in **tray mode** (the default) tricks live off the grid. This doubles
+   as the "soft cap" and adds a dial to the limit-manipulation game. Full tray →
+   replace-or-skip popup (see REWARD_GRID_VARIETY.md).
    ```js
-   { id:'trick_slots', label:'Trick Slots', icon:'✦', desc:'Max Tricks you can keep', base:4, max:10, weight:0.4 }
+   { id:'trick_slots', label:'Trick Slots', icon:'✦', desc:'Max Tricks you can keep at once', base:5, max:10, weight:0.4 }
    ```
-   - **Base 4** (DECIDED), max **10–12**: a 5-piece combo can't fit a fresh tray
-     (forces hard "combo *or* general build" choices early); a maxed run holds a
-     combo + a few support tricks. Player routinely hits the cap → sell/replace
-     tension stays live.
+   - **Base 5** (owner call — was 4 in earlier spec), max **10**: fits exactly a
+     5-piece combo at the start (tight but possible); a maxed run holds a combo +
+     support tricks. Player routinely hits the cap → replace tension stays live.
    - **Keep `base` fixed** (don't randomize the start — combos reward planning).
      For run variance, inject it visibly via a knack ("+2 Trick Slots") or an
      Era-1 event, not baked-in randomness.

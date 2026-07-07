@@ -1334,6 +1334,20 @@
   .card.trick-card { border-color: #e8b84b !important; box-shadow: 0 0 8px rgba(232,184,75,0.6); }
   .card.exalted   { border-color: #ffd700 !important; box-shadow: 0 0 10px 2px rgba(255,215,0,0.7), inset 0 0 8px rgba(255,215,0,0.25); }
   .card.corrupted { border-color: #8844cc !important; box-shadow: 0 0 10px 2px rgba(136,68,204,0.7), inset 0 0 8px rgba(136,68,204,0.3); }
+  /* Cursed card (reward-grid debuff): sickly green pall + a badge with the count remaining */
+  .card.cursed { border-color: #6a8a3a !important; box-shadow: 0 0 9px 1px rgba(120,160,70,0.55), inset 0 0 8px rgba(90,120,50,0.35); }
+  .card .curse-badge {
+    position: absolute; top: 2px; right: 3px;
+    font-size: 11px; line-height: 1;
+    filter: drop-shadow(0 1px 1px rgba(0,0,0,0.8));
+    z-index: 3;
+  }
+  .card .curse-badge .curse-left {
+    position: absolute; bottom: -3px; right: -4px;
+    font-size: 7px; font-weight: 800; font-family: 'Cinzel', serif;
+    color: #c8e08a; background: #14200a; border-radius: 6px;
+    padding: 0 2px; border: 1px solid #6a8a3a;
+  }
 
   /* ── Challenge card ── */
   @keyframes challenge-pulse {
@@ -2466,7 +2480,11 @@
   #reward-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(8,4,2,0.92);
+    /* Cool indigo wash — deliberately NOT the warm gameplay backdrop, so it's
+       instantly obvious you're on the reward map, not playing a hand. */
+    background:
+      radial-gradient(circle at 50% 18%, rgba(90,70,160,0.22), transparent 60%),
+      rgba(10,9,22,0.95);
     z-index: 200;
     display: none;
     flex-direction: column;
@@ -2502,11 +2520,14 @@
     gap: 8px;
     margin: 20px 0;
   }
+  /* Reward cells share the play-card silhouette: same rounded rect, same 2px
+     border, same aspect (set in JS) — but tinted per kind so the map reads at a
+     glance. A cool base separates it further from the warm gameplay grid. */
   .reward-cell {
     position: relative;
-    border-radius: 6px;
-    border: 2px solid #2a2218;
-    background: linear-gradient(160deg, #1a1410, #0e0a06);
+    border-radius: 8px;
+    border: 2px solid #33314e;
+    background: linear-gradient(160deg, #17162a, #0d0c18);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -2514,57 +2535,78 @@
     padding: 6px;
     text-align: center;
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: transform 0.12s ease, box-shadow 0.15s ease, opacity 0.15s ease;
     color: var(--cream);
     font-family: 'Cinzel', serif;
     user-select: none;
     width: 100%;
     height: 100%;
     box-sizing: border-box;
+    overflow: hidden;
   }
-  .reward-cell.buff      { border-color: var(--gold);  background: linear-gradient(160deg, #1e1a0e, #0e0a06); }
-  .reward-cell.debuff    { border-color: var(--red);   background: linear-gradient(160deg, #1e0b0b, #0e0606); }
-  .reward-cell.dest      { border-color: #8844cc; border-width: 2px; background: linear-gradient(160deg, #160d22, #0a0612); }
+  .reward-cell.buff      { border-color: #d8a43a;  background: linear-gradient(160deg, #221d0e, #14110a); }
+  .reward-cell.debuff    { border-color: #b23a4a;  background: linear-gradient(160deg, #24101a, #140a10); }
+  .reward-cell.dest      { border-color: #8844cc;  background: linear-gradient(160deg, #1c1030, #100a1c); }
   .reward-cell.dest .reward-tier { color: #bb88ff; }
   .reward-cell.selected  {
-    box-shadow: 0 0 16px rgba(232,184,75,0.7), inset 0 0 12px rgba(232,184,75,0.3);
+    box-shadow: 0 0 18px rgba(140,110,230,0.75), inset 0 0 12px rgba(140,110,230,0.3);
     transform: scale(1.05);
-    border-color: var(--gold) !important;
-    border-width: 2px !important;
+    border-color: #b39cf5 !important;
   }
-  .reward-cell.selectable:not(.selected):hover { transform: scale(1.04); opacity: 1; }
-  .reward-cell.unselectable { opacity: 0.35; cursor: not-allowed; }
+  .reward-cell.selectable:not(.selected):hover { transform: scale(1.04); }
+  .reward-cell.unselectable { opacity: 0.3; cursor: not-allowed; }
   .reward-icon {
-    font-size: 28px;
+    font-size: 26px;
+    line-height: 1;
     margin-bottom: 4px;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.6));
   }
+  /* Mini playing-card face for card-specific tiles (blessed/cursed/cull) */
+  .reward-face {
+    width: 30px; height: 40px;
+    border-radius: 4px;
+    border: 1.5px solid rgba(255,255,255,0.35);
+    background: #f4efe2;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    margin-bottom: 5px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+    line-height: 1;
+  }
+  .reward-face-rank { font-size: 15px; font-weight: 800; color: #1a1a1a; }
+  .reward-face-suit { font-size: 12px; color: #1a1a1a; }
+  .reward-face.suit-hearts .reward-face-rank, .reward-face.suit-hearts .reward-face-suit,
+  .reward-face.suit-diamonds .reward-face-rank, .reward-face.suit-diamonds .reward-face-suit { color: #c0392b; }
   .reward-label {
     font-size: 11px;
     line-height: 1.2;
     letter-spacing: 0.5px;
     max-width: 100%;
     overflow-wrap: break-word;
+    font-weight: 700;
   }
   .reward-desc {
     font-size: 9px;
-    line-height: 1.2;
+    line-height: 1.25;
     color: var(--cream);
-    opacity: 0.65;
+    opacity: 0.6;
     margin-top: 3px;
     overflow: hidden;
     display: -webkit-box;
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     max-width: 100%;
+    font-family: 'Crimson Pro', serif;
   }
   .reward-tier {
     position: absolute;
-    top: 2px; left: 4px;
+    top: 3px; left: 5px;
     font-size: 7px;
     letter-spacing: 1px;
-    color: var(--gold);
-    opacity: 0.7;
+    color: #d8a43a;
+    opacity: 0.75;
   }
+  .reward-cell.debuff .reward-tier { color: #d87a86; }
   #reward-footer {
     text-align: center;
     margin-top: 8px;
@@ -2962,7 +3004,7 @@
       </div>
       <!-- Trick Tray (visible only in trickTrayMode) -->
       <div id="trick-tray-area" style="display:none">
-        <span class="panel-title">Tricks</span>
+        <span class="panel-title">Tricks <span id="trick-tray-count"></span></span>
         <div id="trick-tray-list"></div>
       </div>
       <!-- Knack section -->
@@ -3533,6 +3575,7 @@
   <div id="blp-list"></div>
   <div id="blp-actions">
     <button id="blp-confirm" disabled onclick="confirmTrickLosePicker()">Remove Selected</button>
+    <button id="blp-cancel" style="display:none" onclick="cancelTrickReplacePicker()">Skip New Trick</button>
   </div>
 </div>
 
@@ -3604,7 +3647,7 @@
 </div>
 
 <script>
-const BUILD = '2026-07-07 · r74';
+const BUILD = '2026-07-07 · r75';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -3867,6 +3910,9 @@ function cardCan(card, action) {
   if (card.isChallenge) {
     return action === 'render';
   }
+  // Snared curse: the card is stuck — no swapping or discarding until it lifts
+  if (card.rank && typeof cardCurses !== 'undefined' && cardCurses[cardKey(card.rank, card.suit)]?.id === 'snared'
+      && (action === 'swap' || action === 'discard')) return false;
   // Normal cards can do everything
   return true;
 }
@@ -4143,15 +4189,17 @@ let swaps = 3;
 // Incrementing via Limit Break event or shop raises `current` by 1 up to `max`.
 // The game reads limits.X.current wherever it previously used a hard-coded cap.
 // hideMax: don't surface the max anywhere in UI (limit feels "open-ended").
+// `weight` (default 1) sets how often a limit is offered in the shop / Limit
+// Break / reward-grid limit tiles — lower = rarer. Picked via pickWeightedLimits.
+// Grid rows/cols also drive the REWARD grid's shape (reward grid = play grid).
 const LIMITS_DEF = [
-  { id: 'selection',   label: 'Selection Size',  icon: '✋', desc: 'Max cards selectable at once',      base: 3,   max: 9, hideMax: true },
-  { id: 'grid_rows',   label: 'Grid Rows',       icon: '⬍', desc: 'Rows in the playing grid',          base: 4,   max: 7 },
-  { id: 'grid_cols',   label: 'Grid Columns',    icon: '⬌', desc: 'Columns in the playing grid',       base: 4,   max: 7 },
+  { id: 'selection',   label: 'Selection Size',  icon: '✋', desc: 'Max cards selectable at once (play grid AND reward grid)', base: 3, max: 9, hideMax: true },
+  { id: 'grid_rows',   label: 'Grid Rows',       icon: '⬍', desc: 'Rows in the playing grid (and reward grid)',    base: 4,   max: 7 },
+  { id: 'grid_cols',   label: 'Grid Columns',    icon: '⬌', desc: 'Columns in the playing grid (and reward grid)', base: 4,   max: 7 },
   { id: 'swaps',       label: 'Swaps/Round',      icon: '🔄', desc: 'Swaps granted at round start',      base: 3,   max: 8 },
   { id: 'discards',    label: 'Discards/Round',   icon: '🗑', desc: 'Discards granted at round start',   base: 3,   max: 8 },
   { id: 'round_time',  label: 'Round Time',       icon: '⏱', desc: 'Max seconds per round',             base: 180, max: 300 },
-  { id: 'reward_rows', label: 'Reward Grid Rows', icon: '⬍', desc: 'Rows of the reward grid',           base: 3,   max: 5 },
-  { id: 'reward_cols', label: 'Reward Grid Cols', icon: '⬌', desc: 'Columns of the reward grid',        base: 3,   max: 5 },
+  { id: 'trick_slots', label: 'Trick Slots',      icon: '✦', desc: 'Max Tricks you can keep at once',   base: 5,   max: 10, weight: 0.4 },
   { id: 'reroll',      label: 'Shop Rerolls',     icon: '🎲', desc: 'Rerolls available per shop visit',  base: 3,   max: 6 },
 ];
 const limits = {};
@@ -4195,6 +4243,22 @@ function onLimitChanged(id) {
   }
   // grid_rows / grid_cols take effect at next round start (see grid sizing work)
 }
+// Weighted sample WITHOUT replacement from limit defs (respects def.weight, default 1).
+// Used by the shop, the Limit Break event, and reward-grid limit tiles so rare
+// limits (e.g. trick_slots at 0.4) show up proportionally less often.
+function pickWeightedLimits(n, pool) {
+  const src = [...(pool || LIMITS_DEF.filter(d => limits[d.id].current < limits[d.id].max))];
+  const out = [];
+  while (src.length && out.length < n) {
+    const total = src.reduce((s, d) => s + (d.weight ?? 1), 0);
+    let rng = Math.random() * total, idx = src.length - 1;
+    for (let i = 0; i < src.length; i++) { rng -= (src[i].weight ?? 1); if (rng <= 0) { idx = i; break; } }
+    out.push(src.splice(idx, 1)[0]);
+  }
+  return out;
+}
+// Trick tray capacity (the trick_slots limit). Enforced in injectTrickAfterReward.
+function trickCapacity() { return limits.trick_slots?.current ?? 5; }
 // ── END LIMITS SYSTEM ──
 let accumulatedSwaps = 0;    // banked unused swaps (Reserves: Swaps)
 let accumulatedDiscards = 0; // banked unused discards (Reserves: Discards)
@@ -4491,6 +4555,36 @@ let permMult = {};   // { "A-♠": 1, ... }
 let permXPips  = {}; // { "A-♠": 2, ... } multiplies that card's pip contribution (default 1)
 let permXMult  = {}; // { "A-♠": 2, ... } multiplies total mult per scored card of this key (default 1)
 let permRetrig = {}; // { "A-♠": 1, ... } extra times this card scores its pips (default 0)
+
+// ── CARD CURSES (reward-grid debuffs) ──
+// A curse afflicts one specific card identity (key "rank-suit", like permPips).
+// Curses are worked off by SCORING the cursed card `liftAfter` times — playing
+// through the curse is the cure — or removed instantly by a Cleanse tile.
+// cardCurses = { "9-♠": { id:'leaden', left:3 }, ... }  (reset on newGame)
+let cardCurses = {};
+const CURSE_DEFS = {
+  leaden: { icon: '⚓', name: 'Leaden', liftAfter: 3, desc: 'Scores 0 pips. Lifts after scoring it 3 times.' },
+  taxing: { icon: '🩸', name: 'Taxing', liftAfter: 4, desc: '-3s every time it scores. Lifts after scoring it 4 times.' },
+  snared: { icon: '🕸️', name: 'Snared', liftAfter: 2, desc: "Can't be swapped or discarded. Lifts after scoring it 2 times." },
+};
+// Curse a random un-cursed card identity; returns {rank,suit,curse} or null.
+function curseRandomCard(curseId) {
+  const pool = [];
+  RANKS.forEach(rank => SUITS.forEach(suit => { if (!cardCurses[cardKey(rank, suit)]) pool.push({ rank, suit }); }));
+  if (!pool.length) return null;
+  const pick = pool[Math.floor(Math.random() * pool.length)];
+  const id = curseId || Object.keys(CURSE_DEFS)[Math.floor(Math.random() * Object.keys(CURSE_DEFS).length)];
+  cardCurses[cardKey(pick.rank, pick.suit)] = { id, left: CURSE_DEFS[id].liftAfter };
+  return { ...pick, curse: id };
+}
+function cleanseRandomCurse() {
+  const keys = Object.keys(cardCurses);
+  if (!keys.length) return null;
+  const k = keys[Math.floor(Math.random() * keys.length)];
+  const id = cardCurses[k].id;
+  delete cardCurses[k];
+  return { key: k, curse: id };
+}
 
 // ── Scaling bonus accumulators ──
 let bonusMult_fives   = 0;
@@ -5311,6 +5405,8 @@ function calcScore(handName, cells, contrib = null) {
     // Permanent ×pips enhancement (The Forge / Bargain / Wager events)
     const _xp = permXPips[_eKey] || 1;
     if (_xp !== 1) { const _preXp = cp; cp *= _xp; bPip('sapling', cp - _preXp); }
+    // Leaden curse: this card contributes no pips at all
+    if (cardCurses[_eKey]?.id === 'leaden') cp = 0;
     // Row/col triple pips — applies after all other pip bonuses
     if (cellHasRowColBonus(r, c, 'rowcol_triple_pips')) cp *= BAL.rowcol_triple_pips.pip_mult;
     // Retrigger: certain conditions score this card's pips an extra time
@@ -7212,6 +7308,26 @@ function playHand() {
     showMessage('Snowball! +2 pips to scored cards', '#e8c56b');
   }
 
+  // ── Card curses: apply per-score effects and work them off ──
+  // Each scored cursed card ticks its curse down; at 0 the curse lifts.
+  result.handCells.forEach(([r, c]) => {
+    const card = gridData[r]?.[c];
+    if (!card || !card.rank || card._isSleight || card._isStone) return;
+    const k = cardKey(card.rank, card.suit);
+    const curse = cardCurses[k];
+    if (!curse) return;
+    if (curse.id === 'taxing') {
+      roundSeconds = Math.max(1, roundSeconds - 3);
+      updateClockUI();
+      showTimeCost('-3s');
+    }
+    curse.left--;
+    if (curse.left <= 0) {
+      delete cardCurses[k];
+      showMessage(`Curse lifted: ${card.rank}${card.suit}`, '#54af88');
+    }
+  });
+
   // Bedrock: Four of a Kind permanently buffs its 4 cards
   if (hand === 'Four of a Kind' && hasTrick('rare_bloom')) {
     result.handCells.forEach(([r,c]) => { const card = gridData[r]?.[c]; if (!card || !card.rank) return; const k = cardKey(card.rank, card.suit); permPips[k] = (permPips[k]||0) + BAL.rare_bloom.perm_pips; });
@@ -8432,6 +8548,7 @@ function renderCardAppearance(card, r, c, {
   const k   = cardKey(card.rank, card.suit);
   const pp  = permPips[k] || 0;
   const pm  = permMult[k] || 0;
+  const curse = cardCurses[k];
   const hasPip = pp > 0, hasMult = pm > 0;
   const isCombined = !!card.combined;
   const isTrick = trickCardPos && trickCardPos[0] === r && trickCardPos[1] === c;
@@ -8455,6 +8572,7 @@ function renderCardAppearance(card, r, c, {
     isTrick ? 'trick-card' : '',
     (exaltCorruptEnabled && card._exalted) ? 'exalted' : '',
     (exaltCorruptEnabled && card._corrupted) ? 'corrupted' : '',
+    curse ? 'cursed' : '',
     bothClass.trim(),
     rcPips.trim(), rcMult.trim(), rcRetrigger.trim(), rcLeyline.trim(), rcJeopardy.trim(), rcWoodpecker.trim(),
   ].filter(Boolean).join(' ');
@@ -8466,6 +8584,7 @@ function renderCardAppearance(card, r, c, {
   const innerHTML = `
     ${isSel ? `<div class="sel-num">${selIdx + 1}</div>` : ''}
     ${isTrick ? `<div class="trick-star">⭐</div>` : ''}
+    ${curse ? `<div class="curse-badge" title="${CURSE_DEFS[curse.id].name}: ${CURSE_DEFS[curse.id].desc}">${CURSE_DEFS[curse.id].icon}<span class="curse-left">${curse.left}</span></div>` : ''}
     ${combinedLabel}
     <div class="rank">${card.rank}</div>
     <div class="suit">${card.suit}</div>
@@ -9426,7 +9545,9 @@ function endBoss(success) {
 // ══════════════════════════════════════════════
 // ── REWARD GRID ──
 // All cells are rewards (buff / debuff / dest). Player selects any orthogonally
-// connected group, then confirms. Grid size driven by limits.reward_rows/reward_cols.
+// connected group, then confirms. The reward grid mirrors the PLAY grid: its
+// shape comes from limits.grid_rows/grid_cols and the number of picks is capped
+// by limits.selection — so upgrading play-grid limits upgrades rewards too.
 
 let rewardSelected = new Set(); // "r-c" keys
 let rewardCells    = [];        // NxN array of { kind, payload }
@@ -9435,17 +9556,25 @@ let rewardGridContext = 'interlude'; // 'interlude' | 'boss' — determines what
 let skipTrickChoiceOverlay = false;    // set before drainLevelUpQueue when reward grid is the reward screen
 
 function generateRewardContent() {
-  const ROWS = limits.reward_rows.current;
-  const COLS = limits.reward_cols.current;
+  const ROWS = limits.grid_rows.current;
+  const COLS = limits.grid_cols.current;
 
-  // Weighted buff categories (weights sum to 100)
+  // Weighted buff categories. Tricks are also guaranteed a minimum count per
+  // grid (MIN_TRICK_TILES below), so their true share ends up higher than the
+  // raw weight suggests — the other categories fight over the leftover slots.
   const buffCategories = [
-    { weight: 62, kind: 'trick' },
-    { weight: 15, kind: 'sleight' },
-    { weight:  9, kind: 'knack' },
-    { weight:  6, kind: 'discard' },
+    { weight: 40, kind: 'trick' },
+    { weight: 12, kind: 'sleight' },
+    { weight:  7, kind: 'knack' },
+    { weight:  5, kind: 'discard' },
     { weight:  5, kind: 'swap' },
-    { weight:  3, kind: 'time' },
+    { weight:  5, kind: 'time' },
+    { weight:  6, kind: 'coins' },
+    { weight:  4, kind: 'limit_up' },
+    { weight:  6, kind: 'blessed' },
+    { weight:  4, kind: 'cull' },
+    { weight:  3, kind: 'cleanse' },
+    { weight:  3, kind: 'mystery' },
   ];
   // Hover projections (computed when the grid opens, reflecting current standing debuffs).
   const _proj    = computeRoundResources();
@@ -9453,31 +9582,71 @@ function generateRewardContent() {
   const _handNow = 5 + extraPlayCostPerm + nextRoundPlayCost;
   const _discNow = 3 + extraDiscardCostPerm + nextRoundDiscardCost;
   const debuffs = [
-    { icon: '☁', label: '-5s Round Cap', tier: 'penalty',
+    { weight: 8, icon: '☁', label: '-5s Round Cap', tier: 'penalty',
       desc: `Round cap: ${formatTime(_capNow)} → ${formatTime(Math.max(10, _capNow - 5))} · permanent, stacks`,
       apply: () => { roundPenaltySeconds += 5; showMessage('Round cap -5s (permanent)', 'var(--red)'); } },
-    { icon: '☠', label: '-1 Discard', tier: 'penalty',
+    { weight: 8, icon: '☠', label: '-1 Discard', tier: 'penalty',
       desc: `Next round discards: ${_proj.discards} → ${Math.max(0, _proj.discards - 1)} · next round only`,
       apply: () => { nextRoundDiscardDelta -= 1; showMessage('-1 discard next round', 'var(--red)'); } },
-    { icon: '✖', label: '-1 Swap', tier: 'penalty',
+    { weight: 8, icon: '✖', label: '-1 Swap', tier: 'penalty',
       desc: `Next round swaps: ${_proj.swaps} → ${Math.max(0, _proj.swaps - 1)} · next round only`,
       apply: () => { nextRoundSwapDelta -= 1; showMessage('-1 swap next round', 'var(--red)'); } },
-    { icon: '💔', label: 'Lose a Trick', tier: 'penalty',
+    { weight: 8, icon: '💔', label: 'Lose a Trick', tier: 'penalty',
       desc: 'Discard one random Trick you own.',
       apply: applyRewardLoseTrick },
-    { icon: '🐌', label: 'Hands +2s', tier: 'penalty',
+    { weight: 8, icon: '🐌', label: 'Hands +2s', tier: 'penalty',
       desc: `Hand cost: ${_handNow}s → ${_handNow + 2}s each · permanent, stacks`,
       apply: () => { extraPlayCostPerm += 2; showMessage('Playing a hand costs +2s (permanent)', 'var(--red)'); } },
-    { icon: '⌛', label: 'Hands +5s · 1rd', tier: 'penalty',
+    { weight: 8, icon: '⌛', label: 'Hands +5s · 1rd', tier: 'penalty',
       desc: `Next round hand cost: ${_handNow}s → ${_handNow + 5}s each · next round only`,
       apply: () => { nextRoundPlayCost += 5; showMessage('Hands cost +5s next round', 'var(--red)'); } },
-    { icon: '🐌', label: 'Discards +2s', tier: 'penalty',
+    { weight: 8, icon: '🐌', label: 'Discards +2s', tier: 'penalty',
       desc: `Discard cost: ${_discNow}s → ${_discNow + 2}s per card · permanent, stacks`,
       apply: () => { extraDiscardCostPerm += 2; showMessage('Discarding costs +2s/card (permanent)', 'var(--red)'); } },
-    { icon: '⌛', label: 'Discards +5s · 1rd', tier: 'penalty',
+    { weight: 8, icon: '⌛', label: 'Discards +5s · 1rd', tier: 'penalty',
       desc: `Next round discard cost: ${_discNow}s → ${_discNow + 5}s per card · next round only`,
       apply: () => { nextRoundDiscardCost += 5; showMessage('Discards cost +5s/card next round', 'var(--red)'); } },
+    // ── Variety debuffs (r74) ──
+    { weight: 8, icon: '💸', label: 'Pickpocket', tier: 'penalty',
+      desc: `Lose 10 coins (${coins} → ${Math.max(0, coins - 10)}).`,
+      apply: () => { coins = Math.max(0, coins - 10); updateCoinsUI(); showMessage('-10 coins', 'var(--red)'); } },
+    { weight: 8, icon: '🪨', label: 'Stones', tier: 'penalty',
+      desc: 'Two Stones are shuffled into your deck. They block cells until purged.',
+      apply: () => { injectStonesIntoDeck(2); showMessage('2 Stones added to deck', 'var(--red)'); } },
+    { weight: 8, icon: '⏳', label: 'Slow Start', tier: 'penalty',
+      desc: 'Next round starts with 20 fewer seconds.',
+      apply: () => { nextRoundSecondsDelta -= 20; showMessage('-20s next round', 'var(--red)'); } },
   ];
+  // Cursed-card debuff: afflicts one specific shown card (weight 10; only if an
+  // un-cursed identity exists). Card is pre-picked so the tile shows exactly it.
+  {
+    const _uncursed = [];
+    RANKS.forEach(rank => SUITS.forEach(suit => { if (!cardCurses[cardKey(rank, suit)]) _uncursed.push({ rank, suit }); }));
+    if (_uncursed.length) {
+      const _victim = _uncursed[Math.floor(Math.random() * _uncursed.length)];
+      const _cids = Object.keys(CURSE_DEFS);
+      const _cid  = _cids[Math.floor(Math.random() * _cids.length)];
+      debuffs.push({ weight: 10, icon: CURSE_DEFS[_cid].icon, label: `${CURSE_DEFS[_cid].name} Curse`, tier: 'penalty',
+        cardFace: { rank: _victim.rank, suit: _victim.suit },
+        desc: `${_victim.rank}${_victim.suit} is cursed — ${CURSE_DEFS[_cid].desc}`,
+        apply: () => { cardCurses[cardKey(_victim.rank, _victim.suit)] = { id: _cid, left: CURSE_DEFS[_cid].liftAfter }; showMessage(`${_victim.rank}${_victim.suit} cursed: ${CURSE_DEFS[_cid].name}`, '#9b59b6'); } });
+    }
+  }
+  // Limit-drain debuff: -1 to a shown limit (weight 5; only if something is drainable).
+  // round_time is excluded — a 1-second drain reads like a bug, not a curse.
+  {
+    const _drainable = LIMITS_DEF.filter(d => d.id !== 'round_time' && limits[d.id].current > 1);
+    if (_drainable.length) {
+      const _dl = pickWeightedLimits(1, _drainable)[0];
+      debuffs.push({ weight: 5, icon: '⬇️', label: `-1 ${_dl.label}`, tier: 'penalty',
+        desc: `${_dl.label}: ${limits[_dl.id].current} → ${limits[_dl.id].current - 1} · permanent (limits are precious!)`,
+        apply: () => { decrementLimit(_dl.id); showMessage(`-1 ${_dl.label}`, 'var(--red)'); } });
+    }
+  }
+  // Dark mystery: unknown until claimed — mostly bad (weight 6).
+  debuffs.push({ weight: 6, icon: '❓', label: 'Dark Mystery', tier: 'mystery',
+    desc: 'Unknown until claimed. Probably bad… probably.',
+    apply: () => resolveRewardMystery(0.3) });
   const destOptions = [
     { icon: '🏪', label: 'Next: Shop',  tier: 'dest', apply: () => { pendingEventOverride = 'shop'; } },
     { icon: '🏪', label: 'Next: Shop',  tier: 'dest', apply: () => { pendingEventOverride = 'shop'; } },
@@ -9521,6 +9690,39 @@ function generateRewardContent() {
     };
   }
 
+  // Blessed-card buff: a specific shown card gains a permanent bonus.
+  function makeBlessedPayload() {
+    const rank = RANKS[Math.floor(Math.random() * RANKS.length)];
+    const suit = SUITS[Math.floor(Math.random() * SUITS.length)];
+    const mult = Math.random() < 0.3; // 30% of blessings are the (stronger) +1 mult
+    return mult
+      ? { icon: '✨', label: 'Blessed Card', tier: 'epic', cardFace: { rank, suit },
+          desc: `${rank}${suit} permanently gains +1 mult when scored.`,
+          apply: () => { const k = cardKey(rank, suit); permMult[k] = (permMult[k] || 0) + 1; showMessage(`${rank}${suit} blessed: +1 mult`, 'var(--gold)'); } }
+      : { icon: '✨', label: 'Blessed Card', tier: 'rare', cardFace: { rank, suit },
+          desc: `${rank}${suit} permanently gains +12 pips.`,
+          apply: () => { const k = cardKey(rank, suit); permPips[k] = (permPips[k] || 0) + 12; showMessage(`${rank}${suit} blessed: +12 pips`, 'var(--gold)'); } };
+  }
+  // Cull buff: deck thinning — a specific low card leaves the run for good.
+  function makeCullPayload() {
+    const rank = ['2', '3', '4'][Math.floor(Math.random() * 3)];
+    const suit = SUITS[Math.floor(Math.random() * SUITS.length)];
+    return { icon: '✂️', label: 'Cull', tier: 'rare', cardFace: { rank, suit },
+      desc: `Remove ${rank}${suit} from your deck for the rest of the run.`,
+      apply: () => { removeCardIdentityFromRun(rank, suit)
+        ? showMessage(`${rank}${suit} culled from deck`, 'var(--gold)')
+        : showMessage(`${rank}${suit} was already gone`, 'var(--cream-dim)'); } };
+  }
+  function makeLimitUpPayload() {
+    // round_time excluded — its +1 = 1 second; time is handled by the +15s tile.
+    const eligible = LIMITS_DEF.filter(d => d.id !== 'round_time' && limits[d.id].current < limits[d.id].max);
+    if (!eligible.length) return makeTrickPayload();
+    const dl = pickWeightedLimits(1, eligible)[0];
+    return { icon: '⬆️', label: `+1 ${dl.label}`, tier: 'epic',
+      desc: `${dl.label}: ${limits[dl.id].current} → ${limits[dl.id].current + 1} · permanent`,
+      apply: () => { incrementLimit(dl.id); showMessage(`+1 ${dl.label}!`, 'var(--gold)'); } };
+  }
+
   function makeBuff() {
     const cat = weightedPick(buffCategories);
     switch (cat.kind) {
@@ -9536,6 +9738,21 @@ function generateRewardContent() {
       case 'time':    return { icon: '⏱', label: '+15s Round',   tier: 'common',
                                desc: `Next round starts with +15s`,
                                apply: () => { nextRoundSecondsDelta += 15; showMessage('+15s next round', 'var(--gold)'); } };
+      case 'coins':   return { icon: '💰', label: 'Windfall',     tier: 'common',
+                               desc: `Gain 8 coins (${coins} → ${coins + 8}).`,
+                               apply: () => { coins += 8; updateCoinsUI(); showMessage('+8 coins', 'var(--gold)'); } };
+      case 'limit_up': return makeLimitUpPayload();
+      case 'blessed': return makeBlessedPayload();
+      case 'cull':    return makeCullPayload();
+      case 'cleanse':
+        // Only meaningful if something is cursed; otherwise fall back to a Trick
+        if (!Object.keys(cardCurses).length) return makeTrickPayload();
+        return { icon: '🕊️', label: 'Cleanse', tier: 'rare',
+                 desc: 'Lift one random curse from your deck.',
+                 apply: () => { const _cl = cleanseRandomCurse(); showMessage(_cl ? `Curse lifted: ${_cl.key.replace('-', '')}` : 'No curses to lift', '#54af88'); } };
+      case 'mystery': return { icon: '❓', label: 'Mystery', tier: 'mystery',
+                               desc: 'Unknown until claimed. Probably good… probably.',
+                               apply: () => resolveRewardMystery(0.7) };
     }
   }
 
@@ -9558,12 +9775,81 @@ function generateRewardContent() {
     grid[r][c] = { kind: 'buff', payload: makeBuff() };
   }
 
-  // Fill all debuff positions
+  // Guarantee a minimum number of Trick tiles per grid (owner spec: a reward
+  // grid should always offer a real Trick choice — tricks are the connective
+  // tissue of builds). Non-trick buffs are converted at random until met.
+  const MIN_TRICK_TILES = 5;
+  {
+    const isTrickTile = cell => cell?.kind === 'buff' && cell.payload && String(cell.payload.icon) === '★';
+    let trickCount = 0;
+    const convertible = [];
+    for (let i = 1; i < shuffledBuff.length; i++) {
+      const [r, c] = shuffledBuff[i];
+      if (isTrickTile(grid[r][c])) trickCount++;
+      else convertible.push([r, c]);
+    }
+    while (trickCount < MIN_TRICK_TILES && convertible.length) {
+      const [r, c] = convertible.splice(Math.floor(Math.random() * convertible.length), 1)[0];
+      grid[r][c] = { kind: 'buff', payload: makeTrickPayload() };
+      trickCount++;
+    }
+  }
+
+  // Fill all debuff positions — weighted, and one-per-grid for the "big" kinds
+  // (two identical curse/drain/mystery tiles in one grid would be confusing)
+  const usedOnce = new Set();
   for (const [r, c] of debuffPos) {
-    grid[r][c] = { kind: 'debuff', payload: pickRand(debuffs) };
+    let pick = null;
+    for (let tries = 0; tries < 12; tries++) {
+      const cand = weightedPick(debuffs);
+      const isOnceKind = cand.cardFace || cand.icon === '⬇️' || cand.tier === 'mystery';
+      if (isOnceKind && usedOnce.has(cand.label)) continue;
+      if (isOnceKind) usedOnce.add(cand.label);
+      pick = cand; break;
+    }
+    grid[r][c] = { kind: 'debuff', payload: pick || pickRand(debuffs) };
   }
 
   return grid;
+}
+
+// ── Mystery tile resolution ──
+// goodChance ∈ [0,1]: buff-slot Mystery = 0.7, debuff-slot Dark Mystery = 0.3.
+// Effects are deliberately simple + self-contained (no Trick grants — a
+// tray-full replace picker popping out of a mystery would be jarring).
+function resolveRewardMystery(goodChance) {
+  const good = Math.random() < goodChance;
+  if (good) {
+    const roll = Math.floor(Math.random() * 5);
+    if (roll === 0) { coins += 12; updateCoinsUI(); showMessage('Mystery: +12 coins!', 'var(--gold)'); }
+    else if (roll === 1) { nextRoundSwapDelta += 2; showMessage('Mystery: +2 swaps next round!', 'var(--gold)'); }
+    else if (roll === 2) { nextRoundDiscardDelta += 2; showMessage('Mystery: +2 discards next round!', 'var(--gold)'); }
+    else if (roll === 3) { nextRoundSecondsDelta += 25; showMessage('Mystery: +25s next round!', 'var(--gold)'); }
+    else { const rank = RANKS[Math.floor(Math.random()*RANKS.length)], suit = SUITS[Math.floor(Math.random()*SUITS.length)];
+           const k = cardKey(rank, suit); permPips[k] = (permPips[k] || 0) + 10;
+           showMessage(`Mystery: ${rank}${suit} +10 pips!`, 'var(--gold)'); }
+  } else {
+    const roll = Math.floor(Math.random() * 5);
+    if (roll === 0) { coins = Math.max(0, coins - 8); updateCoinsUI(); showMessage('Mystery: -8 coins…', 'var(--red)'); }
+    else if (roll === 1) { nextRoundSwapDelta -= 1; showMessage('Mystery: -1 swap next round…', 'var(--red)'); }
+    else if (roll === 2) { nextRoundSecondsDelta -= 15; showMessage('Mystery: -15s next round…', 'var(--red)'); }
+    else if (roll === 3) { injectStonesIntoDeck(1); showMessage('Mystery: a Stone slips into your deck…', 'var(--red)'); }
+    else { const v = curseRandomCard(); showMessage(v ? `Mystery: ${v.rank}${v.suit} cursed (${CURSE_DEFS[v.curse].name})…` : 'Mystery: …nothing?', '#9b59b6'); }
+  }
+}
+
+// Remove one copy of a specific card identity from the run (deck thinning).
+// Searches drawPile, then playedPile, then the live grid (refilling the cell).
+function removeCardIdentityFromRun(rank, suit) {
+  const match = c => c && c.rank === rank && c.suit === suit && !c._isSleight && !c._isStone && !c._isTrick;
+  let idx = drawPile.findIndex(match);
+  if (idx >= 0) { drawPile.splice(idx, 1); updateDeckHud(); return true; }
+  idx = playedPile.findIndex(match);
+  if (idx >= 0) { playedPile.splice(idx, 1); updateDeckHud(); return true; }
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
+    if (match(gridData[r]?.[c])) { gridData[r][c] = drawCard() || null; render(); return true; }
+  }
+  return false;
 }
 
 // Place a Trick card physically on the grid (middle-row inner col, displacing if needed).
@@ -9571,6 +9857,12 @@ function generateRewardContent() {
 function injectTrickAfterReward(trick) {
   if (!trick) return;
   if (trickTrayMode) {
+    // Tray full (trick_slots limit) → offer replace-or-skip instead of silent grow
+    if (trickTray.length >= trickCapacity()) {
+      _trickReplaceQueue.push(trick);
+      maybeOpenTrickReplacePicker();
+      return;
+    }
     trickTray.push(trick);
     selectTrick(trick, true);
     renderTrickTray();
@@ -9624,8 +9916,39 @@ function applyRewardLoseTrick() {
 
 let _blpOptions   = [];
 let _blpSelected  = -1;
+let _blpMode      = 'lose';        // 'lose' (debuff: must remove) | 'replace' (tray full: swap or skip)
+let _trickReplaceQueue = [];       // new Tricks waiting while the tray is at trick_slots capacity
+
+// Tray is full — show the picker in 'replace' mode for the next queued new Trick.
+function maybeOpenTrickReplacePicker() {
+  if (!_trickReplaceQueue.length) return;
+  if (document.getElementById('trick-lose-picker').classList.contains('show')) return; // one at a time
+  const incoming = _trickReplaceQueue[0];
+  _blpMode = 'replace';
+  document.getElementById('blp-title').textContent = 'TRICK SLOTS FULL';
+  document.getElementById('blp-sub').textContent =
+    `New Trick: “${incoming.name}” — ${incoming.desc || ''}  Choose a Trick to replace, or skip the new one.`;
+  document.getElementById('blp-confirm').textContent = 'Replace Selected';
+  document.getElementById('blp-cancel').style.display = '';
+  openTrickLosePicker(trickTray.map((trick, idx) => ({ trick, source: 'tray', idx })));
+}
+
+function cancelTrickReplacePicker() {
+  document.getElementById('trick-lose-picker').classList.remove('show');
+  const skipped = _trickReplaceQueue.shift();
+  if (skipped) showMessage(`Skipped ${skipped.name} (tray full)`, 'var(--cream-dim)');
+  _blpMode = 'lose';
+  setTimeout(() => maybeOpenTrickReplacePicker(), 150);
+}
 
 function openTrickLosePicker(options) {
+  if (_blpMode !== 'replace') {
+    // restore the default 'lose' chrome (replace mode pre-sets its own)
+    document.getElementById('blp-title').textContent = 'CHOOSE A TRICK TO LOSE';
+    document.getElementById('blp-sub').textContent = 'Select one — it will be removed permanently.';
+    document.getElementById('blp-confirm').textContent = 'Remove Selected';
+    document.getElementById('blp-cancel').style.display = 'none';
+  }
   _blpOptions  = options;
   _blpSelected = -1;
   const list = document.getElementById('blp-list');
@@ -9660,6 +9983,19 @@ function confirmTrickLosePicker() {
     const ai = acquiredTricks.findIndex(b => b.id === opt.trick.id);
     if (ai >= 0) acquiredTricks.splice(ai, 1);
     showMessage(`- ${opt.trick.name}`, 'var(--red)');
+    // Replace mode: the freed slot goes to the queued new Trick
+    if (_blpMode === 'replace') {
+      const incoming = _trickReplaceQueue.shift();
+      _blpMode = 'lose';
+      if (incoming) {
+        trickTray.push(incoming);
+        selectTrick(incoming, true);
+        showMessage(`+ ${incoming.name}`, 'var(--gold)');
+      }
+      renderTrickTray();
+      setTimeout(() => maybeOpenTrickReplacePicker(), 150);
+      return;
+    }
     renderTrickTray();
   } else {
     gridData[opt.r][opt.c] = null;
@@ -9702,8 +10038,8 @@ function openRewardGrid() {
 }
 
 function renderRewardGrid() {
-  const ROWS = limits.reward_rows.current;
-  const COLS = limits.reward_cols.current;
+  const ROWS = limits.grid_rows.current;
+  const COLS = limits.grid_cols.current;
   const gridEl = document.getElementById('reward-grid');
   // Compute cell dimensions to fill the overlay while keeping playing-card aspect ratio.
   // CARD_ASPECT = height/width ≈ 1.316 (matches game grid cards).
@@ -9741,9 +10077,14 @@ function renderRewardGrid() {
       div.dataset.r = r; div.dataset.c = c;
 
       const p = cell.payload;
+      // Tiles that reference a specific card (blessed/cursed/cull) show a mini
+      // playing card instead of a plain emoji, so the player sees exactly which.
+      const faceHTML = p.cardFace
+        ? `<div class="reward-face ${suitClass(p.cardFace.suit)}"><span class="reward-face-rank">${p.cardFace.rank}</span><span class="reward-face-suit">${p.cardFace.suit}</span></div>`
+        : `<div class="reward-icon">${p.icon}</div>`;
       div.innerHTML = `
         <div class="reward-tier">${p.tier.toUpperCase()}</div>
-        <div class="reward-icon">${p.icon}</div>
+        ${faceHTML}
         <div class="reward-label">${p.label}</div>
         ${p.desc ? `<div class="reward-desc">${p.desc}</div>` : ''}
       `;
@@ -9781,8 +10122,8 @@ function isRewardCellSelectable(r, c) {
   const key = `${r}-${c}`;
   if (rewardSelected.has(key)) return false; // already selected
   // Destination rule: at most one dest tile per selection
-  const ROWS = limits.reward_rows.current;
-  const COLS = limits.reward_cols.current;
+  const ROWS = limits.grid_rows.current;
+  const COLS = limits.grid_cols.current;
   if (r >= 0 && r < ROWS && c >= 0 && c < COLS && rewardCells[r]?.[c]?.kind === 'dest') {
     const alreadyHasDest = [...rewardSelected].some(k => {
       const [sr, sc] = k.split('-').map(Number);
@@ -9939,15 +10280,8 @@ function openLimitBreakEvent() {
   lbSacrifice   = null;
   lbConfirmed   = false;
 
-  // Eligible = limits not yet maxed
-  const eligible = LIMITS_DEF.filter(def => limits[def.id].current < limits[def.id].max);
-  // If fewer than 3 eligible, offer what we can
-  const pool = [...eligible];
-  for (let i = pool.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [pool[i], pool[j]] = [pool[j], pool[i]];
-  }
-  const chosen = pool.slice(0, 3);
+  // Eligible = limits not yet maxed; weighted pick so rare limits show up less
+  const chosen = pickWeightedLimits(3);
 
   // Last one is "blind" if we have a full set of 3
   lbOffers = chosen.map((def, i) => ({
@@ -12576,6 +12910,11 @@ function attachHoverHold(el, showFn, hideFn) {
 function renderTrickTray() {
   const list = document.getElementById('trick-tray-list');
   if (!list) return;
+  const countEl = document.getElementById('trick-tray-count');
+  if (countEl) {
+    countEl.textContent = `${trickTray.length}/${trickCapacity()}`;
+    countEl.style.color = trickTray.length >= trickCapacity() ? 'var(--red)' : 'var(--gold-dim)';
+  }
   list.innerHTML = '';
   trickTray.forEach(trick => {
     const chip = document.createElement('div');
@@ -13024,7 +13363,7 @@ function generateShopItems() {
   const grantedSleights = _grantedSleightSet();
 
   const tricks    = shuffle(TRICK_POOL.filter(b => !ownedBcIds.has(b.id))).slice(0, 3);
-  const lims   = shuffle(LIMITS_DEF.filter(d => limits[d.id].current < limits[d.id].max)).slice(0, 2);
+  const lims   = pickWeightedLimits(2);
   const knacks = shuffle(KNACK_POOL.filter(t => !ownedKnackIds.has(t.id))).slice(0, 2);
   const sleights = pickSleightByRarity(3, grantedSleights);
 
@@ -13047,7 +13386,7 @@ function rerollShopItems() {
   // Limits
   const usedLimIds = new Set();
   shopItems.limits.forEach((d, i) => { if (d && shopPurchased.has(`limit-${i}`)) usedLimIds.add(d.id); });
-  const freshLims = shuffle(LIMITS_DEF.filter(d => limits[d.id].current < limits[d.id].max && !usedLimIds.has(d.id)));
+  const freshLims = pickWeightedLimits(8, LIMITS_DEF.filter(d => limits[d.id].current < limits[d.id].max && !usedLimIds.has(d.id)));
   let li = 0;
   shopItems.limits = shopItems.limits.map((d, i) => shopPurchased.has(`limit-${i}`) ? d : (freshLims[li++] || d));
 
@@ -14180,6 +14519,7 @@ function startGame() {
   acquiredTricks = [];
   acquiredKnacks  = [];
   trickTray          = [];
+  _trickReplaceQueue = [];
   syncTrickTrayUI();   // show the Trick tray (or grid-preview) to match trickTrayMode for the new game
   cardPlayCount   = {};
   cardSwapCount   = {};
@@ -14197,6 +14537,7 @@ function startGame() {
   permXPips  = {};
   permXMult  = {};
   permRetrig = {};
+  cardCurses = {};
   bonusMult_fives = 0;
   bonusMult_nines = 0;
   bonusMult_tens = 0;
