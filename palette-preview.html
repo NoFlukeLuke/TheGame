@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TheGame — Palette Reimagining</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Crimson+Pro:wght@300;400&family=Orbitron:wght@500;700;900&family=Righteous&family=Monoton&family=Pixelify+Sans:wght@400;600;700&family=VT323&family=Silkscreen:wght@400;700&family=Press+Start+2P&display=swap');
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; min-height:100%; background:#08080b; color:#e8e6ea; font-family:'Crimson Pro',serif; -webkit-text-size-adjust:100%; }
+
+  /* page chrome (neutral) */
+  #bar{ position:sticky; top:0; z-index:10; background:#101014; border-bottom:1px solid #24242c; padding:10px 14px;
+    display:flex; flex-wrap:wrap; align-items:center; gap:10px; }
+  #bar .ttl{ font-family:'Orbitron',sans-serif; font-weight:900; letter-spacing:3px; font-size:14px; color:#37e6ff;
+    text-shadow:0 0 8px rgba(55,230,255,.6),0 0 18px rgba(55,230,255,.35); }
+  #bar .now{ font-family:'Orbitron',sans-serif; font-size:11px; color:#9a96a2; letter-spacing:1px; }
+  #bar .spacer{ flex:1; }
+  #pal-btns{ display:flex; flex-wrap:wrap; gap:6px; }
+  .pal-btn{ cursor:pointer; border:1px solid #33333c; border-radius:9px; padding:5px 6px 6px; background:#191920;
+    display:flex; flex-direction:column; align-items:center; gap:4px; min-width:80px; }
+  .pal-btn.active{ border-color:#37e6ff; box-shadow:0 0 0 1px #37e6ff,0 0 12px rgba(55,230,255,.5); }
+  .pal-btn .sw{ display:flex; border-radius:4px; overflow:hidden; width:70px; height:16px; }
+  .pal-btn .sw i{ flex:1; }
+  .pal-btn .nm{ font-family:'Orbitron',sans-serif; font-size:8px; letter-spacing:.3px; color:#cfcbd6; white-space:nowrap; }
+  .hint{ font-size:11px; color:#77737f; }
+  .pxwrap{ display:flex; align-items:center; gap:6px; }
+  #pixel-toggle{ font-family:'Orbitron',sans-serif; font-size:10px; letter-spacing:1px; cursor:pointer; padding:6px 9px;
+    border-radius:8px; border:1px solid #33333c; background:#191920; color:#cfcbd6; }
+  #pixel-toggle.on{ border-color:#37e6ff; color:#37e6ff; box-shadow:0 0 10px rgba(55,230,255,.45); }
+  #pixel-font{ font-family:'Orbitron',sans-serif; font-size:10px; background:#191920; color:#cfcbd6;
+    border:1px solid #33333c; border-radius:8px; padding:5px 4px; }
+
+  /* ══════════ SCENE — every colour + the display font + glow come from the palette ══════════ */
+  #stage{ display:flex; justify-content:center; padding:20px 14px; }
+  #frame{
+    --bg:#0e0c0a; --panel:#13110e; --border:#3a3020; --gold:#c9a84c; --gold-dim:#7a6030;
+    --cream:#f0e6c8; --cream-dim:#8a7d60; --card-bg:#f5efe0; --card-border:#d4c89a;
+    --sh:#A0030B; --sd:#EC9F05; --ss:#111; --sc:#2255cc; --pos:#5a9e5a; --neg:#c0392b; --corrupt:#7a3fb0;
+    --display:'Cinzel';
+    width:min(1000px,100%); background:var(--bg); border:1px solid var(--border); border-radius:16px; padding:16px;
+    display:grid; grid-template-columns:340px 1fr; gap:14px; box-shadow:0 20px 60px rgba(0,0,0,0.6);
+    transition:background .3s, border-color .3s; position:relative; }
+  @media (max-width:720px){ #frame{ grid-template-columns:1fr; } }
+  .col{ display:flex; flex-direction:column; gap:10px; min-width:0; }
+  .disp{ font-family:var(--display),'Cinzel',serif; }
+
+  .clockrow{ display:flex; gap:8px; align-items:stretch; height:48px; }
+  .clock-t{ font-family:var(--display),'Cinzel',serif; font-weight:900; font-size:26px; color:var(--gold);
+    letter-spacing:2px; display:flex; align-items:center; }
+  .clock-bar{ flex:1; position:relative; background:color-mix(in srgb, var(--gold) 12%, #000);
+    border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+  .clock-bar .fill{ position:absolute; left:0; top:0; bottom:0; width:64%; background:linear-gradient(90deg, var(--gold-dim), var(--gold)); }
+  .clock-bar .band{ position:absolute; top:0; bottom:0; left:34%; width:32%;
+    background:repeating-linear-gradient(45deg, color-mix(in srgb,var(--gold) 25%,transparent) 0 6px, transparent 6px 12px);
+    border-left:1px dashed color-mix(in srgb,var(--gold) 55%,transparent); border-right:1px dashed color-mix(in srgb,var(--gold) 55%,transparent); }
+
+  .chips{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
+  .chip{ background:color-mix(in srgb, var(--bg) 65%, #000); border:1px solid var(--border); border-radius:6px; padding:6px 4px; text-align:center; }
+  .chip .lab{ font-family:var(--display),'Cinzel',serif; font-size:9px; letter-spacing:1px; color:var(--cream-dim); }
+  .chip .val{ font-family:var(--display),'Cinzel',serif; font-size:23px; font-weight:700; color:var(--cream); line-height:1.15; }
+  .chip .val.gold{ color:var(--gold); }
+
+  .scorerow{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .box{ background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:8px; text-align:center; }
+  .box .lab{ font-family:var(--display),'Cinzel',serif; font-size:9px; letter-spacing:2px; color:var(--gold-dim); text-transform:uppercase; }
+  .box .num{ font-family:var(--display),'Cinzel',serif; font-weight:900; color:var(--cream); line-height:1; }
+  .box .num.big{ font-size:28px; } .box .num.mid{ font-size:21px; }
+  .prog{ margin-top:6px; height:6px; background:color-mix(in srgb,var(--gold) 12%,#000); border:1px solid var(--border); border-radius:4px; overflow:hidden; }
+  .prog > i{ display:block; height:100%; width:46%; background:linear-gradient(90deg,var(--gold-dim),var(--gold)); }
+
+  .tray{ background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:8px; }
+  .tray .pt{ font-family:var(--display),'Cinzel',serif; font-size:8px; letter-spacing:2px; color:var(--gold-dim); text-transform:uppercase; margin-bottom:6px; }
+  .tray .row{ display:flex; flex-wrap:wrap; gap:6px; }
+  .knack{ width:30px; height:30px; display:flex; align-items:center; justify-content:center; font-size:16px;
+    background:color-mix(in srgb, var(--bg) 50%, #000); border:1px solid var(--border); border-radius:7px; }
+  .trick{ font-family:var(--display),'Cinzel',serif; font-size:11px; padding:4px 9px; border-radius:6px;
+    background:color-mix(in srgb, var(--panel) 60%, #000); border:1px solid var(--gold-dim); color:var(--cream); }
+  .trick.pos{ border-color:var(--pos); color:var(--pos); }
+  .trick.corrupt{ border-color:var(--corrupt); color:color-mix(in srgb,var(--corrupt) 75%, var(--cream)); }
+
+  .btns{ display:flex; gap:8px; }
+  .btn{ flex:1; font-family:var(--display),'Cinzel',serif; font-size:13px; font-weight:700; letter-spacing:2px;
+    text-transform:uppercase; text-align:center; padding:12px 6px; border-radius:8px; border:2px solid; }
+  .btn.play{ background:var(--gold); border-color:var(--gold); color:var(--bg); }
+  .btn.discard{ background:color-mix(in srgb, var(--neg) 85%, #000); border-color:var(--neg); color:#fff; }
+  .btn.swap{ flex:0 0 66px; background:color-mix(in srgb, var(--bg) 50%,#000); border:1px solid var(--border); color:var(--cream-dim);
+    font-size:12px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; }
+  .btn.swap b{ color:var(--gold); }
+
+  #play{ display:flex; gap:10px; }
+  #grid{ flex:1; background:radial-gradient(ellipse at center, color-mix(in srgb, var(--gold) 9%, var(--panel)) 0%, var(--bg) 82%);
+    border:1px solid var(--border); border-radius:10px; padding:8px; display:grid; grid-template-columns:repeat(5,1fr); gap:6px; align-content:center; }
+  .card{ aspect-ratio:57/75; background:var(--card-bg); border:2px solid var(--card-border); border-radius:6px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  .card .rk{ font-family:var(--display),'Cinzel',serif; font-weight:700; font-size:clamp(11px,2.3vw,19px); line-height:1; color:inherit; }
+  .card .st{ font-size:clamp(13px,2.8vw,23px); line-height:1; color:inherit; }
+  .card.h{ color:var(--sh); } .card.d{ color:var(--sd); } .card.s{ color:var(--ss); } .card.c{ color:var(--sc); }
+  .card.sel{ border-color:#4a9eff; box-shadow:0 0 8px rgba(74,158,255,.6); transform:translateY(-3px); }
+  .focus{ width:22px; background:var(--panel); border:1px solid var(--border); border-radius:8px; position:relative; overflow:hidden; }
+  .focus .f{ position:absolute; left:0; right:0; bottom:0; height:58%; background:linear-gradient(0deg,var(--gold-dim),var(--gold)); }
+
+  /* ── GLOW TREATMENT (toggled per palette via .glow) ── */
+  #frame.glow .clock-t, #frame.glow .chip .val, #frame.glow .box .num, #frame.glow .tray .pt,
+  #frame.glow .trick, #frame.glow .card .rk, #frame.glow .card .st{
+    text-shadow:0 0 6px currentColor, 0 0 15px color-mix(in srgb, currentColor 55%, transparent); }
+  #frame.glow .chip, #frame.glow .box, #frame.glow .tray, #frame.glow .clock-bar, #frame.glow .focus{
+    box-shadow:0 0 12px color-mix(in srgb,var(--gold) 20%, transparent), inset 0 0 0 1px color-mix(in srgb,var(--gold) 15%,transparent); }
+  #frame.glow .card{ box-shadow:0 0 9px color-mix(in srgb, currentColor 50%, transparent); }
+  #frame.glow .btn.play{ box-shadow:0 0 18px color-mix(in srgb,var(--gold) 65%,transparent); }
+  #frame.glow .btn.discard{ box-shadow:0 0 18px color-mix(in srgb,var(--neg) 65%,transparent); }
+  #frame.glow .clock-bar .fill{ box-shadow:0 0 14px var(--gold); }
+  #frame.glow{ box-shadow:0 20px 70px rgba(0,0,0,0.7), 0 0 40px color-mix(in srgb,var(--gold) 12%, transparent); }
+
+  /* ── PIXEL TREATMENT (toggled via .pixel) — pixel font, hard corners, scanlines ── */
+  #frame.pixel{ -webkit-font-smoothing:none; image-rendering:pixelated; letter-spacing:0; }
+  #frame.pixel .clock-t{ font-size:20px; letter-spacing:0; }
+  #frame.pixel .chip .val{ font-size:16px; }
+  #frame.pixel .box .num.big{ font-size:19px; }
+  #frame.pixel .box .num.mid{ font-size:15px; }
+  #frame.pixel .chip .lab, #frame.pixel .box .lab, #frame.pixel .tray .pt{ font-size:7px; letter-spacing:1px; }
+  #frame.pixel .trick{ font-size:9px; }
+  #frame.pixel .btn{ font-size:10px; letter-spacing:1px; }
+  #frame.pixel .card .rk{ font-size:clamp(8px,1.9vw,14px); }
+  #frame.pixel .card .st{ font-size:clamp(11px,2.4vw,18px); }
+  #frame.pixel, #frame.pixel .chip, #frame.pixel .box, #frame.pixel .tray, #frame.pixel .clock-bar,
+  #frame.pixel .btn, #frame.pixel .card, #frame.pixel .knack, #frame.pixel .trick, #frame.pixel .focus,
+  #frame.pixel #grid, #frame.pixel .prog{ border-radius:0; }
+  #frame.pixel::after{ content:''; position:absolute; inset:0; pointer-events:none; z-index:5;
+    background:repeating-linear-gradient(0deg, rgba(0,0,0,0.16) 0 1px, transparent 1px 3px); mix-blend-mode:multiply; }
+
+  /* swatches */
+  #swatches{ max-width:1000px; margin:0 auto; padding:6px 18px 34px; display:flex; flex-wrap:wrap; gap:10px; }
+  .swatch{ display:flex; flex-direction:column; align-items:center; gap:3px; width:72px; }
+  .swatch .c{ width:56px; height:32px; border-radius:6px; border:1px solid rgba(255,255,255,.15); }
+  .swatch .l{ font-size:9px; color:#8a8792; text-align:center; }
+  .swatch .hx{ font-family:'Courier New',monospace; font-size:9px; color:#b8b4c0; }
+</style>
+</head>
+<body>
+  <div id="bar">
+    <span class="ttl">PALETTE REIMAGINING</span>
+    <span class="now" id="now">—</span>
+    <span class="spacer"></span>
+    <span class="hint">click a palette · ← → to cycle</span>
+    <div class="pxwrap">
+      <button id="pixel-toggle">PIXEL: OFF</button>
+      <select id="pixel-font" title="pixel font">
+        <option value="Pixelify Sans">Pixelify Sans</option>
+        <option value="VT323">VT323 (terminal)</option>
+        <option value="Silkscreen">Silkscreen</option>
+        <option value="Press Start 2P">Press Start 2P</option>
+      </select>
+    </div>
+    <div id="pal-btns"></div>
+  </div>
+
+  <div id="stage">
+    <div id="frame">
+      <div class="col" id="info">
+        <div class="clockrow">
+          <div class="clock-t">1:04</div>
+          <div class="clock-bar"><div class="fill"></div><div class="band"></div></div>
+        </div>
+        <div class="chips">
+          <div class="chip"><div class="lab">PIPS</div><div class="val">128</div></div>
+          <div class="chip"><div class="lab">MULT</div><div class="val">7</div></div>
+          <div class="chip"><div class="lab">FOCUS</div><div class="val gold">×2</div></div>
+        </div>
+        <div class="scorerow">
+          <div class="box"><div class="lab">Score</div><div class="num big">1,840</div></div>
+          <div class="box"><div class="lab">Goal</div><div class="num mid">2,500</div><div class="prog"><i></i></div></div>
+        </div>
+        <div class="tray">
+          <div class="pt">Tricks</div>
+          <div class="row"><span class="trick pos">Pair+</span><span class="trick">Flush⚡</span><span class="trick corrupt">Hex♠</span></div>
+        </div>
+        <div class="tray">
+          <div class="pt">Knacks</div>
+          <div class="row"><span class="knack">✨</span><span class="knack">🔥</span><span class="knack">💰</span><span class="knack">🍀</span><span class="knack">⚡</span></div>
+        </div>
+        <div class="btns">
+          <div class="btn play">Play</div>
+          <div class="btn discard">Discard</div>
+          <div class="btn swap">🔄<b>3</b></div>
+        </div>
+      </div>
+      <div class="col" id="playcol">
+        <div id="play">
+          <div class="focus"><div class="f"></div></div>
+          <div id="grid"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="swatches"></div>
+
+<script>
+"use strict";
+/* A total reimagining — bold, glowy, new text colours & fonts.
+   Each palette carries colours + glow on/off + display font. */
+const PALETTES = [
+  { name:'Neon Arcade', glow:true, display:'Orbitron', vars:{
+      bg:'#05060d', panel:'#0b0e1c', border:'#1b2540', gold:'#17f7ff', 'gold-dim':'#0a8f96',
+      cream:'#eafcff', 'cream-dim':'#7fb6c4', 'card-bg':'#0c1020', 'card-border':'#223052',
+      sh:'#ff2e88', sd:'#ffd21f', ss:'#b9e6ff', sc:'#23e0ff', pos:'#2bff9e', neg:'#ff3b6b', corrupt:'#b14bff' } },
+
+  { name:'Synth Sunset', glow:true, display:'Righteous', vars:{
+      bg:'#14082a', panel:'#221041', border:'#3d1e6b', gold:'#ff5cc8', 'gold-dim':'#a12e86',
+      cream:'#ffe6ff', 'cream-dim':'#b98fd0', 'card-bg':'#1c0f36', 'card-border':'#4a2a74',
+      sh:'#ff4d9d', sd:'#ffb03a', ss:'#cfe0ff', sc:'#4fd0ff', pos:'#46f0b0', neg:'#ff5470', corrupt:'#c86bff' } },
+
+  { name:'Bioluminescence', glow:true, display:'Orbitron', vars:{
+      bg:'#02110f', panel:'#06201d', border:'#0e3b34', gold:'#35ffd0', 'gold-dim':'#148f78',
+      cream:'#d8fff4', 'cream-dim':'#6fb8a8', 'card-bg':'#061a18', 'card-border':'#114b40',
+      sh:'#ff5a8a', sd:'#ffe14d', ss:'#bfeaff', sc:'#37c9ff', pos:'#4dffb0', neg:'#ff5f7a', corrupt:'#a86bff' } },
+
+  { name:'Ultraviolet', glow:true, display:'Orbitron', vars:{
+      bg:'#060011', panel:'#10032b', border:'#2a0f57', gold:'#b14bff', 'gold-dim':'#6a1fb0',
+      cream:'#f0e6ff', 'cream-dim':'#a98fd6', 'card-bg':'#0d0326', 'card-border':'#341463',
+      sh:'#ff2ea6', sd:'#d0ff2e', ss:'#e6d6ff', sc:'#2ea6ff', pos:'#7bff2e', neg:'#ff2e6a', corrupt:'#ff5ce0' } },
+
+  { name:'Molten Ember', glow:true, display:'Orbitron', vars:{
+      bg:'#100603', panel:'#1e0a04', border:'#45180a', gold:'#ff7a1a', 'gold-dim':'#a3430c',
+      cream:'#ffe9d6', 'cream-dim':'#c99374', 'card-bg':'#1a0805', 'card-border':'#4a1c0c',
+      sh:'#ff3b2e', sd:'#ffc21a', ss:'#ffd9b8', sc:'#4fb0ff', pos:'#9ee84b', neg:'#ff3b2e', corrupt:'#c24bff' } },
+
+  { name:'Candy Pop', glow:false, display:'Righteous', vars:{
+      bg:'#fdf6ff', panel:'#ffffff', border:'#e7d4f0', gold:'#ff3d8b', 'gold-dim':'#c01f66',
+      cream:'#2a1140', 'cream-dim':'#8a6fa0', 'card-bg':'#ffffff', 'card-border':'#e3d3ee',
+      sh:'#ff2e6a', sd:'#ff9d1f', ss:'#2a1140', sc:'#2e7bff', pos:'#1fbf6b', neg:'#ff2e5a', corrupt:'#9b3dff' } },
+
+  { name:'Classic (current)', glow:false, display:'Cinzel', vars:{
+      bg:'#0e0c0a', panel:'#13110e', border:'#3a3020', gold:'#c9a84c', 'gold-dim':'#7a6030',
+      cream:'#f0e6c8', 'cream-dim':'#8a7d60', 'card-bg':'#f5efe0', 'card-border':'#d4c89a',
+      sh:'#a0030b', sd:'#ec9f05', ss:'#111111', sc:'#2255cc', pos:'#5a9e5a', neg:'#c0392b', corrupt:'#7a3fb0' } },
+];
+
+const SWATCH_KEYS = [['bg','Background'],['panel','Panel'],['border','Border'],['gold','Accent'],['cream','Text'],
+  ['card-bg','Card'],['sh','♥'],['sd','♦'],['ss','♠'],['sc','♣'],['pos','Good'],['neg','Bad'],['corrupt','Corrupt']];
+
+const frame=document.getElementById('frame');
+const RANKS=['A','K','Q','J','10','9','8','7'];
+const SUITS=[['♥','h'],['♦','d'],['♠','s'],['♣','c']];
+function buildGrid(){
+  const g=document.getElementById('grid'); g.innerHTML='';
+  const special={6:'sel',7:'sel'};
+  for(let i=0;i<20;i++){ const s=SUITS[i%4], r=RANKS[(i*3)%RANKS.length];
+    const d=document.createElement('div'); d.className='card '+s[1]+(special[i]?(' '+special[i]):'');
+    d.innerHTML=`<div class="rk">${r}</div><div class="st">${s[0]}</div>`; g.appendChild(d); }
+}
+let cur=0, pixelOn=false, pixelFont='Pixelify Sans';
+function applyPalette(idx){
+  cur=idx;
+  const p=PALETTES[idx];
+  for(const [k,v] of Object.entries(p.vars)) frame.style.setProperty('--'+k, v);
+  frame.style.setProperty('--display', pixelOn ? ("'"+pixelFont+"'") : ("'"+p.display+"'"));
+  frame.classList.toggle('glow', !!p.glow);
+  frame.classList.toggle('pixel', pixelOn);
+  document.getElementById('now').textContent=(idx+1)+' / '+PALETTES.length+' · '+p.name+(p.glow?' · GLOW':'')+(pixelOn?' · PIXEL':'');
+  document.querySelectorAll('.pal-btn').forEach((b,i)=>b.classList.toggle('active',i===idx));
+  renderSwatches(p);
+}
+function renderSwatches(p){
+  const host=document.getElementById('swatches'); host.innerHTML='';
+  for(const [k,label] of SWATCH_KEYS){ const v=p.vars[k]; if(!v) continue;
+    const el=document.createElement('div'); el.className='swatch';
+    el.innerHTML=`<div class="c" style="background:${v}"></div><div class="l">${label}</div><div class="hx">${v}</div>`;
+    host.appendChild(el); }
+}
+function buildButtons(){
+  const host=document.getElementById('pal-btns');
+  PALETTES.forEach((p,i)=>{ const b=document.createElement('button'); b.className='pal-btn';
+    const keys=['bg','gold','sh','sc','cream'];
+    b.innerHTML=`<span class="sw">${keys.map(k=>`<i style="background:${p.vars[k]}"></i>`).join('')}</span><span class="nm">${p.name}</span>`;
+    b.onclick=()=>applyPalette(i); host.appendChild(b); });
+}
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight') applyPalette((cur+1)%PALETTES.length);
+  if(e.key==='ArrowLeft') applyPalette((cur-1+PALETTES.length)%PALETTES.length);
+});
+document.getElementById('pixel-toggle').addEventListener('click',function(){
+  pixelOn=!pixelOn; this.classList.toggle('on',pixelOn); this.textContent='PIXEL: '+(pixelOn?'ON':'OFF'); applyPalette(cur);
+});
+document.getElementById('pixel-font').addEventListener('change',e=>{ pixelFont=e.target.value; if(pixelOn) applyPalette(cur); });
+buildGrid(); buildButtons(); applyPalette(0);
+</script>
+</body>
+</html>
