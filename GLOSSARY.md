@@ -51,7 +51,10 @@ Pattern: **"[Subject] score(s) +N …"** — never give / adds / worth / contrib
 - **Charges** = durability (total uses before the card is destroyed): **"Charges: 3"**.
 - **Use** = per-round usage. Sleights can be used **once per round** (global rule, surfaced in tooltip — not repeated on every card).
 - **Inert** = the card stays on the grid but **cannot be interacted with** (not selected, swapped, discarded, or scored). Hovering "inert" shows that explanation.
-- **Retrigger** = fires its effect again. Wording: **"retriggers"** (once) or **"retriggers N times"** (N>1).
+- **Replay** vs **Retrigger** (distinct words, same tooltip color):
+  - **Replay** = a *playing card* is scored again. Use "replay" whenever the thing repeating is a card on the grid. Wording: **"replays"** / **"replays N times"** / **"+N replay"**.
+  - **Retrigger** = *anything else* fires its effect again (a trick / sleight / knack). Wording: **"retriggers"** / **"retriggers N times"**.
+  - The mechanics differ slightly (a card re-scores its pips; a trick re-fires its whole effect). NOTE: true trick/sleight/knack retriggering is still on the roadmap — today only card *replay* is wired. Keep the words distinct in text regardless.
 - **Force-trigger** (distinct from retrigger) = makes a condition fire that normally wouldn't (e.g. a "+3 per diamond" trick force-triggered gives +3 even for a non-diamond). Per-card tricks give their per-card bonus once per force-trigger; flat tricks give their bonus once per force-trigger. *(Full mechanic TBD.)*
 - **Primed** = the next *normal* trigger fires one extra time (a retrigger stack). "Primed to retrigger once" → next trigger fires twice.
 
@@ -60,12 +63,24 @@ Pattern: **"[Subject] score(s) +N …"** — never give / adds / worth / contrib
 - Buffs are **permanent by default** — don't say "permanently". Temporary ones must state scope: **"this round" / "this hand" / "until next boss"**.
 
 ## Money & time
-- **Coins**, never "gold".
+- **Credits** — the currency, never "coins" or "gold" in player-facing text. (Code identifiers like the `coins` variable, `updateCoinsUI`, and the `--gold` CSS *color* token stay as-is; this rule is about what the player reads.)
 - Round clock: **pause the clock for N seconds**; a pause can be extended by another pause (durations stack).
 - **Round-time fractions are DYNAMIC.** "First / middle / last third of the round" (and any
   fractional timing) is computed against the round's *actual* starting length
   (`roundStartSeconds` via `roundFractionRemaining()`), never a hardcoded constant — so it
   tracks shortened or extended rounds. (Absolute thresholds like "with 30 seconds left" stay absolute.)
+
+## Keyword colors (tooltips & descriptions)
+Whenever a keyword appears in a tooltip/description it's highlighted in its color:
+| keyword | color |
+|---|---|
+| **pips** | blue |
+| **mult** | red |
+| **focus** | purple |
+| **credits** | yellow |
+| **time** / **seconds** | black with a white shadow/glow |
+| **replay** / **retrigger** | white with an rgb glow underneath (both share this color; words stay distinct) |
+Applied centrally so every place a description renders gets the same treatment.
 
 ## Scoring order (engine fact)
 - Cards are scored in **selection (tap) order**, preserved from `selected` → `findBestHand` → `calcScore`.

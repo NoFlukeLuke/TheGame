@@ -60,6 +60,38 @@ uploaded per-session) plus occasional supplemental docs.
 **Grid/Position → Focus-centric → Scaling/Permanent → Sleights → Knacks → New & curses.**
 Plus the parked **Time-Rewind** family (its own section below).
 
+## IN-FLIGHT: Grid/Position batch + owner's new systems (this session)
+Grid/Position is being built now. Owner expanded scope mid-batch with several new systems +
+tricks/knacks. Ordered task list (see also the harness task tracker):
+1. **Vocabulary locked in docs** (DONE): currency = **credits**; **replay** (a card re-scored) vs
+   **retrigger** (anything else re-fired) — distinct words, shared tooltip color; keyword colors
+   (pips=blue, mult=red, focus=purple, credits=yellow, time=black+white glow, replay/retrigger=white+rgb glow).
+2. **Rename currency → credits** in player-facing text (leave `coins` var / `--gold` color token).
+3. **Keyword-color highlighting** in tooltips (central `colorizeKeywords`).
+4. **Replay/retrigger word split** across trick descriptions.
+5. **Grid/Position redesigns** (18 from CSV; Group 1 locked — Right Place/Power Line/Echo Location/
+   Perfect Timing/Right Time; Groups 2–4 still to walk with owner). Kills ×score on Be a Square/
+   Crossroads/Stretch.
+6. **New position tricks:**
+   - **Groove** (rare, focus): +1 Focus per **2** cards scored from the mark this round (scaler; resets each round). Contributes once per hand.
+   - **Assembly Line** (epic, mult): a card scoring in the mark scores +1 mult for every card **already** scored from that line this round; replays both count toward and earn from the tally.
+   - **Overtime** (rare): "+1 per **3** cards scored from the mark this round" — RESOURCE UNCONFIRMED (owner wrote "focus" but it's the intended *time* twin; confirm seconds vs focus).
+   - **Feng Shui** (epic, scaling): permanently +3 pips each hand **another** position trick triggers; scores its stored pips.
+   - **Huddle** (rare, pips): each played card scores **+11 pips per adjacent played card/sleight** (in-hand adjacency; may reword).
+   - **Clean Sweep** (epic, focus): cover a full row or column within **2 hands** → advance Focus to next threshold.
+7. **Sell system** (tricks AND knacks): clicking a trick/knack opens a popup (near the credits display)
+   with its **sell value + Sell**, available **anytime**. On sell: entity leaves (no longer alters
+   score/mechanics — `hasTrick`/`hasKnack` false), grant credits. If it granted a resource
+   (swaps/discards), reduce current stock by that amount **floored at 0** (3 discards − sell +2 → 1;
+   if only 1–2 in stock → 0). NOTE: this is the FIRST sell-for-credits mechanic — none existed;
+   previously the only give-up path was **Sacrifice** at a Limit Break (works on tricks + knacks).
+8. **Position knacks:** **Surveyor** (position tricks mark a *column you choose*), **Leveler** (a *row
+   you choose*), **Alignment** (mark the **column matching the trick's slot number** — slot 3 → col 3),
+   **District** (allow **more than one effect on the same row/column**; normally one per line, both only
+   at the intersection).
+9. **Chosen One** (MYTHIC trick): cards played at the **intersection of a row effect and a column
+   effect** get **+1 replay**. Needs the two-marked-lines intersection concept + replay engine.
+
 ## Key systems/mechanics (where to look in index.html)
 - **Tricks** live in a tray (`trickTrayMode`); `hasTrick(id)` gates effects. `TRICK_POOL`, `BAL` (constants), `DESC_TEMPLATES` (filled into pool `desc` at init IF a template + BAL entry exist — so when redesigning a trick you MUST update or delete its template or it overwrites the new desc with stale/`undefined` text).
 - **calcScore** is the scoring core: per-card pip loop → additive mult section → **multiplier block** (×pips/×mult tricks) → **Mirror/priming/Double Take duplication** → focus → `s = pips × mult` → (mostly-emptied) ×score section → `s *= focus`. `_cp`/`_cm` track per-trick pip/mult deltas (always-on) and power Mirror/priming.
