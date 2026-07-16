@@ -75,7 +75,7 @@ tricks/knacks. Ordered task list (see also the harness task tracker):
 6. **New position tricks:**
    - **Groove** (rare, focus): +1 Focus per **2** cards scored from the mark this round (scaler; resets each round). Contributes once per hand.
    - **Assembly Line** (epic, mult): a card scoring in the mark scores +1 mult for every card **already** scored from that line this round; replays both count toward and earn from the tally.
-   - **Overtime** (rare): "+1 per **3** cards scored from the mark this round" — RESOURCE UNCONFIRMED (owner wrote "focus" but it's the intended *time* twin; confirm seconds vs focus).
+   - **Overtime** (rare, time): +1 **second** per **3** cards scored from the mark this round (scaler; resets each round). Confirmed: Groove = Focus, Overtime = time.
    - **Feng Shui** (epic, scaling): permanently +3 pips each hand **another** position trick triggers; scores its stored pips.
    - **Huddle** (rare, pips): each played card scores **+11 pips per adjacent played card/sleight** (in-hand adjacency; may reword).
    - **Clean Sweep** (epic, focus): cover a full row or column within **2 hands** → advance Focus to next threshold.

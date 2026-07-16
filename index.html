@@ -3604,7 +3604,7 @@
 </div>
 
 <script>
-const BUILD = '2026-06-28 · r73';
+const BUILD = '2026-07-16 · r74';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -3941,7 +3941,7 @@ const TRICK_POOL = [
   { id:'echo_hand',      name:'Echoes',              tier:'common',    desc:'Playing the same hand type as the previous hand retriggers each card' },
   // ── Suit conditions ──
   { id:'club_double',    name:'Hard Labour',         tier:'mythic',    tags:['suit','pips'], desc:'Each club scored adds escalating pips — +5, doubling per club; retriggers count' },
-  { id:'monochrome',     name:'Blood Diamonds',      tier:'epic',      desc:'Hands with at least one heart and one diamond grant +1 coin and +10 seconds' },
+  { id:'monochrome',     name:'Blood Diamonds',      tier:'epic',      desc:'Hands with at least one heart and one diamond grant +1 credit and +10 seconds' },
   { id:'full_color',     name:'Rainbow',             tier:'rare',      desc:'Hands with all four suits score +16 pips and +4 mult per card' },
   { id:'balanced_diet',  name:'Balance',             tier:'common',    desc:'Hands with exactly 2 suits score +2 mult per card' },
   // ── Number magic ──
@@ -4251,7 +4251,7 @@ const KNACK_POOL = [
   { id:'steady_hand',     emoji:'♾️',  name:'Steady Hand',      desc:'Swaps no longer count against the swap limit, but cost 2× time.' },
   { id:'hoarder',         emoji:'🗑️',  name:'Hoarder',          desc:'Discards no longer count against the discard limit, but cost 2× time.' },
   { id:'time_bank',       emoji:'⏳',  name:'Time Bank',        desc:'+30 seconds at the start of every round.' },
-  { id:'inheritance',     emoji:'💰',  name:'Inheritance',      desc:'Start each round with +5 coins.' },
+  { id:'inheritance',     emoji:'💰',  name:'Inheritance',      desc:'Start each round with +5 credits.' },
   { id:'combo_keeper',    emoji:'🔥',  name:'Combo Keeper',     desc:'Streaks survive one non-streak hand. Re-arms after 2 streak hands.' },
   { id:'lucky_seven',     emoji:'🎯',  name:'Lucky Seven',      desc:'Every 7th hand played gives +1 swap.' },
   { id:'extra_swaps',     emoji:'🔄',  name:'Swap Shop',        desc:'Start each round with +2 extra swaps.' },
@@ -4301,7 +4301,7 @@ const SLEIGHT_POOL = [
   // ── Discard-based ──
   { id:'the_bomb',       name:'Bomb',           emoji:'💣', rarity:'epic',      activation:'on_discard', durability:2,          defaultRank:null, defaultSuit:null, tags:['scoring','pips'],     desc:'Discard this: every card on the grid permanently gains +3 pips. (2 charges)' },
   { id:'the_legacy',     name:'Legacy',         emoji:'📜', rarity:'rare',      activation:'on_discard', durability:3,          defaultRank:null, defaultSuit:null, tags:['scoring'],           desc:'Discard this: the next hand played scores ×3. (3 charges)' },
-  { id:'cash_out',       name:'Cash Out',       emoji:'💰', rarity:'common',    activation:'on_discard', durability:4,          defaultRank:null, defaultSuit:null, tags:['resource','coins'],   desc:'Discard this: gain 10 coins. (4 charges)' },
+  { id:'cash_out',       name:'Cash Out',       emoji:'💰', rarity:'common',    activation:'on_discard', durability:4,          defaultRank:null, defaultSuit:null, tags:['resource','coins'],   desc:'Discard this: gain 10 credits. (4 charges)' },
   // ── Swap-based ──
   { id:'lightning_rod',  name:'Lightning Rod',  emoji:'⚡', rarity:'rare',      activation:'on_swap',    durability:'infinite', defaultRank:null, defaultSuit:null, tags:['scoring','pips'],     desc:'When swapped, the card it traded with permanently gains +5 pips.' },
   { id:'the_catalyst',   name:'Catalyst',       emoji:'🧪', rarity:'rare',      activation:'on_swap',    durability:'infinite', defaultRank:null, defaultSuit:null, tags:['scoring','mult'],     desc:'When swapped, the card it traded with permanently gains +1 mult.' },
@@ -4311,7 +4311,7 @@ const SLEIGHT_POOL = [
   { id:'snooze',         name:'Snooze Button',  emoji:'😴', rarity:'common',    activation:'double_tap', durability:5,          defaultRank:null, defaultSuit:null, tags:['time'],                desc:'Double-tap: pause the clock for 10 seconds. (5 charges)' },
   { id:'shady_tree',     name:'Shady Tree',     emoji:'🌳', rarity:'rare',      activation:'on_play',    durability:10,         defaultRank:null, defaultSuit:null, tags:['time','position'],    desc:'Play this from the round’s shady column to pause the clock. Pauses for its remaining charges (10 → 1), −1 each use; destroyed at 0.' },
   { id:'stopwatch',      name:'Stopwatch',      emoji:'⏱️', rarity:'epic',      activation:'double_tap', durability:60,         defaultRank:null, defaultSuit:null, tags:['time'],                desc:'Double-tap: freeze the clock until you next play a hand (swaps and discards keep it frozen). Holds up to 60 paused seconds total, drained 1 per second; destroyed at 0.' },
-  { id:'piggy_bank',     name:'Piggy Bank',     emoji:'🐷', rarity:'common',    activation:'double_tap', durability:5,          defaultRank:null, defaultSuit:null, tags:['resource','coins'],   desc:'Double-tap: gain 5 coins. (5 charges)' },
+  { id:'piggy_bank',     name:'Piggy Bank',     emoji:'🐷', rarity:'common',    activation:'double_tap', durability:5,          defaultRank:null, defaultSuit:null, tags:['resource','coins'],   desc:'Double-tap: gain 5 credits. (5 charges)' },
   // ── Aim-based (fixtures: tap to rotate aim; cannot be swapped or discarded) ──
   { id:'reflect',     name:'Reflect',     emoji:'🪞', rarity:'epic',   activation:'aim', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['retrigger','position'], desc:'Tap to rotate its aim (up→right→down→left). The card it faces retriggers once when a hand scores. Cannot be swapped or discarded.' },
   { id:'soul_mirror', name:'Soul Mirror', emoji:'👁️', rarity:'mythic', activation:'aim', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['retrigger','rank'],     desc:'Tap to rotate its aim. While it faces a card, every scored card of that rank retriggers — anywhere on the grid. Multiple Soul Mirrors stack. Cannot be swapped or discarded.' },
@@ -5193,12 +5193,12 @@ const DESC_TEMPLATES = {
   the_naturalist: 'Play this: each other scored card permanently gains +{pips} pips.',
   bellhop: 'Play this: gain +{swaps} swaps and +{discards} discard. (5 charges)',
   the_bomb: 'Discard this: every card on the grid permanently gains +{pips} pips. (2 charges)',
-  cash_out: 'Discard this: gain {coins} coins. (4 charges)',
+  cash_out: 'Discard this: gain {coins} credits. (4 charges)',
   lightning_rod: 'When swapped, the card it traded with permanently gains +{pips} pips.',
   the_catalyst: 'When swapped, the card it traded with permanently gains +{mult} mult.',
   the_wanderer: 'When swapped, refunds the swap (+{swaps} swap back).',
   time_bank: '+{seconds} seconds at the start of every round.',
-  inheritance: 'Start each round with +{coins} coins.',
+  inheritance: 'Start each round with +{coins} credits.',
   lucky_seven: 'Every {interval_hands}th hand played gives +{swaps} swap.',
   extra_swaps: 'Start each round with +{swaps} extra swaps.',
   extra_discards: 'Start each round with +{discards} extra discards.',
@@ -5211,7 +5211,7 @@ const DESC_TEMPLATES = {
   big_win: 'The first time a single hand scores 10,000+, permanently add +{mult} mult to this trick',
   idol: 'Finish the round with this on your board to earn {interest_mult}× interest. (Once)',
   amplifier: 'Double-tap: the next hand scores +{mult} mult. (5 charges)',
-  piggy_bank: 'Double-tap: gain {coins} coins. (5 charges)',
+  piggy_bank: 'Double-tap: gain {coins} credits. (5 charges)',
   steady_hand: 'Swaps no longer count against the swap limit, but cost {swap_seconds}s each.',
   hoarder: 'Discards no longer count against the discard limit, but cost {discard_seconds_per_card}s per card.',
 };
@@ -10407,7 +10407,7 @@ function applySleightGridEffect(id, r, c) {
       showMessage('📜 Legacy — next hand ×3!', '#ffd700'); break;
     case 'cash_out':
       coins += BAL.cash_out.coins; updateCoinsUI();
-      showMessage('💰 Cash Out — +10 coins!', 'var(--gold)'); break;
+      showMessage('💰 Cash Out — +10 credits!', 'var(--gold)'); break;
     case 'the_wanderer':
       swaps = Math.min(99, swaps + BAL.the_wanderer.swaps); render();
       showMessage('🧭 Wanderer — swap refunded!', 'var(--gold)'); break;
@@ -10419,7 +10419,7 @@ function applySleightGridEffect(id, r, c) {
       showMessage('😴 Snooze — clock paused 10s!', 'var(--gold)'); break;
     case 'piggy_bank':
       coins += BAL.piggy_bank.coins; updateCoinsUI();
-      showMessage('🐷 Piggy Bank — +5 coins!', 'var(--gold)'); break;
+      showMessage('🐷 Piggy Bank — +5 credits!', 'var(--gold)'); break;
     default:
       showMessage(`${SLEIGHT_POOL.find(j=>j.id===id)?.name||'Sleight'} activated!`, '#cc88ff'); break;
   }
@@ -10784,7 +10784,7 @@ function buildCrossroadsTrades() {
     const legends = TRICK_POOL.filter(b => !ownedTrick.has(b.id) && b.tier === 'legendary');
     if (legends.length > 0) {
       const pick = legends[Math.floor(Math.random()*legends.length)];
-      trades.push({ icon:'💰', name:`Pay 12 coins: ${pick.name}`, desc:`Lose 12 coins. Gain the legendary Trick "${pick.name}". ${pick.desc}`, rarity:'legendary',
+      trades.push({ icon:'💰', name:`Pay 12 credits: ${pick.name}`, desc:`Lose 12 credits. Gain the legendary Trick "${pick.name}". ${pick.desc}`, rarity:'legendary',
         apply: () => { coins -= 12; updateCoinsUI(); injectTrickAfterReward(pick); } });
     }
   }
@@ -11118,7 +11118,7 @@ function buildBargainTrades() {
   trades.push({ icon:'🕯️', rarity:'rare', name:'Time Tithe', desc:'Permanently lose 8s of round time. Copy a random card; that card permanently gains +20 pips.',
     apply:()=>{ limits.round_time.current=Math.max(30, limits.round_time.current-8); const t=randomDeckCard(); if(t){ copyCardToDeck(t); enhanceCardKey(cardKey(t.rank,t.suit), {pips:20}); showMessage(`Copied ${cardLabel(t)} · +20 pips`, 'var(--gold)'); } } });
   if (coins >= 10) {
-    trades.push({ icon:'🪙', rarity:'epic', name:'The Toll', desc:'Lose 10 coins. A random card permanently retriggers and scores ×2 mult.',
+    trades.push({ icon:'🪙', rarity:'epic', name:'The Toll', desc:'Lose 10 credits. A random card permanently retriggers and scores ×2 mult.',
       apply:()=>{ coins-=10; updateCoinsUI(); const t=randomDeckCard(); if(t){ enhanceCardKey(cardKey(t.rank,t.suit), {retrig:1, xmult:2}); showMessage(`${cardLabel(t)} retrigger + ×2 mult`, 'var(--gold)'); } } });
   }
   if (offGrid >= 3) {
@@ -11272,8 +11272,8 @@ function renderAltar() {
       apply: () => { discards = Math.max(0, discards-2); altarEffects.push({ type:'mult_boost', value:3, roundsLeft:3 }); showMessage('Altar: +3 mult for 3 rounds', 'var(--gold)'); render(); }
     },
     { icon:'⌛', name:'Time Offering', rarity:'rare',
-      desc:'Sacrifice 10 coins. Next 2 rounds begin with +20 extra seconds.',
-      cost:'−10 Coins',
+      desc:'Sacrifice 10 credits. Next 2 rounds begin with +20 extra seconds.',
+      cost:'−10 Credits',
       canTake: () => coins >= 10,
       apply: () => { coins -= 10; updateCoinsUI(); altarEffects.push({ type:'time_boost', value:20, roundsLeft:2 }); showMessage('Altar: +20s for 2 rounds', 'var(--gold)'); }
     },
@@ -13243,7 +13243,7 @@ function buyShopTrick(i) {
   const key = `trick-${i}`;
   if (!trick || shopPurchased.has(key)) return;
   const price = SHOP_TRICK_PRICES[trick.tier] || 8;
-  if (coins < price) { showMessage('Not enough coins', 'var(--red)'); return; }
+  if (coins < price) { showMessage('Not enough credits', 'var(--red)'); return; }
   coins -= price;
   shopPurchased.add(key);
   injectTrickAfterReward(trick);
@@ -13257,7 +13257,7 @@ function buyShopLimit(i) {
   if (!def || shopPurchased.has(key)) return;
   if (limits[def.id].current >= limits[def.id].max) return;
   const price = shopLimitPrice(def);
-  if (coins < price) { showMessage('Not enough coins', 'var(--red)'); return; }
+  if (coins < price) { showMessage('Not enough credits', 'var(--red)'); return; }
   coins -= price;
   shopPurchased.add(key);
   incrementLimit(def.id);
@@ -13271,7 +13271,7 @@ function buyShopKnack(i) {
   const knack = shopItems?.knacks[i];
   const key = `knack-${i}`;
   if (!knack || shopPurchased.has(key)) return;
-  if (coins < SHOP_KNACK_PRICE) { showMessage('Not enough coins', 'var(--red)'); return; }
+  if (coins < SHOP_KNACK_PRICE) { showMessage('Not enough credits', 'var(--red)'); return; }
   coins -= SHOP_KNACK_PRICE;
   shopPurchased.add(key);
   acquiredKnacks.push({ ...knack });
@@ -13286,7 +13286,7 @@ function buyShopSleight(i) {
   const key = `sleight-${i}`;
   if (!sleight || shopPurchased.has(key)) return;
   const price = SHOP_SLEIGHT_PRICES[sleight.rarity] || 12;
-  if (coins < price) { showMessage('Not enough coins', 'var(--red)'); return; }
+  if (coins < price) { showMessage('Not enough credits', 'var(--red)'); return; }
   coins -= price;
   shopPurchased.add(key);
   grantSleight(sleight);
@@ -13318,7 +13318,7 @@ function doShopReroll() {
     return;
   } else {
     const cost = 8 + shopRerollCount * 2;
-    if (coins < cost) { showMessage('Not enough coins', 'var(--red)'); return; }
+    if (coins < cost) { showMessage('Not enough credits', 'var(--red)'); return; }
     coins -= cost;
     updateCoinsUI();
   }
