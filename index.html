@@ -3647,7 +3647,7 @@
 </div>
 
 <script>
-const BUILD = '2026-07-07 · r75';
+const BUILD = '2026-07-07 · r76';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -10100,16 +10100,21 @@ function renderRewardGrid() {
     .map(cell => `${cell.payload.icon} ${cell.payload.label}`);
   document.getElementById('reward-collected-list').textContent = items.length ? items.join('  ·  ') : '—';
 
-  // Subtitle: destination warning if a dest is selected
+  // Subtitle: picks counter (Selection Size cap) + destination warning
   const subEl = document.getElementById('reward-sub');
   if (subEl) {
     const selectedDest = [...rewardSelected].find(k => {
       const [sr, sc] = k.split('-').map(Number);
       return rewardCells[sr]?.[sc]?.kind === 'dest';
     });
-    subEl.textContent = selectedDest
-      ? 'Destination locked in — confirm to set your route.'
-      : 'Choose any connected group. At most one destination.';
+    const cap = limits.selection.current;
+    const picks = `Picks: ${rewardSelected.size}/${cap}`;
+    const atCap = rewardSelected.size >= cap;
+    subEl.textContent = atCap
+      ? `${picks} — selection full. Confirm, or tap a pick to remove it.`
+      : selectedDest
+        ? `${picks} — destination locked in. Confirm to set your route.`
+        : `${picks} — choose a connected group. At most one destination.`;
   }
 
   const hasAny = rewardSelected.size > 0;
@@ -10121,6 +10126,8 @@ function renderRewardGrid() {
 function isRewardCellSelectable(r, c) {
   const key = `${r}-${c}`;
   if (rewardSelected.has(key)) return false; // already selected
+  // Picks are capped by the Selection Size limit — same cap as the play grid
+  if (rewardSelected.size >= limits.selection.current) return false;
   // Destination rule: at most one dest tile per selection
   const ROWS = limits.grid_rows.current;
   const COLS = limits.grid_cols.current;
