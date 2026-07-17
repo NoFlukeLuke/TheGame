@@ -3647,7 +3647,7 @@
 </div>
 
 <script>
-const BUILD = '2026-07-07 · r76';
+const BUILD = '2026-07-17 · r77';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -3980,6 +3980,12 @@ const TRICK_POOL = [
   { id:'hummingbird',    name:'The Hummingbird',     tier:'rare',      desc:'+2 mult for every clock pause triggered this game' },
   { id:'albatross',      name:'The Albatross',       tier:'rare',      desc:'+5 pips for every second the clock has spent paused this round' },
   { id:'vulture',        name:'The Vulture',         tier:'epic',      desc:'Cards discarded during the round’s first clock pause permanently gain: pause the clock 1 second each time they score (retriggers stack)' },
+  // ── Clock-mark Tricks (fire as the round clock passes static timestamps) ──
+  { id:'ticktock',       name:'Tick-Tock',           tier:'common',    tags:['time','focus'],     desc:'Every time the round clock ends in a 0, gain +2 Focus' },
+  { id:'quarter_chime',  name:'Quarter Chime',       tier:'rare',      tags:['time','pips'],      desc:'Every time the round clock reads a multiple of 15 seconds, your next hand scores +45 pips' },
+  { id:'minute_hand',    name:'Minute Hand',         tier:'rare',      tags:['time','mult'],      desc:'Every minute mark the clock passes adds +3 mult to your next hand' },
+  { id:'second_hand',    name:'Second Hand',         tier:'common',    tags:['time','pips'],      desc:'Every minute mark the clock passes adds +5 pips to your next hand' },
+  { id:'hourglass',      name:'Hourglass',           tier:'epic',      tags:['time','retrigger'], desc:'Every minute mark the clock passes has a 1-in-3 chance to give a random card on the grid a permanent retrigger' },
   { id:'phoenix',        name:'The Phoenix',         tier:'mythic',    desc:'While the clock is paused, the Focus multiplier applies twice' },
   // ── Streaks ──
   { id:'kindling',       name:'Kindling',            tier:'common',    desc:'Same hand streak scores +4 pips × streak' },
@@ -4063,7 +4069,7 @@ const TRICK_CATEGORIES = [
   { emoji:'🎴', ids:['enriched','tidal_force','deluge','summit','last_stand','light_touch','heavy_hand','blackjack_bonus'] }, // Flush / special hands
   { emoji:'👑', ids:['first_light','wild_heart','face_value','king_guard','knave_power','humble_roots','before_the_tide','royal_trio'] }, // Rank-specific
   { emoji:'🌱', ids:['rich_soil','fertile_ground','first_fruits','sapling'] }, // Per-card pips
-  { emoji:'⏱️', ids:['early_bird','night_owl','closing_time','quick_draw','patience_reward','steady_pace','momentum','first_play','still_water','frozen_moment'] }, // Timing
+  { emoji:'⏱️', ids:['early_bird','night_owl','closing_time','quick_draw','patience_reward','steady_pace','momentum','first_play','still_water','frozen_moment','ticktock','quarter_chime','minute_hand','second_hand','hourglass'] }, // Timing
   { emoji:'🔥', ids:['kindling','wildfire','echo_hand','hot_streak'] }, // Streaks
   { emoji:'🎨', ids:['club_double','monochrome','full_color','balanced_diet'] }, // Suit conditions
   { emoji:'🔢', ids:['lucky_sevens','ninesong','prime_time','even_score','odd_squad'] }, // Number magic
@@ -4328,6 +4334,10 @@ const KNACK_POOL = [
   { id:'long_pause',      emoji:'🦉',  name:'Long Pause',       desc:'All clock pauses last 1.5× as long.' },
   { id:'sundial',         emoji:'🌇',  name:'Sundial',          desc:'Hands where every card shares a column pause the clock for 8 seconds.' },
   { id:'metronome',       emoji:'🥁',  name:'Metronome',        desc:'Each round a hand type you can make is chosen; playing that hand type pauses the clock for 5 seconds.' },
+  // ── Rewind knacks ──
+  { id:'time_slip',       emoji:'⏮️',  name:'Time Slip',        desc:'Whenever the clock would pause, 25% chance to rewind that many seconds instead.' },
+  { id:'replay_rewind',   emoji:'🔂',  name:'Rewound Echo',     desc:'Any time a card replays, 25% chance to rewind the clock 2 seconds.' },
+  { id:'deja_vu',         emoji:'🔁',  name:'Déjà Vu',          desc:'Playing the same ranks in two hands in a row rewinds the clock 5 seconds.' },
 ];
 // ── SLEIGHT POOL ──
 // Sleights live in the deck as special cards (_isSleight:true). They fall onto the grid,
@@ -4362,10 +4372,13 @@ const SLEIGHT_POOL = [
   { id:'the_naturalist', name:'Naturalist',     emoji:'🌿', rarity:'rare',      activation:'on_play',    durability:'infinite', defaultRank:null, defaultSuit:null, tags:['scoring','pips'],     desc:'Play this: each other scored card permanently gains +2 pips.' },
   { id:'bellhop',        name:'Bellhop',        emoji:'🛎️', rarity:'common',    activation:'on_play',    durability:5,          defaultRank:null, defaultSuit:null, tags:['resource'],           desc:'Play this: gain +2 swaps and +1 discard. (5 charges)' },
   { id:'syncopation',    name:'Syncopation',    emoji:'🎼', rarity:'rare',      activation:'on_play',    durability:3,          defaultRank:null, defaultSuit:null, tags:['time'],               desc:'Play this in a hand of a different type than your previous hand: pause the clock for 12 seconds. (3 charges)' },
+  { id:'rewind',         name:'Rewind',         emoji:'⏪', rarity:'rare',      activation:'on_play',    durability:5,          defaultRank:null, defaultSuit:null, tags:['time'],               desc:'Play this in a hand to rewind the clock by the hand size in seconds (this Sleight counts toward the size). (5 charges)' },
   // ── Discard-based ──
   { id:'the_bomb',       name:'Bomb',           emoji:'💣', rarity:'epic',      activation:'on_discard', durability:2,          defaultRank:null, defaultSuit:null, tags:['scoring','pips'],     desc:'Discard this: every card on the grid permanently gains +3 pips. (2 charges)' },
   { id:'the_legacy',     name:'Legacy',         emoji:'📜', rarity:'rare',      activation:'on_discard', durability:3,          defaultRank:null, defaultSuit:null, tags:['scoring'],           desc:'Discard this: the next hand played scores ×3. (3 charges)' },
   { id:'cash_out',       name:'Cash Out',       emoji:'💰', rarity:'common',    activation:'on_discard', durability:4,          defaultRank:null, defaultSuit:null, tags:['resource','coins'],   desc:'Discard this: gain 10 coins. (4 charges)' },
+  { id:'last_call',      name:'Last Call',      emoji:'⏳', rarity:'epic',      activation:'on_discard', durability:2,          defaultRank:null, defaultSuit:null, tags:['time'],               desc:'Discard this in the final minute of a round to rewind the clock 15 seconds. (2 charges)' },
+  { id:'sandbag',        name:'Sandbagger',     emoji:'⏬', rarity:'rare',      activation:'on_discard', durability:3,          defaultRank:null, defaultSuit:null, tags:['time'], needsResolve:true, desc:'Discard this together with a pair of cards below rank 8 to rewind the clock 8 seconds. (Rank threshold + rewind amount are placeholders — TBD.) (3 charges)' },
   // ── Swap-based ──
   { id:'lightning_rod',  name:'Lightning Rod',  emoji:'⚡', rarity:'rare',      activation:'on_swap',    durability:'infinite', defaultRank:null, defaultSuit:null, tags:['scoring','pips'],     desc:'When swapped, the card it traded with permanently gains +5 pips.' },
   { id:'the_catalyst',   name:'Catalyst',       emoji:'🧪', rarity:'rare',      activation:'on_swap',    durability:'infinite', defaultRank:null, defaultSuit:null, tags:['scoring','mult'],     desc:'When swapped, the card it traded with permanently gains +1 mult.' },
@@ -4447,6 +4460,15 @@ let lastHandTime = 0;
 let lastSwapTime = 0; // for Still Water trick
 let lastHandRoundSeconds = null; // roundSeconds value when the previous hand was scored (Heron)
 let lastSwapRoundSeconds = null; // roundSeconds value when the previous swap occurred (Eagle Eye)
+let lastHandRankKey = null;      // sorted rank multiset of the previous scored hand (Deja Vu knack)
+
+// ── Clock-mark Tricks: pending bonuses accrued as the round clock passes static timestamps ──
+// These accumulate while the clock ticks (see handleClockMarks in the round timer) and are
+// consumed by the next hand played (see calcScore / playHand). Reset each round.
+let _discardContextCards = null; // set during a discard so on_discard sleights can inspect co-discarded cards (Sandbagger)
+let pendingHandPips = 0;   // Quarter Chime: +45 pips per multiple-of-15 second passed
+let pendingHandMult = 0;   // Minute Hand: +3 mult per minute mark passed
+let pendingCardPips = 0;   // Second Hand: +5 pips per minute mark passed
 
 // ── Timing/Streak batch: pause-themed Trick state ──
 let pausedSecondsRound = 0;   // total seconds the clock has spent paused this round (Albatross)
@@ -5206,7 +5228,16 @@ const BAL = {
   compound_mult: { mult_per_hand: 0.1 },
   prolific: { pips_per_hand: 1 },
   big_win: { mult: 5, score_threshold: 10000 },
+  // ── clock-mark Tricks ──
+  ticktock: { focus: 2 },
+  quarter_chime: { pips: 45 },
+  minute_hand: { mult: 3 },
+  second_hand: { pips: 5 },
+  hourglass: { chance: 1/3 },
   // ── sleights ──
+  rewind: { /* seconds = hand size */ },
+  last_call: { seconds: 15, last_minute_at: 60 },
+  sandbag: { seconds: 8, rank_below: 8 },
   pivot: { mult: 5 },
   idol: { interest_mult: 3 },
   the_legacy: { extra_mult: 2 },
@@ -5220,6 +5251,9 @@ const BAL = {
   amplifier: { mult: 5 },
   piggy_bank: { coins: 5 },
   // ── knacks ──
+  time_slip: { chance: 0.25 },
+  replay_rewind: { chance: 0.25, seconds: 2 },
+  deja_vu: { seconds: 5 },
   time_bank: { seconds: 30 },
   inheritance: { coins: 5 },
   lucky_seven: { interval_hands: 7, swaps: 1 },
@@ -5487,6 +5521,10 @@ function calcScore(handName, cells, contrib = null) {
   // Penny Saved: accumulated trick pips from discarded 5s
   if (hasTrick('fives_discard')) { totalPips += bonusMult_fives; bPip('fives_discard', bonusMult_fives); }
 
+  // Clock-mark Tricks: pending pip bonuses accrued as the clock passed timestamps (consumed in playHand)
+  if (pendingHandPips > 0) { totalPips += pendingHandPips; bPip('quarter_chime', pendingHandPips); }
+  if (pendingCardPips > 0) { totalPips += pendingCardPips; bPip('second_hand', pendingCardPips); }
+
   // Trinity Run: +9 mult for runs with 3/6/9 (added to mult section below)
   const hasTrinityRank = (['Run of 3','Run of 4','Straight','Straight Flush'].includes(handName)) &&
     cards.some(c => ['3','6','9'].includes(c.rank));
@@ -5495,6 +5533,8 @@ function calcScore(handName, cells, contrib = null) {
   let mult = base.mult + sleightAmplifierMult;
 
   if (risingTideBonus > 0) { mult += risingTideBonus; bMult('rising_tide', risingTideBonus); }
+  // Minute Hand: pending mult accrued as the clock passed minute marks (consumed in playHand)
+  if (pendingHandMult > 0) { mult += pendingHandMult; bMult('minute_hand', pendingHandMult); }
   // Night owl: last third of the round, +mult per card
   if (hasTrick('night_owl') && roundFractionRemaining() <= 1/3) { const _a = BAL.night_owl.mult_per_card * cells.length; mult += _a; bMult('night_owl', _a); }
   // Wildfire: 3+ same hands in a row
@@ -6058,6 +6098,9 @@ function render() {
     if (hasTrick('swift')) { const _e = Math.max(0, roundStartSeconds - roundSeconds); const _sw = Math.floor(_e / BAL.swift.interval_seconds) * BAL.swift.mult_per_interval; if (_sw > 0) bonusLines.push({ label:'The Swift', val:`+${_sw} mult`, type:'mult' }); }
     if (hasTrick('hummingbird') && pauseInstanceGame > 0) bonusLines.push({ label:'Hummingbird', val:`+${pauseInstanceGame*BAL.hummingbird.mult_per_pause} mult`, type:'mult' });
     if (hasTrick('albatross') && pausedSecondsRound > 0) bonusLines.push({ label:'Albatross', val:`+${pausedSecondsRound*BAL.albatross.pips_per_second} pips`, type:'pip' });
+    if (pendingHandPips > 0) bonusLines.push({ label:'Quarter Chime', val:`+${pendingHandPips} pips`, type:'pip' });
+    if (pendingCardPips > 0) bonusLines.push({ label:'Second Hand', val:`+${pendingCardPips} pips`, type:'pip' });
+    if (pendingHandMult > 0) bonusLines.push({ label:'Minute Hand', val:`+${pendingHandMult} mult`, type:'mult' });
     const _isRunLine = ['Run of 3','Run of 4','Straight','Straight Flush'].includes(hand);
     const _setMax = (() => { const m = {}; cards.forEach(c => m[c.rank] = (m[c.rank]||0)+1); return Math.max(0, ...Object.values(m)); })();
     if (hasTrick('overgrowth') && _isRunLine) bonusLines.push({ label:'Cascade', val:`+${10*cards.length} pips`, type:'pip' });
@@ -7079,6 +7122,12 @@ function playHand() {
   const _contribSnapshot = captureRoundContrib(result);
   // Cuckoo: tally this hand's retriggers (captureRoundContrib just ran calcScore on the real hand).
   if (hasTrick('cuckoo')) retriggersThisRound += _lastHandRetrigs;
+  // Rewound Echo knack: each card replay this hand has a chance to rewind 2 seconds.
+  if (hasKnack('replay_rewind') && _lastHandRetrigs > 0) {
+    let _rw = 0;
+    for (let i = 0; i < _lastHandRetrigs; i++) if (Math.random() < BAL.replay_rewind.chance) _rw += BAL.replay_rewind.seconds;
+    if (_rw > 0) rewindTime(_rw, `🔂 Rewound Echo — rewound ${_rw}s`);
+  }
   // Vulture: retrigger-aware pause-seconds from buffed cards in this hand (same fresh snapshot).
   const _vultureSec = _lastHandVultureSeconds;
   dbgEvent('ok', 'play ' + hand, { finalScore, cards: handCells.length });
@@ -7088,6 +7137,8 @@ function playHand() {
   if (sleightNextHandDouble) { score += finalScore; sleightNextHandDouble = false; }
   if (sleightLegacyMult)     { score += finalScore * BAL.the_legacy.extra_mult; sleightLegacyMult = false; } // ×3 total = base + 2× extra
   if (sleightAmplifierMult) sleightAmplifierMult = 0;
+  // Clock-mark Tricks: the pending pip/mult bonuses were already folded into finalScore — clear them now.
+  pendingHandPips = 0; pendingHandMult = 0; pendingCardPips = 0;
   handsPlayed++;
 
   // Boss objective progress.
@@ -7269,6 +7320,16 @@ function playHand() {
   }
   lastHandTime = now;
   lastHandRoundSeconds = roundSeconds; // for The Heron, snapshotted AFTER this hand's own check above
+
+  // Déjà Vu knack: playing the same ranks in two hands in a row rewinds the clock.
+  {
+    const _ranks = handCells.map(([r,c]) => gridData[r]?.[c]).filter(cc => cc && cc.rank && !cc._isSleight).map(cc => cc.rank).sort();
+    const _rankKey = _ranks.join(',');
+    if (hasKnack('deja_vu') && lastHandRankKey !== null && _rankKey !== '' && _rankKey === lastHandRankKey) {
+      rewindTime(BAL.deja_vu.seconds, `🔁 Déjà Vu — rewound ${BAL.deja_vu.seconds}s`);
+    }
+    lastHandRankKey = _rankKey;
+  }
 
   // ── Accumulating Trick effects (post-hand) ──
   handsPlayedRound++;
@@ -8316,7 +8377,9 @@ function doDiscard() {
       showMessage('♥ Heart corrupted — discarded after a swap', '#cc88ff');
     }
   });
-  // on_discard sleights (Not a Friend corrupt) fire with their grid position before removal
+  // on_discard sleights (Not a Friend corrupt) fire with their grid position before removal.
+  // Snapshot the non-sleight cards discarded alongside so Sandbagger can check for a low pair.
+  _discardContextCards = discardedCards.filter(c => c && c.rank && !c._isSleight);
   selected.forEach(([r,c]) => {
     const card = gridData[r]?.[c];
     if (card?._isSleight) {
@@ -8327,6 +8390,7 @@ function doDiscard() {
       }
     }
   });
+  _discardContextCards = null;
   selected.forEach(([r,c]) => { if (gridData[r]?.[c]) discardToDrawPile(gridData[r][c]); });
   // Hoarder: discards don't count against limit (but cost 2× time below)
   if (!hasKnack('hoarder')) discards--;
@@ -8394,7 +8458,74 @@ function showTimeCost(label) {
   el.style.opacity = '0';
 }
 
+// ── Rewind: give round seconds back (clock counts down, so rewinding = adding time) ──
+// Adds `seconds` to roundSeconds, capped at ROUND_DURATION, and shows a floater/message.
+// Returns the seconds actually restored. Bosses run their own timer, so rewinds are ignored there.
+function rewindTime(seconds, label) {
+  if (bossActive) return 0;
+  seconds = Math.floor(seconds);
+  if (seconds <= 0) return 0;
+  const before = roundSeconds;
+  roundSeconds = Math.min(ROUND_DURATION, roundSeconds + seconds);
+  const gained = roundSeconds - before;
+  if (gained <= 0) return 0;
+  updateClockUI();
+  const el = document.getElementById('time-cost-flash') ||
+    (() => { const e = document.createElement('div'); e.id = 'time-cost-flash'; e.style.cssText =
+      `position:absolute; pointer-events:none; z-index:300; font-family:'Cinzel',serif; font-size:13px; font-weight:700;
+       color:#5aa9e6; text-shadow:0 0 8px rgba(90,169,230,0.6); left:50%; transform:translateX(-50%); opacity:0;`;
+      document.getElementById('clock-area')?.appendChild(e); return e; })();
+  el.style.color = '#5aa9e6'; el.style.textShadow = '0 0 8px rgba(90,169,230,0.6)';
+  el.textContent = `⏪ +${gained}s`;
+  el.style.transition = 'none'; el.style.opacity = '1'; el.style.top = '-4px';
+  void el.offsetWidth;
+  el.style.transition = 'top 0.7s ease-out, opacity 0.7s ease-out';
+  el.style.top = '-22px'; el.style.opacity = '0';
+  if (label) showMessage(label, '#5aa9e6');
+  return gained;
+}
+
+// ── Clock-mark Tricks: fire as the round clock passes static timestamps ──
+// Called once per real second from the round timer with the NEW roundSeconds value.
+// Because rewinds add seconds, the clock can pass the same mark more than once — that
+// re-fires these bonuses, which is an intended synergy with the rewind entities.
+function handleClockMarks(secs) {
+  if (secs <= 0) return;
+  // Tick-Tock: clock reading ends in a 0 → +2 Focus
+  if (secs % 10 === 0 && hasTrick('ticktock')) { addFocus(BAL.ticktock.focus); }
+  // Quarter Chime: clock reads a multiple of 15 → +45 pips to the next hand
+  if (secs % 15 === 0 && hasTrick('quarter_chime')) {
+    pendingHandPips += BAL.quarter_chime.pips;
+    showMessage(`🔔 Quarter Chime — next hand +${BAL.quarter_chime.pips} pips`, '#e8c56b');
+  }
+  // Minute marks (clock reads N:00) → accrue mult / card pips / retrigger chance
+  if (secs % 60 === 0) {
+    if (hasTrick('minute_hand'))  { pendingHandMult += BAL.minute_hand.mult; showMessage(`🕐 Minute Hand — next hand +${BAL.minute_hand.mult} mult`, '#cc88ff'); }
+    if (hasTrick('second_hand'))  { pendingCardPips += BAL.second_hand.pips; showMessage(`🕐 Second Hand — next hand +${BAL.second_hand.pips} pips`, '#e8c56b'); }
+    if (hasTrick('hourglass') && Math.random() < BAL.hourglass.chance) {
+      // Grant one permanent retrigger to a random real card currently on the grid
+      const spots = [];
+      for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
+        const card = gridData[r]?.[c];
+        if (card && card.rank && !card._isSleight && !card._isTrick && !card._isStone) spots.push(card);
+      }
+      if (spots.length) {
+        const card = spots[Math.floor(Math.random() * spots.length)];
+        const k = cardKey(card.rank, card.suit);
+        permRetrig[k] = (permRetrig[k] || 0) + 1;
+        showMessage(`⏳ Hourglass — ${card.rank}${card.suit} gains a retrigger`, '#e8c56b');
+        if (!animating && !falling) render();
+      }
+    }
+  }
+}
+
 function pauseRound(seconds) {
+  // Time Slip knack: whenever the clock WOULD pause, a chance to rewind that many seconds instead
+  if (hasKnack('time_slip') && Math.random() < BAL.time_slip.chance) {
+    rewindTime(seconds, '⏮️ Time Slip — rewound instead of paused!');
+    return;
+  }
   // Long Pause knack: all pauses are 1.5x longer
   if (hasKnack('long_pause')) seconds *= BAL.long_pause.multiplier;
   pauseInstanceGame++; // Hummingbird (counts every pause triggered this game)
@@ -8914,6 +9045,7 @@ function startRoundTimer() {
     if (gameTimerPaused) return; // global pause covers menus/shop/events
     roundSeconds--;
     if (roundSeconds < 0) roundSeconds = 0;
+    handleClockMarks(roundSeconds); // clock-mark Tricks (Tick-Tock, Quarter Chime, Minute/Second Hand, Hourglass)
     trickCardTimer++;
     if (trickCardTimer >= TRICK_CARD_INTERVAL) { trickCardTimer = 0; assignTrickCard(); }
     const _elapsedRound = roundStartSeconds - roundSeconds;
@@ -10619,6 +10751,15 @@ function fireSleightsOnPlay(selectedCells, handCells, hand) {
     if (!def || def.activation !== 'on_play') return;
     // shortcut requires a 4-card hand
     if (def.id === 'shortcut' && handCells.length !== 4) return;
+    // Rewind: rewind the clock by the hand size in seconds. The sleight itself counts toward the
+    // size — but non-wild sleights are dropped from hand detection, so add 1 if it's not in handCells.
+    if (def.id === 'rewind') {
+      const _inHand = handCells.some(([hr, hc]) => hr === r && hc === c);
+      const _size = _inHand ? handCells.length : handCells.length + 1;
+      rewindTime(_size, `⏪ Rewind — +${_size}s`);
+      consumeSleightCharge(card, r, c);
+      return;
+    }
     // Syncopation: hand type differs from the previous hand played
     if (def.id === 'syncopation') {
       if (lastHandType === null || hand === lastHandType) return;
@@ -10744,6 +10885,21 @@ function applySleightGridEffect(id, r, c) {
     case 'snooze':
       pauseRound(BAL.snooze.seconds);
       showMessage('😴 Snooze — clock paused 10s!', 'var(--gold)'); break;
+    case 'last_call':
+      // Only rewinds when discarded during the final minute of the round.
+      if (roundSeconds <= BAL.last_call.last_minute_at) rewindTime(BAL.last_call.seconds, `⏳ Last Call — rewound ${BAL.last_call.seconds}s`);
+      else showMessage('⏳ Last Call — only works in the final minute', 'var(--cream-dim)');
+      break;
+    case 'sandbag': {
+      // TBD placeholder: rewinds only when discarded alongside a pair of cards below rank 8.
+      const _co = _discardContextCards || [];
+      const _counts = {};
+      _co.forEach(c => { if ((RANK_ORDER[c.rank] || 99) < BAL.sandbag.rank_below) _counts[c.rank] = (_counts[c.rank] || 0) + 1; });
+      const _hasLowPair = Object.values(_counts).some(n => n >= 2);
+      if (_hasLowPair) rewindTime(BAL.sandbag.seconds, `⏬ Sandbagger — rewound ${BAL.sandbag.seconds}s`);
+      else showMessage('⏬ Sandbagger — needs a pair below rank 8', 'var(--cream-dim)');
+      break;
+    }
     case 'piggy_bank':
       coins += BAL.piggy_bank.coins; updateCoinsUI();
       showMessage('🐷 Piggy Bank — +5 coins!', 'var(--gold)'); break;
@@ -12423,6 +12579,9 @@ function triggerLevelUp() {
   pausedSecondsRound = 0;
   retriggersThisRound = 0;
   cuckooNextMinute = BAL.cuckoo.interval_seconds;
+  // Clock-mark Tricks + Déjà Vu: pending bonuses and rank-history reset each round
+  pendingHandPips = 0; pendingHandMult = 0; pendingCardPips = 0;
+  lastHandRankKey = null;
   doubleJeopardyPos = hasTrick('double_jeopardy') ? { r: Math.floor(Math.random() * gridRows), c: Math.floor(Math.random() * gridCols) } : null;
   djUsedThisRound = false;
   firstPauseStartedRound = false;
