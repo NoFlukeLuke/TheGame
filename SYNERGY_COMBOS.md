@@ -145,12 +145,36 @@ The old 24-level number was back-solved. Current plan: **20 normal rounds**.
 - Payoff: **★NEW Trick "Landfill"** — hands score +1 mult per 8 cards discarded
   this round. (Closes the loop: free cycling → mult.)
 
-**② Frozen Hour** *(already complete)*
+**② Frozen Hour** *(payoff complete, but the loop does NOT close yet — see below)*
 - Tax-remover: `Time Bank` + `Clock Tower` (hoard seconds)
-- Engine: `High Water` (runs pause the clock) + `Time Keeper` sleight (+20s)
-- Amplifier: `Frozen Moment` (hands while paused ×2)
-- Payoff: `Sands of Time` (remaining time ÷2 → pips) or `Dark Matter` (spade
-  hands: half remaining time → pips)
+- Engine: `High Water` (runs pause the clock) + the **rewind Sleights** added r77
+  (`Rewind` play→+handsize, `Last Call` discard→+15s, `Sandbagger` discard low
+  pair→+rank) generate time on demand.
+- Amplifier: `Frozen Moment` (hands while paused +Focus) / `Phoenix` (Focus ×2
+  while paused) / **`The Kingfisher`** (r78 — +1 mult per 5s paused *or rewound*;
+  the first amplifier that scales on rewinds).
+- Payoff: `Sands of Time` (remaining time ÷2 → pips), `Albatross` (+5 pips per
+  paused second), `Spade Flood`, or **`Sediment`** (r78, +10 pips per 10s
+  elapsed — a plain time-pass scaler, not manipulation-based).
+
+> **r77–r78 time/rewind audit (what's here vs what's missing).**
+> *Scales on pauses:* Albatross (pips/paused-sec), Hummingbird (mult/pause-count),
+> Phoenix (focus×2), Cuckoo (retriggers→pauses). *Scales on rewinds:* only the new
+> **Kingfisher** (r78). *Scales on elapsed/remaining time:* Swift, Sands of Time,
+> Sediment (r78), Still Water, Spade Flood.
+>
+> **The link Frozen Hour still lacks: a loop-closer that turns SCORING back into
+> TIME.** Today time only flows one way (hoard/rewind → convert to points). Nothing
+> converts a big hand back into seconds, so the family is a linear payoff, not the
+> exponential engine the marquee combos (Retrigger Cascade) have. Small feedback
+> exists — `Déjà Vu` knack (repeat ranks → +5s) and `Rewound Echo` (retrigger →
+> +2s) — but neither scales with hand *size/score*. **To go really crazy we need a
+> `score → rewind` engine.** Candidate keystone (★NEW, not yet built):
+> **Trick "Undo the Clock"** — when a hand scores above the round goal's Nth
+> fraction (or simply: per K points), rewind 1s. That closes the loop:
+> rewind → Kingfisher mult + Sediment/Albatross pips → bigger hand → more rewind →
+> more Kingfisher. Cap the per-hand rewind so it snowballs but can't hard-lock the
+> timer. This is the single missing piece for a genuinely broken-but-earned time build.
 
 **③ Retrigger Cascade** *(the marquee one)*
 - Engine: `Soul Mirror` (every scored card of a chosen rank retriggers anywhere)

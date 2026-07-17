@@ -3647,7 +3647,7 @@
 </div>
 
 <script>
-const BUILD = '2026-07-17 · r77';
+const BUILD = '2026-07-17 · r78';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -3986,6 +3986,8 @@ const TRICK_POOL = [
   { id:'minute_hand',    name:'Minute Hand',         tier:'rare',      tags:['time','mult'],      desc:'Every minute mark the clock passes adds +3 mult to your next hand' },
   { id:'second_hand',    name:'Second Hand',         tier:'common',    tags:['time','pips'],      desc:'Every minute mark the clock passes adds +5 pips to your next hand' },
   { id:'hourglass',      name:'Hourglass',           tier:'epic',      tags:['time','retrigger'], desc:'Every minute mark the clock passes has a 1-in-3 chance to give a random card on the grid a permanent retrigger' },
+  { id:'sediment',       name:'Sediment',            tier:'rare',      tags:['time','pips'],      desc:'Gains +10 pips for every 10 seconds of round time elapsed (resets each round)' },
+  { id:'kingfisher',     name:'The Kingfisher',      tier:'epic',      tags:['time','mult'],      desc:'+1 mult for every 5 seconds the clock has been paused or rewound this round' },
   { id:'phoenix',        name:'The Phoenix',         tier:'mythic',    desc:'While the clock is paused, the Focus multiplier applies twice' },
   // ── Streaks ──
   { id:'kindling',       name:'Kindling',            tier:'common',    desc:'Same hand streak scores +4 pips × streak' },
@@ -4069,7 +4071,7 @@ const TRICK_CATEGORIES = [
   { emoji:'🎴', ids:['enriched','tidal_force','deluge','summit','last_stand','light_touch','heavy_hand','blackjack_bonus'] }, // Flush / special hands
   { emoji:'👑', ids:['first_light','wild_heart','face_value','king_guard','knave_power','humble_roots','before_the_tide','royal_trio'] }, // Rank-specific
   { emoji:'🌱', ids:['rich_soil','fertile_ground','first_fruits','sapling'] }, // Per-card pips
-  { emoji:'⏱️', ids:['early_bird','night_owl','closing_time','quick_draw','patience_reward','steady_pace','momentum','first_play','still_water','frozen_moment','ticktock','quarter_chime','minute_hand','second_hand','hourglass'] }, // Timing
+  { emoji:'⏱️', ids:['early_bird','night_owl','closing_time','quick_draw','patience_reward','steady_pace','momentum','first_play','still_water','frozen_moment','ticktock','quarter_chime','minute_hand','second_hand','hourglass','sediment','kingfisher'] }, // Timing
   { emoji:'🔥', ids:['kindling','wildfire','echo_hand','hot_streak'] }, // Streaks
   { emoji:'🎨', ids:['club_double','monochrome','full_color','balanced_diet'] }, // Suit conditions
   { emoji:'🔢', ids:['lucky_sevens','ninesong','prime_time','even_score','odd_squad'] }, // Number magic
@@ -4378,7 +4380,7 @@ const SLEIGHT_POOL = [
   { id:'the_legacy',     name:'Legacy',         emoji:'📜', rarity:'rare',      activation:'on_discard', durability:3,          defaultRank:null, defaultSuit:null, tags:['scoring'],           desc:'Discard this: the next hand played scores ×3. (3 charges)' },
   { id:'cash_out',       name:'Cash Out',       emoji:'💰', rarity:'common',    activation:'on_discard', durability:4,          defaultRank:null, defaultSuit:null, tags:['resource','coins'],   desc:'Discard this: gain 10 coins. (4 charges)' },
   { id:'last_call',      name:'Last Call',      emoji:'⏳', rarity:'epic',      activation:'on_discard', durability:2,          defaultRank:null, defaultSuit:null, tags:['time'],               desc:'Discard this in the final minute of a round to rewind the clock 15 seconds. (2 charges)' },
-  { id:'sandbag',        name:'Sandbagger',     emoji:'⏬', rarity:'rare',      activation:'on_discard', durability:3,          defaultRank:null, defaultSuit:null, tags:['time'], needsResolve:true, desc:'Discard this together with a pair of cards below rank 8 to rewind the clock 8 seconds. (Rank threshold + rewind amount are placeholders — TBD.) (3 charges)' },
+  { id:'sandbag',        name:'Sandbagger',     emoji:'⏬', rarity:'rare',      activation:'on_discard', durability:3,          defaultRank:null, defaultSuit:null, tags:['time'],               desc:'Discard this together with a pair of cards below rank 8 to rewind the clock by that pair’s rank in seconds. (3 charges)' },
   // ── Swap-based ──
   { id:'lightning_rod',  name:'Lightning Rod',  emoji:'⚡', rarity:'rare',      activation:'on_swap',    durability:'infinite', defaultRank:null, defaultSuit:null, tags:['scoring','pips'],     desc:'When swapped, the card it traded with permanently gains +5 pips.' },
   { id:'the_catalyst',   name:'Catalyst',       emoji:'🧪', rarity:'rare',      activation:'on_swap',    durability:'infinite', defaultRank:null, defaultSuit:null, tags:['scoring','mult'],     desc:'When swapped, the card it traded with permanently gains +1 mult.' },
@@ -4472,6 +4474,7 @@ let pendingCardPips = 0;   // Second Hand: +5 pips per minute mark passed
 
 // ── Timing/Streak batch: pause-themed Trick state ──
 let pausedSecondsRound = 0;   // total seconds the clock has spent paused this round (Albatross)
+let rewoundSecondsRound = 0;  // total seconds rewound (given back) this round (Kingfisher)
 let pauseInstanceGame = 0;    // PER GAME: number of clock pauses triggered (Hummingbird); reset only at newGame
 let retriggersThisRound = 0;  // count of card retriggers in scored hands this round (Cuckoo's pause length)
 let _lastHandRetrigs = 0;     // extra retriggers in the most recent calcScore of a real hand (read in playHand)
@@ -5234,10 +5237,12 @@ const BAL = {
   minute_hand: { mult: 3 },
   second_hand: { pips: 5 },
   hourglass: { chance: 1/3 },
+  sediment: { interval_seconds: 10, pips_per_interval: 10 },
+  kingfisher: { interval_seconds: 5, mult_per_interval: 1 },
   // ── sleights ──
   rewind: { /* seconds = hand size */ },
   last_call: { seconds: 15, last_minute_at: 60 },
-  sandbag: { seconds: 8, rank_below: 8 },
+  sandbag: { rank_below: 8 /* seconds = the pair's rank */ },
   pivot: { mult: 5 },
   idol: { interest_mult: 3 },
   the_legacy: { extra_mult: 2 },
@@ -5504,6 +5509,13 @@ function calcScore(handName, cells, contrib = null) {
   // Albatross: +5 pips for every second the clock has spent paused this round
   if (hasTrick('albatross') && pausedSecondsRound > 0) { const _a = pausedSecondsRound * BAL.albatross.pips_per_second; totalPips += _a; bPip('albatross', _a); }
 
+  // Sediment: +10 pips per 10 seconds of round time elapsed (grows as the round runs down)
+  if (hasTrick('sediment')) {
+    const _elapsed = Math.max(0, roundStartSeconds - roundSeconds);
+    const _a = Math.floor(_elapsed / BAL.sediment.interval_seconds) * BAL.sediment.pips_per_interval;
+    if (_a) { totalPips += _a; bPip('sediment', _a); }
+  }
+
   // Clubs: neutral by default; +10 pips each with Hard Labour Trick
   const clubCount = cards.filter(c => c.suit === '♣' || (c.combined && c.suit2 === '♣')).length;
   if (hasTrick('club_double') && _clubHits > 0) { const _a = BAL.club_double.base * (Math.pow(2, _clubHits) - 1); totalPips += _a; bPip('club_double', _a); }
@@ -5541,6 +5553,12 @@ function calcScore(handName, cells, contrib = null) {
   if (hasTrick('wildfire') && _effStreak >= 3) { mult += BAL.wildfire.mult; bMult('wildfire', BAL.wildfire.mult); }
   // Hummingbird: +mult per clock pause triggered this game (uncapped)
   if (hasTrick('hummingbird') && pauseInstanceGame > 0) { const _a = pauseInstanceGame * BAL.hummingbird.mult_per_pause; mult += _a; bMult('hummingbird', _a); }
+  // The Kingfisher: +1 mult per 5 seconds paused OR rewound this round (the rewind-aware amplifier)
+  if (hasTrick('kingfisher')) {
+    const _manip = pausedSecondsRound + rewoundSecondsRound;
+    const _a = Math.floor(_manip / BAL.kingfisher.interval_seconds) * BAL.kingfisher.mult_per_interval;
+    if (_a) { mult += _a; bMult('kingfisher', _a); }
+  }
   // The Swift: +mult for every N seconds of round time elapsed
   if (hasTrick('swift')) { const _e = Math.max(0, roundStartSeconds - roundSeconds); const _a = Math.floor(_e / BAL.swift.interval_seconds) * BAL.swift.mult_per_interval; if (_a) { mult += _a; bMult('swift', _a); } }
   // Eagle Eye: +mult per 10 round-seconds elapsed since the last swap (or round start if none yet)
@@ -6098,6 +6116,8 @@ function render() {
     if (hasTrick('swift')) { const _e = Math.max(0, roundStartSeconds - roundSeconds); const _sw = Math.floor(_e / BAL.swift.interval_seconds) * BAL.swift.mult_per_interval; if (_sw > 0) bonusLines.push({ label:'The Swift', val:`+${_sw} mult`, type:'mult' }); }
     if (hasTrick('hummingbird') && pauseInstanceGame > 0) bonusLines.push({ label:'Hummingbird', val:`+${pauseInstanceGame*BAL.hummingbird.mult_per_pause} mult`, type:'mult' });
     if (hasTrick('albatross') && pausedSecondsRound > 0) bonusLines.push({ label:'Albatross', val:`+${pausedSecondsRound*BAL.albatross.pips_per_second} pips`, type:'pip' });
+    if (hasTrick('sediment')) { const _el = Math.max(0, roundStartSeconds - roundSeconds); const _sp = Math.floor(_el/BAL.sediment.interval_seconds)*BAL.sediment.pips_per_interval; if (_sp > 0) bonusLines.push({ label:'Sediment', val:`+${_sp} pips`, type:'pip' }); }
+    if (hasTrick('kingfisher')) { const _km = Math.floor((pausedSecondsRound+rewoundSecondsRound)/BAL.kingfisher.interval_seconds)*BAL.kingfisher.mult_per_interval; if (_km > 0) bonusLines.push({ label:'The Kingfisher', val:`+${_km} mult`, type:'mult' }); }
     if (pendingHandPips > 0) bonusLines.push({ label:'Quarter Chime', val:`+${pendingHandPips} pips`, type:'pip' });
     if (pendingCardPips > 0) bonusLines.push({ label:'Second Hand', val:`+${pendingCardPips} pips`, type:'pip' });
     if (pendingHandMult > 0) bonusLines.push({ label:'Minute Hand', val:`+${pendingHandMult} mult`, type:'mult' });
@@ -8469,6 +8489,7 @@ function rewindTime(seconds, label) {
   roundSeconds = Math.min(ROUND_DURATION, roundSeconds + seconds);
   const gained = roundSeconds - before;
   if (gained <= 0) return 0;
+  rewoundSecondsRound += gained; // Kingfisher scales on seconds rewound this round
   updateClockUI();
   const el = document.getElementById('time-cost-flash') ||
     (() => { const e = document.createElement('div'); e.id = 'time-cost-flash'; e.style.cssText =
@@ -10891,12 +10912,13 @@ function applySleightGridEffect(id, r, c) {
       else showMessage('⏳ Last Call — only works in the final minute', 'var(--cream-dim)');
       break;
     case 'sandbag': {
-      // TBD placeholder: rewinds only when discarded alongside a pair of cards below rank 8.
+      // Rewinds only when discarded alongside a pair of cards below rank 8; the rewind
+      // equals that pair's rank in seconds (highest qualifying pair wins if there are several).
       const _co = _discardContextCards || [];
       const _counts = {};
-      _co.forEach(c => { if ((RANK_ORDER[c.rank] || 99) < BAL.sandbag.rank_below) _counts[c.rank] = (_counts[c.rank] || 0) + 1; });
-      const _hasLowPair = Object.values(_counts).some(n => n >= 2);
-      if (_hasLowPair) rewindTime(BAL.sandbag.seconds, `⏬ Sandbagger — rewound ${BAL.sandbag.seconds}s`);
+      _co.forEach(c => { const _v = RANK_ORDER[c.rank] || 99; if (_v < BAL.sandbag.rank_below) _counts[_v] = (_counts[_v] || 0) + 1; });
+      const _pairRanks = Object.keys(_counts).map(Number).filter(v => _counts[v] >= 2);
+      if (_pairRanks.length) { const _sec = Math.max(..._pairRanks); rewindTime(_sec, `⏬ Sandbagger — rewound ${_sec}s`); }
       else showMessage('⏬ Sandbagger — needs a pair below rank 8', 'var(--cream-dim)');
       break;
     }
@@ -12577,6 +12599,7 @@ function triggerLevelUp() {
   }
   // ── Timing/Streak batch: pause-themed Trick state, reset each round ──
   pausedSecondsRound = 0;
+  rewoundSecondsRound = 0;
   retriggersThisRound = 0;
   cuckooNextMinute = BAL.cuckoo.interval_seconds;
   // Clock-mark Tricks + Déjà Vu: pending bonuses and rank-history reset each round
