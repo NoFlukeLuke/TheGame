@@ -608,7 +608,7 @@
     box-shadow: 0 0 5px var(--focus-color, #54af88);
   }
   #focus-bar-outer {
-    width: 14px;
+    width: 10.5px;
     flex: 1;
     background: #1a1510;
     border: 1px solid #3a3530;
@@ -2927,7 +2927,7 @@
   #stage.landscape #btn-deck       { position:absolute; left:13.28%; top:91.67%; width:10.16%; height:6.39%; }
   #stage.landscape #btn-pause      { position:absolute; left:25%;    top:91.67%; width:9.38%;  height:6.39%; }
   #stage.landscape #focus-meter-wrap { position:absolute; left:34.4%; top:1.39%; width:5%; height:96.67%; }
-  #stage.landscape #focus-bar-outer { width:28px; }   /* twice as thick in landscape */
+  #stage.landscape #focus-bar-outer { width:21px; }   /* landscape focus bar (25% thinner than the old 28px) */
   #stage.landscape #grid-slot      { position:absolute; left:39.84%; top:11.11%; width:49.22%; height:86.11%; }
   #stage.landscape #run-progress   { left:90.63%; top:1.39%; width:8.59%; height:8.33%; flex-direction:column; align-items:center; justify-content:center; gap:3px; padding:3px; }
   #stage.landscape #btn-discard    { position:absolute; left:91.41%; top:11.11%; width:7.81%; height:29.17%; }
@@ -3177,26 +3177,25 @@
 <!-- DEV PANEL -->
 <div id="dev-btn" onclick="toggleDevPanel()" style="display:none;position:fixed;bottom:60px;right:6px;z-index:500;width:32px;height:32px;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.4);border-radius:8px;font-size:16px;display:none;align-items:center;justify-content:center;cursor:pointer;">🛠</div>
 
-<!-- New preview-window scoring dance (dev toggle) -->
+<!-- Preview-window scoring dance — renders INTO the dedicated hand-preview slot (#selected-cards) -->
 <style>
-  #dance-stage{position:fixed;left:50%;top:15%;transform:translateX(-50%);z-index:180;width:340px;max-width:92vw;
-    background:rgba(20,16,10,0.96);border:1px solid rgba(245,192,66,0.3);border-radius:12px;padding:10px;
-    box-shadow:0 10px 40px rgba(0,0,0,0.6);pointer-events:none;}
-  #dance-stage .dnc-row{display:flex;align-items:center;gap:6px;min-height:46px;margin-bottom:6px;}
-  #dance-stage .dnc-row:last-child{margin-bottom:0;}
-  #dance-stage .dnc-lab{font-size:8px;letter-spacing:1px;color:var(--cream-dim);writing-mode:vertical-rl;
-    transform:rotate(180deg);text-transform:uppercase;opacity:.7;flex:0 0 auto;}
-  #dance-stage .dnc-items{display:flex;gap:6px;align-items:center;flex-wrap:nowrap;flex:1;}
-  #dance-stage .dnc-row.hand{min-height:74px;}
+  #selected-cards.dnc-active{ flex-direction:column; align-items:stretch; justify-content:flex-start;
+    overflow:visible; gap:3px; padding:5px; z-index:60; height:auto; }
+  #stage.landscape #selected-cards.dnc-active{ height:auto; min-height:15.28%; overflow:visible; align-items:stretch; justify-content:flex-start; }
+  #selected-cards.dnc-active .dnc-row{display:flex;align-items:center;gap:5px;min-height:38px;}
+  #selected-cards.dnc-active .dnc-row.hand{min-height:46px;}
+  #selected-cards.dnc-active .dnc-lab{font-size:7px;letter-spacing:1px;color:var(--cream-dim);writing-mode:vertical-rl;
+    transform:rotate(180deg);text-transform:uppercase;opacity:.6;flex:0 0 auto;}
+  #selected-cards.dnc-active .dnc-items{display:flex;gap:4px;align-items:center;flex-wrap:nowrap;flex:1;overflow:visible;}
   .dnc-outer{display:inline-flex;flex:0 0 auto;transform-origin:center;}
-  .dnc-card{width:46px;height:66px;border-radius:6px;background:#f4ead5;color:#1a1a1a;transform-origin:center;
+  .dnc-card{width:30px;height:42px;border-radius:5px;background:#f4ead5;color:#1a1a1a;transform-origin:center;
     display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;
     box-shadow:0 2px 5px rgba(0,0,0,.5);font-family:'Crimson Pro',serif;}
-  .dnc-card .r{font-size:18px;line-height:1;} .dnc-card .s{font-size:15px;line-height:1;}
+  .dnc-card .r{font-size:14px;line-height:1;} .dnc-card .s{font-size:11px;line-height:1;}
   .dnc-card.red{color:#a0030b;}
-  .dnc-chip{height:42px;min-width:42px;padding:0 8px;border-radius:8px;display:flex;align-items:center;
+  .dnc-chip{height:34px;min-width:34px;padding:0 6px;border-radius:7px;display:flex;align-items:center;
     justify-content:center;transform-origin:center;background:rgba(212,168,87,0.14);border:1px solid rgba(212,168,87,0.5);
-    font-size:8px;letter-spacing:.3px;color:var(--cream);text-align:center;max-width:78px;line-height:1.1;}
+    font-size:7px;letter-spacing:.2px;color:var(--cream);text-align:center;max-width:64px;line-height:1.05;}
   .dnc-jitter{animation:dnc-jitter .1s linear infinite;}
   @keyframes dnc-jitter{0%{transform:translate(0,0) rotate(0) scale(1);}
    20%{transform:translate(calc(-0.9px*var(--dnc-jit)),calc(0.7px*var(--dnc-jit))) rotate(calc(-1.1deg*var(--dnc-jit))) scale(calc(1 + .015*var(--dnc-jit)));}
@@ -3213,7 +3212,6 @@
   .dnc-particle{position:fixed;z-index:200;font-weight:700;pointer-events:none;font-family:'Crimson Pro',serif;
     font-size:calc(15px*var(--dnc-pscale,1));text-shadow:0 1px 4px rgba(0,0,0,.85);}
 </style>
-<div id="dance-stage" style="display:none"></div>
 
 <div id="dev-panel" style="display:none;position:fixed;inset:0;z-index:499;overflow-y:auto;background:rgba(0,0,0,0.92);padding:16px;flex-direction:column;gap:12px;">
   <div style="display:flex;justify-content:space-between;align-items:center;">
@@ -3779,7 +3777,7 @@
 </div>
 
 <script>
-const BUILD = '2026-07-18 · r80';
+const BUILD = '2026-07-18 · r81';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -8094,7 +8092,7 @@ const DANCE_CFG = {
   trig:{cls:'dnc-pop',dur:260,mag:0.7}, jitInit:0.20, jitGrow:0.35,
   tickRest:600, pFlight:550, scoreClimb:1250, ff:15, pScale:2.6,
 };
-let newDanceEnabled = (function(){ try { return localStorage.getItem('newDance') === '1'; } catch(e){ return false; } })();
+let newDanceEnabled = (function(){ try { return localStorage.getItem('newDance') !== '0'; } catch(e){ return true; } })();
 function setNewDance(on){ newDanceEnabled = !!on; try { localStorage.setItem('newDance', on ? '1' : '0'); } catch(e){} }
 
 async function playScoreDance(result, toRemove, isGoalHand = false) {
@@ -8452,7 +8450,7 @@ function handleDanceAbort(isGoalHand) {
 // ══════════════════════════════════════════════
 // PREVIEW-WINDOW SCORING DANCE (opt-in via dev toggle)
 // Grid cards keep their normal pop-then-discard; the slow, detailed Balatro
-// escalation runs in #dance-stage. Cards score (Activation), per-hand tricks
+// escalation runs in the dedicated hand-preview slot (#selected-cards). Cards score (Activation), per-hand tricks
 // charge (Jitter) as cards trigger them (Trigger) then RELEASE (Activation).
 // Reuses the same goal / settle / abort tail as playScoreDance.
 // ══════════════════════════════════════════════
@@ -8483,7 +8481,7 @@ function dncFly(srcEl, boxEl, label, color, onLand){
   setTimeout(()=>el.remove(), dur+60);
   return new Promise(res=>setTimeout(()=>{ if(onLand) onLand(); res(); }, dur));
 }
-function dncFinishAbort(stage, isGoalHand){ if(stage){ stage.style.display='none'; stage.innerHTML=''; } handleDanceAbort(isGoalHand); }
+function dncFinishAbort(stage, isGoalHand){ if(stage){ stage.classList.remove('dnc-active'); stage.innerHTML=''; } handleDanceAbort(isGoalHand); }
 
 async function playPreviewDance(result, toRemove, isGoalHand = false){
   cancelDance();
@@ -8518,8 +8516,8 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
     if(e.type==='pip') t.pip+=e.delta; else t.mult+=e.delta; });
   const tricks=[...trickMap.values()];
 
-  // ── Build the stage ──
-  const stage=document.getElementById('dance-stage'); stage.innerHTML='';
+  // ── Build the stage — render INTO the dedicated hand-preview slot ──
+  const stage=document.getElementById('selected-cards'); stage.classList.add('dnc-active'); stage.innerHTML='';
   const mkRow=(label,extra)=>{ const row=document.createElement('div'); row.className='dnc-row'+(extra?(' '+extra):'');
     const l=document.createElement('div'); l.className='dnc-lab'; l.textContent=label;
     const items=document.createElement('div'); items.className='dnc-items';
@@ -8536,7 +8534,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
       const c=document.createElement('div'); c.className='dnc-chip';
       c.textContent = (t.source==='exalt') ? 'Exalt' : (((typeof TRICK_POOL!=='undefined' && TRICK_POOL.find(x=>x.id===t.id))||{}).name || t.id);
       outer.appendChild(c); ti.appendChild(outer); trickEls.push(c); }); }
-  stage.style.display='block';
+  // stage already visible in-slot (dnc-active added above)
 
   await wait(handCells.length*STAGGER + POP);
   if(aborted()){ dncFinishAbort(stage,isGoalHand); return; }
@@ -8604,7 +8602,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   if(aborted()){ dncFinishAbort(stage,isGoalHand); return; }
 
   // ── Settle (same tail as playScoreDance) ──
-  stage.style.display='none'; stage.innerHTML='';
+  stage.classList.remove('dnc-active'); stage.innerHTML='';
   if(scoreEl) scoreEl.textContent=scoreAfter.toLocaleString();
   showComboFloats(hand, handCells, result);
   const scoreBoxEl=document.getElementById('score-mid');
