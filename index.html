@@ -3042,6 +3042,7 @@
           <div class="score-subbox" id="focus-box">
             <div class="subbox-label">FOCUS</div>
             <div class="subbox-val" id="focus-val">×1</div>
+            <div class="focus-live-sub" id="focus-live-sub">now ×1.0</div>
           </div>
         </div>
         <!-- Center: current score (dance overlay covers this) -->
@@ -3211,6 +3212,8 @@
   @keyframes dnc-pop{0%{transform:scale(1);}40%{transform:scale(calc(1 + .30*var(--dnc-mag)));}70%{transform:scale(calc(1 - .05*var(--dnc-mag)));}100%{transform:scale(1);}}
   .dnc-particle{position:fixed;z-index:200;font-weight:700;pointer-events:none;font-family:'Crimson Pro',serif;
     font-size:calc(15px*var(--dnc-pscale,1));text-shadow:0 1px 4px rgba(0,0,0,.85);}
+  /* live focus tracker beneath the FOCUS number (stays live even while the big number is locked mid-dance) */
+  #focus-live-sub{ font-size:8px; letter-spacing:.3px; color:var(--cream-dim); opacity:.75; margin-top:1px; line-height:1; }
 </style>
 
 <div id="dev-panel" style="display:none;position:fixed;inset:0;z-index:499;overflow-y:auto;background:rgba(0,0,0,0.92);padding:16px;flex-direction:column;gap:12px;">
@@ -3777,7 +3780,7 @@
 </div>
 
 <script>
-const BUILD = '2026-07-18 · r81';
+const BUILD = '2026-07-18 · r82';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -5861,6 +5864,12 @@ function calcScore(handName, cells, contrib = null) {
     if (_cm) Object.entries(_cm).forEach(([id, d]) => { if (d > 0) contrib.push({type:'mult',source:'trick',id,delta:Math.round(d*10)/10}); });
     if (_ec.pips > 0) contrib.push({type:'pip',source:'exalt',id:'_exalt',delta:_ec.pips});
     if (_ec.mult > 0) contrib.push({type:'mult',source:'exalt',id:'_exalt',delta:Math.round(_ec.mult*10)/10});
+    // Sleight scoring contribution: Amplifier's carried-over mult (folded into base mult above).
+    // NOTE: Knacks and other Sleights are rule/resource/wildcard effects — they add no pips/mult
+    // during scoring, so nothing else is attributable here. Any future scoring Knack/Sleight can
+    // push {type,source:'knack'|'sleight',id,delta} and the dance will render it automatically.
+    if (typeof sleightAmplifierMult === 'number' && sleightAmplifierMult > 0)
+      contrib.push({type:'mult',source:'sleight',id:'amplifier',delta:Math.round(sleightAmplifierMult*10)/10});
   }
 
   return Math.round(s);
@@ -6370,6 +6379,10 @@ function updateFocusMultReadout(pulse = false) {
   // FOCUS score box mirrors the live focus multiplier (suppressed mid-dance; the dance drives it)
   const fvEl = document.getElementById('focus-val');
   if (fvEl && !danceAbortController) fvEl.textContent = (mult === 1) ? '×1' : '×' + mult.toFixed(1);
+  // Live "now ×" tracker beneath the FOCUS number — always reflects the CURRENT focus
+  // (keeps ticking during the dance while the big number is locked to the value used).
+  const subEl = document.getElementById('focus-live-sub');
+  if (subEl) subEl.textContent = 'now ×' + mult.toFixed(1);
   const el = document.getElementById('focus-mult-readout');
   if (!el) return;
   el.textContent = '×' + mult.toFixed(1);
@@ -8482,6 +8495,15 @@ function dncFly(srcEl, boxEl, label, color, onLand){
   return new Promise(res=>setTimeout(()=>{ if(onLand) onLand(); res(); }, dur));
 }
 function dncFinishAbort(stage, isGoalHand){ if(stage){ stage.classList.remove('dnc-active'); stage.innerHTML=''; } handleDanceAbort(isGoalHand); }
+// Display name for a contribution entity, by source (Trick / Sleight / Knack / Exalt).
+function contribLabel(source, id){
+  if(source==='exalt') return 'Exalt';
+  const pool = source==='sleight' ? (typeof SLEIGHT_POOL!=='undefined' && SLEIGHT_POOL)
+             : source==='knack'   ? (typeof KNACK_POOL!=='undefined'   && KNACK_POOL)
+             :                       (typeof TRICK_POOL!=='undefined'   && TRICK_POOL);
+  const def = pool && pool.find(x=>x.id===id);
+  return (def && def.name) || id;
+}
 
 async function playPreviewDance(result, toRemove, isGoalHand = false){
   cancelDance();
@@ -8528,12 +8550,19 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
     const d=document.createElement('div'); d.className='dnc-card'+((card.suit==='♥'||card.suit==='♦')?' red':'');
     d.innerHTML=`<span class="r">${card.rank}</span><span class="s">${card.suit}</span>`;
     outer.appendChild(d); handItems.appendChild(outer); return d; });
-  const trickEls=[];
-  if(tricks.length){ const ti=mkRow('Tricks');
-    tricks.forEach(t=>{ const outer=document.createElement('div'); outer.className='dnc-outer';
-      const c=document.createElement('div'); c.className='dnc-chip';
-      c.textContent = (t.source==='exalt') ? 'Exalt' : (((typeof TRICK_POOL!=='undefined' && TRICK_POOL.find(x=>x.id===t.id))||{}).name || t.id);
-      outer.appendChild(c); ti.appendChild(outer); trickEls.push(c); }); }
+  // Group contributing entities into rows by source (Tricks / Sleights / Knacks).
+  // trickEls stays index-aligned with `tricks` so charge/release below still lines up.
+  const SRC_ORDER = { trick:0, exalt:1, sleight:2, knack:3 };
+  const SRC_LABEL = { trick:'Tricks', exalt:'Tricks', sleight:'Sleights', knack:'Knacks' };
+  tricks.sort((a,b)=>((SRC_ORDER[a.source]??9)-(SRC_ORDER[b.source]??9)));
+  const trickEls=[]; let _curLabel=null, _curItems=null;
+  tricks.forEach(t=>{
+    const lbl = SRC_LABEL[t.source] || 'Effects';
+    if(lbl!==_curLabel){ _curItems=mkRow(lbl); _curLabel=lbl; }
+    const outer=document.createElement('div'); outer.className='dnc-outer';
+    const c=document.createElement('div'); c.className='dnc-chip'; c.textContent=contribLabel(t.source,t.id);
+    outer.appendChild(c); _curItems.appendChild(outer); trickEls.push(c);
+  });
   // stage already visible in-slot (dnc-active added above)
 
   await wait(handCells.length*STAGGER + POP);
