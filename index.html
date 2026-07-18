@@ -2926,7 +2926,8 @@
   #stage.landscape #btn-stats      { position:absolute; left:1.56%; top:91.67%; width:10.16%; height:6.39%; }
   #stage.landscape #btn-deck       { position:absolute; left:13.28%; top:91.67%; width:10.16%; height:6.39%; }
   #stage.landscape #btn-pause      { position:absolute; left:25%;    top:91.67%; width:9.38%;  height:6.39%; }
-  #stage.landscape #focus-meter-wrap { position:absolute; left:35.5%; top:1.39%; width:3.5%; height:96.67%; }
+  #stage.landscape #focus-meter-wrap { position:absolute; left:34.4%; top:1.39%; width:5%; height:96.67%; }
+  #stage.landscape #focus-bar-outer { width:28px; }   /* twice as thick in landscape */
   #stage.landscape #grid-slot      { position:absolute; left:39.84%; top:11.11%; width:49.22%; height:86.11%; }
   #stage.landscape #run-progress   { left:90.63%; top:1.39%; width:8.59%; height:8.33%; flex-direction:column; align-items:center; justify-content:center; gap:3px; padding:3px; }
   #stage.landscape #btn-discard    { position:absolute; left:91.41%; top:11.11%; width:7.81%; height:29.17%; }
@@ -3778,7 +3779,7 @@
 </div>
 
 <script>
-const BUILD = '2026-07-18 · r78';
+const BUILD = '2026-07-18 · r79';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -4245,6 +4246,7 @@ let focusAnimRunning = false;
 let focusDecayBaseMs     = parseFloat(localStorage.getItem('focusDecayBaseMs')) || 2000;
 let focusDecayIntervalMs = focusDecayBaseMs;
 let focusDecayTimerId    = null;   // setInterval id
+let focusDecayBuffer     = 0;      // grace ticks held while sitting on a whole-number (x.0) multiplier
 let focusBeatDurationMs  = parseFloat(localStorage.getItem('focusBeatDurationMs')) || 300;
 
 // Speed bonus formula state (dev-tunable). Persisted to localStorage.
@@ -6382,6 +6384,7 @@ function updateFocusMeter() {
 
 function addFocus(amount) {
   if (!amount || amount <= 0) return;
+  focusDecayBuffer = 0;   // gaining focus resets the x.0 grace buffer
   const cap = focusCapacity * FOCUS_THRESHOLD;
   const prev = Math.min(focusNodes, cap);
   const prevCharges = Math.floor(prev / FOCUS_THRESHOLD);
@@ -6580,6 +6583,12 @@ function focusDecayTick() {
   // "jump up then get wiped" desync.
   if (focusAnimRunning) return;
   if (focusNodes <= 0) return;
+  // Buffer: when focus lands on a whole-number multiplier (x.0 — i.e. focusNodes is a
+  // multiple of the threshold), hold for 3 ticks before dropping to (x-1).9. Feels nicer.
+  if (focusNodes >= FOCUS_THRESHOLD && focusNodes % FOCUS_THRESHOLD === 0) {
+    if (focusDecayBuffer < 2) { focusDecayBuffer++; return; }
+  }
+  focusDecayBuffer = 0;
   removeFocus(1);
 }
 
@@ -6865,6 +6874,7 @@ function doSwap(r1, c1, r2, c2) {
 
   // Swap charge — skipped on a free swap; Steady Hand bypasses the limit
   if (!hasKnack('steady_hand') && !freeThisSwap) swaps--;
+  if (!freeThisSwap) spendRoundTime(SWAP_TIME_COST);   // swaps cost time (free swaps exempt)
   if (sleightFreeSwapPending) sleightFreeSwapPending = false;
   // Swap time cost — 0s for first 2 swaps/round, 0s with Free Swaps, 20s with Steady Hand, else 10s
   let swapTimeCost = BAL._resources.swap_seconds;
@@ -8663,6 +8673,7 @@ function doDiscard() {
   selected.forEach(([r,c]) => { if (gridData[r]?.[c]) discardToDrawPile(gridData[r][c]); });
   // Hoarder: discards don't count against limit (but cost 2× time below)
   if (!hasKnack('hoarder')) discards--;
+  spendRoundTime(DISCARD_TIME_COST);   // discards cost time
   // Discard time cost — 3s/card default, 0s with Free Discards, 6s/card with Hoarder.
   // Reward-grid time penalties add to the per-card cost (unless discards are free).
   let perCardCost = BAL._resources.discard_seconds_per_card;
@@ -9301,6 +9312,16 @@ function startTimers() {
       if (gameSeconds <= 0) onGameEnd(false);
     }
   }, 1000);
+}
+
+// v7 interact time-costs — spending an action burns seconds off the round clock.
+const DISCARD_TIME_COST = 3;
+const SWAP_TIME_COST    = 4;
+function spendRoundTime(sec) {
+  if (roundEnded || !sec || sec <= 0) return;
+  roundSeconds -= sec;
+  if (roundSeconds < 0) roundSeconds = 0;
+  updateClockUI();   // next timer tick ends the round if this hit 0
 }
 
 function updateClockUI() {
