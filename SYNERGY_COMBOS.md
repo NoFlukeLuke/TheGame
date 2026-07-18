@@ -163,18 +163,26 @@ The old 24-level number was back-solved. Current plan: **20 normal rounds**.
 > **Kingfisher** (r78). *Scales on elapsed/remaining time:* Swift, Sands of Time,
 > Sediment (r78), Still Water, Spade Flood.
 >
-> **The link Frozen Hour still lacks: a loop-closer that turns SCORING back into
-> TIME.** Today time only flows one way (hoard/rewind → convert to points). Nothing
-> converts a big hand back into seconds, so the family is a linear payoff, not the
-> exponential engine the marquee combos (Retrigger Cascade) have. Small feedback
-> exists — `Déjà Vu` knack (repeat ranks → +5s) and `Rewound Echo` (retrigger →
-> +2s) — but neither scales with hand *size/score*. **To go really crazy we need a
-> `score → rewind` engine.** Candidate keystone (★NEW, not yet built):
-> **Trick "Undo the Clock"** — when a hand scores above the round goal's Nth
-> fraction (or simply: per K points), rewind 1s. That closes the loop:
-> rewind → Kingfisher mult + Sediment/Albatross pips → bigger hand → more rewind →
-> more Kingfisher. Cap the per-hand rewind so it snowballs but can't hard-lock the
-> timer. This is the single missing piece for a genuinely broken-but-earned time build.
+> **The loop-closer now exists (r79): `Clockmaker` knack** — a single hand scoring
+> ≥30% of the round goal rewinds 5s. That's the `score → time` feedback the family
+> lacked, so Frozen Hour is now a real closed loop: rewind → Kingfisher mult +
+> Albatross/Sediment pips → bigger hand → Clockmaker rewind → more Kingfisher. The
+> 30%-of-goal gate is the natural per-hand cap (you can't machine-gun it off small
+> hands), so it snowballs without hard-locking the timer.
+>
+> **Second loop closed (r79): the swap/discard economy.** `The Magpie` (Trick)
+> rewinds 1s per 2 unspent swaps+discards each hand — so *hoarding* manipulate
+> actions becomes time. Its feeders: `The Mockingbird` (2 alternating-type hands →
+> +1 swap) and `The Starling` (every 2nd hand of a same-type streak → +1 discard).
+> Chain: play varied/streaky hands → bank swaps+discards → Magpie converts the hoard
+> to rewinds → Kingfisher/Sediment convert the rewinds/time to score. Tension: Magpie
+> wants you to NOT spend swaps/discards, which fights normal board manipulation — a
+> deliberate build-defining cost.
+>
+> Remaining smaller feedback that predates this: `Déjà Vu` (repeat ranks → +5s),
+> `Rewound Echo` (retrigger → +2s). **Two full time loops now exist** (score→time via
+> Clockmaker, resource→time via Magpie) on top of the pause/rewind amplifiers, so the
+> time family finally has an exponential engine, not just a linear payoff.
 
 **③ Retrigger Cascade** *(the marquee one)*
 - Engine: `Soul Mirror` (every scored card of a chosen rank retriggers anywhere)
