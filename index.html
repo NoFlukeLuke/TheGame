@@ -3063,7 +3063,12 @@
     </div>
 
     <div class="panel-box" id="trick-panel">
-      <!-- Hand preview shown here normally -->
+      <!-- ═══════════ v7 HAND-PREVIEW SLOT (for the hand-preview system) ═══════════
+           In v7 landscape the preview is positioned at:  left 1.56% / top 31.94% /
+           width 32.81% / height 15.28% of #stage  (see #stage.landscape #selected-cards
+           in the v7 CSS block). It sits directly BELOW the pips/mult/focus row and
+           ABOVE #hand-name. The preview system should render INTO #selected-cards
+           (or replace it) at this anchor; #hand-name is the label just under it. -->
       <div id="hand-preview-area">
         <div id="selected-cards"></div>
         <div id="hand-name">—</div>
