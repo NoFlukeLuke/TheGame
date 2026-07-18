@@ -3779,7 +3779,7 @@
 </div>
 
 <script>
-const BUILD = '2026-07-18 · r79';
+const BUILD = '2026-07-18 · r80';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -6336,9 +6336,16 @@ function buildFocusMeter() {
 function syncFocusMeterState() {
   const total = Math.min(focusNodes, focusCapacity * FOCUS_THRESHOLD);
   const chargesComplete = Math.floor(total / FOCUS_THRESHOLD);
-  const nodesInSegment = total - chargesComplete * FOCUS_THRESHOLD;
+  let nodesInSegment = total - chargesComplete * FOCUS_THRESHOLD;
   // Color reflects the tier currently being filled (next tier after completed charges)
-  const color = FOCUS_COLORS[Math.min(chargesComplete, FOCUS_COLORS.length - 1)];
+  let segColorIdx = chargesComplete;
+  // On a clean x.0 (the segment would read 0 but focus > 0), show it FULL in the
+  // just-completed charge's colour — the bar only ever looks empty at true zero.
+  if (total > 0 && nodesInSegment === 0) {
+    nodesInSegment = FOCUS_THRESHOLD;
+    segColorIdx = chargesComplete - 1;
+  }
+  const color = FOCUS_COLORS[Math.min(segColorIdx, FOCUS_COLORS.length - 1)];
   document.documentElement.style.setProperty('--focus-color', color);
 
   // Active segment nodes
