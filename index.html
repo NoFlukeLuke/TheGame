@@ -3087,6 +3087,44 @@
 <!-- DEV PANEL -->
 <div id="dev-btn" onclick="toggleDevPanel()" style="display:none;position:fixed;bottom:60px;right:6px;z-index:500;width:32px;height:32px;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.4);border-radius:8px;font-size:16px;display:none;align-items:center;justify-content:center;cursor:pointer;">🛠</div>
 
+<!-- New preview-window scoring dance (dev toggle) -->
+<style>
+  #dance-stage{position:fixed;left:50%;top:15%;transform:translateX(-50%);z-index:180;width:340px;max-width:92vw;
+    background:rgba(20,16,10,0.96);border:1px solid rgba(245,192,66,0.3);border-radius:12px;padding:10px;
+    box-shadow:0 10px 40px rgba(0,0,0,0.6);pointer-events:none;}
+  #dance-stage .dnc-row{display:flex;align-items:center;gap:6px;min-height:46px;margin-bottom:6px;}
+  #dance-stage .dnc-row:last-child{margin-bottom:0;}
+  #dance-stage .dnc-lab{font-size:8px;letter-spacing:1px;color:var(--cream-dim);writing-mode:vertical-rl;
+    transform:rotate(180deg);text-transform:uppercase;opacity:.7;flex:0 0 auto;}
+  #dance-stage .dnc-items{display:flex;gap:6px;align-items:center;flex-wrap:nowrap;flex:1;}
+  #dance-stage .dnc-row.hand{min-height:74px;}
+  .dnc-outer{display:inline-flex;flex:0 0 auto;transform-origin:center;}
+  .dnc-card{width:46px;height:66px;border-radius:6px;background:#f4ead5;color:#1a1a1a;transform-origin:center;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;
+    box-shadow:0 2px 5px rgba(0,0,0,.5);font-family:'Crimson Pro',serif;}
+  .dnc-card .r{font-size:18px;line-height:1;} .dnc-card .s{font-size:15px;line-height:1;}
+  .dnc-card.red{color:#a0030b;}
+  .dnc-chip{height:42px;min-width:42px;padding:0 8px;border-radius:8px;display:flex;align-items:center;
+    justify-content:center;transform-origin:center;background:rgba(212,168,87,0.14);border:1px solid rgba(212,168,87,0.5);
+    font-size:8px;letter-spacing:.3px;color:var(--cream);text-align:center;max-width:78px;line-height:1.1;}
+  .dnc-jitter{animation:dnc-jitter .1s linear infinite;}
+  @keyframes dnc-jitter{0%{transform:translate(0,0) rotate(0) scale(1);}
+   20%{transform:translate(calc(-0.9px*var(--dnc-jit)),calc(0.7px*var(--dnc-jit))) rotate(calc(-1.1deg*var(--dnc-jit))) scale(calc(1 + .015*var(--dnc-jit)));}
+   40%{transform:translate(calc(0.9px*var(--dnc-jit)),calc(-0.7px*var(--dnc-jit))) rotate(calc(1.1deg*var(--dnc-jit))) scale(calc(1 + .015*var(--dnc-jit)));}
+   60%{transform:translate(calc(-0.6px*var(--dnc-jit)),calc(-0.5px*var(--dnc-jit))) rotate(calc(-0.7deg*var(--dnc-jit))) scale(1);}
+   80%{transform:translate(calc(0.6px*var(--dnc-jit)),0) rotate(calc(0.7deg*var(--dnc-jit))) scale(1);}
+   100%{transform:translate(0,0) rotate(0) scale(1);}}
+  .dnc-pulse{animation:dnc-pulse var(--dnc-dur) ease;}
+  @keyframes dnc-pulse{0%{transform:scale(1);}50%{transform:scale(calc(1 + .12*var(--dnc-mag)));}100%{transform:scale(1);}}
+  .dnc-flash{animation:dnc-flash var(--dnc-dur) ease;}
+  @keyframes dnc-flash{0%{filter:brightness(1);transform:scale(1);}40%{filter:brightness(calc(1 + .7*var(--dnc-mag)));transform:scale(calc(1 + .03*var(--dnc-mag)));}100%{filter:brightness(1);transform:scale(1);}}
+  .dnc-pop{animation:dnc-pop var(--dnc-dur) cubic-bezier(.34,1.56,.64,1);}
+  @keyframes dnc-pop{0%{transform:scale(1);}40%{transform:scale(calc(1 + .30*var(--dnc-mag)));}70%{transform:scale(calc(1 - .05*var(--dnc-mag)));}100%{transform:scale(1);}}
+  .dnc-particle{position:fixed;z-index:200;font-weight:700;pointer-events:none;font-family:'Crimson Pro',serif;
+    font-size:calc(15px*var(--dnc-pscale,1));text-shadow:0 1px 4px rgba(0,0,0,.85);}
+</style>
+<div id="dance-stage" style="display:none"></div>
+
 <div id="dev-panel" style="display:none;position:fixed;inset:0;z-index:499;overflow-y:auto;background:rgba(0,0,0,0.92);padding:16px;flex-direction:column;gap:12px;">
   <div style="display:flex;justify-content:space-between;align-items:center;">
     <span style="font-family:'Cinzel',serif;font-size:12px;letter-spacing:3px;color:var(--gold);">DEV MODE</span>
@@ -3267,6 +3305,10 @@
     <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;margin-top:6px;">
       <input id="dev-trick-tray-toggle" type="checkbox" onchange="toggleTrickTrayMode(!this.checked)" style="accent-color:var(--gold);">
       Place Tricks on the grid (off = side tray)
+    </label>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;margin-top:6px;">
+      <input id="dev-new-dance-toggle" type="checkbox" onchange="setNewDance(this.checked)" style="accent-color:var(--gold);">
+      New scoring dance (preview-window · WIP)
     </label>
   </div>
 
@@ -3647,7 +3689,7 @@
 </div>
 
 <script>
-const BUILD = '2026-07-07 · r76';
+const BUILD = '2026-07-18 · r77';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -7928,7 +7970,17 @@ async function goalCelebration(handCells) {
   overlay.remove();
 }
 
+// ── New preview-window scoring dance (dev toggle; owner-locked settings) ──
+const DANCE_CFG = {
+  actA:{cls:'dnc-pulse',dur:420,mag:1.0}, actB:{cls:'dnc-flash',dur:420,mag:0.4},
+  trig:{cls:'dnc-pop',dur:260,mag:0.7}, jitInit:0.20, jitGrow:0.35,
+  tickRest:600, pFlight:550, scoreClimb:1250, ff:15, pScale:2.6,
+};
+let newDanceEnabled = (function(){ try { return localStorage.getItem('newDance') === '1'; } catch(e){ return false; } })();
+function setNewDance(on){ newDanceEnabled = !!on; try { localStorage.setItem('newDance', on ? '1' : '0'); } catch(e){} }
+
 async function playScoreDance(result, toRemove, isGoalHand = false) {
+  if (newDanceEnabled) { return playPreviewDance(result, toRemove, isGoalHand); }
   cancelDance();
   const ctrl = new AbortController();
   danceAbortController = ctrl;
@@ -8275,6 +8327,186 @@ function handleDanceAbort(isGoalHand) {
       sfxDuckGain.gain.setValueAtTime(0.4, ctx.currentTime);
       if (!sfxDuckGain.connected) { sfxDuckGain.connect(ctx.destination); sfxDuckGain.connected = true; }
       setTimeout(() => startInterlude(), 400);
+    }
+  }
+}
+
+// ══════════════════════════════════════════════
+// PREVIEW-WINDOW SCORING DANCE (opt-in via dev toggle)
+// Grid cards keep their normal pop-then-discard; the slow, detailed Balatro
+// escalation runs in #dance-stage. Cards score (Activation), per-hand tricks
+// charge (Jitter) as cards trigger them (Trigger) then RELEASE (Activation).
+// Reuses the same goal / settle / abort tail as playScoreDance.
+// ══════════════════════════════════════════════
+let dncFF = false;
+function dncApply(el, m){ if(!el) return; el.classList.remove('dnc-pulse','dnc-flash','dnc-pop');
+  el.style.setProperty('--dnc-mag', m.mag); el.style.setProperty('--dnc-dur', m.dur+'ms');
+  void el.offsetWidth; el.classList.add(m.cls); }
+function dncActivate(el){ dncApply(el.parentElement, DANCE_CFG.actA); dncApply(el, DANCE_CFG.actB); }
+function dncTrigger(chip, n){ dncApply(chip.parentElement, DANCE_CFG.trig);
+  const j = DANCE_CFG.jitInit + DANCE_CFG.jitGrow * Math.pow(Math.max(0, n-1), 1.8);
+  chip.style.setProperty('--dnc-jit', j.toFixed(2));
+  if(!chip.classList.contains('dnc-jitter')) chip.classList.add('dnc-jitter'); }
+function dncStopJitter(chip){ chip.classList.remove('dnc-jitter'); chip.style.removeProperty('--dnc-jit');
+  if(chip.parentElement) chip.parentElement.classList.remove('dnc-pulse','dnc-flash','dnc-pop'); }
+function dncTick(el){ if(!el) return; el.style.animation='none'; void el.offsetWidth; el.style.animation='val-tick 0.18s ease'; }
+function dncFly(srcEl, boxEl, label, color, onLand){
+  const a=srcEl.getBoundingClientRect(), b=boxEl.getBoundingClientRect();
+  const el=document.createElement('div'); el.className='dnc-particle'; el.textContent=label; el.style.color=color;
+  el.style.left=(a.left+a.width/2)+'px'; el.style.top=(a.top+a.height/2)+'px';
+  el.style.setProperty('--dnc-pscale', DANCE_CFG.pScale);
+  document.body.appendChild(el);
+  const dx=(b.left+b.width/2)-(a.left+a.width/2), dy=(b.top+b.height/2)-(a.top+a.height/2);
+  const dur = dncFF ? Math.max(60, DANCE_CFG.pFlight/DANCE_CFG.ff) : DANCE_CFG.pFlight;
+  el.animate([{transform:'translate(-50%,-50%) scale(.6)',opacity:0},
+    {transform:'translate(-50%,-50%) scale(1.15)',opacity:1,offset:.2},
+    {transform:`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px)) scale(.9)`,opacity:0}],
+    {duration:dur,easing:'cubic-bezier(.3,.7,.4,1)',fill:'forwards'});
+  setTimeout(()=>el.remove(), dur+60);
+  return new Promise(res=>setTimeout(()=>{ if(onLand) onLand(); res(); }, dur));
+}
+function dncFinishAbort(stage, isGoalHand){ if(stage){ stage.style.display='none'; stage.innerHTML=''; } handleDanceAbort(isGoalHand); }
+
+async function playPreviewDance(result, toRemove, isGoalHand = false){
+  cancelDance();
+  const ctrl = new AbortController(); danceAbortController = ctrl; const sig = ctrl.signal;
+  dncFF = false; resetParticleStep();
+  const aborted = () => sig.aborted;
+  const dwait = ms => new Promise(r => setTimeout(r, dncFF ? Math.max(6, ms/DANCE_CFG.ff) : ms));
+
+  const { hand, handCells, finalScore } = result;
+  const targetFocus = lastCalcFocus;
+  const scoreAfter = score, scoreBefore = score - finalScore;
+  const levelScale = Math.pow(1.1, level - 1);
+  const base = HAND_BASE[hand] || { pips:0, mult:1 };
+  const basePips = Math.round(base.pips * levelScale), baseMult = base.mult;
+  // Capture per-card pips BEFORE removeAndFall nulls gridData.
+  const cardPipVals = handCells.map(([r,c]) => cardPips(gridData[r][c].rank));
+
+  // ── Grid pops (unchanged grid behaviour) ──
+  const gridEl = document.getElementById('grid'); const STAGGER=180, POP=900;
+  handCells.forEach(([r,c],i)=>{ const card=gridData[r][c]; if(!card) return;
+    const el=gridEl?.querySelector(`[data-card-id="${card._id}"]`); if(!el) return;
+    const sc = card.suit==='♥'?'h':card.suit==='♦'?'d':card.suit==='♣'?'c':'s';
+    el.classList.remove('score-pop-h','score-pop-d','score-pop-c','score-pop-s');
+    el.style.setProperty('animation-delay',(i*STAGGER)+'ms','important'); void el.offsetWidth;
+    el.classList.add('score-pop-'+sc); setTimeout(()=>sfxCardPop(card.suit), i*STAGGER); });
+
+  // ── Contribution ledger (Tricks + exalt), aggregated per source ──
+  const savedPFM = lastPreFocusMult; const contrib=[]; calcScore(hand, handCells, contrib); lastPreFocusMult = savedPFM;
+  const trickMap = new Map();
+  contrib.forEach(e=>{ if(!(e.delta>0)) return; const key=e.source+':'+e.id;
+    let t=trickMap.get(key); if(!t){ t={source:e.source,id:e.id,pip:0,mult:0}; trickMap.set(key,t); }
+    if(e.type==='pip') t.pip+=e.delta; else t.mult+=e.delta; });
+  const tricks=[...trickMap.values()];
+
+  // ── Build the stage ──
+  const stage=document.getElementById('dance-stage'); stage.innerHTML='';
+  const mkRow=(label,extra)=>{ const row=document.createElement('div'); row.className='dnc-row'+(extra?(' '+extra):'');
+    const l=document.createElement('div'); l.className='dnc-lab'; l.textContent=label;
+    const items=document.createElement('div'); items.className='dnc-items';
+    row.appendChild(l); row.appendChild(items); stage.appendChild(row); return items; };
+  const handItems=mkRow('Hand','hand');
+  const cardEls=handCells.map(([r,c])=>{ const card=gridData[r][c];
+    const outer=document.createElement('div'); outer.className='dnc-outer';
+    const d=document.createElement('div'); d.className='dnc-card'+((card.suit==='♥'||card.suit==='♦')?' red':'');
+    d.innerHTML=`<span class="r">${card.rank}</span><span class="s">${card.suit}</span>`;
+    outer.appendChild(d); handItems.appendChild(outer); return d; });
+  const trickEls=[];
+  if(tricks.length){ const ti=mkRow('Tricks');
+    tricks.forEach(t=>{ const outer=document.createElement('div'); outer.className='dnc-outer';
+      const c=document.createElement('div'); c.className='dnc-chip';
+      c.textContent = (t.source==='exalt') ? 'Exalt' : (((typeof TRICK_POOL!=='undefined' && TRICK_POOL.find(x=>x.id===t.id))||{}).name || t.id);
+      outer.appendChild(c); ti.appendChild(outer); trickEls.push(c); }); }
+  stage.style.display='block';
+
+  await wait(handCells.length*STAGGER + POP);
+  if(aborted()){ dncFinishAbort(stage,isGoalHand); return; }
+  if(!isGoalHand){ if(typeof sfxFlipShuffle==='function') sfxFlipShuffle(); removeAndFall(toRemove,'play'); }
+
+  // ── Score boxes ──
+  const pipsEl=document.getElementById('pips-val'), multEl=document.getElementById('mult-val'),
+        focusEl=document.getElementById('focus-val'), scoreEl=document.getElementById('score-total-num');
+  const pipsBox=document.getElementById('pips-box'), multBox=document.getElementById('mult-box');
+  let rp=basePips, rm=baseMult;
+  if(pipsEl) pipsEl.textContent=rp; if(multEl) multEl.textContent=(rm%1===0)?rm:rm.toFixed(1);
+  if(focusEl) focusEl.textContent='×1';
+  await dwait(DANCE_CFG.tickRest); if(aborted()){ dncFinishAbort(stage,isGoalHand); return; }
+
+  // ── CARD PHASE — cards score; tricks charge (jitter ramps) ──
+  const agit={};
+  for(let i=0;i<cardEls.length;i++){
+    if(aborted()){ dncFinishAbort(stage,isGoalHand); return; }
+    dncActivate(cardEls[i]);
+    trickEls.forEach((chip,ti)=>{ agit[ti]=(agit[ti]||0)+1; dncTrigger(chip, agit[ti]); });
+    await dncFly(cardEls[i], pipsBox, '+'+cardPipVals[i], '#5a8fe0', ()=>{
+      rp+=cardPipVals[i]; if(pipsEl) pipsEl.textContent=Math.round(rp); dncTick(pipsEl);
+      if(typeof sfxParticleStep==='function') sfxParticleStep('pip'); });
+    await dwait(DANCE_CFG.tickRest);
+  }
+  if(aborted()){ dncFinishAbort(stage,isGoalHand); return; }
+
+  // ── TRICK PHASE — stop jitter, RELEASE accumulated total ──
+  for(let ti=0; ti<trickEls.length; ti++){
+    if(aborted()){ dncFinishAbort(stage,isGoalHand); return; }
+    const t=tricks[ti], chip=trickEls[ti];
+    dncStopJitter(chip); dncActivate(chip);
+    if(t.pip>0){ await dncFly(chip, pipsBox, '+'+Math.round(t.pip), '#d4a857', ()=>{
+      rp+=t.pip; if(pipsEl) pipsEl.textContent=Math.round(rp); dncTick(pipsEl);
+      if(typeof sfxParticleStep==='function') sfxParticleStep('pip'); }); }
+    if(t.mult>0){ await dncFly(chip, multBox, '+'+(Number.isInteger(t.mult)?t.mult:t.mult.toFixed(1)), '#b07dea', ()=>{
+      rm+=t.mult; if(multEl) multEl.textContent=(rm%1===0)?rm:rm.toFixed(1); dncTick(multEl);
+      if(typeof sfxParticleStep==='function') sfxParticleStep('mult'); }); }
+    await dwait(DANCE_CFG.tickRest);
+  }
+  if(aborted()){ dncFinishAbort(stage,isGoalHand); return; }
+
+  // ── FOCUS beat ──
+  if(targetFocus>1){
+    if(focusEl) focusEl.textContent='×'+(targetFocus%1===0?targetFocus:targetFocus.toFixed(1));
+    const fb=document.getElementById('focus-box'); if(fb){ fb.classList.remove('focus-beat'); void fb.offsetWidth; fb.classList.add('focus-beat'); }
+    if(typeof updateFocusMultReadout==='function') updateFocusMultReadout(true);
+    if(typeof sfxFocusBeat==='function') sfxFocusBeat();
+    await dwait(DANCE_CFG.tickRest); if(aborted()){ dncFinishAbort(stage,isGoalHand); return; }
+  }
+
+  // ── SCORE climb ──
+  if(scoreEl) scoreEl.textContent=scoreBefore.toLocaleString();
+  const climb = dncFF ? Math.max(120, DANCE_CFG.scoreClimb/DANCE_CFG.ff) : DANCE_CFG.scoreClimb;
+  let goalFlashed=false;
+  await new Promise(res=>{ const st=performance.now();
+    function tk(now){ if(aborted()){ res(); return; }
+      const tt=Math.min((now-st)/climb,1), e=1-Math.pow(1-tt,3);
+      const cur=Math.round(scoreBefore+(scoreAfter-scoreBefore)*e);
+      if(scoreEl) scoreEl.textContent=cur.toLocaleString();
+      if(isGoalHand && !goalFlashed && cur>=roundGoal){ goalFlashed=true; if(typeof flashRoundEnd==='function') flashRoundEnd(); }
+      if(typeof sfxScoreTick==='function' && Math.random()<0.35) sfxScoreTick();
+      if(tt<1) requestAnimationFrame(tk); else res(); }
+    requestAnimationFrame(tk); });
+  if(aborted()){ dncFinishAbort(stage,isGoalHand); return; }
+
+  // ── Settle (same tail as playScoreDance) ──
+  stage.style.display='none'; stage.innerHTML='';
+  if(scoreEl) scoreEl.textContent=scoreAfter.toLocaleString();
+  showComboFloats(hand, handCells, result);
+  const scoreBoxEl=document.getElementById('score-mid');
+  if(scoreBoxEl){ scoreBoxEl.classList.remove('box-popping'); void scoreBoxEl.offsetWidth; scoreBoxEl.classList.add('box-popping'); }
+  await wait(300); if(aborted()){ dncFinishAbort(stage,isGoalHand); return; }
+
+  danceAbortController = null;
+  if(pipsEl) pipsEl.textContent='0'; if(multEl) multEl.textContent='0';
+  if(isGoalHand){ if(score>highestHandScore) highestHandScore=score; if(pendingLevelUps>0) sfxMultiGoal(pendingLevelUps); }
+  updateScoreUI();
+
+  if(isGoalHand){
+    if(challengeActive){ showMessage('GOAL MET — COMPLETE THE CHALLENGE','#c9a84c'); }
+    else {
+      clearInterval(roundInterval); roundInterval=null; gameTimerPaused=true; frozenRoundSeconds=roundSeconds;
+      sfxVictory(); const ctx=getAudioCtx();
+      if(sfxDuckGain){ sfxDuckGain.gain.setValueAtTime(0.4, ctx.currentTime); }
+      else { sfxDuckGain=ctx.createGain(); sfxDuckGain.gain.setValueAtTime(0.4, ctx.currentTime); sfxDuckGain.connect(ctx.destination); }
+      await goalCelebration(handCells);
+      startInterlude();
     }
   }
 }
@@ -15328,6 +15560,8 @@ function initDevMode() {
   if (hudToggle) hudToggle.checked = showDeckHud;
   const trickToggle = document.getElementById('dev-trick-tray-toggle');
   if (trickToggle) trickToggle.checked = !trickTrayMode;   // checked = Tricks placed on grid
+  const ndToggle = document.getElementById('dev-new-dance-toggle');
+  if (ndToggle) ndToggle.checked = newDanceEnabled;
   applyDeckHudVisibility();
   // Focus dev controls — restore persisted values
   const decaySlider = document.getElementById('dev-focus-decay-slider');
