@@ -608,7 +608,7 @@
     box-shadow: 0 0 5px var(--focus-color, #54af88);
   }
   #focus-bar-outer {
-    width: 14px;
+    width: 10.5px;
     flex: 1;
     background: #1a1510;
     border: 1px solid #3a3530;
@@ -2883,6 +2883,76 @@
   #menu-start-btn:hover { background: #e0bc5a; transform: scale(1.02); }
   #menu-start-btn:active { transform: scale(0.98); }
 
+  /* ═══════════════ v7 FIXED-COORDINATE LANDSCAPE (r73) ═══════════════
+     Overrides the legacy flexbox landscape rules above via source order.
+     Wrapper divs become display:contents so the real leaf elements can be
+     absolutely positioned against #stage at the designed v7 proportions
+     (% of the 747×420 landscape stage = the editor's 1280×720 percentages). */
+  #stage.landscape { display:block; position:relative; width:747px; height:420px; padding:0; overflow:visible; }
+  #stage.landscape #top-bar, #stage.landscape #main, #stage.landscape #top-strip,
+  #stage.landscape #score-panel, #stage.landscape #score-panel-inner, #stage.landscape #trick-panel,
+  #stage.landscape #hand-preview-area, #stage.landscape #grid-and-buttons,
+  #stage.landscape #action-col, #stage.landscape #action-row-2 { display:contents; }
+  /* v7: preview + tray have separate dedicated slots, so the old tray-mode JS that
+     inline-hides #hand-preview-area must not win in landscape (!important beats inline). */
+  #stage.landscape #hand-preview-area { display:contents !important; }
+  /* elements not used in the v7 landscape */
+  #stage.landscape #deck-hud,
+  #stage.landscape #game-timer-stat,
+  #stage.landscape #top-bar .top-stat,
+  #stage.landscape #clock-bar-wrap { display:none !important; }
+  /* new v7-only blocks show only in landscape */
+  .v7-ls { display:none; }
+  #stage.landscape .v7-ls { display:flex; }
+  /* shared panel chrome for repositioned + new blocks */
+  #stage.landscape #score-center, #stage.landscape #score-left, #stage.landscape #score-subboxes,
+  #stage.landscape #selected-cards, #stage.landscape #knack-carousel-wrap, #stage.landscape #trick-tray-area,
+  #stage.landscape #vclock, #stage.landscape #run-progress, #stage.landscape #coin-info, #stage.landscape #interact-costs {
+    position:absolute; box-sizing:border-box; margin:0; background:var(--panel); border:1px solid var(--border); border-radius:6px; }
+  /* placements (percentages of the 747×420 stage) */
+  #stage.landscape #score-center   { left:1.56%;  top:2.78%;  width:16.41%; height:12.5%;  display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  #stage.landscape #score-left     { left:19.53%; top:2.78%;  width:14.84%; height:12.5%;  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; padding:4px; }
+  #stage.landscape #clock-area     { position:absolute; left:40.63%; top:4.17%; width:7.03%; height:6%; display:flex; align-items:center; justify-content:center; background:none; border:none; padding:0; }
+  #stage.landscape #vclock         { left:48.44%; top:2.78%; width:40.63%; height:6.94%; overflow:hidden; display:block; }
+  #stage.landscape #score-subboxes { left:1.56%;  top:18.06%; width:32.81%; height:11.11%; display:flex; flex-direction:row; align-items:stretch; justify-content:space-around; gap:4px; padding:4px 4px 9px; border-right:none; border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
+  #stage.landscape .score-subbox { display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  #stage.landscape #knack-carousel-wrap .panel-title, #stage.landscape #trick-tray-area .panel-title { display:none; }
+  #stage.landscape #selected-cards .mini-card, #stage.landscape #selected-cards .mini-card-empty { width:34px; height:44px; }
+  #stage.landscape #selected-cards .mini-rank { font-size:13px; }
+  #stage.landscape #selected-cards .mini-suit { font-size:11px; }
+  #stage.landscape #selected-cards { left:1.56%;  top:31.94%; width:32.81%; height:15.28%; display:flex; align-items:center; justify-content:center; gap:3px; padding:4px; background:var(--panel); border:1px solid var(--border); border-radius:6px; }
+  #stage.landscape #hand-name      { position:absolute; left:1.56%; top:47.22%; width:32.81%; height:4.44%; display:flex; align-items:center; justify-content:center; background:none; border:none; margin:0; }
+  #stage.landscape #knack-carousel-wrap { left:1.56%; top:51.39%; width:32.81%; height:6.94%; display:flex; align-items:center; gap:5px; padding:2px 6px; overflow:hidden; }
+  #stage.landscape #trick-tray-area { left:1.56%; top:59.72%; width:32.81%; height:13.89%; display:flex !important; flex-direction:column; padding:4px 6px; overflow:hidden; }
+  #stage.landscape #interact-costs { left:1.56%; top:76.39%; width:14.84%; height:12.5%; flex-direction:column; justify-content:center; padding:3px 6px; gap:1px; }
+  #stage.landscape #coin-info      { left:17.19%; top:76.39%; width:17.19%; height:12.5%; flex-direction:column; justify-content:center; padding:3px 7px; gap:1px; }
+  #stage.landscape #btn-stats      { position:absolute; left:1.56%; top:91.67%; width:10.16%; height:6.39%; }
+  #stage.landscape #btn-deck       { position:absolute; left:13.28%; top:91.67%; width:10.16%; height:6.39%; }
+  #stage.landscape #btn-pause      { position:absolute; left:25%;    top:91.67%; width:9.38%;  height:6.39%; }
+  #stage.landscape #focus-meter-wrap { position:absolute; left:34.4%; top:1.39%; width:5%; height:96.67%; }
+  #stage.landscape #focus-bar-outer { width:21px; }   /* landscape focus bar (25% thinner than the old 28px) */
+  #stage.landscape #grid-slot      { position:absolute; left:39.84%; top:11.11%; width:49.22%; height:86.11%; }
+  #stage.landscape #run-progress   { left:90.63%; top:1.39%; width:8.59%; height:8.33%; flex-direction:column; align-items:center; justify-content:center; gap:3px; padding:3px; }
+  #stage.landscape #btn-discard    { position:absolute; left:91.41%; top:11.11%; width:7.81%; height:29.17%; }
+  #stage.landscape #btn-play       { position:absolute; left:91.41%; top:41.67%; width:7.81%; height:38.89%; }
+  #stage.landscape #swap-indicator { position:absolute; left:91.41%; top:81.94%; width:7.81%; height:15.28%; }
+  /* new-block internals */
+  #vclock-fill { position:absolute; left:0; top:0; bottom:0; width:64%; background:linear-gradient(90deg,var(--gold-dim),var(--gold)); transition:width .25s linear; }
+  #vclock-band { position:absolute; top:0; bottom:0; left:33%; width:34%; background:repeating-linear-gradient(45deg, rgba(201,168,76,0.18) 0 6px, transparent 6px 12px); border-left:1px dashed rgba(201,168,76,0.5); border-right:1px dashed rgba(201,168,76,0.5); }
+  #coin-info .ci-main { font-family:'Cinzel',serif; color:var(--gold); font-weight:700; font-size:15px; line-height:1; display:flex; align-items:baseline; gap:4px; }
+  #coin-info .ci-main b { font-size:19px; }
+  #coin-info .ci-row { display:flex; justify-content:space-between; font-family:'Courier New',monospace; font-size:8px; color:var(--cream-dim); }
+  #coin-info .ci-row .pos { color:var(--green); }
+  #interact-costs .ic-h { font-family:'Cinzel',serif; font-size:7px; letter-spacing:1px; color:var(--gold-dim); text-transform:uppercase; text-align:center; }
+  #interact-costs .ic-r { display:flex; justify-content:space-between; font-family:'Courier New',monospace; font-size:9px; color:var(--cream); }
+  #interact-costs .ic-r span:last-child { color:var(--gold); font-weight:700; }
+  #run-progress .rp-act { font-family:'Cinzel',serif; font-size:11px; font-weight:700; color:var(--gold); letter-spacing:1px; line-height:1; }
+  #run-progress .rp-nodes { display:flex; gap:3px; align-items:center; }
+  #run-progress .rp-nodes span { width:6px; height:6px; border-radius:50%; background:#2a2010; border:1px solid var(--gold-dim); box-sizing:border-box; }
+  #run-progress .rp-nodes span.on { background:var(--gold); border-color:var(--gold); }
+  #run-progress .rp-nodes span.cur { background:var(--cream); border-color:var(--cream); }
+  #run-progress .rp-nodes .boss { width:auto; height:auto; border:none; background:none; color:var(--red); font-size:10px; }
+
 </style>
 </head>
 <body>
@@ -2975,6 +3045,7 @@
           <div class="score-subbox" id="focus-box">
             <div class="subbox-label">FOCUS</div>
             <div class="subbox-val" id="focus-val">×1</div>
+            <div class="focus-live-sub" id="focus-live-sub">now ×1.0</div>
           </div>
         </div>
         <!-- Center: current score (dance overlay covers this) -->
@@ -2997,7 +3068,12 @@
     </div>
 
     <div class="panel-box" id="trick-panel">
-      <!-- Hand preview shown here normally -->
+      <!-- ═══════════ v7 HAND-PREVIEW SLOT (for the hand-preview system) ═══════════
+           In v7 landscape the preview is positioned at:  left 1.56% / top 31.94% /
+           width 32.81% / height 15.28% of #stage  (see #stage.landscape #selected-cards
+           in the v7 CSS block). It sits directly BELOW the pips/mult/focus row and
+           ABOVE #hand-name. The preview system should render INTO #selected-cards
+           (or replace it) at this anchor; #hand-name is the label just under it. -->
       <div id="hand-preview-area">
         <div id="selected-cards"></div>
         <div id="hand-name">—</div>
@@ -3010,7 +3086,7 @@
       <!-- Knack section -->
       <div id="knack-carousel-wrap">
         <span class="panel-title">Knacks</span>
-        <div id="knack-list"><span style="font-size:9px;color:var(--cream-dim)">None yet</span></div>
+        <div id="knack-list"><span style="font-size:9px;color:var(--cream-dim)">No knacks</span></div>
       </div>
     </div>
 
@@ -3050,6 +3126,24 @@
     <button class="act-btn btn-secondary" id="btn-pause">⏸ Pause</button>
   </div>
 
+  <!-- v7 landscape-only blocks (hidden in portrait) -->
+  <div id="vclock" class="v7-ls"><div id="vclock-band"></div><div id="vclock-fill"></div></div>
+  <div id="run-progress" class="v7-ls">
+    <div class="rp-act">ACT 1</div>
+    <div class="rp-nodes"><span></span><span></span><span></span><span></span><span></span><span class="boss">&#9760;</span></div>
+  </div>
+  <div id="coin-info" class="v7-ls">
+    <div class="ci-main">&#128176;<b id="ci-gold">0</b></div>
+    <div class="ci-row"><span>Interest</span><span class="pos" id="ci-interest">+0</span></div>
+    <div class="ci-row"><span>Cash out</span><span id="ci-cashout">+0</span></div>
+  </div>
+  <div id="interact-costs" class="v7-ls">
+    <div class="ic-h">Time Cost</div>
+    <div class="ic-r"><span>Play</span><span id="ic-play">0s</span></div>
+    <div class="ic-r"><span>Discard</span><span>3s</span></div>
+    <div class="ic-r"><span>Swap</span><span>4s</span></div>
+  </div>
+
   <!-- Hidden elements still needed by render() -->
   <div style="display:none">
     <div id="score-breakdown"></div>
@@ -3086,6 +3180,44 @@
 
 <!-- DEV PANEL -->
 <div id="dev-btn" onclick="toggleDevPanel()" style="display:none;position:fixed;bottom:60px;right:6px;z-index:500;width:32px;height:32px;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.4);border-radius:8px;font-size:16px;display:none;align-items:center;justify-content:center;cursor:pointer;">🛠</div>
+
+<!-- Preview-window scoring dance — renders INTO the dedicated hand-preview slot (#selected-cards) -->
+<style>
+  #selected-cards.dnc-active{ flex-direction:column; align-items:stretch; justify-content:flex-start;
+    overflow:visible; gap:3px; padding:5px; z-index:60; height:auto; }
+  #stage.landscape #selected-cards.dnc-active{ height:auto; min-height:15.28%; overflow:visible; flex-direction:column; align-items:stretch; justify-content:flex-start; z-index:60; }
+  #selected-cards.dnc-active .dnc-row{display:flex;align-items:center;gap:5px;min-height:38px;}
+  #selected-cards.dnc-active .dnc-row.hand{min-height:46px;}
+  #selected-cards.dnc-active .dnc-lab{font-size:7px;letter-spacing:1px;color:var(--cream-dim);writing-mode:vertical-rl;
+    transform:rotate(180deg);text-transform:uppercase;opacity:.6;flex:0 0 auto;}
+  #selected-cards.dnc-active .dnc-items{display:flex;gap:4px;align-items:center;flex-wrap:nowrap;flex:1;overflow:visible;}
+  .dnc-outer{display:inline-flex;flex:0 0 auto;transform-origin:center;}
+  .dnc-card{width:30px;height:42px;border-radius:5px;background:#f4ead5;color:#1a1a1a;transform-origin:center;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;
+    box-shadow:0 2px 5px rgba(0,0,0,.5);font-family:'Crimson Pro',serif;}
+  .dnc-card .r{font-size:14px;line-height:1;} .dnc-card .s{font-size:11px;line-height:1;}
+  .dnc-card.red{color:#a0030b;}
+  .dnc-chip{height:34px;min-width:34px;padding:0 6px;border-radius:7px;display:flex;align-items:center;
+    justify-content:center;transform-origin:center;background:rgba(212,168,87,0.14);border:1px solid rgba(212,168,87,0.5);
+    font-size:7px;letter-spacing:.2px;color:var(--cream);text-align:center;max-width:64px;line-height:1.05;}
+  .dnc-jitter{animation:dnc-jitter .1s linear infinite;}
+  @keyframes dnc-jitter{0%{transform:translate(0,0) rotate(0) scale(1);}
+   20%{transform:translate(calc(-0.9px*var(--dnc-jit)),calc(0.7px*var(--dnc-jit))) rotate(calc(-1.1deg*var(--dnc-jit))) scale(calc(1 + .015*var(--dnc-jit)));}
+   40%{transform:translate(calc(0.9px*var(--dnc-jit)),calc(-0.7px*var(--dnc-jit))) rotate(calc(1.1deg*var(--dnc-jit))) scale(calc(1 + .015*var(--dnc-jit)));}
+   60%{transform:translate(calc(-0.6px*var(--dnc-jit)),calc(-0.5px*var(--dnc-jit))) rotate(calc(-0.7deg*var(--dnc-jit))) scale(1);}
+   80%{transform:translate(calc(0.6px*var(--dnc-jit)),0) rotate(calc(0.7deg*var(--dnc-jit))) scale(1);}
+   100%{transform:translate(0,0) rotate(0) scale(1);}}
+  .dnc-pulse{animation:dnc-pulse var(--dnc-dur) ease;}
+  @keyframes dnc-pulse{0%{transform:scale(1);}50%{transform:scale(calc(1 + .12*var(--dnc-mag)));}100%{transform:scale(1);}}
+  .dnc-flash{animation:dnc-flash var(--dnc-dur) ease;}
+  @keyframes dnc-flash{0%{filter:brightness(1);transform:scale(1);}40%{filter:brightness(calc(1 + .7*var(--dnc-mag)));transform:scale(calc(1 + .03*var(--dnc-mag)));}100%{filter:brightness(1);transform:scale(1);}}
+  .dnc-pop{animation:dnc-pop var(--dnc-dur) cubic-bezier(.34,1.56,.64,1);}
+  @keyframes dnc-pop{0%{transform:scale(1);}40%{transform:scale(calc(1 + .30*var(--dnc-mag)));}70%{transform:scale(calc(1 - .05*var(--dnc-mag)));}100%{transform:scale(1);}}
+  .dnc-particle{position:fixed;z-index:200;font-weight:700;pointer-events:none;font-family:'Crimson Pro',serif;
+    font-size:calc(15px*var(--dnc-pscale,1));text-shadow:0 1px 4px rgba(0,0,0,.85);}
+  /* live focus tracker beneath the FOCUS number (stays live even while the big number is locked mid-dance) */
+  #focus-live-sub{ font-size:8px; letter-spacing:.3px; color:var(--cream-dim); opacity:.75; margin-top:1px; line-height:1; }
+</style>
 
 <div id="dev-panel" style="display:none;position:fixed;inset:0;z-index:499;overflow-y:auto;background:rgba(0,0,0,0.92);padding:16px;flex-direction:column;gap:12px;">
   <div style="display:flex;justify-content:space-between;align-items:center;">
@@ -3267,6 +3399,10 @@
     <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;margin-top:6px;">
       <input id="dev-trick-tray-toggle" type="checkbox" onchange="toggleTrickTrayMode(!this.checked)" style="accent-color:var(--gold);">
       Place Tricks on the grid (off = side tray)
+    </label>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;margin-top:6px;">
+      <input id="dev-new-dance-toggle" type="checkbox" onchange="setNewDance(this.checked)" style="accent-color:var(--gold);">
+      New scoring dance (preview-window · WIP)
     </label>
   </div>
 
@@ -3647,7 +3783,7 @@
 </div>
 
 <script>
-const BUILD = '2026-07-17 · r80';
+const BUILD = '2026-07-20 · r85';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -4062,6 +4198,12 @@ const TRICK_POOL = [
   { id:'flow_state',     name:'Flow State',          tier:'rare',      tags:['focus','pips'], desc:'While focus is ×1.5 or higher, +10 pips per card scored' },
   // ── Legendary ──
   { id:'heartwood',      name:'Heartwood',           tier:'epic',      desc:'Dead center card permanently gains +5 pips & +1 mult each time scored' },
+  // ── Combo batch (r83): payoffs / sleight-charge synergies ──
+  { id:'landfill',       name:'Landfill',            tier:'common',    tags:['discard','mult'],  desc:'Hands score +1 mult for every 5 cards you have discarded this round' },
+  { id:'old_growth',     name:'Old Growth',          tier:'epic',      tags:['scaling','mult'],  desc:'Each scored card also adds its permanent pip bonus to mult' },
+  { id:'magician',       name:'Magician',            tier:'rare',      tags:['sleight','mult'],  desc:'+3 mult for each Sleight you own' },
+  { id:'stand_up',       name:'Stand-Up',            tier:'rare',      tags:['sleight','pips'],  desc:'+10 pips for each charge remaining across all your Sleights' },
+  { id:'scalper',        name:'Scalper',             tier:'rare',      tags:['sleight','pips'],  desc:'Total pips ×(1 + 0.2 per charge your Sleights are missing), figured when the hand scores' },
 ];
 
 // ── Trick category → emoji ──
@@ -4125,6 +4267,7 @@ let focusAnimRunning = false;
 let focusDecayBaseMs     = parseFloat(localStorage.getItem('focusDecayBaseMs')) || 2000;
 let focusDecayIntervalMs = focusDecayBaseMs;
 let focusDecayTimerId    = null;   // setInterval id
+let focusDecayBuffer     = 0;      // grace ticks held while sitting on a whole-number (x.0) multiplier
 let focusBeatDurationMs  = parseFloat(localStorage.getItem('focusBeatDurationMs')) || 300;
 
 // Speed bonus formula state (dev-tunable). Persisted to localStorage.
@@ -4269,7 +4412,40 @@ function pickWeightedLimits(n, pool) {
   return out;
 }
 // Trick tray capacity (the trick_slots limit). Enforced in injectTrickAfterReward.
-function trickCapacity() { return limits.trick_slots?.current ?? 5; }
+function trickCapacity() {
+  return (limits.trick_slots?.current ?? 5) + ((typeof hasKnack === 'function' && hasKnack('curator')) ? 1 : 0);
+}
+
+// Rank value with Ace HIGH (=14). Shared by knacks that care about the grid's
+// highest/lowest rank (High and Mighty, Low and Behold, Down and Back In).
+function rankHighVal(rk) { return rk === 'A' ? 14 : (RANK_ORDER[rk] || 0); }
+
+// ── Sleight-charge economy (Magician / Stand-Up / Scalper / Coin Toss / Martyr) ──
+// Every Sleight the player owns, wherever it currently sits (deck, played pile, grid),
+// deduped by _id so a card is counted once.
+function ownedSleightCards() {
+  const out = [], seen = new Set();
+  const push = c => { if (c && c._isSleight && !seen.has(c._id)) { seen.add(c._id); out.push(c); } };
+  (drawPile || []).forEach(push);
+  (playedPile || []).forEach(push);
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) push(gridData[r]?.[c]);
+  return out;
+}
+function ownedSleightCount() { return ownedSleightCards().length; }
+// total = charges remaining (infinite counts as 1, owner decision); missing = capacity − current
+// (infinite is always "full" → 0 missing).
+function sleightChargeInfo() {
+  let total = 0, missing = 0;
+  ownedSleightCards().forEach(card => {
+    if (card._usesLeft === 'infinite') { total += 1; return; }
+    const def = SLEIGHT_POOL.find(j => j.id === card.sleightId);
+    const cur = Math.max(0, card._usesLeft || 0);
+    const cap = (def && typeof def.durability === 'number') ? def.durability : cur;
+    total += cur;
+    missing += Math.max(0, cap - cur);
+  });
+  return { total, missing };
+}
 // ── END LIMITS SYSTEM ──
 let accumulatedSwaps = 0;    // banked unused swaps (Reserves: Swaps)
 let accumulatedDiscards = 0; // banked unused discards (Reserves: Discards)
@@ -4344,6 +4520,15 @@ const KNACK_POOL = [
   { id:'replay_rewind',   emoji:'🔂',  name:'Rewound Echo',     desc:'Any time a card replays, 25% chance to rewind the clock 2 seconds.' },
   { id:'deja_vu',         emoji:'🔁',  name:'Déjà Vu',          desc:'Playing the same ranks in two hands in a row rewinds the clock 5 seconds.' },
   { id:'clockmaker',      emoji:'⏱️',  name:'Clockmaker',       desc:'Any time a single hand scores at least 30% of the round goal, rewind the clock 5 seconds.' },
+  // ── Combo batch (r83) ──
+  { id:'high_and_mighty', emoji:'👑',  name:'High and Mighty',  desc:'The highest-ranked cards in each scored hand replay once.' },
+  { id:'low_and_behold',  emoji:'🐛',  name:'Low and Behold',   desc:'Any played hand containing the grid’s lowest rank replays the whole hand once.' },
+  { id:'down_and_back_in',emoji:'🔁',  name:'Down and Back In', desc:'Discarding the grid’s highest rank grants +1 discard or swap (alternating) and +5 coins. If several cards share that top rank, all must be discarded together.' },
+  { id:'muscle_memory',   emoji:'🧠',  name:'Muscle Memory',    desc:'Primed Tricks stay primed for one extra hand.' },
+  { id:'curator',         emoji:'✦',   name:'Curator',          desc:'+1 Trick Slot.' },
+  { id:'scavenger',       emoji:'🦴',  name:'Scavenger',        desc:'Whenever a curse lifts, gain +10 coins and +1 discard next round.' },
+  { id:'coin_toss',       emoji:'🪙',  name:'Coin Toss',        desc:'At the start of each round, every Sleight has a 50% chance to restore 1 charge.' },
+  { id:'martyr',          emoji:'⚰️',  name:'Martyr',           desc:'Discarding a non-discard Sleight restores 1 charge to all Sleights on the grid.' },
 ];
 // ── SLEIGHT POOL ──
 // Sleights live in the deck as special cards (_isSleight:true). They fall onto the grid,
@@ -4395,12 +4580,63 @@ const SLEIGHT_POOL = [
   { id:'shady_tree',     name:'Shady Tree',     emoji:'🌳', rarity:'rare',      activation:'on_play',    durability:10,         defaultRank:null, defaultSuit:null, tags:['time','position'],    desc:'Play this from the round’s shady column to pause the clock. Pauses for its remaining charges (10 → 1), −1 each use; destroyed at 0.' },
   { id:'stopwatch',      name:'Stopwatch',      emoji:'⏱️', rarity:'epic',      activation:'double_tap', durability:60,         defaultRank:null, defaultSuit:null, tags:['time'],                desc:'Double-tap: freeze the clock until you next play a hand (swaps and discards keep it frozen). Holds up to 60 paused seconds total, drained 1 per second; destroyed at 0.' },
   { id:'piggy_bank',     name:'Piggy Bank',     emoji:'🐷', rarity:'common',    activation:'double_tap', durability:5,          defaultRank:null, defaultSuit:null, tags:['resource','coins'],   desc:'Double-tap: gain 5 coins. (5 charges)' },
+  { id:'magnet',         name:'Magnet',         emoji:'🧲', rarity:'common',    activation:'double_tap', durability:3,          defaultRank:null, defaultSuit:null, tags:['position','swap'],    desc:'Double-tap, then tap a card: every card of that rank slides next to Magnet (counts as several swaps). 3 charges, once per round.' },
   // ── Aim-based (fixtures: tap to rotate aim; cannot be swapped or discarded) ──
   { id:'reflect',     name:'Reflect',     emoji:'🪞', rarity:'epic',   activation:'aim', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['retrigger','position'], desc:'Tap to rotate its aim (up→right→down→left). The card it faces retriggers once when a hand scores. Cannot be swapped or discarded.' },
   { id:'soul_mirror', name:'Soul Mirror', emoji:'👁️', rarity:'mythic', activation:'aim', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['retrigger','rank'],     desc:'Tap to rotate its aim. While it faces a card, every scored card of that rank retriggers — anywhere on the grid. Multiple Soul Mirrors stack. Cannot be swapped or discarded.' },
 ];
 
 // ── Aim sleights (Reflect, Soul Mirror): fixtures that point at an adjacent cell ──
+// ══════════════════════════════════════════════
+// COMBO FAMILIES — legibility layer (r83)
+// Each family is a set of "slots"; a slot is one required entity id, or an array
+// (own ANY one of these). checkComboMilestones() (called at round start) fires a
+// one-time "COMBO ONLINE" toast when a family is fully owned, and a one-time
+// "combo close — need X" hint when you own all but one slot — so synergies feel
+// discovered, not stumbled into. A wrong/renamed id just fails to fire (harmless).
+// ══════════════════════════════════════════════
+const COMBO_FAMILIES = [
+  { id:'discard_furnace',   name:'Discard Furnace',   slots:['free_discards','hoarder','discard_pips','landfill'] },
+  { id:'retrigger_cascade', name:'Retrigger Cascade', slots:['soul_mirror',['reflect','corner_retrigger','rowcol_retrigger'],'club_double','high_and_mighty'] },
+  { id:'priming_press',     name:'Priming Press',     slots:[['wild_heart','prime_times'],'twos_retrigger','muscle_memory'] },
+  { id:'permanent_snowball',name:'Permanent Snowball',slots:[['the_naturalist','the_bomb','sapling'],'snowball','old_growth'] },
+  { id:'sleight_charges',   name:'Sleight Charges',   slots:[['magician','stand_up','scalper'],['coin_toss','martyr']] },
+  { id:'frozen_hour',       name:'Frozen Hour',       slots:['high_water','frozen_moment','sands_of_time'] },
+  { id:'focus_overdrive',   name:'Focus Overdrive',   slots:['flow_state',['ancient_grove','richter'],['rhythm','kaleidoscope','before_the_tide']] },
+  { id:'position_lock',     name:'Position Lock',     slots:[['rowcol_mult','rowcol_retrigger','rowcol_perm_double'],['shape_square','two_corners','shape_cross'],'magnet'] },
+];
+let _comboAnnounced = new Set(); // families that already fired the ONLINE toast (per game)
+let _comboHinted    = new Set(); // families that already fired the "close" hint (per game)
+function ownsEntity(id) {
+  return (typeof ownsTrick === 'function' && ownsTrick(id))
+      || (typeof hasKnack === 'function' && hasKnack(id))
+      || (typeof grantedSleightIds !== 'undefined' && grantedSleightIds.has(id));
+}
+function _slotMet(slot) { return Array.isArray(slot) ? slot.some(ownsEntity) : ownsEntity(slot); }
+function comboComplete(fam) { return fam.slots.every(_slotMet); }
+function comboMissingSlot(fam) { const u = fam.slots.filter(s => !_slotMet(s)); return u.length === 1 ? u[0] : null; }
+function entityDisplayName(slot) {
+  const id = Array.isArray(slot) ? slot[0] : slot;
+  return (TRICK_POOL.find(x => x.id === id)?.name)
+      || (KNACK_POOL.find(x => x.id === id)?.name)
+      || (SLEIGHT_POOL.find(x => x.id === id)?.name) || id;
+}
+// Called at round start: at most one completion toast, else at most one "close" hint.
+function checkComboMilestones() {
+  for (const fam of COMBO_FAMILIES) {
+    if (comboComplete(fam)) {
+      if (!_comboAnnounced.has(fam.id)) { _comboAnnounced.add(fam.id); _comboHinted.add(fam.id);
+        showMessage(`⚡ COMBO ONLINE — ${fam.name}!`, '#ffd700'); return; }
+    }
+  }
+  for (const fam of COMBO_FAMILIES) {
+    if (comboComplete(fam) || _comboHinted.has(fam.id)) continue;
+    const miss = comboMissingSlot(fam);
+    if (miss) { _comboHinted.add(fam.id);
+      showMessage(`Combo close: ${fam.name} — need ${entityDisplayName(miss)}`, '#8fd0ff'); return; }
+  }
+}
+
 const AIM_SLEIGHTS = new Set(['reflect','soul_mirror']);
 const AIM_ORDER = ['up','right','down','left'];
 const AIM_DELTA = { up:[-1,0], right:[0,1], down:[1,0], left:[0,-1] };
@@ -4448,6 +4684,8 @@ function soulMirrorRankCount(rank) {
 
 // One-shot effect flags consumed by scoring/round logic
 let sleightNextHandDouble = false; // Echo: next hand scores twice
+let _dabiSwapNext = false;          // Down and Back In: alternates discard/swap grant
+let magnetArmed = null;             // {r,c,card} while Magnet waits for a target-rank tap
 let sleightLegacyMult    = false; // Legacy: next hand ×3
 let sleightAmplifierMult = 0;     // Amplifier: accumulated trick mult for next hand
 let grantedSleightIds = new Set(); // dedup: tracks which sleight IDs have been granted
@@ -5153,6 +5391,12 @@ const BAL = {
   spade_flood: { time_div: 2 },
   sands_of_time: { divisor: 2 },
   discard_pips: { pips_per_discard: 3 },
+  landfill: { mult_per_n: 1, discards_per: 5 },
+  magician: { mult_per_sleight: 3 },
+  stand_up: { pips_per_charge: 10 },
+  scalper: { pip_mult_per_missing: 0.2 },
+  down_and_back_in: { coins: 5 },
+  scavenger: { coins: 10 },
   edge_pips: { pips_per_card: 15 },
   veteran_bonus: { pips_per_level: 2 },
   high_pair: { focus_per_card: 2 },
@@ -5414,6 +5658,9 @@ function calcScore(handName, cells, contrib = null) {
   const _eyeStorm = hasTrick('eye_of_storm') && _eyeFrac > 1/3 && _eyeFrac <= 2/3;
   const _rankHigh = rk => rk === 'A' ? 14 : (RANK_ORDER[rk] || 0);
   const _eyeMax = _eyeStorm ? Math.max(...cards.map(c => _rankHigh(c.rank))) : -1;
+  // High and Mighty (knack): the hand's highest-ranked card(s) all replay once
+  const _hnmOn  = hasKnack('high_and_mighty');
+  const _hnmMax = _hnmOn ? Math.max(...cards.map(c => _rankHigh(c.rank))) : -1;
   // Ripple: once per 30s, cards within one rank of another card in the hand retrigger
   const _rippleReady = hasTrick('ripple') && (Date.now() - _rippleLastFire >= BAL.ripple.cooldown_ms);
   const _rippleSet = new Set();
@@ -5467,6 +5714,7 @@ function calcScore(handName, cells, contrib = null) {
     const _soul = soulMirrorRankCount(baseRank);
     const _re = permRetrig[_eKey] || 0;  // permanent per-card retrigger (events)
     const _rne = hasTrick('closing_time') && roundFractionRemaining() < 0.25; // Near Extinction
+    const _hnm = _hnmOn && _rankHigh(baseRank) === _hnmMax; // High and Mighty: top-rank card(s)
     const _ech = hasTrick('echo_hand') && _effStreak >= 2; // Echoes
     const _wp = hasTrick('woodpecker') && woodpeckerPos && r === woodpeckerPos.r && c === woodpeckerPos.c; // Woodpecker
     if (_r2) _retrig++; if (_r8) _retrig += (_eightCount - 1); if (_rc) _retrig++; if (_rl) _retrig++;
@@ -5474,6 +5722,7 @@ function calcScore(handName, cells, contrib = null) {
     if (_refl) _retrig++; _retrig += _soul;
     _retrig += _re;
     if (_rne) _retrig++; if (_ech) _retrig++; if (_wp) _retrig += BAL.woodpecker.retrigger_count;
+    if (_hnm) _retrig++;
     if (hasTrick('club_double') && (card.suit === '♣' || (card.combined && card.suit2 === '♣'))) _clubHits += _retrig;
     if (card._vulturePause) _vultureFires += card._vulturePause * _retrig; // Vulture buff fires once per (re)trigger
     if (_retrig > 1) {
@@ -5489,6 +5738,7 @@ function calcScore(handName, cells, contrib = null) {
       else if (_refl) bPip('reflect', _pre);
       else if (_soul) bPip('soul_mirror', _pre);
       else if (_re) bPip('sapling', _extra);
+      else if (_hnm) bPip('high_and_mighty', _pre);
       else if (_rne) bPip('closing_time', _pre);
       else if (_ech) bPip('echo_hand', _pre);
       else if (_wp) bPip('woodpecker', _extra);
@@ -5536,6 +5786,8 @@ function calcScore(handName, cells, contrib = null) {
 
   // Compost: +3 pips per card discarded this round
   if (hasTrick('discard_pips')) { const _a = cardsDiscardedRound * BAL.discard_pips.pips_per_discard; totalPips += _a; bPip('discard_pips', _a); }
+  // Stand-Up: +10 pips per charge remaining across all owned Sleights
+  if (hasTrick('stand_up')) { const _a = sleightChargeInfo().total * BAL.stand_up.pips_per_charge; if (_a) { totalPips += _a; bPip('stand_up', _a); } }
 
   // Penny Saved: accumulated trick pips from discarded 5s
   if (hasTrick('fives_discard')) { totalPips += bonusMult_fives; bPip('fives_discard', bonusMult_fives); }
@@ -5627,6 +5879,14 @@ function calcScore(handName, cells, contrib = null) {
     const _xm = permXMult[cardKey(card.rank, card.suit)] || 1;
     if (_xm !== 1) { const _preXm = mult; mult *= _xm; bMult('perm_mult', mult - _preXm); }
   });
+  // Old Growth: each scored card also adds its permanent pip bonus to mult
+  if (hasTrick('old_growth')) {
+    cards.forEach(card => { const _og = permPips[cardKey(card.rank, card.suit)] || 0; if (_og) { mult += _og; bMult('old_growth', _og); } });
+  }
+  // Magician: +3 mult per Sleight owned
+  if (hasTrick('magician')) { const _a = ownedSleightCount() * BAL.magician.mult_per_sleight; if (_a) { mult += _a; bMult('magician', _a); } }
+  // Landfill: +1 mult per 5 cards discarded this round
+  if (hasTrick('landfill')) { const _a = Math.floor(cardsDiscardedRound / BAL.landfill.discards_per) * BAL.landfill.mult_per_n; if (_a) { mult += _a; bMult('landfill', _a); } }
 
   // Hearts: neutral by default; +1 mult each with Devoted Trick
   const heartCount = cards.filter(c => c.suit === '♥' || (c.combined && c.suit2 === '♥')).length;
@@ -5721,6 +5981,8 @@ function calcScore(handName, cells, contrib = null) {
   // Rank multipliers
   if (hasTrick('royal_trio') && cards.some(c=>c.rank==='K') && cards.some(c=>c.rank==='Q') && cards.some(c=>c.rank==='J')) { const _pre = mult; mult = Math.round(mult * BAL.royal_trio.mult_mult * 10) / 10; bMult('royal_trio', mult - _pre); }
   if (hasTrick('knave_power')) { let _jg = 0; for (let _gr=0; _gr<gridRows; _gr++) for (let _gc=0; _gc<gridCols; _gc++) { const _cc = gridData[_gr]?.[_gc]; if (_cc && !_cc._isSleight && !_cc._isTrick && _cc.rank === 'J') _jg++; } if (_jg > 0) { const _pre = totalPips; totalPips = Math.round(totalPips * Math.pow(BAL.knave_power.per_jack, _jg)); bPip('knave_power', totalPips - _pre); } }
+  // Scalper: ×(1 + 0.2 per missing Sleight charge) to total pips — figured once, now
+  if (hasTrick('scalper')) { const _miss = sleightChargeInfo().missing; if (_miss > 0) { const _m = 1 + BAL.scalper.pip_mult_per_missing * _miss; const _pre = totalPips; totalPips = Math.round(totalPips * _m); bPip('scalper', totalPips - _pre); } }
   // Phoenix: while paused, the Focus multiplier applies twice — handled at the Focus step below.
   // Mirror (Blueprint): duplicate each borrowed Trick's pip/mult contribution (incl. the multipliers above)
   mirroredTrickIds().forEach(mid => {
@@ -5784,6 +6046,16 @@ function calcScore(handName, cells, contrib = null) {
 
   if (hasTrickCard) s *= 2;
 
+  // Low and Behold (knack): a hand containing the grid's lowest rank replays whole (×2)
+  if (hasKnack('low_and_behold')) {
+    let _gmin = 99;
+    for (let _gr = 0; _gr < gridRows; _gr++) for (let _gc = 0; _gc < gridCols; _gc++) {
+      const _gc0 = gridData[_gr]?.[_gc];
+      if (_gc0 && _gc0.rank && !_gc0._isSleight && !_gc0._isStone && !_gc0._isTrick) _gmin = Math.min(_gmin, _rankHigh(_gc0.rank));
+    }
+    if (_gmin < 99 && cards.some(c => _rankHigh(c.rank) === _gmin)) s *= 2;
+  }
+
   // 5. Focus multiplier — separate third element, applied at the very end of the sequence
   if (fMult > 1) s *= fMult;
   // Phoenix: while the clock is paused, the Focus multiplier applies a second time
@@ -5795,6 +6067,12 @@ function calcScore(handName, cells, contrib = null) {
     if (_cm) Object.entries(_cm).forEach(([id, d]) => { if (d > 0) contrib.push({type:'mult',source:'trick',id,delta:Math.round(d*10)/10}); });
     if (_ec.pips > 0) contrib.push({type:'pip',source:'exalt',id:'_exalt',delta:_ec.pips});
     if (_ec.mult > 0) contrib.push({type:'mult',source:'exalt',id:'_exalt',delta:Math.round(_ec.mult*10)/10});
+    // Sleight scoring contribution: Amplifier's carried-over mult (folded into base mult above).
+    // NOTE: Knacks and other Sleights are rule/resource/wildcard effects — they add no pips/mult
+    // during scoring, so nothing else is attributable here. Any future scoring Knack/Sleight can
+    // push {type,source:'knack'|'sleight',id,delta} and the dance will render it automatically.
+    if (typeof sleightAmplifierMult === 'number' && sleightAmplifierMult > 0)
+      contrib.push({type:'mult',source:'sleight',id:'amplifier',delta:Math.round(sleightAmplifierMult*10)/10});
   }
 
   return Math.round(s);
@@ -6273,9 +6551,16 @@ function buildFocusMeter() {
 function syncFocusMeterState() {
   const total = Math.min(focusNodes, focusCapacity * FOCUS_THRESHOLD);
   const chargesComplete = Math.floor(total / FOCUS_THRESHOLD);
-  const nodesInSegment = total - chargesComplete * FOCUS_THRESHOLD;
+  let nodesInSegment = total - chargesComplete * FOCUS_THRESHOLD;
   // Color reflects the tier currently being filled (next tier after completed charges)
-  const color = FOCUS_COLORS[Math.min(chargesComplete, FOCUS_COLORS.length - 1)];
+  let segColorIdx = chargesComplete;
+  // On a clean x.0 (the segment would read 0 but focus > 0), show it FULL in the
+  // just-completed charge's colour — the bar only ever looks empty at true zero.
+  if (total > 0 && nodesInSegment === 0) {
+    nodesInSegment = FOCUS_THRESHOLD;
+    segColorIdx = chargesComplete - 1;
+  }
+  const color = FOCUS_COLORS[Math.min(segColorIdx, FOCUS_COLORS.length - 1)];
   document.documentElement.style.setProperty('--focus-color', color);
 
   // Active segment nodes
@@ -6302,6 +6587,10 @@ function updateFocusMultReadout(pulse = false) {
   // FOCUS score box mirrors the live focus multiplier (suppressed mid-dance; the dance drives it)
   const fvEl = document.getElementById('focus-val');
   if (fvEl && !danceAbortController) fvEl.textContent = (mult === 1) ? '×1' : '×' + mult.toFixed(1);
+  // Live "now ×" tracker beneath the FOCUS number — always reflects the CURRENT focus
+  // (keeps ticking during the dance while the big number is locked to the value used).
+  const subEl = document.getElementById('focus-live-sub');
+  if (subEl) subEl.textContent = 'now ×' + mult.toFixed(1);
   const el = document.getElementById('focus-mult-readout');
   if (!el) return;
   el.textContent = '×' + mult.toFixed(1);
@@ -6321,6 +6610,7 @@ function updateFocusMeter() {
 
 function addFocus(amount) {
   if (!amount || amount <= 0) return;
+  focusDecayBuffer = 0;   // gaining focus resets the x.0 grace buffer
   const cap = focusCapacity * FOCUS_THRESHOLD;
   const prev = Math.min(focusNodes, cap);
   const prevCharges = Math.floor(prev / FOCUS_THRESHOLD);
@@ -6519,6 +6809,12 @@ function focusDecayTick() {
   // "jump up then get wiped" desync.
   if (focusAnimRunning) return;
   if (focusNodes <= 0) return;
+  // Buffer: when focus lands on a whole-number multiplier (x.0 — i.e. focusNodes is a
+  // multiple of the threshold), hold for 3 ticks before dropping to (x-1).9. Feels nicer.
+  if (focusNodes >= FOCUS_THRESHOLD && focusNodes % FOCUS_THRESHOLD === 0) {
+    if (focusDecayBuffer < 2) { focusDecayBuffer++; return; }
+  }
+  focusDecayBuffer = 0;
   removeFocus(1);
 }
 
@@ -6604,6 +6900,7 @@ function updateScoreUI() {
   document.getElementById('hands-display').textContent = handsPlayed;
   document.getElementById('level-display').textContent = level;
   updateCoinsUI();
+  updateRunProgressUI();
 }
 
 // Called from dance to update live pips/mult sub-boxes
@@ -6618,14 +6915,25 @@ function updateDanceSubboxes(pips, mult) {
 
 function updateCoinsUI() {
   document.getElementById('coins-display').textContent = '💰 ' + coins;
+  const cg = document.getElementById('ci-gold'); if (cg) cg.textContent = coins;
   if (document.getElementById('shop-overlay').classList.contains('show')) refreshShopAffordability();
+}
+
+// v7 landscape: run-progress block (Act + node pips)
+function updateRunProgressUI() {
+  const rp = document.getElementById('run-progress'); if (!rp) return;
+  const act = rp.querySelector('.rp-act'); if (act) act.textContent = 'ACT ' + actNumber;
+  rp.querySelectorAll('.rp-nodes span:not(.boss)').forEach((s, i) => {
+    s.classList.toggle('on', i < nodeInAct);
+    s.classList.toggle('cur', i === nodeInAct);
+  });
 }
 
 function updateKnackList() {
   const el = document.getElementById('knack-list');
   if (!el) return;
   if (acquiredKnacks.length === 0) {
-    el.innerHTML = '<span style="font-size:11px;color:var(--cream-dim)">None yet</span>';
+    el.innerHTML = '<span style="font-size:11px;color:var(--cream-dim)">No knacks</span>';
     return;
   }
   el.innerHTML = acquiredKnacks.map(t =>
@@ -6792,6 +7100,7 @@ function doSwap(r1, c1, r2, c2) {
 
   // Swap charge — skipped on a free swap; Steady Hand bypasses the limit
   if (!hasKnack('steady_hand') && !freeThisSwap) swaps--;
+  if (!freeThisSwap) spendRoundTime(SWAP_TIME_COST);   // swaps cost time (free swaps exempt)
   if (sleightFreeSwapPending) sleightFreeSwapPending = false;
   // Swap time cost — 0s for first 2 swaps/round, 0s with Free Swaps, 20s with Steady Hand, else 10s
   let swapTimeCost = BAL._resources.swap_seconds;
@@ -6909,6 +7218,23 @@ function onCardTap(r, c) {
   const _cardStr = _card ? `${_card.rank}${_card.suit}` : 'null';
   dbgEvent('info', `tap [${r},${c}] ${_cardStr}`, { animating, trickPhase: trickSelectionPhase, swapPending: !!swapPending, selected: selected.length });
   if (animating) { dbgEvent('warn', `tap blocked: animating`); return; }
+  // ── Magnet: armed and waiting for a target-rank tap ──
+  if (magnetArmed) {
+    // Tapping Magnet itself (or its cell) cancels the arming.
+    if (magnetArmed.r === r && magnetArmed.c === c) {
+      magnetArmed = null; showMessage('Magnet cancelled', 'var(--cream-dim)'); render(); return;
+    }
+    const _t = gridData[r]?.[c];
+    if (!_t || !_t.rank || _t._isSleight || _t._isStone || _t._isTrick) {
+      showMessage('Tap a normal card to pull its rank', 'var(--cream-dim)'); return;
+    }
+    const _m = magnetArmed; magnetArmed = null;
+    const _moved = magnetCluster(_m.r, _m.c, _t.rank);
+    lockSleightForRound(_m.card); // spends a charge / locks for the round
+    showMessage(_moved ? `🧲 Magnet pulled ${_moved} ${_t.rank}${_moved > 1 ? 's' : ''} in` : `🧲 No ${_t.rank}s to pull`, _moved ? '#8fd0ff' : 'var(--cream-dim)');
+    render();
+    return;
+  }
   // Block null cells
   if (gridData[r][c] === null) { dbgEvent('warn', `tap blocked: null cell [${r},${c}]`); return; }
   // Block boss-obstructed cells
@@ -6955,6 +7281,14 @@ function onCardTap(r, c) {
         return;
       }
       hideSleightGridTooltip();
+      // Magnet: don't fire yet — arm it and wait for the player to tap a target card.
+      // (Lock/charge are spent when the cluster actually happens, in the intercept below.)
+      if (jdef.id === 'magnet') {
+        magnetArmed = { r, c, card: jcard };
+        showMessage('Magnet armed — tap a card to pull its rank', '#8fd0ff');
+        render();
+        return;
+      }
       applySleightGridEffect(jdef.id, r, c);
       lockSleightForRound(jcard);
       return;
@@ -7391,7 +7725,13 @@ function playHand() {
     if (trickTray.some(t => t._primed > 0)) {
       const _pc = []; calcScore(hand, handCells, _pc);
       const _ids = new Set(_pc.map(e => e.id));
-      trickTray.forEach(t => { if (t._primed > 0 && _ids.has(t.id)) t._primed = Math.max(0, t._primed - 1); });
+      const _mm = hasKnack('muscle_memory'); // primes last one extra hand
+      trickTray.forEach(t => {
+        if (t._primed > 0 && _ids.has(t.id)) {
+          if (_mm && !t._primeHeld) { t._primeHeld = true; } // skip this consumption once
+          else { t._primed = Math.max(0, t._primed - 1); t._primeHeld = false; }
+        }
+      });
     }
     // Inspirato: a scored Ace primes the first and last tray Tricks
     if (hasTrick('wild_heart') && trickTray.length && handCells.some(([r,c]) => gridData[r]?.[c]?.rank === 'A')) {
@@ -7436,6 +7776,12 @@ function playHand() {
     if (curse.left <= 0) {
       delete cardCurses[k];
       showMessage(`Curse lifted: ${card.rank}${card.suit}`, '#54af88');
+      // Scavenger: farm lifted curses for coins + a discard next round
+      if (hasKnack('scavenger')) {
+        coins += BAL.scavenger.coins; updateCoinsUI();
+        nextRoundDiscardDelta += 1;
+        showMessage(`Scavenger: +${BAL.scavenger.coins} coins, +1 discard next round`, 'var(--gold)');
+      }
     }
   });
 
@@ -8039,7 +8385,17 @@ async function goalCelebration(handCells) {
   overlay.remove();
 }
 
+// ── New preview-window scoring dance (dev toggle; owner-locked settings) ──
+const DANCE_CFG = {
+  actA:{cls:'dnc-pulse',dur:420,mag:1.0}, actB:{cls:'dnc-flash',dur:420,mag:0.4},
+  trig:{cls:'dnc-pop',dur:260,mag:0.7}, jitInit:0.20, jitGrow:0.35,
+  tickRest:600, pFlight:550, scoreClimb:1250, ff:15, pScale:2.6,
+};
+let newDanceEnabled = (function(){ try { return localStorage.getItem('newDance') !== '0'; } catch(e){ return true; } })();
+function setNewDance(on){ newDanceEnabled = !!on; try { localStorage.setItem('newDance', on ? '1' : '0'); } catch(e){} }
+
 async function playScoreDance(result, toRemove, isGoalHand = false) {
+  if (newDanceEnabled) { return playPreviewDance(result, toRemove, isGoalHand); }
   cancelDance();
   const ctrl = new AbortController();
   danceAbortController = ctrl;
@@ -8391,6 +8747,202 @@ function handleDanceAbort(isGoalHand) {
 }
 
 // ══════════════════════════════════════════════
+// PREVIEW-WINDOW SCORING DANCE (opt-in via dev toggle)
+// Grid cards keep their normal pop-then-discard; the slow, detailed Balatro
+// escalation runs in the dedicated hand-preview slot (#selected-cards). Cards score (Activation), per-hand tricks
+// charge (Jitter) as cards trigger them (Trigger) then RELEASE (Activation).
+// Reuses the same goal / settle / abort tail as playScoreDance.
+// ══════════════════════════════════════════════
+let dncFF = false;
+function dncApply(el, m){ if(!el) return; el.classList.remove('dnc-pulse','dnc-flash','dnc-pop');
+  el.style.setProperty('--dnc-mag', m.mag); el.style.setProperty('--dnc-dur', m.dur+'ms');
+  void el.offsetWidth; el.classList.add(m.cls); }
+function dncActivate(el){ dncApply(el.parentElement, DANCE_CFG.actA); dncApply(el, DANCE_CFG.actB); }
+function dncTrigger(chip, n){ dncApply(chip.parentElement, DANCE_CFG.trig);
+  const j = DANCE_CFG.jitInit + DANCE_CFG.jitGrow * Math.pow(Math.max(0, n-1), 1.8);
+  chip.style.setProperty('--dnc-jit', j.toFixed(2));
+  if(!chip.classList.contains('dnc-jitter')) chip.classList.add('dnc-jitter'); }
+function dncStopJitter(chip){ chip.classList.remove('dnc-jitter'); chip.style.removeProperty('--dnc-jit');
+  if(chip.parentElement) chip.parentElement.classList.remove('dnc-pulse','dnc-flash','dnc-pop'); }
+function dncTick(el){ if(!el) return; el.style.animation='none'; void el.offsetWidth; el.style.animation='val-tick 0.18s ease'; }
+function dncFly(srcEl, boxEl, label, color, onLand){
+  const a=srcEl.getBoundingClientRect(), b=boxEl.getBoundingClientRect();
+  const el=document.createElement('div'); el.className='dnc-particle'; el.textContent=label; el.style.color=color;
+  el.style.left=(a.left+a.width/2)+'px'; el.style.top=(a.top+a.height/2)+'px';
+  el.style.setProperty('--dnc-pscale', DANCE_CFG.pScale);
+  document.body.appendChild(el);
+  const dx=(b.left+b.width/2)-(a.left+a.width/2), dy=(b.top+b.height/2)-(a.top+a.height/2);
+  const dur = dncFF ? Math.max(60, DANCE_CFG.pFlight/DANCE_CFG.ff) : DANCE_CFG.pFlight;
+  el.animate([{transform:'translate(-50%,-50%) scale(.6)',opacity:0},
+    {transform:'translate(-50%,-50%) scale(1.15)',opacity:1,offset:.2},
+    {transform:`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px)) scale(.9)`,opacity:0}],
+    {duration:dur,easing:'cubic-bezier(.3,.7,.4,1)',fill:'forwards'});
+  setTimeout(()=>el.remove(), dur+60);
+  return new Promise(res=>setTimeout(()=>{ if(onLand) onLand(); res(); }, dur));
+}
+function dncFinishAbort(stage, isGoalHand){ if(stage){ stage.classList.remove('dnc-active'); stage.innerHTML=''; } handleDanceAbort(isGoalHand); }
+// Display name for a contribution entity, by source (Trick / Sleight / Knack / Exalt).
+function contribLabel(source, id){
+  if(source==='exalt') return 'Exalt';
+  const pool = source==='sleight' ? (typeof SLEIGHT_POOL!=='undefined' && SLEIGHT_POOL)
+             : source==='knack'   ? (typeof KNACK_POOL!=='undefined'   && KNACK_POOL)
+             :                       (typeof TRICK_POOL!=='undefined'   && TRICK_POOL);
+  const def = pool && pool.find(x=>x.id===id);
+  return (def && def.name) || id;
+}
+
+async function playPreviewDance(result, toRemove, isGoalHand = false){
+  cancelDance();
+  const ctrl = new AbortController(); danceAbortController = ctrl; const sig = ctrl.signal;
+  dncFF = false; resetParticleStep();
+  const aborted = () => sig.aborted;
+  const dwait = ms => new Promise(r => setTimeout(r, dncFF ? Math.max(6, ms/DANCE_CFG.ff) : ms));
+
+  const { hand, handCells, finalScore } = result;
+  const targetFocus = lastCalcFocus;
+  const scoreAfter = score, scoreBefore = score - finalScore;
+  const levelScale = Math.pow(1.1, level - 1);
+  const base = HAND_BASE[hand] || { pips:0, mult:1 };
+  const basePips = Math.round(base.pips * levelScale), baseMult = base.mult;
+  // Capture per-card pips BEFORE removeAndFall nulls gridData.
+  const cardPipVals = handCells.map(([r,c]) => cardPips(gridData[r][c].rank));
+
+  // ── Grid pops (unchanged grid behaviour) ──
+  const gridEl = document.getElementById('grid'); const STAGGER=180, POP=900;
+  handCells.forEach(([r,c],i)=>{ const card=gridData[r][c]; if(!card) return;
+    const el=gridEl?.querySelector(`[data-card-id="${card._id}"]`); if(!el) return;
+    const sc = card.suit==='♥'?'h':card.suit==='♦'?'d':card.suit==='♣'?'c':'s';
+    el.classList.remove('score-pop-h','score-pop-d','score-pop-c','score-pop-s');
+    el.style.setProperty('animation-delay',(i*STAGGER)+'ms','important'); void el.offsetWidth;
+    el.classList.add('score-pop-'+sc); setTimeout(()=>sfxCardPop(card.suit), i*STAGGER); });
+
+  // ── Contribution ledger (Tricks + exalt), aggregated per source ──
+  const savedPFM = lastPreFocusMult; const contrib=[]; calcScore(hand, handCells, contrib); lastPreFocusMult = savedPFM;
+  const trickMap = new Map();
+  contrib.forEach(e=>{ if(!(e.delta>0)) return; const key=e.source+':'+e.id;
+    let t=trickMap.get(key); if(!t){ t={source:e.source,id:e.id,pip:0,mult:0}; trickMap.set(key,t); }
+    if(e.type==='pip') t.pip+=e.delta; else t.mult+=e.delta; });
+  const tricks=[...trickMap.values()];
+
+  // ── Build the stage — render INTO the dedicated hand-preview slot ──
+  const stage=document.getElementById('selected-cards'); stage.classList.add('dnc-active'); stage.innerHTML='';
+  const mkRow=(label,extra)=>{ const row=document.createElement('div'); row.className='dnc-row'+(extra?(' '+extra):'');
+    const l=document.createElement('div'); l.className='dnc-lab'; l.textContent=label;
+    const items=document.createElement('div'); items.className='dnc-items';
+    row.appendChild(l); row.appendChild(items); stage.appendChild(row); return items; };
+  const handItems=mkRow('Hand','hand');
+  const cardEls=handCells.map(([r,c])=>{ const card=gridData[r][c];
+    const outer=document.createElement('div'); outer.className='dnc-outer';
+    const d=document.createElement('div'); d.className='dnc-card'+((card.suit==='♥'||card.suit==='♦')?' red':'');
+    d.innerHTML=`<span class="r">${card.rank}</span><span class="s">${card.suit}</span>`;
+    outer.appendChild(d); handItems.appendChild(outer); return d; });
+  // Group contributing entities into rows by source (Tricks / Sleights / Knacks).
+  // trickEls stays index-aligned with `tricks` so charge/release below still lines up.
+  const SRC_ORDER = { trick:0, exalt:1, sleight:2, knack:3 };
+  const SRC_LABEL = { trick:'Tricks', exalt:'Tricks', sleight:'Sleights', knack:'Knacks' };
+  tricks.sort((a,b)=>((SRC_ORDER[a.source]??9)-(SRC_ORDER[b.source]??9)));
+  const trickEls=[]; let _curLabel=null, _curItems=null;
+  tricks.forEach(t=>{
+    const lbl = SRC_LABEL[t.source] || 'Effects';
+    if(lbl!==_curLabel){ _curItems=mkRow(lbl); _curLabel=lbl; }
+    const outer=document.createElement('div'); outer.className='dnc-outer';
+    const c=document.createElement('div'); c.className='dnc-chip'; c.textContent=contribLabel(t.source,t.id);
+    outer.appendChild(c); _curItems.appendChild(outer); trickEls.push(c);
+  });
+  // stage already visible in-slot (dnc-active added above)
+
+  await wait(handCells.length*STAGGER + POP);
+  if(aborted()){ dncFinishAbort(stage,isGoalHand); return; }
+  if(!isGoalHand){ if(typeof sfxFlipShuffle==='function') sfxFlipShuffle(); removeAndFall(toRemove,'play'); }
+
+  // ── Score boxes ──
+  const pipsEl=document.getElementById('pips-val'), multEl=document.getElementById('mult-val'),
+        focusEl=document.getElementById('focus-val'), scoreEl=document.getElementById('score-total-num');
+  const pipsBox=document.getElementById('pips-box'), multBox=document.getElementById('mult-box');
+  let rp=basePips, rm=baseMult;
+  if(pipsEl) pipsEl.textContent=rp; if(multEl) multEl.textContent=(rm%1===0)?rm:rm.toFixed(1);
+  if(focusEl) focusEl.textContent='×1';
+  await dwait(DANCE_CFG.tickRest); if(aborted()){ dncFinishAbort(stage,isGoalHand); return; }
+
+  // ── CARD PHASE — cards score; tricks charge (jitter ramps) ──
+  const agit={};
+  for(let i=0;i<cardEls.length;i++){
+    if(aborted()){ dncFinishAbort(stage,isGoalHand); return; }
+    dncActivate(cardEls[i]);
+    trickEls.forEach((chip,ti)=>{ agit[ti]=(agit[ti]||0)+1; dncTrigger(chip, agit[ti]); });
+    await dncFly(cardEls[i], pipsBox, '+'+cardPipVals[i], '#5a8fe0', ()=>{
+      rp+=cardPipVals[i]; if(pipsEl) pipsEl.textContent=Math.round(rp); dncTick(pipsEl);
+      if(typeof sfxParticleStep==='function') sfxParticleStep('pip'); });
+    await dwait(DANCE_CFG.tickRest);
+  }
+  if(aborted()){ dncFinishAbort(stage,isGoalHand); return; }
+
+  // ── TRICK PHASE — stop jitter, RELEASE accumulated total ──
+  for(let ti=0; ti<trickEls.length; ti++){
+    if(aborted()){ dncFinishAbort(stage,isGoalHand); return; }
+    const t=tricks[ti], chip=trickEls[ti];
+    dncStopJitter(chip); dncActivate(chip);
+    if(t.pip>0){ await dncFly(chip, pipsBox, '+'+Math.round(t.pip), '#d4a857', ()=>{
+      rp+=t.pip; if(pipsEl) pipsEl.textContent=Math.round(rp); dncTick(pipsEl);
+      if(typeof sfxParticleStep==='function') sfxParticleStep('pip'); }); }
+    if(t.mult>0){ await dncFly(chip, multBox, '+'+(Number.isInteger(t.mult)?t.mult:t.mult.toFixed(1)), '#b07dea', ()=>{
+      rm+=t.mult; if(multEl) multEl.textContent=(rm%1===0)?rm:rm.toFixed(1); dncTick(multEl);
+      if(typeof sfxParticleStep==='function') sfxParticleStep('mult'); }); }
+    await dwait(DANCE_CFG.tickRest);
+  }
+  if(aborted()){ dncFinishAbort(stage,isGoalHand); return; }
+
+  // ── FOCUS beat ──
+  if(targetFocus>1){
+    if(focusEl) focusEl.textContent='×'+(targetFocus%1===0?targetFocus:targetFocus.toFixed(1));
+    const fb=document.getElementById('focus-box'); if(fb){ fb.classList.remove('focus-beat'); void fb.offsetWidth; fb.classList.add('focus-beat'); }
+    if(typeof updateFocusMultReadout==='function') updateFocusMultReadout(true);
+    if(typeof sfxFocusBeat==='function') sfxFocusBeat();
+    await dwait(DANCE_CFG.tickRest); if(aborted()){ dncFinishAbort(stage,isGoalHand); return; }
+  }
+
+  // ── SCORE climb ──
+  if(scoreEl) scoreEl.textContent=scoreBefore.toLocaleString();
+  const climb = dncFF ? Math.max(120, DANCE_CFG.scoreClimb/DANCE_CFG.ff) : DANCE_CFG.scoreClimb;
+  let goalFlashed=false;
+  await new Promise(res=>{ const st=performance.now();
+    function tk(now){ if(aborted()){ res(); return; }
+      const tt=Math.min((now-st)/climb,1), e=1-Math.pow(1-tt,3);
+      const cur=Math.round(scoreBefore+(scoreAfter-scoreBefore)*e);
+      if(scoreEl) scoreEl.textContent=cur.toLocaleString();
+      if(isGoalHand && !goalFlashed && cur>=roundGoal){ goalFlashed=true; if(typeof flashRoundEnd==='function') flashRoundEnd(); }
+      if(typeof sfxScoreTick==='function' && Math.random()<0.35) sfxScoreTick();
+      if(tt<1) requestAnimationFrame(tk); else res(); }
+    requestAnimationFrame(tk); });
+  if(aborted()){ dncFinishAbort(stage,isGoalHand); return; }
+
+  // ── Settle (same tail as playScoreDance) ──
+  stage.classList.remove('dnc-active'); stage.innerHTML='';
+  if(scoreEl) scoreEl.textContent=scoreAfter.toLocaleString();
+  showComboFloats(hand, handCells, result);
+  const scoreBoxEl=document.getElementById('score-mid');
+  if(scoreBoxEl){ scoreBoxEl.classList.remove('box-popping'); void scoreBoxEl.offsetWidth; scoreBoxEl.classList.add('box-popping'); }
+  await wait(300); if(aborted()){ dncFinishAbort(stage,isGoalHand); return; }
+
+  danceAbortController = null;
+  if(pipsEl) pipsEl.textContent='0'; if(multEl) multEl.textContent='0';
+  if(isGoalHand){ if(score>highestHandScore) highestHandScore=score; if(pendingLevelUps>0) sfxMultiGoal(pendingLevelUps); }
+  updateScoreUI();
+
+  if(isGoalHand){
+    if(challengeActive){ showMessage('GOAL MET — COMPLETE THE CHALLENGE','#c9a84c'); }
+    else {
+      clearInterval(roundInterval); roundInterval=null; gameTimerPaused=true; frozenRoundSeconds=roundSeconds;
+      sfxVictory(); const ctx=getAudioCtx();
+      if(sfxDuckGain){ sfxDuckGain.gain.setValueAtTime(0.4, ctx.currentTime); }
+      else { sfxDuckGain=ctx.createGain(); sfxDuckGain.gain.setValueAtTime(0.4, ctx.currentTime); sfxDuckGain.connect(ctx.destination); }
+      await goalCelebration(handCells);
+      startInterlude();
+    }
+  }
+}
+
+// ══════════════════════════════════════════════
 // DISCARD
 // ══════════════════════════════════════════════
 function doDiscard() {
@@ -8444,6 +8996,7 @@ function doDiscard() {
   selected.forEach(([r,c]) => { if (gridData[r]?.[c]) discardToDrawPile(gridData[r][c]); });
   // Hoarder: discards don't count against limit (but cost 2× time below)
   if (!hasKnack('hoarder')) discards--;
+  spendRoundTime(DISCARD_TIME_COST);   // discards cost time
   // Discard time cost — 3s/card default, 0s with Free Discards, 6s/card with Hoarder.
   // Reward-grid time penalties add to the per-card cost (unless discards are free).
   let perCardCost = BAL._resources.discard_seconds_per_card;
@@ -8471,6 +9024,37 @@ function doDiscard() {
     const prevTens = Math.floor((cardsDiscardedTotal - count) / BAL.tens_mult.discards_per_milestone);
     const newTens  = Math.floor(cardsDiscardedTotal / BAL.tens_mult.discards_per_milestone);
     bonusMult_tens += (newTens - prevTens) * BAL.tens_mult.mult_per_milestone;
+  }
+  // Down and Back In: discarding the grid's entire top rank refunds a resource + coins.
+  // gridData still holds the discarded cards here (removeAndFall runs last), so the "top
+  // rank" is measured against the board as it was when the player chose to discard.
+  if (hasKnack('down_and_back_in')) {
+    let _hi = -1; const _hiCards = [];
+    for (let _r = 0; _r < gridRows; _r++) for (let _c = 0; _c < gridCols; _c++) {
+      const _cd = gridData[_r]?.[_c];
+      if (!_cd || !_cd.rank || _cd._isSleight || _cd._isStone || _cd._isTrick) continue;
+      const _v = rankHighVal(_cd.rank);
+      if (_v > _hi) { _hi = _v; _hiCards.length = 0; _hiCards.push(_cd); }
+      else if (_v === _hi) _hiCards.push(_cd);
+    }
+    if (_hi > 0 && _hiCards.length && _hiCards.every(hc => discardedCards.includes(hc))) {
+      if (_dabiSwapNext) { swaps++; showMessage(`Down and Back In: +1 swap, +${BAL.down_and_back_in.coins} coins`, 'var(--gold)'); }
+      else { discards++; showMessage(`Down and Back In: +1 discard, +${BAL.down_and_back_in.coins} coins`, 'var(--gold)'); }
+      _dabiSwapNext = !_dabiSwapNext;
+      coins += BAL.down_and_back_in.coins; updateCoinsUI();
+    }
+  }
+  // Martyr: sacrificing a non-discard Sleight refills 1 charge on every OTHER on-grid Sleight
+  if (hasKnack('martyr') && discardedCards.some(c => c?._isSleight && sleightDef(c)?.activation !== 'on_discard')) {
+    let _restored = 0;
+    for (let _r = 0; _r < gridRows; _r++) for (let _c = 0; _c < gridCols; _c++) {
+      const _sc = gridData[_r]?.[_c];
+      if (!_sc?._isSleight || discardedCards.includes(_sc) || _sc._usesLeft === 'infinite' || typeof _sc._usesLeft !== 'number') continue;
+      const _def = SLEIGHT_POOL.find(j => j.id === _sc.sleightId);
+      const _cap = _def && typeof _def.durability === 'number' ? _def.durability : _sc._usesLeft;
+      if (_sc._usesLeft < _cap) { _sc._usesLeft++; _restored++; }
+    }
+    if (_restored) showMessage(`Martyr: +1 charge to ${_restored} Sleight${_restored > 1 ? 's' : ''}`, 'var(--gold)');
   }
   sfxFlipShuffle();
   resetFocusDecayTimer();
@@ -9153,6 +9737,16 @@ function startTimers() {
   }, 1000);
 }
 
+// v7 interact time-costs — spending an action burns seconds off the round clock.
+const DISCARD_TIME_COST = 3;
+const SWAP_TIME_COST    = 4;
+function spendRoundTime(sec) {
+  if (roundEnded || !sec || sec <= 0) return;
+  roundSeconds -= sec;
+  if (roundSeconds < 0) roundSeconds = 0;
+  updateClockUI();   // next timer tick ends the round if this hit 0
+}
+
 function updateClockUI() {
   if (bossActive) return; // boss timer manages clock display itself
   const secs = Math.max(roundSeconds, 0);
@@ -9162,6 +9756,7 @@ function updateClockUI() {
   const barEl = document.getElementById('clock-bar');
   clockEl.textContent = `${m}:${s.toString().padStart(2,'0')}`;
   barEl.style.width = (secs/ROUND_DURATION*100)+'%';
+  const vf = document.getElementById('vclock-fill'); if (vf) vf.style.width = (secs/ROUND_DURATION*100)+'%';
   clockEl.classList.toggle('clock-paused', pipeTimerPaused);
   if (secs <= 10) { clockEl.classList.add('urgent'); barEl.classList.add('urgent'); }
   else { clockEl.classList.remove('urgent'); barEl.classList.remove('urgent'); }
@@ -10876,6 +11471,39 @@ function fireSleightsOnSwap(r1, c1, r2, c2) {
     }
     lockSleightForRound(card);
   });
+}
+
+// Magnet: pull every card of `rank` into the cells orthogonally adjacent to Magnet,
+// by swapping grid data. Each pull counts as a swap (fires on_swap Sleights + Restless),
+// which is the intended synergy. Returns how many cards were moved.
+function magnetCluster(mr, mc, rank) {
+  const inBounds = (r, c) => r >= 0 && c >= 0 && r < gridRows && c < gridCols;
+  const isRank   = card => card && card.rank === rank && !card._isSleight && !card._isStone && !card._isTrick;
+  const neighbors = [[mr-1,mc],[mr+1,mc],[mr,mc-1],[mr,mc+1]].filter(([r,c]) => inBounds(r,c));
+  let moved = 0;
+  for (const [nr, nc] of neighbors) {
+    const nb = gridData[nr]?.[nc];
+    if (!nb || nb._isSleight || nb._isStone || nb._isTrick) continue; // don't disturb fixtures
+    if (nb.rank === rank) continue;                                   // already holds the rank
+    if (!cardCan(nb, 'swap')) continue;                               // respect Snared etc.
+    // Find a far card of the rank (not in a neighbor cell, not Magnet, swappable)
+    let found = null;
+    for (let r = 0; r < gridRows && !found; r++) for (let c = 0; c < gridCols && !found; c++) {
+      if (r === mr && c === mc) continue;
+      if (neighbors.some(([ar, ac]) => ar === r && ac === c)) continue;
+      const cand = gridData[r]?.[c];
+      if (isRank(cand) && cardCan(cand, 'swap')) found = [r, c];
+    }
+    if (!found) break; // nothing left to pull
+    const [fr, fc] = found;
+    const tmp = gridData[nr][nc];
+    gridData[nr][nc] = gridData[fr][fc];
+    gridData[fr][fc] = tmp;
+    fireSleightsOnSwap(nr, nc, fr, fc); // counts as a swap
+    if (hasTrick('restless')) addFocus(1);
+    moved++;
+  }
+  return moved;
 }
 
 function applySleightGridEffect(id, r, c) {
@@ -12610,6 +13238,18 @@ function triggerLevelUp() {
     const _jcard = gridData[_jr][_jc];
     if (_jcard?._isSleight) _jcard._usedThisRound = false;
   }
+  // Coin Toss: each owned Sleight has a 50% chance to regain 1 charge at round start
+  if (hasKnack('coin_toss')) {
+    let _refilled = 0;
+    ownedSleightCards().forEach(card => {
+      if (card._usesLeft === 'infinite' || typeof card._usesLeft !== 'number') return;
+      const def = SLEIGHT_POOL.find(j => j.id === card.sleightId);
+      const cap = (def && typeof def.durability === 'number') ? def.durability : card._usesLeft;
+      if (card._usesLeft < cap && Math.random() < 0.5) { card._usesLeft++; _refilled++; }
+    });
+    if (_refilled) showMessage(`Coin Toss: ${_refilled} Sleight${_refilled > 1 ? 's' : ''} regained a charge`, 'var(--gold)');
+  }
+  setTimeout(checkComboMilestones, 600); // combo legibility toast (after the deal settles)
   fireSleightsAtRoundStart();
   // (♠ exalt/corrupt is now play/discard-driven — handled in playHand and doDiscard, not at deal)
   fireSleightsOnDraw();
@@ -13136,6 +13776,10 @@ function renderTrickTray() {
     countEl.style.color = trickTray.length >= trickCapacity() ? 'var(--red)' : 'var(--gold-dim)';
   }
   list.innerHTML = '';
+  if (trickTray.length === 0) {
+    list.innerHTML = '<span style="font-size:11px;color:var(--cream-dim)">No tricks</span>';
+    return;
+  }
   trickTray.forEach(trick => {
     const chip = document.createElement('div');
     if (trick.id === 'mirror') {
@@ -14749,6 +15393,10 @@ function startGame() {
   sleightNextHandDouble = false;
   sleightLegacyMult    = false;
   sleightAmplifierMult = 0;
+  _dabiSwapNext        = false;
+  magnetArmed          = null;
+  _comboAnnounced      = new Set();
+  _comboHinted         = new Set();
   sleightFreeSwapPending = false;
   // Reset all counters
   Object.keys(C).forEach(k => C[k] = (typeof C[k] === 'boolean' ? false : 0));
@@ -15541,6 +16189,8 @@ function initDevMode() {
   if (hudToggle) hudToggle.checked = showDeckHud;
   const trickToggle = document.getElementById('dev-trick-tray-toggle');
   if (trickToggle) trickToggle.checked = !trickTrayMode;   // checked = Tricks placed on grid
+  const ndToggle = document.getElementById('dev-new-dance-toggle');
+  if (ndToggle) ndToggle.checked = newDanceEnabled;
   applyDeckHudVisibility();
   // Focus dev controls — restore persisted values
   const decaySlider = document.getElementById('dev-focus-decay-slider');
@@ -15805,15 +16455,18 @@ function devFilterTricks(query) {
 function devAddTrick(id) {
   const trick = TRICK_POOL.find(b => b.id === id);
   if (!trick) return;
-  acquiredTricks.push(trick);
-  updateTrickList();
+  // Real grant path: pushes into trickTray (tray mode) / grid, enforces capacity,
+  // records acquiredTricks via selectTrick, and re-renders the tray.
+  injectTrickAfterReward(trick);
   // Refresh focus-related state since Meditation/etc. may have just been added
   recomputeFocusDecayInterval();
-  // Flash confirmation
-  const btn = event.target;
-  btn.textContent = '✓ Added';
-  btn.style.color = '#8bc34a';
-  setTimeout(() => { btn.textContent = '+ Add'; btn.style.color = ''; }, 1200);
+  // Flash confirmation (window.event may be absent when called programmatically)
+  const btn = (typeof event !== 'undefined' && event) ? event.target : null;
+  if (btn && btn.tagName === 'BUTTON') {
+    btn.textContent = '✓ Added';
+    btn.style.color = '#8bc34a';
+    setTimeout(() => { btn.textContent = '+ Add'; btn.style.color = ''; }, 1200);
+  }
 }
 
 function devFilterKnacks(query) {
