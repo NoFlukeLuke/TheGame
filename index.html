@@ -2893,6 +2893,9 @@
   #stage.landscape #score-panel, #stage.landscape #score-panel-inner, #stage.landscape #trick-panel,
   #stage.landscape #hand-preview-area, #stage.landscape #grid-and-buttons,
   #stage.landscape #action-col, #stage.landscape #action-row-2 { display:contents; }
+  /* v7: preview + tray have separate dedicated slots, so the old tray-mode JS that
+     inline-hides #hand-preview-area must not win in landscape (!important beats inline). */
+  #stage.landscape #hand-preview-area { display:contents !important; }
   /* elements not used in the v7 landscape */
   #stage.landscape #deck-hud,
   #stage.landscape #game-timer-stat,
@@ -3182,7 +3185,7 @@
 <style>
   #selected-cards.dnc-active{ flex-direction:column; align-items:stretch; justify-content:flex-start;
     overflow:visible; gap:3px; padding:5px; z-index:60; height:auto; }
-  #stage.landscape #selected-cards.dnc-active{ height:auto; min-height:15.28%; overflow:visible; align-items:stretch; justify-content:flex-start; }
+  #stage.landscape #selected-cards.dnc-active{ height:auto; min-height:15.28%; overflow:visible; flex-direction:column; align-items:stretch; justify-content:flex-start; z-index:60; }
   #selected-cards.dnc-active .dnc-row{display:flex;align-items:center;gap:5px;min-height:38px;}
   #selected-cards.dnc-active .dnc-row.hand{min-height:46px;}
   #selected-cards.dnc-active .dnc-lab{font-size:7px;letter-spacing:1px;color:var(--cream-dim);writing-mode:vertical-rl;
@@ -3780,7 +3783,7 @@
 </div>
 
 <script>
-const BUILD = '2026-07-18 · r82';
+const BUILD = '2026-07-20 · r83';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -15987,15 +15990,18 @@ function devFilterTricks(query) {
 function devAddTrick(id) {
   const trick = TRICK_POOL.find(b => b.id === id);
   if (!trick) return;
-  acquiredTricks.push(trick);
-  updateTrickList();
+  // Real grant path: pushes into trickTray (tray mode) / grid, enforces capacity,
+  // records acquiredTricks via selectTrick, and re-renders the tray.
+  injectTrickAfterReward(trick);
   // Refresh focus-related state since Meditation/etc. may have just been added
   recomputeFocusDecayInterval();
-  // Flash confirmation
-  const btn = event.target;
-  btn.textContent = '✓ Added';
-  btn.style.color = '#8bc34a';
-  setTimeout(() => { btn.textContent = '+ Add'; btn.style.color = ''; }, 1200);
+  // Flash confirmation (window.event may be absent when called programmatically)
+  const btn = (typeof event !== 'undefined' && event) ? event.target : null;
+  if (btn && btn.tagName === 'BUTTON') {
+    btn.textContent = '✓ Added';
+    btn.style.color = '#8bc34a';
+    setTimeout(() => { btn.textContent = '+ Add'; btn.style.color = ''; }, 1200);
+  }
 }
 
 function devFilterKnacks(query) {
