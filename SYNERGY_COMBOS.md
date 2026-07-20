@@ -1,8 +1,18 @@
 # Synergy Combos — Design Note
 
-> Status: **design / not yet implemented.** Base build: **r65**.
-> This note captures the "rare-but-powerful combo" design discussion so a fresh
-> session (or the owner) can build from it. Nothing here is code yet.
+> Status: **combo connector entities SHIPPED in r83.** Base build: **r65** (design) → r83 (code).
+> This note captures the "rare-but-powerful combo" design discussion. The 14
+> connector entities (see below) are now live; see `combo_entities` spreadsheet
+> for the exact final list the owner approved.
+>
+> **r83 shipped:** 5 Tricks (Landfill, Old Growth, Magician, Stand-Up, Scalper),
+> 8 Knacks (High and Mighty, Low and Behold, Down and Back In, Muscle Memory,
+> Curator, Scavenger, Coin Toss, Martyr), 1 Sleight (Magnet), plus a combo
+> legibility layer (`COMBO_FAMILIES` + round-start "COMBO ONLINE" / "combo close"
+> toasts). These created a 10th family — **Sleight Charges** (Magician/Stand-Up/
+> Scalper hoard-vs-spend, fed by Coin Toss/Martyr).
+> **Still open (future chats):** pool growth to ~150 tricks / 16–20 knacks,
+> more trick-priming + money entities, run-structure (4 Eras) + vocab rename.
 
 The goal: Slay-the-Spire-style combos. Extremely rare to assemble, but when you
 pull one off it trivializes part of the game and feels *earned* — not broken.

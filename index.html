@@ -3783,7 +3783,7 @@
 </div>
 
 <script>
-const BUILD = '2026-07-20 · r83';
+const BUILD = '2026-07-20 · r84';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -4187,6 +4187,12 @@ const TRICK_POOL = [
   { id:'flow_state',     name:'Flow State',          tier:'rare',      tags:['focus','pips'], desc:'While focus is ×1.5 or higher, +10 pips per card scored' },
   // ── Legendary ──
   { id:'heartwood',      name:'Heartwood',           tier:'epic',      desc:'Dead center card permanently gains +5 pips & +1 mult each time scored' },
+  // ── Combo batch (r83): payoffs / sleight-charge synergies ──
+  { id:'landfill',       name:'Landfill',            tier:'common',    tags:['discard','mult'],  desc:'Hands score +1 mult for every 5 cards you have discarded this round' },
+  { id:'old_growth',     name:'Old Growth',          tier:'epic',      tags:['scaling','mult'],  desc:'Each scored card also adds its permanent pip bonus to mult' },
+  { id:'magician',       name:'Magician',            tier:'rare',      tags:['sleight','mult'],  desc:'+3 mult for each Sleight you own' },
+  { id:'stand_up',       name:'Stand-Up',            tier:'rare',      tags:['sleight','pips'],  desc:'+10 pips for each charge remaining across all your Sleights' },
+  { id:'scalper',        name:'Scalper',             tier:'rare',      tags:['sleight','pips'],  desc:'Total pips ×(1 + 0.2 per charge your Sleights are missing), figured when the hand scores' },
 ];
 
 // ── Trick category → emoji ──
@@ -4395,7 +4401,40 @@ function pickWeightedLimits(n, pool) {
   return out;
 }
 // Trick tray capacity (the trick_slots limit). Enforced in injectTrickAfterReward.
-function trickCapacity() { return limits.trick_slots?.current ?? 5; }
+function trickCapacity() {
+  return (limits.trick_slots?.current ?? 5) + ((typeof hasKnack === 'function' && hasKnack('curator')) ? 1 : 0);
+}
+
+// Rank value with Ace HIGH (=14). Shared by knacks that care about the grid's
+// highest/lowest rank (High and Mighty, Low and Behold, Down and Back In).
+function rankHighVal(rk) { return rk === 'A' ? 14 : (RANK_ORDER[rk] || 0); }
+
+// ── Sleight-charge economy (Magician / Stand-Up / Scalper / Coin Toss / Martyr) ──
+// Every Sleight the player owns, wherever it currently sits (deck, played pile, grid),
+// deduped by _id so a card is counted once.
+function ownedSleightCards() {
+  const out = [], seen = new Set();
+  const push = c => { if (c && c._isSleight && !seen.has(c._id)) { seen.add(c._id); out.push(c); } };
+  (drawPile || []).forEach(push);
+  (playedPile || []).forEach(push);
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) push(gridData[r]?.[c]);
+  return out;
+}
+function ownedSleightCount() { return ownedSleightCards().length; }
+// total = charges remaining (infinite counts as 1, owner decision); missing = capacity − current
+// (infinite is always "full" → 0 missing).
+function sleightChargeInfo() {
+  let total = 0, missing = 0;
+  ownedSleightCards().forEach(card => {
+    if (card._usesLeft === 'infinite') { total += 1; return; }
+    const def = SLEIGHT_POOL.find(j => j.id === card.sleightId);
+    const cur = Math.max(0, card._usesLeft || 0);
+    const cap = (def && typeof def.durability === 'number') ? def.durability : cur;
+    total += cur;
+    missing += Math.max(0, cap - cur);
+  });
+  return { total, missing };
+}
 // ── END LIMITS SYSTEM ──
 let accumulatedSwaps = 0;    // banked unused swaps (Reserves: Swaps)
 let accumulatedDiscards = 0; // banked unused discards (Reserves: Discards)
@@ -4465,6 +4504,15 @@ const KNACK_POOL = [
   { id:'long_pause',      emoji:'🦉',  name:'Long Pause',       desc:'All clock pauses last 1.5× as long.' },
   { id:'sundial',         emoji:'🌇',  name:'Sundial',          desc:'Hands where every card shares a column pause the clock for 8 seconds.' },
   { id:'metronome',       emoji:'🥁',  name:'Metronome',        desc:'Each round a hand type you can make is chosen; playing that hand type pauses the clock for 5 seconds.' },
+  // ── Combo batch (r83) ──
+  { id:'high_and_mighty', emoji:'👑',  name:'High and Mighty',  desc:'The highest-ranked cards in each scored hand replay once.' },
+  { id:'low_and_behold',  emoji:'🐛',  name:'Low and Behold',   desc:'Any played hand containing the grid’s lowest rank replays the whole hand once.' },
+  { id:'down_and_back_in',emoji:'🔁',  name:'Down and Back In', desc:'Discarding the grid’s highest rank grants +1 discard or swap (alternating) and +5 coins. If several cards share that top rank, all must be discarded together.' },
+  { id:'muscle_memory',   emoji:'🧠',  name:'Muscle Memory',    desc:'Primed Tricks stay primed for one extra hand.' },
+  { id:'curator',         emoji:'✦',   name:'Curator',          desc:'+1 Trick Slot.' },
+  { id:'scavenger',       emoji:'🦴',  name:'Scavenger',        desc:'Whenever a curse lifts, gain +10 coins and +1 discard next round.' },
+  { id:'coin_toss',       emoji:'🪙',  name:'Coin Toss',        desc:'At the start of each round, every Sleight has a 50% chance to restore 1 charge.' },
+  { id:'martyr',          emoji:'⚰️',  name:'Martyr',           desc:'Discarding a non-discard Sleight restores 1 charge to all Sleights on the grid.' },
 ];
 // ── SLEIGHT POOL ──
 // Sleights live in the deck as special cards (_isSleight:true). They fall onto the grid,
@@ -4513,12 +4561,63 @@ const SLEIGHT_POOL = [
   { id:'shady_tree',     name:'Shady Tree',     emoji:'🌳', rarity:'rare',      activation:'on_play',    durability:10,         defaultRank:null, defaultSuit:null, tags:['time','position'],    desc:'Play this from the round’s shady column to pause the clock. Pauses for its remaining charges (10 → 1), −1 each use; destroyed at 0.' },
   { id:'stopwatch',      name:'Stopwatch',      emoji:'⏱️', rarity:'epic',      activation:'double_tap', durability:60,         defaultRank:null, defaultSuit:null, tags:['time'],                desc:'Double-tap: freeze the clock until you next play a hand (swaps and discards keep it frozen). Holds up to 60 paused seconds total, drained 1 per second; destroyed at 0.' },
   { id:'piggy_bank',     name:'Piggy Bank',     emoji:'🐷', rarity:'common',    activation:'double_tap', durability:5,          defaultRank:null, defaultSuit:null, tags:['resource','coins'],   desc:'Double-tap: gain 5 coins. (5 charges)' },
+  { id:'magnet',         name:'Magnet',         emoji:'🧲', rarity:'common',    activation:'double_tap', durability:3,          defaultRank:null, defaultSuit:null, tags:['position','swap'],    desc:'Double-tap, then tap a card: every card of that rank slides next to Magnet (counts as several swaps). 3 charges, once per round.' },
   // ── Aim-based (fixtures: tap to rotate aim; cannot be swapped or discarded) ──
   { id:'reflect',     name:'Reflect',     emoji:'🪞', rarity:'epic',   activation:'aim', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['retrigger','position'], desc:'Tap to rotate its aim (up→right→down→left). The card it faces retriggers once when a hand scores. Cannot be swapped or discarded.' },
   { id:'soul_mirror', name:'Soul Mirror', emoji:'👁️', rarity:'mythic', activation:'aim', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['retrigger','rank'],     desc:'Tap to rotate its aim. While it faces a card, every scored card of that rank retriggers — anywhere on the grid. Multiple Soul Mirrors stack. Cannot be swapped or discarded.' },
 ];
 
 // ── Aim sleights (Reflect, Soul Mirror): fixtures that point at an adjacent cell ──
+// ══════════════════════════════════════════════
+// COMBO FAMILIES — legibility layer (r83)
+// Each family is a set of "slots"; a slot is one required entity id, or an array
+// (own ANY one of these). checkComboMilestones() (called at round start) fires a
+// one-time "COMBO ONLINE" toast when a family is fully owned, and a one-time
+// "combo close — need X" hint when you own all but one slot — so synergies feel
+// discovered, not stumbled into. A wrong/renamed id just fails to fire (harmless).
+// ══════════════════════════════════════════════
+const COMBO_FAMILIES = [
+  { id:'discard_furnace',   name:'Discard Furnace',   slots:['free_discards','hoarder','discard_pips','landfill'] },
+  { id:'retrigger_cascade', name:'Retrigger Cascade', slots:['soul_mirror',['reflect','corner_retrigger','rowcol_retrigger'],'club_double','high_and_mighty'] },
+  { id:'priming_press',     name:'Priming Press',     slots:[['wild_heart','prime_times'],'twos_retrigger','muscle_memory'] },
+  { id:'permanent_snowball',name:'Permanent Snowball',slots:[['the_naturalist','the_bomb','sapling'],'snowball','old_growth'] },
+  { id:'sleight_charges',   name:'Sleight Charges',   slots:[['magician','stand_up','scalper'],['coin_toss','martyr']] },
+  { id:'frozen_hour',       name:'Frozen Hour',       slots:['high_water','frozen_moment','sands_of_time'] },
+  { id:'focus_overdrive',   name:'Focus Overdrive',   slots:['flow_state',['ancient_grove','richter'],['rhythm','kaleidoscope','before_the_tide']] },
+  { id:'position_lock',     name:'Position Lock',     slots:[['rowcol_mult','rowcol_retrigger','rowcol_perm_double'],['shape_square','two_corners','shape_cross'],'magnet'] },
+];
+let _comboAnnounced = new Set(); // families that already fired the ONLINE toast (per game)
+let _comboHinted    = new Set(); // families that already fired the "close" hint (per game)
+function ownsEntity(id) {
+  return (typeof ownsTrick === 'function' && ownsTrick(id))
+      || (typeof hasKnack === 'function' && hasKnack(id))
+      || (typeof grantedSleightIds !== 'undefined' && grantedSleightIds.has(id));
+}
+function _slotMet(slot) { return Array.isArray(slot) ? slot.some(ownsEntity) : ownsEntity(slot); }
+function comboComplete(fam) { return fam.slots.every(_slotMet); }
+function comboMissingSlot(fam) { const u = fam.slots.filter(s => !_slotMet(s)); return u.length === 1 ? u[0] : null; }
+function entityDisplayName(slot) {
+  const id = Array.isArray(slot) ? slot[0] : slot;
+  return (TRICK_POOL.find(x => x.id === id)?.name)
+      || (KNACK_POOL.find(x => x.id === id)?.name)
+      || (SLEIGHT_POOL.find(x => x.id === id)?.name) || id;
+}
+// Called at round start: at most one completion toast, else at most one "close" hint.
+function checkComboMilestones() {
+  for (const fam of COMBO_FAMILIES) {
+    if (comboComplete(fam)) {
+      if (!_comboAnnounced.has(fam.id)) { _comboAnnounced.add(fam.id); _comboHinted.add(fam.id);
+        showMessage(`⚡ COMBO ONLINE — ${fam.name}!`, '#ffd700'); return; }
+    }
+  }
+  for (const fam of COMBO_FAMILIES) {
+    if (comboComplete(fam) || _comboHinted.has(fam.id)) continue;
+    const miss = comboMissingSlot(fam);
+    if (miss) { _comboHinted.add(fam.id);
+      showMessage(`Combo close: ${fam.name} — need ${entityDisplayName(miss)}`, '#8fd0ff'); return; }
+  }
+}
+
 const AIM_SLEIGHTS = new Set(['reflect','soul_mirror']);
 const AIM_ORDER = ['up','right','down','left'];
 const AIM_DELTA = { up:[-1,0], right:[0,1], down:[1,0], left:[0,-1] };
@@ -4566,6 +4665,8 @@ function soulMirrorRankCount(rank) {
 
 // One-shot effect flags consumed by scoring/round logic
 let sleightNextHandDouble = false; // Echo: next hand scores twice
+let _dabiSwapNext = false;          // Down and Back In: alternates discard/swap grant
+let magnetArmed = null;             // {r,c,card} while Magnet waits for a target-rank tap
 let sleightLegacyMult    = false; // Legacy: next hand ×3
 let sleightAmplifierMult = 0;     // Amplifier: accumulated trick mult for next hand
 let grantedSleightIds = new Set(); // dedup: tracks which sleight IDs have been granted
@@ -5260,6 +5361,12 @@ const BAL = {
   spade_flood: { time_div: 2 },
   sands_of_time: { divisor: 2 },
   discard_pips: { pips_per_discard: 3 },
+  landfill: { mult_per_n: 1, discards_per: 5 },
+  magician: { mult_per_sleight: 3 },
+  stand_up: { pips_per_charge: 10 },
+  scalper: { pip_mult_per_missing: 0.2 },
+  down_and_back_in: { coins: 5 },
+  scavenger: { coins: 10 },
   edge_pips: { pips_per_card: 15 },
   veteran_bonus: { pips_per_level: 2 },
   high_pair: { focus_per_card: 2 },
@@ -5505,6 +5612,9 @@ function calcScore(handName, cells, contrib = null) {
   const _eyeStorm = hasTrick('eye_of_storm') && _eyeFrac > 1/3 && _eyeFrac <= 2/3;
   const _rankHigh = rk => rk === 'A' ? 14 : (RANK_ORDER[rk] || 0);
   const _eyeMax = _eyeStorm ? Math.max(...cards.map(c => _rankHigh(c.rank))) : -1;
+  // High and Mighty (knack): the hand's highest-ranked card(s) all replay once
+  const _hnmOn  = hasKnack('high_and_mighty');
+  const _hnmMax = _hnmOn ? Math.max(...cards.map(c => _rankHigh(c.rank))) : -1;
   // Ripple: once per 30s, cards within one rank of another card in the hand retrigger
   const _rippleReady = hasTrick('ripple') && (Date.now() - _rippleLastFire >= BAL.ripple.cooldown_ms);
   const _rippleSet = new Set();
@@ -5558,6 +5668,7 @@ function calcScore(handName, cells, contrib = null) {
     const _soul = soulMirrorRankCount(baseRank);
     const _re = permRetrig[_eKey] || 0;  // permanent per-card retrigger (events)
     const _rne = hasTrick('closing_time') && roundFractionRemaining() < 0.25; // Near Extinction
+    const _hnm = _hnmOn && _rankHigh(baseRank) === _hnmMax; // High and Mighty: top-rank card(s)
     const _ech = hasTrick('echo_hand') && _effStreak >= 2; // Echoes
     const _wp = hasTrick('woodpecker') && woodpeckerPos && r === woodpeckerPos.r && c === woodpeckerPos.c; // Woodpecker
     if (_r2) _retrig++; if (_r8) _retrig += (_eightCount - 1); if (_rc) _retrig++; if (_rl) _retrig++;
@@ -5565,6 +5676,7 @@ function calcScore(handName, cells, contrib = null) {
     if (_refl) _retrig++; _retrig += _soul;
     _retrig += _re;
     if (_rne) _retrig++; if (_ech) _retrig++; if (_wp) _retrig += BAL.woodpecker.retrigger_count;
+    if (_hnm) _retrig++;
     if (hasTrick('club_double') && (card.suit === '♣' || (card.combined && card.suit2 === '♣'))) _clubHits += _retrig;
     if (card._vulturePause) _vultureFires += card._vulturePause * _retrig; // Vulture buff fires once per (re)trigger
     if (_retrig > 1) {
@@ -5580,6 +5692,7 @@ function calcScore(handName, cells, contrib = null) {
       else if (_refl) bPip('reflect', _pre);
       else if (_soul) bPip('soul_mirror', _pre);
       else if (_re) bPip('sapling', _extra);
+      else if (_hnm) bPip('high_and_mighty', _pre);
       else if (_rne) bPip('closing_time', _pre);
       else if (_ech) bPip('echo_hand', _pre);
       else if (_wp) bPip('woodpecker', _extra);
@@ -5620,6 +5733,8 @@ function calcScore(handName, cells, contrib = null) {
 
   // Compost: +3 pips per card discarded this round
   if (hasTrick('discard_pips')) { const _a = cardsDiscardedRound * BAL.discard_pips.pips_per_discard; totalPips += _a; bPip('discard_pips', _a); }
+  // Stand-Up: +10 pips per charge remaining across all owned Sleights
+  if (hasTrick('stand_up')) { const _a = sleightChargeInfo().total * BAL.stand_up.pips_per_charge; if (_a) { totalPips += _a; bPip('stand_up', _a); } }
 
   // Penny Saved: accumulated trick pips from discarded 5s
   if (hasTrick('fives_discard')) { totalPips += bonusMult_fives; bPip('fives_discard', bonusMult_fives); }
@@ -5699,6 +5814,14 @@ function calcScore(handName, cells, contrib = null) {
     const _xm = permXMult[cardKey(card.rank, card.suit)] || 1;
     if (_xm !== 1) { const _preXm = mult; mult *= _xm; bMult('perm_mult', mult - _preXm); }
   });
+  // Old Growth: each scored card also adds its permanent pip bonus to mult
+  if (hasTrick('old_growth')) {
+    cards.forEach(card => { const _og = permPips[cardKey(card.rank, card.suit)] || 0; if (_og) { mult += _og; bMult('old_growth', _og); } });
+  }
+  // Magician: +3 mult per Sleight owned
+  if (hasTrick('magician')) { const _a = ownedSleightCount() * BAL.magician.mult_per_sleight; if (_a) { mult += _a; bMult('magician', _a); } }
+  // Landfill: +1 mult per 5 cards discarded this round
+  if (hasTrick('landfill')) { const _a = Math.floor(cardsDiscardedRound / BAL.landfill.discards_per) * BAL.landfill.mult_per_n; if (_a) { mult += _a; bMult('landfill', _a); } }
 
   // Hearts: neutral by default; +1 mult each with Devoted Trick
   const heartCount = cards.filter(c => c.suit === '♥' || (c.combined && c.suit2 === '♥')).length;
@@ -5793,6 +5916,8 @@ function calcScore(handName, cells, contrib = null) {
   // Rank multipliers
   if (hasTrick('royal_trio') && cards.some(c=>c.rank==='K') && cards.some(c=>c.rank==='Q') && cards.some(c=>c.rank==='J')) { const _pre = mult; mult = Math.round(mult * BAL.royal_trio.mult_mult * 10) / 10; bMult('royal_trio', mult - _pre); }
   if (hasTrick('knave_power')) { let _jg = 0; for (let _gr=0; _gr<gridRows; _gr++) for (let _gc=0; _gc<gridCols; _gc++) { const _cc = gridData[_gr]?.[_gc]; if (_cc && !_cc._isSleight && !_cc._isTrick && _cc.rank === 'J') _jg++; } if (_jg > 0) { const _pre = totalPips; totalPips = Math.round(totalPips * Math.pow(BAL.knave_power.per_jack, _jg)); bPip('knave_power', totalPips - _pre); } }
+  // Scalper: ×(1 + 0.2 per missing Sleight charge) to total pips — figured once, now
+  if (hasTrick('scalper')) { const _miss = sleightChargeInfo().missing; if (_miss > 0) { const _m = 1 + BAL.scalper.pip_mult_per_missing * _miss; const _pre = totalPips; totalPips = Math.round(totalPips * _m); bPip('scalper', totalPips - _pre); } }
   // Phoenix: while paused, the Focus multiplier applies twice — handled at the Focus step below.
   // Mirror (Blueprint): duplicate each borrowed Trick's pip/mult contribution (incl. the multipliers above)
   mirroredTrickIds().forEach(mid => {
@@ -5855,6 +5980,16 @@ function calcScore(handName, cells, contrib = null) {
   if (hasTrick('shape_snake')  && isSnake(cells))  { /* mult added above */ }
 
   if (hasTrickCard) s *= 2;
+
+  // Low and Behold (knack): a hand containing the grid's lowest rank replays whole (×2)
+  if (hasKnack('low_and_behold')) {
+    let _gmin = 99;
+    for (let _gr = 0; _gr < gridRows; _gr++) for (let _gc = 0; _gc < gridCols; _gc++) {
+      const _gc0 = gridData[_gr]?.[_gc];
+      if (_gc0 && _gc0.rank && !_gc0._isSleight && !_gc0._isStone && !_gc0._isTrick) _gmin = Math.min(_gmin, _rankHigh(_gc0.rank));
+    }
+    if (_gmin < 99 && cards.some(c => _rankHigh(c.rank) === _gmin)) s *= 2;
+  }
 
   // 5. Focus multiplier — separate third element, applied at the very end of the sequence
   if (fMult > 1) s *= fMult;
@@ -7013,6 +7148,23 @@ function onCardTap(r, c) {
   const _cardStr = _card ? `${_card.rank}${_card.suit}` : 'null';
   dbgEvent('info', `tap [${r},${c}] ${_cardStr}`, { animating, trickPhase: trickSelectionPhase, swapPending: !!swapPending, selected: selected.length });
   if (animating) { dbgEvent('warn', `tap blocked: animating`); return; }
+  // ── Magnet: armed and waiting for a target-rank tap ──
+  if (magnetArmed) {
+    // Tapping Magnet itself (or its cell) cancels the arming.
+    if (magnetArmed.r === r && magnetArmed.c === c) {
+      magnetArmed = null; showMessage('Magnet cancelled', 'var(--cream-dim)'); render(); return;
+    }
+    const _t = gridData[r]?.[c];
+    if (!_t || !_t.rank || _t._isSleight || _t._isStone || _t._isTrick) {
+      showMessage('Tap a normal card to pull its rank', 'var(--cream-dim)'); return;
+    }
+    const _m = magnetArmed; magnetArmed = null;
+    const _moved = magnetCluster(_m.r, _m.c, _t.rank);
+    lockSleightForRound(_m.card); // spends a charge / locks for the round
+    showMessage(_moved ? `🧲 Magnet pulled ${_moved} ${_t.rank}${_moved > 1 ? 's' : ''} in` : `🧲 No ${_t.rank}s to pull`, _moved ? '#8fd0ff' : 'var(--cream-dim)');
+    render();
+    return;
+  }
   // Block null cells
   if (gridData[r][c] === null) { dbgEvent('warn', `tap blocked: null cell [${r},${c}]`); return; }
   // Block boss-obstructed cells
@@ -7059,6 +7211,14 @@ function onCardTap(r, c) {
         return;
       }
       hideSleightGridTooltip();
+      // Magnet: don't fire yet — arm it and wait for the player to tap a target card.
+      // (Lock/charge are spent when the cluster actually happens, in the intercept below.)
+      if (jdef.id === 'magnet') {
+        magnetArmed = { r, c, card: jcard };
+        showMessage('Magnet armed — tap a card to pull its rank', '#8fd0ff');
+        render();
+        return;
+      }
       applySleightGridEffect(jdef.id, r, c);
       lockSleightForRound(jcard);
       return;
@@ -7454,7 +7614,13 @@ function playHand() {
     if (trickTray.some(t => t._primed > 0)) {
       const _pc = []; calcScore(hand, handCells, _pc);
       const _ids = new Set(_pc.map(e => e.id));
-      trickTray.forEach(t => { if (t._primed > 0 && _ids.has(t.id)) t._primed = Math.max(0, t._primed - 1); });
+      const _mm = hasKnack('muscle_memory'); // primes last one extra hand
+      trickTray.forEach(t => {
+        if (t._primed > 0 && _ids.has(t.id)) {
+          if (_mm && !t._primeHeld) { t._primeHeld = true; } // skip this consumption once
+          else { t._primed = Math.max(0, t._primed - 1); t._primeHeld = false; }
+        }
+      });
     }
     // Inspirato: a scored Ace primes the first and last tray Tricks
     if (hasTrick('wild_heart') && trickTray.length && handCells.some(([r,c]) => gridData[r]?.[c]?.rank === 'A')) {
@@ -7499,6 +7665,12 @@ function playHand() {
     if (curse.left <= 0) {
       delete cardCurses[k];
       showMessage(`Curse lifted: ${card.rank}${card.suit}`, '#54af88');
+      // Scavenger: farm lifted curses for coins + a discard next round
+      if (hasKnack('scavenger')) {
+        coins += BAL.scavenger.coins; updateCoinsUI();
+        nextRoundDiscardDelta += 1;
+        showMessage(`Scavenger: +${BAL.scavenger.coins} coins, +1 discard next round`, 'var(--gold)');
+      }
     }
   });
 
@@ -8738,6 +8910,37 @@ function doDiscard() {
     const prevTens = Math.floor((cardsDiscardedTotal - count) / BAL.tens_mult.discards_per_milestone);
     const newTens  = Math.floor(cardsDiscardedTotal / BAL.tens_mult.discards_per_milestone);
     bonusMult_tens += (newTens - prevTens) * BAL.tens_mult.mult_per_milestone;
+  }
+  // Down and Back In: discarding the grid's entire top rank refunds a resource + coins.
+  // gridData still holds the discarded cards here (removeAndFall runs last), so the "top
+  // rank" is measured against the board as it was when the player chose to discard.
+  if (hasKnack('down_and_back_in')) {
+    let _hi = -1; const _hiCards = [];
+    for (let _r = 0; _r < gridRows; _r++) for (let _c = 0; _c < gridCols; _c++) {
+      const _cd = gridData[_r]?.[_c];
+      if (!_cd || !_cd.rank || _cd._isSleight || _cd._isStone || _cd._isTrick) continue;
+      const _v = rankHighVal(_cd.rank);
+      if (_v > _hi) { _hi = _v; _hiCards.length = 0; _hiCards.push(_cd); }
+      else if (_v === _hi) _hiCards.push(_cd);
+    }
+    if (_hi > 0 && _hiCards.length && _hiCards.every(hc => discardedCards.includes(hc))) {
+      if (_dabiSwapNext) { swaps++; showMessage(`Down and Back In: +1 swap, +${BAL.down_and_back_in.coins} coins`, 'var(--gold)'); }
+      else { discards++; showMessage(`Down and Back In: +1 discard, +${BAL.down_and_back_in.coins} coins`, 'var(--gold)'); }
+      _dabiSwapNext = !_dabiSwapNext;
+      coins += BAL.down_and_back_in.coins; updateCoinsUI();
+    }
+  }
+  // Martyr: sacrificing a non-discard Sleight refills 1 charge on every OTHER on-grid Sleight
+  if (hasKnack('martyr') && discardedCards.some(c => c?._isSleight && sleightDef(c)?.activation !== 'on_discard')) {
+    let _restored = 0;
+    for (let _r = 0; _r < gridRows; _r++) for (let _c = 0; _c < gridCols; _c++) {
+      const _sc = gridData[_r]?.[_c];
+      if (!_sc?._isSleight || discardedCards.includes(_sc) || _sc._usesLeft === 'infinite' || typeof _sc._usesLeft !== 'number') continue;
+      const _def = SLEIGHT_POOL.find(j => j.id === _sc.sleightId);
+      const _cap = _def && typeof _def.durability === 'number' ? _def.durability : _sc._usesLeft;
+      if (_sc._usesLeft < _cap) { _sc._usesLeft++; _restored++; }
+    }
+    if (_restored) showMessage(`Martyr: +1 charge to ${_restored} Sleight${_restored > 1 ? 's' : ''}`, 'var(--gold)');
   }
   sfxFlipShuffle();
   resetFocusDecayTimer();
@@ -11078,6 +11281,39 @@ function fireSleightsOnSwap(r1, c1, r2, c2) {
   });
 }
 
+// Magnet: pull every card of `rank` into the cells orthogonally adjacent to Magnet,
+// by swapping grid data. Each pull counts as a swap (fires on_swap Sleights + Restless),
+// which is the intended synergy. Returns how many cards were moved.
+function magnetCluster(mr, mc, rank) {
+  const inBounds = (r, c) => r >= 0 && c >= 0 && r < gridRows && c < gridCols;
+  const isRank   = card => card && card.rank === rank && !card._isSleight && !card._isStone && !card._isTrick;
+  const neighbors = [[mr-1,mc],[mr+1,mc],[mr,mc-1],[mr,mc+1]].filter(([r,c]) => inBounds(r,c));
+  let moved = 0;
+  for (const [nr, nc] of neighbors) {
+    const nb = gridData[nr]?.[nc];
+    if (!nb || nb._isSleight || nb._isStone || nb._isTrick) continue; // don't disturb fixtures
+    if (nb.rank === rank) continue;                                   // already holds the rank
+    if (!cardCan(nb, 'swap')) continue;                               // respect Snared etc.
+    // Find a far card of the rank (not in a neighbor cell, not Magnet, swappable)
+    let found = null;
+    for (let r = 0; r < gridRows && !found; r++) for (let c = 0; c < gridCols && !found; c++) {
+      if (r === mr && c === mc) continue;
+      if (neighbors.some(([ar, ac]) => ar === r && ac === c)) continue;
+      const cand = gridData[r]?.[c];
+      if (isRank(cand) && cardCan(cand, 'swap')) found = [r, c];
+    }
+    if (!found) break; // nothing left to pull
+    const [fr, fc] = found;
+    const tmp = gridData[nr][nc];
+    gridData[nr][nc] = gridData[fr][fc];
+    gridData[fr][fc] = tmp;
+    fireSleightsOnSwap(nr, nc, fr, fc); // counts as a swap
+    if (hasTrick('restless')) addFocus(1);
+    moved++;
+  }
+  return moved;
+}
+
 function applySleightGridEffect(id, r, c) {
   switch (id) {
     case 'good_friend':
@@ -12794,6 +13030,18 @@ function triggerLevelUp() {
     const _jcard = gridData[_jr][_jc];
     if (_jcard?._isSleight) _jcard._usedThisRound = false;
   }
+  // Coin Toss: each owned Sleight has a 50% chance to regain 1 charge at round start
+  if (hasKnack('coin_toss')) {
+    let _refilled = 0;
+    ownedSleightCards().forEach(card => {
+      if (card._usesLeft === 'infinite' || typeof card._usesLeft !== 'number') return;
+      const def = SLEIGHT_POOL.find(j => j.id === card.sleightId);
+      const cap = (def && typeof def.durability === 'number') ? def.durability : card._usesLeft;
+      if (card._usesLeft < cap && Math.random() < 0.5) { card._usesLeft++; _refilled++; }
+    });
+    if (_refilled) showMessage(`Coin Toss: ${_refilled} Sleight${_refilled > 1 ? 's' : ''} regained a charge`, 'var(--gold)');
+  }
+  setTimeout(checkComboMilestones, 600); // combo legibility toast (after the deal settles)
   fireSleightsAtRoundStart();
   // (♠ exalt/corrupt is now play/discard-driven — handled in playHand and doDiscard, not at deal)
   fireSleightsOnDraw();
@@ -14932,6 +15180,10 @@ function startGame() {
   sleightNextHandDouble = false;
   sleightLegacyMult    = false;
   sleightAmplifierMult = 0;
+  _dabiSwapNext        = false;
+  magnetArmed          = null;
+  _comboAnnounced      = new Set();
+  _comboHinted         = new Set();
   sleightFreeSwapPending = false;
   // Reset all counters
   Object.keys(C).forEach(k => C[k] = (typeof C[k] === 'boolean' ? false : 0));
