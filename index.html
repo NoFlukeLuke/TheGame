@@ -3611,7 +3611,7 @@
 </div>
 
 <script>
-const BUILD = '2026-07-16 · r75';
+const BUILD = '2026-07-16 · r76';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -3974,6 +3974,13 @@ const TRICK_POOL = [
   { id:'wide_span_mult', name:'Wide Reach',          tier:'rare',      tags:['position','mult','pips'], desc:'Hands spanning 4+ rows or columns score +24 mult. +5 mult per extra column, +20 pips per extra row' },
   { id:'column_rush',    name:'Column Rush',         tier:'common',    desc:'All cards in the same column add +2 mult per card' },
   { id:'row_power',      name:'Row Power',           tier:'common',    desc:'All cards in the same row add +2 mult per card' },
+  // ── New position tricks (owner batch) ──
+  { id:'groove',         name:'Groove',              tier:'rare',      tags:['focus','position','scaling'], desc:'This trick scales +1 Focus for every 2 cards scored from a marked row or column. Resets each round.' },
+  { id:'assembly_line',  name:'Assembly Line',       tier:'epic',      tags:['mult','position','scaling'],  desc:'Cards scored in a marked row or column score +1 mult for every card already scored from that line this round.' },
+  { id:'overtime',       name:'Overtime',            tier:'rare',      tags:['time','position','scaling'],  desc:'This trick scales +1 second for every 3 cards scored from a marked row or column. Resets each round.' },
+  { id:'feng_shui',      name:'Feng Shui',           tier:'epic',      tags:['pips','position','scaling'],  desc:'Permanently scores +3 pips each hand another position trick triggers.' },
+  { id:'huddle',         name:'Huddle',              tier:'rare',      tags:['pips','position'],            desc:'Each scored card scores +11 pips for every adjacent card or sleight in the hand.' },
+  { id:'clean_sweep',    name:'Clean Sweep',         tier:'epic',      tags:['focus','position'],           desc:'Cover a full row or column within two hands to advance Focus to the next threshold.' },
   // ── Level scaling ──
   { id:'rising_tide',    name:'Rising Tide',         tier:'common',    desc:'Base mult increases by +1 for each level reached' },
   { id:'veteran_bonus',  name:'Veteran',             tier:'common',    desc:'+2 pips per level reached this run' },
@@ -4029,7 +4036,7 @@ const TRICK_CATEGORIES = [
   { emoji:'🎨', ids:['club_double','monochrome','full_color','balanced_diet'] }, // Suit conditions
   { emoji:'🔢', ids:['lucky_sevens','ninesong','prime_time','even_score','odd_squad'] }, // Number magic
   { emoji:'🌈', ids:['number_crunch'] }, // Rank diversity
-  { emoji:'📍', ids:['rowcol_triple_pips','rowcol_mult','rowcol_retrigger','rowcol_perm_double','shape_square','shape_cross','shape_line','shape_snake','corner_retrigger','two_corners','edge_pips','wide_span_mult','column_rush','row_power'] }, // Position
+  { emoji:'📍', ids:['rowcol_triple_pips','rowcol_mult','rowcol_retrigger','rowcol_perm_double','shape_square','shape_cross','shape_line','shape_snake','corner_retrigger','two_corners','edge_pips','wide_span_mult','column_rush','row_power','groove','assembly_line','overtime','feng_shui','huddle','clean_sweep'] }, // Position
   { emoji:'📈', ids:['rising_tide','veteran_bonus'] }, // Level scaling
   { emoji:'🧮', ids:['compound_mult','prolific','fives_discard','nines_mult','tens_mult','sixes_perm','fours_perm','twos_retrigger','prime_times','eights_retrigger','snowball','big_win','queens_upgrade','aces_absorb'] }, // Accumulating
   { emoji:'🎲', ids:['sands_of_time','discard_pips','spade_flood','mirror'] }, // Situational pip
@@ -4505,6 +4512,17 @@ let bonusMult_nines   = 0;
 let bonusMult_tens    = 0;
 let bonusMult_compound  = 0;   // Compound Trick: +0.1 per hand played
 let bonusPips_prolific  = 0;   // Prolific Trick: +1 pip per hand played
+// New position-trick state
+let bonusPips_fengshui  = 0;   // Feng Shui: permanent pips, grows when another position trick fires (per game)
+let assemblyMarkCount   = 0;   // Assembly Line: cards scored from its marked line this round (replays count)
+let _lastHandAssemblyEnd = 0;  // snapshot of assemblyMarkCount after the last scored hand
+let markCount_groove    = 0;   // Groove: cards scored from its marked line this round
+let markCount_overtime  = 0;   // Overtime: cards scored from its marked line this round
+let _cleanSweepPrev     = [];  // Clean Sweep: cell keys scored in the previous hand (rolling 2-hand window)
+let _lastHandPositionFired = false; // whether another position trick contributed pips/mult this hand (Feng Shui)
+// Position-trick ids (Feng Shui watches these; excludes itself). Focus/time-only ones
+// (groove/overtime/clean_sweep) don't write pip/mult contributions, so they don't count.
+const POSITION_TRICK_IDS = ['rowcol_triple_pips','rowcol_mult','rowcol_retrigger','rowcol_perm_double','shape_square','shape_cross','shape_line','shape_snake','corner_retrigger','two_corners','edge_pips','wide_span_mult','column_rush','row_power','assembly_line','huddle'];
 let bonusMult_jackpot   = 0;   // Jackpot (big_win) Trick: +5 when score 10k+
 let jackpotFired        = false; // big_win fires only once
 let handsPlayedRound    = 0;   // count of hands played this round
@@ -5083,6 +5101,11 @@ const BAL = {
   same_kind: { mult_per_match: 2 },
   column_rush: { mult_per_card: 2 },
   row_power: { mult_per_card: 2 },
+  groove:        { focus_per_2: 1 },
+  assembly_line: { mult_per_prior: 1 },
+  overtime:      { seconds_per_3: 1 },
+  feng_shui:     { pips_per_hand: 3 },
+  huddle:        { pips_per_adj: 11 },
   combo_score: { mult_per_type: 2 },
   heart_double: { heart_mult: 1 },
   last_stand: { score_mult: 2 },
@@ -5181,6 +5204,11 @@ const DESC_TEMPLATES = {
   edge_pips: 'Hands where all cards are on the outer edge score +{pips_per_card} pips per card',
   column_rush: 'All cards in the same column add +{mult_per_card} mult per card',
   row_power: 'All cards in the same row add +{mult_per_card} mult per card',
+  groove:        'This trick scales +{focus_per_2} Focus for every 2 cards scored from a marked row or column. Resets each round.',
+  assembly_line: 'Cards scored in a marked row or column score +{mult_per_prior} mult for every card already scored from that line this round.',
+  overtime:      'This trick scales +{seconds_per_3} second for every 3 cards scored from a marked row or column. Resets each round.',
+  feng_shui:     'Permanently scores +{pips_per_hand} pips each hand another position trick triggers.',
+  huddle:        'Each scored card scores +{pips_per_adj} pips for every adjacent card or sleight in the hand.',
   veteran_bonus: '+{pips_per_level} pips per level reached this run',
   sands_of_time: 'Current round time remaining ÷ {divisor} added as pips',
   discard_pips: '+{pips_per_discard} pips per card discarded this round',
@@ -5294,6 +5322,12 @@ function calcScore(handName, cells, contrib = null) {
   let _handRetrigs = 0; // Cuckoo: extra retriggers in this hand (committed to retriggersThisRound in playHand)
   let _vultureFires = 0; // Vulture: total buff-seconds fired this hand, counting retriggers
   const _eightCount = hasTrick('eights_retrigger') ? cards.filter(c => c.rank === '8').length : 0;
+  // Huddle: set of scored cells for in-hand adjacency. Assembly Line: running mark counter
+  // (starts from this round's persistent count; simulated locally so calcScore stays pure).
+  const _cellSet = new Set(_scoreCells.map(([_hr,_hc]) => _hr + '-' + _hc));
+  const _asmOn = hasTrick('assembly_line');
+  let _asmK = _asmOn ? assemblyMarkCount : 0;
+  let _asmMult = 0;
   _scoreCells.forEach(([r, c]) => {
     const card = gridData[r][c];
     const baseRank = card.rank;
@@ -5315,6 +5349,15 @@ function calcScore(handName, cells, contrib = null) {
     const _pp = permPips[_eKey] || 0;
     cp += _pp;
     bPip('sapling', _pp);
+    // Huddle: +pips per orthogonally-adjacent card/sleight also in this hand
+    if (hasTrick('huddle')) {
+      let _adj = 0;
+      if (_cellSet.has((r-1)+'-'+c)) _adj++;
+      if (_cellSet.has((r+1)+'-'+c)) _adj++;
+      if (_cellSet.has(r+'-'+(c-1))) _adj++;
+      if (_cellSet.has(r+'-'+(c+1))) _adj++;
+      if (_adj) { const _hb = _adj * BAL.huddle.pips_per_adj; cp += _hb; bPip('huddle', _hb); }
+    }
     // Permanent ×pips enhancement (The Forge / Bargain / Wager events)
     const _xp = permXPips[_eKey] || 1;
     if (_xp !== 1) { const _preXp = cp; cp *= _xp; bPip('sapling', cp - _preXp); }
@@ -5341,6 +5384,10 @@ function calcScore(handName, cells, contrib = null) {
     if (_rne) _retrig++; if (_ech) _retrig++; if (_wp) _retrig += BAL.woodpecker.retrigger_count;
     if (hasTrick('club_double') && (card.suit === '♣' || (card.combined && card.suit2 === '♣'))) _clubHits += _retrig;
     if (card._vulturePause) _vultureFires += card._vulturePause * _retrig; // Vulture buff fires once per (re)trigger
+    // Assembly Line: each (re)play of a mark card earns the running counter, then increments it
+    if (_asmOn && cellHasRowColBonus(r, c, 'assembly_line')) {
+      for (let _ai = 0; _ai < _retrig; _ai++) { _asmMult += _asmK; _asmK++; }
+    }
     if (_retrig > 1) {
       const _pre = cp; cp *= _retrig;
       const _extra = cp - _pre;
@@ -5404,6 +5451,10 @@ function calcScore(handName, cells, contrib = null) {
 
   // 2. Base mult + bonuses
   let mult = base.mult + sleightAmplifierMult;
+
+  // Assembly Line: apply the mult accumulated in the per-card loop; snapshot the round counter
+  if (_asmMult > 0) { mult += _asmMult * BAL.assembly_line.mult_per_prior; bMult('assembly_line', _asmMult * BAL.assembly_line.mult_per_prior); }
+  if (_asmOn) _lastHandAssemblyEnd = _asmK;
 
   if (risingTideBonus > 0) { mult += risingTideBonus; bMult('rising_tide', risingTideBonus); }
   // Night owl: last third of the round, +mult per card
@@ -5540,6 +5591,7 @@ function calcScore(handName, cells, contrib = null) {
   // Accumulating scalers
   if (hasTrick('compound_mult') && bonusMult_compound > 0) { mult += bonusMult_compound; bMult('compound_mult', bonusMult_compound); }
   if (hasTrick('prolific') && bonusPips_prolific > 0) { totalPips += bonusPips_prolific; bPip('prolific', bonusPips_prolific); }
+  if (hasTrick('feng_shui') && bonusPips_fengshui > 0) { totalPips += bonusPips_fengshui; bPip('feng_shui', bonusPips_fengshui); }
   if (hasTrick('big_win') && bonusMult_jackpot > 0) { mult += bonusMult_jackpot; bMult('big_win', bonusMult_jackpot); }
   // Hand type: pair-based pip bonuses
   // Hand type: specific pip bonuses
@@ -5590,6 +5642,9 @@ function calcScore(handName, cells, contrib = null) {
       if (_mr) { const _pd = _cp[_mr.id] || 0, _md = _cm[_mr.id] || 0; for (let k = 0; k < _t2; k++) { if (_pd) { totalPips += _pd; bPip('twos_retrigger', _pd); } if (_md) { mult += _md; bMult('twos_retrigger', _md); } } }
     }
   }
+
+  // Feng Shui: did another position trick contribute pips/mult this hand? (snapshot for playHand)
+  _lastHandPositionFired = POSITION_TRICK_IDS.some(id => (_cp[id] || 0) > 0 || (_cm[id] || 0) > 0);
 
   // 3. Base score
   const fMult = focusMultiplier();
@@ -7127,6 +7182,14 @@ function playHand() {
     if (hasTrick('ninesong')) { const _ps = handCells.reduce((s,[r,c]) => s + (gridData[r]?.[c] ? cardPips(gridData[r][c].rank) : 0), 0); if (_ps % 3 === 0) totalFocus += BAL.ninesong.focus; }
     // The Falcon: hands played while the clock is paused add +10 Focus
     if (hasTrick('frozen_moment') && pipeTimerPaused) totalFocus += BAL.frozen_moment.focus;
+    // Groove / Overtime: tally cards scored from their marked line this round, then scale.
+    if (hasTrick('groove')) {
+      markCount_groove += handCells.filter(([r,c]) => cellHasRowColBonus(r, c, 'groove')).length;
+      totalFocus += Math.floor(markCount_groove / 2) * BAL.groove.focus_per_2;
+    }
+    if (hasTrick('overtime')) {
+      markCount_overtime += handCells.filter(([r,c]) => cellHasRowColBonus(r, c, 'overtime')).length;
+    }
     if (totalFocus > 0) addFocus(totalFocus);
     // Quick Draw: hands played within 3 seconds of the previous permanently add +1 max Focus capacity
     if (hasTrick('quick_draw') && lastHandTime > 0 && secondsSinceLast * 1000 < BAL.quick_draw.window_ms) focusCapacity++;
@@ -7175,6 +7238,8 @@ function playHand() {
 
   // Deluge: Flushes add seconds to the clock
   if (hand === 'Flush' && hasTrick('deluge')) { roundSeconds += BAL.deluge.seconds; updateClockUI(); showMessage('Deluge! +' + BAL.deluge.seconds + 's', '#5aa9e6'); }
+  // Overtime: scales seconds with cards scored from its marked line this round (counter bumped above)
+  if (hasTrick('overtime')) { const _os = Math.floor(markCount_overtime / 3) * BAL.overtime.seconds_per_3; if (_os > 0) { roundSeconds += _os; updateClockUI(); } }
   // Threepeat: hand pip-sum divisible by 3 → +3 seconds
   if (hasTrick('ninesong')) { const _ps = handCells.reduce((s,[r,c]) => s + (gridData[r]?.[c] ? cardPips(gridData[r][c].rank) : 0), 0); if (_ps % 3 === 0) { roundSeconds += BAL.ninesong.seconds; updateClockUI(); } }
   // Blood Diamonds: a hand with at least one heart AND one diamond grants +1 coin and +10s
@@ -7243,6 +7308,26 @@ function playHand() {
   }
   if (hasTrick('compound_mult')) bonusMult_compound = Math.round((bonusMult_compound + BAL.compound_mult.mult_per_hand) * 10) / 10;
   if (hasTrick('prolific')) bonusPips_prolific += BAL.prolific.pips_per_hand;
+  // Feng Shui: grow its permanent pips when another position trick fired this hand
+  if (hasTrick('feng_shui') && _lastHandPositionFired) bonusPips_fengshui += BAL.feng_shui.pips_per_hand;
+  // Assembly Line: commit this hand's mark tally (incl. replays) to the round counter
+  if (hasTrick('assembly_line')) assemblyMarkCount = _lastHandAssemblyEnd;
+  // Clean Sweep: if this hand + the previous cover a full row or column, advance Focus a threshold
+  if (hasTrick('clean_sweep')) {
+    const _csCur = handCells.map(([r,c]) => r + '-' + c);
+    const _csWin = new Set([..._csCur, ..._cleanSweepPrev]);
+    let _csSwept = false;
+    for (let r = 0; r < gridRows && !_csSwept; r++) { let _full = true; for (let c = 0; c < gridCols; c++) { if (!_csWin.has(r+'-'+c)) { _full = false; break; } } if (_full) _csSwept = true; }
+    for (let c = 0; c < gridCols && !_csSwept; c++) { let _full = true; for (let r = 0; r < gridRows; r++) { if (!_csWin.has(r+'-'+c)) { _full = false; break; } } if (_full) _csSwept = true; }
+    if (_csSwept) {
+      const _nt = (Math.floor(focusNodes / FOCUS_THRESHOLD) + 1) * FOCUS_THRESHOLD;
+      addFocus(_nt - focusNodes);
+      showMessage('Clean Sweep! Focus advanced', '#5aa9e6');
+      _cleanSweepPrev = [];
+    } else {
+      _cleanSweepPrev = _csCur;
+    }
+  }
   if (hasTrick('big_win') && !jackpotFired && finalScore >= BAL.big_win.score_threshold) { jackpotFired = true; bonusMult_jackpot += BAL.big_win.mult; showMessage('Jackpot! +5 mult permanently', 'var(--gold)'); }
   if (hasTrick('snowball') && lastCalcPips >= BAL.snowball.score_threshold) {
     result.handCells.forEach(([r,c]) => {
@@ -12092,6 +12177,10 @@ function triggerLevelUp() {
   handsPlayedRound = 0;
   runsPlayedRound  = 0;
   handTypesRound   = new Set();
+  assemblyMarkCount = 0;   // Assembly Line
+  markCount_groove  = 0;   // Groove
+  markCount_overtime = 0;  // Overtime
+  _cleanSweepPrev   = [];  // Clean Sweep
   fullHouseThisRound = 0;
   roundContributions = {};
   roundHandsScored = 0;
@@ -12485,6 +12574,10 @@ function trickLiveDesc(trick) {
     case 'compound_mult':  return base + (bonusMult_compound > 0 ? ` [now: +${bonusMult_compound.toFixed(1)} mult]` : '');
     case 'prolific':       return base + (bonusPips_prolific > 0 ? ` [now: +${bonusPips_prolific} pips]` : '');
     case 'big_win':        return base + (jackpotFired ? ` [active: +${bonusMult_jackpot} mult]` : '');
+    case 'feng_shui':      return base + (bonusPips_fengshui > 0 ? ` [now: +${bonusPips_fengshui} pips]` : '');
+    case 'groove':         return base + (markCount_groove   > 0 ? ` [now: +${Math.floor(markCount_groove / 2)} Focus/hand]` : '');
+    case 'overtime':       return base + (markCount_overtime > 0 ? ` [now: +${Math.floor(markCount_overtime / 3)}s/hand]` : '');
+    case 'assembly_line':  return base + (assemblyMarkCount   > 0 ? ` [now: next mark card +${assemblyMarkCount} mult]` : '');
     case 'veteran_bonus':  return `+2 pips per level reached this run. [now: +${(level - 1) * 2} pips]`;
     default: return base;
   }
@@ -12876,12 +12969,13 @@ function selectTrick(trick, fromTrickFlow = false) {
   acquiredTricks.push(trick);
 
   // Positional bonuses get a randomly assigned axis+index at pick time
-  const positionalIds = ['rowcol_triple_pips','rowcol_mult','rowcol_retrigger','rowcol_perm_double'];
+  const positionalIds = ['rowcol_triple_pips','rowcol_mult','rowcol_retrigger','rowcol_perm_double','groove','assembly_line','overtime'];
   if (positionalIds.includes(trick.id)) {
     const axis = Math.random() < 0.5 ? 'row' : 'col';
     const index = Math.floor(Math.random() * (axis === 'row' ? gridRows : gridCols));
     rowColBonuses.push({ id: trick.id, axis, index });
     trick.desc = trick.desc.replace('a specific row or column', `${axis} ${index + 1}`)
+                            .replace('a marked row or column', `${axis} ${index + 1}`)
                             .replace('a specific grid intersection', `(${axis === 'row' ? 'row' : 'col'} ${index + 1})`);
     if (trick.id === 'rowcol_perm_double') {
       leyLinePos = { r: Math.floor(Math.random() * gridRows), c: Math.floor(Math.random() * gridCols) };
@@ -14242,6 +14336,7 @@ function startGame() {
   bonusMult_tens = 0;
   bonusMult_compound = 0;
   bonusPips_prolific = 0;
+  bonusPips_fengshui = 0;   // Feng Shui (per-game permanent scaler)
   bonusMult_jackpot  = 0;
   jackpotFired       = false;
   safetyNetUsed      = false;
