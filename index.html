@@ -3647,7 +3647,7 @@
 </div>
 
 <script>
-const BUILD = '2026-07-17 · r79';
+const BUILD = '2026-07-17 · r80';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -3988,9 +3988,9 @@ const TRICK_POOL = [
   { id:'hourglass',      name:'Hourglass',           tier:'epic',      tags:['time','retrigger'], desc:'Every minute mark the clock passes has a 1-in-3 chance to give a random card on the grid a permanent retrigger' },
   { id:'sediment',       name:'Sediment',            tier:'rare',      tags:['time','pips'],      desc:'Gains +10 pips for every 10 seconds of round time elapsed (resets each round)' },
   { id:'kingfisher',     name:'The Kingfisher',      tier:'epic',      tags:['time','mult'],      desc:'+1 mult for every 5 seconds the clock has been paused or rewound this round' },
-  { id:'magpie',         name:'The Magpie',          tier:'epic',      tags:['time','resource'],  desc:'Each hand rewinds the clock 1 second for every 2 unspent swaps + discards you hold' },
-  { id:'mockingbird',    name:'The Mockingbird',     tier:'rare',      tags:['resource','streak'],desc:'Every 2 hands you play of a different type than the one before grants +1 swap' },
-  { id:'starling',       name:'The Starling',        tier:'rare',      tags:['resource','streak'],desc:'Every 2nd hand of an unbroken same-type streak grants +1 discard' },
+  { id:'magpie',         name:'Hoarder House',       tier:'epic',      tags:['time','resource'],  desc:'Each hand rewinds the clock 1 second for every 2 unspent swaps + discards you hold' },
+  { id:'mockingbird',    name:'Traveler',            tier:'rare',      tags:['resource','streak'],desc:'Every 3 hands you play without a same-type streak grants +1 swap' },
+  { id:'starling',       name:'Type A',              tier:'rare',      tags:['resource','streak'],desc:'Every 2nd hand of an unbroken same-type streak grants +1 discard' },
   { id:'phoenix',        name:'The Phoenix',         tier:'mythic',    desc:'While the clock is paused, the Focus multiplier applies twice' },
   // ── Streaks ──
   { id:'kindling',       name:'Kindling',            tier:'common',    desc:'Same hand streak scores +4 pips × streak' },
@@ -7325,13 +7325,12 @@ function playHand() {
 
   // Streak tracking
   const now = Date.now();
-  const _prevHandType = lastHandType; // snapshot before the streak block mutates it (Mockingbird)
   if (hand === lastHandType) {
     streakCount++;
     // The Starling: every 2nd hand of an unbroken same-type streak grants +1 discard
     if (hasTrick('starling') && streakCount % 2 === 0) {
       discards = Math.min(99, discards + 1);
-      showMessage('🐦 The Starling — +1 discard', '#8fc98f');
+      showMessage('📋 Type A — +1 discard', '#8fc98f');
     }
     // Re-arming progress for Combo Keeper
     if (!streakSaveArmed) {
@@ -7354,17 +7353,17 @@ function playHand() {
   lastHandTime = now;
   lastHandRoundSeconds = roundSeconds; // for The Heron, snapshotted AFTER this hand's own check above
 
-  // The Mockingbird: playing a hand of a different type than the one before is an "alternation";
-  // every 2 alternations grants +1 swap. Feeds swap/discard-hoarding Tricks (e.g. The Magpie).
-  if (hasTrick('mockingbird') && _prevHandType !== null && hand !== _prevHandType) {
+  // Traveler: a hand that doesn't extend a same-type streak (streakCount stays at 1) counts;
+  // every 3 such "no-streak" hands grants +1 swap. Feeds resource-hoarding Tricks (Hoarder House).
+  if (hasTrick('mockingbird') && streakCount === 1) {
     _altSwapCount++;
-    if (_altSwapCount >= 2) { _altSwapCount = 0; swaps = Math.min(99, swaps + 1); showMessage('🐦 The Mockingbird — +1 swap', '#8fbfd9'); }
+    if (_altSwapCount >= 3) { _altSwapCount = 0; swaps = Math.min(99, swaps + 1); showMessage('🧳 Traveler — +1 swap', '#8fbfd9'); }
   }
 
-  // The Magpie: playing a hand rewinds the clock 1s per 2 unspent manipulate actions (swaps + discards).
+  // Hoarder House: playing a hand rewinds the clock 1s per 2 unspent manipulate actions (swaps + discards).
   if (hasTrick('magpie')) {
     const _sec = Math.floor((swaps + discards) / BAL.magpie.actions_per_second);
-    if (_sec > 0) rewindTime(_sec, `🐦 The Magpie — rewound ${_sec}s`);
+    if (_sec > 0) rewindTime(_sec, `🏚️ Hoarder House — rewound ${_sec}s`);
   }
 
   // Clockmaker knack: a single hand scoring ≥30% of the round goal rewinds the clock.
