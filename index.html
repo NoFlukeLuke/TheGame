@@ -492,6 +492,13 @@
   .mini-card.suit-spades .mini-rank,   .mini-card.suit-spades .mini-suit   { color: var(--suit-spades); }
   .mini-card.suit-clubs .mini-rank,    .mini-card.suit-clubs .mini-suit    { color: var(--suit-clubs); }
 
+  /* Hand-preview now mirrors the grid via renderCardAppearance(): real .card markup,
+     scaled down by the local --card-w/--card-h set on #selected-cards. Cards must flow
+     in the flex row (grid cards are position:absolute) and not carry grid interactivity. */
+  #selected-cards { --card-w: 38px; --card-h: 50px; }
+  #selected-cards .card { position: relative !important; flex: 0 0 auto; will-change: auto; transition: none; cursor: default; }
+  #selected-cards .preview-empty { width: var(--card-w, 38px); height: var(--card-h, 50px); border: 1px dashed var(--border); border-radius: 5px; flex: 0 0 auto; }
+
   /* Tricks carousel — right half */
   #knack-carousel-wrap { flex: 1; min-width: 0; overflow: hidden; padding-left: 8px; display: flex; flex-direction: column; justify-content: center; }
   #knack-list {
@@ -2914,26 +2921,31 @@
   #stage.landscape #score-left     { left:19.53%; top:2.78%;  width:14.84%; height:12.5%;  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; padding:4px; }
   #stage.landscape #clock-area     { position:absolute; left:40.63%; top:4.17%; width:7.03%; height:6%; display:flex; align-items:center; justify-content:center; background:none; border:none; padding:0; }
   #stage.landscape #vclock         { left:48.44%; top:2.78%; width:40.63%; height:6.94%; overflow:hidden; display:block; }
-  #stage.landscape #score-subboxes { left:1.56%;  top:18.06%; width:32.81%; height:11.11%; display:flex; flex-direction:row; align-items:stretch; justify-content:space-around; gap:4px; padding:4px 4px 9px; border-right:none; border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
-  #stage.landscape .score-subbox { display:flex; flex-direction:column; align-items:center; justify-content:center; }
-  /* v7.1 desktop panel: knacks on top → [hand-name | preview] → tricks (all card-shaped). Portrait untouched. */
-  #stage.landscape #knack-carousel-wrap .panel-title, #stage.landscape #trick-tray-area .panel-title {
-    display:block; font-family:'Cinzel',serif; font-size:7px; font-weight:700; letter-spacing:1.5px; color:var(--gold-dim); text-transform:uppercase; line-height:1; flex-shrink:0; }
-  /* bigger preview cards (freed vertical room lets them grow taller) */
-  #stage.landscape #selected-cards .mini-card, #stage.landscape #selected-cards .mini-card-empty { width:34px; height:58px; }
-  #stage.landscape #selected-cards .mini-rank { font-size:17px; }
-  #stage.landscape #selected-cards .mini-suit { font-size:14px; }
-  /* knacks: moved up, directly under the PIPS/MULT/FOCUS chips */
-  #stage.landscape #knack-carousel-wrap { left:1.56%; top:30.5%; width:32.81%; height:8.5%; display:flex; flex-direction:column; align-items:flex-start; justify-content:center; gap:3px; padding:3px 7px; overflow:hidden; }
+  /* PIPS/MULT/FOCUS: smaller squares centred inside the section outline (no overflow), bigger pip/mult numbers, purple focus, vertically-centred × */
+  #stage.landscape #score-subboxes { left:1.56%;  top:18.06%; width:32.81%; height:11.11%; display:flex; flex-direction:row; align-items:center; justify-content:space-around; gap:4px; padding:3px 6px; border-right:none; border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
+  #stage.landscape .score-subbox { display:flex; flex-direction:column; align-items:center; justify-content:center; height:34px; max-height:34px; }
+  #stage.landscape #pips-box .subbox-val, #stage.landscape #mult-box .subbox-val { font-size:19px; }
+  #stage.landscape #focus-box .subbox-label, #stage.landscape #focus-box .subbox-val, #stage.landscape #focus-box .focus-live-sub { color:#c07aee; }
+  #stage.landscape .subbox-times { display:flex; align-items:center; align-self:center; }
+
+  /* v7.1 desktop panel: knacks → preview (hand-name inside) → tricks; preview cards mirror the grid exactly. Portrait untouched. */
+  #stage.landscape #knack-carousel-wrap .panel-title { display:none; }   /* no "Knacks" label */
+  /* tricks: hide the word "Tricks" but keep the n/5 count pinned bottom-right */
+  #stage.landscape #trick-tray-area .panel-title { position:absolute; right:7px; bottom:4px; margin:0; padding:0; font-size:0; letter-spacing:0; z-index:3; }
+  #stage.landscape #trick-tray-count { font-family:'Cinzel',serif; font-size:8px; font-weight:700; color:var(--gold-dim); }
+
+  /* knacks: chip row only, directly under the PIPS/MULT/FOCUS chips */
+  #stage.landscape #knack-carousel-wrap { left:1.56%; top:30%; width:32.81%; height:7%; display:flex; flex-direction:row; align-items:center; justify-content:flex-start; gap:5px; padding:2px 8px; overflow:hidden; }
   #stage.landscape #knack-list { flex-wrap:nowrap; gap:5px; max-height:none; overflow:hidden; }
-  /* hand-name: narrow column to the LEFT of the preview (no longer below it) */
-  #stage.landscape #hand-name      { position:absolute; left:1.56%; top:40.5%; width:7%; height:21%; display:flex; align-items:center; justify-content:center; text-align:center; background:none; border:none; margin:0; font-size:10px; line-height:1.15; letter-spacing:0.5px; padding:0 2px; }
-  /* preview: taller box to the right of the hand-name */
-  #stage.landscape #selected-cards { left:9.2%;  top:40.5%; width:25.17%; height:21%; display:flex; align-items:center; justify-content:center; gap:3px; padding:4px; background:var(--panel); border:1px solid var(--border); border-radius:6px; }
-  /* tricks: below the preview, rendered as card-shaped tiles */
-  #stage.landscape #trick-tray-area { left:1.56%; top:63%; width:32.81%; height:12%; display:flex !important; flex-direction:column; align-items:flex-start; padding:3px 7px; gap:3px; overflow:hidden; }
-  #stage.landscape #trick-tray-list { flex-wrap:nowrap; gap:5px; max-height:none; overflow:hidden; padding:0; }
-  #stage.landscape .trick-tray-chip { width:28px; height:38px; font-size:12px; border-radius:4px; flex-direction:column; }
+
+  /* preview: full-width frame; hand-name sits inside it on the dark background (left); cards render exactly like the grid, bonuses and all */
+  #stage.landscape #selected-cards { left:1.56%; top:38%; width:32.81%; height:18%; --card-w:38px; --card-h:50px; display:flex; align-items:center; justify-content:center; gap:4px; padding:4px 8px 4px 44px; background:var(--panel); border:1px solid var(--border); border-radius:6px; overflow:hidden; }
+  #stage.landscape #hand-name { position:absolute; left:1.56%; top:38%; width:6%; height:18%; display:flex; align-items:center; justify-content:center; text-align:center; background:none; border:none; margin:0; font-size:10px; line-height:1.15; letter-spacing:0.5px; color:var(--gold); padding:0 3px; z-index:2; }
+
+  /* tricks: SAME height as the preview, card-shaped tiles fully visible, no label */
+  #stage.landscape #trick-tray-area { left:1.56%; top:57%; width:32.81%; height:18%; display:flex !important; flex-direction:row; align-items:center; justify-content:flex-start; padding:4px 8px; gap:6px; overflow:hidden; }
+  #stage.landscape #trick-tray-list { flex-direction:row; flex-wrap:nowrap; align-items:center; gap:6px; max-height:none; overflow:hidden; padding:0; }
+  #stage.landscape .trick-tray-chip { width:35px; height:46px; font-size:14px; border-radius:5px; flex-direction:column; }
   #stage.landscape #interact-costs { left:1.56%; top:76.39%; width:14.84%; height:12.5%; flex-direction:column; justify-content:center; padding:3px 6px; gap:1px; }
   #stage.landscape #coin-info      { left:17.19%; top:76.39%; width:17.19%; height:12.5%; flex-direction:column; justify-content:center; padding:3px 7px; gap:1px; }
   #stage.landscape #btn-stats      { position:absolute; left:1.56%; top:91.67%; width:10.16%; height:6.39%; }
@@ -3793,7 +3805,7 @@
 </div>
 
 <script>
-const BUILD = '2026-07-21 · r87';
+const BUILD = '2026-07-21 · r88';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -6358,13 +6370,16 @@ function render() {
       if (selected[i]) {
         const [r,c] = selected[i];
         const card = gridData[r][c];
+        // Mirror the grid exactly: same markup/colors/ratio + any bonus decorations.
+        // Sized down via local --card-w/--card-h on #selected-cards (see landscape CSS).
+        const { className, innerHTML } = renderCardAppearance(card, r, c);
         const div = document.createElement('div');
-        div.className = `mini-card ${suitClass(card.suit)}`;
-        div.innerHTML = `<div class="mini-rank">${card.rank}</div><div class="mini-suit">${card.suit}</div>`;
+        div.className = className + ' preview-card';
+        div.innerHTML = innerHTML;
         cardsEl.appendChild(div);
       } else {
         const empty = document.createElement('div');
-        empty.className = 'mini-card-empty';
+        empty.className = 'preview-card preview-empty';
         cardsEl.appendChild(empty);
       }
     }
