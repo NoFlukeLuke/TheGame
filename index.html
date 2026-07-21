@@ -2916,14 +2916,24 @@
   #stage.landscape #vclock         { left:48.44%; top:2.78%; width:40.63%; height:6.94%; overflow:hidden; display:block; }
   #stage.landscape #score-subboxes { left:1.56%;  top:18.06%; width:32.81%; height:11.11%; display:flex; flex-direction:row; align-items:stretch; justify-content:space-around; gap:4px; padding:4px 4px 9px; border-right:none; border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
   #stage.landscape .score-subbox { display:flex; flex-direction:column; align-items:center; justify-content:center; }
-  #stage.landscape #knack-carousel-wrap .panel-title, #stage.landscape #trick-tray-area .panel-title { display:none; }
-  #stage.landscape #selected-cards .mini-card, #stage.landscape #selected-cards .mini-card-empty { width:34px; height:44px; }
-  #stage.landscape #selected-cards .mini-rank { font-size:13px; }
-  #stage.landscape #selected-cards .mini-suit { font-size:11px; }
-  #stage.landscape #selected-cards { left:1.56%;  top:31.94%; width:32.81%; height:15.28%; display:flex; align-items:center; justify-content:center; gap:3px; padding:4px; background:var(--panel); border:1px solid var(--border); border-radius:6px; }
-  #stage.landscape #hand-name      { position:absolute; left:1.56%; top:47.22%; width:32.81%; height:4.44%; display:flex; align-items:center; justify-content:center; background:none; border:none; margin:0; }
-  #stage.landscape #knack-carousel-wrap { left:1.56%; top:51.39%; width:32.81%; height:6.94%; display:flex; align-items:center; gap:5px; padding:2px 6px; overflow:hidden; }
-  #stage.landscape #trick-tray-area { left:1.56%; top:59.72%; width:32.81%; height:13.89%; display:flex !important; flex-direction:column; padding:4px 6px; overflow:hidden; }
+  /* v7.1 desktop panel: knacks on top → [hand-name | preview] → tricks (all card-shaped). Portrait untouched. */
+  #stage.landscape #knack-carousel-wrap .panel-title, #stage.landscape #trick-tray-area .panel-title {
+    display:block; font-family:'Cinzel',serif; font-size:7px; font-weight:700; letter-spacing:1.5px; color:var(--gold-dim); text-transform:uppercase; line-height:1; flex-shrink:0; }
+  /* bigger preview cards (freed vertical room lets them grow taller) */
+  #stage.landscape #selected-cards .mini-card, #stage.landscape #selected-cards .mini-card-empty { width:34px; height:58px; }
+  #stage.landscape #selected-cards .mini-rank { font-size:17px; }
+  #stage.landscape #selected-cards .mini-suit { font-size:14px; }
+  /* knacks: moved up, directly under the PIPS/MULT/FOCUS chips */
+  #stage.landscape #knack-carousel-wrap { left:1.56%; top:30.5%; width:32.81%; height:8.5%; display:flex; flex-direction:column; align-items:flex-start; justify-content:center; gap:3px; padding:3px 7px; overflow:hidden; }
+  #stage.landscape #knack-list { flex-wrap:nowrap; gap:5px; max-height:none; overflow:hidden; }
+  /* hand-name: narrow column to the LEFT of the preview (no longer below it) */
+  #stage.landscape #hand-name      { position:absolute; left:1.56%; top:40.5%; width:7%; height:21%; display:flex; align-items:center; justify-content:center; text-align:center; background:none; border:none; margin:0; font-size:10px; line-height:1.15; letter-spacing:0.5px; padding:0 2px; }
+  /* preview: taller box to the right of the hand-name */
+  #stage.landscape #selected-cards { left:9.2%;  top:40.5%; width:25.17%; height:21%; display:flex; align-items:center; justify-content:center; gap:3px; padding:4px; background:var(--panel); border:1px solid var(--border); border-radius:6px; }
+  /* tricks: below the preview, rendered as card-shaped tiles */
+  #stage.landscape #trick-tray-area { left:1.56%; top:63%; width:32.81%; height:12%; display:flex !important; flex-direction:column; align-items:flex-start; padding:3px 7px; gap:3px; overflow:hidden; }
+  #stage.landscape #trick-tray-list { flex-wrap:nowrap; gap:5px; max-height:none; overflow:hidden; padding:0; }
+  #stage.landscape .trick-tray-chip { width:28px; height:38px; font-size:12px; border-radius:4px; flex-direction:column; }
   #stage.landscape #interact-costs { left:1.56%; top:76.39%; width:14.84%; height:12.5%; flex-direction:column; justify-content:center; padding:3px 6px; gap:1px; }
   #stage.landscape #coin-info      { left:17.19%; top:76.39%; width:17.19%; height:12.5%; flex-direction:column; justify-content:center; padding:3px 7px; gap:1px; }
   #stage.landscape #btn-stats      { position:absolute; left:1.56%; top:91.67%; width:10.16%; height:6.39%; }
@@ -3783,7 +3793,7 @@
 </div>
 
 <script>
-const BUILD = '2026-07-20 · r86';
+const BUILD = '2026-07-21 · r87';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
