@@ -3816,7 +3816,7 @@
 </div>
 
 <script>
-const BUILD = '2026-07-21 · r90';
+const BUILD = '2026-07-22 · r91';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -8984,10 +8984,15 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
     row.appendChild(l); row.appendChild(items); stage.appendChild(row); return items; };
   const handItems=mkRow('Hand','hand');
   const handTrack=document.createElement('div'); handTrack.className='dnc-track'; handItems.appendChild(handTrack);
+  // Reuse the SAME grid-accurate markup the hand preview uses (renderCardAppearance), so cards
+  // don't visually change when the dance starts (and the fly-in clone lands as an identical card).
+  // Wrapped in .dnc-outer for the two-layer activation animation; sized by #selected-cards'
+  // --card-w/--card-h; appended into the .dnc-track so large hands can scroll sideways as they score.
   const cardEls=handCells.map(([r,c])=>{ const card=gridData[r][c];
     const outer=document.createElement('div'); outer.className='dnc-outer';
-    const d=document.createElement('div'); d.className='dnc-card'+((card.suit==='♥'||card.suit==='♦')?' red':'');
-    d.innerHTML=`<span class="r">${card.rank}</span><span class="s">${card.suit}</span>`;
+    const d=document.createElement('div');
+    const { className, innerHTML } = renderCardAppearance(card, r, c);
+    d.className=className+' preview-card'; d.innerHTML=innerHTML;
     outer.appendChild(d); handTrack.appendChild(outer); return d; });
   // Resolve the REAL on-screen element for each contributing entity (aligned with `tricks`;
   // may be null, e.g. exalt or Amplifier that has no rack element — those still tally, no jitter).

@@ -10,7 +10,7 @@ A single-file HTML/JS roguelike poker game. Everything lives in **`index.html`**
 
 - **Branch:** `main` is the source of truth and auto-deploys to GitHub Pages — never commit directly to it. Develop on the `claude/*` feature branch this session was assigned. If none was given, branch off the latest main: `git checkout -b claude/<topic> origin/main`.
 - **Deploy:** push your feature branch, then fast-forward `main` to it: `git push origin HEAD && git push origin HEAD:main`. Pages serves from `main`.
-- **Build stamp:** bump the `BUILD` constant (near top of `<script>`, currently `'2026-07-21 · r90'`) on every commit. It shows in the menu footer + dev panel so the owner can confirm the cache is fresh. Increment the `rN` each commit.
+- **Build stamp:** bump the `BUILD` constant (near top of `<script>`, currently `'2026-07-22 · r91'`) on every commit. It shows in the menu footer + dev panel so the owner can confirm the cache is fresh. Increment the `rN` each commit.
 - **Commit messages:** detailed, since a fresh Claude session re-orients from git history. End with the session URL line.
 - After editing, validate syntax:
   ```
