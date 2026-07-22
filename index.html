@@ -2925,7 +2925,7 @@
   #stage.landscape #score-subboxes { left:1.56%;  top:18.06%; width:32.81%; height:11.11%; display:flex; flex-direction:row; align-items:center; justify-content:space-around; gap:4px; padding:3px 6px; border-right:none; border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
   #stage.landscape .score-subbox { display:flex; flex-direction:column; align-items:center; justify-content:center; height:34px; max-height:34px; }
   #stage.landscape #pips-box .subbox-val, #stage.landscape #mult-box .subbox-val { font-size:19px; }
-  #stage.landscape #focus-box .subbox-label, #stage.landscape #focus-box .subbox-val, #stage.landscape #focus-box .focus-live-sub { color:#c07aee; }
+  #stage.landscape #focus-box .subbox-label, #stage.landscape #focus-box .subbox-val { color:#c07aee; }
   #stage.landscape .subbox-times { display:flex; align-items:center; align-self:center; }
 
   /* v7.1 desktop panel: knacks → preview (hand-name inside) → tricks; preview cards mirror the grid exactly. Portrait untouched. */
@@ -3067,7 +3067,6 @@
           <div class="score-subbox" id="focus-box">
             <div class="subbox-label">FOCUS</div>
             <div class="subbox-val" id="focus-val">×1</div>
-            <div class="focus-live-sub" id="focus-live-sub">now ×1.0</div>
           </div>
         </div>
         <!-- Center: current score (dance overlay covers this) -->
@@ -3241,7 +3240,6 @@
   .dnc-particle{position:fixed;z-index:200;font-weight:700;pointer-events:none;font-family:'Crimson Pro',serif;
     font-size:calc(15px*var(--dnc-pscale,1));text-shadow:0 1px 4px rgba(0,0,0,.85);}
   /* live focus tracker beneath the FOCUS number (stays live even while the big number is locked mid-dance) */
-  #focus-live-sub{ font-size:8px; letter-spacing:.3px; color:var(--cream-dim); opacity:.75; margin-top:1px; line-height:1; }
 </style>
 
 <div id="dev-panel" style="display:none;position:fixed;inset:0;z-index:499;overflow-y:auto;background:rgba(0,0,0,0.92);padding:16px;flex-direction:column;gap:12px;">
@@ -3816,7 +3814,7 @@
 </div>
 
 <script>
-const BUILD = '2026-07-22 · r91';
+const BUILD = '2026-07-22 · r92';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -6623,10 +6621,6 @@ function updateFocusMultReadout(pulse = false) {
   // FOCUS score box mirrors the live focus multiplier (suppressed mid-dance; the dance drives it)
   const fvEl = document.getElementById('focus-val');
   if (fvEl && !danceAbortController) fvEl.textContent = (mult === 1) ? '×1' : '×' + mult.toFixed(1);
-  // Live "now ×" tracker beneath the FOCUS number — always reflects the CURRENT focus
-  // (keeps ticking during the dance while the big number is locked to the value used).
-  const subEl = document.getElementById('focus-live-sub');
-  if (subEl) subEl.textContent = 'now ×' + mult.toFixed(1);
   const el = document.getElementById('focus-mult-readout');
   if (!el) return;
   el.textContent = '×' + mult.toFixed(1);
