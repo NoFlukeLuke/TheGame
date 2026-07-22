@@ -3814,7 +3814,7 @@
 </div>
 
 <script>
-const BUILD = '2026-07-22 · r92';
+const BUILD = '2026-07-22 · r93';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -6371,27 +6371,12 @@ function render() {
 
   // Hand preview
   if (!danceAbortController) {
-    const hand = bestHandResult ? bestHandResult.hand : null;
-    document.getElementById('hand-name').textContent = hand || (selected.length >= 2 ? 'No valid hand' : '—');
+    // Owner request: the preview no longer reacts to selection — it stays empty (inert)
+    // until a hand is SUBMITTED, at which point the scoring dance (playPreviewDance) fills
+    // #selected-cards. Selecting cards no longer renders preview cards or a hand name here.
+    document.getElementById('hand-name').textContent = '—';
     const cardsEl = document.getElementById('selected-cards');
     cardsEl.innerHTML = '';
-    for (let i = 0; i < limits.selection.current; i++) {
-      if (selected[i]) {
-        const [r,c] = selected[i];
-        const card = gridData[r][c];
-        // Mirror the grid exactly: same markup/colors/ratio + any bonus decorations.
-        // Sized down via local --card-w/--card-h on #selected-cards (see landscape CSS).
-        const { className, innerHTML } = renderCardAppearance(card, r, c);
-        const div = document.createElement('div');
-        div.className = className + ' preview-card';
-        div.innerHTML = innerHTML;
-        cardsEl.appendChild(div);
-      } else {
-        const empty = document.createElement('div');
-        empty.className = 'preview-card preview-empty';
-        cardsEl.appendChild(empty);
-      }
-    }
     if (bestHandResult) {
       const base = HAND_BASE[bestHandResult.hand];
       if (base) {
