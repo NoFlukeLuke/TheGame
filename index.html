@@ -3611,7 +3611,7 @@
 </div>
 
 <script>
-const BUILD = '2026-07-16 · r76';
+const BUILD = '2026-07-16 · r77';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -3960,20 +3960,22 @@ const TRICK_POOL = [
   // ── Rank diversity ──
   { id:'number_crunch',  name:'Diversity',           tier:'rare',      desc:'Hands with 4+ different ranks score +2 mult' },
   // ── Position ──
-  { id:'rowcol_triple_pips', name:'Triple Pips',     tier:'rare',      tags:['pips','position'], desc:'Cards scored in a specific row or column contribute triple pips' },
-  { id:'rowcol_mult',    name:'Power Line',          tier:'rare',      tags:['mult','position'], desc:'Cards scored in a specific row or column each add +2 mult' },
-  { id:'rowcol_retrigger', name:'Echo Line',         tier:'rare',      tags:['retrigger','position'], desc:'Cards scored in a specific row or column score their pips twice' },
-  { id:'rowcol_perm_double', name:'Ley Line',        tier:'epic',      tags:['pips','position','scaling'], desc:'Cards scored at a specific grid intersection permanently double their pips (resets each level)' },
-  { id:'shape_square',   name:'Four Corners',        tier:'epic',      tags:['position','shape'], desc:'A 2×2 hand scores ×4' },
-  { id:'shape_cross',    name:'Crossroads',          tier:'rare',      tags:['position','shape'], desc:'A + shaped hand scores ×3' },
-  { id:'shape_line',     name:'Straight Shot',       tier:'common',    tags:['position','shape','mult'], desc:"All-row or all-column hands add the first and last card's pip values to mult" },
-  { id:'shape_snake',    name:'Snake',               tier:'rare',      tags:['position','shape','mult'], desc:'A hand that changes direction every step scores +2 mult per card' },
-  { id:'corner_retrigger', name:'Corner Power',      tier:'rare',      tags:['position','retrigger'], desc:'Cards in corner cells score their pips twice' },
-  { id:'two_corners',    name:'Diagonal',            tier:'epic',      tags:['position','score'], desc:'A hand containing 2 corner cells scores ×4' },
+  { id:'rowcol_triple_pips', name:'Right Place',     tier:'common',    tags:['pips','position'], desc:'Cards scored in a marked row or column score +10 pips' },
+  { id:'rowcol_mult',    name:'Power Line',          tier:'common',    tags:['mult','position'], desc:'Cards scored in a marked row or column each score +2 mult' },
+  { id:'rowcol_retrigger', name:'Echo Location',     tier:'rare',      tags:['replay','position'], desc:'Cards scored in a marked row or column have a 50% chance to replay once' },
+  { id:'perfect_timing', name:'Perfect Timing',      tier:'epic',      tags:['replay','position'], desc:'Cards scored in a marked row or column replay once' },
+  { id:'right_time',     name:'Right Time',          tier:'rare',      tags:['time','position'], desc:'Each card scored in a marked row or column pauses the clock 2 seconds' },
+  { id:'study_hall',     name:'Study Hall',          tier:'rare',      tags:['focus','position'], desc:'Cards scored in a marked row or column add +2 Focus, once per minute' },
+  { id:'rowcol_perm_double', name:'Ley Line',        tier:'epic',      tags:['mult','position','scaling'], desc:'Cards scored at the intersection of a row effect and a column effect permanently gain +2 mult, once per minute' },
+  { id:'shape_square',   name:'Hands of Blue',       tier:'epic',      tags:['position','shape','focus'], desc:'A 2×2 hand adds +16 Focus' },
+  { id:'shape_cross',    name:'Crossroads',          tier:'rare',      tags:['position','shape','focus'], desc:'A + shaped hand adds +25 Focus' },
+  { id:'shape_line',     name:'Straight Shot',       tier:'epic',      tags:['position','shape','mult'], desc:"5-card hands played in a straight line add the first and last card's pip values to mult" },
+  { id:'corner_retrigger', name:'Cornered',          tier:'rare',      tags:['position','pips'], desc:'Corner cards multiply the running pips by the whole minutes left on the clock' },
+  { id:'two_corners',    name:'Stretch',             tier:'epic',      tags:['position','mult'], desc:'When a hand has 2 or more corner cells, each corner card scores ×2 mult' },
   { id:'edge_pips',      name:'On the Edge',         tier:'common',    tags:['position','pips'], desc:'Hands where all cards are on the outer edge score +15 pips per card' },
-  { id:'wide_span_mult', name:'Wide Reach',          tier:'rare',      tags:['position','mult','pips'], desc:'Hands spanning 4+ rows or columns score +24 mult. +5 mult per extra column, +20 pips per extra row' },
-  { id:'column_rush',    name:'Column Rush',         tier:'common',    desc:'All cards in the same column add +2 mult per card' },
-  { id:'row_power',      name:'Row Power',           tier:'common',    desc:'All cards in the same row add +2 mult per card' },
+  { id:'wide_span_mult', name:'Inclusive',           tier:'rare',      tags:['position','mult'], desc:'Hands spanning the full width or height of the grid score +25 mult' },
+  { id:'column_rush',    name:'Stand Up',            tier:'common',    desc:'Hands with cards from only one column score +2 mult per card' },
+  { id:'row_power',      name:'Lie Down',            tier:'common',    desc:'Hands with cards from only one row score +2 mult per card' },
   // ── New position tricks (owner batch) ──
   { id:'groove',         name:'Groove',              tier:'rare',      tags:['focus','position','scaling'], desc:'This trick scales +1 Focus for every 2 cards scored from a marked row or column. Resets each round.' },
   { id:'assembly_line',  name:'Assembly Line',       tier:'epic',      tags:['mult','position','scaling'],  desc:'Cards scored in a marked row or column score +1 mult for every card already scored from that line this round.' },
@@ -4036,7 +4038,7 @@ const TRICK_CATEGORIES = [
   { emoji:'🎨', ids:['club_double','monochrome','full_color','balanced_diet'] }, // Suit conditions
   { emoji:'🔢', ids:['lucky_sevens','ninesong','prime_time','even_score','odd_squad'] }, // Number magic
   { emoji:'🌈', ids:['number_crunch'] }, // Rank diversity
-  { emoji:'📍', ids:['rowcol_triple_pips','rowcol_mult','rowcol_retrigger','rowcol_perm_double','shape_square','shape_cross','shape_line','shape_snake','corner_retrigger','two_corners','edge_pips','wide_span_mult','column_rush','row_power','groove','assembly_line','overtime','feng_shui','huddle','clean_sweep'] }, // Position
+  { emoji:'📍', ids:['rowcol_triple_pips','rowcol_mult','rowcol_retrigger','perfect_timing','right_time','study_hall','rowcol_perm_double','shape_square','shape_cross','shape_line','corner_retrigger','two_corners','edge_pips','wide_span_mult','column_rush','row_power','groove','assembly_line','overtime','feng_shui','huddle','clean_sweep'] }, // Position
   { emoji:'📈', ids:['rising_tide','veteran_bonus'] }, // Level scaling
   { emoji:'🧮', ids:['compound_mult','prolific','fives_discard','nines_mult','tens_mult','sixes_perm','fours_perm','twos_retrigger','prime_times','eights_retrigger','snowball','big_win','queens_upgrade','aces_absorb'] }, // Accumulating
   { emoji:'🎲', ids:['sands_of_time','discard_pips','spade_flood','mirror'] }, // Situational pip
@@ -4520,9 +4522,10 @@ let markCount_groove    = 0;   // Groove: cards scored from its marked line this
 let markCount_overtime  = 0;   // Overtime: cards scored from its marked line this round
 let _cleanSweepPrev     = [];  // Clean Sweep: cell keys scored in the previous hand (rolling 2-hand window)
 let _lastHandPositionFired = false; // whether another position trick contributed pips/mult this hand (Feng Shui)
+let _perMinuteFired = {};      // once-per-minute gate: trick id -> round-minute index it last fired (Study Hall, Ley Line)
 // Position-trick ids (Feng Shui watches these; excludes itself). Focus/time-only ones
 // (groove/overtime/clean_sweep) don't write pip/mult contributions, so they don't count.
-const POSITION_TRICK_IDS = ['rowcol_triple_pips','rowcol_mult','rowcol_retrigger','rowcol_perm_double','shape_square','shape_cross','shape_line','shape_snake','corner_retrigger','two_corners','edge_pips','wide_span_mult','column_rush','row_power','assembly_line','huddle'];
+const POSITION_TRICK_IDS = ['rowcol_triple_pips','rowcol_mult','rowcol_retrigger','perfect_timing','shape_line','corner_retrigger','two_corners','edge_pips','wide_span_mult','column_rush','row_power','assembly_line','huddle'];
 let bonusMult_jackpot   = 0;   // Jackpot (big_win) Trick: +5 when score 10k+
 let jackpotFired        = false; // big_win fires only once
 let handsPlayedRound    = 0;   // count of hands played this round
@@ -5042,7 +5045,11 @@ const BAL = {
   summit: { pips_per_level: 4 },
   before_the_tide: { extra_mult: 5 },
   knave_power: { per_jack: 2 },
-  rowcol_triple_pips: { pip_mult: 3 },
+  rowcol_triple_pips: { flat_pips: 10 },
+  right_time:     { pause_seconds: 2 },
+  study_hall:     { focus: 2 },
+  rowcol_perm_double: { perm_mult: 2 },
+  wide_span_mult: { mult: 25 },
   hidden_pair: { pips: 12 },
   twin_sprouts: { pips: 15 },
   worn_path: { pips: 20 },
@@ -5094,7 +5101,6 @@ const BAL = {
   even_score: { mult_per_card: 2 },
   odd_squad: { mult_per_card: 5 },
   long_road: { mult_per_card: 2 },
-  shape_snake: { mult_per_card: 2 },
   still_water: { mult_per_interval: 5 },
   wild_heart: { mult_per_ace: 2 },
   jack_mult: { mult_per_jack: 2 },
@@ -5124,9 +5130,9 @@ const BAL = {
   ninesong: { seconds: 3, mult: 9, focus: 3 },
   royal_trio: { mult_mult: 2 },
   prime_time: { pips_per_card: 23 },
-  shape_square: { score_mult: 4 },
-  shape_cross: { score_mult: 3 },
-  two_corners: { score_mult: 4 },
+  shape_square: { focus: 16 },
+  shape_cross: { focus: 25 },
+  two_corners: { mult_mult: 2 },
   correct_run: { pips_per_card: 80, mult_per_card: 16, focus_per_card: 4 },
   tide_table: { mult_step: 0.75 },
   undertow: { pip_mult_base: 1.5, pip_mult_step: 0.5 },
@@ -5197,13 +5203,15 @@ const DESC_TEMPLATES = {
   fertile_ground: 'All cards score +{pips} pips',
   heart_double: 'Each scored heart adds +{heart_mult} mult',
   number_crunch: 'Hands with 4+ different ranks score +{mult} mult',
-  shape_square: 'A 2×2 hand scores ×{score_mult}',
-  shape_cross: 'A + shaped hand scores ×{score_mult}',
-  shape_snake: 'A hand that changes direction every step scores +{mult_per_card} mult per card',
-  two_corners: 'A hand containing 2 corner cells scores ×{score_mult}',
+  shape_square: 'A 2×2 hand adds +{focus} Focus',
+  shape_cross: 'A + shaped hand adds +{focus} Focus',
+  two_corners: 'When a hand has 2 or more corner cells, each corner card scores ×{mult_mult} mult',
   edge_pips: 'Hands where all cards are on the outer edge score +{pips_per_card} pips per card',
-  column_rush: 'All cards in the same column add +{mult_per_card} mult per card',
-  row_power: 'All cards in the same row add +{mult_per_card} mult per card',
+  column_rush: 'Hands with cards from only one column score +{mult_per_card} mult per card',
+  row_power: 'Hands with cards from only one row score +{mult_per_card} mult per card',
+  right_time: 'Each card scored in a marked row or column pauses the clock {pause_seconds} seconds',
+  study_hall: 'Cards scored in a marked row or column add +{focus} Focus, once per minute',
+  rowcol_perm_double: 'Cards scored at the intersection of a row effect and a column effect permanently gain +{perm_mult} mult, once per minute',
   groove:        'This trick scales +{focus_per_2} Focus for every 2 cards scored from a marked row or column. Resets each round.',
   assembly_line: 'Cards scored in a marked row or column score +{mult_per_prior} mult for every card already scored from that line this round.',
   overtime:      'This trick scales +{seconds_per_3} second for every 3 cards scored from a marked row or column. Resets each round.',
@@ -5216,7 +5224,7 @@ const DESC_TEMPLATES = {
   combo_score: '+{mult_per_type} mult for every distinct hand type played this round',
   flow_state: 'While focus is ×1.5 or higher, +{pips_per_card} pips per card scored',
   low_tide: 'Cards below 6 score +{pips} pips',
-  rowcol_triple_pips: 'Cards scored in a specific row or column contribute {pip_mult}× pips',
+  rowcol_triple_pips: 'Cards scored in a marked row or column score +{flat_pips} pips',
   last_stand: 'If your score is below the round goal when you play, that hand scores x{score_mult}.',
   first_fruits: 'Each card in first hand each round permanently gains +{pips} pips',
   compound_mult: 'Each hand played permanently adds +{mult_per_hand} mult to this trick',
@@ -5328,6 +5336,10 @@ function calcScore(handName, cells, contrib = null) {
   const _asmOn = hasTrick('assembly_line');
   let _asmK = _asmOn ? assemblyMarkCount : 0;
   let _asmMult = 0;
+  // Straight Shot: capture the modified pip value of the line's first & last card
+  const _slFirstKey = _scoreCells.length ? _scoreCells[0][0] + '-' + _scoreCells[0][1] : '';
+  const _slLastKey  = _scoreCells.length ? _scoreCells[_scoreCells.length-1][0] + '-' + _scoreCells[_scoreCells.length-1][1] : '';
+  let _slFirstPips = 0, _slLastPips = 0;
   _scoreCells.forEach(([r, c]) => {
     const card = gridData[r][c];
     const baseRank = card.rank;
@@ -5361,14 +5373,19 @@ function calcScore(handName, cells, contrib = null) {
     // Permanent ×pips enhancement (The Forge / Bargain / Wager events)
     const _xp = permXPips[_eKey] || 1;
     if (_xp !== 1) { const _preXp = cp; cp *= _xp; bPip('sapling', cp - _preXp); }
-    // Row/col triple pips — applies after all other pip bonuses
-    if (cellHasRowColBonus(r, c, 'rowcol_triple_pips')) cp *= BAL.rowcol_triple_pips.pip_mult;
-    // Retrigger: certain conditions score this card's pips an extra time
+    // Right Place: marked row/column cards score +flat pips
+    if (cellHasRowColBonus(r, c, 'rowcol_triple_pips')) { cp += BAL.rowcol_triple_pips.flat_pips; bPip('rowcol_triple_pips', BAL.rowcol_triple_pips.flat_pips); }
+    // Straight Shot: remember the first/last line card's modified pips (post-buff, pre-replay)
+    const _cKey = r + '-' + c;
+    if (_cKey === _slFirstKey) _slFirstPips = cp;
+    if (_cKey === _slLastKey)  _slLastPips = cp;
+    // Retrigger / replay: certain conditions score this card's pips an extra time
     let _retrig = 1;
     const _r2 = false; // Double Take redesigned — now duplicates a Trick, not the 2 card
     const _r8 = hasTrick('eights_retrigger') && baseRank === '8';
-    const _rc = hasTrick('corner_retrigger') && isCorner(r, c);
-    const _rl = cellHasRowColBonus(r, c, 'rowcol_retrigger');
+    const _rc = false; // Cornered redesigned — now a post-loop pip multiplier, not a replay
+    const _rl = cellHasRowColBonus(r, c, 'rowcol_retrigger') && (((card._id || 0) + handsPlayedRound) % 2 === 0); // Echo Location: deterministic 50%
+    const _pt = cellHasRowColBonus(r, c, 'perfect_timing'); // Perfect Timing: guaranteed replay
     const _res = _eyeStorm && _rankHigh(baseRank) === _eyeMax;
     const _rip = _rippleReady && _rippleSet.has(`${r}-${c}`);
     const _refl = reflectAimsAt(r, c);
@@ -5377,7 +5394,7 @@ function calcScore(handName, cells, contrib = null) {
     const _rne = hasTrick('closing_time') && roundFractionRemaining() < 0.25; // Near Extinction
     const _ech = hasTrick('echo_hand') && _effStreak >= 2; // Echoes
     const _wp = hasTrick('woodpecker') && woodpeckerPos && r === woodpeckerPos.r && c === woodpeckerPos.c; // Woodpecker
-    if (_r2) _retrig++; if (_r8) _retrig += (_eightCount - 1); if (_rc) _retrig++; if (_rl) _retrig++;
+    if (_r2) _retrig++; if (_r8) _retrig += (_eightCount - 1); if (_rc) _retrig++; if (_rl) _retrig++; if (_pt) _retrig++;
     if (_res) _retrig++; if (_rip) _retrig++;
     if (_refl) _retrig++; _retrig += _soul;
     _retrig += _re;
@@ -5396,6 +5413,7 @@ function calcScore(handName, cells, contrib = null) {
       else if (_r8) bPip('eights_retrigger', _pre);
       else if (_rc) bPip('corner_retrigger', _pre);
       else if (_rl) bPip('rowcol_retrigger', _pre);
+      else if (_pt) bPip('perfect_timing', _pre);
       else if (_res) bPip('eye_of_storm', _pre);
       else if (_rip) bPip('ripple', _pre);
       else if (_refl) bPip('reflect', _pre);
@@ -5492,25 +5510,17 @@ function calcScore(handName, cells, contrib = null) {
   });
 
   // Shape: straight line — add first + last card pip values to mult
-  if (hasTrick('shape_line') && isStraightLine(cells)) {
-    const firstPips = cardPips(gridData[_scoreCells[0][0]][_scoreCells[0][1]].rank);
-    const lastPips  = cardPips(gridData[_scoreCells[_scoreCells.length-1][0]][_scoreCells[_scoreCells.length-1][1]].rank);
-    const _a = firstPips + lastPips; mult += _a; bMult('shape_line', _a);
+  // Straight Shot: a 5-card hand in a straight line adds its first+last card's modified pips to mult
+  if (hasTrick('shape_line') && cells.length === 5 && isStraightLine(cells)) {
+    const _a = _slFirstPips + _slLastPips; mult += _a; bMult('shape_line', _a);
   }
-
-  // Shape: snake — +2 mult per card
-  if (hasTrick('shape_snake') && isSnake(cells)) { const _a = cells.length * BAL.shape_snake.mult_per_card; mult += _a; bMult('shape_snake', _a); }
 
   // Batch C — positional conditions
   if (hasTrick('edge_pips') && isOnEdge(cells)) { const _a = cells.length * BAL.edge_pips.pips_per_card; totalPips += _a; bPip('edge_pips', _a); }
   const { rowSpan, colSpan } = spanStats(cells);
-  if (hasTrick('wide_span_mult')) {
-    if (colSpan >= 4) mult += 24;
-    if (rowSpan >= 4) mult += 24;
-    mult += Math.max(0, colSpan - 1) * 5;
-    totalPips += Math.max(0, rowSpan - 1) * 20;
-    bPip('wide_span_mult', Math.max(0, rowSpan - 1) * 20);
-    bMult('wide_span_mult', (colSpan >= 4 ? 24 : 0) + (rowSpan >= 4 ? 24 : 0) + Math.max(0, colSpan - 1) * 5);
+  // Inclusive: a hand spanning the full width or full height of the grid scores +mult
+  if (hasTrick('wide_span_mult') && (colSpan === gridCols || rowSpan === gridRows)) {
+    mult += BAL.wide_span_mult.mult; bMult('wide_span_mult', BAL.wide_span_mult.mult);
   }
 
   // Perm mult
@@ -5619,6 +5629,17 @@ function calcScore(handName, cells, contrib = null) {
   // Rank multipliers
   if (hasTrick('royal_trio') && cards.some(c=>c.rank==='K') && cards.some(c=>c.rank==='Q') && cards.some(c=>c.rank==='J')) { const _pre = mult; mult = Math.round(mult * BAL.royal_trio.mult_mult * 10) / 10; bMult('royal_trio', mult - _pre); }
   if (hasTrick('knave_power')) { let _jg = 0; for (let _gr=0; _gr<gridRows; _gr++) for (let _gc=0; _gc<gridCols; _gc++) { const _cc = gridData[_gr]?.[_gc]; if (_cc && !_cc._isSleight && !_cc._isTrick && _cc.rank === 'J') _jg++; } if (_jg > 0) { const _pre = totalPips; totalPips = Math.round(totalPips * Math.pow(BAL.knave_power.per_jack, _jg)); bPip('knave_power', totalPips - _pre); } }
+  // Cornered: corner cards multiply the running pips by the whole minutes left (per corner card)
+  if (hasTrick('corner_retrigger')) {
+    const _minsLeft = Math.floor(roundSeconds / 60);
+    const _nc = cornerCells(cells).length;
+    if (_minsLeft >= 1 && _nc > 0) { const _pre = totalPips; totalPips = Math.round(totalPips * Math.pow(_minsLeft, _nc)); bPip('corner_retrigger', totalPips - _pre); }
+  }
+  // Stretch: when a hand has 2+ corner cells, each corner card multiplies the running mult ×2
+  if (hasTrick('two_corners')) {
+    const _nc = cornerCells(cells).length;
+    if (_nc >= 2) { const _pre = mult; mult = Math.round(mult * Math.pow(BAL.two_corners.mult_mult, _nc) * 10) / 10; bMult('two_corners', mult - _pre); }
+  }
   // Phoenix: while paused, the Focus multiplier applies twice — handled at the Focus step below.
   // Mirror (Blueprint): duplicate each borrowed Trick's pip/mult contribution (incl. the multipliers above)
   mirroredTrickIds().forEach(mid => {
@@ -5678,10 +5699,7 @@ function calcScore(handName, cells, contrib = null) {
   if (handName === 'Four of a Kind' && hasTrick('extinction')) s *= BAL.extinction.score_mult;
   // The Falcon: Focus-doubling while paused is handled in playHand's focus-generation block.
   // Shape bonuses
-  if (hasTrick('shape_square') && isSquare(cells)) s *= BAL.shape_square.score_mult;
-  if (hasTrick('shape_cross')  && isCross(cells))  s *= BAL.shape_cross.score_mult;
-  if (hasTrick('two_corners')  && cornerCells(cells).length >= 2) s *= BAL.two_corners.score_mult;
-  if (hasTrick('shape_snake')  && isSnake(cells))  { /* mult added above */ }
+  // Hands of Blue (2×2) and Crossroads (+ shape) now add Focus in playHand; Stretch is a ×mult above.
 
   if (hasTrickCard) s *= 2;
 
@@ -5820,6 +5838,21 @@ function getRowColBonusesForCell(r, c) {
 
 function cellHasRowColBonus(r, c, id) {
   return rowColBonuses.some(b => b.id === id && ((b.axis === 'row' && b.index === r) || (b.axis === 'col' && b.index === c)));
+}
+
+// A cell sits at the intersection of two grid effects if some trick marks its row AND some trick marks its column.
+function isEffectIntersection(r, c) {
+  return rowColBonuses.some(b => b.axis === 'row' && b.index === r) &&
+         rowColBonuses.some(b => b.axis === 'col' && b.index === c);
+}
+
+// Once-per-minute gate (round-time minutes). Rewind (task #10) will re-arm these by re-crossing
+// minute boundaries. Returns true (and marks fired) at most once per whole round-minute per id.
+function firesThisMinute(id) {
+  const minute = Math.floor((roundStartSeconds - roundSeconds) / 60);
+  if (_perMinuteFired[id] === minute) return false;
+  _perMinuteFired[id] = minute;
+  return true;
 }
 
 // ══════════════════════════════════════════════
@@ -7182,6 +7215,13 @@ function playHand() {
     if (hasTrick('ninesong')) { const _ps = handCells.reduce((s,[r,c]) => s + (gridData[r]?.[c] ? cardPips(gridData[r][c].rank) : 0), 0); if (_ps % 3 === 0) totalFocus += BAL.ninesong.focus; }
     // The Falcon: hands played while the clock is paused add +10 Focus
     if (hasTrick('frozen_moment') && pipeTimerPaused) totalFocus += BAL.frozen_moment.focus;
+    // Hands of Blue: a 2×2 hand adds Focus. Crossroads: a + shaped hand adds Focus.
+    if (hasTrick('shape_square') && isSquare(handCells)) totalFocus += BAL.shape_square.focus;
+    if (hasTrick('shape_cross')  && isCross(handCells))  totalFocus += BAL.shape_cross.focus;
+    // Study Hall: marked-line cards add Focus, at most once per minute
+    if (hasTrick('study_hall') && handCells.some(([r,c]) => cellHasRowColBonus(r, c, 'study_hall')) && firesThisMinute('study_hall')) {
+      totalFocus += BAL.study_hall.focus;
+    }
     // Groove / Overtime: tally cards scored from their marked line this round, then scale.
     if (hasTrick('groove')) {
       markCount_groove += handCells.filter(([r,c]) => cellHasRowColBonus(r, c, 'groove')).length;
@@ -7240,6 +7280,8 @@ function playHand() {
   if (hand === 'Flush' && hasTrick('deluge')) { roundSeconds += BAL.deluge.seconds; updateClockUI(); showMessage('Deluge! +' + BAL.deluge.seconds + 's', '#5aa9e6'); }
   // Overtime: scales seconds with cards scored from its marked line this round (counter bumped above)
   if (hasTrick('overtime')) { const _os = Math.floor(markCount_overtime / 3) * BAL.overtime.seconds_per_3; if (_os > 0) { roundSeconds += _os; updateClockUI(); } }
+  // Right Time: each card scored in its marked line pauses the clock (rewind conversion pending, task #10)
+  if (hasTrick('right_time')) { const _rt = handCells.filter(([r,c]) => cellHasRowColBonus(r, c, 'right_time')).length; if (_rt > 0) pauseRound(BAL.right_time.pause_seconds * _rt); }
   // Threepeat: hand pip-sum divisible by 3 → +3 seconds
   if (hasTrick('ninesong')) { const _ps = handCells.reduce((s,[r,c]) => s + (gridData[r]?.[c] ? cardPips(gridData[r][c].rank) : 0), 0); if (_ps % 3 === 0) { roundSeconds += BAL.ninesong.seconds; updateClockUI(); } }
   // Blood Diamonds: a hand with at least one heart AND one diamond grants +1 coin and +10s
@@ -7312,6 +7354,14 @@ function playHand() {
   if (hasTrick('feng_shui') && _lastHandPositionFired) bonusPips_fengshui += BAL.feng_shui.pips_per_hand;
   // Assembly Line: commit this hand's mark tally (incl. replays) to the round counter
   if (hasTrick('assembly_line')) assemblyMarkCount = _lastHandAssemblyEnd;
+  // Ley Line: a card scored where a row effect and a column effect cross gains permanent +mult, once per minute
+  if (hasTrick('rowcol_perm_double')) {
+    const _lc = handCells.find(([r,c]) => isEffectIntersection(r, c));
+    if (_lc && firesThisMinute('rowcol_perm_double')) {
+      const _lcc = gridData[_lc[0]]?.[_lc[1]];
+      if (_lcc && _lcc.rank) { const _lk = cardKey(_lcc.rank, _lcc.suit); permMult[_lk] = (permMult[_lk] || 0) + BAL.rowcol_perm_double.perm_mult; showMessage('Ley Line! +' + BAL.rowcol_perm_double.perm_mult + ' mult', '#a25cd8'); }
+    }
+  }
   // Clean Sweep: if this hand + the previous cover a full row or column, advance Focus a threshold
   if (hasTrick('clean_sweep')) {
     const _csCur = handCells.map(([r,c]) => r + '-' + c);
@@ -7439,15 +7489,8 @@ function playHand() {
   // ── Card value effects (after scoring) ──
   const scoringRanks = scoringCards.map(c => c.rank);
 
-  // Ley Line: card at intersection permanently doubles its pips
-  if (leyLinePos) {
-    result.handCells.forEach(([r, c]) => {
-      if (r === leyLinePos.r && c === leyLinePos.c) {
-        const k = cardKey(gridData[r][c].rank, gridData[r][c].suit);
-        permPips[k] = (permPips[k] || 0) + cardPips(gridData[r][c].rank);
-      }
-    });
-  }
+  // Ley Line redesigned (r77): now a permanent +mult at the intersection of two grid effects,
+  // handled in the post-hand block below. The old self-marked pip-doubling is gone.
 
 
   // Penny Saved: 5s scored also count
@@ -12181,6 +12224,7 @@ function triggerLevelUp() {
   markCount_groove  = 0;   // Groove
   markCount_overtime = 0;  // Overtime
   _cleanSweepPrev   = [];  // Clean Sweep
+  _perMinuteFired   = {};  // once-per-minute gate (Study Hall, Ley Line)
   fullHouseThisRound = 0;
   roundContributions = {};
   roundHandsScored = 0;
@@ -12203,10 +12247,6 @@ function triggerLevelUp() {
   recomputeFocusDecayInterval();
   // Tunnel Vision: start each round with 5 focus
   if (hasTrick('tunnel_vision')) addFocus(5);
-  // Reassign ley line position each level
-  if (hasTrick('rowcol_perm_double') || rowColBonuses.some(b => b.id === 'rowcol_perm_double')) {
-    leyLinePos = { r: Math.floor(Math.random() * gridRows), c: Math.floor(Math.random() * gridCols) };
-  }
   // ── Timing/Streak batch: pause-themed Trick state, reset each round ──
   pausedSecondsRound = 0;
   retriggersThisRound = 0;
@@ -12969,7 +13009,7 @@ function selectTrick(trick, fromTrickFlow = false) {
   acquiredTricks.push(trick);
 
   // Positional bonuses get a randomly assigned axis+index at pick time
-  const positionalIds = ['rowcol_triple_pips','rowcol_mult','rowcol_retrigger','rowcol_perm_double','groove','assembly_line','overtime'];
+  const positionalIds = ['rowcol_triple_pips','rowcol_mult','rowcol_retrigger','perfect_timing','right_time','study_hall','groove','assembly_line','overtime'];
   if (positionalIds.includes(trick.id)) {
     const axis = Math.random() < 0.5 ? 'row' : 'col';
     const index = Math.floor(Math.random() * (axis === 'row' ? gridRows : gridCols));
@@ -12977,9 +13017,6 @@ function selectTrick(trick, fromTrickFlow = false) {
     trick.desc = trick.desc.replace('a specific row or column', `${axis} ${index + 1}`)
                             .replace('a marked row or column', `${axis} ${index + 1}`)
                             .replace('a specific grid intersection', `(${axis === 'row' ? 'row' : 'col'} ${index + 1})`);
-    if (trick.id === 'rowcol_perm_double') {
-      leyLinePos = { r: Math.floor(Math.random() * gridRows), c: Math.floor(Math.random() * gridCols) };
-    }
   }
 
   updateTrickList();
@@ -14337,6 +14374,7 @@ function startGame() {
   bonusMult_compound = 0;
   bonusPips_prolific = 0;
   bonusPips_fengshui = 0;   // Feng Shui (per-game permanent scaler)
+  _perMinuteFired = {};
   bonusMult_jackpot  = 0;
   jackpotFired       = false;
   safetyNetUsed      = false;

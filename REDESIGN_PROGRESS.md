@@ -69,9 +69,25 @@ tricks/knacks. Ordered task list (see also the harness task tracker):
 2. **Rename currency → credits** in player-facing text (leave `coins` var / `--gold` color token).
 3. **Keyword-color highlighting** in tooltips (central `colorizeKeywords`).
 4. **Replay/retrigger word split** across trick descriptions.
-5. **Grid/Position redesigns** (18 from CSV; Group 1 locked — Right Place/Power Line/Echo Location/
-   Perfect Timing/Right Time; Groups 2–4 still to walk with owner). Kills ×score on Be a Square/
-   Crossroads/Stretch.
+5. **Grid/Position redesigns** — BUILT (r77). All 4 groups walked + shipped:
+   - **Right Place** (rowcol_triple_pips, common): marked line +10 flat pips (was ×3).
+   - **Power Line** (rowcol_mult, common): marked line +2 mult/card (tier drop).
+   - **Echo Location** (rowcol_retrigger, rare): marked line 50% replay — deterministic `(card._id+handsPlayedRound)%2` so preview==score (calcScore is speculative; no Math.random there).
+   - **Perfect Timing** (perfect_timing, epic, NEW): marked line 100% replay.
+   - **Right Time** (right_time, rare, NEW): marked line → **Pause 2/card** (rewind conversion pending #10).
+   - **Study Hall** (study_hall, rare, NEW): marked line +2 Focus, **once per minute**.
+   - **Ley Line** (rowcol_perm_double, epic): REDESIGNED — cards scored at the **intersection of a row effect and a column effect** (`isEffectIntersection`) permanently gain +2 mult, once/min. Old self-marked pip-doubling + `leyLinePos` removed.
+   - **Hands of Blue** (shape_square, epic): 2×2 → +16 Focus (was ×4 score).
+   - **Crossroads** (shape_cross, rare): + shape → +25 Focus (stays rare — a + is a hard 5-card shape).
+   - **Straight Shot** (shape_line, epic): now **5-card** straight line only; adds first+last card's **modified** pips (`_slFirstPips/_slLastPips`) to mult.
+   - **Cornered** (corner_retrigger, rare): corner cards **×running-pips by whole minutes left** (was replay).
+   - **Stretch** (two_corners, epic): 2+ corners → each corner card **×2 running-mult** (was ×4 score).
+   - **On the Edge** (edge_pips, common): unchanged.
+   - **Inclusive** (wide_span_mult, rare): full grid width or height → +25 mult (simplified).
+   - **Stand Up** / **Lie Down** (column_rush/row_power, common): renamed only.
+   - **Snake** (shape_snake): REMOVED.
+   - New mechanics added: `firesThisMinute(id)` (once-per-minute gate, re-armable by rewind #10) and `isEffectIntersection(r,c)`.
+   - **Temporal Rift** (was Please Sir): DEFERRED to #10 — it's a permanent rewind/pause buff at an intersection, needs the rewind engine.
 6. **New position tricks:**
    - **Groove** (rare, focus): +1 Focus per **2** cards scored from the mark this round (scaler; resets each round). Contributes once per hand.
    - **Assembly Line** (epic, mult): a card scoring in the mark scores +1 mult for every card **already** scored from that line this round; replays both count toward and earn from the tally.
