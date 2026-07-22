@@ -3429,6 +3429,14 @@
       <input id="dev-new-dance-toggle" type="checkbox" onchange="setNewDance(this.checked)" style="accent-color:var(--gold);">
       New scoring dance (preview-window · WIP)
     </label>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);margin-top:6px;">
+      Interrupt a scoring hand by
+      <select id="dev-dance-interrupt" onchange="setDanceInterruptMode(this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor:pointer;">
+        <option value="cut">Cut — instant (current)</option>
+        <option value="ff">Fast-forward the old hand</option>
+        <option value="resolve">Resolve — quick pop</option>
+      </select>
+    </label>
   </div>
 
   <div class="dev-section">
@@ -3808,7 +3816,7 @@
 </div>
 
 <script>
-const BUILD = '2026-07-21 · r89';
+const BUILD = '2026-07-21 · r90';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -8427,6 +8435,36 @@ const DANCE_CFG = {
 let newDanceEnabled = (function(){ try { return localStorage.getItem('newDance') !== '0'; } catch(e){ return true; } })();
 function setNewDance(on){ newDanceEnabled = !!on; try { localStorage.setItem('newDance', on ? '1' : '0'); } catch(e){} }
 
+// How a still-animating hand hands off when the next hand is submitted (dev-tunable, feel comparison):
+//   'cut'     — the old dance vanishes instantly, new one starts (original behaviour)
+//   'ff'      — briefly rush the old hand's score up to its final, then start the new one
+//   'resolve' — snap the old hand's score to final with one quick pop, then start the new one
+// All three cut the old dance's grid/logic immediately (grid-safe); they differ only in the brief visual handoff.
+let danceInterruptMode = (function(){ try { return localStorage.getItem('danceInterrupt') || 'cut'; } catch(e){ return 'cut'; } })();
+function setDanceInterruptMode(m){ if(!['cut','ff','resolve'].includes(m)) m='cut'; danceInterruptMode=m; try { localStorage.setItem('danceInterrupt', m); } catch(e){} }
+let _lastDanceStart = 0; // for the spam valve: rapid re-interrupts skip the flourish
+function _scoreDisplayed(){ const el=document.getElementById('score-total-num'); if(!el) return 0; const n=parseInt((el.textContent||'0').replace(/[^0-9-]/g,''),10); return isNaN(n)?0:n; }
+// Brief, grid-safe visual handoff acknowledging the just-cut previous hand. Resolves when done.
+async function danceInterruptFlourish(mode, fromVal, toVal, sig){
+  const scoreEl=document.getElementById('score-total-num');
+  const scoreBox=document.getElementById('score-mid') || document.getElementById('score-center');
+  if(!scoreEl) return;
+  if(mode==='resolve'){
+    scoreEl.textContent = toVal.toLocaleString();
+    if(scoreBox){ scoreBox.classList.remove('box-popping'); void scoreBox.offsetWidth; scoreBox.classList.add('box-popping'); }
+    if(typeof sfxScoreTick==='function') sfxScoreTick();
+    await new Promise(res=>{ const t=setTimeout(res,200); sig&&sig.addEventListener('abort',()=>{clearTimeout(t);res();},{once:true}); });
+  } else { // 'ff' — quick count-up to the outgoing hand's final
+    const dur=360, start=performance.now();
+    await new Promise(res=>{ function tk(now){ if(sig&&sig.aborted){ res(); return; }
+      const t=Math.min((now-start)/dur,1), e=1-Math.pow(1-t,3);
+      scoreEl.textContent = Math.round(fromVal+(toVal-fromVal)*e).toLocaleString();
+      if(typeof sfxScoreTick==='function' && Math.random()<0.4) sfxScoreTick();
+      if(t<1) requestAnimationFrame(tk); else res(); }
+      requestAnimationFrame(tk); });
+  }
+}
+
 async function playScoreDance(result, toRemove, isGoalHand = false) {
   if (newDanceEnabled) { return playPreviewDance(result, toRemove, isGoalHand); }
   cancelDance();
@@ -8889,12 +8927,23 @@ function flyGridCardToSlot(gEl, slotEl, dur){
 }
 
 async function playPreviewDance(result, toRemove, isGoalHand = false){
+  const outgoing = !!danceAbortController;          // a prior hand is still dancing
+  const outMode = danceInterruptMode;
+  const preDisplay = _scoreDisplayed();             // score number shown right now (mid-climb)
+  const nowTs = performance.now(); const rapid = (nowTs - _lastDanceStart) < 260; _lastDanceStart = nowTs;
   cancelDance();
   const ctrl = new AbortController(); danceAbortController = ctrl; const sig = ctrl.signal;
   const myGen = ++dncGen; // this dance's generation; if it's superseded, its abort handler stays silent
   dncFF = false; resetParticleStep();
   const aborted = () => sig.aborted;
   const dwait = ms => new Promise(r => setTimeout(r, dncFF ? Math.max(6, ms/DANCE_CFG.ff) : ms));
+  // ── Interrupt handoff: briefly acknowledge the just-cut previous hand (visual only, grid untouched). ──
+  // Spam valve: two interrupts in quick succession skip straight to 'cut' so rapid chaining stays snappy.
+  if(outgoing && !isGoalHand && !rapid && (outMode==='ff' || outMode==='resolve')){
+    const endpoint = Math.max(0, score - (result.finalScore||0)); // the outgoing hand's final total
+    await danceInterruptFlourish(outMode, preDisplay, endpoint, sig);
+    if(aborted()){ dncFinishAbort(null, isGoalHand, myGen); return; }
+  }
 
   const { hand, handCells, finalScore } = result;
   const targetFocus = lastCalcFocus;
@@ -16309,6 +16358,8 @@ function initDevMode() {
   if (trickToggle) trickToggle.checked = !trickTrayMode;   // checked = Tricks placed on grid
   const ndToggle = document.getElementById('dev-new-dance-toggle');
   if (ndToggle) ndToggle.checked = newDanceEnabled;
+  const diSel = document.getElementById('dev-dance-interrupt');
+  if (diSel) diSel.value = danceInterruptMode;
   applyDeckHudVisibility();
   // Focus dev controls — restore persisted values
   const decaySlider = document.getElementById('dev-focus-decay-slider');
