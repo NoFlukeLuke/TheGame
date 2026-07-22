@@ -3209,10 +3209,13 @@
     overflow:visible; gap:3px; padding:5px; z-index:60; height:auto; }
   #stage.landscape #selected-cards.dnc-active{ height:auto; min-height:15.28%; overflow:visible; flex-direction:column; align-items:stretch; justify-content:flex-start; z-index:60; }
   #selected-cards.dnc-active .dnc-row{display:flex;align-items:center;gap:5px;min-height:38px;}
-  #selected-cards.dnc-active .dnc-row.hand{min-height:46px;}
+  #selected-cards.dnc-active .dnc-row.hand{min-height:58px;}
   #selected-cards.dnc-active .dnc-lab{font-size:7px;letter-spacing:1px;color:var(--cream-dim);writing-mode:vertical-rl;
     transform:rotate(180deg);text-transform:uppercase;opacity:.6;flex:0 0 auto;}
-  #selected-cards.dnc-active .dnc-items{display:flex;gap:4px;align-items:center;flex-wrap:nowrap;flex:1;overflow:visible;}
+  /* items = clipped viewport; track = the sliding strip of cards (scrolls left as a large hand scores) */
+  #selected-cards.dnc-active .dnc-items{display:flex;align-items:center;flex:1;min-width:0;overflow:hidden;}
+  #selected-cards.dnc-active .dnc-track{position:relative;display:flex;gap:4px;align-items:center;flex-wrap:nowrap;padding:8px 0;
+    transition:transform .38s cubic-bezier(.4,.6,.3,1);will-change:transform;}
   .dnc-outer{display:inline-flex;flex:0 0 auto;transform-origin:center;}
   .dnc-card{width:30px;height:42px;border-radius:5px;background:#f4ead5;color:#1a1a1a;transform-origin:center;
     display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;
@@ -3805,7 +3808,7 @@
 </div>
 
 <script>
-const BUILD = '2026-07-21 · r88';
+const BUILD = '2026-07-21 · r89';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -8038,6 +8041,7 @@ function playHand() {
 // SCORE DANCE
 // ══════════════════════════════════════════════
 let danceAbortController = null;
+let dncGen = 0; // bumped when a new preview-dance starts; a superseded dance bails without touching shared UI
 
 function cancelDance() {
   _odoGen++; // invalidates all in-flight odometer timeouts
@@ -8046,6 +8050,10 @@ function cancelDance() {
     danceAbortController.abort();
     danceAbortController = null;
   }
+  // Clear jitter/glow left on the aborted dance's real tray/grid elements before a successor rebinds them.
+  if (typeof dncCleanupReal === 'function') dncCleanupReal();
+  // Un-hide any grid cards whose fly-to-preview was cut short (they were never removed).
+  if (typeof dncRestoreHiddenGridEls === 'function') dncRestoreHiddenGridEls();
   // Restore any elements hidden by odometer overlays
   ['pips-val','mult-val','score-total-num'].forEach(id => {
     const el = document.getElementById(id);
@@ -8805,7 +8813,11 @@ function dncFly(srcEl, boxEl, label, color, onLand){
   setTimeout(()=>el.remove(), dur+60);
   return new Promise(res=>setTimeout(()=>{ if(onLand) onLand(); res(); }, dur));
 }
-function dncFinishAbort(stage, isGoalHand){ if(stage){ stage.classList.remove('dnc-active'); stage.innerHTML=''; } dncCleanupReal(); handleDanceAbort(isGoalHand); }
+function dncFinishAbort(stage, isGoalHand, myGen){
+  // If a newer dance has taken over (myGen behind the global), this dance was superseded:
+  // do NOT touch the shared stage/score UI — the successor owns it now.
+  if(myGen!==undefined && myGen!==dncGen) return;
+  if(stage){ stage.classList.remove('dnc-active'); stage.innerHTML=''; } dncCleanupReal(); dncRestoreHiddenGridEls(); handleDanceAbort(isGoalHand); }
 // Display name for a contribution entity, by source (Trick / Sleight / Knack / Exalt).
 function contribLabel(source, id){
   if(source==='exalt') return 'Exalt';
@@ -8818,6 +8830,9 @@ function contribLabel(source, id){
 
 // ── Charge/release on the REAL on-screen entity element (tray chip / grid card / knack) ──
 let dncRealEls = [];
+// Grid cards hidden while their fly-to-preview clone is airborne; restored if the dance aborts pre-removal.
+let dncHiddenGridEls = [];
+function dncRestoreHiddenGridEls(){ dncHiddenGridEls.forEach(el=>{ if(el && el.isConnected) el.style.opacity=''; }); dncHiddenGridEls=[]; }
 function dncGlow(el, strong){ if(!el) return;
   el.animate([{boxShadow:'0 0 0 0 rgba(245,192,66,0)'},
     {boxShadow:`0 0 ${strong?14:8}px ${strong?4:2}px rgba(245,192,66,${strong?0.7:0.5})`, offset:.4},
@@ -8851,10 +8866,32 @@ function dncReleaseReal(el){ if(!el) return;
   setTimeout(()=>{ if(el) el.classList.remove('dnc-pop'); }, DANCE_CFG.trig.dur+80); }
 function dncCleanupReal(){ dncRealEls.forEach(el=>{ if(!el) return;
   el.classList.remove('dnc-jitter','dnc-pop','dnc-pulse','dnc-flash'); el.style.removeProperty('--dnc-jit'); }); dncRealEls=[]; }
+// Fly a clone of a selected grid card into its preview slot, then reveal the slot's dnc-card.
+function flyGridCardToSlot(gEl, slotEl, dur){
+  if(!slotEl) return;
+  const reveal=()=>{ slotEl.style.opacity=''; slotEl.animate([{transform:'scale(.82)'},{transform:'scale(1)'}],{duration:150,easing:'ease-out'}); };
+  const s = gEl && gEl.getBoundingClientRect();
+  const t = slotEl.getBoundingClientRect();
+  if(!s || !s.width || !t.width){ reveal(); return; }
+  const clone = gEl.cloneNode(true);
+  clone.classList.remove('selected','hand-valid','hand-ready','swap-pending','unreachable');
+  clone.style.cssText = `position:fixed;margin:0;z-index:250;pointer-events:none;transition:none;left:${s.left}px;top:${s.top}px;width:${s.width}px;height:${s.height}px;transform-origin:center center;`;
+  document.body.appendChild(clone);
+  gEl.style.opacity='0'; dncHiddenGridEls.push(gEl); // hide the original while its clone flies (restored on abort)
+  const dx=(t.left+t.width/2)-(s.left+s.width/2), dy=(t.top+t.height/2)-(s.top+s.height/2);
+  const sc=t.width/s.width;
+  const done=()=>{ if(clone.parentNode) clone.remove(); reveal(); };
+  const anim=clone.animate([
+    {transform:'translate(0,0) scale(1)', opacity:1},
+    {transform:`translate(${dx}px,${dy}px) scale(${sc})`, opacity:0.9}],
+    {duration:dur, easing:'cubic-bezier(.35,.65,.3,1)', fill:'forwards'});
+  anim.onfinish=done; setTimeout(done, dur+140);
+}
 
 async function playPreviewDance(result, toRemove, isGoalHand = false){
   cancelDance();
   const ctrl = new AbortController(); danceAbortController = ctrl; const sig = ctrl.signal;
+  const myGen = ++dncGen; // this dance's generation; if it's superseded, its abort handler stays silent
   dncFF = false; resetParticleStep();
   const aborted = () => sig.aborted;
   const dwait = ms => new Promise(r => setTimeout(r, dncFF ? Math.max(6, ms/DANCE_CFG.ff) : ms));
@@ -8868,14 +8905,16 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   // Capture per-card pips BEFORE removeAndFall nulls gridData.
   const cardPipVals = handCells.map(([r,c]) => cardPips(gridData[r][c].rank));
 
-  // ── Grid pops (unchanged grid behaviour) ──
+  // ── Grid feedback: goal hands pop in place (they salute later); normal hands FLY into the preview (below). ──
   const gridEl = document.getElementById('grid'); const STAGGER=180, POP=900;
-  handCells.forEach(([r,c],i)=>{ const card=gridData[r][c]; if(!card) return;
-    const el=gridEl?.querySelector(`[data-card-id="${card._id}"]`); if(!el) return;
-    const sc = card.suit==='♥'?'h':card.suit==='♦'?'d':card.suit==='♣'?'c':'s';
-    el.classList.remove('score-pop-h','score-pop-d','score-pop-c','score-pop-s');
-    el.style.setProperty('animation-delay',(i*STAGGER)+'ms','important'); void el.offsetWidth;
-    el.classList.add('score-pop-'+sc); setTimeout(()=>sfxCardPop(card.suit), i*STAGGER); });
+  if(isGoalHand){
+    handCells.forEach(([r,c],i)=>{ const card=gridData[r][c]; if(!card) return;
+      const el=gridEl?.querySelector(`[data-card-id="${card._id}"]`); if(!el) return;
+      const sc = card.suit==='♥'?'h':card.suit==='♦'?'d':card.suit==='♣'?'c':'s';
+      el.classList.remove('score-pop-h','score-pop-d','score-pop-c','score-pop-s');
+      el.style.setProperty('animation-delay',(i*STAGGER)+'ms','important'); void el.offsetWidth;
+      el.classList.add('score-pop-'+sc); setTimeout(()=>sfxCardPop(card.suit), i*STAGGER); });
+  }
 
   // ── Contribution ledger (Tricks + exalt), aggregated per source ──
   const savedPFM = lastPreFocusMult; const contrib=[]; calcScore(hand, handCells, contrib); lastPreFocusMult = savedPFM;
@@ -8895,19 +8934,33 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
     const items=document.createElement('div'); items.className='dnc-items';
     row.appendChild(l); row.appendChild(items); stage.appendChild(row); return items; };
   const handItems=mkRow('Hand','hand');
+  const handTrack=document.createElement('div'); handTrack.className='dnc-track'; handItems.appendChild(handTrack);
   const cardEls=handCells.map(([r,c])=>{ const card=gridData[r][c];
     const outer=document.createElement('div'); outer.className='dnc-outer';
     const d=document.createElement('div'); d.className='dnc-card'+((card.suit==='♥'||card.suit==='♦')?' red':'');
     d.innerHTML=`<span class="r">${card.rank}</span><span class="s">${card.suit}</span>`;
-    outer.appendChild(d); handItems.appendChild(outer); return d; });
+    outer.appendChild(d); handTrack.appendChild(outer); return d; });
   // Resolve the REAL on-screen element for each contributing entity (aligned with `tricks`;
   // may be null, e.g. exalt or Amplifier that has no rack element — those still tally, no jitter).
   const entityEls = tricks.map(t => danceEntityEl(t.source, t.id));
   dncRealEls = entityEls.filter(Boolean);
 
-  await wait(handCells.length*STAGGER + POP);
-  if(aborted()){ dncFinishAbort(stage,isGoalHand); return; }
-  if(!isGoalHand){ if(typeof sfxFlipShuffle==='function') sfxFlipShuffle(); removeAndFall(toRemove,'play'); }
+  if(isGoalHand){
+    await wait(handCells.length*STAGGER + POP);
+    if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
+  } else {
+    // ── Normal hand: the selected grid cards physically fly into their preview slots. ──
+    const FLY_STAGGER=95, FLY_DUR=400;
+    cardEls.forEach(d=>{ const o=d.parentElement; if(o) o.style.opacity='0'; });
+    handCells.forEach(([r,c],i)=>{ const card=gridData[r][c]; if(!card) return;
+      const gEl=gridEl?.querySelector(`[data-card-id="${card._id}"]`);
+      const slot=cardEls[i].parentElement;
+      setTimeout(()=>{ if(aborted()) return; flyGridCardToSlot(gEl, slot, FLY_DUR); if(typeof sfxCardPop==='function') sfxCardPop(card.suit); }, i*FLY_STAGGER);
+    });
+    await wait(handCells.length*FLY_STAGGER + FLY_DUR);
+    if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
+    if(typeof sfxFlipShuffle==='function') sfxFlipShuffle(); removeAndFall(toRemove,'play'); dncHiddenGridEls=[]; // flown cards now removed
+  }
 
   // ── Score boxes ──
   const pipsEl=document.getElementById('pips-val'), multEl=document.getElementById('mult-val'),
@@ -8916,12 +8969,21 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   let rp=basePips, rm=baseMult;
   if(pipsEl) pipsEl.textContent=rp; if(multEl) multEl.textContent=(rm%1===0)?rm:rm.toFixed(1);
   if(focusEl) focusEl.textContent='×1';
-  await dwait(DANCE_CFG.tickRest); if(aborted()){ dncFinishAbort(stage,isGoalHand); return; }
+  await dwait(DANCE_CFG.tickRest); if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
 
   // ── CARD PHASE — cards score; tricks charge (jitter ramps) ──
+  // Large hands overflow the clipped viewport: as each card scores, slide the track left so
+  // the current card stays in view and the hidden cards on the right get revealed.
+  const needScroll = handTrack.scrollWidth > handItems.clientWidth + 2;
+  const maxScroll  = Math.max(0, handTrack.scrollWidth - handItems.clientWidth);
   const agit={};
   for(let i=0;i<cardEls.length;i++){
-    if(aborted()){ dncFinishAbort(stage,isGoalHand); return; }
+    if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
+    if(needScroll){
+      const scrollTo = Math.min(cardEls[i].parentElement.offsetLeft, maxScroll);
+      if(scrollTo>0 || handTrack.style.transform){ handTrack.style.transform = `translateX(${-scrollTo}px)`; await dwait(200); }
+      if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
+    }
     dncActivate(cardEls[i]);
     entityEls.forEach((el,ti)=>{ if(!el) return; agit[ti]=(agit[ti]||0)+1; dncChargeReal(el, agit[ti]); });
     await dncFly(cardEls[i], pipsBox, '+'+cardPipVals[i], '#5a8fe0', ()=>{
@@ -8929,12 +8991,12 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
       if(typeof sfxParticleStep==='function') sfxParticleStep('pip'); });
     await dwait(DANCE_CFG.tickRest);
   }
-  if(aborted()){ dncFinishAbort(stage,isGoalHand); return; }
+  if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
 
   // ── ENTITY PHASE — each contributing entity stops jittering and RELEASES its total,
   //    on its real rack element (particles fly from there; fall back to the box if none). ──
   for(let ti=0; ti<tricks.length; ti++){
-    if(aborted()){ dncFinishAbort(stage,isGoalHand); return; }
+    if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
     const t=tricks[ti], el=entityEls[ti];
     dncReleaseReal(el);
     const src = el || pipsBox;
@@ -8946,7 +9008,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
       if(typeof sfxParticleStep==='function') sfxParticleStep('mult'); }); }
     await dwait(DANCE_CFG.tickRest);
   }
-  if(aborted()){ dncFinishAbort(stage,isGoalHand); return; }
+  if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
 
   // ── FOCUS beat ──
   if(targetFocus>1){
@@ -8954,7 +9016,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
     const fb=document.getElementById('focus-box'); if(fb){ fb.classList.remove('focus-beat'); void fb.offsetWidth; fb.classList.add('focus-beat'); }
     if(typeof updateFocusMultReadout==='function') updateFocusMultReadout(true);
     if(typeof sfxFocusBeat==='function') sfxFocusBeat();
-    await dwait(DANCE_CFG.tickRest); if(aborted()){ dncFinishAbort(stage,isGoalHand); return; }
+    await dwait(DANCE_CFG.tickRest); if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
   }
 
   // ── SCORE climb ──
@@ -8970,7 +9032,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
       if(typeof sfxScoreTick==='function' && Math.random()<0.35) sfxScoreTick();
       if(tt<1) requestAnimationFrame(tk); else res(); }
     requestAnimationFrame(tk); });
-  if(aborted()){ dncFinishAbort(stage,isGoalHand); return; }
+  if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
 
   // ── Settle (same tail as playScoreDance) ──
   stage.classList.remove('dnc-active'); stage.innerHTML=''; dncCleanupReal();
@@ -8978,7 +9040,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   showComboFloats(hand, handCells, result);
   const scoreBoxEl=document.getElementById('score-mid');
   if(scoreBoxEl){ scoreBoxEl.classList.remove('box-popping'); void scoreBoxEl.offsetWidth; scoreBoxEl.classList.add('box-popping'); }
-  await wait(300); if(aborted()){ dncFinishAbort(stage,isGoalHand); return; }
+  await wait(300); if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
 
   danceAbortController = null;
   if(pipsEl) pipsEl.textContent='0'; if(multEl) multEl.textContent='0';
