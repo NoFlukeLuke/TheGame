@@ -499,6 +499,13 @@
   .mini-card.suit-spades .mini-rank,   .mini-card.suit-spades .mini-suit   { color: var(--suit-spades); }
   .mini-card.suit-clubs .mini-rank,    .mini-card.suit-clubs .mini-suit    { color: var(--suit-clubs); }
 
+  /* Hand-preview now mirrors the grid via renderCardAppearance(): real .card markup,
+     scaled down by the local --card-w/--card-h set on #selected-cards. Cards must flow
+     in the flex row (grid cards are position:absolute) and not carry grid interactivity. */
+  #selected-cards { --card-w: 38px; --card-h: 50px; }
+  #selected-cards .card { position: relative !important; flex: 0 0 auto; will-change: auto; transition: none; cursor: default; }
+  #selected-cards .preview-empty { width: var(--card-w, 38px); height: var(--card-h, 50px); border: 1px dashed var(--border); border-radius: 5px; flex: 0 0 auto; }
+
   /* Tricks carousel — right half */
   #knack-carousel-wrap { flex: 1; min-width: 0; overflow: hidden; padding-left: 8px; display: flex; flex-direction: column; justify-content: center; }
   #knack-list {
@@ -615,7 +622,7 @@
     box-shadow: 0 0 5px var(--focus-color, #54af88);
   }
   #focus-bar-outer {
-    width: 14px;
+    width: 10.5px;
     flex: 1;
     background: #1a1510;
     border: 1px solid #3a3530;
@@ -1341,6 +1348,20 @@
   .card.trick-card { border-color: #e8b84b !important; box-shadow: 0 0 8px rgba(232,184,75,0.6); }
   .card.exalted   { border-color: #ffd700 !important; box-shadow: 0 0 10px 2px rgba(255,215,0,0.7), inset 0 0 8px rgba(255,215,0,0.25); }
   .card.corrupted { border-color: #8844cc !important; box-shadow: 0 0 10px 2px rgba(136,68,204,0.7), inset 0 0 8px rgba(136,68,204,0.3); }
+  /* Cursed card (reward-grid debuff): sickly green pall + a badge with the count remaining */
+  .card.cursed { border-color: #6a8a3a !important; box-shadow: 0 0 9px 1px rgba(120,160,70,0.55), inset 0 0 8px rgba(90,120,50,0.35); }
+  .card .curse-badge {
+    position: absolute; top: 2px; right: 3px;
+    font-size: 11px; line-height: 1;
+    filter: drop-shadow(0 1px 1px rgba(0,0,0,0.8));
+    z-index: 3;
+  }
+  .card .curse-badge .curse-left {
+    position: absolute; bottom: -3px; right: -4px;
+    font-size: 7px; font-weight: 800; font-family: 'Cinzel', serif;
+    color: #c8e08a; background: #14200a; border-radius: 6px;
+    padding: 0 2px; border: 1px solid #6a8a3a;
+  }
 
   /* ── Challenge card ── */
   @keyframes challenge-pulse {
@@ -2473,7 +2494,11 @@
   #reward-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(8,4,2,0.92);
+    /* Cool indigo wash — deliberately NOT the warm gameplay backdrop, so it's
+       instantly obvious you're on the reward map, not playing a hand. */
+    background:
+      radial-gradient(circle at 50% 18%, rgba(90,70,160,0.22), transparent 60%),
+      rgba(10,9,22,0.95);
     z-index: 200;
     display: none;
     flex-direction: column;
@@ -2509,11 +2534,14 @@
     gap: 8px;
     margin: 20px 0;
   }
+  /* Reward cells share the play-card silhouette: same rounded rect, same 2px
+     border, same aspect (set in JS) — but tinted per kind so the map reads at a
+     glance. A cool base separates it further from the warm gameplay grid. */
   .reward-cell {
     position: relative;
-    border-radius: 6px;
-    border: 2px solid #2a2218;
-    background: linear-gradient(160deg, #1a1410, #0e0a06);
+    border-radius: 8px;
+    border: 2px solid #33314e;
+    background: linear-gradient(160deg, #17162a, #0d0c18);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -2521,57 +2549,78 @@
     padding: 6px;
     text-align: center;
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: transform 0.12s ease, box-shadow 0.15s ease, opacity 0.15s ease;
     color: var(--cream);
     font-family: 'Cinzel', serif;
     user-select: none;
     width: 100%;
     height: 100%;
     box-sizing: border-box;
+    overflow: hidden;
   }
-  .reward-cell.buff      { border-color: var(--gold);  background: linear-gradient(160deg, #1e1a0e, #0e0a06); }
-  .reward-cell.debuff    { border-color: var(--red);   background: linear-gradient(160deg, #1e0b0b, #0e0606); }
-  .reward-cell.dest      { border-color: #8844cc; border-width: 2px; background: linear-gradient(160deg, #160d22, #0a0612); }
+  .reward-cell.buff      { border-color: #d8a43a;  background: linear-gradient(160deg, #221d0e, #14110a); }
+  .reward-cell.debuff    { border-color: #b23a4a;  background: linear-gradient(160deg, #24101a, #140a10); }
+  .reward-cell.dest      { border-color: #8844cc;  background: linear-gradient(160deg, #1c1030, #100a1c); }
   .reward-cell.dest .reward-tier { color: #bb88ff; }
   .reward-cell.selected  {
-    box-shadow: 0 0 16px rgba(232,184,75,0.7), inset 0 0 12px rgba(232,184,75,0.3);
+    box-shadow: 0 0 18px rgba(140,110,230,0.75), inset 0 0 12px rgba(140,110,230,0.3);
     transform: scale(1.05);
-    border-color: var(--gold) !important;
-    border-width: 2px !important;
+    border-color: #b39cf5 !important;
   }
-  .reward-cell.selectable:not(.selected):hover { transform: scale(1.04); opacity: 1; }
-  .reward-cell.unselectable { opacity: 0.35; cursor: not-allowed; }
+  .reward-cell.selectable:not(.selected):hover { transform: scale(1.04); }
+  .reward-cell.unselectable { opacity: 0.3; cursor: not-allowed; }
   .reward-icon {
-    font-size: 28px;
+    font-size: 26px;
+    line-height: 1;
     margin-bottom: 4px;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.6));
   }
+  /* Mini playing-card face for card-specific tiles (blessed/cursed/cull) */
+  .reward-face {
+    width: 30px; height: 40px;
+    border-radius: 4px;
+    border: 1.5px solid rgba(255,255,255,0.35);
+    background: #f4efe2;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    margin-bottom: 5px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+    line-height: 1;
+  }
+  .reward-face-rank { font-size: 15px; font-weight: 800; color: #1a1a1a; }
+  .reward-face-suit { font-size: 12px; color: #1a1a1a; }
+  .reward-face.suit-hearts .reward-face-rank, .reward-face.suit-hearts .reward-face-suit,
+  .reward-face.suit-diamonds .reward-face-rank, .reward-face.suit-diamonds .reward-face-suit { color: #c0392b; }
   .reward-label {
     font-size: 11px;
     line-height: 1.2;
     letter-spacing: 0.5px;
     max-width: 100%;
     overflow-wrap: break-word;
+    font-weight: 700;
   }
   .reward-desc {
     font-size: 9px;
-    line-height: 1.2;
+    line-height: 1.25;
     color: var(--cream);
-    opacity: 0.65;
+    opacity: 0.6;
     margin-top: 3px;
     overflow: hidden;
     display: -webkit-box;
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     max-width: 100%;
+    font-family: 'Crimson Pro', serif;
   }
   .reward-tier {
     position: absolute;
-    top: 2px; left: 4px;
+    top: 3px; left: 5px;
     font-size: 7px;
     letter-spacing: 1px;
-    color: var(--gold);
-    opacity: 0.7;
+    color: #d8a43a;
+    opacity: 0.75;
   }
+  .reward-cell.debuff .reward-tier { color: #d87a86; }
   #reward-footer {
     text-align: center;
     margin-top: 8px;
@@ -2848,6 +2897,91 @@
   #menu-start-btn:hover { background: #e0bc5a; transform: scale(1.02); }
   #menu-start-btn:active { transform: scale(0.98); }
 
+  /* ═══════════════ v7 FIXED-COORDINATE LANDSCAPE (r73) ═══════════════
+     Overrides the legacy flexbox landscape rules above via source order.
+     Wrapper divs become display:contents so the real leaf elements can be
+     absolutely positioned against #stage at the designed v7 proportions
+     (% of the 747×420 landscape stage = the editor's 1280×720 percentages). */
+  #stage.landscape { display:block; position:relative; width:747px; height:420px; padding:0; overflow:visible; }
+  #stage.landscape #top-bar, #stage.landscape #main, #stage.landscape #top-strip,
+  #stage.landscape #score-panel, #stage.landscape #score-panel-inner, #stage.landscape #trick-panel,
+  #stage.landscape #hand-preview-area, #stage.landscape #grid-and-buttons,
+  #stage.landscape #action-col, #stage.landscape #action-row-2 { display:contents; }
+  /* v7: preview + tray have separate dedicated slots, so the old tray-mode JS that
+     inline-hides #hand-preview-area must not win in landscape (!important beats inline). */
+  #stage.landscape #hand-preview-area { display:contents !important; }
+  /* elements not used in the v7 landscape */
+  #stage.landscape #deck-hud,
+  #stage.landscape #game-timer-stat,
+  #stage.landscape #top-bar .top-stat,
+  #stage.landscape #clock-bar-wrap { display:none !important; }
+  /* new v7-only blocks show only in landscape */
+  .v7-ls { display:none; }
+  #stage.landscape .v7-ls { display:flex; }
+  /* shared panel chrome for repositioned + new blocks */
+  #stage.landscape #score-center, #stage.landscape #score-left, #stage.landscape #score-subboxes,
+  #stage.landscape #selected-cards, #stage.landscape #knack-carousel-wrap, #stage.landscape #trick-tray-area,
+  #stage.landscape #vclock, #stage.landscape #run-progress, #stage.landscape #coin-info, #stage.landscape #interact-costs {
+    position:absolute; box-sizing:border-box; margin:0; background:var(--panel); border:1px solid var(--border); border-radius:6px; }
+  /* placements (percentages of the 747×420 stage) */
+  #stage.landscape #score-center   { left:1.56%;  top:2.78%;  width:16.41%; height:12.5%;  display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  #stage.landscape #score-left     { left:19.53%; top:2.78%;  width:14.84%; height:12.5%;  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; padding:4px; }
+  #stage.landscape #clock-area     { position:absolute; left:40.63%; top:4.17%; width:7.03%; height:6%; display:flex; align-items:center; justify-content:center; background:none; border:none; padding:0; }
+  #stage.landscape #vclock         { left:48.44%; top:2.78%; width:40.63%; height:6.94%; overflow:hidden; display:block; }
+  /* PIPS/MULT/FOCUS: smaller squares centred inside the section outline (no overflow), bigger pip/mult numbers, purple focus, vertically-centred × */
+  #stage.landscape #score-subboxes { left:1.56%;  top:18.06%; width:32.81%; height:11.11%; display:flex; flex-direction:row; align-items:center; justify-content:space-around; gap:4px; padding:3px 6px; border-right:none; border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
+  #stage.landscape .score-subbox { display:flex; flex-direction:column; align-items:center; justify-content:center; height:34px; max-height:34px; }
+  #stage.landscape #pips-box .subbox-val, #stage.landscape #mult-box .subbox-val { font-size:19px; }
+  #stage.landscape #focus-box .subbox-label, #stage.landscape #focus-box .subbox-val { color:#c07aee; }
+  #stage.landscape .subbox-times { display:flex; align-items:center; align-self:center; }
+
+  /* v7.1 desktop panel: knacks → preview (hand-name inside) → tricks; preview cards mirror the grid exactly. Portrait untouched. */
+  #stage.landscape #knack-carousel-wrap .panel-title { display:none; }   /* no "Knacks" label */
+  /* tricks: hide the word "Tricks" but keep the n/5 count pinned bottom-right */
+  #stage.landscape #trick-tray-area .panel-title { position:absolute; right:7px; bottom:4px; margin:0; padding:0; font-size:0; letter-spacing:0; z-index:3; }
+  #stage.landscape #trick-tray-count { font-family:'Cinzel',serif; font-size:8px; font-weight:700; color:var(--gold-dim); }
+
+  /* knacks: chip row only, directly under the PIPS/MULT/FOCUS chips */
+  #stage.landscape #knack-carousel-wrap { left:1.56%; top:30%; width:32.81%; height:7%; display:flex; flex-direction:row; align-items:center; justify-content:flex-start; gap:5px; padding:2px 8px; overflow:hidden; }
+  #stage.landscape #knack-list { flex-wrap:nowrap; gap:5px; max-height:none; overflow:hidden; }
+
+  /* preview: full-width frame; hand-name sits inside it on the dark background (left); cards render exactly like the grid, bonuses and all */
+  #stage.landscape #selected-cards { left:1.56%; top:38%; width:32.81%; height:18%; --card-w:38px; --card-h:50px; display:flex; align-items:center; justify-content:center; gap:4px; padding:4px 8px 4px 44px; background:var(--panel); border:1px solid var(--border); border-radius:6px; overflow:hidden; }
+  #stage.landscape #hand-name { position:absolute; left:1.56%; top:38%; width:6%; height:18%; display:flex; align-items:center; justify-content:center; text-align:center; background:none; border:none; margin:0; font-size:10px; line-height:1.15; letter-spacing:0.5px; color:var(--gold); padding:0 3px; z-index:2; }
+
+  /* tricks: SAME height as the preview, card-shaped tiles fully visible, no label */
+  #stage.landscape #trick-tray-area { left:1.56%; top:57%; width:32.81%; height:18%; display:flex !important; flex-direction:row; align-items:center; justify-content:flex-start; padding:4px 8px; gap:6px; overflow:hidden; }
+  #stage.landscape #trick-tray-list { flex-direction:row; flex-wrap:nowrap; align-items:center; gap:6px; max-height:none; overflow:hidden; padding:0; }
+  #stage.landscape .trick-tray-chip { width:35px; height:46px; font-size:14px; border-radius:5px; flex-direction:column; }
+  #stage.landscape #interact-costs { left:1.56%; top:76.39%; width:14.84%; height:12.5%; flex-direction:column; justify-content:center; padding:3px 6px; gap:1px; }
+  #stage.landscape #coin-info      { left:17.19%; top:76.39%; width:17.19%; height:12.5%; flex-direction:column; justify-content:center; padding:3px 7px; gap:1px; }
+  #stage.landscape #btn-stats      { position:absolute; left:1.56%; top:91.67%; width:10.16%; height:6.39%; }
+  #stage.landscape #btn-deck       { position:absolute; left:13.28%; top:91.67%; width:10.16%; height:6.39%; }
+  #stage.landscape #btn-pause      { position:absolute; left:25%;    top:91.67%; width:9.38%;  height:6.39%; }
+  #stage.landscape #focus-meter-wrap { position:absolute; left:34.4%; top:1.39%; width:5%; height:96.67%; }
+  #stage.landscape #focus-bar-outer { width:21px; }   /* landscape focus bar (25% thinner than the old 28px) */
+  #stage.landscape #grid-slot      { position:absolute; left:39.84%; top:11.11%; width:49.22%; height:86.11%; }
+  #stage.landscape #run-progress   { left:90.63%; top:1.39%; width:8.59%; height:8.33%; flex-direction:column; align-items:center; justify-content:center; gap:3px; padding:3px; }
+  #stage.landscape #btn-discard    { position:absolute; left:91.41%; top:11.11%; width:7.81%; height:29.17%; }
+  #stage.landscape #btn-play       { position:absolute; left:91.41%; top:41.67%; width:7.81%; height:38.89%; }
+  #stage.landscape #swap-indicator { position:absolute; left:91.41%; top:81.94%; width:7.81%; height:15.28%; }
+  /* new-block internals */
+  #vclock-fill { position:absolute; left:0; top:0; bottom:0; width:64%; background:linear-gradient(90deg,var(--gold-dim),var(--gold)); transition:width .25s linear; }
+  #vclock-band { position:absolute; top:0; bottom:0; left:33%; width:34%; background:repeating-linear-gradient(45deg, rgba(201,168,76,0.18) 0 6px, transparent 6px 12px); border-left:1px dashed rgba(201,168,76,0.5); border-right:1px dashed rgba(201,168,76,0.5); }
+  #coin-info .ci-main { font-family:'Cinzel',serif; color:var(--gold); font-weight:700; font-size:15px; line-height:1; display:flex; align-items:baseline; gap:4px; }
+  #coin-info .ci-main b { font-size:19px; }
+  #coin-info .ci-row { display:flex; justify-content:space-between; font-family:'Courier New',monospace; font-size:8px; color:var(--cream-dim); }
+  #coin-info .ci-row .pos { color:var(--green); }
+  #interact-costs .ic-h { font-family:'Cinzel',serif; font-size:7px; letter-spacing:1px; color:var(--gold-dim); text-transform:uppercase; text-align:center; }
+  #interact-costs .ic-r { display:flex; justify-content:space-between; font-family:'Courier New',monospace; font-size:9px; color:var(--cream); }
+  #interact-costs .ic-r span:last-child { color:var(--gold); font-weight:700; }
+  #run-progress .rp-act { font-family:'Cinzel',serif; font-size:11px; font-weight:700; color:var(--gold); letter-spacing:1px; line-height:1; }
+  #run-progress .rp-nodes { display:flex; gap:3px; align-items:center; }
+  #run-progress .rp-nodes span { width:6px; height:6px; border-radius:50%; background:#2a2010; border:1px solid var(--gold-dim); box-sizing:border-box; }
+  #run-progress .rp-nodes span.on { background:var(--gold); border-color:var(--gold); }
+  #run-progress .rp-nodes span.cur { background:var(--cream); border-color:var(--cream); }
+  #run-progress .rp-nodes .boss { width:auto; height:auto; border:none; background:none; color:var(--red); font-size:10px; }
+
 </style>
 </head>
 <body>
@@ -2962,20 +3096,25 @@
     </div>
 
     <div class="panel-box" id="trick-panel">
-      <!-- Hand preview shown here normally -->
+      <!-- ═══════════ v7 HAND-PREVIEW SLOT (for the hand-preview system) ═══════════
+           In v7 landscape the preview is positioned at:  left 1.56% / top 31.94% /
+           width 32.81% / height 15.28% of #stage  (see #stage.landscape #selected-cards
+           in the v7 CSS block). It sits directly BELOW the pips/mult/focus row and
+           ABOVE #hand-name. The preview system should render INTO #selected-cards
+           (or replace it) at this anchor; #hand-name is the label just under it. -->
       <div id="hand-preview-area">
         <div id="selected-cards"></div>
         <div id="hand-name">—</div>
       </div>
       <!-- Trick Tray (visible only in trickTrayMode) -->
       <div id="trick-tray-area" style="display:none">
-        <span class="panel-title">Tricks</span>
+        <span class="panel-title">Tricks <span id="trick-tray-count"></span></span>
         <div id="trick-tray-list"></div>
       </div>
       <!-- Knack section -->
       <div id="knack-carousel-wrap">
         <span class="panel-title">Knacks</span>
-        <div id="knack-list"><span style="font-size:9px;color:var(--cream-dim)">None yet</span></div>
+        <div id="knack-list"><span style="font-size:9px;color:var(--cream-dim)">No knacks</span></div>
       </div>
     </div>
 
@@ -3015,6 +3154,24 @@
     <button class="act-btn btn-secondary" id="btn-pause">⏸ Pause</button>
   </div>
 
+  <!-- v7 landscape-only blocks (hidden in portrait) -->
+  <div id="vclock" class="v7-ls"><div id="vclock-band"></div><div id="vclock-fill"></div></div>
+  <div id="run-progress" class="v7-ls">
+    <div class="rp-act">ACT 1</div>
+    <div class="rp-nodes"><span></span><span></span><span></span><span></span><span></span><span class="boss">&#9760;</span></div>
+  </div>
+  <div id="coin-info" class="v7-ls">
+    <div class="ci-main">&#128176;<b id="ci-gold">0</b></div>
+    <div class="ci-row"><span>Interest</span><span class="pos" id="ci-interest">+0</span></div>
+    <div class="ci-row"><span>Cash out</span><span id="ci-cashout">+0</span></div>
+  </div>
+  <div id="interact-costs" class="v7-ls">
+    <div class="ic-h">Time Cost</div>
+    <div class="ic-r"><span>Play</span><span id="ic-play">0s</span></div>
+    <div class="ic-r"><span>Discard</span><span>3s</span></div>
+    <div class="ic-r"><span>Swap</span><span>4s</span></div>
+  </div>
+
   <!-- Hidden elements still needed by render() -->
   <div style="display:none">
     <div id="score-breakdown"></div>
@@ -3051,6 +3208,46 @@
 
 <!-- DEV PANEL -->
 <div id="dev-btn" onclick="toggleDevPanel()" style="display:none;position:fixed;bottom:60px;right:6px;z-index:500;width:32px;height:32px;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.4);border-radius:8px;font-size:16px;display:none;align-items:center;justify-content:center;cursor:pointer;">🛠</div>
+
+<!-- Preview-window scoring dance — renders INTO the dedicated hand-preview slot (#selected-cards) -->
+<style>
+  #selected-cards.dnc-active{ flex-direction:column; align-items:stretch; justify-content:flex-start;
+    overflow:visible; gap:3px; padding:5px; z-index:60; height:auto; }
+  #stage.landscape #selected-cards.dnc-active{ height:auto; min-height:15.28%; overflow:visible; flex-direction:column; align-items:stretch; justify-content:flex-start; z-index:60; }
+  #selected-cards.dnc-active .dnc-row{display:flex;align-items:center;gap:5px;min-height:38px;}
+  #selected-cards.dnc-active .dnc-row.hand{min-height:58px;}
+  #selected-cards.dnc-active .dnc-lab{font-size:7px;letter-spacing:1px;color:var(--cream-dim);writing-mode:vertical-rl;
+    transform:rotate(180deg);text-transform:uppercase;opacity:.6;flex:0 0 auto;}
+  /* items = clipped viewport; track = the sliding strip of cards (scrolls left as a large hand scores) */
+  #selected-cards.dnc-active .dnc-items{display:flex;align-items:center;flex:1;min-width:0;overflow:hidden;}
+  #selected-cards.dnc-active .dnc-track{position:relative;display:flex;gap:4px;align-items:center;flex-wrap:nowrap;padding:8px 0;
+    transition:transform .38s cubic-bezier(.4,.6,.3,1);will-change:transform;}
+  .dnc-outer{display:inline-flex;flex:0 0 auto;transform-origin:center;}
+  .dnc-card{width:30px;height:42px;border-radius:5px;background:#f4ead5;color:#1a1a1a;transform-origin:center;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;
+    box-shadow:0 2px 5px rgba(0,0,0,.5);font-family:'Crimson Pro',serif;}
+  .dnc-card .r{font-size:14px;line-height:1;} .dnc-card .s{font-size:11px;line-height:1;}
+  .dnc-card.red{color:#a0030b;}
+  .dnc-chip{height:34px;min-width:34px;padding:0 6px;border-radius:7px;display:flex;align-items:center;
+    justify-content:center;transform-origin:center;background:rgba(212,168,87,0.14);border:1px solid rgba(212,168,87,0.5);
+    font-size:7px;letter-spacing:.2px;color:var(--cream);text-align:center;max-width:64px;line-height:1.05;}
+  .dnc-jitter{animation:dnc-jitter .1s linear infinite;}
+  @keyframes dnc-jitter{0%{transform:translate(0,0) rotate(0) scale(1);}
+   20%{transform:translate(calc(-0.9px*var(--dnc-jit)),calc(0.7px*var(--dnc-jit))) rotate(calc(-1.1deg*var(--dnc-jit))) scale(calc(1 + .015*var(--dnc-jit)));}
+   40%{transform:translate(calc(0.9px*var(--dnc-jit)),calc(-0.7px*var(--dnc-jit))) rotate(calc(1.1deg*var(--dnc-jit))) scale(calc(1 + .015*var(--dnc-jit)));}
+   60%{transform:translate(calc(-0.6px*var(--dnc-jit)),calc(-0.5px*var(--dnc-jit))) rotate(calc(-0.7deg*var(--dnc-jit))) scale(1);}
+   80%{transform:translate(calc(0.6px*var(--dnc-jit)),0) rotate(calc(0.7deg*var(--dnc-jit))) scale(1);}
+   100%{transform:translate(0,0) rotate(0) scale(1);}}
+  .dnc-pulse{animation:dnc-pulse var(--dnc-dur) ease;}
+  @keyframes dnc-pulse{0%{transform:scale(1);}50%{transform:scale(calc(1 + .12*var(--dnc-mag)));}100%{transform:scale(1);}}
+  .dnc-flash{animation:dnc-flash var(--dnc-dur) ease;}
+  @keyframes dnc-flash{0%{filter:brightness(1);transform:scale(1);}40%{filter:brightness(calc(1 + .7*var(--dnc-mag)));transform:scale(calc(1 + .03*var(--dnc-mag)));}100%{filter:brightness(1);transform:scale(1);}}
+  .dnc-pop{animation:dnc-pop var(--dnc-dur) cubic-bezier(.34,1.56,.64,1);}
+  @keyframes dnc-pop{0%{transform:scale(1);}40%{transform:scale(calc(1 + .30*var(--dnc-mag)));}70%{transform:scale(calc(1 - .05*var(--dnc-mag)));}100%{transform:scale(1);}}
+  .dnc-particle{position:fixed;z-index:200;font-weight:700;pointer-events:none;font-family:'Crimson Pro',serif;
+    font-size:calc(15px*var(--dnc-pscale,1));text-shadow:0 1px 4px rgba(0,0,0,.85);}
+  /* live focus tracker beneath the FOCUS number (stays live even while the big number is locked mid-dance) */
+</style>
 
 <div id="dev-panel" style="display:none;position:fixed;inset:0;z-index:499;overflow-y:auto;background:rgba(0,0,0,0.92);padding:16px;flex-direction:column;gap:12px;">
   <div style="display:flex;justify-content:space-between;align-items:center;">
@@ -3232,6 +3429,18 @@
     <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;margin-top:6px;">
       <input id="dev-trick-tray-toggle" type="checkbox" onchange="toggleTrickTrayMode(!this.checked)" style="accent-color:var(--gold);">
       Place Tricks on the grid (off = side tray)
+    </label>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;margin-top:6px;">
+      <input id="dev-new-dance-toggle" type="checkbox" onchange="setNewDance(this.checked)" style="accent-color:var(--gold);">
+      New scoring dance (preview-window · WIP)
+    </label>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);margin-top:6px;">
+      Interrupt a scoring hand by
+      <select id="dev-dance-interrupt" onchange="setDanceInterruptMode(this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor:pointer;">
+        <option value="cut">Cut — instant (current)</option>
+        <option value="ff">Fast-forward the old hand</option>
+        <option value="resolve">Resolve — quick pop</option>
+      </select>
     </label>
   </div>
 
@@ -3540,6 +3749,7 @@
   <div id="blp-list"></div>
   <div id="blp-actions">
     <button id="blp-confirm" disabled onclick="confirmTrickLosePicker()">Remove Selected</button>
+    <button id="blp-cancel" style="display:none" onclick="cancelTrickReplacePicker()">Skip New Trick</button>
   </div>
 </div>
 
@@ -3611,7 +3821,7 @@
 </div>
 
 <script>
-const BUILD = '2026-07-16 · r77';
+const BUILD = '2026-07-22 · r94';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -3874,6 +4084,9 @@ function cardCan(card, action) {
   if (card.isChallenge) {
     return action === 'render';
   }
+  // Snared curse: the card is stuck — no swapping or discarding until it lifts
+  if (card.rank && typeof cardCurses !== 'undefined' && cardCurses[cardKey(card.rank, card.suit)]?.id === 'snared'
+      && (action === 'swap' || action === 'discard')) return false;
   // Normal cards can do everything
   return true;
 }
@@ -3941,6 +4154,17 @@ const TRICK_POOL = [
   { id:'hummingbird',    name:'The Hummingbird',     tier:'rare',      desc:'+2 mult for every clock pause triggered this game' },
   { id:'albatross',      name:'The Albatross',       tier:'rare',      desc:'+5 pips for every second the clock has spent paused this round' },
   { id:'vulture',        name:'The Vulture',         tier:'epic',      desc:'Cards discarded during the round’s first clock pause permanently gain: pause the clock 1 second each time they score (replays stack)' },
+  // ── Clock-mark Tricks (fire as the round clock passes static timestamps) ──
+  { id:'ticktock',       name:'Tick-Tock',           tier:'common',    tags:['time','focus'],     desc:'Every time the round clock ends in a 0, gain +2 Focus' },
+  { id:'quarter_chime',  name:'Quarter Chime',       tier:'rare',      tags:['time','pips'],      desc:'Every time the round clock reads a multiple of 15 seconds, your next hand scores +45 pips' },
+  { id:'minute_hand',    name:'Minute Hand',         tier:'rare',      tags:['time','mult'],      desc:'Every minute mark the clock passes adds +3 mult to your next hand' },
+  { id:'second_hand',    name:'Second Hand',         tier:'common',    tags:['time','pips'],      desc:'Every minute mark the clock passes adds +5 pips to your next hand' },
+  { id:'hourglass',      name:'Hourglass',           tier:'epic',      tags:['time','retrigger'], desc:'Every minute mark the clock passes has a 1-in-3 chance to give a random card on the grid a permanent retrigger' },
+  { id:'sediment',       name:'Sediment',            tier:'rare',      tags:['time','pips'],      desc:'Gains +10 pips for every 10 seconds of round time elapsed (resets each round)' },
+  { id:'kingfisher',     name:'The Kingfisher',      tier:'epic',      tags:['time','mult'],      desc:'+1 mult for every 5 seconds the clock has been paused or rewound this round' },
+  { id:'magpie',         name:'Hoarder House',       tier:'epic',      tags:['time','resource'],  desc:'Each hand rewinds the clock 1 second for every 2 unspent swaps + discards you hold' },
+  { id:'mockingbird',    name:'Traveler',            tier:'rare',      tags:['resource','streak'],desc:'Every 3 hands you play without a same-type streak grants +1 swap' },
+  { id:'starling',       name:'Type A',              tier:'rare',      tags:['resource','streak'],desc:'Every 2nd hand of an unbroken same-type streak grants +1 discard' },
   { id:'phoenix',        name:'The Phoenix',         tier:'mythic',    desc:'While the clock is paused, the Focus multiplier applies twice' },
   // ── Streaks ──
   { id:'kindling',       name:'Kindling',            tier:'common',    desc:'Same hand streak scores +4 pips × streak' },
@@ -4021,6 +4245,12 @@ const TRICK_POOL = [
   { id:'flow_state',     name:'Flow State',          tier:'rare',      tags:['focus','pips'], desc:'While focus is ×1.5 or higher, +10 pips per card scored' },
   // ── Legendary ──
   { id:'heartwood',      name:'Heartwood',           tier:'epic',      desc:'Dead center card permanently gains +5 pips & +1 mult each time scored' },
+  // ── Combo batch (r83): payoffs / sleight-charge synergies ──
+  { id:'landfill',       name:'Landfill',            tier:'common',    tags:['discard','mult'],  desc:'Hands score +1 mult for every 5 cards you have discarded this round' },
+  { id:'old_growth',     name:'Old Growth',          tier:'epic',      tags:['scaling','mult'],  desc:'Each scored card also adds its permanent pip bonus to mult' },
+  { id:'magician',       name:'Magician',            tier:'rare',      tags:['sleight','mult'],  desc:'+3 mult for each Sleight you own' },
+  { id:'stand_up',       name:'Stand-Up',            tier:'rare',      tags:['sleight','pips'],  desc:'+10 pips for each charge remaining across all your Sleights' },
+  { id:'scalper',        name:'Scalper',             tier:'rare',      tags:['sleight','pips'],  desc:'Total pips ×(1 + 0.2 per charge your Sleights are missing), figured when the hand scores' },
 ];
 
 // ── Trick category → emoji ──
@@ -4033,7 +4263,7 @@ const TRICK_CATEGORIES = [
   { emoji:'🎴', ids:['enriched','tidal_force','deluge','summit','last_stand','light_touch','heavy_hand','blackjack_bonus'] }, // Flush / special hands
   { emoji:'👑', ids:['first_light','wild_heart','face_value','king_guard','knave_power','humble_roots','before_the_tide','royal_trio'] }, // Rank-specific
   { emoji:'🌱', ids:['rich_soil','fertile_ground','first_fruits','sapling'] }, // Per-card pips
-  { emoji:'⏱️', ids:['early_bird','night_owl','closing_time','quick_draw','patience_reward','steady_pace','momentum','first_play','still_water','frozen_moment'] }, // Timing
+  { emoji:'⏱️', ids:['early_bird','night_owl','closing_time','quick_draw','patience_reward','steady_pace','momentum','first_play','still_water','frozen_moment','ticktock','quarter_chime','minute_hand','second_hand','hourglass','sediment','kingfisher','magpie','mockingbird','starling'] }, // Timing
   { emoji:'🔥', ids:['kindling','wildfire','echo_hand','hot_streak'] }, // Streaks
   { emoji:'🎨', ids:['club_double','monochrome','full_color','balanced_diet'] }, // Suit conditions
   { emoji:'🔢', ids:['lucky_sevens','ninesong','prime_time','even_score','odd_squad'] }, // Number magic
@@ -4060,9 +4290,9 @@ let falling = false;   // true during card fall animations — allows selection,
 let pendingAction = null; // 'play' | 'discard' — queued while falling
 let dealPhase = false; // true while deal anims are running — suppresses render() card placement
 
-let score = 0;
-let cumulativeGoal = BASE_GOAL; // running total threshold for next level
-let roundGoal = BASE_GOAL;      // current level's increment (for display)
+let score = 0;      // current round's score — resets to 0 at the start of every round
+let totalScore = 0; // lifetime total banked from completed rounds; display-only (end-of-run screens)
+let roundGoal = BASE_GOAL;      // this round's score target, from zero
 let level = 1;
 
 // ── Focus Meter (formerly Fate Meter) ──
@@ -4084,6 +4314,7 @@ let focusAnimRunning = false;
 let focusDecayBaseMs     = parseFloat(localStorage.getItem('focusDecayBaseMs')) || 2000;
 let focusDecayIntervalMs = focusDecayBaseMs;
 let focusDecayTimerId    = null;   // setInterval id
+let focusDecayBuffer     = 0;      // grace ticks held while sitting on a whole-number (x.0) multiplier
 let focusBeatDurationMs  = parseFloat(localStorage.getItem('focusBeatDurationMs')) || 300;
 
 // Speed bonus formula state (dev-tunable). Persisted to localStorage.
@@ -4159,15 +4390,17 @@ let swaps = 3;
 // Incrementing via Limit Break event or shop raises `current` by 1 up to `max`.
 // The game reads limits.X.current wherever it previously used a hard-coded cap.
 // hideMax: don't surface the max anywhere in UI (limit feels "open-ended").
+// `weight` (default 1) sets how often a limit is offered in the shop / Limit
+// Break / reward-grid limit tiles — lower = rarer. Picked via pickWeightedLimits.
+// Grid rows/cols also drive the REWARD grid's shape (reward grid = play grid).
 const LIMITS_DEF = [
-  { id: 'selection',   label: 'Selection Size',  icon: '✋', desc: 'Max cards selectable at once',      base: 3,   max: 9, hideMax: true },
-  { id: 'grid_rows',   label: 'Grid Rows',       icon: '⬍', desc: 'Rows in the playing grid',          base: 4,   max: 7 },
-  { id: 'grid_cols',   label: 'Grid Columns',    icon: '⬌', desc: 'Columns in the playing grid',       base: 4,   max: 7 },
+  { id: 'selection',   label: 'Selection Size',  icon: '✋', desc: 'Max cards selectable at once (play grid AND reward grid)', base: 3, max: 9, hideMax: true },
+  { id: 'grid_rows',   label: 'Grid Rows',       icon: '⬍', desc: 'Rows in the playing grid (and reward grid)',    base: 4,   max: 7 },
+  { id: 'grid_cols',   label: 'Grid Columns',    icon: '⬌', desc: 'Columns in the playing grid (and reward grid)', base: 4,   max: 7 },
   { id: 'swaps',       label: 'Swaps/Round',      icon: '🔄', desc: 'Swaps granted at round start',      base: 3,   max: 8 },
   { id: 'discards',    label: 'Discards/Round',   icon: '🗑', desc: 'Discards granted at round start',   base: 3,   max: 8 },
   { id: 'round_time',  label: 'Round Time',       icon: '⏱', desc: 'Max seconds per round',             base: 180, max: 300 },
-  { id: 'reward_rows', label: 'Reward Grid Rows', icon: '⬍', desc: 'Rows of the reward grid',           base: 3,   max: 5 },
-  { id: 'reward_cols', label: 'Reward Grid Cols', icon: '⬌', desc: 'Columns of the reward grid',        base: 3,   max: 5 },
+  { id: 'trick_slots', label: 'Trick Slots',      icon: '✦', desc: 'Max Tricks you can keep at once',   base: 5,   max: 10, weight: 0.4 },
   { id: 'reroll',      label: 'Shop Rerolls',     icon: '🎲', desc: 'Rerolls available per shop visit',  base: 3,   max: 6 },
 ];
 const limits = {};
@@ -4210,6 +4443,55 @@ function onLimitChanged(id) {
     render();
   }
   // grid_rows / grid_cols take effect at next round start (see grid sizing work)
+}
+// Weighted sample WITHOUT replacement from limit defs (respects def.weight, default 1).
+// Used by the shop, the Limit Break event, and reward-grid limit tiles so rare
+// limits (e.g. trick_slots at 0.4) show up proportionally less often.
+function pickWeightedLimits(n, pool) {
+  const src = [...(pool || LIMITS_DEF.filter(d => limits[d.id].current < limits[d.id].max))];
+  const out = [];
+  while (src.length && out.length < n) {
+    const total = src.reduce((s, d) => s + (d.weight ?? 1), 0);
+    let rng = Math.random() * total, idx = src.length - 1;
+    for (let i = 0; i < src.length; i++) { rng -= (src[i].weight ?? 1); if (rng <= 0) { idx = i; break; } }
+    out.push(src.splice(idx, 1)[0]);
+  }
+  return out;
+}
+// Trick tray capacity (the trick_slots limit). Enforced in injectTrickAfterReward.
+function trickCapacity() {
+  return (limits.trick_slots?.current ?? 5) + ((typeof hasKnack === 'function' && hasKnack('curator')) ? 1 : 0);
+}
+
+// Rank value with Ace HIGH (=14). Shared by knacks that care about the grid's
+// highest/lowest rank (High and Mighty, Low and Behold, Down and Back In).
+function rankHighVal(rk) { return rk === 'A' ? 14 : (RANK_ORDER[rk] || 0); }
+
+// ── Sleight-charge economy (Magician / Stand-Up / Scalper / Coin Toss / Martyr) ──
+// Every Sleight the player owns, wherever it currently sits (deck, played pile, grid),
+// deduped by _id so a card is counted once.
+function ownedSleightCards() {
+  const out = [], seen = new Set();
+  const push = c => { if (c && c._isSleight && !seen.has(c._id)) { seen.add(c._id); out.push(c); } };
+  (drawPile || []).forEach(push);
+  (playedPile || []).forEach(push);
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) push(gridData[r]?.[c]);
+  return out;
+}
+function ownedSleightCount() { return ownedSleightCards().length; }
+// total = charges remaining (infinite counts as 1, owner decision); missing = capacity − current
+// (infinite is always "full" → 0 missing).
+function sleightChargeInfo() {
+  let total = 0, missing = 0;
+  ownedSleightCards().forEach(card => {
+    if (card._usesLeft === 'infinite') { total += 1; return; }
+    const def = SLEIGHT_POOL.find(j => j.id === card.sleightId);
+    const cur = Math.max(0, card._usesLeft || 0);
+    const cap = (def && typeof def.durability === 'number') ? def.durability : cur;
+    total += cur;
+    missing += Math.max(0, cap - cur);
+  });
+  return { total, missing };
 }
 // ── END LIMITS SYSTEM ──
 let accumulatedSwaps = 0;    // banked unused swaps (Reserves: Swaps)
@@ -4280,6 +4562,20 @@ const KNACK_POOL = [
   { id:'long_pause',      emoji:'🦉',  name:'Long Pause',       desc:'All clock pauses last 1.5× as long.' },
   { id:'sundial',         emoji:'🌇',  name:'Sundial',          desc:'Hands where every card shares a column pause the clock for 8 seconds.' },
   { id:'metronome',       emoji:'🥁',  name:'Metronome',        desc:'Each round a hand type you can make is chosen; playing that hand type pauses the clock for 5 seconds.' },
+  // ── Rewind knacks ──
+  { id:'time_slip',       emoji:'⏮️',  name:'Time Slip',        desc:'Whenever the clock would pause, 25% chance to rewind that many seconds instead.' },
+  { id:'replay_rewind',   emoji:'🔂',  name:'Rewound Echo',     desc:'Any time a card replays, 25% chance to rewind the clock 2 seconds.' },
+  { id:'deja_vu',         emoji:'🔁',  name:'Déjà Vu',          desc:'Playing the same ranks in two hands in a row rewinds the clock 5 seconds.' },
+  { id:'clockmaker',      emoji:'⏱️',  name:'Clockmaker',       desc:'Any time a single hand scores at least 30% of the round goal, rewind the clock 5 seconds.' },
+  // ── Combo batch (r83) ──
+  { id:'high_and_mighty', emoji:'👑',  name:'High and Mighty',  desc:'The highest-ranked cards in each scored hand replay once.' },
+  { id:'low_and_behold',  emoji:'🐛',  name:'Low and Behold',   desc:'Any played hand containing the grid’s lowest rank replays the whole hand once.' },
+  { id:'down_and_back_in',emoji:'🔁',  name:'Down and Back In', desc:'Discarding the grid’s highest rank grants +1 discard or swap (alternating) and +5 coins. If several cards share that top rank, all must be discarded together.' },
+  { id:'muscle_memory',   emoji:'🧠',  name:'Muscle Memory',    desc:'Primed Tricks stay primed for one extra hand.' },
+  { id:'curator',         emoji:'✦',   name:'Curator',          desc:'+1 Trick Slot.' },
+  { id:'scavenger',       emoji:'🦴',  name:'Scavenger',        desc:'Whenever a curse lifts, gain +10 coins and +1 discard next round.' },
+  { id:'coin_toss',       emoji:'🪙',  name:'Coin Toss',        desc:'At the start of each round, every Sleight has a 50% chance to restore 1 charge.' },
+  { id:'martyr',          emoji:'⚰️',  name:'Martyr',           desc:'Discarding a non-discard Sleight restores 1 charge to all Sleights on the grid.' },
 ];
 // ── SLEIGHT POOL ──
 // Sleights live in the deck as special cards (_isSleight:true). They fall onto the grid,
@@ -4314,10 +4610,13 @@ const SLEIGHT_POOL = [
   { id:'the_naturalist', name:'Naturalist',     emoji:'🌿', rarity:'rare',      activation:'on_play',    durability:'infinite', defaultRank:null, defaultSuit:null, tags:['scoring','pips'],     desc:'Play this: each other scored card permanently gains +2 pips.' },
   { id:'bellhop',        name:'Bellhop',        emoji:'🛎️', rarity:'common',    activation:'on_play',    durability:5,          defaultRank:null, defaultSuit:null, tags:['resource'],           desc:'Play this: gain +2 swaps and +1 discard. (5 charges)' },
   { id:'syncopation',    name:'Syncopation',    emoji:'🎼', rarity:'rare',      activation:'on_play',    durability:3,          defaultRank:null, defaultSuit:null, tags:['time'],               desc:'Play this in a hand of a different type than your previous hand: pause the clock for 12 seconds. (3 charges)' },
+  { id:'rewind',         name:'Rewind',         emoji:'⏪', rarity:'rare',      activation:'on_play',    durability:5,          defaultRank:null, defaultSuit:null, tags:['time'],               desc:'Play this in a hand to rewind the clock by the hand size in seconds (this Sleight counts toward the size). (5 charges)' },
   // ── Discard-based ──
   { id:'the_bomb',       name:'Bomb',           emoji:'💣', rarity:'epic',      activation:'on_discard', durability:2,          defaultRank:null, defaultSuit:null, tags:['scoring','pips'],     desc:'Discard this: every card on the grid permanently gains +3 pips. (2 charges)' },
   { id:'the_legacy',     name:'Legacy',         emoji:'📜', rarity:'rare',      activation:'on_discard', durability:3,          defaultRank:null, defaultSuit:null, tags:['scoring'],           desc:'Discard this: the next hand played scores ×3. (3 charges)' },
   { id:'cash_out',       name:'Cash Out',       emoji:'💰', rarity:'common',    activation:'on_discard', durability:4,          defaultRank:null, defaultSuit:null, tags:['resource','coins'],   desc:'Discard this: gain 10 credits. (4 charges)' },
+  { id:'last_call',      name:'Last Call',      emoji:'⏳', rarity:'epic',      activation:'on_discard', durability:2,          defaultRank:null, defaultSuit:null, tags:['time'],               desc:'Discard this in the final minute of a round to rewind the clock 15 seconds. (2 charges)' },
+  { id:'sandbag',        name:'Sandbagger',     emoji:'⏬', rarity:'rare',      activation:'on_discard', durability:3,          defaultRank:null, defaultSuit:null, tags:['time'],               desc:'Discard this together with a pair of cards below rank 8 to rewind the clock by that pair’s rank in seconds. (3 charges)' },
   // ── Swap-based ──
   { id:'lightning_rod',  name:'Lightning Rod',  emoji:'⚡', rarity:'rare',      activation:'on_swap',    durability:'infinite', defaultRank:null, defaultSuit:null, tags:['scoring','pips'],     desc:'When swapped, the card it traded with permanently gains +5 pips.' },
   { id:'the_catalyst',   name:'Catalyst',       emoji:'🧪', rarity:'rare',      activation:'on_swap',    durability:'infinite', defaultRank:null, defaultSuit:null, tags:['scoring','mult'],     desc:'When swapped, the card it traded with permanently gains +1 mult.' },
@@ -4328,12 +4627,63 @@ const SLEIGHT_POOL = [
   { id:'shady_tree',     name:'Shady Tree',     emoji:'🌳', rarity:'rare',      activation:'on_play',    durability:10,         defaultRank:null, defaultSuit:null, tags:['time','position'],    desc:'Play this from the round’s shady column to pause the clock. Pauses for its remaining charges (10 → 1), −1 each use; destroyed at 0.' },
   { id:'stopwatch',      name:'Stopwatch',      emoji:'⏱️', rarity:'epic',      activation:'double_tap', durability:60,         defaultRank:null, defaultSuit:null, tags:['time'],                desc:'Double-tap: freeze the clock until you next play a hand (swaps and discards keep it frozen). Holds up to 60 paused seconds total, drained 1 per second; destroyed at 0.' },
   { id:'piggy_bank',     name:'Piggy Bank',     emoji:'🐷', rarity:'common',    activation:'double_tap', durability:5,          defaultRank:null, defaultSuit:null, tags:['resource','coins'],   desc:'Double-tap: gain 5 credits. (5 charges)' },
+  { id:'magnet',         name:'Magnet',         emoji:'🧲', rarity:'common',    activation:'double_tap', durability:3,          defaultRank:null, defaultSuit:null, tags:['position','swap'],    desc:'Double-tap, then tap a card: every card of that rank slides next to Magnet (counts as several swaps). 3 charges, once per round.' },
   // ── Aim-based (fixtures: tap to rotate aim; cannot be swapped or discarded) ──
   { id:'reflect',     name:'Reflect',     emoji:'🪞', rarity:'epic',   activation:'aim', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['retrigger','position'], desc:'Tap to rotate its aim (up→right→down→left). The card it faces replays once when a hand scores. Cannot be swapped or discarded.' },
   { id:'soul_mirror', name:'Soul Mirror', emoji:'👁️', rarity:'mythic', activation:'aim', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['retrigger','rank'],     desc:'Tap to rotate its aim. While it faces a card, every scored card of that rank replays — anywhere on the grid. Multiple Soul Mirrors stack. Cannot be swapped or discarded.' },
 ];
 
 // ── Aim sleights (Reflect, Soul Mirror): fixtures that point at an adjacent cell ──
+// ══════════════════════════════════════════════
+// COMBO FAMILIES — legibility layer (r83)
+// Each family is a set of "slots"; a slot is one required entity id, or an array
+// (own ANY one of these). checkComboMilestones() (called at round start) fires a
+// one-time "COMBO ONLINE" toast when a family is fully owned, and a one-time
+// "combo close — need X" hint when you own all but one slot — so synergies feel
+// discovered, not stumbled into. A wrong/renamed id just fails to fire (harmless).
+// ══════════════════════════════════════════════
+const COMBO_FAMILIES = [
+  { id:'discard_furnace',   name:'Discard Furnace',   slots:['free_discards','hoarder','discard_pips','landfill'] },
+  { id:'retrigger_cascade', name:'Retrigger Cascade', slots:['soul_mirror',['reflect','corner_retrigger','rowcol_retrigger'],'club_double','high_and_mighty'] },
+  { id:'priming_press',     name:'Priming Press',     slots:[['wild_heart','prime_times'],'twos_retrigger','muscle_memory'] },
+  { id:'permanent_snowball',name:'Permanent Snowball',slots:[['the_naturalist','the_bomb','sapling'],'snowball','old_growth'] },
+  { id:'sleight_charges',   name:'Sleight Charges',   slots:[['magician','stand_up','scalper'],['coin_toss','martyr']] },
+  { id:'frozen_hour',       name:'Frozen Hour',       slots:['high_water','frozen_moment','sands_of_time'] },
+  { id:'focus_overdrive',   name:'Focus Overdrive',   slots:['flow_state',['ancient_grove','richter'],['rhythm','kaleidoscope','before_the_tide']] },
+  { id:'position_lock',     name:'Position Lock',     slots:[['rowcol_mult','rowcol_retrigger','rowcol_perm_double'],['shape_square','two_corners','shape_cross'],'magnet'] },
+];
+let _comboAnnounced = new Set(); // families that already fired the ONLINE toast (per game)
+let _comboHinted    = new Set(); // families that already fired the "close" hint (per game)
+function ownsEntity(id) {
+  return (typeof ownsTrick === 'function' && ownsTrick(id))
+      || (typeof hasKnack === 'function' && hasKnack(id))
+      || (typeof grantedSleightIds !== 'undefined' && grantedSleightIds.has(id));
+}
+function _slotMet(slot) { return Array.isArray(slot) ? slot.some(ownsEntity) : ownsEntity(slot); }
+function comboComplete(fam) { return fam.slots.every(_slotMet); }
+function comboMissingSlot(fam) { const u = fam.slots.filter(s => !_slotMet(s)); return u.length === 1 ? u[0] : null; }
+function entityDisplayName(slot) {
+  const id = Array.isArray(slot) ? slot[0] : slot;
+  return (TRICK_POOL.find(x => x.id === id)?.name)
+      || (KNACK_POOL.find(x => x.id === id)?.name)
+      || (SLEIGHT_POOL.find(x => x.id === id)?.name) || id;
+}
+// Called at round start: at most one completion toast, else at most one "close" hint.
+function checkComboMilestones() {
+  for (const fam of COMBO_FAMILIES) {
+    if (comboComplete(fam)) {
+      if (!_comboAnnounced.has(fam.id)) { _comboAnnounced.add(fam.id); _comboHinted.add(fam.id);
+        showMessage(`⚡ COMBO ONLINE — ${fam.name}!`, '#ffd700'); return; }
+    }
+  }
+  for (const fam of COMBO_FAMILIES) {
+    if (comboComplete(fam) || _comboHinted.has(fam.id)) continue;
+    const miss = comboMissingSlot(fam);
+    if (miss) { _comboHinted.add(fam.id);
+      showMessage(`Combo close: ${fam.name} — need ${entityDisplayName(miss)}`, '#8fd0ff'); return; }
+  }
+}
+
 const AIM_SLEIGHTS = new Set(['reflect','soul_mirror']);
 const AIM_ORDER = ['up','right','down','left'];
 const AIM_DELTA = { up:[-1,0], right:[0,1], down:[1,0], left:[0,-1] };
@@ -4381,6 +4731,8 @@ function soulMirrorRankCount(rank) {
 
 // One-shot effect flags consumed by scoring/round logic
 let sleightNextHandDouble = false; // Echo: next hand scores twice
+let _dabiSwapNext = false;          // Down and Back In: alternates discard/swap grant
+let magnetArmed = null;             // {r,c,card} while Magnet waits for a target-rank tap
 let sleightLegacyMult    = false; // Legacy: next hand ×3
 let sleightAmplifierMult = 0;     // Amplifier: accumulated trick mult for next hand
 let grantedSleightIds = new Set(); // dedup: tracks which sleight IDs have been granted
@@ -4399,9 +4751,20 @@ let lastHandTime = 0;
 let lastSwapTime = 0; // for Still Water trick
 let lastHandRoundSeconds = null; // roundSeconds value when the previous hand was scored (Heron)
 let lastSwapRoundSeconds = null; // roundSeconds value when the previous swap occurred (Eagle Eye)
+let lastHandRankKey = null;      // sorted rank multiset of the previous scored hand (Deja Vu knack)
+let _altSwapCount = 0;           // Mockingbird: counts hand-type alternations toward the next +1 swap
+
+// ── Clock-mark Tricks: pending bonuses accrued as the round clock passes static timestamps ──
+// These accumulate while the clock ticks (see handleClockMarks in the round timer) and are
+// consumed by the next hand played (see calcScore / playHand). Reset each round.
+let _discardContextCards = null; // set during a discard so on_discard sleights can inspect co-discarded cards (Sandbagger)
+let pendingHandPips = 0;   // Quarter Chime: +45 pips per multiple-of-15 second passed
+let pendingHandMult = 0;   // Minute Hand: +3 mult per minute mark passed
+let pendingCardPips = 0;   // Second Hand: +5 pips per minute mark passed
 
 // ── Timing/Streak batch: pause-themed Trick state ──
 let pausedSecondsRound = 0;   // total seconds the clock has spent paused this round (Albatross)
+let rewoundSecondsRound = 0;  // total seconds rewound (given back) this round (Kingfisher)
 let pauseInstanceGame = 0;    // PER GAME: number of clock pauses triggered (Hummingbird); reset only at newGame
 let retriggersThisRound = 0;  // count of card retriggers in scored hands this round (Cuckoo's pause length)
 let _lastHandRetrigs = 0;     // extra retriggers in the most recent calcScore of a real hand (read in playHand)
@@ -4507,6 +4870,36 @@ let permMult = {};   // { "A-♠": 1, ... }
 let permXPips  = {}; // { "A-♠": 2, ... } multiplies that card's pip contribution (default 1)
 let permXMult  = {}; // { "A-♠": 2, ... } multiplies total mult per scored card of this key (default 1)
 let permRetrig = {}; // { "A-♠": 1, ... } extra times this card scores its pips (default 0)
+
+// ── CARD CURSES (reward-grid debuffs) ──
+// A curse afflicts one specific card identity (key "rank-suit", like permPips).
+// Curses are worked off by SCORING the cursed card `liftAfter` times — playing
+// through the curse is the cure — or removed instantly by a Cleanse tile.
+// cardCurses = { "9-♠": { id:'leaden', left:3 }, ... }  (reset on newGame)
+let cardCurses = {};
+const CURSE_DEFS = {
+  leaden: { icon: '⚓', name: 'Leaden', liftAfter: 3, desc: 'Scores 0 pips. Lifts after scoring it 3 times.' },
+  taxing: { icon: '🩸', name: 'Taxing', liftAfter: 4, desc: '-3s every time it scores. Lifts after scoring it 4 times.' },
+  snared: { icon: '🕸️', name: 'Snared', liftAfter: 2, desc: "Can't be swapped or discarded. Lifts after scoring it 2 times." },
+};
+// Curse a random un-cursed card identity; returns {rank,suit,curse} or null.
+function curseRandomCard(curseId) {
+  const pool = [];
+  RANKS.forEach(rank => SUITS.forEach(suit => { if (!cardCurses[cardKey(rank, suit)]) pool.push({ rank, suit }); }));
+  if (!pool.length) return null;
+  const pick = pool[Math.floor(Math.random() * pool.length)];
+  const id = curseId || Object.keys(CURSE_DEFS)[Math.floor(Math.random() * Object.keys(CURSE_DEFS).length)];
+  cardCurses[cardKey(pick.rank, pick.suit)] = { id, left: CURSE_DEFS[id].liftAfter };
+  return { ...pick, curse: id };
+}
+function cleanseRandomCurse() {
+  const keys = Object.keys(cardCurses);
+  if (!keys.length) return null;
+  const k = keys[Math.floor(Math.random() * keys.length)];
+  const id = cardCurses[k].id;
+  delete cardCurses[k];
+  return { key: k, curse: id };
+}
 
 // ── Scaling bonus accumulators ──
 let bonusMult_fives   = 0;
@@ -5061,6 +5454,12 @@ const BAL = {
   spade_flood: { time_div: 2 },
   sands_of_time: { divisor: 2 },
   discard_pips: { pips_per_discard: 3 },
+  landfill: { mult_per_n: 1, discards_per: 5 },
+  magician: { mult_per_sleight: 3 },
+  stand_up: { pips_per_charge: 10 },
+  scalper: { pip_mult_per_missing: 0.2 },
+  down_and_back_in: { coins: 5 },
+  scavenger: { coins: 10 },
   edge_pips: { pips_per_card: 15 },
   veteran_bonus: { pips_per_level: 2 },
   high_pair: { focus_per_card: 2 },
@@ -5148,7 +5547,19 @@ const BAL = {
   compound_mult: { mult_per_hand: 0.1 },
   prolific: { pips_per_hand: 1 },
   big_win: { mult: 5, score_threshold: 10000 },
+  // ── clock-mark Tricks ──
+  ticktock: { focus: 2 },
+  quarter_chime: { pips: 45 },
+  minute_hand: { mult: 3 },
+  second_hand: { pips: 5 },
+  hourglass: { chance: 1/3 },
+  sediment: { interval_seconds: 10, pips_per_interval: 10 },
+  kingfisher: { interval_seconds: 5, mult_per_interval: 1 },
+  magpie: { actions_per_second: 2 },
   // ── sleights ──
+  rewind: { /* seconds = hand size */ },
+  last_call: { seconds: 15, last_minute_at: 60 },
+  sandbag: { rank_below: 8 /* seconds = the pair's rank */ },
   pivot: { mult: 5 },
   idol: { interest_mult: 3 },
   the_legacy: { extra_mult: 2 },
@@ -5162,6 +5573,10 @@ const BAL = {
   amplifier: { mult: 5 },
   piggy_bank: { coins: 5 },
   // ── knacks ──
+  time_slip: { chance: 0.25 },
+  replay_rewind: { chance: 0.25, seconds: 2 },
+  deja_vu: { seconds: 5 },
+  clockmaker: { goal_fraction: 0.30, seconds: 5 },
   time_bank: { seconds: 30 },
   inheritance: { coins: 5 },
   lucky_seven: { interval_hands: 7, swaps: 1 },
@@ -5317,6 +5732,9 @@ function calcScore(handName, cells, contrib = null) {
   const _eyeStorm = hasTrick('eye_of_storm') && _eyeFrac > 1/3 && _eyeFrac <= 2/3;
   const _rankHigh = rk => rk === 'A' ? 14 : (RANK_ORDER[rk] || 0);
   const _eyeMax = _eyeStorm ? Math.max(...cards.map(c => _rankHigh(c.rank))) : -1;
+  // High and Mighty (knack): the hand's highest-ranked card(s) all replay once
+  const _hnmOn  = hasKnack('high_and_mighty');
+  const _hnmMax = _hnmOn ? Math.max(...cards.map(c => _rankHigh(c.rank))) : -1;
   // Ripple: once per 30s, cards within one rank of another card in the hand retrigger
   const _rippleReady = hasTrick('ripple') && (Date.now() - _rippleLastFire >= BAL.ripple.cooldown_ms);
   const _rippleSet = new Set();
@@ -5375,7 +5793,9 @@ function calcScore(handName, cells, contrib = null) {
     if (_xp !== 1) { const _preXp = cp; cp *= _xp; bPip('sapling', cp - _preXp); }
     // Right Place: marked row/column cards score +flat pips
     if (cellHasRowColBonus(r, c, 'rowcol_triple_pips')) { cp += BAL.rowcol_triple_pips.flat_pips; bPip('rowcol_triple_pips', BAL.rowcol_triple_pips.flat_pips); }
-    // Straight Shot: remember the first/last line card's modified pips (post-buff, pre-replay)
+    // Leaden curse: this card contributes no pips at all (applied last so it wins)
+    if (cardCurses[_eKey]?.id === 'leaden') cp = 0;
+    // Straight Shot: remember the first/last line card's modified pips (post-buff, post-curse, pre-replay)
     const _cKey = r + '-' + c;
     if (_cKey === _slFirstKey) _slFirstPips = cp;
     if (_cKey === _slLastKey)  _slLastPips = cp;
@@ -5392,6 +5812,7 @@ function calcScore(handName, cells, contrib = null) {
     const _soul = soulMirrorRankCount(baseRank);
     const _re = permRetrig[_eKey] || 0;  // permanent per-card retrigger (events)
     const _rne = hasTrick('closing_time') && roundFractionRemaining() < 0.25; // Near Extinction
+    const _hnm = _hnmOn && _rankHigh(baseRank) === _hnmMax; // High and Mighty: top-rank card(s)
     const _ech = hasTrick('echo_hand') && _effStreak >= 2; // Echoes
     const _wp = hasTrick('woodpecker') && woodpeckerPos && r === woodpeckerPos.r && c === woodpeckerPos.c; // Woodpecker
     if (_r2) _retrig++; if (_r8) _retrig += (_eightCount - 1); if (_rc) _retrig++; if (_rl) _retrig++; if (_pt) _retrig++;
@@ -5399,6 +5820,7 @@ function calcScore(handName, cells, contrib = null) {
     if (_refl) _retrig++; _retrig += _soul;
     _retrig += _re;
     if (_rne) _retrig++; if (_ech) _retrig++; if (_wp) _retrig += BAL.woodpecker.retrigger_count;
+    if (_hnm) _retrig++;
     if (hasTrick('club_double') && (card.suit === '♣' || (card.combined && card.suit2 === '♣'))) _clubHits += _retrig;
     if (card._vulturePause) _vultureFires += card._vulturePause * _retrig; // Vulture buff fires once per (re)trigger
     // Assembly Line: each (re)play of a mark card earns the running counter, then increments it
@@ -5419,6 +5841,7 @@ function calcScore(handName, cells, contrib = null) {
       else if (_refl) bPip('reflect', _pre);
       else if (_soul) bPip('soul_mirror', _pre);
       else if (_re) bPip('sapling', _extra);
+      else if (_hnm) bPip('high_and_mighty', _pre);
       else if (_rne) bPip('closing_time', _pre);
       else if (_ech) bPip('echo_hand', _pre);
       else if (_wp) bPip('woodpecker', _extra);
@@ -5446,6 +5869,13 @@ function calcScore(handName, cells, contrib = null) {
   // Albatross: +5 pips for every second the clock has spent paused this round
   if (hasTrick('albatross') && pausedSecondsRound > 0) { const _a = pausedSecondsRound * BAL.albatross.pips_per_second; totalPips += _a; bPip('albatross', _a); }
 
+  // Sediment: +10 pips per 10 seconds of round time elapsed (grows as the round runs down)
+  if (hasTrick('sediment')) {
+    const _elapsed = Math.max(0, roundStartSeconds - roundSeconds);
+    const _a = Math.floor(_elapsed / BAL.sediment.interval_seconds) * BAL.sediment.pips_per_interval;
+    if (_a) { totalPips += _a; bPip('sediment', _a); }
+  }
+
   // Clubs: neutral by default; +10 pips each with Hard Labour Trick
   const clubCount = cards.filter(c => c.suit === '♣' || (c.combined && c.suit2 === '♣')).length;
   if (hasTrick('club_double') && _clubHits > 0) { const _a = BAL.club_double.base * (Math.pow(2, _clubHits) - 1); totalPips += _a; bPip('club_double', _a); }
@@ -5459,9 +5889,15 @@ function calcScore(handName, cells, contrib = null) {
 
   // Compost: +3 pips per card discarded this round
   if (hasTrick('discard_pips')) { const _a = cardsDiscardedRound * BAL.discard_pips.pips_per_discard; totalPips += _a; bPip('discard_pips', _a); }
+  // Stand-Up: +10 pips per charge remaining across all owned Sleights
+  if (hasTrick('stand_up')) { const _a = sleightChargeInfo().total * BAL.stand_up.pips_per_charge; if (_a) { totalPips += _a; bPip('stand_up', _a); } }
 
   // Penny Saved: accumulated trick pips from discarded 5s
   if (hasTrick('fives_discard')) { totalPips += bonusMult_fives; bPip('fives_discard', bonusMult_fives); }
+
+  // Clock-mark Tricks: pending pip bonuses accrued as the clock passed timestamps (consumed in playHand)
+  if (pendingHandPips > 0) { totalPips += pendingHandPips; bPip('quarter_chime', pendingHandPips); }
+  if (pendingCardPips > 0) { totalPips += pendingCardPips; bPip('second_hand', pendingCardPips); }
 
   // Trinity Run: +9 mult for runs with 3/6/9 (added to mult section below)
   const hasTrinityRank = (['Run of 3','Run of 4','Straight','Straight Flush'].includes(handName)) &&
@@ -5475,12 +5911,20 @@ function calcScore(handName, cells, contrib = null) {
   if (_asmOn) _lastHandAssemblyEnd = _asmK;
 
   if (risingTideBonus > 0) { mult += risingTideBonus; bMult('rising_tide', risingTideBonus); }
+  // Minute Hand: pending mult accrued as the clock passed minute marks (consumed in playHand)
+  if (pendingHandMult > 0) { mult += pendingHandMult; bMult('minute_hand', pendingHandMult); }
   // Night owl: last third of the round, +mult per card
   if (hasTrick('night_owl') && roundFractionRemaining() <= 1/3) { const _a = BAL.night_owl.mult_per_card * cells.length; mult += _a; bMult('night_owl', _a); }
   // Wildfire: 3+ same hands in a row
   if (hasTrick('wildfire') && _effStreak >= 3) { mult += BAL.wildfire.mult; bMult('wildfire', BAL.wildfire.mult); }
   // Hummingbird: +mult per clock pause triggered this game (uncapped)
   if (hasTrick('hummingbird') && pauseInstanceGame > 0) { const _a = pauseInstanceGame * BAL.hummingbird.mult_per_pause; mult += _a; bMult('hummingbird', _a); }
+  // The Kingfisher: +1 mult per 5 seconds paused OR rewound this round (the rewind-aware amplifier)
+  if (hasTrick('kingfisher')) {
+    const _manip = pausedSecondsRound + rewoundSecondsRound;
+    const _a = Math.floor(_manip / BAL.kingfisher.interval_seconds) * BAL.kingfisher.mult_per_interval;
+    if (_a) { mult += _a; bMult('kingfisher', _a); }
+  }
   // The Swift: +mult for every N seconds of round time elapsed
   if (hasTrick('swift')) { const _e = Math.max(0, roundStartSeconds - roundSeconds); const _a = Math.floor(_e / BAL.swift.interval_seconds) * BAL.swift.mult_per_interval; if (_a) { mult += _a; bMult('swift', _a); } }
   // Eagle Eye: +mult per 10 round-seconds elapsed since the last swap (or round start if none yet)
@@ -5534,6 +5978,14 @@ function calcScore(handName, cells, contrib = null) {
     const _xm = permXMult[cardKey(card.rank, card.suit)] || 1;
     if (_xm !== 1) { const _preXm = mult; mult *= _xm; bMult('perm_mult', mult - _preXm); }
   });
+  // Old Growth: each scored card also adds its permanent pip bonus to mult
+  if (hasTrick('old_growth')) {
+    cards.forEach(card => { const _og = permPips[cardKey(card.rank, card.suit)] || 0; if (_og) { mult += _og; bMult('old_growth', _og); } });
+  }
+  // Magician: +3 mult per Sleight owned
+  if (hasTrick('magician')) { const _a = ownedSleightCount() * BAL.magician.mult_per_sleight; if (_a) { mult += _a; bMult('magician', _a); } }
+  // Landfill: +1 mult per 5 cards discarded this round
+  if (hasTrick('landfill')) { const _a = Math.floor(cardsDiscardedRound / BAL.landfill.discards_per) * BAL.landfill.mult_per_n; if (_a) { mult += _a; bMult('landfill', _a); } }
 
   // Hearts: neutral by default; +1 mult each with Devoted Trick
   const heartCount = cards.filter(c => c.suit === '♥' || (c.combined && c.suit2 === '♥')).length;
@@ -5640,6 +6092,8 @@ function calcScore(handName, cells, contrib = null) {
     const _nc = cornerCells(cells).length;
     if (_nc >= 2) { const _pre = mult; mult = Math.round(mult * Math.pow(BAL.two_corners.mult_mult, _nc) * 10) / 10; bMult('two_corners', mult - _pre); }
   }
+  // Scalper: ×(1 + 0.2 per missing Sleight charge) to total pips — figured once, now
+  if (hasTrick('scalper')) { const _miss = sleightChargeInfo().missing; if (_miss > 0) { const _m = 1 + BAL.scalper.pip_mult_per_missing * _miss; const _pre = totalPips; totalPips = Math.round(totalPips * _m); bPip('scalper', totalPips - _pre); } }
   // Phoenix: while paused, the Focus multiplier applies twice — handled at the Focus step below.
   // Mirror (Blueprint): duplicate each borrowed Trick's pip/mult contribution (incl. the multipliers above)
   mirroredTrickIds().forEach(mid => {
@@ -5703,6 +6157,16 @@ function calcScore(handName, cells, contrib = null) {
 
   if (hasTrickCard) s *= 2;
 
+  // Low and Behold (knack): a hand containing the grid's lowest rank replays whole (×2)
+  if (hasKnack('low_and_behold')) {
+    let _gmin = 99;
+    for (let _gr = 0; _gr < gridRows; _gr++) for (let _gc = 0; _gc < gridCols; _gc++) {
+      const _gc0 = gridData[_gr]?.[_gc];
+      if (_gc0 && _gc0.rank && !_gc0._isSleight && !_gc0._isStone && !_gc0._isTrick) _gmin = Math.min(_gmin, _rankHigh(_gc0.rank));
+    }
+    if (_gmin < 99 && cards.some(c => _rankHigh(c.rank) === _gmin)) s *= 2;
+  }
+
   // 5. Focus multiplier — separate third element, applied at the very end of the sequence
   if (fMult > 1) s *= fMult;
   // Phoenix: while the clock is paused, the Focus multiplier applies a second time
@@ -5714,6 +6178,12 @@ function calcScore(handName, cells, contrib = null) {
     if (_cm) Object.entries(_cm).forEach(([id, d]) => { if (d > 0) contrib.push({type:'mult',source:'trick',id,delta:Math.round(d*10)/10}); });
     if (_ec.pips > 0) contrib.push({type:'pip',source:'exalt',id:'_exalt',delta:_ec.pips});
     if (_ec.mult > 0) contrib.push({type:'mult',source:'exalt',id:'_exalt',delta:Math.round(_ec.mult*10)/10});
+    // Sleight scoring contribution: Amplifier's carried-over mult (folded into base mult above).
+    // NOTE: Knacks and other Sleights are rule/resource/wildcard effects — they add no pips/mult
+    // during scoring, so nothing else is attributable here. Any future scoring Knack/Sleight can
+    // push {type,source:'knack'|'sleight',id,delta} and the dance will render it automatically.
+    if (typeof sleightAmplifierMult === 'number' && sleightAmplifierMult > 0)
+      contrib.push({type:'mult',source:'sleight',id:'amplifier',delta:Math.round(sleightAmplifierMult*10)/10});
   }
 
   return Math.round(s);
@@ -5996,24 +6466,12 @@ function render() {
 
   // Hand preview
   if (!danceAbortController) {
-    const hand = bestHandResult ? bestHandResult.hand : null;
-    document.getElementById('hand-name').textContent = hand || (selected.length >= 2 ? 'No valid hand' : '—');
+    // Owner request: the preview no longer reacts to selection — it stays empty (inert)
+    // until a hand is SUBMITTED, at which point the scoring dance (playPreviewDance) fills
+    // #selected-cards. Selecting cards no longer renders preview cards or a hand name here.
+    document.getElementById('hand-name').textContent = '—';
     const cardsEl = document.getElementById('selected-cards');
     cardsEl.innerHTML = '';
-    for (let i = 0; i < limits.selection.current; i++) {
-      if (selected[i]) {
-        const [r,c] = selected[i];
-        const card = gridData[r][c];
-        const div = document.createElement('div');
-        div.className = `mini-card ${suitClass(card.suit)}`;
-        div.innerHTML = `<div class="mini-rank">${card.rank}</div><div class="mini-suit">${card.suit}</div>`;
-        cardsEl.appendChild(div);
-      } else {
-        const empty = document.createElement('div');
-        empty.className = 'mini-card-empty';
-        cardsEl.appendChild(empty);
-      }
-    }
     if (bestHandResult) {
       const base = HAND_BASE[bestHandResult.hand];
       if (base) {
@@ -6057,6 +6515,11 @@ function render() {
     if (hasTrick('swift')) { const _e = Math.max(0, roundStartSeconds - roundSeconds); const _sw = Math.floor(_e / BAL.swift.interval_seconds) * BAL.swift.mult_per_interval; if (_sw > 0) bonusLines.push({ label:'The Swift', val:`+${_sw} mult`, type:'mult' }); }
     if (hasTrick('hummingbird') && pauseInstanceGame > 0) bonusLines.push({ label:'Hummingbird', val:`+${pauseInstanceGame*BAL.hummingbird.mult_per_pause} mult`, type:'mult' });
     if (hasTrick('albatross') && pausedSecondsRound > 0) bonusLines.push({ label:'Albatross', val:`+${pausedSecondsRound*BAL.albatross.pips_per_second} pips`, type:'pip' });
+    if (hasTrick('sediment')) { const _el = Math.max(0, roundStartSeconds - roundSeconds); const _sp = Math.floor(_el/BAL.sediment.interval_seconds)*BAL.sediment.pips_per_interval; if (_sp > 0) bonusLines.push({ label:'Sediment', val:`+${_sp} pips`, type:'pip' }); }
+    if (hasTrick('kingfisher')) { const _km = Math.floor((pausedSecondsRound+rewoundSecondsRound)/BAL.kingfisher.interval_seconds)*BAL.kingfisher.mult_per_interval; if (_km > 0) bonusLines.push({ label:'The Kingfisher', val:`+${_km} mult`, type:'mult' }); }
+    if (pendingHandPips > 0) bonusLines.push({ label:'Quarter Chime', val:`+${pendingHandPips} pips`, type:'pip' });
+    if (pendingCardPips > 0) bonusLines.push({ label:'Second Hand', val:`+${pendingCardPips} pips`, type:'pip' });
+    if (pendingHandMult > 0) bonusLines.push({ label:'Minute Hand', val:`+${pendingHandMult} mult`, type:'mult' });
     const _isRunLine = ['Run of 3','Run of 4','Straight','Straight Flush'].includes(hand);
     const _setMax = (() => { const m = {}; cards.forEach(c => m[c.rank] = (m[c.rank]||0)+1); return Math.max(0, ...Object.values(m)); })();
     if (hasTrick('overgrowth') && _isRunLine) bonusLines.push({ label:'Cascade', val:`+${10*cards.length} pips`, type:'pip' });
@@ -6222,9 +6685,16 @@ function buildFocusMeter() {
 function syncFocusMeterState() {
   const total = Math.min(focusNodes, focusCapacity * FOCUS_THRESHOLD);
   const chargesComplete = Math.floor(total / FOCUS_THRESHOLD);
-  const nodesInSegment = total - chargesComplete * FOCUS_THRESHOLD;
+  let nodesInSegment = total - chargesComplete * FOCUS_THRESHOLD;
   // Color reflects the tier currently being filled (next tier after completed charges)
-  const color = FOCUS_COLORS[Math.min(chargesComplete, FOCUS_COLORS.length - 1)];
+  let segColorIdx = chargesComplete;
+  // On a clean x.0 (the segment would read 0 but focus > 0), show it FULL in the
+  // just-completed charge's colour — the bar only ever looks empty at true zero.
+  if (total > 0 && nodesInSegment === 0) {
+    nodesInSegment = FOCUS_THRESHOLD;
+    segColorIdx = chargesComplete - 1;
+  }
+  const color = FOCUS_COLORS[Math.min(segColorIdx, FOCUS_COLORS.length - 1)];
   document.documentElement.style.setProperty('--focus-color', color);
 
   // Active segment nodes
@@ -6270,6 +6740,7 @@ function updateFocusMeter() {
 
 function addFocus(amount) {
   if (!amount || amount <= 0) return;
+  focusDecayBuffer = 0;   // gaining focus resets the x.0 grace buffer
   const cap = focusCapacity * FOCUS_THRESHOLD;
   const prev = Math.min(focusNodes, cap);
   const prevCharges = Math.floor(prev / FOCUS_THRESHOLD);
@@ -6468,6 +6939,12 @@ function focusDecayTick() {
   // "jump up then get wiped" desync.
   if (focusAnimRunning) return;
   if (focusNodes <= 0) return;
+  // Buffer: when focus lands on a whole-number multiplier (x.0 — i.e. focusNodes is a
+  // multiple of the threshold), hold for 3 ticks before dropping to (x-1).9. Feels nicer.
+  if (focusNodes >= FOCUS_THRESHOLD && focusNodes % FOCUS_THRESHOLD === 0) {
+    if (focusDecayBuffer < 2) { focusDecayBuffer++; return; }
+  }
+  focusDecayBuffer = 0;
   removeFocus(1);
 }
 
@@ -6546,13 +7023,14 @@ function updateScoreUI() {
   if (scoreDisplayEl && scoreDisplayEl.style.visibility !== 'hidden') {
     scoreDisplayEl.textContent = score.toLocaleString();
   }
-  const pct = Math.min(score / cumulativeGoal, 1);
+  const pct = Math.min(score / roundGoal, 1);
   const bar = document.getElementById('score-progress-bar');
   if (bar) bar.style.width = Math.round(pct * 100) + '%';
-  document.getElementById('goal-display').textContent = cumulativeGoal.toLocaleString();
+  document.getElementById('goal-display').textContent = roundGoal.toLocaleString();
   document.getElementById('hands-display').textContent = handsPlayed;
   document.getElementById('level-display').textContent = level;
   updateCoinsUI();
+  updateRunProgressUI();
 }
 
 // Called from dance to update live pips/mult sub-boxes
@@ -6567,14 +7045,25 @@ function updateDanceSubboxes(pips, mult) {
 
 function updateCoinsUI() {
   document.getElementById('coins-display').textContent = '💰 ' + coins;
+  const cg = document.getElementById('ci-gold'); if (cg) cg.textContent = coins;
   if (document.getElementById('shop-overlay').classList.contains('show')) refreshShopAffordability();
+}
+
+// v7 landscape: run-progress block (Act + node pips)
+function updateRunProgressUI() {
+  const rp = document.getElementById('run-progress'); if (!rp) return;
+  const act = rp.querySelector('.rp-act'); if (act) act.textContent = 'ACT ' + actNumber;
+  rp.querySelectorAll('.rp-nodes span:not(.boss)').forEach((s, i) => {
+    s.classList.toggle('on', i < nodeInAct);
+    s.classList.toggle('cur', i === nodeInAct);
+  });
 }
 
 function updateKnackList() {
   const el = document.getElementById('knack-list');
   if (!el) return;
   if (acquiredKnacks.length === 0) {
-    el.innerHTML = '<span style="font-size:11px;color:var(--cream-dim)">None yet</span>';
+    el.innerHTML = '<span style="font-size:11px;color:var(--cream-dim)">No knacks</span>';
     return;
   }
   el.innerHTML = acquiredKnacks.map(t =>
@@ -6741,6 +7230,7 @@ function doSwap(r1, c1, r2, c2) {
 
   // Swap charge — skipped on a free swap; Steady Hand bypasses the limit
   if (!hasKnack('steady_hand') && !freeThisSwap) swaps--;
+  if (!freeThisSwap) spendRoundTime(SWAP_TIME_COST);   // swaps cost time (free swaps exempt)
   if (sleightFreeSwapPending) sleightFreeSwapPending = false;
   // Swap time cost — 0s for first 2 swaps/round, 0s with Free Swaps, 20s with Steady Hand, else 10s
   let swapTimeCost = BAL._resources.swap_seconds;
@@ -6858,6 +7348,23 @@ function onCardTap(r, c) {
   const _cardStr = _card ? `${_card.rank}${_card.suit}` : 'null';
   dbgEvent('info', `tap [${r},${c}] ${_cardStr}`, { animating, trickPhase: trickSelectionPhase, swapPending: !!swapPending, selected: selected.length });
   if (animating) { dbgEvent('warn', `tap blocked: animating`); return; }
+  // ── Magnet: armed and waiting for a target-rank tap ──
+  if (magnetArmed) {
+    // Tapping Magnet itself (or its cell) cancels the arming.
+    if (magnetArmed.r === r && magnetArmed.c === c) {
+      magnetArmed = null; showMessage('Magnet cancelled', 'var(--cream-dim)'); render(); return;
+    }
+    const _t = gridData[r]?.[c];
+    if (!_t || !_t.rank || _t._isSleight || _t._isStone || _t._isTrick) {
+      showMessage('Tap a normal card to pull its rank', 'var(--cream-dim)'); return;
+    }
+    const _m = magnetArmed; magnetArmed = null;
+    const _moved = magnetCluster(_m.r, _m.c, _t.rank);
+    lockSleightForRound(_m.card); // spends a charge / locks for the round
+    showMessage(_moved ? `🧲 Magnet pulled ${_moved} ${_t.rank}${_moved > 1 ? 's' : ''} in` : `🧲 No ${_t.rank}s to pull`, _moved ? '#8fd0ff' : 'var(--cream-dim)');
+    render();
+    return;
+  }
   // Block null cells
   if (gridData[r][c] === null) { dbgEvent('warn', `tap blocked: null cell [${r},${c}]`); return; }
   // Block boss-obstructed cells
@@ -6904,6 +7411,14 @@ function onCardTap(r, c) {
         return;
       }
       hideSleightGridTooltip();
+      // Magnet: don't fire yet — arm it and wait for the player to tap a target card.
+      // (Lock/charge are spent when the cluster actually happens, in the intercept below.)
+      if (jdef.id === 'magnet') {
+        magnetArmed = { r, c, card: jcard };
+        showMessage('Magnet armed — tap a card to pull its rank', '#8fd0ff');
+        render();
+        return;
+      }
       applySleightGridEffect(jdef.id, r, c);
       lockSleightForRound(jcard);
       return;
@@ -7083,7 +7598,7 @@ function playHand() {
   if (falling)   { pendingAction = 'play'; dbgEvent('info', 'play queued (falling)'); return; }
   if (animating) { pendingAction = 'play'; dbgEvent('info', 'play queued (animating)'); scheduleQueuedRetry(); return; }
   cancelAutoSubmit();
-  console.log('[PLAY] entry', { score, goal: cumulativeGoal, goalReachedThisRound, bonusWindowActive, animating, hasDance: !!danceAbortController });
+  console.log('[PLAY] entry', { score, goal: roundGoal, goalReachedThisRound, bonusWindowActive, animating, hasDance: !!danceAbortController });
   const result = findBestHand(selected);
   if (!result) { dbgEvent('warn', 'play: no valid hand', { selected: selected.length, animating, falling, roundEnded, dance: !!danceAbortController, swapPending: !!swapPending, swiping: isSwiping }); console.log('[PLAY] no result, exiting'); return; }
   // Abort any prior in-flight score dance ONLY now that we have a real hand to play.
@@ -7098,6 +7613,12 @@ function playHand() {
   const _contribSnapshot = captureRoundContrib(result);
   // Cuckoo: tally this hand's retriggers (captureRoundContrib just ran calcScore on the real hand).
   if (hasTrick('cuckoo')) retriggersThisRound += _lastHandRetrigs;
+  // Rewound Echo knack: each card replay this hand has a chance to rewind 2 seconds.
+  if (hasKnack('replay_rewind') && _lastHandRetrigs > 0) {
+    let _rw = 0;
+    for (let i = 0; i < _lastHandRetrigs; i++) if (Math.random() < BAL.replay_rewind.chance) _rw += BAL.replay_rewind.seconds;
+    if (_rw > 0) rewindTime(_rw, `🔂 Rewound Echo — rewound ${_rw}s`);
+  }
   // Vulture: retrigger-aware pause-seconds from buffed cards in this hand (same fresh snapshot).
   const _vultureSec = _lastHandVultureSeconds;
   dbgEvent('ok', 'play ' + hand, { finalScore, cards: handCells.length });
@@ -7107,6 +7628,8 @@ function playHand() {
   if (sleightNextHandDouble) { score += finalScore; sleightNextHandDouble = false; }
   if (sleightLegacyMult)     { score += finalScore * BAL.the_legacy.extra_mult; sleightLegacyMult = false; } // ×3 total = base + 2× extra
   if (sleightAmplifierMult) sleightAmplifierMult = 0;
+  // Clock-mark Tricks: the pending pip/mult bonuses were already folded into finalScore — clear them now.
+  pendingHandPips = 0; pendingHandMult = 0; pendingCardPips = 0;
   handsPlayed++;
 
   // Boss objective progress.
@@ -7137,24 +7660,10 @@ function playHand() {
   // Suppressed during/just-after a boss: the boss objective system + post-boss reward
   // grid handle progression. (_bossThisHand catches the boss-winning hand, where endBoss
   // already set bossActive=false above.)
-  if (!_bossThisHand && !bossActive && score >= cumulativeGoal && !goalReachedThisRound) {
-    console.log('[GOAL] reached', { score, goal: cumulativeGoal, finalScore });
+  if (!_bossThisHand && !bossActive && score >= roundGoal && !goalReachedThisRound) {
+    console.log('[GOAL] reached', { score, goal: roundGoal, finalScore });
     goalReachedThisRound = true;
     roundEnded = true; // freeze input immediately
-    // Count how many goals this hand clears
-    let tempScore = score;
-    let tempGoal = cumulativeGoal;
-    let levelsEarned = 0;
-    while (tempScore >= tempGoal) {
-      levelsEarned++;
-      tempGoal += Math.round(Math.round(BASE_GOAL * Math.pow(GOAL_SCALE, level + levelsEarned - 1)) / 500) * 500;
-    }
-    const extras = levelsEarned - 1;
-    if (extras > 0) {
-      pendingLevelUps += extras;
-      coins += extras * 5;
-      updateCoinsUI();
-    }
     const toRemove = [...selected];
     selected = [];
     commitRoundContrib(_contribSnapshot); // goal-clearing hand counts toward the tally
@@ -7301,6 +7810,11 @@ function playHand() {
   const now = Date.now();
   if (hand === lastHandType) {
     streakCount++;
+    // The Starling: every 2nd hand of an unbroken same-type streak grants +1 discard
+    if (hasTrick('starling') && streakCount % 2 === 0) {
+      discards = Math.min(99, discards + 1);
+      showMessage('📋 Type A — +1 discard', '#8fc98f');
+    }
     // Re-arming progress for Combo Keeper
     if (!streakSaveArmed) {
       streakSaveProgress++;
@@ -7322,6 +7836,34 @@ function playHand() {
   lastHandTime = now;
   lastHandRoundSeconds = roundSeconds; // for The Heron, snapshotted AFTER this hand's own check above
 
+  // Traveler: a hand that doesn't extend a same-type streak (streakCount stays at 1) counts;
+  // every 3 such "no-streak" hands grants +1 swap. Feeds resource-hoarding Tricks (Hoarder House).
+  if (hasTrick('mockingbird') && streakCount === 1) {
+    _altSwapCount++;
+    if (_altSwapCount >= 3) { _altSwapCount = 0; swaps = Math.min(99, swaps + 1); showMessage('🧳 Traveler — +1 swap', '#8fbfd9'); }
+  }
+
+  // Hoarder House: playing a hand rewinds the clock 1s per 2 unspent manipulate actions (swaps + discards).
+  if (hasTrick('magpie')) {
+    const _sec = Math.floor((swaps + discards) / BAL.magpie.actions_per_second);
+    if (_sec > 0) rewindTime(_sec, `🏚️ Hoarder House — rewound ${_sec}s`);
+  }
+
+  // Clockmaker knack: a single hand scoring ≥30% of the round goal rewinds the clock.
+  if (hasKnack('clockmaker') && roundGoal > 0 && finalScore >= roundGoal * BAL.clockmaker.goal_fraction) {
+    rewindTime(BAL.clockmaker.seconds, `⏱️ Clockmaker — big hand, rewound ${BAL.clockmaker.seconds}s`);
+  }
+
+  // Déjà Vu knack: playing the same ranks in two hands in a row rewinds the clock.
+  {
+    const _ranks = handCells.map(([r,c]) => gridData[r]?.[c]).filter(cc => cc && cc.rank && !cc._isSleight).map(cc => cc.rank).sort();
+    const _rankKey = _ranks.join(',');
+    if (hasKnack('deja_vu') && lastHandRankKey !== null && _rankKey !== '' && _rankKey === lastHandRankKey) {
+      rewindTime(BAL.deja_vu.seconds, `🔁 Déjà Vu — rewound ${BAL.deja_vu.seconds}s`);
+    }
+    lastHandRankKey = _rankKey;
+  }
+
   // ── Accumulating Trick effects (post-hand) ──
   handsPlayedRound++;
   handTypesRound.add(hand);
@@ -7332,7 +7874,13 @@ function playHand() {
     if (trickTray.some(t => t._primed > 0)) {
       const _pc = []; calcScore(hand, handCells, _pc);
       const _ids = new Set(_pc.map(e => e.id));
-      trickTray.forEach(t => { if (t._primed > 0 && _ids.has(t.id)) t._primed = Math.max(0, t._primed - 1); });
+      const _mm = hasKnack('muscle_memory'); // primes last one extra hand
+      trickTray.forEach(t => {
+        if (t._primed > 0 && _ids.has(t.id)) {
+          if (_mm && !t._primeHeld) { t._primeHeld = true; } // skip this consumption once
+          else { t._primed = Math.max(0, t._primed - 1); t._primeHeld = false; }
+        }
+      });
     }
     // Inspirato: a scored Ace primes the first and last tray Tricks
     if (hasTrick('wild_heart') && trickTray.length && handCells.some(([r,c]) => gridData[r]?.[c]?.rank === 'A')) {
@@ -7387,6 +7935,32 @@ function playHand() {
     });
     showMessage('Snowball! +2 pips to scored cards', '#e8c56b');
   }
+
+  // ── Card curses: apply per-score effects and work them off ──
+  // Each scored cursed card ticks its curse down; at 0 the curse lifts.
+  result.handCells.forEach(([r, c]) => {
+    const card = gridData[r]?.[c];
+    if (!card || !card.rank || card._isSleight || card._isStone) return;
+    const k = cardKey(card.rank, card.suit);
+    const curse = cardCurses[k];
+    if (!curse) return;
+    if (curse.id === 'taxing') {
+      roundSeconds = Math.max(1, roundSeconds - 3);
+      updateClockUI();
+      showTimeCost('-3s');
+    }
+    curse.left--;
+    if (curse.left <= 0) {
+      delete cardCurses[k];
+      showMessage(`Curse lifted: ${card.rank}${card.suit}`, '#54af88');
+      // Scavenger: farm lifted curses for coins + a discard next round
+      if (hasKnack('scavenger')) {
+        coins += BAL.scavenger.coins; updateCoinsUI();
+        nextRoundDiscardDelta += 1;
+        showMessage(`Scavenger: +${BAL.scavenger.coins} coins, +1 discard next round`, 'var(--gold)');
+      }
+    }
+  });
 
   // Bedrock: Four of a Kind permanently buffs its 4 cards
   if (hand === 'Four of a Kind' && hasTrick('rare_bloom')) {
@@ -7609,6 +8183,7 @@ function playHand() {
 // SCORE DANCE
 // ══════════════════════════════════════════════
 let danceAbortController = null;
+let dncGen = 0; // bumped when a new preview-dance starts; a superseded dance bails without touching shared UI
 
 function cancelDance() {
   _odoGen++; // invalidates all in-flight odometer timeouts
@@ -7617,6 +8192,10 @@ function cancelDance() {
     danceAbortController.abort();
     danceAbortController = null;
   }
+  // Clear jitter/glow left on the aborted dance's real tray/grid elements before a successor rebinds them.
+  if (typeof dncCleanupReal === 'function') dncCleanupReal();
+  // Un-hide any grid cards whose fly-to-preview was cut short (they were never removed).
+  if (typeof dncRestoreHiddenGridEls === 'function') dncRestoreHiddenGridEls();
   // Restore any elements hidden by odometer overlays
   ['pips-val','mult-val','score-total-num'].forEach(id => {
     const el = document.getElementById(id);
@@ -7981,7 +8560,47 @@ async function goalCelebration(handCells) {
   overlay.remove();
 }
 
+// ── New preview-window scoring dance (dev toggle; owner-locked settings) ──
+const DANCE_CFG = {
+  actA:{cls:'dnc-pulse',dur:420,mag:1.0}, actB:{cls:'dnc-flash',dur:420,mag:0.4},
+  trig:{cls:'dnc-pop',dur:260,mag:0.7}, jitInit:0.20, jitGrow:0.35,
+  tickRest:600, pFlight:550, scoreClimb:1250, ff:15, pScale:2.6,
+};
+let newDanceEnabled = (function(){ try { return localStorage.getItem('newDance') !== '0'; } catch(e){ return true; } })();
+function setNewDance(on){ newDanceEnabled = !!on; try { localStorage.setItem('newDance', on ? '1' : '0'); } catch(e){} }
+
+// How a still-animating hand hands off when the next hand is submitted (dev-tunable, feel comparison):
+//   'cut'     — the old dance vanishes instantly, new one starts (original behaviour)
+//   'ff'      — briefly rush the old hand's score up to its final, then start the new one
+//   'resolve' — snap the old hand's score to final with one quick pop, then start the new one
+// All three cut the old dance's grid/logic immediately (grid-safe); they differ only in the brief visual handoff.
+let danceInterruptMode = (function(){ try { return localStorage.getItem('danceInterrupt') || 'cut'; } catch(e){ return 'cut'; } })();
+function setDanceInterruptMode(m){ if(!['cut','ff','resolve'].includes(m)) m='cut'; danceInterruptMode=m; try { localStorage.setItem('danceInterrupt', m); } catch(e){} }
+let _lastDanceStart = 0; // for the spam valve: rapid re-interrupts skip the flourish
+function _scoreDisplayed(){ const el=document.getElementById('score-total-num'); if(!el) return 0; const n=parseInt((el.textContent||'0').replace(/[^0-9-]/g,''),10); return isNaN(n)?0:n; }
+// Brief, grid-safe visual handoff acknowledging the just-cut previous hand. Resolves when done.
+async function danceInterruptFlourish(mode, fromVal, toVal, sig){
+  const scoreEl=document.getElementById('score-total-num');
+  const scoreBox=document.getElementById('score-mid') || document.getElementById('score-center');
+  if(!scoreEl) return;
+  if(mode==='resolve'){
+    scoreEl.textContent = toVal.toLocaleString();
+    if(scoreBox){ scoreBox.classList.remove('box-popping'); void scoreBox.offsetWidth; scoreBox.classList.add('box-popping'); }
+    if(typeof sfxScoreTick==='function') sfxScoreTick();
+    await new Promise(res=>{ const t=setTimeout(res,200); sig&&sig.addEventListener('abort',()=>{clearTimeout(t);res();},{once:true}); });
+  } else { // 'ff' — quick count-up to the outgoing hand's final
+    const dur=360, start=performance.now();
+    await new Promise(res=>{ function tk(now){ if(sig&&sig.aborted){ res(); return; }
+      const t=Math.min((now-start)/dur,1), e=1-Math.pow(1-t,3);
+      scoreEl.textContent = Math.round(fromVal+(toVal-fromVal)*e).toLocaleString();
+      if(typeof sfxScoreTick==='function' && Math.random()<0.4) sfxScoreTick();
+      if(t<1) requestAnimationFrame(tk); else res(); }
+      requestAnimationFrame(tk); });
+  }
+}
+
 async function playScoreDance(result, toRemove, isGoalHand = false) {
+  if (newDanceEnabled) { return playPreviewDance(result, toRemove, isGoalHand); }
   cancelDance();
   const ctrl = new AbortController();
   danceAbortController = ctrl;
@@ -8172,7 +8791,7 @@ async function playScoreDance(result, toRemove, isGoalHand = false) {
 
   // If this is a goal-crossing hand, watch the score and flash when crossed
   let goalFlashFired = false;
-  const goalCrossedAt = isGoalHand ? cumulativeGoal : Infinity;
+  const goalCrossedAt = isGoalHand ? roundGoal : Infinity;
 
   // Focus beat — fires after mult particles finish. MULT stays pure; the FOCUS box
   // pops from ×1 up to the applied focus multiplier, then the score climbs by it.
@@ -8333,6 +8952,303 @@ function handleDanceAbort(isGoalHand) {
 }
 
 // ══════════════════════════════════════════════
+// PREVIEW-WINDOW SCORING DANCE (opt-in via dev toggle)
+// Grid cards keep their normal pop-then-discard; the slow, detailed Balatro
+// escalation runs in the dedicated hand-preview slot (#selected-cards). Cards score (Activation), per-hand tricks
+// charge (Jitter) as cards trigger them (Trigger) then RELEASE (Activation).
+// Reuses the same goal / settle / abort tail as playScoreDance.
+// ══════════════════════════════════════════════
+let dncFF = false;
+function dncApply(el, m){ if(!el) return; el.classList.remove('dnc-pulse','dnc-flash','dnc-pop');
+  el.style.setProperty('--dnc-mag', m.mag); el.style.setProperty('--dnc-dur', m.dur+'ms');
+  void el.offsetWidth; el.classList.add(m.cls); }
+function dncActivate(el){ dncApply(el.parentElement, DANCE_CFG.actA); dncApply(el, DANCE_CFG.actB); }
+function dncTrigger(chip, n){ dncApply(chip.parentElement, DANCE_CFG.trig);
+  const j = DANCE_CFG.jitInit + DANCE_CFG.jitGrow * Math.pow(Math.max(0, n-1), 1.8);
+  chip.style.setProperty('--dnc-jit', j.toFixed(2));
+  if(!chip.classList.contains('dnc-jitter')) chip.classList.add('dnc-jitter'); }
+function dncStopJitter(chip){ chip.classList.remove('dnc-jitter'); chip.style.removeProperty('--dnc-jit');
+  if(chip.parentElement) chip.parentElement.classList.remove('dnc-pulse','dnc-flash','dnc-pop'); }
+function dncTick(el){ if(!el) return; el.style.animation='none'; void el.offsetWidth; el.style.animation='val-tick 0.18s ease'; }
+function dncFly(srcEl, boxEl, label, color, onLand){
+  const a=srcEl.getBoundingClientRect(), b=boxEl.getBoundingClientRect();
+  const el=document.createElement('div'); el.className='dnc-particle'; el.textContent=label; el.style.color=color;
+  el.style.left=(a.left+a.width/2)+'px'; el.style.top=(a.top+a.height/2)+'px';
+  el.style.setProperty('--dnc-pscale', DANCE_CFG.pScale);
+  document.body.appendChild(el);
+  const dx=(b.left+b.width/2)-(a.left+a.width/2), dy=(b.top+b.height/2)-(a.top+a.height/2);
+  const dur = dncFF ? Math.max(60, DANCE_CFG.pFlight/DANCE_CFG.ff) : DANCE_CFG.pFlight;
+  el.animate([{transform:'translate(-50%,-50%) scale(.6)',opacity:0},
+    {transform:'translate(-50%,-50%) scale(1.15)',opacity:1,offset:.2},
+    {transform:`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px)) scale(.9)`,opacity:0}],
+    {duration:dur,easing:'cubic-bezier(.3,.7,.4,1)',fill:'forwards'});
+  setTimeout(()=>el.remove(), dur+60);
+  return new Promise(res=>setTimeout(()=>{ if(onLand) onLand(); res(); }, dur));
+}
+function dncFinishAbort(stage, isGoalHand, myGen){
+  // If a newer dance has taken over (myGen behind the global), this dance was superseded:
+  // do NOT touch the shared stage/score UI — the successor owns it now.
+  if(myGen!==undefined && myGen!==dncGen) return;
+  if(stage){ stage.classList.remove('dnc-active'); stage.innerHTML=''; } dncCleanupReal(); dncRestoreHiddenGridEls(); handleDanceAbort(isGoalHand); }
+// Display name for a contribution entity, by source (Trick / Sleight / Knack / Exalt).
+function contribLabel(source, id){
+  if(source==='exalt') return 'Exalt';
+  const pool = source==='sleight' ? (typeof SLEIGHT_POOL!=='undefined' && SLEIGHT_POOL)
+             : source==='knack'   ? (typeof KNACK_POOL!=='undefined'   && KNACK_POOL)
+             :                       (typeof TRICK_POOL!=='undefined'   && TRICK_POOL);
+  const def = pool && pool.find(x=>x.id===id);
+  return (def && def.name) || id;
+}
+
+// ── Charge/release on the REAL on-screen entity element (tray chip / grid card / knack) ──
+let dncRealEls = [];
+// Grid cards hidden while their fly-to-preview clone is airborne; restored if the dance aborts pre-removal.
+let dncHiddenGridEls = [];
+function dncRestoreHiddenGridEls(){ dncHiddenGridEls.forEach(el=>{ if(el && el.isConnected) el.style.opacity=''; }); dncHiddenGridEls=[]; }
+function dncGlow(el, strong){ if(!el) return;
+  el.animate([{boxShadow:'0 0 0 0 rgba(245,192,66,0)'},
+    {boxShadow:`0 0 ${strong?14:8}px ${strong?4:2}px rgba(245,192,66,${strong?0.7:0.5})`, offset:.4},
+    {boxShadow:'0 0 0 0 rgba(245,192,66,0)'}], {duration: strong?360:200, easing:'ease-in-out'}); }
+function danceEntityEl(source, id){
+  if(source==='trick'){
+    const chip=document.querySelector(`.trick-tray-chip[data-trick-id="${CSS.escape(id)}"]`);
+    if(chip) return chip;
+    for(let r=0;r<gridRows;r++)for(let c=0;c<gridCols;c++){ const cell=gridData[r]?.[c];
+      if(cell?._isTrick && cell.trick?.id===id) return document.querySelector(`#grid [data-card-id="${cell._id}"]`); }
+  } else if(source==='knack'){
+    const k=document.querySelector(`.knack-chip[data-knack-id="${CSS.escape(id)}"]`); if(k) return k;
+  } else if(source==='sleight'){
+    for(let r=0;r<gridRows;r++)for(let c=0;c<gridCols;c++){ const cell=gridData[r]?.[c];
+      if(cell?._isSleight && cell.sleightId===id) return document.querySelector(`#grid [data-card-id="${cell._id}"]`); }
+  }
+  return null;
+}
+// Charge = intensifying jitter (transform) + a light glow (box-shadow, WAAPI → composes).
+function dncChargeReal(el, n){ if(!el) return;
+  const j = DANCE_CFG.jitInit + DANCE_CFG.jitGrow * Math.pow(Math.max(0,n-1),1.8);
+  el.style.setProperty('--dnc-jit', j.toFixed(2));
+  if(!el.classList.contains('dnc-jitter')) el.classList.add('dnc-jitter');
+  dncGlow(el, false); }
+// Release = stop jitter, springy pop + strong glow.
+function dncReleaseReal(el){ if(!el) return;
+  el.classList.remove('dnc-jitter'); el.style.removeProperty('--dnc-jit');
+  el.classList.remove('dnc-pop'); void el.offsetWidth;
+  el.style.setProperty('--dnc-mag', DANCE_CFG.trig.mag); el.style.setProperty('--dnc-dur', DANCE_CFG.trig.dur+'ms');
+  el.classList.add('dnc-pop'); dncGlow(el, true);
+  setTimeout(()=>{ if(el) el.classList.remove('dnc-pop'); }, DANCE_CFG.trig.dur+80); }
+function dncCleanupReal(){ dncRealEls.forEach(el=>{ if(!el) return;
+  el.classList.remove('dnc-jitter','dnc-pop','dnc-pulse','dnc-flash'); el.style.removeProperty('--dnc-jit'); }); dncRealEls=[]; }
+// Fly a clone of a selected grid card into its preview slot, then reveal the slot's dnc-card.
+function flyGridCardToSlot(gEl, slotEl, dur){
+  if(!slotEl) return;
+  const reveal=()=>{ slotEl.style.opacity=''; slotEl.animate([{transform:'scale(.82)'},{transform:'scale(1)'}],{duration:150,easing:'ease-out'}); };
+  const s = gEl && gEl.getBoundingClientRect();
+  const t = slotEl.getBoundingClientRect();
+  if(!s || !s.width || !t.width){ reveal(); return; }
+  const clone = gEl.cloneNode(true);
+  clone.classList.remove('selected','hand-valid','hand-ready','swap-pending','unreachable');
+  clone.style.cssText = `position:fixed;margin:0;z-index:250;pointer-events:none;transition:none;left:${s.left}px;top:${s.top}px;width:${s.width}px;height:${s.height}px;transform-origin:center center;`;
+  document.body.appendChild(clone);
+  gEl.style.opacity='0'; dncHiddenGridEls.push(gEl); // hide the original while its clone flies (restored on abort)
+  const dx=(t.left+t.width/2)-(s.left+s.width/2), dy=(t.top+t.height/2)-(s.top+s.height/2);
+  const sc=t.width/s.width;
+  const done=()=>{ if(clone.parentNode) clone.remove(); reveal(); };
+  const anim=clone.animate([
+    {transform:'translate(0,0) scale(1)', opacity:1},
+    {transform:`translate(${dx}px,${dy}px) scale(${sc})`, opacity:0.9}],
+    {duration:dur, easing:'cubic-bezier(.35,.65,.3,1)', fill:'forwards'});
+  anim.onfinish=done; setTimeout(done, dur+140);
+}
+
+async function playPreviewDance(result, toRemove, isGoalHand = false){
+  const outgoing = !!danceAbortController;          // a prior hand is still dancing
+  const outMode = danceInterruptMode;
+  const preDisplay = _scoreDisplayed();             // score number shown right now (mid-climb)
+  const nowTs = performance.now(); const rapid = (nowTs - _lastDanceStart) < 260; _lastDanceStart = nowTs;
+  cancelDance();
+  const ctrl = new AbortController(); danceAbortController = ctrl; const sig = ctrl.signal;
+  const myGen = ++dncGen; // this dance's generation; if it's superseded, its abort handler stays silent
+  dncFF = false; resetParticleStep();
+  const aborted = () => sig.aborted;
+  const dwait = ms => new Promise(r => setTimeout(r, dncFF ? Math.max(6, ms/DANCE_CFG.ff) : ms));
+  // ── Interrupt handoff: briefly acknowledge the just-cut previous hand (visual only, grid untouched). ──
+  // Spam valve: two interrupts in quick succession skip straight to 'cut' so rapid chaining stays snappy.
+  if(outgoing && !isGoalHand && !rapid && (outMode==='ff' || outMode==='resolve')){
+    const endpoint = Math.max(0, score - (result.finalScore||0)); // the outgoing hand's final total
+    await danceInterruptFlourish(outMode, preDisplay, endpoint, sig);
+    if(aborted()){ dncFinishAbort(null, isGoalHand, myGen); return; }
+  }
+
+  const { hand, handCells, finalScore } = result;
+  const targetFocus = lastCalcFocus;
+  const scoreAfter = score, scoreBefore = score - finalScore;
+  const levelScale = Math.pow(1.1, level - 1);
+  const base = HAND_BASE[hand] || { pips:0, mult:1 };
+  const basePips = Math.round(base.pips * levelScale), baseMult = base.mult;
+  // Capture per-card pips BEFORE removeAndFall nulls gridData.
+  const cardPipVals = handCells.map(([r,c]) => cardPips(gridData[r][c].rank));
+
+  // ── Grid feedback: goal hands pop in place (they salute later); normal hands FLY into the preview (below). ──
+  const gridEl = document.getElementById('grid'); const STAGGER=180, POP=900;
+  if(isGoalHand){
+    handCells.forEach(([r,c],i)=>{ const card=gridData[r][c]; if(!card) return;
+      const el=gridEl?.querySelector(`[data-card-id="${card._id}"]`); if(!el) return;
+      const sc = card.suit==='♥'?'h':card.suit==='♦'?'d':card.suit==='♣'?'c':'s';
+      el.classList.remove('score-pop-h','score-pop-d','score-pop-c','score-pop-s');
+      el.style.setProperty('animation-delay',(i*STAGGER)+'ms','important'); void el.offsetWidth;
+      el.classList.add('score-pop-'+sc); setTimeout(()=>sfxCardPop(card.suit), i*STAGGER); });
+  }
+
+  // ── Contribution ledger (Tricks + exalt), aggregated per source ──
+  const savedPFM = lastPreFocusMult; const contrib=[]; calcScore(hand, handCells, contrib); lastPreFocusMult = savedPFM;
+  const trickMap = new Map();
+  contrib.forEach(e=>{ if(!(e.delta>0)) return; const key=e.source+':'+e.id;
+    let t=trickMap.get(key); if(!t){ t={source:e.source,id:e.id,pip:0,mult:0}; trickMap.set(key,t); }
+    if(e.type==='pip') t.pip+=e.delta; else t.mult+=e.delta; });
+  const tricks=[...trickMap.values()];
+
+  // ── Stage: render ONLY the played cards into the dedicated hand-preview slot. ──
+  // Tricks/Knacks animate on their REAL tray/rack elements (not copies), so the slot
+  // keeps its normal size and never covers the UI below it, and the physical trick
+  // rack is what actually rattles/releases.
+  const stage=document.getElementById('selected-cards'); stage.classList.add('dnc-active'); stage.innerHTML='';
+  const mkRow=(label,extra)=>{ const row=document.createElement('div'); row.className='dnc-row'+(extra?(' '+extra):'');
+    const l=document.createElement('div'); l.className='dnc-lab'; l.textContent=label;
+    const items=document.createElement('div'); items.className='dnc-items';
+    row.appendChild(l); row.appendChild(items); stage.appendChild(row); return items; };
+  const handItems=mkRow('Hand','hand');
+  const handTrack=document.createElement('div'); handTrack.className='dnc-track'; handItems.appendChild(handTrack);
+  // Reuse the SAME grid-accurate markup the hand preview uses (renderCardAppearance), so cards
+  // don't visually change when the dance starts (and the fly-in clone lands as an identical card).
+  // Wrapped in .dnc-outer for the two-layer activation animation; sized by #selected-cards'
+  // --card-w/--card-h; appended into the .dnc-track so large hands can scroll sideways as they score.
+  const cardEls=handCells.map(([r,c])=>{ const card=gridData[r][c];
+    const outer=document.createElement('div'); outer.className='dnc-outer';
+    const d=document.createElement('div');
+    const { className, innerHTML } = renderCardAppearance(card, r, c);
+    d.className=className+' preview-card'; d.innerHTML=innerHTML;
+    outer.appendChild(d); handTrack.appendChild(outer); return d; });
+  // Resolve the REAL on-screen element for each contributing entity (aligned with `tricks`;
+  // may be null, e.g. exalt or Amplifier that has no rack element — those still tally, no jitter).
+  const entityEls = tricks.map(t => danceEntityEl(t.source, t.id));
+  dncRealEls = entityEls.filter(Boolean);
+
+  if(isGoalHand){
+    await wait(handCells.length*STAGGER + POP);
+    if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
+  } else {
+    // ── Normal hand: the selected grid cards physically fly into their preview slots. ──
+    const FLY_STAGGER=95, FLY_DUR=400;
+    cardEls.forEach(d=>{ const o=d.parentElement; if(o) o.style.opacity='0'; });
+    handCells.forEach(([r,c],i)=>{ const card=gridData[r][c]; if(!card) return;
+      const gEl=gridEl?.querySelector(`[data-card-id="${card._id}"]`);
+      const slot=cardEls[i].parentElement;
+      setTimeout(()=>{ if(aborted()) return; flyGridCardToSlot(gEl, slot, FLY_DUR); if(typeof sfxCardPop==='function') sfxCardPop(card.suit); }, i*FLY_STAGGER);
+    });
+    await wait(handCells.length*FLY_STAGGER + FLY_DUR);
+    if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
+    if(typeof sfxFlipShuffle==='function') sfxFlipShuffle(); removeAndFall(toRemove,'play'); dncHiddenGridEls=[]; // flown cards now removed
+  }
+
+  // ── Score boxes ──
+  const pipsEl=document.getElementById('pips-val'), multEl=document.getElementById('mult-val'),
+        focusEl=document.getElementById('focus-val'), scoreEl=document.getElementById('score-total-num');
+  const pipsBox=document.getElementById('pips-box'), multBox=document.getElementById('mult-box');
+  let rp=basePips, rm=baseMult;
+  if(pipsEl) pipsEl.textContent=rp; if(multEl) multEl.textContent=(rm%1===0)?rm:rm.toFixed(1);
+  if(focusEl) focusEl.textContent='×1';
+  await dwait(DANCE_CFG.tickRest); if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
+
+  // ── CARD PHASE — cards score; tricks charge (jitter ramps) ──
+  // Large hands overflow the clipped viewport: as each card scores, slide the track left so
+  // the current card stays in view and the hidden cards on the right get revealed.
+  const needScroll = handTrack.scrollWidth > handItems.clientWidth + 2;
+  const maxScroll  = Math.max(0, handTrack.scrollWidth - handItems.clientWidth);
+  const agit={};
+  for(let i=0;i<cardEls.length;i++){
+    if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
+    if(needScroll){
+      const scrollTo = Math.min(cardEls[i].parentElement.offsetLeft, maxScroll);
+      if(scrollTo>0 || handTrack.style.transform){ handTrack.style.transform = `translateX(${-scrollTo}px)`; await dwait(200); }
+      if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
+    }
+    dncActivate(cardEls[i]);
+    entityEls.forEach((el,ti)=>{ if(!el) return; agit[ti]=(agit[ti]||0)+1; dncChargeReal(el, agit[ti]); });
+    await dncFly(cardEls[i], pipsBox, '+'+cardPipVals[i], '#5a8fe0', ()=>{
+      rp+=cardPipVals[i]; if(pipsEl) pipsEl.textContent=Math.round(rp); dncTick(pipsEl);
+      if(typeof sfxParticleStep==='function') sfxParticleStep('pip'); });
+    await dwait(DANCE_CFG.tickRest);
+  }
+  if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
+
+  // ── ENTITY PHASE — each contributing entity stops jittering and RELEASES its total,
+  //    on its real rack element (particles fly from there; fall back to the box if none). ──
+  for(let ti=0; ti<tricks.length; ti++){
+    if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
+    const t=tricks[ti], el=entityEls[ti];
+    dncReleaseReal(el);
+    const src = el || pipsBox;
+    if(t.pip>0){ await dncFly(src, pipsBox, '+'+Math.round(t.pip), '#d4a857', ()=>{
+      rp+=t.pip; if(pipsEl) pipsEl.textContent=Math.round(rp); dncTick(pipsEl);
+      if(typeof sfxParticleStep==='function') sfxParticleStep('pip'); }); }
+    if(t.mult>0){ await dncFly(el || multBox, multBox, '+'+(Number.isInteger(t.mult)?t.mult:t.mult.toFixed(1)), '#b07dea', ()=>{
+      rm+=t.mult; if(multEl) multEl.textContent=(rm%1===0)?rm:rm.toFixed(1); dncTick(multEl);
+      if(typeof sfxParticleStep==='function') sfxParticleStep('mult'); }); }
+    await dwait(DANCE_CFG.tickRest);
+  }
+  if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
+
+  // ── FOCUS beat ──
+  if(targetFocus>1){
+    if(focusEl) focusEl.textContent='×'+(targetFocus%1===0?targetFocus:targetFocus.toFixed(1));
+    const fb=document.getElementById('focus-box'); if(fb){ fb.classList.remove('focus-beat'); void fb.offsetWidth; fb.classList.add('focus-beat'); }
+    if(typeof updateFocusMultReadout==='function') updateFocusMultReadout(true);
+    if(typeof sfxFocusBeat==='function') sfxFocusBeat();
+    await dwait(DANCE_CFG.tickRest); if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
+  }
+
+  // ── SCORE climb ──
+  if(scoreEl) scoreEl.textContent=scoreBefore.toLocaleString();
+  const climb = dncFF ? Math.max(120, DANCE_CFG.scoreClimb/DANCE_CFG.ff) : DANCE_CFG.scoreClimb;
+  let goalFlashed=false;
+  await new Promise(res=>{ const st=performance.now();
+    function tk(now){ if(aborted()){ res(); return; }
+      const tt=Math.min((now-st)/climb,1), e=1-Math.pow(1-tt,3);
+      const cur=Math.round(scoreBefore+(scoreAfter-scoreBefore)*e);
+      if(scoreEl) scoreEl.textContent=cur.toLocaleString();
+      if(isGoalHand && !goalFlashed && cur>=roundGoal){ goalFlashed=true; if(typeof flashRoundEnd==='function') flashRoundEnd(); }
+      if(typeof sfxScoreTick==='function' && Math.random()<0.35) sfxScoreTick();
+      if(tt<1) requestAnimationFrame(tk); else res(); }
+    requestAnimationFrame(tk); });
+  if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
+
+  // ── Settle (same tail as playScoreDance) ──
+  stage.classList.remove('dnc-active'); stage.innerHTML=''; dncCleanupReal();
+  if(scoreEl) scoreEl.textContent=scoreAfter.toLocaleString();
+  showComboFloats(hand, handCells, result);
+  const scoreBoxEl=document.getElementById('score-mid');
+  if(scoreBoxEl){ scoreBoxEl.classList.remove('box-popping'); void scoreBoxEl.offsetWidth; scoreBoxEl.classList.add('box-popping'); }
+  await wait(300); if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
+
+  danceAbortController = null;
+  if(pipsEl) pipsEl.textContent='0'; if(multEl) multEl.textContent='0';
+  if(isGoalHand){ if(score>highestHandScore) highestHandScore=score; if(pendingLevelUps>0) sfxMultiGoal(pendingLevelUps); }
+  updateScoreUI();
+
+  if(isGoalHand){
+    if(challengeActive){ showMessage('GOAL MET — COMPLETE THE CHALLENGE','#c9a84c'); }
+    else {
+      clearInterval(roundInterval); roundInterval=null; gameTimerPaused=true; frozenRoundSeconds=roundSeconds;
+      sfxVictory(); const ctx=getAudioCtx();
+      if(sfxDuckGain){ sfxDuckGain.gain.setValueAtTime(0.4, ctx.currentTime); }
+      else { sfxDuckGain=ctx.createGain(); sfxDuckGain.gain.setValueAtTime(0.4, ctx.currentTime); sfxDuckGain.connect(ctx.destination); }
+      await goalCelebration(handCells);
+      startInterlude();
+    }
+  }
+}
+
+// ══════════════════════════════════════════════
 // DISCARD
 // ══════════════════════════════════════════════
 function doDiscard() {
@@ -8369,7 +9285,9 @@ function doDiscard() {
       showMessage('♥ Heart corrupted — discarded after a swap', '#cc88ff');
     }
   });
-  // on_discard sleights (Not a Friend corrupt) fire with their grid position before removal
+  // on_discard sleights (Not a Friend corrupt) fire with their grid position before removal.
+  // Snapshot the non-sleight cards discarded alongside so Sandbagger can check for a low pair.
+  _discardContextCards = discardedCards.filter(c => c && c.rank && !c._isSleight);
   selected.forEach(([r,c]) => {
     const card = gridData[r]?.[c];
     if (card?._isSleight) {
@@ -8380,9 +9298,11 @@ function doDiscard() {
       }
     }
   });
+  _discardContextCards = null;
   selected.forEach(([r,c]) => { if (gridData[r]?.[c]) discardToDrawPile(gridData[r][c]); });
   // Hoarder: discards don't count against limit (but cost 2× time below)
   if (!hasKnack('hoarder')) discards--;
+  spendRoundTime(DISCARD_TIME_COST);   // discards cost time
   // Discard time cost — 3s/card default, 0s with Free Discards, 6s/card with Hoarder.
   // Reward-grid time penalties add to the per-card cost (unless discards are free).
   let perCardCost = BAL._resources.discard_seconds_per_card;
@@ -8410,6 +9330,37 @@ function doDiscard() {
     const prevTens = Math.floor((cardsDiscardedTotal - count) / BAL.tens_mult.discards_per_milestone);
     const newTens  = Math.floor(cardsDiscardedTotal / BAL.tens_mult.discards_per_milestone);
     bonusMult_tens += (newTens - prevTens) * BAL.tens_mult.mult_per_milestone;
+  }
+  // Down and Back In: discarding the grid's entire top rank refunds a resource + coins.
+  // gridData still holds the discarded cards here (removeAndFall runs last), so the "top
+  // rank" is measured against the board as it was when the player chose to discard.
+  if (hasKnack('down_and_back_in')) {
+    let _hi = -1; const _hiCards = [];
+    for (let _r = 0; _r < gridRows; _r++) for (let _c = 0; _c < gridCols; _c++) {
+      const _cd = gridData[_r]?.[_c];
+      if (!_cd || !_cd.rank || _cd._isSleight || _cd._isStone || _cd._isTrick) continue;
+      const _v = rankHighVal(_cd.rank);
+      if (_v > _hi) { _hi = _v; _hiCards.length = 0; _hiCards.push(_cd); }
+      else if (_v === _hi) _hiCards.push(_cd);
+    }
+    if (_hi > 0 && _hiCards.length && _hiCards.every(hc => discardedCards.includes(hc))) {
+      if (_dabiSwapNext) { swaps++; showMessage(`Down and Back In: +1 swap, +${BAL.down_and_back_in.coins} coins`, 'var(--gold)'); }
+      else { discards++; showMessage(`Down and Back In: +1 discard, +${BAL.down_and_back_in.coins} coins`, 'var(--gold)'); }
+      _dabiSwapNext = !_dabiSwapNext;
+      coins += BAL.down_and_back_in.coins; updateCoinsUI();
+    }
+  }
+  // Martyr: sacrificing a non-discard Sleight refills 1 charge on every OTHER on-grid Sleight
+  if (hasKnack('martyr') && discardedCards.some(c => c?._isSleight && sleightDef(c)?.activation !== 'on_discard')) {
+    let _restored = 0;
+    for (let _r = 0; _r < gridRows; _r++) for (let _c = 0; _c < gridCols; _c++) {
+      const _sc = gridData[_r]?.[_c];
+      if (!_sc?._isSleight || discardedCards.includes(_sc) || _sc._usesLeft === 'infinite' || typeof _sc._usesLeft !== 'number') continue;
+      const _def = SLEIGHT_POOL.find(j => j.id === _sc.sleightId);
+      const _cap = _def && typeof _def.durability === 'number' ? _def.durability : _sc._usesLeft;
+      if (_sc._usesLeft < _cap) { _sc._usesLeft++; _restored++; }
+    }
+    if (_restored) showMessage(`Martyr: +1 charge to ${_restored} Sleight${_restored > 1 ? 's' : ''}`, 'var(--gold)');
   }
   sfxFlipShuffle();
   resetFocusDecayTimer();
@@ -8447,7 +9398,75 @@ function showTimeCost(label) {
   el.style.opacity = '0';
 }
 
+// ── Rewind: give round seconds back (clock counts down, so rewinding = adding time) ──
+// Adds `seconds` to roundSeconds, capped at ROUND_DURATION, and shows a floater/message.
+// Returns the seconds actually restored. Bosses run their own timer, so rewinds are ignored there.
+function rewindTime(seconds, label) {
+  if (bossActive) return 0;
+  seconds = Math.floor(seconds);
+  if (seconds <= 0) return 0;
+  const before = roundSeconds;
+  roundSeconds = Math.min(ROUND_DURATION, roundSeconds + seconds);
+  const gained = roundSeconds - before;
+  if (gained <= 0) return 0;
+  rewoundSecondsRound += gained; // Kingfisher scales on seconds rewound this round
+  updateClockUI();
+  const el = document.getElementById('time-cost-flash') ||
+    (() => { const e = document.createElement('div'); e.id = 'time-cost-flash'; e.style.cssText =
+      `position:absolute; pointer-events:none; z-index:300; font-family:'Cinzel',serif; font-size:13px; font-weight:700;
+       color:#5aa9e6; text-shadow:0 0 8px rgba(90,169,230,0.6); left:50%; transform:translateX(-50%); opacity:0;`;
+      document.getElementById('clock-area')?.appendChild(e); return e; })();
+  el.style.color = '#5aa9e6'; el.style.textShadow = '0 0 8px rgba(90,169,230,0.6)';
+  el.textContent = `⏪ +${gained}s`;
+  el.style.transition = 'none'; el.style.opacity = '1'; el.style.top = '-4px';
+  void el.offsetWidth;
+  el.style.transition = 'top 0.7s ease-out, opacity 0.7s ease-out';
+  el.style.top = '-22px'; el.style.opacity = '0';
+  if (label) showMessage(label, '#5aa9e6');
+  return gained;
+}
+
+// ── Clock-mark Tricks: fire as the round clock passes static timestamps ──
+// Called once per real second from the round timer with the NEW roundSeconds value.
+// Because rewinds add seconds, the clock can pass the same mark more than once — that
+// re-fires these bonuses, which is an intended synergy with the rewind entities.
+function handleClockMarks(secs) {
+  if (secs <= 0) return;
+  // Tick-Tock: clock reading ends in a 0 → +2 Focus
+  if (secs % 10 === 0 && hasTrick('ticktock')) { addFocus(BAL.ticktock.focus); }
+  // Quarter Chime: clock reads a multiple of 15 → +45 pips to the next hand
+  if (secs % 15 === 0 && hasTrick('quarter_chime')) {
+    pendingHandPips += BAL.quarter_chime.pips;
+    showMessage(`🔔 Quarter Chime — next hand +${BAL.quarter_chime.pips} pips`, '#e8c56b');
+  }
+  // Minute marks (clock reads N:00) → accrue mult / card pips / retrigger chance
+  if (secs % 60 === 0) {
+    if (hasTrick('minute_hand'))  { pendingHandMult += BAL.minute_hand.mult; showMessage(`🕐 Minute Hand — next hand +${BAL.minute_hand.mult} mult`, '#cc88ff'); }
+    if (hasTrick('second_hand'))  { pendingCardPips += BAL.second_hand.pips; showMessage(`🕐 Second Hand — next hand +${BAL.second_hand.pips} pips`, '#e8c56b'); }
+    if (hasTrick('hourglass') && Math.random() < BAL.hourglass.chance) {
+      // Grant one permanent retrigger to a random real card currently on the grid
+      const spots = [];
+      for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
+        const card = gridData[r]?.[c];
+        if (card && card.rank && !card._isSleight && !card._isTrick && !card._isStone) spots.push(card);
+      }
+      if (spots.length) {
+        const card = spots[Math.floor(Math.random() * spots.length)];
+        const k = cardKey(card.rank, card.suit);
+        permRetrig[k] = (permRetrig[k] || 0) + 1;
+        showMessage(`⏳ Hourglass — ${card.rank}${card.suit} gains a retrigger`, '#e8c56b');
+        if (!animating && !falling) render();
+      }
+    }
+  }
+}
+
 function pauseRound(seconds) {
+  // Time Slip knack: whenever the clock WOULD pause, a chance to rewind that many seconds instead
+  if (hasKnack('time_slip') && Math.random() < BAL.time_slip.chance) {
+    rewindTime(seconds, '⏮️ Time Slip — rewound instead of paused!');
+    return;
+  }
   // Long Pause knack: all pauses are 1.5x longer
   if (hasKnack('long_pause')) seconds *= BAL.long_pause.multiplier;
   pauseInstanceGame++; // Hummingbird (counts every pause triggered this game)
@@ -8601,6 +9620,7 @@ function renderCardAppearance(card, r, c, {
   const k   = cardKey(card.rank, card.suit);
   const pp  = permPips[k] || 0;
   const pm  = permMult[k] || 0;
+  const curse = cardCurses[k];
   const hasPip = pp > 0, hasMult = pm > 0;
   const isCombined = !!card.combined;
   const isTrick = trickCardPos && trickCardPos[0] === r && trickCardPos[1] === c;
@@ -8624,6 +9644,7 @@ function renderCardAppearance(card, r, c, {
     isTrick ? 'trick-card' : '',
     (exaltCorruptEnabled && card._exalted) ? 'exalted' : '',
     (exaltCorruptEnabled && card._corrupted) ? 'corrupted' : '',
+    curse ? 'cursed' : '',
     bothClass.trim(),
     rcPips.trim(), rcMult.trim(), rcRetrigger.trim(), rcLeyline.trim(), rcJeopardy.trim(), rcWoodpecker.trim(),
   ].filter(Boolean).join(' ');
@@ -8635,6 +9656,7 @@ function renderCardAppearance(card, r, c, {
   const innerHTML = `
     ${isSel ? `<div class="sel-num">${selIdx + 1}</div>` : ''}
     ${isTrick ? `<div class="trick-star">⭐</div>` : ''}
+    ${curse ? `<div class="curse-badge" title="${CURSE_DEFS[curse.id].name}: ${CURSE_DEFS[curse.id].desc}">${CURSE_DEFS[curse.id].icon}<span class="curse-left">${curse.left}</span></div>` : ''}
     ${combinedLabel}
     <div class="rank">${card.rank}</div>
     <div class="suit">${card.suit}</div>
@@ -8964,6 +9986,7 @@ function startRoundTimer() {
     if (gameTimerPaused) return; // global pause covers menus/shop/events
     roundSeconds--;
     if (roundSeconds < 0) roundSeconds = 0;
+    handleClockMarks(roundSeconds); // clock-mark Tricks (Tick-Tock, Quarter Chime, Minute/Second Hand, Hourglass)
     trickCardTimer++;
     if (trickCardTimer >= TRICK_CARD_INTERVAL) { trickCardTimer = 0; assignTrickCard(); }
     const _elapsedRound = roundStartSeconds - roundSeconds;
@@ -9020,6 +10043,16 @@ function startTimers() {
   }, 1000);
 }
 
+// v7 interact time-costs — spending an action burns seconds off the round clock.
+const DISCARD_TIME_COST = 3;
+const SWAP_TIME_COST    = 4;
+function spendRoundTime(sec) {
+  if (roundEnded || !sec || sec <= 0) return;
+  roundSeconds -= sec;
+  if (roundSeconds < 0) roundSeconds = 0;
+  updateClockUI();   // next timer tick ends the round if this hit 0
+}
+
 function updateClockUI() {
   if (bossActive) return; // boss timer manages clock display itself
   const secs = Math.max(roundSeconds, 0);
@@ -9029,6 +10062,7 @@ function updateClockUI() {
   const barEl = document.getElementById('clock-bar');
   clockEl.textContent = `${m}:${s.toString().padStart(2,'0')}`;
   barEl.style.width = (secs/ROUND_DURATION*100)+'%';
+  const vf = document.getElementById('vclock-fill'); if (vf) vf.style.width = (secs/ROUND_DURATION*100)+'%';
   clockEl.classList.toggle('clock-paused', pipeTimerPaused);
   if (secs <= 10) { clockEl.classList.add('urgent'); barEl.classList.add('urgent'); }
   else { clockEl.classList.remove('urgent'); barEl.classList.remove('urgent'); }
@@ -9073,7 +10107,7 @@ function onRoundEnd() {
 
 function _onRoundEndCore() {
   // goalReachedThisRound means the goal hand was already played even if the dance is still running
-  if (score >= cumulativeGoal || goalReachedThisRound) {
+  if (score >= roundGoal || goalReachedThisRound) {
     cancelDance();
     suppressScoreDisplay = false;
     if (heldBackScore > 0) { score += heldBackScore; heldBackScore = 0; }
@@ -9595,7 +10629,9 @@ function endBoss(success) {
 // ══════════════════════════════════════════════
 // ── REWARD GRID ──
 // All cells are rewards (buff / debuff / dest). Player selects any orthogonally
-// connected group, then confirms. Grid size driven by limits.reward_rows/reward_cols.
+// connected group, then confirms. The reward grid mirrors the PLAY grid: its
+// shape comes from limits.grid_rows/grid_cols and the number of picks is capped
+// by limits.selection — so upgrading play-grid limits upgrades rewards too.
 
 let rewardSelected = new Set(); // "r-c" keys
 let rewardCells    = [];        // NxN array of { kind, payload }
@@ -9604,17 +10640,25 @@ let rewardGridContext = 'interlude'; // 'interlude' | 'boss' — determines what
 let skipTrickChoiceOverlay = false;    // set before drainLevelUpQueue when reward grid is the reward screen
 
 function generateRewardContent() {
-  const ROWS = limits.reward_rows.current;
-  const COLS = limits.reward_cols.current;
+  const ROWS = limits.grid_rows.current;
+  const COLS = limits.grid_cols.current;
 
-  // Weighted buff categories (weights sum to 100)
+  // Weighted buff categories. Tricks are also guaranteed a minimum count per
+  // grid (MIN_TRICK_TILES below), so their true share ends up higher than the
+  // raw weight suggests — the other categories fight over the leftover slots.
   const buffCategories = [
-    { weight: 62, kind: 'trick' },
-    { weight: 15, kind: 'sleight' },
-    { weight:  9, kind: 'knack' },
-    { weight:  6, kind: 'discard' },
+    { weight: 40, kind: 'trick' },
+    { weight: 12, kind: 'sleight' },
+    { weight:  7, kind: 'knack' },
+    { weight:  5, kind: 'discard' },
     { weight:  5, kind: 'swap' },
-    { weight:  3, kind: 'time' },
+    { weight:  5, kind: 'time' },
+    { weight:  6, kind: 'coins' },
+    { weight:  4, kind: 'limit_up' },
+    { weight:  6, kind: 'blessed' },
+    { weight:  4, kind: 'cull' },
+    { weight:  3, kind: 'cleanse' },
+    { weight:  3, kind: 'mystery' },
   ];
   // Hover projections (computed when the grid opens, reflecting current standing debuffs).
   const _proj    = computeRoundResources();
@@ -9622,31 +10666,71 @@ function generateRewardContent() {
   const _handNow = 5 + extraPlayCostPerm + nextRoundPlayCost;
   const _discNow = 3 + extraDiscardCostPerm + nextRoundDiscardCost;
   const debuffs = [
-    { icon: '☁', label: '-5s Round Cap', tier: 'penalty',
+    { weight: 8, icon: '☁', label: '-5s Round Cap', tier: 'penalty',
       desc: `Round cap: ${formatTime(_capNow)} → ${formatTime(Math.max(10, _capNow - 5))} · permanent, stacks`,
       apply: () => { roundPenaltySeconds += 5; showMessage('Round cap -5s (permanent)', 'var(--red)'); } },
-    { icon: '☠', label: '-1 Discard', tier: 'penalty',
+    { weight: 8, icon: '☠', label: '-1 Discard', tier: 'penalty',
       desc: `Next round discards: ${_proj.discards} → ${Math.max(0, _proj.discards - 1)} · next round only`,
       apply: () => { nextRoundDiscardDelta -= 1; showMessage('-1 discard next round', 'var(--red)'); } },
-    { icon: '✖', label: '-1 Swap', tier: 'penalty',
+    { weight: 8, icon: '✖', label: '-1 Swap', tier: 'penalty',
       desc: `Next round swaps: ${_proj.swaps} → ${Math.max(0, _proj.swaps - 1)} · next round only`,
       apply: () => { nextRoundSwapDelta -= 1; showMessage('-1 swap next round', 'var(--red)'); } },
-    { icon: '💔', label: 'Lose a Trick', tier: 'penalty',
+    { weight: 8, icon: '💔', label: 'Lose a Trick', tier: 'penalty',
       desc: 'Discard one random Trick you own.',
       apply: applyRewardLoseTrick },
-    { icon: '🐌', label: 'Hands +2s', tier: 'penalty',
+    { weight: 8, icon: '🐌', label: 'Hands +2s', tier: 'penalty',
       desc: `Hand cost: ${_handNow}s → ${_handNow + 2}s each · permanent, stacks`,
       apply: () => { extraPlayCostPerm += 2; showMessage('Playing a hand costs +2s (permanent)', 'var(--red)'); } },
-    { icon: '⌛', label: 'Hands +5s · 1rd', tier: 'penalty',
+    { weight: 8, icon: '⌛', label: 'Hands +5s · 1rd', tier: 'penalty',
       desc: `Next round hand cost: ${_handNow}s → ${_handNow + 5}s each · next round only`,
       apply: () => { nextRoundPlayCost += 5; showMessage('Hands cost +5s next round', 'var(--red)'); } },
-    { icon: '🐌', label: 'Discards +2s', tier: 'penalty',
+    { weight: 8, icon: '🐌', label: 'Discards +2s', tier: 'penalty',
       desc: `Discard cost: ${_discNow}s → ${_discNow + 2}s per card · permanent, stacks`,
       apply: () => { extraDiscardCostPerm += 2; showMessage('Discarding costs +2s/card (permanent)', 'var(--red)'); } },
-    { icon: '⌛', label: 'Discards +5s · 1rd', tier: 'penalty',
+    { weight: 8, icon: '⌛', label: 'Discards +5s · 1rd', tier: 'penalty',
       desc: `Next round discard cost: ${_discNow}s → ${_discNow + 5}s per card · next round only`,
       apply: () => { nextRoundDiscardCost += 5; showMessage('Discards cost +5s/card next round', 'var(--red)'); } },
+    // ── Variety debuffs (r74) ──
+    { weight: 8, icon: '💸', label: 'Pickpocket', tier: 'penalty',
+      desc: `Lose 10 coins (${coins} → ${Math.max(0, coins - 10)}).`,
+      apply: () => { coins = Math.max(0, coins - 10); updateCoinsUI(); showMessage('-10 coins', 'var(--red)'); } },
+    { weight: 8, icon: '🪨', label: 'Stones', tier: 'penalty',
+      desc: 'Two Stones are shuffled into your deck. They block cells until purged.',
+      apply: () => { injectStonesIntoDeck(2); showMessage('2 Stones added to deck', 'var(--red)'); } },
+    { weight: 8, icon: '⏳', label: 'Slow Start', tier: 'penalty',
+      desc: 'Next round starts with 20 fewer seconds.',
+      apply: () => { nextRoundSecondsDelta -= 20; showMessage('-20s next round', 'var(--red)'); } },
   ];
+  // Cursed-card debuff: afflicts one specific shown card (weight 10; only if an
+  // un-cursed identity exists). Card is pre-picked so the tile shows exactly it.
+  {
+    const _uncursed = [];
+    RANKS.forEach(rank => SUITS.forEach(suit => { if (!cardCurses[cardKey(rank, suit)]) _uncursed.push({ rank, suit }); }));
+    if (_uncursed.length) {
+      const _victim = _uncursed[Math.floor(Math.random() * _uncursed.length)];
+      const _cids = Object.keys(CURSE_DEFS);
+      const _cid  = _cids[Math.floor(Math.random() * _cids.length)];
+      debuffs.push({ weight: 10, icon: CURSE_DEFS[_cid].icon, label: `${CURSE_DEFS[_cid].name} Curse`, tier: 'penalty',
+        cardFace: { rank: _victim.rank, suit: _victim.suit },
+        desc: `${_victim.rank}${_victim.suit} is cursed — ${CURSE_DEFS[_cid].desc}`,
+        apply: () => { cardCurses[cardKey(_victim.rank, _victim.suit)] = { id: _cid, left: CURSE_DEFS[_cid].liftAfter }; showMessage(`${_victim.rank}${_victim.suit} cursed: ${CURSE_DEFS[_cid].name}`, '#9b59b6'); } });
+    }
+  }
+  // Limit-drain debuff: -1 to a shown limit (weight 5; only if something is drainable).
+  // round_time is excluded — a 1-second drain reads like a bug, not a curse.
+  {
+    const _drainable = LIMITS_DEF.filter(d => d.id !== 'round_time' && limits[d.id].current > 1);
+    if (_drainable.length) {
+      const _dl = pickWeightedLimits(1, _drainable)[0];
+      debuffs.push({ weight: 5, icon: '⬇️', label: `-1 ${_dl.label}`, tier: 'penalty',
+        desc: `${_dl.label}: ${limits[_dl.id].current} → ${limits[_dl.id].current - 1} · permanent (limits are precious!)`,
+        apply: () => { decrementLimit(_dl.id); showMessage(`-1 ${_dl.label}`, 'var(--red)'); } });
+    }
+  }
+  // Dark mystery: unknown until claimed — mostly bad (weight 6).
+  debuffs.push({ weight: 6, icon: '❓', label: 'Dark Mystery', tier: 'mystery',
+    desc: 'Unknown until claimed. Probably bad… probably.',
+    apply: () => resolveRewardMystery(0.3) });
   const destOptions = [
     { icon: '🏪', label: 'Next: Shop',  tier: 'dest', apply: () => { pendingEventOverride = 'shop'; } },
     { icon: '🏪', label: 'Next: Shop',  tier: 'dest', apply: () => { pendingEventOverride = 'shop'; } },
@@ -9690,6 +10774,39 @@ function generateRewardContent() {
     };
   }
 
+  // Blessed-card buff: a specific shown card gains a permanent bonus.
+  function makeBlessedPayload() {
+    const rank = RANKS[Math.floor(Math.random() * RANKS.length)];
+    const suit = SUITS[Math.floor(Math.random() * SUITS.length)];
+    const mult = Math.random() < 0.3; // 30% of blessings are the (stronger) +1 mult
+    return mult
+      ? { icon: '✨', label: 'Blessed Card', tier: 'epic', cardFace: { rank, suit },
+          desc: `${rank}${suit} permanently gains +1 mult when scored.`,
+          apply: () => { const k = cardKey(rank, suit); permMult[k] = (permMult[k] || 0) + 1; showMessage(`${rank}${suit} blessed: +1 mult`, 'var(--gold)'); } }
+      : { icon: '✨', label: 'Blessed Card', tier: 'rare', cardFace: { rank, suit },
+          desc: `${rank}${suit} permanently gains +12 pips.`,
+          apply: () => { const k = cardKey(rank, suit); permPips[k] = (permPips[k] || 0) + 12; showMessage(`${rank}${suit} blessed: +12 pips`, 'var(--gold)'); } };
+  }
+  // Cull buff: deck thinning — a specific low card leaves the run for good.
+  function makeCullPayload() {
+    const rank = ['2', '3', '4'][Math.floor(Math.random() * 3)];
+    const suit = SUITS[Math.floor(Math.random() * SUITS.length)];
+    return { icon: '✂️', label: 'Cull', tier: 'rare', cardFace: { rank, suit },
+      desc: `Remove ${rank}${suit} from your deck for the rest of the run.`,
+      apply: () => { removeCardIdentityFromRun(rank, suit)
+        ? showMessage(`${rank}${suit} culled from deck`, 'var(--gold)')
+        : showMessage(`${rank}${suit} was already gone`, 'var(--cream-dim)'); } };
+  }
+  function makeLimitUpPayload() {
+    // round_time excluded — its +1 = 1 second; time is handled by the +15s tile.
+    const eligible = LIMITS_DEF.filter(d => d.id !== 'round_time' && limits[d.id].current < limits[d.id].max);
+    if (!eligible.length) return makeTrickPayload();
+    const dl = pickWeightedLimits(1, eligible)[0];
+    return { icon: '⬆️', label: `+1 ${dl.label}`, tier: 'epic',
+      desc: `${dl.label}: ${limits[dl.id].current} → ${limits[dl.id].current + 1} · permanent`,
+      apply: () => { incrementLimit(dl.id); showMessage(`+1 ${dl.label}!`, 'var(--gold)'); } };
+  }
+
   function makeBuff() {
     const cat = weightedPick(buffCategories);
     switch (cat.kind) {
@@ -9705,6 +10822,21 @@ function generateRewardContent() {
       case 'time':    return { icon: '⏱', label: '+15s Round',   tier: 'common',
                                desc: `Next round starts with +15s`,
                                apply: () => { nextRoundSecondsDelta += 15; showMessage('+15s next round', 'var(--gold)'); } };
+      case 'coins':   return { icon: '💰', label: 'Windfall',     tier: 'common',
+                               desc: `Gain 8 coins (${coins} → ${coins + 8}).`,
+                               apply: () => { coins += 8; updateCoinsUI(); showMessage('+8 coins', 'var(--gold)'); } };
+      case 'limit_up': return makeLimitUpPayload();
+      case 'blessed': return makeBlessedPayload();
+      case 'cull':    return makeCullPayload();
+      case 'cleanse':
+        // Only meaningful if something is cursed; otherwise fall back to a Trick
+        if (!Object.keys(cardCurses).length) return makeTrickPayload();
+        return { icon: '🕊️', label: 'Cleanse', tier: 'rare',
+                 desc: 'Lift one random curse from your deck.',
+                 apply: () => { const _cl = cleanseRandomCurse(); showMessage(_cl ? `Curse lifted: ${_cl.key.replace('-', '')}` : 'No curses to lift', '#54af88'); } };
+      case 'mystery': return { icon: '❓', label: 'Mystery', tier: 'mystery',
+                               desc: 'Unknown until claimed. Probably good… probably.',
+                               apply: () => resolveRewardMystery(0.7) };
     }
   }
 
@@ -9727,12 +10859,81 @@ function generateRewardContent() {
     grid[r][c] = { kind: 'buff', payload: makeBuff() };
   }
 
-  // Fill all debuff positions
+  // Guarantee a minimum number of Trick tiles per grid (owner spec: a reward
+  // grid should always offer a real Trick choice — tricks are the connective
+  // tissue of builds). Non-trick buffs are converted at random until met.
+  const MIN_TRICK_TILES = 5;
+  {
+    const isTrickTile = cell => cell?.kind === 'buff' && cell.payload && String(cell.payload.icon) === '★';
+    let trickCount = 0;
+    const convertible = [];
+    for (let i = 1; i < shuffledBuff.length; i++) {
+      const [r, c] = shuffledBuff[i];
+      if (isTrickTile(grid[r][c])) trickCount++;
+      else convertible.push([r, c]);
+    }
+    while (trickCount < MIN_TRICK_TILES && convertible.length) {
+      const [r, c] = convertible.splice(Math.floor(Math.random() * convertible.length), 1)[0];
+      grid[r][c] = { kind: 'buff', payload: makeTrickPayload() };
+      trickCount++;
+    }
+  }
+
+  // Fill all debuff positions — weighted, and one-per-grid for the "big" kinds
+  // (two identical curse/drain/mystery tiles in one grid would be confusing)
+  const usedOnce = new Set();
   for (const [r, c] of debuffPos) {
-    grid[r][c] = { kind: 'debuff', payload: pickRand(debuffs) };
+    let pick = null;
+    for (let tries = 0; tries < 12; tries++) {
+      const cand = weightedPick(debuffs);
+      const isOnceKind = cand.cardFace || cand.icon === '⬇️' || cand.tier === 'mystery';
+      if (isOnceKind && usedOnce.has(cand.label)) continue;
+      if (isOnceKind) usedOnce.add(cand.label);
+      pick = cand; break;
+    }
+    grid[r][c] = { kind: 'debuff', payload: pick || pickRand(debuffs) };
   }
 
   return grid;
+}
+
+// ── Mystery tile resolution ──
+// goodChance ∈ [0,1]: buff-slot Mystery = 0.7, debuff-slot Dark Mystery = 0.3.
+// Effects are deliberately simple + self-contained (no Trick grants — a
+// tray-full replace picker popping out of a mystery would be jarring).
+function resolveRewardMystery(goodChance) {
+  const good = Math.random() < goodChance;
+  if (good) {
+    const roll = Math.floor(Math.random() * 5);
+    if (roll === 0) { coins += 12; updateCoinsUI(); showMessage('Mystery: +12 coins!', 'var(--gold)'); }
+    else if (roll === 1) { nextRoundSwapDelta += 2; showMessage('Mystery: +2 swaps next round!', 'var(--gold)'); }
+    else if (roll === 2) { nextRoundDiscardDelta += 2; showMessage('Mystery: +2 discards next round!', 'var(--gold)'); }
+    else if (roll === 3) { nextRoundSecondsDelta += 25; showMessage('Mystery: +25s next round!', 'var(--gold)'); }
+    else { const rank = RANKS[Math.floor(Math.random()*RANKS.length)], suit = SUITS[Math.floor(Math.random()*SUITS.length)];
+           const k = cardKey(rank, suit); permPips[k] = (permPips[k] || 0) + 10;
+           showMessage(`Mystery: ${rank}${suit} +10 pips!`, 'var(--gold)'); }
+  } else {
+    const roll = Math.floor(Math.random() * 5);
+    if (roll === 0) { coins = Math.max(0, coins - 8); updateCoinsUI(); showMessage('Mystery: -8 coins…', 'var(--red)'); }
+    else if (roll === 1) { nextRoundSwapDelta -= 1; showMessage('Mystery: -1 swap next round…', 'var(--red)'); }
+    else if (roll === 2) { nextRoundSecondsDelta -= 15; showMessage('Mystery: -15s next round…', 'var(--red)'); }
+    else if (roll === 3) { injectStonesIntoDeck(1); showMessage('Mystery: a Stone slips into your deck…', 'var(--red)'); }
+    else { const v = curseRandomCard(); showMessage(v ? `Mystery: ${v.rank}${v.suit} cursed (${CURSE_DEFS[v.curse].name})…` : 'Mystery: …nothing?', '#9b59b6'); }
+  }
+}
+
+// Remove one copy of a specific card identity from the run (deck thinning).
+// Searches drawPile, then playedPile, then the live grid (refilling the cell).
+function removeCardIdentityFromRun(rank, suit) {
+  const match = c => c && c.rank === rank && c.suit === suit && !c._isSleight && !c._isStone && !c._isTrick;
+  let idx = drawPile.findIndex(match);
+  if (idx >= 0) { drawPile.splice(idx, 1); updateDeckHud(); return true; }
+  idx = playedPile.findIndex(match);
+  if (idx >= 0) { playedPile.splice(idx, 1); updateDeckHud(); return true; }
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
+    if (match(gridData[r]?.[c])) { gridData[r][c] = drawCard() || null; render(); return true; }
+  }
+  return false;
 }
 
 // Place a Trick card physically on the grid (middle-row inner col, displacing if needed).
@@ -9740,6 +10941,12 @@ function generateRewardContent() {
 function injectTrickAfterReward(trick) {
   if (!trick) return;
   if (trickTrayMode) {
+    // Tray full (trick_slots limit) → offer replace-or-skip instead of silent grow
+    if (trickTray.length >= trickCapacity()) {
+      _trickReplaceQueue.push(trick);
+      maybeOpenTrickReplacePicker();
+      return;
+    }
     trickTray.push(trick);
     selectTrick(trick, true);
     renderTrickTray();
@@ -9793,8 +11000,39 @@ function applyRewardLoseTrick() {
 
 let _blpOptions   = [];
 let _blpSelected  = -1;
+let _blpMode      = 'lose';        // 'lose' (debuff: must remove) | 'replace' (tray full: swap or skip)
+let _trickReplaceQueue = [];       // new Tricks waiting while the tray is at trick_slots capacity
+
+// Tray is full — show the picker in 'replace' mode for the next queued new Trick.
+function maybeOpenTrickReplacePicker() {
+  if (!_trickReplaceQueue.length) return;
+  if (document.getElementById('trick-lose-picker').classList.contains('show')) return; // one at a time
+  const incoming = _trickReplaceQueue[0];
+  _blpMode = 'replace';
+  document.getElementById('blp-title').textContent = 'TRICK SLOTS FULL';
+  document.getElementById('blp-sub').textContent =
+    `New Trick: “${incoming.name}” — ${incoming.desc || ''}  Choose a Trick to replace, or skip the new one.`;
+  document.getElementById('blp-confirm').textContent = 'Replace Selected';
+  document.getElementById('blp-cancel').style.display = '';
+  openTrickLosePicker(trickTray.map((trick, idx) => ({ trick, source: 'tray', idx })));
+}
+
+function cancelTrickReplacePicker() {
+  document.getElementById('trick-lose-picker').classList.remove('show');
+  const skipped = _trickReplaceQueue.shift();
+  if (skipped) showMessage(`Skipped ${skipped.name} (tray full)`, 'var(--cream-dim)');
+  _blpMode = 'lose';
+  setTimeout(() => maybeOpenTrickReplacePicker(), 150);
+}
 
 function openTrickLosePicker(options) {
+  if (_blpMode !== 'replace') {
+    // restore the default 'lose' chrome (replace mode pre-sets its own)
+    document.getElementById('blp-title').textContent = 'CHOOSE A TRICK TO LOSE';
+    document.getElementById('blp-sub').textContent = 'Select one — it will be removed permanently.';
+    document.getElementById('blp-confirm').textContent = 'Remove Selected';
+    document.getElementById('blp-cancel').style.display = 'none';
+  }
   _blpOptions  = options;
   _blpSelected = -1;
   const list = document.getElementById('blp-list');
@@ -9829,6 +11067,19 @@ function confirmTrickLosePicker() {
     const ai = acquiredTricks.findIndex(b => b.id === opt.trick.id);
     if (ai >= 0) acquiredTricks.splice(ai, 1);
     showMessage(`- ${opt.trick.name}`, 'var(--red)');
+    // Replace mode: the freed slot goes to the queued new Trick
+    if (_blpMode === 'replace') {
+      const incoming = _trickReplaceQueue.shift();
+      _blpMode = 'lose';
+      if (incoming) {
+        trickTray.push(incoming);
+        selectTrick(incoming, true);
+        showMessage(`+ ${incoming.name}`, 'var(--gold)');
+      }
+      renderTrickTray();
+      setTimeout(() => maybeOpenTrickReplacePicker(), 150);
+      return;
+    }
     renderTrickTray();
   } else {
     gridData[opt.r][opt.c] = null;
@@ -9871,8 +11122,8 @@ function openRewardGrid() {
 }
 
 function renderRewardGrid() {
-  const ROWS = limits.reward_rows.current;
-  const COLS = limits.reward_cols.current;
+  const ROWS = limits.grid_rows.current;
+  const COLS = limits.grid_cols.current;
   const gridEl = document.getElementById('reward-grid');
   // Compute cell dimensions to fill the overlay while keeping playing-card aspect ratio.
   // CARD_ASPECT = height/width ≈ 1.316 (matches game grid cards).
@@ -9910,9 +11161,14 @@ function renderRewardGrid() {
       div.dataset.r = r; div.dataset.c = c;
 
       const p = cell.payload;
+      // Tiles that reference a specific card (blessed/cursed/cull) show a mini
+      // playing card instead of a plain emoji, so the player sees exactly which.
+      const faceHTML = p.cardFace
+        ? `<div class="reward-face ${suitClass(p.cardFace.suit)}"><span class="reward-face-rank">${p.cardFace.rank}</span><span class="reward-face-suit">${p.cardFace.suit}</span></div>`
+        : `<div class="reward-icon">${p.icon}</div>`;
       div.innerHTML = `
         <div class="reward-tier">${p.tier.toUpperCase()}</div>
-        <div class="reward-icon">${p.icon}</div>
+        ${faceHTML}
         <div class="reward-label">${p.label}</div>
         ${p.desc ? `<div class="reward-desc">${colorizeKeywords(p.desc)}</div>` : ''}
       `;
@@ -9928,16 +11184,21 @@ function renderRewardGrid() {
     .map(cell => `${cell.payload.icon} ${cell.payload.label}`);
   document.getElementById('reward-collected-list').textContent = items.length ? items.join('  ·  ') : '—';
 
-  // Subtitle: destination warning if a dest is selected
+  // Subtitle: picks counter (Selection Size cap) + destination warning
   const subEl = document.getElementById('reward-sub');
   if (subEl) {
     const selectedDest = [...rewardSelected].find(k => {
       const [sr, sc] = k.split('-').map(Number);
       return rewardCells[sr]?.[sc]?.kind === 'dest';
     });
-    subEl.textContent = selectedDest
-      ? 'Destination locked in — confirm to set your route.'
-      : 'Choose any connected group. At most one destination.';
+    const cap = limits.selection.current;
+    const picks = `Picks: ${rewardSelected.size}/${cap}`;
+    const atCap = rewardSelected.size >= cap;
+    subEl.textContent = atCap
+      ? `${picks} — selection full. Confirm, or tap a pick to remove it.`
+      : selectedDest
+        ? `${picks} — destination locked in. Confirm to set your route.`
+        : `${picks} — choose a connected group. At most one destination.`;
   }
 
   const hasAny = rewardSelected.size > 0;
@@ -9949,9 +11210,11 @@ function renderRewardGrid() {
 function isRewardCellSelectable(r, c) {
   const key = `${r}-${c}`;
   if (rewardSelected.has(key)) return false; // already selected
+  // Picks are capped by the Selection Size limit — same cap as the play grid
+  if (rewardSelected.size >= limits.selection.current) return false;
   // Destination rule: at most one dest tile per selection
-  const ROWS = limits.reward_rows.current;
-  const COLS = limits.reward_cols.current;
+  const ROWS = limits.grid_rows.current;
+  const COLS = limits.grid_cols.current;
   if (r >= 0 && r < ROWS && c >= 0 && c < COLS && rewardCells[r]?.[c]?.kind === 'dest') {
     const alreadyHasDest = [...rewardSelected].some(k => {
       const [sr, sc] = k.split('-').map(Number);
@@ -10108,15 +11371,8 @@ function openLimitBreakEvent() {
   lbSacrifice   = null;
   lbConfirmed   = false;
 
-  // Eligible = limits not yet maxed
-  const eligible = LIMITS_DEF.filter(def => limits[def.id].current < limits[def.id].max);
-  // If fewer than 3 eligible, offer what we can
-  const pool = [...eligible];
-  for (let i = pool.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [pool[i], pool[j]] = [pool[j], pool[i]];
-  }
-  const chosen = pool.slice(0, 3);
+  // Eligible = limits not yet maxed; weighted pick so rare limits show up less
+  const chosen = pickWeightedLimits(3);
 
   // Last one is "blind" if we have a full set of 3
   lbOffers = chosen.map((def, i) => ({
@@ -10447,6 +11703,15 @@ function fireSleightsOnPlay(selectedCells, handCells, hand) {
     if (!def || def.activation !== 'on_play') return;
     // shortcut requires a 4-card hand
     if (def.id === 'shortcut' && handCells.length !== 4) return;
+    // Rewind: rewind the clock by the hand size in seconds. The sleight itself counts toward the
+    // size — but non-wild sleights are dropped from hand detection, so add 1 if it's not in handCells.
+    if (def.id === 'rewind') {
+      const _inHand = handCells.some(([hr, hc]) => hr === r && hc === c);
+      const _size = _inHand ? handCells.length : handCells.length + 1;
+      rewindTime(_size, `⏪ Rewind — +${_size}s`);
+      consumeSleightCharge(card, r, c);
+      return;
+    }
     // Syncopation: hand type differs from the previous hand played
     if (def.id === 'syncopation') {
       if (lastHandType === null || hand === lastHandType) return;
@@ -10514,6 +11779,39 @@ function fireSleightsOnSwap(r1, c1, r2, c2) {
   });
 }
 
+// Magnet: pull every card of `rank` into the cells orthogonally adjacent to Magnet,
+// by swapping grid data. Each pull counts as a swap (fires on_swap Sleights + Restless),
+// which is the intended synergy. Returns how many cards were moved.
+function magnetCluster(mr, mc, rank) {
+  const inBounds = (r, c) => r >= 0 && c >= 0 && r < gridRows && c < gridCols;
+  const isRank   = card => card && card.rank === rank && !card._isSleight && !card._isStone && !card._isTrick;
+  const neighbors = [[mr-1,mc],[mr+1,mc],[mr,mc-1],[mr,mc+1]].filter(([r,c]) => inBounds(r,c));
+  let moved = 0;
+  for (const [nr, nc] of neighbors) {
+    const nb = gridData[nr]?.[nc];
+    if (!nb || nb._isSleight || nb._isStone || nb._isTrick) continue; // don't disturb fixtures
+    if (nb.rank === rank) continue;                                   // already holds the rank
+    if (!cardCan(nb, 'swap')) continue;                               // respect Snared etc.
+    // Find a far card of the rank (not in a neighbor cell, not Magnet, swappable)
+    let found = null;
+    for (let r = 0; r < gridRows && !found; r++) for (let c = 0; c < gridCols && !found; c++) {
+      if (r === mr && c === mc) continue;
+      if (neighbors.some(([ar, ac]) => ar === r && ac === c)) continue;
+      const cand = gridData[r]?.[c];
+      if (isRank(cand) && cardCan(cand, 'swap')) found = [r, c];
+    }
+    if (!found) break; // nothing left to pull
+    const [fr, fc] = found;
+    const tmp = gridData[nr][nc];
+    gridData[nr][nc] = gridData[fr][fc];
+    gridData[fr][fc] = tmp;
+    fireSleightsOnSwap(nr, nc, fr, fc); // counts as a swap
+    if (hasTrick('restless')) addFocus(1);
+    moved++;
+  }
+  return moved;
+}
+
 function applySleightGridEffect(id, r, c) {
   switch (id) {
     case 'good_friend':
@@ -10572,6 +11870,22 @@ function applySleightGridEffect(id, r, c) {
     case 'snooze':
       pauseRound(BAL.snooze.seconds);
       showMessage('😴 Snooze — clock paused 10s!', 'var(--gold)'); break;
+    case 'last_call':
+      // Only rewinds when discarded during the final minute of the round.
+      if (roundSeconds <= BAL.last_call.last_minute_at) rewindTime(BAL.last_call.seconds, `⏳ Last Call — rewound ${BAL.last_call.seconds}s`);
+      else showMessage('⏳ Last Call — only works in the final minute', 'var(--cream-dim)');
+      break;
+    case 'sandbag': {
+      // Rewinds only when discarded alongside a pair of cards below rank 8; the rewind
+      // equals that pair's rank in seconds (highest qualifying pair wins if there are several).
+      const _co = _discardContextCards || [];
+      const _counts = {};
+      _co.forEach(c => { const _v = RANK_ORDER[c.rank] || 99; if (_v < BAL.sandbag.rank_below) _counts[_v] = (_counts[_v] || 0) + 1; });
+      const _pairRanks = Object.keys(_counts).map(Number).filter(v => _counts[v] >= 2);
+      if (_pairRanks.length) { const _sec = Math.max(..._pairRanks); rewindTime(_sec, `⏬ Sandbagger — rewound ${_sec}s`); }
+      else showMessage('⏬ Sandbagger — needs a pair below rank 8', 'var(--cream-dim)');
+      break;
+    }
     case 'piggy_bank':
       coins += BAL.piggy_bank.coins; updateCoinsUI();
       showMessage('🐷 Piggy Bank — +5 credits!', 'var(--gold)'); break;
@@ -12045,7 +13359,7 @@ async function showNextGoalFlash() {
   bg.classList.add('show');
   await new Promise(res => setTimeout(res, 250));
 
-  numEl.textContent = cumulativeGoal.toLocaleString();
+  numEl.textContent = roundGoal.toLocaleString();
   el.classList.remove('show');
   el.style.cssText = '';
   void el.offsetWidth;
@@ -12176,11 +13490,12 @@ function triggerLevelUp() {
   }
 
   level++;
-  // Next level's increment (what you need to score above current total)
+  // This round's score target, from zero
   roundGoal = Math.round(Math.round(BASE_GOAL * Math.pow(GOAL_SCALE, level - 1)) / 500) * 500;
-  cumulativeGoal += roundGoal;
+  totalScore += score; // bank the completed round's score for the end-of-run display
+  score = 0;           // fresh round, fresh score
 
-  // Reset round (but NOT score — it's cumulative)
+  // Reset round
   flushPlayedDeck(); // played cards rejoin the pool for the new round
 
   // Bank unused resources before resetting
@@ -12234,6 +13549,18 @@ function triggerLevelUp() {
     const _jcard = gridData[_jr][_jc];
     if (_jcard?._isSleight) _jcard._usedThisRound = false;
   }
+  // Coin Toss: each owned Sleight has a 50% chance to regain 1 charge at round start
+  if (hasKnack('coin_toss')) {
+    let _refilled = 0;
+    ownedSleightCards().forEach(card => {
+      if (card._usesLeft === 'infinite' || typeof card._usesLeft !== 'number') return;
+      const def = SLEIGHT_POOL.find(j => j.id === card.sleightId);
+      const cap = (def && typeof def.durability === 'number') ? def.durability : card._usesLeft;
+      if (card._usesLeft < cap && Math.random() < 0.5) { card._usesLeft++; _refilled++; }
+    });
+    if (_refilled) showMessage(`Coin Toss: ${_refilled} Sleight${_refilled > 1 ? 's' : ''} regained a charge`, 'var(--gold)');
+  }
+  setTimeout(checkComboMilestones, 600); // combo legibility toast (after the deal settles)
   fireSleightsAtRoundStart();
   // (♠ exalt/corrupt is now play/discard-driven — handled in playHand and doDiscard, not at deal)
   fireSleightsOnDraw();
@@ -12249,8 +13576,13 @@ function triggerLevelUp() {
   if (hasTrick('tunnel_vision')) addFocus(5);
   // ── Timing/Streak batch: pause-themed Trick state, reset each round ──
   pausedSecondsRound = 0;
+  rewoundSecondsRound = 0;
   retriggersThisRound = 0;
   cuckooNextMinute = BAL.cuckoo.interval_seconds;
+  // Clock-mark Tricks + Déjà Vu: pending bonuses and rank-history reset each round
+  pendingHandPips = 0; pendingHandMult = 0; pendingCardPips = 0;
+  lastHandRankKey = null;
+  _altSwapCount = 0;
   doubleJeopardyPos = hasTrick('double_jeopardy') ? { r: Math.floor(Math.random() * gridRows), c: Math.floor(Math.random() * gridCols) } : null;
   djUsedThisRound = false;
   firstPauseStartedRound = false;
@@ -12749,7 +14081,16 @@ function attachHoverHold(el, showFn, hideFn) {
 function renderTrickTray() {
   const list = document.getElementById('trick-tray-list');
   if (!list) return;
+  const countEl = document.getElementById('trick-tray-count');
+  if (countEl) {
+    countEl.textContent = `${trickTray.length}/${trickCapacity()}`;
+    countEl.style.color = trickTray.length >= trickCapacity() ? 'var(--red)' : 'var(--gold-dim)';
+  }
   list.innerHTML = '';
+  if (trickTray.length === 0) {
+    list.innerHTML = '<span style="font-size:11px;color:var(--cream-dim)">No tricks</span>';
+    return;
+  }
   trickTray.forEach(trick => {
     const chip = document.createElement('div');
     if (trick.id === 'mirror') {
@@ -13075,7 +14416,7 @@ function onGameWin() {
   const s = secondsPlayed % 60;
   document.getElementById('end-stats').innerHTML = `
     Run Complete: <strong>3 Acts</strong><br>
-    Total Score: <strong>${score.toLocaleString()}</strong><br>
+    Total Score: <strong>${(totalScore + score).toLocaleString()}</strong><br>
     Time Played: <strong>${m}:${s.toString().padStart(2,'0')}</strong><br>
     Levels Cleared: <strong>${level}</strong><br>
     Hands Played: <strong>${handsPlayed}</strong><br>
@@ -13097,7 +14438,7 @@ function onGameEnd(gameover) {
   const timePlayed = `${m}:${s.toString().padStart(2,'0')}`;
 
   document.getElementById('end-stats').innerHTML = `
-    Total Score: <strong>${score.toLocaleString()}</strong><br>
+    Total Score: <strong>${(totalScore + score).toLocaleString()}</strong><br>
     Time Lasted: <strong>${timePlayed}</strong><br>
     Level Reached: <strong>${level}</strong><br>
     Hands Played: <strong>${handsPlayed}</strong><br>
@@ -13195,7 +14536,7 @@ function generateShopItems() {
   const grantedSleights = _grantedSleightSet();
 
   const tricks    = shuffle(TRICK_POOL.filter(b => !ownedBcIds.has(b.id))).slice(0, 3);
-  const lims   = shuffle(LIMITS_DEF.filter(d => limits[d.id].current < limits[d.id].max)).slice(0, 2);
+  const lims   = pickWeightedLimits(2);
   const knacks = shuffle(KNACK_POOL.filter(t => !ownedKnackIds.has(t.id))).slice(0, 2);
   const sleights = pickSleightByRarity(3, grantedSleights);
 
@@ -13218,7 +14559,7 @@ function rerollShopItems() {
   // Limits
   const usedLimIds = new Set();
   shopItems.limits.forEach((d, i) => { if (d && shopPurchased.has(`limit-${i}`)) usedLimIds.add(d.id); });
-  const freshLims = shuffle(LIMITS_DEF.filter(d => limits[d.id].current < limits[d.id].max && !usedLimIds.has(d.id)));
+  const freshLims = pickWeightedLimits(8, LIMITS_DEF.filter(d => limits[d.id].current < limits[d.id].max && !usedLimIds.has(d.id)));
   let li = 0;
   shopItems.limits = shopItems.limits.map((d, i) => shopPurchased.has(`limit-${i}`) ? d : (freshLims[li++] || d));
 
@@ -14351,6 +15692,7 @@ function startGame() {
   acquiredTricks = [];
   acquiredKnacks  = [];
   trickTray          = [];
+  _trickReplaceQueue = [];
   syncTrickTrayUI();   // show the Trick tray (or grid-preview) to match trickTrayMode for the new game
   cardPlayCount   = {};
   cardSwapCount   = {};
@@ -14360,6 +15702,10 @@ function startGame() {
   sleightNextHandDouble = false;
   sleightLegacyMult    = false;
   sleightAmplifierMult = 0;
+  _dabiSwapNext        = false;
+  magnetArmed          = null;
+  _comboAnnounced      = new Set();
+  _comboHinted         = new Set();
   sleightFreeSwapPending = false;
   // Reset all counters
   Object.keys(C).forEach(k => C[k] = (typeof C[k] === 'boolean' ? false : 0));
@@ -14368,6 +15714,7 @@ function startGame() {
   permXPips  = {};
   permXMult  = {};
   permRetrig = {};
+  cardCurses = {};
   bonusMult_fives = 0;
   bonusMult_nines = 0;
   bonusMult_tens = 0;
@@ -14422,7 +15769,7 @@ function startGame() {
   // Clear any leftover card elements from previous game
   document.getElementById('grid').querySelectorAll('.card').forEach(el => el.remove());
   roundGoal = BASE_GOAL;
-  cumulativeGoal = BASE_GOAL;
+  totalScore = 0;
   coins = 0;
   shopItems = null;
   shopPurchased = new Set();
@@ -15153,6 +16500,10 @@ function initDevMode() {
   if (hudToggle) hudToggle.checked = showDeckHud;
   const trickToggle = document.getElementById('dev-trick-tray-toggle');
   if (trickToggle) trickToggle.checked = !trickTrayMode;   // checked = Tricks placed on grid
+  const ndToggle = document.getElementById('dev-new-dance-toggle');
+  if (ndToggle) ndToggle.checked = newDanceEnabled;
+  const diSel = document.getElementById('dev-dance-interrupt');
+  if (diSel) diSel.value = danceInterruptMode;
   applyDeckHudVisibility();
   // Focus dev controls — restore persisted values
   const decaySlider = document.getElementById('dev-focus-decay-slider');
@@ -15249,7 +16600,7 @@ function devSetCoins(n) { coins = n; updateCoinsUI(); }
 function devAddScore(n) { score += n; updateScoreUI(); }
 
 function devWinRound() {
-  score = cumulativeGoal + 1;
+  score = roundGoal + 1;
   updateScoreUI();
   closeDevPanel();
 }
@@ -15417,15 +16768,18 @@ function devFilterTricks(query) {
 function devAddTrick(id) {
   const trick = TRICK_POOL.find(b => b.id === id);
   if (!trick) return;
-  acquiredTricks.push(trick);
-  updateTrickList();
+  // Real grant path: pushes into trickTray (tray mode) / grid, enforces capacity,
+  // records acquiredTricks via selectTrick, and re-renders the tray.
+  injectTrickAfterReward(trick);
   // Refresh focus-related state since Meditation/etc. may have just been added
   recomputeFocusDecayInterval();
-  // Flash confirmation
-  const btn = event.target;
-  btn.textContent = '✓ Added';
-  btn.style.color = '#8bc34a';
-  setTimeout(() => { btn.textContent = '+ Add'; btn.style.color = ''; }, 1200);
+  // Flash confirmation (window.event may be absent when called programmatically)
+  const btn = (typeof event !== 'undefined' && event) ? event.target : null;
+  if (btn && btn.tagName === 'BUTTON') {
+    btn.textContent = '✓ Added';
+    btn.style.color = '#8bc34a';
+    setTimeout(() => { btn.textContent = '+ Add'; btn.style.color = ''; }, 1200);
+  }
 }
 
 function devFilterKnacks(query) {
