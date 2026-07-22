@@ -1,8 +1,48 @@
-# Redesign Progress & Handoff (as of build r69)
+# Redesign Progress & Handoff (as of build r94)
 
 Companion to `GLOSSARY.md` (house style) and `CLAUDE.md` (architecture). This tracks the
 trick/sleight/knack redesign driven by the owner's CSV (`bonus_redesign_6.15.26.csv`,
 uploaded per-session) plus occasional supplemental docs.
+
+## ⭐ NEXT-SESSION HANDOFF (as of r94, live)
+
+**Re-orient first:** re-upload the CSV `bonus_redesign_6.15.26.csv` (per-session, not in repo);
+read this doc + `GLOSSARY.md` + `CLAUDE.md` + `BALANCE_SHEET.md` (skim `SYNERGY_COMBOS.md` /
+`REWARD_GRID_VARIETY.md` — parallel work now on main). Branch off latest `origin/main`
+(source of truth, **live at r94**); other sessions commit to main directly, so
+`git fetch origin main` + merge before pushing, and bump `BUILD` each commit.
+
+**DONE & live this session (r74–r77, merged to main at r94):**
+- Currency **coins/gold → credits** (player-facing text only; `coins` var & `--gold` color untouched).
+- **Keyword coloring** in tooltips via `colorizeKeywords()` (pips=blue, mult=red, focus=purple,
+  credits=yellow, time=black+white glow, replay/retrigger=white+rgb glow).
+- **Replay vs Retrigger** wording split (card re-scored = replay; trick/etc. re-fired = retrigger).
+- **6 new position tricks:** Groove, Assembly Line, Overtime, Feng Shui, Huddle, Clean Sweep.
+- **Grid/Position batch:** 16 redesigns + 2 new mechanics (`firesThisMinute(id)` once-per-minute
+  gate, `isEffectIntersection(r,c)`), Snake removed. (Details in the IN-FLIGHT section below.)
+
+**REMAINING tasks (specs below in IN-FLIGHT):**
+- **#7 Sell system** — click a trick/knack → popup w/ credit sell-value + Sell, anytime; entity
+  leaves (no longer affects score/mechanics) + grant credits; resource grants (swaps/discards)
+  reduce current stock by that amount, floored at 0. No sell mechanic exists yet (only Sacrifice
+  at Limit Break).
+- **#8 Position knacks** — Surveyor (pick the column), Leveler (pick the row), Alignment
+  (mark column = trick's slot number), District (allow >1 effect on the same row/column).
+- **#9 Chosen One (mythic)** — cards played at an intersection of a row+column effect get +1
+  replay. Reuse `isEffectIntersection(r,c)`.
+- **#10 Rewind — RECONCILE, do NOT rebuild.** A rewind system ALREADY exists on main:
+  `rewindTime(seconds,label)`, `handleClockMarks(secs)`, + entities (Time Slip, Rewound Echo,
+  Déjà Vu, Clockmaker, Rewind sleight, Last Call, Sandbagger, Hoarder House, Tick-Tock/Quarter
+  Chime/Minute Hand/etc.). Left to do: (a) study that code; (b) make the once-per-minute gate
+  (`firesThisMinute`: Study Hall, Ley Line) re-arm when rewind crosses a minute boundary;
+  (c) convert remaining `+seconds` effects to pause/rewind, alternating — Right Time already
+  =Pause 2; Overtime/Deluge/Blood Diamonds → rewind; Time Bank stays a round-start grant;
+  (d) build **Temporal Rift** (was Please Sir) on the existing rewind mechanic — permanent
+  rewind/pause-when-scored buff at an effect-intersection, once per minute.
+
+**Owner working style:** non-technical — explain plainly; spec each batch ~5-by-5 for sign-off
+before building; validate syntax after edits; push to feature branch; only fast-forward `main`
+(live deploy) when the owner says so.
 
 ## Workflow
 - Branch: develop on whatever `claude/*` branch the session is assigned, then ship =
