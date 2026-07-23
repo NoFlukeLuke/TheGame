@@ -3233,6 +3233,34 @@
   }
   #stage.landscape #knack-list, #stage.landscape #trick-tray-list { position: relative; z-index: 1; }
 
+  /* ── Focus meter → recessed power gauge, continuous fill (r96) ── */
+  #stage.landscape #focus-meter-wrap { width: 6.4%; gap: 5px; overflow: visible; }
+  #focus-bar-outer {
+    background: #0b0906 !important;
+    border: 2px solid var(--plastic-lo) !important;
+    border-radius: 5px !important;
+    padding: 2px !important;
+    box-shadow: inset 0 3px 8px rgba(0,0,0,0.9), inset 0 0 0 1px #000, 0 2px 0 var(--plastic-deep) !important;
+  }
+  #stage.landscape #focus-bar-outer { width: 26px !important; }
+  #focus-active-segment { gap: 1px; }
+  .focus-node { background: #17110a !important; border-radius: 0 !important;
+                transition: background 0.12s ease, box-shadow 0.12s ease; }
+  /* filled node bg + glow are set inline by JS (gradient by height) */
+  .focus-node.tick { border-bottom: 1.5px solid rgba(0,0,0,0.85); }
+  /* bigger, brighter multiplier readout pinned at the bottom */
+  #focus-mult-readout {
+    font-family: 'Orbitron', sans-serif !important; font-weight: 700 !important;
+    font-size: 15px !important; letter-spacing: 0 !important; line-height: 1;
+    white-space: nowrap; padding: 2px 2px 0;
+    color: var(--phosphor) !important; text-shadow: 0 0 8px rgba(255,176,46,0.55) !important;
+  }
+  #focus-mult-readout.dim { opacity: 0.55 !important; }
+  #focus-mult-readout.active {
+    color: var(--c-mint) !important; opacity: 1 !important;
+    text-shadow: 0 0 9px rgba(53,213,155,0.75) !important;
+  }
+
 </style>
 </head>
 <body>
@@ -3383,11 +3411,6 @@
   <div id="grid-and-buttons">
     <!-- Focus Meter -->
     <div id="focus-meter-wrap">
-      <div id="focus-dots">
-        <div class="focus-dot" id="focus-dot-2"></div>
-        <div class="focus-dot" id="focus-dot-1"></div>
-        <div class="focus-dot" id="focus-dot-0"></div>
-      </div>
       <div id="focus-bar-outer">
         <div id="focus-active-segment"><!-- 10 nodes built by JS --></div>
       </div>
@@ -4080,7 +4103,7 @@
 </div>
 
 <script>
-const BUILD = '2026-07-22 · r95 LETHE reskin';
+const BUILD = '2026-07-22 · r96 LETHE reskin';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -6928,49 +6951,48 @@ function focusColor(nodes) {
   return FOCUS_COLORS[charges];
 }
 
+// Continuous-bar model (r96): one node per point of the FULL capacity (cap*10),
+// filled bottom→top to the current focus level. Color grades cool→hot by height so
+// altitude itself reads as intensity; a tick marks every 10-node charge boundary.
+function focusNodeColor(i, cap) {
+  const f = cap <= 1 ? 0 : i / (cap - 1);
+  // stops: mint → cyan → yellow → magenta
+  const stops = [[53,213,155],[22,200,216],[255,206,43],[255,47,142]];
+  const seg = f * (stops.length - 1);
+  const a = Math.min(stops.length - 1, Math.floor(seg));
+  const b = Math.min(stops.length - 1, a + 1);
+  const t = seg - a;
+  const m = (x, y) => Math.round(x + (y - x) * t);
+  return `rgb(${m(stops[a][0],stops[b][0])},${m(stops[a][1],stops[b][1])},${m(stops[a][2],stops[b][2])})`;
+}
 function buildFocusMeter() {
   const seg = document.getElementById('focus-active-segment');
   if (!seg) return;
+  const cap = focusCapacity * FOCUS_THRESHOLD;
   seg.innerHTML = '';
   focusNodeEls = [];
-  for (let i = 0; i < FOCUS_THRESHOLD; i++) {
+  for (let i = 0; i < cap; i++) {
     const node = document.createElement('div');
-    node.className = 'focus-node';
-    seg.appendChild(node); // column-reverse: first child = bottom of segment
+    // tick class on the first node of each new charge (except the very bottom)
+    node.className = 'focus-node' + ((i > 0 && i % FOCUS_THRESHOLD === 0) ? ' tick' : '');
+    seg.appendChild(node); // column-reverse: first child = bottom of bar
     focusNodeEls.push(node);
   }
 }
 
 function syncFocusMeterState() {
-  const total = Math.min(focusNodes, focusCapacity * FOCUS_THRESHOLD);
-  const chargesComplete = Math.floor(total / FOCUS_THRESHOLD);
-  let nodesInSegment = total - chargesComplete * FOCUS_THRESHOLD;
-  // Color reflects the tier currently being filled (next tier after completed charges)
-  let segColorIdx = chargesComplete;
-  // On a clean x.0 (the segment would read 0 but focus > 0), show it FULL in the
-  // just-completed charge's colour — the bar only ever looks empty at true zero.
-  if (total > 0 && nodesInSegment === 0) {
-    nodesInSegment = FOCUS_THRESHOLD;
-    segColorIdx = chargesComplete - 1;
-  }
-  const color = FOCUS_COLORS[Math.min(segColorIdx, FOCUS_COLORS.length - 1)];
-  document.documentElement.style.setProperty('--focus-color', color);
-
-  // Active segment nodes
+  const cap = focusCapacity * FOCUS_THRESHOLD;
+  // Capacity can grow mid-run (Expanse / Quick Draw) — keep the bar's node count in sync.
+  if (focusNodeEls.length !== cap) buildFocusMeter();
+  const total = Math.min(focusNodes, cap);
+  // Meter-wide glow color tracks the current top of the fill.
+  document.documentElement.style.setProperty('--focus-color', focusNodeColor(Math.max(0, total - 1), cap));
   focusNodeEls.forEach((node, i) => {
-    node.style.setProperty('--focus-color', color);
-    node.classList.toggle('filled', i < nodesInSegment);
+    const on = i < total;
+    node.classList.toggle('filled', on);
+    if (on) { const c = focusNodeColor(i, cap); node.style.background = c; node.style.boxShadow = '0 0 3px ' + c; }
+    else    { node.style.background = ''; node.style.boxShadow = ''; }
   });
-
-  // Dots — light up one per completed charge (only first 3 visible)
-  for (let i = 0; i < 3; i++) {
-    const dot = document.getElementById(`focus-dot-${i}`);
-    if (!dot) continue;
-    const dotColor = FOCUS_COLORS[Math.min(i, FOCUS_COLORS.length - 1)];
-    dot.style.setProperty('--focus-color', dotColor);
-    dot.classList.toggle('lit', i < chargesComplete);
-  }
-
   updateFocusMultReadout();
 }
 
@@ -7002,24 +7024,19 @@ function addFocus(amount) {
   focusDecayBuffer = 0;   // gaining focus resets the x.0 grace buffer
   const cap = focusCapacity * FOCUS_THRESHOLD;
   const prev = Math.min(focusNodes, cap);
-  const prevCharges = Math.floor(prev / FOCUS_THRESHOLD);
-  const prevSegNode = prev - prevCharges * FOCUS_THRESHOLD;
   focusNodes = Math.min(focusNodes + amount, cap);
   // Expanse: each time we hit max capacity, bump capacity by 1 (for the rest of the run)
   if (hasTrick('expanse') && prev < cap && focusNodes === cap) {
     focusCapacity++;
   }
-  const newCharges = Math.floor(focusNodes / FOCUS_THRESHOLD);
-  const newSegNode = focusNodes - newCharges * FOCUS_THRESHOLD;
-  const chargeCrossed = newCharges > prevCharges;
-
-  if (chargeCrossed) {
-    for (let i = prevSegNode; i < FOCUS_THRESHOLD; i++) focusAnimQueue.push({ segIdx: i });
-    focusAnimQueue.push({ sentinel: true, charges: newCharges });
-    for (let i = 0; i < newSegNode; i++) focusAnimQueue.push({ segIdx: i });
-  } else {
-    for (let i = prevSegNode; i < newSegNode; i++) focusAnimQueue.push({ segIdx: i });
+  // Keep the bar's node count in sync if capacity changed, preserving already-filled nodes.
+  if (focusNodeEls.length !== focusCapacity * FOCUS_THRESHOLD) {
+    buildFocusMeter();
+    const c0 = focusCapacity * FOCUS_THRESHOLD;
+    focusNodeEls.forEach((n, i) => { if (i < prev) { const c = focusNodeColor(i, c0); n.classList.add('filled'); n.style.background = c; n.style.boxShadow = '0 0 3px ' + c; } });
   }
+  const newTotal = Math.min(focusNodes, focusCapacity * FOCUS_THRESHOLD);
+  for (let i = prev; i < newTotal; i++) focusAnimQueue.push({ nodeIdx: i });
   runFocusAnimQueue();
 }
 
@@ -7067,56 +7084,22 @@ function spawnFocusFallClone(srcEl, opts = {}) {
   anim.onfinish = () => clone.remove();
 }
 
-// Remove `amount` nodes with sideways-pop-and-fall animation.
-// Dots that unlight (charge boundary crossed downward) fall first, then nodes.
+// Remove `amount` nodes from the top of the bar with a sideways-pop-and-fall animation.
 function removeFocus(amount) {
   if (!amount || amount <= 0) return;
 
-  // Capture state BEFORE mutation so we can snapshot dot/node positions
   const cap = focusCapacity * FOCUS_THRESHOLD;
   const prevTotal = Math.min(focusNodes, cap);
   const newTotal  = Math.max(0, prevTotal - amount);
-  const prevCharges = Math.floor(prevTotal / FOCUS_THRESHOLD);
-  const newCharges  = Math.floor(newTotal  / FOCUS_THRESHOLD);
 
-  // Collect the visual elements that need to fall (snapshot DOM refs before sync).
-  // Dots: any lit dot whose index >= newCharges and < prevCharges.
-  // Nodes: the currently-filled nodes in the active segment that will become unfilled.
-  const dotsToFall = [];
-  for (let i = newCharges; i < prevCharges && i < 3; i++) {
-    const dot = document.getElementById(`focus-dot-${i}`);
-    if (dot && dot.classList.contains('lit')) dotsToFall.push(dot);
-  }
-
-  // Nodes in the currently-displayed active segment that will visually disappear.
-  // After mutation, syncFocusMeterState rebuilds .filled state — so capture which DOM
-  // nodes are filled NOW and will be unfilled AFTER, and clone those.
-  const prevSegNodes = prevTotal - prevCharges * FOCUS_THRESHOLD;
-  const newSegNodes  = newTotal  - newCharges  * FOCUS_THRESHOLD;
+  // The now-topmost filled nodes (indexes newTotal..prevTotal-1) fall away; highest first.
   const nodesToFall = [];
-  if (newCharges === prevCharges) {
-    // Same charge tier — the top-most filled nodes vanish (indexes newSegNodes..prevSegNodes-1)
-    for (let i = newSegNodes; i < prevSegNodes; i++) {
-      const n = focusNodeEls[i];
-      if (n) nodesToFall.push(n);
-    }
-  } else {
-    // Charge boundary crossed — segment will be rebuilt at the new (lower) tier.
-    // The visible filled nodes ALL vanish (the segment was full at prevCharges; after dotsToFall
-    // animates them away, syncFocusMeterState will re-fill some at the new tier).
-    for (let i = 0; i < prevSegNodes; i++) {
-      const n = focusNodeEls[i];
-      if (n) nodesToFall.push(n);
-    }
-    // Also, if newSegNodes < FOCUS_THRESHOLD, the nodes above newSegNodes at the new tier
-    // were never visually full to begin with — they'll just stay unfilled after sync.
+  for (let i = prevTotal - 1; i >= newTotal; i--) {
+    const n = focusNodeEls[i];
+    if (n) nodesToFall.push(n);
   }
-
-  // Fire dot falls first (small lead so they're visibly first), then node falls.
-  const DOT_LEAD = 100; // ms — dots leave first
   const NODE_STAGGER = 30; // ms between nodes
-  dotsToFall.forEach((d, i) => spawnFocusFallClone(d, { delay: i * 40 }));
-  nodesToFall.forEach((n, i) => spawnFocusFallClone(n, { delay: (dotsToFall.length > 0 ? DOT_LEAD : 0) + i * NODE_STAGGER }));
+  nodesToFall.forEach((n, i) => spawnFocusFallClone(n, { delay: i * NODE_STAGGER }));
 
   // Mutate state and re-render. The real DOM nodes go dark immediately;
   // the temp clones continue their fall on body.
@@ -7132,46 +7115,18 @@ function runFocusAnimQueue() {
   function step() {
     if (focusAnimQueue.length === 0) { focusAnimRunning = false; return; }
     const item = focusAnimQueue.shift();
-
-    if (item.sentinel) {
-      // Charge completed — light the corresponding dot, then clear nodes & switch color
-      const dotIdx = item.charges - 1;
-      const dot = document.getElementById(`focus-dot-${dotIdx}`);
-      if (dot) {
-        const dotColor = FOCUS_COLORS[Math.min(dotIdx, FOCUS_COLORS.length - 1)];
-        dot.style.setProperty('--focus-color', dotColor);
-        dot.classList.add('lit');
-        dot.style.animation = 'none';
-        void dot.offsetWidth;
-        dot.style.animation = 'focusChargePop 0.35s ease';
-      }
-      setTimeout(() => {
-        const nextColor = FOCUS_COLORS[Math.min(item.charges, FOCUS_COLORS.length - 1)];
-        document.documentElement.style.setProperty('--focus-color', nextColor);
-        focusNodeEls.forEach(n => {
-          n.classList.remove('filled');
-          n.style.setProperty('--focus-color', nextColor);
-        });
-        updateFocusMultReadout(true);
-        setTimeout(step, 120);
-      }, 280);
-      return;
-    }
-
-    const node = focusNodeEls[item.segIdx];
+    const node = focusNodeEls[item.nodeIdx];
     if (!node) { step(); return; }
+    const c = focusNodeColor(item.nodeIdx, focusCapacity * FOCUS_THRESHOLD);
     node.classList.add('filled');
+    node.style.background = c;
+    node.style.boxShadow = '0 0 3px ' + c;
     node.style.animation = 'none';
     void node.offsetWidth;
     node.style.animation = 'focusNodePop 0.15s ease';
-    // Pulse the readout if we just crossed into the active range (node 11+)
-    const totalNow = (Math.floor(focusNodes / FOCUS_THRESHOLD) * FOCUS_THRESHOLD) + (item.segIdx + 1);
-    if (totalNow > FOCUS_THRESHOLD) {
-      updateFocusMultReadout(true);
-    } else {
-      updateFocusMultReadout(false);
-    }
-    setTimeout(step, 80);
+    // Pulse the readout once past the warm-up charge (node 11+ = multiplier > 1)
+    updateFocusMultReadout(item.nodeIdx + 1 > FOCUS_THRESHOLD);
+    setTimeout(step, 70);
   }
   step();
 }
@@ -13268,25 +13223,14 @@ async function showLevelUpScreen_fallOnly() {
   if (focusNodes > 0) {
     const cap = focusCapacity * FOCUS_THRESHOLD;
     const total = Math.min(focusNodes, cap);
-    const charges = Math.floor(total / FOCUS_THRESHOLD);
-    const segNodes = total - charges * FOCUS_THRESHOLD;
 
-    // Dots first
-    const litDots = [];
-    for (let i = 0; i < Math.min(charges, 3); i++) {
-      const dot = document.getElementById(`focus-dot-${i}`);
-      if (dot && dot.classList.contains('lit')) litDots.push(dot);
-    }
-    litDots.forEach((d, i) => spawnFocusFallClone(d, { delay: i * 40 }));
-
-    // Nodes after dots
-    const DOT_LEAD = litDots.length > 0 ? 100 : 0;
+    // Every filled node falls, highest first.
     const filledNodes = [];
-    for (let i = 0; i < segNodes; i++) {
+    for (let i = total - 1; i >= 0; i--) {
       const n = focusNodeEls[i];
       if (n) filledNodes.push(n);
     }
-    filledNodes.forEach((n, i) => spawnFocusFallClone(n, { delay: DOT_LEAD + i * 30 }));
+    filledNodes.forEach((n, i) => spawnFocusFallClone(n, { delay: i * 20 }));
 
     // Zero state silently — the real DOM goes dark immediately while clones fall.
     focusNodes = 0;
