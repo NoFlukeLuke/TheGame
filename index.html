@@ -3821,7 +3821,7 @@
 </div>
 
 <script>
-const BUILD = '2026-07-22 · r94';
+const BUILD = '2026-07-23 · r95';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -4301,7 +4301,8 @@ const FOCUS_THRESHOLD = 10; // nodes per charge
 let focusCapacity   = 3;   // max charges (modifiable by Expanse bonus)
 const FOCUS_COLORS  = ['#54af88','#3a8fbf','#7a50c0','#9a30d0'];
 let lastCalcMult   = 0;   // set by calcScore so playHand can generate focus from it
-let lastCalcFocus  = 1;   // focus multiplier applied to the last scored hand (FOCUS box)
+let lastCalcFocus  = 1;   // focus multiplier applied to the last scored hand (FOCUS box) — POST-hand value
+let lastPreHandFocus = 1; // focus multiplier when the hand STARTED scoring — the FOCUS box's dance-start value
 let lastPreFocusMult = 0; // mult before focus multiplier applied — used by score dance
 let focusNodeEls    = [];  // bottom=index 0, top=index 9 (10 per active segment)
 let focusAnimQueue  = [];  // pending node indices to animate
@@ -6485,7 +6486,8 @@ function render() {
       if (pipsEl) animateDigitEl(pipsEl, 0);
       if (multEl) animateDigitEl(multEl, 0);
     }
-    // FOCUS box tracks the live focus multiplier (what would apply to the next hand)
+    // FOCUS box tracks the live focus multiplier (the multiplier the next hand will START at,
+    // before that hand's own Focus is added — see generateHandFocus / the dance's focus beat)
     const _fvEl = document.getElementById('focus-val');
     if (_fvEl) { const _fm = focusMultiplier(); _fvEl.textContent = (_fm === 1) ? '×1' : '×' + _fm.toFixed(1); }
   }
@@ -7591,101 +7593,13 @@ gridEl2.addEventListener('pointercancel', () => {
 gridEl2.addEventListener('contextmenu', e => e.preventDefault());
 
 // ══════════════════════════════════════════════
-// PLAY HAND
+// FOCUS GENERATION (r95)
 // ══════════════════════════════════════════════
-function playHand() {
-  if (roundEnded) { dbgEvent('warn', 'play ignored (round ended)'); return; }
-  if (falling)   { pendingAction = 'play'; dbgEvent('info', 'play queued (falling)'); return; }
-  if (animating) { pendingAction = 'play'; dbgEvent('info', 'play queued (animating)'); scheduleQueuedRetry(); return; }
-  cancelAutoSubmit();
-  console.log('[PLAY] entry', { score, goal: roundGoal, goalReachedThisRound, bonusWindowActive, animating, hasDance: !!danceAbortController });
-  const result = findBestHand(selected);
-  if (!result) { dbgEvent('warn', 'play: no valid hand', { selected: selected.length, animating, falling, roundEnded, dance: !!danceAbortController, swapPending: !!swapPending, swiping: isSwiping }); console.log('[PLAY] no result, exiting'); return; }
-  // Abort any prior in-flight score dance ONLY now that we have a real hand to play.
-  // (A spurious double-fire of Play on a now-empty selection must NOT cancel the
-  //  in-progress dance — that was the "cards wiggle but never score" bug.)
-  cancelDance();
-
-  const playedCells = [...selected]; // capture before any path clears selection (for on_play sleights)
-  const { hand, handCells, penaltyCells, penaltyPips, finalScore } = result;
-  // Snapshot contribution breakdown now, from pristine pre-mutation state.
-  // Folded into the round tally at the commit points below (goal / normal).
-  const _contribSnapshot = captureRoundContrib(result);
-  // Cuckoo: tally this hand's retriggers (captureRoundContrib just ran calcScore on the real hand).
-  if (hasTrick('cuckoo')) retriggersThisRound += _lastHandRetrigs;
-  // Rewound Echo knack: each card replay this hand has a chance to rewind 2 seconds.
-  if (hasKnack('replay_rewind') && _lastHandRetrigs > 0) {
-    let _rw = 0;
-    for (let i = 0; i < _lastHandRetrigs; i++) if (Math.random() < BAL.replay_rewind.chance) _rw += BAL.replay_rewind.seconds;
-    if (_rw > 0) rewindTime(_rw, `🔂 Rewound Echo — rewound ${_rw}s`);
-  }
-  // Vulture: retrigger-aware pause-seconds from buffed cards in this hand (same fresh snapshot).
-  const _vultureSec = _lastHandVultureSeconds;
-  dbgEvent('ok', 'play ' + hand, { finalScore, cards: handCells.length });
-  console.log('[PLAY] hand result', { hand, finalScore, scoreAfterAdd: score + finalScore });
-  const scoreBeforeHand = score;
-  score += finalScore;
-  if (sleightNextHandDouble) { score += finalScore; sleightNextHandDouble = false; }
-  if (sleightLegacyMult)     { score += finalScore * BAL.the_legacy.extra_mult; sleightLegacyMult = false; } // ×3 total = base + 2× extra
-  if (sleightAmplifierMult) sleightAmplifierMult = 0;
-  // Clock-mark Tricks: the pending pip/mult bonuses were already folded into finalScore — clear them now.
-  pendingHandPips = 0; pendingHandMult = 0; pendingCardPips = 0;
-  handsPlayed++;
-
-  // Boss objective progress.
-  // Snapshot boss state BEFORE checkBossObjective — a boss-winning hand calls endBoss(),
-  // which flips bossActive to false; without this snapshot the normal goal-reach below
-  // would then also fire, double-running the interlude (boss grid + payout + new grid).
-  const _bossThisHand = bossActive;
-  if (_bossThisHand) checkBossObjective(hand, finalScore);
-
-  // Lucky Seven knack: every 7th hand grants +1 swap
-  if (hasKnack('lucky_seven') && handsPlayed % BAL.lucky_seven.interval_hands === 0) {
-    swaps = Math.min(99, swaps + BAL.lucky_seven.swaps);
-    showMessage('🎯 LUCKY SEVEN — +1 SWAP', '#c9a84c');
-  }
-  if (finalScore > highestHandScore) { highestHandScore = finalScore; highestHandName = hand; }
-  if (hand === 'Full House' && hasTrick('full_house_streak')) fullHouseThisRound++;
-
-  // Check challenge progress
-  if (challengeActive) checkChallengeAfterHand(result, handCells);
-
-  // on_play sleights (Good Friend exalt, Shortcut challenge-complete) fire when played
-  fireSleightsOnPlay(playedCells, handCells, hand);
-
-  updateCounters(hand, handCells);
-  checkUnlocks();
-
-  // ── Check goal immediately after scoring ──
-  // Suppressed during/just-after a boss: the boss objective system + post-boss reward
-  // grid handle progression. (_bossThisHand catches the boss-winning hand, where endBoss
-  // already set bossActive=false above.)
-  if (!_bossThisHand && !bossActive && score >= roundGoal && !goalReachedThisRound) {
-    console.log('[GOAL] reached', { score, goal: roundGoal, finalScore });
-    goalReachedThisRound = true;
-    roundEnded = true; // freeze input immediately
-    const toRemove = [...selected];
-    selected = [];
-    commitRoundContrib(_contribSnapshot); // goal-clearing hand counts toward the tally
-    // Run the score animation; goal interlude fires at end of dance via isGoalHand path
-    playScoreDance(result, toRemove, true /* goalHand */);
-    return;
-  }
-
-  // ── Goal already reached — input is frozen, this shouldn't fire ──
-  if (goalReachedThisRound) {
-    console.log('[POST-GOAL] hand attempted after goal — ignoring');
-    score -= finalScore;
-    handsPlayed--;
-    if (finalScore > highestHandScore) { highestHandScore -= finalScore; }
-    if (hand === 'Full House' && hasTrick('full_house_streak')) fullHouseThisRound--;
-    return;
-  }
-
-  // (Animating is guarded at the top of playHand now — a hand submitted mid-animation
-  //  is queued and auto-executed once the animation settles, instead of silently failing.)
-
-  // ── Generate focus: hand-type complexity + speed bonus ──
+// All the Focus a hand EARNS — hand-type value, speed bonus, and every focus Trick.
+// Called from playHand BEFORE the hand's score is locked in, so the Focus the hand builds
+// up multiplies THIS hand (previously a hand's Focus only kicked in on the NEXT hand).
+// `vultureSec` is the retrigger-aware Vulture pause snapshot captured in playHand.
+function generateHandFocus(hand, handCells, vultureSec) {
   {
     const handFocus = HAND_FOCUS[hand] || 0;
     const now = Date.now();
@@ -7780,9 +7694,140 @@ function playHand() {
     }
     // Vulture buff: scored cards carrying the permanent "+Ns pause" buff pause the clock, counting
     // retriggers (each (re)trigger fires the buff). Not gated on hasTrick — the buff lives on the card.
-    if (_vultureSec) pauseRound(_vultureSec);
+    if (vultureSec) pauseRound(vultureSec);
     console.log('[FOCUS] hand=' + hand + ' base=' + handFocus + ' speedBonus=' + speedBonus + ' total=' + totalFocus + ' t=' + secondsSinceLast.toFixed(2) + 's');
   }
+
+  // Clean Sweep: if this hand + the previous cover a full row or column, advance Focus a threshold
+  if (hasTrick('clean_sweep')) {
+    const _csCur = handCells.map(([r,c]) => r + '-' + c);
+    const _csWin = new Set([..._csCur, ..._cleanSweepPrev]);
+    let _csSwept = false;
+    for (let r = 0; r < gridRows && !_csSwept; r++) { let _full = true; for (let c = 0; c < gridCols; c++) { if (!_csWin.has(r+'-'+c)) { _full = false; break; } } if (_full) _csSwept = true; }
+    for (let c = 0; c < gridCols && !_csSwept; c++) { let _full = true; for (let r = 0; r < gridRows; r++) { if (!_csWin.has(r+'-'+c)) { _full = false; break; } } if (_full) _csSwept = true; }
+    if (_csSwept) {
+      const _nt = (Math.floor(focusNodes / FOCUS_THRESHOLD) + 1) * FOCUS_THRESHOLD;
+      addFocus(_nt - focusNodes);
+      showMessage('Clean Sweep! Focus advanced', '#5aa9e6');
+      _cleanSweepPrev = [];
+    } else {
+      _cleanSweepPrev = _csCur;
+    }
+  }
+
+  // Head Start: the first hand each round adds +5 Focus (flag reset stays in playHand)
+  if (firstHandThisRound && hasTrick('first_play')) addFocus(BAL.first_play.focus);
+}
+
+// ══════════════════════════════════════════════
+// PLAY HAND
+// ══════════════════════════════════════════════
+function playHand() {
+  if (roundEnded) { dbgEvent('warn', 'play ignored (round ended)'); return; }
+  if (falling)   { pendingAction = 'play'; dbgEvent('info', 'play queued (falling)'); return; }
+  if (animating) { pendingAction = 'play'; dbgEvent('info', 'play queued (animating)'); scheduleQueuedRetry(); return; }
+  cancelAutoSubmit();
+  console.log('[PLAY] entry', { score, goal: roundGoal, goalReachedThisRound, bonusWindowActive, animating, hasDance: !!danceAbortController });
+  const result = findBestHand(selected);
+  if (!result) { dbgEvent('warn', 'play: no valid hand', { selected: selected.length, animating, falling, roundEnded, dance: !!danceAbortController, swapPending: !!swapPending, swiping: isSwiping }); console.log('[PLAY] no result, exiting'); return; }
+  // Abort any prior in-flight score dance ONLY now that we have a real hand to play.
+  // (A spurious double-fire of Play on a now-empty selection must NOT cancel the
+  //  in-progress dance — that was the "cards wiggle but never score" bug.)
+  cancelDance();
+
+  const playedCells = [...selected]; // capture before any path clears selection (for on_play sleights)
+  const { hand, handCells, penaltyCells, penaltyPips } = result;
+  // Snapshot contribution breakdown now, from pristine pre-mutation state.
+  // Folded into the round tally at the commit points below (goal / normal).
+  const _contribSnapshot = captureRoundContrib(result);
+  // Cuckoo: tally this hand's retriggers (captureRoundContrib just ran calcScore on the real hand).
+  if (hasTrick('cuckoo')) retriggersThisRound += _lastHandRetrigs;
+  // Rewound Echo knack: each card replay this hand has a chance to rewind 2 seconds.
+  if (hasKnack('replay_rewind') && _lastHandRetrigs > 0) {
+    let _rw = 0;
+    for (let i = 0; i < _lastHandRetrigs; i++) if (Math.random() < BAL.replay_rewind.chance) _rw += BAL.replay_rewind.seconds;
+    if (_rw > 0) rewindTime(_rw, `🔂 Rewound Echo — rewound ${_rw}s`);
+  }
+  // Vulture: retrigger-aware pause-seconds from buffed cards in this hand (same fresh snapshot).
+  const _vultureSec = _lastHandVultureSeconds;
+
+  // ── Focus applies to THIS hand (r95) ──
+  // Generate the Focus this hand earns BEFORE locking in its score, so the Focus the hand
+  // builds up is the multiplier that scores it (previously that Focus only helped the NEXT hand).
+  // lastPreHandFocus = the multiplier the hand STARTED at (dance shows this first), then the
+  // recompute below sets lastCalcFocus = the multiplier AFTER this hand's Focus (dance beats up to it).
+  lastPreHandFocus = focusMultiplier();
+  generateHandFocus(hand, handCells, _vultureSec);
+  // Re-score the winning hand now that Focus reflects this hand's own gains.
+  const finalScore = Math.max(0, calcScore(hand, handCells) - penaltyPips);
+  result.finalScore = finalScore; // keep result in sync for the dance / downstream reads
+
+  dbgEvent('ok', 'play ' + hand, { finalScore, cards: handCells.length });
+  console.log('[PLAY] hand result', { hand, finalScore, scoreAfterAdd: score + finalScore });
+  const scoreBeforeHand = score;
+  score += finalScore;
+  if (sleightNextHandDouble) { score += finalScore; sleightNextHandDouble = false; }
+  if (sleightLegacyMult)     { score += finalScore * BAL.the_legacy.extra_mult; sleightLegacyMult = false; } // ×3 total = base + 2× extra
+  if (sleightAmplifierMult) sleightAmplifierMult = 0;
+  // Clock-mark Tricks: the pending pip/mult bonuses were already folded into finalScore — clear them now.
+  pendingHandPips = 0; pendingHandMult = 0; pendingCardPips = 0;
+  handsPlayed++;
+
+  // Boss objective progress.
+  // Snapshot boss state BEFORE checkBossObjective — a boss-winning hand calls endBoss(),
+  // which flips bossActive to false; without this snapshot the normal goal-reach below
+  // would then also fire, double-running the interlude (boss grid + payout + new grid).
+  const _bossThisHand = bossActive;
+  if (_bossThisHand) checkBossObjective(hand, finalScore);
+
+  // Lucky Seven knack: every 7th hand grants +1 swap
+  if (hasKnack('lucky_seven') && handsPlayed % BAL.lucky_seven.interval_hands === 0) {
+    swaps = Math.min(99, swaps + BAL.lucky_seven.swaps);
+    showMessage('🎯 LUCKY SEVEN — +1 SWAP', '#c9a84c');
+  }
+  if (finalScore > highestHandScore) { highestHandScore = finalScore; highestHandName = hand; }
+  if (hand === 'Full House' && hasTrick('full_house_streak')) fullHouseThisRound++;
+
+  // Check challenge progress
+  if (challengeActive) checkChallengeAfterHand(result, handCells);
+
+  // on_play sleights (Good Friend exalt, Shortcut challenge-complete) fire when played
+  fireSleightsOnPlay(playedCells, handCells, hand);
+
+  updateCounters(hand, handCells);
+  checkUnlocks();
+
+  // ── Check goal immediately after scoring ──
+  // Suppressed during/just-after a boss: the boss objective system + post-boss reward
+  // grid handle progression. (_bossThisHand catches the boss-winning hand, where endBoss
+  // already set bossActive=false above.)
+  if (!_bossThisHand && !bossActive && score >= roundGoal && !goalReachedThisRound) {
+    console.log('[GOAL] reached', { score, goal: roundGoal, finalScore });
+    goalReachedThisRound = true;
+    roundEnded = true; // freeze input immediately
+    const toRemove = [...selected];
+    selected = [];
+    commitRoundContrib(_contribSnapshot); // goal-clearing hand counts toward the tally
+    // Run the score animation; goal interlude fires at end of dance via isGoalHand path
+    playScoreDance(result, toRemove, true /* goalHand */);
+    return;
+  }
+
+  // ── Goal already reached — input is frozen, this shouldn't fire ──
+  if (goalReachedThisRound) {
+    console.log('[POST-GOAL] hand attempted after goal — ignoring');
+    score -= finalScore;
+    handsPlayed--;
+    if (finalScore > highestHandScore) { highestHandScore -= finalScore; }
+    if (hand === 'Full House' && hasTrick('full_house_streak')) fullHouseThisRound--;
+    return;
+  }
+
+  // (Animating is guarded at the top of playHand now — a hand submitted mid-animation
+  //  is queued and auto-executed once the animation settles, instead of silently failing.)
+
+  // ── Focus for this hand was already generated above (generateHandFocus), so it could
+  //    multiply THIS hand's score. Just reset the decay countdown now. ──
   resetFocusDecayTimer();
 
   // Deluge: Flushes add seconds to the clock
@@ -7910,22 +7955,7 @@ function playHand() {
       if (_lcc && _lcc.rank) { const _lk = cardKey(_lcc.rank, _lcc.suit); permMult[_lk] = (permMult[_lk] || 0) + BAL.rowcol_perm_double.perm_mult; showMessage('Ley Line! +' + BAL.rowcol_perm_double.perm_mult + ' mult', '#a25cd8'); }
     }
   }
-  // Clean Sweep: if this hand + the previous cover a full row or column, advance Focus a threshold
-  if (hasTrick('clean_sweep')) {
-    const _csCur = handCells.map(([r,c]) => r + '-' + c);
-    const _csWin = new Set([..._csCur, ..._cleanSweepPrev]);
-    let _csSwept = false;
-    for (let r = 0; r < gridRows && !_csSwept; r++) { let _full = true; for (let c = 0; c < gridCols; c++) { if (!_csWin.has(r+'-'+c)) { _full = false; break; } } if (_full) _csSwept = true; }
-    for (let c = 0; c < gridCols && !_csSwept; c++) { let _full = true; for (let r = 0; r < gridRows; r++) { if (!_csWin.has(r+'-'+c)) { _full = false; break; } } if (_full) _csSwept = true; }
-    if (_csSwept) {
-      const _nt = (Math.floor(focusNodes / FOCUS_THRESHOLD) + 1) * FOCUS_THRESHOLD;
-      addFocus(_nt - focusNodes);
-      showMessage('Clean Sweep! Focus advanced', '#5aa9e6');
-      _cleanSweepPrev = [];
-    } else {
-      _cleanSweepPrev = _csCur;
-    }
-  }
+  // (Clean Sweep's Focus advance now fires in generateHandFocus, before scoring, so it helps this hand.)
   if (hasTrick('big_win') && !jackpotFired && finalScore >= BAL.big_win.score_threshold) { jackpotFired = true; bonusMult_jackpot += BAL.big_win.mult; showMessage('Jackpot! +5 mult permanently', 'var(--gold)'); }
   if (hasTrick('snowball') && lastCalcPips >= BAL.snowball.score_threshold) {
     result.handCells.forEach(([r,c]) => {
@@ -7976,8 +8006,7 @@ function playHand() {
         permPips[k] = (permPips[k]||0) + BAL.first_fruits.pips;
       });
     }
-    // Head Start: the first hand each round adds +5 Focus
-    if (hasTrick('first_play')) addFocus(BAL.first_play.focus);
+    // (Head Start's +5 Focus now fires in generateHandFocus, before scoring, so it helps this hand.)
     firstHandThisRound = false;
   }
 
@@ -8610,7 +8639,9 @@ async function playScoreDance(result, toRemove, isGoalHand = false) {
   const { hand, handCells, finalScore } = result;
   const targetPips  = lastCalcPips;
   const targetMult  = Math.round(lastCalcMult * 10) / 10;
-  const targetFocus = lastCalcFocus;
+  const preHandFocus = lastPreHandFocus;   // FOCUS multiplier when this hand STARTED scoring
+  const targetFocus = lastCalcFocus;       // FOCUS multiplier AFTER this hand's Focus
+  const _fmtFocus = f => '×' + (f % 1 === 0 ? f : f.toFixed(1));
   const scoreAfter  = score;
   const scoreBefore = score - finalScore;
 
@@ -8783,7 +8814,7 @@ async function playScoreDance(result, toRemove, isGoalHand = false) {
   // Focus beat: if focus multiplier is active, hold the score ticker until after
   // the mult particles finish and the focus beat plays (purple pulse on meter +
   // mult box, mult ticks rapidly from pre-focus to post-focus value).
-  const focusActive   = targetFocus > 1;
+  const focusActive   = targetFocus > 1 || targetFocus !== preHandFocus;
   const focusBeatMs   = focusActive ? focusBeatDurationMs : 0;
   const tickerStartDelay = focusActive ? multParticleEnd + 80 : 0;
   const scoreDur      = lastLand + 350; // ticker duration once it starts
@@ -8793,9 +8824,9 @@ async function playScoreDance(result, toRemove, isGoalHand = false) {
   let goalFlashFired = false;
   const goalCrossedAt = isGoalHand ? roundGoal : Infinity;
 
-  // Focus beat — fires after mult particles finish. MULT stays pure; the FOCUS box
-  // pops from ×1 up to the applied focus multiplier, then the score climbs by it.
-  if (focusActive && focusValEl) focusValEl.textContent = '×1';
+  // Focus beat — fires after mult particles finish. MULT stays pure; the FOCUS box shows the
+  // hand's starting multiplier, then pops up to the post-Focus multiplier, then the score climbs by it.
+  if (focusValEl) focusValEl.textContent = _fmtFocus(preHandFocus);
   if (focusActive) {
     setTimeout(() => {
       if (sig.aborted) return;
@@ -8817,8 +8848,8 @@ async function playScoreDance(result, toRemove, isGoalHand = false) {
       // Sound
       sfxFocusBeat();
 
-      // Snap the FOCUS box to the applied multiplier
-      if (focusValEl) focusValEl.textContent = '×' + (targetFocus % 1 === 0 ? targetFocus : targetFocus.toFixed(1));
+      // Snap the FOCUS box to the applied (post-hand) multiplier
+      if (focusValEl) focusValEl.textContent = _fmtFocus(targetFocus);
     }, multParticleEnd);
   }
 
@@ -9080,7 +9111,12 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   }
 
   const { hand, handCells, finalScore } = result;
-  const targetFocus = lastCalcFocus;
+  const preHandFocus = lastPreHandFocus;   // FOCUS multiplier when this hand STARTED scoring
+  const targetFocus = lastCalcFocus;       // FOCUS multiplier AFTER this hand's Focus (what actually scored it)
+  const _fmtFocus = f => '×' + (f % 1 === 0 ? f : f.toFixed(1));
+  // Seed the FOCUS box to the hand's starting multiplier immediately (before the fly-in), so the
+  // box reads the pre-hand value throughout the card phase and only beats up to targetFocus later.
+  { const _fEl = document.getElementById('focus-val'); if(_fEl) _fEl.textContent = _fmtFocus(preHandFocus); }
   const scoreAfter = score, scoreBefore = score - finalScore;
   const levelScale = Math.pow(1.1, level - 1);
   const base = HAND_BASE[hand] || { pips:0, mult:1 };
@@ -9156,7 +9192,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   const pipsBox=document.getElementById('pips-box'), multBox=document.getElementById('mult-box');
   let rp=basePips, rm=baseMult;
   if(pipsEl) pipsEl.textContent=rp; if(multEl) multEl.textContent=(rm%1===0)?rm:rm.toFixed(1);
-  if(focusEl) focusEl.textContent='×1';
+  if(focusEl) focusEl.textContent=_fmtFocus(preHandFocus);   // FOCUS starts at the hand's pre-scoring multiplier
   await dwait(DANCE_CFG.tickRest); if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
 
   // ── CARD PHASE — cards score; tricks charge (jitter ramps) ──
@@ -9198,9 +9234,9 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   }
   if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
 
-  // ── FOCUS beat ──
-  if(targetFocus>1){
-    if(focusEl) focusEl.textContent='×'+(targetFocus%1===0?targetFocus:targetFocus.toFixed(1));
+  // ── FOCUS beat — the box updates from the hand's starting multiplier to the post-Focus one ──
+  if(targetFocus>1 || targetFocus!==preHandFocus){
+    if(focusEl) focusEl.textContent=_fmtFocus(targetFocus);
     const fb=document.getElementById('focus-box'); if(fb){ fb.classList.remove('focus-beat'); void fb.offsetWidth; fb.classList.add('focus-beat'); }
     if(typeof updateFocusMultReadout==='function') updateFocusMultReadout(true);
     if(typeof sfxFocusBeat==='function') sfxFocusBeat();
@@ -15646,6 +15682,7 @@ function startGame() {
   focusAnimRunning = false;
   lastCalcMult = 0;
   lastCalcFocus = 1;
+  lastPreHandFocus = 1;
   lastPreFocusMult = 0;
   buildFocusMeter();
   syncFocusMeterState();
