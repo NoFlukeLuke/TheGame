@@ -3203,6 +3203,36 @@
   #grid { background: radial-gradient(ellipse at center, #17240f 0%, #0a0d06 82%) !important;
           border: 1px solid #000 !important; box-shadow: inset 0 0 24px rgba(0,0,0,0.8), 0 0 0 2px #2c2418 !important; }
 
+  /* ── Left-column stat chips: full solid-color fills, beige text (r95) ── */
+  #stage.landscape #score-subboxes { border-top: 2px solid var(--plastic-lo) !important; }
+  #pips-box  { background:#2a5fd0 !important; border:1px solid #123a94 !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.28), 0 1px 2px rgba(0,0,0,0.45) !important; border-radius:5px; }
+  #mult-box  { background:#cf3a2c !important; border:1px solid #7f1d14 !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.24), 0 1px 2px rgba(0,0,0,0.45) !important; border-radius:5px; }
+  #focus-box { background:#8a5cf0 !important; border:1px solid #532eb0 !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.26), 0 1px 2px rgba(0,0,0,0.45) !important; border-radius:5px; }
+  #pips-box .subbox-label,  #pips-box .subbox-val,
+  #mult-box .subbox-label,  #mult-box .subbox-val,
+  #focus-box .subbox-label, #focus-box .subbox-val {
+    color: var(--cream) !important; text-shadow: 0 1px 1px rgba(0,0,0,0.4) !important;
+  }
+
+  /* ── Tricks / Knacks: faint watermark label, covered by real content (r95) ── */
+  #stage.landscape #knack-carousel-wrap, #stage.landscape #trick-tray-area { overflow: hidden; }
+  #stage.landscape #knack-carousel-wrap::before {
+    content: "KNACKS"; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+    display: flex; align-items: center; justify-content: center; white-space: nowrap;
+    font-family: 'Orbitron', sans-serif; font-weight: 900; letter-spacing: 6px; font-size: 22px;
+    color: rgba(244,236,214,0.07); text-transform: uppercase;
+  }
+  #stage.landscape #trick-tray-area::before {
+    content: "TRICKS"; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+    display: flex; align-items: center; justify-content: center; white-space: nowrap;
+    font-family: 'Orbitron', sans-serif; font-weight: 900; letter-spacing: 9px; font-size: 46px;
+    color: rgba(244,236,214,0.06); text-transform: uppercase;
+  }
+  #stage.landscape #knack-list, #stage.landscape #trick-tray-list { position: relative; z-index: 1; }
+
 </style>
 </head>
 <body>
@@ -3343,7 +3373,7 @@
       <!-- Knack section -->
       <div id="knack-carousel-wrap">
         <span class="panel-title">Knacks</span>
-        <div id="knack-list"><span style="font-size:9px;color:var(--cream-dim)">No knacks</span></div>
+        <div id="knack-list"></div>
       </div>
     </div>
 
@@ -4050,7 +4080,7 @@
 </div>
 
 <script>
-const BUILD = '2026-07-22 · r94 LETHE reskin';
+const BUILD = '2026-07-22 · r95 LETHE reskin';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -7292,7 +7322,7 @@ function updateKnackList() {
   const el = document.getElementById('knack-list');
   if (!el) return;
   if (acquiredKnacks.length === 0) {
-    el.innerHTML = '<span style="font-size:11px;color:var(--cream-dim)">No knacks</span>';
+    el.innerHTML = '';   // empty → faint KNACKS watermark shows through (r95)
     return;
   }
   el.innerHTML = acquiredKnacks.map(t =>
@@ -14317,7 +14347,7 @@ function renderTrickTray() {
   }
   list.innerHTML = '';
   if (trickTray.length === 0) {
-    list.innerHTML = '<span style="font-size:11px;color:var(--cream-dim)">No tricks</span>';
+    list.innerHTML = '';   // empty → faint TRICKS watermark shows through (r95)
     return;
   }
   trickTray.forEach(trick => {
