@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reward Entity Visual Language — Preview</title>
+<style>
+  :root{
+    --bg:#0c0b16; --panel:#14121f; --cream:#e9e2cf; --cream-dim:#9a9483;
+    /* rarity palette (from the game's existing tier colors) */
+    --common:#4a7a4a; --rare:#3a6fca; --epic:#9b4dca; --legendary:#e8b84b; --mythic:#ff4d6d;
+    --common-lt:#6aaa6a; --rare-lt:#6a9fea; --epic-lt:#c07aee; --legendary-lt:#f0cf6b; --mythic-lt:#ff8098;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:radial-gradient(120% 120% at 50% 0%, #171528 0%, #0a0912 70%);
+    color:var(--cream); font-family:Georgia,'Times New Roman',serif; padding:28px 32px 80px;
+  }
+  h1{font-size:22px; letter-spacing:1px; margin:0 0 4px; font-weight:700;}
+  .sub{color:var(--cream-dim); font-size:13px; margin:0 0 26px; max-width:720px; line-height:1.5;}
+  h2{font-size:13px; letter-spacing:2px; text-transform:uppercase; color:var(--cream-dim);
+     margin:30px 0 12px; border-bottom:1px solid #2a2740; padding-bottom:6px;}
+  .row{display:flex; gap:16px; flex-wrap:wrap; align-items:flex-start;}
+  .cap{font-size:10px; letter-spacing:1px; text-transform:uppercase; color:var(--cream-dim);
+       text-align:center; margin-top:6px;}
+  .slot{display:flex; flex-direction:column; align-items:center; width:92px;}
+
+  /* ── card-shaped entity (trick / sleight) ── */
+  .rc{
+    position:relative; width:92px; height:124px; border-radius:9px;
+    background:linear-gradient(165deg,#211d33,#14111f);
+    border:2px solid var(--rc); color:var(--cream);
+    display:flex; flex-direction:column; align-items:center; justify-content:flex-end;
+    padding:8px 7px 9px; cursor:pointer; user-select:none;
+    box-shadow:0 0 0 1px rgba(0,0,0,0.4), 0 6px 14px rgba(0,0,0,0.45), 0 0 12px -4px var(--rc);
+    transition:transform .12s ease, box-shadow .15s ease;
+  }
+  .rc:hover{transform:translateY(-3px) scale(1.03); box-shadow:0 0 0 1px rgba(0,0,0,0.4),0 10px 20px rgba(0,0,0,0.5),0 0 18px -2px var(--rc);}
+  .rc .art{
+    position:absolute; top:14px; left:0; right:0; margin:auto; height:52px;
+    display:flex; align-items:center; justify-content:center; font-size:34px; line-height:1;
+    filter:drop-shadow(0 2px 3px rgba(0,0,0,.6));
+  }
+  .rc .art.placeholder{color:var(--rc); opacity:.5; font-size:26px;}
+  .rc .rc-name{
+    font-size:11px; font-weight:700; letter-spacing:.4px; line-height:1.15; text-align:center;
+    text-shadow:0 1px 2px rgba(0,0,0,.7); word-break:break-word;
+  }
+  /* rarity var per card */
+  .r-common{--rc:var(--common);} .r-rare{--rc:var(--rare);} .r-epic{--rc:var(--epic);}
+  .r-legendary{--rc:var(--legendary);} .r-mythic{--rc:var(--mythic);}
+
+  /* TRICK — flat top, ✦ passive glyph top-center */
+  .rc.trick .glyph{
+    position:absolute; top:6px; left:0; right:0; text-align:center;
+    font-size:11px; color:var(--rc); text-shadow:0 0 6px var(--rc);
+  }
+  /* SLEIGHT — clipped top-left corner (distinct silhouette) + ▶ active tab */
+  .rc.sleight{
+    clip-path:polygon(26px 0, 100% 0, 100% 100%, 0 100%, 0 26px);
+  }
+  .rc.sleight .tab{
+    position:absolute; top:5px; left:5px; width:20px; height:20px; border-radius:5px;
+    background:var(--rc); color:#0c0b16; font-size:11px; font-weight:900;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 1px 3px rgba(0,0,0,.5);
+  }
+  .rc.sleight .uses{
+    position:absolute; bottom:6px; right:7px; font-size:9px; color:var(--cream-dim);
+    background:rgba(0,0,0,.35); border-radius:6px; padding:1px 5px;
+  }
+
+  /* ── knack diamond ── */
+  .knack{width:92px; height:124px; display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; user-select:none;}
+  .diamond{
+    position:relative; width:74px; height:74px; transform:rotate(45deg);
+    background:#e9e2cf; border-radius:8px;
+    border:none; box-shadow:0 4px 10px rgba(0,0,0,.5);
+    display:flex; align-items:center; justify-content:center;
+    transition:transform .12s ease, box-shadow .15s ease;
+  }
+  /* inset rarity border via inner ring */
+  .diamond::after{
+    content:''; position:absolute; inset:5px; border-radius:5px;
+    border:2.5px solid var(--rc);
+  }
+  .diamond .emoji{transform:rotate(-45deg); font-size:30px; line-height:1; filter:drop-shadow(0 1px 2px rgba(0,0,0,.35));}
+  .knack:hover .diamond{transform:rotate(45deg) scale(1.06); box-shadow:0 6px 16px rgba(0,0,0,.55);}
+  .knack .rc-name{margin-top:12px; font-size:11px; font-weight:700; letter-spacing:.4px; text-align:center; color:var(--cream);}
+
+  /* ── card-face tile (blessed / cursed / cull) — UNCHANGED for contrast ── */
+  .facecard{
+    width:92px; height:124px; border-radius:9px; border:2px solid var(--legendary);
+    background:linear-gradient(160deg,#221d0e,#14110a);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; padding:6px; gap:5px;
+    color:var(--cream); user-select:none;
+  }
+  .facecard .mini{width:34px; height:46px; border-radius:4px; border:1.5px solid rgba(255,255,255,.35);
+    background:#f4efe2; color:#1a1a1a; display:flex; flex-direction:column; align-items:center; justify-content:center; font-weight:800;}
+  .facecard .mini .rk{font-size:16px;} .facecard .mini .st{font-size:12px;}
+  .facecard .red{color:#c0392b;}
+  .facecard .fl{font-size:10px; font-weight:700; letter-spacing:.5px;}
+  .facecard .fd{font-size:8.5px; color:var(--cream); opacity:.62; text-align:center; line-height:1.2; font-family:Georgia,serif;}
+
+  /* ── the tooltip chip ── */
+  #tt{
+    position:fixed; z-index:99; pointer-events:none; opacity:0; transform:translateY(4px);
+    transition:opacity .1s ease, transform .1s ease;
+    max-width:210px; background:#0e0d18; color:var(--cream);
+    border:1.5px solid var(--tc,#33314e); border-radius:9px; padding:8px 10px;
+    box-shadow:0 8px 22px rgba(0,0,0,.6), 0 0 14px -6px var(--tc,#33314e);
+  }
+  #tt.show{opacity:1; transform:translateY(0);}
+  #tt .tt-name{font-size:11px; font-weight:800; letter-spacing:.5px; color:var(--tc,#fff); margin-bottom:3px; font-family:Georgia,serif;}
+  #tt .tt-rar{font-size:8px; letter-spacing:1.5px; text-transform:uppercase; opacity:.7; margin-bottom:4px;}
+  #tt .tt-desc{font-size:11px; line-height:1.35; color:var(--cream); font-family:Georgia,serif; word-wrap:break-word; overflow-wrap:break-word;}
+
+  .legend{display:flex; gap:18px; flex-wrap:wrap; margin:6px 0 0;}
+  .legend span{font-size:11px; color:var(--cream-dim); display:flex; align-items:center; gap:6px;}
+  .swatch{width:13px; height:13px; border-radius:3px; border:2px solid;}
+  .note{font-size:11px; color:var(--cream-dim); margin-top:8px; font-style:italic;}
+</style>
+</head>
+<body>
+  <h1>Reward Entity — Visual Language</h1>
+  <p class="sub">Proposed look for tricks, sleights &amp; knacks on the reward grid (and eventually the play grid). <b>Hover any entity</b> to see the new tooltip chip. Name lives on the entity; the description moves into the hover chip. Rarity = border color. Type = shape + glyph.</p>
+
+  <div class="legend">
+    <span><span class="swatch" style="border-color:var(--common)"></span>Common</span>
+    <span><span class="swatch" style="border-color:var(--rare)"></span>Rare</span>
+    <span><span class="swatch" style="border-color:var(--epic)"></span>Epic</span>
+    <span><span class="swatch" style="border-color:var(--legendary)"></span>Legendary</span>
+    <span><span class="swatch" style="border-color:var(--mythic)"></span>Mythic</span>
+  </div>
+
+  <h2>Tricks — passive scoring · flat top · ✦ glyph</h2>
+  <div class="row" id="trickRow"></div>
+  <p class="note">Most tricks have no artwork yet, so they read as name + ✦. The glyph + flat top is what separates them from sleights at a glance.</p>
+
+  <h2>Sleights — active "play this" · clipped corner · ▶ tab</h2>
+  <div class="row" id="sleightRow"></div>
+  <p class="note">The clipped top-left corner gives sleights a different silhouette even in your peripheral vision. Charges shown bottom-right.</p>
+
+  <h2>Knacks — diamond · inset rarity border · emoji</h2>
+  <div class="row" id="knackRow"></div>
+
+  <h2>Card-face tiles (blessed / cursed / cull) — left as-is for now</h2>
+  <div class="row">
+    <div class="facecard">
+      <div class="mini"><span class="rk">K</span><span class="st">♠</span></div>
+      <div class="fl">Blessed Card</div>
+      <div class="fd">K♠ permanently gains +1 mult when scored.</div>
+    </div>
+    <div class="facecard" style="border-color:var(--mythic); background:linear-gradient(160deg,#24101a,#140a10);">
+      <div class="mini"><span class="rk red">7</span><span class="st red">♥</span></div>
+      <div class="fl">Withering Curse</div>
+      <div class="fd">7♥ is cursed — scores nothing until it lifts.</div>
+    </div>
+  </div>
+
+  <h2>Mixed reward grid — how a row reads together</h2>
+  <div class="row" id="mixRow" style="gap:12px;"></div>
+
+  <div id="tt"><div class="tt-rar"></div><div class="tt-name"></div><div class="tt-desc"></div></div>
+
+<script>
+  const RAR = ['common','rare','epic','legendary','mythic'];
+  const RARC = {common:'var(--common)',rare:'var(--rare)',epic:'var(--epic)',legendary:'var(--legendary)',mythic:'var(--mythic)'};
+
+  const tricks = [
+    {name:'Cascade', rarity:'common', desc:'Runs score +10 pips per card.'},
+    {name:'Torrent', rarity:'rare', desc:'Runs add +1 Focus per card.'},
+    {name:'Quake', rarity:'epic', desc:'Sets score +3 mult per matching card.'},
+    {name:'Rogue Wave', rarity:'legendary', desc:'Runs played in exact order score +80 pips per card.'},
+    {name:'Singularity', rarity:'mythic', desc:'Every scored card replays once. Retriggers stack across the whole hand.'},
+  ];
+  const sleights = [
+    {name:'Shepherd', emoji:'🐑', rarity:'common', uses:'∞', desc:'When drawn, exalts 1 random card on the grid.'},
+    {name:'Warehouse', emoji:'🏭', rarity:'rare', uses:'∞', desc:'Wild suit — becomes any suit to complete a flush. Has no rank.'},
+    {name:'The Good Friend', emoji:'🤝', rarity:'epic', uses:'3', desc:'Play this in a hand: exalts all adjacent cards.'},
+    {name:'The Queen', emoji:'👑', rarity:'legendary', uses:'∞', desc:'Wild rank — becomes the rank that makes the best hand.'},
+    {name:'Fight the Power', emoji:'⚔️', rarity:'mythic', uses:'∞', desc:'While on the grid, all boss effects are ignored.'},
+  ];
+  const knacks = [
+    {name:'Free Swaps', emoji:'🕊️', rarity:'common', desc:'Swapping cards costs no time.'},
+    {name:'Time Bank', emoji:'⏳', rarity:'rare', desc:'+30 seconds at the start of every round.'},
+    {name:'Curator', emoji:'✦', rarity:'rare', desc:'+1 Trick Slot.'},
+    {name:'Lucky Seven', emoji:'🎯', rarity:'common', desc:'Every 7th hand played gives +1 swap.'},
+  ];
+
+  function trickEl(t){
+    const d=document.createElement('div');
+    const s=document.createElement('div');
+    s.className='rc trick r-'+t.rarity;
+    s.innerHTML=`<div class="glyph">✦</div><div class="art placeholder">✦</div><div class="rc-name">${t.name}</div>`;
+    attachTip(s,t,'Trick');
+    d.className='slot'; d.appendChild(s);
+    const c=document.createElement('div'); c.className='cap'; c.textContent=t.rarity; d.appendChild(c);
+    return d;
+  }
+  function sleightEl(t){
+    const d=document.createElement('div');
+    const s=document.createElement('div');
+    s.className='rc sleight r-'+t.rarity;
+    s.innerHTML=`<div class="tab">▶</div><div class="art">${t.emoji}</div><div class="rc-name">${t.name}</div><div class="uses">${t.uses}</div>`;
+    attachTip(s,t,'Sleight');
+    d.className='slot'; d.appendChild(s);
+    const c=document.createElement('div'); c.className='cap'; c.textContent=t.rarity; d.appendChild(c);
+    return d;
+  }
+  function knackEl(t){
+    const d=document.createElement('div'); d.className='knack r-'+t.rarity;
+    d.innerHTML=`<div class="diamond"><span class="emoji">${t.emoji}</span></div><div class="rc-name">${t.name}</div>`;
+    attachTip(d,t,'Knack');
+    return d;
+  }
+
+  const tt=document.getElementById('tt');
+  function attachTip(el,data,type){
+    el.addEventListener('mouseenter',()=>{
+      tt.style.setProperty('--tc',RARC[data.rarity]);
+      tt.querySelector('.tt-rar').textContent=data.rarity+' · '+type;
+      tt.querySelector('.tt-name').textContent=data.name;
+      tt.querySelector('.tt-desc').textContent=data.desc;
+      tt.classList.add('show');
+    });
+    el.addEventListener('mousemove',(e)=>{
+      const pad=14, w=tt.offsetWidth, h=tt.offsetHeight;
+      let x=e.clientX+pad, y=e.clientY+pad;
+      if(x+w>window.innerWidth-8) x=e.clientX-w-pad;
+      if(y+h>window.innerHeight-8) y=e.clientY-h-pad;
+      tt.style.left=x+'px'; tt.style.top=y+'px';
+    });
+    el.addEventListener('mouseleave',()=>tt.classList.remove('show'));
+  }
+
+  tricks.forEach(t=>document.getElementById('trickRow').appendChild(trickEl(t)));
+  sleights.forEach(t=>document.getElementById('sleightRow').appendChild(sleightEl(t)));
+  knacks.forEach(t=>document.getElementById('knackRow').appendChild(knackEl(t)));
+  // mixed row
+  const mix=document.getElementById('mixRow');
+  mix.appendChild(trickEl(tricks[1]));
+  mix.appendChild(sleightEl(sleights[2]));
+  mix.appendChild(knackEl(knacks[1]));
+  mix.appendChild(trickEl(tricks[3]));
+  mix.appendChild(sleightEl(sleights[0]));
+</script>
+</body>
+</html>
