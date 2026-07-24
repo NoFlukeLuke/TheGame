@@ -1,0 +1,36 @@
+  #selected-cards.dnc-active{ flex-direction:column; align-items:stretch; justify-content:flex-start;
+    overflow:visible; gap:3px; padding:5px; z-index:60; height:auto; }
+  #stage.landscape #selected-cards.dnc-active{ height:auto; min-height:15.28%; overflow:visible; flex-direction:column; align-items:stretch; justify-content:flex-start; z-index:60; }
+  #selected-cards.dnc-active .dnc-row{display:flex;align-items:center;gap:5px;min-height:38px;}
+  #selected-cards.dnc-active .dnc-row.hand{min-height:58px;}
+  #selected-cards.dnc-active .dnc-lab{font-size:7px;letter-spacing:1px;color:var(--cream-dim);writing-mode:vertical-rl;
+    transform:rotate(180deg);text-transform:uppercase;opacity:.6;flex:0 0 auto;}
+  /* items = clipped viewport; track = the sliding strip of cards (scrolls left as a large hand scores) */
+  #selected-cards.dnc-active .dnc-items{display:flex;align-items:center;flex:1;min-width:0;overflow:hidden;}
+  #selected-cards.dnc-active .dnc-track{position:relative;display:flex;gap:4px;align-items:center;flex-wrap:nowrap;padding:8px 0;
+    transition:transform .38s cubic-bezier(.4,.6,.3,1);will-change:transform;}
+  .dnc-outer{display:inline-flex;flex:0 0 auto;transform-origin:center;}
+  .dnc-card{width:30px;height:42px;border-radius:5px;background:#f4ead5;color:#1a1a1a;transform-origin:center;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;
+    box-shadow:0 2px 5px rgba(0,0,0,.5);font-family:'Crimson Pro',serif;}
+  .dnc-card .r{font-size:14px;line-height:1;} .dnc-card .s{font-size:11px;line-height:1;}
+  .dnc-card.red{color:#a0030b;}
+  .dnc-chip{height:34px;min-width:34px;padding:0 6px;border-radius:7px;display:flex;align-items:center;
+    justify-content:center;transform-origin:center;background:rgba(212,168,87,0.14);border:1px solid rgba(212,168,87,0.5);
+    font-size:7px;letter-spacing:.2px;color:var(--cream);text-align:center;max-width:64px;line-height:1.05;}
+  .dnc-jitter{animation:dnc-jitter .1s linear infinite;}
+  @keyframes dnc-jitter{0%{transform:translate(0,0) rotate(0) scale(1);}
+   20%{transform:translate(calc(-0.9px*var(--dnc-jit)),calc(0.7px*var(--dnc-jit))) rotate(calc(-1.1deg*var(--dnc-jit))) scale(calc(1 + .015*var(--dnc-jit)));}
+   40%{transform:translate(calc(0.9px*var(--dnc-jit)),calc(-0.7px*var(--dnc-jit))) rotate(calc(1.1deg*var(--dnc-jit))) scale(calc(1 + .015*var(--dnc-jit)));}
+   60%{transform:translate(calc(-0.6px*var(--dnc-jit)),calc(-0.5px*var(--dnc-jit))) rotate(calc(-0.7deg*var(--dnc-jit))) scale(1);}
+   80%{transform:translate(calc(0.6px*var(--dnc-jit)),0) rotate(calc(0.7deg*var(--dnc-jit))) scale(1);}
+   100%{transform:translate(0,0) rotate(0) scale(1);}}
+  .dnc-pulse{animation:dnc-pulse var(--dnc-dur) ease;}
+  @keyframes dnc-pulse{0%{transform:scale(1);}50%{transform:scale(calc(1 + .12*var(--dnc-mag)));}100%{transform:scale(1);}}
+  .dnc-flash{animation:dnc-flash var(--dnc-dur) ease;}
+  @keyframes dnc-flash{0%{filter:brightness(1);transform:scale(1);}40%{filter:brightness(calc(1 + .7*var(--dnc-mag)));transform:scale(calc(1 + .03*var(--dnc-mag)));}100%{filter:brightness(1);transform:scale(1);}}
+  .dnc-pop{animation:dnc-pop var(--dnc-dur) cubic-bezier(.34,1.56,.64,1);}
+  @keyframes dnc-pop{0%{transform:scale(1);}40%{transform:scale(calc(1 + .30*var(--dnc-mag)));}70%{transform:scale(calc(1 - .05*var(--dnc-mag)));}100%{transform:scale(1);}}
+  .dnc-particle{position:fixed;z-index:200;font-weight:700;pointer-events:none;font-family:'Crimson Pro',serif;
+    font-size:calc(15px*var(--dnc-pscale,1));text-shadow:0 1px 4px rgba(0,0,0,.85);}
+  /* live focus tracker beneath the FOCUS number (stays live even while the big number is locked mid-dance) */
