@@ -213,7 +213,7 @@ function startGame() {
   cancelAutoSubmit();
   cancelDance();
   handReadyForSubmit = false;
-  document.getElementById('hand-name').textContent = '—';
+  document.getElementById('hand-name').textContent = '';   // empty → "HAND" watermark shows (r99)
   document.getElementById('selected-cards').innerHTML = '';
   selected = [];
   animating = false;

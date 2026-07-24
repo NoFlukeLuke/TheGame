@@ -1,4 +1,4 @@
-const BUILD = '2026-07-24 · r98 · focus gauge tuning';
+const BUILD = '2026-07-24 · r99 · hand preview watermark';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

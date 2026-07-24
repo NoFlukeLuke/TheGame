@@ -3225,6 +3225,14 @@
     color: rgba(244,236,214,0.06); text-transform: uppercase;
   }
   #stage.landscape #knack-list, #stage.landscape #trick-tray-list { position: relative; z-index: 1; }
+  /* Hand-preview box: faint "HAND" watermark when idle; :empty hides it the moment the
+     scoring dance drops cards in, so no z-index fight. (r99) */
+  #stage.landscape #selected-cards:empty::before {
+    content: "HAND"; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+    display: flex; align-items: center; justify-content: center; white-space: nowrap;
+    font-family: 'Orbitron', sans-serif; font-weight: 900; letter-spacing: 9px; font-size: 40px;
+    color: rgba(244,236,214,0.06); text-transform: uppercase;
+  }
 
   /* ── Focus meter → recessed power gauge, continuous fill (r96) ── */
   #stage.landscape #focus-meter-wrap { width: 6.4%; gap: 5px; overflow: visible; }

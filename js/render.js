@@ -139,7 +139,7 @@ function render() {
     // Owner request: the preview no longer reacts to selection — it stays empty (inert)
     // until a hand is SUBMITTED, at which point the scoring dance (playPreviewDance) fills
     // #selected-cards. Selecting cards no longer renders preview cards or a hand name here.
-    document.getElementById('hand-name').textContent = '—';
+    document.getElementById('hand-name').textContent = '';   // empty → "HAND" watermark shows (r99)
     const cardsEl = document.getElementById('selected-cards');
     cardsEl.innerHTML = '';
     if (bestHandResult) {
