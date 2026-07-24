@@ -1,20 +1,41 @@
 # TheGame — Roguelike Poker
 
-A single-file HTML/JS roguelike poker game. Everything lives in **`index.html`** — there is no build step, no framework, no dependencies. Open it in a browser and it runs.
+A browser-based HTML/JS roguelike poker game. **No build step, no framework, no dependencies** — plain files loaded directly. Open `index.html` in a browser and it runs.
 
 - **Live site:** https://noflukeluke.github.io/TheGame/ (GitHub Pages, auto-deploys from `main`)
 - **Owner:** non-technical developer — explain changes plainly, avoid jargon dumps.
 - **Platform focus — DESKTOP FIRST (landscape).** New features, layout work, and polish target the **desktop / landscape** experience (the `#stage.landscape` layout). Portrait / mobile is **deprioritized** — it still runs, but don't spend effort on it or block desktop work to keep it pixel-perfect. When a change could affect both, get it right on desktop; only touch portrait if explicitly asked. (Scope layout/visual CSS under `#stage.landscape` so portrait is left as-is.)
 
+## File layout (read this first — it saves you from loading the whole game)
+
+The game **used to be one giant `index.html`**. It's now split into many small files so you only have to read (and re-send to Claude) the one part you're working on. **`index.html` is just the skeleton** — page markup plus the ordered `<link>`/`<script>` tags that pull everything else in.
+
+- `index.html` — HTML markup + ordered `<script src>` / `<link>` tags. ~690 lines.
+- `css/style.css` — all the main game styling (the big stylesheet).
+- `css/dance.css` — the score-“dance” / hand-preview animation styles.
+- `css/dev-overlays.css` — dev-panel + event-overlay styling.
+- `js/` — the game code, one file per system (list below).
+- `js/data/` — **the "entities": pure content/data, no logic.** Edit these to tune or add game content without touching engine code:
+  - `cards.js` — suits, ranks, rank order, `HAND_BASE` values, round/goal durations, `cardCan`.
+  - `tricks.js` — `TRICK_POOL`, `TRICK_CATEGORIES`, trick emoji.
+  - `knacks.js` — `KNACK_POOL` (+ the `C` color palette const).
+  - `sleights.js` — `SLEIGHT_POOL`.
+  - `bosses.js` — `BOSS_PRESETS`.
+  - `balance.js` — `BAL` (the big tuning table) + `DESC_TEMPLATES`.
+
+**How the split works (important — don't break this):** all `js/*.js` files are plain **classic scripts that share one global scope** — a `const`/`let`/`function` defined in one file is visible to all the others, exactly as if they were still one big `<script>`. **Load order is preserved and matters:** the `<script>` tags in `index.html` are in the same order the code originally ran, because several files run set-up code at load time (event bindings; `LIMITS_DEF.forEach`, `TRICK_CATEGORIES.forEach`, `applyBalDescriptions()`; and `js/bootstrap.js` at the very end, which calls `initMainMenu()`). If you add a new `.js` file, put its `<script>` tag in the right spot (data files load up top with the rest; `bootstrap.js` stays last). If you're not sure which file a function lives in, `grep -rn "functionName" js/`.
+
+Rough guide to `js/` (engine): `menu` `devlog` `grid-metrics` `focus-config` `limits` `combos-aim` (combo families + aim sleights) · `deck-grid` (deck + gridData + curses) · `hand-detect` (findBestHand/detectHand) · `scoring` (calcScore, exalt/corrupt, contributions) · `render` · `focus` (focus meter) · `hud` · `input` (tap/swap/select) · `play-hand` · `score-anims` / `score-dance` (the scoring “dance”) · `discard` · `card-fall` (renderCardAppearance + fall anim) · `round-timers` · `boss` · `reward-grid` · `limit-break` · `sleights-runtime` · `events-core` / `events` · `interlude` / `level-up` / `tricks-ui` · `shop` · `hands-meta` · `stats` · `deck-view` · `game-control` (pause/resume/startGame) · `challenge` · `audio` · `dev-panel` · `bootstrap` (runs last).
+
 ## Workflow
 
 - **Branch:** `main` is the source of truth and auto-deploys to GitHub Pages — never commit directly to it. Develop on the `claude/*` feature branch this session was assigned. If none was given, branch off the latest main: `git checkout -b claude/<topic> origin/main`.
 - **Deploy:** push your feature branch, then fast-forward `main` to it: `git push origin HEAD && git push origin HEAD:main`. Pages serves from `main`.
-- **Build stamp:** bump the `BUILD` constant (near top of `<script>`, currently `'2026-07-22 · r91'`) on every commit. It shows in the menu footer + dev panel so the owner can confirm the cache is fresh. Increment the `rN` each commit.
+- **Build stamp:** bump the `BUILD` constant at the top of **`js/menu.js`** (currently `'2026-07-23 · r96 · modular'`) on every commit. It shows in the menu footer + dev panel so the owner can confirm the cache is fresh. Increment the `rN` each commit.
 - **Commit messages:** detailed, since a fresh Claude session re-orients from git history. End with the session URL line.
-- After editing, validate syntax:
+- After editing, validate syntax (loads every JS file in order, exactly as the browser does):
   ```
-  node -e "const h=require('fs').readFileSync('index.html','utf8');new Function(h.match(/<script>([\s\S]*)<\/script>/)[1]);console.log('OK')"
+  node -e "const fs=require('fs');const idx=fs.readFileSync('index.html','utf8');const srcs=[...idx.matchAll(/<script src=\"([^\"]+)\"><\/script>/g)].map(m=>m[1]);const code=srcs.map(s=>fs.readFileSync(s,'utf8')).join('\n');new Function(code);console.log('OK',srcs.length,'files');"
   ```
 
 ## Core architecture
