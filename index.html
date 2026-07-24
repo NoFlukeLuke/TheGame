@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Poker Grid — Arcade Prototype</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Crimson+Pro:wght@300;400&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Crimson+Pro:wght@300;400&family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&display=swap');
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -2982,6 +2982,285 @@
   #run-progress .rp-nodes span.cur { background:var(--cream); border-color:var(--cream); }
   #run-progress .rp-nodes .boss { width:auto; height:auto; border:none; background:none; color:var(--red); font-size:10px; }
 
+  /* ============================================================= */
+  /* ==  LETHE CABINET RESKIN — 80s consumer-plastic + CRT      == */
+  /* ==  Visual skin only; layout coordinates untouched.        == */
+  /* ============================================================= */
+  :root {
+    /* Beige injection-molded housing */
+    --plastic:      #e4dccb;
+    --plastic-hi:   #f7f2e6;
+    --plastic-lo:   #b7ac93;
+    --plastic-deep: #85795f;
+    /* Bright 80s candy accents */
+    --c-cyan:    #16c8d8;
+    --c-magenta: #ff2f8e;
+    --c-yellow:  #ffce2b;
+    --c-coral:   #ff6a3c;
+    --c-purple:  #9a6cff;
+    --c-mint:    #35d59b;
+    /* CRT phosphor */
+    --phosphor:    #ffb02e;
+    --phosphor-hi: #ffd57a;
+    /* Repurpose legacy tokens the whole app already references */
+    --gold:      #ffb02e;
+    --gold-dim:  #c07f1c;
+    --cream:     #f4ecd6;
+    --cream-dim: #b7a684;
+    --green:     #35d59b;
+    --panel:     #14100b;
+    --border:    #46381f;
+  }
+
+  /* ── Room backdrop: bright synthwave, fills the desktop width ── */
+  body {
+    background:
+      repeating-linear-gradient(90deg, rgba(22,200,216,0.05) 0 1px, transparent 1px 48px),
+      repeating-linear-gradient(0deg,  rgba(22,200,216,0.05) 0 1px, transparent 1px 48px),
+      radial-gradient(ellipse at 50% 30%, #2c2456 0%, #1b1638 48%, #0d0a1e 100%) !important;
+  }
+  body::after {
+    content:""; position:fixed; inset:0; pointer-events:none; z-index:0;
+    background: radial-gradient(ellipse at 50% 46%, transparent 38%, rgba(0,0,0,0.6) 100%);
+  }
+
+  /* ── Cabinet wrapper carries the zoom; #stage sits flat inside ── */
+  #stage { zoom: 1 !important; }
+  #cabinet {
+    position: relative; z-index: 1; box-sizing: border-box;
+    width: 496px;            /* portrait footprint (landscape overridden below) */
+    zoom: var(--stage-zoom, 1);
+    padding: 12px 18px 16px;
+    border-radius: 24px;
+    background: linear-gradient(180deg, var(--plastic-hi) 0%, var(--plastic) 8%, var(--plastic) 88%, var(--plastic-lo) 100%);
+    box-shadow:
+      inset 0 3px 0 rgba(255,255,255,0.6), inset 3px 0 0 rgba(255,255,255,0.3),
+      inset -3px 0 0 rgba(0,0,0,0.16), inset 0 -5px 0 rgba(0,0,0,0.2),
+      0 24px 60px rgba(0,0,0,0.6), 0 4px 0 var(--plastic-deep);
+  }
+  #cabinet.landscape { width: 824px; }
+  /* Molded corner screws */
+  #cabinet::before, #cabinet::after {
+    content:""; position:absolute; width:12px; height:12px; border-radius:50%; top:12px;
+    background: radial-gradient(circle at 38% 34%, #fff 0%, #cfc6b0 40%, #8a7f65 100%);
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.25), 0 1px 1px rgba(255,255,255,0.5);
+  }
+  #cabinet::before { left:12px; } #cabinet::after { right:12px; }
+
+  /* Marquee brand plate */
+  #cab-marquee {
+    position: relative; height: 42px; margin: 2px 26px 10px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center; gap: 12px; overflow: hidden;
+    background: linear-gradient(180deg, #17120c, #241a10);
+    box-shadow: inset 0 0 0 2px var(--plastic-lo), inset 0 2px 10px rgba(0,0,0,0.8), 0 1px 0 var(--plastic-hi);
+  }
+  .cab-brand {
+    font-family:'Orbitron',sans-serif; font-weight:900; font-size:20px; letter-spacing:6px;
+    background: linear-gradient(180deg, #fff2c8, var(--c-yellow) 55%, var(--c-coral));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    text-shadow: 0 0 18px rgba(255,206,43,0.35);
+  }
+  .cab-model {
+    font-family:'Share Tech Mono',monospace; font-size:8px; letter-spacing:2px; line-height:1.3;
+    color: var(--c-cyan); text-transform:uppercase; border-left:2px solid var(--c-magenta); padding-left:8px;
+  }
+  .cab-led { width:9px; height:9px; border-radius:50%; background:var(--c-mint);
+    box-shadow:0 0 8px var(--c-mint), inset 0 0 3px #fff; animation: cab-led-blink 2.4s infinite; }
+  @keyframes cab-led-blink { 0%,92%,100%{opacity:1} 96%{opacity:0.25} }
+
+  /* Accent trim stripe */
+  #cab-stripe {
+    height: 6px; margin: 0 26px 10px; border-radius: 4px;
+    background: linear-gradient(90deg, var(--c-magenta) 0 20%, var(--c-coral) 20% 40%,
+      var(--c-yellow) 40% 60%, var(--c-mint) 60% 80%, var(--c-cyan) 80% 100%);
+    box-shadow: inset 0 1px 2px rgba(255,255,255,0.4), 0 1px 2px rgba(0,0,0,0.3);
+  }
+
+  /* CRT screen bezel */
+  #cab-screen {
+    position: relative; padding: 12px; margin: 0 6px; border-radius: 16px; background: #0b0906;
+    box-shadow: inset 0 0 0 3px #2c2418, inset 0 4px 18px rgba(0,0,0,0.9), inset 0 0 60px rgba(255,176,46,0.05);
+  }
+  /* scanlines + glare over the whole play screen */
+  #cab-screen::after {
+    content:""; position:absolute; inset:12px; border-radius:8px; pointer-events:none; z-index:60;
+    background: linear-gradient(180deg, rgba(255,255,255,0.05), transparent 12%),
+      repeating-linear-gradient(0deg, rgba(0,0,0,0.14) 0 1px, transparent 1px 3px);
+    mix-blend-mode: overlay;
+  }
+  #cab-screen::before {
+    content:""; position:absolute; inset:12px; border-radius:8px; pointer-events:none; z-index:61;
+    background: radial-gradient(120% 90% at 28% 6%, rgba(255,255,255,0.09), transparent 46%);
+  }
+  #stage { background: radial-gradient(ellipse at 50% 42%, #1a140c 0%, #100d09 78%);
+           border-radius: 8px; box-shadow: inset 0 0 40px rgba(0,0,0,0.7); }
+
+  /* Control deck */
+  #cab-deck {
+    display:flex; align-items:center; justify-content:space-between; margin:10px 20px 2px;
+    padding:7px 14px; height:32px; border-radius:10px;
+    background: linear-gradient(180deg, var(--plastic-lo), var(--plastic-deep));
+    box-shadow: inset 0 2px 3px rgba(255,255,255,0.35), inset 0 -3px 4px rgba(0,0,0,0.3);
+  }
+  #cab-vents { display:flex; gap:4px; }
+  #cab-vents i { width:4px; height:15px; border-radius:2px; display:block;
+    background: linear-gradient(180deg, rgba(0,0,0,0.45), rgba(0,0,0,0.15)); box-shadow:1px 0 0 rgba(255,255,255,0.25); }
+  #cab-deck-badge { font-family:'Orbitron',sans-serif; font-weight:700; font-size:10px; letter-spacing:2px;
+    color:#2a2114; padding:3px 8px; border-radius:5px; background:var(--c-yellow);
+    box-shadow: inset 0 1px 1px rgba(255,255,255,0.6), 0 1px 2px rgba(0,0,0,0.3); }
+  #cab-warning { font-family:'Share Tech Mono',monospace; font-size:8px; letter-spacing:1px; color:#2a2114;
+    text-transform:uppercase; text-align:right; line-height:1.25; text-shadow:0 1px 0 rgba(255,255,255,0.3); }
+
+  /* ============================================================= */
+  /* ==  On-screen chrome → LED / LCD instrument readouts        == */
+  /* ============================================================= */
+  /* Shared panel material for every v7 landscape block + portrait panels */
+  #stage.landscape #score-center, #stage.landscape #score-left, #stage.landscape #score-subboxes,
+  #stage.landscape #selected-cards, #stage.landscape #knack-carousel-wrap, #stage.landscape #trick-tray-area,
+  #stage.landscape #vclock, #stage.landscape #run-progress, #stage.landscape #coin-info,
+  #stage.landscape #interact-costs, .panel-box {
+    background: linear-gradient(180deg, #15110b, #0d0b07) !important;
+    border: 1px solid #000 !important;
+    box-shadow: inset 0 2px 8px rgba(0,0,0,0.8), 0 0 0 2px var(--plastic-lo), 0 2px 0 var(--plastic-deep) !important;
+  }
+  /* Candy top-accents give each readout its own identity */
+  #stage.landscape #score-center    { border-top: 2px solid var(--c-magenta) !important; }
+  #stage.landscape #score-left      { border-top: 2px solid var(--c-cyan) !important; }
+  #stage.landscape #score-subboxes  { border-top: 2px solid var(--c-purple) !important; border-bottom:1px solid #000 !important; }
+  #stage.landscape #knack-carousel-wrap { border-top: 2px solid var(--c-yellow) !important; }
+  #stage.landscape #selected-cards  { border-top: 2px solid var(--c-mint) !important; }
+  #stage.landscape #trick-tray-area { border-top: 2px solid var(--c-coral) !important; }
+  #stage.landscape #coin-info       { border-top: 2px solid var(--c-yellow) !important; }
+  #stage.landscape #interact-costs  { border-top: 2px solid var(--c-cyan) !important; }
+  #stage.landscape #run-progress    { border-top: 2px solid var(--c-magenta) !important; }
+  #stage.landscape #vclock          { border: 1px solid #000 !important; }
+
+  /* Readout typography */
+  .top-label, .subbox-label, #score-goal-label, #score-total-label, .panel-title,
+  #interact-costs .ic-h, #coin-info .ci-row, #interact-costs .ic-r {
+    font-family:'Share Tech Mono',monospace !important;
+  }
+  .top-value, .subbox-val, #score-total-num, #score-to-go, #goal-display,
+  #coin-info .ci-main, #run-progress .rp-act {
+    font-family:'Orbitron',sans-serif !important;
+  }
+  #score-total-num { color: var(--phosphor) !important; text-shadow: 0 0 12px rgba(255,176,46,0.55) !important; }
+  .top-value.gold, #goal-display { color: var(--phosphor) !important; }
+  #score-goal-label, #score-total-label, .subbox-label { color: var(--c-cyan) !important; }
+
+  /* Round clock → amber LED */
+  #clock { font-family:'Orbitron',sans-serif !important; font-weight:900 !important; color: var(--phosphor) !important;
+           text-shadow: 0 0 12px rgba(255,176,46,0.7), 0 0 2px rgba(255,176,46,0.9) !important; }
+  #clock.urgent { color: var(--c-coral) !important; }
+  #vclock-fill { background: linear-gradient(90deg, var(--c-mint), var(--c-cyan)) !important; box-shadow: 0 0 8px rgba(22,200,216,0.5); }
+
+  /* Knack chips + trick tiles → plastic */
+  #stage.landscape #knack-list .knack-chip, .trick-tray-chip {
+    background: linear-gradient(180deg, #241d12, #151009) !important; border:1px solid #000 !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.07) !important;
+  }
+
+  /* ACT tracker LEDs */
+  #run-progress .rp-act { color: var(--c-magenta) !important; text-shadow:0 0 8px rgba(255,47,142,0.5); }
+  #run-progress .rp-nodes span { background:#241d12 !important; border-color:var(--c-cyan) !important; }
+  #run-progress .rp-nodes span.on { background:var(--c-cyan) !important; border-color:var(--c-cyan) !important; box-shadow:0 0 6px var(--c-cyan); }
+  #run-progress .rp-nodes span.cur { background:var(--c-yellow) !important; border-color:var(--c-yellow) !important; box-shadow:0 0 6px var(--c-yellow); }
+
+  /* Coin / cost figures */
+  #coin-info .ci-main { color: var(--c-yellow) !important; }
+  #coin-info .ci-row .pos, #interact-costs .ic-r span:last-child { color: var(--c-mint) !important; }
+  #interact-costs .ic-h { color: var(--c-cyan) !important; }
+
+  /* Action buttons → chunky candy plastic caps that depress */
+  .act-btn { font-family:'Orbitron',sans-serif !important; font-weight:700 !important; border:none !important;
+             border-radius:8px !important; transition: transform 0.06s ease, box-shadow 0.06s ease, filter 0.1s !important; }
+  .btn-play {
+    background: linear-gradient(180deg, #ffe06a, var(--c-yellow) 55%, #e0a814) !important;
+    color:#3a2a08 !important; text-shadow:0 1px 0 rgba(255,255,255,0.4) !important;
+    box-shadow: inset 0 2px 0 rgba(255,255,255,0.7), inset 0 -3px 0 rgba(0,0,0,0.25), 0 4px 0 #b5820f, 0 6px 8px rgba(0,0,0,0.4) !important;
+  }
+  .btn-play:not(:disabled):hover { filter: brightness(1.06); }
+  .btn-play:not(:disabled):active { transform: translateY(3px);
+    box-shadow: inset 0 2px 0 rgba(255,255,255,0.5), inset 0 -2px 0 rgba(0,0,0,0.25), 0 1px 0 #b5820f !important; }
+  .btn-discard {
+    background: linear-gradient(180deg, #ff9068, var(--c-coral) 55%, #d6431c) !important;
+    color:#fff !important; text-shadow:0 1px 1px rgba(0,0,0,0.4) !important;
+    box-shadow: inset 0 2px 0 rgba(255,255,255,0.45), inset 0 -3px 0 rgba(0,0,0,0.28), 0 4px 0 #a9330f, 0 6px 8px rgba(0,0,0,0.4) !important;
+  }
+  .btn-discard:not(:disabled):active { transform: translateY(3px);
+    box-shadow: inset 0 2px 0 rgba(255,255,255,0.3), inset 0 -2px 0 rgba(0,0,0,0.28), 0 1px 0 #a9330f !important; }
+  #swap-indicator { font-family:'Share Tech Mono',monospace !important;
+    background: linear-gradient(180deg, #241d12, #14100a) !important; border:1px solid #000 !important;
+    color: var(--c-cyan) !important; box-shadow: inset 0 1px 4px rgba(0,0,0,0.6) !important; }
+  .btn-secondary { font-family:'Orbitron',sans-serif !important;
+    background: linear-gradient(180deg, #1d3a3e, #10242700) !important; border:1px solid var(--c-cyan) !important; color: var(--c-cyan) !important; }
+  .btn-secondary:hover { background: linear-gradient(180deg, #235055, #12292c) !important; color:#fff !important; }
+
+  /* Focus meter → glowing LEDs */
+  .focus-dot.lit { box-shadow: 0 0 8px var(--focus-color, var(--c-mint)) !important; }
+
+  /* Grid → inner CRT panel */
+  #grid { background: radial-gradient(ellipse at center, #17240f 0%, #0a0d06 82%) !important;
+          border: 1px solid #000 !important; box-shadow: inset 0 0 24px rgba(0,0,0,0.8), 0 0 0 2px #2c2418 !important; }
+
+  /* ── Left-column stat chips: full solid-color fills, beige text (r95) ── */
+  #stage.landscape #score-subboxes { border-top: 2px solid var(--plastic-lo) !important; }
+  #pips-box  { background:#2a5fd0 !important; border:1px solid #123a94 !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.28), 0 1px 2px rgba(0,0,0,0.45) !important; border-radius:5px; }
+  #mult-box  { background:#cf3a2c !important; border:1px solid #7f1d14 !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.24), 0 1px 2px rgba(0,0,0,0.45) !important; border-radius:5px; }
+  #focus-box { background:#8a5cf0 !important; border:1px solid #532eb0 !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.26), 0 1px 2px rgba(0,0,0,0.45) !important; border-radius:5px; }
+  #pips-box .subbox-label,  #pips-box .subbox-val,
+  #mult-box .subbox-label,  #mult-box .subbox-val,
+  #focus-box .subbox-label, #focus-box .subbox-val {
+    color: var(--cream) !important; text-shadow: 0 1px 1px rgba(0,0,0,0.4) !important;
+  }
+
+  /* ── Tricks / Knacks: faint watermark label, covered by real content (r95) ── */
+  #stage.landscape #knack-carousel-wrap, #stage.landscape #trick-tray-area { overflow: hidden; }
+  #stage.landscape #knack-carousel-wrap::before {
+    content: "KNACKS"; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+    display: flex; align-items: center; justify-content: center; white-space: nowrap;
+    font-family: 'Orbitron', sans-serif; font-weight: 900; letter-spacing: 6px; font-size: 22px;
+    color: rgba(244,236,214,0.07); text-transform: uppercase;
+  }
+  #stage.landscape #trick-tray-area::before {
+    content: "TRICKS"; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+    display: flex; align-items: center; justify-content: center; white-space: nowrap;
+    font-family: 'Orbitron', sans-serif; font-weight: 900; letter-spacing: 9px; font-size: 46px;
+    color: rgba(244,236,214,0.06); text-transform: uppercase;
+  }
+  #stage.landscape #knack-list, #stage.landscape #trick-tray-list { position: relative; z-index: 1; }
+
+  /* ── Focus meter → recessed power gauge, continuous fill (r96) ── */
+  #stage.landscape #focus-meter-wrap { width: 6.4%; gap: 5px; overflow: visible; }
+  #focus-bar-outer {
+    background: #0b0906 !important;
+    border: 2px solid var(--plastic-lo) !important;
+    border-radius: 5px !important;
+    padding: 2px !important;
+    box-shadow: inset 0 3px 8px rgba(0,0,0,0.9), inset 0 0 0 1px #000, 0 2px 0 var(--plastic-deep) !important;
+  }
+  #stage.landscape #focus-bar-outer { width: 26px !important; }
+  #focus-active-segment { gap: 1px; }
+  .focus-node { background: #17110a !important; border-radius: 0 !important;
+                transition: background 0.12s ease, box-shadow 0.12s ease; }
+  /* filled node bg + glow are set inline by JS (gradient by height) */
+  .focus-node.tick { border-bottom: 1.5px solid rgba(0,0,0,0.85); }
+  /* bigger, brighter multiplier readout pinned at the bottom */
+  #focus-mult-readout {
+    font-family: 'Orbitron', sans-serif !important; font-weight: 700 !important;
+    font-size: 15px !important; letter-spacing: 0 !important; line-height: 1;
+    white-space: nowrap; padding: 2px 2px 0;
+    color: var(--phosphor) !important; text-shadow: 0 0 8px rgba(255,176,46,0.55) !important;
+  }
+  #focus-mult-readout.dim { opacity: 0.55 !important; }
+  #focus-mult-readout.active {
+    color: var(--c-mint) !important; opacity: 1 !important;
+    text-shadow: 0 0 9px rgba(53,213,155,0.75) !important;
+  }
+
 </style>
 </head>
 <body>
@@ -3016,6 +3295,14 @@
   </div>
 </div>
 
+<div id="cabinet">
+  <div id="cab-marquee">
+    <span class="cab-led"></span>
+    <span class="cab-brand">LETHE</span>
+    <span class="cab-model">HOME&nbsp;ENTERTAINMENT<br>SYSTEMS · MODEL 7</span>
+  </div>
+  <div id="cab-stripe"></div>
+  <div id="cab-screen">
 <div id="stage">
 
 <!-- DECK HUD (debug) -->
@@ -3114,7 +3401,7 @@
       <!-- Knack section -->
       <div id="knack-carousel-wrap">
         <span class="panel-title">Knacks</span>
-        <div id="knack-list"><span style="font-size:9px;color:var(--cream-dim)">No knacks</span></div>
+        <div id="knack-list"></div>
       </div>
     </div>
 
@@ -3124,11 +3411,6 @@
   <div id="grid-and-buttons">
     <!-- Focus Meter -->
     <div id="focus-meter-wrap">
-      <div id="focus-dots">
-        <div class="focus-dot" id="focus-dot-2"></div>
-        <div class="focus-dot" id="focus-dot-1"></div>
-        <div class="focus-dot" id="focus-dot-0"></div>
-      </div>
       <div id="focus-bar-outer">
         <div id="focus-active-segment"><!-- 10 nodes built by JS --></div>
       </div>
@@ -3821,7 +4103,7 @@
 </div>
 
 <script>
-const BUILD = '2026-07-23 · r95';
+const BUILD = '2026-07-24 · r97 · LETHE · modular';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -6671,49 +6953,48 @@ function focusColor(nodes) {
   return FOCUS_COLORS[charges];
 }
 
+// Continuous-bar model (r96): one node per point of the FULL capacity (cap*10),
+// filled bottom→top to the current focus level. Color grades cool→hot by height so
+// altitude itself reads as intensity; a tick marks every 10-node charge boundary.
+function focusNodeColor(i, cap) {
+  const f = cap <= 1 ? 0 : i / (cap - 1);
+  // stops: mint → cyan → yellow → magenta
+  const stops = [[53,213,155],[22,200,216],[255,206,43],[255,47,142]];
+  const seg = f * (stops.length - 1);
+  const a = Math.min(stops.length - 1, Math.floor(seg));
+  const b = Math.min(stops.length - 1, a + 1);
+  const t = seg - a;
+  const m = (x, y) => Math.round(x + (y - x) * t);
+  return `rgb(${m(stops[a][0],stops[b][0])},${m(stops[a][1],stops[b][1])},${m(stops[a][2],stops[b][2])})`;
+}
 function buildFocusMeter() {
   const seg = document.getElementById('focus-active-segment');
   if (!seg) return;
+  const cap = focusCapacity * FOCUS_THRESHOLD;
   seg.innerHTML = '';
   focusNodeEls = [];
-  for (let i = 0; i < FOCUS_THRESHOLD; i++) {
+  for (let i = 0; i < cap; i++) {
     const node = document.createElement('div');
-    node.className = 'focus-node';
-    seg.appendChild(node); // column-reverse: first child = bottom of segment
+    // tick class on the first node of each new charge (except the very bottom)
+    node.className = 'focus-node' + ((i > 0 && i % FOCUS_THRESHOLD === 0) ? ' tick' : '');
+    seg.appendChild(node); // column-reverse: first child = bottom of bar
     focusNodeEls.push(node);
   }
 }
 
 function syncFocusMeterState() {
-  const total = Math.min(focusNodes, focusCapacity * FOCUS_THRESHOLD);
-  const chargesComplete = Math.floor(total / FOCUS_THRESHOLD);
-  let nodesInSegment = total - chargesComplete * FOCUS_THRESHOLD;
-  // Color reflects the tier currently being filled (next tier after completed charges)
-  let segColorIdx = chargesComplete;
-  // On a clean x.0 (the segment would read 0 but focus > 0), show it FULL in the
-  // just-completed charge's colour — the bar only ever looks empty at true zero.
-  if (total > 0 && nodesInSegment === 0) {
-    nodesInSegment = FOCUS_THRESHOLD;
-    segColorIdx = chargesComplete - 1;
-  }
-  const color = FOCUS_COLORS[Math.min(segColorIdx, FOCUS_COLORS.length - 1)];
-  document.documentElement.style.setProperty('--focus-color', color);
-
-  // Active segment nodes
+  const cap = focusCapacity * FOCUS_THRESHOLD;
+  // Capacity can grow mid-run (Expanse / Quick Draw) — keep the bar's node count in sync.
+  if (focusNodeEls.length !== cap) buildFocusMeter();
+  const total = Math.min(focusNodes, cap);
+  // Meter-wide glow color tracks the current top of the fill.
+  document.documentElement.style.setProperty('--focus-color', focusNodeColor(Math.max(0, total - 1), cap));
   focusNodeEls.forEach((node, i) => {
-    node.style.setProperty('--focus-color', color);
-    node.classList.toggle('filled', i < nodesInSegment);
+    const on = i < total;
+    node.classList.toggle('filled', on);
+    if (on) { const c = focusNodeColor(i, cap); node.style.background = c; node.style.boxShadow = '0 0 3px ' + c; }
+    else    { node.style.background = ''; node.style.boxShadow = ''; }
   });
-
-  // Dots — light up one per completed charge (only first 3 visible)
-  for (let i = 0; i < 3; i++) {
-    const dot = document.getElementById(`focus-dot-${i}`);
-    if (!dot) continue;
-    const dotColor = FOCUS_COLORS[Math.min(i, FOCUS_COLORS.length - 1)];
-    dot.style.setProperty('--focus-color', dotColor);
-    dot.classList.toggle('lit', i < chargesComplete);
-  }
-
   updateFocusMultReadout();
 }
 
@@ -6745,24 +7026,19 @@ function addFocus(amount) {
   focusDecayBuffer = 0;   // gaining focus resets the x.0 grace buffer
   const cap = focusCapacity * FOCUS_THRESHOLD;
   const prev = Math.min(focusNodes, cap);
-  const prevCharges = Math.floor(prev / FOCUS_THRESHOLD);
-  const prevSegNode = prev - prevCharges * FOCUS_THRESHOLD;
   focusNodes = Math.min(focusNodes + amount, cap);
   // Expanse: each time we hit max capacity, bump capacity by 1 (for the rest of the run)
   if (hasTrick('expanse') && prev < cap && focusNodes === cap) {
     focusCapacity++;
   }
-  const newCharges = Math.floor(focusNodes / FOCUS_THRESHOLD);
-  const newSegNode = focusNodes - newCharges * FOCUS_THRESHOLD;
-  const chargeCrossed = newCharges > prevCharges;
-
-  if (chargeCrossed) {
-    for (let i = prevSegNode; i < FOCUS_THRESHOLD; i++) focusAnimQueue.push({ segIdx: i });
-    focusAnimQueue.push({ sentinel: true, charges: newCharges });
-    for (let i = 0; i < newSegNode; i++) focusAnimQueue.push({ segIdx: i });
-  } else {
-    for (let i = prevSegNode; i < newSegNode; i++) focusAnimQueue.push({ segIdx: i });
+  // Keep the bar's node count in sync if capacity changed, preserving already-filled nodes.
+  if (focusNodeEls.length !== focusCapacity * FOCUS_THRESHOLD) {
+    buildFocusMeter();
+    const c0 = focusCapacity * FOCUS_THRESHOLD;
+    focusNodeEls.forEach((n, i) => { if (i < prev) { const c = focusNodeColor(i, c0); n.classList.add('filled'); n.style.background = c; n.style.boxShadow = '0 0 3px ' + c; } });
   }
+  const newTotal = Math.min(focusNodes, focusCapacity * FOCUS_THRESHOLD);
+  for (let i = prev; i < newTotal; i++) focusAnimQueue.push({ nodeIdx: i });
   runFocusAnimQueue();
 }
 
@@ -6810,56 +7086,22 @@ function spawnFocusFallClone(srcEl, opts = {}) {
   anim.onfinish = () => clone.remove();
 }
 
-// Remove `amount` nodes with sideways-pop-and-fall animation.
-// Dots that unlight (charge boundary crossed downward) fall first, then nodes.
+// Remove `amount` nodes from the top of the bar with a sideways-pop-and-fall animation.
 function removeFocus(amount) {
   if (!amount || amount <= 0) return;
 
-  // Capture state BEFORE mutation so we can snapshot dot/node positions
   const cap = focusCapacity * FOCUS_THRESHOLD;
   const prevTotal = Math.min(focusNodes, cap);
   const newTotal  = Math.max(0, prevTotal - amount);
-  const prevCharges = Math.floor(prevTotal / FOCUS_THRESHOLD);
-  const newCharges  = Math.floor(newTotal  / FOCUS_THRESHOLD);
 
-  // Collect the visual elements that need to fall (snapshot DOM refs before sync).
-  // Dots: any lit dot whose index >= newCharges and < prevCharges.
-  // Nodes: the currently-filled nodes in the active segment that will become unfilled.
-  const dotsToFall = [];
-  for (let i = newCharges; i < prevCharges && i < 3; i++) {
-    const dot = document.getElementById(`focus-dot-${i}`);
-    if (dot && dot.classList.contains('lit')) dotsToFall.push(dot);
-  }
-
-  // Nodes in the currently-displayed active segment that will visually disappear.
-  // After mutation, syncFocusMeterState rebuilds .filled state — so capture which DOM
-  // nodes are filled NOW and will be unfilled AFTER, and clone those.
-  const prevSegNodes = prevTotal - prevCharges * FOCUS_THRESHOLD;
-  const newSegNodes  = newTotal  - newCharges  * FOCUS_THRESHOLD;
+  // The now-topmost filled nodes (indexes newTotal..prevTotal-1) fall away; highest first.
   const nodesToFall = [];
-  if (newCharges === prevCharges) {
-    // Same charge tier — the top-most filled nodes vanish (indexes newSegNodes..prevSegNodes-1)
-    for (let i = newSegNodes; i < prevSegNodes; i++) {
-      const n = focusNodeEls[i];
-      if (n) nodesToFall.push(n);
-    }
-  } else {
-    // Charge boundary crossed — segment will be rebuilt at the new (lower) tier.
-    // The visible filled nodes ALL vanish (the segment was full at prevCharges; after dotsToFall
-    // animates them away, syncFocusMeterState will re-fill some at the new tier).
-    for (let i = 0; i < prevSegNodes; i++) {
-      const n = focusNodeEls[i];
-      if (n) nodesToFall.push(n);
-    }
-    // Also, if newSegNodes < FOCUS_THRESHOLD, the nodes above newSegNodes at the new tier
-    // were never visually full to begin with — they'll just stay unfilled after sync.
+  for (let i = prevTotal - 1; i >= newTotal; i--) {
+    const n = focusNodeEls[i];
+    if (n) nodesToFall.push(n);
   }
-
-  // Fire dot falls first (small lead so they're visibly first), then node falls.
-  const DOT_LEAD = 100; // ms — dots leave first
   const NODE_STAGGER = 30; // ms between nodes
-  dotsToFall.forEach((d, i) => spawnFocusFallClone(d, { delay: i * 40 }));
-  nodesToFall.forEach((n, i) => spawnFocusFallClone(n, { delay: (dotsToFall.length > 0 ? DOT_LEAD : 0) + i * NODE_STAGGER }));
+  nodesToFall.forEach((n, i) => spawnFocusFallClone(n, { delay: i * NODE_STAGGER }));
 
   // Mutate state and re-render. The real DOM nodes go dark immediately;
   // the temp clones continue their fall on body.
@@ -6875,46 +7117,18 @@ function runFocusAnimQueue() {
   function step() {
     if (focusAnimQueue.length === 0) { focusAnimRunning = false; return; }
     const item = focusAnimQueue.shift();
-
-    if (item.sentinel) {
-      // Charge completed — light the corresponding dot, then clear nodes & switch color
-      const dotIdx = item.charges - 1;
-      const dot = document.getElementById(`focus-dot-${dotIdx}`);
-      if (dot) {
-        const dotColor = FOCUS_COLORS[Math.min(dotIdx, FOCUS_COLORS.length - 1)];
-        dot.style.setProperty('--focus-color', dotColor);
-        dot.classList.add('lit');
-        dot.style.animation = 'none';
-        void dot.offsetWidth;
-        dot.style.animation = 'focusChargePop 0.35s ease';
-      }
-      setTimeout(() => {
-        const nextColor = FOCUS_COLORS[Math.min(item.charges, FOCUS_COLORS.length - 1)];
-        document.documentElement.style.setProperty('--focus-color', nextColor);
-        focusNodeEls.forEach(n => {
-          n.classList.remove('filled');
-          n.style.setProperty('--focus-color', nextColor);
-        });
-        updateFocusMultReadout(true);
-        setTimeout(step, 120);
-      }, 280);
-      return;
-    }
-
-    const node = focusNodeEls[item.segIdx];
+    const node = focusNodeEls[item.nodeIdx];
     if (!node) { step(); return; }
+    const c = focusNodeColor(item.nodeIdx, focusCapacity * FOCUS_THRESHOLD);
     node.classList.add('filled');
+    node.style.background = c;
+    node.style.boxShadow = '0 0 3px ' + c;
     node.style.animation = 'none';
     void node.offsetWidth;
     node.style.animation = 'focusNodePop 0.15s ease';
-    // Pulse the readout if we just crossed into the active range (node 11+)
-    const totalNow = (Math.floor(focusNodes / FOCUS_THRESHOLD) * FOCUS_THRESHOLD) + (item.segIdx + 1);
-    if (totalNow > FOCUS_THRESHOLD) {
-      updateFocusMultReadout(true);
-    } else {
-      updateFocusMultReadout(false);
-    }
-    setTimeout(step, 80);
+    // Pulse the readout once past the warm-up charge (node 11+ = multiplier > 1)
+    updateFocusMultReadout(item.nodeIdx + 1 > FOCUS_THRESHOLD);
+    setTimeout(step, 70);
   }
   step();
 }
@@ -7065,7 +7279,7 @@ function updateKnackList() {
   const el = document.getElementById('knack-list');
   if (!el) return;
   if (acquiredKnacks.length === 0) {
-    el.innerHTML = '<span style="font-size:11px;color:var(--cream-dim)">No knacks</span>';
+    el.innerHTML = '';   // empty → faint KNACKS watermark shows through (r95)
     return;
   }
   el.innerHTML = acquiredKnacks.map(t =>
@@ -13045,25 +13259,14 @@ async function showLevelUpScreen_fallOnly() {
   if (focusNodes > 0) {
     const cap = focusCapacity * FOCUS_THRESHOLD;
     const total = Math.min(focusNodes, cap);
-    const charges = Math.floor(total / FOCUS_THRESHOLD);
-    const segNodes = total - charges * FOCUS_THRESHOLD;
 
-    // Dots first
-    const litDots = [];
-    for (let i = 0; i < Math.min(charges, 3); i++) {
-      const dot = document.getElementById(`focus-dot-${i}`);
-      if (dot && dot.classList.contains('lit')) litDots.push(dot);
-    }
-    litDots.forEach((d, i) => spawnFocusFallClone(d, { delay: i * 40 }));
-
-    // Nodes after dots
-    const DOT_LEAD = litDots.length > 0 ? 100 : 0;
+    // Every filled node falls, highest first.
     const filledNodes = [];
-    for (let i = 0; i < segNodes; i++) {
+    for (let i = total - 1; i >= 0; i--) {
       const n = focusNodeEls[i];
       if (n) filledNodes.push(n);
     }
-    filledNodes.forEach((n, i) => spawnFocusFallClone(n, { delay: DOT_LEAD + i * 30 }));
+    filledNodes.forEach((n, i) => spawnFocusFallClone(n, { delay: i * 20 }));
 
     // Zero state silently — the real DOM goes dark immediately while clones fall.
     focusNodes = 0;
@@ -14124,7 +14327,7 @@ function renderTrickTray() {
   }
   list.innerHTML = '';
   if (trickTray.length === 0) {
-    list.innerHTML = '<span style="font-size:11px;color:var(--cream-dim)">No tricks</span>';
+    list.innerHTML = '';   // empty → faint TRICKS watermark shows through (r95)
     return;
   }
   trickTray.forEach(trick => {
@@ -16883,17 +17086,21 @@ initDevMode();
 (function setupStageScaling() {
   const stage = document.getElementById('stage');
   if (!stage) return;
+  const cabinet = document.getElementById('cabinet');
   const BODY_PAD = 14; // matches body padding above; reserves visible buffer
   function update() {
     const availW = window.innerWidth  - BODY_PAD * 2;
     const availH = window.innerHeight - BODY_PAD * 2;
     // Landscape when wider than tall AND wide enough to be meaningful
     const isLandscape = availW > availH && availW >= 480;
-    const DESIGN_W = isLandscape ? 747 : 420;
-    const DESIGN_H = isLandscape ? 420 : 740;
+    // Zoom now fits the whole CABINET housing (stage + bezel/marquee/deck).
+    const DESIGN_W = isLandscape ? 824 : 496;
+    const DESIGN_H = isLandscape ? 586 : 906;
     const z = Math.min(availW / DESIGN_W, availH / DESIGN_H);
-    stage.style.setProperty('--stage-zoom', z);
+    // Set on :root so both #cabinet (zoom) and #stage (grid measurement) inherit it.
+    document.documentElement.style.setProperty('--stage-zoom', z);
     stage.classList.toggle('landscape', isLandscape);
+    if (cabinet) cabinet.classList.toggle('landscape', isLandscape);
     // Larger inter-card gap in landscape keeps bigger cards visually separated.
     CARD_GAP = isLandscape ? 5 : 3;
     // Fallback footprints (only used if the slot can't be measured pre-layout).
@@ -16917,5 +17124,12 @@ initDevMode();
 })();
 </script>
 </div><!-- /#stage -->
+  </div><!-- /#cab-screen -->
+  <div id="cab-deck">
+    <div id="cab-vents"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    <div id="cab-deck-badge">THE GAME™</div>
+    <div id="cab-warning">Prolonged use advised · Do not think<br>about the outside · © LETHE CORP</div>
+  </div>
+</div><!-- /#cabinet -->
 </body>
 </html>
