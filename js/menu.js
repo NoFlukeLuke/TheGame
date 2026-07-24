@@ -1,4 +1,4 @@
-const BUILD = '2026-07-24 · r97 · LETHE · modular';
+const BUILD = '2026-07-24 · r98 · knack rarity';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
