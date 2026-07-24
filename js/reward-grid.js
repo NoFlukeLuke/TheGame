@@ -109,15 +109,17 @@ function generateRewardContent() {
     return a;
   }
 
-  // Pre-pick Trick at generation time so the tile shows the exact card
+  // Pre-pick Trick at generation time so the tile shows the exact card.
+  // entity/rarity drive the LETHE reward-entity visuals (see buildRewardTileInner).
   function makeTrickPayload() {
-    if (typeof TRICK_POOL === 'undefined') return { icon: '★', label: 'Trick', tier: 'rare', apply: applyRewardRandomTrick };
+    if (typeof TRICK_POOL === 'undefined') return { icon: '★', label: 'Trick', tier: 'rare', entity: 'trick', rarity: 'rare', apply: applyRewardRandomTrick };
     const owned = new Set((acquiredTricks || []).map(b => b.id));
     const eligible = TRICK_POOL.filter(b => !owned.has(b.id));
-    if (eligible.length === 0) return { icon: '★', label: 'Trick', tier: 'rare', apply: applyRewardRandomTrick };
+    if (eligible.length === 0) return { icon: '★', label: 'Trick', tier: 'rare', entity: 'trick', rarity: 'rare', apply: applyRewardRandomTrick };
     const pick = eligible[Math.floor(Math.random() * eligible.length)];
     return {
       icon: '★', label: pick.name, desc: pick.desc, tier: pick.tier || 'rare',
+      entity: 'trick', rarity: pick.tier || 'rare',
       apply: () => injectTrickAfterReward(pick)
     };
   }
@@ -128,8 +130,25 @@ function generateRewardContent() {
     const [pick] = pickSleightByRarity(1, grantedSleightIds);
     if (!pick) return makeTrickPayload();
     return {
-      icon: pick.emoji || '\u{1F0CF}', label: pick.name, desc: pick.desc, tier: pick.rarity || 'rare',
+      icon: pick.emoji || '\u{1F0CF}', emoji: pick.emoji || '\u{1F0CF}', label: pick.name, desc: pick.desc, tier: pick.rarity || 'rare',
+      entity: 'sleight', rarity: pick.rarity || 'rare',
+      uses: (pick.durability === 'infinite' || pick.durability == null) ? '∞' : pick.durability,
       apply: () => grantSleight(pick)
+    };
+  }
+
+  // Pre-pick a specific Knack (like tricks/sleights) so the tile shows its
+  // emoji + name + rarity — not a generic "Knack" placeholder.
+  function makeKnackPayload() {
+    if (typeof KNACK_POOL === 'undefined') return { icon: '♛', label: 'Knack', tier: 'rare', entity: 'knack', rarity: 'rare', apply: applyRewardKnack };
+    const owned = new Set((acquiredKnacks || []).map(t => t.id));
+    const eligible = KNACK_POOL.filter(t => !owned.has(t.id));
+    if (!eligible.length) return makeTrickPayload(); // fallback — all knacks owned
+    const pick = eligible[Math.floor(Math.random() * eligible.length)];
+    return {
+      icon: pick.emoji, emoji: pick.emoji, label: pick.name, desc: pick.desc,
+      tier: pick.rarity || 'common', rarity: pick.rarity || 'common', entity: 'knack',
+      apply: () => { acquiredKnacks.push({ ...pick }); renderKnackList?.(); showMessage(`+ ${pick.name}`, 'var(--gold)'); }
     };
   }
 
@@ -171,7 +190,7 @@ function generateRewardContent() {
     switch (cat.kind) {
       case 'trick':      return makeTrickPayload();
       case 'sleight':   return makeSleightPayload();
-      case 'knack':   return { icon: '♛', label: 'Knack',        tier: 'legendary', apply: applyRewardKnack };
+      case 'knack':   return makeKnackPayload();
       case 'discard': return { icon: '🗑', label: '+1 Discard',   tier: 'common',
                                desc: `Next round discards: ${_proj.discards} → ${_proj.discards + 1}`,
                                apply: () => { nextRoundDiscardDelta += 1; showMessage('+1 discard next round', 'var(--gold)'); } };
@@ -480,6 +499,92 @@ function openRewardGrid() {
   renderRewardGrid();
 }
 
+// ── Reward-entity visuals (LETHE) ────────────────────────────────────────────
+// A reward tile can be an "entity" (trick / sleight / knack) rendered in the
+// cabinet's CRT/neon language, a card-face tile (blessed/cursed/cull, unchanged),
+// or a plain resource/debuff/dest tile (icon + name). Rarity → neon border color.
+const REWARD_RARITIES = ['common', 'rare', 'epic', 'legendary', 'mythic'];
+function rewardRarity(p) {
+  const r = p.rarity || p.tier;
+  return REWARD_RARITIES.includes(r) ? r : 'rare';
+}
+function rewardTypeLabel(p, kind) {
+  if (p.entity) return p.entity.charAt(0).toUpperCase() + p.entity.slice(1);
+  if (kind === 'debuff') return 'Penalty';
+  if (kind === 'dest')   return 'Destination';
+  return 'Reward';
+}
+function buildRewardTileInner(p) {
+  if (p.entity === 'knack') {
+    return `<div class="rwd-diamond"><span class="rwd-diamond-emoji">${p.emoji || p.icon}</span></div>`
+         + `<div class="rwd-name">${p.label}</div>`;
+  }
+  if (p.entity === 'trick') {
+    return `<div class="rwd-glyph">✦</div><div class="rwd-art rwd-art-ph">✦</div><div class="rwd-name">${p.label}</div>`;
+  }
+  if (p.entity === 'sleight') {
+    return `<div class="rwd-tab">▶</div><div class="rwd-art">${p.emoji || p.icon}</div><div class="rwd-name">${p.label}</div>`
+         + (p.uses != null ? `<div class="rwd-uses">${p.uses}</div>` : '');
+  }
+  // Card-face tiles (blessed/cursed/cull): mini playing card + inline explanation.
+  if (p.cardFace) {
+    return `<div class="reward-face ${suitClass(p.cardFace.suit)}"><span class="reward-face-rank">${p.cardFace.rank}</span><span class="reward-face-suit">${p.cardFace.suit}</span></div>`
+         + `<div class="reward-label">${p.label}</div>`
+         + (p.desc ? `<div class="reward-desc">${colorizeKeywords(p.desc)}</div>` : '');
+  }
+  // Plain resource / debuff / dest / mystery tile: icon + name (desc → tooltip).
+  return `<div class="reward-icon">${p.icon}</div><div class="rwd-name">${p.label}</div>`;
+}
+// Owner rule: single-word names shrink to fit one line; multi-word names wrap.
+function fitRewardName(el) {
+  if (!el) return;
+  const txt = (el.textContent || '').trim();
+  const multiWord = /\s/.test(txt);
+  el.classList.toggle('rwd-name-wrap', multiWord);
+  el.style.fontSize = '';
+  if (multiWord) return;                      // wrapping handled by CSS
+  let fs = parseFloat(getComputedStyle(el).fontSize) || 10;
+  let guard = 0;
+  while (el.scrollWidth > el.clientWidth + 0.5 && fs > 6 && guard < 40) {
+    fs -= 0.5; el.style.fontSize = fs + 'px'; guard++;
+  }
+}
+
+let _rewardTT = null;
+function ensureRewardTooltip() {
+  if (_rewardTT && document.body.contains(_rewardTT)) return _rewardTT;
+  _rewardTT = document.createElement('div');
+  _rewardTT.id = 'reward-tooltip';
+  _rewardTT.innerHTML = `<div class="rtt-rar"></div><div class="rtt-name"></div><div class="rtt-desc"></div>`;
+  document.body.appendChild(_rewardTT);
+  return _rewardTT;
+}
+function hideRewardTooltip() { if (_rewardTT) _rewardTT.classList.remove('show'); }
+function attachRewardTooltip(el, p, kind) {
+  const rar  = rewardRarity(p);
+  const type = rewardTypeLabel(p, kind);
+  const place = (e) => {
+    const tt = _rewardTT; if (!tt) return;
+    const pad = 14, w = tt.offsetWidth, h = tt.offsetHeight;
+    let x = e.clientX + pad, y = e.clientY + pad;
+    if (x + w > window.innerWidth  - 8) x = e.clientX - w - pad;
+    if (y + h > window.innerHeight - 8) y = e.clientY - h - pad;
+    tt.style.left = Math.max(8, x) + 'px';
+    tt.style.top  = Math.max(8, y) + 'px';
+  };
+  el.addEventListener('mouseenter', (e) => {
+    const tt = ensureRewardTooltip();
+    tt.className = 'rar-' + rar;
+    tt.querySelector('.rtt-rar').textContent  = (p.entity ? rar + ' · ' : '') + type;
+    tt.querySelector('.rtt-name').textContent = p.label;
+    tt.querySelector('.rtt-desc').innerHTML   = colorizeKeywords(p.desc || '');
+    place(e);
+    tt.classList.add('show');
+  });
+  el.addEventListener('mousemove', place);
+  el.addEventListener('mouseleave', hideRewardTooltip);
+}
+
 function renderRewardGrid() {
   const ROWS = limits.grid_rows.current;
   const COLS = limits.grid_cols.current;
@@ -501,6 +606,7 @@ function renderRewardGrid() {
   gridEl.style.gridTemplateRows    = `repeat(${ROWS}, ${_cellH}px)`;
   gridEl.style.gap = `${_gap}px`;
   gridEl.innerHTML = '';
+  hideRewardTooltip();
 
   for (let r = 0; r < ROWS; r++) {
     for (let c = 0; c < COLS; c++) {
@@ -508,31 +614,30 @@ function renderRewardGrid() {
       const cell = rewardCells[r][c];
       const isSel = rewardSelected.has(key);
       const canSel = isRewardCellSelectable(r, c);
+      const p = cell.payload;
 
       const div = document.createElement('div');
       div.className = [
         'reward-cell',
         cell.kind,
+        p.entity ? 'entity' : '',
+        p.entity ? 'entity-' + p.entity : '',
+        p.entity ? 'rar-' + rewardRarity(p) : '',
         isSel   ? 'selected'    : '',
         !isSel && canSel  ? 'selectable'  : '',
         !isSel && !canSel ? 'unselectable': '',
       ].filter(Boolean).join(' ');
       div.dataset.r = r; div.dataset.c = c;
-
-      const p = cell.payload;
-      // Tiles that reference a specific card (blessed/cursed/cull) show a mini
-      // playing card instead of a plain emoji, so the player sees exactly which.
-      const faceHTML = p.cardFace
-        ? `<div class="reward-face ${suitClass(p.cardFace.suit)}"><span class="reward-face-rank">${p.cardFace.rank}</span><span class="reward-face-suit">${p.cardFace.suit}</span></div>`
-        : `<div class="reward-icon">${p.icon}</div>`;
-      div.innerHTML = `
-        <div class="reward-tier">${p.tier.toUpperCase()}</div>
-        ${faceHTML}
-        <div class="reward-label">${p.label}</div>
-        ${p.desc ? `<div class="reward-desc">${colorizeKeywords(p.desc)}</div>` : ''}
-      `;
+      div.innerHTML = buildRewardTileInner(p);
       div.onclick = () => onRewardCellClick(r, c);
+
+      // Entities + simple reward/debuff tiles: name only, description on hover.
+      // Card-face tiles (blessed/cursed/cull) keep their inline explanation.
+      if (!p.cardFace && p.desc) attachRewardTooltip(div, p, cell.kind);
+
       gridEl.appendChild(div);
+      const nameEl = div.querySelector('.rwd-name');
+      if (nameEl) fitRewardName(nameEl);
     }
   }
 
@@ -645,6 +750,7 @@ function confirmRewardPath() {
 }
 
 function closeRewardGrid() {
+  hideRewardTooltip();
   document.getElementById('reward-overlay').classList.remove('show');
   rewardSelected  = new Set();
   rewardCells     = [];

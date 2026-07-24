@@ -1,4 +1,4 @@
-const BUILD = '2026-07-24 · r98 · knack rarity';
+const BUILD = '2026-07-24 · r99 · reward entities';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

@@ -62,7 +62,8 @@
   .rc .art.placeholder{color:var(--rc); opacity:.85; font-size:28px; text-shadow:0 0 12px var(--rc);}
   .rc .rc-name{position:relative; z-index:2; font-family:'Orbitron',sans-serif; font-weight:700;
     font-size:10px; letter-spacing:.6px; line-height:1.15; text-align:center; text-transform:uppercase;
-    color:#fff; text-shadow:0 0 8px var(--rc), 0 1px 2px #000; word-break:break-word;}
+    color:#fff; text-shadow:0 0 8px var(--rc), 0 1px 2px #000; max-width:100%; white-space:nowrap;}
+  .rc .rc-name.wrap{white-space:normal; word-break:break-word;}
   .r-common{--rc:var(--common);} .r-rare{--rc:var(--rare);} .r-epic{--rc:var(--epic);}
   .r-legendary{--rc:var(--legendary);} .r-mythic{--rc:var(--mythic);}
 
@@ -155,6 +156,9 @@
   <h2>Mixed reward row — how it reads together</h2>
   <div class="row" id="mixRow" style="gap:14px;"></div>
 
+  <h2>Name fitting — one word shrinks, many words wrap</h2>
+  <div class="row" id="fitRow"></div>
+
   <div id="tt"><div class="tt-rar"></div><div class="tt-name"></div><div class="tt-desc"></div></div>
 
 <script>
@@ -192,6 +196,14 @@
   function knackEl(t){const d=document.createElement('div');d.className='knack r-'+t.rarity;
     d.innerHTML=`<div class="diamond"><span class="emoji">${t.emoji}</span></div><div class="rc-name">${t.name}</div>`;
     attachTip(d,t,'Knack');return d;}
+  // Owner rule: single-word name shrinks to fit one line; multi-word name wraps.
+  function fitName(el){
+    const txt=(el.textContent||'').trim(); const multi=/\s/.test(txt);
+    el.classList.toggle('wrap',multi); el.style.fontSize='';
+    if(multi) return;
+    let fs=parseFloat(getComputedStyle(el).fontSize)||10, g=0;
+    while(el.scrollWidth>el.clientWidth+0.5 && fs>6 && g<40){ fs-=0.5; el.style.fontSize=fs+'px'; g++; }
+  }
   const tt=document.getElementById('tt');
   function attachTip(el,data,type){
     el.addEventListener('mouseenter',()=>{tt.style.setProperty('--tc',RARC[data.rarity]);
@@ -209,6 +221,19 @@
   knacks.forEach(t=>document.getElementById('knackRow').appendChild(knackEl(t)));
   const mix=document.getElementById('mixRow');
   [trickEl(tricks[1]),sleightEl(sleights[2]),knackEl(knacks[1]),trickEl(tricks[3]),sleightEl(sleights[0])].forEach(e=>mix.appendChild(e));
+
+  // name-fitting demos
+  const fitDemo=[
+    {name:'Thunderstruck',rarity:'epic',desc:'One long word → font shrinks to fit a single line.'},
+    {name:'Prestidigitation',rarity:'mythic',desc:'Even longer single word → shrinks further.'},
+    {name:'The Unbroken Chain',rarity:'legendary',desc:'Several words → wraps onto multiple lines at full size.'},
+    {name:'Eye of the Storm',rarity:'rare',desc:'Multi-word → wraps naturally.'},
+  ];
+  const fitR=document.getElementById('fitRow');
+  fitDemo.forEach(t=>fitR.appendChild(trickEl(t)));
+
+  // apply the fit rule to every rendered name (needs elements in the DOM)
+  document.querySelectorAll('.rc-name').forEach(fitName);
 </script>
 </body>
 </html>

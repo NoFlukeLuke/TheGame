@@ -2614,6 +2614,106 @@
     opacity: 0.75;
   }
   .reward-cell.debuff .reward-tier { color: #d87a86; }
+
+  /* ── LETHE reward entities: CRT/neon tiles, rarity = neon border color ── */
+  .reward-cell.rar-common,    #reward-tooltip.rar-common    { --rc: var(--c-mint); }
+  .reward-cell.rar-rare,      #reward-tooltip.rar-rare      { --rc: var(--c-cyan); }
+  .reward-cell.rar-epic,      #reward-tooltip.rar-epic      { --rc: var(--c-purple); }
+  .reward-cell.rar-legendary, #reward-tooltip.rar-legendary { --rc: var(--c-yellow); }
+  .reward-cell.rar-mythic,    #reward-tooltip.rar-mythic    { --rc: var(--c-magenta); }
+
+  .reward-cell.entity {
+    border: 2px solid var(--rc);
+    background: linear-gradient(180deg, #15110b, #0a0906);
+    box-shadow: 0 0 0 2px var(--plastic-lo), 0 0 10px -1px var(--rc),
+                inset 0 0 14px -4px var(--rc), 0 6px 14px rgba(0,0,0,0.5);
+    justify-content: flex-end;
+    overflow: hidden;
+  }
+  .reward-cell.entity::after {   /* scanlines */
+    content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 1;
+    background: repeating-linear-gradient(0deg, rgba(0,0,0,0.16) 0 1px, transparent 1px 3px);
+    mix-blend-mode: overlay;
+  }
+  .reward-cell.entity::before {  /* top glare */
+    content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 1;
+    background: radial-gradient(120% 70% at 30% 0%, rgba(255,255,255,0.08), transparent 46%);
+  }
+  .reward-cell.entity-sleight { clip-path: polygon(26px 0, 100% 0, 100% 100%, 0 100%, 0 26px); }
+  .reward-cell.entity-knack {
+    border: none; background: transparent; box-shadow: none;
+    justify-content: center; gap: 8px; overflow: visible;
+  }
+  .reward-cell.entity-knack::after, .reward-cell.entity-knack::before { content: none; }
+  /* selection glow wins over the neon border (must come after .entity) */
+  .reward-cell.entity.selected {
+    box-shadow: 0 0 0 2px var(--plastic-lo), 0 0 18px rgba(140,110,230,0.75),
+                inset 0 0 12px rgba(140,110,230,0.3);
+  }
+  .reward-cell.entity-knack.selected .rwd-diamond {
+    box-shadow: 0 0 0 2px var(--plastic-deep), 0 0 16px 2px rgba(179,156,245,0.9),
+                inset 0 0 8px rgba(179,156,245,0.4);
+  }
+
+  .reward-cell .rwd-art {
+    position: absolute; top: 16%; left: 0; right: 0; margin: auto; z-index: 2;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 30px; line-height: 1; filter: drop-shadow(0 0 6px var(--rc));
+  }
+  .reward-cell .rwd-art-ph { color: var(--rc); opacity: 0.85; font-size: 24px; text-shadow: 0 0 12px var(--rc); }
+  .reward-cell.entity-trick .rwd-glyph {
+    position: absolute; top: 6px; left: 0; right: 0; text-align: center; z-index: 2;
+    font-size: 12px; color: var(--rc); text-shadow: 0 0 8px var(--rc);
+  }
+  .reward-cell.entity-sleight .rwd-tab {
+    position: absolute; top: 6px; left: 6px; width: 20px; height: 20px; border-radius: 5px; z-index: 2;
+    background: var(--rc); color: #0a0906; font: 900 11px 'Orbitron', sans-serif;
+    display: flex; align-items: center; justify-content: center; box-shadow: 0 0 8px var(--rc);
+  }
+  .reward-cell.entity-sleight .uses,
+  .reward-cell .rwd-uses {
+    position: absolute; bottom: 6px; right: 7px; z-index: 2; font-family: 'Share Tech Mono', monospace;
+    font-size: 9px; color: var(--rc); background: rgba(0,0,0,0.45); border-radius: 6px; padding: 1px 5px;
+  }
+  .reward-cell .rwd-name {
+    position: relative; z-index: 2; max-width: 100%;
+    font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 10px; letter-spacing: 0.4px;
+    text-transform: uppercase; line-height: 1.12; text-align: center; white-space: nowrap;
+    color: #fff; text-shadow: 0 0 8px var(--rc, rgba(255,255,255,0.4)), 0 1px 2px #000;
+  }
+  .reward-cell .rwd-name.rwd-name-wrap { white-space: normal; overflow-wrap: break-word; word-break: break-word; }
+
+  /* knack diamond: beige molded plastic + neon inset ring */
+  .rwd-diamond {
+    position: relative; width: 58%; aspect-ratio: 1; transform: rotate(45deg); border-radius: 9px;
+    background: linear-gradient(150deg, var(--plastic-hi), var(--plastic) 55%, var(--plastic-lo));
+    box-shadow: 0 0 0 2px var(--plastic-deep), inset 0 2px 0 rgba(255,255,255,0.6),
+                inset 0 -3px 4px rgba(0,0,0,0.2), 0 5px 12px rgba(0,0,0,0.5), 0 0 12px -3px var(--rc);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .rwd-diamond::after {
+    content: ''; position: absolute; inset: 12%; border-radius: 5px;
+    border: 2.5px solid var(--rc); box-shadow: 0 0 8px -1px var(--rc), inset 0 0 6px -2px var(--rc);
+  }
+  .rwd-diamond-emoji { transform: rotate(-45deg); font-size: 26px; line-height: 1; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.35)); }
+
+  /* reward tooltip chip (CRT panel, neon border) */
+  #reward-tooltip {
+    position: fixed; z-index: 100000; pointer-events: none; opacity: 0; transform: translateY(4px);
+    transition: opacity 0.1s ease, transform 0.1s ease; max-width: 214px; overflow: hidden;
+    background: linear-gradient(180deg, #15110b, #0b0906); color: var(--cream);
+    border: 1.5px solid var(--rc, var(--c-cyan)); border-radius: 9px; padding: 9px 11px;
+    box-shadow: 0 0 0 2px var(--plastic-lo), 0 0 14px -2px var(--rc, var(--c-cyan)), 0 10px 24px rgba(0,0,0,0.6);
+    font-family: 'Share Tech Mono', monospace;
+  }
+  #reward-tooltip.show { opacity: 1; transform: translateY(0); }
+  #reward-tooltip::after {
+    content: ''; position: absolute; inset: 0; pointer-events: none;
+    background: repeating-linear-gradient(0deg, rgba(0,0,0,0.15) 0 1px, transparent 1px 3px); mix-blend-mode: overlay;
+  }
+  #reward-tooltip .rtt-rar  { position: relative; z-index: 2; font-size: 8px; letter-spacing: 2px; text-transform: uppercase; color: var(--rc, var(--c-cyan)); margin-bottom: 4px; text-shadow: 0 0 6px var(--rc, var(--c-cyan)); }
+  #reward-tooltip .rtt-name { position: relative; z-index: 2; font-family: 'Orbitron', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: #fff; margin-bottom: 5px; }
+  #reward-tooltip .rtt-desc { position: relative; z-index: 2; font-size: 11px; line-height: 1.4; color: var(--cream); overflow-wrap: break-word; }
   #reward-footer {
     text-align: center;
     margin-top: 8px;
