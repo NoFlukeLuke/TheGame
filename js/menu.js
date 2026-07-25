@@ -1,4 +1,4 @@
-const BUILD = '2026-07-25 · r104 · rebrand skin → OBLIVISCORE / Lethe Corp';
+const BUILD = '2026-07-25 · r105 · shrink OBLIVISCORE menu title to fit';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
