@@ -203,6 +203,8 @@ function startGame() {
   gameStartTime    = Date.now();
   fullHouseThisRound = 0;
   rowColBonuses = [];
+  _posChooserQueue = []; _posChooserActive = false;
+  { const _pc = document.getElementById('pos-chooser'); if (_pc) _pc.remove(); }
   leyLinePos = null;
   lastHandType = null;
   streakCount = 0;
@@ -213,7 +215,7 @@ function startGame() {
   cancelAutoSubmit();
   cancelDance();
   handReadyForSubmit = false;
-  document.getElementById('hand-name').textContent = '—';
+  document.getElementById('hand-name').textContent = '';   // empty → "HAND" watermark shows (r99)
   document.getElementById('selected-cards').innerHTML = '';
   selected = [];
   animating = false;

@@ -145,6 +145,7 @@ function syncFocusMeterState() {
     if (on) { const c = focusNodeColor(i, cap); node.style.background = c; node.style.boxShadow = '0 0 3px ' + c; }
     else    { node.style.background = ''; node.style.boxShadow = ''; }
   });
+  applyFocusGlow();
   updateFocusMultReadout();
 }
 
@@ -170,6 +171,65 @@ function updateFocusMultReadout(pulse = false) {
 function updateFocusMeter() {
   syncFocusMeterState();
 }
+
+// ══════════════════════════════════════════════
+// FOCUS GAUGE FX — fill-scaled jitter + glow (r97)
+// ══════════════════════════════════════════════
+// Fraction of the bar that's full (0..1).
+function focusFillFrac() {
+  const cap = focusCapacity * FOCUS_THRESHOLD;
+  return cap > 0 ? Math.max(0, Math.min(1, focusNodes / cap)) : 0;
+}
+// Jitter ramp: 0 at/below ×1.0 (the warm-up charge), rising to 1 at full along the curve.
+function focusJitterFrac() {
+  const cap = focusCapacity * FOCUS_THRESHOLD;
+  const denom = cap - FOCUS_THRESHOLD;
+  const p = denom > 0 ? Math.max(0, Math.min(1, (focusNodes - FOCUS_THRESHOLD) / denom)) : 0;
+  return Math.pow(p, FOCUS_FX.jitterCurve);
+}
+function focusReduceMotion() {
+  return !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+}
+// Glow: subtle early, blooming to glowMaxPx at full. Driven via CSS vars so the bezel
+// keeps its own inset shadows (see #focus-bar-outer box-shadow in style.css).
+function applyFocusGlow() {
+  const outer = document.getElementById('focus-bar-outer');
+  if (!outer) return;
+  const cap = focusCapacity * FOCUS_THRESHOLD;
+  const blur = FOCUS_FX.glowMaxPx * Math.pow(focusFillFrac(), FOCUS_FX.glowCurve);
+  if (blur > 0.5 && focusNodes > 0) {
+    const color = focusNodeColor(Math.max(0, Math.min(cap - 1, focusNodes - 1)), cap);
+    outer.style.setProperty('--focus-glow', blur.toFixed(1) + 'px');
+    outer.style.setProperty('--focus-glow-color', color);
+  } else {
+    outer.style.setProperty('--focus-glow', '0px');
+    outer.style.setProperty('--focus-glow-color', 'transparent');
+  }
+}
+// Jitter loop: discrete shakes whose amplitude AND rate scale with fill; off at/below ×1.0.
+let _focusJitterLast = 0, _focusJX = 0, _focusJY = 0, _focusJitterOn = false;
+function focusFxLoop(ts) {
+  const outer = document.getElementById('focus-bar-outer');
+  if (outer) {
+    const jf = focusReduceMotion() ? 0 : focusJitterFrac();
+    const amp = FOCUS_FX.jitterMaxPx * jf;
+    if (amp > 0.05) {
+      const interval = 45 + (1 - jf) * 95;      // ~140ms slow → ~45ms fast when fuller
+      if (ts - _focusJitterLast >= interval) {
+        _focusJX = (Math.random() * 2 - 1) * amp;
+        _focusJY = (Math.random() * 2 - 1) * amp;
+        _focusJitterLast = ts;
+      }
+      outer.style.transform = 'translate(' + _focusJX.toFixed(2) + 'px,' + _focusJY.toFixed(2) + 'px)';
+      _focusJitterOn = true;
+    } else if (_focusJitterOn) {
+      outer.style.transform = 'translate(0,0)';
+      _focusJitterOn = false;
+    }
+  }
+  requestAnimationFrame(focusFxLoop);
+}
+if (typeof requestAnimationFrame === 'function') requestAnimationFrame(focusFxLoop);
 
 function addFocus(amount) {
   if (!amount || amount <= 0) return;
@@ -276,6 +336,7 @@ function runFocusAnimQueue() {
     node.style.animation = 'none';
     void node.offsetWidth;
     node.style.animation = 'focusNodePop 0.15s ease';
+    applyFocusGlow();
     // Pulse the readout once past the warm-up charge (node 11+ = multiplier > 1)
     updateFocusMultReadout(item.nodeIdx + 1 > FOCUS_THRESHOLD);
     setTimeout(step, 70);

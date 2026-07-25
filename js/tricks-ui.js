@@ -538,16 +538,9 @@ function selectTrick(trick, fromTrickFlow = false) {
   clearInterval(levelupTimer);
   acquiredTricks.push(trick);
 
-  // Positional bonuses get a randomly assigned axis+index at pick time
-  const positionalIds = ['rowcol_triple_pips','rowcol_mult','rowcol_retrigger','perfect_timing','right_time','study_hall','groove','assembly_line','overtime'];
-  if (positionalIds.includes(trick.id)) {
-    const axis = Math.random() < 0.5 ? 'row' : 'col';
-    const index = Math.floor(Math.random() * (axis === 'row' ? gridRows : gridCols));
-    rowColBonuses.push({ id: trick.id, axis, index });
-    trick.desc = trick.desc.replace('a specific row or column', `${axis} ${index + 1}`)
-                            .replace('a marked row or column', `${axis} ${index + 1}`)
-                            .replace('a specific grid intersection', `(${axis === 'row' ? 'row' : 'col'} ${index + 1})`);
-  }
+  // Positional bonuses get an axis+index at pick time — steered by the position knacks
+  // (Surveyor/Leveler/Alignment/District). See assignPositionMark() in scoring.js.
+  assignPositionMark(trick);
 
   updateTrickList();
   const lvlOverlay = document.getElementById('levelup-overlay');

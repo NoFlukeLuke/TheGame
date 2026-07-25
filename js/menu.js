@@ -1,4 +1,4 @@
-const BUILD = '2026-07-24 · r102 · reward fall anims';
+const BUILD = '2026-07-25 · r103 · reward redesign + position knacks';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -57,7 +57,8 @@ const MODES = {
 let ACTIVE_MODE = MODES.normal;
 
 function initMainMenu() {
-  renderMenuModes();
+  // Mode selector removed (r100): only Normal mode ships, so the menu is just Play + Settings.
+  ACTIVE_MODE = MODES.normal;
   document.getElementById('main-menu-overlay').classList.add('show');
 }
 

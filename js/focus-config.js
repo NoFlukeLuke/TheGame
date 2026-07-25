@@ -1,6 +1,18 @@
 const FOCUS_THRESHOLD = 10; // nodes per charge
 let focusCapacity   = 3;   // max charges (modifiable by Expanse bonus)
 const FOCUS_COLORS  = ['#54af88','#3a8fbf','#7a50c0','#9a30d0'];
+
+// Focus-gauge feel (tuned in the LETHE gauge mockup, r97).
+//   jitter: bar vibrates as it fills — OFF at/below ×1.0, ramps to jitterMaxPx at full
+//           along jitterCurve (<1 = climbs fast early then eases → noticeable sooner),
+//           and shakes faster the fuller it gets. Respects prefers-reduced-motion.
+//   glow:   fill-scaled bloom around the bar, subtle early, up to glowMaxPx at full.
+const FOCUS_FX = {
+  jitterMaxPx: 5.5,   // amplitude at full fill
+  jitterCurve: 0.60,  // ramp shape (<1 = sooner)
+  glowMaxPx:   60,    // glow blur at full fill
+  glowCurve:   1.3,   // glow ramp (>1 = subtle early)
+};
 let lastCalcMult   = 0;   // set by calcScore so playHand can generate focus from it
 let lastCalcFocus  = 1;   // focus multiplier applied to the last scored hand (FOCUS box) — POST-hand value
 let lastPreHandFocus = 1; // focus multiplier when the hand STARTED scoring — the FOCUS box's dance-start value

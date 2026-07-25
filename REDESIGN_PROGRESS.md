@@ -26,8 +26,21 @@ read this doc + `GLOSSARY.md` + `CLAUDE.md` + `BALANCE_SHEET.md` (skim `SYNERGY_
   leaves (no longer affects score/mechanics) + grant credits; resource grants (swaps/discards)
   reduce current stock by that amount, floored at 0. No sell mechanic exists yet (only Sacrifice
   at Limit Break).
-- **#8 Position knacks** — Surveyor (pick the column), Leveler (pick the row), Alignment
-  (mark column = trick's slot number), District (allow >1 effect on the same row/column).
+- ~~**#8 Position knacks**~~ — **BUILT r102** (pending playtest). Surveyor 📐 (you pick the column
+  via a chooser overlay), Leveler 📏 (you pick the row), Alignment 🧲 (auto column = tray slot,
+  wraps), District 🏙️ (allow >1 effect on the same line). All hook `assignPositionMark(trick)`
+  in `js/scoring.js` (called from `selectTrick` in `js/tricks-ui.js`); manual chooser
+  (Surveyor/Leveler) wins over Alignment; assignment is idempotent per Trick object
+  (upgrade-safe). New default: random assignment now *prefers an unoccupied line* (spreads
+  effects → more intersections) unless District. Chooser = a top-layer `#pos-chooser` modal
+  (provisional line assigned first so state is always valid; click a line button to set it, click
+  outside to keep the default). Future acquisitions only — an **event to re-aim already-owned
+  position tricks** is a parked follow-up (owner-requested).
+  **NOTE (arch change, r96–r100 on main):** `index.html` was **split into `js/*.js` modules**
+  (plain `<script src>`, shared globals — not ES modules). CLAUDE.md still says "single file" and
+  is now stale. Validate with `node --check js/<file>.js` per file + a combined-load check, not the
+  old inline-`<script>` extractor. Knacks live in `js/data/knacks.js`, `selectTrick` in
+  `js/tricks-ui.js`, scoring/position helpers in `js/scoring.js`, BUILD stamp in `js/menu.js`.
 - **#9 Chosen One (mythic)** — cards played at an intersection of a row+column effect get +1
   replay. Reuse `isEffectIntersection(r,c)`.
 - **#10 Rewind — RECONCILE, do NOT rebuild.** A rewind system ALREADY exists on main:
