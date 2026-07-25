@@ -1,4 +1,4 @@
-const BUILD = '2026-07-24 · r101 · payout on grid';
+const BUILD = '2026-07-24 · r102 · reward fall anims';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

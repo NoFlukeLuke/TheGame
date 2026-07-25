@@ -502,19 +502,26 @@ function openRewardGrid() {
   document.getElementById('next-goal-bg')?.classList.remove('show');
   document.body.classList.add('reward-active');
   enterRewardButtonMode();
-  renderRewardTiles();
+  renderRewardTiles(true);   // deal the reward tiles in like a new round's cards
 }
 
 // Render the reward cells INTO the play #grid, positioned exactly like cards
 // (same cellLeft/cellTop + CARD_W/CARD_H metrics), so the reward step happens
 // on the board itself instead of a separate overlay.
-function renderRewardTiles() {
+// animateIn: on first open, drop each tile in with the same fall/bounce the
+// round-start deal uses (startNewRoundDealAnims). Selection re-renders skip it.
+function renderRewardTiles(animateIn = false) {
   const gridEl = document.getElementById('grid');
   if (!gridEl || !rewardCells.length) return;
   recomputeGridMetrics();          // make sure CARD_W/H + #grid box are current
   hideRewardTooltip();
   gridEl.innerHTML = '';
   const ROWS = rewardCells.length, COLS = rewardCells[0]?.length || 0;
+
+  // Deal-in timing (mirrors startNewRoundDealAnims)
+  const FALL_DUR = 420, COL_OFFSET = 55, BOUNCE = 8, SQUISH = 0.10;
+  const dealAnimsLocal = [];
+
   for (let r = 0; r < ROWS; r++) {
     for (let c = 0; c < COLS; c++) {
       const cell = rewardCells[r][c];
@@ -546,9 +553,28 @@ function renderRewardTiles() {
       gridEl.appendChild(div);
       const nameEl = div.querySelector('.rwd-name');
       if (nameEl) fitRewardName(nameEl);
+
+      if (animateIn) {
+        const dropDist = (ROWS - r) * CARD_STEP;
+        const delay    = c * COL_OFFSET + (ROWS - 1 - r) * 18;
+        dealAnimsLocal.push(div.animate([
+          { opacity: 0, transform: `translateY(${-dropDist}px) scaleY(1)` },
+          { opacity: 1, transform: `translateY(${-dropDist}px) scaleY(1)`,                        offset: 0.06 },
+          { opacity: 1, transform: `translateY(${-dropDist * 0.45}px) scaleY(0.96)`,              offset: 0.55, easing: 'ease-in' },
+          { opacity: 1, transform: `translateY(${BOUNCE}px) scaleY(${1 - SQUISH})`,               offset: 0.83 },
+          { opacity: 1, transform: `translateY(${-BOUNCE * 0.7}px) scaleY(${1 + SQUISH})`,        offset: 0.91 },
+          { opacity: 1, transform: `translateY(${BOUNCE * 0.3}px) scaleY(${1 - SQUISH * 0.2})`,   offset: 0.96 },
+          { opacity: 1, transform: 'translateY(0) scaleY(1)' },
+        ], { duration: FALL_DUR, delay, easing: 'ease-in', fill: 'both' }).finished);
+      }
     }
   }
   updateRewardButtons();
+
+  if (animateIn && dealAnimsLocal.length) {
+    rewardDealing = true;
+    Promise.allSettled(dealAnimsLocal).then(() => { rewardDealing = false; });
+  }
 }
 
 function updateRewardButtons() {
@@ -779,7 +805,7 @@ function isRewardCellSelectable(r, c) {
 }
 
 function onRewardCellClick(r, c) {
-  if (rewardConfirmed) return;
+  if (rewardConfirmed || rewardDealing) return;
   const key = `${r}-${c}`;
 
   // Clicking a selected cell deselects it (only if it's on the "fringe" — removing it
@@ -819,14 +845,68 @@ function isGroupConnected(keySet) {
 }
 
 function clearRewardSelection() {
-  if (rewardConfirmed) return;
+  if (rewardConfirmed || rewardDealing) return;
   rewardSelected = new Set();
   renderRewardTiles();
 }
 
-function confirmRewardPath() {
-  if (rewardConfirmed || rewardSelected.size === 0) return;
+// Where a claimed reward flies to on confirm. Entities go to their home bar; the
+// deck for sleights. Events (dest) + resource/card-face tiles have no home yet, so
+// they (and everything unselected) just fall out.
+function rewardFlyTarget(p) {
+  if (!p) return null;
+  if (p.entity === 'trick')   return document.getElementById('trick-tray-area');
+  if (p.entity === 'sleight') return document.getElementById('btn-deck');
+  if (p.entity === 'knack')   return document.getElementById('knack-carousel-wrap');
+  return null;
+}
+
+// On confirm: claimed entities fly to their bar/deck; everything else falls out.
+async function animateRewardResolve() {
+  const gridEl = document.getElementById('grid');
+  if (!gridEl) return;
+  hideRewardTooltip();
+  const tiles = [...gridEl.querySelectorAll('.reward-cell.on-grid')];
+  const proms = [];
+  tiles.forEach(tile => {
+    const r = +tile.dataset.r, c = +tile.dataset.c;
+    const p = rewardCells[r]?.[c]?.payload;
+    const isSel  = rewardSelected.has(`${r}-${c}`);
+    const target = isSel ? rewardFlyTarget(p) : null;
+    tile.style.zIndex = '30';
+    if (target) {
+      const tileRect = tile.getBoundingClientRect();
+      const tRect    = target.getBoundingClientRect();
+      const dx = (tRect.left + tRect.width / 2) - (tileRect.left + tileRect.width / 2);
+      const dy = (tRect.top  + tRect.height / 2) - (tileRect.top  + tileRect.height / 2);
+      proms.push(tile.animate([
+        { transform: 'translate(0,0) scale(1)',                    opacity: 1 },
+        { transform: `translate(${dx}px, ${dy}px) scale(0.18)`,    opacity: 0 },
+      ], { duration: 460, easing: 'cubic-bezier(0.5,0,1,1)', fill: 'forwards' }).finished);
+    } else {
+      // fall out of the bottom, with a little spin
+      const dropY = (gridRows - r) * CARD_STEP + 160;
+      const spin  = (Math.random() * 18 - 9);
+      proms.push(tile.animate([
+        { transform: 'translateY(0) rotate(0deg)',            opacity: 1 },
+        { transform: `translateY(${dropY}px) rotate(${spin}deg)`, opacity: 0 },
+      ], { duration: 480, delay: c * 28, easing: 'cubic-bezier(0.4,0,1,1)', fill: 'forwards' }).finished);
+    }
+  });
+  await Promise.allSettled(proms);
+}
+
+async function confirmRewardPath() {
+  if (rewardConfirmed || rewardDealing || rewardSelected.size === 0) return;
   rewardConfirmed = true;
+  const play = document.getElementById('btn-play');
+  const disc = document.getElementById('btn-discard');
+  if (play) play.disabled = true;
+  if (disc) disc.disabled = true;
+  // Fly the claimed items to their homes / drop the rest, THEN apply + continue.
+  rewardDealing = true;   // block re-render from clobbering the flying tiles
+  await animateRewardResolve();
+  rewardDealing = false;
   rewardSelected.forEach(key => {
     const [r, c] = key.split('-').map(Number);
     const cell = rewardCells[r][c];
