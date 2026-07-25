@@ -495,8 +495,94 @@ function openRewardGrid() {
   rewardCells     = generateRewardContent();
   rewardSelected  = new Set();
   rewardConfirmed = false;
-  document.getElementById('reward-overlay').classList.add('show'); // show first so offsetHeight is accurate
-  renderRewardGrid();
+  rewardOnGrid    = true;
+  // The reward grid now lives ON the play grid (r100). Reveal the board: drop the
+  // interlude dark veil (showNextGoalFlash re-adds it later) and repurpose the
+  // Play/Discard buttons into Confirm/Clear.
+  document.getElementById('next-goal-bg')?.classList.remove('show');
+  document.body.classList.add('reward-active');
+  enterRewardButtonMode();
+  renderRewardTiles();
+}
+
+// Render the reward cells INTO the play #grid, positioned exactly like cards
+// (same cellLeft/cellTop + CARD_W/CARD_H metrics), so the reward step happens
+// on the board itself instead of a separate overlay.
+function renderRewardTiles() {
+  const gridEl = document.getElementById('grid');
+  if (!gridEl || !rewardCells.length) return;
+  recomputeGridMetrics();          // make sure CARD_W/H + #grid box are current
+  hideRewardTooltip();
+  gridEl.innerHTML = '';
+  const ROWS = rewardCells.length, COLS = rewardCells[0]?.length || 0;
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const cell = rewardCells[r][c];
+      if (!cell) continue;
+      const key    = `${r}-${c}`;
+      const isSel   = rewardSelected.has(key);
+      const canSel  = isRewardCellSelectable(r, c);
+      const p       = cell.payload;
+
+      const div = document.createElement('div');
+      div.className = [
+        'reward-cell', 'on-grid', cell.kind,
+        p.entity ? 'entity' : '',
+        p.entity ? 'entity-' + p.entity : '',
+        p.entity ? 'rar-' + rewardRarity(p) : '',
+        isSel   ? 'selected'    : '',
+        !isSel && canSel  ? 'selectable'  : '',
+        !isSel && !canSel ? 'unselectable': '',
+      ].filter(Boolean).join(' ');
+      div.style.left   = cellLeft(c) + 'px';
+      div.style.top    = cellTop(r)  + 'px';
+      div.style.width  = CARD_W + 'px';
+      div.style.height = CARD_H + 'px';
+      div.dataset.r = r; div.dataset.c = c;
+      div.innerHTML = buildRewardTileInner(p);
+      div.onclick = () => onRewardCellClick(r, c);
+      if (!p.cardFace && p.desc) attachRewardTooltip(div, p, cell.kind);
+
+      gridEl.appendChild(div);
+      const nameEl = div.querySelector('.rwd-name');
+      if (nameEl) fitRewardName(nameEl);
+    }
+  }
+  updateRewardButtons();
+}
+
+function updateRewardButtons() {
+  const hasAny = rewardSelected.size > 0;
+  const play = document.getElementById('btn-play');
+  const disc = document.getElementById('btn-discard');
+  if (play) play.disabled = !hasAny;   // CONFIRM
+  if (disc) disc.disabled = !hasAny;   // CLEAR
+}
+
+// Repurpose the two action buttons for the reward step (green CONFIRM / yellow CLEAR).
+// Original markup is captured once and restored on exit.
+let _origPlayHTML = null, _origDiscardHTML = null;
+function enterRewardButtonMode() {
+  const play = document.getElementById('btn-play');
+  const disc = document.getElementById('btn-discard');
+  if (play) {
+    if (_origPlayHTML === null) _origPlayHTML = play.innerHTML;
+    play.classList.add('reward-buy');
+    play.innerHTML = 'C<br>O<br>N<br>F<br>I<br>R<br>M';
+    play.disabled = true;
+  }
+  if (disc) {
+    if (_origDiscardHTML === null) _origDiscardHTML = disc.innerHTML;
+    disc.classList.add('reward-clear');
+    disc.innerHTML = 'C<br>L<br>E<br>A<br>R';
+    disc.disabled = true;
+  }
+}
+function exitRewardButtonMode() {
+  const play = document.getElementById('btn-play');
+  const disc = document.getElementById('btn-discard');
+  if (play && _origPlayHTML !== null) { play.classList.remove('reward-buy');  play.innerHTML = _origPlayHTML; }
+  if (disc && _origDiscardHTML !== null) { disc.classList.remove('reward-clear'); disc.innerHTML = _origDiscardHTML; }
 }
 
 // ── Reward-entity visuals (LETHE) ────────────────────────────────────────────
@@ -703,14 +789,14 @@ function onRewardCellClick(r, c) {
     const remaining = new Set([...rewardSelected].filter(k => k !== key));
     if (remaining.size === 0 || isGroupConnected(remaining)) {
       rewardSelected.delete(key);
-      renderRewardGrid();
+      renderRewardTiles();
     }
     return;
   }
 
   if (!isRewardCellSelectable(r, c)) return;
   rewardSelected.add(key);
-  renderRewardGrid();
+  renderRewardTiles();
 }
 
 // BFS connectivity check — ensures remaining selected cells are still one connected group
@@ -735,7 +821,7 @@ function isGroupConnected(keySet) {
 function clearRewardSelection() {
   if (rewardConfirmed) return;
   rewardSelected = new Set();
-  renderRewardGrid();
+  renderRewardTiles();
 }
 
 function confirmRewardPath() {
@@ -751,7 +837,20 @@ function confirmRewardPath() {
 
 function closeRewardGrid() {
   hideRewardTooltip();
-  document.getElementById('reward-overlay').classList.remove('show');
+  document.getElementById('reward-overlay')?.classList.remove('show');
+  // Tear down the on-grid reward step: restore the action buttons, clear the
+  // reward tiles from #grid, and drop back to normal render ownership.
+  exitRewardButtonMode();
+  document.body.classList.remove('reward-active');
+  rewardOnGrid = false;
+  const gridEl = document.getElementById('grid');
+  if (gridEl) gridEl.innerHTML = '';
+  // In the interlude, the dark veil must be back up before the new round's cards
+  // are dealt in (showNextGoalFlash also re-adds it, but restore now to avoid a
+  // flash of the board while drainLevelUpQueue repopulates the grid).
+  if (rewardGridContext === 'interlude') {
+    document.getElementById('next-goal-bg')?.classList.add('show');
+  }
   rewardSelected  = new Set();
   rewardCells     = [];
   gameTimerPaused = false;

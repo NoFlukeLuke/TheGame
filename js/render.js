@@ -1,4 +1,6 @@
 function render() {
+  // While the reward grid occupies the play #grid, its own renderer owns the DOM.
+  if (rewardOnGrid) { renderRewardTiles(); return; }
   const gridEl = document.getElementById('grid');
   const reachable = getReachable();
   const bestHandResult = selected.length >= 2 ? findBestHand(selected) : null;

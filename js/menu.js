@@ -1,4 +1,4 @@
-const BUILD = '2026-07-24 · r99 · reward entities';
+const BUILD = '2026-07-24 · r100 · reward on grid';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

@@ -2714,6 +2714,22 @@
   #reward-tooltip .rtt-rar  { position: relative; z-index: 2; font-size: 8px; letter-spacing: 2px; text-transform: uppercase; color: var(--rc, var(--c-cyan)); margin-bottom: 4px; text-shadow: 0 0 6px var(--rc, var(--c-cyan)); }
   #reward-tooltip .rtt-name { position: relative; z-index: 2; font-family: 'Orbitron', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: #fff; margin-bottom: 5px; }
   #reward-tooltip .rtt-desc { position: relative; z-index: 2; font-size: 11px; line-height: 1.4; color: var(--cream); overflow-wrap: break-word; }
+
+  /* ── reward grid rendered ON the play #grid (r100): tiles positioned like cards ── */
+  .reward-cell.on-grid { position: absolute; padding: 5px; }
+  /* reward-step action buttons: green CONFIRM (was Play) / yellow CLEAR (was Discard) */
+  .btn-play.reward-buy, #stage.landscape #btn-play.reward-buy {
+    background: linear-gradient(180deg, #7dffce, var(--c-mint) 55%, #1fa877) !important;
+    color: #06251a !important; border-color: var(--c-mint) !important;
+    text-shadow: 0 1px 0 rgba(255,255,255,0.4) !important;
+    box-shadow: inset 0 2px 0 rgba(255,255,255,0.6), inset 0 -3px 0 rgba(0,0,0,0.25), 0 4px 0 #178a5e, 0 6px 8px rgba(0,0,0,0.4) !important;
+  }
+  .btn-discard.reward-clear, #stage.landscape #btn-discard.reward-clear {
+    background: linear-gradient(180deg, #ffe884, var(--c-yellow) 55%, #e0a814) !important;
+    color: #3a2e08 !important; border-color: var(--c-yellow) !important;
+    text-shadow: 0 1px 0 rgba(255,255,255,0.4) !important;
+    box-shadow: inset 0 2px 0 rgba(255,255,255,0.7), inset 0 -3px 0 rgba(0,0,0,0.25), 0 4px 0 #b5820f, 0 6px 8px rgba(0,0,0,0.4) !important;
+  }
   #reward-footer {
     text-align: center;
     margin-top: 8px;

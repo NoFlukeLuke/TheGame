@@ -122,6 +122,8 @@ function generateHandFocus(hand, handCells, vultureSec) {
 // PLAY HAND
 // ══════════════════════════════════════════════
 function playHand() {
+  // During the on-grid reward step the Play button is the green CONFIRM button.
+  if (rewardOnGrid) { confirmRewardPath(); return; }
   if (roundEnded) { dbgEvent('warn', 'play ignored (round ended)'); return; }
   if (falling)   { pendingAction = 'play'; dbgEvent('info', 'play queued (falling)'); return; }
   if (animating) { pendingAction = 'play'; dbgEvent('info', 'play queued (animating)'); scheduleQueuedRetry(); return; }
