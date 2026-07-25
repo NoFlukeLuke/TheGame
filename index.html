@@ -13,30 +13,15 @@
 
 <div id="main-menu-overlay" class="show">
   <div id="menu-container">
-    <div id="menu-title">POKER GRID</div>
-
-    <div id="menu-tabs">
-      <button class="menu-tab active" onclick="switchMenuTab(event,'modes')">Modes</button>
-      <button class="menu-tab" onclick="openSettingsFromMenu()">Settings</button>
-      <button class="menu-tab" onclick="switchMenuTab(event,'history')">History</button>
-    </div>
-
-    <div id="menu-content-modes" class="menu-content active"></div>
-
-    <div id="menu-content-options" class="menu-content">
-      <p style="color:var(--cream-dim); text-align:center; font-family:'Crimson Pro', serif; font-size: 14px; margin-top: 20px;">
-        Settings coming soon.
-      </p>
-    </div>
-
-    <div id="menu-content-history" class="menu-content">
-      <p style="color:var(--cream-dim); text-align:center; font-family:'Crimson Pro', serif; font-size: 14px; margin-top: 20px;">
-        Run history coming soon.
-      </p>
-    </div>
-
-    <button id="menu-start-btn" onclick="startFromMenu()">START RUN</button>
-    <div style="margin-top:12px;font-family:monospace;font-size:10px;color:rgba(201,168,76,0.35);text-align:center;letter-spacing:1px;" id="menu-build-stamp"></div>
+    <div id="menu-led-row"><span class="cab-led"></span>SYSTEM READY</div>
+    <div id="menu-brand">LETHE</div>
+    <div id="menu-model">HOME ENTERTAINMENT SYSTEMS · MODEL 7</div>
+    <div id="menu-stripe"></div>
+    <div id="menu-title">THE GAME</div>
+    <div id="menu-tagline">A LETHE amusement product. Please continue<br>playing until further notice.</div>
+    <button id="menu-start-btn" onclick="startFromMenu()">PLAY</button>
+    <button id="menu-settings-btn" onclick="openSettingsFromMenu()">SETTINGS</button>
+    <div id="menu-build-stamp"></div>
   </div>
 </div>
 
