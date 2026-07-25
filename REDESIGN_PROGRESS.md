@@ -26,7 +26,7 @@ read this doc + `GLOSSARY.md` + `CLAUDE.md` + `BALANCE_SHEET.md` (skim `SYNERGY_
   leaves (no longer affects score/mechanics) + grant credits; resource grants (swaps/discards)
   reduce current stock by that amount, floored at 0. No sell mechanic exists yet (only Sacrifice
   at Limit Break).
-- ~~**#8 Position knacks**~~ — **BUILT r101** (pending playtest). Surveyor 📐 (you pick the column
+- ~~**#8 Position knacks**~~ — **BUILT r102** (pending playtest). Surveyor 📐 (you pick the column
   via a chooser overlay), Leveler 📏 (you pick the row), Alignment 🧲 (auto column = tray slot,
   wraps), District 🏙️ (allow >1 effect on the same line). All hook `assignPositionMark(trick)`
   in `js/scoring.js` (called from `selectTrick` in `js/tricks-ui.js`); manual chooser

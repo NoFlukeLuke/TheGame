@@ -642,7 +642,7 @@ function firesThisMinute(id) {
   return true;
 }
 
-// ── Position-mark assignment (r101) ─────────────────────────────────────────
+// ── Position-mark assignment (r102) ─────────────────────────────────────────
 // Every "position Trick" marks one grid line (a row or column). Which line it gets
 // is steered by the position knacks: Surveyor (you pick a column), Leveler (you pick a
 // row), Alignment (auto column = tray slot), District (allow >1 effect on the same line).

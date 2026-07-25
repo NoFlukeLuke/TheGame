@@ -3223,7 +3223,10 @@
   }
   #stage.landscape #focus-bar-outer { width: 26px !important; }
   #focus-active-segment { gap: 3.5px; }        /* divider: between-node border */
-  .focus-node { background: #17110a !important; border-radius: 0 !important;
+  /* NOTE: no !important on background — the JS sets each filled node's bright fill
+     color inline (focusNodeColor); an !important here would override it and leave the
+     bar dark inside (only the edge glow showing). */
+  .focus-node { background: #17110a; border-radius: 0 !important;
                 transition: background 0.12s ease, box-shadow 0.12s ease; }
   /* filled node bg + glow are set inline by JS (gradient by height) */
   .focus-node.tick { border-bottom: 1.5px solid rgba(0,0,0,0.85); }
