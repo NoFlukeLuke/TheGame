@@ -31,6 +31,11 @@ const KNACK_POOL = [
   { id:'scavenger',       emoji:'🦴',  name:'Scavenger',        desc:'Whenever a curse lifts, gain +10 coins and +1 discard next round.' },
   { id:'coin_toss',       emoji:'🪙',  name:'Coin Toss',        desc:'At the start of each round, every Sleight has a 50% chance to restore 1 charge.' },
   { id:'martyr',          emoji:'⚰️',  name:'Martyr',           desc:'Discarding a non-discard Sleight restores 1 charge to all Sleights on the grid.' },
+  // ── Position knacks (r101) — control which line a position Trick marks ──
+  { id:'surveyor',        emoji:'📐',  name:'Surveyor',         desc:'When you gain a position Trick, you choose which column it marks.' },
+  { id:'leveler',         emoji:'📏',  name:'Leveler',          desc:'When you gain a position Trick, you choose which row it marks.' },
+  { id:'alignment',       emoji:'🧲',  name:'Alignment',        desc:'Position Tricks automatically mark the column matching their tray slot (slot 3 → column 3).' },
+  { id:'district',        emoji:'🏙️',  name:'District',          desc:'Position Tricks may share a row or column instead of spreading onto separate lines.' },
 ];
 // ── SLEIGHT POOL ──
 // Sleights live in the deck as special cards (_isSleight:true). They fall onto the grid,

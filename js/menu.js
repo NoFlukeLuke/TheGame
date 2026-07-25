@@ -1,4 +1,4 @@
-const BUILD = '2026-07-24 · r100 · menu reskin + button polish';
+const BUILD = '2026-07-25 · r101 · position knacks (Surveyor/Leveler/Alignment/District)';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

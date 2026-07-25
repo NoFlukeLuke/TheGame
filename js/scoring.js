@@ -642,6 +642,126 @@ function firesThisMinute(id) {
   return true;
 }
 
+// ── Position-mark assignment (r101) ─────────────────────────────────────────
+// Every "position Trick" marks one grid line (a row or column). Which line it gets
+// is steered by the position knacks: Surveyor (you pick a column), Leveler (you pick a
+// row), Alignment (auto column = tray slot), District (allow >1 effect on the same line).
+// A manual chooser (Surveyor/Leveler) always beats Alignment. Assignment is idempotent
+// per Trick object so an upgrade (selectTrick called twice) doesn't re-roll the line.
+const POSITION_ASSIGN_IDS = ['rowcol_triple_pips','rowcol_mult','rowcol_retrigger','perfect_timing','right_time','study_hall','groove','assembly_line','overtime'];
+
+function lineOccupied(axis, index) {
+  return rowColBonuses.some(b => b.axis === axis && b.index === index);
+}
+// Random line over the given axes, preferring an unoccupied one unless District is owned.
+function pickDefaultLine(axes, district) {
+  const cands = [];
+  axes.forEach(axis => { const n = axis === 'row' ? gridRows : gridCols; for (let i = 0; i < n; i++) cands.push({ axis, index: i }); });
+  let pool = cands;
+  if (!district) { const free = cands.filter(c => !lineOccupied(c.axis, c.index)); if (free.length) pool = free; }
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+// Walk forward (wrapping) from start to the first unoccupied index on this axis.
+function firstFreeAlong(axis, start) {
+  const n = axis === 'row' ? gridRows : gridCols;
+  for (let k = 0; k < n; k++) { const i = (start + k) % n; if (!lineOccupied(axis, i)) return i; }
+  return start;
+}
+// Commit a Trick's marked line: refresh its registry entry + rewrite its description.
+function finalizePositionMark(trick, axis, index) {
+  if (trick._posDescBase == null) trick._posDescBase = trick.desc; // capture placeholder desc once
+  rowColBonuses = rowColBonuses.filter(b => b._trickRef !== trick);  // one line per Trick object
+  rowColBonuses.push({ id: trick.id, axis, index, _trickRef: trick });
+  trick._posAxis = axis; trick._posIndex = index;
+  const label = `${axis} ${index + 1}`;
+  trick.desc = trick._posDescBase
+    .replace('a specific row or column', label)
+    .replace('a marked row or column', label)
+    .replace('a specific grid intersection', `(${label})`);
+  if (typeof updateTrickList === 'function') updateTrickList();
+  if (typeof renderTrickTray === 'function') renderTrickTray();
+}
+// Decide (and, for manual choosers, prompt for) a position Trick's line at pick time.
+function assignPositionMark(trick) {
+  if (!POSITION_ASSIGN_IDS.includes(trick.id)) return;
+  if (trick._posAssigned) return;                 // idempotent (upgrade calls selectTrick twice)
+  trick._posAssigned = true;
+  const district = hasKnack('district');
+  const axes = [];
+  if (hasKnack('leveler'))  axes.push('row');
+  if (hasKnack('surveyor')) axes.push('col');
+  if (axes.length) {                              // manual chooser wins over Alignment
+    const prov = pickDefaultLine(axes, district); // provisional so state is always valid
+    finalizePositionMark(trick, prov.axis, prov.index);
+    queuePositionChooser(trick, axes, district);
+    return;
+  }
+  if (hasKnack('alignment')) {                    // auto: column = tray slot (wraps), else next free col
+    let slot = trickTray.indexOf(trick); if (slot < 0) slot = trickTray.length;
+    let index = ((slot % gridCols) + gridCols) % gridCols;
+    if (!district) index = firstFreeAlong('col', index);
+    finalizePositionMark(trick, 'col', index);
+    return;
+  }
+  const prov = pickDefaultLine(['row', 'col'], district); // default: random (spreads unless District)
+  finalizePositionMark(trick, prov.axis, prov.index);
+}
+
+// ── Surveyor / Leveler line-chooser overlay ─────────────────────────────────
+let _posChooserQueue = [];
+let _posChooserActive = false;
+function queuePositionChooser(trick, axes, district) {
+  _posChooserQueue.push({ trick, axes, district });
+  if (!_posChooserActive) showNextPositionChooser();
+}
+function showNextPositionChooser() {
+  const existing = document.getElementById('pos-chooser'); if (existing) existing.remove();
+  if (!_posChooserQueue.length) { _posChooserActive = false; return; }
+  _posChooserActive = true;
+  const { trick, axes, district } = _posChooserQueue.shift();
+  // If District is off but every other line is already taken, don't dead-end the modal.
+  const anyFree = axes.some(axis => { const n = axis === 'row' ? gridRows : gridCols;
+    for (let i = 0; i < n; i++) if (!rowColBonuses.some(x => x._trickRef !== trick && x.axis === axis && x.index === i)) return true; return false; });
+  const allowAll = district || !anyFree;
+
+  const ov = document.createElement('div');
+  ov.id = 'pos-chooser';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:10001;background:rgba(0,0,0,0.82);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;font-family:\'Crimson Pro\',serif;';
+  const axisWords = axes.map(a => a === 'row' ? 'row' : 'column').join(' or ');
+  const title = document.createElement('div');
+  title.style.cssText = 'color:var(--gold);font-size:17px;text-align:center;max-width:320px;line-height:1.4;';
+  title.innerHTML = `${trick.emoji || '📍'} <b>${trick.name}</b><br><span style="color:#cdb56a;font-size:12px;">Choose the ${axisWords} it marks</span>`;
+  ov.appendChild(title);
+
+  axes.forEach(axis => {
+    const n = axis === 'row' ? gridRows : gridCols;
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;justify-content:center;max-width:340px;';
+    if (axes.length > 1) { const lab = document.createElement('div'); lab.textContent = axis === 'row' ? 'Rows' : 'Columns'; lab.style.cssText = 'color:#cdb56a;font-size:11px;width:100%;text-align:center;'; row.appendChild(lab); }
+    for (let i = 0; i < n; i++) {
+      const b = document.createElement('button');
+      b.textContent = (axis === 'row' ? 'R' : 'C') + (i + 1);
+      const takenByOther = rowColBonuses.some(x => x._trickRef !== trick && x.axis === axis && x.index === i);
+      const blocked = takenByOther && !allowAll;
+      const current = trick._posAxis === axis && trick._posIndex === i; // provisional default
+      b.disabled = blocked;
+      b.style.cssText = `min-width:42px;padding:8px 10px;border-radius:8px;font-size:13px;`
+        + (blocked ? 'border:1px solid #444;background:rgba(60,60,60,0.4);color:#666;cursor:not-allowed;'
+          : `border:2px solid ${current ? 'var(--gold)' : 'rgba(201,168,76,0.5)'};background:rgba(201,168,76,${current ? '0.28' : '0.13'});color:var(--gold);cursor:pointer;`);
+      if (!blocked) b.onclick = () => { finalizePositionMark(trick, axis, i); if (typeof showMessage === 'function') showMessage(`${trick.name} → ${axis} ${i + 1}`, 'var(--gold)'); showNextPositionChooser(); };
+      row.appendChild(b);
+    }
+    ov.appendChild(row);
+  });
+
+  const hint = document.createElement('div');
+  hint.textContent = 'Click outside to keep the highlighted default';
+  hint.style.cssText = 'color:#8a7a3a;font-size:10px;';
+  ov.appendChild(hint);
+  ov.addEventListener('click', e => { if (e.target === ov) showNextPositionChooser(); }); // keep provisional
+  document.body.appendChild(ov);
+}
+
 // ══════════════════════════════════════════════
 // RENDER
 // ══════════════════════════════════════════════
