@@ -1026,6 +1026,24 @@
   }
   .payout-ff-btn:disabled { opacity: 0.3; cursor: default; pointer-events: none; }
 
+  /* ── Payout rendered ON the board, inside the empty grid slot (r101) ── */
+  #payout-overlay.in-grid {
+    position: absolute; inset: 0; z-index: 40;
+    padding: 10px 14px;
+    background: radial-gradient(ellipse at center, rgba(8,11,6,0.45) 0%, rgba(8,11,6,0.80) 100%);
+    border-radius: 8px;
+  }
+  #payout-overlay.in-grid .payout-title { margin-bottom: 12px; }
+  #payout-overlay.in-grid .payout-tabs  { margin: -4px 0 12px; }
+  #payout-overlay.in-grid .payout-lines,
+  #payout-overlay.in-grid #po-view-contrib { max-width: 90%; }
+  #payout-overlay.in-grid .contrib-scroll   { max-height: 180px; }
+  #payout-overlay.in-grid .payout-valued-btn { margin-top: 18px; }
+  /* skip (fast-forward) button: down by the info, not the far top-right corner */
+  #payout-overlay.in-grid .payout-ff-btn {
+    top: auto; bottom: 14px; right: 14px; width: 30px; height: 30px; font-size: 16px;
+  }
+
   /* ── Next Goal flash ── */
   #next-goal-flash {
     position: fixed;

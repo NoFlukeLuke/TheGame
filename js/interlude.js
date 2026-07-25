@@ -16,11 +16,12 @@ async function startInterlude() {
   // ── Stage 5: cards fall out ──
   await showLevelUpScreen_fallOnly();
 
-  // ── Fade in the ONE continuous dark bg — stays up through payout, Trick pick, goal flash, 321 ──
-  document.getElementById('next-goal-bg').classList.add('show');
-  await new Promise(res => setTimeout(res, 300));
+  // ── Payout + reward now happen ON the board (r101): the empty grid shows the
+  // payout panel, then the reward tiles. The full dark veil is NOT raised here —
+  // it comes back later for the deal-in (closeRewardGrid + showNextGoalFlash). ──
+  await new Promise(res => setTimeout(res, 200));
 
-  // ── Stage 4: Balatro-style payout UI ──
+  // ── Stage 4: payout panel, rendered into the empty grid ──
   await showPayoutUI();
 
   interludeActive = false;
@@ -190,7 +191,11 @@ async function showPayoutUI() {
     </div>
     <button class="payout-valued-btn" id="po-valued">Valued.</button>
     <button class="payout-ff-btn" id="po-ff" title="Fast forward">»</button>`;
-  document.body.appendChild(el);
+  // Render the payout INTO the grid area (r101) so it lives on the board, in the
+  // beat between the cards falling out and the reward tiles coming in.
+  const _slot = document.getElementById('grid-slot');
+  if (_slot) { el.classList.add('in-grid'); _slot.appendChild(el); }
+  else document.body.appendChild(el);
 
   // Tab switching: Payout (coin animation) vs Contributions (round breakdown)
   const viewPayout  = el.querySelector('#po-view-payout');
