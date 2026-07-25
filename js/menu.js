@@ -1,4 +1,4 @@
-const BUILD = '2026-07-25 · r106 · replay re-fires whole card (mult/coins/time), not just pips';
+const BUILD = '2026-07-25 · r107 · score dance releases each trick as its card animates; replays repeat the beat';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

@@ -23,7 +23,12 @@ function exaltCorruptTotals(cards, reps) {
   return { pips, mult, coins, time };
 }
 
-function calcScore(handName, cells, contrib = null) {
+// `ledger` (optional out-param) collects per-card animation data for the score dance:
+//   ledger.cards = [{ r, c, card, rank, suit, rawPip, reps, ids:[trickId…] }]  in scoring order,
+// where `ids` are the entities that fired on THAT card (so the dance can release each trick's
+// particle as its trigger card animates, and replay the beat `reps` times). Hand-level tricks
+// are whatever's in `contrib` but not tied to any card. Populating it never changes the score.
+function calcScore(handName, cells, contrib = null, ledger = null) {
   const base = HAND_BASE[handName];
   if (!base) return 0;
   const _scoreCells = scoringOrderCells(cells);
@@ -82,8 +87,10 @@ function calcScore(handName, cells, contrib = null) {
   // Per-card replay count (key 'r-c' → times this card scores). Lets the post-loop
   // per-card MULT / coin / time bonuses re-fire on replay too (not just pips).
   const retrigByKey = {};
+  const _ledgerCells = ledger ? [] : null;
   _scoreCells.forEach(([r, c]) => {
     const card = gridData[r][c];
+    const _cpSnap = ledger ? Object.assign({}, _cp) : null; // to diff this card's per-card pip tricks
     const baseRank = card.rank;
     const _origPips = cardPips(baseRank);
     let rawPips = _origPips;
@@ -146,6 +153,13 @@ function calcScore(handName, cells, contrib = null) {
     if (_rne) _retrig++; if (_ech) _retrig++; if (_wp) _retrig += BAL.woodpecker.retrigger_count;
     if (_hnm) _retrig++;
     retrigByKey[r + '-' + c] = _retrig;
+    if (_ledgerCells) {
+      // Per-card pip-trick single-iteration deltas = the change in _cp during THIS card's
+      // pre-replay body (excludes replay bookkeeping, which the dance shows by repeating the beat).
+      const _pipT = {};
+      for (const _id in _cp) { const _d = (_cp[_id] || 0) - (_cpSnap[_id] || 0); if (_d) _pipT[_id] = _d; }
+      _ledgerCells.push({ r, c, card, rank: card.rank, suit: card.suit, rawPip: _origPips, reps: _retrig, pipT: _pipT, multT: {} });
+    }
     if (hasTrick('club_double') && (card.suit === '♣' || (card.combined && card.suit2 === '♣'))) _clubHits += _retrig;
     if (card._vulturePause) _vultureFires += card._vulturePause * _retrig; // Vulture buff fires once per (re)trigger
     // Assembly Line: each (re)play of a mark card earns the running counter, then increments it
@@ -513,6 +527,28 @@ function calcScore(handName, cells, contrib = null) {
     // push {type,source:'knack'|'sleight',id,delta} and the dance will render it automatically.
     if (typeof sleightAmplifierMult === 'number' && sleightAmplifierMult > 0)
       contrib.push({type:'mult',source:'sleight',id:'amplifier',delta:Math.round(sleightAmplifierMult*10)/10});
+  }
+
+  // Finalize the animation ledger: attach the known per-card MULT / exalt single-iteration
+  // deltas to each card (these are computed post-loop, so they're not in the loop's pip diff).
+  if (ledger && _ledgerCells) {
+    _ledgerCells.forEach(e => {
+      const _k = cardKey(e.rank, e.suit);
+      const card = e.card;
+      const addM = (id, d) => { if (d) e.multT[id] = (e.multT[id] || 0) + d; };
+      const _isHeart = e.suit === '♥' || (card && card.combined && card.suit2 === '♥');
+      if (hasTrick('heart_double') && _isHeart) addM('heart_double', BAL.heart_double.heart_mult);
+      if ((permMult[_k] || 0) !== 0) addM('perm_mult', permMult[_k]);
+      if (hasTrick('old_growth') && (permPips[_k] || 0) !== 0) addM('old_growth', permPips[_k]);
+      if (hasTrick('jack_mult') && e.rank === 'J') addM('jack_mult', BAL.jack_mult.mult_per_jack);
+      if (hasTrick('king_guard') && (e.rank === 'K' || e.rank === 'J')) addM('king_guard', BAL.king_guard.mult);
+      if (exaltCorruptEnabled && card && (card._exalted || card._corrupted)) {
+        const _t = exaltCorruptTotals([card]);
+        if (_t.mult > 0) addM('_exalt', _t.mult);
+        if (_t.pips > 0) e.pipT['_exalt'] = (e.pipT['_exalt'] || 0) + _t.pips;
+      }
+    });
+    ledger.cards = _ledgerCells;
   }
 
   return Math.round(s);
