@@ -161,3 +161,102 @@
   .sleight-tooltip-name { font-size:11px; color:#cc88ff; margin-bottom:3px; }
   .sleight-tooltip-desc { font-size:10px; color:var(--cream-dim); font-family:'Crimson Pro',serif; line-height:1.4; }
   .sleight-tooltip-hint { font-size:8px; color:var(--gold-dim); margin-top:5px; letter-spacing:0.5px; }
+
+  /* ============================================================= */
+  /* ==  LETHE NEON RESKIN — events + pickers (r106)            == */
+  /* ==  Matches the r100 menu / reward-grid vibe.             == */
+  /* ============================================================= */
+  #event-overlay, #trick-lose-picker {
+    background:
+      repeating-linear-gradient(0deg, rgba(0,0,0,0.16) 0 1px, transparent 1px 3px),
+      radial-gradient(ellipse at 50% 26%, #241d3f 0%, #171235 46%, #0b0a1c 100%) !important;
+  }
+  #event-eyebrow { font-family:'Share Tech Mono',monospace !important; color:var(--c-cyan) !important; }
+  #event-name {
+    font-family:'Orbitron',sans-serif !important; font-weight:900 !important; letter-spacing:3px;
+    background:linear-gradient(180deg,#fff2c8,var(--c-yellow) 55%,var(--c-coral));
+    -webkit-background-clip:text; background-clip:text; color:transparent !important;
+    text-shadow:0 0 24px rgba(255,206,43,0.35);
+  }
+  #event-flavor { color:var(--cream-dim) !important; }
+
+  /* Event choice cards → plastic neon tiles */
+  .event-choice {
+    background: linear-gradient(160deg,#15110b,#0a0906) !important;
+    border: 2px solid var(--c-cyan) !important;
+    box-shadow: 0 0 0 2px var(--plastic-lo), 0 0 8px -2px var(--c-cyan), 0 5px 12px rgba(0,0,0,0.5);
+    font-family:'Orbitron',sans-serif !important;
+  }
+  .event-choice:hover  { border-color:var(--c-yellow) !important; transform:translateY(-2px);
+    box-shadow: 0 0 0 2px var(--plastic-lo), 0 0 16px -1px var(--c-yellow), 0 8px 18px rgba(0,0,0,0.6); }
+  .event-choice.selected { border-color:var(--c-yellow) !important;
+    box-shadow:0 0 0 2px var(--plastic-lo), 0 0 18px rgba(255,206,43,0.6) !important; }
+  .event-choice.debuff  { border-color:var(--c-magenta) !important; background:linear-gradient(160deg,#1e0b16,#0e0609) !important;
+    box-shadow: 0 0 0 2px var(--plastic-lo), 0 0 8px -2px var(--c-magenta), 0 5px 12px rgba(0,0,0,0.5); }
+  .event-choice.selected.debuff { box-shadow:0 0 0 2px var(--plastic-lo), 0 0 18px rgba(255,47,142,0.6) !important; }
+  .ec-rarity { color:var(--c-cyan) !important; font-family:'Share Tech Mono',monospace !important; }
+  .ec-name   { font-family:'Orbitron',sans-serif !important; color:var(--c-yellow) !important; }
+  .ec-desc   { color:var(--cream-dim) !important; }
+  .ec-cost   { color:var(--c-coral) !important; font-family:'Share Tech Mono',monospace !important; }
+  .ec-tag    { background:rgba(22,200,216,0.14) !important; color:var(--c-cyan) !important;
+    font-family:'Share Tech Mono',monospace !important; }
+
+  /* Event action buttons (skip = ghost cyan, confirm = candy yellow) */
+  #event-skip {
+    font-family:'Orbitron',sans-serif !important; font-weight:700;
+    border:1px solid var(--c-cyan) !important; color:var(--c-cyan) !important;
+    background:linear-gradient(180deg,#1d3a3e,rgba(16,36,39,0)) !important;
+  }
+  #event-skip:hover { background:linear-gradient(180deg,#235055,#12292c) !important; color:#fff !important; }
+  #event-confirm {
+    font-family:'Orbitron',sans-serif !important; font-weight:900; color:#3a2a08 !important; border:none !important;
+    background:linear-gradient(180deg,#ffe06a,var(--c-yellow) 55%,#e0a814) !important;
+    box-shadow: inset 0 2px 0 rgba(255,255,255,0.7), inset 0 -4px 0 rgba(0,0,0,0.25), 0 5px 0 #b5820f, 0 8px 12px rgba(0,0,0,0.45) !important;
+  }
+  #event-confirm:not(:disabled):active { transform:translateY(4px);
+    box-shadow: inset 0 2px 0 rgba(255,255,255,0.5), 0 1px 0 #b5820f !important; }
+
+  /* Trick-lose picker (a "sacrifice" pane → magenta danger accent) */
+  #blp-title { font-family:'Orbitron',sans-serif !important; font-weight:900 !important; color:var(--c-magenta) !important;
+    text-shadow:0 0 18px rgba(255,47,142,0.5); }
+  #blp-sub { color:var(--cream-dim) !important; }
+  .blp-item {
+    background:linear-gradient(160deg,#15110b,#0a0906) !important;
+    border:2px solid #45324a !important;
+    box-shadow: 0 0 0 2px var(--plastic-lo), 0 4px 10px rgba(0,0,0,0.5);
+    font-family:'Orbitron',sans-serif !important;
+  }
+  .blp-item:hover  { border-color:var(--c-magenta) !important; }
+  .blp-item.selected { border-color:var(--c-magenta) !important;
+    box-shadow:0 0 0 2px var(--plastic-lo), 0 0 16px rgba(255,47,142,0.55) !important; }
+  .blp-item-name  { font-family:'Orbitron',sans-serif !important; color:var(--cream) !important; }
+  .blp-item-tier  { color:var(--c-cyan) !important; font-family:'Share Tech Mono',monospace !important; }
+  .blp-item-desc  { color:var(--cream-dim) !important; }
+
+  /* Confluence theme buttons */
+  .event-theme-btn {
+    background:linear-gradient(180deg,#15110b,#0a0906) !important; border:2px solid #2a2440 !important;
+    font-family:'Orbitron',sans-serif !important;
+  }
+  .event-theme-btn:hover { border-color:var(--c-cyan) !important; }
+  .event-theme-btn.selected { border-color:var(--c-yellow) !important; background:#241e10 !important;
+    box-shadow:0 0 14px rgba(255,206,43,0.4); }
+  .etb-name { color:var(--c-cyan) !important; font-family:'Share Tech Mono',monospace !important; }
+
+  /* Gamble doors → CRT cabinet doors */
+  .event-door {
+    background:linear-gradient(180deg,#15110b,#0a0906) !important;
+    border:2px solid var(--c-purple) !important;
+    box-shadow: 0 0 0 2px var(--plastic-lo), 0 0 10px -2px var(--c-purple), inset 0 0 14px -4px var(--c-purple), 0 6px 14px rgba(0,0,0,0.5);
+  }
+  .event-door:hover:not(.chosen):not(.revealed) { border-color:var(--c-yellow) !important;
+    box-shadow: 0 0 0 2px var(--plastic-lo), 0 0 16px var(--c-yellow); }
+  .event-door.chosen  { border-color:var(--c-yellow) !important;
+    box-shadow:0 0 0 2px var(--plastic-lo), 0 0 18px rgba(255,206,43,0.6) !important; }
+  .event-door.revealed-good { border-color:var(--c-mint) !important;
+    box-shadow:0 0 0 2px var(--plastic-lo), 0 0 16px rgba(53,213,155,0.6) !important; }
+  .event-door.revealed-bad  { border-color:var(--c-magenta) !important;
+    box-shadow:0 0 0 2px var(--plastic-lo), 0 0 16px rgba(255,47,142,0.55) !important; }
+  .door-num  { font-family:'Orbitron',sans-serif !important; color:var(--c-purple) !important;
+    text-shadow:0 0 12px rgba(154,108,255,0.6); }
+  .door-dname { font-family:'Share Tech Mono',monospace !important; color:var(--cream) !important; }

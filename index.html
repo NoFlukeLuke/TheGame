@@ -203,17 +203,17 @@
   <div id="countdown-321-number">3</div>
 </div>
 <div id="pause-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:190;flex-direction:column;align-items:center;justify-content:center;gap:16px;">
-  <div style="font-family:'Cinzel',serif;font-size:28px;font-weight:900;color:var(--gold);letter-spacing:8px;">PAUSED</div>
+  <div id="pause-title">PAUSED</div>
   <button id="btn-resume" class="end-btn">Resume</button>
   <div id="pause-settings" style="display:flex;flex-direction:column;align-items:center;gap:10px;margin-top:8px;width:220px;">
-    <div style="font-family:'Cinzel',serif;font-size:8px;letter-spacing:3px;color:var(--gold-dim);text-transform:uppercase;border-bottom:1px solid var(--border);width:100%;padding-bottom:6px;text-align:center;">Settings</div>
-    <label style="display:flex;align-items:center;justify-content:space-between;width:100%;font-family:'Cinzel',serif;font-size:10px;letter-spacing:1px;cursor:pointer;">
+    <div id="pause-settings-title">Settings</div>
+    <label class="pause-setting-row">
       <span>Dev Mode</span>
-      <input type="checkbox" id="dev-mode-toggle" style="width:18px;height:18px;cursor:pointer;" onchange="toggleDevMode(this.checked)">
+      <input type="checkbox" id="dev-mode-toggle" onchange="toggleDevMode(this.checked)">
     </label>
-    <label style="display:flex;align-items:center;justify-content:space-between;width:100%;font-family:'Cinzel',serif;font-size:10px;letter-spacing:1px;cursor:pointer;">
+    <label class="pause-setting-row">
       <span title="Suit cards transform (gold/purple) and change scoring. Off by default.">Exalt / Corrupt</span>
-      <input type="checkbox" id="exalt-corrupt-toggle" style="width:18px;height:18px;cursor:pointer;" onchange="toggleExaltCorrupt(this.checked)">
+      <input type="checkbox" id="exalt-corrupt-toggle" onchange="toggleExaltCorrupt(this.checked)">
     </label>
   </div>
 </div>
