@@ -1,4 +1,4 @@
-const BUILD = '2026-07-24 · r100 · menu reskin + button polish';
+const BUILD = '2026-07-24 · r101 · focus fill brightness fix';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
