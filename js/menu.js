@@ -1,4 +1,4 @@
-const BUILD = '2026-07-25 · r107 · score dance releases each trick as its card animates; replays repeat the beat';
+const BUILD = '2026-07-25 · r108 · per-card ×mult enhancement releases per-card in the dance too';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

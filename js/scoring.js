@@ -319,7 +319,12 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // Permanent ×mult enhancement (The Forge / Bargain / Wager events) — applied once per replay
   cards.forEach((card, i) => {
     const _xm = permXMult[cardKey(card.rank, card.suit)] || 1;
-    if (_xm !== 1) { const _preXm = mult; mult *= Math.pow(_xm, _reps[i]); bMult('perm_mult', mult - _preXm); }
+    if (_xm !== 1) {
+      const _preXm = mult; mult *= Math.pow(_xm, _reps[i]); bMult('perm_mult', mult - _preXm);
+      // Ledger: attribute this card's ×mult to it so the dance releases it per-card (not the end
+      // sweep). Single-application delta (_preXm*(_xm-1)); the dance repeats it per replay beat.
+      if (_ledgerCells && _ledgerCells[i]) _ledgerCells[i].multT['perm_mult'] = (_ledgerCells[i].multT['perm_mult'] || 0) + _preXm * (_xm - 1);
+    }
   });
   // Old Growth: each scored card also adds its permanent pip bonus to mult (per replay)
   if (hasTrick('old_growth')) {
