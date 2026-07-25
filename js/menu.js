@@ -1,4 +1,4 @@
-const BUILD = '2026-07-25 · r105 · shrink OBLIVISCORE menu title to fit';
+const BUILD = '2026-07-25 · r106 · replay re-fires whole card (mult/coins/time), not just pips';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
