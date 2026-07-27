@@ -67,6 +67,11 @@ function doDiscard() {
   const count = discardedCards.length;
   cardsDiscardedTotal += count;
   cardsDiscardedRound += count;
+  // Five for Fodder: discarding a 5-card hand grants credits
+  if (hasTrick('five_fodder') && count === 5) {
+    coins += BAL.five_fodder.credits; updateCoinsUI();
+    showMessage('Five for Fodder! +' + BAL.five_fodder.credits + ' credits', 'var(--gold)');
+  }
   // Penny Saved: each 5 discarded adds +5 pips to trick
   if (hasTrick('fives_discard')) {
     const fivesCount = discardedCards.filter(c => c.rank === '5').length;

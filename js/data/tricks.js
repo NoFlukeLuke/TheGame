@@ -157,6 +157,11 @@ const TRICK_POOL = [
   { id:'magician',       name:'Magician',            tier:'rare',      tags:['sleight','mult'],  desc:'+3 mult for each Sleight you own' },
   { id:'stand_up',       name:'Stand-Up',            tier:'rare',      tags:['sleight','pips'],  desc:'+10 pips for each charge remaining across all your Sleights' },
   { id:'scalper',        name:'Scalper',             tier:'rare',      tags:['sleight','pips'],  desc:'Total pips ×(1 + 0.2 per charge your Sleights are missing), figured when the hand scores' },
+  // ── 5-card-hand family (r103) ──
+  { id:'five_stack',     name:'Five Stack',          tier:'mythic',    tags:['pips','mult','focus'], desc:'Each card in a 5-card hand scores +20 pips, +5 mult, and +1 Focus' },
+  { id:'little_guys',    name:'the little guys',     tier:'rare',      tags:['focus'],           desc:'A 5-card hand with no face cards permanently raises your maximum Focus by 1' },
+  { id:'five_fodder',    name:'Five for Fodder',     tier:'common',    tags:['credits','discard'], desc:'Discarding a 5-card hand grants +5 credits' },
+  { id:'five_second',    name:'Five Second Rule',    tier:'epic',      tags:['time'],            desc:'Playing a 5-card hand pauses the clock 5 seconds' },
 ];
 
 // ── Trick category → emoji ──

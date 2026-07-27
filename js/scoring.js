@@ -71,6 +71,9 @@ function calcScore(handName, cells, contrib = null) {
   const _asmOn = hasTrick('assembly_line');
   let _asmK = _asmOn ? assemblyMarkCount : 0;
   let _asmMult = 0;
+  // Five Stack: 5-card hands add per-card pips+mult, replay-aware (folds through the retrigger loop).
+  const _fiveCard = hasTrick('five_stack') && cells.length === 5;
+  let _fsMult = 0;
   // Straight Shot: capture the modified pip value of the line's first & last card
   const _slFirstKey = _scoreCells.length ? _scoreCells[0][0] + '-' + _scoreCells[0][1] : '';
   const _slLastKey  = _scoreCells.length ? _scoreCells[_scoreCells.length-1][0] + '-' + _scoreCells[_scoreCells.length-1][1] : '';
@@ -110,6 +113,8 @@ function calcScore(handName, cells, contrib = null) {
     if (_xp !== 1) { const _preXp = cp; cp *= _xp; bPip('sapling', cp - _preXp); }
     // Right Place: marked row/column cards score +flat pips
     if (cellHasRowColBonus(r, c, 'rowcol_triple_pips')) { cp += BAL.rowcol_triple_pips.flat_pips; bPip('rowcol_triple_pips', BAL.rowcol_triple_pips.flat_pips); }
+    // Five Stack: +pips per card in a 5-card hand (before the retrigger multiply → replay-aware)
+    if (_fiveCard) { cp += BAL.five_stack.pips; bPip('five_stack', BAL.five_stack.pips); }
     // Leaden curse: this card contributes no pips at all (applied last so it wins)
     if (cardCurses[_eKey]?.id === 'leaden') cp = 0;
     // Straight Shot: remember the first/last line card's modified pips (post-buff, post-curse, pre-replay)
@@ -144,6 +149,8 @@ function calcScore(handName, cells, contrib = null) {
     if (_asmOn && cellHasRowColBonus(r, c, 'assembly_line')) {
       for (let _ai = 0; _ai < _retrig; _ai++) { _asmMult += _asmK; _asmK++; }
     }
+    // Five Stack: +mult per card, once per (re)trigger of that card
+    if (_fiveCard) _fsMult += BAL.five_stack.mult * _retrig;
     if (_retrig > 1) {
       const _pre = cp; cp *= _retrig;
       const _extra = cp - _pre;
@@ -225,6 +232,7 @@ function calcScore(handName, cells, contrib = null) {
 
   // Assembly Line: apply the mult accumulated in the per-card loop; snapshot the round counter
   if (_asmMult > 0) { mult += _asmMult * BAL.assembly_line.mult_per_prior; bMult('assembly_line', _asmMult * BAL.assembly_line.mult_per_prior); }
+  if (_fsMult > 0) { mult += _fsMult; bMult('five_stack', _fsMult); }
   if (_asmOn) _lastHandAssemblyEnd = _asmK;
 
   if (risingTideBonus > 0) { mult += risingTideBonus; bMult('rising_tide', risingTideBonus); }
