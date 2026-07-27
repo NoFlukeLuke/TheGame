@@ -1,4 +1,4 @@
-const BUILD = '2026-07-25 · r108 · per-card ×mult enhancement releases per-card in the dance too';
+const BUILD = '2026-07-27 · r109 · fix clock-hits-0-during-win double level-up';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

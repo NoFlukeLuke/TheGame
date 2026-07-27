@@ -208,6 +208,12 @@ function playHand() {
     console.log('[GOAL] reached', { score, goal: roundGoal, finalScore });
     goalReachedThisRound = true;
     roundEnded = true; // freeze input immediately
+    // Stop the round clock the instant the goal is met (unless a challenge is
+    // still pending — that path keeps its own timer running). This freezes the
+    // clock as a clear "goal reached" signal AND prevents a late timer tick from
+    // firing the legacy level-up flow mid-dance — the double level-up / stray-
+    // trick bug that surfaced when the clock hit 0 during the win animation.
+    if (!challengeActive) { clearInterval(roundInterval); roundInterval = null; }
     const toRemove = [...selected];
     selected = [];
     commitRoundContrib(_contribSnapshot); // goal-clearing hand counts toward the tally
