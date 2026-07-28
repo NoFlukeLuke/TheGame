@@ -36,6 +36,9 @@ const KNACK_POOL = [
   { id:'leveler',         emoji:'📏',  name:'Leveler',          desc:'When you gain a position Trick, you choose which row it marks.' },
   { id:'alignment',       emoji:'🧲',  name:'Alignment',        desc:'Position Tricks automatically mark the column matching their tray slot (slot 3 → column 3).' },
   { id:'district',        emoji:'🏙️',  name:'District',          desc:'Position Tricks may share a row or column instead of spreading onto separate lines.' },
+  // ── Focus-capacity knacks (r104) ──
+  { id:'stimulants',      emoji:'💊',  name:'Stimulants',       desc:'+10 maximum Focus while owned.' },
+  { id:'core_memories',   emoji:'🧠',  name:'Core Memories',    desc:'Each Event you attend permanently raises your maximum Focus by 2.' },
 ];
 // ── SLEIGHT POOL ──
 // Sleights live in the deck as special cards (_isSleight:true). They fall onto the grid,

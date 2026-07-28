@@ -61,6 +61,8 @@ let bonusMult_compound  = 0;   // Compound Trick: +0.1 per hand played
 let bonusPips_prolific  = 0;   // Prolific Trick: +1 pip per hand played
 // New position-trick state
 let bonusPips_fengshui  = 0;   // Feng Shui: permanent pips, grows when another position trick fires (per game)
+let focusGenGame  = 0;   // total Focus generated this game (Wellspring); reset on new game
+let focusGenRound = 0;   // total Focus generated this round (Feedback Loop); reset each round
 let assemblyMarkCount   = 0;   // Assembly Line: cards scored from its marked line this round (replays count)
 let _lastHandAssemblyEnd = 0;  // snapshot of assemblyMarkCount after the last scored hand
 let markCount_groove    = 0;   // Groove: cards scored from its marked line this round

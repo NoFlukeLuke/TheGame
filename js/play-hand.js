@@ -57,13 +57,13 @@ function generateHandFocus(hand, handCells, vultureSec) {
       if (hasTrick('five_stack')) totalFocus += handCells.length * BAL.five_stack.focus_per_card; // +Focus/card (pips+mult handled in calcScore)
       if (hasTrick('five_second')) pauseRound(BAL.five_second.pause_seconds);                      // Five Second Rule → pause 5s
       if (hasTrick('little_guys') && !handCells.some(([r,c]) => ['J','Q','K'].includes(gridData[r]?.[c]?.rank))) {
-        focusCapacity += BAL.little_guys.cap_gain;                                                  // no face cards → +1 max Focus (permanent)
+        focusCapPerm += BAL.little_guys.cap_gain;                                                   // no face cards → +1 max Focus node (permanent)
         showMessage('the little guys! +' + BAL.little_guys.cap_gain + ' max Focus', '#a25cd8');
       }
     }
     if (totalFocus > 0) addFocus(totalFocus);
     // Quick Draw: hands played within 3 seconds of the previous permanently add +1 max Focus capacity
-    if (hasTrick('quick_draw') && lastHandTime > 0 && secondsSinceLast * 1000 < BAL.quick_draw.window_ms) focusCapacity++;
+    if (hasTrick('quick_draw') && lastHandTime > 0 && secondsSinceLast * 1000 < BAL.quick_draw.window_ms) focusCapPerm += 10;
     // Flash Flood: runs of 4+ cards instantly advance focus to the next threshold
     if (_isRunHand && handCells.length >= 4 && hasTrick('ancient_grove')) {
       const _nt = (Math.floor(focusNodes / FOCUS_THRESHOLD) + 1) * FOCUS_THRESHOLD;

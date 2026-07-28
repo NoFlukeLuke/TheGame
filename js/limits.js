@@ -4,28 +4,29 @@ const LIMITS_DEF = [
   { id: 'grid_cols',   label: 'Grid Columns',    icon: '⬌', desc: 'Columns in the playing grid (and reward grid)', base: 4,   max: 7 },
   { id: 'swaps',       label: 'Swaps/Round',      icon: '🔄', desc: 'Swaps granted at round start',      base: 3,   max: 8 },
   { id: 'discards',    label: 'Discards/Round',   icon: '🗑', desc: 'Discards granted at round start',   base: 3,   max: 8 },
-  { id: 'round_time',  label: 'Round Time',       icon: '⏱', desc: 'Max seconds per round',             base: 180, max: 300 },
+  { id: 'round_time',  label: 'Round Time',       icon: '⏱', desc: 'Max seconds per round',             base: 180, max: 300, step: 15 },
   { id: 'trick_slots', label: 'Trick Slots',      icon: '✦', desc: 'Max Tricks you can keep at once',   base: 5,   max: 10, weight: 0.4 },
   { id: 'reroll',      label: 'Shop Rerolls',     icon: '🎲', desc: 'Rerolls available per shop visit',  base: 3,   max: 6 },
+  { id: 'focus_cap',   label: 'Focus Cap',        icon: '⚡', desc: 'Maximum Focus (nodes)',            base: 30,  max: 60, step: 3, weight: 0.5 },
 ];
 const limits = {};
 LIMITS_DEF.forEach(def => {
-  limits[def.id] = { current: def.base, base: def.base, max: def.max };
+  limits[def.id] = { current: def.base, base: def.base, max: def.max, step: def.step || 1 };
 });
 
-// Helper: increment a limit by 1, returns true if successful
+// Helper: increment a limit by its step, returns true if successful
 function incrementLimit(id) {
   const l = limits[id];
   if (!l || l.current >= l.max) return false;
-  l.current++;
+  l.current = Math.min(l.max, l.current + (l.step || 1));
   onLimitChanged(id);
   return true;
 }
-// Helper: decrement a limit by 1 (for sacrifice), returns true if successful
+// Helper: decrement a limit by its step (for sacrifice), returns true if successful
 function decrementLimit(id) {
   const l = limits[id];
   if (!l || l.current <= 0) return false;
-  l.current--;
+  l.current = Math.max(0, l.current - (l.step || 1));
   onLimitChanged(id);
   return true;
 }
@@ -33,10 +34,11 @@ function decrementLimit(id) {
 function limitProgressStr(id, showNext) {
   const def = LIMITS_DEF.find(d => d.id === id);
   const l = limits[id];
+  const next = Math.min(l.max, l.current + (l.step || 1));
   if (def && def.hideMax) {
-    return showNext ? `${l.current} → ${l.current + 1}` : `${l.current}`;
+    return showNext ? `${l.current} → ${next}` : `${l.current}`;
   }
-  return showNext ? `${l.current} → ${l.current + 1} / ${l.max}` : `${l.current} / ${l.max}`;
+  return showNext ? `${l.current} → ${next} / ${l.max}` : `${l.current} / ${l.max}`;
 }
 // Called after any limit change — applies immediate side effects
 function onLimitChanged(id) {
@@ -46,6 +48,10 @@ function onLimitChanged(id) {
   }
   if (id === 'swaps' || id === 'discards') {
     render();
+  }
+  if (id === 'focus_cap') {
+    focusCapBase = limits.focus_cap.current;      // new baseline max Focus
+    if (typeof buildFocusMeter === 'function') { buildFocusMeter(); syncFocusMeterState(); }
   }
   // grid_rows / grid_cols take effect at next round start (see grid sizing work)
 }

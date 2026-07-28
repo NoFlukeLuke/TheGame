@@ -1,4 +1,4 @@
-const BUILD = '2026-07-25 · r103 · 5-card-hand tricks (Five Stack, the little guys, Five for Fodder, Five Second Rule)';
+const BUILD = '2026-07-25 · r104 · Focus capacity & generation batch (node cap, Focus Cap limit, Stimulants/Core Memories, Power Cell/Slow Burn, Life Lessons/Wellspring/Feedback Loop)';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

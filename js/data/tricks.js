@@ -162,6 +162,10 @@ const TRICK_POOL = [
   { id:'little_guys',    name:'the little guys',     tier:'rare',      tags:['focus'],           desc:'A 5-card hand with no face cards permanently raises your maximum Focus by 1' },
   { id:'five_fodder',    name:'Five for Fodder',     tier:'common',    tags:['credits','discard'], desc:'Discarding a 5-card hand grants +5 credits' },
   { id:'five_second',    name:'Five Second Rule',    tier:'epic',      tags:['time'],            desc:'Playing a 5-card hand pauses the clock 5 seconds' },
+  // ── Focus-capacity & generation (r104) ──
+  { id:'life_lessons',   name:'Life Lessons',        tier:'rare',      tags:['focus'],           desc:'Each round you complete permanently raises your maximum Focus by 1' },
+  { id:'wellspring',     name:'Wellspring',          tier:'rare',      tags:['focus','pips','scaling'], desc:'For every 10 Focus generated this game, this trick scores +2 pips' },
+  { id:'feedback_loop',  name:'Feedback Loop',       tier:'rare',      tags:['focus','mult','scaling'], desc:'For every 5 Focus generated this round, this trick scores +1 mult (resets each round)' },
 ];
 
 // ── Trick category → emoji ──

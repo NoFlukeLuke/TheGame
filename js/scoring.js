@@ -380,6 +380,9 @@ function calcScore(handName, cells, contrib = null) {
   if (hasTrick('prolific') && bonusPips_prolific > 0) { totalPips += bonusPips_prolific; bPip('prolific', bonusPips_prolific); }
   if (hasTrick('feng_shui') && bonusPips_fengshui > 0) { totalPips += bonusPips_fengshui; bPip('feng_shui', bonusPips_fengshui); }
   if (hasTrick('big_win') && bonusMult_jackpot > 0) { mult += bonusMult_jackpot; bMult('big_win', bonusMult_jackpot); }
+  // Wellspring: +pips per 10 Focus generated this game. Feedback Loop: +mult per 5 Focus generated this round.
+  if (hasTrick('wellspring')) { const _w = Math.floor(focusGenGame / BAL.wellspring.per_focus) * BAL.wellspring.pips_per; if (_w > 0) { totalPips += _w; bPip('wellspring', _w); } }
+  if (hasTrick('feedback_loop')) { const _fl = Math.floor(focusGenRound / BAL.feedback_loop.per_focus) * BAL.feedback_loop.mult_per; if (_fl > 0) { mult += _fl; bMult('feedback_loop', _fl); } }
   // Hand type: pair-based pip bonuses
   // Hand type: specific pip bonuses
   if (hasTrick('triple_threat') && handName === 'Full House') { totalPips += BAL.triple_threat.pips; bPip('triple_threat', BAL.triple_threat.pips); }
