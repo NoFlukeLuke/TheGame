@@ -281,8 +281,17 @@ async function showLevelUpScreen() {
 
   animating = false; // allow Trick taps immediately
 
-  if (skipTrickChoiceOverlay) {
-    // Reward grid already handled rewards — skip Trick pick, go straight to new round
+  // ── Mode split ──
+  // Normal (3-Act node) mode ALWAYS deals straight into the next round — its
+  // rewards come from the reward grid / events, never the legacy pick-1-of-3
+  // Trick overlay. The `|| ACTIVE_MODE.id === 'normal'` clause makes the legacy
+  // overlay branch structurally unreachable in normal mode: even if some future
+  // path reaches here without skipTrickChoiceOverlay set, normal mode can never
+  // show the old Trick pick (this is what caused the double level-up glitch).
+  // The `else` branch below is LEGACY / SURVIVAL-MODE ONLY.
+  if (skipTrickChoiceOverlay || ACTIVE_MODE.id === 'normal') {
+    // Reward grid already handled rewards (or normal mode has no pick) —
+    // skip Trick pick, go straight to new round.
     skipTrickChoiceOverlay = false;
     trickSelectionPhase = false;
     showNextGoalFlash().then(() => show321Countdown()).then(() => {
@@ -298,6 +307,10 @@ async function showLevelUpScreen() {
       }
     });
   } else {
+    // ═══ LEGACY / SURVIVAL MODE ONLY — the old pick-1-of-3 Trick screen. ═══
+    // Not reachable in normal mode (see the mode split above). Kept as the
+    // scaffold for a future survival mode (escalating goals, pick a Trick each
+    // clear, no shop/reward grid).
     // ── Show target slot glow on grid for each new Trick ──
     trickSelectionOptions.forEach(trick => {
       const slot = document.createElement('div');

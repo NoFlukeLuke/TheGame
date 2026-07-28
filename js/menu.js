@@ -1,4 +1,4 @@
-const BUILD = '2026-07-27 · r109 · fix clock-hits-0-during-win double level-up';
+const BUILD = '2026-07-27 · r110 · wall off legacy Trick-pick from normal mode';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
