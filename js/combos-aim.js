@@ -130,6 +130,7 @@ let djUsedThisRound = false;  // Double Jeopardy has already fired its pause thi
 let firstPauseStartedRound = false; // a clock pause has begun this round (Vulture's "first pause" gate)
 let firstPauseActive = false; // currently inside the round's first continuous pause stretch (Vulture)
 let _lastHandVultureSeconds = 0; // sum of Vulture buff-seconds fired (retrigger-aware) in the last real calcScore
+let _lastRetrigByCell = {};      // { 'r-c': replayCount } from the last calcScore (playHand reads for replay-aware coin/time)
 let woodpeckerPos = null;       // { r, c } — marked tile (Woodpecker) during an active 30s block
 let woodpeckerActiveBlock = -1; // index of the 30s block already handled (even = active/marked, odd = off)
 let metronomeHandType = null;   // Metronome knack: the hand type that pauses the clock this round
