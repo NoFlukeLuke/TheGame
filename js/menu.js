@@ -1,4 +1,4 @@
-const BUILD = '2026-07-27 · r110 · wall off legacy Trick-pick from normal mode';
+const BUILD = '2026-07-27 · r111 · ordinary hands fast-forward, goal hand full speed';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

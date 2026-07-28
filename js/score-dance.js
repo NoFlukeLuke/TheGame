@@ -92,6 +92,10 @@ const DANCE_CFG = {
   actA:{cls:'dnc-pulse',dur:420,mag:1.0}, actB:{cls:'dnc-flash',dur:420,mag:0.4},
   trig:{cls:'dnc-pop',dur:260,mag:0.7}, jitInit:0.10, jitGrow:0.18,
   tickRest:600, pFlight:550, scoreClimb:1250, ff:15, pScale:2.6,
+  // Ordinary (non-goal) hands play the tally at this speed multiplier by default —
+  // quick but still legible. The goal-winning hand plays at 1× (full). `ff` (15×)
+  // is the separate "illegibly fast" button speed.
+  norm:3,
 };
 let newDanceEnabled = (function(){ try { return localStorage.getItem('newDance') !== '0'; } catch(e){ return true; } })();
 function setNewDance(on){ newDanceEnabled = !!on; try { localStorage.setItem('newDance', on ? '1' : '0'); } catch(e){} }
@@ -488,6 +492,10 @@ function handleDanceAbort(isGoalHand) {
 // Reuses the same goal / settle / abort tail as playScoreDance.
 // ══════════════════════════════════════════════
 let dncFF = false;
+// Per-dance base speed multiplier (1 = full). Set to DANCE_CFG.norm for ordinary
+// hands and 1 for the goal-winning hand at the top of playPreviewDance. Composes
+// with dncFF (the illegible-fast button), which overrides it when active.
+let dncSpeed = 1;
 function dncApply(el, m){ if(!el) return; el.classList.remove('dnc-pulse','dnc-flash','dnc-pop');
   el.style.setProperty('--dnc-mag', m.mag); el.style.setProperty('--dnc-dur', m.dur+'ms');
   void el.offsetWidth; el.classList.add(m.cls); }
@@ -506,7 +514,7 @@ function dncFly(srcEl, boxEl, label, color, onLand){
   el.style.setProperty('--dnc-pscale', DANCE_CFG.pScale);
   document.body.appendChild(el);
   const dx=(b.left+b.width/2)-(a.left+a.width/2), dy=(b.top+b.height/2)-(a.top+a.height/2);
-  const dur = dncFF ? Math.max(60, DANCE_CFG.pFlight/DANCE_CFG.ff) : DANCE_CFG.pFlight;
+  const dur = dncFF ? Math.max(60, DANCE_CFG.pFlight/DANCE_CFG.ff) : Math.max(60, DANCE_CFG.pFlight/dncSpeed);
   el.animate([{transform:'translate(-50%,-50%) scale(.6)',opacity:0},
     {transform:'translate(-50%,-50%) scale(1.15)',opacity:1,offset:.2},
     {transform:`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px)) scale(.9)`,opacity:0}],
@@ -598,8 +606,10 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   const ctrl = new AbortController(); danceAbortController = ctrl; const sig = ctrl.signal;
   const myGen = ++dncGen; // this dance's generation; if it's superseded, its abort handler stays silent
   dncFF = false; resetParticleStep();
+  // Ordinary hands fast-forward to a legible ~3× by default; the goal hand plays full.
+  dncSpeed = isGoalHand ? 1 : (DANCE_CFG.norm || 1);
   const aborted = () => sig.aborted;
-  const dwait = ms => new Promise(r => setTimeout(r, dncFF ? Math.max(6, ms/DANCE_CFG.ff) : ms));
+  const dwait = ms => new Promise(r => setTimeout(r, dncFF ? Math.max(6, ms/DANCE_CFG.ff) : Math.max(6, ms/dncSpeed)));
   // ── Interrupt handoff: briefly acknowledge the just-cut previous hand (visual only, grid untouched). ──
   // Spam valve: two interrupts in quick succession skip straight to 'cut' so rapid chaining stays snappy.
   if(outgoing && !isGoalHand && !rapid && (outMode==='ff' || outMode==='resolve')){
@@ -684,7 +694,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
     if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
   } else {
     // ── Normal hand: the selected grid cards physically fly into their preview slots. ──
-    const FLY_STAGGER=95, FLY_DUR=400;
+    const FLY_STAGGER=95/dncSpeed, FLY_DUR=400/dncSpeed;
     cardEls.forEach(d=>{ const o=d.parentElement; if(o) o.style.opacity='0'; });
     handCells.forEach(([r,c],i)=>{ const card=gridData[r][c]; if(!card) return;
       const gEl=gridEl?.querySelector(`[data-card-id="${card._id}"]`);
@@ -782,7 +792,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
 
   // ── SCORE climb ──
   if(scoreEl) scoreEl.textContent=scoreBefore.toLocaleString();
-  const climb = dncFF ? Math.max(120, DANCE_CFG.scoreClimb/DANCE_CFG.ff) : DANCE_CFG.scoreClimb;
+  const climb = dncFF ? Math.max(120, DANCE_CFG.scoreClimb/DANCE_CFG.ff) : Math.max(120, DANCE_CFG.scoreClimb/dncSpeed);
   let goalFlashed=false;
   await new Promise(res=>{ const st=performance.now();
     function tk(now){ if(aborted()){ res(); return; }
@@ -801,7 +811,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   showComboFloats(hand, handCells, result);
   const scoreBoxEl=document.getElementById('score-mid');
   if(scoreBoxEl){ scoreBoxEl.classList.remove('box-popping'); void scoreBoxEl.offsetWidth; scoreBoxEl.classList.add('box-popping'); }
-  await wait(300); if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
+  await wait(300/dncSpeed); if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
 
   danceAbortController = null;
   if(pipsEl) pipsEl.textContent='0'; if(multEl) multEl.textContent='0';
