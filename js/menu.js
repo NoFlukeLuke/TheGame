@@ -1,4 +1,4 @@
-const BUILD = '2026-07-27 · r110 · curse/buff tooltips';
+const BUILD = '2026-07-27 · r111 · reward resolve anims + sounds';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

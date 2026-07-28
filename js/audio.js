@@ -167,6 +167,22 @@ function sfxCoin() {
   playTone({ freq: 1760, type: 'sine', gain: 0.08, attack: 0.01, decay: 0.05, sustain: 0.05, release: 0.2, duration: 0.3, delay: 0.04 });
 }
 
+// Reward-resolve sounds (r110): good = punchy rising chime, bad = low dissonant
+// buzz, reveal = quick rising shimmer for a Mystery morphing into its outcome.
+function sfxRewardGood() {
+  playTone({ freq: 783.99,  type: 'triangle', gain: 0.16, attack: 0.004, decay: 0.05, sustain: 0.30, release: 0.24, duration: 0.10, delay: 0.00 });
+  playTone({ freq: 1046.50, type: 'triangle', gain: 0.16, attack: 0.004, decay: 0.05, sustain: 0.30, release: 0.24, duration: 0.10, delay: 0.05 });
+  playTone({ freq: 1318.51, type: 'triangle', gain: 0.15, attack: 0.004, decay: 0.05, sustain: 0.30, release: 0.28, duration: 0.12, delay: 0.10 });
+}
+function sfxRewardBad() {
+  playTone({ freq: 190, type: 'sawtooth', gain: 0.15, attack: 0.004, decay: 0.06, sustain: 0.55, release: 0.16, duration: 0.17 });
+  playTone({ freq: 138, type: 'square',   gain: 0.09, attack: 0.004, decay: 0.06, sustain: 0.55, release: 0.14, duration: 0.17 });
+}
+function sfxRewardReveal() {
+  [523.25, 659.25, 783.99, 1046.5].forEach((f, i) =>
+    playTone({ freq: f, type: 'sine', gain: 0.10, attack: 0.01, decay: 0.04, sustain: 0.30, release: 0.14, duration: 0.08, delay: i * 0.06 }));
+}
+
 function sfxCountdown321() {
   // Three deep ticks
   [0, 1, 2].forEach(i => {

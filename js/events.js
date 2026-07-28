@@ -85,7 +85,7 @@ function confirmConfluence() {
     injectTrickAfterReward(item.payload);
   } else if (item.type === 'knack') {
     acquiredKnacks.push({ ...item.payload });
-    renderKnackList?.();
+    updateKnackList?.();
     showMessage(`+ ${item.name}`, 'var(--gold)');
   } else if (item.type === 'sleight') {
     grantSleight(item.payload);
@@ -113,7 +113,7 @@ function buildCrossroadsTrades() {
     const t = acquiredKnacks[Math.floor(Math.random()*acquiredKnacks.length)];
     trades.push({ icon:'⚖️', name:`Sacrifice ${t.emoji} ${t.name}: 2 Tricks`, desc:`Lose "${t.name}" forever. Gain 2 random Tricks immediately.`, rarity:'rare',
       apply: () => {
-        acquiredKnacks = acquiredKnacks.filter(x=>x.id!==t.id); renderKnackList?.();
+        acquiredKnacks = acquiredKnacks.filter(x=>x.id!==t.id); updateKnackList?.();
         for (let i=0;i<2;i++) applyRewardRandomTrick();
         showMessage('Sacrificed knack · 2 Tricks gained', 'var(--gold)'); render();
       }
@@ -212,7 +212,7 @@ function buildDoorPrize(tier) {
     if (pool.length>0) { const p=pool[Math.floor(Math.random()*pool.length)]; return { icon:'★', name:p.name, desc:p.desc, cls:'revealed-good', apply:()=>injectTrickAfterReward(p) }; }
     // fallback: knack
     const tp = KNACK_POOL.filter(t=>!ownedT.has(t.id));
-    if (tp.length>0) { const p=tp[Math.floor(Math.random()*tp.length)]; return { icon:p.emoji, name:p.name, desc:p.desc, cls:'revealed-good', apply:()=>{acquiredKnacks.push({...p});renderKnackList?.();showMessage(`+ ${p.name}`,'var(--gold)');} }; }
+    if (tp.length>0) { const p=tp[Math.floor(Math.random()*tp.length)]; return { icon:p.emoji, name:p.name, desc:p.desc, cls:'revealed-good', apply:()=>{acquiredKnacks.push({...p});updateKnackList?.();showMessage(`+ ${p.name}`,'var(--gold)');} }; }
   }
   if (tier === 'good') {
     const pool = TRICK_POOL.filter(b=>!ownedTrick.has(b.id) && (b.tier==='rare'||b.tier==='common'));
@@ -575,7 +575,7 @@ function confirmMerchant() {
   const item = eventState.merchantPick;
   if (!item) { closeEvent(); return; }
   if (item.type === 'trick') { injectTrickAfterReward(item.payload); }
-  else if (item.type === 'knack') { acquiredKnacks.push({...item.payload}); renderKnackList?.(); showMessage(`+ ${item.name}`,'var(--gold)'); }
+  else if (item.type === 'knack') { acquiredKnacks.push({...item.payload}); updateKnackList?.(); showMessage(`+ ${item.name}`,'var(--gold)'); }
   else if (item.type === 'sleight') { grantSleight(item.payload); }
   closeEvent();
 }

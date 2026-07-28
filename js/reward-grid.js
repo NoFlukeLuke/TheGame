@@ -87,9 +87,12 @@ function generateRewardContent() {
     }
   }
   // Dark mystery: unknown until claimed — mostly bad (weight 6).
+  // _mystery + _goodChance let the resolve animation pre-roll + reveal it; apply()
+  // reuses that same rolled outcome so what you see is what you get.
   debuffs.push({ weight: 6, icon: '❓', label: 'Dark Mystery', tier: 'mystery',
     desc: 'Unknown until claimed. Probably bad… probably.',
-    apply: () => resolveRewardMystery(0.3) });
+    _mystery: true, _goodChance: 0.3,
+    apply: function () { (this._rolled || (this._rolled = rollRewardMystery(this._goodChance))).apply(); } });
   const destOptions = [
     { icon: '🏪', label: 'Next: Shop',  tier: 'dest', apply: () => { pendingEventOverride = 'shop'; } },
     { icon: '🏪', label: 'Next: Shop',  tier: 'dest', apply: () => { pendingEventOverride = 'shop'; } },
@@ -148,7 +151,7 @@ function generateRewardContent() {
     return {
       icon: pick.emoji, emoji: pick.emoji, label: pick.name, desc: pick.desc,
       tier: pick.rarity || 'common', rarity: pick.rarity || 'common', entity: 'knack',
-      apply: () => { acquiredKnacks.push({ ...pick }); renderKnackList?.(); showMessage(`+ ${pick.name}`, 'var(--gold)'); }
+      apply: () => { acquiredKnacks.push({ ...pick }); updateKnackList?.(); showMessage(`+ ${pick.name}`, 'var(--gold)'); }
     };
   }
 
@@ -214,7 +217,8 @@ function generateRewardContent() {
                  apply: () => { const _cl = cleanseRandomCurse(); showMessage(_cl ? `Curse lifted: ${_cl.key.replace('-', '')}` : 'No curses to lift', '#54af88'); } };
       case 'mystery': return { icon: '❓', label: 'Mystery', tier: 'mystery',
                                desc: 'Unknown until claimed. Probably good… probably.',
-                               apply: () => resolveRewardMystery(0.7) };
+                               _mystery: true, _goodChance: 0.7,
+                               apply: function () { (this._rolled || (this._rolled = rollRewardMystery(this._goodChance))).apply(); } };
     }
   }
 
@@ -279,26 +283,38 @@ function generateRewardContent() {
 // goodChance ∈ [0,1]: buff-slot Mystery = 0.7, debuff-slot Dark Mystery = 0.3.
 // Effects are deliberately simple + self-contained (no Trick grants — a
 // tray-full replace picker popping out of a mystery would be jarring).
-function resolveRewardMystery(goodChance) {
+// Roll a Mystery outcome WITHOUT applying it, so the reward-resolve animation can
+// morph the tile into what it becomes, show its tooltip, THEN apply the SAME
+// outcome. Each outcome carries { good, icon, label, desc, flyTo, apply }.
+function rollRewardMystery(goodChance) {
   const good = Math.random() < goodChance;
   if (good) {
     const roll = Math.floor(Math.random() * 5);
-    if (roll === 0) { coins += 12; updateCoinsUI(); showMessage('Mystery: +12 coins!', 'var(--gold)'); }
-    else if (roll === 1) { nextRoundSwapDelta += 2; showMessage('Mystery: +2 swaps next round!', 'var(--gold)'); }
-    else if (roll === 2) { nextRoundDiscardDelta += 2; showMessage('Mystery: +2 discards next round!', 'var(--gold)'); }
-    else if (roll === 3) { nextRoundSecondsDelta += 25; showMessage('Mystery: +25s next round!', 'var(--gold)'); }
-    else { const rank = RANKS[Math.floor(Math.random()*RANKS.length)], suit = SUITS[Math.floor(Math.random()*SUITS.length)];
-           const k = cardKey(rank, suit); permPips[k] = (permPips[k] || 0) + 10;
-           showMessage(`Mystery: ${rank}${suit} +10 pips!`, 'var(--gold)'); }
-  } else {
-    const roll = Math.floor(Math.random() * 5);
-    if (roll === 0) { coins = Math.max(0, coins - 8); updateCoinsUI(); showMessage('Mystery: -8 coins…', 'var(--red)'); }
-    else if (roll === 1) { nextRoundSwapDelta -= 1; showMessage('Mystery: -1 swap next round…', 'var(--red)'); }
-    else if (roll === 2) { nextRoundSecondsDelta -= 15; showMessage('Mystery: -15s next round…', 'var(--red)'); }
-    else if (roll === 3) { injectStonesIntoDeck(1); showMessage('Mystery: a Stone slips into your deck…', 'var(--red)'); }
-    else { const v = curseRandomCard(); showMessage(v ? `Mystery: ${v.rank}${v.suit} cursed (${CURSE_DEFS[v.curse].name})…` : 'Mystery: …nothing?', '#9b59b6'); }
+    if (roll === 0) return { good, icon:'💰', label:'+12 Credits', flyTo:'coins', desc:'Gain 12 credits.',
+      apply:()=>{ coins += 12; updateCoinsUI(); showMessage('Mystery: +12 coins!', 'var(--gold)'); } };
+    if (roll === 1) return { good, icon:'⚡', label:'+2 Swaps', flyTo:'swaps', desc:'+2 swaps next round.',
+      apply:()=>{ nextRoundSwapDelta += 2; showMessage('Mystery: +2 swaps next round!', 'var(--gold)'); } };
+    if (roll === 2) return { good, icon:'🗑', label:'+2 Discards', flyTo:'discards', desc:'+2 discards next round.',
+      apply:()=>{ nextRoundDiscardDelta += 2; showMessage('Mystery: +2 discards next round!', 'var(--gold)'); } };
+    if (roll === 3) return { good, icon:'⏱', label:'+25s Round', flyTo:'clock', desc:'Next round starts with +25 seconds.',
+      apply:()=>{ nextRoundSecondsDelta += 25; showMessage('Mystery: +25s next round!', 'var(--gold)'); } };
+    const rank = RANKS[Math.floor(Math.random()*RANKS.length)], suit = SUITS[Math.floor(Math.random()*SUITS.length)];
+    return { good, icon:'✨', label:`Blessed ${rank}${suit}`, flyTo:'deck', desc:`${rank}${suit} permanently gains +10 pips.`,
+      apply:()=>{ const k = cardKey(rank, suit); permPips[k] = (permPips[k]||0)+10; showMessage(`Mystery: ${rank}${suit} +10 pips!`, 'var(--gold)'); } };
   }
+  const roll = Math.floor(Math.random() * 5);
+  if (roll === 0) return { good, icon:'💸', label:'-8 Credits', flyTo:'coins', desc:'Lose 8 credits.',
+    apply:()=>{ coins = Math.max(0, coins - 8); updateCoinsUI(); showMessage('Mystery: -8 coins…', 'var(--red)'); } };
+  if (roll === 1) return { good, icon:'✖', label:'-1 Swap', flyTo:'swaps', desc:'-1 swap next round.',
+    apply:()=>{ nextRoundSwapDelta -= 1; showMessage('Mystery: -1 swap next round…', 'var(--red)'); } };
+  if (roll === 2) return { good, icon:'☁', label:'-15s Round', flyTo:'clock', desc:'Next round starts with 15 fewer seconds.',
+    apply:()=>{ nextRoundSecondsDelta -= 15; showMessage('Mystery: -15s next round…', 'var(--red)'); } };
+  if (roll === 3) return { good, icon:'🪨', label:'Stone', flyTo:'deck', desc:'A Stone slips into your deck. It blocks a cell until purged.',
+    apply:()=>{ injectStonesIntoDeck(1); showMessage('Mystery: a Stone slips into your deck…', 'var(--red)'); } };
+  return { good, icon:'🩸', label:'Curse', flyTo:'deck', desc:'A random card in your deck is cursed.',
+    apply:()=>{ const v = curseRandomCard(); showMessage(v ? `Mystery: ${v.rank}${v.suit} cursed (${CURSE_DEFS[v.curse].name})…` : 'Mystery: …nothing?', '#9b59b6'); } };
 }
+function resolveRewardMystery(goodChance) { rollRewardMystery(goodChance).apply(); }
 
 // Remove one copy of a specific card identity from the run (deck thinning).
 // Searches drawPile, then playedPile, then the live grid (refilling the cell).
@@ -857,47 +873,139 @@ function clearRewardSelection() {
 // Where a claimed reward flies to on confirm. Entities go to their home bar; the
 // deck for sleights. Events (dest) + resource/card-face tiles have no home yet, so
 // they (and everything unselected) just fall out.
-function rewardFlyTarget(p) {
+// Which HUD readout a reward flies to on confirm. Entities go to their bar/deck;
+// resource/curse tiles fly to the stat they affect. Events (dest) have no home.
+function rewardTargetKey(p) {
   if (!p) return null;
-  if (p.entity === 'trick')   return document.getElementById('trick-tray-area');
-  if (p.entity === 'sleight') return document.getElementById('btn-deck');
-  if (p.entity === 'knack')   return document.getElementById('knack-carousel-wrap');
+  if (p.entity === 'trick')   return 'tricks';
+  if (p.entity === 'sleight') return 'deck';
+  if (p.entity === 'knack')   return 'knacks';
+  if (p.flyTo) return p.flyTo;                 // mystery outcomes carry flyTo
+  const label = (p.label || '').toLowerCase();
+  const icon  = p.icon || '';
+  if (label.includes('trick'))                                                    return 'tricks';   // Lose a Trick
+  if (label.includes('swap'))                                                     return 'swaps';
+  if (label.includes('discard'))                                                  return 'discards';
+  if (label.includes('windfall') || label.includes('pickpocket') || icon === '💰' || icon === '💸') return 'coins';
+  if (label.includes('round') || label.includes('slow') || label.includes('hands') ||
+      icon === '⏱' || icon === '☁' || icon === '⌛' || icon === '🐌' || icon === '⏳')             return 'clock';
+  if (p.cardFace || label.includes('stone') || label.includes('cleanse') ||
+      label.includes('curse') || label.includes('cull') || label.includes('blessed'))               return 'deck';
+  return 'deck';                                // limits + anything else: the deck
+}
+function rewardTargetEl(key) {
+  switch (key) {
+    case 'tricks':   return document.getElementById('trick-tray-area');
+    case 'knacks':   return document.getElementById('knack-carousel-wrap');
+    case 'deck':     return document.getElementById('btn-deck');
+    case 'clock':    return document.getElementById('vclock') || document.getElementById('round-clock');
+    case 'swaps':    return document.getElementById('swap-indicator');
+    case 'discards': return document.getElementById('btn-discard');
+    case 'coins':    return document.getElementById('coin-info') || document.getElementById('coins-display');
+  }
   return null;
 }
+// Add a class, force reflow, so the impact animation replays every time.
+function pulseEl(el, cls, ms = 520) {
+  if (!el) return;
+  el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls);
+  setTimeout(() => el.classList.remove(cls), ms);
+}
 
-// On confirm: claimed entities fly to their bar/deck; everything else falls out.
+// Fly one tile to its target (or fall out if none). good → chime + target pop;
+// bad → buzz + target jiggle ("took a hit").
+async function flyRewardTile(tile, p, good) {
+  tile.style.zIndex = '30';
+  const target = rewardTargetEl(rewardTargetKey(p));
+  if (!target) { await fallRewardTile(tile, 0); return; }
+  const a = tile.getBoundingClientRect(), b = target.getBoundingClientRect();
+  const dx = (b.left + b.width / 2) - (a.left + a.width / 2);
+  const dy = (b.top  + b.height / 2) - (a.top  + a.height / 2);
+  await tile.animate([
+    { transform: 'translate(0,0) scale(1)', opacity: 1 },
+    { transform: `translate(${dx * 0.55}px, ${dy * 0.55}px) scale(0.62)`, opacity: 1, offset: 0.6 },
+    { transform: `translate(${dx}px, ${dy}px) scale(0.14)`, opacity: 0 },
+  ], { duration: 380, easing: 'cubic-bezier(0.5,0,0.85,1)', fill: 'forwards' }).finished;
+  if (good) { try { sfxRewardGood(); } catch (e) {} pulseEl(target, 'reward-ding'); }
+  else      { try { sfxRewardBad();  } catch (e) {} pulseEl(target, 'reward-hit'); }
+}
+function fallRewardTile(tile, delay) {
+  tile.style.zIndex = '20';
+  const r = +tile.dataset.r || 0;
+  const dropY = (gridRows - r) * CARD_STEP + 160;
+  const spin  = (Math.random() * 18 - 9);
+  return tile.animate([
+    { transform: 'translateY(0) rotate(0deg)', opacity: 1 },
+    { transform: `translateY(${dropY}px) rotate(${spin}deg)`, opacity: 0 },
+  ], { duration: 460, delay, easing: 'cubic-bezier(0.4,0,1,1)', fill: 'forwards' }).finished;
+}
+
+// Anchor the reward tooltip beside a tile (used by the mystery reveal). If the
+// tile is in the right-most column, show it on the LEFT so it stays on-screen.
+function showRevealTooltip(tile, out, rightCol) {
+  const tt = ensureRewardTooltip();
+  tt.className = '';
+  tt.style.setProperty('--rc', out.good ? 'var(--c-mint)' : 'var(--c-magenta)');
+  tt.querySelector('.rtt-rar').textContent  = out.good ? 'reward' : 'penalty';
+  tt.querySelector('.rtt-name').textContent = out.label;
+  tt.querySelector('.rtt-desc').innerHTML   = colorizeKeywords(out.desc || '');
+  tt.classList.add('show');
+  const a = tile.getBoundingClientRect();
+  const w = tt.offsetWidth, h = tt.offsetHeight;
+  let x = rightCol ? (a.left - w - 10) : (a.right + 10);
+  let y = a.top;
+  x = Math.max(8, Math.min(x, window.innerWidth  - w - 8));
+  y = Math.max(8, Math.min(y, window.innerHeight - h - 8));
+  tt.style.left = x + 'px'; tt.style.top = y + 'px';
+}
+
+// A claimed Mystery: extra beat → jiggle → morph into its real outcome → tooltip
+// beside it 1.5s → fly to the outcome's target.
+async function revealAndFlyMystery(tile, p, c, cols) {
+  await new Promise(res => setTimeout(res, 300));
+  pulseEl(tile, 'reward-mshake');
+  try { sfxRewardReveal(); } catch (e) {}
+  await new Promise(res => setTimeout(res, 480));
+
+  const out = p._rolled || (p._rolled = rollRewardMystery(p._goodChance ?? 0.7));
+  tile.classList.remove('entity', 'entity-trick', 'entity-sleight', 'entity-knack',
+    'rar-common', 'rar-rare', 'rar-epic', 'rar-legendary', 'rar-mythic', 'mystery');
+  tile.classList.add(out.good ? 'reward-good' : 'reward-bad', 'reward-revealed');
+  tile.innerHTML = `<div class="reward-icon">${out.icon}</div><div class="rwd-name">${out.label}</div>`;
+  const nm = tile.querySelector('.rwd-name'); if (nm) fitRewardName(nm);
+  pulseEl(tile, 'reward-reveal');
+  await new Promise(res => setTimeout(res, 200));
+
+  showRevealTooltip(tile, out, c === cols - 1);
+  await new Promise(res => setTimeout(res, 1500));
+  hideRewardTooltip();
+
+  await flyRewardTile(tile, out, out.good);
+}
+
+// On confirm: claimed tiles resolve ONE AT A TIME (mysteries reveal first), then
+// the unclaimed tiles fall out together.
 async function animateRewardResolve() {
   const gridEl = document.getElementById('grid');
   if (!gridEl) return;
   hideRewardTooltip();
+  const cols = rewardCells[0]?.length || gridCols;
   const tiles = [...gridEl.querySelectorAll('.reward-cell.on-grid')];
-  const proms = [];
-  tiles.forEach(tile => {
+  // Clear the lingering deal-in animations (fill:'both') so they don't override
+  // the resolve transforms — WAAPI animations outrank CSS ones.
+  tiles.forEach(t => t.getAnimations().forEach(a => a.cancel()));
+  const claimed = [], rest = [];
+  tiles.forEach(t => (rewardSelected.has(`${t.dataset.r}-${t.dataset.c}`) ? claimed : rest).push(t));
+
+  for (const tile of claimed) {
     const r = +tile.dataset.r, c = +tile.dataset.c;
-    const p = rewardCells[r]?.[c]?.payload;
-    const isSel  = rewardSelected.has(`${r}-${c}`);
-    const target = isSel ? rewardFlyTarget(p) : null;
-    tile.style.zIndex = '30';
-    if (target) {
-      const tileRect = tile.getBoundingClientRect();
-      const tRect    = target.getBoundingClientRect();
-      const dx = (tRect.left + tRect.width / 2) - (tileRect.left + tileRect.width / 2);
-      const dy = (tRect.top  + tRect.height / 2) - (tileRect.top  + tileRect.height / 2);
-      proms.push(tile.animate([
-        { transform: 'translate(0,0) scale(1)',                    opacity: 1 },
-        { transform: `translate(${dx}px, ${dy}px) scale(0.18)`,    opacity: 0 },
-      ], { duration: 460, easing: 'cubic-bezier(0.5,0,1,1)', fill: 'forwards' }).finished);
-    } else {
-      // fall out of the bottom, with a little spin
-      const dropY = (gridRows - r) * CARD_STEP + 160;
-      const spin  = (Math.random() * 18 - 9);
-      proms.push(tile.animate([
-        { transform: 'translateY(0) rotate(0deg)',            opacity: 1 },
-        { transform: `translateY(${dropY}px) rotate(${spin}deg)`, opacity: 0 },
-      ], { duration: 480, delay: c * 28, easing: 'cubic-bezier(0.4,0,1,1)', fill: 'forwards' }).finished);
-    }
-  });
-  await Promise.allSettled(proms);
+    const cell = rewardCells[r]?.[c]; if (!cell) continue;
+    const p = cell.payload;
+    if (p._mystery) await revealAndFlyMystery(tile, p, c, cols);
+    else            await flyRewardTile(tile, p, cell.kind !== 'debuff');
+    await new Promise(res => setTimeout(res, 90));
+  }
+  await Promise.allSettled(rest.map((t, i) => fallRewardTile(t, i * 34)));
 }
 
 async function confirmRewardPath() {
@@ -909,12 +1017,14 @@ async function confirmRewardPath() {
   if (disc) disc.disabled = true;
   // Fly the claimed items to their homes / drop the rest, THEN apply + continue.
   rewardDealing = true;   // block re-render from clobbering the flying tiles
-  await animateRewardResolve();
+  try { await animateRewardResolve(); } catch (e) { console.error('[REWARD] resolve anim failed', e); }
   rewardDealing = false;
   rewardSelected.forEach(key => {
     const [r, c] = key.split('-').map(Number);
     const cell = rewardCells[r][c];
-    if (cell.payload && typeof cell.payload.apply === 'function') cell.payload.apply();
+    // A throwing payload must never strand the reward step — isolate each apply.
+    try { if (cell.payload && typeof cell.payload.apply === 'function') cell.payload.apply(); }
+    catch (e) { console.error('[REWARD] payload apply failed', e); }
   });
   closeRewardGrid();
 }
