@@ -548,7 +548,9 @@ function renderRewardTiles(animateIn = false) {
       div.dataset.r = r; div.dataset.c = c;
       div.innerHTML = buildRewardTileInner(p);
       div.onclick = () => onRewardCellClick(r, c);
-      if (!p.cardFace && p.desc) attachRewardTooltip(div, p, cell.kind);
+      // Every tile with a description gets the hover tooltip — including card-face
+      // tiles (blessed/cursed/cull) so curses & buffs are explained on hover.
+      if (p.desc) attachRewardTooltip(div, p, cell.kind);
 
       gridEl.appendChild(div);
       const nameEl = div.querySelector('.rwd-name');
@@ -638,11 +640,12 @@ function buildRewardTileInner(p) {
     return `<div class="rwd-tab">▶</div><div class="rwd-art">${p.emoji || p.icon}</div><div class="rwd-name">${p.label}</div>`
          + (p.uses != null ? `<div class="rwd-uses">${p.uses}</div>` : '');
   }
-  // Card-face tiles (blessed/cursed/cull): mini playing card + inline explanation.
+  // Card-face tiles (blessed/cursed/cull): mini playing card + name only.
+  // The full explanation lives in the hover tooltip (like every other tile) — the
+  // old inline description was cramped and got clipped.
   if (p.cardFace) {
     return `<div class="reward-face ${suitClass(p.cardFace.suit)}"><span class="reward-face-rank">${p.cardFace.rank}</span><span class="reward-face-suit">${p.cardFace.suit}</span></div>`
-         + `<div class="reward-label">${p.label}</div>`
-         + (p.desc ? `<div class="reward-desc">${colorizeKeywords(p.desc)}</div>` : '');
+         + `<div class="rwd-name">${p.label}</div>`;
   }
   // Plain resource / debuff / dest / mystery tile: icon + name (desc → tooltip).
   return `<div class="reward-icon">${p.icon}</div><div class="rwd-name">${p.label}</div>`;
@@ -743,9 +746,10 @@ function renderRewardGrid() {
       div.innerHTML = buildRewardTileInner(p);
       div.onclick = () => onRewardCellClick(r, c);
 
-      // Entities + simple reward/debuff tiles: name only, description on hover.
-      // Card-face tiles (blessed/cursed/cull) keep their inline explanation.
-      if (!p.cardFace && p.desc) attachRewardTooltip(div, p, cell.kind);
+      // Every tile with a description gets the hover tooltip — entities, resource/
+      // debuff tiles, AND card-face tiles (blessed/cursed/cull) so curses & buffs
+      // are explained on hover.
+      if (p.desc) attachRewardTooltip(div, p, cell.kind);
 
       gridEl.appendChild(div);
       const nameEl = div.querySelector('.rwd-name');

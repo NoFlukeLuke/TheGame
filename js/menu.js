@@ -1,4 +1,4 @@
-const BUILD = '2026-07-25 · r103 · reward redesign + position knacks';
+const BUILD = '2026-07-25 · r104 · curse/buff tooltips';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

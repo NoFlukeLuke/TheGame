@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reward Resolve — Sequenced Fly-Out Preview</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&display=swap');
+  :root{
+    --plastic:#e4dccb; --plastic-hi:#f7f2e6; --plastic-lo:#b7ac93; --plastic-deep:#85795f;
+    --cream:#f4ecd6; --cream-dim:#b7a684;
+    --common:#35d59b; --rare:#16c8d8; --epic:#9a6cff; --legendary:#ffce2b; --mythic:#ff2f8e;
+    --good:#35d59b; --bad:#ff5c6a;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; min-height:100vh; color:var(--cream); font-family:'Share Tech Mono',monospace; padding:22px 26px 60px;
+    background:repeating-linear-gradient(90deg,rgba(22,200,216,0.05) 0 1px,transparent 1px 48px),
+      repeating-linear-gradient(0deg,rgba(22,200,216,0.05) 0 1px,transparent 1px 48px),
+      radial-gradient(ellipse at 50% 26%,#2c2456 0%,#1b1638 48%,#0d0a1e 100%);}
+  h1{font-family:'Orbitron',sans-serif; font-weight:900; font-size:18px; letter-spacing:4px; margin:0 0 4px; text-transform:uppercase;
+    background:linear-gradient(180deg,#fff2c8,var(--legendary) 55%,#ff6a3c); -webkit-background-clip:text; background-clip:text; color:transparent;}
+  .sub{color:var(--cream-dim); font-size:12px; margin:0 0 18px; max-width:760px; line-height:1.5;}
+
+  .stage{max-width:900px; margin:0 auto;}
+  /* HUD readouts */
+  .hud{display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px;}
+  .readout{position:relative; min-width:96px; padding:8px 12px; border-radius:9px;
+    background:linear-gradient(180deg,#15110b,#0b0906); border:1px solid #000;
+    box-shadow:inset 0 2px 8px rgba(0,0,0,0.8), 0 0 0 2px var(--plastic-lo), 0 2px 0 var(--plastic-deep);}
+  .readout .lbl{font-size:8px; letter-spacing:2px; text-transform:uppercase; color:var(--cream-dim);}
+  .readout .val{font-family:'Orbitron',sans-serif; font-weight:700; font-size:16px; margin-top:2px; color:#fff;}
+  #t-clock .val{color:var(--legendary);} #t-coins .val{color:var(--legendary);}
+  #t-swaps .val{color:var(--rare);} #t-discards .val{color:var(--mythic);}
+
+  .board{display:flex; gap:16px; align-items:flex-start;}
+  .sidebar{display:flex; flex-direction:column; gap:10px; width:150px; flex:0 0 auto;}
+  .bar{position:relative; border-radius:9px; padding:8px 10px; min-height:54px;
+    background:linear-gradient(180deg,#15110b,#0b0906); border:1px solid #000;
+    box-shadow:inset 0 2px 8px rgba(0,0,0,0.8), 0 0 0 2px var(--plastic-lo), 0 2px 0 var(--plastic-deep);
+    display:flex; flex-direction:column; justify-content:center;}
+  .bar .lbl{font-size:8px; letter-spacing:2px; text-transform:uppercase; color:var(--cream-dim); margin-bottom:4px;}
+  #t-tricks{border-top:2px solid var(--c-coral,#ff6a3c);}
+  #t-knacks{border-top:2px solid var(--legendary);}
+  #t-deck{align-items:center; text-align:center; font-family:'Orbitron',sans-serif; color:var(--rare); font-size:13px;}
+  .chiprow{display:flex; gap:4px; flex-wrap:wrap; min-height:20px;}
+  .chip{font-size:9px; padding:2px 6px; border-radius:5px; background:rgba(255,255,255,0.05);
+    border:1px solid rgba(255,255,255,0.15); color:var(--cream); font-family:'Share Tech Mono',monospace;
+    opacity:0; transform:scale(0.6); transition:opacity .2s, transform .2s;}
+  .chip.in{opacity:1; transform:scale(1);}
+
+  /* reward grid */
+  .grid{flex:1; display:grid; grid-template-columns:repeat(4,1fr); gap:9px; position:relative;}
+  .rc{position:relative; border-radius:9px; height:96px; cursor:default; user-select:none; overflow:hidden;
+    background:linear-gradient(180deg,#15110b,#0a0906); border:2px solid var(--rc,#555);
+    display:flex; flex-direction:column; align-items:center; justify-content:flex-end; padding:7px 6px 8px;
+    box-shadow:0 0 0 2px var(--plastic-lo), 0 0 9px -2px var(--rc,#555), inset 0 0 12px -5px var(--rc,#555), 0 5px 12px rgba(0,0,0,0.5);}
+  .rc::after{content:''; position:absolute; inset:0; pointer-events:none;
+    background:repeating-linear-gradient(0deg,rgba(0,0,0,0.16) 0 1px,transparent 1px 3px); mix-blend-mode:overlay;}
+  .rc.sel{outline:2px solid #b39cf5; outline-offset:1px; box-shadow:0 0 0 2px var(--plastic-lo),0 0 16px rgba(179,156,245,0.7),inset 0 0 12px -4px var(--rc,#555);}
+  .rc .emoji{position:absolute; top:14px; font-size:26px; filter:drop-shadow(0 0 6px var(--rc,#555)); z-index:1;}
+  .rc .nm{position:relative; z-index:2; font-family:'Orbitron',sans-serif; font-weight:700; font-size:9px; letter-spacing:.3px;
+    text-transform:uppercase; text-align:center; color:#fff; text-shadow:0 0 7px var(--rc,#555),0 1px 2px #000; line-height:1.1;}
+  .rc .tag{position:absolute; top:5px; left:6px; z-index:2; font-size:8px; letter-spacing:1px; padding:1px 4px; border-radius:4px;
+    font-family:'Share Tech Mono',monospace;}
+  .rc.good .tag{color:#06251a; background:var(--good);}
+  .rc.bad  .tag{color:#2a0509; background:var(--bad);}
+  .rc.unsel{opacity:0.5;}
+  .r-common{--rc:var(--common);} .r-rare{--rc:var(--rare);} .r-epic{--rc:var(--epic);}
+  .r-legendary{--rc:var(--legendary);} .r-mythic{--rc:var(--mythic);}
+  .r-good{--rc:var(--good);} .r-bad{--rc:var(--bad);}
+
+  /* impact effects on HUD targets */
+  @keyframes hitshake{0%{transform:translate(0,0) rotate(0)}12%{transform:translate(-5px,2px) rotate(-2.5deg)}
+    26%{transform:translate(5px,-2px) rotate(2.5deg)}40%{transform:translate(-4px,1px) rotate(-1.5deg)}
+    54%{transform:translate(4px,-1px) rotate(1.5deg)}70%{transform:translate(-2px,1px) rotate(-.6deg)}100%{transform:translate(0,0)}}
+  @keyframes goodpop{0%{transform:scale(1)}42%{transform:scale(1.14)}100%{transform:scale(1)}}
+  .hit{animation:hitshake .45s ease;}
+  .hit::before{content:''; position:absolute; inset:-2px; border-radius:11px; pointer-events:none;
+    box-shadow:0 0 18px 2px var(--bad); animation:flash .45s ease;}
+  .ding{animation:goodpop .38s ease;}
+  .ding::before{content:''; position:absolute; inset:-2px; border-radius:11px; pointer-events:none;
+    box-shadow:0 0 18px 2px var(--good); animation:flash .38s ease;}
+  @keyframes flash{0%{opacity:0}30%{opacity:1}100%{opacity:0}}
+
+  .controls{margin-top:18px; display:flex; gap:12px; align-items:center;}
+  button.act{font-family:'Orbitron',sans-serif; font-weight:700; font-size:13px; letter-spacing:1px; text-transform:uppercase;
+    border:none; border-radius:9px; padding:11px 22px; cursor:pointer; color:#06251a;
+    background:linear-gradient(180deg,#7dffce,var(--good) 55%,#1fa877);
+    box-shadow:inset 0 2px 0 rgba(255,255,255,0.6),inset 0 -3px 0 rgba(0,0,0,0.25),0 4px 0 #178a5e,0 6px 8px rgba(0,0,0,0.4);}
+  button.act:disabled{opacity:.4; cursor:default;}
+  button.act.ghost{background:linear-gradient(180deg,#2a3a55,#182233); color:var(--rare); box-shadow:inset 0 1px 0 rgba(255,255,255,0.15),0 3px 0 #0d1826;}
+  .hint{font-size:11px; color:var(--cream-dim);}
+</style>
+</head>
+<body>
+  <h1>Reward Resolve · Fly-Out</h1>
+  <p class="sub">Press <b>CONFIRM</b>: each claimed card flies to its spot <b>one at a time</b>. Good rewards land with a punchy chime + the target pops; bad ones (curses, penalties) land with a negative buzz + the target <b>jiggles like it took a hit</b>. Unclaimed tiles fall out at the end. (Sound on — click Confirm to enable audio.)</p>
+
+  <div class="stage">
+    <div class="hud">
+      <div class="readout" id="t-clock"><div class="lbl">Clock</div><div class="val">2:59</div></div>
+      <div class="readout" id="t-coins"><div class="lbl">Credits</div><div class="val">◆ 42</div></div>
+      <div class="readout" id="t-swaps"><div class="lbl">Swaps</div><div class="val">3</div></div>
+      <div class="readout" id="t-discards"><div class="lbl">Discards</div><div class="val">3</div></div>
+    </div>
+    <div class="board">
+      <div class="sidebar">
+        <div class="bar" id="t-tricks"><div class="lbl">Tricks</div><div class="chiprow" id="tricks-chips"></div></div>
+        <div class="bar" id="t-knacks"><div class="lbl">Knacks</div><div class="chiprow" id="knacks-chips"></div></div>
+        <div class="bar" id="t-deck">🃏 DECK</div>
+      </div>
+      <div class="grid" id="grid"></div>
+    </div>
+    <div class="controls">
+      <button class="act" id="confirm">Confirm</button>
+      <button class="act ghost" id="replay" disabled>Replay</button>
+      <span class="hint" id="hint">9 claimed · 3 left behind</span>
+    </div>
+  </div>
+
+<script>
+  // tile spec: name, emoji, rarity(for entities) or good/bad, target id, good bool, selected bool, chip? (bar landing)
+  const T = [
+    {name:'Sideways to Infinity', emoji:'✦', cls:'r-epic',      target:'t-tricks',   good:true,  sel:true,  chip:'tricks-chips', chipTxt:'✦ Sideways'},
+    {name:'The Queen',            emoji:'👑', cls:'r-legendary', target:'t-deck',     good:true,  sel:true },
+    {name:'Time Bank',            emoji:'⏳', cls:'r-rare',      target:'t-knacks',   good:true,  sel:true,  chip:'knacks-chips', chipTxt:'⏳ Time Bank'},
+    {name:'+15s Round',           emoji:'⏱', cls:'r-good',      target:'t-clock',    good:true,  sel:true },
+    {name:'-5s Round Cap',        emoji:'☁', cls:'r-bad',       target:'t-clock',    good:false, sel:true },
+    {name:'+1 Swap',              emoji:'⚡', cls:'r-good',      target:'t-swaps',    good:true,  sel:true },
+    {name:'-1 Swap',              emoji:'✖', cls:'r-bad',       target:'t-swaps',    good:false, sel:true },
+    {name:'Windfall',             emoji:'💰', cls:'r-good',      target:'t-coins',    good:true,  sel:true },
+    {name:'Pickpocket',           emoji:'💸', cls:'r-bad',       target:'t-coins',    good:false, sel:true },
+    {name:'Leaden Curse',         emoji:'🩸', cls:'r-bad',       target:'t-deck',     good:false, sel:true },
+    {name:'Stones',               emoji:'🪨', cls:'r-bad',       target:'t-deck',     good:false, sel:true },
+    {name:'Lose a Trick',         emoji:'💔', cls:'r-bad',       target:'t-tricks',   good:false, sel:true },
+    {name:'Next: Event',          emoji:'🎲', cls:'r-epic',      target:null,         good:true,  sel:false },
+    {name:'Flow State',           emoji:'✦', cls:'r-common',     target:'t-tricks',   good:true,  sel:false },
+    {name:'Harvest',              emoji:'🌾', cls:'r-common',     target:'t-knacks',   good:true,  sel:false },
+    {name:'Dark Mystery',         emoji:'❓', cls:'r-bad',        target:null,         good:false, sel:false },
+  ];
+
+  const grid = document.getElementById('grid');
+  T.forEach((t,i)=>{
+    const d=document.createElement('div');
+    d.className='rc '+t.cls+(t.sel?' sel':' unsel')+' '+(t.good?'good':'bad');
+    d.dataset.i=i;
+    d.innerHTML=`<div class="tag">${t.good?'BUFF':'BAD'}</div><div class="emoji">${t.emoji}</div><div class="nm">${t.name}</div>`;
+    grid.appendChild(d);
+    t.el=d;
+  });
+
+  // ── audio ──
+  let actx;
+  function ac(){ if(!actx) actx=new (window.AudioContext||window.webkitAudioContext)(); return actx; }
+  function playChime(){
+    const c=ac(), now=c.currentTime;
+    [784,1046.5,1318.5].forEach((f,i)=>{ // G5 C6 E6 — bright major bell
+      const o=c.createOscillator(), g=c.createGain();
+      o.type='triangle'; o.frequency.value=f;
+      const t0=now+i*0.045;
+      g.gain.setValueAtTime(0.0001,t0); g.gain.exponentialRampToValueAtTime(0.22,t0+0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001,t0+0.34);
+      o.connect(g).connect(c.destination); o.start(t0); o.stop(t0+0.38);
+    });
+  }
+  function playBuzz(){
+    const c=ac(), now=c.currentTime;
+    const mk=(type,f0,f1,gain,dur)=>{ const o=c.createOscillator(), g=c.createGain();
+      o.type=type; o.frequency.setValueAtTime(f0,now); o.frequency.exponentialRampToValueAtTime(f1,now+dur*0.8);
+      g.gain.setValueAtTime(gain,now); g.gain.exponentialRampToValueAtTime(0.0001,now+dur);
+      o.connect(g).connect(c.destination); o.start(now); o.stop(now+dur+0.02); };
+    mk('sawtooth',190,64,0.18,0.30);
+    mk('square',146,58,0.10,0.26); // dissonant undertone
+  }
+
+  const wait=ms=>new Promise(r=>setTimeout(r,ms));
+  function pop(el, cls){ if(!el) return; el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls);
+    setTimeout(()=>el.classList.remove(cls),480); }
+
+  async function flyTile(t){
+    const target = t.target ? document.getElementById(t.target) : null;
+    t.el.style.zIndex=60;
+    if(target){
+      const a=t.el.getBoundingClientRect(), b=target.getBoundingClientRect();
+      const dx=(b.left+b.width/2)-(a.left+a.width/2), dy=(b.top+b.height/2)-(a.top+a.height/2);
+      await t.el.animate([
+        {transform:'translate(0,0) scale(1)', opacity:1},
+        {transform:`translate(${dx*0.55}px,${dy*0.55}px) scale(0.66)`, opacity:1, offset:0.6},
+        {transform:`translate(${dx}px,${dy}px) scale(0.14)`, opacity:0},
+      ], {duration:400, easing:'cubic-bezier(0.5,0,0.85,1)', fill:'forwards'}).finished;
+      // impact: sound + target reaction
+      if(t.good){ playChime(); pop(target,'ding'); }
+      else      { playBuzz(); pop(target,'hit'); }
+      // land a chip into a bar (tricks/knacks) for the good entities
+      if(t.chip){ const chip=document.createElement('div'); chip.className='chip'; chip.textContent=t.chipTxt;
+        document.getElementById(t.chip).appendChild(chip); requestAnimationFrame(()=>chip.classList.add('in')); }
+    } else {
+      await fallTile(t.el, 0);
+    }
+  }
+  function fallTile(el, delay){
+    return el.animate([
+      {transform:'translateY(0) rotate(0)', opacity:1},
+      {transform:`translateY(220px) rotate(${Math.random()*18-9}deg)`, opacity:0},
+    ], {duration:460, delay, easing:'cubic-bezier(0.4,0,1,1)', fill:'forwards'}).finished;
+  }
+
+  let running=false;
+  async function resolve(){
+    if(running) return; running=true;
+    ac().resume && ac().resume();
+    document.getElementById('confirm').disabled=true;
+    document.getElementById('replay').disabled=true;
+    document.getElementById('hint').textContent='resolving…';
+    // 1) claimed cards fly one-by-one
+    const claimed = T.filter(t=>t.sel);
+    for(const t of claimed){ await flyTile(t); await wait(90); }
+    // 2) the rest fall out (staggered)
+    const rest = T.filter(t=>!t.sel);
+    await Promise.all(rest.map((t,i)=>fallTile(t.el, i*40)));
+    document.getElementById('hint').textContent='done';
+    document.getElementById('replay').disabled=false;
+    running=false;
+  }
+  function reset(){
+    document.querySelectorAll('#tricks-chips,#knacks-chips').forEach(b=>b.innerHTML='');
+    T.forEach(t=>{ t.el.getAnimations().forEach(a=>a.cancel()); t.el.style.transform=''; t.el.style.opacity=''; t.el.style.zIndex=''; });
+    document.getElementById('confirm').disabled=false;
+    document.getElementById('replay').disabled=true;
+    document.getElementById('hint').textContent='9 claimed · 3 left behind';
+  }
+  document.getElementById('confirm').onclick=resolve;
+  document.getElementById('replay').onclick=()=>{ reset(); setTimeout(resolve,120); };
+</script>
+</body>
+</html>
