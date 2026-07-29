@@ -3059,7 +3059,7 @@
   /* shared panel chrome for repositioned + new blocks */
   #stage.landscape #score-center, #stage.landscape #score-left, #stage.landscape #score-subboxes,
   #stage.landscape #selected-cards, #stage.landscape #knack-carousel-wrap, #stage.landscape #trick-tray-area,
-  #stage.landscape #vclock, #stage.landscape #run-progress, #stage.landscape #coin-info, #stage.landscape #interact-costs {
+  #stage.landscape #vclock, #stage.landscape #run-progress, #stage.landscape #coin-info {
     position:absolute; box-sizing:border-box; margin:0; background:var(--panel); border:1px solid var(--border); border-radius:6px; }
   /* placements (percentages of the 747×420 stage) */
   #stage.landscape #score-center   { left:1.56%;  top:2.78%;  width:16.41%; height:12.5%;  display:flex; flex-direction:column; align-items:center; justify-content:center; }
@@ -3087,15 +3087,16 @@
   #stage.landscape #selected-cards { left:1.56%; top:38%; width:32.81%; height:18%; --card-w:38px; --card-h:50px; display:flex; align-items:center; justify-content:center; gap:4px; padding:4px 8px 4px 44px; background:var(--panel); border:1px solid var(--border); border-radius:6px; overflow:hidden; }
   #stage.landscape #hand-name { position:absolute; left:1.56%; top:38%; width:6%; height:18%; display:flex; align-items:center; justify-content:center; text-align:center; background:none; border:none; margin:0; font-size:10px; line-height:1.15; letter-spacing:0.5px; color:var(--gold); padding:0 3px; z-index:2; }
 
-  /* tricks: SAME height as the preview, card-shaped tiles fully visible, no label */
-  #stage.landscape #trick-tray-area { left:1.56%; top:57%; width:32.81%; height:18%; display:flex !important; flex-direction:row; align-items:center; justify-content:flex-start; padding:4px 8px; gap:6px; overflow:hidden; }
-  #stage.landscape #trick-tray-list { flex-direction:row; flex-wrap:nowrap; align-items:center; gap:6px; max-height:none; overflow:hidden; padding:0; }
-  #stage.landscape .trick-tray-chip { width:35px; height:46px; font-size:14px; border-radius:5px; flex-direction:column; }
-  #stage.landscape #interact-costs { left:1.56%; top:76.39%; width:14.84%; height:12.5%; flex-direction:column; justify-content:center; padding:3px 6px; gap:1px; }
-  #stage.landscape #coin-info      { left:17.19%; top:76.39%; width:17.19%; height:12.5%; flex-direction:column; justify-content:center; padding:3px 7px; gap:1px; }
-  #stage.landscape #btn-stats      { position:absolute; left:1.56%; top:91.67%; width:10.16%; height:6.39%; }
-  #stage.landscape #btn-deck       { position:absolute; left:13.28%; top:91.67%; width:10.16%; height:6.39%; }
-  #stage.landscape #btn-pause      { position:absolute; left:25%;    top:91.67%; width:9.38%;  height:6.39%; }
+  /* tricks: enlarged now that the time/money chips left this column — big reward-grid-style tiles */
+  #stage.landscape #trick-tray-area { left:1.56%; top:57%; width:32.81%; height:25.5%; display:flex !important; flex-direction:row; align-items:center; justify-content:flex-start; padding:6px 8px; gap:6px; overflow:hidden; }
+  #stage.landscape #trick-tray-list { flex-direction:row; flex-wrap:nowrap; align-items:center; gap:5px; max-height:none; overflow:hidden; padding:0; width:100%; }
+  #stage.landscape .trick-tray-chip { width:40px; height:60px; font-size:14px; border-radius:6px; flex-direction:column; }
+  /* money: compact single-row bar (replaces the old tall coin chip) */
+  #stage.landscape #coin-info      { left:1.56%; top:84%; width:32.81%; height:6.5%; flex-direction:row; align-items:center; justify-content:flex-start; gap:10px; padding:0 10px; }
+  #stage.landscape #btn-stats      { position:absolute; left:1.56%;  top:91.67%; width:7.6%; height:6.39%; }
+  #stage.landscape #btn-deck       { position:absolute; left:9.75%;  top:91.67%; width:7.6%; height:6.39%; }
+  #stage.landscape #btn-time       { position:absolute; left:17.94%; top:91.67%; width:7.6%; height:6.39%; }
+  #stage.landscape #btn-pause      { position:absolute; left:26.13%; top:91.67%; width:7.6%; height:6.39%; }
   #stage.landscape #focus-meter-wrap { position:absolute; left:34.4%; top:1.39%; width:5%; height:96.67%; }
   #stage.landscape #focus-bar-outer { width:21px; }   /* landscape focus bar (25% thinner than the old 28px) */
   #stage.landscape #grid-slot      { position:absolute; left:39.84%; top:11.11%; width:49.22%; height:86.11%; }
@@ -3255,8 +3256,7 @@
   /* Shared panel material for every v7 landscape block + portrait panels */
   #stage.landscape #score-center, #stage.landscape #score-left, #stage.landscape #score-subboxes,
   #stage.landscape #selected-cards, #stage.landscape #knack-carousel-wrap, #stage.landscape #trick-tray-area,
-  #stage.landscape #vclock, #stage.landscape #run-progress, #stage.landscape #coin-info,
-  #stage.landscape #interact-costs, .panel-box {
+  #stage.landscape #vclock, #stage.landscape #run-progress, #stage.landscape #coin-info, .panel-box {
     background: linear-gradient(180deg, #15110b, #0d0b07) !important;
     border: 1px solid #000 !important;
     box-shadow: inset 0 2px 8px rgba(0,0,0,0.8), 0 0 0 2px var(--plastic-lo), 0 2px 0 var(--plastic-deep) !important;
@@ -3269,7 +3269,6 @@
   #stage.landscape #selected-cards  { border-top: 2px solid var(--c-mint) !important; }
   #stage.landscape #trick-tray-area { border-top: 2px solid var(--c-coral) !important; }
   #stage.landscape #coin-info       { border-top: 2px solid var(--c-yellow) !important; }
-  #stage.landscape #interact-costs  { border-top: 2px solid var(--c-cyan) !important; }
   #stage.landscape #run-progress    { border-top: 2px solid var(--c-magenta) !important; }
   #stage.landscape #vclock          { border: 1px solid #000 !important; }
 
@@ -3414,4 +3413,72 @@
     color: var(--c-mint) !important; opacity: 1 !important;
     text-shadow: 0 0 9px rgba(53,213,155,0.75) !important;
   }
+
+  /* ═══════════════ r113 — enlarged tricks · time popup · money bar · chip marquee ═══════════════ */
+
+  /* Faded time-cost hints on the discard / swap action buttons */
+  .act-cost {
+    display: block; writing-mode: initial; transform: none;
+    font-family: 'Share Tech Mono', monospace; font-size: 8px; font-weight: 700;
+    letter-spacing: 0; line-height: 1; margin-top: 2px; opacity: 0.5;
+  }
+  #btn-discard .act-cost { color: #ffe0d8; }
+  #swap-indicator .act-cost { color: var(--cream-dim); }
+
+  /* Time-cost breakdown pop-up (toggled by the ⏱ Time button) */
+  #interact-costs.time-popup { display: none; }
+  #interact-costs.time-popup.show {
+    display: flex !important; position: fixed; z-index: 320; min-width: 116px;
+    flex-direction: column; gap: 2px; padding: 8px 12px; margin: 0;
+    background: linear-gradient(180deg, #15110b, #0b0906) !important;
+    border: 1.5px solid var(--c-cyan) !important; border-radius: 9px;
+    box-shadow: 0 0 0 2px var(--plastic-lo), 0 0 14px -2px var(--c-cyan), 0 10px 24px rgba(0,0,0,0.6) !important;
+  }
+
+  /* Compact one-line money bar (replaces the old tall coin chip) */
+  #stage.landscape #coin-info .ci-main { font-size: 13px; }
+  #stage.landscape #coin-info .ci-main b { font-size: 16px; }
+  #stage.landscape #coin-info .ci-row { flex-direction: row; gap: 4px; font-size: 9px; white-space: nowrap; }
+
+  /* ── Reward-grid-style trick tiles: CRT/neon card, rarity = border color ── */
+  #stage.landscape .trick-tray-chip.rar-common    { --rc: var(--c-mint); }
+  #stage.landscape .trick-tray-chip.rar-rare      { --rc: var(--c-cyan); }
+  #stage.landscape .trick-tray-chip.rar-epic      { --rc: var(--c-purple); }
+  #stage.landscape .trick-tray-chip.rar-legendary { --rc: var(--c-yellow); }
+  #stage.landscape .trick-tray-chip.rar-mythic    { --rc: var(--c-magenta); }
+  #stage.landscape .trick-tray-chip.trick-card {
+    position: relative; flex: 0 0 auto; box-sizing: border-box; overflow: hidden;
+    align-items: center; justify-content: flex-end; gap: 0; padding: 3px 2px 4px; cursor: pointer;
+    border: 2px solid var(--rc) !important;
+    background: linear-gradient(180deg, #15110b, #0a0906) !important;
+    box-shadow: 0 0 0 2px var(--plastic-lo), 0 0 8px -1px var(--rc), inset 0 0 12px -4px var(--rc) !important;
+    transition: transform 0.1s ease, box-shadow 0.15s ease;
+  }
+  #stage.landscape .trick-tray-chip.trick-card::after {   /* scanlines */
+    content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 1;
+    background: repeating-linear-gradient(0deg, rgba(0,0,0,0.16) 0 1px, transparent 1px 3px);
+    mix-blend-mode: overlay;
+  }
+  #stage.landscape .trick-tray-chip.trick-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 0 2px var(--plastic-lo), 0 0 14px 0 var(--rc), inset 0 0 12px -4px var(--rc) !important;
+  }
+  .trick-card-emoji {
+    z-index: 2; margin-top: auto; font-size: 24px; line-height: 1;
+    filter: drop-shadow(0 0 5px var(--rc));
+  }
+  .trick-card-name {
+    z-index: 2; width: 100%; max-width: 100%;
+    font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 6px;
+    letter-spacing: 0.2px; text-transform: uppercase; line-height: 1.05; text-align: center;
+    color: #fff; text-shadow: 0 0 6px var(--rc), 0 1px 1px #000;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+
+  /* ── Horizontal auto-scroll marquee track (knacks always; tricks on overflow) ── */
+  .chip-marquee { display: flex; flex-direction: row; align-items: center; flex: 0 0 auto; gap: 5px; }
+  .chip-marquee.scrolling { will-change: transform; animation: chipMarquee var(--marquee-dur, 24s) linear infinite; }
+  #knack-carousel-wrap:hover .chip-marquee.scrolling,
+  #trick-tray-area:hover   .chip-marquee.scrolling { animation-play-state: paused; }
+  @keyframes chipMarquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 

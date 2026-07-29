@@ -1,4 +1,4 @@
-const BUILD = '2026-07-27 · r112 · 5-card + Focus capacity/generation batches';
+const BUILD = '2026-07-29 · r113 · bigger trick tiles · time popup · money bar · knack marquee';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

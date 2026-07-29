@@ -93,10 +93,14 @@ function updateKnackList() {
     el.innerHTML = '';   // empty → faint KNACKS watermark shows through (r95)
     return;
   }
-  el.innerHTML = acquiredKnacks.map(t =>
+  // Chips live in a marquee track so the row can slowly auto-scroll when it
+  // overflows (no arrows / no scrollbar — r113).
+  el.innerHTML = `<div class="chip-marquee">${acquiredKnacks.map(t =>
     `<div class="knack-chip" data-knack-id="${t.id}" tabindex="0" role="button" aria-label="${t.name}">${t.emoji}</div>`
-  ).join('');
-  // Wire interactions
+  ).join('')}</div>`;
+  const track = el.firstElementChild;
+  applyChipMarquee(el, track);
+  // Wire interactions on every chip (originals + marquee clones)
   el.querySelectorAll('.knack-chip').forEach(chip => {
     const id = chip.dataset.knackId;
     chip.addEventListener('mouseenter', () => showKnackTooltip(chip, id));
@@ -108,6 +112,26 @@ function updateKnackList() {
       else showKnackTooltip(chip, id);
     });
   });
+}
+
+// Slow horizontal auto-scroll for an overflowing chip row (knacks / tricks).
+// `list` clips; `track` holds the chips. If the track is wider than the list we
+// duplicate its contents and animate translateX 0 → -50% for a seamless loop.
+// Duration scales with width (~26px/s) so it always crawls. No scroll UI.
+// Synchronous (forces one reflow) so the caller can wire listeners to the
+// cloned chips right after this returns.
+function applyChipMarquee(list, track) {
+  if (!list || !track) return;
+  track.classList.remove('scrolling');
+  track.style.removeProperty('--marquee-dur');
+  const listW = list.clientWidth;
+  if (listW <= 0) return;                       // not laid out yet — leave static
+  const oneSet = track.scrollWidth;
+  if (oneSet <= listW + 2) return;              // fits — no scroll needed
+  track.innerHTML += track.innerHTML;           // duplicate for a seamless loop
+  const dur = Math.max(12, Math.round(oneSet / 26));
+  track.style.setProperty('--marquee-dur', dur + 's');
+  track.classList.add('scrolling');
 }
 
 // Back-compat alias — older call sites updateTrickList() still re-render the rack
