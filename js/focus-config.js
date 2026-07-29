@@ -1,5 +1,26 @@
-const FOCUS_THRESHOLD = 10; // nodes per charge
-let focusCapacity   = 3;   // max charges (modifiable by Expanse bonus)
+const FOCUS_THRESHOLD = 10; // nodes per charge (tick spacing + charge colors)
+// Max Focus is measured in raw NODES (was "charges × 10"). Base 30 (= old 3×10),
+// hard cap 100. The effective cap = shop Focus Cap limit (base) + permanent per-game
+// accumulations (focusCapPerm: Expanse / Quick Draw / the little guys / Life Lessons /
+// Core Memories) + live conditional bonuses (Stimulants knack, Power Cell / Slow Burn on grid).
+const FOCUS_CAP_HARD = 100;
+let focusCapBase = 30;   // set from the Focus Cap shop limit at round/game start
+let focusCapPerm = 0;    // permanent per-game accumulations (reset on new game)
+function onGridSleightCapBonus() {
+  if (typeof gridData === 'undefined' || !gridData) return 0;
+  let n = 0;
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
+    const cd = gridData[r]?.[c];
+    if (!cd || !cd._isSleight) continue;
+    if (cd.sleightId === 'power_cell') n += 10;                                  // +10 max Focus while on grid
+    if (cd.sleightId === 'slow_burn')  n += Math.floor((cd._slowBurnSecs || 0) / 60); // +1 per minute on grid
+  }
+  return n;
+}
+function focusCapNodes() {
+  const stim = (typeof hasKnack === 'function' && hasKnack('stimulants')) ? 10 : 0;
+  return Math.min(FOCUS_CAP_HARD, focusCapBase + focusCapPerm + stim + onGridSleightCapBonus());
+}
 const FOCUS_COLORS  = ['#54af88','#3a8fbf','#7a50c0','#9a30d0'];
 
 // Focus-gauge feel (tuned in the LETHE gauge mockup, r97).

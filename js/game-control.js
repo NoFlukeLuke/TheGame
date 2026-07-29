@@ -104,7 +104,9 @@ function startGame() {
   recomputeGridMetrics();
   // Reset focus meter
   focusNodes = 0;
-  focusCapacity = 3;
+  focusCapBase = (typeof limits !== 'undefined' && limits.focus_cap) ? limits.focus_cap.current : 30;
+  focusCapPerm = 0;
+  focusGenGame = 0; focusGenRound = 0;
   focusAnimQueue = [];
   focusAnimRunning = false;
   lastCalcMult = 0;
@@ -196,6 +198,7 @@ function startGame() {
   freeSwapsLeft    = 2;
   freeDiscardsLeft = 2;
   cardsDiscardedRound = 0;
+  focusGenRound = 0;
   cardsScoredTotal = 0;
   nineSecondsCounter = 0;
   highestHandScore = 0;

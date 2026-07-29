@@ -120,7 +120,7 @@ function focusNodeColor(i, cap) {
 function buildFocusMeter() {
   const seg = document.getElementById('focus-active-segment');
   if (!seg) return;
-  const cap = focusCapacity * FOCUS_THRESHOLD;
+  const cap = focusCapNodes();
   seg.innerHTML = '';
   focusNodeEls = [];
   for (let i = 0; i < cap; i++) {
@@ -133,7 +133,7 @@ function buildFocusMeter() {
 }
 
 function syncFocusMeterState() {
-  const cap = focusCapacity * FOCUS_THRESHOLD;
+  const cap = focusCapNodes();
   // Capacity can grow mid-run (Expanse / Quick Draw) — keep the bar's node count in sync.
   if (focusNodeEls.length !== cap) buildFocusMeter();
   const total = Math.min(focusNodes, cap);
@@ -177,12 +177,12 @@ function updateFocusMeter() {
 // ══════════════════════════════════════════════
 // Fraction of the bar that's full (0..1).
 function focusFillFrac() {
-  const cap = focusCapacity * FOCUS_THRESHOLD;
+  const cap = focusCapNodes();
   return cap > 0 ? Math.max(0, Math.min(1, focusNodes / cap)) : 0;
 }
 // Jitter ramp: 0 at/below ×1.0 (the warm-up charge), rising to 1 at full along the curve.
 function focusJitterFrac() {
-  const cap = focusCapacity * FOCUS_THRESHOLD;
+  const cap = focusCapNodes();
   const denom = cap - FOCUS_THRESHOLD;
   const p = denom > 0 ? Math.max(0, Math.min(1, (focusNodes - FOCUS_THRESHOLD) / denom)) : 0;
   return Math.pow(p, FOCUS_FX.jitterCurve);
@@ -195,7 +195,7 @@ function focusReduceMotion() {
 function applyFocusGlow() {
   const outer = document.getElementById('focus-bar-outer');
   if (!outer) return;
-  const cap = focusCapacity * FOCUS_THRESHOLD;
+  const cap = focusCapNodes();
   const blur = FOCUS_FX.glowMaxPx * Math.pow(focusFillFrac(), FOCUS_FX.glowCurve);
   if (blur > 0.5 && focusNodes > 0) {
     const color = focusNodeColor(Math.max(0, Math.min(cap - 1, focusNodes - 1)), cap);
@@ -233,21 +233,22 @@ if (typeof requestAnimationFrame === 'function') requestAnimationFrame(focusFxLo
 
 function addFocus(amount) {
   if (!amount || amount <= 0) return;
+  focusGenGame += amount; focusGenRound += amount; // total Focus generated (any source) — Wellspring / Feedback Loop
   focusDecayBuffer = 0;   // gaining focus resets the x.0 grace buffer
-  const cap = focusCapacity * FOCUS_THRESHOLD;
+  const cap = focusCapNodes();
   const prev = Math.min(focusNodes, cap);
   focusNodes = Math.min(focusNodes + amount, cap);
-  // Expanse: each time we hit max capacity, bump capacity by 1 (for the rest of the run)
+  // Expanse: each time we hit max capacity, bump the cap by 10 nodes (for the rest of the run)
   if (hasTrick('expanse') && prev < cap && focusNodes === cap) {
-    focusCapacity++;
+    focusCapPerm += 10;
   }
   // Keep the bar's node count in sync if capacity changed, preserving already-filled nodes.
-  if (focusNodeEls.length !== focusCapacity * FOCUS_THRESHOLD) {
+  if (focusNodeEls.length !== focusCapNodes()) {
     buildFocusMeter();
-    const c0 = focusCapacity * FOCUS_THRESHOLD;
+    const c0 = focusCapNodes();
     focusNodeEls.forEach((n, i) => { if (i < prev) { const c = focusNodeColor(i, c0); n.classList.add('filled'); n.style.background = c; n.style.boxShadow = '0 0 3px ' + c; } });
   }
-  const newTotal = Math.min(focusNodes, focusCapacity * FOCUS_THRESHOLD);
+  const newTotal = Math.min(focusNodes, focusCapNodes());
   for (let i = prev; i < newTotal; i++) focusAnimQueue.push({ nodeIdx: i });
   runFocusAnimQueue();
 }
@@ -300,7 +301,7 @@ function spawnFocusFallClone(srcEl, opts = {}) {
 function removeFocus(amount) {
   if (!amount || amount <= 0) return;
 
-  const cap = focusCapacity * FOCUS_THRESHOLD;
+  const cap = focusCapNodes();
   const prevTotal = Math.min(focusNodes, cap);
   const newTotal  = Math.max(0, prevTotal - amount);
 
@@ -329,7 +330,7 @@ function runFocusAnimQueue() {
     const item = focusAnimQueue.shift();
     const node = focusNodeEls[item.nodeIdx];
     if (!node) { step(); return; }
-    const c = focusNodeColor(item.nodeIdx, focusCapacity * FOCUS_THRESHOLD);
+    const c = focusNodeColor(item.nodeIdx, focusCapNodes());
     node.classList.add('filled');
     node.style.background = c;
     node.style.boxShadow = '0 0 3px ' + c;

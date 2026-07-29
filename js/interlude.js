@@ -44,7 +44,7 @@ async function showLevelUpScreen_fallOnly() {
   // Collect lit dots and filled nodes, spawn fall clones, then zero focusNodes silently.
   const FOCUS_LEAD_MS = 150;
   if (focusNodes > 0) {
-    const cap = focusCapacity * FOCUS_THRESHOLD;
+    const cap = focusCapNodes();
     const total = Math.min(focusNodes, cap);
 
     // Every filled node falls, highest first.

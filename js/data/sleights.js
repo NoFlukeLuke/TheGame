@@ -35,6 +35,9 @@ const SLEIGHT_POOL = [
   // ── Aim-based (fixtures: tap to rotate aim; cannot be swapped or discarded) ──
   { id:'reflect',     name:'Reflect',     emoji:'🪞', rarity:'epic',   activation:'aim', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['retrigger','position'], desc:'Tap to rotate its aim (up→right→down→left). The card it faces replays once when a hand scores. Cannot be swapped or discarded.' },
   { id:'soul_mirror', name:'Soul Mirror', emoji:'👁️', rarity:'mythic', activation:'aim', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['retrigger','rank'],     desc:'Tap to rotate its aim. While it faces a card, every scored card of that rank replays — anywhere on the grid. Multiple Soul Mirrors stack. Cannot be swapped or discarded.' },
+  // ── Focus-capacity sleights (r104) ──
+  { id:'power_cell',  name:'Power Cell',  emoji:'🔋', rarity:'rare',   activation:'on_draw', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['focus'], desc:'When it enters the grid: +5 Focus. While it remains on the grid: +10 maximum Focus.' },
+  { id:'slow_burn',   name:'Slow Burn',   emoji:'🕯️', rarity:'rare',   activation:'passive', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['focus'], desc:'+1 maximum Focus for every minute this sleight spends on the grid.' },
 ];
 
 // ── Aim sleights (Reflect, Soul Mirror): fixtures that point at an adjacent cell ──

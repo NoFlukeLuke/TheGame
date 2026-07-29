@@ -234,6 +234,8 @@ function magnetCluster(mr, mc, rank) {
 
 function applySleightGridEffect(id, r, c) {
   switch (id) {
+    case 'power_cell':
+      addFocus(5); showMessage('Power Cell! +5 Focus', '#a25cd8'); break;
     case 'good_friend':
       getNeighborsAll(r, c).forEach(([nr, nc]) => exaltCard(nr, nc));
       showMessage('The Good Friend exalts neighbors!', '#ffd700'); render(); break;
