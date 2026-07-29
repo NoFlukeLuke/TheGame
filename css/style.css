@@ -2694,12 +2694,15 @@
     font-size: 9px; color: var(--rc); background: rgba(0,0,0,0.45); border-radius: 6px; padding: 1px 5px;
   }
   .reward-cell .rwd-name {
-    position: relative; z-index: 2; max-width: 100%;
+    position: relative; z-index: 2; max-width: 100%; width: 100%;
     font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 10px; letter-spacing: 0.4px;
-    text-transform: uppercase; line-height: 1.12; text-align: center; white-space: nowrap;
+    text-transform: uppercase; line-height: 1.14; text-align: center;
+    /* Never overflow the tile: wrap at spaces; break a too-long single word,
+       hyphenating cleanly (lang="en" is set on <html>). fitRewardName shrinks
+       the font only if the wrapped name is still too tall. */
+    white-space: normal; overflow-wrap: break-word; word-break: normal; hyphens: auto;
     color: #fff; text-shadow: 0 0 8px var(--rc, rgba(255,255,255,0.4)), 0 1px 2px #000;
   }
-  .reward-cell .rwd-name.rwd-name-wrap { white-space: normal; overflow-wrap: break-word; word-break: break-word; }
 
   /* knack diamond: beige molded plastic + neon inset ring */
   .rwd-diamond {
