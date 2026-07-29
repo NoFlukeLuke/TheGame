@@ -1,4 +1,4 @@
-const BUILD = '2026-07-27 · r111 · reward resolve anims + sounds';
+const BUILD = '2026-07-27 · r112 · name wrap + live trick values';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

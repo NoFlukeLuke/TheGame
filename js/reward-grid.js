@@ -122,7 +122,7 @@ function generateRewardContent() {
     const pick = eligible[Math.floor(Math.random() * eligible.length)];
     return {
       icon: '★', label: pick.name, desc: pick.desc, tier: pick.tier || 'rare',
-      entity: 'trick', rarity: pick.tier || 'rare',
+      entity: 'trick', rarity: pick.tier || 'rare', _trick: pick,
       apply: () => injectTrickAfterReward(pick)
     };
   }
@@ -712,7 +712,10 @@ function attachRewardTooltip(el, p, kind) {
     tt.className = 'rar-' + rar;
     tt.querySelector('.rtt-rar').textContent  = (p.entity ? rar + ' · ' : '') + type;
     tt.querySelector('.rtt-name').textContent = p.label;
-    tt.querySelector('.rtt-desc').innerHTML   = colorizeKeywords(p.desc || '');
+    // Tricks show their current bonus value in () via trickLiveDesc (N/A here in
+    // the reward grid for round-scoped tricks — the round isn't live yet).
+    const descText = (p._trick && typeof trickLiveDesc === 'function') ? trickLiveDesc(p._trick) : (p.desc || '');
+    tt.querySelector('.rtt-desc').innerHTML   = colorizeKeywords(descText);
     place(e);
     tt.classList.add('show');
   });
