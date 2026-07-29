@@ -90,7 +90,7 @@ async function goalCelebration(handCells) {
 // ── New preview-window scoring dance (dev toggle; owner-locked settings) ──
 const DANCE_CFG = {
   actA:{cls:'dnc-pulse',dur:420,mag:1.0}, actB:{cls:'dnc-flash',dur:420,mag:0.4},
-  trig:{cls:'dnc-pop',dur:260,mag:0.7}, jitInit:0.20, jitGrow:0.35,
+  trig:{cls:'dnc-pop',dur:260,mag:0.7}, jitInit:0.10, jitGrow:0.18,
   tickRest:600, pFlight:550, scoreClimb:1250, ff:15, pScale:2.6,
 };
 let newDanceEnabled = (function(){ try { return localStorage.getItem('newDance') !== '0'; } catch(e){ return true; } })();
@@ -633,13 +633,23 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
       el.classList.add('score-pop-'+sc); setTimeout(()=>sfxCardPop(card.suit), i*STAGGER); });
   }
 
-  // ── Contribution ledger (Tricks + exalt), aggregated per source ──
-  const savedPFM = lastPreFocusMult; const contrib=[]; calcScore(hand, handCells, contrib); lastPreFocusMult = savedPFM;
+  // ── Contribution ledger (Tricks + exalt), aggregated per source + per-card ledger ──
+  const savedPFM = lastPreFocusMult; const contrib=[]; const _ledger={}; calcScore(hand, handCells, contrib, _ledger); lastPreFocusMult = savedPFM;
   const trickMap = new Map();
   contrib.forEach(e=>{ if(!(e.delta>0)) return; const key=e.source+':'+e.id;
     let t=trickMap.get(key); if(!t){ t={source:e.source,id:e.id,pip:0,mult:0}; trickMap.set(key,t); }
     if(e.type==='pip') t.pip+=e.delta; else t.mult+=e.delta; });
   const tricks=[...trickMap.values()];
+  const fmtM = m => (m%1===0)?m:m.toFixed(1);
+  // Per-animation-card ledger info, aligned to handCells order (reps + per-card trick deltas).
+  const cellInfo = handCells.map(([r,c])=>{ const e=(_ledger.cards||[]).find(x=>x.r===r&&x.c===c); return { reps: e?e.reps:1, pipT: e?e.pipT:{}, multT: e?e.multT:{} }; });
+  // Ids emitted per-card (skipped in the hand-level end sweep). Replay-source ids are shown by
+  // repeating the card beat, so they're skipped in the sweep too.
+  const perCardIds = new Set();
+  cellInfo.forEach(ci=>{ Object.keys(ci.pipT).forEach(id=>perCardIds.add(id)); Object.keys(ci.multT).forEach(id=>perCardIds.add(id)); });
+  // Ids the end sweep must skip: replay sources (shown by repeating the card beat) plus 'sapling'
+  // (per-card perm-pip / retrigger bookkeeping — always emitted per-card above, never hand-level).
+  const REPLAY_SRC = new Set(['twos_retrigger','eights_retrigger','rowcol_retrigger','perfect_timing','eye_of_storm','ripple','reflect','soul_mirror','high_and_mighty','closing_time','echo_hand','woodpecker','sapling']);
 
   // ── Stage: render ONLY the played cards into the dedicated hand-preview slot. ──
   // Tricks/Knacks animate on their REAL tray/rack elements (not copies), so the slot
@@ -666,6 +676,8 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   // may be null, e.g. exalt or Amplifier that has no rack element — those still tally, no jitter).
   const entityEls = tricks.map(t => danceEntityEl(t.source, t.id));
   dncRealEls = entityEls.filter(Boolean);
+  // id → rack element, so a card can release the specific tricks it triggered.
+  const elById = {}; tricks.forEach((t, ti) => { if (entityEls[ti]) elById[t.id] = entityEls[ti]; });
 
   if(isGoalHand){
     await wait(handCells.length*STAGGER + POP);
@@ -699,6 +711,15 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   const needScroll = handTrack.scrollWidth > handItems.clientWidth + 2;
   const maxScroll  = Math.max(0, handTrack.scrollWidth - handItems.clientWidth);
   const agit={};
+  // Release the tricks a card triggers AS the card animates (Balatro-style), repeating the whole
+  // beat once per replay. Trick particles fire concurrently; the boxes reconcile to the authoritative
+  // totals after the run (per-particle values are illustrative).
+  const _fireCardTricks = (info, cardEl) => {
+    Object.entries(info.pipT).forEach(([id,d])=>{ if(!(d>0)) return; const el=elById[id]; if(el) dncReleaseReal(el);
+      dncFly(el||cardEl, pipsBox, '+'+Math.round(d), '#d4a857', ()=>{ rp+=d; if(pipsEl) pipsEl.textContent=Math.round(rp); dncTick(pipsEl); if(typeof sfxParticleStep==='function') sfxParticleStep('pip'); }); });
+    Object.entries(info.multT).forEach(([id,d])=>{ if(!(d>0)) return; const el=elById[id]; if(el) dncReleaseReal(el);
+      dncFly(el||cardEl, multBox, '+'+fmtM(d), '#b07dea', ()=>{ rm+=d; if(multEl) multEl.textContent=fmtM(rm); dncTick(multEl); if(typeof sfxParticleStep==='function') sfxParticleStep('mult'); }); });
+  };
   for(let i=0;i<cardEls.length;i++){
     if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
     if(needScroll){
@@ -706,31 +727,49 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
       if(scrollTo>0 || handTrack.style.transform){ handTrack.style.transform = `translateX(${-scrollTo}px)`; await dwait(200); }
       if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
     }
-    dncActivate(cardEls[i]);
-    entityEls.forEach((el,ti)=>{ if(!el) return; agit[ti]=(agit[ti]||0)+1; dncChargeReal(el, agit[ti]); });
-    await dncFly(cardEls[i], pipsBox, '+'+cardPipVals[i], '#5a8fe0', ()=>{
-      rp+=cardPipVals[i]; if(pipsEl) pipsEl.textContent=Math.round(rp); dncTick(pipsEl);
-      if(typeof sfxParticleStep==='function') sfxParticleStep('pip'); });
-    await dwait(DANCE_CFG.tickRest);
+    const info = cellInfo[i];
+    // A replayed card runs its whole beat again (pops + re-emits everything it triggers).
+    for(let rep=0; rep<(info.reps||1); rep++){
+      if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
+      dncActivate(cardEls[i]);
+      // Contributing entities charge (jitter ramps) through the entire card run.
+      entityEls.forEach((el,ti)=>{ if(!el) return; agit[ti]=(agit[ti]||0)+1; dncChargeReal(el, agit[ti]); });
+      // The card scores its own rank pips…
+      await dncFly(cardEls[i], pipsBox, '+'+cardPipVals[i], '#5a8fe0', ()=>{
+        rp+=cardPipVals[i]; if(pipsEl) pipsEl.textContent=Math.round(rp); dncTick(pipsEl);
+        if(typeof sfxParticleStep==='function') sfxParticleStep('pip'); });
+      // …then every trick/knack this card triggers releases its particle right now.
+      _fireCardTricks(info, cardEls[i]);
+      await dwait(DANCE_CFG.tickRest);
+    }
   }
   if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
 
-  // ── ENTITY PHASE — each contributing entity stops jittering and RELEASES its total,
-  //    on its real rack element (particles fly from there; fall back to the box if none). ──
+  // Hand finished animating → stop ALL jitter at once.
+  entityEls.forEach(el=>{ if(el){ el.classList.remove('dnc-jitter'); el.style.removeProperty('--dnc-jit'); } });
+
+  // ── HAND-LEVEL SWEEP — tricks not tied to any single card (base-hand shape/timing/set bonuses,
+  //    multipliers) release after the card run. Per-card and replay-source tricks already fired above. ──
   for(let ti=0; ti<tricks.length; ti++){
     if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
-    const t=tricks[ti], el=entityEls[ti];
+    const t=tricks[ti];
+    if(perCardIds.has(t.id) || REPLAY_SRC.has(t.id)) continue;
+    const el=entityEls[ti];
     dncReleaseReal(el);
     const src = el || pipsBox;
     if(t.pip>0){ await dncFly(src, pipsBox, '+'+Math.round(t.pip), '#d4a857', ()=>{
       rp+=t.pip; if(pipsEl) pipsEl.textContent=Math.round(rp); dncTick(pipsEl);
       if(typeof sfxParticleStep==='function') sfxParticleStep('pip'); }); }
-    if(t.mult>0){ await dncFly(el || multBox, multBox, '+'+(Number.isInteger(t.mult)?t.mult:t.mult.toFixed(1)), '#b07dea', ()=>{
-      rm+=t.mult; if(multEl) multEl.textContent=(rm%1===0)?rm:rm.toFixed(1); dncTick(multEl);
+    if(t.mult>0){ await dncFly(el || multBox, multBox, '+'+fmtM(t.mult), '#b07dea', ()=>{
+      rm+=t.mult; if(multEl) multEl.textContent=fmtM(rm); dncTick(multEl);
       if(typeof sfxParticleStep==='function') sfxParticleStep('mult'); }); }
     await dwait(DANCE_CFG.tickRest);
   }
   if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
+
+  // Reconcile the boxes to the authoritative totals (particle values above are illustrative).
+  if(pipsEl) pipsEl.textContent = Math.round(lastCalcPips);
+  if(multEl) multEl.textContent = fmtM(Math.round(lastCalcMult*10)/10);
 
   // ── FOCUS beat — the box updates from the hand's starting multiplier to the post-Focus one ──
   if(targetFocus>1 || targetFocus!==preHandFocus){

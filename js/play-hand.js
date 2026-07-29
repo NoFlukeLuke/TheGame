@@ -131,6 +131,8 @@ function generateHandFocus(hand, handCells, vultureSec) {
 // PLAY HAND
 // ══════════════════════════════════════════════
 function playHand() {
+  // During the on-grid reward step the Play button is the green CONFIRM button.
+  if (rewardOnGrid) { confirmRewardPath(); return; }
   if (roundEnded) { dbgEvent('warn', 'play ignored (round ended)'); return; }
   if (falling)   { pendingAction = 'play'; dbgEvent('info', 'play queued (falling)'); return; }
   if (animating) { pendingAction = 'play'; dbgEvent('info', 'play queued (animating)'); scheduleQueuedRetry(); return; }
@@ -169,6 +171,8 @@ function playHand() {
   // Re-score the winning hand now that Focus reflects this hand's own gains.
   const finalScore = Math.max(0, calcScore(hand, handCells) - penaltyPips);
   result.finalScore = finalScore; // keep result in sync for the dance / downstream reads
+  // Snapshot this hand's replay counts NOW (a later calcScore elsewhere could overwrite the global).
+  const _handRetrigByCell = { ..._lastRetrigByCell };
 
   dbgEvent('ok', 'play ' + hand, { finalScore, cards: handCells.length });
   console.log('[PLAY] hand result', { hand, finalScore, scoreAfterAdd: score + finalScore });
@@ -213,6 +217,12 @@ function playHand() {
     console.log('[GOAL] reached', { score, goal: roundGoal, finalScore });
     goalReachedThisRound = true;
     roundEnded = true; // freeze input immediately
+    // Stop the round clock the instant the goal is met (unless a challenge is
+    // still pending — that path keeps its own timer running). This freezes the
+    // clock as a clear "goal reached" signal AND prevents a late timer tick from
+    // firing the legacy level-up flow mid-dance — the double level-up / stray-
+    // trick bug that surfaced when the clock hit 0 during the win animation.
+    if (!challengeActive) { clearInterval(roundInterval); roundInterval = null; }
     const toRemove = [...selected];
     selected = [];
     commitRoundContrib(_contribSnapshot); // goal-clearing hand counts toward the tally
@@ -435,7 +445,10 @@ function playHand() {
   // Spade Flood Trick still needs allSpades flag (computed in calcScore via spade_flood)
 
   // ── Exalt / Corrupt — coins & time (pips & mult applied in calcScore) ──
-  const _ecPlay = exaltCorruptTotals(scoringCards);
+  // Replay-weighted: a card that replayed fires its exalt/corrupt coin/time once per (re)play,
+  // matching the pip/mult side in calcScore. `_lastRetrigByCell` is from the finalScore calcScore above.
+  const _ecReps = result.handCells.map(([r,c]) => _handRetrigByCell[r + '-' + c] || 1);
+  const _ecPlay = exaltCorruptTotals(scoringCards, _ecReps);
   // ── Exalt / Corrupt triggers (per scored card; state is permanent + mutually exclusive) ──
   // Counters live ON the card object so they track the individual card and survive deck
   // cycling. ♣ exalt = in a 3+-club hand 2×; ♣ corrupt = lone club in a hand 2×.

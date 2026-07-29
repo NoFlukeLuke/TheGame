@@ -1,4 +1,4 @@
-const BUILD = '2026-07-25 · r104 · Focus capacity & generation batch (node cap, Focus Cap limit, Stimulants/Core Memories, Power Cell/Slow Burn, Life Lessons/Wellspring/Feedback Loop)';
+const BUILD = '2026-07-27 · r112 · 5-card + Focus capacity/generation batches';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

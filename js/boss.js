@@ -424,6 +424,8 @@ function endBoss(success) {
 let rewardSelected = new Set(); // "r-c" keys
 let rewardCells    = [];        // NxN array of { kind, payload }
 let rewardConfirmed = false;
+let rewardOnGrid   = false;     // true while the reward grid is rendered onto the play #grid (r100+)
+let rewardDealing  = false;     // true while reward tiles are dealing in / resolving (blocks clicks)
 let rewardGridContext = 'interlude'; // 'interlude' | 'boss' — determines what closeRewardGrid does
 let skipTrickChoiceOverlay = false;    // set before drainLevelUpQueue when reward grid is the reward screen
 

@@ -1,4 +1,7 @@
 function render() {
+  // While the reward grid occupies the play #grid, its own renderer owns the DOM.
+  // Skip re-rendering mid-animation (deal-in / resolve) so flying tiles aren't clobbered.
+  if (rewardOnGrid) { if (!rewardDealing) renderRewardTiles(); return; }
   const gridEl = document.getElementById('grid');
   const reachable = getReachable();
   const bestHandResult = selected.length >= 2 ? findBestHand(selected) : null;

@@ -170,6 +170,10 @@ function onRoundEnd() {
     setTimeout(() => onGameEnd(true), 2300);
     return;
   }
+  // Normal mode: once the goal is reached, the score-dance → interlude owns the
+  // whole round transition. Ignore a stray/late timer tick so the legacy
+  // level-up flow (showLevelUpScreen / trick pick) can never fire on top of it.
+  if (ACTIVE_MODE.id === 'normal' && goalReachedThisRound) return;
   _onRoundEndCore();
 }
 
