@@ -1010,6 +1010,13 @@ async function animateRewardResolve() {
     const p = cell.payload;
     if (p._mystery) await revealAndFlyMystery(tile, p, c, cols);
     else            await flyRewardTile(tile, p, cell.kind !== 'debuff');
+    // Entity rewards populate a HUD chip — apply the moment the tile lands so the
+    // chip fills as it shrinks in (no end-of-sequence delay). Everything else is
+    // still applied together after the animation (confirmRewardPath).
+    if (p && (p.entity === 'trick' || p.entity === 'knack' || p.entity === 'sleight')
+        && typeof p.apply === 'function' && !p._applied) {
+      try { p.apply(); p._applied = true; } catch (e) { console.error('[REWARD] land apply failed', e); }
+    }
     await new Promise(res => setTimeout(res, 90));
   }
   await Promise.allSettled(rest.map((t, i) => fallRewardTile(t, i * 34)));
@@ -1030,7 +1037,8 @@ async function confirmRewardPath() {
     const [r, c] = key.split('-').map(Number);
     const cell = rewardCells[r][c];
     // A throwing payload must never strand the reward step — isolate each apply.
-    try { if (cell.payload && typeof cell.payload.apply === 'function') cell.payload.apply(); }
+    // Entity rewards were already applied on landing (animateRewardResolve).
+    try { if (cell.payload && typeof cell.payload.apply === 'function' && !cell.payload._applied) cell.payload.apply(); }
     catch (e) { console.error('[REWARD] payload apply failed', e); }
   });
   closeRewardGrid();

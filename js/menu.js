@@ -1,4 +1,4 @@
-const BUILD = '2026-07-27 · r113 · name wrap + live trick values';
+const BUILD = '2026-07-29 · r114 · name wrap + live trick values';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

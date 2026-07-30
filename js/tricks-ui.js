@@ -309,43 +309,56 @@ function renderTrickTray() {
     list.innerHTML = '';   // empty → faint TRICKS watermark shows through (r95)
     return;
   }
+  // Reward-grid-style CRT/neon card tiles inside a scrolling marquee track (r113).
+  const RARS = ['common','rare','epic','legendary','mythic'];
+  const track = document.createElement('div');
+  track.className = 'chip-marquee';
   trickTray.forEach(trick => {
     const chip = document.createElement('div');
+    const rar = RARS.includes(trick.tier) ? trick.tier : 'common';
+    chip.className = `trick-tray-chip trick-card trick-tier-${trick.tier} rar-${rar}`;
+    chip.dataset.trickId = trick.id;
     if (trick.id === 'mirror') {
       const dir = trick._tiltDir; // -1 left, +1 right, undefined = not aimed
-      chip.className = `trick-tray-chip trick-tier-${trick.tier} trick-mirror`;
-      chip.textContent = dir === -1 ? '◀' : dir === 1 ? '▶' : '◆';
-      chip.style.transform = dir === -1 ? 'skewX(10deg)' : dir === 1 ? 'skewX(-10deg)' : 'none';
-      chip.dataset.trickId = trick.id;
+      chip.classList.add('trick-mirror');
+      chip.innerHTML = `<div class="trick-card-emoji">${dir === -1 ? '◀' : dir === 1 ? '▶' : '◆'}</div>`
+                     + `<div class="trick-card-name">${trick.name}</div>`;
       chip.title = trick.name + ' — tap to aim left/right';
       chip.addEventListener('click', e => {           // single tap cycles borrow direction
         e.stopPropagation();
         trick._tiltDir = (trick._tiltDir === -1) ? 1 : -1;
         renderTrickTray();
       });
-      let lpTimer = null;                              // long-press shows tooltip / discard
-      const startLP = () => { lpTimer = setTimeout(() => { hideTrickTooltip(); showTrickTrayTooltip(trick, chip); }, 450); };
-      const cancelLP = () => { if (lpTimer) { clearTimeout(lpTimer); lpTimer = null; } };
-      chip.addEventListener('touchstart', startLP, { passive:true });
-      chip.addEventListener('touchend', cancelLP);
-      chip.addEventListener('mousedown', startLP);
-      chip.addEventListener('mouseup', cancelLP);
-      chip.addEventListener('mouseleave', cancelLP);
-      list.appendChild(chip);
-      return;
+    } else {
+      chip.innerHTML = `<div class="trick-card-emoji">${trickEmoji(trick)}</div>`
+                     + `<div class="trick-card-name">${trick.name}</div>`;
+      chip.addEventListener('click', e => {
+        e.stopPropagation();
+        const existing = document.getElementById('trick-tooltip');
+        if (existing) { hideTrickTooltip(); return; }
+        showTrickTrayTooltip(trick, chip);
+      });
     }
-    chip.className = `trick-tray-chip trick-tier-${trick.tier}`;
-    chip.textContent = trick.tier.charAt(0).toUpperCase();
-    chip.dataset.trickId = trick.id;
-    chip.title = trick.name;
-    chip.addEventListener('click', e => {
-      e.stopPropagation();
-      const existing = document.getElementById('trick-tooltip');
-      if (existing) { hideTrickTooltip(); return; }
-      showTrickTrayTooltip(trick, chip);
-    });
-    list.appendChild(chip);
+    track.appendChild(chip);
   });
+  list.appendChild(track);
+  // Slow horizontal auto-scroll if the strip overflows (no scroll UI).
+  applyChipMarquee(list, track);
+  // Hover tooltips for every tile (originals + marquee clones).
+  list.querySelectorAll('.trick-tray-chip').forEach(chip => {
+    const trick = trickTray.find(t => t.id === chip.dataset.trickId);
+    if (trick) attachTrickHover(chip, trick);
+  });
+}
+
+// Hover → show tooltip; a short grace on leave lets the pointer reach the
+// tooltip (and its Discard button) before it hides.
+let _trickHoverTimer = null;
+function cancelTrickHoverHide() { if (_trickHoverTimer) { clearTimeout(_trickHoverTimer); _trickHoverTimer = null; } }
+function scheduleTrickHoverHide() { cancelTrickHoverHide(); _trickHoverTimer = setTimeout(hideTrickTooltip, 160); }
+function attachTrickHover(chip, trick) {
+  chip.addEventListener('mouseenter', () => { cancelTrickHoverHide(); showTrickTrayTooltip(trick, chip); });
+  chip.addEventListener('mouseleave', scheduleTrickHoverHide);
 }
 
 function showTrickTrayTooltip(trick, anchorEl) {
@@ -361,6 +374,9 @@ function showTrickTrayTooltip(trick, anchorEl) {
     e.stopPropagation();
     discardTrickFromTray(trick);
   });
+  // Keep the bubble open while the pointer is over it (so Discard is clickable).
+  tip.addEventListener('mouseenter', cancelTrickHoverHide);
+  tip.addEventListener('mouseleave', scheduleTrickHoverHide);
   void tip.offsetWidth;
   const ar = anchorEl.getBoundingClientRect();
   const tipW = tip.offsetWidth || 180;
