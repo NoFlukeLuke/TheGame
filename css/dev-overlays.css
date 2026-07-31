@@ -1,0 +1,163 @@
+  .dev-section { background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:8px; padding:10px 12px; display:flex; flex-direction:column; gap:8px; }
+  .dev-section-title { font-family:'Cinzel',serif; font-size:8px; letter-spacing:2px; color:var(--gold-dim); text-transform:uppercase; }
+  .dev-row { display:flex; gap:6px; flex-wrap:wrap; }
+  .dev-btn { font-family:'Cinzel',serif; font-size:10px; letter-spacing:1px; padding:7px 10px; background:rgba(244,234,213,0.06); border:1px solid var(--border); border-radius:5px; color:var(--cream); cursor:pointer; flex:1; min-width:60px; }
+  .dev-btn:active { background:rgba(244,234,213,0.14); }
+  .dev-trick-item { display:flex; justify-content:space-between; align-items:center; padding:5px 8px; background:rgba(255,255,255,0.03); border-radius:4px; gap:8px; }
+  .dev-trick-name { font-family:'Cinzel',serif; font-size:9px; color:var(--cream); letter-spacing:1px; }
+  .dev-trick-add { font-family:'Cinzel',serif; font-size:9px; padding:3px 8px; background:rgba(201,168,76,0.1); border:1px solid rgba(201,168,76,0.3); border-radius:4px; color:var(--gold); cursor:pointer; white-space:nowrap; }
+  #dev-event-log { font-family:'Courier New',monospace; font-size:9px; color:var(--cream-dim); line-height:1.6; max-height:200px; overflow-y:auto; background:rgba(0,0,0,0.4); border-radius:4px; padding:6px 8px; white-space:pre-wrap; word-break:break-all; }
+  #dev-event-log .log-error { color:#ff6b6b; }
+  #dev-event-log .log-warn  { color:#f0c040; }
+  #dev-event-log .log-ok    { color:#5aaa5a; }
+  #dev-log-copy { font-family:'Cinzel',serif; font-size:9px; padding:4px 10px; background:rgba(201,168,76,0.1); border:1px solid rgba(201,168,76,0.3); border-radius:4px; color:var(--gold); cursor:pointer; }
+  #dev-log-clear { font-family:'Cinzel',serif; font-size:9px; padding:4px 10px; background:rgba(255,255,255,0.05); border:1px solid var(--border); border-radius:4px; color:var(--cream-dim); cursor:pointer; }
+
+  /* ── EVENT OVERLAY ── */
+  #event-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.93);
+    z-index: 300;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 36px 20px 24px;
+    overflow-y: auto;
+    gap: 0;
+  }
+  #event-overlay.show { display: flex; }
+  #event-eyebrow { font-family:'Cinzel',serif; font-size:9px; letter-spacing:4px; color:var(--gold-dim); text-transform:uppercase; margin-bottom:4px; }
+  #event-name   { font-family:'Cinzel',serif; font-size:26px; font-weight:900; color:var(--gold); letter-spacing:3px; text-align:center; margin-bottom:6px; }
+  #event-flavor { font-size:12px; color:var(--cream-dim); font-family:'Crimson Pro',serif; text-align:center; max-width:320px; line-height:1.5; margin-bottom:20px; }
+  #event-body   { display:flex; flex-direction:column; align-items:center; gap:10px; width:100%; max-width:360px; }
+  #event-actions { display:flex; gap:12px; margin-top:20px; }
+
+  /* Generic event choice card */
+  .event-choice {
+    width: 100%; box-sizing: border-box;
+    background: linear-gradient(160deg,#1e1a0e,#0e0a06);
+    border: 2px solid var(--gold-dim);
+    border-radius: 8px; padding: 12px 14px;
+    cursor: pointer; transition: all 0.14s; text-align:left;
+    font-family:'Cinzel',serif; color:var(--cream); user-select:none;
+  }
+  .event-choice:hover  { border-color:var(--gold); transform:translateY(-1px); }
+  .event-choice.selected { border-color:var(--gold); box-shadow:0 0 14px rgba(201,168,76,0.45); }
+  .event-choice.debuff  { border-color:var(--red); background:linear-gradient(160deg,#1e0b0b,#0e0606); }
+  .event-choice.selected.debuff { box-shadow:0 0 14px rgba(192,57,43,0.45); }
+  .event-choice.locked  { opacity:0.35; cursor:not-allowed; }
+  .ec-top  { display:flex; align-items:center; gap:8px; }
+  .ec-icon { font-size:20px; flex-shrink:0; }
+  .ec-info { flex:1; min-width:0; }
+  .ec-rarity { font-size:8px; letter-spacing:1.5px; color:var(--gold-dim); text-transform:uppercase; }
+  .ec-name   { font-size:11px; letter-spacing:1px; color:var(--gold); margin-top:1px; }
+  .ec-desc   { font-size:11px; color:var(--cream-dim); font-family:'Crimson Pro',serif; margin-top:5px; line-height:1.4; }
+  .ec-cost   { font-size:10px; color:var(--red); margin-top:4px; }
+  .ec-tag    { display:inline-block; font-size:8px; letter-spacing:1px; padding:1px 5px; border-radius:3px; background:rgba(201,168,76,0.12); color:var(--gold-dim); margin-top:4px; margin-right:3px; }
+
+  /* ── Trick Lose Picker Overlay ── */
+  #trick-lose-picker {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.95);
+    z-index: 500;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 36px 20px 24px;
+    overflow-y: auto;
+    gap: 0;
+  }
+  #trick-lose-picker.show { display: flex; }
+  #blp-title { font-family:'Cinzel',serif; font-size:22px; font-weight:900; color:var(--red); letter-spacing:3px; text-align:center; margin-bottom:6px; }
+  #blp-sub   { font-size:12px; color:var(--cream-dim); font-family:'Crimson Pro',serif; text-align:center; margin-bottom:20px; }
+  #blp-list  { display:flex; flex-direction:column; gap:8px; width:100%; max-width:360px; }
+  #blp-actions { margin-top:20px; }
+  .blp-item {
+    width:100%; box-sizing:border-box;
+    background:linear-gradient(160deg,#1a0e0e,#0e0606);
+    border:2px solid var(--border); border-radius:8px; padding:12px 14px;
+    cursor:pointer; transition:all 0.14s; text-align:left;
+    font-family:'Cinzel',serif; color:var(--cream); user-select:none;
+  }
+  .blp-item:hover  { border-color:var(--red); }
+  .blp-item.selected { border-color:var(--red); box-shadow:0 0 14px rgba(192,57,43,0.45); }
+  .blp-item-name  { font-size:12px; letter-spacing:1px; color:var(--cream); }
+  .blp-item-tier  { font-size:8px; letter-spacing:1.5px; color:var(--gold-dim); text-transform:uppercase; margin-bottom:3px; }
+  .blp-item-desc  { font-size:11px; color:var(--cream-dim); font-family:'Crimson Pro',serif; margin-top:4px; line-height:1.4; }
+
+  /* Confluence theme buttons */
+  .event-theme-row { display:flex; gap:8px; width:100%; justify-content:center; flex-wrap:wrap; }
+  .event-theme-btn {
+    flex:1; min-width:60px; max-width:90px;
+    background:#1a1410; border:2px solid var(--border);
+    border-radius:8px; padding:10px 6px;
+    cursor:pointer; text-align:center; font-family:'Cinzel',serif;
+    color:var(--cream); transition:all 0.14s; user-select:none;
+  }
+  .event-theme-btn:hover { border-color:var(--gold-dim); }
+  .event-theme-btn.selected { border-color:var(--gold); background:#241e10; }
+  .etb-icon { font-size:18px; }
+  .etb-name { font-size:8px; letter-spacing:1px; color:var(--gold-dim); text-transform:uppercase; margin-top:4px; }
+
+  /* Gamble doors */
+  .door-row { display:flex; gap:12px; justify-content:center; }
+  .event-door {
+    width:88px; height:116px;
+    background:linear-gradient(180deg,#1e1a0e,#0e0a06);
+    border:2px solid var(--gold-dim); border-radius:8px;
+    cursor:pointer; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; transition:all 0.14s;
+    user-select:none;
+  }
+  .event-door:hover:not(.chosen):not(.revealed) { border-color:var(--gold); }
+  .event-door.chosen  { border-color:var(--gold); box-shadow:0 0 14px rgba(201,168,76,0.5); }
+  .event-door.revealed-good { border-color:var(--green); cursor:default; }
+  .event-door.revealed-bad  { border-color:var(--red);   cursor:default; }
+  .door-num  { font-family:'Cinzel',serif; font-size:22px; color:var(--gold-dim); }
+  .door-inner { display:none; flex-direction:column; align-items:center; gap:4px; padding:8px; text-align:center; }
+  .event-door.revealed .door-num   { display:none; }
+  .event-door.revealed .door-inner { display:flex; }
+  .door-icon { font-size:20px; }
+  .door-dname { font-size:8px; letter-spacing:1px; color:var(--cream); font-family:'Cinzel',serif; }
+
+  /* Sleight grid cards */
+  .sleight-card {
+    background: linear-gradient(160deg,#160d22,#0a0612) !important;
+    border: 2px solid #8844cc !important;
+    box-shadow: 0 0 8px rgba(136,68,204,0.4);
+  }
+  .sleight-card-emoji { font-size:calc(var(--card-h, 75px) * 0.25); line-height:1; }
+  .sleight-card-name  { font-size:calc(var(--card-h, 75px) * 0.095); color:#cc88ff; font-family:'Cinzel',serif; letter-spacing:0.3px; text-align:center; line-height:1.2; padding:0 2px; }
+  .sleight-card-uses  { font-size:calc(var(--card-h, 75px) * 0.105); color:var(--gold-dim); margin-top:1px; }
+  /* Aim sleights (Reflect, Soul Mirror) + Mirror tray chip */
+  .sleight-aim-inner {
+    width:100%; height:100%; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:2px;
+    transform-style:preserve-3d;
+    transition: transform .3s cubic-bezier(.22,.61,.36,1);
+  }
+  .aim-arrow {
+    position:absolute; left:50%; top:50%; line-height:1; pointer-events:none;
+    font-size:calc(var(--card-h, 75px) * 0.22); font-weight:700;
+    color:var(--gold); text-shadow:0 0 6px rgba(232,184,75,0.85);
+    transition: transform .3s ease;
+  }
+  .aim-arrow.aim-up    { transform: translate(-50%,-50%) translateY(calc(var(--card-h, 75px) * -0.36)); }
+  .aim-arrow.aim-down  { transform: translate(-50%,-50%) translateY(calc(var(--card-h, 75px) *  0.36)); }
+  .aim-arrow.aim-left  { transform: translate(-50%,-50%) translateX(calc(var(--card-h, 75px) * -0.30)); }
+  .aim-arrow.aim-right { transform: translate(-50%,-50%) translateX(calc(var(--card-h, 75px) *  0.30)); }
+  .trick-tray-chip.trick-mirror { transition: transform .2s ease; }
+  /* Sleight tooltip (shown on single-tap, like Trick tooltip) */
+  .sleight-tooltip {
+    position: absolute; z-index: 50;
+    background:#1e1a0e; border:1px solid #8844cc;
+    border-radius:6px; padding:8px 10px; max-width:200px;
+    box-sizing: border-box; white-space: normal;
+    overflow-wrap: break-word; word-break: break-word;
+    font-family:'Cinzel',serif; pointer-events:none;
+  }
+  .sleight-tooltip-name { font-size:11px; color:#cc88ff; margin-bottom:3px; }
+  .sleight-tooltip-desc { font-size:10px; color:var(--cream-dim); font-family:'Crimson Pro',serif; line-height:1.4; }
+  .sleight-tooltip-hint { font-size:8px; color:var(--gold-dim); margin-top:5px; letter-spacing:0.5px; }

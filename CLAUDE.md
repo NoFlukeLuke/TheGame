@@ -1,19 +1,42 @@
 # TheGame — Roguelike Poker
 
-A single-file HTML/JS roguelike poker game. Everything lives in **`index.html`** — there is no build step, no framework, no dependencies. Open it in a browser and it runs.
+A browser-based HTML/JS roguelike poker game. **No build step, no framework, no dependencies** — plain files loaded directly. Open `index.html` in a browser and it runs.
 
 - **Live site:** https://noflukeluke.github.io/TheGame/ (GitHub Pages, auto-deploys from `main`)
 - **Owner:** non-technical developer — explain changes plainly, avoid jargon dumps.
+- **Platform focus — DESKTOP FIRST (landscape).** New features, layout work, and polish target the **desktop / landscape** experience (the `#stage.landscape` layout). Portrait / mobile is **deprioritized** — it still runs, but don't spend effort on it or block desktop work to keep it pixel-perfect. When a change could affect both, get it right on desktop; only touch portrait if explicitly asked. (Scope layout/visual CSS under `#stage.landscape` so portrait is left as-is.)
+- **LETHE reskin (this branch):** the whole game is wrapped in an `#cabinet` div — a retro-futuristic 80s arcade-cabinet shell (marquee, CRT screen bezel, deck/vents) around `#stage`. Its look lives in `css/style.css`; the wrapper markup is in `index.html`. Gameplay is unchanged from `main` r95 (this branch = r95 logic + the reskin).
+
+## File layout (read this first — it saves you from loading the whole game)
+
+The game **used to be one giant `index.html`**. It's now split into many small files so you only have to read (and re-send to Claude) the one part you're working on. **`index.html` is just the skeleton** — page markup plus the ordered `<link>`/`<script>` tags that pull everything else in.
+
+- `index.html` — HTML markup + ordered `<script src>` / `<link>` tags. ~700 lines.
+- `css/style.css` — all the main game styling, including the LETHE cabinet shell (the big stylesheet).
+- `css/dance.css` — the score-“dance” / hand-preview animation styles.
+- `css/dev-overlays.css` — dev-panel + event-overlay styling.
+- `js/` — the game code, one file per system (list below).
+- `js/data/` — **the "entities": pure content/data, no logic.** Edit these to tune or add game content without touching engine code:
+  - `cards.js` — suits, ranks, rank order, `HAND_BASE` values, round/goal durations, `cardCan`.
+  - `tricks.js` — `TRICK_POOL`, `TRICK_CATEGORIES`, trick emoji.
+  - `knacks.js` — `KNACK_POOL` (+ the `C` color palette const).
+  - `sleights.js` — `SLEIGHT_POOL`.
+  - `bosses.js` — `BOSS_PRESETS`.
+  - `balance.js` — `BAL` (the big tuning table) + `DESC_TEMPLATES`.
+
+**How the split works (important — don't break this):** all `js/*.js` files are plain **classic scripts that share one global scope** — a `const`/`let`/`function` defined in one file is visible to all the others, exactly as if they were still one big `<script>`. **Load order is preserved and matters:** the `<script>` tags in `index.html` are in the same order the code originally ran, because several files run set-up code at load time (event bindings; `LIMITS_DEF.forEach`, `TRICK_CATEGORIES.forEach`, `applyBalDescriptions()`; and `js/bootstrap.js` at the very end, which calls `initMainMenu()`). If you add a new `.js` file, put its `<script>` tag in the right spot (data files load up top with the rest; `bootstrap.js` stays last). If you're not sure which file a function lives in, `grep -rn "functionName" js/`.
+
+Rough guide to `js/` (engine): `menu` `devlog` `grid-metrics` `focus-config` `limits` `combos-aim` (combo families + aim sleights) · `deck-grid` (deck + gridData + curses) · `hand-detect` (findBestHand/detectHand) · `scoring` (calcScore, exalt/corrupt, contributions) · `render` · `focus` (focus meter) · `hud` · `input` (tap/swap/select) · `play-hand` · `score-anims` / `score-dance` (the scoring “dance”) · `discard` · `card-fall` (renderCardAppearance + fall anim) · `round-timers` · `boss` · `reward-grid` · `limit-break` · `sleights-runtime` · `events-core` / `events` · `interlude` / `level-up` / `tricks-ui` · `shop` · `hands-meta` · `stats` · `deck-view` · `game-control` (pause/resume/startGame) · `challenge` · `audio` · `dev-panel` · `bootstrap` (runs last).
 
 ## Workflow
 
-- **Develop on branch** `claude/setup-poker-game-lT61p`.
-- **Deploy:** push to both the feature branch AND `main` (`git push origin claude/setup-poker-game-lT61p:main`). Pages serves from `main`.
-- **Build stamp:** bump the `BUILD` constant (near top of `<script>`, e.g. `'2026-05-30 · r18'` → `r19`) on every commit. It shows in the menu footer + dev panel so the owner can confirm mobile cache is fresh. Increment the `rN` each commit.
+- **Branch:** `main` is the source of truth and auto-deploys to GitHub Pages — never commit directly to it. Develop on the `claude/*` feature branch this session was assigned. If none was given, branch off the latest main: `git checkout -b claude/<topic> origin/main`.
+- **Deploy:** push your feature branch, then fast-forward `main` to it: `git push origin HEAD && git push origin HEAD:main`. Pages serves from `main`.
+- **Build stamp:** bump the `BUILD` constant at the top of **`js/menu.js`** (currently `'2026-07-24 · r97 · LETHE · modular'`) on every commit. It shows in the menu footer + dev panel so the owner can confirm the cache is fresh. Increment the `rN` each commit.
 - **Commit messages:** detailed, since a fresh Claude session re-orients from git history. End with the session URL line.
-- After editing, validate syntax:
+- After editing, validate syntax (loads every JS file in order, exactly as the browser does):
   ```
-  node -e "const h=require('fs').readFileSync('index.html','utf8');new Function(h.match(/<script>([\s\S]*)<\/script>/)[1]);console.log('OK')"
+  node -e "const fs=require('fs');const idx=fs.readFileSync('index.html','utf8');const srcs=[...idx.matchAll(/<script src=\"([^\"]+)\"><\/script>/g)].map(m=>m[1]);const code=srcs.map(s=>fs.readFileSync(s,'utf8')).join('\n');new Function(code);console.log('OK',srcs.length,'files');"
   ```
 
 ## Core architecture
@@ -25,65 +48,102 @@ The game is a grid of playing cards. You select orthogonally-connected cards to 
 - `gridRows` / `gridCols` — grid dimensions (driven by `limits.grid_rows/grid_cols`).
 - `drawPile` / `playedPile` — deck. Scored cards → `playedPile`, reshuffled into `drawPile` at round end via `flushPlayedDeck()`.
 - `selected` — array of `[r,c]` currently selected.
-- `score`, `coins`, `swaps`, `discards`, `roundSeconds`, `level`, `roundGoal`/`cumulativeGoal`.
+- `score`, `coins`, `swaps`, `discards`, `roundSeconds`, `level`, `roundGoal`/`totalScore`.
 - `limits` / `LIMITS_DEF` — upgradeable caps (grid size, round time, swaps, discards, reward grid size).
 - `ACTIVE_MODE` — `.id === 'normal'` is the main 3-Act node mode; other modes are timer-based (legacy).
 
+### Layout / scaling — "one fixed canvas, scaled" (owner's explicit choice)
+The stage (`#stage`, 420×740 portrait / 747×420 landscape) is a single fixed-size canvas scaled uniformly via CSS `zoom: var(--stage-zoom)`, like a scaled image — **not** a responsive/fluid reflow layout. Card sizing is computed by `recomputeGridMetrics()` from the REAL measured DOM slot (`measureGridSlot()` → `#grid-slot.getBoundingClientRect()` ÷ zoom), not guessed footprint constants — this is what fixed a nasty grid/button overlap regression. If you ever need to change layout, preserve this architecture; don't switch to fluid reflow.
+
+**Desktop = landscape (the primary target).** JS adds `.landscape` to `#stage` when `availW > availH && availW >= 480`, switching on the **v7 landscape** layout — a set of `#stage.landscape` rules that absolutely-position each panel as a percentage of the 747×420 stage (see the big `#stage.landscape …` CSS block). This is where all current layout/visual work lives; **scope new layout CSS under `#stage.landscape`** so the (deprioritized) portrait layout is untouched. The portrait layout is the older stacked-flex version further up in the CSS.
+
+**Desktop panel (left column), current arrangement (r87–r90):** top → bottom = SCORE/GOAL → PIPS·MULT·FOCUS chips → **Knacks** (icon row, no label) → **hand preview** (full-width `#selected-cards` frame with the hand name inside it on the left) → **Tricks** (card-shaped tiles, `n/5` count pinned bottom-right, no label) → time/coins → STATS/DECK/PAUSE. The hand preview renders the selected cards via **`renderCardAppearance()`** (the same builder the grid uses) scaled down by local `--card-w`/`--card-h` on `#selected-cards`, so preview cards mirror the grid exactly, bonus decorations and all.
+
 ### Card types (flags on the card object)
 - **Normal card:** `{ rank, suit, _id }`.
-- **BC (Bonus Card):** `_isBC:true`, `bonus:{id,name,desc,tier}`. A scoring buff that **only works while physically on the grid**. `hasBonus(id)` scans `gridData`, not an owned-list. Place new BCs with `injectBCAfterReward(bonus)`. `acquiredBonuses[]` tracks ever-owned (for dedup via `ownsBonus`).
-- **Joker:** `_isJoker:true`, `jokerId`, `_usesLeft`. A deck card with conditional activations (see below).
+- **Trick** (formerly *Bonus Card / BC*): `trick:{id,name,desc,tier}`. A scoring buff. **As of the trick redesign (r66+), Tricks do NOT live on the grid** — they sit in a persistent **side tray** (`trickTray[]`, rendered by `renderTrickTray()` into `#trick-tray-list`; `trickTrayMode` defaults to `true`, grid placement is a dev-only toggle). `hasTrick(id)` checks the tray in tray mode (falls back to scanning `gridData` only when grid placement is toggled on). `acquiredTricks[]` tracks ever-owned (for dedup via `ownsTrick`). **NOTE: Sleights (below), not Tricks, are the entities that physically live on the grid.**
+- **Sleight** (formerly *Joker*): `_isSleight:true`, `sleightId`, `_usesLeft`. A deck card with conditional activations (see below).
 - **Stone:** `_isStone:true` — inert obstacle.
-- **Totem:** NOT a card. Persistent rule-changer in `acquiredTotems[]`, shown in HUD. `hasTotem(id)`.
+- **Knack** (formerly *Totem*): NOT a card. Persistent rule-changer in `acquiredKnacks[]`, shown in HUD. `hasKnack(id)`.
 - **Challenge card:** `challengeCard` / `challengeActive`, occupies a cell; `resolveChallenge(success)`.
 - `cardCan(card, action)` gates what each type can do (`select`/`swap`/`discard`/`fall`/`render`).
 
 ### Scoring (`calcScore(handName, cells)` + `playHand()`)
+- **Per-round-from-zero (r74):** `score` resets to `0` at the start of every round and is checked only against that round's own `roundGoal` — there is no running lifetime total driving gameplay anymore (the old `cumulativeGoal`, which summed every round's target forever, is gone). A round ends the instant `score >= roundGoal`. `triggerLevelUp()` banks the just-finished round's `score` into `totalScore` (a display-only lifetime counter shown as "Total Score" on the win/game-over screens) before zeroing `score` for the new round. `roundGoal` itself is still computed the same way as before (`BASE_GOAL * GOAL_SCALE^(level-1)`, rounded to the nearest 500) — only what it's compared against changed, so the round-to-round difficulty curve is unchanged from before this rework, just finally displayed and gated correctly. This also fixed two latent bugs that depended on `roundGoal` being the real pass/fail bar: the `last_stand` Trick (`score < roundGoal` → ×2) used to go permanently dead after level ~4 because it was comparing the lifetime total to a single round's increment; and the Twin Path "Goal +15%" shadow debuff used to silently do nothing because it only mutated `roundGoal`, never the actual (`cumulativeGoal`-based) gate.
 - `calcScore` returns the numeric score: base pips (level-scaled) + per-card pips + bonuses, × mult, × score-multipliers.
-- **Default suit effects:** ♣ +5 pips & ♥ +0.5 mult (in `calcScore`); ♦ +1 coin & ♠ +1s (in `playHand`). *(Owner is reconsidering whether suits should be neutral by default — see exalt/corrupt below.)*
-- `findBestHand(cells)` brute-forces all connected 2–5 card subsets, scores each, returns the best. Handles wild jokers (temp rank/suit) and drops non-wild jokers from detection.
+- **Playing a hand costs no time (r50):** the old "−5s per manual play (+ reward-grid penalties)" deduction in `playHand` was removed (owner request). Reward-grid play-cost debuffs (`extraPlayCostPerm` etc.) still parse but are inert.
+- **Suits are NEUTRAL by default** (owner's decision, now shipped). A plain card scores only its pips × mult — no per-suit coin/time/pip/mult bonus. Suit effects come *only* from exalt/corrupt (below) or Tricks (♥/♣ Tricks in `calcScore`; Spade Flood etc.). The old defaults (♣ pips, ♥ mult, ♦ coin, ♠ time) are gone — see the "suits are neutral" comment in `playHand`.
+- `findBestHand(cells)` brute-forces all connected 2–5 card subsets, scores each, returns the best. Handles wild sleights (temp rank/suit) and drops non-wild sleights from detection.
 - `detectHand(cells)` returns the hand-type string. `activeHands` Set gates which hands are scorable (in Normal mode ALL hands are active from the start).
 
-### Exalt / Corrupt (`exaltCorruptTotals`, `exaltCard`, `corruptCard`)
-Per-card flags `_exalted` / `_corrupted` grant enhanced suit effects on top of defaults:
-- Exalted: ♣+8 pips, ♥+3s, ♦+2 coins, ♠+2 mult.
-- Corrupted: ♣+12 pips/−1 coin, ♥+5s/−3 mult, ♦+4 coins/−2s, ♠+4 mult/−2s.
-- Visual: `.exalted` (gold glow) / `.corrupted` (purple glow). **Balance is TBD** — numbers are placeholders.
+### Exalt / Corrupt (`exaltCorruptTotals`, `exaltCard`, `corruptCard`) — r45 spec
+**PAUSED by default (r50):** the whole mechanic is gated behind `exaltCorruptEnabled` (a persisted flag, default `false`, toggled in the pause-menu Settings). When off: triggers don't fire (the trigger block in `playHand`, the `_heartSwapPending` set in `doSwap`, and the discard-corruption block in `doDiscard` are all wrapped in `if (exaltCorruptEnabled)`), `exaltCard`/`corruptCard` early-return, `exaltCorruptTotals` returns zeros, and `.exalted`/`.corrupted` glow classes are suppressed in `render`. Everything below describes behavior **when the toggle is on**.
 
-## Joker system (`JOKER_POOL`)
+Per-card flags `_exalted` / `_corrupted` are the *only* source of suit effects now (suits are otherwise neutral). State is **permanent + mutually exclusive** (whichever locks first wins; `exaltCard`/`corruptCard` clear the other). Buff totals computed in `exaltCorruptTotals` (pips/mult fold into `calcScore`; coins/time applied in `playHand`):
+- **Exalted:** ♣ +10 pips · ♦ +3 coins · ♥ +2 mult · ♠ +4 time.
+- **Corrupted (buff / cost):** ♣ +25 pips / −3 mult · ♦ +5 coins / −20 pips · ♥ +5 mult / −5 time · ♠ +7 time / −8 coins.
+- Buffs/costs apply **per scored card** (3 corrupt clubs = +75 pips / −9 mult). Costs floor the resource at 0 (no debt): hand pips floored before `s = totalPips*mult`, mult floored at 1, coins/time `Math.max`'d. Visual: `.exalted` gold glow / `.corrupted` purple glow.
 
-Jokers are physical deck cards. They fall, swap, get discarded, and get played like normal cards. **Long-press** a joker on the grid for its tooltip (single-tap is reserved for selecting it into a hand). Charges (`durability`) are **per game**, not per round.
+**Triggers** — each suit watches a different action. Counters live **on the card object** (e.g. `_clubPackPlays`) so they track the individual card and survive deck cycling; they reset only on `newGame`.
+| suit | exalts when | corrupts when |
+|---|---|---|
+| ♣ | in a hand with **3+ clubs**, 2× (`_clubPackPlays`) | **lone club** in a hand, 2× (`_clubSoloPlays`) |
+| ♥ | **only heart** in a hand, 2× (`_heartSoloPlays`) | swapped, then **misses the next scored hand**, 1× (`_heartSwapPending`) |
+| ♠ | played in **first 30s** of round, 2× (`_spadeEarlyPlays`) | **discarded** 2× (`_spadeDiscards`) |
+| ♦ | played while coins **< 5**, 2× (`_diaPoorPlays`) | played while coins **> 65**, 2× (`_diaRichPlays`) |
+
+Wiring: clubs/hearts-exalt/spades-exalt/diamonds all fire in the `playHand` per-card loop. **♥ corruption** is a two-step flow — `doSwap` sets `_heartSwapPending`; the next scored hand resolves it (in hand → flag cleared/safe; absent → corrupt). A pending ♥ that's discarded corrupts immediately (`doDiscard`). **♠ corruption** also fires in `doDiscard`. Spade exalt needs `roundStartSeconds` (captured in `startRoundTimer`); window = `(roundStartSeconds - roundSeconds) < 30`.
+
+## Sleight system (`SLEIGHT_POOL`)
+
+Sleights are physical deck cards. They fall, swap, get discarded, and get played like normal cards. **Long-press** a sleight on the grid for its tooltip (single-tap is reserved for selecting it into a hand). Charges (`durability`) are **per game**, not per round.
 
 `def.activation` determines how the effect fires:
 | activation | fires when | wired in |
 |---|---|---|
 | `wildcard` | participates in hand detection (`wild:'rank'/'suit'/'both'`) | `findBestHand` (`bestWildRank`/`bestWildSuit`) |
-| `on_play` | joker is part of a played hand | `fireJokersOnPlay` in `playHand` |
-| `on_discard` | joker is discarded | `doDiscard` (has grid position) |
-| `on_swap` | joker is moved by a swap (either direction) | `fireJokersOnSwap` in `doSwap` |
-| `on_draw` | joker lands on the grid | `fireJokersOnDraw` (round start) |
+| `on_play` | sleight is part of a played hand | `fireSleightsOnPlay` in `playHand` |
+| `on_discard` | sleight is discarded | `doDiscard` (has grid position) |
+| `on_swap` | sleight is moved by a swap (either direction); **once per round, see below** | `fireSleightsOnSwap` in `doSwap` |
+| `on_draw` | sleight lands on the grid | `fireSleightsOnDraw` (round start) |
 | `round_start` / `round_end` | round boundaries | round-start sweep / interest calc |
 | `passive` | always while on grid | checked inline (e.g. `fight_power` via `bossEffectsIgnored()`) |
-| `double_tap` | double-tapped | `onCardTap` intercept (framework; none in pool yet) |
+| `double_tap` | double-tapped; **once per round, see below** | `onCardTap` intercept |
 
-Effects live in `applyJokerGridEffect(id, r, c)`. `consumeJokerCharge` decrements/removes. `grantJoker(def)` adds one to the draw pile.
+Effects live in `applySleightGridEffect(id, r, c)`. `consumeSleightCharge` decrements/removes (used by most activation types). `grantSleight(def)` adds one to the draw pile.
+
+**`double_tap` / `on_swap` — once-per-round lock (not discard-on-use):** These sleights stay physically on the grid after firing. `sleightCanActivateThisRound(card)` gates activation (checks `_usedThisRound` + remaining `_usesLeft`); `lockSleightForRound(card)` sets `_usedThisRound = true` and decrements `_usesLeft` after a successful trigger. The lock is cleared for every sleight on the grid in the round-start sweep (search `_usedThisRound = false`, right before `fireSleightsAtRoundStart()`). Once `_usesLeft` hits 0 the sleight just sits inert — it is **not** auto-removed; it can still leave the grid normally by being played in a hand or discarded by the player. Grid tooltips show "ONCE PER ROUND" / "USED THIS ROUND" for these.
 
 ## Events (node-based, Normal mode)
 
-Reward grid destination tiles set `pendingEventOverride` → `closeRewardGrid()` routes to shop or `openEvent()`. Events render in `#event-overlay`. Implemented: **Confluence** (theme draft), **Crossroads** (sacrifice trades), **Gamble** (doors / double-or-nothing), **Wandering Merchant** (free rare items), **Altar** (multi-round investments via `altarEffects[]`), **Cleansing Spring** (purge/restore), **Twin Path** (2 BCs + shadow debuff). All triggerable from the dev panel.
+Reward grid destination tiles set `pendingEventOverride` → `closeRewardGrid()` routes to shop or `openEvent()`. Events render in `#event-overlay`. Implemented: **Confluence** (theme draft), **Crossroads** (sacrifice trades), **Gamble** (doors / double-or-nothing), **Wandering Merchant** (free rare items), **Altar** (multi-round investments via `altarEffects[]`), **Cleansing Spring** (purge/restore), **Twin Path** (2 Tricks + shadow debuff). All triggerable from the dev panel.
 
 ## Shop
 
-`triggerShop()` / `renderShop()`. Currently: cards for sale + card services (remove/duplicate/change-suit/combine/buy swaps/discards). **Owner wants a redesign** to 3 BCs / 3 cards / 3 jokers / 3 totems — not yet done.
+`triggerShop()` → `generateShopItems()` → `renderShop()`. **Layout = stacked shelves (r50):** `#shop-main-grid` is a vertical flex stack of four `.shop-shelf` rows (Tricks, Sleights, Knacks, Upgrades — each a fixed-width label + a horizontal `.shop-shelf-items` row), with a `#shop-footer-row` (reroll + leave) pinned below a divider. The overlay is `overflow:hidden` and shelves `flex:1` so the whole shop always fits one screen with no scroll; cards are capped at `max-height:128px`. Each shelf has a color-coded left border. `shopItems` holds curated rows, each rendered by its own function:
+- **3 Tricks** (`renderShopTricks`, priced by tier via `SHOP_TRICK_PRICES`).
+- **3 sleights** (`renderShopSleights`, `pickSleightByRarity`, `SHOP_SLEIGHT_PRICES`).
+- **2 knacks** (`renderShopKnacks`, flat `SHOP_KNACK_PRICE`).
+- **2 limit upgrades** (`renderShopLimits`, scaling cost via `limitPrice`).
+- **Footer** (`renderShopFooter`): card services (remove/duplicate/change-suit/combine, capped by `SHOP_SVC_MAX`) + buy swaps/discards + **reroll** (`rerollShopItems`, which only refreshes *unpurchased* slots).
+
+Owned Tricks/knacks and already-granted sleights are filtered out of the pools so the shop never offers a duplicate.
 
 ## Progression (Normal mode)
 3 Acts × (5 events + 1 boss) = 18 nodes. `actNumber` (1–3), `nodeInAct` (0–4, boss at 5). `forceBossNextRound` triggers the boss after the next deal. Win at `actNumber > 3` → `onGameWin()`.
 
 ## Boss system
-`BOSS_PRESETS`, `triggerBoss()`, `endBoss()`. Modifiers: blocked cells (`isCellBlocked`), BC disabling (`isBCDisabledByBoss`), low-card famine (`maybeFamineDrawSwap`). The `fight_power` joker bypasses all of these via `bossEffectsIgnored()`.
+`BOSS_PRESETS`, `triggerBoss()`, `endBoss()`. Modifiers: blocked cells (`isCellBlocked`), Trick disabling (`isTrickDisabledByBoss`), low-card famine (`maybeFamineDrawSwap`). The `fight_power` sleight bypasses all of these via `bossEffectsIgnored()`.
+
+## Scoring dance (preview-window · `playPreviewDance`)
+When a hand is played, the escalating score animation ("dance") runs in the hand-preview slot (`#selected-cards`, `.dnc-active`). `newDanceEnabled` (default on) routes `playScoreDance` → `playPreviewDance`. Behaviour (desktop):
+- **Cards fly into the preview (r89):** normal hands fly a clone of each selected grid card (built from `renderCardAppearance`) from its grid cell into a preview slot (`flyGridCardToSlot`), then reveal the slot's `.dnc-card`. Goal hands keep the in-place pop (they salute). Grid cards hidden mid-fly are tracked in `dncHiddenGridEls` and restored if the dance aborts before `removeAndFall`.
+- **Sideways scroll for large hands (r89):** cards live in a clipped `.dnc-items` viewport holding a sliding `.dnc-track`; if the strip overflows, each scoring card slides the track left to reveal hidden cards. (Hands cap at 5, so on the full-width desktop box this rarely triggers — it's there for smaller viewports / future larger hands.)
+- **Interrupt handoff (`danceInterruptMode`, r90):** submitting a new hand mid-dance always cuts the old dance's grid/logic **immediately** (grid- and deck-safe — the new hand's already-computed cells can't be invalidated). A dev toggle (HUD section) picks the brief *visual* handoff: `cut` (instant, default), `ff` (rush the old score up, ~360ms), `resolve` (snap + pop, ~200ms). A 260ms spam valve skips the flourish on rapid chaining.
+- **Superseded-dance guard (`dncGen`, r89):** a dance that gets superseded bails silently and never touches the shared stage/score (which the successor owns) — this fixed particles flying from a stale/detached preview box on double-submit.
 
 ## Dev panel
-🛠 button (bottom-right). Add BCs / totems / jokers by name, trigger any event/boss, adjust time/coins/score/limits, open reward grid. Invaluable for testing.
+🛠 button (bottom-right). Add Tricks / knacks / sleights by name, trigger any event/boss, adjust time/coins/score/limits, open reward grid. HUD section also has scoring-dance toggles (new dance on/off, interrupt mode). Invaluable for testing.
 
 ## Conventions
 - Match surrounding code style (terse, inline, lots of single-line helpers).
