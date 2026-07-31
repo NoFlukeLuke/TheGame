@@ -67,6 +67,35 @@ document.getElementById('btn-deck').addEventListener('click', () => {
   showDeck();
 });
 
+// ⏱ Time — small pop-up showing the time-cost breakdown (like stats/deck/pause,
+// but a lightweight bubble anchored above the button). Replaces the old chip.
+function hideTimePopup() {
+  const pop = document.getElementById('interact-costs');
+  if (pop) pop.classList.remove('show');
+}
+function toggleTimePopup() {
+  const pop = document.getElementById('interact-costs');
+  const btn = document.getElementById('btn-time');
+  if (!pop || !btn) return;
+  if (pop.classList.contains('show')) { hideTimePopup(); return; }
+  pop.classList.add('show');                 // .show → display:flex (CSS)
+  const r = btn.getBoundingClientRect();
+  const pw = pop.offsetWidth, ph = pop.offsetHeight;
+  let left = r.left + r.width / 2 - pw / 2;
+  let top  = r.top - ph - 8;
+  left = Math.max(6, Math.min(window.innerWidth - pw - 6, left));
+  if (top < 6) top = r.bottom + 8;
+  pop.style.left = left + 'px';
+  pop.style.top  = top + 'px';
+}
+document.getElementById('btn-time')?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  toggleTimePopup();
+});
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('#btn-time') && !e.target.closest('#interact-costs')) hideTimePopup();
+}, true);
+
 // Resume when overlays are closed
 document.querySelector('#stats-overlay .overlay-close').addEventListener('click', () => {
   document.getElementById('stats-overlay').classList.remove('show');
@@ -104,7 +133,9 @@ function startGame() {
   recomputeGridMetrics();
   // Reset focus meter
   focusNodes = 0;
-  focusCapacity = 3;
+  focusCapBase = (typeof limits !== 'undefined' && limits.focus_cap) ? limits.focus_cap.current : 30;
+  focusCapPerm = 0;
+  focusGenGame = 0; focusGenRound = 0;
   focusAnimQueue = [];
   focusAnimRunning = false;
   lastCalcMult = 0;
@@ -196,6 +227,7 @@ function startGame() {
   freeSwapsLeft    = 2;
   freeDiscardsLeft = 2;
   cardsDiscardedRound = 0;
+  focusGenRound = 0;
   cardsScoredTotal = 0;
   nineSecondsCounter = 0;
   highestHandScore = 0;

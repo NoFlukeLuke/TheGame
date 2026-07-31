@@ -1,4 +1,4 @@
-const BUILD = '2026-07-27 · r111 · ordinary hands fast-forward, goal hand full speed';
+const BUILD = '2026-07-31 · r115 · win-clock fix + legacy Trick-pick segmentation + fast-forward ordinary hands';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

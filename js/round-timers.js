@@ -49,6 +49,11 @@ function startRoundTimer() {
     if (gameTimerPaused) return; // global pause covers menus/shop/events
     roundSeconds--;
     if (roundSeconds < 0) roundSeconds = 0;
+    // Slow Burn sleights accrue on-grid time → +1 max Focus per minute (see onGridSleightCapBonus)
+    for (let _r = 0; _r < gridRows; _r++) for (let _c = 0; _c < gridCols; _c++) {
+      const _cd = gridData[_r]?.[_c];
+      if (_cd && _cd._isSleight && _cd.sleightId === 'slow_burn') _cd._slowBurnSecs = (_cd._slowBurnSecs || 0) + 1;
+    }
     handleClockMarks(roundSeconds); // clock-mark Tricks (Tick-Tock, Quarter Chime, Minute/Second Hand, Hourglass)
     trickCardTimer++;
     if (trickCardTimer >= TRICK_CARD_INTERVAL) { trickCardTimer = 0; assignTrickCard(); }

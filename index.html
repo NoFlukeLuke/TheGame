@@ -153,16 +153,17 @@
       </div>
     </div>
     <div id="action-col">
-      <button class="act-btn btn-discard" id="btn-discard" disabled>D&#10;I&#10;S&#10;C&#10;A&#10;R&#10;D<br><span id="disc-count" style="writing-mode:initial;transform:none;font-size:9px"></span></button>
+      <button class="act-btn btn-discard" id="btn-discard" disabled>D&#10;I&#10;S&#10;C&#10;A&#10;R&#10;D<br><span id="disc-count" style="writing-mode:initial;transform:none;font-size:9px"></span><span class="act-cost" id="disc-cost">3s</span></button>
       <button class="act-btn btn-play" id="btn-play" disabled>P&#10;L&#10;A&#10;Y</button>
-      <div id="swap-indicator">🔄&#10;<span id="swap-count">3</span></div>
+      <div id="swap-indicator">🔄&#10;<span id="swap-count">3</span><span class="act-cost" id="swap-cost">4s</span></div>
     </div>
   </div>
 
-  <!-- Secondary row: stats/deck/pause -->
+  <!-- Secondary row: stats/deck/time/pause -->
   <div id="action-row-2">
     <button class="act-btn btn-secondary" id="btn-stats">📊 Stats</button>
     <button class="act-btn btn-secondary" id="btn-deck">🃏 Deck</button>
+    <button class="act-btn btn-secondary" id="btn-time">⏱ Time</button>
     <button class="act-btn btn-secondary" id="btn-pause">⏸ Pause</button>
   </div>
 
@@ -177,7 +178,8 @@
     <div class="ci-row"><span>Interest</span><span class="pos" id="ci-interest">+0</span></div>
     <div class="ci-row"><span>Cash out</span><span id="ci-cashout">+0</span></div>
   </div>
-  <div id="interact-costs" class="v7-ls">
+  <!-- Time-cost breakdown: a pop-up toggled by the ⏱ Time button (no longer a permanent chip) -->
+  <div id="interact-costs" class="time-popup" style="display:none">
     <div class="ic-h">Time Cost</div>
     <div class="ic-r"><span>Play</span><span id="ic-play">0s</span></div>
     <div class="ic-r"><span>Discard</span><span>3s</span></div>

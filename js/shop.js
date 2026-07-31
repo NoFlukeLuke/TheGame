@@ -24,7 +24,10 @@ let shopPurchased   = new Set();
 let shopRerollCount = 0;
 
 function shopLimitPrice(def) {
-  return SHOP_LIMIT_BASE + (limits[def.id].current - limits[def.id].base) * 5;
+  // price scales on number of purchases, not raw units (so a step of 15/3 doesn't over-charge)
+  const l = limits[def.id];
+  const purchases = (l.current - l.base) / (l.step || 1);
+  return SHOP_LIMIT_BASE + purchases * 5;
 }
 
 // Picks `count` sleights using weighted rarity tiers: common 60%, rare 28%, epic 10%, legendary 2%.

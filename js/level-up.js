@@ -61,6 +61,8 @@ function triggerLevelUp() {
   // This round's score target, from zero
   roundGoal = Math.round(Math.round(BASE_GOAL * Math.pow(GOAL_SCALE, level - 1)) / 500) * 500;
   totalScore += score; // bank the completed round's score for the end-of-run display
+  // Life Lessons: each completed round permanently raises max Focus
+  if (hasTrick('life_lessons')) focusCapPerm += BAL.life_lessons.cap_gain;
   score = 0;           // fresh round, fresh score
 
   // Reset round
@@ -100,6 +102,7 @@ function triggerLevelUp() {
   freeSwapsLeft    = 2;
   freeDiscardsLeft = 2;
   cardsDiscardedRound = 0;
+  focusGenRound = 0;
   handsPlayedRound = 0;
   runsPlayedRound  = 0;
   handTypesRound   = new Set();
