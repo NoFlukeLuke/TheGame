@@ -1,4 +1,4 @@
-const BUILD = '2026-07-29 · r113 · bigger trick tiles · time popup · money bar · knack marquee';
+const BUILD = '2026-07-29 · r114 · wider left column · focus hugs grid · clock bar spans grid';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

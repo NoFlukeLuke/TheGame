@@ -3062,12 +3062,13 @@
   #stage.landscape #vclock, #stage.landscape #run-progress, #stage.landscape #coin-info {
     position:absolute; box-sizing:border-box; margin:0; background:var(--panel); border:1px solid var(--border); border-radius:6px; }
   /* placements (percentages of the 747×420 stage) */
-  #stage.landscape #score-center   { left:1.56%;  top:2.78%;  width:16.41%; height:12.5%;  display:flex; flex-direction:column; align-items:center; justify-content:center; }
-  #stage.landscape #score-left     { left:19.53%; top:2.78%;  width:14.84%; height:12.5%;  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; padding:4px; }
-  #stage.landscape #clock-area     { position:absolute; left:40.63%; top:4.17%; width:7.03%; height:6%; display:flex; align-items:center; justify-content:center; background:none; border:none; padding:0; }
-  #stage.landscape #vclock         { left:48.44%; top:2.78%; width:40.63%; height:6.94%; overflow:hidden; display:block; }
+  #stage.landscape #score-center   { left:1.56%;  top:2.78%;  width:18.9%;  height:12.5%;  display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  #stage.landscape #score-left     { left:22.0%;  top:2.78%;  width:17.3%;  height:12.5%;  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; padding:4px; }
+  /* clock readout + timer bar span the grid's width (grid: left 45% → right 90%) */
+  #stage.landscape #clock-area     { position:absolute; left:45%; top:2.78%; width:7%; height:6.94%; display:flex; align-items:center; justify-content:center; background:none; border:none; padding:0; }
+  #stage.landscape #vclock         { left:52.5%; top:2.78%; width:37.5%; height:6.94%; overflow:hidden; display:block; }
   /* PIPS/MULT/FOCUS: smaller squares centred inside the section outline (no overflow), bigger pip/mult numbers, purple focus, vertically-centred × */
-  #stage.landscape #score-subboxes { left:1.56%;  top:18.06%; width:32.81%; height:11.11%; display:flex; flex-direction:row; align-items:center; justify-content:space-around; gap:4px; padding:3px 6px; border-right:none; border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
+  #stage.landscape #score-subboxes { left:1.56%;  top:18.06%; width:37.74%; height:11.11%; display:flex; flex-direction:row; align-items:center; justify-content:space-around; gap:4px; padding:3px 6px; border-right:none; border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
   #stage.landscape .score-subbox { display:flex; flex-direction:column; align-items:center; justify-content:center; height:34px; max-height:34px; }
   #stage.landscape #pips-box .subbox-val, #stage.landscape #mult-box .subbox-val { font-size:19px; }
   #stage.landscape #focus-box .subbox-label, #stage.landscape #focus-box .subbox-val { color:#c07aee; }
@@ -3080,26 +3081,27 @@
   #stage.landscape #trick-tray-count { font-family:'Cinzel',serif; font-size:8px; font-weight:700; color:var(--gold-dim); }
 
   /* knacks: chip row only, directly under the PIPS/MULT/FOCUS chips */
-  #stage.landscape #knack-carousel-wrap { left:1.56%; top:30%; width:32.81%; height:7%; display:flex; flex-direction:row; align-items:center; justify-content:flex-start; gap:5px; padding:2px 8px; overflow:hidden; }
+  #stage.landscape #knack-carousel-wrap { left:1.56%; top:30%; width:37.74%; height:7%; display:flex; flex-direction:row; align-items:center; justify-content:flex-start; gap:5px; padding:2px 8px; overflow:hidden; }
   #stage.landscape #knack-list { flex-wrap:nowrap; gap:5px; max-height:none; overflow:hidden; }
 
   /* preview: full-width frame; hand-name sits inside it on the dark background (left); cards render exactly like the grid, bonuses and all */
-  #stage.landscape #selected-cards { left:1.56%; top:38%; width:32.81%; height:18%; --card-w:38px; --card-h:50px; display:flex; align-items:center; justify-content:center; gap:4px; padding:4px 8px 4px 44px; background:var(--panel); border:1px solid var(--border); border-radius:6px; overflow:hidden; }
+  #stage.landscape #selected-cards { left:1.56%; top:38%; width:37.74%; height:18%; --card-w:38px; --card-h:50px; display:flex; align-items:center; justify-content:center; gap:4px; padding:4px 8px 4px 44px; background:var(--panel); border:1px solid var(--border); border-radius:6px; overflow:hidden; }
   #stage.landscape #hand-name { position:absolute; left:1.56%; top:38%; width:6%; height:18%; display:flex; align-items:center; justify-content:center; text-align:center; background:none; border:none; margin:0; font-size:10px; line-height:1.15; letter-spacing:0.5px; color:var(--gold); padding:0 3px; z-index:2; }
 
   /* tricks: enlarged now that the time/money chips left this column — big reward-grid-style tiles */
-  #stage.landscape #trick-tray-area { left:1.56%; top:57%; width:32.81%; height:25.5%; display:flex !important; flex-direction:row; align-items:center; justify-content:flex-start; padding:6px 8px; gap:6px; overflow:hidden; }
+  #stage.landscape #trick-tray-area { left:1.56%; top:57%; width:37.74%; height:25.5%; display:flex !important; flex-direction:row; align-items:center; justify-content:flex-start; padding:6px 8px; gap:6px; overflow:hidden; }
   #stage.landscape #trick-tray-list { flex-direction:row; flex-wrap:nowrap; align-items:center; gap:5px; max-height:none; overflow:hidden; padding:0; width:100%; }
-  #stage.landscape .trick-tray-chip { width:40px; height:60px; font-size:14px; border-radius:6px; flex-direction:column; }
+  #stage.landscape .trick-tray-chip { width:48px; height:64px; font-size:14px; border-radius:6px; flex-direction:column; }
   /* money: compact single-row bar (replaces the old tall coin chip) */
-  #stage.landscape #coin-info      { left:1.56%; top:84%; width:32.81%; height:6.5%; flex-direction:row; align-items:center; justify-content:flex-start; gap:10px; padding:0 10px; }
-  #stage.landscape #btn-stats      { position:absolute; left:1.56%;  top:91.67%; width:7.6%; height:6.39%; }
-  #stage.landscape #btn-deck       { position:absolute; left:9.75%;  top:91.67%; width:7.6%; height:6.39%; }
-  #stage.landscape #btn-time       { position:absolute; left:17.94%; top:91.67%; width:7.6%; height:6.39%; }
-  #stage.landscape #btn-pause      { position:absolute; left:26.13%; top:91.67%; width:7.6%; height:6.39%; }
-  #stage.landscape #focus-meter-wrap { position:absolute; left:34.4%; top:1.39%; width:5%; height:96.67%; }
+  #stage.landscape #coin-info      { left:1.56%; top:84%; width:37.74%; height:6.5%; flex-direction:row; align-items:center; justify-content:flex-start; gap:10px; padding:0 10px; }
+  #stage.landscape #btn-stats      { position:absolute; left:1.56%;  top:91.67%; width:8.7%; height:6.39%; }
+  #stage.landscape #btn-deck       { position:absolute; left:11.16%; top:91.67%; width:8.7%; height:6.39%; }
+  #stage.landscape #btn-time       { position:absolute; left:20.76%; top:91.67%; width:8.7%; height:6.39%; }
+  #stage.landscape #btn-pause      { position:absolute; left:30.36%; top:91.67%; width:8.7%; height:6.39%; }
+  /* focus meter hugs the grid's left edge; grid + clock bar shifted right for the wider left column */
+  #stage.landscape #focus-meter-wrap { position:absolute; left:39.9%; top:1.39%; width:4.6%; height:96.67%; }
   #stage.landscape #focus-bar-outer { width:21px; }   /* landscape focus bar (25% thinner than the old 28px) */
-  #stage.landscape #grid-slot      { position:absolute; left:39.84%; top:11.11%; width:49.22%; height:86.11%; }
+  #stage.landscape #grid-slot      { position:absolute; left:45%; top:11.11%; width:45%; height:86.11%; }
   #stage.landscape #run-progress   { left:90.63%; top:1.39%; width:8.59%; height:8.33%; flex-direction:column; align-items:center; justify-content:center; gap:3px; padding:3px; }
   #stage.landscape #btn-discard    { position:absolute; left:91.41%; top:11.11%; width:7.81%; height:29.17%; }
   #stage.landscape #btn-play       { position:absolute; left:91.41%; top:41.67%; width:7.81%; height:38.89%; }

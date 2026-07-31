@@ -56,6 +56,45 @@ function applyGridMetricsToDOM() {
   // Push live card size to CSS custom props so .card / fonts can react
   document.documentElement.style.setProperty('--card-w', CARD_W + 'px');
   document.documentElement.style.setProperty('--card-h', CARD_H + 'px');
+  syncSidebarsToGrid();
+}
+
+// Landscape only: the playing grid centers inside its slot, so its real footprint
+// depends on card size + column count. Pin the focus meter to the grid's LEFT edge
+// and stretch the clock readout + timer bar across the grid's WIDTH, so both track
+// the grid and scale as it grows (more columns → wider grid → wider clock bar).
+function syncSidebarsToGrid() {
+  const stage = document.getElementById('stage');
+  const focus = document.getElementById('focus-meter-wrap');
+  const clockArea = document.getElementById('clock-area');
+  const vclock = document.getElementById('vclock');
+  const landscape = stage && stage.classList.contains('landscape');
+  if (!landscape) {   // portrait: drop any inline overrides so the stacked layout is untouched
+    [focus, clockArea, vclock].forEach(e => { if (e) { e.style.left = ''; e.style.width = ''; } });
+    return;
+  }
+  const grid = document.getElementById('grid');
+  if (!grid) return;
+  const s = stage.getBoundingClientRect();
+  const g = grid.getBoundingClientRect();
+  if (s.width < 10 || g.width < 10) return;
+  const pct = px => px / s.width * 100;
+  const gLeft  = pct(g.left  - s.left);
+  const gWidth = pct(g.width);
+  // Clock readout (fixed slice at the grid's left) + timer bar fill the grid width.
+  if (clockArea && vclock) {
+    const readoutW = 7;
+    clockArea.style.left  = gLeft + '%';
+    clockArea.style.width = readoutW + '%';
+    vclock.style.left  = (gLeft + readoutW + 0.6) + '%';
+    vclock.style.width = Math.max(6, gWidth - readoutW - 0.6) + '%';
+  }
+  // Focus meter sits right against the grid's left edge — but never back far
+  // enough to crowd the left column (its right edge is ~39.3% of the stage).
+  if (focus) {
+    const fw = pct(focus.getBoundingClientRect().width);
+    focus.style.left = Math.max(39.5, gLeft - fw - 0.4) + '%';
+  }
 }
 
 function cellLeft(c) { return GRID_PAD + c * (CARD_W + CARD_GAP); }
