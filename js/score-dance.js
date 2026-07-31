@@ -87,15 +87,125 @@ async function goalCelebration(handCells) {
   overlay.remove();
 }
 
+// ── 80s-electronic explosion SFX (synthesized, no asset) — fires as the board blasts apart. ──
+function sfxWinExplode(){
+  try{
+    const actx = getAudioCtx(); if(!actx) return;
+    const t = actx.currentTime;
+    const master = actx.createGain(); master.gain.value = 0.8;
+    master.connect(sfxDuckGain || actx.destination);
+    // Detuned saw "zap" sweeping down — the analog-synth stab.
+    [0,7].forEach(detune=>{
+      const o=actx.createOscillator(); o.type='sawtooth'; o.detune.value=detune;
+      o.frequency.setValueAtTime(880,t); o.frequency.exponentialRampToValueAtTime(70,t+0.42);
+      const g=actx.createGain(); g.gain.setValueAtTime(0.0001,t);
+      g.gain.exponentialRampToValueAtTime(0.45,t+0.01); g.gain.exponentialRampToValueAtTime(0.0001,t+0.5);
+      const f=actx.createBiquadFilter(); f.type='lowpass'; f.frequency.setValueAtTime(3200,t);
+      f.frequency.exponentialRampToValueAtTime(400,t+0.45); f.Q.value=8;
+      o.connect(f); f.connect(g); g.connect(master); o.start(t); o.stop(t+0.55);
+    });
+    // White-noise crash through a sweeping bandpass — the blast body.
+    const dur=0.5; const buf=actx.createBuffer(1, actx.sampleRate*dur, actx.sampleRate);
+    const d=buf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*(1-i/d.length);
+    const n=actx.createBufferSource(); n.buffer=buf;
+    const nf=actx.createBiquadFilter(); nf.type='bandpass'; nf.frequency.setValueAtTime(2000,t);
+    nf.frequency.exponentialRampToValueAtTime(300,t+0.4); nf.Q.value=1.2;
+    const ng=actx.createGain(); ng.gain.setValueAtTime(0.45,t); ng.gain.exponentialRampToValueAtTime(0.0001,t+0.42);
+    n.connect(nf); nf.connect(ng); ng.connect(master); n.start(t); n.stop(t+dur);
+    // Sub thump for weight.
+    const s=actx.createOscillator(); s.type='sine'; s.frequency.setValueAtTime(120,t);
+    s.frequency.exponentialRampToValueAtTime(45,t+0.3);
+    const sg=actx.createGain(); sg.gain.setValueAtTime(0.55,t); sg.gain.exponentialRampToValueAtTime(0.0001,t+0.34);
+    s.connect(sg); sg.connect(master); s.start(t); s.stop(t+0.38);
+  }catch(e){}
+}
+
+// ── WIN FINALE — replaces the old SUCCESS salute at round-win. ──
+// Sequence: every card jitters briefly → the winning (goal) cards fly up to the
+// hand-preview area → the rest of the board explodes outward (with the 80s SFX).
+// Only the VISUAL happens here; this removes the card DOM at the end so the deck
+// accounting + focus-meter fall in showLevelUpScreen_fallOnly (which runs right
+// after, in startInterlude) just settle silently. (The next round's cards still
+// fall in from above at the real deal, after the payout + reward screens.)
+async function winFinale(handCells){
+  const gridEl = document.getElementById('grid');
+  if(!gridEl){ return; }
+  selected = [];
+  const winIds = new Set(handCells.map(([r,c]) => gridData[r]?.[c]?._id).filter(v=>v!=null));
+  const allEls = [...gridEl.querySelectorAll('[data-card-id]')];
+  // Clear any lingering score-pop animation so our transforms are free to run.
+  allEls.forEach(el => { el.classList.remove('score-pop-h','score-pop-d','score-pop-c','score-pop-s'); el.style.animation='none'; });
+
+  // 1) Every card jitters slightly.
+  const jitters = allEls.map(el => el.animate([
+    {transform:'translate(0,0) rotate(0)'},
+    {transform:'translate(1.2px,-1px) rotate(0.7deg)'},
+    {transform:'translate(-1px,1.2px) rotate(-0.8deg)'},
+    {transform:'translate(1px,1px) rotate(0.5deg)'},
+    {transform:'translate(-1.2px,-0.8px) rotate(-0.6deg)'},
+    {transform:'translate(0,0) rotate(0)'},
+  ], {duration:150, iterations:2, easing:'linear'}));
+  await wait(300);
+  jitters.forEach(a=>{ try{ a.cancel(); }catch(e){} });
+
+  // 2) Winning cards fly up to the hand-preview area (#selected-cards).
+  const previewEl = document.getElementById('selected-cards');
+  const pr = previewEl ? previewEl.getBoundingClientRect() : null;
+  let wOrder = 0;
+  allEls.forEach(el => {
+    const id = +el.getAttribute('data-card-id');
+    if(!winIds.has(id)) return;
+    const s = el.getBoundingClientRect();
+    let dx=0, dy=-46, sc=0.9;
+    if(pr && pr.width){
+      const tx = pr.left + 12 + wOrder*(s.width*0.85) + s.width/2;
+      const ty = pr.top + pr.height/2;
+      dx = tx - (s.left + s.width/2); dy = ty - (s.top + s.height/2);
+      sc = Math.min(1, (pr.height*0.82)/s.height);
+    }
+    el.style.zIndex = 60;
+    el.animate([
+      {transform:'translate(0,0) scale(1)', filter:'drop-shadow(0 0 0 rgba(245,192,66,0))'},
+      {transform:`translate(${dx}px,${dy}px) scale(${sc})`, filter:'drop-shadow(0 0 14px rgba(245,192,66,0.8))'}
+    ], {duration:560, easing:'cubic-bezier(.34,1.25,.5,1)', fill:'forwards'});
+    wOrder++;
+  });
+  await wait(420); // let winners lift and travel before the blast
+
+  // 3) The rest of the board explodes outward + 80s SFX.
+  sfxWinExplode();
+  const gr = gridEl.getBoundingClientRect();
+  const cx = gr.left+gr.width/2, cy = gr.top+gr.height/2;
+  allEls.forEach(el => {
+    const id = +el.getAttribute('data-card-id');
+    if(winIds.has(id)) return;
+    const r = el.getBoundingClientRect();
+    let ax=(r.left+r.width/2)-cx, ay=(r.top+r.height/2)-cy;
+    const len=Math.hypot(ax,ay)||1; ax/=len; ay/=len;
+    const dist=460+Math.random()*260, rot=(Math.random()*2-1)*260;
+    el.style.zIndex=40;
+    el.animate([
+      {transform:'translate(0,0) rotate(0) scale(1)', opacity:1},
+      {transform:`translate(${ax*dist}px,${ay*dist}px) rotate(${rot}deg) scale(.7)`, opacity:0}
+    ], {duration:680, easing:'cubic-bezier(.2,.7,.3,1)', fill:'forwards'});
+  });
+  await wait(600);
+
+  // Remove all original card DOM (winners + losers) — the accounting pass that
+  // follows reads gridData, not the DOM, and will just settle the deck silently.
+  allEls.forEach(el => el.remove());
+}
+
 // ── New preview-window scoring dance (dev toggle; owner-locked settings) ──
 const DANCE_CFG = {
   actA:{cls:'dnc-pulse',dur:420,mag:1.0}, actB:{cls:'dnc-flash',dur:420,mag:0.4},
   trig:{cls:'dnc-pop',dur:260,mag:0.7}, jitInit:0.10, jitGrow:0.18,
   tickRest:600, pFlight:550, scoreClimb:1250, ff:15, pScale:2.6,
-  // Ordinary (non-goal) hands play the tally at this speed multiplier by default —
-  // quick but still legible. The goal-winning hand plays at 1× (full). `ff` (15×)
-  // is the separate "illegibly fast" button speed.
-  norm:3,
+  // Base tally speed multiplier for ordinary hands. 1 = full speed (ordinary
+  // hands are NOT globally sped up — only a hand interrupted by a NEW hand
+  // fast-forwards, via danceInterruptMode below). Kept as a hook the win finale's
+  // fast-forward button can raise. `ff` (15×) is the separate "illegible" speed.
+  norm:1,
 };
 let newDanceEnabled = (function(){ try { return localStorage.getItem('newDance') !== '0'; } catch(e){ return true; } })();
 function setNewDance(on){ newDanceEnabled = !!on; try { localStorage.setItem('newDance', on ? '1' : '0'); } catch(e){} }
@@ -105,8 +215,12 @@ function setNewDance(on){ newDanceEnabled = !!on; try { localStorage.setItem('ne
 //   'ff'      — briefly rush the old hand's score up to its final, then start the new one
 //   'resolve' — snap the old hand's score to final with one quick pop, then start the new one
 // All three cut the old dance's grid/logic immediately (grid-safe); they differ only in the brief visual handoff.
-let danceInterruptMode = (function(){ try { return localStorage.getItem('danceInterrupt') || 'cut'; } catch(e){ return 'cut'; } })();
-function setDanceInterruptMode(m){ if(!['cut','ff','resolve'].includes(m)) m='cut'; danceInterruptMode=m; try { localStorage.setItem('danceInterrupt', m); } catch(e){} }
+// Default 'ff': when a NEW hand is submitted while the previous hand is still
+// resolving, the OLD (superseded) hand's score rushes up to its final ("fast
+// forward"), then the new hand starts. Only the interrupted hand speeds up —
+// hands played on their own resolve at full speed.
+let danceInterruptMode = (function(){ try { return localStorage.getItem('danceInterrupt') || 'ff'; } catch(e){ return 'ff'; } })();
+function setDanceInterruptMode(m){ if(!['cut','ff','resolve'].includes(m)) m='ff'; danceInterruptMode=m; try { localStorage.setItem('danceInterrupt', m); } catch(e){} }
 let _lastDanceStart = 0; // for the spam valve: rapid re-interrupts skip the flourish
 function _scoreDisplayed(){ const el=document.getElementById('score-total-num'); if(!el) return 0; const n=parseInt((el.textContent||'0').replace(/[^0-9-]/g,''),10); return isNaN(n)?0:n; }
 // Brief, grid-safe visual handoff acknowledging the just-cut previous hand. Resolves when done.
@@ -825,7 +939,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
       sfxVictory(); const ctx=getAudioCtx();
       if(sfxDuckGain){ sfxDuckGain.gain.setValueAtTime(0.4, ctx.currentTime); }
       else { sfxDuckGain=ctx.createGain(); sfxDuckGain.gain.setValueAtTime(0.4, ctx.currentTime); sfxDuckGain.connect(ctx.destination); }
-      await goalCelebration(handCells);
+      await winFinale(handCells); // winners fly to preview + rest explode (replaces SUCCESS salute)
       startInterlude();
     }
   }

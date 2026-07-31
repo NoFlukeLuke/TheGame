@@ -1,4 +1,4 @@
-const BUILD = '2026-07-31 · r115 · win-clock fix + legacy Trick-pick segmentation + fast-forward ordinary hands';
+const BUILD = '2026-07-31 · r116 · win finale (fly + explode + 80s SFX); interrupt handoff defaults to fast-forward';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
