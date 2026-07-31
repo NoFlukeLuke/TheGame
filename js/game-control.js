@@ -232,6 +232,7 @@ function startGame() {
   rewardConfirmed = false;
   actNumber = 1;
   nodeInAct = 0;
+  rewardGridsSeen = 0;
   forceBossNextRound = false;
   shopFromNodeFlow = false;
   updateActProgressUI();

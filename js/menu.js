@@ -1,4 +1,4 @@
-const BUILD = '2026-07-29 · r113 · LETHE · shop CRT/neon reskin';
+const BUILD = '2026-07-30 · r114 · shop-on-grid preview + reward-grid guarantees';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

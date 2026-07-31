@@ -222,6 +222,41 @@ function generateRewardContent() {
     }
   }
 
+  // ── Guaranteed-tile builders (r114) ──
+  // A limit-upgrade tile that raises `id` by up to `amount` (permanent). Returns
+  // null if the limit is already maxed, so callers can fall back to an alternate.
+  function makeLimitUpgradeTile(id, amount) {
+    const l = limits[id]; if (!l || l.current >= l.max) return null;
+    const def = LIMITS_DEF.find(d => d.id === id);
+    const cur = l.current, next = Math.min(l.max, cur + amount);
+    const gain = next - cur;
+    return {
+      icon: '⬆️', label: `+${gain} ${def.label}`, tier: 'epic', rarity: 'legendary', _guaranteed: true,
+      desc: `${def.label}: ${cur} → ${next} · permanent`,
+      apply: () => { for (let k = 0; k < gain; k++) incrementLimit(id); onLimitChanged?.(id); showMessage(`+${gain} ${def.label}!`, 'var(--gold)'); }
+    };
+  }
+  function makeGrowthTile()      { const o = Math.random()<0.5 ? ['grid_rows','grid_cols'] : ['grid_cols','grid_rows']; for (const id of o) { const t = makeLimitUpgradeTile(id, 1); if (t) return t; } return null; }
+  function makeSwapDiscardTile() { const o = Math.random()<0.5 ? ['swaps','discards'] : ['discards','swaps'];         for (const id of o) { const t = makeLimitUpgradeTile(id, 2); if (t) return t; } return null; }
+  function makeLimitBreakPayload() {
+    return {
+      icon: '💥', label: 'Limit Break', tier: 'mythic', rarity: 'mythic', _guaranteed: true,
+      desc: 'Break a limit for free — raise any one limit permanently (opens the Limit Break screen; a second break is available for a sacrifice).',
+      apply: () => { pendingLimitBreak = true; }
+    };
+  }
+  // Every grid gets a Limit Break; the first 5 grids of a run also get the core
+  // growth upgrades (row/col, selection, and +2 swaps/discards) so early runs ramp.
+  function buildGuaranteedRewardTiles() {
+    const out = [ makeLimitBreakPayload() ];
+    if (rewardGridsSeen <= 5) {
+      out.push(makeGrowthTile());
+      out.push(makeLimitUpgradeTile('selection', 1));
+      out.push(makeSwapDiscardTile());
+    }
+    return out.filter(Boolean);
+  }
+
   // Checkerboard: (r+c) even → buff/dest slot, (r+c) odd → debuff slot
   const buffPos   = [];
   const debuffPos = [];
@@ -235,8 +270,17 @@ function generateRewardContent() {
   // One destination in a random buff slot
   grid[shuffledBuff[0][0]][shuffledBuff[0][1]] = { kind: 'dest', payload: pickRand(destOptions) };
 
-  // Fill remaining buff positions
-  for (let i = 1; i < shuffledBuff.length; i++) {
+  // Guaranteed tiles first (protected from the Trick-minimum conversion below)
+  const guaranteed = buildGuaranteedRewardTiles();
+  let placeIdx = 1;
+  for (const payload of guaranteed) {
+    if (placeIdx >= shuffledBuff.length) break;
+    const [r, c] = shuffledBuff[placeIdx++];
+    grid[r][c] = { kind: 'buff', payload };
+  }
+
+  // Fill remaining buff positions with ordinary buffs
+  for (let i = placeIdx; i < shuffledBuff.length; i++) {
     const [r, c] = shuffledBuff[i];
     grid[r][c] = { kind: 'buff', payload: makeBuff() };
   }
@@ -251,6 +295,7 @@ function generateRewardContent() {
     const convertible = [];
     for (let i = 1; i < shuffledBuff.length; i++) {
       const [r, c] = shuffledBuff[i];
+      if (grid[r][c]?.payload?._guaranteed) continue;   // never overwrite a guaranteed tile
       if (isTrickTile(grid[r][c])) trickCount++;
       else convertible.push([r, c]);
     }
@@ -508,6 +553,7 @@ function applyRewardKnack() {
 
 function openRewardGrid() {
   gameTimerPaused = true;
+  rewardGridsSeen++;               // count this grid (gates the first-5 guaranteed upgrades)
   rewardCells     = generateRewardContent();
   rewardSelected  = new Set();
   rewardConfirmed = false;
@@ -1049,7 +1095,9 @@ function closeRewardGrid() {
   rewardCells     = [];
   gameTimerPaused = false;
 
-  if (rewardGridContext === 'interlude') {
+  // What happens after the reward step, per context. A claimed Limit Break
+  // (either context) opens the LB screen first, then runs this continuation.
+  const finishInterlude = () => {
     skipTrickChoiceOverlay = true;
 
     if (ACTIVE_MODE.id === 'normal') {
@@ -1083,7 +1131,8 @@ function closeRewardGrid() {
     } else {
       drainLevelUpQueue();
     }
-  } else {
+  };
+  const finishTimer = () => {
     // Timer-based / dev mid-round: no round-start reset follows, so apply any pending
     // reward deltas to the LIVE round now (otherwise they'd be silently lost).
     const _secCap = Math.max(ROUND_DURATION, limits.round_time.current);
@@ -1098,7 +1147,11 @@ function closeRewardGrid() {
     startRoundTimer();
     updateClockUI();
     render();
-  }
+  };
+
+  const proceed = rewardGridContext === 'interlude' ? finishInterlude : finishTimer;
+  if (pendingLimitBreak) { pendingLimitBreak = false; openLimitBreakEvent(proceed); }
+  else proceed();
 }
 
 // Wire buttons
@@ -1111,6 +1164,7 @@ function closeRewardGrid() {
 
 let pendingEventOverride = null; // 'normal' | 'shop' | 'event' — set by reward grid dest tiles
 let shopFromNodeFlow    = false;  // true when shop was opened mid-interlude; close → drainLevelUpQueue
+let pendingLimitBreak   = false;  // a claimed Limit Break reward tile → open the LB screen on close
 
 // ── LIMIT BREAK EVENT ──
 // Offers 3 curated limits (2 known + 1 blind). Player breaks one for free.
@@ -1121,4 +1175,5 @@ let lbPrimaryPick = null;   // offer index chosen as free pick
 let lbSecondPick = null;    // offer index chosen as sacrifice pick
 let lbSacrifice = null;     // { type:'limit'|'trick'|'knack', id }
 let lbConfirmed = false;
+let lbOnClose = null;       // continuation to run after the LB screen closes (reward-grid flow)
 

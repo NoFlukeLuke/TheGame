@@ -1,5 +1,6 @@
-function openLimitBreakEvent() {
+function openLimitBreakEvent(onClose) {
   gameTimerPaused = true;
+  lbOnClose = onClose || null;   // reward-grid flow passes a continuation; standalone opens don't
   lbPrimaryPick = null;
   lbSecondPick  = null;
   lbSacrifice   = null;
@@ -193,6 +194,10 @@ function closeLimitBreak() {
   lbSecondPick = null;
   lbSacrifice = null;
   gameTimerPaused = false;
+  // Reward-grid flow: hand back to its continuation (which starts the next round /
+  // shop / event itself) instead of starting the round here.
+  const cb = lbOnClose; lbOnClose = null;
+  if (cb) { render(); cb(); return; }
   startRoundTimer();
   render();
 }

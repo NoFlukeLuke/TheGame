@@ -428,4 +428,5 @@ let rewardOnGrid   = false;     // true while the reward grid is rendered onto t
 let rewardDealing  = false;     // true while reward tiles are dealing in / resolving (blocks clicks)
 let rewardGridContext = 'interlude'; // 'interlude' | 'boss' — determines what closeRewardGrid does
 let skipTrickChoiceOverlay = false;    // set before drainLevelUpQueue when reward grid is the reward screen
+let rewardGridsSeen = 0;               // how many reward grids opened this run (for first-5 guaranteed upgrades)
 

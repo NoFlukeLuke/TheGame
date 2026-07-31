@@ -155,6 +155,10 @@ function devOpenRewardGrid() {
   rewardGridContext = 'boss'; // dev open = mid-round, just resume the round when closed
   openRewardGrid();
 }
+function devOpenShopGridPreview() {
+  closeDevPanel();
+  openShopGridPreview();
+}
 
 function devTriggerEvent(eventId) {
   closeDevPanel();
