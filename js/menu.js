@@ -1,4 +1,4 @@
-const BUILD = '2026-07-31 · r117 · thin cabinet chrome (top bar + beige baseline), game screen scaled up';
+const BUILD = '2026-07-31 · r118 · thin cabinet chrome + game scaled up (merged: wider left column · clock bar spans grid)';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
