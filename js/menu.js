@@ -1,4 +1,4 @@
-const BUILD = '2026-07-31 · r116 · win finale (fly + explode + 80s SFX); interrupt handoff defaults to fast-forward';
+const BUILD = '2026-07-31 · r117 · thin cabinet chrome (top bar + beige baseline), game screen scaled up';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

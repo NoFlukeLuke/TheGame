@@ -3172,7 +3172,7 @@
     position: relative; z-index: 1; box-sizing: border-box;
     width: 496px;            /* portrait footprint (landscape overridden below) */
     zoom: var(--stage-zoom, 1);
-    padding: 12px 18px 16px;
+    padding: 10px 18px 8px;  /* thinner top & bottom chrome */
     border-radius: 24px;
     background: linear-gradient(180deg, var(--plastic-hi) 0%, var(--plastic) 8%, var(--plastic) 88%, var(--plastic-lo) 100%);
     box-shadow:
@@ -3189,30 +3189,30 @@
   }
   #cabinet::before { left:12px; } #cabinet::after { right:12px; }
 
-  /* Marquee brand plate */
-  #cab-marquee {
-    position: relative; height: 42px; margin: 2px 26px 10px; border-radius: 10px;
-    display: flex; align-items: center; justify-content: center; gap: 12px; overflow: hidden;
+  /* Thin top bar — brand/model on the left, rainbow line filling the right */
+  #cab-topbar {
+    position: relative; height: 26px; margin: 0 20px 8px; border-radius: 8px;
+    display: flex; align-items: center; gap: 9px; padding: 0 12px; overflow: hidden;
     background: linear-gradient(180deg, #17120c, #241a10);
-    box-shadow: inset 0 0 0 2px var(--plastic-lo), inset 0 2px 10px rgba(0,0,0,0.8), 0 1px 0 var(--plastic-hi);
+    box-shadow: inset 0 0 0 2px var(--plastic-lo), inset 0 2px 8px rgba(0,0,0,0.8), 0 1px 0 var(--plastic-hi);
   }
   .cab-brand {
-    font-family:'Orbitron',sans-serif; font-weight:900; font-size:18px; letter-spacing:3px;
+    font-family:'Orbitron',sans-serif; font-weight:900; font-size:15px; letter-spacing:2px; white-space:nowrap;
     background: linear-gradient(180deg, #fff2c8, var(--c-yellow) 55%, var(--c-coral));
     -webkit-background-clip:text; background-clip:text; color:transparent;
-    text-shadow: 0 0 18px rgba(255,206,43,0.35);
+    text-shadow: 0 0 14px rgba(255,206,43,0.35);
   }
   .cab-model {
-    font-family:'Share Tech Mono',monospace; font-size:8px; letter-spacing:2px; line-height:1.3;
+    font-family:'Share Tech Mono',monospace; font-size:8px; letter-spacing:1.5px; line-height:1.2; white-space:nowrap;
     color: var(--c-cyan); text-transform:uppercase; border-left:2px solid var(--c-magenta); padding-left:8px;
   }
-  .cab-led { width:9px; height:9px; border-radius:50%; background:var(--c-mint);
+  .cab-led { width:8px; height:8px; border-radius:50%; background:var(--c-mint); flex:0 0 auto;
     box-shadow:0 0 8px var(--c-mint), inset 0 0 3px #fff; animation: cab-led-blink 2.4s infinite; }
   @keyframes cab-led-blink { 0%,92%,100%{opacity:1} 96%{opacity:0.25} }
 
-  /* Accent trim stripe */
+  /* Rainbow accent line — fills the remaining width of the top bar */
   #cab-stripe {
-    height: 6px; margin: 0 26px 10px; border-radius: 4px;
+    flex: 1 1 auto; height: 6px; margin-left: 6px; border-radius: 3px;
     background: linear-gradient(90deg, var(--c-magenta) 0 20%, var(--c-coral) 20% 40%,
       var(--c-yellow) 40% 60%, var(--c-mint) 60% 80%, var(--c-cyan) 80% 100%);
     box-shadow: inset 0 1px 2px rgba(255,255,255,0.4), 0 1px 2px rgba(0,0,0,0.3);
@@ -3237,21 +3237,12 @@
   #stage { background: radial-gradient(ellipse at 50% 42%, #1a140c 0%, #100d09 78%);
            border-radius: 8px; box-shadow: inset 0 0 40px rgba(0,0,0,0.7); }
 
-  /* Control deck */
-  #cab-deck {
-    display:flex; align-items:center; justify-content:space-between; margin:10px 20px 2px;
-    padding:7px 14px; height:32px; border-radius:10px;
-    background: linear-gradient(180deg, var(--plastic-lo), var(--plastic-deep));
-    box-shadow: inset 0 2px 3px rgba(255,255,255,0.35), inset 0 -3px 4px rgba(0,0,0,0.3);
+  /* Thin beige base line (replaces the control deck) */
+  #cab-baseline {
+    height: 2px; margin: 8px 20px 0; border-radius: 2px;
+    background: var(--plastic-hi);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.5);
   }
-  #cab-vents { display:flex; gap:4px; }
-  #cab-vents i { width:4px; height:15px; border-radius:2px; display:block;
-    background: linear-gradient(180deg, rgba(0,0,0,0.45), rgba(0,0,0,0.15)); box-shadow:1px 0 0 rgba(255,255,255,0.25); }
-  #cab-deck-badge { font-family:'Orbitron',sans-serif; font-weight:700; font-size:10px; letter-spacing:2px;
-    color:#2a2114; padding:3px 8px; border-radius:5px; background:var(--c-yellow);
-    box-shadow: inset 0 1px 1px rgba(255,255,255,0.6), 0 1px 2px rgba(0,0,0,0.3); }
-  #cab-warning { font-family:'Share Tech Mono',monospace; font-size:8px; letter-spacing:1px; color:#2a2114;
-    text-transform:uppercase; text-align:right; line-height:1.25; text-shadow:0 1px 0 rgba(255,255,255,0.3); }
 
   /* ============================================================= */
   /* ==  On-screen chrome → LED / LCD instrument readouts        == */

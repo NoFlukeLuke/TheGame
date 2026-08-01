@@ -17,7 +17,10 @@ initDevMode();
     const isLandscape = availW > availH && availW >= 480;
     // Zoom now fits the whole CABINET housing (stage + bezel/marquee/deck).
     const DESIGN_W = isLandscape ? 824 : 496;
-    const DESIGN_H = isLandscape ? 586 : 906;
+    // Cabinet housing height after the thinned top bar + beige baseline (r117).
+    // Smaller than before → the zoom-to-fit scales the whole game up into the
+    // space the old thick marquee/deck used to occupy.
+    const DESIGN_H = isLandscape ? 506 : 826;
     const z = Math.min(availW / DESIGN_W, availH / DESIGN_H);
     // Set on :root so both #cabinet (zoom) and #stage (grid measurement) inherit it.
     document.documentElement.style.setProperty('--stage-zoom', z);
