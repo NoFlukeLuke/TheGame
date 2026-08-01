@@ -292,7 +292,7 @@ async function showLevelUpScreen() {
   // path reaches here without skipTrickChoiceOverlay set, normal mode can never
   // show the old Trick pick (this is what caused the double level-up glitch).
   // The `else` branch below is LEGACY / SURVIVAL-MODE ONLY.
-  if (skipTrickChoiceOverlay || ACTIVE_MODE.id === 'normal') {
+  if (skipTrickChoiceOverlay || isActMode()) {
     // Reward grid already handled rewards (or normal mode has no pick) —
     // skip Trick pick, go straight to new round.
     skipTrickChoiceOverlay = false;

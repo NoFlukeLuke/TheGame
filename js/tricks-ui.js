@@ -615,7 +615,7 @@ function updateActProgressUI() {
   const labelEl = document.getElementById('game-timer-label');
   const valEl   = document.getElementById('game-timer');
   if (!labelEl || !valEl) return;
-  if (ACTIVE_MODE.id === 'normal') {
+  if (isActMode()) {
     labelEl.textContent = 'Progress';
     if (bossActive) {
       valEl.textContent  = `ACT ${actNumber} · BOSS`;

@@ -19,6 +19,8 @@
     --suit-diamonds: #EC9F05;
     --suit-spades:   #000000;
     --suit-clubs:    #2255cc;
+    --suit-stars:    #1f9d55;
+    --suit-triangles:#9b4dff;
   }
 
   /* Spade ♠ on dark surfaces — warm cream halo so pure-black stays legible.
@@ -491,6 +493,8 @@
   .mini-card.suit-diamonds .mini-rank, .mini-card.suit-diamonds .mini-suit { color: var(--suit-diamonds); }
   .mini-card.suit-spades .mini-rank,   .mini-card.suit-spades .mini-suit   { color: var(--suit-spades); }
   .mini-card.suit-clubs .mini-rank,    .mini-card.suit-clubs .mini-suit    { color: var(--suit-clubs); }
+  .mini-card.suit-stars .mini-rank,    .mini-card.suit-stars .mini-suit    { color: var(--suit-stars); }
+  .mini-card.suit-triangles .mini-rank,.mini-card.suit-triangles .mini-suit{ color: var(--suit-triangles); }
 
   /* Hand-preview now mirrors the grid via renderCardAppearance(): real .card markup,
      scaled down by the local --card-w/--card-h set on #selected-cards. Cards must flow
@@ -1629,6 +1633,8 @@
   .card.suit-diamonds .rank, .card.suit-diamonds .suit { color: var(--suit-diamonds); }
   .card.suit-spades .rank,   .card.suit-spades .suit   { color: var(--suit-spades); }
   .card.suit-clubs .rank,    .card.suit-clubs .suit    { color: var(--suit-clubs); }
+  .card.suit-stars .rank,    .card.suit-stars .suit    { color: var(--suit-stars); }
+  .card.suit-triangles .rank,.card.suit-triangles .suit{ color: var(--suit-triangles); }
   .card .sel-num {
     position: absolute;
     top: 2px; left: 3px;
@@ -1793,6 +1799,8 @@
   .deck-chip.suit-diamonds { background: rgba(236,159,5,0.18); color: var(--suit-diamonds); border: 1px solid rgba(236,159,5,0.35); }
   .deck-chip.suit-spades   { background: rgba(140,140,140,0.5); color: #000; border: 1px solid rgba(180,180,180,0.45); text-shadow: 0 0 2px rgba(240,230,200,0.85), 0 0 1px rgba(240,230,200,0.95); }
   .deck-chip.suit-clubs    { background: rgba(34,85,204,0.18); color: var(--suit-clubs);    border: 1px solid rgba(34,85,204,0.35); }
+  .deck-chip.suit-stars    { background: rgba(31,157,85,0.18); color: var(--suit-stars);    border: 1px solid rgba(31,157,85,0.35); }
+  .deck-chip.suit-triangles{ background: rgba(155,77,255,0.18); color: var(--suit-triangles);border: 1px solid rgba(155,77,255,0.35); }
   .deck-chip.dc-present {
     box-shadow: 0 0 0 1px rgba(255,255,255,0.4), 0 0 6px rgba(255,255,255,0.15);
     border-color: rgba(255,255,255,0.45) !important;
@@ -1838,6 +1846,8 @@
   .unlock-ex-card.suit-diamonds { color: var(--suit-diamonds); }
   .unlock-ex-card.suit-spades   { color: var(--suit-spades); }
   .unlock-ex-card.suit-clubs    { color: var(--suit-clubs); }
+  .unlock-ex-card.suit-stars    { color: var(--suit-stars); }
+  .unlock-ex-card.suit-triangles{ color: var(--suit-triangles); }
   .unlock-ex-card .ex-suit { font-size: 11px; margin-top: 1px; }
   #unlock-trick-title { font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: 2px; color: var(--gold-dim); text-transform: uppercase; }
   #unlock-trick-options { display: flex; gap: 14px; }
@@ -2043,6 +2053,8 @@
   .svc-card.suit-diamonds { color: var(--suit-diamonds); }
   .svc-card.suit-spades   { color: var(--suit-spades); }
   .svc-card.suit-clubs    { color: var(--suit-clubs); }
+  .svc-card.suit-stars    { color: var(--suit-stars); }
+  .svc-card.suit-triangles{ color: var(--suit-triangles); }
   .svc-card .svc-c-suit { font-size: 11px; margin-top: 1px; }
   .svc-card .svc-c-loc { position: absolute; top: 2px; right: 3px; font-size: 7px; color: var(--cream-dim); font-family: 'Crimson Pro', serif; }
   .svc-card.selected-svc { border-color: var(--gold); transform: translateY(-4px); box-shadow: 0 0 0 2px var(--gold); }
@@ -2602,6 +2614,8 @@
   .reward-face-suit { font-size: 12px; color: #1a1a1a; }
   .reward-face.suit-hearts .reward-face-rank, .reward-face.suit-hearts .reward-face-suit,
   .reward-face.suit-diamonds .reward-face-rank, .reward-face.suit-diamonds .reward-face-suit { color: #c0392b; }
+  .reward-face.suit-stars .reward-face-rank, .reward-face.suit-stars .reward-face-suit { color: var(--suit-stars); }
+  .reward-face.suit-triangles .reward-face-rank, .reward-face.suit-triangles .reward-face-suit { color: var(--suit-triangles); }
   .reward-label {
     font-size: 11px;
     line-height: 1.2;
@@ -3037,6 +3051,78 @@
     margin-top: 8px; font-family: 'Share Tech Mono', monospace; font-size: 9px; letter-spacing: 2px;
     color: rgba(183,166,132,0.5);
   }
+
+  /* ═══════════════ MODE SELECT (scroll-sideways carousel) ═══════════════ */
+  #mode-select-overlay {
+    display: none; position: fixed; inset: 0; z-index: 10000;
+    flex-direction: column; align-items: center; justify-content: center;
+    padding: 24px; overflow: hidden;
+    background:
+      repeating-linear-gradient(0deg, rgba(0,0,0,0.16) 0 1px, transparent 1px 3px),
+      radial-gradient(ellipse at 50% 32%, #241d3f 0%, #171235 46%, #0b0a1c 100%);
+  }
+  #mode-select-overlay.show { display: flex; }
+  #mode-select-inner {
+    position: relative; z-index: 1; width: 100%; max-width: 760px;
+    display: flex; flex-direction: column; align-items: center; gap: 12px;
+  }
+  #mode-select-title {
+    font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: clamp(22px, 5vw, 32px);
+    letter-spacing: 6px; color: var(--cream); text-transform: uppercase;
+    text-shadow: 0 0 24px rgba(255,206,43,0.3);
+  }
+  #mode-select-sub {
+    font-family: 'Share Tech Mono', monospace; font-size: 11px; letter-spacing: 2px;
+    color: var(--cream-dim); text-transform: uppercase; margin-top: -4px;
+  }
+  #mode-carousel-wrap { display: flex; align-items: center; gap: 10px; width: 100%; }
+  #mode-carousel {
+    display: flex; gap: 18px; overflow-x: auto; flex: 1;
+    scroll-snap-type: x mandatory; padding: 12px 6px 16px; scrollbar-width: none;
+  }
+  #mode-carousel::-webkit-scrollbar { display: none; }
+  .mode-card {
+    scroll-snap-align: center; flex: 0 0 auto; width: 264px; min-height: 300px;
+    display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center;
+    padding: 26px 22px; border-radius: 16px;
+    background: linear-gradient(180deg, rgba(20,16,11,0.94), rgba(11,9,6,0.96));
+    border: 1px solid rgba(255,255,255,0.06);
+    box-shadow: 0 0 0 2px var(--mode-accent), inset 0 0 40px rgba(255,255,255,0.03), 0 20px 44px rgba(0,0,0,0.55);
+  }
+  .mode-card-name {
+    font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 22px; letter-spacing: 3px;
+    color: var(--mode-accent); text-transform: uppercase;
+  }
+  .mode-card-suits { font-size: 26px; letter-spacing: 5px; line-height: 1; color: var(--cream); }
+  .mode-card-blurb {
+    font-family: 'Share Tech Mono', monospace; font-size: 11px; line-height: 1.6; letter-spacing: 0.5px;
+    color: var(--cream-dim); flex: 1;
+  }
+  .mode-card-play {
+    width: 100%; font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 16px; letter-spacing: 4px;
+    color: #3a2a08; text-transform: uppercase; cursor: pointer; border: none; border-radius: 10px; padding: 12px;
+    background: linear-gradient(180deg, #ffe06a, var(--c-yellow) 55%, #e0a814);
+    box-shadow: inset 0 2px 0 rgba(255,255,255,0.7), inset 0 -3px 0 rgba(0,0,0,0.25), 0 4px 0 #b5820f;
+    transition: transform 0.07s ease, filter 0.12s ease;
+  }
+  .mode-card-play:hover { filter: brightness(1.06); }
+  .mode-card-play:active { transform: translateY(3px);
+    box-shadow: inset 0 2px 0 rgba(255,255,255,0.5), 0 1px 0 #b5820f; }
+  .mode-arrow {
+    flex: 0 0 auto; width: 44px; height: 44px; border-radius: 50%; cursor: pointer;
+    font-size: 26px; line-height: 1; color: var(--cream);
+    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15);
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.12s ease;
+  }
+  .mode-arrow:hover { background: rgba(255,255,255,0.14); }
+  #mode-back-btn {
+    font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 12px; letter-spacing: 3px;
+    color: var(--c-cyan); text-transform: uppercase; cursor: pointer; padding: 10px 22px;
+    background: linear-gradient(180deg, #1d3a3e, rgba(16,36,39,0)); border: 1px solid var(--c-cyan); border-radius: 9px;
+    transition: background 0.12s ease, color 0.12s ease;
+  }
+  #mode-back-btn:hover { background: linear-gradient(180deg, #235055, #12292c); color: #fff; }
 
   /* ═══════════════ v7 FIXED-COORDINATE LANDSCAPE (r73) ═══════════════
      Overrides the legacy flexbox landscape rules above via source order.

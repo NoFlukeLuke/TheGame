@@ -132,7 +132,7 @@ let handsPendingUnlock = []; // queue of hands to show unlock screen for
 // ── PER-GAME COUNTERS ──
 const C = {
   run3: 0, run4: 0, pair: 0, twopair: 0,
-  threeofakind: 0, fourofakind: 0, straight: 0, flush: 0,
+  threeofakind: 0, fourofakind: 0, straight: 0, flush3: 0, flush4: 0, flush: 0,
   fullhouse: 0, straightflush: 0, blackjack: 0,
   flow3: 0, flow4: 0,
   // card value counters
