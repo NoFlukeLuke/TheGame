@@ -1,4 +1,4 @@
-const BUILD = '2026-07-29 · r114 · wider left column · focus hugs grid · clock bar spans grid';
+const BUILD = '2026-07-31 · r117 · wider left column · focus hugs grid · clock bar spans grid';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

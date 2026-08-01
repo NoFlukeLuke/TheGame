@@ -122,7 +122,7 @@ function generateRewardContent() {
     const pick = eligible[Math.floor(Math.random() * eligible.length)];
     return {
       icon: '★', label: pick.name, desc: pick.desc, tier: pick.tier || 'rare',
-      entity: 'trick', rarity: pick.tier || 'rare',
+      entity: 'trick', rarity: pick.tier || 'rare', _trick: pick,
       apply: () => injectTrickAfterReward(pick)
     };
   }
@@ -666,17 +666,21 @@ function buildRewardTileInner(p) {
   // Plain resource / debuff / dest / mystery tile: icon + name (desc → tooltip).
   return `<div class="reward-icon">${p.icon}</div><div class="rwd-name">${p.label}</div>`;
 }
-// Owner rule: single-word names shrink to fit one line; multi-word names wrap.
+// Owner rule: names never overflow the tile. The name wraps at spaces and a
+// too-long single word hyphenates (CSS). Here we shrink the font only if the
+// wrapped/hyphenated name is still too tall (more than MAX_LINES) or too wide
+// for the tile (e.g. one unbreakable token).
 function fitRewardName(el) {
   if (!el) return;
-  const txt = (el.textContent || '').trim();
-  const multiWord = /\s/.test(txt);
-  el.classList.toggle('rwd-name-wrap', multiWord);
+  const MAX_LINES = 3;
   el.style.fontSize = '';
-  if (multiWord) return;                      // wrapping handled by CSS
   let fs = parseFloat(getComputedStyle(el).fontSize) || 10;
   let guard = 0;
-  while (el.scrollWidth > el.clientWidth + 0.5 && fs > 6 && guard < 40) {
+  const tooTall = () => {
+    const lh = parseFloat(getComputedStyle(el).lineHeight) || fs * 1.14;
+    return el.scrollHeight > lh * MAX_LINES + 1;
+  };
+  while ((tooTall() || el.scrollWidth > el.clientWidth + 1) && fs > 6 && guard < 40) {
     fs -= 0.5; el.style.fontSize = fs + 'px'; guard++;
   }
 }
@@ -708,7 +712,10 @@ function attachRewardTooltip(el, p, kind) {
     tt.className = 'rar-' + rar;
     tt.querySelector('.rtt-rar').textContent  = (p.entity ? rar + ' · ' : '') + type;
     tt.querySelector('.rtt-name').textContent = p.label;
-    tt.querySelector('.rtt-desc').innerHTML   = colorizeKeywords(p.desc || '');
+    // Tricks show their current bonus value in () via trickLiveDesc (N/A here in
+    // the reward grid for round-scoped tricks — the round isn't live yet).
+    const descText = (p._trick && typeof trickLiveDesc === 'function') ? trickLiveDesc(p._trick) : (p.desc || '');
+    tt.querySelector('.rtt-desc').innerHTML   = colorizeKeywords(descText);
     place(e);
     tt.classList.add('show');
   });
