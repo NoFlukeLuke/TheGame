@@ -3088,11 +3088,11 @@
   #stage.landscape #knack-list { flex-wrap:nowrap; gap:5px; max-height:none; overflow:hidden; }
 
   /* preview: full-width frame; hand-name sits inside it on the dark background (left); cards render exactly like the grid, bonuses and all */
-  #stage.landscape #selected-cards { left:1.56%; top:38%; width:37.74%; height:18%; --card-w:38px; --card-h:50px; display:flex; align-items:center; justify-content:center; gap:4px; padding:4px 8px 4px 44px; background:var(--panel); border:1px solid var(--border); border-radius:6px; overflow:hidden; }
-  #stage.landscape #hand-name { position:absolute; left:1.56%; top:38%; width:6%; height:18%; display:flex; align-items:center; justify-content:center; text-align:center; background:none; border:none; margin:0; font-size:10px; line-height:1.15; letter-spacing:0.5px; color:var(--gold); padding:0 3px; z-index:2; }
+  #stage.landscape #selected-cards { left:1.56%; top:38%; width:37.74%; height:21.75%; --card-w:38px; --card-h:50px; display:flex; align-items:center; justify-content:center; gap:4px; padding:4px 8px 4px 44px; background:var(--panel); border:1px solid var(--border); border-radius:6px; overflow:hidden; }
+  #stage.landscape #hand-name { position:absolute; left:1.56%; top:38%; width:6%; height:21.75%; display:flex; align-items:center; justify-content:center; text-align:center; background:none; border:none; margin:0; font-size:10px; line-height:1.15; letter-spacing:0.5px; color:var(--gold); padding:0 3px; z-index:2; }
 
   /* tricks: enlarged now that the time/money chips left this column — big reward-grid-style tiles */
-  #stage.landscape #trick-tray-area { left:1.56%; top:57%; width:37.74%; height:25.5%; display:flex !important; flex-direction:row; align-items:center; justify-content:flex-start; padding:6px 8px; gap:6px; overflow:hidden; }
+  #stage.landscape #trick-tray-area { left:1.56%; top:60.75%; width:37.74%; height:21.75%; display:flex !important; flex-direction:row; align-items:center; justify-content:flex-start; padding:6px 8px; gap:6px; overflow:hidden; }
   #stage.landscape #trick-tray-list { flex-direction:row; flex-wrap:nowrap; align-items:center; gap:5px; max-height:none; overflow:hidden; padding:0; width:100%; }
   #stage.landscape .trick-tray-chip { width:48px; height:64px; font-size:14px; border-radius:6px; flex-direction:column; }
   /* money: compact single-row bar (replaces the old tall coin chip) */
@@ -3486,4 +3486,15 @@
   #knack-carousel-wrap:hover .chip-marquee.scrolling,
   #trick-tray-area:hover   .chip-marquee.scrolling { animation-play-state: paused; }
   @keyframes chipMarquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+  /* ═══════════════ PREVIEW — fill each black chip with its top-accent color ═══════════════ */
+  /* Each chip's dark gradient is replaced by a solid fill of the candy color that
+     currently only shows as its top border. Overrides the plastic-material rule. */
+  #stage.landscape #score-center    { background: var(--c-magenta) !important; }
+  #stage.landscape #score-left      { background: var(--c-cyan)    !important; }
+  #stage.landscape #knack-carousel-wrap { background: var(--c-yellow) !important; }
+  #stage.landscape #selected-cards  { background: var(--c-mint)    !important; }
+  #stage.landscape #trick-tray-area { background: var(--c-coral)   !important; }
+  #stage.landscape #coin-info       { background: var(--c-yellow)  !important; }
+  #stage.landscape #run-progress    { background: var(--c-magenta) !important; }
 
