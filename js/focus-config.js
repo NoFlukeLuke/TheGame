@@ -77,6 +77,8 @@ const HAND_FOCUS = {
   'Run of 3': 1,
   'Run of 4': 2,
   'Straight': 3,
+  'Flush of 3': 2,
+  'Flush of 4': 3,
   'Flush': 3,
   'Three of a Kind': 3,
   'Full House': 4,

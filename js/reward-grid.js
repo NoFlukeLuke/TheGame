@@ -64,7 +64,7 @@ function generateRewardContent() {
   // un-cursed identity exists). Card is pre-picked so the tile shows exactly it.
   {
     const _uncursed = [];
-    RANKS.forEach(rank => SUITS.forEach(suit => { if (!cardCurses[cardKey(rank, suit)]) _uncursed.push({ rank, suit }); }));
+    RANKS.forEach(rank => ACTIVE_SUITS.forEach(suit => { if (!cardCurses[cardKey(rank, suit)]) _uncursed.push({ rank, suit }); }));
     if (_uncursed.length) {
       const _victim = _uncursed[Math.floor(Math.random() * _uncursed.length)];
       const _cids = Object.keys(CURSE_DEFS);
@@ -158,7 +158,7 @@ function generateRewardContent() {
   // Blessed-card buff: a specific shown card gains a permanent bonus.
   function makeBlessedPayload() {
     const rank = RANKS[Math.floor(Math.random() * RANKS.length)];
-    const suit = SUITS[Math.floor(Math.random() * SUITS.length)];
+    const suit = ACTIVE_SUITS[Math.floor(Math.random() * ACTIVE_SUITS.length)];
     const mult = Math.random() < 0.3; // 30% of blessings are the (stronger) +1 mult
     return mult
       ? { icon: '✨', label: 'Blessed Card', tier: 'epic', cardFace: { rank, suit },
@@ -171,7 +171,7 @@ function generateRewardContent() {
   // Cull buff: deck thinning — a specific low card leaves the run for good.
   function makeCullPayload() {
     const rank = ['2', '3', '4'][Math.floor(Math.random() * 3)];
-    const suit = SUITS[Math.floor(Math.random() * SUITS.length)];
+    const suit = ACTIVE_SUITS[Math.floor(Math.random() * ACTIVE_SUITS.length)];
     return { icon: '✂️', label: 'Cull', tier: 'rare', cardFace: { rank, suit },
       desc: `Remove ${rank}${suit} from your deck for the rest of the run.`,
       apply: () => { removeCardIdentityFromRun(rank, suit)
@@ -298,7 +298,7 @@ function rollRewardMystery(goodChance) {
       apply:()=>{ nextRoundDiscardDelta += 2; showMessage('Mystery: +2 discards next round!', 'var(--gold)'); } };
     if (roll === 3) return { good, icon:'⏱', label:'+25s Round', flyTo:'clock', desc:'Next round starts with +25 seconds.',
       apply:()=>{ nextRoundSecondsDelta += 25; showMessage('Mystery: +25s next round!', 'var(--gold)'); } };
-    const rank = RANKS[Math.floor(Math.random()*RANKS.length)], suit = SUITS[Math.floor(Math.random()*SUITS.length)];
+    const rank = RANKS[Math.floor(Math.random()*RANKS.length)], suit = ACTIVE_SUITS[Math.floor(Math.random()*ACTIVE_SUITS.length)];
     return { good, icon:'✨', label:`Blessed ${rank}${suit}`, flyTo:'deck', desc:`${rank}${suit} permanently gains +10 pips.`,
       apply:()=>{ const k = cardKey(rank, suit); permPips[k] = (permPips[k]||0)+10; showMessage(`Mystery: ${rank}${suit} +10 pips!`, 'var(--gold)'); } };
   }
@@ -1067,7 +1067,7 @@ function closeRewardGrid() {
   if (rewardGridContext === 'interlude') {
     skipTrickChoiceOverlay = true;
 
-    if (ACTIVE_MODE.id === 'normal') {
+    if (isActMode()) {
       if (nodeInAct === 5) {
         // Post-boss reward grid — transition to next act
         nodeInAct = 0;

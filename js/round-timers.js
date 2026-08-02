@@ -89,7 +89,7 @@ function startTimers() {
   gameInterval = setInterval(() => {
     if (gameTimerPaused) return;
     gameSeconds--;
-    if (ACTIVE_MODE.id !== 'normal') {
+    if (!isActMode()) {
       const m = Math.floor(gameSeconds/60);
       const s = gameSeconds%60;
       document.getElementById('game-timer').textContent = `${m}:${s.toString().padStart(2,'0')}`;
@@ -173,7 +173,7 @@ function onRoundEnd() {
   // Normal mode: once the goal is reached, the score-dance → interlude owns the
   // whole round transition. Ignore a stray/late timer tick so the legacy
   // level-up flow (showLevelUpScreen / trick pick) can never fire on top of it.
-  if (ACTIVE_MODE.id === 'normal' && goalReachedThisRound) return;
+  if (isActMode() && goalReachedThisRound) return;
   _onRoundEndCore();
 }
 

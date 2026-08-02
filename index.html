@@ -19,9 +19,22 @@
     <div id="menu-stripe"></div>
     <div id="menu-title">THE GAME</div>
     <div id="menu-tagline">A LETHE amusement product. Please continue<br>playing until further notice.</div>
-    <button id="menu-start-btn" onclick="startFromMenu()">PLAY</button>
+    <button id="menu-start-btn" onclick="openModeSelect()">PLAY</button>
     <button id="menu-settings-btn" onclick="openSettingsFromMenu()">SETTINGS</button>
     <div id="menu-build-stamp"></div>
+  </div>
+</div>
+
+<div id="mode-select-overlay">
+  <div id="mode-select-inner">
+    <div id="mode-select-title">SELECT MODE</div>
+    <div id="mode-select-sub">Scroll sideways · press PLAY to begin</div>
+    <div id="mode-carousel-wrap">
+      <button class="mode-arrow" id="mode-arrow-left" onclick="scrollModes(-1)" aria-label="Previous mode">‹</button>
+      <div id="mode-carousel"></div>
+      <button class="mode-arrow" id="mode-arrow-right" onclick="scrollModes(1)" aria-label="Next mode">›</button>
+    </div>
+    <button id="mode-back-btn" onclick="closeModeSelect()">◄ BACK</button>
   </div>
 </div>
 
