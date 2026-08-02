@@ -120,81 +120,9 @@ function sfxWinExplode(){
   }catch(e){}
 }
 
-// ── WIN FINALE — replaces the old SUCCESS salute at round-win. ──
-// Sequence: every card jitters briefly → the winning (goal) cards fly up to the
-// hand-preview area → the rest of the board explodes outward (with the 80s SFX).
-// Only the VISUAL happens here; this removes the card DOM at the end so the deck
-// accounting + focus-meter fall in showLevelUpScreen_fallOnly (which runs right
-// after, in startInterlude) just settle silently. (The next round's cards still
-// fall in from above at the real deal, after the payout + reward screens.)
-async function winFinale(handCells){
-  const gridEl = document.getElementById('grid');
-  if(!gridEl){ return; }
-  selected = [];
-  const winIds = new Set(handCells.map(([r,c]) => gridData[r]?.[c]?._id).filter(v=>v!=null));
-  const allEls = [...gridEl.querySelectorAll('[data-card-id]')];
-  // Clear any lingering score-pop animation so our transforms are free to run.
-  allEls.forEach(el => { el.classList.remove('score-pop-h','score-pop-d','score-pop-c','score-pop-s'); el.style.animation='none'; });
-
-  // 1) Every card jitters slightly.
-  const jitters = allEls.map(el => el.animate([
-    {transform:'translate(0,0) rotate(0)'},
-    {transform:'translate(1.2px,-1px) rotate(0.7deg)'},
-    {transform:'translate(-1px,1.2px) rotate(-0.8deg)'},
-    {transform:'translate(1px,1px) rotate(0.5deg)'},
-    {transform:'translate(-1.2px,-0.8px) rotate(-0.6deg)'},
-    {transform:'translate(0,0) rotate(0)'},
-  ], {duration:150, iterations:2, easing:'linear'}));
-  await wait(300);
-  jitters.forEach(a=>{ try{ a.cancel(); }catch(e){} });
-
-  // 2) Winning cards fly up to the hand-preview area (#selected-cards).
-  const previewEl = document.getElementById('selected-cards');
-  const pr = previewEl ? previewEl.getBoundingClientRect() : null;
-  let wOrder = 0;
-  allEls.forEach(el => {
-    const id = +el.getAttribute('data-card-id');
-    if(!winIds.has(id)) return;
-    const s = el.getBoundingClientRect();
-    let dx=0, dy=-46, sc=0.9;
-    if(pr && pr.width){
-      const tx = pr.left + 12 + wOrder*(s.width*0.85) + s.width/2;
-      const ty = pr.top + pr.height/2;
-      dx = tx - (s.left + s.width/2); dy = ty - (s.top + s.height/2);
-      sc = Math.min(1, (pr.height*0.82)/s.height);
-    }
-    el.style.zIndex = 60;
-    el.animate([
-      {transform:'translate(0,0) scale(1)', filter:'drop-shadow(0 0 0 rgba(245,192,66,0))'},
-      {transform:`translate(${dx}px,${dy}px) scale(${sc})`, filter:'drop-shadow(0 0 14px rgba(245,192,66,0.8))'}
-    ], {duration:560, easing:'cubic-bezier(.34,1.25,.5,1)', fill:'forwards'});
-    wOrder++;
-  });
-  await wait(420); // let winners lift and travel before the blast
-
-  // 3) The rest of the board explodes outward + 80s SFX.
-  sfxWinExplode();
-  const gr = gridEl.getBoundingClientRect();
-  const cx = gr.left+gr.width/2, cy = gr.top+gr.height/2;
-  allEls.forEach(el => {
-    const id = +el.getAttribute('data-card-id');
-    if(winIds.has(id)) return;
-    const r = el.getBoundingClientRect();
-    let ax=(r.left+r.width/2)-cx, ay=(r.top+r.height/2)-cy;
-    const len=Math.hypot(ax,ay)||1; ax/=len; ay/=len;
-    const dist=460+Math.random()*260, rot=(Math.random()*2-1)*260;
-    el.style.zIndex=40;
-    el.animate([
-      {transform:'translate(0,0) rotate(0) scale(1)', opacity:1},
-      {transform:`translate(${ax*dist}px,${ay*dist}px) rotate(${rot}deg) scale(.7)`, opacity:0}
-    ], {duration:680, easing:'cubic-bezier(.2,.7,.3,1)', fill:'forwards'});
-  });
-  await wait(600);
-
-  // Remove all original card DOM (winners + losers) — the accounting pass that
-  // follows reads gridData, not the DOM, and will just settle the deck silently.
-  allEls.forEach(el => el.remove());
-}
+// (The win finale visuals now live inline at the top of the goal-hand branch in
+//  playPreviewDance — jitter → gentle explode → winners fly to preview — so they
+//  play BEFORE the tally. sfxWinExplode above is the 80s blast they fire.)
 
 // ── New preview-window scoring dance (dev toggle; owner-locked settings) ──
 const DANCE_CFG = {
@@ -746,16 +674,9 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   // Capture per-card pips BEFORE removeAndFall nulls gridData.
   const cardPipVals = handCells.map(([r,c]) => cardPips(gridData[r][c].rank));
 
-  // ── Grid feedback: goal hands pop in place (they salute later); normal hands FLY into the preview (below). ──
-  const gridEl = document.getElementById('grid'); const STAGGER=180, POP=900;
-  if(isGoalHand){
-    handCells.forEach(([r,c],i)=>{ const card=gridData[r][c]; if(!card) return;
-      const el=gridEl?.querySelector(`[data-card-id="${card._id}"]`); if(!el) return;
-      const sc = card.suit==='♥'?'h':card.suit==='♦'?'d':card.suit==='♣'?'c':'s';
-      el.classList.remove('score-pop-h','score-pop-d','score-pop-c','score-pop-s');
-      el.style.setProperty('animation-delay',(i*STAGGER)+'ms','important'); void el.offsetWidth;
-      el.classList.add('score-pop-'+sc); setTimeout(()=>sfxCardPop(card.suit), i*STAGGER); });
-  }
+  // Grid feedback for the goal hand is the WIN FINALE below (jitter → explode →
+  // fly), which runs before the tally. Normal hands fly into the preview further down.
+  const gridEl = document.getElementById('grid');
 
   // ── Contribution ledger (Tricks + exalt), aggregated per source + per-card ledger ──
   const savedPFM = lastPreFocusMult; const contrib=[]; const _ledger={}; calcScore(hand, handCells, contrib, _ledger); lastPreFocusMult = savedPFM;
@@ -804,8 +725,58 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   const elById = {}; tricks.forEach((t, ti) => { if (entityEls[ti]) elById[t.id] = entityEls[ti]; });
 
   if(isGoalHand){
-    await wait(handCells.length*STAGGER + POP);
+    // ── WIN FINALE (runs BEFORE the tally) ──
+    // The cards AROUND the winning hand jitter for ~2s, then explode gently
+    // outward while the winning cards fly up into the preview slots. The score
+    // number stays at its pre-hand value — the tally below does the counting.
+    const winIds = new Set(handCells.map(([r,c]) => gridData[r]?.[c]?._id).filter(v=>v!=null));
+    const gridCards = [...(gridEl?.querySelectorAll('[data-card-id]')||[])];
+    const winEls=[], loseEls=[];
+    gridCards.forEach(el => { (winIds.has(+el.getAttribute('data-card-id')) ? winEls : loseEls).push(el); });
+    gridCards.forEach(el => { el.classList.remove('score-pop-h','score-pop-d','score-pop-c','score-pop-s'); el.style.animation='none'; });
+    // Keep the preview EMPTY during the jitter/explosion — the dnc-cards only
+    // appear when the winners physically fly in (step 3 reveals each slot).
+    cardEls.forEach(d=>{ const o=d.parentElement; if(o) o.style.opacity='0'; });
+    // Winners: a gentle gold glow marks them while the rest jitter.
+    winEls.forEach(el => { el.style.zIndex='20'; el.animate(
+      [{boxShadow:'0 0 0 0 rgba(245,192,66,0)'},{boxShadow:'0 0 16px 5px rgba(245,192,66,0.6)'}],
+      {duration:400, fill:'forwards'}); });
+    // 1) Surrounding cards jitter for ~2s.
+    const jitters = loseEls.map(el => el.animate([
+      {transform:'translate(0,0) rotate(0)'},
+      {transform:'translate(1.3px,-1.1px) rotate(0.8deg)'},
+      {transform:'translate(-1.1px,1.3px) rotate(-0.9deg)'},
+      {transform:'translate(1.1px,1px) rotate(0.6deg)'},
+      {transform:'translate(-1.3px,-0.9px) rotate(-0.7deg)'},
+      {transform:'translate(0,0) rotate(0)'},
+    ], {duration:150, iterations:14, easing:'linear'})); // ~2.1s
+    await wait(2000);
     if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
+    jitters.forEach(a=>{ try{ a.cancel(); }catch(e){} });
+    // 2) Surrounding cards explode outward — gentle (short travel, slow).
+    sfxWinExplode();
+    const gr = gridEl.getBoundingClientRect(); const cx=gr.left+gr.width/2, cy=gr.top+gr.height/2;
+    loseEls.forEach(el => {
+      const r=el.getBoundingClientRect(); let ax=(r.left+r.width/2)-cx, ay=(r.top+r.height/2)-cy;
+      const len=Math.hypot(ax,ay)||1; ax/=len; ay/=len;
+      const dist=200+Math.random()*140, rot=(Math.random()*2-1)*160;
+      el.style.zIndex='30';
+      el.animate([{transform:'translate(0,0) rotate(0) scale(1)', opacity:1},
+        {transform:`translate(${ax*dist}px,${ay*dist}px) rotate(${rot}deg) scale(.82)`, opacity:0}],
+        {duration:900, easing:'cubic-bezier(.25,.6,.35,1)', fill:'forwards'});
+    });
+    // 3) As the blast happens, the winning cards fly up into the preview slots
+    //    (reveals each slot's dnc-card, same handoff normal hands use).
+    handCells.forEach(([r,c],i)=>{ const card=gridData[r]?.[c]; if(!card) return;
+      const gEl=gridEl?.querySelector(`[data-card-id="${card._id}"]`);
+      const slot=cardEls[i].parentElement;
+      setTimeout(()=>{ if(aborted()) return; flyGridCardToSlot(gEl, slot, 460); }, 140 + i*100);
+    });
+    await wait(140 + handCells.length*100 + 460 + 220);
+    if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
+    // Remove all original grid card DOM (exploded losers + flown winners). The
+    // deck accounting for every card still runs in showLevelUpScreen_fallOnly.
+    gridCards.forEach(el => el.remove()); dncHiddenGridEls=[];
   } else {
     // ── Normal hand: the selected grid cards physically fly into their preview slots. ──
     const FLY_STAGGER=95/dncSpeed, FLY_DUR=400/dncSpeed;
@@ -935,11 +906,13 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   if(isGoalHand){
     if(challengeActive){ showMessage('GOAL MET — COMPLETE THE CHALLENGE','#c9a84c'); }
     else {
+      // The win finale (jitter → explode → fly) already played BEFORE this
+      // tally, up front in the isGoalHand branch. Here we just settle audio and
+      // hand off to the interlude.
       clearInterval(roundInterval); roundInterval=null; gameTimerPaused=true; frozenRoundSeconds=roundSeconds;
       sfxVictory(); const ctx=getAudioCtx();
       if(sfxDuckGain){ sfxDuckGain.gain.setValueAtTime(0.4, ctx.currentTime); }
       else { sfxDuckGain=ctx.createGain(); sfxDuckGain.gain.setValueAtTime(0.4, ctx.currentTime); sfxDuckGain.connect(ctx.destination); }
-      await winFinale(handCells); // winners fly to preview + rest explode (replaces SUCCESS salute)
       startInterlude();
     }
   }

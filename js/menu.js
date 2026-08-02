@@ -1,4 +1,4 @@
-const BUILD = '2026-07-31 · r118 · thin cabinet chrome + game scaled up (merged: wider left column · clock bar spans grid)';
+const BUILD = '2026-07-31 · r119 · win finale reordered: jitter (2s) → gentle explode → winners fly → then tally';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
