@@ -1,4 +1,4 @@
-const BUILD = '2026-07-31 · r118 · thin cabinet chrome + game scaled up (merged: wider left column · clock bar spans grid)';
+const BUILD = '2026-08-02 · r119 · Dominoes mode (beta): two-cell tiles, runs/sets scoring';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -51,6 +51,18 @@ const MODES = {
     autoRefillGrid: true,
     timeIsCurrency: true,
     autoPlayHands: true
+  },
+  dominoes: {
+    id: 'dominoes',
+    name: 'Dominoes',
+    desc: 'Two-value tiles fall in either orientation. Select 3 dominoes; score every run and set of 3+ across their six halves at once.',
+    winCondition: 'endless',
+    enableBosses: false,
+    enableShops: false,
+    enableEvents: false,
+    autoRefillGrid: true,
+    timeIsCurrency: false,
+    autoPlayHands: false
   }
 };
 

@@ -130,6 +130,7 @@ function startGame() {
   // Sync playing-grid dimensions from limits and size the cards
   gridRows = limits.grid_rows.current;
   gridCols = limits.grid_cols.current;
+  if (ACTIVE_MODE.id === 'dominoes') { gridRows = 8; gridCols = 8; }
   recomputeGridMetrics();
   // Reset focus meter
   focusNodes = 0;

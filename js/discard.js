@@ -1,4 +1,6 @@
 function doDiscard() {
+  // Dominoes mode has its own (stubbed) discard flow.
+  if (typeof ACTIVE_MODE !== 'undefined' && ACTIVE_MODE.id === 'dominoes') { dominoDiscard(); return; }
   // During the on-grid reward step the Discard button is the yellow CLEAR button.
   if (rewardOnGrid) { clearRewardSelection(); return; }
   if (roundEnded || animating) return;

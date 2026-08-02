@@ -210,6 +210,8 @@ function flushPlayedDeck() {
 // GRID INIT
 // ══════════════════════════════════════════════
 function initGridData() {
+  // Dominoes mode builds its own two-cell board.
+  if (typeof ACTIVE_MODE !== 'undefined' && ACTIVE_MODE.id === 'dominoes') { dominoInitBoard(); return; }
   const fullDeck = freshShuffledDeck();
   const cellCount = gridRows * gridCols;
   // First cellCount cards go on the grid, rest go to future deck
