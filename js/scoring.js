@@ -343,6 +343,13 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // Landfill: +1 mult per 5 cards discarded this round
   if (hasTrick('landfill')) { const _a = Math.floor(cardsDiscardedRound / BAL.landfill.discards_per) * BAL.landfill.mult_per_n; if (_a) { mult += _a; bMult('landfill', _a); } }
 
+  // Sleight-sourced mult (r120) — these come from Sleights sitting on the grid, not Tricks,
+  // so they're tracked separately and attributed with source:'sleight' in the contributions.
+  const _whetM  = whetstoneMultForCells(cells); // Whetstone: sharpened mult, if it neighbors the hand
+  const _entM   = entourageMult();              // Entourage: +mult per other Sleight on the grid
+  const _lightM = lighthouseMult();             // Lighthouse: mult by distance from its favored column
+  mult += _whetM + _entM + _lightM;
+
   // Hearts: neutral by default; +1 mult each with Devoted Trick (per-card → per replay)
   const heartCount = _wc(c => c.suit === '♥' || (c.combined && c.suit2 === '♥'));
   if (hasTrick('heart_double') && heartCount > 0) { mult += heartCount * BAL.heart_double.heart_mult; bMult('heart_double', heartCount * BAL.heart_double.heart_mult); }
@@ -543,6 +550,9 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     // push {type,source:'knack'|'sleight',id,delta} and the dance will render it automatically.
     if (typeof sleightAmplifierMult === 'number' && sleightAmplifierMult > 0)
       contrib.push({type:'mult',source:'sleight',id:'amplifier',delta:Math.round(sleightAmplifierMult*10)/10});
+    if (_whetM  > 0) contrib.push({type:'mult',source:'sleight',id:'whetstone', delta:Math.round(_whetM*10)/10});
+    if (_entM   > 0) contrib.push({type:'mult',source:'sleight',id:'entourage', delta:Math.round(_entM*10)/10});
+    if (_lightM > 0) contrib.push({type:'mult',source:'sleight',id:'lighthouse',delta:Math.round(_lightM*10)/10});
   }
 
   // Finalize the animation ledger: attach the known per-card MULT / exalt single-iteration
@@ -577,6 +587,9 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
 // ══════════════════════════════════════════════
 function contribDisplayName(source, id) {
   if (source === 'exalt') return 'Exalt / Corrupt';
+  // Sleight/knack-sourced rows resolve against their own pools (Tricks are the default).
+  if (source === 'sleight') return SLEIGHT_POOL.find(s => s.id === id)?.name || id;
+  if (source === 'knack')   return KNACK_POOL.find(k => k.id === id)?.name || id;
   const def = TRICK_POOL.find(t => t.id === id);
   return def ? def.name : id;
 }

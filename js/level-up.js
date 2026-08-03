@@ -25,6 +25,10 @@ function computeRoundResources() {
   if (hasKnack('extra_swaps'))    s += BAL.extra_swaps.swaps;
   if (hasKnack('extra_discards')) d += BAL.extra_discards.discards;
 
+  // Tempo: the knack fixes both stocks at its own small limit and drips them back during
+  // the round, so it overrides limit-breaks, the +N round-start knacks and any carry-over.
+  if (hasKnack('tempo')) return { discards: BAL.tempo.limit, swaps: BAL.tempo.limit, seconds: Math.max(1, sec) };
+
   return { discards: Math.max(0, d), swaps: Math.max(0, s), seconds: Math.max(1, sec) };
 }
 
@@ -168,6 +172,10 @@ function triggerLevelUp() {
   } else metronomeHandType = null;
   // Shady Tree sleight: pick this round's "shady" column.
   shadyColumn = Math.floor(Math.random() * gridCols);
+  // Lighthouse sleight: its favored column alternates first ↔ last each round.
+  lighthouseColumn = (lighthouseFlip++ % 2 === 0) ? 0 : gridCols - 1;
+  // Tempo knack: restart the alternating swap/discard drip, swap first.
+  tempoElapsed = 0; tempoNextIsSwap = true;
   // Stopwatch: clear any lingering freeze/timer from the previous round.
   stopwatchActive = false;
   if (stopwatchTimer) { clearInterval(stopwatchTimer); stopwatchTimer = null; }

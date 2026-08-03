@@ -154,7 +154,13 @@ const BAL = {
   the_wanderer: { swaps: 1 },
   amplifier: { mult: 5 },
   piggy_bank: { coins: 5 },
+  // ── adjacency / position sleights (r120) ──
+  whetstone:  { mult_per_event: 1 },
+  entourage:  { mult_per_sleight: 10 },
+  lighthouse: { mult: 20, falloff_per_column: 5 },
   // ── knacks ──
+  tempo:    { limit: 2, interval_seconds: 15 },
+  jury_rig: { chance: 0.5, charges: 1 },
   time_slip: { chance: 0.25 },
   replay_rewind: { chance: 0.25, seconds: 2 },
   deja_vu: { seconds: 5 },
@@ -180,6 +186,10 @@ const BAL = {
 // value change via the balance sheet updates the in-game description too. Only
 // entities whose wording maps unambiguously to their params are listed.
 const DESC_TEMPLATES = {
+  whetstone: 'Whenever an adjacent card is swapped or discarded, Whetstone gains +{mult_per_event} mult. Hands that score a card adjacent to Whetstone score that mult.',
+  entourage: 'Hands score +{mult_per_sleight} mult for every other Sleight on the grid.',
+  lighthouse: 'Each round Lighthouse favors the first or last column. Hands score +{mult} mult while it sits in that column, −{falloff_per_column} per column of distance away (minimum 0).',
+  tempo: 'Sets your swap and discard limits to {limit}. Every {interval_seconds} seconds you gain 1 back, alternating swap, discard, swap — never above those limits.',
   overgrowth: 'Runs score +{pips_per_card} pips per card',
   long_road: 'Runs score +{mult_per_card} mult per card',
   river_run: 'Runs add +{focus_per_card} Focus per card',

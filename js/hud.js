@@ -87,6 +87,7 @@ function updateRunProgressUI() {
 }
 
 function updateKnackList() {
+  syncKnackLimits();   // Tempo rewrites the swap/discard limits as soon as it's owned
   const el = document.getElementById('knack-list');
   if (!el) return;
   if (acquiredKnacks.length === 0) {

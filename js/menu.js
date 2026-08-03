@@ -1,4 +1,4 @@
-const BUILD = '2026-08-01 · r120 · win finale reordered (jitter→explode→fly→tally) [merged: Six Suits + mode select]';
+const BUILD = '2026-08-03 · r121 · adjacency batch: Whetstone / Entourage / Lighthouse sleights + Tempo / Jury-Rig knacks';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

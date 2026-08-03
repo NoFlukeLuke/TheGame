@@ -69,6 +69,21 @@ function pickWeightedLimits(n, pool) {
   }
   return out;
 }
+// ── Tempo knack: rewrites the swap/discard limits the moment it's acquired ──
+// Tempo *sets* both limits (it doesn't add), so it deliberately overrides limit-break
+// upgrades and the +N start-of-round knacks (Swap Shop / Harvest) and makes carry-over
+// (Pack Rat / Collector) moot — you are capped at 2 of each and drip back up during the
+// round. Steady Hand / Hoarder still work: they bypass spending the stock entirely.
+// Called from updateKnackList() (every acquisition path funnels through it) and at round start.
+function syncKnackLimits() {
+  if (typeof hasKnack !== 'function' || !hasKnack('tempo')) return;
+  const n = BAL.tempo.limit;
+  limits.swaps.current    = n;
+  limits.discards.current = n;
+  if (typeof swaps    === 'number') swaps    = Math.min(swaps, n);
+  if (typeof discards === 'number') discards = Math.min(discards, n);
+}
+
 // Trick tray capacity (the trick_slots limit). Enforced in injectTrickAfterReward.
 function trickCapacity() {
   return (limits.trick_slots?.current ?? 5) + ((typeof hasKnack === 'function' && hasKnack('curator')) ? 1 : 0);

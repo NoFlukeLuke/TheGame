@@ -54,6 +54,19 @@ function startRoundTimer() {
       const _cd = gridData[_r]?.[_c];
       if (_cd && _cd._isSleight && _cd.sleightId === 'slow_burn') _cd._slowBurnSecs = (_cd._slowBurnSecs || 0) + 1;
     }
+    // Tempo knack: every N seconds hand back 1 resource, alternating swap → discard → swap.
+    // The alternation always advances, even when that stock is already full, so the rhythm
+    // stays predictable instead of stalling on a capped resource.
+    if (hasKnack('tempo')) {
+      if (++tempoElapsed >= BAL.tempo.interval_seconds) {
+        tempoElapsed = 0;
+        const _cap = BAL.tempo.limit;
+        if (tempoNextIsSwap) { if (swaps    < _cap) { swaps++;    showMessage('⏲️ Tempo — +1 swap',    'var(--gold)'); } }
+        else                 { if (discards < _cap) { discards++; showMessage('⏲️ Tempo — +1 discard', 'var(--gold)'); } }
+        tempoNextIsSwap = !tempoNextIsSwap;
+        if (!animating && !falling) render();
+      }
+    }
     handleClockMarks(roundSeconds); // clock-mark Tricks (Tick-Tock, Quarter Chime, Minute/Second Hand, Hourglass)
     trickCardTimer++;
     if (trickCardTimer >= TRICK_CARD_INTERVAL) { trickCardTimer = 0; assignTrickCard(); }
