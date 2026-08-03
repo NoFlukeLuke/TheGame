@@ -68,9 +68,11 @@ function syncSidebarsToGrid() {
   const focus = document.getElementById('focus-meter-wrap');
   const clockArea = document.getElementById('clock-area');
   const vclock = document.getElementById('vclock');
+  const machine = document.getElementById('left-machine');
   const landscape = stage && stage.classList.contains('landscape');
   if (!landscape) {   // portrait: drop any inline overrides so the stacked layout is untouched
     [focus, clockArea, vclock].forEach(e => { if (e) { e.style.left = ''; e.style.width = ''; } });
+    if (machine) machine.style.width = '';
     return;
   }
   const grid = document.getElementById('grid');
@@ -81,6 +83,8 @@ function syncSidebarsToGrid() {
   const pct = px => px / s.width * 100;
   const gLeft  = pct(g.left  - s.left);
   const gWidth = pct(g.width);
+  // Beige machine panel fills everything left of the grid (the focus gauge sits on it).
+  if (machine) machine.style.width = gLeft + '%';
   // Clock readout (fixed slice at the grid's left) + timer bar fill the grid width.
   if (clockArea && vclock) {
     const readoutW = 7;

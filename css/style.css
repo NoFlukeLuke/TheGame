@@ -3511,15 +3511,18 @@
   /* The whole left column sits on a beige plastic panel (the machine housing); each
      readout becomes a little screen recessed into it. No black chip borders — the beige
      shows through the (now larger) gaps between chips. */
+  /* Beige fills the ENTIRE left region — flush to the screen edges (top/left/bottom)
+     and rightward up to the grid, so no dark screen shows on the left. The focus
+     gauge sits on this beige. Right edge is pinned to the grid's left edge in JS
+     (syncSidebarsToGrid); the 45% here is just the pre-JS fallback. */
   #stage.landscape #left-machine {
-    position: absolute; left: 0.6%; top: 1.4%; width: 39%; height: 96.8%;
-    z-index: 0; border-radius: 12px;
+    position: absolute; left: 0; top: 0; width: 45%; height: 100%;
+    z-index: 0; border-radius: 8px 0 0 8px;
     background: linear-gradient(155deg, var(--plastic-hi), var(--plastic) 46%, var(--plastic-lo));
     box-shadow:
-      inset 0 1px 0 rgba(255,255,255,0.65),
-      inset 0 -4px 8px rgba(0,0,0,0.18),
-      inset 0 0 0 1px rgba(133,121,95,0.5),
-      0 3px 8px rgba(0,0,0,0.45);
+      inset 0 1px 0 rgba(255,255,255,0.6),
+      inset 0 -4px 10px rgba(0,0,0,0.16),
+      inset -3px 0 8px rgba(0,0,0,0.22);
   }
 
   /* Every left readout → recessed screen inset into the beige (no black border) */
