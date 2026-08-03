@@ -101,8 +101,11 @@ function setNewDance(on){ newDanceEnabled = !!on; try { localStorage.setItem('ne
 //   'ff'      — briefly rush the old hand's score up to its final, then start the new one
 //   'resolve' — snap the old hand's score to final with one quick pop, then start the new one
 // All three cut the old dance's grid/logic immediately (grid-safe); they differ only in the brief visual handoff.
-let danceInterruptMode = (function(){ try { return localStorage.getItem('danceInterrupt') || 'cut'; } catch(e){ return 'cut'; } })();
-function setDanceInterruptMode(m){ if(!['cut','ff','resolve'].includes(m)) m='cut'; danceInterruptMode=m; try { localStorage.setItem('danceInterrupt', m); } catch(e){} }
+// Default is 'ff' (r116): the outgoing hand visibly rushes its score up while the incoming hand's
+// cards fly in, which is the handoff the owner asked for. 'cut' still resolves the score instantly,
+// it just skips the count-up flourish.
+let danceInterruptMode = (function(){ try { return localStorage.getItem('danceInterrupt') || 'ff'; } catch(e){ return 'ff'; } })();
+function setDanceInterruptMode(m){ if(!['cut','ff','resolve'].includes(m)) m='ff'; danceInterruptMode=m; try { localStorage.setItem('danceInterrupt', m); } catch(e){} }
 let _lastDanceStart = 0; // for the spam valve: rapid re-interrupts skip the flourish
 function _scoreDisplayed(){ const el=document.getElementById('score-total-num'); if(!el) return 0; const n=parseInt((el.textContent||'0').replace(/[^0-9-]/g,''),10); return isNaN(n)?0:n; }
 // Brief, grid-safe visual handoff acknowledging the just-cut previous hand. Resolves when done.
@@ -117,11 +120,19 @@ async function danceInterruptFlourish(mode, fromVal, toVal, sig){
     await new Promise(res=>{ const t=setTimeout(res,200); sig&&sig.addEventListener('abort',()=>{clearTimeout(t);res();},{once:true}); });
   } else { // 'ff' — quick count-up to the outgoing hand's final
     const dur=360, start=performance.now();
-    await new Promise(res=>{ function tk(now){ if(sig&&sig.aborted){ res(); return; }
-      const t=Math.min((now-start)/dur,1), e=1-Math.pow(1-t,3);
-      scoreEl.textContent = Math.round(fromVal+(toVal-fromVal)*e).toLocaleString();
-      if(typeof sfxScoreTick==='function' && Math.random()<0.4) sfxScoreTick();
-      if(t<1) requestAnimationFrame(tk); else res(); }
+    // Callers await this, so it must ALWAYS settle: rAF is throttled to zero in a background
+    // tab, so an abort/timeout escape hatch keeps the incoming dance from stalling there.
+    await new Promise(res=>{
+      let done=false;
+      const finish=()=>{ if(done) return; done=true; scoreEl.textContent = toVal.toLocaleString(); res(); };
+      const bail=()=>{ if(done) return; done=true; res(); };
+      const guard=setTimeout(finish, dur+400);
+      sig&&sig.addEventListener('abort', ()=>{ clearTimeout(guard); bail(); }, {once:true});
+      function tk(now){ if(done) return; if(sig&&sig.aborted){ clearTimeout(guard); bail(); return; }
+        const t=Math.min((now-start)/dur,1), e=1-Math.pow(1-t,3);
+        scoreEl.textContent = Math.round(fromVal+(toVal-fromVal)*e).toLocaleString();
+        if(typeof sfxScoreTick==='function' && Math.random()<0.4) sfxScoreTick();
+        if(t<1) requestAnimationFrame(tk); else { clearTimeout(guard); finish(); } }
       requestAnimationFrame(tk); });
   }
 }
@@ -600,12 +611,26 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   dncFF = false; resetParticleStep();
   const aborted = () => sig.aborted;
   const dwait = ms => new Promise(r => setTimeout(r, dncFF ? Math.max(6, ms/DANCE_CFG.ff) : ms));
-  // ── Interrupt handoff: briefly acknowledge the just-cut previous hand (visual only, grid untouched). ──
-  // Spam valve: two interrupts in quick succession skip straight to 'cut' so rapid chaining stays snappy.
-  if(outgoing && !isGoalHand && !rapid && (outMode==='ff' || outMode==='resolve')){
+  // ── Interrupt handoff: resolve the just-cut previous hand's score (visual only, grid untouched). ──
+  // The outgoing hand's total ALWAYS lands here, one way or another. Previously this only ran for
+  // the non-default 'ff'/'resolve' modes and was skipped by the spam valve, so on rapid chaining the
+  // score display sat on a stale mid-climb number until the *next* completed dance reached its own
+  // score climb (which happens only after the fly-in + the whole card-beat phase — seconds later).
+  // That was the "score doesn't update until a hand finishes animating" bug.
+  //
+  // The handoff now runs CONCURRENTLY with this hand's fly-in rather than blocking before it: the
+  // incoming cards float into the preview while the outgoing hand's score rushes up behind them,
+  // and the new hand's own beats don't start until that count-up has landed (awaited below).
+  let handoffPromise = null;
+  if(outgoing && !isGoalHand){
     const endpoint = Math.max(0, score - (result.finalScore||0)); // the outgoing hand's final total
-    await danceInterruptFlourish(outMode, preDisplay, endpoint, sig);
-    if(aborted()){ dncFinishAbort(null, isGoalHand, myGen); return; }
+    if(!rapid && (outMode==='ff' || outMode==='resolve')){
+      handoffPromise = danceInterruptFlourish(outMode, preDisplay, endpoint, sig);
+    } else {
+      // Spam valve / 'cut': no flourish, but the total must still resolve immediately.
+      const _se = document.getElementById('score-total-num');
+      if(_se) _se.textContent = endpoint.toLocaleString();
+    }
   }
 
   const { hand, handCells, finalScore } = result;
@@ -694,6 +719,13 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
     await wait(handCells.length*FLY_STAGGER + FLY_DUR);
     if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
     if(typeof sfxFlipShuffle==='function') sfxFlipShuffle(); removeAndFall(toRemove,'play'); dncHiddenGridEls=[]; // flown cards now removed
+  }
+
+  // The outgoing hand's score count-up ran alongside the fly-in above; make sure it has
+  // fully landed before this hand starts adding its own beats on top.
+  if(handoffPromise){
+    await handoffPromise;
+    if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
   }
 
   // ── Score boxes ──

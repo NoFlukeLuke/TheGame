@@ -1,4 +1,4 @@
-const BUILD = '2026-08-03 · r115 · Match-3 auto-play mode';
+const BUILD = '2026-08-03 · r116 · Match-3 mode + rapid-submit score fix';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
