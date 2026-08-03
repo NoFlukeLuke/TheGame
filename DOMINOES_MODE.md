@@ -42,6 +42,9 @@ shared code from choking on a missing suit.
 - **Refill:** empty cells left behind get filled by **new dominoes** dropping from the
   top (mode auto-refills, like Normal).
 - **Swap:** you can swap **adjacent whole pieces** (a domino is moved as a unit).
+  *v1 constraint:* both pieces must share the same **orientation**, so the two
+  footprints are congruent and the exchange always fits. (Mixed-orientation swaps
+  would need rotation, which conflicts with "orientation is fixed once spawned".)
 
 ---
 
@@ -49,6 +52,11 @@ shared code from choking on a missing suit.
 
 - You select **whole dominoes**, not halves. **Selection cap starts at 3 dominoes**
   (= up to 6 half-values). Upgradeable later like the normal card cap.
+- **Selected dominoes must be ADJACENT** — the picked group has to stay orthogonally
+  connected (any cell of one touching any cell of another), matching how connected
+  selection works in the base game. Pieces that can't legally join the current
+  selection are dimmed. Deselecting a piece that splits the group prunes the
+  now-orphaned pieces.
 - Detection runs over the **pool of half-values** from the selected dominoes.
 - **Hands start at length 3** and every larger length also counts:
   - **Runs:** 3, 4, 5, 6, 7… consecutive distinct values.
@@ -181,13 +189,34 @@ untouched. Reached via the **DOMINOES (BETA)** button on the main menu.
 - Component-cycling hand-type label in the preview during scoring.
 - Minimal round/level advance (endless).
 
-### Deferred to follow-ups (not in v1)
+### v2 (shipped, r120) — adjacency + the action loop
+- **Adjacency rule** on selection (connected group; illegal picks dimmed; prune on
+  a splitting deselect).
+- **Swap:** double-tap a domino to arm it, tap an adjacent same-orientation domino
+  to trade places. Costs a swap; board re-settles and refills after.
+- **Discard:** selected dominoes return to the bottom of the deck; costs a discard;
+  board re-settles and refills.
+- Swap/discard HUD counters updated from the domino renderer (shared `render()` is
+  routed away in this mode).
+
+Verified headlessly (`ALL CHECKS PASSED`, 20 assertions): board integrity over 200
+deals (no overlaps, no orphan cells, pieces always contiguous, gravity fully
+settled), adjacency gating + prune, swap consistency + charge spend, and all three
+of the owner's scoring examples.
+
+### Deferred to follow-ups (not yet built)
 - **Tricks** (curated subset, per-half, hand-size-gated per component) — §6.
 - **Knacks** and **curses/buffed** tiles — §6.
-- **Swap** (adjacent rigid pieces) and **Discard** (currently a stub message).
 - Richer fall animation (v1 uses CSS transitions on reposition).
 - Grid-size upgrades / shop / events wiring.
-- Timer-expiry behavior in this mode currently falls through to shared timer.
+- Timer-expiry behavior in this mode currently falls through to the shared timer.
+
+### Tuning note (needs a play-test verdict)
+Boards settle at **38–58 of 64 cells filled (~25% gaps on average)**. That is the
+structural consequence of rigid 2-cell pieces + gravity — odd-shaped pockets can
+never be filled by a 2-cell tile. It may play great (gaps create shape) or feel
+sparse; easy levers if it's too empty: spawn more aggressively, allow a piece to
+rotate to fit a pocket, or shrink the board.
 
 ---
 

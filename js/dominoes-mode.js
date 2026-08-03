@@ -14,8 +14,11 @@
 let dominoGrid     = [];
 let dominoPieces   = {};
 let dominoDeck     = [];
-let dominoSelected = [];   // piece ids, max 3
+let dominoSelected = [];   // piece ids, max 3 — must stay orthogonally connected
+let dominoSwapPending = null; // piece id armed for a swap
 let _dpieceId      = 0;
+let _domLastTapId  = null;
+let _domLastTapTime = 0;
 
 const DOMINO_ROWS = 8;
 const DOMINO_COLS = 8;
@@ -109,7 +112,7 @@ function dominoInitBoard() {
   dominoGrid = Array.from({ length: gridRows }, () => new Array(gridCols).fill(null));
   // Keep a null gridData of matching dims so any stray shared access is safe.
   gridData = Array.from({ length: gridRows }, () => new Array(gridCols).fill(null));
-  dominoPieces = {}; dominoSelected = []; _dpieceId = 0;
+  dominoPieces = {}; dominoSelected = []; dominoSwapPending = null; _dpieceId = 0;
   dominoDeck = buildDominoDeck();
   dominoRefill();
 }
@@ -146,7 +149,13 @@ function dominoRenderBoard() {
     const rTop = Math.min(p.cells[0][0], p.cells[1][0]);
     const cLeft = Math.min(p.cells[0][1], p.cells[1][1]);
     const sel = dominoSelected.indexOf(p.id);
-    div.className = 'domino ' + (p.orient === 'h' ? 'dom-h' : 'dom-v') + (sel >= 0 ? ' selected' : '');
+    // Dim pieces that can't legally join the current selection (adjacency rule).
+    const dim = sel < 0 && dominoSelected.length > 0 && dominoSelected.length < 3 && !dominoCanSelect(p.id);
+    const full = sel < 0 && dominoSelected.length >= 3;
+    div.className = 'domino ' + (p.orient === 'h' ? 'dom-h' : 'dom-v')
+      + (sel >= 0 ? ' selected' : '')
+      + (dominoSwapPending === p.id ? ' swap-pending' : '')
+      + (dim || full ? ' dom-dim' : '');
     if (p.orient === 'h') { div.style.width = (2 * CARD_W + CARD_GAP) + 'px'; div.style.height = CARD_H + 'px'; }
     else                  { div.style.width = CARD_W + 'px'; div.style.height = (2 * CARD_H + CARD_GAP) + 'px'; }
     div.style.left = cellLeft(cLeft) + 'px';
@@ -160,15 +169,96 @@ function dominoRenderBoard() {
   dominoUpdatePreview();
 }
 
+// ── Adjacency ──
+// Two pieces are adjacent when any cell of one is orthogonally next to any cell
+// of the other. A selection must stay a single connected group.
+function dominoPiecesAdjacent(p1, p2) {
+  if (!p1 || !p2) return false;
+  for (const [r1, c1] of p1.cells)
+    for (const [r2, c2] of p2.cells)
+      if (Math.abs(r1 - r2) + Math.abs(c1 - c2) === 1) return true;
+  return false;
+}
+
+// Can this piece legally join the current selection?
+function dominoCanSelect(id) {
+  if (dominoSelected.length === 0) return true;
+  if (dominoSelected.includes(id)) return true;
+  return dominoSelected.some(sid => dominoPiecesAdjacent(dominoPieces[sid], dominoPieces[id]));
+}
+
+// Keep only the pieces still connected to the first one (used after a deselect
+// splits the group in two).
+function dominoPruneDisconnected() {
+  if (dominoSelected.length <= 1) return;
+  const keep = [dominoSelected[0]];
+  let grew = true;
+  while (grew) {
+    grew = false;
+    dominoSelected.forEach(id => {
+      if (keep.includes(id)) return;
+      if (keep.some(k => dominoPiecesAdjacent(dominoPieces[k], dominoPieces[id]))) { keep.push(id); grew = true; }
+    });
+  }
+  dominoSelected = dominoSelected.filter(id => keep.includes(id));
+}
+
 // ── Selection + live preview ──
 function dominoTapPiece(id) {
   if (animating) return;
+
+  // Swap flow: a pending piece is waiting for its partner.
+  if (dominoSwapPending != null) {
+    if (dominoSwapPending === id) { dominoSwapPending = null; dominoRenderBoard(); return; }
+    dominoTrySwap(dominoSwapPending, id);
+    return;
+  }
+
+  // Double-tap arms a swap.
+  const now = Date.now();
+  if (_domLastTapId === id && (now - _domLastTapTime) < 320) {
+    _domLastTapId = null; _domLastTapTime = 0;
+    dominoSwapPending = id;
+    dominoSelected = [];
+    showMessage('Tap an adjacent domino to swap', '#8fd0ff');
+    dominoRenderBoard();
+    return;
+  }
+  _domLastTapId = id; _domLastTapTime = now;
+
   const i = dominoSelected.indexOf(id);
-  if (i >= 0) dominoSelected.splice(i, 1);
-  else {
+  if (i >= 0) {
+    dominoSelected.splice(i, 1);
+    dominoPruneDisconnected();
+  } else {
     if (dominoSelected.length >= 3) { showMessage('Max 3 dominoes', 'var(--cream-dim)'); return; }
+    if (!dominoCanSelect(id)) { showMessage('Dominoes must be adjacent', 'var(--cream-dim)'); return; }
     dominoSelected.push(id);
   }
+  dominoRenderBoard();
+}
+
+// ── Swap (two adjacent pieces trade places) ──
+// v1 constraint: same orientation only, so the two footprints are congruent and
+// the exchange always fits.
+function dominoTrySwap(id1, id2) {
+  const p1 = dominoPieces[id1], p2 = dominoPieces[id2];
+  dominoSwapPending = null;
+  if (!p1 || !p2) { dominoRenderBoard(); return; }
+  if (!dominoPiecesAdjacent(p1, p2)) { showMessage('Swap adjacent dominoes only', 'var(--cream-dim)'); dominoRenderBoard(); return; }
+  if (p1.orient !== p2.orient) { showMessage('Swap same-orientation dominoes only', 'var(--cream-dim)'); dominoRenderBoard(); return; }
+  if (typeof swaps === 'number' && swaps <= 0) { showMessage('No swaps left', 'var(--red)'); dominoRenderBoard(); return; }
+
+  const cells1 = p1.cells, cells2 = p2.cells;
+  cells1.forEach(([r, c]) => { dominoGrid[r][c] = null; });
+  cells2.forEach(([r, c]) => { dominoGrid[r][c] = null; });
+  p1.cells = cells2; p2.cells = cells1;
+  p1.cells.forEach(([r, c]) => { dominoGrid[r][c] = p1.id; });
+  p2.cells.forEach(([r, c]) => { dominoGrid[r][c] = p2.id; });
+
+  if (typeof swaps === 'number') swaps--;
+  dominoSettle();
+  dominoRefill();
   dominoRenderBoard();
 }
 
@@ -230,12 +320,19 @@ function dominoUpdatePreview() {
     if (playBtn) playBtn.disabled = true;
   }
   if (discBtn) discBtn.disabled = dominoSelected.length === 0;
+
+  // render() is routed away in this mode, so keep the shared counters current here.
+  const dc = document.getElementById('disc-count');
+  if (dc && typeof discards === 'number') dc.textContent = `(${discards})`;
+  const sc = document.getElementById('swap-count');
+  if (sc && typeof swaps === 'number') sc.textContent = swaps;
 }
 
 // ── Play ──
 function dominoPlay() {
   if (animating) return;
-  if (dominoSelected.length < 3) { showMessage('Select 3 dominoes', 'var(--cream-dim)'); return; }
+  dominoSwapPending = null;
+  if (dominoSelected.length < 3) { showMessage('Select 3 adjacent dominoes', 'var(--cream-dim)'); return; }
   const pairs = dominoSelected.map(id => [dominoPieces[id].a, dominoPieces[id].b]);
   const comps = dominoDetectComponents(pairs);
   if (comps.length === 0) { showMessage('No run or set', 'var(--red)'); return; }
@@ -295,9 +392,23 @@ function dominoAdvanceLevel() {
   if (typeof startRoundTimer === 'function') startRoundTimer();
 }
 
-// ── Discard (v1 stub — full domino discard is a follow-up) ──
+// ── Discard: selected pieces go back into the deck; board settles + refills ──
 function dominoDiscard() {
-  showMessage('Discard is coming to Dominoes soon', 'var(--cream-dim)');
+  if (animating) return;
+  if (dominoSelected.length === 0) return;
+  if (typeof discards === 'number' && discards <= 0) { showMessage('No discards left', 'var(--red)'); return; }
+  if (typeof discards === 'number') discards--;
+  const ids = [...dominoSelected];
+  dominoSelected = [];
+  ids.forEach(id => {
+    const p = dominoPieces[id];
+    if (p) dominoDeck.unshift([p.a, p.b]); // returns to the bottom of the deck
+    dominoRemovePiece(id);
+  });
+  dominoSettle();
+  dominoRefill();
+  dominoRenderBoard();
+  showMessage(`Discarded ${ids.length}`, 'var(--cream-dim)');
 }
 
 // ── Launch ──

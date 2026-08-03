@@ -51,6 +51,18 @@
 #grid .domino.selected { transform: translateY(-2px); z-index: 5; }
 #grid .domino:hover .dom-body { filter: brightness(1.04); }
 
+/* Not a legal next pick (adjacency rule) or selection already full. */
+#grid .domino.dom-dim { opacity: 0.42; filter: saturate(0.5); }
+#grid .domino.dom-dim:hover .dom-body { filter: none; }
+
+/* Armed for a swap — waiting for its partner. */
+#grid .domino.swap-pending .dom-body {
+  border-color: #8fd0ff;
+  box-shadow: 0 0 0 2px #8fd0ff, 0 0 14px rgba(143,208,255,0.6);
+  animation: dom-swap-pulse 0.9s ease-in-out infinite alternate;
+}
+@keyframes dom-swap-pulse { from { filter: brightness(1); } to { filter: brightness(1.12); } }
+
 #grid .domino .dom-selnum {
   position: absolute; top: -6px; left: -6px; z-index: 6;
   min-width: 18px; height: 18px; padding: 0 4px;

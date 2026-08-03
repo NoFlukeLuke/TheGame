@@ -1,4 +1,4 @@
-const BUILD = '2026-08-02 · r119 · Dominoes mode (beta): two-cell tiles, runs/sets scoring';
+const BUILD = '2026-08-03 · r120 · Dominoes: adjacency rule + swap & discard';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
