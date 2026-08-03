@@ -1,4 +1,4 @@
-const BUILD = '2026-07-29 · r114 · name wrap + live trick values';
+const BUILD = '2026-08-03 · r115 · Match-3 auto-play mode';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -51,6 +51,40 @@ const MODES = {
     autoRefillGrid: true,
     timeIsCurrency: true,
     autoPlayHands: true
+  },
+  // Match-3 auto-play mode. A full 5×5 board of cards: straight-line flushes,
+  // runs, and sets of 3+ AUTO-PLAY the instant they exist, then cascade (candy-
+  // crush style). The player only swaps & discards to set matches up — the
+  // playing is automatic. Goal + timer progression (Normal's shape). See match3.js.
+  match3: {
+    id: 'match3',
+    name: 'Match-3 (Auto)',
+    desc: 'A 5×5 board where flushes, runs, and sets of 3 auto-play and cascade. You just swap & discard to line them up — the game plays them for you.',
+    winCondition: 'goal_timer',
+    enableBosses: false,
+    enableShops: false,
+    enableEvents: false,
+    autoRefillGrid: true,
+    timeIsCurrency: true,
+    autoPlayHands: true,
+    match3: true
+  },
+  // Zen: the same Match-3 board with the pressure removed — no round clock and
+  // no swap/discard limits. Goals still exist (doubled, see triggerLevelUp) so
+  // levelling and the reward grid remain reachable, just at a slower pace.
+  zen: {
+    id: 'zen',
+    name: 'Zen (Match-3)',
+    desc: 'Match-3 with no clock and unlimited swaps & discards. Goals are doubled — play at your own pace.',
+    winCondition: 'goal_only',
+    enableBosses: false,
+    enableShops: false,
+    enableEvents: false,
+    autoRefillGrid: true,
+    timeIsCurrency: false,
+    autoPlayHands: true,
+    match3: true,
+    zen: true
   }
 };
 
@@ -82,6 +116,14 @@ function renderMenuModes() {
 }
 
 function startFromMenu() {
+  ACTIVE_MODE = MODES.normal;
+  document.getElementById('main-menu-overlay').classList.remove('show');
+  startGame();
+}
+
+// Launch a Match-3 flavour from the main menu ('match3' = goal+timer, 'zen' = no clock).
+function startMatch3FromMenu(modeId = 'match3') {
+  ACTIVE_MODE = MODES[modeId] || MODES.match3;
   document.getElementById('main-menu-overlay').classList.remove('show');
   startGame();
 }

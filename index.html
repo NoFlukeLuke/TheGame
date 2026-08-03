@@ -7,6 +7,7 @@
 <link rel="stylesheet" href="css/style.css">
 <link rel="stylesheet" href="css/dance.css">
 <link rel="stylesheet" href="css/dev-overlays.css">
+<link rel="stylesheet" href="css/match3.css">
 </head>
 <body>
 <div id="knack-tooltip" role="tooltip"></div>
@@ -20,6 +21,8 @@
     <div id="menu-title">THE GAME</div>
     <div id="menu-tagline">A LETHE amusement product. Please continue<br>playing until further notice.</div>
     <button id="menu-start-btn" onclick="startFromMenu()">PLAY</button>
+    <button id="menu-match3-btn" onclick="startMatch3FromMenu('match3')">MATCH-3 (AUTO)</button>
+    <button id="menu-zen-btn" onclick="startMatch3FromMenu('zen')">ZEN — NO CLOCK</button>
     <button id="menu-settings-btn" onclick="openSettingsFromMenu()">SETTINGS</button>
     <div id="menu-build-stamp"></div>
   </div>
@@ -421,6 +424,22 @@
   </div>
 
   <div class="dev-section">
+    <div class="dev-section-title">Match-3 Mode</div>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;">
+      <input id="dev-match3-infinite-deck" type="checkbox" onchange="setMatch3InfiniteDeck(this.checked)" style="accent-color:var(--gold);">
+      Infinite deck (scored cards requeue to the back)
+    </label>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;margin-top:6px;">
+      <input id="dev-match3-infinite-mode" type="checkbox" onchange="setMatch3InfiniteMode(this.checked)" style="accent-color:var(--gold);">
+      Infinite mode (no clock, no goal — sandbox)
+    </label>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;margin-top:6px;">
+      <input id="dev-match3-preview-select" type="checkbox" onchange="setMatch3PreviewSelect(this.checked)" style="accent-color:var(--gold);">
+      Select matches for 1s before playing (interruptible)
+    </label>
+  </div>
+
+  <div class="dev-section">
     <div class="dev-section-title">Event Log <span id="dev-log-count" style="color:var(--cream-dim);">(0)</span></div>
     <div id="dev-event-log">No events yet.</div>
     <div style="display:flex;align-items:center;gap:8px;margin-top:2px;">
@@ -673,6 +692,7 @@
 <script src="js/game-control.js"></script>
 <script src="js/challenge.js"></script>
 <script src="js/audio.js"></script>
+<script src="js/match3.js"></script>
 <script src="js/dev-panel.js"></script>
 <script src="js/bootstrap.js"></script>
 </div><!-- /#stage -->

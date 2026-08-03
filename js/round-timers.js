@@ -47,6 +47,7 @@ function startRoundTimer() {
   roundInterval = setInterval(() => {
     if (pipeTimerPaused) return;
     if (gameTimerPaused) return; // global pause covers menus/shop/events
+    if (match3NoTimer()) return; // Zen / infinite dev mode: the clock never runs down
     roundSeconds--;
     if (roundSeconds < 0) roundSeconds = 0;
     // Slow Burn sleights accrue on-grid time → +1 max Focus per minute (see onGridSleightCapBonus)
@@ -78,6 +79,13 @@ function startRoundTimer() {
   }, 1000);
   // Start focus decay alongside the round timer (pauses internally during overlays)
   startFocusDecay();
+  // Match-3: a freshly dealt board settles silently (no free opening cascade),
+  // then the cascade engine takes over. Resuming mid-round only re-resolves.
+  if (match3Active()) {
+    if (match3PendingSettle) { match3PendingSettle = false; match3SettleBoard(); render(); }
+    match3ApplyZenResources();
+    setTimeout(() => match3Resolve(), 300);
+  }
 }
 
 function startTimers() {

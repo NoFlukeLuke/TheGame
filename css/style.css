@@ -3033,6 +3033,22 @@
     transition: background 0.12s ease, color 0.12s ease;
   }
   #menu-settings-btn:hover { background: linear-gradient(180deg, #235055, #12292c); color: #fff; }
+  #menu-match3-btn {
+    margin-top: 8px; width: 100%; max-width: 300px;
+    font-family: 'Orbitron', sans-serif; font-weight: 800; font-size: 14px; letter-spacing: 3px;
+    color: #ff7ad0; text-transform: uppercase; cursor: pointer; padding: 12px;
+    background: linear-gradient(180deg, #3a1030, rgba(30,10,26,0)); border: 1px solid #ff7ad0; border-radius: 9px;
+    transition: background 0.12s ease, color 0.12s ease, filter 0.12s ease;
+  }
+  #menu-match3-btn:hover { background: linear-gradient(180deg, #55204a, #2a0f24); color: #fff; filter: brightness(1.05); }
+  #menu-zen-btn {
+    margin-top: 6px; width: 100%; max-width: 300px;
+    font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 12px; letter-spacing: 3px;
+    color: #7fe3c0; text-transform: uppercase; cursor: pointer; padding: 10px;
+    background: linear-gradient(180deg, #123028, rgba(10,26,22,0)); border: 1px solid #7fe3c0; border-radius: 9px;
+    transition: background 0.12s ease, color 0.12s ease;
+  }
+  #menu-zen-btn:hover { background: linear-gradient(180deg, #1b4a3d, #0e2620); color: #fff; }
   #menu-build-stamp {
     margin-top: 8px; font-family: 'Share Tech Mono', monospace; font-size: 9px; letter-spacing: 2px;
     color: rgba(183,166,132,0.5);

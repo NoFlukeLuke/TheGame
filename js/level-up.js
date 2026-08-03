@@ -60,6 +60,9 @@ function triggerLevelUp() {
   level++;
   // This round's score target, from zero
   roundGoal = Math.round(Math.round(BASE_GOAL * Math.pow(GOAL_SCALE, level - 1)) / 500) * 500;
+  // Zen has no clock, so its goals are doubled — levelling and the reward grid
+  // stay reachable, just at a slower, self-paced rate.
+  if (match3IsZen()) roundGoal *= 2;
   totalScore += score; // bank the completed round's score for the end-of-run display
   // Life Lessons: each completed round permanently raises max Focus
   if (hasTrick('life_lessons')) focusCapPerm += BAL.life_lessons.cap_gain;
@@ -78,6 +81,8 @@ function triggerLevelUp() {
   discards     = _rr.discards;
   swaps        = _rr.swaps;
   roundSeconds = _rr.seconds;
+  match3ApplyZenResources(); // Zen/infinite: refill swaps & discards to "unlimited"
+  match3PendingSettle = true; // the round's fresh board settles when its timer starts
   // Per-action time-cost debuffs active this round = permanent + next-round-only.
   playHandCostThisRound = extraPlayCostPerm    + nextRoundPlayCost;
   discardCostThisRound  = extraDiscardCostPerm + nextRoundDiscardCost;

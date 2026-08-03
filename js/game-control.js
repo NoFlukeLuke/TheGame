@@ -125,6 +125,12 @@ function startGame() {
   handsPlayed = 0;
   // Reset limits to base values on new game
   LIMITS_DEF.forEach(def => { limits[def.id] = { current: def.base, base: def.base, max: def.max }; });
+  // Match-3 modes start on a 5×5 board (owner spec). Setting it through `limits`
+  // means level-ups keep the size instead of snapping back to the 4×4 base.
+  if (match3Active()) {
+    limits.grid_rows.current = 5; limits.grid_rows.base = 5;
+    limits.grid_cols.current = 5; limits.grid_cols.base = 5;
+  }
   discards = limits.discards.current;
   swaps = limits.swaps.current;
   // Sync playing-grid dimensions from limits and size the cards
@@ -266,7 +272,7 @@ function startGame() {
   updateActProgressUI();
   // Clear any leftover card elements from previous game
   document.getElementById('grid').querySelectorAll('.card').forEach(el => el.remove());
-  roundGoal = BASE_GOAL;
+  roundGoal = match3IsZen() ? BASE_GOAL * 2 : BASE_GOAL; // Zen: doubled goals, no clock
   totalScore = 0;
   coins = 0;
   shopItems = null;
@@ -300,11 +306,16 @@ function startGame() {
   document.getElementById('clock-bar').classList.remove('urgent');
 
   initGridData();
+  // Match-3: quietly re-draw any matches the deal happened to create, so the
+  // player starts from a still board instead of being handed a free cascade.
+  if (match3Active()) match3SettleBoard();
   updateScoreUI();
   updateTrickList();
   updateClockUI();
   render();
   startTimers();
+  // Zen mode hands out unlimited swaps/discards (see match3ApplyZenResources).
+  if (match3Active()) { match3ApplyZenResources(); setTimeout(() => match3Resolve(), 400); }
 }
 
 // ══════════════════════════════════════════════

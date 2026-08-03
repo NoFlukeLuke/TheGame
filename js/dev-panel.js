@@ -22,6 +22,13 @@ function initDevMode() {
   if (ndToggle) ndToggle.checked = newDanceEnabled;
   const diSel = document.getElementById('dev-dance-interrupt');
   if (diSel) diSel.value = danceInterruptMode;
+  // Match-3 dev toggles
+  const m3Deck = document.getElementById('dev-match3-infinite-deck');
+  if (m3Deck) m3Deck.checked = match3InfiniteDeck;
+  const m3Mode = document.getElementById('dev-match3-infinite-mode');
+  if (m3Mode) m3Mode.checked = match3InfiniteMode;
+  const m3Prev = document.getElementById('dev-match3-preview-select');
+  if (m3Prev) m3Prev.checked = match3PreviewSelect;
   applyDeckHudVisibility();
   // Focus dev controls — restore persisted values
   const decaySlider = document.getElementById('dev-focus-decay-slider');

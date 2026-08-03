@@ -1,0 +1,140 @@
+/* ══════════════════════════════════════════════
+   MATCH-3 AUTO-PLAY MODE — match juice
+   ══════════════════════════════════════════════
+   Genre-standard feel (flash → pop → burst → float), deliberately dialled to
+   roughly 75-80% of a mainstream match-3's saturation per the owner's brief:
+   clearly readable and satisfying, but not carnival-bright.
+
+   Everything here is driven by classes/elements that js/match3.js adds inside
+   #grid, so none of it can affect the other modes. */
+
+/* ── 1. FLASH ────────────────────────────────────────────────────────────────
+   The instant a match is detected every card in it lights up, so the player can
+   always see WHERE the match happened before anything disappears. */
+#grid .card.m3-match {
+  animation: m3-flash 0.23s ease-out both;
+  z-index: 14;
+}
+@keyframes m3-flash {
+  0%   { transform: scale(1);    filter: brightness(1); box-shadow: 0 0 0 rgba(255,255,255,0); }
+  45%  { transform: scale(1.11); filter: brightness(1.55); box-shadow: 0 0 14px 4px rgba(255,246,214,0.75); }
+  100% { transform: scale(1.06); filter: brightness(1.3);  box-shadow: 0 0 10px 2px rgba(255,246,214,0.5); }
+}
+
+/* Optional "selected, about to play" state — the dev preview-delay toggle.
+   A calmer, held pulse that reads as "this is queued" rather than "this popped". */
+#grid .card.m3-preview {
+  animation: m3-preview-pulse 0.5s ease-in-out infinite alternate;
+  z-index: 13;
+}
+@keyframes m3-preview-pulse {
+  from { transform: scale(1.02); box-shadow: 0 0 6px 1px rgba(255,235,170,0.45); }
+  to   { transform: scale(1.07); box-shadow: 0 0 13px 3px rgba(255,235,170,0.8); }
+}
+
+/* ── 2. POP ──────────────────────────────────────────────────────────────────
+   The card swells then collapses out of existence. Paired with the particle
+   burst below, this is the beat that sells the clear. */
+#grid .card.m3-pop {
+  animation: m3-pop 0.3s cubic-bezier(0.3, 0, 0.2, 1) both;
+  pointer-events: none;
+  z-index: 15;
+}
+@keyframes m3-pop {
+  0%   { transform: scale(1.06); opacity: 1; filter: brightness(1.3); }
+  35%  { transform: scale(1.24); opacity: 1; filter: brightness(1.9); }
+  100% { transform: scale(0.14) rotate(8deg); opacity: 0; filter: brightness(2.2); }
+}
+
+/* ── 3. BURST ────────────────────────────────────────────────────────────────
+   Small shards thrown out of each cleared cell. Colour is set inline per match
+   type (flush = blue, run = green, set = gold). */
+#grid .m3-particle {
+  position: absolute;
+  width: 7px; height: 7px;
+  border-radius: 2px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 16;
+  box-shadow: 0 0 6px 1px currentColor;
+}
+
+/* ── 4. FLOATING SCORE ───────────────────────────────────────────────────────
+   "FLUSH +240" rising from the centre of the match. */
+#grid .m3-float {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.05;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 18;
+  text-shadow: 0 2px 5px rgba(0,0,0,0.85), 0 0 10px rgba(0,0,0,0.5);
+}
+#grid .m3-float-type {
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  opacity: 0.92;
+}
+#grid .m3-float-amt {
+  font-family: 'Cinzel', serif;
+  font-size: 19px;
+  font-weight: 700;
+  color: #fff8e2;
+}
+
+/* ── 5. COMBO BADGE ──────────────────────────────────────────────────────────
+   The big ×2 / ×4 / ×6 over the grid as the chain keeps going (owner's ask:
+   "a visible x2, x4, etc. in large font over the grid"). Sits centred and
+   ignores pointer events so it never blocks the board. */
+#grid #m3-combo-badge {
+  position: absolute;
+  left: 50%; top: 42%;
+  transform: translate(-50%, -50%) scale(0.5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 22;
+}
+#grid #m3-combo-badge.show {
+  animation: m3-combo-in 0.72s cubic-bezier(0.2, 0.9, 0.25, 1) both;
+}
+@keyframes m3-combo-in {
+  0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.45) rotate(-9deg); }
+  22%  { opacity: 1; transform: translate(-50%, -50%) scale(1.18) rotate(3deg); }
+  40%  { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(0deg); }
+  75%  { opacity: 1; transform: translate(-50%, -54%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -76%) scale(0.94); }
+}
+#grid .m3-combo-x {
+  font-family: 'Cinzel', serif;
+  font-size: 62px;
+  font-weight: 700;
+  color: #ffe9a8;
+  text-shadow:
+    0 0 14px rgba(255,196,84,0.9),
+    0 0 34px rgba(255,140,40,0.55),
+    0 4px 10px rgba(0,0,0,0.75);
+}
+#grid .m3-combo-lbl {
+  margin-top: 1px;
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  color: #ffd27a;
+  text-shadow: 0 2px 6px rgba(0,0,0,0.85);
+}
+
+/* Reduced-motion: keep the state changes legible, drop the movement. */
+@media (prefers-reduced-motion: reduce) {
+  #grid .card.m3-match,
+  #grid .card.m3-pop,
+  #grid .card.m3-preview,
+  #grid #m3-combo-badge.show { animation-duration: 0.01ms !important; }
+}
