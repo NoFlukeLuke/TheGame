@@ -90,6 +90,7 @@ function updateRunProgressUI() {
 
 let _knackCountShown = 0;
 function updateKnackList() {
+  syncKnackLimits();   // Tempo rewrites the swap/discard limits as soon as it's owned
   const el = document.getElementById('knack-list');
   if (!el) return;
   // A newly GAINED Knack should land somewhere the player can see. In portrait

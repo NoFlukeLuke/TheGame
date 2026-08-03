@@ -51,6 +51,9 @@ function doDiscard() {
     }
   });
   _discardContextCards = null;
+  // Adjacency reactions fire while the discarded cards are still in place.
+  feedWhetstones(selected.map(([r,c]) => [r,c]));  // Whetstone sharpens on adjacent discards
+  juryRigRoll(selected.map(([r,c]) => [r,c]));     // Jury-Rig: charge-restore roll per adjacent Sleight
   selected.forEach(([r,c]) => { if (gridData[r]?.[c]) discardToDrawPile(gridData[r][c]); });
   // Hoarder: discards don't count against limit (but cost 2× time below)
   if (!hasKnack('hoarder')) discards--;

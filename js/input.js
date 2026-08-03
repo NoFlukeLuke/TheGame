@@ -140,6 +140,8 @@ function doSwap(r1, c1, r2, c2) {
   swapPending = null;
   // on_swap sleights (Dazed reshuffle, Pivot charge/message) fire after the swap
   fireSleightsOnSwap(r1, c1, r2, c2);
+  feedWhetstones([[r1, c1], [r2, c2]]);  // Whetstone sharpens on adjacent swaps
+  juryRigRoll([[r1, c1], [r2, c2]]);     // Jury-Rig: charge-restore roll per adjacent Sleight
   render();
   // FLIP swap animation: snap to new position in render(), then animate back from old
   if (_swDx * _swDx + _swDy * _swDy > 0) {
