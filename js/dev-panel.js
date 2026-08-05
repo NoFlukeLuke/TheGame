@@ -22,13 +22,7 @@ function initDevMode() {
   if (ndToggle) ndToggle.checked = newDanceEnabled;
   const diSel = document.getElementById('dev-dance-interrupt');
   if (diSel) diSel.value = danceInterruptMode;
-  // Match-3 dev toggles
-  const m3Deck = document.getElementById('dev-match3-infinite-deck');
-  if (m3Deck) m3Deck.checked = match3InfiniteDeck;
-  const m3Mode = document.getElementById('dev-match3-infinite-mode');
-  if (m3Mode) m3Mode.checked = match3InfiniteMode;
-  const m3Prev = document.getElementById('dev-match3-preview-select');
-  if (m3Prev) m3Prev.checked = match3PreviewSelect;
+  syncMatch3DevToggles();
   applyDeckHudVisibility();
   // Focus dev controls — restore persisted values
   const decaySlider = document.getElementById('dev-focus-decay-slider');
@@ -64,6 +58,22 @@ function toggleExaltCorrupt(on) {
   if (typeof render === 'function') render(); // refresh glows immediately
 }
 
+// Push the Match-3 dev toggles' real state into their checkboxes. Called both at
+// init and every time the panel opens, so the boxes never drift from reality
+// (setMatch3Type can refuse a change, e.g. turning off the last match type).
+function syncMatch3DevToggles() {
+  const m3Deck = document.getElementById('dev-match3-infinite-deck');
+  if (m3Deck) m3Deck.checked = match3InfiniteDeck;
+  const m3Mode = document.getElementById('dev-match3-infinite-mode');
+  if (m3Mode) m3Mode.checked = match3InfiniteMode;
+  const m3Prev = document.getElementById('dev-match3-preview-select');
+  if (m3Prev) m3Prev.checked = match3PreviewSelect;
+  ['flush', 'run', 'set'].forEach(t => {
+    const el = document.getElementById('dev-match3-type-' + t);
+    if (el) el.checked = !!match3Types[t];
+  });
+}
+
 function applyDevMode() {
   const btn = document.getElementById('dev-btn');
   if (btn) btn.style.display = devMode ? 'flex' : 'none';
@@ -88,11 +98,15 @@ function openDevPanel() {
   devPanelOpen = true;
   const panel = document.getElementById('dev-panel');
   panel.style.display = 'flex';
+  // Same panel serves as both the menu's Settings screen and the in-game dev panel.
+  const title = document.getElementById('dev-panel-title');
+  if (title) title.textContent = devPanelFromMenu ? 'SETTINGS' : 'DEV MODE';
   // Reflect current toggle states so the checkboxes match reality.
   const hudToggle = document.getElementById('dev-deck-hud-toggle');
   if (hudToggle) hudToggle.checked = showDeckHud;
   const trickToggle = document.getElementById('dev-trick-tray-toggle');
   if (trickToggle) trickToggle.checked = !trickTrayMode;   // checked = Tricks placed on grid
+  syncMatch3DevToggles();
   devFilterTricks('');
   devFilterKnacks('');
   devRenderLimits();

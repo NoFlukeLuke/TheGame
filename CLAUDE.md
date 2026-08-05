@@ -32,7 +32,7 @@ Rough guide to `js/` (engine): `menu` `devlog` `grid-metrics` `focus-config` `li
 
 - **Branch:** `main` is the source of truth and auto-deploys to GitHub Pages — never commit directly to it. Develop on the `claude/*` feature branch this session was assigned. If none was given, branch off the latest main: `git checkout -b claude/<topic> origin/main`.
 - **Deploy:** push your feature branch, then fast-forward `main` to it: `git push origin HEAD && git push origin HEAD:main`. Pages serves from `main`.
-- **Build stamp:** bump the `BUILD` constant at the top of **`js/menu.js`** (currently `'2026-08-03 · r116 · Match-3 mode + rapid-submit score fix'`) on every commit. It shows in the menu footer + dev panel so the owner can confirm the cache is fresh. Increment the `rN` each commit.
+- **Build stamp:** bump the `BUILD` constant at the top of **`js/menu.js`** (currently `'2026-08-04 · r117 · Match-type toggles + settings pop-up'`) on every commit. It shows in the menu footer + dev panel so the owner can confirm the cache is fresh. Increment the `rN` each commit.
 - **Commit messages:** detailed, since a fresh Claude session re-orients from git history. End with the session URL line.
 - After editing, validate syntax (loads every JS file in order, exactly as the browser does):
   ```
@@ -154,10 +154,13 @@ A 5×5 board where **matches play themselves**. Launched from the main menu (`MA
 - **Cascade loop** (`match3Resolve`): detect → flash → pop → score → `removeAndFall(cells,'match3')` → re-detect, until quiet. Self-guarded (`match3Resolving`) so it can be called freely; capped at 60 links. **The existing fall/refill animation is reused untouched.**
 - **Entry points:** `doSwap` (after the swap animation lands), the end of `removeAndFall` (post-discard), and `startRoundTimer` — the one call site every round start funnels through. `match3PendingSettle` distinguishes a fresh deal (needs `match3SettleBoard()`, which quietly re-draws pre-existing matches so there's no free opening cascade) from a mid-round resume (must NOT re-settle).
 - **Zen** (`MODES.zen`): same board, no clock (`match3NoTimer()` short-circuits the round tick) and unlimited swaps/discards (`match3ApplyZenResources` tops the pools to 99). Goals are **doubled** so levelling/reward grid stay reachable.
+- **Match-type toggles** (`match3Types`, r117): flush / run / set can each be switched off in Settings, which removes them from detection entirely (`match3TypesOf` gates on them). Flushes fire *very* often on a random 5×5, and since matches must be disjoint a high-scoring flush suppresses any crossing run/set — so this is a real balancing lever. `setMatch3Type` refuses to disable the **last** enabled type (the board would deadlock) and returns the resulting state so the checkbox re-syncs.
 - **Dev toggles** (dev panel → *Match-3 Mode*): infinite deck (scored cards requeue to the back instead of being held out; finite is default), infinite mode (no clock **and** no goal — sandbox), and select-before-play (highlight a match 1s before it plays so it can be interrupted; off by default).
 - Manual `playHand()` and selection auto-submit are disabled in match-3; selection exists only to pick cards to discard.
 
-## Dev panel
+## Dev panel / Settings
+`#dev-panel` is **both** the in-game dev panel (🛠 button) and the main menu's **Settings** screen (`openSettingsFromMenu`); the title bar swaps between `DEV MODE` and `SETTINGS`. As of **r117** it's a centred, bounded arcade pop-up (`css/dev-overlays.css`) rather than a full-screen sheet: sticky gold title bar, internally-scrolling `#dev-panel-body`, and a backdrop dim made by a `0 0 0 100vmax` box-shadow spread so no extra wrapper element is needed. **It lives OUTSIDE `#stage` in `index.html`** (a sibling of `#main-menu-overlay`) — inside the stage it inherited the cabinet's CSS `zoom`, which scaled its `vh` sizing by ~1.3× and pushed it off-screen.
+
 🛠 button (bottom-right). Add Tricks / knacks / sleights by name, trigger any event/boss, adjust time/coins/score/limits, open reward grid. HUD section also has scoring-dance toggles (new dance on/off, interrupt mode). Invaluable for testing.
 
 ## Conventions

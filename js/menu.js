@@ -1,4 +1,4 @@
-const BUILD = '2026-08-03 · r116 · Match-3 mode + rapid-submit score fix';
+const BUILD = '2026-08-04 · r117 · Match-type toggles + settings pop-up';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -104,7 +104,12 @@ function switchMenuTab(e, tabId) {
 }
 
 function renderMenuModes() {
+  // The tabbed mode selector was removed in r100 (the menu now has explicit
+  // PLAY / MATCH-3 / ZEN buttons), so this container no longer exists. Without
+  // this guard the null deref threw inside closeDevPanel BEFORE it re-showed the
+  // menu — which made Settings → CLOSE from the main menu a dead end.
   const container = document.getElementById('menu-content-modes');
+  if (!container) return;
   container.innerHTML = '';
   Object.values(MODES).forEach(mode => {
     const btn = document.createElement('div');

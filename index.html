@@ -28,6 +28,249 @@
   </div>
 </div>
 
+<div id="dev-panel" style="display:none;">
+  <div id="dev-panel-bar">
+    <span id="dev-panel-title">SETTINGS</span>
+    <span id="build-stamp"></span>
+    <button id="dev-panel-close" onclick="toggleDevPanel()">CLOSE</button>
+  </div>
+  <div id="dev-panel-body">
+
+  <!-- TIME -->
+  <div class="dev-section">
+    <div class="dev-section-title">Time</div>
+    <div class="dev-row">
+      <button class="dev-btn" onclick="devAddTime(30)">+30s</button>
+      <button class="dev-btn" onclick="devAddTime(60)">+60s</button>
+      <button class="dev-btn" onclick="devAddTime(-30)">-30s</button>
+      <button class="dev-btn" onclick="devSetTime(180)">Max</button>
+    </div>
+  </div>
+
+  <!-- COINS -->
+  <div class="dev-section">
+    <div class="dev-section-title">Coins</div>
+    <div class="dev-row">
+      <button class="dev-btn" onclick="devAddCoins(10)">+10</button>
+      <button class="dev-btn" onclick="devAddCoins(50)">+50</button>
+      <button class="dev-btn" onclick="devAddCoins(100)">+100</button>
+      <button class="dev-btn" onclick="devSetCoins(0)">Zero</button>
+    </div>
+  </div>
+
+  <!-- SCORE -->
+  <div class="dev-section">
+    <div class="dev-section-title">Score</div>
+    <div class="dev-row">
+      <button class="dev-btn" onclick="devAddScore(100)">+100</button>
+      <button class="dev-btn" onclick="devAddScore(500)">+500</button>
+      <button class="dev-btn" onclick="devWinRound()">Win Round</button>
+    </div>
+  </div>
+
+  <!-- LEVEL -->
+  <div class="dev-section">
+    <div class="dev-section-title">Level</div>
+    <div class="dev-row">
+      <button class="dev-btn" onclick="devSkipLevel()">Skip Level</button>
+      <button class="dev-btn" onclick="devOpenShop()">Open Shop</button>
+    </div>
+  </div>
+
+  <!-- BOSS -->
+  <div class="dev-section">
+    <div class="dev-section-title">Boss</div>
+    <div class="dev-row">
+      <button class="dev-btn" onclick="devTriggerBoss('stone_lord')">Stone Lord</button>
+      <button class="dev-btn" onclick="devTriggerBoss('voidwright')">Voidwright</button>
+    </div>
+    <div class="dev-row">
+      <button class="dev-btn" onclick="devTriggerBoss('hand_of_famine')">Hand of Famine</button>
+      <button class="dev-btn" onclick="devTriggerBoss('cornerless_king')">Cornerless King</button>
+    </div>
+    <div class="dev-row">
+      <button class="dev-btn" onclick="devEndBossWin()">End Boss (Win)</button>
+      <button class="dev-btn" onclick="devEndBossLose()">End Boss (Lose)</button>
+    </div>
+    <div class="dev-row">
+      <button class="dev-btn" onclick="devOpenRewardGrid()">Open Reward Grid</button>
+    </div>
+  </div>
+
+  <!-- EVENTS -->
+  <div class="dev-section">
+    <div class="dev-section-title">Events</div>
+    <div class="dev-row">
+      <button class="dev-btn" onclick="devTriggerEvent('limit_break')">Limit Break</button>
+      <button class="dev-btn" onclick="devTriggerEvent('shop')">Shop</button>
+    </div>
+    <div class="dev-row">
+      <button class="dev-btn" onclick="devTriggerEvent('confluence')">Confluence</button>
+      <button class="dev-btn" onclick="devTriggerEvent('crossroads')">Crossroads</button>
+      <button class="dev-btn" onclick="devTriggerEvent('gamble')">Gamble</button>
+    </div>
+    <div class="dev-row">
+      <button class="dev-btn" onclick="devTriggerEvent('merchant')">Merchant</button>
+      <button class="dev-btn" onclick="devTriggerEvent('altar')">Altar</button>
+      <button class="dev-btn" onclick="devTriggerEvent('spring')">Spring</button>
+    </div>
+    <div class="dev-row">
+      <button class="dev-btn" onclick="devTriggerEvent('twin_path')">Twin Path</button>
+      <button class="dev-btn" onclick="devTriggerEvent('forge')">Forge</button>
+      <button class="dev-btn" onclick="devTriggerEvent('bargain')">Bargain</button>
+    </div>
+    <div class="dev-row">
+      <button class="dev-btn" onclick="devTriggerEvent('wager')">Wager</button>
+    </div>
+    <div id="dev-limits-display" style="font-family:'Courier New',monospace;font-size:9px;color:var(--cream-dim);line-height:1.6;margin-top:4px;"></div>
+    <div class="dev-row" style="flex-wrap:wrap;gap:4px;" id="dev-limits-btns"></div>
+  </div>
+
+  <!-- CARD FALL SPEED -->
+  <div class="dev-section">
+    <div class="dev-section-title">Card Fall Speed (interlude) <span id="dev-fall-val">1×</span></div>
+    <input type="range" min="0.25" max="4" value="1" step="0.25" oninput="devSetFallSpeed(this.value)" style="width:100%;accent-color:var(--gold);">
+  </div>
+
+  <!-- ANIMATION SPEED -->
+  <div class="dev-section">
+    <div class="dev-section-title">Score Anim Speed <span id="dev-anim-val">5 t/s</span></div>
+    <input type="range" min="1" max="100" value="5" step="1" oninput="devSetAnimSpeed(this.value)" style="width:100%;accent-color:var(--gold);">
+  </div>
+
+  <!-- ADD TRICK -->
+  <div class="dev-section">
+    <div class="dev-section-title">Add Trick</div>
+    <input id="dev-trick-search" type="text" placeholder="Search trick name..." oninput="devFilterTricks(this.value)"
+      style="width:100%;background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--cream);font-family:'Crimson Pro',serif;font-size:13px;padding:6px 8px;border-radius:4px;margin-bottom:6px;">
+    <div id="dev-trick-list" style="display:flex;flex-direction:column;gap:4px;max-height:160px;overflow-y:auto;"></div>
+  </div>
+
+  <!-- ADD KNACK -->
+  <div class="dev-section">
+    <div class="dev-section-title">Add Knack</div>
+    <input id="dev-knack-search" type="text" placeholder="Search knack name..." oninput="devFilterKnacks(this.value)"
+      style="width:100%;background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--cream);font-family:'Crimson Pro',serif;font-size:13px;padding:6px 8px;border-radius:4px;margin-bottom:6px;">
+    <div id="dev-knack-list" style="display:flex;flex-direction:column;gap:4px;max-height:160px;overflow-y:auto;"></div>
+  </div>
+
+  <!-- ADD SLEIGHT -->
+  <div class="dev-section">
+    <div class="dev-section-title">Add Sleight</div>
+    <div class="dev-row" style="flex-wrap:wrap;gap:4px;">
+      <!-- populated by JS -->
+    </div>
+    <div id="dev-sleight-list" style="display:flex;flex-direction:column;gap:4px;max-height:120px;overflow-y:auto;margin-top:4px;"></div>
+  </div>
+
+  <!-- ADD FOCUS -->
+  <div class="dev-section">
+    <div class="dev-section-title">Add Focus</div>
+    <div class="dev-row">
+      <button class="dev-btn" onclick="devAddFocus(1)">+1</button>
+      <button class="dev-btn" onclick="devAddFocus(3)">+3</button>
+      <button class="dev-btn" onclick="devAddFocus(5)">+5</button>
+      <button class="dev-btn" onclick="devAddFocus(10)">+10</button>
+    </div>
+  </div>
+
+  <!-- FOCUS: DECAY INTERVAL -->
+  <div class="dev-section">
+    <div class="dev-section-title">Focus: Decay Interval <span id="dev-focus-decay-val">2.00s</span></div>
+    <input id="dev-focus-decay-slider" type="range" min="0.1" max="15" value="2" step="0.25" oninput="devSetFocusDecay(this.value)" style="width:100%;accent-color:var(--gold);">
+  </div>
+
+  <!-- FOCUS: BEAT DURATION -->
+  <div class="dev-section">
+    <div class="dev-section-title">Focus: Beat Duration <span id="dev-focus-beat-val">300ms</span></div>
+    <input id="dev-focus-beat-slider" type="range" min="100" max="2000" value="300" step="50" oninput="devSetFocusBeat(this.value)" style="width:100%;accent-color:var(--gold);">
+  </div>
+
+  <!-- FOCUS: SPEED BONUS FORMULA -->
+  <div class="dev-section">
+    <div class="dev-section-title">Focus: Speed Bonus Formula</div>
+    <select id="dev-focus-speed-select" onchange="devSetFocusSpeedFormula(this.value)"
+      style="width:100%;background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--cream);font-family:'Crimson Pro',serif;font-size:13px;padding:5px 6px;border-radius:4px;">
+      <option value="linear">Linear   — max(0, max_bonus − slope × t)</option>
+      <option value="stepped">Stepped  — t&lt;t1 ? bonus1 : t&lt;t2 ? bonus2 : 0</option>
+      <option value="exponential">Exponential — floor(max_bonus / t)</option>
+    </select>
+    <div id="dev-focus-speed-params" style="display:flex;flex-direction:column;gap:4px;margin-top:4px;"></div>
+    <div id="dev-focus-speed-preview" style="font-family:'Courier New',monospace;font-size:10px;color:var(--gold-dim);margin-top:6px;letter-spacing:0.5px;"></div>
+  </div>
+
+  <!-- HUD TOGGLES -->
+  <div class="dev-section">
+    <div class="dev-section-title">HUD</div>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;">
+      <input id="dev-deck-hud-toggle" type="checkbox" onchange="toggleDeckHud(this.checked)" style="accent-color:var(--gold);">
+      Show card counter (deck audit)
+    </label>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;margin-top:6px;">
+      <input id="dev-trick-tray-toggle" type="checkbox" onchange="toggleTrickTrayMode(!this.checked)" style="accent-color:var(--gold);">
+      Place Tricks on the grid (off = side tray)
+    </label>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;margin-top:6px;">
+      <input id="dev-new-dance-toggle" type="checkbox" onchange="setNewDance(this.checked)" style="accent-color:var(--gold);">
+      New scoring dance (preview-window · WIP)
+    </label>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);margin-top:6px;">
+      Interrupt a scoring hand by
+      <select id="dev-dance-interrupt" onchange="setDanceInterruptMode(this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor:pointer;">
+        <option value="ff">Fast-forward the old hand (default)</option>
+        <option value="cut">Cut — instant</option>
+        <option value="resolve">Resolve — quick pop</option>
+      </select>
+    </label>
+  </div>
+
+  <div class="dev-section">
+    <div class="dev-section-title">Match-3 Mode</div>
+    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:-2px;">Match types — turn one off to remove it from detection entirely.</div>
+    <div style="display:flex;gap:14px;flex-wrap:wrap;">
+      <label style="display:flex;align-items:center;gap:6px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;">
+        <input id="dev-match3-type-flush" type="checkbox" onchange="this.checked = setMatch3Type('flush', this.checked)" style="accent-color:var(--gold);">
+        Flushes
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;">
+        <input id="dev-match3-type-run" type="checkbox" onchange="this.checked = setMatch3Type('run', this.checked)" style="accent-color:var(--gold);">
+        Runs
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;">
+        <input id="dev-match3-type-set" type="checkbox" onchange="this.checked = setMatch3Type('set', this.checked)" style="accent-color:var(--gold);">
+        Sets
+      </label>
+    </div>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;">
+      <input id="dev-match3-infinite-deck" type="checkbox" onchange="setMatch3InfiniteDeck(this.checked)" style="accent-color:var(--gold);">
+      Infinite deck (scored cards requeue to the back)
+    </label>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;margin-top:6px;">
+      <input id="dev-match3-infinite-mode" type="checkbox" onchange="setMatch3InfiniteMode(this.checked)" style="accent-color:var(--gold);">
+      Infinite mode (no clock, no goal — sandbox)
+    </label>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;margin-top:6px;">
+      <input id="dev-match3-preview-select" type="checkbox" onchange="setMatch3PreviewSelect(this.checked)" style="accent-color:var(--gold);">
+      Select matches for 1s before playing (interruptible)
+    </label>
+  </div>
+
+  <div class="dev-section">
+    <div class="dev-section-title">Event Log <span id="dev-log-count" style="color:var(--cream-dim);">(0)</span></div>
+    <div id="dev-event-log">No events yet.</div>
+    <div style="display:flex;align-items:center;gap:8px;margin-top:2px;">
+      <span style="font-family:'Cinzel',serif;font-size:9px;color:var(--cream-dim);letter-spacing:1px;">COPY LAST</span>
+      <input id="dev-log-n" type="range" min="5" max="80" value="20" step="5" oninput="document.getElementById('dev-log-n-val').textContent=this.value" style="flex:1;accent-color:var(--gold);">
+      <span id="dev-log-n-val" style="font-family:'Courier New',monospace;font-size:10px;color:var(--gold);min-width:18px;">20</span>
+    </div>
+    <div class="dev-row">
+      <button id="dev-log-copy" onclick="devLogCopy()">Copy</button>
+      <button id="dev-log-clear" onclick="devLogClear()">Clear</button>
+    </div>
+  </div>
+  </div><!-- /#dev-panel-body -->
+</div>
+
 <div id="cabinet">
   <div id="cab-marquee">
     <span class="cab-led"></span>
@@ -228,231 +471,6 @@
 
 <!-- Preview-window scoring dance — renders INTO the dedicated hand-preview slot (#selected-cards) -->
 
-<div id="dev-panel" style="display:none;position:fixed;inset:0;z-index:499;overflow-y:auto;background:rgba(0,0,0,0.92);padding:16px;flex-direction:column;gap:12px;">
-  <div style="display:flex;justify-content:space-between;align-items:center;">
-    <span style="font-family:'Cinzel',serif;font-size:12px;letter-spacing:3px;color:var(--gold);">DEV MODE</span>
-    <span id="build-stamp" style="font-family:monospace;font-size:10px;color:rgba(201,168,76,0.5);letter-spacing:1px;"></span>
-    <button onclick="toggleDevPanel()" style="font-family:'Cinzel',serif;font-size:10px;background:none;border:1px solid var(--border);color:var(--cream);padding:4px 10px;border-radius:4px;cursor:pointer;">CLOSE</button>
-  </div>
-
-  <!-- TIME -->
-  <div class="dev-section">
-    <div class="dev-section-title">Time</div>
-    <div class="dev-row">
-      <button class="dev-btn" onclick="devAddTime(30)">+30s</button>
-      <button class="dev-btn" onclick="devAddTime(60)">+60s</button>
-      <button class="dev-btn" onclick="devAddTime(-30)">-30s</button>
-      <button class="dev-btn" onclick="devSetTime(180)">Max</button>
-    </div>
-  </div>
-
-  <!-- COINS -->
-  <div class="dev-section">
-    <div class="dev-section-title">Coins</div>
-    <div class="dev-row">
-      <button class="dev-btn" onclick="devAddCoins(10)">+10</button>
-      <button class="dev-btn" onclick="devAddCoins(50)">+50</button>
-      <button class="dev-btn" onclick="devAddCoins(100)">+100</button>
-      <button class="dev-btn" onclick="devSetCoins(0)">Zero</button>
-    </div>
-  </div>
-
-  <!-- SCORE -->
-  <div class="dev-section">
-    <div class="dev-section-title">Score</div>
-    <div class="dev-row">
-      <button class="dev-btn" onclick="devAddScore(100)">+100</button>
-      <button class="dev-btn" onclick="devAddScore(500)">+500</button>
-      <button class="dev-btn" onclick="devWinRound()">Win Round</button>
-    </div>
-  </div>
-
-  <!-- LEVEL -->
-  <div class="dev-section">
-    <div class="dev-section-title">Level</div>
-    <div class="dev-row">
-      <button class="dev-btn" onclick="devSkipLevel()">Skip Level</button>
-      <button class="dev-btn" onclick="devOpenShop()">Open Shop</button>
-    </div>
-  </div>
-
-  <!-- BOSS -->
-  <div class="dev-section">
-    <div class="dev-section-title">Boss</div>
-    <div class="dev-row">
-      <button class="dev-btn" onclick="devTriggerBoss('stone_lord')">Stone Lord</button>
-      <button class="dev-btn" onclick="devTriggerBoss('voidwright')">Voidwright</button>
-    </div>
-    <div class="dev-row">
-      <button class="dev-btn" onclick="devTriggerBoss('hand_of_famine')">Hand of Famine</button>
-      <button class="dev-btn" onclick="devTriggerBoss('cornerless_king')">Cornerless King</button>
-    </div>
-    <div class="dev-row">
-      <button class="dev-btn" onclick="devEndBossWin()">End Boss (Win)</button>
-      <button class="dev-btn" onclick="devEndBossLose()">End Boss (Lose)</button>
-    </div>
-    <div class="dev-row">
-      <button class="dev-btn" onclick="devOpenRewardGrid()">Open Reward Grid</button>
-    </div>
-  </div>
-
-  <!-- EVENTS -->
-  <div class="dev-section">
-    <div class="dev-section-title">Events</div>
-    <div class="dev-row">
-      <button class="dev-btn" onclick="devTriggerEvent('limit_break')">Limit Break</button>
-      <button class="dev-btn" onclick="devTriggerEvent('shop')">Shop</button>
-    </div>
-    <div class="dev-row">
-      <button class="dev-btn" onclick="devTriggerEvent('confluence')">Confluence</button>
-      <button class="dev-btn" onclick="devTriggerEvent('crossroads')">Crossroads</button>
-      <button class="dev-btn" onclick="devTriggerEvent('gamble')">Gamble</button>
-    </div>
-    <div class="dev-row">
-      <button class="dev-btn" onclick="devTriggerEvent('merchant')">Merchant</button>
-      <button class="dev-btn" onclick="devTriggerEvent('altar')">Altar</button>
-      <button class="dev-btn" onclick="devTriggerEvent('spring')">Spring</button>
-    </div>
-    <div class="dev-row">
-      <button class="dev-btn" onclick="devTriggerEvent('twin_path')">Twin Path</button>
-      <button class="dev-btn" onclick="devTriggerEvent('forge')">Forge</button>
-      <button class="dev-btn" onclick="devTriggerEvent('bargain')">Bargain</button>
-    </div>
-    <div class="dev-row">
-      <button class="dev-btn" onclick="devTriggerEvent('wager')">Wager</button>
-    </div>
-    <div id="dev-limits-display" style="font-family:'Courier New',monospace;font-size:9px;color:var(--cream-dim);line-height:1.6;margin-top:4px;"></div>
-    <div class="dev-row" style="flex-wrap:wrap;gap:4px;" id="dev-limits-btns"></div>
-  </div>
-
-  <!-- CARD FALL SPEED -->
-  <div class="dev-section">
-    <div class="dev-section-title">Card Fall Speed (interlude) <span id="dev-fall-val">1×</span></div>
-    <input type="range" min="0.25" max="4" value="1" step="0.25" oninput="devSetFallSpeed(this.value)" style="width:100%;accent-color:var(--gold);">
-  </div>
-
-  <!-- ANIMATION SPEED -->
-  <div class="dev-section">
-    <div class="dev-section-title">Score Anim Speed <span id="dev-anim-val">5 t/s</span></div>
-    <input type="range" min="1" max="100" value="5" step="1" oninput="devSetAnimSpeed(this.value)" style="width:100%;accent-color:var(--gold);">
-  </div>
-
-  <!-- ADD TRICK -->
-  <div class="dev-section">
-    <div class="dev-section-title">Add Trick</div>
-    <input id="dev-trick-search" type="text" placeholder="Search trick name..." oninput="devFilterTricks(this.value)"
-      style="width:100%;background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--cream);font-family:'Crimson Pro',serif;font-size:13px;padding:6px 8px;border-radius:4px;margin-bottom:6px;">
-    <div id="dev-trick-list" style="display:flex;flex-direction:column;gap:4px;max-height:160px;overflow-y:auto;"></div>
-  </div>
-
-  <!-- ADD KNACK -->
-  <div class="dev-section">
-    <div class="dev-section-title">Add Knack</div>
-    <input id="dev-knack-search" type="text" placeholder="Search knack name..." oninput="devFilterKnacks(this.value)"
-      style="width:100%;background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--cream);font-family:'Crimson Pro',serif;font-size:13px;padding:6px 8px;border-radius:4px;margin-bottom:6px;">
-    <div id="dev-knack-list" style="display:flex;flex-direction:column;gap:4px;max-height:160px;overflow-y:auto;"></div>
-  </div>
-
-  <!-- ADD SLEIGHT -->
-  <div class="dev-section">
-    <div class="dev-section-title">Add Sleight</div>
-    <div class="dev-row" style="flex-wrap:wrap;gap:4px;">
-      <!-- populated by JS -->
-    </div>
-    <div id="dev-sleight-list" style="display:flex;flex-direction:column;gap:4px;max-height:120px;overflow-y:auto;margin-top:4px;"></div>
-  </div>
-
-  <!-- ADD FOCUS -->
-  <div class="dev-section">
-    <div class="dev-section-title">Add Focus</div>
-    <div class="dev-row">
-      <button class="dev-btn" onclick="devAddFocus(1)">+1</button>
-      <button class="dev-btn" onclick="devAddFocus(3)">+3</button>
-      <button class="dev-btn" onclick="devAddFocus(5)">+5</button>
-      <button class="dev-btn" onclick="devAddFocus(10)">+10</button>
-    </div>
-  </div>
-
-  <!-- FOCUS: DECAY INTERVAL -->
-  <div class="dev-section">
-    <div class="dev-section-title">Focus: Decay Interval <span id="dev-focus-decay-val">2.00s</span></div>
-    <input id="dev-focus-decay-slider" type="range" min="0.1" max="15" value="2" step="0.25" oninput="devSetFocusDecay(this.value)" style="width:100%;accent-color:var(--gold);">
-  </div>
-
-  <!-- FOCUS: BEAT DURATION -->
-  <div class="dev-section">
-    <div class="dev-section-title">Focus: Beat Duration <span id="dev-focus-beat-val">300ms</span></div>
-    <input id="dev-focus-beat-slider" type="range" min="100" max="2000" value="300" step="50" oninput="devSetFocusBeat(this.value)" style="width:100%;accent-color:var(--gold);">
-  </div>
-
-  <!-- FOCUS: SPEED BONUS FORMULA -->
-  <div class="dev-section">
-    <div class="dev-section-title">Focus: Speed Bonus Formula</div>
-    <select id="dev-focus-speed-select" onchange="devSetFocusSpeedFormula(this.value)"
-      style="width:100%;background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--cream);font-family:'Crimson Pro',serif;font-size:13px;padding:5px 6px;border-radius:4px;">
-      <option value="linear">Linear   — max(0, max_bonus − slope × t)</option>
-      <option value="stepped">Stepped  — t&lt;t1 ? bonus1 : t&lt;t2 ? bonus2 : 0</option>
-      <option value="exponential">Exponential — floor(max_bonus / t)</option>
-    </select>
-    <div id="dev-focus-speed-params" style="display:flex;flex-direction:column;gap:4px;margin-top:4px;"></div>
-    <div id="dev-focus-speed-preview" style="font-family:'Courier New',monospace;font-size:10px;color:var(--gold-dim);margin-top:6px;letter-spacing:0.5px;"></div>
-  </div>
-
-  <!-- HUD TOGGLES -->
-  <div class="dev-section">
-    <div class="dev-section-title">HUD</div>
-    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;">
-      <input id="dev-deck-hud-toggle" type="checkbox" onchange="toggleDeckHud(this.checked)" style="accent-color:var(--gold);">
-      Show card counter (deck audit)
-    </label>
-    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;margin-top:6px;">
-      <input id="dev-trick-tray-toggle" type="checkbox" onchange="toggleTrickTrayMode(!this.checked)" style="accent-color:var(--gold);">
-      Place Tricks on the grid (off = side tray)
-    </label>
-    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;margin-top:6px;">
-      <input id="dev-new-dance-toggle" type="checkbox" onchange="setNewDance(this.checked)" style="accent-color:var(--gold);">
-      New scoring dance (preview-window · WIP)
-    </label>
-    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);margin-top:6px;">
-      Interrupt a scoring hand by
-      <select id="dev-dance-interrupt" onchange="setDanceInterruptMode(this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor:pointer;">
-        <option value="ff">Fast-forward the old hand (default)</option>
-        <option value="cut">Cut — instant</option>
-        <option value="resolve">Resolve — quick pop</option>
-      </select>
-    </label>
-  </div>
-
-  <div class="dev-section">
-    <div class="dev-section-title">Match-3 Mode</div>
-    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;">
-      <input id="dev-match3-infinite-deck" type="checkbox" onchange="setMatch3InfiniteDeck(this.checked)" style="accent-color:var(--gold);">
-      Infinite deck (scored cards requeue to the back)
-    </label>
-    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;margin-top:6px;">
-      <input id="dev-match3-infinite-mode" type="checkbox" onchange="setMatch3InfiniteMode(this.checked)" style="accent-color:var(--gold);">
-      Infinite mode (no clock, no goal — sandbox)
-    </label>
-    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;margin-top:6px;">
-      <input id="dev-match3-preview-select" type="checkbox" onchange="setMatch3PreviewSelect(this.checked)" style="accent-color:var(--gold);">
-      Select matches for 1s before playing (interruptible)
-    </label>
-  </div>
-
-  <div class="dev-section">
-    <div class="dev-section-title">Event Log <span id="dev-log-count" style="color:var(--cream-dim);">(0)</span></div>
-    <div id="dev-event-log">No events yet.</div>
-    <div style="display:flex;align-items:center;gap:8px;margin-top:2px;">
-      <span style="font-family:'Cinzel',serif;font-size:9px;color:var(--cream-dim);letter-spacing:1px;">COPY LAST</span>
-      <input id="dev-log-n" type="range" min="5" max="80" value="20" step="5" oninput="document.getElementById('dev-log-n-val').textContent=this.value" style="flex:1;accent-color:var(--gold);">
-      <span id="dev-log-n-val" style="font-family:'Courier New',monospace;font-size:10px;color:var(--gold);min-width:18px;">20</span>
-    </div>
-    <div class="dev-row">
-      <button id="dev-log-copy" onclick="devLogCopy()">Copy</button>
-      <button id="dev-log-clear" onclick="devLogClear()">Clear</button>
-    </div>
-  </div>
-</div>
 
 
 <!-- STATS OVERLAY -->

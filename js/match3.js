@@ -56,6 +56,35 @@ let match3ChainStep   = 0;      // current cascade depth (for the combo badge)
 let match3InfiniteDeck  = localStorage.getItem('match3InfiniteDeck') === 'true';
 let match3InfiniteMode  = localStorage.getItem('match3InfiniteMode') === 'true';
 let match3PreviewSelect = localStorage.getItem('match3PreviewSelect') === 'true';
+
+// Which match types are live. Turning a type off removes it from detection
+// entirely — the board simply stops seeing those lines as matches.
+// Flushes in particular fire very often on a random 5×5 (any 3 cards of the
+// same suit in a line), and because matches must be disjoint a high-scoring
+// flush can suppress a crossing run/set, so switching them off is a real
+// balancing lever rather than just a filter.
+let match3Types = (function () {
+  const DEF = { flush: true, run: true, set: true };
+  try {
+    const saved = JSON.parse(localStorage.getItem('match3Types'));
+    if (saved && typeof saved === 'object') return { ...DEF, ...saved };
+  } catch (e) { /* fall through to defaults */ }
+  return DEF;
+})();
+
+// Toggle a match type. At least one type must stay enabled or the board would
+// deadlock (nothing could ever match), so the last one on refuses to turn off.
+// Returns the resulting state so the UI can re-sync its checkbox.
+function setMatch3Type(type, on) {
+  if (!(type in match3Types)) return false;
+  if (!on && Object.keys(match3Types).filter(t => match3Types[t]).length <= 1 && match3Types[type]) {
+    if (typeof showMessage === 'function') showMessage('At least one match type must stay on', 'var(--cream-dim)');
+    return true; // refused — caller re-checks the box
+  }
+  match3Types[type] = !!on;
+  try { localStorage.setItem('match3Types', JSON.stringify(match3Types)); } catch (e) {}
+  return match3Types[type];
+}
 const MATCH3_PREVIEW_MS = 1000; // highlight-before-play window when the toggle is on
 // Set when a NEW board has been dealt (level-up) and still needs its silent
 // settle. Consumed by startRoundTimer, which is the one call site every round
@@ -120,10 +149,10 @@ function match3TypesOf(cards) {
   const types = [];
   const suits = new Set(cards.map(c => c.suit));
   const ranks = cards.map(c => c.rank);
-  if (new Set(ranks).size === 1) types.push('set');   // same rank
-  if (suits.size === 1) types.push('flush');           // same suit
+  if (match3Types.set && new Set(ranks).size === 1) types.push('set');   // same rank
+  if (match3Types.flush && suits.size === 1) types.push('flush');         // same suit
   // Run: distinct, consecutive ranks (Ace low or high)
-  if (new Set(ranks).size === ranks.length) {
+  if (match3Types.run && new Set(ranks).size === ranks.length) {
     const lo = [...ranks.map(r => RANK_ORDER[r])].sort((a, b) => a - b);
     const hi = [...ranks.map(r => (r === 'A' ? 14 : RANK_ORDER[r]))].sort((a, b) => a - b);
     const seq = arr => arr.every((v, i) => i === 0 || v - arr[i - 1] === 1);
