@@ -83,8 +83,6 @@ function syncSidebarsToGrid() {
   const pct = px => px / s.width * 100;
   const gLeft  = pct(g.left  - s.left);
   const gWidth = pct(g.width);
-  // Beige machine panel fills everything left of the grid (the focus gauge sits on it).
-  if (machine) machine.style.width = gLeft + '%';
   // Clock readout (fixed slice at the grid's left) + timer bar fill the grid width.
   if (clockArea && vclock) {
     const readoutW = 7;
@@ -93,11 +91,19 @@ function syncSidebarsToGrid() {
     vclock.style.left  = (gLeft + readoutW + 0.6) + '%';
     vclock.style.width = Math.max(6, gWidth - readoutW - 0.6) + '%';
   }
-  // Focus meter sits right against the grid's left edge — but never back far
-  // enough to crowd the left column (its right edge is ~39.3% of the stage).
+  // Focus meter: hug the grid's left edge AND match the grid's vertical extent.
   if (focus) {
     const fw = pct(focus.getBoundingClientRect().width);
-    focus.style.left = Math.max(39.5, gLeft - fw - 0.4) + '%';
+    focus.style.left   = Math.max(39.5, gLeft - fw - 0.4) + '%';
+    focus.style.top    = ((g.top - s.top) / s.height * 100) + '%';   // top % is of stage HEIGHT
+    focus.style.height = (g.height / s.height * 100) + '%';
+  }
+  // Beige panel fills everything to the LEFT of the focus bar (the bar is NOT on
+  // the beige). End it just left of the visible bar.
+  if (machine) {
+    const bar = document.getElementById('focus-bar-outer');
+    const rightPct = bar ? pct(bar.getBoundingClientRect().left - s.left) : (gLeft - 5);
+    machine.style.width = Math.max(20, rightPct - 0.3) + '%';
   }
 }
 
