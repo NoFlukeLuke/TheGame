@@ -29,7 +29,8 @@ function resumeGame() {
   gameInterval = setInterval(() => {
     if (gameTimerPaused) return;
     gameSeconds--;
-    if (ACTIVE_MODE.id !== 'normal') {
+    // See startTimers: match-3 owns its own round loop, skip legacy progression.
+    if (!isActMode() && !match3Active()) {
       const m = Math.floor(gameSeconds/60);
       const s = gameSeconds%60;
       document.getElementById('game-timer').textContent = `${m}:${s.toString().padStart(2,'0')}`;
@@ -114,8 +115,11 @@ function startGame() {
   stopTimers();
   if (levelupTimer) { clearInterval(levelupTimer); levelupTimer = null; }
 
-  // Reset deck audit
-  expectedDeckTotal = 52;
+  // Pick the suit list for this mode BEFORE any deck is built. Six Suits mode uses
+  // the expanded 6-suit list; every other mode uses the classic four.
+  ACTIVE_SUITS = (ACTIVE_MODE.suitCount === 6) ? SUITS_SIX : SUITS;
+  // Reset deck audit (a full deck = one of every rank in every active suit)
+  expectedDeckTotal = ACTIVE_SUITS.length * RANKS.length;
   dealPhase = false;
 
   // Reset all state
@@ -186,7 +190,11 @@ function startGame() {
   if (pauseTimer) { clearTimeout(pauseTimer); pauseTimer = null; }
   const ALL_HAND_KEYS = ['run3','threeofakind','fourofakind','run4','pair','twopair','straight','flush','fullhouse','straightflush','highcard','blackjack'];
   const BASE_HAND_KEYS = ['run3','threeofakind','twopair','fourofakind'];
-  const startKeys = ACTIVE_MODE.id === 'normal' ? ALL_HAND_KEYS : BASE_HAND_KEYS;
+  // Match-3 scores real hand names (Flush, Straight, Straight Flush, Run of 4…),
+  // so it needs the full hand set active like the act modes, not the legacy base four.
+  const startKeys = [...(isActMode() || match3Active() ? ALL_HAND_KEYS : BASE_HAND_KEYS)];
+  // Six Suits mode makes the short flushes playable from the start alongside the 5-card Flush.
+  if (ACTIVE_MODE.suitCount === 6) startKeys.push('flush3', 'flush4');
   activeHands = new Set(startKeys);
   unlockedHands = new Set(startKeys);
   handsPendingUnlock = [];

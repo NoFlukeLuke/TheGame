@@ -395,7 +395,7 @@ function endBoss(success) {
 
   if (success) {
     render();
-    if (ACTIVE_MODE.id === 'normal') {
+    if (isActMode()) {
       // Node-based: post-boss reward grid is an interlude that starts the next act.
       // nodeInAct stays at 5 so closeRewardGrid knows to reset it and advance actNumber.
       setTimeout(() => { rewardGridContext = 'interlude'; openRewardGrid(); }, 1000);

@@ -1,4 +1,4 @@
-const BUILD = '2026-08-04 · r117 · Match-type toggles + settings pop-up';
+const BUILD = '2026-08-04 · r121 · Match-3 + Zen modes, match-type toggles, settings pop-up';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -6,7 +6,7 @@ const BUILD = '2026-08-04 · r117 · Match-type toggles + settings pop-up';
 const MODES = {
   normal: {
     id: 'normal',
-    name: 'Normal Mode',
+    name: 'Classic',
     desc: '3-Act structure. Play rounds, path through the reward grid, and defeat bosses.',
     winCondition: 'boss_defeat',
     enableBosses: true,
@@ -14,7 +14,23 @@ const MODES = {
     enableEvents: true,
     autoRefillGrid: true,
     timeIsCurrency: true,
-    autoPlayHands: false
+    autoPlayHands: false,
+    actStructure: true,
+    suitCount: 4
+  },
+  sixsuits: {
+    id: 'sixsuits',
+    name: 'Six Suits',
+    desc: 'Same 3-Act game, but the deck has six suits — flushes are far rarer, so Flush of 3, 4, and 5 are all playable.',
+    winCondition: 'boss_defeat',
+    enableBosses: true,
+    enableShops: true,
+    enableEvents: true,
+    autoRefillGrid: true,
+    timeIsCurrency: true,
+    autoPlayHands: false,
+    actStructure: true,
+    suitCount: 6
   },
   survival: {
     id: 'survival',
@@ -90,8 +106,12 @@ const MODES = {
 
 let ACTIVE_MODE = MODES.normal;
 
+// True for the 3-Act "board" modes (Classic + Six Suits). Legacy timer modes
+// (survival/tetris/autoplay) are false. Gates all the 3-Act-vs-timer branches so
+// Six Suits plays exactly like Classic — only the deck's suits differ.
+function isActMode() { return !!ACTIVE_MODE && ACTIVE_MODE.actStructure === true; }
+
 function initMainMenu() {
-  // Mode selector removed (r100): only Normal mode ships, so the menu is just Play + Settings.
   ACTIVE_MODE = MODES.normal;
   document.getElementById('main-menu-overlay').classList.add('show');
 }
@@ -104,10 +124,10 @@ function switchMenuTab(e, tabId) {
 }
 
 function renderMenuModes() {
-  // The tabbed mode selector was removed in r100 (the menu now has explicit
-  // PLAY / MATCH-3 / ZEN buttons), so this container no longer exists. Without
-  // this guard the null deref threw inside closeDevPanel BEFORE it re-showed the
-  // menu — which made Settings → CLOSE from the main menu a dead end.
+  // Legacy tabbed mode list, removed in r100 and superseded by the mode-select
+  // carousel (renderModeSelect), so this container no longer exists. Without the
+  // guard the null deref threw inside closeDevPanel BEFORE it re-showed the menu,
+  // which made Settings → CLOSE from the main menu a dead end.
   const container = document.getElementById('menu-content-modes');
   if (!container) return;
   container.innerHTML = '';
@@ -126,11 +146,75 @@ function startFromMenu() {
   startGame();
 }
 
-// Launch a Match-3 flavour from the main menu ('match3' = goal+timer, 'zen' = no clock).
+// Launch a Match-3 flavour directly ('match3' = goal+timer, 'zen' = no clock).
+// The mode-select carousel is the normal route in; this stays as a direct entry
+// point (dev console, deep link) now that both modes are listed there.
 function startMatch3FromMenu(modeId = 'match3') {
   ACTIVE_MODE = MODES[modeId] || MODES.match3;
   document.getElementById('main-menu-overlay').classList.remove('show');
+  document.getElementById('mode-select-overlay')?.classList.remove('show');
   startGame();
+}
+
+// ══════════════════════════════════════════════
+// MODE SELECT (scroll-sideways carousel off the PLAY button)
+// ══════════════════════════════════════════════
+// The shipping modes, shown left→right in the carousel.
+const MODE_SELECT_LIST = ['normal', 'sixsuits', 'match3', 'zen'];
+const MODE_META = {
+  normal:   { accent: 'var(--c-yellow)', suits: '♠ ♥ ♦ ♣',
+              blurb: 'The original four-suit game. Three Acts of rounds, shops, events and bosses.' },
+  sixsuits: { accent: 'var(--c-mint)',   suits: '♠ ♥ ♦ ♣ ★ ▲',
+              blurb: 'Two extra suits dilute the deck, so flushes are hard-won. Flush of 3, 4 and 5 are all in play.' },
+  match3:   { accent: '#ff7ad0',         suits: '5 × 5',
+              blurb: 'Matches play themselves. Line up 3+ in a row or column and it scores and cascades — you just swap and discard to set them up.' },
+  zen:      { accent: '#7fe3c0',         suits: 'NO CLOCK',
+              blurb: 'The same auto-playing board with the pressure off: no timer, unlimited swaps and discards. Goals are doubled.' },
+};
+
+function openModeSelect() {
+  document.getElementById('main-menu-overlay').classList.remove('show');
+  renderModeSelect();
+  document.getElementById('mode-select-overlay').classList.add('show');
+}
+
+function closeModeSelect() {
+  document.getElementById('mode-select-overlay').classList.remove('show');
+  document.getElementById('main-menu-overlay').classList.add('show');
+}
+
+function scrollModes(dir) {
+  const car = document.getElementById('mode-carousel');
+  if (!car) return;
+  const card = car.querySelector('.mode-card');
+  const step = card ? card.offsetWidth + 18 : 280;
+  car.scrollBy({ left: dir * step, behavior: 'smooth' });
+}
+
+function chooseMode(id) {
+  ACTIVE_MODE = MODES[id] || MODES.normal;
+  document.getElementById('mode-select-overlay').classList.remove('show');
+  startGame();
+}
+
+function renderModeSelect() {
+  const car = document.getElementById('mode-carousel');
+  if (!car) return;
+  car.innerHTML = '';
+  MODE_SELECT_LIST.forEach(id => {
+    const m = MODES[id]; if (!m) return;
+    const meta = MODE_META[id] || {};
+    const card = document.createElement('div');
+    card.className = 'mode-card';
+    card.style.setProperty('--mode-accent', meta.accent || 'var(--c-yellow)');
+    card.innerHTML =
+      `<div class="mode-card-name">${m.name}</div>` +
+      `<div class="mode-card-suits">${meta.suits || ''}</div>` +
+      `<div class="mode-card-blurb">${meta.blurb || m.desc}</div>` +
+      `<button class="mode-card-play">PLAY</button>`;
+    card.querySelector('.mode-card-play').onclick = () => chooseMode(id);
+    car.appendChild(card);
+  });
 }
 
 // ══════════════════════════════════════════════

@@ -32,7 +32,7 @@ Rough guide to `js/` (engine): `menu` `devlog` `grid-metrics` `focus-config` `li
 
 - **Branch:** `main` is the source of truth and auto-deploys to GitHub Pages — never commit directly to it. Develop on the `claude/*` feature branch this session was assigned. If none was given, branch off the latest main: `git checkout -b claude/<topic> origin/main`.
 - **Deploy:** push your feature branch, then fast-forward `main` to it: `git push origin HEAD && git push origin HEAD:main`. Pages serves from `main`.
-- **Build stamp:** bump the `BUILD` constant at the top of **`js/menu.js`** (currently `'2026-08-04 · r117 · Match-type toggles + settings pop-up'`) on every commit. It shows in the menu footer + dev panel so the owner can confirm the cache is fresh. Increment the `rN` each commit.
+- **Build stamp:** bump the `BUILD` constant at the top of **`js/menu.js`** (currently `'2026-08-04 · r121 · Match-3 + Zen modes, match-type toggles, settings pop-up'`) on every commit. It shows in the menu footer + dev panel so the owner can confirm the cache is fresh. Increment the `rN` each commit.
 - **Commit messages:** detailed, since a fresh Claude session re-orients from git history. End with the session URL line.
 - After editing, validate syntax (loads every JS file in order, exactly as the browser does):
   ```
@@ -145,7 +145,10 @@ When a hand is played, the escalating score animation ("dance") runs in the hand
 
 ## Match-3 auto-play mode (`js/match3.js` + `css/match3.css`, r115+)
 
-A 5×5 board where **matches play themselves**. Launched from the main menu (`MATCH-3 (AUTO)` / `ZEN`). The player's only board actions are **swap and discard, and both stay 100% manual** — nothing auto-swaps or auto-discards; only the *playing* of matches is automatic. `match3Active()` gates everything.
+A 5×5 board where **matches play themselves**. Listed in the mode-select carousel (`MODE_SELECT_LIST` / `MODE_META` in `js/menu.js`) alongside Classic and Six Suits. The player's only board actions are **swap and discard, and both stay 100% manual** — nothing auto-swaps or auto-discards; only the *playing* of matches is automatic. `match3Active()` gates everything.
+
+- **Progression: its own loop, NOT the 3-Act structure.** `isActMode()` is **false** for match-3, so it deliberately skips both the act/node flow and the legacy 20-minute timer flow. A round is just *hit `roundGoal` before the clock runs out* → `triggerLevelUp()`. The three places that needed explicit exclusion: the legacy game-timer branch in `startTimers` **and** `resumeGame` (otherwise shops/bosses fire off the 20-min clock and the run hard-ends at 0), and the stray-tick guard in `onRoundEnd`. `startGame` also grants `ALL_HAND_KEYS` for match-3, since it scores real hand names.
+- **Why not `actStructure: true`?** It would hand match-3 the reward grid and shops for free, but also **boss rounds** — and boss objectives only advance through `checkBossObjective`, which is called from `playHand`, which match-3 never calls. That would be an unwinnable round. Wiring bosses (and thus the reward grid / shop progression) into the cascade is the open follow-up. Note `enableBosses`/`enableShops`/`enableEvents` on the mode defs are **inert** — nothing outside `menu.js` reads them; `isActMode()` is what actually drives that plumbing.
 
 - **Detection — straight lines only.** Any contiguous run of 3+ cards in a row or column forming a **flush** (same suit), **run** (consecutive ranks, ace high or low, order-independent within the window) or **set** (same rank). Sleights/Tricks/stones/blocked cells are immovable blockers and never join a match (a Sleight that must be played inside a hand can't be auto-played). *TBD: wildcard Sleights standing in for a rank/suit.*
 - **Overlap priority.** `match3TypesOf` returns *every* type a window satisfies (a single-suited run is both `run` and `flush`), then `findMatch3Matches` scores each and greedily accepts non-overlapping windows **highest score first** (ties: longer line, then highest rank). Guarantees the returned matches are **disjoint** — no card ever scores twice.

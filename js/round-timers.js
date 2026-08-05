@@ -97,7 +97,10 @@ function startTimers() {
   gameInterval = setInterval(() => {
     if (gameTimerPaused) return;
     gameSeconds--;
-    if (ACTIVE_MODE.id !== 'normal') {
+    // Match-3 runs its own round-goal loop, so it must NOT take the legacy
+    // timer-based progression below (which would pop shops/bosses off the
+    // 20-minute game clock and hard-end the run at 0).
+    if (!isActMode() && !match3Active()) {
       const m = Math.floor(gameSeconds/60);
       const s = gameSeconds%60;
       document.getElementById('game-timer').textContent = `${m}:${s.toString().padStart(2,'0')}`;
@@ -181,7 +184,7 @@ function onRoundEnd() {
   // Normal mode: once the goal is reached, the score-dance → interlude owns the
   // whole round transition. Ignore a stray/late timer tick so the legacy
   // level-up flow (showLevelUpScreen / trick pick) can never fire on top of it.
-  if (ACTIVE_MODE.id === 'normal' && goalReachedThisRound) return;
+  if ((isActMode() || match3Active()) && goalReachedThisRound) return;
   _onRoundEndCore();
 }
 

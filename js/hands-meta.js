@@ -27,7 +27,8 @@ function updateCounters(hand, handCells) {
   const handKeyMap = {
     'Run of 3': 'run3', 'Run of 4': 'run4',
     'Pair': 'pair', 'Two Pair': 'twopair', 'Three of a Kind': 'threeofakind',
-    'Four of a Kind': 'fourofakind', 'Straight': 'straight', 'Flush': 'flush',
+    'Four of a Kind': 'fourofakind', 'Straight': 'straight',
+    'Flush of 3': 'flush3', 'Flush of 4': 'flush4', 'Flush': 'flush',
     'Full House': 'fullhouse', 'Straight Flush': 'straightflush',
     'Blackjack': 'blackjack',
   };
@@ -61,7 +62,7 @@ function updateCounters(hand, handCells) {
 }
 
 function checkUnlocks() {
-  if (ACTIVE_MODE.id === 'normal') return;
+  if (isActMode()) return;
   const toCheck = [
     { key:'run4',         cond: () => C.run3 >= 10 || C.fours >= 20 },
     { key:'pair',         cond: () => C.twos >= 20 },
@@ -83,7 +84,7 @@ function checkUnlocks() {
 }
 
 function triggerUnlock(key) {
-  if (ACTIVE_MODE.id === 'normal') return;
+  if (isActMode()) return;
   if (unlockedHands.has(key)) return;
   unlockedHands.add(key);
   handsPendingUnlock.push(key);
