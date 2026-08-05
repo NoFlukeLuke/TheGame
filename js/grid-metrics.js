@@ -71,8 +71,8 @@ function syncSidebarsToGrid() {
   const machine = document.getElementById('left-machine');
   const landscape = stage && stage.classList.contains('landscape');
   if (!landscape) {   // portrait: drop any inline overrides so the stacked layout is untouched
-    [focus, clockArea, vclock].forEach(e => { if (e) { e.style.left = ''; e.style.width = ''; } });
-    if (machine) machine.style.width = '';
+    [focus, clockArea, vclock].forEach(e => { if (e) { e.style.left = ''; e.style.width = ''; e.style.top = ''; e.style.height = ''; } });
+    if (machine) { machine.style.cssText = ''; }
     return;
   }
   const grid = document.getElementById('grid');
@@ -98,12 +98,22 @@ function syncSidebarsToGrid() {
     focus.style.top    = ((g.top - s.top) / s.height * 100) + '%';   // top % is of stage HEIGHT
     focus.style.height = (g.height / s.height * 100) + '%';
   }
-  // Beige panel fills everything to the LEFT of the focus bar (the bar is NOT on
-  // the beige). End it just left of the visible bar.
+  // Beige panel fills the whole left region. It extends OVER the dark CRT bezel on
+  // the top/left/bottom (so no dark frame shows around it — it meets the cream
+  // cabinet), and stops short of the focus bar on the right so the bar can breathe.
   if (machine) {
+    const zoom = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--stage-zoom')) || 1;
+    const toDesign = px => px / zoom;                       // screen px → stage design px
+    const stageH = toDesign(s.height);
     const bar = document.getElementById('focus-bar-outer');
-    const rightPct = bar ? pct(bar.getBoundingClientRect().left - s.left) : (gLeft - 5);
-    machine.style.width = Math.max(20, rightPct - 0.3) + '%';
+    const barLeft = bar ? toDesign(bar.getBoundingClientRect().left - s.left) : (toDesign(g.left - s.left) - 40);
+    const BEZEL = 13;    // covers the ~12px dark screen bezel up to the cream cabinet
+    const BREATHE = 15;  // dark gap left of the focus bar so it isn't cramped
+    machine.style.left   = -BEZEL + 'px';
+    machine.style.top    = -BEZEL + 'px';
+    machine.style.height = (stageH + 2 * BEZEL) + 'px';
+    machine.style.width  = Math.max(40, barLeft - BREATHE + BEZEL) + 'px';
+    machine.style.borderRadius = '14px 0 0 14px';
   }
 }
 
