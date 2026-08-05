@@ -68,9 +68,10 @@ function startRoundTimer() {
     if (hasKnack('tempo')) {
       if (++tempoElapsed >= BAL.tempo.interval_seconds) {
         tempoElapsed = 0;
-        const _cap = BAL.tempo.limit;
-        if (tempoNextIsSwap) { if (swaps    < _cap) { swaps++;    showMessage('⏲️ Tempo — +1 swap',    'var(--gold)'); } }
-        else                 { if (discards < _cap) { discards++; showMessage('⏲️ Tempo — +1 discard', 'var(--gold)'); } }
+        // Refill up to the CURRENT limit, not a hardcoded 2 — so raising the swap/discard
+        // limit (shop, events, other knacks) also raises where Tempo's drip tops out.
+        if (tempoNextIsSwap) { if (swaps    < limits.swaps.current)    { swaps++;    showMessage('⏲️ Tempo — +1 swap',    'var(--gold)'); } }
+        else                 { if (discards < limits.discards.current) { discards++; showMessage('⏲️ Tempo — +1 discard', 'var(--gold)'); } }
         tempoNextIsSwap = !tempoNextIsSwap;
         if (!animating && !falling) render();
       }

@@ -42,7 +42,7 @@ const KNACK_POOL = [
   { id:'alignment',       emoji:'🧲',  name:'Alignment',        rarity:'common', desc:'Position Tricks automatically mark the column matching their tray slot (slot 3 → column 3).' },
   { id:'district',        emoji:'🏙️',  name:'District',          rarity:'common', desc:'Position Tricks may share a row or column instead of spreading onto separate lines.' },
   // ── Tempo / repair knacks (r120) ──
-  { id:'tempo',           emoji:'⏲️',  name:'Tempo',            rarity:'rare', desc:'Sets your swap and discard limits to 2. Every 15 seconds you gain 1 back, alternating swap, discard, swap — never above those limits.' },
+  { id:'tempo',           emoji:'⏲️',  name:'Tempo',            rarity:'rare', desc:'When acquired, sets your swap and discard limits to 2. Every 15 seconds, gain 1 back — alternating swap, then discard.' },
   { id:'jury_rig',        emoji:'🔧',  name:'Jury-Rig',         rarity:'rare', desc:'Swapping or discarding a card adjacent to a Sleight has a 50% chance to restore 1 charge to it. Rolls separately for each adjacent Sleight.' },
   // ── Focus-capacity knacks (r104) ──
   { id:'stimulants',      emoji:'💊',  name:'Stimulants',       rarity:'rare', desc:'+10 maximum Focus while owned.' },

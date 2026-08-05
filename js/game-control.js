@@ -322,6 +322,7 @@ function startGame() {
   handsPendingUnlock = [];
   acquiredTricks = [];
   acquiredKnacks  = [];
+  tempoInitApplied = false;   // Tempo's one-time limit-set can run again for a fresh run
   trickTray          = [];
   _trickReplaceQueue = [];
   syncTrickTrayUI();   // show the Trick tray (or grid-preview) to match trickTrayMode for the new game
