@@ -189,7 +189,7 @@ const DESC_TEMPLATES = {
   whetstone: 'Whenever an adjacent card is swapped or discarded, Whetstone gains +{mult_per_event} mult. Hands that score a card adjacent to Whetstone score that mult.',
   entourage: 'Hands score +{mult_per_sleight} mult for every other Sleight on the grid.',
   lighthouse: 'Each round Lighthouse favors the first or last column. Hands score +{mult} mult while it sits in that column, −{falloff_per_column} per column of distance away (minimum 0).',
-  tempo: 'Sets your swap and discard limits to {limit}. Every {interval_seconds} seconds you gain 1 back, alternating swap, discard, swap — never above those limits.',
+  tempo: 'When acquired, sets your swap and discard limits to {limit}. Every {interval_seconds} seconds, gain 1 back — alternating swap, then discard.',
   overgrowth: 'Runs score +{pips_per_card} pips per card',
   long_road: 'Runs score +{mult_per_card} mult per card',
   river_run: 'Runs add +{focus_per_card} Focus per card',

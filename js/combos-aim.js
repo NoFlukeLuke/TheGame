@@ -139,6 +139,7 @@ let lighthouseColumn = 0;       // Lighthouse sleight: the favored column this r
 let lighthouseFlip = 0;         // alternator driving lighthouseColumn each round
 let tempoElapsed = 0;           // Tempo knack: round-seconds banked toward the next swap/discard drip
 let tempoNextIsSwap = true;     // Tempo knack: the drip alternates swap → discard → swap
+let tempoInitApplied = false;   // Tempo knack: its one-time limit-set has run this game (reset on new game)
 let stopwatchActive = false;    // Stopwatch sleight: clock frozen until the next hand's scoring animation ends
 let stopwatchTimer = null;      // interval draining the Stopwatch second-budget while frozen
 let stopwatchCardPos = null;    // { card, r, c } of the active Stopwatch

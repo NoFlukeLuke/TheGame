@@ -1,4 +1,4 @@
-const BUILD = '2026-08-03 · r121 · adjacency batch: Whetstone / Entourage / Lighthouse sleights + Tempo / Jury-Rig knacks';
+const BUILD = '2026-08-05 · r122 · Tempo no longer locks limits (sets once on acquire, combos stack)';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
