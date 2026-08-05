@@ -28,6 +28,12 @@ function exaltCorruptTotals(cards, reps) {
 // where `ids` are the entities that fired on THAT card (so the dance can release each trick's
 // particle as its trigger card animates, and replay the beat `reps` times). Hand-level tricks
 // are whatever's in `contrib` but not tied to any card. Populating it never changes the score.
+// A hand counts as a "3-card hand" for the 3-card tricks (3rd Down, Ready Set Go) if it has
+// 3 cards — or is a Pair while Three's a Crowd is owned.
+function counts3CardHand(handName, cells) {
+  return cells.length === 3 || (hasTrick('threes_crowd') && handName === 'Pair');
+}
+
 function calcScore(handName, cells, contrib = null, ledger = null) {
   const base = HAND_BASE[handName];
   if (!base) return 0;
@@ -83,6 +89,8 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // Five Stack: 5-card hands add per-card pips+mult, replay-aware (folds through the retrigger loop).
   const _fiveCard = hasTrick('five_stack') && cells.length === 5;
   let _fsMult = 0;
+  // 3rd Time's a Charm: the 3rd card (scoring order) of any hand gets +2 replays.
+  const _3rdKey = (hasTrick('third_charm') && _scoreCells.length >= 3 && _scoreCells[2]) ? _scoreCells[2][0] + '-' + _scoreCells[2][1] : null;
   // Straight Shot: capture the modified pip value of the line's first & last card
   const _slFirstKey = _scoreCells.length ? _scoreCells[0][0] + '-' + _scoreCells[0][1] : '';
   const _slLastKey  = _scoreCells.length ? _scoreCells[_scoreCells.length-1][0] + '-' + _scoreCells[_scoreCells.length-1][1] : '';
@@ -157,6 +165,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     _retrig += _re;
     if (_rne) _retrig++; if (_ech) _retrig++; if (_wp) _retrig += BAL.woodpecker.retrigger_count;
     if (_hnm) _retrig++;
+    if (_cKey === _3rdKey) _retrig += BAL.third_charm.extra_replays; // 3rd Time's a Charm: 3rd card gets +2 replays
     retrigByKey[r + '-' + c] = _retrig;
     if (_ledgerCells) {
       // Per-card pip-trick single-iteration deltas = the change in _cp during THIS card's
@@ -191,6 +200,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
       else if (_rne) bPip('closing_time', _pre);
       else if (_ech) bPip('echo_hand', _pre);
       else if (_wp) bPip('woodpecker', _extra);
+      else if (_cKey === _3rdKey) bPip('third_charm', _extra);
     }
     totalPips += cp;
   });
@@ -285,6 +295,11 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
       : Math.max(0, roundStartSeconds - roundSeconds);
     const _a = BAL.still_water.mult_per_interval * Math.floor(elapsedSinceSwap / 10);
     if (_a) { mult += _a; bMult('still_water', _a); }
+  }
+
+  // Ready, Set, Go: a 3-card hand (or a Pair via Three's a Crowd) containing a 3 scores +mult
+  if (hasTrick('ready_set_go') && counts3CardHand(handName, cells) && cards.some(cd => cd && cd.rank === '3')) {
+    mult += BAL.ready_set_go.mult; bMult('ready_set_go', BAL.ready_set_go.mult);
   }
 
   // Hand-specific mult

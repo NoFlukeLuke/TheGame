@@ -52,6 +52,8 @@ function generateHandFocus(hand, handCells, vultureSec) {
     if (hasTrick('overtime')) {
       markCount_overtime += handCells.filter(([r,c]) => cellHasRowColBonus(r, c, 'overtime')).length;
     }
+    // 3rd Down: 3-card hands (or Pairs via Three's a Crowd) add Focus
+    if (hasTrick('third_down') && counts3CardHand(hand, handCells)) totalFocus += BAL.third_down.focus;
     // ── 5-card-hand family ──
     if (handCells.length === 5) {
       if (hasTrick('five_stack')) totalFocus += handCells.length * BAL.five_stack.focus_per_card; // +Focus/card (pips+mult handled in calcScore)

@@ -166,6 +166,11 @@ const TRICK_POOL = [
   { id:'life_lessons',   name:'Life Lessons',        tier:'rare',      tags:['focus'],           desc:'Each round you complete permanently raises your maximum Focus by 1' },
   { id:'wellspring',     name:'Wellspring',          tier:'rare',      tags:['focus','pips','scaling'], desc:'For every 10 Focus generated this game, this trick scores +2 pips' },
   { id:'feedback_loop',  name:'Feedback Loop',       tier:'rare',      tags:['focus','mult','scaling'], desc:'For every 5 Focus generated this round, this trick scores +1 mult (resets each round)' },
+  // ── 3-card-hand family (r113) ──
+  { id:'third_down',     name:'3rd Down',            tier:'rare',      tags:['focus'],           desc:'3-card hands add +3 Focus' },
+  { id:'ready_set_go',   name:'Ready, Set, Go',      tier:'common',    tags:['mult'],            desc:'A 3-card hand containing a 3 scores +9 mult' },
+  { id:'third_charm',    name:"3rd Time's a Charm",  tier:'epic',      tags:['replay'],          desc:'The 3rd card of a hand gets +2 replays' },
+  { id:'threes_crowd',   name:"Three's a Crowd",     tier:'rare',      tags:['rule'],            desc:'Pairs count as 3-card hands' },
 ];
 
 // ── Trick category → emoji ──

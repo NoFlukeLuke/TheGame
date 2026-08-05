@@ -1,4 +1,4 @@
-const BUILD = '2026-07-27 · r112 · 5-card + Focus capacity/generation batches';
+const BUILD = '2026-07-27 · r113 · 3-card-hand family (3rd Down, Ready Set Go, 3rd Times a Charm, Threes a Crowd)';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
