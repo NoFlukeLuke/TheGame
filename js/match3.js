@@ -304,22 +304,25 @@ async function match3Resolve() {
       handsPlayed += matches.length;
       updateScoreUI();
 
+      // Goal check happens BEFORE the clear, so the goal-clinching match's cards
+      // are still on the board to drive the win finale (they fly to the preview).
+      // (Infinite dev mode never ends the round; Zen still has goals, just doubled.)
+      const goalMet = !match3NoGoal() && score >= roundGoal && !goalReachedThisRound;
+      if (goalMet) {
+        goalReachedThisRound = true;
+        roundEnded = true;
+        if (roundInterval) { clearInterval(roundInterval); roundInterval = null; }
+        match3ClearComboBadge();
+        const winCells = matches.flatMap(m => m.cells);
+        await match3WinFinale(winCells);      // jitter → explode → winners fly to preview
+        setTimeout(() => triggerLevelUp(), 250);
+        break;
+      }
+
       // ── Clear + gravity + refill (shared engine) ──
       const removing = matches.flatMap(m => m.cells);
       animating = false; // removeAndFall refuses to run while `animating`
       await removeAndFall(removing, 'match3');
-
-      // Goal check — the round ends the moment the target is met.
-      // (Infinite dev mode never ends the round; Zen still has goals, just doubled.)
-      if (!match3NoGoal() && score >= roundGoal && !goalReachedThisRound) {
-        goalReachedThisRound = true;
-        roundEnded = true;
-        if (roundInterval) { clearInterval(roundInterval); roundInterval = null; }
-        sfxSuccess();
-        match3ClearComboBadge();
-        setTimeout(() => triggerLevelUp(), 900);
-        break;
-      }
       await match3Wait(90); // small breath between chain links
     }
   } finally {
@@ -447,6 +450,133 @@ function match3ShowComboBadge(mult, step) {
 }
 function match3ClearComboBadge() {
   document.getElementById('m3-combo-badge')?.classList.remove('show');
+}
+
+// ══════════════════════════════════════════════
+// WIN FINALE
+// ══════════════════════════════════════════════
+// Mirrors the Normal-mode goal-hand finale (jitter → gentle explode → winners
+// fly to the preview), so a match-3 round win reads the same. `winCells` are the
+// cells of the match that clinched the goal — they're still on the board here
+// because the goal check runs before the clear. Self-contained (doesn't touch the
+// shared score dance) and resolves when the sequence is done.
+async function match3WinFinale(winCells) {
+  const gridEl = document.getElementById('grid');
+  if (!gridEl) { sfxSuccess(); return; }
+  animating = true;
+  sfxSuccess();
+
+  const winIds = new Set(winCells.map(([r, c]) => gridData[r]?.[c]?._id).filter(v => v != null));
+  const all = [...gridEl.querySelectorAll('[data-card-id]')];
+  const winEls = [], loseEls = [];
+  all.forEach(el => (winIds.has(+el.getAttribute('data-card-id')) ? winEls : loseEls).push(el));
+
+  // Winners get a gold glow; everything else jitters, then blasts outward.
+  winEls.forEach(el => { el.style.zIndex = '20'; el.animate(
+    [{ boxShadow: '0 0 0 0 rgba(245,192,66,0)' }, { boxShadow: '0 0 16px 5px rgba(245,192,66,0.6)' }],
+    { duration: 360, fill: 'forwards' }); });
+
+  const jitters = loseEls.map(el => el.animate([
+    { transform: 'translate(0,0) rotate(0)' },
+    { transform: 'translate(1.3px,-1.1px) rotate(0.8deg)' },
+    { transform: 'translate(-1.1px,1.3px) rotate(-0.9deg)' },
+    { transform: 'translate(1.1px,1px) rotate(0.6deg)' },
+    { transform: 'translate(-1.3px,-0.9px) rotate(-0.7deg)' },
+    { transform: 'translate(0,0) rotate(0)' },
+  ], { duration: 150, iterations: 10, easing: 'linear' })); // ~1.5s
+  await match3Wait(1400);
+
+  jitters.forEach(a => { try { a.cancel(); } catch (e) {} });
+  sfxWinExplode();
+  const gr = gridEl.getBoundingClientRect();
+  const cx = gr.left + gr.width / 2, cy = gr.top + gr.height / 2;
+  loseEls.forEach(el => {
+    const r = el.getBoundingClientRect();
+    let ax = (r.left + r.width / 2) - cx, ay = (r.top + r.height / 2) - cy;
+    const len = Math.hypot(ax, ay) || 1; ax /= len; ay /= len;
+    const dist = 200 + Math.random() * 140, rot = (Math.random() * 2 - 1) * 160;
+    el.style.zIndex = '30';
+    el.animate([
+      { transform: 'translate(0,0) rotate(0) scale(1)', opacity: 1 },
+      { transform: `translate(${ax * dist}px,${ay * dist}px) rotate(${rot}deg) scale(.82)`, opacity: 0 },
+    ], { duration: 850, easing: 'cubic-bezier(.25,.6,.35,1)', fill: 'forwards' });
+  });
+
+  // Winners fly up into the hand-preview area (same destination Normal-mode
+  // winners use), so the win moment lands in the preview like the poker modes.
+  const preview = document.getElementById('selected-cards');
+  const pr = preview ? preview.getBoundingClientRect() : null;
+  winEls.forEach((el, i) => {
+    const r = el.getBoundingClientRect();
+    const destX = pr ? (pr.left + pr.width / 2) : cx;
+    const destY = pr ? (pr.top + pr.height / 2) : cy - 160;
+    const dx = destX - (r.left + r.width / 2), dy = destY - (r.top + r.height / 2);
+    el.style.zIndex = '40';
+    el.animate([
+      { transform: 'translate(0,0) scale(1)', opacity: 1 },
+      { transform: `translate(${dx}px,${dy}px) scale(0.82)`, opacity: 0.95, offset: 0.85 },
+      { transform: `translate(${dx}px,${dy}px) scale(0.7)`, opacity: 0 },
+    ], { duration: 700, delay: 120 + i * 90, easing: 'cubic-bezier(.35,.65,.3,1)', fill: 'forwards' });
+  });
+  await match3Wait(120 + winEls.length * 90 + 700 + 120);
+
+  all.forEach(el => el.remove()); // clear the board; triggerLevelUp deals the next one
+}
+
+// ══════════════════════════════════════════════
+// LEVEL-UP (between rounds) — a genuine pick-of-three, into the TRAY
+// ══════════════════════════════════════════════
+// Replaces the legacy grid-based Trick screen for match-3. No Tricks are placed
+// on the board (they live in the side tray), and the pick is always three real
+// options rather than however many grid cells happened to be empty.
+async function showMatch3LevelUpScreen() {
+  animating = true;
+  selected = [];
+  trickSelectionPhase = true;
+  sfxLevelUp();
+
+  const gridEl = document.getElementById('grid');
+  gridEl?.querySelectorAll('[data-card-id],.trick-card,.temp-anim,.trick-target-slot').forEach(el => el.remove());
+  // Deal a fresh full board of plain cards — the deal ANIMATION runs at the 3-2-1.
+  for (let r = 0; r < gridRows; r++)
+    for (let c = 0; c < gridCols; c++)
+      gridData[r][c] = drawCard() || null;
+  match3PendingSettle = true; // the new board settles when its timer starts (startRoundTimer)
+
+  trickSelectionOptions = pickTrickOptions(3);
+  dealPhase = true;   // hold the real board hidden until the 3-2-1 deal reveals it
+  animating = false;
+  showTrickChoiceOverlay(); // routes to confirmMatch3TrickSelection (see tricks-ui hooks)
+}
+
+// Chosen Trick goes to the tray (capacity-checked), then the next round begins.
+// Also used for the skip / timer-expiry paths (trick may be null on skip).
+function confirmMatch3TrickSelection(trick) {
+  if (!trickSelectionPhase) return;
+  clearInterval(levelupTimer);
+  trickSelectionPhase = false;
+  hideTrickTooltip?.();
+  document.getElementById('trick-choice-overlay')?.classList.remove('show');
+  document.querySelectorAll('.trick-target-slot').forEach(el => el.remove());
+
+  if (trick) {
+    if (trickTray.length < trickCapacity()) {
+      trickTray.push(trick);
+      selectTrick(trick, true); // grant effect + acquiredTricks (fromTrickFlow: don't start round here)
+      renderTrickTray();
+    } else {
+      showMessage('Trick tray full — skipped', 'var(--cream-dim)');
+    }
+  }
+
+  if (pendingLevelUps > 0) { pendingLevelUps--; setTimeout(() => drainLevelUpQueue(), 400); return; }
+  showNextGoalFlash().then(() => show321Countdown()).then(() => {
+    gameTimerPaused = false;
+    sfxRoundStart();
+    updateClockUI();
+    render();
+    startRoundTimer(); // settles the board + kicks the cascade (match3PendingSettle)
+  });
 }
 
 // ══════════════════════════════════════════════

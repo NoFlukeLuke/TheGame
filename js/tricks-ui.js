@@ -24,7 +24,9 @@ function showTrickChoiceOverlay() {
           // Confirm
           overlay.classList.remove('show');
           document.querySelectorAll('.trick-target-slot').forEach(el => el.remove());
-          confirmFullscreenTrickSelection(trick);
+          // Match-3 adds the pick to the tray, not the grid.
+          if (match3Active()) confirmMatch3TrickSelection(trick);
+          else confirmFullscreenTrickSelection(trick);
         } else {
           overlay._pendingChoice = trick;
           renderCards();
@@ -44,6 +46,8 @@ function showTrickChoiceOverlay() {
       clearInterval(levelupTimer);
       overlay.classList.remove('show');
       document.querySelectorAll('.trick-target-slot').forEach(el => el.remove());
+      // Match-3: skip still needs its own next-round path (deal + settle + cascade).
+      if (match3Active()) { confirmMatch3TrickSelection(null); return; }
       trickSelectionPhase = false;
       drainLevelUpQueue();
     };
@@ -62,7 +66,8 @@ function startTrickTimer() {
       // Auto-pick first option
       document.getElementById('trick-choice-overlay')?.classList.remove('show');
       document.querySelectorAll('.trick-target-slot').forEach(el => el.remove());
-      confirmFullscreenTrickSelection(trickSelectionOptions[0]);
+      if (match3Active()) confirmMatch3TrickSelection(trickSelectionOptions[0]);
+      else confirmFullscreenTrickSelection(trickSelectionOptions[0]);
     }
   }, 1000);
 }

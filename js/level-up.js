@@ -209,6 +209,12 @@ function triggerLevelUp() {
 }
 
 async function showLevelUpScreen() {
+  // Match-3 modes have their own between-rounds flow: a genuine pick-of-three
+  // that goes to the side TRAY (never the grid), no reserved grid slots. The
+  // legacy path below places Tricks on the board and derives its option count
+  // from empty grid cells — which is why match-3 was offering just one.
+  if (match3Active()) { showMatch3LevelUpScreen(); return; }
+
   animating = true;
   selected = [];
   const gridEl = document.getElementById('grid');

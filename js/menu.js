@@ -1,4 +1,4 @@
-const BUILD = '2026-08-04 · r121 · Match-3 + Zen modes, match-type toggles, settings pop-up';
+const BUILD = '2026-08-04 · r122 · Match-3 level-up: tray pick-of-3 + win finale';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
