@@ -232,7 +232,9 @@ function render() {
   }
 
   // Buttons
-  document.getElementById('btn-play').disabled    = !bestHandResult || (animating && !falling);
+  // Match-3 auto-plays its matches, so Play is inert there — keep it visibly
+  // disabled rather than lighting up on a selection it will never submit.
+  document.getElementById('btn-play').disabled    = match3Active() || !bestHandResult || (animating && !falling);
   document.getElementById('btn-discard').disabled = selected.length === 0 || (animating && !falling);
   document.getElementById('disc-count').textContent = `(${discards})`;
   document.getElementById('swap-count').textContent  = swaps;

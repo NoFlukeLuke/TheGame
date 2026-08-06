@@ -1,4 +1,11 @@
 const SUITS = ['♠','♥','♦','♣'];
+// Six Suits mode adds two extra suits (Star + Triangle) to dilute the deck so
+// flushes become rare. ACTIVE_SUITS is the suit list the current game actually
+// uses — set per-mode in startGame(). Classic play leaves it equal to SUITS,
+// so nothing about the four-suit game changes.
+const SUITS_EXTRA = ['★','▲'];
+const SUITS_SIX = [...SUITS, ...SUITS_EXTRA];
+let ACTIVE_SUITS = SUITS;
 const RANKS = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
 const RED = new Set(['♥','♦']);
 const RANK_ORDER = {A:1,'2':2,'3':3,'4':4,'5':5,'6':6,'7':7,'8':8,'9':9,'10':10,J:11,Q:12,K:13};
@@ -11,6 +18,8 @@ const HAND_BASE = {
   'Three of a Kind': { pips:30, mult:3 },
   'Run of 4':        { pips:28, mult:4 },
   'Straight':        { pips:30, mult:4 },
+  'Flush of 3':      { pips:25, mult:3 },
+  'Flush of 4':      { pips:32, mult:4 },
   'Flush':           { pips:35, mult:4 },
   'Full House':      { pips:40, mult:4 },
   'Four of a Kind':  { pips:60, mult:7 },
@@ -25,7 +34,7 @@ const GOAL_SCALE = 1.35;
 const TRICK_CARD_INTERVAL = 20; // seconds
 
 function suitClass(suit) {
-  return { '♥':'suit-hearts', '♦':'suit-diamonds', '♠':'suit-spades', '♣':'suit-clubs' }[suit] || '';
+  return { '♥':'suit-hearts', '♦':'suit-diamonds', '♠':'suit-spades', '♣':'suit-clubs', '★':'suit-stars', '▲':'suit-triangles' }[suit] || '';
 }
 
 // Central card capability gate — add new card types here, nowhere else

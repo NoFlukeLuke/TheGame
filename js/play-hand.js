@@ -135,6 +135,8 @@ function generateHandFocus(hand, handCells, vultureSec) {
 function playHand() {
   // During the on-grid reward step the Play button is the green CONFIRM button.
   if (rewardOnGrid) { confirmRewardPath(); return; }
+  // Match-3: the board plays its own matches (match3Resolve). Manual play is off.
+  if (match3Active()) { dbgEvent('info', 'play ignored (match-3 auto-plays)'); return; }
   if (roundEnded) { dbgEvent('warn', 'play ignored (round ended)'); return; }
   if (falling)   { pendingAction = 'play'; dbgEvent('info', 'play queued (falling)'); return; }
   if (animating) { pendingAction = 'play'; dbgEvent('info', 'play queued (animating)'); scheduleQueuedRetry(); return; }

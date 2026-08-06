@@ -138,6 +138,15 @@ async function removeAndFall(removingCells, mode = 'play') {
   // Discard mode: the caller (doDiscard) already pushed cards to the back of the draw pile.
   if (mode === 'play') {
     removingCells.forEach(([r,c]) => discardToPlayed(gridData[r][c]));
+  } else if (mode === 'match3') {
+    // Match-3 cascade. Finite deck (default) behaves like a normal play — scored
+    // cards are held out until round end. The infinite-deck dev toggle instead
+    // requeues them to the BACK of the draw pile so the board never runs dry.
+    removingCells.forEach(([r,c]) => {
+      const card = gridData[r][c];
+      if (match3InfiniteDeck) discardToDrawPile(card);
+      else                    discardToPlayed(card);
+    });
   }
 
   const gridEl = document.getElementById('grid');
@@ -361,6 +370,11 @@ async function removeAndFall(removingCells, mode = 'play') {
 
   if (queued === 'play') { dbgEvent('info', 'executing queued play'); playHand(); }
   else if (queued === 'discard') { dbgEvent('info', 'executing queued discard'); doDiscard(); }
+
+  // Match-3: the settled board may have created new matches (e.g. after the
+  // player discarded). match3Resolve() self-guards, so a cascade already in
+  // flight — which awaits this call — is unaffected.
+  if (mode !== 'match3' && match3Active() && !roundEnded) match3Resolve();
 }
 
 
