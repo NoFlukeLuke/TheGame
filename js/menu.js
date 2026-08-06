@@ -1,4 +1,4 @@
-const BUILD = '2026-08-04 · r121 · Match-3 + Zen modes, match-type toggles, settings pop-up';
+const BUILD = '2026-08-06 · r122 · Game Drawer mode (Classic clone) + piece catalog';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -17,6 +17,27 @@ const MODES = {
     autoPlayHands: false,
     actStructure: true,
     suitCount: 4
+  },
+  // Game Drawer: Classic's 3-Act game, but the pool of *potential pieces* is the
+  // whole game closet — Uno cards, dice, Monopoly money, chess/checker pieces,
+  // dominoes, Catan resources, Ticket to Ride trains, and dozens more (see the
+  // catalog in js/data/gamedrawer.js). r122: the piece EFFECTS are TBD — none do
+  // anything yet — so this is a straight clone of Classic until we wire them up
+  // one at a time. `drawerMode: true` is the gate future piece logic hangs off.
+  gamedrawer: {
+    id: 'gamedrawer',
+    name: 'Game Drawer',
+    desc: 'Classic 3-Act play, but pieces come from the whole game closet — dice, Uno cards, chess pieces, Monopoly money and more. (Piece powers are still being built.)',
+    winCondition: 'boss_defeat',
+    enableBosses: true,
+    enableShops: true,
+    enableEvents: true,
+    autoRefillGrid: true,
+    timeIsCurrency: true,
+    autoPlayHands: false,
+    actStructure: true,
+    suitCount: 4,
+    drawerMode: true
   },
   sixsuits: {
     id: 'sixsuits',
@@ -160,10 +181,12 @@ function startMatch3FromMenu(modeId = 'match3') {
 // MODE SELECT (scroll-sideways carousel off the PLAY button)
 // ══════════════════════════════════════════════
 // The shipping modes, shown left→right in the carousel.
-const MODE_SELECT_LIST = ['normal', 'sixsuits', 'match3', 'zen'];
+const MODE_SELECT_LIST = ['normal', 'gamedrawer', 'sixsuits', 'match3', 'zen'];
 const MODE_META = {
   normal:   { accent: 'var(--c-yellow)', suits: '♠ ♥ ♦ ♣',
               blurb: 'The original four-suit game. Three Acts of rounds, shops, events and bosses.' },
+  gamedrawer: { accent: '#ff9f45',       suits: '🎲 🎴 ♟️ 💵',
+              blurb: 'The junk drawer of every board game in the closet. Same 3-Act game as Classic, but the pieces are pulled from Uno, Monopoly, chess, Catan, Ticket to Ride and more. Piece powers are being built one at a time.' },
   sixsuits: { accent: 'var(--c-mint)',   suits: '♠ ♥ ♦ ♣ ★ ▲',
               blurb: 'Two extra suits dilute the deck, so flushes are hard-won. Flush of 3, 4 and 5 are all in play.' },
   match3:   { accent: '#ff7ad0',         suits: '5 × 5',
