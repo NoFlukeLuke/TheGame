@@ -1,4 +1,4 @@
-const BUILD = '2026-08-05 · r122 · Tempo no longer locks limits (sets once on acquire, combos stack)';
+const BUILD = '2026-08-07 · r123 · focus-payout entities: Dividend / Release Valve / Capacitor / Siphon / Trade Winds / Growth Spurt';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

@@ -39,6 +39,10 @@ const KNACK_POOL = [
   // ── Tempo / repair knacks (r120) ──
   { id:'tempo',           emoji:'⏲️',  name:'Tempo',            rarity:'rare', desc:'When acquired, sets your swap and discard limits to 2. Every 15 seconds, gain 1 back — alternating swap, then discard.' },
   { id:'jury_rig',        emoji:'🔧',  name:'Jury-Rig',         rarity:'rare', desc:'Swapping or discarding a card adjacent to a Sleight has a 50% chance to restore 1 charge to it. Rolls separately for each adjacent Sleight.' },
+  // ── Focus-payout knacks (r123): fire when you reach max Focus ──
+  { id:'dividend',     emoji:'🏦',  name:'Dividend',      rarity:'rare', desc:'Each time you reach max Focus, gain 8 credits.' },
+  { id:'trade_winds',  emoji:'⛵',  name:'Trade Winds',   rarity:'rare', desc:'Your max Focus is 10 lower. At the end of each round, gain credits equal to half your current Focus.' },
+  { id:'growth_spurt', emoji:'🌱',  name:'Growth Spurt',  rarity:'epic', desc:'Each time you reach max Focus, raise a random limit by 1 — then lose 15 Focus and gain no Focus for 10 seconds.' },
   // ── Focus-capacity knacks (r104) ──
   { id:'stimulants',      emoji:'💊',  name:'Stimulants',       rarity:'rare', desc:'+10 maximum Focus while owned.' },
   { id:'core_memories',   emoji:'🧠',  name:'Core Memories',    rarity:'rare', desc:'Each Event you attend permanently raises your maximum Focus by 2.' },

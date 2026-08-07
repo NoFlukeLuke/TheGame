@@ -92,6 +92,18 @@ function trickCapacity() {
   return (limits.trick_slots?.current ?? 5) + ((typeof hasKnack === 'function' && hasKnack('curator')) ? 1 : 0);
 }
 
+// Raise a random non-maxed limit by its step (Growth Spurt). Uses the shop's weighted
+// picker so rare limits (trick_slots, focus_cap) show up proportionally less often.
+function grantRandomLimit(label) {
+  const pool = LIMITS_DEF.filter(d => limits[d.id].current < limits[d.id].max);
+  if (pool.length === 0) { showMessage(`${label || 'Limit up'} — all limits maxed!`, 'var(--cream-dim)'); return; }
+  const pick = pickWeightedLimits(1, pool)[0];
+  if (!pick) return;
+  const step = pick.step || 1;
+  incrementLimit(pick.id);
+  showMessage(`${label || 'Limit up'} — ${pick.label} +${step}`, 'var(--gold)');
+}
+
 // Rank value with Ace HIGH (=14). Shared by knacks that care about the grid's
 // highest/lowest rank (High and Mighty, Low and Behold, Down and Back In).
 function rankHighVal(rk) { return rk === 'A' ? 14 : (RANK_ORDER[rk] || 0); }

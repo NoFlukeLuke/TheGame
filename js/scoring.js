@@ -349,6 +349,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   const _entM   = entourageMult();              // Entourage: +mult per other Sleight on the grid
   const _lightM = lighthouseMult();             // Lighthouse: mult by distance from its favored column
   mult += _whetM + _entM + _lightM;
+  let _siphonM = 0;                              // Siphon: multiplicative ×mult, applied after additive mults (below)
 
   // Hearts: neutral by default; +1 mult each with Devoted Trick (per-card → per replay)
   const heartCount = _wc(c => c.suit === '♥' || (c.combined && c.suit2 === '♥'));
@@ -493,6 +494,12 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   if (hasTrick('flow_state') && fMult >= 1.5) {
     const _a = BAL.flow_state.pips_per_card * cards.length; totalPips += _a; bPip('flow_state', _a);
   }
+  // Siphon (sleight): ×3 the whole mult, applied last so it multiplies every additive bonus.
+  // Read-only here (not consumed) — playHand clears siphonMultX after the hand commits, so
+  // findBestHand's candidate scoring sees it consistently.
+  if (typeof siphonMultX === 'number' && siphonMultX > 1) {
+    const _pre = mult; mult = Math.round(mult * siphonMultX * 10) / 10; _siphonM = mult - _pre;
+  }
   // MULT stays "pure" — Focus is a SEPARATE third multiplier applied at the end (see below).
   lastPreFocusMult = mult;   // kept for dance compatibility (now == pure mult)
   lastCalcMult = mult;       // pure mult for the MULT box
@@ -553,6 +560,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     if (_whetM  > 0) contrib.push({type:'mult',source:'sleight',id:'whetstone', delta:Math.round(_whetM*10)/10});
     if (_entM   > 0) contrib.push({type:'mult',source:'sleight',id:'entourage', delta:Math.round(_entM*10)/10});
     if (_lightM > 0) contrib.push({type:'mult',source:'sleight',id:'lighthouse',delta:Math.round(_lightM*10)/10});
+    if (_siphonM > 0) contrib.push({type:'mult',source:'sleight',id:'siphon',    delta:Math.round(_siphonM*10)/10});
   }
 
   // Finalize the animation ledger: attach the known per-card MULT / exalt single-iteration

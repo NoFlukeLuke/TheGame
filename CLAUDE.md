@@ -124,6 +124,17 @@ Three `passive` Sleights + two Knacks built on grid adjacency (all orthogonal �
 
 These Sleights add mult from *outside* the Trick system, so `calcScore` tracks them separately (`_whetM` / `_entM` / `_lightM`) and pushes `source:'sleight'` contribution rows; `contribDisplayName` now resolves `sleight`/`knack` sources against their own pools (previously sleight rows fell back to the raw id — Amplifier included).
 
+### Focus-payout entities (r123)
+Six entities that hook the **transition into max Focus** (`onFocusMaxed()` in `focus.js`, called from `addFocus` only on the `prev < cap && focusNodes === cap` edge). Credit/resource grants happen immediately; any Focus *drop* is deferred ~260ms via `setTimeout(removeFocus, …)` so the fill-to-max animation plays first and we never mutate `focusNodes` while `addFocus`'s queue is mid-flight. Multiple droppers in one max share a single `Math.max` discharge (Release Valve + Growth Spurt = −15, not −30).
+- **Dividend** (Knack) — each max → +8 credits.
+- **Release Valve** (Trick) — each max → +1 swap & +1 discard, then −15 Focus.
+- **Growth Spurt** (Knack) — each max → `grantRandomLimit()` (weighted, non-maxed only, in `limits.js`), then −15 Focus and a **Focus-gain block** for 10s. The block is `focusGainBlockUntil` (a `Date.now()` timestamp); `addFocus` early-returns while `Date.now() < focusGainBlockUntil`. Decay still ticks during the block. This block *is* the intended limiter in place of a per-run cap on the reward.
+- **Capacitor** (Sleight, `double_tap`, durability 1) — spend 10 Focus → 10 credits, then removed from the grid (`gridData[r][c] = null` in the `input.js` double-tap intercept). Fails with a message if `focusNodes < 10`.
+- **Siphon** (Sleight, `double_tap`, durability 4, once/round) — spend 15 Focus → sets `siphonMultX = 3`; `calcScore` applies `mult *= siphonMultX` **last** (after every additive mult) and pushes a `source:'sleight'` contribution; `playHand` clears it back to 1 after the hand. Read-only inside `calcScore` so `findBestHand`'s candidate scoring stays consistent.
+- **Trade Winds** (Knack) — `focusCapNodes()` subtracts 10 (floored at one threshold = 10); at round end (`showLevelUpScreen_fallOnly` in `interlude.js`, before the meter zeroes) grants credits = `floor(focusNodes / 2)`.
+
+`focusGainBlockUntil` / `siphonMultX` are declared in `combos-aim.js` and reset on new game (`game-control.js`). See `FOCUS_IDEAS.md` for the larger backlog of focus modes these entities are prototypes for.
+
 ## Events (node-based, Normal mode)
 
 Reward grid destination tiles set `pendingEventOverride` → `closeRewardGrid()` routes to shop or `openEvent()`. Events render in `#event-overlay`. Implemented: **Confluence** (theme draft), **Crossroads** (sacrifice trades), **Gamble** (doors / double-or-nothing), **Wandering Merchant** (free rare items), **Altar** (multi-round investments via `altarEffects[]`), **Cleansing Spring** (purge/restore), **Twin Path** (2 Tricks + shadow debuff). All triggerable from the dev panel.
