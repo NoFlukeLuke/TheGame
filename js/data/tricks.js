@@ -28,6 +28,7 @@ const TRICK_POOL = [
   { id:'summit',     name:'Unsummit',   tier:'common', desc:'The lowest-ranking card in each hand scores +(its value × level) pips.' },
   { id:'last_stand', name:'Last Stand', tier:'rare',   desc:'If your score is below the round goal when you play, that hand scores x2.' },
   { id:'light_touch',    name:'Nimble',              tier:'common',    desc:'2-card hands score +5 mult' },
+  { id:'release_valve',  name:'Release Valve',       tier:'rare',      desc:'Each time you reach max Focus, gain +1 swap and +1 discard, then lose 15 Focus.' },
   { id:'heavy_hand',     name:'Full Load',           tier:'rare',      desc:'5-card hands score +6 pips per card' },
   { id:'blackjack_bonus', name:'Twenty-One',         tier:'legendary', desc:'If the face values of your cards total exactly 21, score ×3' },
   // ── Rank-specific pips / mult ──

@@ -264,6 +264,8 @@ function startGame() {
   recomputeGridMetrics();
   // Reset focus meter
   focusNodes = 0;
+  focusGainBlockUntil = 0;   // clear any lingering Growth Spurt gain-block
+  siphonMultX = 1;           // clear any pending Siphon charge
   focusCapBase = (typeof limits !== 'undefined' && limits.focus_cap) ? limits.focus_cap.current : 30;
   focusCapPerm = 0;
   focusGenGame = 0; focusGenRound = 0;

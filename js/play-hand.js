@@ -213,6 +213,7 @@ function playHand() {
   if (sleightNextHandDouble) { score += finalScore; sleightNextHandDouble = false; }
   if (sleightLegacyMult)     { score += finalScore * BAL.the_legacy.extra_mult; sleightLegacyMult = false; } // ×3 total = base + 2× extra
   if (sleightAmplifierMult) sleightAmplifierMult = 0;
+  if (siphonMultX > 1) siphonMultX = 1;   // Siphon's ×3 is spent on this hand
   // Clock-mark Tricks: the pending pip/mult bonuses were already folded into finalScore — clear them now.
   pendingHandPips = 0; pendingHandMult = 0; pendingCardPips = 0;
   handsPlayed++;

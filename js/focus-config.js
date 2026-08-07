@@ -19,7 +19,11 @@ function onGridSleightCapBonus() {
 }
 function focusCapNodes() {
   const stim = (typeof hasKnack === 'function' && hasKnack('stimulants')) ? 10 : 0;
-  return Math.min(FOCUS_CAP_HARD, focusCapBase + focusCapPerm + stim + onGridSleightCapBonus());
+  // Trade Winds trades ceiling for income: −10 max Focus, floored at one threshold so
+  // the meter is always usable.
+  const trade = (typeof hasKnack === 'function' && hasKnack('trade_winds')) ? -BAL.trade_winds.cap_reduction : 0;
+  const cap = focusCapBase + focusCapPerm + stim + trade + onGridSleightCapBonus();
+  return Math.min(FOCUS_CAP_HARD, Math.max(FOCUS_THRESHOLD, cap));
 }
 const FOCUS_COLORS  = ['#54af88','#3a8fbf','#7a50c0','#9a30d0'];
 

@@ -228,15 +228,20 @@ if (typeof requestAnimationFrame === 'function') requestAnimationFrame(focusFxLo
 
 function addFocus(amount) {
   if (!amount || amount <= 0) return;
+  // Growth Spurt blocks Focus gain for a few seconds after each max — decay still ticks.
+  if (focusGainBlockUntil && Date.now() < focusGainBlockUntil) return;
   focusGenGame += amount; focusGenRound += amount; // total Focus generated (any source) — Wellspring / Feedback Loop
   focusDecayBuffer = 0;   // gaining focus resets the x.0 grace buffer
   const cap = focusCapNodes();
   const prev = Math.min(focusNodes, cap);
   focusNodes = Math.min(focusNodes + amount, cap);
+  const _justMaxed = prev < cap && focusNodes === cap;
   // Expanse: each time we hit max capacity, bump the cap by 10 nodes (for the rest of the run)
-  if (hasTrick('expanse') && prev < cap && focusNodes === cap) {
+  if (hasTrick('expanse') && _justMaxed) {
     focusCapPerm += 10;
   }
+  // r123 focus-payout entities fire on the transition INTO max Focus.
+  if (_justMaxed) onFocusMaxed();
   // Keep the bar's node count in sync if capacity changed, preserving already-filled nodes.
   if (focusNodeEls.length !== focusCapNodes()) {
     buildFocusMeter();
@@ -246,6 +251,30 @@ function addFocus(amount) {
   const newTotal = Math.min(focusNodes, focusCapNodes());
   for (let i = prev; i < newTotal; i++) focusAnimQueue.push({ nodeIdx: i });
   runFocusAnimQueue();
+}
+
+// ── Focus-payout entities (r123): fire when Focus transitions INTO max ──
+// Called from inside addFocus. Resource/credit grants happen immediately; any Focus
+// *drop* is deferred ~260ms so the fill-to-max animation plays first (a visible
+// "discharge" beat) and we never call removeFocus() while addFocus's queue is mid-flight.
+function onFocusMaxed() {
+  let drop = 0;
+  if (hasKnack('dividend')) {
+    coins += BAL.dividend.credits; updateCoinsUI();
+    showMessage(`🏦 Dividend — +${BAL.dividend.credits} credits`, 'var(--gold)');
+  }
+  if (hasTrick('release_valve')) {
+    swaps++; discards++;
+    drop = Math.max(drop, BAL.release_valve.focus_drop);
+    showMessage('🎚️ Release Valve — +1 swap, +1 discard', 'var(--gold)');
+    if (!animating && !falling) render();
+  }
+  if (hasKnack('growth_spurt')) {
+    grantRandomLimit('🌱 Growth Spurt');
+    drop = Math.max(drop, BAL.growth_spurt.focus_drop);
+    focusGainBlockUntil = Date.now() + BAL.growth_spurt.block_seconds * 1000;
+  }
+  if (drop > 0) setTimeout(() => removeFocus(drop), 260);
 }
 
 // Spawn a temp clone of `srcEl` at its current viewport position on document.body,
