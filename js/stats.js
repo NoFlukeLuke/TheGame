@@ -6,6 +6,8 @@ const HAND_FORMULAS = {
   'Pair':            'Base 20 pips × 2 mult',
   'Two Pair':        'Base 20 pips × 2 mult',
   'Straight':        'Base 30 pips × 4 mult',
+  'Flush of 3':      'Base 25 pips × 3 mult',
+  'Flush of 4':      'Base 32 pips × 4 mult',
   'Flush':           'Base 35 pips × 4 mult',
   'Full House':      'Base 40 pips × 4 mult',
   'Straight Flush':  'Base 100 pips × 8 mult',
@@ -16,7 +18,7 @@ const HAND_FORMULAS = {
 const HAND_KEY_TO_NAME = {
   run3:'Run of 3', threeofakind:'Three of a Kind',
   fourofakind:'Four of a Kind', run4:'Run of 4', pair:'Pair', twopair:'Two Pair',
-  straight:'Straight', flush:'Flush', fullhouse:'Full House',
+  straight:'Straight', flush3:'Flush of 3', flush4:'Flush of 4', flush:'Flush', fullhouse:'Full House',
   straightflush:'Straight Flush', highcard:'High Card', blackjack:'Blackjack',
 };
 

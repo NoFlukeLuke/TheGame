@@ -60,6 +60,9 @@ function triggerLevelUp() {
   level++;
   // This round's score target, from zero
   roundGoal = Math.round(Math.round(BASE_GOAL * Math.pow(GOAL_SCALE, level - 1)) / 500) * 500;
+  // Zen has no clock, so its goals are doubled — levelling and the reward grid
+  // stay reachable, just at a slower, self-paced rate.
+  if (match3IsZen()) roundGoal *= 2;
   totalScore += score; // bank the completed round's score for the end-of-run display
   // Life Lessons: each completed round permanently raises max Focus
   if (hasTrick('life_lessons')) focusCapPerm += BAL.life_lessons.cap_gain;
@@ -78,6 +81,8 @@ function triggerLevelUp() {
   discards     = _rr.discards;
   swaps        = _rr.swaps;
   roundSeconds = _rr.seconds;
+  match3ApplyZenResources(); // Zen/infinite: refill swaps & discards to "unlimited"
+  match3PendingSettle = true; // the round's fresh board settles when its timer starts
   // Per-action time-cost debuffs active this round = permanent + next-round-only.
   playHandCostThisRound = extraPlayCostPerm    + nextRoundPlayCost;
   discardCostThisRound  = extraDiscardCostPerm + nextRoundDiscardCost;
@@ -204,6 +209,12 @@ function triggerLevelUp() {
 }
 
 async function showLevelUpScreen() {
+  // Match-3 modes have their own between-rounds flow: a genuine pick-of-three
+  // that goes to the side TRAY (never the grid), no reserved grid slots. The
+  // legacy path below places Tricks on the board and derives its option count
+  // from empty grid cells — which is why match-3 was offering just one.
+  if (match3Active()) { showMatch3LevelUpScreen(); return; }
+
   animating = true;
   selected = [];
   const gridEl = document.getElementById('grid');
@@ -292,7 +303,7 @@ async function showLevelUpScreen() {
   // path reaches here without skipTrickChoiceOverlay set, normal mode can never
   // show the old Trick pick (this is what caused the double level-up glitch).
   // The `else` branch below is LEGACY / SURVIVAL-MODE ONLY.
-  if (skipTrickChoiceOverlay || ACTIVE_MODE.id === 'normal') {
+  if (skipTrickChoiceOverlay || isActMode()) {
     // Reward grid already handled rewards (or normal mode has no pick) —
     // skip Trick pick, go straight to new round.
     skipTrickChoiceOverlay = false;

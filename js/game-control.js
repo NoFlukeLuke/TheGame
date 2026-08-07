@@ -29,7 +29,8 @@ function resumeGame() {
   gameInterval = setInterval(() => {
     if (gameTimerPaused) return;
     gameSeconds--;
-    if (ACTIVE_MODE.id !== 'normal') {
+    // See startTimers: match-3 and dominoes own their round loops, skip legacy progression.
+    if (!isActMode() && !match3Active() && !dominoActive()) {
       const m = Math.floor(gameSeconds/60);
       const s = gameSeconds%60;
       document.getElementById('game-timer').textContent = `${m}:${s.toString().padStart(2,'0')}`;
@@ -114,8 +115,11 @@ function startGame() {
   stopTimers();
   if (levelupTimer) { clearInterval(levelupTimer); levelupTimer = null; }
 
-  // Reset deck audit
-  expectedDeckTotal = 52;
+  // Pick the suit list for this mode BEFORE any deck is built. Six Suits mode uses
+  // the expanded 6-suit list; every other mode uses the classic four.
+  ACTIVE_SUITS = (ACTIVE_MODE.suitCount === 6) ? SUITS_SIX : SUITS;
+  // Reset deck audit (a full deck = one of every rank in every active suit)
+  expectedDeckTotal = ACTIVE_SUITS.length * RANKS.length;
   dealPhase = false;
 
   // Reset all state
@@ -125,6 +129,12 @@ function startGame() {
   handsPlayed = 0;
   // Reset limits to base values on new game
   LIMITS_DEF.forEach(def => { limits[def.id] = { current: def.base, base: def.base, max: def.max }; });
+  // Match-3 modes start on a 5×5 board (owner spec). Setting it through `limits`
+  // means level-ups keep the size instead of snapping back to the 4×4 base.
+  if (match3Active()) {
+    limits.grid_rows.current = 5; limits.grid_rows.base = 5;
+    limits.grid_cols.current = 5; limits.grid_cols.base = 5;
+  }
   discards = limits.discards.current;
   swaps = limits.swaps.current;
   // Sync playing-grid dimensions from limits and size the cards
@@ -181,7 +191,11 @@ function startGame() {
   if (pauseTimer) { clearTimeout(pauseTimer); pauseTimer = null; }
   const ALL_HAND_KEYS = ['run3','threeofakind','fourofakind','run4','pair','twopair','straight','flush','fullhouse','straightflush','highcard','blackjack'];
   const BASE_HAND_KEYS = ['run3','threeofakind','twopair','fourofakind'];
-  const startKeys = ACTIVE_MODE.id === 'normal' ? ALL_HAND_KEYS : BASE_HAND_KEYS;
+  // Match-3 scores real hand names (Flush, Straight, Straight Flush, Run of 4…),
+  // so it needs the full hand set active like the act modes, not the legacy base four.
+  const startKeys = [...(isActMode() || match3Active() ? ALL_HAND_KEYS : BASE_HAND_KEYS)];
+  // Six Suits mode makes the short flushes playable from the start alongside the 5-card Flush.
+  if (ACTIVE_MODE.suitCount === 6) startKeys.push('flush3', 'flush4');
   activeHands = new Set(startKeys);
   unlockedHands = new Set(startKeys);
   handsPendingUnlock = [];
@@ -267,7 +281,7 @@ function startGame() {
   updateActProgressUI();
   // Clear any leftover card elements from previous game
   document.getElementById('grid').querySelectorAll('.card').forEach(el => el.remove());
-  roundGoal = BASE_GOAL;
+  roundGoal = match3IsZen() ? BASE_GOAL * 2 : BASE_GOAL; // Zen: doubled goals, no clock
   totalScore = 0;
   coins = 0;
   shopItems = null;
@@ -301,11 +315,16 @@ function startGame() {
   document.getElementById('clock-bar').classList.remove('urgent');
 
   initGridData();
+  // Match-3: quietly re-draw any matches the deal happened to create, so the
+  // player starts from a still board instead of being handed a free cascade.
+  if (match3Active()) match3SettleBoard();
   updateScoreUI();
   updateTrickList();
   updateClockUI();
   render();
   startTimers();
+  // Zen mode hands out unlimited swaps/discards (see match3ApplyZenResources).
+  if (match3Active()) { match3ApplyZenResources(); setTimeout(() => match3Resolve(), 400); }
 }
 
 // ══════════════════════════════════════════════

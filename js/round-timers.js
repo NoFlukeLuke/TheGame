@@ -47,6 +47,7 @@ function startRoundTimer() {
   roundInterval = setInterval(() => {
     if (pipeTimerPaused) return;
     if (gameTimerPaused) return; // global pause covers menus/shop/events
+    if (match3NoTimer()) return; // Zen / infinite dev mode: the clock never runs down
     roundSeconds--;
     if (roundSeconds < 0) roundSeconds = 0;
     // Slow Burn sleights accrue on-grid time → +1 max Focus per minute (see onGridSleightCapBonus)
@@ -78,6 +79,13 @@ function startRoundTimer() {
   }, 1000);
   // Start focus decay alongside the round timer (pauses internally during overlays)
   startFocusDecay();
+  // Match-3: a freshly dealt board settles silently (no free opening cascade),
+  // then the cascade engine takes over. Resuming mid-round only re-resolves.
+  if (match3Active()) {
+    if (match3PendingSettle) { match3PendingSettle = false; match3SettleBoard(); render(); }
+    match3ApplyZenResources();
+    setTimeout(() => match3Resolve(), 300);
+  }
 }
 
 function startTimers() {
@@ -89,7 +97,10 @@ function startTimers() {
   gameInterval = setInterval(() => {
     if (gameTimerPaused) return;
     gameSeconds--;
-    if (ACTIVE_MODE.id !== 'normal') {
+    // Match-3 and Dominoes run their own round-goal loops, so they must NOT take
+    // the legacy timer-based progression below (which would pop shops/bosses off
+    // the 20-minute game clock and hard-end the run at 0).
+    if (!isActMode() && !match3Active() && !dominoActive()) {
       const m = Math.floor(gameSeconds/60);
       const s = gameSeconds%60;
       document.getElementById('game-timer').textContent = `${m}:${s.toString().padStart(2,'0')}`;
@@ -173,7 +184,7 @@ function onRoundEnd() {
   // Normal mode: once the goal is reached, the score-dance → interlude owns the
   // whole round transition. Ignore a stray/late timer tick so the legacy
   // level-up flow (showLevelUpScreen / trick pick) can never fire on top of it.
-  if (ACTIVE_MODE.id === 'normal' && goalReachedThisRound) return;
+  if ((isActMode() || match3Active()) && goalReachedThisRound) return;
   _onRoundEndCore();
 }
 
@@ -183,6 +194,9 @@ function _onRoundEndCore() {
     cancelDance();
     suppressScoreDisplay = false;
     if (heldBackScore > 0) { score += heldBackScore; heldBackScore = 0; }
+    // Dominoes has its own round advance; the normal level-up flow is poker-specific
+    // (trick pick, sleight sweep, card deal) and would corrupt the domino board.
+    if (dominoActive()) { dominoAdvanceLevel(); return; }
     triggerLevelUp();
     return;
   }

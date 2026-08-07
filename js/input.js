@@ -34,6 +34,9 @@ function scheduleQueuedRetry() {
 
 function scheduleAutoSubmit() {
   cancelAutoSubmit();
+  // Match-3: hands are never submitted by selection — matches play themselves.
+  // Selection exists purely to choose cards to DISCARD.
+  if (match3Active()) return;
   if (danceAbortController) return; // dance in progress, don't schedule
   const result = selected.length >= 2 ? findBestHand(selected) : null;
   if (!result) return; // no valid hand, don't schedule
@@ -140,6 +143,10 @@ function doSwap(r1, c1, r2, c2) {
     if (_el1) _el1.animate([{ transform:`translate(${-_swDx}px,${-_swDy}px) scale(1.09)`,offset:0 },{ transform:'translate(0,0) scale(1)',offset:1 }], { duration: _dur, easing: _ease });
     if (_el2) _el2.animate([{ transform:`translate(${_swDx}px,${_swDy}px) scale(1.09)`,offset:0 },{ transform:'translate(0,0) scale(1)',offset:1 }], { duration: _dur, easing: _ease });
   }
+  // Match-3: a swap is the player's main way to CREATE a match — resolve the
+  // board once the swap animation has landed. (The swap itself stays manual;
+  // only the resulting matches play themselves.)
+  if (match3Active()) setTimeout(() => match3Resolve(), 240);
 }
 
 // Remove a card from selection, then keep only the largest connected component.
@@ -215,6 +222,10 @@ function tryAddToSelection(r, c) {
 // ── Tap handler (called on pointerup when pointer didn't move) ──
 function onCardTap(r, c) {
   if (_longPressActive) { _longPressActive = false; return; }
+  // During the match-3 on-grid Trick pick, only the option tiles respond, and
+  // they route through their own onclick → onTrickTap. Block everything else
+  // (selection, swaps) so the board can't be disturbed mid-pick.
+  if (typeof match3PickActive !== 'undefined' && match3PickActive) return;
   const _card = gridData[r]?.[c];
   const _cardStr = _card ? `${_card.rank}${_card.suit}` : 'null';
   dbgEvent('info', `tap [${r},${c}] ${_cardStr}`, { animating, trickPhase: trickSelectionPhase, swapPending: !!swapPending, selected: selected.length });

@@ -23,6 +23,11 @@ let _domLastTapTime = 0;
 const DOMINO_ROWS = 8;
 const DOMINO_COLS = 8;
 
+// True while the Dominoes mode is the active game. Used to gate the shared
+// engine's legacy timer progression (shops/bosses off the 20-minute game clock),
+// exactly as match3Active() does — Dominoes runs its own round-goal loop.
+function dominoActive() { return !!ACTIVE_MODE?.dominoes; }
+
 function _domWait(ms) { return new Promise(res => setTimeout(res, ms)); }
 
 // ── Deck ──

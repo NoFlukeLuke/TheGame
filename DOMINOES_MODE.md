@@ -189,17 +189,24 @@ untouched. Reached via the **DOMINOES (BETA)** button on the main menu.
 - Component-cycling hand-type label in the preview during scoring.
 - Minimal round/level advance (endless).
 
-### v3 (shipped, r121) — first-class mode
-- Dominoes is now a **selectable game mode on the main menu**, not a bolted-on beta
-  button. A **SELECT GAME** picker shows one tile per *shipped* mode —
-  **CARDS** (the main game) and **DOMINOES** — and **PLAY** launches whichever is
-  selected. The legacy prototype modes (survival / tetris / autoplay) stay in
-  `MODES` for dev use but are hidden from the menu via the `shipped` flag.
-- Fixed a latent crash: `renderMenuModes()` still targeted `#menu-content-modes`,
-  an element deleted in r100, so it threw whenever the dev panel was closed from
-  the menu. It's now an alias for the new picker.
-- Switching from Dominoes back to Cards clears leftover domino tiles (the normal
-  renderer only reconciles `[data-card-id]` elements).
+### v3 (shipped, r125) — merged with main; added to the mode carousel
+While this branch was being built, `main` moved from r117 to r124 (Six Suits,
+Match-3 + Zen, a **mode-select carousel**, win finale, 3- and 4-card trick
+families). This branch was merged with that work rather than deployed over it.
+- Dominoes is registered in main's existing **mode-select carousel**
+  (`MODE_SELECT_LIST` + `MODE_META`), reached via **PLAY → scroll right**. It is
+  the 5th card, purple accent, domino-pip glyphs.
+- The standalone "DOMINOES (BETA)" button and the interim custom picker built on
+  this branch were both **removed** — main's carousel supersedes them.
+- `MODES.dominoes` carries a `dominoes: true` flag, mirroring match-3's `match3`
+  flag, so shared code can gate on it.
+- **Bug caught by the merge:** Dominoes is neither an act mode nor match-3, so it
+  fell into the shared engine's *legacy timer progression* — which would have
+  popped shops and bosses off the 20-minute game clock and hard-ended a run at 0.
+  Added `dominoActive()` to the same guards match-3 uses (`startTimers`,
+  `resumeGame`), plus a route in `_onRoundEndCore` so a timer-expiry goal-reach
+  calls `dominoAdvanceLevel()` instead of the poker-specific `triggerLevelUp()`
+  (which would deal cards onto the domino board).
 
 ### v2 (shipped, r120) — adjacency + the action loop
 - **Adjacency rule** on selection (connected group; illegal picks dimmed; prune on

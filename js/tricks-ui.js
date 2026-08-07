@@ -114,7 +114,10 @@ function onTrickTap(trick) {
   if (trickCard._trickState !== 'new' && trickCard._trickState !== 'upgradeable') return;
 
   if (pendingTrickChoice && pendingTrickChoice.id === trick.id) {
-    confirmTrickSelection(trick);
+    // Match-3: the pick lives on the grid only for the choice — the chosen Trick
+    // goes to the side tray and all three option tiles revert to normal cards.
+    if (match3Active()) match3ConfirmPick(trick);
+    else confirmTrickSelection(trick);
   } else {
     pendingTrickChoice = trick;
     showTrickTooltip(trick);
@@ -615,7 +618,7 @@ function updateActProgressUI() {
   const labelEl = document.getElementById('game-timer-label');
   const valEl   = document.getElementById('game-timer');
   if (!labelEl || !valEl) return;
-  if (ACTIVE_MODE.id === 'normal') {
+  if (isActMode()) {
     labelEl.textContent = 'Progress';
     if (bossActive) {
       valEl.textContent  = `ACT ${actNumber} · BOSS`;
