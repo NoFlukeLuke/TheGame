@@ -1,4 +1,4 @@
-const BUILD = '2026-08-07 · r126 · Move as One (keyword-synergy trick doubling)';
+const BUILD = '2026-08-07 · r127 · Sell Tricks & Knacks anywhere (half buy price); Sleights un-sellable';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

@@ -193,13 +193,21 @@ function showTrickTooltip(trick, readOnly = false) {
   tip.className = `trick-tooltip trick-tier-${trick.tier}`;
   const hint = readOnly ? '' : `<div class="trick-tooltip-hint">Tap again to pick</div>`;
   const liveDesc = trickLiveDesc(trick);
-  const discardBtn = readOnly ? `<button class="trick-tooltip-discard" id="trick-tooltip-discard-btn">Discard Trick</button>` : '';
-  tip.innerHTML = `<div class="trick-tooltip-name">${trick.name}</div><div class="trick-tooltip-desc">${colorizeKeywords(withSuitHalo(liveDesc))}</div>${hint}${discardBtn}`;
+  const _sv = (typeof trickSellValue === 'function') ? trickSellValue(trick) : 0;
+  const actionBtns = readOnly
+    ? `<div class="trick-tooltip-actions"><button class="trick-tooltip-sell" id="trick-tooltip-sell-btn">Sell 💰${_sv}</button>`
+      + `<button class="trick-tooltip-discard" id="trick-tooltip-discard-btn">Discard</button></div>`
+    : '';
+  tip.innerHTML = `<div class="trick-tooltip-name">${trick.name}</div><div class="trick-tooltip-desc">${colorizeKeywords(withSuitHalo(liveDesc))}</div>${hint}${actionBtns}`;
   tip.style.opacity = '0';
   gridEl.appendChild(tip);
 
-  // Wire discard button
+  // Wire sell + discard buttons
   if (readOnly) {
+    tip.querySelector('#trick-tooltip-sell-btn')?.addEventListener('click', e => {
+      e.stopPropagation();
+      sellTrick(trick);
+    });
     tip.querySelector('#trick-tooltip-discard-btn')?.addEventListener('click', e => {
       e.stopPropagation();
       discardTrickFromGrid(trick);
@@ -369,9 +377,16 @@ function showTrickTrayTooltip(trick, anchorEl) {
   tip.id = 'trick-tooltip';
   tip.className = `trick-tooltip trick-tier-${trick.tier}`;
   const liveDesc = trickLiveDesc(trick);
-  tip.innerHTML = `<div class="trick-tooltip-name">${trick.name}</div><div class="trick-tooltip-desc">${colorizeKeywords(withSuitHalo(liveDesc))}</div><button class="trick-tooltip-discard" id="trick-tooltip-discard-btn">Discard Trick</button>`;
+  const _sv = (typeof trickSellValue === 'function') ? trickSellValue(trick) : 0;
+  tip.innerHTML = `<div class="trick-tooltip-name">${trick.name}</div><div class="trick-tooltip-desc">${colorizeKeywords(withSuitHalo(liveDesc))}</div>`
+                + `<div class="trick-tooltip-actions"><button class="trick-tooltip-sell" id="trick-tooltip-sell-btn">Sell 💰${_sv}</button>`
+                + `<button class="trick-tooltip-discard" id="trick-tooltip-discard-btn">Discard</button></div>`;
   tip.style.cssText = 'position:fixed;opacity:0;z-index:300;';
   document.body.appendChild(tip);
+  tip.querySelector('#trick-tooltip-sell-btn')?.addEventListener('click', e => {
+    e.stopPropagation();
+    sellTrick(trick);
+  });
   tip.querySelector('#trick-tooltip-discard-btn')?.addEventListener('click', e => {
     e.stopPropagation();
     discardTrickFromTray(trick);

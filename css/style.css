@@ -554,7 +554,7 @@
     pointer-events: none;
     transition: opacity 0.12s ease;
   }
-  #knack-tooltip.show { opacity: 1; }
+  #knack-tooltip.show { opacity: 1; pointer-events: auto; }
   .knack-tooltip-name {
     font-family: 'Cinzel', serif;
     font-size: 11px;
@@ -1512,15 +1512,27 @@
     color: #e8b84b; text-align: center;
     animation: trick-confirm-pulse 0.7s ease-in-out infinite alternate;
   }
+  .trick-tooltip-actions, .knack-tooltip-actions {
+    display: flex; gap: 4px; margin-top: 6px;
+  }
   .trick-tooltip-discard {
-    display: block; width: 100%; margin-top: 6px;
-    padding: 4px 8px; border-radius: 4px;
+    flex: 1; padding: 4px 8px; border-radius: 4px;
     background: rgba(180,40,40,0.18); border: 1px solid rgba(180,40,40,0.5);
     color: #e07070; font-family: 'Cinzel', serif; font-size: 8px;
     letter-spacing: 0.5px; cursor: pointer;
     transition: background 0.12s;
   }
   .trick-tooltip-discard:hover { background: rgba(180,40,40,0.35); }
+  /* Sell buttons (Tricks in the tray, Knacks in the HUD) — gold, matches the credits economy */
+  .trick-tooltip-sell, .knack-tooltip-sell {
+    flex: 1; padding: 4px 8px; border-radius: 4px;
+    background: rgba(200,160,60,0.18); border: 1px solid rgba(200,160,60,0.55);
+    color: #e8b84b; font-family: 'Cinzel', serif; font-size: 8px;
+    letter-spacing: 0.5px; cursor: pointer; white-space: nowrap;
+    transition: background 0.12s;
+  }
+  .trick-tooltip-sell:hover, .knack-tooltip-sell:hover { background: rgba(200,160,60,0.34); }
+  .knack-tooltip-actions { margin-top: 5px; }
   .trick-confirm {
     font-family: 'Cinzel', serif;
     font-size: 7px; font-weight: 700;

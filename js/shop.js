@@ -23,6 +23,40 @@ let shopItems       = null; // { tricks:[], limits:[], knacks:[], sleights:[] }
 let shopPurchased   = new Set();
 let shopRerollCount = 0;
 
+// ── Selling (r127) ──
+// Owner decision: Tricks and Knacks can be sold ANYWHERE (tray / HUD), any time.
+// Sleights are NOT sellable — they leave only by being played, discarded, or removed in the shop.
+// Sell value = half the shop buy price, floored, min 1 (always < buy → no buy/sell exploit).
+const SELL_FRACTION = 0.5;
+function trickSellValue(trick) { return Math.max(1, Math.floor((SHOP_TRICK_PRICES[trick.tier] || 8) * SELL_FRACTION)); }
+function knackSellValue()      { return Math.max(1, Math.floor(SHOP_KNACK_PRICE * SELL_FRACTION)); }
+
+function sellTrick(trick) {
+  if (!trick) return;
+  const idx = trickTray.findIndex(b => b.id === trick.id);
+  if (idx >= 0) trickTray.splice(idx, 1);
+  const aidx = acquiredTricks.findIndex(b => b.id === trick.id);
+  if (aidx >= 0) acquiredTricks.splice(aidx, 1);
+  const v = trickSellValue(trick);
+  coins += v; updateCoinsUI();
+  showMessage(`Sold ${trick.name} · +${v} credits`, 'var(--gold)');
+  if (typeof hideTrickTooltip === 'function') hideTrickTooltip();
+  if (typeof renderTrickTray === 'function') renderTrickTray();
+  render();
+}
+
+function sellKnack(knack) {
+  if (!knack) return;
+  const aidx = acquiredKnacks.findIndex(t => t.id === knack.id);
+  if (aidx >= 0) acquiredKnacks.splice(aidx, 1);
+  const v = knackSellValue();
+  coins += v; updateCoinsUI();
+  showMessage(`Sold ${knack.name} · +${v} credits`, 'var(--gold)');
+  if (typeof hideKnackTooltip === 'function') hideKnackTooltip();
+  if (typeof updateKnackList === 'function') updateKnackList();
+  render();
+}
+
 function shopLimitPrice(def) {
   // price scales on number of purchases, not raw units (so a step of 15/3 doesn't over-charge)
   const l = limits[def.id];
