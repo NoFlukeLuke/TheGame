@@ -438,10 +438,14 @@
   </div>
   <!-- Time-cost breakdown: a pop-up toggled by the ⏱ Time button (no longer a permanent chip) -->
   <div id="interact-costs" class="time-popup" style="display:none">
-    <div class="ic-h">Time Cost</div>
+    <div class="ic-h">Interact Cost</div>
     <div class="ic-r"><span>Play</span><span id="ic-play">0s</span></div>
-    <div class="ic-r"><span>Discard</span><span>3s</span></div>
-    <div class="ic-r"><span>Swap</span><span>4s</span></div>
+    <div class="ic-r"><span>Discard</span><span id="ic-discard">3s</span></div>
+    <div class="ic-r"><span>Swap</span><span id="ic-swap">4s</span></div>
+    <div class="ic-sep"></div>
+    <div class="ic-r"><span>Max Time</span><span id="ic-maxtime">3:00</span></div>
+    <div class="ic-r"><span>Paused</span><span id="ic-paused">0×</span></div>
+    <div class="ic-r"><span>Rewound</span><span id="ic-rewound">0×</span></div>
   </div>
 
   <!-- Hidden elements still needed by render() -->

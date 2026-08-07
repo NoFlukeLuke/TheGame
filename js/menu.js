@@ -1,4 +1,4 @@
-const BUILD = '2026-08-07 · r124 · merge main (r123) + shop reskin/on-grid preview';
+const BUILD = '2026-08-07 · r125 · per-screen bg tint · live time popup · play-cost debuff';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

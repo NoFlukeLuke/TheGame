@@ -164,6 +164,7 @@ function rewindTime(seconds, label) {
   const gained = roundSeconds - before;
   if (gained <= 0) return 0;
   rewoundSecondsRound += gained; // Kingfisher scales on seconds rewound this round
+  rewindsThisRound++;            // per-round rewind count (time popup)
   updateClockUI();
   const el = document.getElementById('time-cost-flash') ||
     (() => { const e = document.createElement('div'); e.id = 'time-cost-flash'; e.style.cssText =
@@ -224,6 +225,7 @@ function pauseRound(seconds) {
   // Long Pause knack: all pauses are 1.5x longer
   if (hasKnack('long_pause')) seconds *= BAL.long_pause.multiplier;
   pauseInstanceGame++; // Hummingbird (counts every pause triggered this game)
+  pausesThisRound++;   // per-round pause count (time popup)
   // The Vulture: mark the start of the round's FIRST continuous pause stretch. An extension
   // landing while already paused does NOT start a new stretch (pipeTimerPaused is still true).
   if (!pipeTimerPaused && !firstPauseStartedRound) { firstPauseStartedRound = true; firstPauseActive = true; }

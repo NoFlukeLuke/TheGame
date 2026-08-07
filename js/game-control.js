@@ -74,11 +74,33 @@ function hideTimePopup() {
   const pop = document.getElementById('interact-costs');
   if (pop) pop.classList.remove('show');
 }
+// Fill the time popup with LIVE values: interaction costs (incl. reward-grid
+// debuffs), the round's max time, and how many times it's been paused / rewound.
+function updateInteractCosts() {
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  // Play is 0 by default (r50); a "Hands +Ns" debuff makes it cost that much.
+  set('ic-play', `${playHandCostThisRound || 0}s`);
+  // Discard cost per card: 3 base, 0 with Free Discards, 6 with Hoarder, + reward debuff.
+  let disc = (typeof BAL !== 'undefined') ? BAL._resources.discard_seconds_per_card : 3;
+  if (typeof hasKnack === 'function' && hasKnack('free_discards')) disc = 0;
+  else { if (typeof hasKnack === 'function' && hasKnack('hoarder')) disc = BAL.hoarder.discard_seconds_per_card; disc += (discardCostThisRound || 0); }
+  set('ic-discard', `${disc}s`);
+  // Swap cost: 4 base, 0 with Free Swaps.
+  const swap = (typeof hasKnack === 'function' && hasKnack('free_swaps')) ? 0 : (typeof SWAP_TIME_COST !== 'undefined' ? SWAP_TIME_COST : 4);
+  set('ic-swap', `${swap}s`);
+  // Max time = round cap minus permanent (−5s) penalties.
+  const base = (typeof ROUND_DURATION !== 'undefined') ? ROUND_DURATION : 180;
+  const cap  = Math.max(base, limits.round_time.current) - (roundPenaltySeconds || 0);
+  set('ic-maxtime', (typeof formatTime === 'function') ? formatTime(Math.max(0, cap)) : `${cap}s`);
+  set('ic-paused',  `${pausesThisRound  || 0}×`);
+  set('ic-rewound', `${rewindsThisRound || 0}×`);
+}
 function toggleTimePopup() {
   const pop = document.getElementById('interact-costs');
   const btn = document.getElementById('btn-time');
   if (!pop || !btn) return;
   if (pop.classList.contains('show')) { hideTimePopup(); return; }
+  updateInteractCosts();                     // refresh live values before showing
   pop.classList.add('show');                 // .show → display:flex (CSS)
   const r = btn.getBoundingClientRect();
   const pw = pop.offsetWidth, ph = pop.offsetHeight;

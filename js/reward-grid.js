@@ -22,7 +22,7 @@ function generateRewardContent() {
   // Hover projections (computed when the grid opens, reflecting current standing debuffs).
   const _proj    = computeRoundResources();
   const _capNow  = Math.max(10, Math.max(ROUND_DURATION, limits.round_time.current) - roundPenaltySeconds);
-  const _handNow = 5 + extraPlayCostPerm + nextRoundPlayCost;
+  const _handNow = 0 + extraPlayCostPerm + nextRoundPlayCost;   // base play cost is 0 (r50)
   const _discNow = 3 + extraDiscardCostPerm + nextRoundDiscardCost;
   const debuffs = [
     { weight: 8, icon: '☁', label: '-5s Round Cap', tier: 'penalty',
@@ -563,6 +563,9 @@ function openRewardGrid() {
   // Play/Discard buttons into Confirm/Clear.
   document.getElementById('next-goal-bg')?.classList.remove('show');
   document.body.classList.add('reward-active');
+  // Boss reward grids (post-boss-win, nodeInAct 5; or timer-mode boss context) tint red;
+  // ordinary reward grids stay teal (see the per-screen #stage backgrounds).
+  document.body.classList.toggle('reward-boss', rewardGridContext === 'boss' || (ACTIVE_MODE?.id === 'normal' && nodeInAct === 5));
   enterRewardButtonMode();
   renderRewardTiles(true);   // deal the reward tiles in like a new round's cards
 }
@@ -1096,7 +1099,7 @@ function closeRewardGrid() {
   // Tear down the on-grid reward step: restore the action buttons, clear the
   // reward tiles from #grid, and drop back to normal render ownership.
   exitRewardButtonMode();
-  document.body.classList.remove('reward-active');
+  document.body.classList.remove('reward-active', 'reward-boss');
   rewardOnGrid = false;
   const gridEl = document.getElementById('grid');
   if (gridEl) gridEl.innerHTML = '';

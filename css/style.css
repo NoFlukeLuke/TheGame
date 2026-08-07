@@ -3216,6 +3216,7 @@
   #interact-costs .ic-h { font-family:'Cinzel',serif; font-size:7px; letter-spacing:1px; color:var(--gold-dim); text-transform:uppercase; text-align:center; }
   #interact-costs .ic-r { display:flex; justify-content:space-between; font-family:'Courier New',monospace; font-size:9px; color:var(--cream); }
   #interact-costs .ic-r span:last-child { color:var(--gold); font-weight:700; }
+  #interact-costs .ic-sep { height:1px; margin:3px 0; background:var(--plastic-deep); opacity:0.5; }
   #run-progress .rp-act { font-family:'Cinzel',serif; font-size:11px; font-weight:700; color:var(--gold); letter-spacing:1px; line-height:1; }
   #run-progress .rp-nodes { display:flex; gap:3px; align-items:center; }
   #run-progress .rp-nodes span { width:6px; height:6px; border-radius:50%; background:#2a2010; border:1px solid var(--gold-dim); box-sizing:border-box; }
@@ -3334,7 +3335,15 @@
     background: radial-gradient(120% 90% at 28% 6%, rgba(255,255,255,0.09), transparent 46%);
   }
   #stage { background: radial-gradient(ellipse at 50% 42%, #1a140c 0%, #100d09 78%);
-           border-radius: 8px; box-shadow: inset 0 0 40px rgba(0,0,0,0.7); }
+           border-radius: 8px; box-shadow: inset 0 0 40px rgba(0,0,0,0.7);
+           transition: background 0.45s ease; }
+  /* ── Per-screen background tint (r124): differentiates the "grid" you're on.
+     Low saturation, but noticeable. Play = warm near-black (above); reward = teal;
+     boss reward = red; challenge = purple; on-grid shop = gold. ── */
+  body.reward-active #stage                     { background: radial-gradient(ellipse at 50% 42%, #0d2320 0%, #081311 78%); }
+  body.reward-active.reward-boss #stage         { background: radial-gradient(ellipse at 50% 42%, #2a1010 0%, #150908 78%); }
+  body.challenge-active #stage                  { background: radial-gradient(ellipse at 50% 42%, #1e1030 0%, #100a1c 78%); }
+  body.shop-prev-active #stage, body.shop-active #stage { background: radial-gradient(ellipse at 50% 42%, #241c0b 0%, #130f07 78%); }
 
   /* Thin beige base line (replaces the control deck) */
   #cab-baseline {
