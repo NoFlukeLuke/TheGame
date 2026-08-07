@@ -1,4 +1,4 @@
-const BUILD = '2026-08-04 · r123 · 4-card-hand family (Four Eyes, 4x4, Four Horse-man, Wait Four It)';
+const BUILD = '2026-08-07 · r124 · Set add-ons (Undue Influence, Encore, Shaky Foundation) + Run add-ons (Dam Holding…, Wave Amplification)';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

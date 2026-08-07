@@ -110,6 +110,8 @@ function triggerLevelUp() {
   focusGenRound = 0;
   handsPlayedRound = 0;
   runsPlayedRound  = 0;
+  setsPlayedRound  = 0;
+  runStreak        = 0;
   handTypesRound   = new Set();
   assemblyMarkCount = 0;   // Assembly Line
   markCount_groove  = 0;   // Groove

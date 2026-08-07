@@ -107,6 +107,8 @@ function generateHandFocus(hand, handCells, vultureSec) {
     }
     // High Water: after 3 Runs this round, each further Run pauses the clock by its card count
     if (_isRunHand && runsPlayedRound >= 3 && hasTrick('high_water')) pauseRound(handCells.length);
+    // Dam Holding…: every Run pauses the clock a flat few seconds
+    if (_isRunHand && hasTrick('dam_holding')) pauseRound(BAL.dam_holding.pause);
     // Sundial knack: a hand where every card shares a column pauses the clock
     if (hasKnack('sundial') && handCells.length > 0 && handCells.every(([, hc]) => hc === handCells[0][1])) pauseRound(BAL.sundial.seconds);
     // Metronome knack: playing this round's target hand type pauses the clock
@@ -349,7 +351,17 @@ function playHand() {
   // ── Accumulating Trick effects (post-hand) ──
   handsPlayedRound++;
   handTypesRound.add(hand);
-  if (['Run of 3','Run of 4','Straight','Straight Flush'].includes(hand)) runsPlayedRound++;
+  if (['Run of 3','Run of 4','Straight','Straight Flush'].includes(hand)) { runsPlayedRound++; runStreak++; }
+  else runStreak = 0; // Wave Amplification: a non-Run breaks the consecutive-Run streak
+  // Set counters (Undue Influence / Shaky Foundation). Increment AFTER scoring so calcScore saw the pre-hand count.
+  if (isSetHand(hand)) {
+    setsPlayedRound++;
+    // Undue Influence: a Set with a face card grants credits = Sets played this round (incl. this one)
+    if (hasTrick('undue_influence') && handCells.some(([r,c]) => ['J','Q','K'].includes(gridData[r]?.[c]?.rank))) {
+      coins += setsPlayedRound; updateCoinsUI();
+      showMessage('Undue Influence +' + setsPlayedRound + ' credits', 'var(--gold)');
+    }
+  }
   // ── Priming (Inspirato / Prime Times) ──
   if (trickTrayMode) {
     // Consume primes that contributed this hand (their extra trigger already fired in scoring)
