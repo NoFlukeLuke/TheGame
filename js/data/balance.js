@@ -102,6 +102,8 @@ const BAL = {
   shaky_foundation: { mult: 15 },
   wave_amp:      { pips_per_streak: 10 },
   dam_holding:   { pause: 3 },
+  acorns:        { focus_per_card: 0.05 },
+  plan_ahead:    { every: 3 },
   huddle:        { pips_per_adj: 11 },
   combo_score: { mult_per_type: 2 },
   heart_double: { heart_mult: 1 },

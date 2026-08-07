@@ -119,6 +119,8 @@ const TRICK_POOL = [
   // ── Accumulating ──
   { id:'compound_mult',  name:'Compound',            tier:'epic',      desc:'Each hand played permanently adds +0.1 mult to this trick' },
   { id:'prolific',       name:'Prolific',            tier:'rare',      desc:'Each hand played permanently adds +1 pip to this trick' },
+  { id:'acorns',         name:'Acorns',              tier:'rare',      tags:['focus','scaling'], desc:'Each card scored permanently adds +0.05 Focus to this trick; grants its whole-number Focus each hand' },
+  { id:'plan_ahead',     name:'Plan Ahead',          tier:'epic',      tags:['focus','scaling'], desc:'Every 3rd hand adds Focus equal to your average hands per round' },
   { id:'fives_discard',  name:'Penny Saved',         tier:'rare',      tags:['scaling','pips','value'], desc:'Each 5 discarded or played permanently adds +5 pips to this trick' },
   { id:'nines_mult',     name:'Cloud Nine',          tier:'rare',      tags:['scaling','mult','value'], desc:'Each 9 scored permanently adds +9 mult to this trick' },
   { id:'tens_mult',      name:'Perfect Ten',         tier:'rare',      tags:['scaling','mult','value'], desc:'Every 10 cards discarded permanently adds +1 mult to this trick' },
@@ -202,7 +204,7 @@ const TRICK_CATEGORIES = [
   { emoji:'🌈', ids:['number_crunch'] }, // Rank diversity
   { emoji:'📍', ids:['rowcol_triple_pips','rowcol_mult','rowcol_retrigger','perfect_timing','right_time','study_hall','rowcol_perm_double','shape_square','shape_cross','shape_line','corner_retrigger','two_corners','edge_pips','wide_span_mult','column_rush','row_power','groove','assembly_line','overtime','feng_shui','huddle','clean_sweep'] }, // Position
   { emoji:'📈', ids:['rising_tide','veteran_bonus'] }, // Level scaling
-  { emoji:'🧮', ids:['compound_mult','prolific','fives_discard','nines_mult','tens_mult','sixes_perm','fours_perm','twos_retrigger','prime_times','eights_retrigger','snowball','big_win','queens_upgrade','aces_absorb'] }, // Accumulating
+  { emoji:'🧮', ids:['compound_mult','prolific','acorns','plan_ahead','fives_discard','nines_mult','tens_mult','sixes_perm','fours_perm','twos_retrigger','prime_times','eights_retrigger','snowball','big_win','queens_upgrade','aces_absorb'] }, // Accumulating
   { emoji:'🎲', ids:['sands_of_time','discard_pips','spade_flood','mirror'] }, // Situational pip
   { emoji:'🔀', ids:['combo_score','escalation'] }, // Diverse conditions
   { emoji:'🎯', ids:['meditation','tunnel_vision','first_wind','rhythm','restless','cull','expanse','kaleidoscope','flow_state'] }, // Focus

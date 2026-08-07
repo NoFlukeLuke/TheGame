@@ -142,6 +142,8 @@ function trickLiveDesc(trick) {
       case 'tens_mult':      return now(`+${bonusMult_tens || 0} mult`);
       case 'compound_mult':  return now(`+${(bonusMult_compound || 0).toFixed(1)} mult`);
       case 'prolific':       return now(`+${bonusPips_prolific || 0} pips`);
+      case 'acorns':         return now(`+${Math.floor(bonusFocus_acorns || 0)} Focus/hand · ${(bonusFocus_acorns || 0).toFixed(2)} stored`);
+      case 'plan_ahead':     return now(`+${Math.max(1, Math.round((handsPlayedGame || 0) / Math.max(1, level)))} Focus every 3rd hand`);
       case 'big_win':        return now(`+${bonusMult_jackpot || 0} mult`);
       case 'feng_shui':      return now(`+${bonusPips_fengshui || 0} pips`);
       case 'sapling':        return now(`${level - 1} levels applied`);

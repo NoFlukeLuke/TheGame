@@ -1,4 +1,4 @@
-const BUILD = '2026-08-07 · r124 · Set add-ons (Undue Influence, Encore, Shaky Foundation) + Run add-ons (Dam Holding…, Wave Amplification)';
+const BUILD = '2026-08-07 · r125 · Meta/scaling tricks: Acorns (Focus accumulator) + Plan Ahead (avg hands/round)';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
