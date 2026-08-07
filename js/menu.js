@@ -1,4 +1,4 @@
-const BUILD = '2026-08-04 · r122 · Match-3 level-up: tray pick-of-3 + win finale';
+const BUILD = '2026-08-04 · r123 · Match-3 level-up: on-grid pick-of-3 (centre tiles)';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
