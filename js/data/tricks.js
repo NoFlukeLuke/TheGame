@@ -141,6 +141,7 @@ const TRICK_POOL = [
   // ── Diverse conditions ──
   { id:'combo_score',    name:'Combo Score',         tier:'common',    desc:'+2 mult for every distinct hand type played this round' },
   { id:'escalation',     name:'Escalation',          tier:'rare',      desc:'For each hand beyond the 5th in a round, score +1 mult' },
+  { id:'move_as_one',    name:'Move as One',         tier:'epic',      tags:['synergy'], desc:'If 3+ of your Tricks share a keyword, your lowest-rarity Trick sharing that keyword scores its effect a second time' },
   // ── Focus ──
   { id:'meditation',     name:'Meditation',          tier:'common',    tags:['focus'], desc:'Focus decays 1 second slower' },
   { id:'tunnel_vision',  name:'Tunnel Vision',       tier:'common',    tags:['focus'], desc:'Start each round with 5 focus' },
@@ -206,7 +207,7 @@ const TRICK_CATEGORIES = [
   { emoji:'📈', ids:['rising_tide','veteran_bonus'] }, // Level scaling
   { emoji:'🧮', ids:['compound_mult','prolific','acorns','plan_ahead','fives_discard','nines_mult','tens_mult','sixes_perm','fours_perm','twos_retrigger','prime_times','eights_retrigger','snowball','big_win','queens_upgrade','aces_absorb'] }, // Accumulating
   { emoji:'🎲', ids:['sands_of_time','discard_pips','spade_flood','mirror'] }, // Situational pip
-  { emoji:'🔀', ids:['combo_score','escalation'] }, // Diverse conditions
+  { emoji:'🔀', ids:['combo_score','escalation','move_as_one'] }, // Diverse conditions
   { emoji:'🎯', ids:['meditation','tunnel_vision','first_wind','rhythm','restless','cull','expanse','kaleidoscope','flow_state'] }, // Focus
   { emoji:'⭐', ids:['heartwood'] }, // Legendary misc
 ];

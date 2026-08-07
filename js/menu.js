@@ -1,4 +1,4 @@
-const BUILD = '2026-08-07 · r125 · Meta/scaling tricks: Acorns (Focus accumulator) + Plan Ahead (avg hands/round)';
+const BUILD = '2026-08-07 · r126 · Move as One (keyword-synergy trick doubling)';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

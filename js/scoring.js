@@ -524,6 +524,31 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     }
   }
 
+  // Move as One: if 3+ owned Tricks share a keyword (tag), the lowest-rarity Trick carrying a
+  // qualifying keyword scores its effect a second time — reuses the priming contribution model
+  // (re-adds that Trick's pip/mult delta this hand). TBD: like priming, only the SCORING portion of
+  // the doubled Trick re-fires; its non-scoring side effects (Focus/pause/coins) don't.
+  if (hasTrick('move_as_one') && trickTrayMode) {
+    const _pool = trickTray.filter(t => t.id !== 'move_as_one' && t.id !== 'mirror' && Array.isArray(t.tags) && t.tags.length);
+    const _tagCount = {};
+    _pool.forEach(t => t.tags.forEach(tag => { _tagCount[tag] = (_tagCount[tag] || 0) + 1; }));
+    const _qualTags = new Set(Object.keys(_tagCount).filter(tag => _tagCount[tag] >= 3));
+    if (_qualTags.size) {
+      const _RANK = { common:0, rare:1, epic:2, legendary:3, mythic:4 };
+      let _best = null, _bestRank = 99;
+      _pool.forEach(t => {
+        if (!t.tags.some(tag => _qualTags.has(tag))) return;
+        const _r = _RANK[t.tier] ?? 0;
+        if (_r < _bestRank) { _bestRank = _r; _best = t; } // ties keep the earlier (older) Trick
+      });
+      if (_best) {
+        const _pd = _cp[_best.id] || 0, _md = _cm[_best.id] || 0;
+        if (_pd) { totalPips += _pd; bPip('move_as_one', _pd); }
+        if (_md) { mult += _md; bMult('move_as_one', _md); }
+      }
+    }
+  }
+
   // Feng Shui: did another position trick contribute pips/mult this hand? (snapshot for playHand)
   _lastHandPositionFired = POSITION_TRICK_IDS.some(id => (_cp[id] || 0) > 0 || (_cm[id] || 0) > 0);
 
