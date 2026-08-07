@@ -1,4 +1,4 @@
-const BUILD = '2026-08-04 · r122 · 3-card-hand family (3rd Down, Ready Set Go, 3rd Times a Charm, Threes a Crowd)';
+const BUILD = '2026-08-04 · r123 · 4-card-hand family (Four Eyes, 4x4, Four Horse-man, Wait Four It)';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

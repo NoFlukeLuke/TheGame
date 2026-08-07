@@ -34,6 +34,13 @@ function counts3CardHand(handName, cells) {
   return cells.length === 3 || (hasTrick('threes_crowd') && handName === 'Pair');
 }
 
+// Four Horse-man's random bonus: deterministic per hand (keyed on handsPlayedRound + first cell)
+// so the preview and the scored result always agree. 0=pips, 1=mult, 2=Focus, 3=pause.
+function fourHorsemanRoll(cells) {
+  const c0 = cells[0] || [0, 0];
+  return (((handsPlayedRound + c0[0] * 3 + c0[1] * 5) % 4) + 4) % 4;
+}
+
 function calcScore(handName, cells, contrib = null, ledger = null) {
   const base = HAND_BASE[handName];
   if (!base) return 0;
@@ -137,6 +144,8 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     if (cellHasRowColBonus(r, c, 'rowcol_triple_pips')) { cp += BAL.rowcol_triple_pips.flat_pips; bPip('rowcol_triple_pips', BAL.rowcol_triple_pips.flat_pips); }
     // Five Stack: +pips per card in a 5-card hand (before the retrigger multiply → replay-aware)
     if (_fiveCard) { cp += BAL.five_stack.pips; bPip('five_stack', BAL.five_stack.pips); }
+    // 4x4: cards scored in the 4th column (index 3) score +pips
+    if (hasTrick('four_by_four') && c === 3) { cp += BAL.four_by_four.pips; bPip('four_by_four', BAL.four_by_four.pips); }
     // Leaden curse: this card contributes no pips at all (applied last so it wins)
     if (cardCurses[_eKey]?.id === 'leaden') cp = 0;
     // Straight Shot: remember the first/last line card's modified pips (post-buff, post-curse, pre-replay)
@@ -300,6 +309,14 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // Ready, Set, Go: a 3-card hand (or a Pair via Three's a Crowd) containing a 3 scores +mult
   if (hasTrick('ready_set_go') && counts3CardHand(handName, cells) && cards.some(cd => cd && cd.rank === '3')) {
     mult += BAL.ready_set_go.mult; bMult('ready_set_go', BAL.ready_set_go.mult);
+  }
+  // Four Eyes: 4-card hands score +mult
+  if (hasTrick('four_eyes') && cells.length === 4) { mult += BAL.four_eyes.mult; bMult('four_eyes', BAL.four_eyes.mult); }
+  // Four Horse-man: 4-card hands grant a random bonus (pips/mult here; Focus/pause in playHand)
+  if (hasTrick('four_horseman') && cells.length === 4) {
+    const _fhm = fourHorsemanRoll(cells);
+    if (_fhm === 0)      { totalPips += BAL.four_horseman.pips; bPip('four_horseman', BAL.four_horseman.pips); }
+    else if (_fhm === 1) { mult += BAL.four_horseman.mult; bMult('four_horseman', BAL.four_horseman.mult); }
   }
 
   // Hand-specific mult
