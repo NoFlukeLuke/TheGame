@@ -189,6 +189,18 @@ untouched. Reached via the **DOMINOES (BETA)** button on the main menu.
 - Component-cycling hand-type label in the preview during scoring.
 - Minimal round/level advance (endless).
 
+### v3 (shipped, r121) — first-class mode
+- Dominoes is now a **selectable game mode on the main menu**, not a bolted-on beta
+  button. A **SELECT GAME** picker shows one tile per *shipped* mode —
+  **CARDS** (the main game) and **DOMINOES** — and **PLAY** launches whichever is
+  selected. The legacy prototype modes (survival / tetris / autoplay) stay in
+  `MODES` for dev use but are hidden from the menu via the `shipped` flag.
+- Fixed a latent crash: `renderMenuModes()` still targeted `#menu-content-modes`,
+  an element deleted in r100, so it threw whenever the dev panel was closed from
+  the menu. It's now an alias for the new picker.
+- Switching from Dominoes back to Cards clears leftover domino tiles (the normal
+  renderer only reconciles `[data-card-id]` elements).
+
 ### v2 (shipped, r120) — adjacency + the action loop
 - **Adjacency rule** on selection (connected group; illegal picks dimmed; prune on
   a splitting deselect).

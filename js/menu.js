@@ -1,4 +1,4 @@
-const BUILD = '2026-08-03 · r120 · Dominoes: adjacency rule + swap & discard';
+const BUILD = '2026-08-03 · r121 · main-menu game picker (Cards / Dominoes)';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -7,6 +7,11 @@ const MODES = {
   normal: {
     id: 'normal',
     name: 'Normal Mode',
+    // shipped: appears in the main-menu mode picker. Legacy prototype modes below
+    // stay in MODES (dev/testing) but are hidden from the menu.
+    shipped: true,
+    menuName: 'CARDS',
+    menuBlurb: 'The main game — poker hands, 3 Acts, bosses.',
     desc: '3-Act structure. Play rounds, path through the reward grid, and defeat bosses.',
     winCondition: 'boss_defeat',
     enableBosses: true,
@@ -55,6 +60,9 @@ const MODES = {
   dominoes: {
     id: 'dominoes',
     name: 'Dominoes',
+    shipped: true,
+    menuName: 'DOMINOES',
+    menuBlurb: 'Beta — pick 3 touching tiles, score every run & set at once.',
     desc: 'Two-value tiles fall in either orientation. Select 3 dominoes; score every run and set of 3+ across their six halves at once.',
     winCondition: 'endless',
     enableBosses: false,
@@ -69,9 +77,27 @@ const MODES = {
 let ACTIVE_MODE = MODES.normal;
 
 function initMainMenu() {
-  // Mode selector removed (r100): only Normal mode ships, so the menu is just Play + Settings.
-  ACTIVE_MODE = MODES.normal;
+  // Mode picker restored (r121) now that Dominoes ships alongside the card game.
+  // Keeps whatever mode was last chosen this session; defaults to Normal.
+  if (!ACTIVE_MODE || !ACTIVE_MODE.shipped) ACTIVE_MODE = MODES.normal;
+  renderMenuModePicker();
   document.getElementById('main-menu-overlay').classList.add('show');
+}
+
+// Main-menu game picker: one tile per shipped mode. PLAY launches the selected one.
+function renderMenuModePicker() {
+  const row = document.getElementById('menu-mode-row');
+  if (!row) return;
+  row.innerHTML = '';
+  Object.values(MODES).filter(m => m.shipped).forEach(mode => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'menu-mode-btn' + (ACTIVE_MODE.id === mode.id ? ' selected' : '');
+    btn.innerHTML = `<span class="mm-name">${mode.menuName || mode.name}</span>` +
+                    `<span class="mm-blurb">${mode.menuBlurb || ''}</span>`;
+    btn.onclick = () => { ACTIVE_MODE = mode; renderMenuModePicker(); };
+    row.appendChild(btn);
+  });
 }
 
 function switchMenuTab(e, tabId) {
@@ -81,17 +107,10 @@ function switchMenuTab(e, tabId) {
   document.getElementById(`menu-content-${tabId}`).classList.add('active');
 }
 
-function renderMenuModes() {
-  const container = document.getElementById('menu-content-modes');
-  container.innerHTML = '';
-  Object.values(MODES).forEach(mode => {
-    const btn = document.createElement('div');
-    btn.className = `mode-select-btn ${ACTIVE_MODE.id === mode.id ? 'selected' : ''}`;
-    btn.innerHTML = `<div class="mode-name">${mode.name}</div><div class="mode-desc">${mode.desc}</div>`;
-    btn.onclick = () => { ACTIVE_MODE = mode; renderMenuModes(); };
-    container.appendChild(btn);
-  });
-}
+// Legacy name kept as an alias: the old tabbed mode list (#menu-content-modes) was
+// removed in r100, so this threw whenever it was still called (e.g. closing the dev
+// panel from the menu). Now it just draws the current picker.
+function renderMenuModes() { renderMenuModePicker(); }
 
 function startFromMenu() {
   document.getElementById('main-menu-overlay').classList.remove('show');

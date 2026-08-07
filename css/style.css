@@ -3014,6 +3014,40 @@
     font-family: 'Share Tech Mono', monospace; font-size: 11px; line-height: 1.6; letter-spacing: 1px;
     color: var(--cream-dim); max-width: 320px;
   }
+  /* ── Main-menu game picker (r121) ── */
+  #menu-mode-label {
+    margin-top: 12px;
+    font-family: 'Share Tech Mono', monospace; font-size: 9px; letter-spacing: 3px;
+    color: rgba(183,166,132,0.65); text-transform: uppercase;
+  }
+  #menu-mode-row {
+    display: flex; gap: 8px; width: 100%; max-width: 300px; margin-top: 2px;
+  }
+  .menu-mode-btn {
+    flex: 1 1 0; min-width: 0; cursor: pointer; text-align: left;
+    display: flex; flex-direction: column; gap: 3px;
+    padding: 9px 10px; border-radius: 9px;
+    background: linear-gradient(180deg, rgba(29,58,62,0.55), rgba(16,36,39,0.15));
+    border: 1px solid rgba(90,169,230,0.35);
+    transition: background 0.12s ease, border-color 0.12s ease, transform 0.07s ease;
+  }
+  .menu-mode-btn .mm-name {
+    font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 12px; letter-spacing: 2px;
+    color: var(--c-cyan); text-transform: uppercase;
+  }
+  .menu-mode-btn .mm-blurb {
+    font-family: 'Share Tech Mono', monospace; font-size: 8.5px; line-height: 1.4;
+    color: rgba(183,166,132,0.7);
+  }
+  .menu-mode-btn:hover { background: linear-gradient(180deg, #235055, #12292c); border-color: var(--c-cyan); }
+  .menu-mode-btn.selected {
+    border-color: var(--c-yellow);
+    background: linear-gradient(180deg, rgba(236,199,44,0.22), rgba(236,199,44,0.05));
+    box-shadow: 0 0 0 1px rgba(236,199,44,0.45), 0 0 12px rgba(236,199,44,0.2);
+  }
+  .menu-mode-btn.selected .mm-name { color: var(--c-yellow); }
+  .menu-mode-btn:active { transform: translateY(1px); }
+
   #menu-start-btn {
     margin-top: 10px; width: 100%; max-width: 300px;
     font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 22px; letter-spacing: 6px;
