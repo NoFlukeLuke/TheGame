@@ -19,6 +19,8 @@
     --suit-diamonds: #EC9F05;
     --suit-spades:   #000000;
     --suit-clubs:    #2255cc;
+    --suit-stars:    #1f9d55;
+    --suit-triangles:#9b4dff;
   }
 
   /* Spade ♠ on dark surfaces — warm cream halo so pure-black stays legible.
@@ -491,6 +493,8 @@
   .mini-card.suit-diamonds .mini-rank, .mini-card.suit-diamonds .mini-suit { color: var(--suit-diamonds); }
   .mini-card.suit-spades .mini-rank,   .mini-card.suit-spades .mini-suit   { color: var(--suit-spades); }
   .mini-card.suit-clubs .mini-rank,    .mini-card.suit-clubs .mini-suit    { color: var(--suit-clubs); }
+  .mini-card.suit-stars .mini-rank,    .mini-card.suit-stars .mini-suit    { color: var(--suit-stars); }
+  .mini-card.suit-triangles .mini-rank,.mini-card.suit-triangles .mini-suit{ color: var(--suit-triangles); }
 
   /* Hand-preview now mirrors the grid via renderCardAppearance(): real .card markup,
      scaled down by the local --card-w/--card-h set on #selected-cards. Cards must flow
@@ -1629,6 +1633,8 @@
   .card.suit-diamonds .rank, .card.suit-diamonds .suit { color: var(--suit-diamonds); }
   .card.suit-spades .rank,   .card.suit-spades .suit   { color: var(--suit-spades); }
   .card.suit-clubs .rank,    .card.suit-clubs .suit    { color: var(--suit-clubs); }
+  .card.suit-stars .rank,    .card.suit-stars .suit    { color: var(--suit-stars); }
+  .card.suit-triangles .rank,.card.suit-triangles .suit{ color: var(--suit-triangles); }
   .card .sel-num {
     position: absolute;
     top: 2px; left: 3px;
@@ -1793,6 +1799,8 @@
   .deck-chip.suit-diamonds { background: rgba(236,159,5,0.18); color: var(--suit-diamonds); border: 1px solid rgba(236,159,5,0.35); }
   .deck-chip.suit-spades   { background: rgba(140,140,140,0.5); color: #000; border: 1px solid rgba(180,180,180,0.45); text-shadow: 0 0 2px rgba(240,230,200,0.85), 0 0 1px rgba(240,230,200,0.95); }
   .deck-chip.suit-clubs    { background: rgba(34,85,204,0.18); color: var(--suit-clubs);    border: 1px solid rgba(34,85,204,0.35); }
+  .deck-chip.suit-stars    { background: rgba(31,157,85,0.18); color: var(--suit-stars);    border: 1px solid rgba(31,157,85,0.35); }
+  .deck-chip.suit-triangles{ background: rgba(155,77,255,0.18); color: var(--suit-triangles);border: 1px solid rgba(155,77,255,0.35); }
   .deck-chip.dc-present {
     box-shadow: 0 0 0 1px rgba(255,255,255,0.4), 0 0 6px rgba(255,255,255,0.15);
     border-color: rgba(255,255,255,0.45) !important;
@@ -1838,6 +1846,8 @@
   .unlock-ex-card.suit-diamonds { color: var(--suit-diamonds); }
   .unlock-ex-card.suit-spades   { color: var(--suit-spades); }
   .unlock-ex-card.suit-clubs    { color: var(--suit-clubs); }
+  .unlock-ex-card.suit-stars    { color: var(--suit-stars); }
+  .unlock-ex-card.suit-triangles{ color: var(--suit-triangles); }
   .unlock-ex-card .ex-suit { font-size: 11px; margin-top: 1px; }
   #unlock-trick-title { font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: 2px; color: var(--gold-dim); text-transform: uppercase; }
   #unlock-trick-options { display: flex; gap: 14px; }
@@ -2038,6 +2048,8 @@
   .svc-card.suit-diamonds { color: var(--suit-diamonds); }
   .svc-card.suit-spades   { color: var(--suit-spades); }
   .svc-card.suit-clubs    { color: var(--suit-clubs); }
+  .svc-card.suit-stars    { color: var(--suit-stars); }
+  .svc-card.suit-triangles{ color: var(--suit-triangles); }
   .svc-card .svc-c-suit { font-size: 11px; margin-top: 1px; }
   .svc-card .svc-c-loc { position: absolute; top: 2px; right: 3px; font-size: 7px; color: var(--cream-dim); font-family: 'Crimson Pro', serif; }
   .svc-card.selected-svc { border-color: var(--gold); transform: translateY(-4px); box-shadow: 0 0 0 2px var(--gold); }
@@ -2597,6 +2609,8 @@
   .reward-face-suit { font-size: 12px; color: #1a1a1a; }
   .reward-face.suit-hearts .reward-face-rank, .reward-face.suit-hearts .reward-face-suit,
   .reward-face.suit-diamonds .reward-face-rank, .reward-face.suit-diamonds .reward-face-suit { color: #c0392b; }
+  .reward-face.suit-stars .reward-face-rank, .reward-face.suit-stars .reward-face-suit { color: var(--suit-stars); }
+  .reward-face.suit-triangles .reward-face-rank, .reward-face.suit-triangles .reward-face-suit { color: var(--suit-triangles); }
   .reward-label {
     font-size: 11px;
     line-height: 1.2;
@@ -2689,12 +2703,15 @@
     font-size: 9px; color: var(--rc); background: rgba(0,0,0,0.45); border-radius: 6px; padding: 1px 5px;
   }
   .reward-cell .rwd-name {
-    position: relative; z-index: 2; max-width: 100%;
+    position: relative; z-index: 2; max-width: 100%; width: 100%;
     font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 10px; letter-spacing: 0.4px;
-    text-transform: uppercase; line-height: 1.12; text-align: center; white-space: nowrap;
+    text-transform: uppercase; line-height: 1.14; text-align: center;
+    /* Never overflow the tile: wrap at spaces; break a too-long single word,
+       hyphenating cleanly (lang="en" is set on <html>). fitRewardName shrinks
+       the font only if the wrapped name is still too tall. */
+    white-space: normal; overflow-wrap: break-word; word-break: normal; hyphens: auto;
     color: #fff; text-shadow: 0 0 8px var(--rc, rgba(255,255,255,0.4)), 0 1px 2px #000;
   }
-  .reward-cell .rwd-name.rwd-name-wrap { white-space: normal; overflow-wrap: break-word; word-break: break-word; }
 
   /* knack diamond: beige molded plastic + neon inset ring */
   .rwd-diamond {
@@ -3025,10 +3042,98 @@
     transition: background 0.12s ease, color 0.12s ease;
   }
   #menu-settings-btn:hover { background: linear-gradient(180deg, #235055, #12292c); color: #fff; }
+  #menu-match3-btn {
+    margin-top: 8px; width: 100%; max-width: 300px;
+    font-family: 'Orbitron', sans-serif; font-weight: 800; font-size: 14px; letter-spacing: 3px;
+    color: #ff7ad0; text-transform: uppercase; cursor: pointer; padding: 12px;
+    background: linear-gradient(180deg, #3a1030, rgba(30,10,26,0)); border: 1px solid #ff7ad0; border-radius: 9px;
+    transition: background 0.12s ease, color 0.12s ease, filter 0.12s ease;
+  }
+  #menu-match3-btn:hover { background: linear-gradient(180deg, #55204a, #2a0f24); color: #fff; filter: brightness(1.05); }
+  #menu-zen-btn {
+    margin-top: 6px; width: 100%; max-width: 300px;
+    font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 12px; letter-spacing: 3px;
+    color: #7fe3c0; text-transform: uppercase; cursor: pointer; padding: 10px;
+    background: linear-gradient(180deg, #123028, rgba(10,26,22,0)); border: 1px solid #7fe3c0; border-radius: 9px;
+    transition: background 0.12s ease, color 0.12s ease;
+  }
+  #menu-zen-btn:hover { background: linear-gradient(180deg, #1b4a3d, #0e2620); color: #fff; }
   #menu-build-stamp {
     margin-top: 8px; font-family: 'Share Tech Mono', monospace; font-size: 9px; letter-spacing: 2px;
     color: rgba(183,166,132,0.5);
   }
+
+  /* ═══════════════ MODE SELECT (scroll-sideways carousel) ═══════════════ */
+  #mode-select-overlay {
+    display: none; position: fixed; inset: 0; z-index: 10000;
+    flex-direction: column; align-items: center; justify-content: center;
+    padding: 24px; overflow: hidden;
+    background:
+      repeating-linear-gradient(0deg, rgba(0,0,0,0.16) 0 1px, transparent 1px 3px),
+      radial-gradient(ellipse at 50% 32%, #241d3f 0%, #171235 46%, #0b0a1c 100%);
+  }
+  #mode-select-overlay.show { display: flex; }
+  #mode-select-inner {
+    position: relative; z-index: 1; width: 100%; max-width: 760px;
+    display: flex; flex-direction: column; align-items: center; gap: 12px;
+  }
+  #mode-select-title {
+    font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: clamp(22px, 5vw, 32px);
+    letter-spacing: 6px; color: var(--cream); text-transform: uppercase;
+    text-shadow: 0 0 24px rgba(255,206,43,0.3);
+  }
+  #mode-select-sub {
+    font-family: 'Share Tech Mono', monospace; font-size: 11px; letter-spacing: 2px;
+    color: var(--cream-dim); text-transform: uppercase; margin-top: -4px;
+  }
+  #mode-carousel-wrap { display: flex; align-items: center; gap: 10px; width: 100%; }
+  #mode-carousel {
+    display: flex; gap: 18px; overflow-x: auto; flex: 1;
+    scroll-snap-type: x mandatory; padding: 12px 6px 16px; scrollbar-width: none;
+  }
+  #mode-carousel::-webkit-scrollbar { display: none; }
+  .mode-card {
+    scroll-snap-align: center; flex: 0 0 auto; width: 264px; min-height: 300px;
+    display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center;
+    padding: 26px 22px; border-radius: 16px;
+    background: linear-gradient(180deg, rgba(20,16,11,0.94), rgba(11,9,6,0.96));
+    border: 1px solid rgba(255,255,255,0.06);
+    box-shadow: 0 0 0 2px var(--mode-accent), inset 0 0 40px rgba(255,255,255,0.03), 0 20px 44px rgba(0,0,0,0.55);
+  }
+  .mode-card-name {
+    font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 22px; letter-spacing: 3px;
+    color: var(--mode-accent); text-transform: uppercase;
+  }
+  .mode-card-suits { font-size: 26px; letter-spacing: 5px; line-height: 1; color: var(--cream); }
+  .mode-card-blurb {
+    font-family: 'Share Tech Mono', monospace; font-size: 11px; line-height: 1.6; letter-spacing: 0.5px;
+    color: var(--cream-dim); flex: 1;
+  }
+  .mode-card-play {
+    width: 100%; font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 16px; letter-spacing: 4px;
+    color: #3a2a08; text-transform: uppercase; cursor: pointer; border: none; border-radius: 10px; padding: 12px;
+    background: linear-gradient(180deg, #ffe06a, var(--c-yellow) 55%, #e0a814);
+    box-shadow: inset 0 2px 0 rgba(255,255,255,0.7), inset 0 -3px 0 rgba(0,0,0,0.25), 0 4px 0 #b5820f;
+    transition: transform 0.07s ease, filter 0.12s ease;
+  }
+  .mode-card-play:hover { filter: brightness(1.06); }
+  .mode-card-play:active { transform: translateY(3px);
+    box-shadow: inset 0 2px 0 rgba(255,255,255,0.5), 0 1px 0 #b5820f; }
+  .mode-arrow {
+    flex: 0 0 auto; width: 44px; height: 44px; border-radius: 50%; cursor: pointer;
+    font-size: 26px; line-height: 1; color: var(--cream);
+    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15);
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.12s ease;
+  }
+  .mode-arrow:hover { background: rgba(255,255,255,0.14); }
+  #mode-back-btn {
+    font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 12px; letter-spacing: 3px;
+    color: var(--c-cyan); text-transform: uppercase; cursor: pointer; padding: 10px 22px;
+    background: linear-gradient(180deg, #1d3a3e, rgba(16,36,39,0)); border: 1px solid var(--c-cyan); border-radius: 9px;
+    transition: background 0.12s ease, color 0.12s ease;
+  }
+  #mode-back-btn:hover { background: linear-gradient(180deg, #235055, #12292c); color: #fff; }
 
   /* ═══════════════ v7 FIXED-COORDINATE LANDSCAPE (r73) ═══════════════
      Overrides the legacy flexbox landscape rules above via source order.
@@ -3054,15 +3159,16 @@
   /* shared panel chrome for repositioned + new blocks */
   #stage.landscape #score-center, #stage.landscape #score-left, #stage.landscape #score-subboxes,
   #stage.landscape #selected-cards, #stage.landscape #knack-carousel-wrap, #stage.landscape #trick-tray-area,
-  #stage.landscape #vclock, #stage.landscape #run-progress, #stage.landscape #coin-info, #stage.landscape #interact-costs {
+  #stage.landscape #vclock, #stage.landscape #run-progress, #stage.landscape #coin-info {
     position:absolute; box-sizing:border-box; margin:0; background:var(--panel); border:1px solid var(--border); border-radius:6px; }
   /* placements (percentages of the 747×420 stage) */
-  #stage.landscape #score-center   { left:1.56%;  top:2.78%;  width:16.41%; height:12.5%;  display:flex; flex-direction:column; align-items:center; justify-content:center; }
-  #stage.landscape #score-left     { left:19.53%; top:2.78%;  width:14.84%; height:12.5%;  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; padding:4px; }
-  #stage.landscape #clock-area     { position:absolute; left:40.63%; top:4.17%; width:7.03%; height:6%; display:flex; align-items:center; justify-content:center; background:none; border:none; padding:0; }
-  #stage.landscape #vclock         { left:48.44%; top:2.78%; width:40.63%; height:6.94%; overflow:hidden; display:block; }
+  #stage.landscape #score-center   { left:1.56%;  top:2.78%;  width:18.9%;  height:12.5%;  display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  #stage.landscape #score-left     { left:22.0%;  top:2.78%;  width:17.3%;  height:12.5%;  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; padding:4px; }
+  /* clock readout + timer bar span the grid's width (grid: left 45% → right 90%) */
+  #stage.landscape #clock-area     { position:absolute; left:45%; top:2.78%; width:7%; height:6.94%; display:flex; align-items:center; justify-content:center; background:none; border:none; padding:0; }
+  #stage.landscape #vclock         { left:52.5%; top:2.78%; width:37.5%; height:6.94%; overflow:hidden; display:block; }
   /* PIPS/MULT/FOCUS: smaller squares centred inside the section outline (no overflow), bigger pip/mult numbers, purple focus, vertically-centred × */
-  #stage.landscape #score-subboxes { left:1.56%;  top:18.06%; width:32.81%; height:11.11%; display:flex; flex-direction:row; align-items:center; justify-content:space-around; gap:4px; padding:3px 6px; border-right:none; border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
+  #stage.landscape #score-subboxes { left:1.56%;  top:18.06%; width:37.74%; height:11.11%; display:flex; flex-direction:row; align-items:center; justify-content:space-around; gap:4px; padding:3px 6px; border-right:none; border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
   #stage.landscape .score-subbox { display:flex; flex-direction:column; align-items:center; justify-content:center; height:34px; max-height:34px; }
   #stage.landscape #pips-box .subbox-val, #stage.landscape #mult-box .subbox-val { font-size:19px; }
   #stage.landscape #focus-box .subbox-label, #stage.landscape #focus-box .subbox-val { color:#c07aee; }
@@ -3075,25 +3181,27 @@
   #stage.landscape #trick-tray-count { font-family:'Cinzel',serif; font-size:8px; font-weight:700; color:var(--gold-dim); }
 
   /* knacks: chip row only, directly under the PIPS/MULT/FOCUS chips */
-  #stage.landscape #knack-carousel-wrap { left:1.56%; top:30%; width:32.81%; height:7%; display:flex; flex-direction:row; align-items:center; justify-content:flex-start; gap:5px; padding:2px 8px; overflow:hidden; }
+  #stage.landscape #knack-carousel-wrap { left:1.56%; top:30%; width:37.74%; height:7%; display:flex; flex-direction:row; align-items:center; justify-content:flex-start; gap:5px; padding:2px 8px; overflow:hidden; }
   #stage.landscape #knack-list { flex-wrap:nowrap; gap:5px; max-height:none; overflow:hidden; }
 
   /* preview: full-width frame; hand-name sits inside it on the dark background (left); cards render exactly like the grid, bonuses and all */
-  #stage.landscape #selected-cards { left:1.56%; top:38%; width:32.81%; height:18%; --card-w:38px; --card-h:50px; display:flex; align-items:center; justify-content:center; gap:4px; padding:4px 8px 4px 44px; background:var(--panel); border:1px solid var(--border); border-radius:6px; overflow:hidden; }
+  #stage.landscape #selected-cards { left:1.56%; top:38%; width:37.74%; height:18%; --card-w:38px; --card-h:50px; display:flex; align-items:center; justify-content:center; gap:4px; padding:4px 8px 4px 44px; background:var(--panel); border:1px solid var(--border); border-radius:6px; overflow:hidden; }
   #stage.landscape #hand-name { position:absolute; left:1.56%; top:38%; width:6%; height:18%; display:flex; align-items:center; justify-content:center; text-align:center; background:none; border:none; margin:0; font-size:10px; line-height:1.15; letter-spacing:0.5px; color:var(--gold); padding:0 3px; z-index:2; }
 
-  /* tricks: SAME height as the preview, card-shaped tiles fully visible, no label */
-  #stage.landscape #trick-tray-area { left:1.56%; top:57%; width:32.81%; height:18%; display:flex !important; flex-direction:row; align-items:center; justify-content:flex-start; padding:4px 8px; gap:6px; overflow:hidden; }
-  #stage.landscape #trick-tray-list { flex-direction:row; flex-wrap:nowrap; align-items:center; gap:6px; max-height:none; overflow:hidden; padding:0; }
-  #stage.landscape .trick-tray-chip { width:35px; height:46px; font-size:14px; border-radius:5px; flex-direction:column; }
-  #stage.landscape #interact-costs { left:1.56%; top:76.39%; width:14.84%; height:12.5%; flex-direction:column; justify-content:center; padding:3px 6px; gap:1px; }
-  #stage.landscape #coin-info      { left:17.19%; top:76.39%; width:17.19%; height:12.5%; flex-direction:column; justify-content:center; padding:3px 7px; gap:1px; }
-  #stage.landscape #btn-stats      { position:absolute; left:1.56%; top:91.67%; width:10.16%; height:6.39%; }
-  #stage.landscape #btn-deck       { position:absolute; left:13.28%; top:91.67%; width:10.16%; height:6.39%; }
-  #stage.landscape #btn-pause      { position:absolute; left:25%;    top:91.67%; width:9.38%;  height:6.39%; }
-  #stage.landscape #focus-meter-wrap { position:absolute; left:34.4%; top:1.39%; width:5%; height:96.67%; }
+  /* tricks: enlarged now that the time/money chips left this column — big reward-grid-style tiles */
+  #stage.landscape #trick-tray-area { left:1.56%; top:57%; width:37.74%; height:25.5%; display:flex !important; flex-direction:row; align-items:center; justify-content:flex-start; padding:6px 8px; gap:6px; overflow:hidden; }
+  #stage.landscape #trick-tray-list { flex-direction:row; flex-wrap:nowrap; align-items:center; gap:5px; max-height:none; overflow:hidden; padding:0; width:100%; }
+  #stage.landscape .trick-tray-chip { width:48px; height:64px; font-size:14px; border-radius:6px; flex-direction:column; }
+  /* money: compact single-row bar (replaces the old tall coin chip) */
+  #stage.landscape #coin-info      { left:1.56%; top:84%; width:37.74%; height:6.5%; flex-direction:row; align-items:center; justify-content:flex-start; gap:10px; padding:0 10px; }
+  #stage.landscape #btn-stats      { position:absolute; left:1.56%;  top:91.67%; width:8.7%; height:6.39%; }
+  #stage.landscape #btn-deck       { position:absolute; left:11.16%; top:91.67%; width:8.7%; height:6.39%; }
+  #stage.landscape #btn-time       { position:absolute; left:20.76%; top:91.67%; width:8.7%; height:6.39%; }
+  #stage.landscape #btn-pause      { position:absolute; left:30.36%; top:91.67%; width:8.7%; height:6.39%; }
+  /* focus meter hugs the grid's left edge; grid + clock bar shifted right for the wider left column */
+  #stage.landscape #focus-meter-wrap { position:absolute; left:39.9%; top:1.39%; width:4.6%; height:96.67%; }
   #stage.landscape #focus-bar-outer { width:21px; }   /* landscape focus bar (25% thinner than the old 28px) */
-  #stage.landscape #grid-slot      { position:absolute; left:39.84%; top:11.11%; width:49.22%; height:86.11%; }
+  #stage.landscape #grid-slot      { position:absolute; left:45%; top:11.11%; width:45%; height:86.11%; }
   #stage.landscape #run-progress   { left:90.63%; top:1.39%; width:8.59%; height:8.33%; flex-direction:column; align-items:center; justify-content:center; gap:3px; padding:3px; }
   #stage.landscape #btn-discard    { position:absolute; left:91.41%; top:11.11%; width:7.81%; height:29.17%; }
   #stage.landscape #btn-play       { position:absolute; left:91.41%; top:41.67%; width:7.81%; height:38.89%; }
@@ -3163,7 +3271,7 @@
     position: relative; z-index: 1; box-sizing: border-box;
     width: 496px;            /* portrait footprint (landscape overridden below) */
     zoom: var(--stage-zoom, 1);
-    padding: 12px 18px 16px;
+    padding: 10px 18px 8px;  /* thinner top & bottom chrome */
     border-radius: 24px;
     background: linear-gradient(180deg, var(--plastic-hi) 0%, var(--plastic) 8%, var(--plastic) 88%, var(--plastic-lo) 100%);
     box-shadow:
@@ -3180,30 +3288,30 @@
   }
   #cabinet::before { left:12px; } #cabinet::after { right:12px; }
 
-  /* Marquee brand plate */
-  #cab-marquee {
-    position: relative; height: 42px; margin: 2px 26px 10px; border-radius: 10px;
-    display: flex; align-items: center; justify-content: center; gap: 12px; overflow: hidden;
+  /* Thin top bar — brand/model on the left, rainbow line filling the right */
+  #cab-topbar {
+    position: relative; height: 26px; margin: 0 20px 8px; border-radius: 8px;
+    display: flex; align-items: center; gap: 9px; padding: 0 12px; overflow: hidden;
     background: linear-gradient(180deg, #17120c, #241a10);
-    box-shadow: inset 0 0 0 2px var(--plastic-lo), inset 0 2px 10px rgba(0,0,0,0.8), 0 1px 0 var(--plastic-hi);
+    box-shadow: inset 0 0 0 2px var(--plastic-lo), inset 0 2px 8px rgba(0,0,0,0.8), 0 1px 0 var(--plastic-hi);
   }
   .cab-brand {
-    font-family:'Orbitron',sans-serif; font-weight:900; font-size:18px; letter-spacing:3px;
+    font-family:'Orbitron',sans-serif; font-weight:900; font-size:15px; letter-spacing:2px; white-space:nowrap;
     background: linear-gradient(180deg, #fff2c8, var(--c-yellow) 55%, var(--c-coral));
     -webkit-background-clip:text; background-clip:text; color:transparent;
-    text-shadow: 0 0 18px rgba(255,206,43,0.35);
+    text-shadow: 0 0 14px rgba(255,206,43,0.35);
   }
   .cab-model {
-    font-family:'Share Tech Mono',monospace; font-size:8px; letter-spacing:2px; line-height:1.3;
+    font-family:'Share Tech Mono',monospace; font-size:8px; letter-spacing:1.5px; line-height:1.2; white-space:nowrap;
     color: var(--c-cyan); text-transform:uppercase; border-left:2px solid var(--c-magenta); padding-left:8px;
   }
-  .cab-led { width:9px; height:9px; border-radius:50%; background:var(--c-mint);
+  .cab-led { width:8px; height:8px; border-radius:50%; background:var(--c-mint); flex:0 0 auto;
     box-shadow:0 0 8px var(--c-mint), inset 0 0 3px #fff; animation: cab-led-blink 2.4s infinite; }
   @keyframes cab-led-blink { 0%,92%,100%{opacity:1} 96%{opacity:0.25} }
 
-  /* Accent trim stripe */
+  /* Rainbow accent line — fills the remaining width of the top bar */
   #cab-stripe {
-    height: 6px; margin: 0 26px 10px; border-radius: 4px;
+    flex: 1 1 auto; height: 6px; margin-left: 6px; border-radius: 3px;
     background: linear-gradient(90deg, var(--c-magenta) 0 20%, var(--c-coral) 20% 40%,
       var(--c-yellow) 40% 60%, var(--c-mint) 60% 80%, var(--c-cyan) 80% 100%);
     box-shadow: inset 0 1px 2px rgba(255,255,255,0.4), 0 1px 2px rgba(0,0,0,0.3);
@@ -3228,21 +3336,12 @@
   #stage { background: radial-gradient(ellipse at 50% 42%, #1a140c 0%, #100d09 78%);
            border-radius: 8px; box-shadow: inset 0 0 40px rgba(0,0,0,0.7); }
 
-  /* Control deck */
-  #cab-deck {
-    display:flex; align-items:center; justify-content:space-between; margin:10px 20px 2px;
-    padding:7px 14px; height:32px; border-radius:10px;
-    background: linear-gradient(180deg, var(--plastic-lo), var(--plastic-deep));
-    box-shadow: inset 0 2px 3px rgba(255,255,255,0.35), inset 0 -3px 4px rgba(0,0,0,0.3);
+  /* Thin beige base line (replaces the control deck) */
+  #cab-baseline {
+    height: 2px; margin: 8px 20px 0; border-radius: 2px;
+    background: var(--plastic-hi);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.5);
   }
-  #cab-vents { display:flex; gap:4px; }
-  #cab-vents i { width:4px; height:15px; border-radius:2px; display:block;
-    background: linear-gradient(180deg, rgba(0,0,0,0.45), rgba(0,0,0,0.15)); box-shadow:1px 0 0 rgba(255,255,255,0.25); }
-  #cab-deck-badge { font-family:'Orbitron',sans-serif; font-weight:700; font-size:10px; letter-spacing:2px;
-    color:#2a2114; padding:3px 8px; border-radius:5px; background:var(--c-yellow);
-    box-shadow: inset 0 1px 1px rgba(255,255,255,0.6), 0 1px 2px rgba(0,0,0,0.3); }
-  #cab-warning { font-family:'Share Tech Mono',monospace; font-size:8px; letter-spacing:1px; color:#2a2114;
-    text-transform:uppercase; text-align:right; line-height:1.25; text-shadow:0 1px 0 rgba(255,255,255,0.3); }
 
   /* ============================================================= */
   /* ==  On-screen chrome → LED / LCD instrument readouts        == */
@@ -3250,8 +3349,7 @@
   /* Shared panel material for every v7 landscape block + portrait panels */
   #stage.landscape #score-center, #stage.landscape #score-left, #stage.landscape #score-subboxes,
   #stage.landscape #selected-cards, #stage.landscape #knack-carousel-wrap, #stage.landscape #trick-tray-area,
-  #stage.landscape #vclock, #stage.landscape #run-progress, #stage.landscape #coin-info,
-  #stage.landscape #interact-costs, .panel-box {
+  #stage.landscape #vclock, #stage.landscape #run-progress, #stage.landscape #coin-info, .panel-box {
     background: linear-gradient(180deg, #15110b, #0d0b07) !important;
     border: 1px solid #000 !important;
     box-shadow: inset 0 2px 8px rgba(0,0,0,0.8), 0 0 0 2px var(--plastic-lo), 0 2px 0 var(--plastic-deep) !important;
@@ -3264,7 +3362,6 @@
   #stage.landscape #selected-cards  { border-top: 2px solid var(--c-mint) !important; }
   #stage.landscape #trick-tray-area { border-top: 2px solid var(--c-coral) !important; }
   #stage.landscape #coin-info       { border-top: 2px solid var(--c-yellow) !important; }
-  #stage.landscape #interact-costs  { border-top: 2px solid var(--c-cyan) !important; }
   #stage.landscape #run-progress    { border-top: 2px solid var(--c-magenta) !important; }
   #stage.landscape #vclock          { border: 1px solid #000 !important; }
 
@@ -3409,4 +3506,72 @@
     color: var(--c-mint) !important; opacity: 1 !important;
     text-shadow: 0 0 9px rgba(53,213,155,0.75) !important;
   }
+
+  /* ═══════════════ r113 — enlarged tricks · time popup · money bar · chip marquee ═══════════════ */
+
+  /* Faded time-cost hints on the discard / swap action buttons */
+  .act-cost {
+    display: block; writing-mode: initial; transform: none;
+    font-family: 'Share Tech Mono', monospace; font-size: 8px; font-weight: 700;
+    letter-spacing: 0; line-height: 1; margin-top: 2px; opacity: 0.5;
+  }
+  #btn-discard .act-cost { color: #ffe0d8; }
+  #swap-indicator .act-cost { color: var(--cream-dim); }
+
+  /* Time-cost breakdown pop-up (toggled by the ⏱ Time button) */
+  #interact-costs.time-popup { display: none; }
+  #interact-costs.time-popup.show {
+    display: flex !important; position: fixed; z-index: 320; min-width: 116px;
+    flex-direction: column; gap: 2px; padding: 8px 12px; margin: 0;
+    background: linear-gradient(180deg, #15110b, #0b0906) !important;
+    border: 1.5px solid var(--c-cyan) !important; border-radius: 9px;
+    box-shadow: 0 0 0 2px var(--plastic-lo), 0 0 14px -2px var(--c-cyan), 0 10px 24px rgba(0,0,0,0.6) !important;
+  }
+
+  /* Compact one-line money bar (replaces the old tall coin chip) */
+  #stage.landscape #coin-info .ci-main { font-size: 13px; }
+  #stage.landscape #coin-info .ci-main b { font-size: 16px; }
+  #stage.landscape #coin-info .ci-row { flex-direction: row; gap: 4px; font-size: 9px; white-space: nowrap; }
+
+  /* ── Reward-grid-style trick tiles: CRT/neon card, rarity = border color ── */
+  #stage.landscape .trick-tray-chip.rar-common    { --rc: var(--c-mint); }
+  #stage.landscape .trick-tray-chip.rar-rare      { --rc: var(--c-cyan); }
+  #stage.landscape .trick-tray-chip.rar-epic      { --rc: var(--c-purple); }
+  #stage.landscape .trick-tray-chip.rar-legendary { --rc: var(--c-yellow); }
+  #stage.landscape .trick-tray-chip.rar-mythic    { --rc: var(--c-magenta); }
+  #stage.landscape .trick-tray-chip.trick-card {
+    position: relative; flex: 0 0 auto; box-sizing: border-box; overflow: hidden;
+    align-items: center; justify-content: flex-end; gap: 0; padding: 3px 2px 4px; cursor: pointer;
+    border: 2px solid var(--rc) !important;
+    background: linear-gradient(180deg, #15110b, #0a0906) !important;
+    box-shadow: 0 0 0 2px var(--plastic-lo), 0 0 8px -1px var(--rc), inset 0 0 12px -4px var(--rc) !important;
+    transition: transform 0.1s ease, box-shadow 0.15s ease;
+  }
+  #stage.landscape .trick-tray-chip.trick-card::after {   /* scanlines */
+    content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 1;
+    background: repeating-linear-gradient(0deg, rgba(0,0,0,0.16) 0 1px, transparent 1px 3px);
+    mix-blend-mode: overlay;
+  }
+  #stage.landscape .trick-tray-chip.trick-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 0 2px var(--plastic-lo), 0 0 14px 0 var(--rc), inset 0 0 12px -4px var(--rc) !important;
+  }
+  .trick-card-emoji {
+    z-index: 2; margin-top: auto; font-size: 24px; line-height: 1;
+    filter: drop-shadow(0 0 5px var(--rc));
+  }
+  .trick-card-name {
+    z-index: 2; width: 100%; max-width: 100%;
+    font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 6px;
+    letter-spacing: 0.2px; text-transform: uppercase; line-height: 1.05; text-align: center;
+    color: #fff; text-shadow: 0 0 6px var(--rc), 0 1px 1px #000;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+
+  /* ── Horizontal auto-scroll marquee track (knacks always; tricks on overflow) ── */
+  .chip-marquee { display: flex; flex-direction: row; align-items: center; flex: 0 0 auto; gap: 5px; }
+  .chip-marquee.scrolling { will-change: transform; animation: chipMarquee var(--marquee-dur, 24s) linear infinite; }
+  #knack-carousel-wrap:hover .chip-marquee.scrolling,
+  #trick-tray-area:hover   .chip-marquee.scrolling { animation-play-state: paused; }
+  @keyframes chipMarquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 

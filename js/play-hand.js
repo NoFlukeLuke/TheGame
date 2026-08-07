@@ -52,6 +52,23 @@ function generateHandFocus(hand, handCells, vultureSec) {
     if (hasTrick('overtime')) {
       markCount_overtime += handCells.filter(([r,c]) => cellHasRowColBonus(r, c, 'overtime')).length;
     }
+    // 3rd Down: 3-card hands (or Pairs via Three's a Crowd) add Focus
+    if (hasTrick('third_down') && counts3CardHand(hand, handCells)) totalFocus += BAL.third_down.focus;
+    // ── 4-card-hand family ──
+    if (handCells.length === 4) {
+      // Four Horse-man: random bonus — Focus/pause halves (pips/mult handled in calcScore)
+      if (hasTrick('four_horseman')) {
+        const _fhm = fourHorsemanRoll(handCells);
+        if (_fhm === 2) totalFocus += BAL.four_horseman.focus;
+        else if (_fhm === 3) pauseRound(BAL.four_horseman.pause);
+      }
+      // Wait Four It: permanently buff the 4th card (scoring order) to pause the clock when scored
+      if (hasTrick('wait_four_it')) {
+        const _p = scoringOrderCells(handCells)[3];
+        const _cd = _p && gridData[_p[0]]?.[_p[1]];
+        if (_cd) _cd._vulturePause = (_cd._vulturePause || 0) + BAL.wait_four_it.pause;
+      }
+    }
     // ── 5-card-hand family ──
     if (handCells.length === 5) {
       if (hasTrick('five_stack')) totalFocus += handCells.length * BAL.five_stack.focus_per_card; // +Focus/card (pips+mult handled in calcScore)
@@ -133,6 +150,8 @@ function generateHandFocus(hand, handCells, vultureSec) {
 function playHand() {
   // During the on-grid reward step the Play button is the green CONFIRM button.
   if (rewardOnGrid) { confirmRewardPath(); return; }
+  // Match-3: the board plays its own matches (match3Resolve). Manual play is off.
+  if (match3Active()) { dbgEvent('info', 'play ignored (match-3 auto-plays)'); return; }
   if (roundEnded) { dbgEvent('warn', 'play ignored (round ended)'); return; }
   if (falling)   { pendingAction = 'play'; dbgEvent('info', 'play queued (falling)'); return; }
   if (animating) { pendingAction = 'play'; dbgEvent('info', 'play queued (animating)'); scheduleQueuedRetry(); return; }

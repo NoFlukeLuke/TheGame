@@ -37,7 +37,7 @@ const CURSE_DEFS = {
 // Curse a random un-cursed card identity; returns {rank,suit,curse} or null.
 function curseRandomCard(curseId) {
   const pool = [];
-  RANKS.forEach(rank => SUITS.forEach(suit => { if (!cardCurses[cardKey(rank, suit)]) pool.push({ rank, suit }); }));
+  RANKS.forEach(rank => ACTIVE_SUITS.forEach(suit => { if (!cardCurses[cardKey(rank, suit)]) pool.push({ rank, suit }); }));
   if (!pool.length) return null;
   const pick = pool[Math.floor(Math.random() * pool.length)];
   const id = curseId || Object.keys(CURSE_DEFS)[Math.floor(Math.random() * Object.keys(CURSE_DEFS).length)];
@@ -152,7 +152,7 @@ function stampId(card) {
 
 function freshShuffledDeck() {
   const d = [];
-  for (const s of SUITS) for (const r of RANKS) d.push(stampId({ rank:r, suit:s }));
+  for (const s of ACTIVE_SUITS) for (const r of RANKS) d.push(stampId({ rank:r, suit:s }));
   return shuffle([...d]);
 }
 

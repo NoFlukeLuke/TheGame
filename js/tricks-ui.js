@@ -123,25 +123,54 @@ function onTrickTap(trick) {
 }
 
 // Returns a live description with current accumulated values for scaling Tricks
+// Owner rule: every Trick whose bonus can change always shows its CURRENT value
+// in parentheses. Persistent/level/owned-based tricks always have a number.
+// Round-scoped tricks (they scale with round time / round counters) can only be
+// computed during a live round — in the shop or reward grid they show "(N/A)".
 function trickLiveDesc(trick) {
   const base = trick.desc;
-  switch (trick.id) {
-    case 'fives_discard':  return base + (bonusMult_fives  > 0 ? ` [now: +${bonusMult_fives} pips]`  : '');
-    case 'nines_mult':     return base + (bonusMult_nines  > 0 ? ` [now: +${bonusMult_nines} mult]`  : '');
-    case 'tens_mult':      return base + (bonusMult_tens   > 0 ? ` [now: +${bonusMult_tens} mult]`   : '');
-    case 'sapling':        return `Each level, 3 random cards permanently gain +2 pips. [${level - 1} levels applied]`;
-    case 'summit':     return `The lowest-ranking card in each hand scores +(its value × level) pips. [level: ${level}]`;
-    case 'rising_tide':    return `Base mult increases by +1 for each level reached. [now: +${level - 1} mult]`;
-    case 'compound_mult':  return base + (bonusMult_compound > 0 ? ` [now: +${bonusMult_compound.toFixed(1)} mult]` : '');
-    case 'prolific':       return base + (bonusPips_prolific > 0 ? ` [now: +${bonusPips_prolific} pips]` : '');
-    case 'big_win':        return base + (jackpotFired ? ` [active: +${bonusMult_jackpot} mult]` : '');
-    case 'feng_shui':      return base + (bonusPips_fengshui > 0 ? ` [now: +${bonusPips_fengshui} pips]` : '');
-    case 'groove':         return base + (markCount_groove   > 0 ? ` [now: +${Math.floor(markCount_groove / 2)} Focus/hand]` : '');
-    case 'overtime':       return base + (markCount_overtime > 0 ? ` [now: +${Math.floor(markCount_overtime / 3)}s/hand]` : '');
-    case 'assembly_line':  return base + (assemblyMarkCount   > 0 ? ` [now: next mark card +${assemblyMarkCount} mult]` : '');
-    case 'veteran_bonus':  return `+2 pips per level reached this run. [now: +${(level - 1) * 2} pips]`;
-    default: return base;
-  }
+  try {
+    const B = (typeof BAL !== 'undefined') ? BAL : {};
+    const live = (typeof gameTimerPaused === 'undefined') ? true : !gameTimerPaused;
+    const el   = Math.max(0, roundStartSeconds - roundSeconds);   // seconds elapsed this round
+    const now      = (v) => `${base} (now ${v})`;                 // always-meaningful
+    const roundNow = (v) => `${base} ${live ? `(now ${v})` : '(N/A)'}`; // round-scoped
+    switch (trick.id) {
+      // ── permanent accumulators / level / owned-based (always a number) ──
+      case 'fives_discard':  return now(`+${bonusMult_fives || 0} pips`);
+      case 'nines_mult':     return now(`+${bonusMult_nines || 0} mult`);
+      case 'tens_mult':      return now(`+${bonusMult_tens || 0} mult`);
+      case 'compound_mult':  return now(`+${(bonusMult_compound || 0).toFixed(1)} mult`);
+      case 'prolific':       return now(`+${bonusPips_prolific || 0} pips`);
+      case 'big_win':        return now(`+${bonusMult_jackpot || 0} mult`);
+      case 'feng_shui':      return now(`+${bonusPips_fengshui || 0} pips`);
+      case 'sapling':        return now(`${level - 1} levels applied`);
+      case 'summit':         return now(`level ${level}`);
+      case 'rising_tide':    return now(`+${level - 1} mult`);
+      case 'veteran_bonus':  return now(`+${(level - 1) * (B.veteran_bonus?.pips_per_level ?? 2)} pips`);
+      case 'hummingbird':    return now(`+${(pauseInstanceGame || 0) * (B.hummingbird?.mult_per_pause ?? 2)} mult`);
+      case 'magician':       return now(`+${ownedSleightCount() * (B.magician?.mult_per_sleight ?? 3)} mult`);
+      case 'stand_up':       return now(`+${sleightChargeInfo().total * (B.stand_up?.pips_per_charge ?? 10)} pips`);
+      case 'scalper':        return now(`×${(1 + (B.scalper?.pip_mult_per_missing ?? 0.2) * sleightChargeInfo().missing).toFixed(2)} pips`);
+      // ── position-line accumulators (reset each round) ──
+      case 'groove':         return roundNow(`+${Math.floor((markCount_groove || 0) / 2)} Focus/hand`);
+      case 'overtime':       return roundNow(`+${Math.floor((markCount_overtime || 0) / 3)}s/hand`);
+      case 'assembly_line':  return roundNow(`next mark card +${assemblyMarkCount || 0} mult`);
+      // ── round-time / round-counter scaling (live round only) ──
+      case 'swift':          return roundNow(`+${Math.floor(el / B.swift.interval_seconds) * B.swift.mult_per_interval} mult`);
+      case 'sediment':       return roundNow(`+${Math.floor(el / B.sediment.interval_seconds) * B.sediment.pips_per_interval} pips`);
+      case 'albatross':      return roundNow(`+${(pausedSecondsRound || 0) * B.albatross.pips_per_second} pips`);
+      case 'kingfisher':     return roundNow(`+${Math.floor(((pausedSecondsRound || 0) + (rewoundSecondsRound || 0)) / B.kingfisher.interval_seconds) * B.kingfisher.mult_per_interval} mult`);
+      case 'still_water': { const e = (lastSwapRoundSeconds !== null) ? Math.max(0, lastSwapRoundSeconds - roundSeconds) : el; return roundNow(`+${B.still_water.mult_per_interval * Math.floor(e / 10)} mult`); }
+      case 'spade_flood':    return roundNow(`+${Math.floor(roundSeconds / B.spade_flood.time_div)} pips`);
+      case 'sands_of_time':  return roundNow(`+${Math.floor(roundSeconds / B.sands_of_time.divisor)} pips`);
+      case 'discard_pips':   return roundNow(`+${(cardsDiscardedRound || 0) * B.discard_pips.pips_per_discard} pips`);
+      case 'landfill':       return roundNow(`+${Math.floor((cardsDiscardedRound || 0) / B.landfill.discards_per) * B.landfill.mult_per_n} mult`);
+      case 'escalation':     return roundNow(`+${Math.max(0, (handsPlayedRound || 0) - 5)} mult`);
+      case 'combo_score':    return roundNow(`+${(handTypesRound ? handTypesRound.size : 0) * B.combo_score.mult_per_type} mult`);
+      default: return base;
+    }
+  } catch (e) { return base; }
 }
 
 function showTrickTooltip(trick, readOnly = false) {
@@ -280,43 +309,56 @@ function renderTrickTray() {
     list.innerHTML = '';   // empty → faint TRICKS watermark shows through (r95)
     return;
   }
+  // Reward-grid-style CRT/neon card tiles inside a scrolling marquee track (r113).
+  const RARS = ['common','rare','epic','legendary','mythic'];
+  const track = document.createElement('div');
+  track.className = 'chip-marquee';
   trickTray.forEach(trick => {
     const chip = document.createElement('div');
+    const rar = RARS.includes(trick.tier) ? trick.tier : 'common';
+    chip.className = `trick-tray-chip trick-card trick-tier-${trick.tier} rar-${rar}`;
+    chip.dataset.trickId = trick.id;
     if (trick.id === 'mirror') {
       const dir = trick._tiltDir; // -1 left, +1 right, undefined = not aimed
-      chip.className = `trick-tray-chip trick-tier-${trick.tier} trick-mirror`;
-      chip.textContent = dir === -1 ? '◀' : dir === 1 ? '▶' : '◆';
-      chip.style.transform = dir === -1 ? 'skewX(10deg)' : dir === 1 ? 'skewX(-10deg)' : 'none';
-      chip.dataset.trickId = trick.id;
+      chip.classList.add('trick-mirror');
+      chip.innerHTML = `<div class="trick-card-emoji">${dir === -1 ? '◀' : dir === 1 ? '▶' : '◆'}</div>`
+                     + `<div class="trick-card-name">${trick.name}</div>`;
       chip.title = trick.name + ' — tap to aim left/right';
       chip.addEventListener('click', e => {           // single tap cycles borrow direction
         e.stopPropagation();
         trick._tiltDir = (trick._tiltDir === -1) ? 1 : -1;
         renderTrickTray();
       });
-      let lpTimer = null;                              // long-press shows tooltip / discard
-      const startLP = () => { lpTimer = setTimeout(() => { hideTrickTooltip(); showTrickTrayTooltip(trick, chip); }, 450); };
-      const cancelLP = () => { if (lpTimer) { clearTimeout(lpTimer); lpTimer = null; } };
-      chip.addEventListener('touchstart', startLP, { passive:true });
-      chip.addEventListener('touchend', cancelLP);
-      chip.addEventListener('mousedown', startLP);
-      chip.addEventListener('mouseup', cancelLP);
-      chip.addEventListener('mouseleave', cancelLP);
-      list.appendChild(chip);
-      return;
+    } else {
+      chip.innerHTML = `<div class="trick-card-emoji">${trickEmoji(trick)}</div>`
+                     + `<div class="trick-card-name">${trick.name}</div>`;
+      chip.addEventListener('click', e => {
+        e.stopPropagation();
+        const existing = document.getElementById('trick-tooltip');
+        if (existing) { hideTrickTooltip(); return; }
+        showTrickTrayTooltip(trick, chip);
+      });
     }
-    chip.className = `trick-tray-chip trick-tier-${trick.tier}`;
-    chip.textContent = trick.tier.charAt(0).toUpperCase();
-    chip.dataset.trickId = trick.id;
-    chip.title = trick.name;
-    chip.addEventListener('click', e => {
-      e.stopPropagation();
-      const existing = document.getElementById('trick-tooltip');
-      if (existing) { hideTrickTooltip(); return; }
-      showTrickTrayTooltip(trick, chip);
-    });
-    list.appendChild(chip);
+    track.appendChild(chip);
   });
+  list.appendChild(track);
+  // Slow horizontal auto-scroll if the strip overflows (no scroll UI).
+  applyChipMarquee(list, track);
+  // Hover tooltips for every tile (originals + marquee clones).
+  list.querySelectorAll('.trick-tray-chip').forEach(chip => {
+    const trick = trickTray.find(t => t.id === chip.dataset.trickId);
+    if (trick) attachTrickHover(chip, trick);
+  });
+}
+
+// Hover → show tooltip; a short grace on leave lets the pointer reach the
+// tooltip (and its Discard button) before it hides.
+let _trickHoverTimer = null;
+function cancelTrickHoverHide() { if (_trickHoverTimer) { clearTimeout(_trickHoverTimer); _trickHoverTimer = null; } }
+function scheduleTrickHoverHide() { cancelTrickHoverHide(); _trickHoverTimer = setTimeout(hideTrickTooltip, 160); }
+function attachTrickHover(chip, trick) {
+  chip.addEventListener('mouseenter', () => { cancelTrickHoverHide(); showTrickTrayTooltip(trick, chip); });
+  chip.addEventListener('mouseleave', scheduleTrickHoverHide);
 }
 
 function showTrickTrayTooltip(trick, anchorEl) {
@@ -332,6 +374,9 @@ function showTrickTrayTooltip(trick, anchorEl) {
     e.stopPropagation();
     discardTrickFromTray(trick);
   });
+  // Keep the bubble open while the pointer is over it (so Discard is clickable).
+  tip.addEventListener('mouseenter', cancelTrickHoverHide);
+  tip.addEventListener('mouseleave', scheduleTrickHoverHide);
   void tip.offsetWidth;
   const ar = anchorEl.getBoundingClientRect();
   const tipW = tip.offsetWidth || 180;
@@ -570,7 +615,7 @@ function updateActProgressUI() {
   const labelEl = document.getElementById('game-timer-label');
   const valEl   = document.getElementById('game-timer');
   if (!labelEl || !valEl) return;
-  if (ACTIVE_MODE.id === 'normal') {
+  if (isActMode()) {
     labelEl.textContent = 'Progress';
     if (bossActive) {
       valEl.textContent  = `ACT ${actNumber} · BOSS`;

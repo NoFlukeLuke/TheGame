@@ -28,6 +28,19 @@ function exaltCorruptTotals(cards, reps) {
 // where `ids` are the entities that fired on THAT card (so the dance can release each trick's
 // particle as its trigger card animates, and replay the beat `reps` times). Hand-level tricks
 // are whatever's in `contrib` but not tied to any card. Populating it never changes the score.
+// A hand counts as a "3-card hand" for the 3-card tricks (3rd Down, Ready Set Go) if it has
+// 3 cards — or is a Pair while Three's a Crowd is owned.
+function counts3CardHand(handName, cells) {
+  return cells.length === 3 || (hasTrick('threes_crowd') && handName === 'Pair');
+}
+
+// Four Horse-man's random bonus: deterministic per hand (keyed on handsPlayedRound + first cell)
+// so the preview and the scored result always agree. 0=pips, 1=mult, 2=Focus, 3=pause.
+function fourHorsemanRoll(cells) {
+  const c0 = cells[0] || [0, 0];
+  return (((handsPlayedRound + c0[0] * 3 + c0[1] * 5) % 4) + 4) % 4;
+}
+
 function calcScore(handName, cells, contrib = null, ledger = null) {
   const base = HAND_BASE[handName];
   if (!base) return 0;
@@ -83,6 +96,8 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // Five Stack: 5-card hands add per-card pips+mult, replay-aware (folds through the retrigger loop).
   const _fiveCard = hasTrick('five_stack') && cells.length === 5;
   let _fsMult = 0;
+  // 3rd Time's a Charm: the 3rd card (scoring order) of any hand gets +2 replays.
+  const _3rdKey = (hasTrick('third_charm') && _scoreCells.length >= 3 && _scoreCells[2]) ? _scoreCells[2][0] + '-' + _scoreCells[2][1] : null;
   // Straight Shot: capture the modified pip value of the line's first & last card
   const _slFirstKey = _scoreCells.length ? _scoreCells[0][0] + '-' + _scoreCells[0][1] : '';
   const _slLastKey  = _scoreCells.length ? _scoreCells[_scoreCells.length-1][0] + '-' + _scoreCells[_scoreCells.length-1][1] : '';
@@ -129,6 +144,8 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     if (cellHasRowColBonus(r, c, 'rowcol_triple_pips')) { cp += BAL.rowcol_triple_pips.flat_pips; bPip('rowcol_triple_pips', BAL.rowcol_triple_pips.flat_pips); }
     // Five Stack: +pips per card in a 5-card hand (before the retrigger multiply → replay-aware)
     if (_fiveCard) { cp += BAL.five_stack.pips; bPip('five_stack', BAL.five_stack.pips); }
+    // 4x4: cards scored in the 4th column (index 3) score +pips
+    if (hasTrick('four_by_four') && c === 3) { cp += BAL.four_by_four.pips; bPip('four_by_four', BAL.four_by_four.pips); }
     // Leaden curse: this card contributes no pips at all (applied last so it wins)
     if (cardCurses[_eKey]?.id === 'leaden') cp = 0;
     // Straight Shot: remember the first/last line card's modified pips (post-buff, post-curse, pre-replay)
@@ -157,6 +174,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     _retrig += _re;
     if (_rne) _retrig++; if (_ech) _retrig++; if (_wp) _retrig += BAL.woodpecker.retrigger_count;
     if (_hnm) _retrig++;
+    if (_cKey === _3rdKey) _retrig += BAL.third_charm.extra_replays; // 3rd Time's a Charm: 3rd card gets +2 replays
     retrigByKey[r + '-' + c] = _retrig;
     if (_ledgerCells) {
       // Per-card pip-trick single-iteration deltas = the change in _cp during THIS card's
@@ -191,6 +209,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
       else if (_rne) bPip('closing_time', _pre);
       else if (_ech) bPip('echo_hand', _pre);
       else if (_wp) bPip('woodpecker', _extra);
+      else if (_cKey === _3rdKey) bPip('third_charm', _extra);
     }
     totalPips += cp;
   });
@@ -285,6 +304,19 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
       : Math.max(0, roundStartSeconds - roundSeconds);
     const _a = BAL.still_water.mult_per_interval * Math.floor(elapsedSinceSwap / 10);
     if (_a) { mult += _a; bMult('still_water', _a); }
+  }
+
+  // Ready, Set, Go: a 3-card hand (or a Pair via Three's a Crowd) containing a 3 scores +mult
+  if (hasTrick('ready_set_go') && counts3CardHand(handName, cells) && cards.some(cd => cd && cd.rank === '3')) {
+    mult += BAL.ready_set_go.mult; bMult('ready_set_go', BAL.ready_set_go.mult);
+  }
+  // Four Eyes: 4-card hands score +mult
+  if (hasTrick('four_eyes') && cells.length === 4) { mult += BAL.four_eyes.mult; bMult('four_eyes', BAL.four_eyes.mult); }
+  // Four Horse-man: 4-card hands grant a random bonus (pips/mult here; Focus/pause in playHand)
+  if (hasTrick('four_horseman') && cells.length === 4) {
+    const _fhm = fourHorsemanRoll(cells);
+    if (_fhm === 0)      { totalPips += BAL.four_horseman.pips; bPip('four_horseman', BAL.four_horseman.pips); }
+    else if (_fhm === 1) { mult += BAL.four_horseman.mult; bMult('four_horseman', BAL.four_horseman.mult); }
   }
 
   // Hand-specific mult

@@ -7,6 +7,7 @@
 <link rel="stylesheet" href="css/style.css">
 <link rel="stylesheet" href="css/dance.css">
 <link rel="stylesheet" href="css/dev-overlays.css">
+<link rel="stylesheet" href="css/match3.css">
 </head>
 <body>
 <div id="knack-tooltip" role="tooltip"></div>
@@ -19,216 +20,19 @@
     <div id="menu-stripe"></div>
     <div id="menu-title">THE GAME</div>
     <div id="menu-tagline">A LETHE amusement product. Please continue<br>playing until further notice.</div>
-    <button id="menu-start-btn" onclick="startFromMenu()">PLAY</button>
+    <button id="menu-start-btn" onclick="openModeSelect()">PLAY</button>
     <button id="menu-settings-btn" onclick="openSettingsFromMenu()">SETTINGS</button>
     <div id="menu-build-stamp"></div>
   </div>
 </div>
 
-<div id="cabinet">
-  <div id="cab-marquee">
-    <span class="cab-led"></span>
-    <span class="cab-brand">OBLIVISCORE</span>
-    <span class="cab-model">brought&nbsp;to&nbsp;you<br>by Lethe Corp</span>
+<div id="dev-panel" style="display:none;">
+  <div id="dev-panel-bar">
+    <span id="dev-panel-title">SETTINGS</span>
+    <span id="build-stamp"></span>
+    <button id="dev-panel-close" onclick="toggleDevPanel()">CLOSE</button>
   </div>
-  <div id="cab-stripe"></div>
-  <div id="cab-screen">
-<div id="stage">
-
-<!-- DECK HUD (debug) -->
-<div id="deck-hud" title="Tap to toggle compact view">
-  <div class="dh-row dh-total"><span class="dh-label">Total</span><span id="dh-total">52</span><span id="dh-expected" class="dh-expected">/52</span></div>
-  <div class="dh-row"><span class="dh-label">Draw</span><span id="dh-draw">0</span></div>
-  <div class="dh-row"><span class="dh-label">Played</span><span id="dh-played">0</span></div>
-  <div class="dh-row"><span class="dh-label">Grid</span><span id="dh-grid">0</span></div>
-</div>
-
-<!-- TOP BAR -->
-<div id="top-bar">
-  <div id="game-timer-stat" class="top-stat">
-    <span class="top-label" id="game-timer-label">Game Timer</span>
-    <span class="top-value gold" id="game-timer">20:00</span>
-  </div>
-  <div class="top-stat">
-    <span class="top-label">Level</span>
-    <span class="top-value" id="level-display">1</span>
-  </div>
-  <div id="clock-area">
-    <div id="clock">1:00</div>
-    <div id="clock-bar-wrap"><div id="clock-bar"></div></div>
-    <button id="skip-btn" type="button">Skip »</button>
-  </div>
-  <div class="top-stat">
-    <span class="top-label">Hands</span>
-    <span class="top-value" id="hands-display">0</span>
-  </div>
-  <div class="top-stat">
-    <span class="top-label">Coins</span>
-    <span class="top-value gold" id="coins-display">💰 0</span>
-  </div>
-</div>
-
-<!-- MAIN -->
-<div id="main">
-
-  <!-- Top info strip: score (left) + hand preview + bonuses carousel (right) -->
-  <div id="top-strip">
-
-    <div class="panel-box" id="score-panel">
-      <div id="score-panel-inner">
-        <!-- Left: pips × mult -->
-        <div id="score-subboxes">
-          <div class="score-subbox" id="pips-box">
-            <div class="subbox-label">PIPS</div>
-            <div class="subbox-val" id="pips-val">0</div>
-          </div>
-          <div class="subbox-times">×</div>
-          <div class="score-subbox" id="mult-box">
-            <div class="subbox-label">MULT</div>
-            <div class="subbox-val" id="mult-val">0</div>
-          </div>
-          <div class="subbox-times">×</div>
-          <div class="score-subbox" id="focus-box">
-            <div class="subbox-label">FOCUS</div>
-            <div class="subbox-val" id="focus-val">×1</div>
-          </div>
-        </div>
-        <!-- Center: current score (dance overlay covers this) -->
-        <div id="score-center">
-          <span id="score-total-label">Score</span>
-          <div id="score-total-num">0</div>
-          <!-- Dance overlay -->
-          <div id="dance-overlay">
-            <div id="dance-score-number"></div>
-            <div id="dance-score-label"></div>
-          </div>
-        </div>
-        <!-- Right: goal -->
-        <div id="score-left">
-          <div id="score-goal-label">GOAL</div>
-          <div id="score-to-go"><span id="goal-display">500</span></div>
-          <div id="score-progress-bar-wrap"><div id="score-progress-bar" style="width:0%"></div></div>
-        </div>
-      </div>
-    </div>
-
-    <div class="panel-box" id="trick-panel">
-      <!-- ═══════════ v7 HAND-PREVIEW SLOT (for the hand-preview system) ═══════════
-           In v7 landscape the preview is positioned at:  left 1.56% / top 31.94% /
-           width 32.81% / height 15.28% of #stage  (see #stage.landscape #selected-cards
-           in the v7 CSS block). It sits directly BELOW the pips/mult/focus row and
-           ABOVE #hand-name. The preview system should render INTO #selected-cards
-           (or replace it) at this anchor; #hand-name is the label just under it. -->
-      <div id="hand-preview-area">
-        <div id="selected-cards"></div>
-        <div id="hand-name">—</div>
-      </div>
-      <!-- Trick Tray (visible only in trickTrayMode) -->
-      <div id="trick-tray-area" style="display:none">
-        <span class="panel-title">Tricks <span id="trick-tray-count"></span></span>
-        <div id="trick-tray-list"></div>
-      </div>
-      <!-- Knack section -->
-      <div id="knack-carousel-wrap">
-        <span class="panel-title">Knacks</span>
-        <div id="knack-list"></div>
-      </div>
-    </div>
-
-  </div>
-
-  <!-- Grid + tall thin buttons -->
-  <div id="grid-and-buttons">
-    <!-- Focus Meter -->
-    <div id="focus-meter-wrap">
-      <div id="focus-bar-outer">
-        <div id="focus-active-segment"><!-- 10 nodes built by JS --></div>
-      </div>
-      <div id="focus-mult-readout" class="dim">×1.0</div>
-    </div>
-    <div id="grid-slot">
-      <div id="grid">
-        <div id="boss-banner"><div class="boss-banner-title">BOSS</div><div class="boss-banner-sub" id="boss-banner-sub">Survive 3:00</div></div>
-        <div id="boss-result"><div class="boss-result-text" id="boss-result-text"></div></div>
-      </div>
-    </div>
-    <div id="action-col">
-      <button class="act-btn btn-discard" id="btn-discard" disabled>D&#10;I&#10;S&#10;C&#10;A&#10;R&#10;D<br><span id="disc-count" style="writing-mode:initial;transform:none;font-size:9px"></span></button>
-      <button class="act-btn btn-play" id="btn-play" disabled>P&#10;L&#10;A&#10;Y</button>
-      <div id="swap-indicator">🔄&#10;<span id="swap-count">3</span></div>
-    </div>
-  </div>
-
-  <!-- Secondary row: stats/deck/pause -->
-  <div id="action-row-2">
-    <button class="act-btn btn-secondary" id="btn-stats">📊 Stats</button>
-    <button class="act-btn btn-secondary" id="btn-deck">🃏 Deck</button>
-    <button class="act-btn btn-secondary" id="btn-pause">⏸ Pause</button>
-  </div>
-
-  <!-- v7 landscape-only blocks (hidden in portrait) -->
-  <div id="vclock" class="v7-ls"><div id="vclock-band"></div><div id="vclock-fill"></div></div>
-  <div id="run-progress" class="v7-ls">
-    <div class="rp-act">ACT 1</div>
-    <div class="rp-nodes"><span></span><span></span><span></span><span></span><span></span><span class="boss">&#9760;</span></div>
-  </div>
-  <div id="coin-info" class="v7-ls">
-    <div class="ci-main">&#128176;<b id="ci-gold">0</b></div>
-    <div class="ci-row"><span>Interest</span><span class="pos" id="ci-interest">+0</span></div>
-    <div class="ci-row"><span>Cash out</span><span id="ci-cashout">+0</span></div>
-  </div>
-  <div id="interact-costs" class="v7-ls">
-    <div class="ic-h">Time Cost</div>
-    <div class="ic-r"><span>Play</span><span id="ic-play">0s</span></div>
-    <div class="ic-r"><span>Discard</span><span>3s</span></div>
-    <div class="ic-r"><span>Swap</span><span>4s</span></div>
-  </div>
-
-  <!-- Hidden elements still needed by render() -->
-  <div style="display:none">
-    <div id="score-breakdown"></div>
-  </div>
-
-</div>
-
-<div id="score-flash"></div>
-
-<!-- PAUSE OVERLAY -->
-<div id="next-goal-bg"></div>
-<div id="next-goal-flash">
-  <span class="ng-label">Next task:</span>
-  <span id="next-goal-number">0</span>
-</div>
-<div id="countdown-321-overlay">
-  <div id="countdown-321-number">3</div>
-</div>
-<div id="pause-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:190;flex-direction:column;align-items:center;justify-content:center;gap:16px;">
-  <div style="font-family:'Cinzel',serif;font-size:28px;font-weight:900;color:var(--gold);letter-spacing:8px;">PAUSED</div>
-  <button id="btn-resume" class="end-btn">Resume</button>
-  <div id="pause-settings" style="display:flex;flex-direction:column;align-items:center;gap:10px;margin-top:8px;width:220px;">
-    <div style="font-family:'Cinzel',serif;font-size:8px;letter-spacing:3px;color:var(--gold-dim);text-transform:uppercase;border-bottom:1px solid var(--border);width:100%;padding-bottom:6px;text-align:center;">Settings</div>
-    <label style="display:flex;align-items:center;justify-content:space-between;width:100%;font-family:'Cinzel',serif;font-size:10px;letter-spacing:1px;cursor:pointer;">
-      <span>Dev Mode</span>
-      <input type="checkbox" id="dev-mode-toggle" style="width:18px;height:18px;cursor:pointer;" onchange="toggleDevMode(this.checked)">
-    </label>
-    <label style="display:flex;align-items:center;justify-content:space-between;width:100%;font-family:'Cinzel',serif;font-size:10px;letter-spacing:1px;cursor:pointer;">
-      <span title="Suit cards transform (gold/purple) and change scoring. Off by default.">Exalt / Corrupt</span>
-      <input type="checkbox" id="exalt-corrupt-toggle" style="width:18px;height:18px;cursor:pointer;" onchange="toggleExaltCorrupt(this.checked)">
-    </label>
-  </div>
-</div>
-
-<!-- DEV PANEL -->
-<div id="dev-btn" onclick="toggleDevPanel()" style="display:none;position:fixed;bottom:60px;right:6px;z-index:500;width:32px;height:32px;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.4);border-radius:8px;font-size:16px;display:none;align-items:center;justify-content:center;cursor:pointer;">🛠</div>
-
-<!-- Preview-window scoring dance — renders INTO the dedicated hand-preview slot (#selected-cards) -->
-
-<div id="dev-panel" style="display:none;position:fixed;inset:0;z-index:499;overflow-y:auto;background:rgba(0,0,0,0.92);padding:16px;flex-direction:column;gap:12px;">
-  <div style="display:flex;justify-content:space-between;align-items:center;">
-    <span style="font-family:'Cinzel',serif;font-size:12px;letter-spacing:3px;color:var(--gold);">DEV MODE</span>
-    <span id="build-stamp" style="font-family:monospace;font-size:10px;color:rgba(201,168,76,0.5);letter-spacing:1px;"></span>
-    <button onclick="toggleDevPanel()" style="font-family:'Cinzel',serif;font-size:10px;background:none;border:1px solid var(--border);color:var(--cream);padding:4px 10px;border-radius:4px;cursor:pointer;">CLOSE</button>
-  </div>
+  <div id="dev-panel-body">
 
   <!-- TIME -->
   <div class="dev-section">
@@ -412,10 +216,41 @@
     <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);margin-top:6px;">
       Interrupt a scoring hand by
       <select id="dev-dance-interrupt" onchange="setDanceInterruptMode(this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor:pointer;">
-        <option value="cut">Cut — instant (current)</option>
-        <option value="ff">Fast-forward the old hand</option>
+        <option value="ff">Fast-forward the old hand (default)</option>
+        <option value="cut">Cut — instant</option>
         <option value="resolve">Resolve — quick pop</option>
       </select>
+    </label>
+  </div>
+
+  <div class="dev-section">
+    <div class="dev-section-title">Match-3 Mode</div>
+    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:-2px;">Match types — turn one off to remove it from detection entirely.</div>
+    <div style="display:flex;gap:14px;flex-wrap:wrap;">
+      <label style="display:flex;align-items:center;gap:6px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;">
+        <input id="dev-match3-type-flush" type="checkbox" onchange="this.checked = setMatch3Type('flush', this.checked)" style="accent-color:var(--gold);">
+        Flushes
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;">
+        <input id="dev-match3-type-run" type="checkbox" onchange="this.checked = setMatch3Type('run', this.checked)" style="accent-color:var(--gold);">
+        Runs
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;">
+        <input id="dev-match3-type-set" type="checkbox" onchange="this.checked = setMatch3Type('set', this.checked)" style="accent-color:var(--gold);">
+        Sets
+      </label>
+    </div>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;">
+      <input id="dev-match3-infinite-deck" type="checkbox" onchange="setMatch3InfiniteDeck(this.checked)" style="accent-color:var(--gold);">
+      Infinite deck (scored cards requeue to the back)
+    </label>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;margin-top:6px;">
+      <input id="dev-match3-infinite-mode" type="checkbox" onchange="setMatch3InfiniteMode(this.checked)" style="accent-color:var(--gold);">
+      Infinite mode (no clock, no goal — sandbox)
+    </label>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;margin-top:6px;">
+      <input id="dev-match3-preview-select" type="checkbox" onchange="setMatch3PreviewSelect(this.checked)" style="accent-color:var(--gold);">
+      Select matches for 1s before playing (interruptible)
     </label>
   </div>
 
@@ -432,7 +267,222 @@
       <button id="dev-log-clear" onclick="devLogClear()">Clear</button>
     </div>
   </div>
+  </div><!-- /#dev-panel-body -->
 </div>
+
+<div id="mode-select-overlay">
+  <div id="mode-select-inner">
+    <div id="mode-select-title">SELECT MODE</div>
+    <div id="mode-select-sub">Scroll sideways · press PLAY to begin</div>
+    <div id="mode-carousel-wrap">
+      <button class="mode-arrow" id="mode-arrow-left" onclick="scrollModes(-1)" aria-label="Previous mode">‹</button>
+      <div id="mode-carousel"></div>
+      <button class="mode-arrow" id="mode-arrow-right" onclick="scrollModes(1)" aria-label="Next mode">›</button>
+    </div>
+    <button id="mode-back-btn" onclick="closeModeSelect()">◄ BACK</button>
+  </div>
+</div>
+
+<div id="cabinet">
+  <div id="cab-topbar">
+    <span class="cab-led"></span>
+    <span class="cab-brand">OBLIVISCORE</span>
+    <span class="cab-model">brought&nbsp;to&nbsp;you by Lethe&nbsp;Corp</span>
+    <div id="cab-stripe"></div>
+  </div>
+  <div id="cab-screen">
+<div id="stage">
+
+<!-- DECK HUD (debug) -->
+<div id="deck-hud" title="Tap to toggle compact view">
+  <div class="dh-row dh-total"><span class="dh-label">Total</span><span id="dh-total">52</span><span id="dh-expected" class="dh-expected">/52</span></div>
+  <div class="dh-row"><span class="dh-label">Draw</span><span id="dh-draw">0</span></div>
+  <div class="dh-row"><span class="dh-label">Played</span><span id="dh-played">0</span></div>
+  <div class="dh-row"><span class="dh-label">Grid</span><span id="dh-grid">0</span></div>
+</div>
+
+<!-- TOP BAR -->
+<div id="top-bar">
+  <div id="game-timer-stat" class="top-stat">
+    <span class="top-label" id="game-timer-label">Game Timer</span>
+    <span class="top-value gold" id="game-timer">20:00</span>
+  </div>
+  <div class="top-stat">
+    <span class="top-label">Level</span>
+    <span class="top-value" id="level-display">1</span>
+  </div>
+  <div id="clock-area">
+    <div id="clock">1:00</div>
+    <div id="clock-bar-wrap"><div id="clock-bar"></div></div>
+    <button id="skip-btn" type="button">Skip »</button>
+  </div>
+  <div class="top-stat">
+    <span class="top-label">Hands</span>
+    <span class="top-value" id="hands-display">0</span>
+  </div>
+  <div class="top-stat">
+    <span class="top-label">Coins</span>
+    <span class="top-value gold" id="coins-display">💰 0</span>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+
+  <!-- Top info strip: score (left) + hand preview + bonuses carousel (right) -->
+  <div id="top-strip">
+
+    <div class="panel-box" id="score-panel">
+      <div id="score-panel-inner">
+        <!-- Left: pips × mult -->
+        <div id="score-subboxes">
+          <div class="score-subbox" id="pips-box">
+            <div class="subbox-label">PIPS</div>
+            <div class="subbox-val" id="pips-val">0</div>
+          </div>
+          <div class="subbox-times">×</div>
+          <div class="score-subbox" id="mult-box">
+            <div class="subbox-label">MULT</div>
+            <div class="subbox-val" id="mult-val">0</div>
+          </div>
+          <div class="subbox-times">×</div>
+          <div class="score-subbox" id="focus-box">
+            <div class="subbox-label">FOCUS</div>
+            <div class="subbox-val" id="focus-val">×1</div>
+          </div>
+        </div>
+        <!-- Center: current score (dance overlay covers this) -->
+        <div id="score-center">
+          <span id="score-total-label">Score</span>
+          <div id="score-total-num">0</div>
+          <!-- Dance overlay -->
+          <div id="dance-overlay">
+            <div id="dance-score-number"></div>
+            <div id="dance-score-label"></div>
+          </div>
+        </div>
+        <!-- Right: goal -->
+        <div id="score-left">
+          <div id="score-goal-label">GOAL</div>
+          <div id="score-to-go"><span id="goal-display">500</span></div>
+          <div id="score-progress-bar-wrap"><div id="score-progress-bar" style="width:0%"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-box" id="trick-panel">
+      <!-- ═══════════ v7 HAND-PREVIEW SLOT (for the hand-preview system) ═══════════
+           In v7 landscape the preview is positioned at:  left 1.56% / top 31.94% /
+           width 32.81% / height 15.28% of #stage  (see #stage.landscape #selected-cards
+           in the v7 CSS block). It sits directly BELOW the pips/mult/focus row and
+           ABOVE #hand-name. The preview system should render INTO #selected-cards
+           (or replace it) at this anchor; #hand-name is the label just under it. -->
+      <div id="hand-preview-area">
+        <div id="selected-cards"></div>
+        <div id="hand-name">—</div>
+      </div>
+      <!-- Trick Tray (visible only in trickTrayMode) -->
+      <div id="trick-tray-area" style="display:none">
+        <span class="panel-title">Tricks <span id="trick-tray-count"></span></span>
+        <div id="trick-tray-list"></div>
+      </div>
+      <!-- Knack section -->
+      <div id="knack-carousel-wrap">
+        <span class="panel-title">Knacks</span>
+        <div id="knack-list"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Grid + tall thin buttons -->
+  <div id="grid-and-buttons">
+    <!-- Focus Meter -->
+    <div id="focus-meter-wrap">
+      <div id="focus-bar-outer">
+        <div id="focus-active-segment"><!-- 10 nodes built by JS --></div>
+      </div>
+      <div id="focus-mult-readout" class="dim">×1.0</div>
+    </div>
+    <div id="grid-slot">
+      <div id="grid">
+        <div id="boss-banner"><div class="boss-banner-title">BOSS</div><div class="boss-banner-sub" id="boss-banner-sub">Survive 3:00</div></div>
+        <div id="boss-result"><div class="boss-result-text" id="boss-result-text"></div></div>
+      </div>
+    </div>
+    <div id="action-col">
+      <button class="act-btn btn-discard" id="btn-discard" disabled>D&#10;I&#10;S&#10;C&#10;A&#10;R&#10;D<br><span id="disc-count" style="writing-mode:initial;transform:none;font-size:9px"></span><span class="act-cost" id="disc-cost">3s</span></button>
+      <button class="act-btn btn-play" id="btn-play" disabled>P&#10;L&#10;A&#10;Y</button>
+      <div id="swap-indicator">🔄&#10;<span id="swap-count">3</span><span class="act-cost" id="swap-cost">4s</span></div>
+    </div>
+  </div>
+
+  <!-- Secondary row: stats/deck/time/pause -->
+  <div id="action-row-2">
+    <button class="act-btn btn-secondary" id="btn-stats">📊 Stats</button>
+    <button class="act-btn btn-secondary" id="btn-deck">🃏 Deck</button>
+    <button class="act-btn btn-secondary" id="btn-time">⏱ Time</button>
+    <button class="act-btn btn-secondary" id="btn-pause">⏸ Pause</button>
+  </div>
+
+  <!-- v7 landscape-only blocks (hidden in portrait) -->
+  <div id="vclock" class="v7-ls"><div id="vclock-band"></div><div id="vclock-fill"></div></div>
+  <div id="run-progress" class="v7-ls">
+    <div class="rp-act">ACT 1</div>
+    <div class="rp-nodes"><span></span><span></span><span></span><span></span><span></span><span class="boss">&#9760;</span></div>
+  </div>
+  <div id="coin-info" class="v7-ls">
+    <div class="ci-main">&#128176;<b id="ci-gold">0</b></div>
+    <div class="ci-row"><span>Interest</span><span class="pos" id="ci-interest">+0</span></div>
+    <div class="ci-row"><span>Cash out</span><span id="ci-cashout">+0</span></div>
+  </div>
+  <!-- Time-cost breakdown: a pop-up toggled by the ⏱ Time button (no longer a permanent chip) -->
+  <div id="interact-costs" class="time-popup" style="display:none">
+    <div class="ic-h">Time Cost</div>
+    <div class="ic-r"><span>Play</span><span id="ic-play">0s</span></div>
+    <div class="ic-r"><span>Discard</span><span>3s</span></div>
+    <div class="ic-r"><span>Swap</span><span>4s</span></div>
+  </div>
+
+  <!-- Hidden elements still needed by render() -->
+  <div style="display:none">
+    <div id="score-breakdown"></div>
+  </div>
+
+</div>
+
+<div id="score-flash"></div>
+
+<!-- PAUSE OVERLAY -->
+<div id="next-goal-bg"></div>
+<div id="next-goal-flash">
+  <span class="ng-label">Next task:</span>
+  <span id="next-goal-number">0</span>
+</div>
+<div id="countdown-321-overlay">
+  <div id="countdown-321-number">3</div>
+</div>
+<div id="pause-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:190;flex-direction:column;align-items:center;justify-content:center;gap:16px;">
+  <div style="font-family:'Cinzel',serif;font-size:28px;font-weight:900;color:var(--gold);letter-spacing:8px;">PAUSED</div>
+  <button id="btn-resume" class="end-btn">Resume</button>
+  <div id="pause-settings" style="display:flex;flex-direction:column;align-items:center;gap:10px;margin-top:8px;width:220px;">
+    <div style="font-family:'Cinzel',serif;font-size:8px;letter-spacing:3px;color:var(--gold-dim);text-transform:uppercase;border-bottom:1px solid var(--border);width:100%;padding-bottom:6px;text-align:center;">Settings</div>
+    <label style="display:flex;align-items:center;justify-content:space-between;width:100%;font-family:'Cinzel',serif;font-size:10px;letter-spacing:1px;cursor:pointer;">
+      <span>Dev Mode</span>
+      <input type="checkbox" id="dev-mode-toggle" style="width:18px;height:18px;cursor:pointer;" onchange="toggleDevMode(this.checked)">
+    </label>
+    <label style="display:flex;align-items:center;justify-content:space-between;width:100%;font-family:'Cinzel',serif;font-size:10px;letter-spacing:1px;cursor:pointer;">
+      <span title="Suit cards transform (gold/purple) and change scoring. Off by default.">Exalt / Corrupt</span>
+      <input type="checkbox" id="exalt-corrupt-toggle" style="width:18px;height:18px;cursor:pointer;" onchange="toggleExaltCorrupt(this.checked)">
+    </label>
+  </div>
+</div>
+
+<!-- DEV PANEL -->
+<div id="dev-btn" onclick="toggleDevPanel()" style="display:none;position:fixed;bottom:60px;right:6px;z-index:500;width:32px;height:32px;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.4);border-radius:8px;font-size:16px;display:none;align-items:center;justify-content:center;cursor:pointer;">🛠</div>
+
+<!-- Preview-window scoring dance — renders INTO the dedicated hand-preview slot (#selected-cards) -->
+
 
 
 <!-- STATS OVERLAY -->
@@ -673,15 +723,12 @@
 <script src="js/game-control.js"></script>
 <script src="js/challenge.js"></script>
 <script src="js/audio.js"></script>
+<script src="js/match3.js"></script>
 <script src="js/dev-panel.js"></script>
 <script src="js/bootstrap.js"></script>
 </div><!-- /#stage -->
   </div><!-- /#cab-screen -->
-  <div id="cab-deck">
-    <div id="cab-vents"><i></i><i></i><i></i><i></i><i></i><i></i></div>
-    <div id="cab-deck-badge">THE GAME™</div>
-    <div id="cab-warning">Prolonged use advised · Do not think<br>about the outside · © LETHE CORP</div>
-  </div>
+  <div id="cab-baseline"></div>
 </div><!-- /#cabinet -->
 </body>
 </html>

@@ -166,6 +166,16 @@ const TRICK_POOL = [
   { id:'life_lessons',   name:'Life Lessons',        tier:'rare',      tags:['focus'],           desc:'Each round you complete permanently raises your maximum Focus by 1' },
   { id:'wellspring',     name:'Wellspring',          tier:'rare',      tags:['focus','pips','scaling'], desc:'For every 10 Focus generated this game, this trick scores +2 pips' },
   { id:'feedback_loop',  name:'Feedback Loop',       tier:'rare',      tags:['focus','mult','scaling'], desc:'For every 5 Focus generated this round, this trick scores +1 mult (resets each round)' },
+  // ── 3-card-hand family (r113) ──
+  { id:'third_down',     name:'3rd Down',            tier:'rare',      tags:['focus'],           desc:'3-card hands add +3 Focus' },
+  { id:'ready_set_go',   name:'Ready, Set, Go',      tier:'common',    tags:['mult'],            desc:'A 3-card hand containing a 3 scores +9 mult' },
+  { id:'third_charm',    name:"3rd Time's a Charm",  tier:'epic',      tags:['replay'],          desc:'The 3rd card of a hand gets +2 replays' },
+  { id:'threes_crowd',   name:"Three's a Crowd",     tier:'rare',      tags:['rule'],            desc:'Pairs count as 3-card hands' },
+  // ── 4-card-hand family (r123) ──
+  { id:'four_eyes',      name:'Four Eyes',           tier:'common',    tags:['mult'],            desc:'4-card hands score +12 mult' },
+  { id:'four_by_four',   name:'4x4',                 tier:'common',    tags:['pips','position'], desc:'Cards scored in the 4th column score +16 pips' },
+  { id:'four_horseman',  name:'Four Horse-man',      tier:'epic',      tags:['pips','mult','focus','time'], desc:'4-card hands grant a random bonus: +16 pips, +8 mult, +4 Focus, or a 4-second pause' },
+  { id:'wait_four_it',   name:'Wait Four It',        tier:'rare',      tags:['time'],            desc:'4-card hands permanently buff their 4th card to pause the clock 1 second when scored' },
 ];
 
 // ── Trick category → emoji ──

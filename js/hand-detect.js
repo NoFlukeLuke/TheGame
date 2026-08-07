@@ -267,7 +267,7 @@ function detectHand(cells) {
   const counts = Object.values(rankCounts).sort((a,b)=>b-a);
 
   // Flush check: combined cards count as both suits — check if all cards share a common suit
-  const allSameSuitStrict = SUITS.some(s =>
+  const allSameSuitStrict = ACTIVE_SUITS.some(s =>
     cards.every(c => c.suit === s || (c.combined && c.suit2 === s))
   );
 
@@ -299,6 +299,10 @@ function detectHand(cells) {
   if (activeHands.has('fourofakind') && n>=4 && counts[0]>=4) return 'Four of a Kind';
   if (activeHands.has('fullhouse') && n===5 && counts[0]>=3 && counts[1]>=2) return 'Full House';
   if (activeHands.has('flush') && n===5 && allSameSuitStrict) return 'Flush';
+  // Short flushes (Six Suits mode). Checked before the same-size run/straight so a
+  // same-suit run scores as the (higher-value) flush, mirroring poker's flush > straight.
+  if (activeHands.has('flush4') && n===4 && allSameSuitStrict) return 'Flush of 4';
+  if (activeHands.has('flush3') && n===3 && allSameSuitStrict) return 'Flush of 3';
   if (activeHands.has('straight') && n===5 && isStr) return 'Straight';
   if (activeHands.has('threeofakind') && counts[0]>=3 && (n===3||n===5)) return 'Three of a Kind';
   if (activeHands.has('twopair') && n>=4 && counts[0]>=2 && counts[1]>=2) return 'Two Pair';

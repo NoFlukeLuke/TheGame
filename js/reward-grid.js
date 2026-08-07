@@ -64,7 +64,7 @@ function generateRewardContent() {
   // un-cursed identity exists). Card is pre-picked so the tile shows exactly it.
   {
     const _uncursed = [];
-    RANKS.forEach(rank => SUITS.forEach(suit => { if (!cardCurses[cardKey(rank, suit)]) _uncursed.push({ rank, suit }); }));
+    RANKS.forEach(rank => ACTIVE_SUITS.forEach(suit => { if (!cardCurses[cardKey(rank, suit)]) _uncursed.push({ rank, suit }); }));
     if (_uncursed.length) {
       const _victim = _uncursed[Math.floor(Math.random() * _uncursed.length)];
       const _cids = Object.keys(CURSE_DEFS);
@@ -122,7 +122,7 @@ function generateRewardContent() {
     const pick = eligible[Math.floor(Math.random() * eligible.length)];
     return {
       icon: '★', label: pick.name, desc: pick.desc, tier: pick.tier || 'rare',
-      entity: 'trick', rarity: pick.tier || 'rare',
+      entity: 'trick', rarity: pick.tier || 'rare', _trick: pick,
       apply: () => injectTrickAfterReward(pick)
     };
   }
@@ -158,7 +158,7 @@ function generateRewardContent() {
   // Blessed-card buff: a specific shown card gains a permanent bonus.
   function makeBlessedPayload() {
     const rank = RANKS[Math.floor(Math.random() * RANKS.length)];
-    const suit = SUITS[Math.floor(Math.random() * SUITS.length)];
+    const suit = ACTIVE_SUITS[Math.floor(Math.random() * ACTIVE_SUITS.length)];
     const mult = Math.random() < 0.3; // 30% of blessings are the (stronger) +1 mult
     return mult
       ? { icon: '✨', label: 'Blessed Card', tier: 'epic', cardFace: { rank, suit },
@@ -171,7 +171,7 @@ function generateRewardContent() {
   // Cull buff: deck thinning — a specific low card leaves the run for good.
   function makeCullPayload() {
     const rank = ['2', '3', '4'][Math.floor(Math.random() * 3)];
-    const suit = SUITS[Math.floor(Math.random() * SUITS.length)];
+    const suit = ACTIVE_SUITS[Math.floor(Math.random() * ACTIVE_SUITS.length)];
     return { icon: '✂️', label: 'Cull', tier: 'rare', cardFace: { rank, suit },
       desc: `Remove ${rank}${suit} from your deck for the rest of the run.`,
       apply: () => { removeCardIdentityFromRun(rank, suit)
@@ -343,7 +343,7 @@ function rollRewardMystery(goodChance) {
       apply:()=>{ nextRoundDiscardDelta += 2; showMessage('Mystery: +2 discards next round!', 'var(--gold)'); } };
     if (roll === 3) return { good, icon:'⏱', label:'+25s Round', flyTo:'clock', desc:'Next round starts with +25 seconds.',
       apply:()=>{ nextRoundSecondsDelta += 25; showMessage('Mystery: +25s next round!', 'var(--gold)'); } };
-    const rank = RANKS[Math.floor(Math.random()*RANKS.length)], suit = SUITS[Math.floor(Math.random()*SUITS.length)];
+    const rank = RANKS[Math.floor(Math.random()*RANKS.length)], suit = ACTIVE_SUITS[Math.floor(Math.random()*ACTIVE_SUITS.length)];
     return { good, icon:'✨', label:`Blessed ${rank}${suit}`, flyTo:'deck', desc:`${rank}${suit} permanently gains +10 pips.`,
       apply:()=>{ const k = cardKey(rank, suit); permPips[k] = (permPips[k]||0)+10; showMessage(`Mystery: ${rank}${suit} +10 pips!`, 'var(--gold)'); } };
   }
@@ -712,17 +712,21 @@ function buildRewardTileInner(p) {
   // Plain resource / debuff / dest / mystery tile: icon + name (desc → tooltip).
   return `<div class="reward-icon">${p.icon}</div><div class="rwd-name">${p.label}</div>`;
 }
-// Owner rule: single-word names shrink to fit one line; multi-word names wrap.
+// Owner rule: names never overflow the tile. The name wraps at spaces and a
+// too-long single word hyphenates (CSS). Here we shrink the font only if the
+// wrapped/hyphenated name is still too tall (more than MAX_LINES) or too wide
+// for the tile (e.g. one unbreakable token).
 function fitRewardName(el) {
   if (!el) return;
-  const txt = (el.textContent || '').trim();
-  const multiWord = /\s/.test(txt);
-  el.classList.toggle('rwd-name-wrap', multiWord);
+  const MAX_LINES = 3;
   el.style.fontSize = '';
-  if (multiWord) return;                      // wrapping handled by CSS
   let fs = parseFloat(getComputedStyle(el).fontSize) || 10;
   let guard = 0;
-  while (el.scrollWidth > el.clientWidth + 0.5 && fs > 6 && guard < 40) {
+  const tooTall = () => {
+    const lh = parseFloat(getComputedStyle(el).lineHeight) || fs * 1.14;
+    return el.scrollHeight > lh * MAX_LINES + 1;
+  };
+  while ((tooTall() || el.scrollWidth > el.clientWidth + 1) && fs > 6 && guard < 40) {
     fs -= 0.5; el.style.fontSize = fs + 'px'; guard++;
   }
 }
@@ -754,7 +758,10 @@ function attachRewardTooltip(el, p, kind) {
     tt.className = 'rar-' + rar;
     tt.querySelector('.rtt-rar').textContent  = (p.entity ? rar + ' · ' : '') + type;
     tt.querySelector('.rtt-name').textContent = p.label;
-    tt.querySelector('.rtt-desc').innerHTML   = colorizeKeywords(p.desc || '');
+    // Tricks show their current bonus value in () via trickLiveDesc (N/A here in
+    // the reward grid for round-scoped tricks — the round isn't live yet).
+    const descText = (p._trick && typeof trickLiveDesc === 'function') ? trickLiveDesc(p._trick) : (p.desc || '');
+    tt.querySelector('.rtt-desc').innerHTML   = colorizeKeywords(descText);
     place(e);
     tt.classList.add('show');
   });
@@ -1049,6 +1056,13 @@ async function animateRewardResolve() {
     const p = cell.payload;
     if (p._mystery) await revealAndFlyMystery(tile, p, c, cols);
     else            await flyRewardTile(tile, p, cell.kind !== 'debuff');
+    // Entity rewards populate a HUD chip — apply the moment the tile lands so the
+    // chip fills as it shrinks in (no end-of-sequence delay). Everything else is
+    // still applied together after the animation (confirmRewardPath).
+    if (p && (p.entity === 'trick' || p.entity === 'knack' || p.entity === 'sleight')
+        && typeof p.apply === 'function' && !p._applied) {
+      try { p.apply(); p._applied = true; } catch (e) { console.error('[REWARD] land apply failed', e); }
+    }
     await new Promise(res => setTimeout(res, 90));
   }
   await Promise.allSettled(rest.map((t, i) => fallRewardTile(t, i * 34)));
@@ -1069,7 +1083,8 @@ async function confirmRewardPath() {
     const [r, c] = key.split('-').map(Number);
     const cell = rewardCells[r][c];
     // A throwing payload must never strand the reward step — isolate each apply.
-    try { if (cell.payload && typeof cell.payload.apply === 'function') cell.payload.apply(); }
+    // Entity rewards were already applied on landing (animateRewardResolve).
+    try { if (cell.payload && typeof cell.payload.apply === 'function' && !cell.payload._applied) cell.payload.apply(); }
     catch (e) { console.error('[REWARD] payload apply failed', e); }
   });
   closeRewardGrid();
@@ -1100,7 +1115,7 @@ function closeRewardGrid() {
   const finishInterlude = () => {
     skipTrickChoiceOverlay = true;
 
-    if (ACTIVE_MODE.id === 'normal') {
+    if (isActMode()) {
       if (nodeInAct === 5) {
         // Post-boss reward grid — transition to next act
         nodeInAct = 0;

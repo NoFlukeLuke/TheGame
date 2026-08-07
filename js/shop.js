@@ -537,7 +537,7 @@ function applySuitChange(pickedCards) {
     const suitChoices = document.getElementById('svc-suit-choices');
     suitChoices.style.display = 'flex';
     suitChoices.innerHTML = '';
-    SUITS.forEach(s => {
+    ACTIVE_SUITS.forEach(s => {
       if (s === card.suit) return;
       const btn = document.createElement('div');
       btn.className = 'suit-choice';
