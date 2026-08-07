@@ -42,6 +42,10 @@ function scheduleAutoSubmit() {
   if (!result) return; // no valid hand, don't schedule
   handReadyForSubmit = true;
   render(); // trigger pulse immediately
+  // Tutorial: the early steps teach "select, look at the preview, then press
+  // PLAY". A 2s auto-play would fire the hand out from under the lesson, so the
+  // countdown is suppressed while those steps are up (the pulse still shows).
+  if (typeof tutorialHoldsAutoSubmit === 'function' && tutorialHoldsAutoSubmit()) return;
   autoSubmitTimer = setTimeout(() => {
     autoSubmitTimer = null;
     handReadyForSubmit = false;

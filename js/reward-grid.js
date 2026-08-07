@@ -232,8 +232,9 @@ function generateRewardContent() {
   const shuffledBuff = shuffled(buffPos);
   const grid = Array.from({length: ROWS}, () => Array(COLS).fill(null));
 
-  // One destination in a random buff slot
-  grid[shuffledBuff[0][0]][shuffledBuff[0][1]] = { kind: 'dest', payload: pickRand(destOptions) };
+  // One destination in a random buff slot. The tutorial always routes to the
+  // shop — walking the player through it is the point of the reward step there.
+  grid[shuffledBuff[0][0]][shuffledBuff[0][1]] = { kind: 'dest', payload: tutorialActive() ? destOptions[0] : pickRand(destOptions) };
 
   // Fill remaining buff positions
   for (let i = 1; i < shuffledBuff.length; i++) {

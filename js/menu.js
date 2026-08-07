@@ -1,4 +1,4 @@
-const BUILD = '2026-08-04 · r122 · 3-card-hand family (3rd Down, Ready Set Go, 3rd Times a Charm, Threes a Crowd)';
+const BUILD = '2026-08-07 · r123 · Tutorial mode — guided first run with coach-marks';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -17,6 +17,24 @@ const MODES = {
     autoPlayHands: false,
     actStructure: true,
     suitCount: 4
+  },
+  // Guided first run. Mechanically IDENTICAL to Classic (actStructure: true) —
+  // the tutorial flag only tells js/tutorial.js to rig the opening board/goal and
+  // lay coach-marks over the UI. See js/tutorial.js for the whole system.
+  tutorial: {
+    id: 'tutorial',
+    name: 'Tutorial',
+    desc: 'A guided first run. Play one round, take your payout, pick your spoils and visit the shop — with the game explaining itself as you go.',
+    winCondition: 'boss_defeat',
+    enableBosses: true,
+    enableShops: true,
+    enableEvents: true,
+    autoRefillGrid: true,
+    timeIsCurrency: true,
+    autoPlayHands: false,
+    actStructure: true,
+    suitCount: 4,
+    tutorial: true
   },
   sixsuits: {
     id: 'sixsuits',
@@ -160,8 +178,10 @@ function startMatch3FromMenu(modeId = 'match3') {
 // MODE SELECT (scroll-sideways carousel off the PLAY button)
 // ══════════════════════════════════════════════
 // The shipping modes, shown left→right in the carousel.
-const MODE_SELECT_LIST = ['normal', 'sixsuits', 'match3', 'zen'];
+const MODE_SELECT_LIST = ['tutorial', 'normal', 'sixsuits', 'match3', 'zen'];
 const MODE_META = {
+  tutorial: { accent: '#8fd0ff',         suits: 'START HERE',
+              blurb: 'The guided version of Classic. One round, one payout, one reward path, one shop — with pop-ups explaining each piece as it appears. About two minutes.' },
   normal:   { accent: 'var(--c-yellow)', suits: '♠ ♥ ♦ ♣',
               blurb: 'The original four-suit game. Three Acts of rounds, shops, events and bosses.' },
   sixsuits: { accent: 'var(--c-mint)',   suits: '♠ ♥ ♦ ♣ ★ ▲',

@@ -324,6 +324,9 @@ function startGame() {
   startTimers();
   // Zen mode hands out unlimited swaps/discards (see match3ApplyZenResources).
   if (match3Active()) { match3ApplyZenResources(); setTimeout(() => match3Resolve(), 400); }
+  // Tutorial mode: rig the opening board + goal, then start the coach-marks.
+  // Must run LAST — it overwrites roundGoal/coins and re-renders the stacked grid.
+  if (tutorialActive()) tutorialBeginRun();
 }
 
 // ══════════════════════════════════════════════
