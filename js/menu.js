@@ -1,4 +1,4 @@
-const BUILD = '2026-08-07 · r125 · per-screen bg tint · live time popup · play-cost debuff';
+const BUILD = '2026-08-07 · r126 · on-grid Shop (buy/reroll/sell) · Rewards · location+cost readouts · tooltip flip';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

@@ -1,5 +1,6 @@
 function doDiscard() {
-  // During the on-grid reward step the Discard button is the yellow CLEAR button.
+  // On grid-takeover screens the Discard button is repurposed: LEAVE (shop) / CLEAR (reward).
+  if (typeof shopGridActive !== 'undefined' && shopGridActive) { closeShopGrid(); return; }
   if (rewardOnGrid) { clearRewardSelection(); return; }
   if (roundEnded || animating) return;
   if (falling) { if (selected.length > 0) { pendingAction = 'discard'; dbgEvent('info', 'discard queued (falling)'); } return; }

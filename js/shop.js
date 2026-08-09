@@ -120,6 +120,12 @@ function triggerShop() {
   clearInterval(roundInterval);
   roundInterval = null;
   gameTimerPaused = true;
+  // On-grid shop (r126): play the shop on the board like the reward grid. The old
+  // overlay below is kept intact as a one-flag fallback (USE_ONGRID_SHOP = false).
+  if (typeof USE_ONGRID_SHOP !== 'undefined' && USE_ONGRID_SHOP && typeof openShopGrid === 'function') {
+    openShopGrid();
+    return;
+  }
   sfxShopOpen();
   shopPurchased   = new Set();
   shopRerollCount = 0;

@@ -1959,6 +1959,30 @@
   .shop-price-chip.sold  { color: var(--c-mint); border-color: rgba(53,213,155,0.5); text-shadow: none; background: rgba(0,0,0,0.5); }
   .shop-price-chip.maxed { color: var(--cream-dim); border-color: var(--plastic-deep); text-shadow: none; }
 
+  /* ── Grid-takeover HUD (r126): location readout replaces the pips/mult chips;
+     the hand-preview slot becomes the shop cost/discount readout. ── */
+  #screen-location { display:none; flex:1 1 auto; flex-direction:column; align-items:center; justify-content:center; gap:1px; }
+  #screen-location .loc-tag  { font-family:'Orbitron',sans-serif; font-size:7px; letter-spacing:2px; color:var(--cream-dim); text-transform:uppercase; }
+  #screen-location .loc-name { font-family:'Orbitron',sans-serif; font-weight:900; font-size:17px; letter-spacing:3px; text-transform:uppercase; color:var(--cream); }
+  #screen-location.tone-reward .loc-name { color:var(--c-mint);   text-shadow:0 0 12px rgba(53,213,155,0.55); }
+  #screen-location.tone-shop   .loc-name { color:var(--phosphor); text-shadow:0 0 12px rgba(255,176,46,0.55); }
+  body.grid-screen #score-subboxes .score-subbox,
+  body.grid-screen #score-subboxes .subbox-times { display:none !important; }
+  body.grid-screen #screen-location { display:flex; }
+  body.grid-screen #hand-name { visibility:hidden; }
+
+  #selected-cards .shop-cost { display:flex; flex-direction:column; justify-content:center; gap:3px; width:100%; font-family:'Share Tech Mono',monospace; }
+  #selected-cards .shop-cost .sc-line { display:flex; justify-content:space-between; gap:6px; font-size:10px; color:var(--cream); white-space:nowrap; }
+  #selected-cards .shop-cost .sc-line s { color:var(--cream-dim); }
+  #selected-cards .shop-cost .sc-line b { color:var(--phosphor); }
+  #selected-cards .shop-cost .sc-off { color:var(--c-mint); }
+  #selected-cards .shop-cost .sc-actions { display:flex; gap:6px; margin-top:1px; }
+  #selected-cards .shop-cost .sc-actions button { flex:1; font-family:'Orbitron',sans-serif; font-size:8px; letter-spacing:1px; text-transform:uppercase; padding:4px 2px; border-radius:5px; cursor:pointer; border:1px solid var(--plastic-deep); background:transparent; color:var(--cream-dim); transition:all .12s; }
+  #selected-cards .shop-cost .sc-actions button:hover:not(:disabled) { border-color:var(--phosphor); color:var(--phosphor); }
+  #selected-cards .shop-cost .sc-actions button:disabled { opacity:0.4; cursor:not-allowed; }
+  #selected-cards .shop-cost .sc-actions button.sc-sell-on { border-color:var(--c-mint); color:var(--c-mint); }
+  .reward-cell.on-grid.shop-tile.sold { opacity:0.34; }
+
   /* ── Shop-on-grid preview (r114): null slot + info banner ── */
   .reward-cell.shop-prev-null {
     border: 2px dashed var(--plastic-deep);
@@ -3187,6 +3211,8 @@
   /* preview: full-width frame; hand-name sits inside it on the dark background (left); cards render exactly like the grid, bonuses and all */
   #stage.landscape #selected-cards { left:1.56%; top:38%; width:37.74%; height:18%; --card-w:38px; --card-h:50px; display:flex; align-items:center; justify-content:center; gap:4px; padding:4px 8px 4px 44px; background:var(--panel); border:1px solid var(--border); border-radius:6px; overflow:hidden; }
   #stage.landscape #hand-name { position:absolute; left:1.56%; top:38%; width:6%; height:18%; display:flex; align-items:center; justify-content:center; text-align:center; background:none; border:none; margin:0; font-size:10px; line-height:1.15; letter-spacing:0.5px; color:var(--gold); padding:0 3px; z-index:2; }
+  /* Shop cost readout uses the full preview slot (no room reserved for the hand-name label). */
+  body.shop-active #stage.landscape #selected-cards { padding:5px 9px; justify-content:stretch; align-items:stretch; }
 
   /* tricks: enlarged now that the time/money chips left this column — big reward-grid-style tiles */
   #stage.landscape #trick-tray-area { left:1.56%; top:57%; width:37.74%; height:25.5%; display:flex !important; flex-direction:row; align-items:center; justify-content:flex-start; padding:6px 8px; gap:6px; overflow:hidden; }

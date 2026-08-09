@@ -566,6 +566,7 @@ function openRewardGrid() {
   // Boss reward grids (post-boss-win, nodeInAct 5; or timer-mode boss context) tint red;
   // ordinary reward grids stay teal (see the per-screen #stage backgrounds).
   document.body.classList.toggle('reward-boss', rewardGridContext === 'boss' || (ACTIVE_MODE?.id === 'normal' && nodeInAct === 5));
+  if (typeof enterGridScreenHud === 'function') enterGridScreenHud('REWARDS', 'reward');
   enterRewardButtonMode();
   renderRewardTiles(true);   // deal the reward tiles in like a new round's cards
 }
@@ -747,16 +748,24 @@ function hideRewardTooltip() { if (_rewardTT) _rewardTT.classList.remove('show')
 function attachRewardTooltip(el, p, kind) {
   const rar  = rewardRarity(p);
   const type = rewardTypeLabel(p, kind);
-  const place = (e) => {
+  // Anchor the tooltip to the TILE (not the cursor) and open it on whichever side
+  // has more horizontal room — so entities in the right-most columns pop out to the
+  // LEFT instead of getting squeezed / wrapping tall against the edge.
+  const place = () => {
     const tt = _rewardTT; if (!tt) return;
-    const pad = 14, w = tt.offsetWidth, h = tt.offsetHeight;
-    let x = e.clientX + pad, y = e.clientY + pad;
-    if (x + w > window.innerWidth  - 8) x = e.clientX - w - pad;
-    if (y + h > window.innerHeight - 8) y = e.clientY - h - pad;
-    tt.style.left = Math.max(8, x) + 'px';
-    tt.style.top  = Math.max(8, y) + 'px';
+    const r = el.getBoundingClientRect();
+    const w = tt.offsetWidth, h = tt.offsetHeight, gap = 12;
+    const roomRight = window.innerWidth - r.right;
+    const roomLeft  = r.left;
+    // Prefer right if it fits; else whichever side is roomier.
+    let x = (roomRight >= w + gap || roomRight >= roomLeft) ? r.right + gap : r.left - w - gap;
+    x = Math.max(8, Math.min(x, window.innerWidth - w - 8));
+    let y = r.top + r.height / 2 - h / 2;         // vertically centered on the tile
+    y = Math.max(8, Math.min(y, window.innerHeight - h - 8));
+    tt.style.left = x + 'px';
+    tt.style.top  = y + 'px';
   };
-  el.addEventListener('mouseenter', (e) => {
+  el.addEventListener('mouseenter', () => {
     const tt = ensureRewardTooltip();
     tt.className = 'rar-' + rar;
     tt.querySelector('.rtt-rar').textContent  = (p.entity ? rar + ' · ' : '') + type;
@@ -765,10 +774,9 @@ function attachRewardTooltip(el, p, kind) {
     // the reward grid for round-scoped tricks — the round isn't live yet).
     const descText = (p._trick && typeof trickLiveDesc === 'function') ? trickLiveDesc(p._trick) : (p.desc || '');
     tt.querySelector('.rtt-desc').innerHTML   = colorizeKeywords(descText);
-    place(e);
     tt.classList.add('show');
+    place();                                       // measure after content + show
   });
-  el.addEventListener('mousemove', place);
   el.addEventListener('mouseleave', hideRewardTooltip);
 }
 
@@ -1100,6 +1108,7 @@ function closeRewardGrid() {
   // reward tiles from #grid, and drop back to normal render ownership.
   exitRewardButtonMode();
   document.body.classList.remove('reward-active', 'reward-boss');
+  if (typeof exitGridScreenHud === 'function') exitGridScreenHud();
   rewardOnGrid = false;
   const gridEl = document.getElementById('grid');
   if (gridEl) gridEl.innerHTML = '';

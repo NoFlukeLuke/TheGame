@@ -148,7 +148,8 @@ function generateHandFocus(hand, handCells, vultureSec) {
 // PLAY HAND
 // ══════════════════════════════════════════════
 function playHand() {
-  // During the on-grid reward step the Play button is the green CONFIRM button.
+  // On grid-takeover screens the Play button is repurposed: BUY (shop) / CONFIRM (reward).
+  if (typeof shopGridActive !== 'undefined' && shopGridActive) { shopGridBuySelection(); return; }
   if (rewardOnGrid) { confirmRewardPath(); return; }
   // Match-3: the board plays its own matches (match3Resolve). Manual play is off.
   if (match3Active()) { dbgEvent('info', 'play ignored (match-3 auto-plays)'); return; }
