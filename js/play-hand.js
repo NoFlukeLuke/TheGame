@@ -54,6 +54,12 @@ function generateHandFocus(hand, handCells, vultureSec) {
     }
     // 3rd Down: 3-card hands (or Pairs via Three's a Crowd) add Focus
     if (hasTrick('third_down') && counts3CardHand(hand, handCells)) totalFocus += BAL.third_down.focus;
+    // Acorns: grant the trick's accumulated whole-number Focus (grows +0.05 per scored card, post-hand)
+    if (hasTrick('acorns')) totalFocus += Math.floor(bonusFocus_acorns);
+    // Plan Ahead: every 3rd hand of the round adds Focus = average hands per round so far
+    if (hasTrick('plan_ahead') && ((handsPlayedRound + 1) % BAL.plan_ahead.every === 0)) {
+      totalFocus += Math.max(1, Math.round((handsPlayedGame + 1) / Math.max(1, level)));
+    }
     // ── 4-card-hand family ──
     if (handCells.length === 4) {
       // Four Horse-man: random bonus — Focus/pause halves (pips/mult handled in calcScore)
@@ -107,6 +113,8 @@ function generateHandFocus(hand, handCells, vultureSec) {
     }
     // High Water: after 3 Runs this round, each further Run pauses the clock by its card count
     if (_isRunHand && runsPlayedRound >= 3 && hasTrick('high_water')) pauseRound(handCells.length);
+    // Dam Holding…: every Run pauses the clock a flat few seconds
+    if (_isRunHand && hasTrick('dam_holding')) pauseRound(BAL.dam_holding.pause);
     // Sundial knack: a hand where every card shares a column pauses the clock
     if (hasKnack('sundial') && handCells.length > 0 && handCells.every(([, hc]) => hc === handCells[0][1])) pauseRound(BAL.sundial.seconds);
     // Metronome knack: playing this round's target hand type pauses the clock
@@ -350,8 +358,19 @@ function playHand() {
 
   // ── Accumulating Trick effects (post-hand) ──
   handsPlayedRound++;
+  handsPlayedGame++;   // Plan Ahead: cumulative hand count (per game)
   handTypesRound.add(hand);
-  if (['Run of 3','Run of 4','Straight','Straight Flush'].includes(hand)) runsPlayedRound++;
+  if (['Run of 3','Run of 4','Straight','Straight Flush'].includes(hand)) { runsPlayedRound++; runStreak++; }
+  else runStreak = 0; // Wave Amplification: a non-Run breaks the consecutive-Run streak
+  // Set counters (Undue Influence / Shaky Foundation). Increment AFTER scoring so calcScore saw the pre-hand count.
+  if (isSetHand(hand)) {
+    setsPlayedRound++;
+    // Undue Influence: a Set with a face card grants credits = Sets played this round (incl. this one)
+    if (hasTrick('undue_influence') && handCells.some(([r,c]) => ['J','Q','K'].includes(gridData[r]?.[c]?.rank))) {
+      coins += setsPlayedRound; updateCoinsUI();
+      showMessage('Undue Influence +' + setsPlayedRound + ' credits', 'var(--gold)');
+    }
+  }
   // ── Priming (Inspirato / Prime Times) ──
   if (trickTrayMode) {
     // Consume primes that contributed this hand (their extra trigger already fired in scoring)
@@ -382,6 +401,8 @@ function playHand() {
   }
   if (hasTrick('compound_mult')) bonusMult_compound = Math.round((bonusMult_compound + BAL.compound_mult.mult_per_hand) * 10) / 10;
   if (hasTrick('prolific')) bonusPips_prolific += BAL.prolific.pips_per_hand;
+  // Acorns: each card scored this hand grows the trick's stored Focus by 0.05 (per game)
+  if (hasTrick('acorns')) bonusFocus_acorns += handCells.length * BAL.acorns.focus_per_card;
   // Feng Shui: grow its permanent pips when another position trick fired this hand
   if (hasTrick('feng_shui') && _lastHandPositionFired) bonusPips_fengshui += BAL.feng_shui.pips_per_hand;
   // Assembly Line: commit this hand's mark tally (incl. replays) to the round counter
@@ -392,6 +413,16 @@ function playHand() {
     if (_lc && firesThisMinute('rowcol_perm_double')) {
       const _lcc = gridData[_lc[0]]?.[_lc[1]];
       if (_lcc && _lcc.rank) { const _lk = cardKey(_lcc.rank, _lcc.suit); permMult[_lk] = (permMult[_lk] || 0) + BAL.rowcol_perm_double.perm_mult; showMessage('Ley Line! +' + BAL.rowcol_perm_double.perm_mult + ' mult', '#a25cd8'); }
+    }
+  }
+  // Temporal Rift: a card scored at a row×column effect intersection permanently gains a "pause
+  // when scored" buff (reuses The Vulture's _vulturePause pipeline). Once per minute, and it skips
+  // any card that already carries a time buff — no stacking from this trick. Mirrors Ley Line.
+  if (hasTrick('temporal_rift')) {
+    const _tr = handCells.find(([r,c]) => isEffectIntersection(r, c) && gridData[r]?.[c] && gridData[r][c].rank && !gridData[r][c]._vulturePause);
+    if (_tr && firesThisMinute('temporal_rift')) {
+      const _trc = gridData[_tr[0]]?.[_tr[1]];
+      if (_trc) { _trc._vulturePause = (_trc._vulturePause || 0) + BAL.temporal_rift.pause; showMessage('Temporal Rift! +' + BAL.temporal_rift.pause + 's pause when scored', '#5aa9e6'); }
     }
   }
   // (Clean Sweep's Focus advance now fires in generateHandFocus, before scoring, so it helps this hand.)

@@ -1,4 +1,4 @@
-const BUILD = '2026-08-04 · r126 · Dominoes in carousel + fix collapsed tiles & 8×8 grid overflow';
+const BUILD = '2026-08-09 · r129 · Dominoes mode (beta) in the mode carousel [merged: reward-grid meta, sell system, Temporal Rift]';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
