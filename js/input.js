@@ -222,6 +222,10 @@ function tryAddToSelection(r, c) {
 // ── Tap handler (called on pointerup when pointer didn't move) ──
 function onCardTap(r, c) {
   if (_longPressActive) { _longPressActive = false; return; }
+  // During the match-3 on-grid Trick pick, only the option tiles respond, and
+  // they route through their own onclick → onTrickTap. Block everything else
+  // (selection, swaps) so the board can't be disturbed mid-pick.
+  if (typeof match3PickActive !== 'undefined' && match3PickActive) return;
   const _card = gridData[r]?.[c];
   const _cardStr = _card ? `${_card.rank}${_card.suit}` : 'null';
   dbgEvent('info', `tap [${r},${c}] ${_cardStr}`, { animating, trickPhase: trickSelectionPhase, swapPending: !!swapPending, selected: selected.length });

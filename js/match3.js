@@ -272,6 +272,7 @@ function match3SettleBoard() {
 async function match3Resolve() {
   if (!match3Active()) return;
   if (match3Resolving) return;
+  if (match3PickActive) return;      // the between-rounds Trick pick owns the board
   if (roundEnded || isPaused) return;
   if (animating || falling) return;
 
@@ -304,22 +305,25 @@ async function match3Resolve() {
       handsPlayed += matches.length;
       updateScoreUI();
 
+      // Goal check happens BEFORE the clear, so the goal-clinching match's cards
+      // are still on the board to drive the win finale (they fly to the preview).
+      // (Infinite dev mode never ends the round; Zen still has goals, just doubled.)
+      const goalMet = !match3NoGoal() && score >= roundGoal && !goalReachedThisRound;
+      if (goalMet) {
+        goalReachedThisRound = true;
+        roundEnded = true;
+        if (roundInterval) { clearInterval(roundInterval); roundInterval = null; }
+        match3ClearComboBadge();
+        const winCells = matches.flatMap(m => m.cells);
+        await match3WinFinale(winCells);      // jitter → explode → winners fly to preview
+        setTimeout(() => triggerLevelUp(), 250);
+        break;
+      }
+
       // ── Clear + gravity + refill (shared engine) ──
       const removing = matches.flatMap(m => m.cells);
       animating = false; // removeAndFall refuses to run while `animating`
       await removeAndFall(removing, 'match3');
-
-      // Goal check — the round ends the moment the target is met.
-      // (Infinite dev mode never ends the round; Zen still has goals, just doubled.)
-      if (!match3NoGoal() && score >= roundGoal && !goalReachedThisRound) {
-        goalReachedThisRound = true;
-        roundEnded = true;
-        if (roundInterval) { clearInterval(roundInterval); roundInterval = null; }
-        sfxSuccess();
-        match3ClearComboBadge();
-        setTimeout(() => triggerLevelUp(), 900);
-        break;
-      }
       await match3Wait(90); // small breath between chain links
     }
   } finally {
@@ -447,6 +451,219 @@ function match3ShowComboBadge(mult, step) {
 }
 function match3ClearComboBadge() {
   document.getElementById('m3-combo-badge')?.classList.remove('show');
+}
+
+// ══════════════════════════════════════════════
+// WIN FINALE
+// ══════════════════════════════════════════════
+// Mirrors the Normal-mode goal-hand finale (jitter → gentle explode → winners
+// fly to the preview), so a match-3 round win reads the same. `winCells` are the
+// cells of the match that clinched the goal — they're still on the board here
+// because the goal check runs before the clear. Self-contained (doesn't touch the
+// shared score dance) and resolves when the sequence is done.
+async function match3WinFinale(winCells) {
+  const gridEl = document.getElementById('grid');
+  if (!gridEl) { sfxSuccess(); return; }
+  animating = true;
+  sfxSuccess();
+
+  const winIds = new Set(winCells.map(([r, c]) => gridData[r]?.[c]?._id).filter(v => v != null));
+  const all = [...gridEl.querySelectorAll('[data-card-id]')];
+  const winEls = [], loseEls = [];
+  all.forEach(el => (winIds.has(+el.getAttribute('data-card-id')) ? winEls : loseEls).push(el));
+
+  // Winners get a gold glow; everything else jitters, then blasts outward.
+  winEls.forEach(el => { el.style.zIndex = '20'; el.animate(
+    [{ boxShadow: '0 0 0 0 rgba(245,192,66,0)' }, { boxShadow: '0 0 16px 5px rgba(245,192,66,0.6)' }],
+    { duration: 360, fill: 'forwards' }); });
+
+  const jitters = loseEls.map(el => el.animate([
+    { transform: 'translate(0,0) rotate(0)' },
+    { transform: 'translate(1.3px,-1.1px) rotate(0.8deg)' },
+    { transform: 'translate(-1.1px,1.3px) rotate(-0.9deg)' },
+    { transform: 'translate(1.1px,1px) rotate(0.6deg)' },
+    { transform: 'translate(-1.3px,-0.9px) rotate(-0.7deg)' },
+    { transform: 'translate(0,0) rotate(0)' },
+  ], { duration: 150, iterations: 10, easing: 'linear' })); // ~1.5s
+  await match3Wait(1400);
+
+  jitters.forEach(a => { try { a.cancel(); } catch (e) {} });
+  sfxWinExplode();
+  const gr = gridEl.getBoundingClientRect();
+  const cx = gr.left + gr.width / 2, cy = gr.top + gr.height / 2;
+  loseEls.forEach(el => {
+    const r = el.getBoundingClientRect();
+    let ax = (r.left + r.width / 2) - cx, ay = (r.top + r.height / 2) - cy;
+    const len = Math.hypot(ax, ay) || 1; ax /= len; ay /= len;
+    const dist = 200 + Math.random() * 140, rot = (Math.random() * 2 - 1) * 160;
+    el.style.zIndex = '30';
+    el.animate([
+      { transform: 'translate(0,0) rotate(0) scale(1)', opacity: 1 },
+      { transform: `translate(${ax * dist}px,${ay * dist}px) rotate(${rot}deg) scale(.82)`, opacity: 0 },
+    ], { duration: 850, easing: 'cubic-bezier(.25,.6,.35,1)', fill: 'forwards' });
+  });
+
+  // Winners fly up into the hand-preview area (same destination Normal-mode
+  // winners use), so the win moment lands in the preview like the poker modes.
+  const preview = document.getElementById('selected-cards');
+  const pr = preview ? preview.getBoundingClientRect() : null;
+  winEls.forEach((el, i) => {
+    const r = el.getBoundingClientRect();
+    const destX = pr ? (pr.left + pr.width / 2) : cx;
+    const destY = pr ? (pr.top + pr.height / 2) : cy - 160;
+    const dx = destX - (r.left + r.width / 2), dy = destY - (r.top + r.height / 2);
+    el.style.zIndex = '40';
+    el.animate([
+      { transform: 'translate(0,0) scale(1)', opacity: 1 },
+      { transform: `translate(${dx}px,${dy}px) scale(0.82)`, opacity: 0.95, offset: 0.85 },
+      { transform: `translate(${dx}px,${dy}px) scale(0.7)`, opacity: 0 },
+    ], { duration: 700, delay: 120 + i * 90, easing: 'cubic-bezier(.35,.65,.3,1)', fill: 'forwards' });
+  });
+  await match3Wait(120 + winEls.length * 90 + 700 + 120);
+
+  all.forEach(el => el.remove()); // clear the board; triggerLevelUp deals the next one
+}
+
+// ══════════════════════════════════════════════
+// LEVEL-UP (between rounds) — pick-of-three ON THE GRID, into the TRAY
+// ══════════════════════════════════════════════
+// Presented like Normal mode's on-grid reward, but only THREE options sit in the
+// board's centre tiles rather than filling it. The player taps one (tap to
+// preview, tap again to confirm — the shared onTrickTap flow); the chosen Trick
+// goes to the side TRAY and all three option tiles revert to normal cards, so
+// nothing stays on the board during play. No Tricks are ever placed for keeps.
+
+let match3PickActive = false; // true while the on-grid Trick pick is open
+let match3PickCells  = [];    // the centre cells currently holding option Tricks
+
+// The n most-central cells: middle row, centred columns (3 → [mid-1, mid, mid+1]).
+function match3CenterCells(n) {
+  const row = Math.floor(gridRows / 2);
+  const midCol = Math.floor(gridCols / 2);
+  const start = Math.max(0, midCol - Math.floor(n / 2));
+  const cells = [];
+  for (let i = 0; i < n && start + i < gridCols; i++) cells.push([row, start + i]);
+  return cells;
+}
+
+async function showMatch3LevelUpScreen() {
+  animating = true;
+  selected = [];
+  sfxLevelUp();
+
+  const gridEl = document.getElementById('grid');
+  gridEl?.querySelectorAll('[data-card-id],.trick-card,.temp-anim,.trick-target-slot').forEach(el => el.remove());
+  // Deal a fresh full board of plain cards, then clear any incidental matches so
+  // the reward board is quiet while the player reads their options.
+  for (let r = 0; r < gridRows; r++)
+    for (let c = 0; c < gridCols; c++)
+      gridData[r][c] = drawCard() || null;
+  match3SettleBoard();
+  match3PendingSettle = true; // post-pick, startRoundTimer settles again (the swapped-in cards)
+
+  // Drop three Trick options onto the centre tiles as tappable on-grid cards.
+  const opts = pickTrickOptions(3);
+  match3PickCells = match3CenterCells(opts.length);
+  opts.forEach((opt, i) => {
+    const [r, c] = match3PickCells[i];
+    const displaced = gridData[r][c];
+    if (displaced && displaced.rank) drawPile.push({ rank: displaced.rank, suit: displaced.suit }); // salvage
+    gridData[r][c] = { rank: null, suit: null, _isTrick: true, _isMatch3Option: true,
+                       _trickState: 'new', _selectable: true, trick: opt, _id: 90000 + level * 10 + i };
+  });
+
+  match3PickActive = true;
+  trickSelectionPhase = true;
+  pendingTrickChoice = null;
+  gameTimerPaused = true;
+  dealPhase = true;   // hold the real board hidden until the 3-2-1 deal reveals it
+  animating = false;
+
+  // Reveal with the goal flash + 3-2-1 deal (board and options fall in together),
+  // then hand control to the player to make their pick.
+  showNextGoalFlash().then(() => show321Countdown()).then(() => {
+    dealPhase = false;
+    render();
+    match3ShowPickBanner();
+    match3StartPickTimer();
+  });
+}
+
+// Called from onTrickTap's confirm branch when a match-3 option is chosen.
+function match3ConfirmPick(trick) {
+  if (!match3PickActive) return;
+  match3PickActive = false;
+  trickSelectionPhase = false;
+  pendingTrickChoice = null;
+  clearInterval(levelupTimer);
+  hideTrickTooltip?.();
+  match3HidePickBanner();
+
+  if (trick) {
+    if (trickTray.length < trickCapacity()) {
+      trickTray.push(trick);
+      selectTrick(trick, true); // grant effect + acquiredTricks (fromTrickFlow: no round start here)
+      renderTrickTray();
+      showMessage(`${trick.name} → tray`, 'var(--gold)');
+    } else {
+      showMessage('Trick tray full — skipped', 'var(--cream-dim)');
+    }
+  }
+
+  // Every option tile (chosen + unchosen) reverts to a fresh card, so the board
+  // is all normal cards for play. Remove the trick DOM so render rebuilds them.
+  match3PickCells.forEach(([r, c]) => {
+    const cur = gridData[r]?.[c];
+    if (cur && cur._id != null) {
+      const el = document.querySelector(`#grid [data-card-id="${cur._id}"]`);
+      if (el) el.remove();
+    }
+    gridData[r][c] = drawCard() || null;
+  });
+  match3PickCells = [];
+  render();
+
+  if (pendingLevelUps > 0) { pendingLevelUps--; setTimeout(() => drainLevelUpQueue(), 400); return; }
+  gameTimerPaused = false;
+  sfxRoundStart();
+  updateClockUI();
+  startRoundTimer(); // settles the swapped-in cards + kicks the cascade (match3PendingSettle)
+}
+
+// Auto-pick the first option if the player dawdles (mirrors the overlay timer).
+function match3StartPickTimer() {
+  levelupSeconds = LEVEL_UP_DURATION;
+  match3UpdatePickBanner();
+  clearInterval(levelupTimer);
+  levelupTimer = setInterval(() => {
+    levelupSeconds--;
+    match3UpdatePickBanner();
+    if (levelupSeconds <= 0) {
+      clearInterval(levelupTimer);
+      const first = match3PickCells[0] && gridData[match3PickCells[0][0]]?.[match3PickCells[0][1]];
+      match3ConfirmPick(first?.trick || null);
+    }
+  }, 1000);
+}
+
+// ── "CHOOSE A TRICK" banner over the board ──
+function match3ShowPickBanner() {
+  const gridEl = document.getElementById('grid');
+  if (!gridEl) return;
+  let el = document.getElementById('m3-pick-banner');
+  if (!el) { el = document.createElement('div'); el.id = 'm3-pick-banner'; gridEl.appendChild(el); }
+  match3UpdatePickBanner();
+  el.classList.add('show');
+}
+function match3UpdatePickBanner() {
+  const el = document.getElementById('m3-pick-banner');
+  if (!el) return;
+  el.innerHTML = `<span class="m3-pick-title">CHOOSE A TRICK</span>` +
+                 `<span class="m3-pick-hint">tap one · tap again to confirm` +
+                 `${levelupSeconds > 0 ? ` · ${levelupSeconds}s` : ''}</span>`;
+}
+function match3HidePickBanner() {
+  document.getElementById('m3-pick-banner')?.classList.remove('show');
 }
 
 // ══════════════════════════════════════════════
