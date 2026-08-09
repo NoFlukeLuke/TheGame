@@ -161,8 +161,22 @@ function dominoRenderBoard() {
       + (sel >= 0 ? ' selected' : '')
       + (dominoSwapPending === p.id ? ' swap-pending' : '')
       + (dim || full ? ' dom-dim' : '');
-    if (p.orient === 'h') { div.style.width = (2 * CARD_W + CARD_GAP) + 'px'; div.style.height = CARD_H + 'px'; }
-    else                  { div.style.width = CARD_W + 'px'; div.style.height = (2 * CARD_H + CARD_GAP) + 'px'; }
+    // Size the piece to its two-cell footprint, then inset the SHORT axis so the
+    // tile reads as a true 2:1 domino centred in that footprint. The inset is
+    // computed here (not as a CSS %) because percentage padding always resolves
+    // against the element's WIDTH — as vertical padding on a wide horizontal tile
+    // that collapsed the body to a hairline.
+    if (p.orient === 'h') {
+      const W = 2 * CARD_W + CARD_GAP, H = CARD_H;
+      const tileH = Math.min(H, W / 2);
+      div.style.width = W + 'px'; div.style.height = H + 'px';
+      div.style.padding = Math.max(0, (H - tileH) / 2) + 'px 0';
+    } else {
+      const W = CARD_W, H = 2 * CARD_H + CARD_GAP;
+      const tileW = Math.min(W, H / 2);
+      div.style.width = W + 'px'; div.style.height = H + 'px';
+      div.style.padding = '0 ' + Math.max(0, (W - tileW) / 2) + 'px';
+    }
     div.style.left = cellLeft(cLeft) + 'px';
     div.style.top  = cellTop(rTop) + 'px';
     div.innerHTML =

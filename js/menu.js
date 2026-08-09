@@ -1,4 +1,4 @@
-const BUILD = '2026-08-04 · r125 · Dominoes mode added to the mode carousel [merged: Match-3 pick-of-3, 4-card family]';
+const BUILD = '2026-08-04 · r126 · Dominoes in carousel + fix collapsed tiles & 8×8 grid overflow';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
