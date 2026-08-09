@@ -413,6 +413,16 @@ function playHand() {
       if (_lcc && _lcc.rank) { const _lk = cardKey(_lcc.rank, _lcc.suit); permMult[_lk] = (permMult[_lk] || 0) + BAL.rowcol_perm_double.perm_mult; showMessage('Ley Line! +' + BAL.rowcol_perm_double.perm_mult + ' mult', '#a25cd8'); }
     }
   }
+  // Temporal Rift: a card scored at a row×column effect intersection permanently gains a "pause
+  // when scored" buff (reuses The Vulture's _vulturePause pipeline). Once per minute, and it skips
+  // any card that already carries a time buff — no stacking from this trick. Mirrors Ley Line.
+  if (hasTrick('temporal_rift')) {
+    const _tr = handCells.find(([r,c]) => isEffectIntersection(r, c) && gridData[r]?.[c] && gridData[r][c].rank && !gridData[r][c]._vulturePause);
+    if (_tr && firesThisMinute('temporal_rift')) {
+      const _trc = gridData[_tr[0]]?.[_tr[1]];
+      if (_trc) { _trc._vulturePause = (_trc._vulturePause || 0) + BAL.temporal_rift.pause; showMessage('Temporal Rift! +' + BAL.temporal_rift.pause + 's pause when scored', '#5aa9e6'); }
+    }
+  }
   // (Clean Sweep's Focus advance now fires in generateHandFocus, before scoring, so it helps this hand.)
   if (hasTrick('big_win') && !jackpotFired && finalScore >= BAL.big_win.score_threshold) { jackpotFired = true; bonusMult_jackpot += BAL.big_win.mult; showMessage('Jackpot! +5 mult permanently', 'var(--gold)'); }
   if (hasTrick('snowball') && lastCalcPips >= BAL.snowball.score_threshold) {

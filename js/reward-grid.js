@@ -605,10 +605,11 @@ function updateRewardButtons() {
 
 // Repurpose the two action buttons for the reward step (green CONFIRM / yellow CLEAR).
 // Original markup is captured once and restored on exit.
-let _origPlayHTML = null, _origDiscardHTML = null;
+let _origPlayHTML = null, _origDiscardHTML = null, _origSwapHTML = null;
 function enterRewardButtonMode() {
   const play = document.getElementById('btn-play');
   const disc = document.getElementById('btn-discard');
+  const swap = document.getElementById('swap-indicator');
   if (play) {
     if (_origPlayHTML === null) _origPlayHTML = play.innerHTML;
     play.classList.add('reward-buy');
@@ -621,12 +622,35 @@ function enterRewardButtonMode() {
     disc.innerHTML = 'C<br>L<br>E<br>A<br>R';
     disc.disabled = true;
   }
+  // Repurpose the swap indicator slot into a SKIP button for the reward step (always available —
+  // it's the "take nothing" alternative to Confirm, which needs ≥1 pick).
+  if (swap) {
+    if (_origSwapHTML === null) _origSwapHTML = swap.innerHTML;
+    swap.classList.add('reward-skip');
+    swap.innerHTML = 'S<br>K<br>I<br>P';
+    swap.onclick = skipRewardGrid;
+  }
 }
 function exitRewardButtonMode() {
   const play = document.getElementById('btn-play');
   const disc = document.getElementById('btn-discard');
+  const swap = document.getElementById('swap-indicator');
   if (play && _origPlayHTML !== null) { play.classList.remove('reward-buy');  play.innerHTML = _origPlayHTML; }
   if (disc && _origDiscardHTML !== null) { disc.classList.remove('reward-clear'); disc.innerHTML = _origDiscardHTML; }
+  if (swap && _origSwapHTML !== null) { swap.classList.remove('reward-skip'); swap.innerHTML = _origSwapHTML; swap.onclick = null; }
+}
+
+// Skip the reward grid: take no tiles, collect a baseline gold payout (placeholder), and — with
+// Rain Check — bank extra seconds for next round. Then close the step normally (node still advances).
+function skipRewardGrid() {
+  if (rewardConfirmed || rewardDealing) return;
+  rewardConfirmed = true;
+  coins += BAL.reward_skip.gold; updateCoinsUI();
+  let _msg = `Skipped rewards · +${BAL.reward_skip.gold} gold`;
+  if (hasTrick('rain_check')) { nextRoundSecondsDelta += BAL.rain_check.seconds; _msg += ` · +${BAL.rain_check.seconds}s next round`; }
+  showMessage(_msg, 'var(--gold)');
+  rewardSelected = new Set(); // abandon any in-progress picks
+  closeRewardGrid();
 }
 
 // ── Reward-entity visuals (LETHE) ────────────────────────────────────────────
@@ -1033,6 +1057,7 @@ async function confirmRewardPath() {
   rewardDealing = true;   // block re-render from clobbering the flying tiles
   try { await animateRewardResolve(); } catch (e) { console.error('[REWARD] resolve anim failed', e); }
   rewardDealing = false;
+  const _picks = rewardSelected.size; // captured before closeRewardGrid clears the set (More Better)
   rewardSelected.forEach(key => {
     const [r, c] = key.split('-').map(Number);
     const cell = rewardCells[r][c];
@@ -1041,6 +1066,11 @@ async function confirmRewardPath() {
     try { if (cell.payload && typeof cell.payload.apply === 'function' && !cell.payload._applied) cell.payload.apply(); }
     catch (e) { console.error('[REWARD] payload apply failed', e); }
   });
+  // More Better: every reward grid confirmed with 3+ tiles (all tiles count) permanently grows the trick.
+  if (hasTrick('more_better') && _picks >= BAL.more_better.min_tiles) {
+    bonusMult_morebetter += BAL.more_better.mult;
+    showMessage(`More Better! +${BAL.more_better.mult} mult (now +${bonusMult_morebetter})`, 'var(--gold)');
+  }
   closeRewardGrid();
 }
 

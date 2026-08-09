@@ -231,6 +231,7 @@ function startGame() {
   bonusPips_prolific = 0;
   bonusFocus_acorns  = 0;   // Acorns (per-game Focus accumulator)
   handsPlayedGame    = 0;   // Plan Ahead (per-game hand count)
+  bonusMult_morebetter = 0; // More Better (per-game reward-grid mult accumulator)
   bonusPips_fengshui = 0;   // Feng Shui (per-game permanent scaler)
   _perMinuteFired = {};
   bonusMult_jackpot  = 0;

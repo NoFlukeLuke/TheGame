@@ -1,4 +1,4 @@
-const BUILD = '2026-08-07 · r127 · Sell Tricks & Knacks anywhere (half buy price); Sleights un-sellable';
+const BUILD = '2026-08-09 · r128 · Reward-grid meta (More Better, Rain Check + Skip button) & Temporal Rift';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

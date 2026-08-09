@@ -2777,6 +2777,18 @@
     text-shadow: 0 1px 0 rgba(255,255,255,0.4) !important;
     box-shadow: inset 0 2px 0 rgba(255,255,255,0.7), inset 0 -3px 0 rgba(0,0,0,0.25), 0 4px 0 #b5820f, 0 6px 8px rgba(0,0,0,0.4) !important;
   }
+  /* Reward SKIP — the swap-indicator slot repurposed into a button; slightly larger + bolder than normal */
+  #action-col #swap-indicator.reward-skip {
+    background: linear-gradient(180deg, #9fd6ff, #5aa9e6 55%, #2c7cc0) !important;
+    color: #06213a !important; border: 2px solid #5aa9e6 !important;
+    cursor: pointer; font-size: 11px; font-weight: 700; letter-spacing: 1px;
+    padding: 12px 3px; word-break: normal;
+    text-shadow: 0 1px 0 rgba(255,255,255,0.4);
+    box-shadow: inset 0 2px 0 rgba(255,255,255,0.5), inset 0 -3px 0 rgba(0,0,0,0.25), 0 4px 0 #216ba5, 0 6px 8px rgba(0,0,0,0.4);
+    transition: transform 0.1s;
+  }
+  #action-col #swap-indicator.reward-skip:hover  { transform: translateY(-1px); }
+  #action-col #swap-indicator.reward-skip:active { transform: translateY(2px); box-shadow: inset 0 2px 0 rgba(255,255,255,0.5), 0 1px 0 #216ba5; }
 
   /* ── reward resolve (r110): impact reactions on HUD targets + mystery reveal ── */
   /* good reward lands → target pops + mint glow */

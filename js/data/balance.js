@@ -104,6 +104,10 @@ const BAL = {
   dam_holding:   { pause: 3 },
   acorns:        { focus_per_card: 0.05 },
   plan_ahead:    { every: 3 },
+  more_better:   { mult: 4, min_tiles: 3 },
+  rain_check:    { seconds: 30 },
+  temporal_rift: { pause: 3 },
+  reward_skip:   { gold: 15 },   // baseline gold for skipping a reward grid (placeholder)
   huddle:        { pips_per_adj: 11 },
   combo_score: { mult_per_type: 2 },
   heart_double: { heart_mult: 1 },
