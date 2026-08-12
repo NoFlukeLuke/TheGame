@@ -1,4 +1,4 @@
-const BUILD = '2026-08-12 · r130 · Pause menu reskinned to LETHE arcade theme + Home button (return to main menu)';
+const BUILD = '2026-08-12 · r131 · Pause menu → LETHE arcade reskin + Home button [merged: Match-3 between-rounds shop]';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
