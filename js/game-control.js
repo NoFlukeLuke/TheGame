@@ -29,8 +29,8 @@ function resumeGame() {
   gameInterval = setInterval(() => {
     if (gameTimerPaused) return;
     gameSeconds--;
-    // See startTimers: match-3 owns its own round loop, skip legacy progression.
-    if (!isActMode() && !match3Active()) {
+    // See startTimers: match-3 and dominoes own their round loops, skip legacy progression.
+    if (!isActMode() && !match3Active() && !dominoActive()) {
       const m = Math.floor(gameSeconds/60);
       const s = gameSeconds%60;
       document.getElementById('game-timer').textContent = `${m}:${s.toString().padStart(2,'0')}`;
@@ -140,6 +140,7 @@ function startGame() {
   // Sync playing-grid dimensions from limits and size the cards
   gridRows = limits.grid_rows.current;
   gridCols = limits.grid_cols.current;
+  if (ACTIVE_MODE.id === 'dominoes') { gridRows = 8; gridCols = 8; }
   recomputeGridMetrics();
   // Reset focus meter
   focusNodes = 0;
@@ -229,6 +230,9 @@ function startGame() {
   bonusMult_tens = 0;
   bonusMult_compound = 0;
   bonusPips_prolific = 0;
+  bonusFocus_acorns  = 0;   // Acorns (per-game Focus accumulator)
+  handsPlayedGame    = 0;   // Plan Ahead (per-game hand count)
+  bonusMult_morebetter = 0; // More Better (per-game reward-grid mult accumulator)
   bonusPips_fengshui = 0;   // Feng Shui (per-game permanent scaler)
   _perMinuteFired = {};
   bonusMult_jackpot  = 0;
@@ -236,6 +240,8 @@ function startGame() {
   safetyNetUsed      = false;
   handsPlayedRound   = 0;
   runsPlayedRound    = 0;
+  setsPlayedRound    = 0;
+  runStreak          = 0;
   handTypesRound     = new Set();
   cardsDiscardedTotal = 0;
   freeSwapsLeft    = 2;

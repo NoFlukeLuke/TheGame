@@ -34,6 +34,12 @@ function counts3CardHand(handName, cells) {
   return cells.length === 3 || (hasTrick('threes_crowd') && handName === 'Pair');
 }
 
+// A "Set" hand for the Set add-on tricks (Undue Influence / Encore / Shaky Foundation):
+// any rank-matching hand — Pair, Two Pair, Three/Four of a Kind, Full House.
+function isSetHand(handName) {
+  return ['Pair','Two Pair','Three of a Kind','Four of a Kind','Full House'].includes(handName);
+}
+
 // Four Horse-man's random bonus: deterministic per hand (keyed on handsPlayedRound + first cell)
 // so the preview and the scored result always agree. 0=pips, 1=mult, 2=Focus, 3=pause.
 function fourHorsemanRoll(cells) {
@@ -102,6 +108,8 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   const _slFirstKey = _scoreCells.length ? _scoreCells[0][0] + '-' + _scoreCells[0][1] : '';
   const _slLastKey  = _scoreCells.length ? _scoreCells[_scoreCells.length-1][0] + '-' + _scoreCells[_scoreCells.length-1][1] : '';
   let _slFirstPips = 0, _slLastPips = 0;
+  // Encore: an all-odd-rank Set hand scores a second time (whole-hand replay via +1 retrig per card).
+  const _encoreHand = hasTrick('encore') && isSetHand(handName) && cards.every(c => ['A','3','5','7','9'].includes(c.rank));
   // Per-card replay count (key 'r-c' → times this card scores). Lets the post-loop
   // per-card MULT / coin / time bonuses re-fire on replay too (not just pips).
   const retrigByKey = {};
@@ -174,6 +182,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     _retrig += _re;
     if (_rne) _retrig++; if (_ech) _retrig++; if (_wp) _retrig += BAL.woodpecker.retrigger_count;
     if (_hnm) _retrig++;
+    if (_encoreHand) _retrig++; // Encore: all-odd-rank Set scores a second time
     if (_cKey === _3rdKey) _retrig += BAL.third_charm.extra_replays; // 3rd Time's a Charm: 3rd card gets +2 replays
     retrigByKey[r + '-' + c] = _retrig;
     if (_ledgerCells) {
@@ -209,6 +218,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
       else if (_rne) bPip('closing_time', _pre);
       else if (_ech) bPip('echo_hand', _pre);
       else if (_wp) bPip('woodpecker', _extra);
+      else if (_encoreHand) bPip('encore', _pre);
       else if (_cKey === _3rdKey) bPip('third_charm', _extra);
     }
     totalPips += cp;
@@ -323,6 +333,9 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   const isRun = ['Run of 3','Run of 4','Straight','Straight Flush'].includes(handName);
   if (hasTrick('overgrowth') && isRun) { const _a = BAL.overgrowth.pips_per_card * cells.length; totalPips += _a; bPip('overgrowth', _a); }
   if (hasTrick('long_road') && isRun) { const _a = BAL.long_road.mult_per_card * cells.length; mult += _a; bMult('long_road', _a); }
+  // Wave Amplification: consecutive Runs score +pips × their streak position (runStreak is the streak
+  // ending at the PREVIOUS hand, so this run's position = runStreak + 1). playHand advances runStreak after.
+  if (hasTrick('wave_amp') && isRun) { const _a = BAL.wave_amp.pips_per_streak * (runStreak + 1); totalPips += _a; bPip('wave_amp', _a); }
   if (hasTrick('correct_run') && isRun && canBeOrderedRun(cells)) {
     const _ap = BAL.correct_run.pips_per_card * cells.length; totalPips += _ap; bPip('correct_run', _ap);
     const _am = BAL.correct_run.mult_per_card * cells.length; mult += _am; bMult('correct_run', _am);
@@ -424,6 +437,8 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     if (hasTrick('kindred')) { const _a = _maxCount * BAL.kindred.mult_per_card; mult += _a; bMult('kindred', _a); }
     if (hasTrick('trinity')) { const _a = _maxCount * BAL.trinity.pips_per_card; totalPips += _a; bPip('trinity', _a); }
   }
+  // Shaky Foundation: every other Set scores +mult (this Set is the (setsPlayedRound+1)-th; even → fires).
+  if (hasTrick('shaky_foundation') && isSetHand(handName) && ((setsPlayedRound + 1) % 2 === 0)) { mult += BAL.shaky_foundation.mult; bMult('shaky_foundation', BAL.shaky_foundation.mult); }
   // Even/odd rank
   const _rankIsEven = r => ['2','4','6','8','10'].includes(r);
   const _rankIsOdd  = r => ['A','3','5','7','9'].includes(r);
@@ -440,6 +455,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   if (hasTrick('veteran_bonus')) { const _a = (level - 1) * BAL.veteran_bonus.pips_per_level; totalPips += _a; bPip('veteran_bonus', _a); }
   // Accumulating scalers
   if (hasTrick('compound_mult') && bonusMult_compound > 0) { mult += bonusMult_compound; bMult('compound_mult', bonusMult_compound); }
+  if (hasTrick('more_better') && bonusMult_morebetter > 0) { mult += bonusMult_morebetter; bMult('more_better', bonusMult_morebetter); }
   if (hasTrick('prolific') && bonusPips_prolific > 0) { totalPips += bonusPips_prolific; bPip('prolific', bonusPips_prolific); }
   if (hasTrick('feng_shui') && bonusPips_fengshui > 0) { totalPips += bonusPips_fengshui; bPip('feng_shui', bonusPips_fengshui); }
   if (hasTrick('big_win') && bonusMult_jackpot > 0) { mult += bonusMult_jackpot; bMult('big_win', bonusMult_jackpot); }
@@ -506,6 +522,31 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
       let _mr = null;
       for (let i = trickTray.length - 1; i >= 0; i--) { const _tk = trickTray[i]; if (_tk.id !== 'twos_retrigger' && _tk.id !== 'mirror') { _mr = _tk; break; } }
       if (_mr) { const _pd = _cp[_mr.id] || 0, _md = _cm[_mr.id] || 0; for (let k = 0; k < _t2; k++) { if (_pd) { totalPips += _pd; bPip('twos_retrigger', _pd); } if (_md) { mult += _md; bMult('twos_retrigger', _md); } } }
+    }
+  }
+
+  // Move as One: if 3+ owned Tricks share a keyword (tag), the lowest-rarity Trick carrying a
+  // qualifying keyword scores its effect a second time — reuses the priming contribution model
+  // (re-adds that Trick's pip/mult delta this hand). TBD: like priming, only the SCORING portion of
+  // the doubled Trick re-fires; its non-scoring side effects (Focus/pause/coins) don't.
+  if (hasTrick('move_as_one') && trickTrayMode) {
+    const _pool = trickTray.filter(t => t.id !== 'move_as_one' && t.id !== 'mirror' && Array.isArray(t.tags) && t.tags.length);
+    const _tagCount = {};
+    _pool.forEach(t => t.tags.forEach(tag => { _tagCount[tag] = (_tagCount[tag] || 0) + 1; }));
+    const _qualTags = new Set(Object.keys(_tagCount).filter(tag => _tagCount[tag] >= 3));
+    if (_qualTags.size) {
+      const _RANK = { common:0, rare:1, epic:2, legendary:3, mythic:4 };
+      let _best = null, _bestRank = 99;
+      _pool.forEach(t => {
+        if (!t.tags.some(tag => _qualTags.has(tag))) return;
+        const _r = _RANK[t.tier] ?? 0;
+        if (_r < _bestRank) { _bestRank = _r; _best = t; } // ties keep the earlier (older) Trick
+      });
+      if (_best) {
+        const _pd = _cp[_best.id] || 0, _md = _cm[_best.id] || 0;
+        if (_pd) { totalPips += _pd; bPip('move_as_one', _pd); }
+        if (_md) { mult += _md; bMult('move_as_one', _md); }
+      }
     }
   }
 
