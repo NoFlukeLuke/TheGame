@@ -1,4 +1,4 @@
-const BUILD = '2026-08-09 · r129 · Dominoes mode (beta) in the mode carousel [merged: reward-grid meta, sell system, Temporal Rift]';
+const BUILD = '2026-08-12 · r130 · Pause menu reskinned to LETHE arcade theme + Home button (return to main menu)';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
