@@ -1,7 +1,6 @@
 function doDiscard() {
   // During the on-grid reward step the Discard button is the yellow CLEAR button.
   if (rewardOnGrid) { clearRewardSelection(); return; }
-  if (typeof match3PickActive !== 'undefined' && match3PickActive) return; // pick in progress
   if (roundEnded || animating) return;
   if (falling) { if (selected.length > 0) { pendingAction = 'discard'; dbgEvent('info', 'discard queued (falling)'); } return; }
   if (selected.length === 0) return;

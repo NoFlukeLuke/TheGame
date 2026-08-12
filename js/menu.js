@@ -1,4 +1,4 @@
-const BUILD = '2026-08-04 · r124 · Match-3 level-up: on-grid pick-of-3 (centre tiles) [merged: 4-card-hand family]';
+const BUILD = '2026-08-04 · r125 · Match-3 between-rounds = the normal shop (+ credit stipend)';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

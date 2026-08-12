@@ -679,7 +679,11 @@ document.getElementById('shop-close').addEventListener('click', () => {
   closeSvcPicker();
   shopItems = null;
   gameTimerPaused = false;
-  if (shopFromNodeFlow) {
+  if (match3Active()) {
+    // Match-3 uses the shop AS its between-rounds reward: leaving it deals the
+    // pre-dealt board in with the 3-2-1 and starts the round (settle + cascade).
+    match3AfterShop();
+  } else if (shopFromNodeFlow) {
     shopFromNodeFlow = false;
     drainLevelUpQueue(); // continue to next round (node-based flow)
   } else {
