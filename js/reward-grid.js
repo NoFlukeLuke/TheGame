@@ -818,7 +818,7 @@ function renderRewardGrid() {
       const [sr, sc] = k.split('-').map(Number);
       return rewardCells[sr]?.[sc]?.kind === 'dest';
     });
-    const cap = limits.selection.current;
+    const cap = rewardSelectionCap();
     const picks = `Picks: ${rewardSelected.size}/${cap}`;
     const atCap = rewardSelected.size >= cap;
     subEl.textContent = atCap
@@ -833,12 +833,17 @@ function renderRewardGrid() {
   document.getElementById('reward-clear').disabled   = !hasAny;
 }
 
+// Effective reward-grid pick cap = the Selection Size limit + Greedy Boi's reward-grid-only bonus.
+function rewardSelectionCap() {
+  return limits.selection.current + (hasKnack('greedy_boi') ? BAL.greedy_boi.selection : 0);
+}
+
 // A cell is selectable if: nothing selected yet (any cell), OR orthogonally adjacent to any selected cell and not already selected
 function isRewardCellSelectable(r, c) {
   const key = `${r}-${c}`;
   if (rewardSelected.has(key)) return false; // already selected
-  // Picks are capped by the Selection Size limit — same cap as the play grid
-  if (rewardSelected.size >= limits.selection.current) return false;
+  // Picks are capped by the Selection Size limit (+ Greedy Boi) — same base cap as the play grid
+  if (rewardSelected.size >= rewardSelectionCap()) return false;
   // Destination rule: at most one dest tile per selection
   const ROWS = limits.grid_rows.current;
   const COLS = limits.grid_cols.current;
@@ -1058,9 +1063,11 @@ async function confirmRewardPath() {
   try { await animateRewardResolve(); } catch (e) { console.error('[REWARD] resolve anim failed', e); }
   rewardDealing = false;
   const _picks = rewardSelected.size; // captured before closeRewardGrid clears the set (More Better)
+  let _negThisGrid = 0;               // negative (debuff) tiles taken this grid — risk entities
   rewardSelected.forEach(key => {
     const [r, c] = key.split('-').map(Number);
     const cell = rewardCells[r][c];
+    if (cell.kind === 'debuff') _negThisGrid++;
     // A throwing payload must never strand the reward step — isolate each apply.
     // Entity rewards were already applied on landing (animateRewardResolve).
     try { if (cell.payload && typeof cell.payload.apply === 'function' && !cell.payload._applied) cell.payload.apply(); }
@@ -1070,6 +1077,14 @@ async function confirmRewardPath() {
   if (hasTrick('more_better') && _picks >= BAL.more_better.min_tiles) {
     bonusMult_morebetter += BAL.more_better.mult;
     showMessage(`More Better! +${BAL.more_better.mult} mult (now +${bonusMult_morebetter})`, 'var(--gold)');
+  }
+  // Negative-tile tally (per run) — feeds Wild Side / Wait For Iiiit (read at scoring) + Shady Stimulants (on-take).
+  if (_negThisGrid > 0) {
+    negativeTilesTakenRun += _negThisGrid;
+    if (hasKnack('shady_stimulants')) {
+      focusCapPerm += _negThisGrid;
+      showMessage(`Shady Stimulants — +${_negThisGrid} max Focus`, '#a25cd8');
+    }
   }
   closeRewardGrid();
 }

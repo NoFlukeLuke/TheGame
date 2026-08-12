@@ -1,4 +1,4 @@
-const BUILD = '2026-08-09 · r128 · Reward-grid meta (More Better, Rain Check + Skip button) & Temporal Rift [merged: Match-3 level-up pick-of-3]';
+const BUILD = '2026-08-09 · r129 · Risk/negative-tile entities: Shady Stimulants, Greedy Boi, Wild Side, Wait For Iiiit';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
