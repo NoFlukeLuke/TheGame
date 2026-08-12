@@ -1,4 +1,6 @@
 function render() {
+  // Dominoes mode owns its own board renderer.
+  if (typeof ACTIVE_MODE !== 'undefined' && ACTIVE_MODE.id === 'dominoes') { dominoRenderBoard(); return; }
   // While the reward grid occupies the play #grid, its own renderer owns the DOM.
   // Skip re-rendering mid-animation (deal-in / resolve) so flying tiles aren't clobbered.
   if (rewardOnGrid) { if (!rewardDealing) renderRewardTiles(); return; }

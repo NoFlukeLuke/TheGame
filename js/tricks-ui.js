@@ -114,10 +114,7 @@ function onTrickTap(trick) {
   if (trickCard._trickState !== 'new' && trickCard._trickState !== 'upgradeable') return;
 
   if (pendingTrickChoice && pendingTrickChoice.id === trick.id) {
-    // Match-3: the pick lives on the grid only for the choice — the chosen Trick
-    // goes to the side tray and all three option tiles revert to normal cards.
-    if (match3Active()) match3ConfirmPick(trick);
-    else confirmTrickSelection(trick);
+    confirmTrickSelection(trick);
   } else {
     pendingTrickChoice = trick;
     showTrickTooltip(trick);

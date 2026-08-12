@@ -272,7 +272,6 @@ function match3SettleBoard() {
 async function match3Resolve() {
   if (!match3Active()) return;
   if (match3Resolving) return;
-  if (match3PickActive) return;      // the between-rounds Trick pick owns the board
   if (roundEnded || isPaused) return;
   if (animating || falling) return;
 
@@ -525,145 +524,49 @@ async function match3WinFinale(winCells) {
 }
 
 // ══════════════════════════════════════════════
-// LEVEL-UP (between rounds) — pick-of-three ON THE GRID, into the TRAY
+// LEVEL-UP (between rounds) — run the normal SHOP
 // ══════════════════════════════════════════════
-// Presented like Normal mode's on-grid reward, but only THREE options sit in the
-// board's centre tiles rather than filling it. The player taps one (tap to
-// preview, tap again to confirm — the shared onTrickTap flow); the chosen Trick
-// goes to the side TRAY and all three option tiles revert to normal cards, so
-// nothing stays on the board during play. No Tricks are ever placed for keeps.
-
-let match3PickActive = false; // true while the on-grid Trick pick is open
-let match3PickCells  = [];    // the centre cells currently holding option Tricks
-
-// The n most-central cells: middle row, centred columns (3 → [mid-1, mid, mid+1]).
-function match3CenterCells(n) {
-  const row = Math.floor(gridRows / 2);
-  const midCol = Math.floor(gridCols / 2);
-  const start = Math.max(0, midCol - Math.floor(n / 2));
-  const cells = [];
-  for (let i = 0; i < n && start + i < gridCols; i++) cells.push([row, start + i]);
-  return cells;
-}
+// Match-3 reuses the standard between-rounds shop (owner request). The shop is
+// self-contained: it grants Tricks to the side tray (injectTrickAfterReward),
+// never the grid, and its "leave" button already starts the next round when it
+// isn't part of the node flow — see the shop-close handler's match3Active branch.
+// The one gap is CREDITS: match-3 has no coin economy of its own yet, so we grant
+// a per-level stipend, otherwise the shop would be unaffordable.
+const MATCH3_SHOP_COINS_BASE  = 20;
+const MATCH3_SHOP_COINS_LEVEL = 3;   // + this per level reached
 
 async function showMatch3LevelUpScreen() {
-  animating = true;
   selected = [];
-  sfxLevelUp();
-
   const gridEl = document.getElementById('grid');
   gridEl?.querySelectorAll('[data-card-id],.trick-card,.temp-anim,.trick-target-slot').forEach(el => el.remove());
-  // Deal a fresh full board of plain cards, then clear any incidental matches so
-  // the reward board is quiet while the player reads their options.
+  // Deal the next round's board now (settled), hidden behind the shop overlay.
+  // The 3-2-1 deal that reveals it runs when the shop is left (match3AfterShop).
   for (let r = 0; r < gridRows; r++)
     for (let c = 0; c < gridCols; c++)
       gridData[r][c] = drawCard() || null;
   match3SettleBoard();
-  match3PendingSettle = true; // post-pick, startRoundTimer settles again (the swapped-in cards)
+  match3PendingSettle = true;
+  dealPhase = true;
 
-  // Drop three Trick options onto the centre tiles as tappable on-grid cards.
-  const opts = pickTrickOptions(3);
-  match3PickCells = match3CenterCells(opts.length);
-  opts.forEach((opt, i) => {
-    const [r, c] = match3PickCells[i];
-    const displaced = gridData[r][c];
-    if (displaced && displaced.rank) drawPile.push({ rank: displaced.rank, suit: displaced.suit }); // salvage
-    gridData[r][c] = { rank: null, suit: null, _isTrick: true, _isMatch3Option: true,
-                       _trickState: 'new', _selectable: true, trick: opt, _id: 90000 + level * 10 + i };
-  });
+  // Credits stipend so the shop is actually usable.
+  coins += MATCH3_SHOP_COINS_BASE + (level - 1) * MATCH3_SHOP_COINS_LEVEL;
+  updateCoinsUI();
 
-  match3PickActive = true;
-  trickSelectionPhase = true;
-  pendingTrickChoice = null;
-  gameTimerPaused = true;
-  dealPhase = true;   // hold the real board hidden until the 3-2-1 deal reveals it
-  animating = false;
+  triggerShop(); // pauses the round clock, shows the shop overlay
+}
 
-  // Reveal with the goal flash + 3-2-1 deal (board and options fall in together),
-  // then hand control to the player to make their pick.
+// Called from the shop-close handler in match-3: reveal the pre-dealt board with
+// the goal flash + 3-2-1, then start the round (which settles + kicks the cascade).
+function match3AfterShop() {
+  if (pendingLevelUps > 0) { pendingLevelUps--; setTimeout(() => drainLevelUpQueue(), 400); return; }
   showNextGoalFlash().then(() => show321Countdown()).then(() => {
     dealPhase = false;
+    gameTimerPaused = false;
+    sfxRoundStart();
+    updateClockUI();
     render();
-    match3ShowPickBanner();
-    match3StartPickTimer();
+    startRoundTimer(); // settles the board + kicks the cascade (match3PendingSettle)
   });
-}
-
-// Called from onTrickTap's confirm branch when a match-3 option is chosen.
-function match3ConfirmPick(trick) {
-  if (!match3PickActive) return;
-  match3PickActive = false;
-  trickSelectionPhase = false;
-  pendingTrickChoice = null;
-  clearInterval(levelupTimer);
-  hideTrickTooltip?.();
-  match3HidePickBanner();
-
-  if (trick) {
-    if (trickTray.length < trickCapacity()) {
-      trickTray.push(trick);
-      selectTrick(trick, true); // grant effect + acquiredTricks (fromTrickFlow: no round start here)
-      renderTrickTray();
-      showMessage(`${trick.name} → tray`, 'var(--gold)');
-    } else {
-      showMessage('Trick tray full — skipped', 'var(--cream-dim)');
-    }
-  }
-
-  // Every option tile (chosen + unchosen) reverts to a fresh card, so the board
-  // is all normal cards for play. Remove the trick DOM so render rebuilds them.
-  match3PickCells.forEach(([r, c]) => {
-    const cur = gridData[r]?.[c];
-    if (cur && cur._id != null) {
-      const el = document.querySelector(`#grid [data-card-id="${cur._id}"]`);
-      if (el) el.remove();
-    }
-    gridData[r][c] = drawCard() || null;
-  });
-  match3PickCells = [];
-  render();
-
-  if (pendingLevelUps > 0) { pendingLevelUps--; setTimeout(() => drainLevelUpQueue(), 400); return; }
-  gameTimerPaused = false;
-  sfxRoundStart();
-  updateClockUI();
-  startRoundTimer(); // settles the swapped-in cards + kicks the cascade (match3PendingSettle)
-}
-
-// Auto-pick the first option if the player dawdles (mirrors the overlay timer).
-function match3StartPickTimer() {
-  levelupSeconds = LEVEL_UP_DURATION;
-  match3UpdatePickBanner();
-  clearInterval(levelupTimer);
-  levelupTimer = setInterval(() => {
-    levelupSeconds--;
-    match3UpdatePickBanner();
-    if (levelupSeconds <= 0) {
-      clearInterval(levelupTimer);
-      const first = match3PickCells[0] && gridData[match3PickCells[0][0]]?.[match3PickCells[0][1]];
-      match3ConfirmPick(first?.trick || null);
-    }
-  }, 1000);
-}
-
-// ── "CHOOSE A TRICK" banner over the board ──
-function match3ShowPickBanner() {
-  const gridEl = document.getElementById('grid');
-  if (!gridEl) return;
-  let el = document.getElementById('m3-pick-banner');
-  if (!el) { el = document.createElement('div'); el.id = 'm3-pick-banner'; gridEl.appendChild(el); }
-  match3UpdatePickBanner();
-  el.classList.add('show');
-}
-function match3UpdatePickBanner() {
-  const el = document.getElementById('m3-pick-banner');
-  if (!el) return;
-  el.innerHTML = `<span class="m3-pick-title">CHOOSE A TRICK</span>` +
-                 `<span class="m3-pick-hint">tap one · tap again to confirm` +
-                 `${levelupSeconds > 0 ? ` · ${levelupSeconds}s` : ''}</span>`;
-}
-function match3HidePickBanner() {
-  document.getElementById('m3-pick-banner')?.classList.remove('show');
 }
 
 // ══════════════════════════════════════════════

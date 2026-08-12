@@ -1,4 +1,4 @@
-const BUILD = '2026-08-09 · r129 · Risk/negative-tile entities: Shady Stimulants, Greedy Boi, Wild Side, Wait For Iiiit';
+const BUILD = '2026-08-12 · r132 · Risk/negative-tile entities: Shady Stimulants, Greedy Boi, Wild Side, Wait For Iiiit [merged: pause-menu reskin]';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -101,6 +101,23 @@ const MODES = {
     autoPlayHands: true,
     match3: true,
     zen: true
+  },
+  // Dominoes: two-value tiles that occupy TWO grid cells and fall as one rigid
+  // piece in either orientation (leaving natural gaps). Select 3 adjacent tiles;
+  // every run and set of 3+ across their six half-values scores at once.
+  // See js/data/dominoes.js + js/dominoes-mode.js, and DOMINOES_MODE.md.
+  dominoes: {
+    id: 'dominoes',
+    name: 'Dominoes',
+    desc: 'Two-value tiles fall in either orientation. Select 3 adjacent dominoes; score every run and set of 3+ across their six halves at once.',
+    winCondition: 'endless',
+    enableBosses: false,
+    enableShops: false,
+    enableEvents: false,
+    autoRefillGrid: true,
+    timeIsCurrency: false,
+    autoPlayHands: false,
+    dominoes: true
   }
 };
 
@@ -160,7 +177,7 @@ function startMatch3FromMenu(modeId = 'match3') {
 // MODE SELECT (scroll-sideways carousel off the PLAY button)
 // ══════════════════════════════════════════════
 // The shipping modes, shown left→right in the carousel.
-const MODE_SELECT_LIST = ['normal', 'sixsuits', 'match3', 'zen'];
+const MODE_SELECT_LIST = ['normal', 'sixsuits', 'match3', 'zen', 'dominoes'];
 const MODE_META = {
   normal:   { accent: 'var(--c-yellow)', suits: '♠ ♥ ♦ ♣',
               blurb: 'The original four-suit game. Three Acts of rounds, shops, events and bosses.' },
@@ -170,6 +187,8 @@ const MODE_META = {
               blurb: 'Matches play themselves. Line up 3+ in a row or column and it scores and cascades — you just swap and discard to set them up.' },
   zen:      { accent: '#7fe3c0',         suits: 'NO CLOCK',
               blurb: 'The same auto-playing board with the pressure off: no timer, unlimited swaps and discards. Goals are doubled.' },
+  dominoes: { accent: '#9b57d3',         suits: '⚀ ⚁ ⚂ ⚃ ⚄ ⚅',
+              blurb: 'Beta. Two-value tiles fall sideways or upright and leave gaps. Pick 3 touching tiles — every run and set of 3+ across their six halves scores at once.' },
 };
 
 function openModeSelect() {

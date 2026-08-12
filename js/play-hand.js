@@ -156,6 +156,8 @@ function generateHandFocus(hand, handCells, vultureSec) {
 // PLAY HAND
 // ══════════════════════════════════════════════
 function playHand() {
+  // Dominoes mode has its own play flow.
+  if (typeof ACTIVE_MODE !== 'undefined' && ACTIVE_MODE.id === 'dominoes') { dominoPlay(); return; }
   // During the on-grid reward step the Play button is the green CONFIRM button.
   if (rewardOnGrid) { confirmRewardPath(); return; }
   // Match-3: the board plays its own matches (match3Resolve). Manual play is off.

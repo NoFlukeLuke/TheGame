@@ -31,6 +31,17 @@ function recomputeGridMetrics() {
   const innerH = slot.h - SLOT_SAFETY * 2 - GRID_PAD * 2 - CARD_GAP * (rows - 1);
   let w = Math.floor(innerW / cols);
   let h = Math.floor(innerH / rows);
+  // Dominoes: a cell is only HALF a tile, so the playing-card aspect ratio and the
+  // card-size minimums below don't apply — enforcing them on an 8×8 board pushed
+  // the grid past its slot (tiles drew over the clock bar and off the bottom).
+  // Fit the board to the measured slot instead.
+  if (typeof dominoActive === 'function' && dominoActive()) {
+    CARD_W = Math.max(12, w);
+    CARD_H = Math.max(12, h);
+    CARD_STEP = CARD_H + CARD_GAP;
+    applyGridMetricsToDOM();
+    return;
+  }
   // Constrain to playing-card aspect: take whichever dimension is the tighter fit.
   if (h / w > CARD_ASPECT) h = Math.round(w * CARD_ASPECT); // width-bound
   else                     w = Math.round(h / CARD_ASPECT); // height-bound
