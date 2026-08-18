@@ -1,4 +1,4 @@
-const BUILD = '2026-08-09 · r130 · Dominoes: 7×7 board, 49-tile 1–7 deck (each number its own full set)';
+const BUILD = '2026-08-18 · r134 · Dominoes: 7×7 board, 49-tile 1–7 deck [merged: mobile fullscreen/PWA]';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

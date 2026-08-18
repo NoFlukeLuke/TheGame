@@ -62,6 +62,7 @@ let bonusPips_prolific  = 0;   // Prolific Trick: +1 pip per hand played
 let bonusFocus_acorns   = 0;   // Acorns Trick: +0.05 Focus per scored card (per game); grants floor each hand
 let handsPlayedGame     = 0;   // cumulative hands played this game (Plan Ahead average); reset on new game
 let bonusMult_morebetter = 0;  // More Better Trick: +4 mult per reward grid where 3+ tiles were selected (per game)
+let negativeTilesTakenRun = 0; // count of negative (debuff) reward tiles taken this run — Wild Side / Wait For Iiiit / Shady Stimulants
 // New position-trick state
 let bonusPips_fengshui  = 0;   // Feng Shui: permanent pips, grows when another position trick fires (per game)
 let focusGenGame  = 0;   // total Focus generated this game (Wellspring); reset on new game

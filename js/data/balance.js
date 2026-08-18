@@ -108,6 +108,9 @@ const BAL = {
   rain_check:    { seconds: 30 },
   temporal_rift: { pause: 3 },
   reward_skip:   { gold: 15 },   // baseline gold for skipping a reward grid (placeholder)
+  wild_side:     { mult_per: 3 },       // +mult per negative reward tile taken this run
+  wait_for_it:   { chance_per: 0.02 },  // +replay chance per negative reward tile taken this run
+  greedy_boi:    { selection: 2 },      // +reward-grid selection size (knack)
   huddle:        { pips_per_adj: 11 },
   combo_score: { mult_per_type: 2 },
   heart_double: { heart_mult: 1 },

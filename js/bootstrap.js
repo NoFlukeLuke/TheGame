@@ -42,6 +42,52 @@ initDevMode();
   requestAnimationFrame(update);
 })();
 
+// ── Fullscreen support ──────────────────────────────────────────────
+// Two paths to a bar-free view on mobile:
+//   1) Fullscreen API — works in-browser on Android Chrome (and desktop).
+//   2) "Add to Home Screen" (PWA) — the only bar-free option on iOS Safari.
+// Both just show the live page; nothing is downloaded per-version.
+function fsElement() {
+  return document.fullscreenElement || document.webkitFullscreenElement || null;
+}
+function fsSupported() {
+  const el = document.documentElement;
+  return !!(el.requestFullscreen || el.webkitRequestFullscreen);
+}
+function isStandalone() {
+  // Already launched from a home-screen icon → no bar to hide.
+  return (window.matchMedia && window.matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches)
+    || window.navigator.standalone === true;
+}
+function toggleFullscreen() {
+  const el = document.documentElement;
+  try {
+    if (fsElement()) {
+      (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+    } else {
+      (el.requestFullscreen || el.webkitRequestFullscreen).call(el);
+    }
+  } catch (e) { /* older engines may reject; the iOS hint covers those */ }
+}
+function updateFullscreenBtn() {
+  const btn = document.getElementById('menu-fullscreen-btn');
+  if (btn) btn.textContent = fsElement() ? '⛶ EXIT FULLSCREEN' : '⛶ FULLSCREEN';
+}
+document.addEventListener('fullscreenchange', updateFullscreenBtn);
+document.addEventListener('webkitfullscreenchange', updateFullscreenBtn);
+
+(function initFullscreenControls() {
+  const btn = document.getElementById('menu-fullscreen-btn');
+  const hint = document.getElementById('ios-fullscreen-hint');
+  if (isStandalone()) return; // launched fullscreen already — show neither control
+  if (fsSupported()) {
+    if (btn) { btn.style.display = 'block'; updateFullscreenBtn(); }
+  } else if (hint) {
+    // iOS Safari: no Fullscreen API — guide the player to Add to Home Screen.
+    hint.style.display = 'block';
+  }
+})();
+
 // Stamp build string into both visible locations
 (function() {
   const els = ['build-stamp', 'menu-build-stamp'];

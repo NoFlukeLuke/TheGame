@@ -58,6 +58,17 @@ document.getElementById('btn-pause').addEventListener('click', () => {
 
 document.getElementById('btn-resume').addEventListener('click', resumeGame);
 
+// Pause-menu "Home" button — abandon the current run and return to the main menu.
+// A full page reload is the cleanest teardown: the game keeps a lot of live state
+// (round/game/boss timers, decks, overlays, match-3/dominoes state) and there is no
+// single reset function that unwinds all of it, whereas the page boots straight to
+// the home menu on load (index.html #main-menu-overlay starts shown; bootstrap.js
+// calls initMainMenu()). Guarded by a confirm so a stray tap can't lose a run.
+function quitToMainMenu() {
+  if (!confirm('Return to the home screen? Your current run will be lost.')) return;
+  location.reload();
+}
+
 document.getElementById('btn-stats').addEventListener('click', () => {
   pauseGame(false); // pause timers but don't hide grid
   showStats();
@@ -233,6 +244,7 @@ function startGame() {
   bonusFocus_acorns  = 0;   // Acorns (per-game Focus accumulator)
   handsPlayedGame    = 0;   // Plan Ahead (per-game hand count)
   bonusMult_morebetter = 0; // More Better (per-game reward-grid mult accumulator)
+  negativeTilesTakenRun = 0; // Wild Side / Wait For Iiiit / Shady Stimulants (per-run negative-tile tally)
   bonusPips_fengshui = 0;   // Feng Shui (per-game permanent scaler)
   _perMinuteFired = {};
   bonusMult_jackpot  = 0;
