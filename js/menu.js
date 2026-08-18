@@ -1,4 +1,4 @@
-const BUILD = '2026-08-12 · r132 · Risk/negative-tile entities: Shady Stimulants, Greedy Boi, Wild Side, Wait For Iiiit [merged: pause-menu reskin]';
+const BUILD = '2026-08-18 · r133 · Mobile fullscreen: Fullscreen button (Android) + Add-to-Home-Screen PWA (iOS)';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

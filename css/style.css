@@ -47,6 +47,11 @@
     align-items: center;
     justify-content: center;
     padding: 14px;
+    /* Respect notch / rounded-corner safe areas when running fullscreen or added to home screen */
+    padding-top: max(14px, env(safe-area-inset-top));
+    padding-bottom: max(14px, env(safe-area-inset-bottom));
+    padding-left: max(14px, env(safe-area-inset-left));
+    padding-right: max(14px, env(safe-area-inset-right));
     overflow: hidden;
     touch-action: manipulation;
     -webkit-text-size-adjust: 100%;
@@ -3143,6 +3148,21 @@
     transition: background 0.12s ease, color 0.12s ease;
   }
   #menu-settings-btn:hover { background: linear-gradient(180deg, #235055, #12292c); color: #fff; }
+  #menu-fullscreen-btn {
+    margin-top: 8px; width: 100%; max-width: 300px;
+    font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 3px;
+    color: var(--c-cyan); text-transform: uppercase; cursor: pointer; padding: 11px;
+    background: linear-gradient(180deg, #1d3a3e, rgba(16,36,39,0)); border: 1px solid var(--c-cyan); border-radius: 9px;
+    transition: background 0.12s ease, color 0.12s ease;
+  }
+  #menu-fullscreen-btn:hover { background: linear-gradient(180deg, #235055, #12292c); color: #fff; }
+  #ios-fullscreen-hint {
+    margin-top: 10px; width: 100%; max-width: 300px;
+    font-family: 'Crimson Pro', serif; font-size: 12.5px; line-height: 1.5;
+    color: var(--cream-dim, #8a7d60); text-align: center;
+    background: rgba(0,0,0,0.25); border: 1px solid rgba(120,200,210,0.3); border-radius: 9px; padding: 10px 12px;
+  }
+  #ios-fullscreen-hint strong { color: var(--c-cyan); }
   #menu-match3-btn {
     margin-top: 8px; width: 100%; max-width: 300px;
     font-family: 'Orbitron', sans-serif; font-weight: 800; font-size: 14px; letter-spacing: 3px;
