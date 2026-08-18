@@ -1,4 +1,4 @@
-const BUILD = '2026-08-09 · r130 · Match-3 between-rounds = the normal shop (+ credit stipend) [merged: Dominoes]';
+const BUILD = '2026-08-18 · r131 · CLAUDE.md compressed (~40% smaller); Dominoes + match-3 sections current';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
