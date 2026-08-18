@@ -88,3 +88,67 @@ Shop feature ideas the owner has greenlit but that aren't built yet:
 - **Events rendered inside the grid bounds** (each event currently draws in
   `#event-overlay` — a per-event rework).
 - Full **boss-red / challenge-purple** background wiring beyond the current scaffold.
+
+---
+
+## ⭐ LETHE Mart — chosen layout + build requirements (v3)
+
+Chosen direction: **LETHE Mart** (`shop-preview-5-lethemart-v3.html` is the current
+target). Layout = a real "section" (enter via a quick **channel-change** CRT flicker):
+left **loadout** column · center **catalog** · right **checkout**.
+
+**Consistency (confirmed):** the real build reuses the actual game CSS, so the shop,
+regular play screen, and reward grid must all read as the same UI. The standalone
+preview only approximates it. Keep all three visually consistent.
+
+**Left loadout column — mirror the in-game left column:**
+- Show the player's **owned** Knacks (diamonds) + Tricks (tray) so they never tab away.
+- Owned **Sleights** live in the **hand-preview slot** (`#selected-cards` position).
+- **Remove the score elements** (PIPS/MULT chips) here.
+- Put the **settings chips** (Stats / Deck / Time / Pause) at the **bottom-left**.
+- Match the game's panel framing exactly (Knacks = yellow top-border, Tricks = coral
+  top-border, `--panel #14100b` / `--border #46381f`, `.panel-title` labels).
+
+**Catalog (center):**
+- **3 of 4** categories appear each visit (Tricks / Sleights / Knacks / Limits), with
+  **Tricks featured** (slightly more prominent, up top).
+- All purchasable items **left-aligned**, each section labeled with its **`used / N slots`**
+  so growth room is visible.
+- **Horizontal side-scroll** per section when items overflow the width (capacity can grow).
+- **Spotlight** section ~**50% taller**, and must be able to hold **any entity type**
+  (trick / sleight / knack) as the discounted feature.
+- **Limit Upgrades** section and the **Tools** section below it (renamed from the
+  "bonus row") both ~**60% taller**.
+- **Limit tiles:** always show a **hover tooltip that includes the current limit value**
+  (e.g. "Grid Rows · now 4 → 5 · max 7").
+
+**Specials (two reserved slots):**
+- **Spotlight / discount** (a single featured entity, e.g. 50% off).
+- **Spin-the-wheel** — fixed price to spin; can land on any entity (probably not blessed
+  cards); a **1-in-10 jackpot** outcome (TBD — owner to confirm what the jackpot is).
+
+**Cart / buying:**
+- **Drag items to the cart** (also click-to-add). Buy all at once.
+- Discount **+5% per item**; a **knack** raises it to **+10% per item**; **cap = per-item%
+  × Selection-Size limit**.
+- **Freeze / lock** to keep items across rerolls — leaning **drag-to-a-freezer icon**
+  (corner-pin per item is the alternative; owner will decide after seeing it live).
+- **SFX:** dragging/adding a **Limit** to the cart plays a **satisfying glass-smash**.
+
+**Stock logic (build correctness):**
+- **Rarity must be percentage-chance per tier** (common/rare/epic/… roll odds), **not**
+  uniform-by-pool-count. Sleights already do this (`pickSleightByRarity`); **apply the
+  same weighted roll to Tricks and Knacks** (they currently `shuffle` the pool uniformly).
+- **Allow duplicates** to appear for Tricks, Sleights, and Knacks (don't filter owned).
+  Duplicates feed the **improve-on-duplicate** mechanic below.
+- The **Tools** row offers context bonuses based on which categories showed
+  (e.g. sleights → Recharge 1×3 / 3×1; tricks → Trick Tinker / rarity-upgrade sacrifice;
+  knacks → trade a knack). More options per category still to be designed.
+
+**New event (backlog):** a **shop-capacity event** — extend the shop by **+1 slot for
+2 sections**, player chooses which two.
+
+**Entity-improvement mechanic + sheet:**
+- Buying a **duplicate** of a Trick improves its bonus (bigger bonus / looser use-case /
+  other). Owner-editable sheet generated at **`ENTITY_IMPROVEMENTS.md`** (+ `.csv`) listing
+  all 153 tricks, 36 knacks, 33 sleights with a blank **Improve Lv2 / Lv3** column to fill.
