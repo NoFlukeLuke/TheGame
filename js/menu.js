@@ -1,4 +1,4 @@
-const BUILD = '2026-08-09 · r129 · Dominoes mode (beta) in the mode carousel [merged: reward-grid meta, sell system, Temporal Rift]';
+const BUILD = '2026-08-09 · r130 · Dominoes: 7×7 board, 49-tile 1–7 deck (each number its own full set)';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -187,7 +187,7 @@ const MODE_META = {
               blurb: 'Matches play themselves. Line up 3+ in a row or column and it scores and cascades — you just swap and discard to set them up.' },
   zen:      { accent: '#7fe3c0',         suits: 'NO CLOCK',
               blurb: 'The same auto-playing board with the pressure off: no timer, unlimited swaps and discards. Goals are doubled.' },
-  dominoes: { accent: '#9b57d3',         suits: '⚀ ⚁ ⚂ ⚃ ⚄ ⚅',
+  dominoes: { accent: '#9b57d3',         suits: 'VALUES 1–7',
               blurb: 'Beta. Two-value tiles fall sideways or upright and leave gaps. Pick 3 touching tiles — every run and set of 3+ across their six halves scores at once.' },
 };
 

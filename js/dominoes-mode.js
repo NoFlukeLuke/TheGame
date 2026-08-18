@@ -20,8 +20,8 @@ let _dpieceId      = 0;
 let _domLastTapId  = null;
 let _domLastTapTime = 0;
 
-const DOMINO_ROWS = 8;
-const DOMINO_COLS = 8;
+const DOMINO_ROWS = 7;
+const DOMINO_COLS = 7;
 
 // True while the Dominoes mode is the active game. Used to gate the shared
 // engine's legacy timer progression (shops/bosses off the 20-minute game clock),
@@ -125,7 +125,9 @@ function dominoInitBoard() {
 // ── Rendering ──
 // Classic domino pip patterns on a 3×3 grid (index 0=TL … 8=BR).
 const DOMINO_PIP_PATTERN = {
-  0: [], 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8],
+  1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8],
+  6: [0, 2, 3, 5, 6, 8],
+  7: [0, 2, 3, 4, 5, 6, 8],   // the 6 pattern plus a centre pip
 };
 function dominoPipHTML(value) {
   const on = new Set(DOMINO_PIP_PATTERN[value] || []);

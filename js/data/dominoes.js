@@ -4,17 +4,19 @@
 // A separate game mode. Nothing here runs unless ACTIVE_MODE.id === 'dominoes'.
 // See DOMINOES_MODE.md for the full design spec.
 
-// Values 0–6 (blanks included). Two pip-clusters per tile, one per half.
-const DOMINO_VALUES = [0, 1, 2, 3, 4, 5, 6];
+// Values 1–7. No blanks — every half carries a real number.
+const DOMINO_VALUES = [1, 2, 3, 4, 5, 6, 7];
 
-// Per-value pip color (owner spec): 0 white, 1 red, 2 orange, 3 yellow,
-// 4 green, 5 blue, 6 purple.
+// Per-value pip color, continuing the owner's rainbow now that the range is 1–7:
+// 1 red, 2 orange, 3 yellow, 4 green, 5 blue, 6 purple, 7 magenta.
+// (White was the old blank's colour; it's dropped with the blanks — white pips on
+//  the cream tile face would barely read anyway. 7 extends purple into magenta.)
 const DOMINO_PIP_COLORS = {
-  0: '#f4f4f4', 1: '#e2382f', 2: '#e88a2a', 3: '#ecc72c',
-  4: '#4cbf5a', 5: '#3b82e6', 6: '#9b57d3',
+  1: '#e2382f', 2: '#e88a2a', 3: '#ecc72c', 4: '#4cbf5a',
+  5: '#3b82e6', 6: '#9b57d3', 7: '#e2439b',
 };
 
-// Optional suit plumbing: values 2–5 map to the four suits; 0/1/6 are suitless.
+// Optional suit plumbing: values 2–5 map to the four suits; 1/6/7 are suitless.
 // Suit-based tricks do NOT apply in this mode — this only feeds shared code that
 // expects a `suit` field to exist.
 const DOMINO_VALUE_SUIT = { 2: '♠', 3: '♥', 4: '♦', 5: '♣' };
@@ -42,11 +44,17 @@ function dominoHandBase(type, size) {
   return { pips, mult };
 }
 
-// The 56-tile deck: 28 unique unordered pairs (0–6, incl. doubles & blanks) × 2 copies.
+// The 49-tile deck (owner spec): every number 1–7 gets its OWN full set of
+// partners 1–7 — the 1s are 1-1…1-7, the 2s are 2-1…2-7, … the 7s are 7-1…7-7.
+//
+// Read as unordered tiles that means the seven doubles (1-1, 2-2, … 7-7) exist
+// once each, while every mixed pair shows up twice (1-2 from the 1s, 2-1 from the
+// 2s). So there ARE duplicates, but it is NOT a second copy of the whole set —
+// which is exactly the distinction the owner asked for.
 function buildDominoDeck() {
   const d = [];
-  for (let a = 0; a <= 6; a++)
-    for (let b = a; b <= 6; b++) { d.push([a, b]); d.push([a, b]); }
+  for (let a = 1; a <= 7; a++)
+    for (let b = 1; b <= 7; b++) d.push([a, b]);
   return shuffle(d); // shuffle() lives in deck-grid.js (shared)
 }
 
