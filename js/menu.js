@@ -1,4 +1,4 @@
-const BUILD = '2026-08-18 · r134 · Dominoes: 7×7 board, 49-tile 1–7 deck [merged: mobile fullscreen/PWA]';
+const BUILD = '2026-08-18 · r135 · Auto-fullscreen on PLAY (Android/desktop), remembers if you opt out';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

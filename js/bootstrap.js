@@ -59,15 +59,31 @@ function isStandalone() {
   return (window.matchMedia && window.matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches)
     || window.navigator.standalone === true;
 }
-function toggleFullscreen() {
+// Auto-fullscreen preference: ON by default; flipped off if the player
+// deliberately exits via our button, so PLAY stops forcing it after that.
+function autoFullscreenPref() { return localStorage.getItem('autoFullscreen') !== 'false'; }
+function setAutoFullscreenPref(on) { try { localStorage.setItem('autoFullscreen', on ? 'true' : 'false'); } catch (e) {} }
+function requestFs() {
   const el = document.documentElement;
+  try { (el.requestFullscreen || el.webkitRequestFullscreen).call(el); } catch (e) {}
+}
+function toggleFullscreen() {
   try {
     if (fsElement()) {
       (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+      setAutoFullscreenPref(false); // player chose windowed — remember it
     } else {
-      (el.requestFullscreen || el.webkitRequestFullscreen).call(el);
+      requestFs();
+      setAutoFullscreenPref(true);
     }
   } catch (e) { /* older engines may reject; the iOS hint covers those */ }
+}
+// Fullscreen must be requested inside a user gesture — this rides the PLAY tap,
+// so on Android/desktop the game goes fullscreen when a run starts, no extra tap.
+// (Browsers forbid entering fullscreen automatically on page load.)
+function maybeAutoFullscreen() {
+  if (isStandalone() || !fsSupported() || fsElement() || !autoFullscreenPref()) return;
+  requestFs();
 }
 function updateFullscreenBtn() {
   const btn = document.getElementById('menu-fullscreen-btn');
