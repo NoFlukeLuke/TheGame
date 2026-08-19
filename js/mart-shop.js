@@ -142,6 +142,9 @@ function renderMart() {
   renderMartMain();
   renderMartCheckout();
   bindMartItems();
+  // Names must never clip on a tile — hyphenate/shrink to fit (js/fit-text.js).
+  fitEntityNames(document.getElementById('mart-main'), '.trick .nm, .sleight .nm, .knack .nm', { maxLines: 2 });
+  fitEntityNames(document.getElementById('mart-main'), '.limit .lname', { maxLines: 2 });
 }
 
 function renderMartLoadout() {
@@ -202,7 +205,7 @@ function renderMartCheckout() {
     const [cat,i] = key.split('-'); const p = martStock[cat][+i];
     return `<div class="m-rline" data-key="${key}"><span>${p.emoji||p.icon||'•'} ${p.label}</span><span>💰${p.price} <span class="x">✕</span></span></div>`;
   }).join('') || '';
-  const drop = `<div class="m-drop">click items to add<br>(drag-to-cart is WIP)</div>`;
+  const drop = `<div class="m-drop" id="mart-drop">click an item to add it<br><small>or drag one here</small></div>`;
   const base = martCart.reduce((s,key)=>{ const [cat,i]=key.split('-'); return s + martStock[cat][+i].price; }, 0);
   const pct = martDiscountPct(martCart.length);
   const total = Math.round(base * (1 - pct/100));
@@ -232,18 +235,90 @@ function bindMartItems() {
     spin.onclick = openWheel;
     spin.classList.toggle('cant', coins < BAL.wheel.cost);
   }
+  // EVERY tile gets a tooltip now. Previously only Limits did, which meant three
+  // of the four catalog categories — nearly everything you browse — had none.
   main.querySelectorAll('.m-item').forEach(it => {
     const key = it.dataset.key;
-    it.onclick = () => martToggleCart(key);
-    // limit tooltip (always shows current limit)
+    it.onclick = (e) => { if (it._martDragged) { it._martDragged = false; return; } martToggleCart(key); };
     const [cat,i] = key.split('-'); const p = martStock[cat][+i];
-    if (p.type === 'limit') {
-      const tt = document.getElementById('mart-ltip');
-      it.onmouseenter = (e) => { tt.innerHTML = `<div class="n">▲ ${p.label}</div><div class="d">now ${p.cur} → ${p.next}</div><div class="s">${p.desc} · max ${p.max}</div>`; placeMartTip(e, tt); tt.classList.add('show'); };
-      it.onmousemove  = (e) => placeMartTip(e, tt);
-      it.onmouseleave = () => tt.classList.remove('show');
-    }
+    if (!p) return;
+    attachEntityTooltip(it, () => martTooltipPayload(p));
+    attachMartDrag(it, key);
   });
+}
+
+// ── drag an item to the checkout ─────────────────────────────────────────────
+// Click still adds (martToggleCart on click); dragging is the second route the
+// shop notes asked for. A drag only starts after the pointer has moved past a
+// small threshold, so an ordinary click is never swallowed. The dragged tile is
+// a body-level clone — the catalog re-renders and would otherwise yank it away.
+const MART_DRAG_SLOP = 6;
+function attachMartDrag(tile, key) {
+  tile.addEventListener('pointerdown', e => {
+    if (e.button !== 0 || martCheckingOut) return;
+    const st = { x: e.clientX, y: e.clientY, id: e.pointerId, ghost: null, moved: false, ox: 0, oy: 0 };
+
+    // Listen on the DOCUMENT, not the tile: once the drag leaves the tile the
+    // tile stops receiving pointermove, so tile-level listeners never see the
+    // rest of the gesture.
+    const onMove = ev => {
+      if (ev.pointerId !== st.id) return;
+      const dx = ev.clientX - st.x, dy = ev.clientY - st.y;
+      if (!st.moved && Math.hypot(dx, dy) < MART_DRAG_SLOP) return;
+      if (!st.moved) {
+        st.moved = true;
+        const r = tile.getBoundingClientRect();
+        const g = tile.cloneNode(true);
+        g.classList.add('m-dragging');
+        g.style.cssText += `position:fixed;left:${r.left}px;top:${r.top}px;width:${r.width}px;height:${r.height}px;
+          margin:0;z-index:420;pointer-events:none;--fx:0px;--fy:0px;--fr:0deg;--fs:1;`;
+        document.body.appendChild(g);
+        st.ghost = g; st.ox = r.left; st.oy = r.top;
+        tile.classList.add('m-drag-src');
+        hideEntityTooltip();
+        document.getElementById('mart-checkout')?.classList.add('m-drop-armed');
+      }
+      st.ghost.style.left = (st.ox + dx) + 'px';
+      st.ghost.style.top  = (st.oy + dy) + 'px';
+      document.getElementById('mart-checkout')?.classList
+        .toggle('m-drop-hot', martOverCheckout(ev.clientX, ev.clientY));
+    };
+    const onUp = ev => {
+      if (ev.pointerId !== st.id) return;
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onUp);
+      document.removeEventListener('pointercancel', onUp);
+      tile.classList.remove('m-drag-src');
+      document.getElementById('mart-checkout')?.classList.remove('m-drop-armed', 'm-drop-hot');
+      if (st.ghost) st.ghost.remove();
+      if (!st.moved) return;                  // a plain click — the onclick handles it
+      tile._martDragged = true;               // suppress the click this drag emits
+      if (martOverCheckout(ev.clientX, ev.clientY)) {
+        if (!martCart.includes(key)) martToggleCart(key);
+        else showMessage('Already in the cart', 'var(--cream-dim)');
+      }
+    };
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup', onUp);
+    document.addEventListener('pointercancel', onUp);
+  });
+}
+function martOverCheckout(x, y) {
+  const co = document.getElementById('mart-checkout');
+  if (!co) return false;
+  const r = co.getBoundingClientRect();
+  return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+}
+
+// Shape a catalog payload for the shared tooltip. Limits keep their "now → next"
+// readout as a meta chip, since that's the number that matters when buying one.
+function martTooltipPayload(p) {
+  const meta = [];
+  if (p.type === 'limit') { meta.push(`now ${p.cur} → ${p.next}`, `max ${p.max}`); }
+  return {
+    label: p.label, desc: p.desc, rarity: p.rarity, type: p.type,
+    price: p.price, uses: p.type === 'sleight' ? p.uses : null, meta,
+  };
 }
 function placeMartTip(e, tt) {
   const pad=14, w=tt.offsetWidth, h=tt.offsetHeight;
@@ -336,6 +411,10 @@ async function martCheckout() {
   martCart = [];
   martCheckingOut = false;
   renderMart();
+  // Checking out is the end of the visit — once the last item has landed in the
+  // loadout, leave the shop rather than making the player press Leave as well.
+  await new Promise(r => setTimeout(r, 260));
+  closeMart();
 }
 function martReroll() {
   const maxR = limits.reroll ? limits.reroll.current : 3;

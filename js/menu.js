@@ -1,4 +1,4 @@
-const BUILD = '2026-08-19 · r142 · Spin the Wheel (20g) + checkout fly-to-loadout';
+const BUILD = '2026-08-19 · r143 · Tooltips everywhere + keyword defs · drag-to-cart · wheel confirm';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

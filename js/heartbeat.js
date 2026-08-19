@@ -1,10 +1,10 @@
 // ══════════════════════════════════════════════════════════════════════════
 // GRID HEARTBEAT — a wave that pulses across the play grid every few seconds.
 //
-// Every HB_CFG.period seconds the board gives a double thump (lub-dub): two
-// quick beats close together, the second softer. The beat does not hit the whole
-// grid at once — it STARTS at the left edge, at the middle row(s), and radiates
-// outward, so a visible wavefront travels across the board.
+// Every HB_CFG.period seconds the board gives one soft swell. It does not hit the
+// whole grid at once — it STARTS at the left edge, at the middle row(s), and
+// radiates outward, so a visible wavefront travels across the board.
+// (A second, softer beat is available via HB_CFG.beat2, off by default.)
 //
 //   delay(r,c) = c * colStagger + rowDist(r) * rowStagger
 //
@@ -20,26 +20,30 @@
 // !important) and the .card.score-pop-* keyframes likewise still win.
 // ══════════════════════════════════════════════════════════════════════════
 
+// Toned down in r143 — the first pass read as too busy under the cards. Movement
+// is roughly halved and the second beat is off, so the board gives ONE soft swell
+// per period instead of a lub-dub. beat2 is still a live knob: raise it above 0 in
+// the dev panel to bring the double beat back.
 const HB_DEFAULTS = {
-  dx: 1.5,        // px, pushed away from the origin (rightward)
-  dy: 5,          // px of lift
-  rot: 0.25,      // degrees
-  scale: 3,       // % scale pulse
-  period: 5,      // seconds between heartbeats
-  beat: 260,      // ms — length of one beat's envelope
-  gap: 190,       // ms — lub → dub spacing
-  beat2: 0.72,    // second beat's share of the amplitude
+  dx: 0.8,        // px, pushed away from the origin (rightward)
+  dy: 2.5,        // px of lift
+  rot: 0.12,      // degrees
+  scale: 1.5,     // % scale pulse
+  period: 5,      // seconds between waves
+  beat: 300,      // ms — length of the beat's envelope (slightly longer = softer)
+  gap: 190,       // ms — spacing to the second beat, when one is enabled
+  beat2: 0,       // second beat's share of the amplitude (0 = single wave)
   colStagger: 110, // ms per column away from the left edge
   rowStagger: 55,  // ms per row away from the middle
 };
 let HB_CFG = { ...HB_DEFAULTS };
 try {
-  const saved = JSON.parse(localStorage.getItem('hbCfg') || 'null');
+  const saved = JSON.parse(localStorage.getItem('hbCfg2') || 'null');
   if (saved && typeof saved === 'object') HB_CFG = { ...HB_DEFAULTS, ...saved };
 } catch (e) {}
 
 let hbEnabled = localStorage.getItem('hbEnabled') !== 'false';
-function saveHbCfg()  { try { localStorage.setItem('hbCfg', JSON.stringify(HB_CFG)); } catch (e) {} }
+function saveHbCfg()  { try { localStorage.setItem('hbCfg2', JSON.stringify(HB_CFG)); } catch (e) {} }
 function setHbParam(k, v) { if (k in HB_CFG) { HB_CFG[k] = +v; saveHbCfg(); } }
 function resetHbCfg()  { HB_CFG = { ...HB_DEFAULTS }; saveHbCfg(); }
 function setHbEnabled(on) {
@@ -61,11 +65,12 @@ function hbEnvelope(msSinceStart) {
   return Math.sin(Math.PI * (msSinceStart / HB_CFG.beat));
 }
 
-// Combined lub-dub for one card, given how far into the cycle it is.
+// The wave for one card, given how far into the cycle it is. With beat2 at 0 this
+// is a single swell; raise beat2 and a softer second beat follows HB_CFG.gap later.
 function hbAmplitude(tInCycle, delay) {
   const a = hbEnvelope(tInCycle - delay);
-  const b = hbEnvelope(tInCycle - delay - HB_CFG.gap) * HB_CFG.beat2;
-  return Math.max(a, b);
+  if (!HB_CFG.beat2) return a;
+  return Math.max(a, hbEnvelope(tInCycle - delay - HB_CFG.gap) * HB_CFG.beat2);
 }
 
 let _hbRAF = null;

@@ -398,15 +398,9 @@ function showTrickTrayTooltip(trick, anchorEl) {
   tip.addEventListener('mouseenter', cancelTrickHoverHide);
   tip.addEventListener('mouseleave', scheduleTrickHoverHide);
   void tip.offsetWidth;
-  const ar = anchorEl.getBoundingClientRect();
-  const tipW = tip.offsetWidth || 180;
-  const tipH = tip.offsetHeight || 80;
-  let left = ar.left + ar.width / 2 - tipW / 2;
-  let top  = ar.top - tipH - 8;
-  left = Math.max(4, Math.min(window.innerWidth - tipW - 4, left));
-  if (top < 4) top = ar.bottom + 8;
-  tip.style.left = left + 'px';
-  tip.style.top  = top + 'px';
+  // Opens into whichever side of the chip has the most room (was hardcoded to
+  // above, which put it off-screen for tray tiles near the top).
+  placeTipSmart(anchorEl, tip);
   tip.style.opacity = '1';
 }
 

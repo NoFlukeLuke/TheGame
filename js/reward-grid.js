@@ -764,20 +764,9 @@ function buildRewardTileInner(p) {
 // too-long single word hyphenates (CSS). Here we shrink the font only if the
 // wrapped/hyphenated name is still too tall (more than MAX_LINES) or too wide
 // for the tile (e.g. one unbreakable token).
-function fitRewardName(el) {
-  if (!el) return;
-  const MAX_LINES = 3;
-  el.style.fontSize = '';
-  let fs = parseFloat(getComputedStyle(el).fontSize) || 10;
-  let guard = 0;
-  const tooTall = () => {
-    const lh = parseFloat(getComputedStyle(el).lineHeight) || fs * 1.14;
-    return el.scrollHeight > lh * MAX_LINES + 1;
-  };
-  while ((tooTall() || el.scrollWidth > el.clientWidth + 1) && fs > 6 && guard < 40) {
-    fs -= 0.5; el.style.fontSize = fs + 'px'; guard++;
-  }
-}
+// Shared fitter (js/fit-text.js): soft-hyphenates long words at syllable breaks
+// first, then shrinks — so a long name breaks cleanly instead of going tiny.
+function fitRewardName(el) { fitEntityName(el, { maxLines: 3, minPx: 6 }); }
 
 let _rewardTT = null;
 function ensureRewardTooltip() {
@@ -795,20 +784,9 @@ function attachRewardTooltip(el, p, kind) {
   // Anchor the tooltip to the TILE (not the cursor) and open it on whichever side
   // has more horizontal room — so entities in the right-most columns pop out to the
   // LEFT instead of getting squeezed / wrapping tall against the edge.
-  const place = () => {
-    const tt = _rewardTT; if (!tt) return;
-    const r = el.getBoundingClientRect();
-    const w = tt.offsetWidth, h = tt.offsetHeight, gap = 12;
-    const roomRight = window.innerWidth - r.right;
-    const roomLeft  = r.left;
-    // Prefer right if it fits; else whichever side is roomier.
-    let x = (roomRight >= w + gap || roomRight >= roomLeft) ? r.right + gap : r.left - w - gap;
-    x = Math.max(8, Math.min(x, window.innerWidth - w - 8));
-    let y = r.top + r.height / 2 - h / 2;         // vertically centered on the tile
-    y = Math.max(8, Math.min(y, window.innerHeight - h - 8));
-    tt.style.left = x + 'px';
-    tt.style.top  = y + 'px';
-  };
+  // Shared placement (js/entity-tooltip.js): roomiest side horizontally, with an
+  // above/below fallback when neither side can fit the bubble.
+  const place = () => { if (_rewardTT) placeTipSmart(el, _rewardTT, { gap: 12 }); };
   el.addEventListener('mouseenter', () => {
     const tt = ensureRewardTooltip();
     tt.className = 'rar-' + rar;

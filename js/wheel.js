@@ -87,27 +87,55 @@ function ensureWheelOverlay() {
       </div>
       <div class="wh-hint" id="wheel-hint">Grab the wheel and flick it &mdash; the harder you throw, the longer it runs.</div>
       <div class="wh-result" id="wheel-result"></div>
+      <div class="wh-confirm" id="wheel-confirm">
+        <div class="wh-cost">Spin the wheel for <b id="wheel-cost">20</b> &#128176;</div>
+        <div class="wh-cbtns">
+          <button class="wh-cancel" id="wheel-cancel">CANCEL</button>
+          <button class="wh-go" id="wheel-go">SPIN &mdash; PAY <span id="wheel-cost2">20</span></button>
+        </div>
+      </div>
     </div>`;
   document.body.appendChild(el);
   el.querySelector('#wheel-close').onclick = closeWheel;
+  el.querySelector('#wheel-cancel').onclick = closeWheel;
+  el.querySelector('#wheel-go').onclick = confirmWheelSpin;
   // Backdrop click also blocked while spinning (see closeWheel's guard).
   el.addEventListener('pointerdown', e => { if (e.target === el) closeWheel(); });
   bindWheelDrag(el.querySelector('#wheel-disc'));
   return el;
 }
 
+// Opening only PREVIEWS the wheel — you can see what's on it, and nothing is
+// charged until you confirm. Credits leave your pocket in confirmWheelSpin().
+let wheelPaid = false;
 function openWheel() {
   if (wheelActive) return;
   const cost = BAL.wheel.cost;
   if (coins < cost) { showMessage(`The wheel costs ${cost} credits`, 'var(--red)'); return; }
-  coins -= cost; updateCoinsUI();
-  wheelActive = true; wheelSpinning = false; wheelResolved = true;
+  wheelActive = true; wheelSpinning = false; wheelResolved = true; wheelPaid = false;
   wheelSlots = buildWheelSlots();
   wheelAngle = Math.random() * 360;
   const el = ensureWheelOverlay();
   renderWheel();
+  el.querySelector('#wheel-cost').textContent  = cost;
+  el.querySelector('#wheel-cost2').textContent = cost;
   el.classList.add('show');
+  el.classList.add('unpaid');            // gates the drag + shows the confirm bar
+  document.getElementById('wheel-hint').textContent = 'Have a look at what\u2019s on it first.';
+  document.getElementById('wheel-result').innerHTML = '';
   try { sfxShopOpen && sfxShopOpen(); } catch (e) {}
+}
+
+// The confirm step: this is where the credits actually go.
+function confirmWheelSpin() {
+  if (wheelPaid) return;
+  const cost = BAL.wheel.cost;
+  if (coins < cost) { showMessage('Not enough credits', 'var(--red)'); return; }
+  coins -= cost; updateCoinsUI();
+  wheelPaid = true;
+  document.getElementById('wheel-overlay')?.classList.remove('unpaid');
+  document.getElementById('wheel-hint').textContent = 'Grab the wheel and flick it \u2014 the harder you throw, the longer it runs.';
+  if (typeof renderMart === 'function' && martActive) renderMart();
 }
 
 // Refuses to close mid-spin and until the prize has actually been handed over.
@@ -118,7 +146,10 @@ function closeWheel() {
     return;
   }
   wheelActive = false;
-  document.getElementById('wheel-overlay')?.classList.remove('show');
+  const el = document.getElementById('wheel-overlay');
+  el?.classList.remove('show');
+  el?.classList.remove('unpaid');
+  wheelPaid = false;
 }
 
 function renderWheel() {
@@ -142,6 +173,16 @@ function renderWheel() {
         <div class="wh-name">${name}</div>
       </div></div>`;
   }).join('');
+  // Each space explains itself on hover — you should be able to read the wheel
+  // before deciding to pay for it.
+  labels.querySelectorAll('.wh-slot').forEach((el, i) => {
+    const p = wheelSlots[i];
+    attachEntityTooltip(el.querySelector('.wh-slot-in') || el, () => ({
+      label: p.type === 'jackpot' ? 'JACKPOT' : p.type === 'bust' ? 'BUST' : p.label,
+      desc: p.desc, rarity: p.rarity, type: p.type === 'jackpot' || p.type === 'bust' ? '' : p.type,
+    }));
+  });
+  fitEntityNames(labels, '.wh-name', { maxLines: 2, minPx: 5 });
   applyWheelAngle();
 }
 
@@ -163,6 +204,7 @@ function angleDelta(a, b) { let d = a - b; while (d > 180) d -= 360; while (d < 
 function bindWheelDrag(disc) {
   disc.addEventListener('pointerdown', e => {
     if (wheelSpinning || !wheelResolved) return;
+    if (!wheelPaid) { showMessage('Confirm the spin first', 'var(--cream-dim)'); return; }
     disc.setPointerCapture(e.pointerId);
     _whDrag = { last: wheelPointerAngle(disc, e), samples: [{ t: performance.now(), a: wheelAngle }] };
     disc.classList.add('grabbing');

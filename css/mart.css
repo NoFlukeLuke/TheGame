@@ -245,3 +245,31 @@
   100%{ transform:scale(1); box-shadow:none; }
 }
 .m-ghost{ will-change:transform,opacity; }
+
+/* wheel confirm gate — nothing is charged until you press SPIN */
+#wheel-overlay .wh-confirm{ display:none; flex-direction:column; gap:8px; align-items:center; padding:2px 16px 0; width:100%; }
+#wheel-overlay.unpaid .wh-confirm{ display:flex; }
+#wheel-overlay.unpaid .wh-wheel{ cursor:default; }
+#wheel-overlay.unpaid .wh-face{ filter:saturate(.75) brightness(.85); }
+#wheel-overlay.unpaid .wh-hub{ opacity:.6; }
+#wheel-overlay .wh-cost{ font-family:'Share Tech Mono',monospace; font-size:11px; color:var(--cream); }
+#wheel-overlay .wh-cost b{ color:var(--phosphor); font-size:13px; }
+#wheel-overlay .wh-cbtns{ display:flex; gap:8px; width:100%; }
+#wheel-overlay .wh-cancel,#wheel-overlay .wh-go{ flex:1; font-family:'Orbitron',sans-serif; font-size:9.5px;
+  letter-spacing:1.5px; padding:10px 8px; border-radius:6px; cursor:pointer; }
+#wheel-overlay .wh-cancel{ background:rgba(255,255,255,.05); border:1px solid #3a3020; color:var(--cream-dim); }
+#wheel-overlay .wh-cancel:hover{ border-color:var(--cream-dim); color:var(--cream); }
+#wheel-overlay .wh-go{ background:var(--c-magenta); border:none; color:#2a021a; font-weight:700; }
+#wheel-overlay .wh-go:hover{ filter:brightness(1.12); }
+/* wheel slot labels must be hoverable for their tooltip (the wheel disc itself
+   still owns the drag — the labels sit above it but don't swallow pointerdown) */
+#wheel-overlay .wh-slot-in{ pointer-events:auto; }
+#wheel-overlay.unpaid .wh-slot-in{ pointer-events:auto; }
+
+/* drag-to-cart */
+#mart-overlay .m-item.m-drag-src{ opacity:.28; }
+#mart-overlay .m-dragging{ opacity:.92; filter:drop-shadow(0 8px 16px rgba(0,0,0,.6)); }
+#mart-overlay .mart-checkout.m-drop-armed{ outline:1px dashed rgba(53,213,155,.5); outline-offset:-4px; }
+#mart-overlay .mart-checkout.m-drop-hot{ outline:2px dashed var(--c-mint); outline-offset:-4px;
+  box-shadow:inset 0 0 40px -14px var(--c-mint); }
+#mart-overlay .m-drop small{ opacity:.7; font-size:8px; }

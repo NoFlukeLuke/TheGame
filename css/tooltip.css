@@ -1,0 +1,78 @@
+/* ══ MECHANIC KEYWORDS + UNIFIED ENTITY TOOLTIP ═══════════════════════════════
+   Keyword colours match the HUD where there is something to match: pips = the
+   blue PIPS chip, mult = the red MULT chip, focus = the purple FOCUS chip. */
+.kw { font-weight: 700; }
+.kw-pips      { color:#5b8dff; }   /* PIPS chip blue */
+.kw-xpips     { color:#8fb4ff; text-shadow:0 0 6px rgba(91,141,255,.5); }
+.kw-mult      { color:#ff6b5e; }   /* MULT chip red */
+.kw-xmult     { color:#ff9a8f; text-shadow:0 0 6px rgba(255,107,94,.5); }
+.kw-focus     { color:#b98cff; }   /* FOCUS chip purple */
+.kw-score     { color:#ffce2b; }
+.kw-credits   { color:#ffb02e; }
+.kw-time      { color:#7fe3d0; }
+.kw-rewind    { color:#57c8ff; }
+.kw-swap      { color:#16c8d8; }
+.kw-discard   { color:#ff8a5c; }
+.kw-play      { color:#8fe39a; }
+.kw-sell      { color:#e0b95c; }
+.kw-buy       { color:#ffd479; }
+.kw-replay    { color:#ff86d2; }
+.kw-hand      { color:#9fd6ff; }
+.kw-streak    { color:#ff9f43; }
+.kw-board     { color:#c3b48f; }
+.kw-wild      { color:#ff2f8e; }
+.kw-trick     { color:#ff6a3c; }
+.kw-sleight   { color:#e8dcc0; }
+.kw-knack     { color:#ffce2b; }
+.kw-limit     { color:#35d59b; }
+.kw-round     { color:#b7a684; }
+.kw-reward    { color:#35d59b; }
+.kw-bad       { color:#ff5a6a; }
+.kw-r-common    { color:#35d59b; }
+.kw-r-rare      { color:#16c8d8; }
+.kw-r-epic      { color:#9a6cff; }
+.kw-r-legendary { color:#ffce2b; }
+.kw-r-mythic    { color:#ff2f8e; }
+
+/* the tooltip itself: card + a rail of keyword definitions on its outer side */
+#entity-tip {
+  position: fixed; z-index: 640; pointer-events: none;
+  display: none; align-items: flex-start; gap: 8px;
+  max-width: min(560px, 94vw);
+  font-family: 'Share Tech Mono', monospace;
+}
+#entity-tip.show { display: flex; pointer-events: auto; }
+#entity-tip.flip { flex-direction: row-reverse; }   /* rail on the outer side */
+
+#entity-tip .et-card {
+  flex: 0 0 auto; width: 232px; box-sizing: border-box;
+  background: linear-gradient(180deg,#171208,#0b0906);
+  border: 1.5px solid var(--rc, #35d59b); border-radius: 8px; padding: 9px 11px;
+  box-shadow: 0 0 22px -6px var(--rc, #35d59b), 0 6px 18px rgba(0,0,0,.65);
+}
+#entity-tip .et-head { display:flex; align-items:baseline; justify-content:space-between; gap:8px; }
+#entity-tip .et-name { font-family:'Orbitron',sans-serif; font-size:11px; font-weight:700; letter-spacing:.5px;
+  color:#fff; text-transform:uppercase; line-height:1.25; overflow-wrap:anywhere; }
+#entity-tip .et-rar  { font-size:8px; letter-spacing:1.5px; text-transform:uppercase; color:var(--rc,#35d59b); flex:0 0 auto; }
+#entity-tip .et-type { font-size:7.5px; letter-spacing:2px; color:#8a7d60; margin-top:2px; }
+#entity-tip .et-desc { font-size:10.5px; line-height:1.55; color:#f0e6c8; margin-top:6px; overflow-wrap:anywhere; }
+#entity-tip .et-meta { display:flex; gap:8px; flex-wrap:wrap; margin-top:7px; padding-top:6px;
+  border-top:1px solid rgba(255,255,255,.09); font-size:9.5px; color:#b7a684; }
+
+#entity-tip .et-defs { flex:0 1 auto; display:flex; flex-direction:column; gap:5px;
+  max-height:min(62vh, 420px); overflow-y:auto; width:232px; }
+#entity-tip .et-defs:empty { display:none; }
+#entity-tip .et-def { background:rgba(10,9,6,.96); border:1px solid #2f2a1c; border-left:3px solid currentColor;
+  border-radius:5px; padding:5px 8px; }
+#entity-tip .et-def b { display:block; font-family:'Orbitron',sans-serif; font-size:8.5px; letter-spacing:1px;
+  text-transform:uppercase; margin-bottom:2px; }
+#entity-tip .et-def span { display:block; font-size:9.5px; line-height:1.45; color:#c9bfa5; }
+#entity-tip .et-defs::-webkit-scrollbar { width:6px; }
+#entity-tip .et-defs::-webkit-scrollbar-thumb { background:rgba(255,176,46,.3); border-radius:3px; }
+
+/* narrow screens: drop the definition rail under the card instead of beside it */
+@media (max-width: 620px) {
+  #entity-tip { flex-direction: column; max-width: 94vw; }
+  #entity-tip.flip { flex-direction: column; }
+  #entity-tip .et-defs { width: 232px; max-height: 34vh; }
+}
