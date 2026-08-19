@@ -149,3 +149,99 @@
 #mart-overlay .m-fbtn{ flex:1; text-align:center; font-size:9px; letter-spacing:1px; text-transform:uppercase; padding:9px; border-radius:7px; border:1px solid var(--plastic-deep); color:var(--cream-dim); cursor:pointer; }
 #mart-overlay .m-fbtn:hover{ border-color:var(--phosphor); color:var(--phosphor); }
 #mart-overlay .m-fbtn.leave{ border-color:var(--c-coral); color:var(--c-coral); }
+
+/* ══ SPIN THE WHEEL (js/wheel.js) ═══════════════════════════════════════════ */
+#wheel-overlay{ display:none; position:fixed; inset:0; z-index:320; align-items:center; justify-content:center;
+  background:rgba(4,3,2,0.82); backdrop-filter:blur(2px); }
+#wheel-overlay.show{ display:flex; }
+#wheel-overlay .wh-box{ width:400px; max-width:94vw; border-radius:12px; padding:0 0 16px;
+  background:linear-gradient(180deg,#171008,#0b0906); border:2px solid #5a4a12;
+  box-shadow:0 0 60px -10px rgba(255,176,46,.4), inset 0 0 40px -20px rgba(255,176,46,.3);
+  display:flex; flex-direction:column; align-items:center; position:relative; overflow:hidden; }
+#wheel-overlay .wh-box::after{ content:''; position:absolute; inset:0; pointer-events:none;
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,.16) 0 1px,transparent 1px 3px); }
+#wheel-overlay .wh-bar{ width:100%; display:flex; align-items:center; justify-content:space-between;
+  padding:9px 12px; background:linear-gradient(180deg,#2a1d06,#170f04); border-bottom:1px solid #5a4a12; }
+#wheel-overlay .wh-title{ font-family:'Cinzel',serif; font-size:12px; letter-spacing:3px; color:var(--phosphor); }
+#wheel-overlay .wh-close{ background:none; border:1px solid #5a4a12; border-radius:4px; color:var(--cream-dim);
+  font-size:12px; width:22px; height:22px; cursor:pointer; line-height:1; }
+#wheel-overlay .wh-close:hover{ color:var(--phosphor); border-color:var(--phosphor); }
+/* while spinning there is no way out */
+#wheel-overlay.spinning .wh-close{ opacity:.3; cursor:not-allowed; }
+
+#wheel-overlay .wh-stage{ position:relative; margin:16px 0 6px; width:250px; height:250px; }
+#wheel-overlay .wh-pointer{ position:absolute; top:-11px; left:50%; transform:translateX(-50%); z-index:4;
+  color:var(--phosphor); font-size:22px; line-height:1; text-shadow:0 0 10px rgba(255,176,46,.9); }
+#wheel-overlay .wh-wheel{ position:absolute; inset:0; border-radius:50%; cursor:grab; touch-action:none;
+  box-shadow:0 0 0 4px #2a2416, 0 0 0 6px #5a4a12, 0 0 30px -4px rgba(255,176,46,.5); }
+#wheel-overlay .wh-wheel.grabbing{ cursor:grabbing; }
+#wheel-overlay .wh-face{ position:absolute; inset:0; border-radius:50%; }
+#wheel-overlay .wh-labels{ position:absolute; inset:0; }
+#wheel-overlay .wh-slot{ position:absolute; left:50%; top:50%; width:0; height:0; transform-origin:0 0; }
+#wheel-overlay .wh-slot-in{ position:absolute; transform-origin:center; width:66px; margin-left:-33px; margin-top:-18px;
+  display:flex; flex-direction:column; align-items:center; gap:1px; pointer-events:none; }
+#wheel-overlay .wh-emoji{ font-size:17px; line-height:1; }
+#wheel-overlay .wh-name{ font-family:'Orbitron',sans-serif; font-size:6.5px; font-weight:700; letter-spacing:.3px;
+  text-transform:uppercase; color:#fff; text-align:center; line-height:1.1; max-height:2.2em; overflow:hidden;
+  text-shadow:0 1px 3px #000; overflow-wrap:anywhere; }
+#wheel-overlay .wh-hub{ position:absolute; left:50%; top:50%; width:58px; height:58px; margin:-29px 0 0 -29px;
+  border-radius:50%; background:linear-gradient(150deg,var(--plastic-hi),var(--plastic) 55%,var(--plastic-lo));
+  box-shadow:0 0 0 3px #5a4a12, inset 0 2px 0 rgba(255,255,255,.6); display:flex; align-items:center; justify-content:center;
+  font-family:'Cinzel',serif; font-size:10px; letter-spacing:2px; color:#3a2c08; }
+
+#wheel-overlay .wh-hint{ font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--cream-dim);
+  text-align:center; padding:0 18px; min-height:30px; display:flex; align-items:center; justify-content:center; }
+#wheel-overlay .wh-done{ font-family:'Orbitron',sans-serif; font-size:10px; letter-spacing:2px; padding:9px 18px;
+  border-radius:6px; background:var(--c-mint); border:none; color:#04241a; cursor:pointer; font-weight:700; }
+#wheel-overlay .wh-result{ padding:0 16px; width:100%; }
+#wheel-overlay .wh-won{ display:flex; align-items:center; gap:10px; padding:9px 11px; border-radius:8px;
+  background:rgba(255,255,255,.05); border:1px solid #3a3020; }
+#wheel-overlay .wh-won.jackpot{ border-color:var(--c-magenta); box-shadow:0 0 18px -4px var(--c-magenta); }
+#wheel-overlay .wh-won.bust{ opacity:.6; }
+#wheel-overlay .wh-won-em{ font-size:26px; line-height:1; }
+#wheel-overlay .wh-won-name{ font-family:'Orbitron',sans-serif; font-size:11px; letter-spacing:1px; color:var(--phosphor); text-transform:uppercase; }
+#wheel-overlay .wh-won-desc{ font-family:'Share Tech Mono',monospace; font-size:9px; color:var(--cream-dim); line-height:1.4; margin-top:2px; }
+
+/* overflow prompt: the prize doesn't fit */
+#wheel-overflow{ display:none; position:fixed; inset:0; z-index:340; align-items:center; justify-content:center;
+  background:rgba(4,3,2,0.86); }
+#wheel-overflow.show{ display:flex; }
+#wheel-overflow .wo-box{ width:360px; max-width:94vw; border-radius:11px; padding:16px;
+  background:linear-gradient(180deg,#1c1109,#0b0906); border:2px solid var(--c-coral);
+  box-shadow:0 0 50px -12px var(--c-coral); display:flex; flex-direction:column; gap:9px; }
+#wheel-overflow .wo-title{ font-family:'Cinzel',serif; font-size:13px; letter-spacing:3px; color:var(--c-coral); }
+#wheel-overflow .wo-sub,#wheel-overflow .wo-lead{ font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--cream); line-height:1.5; }
+#wheel-overflow .wo-lead{ color:var(--cream-dim); margin-top:2px; }
+#wheel-overflow .wo-tricks{ display:flex; flex-direction:column; gap:5px; max-height:190px; overflow-y:auto; }
+#wheel-overflow .wo-trick{ display:flex; align-items:center; gap:8px; padding:7px 9px; border-radius:6px; cursor:pointer;
+  background:rgba(255,255,255,.05); border:1px solid #3a3020; color:var(--cream); text-align:left; }
+#wheel-overflow .wo-trick:hover{ border-color:var(--phosphor); background:rgba(255,176,46,.1); }
+#wheel-overflow .wo-tem{ font-size:15px; } 
+#wheel-overflow .wo-tn{ flex:1; font-family:'Orbitron',sans-serif; font-size:9px; letter-spacing:.5px; text-transform:uppercase; }
+#wheel-overflow .wo-tv{ font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--phosphor); }
+#wheel-overflow .wo-or{ font-family:'Share Tech Mono',monospace; font-size:9px; color:var(--cream-dim); text-align:center; }
+#wheel-overflow .wo-sell-prize{ font-family:'Orbitron',sans-serif; font-size:9.5px; letter-spacing:1.5px; padding:10px;
+  border-radius:6px; background:rgba(255,176,46,.14); border:1px solid #5a4a12; color:var(--phosphor); cursor:pointer; }
+#wheel-overflow .wo-sell-prize:hover{ background:rgba(255,176,46,.25); }
+
+/* the SPIN special is a real button now */
+#mart-overlay .m-special.m-spin{ cursor:pointer; transition:transform .12s, box-shadow .15s; }
+#mart-overlay .m-special.m-spin:hover{ transform:translateY(-2px); box-shadow:0 0 22px -4px var(--c-magenta); }
+#mart-overlay .m-special.m-spin.cant{ opacity:.5; }
+
+/* loadout: current limit caps (also the fly-to target for a bought Limit) */
+#mart-overlay .p-limits{ border-top:2px solid var(--c-mint); }
+#mart-overlay .m-limrow{ flex-wrap:wrap; gap:4px; }
+#mart-overlay .m-lim{ display:inline-flex; align-items:center; gap:3px; padding:2px 5px; border-radius:4px;
+  background:rgba(53,213,155,.10); border:1px solid rgba(53,213,155,.35); font-size:10px; color:var(--cream); }
+#mart-overlay .m-lim b{ font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--c-mint); }
+#mart-overlay .m-lim.max{ opacity:.45; }
+
+/* checkout fly: the loadout panel reacts when an item lands in it */
+#mart-overlay .m-panel.m-landed{ animation:martLand .5s ease; }
+@keyframes martLand{
+  0%{ transform:scale(1); box-shadow:none; }
+  35%{ transform:scale(1.06); box-shadow:0 0 20px -3px var(--c-mint); }
+  100%{ transform:scale(1); box-shadow:none; }
+}
+.m-ghost{ will-change:transform,opacity; }

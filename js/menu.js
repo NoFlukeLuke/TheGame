@@ -1,4 +1,4 @@
-const BUILD = '2026-08-19 · r141 · Channel-change CRT transition (preview + wired into the Mart)';
+const BUILD = '2026-08-19 · r142 · Spin the Wheel (20g) + checkout fly-to-loadout';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

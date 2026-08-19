@@ -107,6 +107,9 @@ const BAL = {
   more_better:   { mult: 4, min_tiles: 3 },
   rain_check:    { seconds: 30 },
   temporal_rift: { pause: 3 },
+  // Spin-the-wheel (Mart special). default_sell is the fallback payout when a prize
+  // has no sell price of its own and there's no room for it.
+  wheel:         { cost: 20, slots: 10, jackpot_coins: 25, default_sell: 15 },
   shop_discount: { per_item: 5, bulk_per_item: 10 },  // bundle discount % per ADDITIONAL item; cap = rate × Selection Size
   reward_skip:   { gold: 20 },   // gold paid for skipping the whole reward grid (shown on the SKIP button)
   wild_side:     { mult_per: 3 },       // +mult per negative reward tile taken this run

@@ -154,10 +154,17 @@ function renderMartLoadout() {
   const trickList = (typeof trickTrayMode!=='undefined' && trickTrayMode) ? (trickTray||[]) : (acquiredTricks||[]);
   const tricks = trickList.map(t => `<div class="mini-trick r-${MART_TIERS.includes(t.tier)?t.tier:'common'}"><span class="a">${trickEmoji(t)}</span></div>`).join('') || '<span class="m-empty">none yet</span>';
   const trickCap = (typeof trickCapacity==='function') ? trickCapacity() : 5;
+  // Current caps, so you can see what you're upgrading without leaving the shop —
+  // and so a bought Limit has somewhere to fly to at checkout.
+  const limitChips = LIMITS_DEF.map(d => {
+    const l = limits[d.id], maxed = l.current >= l.max;
+    return `<span class="m-lim${maxed?' max':''}" title="${d.label}: ${l.current}${d.hideMax?'':' / '+l.max}">${d.icon}<b>${l.current}</b></span>`;
+  }).join('');
   el.innerHTML = `
     <div class="m-panel p-knacks"><div class="m-pt"><span>Knacks</span><span class="cnt">${(acquiredKnacks||[]).length}</span></div><div class="m-row">${knacks}</div></div>
     <div class="m-panel p-sleights"><div class="m-pt"><span>Sleights · in deck</span><span class="cnt">${(typeof ownedSleightInstances==='function'?ownedSleightInstances().length:0)}</span></div><div class="m-row">${sleights}</div></div>
     <div class="m-panel p-tricks"><div class="m-pt"><span>Tricks</span><span class="cnt">${trickList.length} / ${trickCap}</span></div><div class="m-row">${tricks}</div></div>
+    <div class="m-panel p-limits"><div class="m-pt"><span>Limits</span></div><div class="m-row m-limrow">${limitChips}</div></div>
     <div class="m-settings">
       <div class="m-schip" data-act="stats">📊 Stats</div><div class="m-schip" data-act="deck">🃏 Deck</div>
       <div class="m-schip" data-act="time">⏱ Time</div><div class="m-schip" data-act="wip">⚙ More·WIP</div>
@@ -178,7 +185,7 @@ function renderMartMain() {
   const el = document.getElementById('mart-main'); if (!el) return;
   const feat = `<div class="m-feat">
     <div class="m-special" style="--rc:var(--c-yellow)"><span class="wip">WIP</span><div><div class="stag">★ SPOTLIGHT · 50% OFF</div><div class="sname">Featured item</div><div class="sdesc">A discounted trick / sleight / knack. (coming soon)</div></div></div>
-    <div class="m-special" style="--rc:var(--c-magenta)"><span class="wip">WIP</span><div class="m-wheel"></div><div><div class="stag">◎ SPIN · 💰10</div><div class="sdesc">win any item · 1-in-10 jackpot</div></div></div>
+    <div class="m-special m-spin" id="mart-spin" style="--rc:var(--c-magenta)"><div class="m-wheel"></div><div><div class="stag">◎ SPIN · 💰${BAL.wheel.cost}</div><div class="sdesc">win any item · 1-in-10 jackpot</div></div></div>
     <div class="m-freezer"><span class="wip" style="position:absolute;top:4px;right:5px">WIP</span><div class="fi">❄</div><div class="ft">FREEZER<br>drag to keep</div></div>
   </div>`;
   const sections = martCats.map(martSectionHTML).join('');
@@ -220,6 +227,11 @@ function renderMartCheckout() {
 
 function bindMartItems() {
   const main = document.getElementById('mart-main'); if (!main) return;
+  const spin = document.getElementById('mart-spin');
+  if (spin) {
+    spin.onclick = openWheel;
+    spin.classList.toggle('cant', coins < BAL.wheel.cost);
+  }
   main.querySelectorAll('.m-item').forEach(it => {
     const key = it.dataset.key;
     it.onclick = () => martToggleCart(key);
@@ -253,17 +265,76 @@ function martToggleCart(key) {
   }
   renderMart();
 }
-function martCheckout() {
-  if (!martCart.length) return;
+// Where a bought item lands in the loadout column — the same idea as the reward
+// grid's rewardTargetEl, pointed at the Mart's own panels.
+function martTargetEl(p) {
+  const q = sel => document.querySelector('#mart-loadout ' + sel);
+  switch (p.type) {
+    case 'trick':   return q('.p-tricks');
+    case 'sleight': return q('.p-sleights');
+    case 'knack':   return q('.p-knacks');
+    case 'limit':   return q('.p-limits');
+  }
+  return q('.p-tricks');
+}
+
+// Fly a clone of the tile to its loadout panel. A CLONE, positioned fixed on the
+// body, because renderMart() rebuilds the catalog and would otherwise yank the
+// element out mid-flight.
+function flyMartTile(tileEl, p) {
+  const target = martTargetEl(p);
+  if (!tileEl || !target) return Promise.resolve();
+  const a = tileEl.getBoundingClientRect(), b = target.getBoundingClientRect();
+  const ghost = tileEl.cloneNode(true);
+  ghost.classList.add('m-ghost');
+  ghost.style.cssText += `position:fixed;left:${a.left}px;top:${a.top}px;width:${a.width}px;height:${a.height}px;
+    margin:0;z-index:400;pointer-events:none;--fx:0px;--fy:0px;--fr:0deg;--fs:1;`;
+  document.body.appendChild(ghost);
+  tileEl.style.visibility = 'hidden';
+  const dx = (b.left + b.width/2) - (a.left + a.width/2);
+  const dy = (b.top  + b.height/2) - (a.top  + a.height/2);
+  return ghost.animate([
+    { transform:'translate(0,0) scale(1)', opacity:1 },
+    { transform:`translate(${dx*0.55}px, ${dy*0.55}px) scale(0.6)`, opacity:1, offset:0.6 },
+    { transform:`translate(${dx}px, ${dy}px) scale(0.12)`, opacity:0 },
+  ], { duration: 400, easing:'cubic-bezier(0.5,0,0.85,1)', fill:'forwards' }).finished
+    .then(() => {
+      ghost.remove();
+      target.classList.remove('m-landed'); void target.offsetWidth; target.classList.add('m-landed');
+      setTimeout(() => target.classList.remove('m-landed'), 520);
+      try { sfxRewardGood && sfxRewardGood(); } catch(e){}
+    });
+}
+
+let martCheckingOut = false;
+async function martCheckout() {
+  if (!martCart.length || martCheckingOut) return;
   const base = martCart.reduce((s,key)=>{ const [cat,i]=key.split('-'); return s + martStock[cat][+i].price; }, 0);
   const total = Math.round(base * (1 - martDiscountPct(martCart.length)/100));
   if (coins < total) { showMessage('Not enough credits', 'var(--red)'); return; }
+  martCheckingOut = true;
   coins -= total; updateCoinsUI();
-  martCart.forEach(key => { const [cat,i]=key.split('-'); const p=martStock[cat][+i];
-    if (!p._sold && typeof p.buy==='function') { try { p.buy(); } catch(e){ console.error('[MART] buy failed', e); } p._sold=true; } });
-  try { sfxRewardGood && sfxRewardGood(); } catch(e){}
-  showMessage(`Bought ${martCart.length} — 💰${total}`, 'var(--gold)');
+
+  // One at a time, each flying to where it actually goes — the reward grid's
+  // resolve reads as "the board hands you your winnings", and checkout should
+  // read the same way. The buy fires as the item lands, so the loadout panel
+  // updates on impact.
+  const bought = martCart.slice();
+  for (const key of bought) {
+    const [cat,i] = key.split('-');
+    const p = martStock[cat][+i];
+    if (!p || p._sold) continue;
+    const tile = document.querySelector(`#mart-main .m-item[data-key="${key}"]`);
+    await flyMartTile(tile, p);
+    if (typeof p.buy === 'function') { try { p.buy(); } catch(e){ console.error('[MART] buy failed', e); } }
+    p._sold = true;
+    renderMartLoadout();                       // panel reflects the new item immediately
+    await new Promise(r => setTimeout(r, 90)); // beat between items
+  }
+
+  showMessage(`Bought ${bought.length} — 💰${total}`, 'var(--gold)');
   martCart = [];
+  martCheckingOut = false;
   renderMart();
 }
 function martReroll() {
