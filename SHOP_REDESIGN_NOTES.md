@@ -148,6 +148,20 @@ preview only approximates it. Keep all three visually consistent.
 **New event (backlog):** a **shop-capacity event** — extend the shop by **+1 slot for
 2 sections**, player chooses which two.
 
+**Item float animation (shop AND reward grid):**
+- A **barely-noticeable, slow, slight** float on every purchasable/reward item — they
+  drift/rotate gently, each with a **random phase** so they never move in sync.
+- Tuner: **`shop-float-anim-preview.html`** (live sliders: drift X/Y, rotation, period,
+  scale pulse, phase variety). Default "barely-there" preset ≈ x±3 / y±4 / rot±1.2° / 7s.
+- **Freezing an item halts its float and tinges it slightly blue** (frost ring + ❄).
+
+**Freeze / lock = drag-to-freezer (confirmed):** drag an item onto the freezer icon to
+keep it across rerolls; frozen items stop floating and get the blue frost tinge.
+
+**Spin-the-wheel (spec):** 10 spaces, filled with random Knacks / Sleights / Tricks
+following the shop rarity odds. One space is a **"nothing"** (bust). The **jackpot** space
+is one of: **two items**, an **upgraded item**, or **💰25**. Fixed price per spin.
+
 **Entity-improvement mechanic + sheet:**
 - Buying a **duplicate** of a Trick improves its bonus (bigger bonus / looser use-case /
   other). Owner-editable sheet generated at **`ENTITY_IMPROVEMENTS.md`** (+ `.csv`) listing

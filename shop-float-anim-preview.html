@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Float Animation Tuner</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --plastic:#e4dccb; --plastic-hi:#f7f2e6; --plastic-lo:#b7ac93; --plastic-deep:#85795f;
+    --c-cyan:#16c8d8; --c-magenta:#ff2f8e; --c-yellow:#ffce2b; --c-purple:#9a6cff; --c-mint:#35d59b; --c-coral:#ff6a3c;
+    --phosphor:#ffb02e; --cream:#f4ecd6; --cream-dim:#b7a684;
+    --rar-common:var(--c-mint); --rar-rare:var(--c-cyan); --rar-epic:var(--c-purple); --rar-legendary:var(--c-yellow);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:#0d0a06;font-family:'Orbitron',sans-serif;color:var(--cream);min-height:100vh;display:flex;flex-direction:column;align-items:center;gap:16px;padding:22px;}
+  h1{font-size:18px;letter-spacing:4px;color:var(--phosphor);text-shadow:0 0 12px rgba(255,176,46,.5);}
+  .sub{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--cream-dim);margin-top:-8px;}
+  .stage{width:820px;max-width:96vw;height:300px;border-radius:12px;position:relative;
+    background:radial-gradient(ellipse at 50% 30%,#211a0c,#0d0a06 80%);box-shadow:inset 0 0 60px rgba(0,0,0,.8),inset 0 0 0 2px #2a2416;
+    display:flex;align-items:center;justify-content:center;gap:26px;overflow:hidden;}
+  .stage::after{content:'';position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.14) 0 1px,transparent 1px 3px);mix-blend-mode:overlay;}
+  .hint{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--cream-dim);opacity:.7;}
+
+  .tile{cursor:pointer;transition:filter .3s,box-shadow .3s;will-change:transform;}
+  .tile.frozen{transition:transform .45s ease, filter .3s, box-shadow .3s;}
+  /* frozen = halt + blue tinge + frost */
+  .tile.frozen{filter:brightness(.92) saturate(.7) hue-rotate(8deg);position:relative;}
+  .tile.frozen::before{content:'❄';position:absolute;top:3px;left:5px;z-index:6;color:#bfe3ff;font-size:12px;text-shadow:0 0 6px #7fbfff;}
+  .tile.frozen::after{content:'';position:absolute;inset:0;z-index:5;border-radius:inherit;background:rgba(130,185,255,.16);box-shadow:0 0 0 2px rgba(140,195,255,.6),0 0 16px rgba(130,185,255,.45);pointer-events:none;}
+
+  .trick{width:78px;height:100px;position:relative;color:#fff;
+    background:radial-gradient(120% 80% at 50% 0%,color-mix(in srgb,var(--rc) 22%,#0b0906),#0b0906);border:2px solid var(--rc);border-radius:4px;
+    clip-path:polygon(0 8px,8px 0,calc(100% - 8px) 0,100% 8px,100% calc(100% - 8px),calc(100% - 8px) 100%,8px 100%,0 calc(100% - 8px));
+    box-shadow:0 0 12px -2px var(--rc),inset 0 0 16px -6px var(--rc);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;}
+  .trick .em{font-size:9px;color:var(--rc);letter-spacing:2px;text-shadow:0 0 6px var(--rc);} .trick .art{font-size:32px;} .trick .nm{font-size:9px;font-weight:700;text-transform:uppercase;text-shadow:0 0 6px var(--rc);}
+  .sleight{width:70px;height:96px;border-radius:8px;position:relative;padding:6px;background:linear-gradient(160deg,#f7f2e6,#e6dcc4);border:1.5px solid var(--rc);color:#1a1510;box-shadow:0 3px 8px rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;}
+  .sleight .c{position:absolute;top:3px;left:5px;font-family:'Share Tech Mono',monospace;font-size:11px;font-weight:700;} .sleight .art{font-size:26px;}
+  .knack{width:56px;height:56px;transform-origin:center;}
+  .knack .dia{width:100%;height:100%;transform:rotate(45deg);border-radius:9px;background:linear-gradient(150deg,var(--plastic-hi),var(--plastic) 55%,var(--plastic-lo));
+    box-shadow:0 0 0 2px var(--plastic-deep),inset 0 2px 0 rgba(255,255,255,.6),0 0 12px -3px var(--rc);position:relative;display:flex;align-items:center;justify-content:center;}
+  .knack .dia::after{content:'';position:absolute;inset:14%;border-radius:5px;border:2.5px solid var(--rc);box-shadow:0 0 8px -1px var(--rc);}
+  .knack .dia span{transform:rotate(-45deg);font-size:22px;}
+  .r-common{--rc:var(--rar-common);} .r-rare{--rc:var(--rar-rare);} .r-epic{--rc:var(--rar-epic);} .r-legendary{--rc:var(--rar-legendary);}
+
+  .panel{width:820px;max-width:96vw;background:#14100b;border:1px solid #46381f;border-radius:10px;padding:14px 18px;display:grid;grid-template-columns:1fr 1fr;gap:10px 26px;}
+  .ctl{display:flex;flex-direction:column;gap:3px;}
+  .ctl label{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--cream-dim);display:flex;justify-content:space-between;}
+  .ctl label b{color:var(--phosphor);}
+  input[type=range]{width:100%;accent-color:var(--phosphor);}
+  .row2{grid-column:1/3;display:flex;gap:10px;align-items:center;font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--cream-dim);}
+  .btn{font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:1px;text-transform:uppercase;padding:7px 12px;border-radius:7px;border:1px solid #46381f;background:#1a1510;color:var(--cream);cursor:pointer;}
+  .btn.on{border-color:var(--c-cyan);color:var(--c-cyan);}
+  code{color:var(--c-mint);}
+</style>
+</head>
+<body>
+  <h1>ITEM FLOAT — TUNER</h1>
+  <div class="sub">click any item to FREEZE it (halts + blue tinge). tune the drift below.</div>
+
+  <div class="stage" id="stage">
+    <div class="tile trick r-rare"><div class="em">✦ TRICK</div><div class="art">🔥</div><div class="nm">Wildfire</div></div>
+    <div class="tile sleight r-rare"><span class="c" style="color:#c0392b">A♦</span><div class="art">📢</div></div>
+    <div class="tile knack r-cyan" style="--rc:var(--c-cyan)"><div class="dia"><span>⏳</span></div></div>
+    <div class="tile trick r-legendary"><div class="em">✦ TRICK</div><div class="art">🛡️</div><div class="nm">Last Stand</div></div>
+    <div class="tile sleight r-common" style="--rc:var(--c-mint)"><span class="c">7♣</span><div class="art">🔋</div></div>
+    <div class="tile knack r-mint" style="--rc:var(--c-mint)"><div class="dia"><span>🕊️</span></div></div>
+    <div class="hint" id="hint"></div>
+  </div>
+
+  <div class="panel">
+    <div class="ctl"><label>Drift X <b><span id="vdx">3.0</span> px</b></label><input id="dx" type="range" min="0" max="14" step="0.5" value="3"></div>
+    <div class="ctl"><label>Drift Y <b><span id="vdy">4.0</span> px</b></label><input id="dy" type="range" min="0" max="14" step="0.5" value="4"></div>
+    <div class="ctl"><label>Rotation <b><span id="vrot">1.2</span>°</b></label><input id="rot" type="range" min="0" max="5" step="0.1" value="1.2"></div>
+    <div class="ctl"><label>Period (slower →) <b><span id="vper">6.0</span> s</b></label><input id="per" type="range" min="2" max="16" step="0.5" value="6"></div>
+    <div class="ctl"><label>Scale pulse <b><span id="vsc">0.6</span> %</b></label><input id="sc" type="range" min="0" max="3" step="0.1" value="0.6"></div>
+    <div class="ctl"><label>Phase variety <b><span id="vvar">1.0</span></b></label><input id="var" type="range" min="0" max="1" step="0.05" value="1"></div>
+    <div class="row2">
+      <button class="btn" id="preset-subtle">Preset: barely-there</button>
+      <button class="btn" id="preset-lively">Preset: livelier</button>
+      <button class="btn" id="freezeall">Freeze all</button>
+      <span style="margin-left:auto">current: <code id="cssout"></code></span>
+    </div>
+  </div>
+
+<script>
+  const tiles = [...document.querySelectorAll('.tile')];
+  tiles.forEach(el => el.seed = {
+    px:Math.random()*6.283, py:Math.random()*6.283, pr:Math.random()*6.283, ps:Math.random()*6.283,
+    fx:0.85+Math.random()*0.35, fy:0.75+Math.random()*0.45, fr:0.7+Math.random()*0.5, fs:0.8+Math.random()*0.3
+  });
+  const P = { dx:3, dy:4, rot:1.2, per:6, sc:0.6, var:1 };
+  const ids = ['dx','dy','rot','per','sc','var'];
+  const outIds = { dx:'vdx', dy:'vdy', rot:'vrot', per:'vper', sc:'vsc', var:'vvar' };
+  function sync(){ ids.forEach(k=>{ document.getElementById(outIds[k]).textContent = (+P[k]).toFixed(k==='var'?2:1); });
+    document.getElementById('cssout').textContent = `x±${P.dx} y±${P.dy} rot±${P.rot}° ${P.per}s`; }
+  ids.forEach(k=>{ const el=document.getElementById(k); el.addEventListener('input',()=>{ P[k]=parseFloat(el.value); sync(); }); });
+  function setP(o){ Object.assign(P,o); ids.forEach(k=>document.getElementById(k).value=P[k]); sync(); }
+  document.getElementById('preset-subtle').onclick=()=>setP({dx:3,dy:4,rot:1.2,per:7,sc:0.5,var:1});
+  document.getElementById('preset-lively').onclick=()=>setP({dx:7,dy:8,rot:2.6,per:4,sc:1.4,var:1});
+  document.getElementById('freezeall').onclick=(e)=>{ const any=tiles.some(t=>!t.classList.contains('frozen')); tiles.forEach(t=>t.classList.toggle('frozen',any)); tiles.forEach(t=>{ if(t.classList.contains('frozen')) t.style.transform=''; }); e.target.classList.toggle('on',any); };
+  tiles.forEach(t => t.addEventListener('click', ()=>{ t.classList.toggle('frozen'); if(t.classList.contains('frozen')) t.style.transform=''; }));
+
+  function frame(ms){
+    const s = ms/1000, w = 2*Math.PI/P.per, v = P.var;
+    for(const el of tiles){
+      if(el.classList.contains('frozen')) continue;
+      const k = el.seed;
+      const x = P.dx * Math.sin(s*w*k.fx + k.px*v);
+      const y = P.dy * Math.sin(s*w*k.fy + k.py*v);
+      const r = P.rot * Math.sin(s*w*k.fr + k.pr*v);
+      const sc = 1 + (P.sc/100) * Math.sin(s*w*k.fs + k.ps*v);
+      el.style.transform = `translate(${x.toFixed(2)}px,${y.toFixed(2)}px) rotate(${r.toFixed(2)}deg) scale(${sc.toFixed(4)})`;
+    }
+    requestAnimationFrame(frame);
+  }
+  sync(); requestAnimationFrame(frame);
+  document.getElementById('hint').textContent = 'drift is applied per-item with a random phase, so they never move in sync';
+</script>
+</body>
+</html>
