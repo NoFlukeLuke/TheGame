@@ -655,10 +655,11 @@ function updateRewardButtons() {
 
 // Repurpose the two action buttons for the reward step (green CONFIRM / yellow CLEAR).
 // Original markup is captured once and restored on exit.
-let _origPlayHTML = null, _origDiscardHTML = null;
+let _origPlayHTML = null, _origDiscardHTML = null, _origSwapHTML = null;
 function enterRewardButtonMode() {
   const play = document.getElementById('btn-play');
   const disc = document.getElementById('btn-discard');
+  const swap = document.getElementById('swap-indicator');
   if (play) {
     if (_origPlayHTML === null) _origPlayHTML = play.innerHTML;
     play.classList.add('reward-buy');
@@ -671,12 +672,35 @@ function enterRewardButtonMode() {
     disc.innerHTML = 'C<br>L<br>E<br>A<br>R';
     disc.disabled = true;
   }
+  // Repurpose the swap indicator slot into a SKIP button for the reward step (always available —
+  // it's the "take nothing" alternative to Confirm, which needs ≥1 pick).
+  if (swap) {
+    if (_origSwapHTML === null) _origSwapHTML = swap.innerHTML;
+    swap.classList.add('reward-skip');
+    swap.innerHTML = 'S<br>K<br>I<br>P';
+    swap.onclick = skipRewardGrid;
+  }
 }
 function exitRewardButtonMode() {
   const play = document.getElementById('btn-play');
   const disc = document.getElementById('btn-discard');
+  const swap = document.getElementById('swap-indicator');
   if (play && _origPlayHTML !== null) { play.classList.remove('reward-buy');  play.innerHTML = _origPlayHTML; }
   if (disc && _origDiscardHTML !== null) { disc.classList.remove('reward-clear'); disc.innerHTML = _origDiscardHTML; }
+  if (swap && _origSwapHTML !== null) { swap.classList.remove('reward-skip'); swap.innerHTML = _origSwapHTML; swap.onclick = null; }
+}
+
+// Skip the reward grid: take no tiles, collect a baseline gold payout (placeholder), and — with
+// Rain Check — bank extra seconds for next round. Then close the step normally (node still advances).
+function skipRewardGrid() {
+  if (rewardConfirmed || rewardDealing) return;
+  rewardConfirmed = true;
+  coins += BAL.reward_skip.gold; updateCoinsUI();
+  let _msg = `Skipped rewards · +${BAL.reward_skip.gold} gold`;
+  if (hasTrick('rain_check')) { nextRoundSecondsDelta += BAL.rain_check.seconds; _msg += ` · +${BAL.rain_check.seconds}s next round`; }
+  showMessage(_msg, 'var(--gold)');
+  rewardSelected = new Set(); // abandon any in-progress picks
+  closeRewardGrid();
 }
 
 // ── Reward-entity visuals (LETHE) ────────────────────────────────────────────
@@ -851,7 +875,7 @@ function renderRewardGrid() {
       const [sr, sc] = k.split('-').map(Number);
       return rewardCells[sr]?.[sc]?.kind === 'dest';
     });
-    const cap = limits.selection.current;
+    const cap = rewardSelectionCap();
     const picks = `Picks: ${rewardSelected.size}/${cap}`;
     const atCap = rewardSelected.size >= cap;
     subEl.textContent = atCap
@@ -866,12 +890,17 @@ function renderRewardGrid() {
   document.getElementById('reward-clear').disabled   = !hasAny;
 }
 
+// Effective reward-grid pick cap = the Selection Size limit + Greedy Boi's reward-grid-only bonus.
+function rewardSelectionCap() {
+  return limits.selection.current + (hasKnack('greedy_boi') ? BAL.greedy_boi.selection : 0);
+}
+
 // A cell is selectable if: nothing selected yet (any cell), OR orthogonally adjacent to any selected cell and not already selected
 function isRewardCellSelectable(r, c) {
   const key = `${r}-${c}`;
   if (rewardSelected.has(key)) return false; // already selected
-  // Picks are capped by the Selection Size limit — same cap as the play grid
-  if (rewardSelected.size >= limits.selection.current) return false;
+  // Picks are capped by the Selection Size limit (+ Greedy Boi) — same base cap as the play grid
+  if (rewardSelected.size >= rewardSelectionCap()) return false;
   // Destination rule: at most one dest tile per selection
   const ROWS = limits.grid_rows.current;
   const COLS = limits.grid_cols.current;
@@ -1090,14 +1119,30 @@ async function confirmRewardPath() {
   rewardDealing = true;   // block re-render from clobbering the flying tiles
   try { await animateRewardResolve(); } catch (e) { console.error('[REWARD] resolve anim failed', e); }
   rewardDealing = false;
+  const _picks = rewardSelected.size; // captured before closeRewardGrid clears the set (More Better)
+  let _negThisGrid = 0;               // negative (debuff) tiles taken this grid — risk entities
   rewardSelected.forEach(key => {
     const [r, c] = key.split('-').map(Number);
     const cell = rewardCells[r][c];
+    if (cell.kind === 'debuff') _negThisGrid++;
     // A throwing payload must never strand the reward step — isolate each apply.
     // Entity rewards were already applied on landing (animateRewardResolve).
     try { if (cell.payload && typeof cell.payload.apply === 'function' && !cell.payload._applied) cell.payload.apply(); }
     catch (e) { console.error('[REWARD] payload apply failed', e); }
   });
+  // More Better: every reward grid confirmed with 3+ tiles (all tiles count) permanently grows the trick.
+  if (hasTrick('more_better') && _picks >= BAL.more_better.min_tiles) {
+    bonusMult_morebetter += BAL.more_better.mult;
+    showMessage(`More Better! +${BAL.more_better.mult} mult (now +${bonusMult_morebetter})`, 'var(--gold)');
+  }
+  // Negative-tile tally (per run) — feeds Wild Side / Wait For Iiiit (read at scoring) + Shady Stimulants (on-take).
+  if (_negThisGrid > 0) {
+    negativeTilesTakenRun += _negThisGrid;
+    if (hasKnack('shady_stimulants')) {
+      focusCapPerm += _negThisGrid;
+      showMessage(`Shady Stimulants — +${_negThisGrid} max Focus`, '#a25cd8');
+    }
+  }
   closeRewardGrid();
 }
 

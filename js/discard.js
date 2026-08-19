@@ -1,4 +1,6 @@
 function doDiscard() {
+  // Dominoes mode has its own discard flow (tiles return to the domino deck).
+  if (typeof ACTIVE_MODE !== 'undefined' && ACTIVE_MODE.id === 'dominoes') { dominoDiscard(); return; }
   // On grid-takeover screens the Discard button is repurposed: LEAVE (shop) / CLEAR (reward).
   if (typeof shopGridActive !== 'undefined' && shopGridActive) { closeShopGrid(); return; }
   if (rewardOnGrid) { clearRewardSelection(); return; }

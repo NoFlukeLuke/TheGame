@@ -3,11 +3,21 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<!-- PWA / "Add to Home Screen": launches bar-free (fullscreen) on mobile.
+     Just a shortcut to the live URL — always loads the newest version, nothing is downloaded per-version. -->
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="The Game">
+<meta name="theme-color" content="#0d2010">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22512%22%20height%3D%22512%22%3E%3Crect%20width%3D%22512%22%20height%3D%22512%22%20rx%3D%2296%22%20fill%3D%22%230d2010%22%2F%3E%3Crect%20x%3D%2240%22%20y%3D%2240%22%20width%3D%22432%22%20height%3D%22432%22%20rx%3D%2264%22%20fill%3D%22none%22%20stroke%3D%22%23f2c94c%22%20stroke-width%3D%2216%22%2F%3E%3Ctext%20x%3D%22256%22%20y%3D%22360%22%20font-size%3D%22300%22%20text-anchor%3D%22middle%22%20fill%3D%22%23f2c94c%22%20font-family%3D%22serif%22%3EA%3C%2Ftext%3E%3C%2Fsvg%3E">
+<link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22The%20Game%22%2C%22short_name%22%3A%22The%20Game%22%2C%22start_url%22%3A%22.%22%2C%22scope%22%3A%22.%22%2C%22display%22%3A%22fullscreen%22%2C%22orientation%22%3A%22portrait%22%2C%22background_color%22%3A%22%230d2010%22%2C%22theme_color%22%3A%22%230d2010%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data%3Aimage%2Fsvg%2Bxml%2C%253Csvg%2520xmlns%253D%2522http%253A%252F%252Fwww.w3.org%252F2000%252Fsvg%2522%2520width%253D%2522512%2522%2520height%253D%2522512%2522%253E%253Crect%2520width%253D%2522512%2522%2520height%253D%2522512%2522%2520rx%253D%252296%2522%2520fill%253D%2522%25230d2010%2522%252F%253E%253Crect%2520x%253D%252240%2522%2520y%253D%252240%2522%2520width%253D%2522432%2522%2520height%253D%2522432%2522%2520rx%253D%252264%2522%2520fill%253D%2522none%2522%2520stroke%253D%2522%2523f2c94c%2522%2520stroke-width%253D%252216%2522%252F%253E%253Ctext%2520x%253D%2522256%2522%2520y%253D%2522360%2522%2520font-size%253D%2522300%2522%2520text-anchor%253D%2522middle%2522%2520fill%253D%2522%2523f2c94c%2522%2520font-family%253D%2522serif%2522%253EA%253C%252Ftext%253E%253C%252Fsvg%253E%22%2C%22sizes%22%3A%22any%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%2C%22purpose%22%3A%22any%20maskable%22%7D%5D%7D">
 <title>Poker Grid — Arcade Prototype</title>
 <link rel="stylesheet" href="css/style.css">
 <link rel="stylesheet" href="css/dance.css">
 <link rel="stylesheet" href="css/dev-overlays.css">
 <link rel="stylesheet" href="css/match3.css">
+<link rel="stylesheet" href="css/dominoes.css">
 <link rel="stylesheet" href="css/mart.css">
 </head>
 <body>
@@ -21,8 +31,13 @@
     <div id="menu-stripe"></div>
     <div id="menu-title">THE GAME</div>
     <div id="menu-tagline">A LETHE amusement product. Please continue<br>playing until further notice.</div>
-    <button id="menu-start-btn" onclick="openModeSelect()">PLAY</button>
+    <button id="menu-start-btn" onclick="maybeAutoFullscreen(); openModeSelect()">PLAY</button>
     <button id="menu-settings-btn" onclick="openSettingsFromMenu()">SETTINGS</button>
+    <button id="menu-fullscreen-btn" onclick="toggleFullscreen()" style="display:none;">⛶ FULLSCREEN</button>
+    <div id="ios-fullscreen-hint" style="display:none;">
+      On iPhone / iPad: tap the <strong>Share</strong> button, then <strong>“Add to Home Screen.”</strong>
+      Launch from that icon for bar-free fullscreen — it always loads the newest version.
+    </div>
     <div id="menu-build-stamp"></div>
   </div>
 </div>
@@ -470,19 +485,23 @@
 <div id="countdown-321-overlay">
   <div id="countdown-321-number">3</div>
 </div>
-<div id="pause-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:190;flex-direction:column;align-items:center;justify-content:center;gap:16px;">
-  <div style="font-family:'Cinzel',serif;font-size:28px;font-weight:900;color:var(--gold);letter-spacing:8px;">PAUSED</div>
-  <button id="btn-resume" class="end-btn">Resume</button>
-  <div id="pause-settings" style="display:flex;flex-direction:column;align-items:center;gap:10px;margin-top:8px;width:220px;">
-    <div style="font-family:'Cinzel',serif;font-size:8px;letter-spacing:3px;color:var(--gold-dim);text-transform:uppercase;border-bottom:1px solid var(--border);width:100%;padding-bottom:6px;text-align:center;">Settings</div>
-    <label style="display:flex;align-items:center;justify-content:space-between;width:100%;font-family:'Cinzel',serif;font-size:10px;letter-spacing:1px;cursor:pointer;">
-      <span>Dev Mode</span>
-      <input type="checkbox" id="dev-mode-toggle" style="width:18px;height:18px;cursor:pointer;" onchange="toggleDevMode(this.checked)">
-    </label>
-    <label style="display:flex;align-items:center;justify-content:space-between;width:100%;font-family:'Cinzel',serif;font-size:10px;letter-spacing:1px;cursor:pointer;">
-      <span title="Suit cards transform (gold/purple) and change scoring. Off by default.">Exalt / Corrupt</span>
-      <input type="checkbox" id="exalt-corrupt-toggle" style="width:18px;height:18px;cursor:pointer;" onchange="toggleExaltCorrupt(this.checked)">
-    </label>
+<div id="pause-overlay">
+  <div id="pause-panel">
+    <div id="pause-title">PAUSED</div>
+    <div id="pause-stripe"></div>
+    <button id="btn-resume" class="pause-btn pause-btn-primary">▶ Resume</button>
+    <button id="btn-pause-home" class="pause-btn pause-btn-ghost" onclick="quitToMainMenu()">⌂ Home</button>
+    <div id="pause-settings">
+      <div class="pause-settings-label">Settings</div>
+      <label class="pause-toggle">
+        <span>Dev Mode</span>
+        <input type="checkbox" id="dev-mode-toggle" onchange="toggleDevMode(this.checked)">
+      </label>
+      <label class="pause-toggle">
+        <span title="Suit cards transform (gold/purple) and change scoring. Off by default.">Exalt / Corrupt</span>
+        <input type="checkbox" id="exalt-corrupt-toggle" onchange="toggleExaltCorrupt(this.checked)">
+      </label>
+    </div>
   </div>
 </div>
 
@@ -693,6 +712,7 @@
 <script src="js/devlog.js"></script>
 <script src="js/grid-metrics.js"></script>
 <script src="js/data/cards.js"></script>
+<script src="js/data/dominoes.js"></script>
 <script src="js/data/tricks.js"></script>
 <script src="js/focus-config.js"></script>
 <script src="js/limits.js"></script>
@@ -730,6 +750,7 @@
 <script src="js/stats.js"></script>
 <script src="js/deck-view.js"></script>
 <script src="js/game-control.js"></script>
+<script src="js/dominoes-mode.js"></script>
 <script src="js/challenge.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/match3.js"></script>

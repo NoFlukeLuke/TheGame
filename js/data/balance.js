@@ -99,6 +99,18 @@ const BAL = {
   four_by_four:  { pips: 16 },
   four_horseman: { pips: 16, mult: 8, focus: 4, pause: 4 },
   wait_four_it:  { pause: 1 },
+  shaky_foundation: { mult: 15 },
+  wave_amp:      { pips_per_streak: 10 },
+  dam_holding:   { pause: 3 },
+  acorns:        { focus_per_card: 0.05 },
+  plan_ahead:    { every: 3 },
+  more_better:   { mult: 4, min_tiles: 3 },
+  rain_check:    { seconds: 30 },
+  temporal_rift: { pause: 3 },
+  reward_skip:   { gold: 15 },   // baseline gold for skipping a reward grid (placeholder)
+  wild_side:     { mult_per: 3 },       // +mult per negative reward tile taken this run
+  wait_for_it:   { chance_per: 0.02 },  // +replay chance per negative reward tile taken this run
+  greedy_boi:    { selection: 2 },      // +reward-grid selection size (knack)
   huddle:        { pips_per_adj: 11 },
   combo_score: { mult_per_type: 2 },
   heart_double: { heart_mult: 1 },

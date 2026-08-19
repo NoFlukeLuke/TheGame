@@ -142,6 +142,11 @@ function trickLiveDesc(trick) {
       case 'tens_mult':      return now(`+${bonusMult_tens || 0} mult`);
       case 'compound_mult':  return now(`+${(bonusMult_compound || 0).toFixed(1)} mult`);
       case 'prolific':       return now(`+${bonusPips_prolific || 0} pips`);
+      case 'acorns':         return now(`+${Math.floor(bonusFocus_acorns || 0)} Focus/hand · ${(bonusFocus_acorns || 0).toFixed(2)} stored`);
+      case 'plan_ahead':     return now(`+${Math.max(1, Math.round((handsPlayedGame || 0) / Math.max(1, level)))} Focus every 3rd hand`);
+      case 'more_better':    return now(`+${bonusMult_morebetter || 0} mult`);
+      case 'wild_side':      return now(`+${(negativeTilesTakenRun || 0) * (B.wild_side?.mult_per ?? 3)} mult`);
+      case 'wait_for_it':    return now(`${Math.round((negativeTilesTakenRun || 0) * (B.wait_for_it?.chance_per ?? 0.02) * 100)}% replay chance`);
       case 'big_win':        return now(`+${bonusMult_jackpot || 0} mult`);
       case 'feng_shui':      return now(`+${bonusPips_fengshui || 0} pips`);
       case 'sapling':        return now(`${level - 1} levels applied`);
@@ -191,13 +196,21 @@ function showTrickTooltip(trick, readOnly = false) {
   tip.className = `trick-tooltip trick-tier-${trick.tier}`;
   const hint = readOnly ? '' : `<div class="trick-tooltip-hint">Tap again to pick</div>`;
   const liveDesc = trickLiveDesc(trick);
-  const discardBtn = readOnly ? `<button class="trick-tooltip-discard" id="trick-tooltip-discard-btn">Discard Trick</button>` : '';
-  tip.innerHTML = `<div class="trick-tooltip-name">${trick.name}</div><div class="trick-tooltip-desc">${colorizeKeywords(withSuitHalo(liveDesc))}</div>${hint}${discardBtn}`;
+  const _sv = (typeof trickSellValue === 'function') ? trickSellValue(trick) : 0;
+  const actionBtns = readOnly
+    ? `<div class="trick-tooltip-actions"><button class="trick-tooltip-sell" id="trick-tooltip-sell-btn">Sell 💰${_sv}</button>`
+      + `<button class="trick-tooltip-discard" id="trick-tooltip-discard-btn">Discard</button></div>`
+    : '';
+  tip.innerHTML = `<div class="trick-tooltip-name">${trick.name}</div><div class="trick-tooltip-desc">${colorizeKeywords(withSuitHalo(liveDesc))}</div>${hint}${actionBtns}`;
   tip.style.opacity = '0';
   gridEl.appendChild(tip);
 
-  // Wire discard button
+  // Wire sell + discard buttons
   if (readOnly) {
+    tip.querySelector('#trick-tooltip-sell-btn')?.addEventListener('click', e => {
+      e.stopPropagation();
+      sellTrick(trick);
+    });
     tip.querySelector('#trick-tooltip-discard-btn')?.addEventListener('click', e => {
       e.stopPropagation();
       discardTrickFromGrid(trick);
@@ -367,9 +380,16 @@ function showTrickTrayTooltip(trick, anchorEl) {
   tip.id = 'trick-tooltip';
   tip.className = `trick-tooltip trick-tier-${trick.tier}`;
   const liveDesc = trickLiveDesc(trick);
-  tip.innerHTML = `<div class="trick-tooltip-name">${trick.name}</div><div class="trick-tooltip-desc">${colorizeKeywords(withSuitHalo(liveDesc))}</div><button class="trick-tooltip-discard" id="trick-tooltip-discard-btn">Discard Trick</button>`;
+  const _sv = (typeof trickSellValue === 'function') ? trickSellValue(trick) : 0;
+  tip.innerHTML = `<div class="trick-tooltip-name">${trick.name}</div><div class="trick-tooltip-desc">${colorizeKeywords(withSuitHalo(liveDesc))}</div>`
+                + `<div class="trick-tooltip-actions"><button class="trick-tooltip-sell" id="trick-tooltip-sell-btn">Sell 💰${_sv}</button>`
+                + `<button class="trick-tooltip-discard" id="trick-tooltip-discard-btn">Discard</button></div>`;
   tip.style.cssText = 'position:fixed;opacity:0;z-index:300;';
   document.body.appendChild(tip);
+  tip.querySelector('#trick-tooltip-sell-btn')?.addEventListener('click', e => {
+    e.stopPropagation();
+    sellTrick(trick);
+  });
   tip.querySelector('#trick-tooltip-discard-btn')?.addEventListener('click', e => {
     e.stopPropagation();
     discardTrickFromTray(trick);

@@ -28,6 +28,9 @@ const KNACK_POOL = [
   { id:'down_and_back_in',emoji:'🔁',  name:'Down and Back In', rarity:'common', desc:'Discarding the grid’s highest rank grants +1 discard or swap (alternating) and +5 coins. If several cards share that top rank, all must be discarded together.' },
   { id:'muscle_memory',   emoji:'🧠',  name:'Muscle Memory',    rarity:'common', desc:'Primed Tricks stay primed for one extra hand.' },
   { id:'curator',         emoji:'✦',   name:'Curator',          rarity:'rare',   desc:'+1 Trick Slot.' },
+  // ── Reward-grid / risk knacks (r129) ──
+  { id:'shady_stimulants',emoji:'💊',  name:'Shady Stimulants', rarity:'rare',   desc:'Every negative reward tile you swallow sharpens you — permanently +1 maximum Focus per tile taken.' },
+  { id:'greedy_boi',      emoji:'🤑',  name:'Greedy Boi',       rarity:'rare',   desc:'+2 selection size in the reward grid — grab more tiles at once.' },
   { id:'scavenger',       emoji:'🦴',  name:'Scavenger',        rarity:'common', desc:'Whenever a curse lifts, gain +10 coins and +1 discard next round.' },
   { id:'coin_toss',       emoji:'🪙',  name:'Coin Toss',        rarity:'common', desc:'At the start of each round, every Sleight has a 50% chance to restore 1 charge.' },
   { id:'martyr',          emoji:'⚰️',  name:'Martyr',           rarity:'common', desc:'Discarding a non-discard Sleight restores 1 charge to all Sleights on the grid.' },

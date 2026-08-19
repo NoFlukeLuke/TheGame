@@ -119,6 +119,8 @@ const TRICK_POOL = [
   // ── Accumulating ──
   { id:'compound_mult',  name:'Compound',            tier:'epic',      desc:'Each hand played permanently adds +0.1 mult to this trick' },
   { id:'prolific',       name:'Prolific',            tier:'rare',      desc:'Each hand played permanently adds +1 pip to this trick' },
+  { id:'acorns',         name:'Acorns',              tier:'rare',      tags:['focus','scaling'], desc:'Each card scored permanently adds +0.05 Focus to this trick; grants its whole-number Focus each hand' },
+  { id:'plan_ahead',     name:'Plan Ahead',          tier:'epic',      tags:['focus','scaling'], desc:'Every 3rd hand adds Focus equal to your average hands per round' },
   { id:'fives_discard',  name:'Penny Saved',         tier:'rare',      tags:['scaling','pips','value'], desc:'Each 5 discarded or played permanently adds +5 pips to this trick' },
   { id:'nines_mult',     name:'Cloud Nine',          tier:'rare',      tags:['scaling','mult','value'], desc:'Each 9 scored permanently adds +9 mult to this trick' },
   { id:'tens_mult',      name:'Perfect Ten',         tier:'rare',      tags:['scaling','mult','value'], desc:'Every 10 cards discarded permanently adds +1 mult to this trick' },
@@ -139,6 +141,15 @@ const TRICK_POOL = [
   // ── Diverse conditions ──
   { id:'combo_score',    name:'Combo Score',         tier:'common',    desc:'+2 mult for every distinct hand type played this round' },
   { id:'escalation',     name:'Escalation',          tier:'rare',      desc:'For each hand beyond the 5th in a round, score +1 mult' },
+  { id:'move_as_one',    name:'Move as One',         tier:'epic',      tags:['synergy'], desc:'If 3+ of your Tricks share a keyword, your lowest-rarity Trick sharing that keyword scores its effect a second time' },
+  // ── Reward-grid meta (r128) ──
+  { id:'more_better',    name:'More Better',         tier:'common',    tags:['mult','scaling'], desc:'Each reward grid where you select 3+ tiles permanently adds +4 mult to this trick' },
+  { id:'rain_check',     name:'Rain Check',          tier:'epic',      tags:['time'],           desc:'Skipping a reward grid adds +30 seconds to your next round' },
+  // ── Time / position (r128) ──
+  { id:'temporal_rift',  name:'Temporal Rift',       tier:'epic',      tags:['time','position','scaling'], desc:'A card scored where a row effect and a column effect cross permanently pauses the clock 3s when scored (once per minute; a card already time-buffed is skipped)' },
+  // ── Risk / negative-tile scaling (r129) ──
+  { id:'wild_side',      name:'Wild Side',           tier:'rare',      tags:['mult','scaling','risk'],    desc:'+3 mult for every negative reward tile you have taken this run' },
+  { id:'wait_for_it',    name:'Wait For Iiiit',      tier:'epic',      tags:['replay','scaling','risk'],  desc:'Each negative reward tile taken this run gives every scored card a +2% chance to replay (checked per card; retroactive)' },
   // ── Focus ──
   { id:'meditation',     name:'Meditation',          tier:'common',    tags:['focus'], desc:'Focus decays 1 second slower' },
   { id:'tunnel_vision',  name:'Tunnel Vision',       tier:'common',    tags:['focus'], desc:'Start each round with 5 focus' },
@@ -176,6 +187,13 @@ const TRICK_POOL = [
   { id:'four_by_four',   name:'4x4',                 tier:'common',    tags:['pips','position'], desc:'Cards scored in the 4th column score +16 pips' },
   { id:'four_horseman',  name:'Four Horse-man',      tier:'epic',      tags:['pips','mult','focus','time'], desc:'4-card hands grant a random bonus: +16 pips, +8 mult, +4 Focus, or a 4-second pause' },
   { id:'wait_four_it',   name:'Wait Four It',        tier:'rare',      tags:['time'],            desc:'4-card hands permanently buff their 4th card to pause the clock 1 second when scored' },
+  // ── Set add-ons (r124) ──
+  { id:'undue_influence', name:'Undue Influence',    tier:'epic',      tags:['credits','set'],   desc:'A Set containing a face card grants credits equal to the number of Sets you have played this round' },
+  { id:'encore',          name:'Encore',             tier:'epic',      tags:['replay','set'],    desc:'Sets made of only odd-ranked cards score a second time' },
+  { id:'shaky_foundation',name:'Shaky Foundation',   tier:'common',    tags:['mult','set'],      desc:'Every other Set scores +15 mult' },
+  // ── Run add-ons (r124) ──
+  { id:'dam_holding',    name:'Dam Holding…',        tier:'rare',      tags:['time'],            desc:'Runs pause the clock 3 seconds' },
+  { id:'wave_amp',       name:'Wave Amplification',  tier:'common',    tags:['pips','streak'],   desc:'Consecutively played Runs score +10 pips × the current Run streak' },
 ];
 
 // ── Trick category → emoji ──
@@ -183,21 +201,21 @@ const TRICK_POOL = [
 // Used on the reward-pick and shop cards so each Trick shows emoji + name, with
 // the full description reserved for the tooltip.
 const TRICK_CATEGORIES = [
-  { emoji:'🪜', ids:['overgrowth','long_road','river_run','ancient_grove','correct_run','tide_table','undertow','high_water','worn_path'] }, // Runs
-  { emoji:'👯', ids:['kindred','trinity','double_bloom','high_pair','rare_bloom','full_house_streak','pair_pips','two_pair_mult','richter','eye_of_storm','ripple'] }, // Pairs / sets
+  { emoji:'🪜', ids:['overgrowth','long_road','river_run','ancient_grove','correct_run','tide_table','undertow','high_water','worn_path','dam_holding','wave_amp'] }, // Runs
+  { emoji:'👯', ids:['kindred','trinity','double_bloom','high_pair','rare_bloom','full_house_streak','pair_pips','two_pair_mult','richter','eye_of_storm','ripple','undue_influence','encore','shaky_foundation'] }, // Pairs / sets
   { emoji:'🎴', ids:['enriched','tidal_force','deluge','summit','last_stand','light_touch','heavy_hand','blackjack_bonus'] }, // Flush / special hands
   { emoji:'👑', ids:['first_light','wild_heart','face_value','king_guard','knave_power','humble_roots','before_the_tide','royal_trio'] }, // Rank-specific
   { emoji:'🌱', ids:['rich_soil','fertile_ground','first_fruits','sapling'] }, // Per-card pips
-  { emoji:'⏱️', ids:['early_bird','night_owl','closing_time','quick_draw','patience_reward','steady_pace','momentum','first_play','still_water','frozen_moment','ticktock','quarter_chime','minute_hand','second_hand','hourglass','sediment','kingfisher','magpie','mockingbird','starling'] }, // Timing
+  { emoji:'⏱️', ids:['early_bird','night_owl','closing_time','quick_draw','patience_reward','steady_pace','momentum','first_play','still_water','frozen_moment','ticktock','quarter_chime','minute_hand','second_hand','hourglass','sediment','kingfisher','magpie','mockingbird','starling','rain_check'] }, // Timing
   { emoji:'🔥', ids:['kindling','wildfire','echo_hand','hot_streak'] }, // Streaks
   { emoji:'🎨', ids:['club_double','monochrome','full_color','balanced_diet'] }, // Suit conditions
   { emoji:'🔢', ids:['lucky_sevens','ninesong','prime_time','even_score','odd_squad'] }, // Number magic
   { emoji:'🌈', ids:['number_crunch'] }, // Rank diversity
-  { emoji:'📍', ids:['rowcol_triple_pips','rowcol_mult','rowcol_retrigger','perfect_timing','right_time','study_hall','rowcol_perm_double','shape_square','shape_cross','shape_line','corner_retrigger','two_corners','edge_pips','wide_span_mult','column_rush','row_power','groove','assembly_line','overtime','feng_shui','huddle','clean_sweep'] }, // Position
+  { emoji:'📍', ids:['rowcol_triple_pips','rowcol_mult','rowcol_retrigger','perfect_timing','right_time','study_hall','rowcol_perm_double','shape_square','shape_cross','shape_line','corner_retrigger','two_corners','edge_pips','wide_span_mult','column_rush','row_power','groove','assembly_line','overtime','feng_shui','huddle','clean_sweep','temporal_rift'] }, // Position
   { emoji:'📈', ids:['rising_tide','veteran_bonus'] }, // Level scaling
-  { emoji:'🧮', ids:['compound_mult','prolific','fives_discard','nines_mult','tens_mult','sixes_perm','fours_perm','twos_retrigger','prime_times','eights_retrigger','snowball','big_win','queens_upgrade','aces_absorb'] }, // Accumulating
-  { emoji:'🎲', ids:['sands_of_time','discard_pips','spade_flood','mirror'] }, // Situational pip
-  { emoji:'🔀', ids:['combo_score','escalation'] }, // Diverse conditions
+  { emoji:'🧮', ids:['compound_mult','prolific','acorns','plan_ahead','more_better','fives_discard','nines_mult','tens_mult','sixes_perm','fours_perm','twos_retrigger','prime_times','eights_retrigger','snowball','big_win','queens_upgrade','aces_absorb'] }, // Accumulating
+  { emoji:'🎲', ids:['sands_of_time','discard_pips','spade_flood','mirror','wild_side','wait_for_it'] }, // Situational pip
+  { emoji:'🔀', ids:['combo_score','escalation','move_as_one'] }, // Diverse conditions
   { emoji:'🎯', ids:['meditation','tunnel_vision','first_wind','rhythm','restless','cull','expanse','kaleidoscope','flow_state'] }, // Focus
   { emoji:'⭐', ids:['heartwood'] }, // Legendary misc
 ];

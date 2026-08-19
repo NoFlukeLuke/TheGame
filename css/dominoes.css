@@ -1,0 +1,70 @@
+/* ══════════════════════════════════════════════
+   DOMINOES MODE — visuals (only used when ACTIVE_MODE.id === 'dominoes')
+   ══════════════════════════════════════════════ */
+
+/* A piece is one absolutely-positioned tile spanning two grid cells.
+   It's inset from the full 2-cell footprint so the tile reads as a thin domino. */
+#grid .domino {
+  position: absolute;
+  box-sizing: border-box;
+  cursor: pointer;
+  z-index: 2;
+  transition: left 0.32s cubic-bezier(0.4, 0, 0.2, 1),
+              top  0.32s cubic-bezier(0.34, 1.2, 0.64, 1),
+              filter 0.12s ease, transform 0.1s ease;
+}
+/* The short-axis inset that slims each tile to a 2:1 domino is applied inline by
+   dominoRenderBoard() — a CSS % here would resolve against width on both axes. */
+
+#grid .domino .dom-body {
+  width: 100%; height: 100%;
+  display: flex;
+  background: linear-gradient(160deg, #fbf7ec, #e7ddc4);
+  border: 1px solid #b7a97e;
+  border-radius: 9px;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.7);
+  overflow: hidden;
+}
+#grid .domino.dom-h .dom-body { flex-direction: row; }
+#grid .domino.dom-v .dom-body { flex-direction: column; }
+
+/* Center divider line between the two halves. */
+#grid .domino .dom-divider { background: #b7a97e; flex: 0 0 2px; align-self: stretch; }
+
+/* Each half holds a 3×3 pip face. */
+#grid .domino .dom-face {
+  flex: 1 1 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 8%;
+  padding: 14%;
+  place-items: center;
+}
+#grid .domino .dom-pip { width: 100%; aspect-ratio: 1; border-radius: 50%; }
+#grid .domino .dom-pip.on { box-shadow: inset 0 -1px 2px rgba(0,0,0,0.35), 0 1px 1px rgba(0,0,0,0.25); }
+
+/* Selection state. */
+#grid .domino.selected .dom-body { border-color: #ffd24a; box-shadow: 0 0 0 2px #ffd24a, 0 4px 10px rgba(0,0,0,0.4); }
+#grid .domino.selected { transform: translateY(-2px); z-index: 5; }
+#grid .domino:hover .dom-body { filter: brightness(1.04); }
+
+/* Not a legal next pick (adjacency rule) or selection already full. */
+#grid .domino.dom-dim { opacity: 0.42; filter: saturate(0.5); }
+#grid .domino.dom-dim:hover .dom-body { filter: none; }
+
+/* Armed for a swap — waiting for its partner. */
+#grid .domino.swap-pending .dom-body {
+  border-color: #8fd0ff;
+  box-shadow: 0 0 0 2px #8fd0ff, 0 0 14px rgba(143,208,255,0.6);
+  animation: dom-swap-pulse 0.9s ease-in-out infinite alternate;
+}
+@keyframes dom-swap-pulse { from { filter: brightness(1); } to { filter: brightness(1.12); } }
+
+#grid .domino .dom-selnum {
+  position: absolute; top: -6px; left: -6px; z-index: 6;
+  min-width: 18px; height: 18px; padding: 0 4px;
+  background: #ffd24a; color: #2a2417;
+  font: 700 12px/18px system-ui, sans-serif; text-align: center;
+  border-radius: 9px; box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+}
