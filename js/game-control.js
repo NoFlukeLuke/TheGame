@@ -70,12 +70,12 @@ function quitToMainMenu() {
 }
 
 document.getElementById('btn-stats').addEventListener('click', () => {
-  pauseGame(false); // pause timers but don't hide grid
+  if (!screenOwnsClock()) pauseGame(false); // pause timers but don't hide grid
   showStats();
 });
 
 document.getElementById('btn-deck').addEventListener('click', () => {
-  pauseGame(false);
+  if (!screenOwnsClock()) pauseGame(false);
   showDeck();
 });
 
@@ -130,16 +130,23 @@ document.addEventListener('click', (e) => {
   if (!e.target.closest('#btn-time') && !e.target.closest('#interact-costs')) hideTimePopup();
 }, true);
 
+// Stats / Deck can also be opened from a takeover screen (the Mart shop), where there is
+// no round running to resume — resuming there would start the round timer behind the shop.
+// screenOwnsClock() is true whenever some other screen owns the clock, and the openers below
+// skip pauseGame() in that case, so the close handler must skip resumeGame() to match.
+function screenOwnsClock() {
+  return (typeof martActive !== 'undefined' && martActive)
+      || (typeof shopGridActive !== 'undefined' && shopGridActive)
+      || document.getElementById('shop-overlay')?.classList.contains('show')
+      || (typeof rewardOnGrid !== 'undefined' && rewardOnGrid);
+}
+function closeInfoOverlay(id) {
+  document.getElementById(id).classList.remove('show');
+  if (!screenOwnsClock()) resumeGame();
+}
 // Resume when overlays are closed
-document.querySelector('#stats-overlay .overlay-close').addEventListener('click', () => {
-  document.getElementById('stats-overlay').classList.remove('show');
-  resumeGame();
-});
-
-document.querySelector('#deck-overlay .overlay-close').addEventListener('click', () => {
-  document.getElementById('deck-overlay').classList.remove('show');
-  resumeGame();
-});
+document.querySelector('#stats-overlay .overlay-close').addEventListener('click', () => closeInfoOverlay('stats-overlay'));
+document.querySelector('#deck-overlay .overlay-close').addEventListener('click', () => closeInfoOverlay('deck-overlay'));
 
 function startGame() {
   document.getElementById('end-overlay').classList.remove('show');

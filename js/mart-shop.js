@@ -117,9 +117,9 @@ function martTileHTML(p, key) {
   let inner;
   if (p.type==='trick')   inner = `<div class="trick"><div class="emblem">✦ TRICK</div><div class="art">${p.emoji}</div><div class="nm">${p.label}</div></div>`;
   else if (p.type==='sleight') inner = `<div class="sleight"><span class="corner ${'♥♦'.includes(p.suit)?'suit-red':'suit-blk'}">${p.rank}${p.suit}</span><span class="corner br ${'♥♦'.includes(p.suit)?'suit-red':'suit-blk'}">${p.rank}${p.suit}</span><div class="art">${p.emoji}</div><div class="nm">${p.label}</div><div class="uses">${p.uses}</div></div>`;
-  else if (p.type==='knack') inner = `<div class="mini-knack" style="width:60px;height:60px;--rc:var(--c-${martRar(p)==='common'?'mint':martRar(p)==='rare'?'cyan':martRar(p)==='epic'?'purple':martRar(p)==='legendary'?'yellow':'magenta'})"><span style="font-size:24px">${p.emoji}</span></div><div style="font-size:7px;text-transform:uppercase;text-align:center;margin-top:3px;color:#fff;max-width:64px">${p.label}</div>`;
+  else if (p.type==='knack') inner = `<div class="knack"><div class="mini-knack"><span>${p.emoji}</span></div><div class="nm">${p.label}</div></div>`;
   else if (p.type==='limit') inner = `<div class="limit"><span class="ico">▲</span><div class="body"><span class="lname">${p.label}</span><span class="lprog">${p.cur} → ${p.next}</span></div></div>`;
-  return `<div class="${cls}" data-key="${key}" ${p.type==='knack'?'style="display:flex;flex-direction:column;align-items:center"':''}>${inner}${price}</div>`;
+  return `<div class="${cls}" data-key="${key}">${inner}${price}</div>`;
 }
 
 function martSectionHTML(cat) {
@@ -159,10 +159,15 @@ function renderMartLoadout() {
       <div class="m-schip" data-act="stats">📊 Stats</div><div class="m-schip" data-act="deck">🃏 Deck</div>
       <div class="m-schip" data-act="time">⏱ Time</div><div class="m-schip" data-act="wip">⚙ More·WIP</div>
     </div>`;
+  // Stats / Deck work in here now: their overlays sit at z-index 260, above the Mart's 250,
+  // and closeInfoOverlay() skips resumeGame() while a takeover screen owns the clock — so
+  // closing one returns to the shop instead of starting the round behind it.
   el.querySelectorAll('.m-schip').forEach(chip => chip.onclick = () => {
     const a = chip.dataset.act;
-    if (a==='time' && typeof toggleTimePopup==='function') toggleTimePopup();
-    else showMessage('That panel is WIP in the shop', 'var(--cream-dim)');   // stats/deck resume the round — WIP here
+    if      (a==='stats' && typeof showStats==='function') showStats();
+    else if (a==='deck'  && typeof showDeck==='function')  showDeck();
+    else if (a==='time'  && typeof toggleTimePopup==='function') toggleTimePopup();
+    else showMessage('That panel is WIP in the shop', 'var(--cream-dim)');
   });
 }
 

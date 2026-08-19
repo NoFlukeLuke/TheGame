@@ -1,4 +1,4 @@
-const BUILD = '2026-08-19 · r137 · Skip = +20 gold (labelled) · entity-driven bundle discount';
+const BUILD = '2026-08-19 · r138 · Knack tiles fit their names · Stats/Deck work inside the shop';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

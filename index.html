@@ -299,6 +299,22 @@
   </div>
 </div>
 
+<!-- STATS / DECK OVERLAYS — deliberately OUTSIDE #stage (same reason as #dev-panel).
+     Inside the stage their z-index was trapped in the cabinet's stacking context, so the
+     Mart shop overlay (a body-level z-index:250) painted over them and swallowed the
+     Close button's clicks; they also inherited the stage's CSS zoom. -->
+<div id="stats-overlay">
+  <div class="overlay-title">GAME STATS</div>
+  <div id="stats-content"></div>
+  <button class="overlay-close">Close</button>
+</div>
+
+<div id="deck-overlay">
+  <div class="overlay-title">YOUR DECK</div>
+  <div id="deck-content"></div>
+  <button class="overlay-close">Close</button>
+</div>
+
 <div id="cabinet">
   <div id="cab-topbar">
     <span class="cab-led"></span>
@@ -512,19 +528,7 @@
 
 
 
-<!-- STATS OVERLAY -->
-<div id="stats-overlay">
-  <div class="overlay-title">GAME STATS</div>
-  <div id="stats-content"></div>
-  <button class="overlay-close" onclick="document.getElementById('stats-overlay').classList.remove('show')">Close</button>
-</div>
-
-<!-- DECK OVERLAY -->
-<div id="deck-overlay">
-  <div class="overlay-title">YOUR DECK</div>
-  <div id="deck-content"></div>
-  <button class="overlay-close" onclick="document.getElementById('deck-overlay').classList.remove('show')">Close</button>
-</div>
+<!-- STATS + DECK OVERLAYS live outside #stage — see the block just before #cabinet -->
 
 <!-- HAND UNLOCK OVERLAY -->
 <div id="unlock-overlay">

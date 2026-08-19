@@ -83,6 +83,22 @@
 #mart-overlay .sleight .corner.br{ top:auto; left:auto; bottom:2px; right:4px; transform:rotate(180deg); }
 #mart-overlay .sleight .art{ font-size:21px; line-height:1; } #mart-overlay .sleight .nm{ font-size:7px; font-weight:700; text-transform:uppercase; text-align:center; margin-top:2px; }
 #mart-overlay .sleight .uses{ position:absolute; bottom:2px; left:4px; font-family:'Share Tech Mono',monospace; font-size:7px; color:#6a5; }
+/* Knack tile: same 72x92 footprint as a Trick so every catalog tile lines up.
+   The diamond is 48px rotated 45deg (~68px diagonal), which fits the 72px width —
+   the old inline 60px version was ~85px across and collided with the name.
+   The name gets its own fixed 2-line box (.m-rowc is overflow-y:hidden, so a name
+   that grew past the tile used to be clipped rather than wrapped). */
+#mart-overlay .knack{ width:72px; height:92px; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; }
+/* rotate(45deg) does not grow the layout box: a 46px square still lays out as 46px but
+   visually spans ~65px corner-to-corner, so the bottom tip would sit on top of the name.
+   The margins reserve that ~10px overhang on each side. */
+#mart-overlay .knack .mini-knack{ width:46px; height:46px; margin:9px 0 11px; }
+#mart-overlay .knack .mini-knack span{ font-size:20px; }
+/* Fixed-height name box top-aligned under the diamond, so one-line and two-line
+   names share the same first baseline instead of drifting with centring. */
+#mart-overlay .knack .nm{ font-size:8px; font-weight:700; text-transform:uppercase; text-align:center; color:#fff;
+  width:72px; height:2.3em; line-height:1.15; overflow:hidden; text-shadow:0 0 6px var(--rc);
+  overflow-wrap:anywhere; hyphens:auto; }
 #mart-overlay .limit{ min-width:158px; height:44px; display:flex; align-items:center; gap:8px; padding:0 10px; border-radius:7px;
   background:linear-gradient(180deg,#0e1a16,#08110d); border-left:4px solid var(--c-mint); }
 #mart-overlay .limit .ico{ font-size:16px; color:var(--c-mint); } #mart-overlay .limit .body{ display:flex; flex-direction:column; line-height:1.1; }
