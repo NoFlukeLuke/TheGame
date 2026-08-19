@@ -1,0 +1,160 @@
+entity_type,id,name,params_json,rarity,base_cost,buff_type,trigger,activation,charges,cat_hand_type,cat_hand_size,cat_spatial,cat_card_specific,cat_suit_specific,cat_time,cat_money,cat_discard_swap,cat_play,cat_focus,cat_scaling,cat_retrigger,tags,description,notes
+Bonus Card,deep_roots,Deep Roots,"{""mult"":2}",common,3,mult,hand-type,,,1,,,,,,,,,,,,,Run of 3 scores +2 mult,
+Bonus Card,overgrowth,Overgrowth,"{""pips"":20}",common,3,pips,hand-type,,,1,,,,,,,,,,,,,Run of 3 scores +20 pips,
+Bonus Card,ancient_grove,Ancient Grove,"{""score_mult"":2}",legendary,12,score-multiplier,hand-type,,,1,,,,,,,,,,,,,Run of 3 ×2 score,
+Bonus Card,long_road,Long Road,"{""mult_per_card"":2}",rare,6,mult,always / passive,,,,,,,,,,,,,,,,Any run scores +2 mult per card,
+Bonus Card,river_run,River Run,"{""score_mult"":2}",rare,6,score-multiplier,hand-type,,,1,,,,,,,,,,,,,Straight ×2 score,
+Bonus Card,torrent,Torrent,"{""run4_mult"":2,""big_mult"":4}",legendary,12,score-multiplier,hand-type,,,1,1,,,,,,,,,,,,"Runs longer than 3 multiply score — ×2 for Run of 4, ×4 for Straight or Straight Flush",
+Bonus Card,correct_run,In Order,"{""score_mult"":2}",rare,6,score-multiplier,always / passive,,,,,,,,,,,,,,,,Runs selected in ascending or descending order score ×2,
+Bonus Card,worn_path,Worn Path,"{""pips"":20}",common,3,pips,hand-type,,,1,,,,,,,,,,,,,Straight scores +20 pips,
+Bonus Card,kindred,Kindred,"{""mult"":1}",common,3,mult,card-specific,,,1,,,1,,,,,,,,,,Three of a Kind scores +1 mult,
+Bonus Card,trinity,Trinity,"{""score_mult"":2}",epic,9,score-multiplier,card-specific,,,1,,,1,,,,,,,,,,Three of a Kind ×2 score,
+Bonus Card,twin_sprouts,Twin Sprouts,"{""pips"":15}",common,3,pips,hand-type,,,1,,,,,,,,,,,,,Pair scores +15 pips,
+Bonus Card,double_bloom,Double Bloom,"{""score_mult"":2}",epic,9,score-multiplier,hand-type,,,1,,,,,,,,,,,,,Any hand containing a pair ×2 score,
+Bonus Card,hidden_pair,Hidden Pair,"{""pips"":12}",common,3,pips,hand-type,,,1,,,,,,,,,,,,,Hands containing a pair score +12 pips,
+Bonus Card,high_pair,High Pair,"{""pips_per_card"":5}",common,3,pips,always / passive,,,,,,,,1,,,,,,,,Pairs of 10s or higher score +5 pips per matching card,
+Bonus Card,rare_bloom,Rare Bloom,"{""mult"":12}",rare,6,mult,card-specific,,,1,,,1,,,,,,,,,,Four of a Kind scores +12 mult,
+Bonus Card,full_house_streak,House Rules,"{""score_base"":1.5}",rare,6,score-multiplier,hand-type,,,1,,,,,,,,,,,,,Each Full House this round scores ×1.5 more than the last,
+Bonus Card,triple_threat,Triple Threat,"{""pips"":20}",common,3,pips,hand-type,,,1,,,,,,,,,,,,,Full House adds +20 pips,
+Bonus Card,pair_pips,Pair Up,"{""pips_per_card"":3}",common,3,pips,card-specific,,,1,,,1,,,,,,,,,,Two Pair adds +3 pips per card,
+Bonus Card,two_pair_mult,Double Dutch,"{""mult"":5}",common,3,mult,card-specific,,,1,,,1,,,,,,,,,,Two Pair scores +5 mult,
+Bonus Card,enriched,Enriched,"{""pips"":15}",common,3,pips,hand-type,,,1,,,,,,,,,,,,,Flush scores +15 pips,
+Bonus Card,tidal_force,Tidal Force,"{""mult"":4}",rare,6,mult,hand-type,,,1,,,,,,,,,,,,,Flush scores +4 mult,
+Bonus Card,deluge,Deluge,"{""score_mult"":2}",epic,9,score-multiplier,hand-type,,,1,,,,,,,,,,,,,Flush ×2 score,
+Bonus Card,perfect_storm,Perfect Storm,"{""score_mult"":5}",legendary,12,score-multiplier,hand-type,,,1,,,,,,,,,,,,,Straight Flush ×5 score,
+Bonus Card,summit,Summit,"{""pips_per_level"":4}",common,3,pips,always / passive,,,,,,,,,,,,,,,,The highest-ranking card in each hand scores +(level x 4) pips.,
+Bonus Card,last_stand,Last Stand,"{""score_mult"":2}",rare,6,score-multiplier,always / passive,,,,,,,,,,,,,,,,"If your score is below the round goal when you play, that hand scores x2.",
+Bonus Card,light_touch,Nimble,"{""mult"":5}",common,3,mult,hand-size,,,,1,,,,,,,,,,,,2-card hands score +5 mult,
+Bonus Card,heavy_hand,Full Load,"{""pips_per_card"":6}",rare,6,pips,hand-size,,,,1,,,,,,,,,,,,5-card hands score +6 pips per card,
+Bonus Card,blackjack_bonus,Twenty-One,"{""score_mult"":3}",legendary,12,score-multiplier,hand-type,,,1,1,,,,,,,,,,,,"If the face values of your cards total exactly 21, score ×3",
+Bonus Card,first_light,First Light,"{""pips"":5}",common,3,pips,card-specific,,,,,,,,,,,,,,,,Aces score +5 pips,
+Bonus Card,wild_heart,Ace's Blessing,"{""mult_per_ace"":2}",common,3,mult,card-specific,,,,,,,,,,,,,,,,Aces add +2 mult each,
+Bonus Card,face_value,Face Value,"{""face_pips"":15}",common,3,pips,card-specific,,,,,,,,,,,,,,,,Face cards (J/Q/K) are worth 15 pips,
+Bonus Card,court_of_leaves,Court of Leaves,"{""pips"":3}",common,3,pips,card-specific,,,,,,,,,,,,,,,,Face cards (J/Q/K) score +3 pips,
+Bonus Card,king_guard,King's Honour,"{""pips"":8}",common,3,pips,card-specific,,,,,,,,,,,,,,,,Kings score +8 pips each,
+Bonus Card,jack_mult,Knave's Gambit,"{""mult_per_jack"":2}",common,3,mult,card-specific,,,,,,,,,,,,,,,,Jacks add +2 mult each,
+Bonus Card,ten_strong,Tens Strong,"{""pips"":7}",common,3,pips,card-specific,,,,,,1,,,,,,,,,,Tens score +7 pips each,
+Bonus Card,power_two,Power of Two,"{""pips"":4}",common,3,pips,always / passive,,,,,,,,,,,,,,,,Cards ranked 2 score +4 pips each,
+Bonus Card,lucky_three,Triple Lucky,"{""mult"":2}",common,3,mult,always / passive,,,,,,,,,,,,,,,,Any 3 in a hand adds +2 mult,
+Bonus Card,knave_power,Knave Power,"{""run_mult"":2}",rare,6,pips,card-specific,,,,,,1,,,,,,,,,,Each Jack in hand multiplies running pips ×2 when scored,
+Bonus Card,humble_roots,Humble Roots,"{""pip_mult"":3}",common,3,pips,always / passive,,,,,,,,,,,,,,,,Cards below 6 contribute 3× pips,
+Bonus Card,low_tide,Low Tide,"{""pips"":6}",common,3,pips,always / passive,,,,,,,,,,,,,,,,Cards below 6 score +6 pips,
+Bonus Card,before_the_tide,Before the Tide,"{""extra_mult"":5}",legendary,12,score-multiplier,always / passive,,,,,,,,,,,,,,,,Cards below 6 score 6× their base pip value instead,
+Bonus Card,royal_trio,Royal Trio,"{""score_mult"":2}",epic,9,score-multiplier,always / passive,,,,,,,,,,,,,,,,"A hand containing K, Q, and J scores ×2",
+Bonus Card,rich_soil,Rich Soil,"{""pips"":2}",common,3,pips,always / passive,,,,,,,,,,,,,,,,All cards score +2 pips,
+Bonus Card,fertile_ground,Fertile Ground,"{""pips"":3}",rare,6,pips,always / passive,,,,,,,,,,,,,,,,All cards score +3 pips,
+Bonus Card,first_fruits,First Fruits,"{""pips"":2}",rare,6,pips,hand-size,,,,,,,,,,,,,1,,,Each card in first hand each round permanently gains +2 pips,
+Bonus Card,sapling,Sapling,,rare,6,pips,always / passive,,,,,,,,,,,,,1,,,"Each level, 3 cards permanently gain +2 pips",structural — no tunable value
+Bonus Card,early_bird,Early Bird,"{""pips"":20}",common,3,pips,time-based,,,,,,,,1,,,,,,,,Hands in first 10s score +20 pips,
+Bonus Card,night_owl,Night Owl,"{""mult"":3}",common,3,mult,time-based,,,,,,,,1,,,,,,,,Hands in last 10s score +3 mult,
+Bonus Card,closing_time,Closing Time,"{""mult"":5}",rare,6,mult,always / passive,,,,,,,,1,,,,,,,,Hands played with 15s or less remaining score +5 mult,
+Bonus Card,quick_draw,Quick Draw,"{""pips_per_card"":3}",common,3,pips,always / passive,,,,,,,,1,,,,,,,,Hands played within 3 seconds of the previous score +3 pips per card,
+Bonus Card,patience_reward,Patient Hunter,"{""mult"":3}",rare,6,mult,always / passive,,,,,,,,1,,,,,,,,Hands played more than 15s after the previous score +3 mult,
+Bonus Card,steady_pace,Steady Pace,"{""mult"":1}",common,3,mult,always / passive,,,,,,,,,,,1,,,,,Each hand played scores +1 mult,
+Bonus Card,momentum,Momentum,"{""mult"":2}",common,3,mult,card-specific,,,,,,,,1,,,,,,,,Consecutive hand within 5s scores +2 mult,
+Bonus Card,first_play,Head Start,"{""mult"":2}",common,3,mult,always / passive,,,,,,,,,,,,,,,,First hand each round scores +2 mult,
+Bonus Card,still_water,Still Water,"{""mult_per_interval"":5}",rare,6,mult,on-swap,,,,,,,,1,,1,,,,,,+5 mult for every 10 seconds elapsed without using a swap,
+Bonus Card,frozen_moment,Frozen Moment,"{""score_mult"":2}",epic,9,score-multiplier,time-based,,,,,,,,1,,,,,,,,Hands while timer paused score ×2,
+Bonus Card,kindling,Kindling,"{""pips_per_streak"":4}",common,3,pips,streak,,,,,,,,,,,,,1,,,Same hand streak scores +4 pips × streak,
+Bonus Card,wildfire,Wildfire,"{""mult"":2}",rare,6,mult,spatial,,,,,1,,,,,,,,,,,3 same hands in a row scores +2 mult,
+Bonus Card,echo_hand,Echo Hand,"{""score_mult"":1.5}",common,3,score-multiplier,spatial,,,,,1,,,,,,,,,,,Playing the same hand type twice in a row scores ×1.5,
+Bonus Card,hot_streak,On Fire,,rare,6,mult,streak,,,,,,,,,,,,,1,,,Streak of 4+ same hand adds +1 mult per count beyond 3,structural — no tunable value
+Bonus Card,heart_double,Devoted,"{""heart_mult"":1}",rare,6,mult,suit-specific,,,,,,,1,,,,,,,,suit mult,Each scored heart adds +1 mult,
+Bonus Card,club_double,Hard Labour,"{""club_pips"":10}",rare,6,pips,suit-specific,,,,,,,1,,,,,,,,suit pips,Each scored club adds +10 pips,
+Bonus Card,monochrome,Black & Red,"{""mult"":3}",common,3,mult,suit-specific,,,,,,,1,,,,,,,,,All-red (hearts/diamonds) or all-black (clubs/spades) hand scores +3 mult,
+Bonus Card,full_color,Rainbow,"{""mult"":4}",rare,6,mult,card-specific,,,,,,1,,,,,,,,,,Hand containing all four suits scores +4 mult,
+Bonus Card,balanced_diet,Balanced,"{""mult"":2}",rare,6,mult,always / passive,,,,,,,,,,,,,,,,Hand with exactly 2 different suits scores +2 mult,
+Bonus Card,lucky_sevens,Lucky Sevens,"{""score_mult"":2}",epic,9,score-multiplier,card-specific,,,,,,1,,1,,,,,,,,7s ×2 score,
+Bonus Card,ninesong,Ninesong,"{""score_mult"":3}",epic,9,score-multiplier,always / passive,,,,,,,,,,,,,,,,"If pip total is multiple of 9, ×3 score",
+Bonus Card,prime_time,Prime Time,"{""score_mult"":2}",epic,9,score-multiplier,always / passive,,,,,,,,,,,,,,,,"Hands where all cards have prime pip values (2,3,5,7) score ×2",
+Bonus Card,even_score,Even Stevens,"{""mult"":3}",rare,6,mult,always / passive,,,,,,,,,,,,,,,,"Hands with only even-ranked cards (2,4,6,8,10,Q) score +3 mult",
+Bonus Card,odd_squad,Odd Fellows,"{""mult"":3}",rare,6,mult,always / passive,,,,,,,,,,,,,,,,"Hands with only odd-ranked cards (A,3,5,7,9,J,K) score +3 mult",
+Bonus Card,number_crunch,Diversity,"{""mult"":2}",rare,6,mult,always / passive,,,,,,,,,,,,,,,,Hands with 4+ different ranks score +2 mult,
+Bonus Card,same_kind,All In,"{""mult_per_match"":2}",rare,6,mult,always / passive,,,,,,,,,,,,,,,,Hands where 3+ cards share the same rank score +2 mult per matching card,
+Bonus Card,rowcol_triple_pips,Triple Pips,"{""pip_mult"":3}",rare,6,pips,spatial,,,,,1,,,,,,,,,,pips position,Cards scored in a specific row or column contribute 3× pips,
+Bonus Card,rowcol_mult,Power Line,,rare,6,mult,spatial,,,,,1,,,,,,,,,,mult position,Cards scored in a specific row or column each add +2 mult,structural — no tunable value
+Bonus Card,rowcol_retrigger,Echo Line,,rare,6,retrigger,spatial,,,,,1,,,,,,,,,1,retrigger position,Cards scored in a specific row or column score their pips twice,structural — no tunable value
+Bonus Card,rowcol_perm_double,Ley Line,,epic,9,score-multiplier,spatial,,,,,1,,,,,,,,1,,pips position scaling,Cards scored at a specific grid intersection permanently double their pips (resets each level),structural — no tunable value
+Bonus Card,shape_square,Four Corners,"{""score_mult"":4}",epic,9,score-multiplier,spatial,,,,,1,,,,,,,,,,position shape,A 2×2 hand scores ×4,
+Bonus Card,shape_cross,Crossroads,"{""score_mult"":3}",rare,6,score-multiplier,spatial,,,,,1,,,,,,,,,,position shape,A + shaped hand scores ×3,
+Bonus Card,shape_line,Straight Shot,,common,3,mult,spatial,,,,,1,,,,,,,,,,position shape mult,All-row or all-column hands add the first and last card's pip values to mult,structural — no tunable value
+Bonus Card,shape_snake,Snake,"{""mult_per_card"":2}",rare,6,mult,spatial,,,,,1,,,,,,,,,,position shape mult,A hand that changes direction every step scores +2 mult per card,
+Bonus Card,corner_retrigger,Corner Power,,rare,6,retrigger,spatial,,,,,1,,,,,,,,,1,position retrigger,Cards in corner cells score their pips twice,structural — no tunable value
+Bonus Card,two_corners,Diagonal,"{""score_mult"":4}",epic,9,score-multiplier,spatial,,,,,1,,,,,,,,,,position score,A hand containing 2 corner cells scores ×4,
+Bonus Card,edge_pips,On the Edge,"{""pips_per_card"":15}",common,3,pips,spatial,,,,,1,,,,,,,,,,position pips,Hands where all cards are on the outer edge score +15 pips per card,
+Bonus Card,wide_span_mult,Wide Reach,,rare,6,mult,spatial,,,,,1,,,,,,,,,,position mult pips,"Hands spanning 4+ rows or columns score +24 mult. +5 mult per extra column, +20 pips per extra row",structural — no tunable value
+Bonus Card,column_rush,Column Rush,"{""mult_per_card"":2}",common,3,mult,spatial,,,,,1,,,,,,,,,,,All cards in the same column add +2 mult per card,
+Bonus Card,row_power,Row Power,"{""mult_per_card"":2}",common,3,mult,spatial,,,,,1,,,,,,,,,,,All cards in the same row add +2 mult per card,
+Bonus Card,rising_tide,Rising Tide,,common,3,mult,always / passive,,,,,,,,,,,,,1,,,Base mult increases by +1 for each level reached,structural — no tunable value
+Bonus Card,veteran_bonus,Veteran,"{""pips_per_level"":2}",common,3,pips,always / passive,,,,,,,,,,,,,,,,+2 pips per level reached this run,
+Bonus Card,compound_mult,Compound,"{""mult_per_hand"":0.1}",epic,9,mult,always / passive,,,,,,,,,,,1,,1,,,Each hand played permanently adds +0.1 mult to this bonus,
+Bonus Card,prolific,Prolific,"{""pips_per_hand"":1}",rare,6,pips,always / passive,,,,,,,,,,,1,,1,,,Each hand played permanently adds +1 pip to this bonus,
+Bonus Card,fives_discard,Penny Saved,"{""pips_per_five"":5}",rare,6,pips,on-discard,,,,,,1,,,,1,,,1,,scaling pips value,Each 5 discarded or played permanently adds +5 pips to this bonus,
+Bonus Card,nines_mult,Cloud Nine,"{""mult_per_nine"":9}",rare,6,mult,always / passive,,,,,,1,,,,,,,1,,scaling mult value,Each 9 scored permanently adds +9 mult to this bonus,
+Bonus Card,tens_mult,Perfect Ten,"{""mult_per_milestone"":1,""discards_per_milestone"":10}",rare,6,mult,on-discard,,,,,,1,,,,1,,,1,,scaling mult value,Every 10 cards discarded permanently adds +1 mult to this bonus,
+Bonus Card,sixes_perm,Lucky Roll,"{""roll_min"":1,""roll_max"":6,""interval"":6}",rare,6,mult,always / passive,,,,,,1,,,,,,,1,,scaling mult value,Every 6th card scored gains a random +1–6 mult permanently,
+Bonus Card,fours_perm,Steady Fours,"{""pips"":4}",common,3,pips,hand-size,,,,1,,1,,,,,,,1,,scaling pips value,4-card hands permanently give the 4th card +4 pips,
+Bonus Card,twos_retrigger,Double Take,,common,3,retrigger,always / passive,,,,,,1,,,,,,,,1,retrigger value,Each 2 scored counts its pips twice,structural — no tunable value
+Bonus Card,eights_retrigger,Octave,,common,3,retrigger,always / passive,,,,,,1,,,,,,,,1,retrigger value,Each 8 scored counts its pips twice,structural — no tunable value
+Bonus Card,snowball,Snowball,"{""pips"":2,""score_threshold"":500}",epic,9,pips,always / passive,,,,,,,,,,,,,1,,,"After any hand scoring 500+ pips, each scored card permanently gains +2 pips",
+Bonus Card,big_win,Jackpot,"{""mult"":5,""score_threshold"":10000}",legendary,12,mult,always / passive,,,,,,,,,,,,,1,,,"The first time a single hand scores 10,000+, permanently add +5 mult to this bonus",
+Bonus Card,queens_upgrade,Royal Favour,,epic,9,utility,spatial,,,,,1,1,,,,,,,1,,scaling grid value,"After scoring, cards adjacent to Queens permanently gain +1 rank",structural — no tunable value
+Bonus Card,aces_absorb,Ace Absorb,,legendary,12,utility,spatial,,,,,1,1,,,,,1,,1,,scaling value,"When an Ace scores, one random adjacent card is forgotten and its bonuses added to the Ace (once per hand)",structural — no tunable value
+Bonus Card,sands_of_time,Sands of Time,"{""divisor"":2}",rare,6,score-multiplier,time-based,,,,,,,,,,,,,,,,Current round time remaining ÷ 2 added as pips,
+Bonus Card,discard_pips,Compost,"{""pips_per_discard"":3}",common,3,pips,on-discard,,,,,,,,,,1,,,,,pips discard,+3 pips per card discarded this round,
+Bonus Card,spade_flood,Spade Flood,"{""time_mult"":2}",epic,9,pips,suit-specific,,,,1,,,1,,,,,,,,suit pips,4 or 5-card all-spade hands add 2× the remaining round time as pips,
+Bonus Card,dark_matter,Dark Matter,"{""pips"":5}",rare,6,exalt/corrupt,always / passive,,,,,,,,,,,,,,,,Corrupted cards in a hand add +5 pips each,
+Bonus Card,combo_score,Combo Score,"{""mult_per_type"":2}",common,3,mult,always / passive,,,,,,,,,,,,,,,,+2 mult for every distinct hand type played this round,
+Bonus Card,escalation,Escalation,,rare,6,mult,always / passive,,,,,,,,,,,,,,,,"For each hand beyond the 5th in a round, score +1 mult",structural — no tunable value
+Bonus Card,meditation,Meditation,,common,3,focus,always / passive,,,,,,,,,,,,1,,,focus,Focus decays 1 second slower,structural — no tunable value
+Bonus Card,tunnel_vision,Tunnel Vision,,common,3,focus,time-based,,,,,,,,,,,,1,,,focus,Start each round with 5 focus,structural — no tunable value
+Bonus Card,first_wind,First Wind,,common,3,focus,always / passive,,,,,,,,,,,,1,,,focus,Focus does not decay for the first 45 seconds of a round,structural — no tunable value
+Bonus Card,rhythm,Rhythm,,common,3,focus,always / passive,,,,,,,,,,,1,1,,,focus,Each hand played adds 1 additional focus,structural — no tunable value
+Bonus Card,restless,Restless,,common,3,focus,on-swap,,,,,,,,,,1,,1,,,focus,Swapping adds 1 focus,structural — no tunable value
+Bonus Card,cull,Cull,,common,3,focus,on-discard,,,,,,,,,,1,,1,,,focus,Using a discard adds 1 focus,structural — no tunable value
+Bonus Card,expanse,Expanse,,common,3,focus,always / passive,,,,,,,,,,,,1,,,focus,"Each time you hit max focus, increase max focus capacity by 1",structural — no tunable value
+Bonus Card,kaleidoscope,Kaleidoscope,,rare,6,focus,suit-specific,,,,,,,,,,,,1,,,focus,Playing one of each suit in a hand adds 4 focus,structural — no tunable value
+Bonus Card,flow_state,Flow State,"{""pips_per_card"":10}",rare,6,score-multiplier,always / passive,,,,,,,,,,,,1,,,focus pips,"While focus is ×1.5 or higher, +10 pips per card scored",
+Bonus Card,heartwood,Heartwood,"{""pips"":5,""mult"":1}",epic,9,mult,spatial,,,,,1,,,,,,,,1,,,Dead center card permanently gains +5 pips & +1 mult each time scored,
+Joker,the_queen,The Queen,,legendary,12,wildcard,card-specific,wildcard,infinite,,,,1,,,,,,,,1,wildrank scoring,Wild rank — becomes the rank that makes the best hand. (Reach + queen-retrigger: TBD),structural — no tunable value; needsResolve / TBD
+Joker,warehouse,Warehouse,,rare,6,wildcard,suit-specific,wildcard,infinite,1,,,,1,,,,,,,,wildsuit suit,Wild suit — becomes any suit to complete a flush. Has no rank.,structural — no tunable value
+Joker,good_friend,The Good Friend,,rare,6,exalt/corrupt,spatial,on_play,3,,,1,,,,,,,,,,exalt position,Play it as part of a hand: exalts all adjacent cards. (3 charges),structural — no tunable value
+Joker,not_a_friend,Not a Friend,,rare,6,exalt/corrupt,spatial,on_discard,3,,,1,,,,,1,,,,,corrupt position,Discard it: corrupts all adjacent cards. (3 charges),structural — no tunable value
+Joker,shepherd,Shepherd,,common,3,exalt/corrupt,spatial,on_draw,infinite,,,1,,,,,,,,,,exalt,"When drawn onto the grid, exalts 1 random card.",structural — no tunable value
+Joker,idol,Idol,"{""interest_mult"":3}",rare,6,coins,round_end,round_end,1,,,,,,,1,,,,,,coins,Finish the round with this on your board to earn 3× interest. (Once),
+Joker,shortcut,Shortcut,,legendary,12,challenge,hand-size,on_play,1,,1,,,,,,,,,,,challenge,Play it in any 4-card hand to instantly complete the active challenge. (Once),structural — no tunable value
+Joker,fight_power,Fight the Power,,legendary,12,boss,spatial,passive,infinite,,,1,,,,,,,,,,boss,"While on the grid, all boss effects are ignored.",structural — no tunable value
+Joker,dazed,Dazed & Confused,,rare,6,resource,spatial,on_swap,infinite,,,1,,,,,1,,,,,grid,"When swapped, reshuffles every card on the grid.",structural — no tunable value
+Joker,pivot,Pivot!,"{""mult"":5}",common,3,mult,on-swap,on_swap,3,,,,,,,,1,,,1,,resource scoring,"When swapped, that swap is free and both swapped cards gain +5 mult permanently. (3 charges)",
+Joker,echo_play,Echo,,epic,9,utility,on_play,on_play,3,,,,,,,,,,,,,scoring,Play this in any hand: that hand scores twice. (3 charges),structural — no tunable value
+Joker,the_naturalist,Naturalist,"{""pips"":2}",rare,6,pips,on_play,on_play,infinite,,,,,,,,,,,1,,scoring pips,Play this: each other scored card permanently gains +2 pips.,
+Joker,bellhop,Bellhop,"{""swaps"":2,""discards"":1}",common,3,resource,on-swap,on_play,5,,,,,,,,1,,,,,resource,Play this: gain +2 swaps and +1 discard. (5 charges),
+Joker,the_bomb,Bomb,"{""pips"":3}",epic,9,pips,spatial,on_discard,2,,,1,,,,,1,,,1,,scoring pips,Discard this: every card on the grid permanently gains +3 pips. (2 charges),
+Joker,the_legacy,Legacy,"{""extra_mult"":2}",rare,6,score-multiplier,on-discard,on_discard,3,,,,,,,,1,1,,,,scoring,Discard this: the next hand played scores ×3. (3 charges),
+Joker,cash_out,Cash Out,"{""coins"":10}",common,3,coins,on-discard,on_discard,4,,,,,,,1,1,,,,,resource coins,Discard this: gain 10 coins. (4 charges),
+Joker,lightning_rod,Lightning Rod,"{""pips"":5}",rare,6,pips,on-swap,on_swap,infinite,,,,,,,,1,,,1,,scoring pips,"When swapped, the card it traded with permanently gains +5 pips.",
+Joker,the_catalyst,Catalyst,"{""mult"":1}",rare,6,mult,on-swap,on_swap,infinite,,,,,,,,1,,,1,,scoring mult,"When swapped, the card it traded with permanently gains +1 mult.",
+Joker,the_wanderer,Wanderer,"{""swaps"":1}",common,3,resource,on-swap,on_swap,infinite,,,,,,,,1,,,,,resource,"When swapped, refunds the swap (+1 swap back).",
+Joker,amplifier,Amplifier,"{""mult"":5}",common,3,mult,double_tap,double_tap,5,,,,,,,,,,,,,scoring mult,Double-tap: the next hand scores +5 mult. (5 charges),
+Joker,time_keeper,Time Keeper,"{""seconds"":20}",common,3,resource,double_tap,double_tap,4,,,,,,1,,1,,,,,resource time,Double-tap: add +20 seconds to this round. (4 charges),
+Joker,piggy_bank,Piggy Bank,"{""coins"":5}",common,3,coins,double_tap,double_tap,5,,,,,,,1,1,,,,,resource coins,Double-tap: gain 5 coins. (5 charges),
+Totem,free_swaps,Free Swaps,,,,resource,on-swap,,persistent,,,,,,,,1,,,,,,Swapping cards costs no time.,structural — no tunable value
+Totem,free_discards,Free Discards,,,,resource,on-discard,,persistent,,,,,,,,1,,,,,,Discarding costs no time.,structural — no tunable value
+Totem,steady_hand,Steady Hand,"{""swap_seconds"":20}",,,resource,on-swap,,persistent,,,,,,,,1,,,,,,"Swaps no longer count against the swap limit, but cost 20s each.",
+Totem,hoarder,Hoarder,"{""discard_seconds_per_card"":6}",,,resource,on-discard,,persistent,,,,,,,,1,,,,,,"Discards no longer count against the discard limit, but cost 6s per card.",
+Totem,time_bank,Time Bank,"{""seconds"":30}",,,time,time-based,,persistent,,,,,,1,,,,,,,,+30 seconds at the start of every round.,
+Totem,inheritance,Inheritance,"{""coins"":5}",,,coins,time-based,,persistent,,,,,,,1,,,,,,,Start each round with +5 coins.,
+Totem,combo_keeper,Combo Keeper,,,,utility,streak,,persistent,,,,,,,,,,,1,,,Streaks survive one non-streak hand. Re-arms after 2 streak hands.,structural — no tunable value
+Totem,lucky_seven,Lucky Seven,"{""interval_hands"":7,""swaps"":1}",,,resource,on-swap,,persistent,,,,,,,,1,1,,,,,Every 7th hand played gives +1 swap.,
+Totem,extra_swaps,Swap Shop,"{""swaps"":2}",,,resource,on-swap,,persistent,,,,,,,,1,,,,,,Start each round with +2 extra swaps.,
+Totem,extra_discards,Harvest,"{""discards"":2}",,,resource,on-discard,,persistent,,,,,,,,1,,,,,,Start each round with +2 extra discards.,
+Totem,carry_swaps,Pack Rat,"{""max"":8}",,,resource,on-swap,,persistent,,,,,,,,1,,,1,,,Unused swaps carry over to the next round (max 8).,
+Totem,carry_discards,Collector,"{""max"":8}",,,resource,on-discard,,persistent,,,,,,,,1,,,1,,,Unused discards carry over to the next round (max 8).,
+Totem,carry_time,Clock Tower,"{""max_seconds"":60}",,,time,always / passive,,persistent,,,,,,1,,,,,1,,,Unused round seconds carry over (max 60s).,
+Totem,safety_net,Safety Net,,,,utility,always / passive,,persistent,,,,,,1,,,,,,,,"Once per game: if you miss the round goal, gain a 30s extension instead of failing.",structural — no tunable value
+Totem,free_range_t,Free Range,,,,resource,spatial,,persistent,,,1,1,,,,1,,,,,,"Can swap any two non-adjacent cards, but limited to 2 swaps per round.",structural — no tunable value
+System,threes_run,threes run,"{""mult"":9}",,,,,,,,,,,,,,,,,,,,,
+System,extinction,extinction,"{""score_mult"":2}",,,,,,,,,,,,,,,,,,,,Four of a Kind ×score (not in current pool),
+System,_resources,resources,"{""swap_seconds"":10,""discard_seconds_per_card"":3}",,,,,,,,,,,,,,,,,,,,"Base time costs: swap, discard/card, hand play",
+System,_exalt,exalt,"{""club_pips"":10,""diamond_coins"":3,""heart_mult"":2,""spade_time"":4}",,,,,,,,,,,,,,,,,,,,Exalted-card per-suit effects,
+System,_corrupt,corrupt,"{""club_pips"":25,""club_mult"":-3,""diamond_coins"":5,""diamond_pips"":-20,""heart_mult"":5,""heart_time"":-5,""spade_time"":7,""spade_coins"":-8}",,,,,,,,,,,,,,,,,,,,Corrupted-card per-suit effects,

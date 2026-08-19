@@ -1,0 +1,131 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   LETHE MART — in-game off-grid shop (r127). Styles scoped under #mart-overlay.
+   Mirrors shop-preview-5-lethemart-v3.html. Uses the game's palette tokens.
+   ══════════════════════════════════════════════════════════════════════════ */
+#mart-overlay{ display:none; position:fixed; inset:0; z-index:250;
+  background:radial-gradient(ellipse at 62% 26%, #241c0b 0%, #0c0906 82%);
+  font-family:'Orbitron',sans-serif; color:var(--cream); padding:16px; }
+#mart-overlay.show{ display:block; }
+#mart-overlay::after{ content:''; position:absolute; inset:0; pointer-events:none; z-index:1;
+  background:repeating-linear-gradient(0deg, rgba(0,0,0,0.13) 0 1px, transparent 1px 3px); mix-blend-mode:overlay; }
+#mart-overlay .mart-grid{ position:relative; z-index:2; height:100%;
+  display:grid; grid-template-columns:210px 1fr 240px; gap:12px; max-width:1180px; margin:0 auto; }
+
+/* ── LEFT: loadout (mirrors in-game left column) ── */
+#mart-overlay .mart-loadout{ display:flex; flex-direction:column; gap:9px; min-height:0; }
+#mart-overlay .m-panel{ background:var(--panel); border:1px solid var(--border); border-radius:7px; padding:7px 9px; position:relative; }
+#mart-overlay .m-panel .m-pt{ font-family:'Cinzel',serif; font-size:9px; letter-spacing:2px; color:var(--cream-dim); text-transform:uppercase; margin-bottom:6px; display:flex; justify-content:space-between; }
+#mart-overlay .m-panel .m-pt .cnt{ font-family:'Share Tech Mono',monospace; opacity:.7; }
+#mart-overlay .p-knacks{ border-top:2px solid var(--c-yellow); }
+#mart-overlay .p-sleights{ border-top:2px solid var(--c-cyan); }
+#mart-overlay .p-tricks{ border-top:2px solid var(--c-coral); flex:1; }
+#mart-overlay .m-row{ display:flex; gap:6px; flex-wrap:wrap; }
+#mart-overlay .m-empty{ font-family:'Share Tech Mono',monospace; font-size:9px; color:var(--cream-dim); opacity:.5; }
+#mart-overlay .m-settings{ display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:auto; }
+#mart-overlay .m-schip{ font-family:'Cinzel',serif; font-size:10px; letter-spacing:1px; color:var(--cream); background:#1a1510; border:1px solid var(--border); border-radius:6px; padding:8px 4px; text-align:center; cursor:pointer; }
+#mart-overlay .m-schip:hover{ border-color:var(--gold-dim); }
+
+/* owned mini entities */
+#mart-overlay .mini-knack{ width:32px; height:32px; transform:rotate(45deg); border-radius:6px; flex-shrink:0;
+  background:linear-gradient(150deg,var(--plastic-hi),var(--plastic) 55%,var(--plastic-lo));
+  box-shadow:0 0 0 2px var(--plastic-deep), inset 0 2px 0 rgba(255,255,255,0.6), 0 0 10px -3px var(--rc,var(--c-mint)); position:relative; display:flex; align-items:center; justify-content:center; }
+#mart-overlay .mini-knack::after{ content:''; position:absolute; inset:14%; border-radius:4px; border:2px solid var(--rc,var(--c-mint)); box-shadow:0 0 6px -1px var(--rc,var(--c-mint)); }
+#mart-overlay .mini-knack span{ transform:rotate(-45deg); font-size:15px; }
+#mart-overlay .mini-sleight{ width:44px; height:60px; border-radius:6px; position:relative; padding:3px;
+  background:linear-gradient(160deg,#f7f2e6,#e6dcc4); border:1.25px solid var(--rc); color:#1a1510; box-shadow:0 2px 5px rgba(0,0,0,.5); display:flex; align-items:center; justify-content:center; }
+#mart-overlay .mini-sleight .c{ position:absolute; top:1px; left:3px; font-family:'Share Tech Mono',monospace; font-size:8px; font-weight:700; }
+#mart-overlay .mini-sleight .a{ font-size:18px; }
+#mart-overlay .mini-trick{ width:38px; height:48px; position:relative; color:#fff;
+  background:radial-gradient(120% 80% at 50% 0%, color-mix(in srgb, var(--rc) 22%, #0b0906), #0b0906); border:1.5px solid var(--rc); border-radius:3px;
+  clip-path:polygon(0 6px,6px 0,calc(100% - 6px) 0,100% 6px,100% calc(100% - 6px),calc(100% - 6px) 100%,6px 100%,0 calc(100% - 6px));
+  box-shadow:0 0 8px -2px var(--rc); display:flex; align-items:center; justify-content:center; }
+#mart-overlay .mini-trick .a{ font-size:20px; }
+#mart-overlay .suit-red{ color:#c0392b; } #mart-overlay .suit-blk{ color:#1a1510; }
+
+/* ── CENTER: catalog ── */
+#mart-overlay .mart-main{ display:flex; flex-direction:column; gap:8px; min-height:0; overflow-y:auto; }
+#mart-overlay .m-feat{ display:grid; grid-template-columns:1.5fr 1fr 108px; gap:8px; min-height:100px; }
+#mart-overlay .m-special{ border:1.5px solid var(--rc,var(--plastic-deep)); border-radius:10px; padding:8px 10px; background:linear-gradient(180deg,#15110b,#0a0906); display:flex; align-items:center; gap:10px; position:relative; }
+#mart-overlay .m-special .wip{ position:absolute; top:5px; right:7px; font-family:'Share Tech Mono',monospace; font-size:8px; letter-spacing:1px; color:#000; background:var(--c-yellow); border-radius:4px; padding:0 4px; }
+#mart-overlay .m-special .stag{ font-size:8px; letter-spacing:2px; color:var(--rc,var(--phosphor)); text-shadow:0 0 6px var(--rc,var(--phosphor)); }
+#mart-overlay .m-special .sname{ font-size:12px; font-weight:700; text-transform:uppercase; color:#fff; margin-top:2px; }
+#mart-overlay .m-special .sdesc{ font-family:'Share Tech Mono',monospace; font-size:9px; color:var(--cream-dim); margin-top:3px; }
+#mart-overlay .m-wheel{ width:52px; height:52px; border-radius:50%; flex-shrink:0;
+  background:conic-gradient(var(--c-magenta) 0 60deg,var(--c-cyan) 60deg 120deg,var(--c-yellow) 120deg 180deg,var(--c-mint) 180deg 240deg,var(--c-purple) 240deg 300deg,var(--c-coral) 300deg 360deg);
+  box-shadow:0 0 0 2px #0b0906, 0 0 12px -2px #fff; }
+#mart-overlay .m-freezer{ border:1.5px dashed var(--c-cyan); border-radius:10px; display:flex; flex-direction:column; align-items:center; justify-content:center; color:var(--c-cyan); background:rgba(22,200,216,0.05); text-align:center; position:relative; }
+#mart-overlay .m-freezer .fi{ font-size:24px; } #mart-overlay .m-freezer .ft{ font-size:7px; letter-spacing:2px; margin-top:3px; }
+
+#mart-overlay .m-sec{ border:1px solid #2a2416; border-radius:9px; padding:6px 9px 7px; background:linear-gradient(180deg,#120e08,#0b0906); position:relative; flex-shrink:0; }
+#mart-overlay .m-sec.tricks{ border-color:#5a4a12; box-shadow:inset 0 0 22px -8px rgba(255,176,46,0.18); }
+#mart-overlay .m-sec.tall{ padding-bottom:14px; }
+#mart-overlay .m-sec .m-sh{ font-size:9px; letter-spacing:3px; text-transform:uppercase; color:var(--cream-dim); display:flex; justify-content:space-between; align-items:center; }
+#mart-overlay .m-sec.tricks .m-sh{ color:var(--phosphor); }
+#mart-overlay .m-sec .m-sh .slots{ font-family:'Share Tech Mono',monospace; font-size:8px; opacity:.7; }
+#mart-overlay .m-rowc{ display:flex; gap:9px; margin-top:6px; align-items:flex-start; justify-content:flex-start; overflow-x:auto; overflow-y:hidden; scrollbar-width:thin; padding-bottom:2px; }
+#mart-overlay .m-rowc::-webkit-scrollbar{ height:5px; } #mart-overlay .m-rowc::-webkit-scrollbar-thumb{ background:#3a3020; border-radius:3px; }
+#mart-overlay .m-tool{ min-width:210px; border:1px dashed var(--c-coral); border-radius:9px; padding:8px 10px; background:linear-gradient(180deg,#1c1109,#120b06); display:flex; flex-direction:column; gap:3px; opacity:.72; }
+#mart-overlay .m-tool .tt{ font-size:9px; letter-spacing:1px; color:var(--c-coral); text-transform:uppercase; display:flex; justify-content:space-between; }
+#mart-overlay .m-tool .td{ font-family:'Share Tech Mono',monospace; font-size:9px; color:var(--cream); line-height:1.35; }
+
+/* shop entity tiles (purchasable) */
+#mart-overlay .m-item{ position:relative; flex-shrink:0; cursor:pointer; will-change:transform; transition:transform .12s; }
+#mart-overlay .m-item.in-cart{ outline:2px solid var(--c-mint); outline-offset:2px; }
+#mart-overlay .m-item.sold{ opacity:.32; pointer-events:none; }
+#mart-overlay .trick{ width:72px; height:92px; padding:7px 5px; color:#fff;
+  background:radial-gradient(120% 80% at 50% 0%, color-mix(in srgb, var(--rc) 22%, #0b0906), #0b0906); border:2px solid var(--rc); border-radius:4px;
+  clip-path:polygon(0 8px,8px 0,calc(100% - 8px) 0,100% 8px,100% calc(100% - 8px),calc(100% - 8px) 100%,8px 100%,0 calc(100% - 8px));
+  box-shadow:0 0 12px -2px var(--rc), inset 0 0 16px -6px var(--rc); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; }
+#mart-overlay .trick .emblem{ font-size:8px; color:var(--rc); letter-spacing:2px; text-shadow:0 0 6px var(--rc); }
+#mart-overlay .trick .art{ font-size:27px; line-height:1; } #mart-overlay .trick .nm{ font-size:8px; font-weight:700; text-transform:uppercase; text-align:center; text-shadow:0 0 6px var(--rc); }
+#mart-overlay .sleight{ width:60px; height:84px; border-radius:7px; padding:5px; background:linear-gradient(160deg,#f7f2e6,#e6dcc4); border:1.5px solid var(--rc); color:#1a1510; box-shadow:0 3px 8px rgba(0,0,0,.5); display:flex; flex-direction:column; align-items:center; justify-content:center; }
+#mart-overlay .sleight .corner{ position:absolute; top:2px; left:4px; font-family:'Share Tech Mono',monospace; font-size:10px; font-weight:700; line-height:1; }
+#mart-overlay .sleight .corner.br{ top:auto; left:auto; bottom:2px; right:4px; transform:rotate(180deg); }
+#mart-overlay .sleight .art{ font-size:21px; line-height:1; } #mart-overlay .sleight .nm{ font-size:7px; font-weight:700; text-transform:uppercase; text-align:center; margin-top:2px; }
+#mart-overlay .sleight .uses{ position:absolute; bottom:2px; left:4px; font-family:'Share Tech Mono',monospace; font-size:7px; color:#6a5; }
+#mart-overlay .limit{ min-width:158px; height:44px; display:flex; align-items:center; gap:8px; padding:0 10px; border-radius:7px;
+  background:linear-gradient(180deg,#0e1a16,#08110d); border-left:4px solid var(--c-mint); }
+#mart-overlay .limit .ico{ font-size:16px; color:var(--c-mint); } #mart-overlay .limit .body{ display:flex; flex-direction:column; line-height:1.1; }
+#mart-overlay .limit .lname{ font-size:8px; letter-spacing:1px; color:var(--c-mint); text-transform:uppercase; } #mart-overlay .limit .lprog{ font-family:'Share Tech Mono',monospace; font-size:11px; color:#cfe; }
+#mart-overlay .limit .lprice{ margin-left:auto; }
+#mart-overlay .m-item .price{ position:absolute; top:3px; right:4px; z-index:3; font-family:'Share Tech Mono',monospace; font-size:8px; color:var(--phosphor); background:rgba(0,0,0,0.6); border:1px solid rgba(255,176,46,0.5); border-radius:5px; padding:0 3px; }
+#mart-overlay .m-item .price.cant{ color:#ff5a6a; border-color:rgba(255,90,106,.55); }
+#mart-overlay .r-common{ --rc:var(--c-mint); } #mart-overlay .r-rare{ --rc:var(--c-cyan); } #mart-overlay .r-epic{ --rc:var(--c-purple); } #mart-overlay .r-legendary{ --rc:var(--c-yellow); } #mart-overlay .r-mythic{ --rc:var(--c-magenta); }
+
+/* frozen item (WIP freeze): halt float + blue tinge */
+#mart-overlay .m-item.frozen{ filter:brightness(.92) saturate(.7); }
+#mart-overlay .m-item.frozen::after{ content:'❄'; position:absolute; top:2px; left:5px; z-index:6; color:#bfe3ff; font-size:11px; text-shadow:0 0 6px #7fbfff; }
+
+/* limit tooltip (always-on hover) */
+#mart-overlay .m-ltip{ position:fixed; z-index:300; pointer-events:none; opacity:0; transform:translateY(3px); transition:opacity .1s;
+  background:linear-gradient(180deg,#15110b,#0b0906); border:1.5px solid var(--c-mint); border-radius:8px; padding:7px 10px; max-width:220px;
+  box-shadow:0 0 0 2px rgba(0,0,0,.4), 0 0 14px -2px var(--c-mint); font-family:'Share Tech Mono',monospace; }
+#mart-overlay .m-ltip.show{ opacity:1; transform:translateY(0); }
+#mart-overlay .m-ltip .n{ font-family:'Orbitron',sans-serif; font-size:10px; font-weight:700; color:#fff; text-transform:uppercase; }
+#mart-overlay .m-ltip .d{ font-size:10px; color:var(--c-mint); margin-top:3px; } #mart-overlay .m-ltip .s{ font-size:9px; color:var(--cream-dim); margin-top:2px; }
+
+/* ── RIGHT: checkout ── */
+#mart-overlay .mart-checkout{ display:flex; flex-direction:column; border:1px solid var(--plastic-deep); border-radius:10px; background:linear-gradient(180deg,#141009,#0b0906); padding:11px; min-height:0; }
+#mart-overlay .m-brand{ font-weight:900; font-size:17px; letter-spacing:3px; color:var(--phosphor); text-shadow:0 0 10px rgba(255,176,46,0.5); text-align:center; }
+#mart-overlay .m-brand small{ display:block; font-family:'Share Tech Mono',monospace; font-size:7px; letter-spacing:2px; color:var(--cream-dim); margin-top:2px; }
+#mart-overlay .m-wallet{ font-family:'Share Tech Mono',monospace; font-size:16px; color:var(--phosphor); background:#0c0a06; border:1px solid var(--plastic-deep); border-radius:7px; padding:7px; text-align:center; margin:9px 0; }
+#mart-overlay .m-ch{ font-size:10px; letter-spacing:2px; color:var(--phosphor); border-bottom:1px solid #2a2416; padding-bottom:6px; display:flex; justify-content:space-between; align-items:center; }
+#mart-overlay .m-ch small{ font-size:8px; color:var(--cream-dim); }
+#mart-overlay .m-rcpt{ flex:1; display:flex; flex-direction:column; gap:5px; padding:8px 0; overflow-y:auto; }
+#mart-overlay .m-rline{ display:flex; justify-content:space-between; font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--cream); border-bottom:1px dotted #241c10; padding-bottom:4px; cursor:pointer; }
+#mart-overlay .m-rline .x{ color:var(--c-magenta); }
+#mart-overlay .m-drop{ border:1px dashed #3a3020; border-radius:7px; color:var(--cream-dim); font-family:'Share Tech Mono',monospace; font-size:9px; text-align:center; padding:9px 4px; }
+#mart-overlay .m-sum{ border-top:1px solid #2a2416; padding-top:7px; }
+#mart-overlay .m-sum .srow{ display:flex; justify-content:space-between; font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--cream-dim); }
+#mart-overlay .m-sum .srow.disc{ color:var(--c-mint); }
+#mart-overlay .m-sum .grand{ display:flex; justify-content:space-between; align-items:baseline; margin-top:4px; }
+#mart-overlay .m-sum .grand span:first-child{ font-size:10px; color:var(--cream-dim); }
+#mart-overlay .m-sum .grand s{ color:var(--cream-dim); font-family:'Share Tech Mono',monospace; font-size:11px; }
+#mart-overlay .m-sum .grand b{ color:var(--phosphor); font-family:'Share Tech Mono',monospace; font-size:20px; }
+#mart-overlay .m-buy{ margin-top:8px; font-weight:900; letter-spacing:2px; font-size:12px; color:#06251a; text-align:center; padding:11px; border-radius:8px; cursor:pointer;
+  background:linear-gradient(180deg,#7dffce,var(--c-mint) 55%,#1fa877); box-shadow:inset 0 2px 0 rgba(255,255,255,0.5),0 3px 0 #178a5e; }
+#mart-overlay .m-buy.disabled{ filter:grayscale(.7) brightness(.7); cursor:not-allowed; }
+#mart-overlay .m-foot{ display:flex; gap:7px; margin-top:7px; }
+#mart-overlay .m-fbtn{ flex:1; text-align:center; font-size:9px; letter-spacing:1px; text-transform:uppercase; padding:9px; border-radius:7px; border:1px solid var(--plastic-deep); color:var(--cream-dim); cursor:pointer; }
+#mart-overlay .m-fbtn:hover{ border-color:var(--phosphor); color:var(--phosphor); }
+#mart-overlay .m-fbtn.leave{ border-color:var(--c-coral); color:var(--c-coral); }

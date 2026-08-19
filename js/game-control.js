@@ -1,0 +1,356 @@
+function pauseGame(hideGrid = true) {
+  if (isPaused) return;
+  if (!roundInterval && !gameInterval) return; // nothing to pause
+  isPaused = true;
+  clearInterval(roundInterval); roundInterval = null;
+  clearInterval(gameInterval);  gameInterval  = null;
+  // Pause boss tick too if active
+  if (bossInterval) { clearInterval(bossInterval); bossInterval = null; }
+  cancelAutoSubmit();
+  if (hideGrid) {
+    document.getElementById('pause-overlay').style.display = 'flex';
+    document.getElementById('grid').style.visibility = 'hidden';
+  }
+  document.getElementById('btn-pause').textContent = '▶ Resume';
+}
+
+function resumeGame() {
+  if (!isPaused) return;
+  isPaused = false;
+  document.getElementById('pause-overlay').style.display = 'none';
+  document.getElementById('grid').style.visibility = '';
+  document.getElementById('btn-pause').textContent = '⏸ Pause';
+  if (bossActive) {
+    startBossTimer(); // resume boss tick instead of round timer
+  } else {
+    startRoundTimer();
+  }
+  // Restart game timer
+  gameInterval = setInterval(() => {
+    if (gameTimerPaused) return;
+    gameSeconds--;
+    // See startTimers: match-3 owns its own round loop, skip legacy progression.
+    if (!isActMode() && !match3Active()) {
+      const m = Math.floor(gameSeconds/60);
+      const s = gameSeconds%60;
+      document.getElementById('game-timer').textContent = `${m}:${s.toString().padStart(2,'0')}`;
+      if (gameSeconds === nextShopTime) {
+        if (bossActive) {
+          nextShopTime -= 1;
+        } else {
+          nextShopTime -= 120;
+          triggerShop();
+        }
+      }
+      if (gameSeconds === nextBossTime && !bossActive) {
+        nextBossTime -= BOSS_LOOP_DURATION;
+        triggerBoss();
+      }
+      if (gameSeconds <= 0) onGameEnd(false);
+    }
+  }, 1000);
+}
+
+document.getElementById('btn-pause').addEventListener('click', () => {
+  if (isPaused) resumeGame();
+  else pauseGame(true);
+});
+
+document.getElementById('btn-resume').addEventListener('click', resumeGame);
+
+document.getElementById('btn-stats').addEventListener('click', () => {
+  pauseGame(false); // pause timers but don't hide grid
+  showStats();
+});
+
+document.getElementById('btn-deck').addEventListener('click', () => {
+  pauseGame(false);
+  showDeck();
+});
+
+// ⏱ Time — small pop-up showing the time-cost breakdown (like stats/deck/pause,
+// but a lightweight bubble anchored above the button). Replaces the old chip.
+function hideTimePopup() {
+  const pop = document.getElementById('interact-costs');
+  if (pop) pop.classList.remove('show');
+}
+// Fill the time popup with LIVE values: interaction costs (incl. reward-grid
+// debuffs), the round's max time, and how many times it's been paused / rewound.
+function updateInteractCosts() {
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  // Play is 0 by default (r50); a "Hands +Ns" debuff makes it cost that much.
+  set('ic-play', `${playHandCostThisRound || 0}s`);
+  // Discard cost per card: 3 base, 0 with Free Discards, 6 with Hoarder, + reward debuff.
+  let disc = (typeof BAL !== 'undefined') ? BAL._resources.discard_seconds_per_card : 3;
+  if (typeof hasKnack === 'function' && hasKnack('free_discards')) disc = 0;
+  else { if (typeof hasKnack === 'function' && hasKnack('hoarder')) disc = BAL.hoarder.discard_seconds_per_card; disc += (discardCostThisRound || 0); }
+  set('ic-discard', `${disc}s`);
+  // Swap cost: 4 base, 0 with Free Swaps.
+  const swap = (typeof hasKnack === 'function' && hasKnack('free_swaps')) ? 0 : (typeof SWAP_TIME_COST !== 'undefined' ? SWAP_TIME_COST : 4);
+  set('ic-swap', `${swap}s`);
+  // Max time = round cap minus permanent (−5s) penalties.
+  const base = (typeof ROUND_DURATION !== 'undefined') ? ROUND_DURATION : 180;
+  const cap  = Math.max(base, limits.round_time.current) - (roundPenaltySeconds || 0);
+  set('ic-maxtime', (typeof formatTime === 'function') ? formatTime(Math.max(0, cap)) : `${cap}s`);
+  set('ic-paused',  `${pausesThisRound  || 0}×`);
+  set('ic-rewound', `${rewindsThisRound || 0}×`);
+}
+function toggleTimePopup() {
+  const pop = document.getElementById('interact-costs');
+  const btn = document.getElementById('btn-time');
+  if (!pop || !btn) return;
+  if (pop.classList.contains('show')) { hideTimePopup(); return; }
+  updateInteractCosts();                     // refresh live values before showing
+  pop.classList.add('show');                 // .show → display:flex (CSS)
+  const r = btn.getBoundingClientRect();
+  const pw = pop.offsetWidth, ph = pop.offsetHeight;
+  let left = r.left + r.width / 2 - pw / 2;
+  let top  = r.top - ph - 8;
+  left = Math.max(6, Math.min(window.innerWidth - pw - 6, left));
+  if (top < 6) top = r.bottom + 8;
+  pop.style.left = left + 'px';
+  pop.style.top  = top + 'px';
+}
+document.getElementById('btn-time')?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  toggleTimePopup();
+});
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('#btn-time') && !e.target.closest('#interact-costs')) hideTimePopup();
+}, true);
+
+// Resume when overlays are closed
+document.querySelector('#stats-overlay .overlay-close').addEventListener('click', () => {
+  document.getElementById('stats-overlay').classList.remove('show');
+  resumeGame();
+});
+
+document.querySelector('#deck-overlay .overlay-close').addEventListener('click', () => {
+  document.getElementById('deck-overlay').classList.remove('show');
+  resumeGame();
+});
+
+function startGame() {
+  document.getElementById('end-overlay').classList.remove('show');
+  document.getElementById('levelup-overlay').classList.remove('show');
+  document.getElementById('shop-overlay').classList.remove('show');
+  stopTimers();
+  if (levelupTimer) { clearInterval(levelupTimer); levelupTimer = null; }
+
+  // Pick the suit list for this mode BEFORE any deck is built. Six Suits mode uses
+  // the expanded 6-suit list; every other mode uses the classic four.
+  ACTIVE_SUITS = (ACTIVE_MODE.suitCount === 6) ? SUITS_SIX : SUITS;
+  // Reset deck audit (a full deck = one of every rank in every active suit)
+  expectedDeckTotal = ACTIVE_SUITS.length * RANKS.length;
+  dealPhase = false;
+
+  // Reset all state
+  score = 0;
+  level = 1;
+  leaves = 0;
+  handsPlayed = 0;
+  // Reset limits to base values on new game
+  LIMITS_DEF.forEach(def => { limits[def.id] = { current: def.base, base: def.base, max: def.max }; });
+  // Match-3 modes start on a 5×5 board (owner spec). Setting it through `limits`
+  // means level-ups keep the size instead of snapping back to the 4×4 base.
+  if (match3Active()) {
+    limits.grid_rows.current = 5; limits.grid_rows.base = 5;
+    limits.grid_cols.current = 5; limits.grid_cols.base = 5;
+  }
+  discards = limits.discards.current;
+  swaps = limits.swaps.current;
+  // Sync playing-grid dimensions from limits and size the cards
+  gridRows = limits.grid_rows.current;
+  gridCols = limits.grid_cols.current;
+  recomputeGridMetrics();
+  // Reset focus meter
+  focusNodes = 0;
+  focusCapBase = (typeof limits !== 'undefined' && limits.focus_cap) ? limits.focus_cap.current : 30;
+  focusCapPerm = 0;
+  focusGenGame = 0; focusGenRound = 0;
+  focusAnimQueue = [];
+  focusAnimRunning = false;
+  lastCalcMult = 0;
+  lastCalcFocus = 1;
+  lastPreHandFocus = 1;
+  lastPreFocusMult = 0;
+  buildFocusMeter();
+  syncFocusMeterState();
+  accumulatedSwaps = 0;
+  accumulatedDiscards = 0;
+  accumulatedSeconds = 0;
+  swapMode = false;
+  swapFirst = null;
+  swapPending = null;
+  lastTapCell = null;
+  lastTapTime = 0;
+  lastSwapTime = 0;
+  roundSeconds = ROUND_DURATION;
+  gameSeconds = GAME_DURATION;
+  trickCardPos = null;
+  trickCardTimer = 0;
+  // Reset challenge state
+  challengeCard = null;
+  challengeActive = false;
+  roundPenaltySeconds = 0;
+  extraPlayCostPerm = 0; extraDiscardCostPerm = 0;
+  nextRoundDiscardDelta = 0; nextRoundSwapDelta = 0; nextRoundSecondsDelta = 0;
+  nextRoundPlayCost = 0; nextRoundDiscardCost = 0;
+  playHandCostThisRound = 0; discardCostThisRound = 0;
+  clearTimeout(challengeOverlayTimer);
+  document.getElementById('challenge-overlay').classList.remove('show');
+  // Reset goal/level-up queue
+  goalReachedThisRound = false;
+  roundEnded = false;
+  pendingLevelUps = 0;
+  suppressScoreDisplay = false;
+  heldBackScore = 0;
+  pipeTimerPaused = false;
+  pauseSecondsLeft = 0;
+  pauseInstanceGame = 0; // Hummingbird's per-game pause counter — reset only here
+  stopwatchActive = false; if (stopwatchTimer) { clearInterval(stopwatchTimer); stopwatchTimer = null; } stopwatchCardPos = null;
+  if (pauseTimer) { clearTimeout(pauseTimer); pauseTimer = null; }
+  const ALL_HAND_KEYS = ['run3','threeofakind','fourofakind','run4','pair','twopair','straight','flush','fullhouse','straightflush','highcard','blackjack'];
+  const BASE_HAND_KEYS = ['run3','threeofakind','twopair','fourofakind'];
+  // Match-3 scores real hand names (Flush, Straight, Straight Flush, Run of 4…),
+  // so it needs the full hand set active like the act modes, not the legacy base four.
+  const startKeys = [...(isActMode() || match3Active() ? ALL_HAND_KEYS : BASE_HAND_KEYS)];
+  // Six Suits mode makes the short flushes playable from the start alongside the 5-card Flush.
+  if (ACTIVE_MODE.suitCount === 6) startKeys.push('flush3', 'flush4');
+  activeHands = new Set(startKeys);
+  unlockedHands = new Set(startKeys);
+  handsPendingUnlock = [];
+  acquiredTricks = [];
+  acquiredKnacks  = [];
+  trickTray          = [];
+  _trickReplaceQueue = [];
+  syncTrickTrayUI();   // show the Trick tray (or grid-preview) to match trickTrayMode for the new game
+  cardPlayCount   = {};
+  cardSwapCount   = {};
+  cardDealtCount  = {};
+  grantedSleightIds = new Set();
+  altarEffects    = [];
+  sleightNextHandDouble = false;
+  sleightLegacyMult    = false;
+  sleightAmplifierMult = 0;
+  _dabiSwapNext        = false;
+  magnetArmed          = null;
+  _comboAnnounced      = new Set();
+  _comboHinted         = new Set();
+  sleightFreeSwapPending = false;
+  // Reset all counters
+  Object.keys(C).forEach(k => C[k] = (typeof C[k] === 'boolean' ? false : 0));
+  permPips = {};
+  permMult = {};
+  permXPips  = {};
+  permXMult  = {};
+  permRetrig = {};
+  cardCurses = {};
+  bonusMult_fives = 0;
+  bonusMult_nines = 0;
+  bonusMult_tens = 0;
+  bonusMult_compound = 0;
+  bonusPips_prolific = 0;
+  bonusPips_fengshui = 0;   // Feng Shui (per-game permanent scaler)
+  _perMinuteFired = {};
+  bonusMult_jackpot  = 0;
+  jackpotFired       = false;
+  safetyNetUsed      = false;
+  handsPlayedRound   = 0;
+  runsPlayedRound    = 0;
+  handTypesRound     = new Set();
+  cardsDiscardedTotal = 0;
+  freeSwapsLeft    = 2;
+  freeDiscardsLeft = 2;
+  cardsDiscardedRound = 0;
+  focusGenRound = 0;
+  cardsScoredTotal = 0;
+  nineSecondsCounter = 0;
+  highestHandScore = 0;
+  highestHandName  = null;
+  gameStartTime    = Date.now();
+  fullHouseThisRound = 0;
+  rowColBonuses = [];
+  _posChooserQueue = []; _posChooserActive = false;
+  { const _pc = document.getElementById('pos-chooser'); if (_pc) _pc.remove(); }
+  leyLinePos = null;
+  lastHandType = null;
+  streakCount = 0;
+  lastHandTime = 0;
+  resilience = false;
+  resilienceUsed = false;
+  firstHandThisRound = true;
+  cancelAutoSubmit();
+  cancelDance();
+  handReadyForSubmit = false;
+  document.getElementById('hand-name').textContent = '';   // empty → "HAND" watermark shows (r99)
+  document.getElementById('selected-cards').innerHTML = '';
+  selected = [];
+  animating = false;
+  falling = false;
+  pendingAction = null;
+  pendingEventOverride = null;
+  rewardGridContext = 'interlude';
+  skipTrickChoiceOverlay = false;
+  rewardSelected = new Set();
+  rewardCells = [];
+  rewardConfirmed = false;
+  actNumber = 1;
+  nodeInAct = 0;
+  rewardGridsSeen = 0;
+  forceBossNextRound = false;
+  shopFromNodeFlow = false;
+  updateActProgressUI();
+  // Clear any leftover card elements from previous game
+  document.getElementById('grid').querySelectorAll('.card').forEach(el => el.remove());
+  roundGoal = match3IsZen() ? BASE_GOAL * 2 : BASE_GOAL; // Zen: doubled goals, no clock
+  totalScore = 0;
+  coins = 0;
+  shopItems = null;
+  shopPurchased = new Set();
+  shopRerollCount = 0;
+  shopPurchaseCount = { buy: 0, remove: 0, duplicate: 0, suit: 0, combine: 0, swaps: 0, discards: 0 };
+  svcMode = null;
+  svcPicked = [];
+  nextShopTime = GAME_DURATION - 120;
+
+  // Reset boss state
+  if (bossInterval) { clearInterval(bossInterval); bossInterval = null; }
+  bossActive = false;
+  bossSecondsLeft = 0;
+  blockedCells = new Set();
+  bossNumber = 0;
+  savedRoundSeconds = 0;
+  nextBossTime = GAME_DURATION - BOSS_LOOP_DURATION;
+  document.getElementById('grid').classList.remove('boss-active');
+  document.getElementById('clock').classList.remove('boss-mode');
+  document.getElementById('clock-bar').classList.remove('boss-mode');
+  document.getElementById('boss-banner')?.classList.remove('show');
+  document.getElementById('boss-result')?.classList.remove('show');
+  document.getElementById('grid').querySelectorAll('.blocked-cell').forEach(el => el.remove());
+
+  isPaused = false;
+  document.getElementById('pause-overlay').style.display = 'none';
+  document.getElementById('grid').style.visibility = '';
+  document.getElementById('btn-pause').textContent = '⏸ Pause';
+  document.getElementById('clock').classList.remove('urgent');
+  document.getElementById('clock-bar').classList.remove('urgent');
+
+  initGridData();
+  // Match-3: quietly re-draw any matches the deal happened to create, so the
+  // player starts from a still board instead of being handed a free cascade.
+  if (match3Active()) match3SettleBoard();
+  updateScoreUI();
+  updateTrickList();
+  updateClockUI();
+  render();
+  startTimers();
+  // Zen mode hands out unlimited swaps/discards (see match3ApplyZenResources).
+  if (match3Active()) { match3ApplyZenResources(); setTimeout(() => match3Resolve(), 400); }
+}
+
+// ══════════════════════════════════════════════
+// ══════════════════════════════════════════════
+// CHALLENGE CARD SYSTEM
+// ══════════════════════════════════════════════
+

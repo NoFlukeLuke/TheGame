@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Shop Preview 1 — The Dispenser</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --plastic:#e4dccb; --plastic-hi:#f7f2e6; --plastic-lo:#b7ac93; --plastic-deep:#85795f;
+    --c-cyan:#16c8d8; --c-magenta:#ff2f8e; --c-yellow:#ffce2b; --c-purple:#9a6cff; --c-mint:#35d59b; --c-coral:#ff6a3c;
+    --phosphor:#ffb02e; --gold:#ffb02e; --cream:#f4ecd6; --cream-dim:#b7a684;
+    --rar-common:var(--c-mint); --rar-rare:var(--c-cyan); --rar-epic:var(--c-purple); --rar-legendary:var(--c-yellow); --rar-mythic:var(--c-magenta);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{background:#0a0a12; font-family:'Orbitron',sans-serif; display:flex; align-items:center; justify-content:center; min-height:100vh; padding:20px;}
+
+  /* Beige cabinet outline (kept; only the screen "changes channel" into the shop) */
+  .cabinet{width:1040px; height:600px; border-radius:22px; padding:16px;
+    background:linear-gradient(160deg,var(--plastic-hi),var(--plastic) 55%,var(--plastic-lo));
+    box-shadow:0 0 0 2px var(--plastic-deep), 0 24px 60px rgba(0,0,0,0.6);}
+  .screen{width:100%; height:100%; border-radius:12px; position:relative; overflow:hidden;
+    background:radial-gradient(ellipse at 50% 30%, #241c0b 0%, #120d06 78%);
+    box-shadow:inset 0 0 60px rgba(0,0,0,0.8), inset 0 0 0 2px #2a2416;}
+  .screen::after{content:''; position:absolute; inset:0; pointer-events:none;
+    background:repeating-linear-gradient(0deg, rgba(0,0,0,0.14) 0 1px, transparent 1px 3px); mix-blend-mode:overlay;}
+  .shop{position:absolute; inset:0; display:grid; grid-template-columns:1fr 250px; grid-template-rows:auto 1fr; gap:12px; padding:14px;}
+
+  /* Header strip */
+  .hdr{grid-column:1/3; display:flex; align-items:center; justify-content:space-between;}
+  .hdr .title{font-weight:900; font-size:22px; letter-spacing:6px; color:var(--phosphor); text-shadow:0 0 14px rgba(255,176,46,0.5);}
+  .hdr .sub{font-family:'Share Tech Mono',monospace; font-size:10px; letter-spacing:2px; color:var(--cream-dim);}
+  .hdr .wallet{font-family:'Share Tech Mono',monospace; font-size:16px; color:var(--phosphor); background:#0c0a06; border:1px solid var(--plastic-deep); border-radius:8px; padding:6px 12px;}
+
+  /* Left: stacked shelves (vending rows behind glass) */
+  .shelves{display:flex; flex-direction:column; gap:9px; min-height:0;}
+  .shelf{background:linear-gradient(180deg,#17120a,#0c0a06); border:1px solid #2a2416; border-radius:10px; padding:7px 10px 8px;
+    box-shadow:inset 0 0 22px -8px #000; position:relative;}
+  .shelf::before{content:attr(data-label); position:absolute; left:10px; top:-8px; font-size:8px; letter-spacing:3px; color:var(--cream-dim);
+    background:#100c07; padding:1px 6px; border-radius:4px; border:1px solid #2a2416;}
+  .shelf.tricks{border-color:#5a4a12; box-shadow:inset 0 0 24px -6px rgba(255,176,46,0.15), inset 0 0 22px -8px #000;}
+  .row{display:flex; gap:9px; margin-top:6px;}
+
+  /* ── ENTITY LOOKS ── */
+  /* Sleight = playing card (light bg, thin rarity border, rank/suit corner) */
+  .sleight{width:70px; height:96px; border-radius:8px; position:relative; padding:6px;
+    background:linear-gradient(160deg,#f7f2e6,#e6dcc4); border:1.5px solid var(--rc); color:#1a1510;
+    box-shadow:0 3px 8px rgba(0,0,0,0.5); display:flex; flex-direction:column; align-items:center; justify-content:center;}
+  .sleight .corner{position:absolute; top:3px; left:5px; font-family:'Share Tech Mono',monospace; font-size:11px; font-weight:700; line-height:1;}
+  .sleight .corner.br{top:auto; left:auto; bottom:3px; right:5px; transform:rotate(180deg);}
+  .sleight .art{font-size:26px; line-height:1;}
+  .sleight .nm{font-size:8px; font-weight:700; letter-spacing:.3px; text-transform:uppercase; text-align:center; margin-top:2px;}
+  .sleight .uses{position:absolute; bottom:3px; left:5px; font-family:'Share Tech Mono',monospace; font-size:8px; color:#6a5; }
+  .suit-red{color:#c0392b;} .suit-blk{color:#1a1510;}
+
+  /* Trick = unique "arcade token / ticket" — notched, neon, ★ emblem, dark */
+  .trick{width:78px; height:100px; position:relative; padding:8px 6px; color:#fff;
+    background:radial-gradient(120% 80% at 50% 0%, color-mix(in srgb, var(--rc) 22%, #0b0906), #0b0906);
+    border:2px solid var(--rc); border-radius:4px;
+    clip-path:polygon(0 8px,8px 0,calc(100% - 8px) 0,100% 8px,100% calc(100% - 8px),calc(100% - 8px) 100%,8px 100%,0 calc(100% - 8px));
+    box-shadow:0 0 12px -2px var(--rc), inset 0 0 16px -6px var(--rc); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;}
+  .trick .emblem{font-size:9px; color:var(--rc); letter-spacing:2px; text-shadow:0 0 6px var(--rc);}
+  .trick .art{font-size:30px; line-height:1;}
+  .trick .nm{font-size:9px; font-weight:700; text-transform:uppercase; text-align:center; line-height:1.05; text-shadow:0 0 6px var(--rc);}
+  .trick.big{width:96px; height:120px;}
+  .trick.big .art{font-size:38px;}
+
+  /* Limit = plaque / upgrade module (NOT a card) */
+  .limit{min-width:150px; height:44px; display:flex; align-items:center; gap:8px; padding:0 10px; border-radius:7px;
+    background:linear-gradient(180deg,#0e1a16,#08110d); border-left:4px solid var(--c-mint); border-top:1px solid #123; border-right:1px solid #0a1a14;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.05);}
+  .limit .ico{font-size:16px; color:var(--c-mint);}
+  .limit .body{display:flex; flex-direction:column; line-height:1.1;}
+  .limit .lname{font-size:9px; letter-spacing:1px; color:var(--c-mint); text-transform:uppercase;}
+  .limit .lprog{font-family:'Share Tech Mono',monospace; font-size:11px; color:#cfe;}
+  .limit .lprice{margin-left:auto; font-family:'Share Tech Mono',monospace; font-size:11px; color:var(--phosphor);}
+
+  /* price chip on cards/tricks */
+  .price{position:absolute; top:4px; right:5px; z-index:3; font-family:'Share Tech Mono',monospace; font-size:9px;
+    color:var(--phosphor); background:rgba(0,0,0,0.6); border:1px solid rgba(255,176,46,0.5); border-radius:5px; padding:0 4px;}
+  .freeze{position:absolute; bottom:4px; right:5px; z-index:3; font-size:11px; opacity:.55;}
+
+  /* Bonus row (context offers) */
+  .bonusrow{display:flex; gap:10px; margin-top:2px;}
+  .bonus{flex:1; border:1px dashed var(--c-coral); border-radius:9px; padding:8px 10px; background:linear-gradient(180deg,#1c1109,#120b06);}
+  .bonus .bt{font-size:9px; letter-spacing:1px; color:var(--c-coral); text-transform:uppercase;}
+  .bonus .bd{font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--cream); margin-top:3px; line-height:1.3;}
+  .bonus .bp{font-family:'Share Tech Mono',monospace; font-size:11px; color:var(--phosphor); margin-top:4px;}
+
+  /* Right column: specials + cart (the dispense tray) */
+  .rail{display:flex; flex-direction:column; gap:10px; min-height:0;}
+  .special{border:1.5px solid var(--rc); border-radius:10px; padding:8px; background:linear-gradient(180deg,#15110b,#0a0906); position:relative; overflow:hidden;}
+  .special .stag{font-size:8px; letter-spacing:2px; color:var(--rc); text-shadow:0 0 6px var(--rc);}
+  .special .sbody{display:flex; align-items:center; gap:8px; margin-top:5px;}
+  .special .sart{font-size:26px;}
+  .special .sname{font-size:11px; font-weight:700; text-transform:uppercase; color:#fff;}
+  .special .sdesc{font-family:'Share Tech Mono',monospace; font-size:9px; color:var(--cream-dim); margin-top:2px;}
+  .wheel-mini{width:44px; height:44px; border-radius:50%; flex-shrink:0;
+    background:conic-gradient(var(--c-magenta) 0 60deg,var(--c-cyan) 60deg 120deg,var(--c-yellow) 120deg 180deg,var(--c-mint) 180deg 240deg,var(--c-purple) 240deg 300deg,var(--c-coral) 300deg 360deg);
+    box-shadow:0 0 0 2px #0b0906, 0 0 10px -2px #fff;}
+
+  .cart{flex:1; display:flex; flex-direction:column; border:1px solid var(--plastic-deep); border-radius:10px; background:linear-gradient(180deg,#141009,#0b0906); padding:9px; min-height:0;}
+  .cart .ch{display:flex; align-items:center; justify-content:space-between; font-size:10px; letter-spacing:2px; color:var(--phosphor); border-bottom:1px solid #2a2416; padding-bottom:5px;}
+  .cart .items{flex:1; display:flex; flex-direction:column; gap:4px; padding:6px 0; overflow:hidden;}
+  .citem{display:flex; align-items:center; justify-content:space-between; font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--cream);
+    background:#0e0b06; border:1px solid #241c10; border-radius:6px; padding:3px 7px;}
+  .citem .x{color:var(--c-magenta);}
+  .cart .disc{font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--c-mint); text-align:right;}
+  .cart .meter{height:6px; border-radius:3px; background:#0e0b06; border:1px solid #241c10; overflow:hidden; margin:4px 0;}
+  .cart .meter i{display:block; height:100%; width:40%; background:linear-gradient(90deg,var(--c-mint),var(--c-cyan));}
+  .cart .tot{display:flex; align-items:baseline; justify-content:space-between; margin-top:4px;}
+  .cart .tot s{font-family:'Share Tech Mono',monospace; color:var(--cream-dim); font-size:11px;}
+  .cart .tot b{font-family:'Share Tech Mono',monospace; color:var(--phosphor); font-size:18px;}
+  .buyall{margin-top:7px; text-align:center; font-weight:900; letter-spacing:2px; font-size:12px; color:#06251a; padding:9px; border-radius:8px;
+    background:linear-gradient(180deg,#7dffce,var(--c-mint) 55%,#1fa877); box-shadow:inset 0 2px 0 rgba(255,255,255,0.5),0 3px 0 #178a5e;}
+  .footer{display:flex; gap:8px; margin-top:7px;}
+  .fbtn{flex:1; text-align:center; font-size:9px; letter-spacing:1px; text-transform:uppercase; padding:7px; border-radius:7px; border:1px solid var(--plastic-deep); color:var(--cream-dim);}
+  .fbtn.frost{border-color:var(--c-cyan); color:var(--c-cyan);}
+  .r-common{--rc:var(--rar-common);} .r-rare{--rc:var(--rar-rare);} .r-epic{--rc:var(--rar-epic);} .r-legendary{--rc:var(--rar-legendary);} .r-mythic{--rc:var(--rar-mythic);}
+  .tag{position:absolute; top:10px; left:50%; transform:translateX(-50%); font-family:'Share Tech Mono',monospace; font-size:8px; letter-spacing:3px; color:var(--cream-dim); opacity:.6;}
+</style>
+</head>
+<body>
+<div class="cabinet">
+  <div class="screen">
+    <div class="tag">▚ CH.07 · SHOP ▚</div>
+    <div class="shop">
+      <div class="hdr">
+        <div><span class="title">DISPENSARY</span> <span class="sub">LETHE CORP · AUTHORIZED VENDING</span></div>
+        <div class="wallet">💰 132</div>
+      </div>
+
+      <!-- LEFT: shelves -->
+      <div class="shelves">
+        <div class="shelf tricks" data-label="TRICKS ★ (featured)">
+          <div class="row" style="justify-content:center;">
+            <div class="trick big r-rare"><span class="price">💰8</span><div class="emblem">✦ TRICK</div><div class="art">🔥</div><div class="nm">Wildfire</div><span class="freeze">❄</span></div>
+            <div class="trick big r-epic"><span class="price">💰12</span><div class="emblem">✦ TRICK</div><div class="art">🏠</div><div class="nm">Full House</div><span class="freeze">❄</span></div>
+            <div class="trick big r-legendary"><span class="price">💰18</span><div class="emblem">✦ TRICK</div><div class="art">🛡️</div><div class="nm">Last Stand</div><span class="freeze">❄</span></div>
+          </div>
+        </div>
+        <div class="shelf" data-label="SLEIGHTS ▶">
+          <div class="row">
+            <div class="sleight r-rare"><span class="price">💰12</span><span class="corner suit-red">A♦</span><span class="corner br suit-red">A♦</span><div class="art">📢</div><div class="nm">Amplifier</div></div>
+            <div class="sleight r-common"><span class="price">💰8</span><span class="corner suit-blk">7♣</span><span class="corner br suit-blk">7♣</span><div class="art">🔋</div><div class="nm">Power Cell</div><span class="uses">∞</span></div>
+            <div class="sleight r-epic"><span class="price">💰16</span><span class="corner suit-red">K♥</span><span class="corner br suit-red">K♥</span><div class="art">🔀</div><div class="nm">Pivot</div><span class="uses">3×</span></div>
+            <div class="sleight r-common"><span class="price">💰8</span><span class="corner suit-blk">9♠</span><span class="corner br suit-blk">9♠</span><div class="art">🪞</div><div class="nm">Mirror</div><span class="uses">2×</span></div>
+          </div>
+        </div>
+        <div class="shelf" data-label="LIMIT UPGRADES ▲">
+          <div class="row">
+            <div class="limit"><span class="ico">▲</span><div class="body"><span class="lname">Grid Rows</span><span class="lprog">4 → 5</span></div><span class="lprice">💰15</span></div>
+            <div class="limit"><span class="ico">▲</span><div class="body"><span class="lname">Selection</span><span class="lprog">3 → 4</span></div><span class="lprice">💰15</span></div>
+            <div class="limit"><span class="ico">▲</span><div class="body"><span class="lname">Discards</span><span class="lprog">3 → 4</span></div><span class="lprice">💰20</span></div>
+          </div>
+        </div>
+        <div class="bonusrow">
+          <div class="bonus"><div class="bt">⚡ Recharge Bay (sleights showed)</div><div class="bd">Recharge <b>1 sleight ×3</b>, or <b>3 sleights ×1</b>.</div><div class="bp">💰12</div></div>
+          <div class="bonus"><div class="bt">✦ Trick Tinker (tricks showed)</div><div class="bd">Improve <b>1 random Trick</b> you own (bigger bonus / looser use).</div><div class="bp">💰14</div></div>
+        </div>
+      </div>
+
+      <!-- RIGHT: specials + cart (dispense tray) -->
+      <div class="rail">
+        <div class="special r-yellow" style="--rc:var(--c-yellow)"><div class="stag">★ SPOTLIGHT · 50% OFF</div><div class="sbody"><div class="sart">🃏</div><div><div class="sname">Blueprint</div><div class="sdesc"><s style="color:#8a7">💰22</s> 💰11 today only</div></div></div></div>
+        <div class="special" style="--rc:var(--c-magenta)"><div class="stag">◎ SPIN THE WHEEL</div><div class="sbody"><div class="wheel-mini"></div><div><div class="sname">One Spin</div><div class="sdesc">💰10 · win any item</div></div></div></div>
+
+        <div class="cart">
+          <div class="ch"><span>🛒 CART</span><span style="font-size:9px;color:var(--cream-dim)">drag items in →</span></div>
+          <div class="items">
+            <div class="citem"><span>🔥 Wildfire</span><span>💰8 <span class="x">✕</span></span></div>
+            <div class="citem"><span>📢 Amplifier</span><span>💰12 <span class="x">✕</span></span></div>
+          </div>
+          <div class="disc">discount 10% (2 items · cap 25%)</div>
+          <div class="meter"><i></i></div>
+          <div class="tot"><span>total</span><span><s>💰20</s> <b>💰18</b></span></div>
+          <div class="buyall">BUY ALL</div>
+          <div class="footer"><div class="fbtn">🎲 Reroll 8</div><div class="fbtn frost">❄ Freezer</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

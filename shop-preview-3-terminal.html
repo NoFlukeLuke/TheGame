@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Shop Preview 3 — LETHE Terminal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --plastic:#e4dccb; --plastic-hi:#f7f2e6; --plastic-lo:#b7ac93; --plastic-deep:#85795f;
+    --c-cyan:#16c8d8; --c-magenta:#ff2f8e; --c-yellow:#ffce2b; --c-purple:#9a6cff; --c-mint:#35d59b; --c-coral:#ff6a3c;
+    --phosphor:#ffb02e; --gold:#ffb02e; --cream:#f4ecd6; --cream-dim:#b7a684;
+    --rar-common:var(--c-mint); --rar-rare:var(--c-cyan); --rar-epic:var(--c-purple); --rar-legendary:var(--c-yellow); --rar-mythic:var(--c-magenta);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{background:#0a0a12; font-family:'Orbitron',sans-serif; display:flex; align-items:center; justify-content:center; min-height:100vh; padding:20px;}
+  .cabinet{width:1040px; height:600px; border-radius:22px; padding:16px;
+    background:linear-gradient(160deg,var(--plastic-hi),var(--plastic) 55%,var(--plastic-lo));
+    box-shadow:0 0 0 2px var(--plastic-deep), 0 24px 60px rgba(0,0,0,0.6);}
+  .screen{width:100%; height:100%; border-radius:12px; position:relative; overflow:hidden;
+    background:radial-gradient(ellipse at 50% 30%, #211a0c 0%, #0d0a06 82%);
+    box-shadow:inset 0 0 60px rgba(0,0,0,0.8), inset 0 0 0 2px #2a2416;}
+  .screen::after{content:''; position:absolute; inset:0; pointer-events:none;
+    background:repeating-linear-gradient(0deg, rgba(0,0,0,0.14) 0 1px, transparent 1px 3px); mix-blend-mode:overlay;}
+  .shop{position:absolute; inset:0; display:grid; grid-template-columns:158px 1fr 232px; grid-template-rows:auto 1fr; gap:10px; padding:12px;}
+  .tag{position:absolute; top:8px; left:50%; transform:translateX(-50%); font-family:'Share Tech Mono',monospace; font-size:8px; letter-spacing:3px; color:var(--cream-dim); opacity:.55; z-index:5;}
+
+  /* Left nav */
+  .side{grid-row:1/3; display:flex; flex-direction:column; gap:8px; border:1px solid #2a2416; border-radius:10px; background:linear-gradient(180deg,#141009,#0b0906); padding:10px 9px;}
+  .brand{font-weight:900; font-size:15px; letter-spacing:3px; color:var(--phosphor); text-shadow:0 0 10px rgba(255,176,46,0.5);}
+  .brand small{display:block; font-family:'Share Tech Mono',monospace; font-size:7px; letter-spacing:2px; color:var(--cream-dim); margin-top:2px;}
+  .wallet{font-family:'Share Tech Mono',monospace; font-size:15px; color:var(--phosphor); background:#0c0a06; border:1px solid var(--plastic-deep); border-radius:7px; padding:6px 8px; text-align:center;}
+  .nav{display:flex; flex-direction:column; gap:5px; margin-top:4px;}
+  .navi{font-size:10px; letter-spacing:1px; text-transform:uppercase; color:var(--cream-dim); padding:8px 9px; border-radius:7px; border:1px solid transparent; display:flex; justify-content:space-between;}
+  .navi.on{color:var(--phosphor); border-color:#5a4a12; background:rgba(255,176,46,0.08);}
+  .navi .n{font-family:'Share Tech Mono',monospace; opacity:.7;}
+  .spacer{flex:1;}
+  .navbtn{font-size:9px; letter-spacing:1px; text-transform:uppercase; text-align:center; padding:9px; border-radius:7px; border:1px solid var(--plastic-deep); color:var(--cream-dim);}
+  .navbtn.leave{border-color:var(--c-coral); color:var(--c-coral);}
+
+  /* Featured strip (spans main + checkout) */
+  .feat{grid-column:2/4; display:grid; grid-template-columns:1fr 1fr 120px; gap:9px;}
+  .special{border:1.5px solid var(--rc); border-radius:9px; padding:6px 9px; background:linear-gradient(180deg,#15110b,#0a0906); display:flex; align-items:center; gap:8px;}
+  .special .stag{font-size:8px; letter-spacing:2px; color:var(--rc); text-shadow:0 0 6px var(--rc);}
+  .special .sname{font-size:11px; font-weight:700; text-transform:uppercase; color:#fff;}
+  .special .sdesc{font-family:'Share Tech Mono',monospace; font-size:8px; color:var(--cream-dim); margin-top:1px;}
+  .special .sart{font-size:22px;}
+  .wheel-mini{width:38px; height:38px; border-radius:50%; flex-shrink:0;
+    background:conic-gradient(var(--c-magenta) 0 60deg,var(--c-cyan) 60deg 120deg,var(--c-yellow) 120deg 180deg,var(--c-mint) 180deg 240deg,var(--c-purple) 240deg 300deg,var(--c-coral) 300deg 360deg);
+    box-shadow:0 0 0 2px #0b0906, 0 0 10px -2px #fff;}
+  .freezer{border:1.5px dashed var(--c-cyan); border-radius:9px; display:flex; flex-direction:column; align-items:center; justify-content:center; color:var(--c-cyan); background:rgba(22,200,216,0.05);}
+  .freezer .fi{font-size:20px;} .freezer .ft{font-size:7px; letter-spacing:2px; margin-top:2px;}
+
+  /* Catalog (center) */
+  .catalog{grid-column:2; grid-row:2; display:flex; flex-direction:column; gap:8px; min-height:0; overflow:hidden;}
+  .sec{border:1px solid #2a2416; border-radius:9px; padding:6px 9px 8px; background:linear-gradient(180deg,#120e08,#0b0906);}
+  .sec.tricks{border-color:#5a4a12; box-shadow:inset 0 0 22px -8px rgba(255,176,46,0.18);}
+  .sec .sh{font-size:9px; letter-spacing:3px; text-transform:uppercase; color:var(--cream-dim);}
+  .sec.tricks .sh{color:var(--phosphor);}
+  .sec .rowc{display:flex; gap:9px; margin-top:6px; align-items:flex-start;}
+  .bonusrow{display:flex; gap:9px;}
+  .bonus{flex:1; border:1px dashed var(--c-coral); border-radius:8px; padding:6px 9px; background:linear-gradient(180deg,#1c1109,#120b06); display:flex; align-items:center; gap:8px;}
+  .bonus .bt{font-size:8px; letter-spacing:1px; color:var(--c-coral); text-transform:uppercase;}
+  .bonus .bd{font-family:'Share Tech Mono',monospace; font-size:9px; color:var(--cream); flex:1;}
+  .bonus .bp{font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--phosphor);}
+
+  /* ── entity looks (shared) ── */
+  .sleight{width:62px; height:86px; border-radius:7px; position:relative; padding:5px;
+    background:linear-gradient(160deg,#f7f2e6,#e6dcc4); border:1.5px solid var(--rc); color:#1a1510;
+    box-shadow:0 3px 8px rgba(0,0,0,0.5); display:flex; flex-direction:column; align-items:center; justify-content:center;}
+  .sleight .corner{position:absolute; top:2px; left:4px; font-family:'Share Tech Mono',monospace; font-size:10px; font-weight:700; line-height:1;}
+  .sleight .corner.br{top:auto; left:auto; bottom:2px; right:4px; transform:rotate(180deg);}
+  .sleight .art{font-size:22px; line-height:1;} .sleight .nm{font-size:7px; font-weight:700; text-transform:uppercase; text-align:center; margin-top:2px;}
+  .sleight .uses{position:absolute; bottom:2px; left:4px; font-family:'Share Tech Mono',monospace; font-size:7px; color:#6a5;}
+  .suit-red{color:#c0392b;} .suit-blk{color:#1a1510;}
+  .trick{width:74px; height:94px; position:relative; padding:7px 5px; color:#fff;
+    background:radial-gradient(120% 80% at 50% 0%, color-mix(in srgb, var(--rc) 22%, #0b0906), #0b0906);
+    border:2px solid var(--rc); border-radius:4px;
+    clip-path:polygon(0 8px,8px 0,calc(100% - 8px) 0,100% 8px,100% calc(100% - 8px),calc(100% - 8px) 100%,8px 100%,0 calc(100% - 8px));
+    box-shadow:0 0 12px -2px var(--rc), inset 0 0 16px -6px var(--rc); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;}
+  .trick .emblem{font-size:8px; color:var(--rc); letter-spacing:2px; text-shadow:0 0 6px var(--rc);}
+  .trick .art{font-size:28px; line-height:1;} .trick .nm{font-size:8px; font-weight:700; text-transform:uppercase; text-align:center; text-shadow:0 0 6px var(--rc);}
+  .limit{min-width:150px; height:40px; display:flex; align-items:center; gap:8px; padding:0 10px; border-radius:7px;
+    background:linear-gradient(180deg,#0e1a16,#08110d); border-left:4px solid var(--c-mint);}
+  .limit .ico{font-size:15px; color:var(--c-mint);} .limit .body{display:flex; flex-direction:column; line-height:1.1;}
+  .limit .lname{font-size:8px; letter-spacing:1px; color:var(--c-mint); text-transform:uppercase;} .limit .lprog{font-family:'Share Tech Mono',monospace; font-size:10px; color:#cfe;}
+  .limit .lprice{margin-left:auto; font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--phosphor);}
+  .price{position:absolute; top:3px; right:4px; z-index:3; font-family:'Share Tech Mono',monospace; font-size:8px; color:var(--phosphor); background:rgba(0,0,0,0.6); border:1px solid rgba(255,176,46,0.5); border-radius:5px; padding:0 3px;}
+  .freeze{position:absolute; bottom:3px; right:4px; z-index:3; font-size:10px; opacity:.55;}
+  .r-common{--rc:var(--rar-common);} .r-rare{--rc:var(--rar-rare);} .r-epic{--rc:var(--rar-epic);} .r-legendary{--rc:var(--rar-legendary);} .r-mythic{--rc:var(--rar-mythic);}
+
+  /* Checkout column */
+  .checkout{grid-column:3; grid-row:2; display:flex; flex-direction:column; border:1px solid var(--plastic-deep); border-radius:10px; background:linear-gradient(180deg,#141009,#0b0906); padding:10px; min-height:0;}
+  .checkout .ch{font-size:11px; letter-spacing:2px; color:var(--phosphor); border-bottom:1px solid #2a2416; padding-bottom:6px; display:flex; justify-content:space-between; align-items:center;}
+  .checkout .ch small{font-size:8px; color:var(--cream-dim);}
+  .rcpt{flex:1; display:flex; flex-direction:column; gap:5px; padding:8px 0; overflow:hidden;}
+  .rline{display:flex; justify-content:space-between; font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--cream); border-bottom:1px dotted #241c10; padding-bottom:4px;}
+  .rline .x{color:var(--c-magenta);}
+  .drop{border:1px dashed #3a3020; border-radius:7px; color:var(--cream-dim); font-family:'Share Tech Mono',monospace; font-size:9px; text-align:center; padding:10px 4px; margin-top:4px;}
+  .sum{border-top:1px solid #2a2416; padding-top:7px;}
+  .sum .srow{display:flex; justify-content:space-between; font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--cream-dim);}
+  .sum .srow.disc{color:var(--c-mint);}
+  .sum .grand{display:flex; justify-content:space-between; align-items:baseline; margin-top:3px;}
+  .sum .grand s{color:var(--cream-dim); font-family:'Share Tech Mono',monospace; font-size:11px;}
+  .sum .grand b{color:var(--phosphor); font-family:'Share Tech Mono',monospace; font-size:20px;}
+  .checkoutbtn{margin-top:8px; font-weight:900; letter-spacing:2px; font-size:12px; color:#06251a; text-align:center; padding:11px; border-radius:8px;
+    background:linear-gradient(180deg,#7dffce,var(--c-mint) 55%,#1fa877); box-shadow:inset 0 2px 0 rgba(255,255,255,0.5),0 3px 0 #178a5e;}
+</style>
+</head>
+<body>
+<div class="cabinet">
+  <div class="screen">
+    <div class="tag">▚ CH.07 · SHOP ▚</div>
+    <div class="shop">
+      <!-- LEFT NAV -->
+      <div class="side">
+        <div class="brand">LETHE<br>MART<small>AUTHORIZED TERMINAL</small></div>
+        <div class="wallet">💰 132</div>
+        <div class="nav">
+          <div class="navi on">Tricks <span class="n">3</span></div>
+          <div class="navi">Sleights <span class="n">4</span></div>
+          <div class="navi">Limits <span class="n">3</span></div>
+        </div>
+        <div class="spacer"></div>
+        <div class="navbtn">🎲 Reroll · 8</div>
+        <div class="navbtn leave">⏻ Leave</div>
+      </div>
+
+      <!-- FEATURED STRIP -->
+      <div class="feat">
+        <div class="special" style="--rc:var(--c-yellow)"><div class="sart">🃏</div><div><div class="stag">★ SPOTLIGHT · 50% OFF</div><div class="sname">Blueprint</div><div class="sdesc"><s style="color:#8a7">💰22</s> 💰11 today</div></div></div>
+        <div class="special" style="--rc:var(--c-magenta)"><div class="wheel-mini"></div><div><div class="stag">◎ SPIN THE WHEEL</div><div class="sname">One Spin</div><div class="sdesc">💰10 · win any item</div></div></div>
+        <div class="freezer"><div class="fi">❄</div><div class="ft">FREEZER<br>drop to keep</div></div>
+      </div>
+
+      <!-- CATALOG -->
+      <div class="catalog">
+        <div class="sec tricks">
+          <div class="sh">★ Tricks (featured)</div>
+          <div class="rowc" style="justify-content:center;">
+            <div class="trick r-rare"><span class="price">💰8</span><div class="emblem">✦ TRICK</div><div class="art">🔥</div><div class="nm">Wildfire</div><span class="freeze">❄</span></div>
+            <div class="trick r-epic"><span class="price">💰12</span><div class="emblem">✦ TRICK</div><div class="art">🏠</div><div class="nm">Full House</div><span class="freeze">❄</span></div>
+            <div class="trick r-legendary"><span class="price">💰18</span><div class="emblem">✦ TRICK</div><div class="art">🛡️</div><div class="nm">Last Stand</div><span class="freeze">❄</span></div>
+          </div>
+        </div>
+        <div class="sec">
+          <div class="sh">Sleights ▶</div>
+          <div class="rowc">
+            <div class="sleight r-rare"><span class="price">💰12</span><span class="corner suit-red">A♦</span><span class="corner br suit-red">A♦</span><div class="art">📢</div><div class="nm">Amplifier</div></div>
+            <div class="sleight r-common"><span class="price">💰8</span><span class="corner suit-blk">7♣</span><span class="corner br suit-blk">7♣</span><div class="art">🔋</div><div class="nm">Power Cell</div><span class="uses">∞</span></div>
+            <div class="sleight r-epic"><span class="price">💰16</span><span class="corner suit-red">K♥</span><span class="corner br suit-red">K♥</span><div class="art">🔀</div><div class="nm">Pivot</div><span class="uses">3×</span></div>
+            <div class="sleight r-common"><span class="price">💰8</span><span class="corner suit-blk">9♠</span><span class="corner br suit-blk">9♠</span><div class="art">🪞</div><div class="nm">Mirror</div><span class="uses">2×</span></div>
+          </div>
+        </div>
+        <div class="sec">
+          <div class="sh">Limit Upgrades ▲</div>
+          <div class="rowc">
+            <div class="limit"><span class="ico">▲</span><div class="body"><span class="lname">Grid Rows</span><span class="lprog">4 → 5</span></div><span class="lprice">💰15</span></div>
+            <div class="limit"><span class="ico">▲</span><div class="body"><span class="lname">Selection</span><span class="lprog">3 → 4</span></div><span class="lprice">💰15</span></div>
+          </div>
+        </div>
+        <div class="bonusrow">
+          <div class="bonus"><span class="bt">⚡ Recharge</span><span class="bd">1 sleight ×3 or 3 sleights ×1</span><span class="bp">💰12</span></div>
+          <div class="bonus"><span class="bt">✦ Tinker</span><span class="bd">Improve 1 random Trick</span><span class="bp">💰14</span></div>
+        </div>
+      </div>
+
+      <!-- CHECKOUT -->
+      <div class="checkout">
+        <div class="ch"><span>🧾 CHECKOUT</span><small>2 items</small></div>
+        <div class="rcpt">
+          <div class="rline"><span>🔥 Wildfire</span><span>💰8 <span class="x">✕</span></span></div>
+          <div class="rline"><span>📢 Amplifier</span><span>💰12 <span class="x">✕</span></span></div>
+          <div class="drop">drag items here<br>to add to cart</div>
+        </div>
+        <div class="sum">
+          <div class="srow"><span>subtotal</span><span>💰20</span></div>
+          <div class="srow disc"><span>bundle −10% (cap 25%)</span><span>−💰2</span></div>
+          <div class="grand"><span>total</span><span><s>💰20</s> <b>💰18</b></span></div>
+          <div class="checkoutbtn">CHECKOUT</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
