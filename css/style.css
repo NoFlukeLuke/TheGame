@@ -1942,7 +1942,7 @@
     cursor: pointer; padding: 6px;
   }
   .shop-shelf .shop-tile.shop-tile-upgrade { width: 108px; }
-  .shop-tile.reward-cell:hover { transform: translateY(-4px) scale(1.02); }
+  .shop-tile.reward-cell:hover { transform: translate(var(--fx,0), calc(var(--fy,0px) - 4px)) rotate(var(--fr,0deg)) scale(calc(var(--fs,1) * 1.02)); }
   .shop-tile.entity-knack:hover { transform: translateY(-4px) scale(1.05); }
   .shop-tile.reward-cell.purchased { opacity: 0.4; cursor: default; }
   .shop-tile.reward-cell.purchased:hover { transform: none; }
@@ -2681,6 +2681,10 @@
     text-align: center;
     cursor: pointer;
     transition: transform 0.12s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+    /* --fx/--fy/--fr/--fs come from the shared float driver (js/float-anim.js).
+       Composed here so hover/.selected can add their scale without the two
+       fighting over the transform property. */
+    transform: translate(var(--fx,0), var(--fy,0)) rotate(var(--fr,0deg)) scale(var(--fs,1));
     color: var(--cream);
     font-family: 'Cinzel', serif;
     user-select: none;
@@ -2695,10 +2699,10 @@
   .reward-cell.dest .reward-tier { color: #bb88ff; }
   .reward-cell.selected  {
     box-shadow: 0 0 18px rgba(140,110,230,0.75), inset 0 0 12px rgba(140,110,230,0.3);
-    transform: scale(1.05);
+    transform: translate(var(--fx,0), var(--fy,0)) rotate(var(--fr,0deg)) scale(calc(var(--fs,1) * 1.05));
     border-color: #b39cf5 !important;
   }
-  .reward-cell.selectable:not(.selected):hover { transform: scale(1.04); }
+  .reward-cell.selectable:not(.selected):hover { transform: translate(var(--fx,0), var(--fy,0)) rotate(var(--fr,0deg)) scale(calc(var(--fs,1) * 1.04)); }
   .reward-cell.unselectable { opacity: 0.3; cursor: not-allowed; }
   .reward-icon {
     font-size: 26px;

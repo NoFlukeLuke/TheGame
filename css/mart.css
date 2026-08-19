@@ -69,7 +69,11 @@
 #mart-overlay .m-tool .td{ font-family:'Share Tech Mono',monospace; font-size:9px; color:var(--cream); line-height:1.35; }
 
 /* shop entity tiles (purchasable) */
-#mart-overlay .m-item{ position:relative; flex-shrink:0; cursor:pointer; will-change:transform; transition:transform .12s; }
+/* --fx/--fy/--fr/--fs are published by the shared float driver (js/float-anim.js).
+   Composing them here (instead of writing el.style.transform) leaves the transform
+   property free for hover/selected states to add their own scale. */
+#mart-overlay .m-item{ position:relative; flex-shrink:0; cursor:pointer; will-change:transform; transition:transform .12s;
+  transform: translate(var(--fx,0), var(--fy,0)) rotate(var(--fr,0deg)) scale(var(--fs,1)); }
 #mart-overlay .m-item.in-cart{ outline:2px solid var(--c-mint); outline-offset:2px; }
 #mart-overlay .m-item.sold{ opacity:.32; pointer-events:none; }
 #mart-overlay .trick{ width:72px; height:92px; padding:7px 5px; color:#fff;

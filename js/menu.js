@@ -1,4 +1,4 @@
-const BUILD = '2026-08-19 · r138 · Knack tiles fit their names · Stats/Deck work inside the shop';
+const BUILD = '2026-08-19 · r139 · Shared item float (shop + rewards) · dev panel = group pop-ups';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

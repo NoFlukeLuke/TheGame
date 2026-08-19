@@ -612,6 +612,7 @@ function renderRewardTiles(animateIn = false) {
       div.style.width  = CARD_W + 'px';
       div.style.height = CARD_H + 'px';
       div.dataset.r = r; div.dataset.c = c;
+      div.dataset.floatKey = `reward-${r}-${c}`;   // keeps this tile's float phase across re-renders
       div.innerHTML = buildRewardTileInner(p);
       div.onclick = () => onRewardCellClick(r, c);
       // Every tile with a description gets the hover tooltip — including card-face
@@ -633,7 +634,7 @@ function renderRewardTiles(animateIn = false) {
           { opacity: 1, transform: `translateY(${-BOUNCE * 0.7}px) scaleY(${1 + SQUISH})`,        offset: 0.91 },
           { opacity: 1, transform: `translateY(${BOUNCE * 0.3}px) scaleY(${1 - SQUISH * 0.2})`,   offset: 0.96 },
           { opacity: 1, transform: 'translateY(0) scaleY(1)' },
-        ], { duration: FALL_DUR, delay, easing: 'ease-in', fill: 'both' }).finished);
+        ], { duration: FALL_DUR, delay, easing: 'ease-in', fill: 'both' }));
       }
     }
   }
@@ -641,9 +642,24 @@ function renderRewardTiles(animateIn = false) {
 
   if (animateIn && dealAnimsLocal.length) {
     rewardDealing = true;
-    Promise.allSettled(dealAnimsLocal).then(() => { rewardDealing = false; });
+    Promise.allSettled(dealAnimsLocal.map(a => a.finished)).then(() => {
+      rewardDealing = false;
+      // The deal-in runs with fill:'both', so its final keyframe would keep
+      // overriding the CSS transform forever — cancel it to hand the transform
+      // back to the float (its last keyframe is identity, so nothing moves).
+      dealAnimsLocal.forEach(a => { try { a.cancel(); } catch (e) {} });
+      startRewardFloat();
+    });
+  } else if (rewardOnGrid) {
+    startRewardFloat();
   }
 }
+
+// Reward tiles drift with the same barely-there float as the shop (js/float-anim.js).
+// Held still while a tile is mid-resolve so the reward payoff animation reads cleanly.
+const REWARD_FLOAT_SEL = '#grid .reward-cell.on-grid';
+function startRewardFloat() { startFloat('reward', REWARD_FLOAT_SEL, el => el.classList.contains('resolving')); }
+function stopRewardFloat()  { stopFloat('reward'); clearFloat(REWARD_FLOAT_SEL); clearFloatSeeds('reward-'); }
 
 function updateRewardButtons() {
   const hasAny = rewardSelected.size > 0;
@@ -1152,6 +1168,7 @@ async function confirmRewardPath() {
 
 function closeRewardGrid() {
   hideRewardTooltip();
+  stopRewardFloat();
   document.getElementById('reward-overlay')?.classList.remove('show');
   // Tear down the on-grid reward step: restore the action buttons, clear the
   // reward tiles from #grid, and drop back to normal render ownership.

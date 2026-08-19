@@ -11,7 +11,6 @@ let martCats      = [];      // e.g. ['tricks','sleights','limits'] — 3 of 4, 
 let martStock     = {};      // { tricks:[payload…], sleights:[…], limits:[…], knacks:[…] }
 let martCart      = [];      // ['tricks-0', 'sleights-2', …] keys into martStock
 let martRerollN   = 0;
-let _martFloatRAF = null;
 
 // Bundle discount: +rate% per ADDITIONAL item (2 items = 1×rate, 3 = 2×rate, …).
 // The rate is the STORE's discount — normally 5%, but entities can change it (Bulk Buyer
@@ -276,22 +275,8 @@ function martReroll() {
   renderMart();
 }
 
-// ── slow, slight float on every shop item (matches the reward-grid float to come) ──
-function startMartFloat() {
-  stopMartFloat();
-  const P = { dx:3, dy:4, rot:1.2, per:7, sc:0.5 };
-  const seed = () => ({ px:Math.random()*6.283, py:Math.random()*6.283, pr:Math.random()*6.283, fx:0.85+Math.random()*0.35, fy:0.75+Math.random()*0.45, fr:0.7+Math.random()*0.5 });
-  function loop(ms) {
-    const s = ms/1000, w = 2*Math.PI/P.per;
-    document.querySelectorAll('#mart-overlay .m-item').forEach(el => {
-      if (el.classList.contains('frozen') || el.classList.contains('sold')) return;
-      if (!el._seed) el._seed = seed();
-      const k = el._seed;
-      const x = P.dx*Math.sin(s*w*k.fx+k.px), y = P.dy*Math.sin(s*w*k.fy+k.py), r = P.rot*Math.sin(s*w*k.fr+k.pr);
-      el.style.transform = `translate(${x.toFixed(2)}px,${y.toFixed(2)}px) rotate(${r.toFixed(2)}deg)`;
-    });
-    _martFloatRAF = requestAnimationFrame(loop);
-  }
-  _martFloatRAF = requestAnimationFrame(loop);
-}
-function stopMartFloat() { if (_martFloatRAF) cancelAnimationFrame(_martFloatRAF); _martFloatRAF = null; }
+// ── slow, slight float on every shop item — shared driver, see js/float-anim.js.
+// Frozen and sold tiles hold still (a frozen item stopping its drift is the tell).
+const MART_FLOAT_SEL = '#mart-overlay .m-item';
+function startMartFloat() { startFloat('mart', MART_FLOAT_SEL, el => el.classList.contains('frozen') || el.classList.contains('sold')); }
+function stopMartFloat()  { stopFloat('mart'); clearFloat(MART_FLOAT_SEL); }
