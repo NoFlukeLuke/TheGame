@@ -120,8 +120,12 @@ function triggerShop() {
   clearInterval(roundInterval);
   roundInterval = null;
   gameTimerPaused = true;
-  // On-grid shop (r126): play the shop on the board like the reward grid. The old
-  // overlay below is kept intact as a one-flag fallback (USE_ONGRID_SHOP = false).
+  // LETHE Mart (r127): the off-grid shop. Preferred route; on-grid + overlay below
+  // stay as one-flag fallbacks (USE_MART_SHOP / USE_ONGRID_SHOP).
+  if (typeof USE_MART_SHOP !== 'undefined' && USE_MART_SHOP && typeof openMart === 'function') {
+    openMart();
+    return;
+  }
   if (typeof USE_ONGRID_SHOP !== 'undefined' && USE_ONGRID_SHOP && typeof openShopGrid === 'function') {
     openShopGrid();
     return;

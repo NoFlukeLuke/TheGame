@@ -1,4 +1,4 @@
-const BUILD = '2026-08-07 · r126 · on-grid Shop (buy/reroll/sell) · Rewards · location+cost readouts · tooltip flip';
+const BUILD = '2026-08-07 · r127 · LETHE Mart shop (off-grid) + item float · WIP specials';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
