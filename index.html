@@ -207,6 +207,42 @@
     </div>
   </div>
 
+  <!-- CHANNEL CHANGE -->
+  <div class="dev-section" data-group="anim">
+    <div class="dev-section-title">Channel Change — screen transition</div>
+    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:4px;">
+      The CRT flick between screens (play &harr; Mart). Full tuner: <b>channel-change-preview.html</b>.
+    </div>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;">
+      <input id="dev-cc-enabled" type="checkbox" onchange="setCcEnabled(this.checked)" style="accent-color:var(--gold);">
+      Channel change on
+    </label>
+    <div class="dev-row">
+      <button class="dev-btn" onclick="devCcPreset('snap')">Snap</button>
+      <button class="dev-btn" onclick="devCcPreset('classic')">Classic</button>
+      <button class="dev-btn" onclick="devCcPreset('rough')">Rough</button>
+      <button class="dev-btn" onclick="devCcPreset('degauss')">Degauss</button>
+    </div>
+    <div class="dev-slider-row"><span>Duration <b id="dev-cc-dur-val">520</b>ms</span>
+      <input id="dev-cc-dur" type="range" min="120" max="1400" value="520" step="20" oninput="devSetCc('dur', this.value)"></div>
+    <div class="dev-slider-row"><span>Static <b id="dev-cc-static-val">0.6</b></span>
+      <input id="dev-cc-static" type="range" min="0" max="1" value="0.6" step="0.05" oninput="devSetCc('static', this.value)"></div>
+    <div class="dev-slider-row"><span>Roll <b id="dev-cc-roll-val">1</b>&times;</span>
+      <input id="dev-cc-roll" type="range" min="0" max="3" value="1" step="0.1" oninput="devSetCc('roll', this.value)"></div>
+    <div class="dev-slider-row"><span>Collapse <b id="dev-cc-collapse-val">1</b></span>
+      <input id="dev-cc-collapse" type="range" min="0" max="1" value="1" step="0.05" oninput="devSetCc('collapse', this.value)"></div>
+    <div class="dev-slider-row"><span>RGB split <b id="dev-cc-split-val">4</b>px</span>
+      <input id="dev-cc-split" type="range" min="0" max="16" value="4" step="0.5" oninput="devSetCc('split', this.value)"></div>
+    <div class="dev-slider-row"><span>Flash <b id="dev-cc-flash-val">0.6</b></span>
+      <input id="dev-cc-flash" type="range" min="0" max="1" value="0.6" step="0.05" oninput="devSetCc('flash', this.value)"></div>
+    <div class="dev-slider-row"><span>Black hold <b id="dev-cc-hold-val">90</b>ms</span>
+      <input id="dev-cc-hold" type="range" min="0" max="400" value="90" step="10" oninput="devSetCc('hold', this.value)"></div>
+    <div class="dev-row">
+      <button class="dev-btn" onclick="devCcTest()">Test transition</button>
+      <button class="dev-btn" onclick="devResetCc()">Reset preset</button>
+    </div>
+  </div>
+
   <!-- ADD TRICK -->
   <div class="dev-section" data-group="tricks">
     <div class="dev-section-title">Add Trick</div>
@@ -777,6 +813,7 @@
 <script src="js/focus-config.js"></script>
 <script src="js/float-anim.js"></script>
 <script src="js/heartbeat.js"></script>
+<script src="js/channel-change.js"></script>
 <script src="js/limits.js"></script>
 <script src="js/data/knacks.js"></script>
 <script src="js/data/sleights.js"></script>

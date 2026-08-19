@@ -86,6 +86,8 @@ function ensureMartOverlay() {
   el.appendChild(tt);
   return el;
 }
+// Entering the Mart is a channel change (the shop is CH 02 on the cabinet's CRT).
+// The overlay is revealed at the collapse, hidden inside the flash.
 function openMart() {
   martActive = true; martCart = []; martRerollN = 0;
   gameTimerPaused = true;
@@ -93,17 +95,19 @@ function openMart() {
   buildMartStock();
   const el = ensureMartOverlay();
   renderMart();
-  el.classList.add('show');
-  startMartFloat();
+  channelChange(() => { el.classList.add('show'); }, { channel: 'CH 02 · MART' })
+    .then(startMartFloat);
 }
 function closeMart() {
   if (!martActive) return;
   martActive = false;
   stopMartFloat();
-  document.getElementById('mart-overlay')?.classList.remove('show');
-  gameTimerPaused = false;
-  if (shopFromNodeFlow) { shopFromNodeFlow = false; drainLevelUpQueue(); }
-  else if (typeof render === 'function') render();
+  channelChange(() => {
+    document.getElementById('mart-overlay')?.classList.remove('show');
+    gameTimerPaused = false;
+    if (shopFromNodeFlow) { shopFromNodeFlow = false; drainLevelUpQueue(); }
+    else if (typeof render === 'function') render();
+  }, { channel: 'CH 01' });
 }
 
 // ── render ──

@@ -116,6 +116,7 @@ function openDevPanel() {
   devRenderGroupMenu();
   devSyncFloatSliders();
   devSyncHbSliders();
+  devSyncCcSliders();
   devCloseGroup();          // always land on the group menu, not the last group opened
   stopTimers();
 }
@@ -196,6 +197,27 @@ function devSetHb(k, v) {
   if (lab) lab.textContent = (+v).toString();
 }
 function devResetHb() { resetHbCfg(); devSyncHbSliders(); }
+
+// ── Channel-change sliders (CC_CFG lives in js/channel-change.js) ──
+const CC_KEYS = ['dur','static','roll','collapse','split','flash','hold'];
+function devSetCc(k, v) {
+  setCcParam(k, v);
+  const lab = document.getElementById('dev-cc-' + k + '-val');
+  if (lab) lab.textContent = (+v).toString();
+}
+function devCcPreset(name) { setCcPreset(name); devSyncCcSliders(); devCcTest(); }
+function devResetCc() { resetCcCfg(); devSyncCcSliders(); }
+function devCcTest() { channelChange(() => {}, { channel: 'TEST' }); }
+function devSyncCcSliders() {
+  const on = document.getElementById('dev-cc-enabled');
+  if (on) on.checked = ccEnabled;
+  CC_KEYS.forEach(k => {
+    const sl = document.getElementById('dev-cc-' + k);
+    const lab = document.getElementById('dev-cc-' + k + '-val');
+    if (sl)  sl.value = CC_CFG[k];
+    if (lab) lab.textContent = CC_CFG[k].toString();
+  });
+}
 function devSyncHbSliders() {
   const on = document.getElementById('dev-hb-enabled');
   if (on) on.checked = hbEnabled;

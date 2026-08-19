@@ -1,4 +1,4 @@
-const BUILD = '2026-08-19 · r140 · Grid heartbeat wave (lub-dub every 5s) + tuner preview';
+const BUILD = '2026-08-19 · r141 · Channel-change CRT transition (preview + wired into the Mart)';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

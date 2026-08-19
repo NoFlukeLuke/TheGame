@@ -267,3 +267,18 @@
   .sleight-tooltip-name { font-size:11px; color:#cc88ff; margin-bottom:3px; }
   .sleight-tooltip-desc { font-size:10px; color:var(--cream-dim); font-family:'Crimson Pro',serif; line-height:1.4; }
   .sleight-tooltip-hint { font-size:8px; color:var(--gold-dim); margin-top:5px; letter-spacing:0.5px; }
+
+/* ── Channel change (js/channel-change.js) ────────────────────────────────────
+   Full-viewport CRT transition layers. They sit above every screen — the Mart
+   overlay is a body-level z-index:250 — so they live on <body>, not in #stage. */
+#channel-fx { position: fixed; inset: 0; z-index: 900; pointer-events: none; display: none; }
+#channel-fx.on { display: block; }
+#cc-static { position:absolute; inset:0; opacity:0; mix-blend-mode:screen;
+  background-repeat:repeat; background-size:180px 180px; }
+#cc-roll { position:absolute; left:0; right:0; height:22%; top:-30%; opacity:0;
+  background:linear-gradient(180deg,rgba(0,0,0,0) 0%,rgba(0,0,0,.85) 22%,rgba(0,0,0,.92) 78%,rgba(0,0,0,0) 100%);
+  box-shadow:0 0 24px 6px rgba(0,0,0,.7); }
+#cc-flash { position:absolute; inset:0; opacity:0; background:#fff; }
+#cc-osd { position:absolute; top:22px; left:26px; opacity:0;
+  font-family:'Share Tech Mono',monospace; font-size:16px; letter-spacing:3px; color:#8dff9f;
+  text-shadow:0 0 8px rgba(120,255,150,.8); background:rgba(0,0,0,.45); padding:5px 10px; border-radius:3px; }
