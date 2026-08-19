@@ -69,6 +69,23 @@ Shop feature ideas the owner has greenlit but that aren't built yet:
 - **Rotating spotlight** idea supersedes the earlier standalone "featured deal"
   (idea #3) and "sale tags" (idea #7) — fold those in.
 
+### Shipped in r137–r142 (this session)
+- **Bundle discount** is real and entity-driven: rate × per additional item, cap =
+  rate × Selection Size (5% / 15% at run start). New **Bulk Buyer** knack doubles
+  the rate. `martDiscountRate()` / `martDiscountCap()`.
+- **Spin the Wheel** (`js/wheel.js`) — 20 credits, 10 spaces, drag-to-spin with a
+  guaranteed full turn and a random force, no exit mid-spin, and an overflow
+  prompt (sell a Trick / sell the prize) when a Trick won't fit.
+- **Checkout fly** — bought items fly one by one to their loadout panel, buy()
+  firing on landing. New **Limits panel** in the loadout (also the fly target).
+- **Item float** is now shared with the reward grid at the owner's chosen preset
+  (x±1.5 / y±2.5 / rot±0.5° / 6s) — `js/float-anim.js`.
+- **Channel change** built (`js/channel-change.js`) and wired into Mart enter/exit.
+- Knack tiles in the catalog no longer clip their names; **Stats / Deck** chips work.
+
+Still WIP in the Mart: Spotlight, Freezer / drag-to-freeze, Tools row,
+drag-to-cart, pin mechanic, duplicate-improves-entity.
+
 ### Already shipped (for reference)
 - **Sell-back** (r126): Knacks 30% of price · Tricks 60% (floored) · Sleights
   0.75 × price × (charges left ÷ max). Will carry into the off-grid shop.

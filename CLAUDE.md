@@ -24,6 +24,12 @@ The game **used to be one giant `index.html`**. It's now split into many small f
   - `bosses.js` — `BOSS_PRESETS`.
   - `balance.js` — `BAL` (the big tuning table) + `DESC_TEMPLATES`.
 
+**Animation drivers (r139–r141) — all three publish CSS custom properties rather than writing `el.style.transform`.** That is deliberate: the tiles/cards they animate already use `transform` for hover, `.selected`, fly-outs and keyframes, so the driver hands CSS a value and the element composes it. Precedence falls out correctly — an inline transform (discard fly-out) and an `!important` one (`.card.removing`) both beat the stylesheet declaration, and keyframe animations beat it too.
+  - `js/float-anim.js` — `FLOAT_CFG` + `startFloat/stopFloat`. The barely-there drift on **shop AND reward-grid** tiles (x±1.5 · y±2.5 · rot±0.5° · 6s). Publishes `--fx/--fy/--fr/--fs`. Seeds cache by `data-float-key` so a re-render doesn't re-roll the phase.
+  - `js/heartbeat.js` — `HB_CFG` + `startHeartbeat/stopHeartbeat`. A lub-dub wave every 5s across the play grid, starting at the **left edge, middle row(s)** and radiating outward. Publishes `--hbx/--hby/--hbr/--hbs`. Runs with the round (`startRoundTimer`/`stopTimers`).
+  - `js/channel-change.js` — `channelChange(swapFn, opts)`. The CRT flick between screens (static / roll / collapse / RGB split); `swapFn` fires at the collapse, hidden in the flash. Wired into `openMart`/`closeMart`.
+  All three have live tuners in the dev panel under **Animation**, and standalone preview pages: `heartbeat-preview.html`, `channel-change-preview.html`, `shop-float-anim-preview.html`.
+
 **How the split works (important — don't break this):** all `js/*.js` files are plain **classic scripts that share one global scope** — a `const`/`let`/`function` defined in one file is visible to all the others, exactly as if they were still one big `<script>`. **Load order is preserved and matters:** the `<script>` tags in `index.html` are in the same order the code originally ran, because several files run set-up code at load time (event bindings; `LIMITS_DEF.forEach`, `TRICK_CATEGORIES.forEach`, `applyBalDescriptions()`; and `js/bootstrap.js` at the very end, which calls `initMainMenu()`). If you add a new `.js` file, put its `<script>` tag in the right spot (data files load up top with the rest; `bootstrap.js` stays last). If you're not sure which file a function lives in, `grep -rn "functionName" js/`.
 
 Rough guide to `js/` (engine): `menu` `devlog` `grid-metrics` `focus-config` `limits` `combos-aim` (combo families + aim sleights) · `deck-grid` (deck + gridData + curses) · `hand-detect` (findBestHand/detectHand) · `scoring` (calcScore, exalt/corrupt, contributions) · `render` · `focus` (focus meter) · `hud` · `input` (tap/swap/select) · `play-hand` · `score-anims` / `score-dance` (the scoring “dance”) · `discard` · `card-fall` (renderCardAppearance + fall anim) · `round-timers` · `boss` · `reward-grid` · `limit-break` · `sleights-runtime` · `events-core` / `events` · `interlude` / `level-up` / `tricks-ui` · `shop` · `hands-meta` · `stats` · `deck-view` · `game-control` (pause/resume/startGame) · `challenge` · `audio` · `dev-panel` · `bootstrap` (runs last).
@@ -32,7 +38,7 @@ Rough guide to `js/` (engine): `menu` `devlog` `grid-metrics` `focus-config` `li
 
 - **Branch:** `main` is the source of truth and auto-deploys to GitHub Pages — never commit directly to it. Develop on the `claude/*` feature branch this session was assigned. If none was given, branch off the latest main: `git checkout -b claude/<topic> origin/main`.
 - **Deploy:** push your feature branch, then fast-forward `main` to it: `git push origin HEAD && git push origin HEAD:main`. Pages serves from `main`.
-- **Build stamp:** bump the `BUILD` constant at the top of **`js/menu.js`** (currently `'2026-08-04 · r125 · Match-3 between-rounds = the normal shop (+ credit stipend)'`) on every commit. It shows in the menu footer + dev panel so the owner can confirm the cache is fresh. Increment the `rN` each commit.
+- **Build stamp:** bump the `BUILD` constant at the top of **`js/menu.js`** (currently `'2026-08-19 · r142 · Spin the Wheel (20g) + checkout fly-to-loadout'`) on every commit. It shows in the menu footer + dev panel so the owner can confirm the cache is fresh. Increment the `rN` each commit.
 - **Commit messages:** detailed, since a fresh Claude session re-orients from git history. End with the session URL line.
 - After editing, validate syntax (loads every JS file in order, exactly as the browser does):
   ```
@@ -163,10 +169,22 @@ A 5×5 board where **matches play themselves**. Listed in the mode-select carous
 - **Dev toggles** (dev panel → *Match-3 Mode*): infinite deck (scored cards requeue to the back instead of being held out; finite is default), infinite mode (no clock **and** no goal — sandbox), and select-before-play (highlight a match 1s before it plays so it can be interrupted; off by default).
 - Manual `playHand()` and selection auto-submit are disabled in match-3; selection exists only to pick cards to discard.
 
+## The Mart (off-grid shop) — `js/mart-shop.js` + `js/wheel.js` + `css/mart.css`
+`USE_MART_SHOP` routes `triggerShop()` to the LETHE Mart: left **loadout** column (Knacks / Sleights / Tricks / Limits panels + Stats·Deck·Time chips) · centre **catalog** (3 of 4 categories, Tricks always featured, plus Spotlight/Spin/Freezer specials) · right **checkout**.
+- **Bundle discount:** `martDiscountRate()` (BAL.shop_discount, 5% — doubled by the **Bulk Buyer** knack) × per ADDITIONAL item, capped at `rate × Selection Size`. So 2 items = 5%, 3 = 10%, cap 15% at run start.
+- **Checkout** flies each bought item to its loadout panel one at a time (`flyMartTile`), firing `buy()` on landing. The flyer is a body-level clone because `renderMart()` rebuilds the catalog.
+- **Spin the Wheel** (`js/wheel.js`, `BAL.wheel.cost`): 10 spaces (BUST + JACKPOT + entities at shop rarity odds), **drag to spin** — release velocity sets the throw, with a floor guaranteeing ≥1 full turn and a random force so it can't be aimed. **No exit while spinning or before the prize resolves.** If a prize doesn't fit (Tricks vs `trick_slots`), an overflow prompt offers sell-a-Trick or sell-the-prize (`BAL.wheel.default_sell` = 15 unless the type has its own sell value).
+
+**Known wart:** `trickSellValue` is defined TWICE — `js/shop.js` (×0.5) and `js/shop-grid-preview.js` (×0.6). Same global scope, so the later load wins and the effective sell fraction is 0.6, not the 0.5 that shop.js documents. Worth reconciling.
+
 ## Dev panel / Settings
 `#dev-panel` is **both** the in-game dev panel (🛠 button) and the main menu's **Settings** screen (`openSettingsFromMenu`); the title bar swaps between `DEV MODE` and `SETTINGS`. As of **r117** it's a centred, bounded arcade pop-up (`css/dev-overlays.css`) rather than a full-screen sheet: sticky gold title bar, internally-scrolling `#dev-panel-body`, and a backdrop dim made by a `0 0 0 100vmax` box-shadow spread so no extra wrapper element is needed. **It lives OUTSIDE `#stage` in `index.html`** (a sibling of `#main-menu-overlay`) — inside the stage it inherited the cabinet's CSS `zoom`, which scaled its `vh` sizing by ~1.3× and pushed it off-screen.
 
-🛠 button (bottom-right). Add Tricks / knacks / sleights by name, trigger any event/boss, adjust time/coins/score/limits, open reward grid. HUD section also has scoring-dance toggles (new dance on/off, interrupt mode). Invaluable for testing.
+**As of r139 it opens on a MENU OF GROUPS, not one long scroll.** `#dev-group-menu` tiles 14 groups (Tricks · Sleights · Knacks · Limits · Events · Bosses · Animation · Focus · Time · Coins · Score · HUD · Match-3 · Event Log); picking one opens `#dev-group-pop` showing only the `.dev-section`s whose `data-group` matches. **The sections are never moved or rebuilt** — every id survives, because a lot of code binds to them (`dev-trick-list`, `dev-focus-decay-slider`, …); `devOpenGroup` only toggles `display`. To add a group: give your `.dev-section` a `data-group`, add a row to `DEV_GROUPS`.
+
+Boss and Event buttons are **generated** from `BOSS_PRESETS` / `EVENT_META` (`devRenderBosses` / `devRenderEvents`) rather than hand-written, so new content can't go missing — this is how `the_hollow` was found to have been absent.
+
+🛠 button (bottom-right). Add Tricks / knacks / sleights by name, trigger any event/boss, adjust time/coins/score/limits, open reward grid. HUD section also has scoring-dance toggles (new dance on/off, interrupt mode). **Animation** group has the item-float, heartbeat and channel-change tuners. Invaluable for testing.
 
 ## Conventions
 - Match surrounding code style (terse, inline, lots of single-line helpers).
