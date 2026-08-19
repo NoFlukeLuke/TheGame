@@ -2878,13 +2878,21 @@
     background: linear-gradient(180deg, #9fd6ff, #5aa9e6 55%, #2c7cc0) !important;
     color: #06213a !important; border: 2px solid #5aa9e6 !important;
     cursor: pointer; font-size: 11px; font-weight: 700; letter-spacing: 1px;
-    padding: 12px 3px; word-break: normal;
+    padding: 6px 2px; word-break: normal; white-space: normal; gap: 1px;
     text-shadow: 0 1px 0 rgba(255,255,255,0.4);
     box-shadow: inset 0 2px 0 rgba(255,255,255,0.5), inset 0 -3px 0 rgba(0,0,0,0.25), 0 4px 0 #216ba5, 0 6px 8px rgba(0,0,0,0.4);
     transition: transform 0.1s;
   }
   #action-col #swap-indicator.reward-skip:hover  { transform: translateY(-1px); }
   #action-col #swap-indicator.reward-skip:active { transform: translateY(2px); box-shadow: inset 0 2px 0 rgba(255,255,255,0.5), 0 1px 0 #216ba5; }
+  /* SKIP now states its payout: word over an arrow over the gold (and Rain Check seconds). */
+  #action-col #swap-indicator.reward-skip .rskip-word  { font-size: 11px; letter-spacing: 1px; line-height: 1; }
+  #action-col #swap-indicator.reward-skip .rskip-arrow { font-size: 8px; line-height: 1; opacity: 0.7; margin: -1px 0; }
+  #action-col #swap-indicator.reward-skip .rskip-gain  {
+    font-size: 10px; font-weight: 700; letter-spacing: 0; line-height: 1.1; white-space: nowrap;
+    color: #4a2f00; text-shadow: 0 1px 0 rgba(255,255,255,0.45);
+  }
+  #action-col #swap-indicator.reward-skip .rskip-gain-time { font-size: 9px; color: #0b3a2a; }
 
   /* ── reward resolve (r110): impact reactions on HUD targets + mystery reveal ── */
   /* good reward lands → target pops + mint glow */

@@ -677,7 +677,11 @@ function enterRewardButtonMode() {
   if (swap) {
     if (_origSwapHTML === null) _origSwapHTML = swap.innerHTML;
     swap.classList.add('reward-skip');
-    swap.innerHTML = 'S<br>K<br>I<br>P';
+    // Label states the payout so the "take nothing" option is never a blind choice.
+    // Rain Check (Trick) adds its seconds to the label too, since it changes what SKIP is worth.
+    swap.innerHTML = `<span class="rskip-word">SKIP</span><span class="rskip-arrow">\u2193</span>`
+                   + `<span class="rskip-gain">+${BAL.reward_skip.gold}\u00a0\ud83d\udcb0</span>`
+                   + (hasTrick('rain_check') ? `<span class="rskip-gain rskip-gain-time">+${BAL.rain_check.seconds}s</span>` : '');
     swap.onclick = skipRewardGrid;
   }
 }

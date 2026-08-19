@@ -5,6 +5,7 @@ const KNACK_POOL = [
   { id:'hoarder',         emoji:'🗑️',  name:'Hoarder',          rarity:'common', desc:'Discards no longer count against the discard limit, but cost 2× time.' },
   { id:'time_bank',       emoji:'⏳',  name:'Time Bank',        rarity:'rare',   desc:'+30 seconds at the start of every round.' },
   { id:'inheritance',     emoji:'💰',  name:'Inheritance',      rarity:'rare',   desc:'Start each round with +5 credits.' },
+  { id:'bulk_buyer',      emoji:'🛒',  name:'Bulk Buyer',       rarity:'rare',   desc:'Doubles the shop bundle discount (10% per extra item instead of 5%).' },
   { id:'combo_keeper',    emoji:'🔥',  name:'Combo Keeper',     rarity:'rare',   desc:'Streaks survive one non-streak hand. Re-arms after 2 streak hands.' },
   { id:'lucky_seven',     emoji:'🎯',  name:'Lucky Seven',      rarity:'common', desc:'Every 7th hand played gives +1 swap.' },
   { id:'extra_swaps',     emoji:'🔄',  name:'Swap Shop',        rarity:'common', desc:'Start each round with +2 extra swaps.' },

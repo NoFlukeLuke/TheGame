@@ -13,11 +13,19 @@ let martCart      = [];      // ['tricks-0', 'sleights-2', …] keys into martSt
 let martRerollN   = 0;
 let _martFloatRAF = null;
 
-// discount: +5% per ADDITIONAL item (2nd, 3rd…); WIP knack raises to 10%; cap = rate × Selection Size.
-let MART_DISCOUNT_PER_ITEM = 5;
+// Bundle discount: +rate% per ADDITIONAL item (2 items = 1×rate, 3 = 2×rate, …).
+// The rate is the STORE's discount — normally 5%, but entities can change it (Bulk Buyer
+// doubles it). The whole discount is capped at rate × Selection Size, so the ceiling grows
+// as the player upgrades how many cards they can select at once.
+function martDiscountRate() {
+  let rate = BAL.shop_discount.per_item;
+  if (typeof hasKnack === 'function' && hasKnack('bulk_buyer')) rate = BAL.shop_discount.bulk_per_item;
+  return rate;
+}
+function martSelectionSize() { return limits.selection ? limits.selection.current : 3; }
+function martDiscountCap()   { return martDiscountRate() * martSelectionSize(); }
 function martDiscountPct(n) {
-  const cap = MART_DISCOUNT_PER_ITEM * (limits.selection ? limits.selection.current : 3);
-  return Math.max(0, Math.min(MART_DISCOUNT_PER_ITEM * (n - 1), cap));
+  return Math.max(0, Math.min(martDiscountRate() * (n - 1), martDiscountCap()));
 }
 
 // ── rarity-weighted picking (same odds as sleights), duplicates ALLOWED ──
@@ -191,7 +199,7 @@ function renderMartCheckout() {
     <div class="m-rcpt">${lines}${drop}</div>
     <div class="m-sum">
       <div class="srow"><span>subtotal</span><span>💰${base}</span></div>
-      <div class="srow disc"><span>bundle −${pct}% (cap ${MART_DISCOUNT_PER_ITEM*(limits.selection?limits.selection.current:3)}%)</span><span>−💰${base-total}</span></div>
+      <div class="srow disc"><span>bundle −${pct}% (cap ${martDiscountCap()}%)</span><span>−💰${base-total}</span></div>
       <div class="grand"><span>total</span><span>${pct>0?`<s>💰${base}</s> `:''}<b>💰${total}</b></span></div>
       <div class="m-buy ${afford?'':'disabled'}" id="mart-buy">CHECKOUT</div>
       <div class="m-foot"><div class="m-fbtn" id="mart-reroll">🎲 Reroll ${8+martRerollN*2}</div><div class="m-fbtn leave" id="mart-leave">⏻ Leave</div></div>

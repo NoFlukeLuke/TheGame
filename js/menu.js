@@ -1,4 +1,4 @@
-const BUILD = '2026-08-19 · r136 · Merge main r135 into LETHE Mart shop branch';
+const BUILD = '2026-08-19 · r137 · Skip = +20 gold (labelled) · entity-driven bundle discount';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
