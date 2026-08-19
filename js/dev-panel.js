@@ -115,6 +115,7 @@ function openDevPanel() {
   devRenderEvents();
   devRenderGroupMenu();
   devSyncFloatSliders();
+  devSyncHbSliders();
   devCloseGroup();          // always land on the group menu, not the last group opened
   stopTimers();
 }
@@ -186,6 +187,25 @@ function devSetFloat(k, v) {
   if (lab) lab.textContent = (+v).toString();
 }
 function devResetFloat() { resetFloatCfg(); devSyncFloatSliders(); }
+
+// ── Grid heartbeat sliders (HB_CFG lives in js/heartbeat.js) ──
+const HB_KEYS = ['dx','dy','rot','scale','period','beat','gap','beat2','colStagger','rowStagger'];
+function devSetHb(k, v) {
+  setHbParam(k, v);
+  const lab = document.getElementById('dev-hb-' + k + '-val');
+  if (lab) lab.textContent = (+v).toString();
+}
+function devResetHb() { resetHbCfg(); devSyncHbSliders(); }
+function devSyncHbSliders() {
+  const on = document.getElementById('dev-hb-enabled');
+  if (on) on.checked = hbEnabled;
+  HB_KEYS.forEach(k => {
+    const sl = document.getElementById('dev-hb-' + k);
+    const lab = document.getElementById('dev-hb-' + k + '-val');
+    if (sl)  sl.value = HB_CFG[k];
+    if (lab) lab.textContent = HB_CFG[k].toString();
+  });
+}
 function devSyncFloatSliders() {
   ['dx','dy','rot','per','sc'].forEach(k => {
     const sl = document.getElementById('dev-float-' + k);

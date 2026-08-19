@@ -43,6 +43,7 @@ function showSuitEffect(text, color) {
 // ══════════════════════════════════════════════
 function startRoundTimer() {
   if (roundInterval) clearInterval(roundInterval);
+  startHeartbeat();                 // the board's idle pulse runs with the round
   roundStartSeconds = roundSeconds; // mark the start of the countdown for ♠ "first 30s" exalt
   roundInterval = setInterval(() => {
     if (pipeTimerPaused) return;
@@ -161,6 +162,7 @@ function stopTimers() {
   roundInterval = null;
   gameInterval = null;
   stopFocusDecay();
+  stopHeartbeat();
 }
 
 // ══════════════════════════════════════════════

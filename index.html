@@ -171,6 +171,42 @@
     </div>
   </div>
 
+  <!-- GRID HEARTBEAT -->
+  <div class="dev-section" data-group="anim">
+    <div class="dev-section-title">Grid Heartbeat — play grid</div>
+    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:4px;">
+      A double thump (lub-dub) that starts at the left edge, middle row(s), and radiates outward.
+      Full tuner with a live grid: <b>heartbeat-preview.html</b>.
+    </div>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;">
+      <input id="dev-hb-enabled" type="checkbox" onchange="setHbEnabled(this.checked)" style="accent-color:var(--gold);">
+      Heartbeat on
+    </label>
+    <div class="dev-slider-row"><span>Drift X <b id="dev-hb-dx-val">1.5</b>px</span>
+      <input id="dev-hb-dx" type="range" min="0" max="12" value="1.5" step="0.1" oninput="devSetHb('dx', this.value)"></div>
+    <div class="dev-slider-row"><span>Lift Y <b id="dev-hb-dy-val">5</b>px</span>
+      <input id="dev-hb-dy" type="range" min="0" max="20" value="5" step="0.1" oninput="devSetHb('dy', this.value)"></div>
+    <div class="dev-slider-row"><span>Rotation <b id="dev-hb-rot-val">0.25</b>&deg;</span>
+      <input id="dev-hb-rot" type="range" min="0" max="5" value="0.25" step="0.05" oninput="devSetHb('rot', this.value)"></div>
+    <div class="dev-slider-row"><span>Scale pulse <b id="dev-hb-scale-val">3</b>%</span>
+      <input id="dev-hb-scale" type="range" min="0" max="10" value="3" step="0.1" oninput="devSetHb('scale', this.value)"></div>
+    <div class="dev-slider-row"><span>Every <b id="dev-hb-period-val">5</b>s</span>
+      <input id="dev-hb-period" type="range" min="1" max="15" value="5" step="0.5" oninput="devSetHb('period', this.value)"></div>
+    <div class="dev-slider-row"><span>Beat length <b id="dev-hb-beat-val">260</b>ms</span>
+      <input id="dev-hb-beat" type="range" min="80" max="700" value="260" step="10" oninput="devSetHb('beat', this.value)"></div>
+    <div class="dev-slider-row"><span>Lub&rarr;dub gap <b id="dev-hb-gap-val">190</b>ms</span>
+      <input id="dev-hb-gap" type="range" min="60" max="600" value="190" step="10" oninput="devSetHb('gap', this.value)"></div>
+    <div class="dev-slider-row"><span>2nd beat <b id="dev-hb-beat2-val">0.72</b>&times;</span>
+      <input id="dev-hb-beat2" type="range" min="0" max="1" value="0.72" step="0.02" oninput="devSetHb('beat2', this.value)"></div>
+    <div class="dev-slider-row"><span>Stagger / col <b id="dev-hb-colStagger-val">110</b>ms</span>
+      <input id="dev-hb-colStagger" type="range" min="0" max="400" value="110" step="5" oninput="devSetHb('colStagger', this.value)"></div>
+    <div class="dev-slider-row"><span>Stagger / row <b id="dev-hb-rowStagger-val">55</b>ms</span>
+      <input id="dev-hb-rowStagger" type="range" min="0" max="400" value="55" step="5" oninput="devSetHb('rowStagger', this.value)"></div>
+    <div class="dev-row">
+      <button class="dev-btn" onclick="devResetHb()">Reset to default</button>
+    </div>
+  </div>
+
   <!-- ADD TRICK -->
   <div class="dev-section" data-group="tricks">
     <div class="dev-section-title">Add Trick</div>
@@ -740,6 +776,7 @@
 <script src="js/data/tricks.js"></script>
 <script src="js/focus-config.js"></script>
 <script src="js/float-anim.js"></script>
+<script src="js/heartbeat.js"></script>
 <script src="js/limits.js"></script>
 <script src="js/data/knacks.js"></script>
 <script src="js/data/sleights.js"></script>

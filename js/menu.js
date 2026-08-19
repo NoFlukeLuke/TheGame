@@ -1,4 +1,4 @@
-const BUILD = '2026-08-19 · r139 · Shared item float (shop + rewards) · dev panel = group pop-ups';
+const BUILD = '2026-08-19 · r140 · Grid heartbeat wave (lub-dub every 5s) + tuner preview';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

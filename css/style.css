@@ -1277,6 +1277,11 @@
     touch-action: none;
     will-change: top, opacity;
     transition: border-color 0.1s, box-shadow 0.1s, opacity 0.15s;
+    /* --hb* come from the grid heartbeat (js/heartbeat.js). Declared here rather
+       than written to el.style.transform on purpose: an INLINE transform (the
+       discard fly-out) and a !important one (.card.removing) both beat this, so
+       those effects keep working untouched. */
+    transform: translate(var(--hbx,0), var(--hby,0)) rotate(var(--hbr,0deg)) scale(var(--hbs,1));
   }
   .card.removing {
     transition: opacity 0.18s ease-in, transform 0.18s ease-in !important;
@@ -1411,6 +1416,7 @@
     will-change: top, opacity;
     transition: top 0.32s cubic-bezier(0.4,0,0.2,1), left 0.32s cubic-bezier(0.4,0,0.2,1);
     overflow: hidden;
+    transform: translate(var(--hbx,0), var(--hby,0)) rotate(var(--hbr,0deg)) scale(var(--hbs,1));  /* grid heartbeat */
   }
   .trick-card.trick-tier-common {
     background: linear-gradient(160deg, #1a2a1a 0%, #0f1f0f 100%);
