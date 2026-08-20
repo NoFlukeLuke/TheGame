@@ -48,7 +48,7 @@ function ccNoise() {
     const ctx = cv.getContext('2d');
     const img = ctx.createImageData(90, 90);
     for (let i = 0; i < img.data.length; i += 4) {
-      const v = Math.random() * 255;
+      const v = fxRandom() * 255;
       img.data[i] = img.data[i + 1] = img.data[i + 2] = v;
       img.data[i + 3] = 255;
     }

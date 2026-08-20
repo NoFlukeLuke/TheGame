@@ -29,8 +29,8 @@ function resetFloatCfg() { FLOAT_CFG = { ...FLOAT_DEFAULTS }; saveFloatCfg(); }
 // Per-item seed: random phase on each axis plus a slightly detuned frequency, so
 // items drift apart over time instead of beating together.
 function _floatSeed() {
-  return { px: Math.random() * 6.283, py: Math.random() * 6.283, pr: Math.random() * 6.283,
-           fx: 0.85 + Math.random() * 0.35, fy: 0.75 + Math.random() * 0.45, fr: 0.7 + Math.random() * 0.5 };
+  return { px: fxRandom() * 6.283, py: fxRandom() * 6.283, pr: fxRandom() * 6.283,
+           fx: 0.85 + fxRandom() * 0.35, fy: 0.75 + fxRandom() * 0.45, fr: 0.7 + fxRandom() * 0.5 };
 }
 
 // Seeds cached by a stable key (data-float-key). The reward grid rebuilds its

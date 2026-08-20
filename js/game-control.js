@@ -124,10 +124,54 @@ function toggleTimePopup() {
 }
 document.getElementById('btn-time')?.addEventListener('click', (e) => {
   e.stopPropagation();
+  hideLimitsPopup();
   toggleTimePopup();
 });
 document.addEventListener('click', (e) => {
   if (!e.target.closest('#btn-time') && !e.target.closest('#interact-costs')) hideTimePopup();
+}, true);
+
+// ▲ Limits — the same lightweight bubble as ⏱ Time, but for the upgradeable caps.
+// Limits are the run's skeleton (how big the board is, how many swaps/discards you
+// get, how long a round lasts, how many Tricks you can hold) and until now they were
+// only visible inside the Mart. This puts them one tap away during play.
+function hideLimitsPopup() { document.getElementById('limits-popup')?.classList.remove('show'); }
+function updateLimitsPopup() {
+  const rows = document.getElementById('limits-popup-rows');
+  if (!rows) return;
+  rows.innerHTML = LIMITS_DEF.map(def => {
+    const l = limits[def.id];
+    const maxed = l.current >= l.max;
+    // hideMax limits (Selection Size) have no meaningful ceiling to show.
+    const right = def.hideMax ? `${l.current}` : `${l.current}<span class="lp-max">/${l.max}</span>`;
+    return `<div class="ic-r lp-r${maxed ? ' lp-maxed' : ''}" title="${def.desc}">` +
+           `<span><span class="lp-ico">${def.icon}</span>${def.label}</span>` +
+           `<span>${right}</span></div>`;
+  }).join('');
+}
+function toggleLimitsPopup() {
+  const pop = document.getElementById('limits-popup');
+  const btn = document.getElementById('btn-limits');
+  if (!pop || !btn) return;
+  if (pop.classList.contains('show')) { hideLimitsPopup(); return; }
+  updateLimitsPopup();
+  pop.classList.add('show');
+  const r = btn.getBoundingClientRect();
+  const pw = pop.offsetWidth, ph = pop.offsetHeight;
+  let left = r.left + r.width / 2 - pw / 2;
+  let top  = r.top - ph - 8;
+  left = Math.max(6, Math.min(window.innerWidth - pw - 6, left));
+  if (top < 6) top = r.bottom + 8;
+  pop.style.left = left + 'px';
+  pop.style.top  = top + 'px';
+}
+document.getElementById('btn-limits')?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  hideTimePopup();
+  toggleLimitsPopup();
+});
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('#btn-limits') && !e.target.closest('#limits-popup')) hideLimitsPopup();
 }, true);
 
 // Stats / Deck can also be opened from a takeover screen (the Mart shop), where there is
@@ -154,6 +198,12 @@ function startGame() {
   document.getElementById('shop-overlay').classList.remove('show');
   stopTimers();
   if (levelupTimer) { clearInterval(levelupTimer); levelupTimer = null; }
+
+  // Install this run's RNG BEFORE any deck is built or shuffled — startGame is
+  // the single point where a run's randomness is established (see js/seed.js).
+  // A mode may pin a seed (the tutorial does); otherwise the dev panel's seed is
+  // used, and with neither the run is plain unseeded.
+  applyRunSeed(ACTIVE_MODE.seed || pendingRunSeed || null);
 
   // Pick the suit list for this mode BEFORE any deck is built. Six Suits mode uses
   // the expanded 6-suit list; every other mode uses the classic four.

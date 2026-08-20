@@ -67,6 +67,27 @@
     <div id="dev-group-pop-body">
 
   <!-- TIME -->
+  <div class="dev-section" data-group="seed">
+    <div class="dev-section-title">Run Seed</div>
+    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);line-height:1.4;">
+      A seed makes a run reproducible — same seed, same deal, same shops, same reward grids
+      (as long as you play the same way). Visual effects stay random either way.
+      Seeds apply when a run <b>starts</b>.
+    </div>
+    <input id="dev-seed-input" type="text" placeholder="e.g. LETHE-4F2A — blank = random"
+      oninput="devSetSeed(this.value)"
+      style="width:100%;background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--cream);font-family:'Share Tech Mono',monospace;font-size:12px;padding:6px 8px;border-radius:4px;letter-spacing:1px;">
+    <div class="dev-row">
+      <button class="dev-btn" onclick="devRollSeed()">Random</button>
+      <button class="dev-btn" onclick="devClearSeed()">Clear</button>
+      <button class="dev-btn" onclick="devStartSeededRun()">Start Run</button>
+    </div>
+    <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--cream-dim);line-height:1.7;">
+      <div>this run: <span id="dev-seed-now" style="color:var(--gold);">— (unseeded)</span></div>
+      <div>next run: <span id="dev-seed-next" style="color:var(--gold);">— (unseeded)</span></div>
+    </div>
+  </div>
+
   <div class="dev-section" data-group="time">
     <div class="dev-section-title">Time</div>
     <div class="dev-row">
@@ -393,6 +414,27 @@
   </div><!-- /#dev-panel-body -->
 </div>
 
+<!-- Interaction pop-ups (⏱ Time · ▲ Limits). These live OUTSIDE #cabinet on purpose:
+     they are position:fixed and placed from JS in raw viewport pixels, and inside the
+     cabinet the CSS `zoom` multiplied those coordinates and pushed them off-screen. -->
+  <div id="interact-costs" class="time-popup" style="display:none">
+    <div class="ic-h">Interact Cost</div>
+    <div class="ic-r"><span>Play</span><span id="ic-play">0s</span></div>
+    <div class="ic-r"><span>Discard</span><span id="ic-discard">3s</span></div>
+    <div class="ic-r"><span>Swap</span><span id="ic-swap">4s</span></div>
+    <div class="ic-sep"></div>
+    <div class="ic-r"><span>Max Time</span><span id="ic-maxtime">3:00</span></div>
+    <div class="ic-r"><span>Paused</span><span id="ic-paused">0×</span></div>
+    <div class="ic-r"><span>Rewound</span><span id="ic-rewound">0×</span></div>
+  </div>
+
+  <div id="limits-popup" class="time-popup" style="display:none">
+    <div class="ic-h">Operating Limits</div>
+    <div id="limits-popup-rows"></div>
+    <div class="ic-sep"></div>
+    <div class="lp-foot">Raise these in the Mart, or with a Limit Break.</div>
+  </div>
+
 <div id="mode-select-overlay">
   <div id="mode-select-inner">
     <div id="mode-select-title">SELECT MODE</div>
@@ -564,6 +606,7 @@
     <button class="act-btn btn-secondary" id="btn-stats">📊 Stats</button>
     <button class="act-btn btn-secondary" id="btn-deck">🃏 Deck</button>
     <button class="act-btn btn-secondary" id="btn-time">⏱ Time</button>
+    <button class="act-btn btn-secondary" id="btn-limits">▲ Limits</button>
     <button class="act-btn btn-secondary" id="btn-pause">⏸ Pause</button>
   </div>
 
@@ -578,17 +621,8 @@
     <div class="ci-row"><span>Interest</span><span class="pos" id="ci-interest">+0</span></div>
     <div class="ci-row"><span>Cash out</span><span id="ci-cashout">+0</span></div>
   </div>
-  <!-- Time-cost breakdown: a pop-up toggled by the ⏱ Time button (no longer a permanent chip) -->
-  <div id="interact-costs" class="time-popup" style="display:none">
-    <div class="ic-h">Interact Cost</div>
-    <div class="ic-r"><span>Play</span><span id="ic-play">0s</span></div>
-    <div class="ic-r"><span>Discard</span><span id="ic-discard">3s</span></div>
-    <div class="ic-r"><span>Swap</span><span id="ic-swap">4s</span></div>
-    <div class="ic-sep"></div>
-    <div class="ic-r"><span>Max Time</span><span id="ic-maxtime">3:00</span></div>
-    <div class="ic-r"><span>Paused</span><span id="ic-paused">0×</span></div>
-    <div class="ic-r"><span>Rewound</span><span id="ic-rewound">0×</span></div>
-  </div>
+  <!-- The ⏱ Time and ▲ Limits pop-ups used to live here; they now sit outside
+       #cabinet (next to #dev-panel) so the stage's CSS zoom can't displace them. -->
 
   <!-- Hidden elements still needed by render() -->
   <div style="display:none">
@@ -819,6 +853,7 @@
 </div>
 
 
+<script src="js/seed.js"></script>
 <script src="js/menu.js"></script>
 <script src="js/devlog.js"></script>
 <script src="js/grid-metrics.js"></script>

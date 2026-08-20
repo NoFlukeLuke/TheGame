@@ -32,7 +32,7 @@ function playNoise({ gain = 0.05, attack = 0.002, release = 0.06, delay = 0 } = 
   const bufSize = ctx.sampleRate * (release + 0.1);
   const buffer = ctx.createBuffer(1, bufSize, ctx.sampleRate);
   const data = buffer.getChannelData(0);
-  for (let i = 0; i < bufSize; i++) data[i] = Math.random() * 2 - 1;
+  for (let i = 0; i < bufSize; i++) data[i] = fxRandom() * 2 - 1;
   const src = ctx.createBufferSource();
   src.buffer = buffer;
   const env = ctx.createGain();

@@ -3354,10 +3354,13 @@
   #stage.landscape .trick-tray-chip { width:48px; height:64px; font-size:14px; border-radius:6px; flex-direction:column; }
   /* money: compact single-row bar (replaces the old tall coin chip) */
   #stage.landscape #coin-info      { left:1.56%; top:84%; width:37.74%; height:6.5%; flex-direction:row; align-items:center; justify-content:flex-start; gap:10px; padding:0 10px; }
-  #stage.landscape #btn-stats      { position:absolute; left:1.56%;  top:91.67%; width:8.7%; height:6.39%; }
-  #stage.landscape #btn-deck       { position:absolute; left:11.16%; top:91.67%; width:8.7%; height:6.39%; }
-  #stage.landscape #btn-time       { position:absolute; left:20.76%; top:91.67%; width:8.7%; height:6.39%; }
-  #stage.landscape #btn-pause      { position:absolute; left:30.36%; top:91.67%; width:8.7%; height:6.39%; }
+  /* Five secondary buttons now (Limits joined in r145), so the row is re-divided:
+     the same 1.56%→39.3% span, 5 slots of 6.83% with the same 0.9% gutters. */
+  #stage.landscape #btn-stats      { position:absolute; left:1.56%;  top:91.67%; width:6.83%; height:6.39%; }
+  #stage.landscape #btn-deck       { position:absolute; left:9.29%;  top:91.67%; width:6.83%; height:6.39%; }
+  #stage.landscape #btn-time       { position:absolute; left:17.02%; top:91.67%; width:6.83%; height:6.39%; }
+  #stage.landscape #btn-limits     { position:absolute; left:24.75%; top:91.67%; width:6.83%; height:6.39%; }
+  #stage.landscape #btn-pause      { position:absolute; left:32.48%; top:91.67%; width:6.83%; height:6.39%; }
   /* focus meter hugs the grid's left edge; grid + clock bar shifted right for the wider left column */
   #stage.landscape #focus-meter-wrap { position:absolute; left:39.9%; top:1.39%; width:4.6%; height:96.67%; }
   #stage.landscape #focus-bar-outer { width:21px; }   /* landscape focus bar (25% thinner than the old 28px) */
@@ -3377,6 +3380,10 @@
   #interact-costs .ic-r { display:flex; justify-content:space-between; font-family:'Courier New',monospace; font-size:9px; color:var(--cream); }
   #interact-costs .ic-r span:last-child { color:var(--gold); font-weight:700; }
   #interact-costs .ic-sep { height:1px; margin:3px 0; background:var(--plastic-deep); opacity:0.5; }
+  #limits-popup .ic-h { font-family:'Cinzel',serif; font-size:7px; letter-spacing:1px; color:var(--gold-dim); text-transform:uppercase; text-align:center; }
+  #limits-popup .ic-r { display:flex; justify-content:space-between; font-family:'Courier New',monospace; font-size:9px; color:var(--cream); }
+  #limits-popup .ic-r span:last-child { color:var(--gold); font-weight:700; }
+  #limits-popup .ic-sep { height:1px; margin:3px 0; background:var(--plastic-deep); opacity:0.5; }
   #run-progress .rp-act { font-family:'Cinzel',serif; font-size:11px; font-weight:700; color:var(--gold); letter-spacing:1px; line-height:1; }
   #run-progress .rp-nodes { display:flex; gap:3px; align-items:center; }
   #run-progress .rp-nodes span { width:6px; height:6px; border-radius:50%; background:#2a2010; border:1px solid var(--gold-dim); box-sizing:border-box; }
@@ -3536,7 +3543,8 @@
 
   /* Readout typography */
   .top-label, .subbox-label, #score-goal-label, #score-total-label, .panel-title,
-  #interact-costs .ic-h, #coin-info .ci-row, #interact-costs .ic-r {
+  #interact-costs .ic-h, #coin-info .ci-row, #interact-costs .ic-r,
+  #limits-popup .ic-h, #limits-popup .ic-r {
     font-family:'Share Tech Mono',monospace !important;
   }
   .top-value, .subbox-val, #score-total-num, #score-to-go, #goal-display,
@@ -3567,8 +3575,9 @@
 
   /* Coin / cost figures */
   #coin-info .ci-main { color: var(--c-yellow) !important; }
-  #coin-info .ci-row .pos, #interact-costs .ic-r span:last-child { color: var(--c-mint) !important; }
-  #interact-costs .ic-h { color: var(--c-cyan) !important; }
+  #coin-info .ci-row .pos, #interact-costs .ic-r span:last-child,
+  #limits-popup .ic-r span:last-child { color: var(--c-mint) !important; }
+  #interact-costs .ic-h, #limits-popup .ic-h { color: var(--c-cyan) !important; }
 
   /* Action buttons → chunky candy plastic caps that depress */
   .act-btn { font-family:'Orbitron',sans-serif !important; font-weight:700 !important; border:none !important;
@@ -3688,8 +3697,20 @@
   #swap-indicator .act-cost { color: var(--cream-dim); }
 
   /* Time-cost breakdown pop-up (toggled by the ⏱ Time button) */
+  /* ── Limits pop-up (▲ Limits) — wider than the Time bubble because it lists
+     every cap with its label and ceiling. ── */
+  #limits-popup.time-popup.show { min-width: 188px; }
+  #limits-popup .lp-r { gap: 10px; align-items: baseline; }
+  #limits-popup .lp-ico { display: inline-block; width: 14px; opacity: 0.85; }
+  #limits-popup .lp-max { color: var(--cream-dim) !important; font-weight: 400; }
+  #limits-popup .lp-maxed span:last-child { color: var(--c-yellow) !important; }
+  #limits-popup .lp-foot {
+    font-family: 'Crimson Pro', serif; font-size: 9px; line-height: 1.3;
+    color: var(--cream-dim); text-align: center; max-width: 180px;
+  }
+
   #interact-costs.time-popup { display: none; }
-  #interact-costs.time-popup.show {
+  #interact-costs.time-popup.show, #limits-popup.time-popup.show {
     display: flex !important; position: fixed; z-index: 320; min-width: 116px;
     flex-direction: column; gap: 2px; padding: 8px 12px; margin: 0;
     background: linear-gradient(180deg, #15110b, #0b0906) !important;
