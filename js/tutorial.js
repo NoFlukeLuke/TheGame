@@ -51,6 +51,10 @@ let _tutClockHeld    = false; // this file's claim on gameTimerPaused
 let tutorialTeachCells = null;  // the hand the board step points at, [[r,c],…]
 let tutorialRewardPlan = null;  // { trick:[r,c], debuff:[r,c], dest:[r,c] } for the scripted grid
 let _tutLastHoles      = [];    // last non-empty hole set, held across re-render gaps
+let tutorialSwapPlan    = null; // { pair:[[r,c],[r,c]], makes:[cells] } — a swap worth making
+let tutorialDiscardPlan = null; // [[r,c],…] — cards in no hand, i.e. what a discard is for
+let _tutSwapMark        = 0;    // lastSwapTime when the swap step opened
+let _tutDiscardMark     = 0;    // cardsDiscardedRound when the discard step opened
 
 // ── Anchor helpers ───────────────────────────────────────────────────────────
 // First VISIBLE match wins, so one step can target a landscape widget or its
@@ -176,10 +180,43 @@ const TUTORIAL_STEPS = [
     body: `Submitting hands is free of charge.<br><br>Corrective action is not: a swap is billed <b>4s</b>, a discard <b>3s</b>.<br><br>Time remaining at the end of a round is converted to credits. Unused time is not wasted — it is banked.`,
   },
   {
-    id: 'tools', anchor: () => tutEls('#btn-discard', '#swap-indicator'), side: 'left', hold: true, next: true,
+    // Interactive. The board was audited at deal time to guarantee an exchange
+    // worth making exists (see tutorialQualifyBoard), and the plan is recomputed
+    // on entry because the first hand has since changed the board.
+    id: 'swap',
+    anchor: () => tutorialSwapPlan ? tutorialSwapPlan.pair.map(tutGridCell).filter(Boolean) : tutEl('#grid'),
+    side: 'left', gate: true, hold: true, noAutoPlay: true,
     eyebrow: 'Module 05',
-    title: 'Corrective action',
-    body: `<b>Swap</b> — double-tap a card, then tap a neighbour to exchange their positions.<br><br><b>Discard</b> — select unwanted cards and press DISCARD to requisition replacements.<br><br>Both are rationed per round. Remaining allowances are printed on the controls.`,
+    title: 'Corrective action — swap',
+    body: `Two cards may be exchanged if they are adjacent. <b>Double-tap</b> the first, then <b>tap</b> the second.<br><br>These two are highlighted because trading them puts a scoring hand on the board that is not there now.<br><br>A swap is billed <b>4s</b> and draws on your swap allowance.`,
+    onEnter: () => {
+      selected = []; swapPending = null;
+      tutorialSwapPlan = tutorialFindSwap();
+      _tutSwapMark = lastSwapTime;
+      render();
+    },
+    until: () => lastSwapTime !== _tutSwapMark,
+  },
+  {
+    // Interactive. Points at a card that is in no hand at all — which is the
+    // honest case for spending a discard.
+    id: 'discard',
+    anchor: () => {
+      const cards = (tutorialDiscardPlan || []).slice(0, 2).map(tutGridCell).filter(Boolean);
+      const btn = tutEl('#btn-discard');
+      return cards.length ? [...cards, btn].filter(Boolean) : tutEls('#grid', '#btn-discard');
+    },
+    side: 'left', gate: true, hold: true, noAutoPlay: true,
+    eyebrow: 'Module 05',
+    title: 'Corrective action — discard',
+    body: `Cards that contribute to nothing can be returned and replaced.<br><br>The highlighted cards are in no hand on this board. <b>Select one, then press DISCARD.</b> Replacements fall in from above.<br><br>Billed <b>3s</b> per card. Swaps and discards are both rationed per round — the remaining allowance is printed on each control.`,
+    onEnter: () => {
+      selected = []; swapPending = null;
+      tutorialDiscardPlan = tutorialFindDeadCards();
+      _tutDiscardMark = cardsDiscardedRound;
+      render();
+    },
+    until: () => cardsDiscardedRound > _tutDiscardMark,
   },
   {
     id: 'limits-btn', anchor: () => tutEl('#btn-limits'), side: 'top', gate: true, hold: true,
@@ -322,47 +359,143 @@ const TUTORIAL_STEPS = [
 // is finding a hand on it to point at.
 function tutorialBeginRun() {
   tutorialRewardPlan = null;
-  tutorialTeachCells = tutorialFindTeachingHand();
+  const audit = tutorialQualifyBoard();
+  // Prefer a 3-card hand for the opening lesson — a bare pair under-sells it.
+  tutorialTeachCells = (audit.big[0] || audit.hands[0] || null);
+  tutorialSwapPlan    = audit.swap;
+  tutorialDiscardPlan = audit.dead;
+  dbgEvent('info', `tutorial board ready after ${audit.tries} deal(s)`,
+    { hands: audit.hands.length, threeCard: audit.big.length, dead: audit.dead.length, swap: !!audit.swap });
+  render();
   tutorialStart();
 }
 
-// Find a small, genuinely valid hand on the CURRENT board for the "select a
-// hand" step to highlight. This is why the tutorial does not need a stacked
-// deck: any 4×4 deal contains a 2-card hand somewhere, and preferring 3-card
-// hands means the first lesson is usually something better than a bare pair.
-function tutorialFindTeachingHand() {
-  const inBounds = (r, c) => r >= 0 && c >= 0 && r < gridRows && c < gridCols;
-  const usable = (r, c) => inBounds(r, c) && gridData[r]?.[c] && cardCan(gridData[r][c], 'select') && !isCellBlocked(r, c);
-  const cap = Math.min(3, limits.selection.current);
-  let best = null;
-  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
-    if (!usable(r, c)) continue;
-    // Grow connected shapes from [r,c] up to `cap` cells and keep the best hand.
-    // Scoring prefers, in order: shapes where EVERY highlighted card actually
-    // participates in the hand (otherwise "these form a hand" is a lie — a pair
-    // plus a dead third card teaches the wrong thing), then bigger shapes.
-    const grow = (cells) => {
-      if (cells.length >= 2) {
-        const res = findBestHand(cells);
-        if (res) {
-          const clean = res.handCells && res.handCells.length === cells.length;
-          const rank = (clean ? 100 : 0) + cells.length;
-          if (!best || rank > best.rank) best = { cells: [...cells], hand: res.hand, rank };
-        }
-      }
-      if (cells.length >= cap) return;
-      for (const [cr, cc] of cells) {
-        for (const [dr, dc] of [[0, 1], [1, 0], [0, -1], [-1, 0]]) {
-          const nr = cr + dr, nc = cc + dc;
-          if (!usable(nr, nc) || cells.some(([a, b]) => a === nr && b === nc)) continue;
-          grow([...cells, [nr, nc]]);
-        }
-      }
-    };
-    grow([[r, c]]);
-    if (best && best.rank >= 100 + cap) return best.cells;  // clean hand at full size, stop early
+// ── Board audit + qualification (r148) ───────────────────────────────────────
+// The tutorial teaches three board actions — play a hand, swap, discard — and
+// each needs the board to actually AFFORD it. Rather than stack the deck, the
+// opening board is AUDITED and, if it falls short, re-dealt. Re-dealing runs off
+// the seeded deck stream, so "attempt 3 of seed X" is still the same board every
+// time; the run stays reproducible and the deck stays a real 52-card deck.
+const TUT_BOARD_MIN_HANDS = 3;   // distinct playable hands somewhere on the board
+const TUT_BOARD_TRIES     = 30;  // re-deals before giving up and taking what's there
+
+function _tutUsable(r, c) {
+  return r >= 0 && c >= 0 && r < gridRows && c < gridCols &&
+         !!gridData[r]?.[c] && cardCan(gridData[r][c], 'select') && !isCellBlocked(r, c);
+}
+const _tutKey = cells => cells.map(([r, c]) => r * 100 + c).sort((a, b) => a - b).join(',');
+
+// Is every card in this shape actually PULLING ITS WEIGHT?
+// The obvious test — findBestHand().handCells.length === cells.length — does not
+// work: detectHand happily calls {5♣ 7♠ 7♥} a "Pair", so the 5♣ is inside
+// handCells while contributing nothing. Highlighting that during a lesson
+// teaches precisely the wrong thing.
+// Instead: a shape is clean when dropping ANY one card changes what the hand is.
+// {7♠ 7♥ 5♣} → drop the 5♣ and it is still a Pair, so the 5♣ is padding.
+// {7♠ 7♥ 7♦} → every 2-card subset is only a Pair, so all three are load-bearing.
+// Deriving it this way needs no table of hand sizes to keep in sync.
+function _tutHandIsClean(cells, handName) {
+  if (cells.length <= 2) return true;
+  for (let i = 0; i < cells.length; i++) {
+    const sub = cells.filter((_, j) => j !== i);
+    if (!isConnected(sub)) continue;
+    if (detectHand(sub) === handName) return false;   // that card was doing nothing
   }
-  return best ? best.cells : null;
+  return true;
+}
+
+// Every connected shape of 2..cap cells that forms a hand in which every card is
+// load-bearing.
+function tutorialScanHands(cap) {
+  cap = cap || Math.min(3, limits.selection.current);
+  const seen = new Set(), out = [];
+  const grow = (cells) => {
+    if (cells.length >= 2) {
+      const k = _tutKey(cells);
+      if (seen.has(k)) return;          // this shape (and its expansions) already walked
+      seen.add(k);
+      const hand = detectHand(cells);
+      if (hand && _tutHandIsClean(cells, hand)) out.push([...cells]);
+    }
+    if (cells.length >= cap) return;
+    for (const [cr, cc] of cells)
+      for (const [dr, dc] of [[0, 1], [1, 0], [0, -1], [-1, 0]]) {
+        const nr = cr + dr, nc = cc + dc;
+        if (!_tutUsable(nr, nc) || cells.some(([a, b]) => a === nr && b === nc)) continue;
+        grow([...cells, [nr, nc]]);
+      }
+  };
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) if (_tutUsable(r, c)) grow([[r, c]]);
+  return out;
+}
+
+// Cards that appear in NO clean hand — dead weight, and therefore exactly what a
+// discard is for. This is what the discard lesson points at.
+function tutorialFindDeadCards(hands) {
+  const inHand = new Set();
+  (hands || tutorialScanHands()).forEach(cells => cells.forEach(([r, c]) => inHand.add(`${r}-${c}`)));
+  const dead = [];
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++)
+    if (_tutUsable(r, c) && !inHand.has(`${r}-${c}`)) dead.push([r, c]);
+  return dead;
+}
+
+// An adjacent exchange that CREATES a hand which is not available right now —
+// i.e. a swap that is worth the 4 seconds. Returns { pair, makes } or null.
+// Simulates each swap against the live gridData and restores it; findBestHand
+// only reads gridData, so this is safe as long as the restore always runs.
+function tutorialFindSwap() {
+  const before = new Set(tutorialScanHands().map(_tutKey));
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
+    if (!_tutUsable(r, c)) continue;
+    for (const [dr, dc] of [[0, 1], [1, 0]]) {          // right + down covers every pair once
+      const nr = r + dr, nc = c + dc;
+      if (!_tutUsable(nr, nc)) continue;
+      const a = gridData[r][c], b = gridData[nr][nc];
+      gridData[r][c] = b; gridData[nr][nc] = a;
+      let made = null;
+      try {
+        made = tutorialScanHands().find(cells =>
+          !before.has(_tutKey(cells)) &&
+          cells.some(([hr, hc]) => (hr === r && hc === c) || (hr === nr && hc === nc)));
+      } finally {
+        gridData[r][c] = a; gridData[nr][nc] = b;       // restore no matter what
+      }
+      if (made) return { pair: [[r, c], [nr, nc]], makes: made };
+    }
+  }
+  return null;
+}
+
+// Audit the current board against everything the lesson needs.
+function tutorialAuditBoard() {
+  const hands = tutorialScanHands();
+  // Best 3-card hand first, so the opening lesson shows a Run of 3 or a Three of
+  // a Kind when the board has one rather than settling for a Pair.
+  const big = hands.filter(h => h.length >= 3)
+    .sort((a, b) => (HAND_BASE[detectHand(b)]?.mult || 0) - (HAND_BASE[detectHand(a)]?.mult || 0));
+  const dead  = tutorialFindDeadCards(hands);
+  // The swap search is the expensive one (it re-scans per candidate pair), so it
+  // only runs once the cheap criteria are already satisfied.
+  const cheapOk = hands.length >= TUT_BOARD_MIN_HANDS && big.length >= 1 && dead.length >= 1;
+  const swap = cheapOk ? tutorialFindSwap() : null;
+  return { hands, big, dead, swap, ok: cheapOk && !!swap };
+}
+
+// Re-deal until the board can carry the lesson. Deterministic for a seed.
+function tutorialQualifyBoard() {
+  let audit = tutorialAuditBoard();
+  let tries = 1;
+  while (!audit.ok && tries < TUT_BOARD_TRIES) {
+    initGridData();
+    audit = tutorialAuditBoard();
+    tries++;
+  }
+  audit.tries = tries;
+  // If nothing qualified in TUT_BOARD_TRIES the lesson still runs — the swap and
+  // discard steps fall back to "perform the action anywhere" rather than
+  // pointing at a specific pair. Better a vaguer lesson than a stuck one.
+  return audit;
 }
 
 // Re-select the highlighted hand (the PLAY step's safety net).

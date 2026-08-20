@@ -1,4 +1,4 @@
-const BUILD = '2026-08-20 · r147 · Split seed streams — deck, reward grids and shops pinned per seed';
+const BUILD = '2026-08-20 · r148 · Orientation board is audited + re-dealt; swap and discard are now taught hands-on';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
