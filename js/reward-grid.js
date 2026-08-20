@@ -267,9 +267,8 @@ function generateRewardContent() {
   const shuffledBuff = shuffled(buffPos);
   const grid = Array.from({length: ROWS}, () => Array(COLS).fill(null));
 
-  // One destination in a random buff slot. The tutorial always routes to the
-  // shop — walking the player through it is the point of the reward step there.
-  grid[shuffledBuff[0][0]][shuffledBuff[0][1]] = { kind: 'dest', payload: tutorialActive() ? destOptions[0] : pickRand(destOptions) };
+  // One destination in a random buff slot.
+  grid[shuffledBuff[0][0]][shuffledBuff[0][1]] = { kind: 'dest', payload: pickRand(destOptions) };
 
   // Guaranteed tiles first (protected from the Trick-minimum conversion below)
   const guaranteed = buildGuaranteedRewardTiles();
@@ -322,7 +321,19 @@ function generateRewardContent() {
     grid[r][c] = { kind: 'debuff', payload: pick || pickRand(debuffs) };
   }
 
-  return grid;
+  // The tutorial rewrites its FIRST grid into a Trick → liability → Mart row so
+  // the reward step can teach the path rule by making the player walk one. Every
+  // later grid (and every other mode) passes through untouched.
+  _rewardTrickPayloadFactory = makeTrickPayload;
+  return (typeof tutorialScriptRewardGrid === 'function') ? tutorialScriptRewardGrid(grid) : grid;
+}
+
+// generateRewardContent builds its payload factories as closures, so the only
+// way to mint a Trick tile from outside is to capture one on the way past.
+let _rewardTrickPayloadFactory = null;
+function makeRewardTrickPayload() {
+  return _rewardTrickPayloadFactory ? _rewardTrickPayloadFactory()
+                                    : { icon: '★', label: 'Trick', tier: 'rare', entity: 'trick', rarity: 'rare', apply: applyRewardRandomTrick };
 }
 
 // ── Mystery tile resolution ──

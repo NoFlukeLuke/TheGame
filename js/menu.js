@@ -1,4 +1,4 @@
-const BUILD = '2026-08-19 · r144 · Fullscreen toggle in Settings (mid-run) + removed portrait lock from PWA manifest';
+const BUILD = '2026-08-20 · r146 · LETHE orientation (tutorial), seeded runs, Limits tile';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -19,12 +19,15 @@ const MODES = {
     suitCount: 4
   },
   // Guided first run. Mechanically IDENTICAL to Classic (actStructure: true) —
-  // the tutorial flag only tells js/tutorial.js to rig the opening board/goal and
-  // lay coach-marks over the UI. See js/tutorial.js for the whole system.
+  // an ordinary seeded run with coach-marks over it. See js/tutorial.js.
   tutorial: {
     id: 'tutorial',
-    name: 'Tutorial',
-    desc: 'A guided first run. Play one round, take your payout, pick your spoils and visit the shop — with the game explaining itself as you go.',
+    name: 'Orientation',
+    desc: 'A guided first run — a normal Classic run with the terminal explaining itself as you go. Play a round, take the payout, walk a reward path, visit the Mart.',
+    // Pinned seed: orientation is the same experience for everyone, and a bug
+    // report against it is reproducible. The board is still a normal random
+    // deal — the tutorial finds a hand on it rather than stacking one.
+    seed: 'LETHE-INDUCTION',
     winCondition: 'boss_defeat',
     enableBosses: true,
     enableShops: true,
@@ -198,7 +201,7 @@ function startMatch3FromMenu(modeId = 'match3') {
 const MODE_SELECT_LIST = ['tutorial', 'normal', 'sixsuits', 'match3', 'zen', 'dominoes'];
 const MODE_META = {
   tutorial: { accent: '#8fd0ff',         suits: 'START HERE',
-              blurb: 'The guided version of Classic. One round, one payout, one reward path, one shop — with pop-ups explaining each piece as it appears. About two minutes.' },
+              blurb: 'LETHE Corp staff orientation. A normal Classic run with the terminal explaining each control as you reach it — scoring, Focus, limits, the reward path, the Mart. About three minutes.' },
   normal:   { accent: 'var(--c-yellow)', suits: '♠ ♥ ♦ ♣',
               blurb: 'The original four-suit game. Three Acts of rounds, shops, events and bosses.' },
   sixsuits: { accent: 'var(--c-mint)',   suits: '♠ ♥ ♦ ♣ ★ ▲',
