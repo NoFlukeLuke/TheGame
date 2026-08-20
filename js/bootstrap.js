@@ -89,8 +89,21 @@ function updateFullscreenBtn() {
   const btn = document.getElementById('menu-fullscreen-btn');
   if (btn) btn.textContent = fsElement() ? '⛶ EXIT FULLSCREEN' : '⛶ FULLSCREEN';
 }
-document.addEventListener('fullscreenchange', updateFullscreenBtn);
-document.addEventListener('webkitfullscreenchange', updateFullscreenBtn);
+// Sync the dev/settings-panel Display controls to reality (label + checkbox).
+// Lives here so all fullscreen logic stays together; called on panel open and
+// whenever fullscreen state changes.
+function devSyncFullscreen() {
+  const btn = document.getElementById('dev-fullscreen-btn');
+  if (btn) {
+    if (!fsSupported()) { btn.disabled = true; btn.textContent = 'Fullscreen not available here'; }
+    else { btn.disabled = false; btn.textContent = fsElement() ? 'Exit Fullscreen' : 'Enter Fullscreen'; }
+  }
+  const cb = document.getElementById('dev-autofs-toggle');
+  if (cb) cb.checked = autoFullscreenPref();
+}
+function onFsChange() { updateFullscreenBtn(); devSyncFullscreen(); }
+document.addEventListener('fullscreenchange', onFsChange);
+document.addEventListener('webkitfullscreenchange', onFsChange);
 
 (function initFullscreenControls() {
   const btn = document.getElementById('menu-fullscreen-btn');

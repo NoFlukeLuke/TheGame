@@ -117,6 +117,7 @@ function openDevPanel() {
   devSyncFloatSliders();
   devSyncHbSliders();
   devSyncCcSliders();
+  devSyncFullscreen();
   devCloseGroup();          // always land on the group menu, not the last group opened
   stopTimers();
 }
@@ -139,6 +140,7 @@ const DEV_GROUPS = [
   { g:'coins',    icon:'💰', label:'Coins',    sub:() => 'add / zero credits' },
   { g:'score',    icon:'#', label:'Score',     sub:() => 'add score · win · skip level' },
   { g:'hud',      icon:'▤', label:'HUD',       sub:() => 'toggles · scoring dance' },
+  { g:'display',  icon:'⛶', label:'Display',   sub:() => 'fullscreen' },
   { g:'match3',   icon:'⬚', label:'Match-3',   sub:() => 'match types · sandbox' },
   { g:'log',      icon:'✎', label:'Event Log', sub:() => 'in-game debug log' },
 ];
