@@ -5,6 +5,7 @@ const KNACK_POOL = [
   { id:'hoarder',         emoji:'🗑️',  name:'Hoarder',          rarity:'common', desc:'Discards no longer count against the discard limit, but cost 2× time.' },
   { id:'time_bank',       emoji:'⏳',  name:'Time Bank',        rarity:'rare',   desc:'+30 seconds at the start of every round.' },
   { id:'inheritance',     emoji:'💰',  name:'Inheritance',      rarity:'rare',   desc:'Start each round with +5 credits.' },
+  { id:'bulk_buyer',      emoji:'🛒',  name:'Bulk Buyer',       rarity:'rare',   desc:'Doubles the shop bundle discount (10% per extra item instead of 5%).' },
   { id:'combo_keeper',    emoji:'🔥',  name:'Combo Keeper',     rarity:'rare',   desc:'Streaks survive one non-streak hand. Re-arms after 2 streak hands.' },
   { id:'lucky_seven',     emoji:'🎯',  name:'Lucky Seven',      rarity:'common', desc:'Every 7th hand played gives +1 swap.' },
   { id:'extra_swaps',     emoji:'🔄',  name:'Swap Shop',        rarity:'common', desc:'Start each round with +2 extra swaps.' },
@@ -28,6 +29,9 @@ const KNACK_POOL = [
   { id:'down_and_back_in',emoji:'🔁',  name:'Down and Back In', rarity:'common', desc:'Discarding the grid’s highest rank grants +1 discard or swap (alternating) and +5 coins. If several cards share that top rank, all must be discarded together.' },
   { id:'muscle_memory',   emoji:'🧠',  name:'Muscle Memory',    rarity:'common', desc:'Primed Tricks stay primed for one extra hand.' },
   { id:'curator',         emoji:'✦',   name:'Curator',          rarity:'rare',   desc:'+1 Trick Slot.' },
+  // ── Reward-grid / risk knacks (r129) ──
+  { id:'shady_stimulants',emoji:'💊',  name:'Shady Stimulants', rarity:'rare',   desc:'Every negative reward tile you swallow sharpens you — permanently +1 maximum Focus per tile taken.' },
+  { id:'greedy_boi',      emoji:'🤑',  name:'Greedy Boi',       rarity:'rare',   desc:'+2 selection size in the reward grid — grab more tiles at once.' },
   { id:'scavenger',       emoji:'🦴',  name:'Scavenger',        rarity:'common', desc:'Whenever a curse lifts, gain +10 coins and +1 discard next round.' },
   { id:'coin_toss',       emoji:'🪙',  name:'Coin Toss',        rarity:'common', desc:'At the start of each round, every Sleight has a 50% chance to restore 1 charge.' },
   { id:'martyr',          emoji:'⚰️',  name:'Martyr',           rarity:'common', desc:'Discarding a non-discard Sleight restores 1 charge to all Sleights on the grid.' },

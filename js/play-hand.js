@@ -54,6 +54,27 @@ function generateHandFocus(hand, handCells, vultureSec) {
     }
     // 3rd Down: 3-card hands (or Pairs via Three's a Crowd) add Focus
     if (hasTrick('third_down') && counts3CardHand(hand, handCells)) totalFocus += BAL.third_down.focus;
+    // Acorns: grant the trick's accumulated whole-number Focus (grows +0.05 per scored card, post-hand)
+    if (hasTrick('acorns')) totalFocus += Math.floor(bonusFocus_acorns);
+    // Plan Ahead: every 3rd hand of the round adds Focus = average hands per round so far
+    if (hasTrick('plan_ahead') && ((handsPlayedRound + 1) % BAL.plan_ahead.every === 0)) {
+      totalFocus += Math.max(1, Math.round((handsPlayedGame + 1) / Math.max(1, level)));
+    }
+    // ── 4-card-hand family ──
+    if (handCells.length === 4) {
+      // Four Horse-man: random bonus — Focus/pause halves (pips/mult handled in calcScore)
+      if (hasTrick('four_horseman')) {
+        const _fhm = fourHorsemanRoll(handCells);
+        if (_fhm === 2) totalFocus += BAL.four_horseman.focus;
+        else if (_fhm === 3) pauseRound(BAL.four_horseman.pause);
+      }
+      // Wait Four It: permanently buff the 4th card (scoring order) to pause the clock when scored
+      if (hasTrick('wait_four_it')) {
+        const _p = scoringOrderCells(handCells)[3];
+        const _cd = _p && gridData[_p[0]]?.[_p[1]];
+        if (_cd) _cd._vulturePause = (_cd._vulturePause || 0) + BAL.wait_four_it.pause;
+      }
+    }
     // ── 5-card-hand family ──
     if (handCells.length === 5) {
       if (hasTrick('five_stack')) totalFocus += handCells.length * BAL.five_stack.focus_per_card; // +Focus/card (pips+mult handled in calcScore)
@@ -92,6 +113,8 @@ function generateHandFocus(hand, handCells, vultureSec) {
     }
     // High Water: after 3 Runs this round, each further Run pauses the clock by its card count
     if (_isRunHand && runsPlayedRound >= 3 && hasTrick('high_water')) pauseRound(handCells.length);
+    // Dam Holding…: every Run pauses the clock a flat few seconds
+    if (_isRunHand && hasTrick('dam_holding')) pauseRound(BAL.dam_holding.pause);
     // Sundial knack: a hand where every card shares a column pauses the clock
     if (hasKnack('sundial') && handCells.length > 0 && handCells.every(([, hc]) => hc === handCells[0][1])) pauseRound(BAL.sundial.seconds);
     // Metronome knack: playing this round's target hand type pauses the clock
@@ -133,7 +156,10 @@ function generateHandFocus(hand, handCells, vultureSec) {
 // PLAY HAND
 // ══════════════════════════════════════════════
 function playHand() {
-  // During the on-grid reward step the Play button is the green CONFIRM button.
+  // Dominoes mode has its own play flow.
+  if (typeof ACTIVE_MODE !== 'undefined' && ACTIVE_MODE.id === 'dominoes') { dominoPlay(); return; }
+  // On grid-takeover screens the Play button is repurposed: BUY (shop) / CONFIRM (reward).
+  if (typeof shopGridActive !== 'undefined' && shopGridActive) { shopGridBuySelection(); return; }
   if (rewardOnGrid) { confirmRewardPath(); return; }
   // Match-3: the board plays its own matches (match3Resolve). Manual play is off.
   if (match3Active()) { dbgEvent('info', 'play ignored (match-3 auto-plays)'); return; }
@@ -268,10 +294,14 @@ function playHand() {
     if (_hasHeart && _hasDia) { coins += BAL.monochrome.coins; updateCoinsUI(); roundSeconds += BAL.monochrome.seconds; updateClockUI(); showMessage('Blood Diamonds! +' + BAL.monochrome.coins + ' coin, +' + BAL.monochrome.seconds + 's', '#c0353e'); }
   }
 
-  // ── Playing a hand no longer costs time (owner request). ──
-  // Previously each manual play cost 5s + any reward-grid time penalties; that drain is removed.
-  // (playHandCostThisRound from reward-grid debuffs is now inert — left in place so those events
-  //  still parse, but hands are free to play.)
+  // ── Playing a hand is free by default (owner request, r50) — base cost is 0. ──
+  // BUT a reward-grid "Hands +Ns" debuff sets playHandCostThisRound > 0; when it does,
+  // that penalty is now live (owner: "make sure that debuff works"). No debuff → 0 → free.
+  if (playHandCostThisRound > 0) {
+    roundSeconds = Math.max(1, roundSeconds - playHandCostThisRound);
+    if (typeof showTimeCost === 'function') showTimeCost(`-${playHandCostThisRound}s`);
+    updateClockUI();
+  }
 
   // Streak tracking
   const now = Date.now();
@@ -333,8 +363,19 @@ function playHand() {
 
   // ── Accumulating Trick effects (post-hand) ──
   handsPlayedRound++;
+  handsPlayedGame++;   // Plan Ahead: cumulative hand count (per game)
   handTypesRound.add(hand);
-  if (['Run of 3','Run of 4','Straight','Straight Flush'].includes(hand)) runsPlayedRound++;
+  if (['Run of 3','Run of 4','Straight','Straight Flush'].includes(hand)) { runsPlayedRound++; runStreak++; }
+  else runStreak = 0; // Wave Amplification: a non-Run breaks the consecutive-Run streak
+  // Set counters (Undue Influence / Shaky Foundation). Increment AFTER scoring so calcScore saw the pre-hand count.
+  if (isSetHand(hand)) {
+    setsPlayedRound++;
+    // Undue Influence: a Set with a face card grants credits = Sets played this round (incl. this one)
+    if (hasTrick('undue_influence') && handCells.some(([r,c]) => ['J','Q','K'].includes(gridData[r]?.[c]?.rank))) {
+      coins += setsPlayedRound; updateCoinsUI();
+      showMessage('Undue Influence +' + setsPlayedRound + ' credits', 'var(--gold)');
+    }
+  }
   // ── Priming (Inspirato / Prime Times) ──
   if (trickTrayMode) {
     // Consume primes that contributed this hand (their extra trigger already fired in scoring)
@@ -365,6 +406,8 @@ function playHand() {
   }
   if (hasTrick('compound_mult')) bonusMult_compound = Math.round((bonusMult_compound + BAL.compound_mult.mult_per_hand) * 10) / 10;
   if (hasTrick('prolific')) bonusPips_prolific += BAL.prolific.pips_per_hand;
+  // Acorns: each card scored this hand grows the trick's stored Focus by 0.05 (per game)
+  if (hasTrick('acorns')) bonusFocus_acorns += handCells.length * BAL.acorns.focus_per_card;
   // Feng Shui: grow its permanent pips when another position trick fired this hand
   if (hasTrick('feng_shui') && _lastHandPositionFired) bonusPips_fengshui += BAL.feng_shui.pips_per_hand;
   // Assembly Line: commit this hand's mark tally (incl. replays) to the round counter
@@ -375,6 +418,16 @@ function playHand() {
     if (_lc && firesThisMinute('rowcol_perm_double')) {
       const _lcc = gridData[_lc[0]]?.[_lc[1]];
       if (_lcc && _lcc.rank) { const _lk = cardKey(_lcc.rank, _lcc.suit); permMult[_lk] = (permMult[_lk] || 0) + BAL.rowcol_perm_double.perm_mult; showMessage('Ley Line! +' + BAL.rowcol_perm_double.perm_mult + ' mult', '#a25cd8'); }
+    }
+  }
+  // Temporal Rift: a card scored at a row×column effect intersection permanently gains a "pause
+  // when scored" buff (reuses The Vulture's _vulturePause pipeline). Once per minute, and it skips
+  // any card that already carries a time buff — no stacking from this trick. Mirrors Ley Line.
+  if (hasTrick('temporal_rift')) {
+    const _tr = handCells.find(([r,c]) => isEffectIntersection(r, c) && gridData[r]?.[c] && gridData[r][c].rank && !gridData[r][c]._vulturePause);
+    if (_tr && firesThisMinute('temporal_rift')) {
+      const _trc = gridData[_tr[0]]?.[_tr[1]];
+      if (_trc) { _trc._vulturePause = (_trc._vulturePause || 0) + BAL.temporal_rift.pause; showMessage('Temporal Rift! +' + BAL.temporal_rift.pause + 's pause when scored', '#5aa9e6'); }
     }
   }
   // (Clean Sweep's Focus advance now fires in generateHandFocus, before scoring, so it helps this hand.)

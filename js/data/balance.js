@@ -95,6 +95,26 @@ const BAL = {
   third_down:    { focus: 3 },
   ready_set_go:  { mult: 9 },
   third_charm:   { extra_replays: 2 },
+  four_eyes:     { mult: 12 },
+  four_by_four:  { pips: 16 },
+  four_horseman: { pips: 16, mult: 8, focus: 4, pause: 4 },
+  wait_four_it:  { pause: 1 },
+  shaky_foundation: { mult: 15 },
+  wave_amp:      { pips_per_streak: 10 },
+  dam_holding:   { pause: 3 },
+  acorns:        { focus_per_card: 0.05 },
+  plan_ahead:    { every: 3 },
+  more_better:   { mult: 4, min_tiles: 3 },
+  rain_check:    { seconds: 30 },
+  temporal_rift: { pause: 3 },
+  // Spin-the-wheel (Mart special). default_sell is the fallback payout when a prize
+  // has no sell price of its own and there's no room for it.
+  wheel:         { cost: 20, slots: 10, jackpot_coins: 25, default_sell: 15 },
+  shop_discount: { per_item: 5, bulk_per_item: 10 },  // bundle discount % per ADDITIONAL item; cap = rate × Selection Size
+  reward_skip:   { gold: 20 },   // gold paid for skipping the whole reward grid (shown on the SKIP button)
+  wild_side:     { mult_per: 3 },       // +mult per negative reward tile taken this run
+  wait_for_it:   { chance_per: 0.02 },  // +replay chance per negative reward tile taken this run
+  greedy_boi:    { selection: 2 },      // +reward-grid selection size (knack)
   huddle:        { pips_per_adj: 11 },
   combo_score: { mult_per_type: 2 },
   heart_double: { heart_mult: 1 },

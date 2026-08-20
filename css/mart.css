@@ -1,0 +1,275 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   LETHE MART — in-game off-grid shop (r127). Styles scoped under #mart-overlay.
+   Mirrors shop-preview-5-lethemart-v3.html. Uses the game's palette tokens.
+   ══════════════════════════════════════════════════════════════════════════ */
+#mart-overlay{ display:none; position:fixed; inset:0; z-index:250;
+  background:radial-gradient(ellipse at 62% 26%, #241c0b 0%, #0c0906 82%);
+  font-family:'Orbitron',sans-serif; color:var(--cream); padding:16px; }
+#mart-overlay.show{ display:block; }
+#mart-overlay::after{ content:''; position:absolute; inset:0; pointer-events:none; z-index:1;
+  background:repeating-linear-gradient(0deg, rgba(0,0,0,0.13) 0 1px, transparent 1px 3px); mix-blend-mode:overlay; }
+#mart-overlay .mart-grid{ position:relative; z-index:2; height:100%;
+  display:grid; grid-template-columns:210px 1fr 240px; gap:12px; max-width:1180px; margin:0 auto; }
+
+/* ── LEFT: loadout (mirrors in-game left column) ── */
+#mart-overlay .mart-loadout{ display:flex; flex-direction:column; gap:9px; min-height:0; }
+#mart-overlay .m-panel{ background:var(--panel); border:1px solid var(--border); border-radius:7px; padding:7px 9px; position:relative; }
+#mart-overlay .m-panel .m-pt{ font-family:'Cinzel',serif; font-size:9px; letter-spacing:2px; color:var(--cream-dim); text-transform:uppercase; margin-bottom:6px; display:flex; justify-content:space-between; }
+#mart-overlay .m-panel .m-pt .cnt{ font-family:'Share Tech Mono',monospace; opacity:.7; }
+#mart-overlay .p-knacks{ border-top:2px solid var(--c-yellow); }
+#mart-overlay .p-sleights{ border-top:2px solid var(--c-cyan); }
+#mart-overlay .p-tricks{ border-top:2px solid var(--c-coral); flex:1; }
+#mart-overlay .m-row{ display:flex; gap:6px; flex-wrap:wrap; }
+#mart-overlay .m-empty{ font-family:'Share Tech Mono',monospace; font-size:9px; color:var(--cream-dim); opacity:.5; }
+#mart-overlay .m-settings{ display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:auto; }
+#mart-overlay .m-schip{ font-family:'Cinzel',serif; font-size:10px; letter-spacing:1px; color:var(--cream); background:#1a1510; border:1px solid var(--border); border-radius:6px; padding:8px 4px; text-align:center; cursor:pointer; }
+#mart-overlay .m-schip:hover{ border-color:var(--gold-dim); }
+
+/* owned mini entities */
+#mart-overlay .mini-knack{ width:32px; height:32px; transform:rotate(45deg); border-radius:6px; flex-shrink:0;
+  background:linear-gradient(150deg,var(--plastic-hi),var(--plastic) 55%,var(--plastic-lo));
+  box-shadow:0 0 0 2px var(--plastic-deep), inset 0 2px 0 rgba(255,255,255,0.6), 0 0 10px -3px var(--rc,var(--c-mint)); position:relative; display:flex; align-items:center; justify-content:center; }
+#mart-overlay .mini-knack::after{ content:''; position:absolute; inset:14%; border-radius:4px; border:2px solid var(--rc,var(--c-mint)); box-shadow:0 0 6px -1px var(--rc,var(--c-mint)); }
+#mart-overlay .mini-knack span{ transform:rotate(-45deg); font-size:15px; }
+#mart-overlay .mini-sleight{ width:44px; height:60px; border-radius:6px; position:relative; padding:3px;
+  background:linear-gradient(160deg,#f7f2e6,#e6dcc4); border:1.25px solid var(--rc); color:#1a1510; box-shadow:0 2px 5px rgba(0,0,0,.5); display:flex; align-items:center; justify-content:center; }
+#mart-overlay .mini-sleight .c{ position:absolute; top:1px; left:3px; font-family:'Share Tech Mono',monospace; font-size:8px; font-weight:700; }
+#mart-overlay .mini-sleight .a{ font-size:18px; }
+#mart-overlay .mini-trick{ width:38px; height:48px; position:relative; color:#fff;
+  background:radial-gradient(120% 80% at 50% 0%, color-mix(in srgb, var(--rc) 22%, #0b0906), #0b0906); border:1.5px solid var(--rc); border-radius:3px;
+  clip-path:polygon(0 6px,6px 0,calc(100% - 6px) 0,100% 6px,100% calc(100% - 6px),calc(100% - 6px) 100%,6px 100%,0 calc(100% - 6px));
+  box-shadow:0 0 8px -2px var(--rc); display:flex; align-items:center; justify-content:center; }
+#mart-overlay .mini-trick .a{ font-size:20px; }
+#mart-overlay .suit-red{ color:#c0392b; } #mart-overlay .suit-blk{ color:#1a1510; }
+
+/* ── CENTER: catalog ── */
+#mart-overlay .mart-main{ display:flex; flex-direction:column; gap:8px; min-height:0; overflow-y:auto; }
+#mart-overlay .m-feat{ display:grid; grid-template-columns:1.5fr 1fr 108px; gap:8px; min-height:100px; }
+#mart-overlay .m-special{ border:1.5px solid var(--rc,var(--plastic-deep)); border-radius:10px; padding:8px 10px; background:linear-gradient(180deg,#15110b,#0a0906); display:flex; align-items:center; gap:10px; position:relative; }
+#mart-overlay .m-special .wip{ position:absolute; top:5px; right:7px; font-family:'Share Tech Mono',monospace; font-size:8px; letter-spacing:1px; color:#000; background:var(--c-yellow); border-radius:4px; padding:0 4px; }
+#mart-overlay .m-special .stag{ font-size:8px; letter-spacing:2px; color:var(--rc,var(--phosphor)); text-shadow:0 0 6px var(--rc,var(--phosphor)); }
+#mart-overlay .m-special .sname{ font-size:12px; font-weight:700; text-transform:uppercase; color:#fff; margin-top:2px; }
+#mart-overlay .m-special .sdesc{ font-family:'Share Tech Mono',monospace; font-size:9px; color:var(--cream-dim); margin-top:3px; }
+#mart-overlay .m-wheel{ width:52px; height:52px; border-radius:50%; flex-shrink:0;
+  background:conic-gradient(var(--c-magenta) 0 60deg,var(--c-cyan) 60deg 120deg,var(--c-yellow) 120deg 180deg,var(--c-mint) 180deg 240deg,var(--c-purple) 240deg 300deg,var(--c-coral) 300deg 360deg);
+  box-shadow:0 0 0 2px #0b0906, 0 0 12px -2px #fff; }
+#mart-overlay .m-freezer{ border:1.5px dashed var(--c-cyan); border-radius:10px; display:flex; flex-direction:column; align-items:center; justify-content:center; color:var(--c-cyan); background:rgba(22,200,216,0.05); text-align:center; position:relative; }
+#mart-overlay .m-freezer .fi{ font-size:24px; } #mart-overlay .m-freezer .ft{ font-size:7px; letter-spacing:2px; margin-top:3px; }
+
+#mart-overlay .m-sec{ border:1px solid #2a2416; border-radius:9px; padding:6px 9px 7px; background:linear-gradient(180deg,#120e08,#0b0906); position:relative; flex-shrink:0; }
+#mart-overlay .m-sec.tricks{ border-color:#5a4a12; box-shadow:inset 0 0 22px -8px rgba(255,176,46,0.18); }
+#mart-overlay .m-sec.tall{ padding-bottom:14px; }
+#mart-overlay .m-sec .m-sh{ font-size:9px; letter-spacing:3px; text-transform:uppercase; color:var(--cream-dim); display:flex; justify-content:space-between; align-items:center; }
+#mart-overlay .m-sec.tricks .m-sh{ color:var(--phosphor); }
+#mart-overlay .m-sec .m-sh .slots{ font-family:'Share Tech Mono',monospace; font-size:8px; opacity:.7; }
+#mart-overlay .m-rowc{ display:flex; gap:9px; margin-top:6px; align-items:flex-start; justify-content:flex-start; overflow-x:auto; overflow-y:hidden; scrollbar-width:thin; padding-bottom:2px; }
+#mart-overlay .m-rowc::-webkit-scrollbar{ height:5px; } #mart-overlay .m-rowc::-webkit-scrollbar-thumb{ background:#3a3020; border-radius:3px; }
+#mart-overlay .m-tool{ min-width:210px; border:1px dashed var(--c-coral); border-radius:9px; padding:8px 10px; background:linear-gradient(180deg,#1c1109,#120b06); display:flex; flex-direction:column; gap:3px; opacity:.72; }
+#mart-overlay .m-tool .tt{ font-size:9px; letter-spacing:1px; color:var(--c-coral); text-transform:uppercase; display:flex; justify-content:space-between; }
+#mart-overlay .m-tool .td{ font-family:'Share Tech Mono',monospace; font-size:9px; color:var(--cream); line-height:1.35; }
+
+/* shop entity tiles (purchasable) */
+/* --fx/--fy/--fr/--fs are published by the shared float driver (js/float-anim.js).
+   Composing them here (instead of writing el.style.transform) leaves the transform
+   property free for hover/selected states to add their own scale. */
+#mart-overlay .m-item{ position:relative; flex-shrink:0; cursor:pointer; will-change:transform; transition:transform .12s;
+  transform: translate(var(--fx,0), var(--fy,0)) rotate(var(--fr,0deg)) scale(var(--fs,1)); }
+#mart-overlay .m-item.in-cart{ outline:2px solid var(--c-mint); outline-offset:2px; }
+#mart-overlay .m-item.sold{ opacity:.32; pointer-events:none; }
+#mart-overlay .trick{ width:72px; height:92px; padding:7px 5px; color:#fff;
+  background:radial-gradient(120% 80% at 50% 0%, color-mix(in srgb, var(--rc) 22%, #0b0906), #0b0906); border:2px solid var(--rc); border-radius:4px;
+  clip-path:polygon(0 8px,8px 0,calc(100% - 8px) 0,100% 8px,100% calc(100% - 8px),calc(100% - 8px) 100%,8px 100%,0 calc(100% - 8px));
+  box-shadow:0 0 12px -2px var(--rc), inset 0 0 16px -6px var(--rc); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; }
+#mart-overlay .trick .emblem{ font-size:8px; color:var(--rc); letter-spacing:2px; text-shadow:0 0 6px var(--rc); }
+#mart-overlay .trick .art{ font-size:27px; line-height:1; } #mart-overlay .trick .nm{ font-size:8px; font-weight:700; text-transform:uppercase; text-align:center; text-shadow:0 0 6px var(--rc); }
+#mart-overlay .sleight{ width:60px; height:84px; border-radius:7px; padding:5px; background:linear-gradient(160deg,#f7f2e6,#e6dcc4); border:1.5px solid var(--rc); color:#1a1510; box-shadow:0 3px 8px rgba(0,0,0,.5); display:flex; flex-direction:column; align-items:center; justify-content:center; }
+#mart-overlay .sleight .corner{ position:absolute; top:2px; left:4px; font-family:'Share Tech Mono',monospace; font-size:10px; font-weight:700; line-height:1; }
+#mart-overlay .sleight .corner.br{ top:auto; left:auto; bottom:2px; right:4px; transform:rotate(180deg); }
+#mart-overlay .sleight .art{ font-size:21px; line-height:1; } #mart-overlay .sleight .nm{ font-size:7px; font-weight:700; text-transform:uppercase; text-align:center; margin-top:2px; }
+#mart-overlay .sleight .uses{ position:absolute; bottom:2px; left:4px; font-family:'Share Tech Mono',monospace; font-size:7px; color:#6a5; }
+/* Knack tile: same 72x92 footprint as a Trick so every catalog tile lines up.
+   The diamond is 48px rotated 45deg (~68px diagonal), which fits the 72px width —
+   the old inline 60px version was ~85px across and collided with the name.
+   The name gets its own fixed 2-line box (.m-rowc is overflow-y:hidden, so a name
+   that grew past the tile used to be clipped rather than wrapped). */
+#mart-overlay .knack{ width:72px; height:92px; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; }
+/* rotate(45deg) does not grow the layout box: a 46px square still lays out as 46px but
+   visually spans ~65px corner-to-corner, so the bottom tip would sit on top of the name.
+   The margins reserve that ~10px overhang on each side. */
+#mart-overlay .knack .mini-knack{ width:46px; height:46px; margin:9px 0 11px; }
+#mart-overlay .knack .mini-knack span{ font-size:20px; }
+/* Fixed-height name box top-aligned under the diamond, so one-line and two-line
+   names share the same first baseline instead of drifting with centring. */
+#mart-overlay .knack .nm{ font-size:8px; font-weight:700; text-transform:uppercase; text-align:center; color:#fff;
+  width:72px; height:2.3em; line-height:1.15; overflow:hidden; text-shadow:0 0 6px var(--rc);
+  overflow-wrap:anywhere; hyphens:auto; }
+#mart-overlay .limit{ min-width:158px; height:44px; display:flex; align-items:center; gap:8px; padding:0 10px; border-radius:7px;
+  background:linear-gradient(180deg,#0e1a16,#08110d); border-left:4px solid var(--c-mint); }
+#mart-overlay .limit .ico{ font-size:16px; color:var(--c-mint); } #mart-overlay .limit .body{ display:flex; flex-direction:column; line-height:1.1; }
+#mart-overlay .limit .lname{ font-size:8px; letter-spacing:1px; color:var(--c-mint); text-transform:uppercase; } #mart-overlay .limit .lprog{ font-family:'Share Tech Mono',monospace; font-size:11px; color:#cfe; }
+#mart-overlay .limit .lprice{ margin-left:auto; }
+#mart-overlay .m-item .price{ position:absolute; top:3px; right:4px; z-index:3; font-family:'Share Tech Mono',monospace; font-size:8px; color:var(--phosphor); background:rgba(0,0,0,0.6); border:1px solid rgba(255,176,46,0.5); border-radius:5px; padding:0 3px; }
+#mart-overlay .m-item .price.cant{ color:#ff5a6a; border-color:rgba(255,90,106,.55); }
+#mart-overlay .r-common{ --rc:var(--c-mint); } #mart-overlay .r-rare{ --rc:var(--c-cyan); } #mart-overlay .r-epic{ --rc:var(--c-purple); } #mart-overlay .r-legendary{ --rc:var(--c-yellow); } #mart-overlay .r-mythic{ --rc:var(--c-magenta); }
+
+/* frozen item (WIP freeze): halt float + blue tinge */
+#mart-overlay .m-item.frozen{ filter:brightness(.92) saturate(.7); }
+#mart-overlay .m-item.frozen::after{ content:'❄'; position:absolute; top:2px; left:5px; z-index:6; color:#bfe3ff; font-size:11px; text-shadow:0 0 6px #7fbfff; }
+
+/* limit tooltip (always-on hover) */
+#mart-overlay .m-ltip{ position:fixed; z-index:300; pointer-events:none; opacity:0; transform:translateY(3px); transition:opacity .1s;
+  background:linear-gradient(180deg,#15110b,#0b0906); border:1.5px solid var(--c-mint); border-radius:8px; padding:7px 10px; max-width:220px;
+  box-shadow:0 0 0 2px rgba(0,0,0,.4), 0 0 14px -2px var(--c-mint); font-family:'Share Tech Mono',monospace; }
+#mart-overlay .m-ltip.show{ opacity:1; transform:translateY(0); }
+#mart-overlay .m-ltip .n{ font-family:'Orbitron',sans-serif; font-size:10px; font-weight:700; color:#fff; text-transform:uppercase; }
+#mart-overlay .m-ltip .d{ font-size:10px; color:var(--c-mint); margin-top:3px; } #mart-overlay .m-ltip .s{ font-size:9px; color:var(--cream-dim); margin-top:2px; }
+
+/* ── RIGHT: checkout ── */
+#mart-overlay .mart-checkout{ display:flex; flex-direction:column; border:1px solid var(--plastic-deep); border-radius:10px; background:linear-gradient(180deg,#141009,#0b0906); padding:11px; min-height:0; }
+#mart-overlay .m-brand{ font-weight:900; font-size:17px; letter-spacing:3px; color:var(--phosphor); text-shadow:0 0 10px rgba(255,176,46,0.5); text-align:center; }
+#mart-overlay .m-brand small{ display:block; font-family:'Share Tech Mono',monospace; font-size:7px; letter-spacing:2px; color:var(--cream-dim); margin-top:2px; }
+#mart-overlay .m-wallet{ font-family:'Share Tech Mono',monospace; font-size:16px; color:var(--phosphor); background:#0c0a06; border:1px solid var(--plastic-deep); border-radius:7px; padding:7px; text-align:center; margin:9px 0; }
+#mart-overlay .m-ch{ font-size:10px; letter-spacing:2px; color:var(--phosphor); border-bottom:1px solid #2a2416; padding-bottom:6px; display:flex; justify-content:space-between; align-items:center; }
+#mart-overlay .m-ch small{ font-size:8px; color:var(--cream-dim); }
+#mart-overlay .m-rcpt{ flex:1; display:flex; flex-direction:column; gap:5px; padding:8px 0; overflow-y:auto; }
+#mart-overlay .m-rline{ display:flex; justify-content:space-between; font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--cream); border-bottom:1px dotted #241c10; padding-bottom:4px; cursor:pointer; }
+#mart-overlay .m-rline .x{ color:var(--c-magenta); }
+#mart-overlay .m-drop{ border:1px dashed #3a3020; border-radius:7px; color:var(--cream-dim); font-family:'Share Tech Mono',monospace; font-size:9px; text-align:center; padding:9px 4px; }
+#mart-overlay .m-sum{ border-top:1px solid #2a2416; padding-top:7px; }
+#mart-overlay .m-sum .srow{ display:flex; justify-content:space-between; font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--cream-dim); }
+#mart-overlay .m-sum .srow.disc{ color:var(--c-mint); }
+#mart-overlay .m-sum .grand{ display:flex; justify-content:space-between; align-items:baseline; margin-top:4px; }
+#mart-overlay .m-sum .grand span:first-child{ font-size:10px; color:var(--cream-dim); }
+#mart-overlay .m-sum .grand s{ color:var(--cream-dim); font-family:'Share Tech Mono',monospace; font-size:11px; }
+#mart-overlay .m-sum .grand b{ color:var(--phosphor); font-family:'Share Tech Mono',monospace; font-size:20px; }
+#mart-overlay .m-buy{ margin-top:8px; font-weight:900; letter-spacing:2px; font-size:12px; color:#06251a; text-align:center; padding:11px; border-radius:8px; cursor:pointer;
+  background:linear-gradient(180deg,#7dffce,var(--c-mint) 55%,#1fa877); box-shadow:inset 0 2px 0 rgba(255,255,255,0.5),0 3px 0 #178a5e; }
+#mart-overlay .m-buy.disabled{ filter:grayscale(.7) brightness(.7); cursor:not-allowed; }
+#mart-overlay .m-foot{ display:flex; gap:7px; margin-top:7px; }
+#mart-overlay .m-fbtn{ flex:1; text-align:center; font-size:9px; letter-spacing:1px; text-transform:uppercase; padding:9px; border-radius:7px; border:1px solid var(--plastic-deep); color:var(--cream-dim); cursor:pointer; }
+#mart-overlay .m-fbtn:hover{ border-color:var(--phosphor); color:var(--phosphor); }
+#mart-overlay .m-fbtn.leave{ border-color:var(--c-coral); color:var(--c-coral); }
+
+/* ══ SPIN THE WHEEL (js/wheel.js) ═══════════════════════════════════════════ */
+#wheel-overlay{ display:none; position:fixed; inset:0; z-index:320; align-items:center; justify-content:center;
+  background:rgba(4,3,2,0.82); backdrop-filter:blur(2px); }
+#wheel-overlay.show{ display:flex; }
+#wheel-overlay .wh-box{ width:400px; max-width:94vw; border-radius:12px; padding:0 0 16px;
+  background:linear-gradient(180deg,#171008,#0b0906); border:2px solid #5a4a12;
+  box-shadow:0 0 60px -10px rgba(255,176,46,.4), inset 0 0 40px -20px rgba(255,176,46,.3);
+  display:flex; flex-direction:column; align-items:center; position:relative; overflow:hidden; }
+#wheel-overlay .wh-box::after{ content:''; position:absolute; inset:0; pointer-events:none;
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,.16) 0 1px,transparent 1px 3px); }
+#wheel-overlay .wh-bar{ width:100%; display:flex; align-items:center; justify-content:space-between;
+  padding:9px 12px; background:linear-gradient(180deg,#2a1d06,#170f04); border-bottom:1px solid #5a4a12; }
+#wheel-overlay .wh-title{ font-family:'Cinzel',serif; font-size:12px; letter-spacing:3px; color:var(--phosphor); }
+#wheel-overlay .wh-close{ background:none; border:1px solid #5a4a12; border-radius:4px; color:var(--cream-dim);
+  font-size:12px; width:22px; height:22px; cursor:pointer; line-height:1; }
+#wheel-overlay .wh-close:hover{ color:var(--phosphor); border-color:var(--phosphor); }
+/* while spinning there is no way out */
+#wheel-overlay.spinning .wh-close{ opacity:.3; cursor:not-allowed; }
+
+#wheel-overlay .wh-stage{ position:relative; margin:16px 0 6px; width:250px; height:250px; }
+#wheel-overlay .wh-pointer{ position:absolute; top:-11px; left:50%; transform:translateX(-50%); z-index:4;
+  color:var(--phosphor); font-size:22px; line-height:1; text-shadow:0 0 10px rgba(255,176,46,.9); }
+#wheel-overlay .wh-wheel{ position:absolute; inset:0; border-radius:50%; cursor:grab; touch-action:none;
+  box-shadow:0 0 0 4px #2a2416, 0 0 0 6px #5a4a12, 0 0 30px -4px rgba(255,176,46,.5); }
+#wheel-overlay .wh-wheel.grabbing{ cursor:grabbing; }
+#wheel-overlay .wh-face{ position:absolute; inset:0; border-radius:50%; }
+#wheel-overlay .wh-labels{ position:absolute; inset:0; }
+#wheel-overlay .wh-slot{ position:absolute; left:50%; top:50%; width:0; height:0; transform-origin:0 0; }
+#wheel-overlay .wh-slot-in{ position:absolute; transform-origin:center; width:66px; margin-left:-33px; margin-top:-18px;
+  display:flex; flex-direction:column; align-items:center; gap:1px; pointer-events:none; }
+#wheel-overlay .wh-emoji{ font-size:17px; line-height:1; }
+#wheel-overlay .wh-name{ font-family:'Orbitron',sans-serif; font-size:6.5px; font-weight:700; letter-spacing:.3px;
+  text-transform:uppercase; color:#fff; text-align:center; line-height:1.1; max-height:2.2em; overflow:hidden;
+  text-shadow:0 1px 3px #000; overflow-wrap:anywhere; }
+#wheel-overlay .wh-hub{ position:absolute; left:50%; top:50%; width:58px; height:58px; margin:-29px 0 0 -29px;
+  border-radius:50%; background:linear-gradient(150deg,var(--plastic-hi),var(--plastic) 55%,var(--plastic-lo));
+  box-shadow:0 0 0 3px #5a4a12, inset 0 2px 0 rgba(255,255,255,.6); display:flex; align-items:center; justify-content:center;
+  font-family:'Cinzel',serif; font-size:10px; letter-spacing:2px; color:#3a2c08; }
+
+#wheel-overlay .wh-hint{ font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--cream-dim);
+  text-align:center; padding:0 18px; min-height:30px; display:flex; align-items:center; justify-content:center; }
+#wheel-overlay .wh-done{ font-family:'Orbitron',sans-serif; font-size:10px; letter-spacing:2px; padding:9px 18px;
+  border-radius:6px; background:var(--c-mint); border:none; color:#04241a; cursor:pointer; font-weight:700; }
+#wheel-overlay .wh-result{ padding:0 16px; width:100%; }
+#wheel-overlay .wh-won{ display:flex; align-items:center; gap:10px; padding:9px 11px; border-radius:8px;
+  background:rgba(255,255,255,.05); border:1px solid #3a3020; }
+#wheel-overlay .wh-won.jackpot{ border-color:var(--c-magenta); box-shadow:0 0 18px -4px var(--c-magenta); }
+#wheel-overlay .wh-won.bust{ opacity:.6; }
+#wheel-overlay .wh-won-em{ font-size:26px; line-height:1; }
+#wheel-overlay .wh-won-name{ font-family:'Orbitron',sans-serif; font-size:11px; letter-spacing:1px; color:var(--phosphor); text-transform:uppercase; }
+#wheel-overlay .wh-won-desc{ font-family:'Share Tech Mono',monospace; font-size:9px; color:var(--cream-dim); line-height:1.4; margin-top:2px; }
+
+/* overflow prompt: the prize doesn't fit */
+#wheel-overflow{ display:none; position:fixed; inset:0; z-index:340; align-items:center; justify-content:center;
+  background:rgba(4,3,2,0.86); }
+#wheel-overflow.show{ display:flex; }
+#wheel-overflow .wo-box{ width:360px; max-width:94vw; border-radius:11px; padding:16px;
+  background:linear-gradient(180deg,#1c1109,#0b0906); border:2px solid var(--c-coral);
+  box-shadow:0 0 50px -12px var(--c-coral); display:flex; flex-direction:column; gap:9px; }
+#wheel-overflow .wo-title{ font-family:'Cinzel',serif; font-size:13px; letter-spacing:3px; color:var(--c-coral); }
+#wheel-overflow .wo-sub,#wheel-overflow .wo-lead{ font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--cream); line-height:1.5; }
+#wheel-overflow .wo-lead{ color:var(--cream-dim); margin-top:2px; }
+#wheel-overflow .wo-tricks{ display:flex; flex-direction:column; gap:5px; max-height:190px; overflow-y:auto; }
+#wheel-overflow .wo-trick{ display:flex; align-items:center; gap:8px; padding:7px 9px; border-radius:6px; cursor:pointer;
+  background:rgba(255,255,255,.05); border:1px solid #3a3020; color:var(--cream); text-align:left; }
+#wheel-overflow .wo-trick:hover{ border-color:var(--phosphor); background:rgba(255,176,46,.1); }
+#wheel-overflow .wo-tem{ font-size:15px; } 
+#wheel-overflow .wo-tn{ flex:1; font-family:'Orbitron',sans-serif; font-size:9px; letter-spacing:.5px; text-transform:uppercase; }
+#wheel-overflow .wo-tv{ font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--phosphor); }
+#wheel-overflow .wo-or{ font-family:'Share Tech Mono',monospace; font-size:9px; color:var(--cream-dim); text-align:center; }
+#wheel-overflow .wo-sell-prize{ font-family:'Orbitron',sans-serif; font-size:9.5px; letter-spacing:1.5px; padding:10px;
+  border-radius:6px; background:rgba(255,176,46,.14); border:1px solid #5a4a12; color:var(--phosphor); cursor:pointer; }
+#wheel-overflow .wo-sell-prize:hover{ background:rgba(255,176,46,.25); }
+
+/* the SPIN special is a real button now */
+#mart-overlay .m-special.m-spin{ cursor:pointer; transition:transform .12s, box-shadow .15s; }
+#mart-overlay .m-special.m-spin:hover{ transform:translateY(-2px); box-shadow:0 0 22px -4px var(--c-magenta); }
+#mart-overlay .m-special.m-spin.cant{ opacity:.5; }
+
+/* loadout: current limit caps (also the fly-to target for a bought Limit) */
+#mart-overlay .p-limits{ border-top:2px solid var(--c-mint); }
+#mart-overlay .m-limrow{ flex-wrap:wrap; gap:4px; }
+#mart-overlay .m-lim{ display:inline-flex; align-items:center; gap:3px; padding:2px 5px; border-radius:4px;
+  background:rgba(53,213,155,.10); border:1px solid rgba(53,213,155,.35); font-size:10px; color:var(--cream); }
+#mart-overlay .m-lim b{ font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--c-mint); }
+#mart-overlay .m-lim.max{ opacity:.45; }
+
+/* checkout fly: the loadout panel reacts when an item lands in it */
+#mart-overlay .m-panel.m-landed{ animation:martLand .5s ease; }
+@keyframes martLand{
+  0%{ transform:scale(1); box-shadow:none; }
+  35%{ transform:scale(1.06); box-shadow:0 0 20px -3px var(--c-mint); }
+  100%{ transform:scale(1); box-shadow:none; }
+}
+.m-ghost{ will-change:transform,opacity; }
+
+/* wheel confirm gate — nothing is charged until you press SPIN */
+#wheel-overlay .wh-confirm{ display:none; flex-direction:column; gap:8px; align-items:center; padding:2px 16px 0; width:100%; }
+#wheel-overlay.unpaid .wh-confirm{ display:flex; }
+#wheel-overlay.unpaid .wh-wheel{ cursor:default; }
+#wheel-overlay.unpaid .wh-face{ filter:saturate(.75) brightness(.85); }
+#wheel-overlay.unpaid .wh-hub{ opacity:.6; }
+#wheel-overlay .wh-cost{ font-family:'Share Tech Mono',monospace; font-size:11px; color:var(--cream); }
+#wheel-overlay .wh-cost b{ color:var(--phosphor); font-size:13px; }
+#wheel-overlay .wh-cbtns{ display:flex; gap:8px; width:100%; }
+#wheel-overlay .wh-cancel,#wheel-overlay .wh-go{ flex:1; font-family:'Orbitron',sans-serif; font-size:9.5px;
+  letter-spacing:1.5px; padding:10px 8px; border-radius:6px; cursor:pointer; }
+#wheel-overlay .wh-cancel{ background:rgba(255,255,255,.05); border:1px solid #3a3020; color:var(--cream-dim); }
+#wheel-overlay .wh-cancel:hover{ border-color:var(--cream-dim); color:var(--cream); }
+#wheel-overlay .wh-go{ background:var(--c-magenta); border:none; color:#2a021a; font-weight:700; }
+#wheel-overlay .wh-go:hover{ filter:brightness(1.12); }
+/* wheel slot labels must be hoverable for their tooltip (the wheel disc itself
+   still owns the drag — the labels sit above it but don't swallow pointerdown) */
+#wheel-overlay .wh-slot-in{ pointer-events:auto; }
+#wheel-overlay.unpaid .wh-slot-in{ pointer-events:auto; }
+
+/* drag-to-cart */
+#mart-overlay .m-item.m-drag-src{ opacity:.28; }
+#mart-overlay .m-dragging{ opacity:.92; filter:drop-shadow(0 8px 16px rgba(0,0,0,.6)); }
+#mart-overlay .mart-checkout.m-drop-armed{ outline:1px dashed rgba(53,213,155,.5); outline-offset:-4px; }
+#mart-overlay .mart-checkout.m-drop-hot{ outline:2px dashed var(--c-mint); outline-offset:-4px;
+  box-shadow:inset 0 0 40px -14px var(--c-mint); }
+#mart-overlay .m-drop small{ opacity:.7; font-size:8px; }

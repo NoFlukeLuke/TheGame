@@ -29,8 +29,8 @@ function resumeGame() {
   gameInterval = setInterval(() => {
     if (gameTimerPaused) return;
     gameSeconds--;
-    // See startTimers: match-3 owns its own round loop, skip legacy progression.
-    if (!isActMode() && !match3Active()) {
+    // See startTimers: match-3 and dominoes own their round loops, skip legacy progression.
+    if (!isActMode() && !match3Active() && !dominoActive()) {
       const m = Math.floor(gameSeconds/60);
       const s = gameSeconds%60;
       document.getElementById('game-timer').textContent = `${m}:${s.toString().padStart(2,'0')}`;
@@ -58,13 +58,24 @@ document.getElementById('btn-pause').addEventListener('click', () => {
 
 document.getElementById('btn-resume').addEventListener('click', resumeGame);
 
+// Pause-menu "Home" button — abandon the current run and return to the main menu.
+// A full page reload is the cleanest teardown: the game keeps a lot of live state
+// (round/game/boss timers, decks, overlays, match-3/dominoes state) and there is no
+// single reset function that unwinds all of it, whereas the page boots straight to
+// the home menu on load (index.html #main-menu-overlay starts shown; bootstrap.js
+// calls initMainMenu()). Guarded by a confirm so a stray tap can't lose a run.
+function quitToMainMenu() {
+  if (!confirm('Return to the home screen? Your current run will be lost.')) return;
+  location.reload();
+}
+
 document.getElementById('btn-stats').addEventListener('click', () => {
-  pauseGame(false); // pause timers but don't hide grid
+  if (!screenOwnsClock()) pauseGame(false); // pause timers but don't hide grid
   showStats();
 });
 
 document.getElementById('btn-deck').addEventListener('click', () => {
-  pauseGame(false);
+  if (!screenOwnsClock()) pauseGame(false);
   showDeck();
 });
 
@@ -74,11 +85,33 @@ function hideTimePopup() {
   const pop = document.getElementById('interact-costs');
   if (pop) pop.classList.remove('show');
 }
+// Fill the time popup with LIVE values: interaction costs (incl. reward-grid
+// debuffs), the round's max time, and how many times it's been paused / rewound.
+function updateInteractCosts() {
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  // Play is 0 by default (r50); a "Hands +Ns" debuff makes it cost that much.
+  set('ic-play', `${playHandCostThisRound || 0}s`);
+  // Discard cost per card: 3 base, 0 with Free Discards, 6 with Hoarder, + reward debuff.
+  let disc = (typeof BAL !== 'undefined') ? BAL._resources.discard_seconds_per_card : 3;
+  if (typeof hasKnack === 'function' && hasKnack('free_discards')) disc = 0;
+  else { if (typeof hasKnack === 'function' && hasKnack('hoarder')) disc = BAL.hoarder.discard_seconds_per_card; disc += (discardCostThisRound || 0); }
+  set('ic-discard', `${disc}s`);
+  // Swap cost: 4 base, 0 with Free Swaps.
+  const swap = (typeof hasKnack === 'function' && hasKnack('free_swaps')) ? 0 : (typeof SWAP_TIME_COST !== 'undefined' ? SWAP_TIME_COST : 4);
+  set('ic-swap', `${swap}s`);
+  // Max time = round cap minus permanent (−5s) penalties.
+  const base = (typeof ROUND_DURATION !== 'undefined') ? ROUND_DURATION : 180;
+  const cap  = Math.max(base, limits.round_time.current) - (roundPenaltySeconds || 0);
+  set('ic-maxtime', (typeof formatTime === 'function') ? formatTime(Math.max(0, cap)) : `${cap}s`);
+  set('ic-paused',  `${pausesThisRound  || 0}×`);
+  set('ic-rewound', `${rewindsThisRound || 0}×`);
+}
 function toggleTimePopup() {
   const pop = document.getElementById('interact-costs');
   const btn = document.getElementById('btn-time');
   if (!pop || !btn) return;
   if (pop.classList.contains('show')) { hideTimePopup(); return; }
+  updateInteractCosts();                     // refresh live values before showing
   pop.classList.add('show');                 // .show → display:flex (CSS)
   const r = btn.getBoundingClientRect();
   const pw = pop.offsetWidth, ph = pop.offsetHeight;
@@ -97,16 +130,23 @@ document.addEventListener('click', (e) => {
   if (!e.target.closest('#btn-time') && !e.target.closest('#interact-costs')) hideTimePopup();
 }, true);
 
+// Stats / Deck can also be opened from a takeover screen (the Mart shop), where there is
+// no round running to resume — resuming there would start the round timer behind the shop.
+// screenOwnsClock() is true whenever some other screen owns the clock, and the openers below
+// skip pauseGame() in that case, so the close handler must skip resumeGame() to match.
+function screenOwnsClock() {
+  return (typeof martActive !== 'undefined' && martActive)
+      || (typeof shopGridActive !== 'undefined' && shopGridActive)
+      || document.getElementById('shop-overlay')?.classList.contains('show')
+      || (typeof rewardOnGrid !== 'undefined' && rewardOnGrid);
+}
+function closeInfoOverlay(id) {
+  document.getElementById(id).classList.remove('show');
+  if (!screenOwnsClock()) resumeGame();
+}
 // Resume when overlays are closed
-document.querySelector('#stats-overlay .overlay-close').addEventListener('click', () => {
-  document.getElementById('stats-overlay').classList.remove('show');
-  resumeGame();
-});
-
-document.querySelector('#deck-overlay .overlay-close').addEventListener('click', () => {
-  document.getElementById('deck-overlay').classList.remove('show');
-  resumeGame();
-});
+document.querySelector('#stats-overlay .overlay-close').addEventListener('click', () => closeInfoOverlay('stats-overlay'));
+document.querySelector('#deck-overlay .overlay-close').addEventListener('click', () => closeInfoOverlay('deck-overlay'));
 
 function startGame() {
   document.getElementById('end-overlay').classList.remove('show');
@@ -140,6 +180,7 @@ function startGame() {
   // Sync playing-grid dimensions from limits and size the cards
   gridRows = limits.grid_rows.current;
   gridCols = limits.grid_cols.current;
+  if (dominoActive()) { gridRows = DOMINO_ROWS; gridCols = DOMINO_COLS; }
   recomputeGridMetrics();
   // Reset focus meter
   focusNodes = 0;
@@ -229,6 +270,10 @@ function startGame() {
   bonusMult_tens = 0;
   bonusMult_compound = 0;
   bonusPips_prolific = 0;
+  bonusFocus_acorns  = 0;   // Acorns (per-game Focus accumulator)
+  handsPlayedGame    = 0;   // Plan Ahead (per-game hand count)
+  bonusMult_morebetter = 0; // More Better (per-game reward-grid mult accumulator)
+  negativeTilesTakenRun = 0; // Wild Side / Wait For Iiiit / Shady Stimulants (per-run negative-tile tally)
   bonusPips_fengshui = 0;   // Feng Shui (per-game permanent scaler)
   _perMinuteFired = {};
   bonusMult_jackpot  = 0;
@@ -236,6 +281,8 @@ function startGame() {
   safetyNetUsed      = false;
   handsPlayedRound   = 0;
   runsPlayedRound    = 0;
+  setsPlayedRound    = 0;
+  runStreak          = 0;
   handTypesRound     = new Set();
   cardsDiscardedTotal = 0;
   freeSwapsLeft    = 2;
@@ -275,6 +322,7 @@ function startGame() {
   rewardConfirmed = false;
   actNumber = 1;
   nodeInAct = 0;
+  rewardGridsSeen = 0;
   forceBossNextRound = false;
   shopFromNodeFlow = false;
   updateActProgressUI();

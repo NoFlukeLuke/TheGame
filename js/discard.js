@@ -1,5 +1,8 @@
 function doDiscard() {
-  // During the on-grid reward step the Discard button is the yellow CLEAR button.
+  // Dominoes mode has its own discard flow (tiles return to the domino deck).
+  if (typeof ACTIVE_MODE !== 'undefined' && ACTIVE_MODE.id === 'dominoes') { dominoDiscard(); return; }
+  // On grid-takeover screens the Discard button is repurposed: LEAVE (shop) / CLEAR (reward).
+  if (typeof shopGridActive !== 'undefined' && shopGridActive) { closeShopGrid(); return; }
   if (rewardOnGrid) { clearRewardSelection(); return; }
   if (roundEnded || animating) return;
   if (falling) { if (selected.length > 0) { pendingAction = 'discard'; dbgEvent('info', 'discard queued (falling)'); } return; }
@@ -164,6 +167,7 @@ function rewindTime(seconds, label) {
   const gained = roundSeconds - before;
   if (gained <= 0) return 0;
   rewoundSecondsRound += gained; // Kingfisher scales on seconds rewound this round
+  rewindsThisRound++;            // per-round rewind count (time popup)
   updateClockUI();
   const el = document.getElementById('time-cost-flash') ||
     (() => { const e = document.createElement('div'); e.id = 'time-cost-flash'; e.style.cssText =
@@ -224,6 +228,7 @@ function pauseRound(seconds) {
   // Long Pause knack: all pauses are 1.5x longer
   if (hasKnack('long_pause')) seconds *= BAL.long_pause.multiplier;
   pauseInstanceGame++; // Hummingbird (counts every pause triggered this game)
+  pausesThisRound++;   // per-round pause count (time popup)
   // The Vulture: mark the start of the round's FIRST continuous pause stretch. An extension
   // landing while already paused does NOT start a new stretch (pipeTimerPaused is still true).
   if (!pipeTimerPaused && !firstPauseStartedRound) { firstPauseStartedRound = true; firstPauseActive = true; }

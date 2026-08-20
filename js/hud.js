@@ -103,8 +103,8 @@ function updateKnackList() {
   // Wire interactions on every chip (originals + marquee clones)
   el.querySelectorAll('.knack-chip').forEach(chip => {
     const id = chip.dataset.knackId;
-    chip.addEventListener('mouseenter', () => showKnackTooltip(chip, id));
-    chip.addEventListener('mouseleave', () => hideKnackTooltip());
+    chip.addEventListener('mouseenter', () => { cancelKnackHoverHide(); showKnackTooltip(chip, id); });
+    chip.addEventListener('mouseleave', () => scheduleKnackHoverHide());
     chip.addEventListener('click', (e) => {
       e.stopPropagation();
       const tt = document.getElementById('knack-tooltip');
@@ -137,30 +137,34 @@ function applyChipMarquee(list, track) {
 // Back-compat alias — older call sites updateTrickList() still re-render the rack
 function updateTrickList() { updateKnackList(); }
 
+// Grace-delay hide so the pointer can travel from the chip to the tooltip's Sell button.
+let _knackHoverTimer = null;
+function cancelKnackHoverHide() { if (_knackHoverTimer) { clearTimeout(_knackHoverTimer); _knackHoverTimer = null; } }
+function scheduleKnackHoverHide() { cancelKnackHoverHide(); _knackHoverTimer = setTimeout(hideKnackTooltip, 160); }
+
 function showKnackTooltip(chip, id) {
   const knack = KNACK_POOL.find(t => t.id === id);
   if (!knack) return;
   let tt = document.getElementById('knack-tooltip');
   if (!tt) return;
+  const _sv = (typeof knackSellValue === 'function') ? knackSellValue() : 0;
   tt.innerHTML = `
     <div class="knack-tooltip-name">${knack.emoji} ${knack.name}</div>
     <div class="knack-tooltip-desc">${colorizeKeywords(knack.desc)}</div>
+    <div class="knack-tooltip-actions"><button class="knack-tooltip-sell" id="knack-tooltip-sell-btn">Sell 💰${_sv}</button></div>
   `;
   tt.dataset.knackId = id;
-  // Position above the chip, centered horizontally
-  const rect = chip.getBoundingClientRect();
-  tt.classList.add('show');
-  // Need to wait one frame for layout
-  requestAnimationFrame(() => {
-    const ttRect = tt.getBoundingClientRect();
-    let left = rect.left + rect.width / 2 - ttRect.width / 2;
-    let top = rect.top - ttRect.height - 8;
-    // Clamp to viewport
-    left = Math.max(6, Math.min(window.innerWidth - ttRect.width - 6, left));
-    if (top < 6) top = rect.bottom + 8;
-    tt.style.left = left + 'px';
-    tt.style.top = top + 'px';
+  // Keep the bubble open while the pointer is over it (so Sell is clickable); wire once via props.
+  tt.onmouseenter = cancelKnackHoverHide;
+  tt.onmouseleave = scheduleKnackHoverHide;
+  tt.querySelector('#knack-tooltip-sell-btn')?.addEventListener('click', e => {
+    e.stopPropagation();
+    sellKnack(knack);
   });
+  // Opens into whichever side of the chip has the most room (was hardcoded to
+  // above). One frame's wait so the bubble has been laid out and can be measured.
+  tt.classList.add('show');
+  requestAnimationFrame(() => placeTipSmart(chip, tt, { gap: 8 }));
 }
 function hideKnackTooltip() {
   const tt = document.getElementById('knack-tooltip');

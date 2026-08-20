@@ -43,6 +43,7 @@ function showSuitEffect(text, color) {
 // ══════════════════════════════════════════════
 function startRoundTimer() {
   if (roundInterval) clearInterval(roundInterval);
+  startHeartbeat();                 // the board's idle pulse runs with the round
   roundStartSeconds = roundSeconds; // mark the start of the countdown for ♠ "first 30s" exalt
   roundInterval = setInterval(() => {
     if (pipeTimerPaused) return;
@@ -97,10 +98,10 @@ function startTimers() {
   gameInterval = setInterval(() => {
     if (gameTimerPaused) return;
     gameSeconds--;
-    // Match-3 runs its own round-goal loop, so it must NOT take the legacy
-    // timer-based progression below (which would pop shops/bosses off the
-    // 20-minute game clock and hard-end the run at 0).
-    if (!isActMode() && !match3Active()) {
+    // Match-3 and Dominoes run their own round-goal loops, so they must NOT take
+    // the legacy timer-based progression below (which would pop shops/bosses off
+    // the 20-minute game clock and hard-end the run at 0).
+    if (!isActMode() && !match3Active() && !dominoActive()) {
       const m = Math.floor(gameSeconds/60);
       const s = gameSeconds%60;
       document.getElementById('game-timer').textContent = `${m}:${s.toString().padStart(2,'0')}`;
@@ -161,6 +162,7 @@ function stopTimers() {
   roundInterval = null;
   gameInterval = null;
   stopFocusDecay();
+  stopHeartbeat();
 }
 
 // ══════════════════════════════════════════════
@@ -194,6 +196,9 @@ function _onRoundEndCore() {
     cancelDance();
     suppressScoreDisplay = false;
     if (heldBackScore > 0) { score += heldBackScore; heldBackScore = 0; }
+    // Dominoes has its own round advance; the normal level-up flow is poker-specific
+    // (trick pick, sleight sweep, card deal) and would corrupt the domino board.
+    if (dominoActive()) { dominoAdvanceLevel(); return; }
     triggerLevelUp();
     return;
   }

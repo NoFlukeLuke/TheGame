@@ -80,19 +80,14 @@ function withSuitHalo(text) {
 // replay/retrigger=white+rgb glow (both share the color; words stay distinct).
 // Single-pass replace: inserted spans are never re-scanned, so it's safe to run once
 // on plain description text (compose as colorizeKeywords(withSuitHalo(desc))).
+// Kept as the shared entry point (lots of call sites), but the term list and
+// colours now live in js/keywords.js so tooltips, previews and the carousel all
+// highlight the same vocabulary. Falls back to the old inline set if that file
+// somehow isn't loaded.
 function colorizeKeywords(text) {
   if (text == null) return text;
-  return String(text).replace(/\b(pips?|mult|focus|credits?|seconds?|time|replays?|retriggers?)\b/gi, (m) => {
-    const w = m.toLowerCase();
-    let cls;
-    if (w.startsWith('pip'))       cls = 'kw-pips';
-    else if (w === 'mult')          cls = 'kw-mult';
-    else if (w === 'focus')         cls = 'kw-focus';
-    else if (w.startsWith('credit'))cls = 'kw-credits';
-    else if (w.startsWith('second') || w === 'time') cls = 'kw-time';
-    else                            cls = 'kw-replay'; // replay(s) / retrigger(s)
-    return `<span class="${cls}">${m}</span>`;
-  });
+  if (typeof highlightKeywords === 'function') return highlightKeywords(text);
+  return String(text);
 }
 
 // ══════════════════════════════════════════════

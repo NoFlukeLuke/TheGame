@@ -47,6 +47,11 @@
     align-items: center;
     justify-content: center;
     padding: 14px;
+    /* Respect notch / rounded-corner safe areas when running fullscreen or added to home screen */
+    padding-top: max(14px, env(safe-area-inset-top));
+    padding-bottom: max(14px, env(safe-area-inset-bottom));
+    padding-left: max(14px, env(safe-area-inset-left));
+    padding-right: max(14px, env(safe-area-inset-right));
     overflow: hidden;
     touch-action: manipulation;
     -webkit-text-size-adjust: 100%;
@@ -554,7 +559,7 @@
     pointer-events: none;
     transition: opacity 0.12s ease;
   }
-  #knack-tooltip.show { opacity: 1; }
+  #knack-tooltip.show { opacity: 1; pointer-events: auto; }
   .knack-tooltip-name {
     font-family: 'Cinzel', serif;
     font-size: 11px;
@@ -1272,6 +1277,11 @@
     touch-action: none;
     will-change: top, opacity;
     transition: border-color 0.1s, box-shadow 0.1s, opacity 0.15s;
+    /* --hb* come from the grid heartbeat (js/heartbeat.js). Declared here rather
+       than written to el.style.transform on purpose: an INLINE transform (the
+       discard fly-out) and a !important one (.card.removing) both beat this, so
+       those effects keep working untouched. */
+    transform: translate(var(--hbx,0), var(--hby,0)) rotate(var(--hbr,0deg)) scale(var(--hbs,1));
   }
   .card.removing {
     transition: opacity 0.18s ease-in, transform 0.18s ease-in !important;
@@ -1406,6 +1416,7 @@
     will-change: top, opacity;
     transition: top 0.32s cubic-bezier(0.4,0,0.2,1), left 0.32s cubic-bezier(0.4,0,0.2,1);
     overflow: hidden;
+    transform: translate(var(--hbx,0), var(--hby,0)) rotate(var(--hbr,0deg)) scale(var(--hbs,1));  /* grid heartbeat */
   }
   .trick-card.trick-tier-common {
     background: linear-gradient(160deg, #1a2a1a 0%, #0f1f0f 100%);
@@ -1512,15 +1523,27 @@
     color: #e8b84b; text-align: center;
     animation: trick-confirm-pulse 0.7s ease-in-out infinite alternate;
   }
+  .trick-tooltip-actions, .knack-tooltip-actions {
+    display: flex; gap: 4px; margin-top: 6px;
+  }
   .trick-tooltip-discard {
-    display: block; width: 100%; margin-top: 6px;
-    padding: 4px 8px; border-radius: 4px;
+    flex: 1; padding: 4px 8px; border-radius: 4px;
     background: rgba(180,40,40,0.18); border: 1px solid rgba(180,40,40,0.5);
     color: #e07070; font-family: 'Cinzel', serif; font-size: 8px;
     letter-spacing: 0.5px; cursor: pointer;
     transition: background 0.12s;
   }
   .trick-tooltip-discard:hover { background: rgba(180,40,40,0.35); }
+  /* Sell buttons (Tricks in the tray, Knacks in the HUD) — gold, matches the credits economy */
+  .trick-tooltip-sell, .knack-tooltip-sell {
+    flex: 1; padding: 4px 8px; border-radius: 4px;
+    background: rgba(200,160,60,0.18); border: 1px solid rgba(200,160,60,0.55);
+    color: #e8b84b; font-family: 'Cinzel', serif; font-size: 8px;
+    letter-spacing: 0.5px; cursor: pointer; white-space: nowrap;
+    transition: background 0.12s;
+  }
+  .trick-tooltip-sell:hover, .knack-tooltip-sell:hover { background: rgba(200,160,60,0.34); }
+  .knack-tooltip-actions { margin-top: 5px; }
   .trick-confirm {
     font-family: 'Cinzel', serif;
     font-size: 7px; font-weight: 700;
@@ -1856,158 +1879,177 @@
   #shop-overlay {
     display: none;
     position: fixed; inset: 0;
-    background: radial-gradient(ellipse at 50% 0%, #16120a 0%, #0a0806 70%);
+    /* Warm phosphor wash over near-black — the shop's own CRT identity, kept
+       distinct from the reward map's cool indigo. */
+    background:
+      radial-gradient(circle at 50% 12%, rgba(255,176,46,0.10), transparent 58%),
+      rgba(9,8,6,0.97);
     z-index: 250;
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
-    padding: 14px 12px;
-    overflow: hidden;            /* stacked shelves are sized to fit — never scroll */
-    gap: 10px;
+    padding: 16px 14px;
+    overflow: hidden;            /* bays are sized to fit — never scroll */
+    gap: 12px;
   }
   #shop-overlay.show { display: flex; }
 
-  #shop-header { display: flex; align-items: baseline; justify-content: space-between; width: 100%; max-width: 640px; }
-  #shop-title { font-family: 'Cinzel', serif; font-size: 26px; font-weight: 900; color: var(--gold); letter-spacing: 5px; }
-  #shop-coins { font-family: 'Cinzel', serif; font-size: 18px; color: var(--gold); }
+  #shop-header { display: flex; align-items: baseline; justify-content: space-between; width: 100%; max-width: 680px; }
+  #shop-title {
+    font-family: 'Orbitron', sans-serif; font-size: 22px; font-weight: 900;
+    color: var(--phosphor); letter-spacing: 6px; text-transform: uppercase;
+    text-shadow: 0 0 14px rgba(255,176,46,0.55);
+  }
+  #shop-coins {
+    font-family: 'Share Tech Mono', monospace; font-size: 16px; color: var(--phosphor);
+    text-shadow: 0 0 8px rgba(255,176,46,0.4);
+  }
 
-  /* ── Shop: stacked shelves (one labeled row per category) ── */
+  /* ── Shop: CRT wares bays (shares the reward grid's neon entity language) ── */
   #shop-main-grid {
     display: flex; flex-direction: column;
-    gap: 8px;
-    width: 100%; max-width: 640px;
+    gap: 10px;
+    width: 100%; max-width: 680px;
     flex: 1 1 auto; min-height: 0;   /* fill the space between header and footer */
   }
   .shop-shelf {
-    display: flex; align-items: stretch; gap: 8px;
-    background: linear-gradient(180deg,#13100a,#0c0a06);
-    border: 1px solid #2a2010; border-left: 3px solid #3a2c12;
-    border-radius: 8px; padding: 6px 10px 6px 8px;
-    flex: 1 1 0; min-height: 0;      /* shelves share the vertical space evenly */
+    display: flex; align-items: stretch; gap: 10px;
+    background: linear-gradient(180deg, #15110b, #0a0906);
+    border: 1.5px solid var(--plastic-deep);
+    border-left: 3px solid var(--phosphor);
+    border-radius: 10px; padding: 8px 12px 8px 10px;
+    flex: 1 1 0; min-height: 0;      /* bays share the vertical space evenly */
+    box-shadow: inset 0 0 24px -8px rgba(0,0,0,0.8);
   }
   .shop-shelf-label {
-    flex: 0 0 56px; display: flex; align-items: center;
-    font-family: 'Cinzel', serif; font-size: 10px; font-weight: 700;
-    letter-spacing: 2px; color: var(--gold-dim); text-transform: uppercase;
-    line-height: 1.15;
+    flex: 0 0 48px; display: flex; align-items: center;
+    font-family: 'Orbitron', sans-serif; font-size: 9px; font-weight: 700;
+    letter-spacing: 2px; text-transform: uppercase; line-height: 1.2;
+    color: var(--phosphor); text-shadow: 0 0 8px rgba(255,176,46,0.5);
   }
   .shop-shelf-items {
     flex: 1 1 0; min-width: 0;
-    display: flex; gap: 8px; align-items: stretch; justify-content: flex-start;
+    display: flex; gap: 10px; align-items: center; justify-content: flex-start;
     overflow-x: auto; overflow-y: hidden;   /* safety on very narrow phones; vertical never scrolls */
   }
-  /* color-code each shelf's accent edge */
-  #shop-trick-shelf   { border-left-color: #4a7a4a; }
-  #shop-sleight-shelf { border-left-color: #3a6fca; }
-  #shop-knack-shelf   { border-left-color: #b8860b; }
-  #shop-limits-shelf  { border-left-color: #2a6a5a; }
+  /* per-bay neon accent + matching label color, for quick orientation */
+  #shop-trick-shelf   { border-left-color: var(--phosphor); }
+  #shop-sleight-shelf { border-left-color: var(--c-cyan); }
+  #shop-sleight-shelf .shop-shelf-label { color: var(--c-cyan);   text-shadow: 0 0 8px rgba(22,200,216,0.5); }
+  #shop-knack-shelf   { border-left-color: var(--c-purple); }
+  #shop-knack-shelf   .shop-shelf-label { color: var(--c-purple); text-shadow: 0 0 8px rgba(154,108,255,0.5); }
+  #shop-limits-shelf  { border-left-color: var(--c-mint); }
+  #shop-limits-shelf  .shop-shelf-label { color: var(--c-mint);   text-shadow: 0 0 8px rgba(53,213,155,0.5); }
 
-  /* In a shelf, items fill the shelf height; the card (a column) flexes its height to fit,
-     capped so it never over-stretches on tall/desktop screens. Width stays card-shaped. */
-  .shop-shelf .shop-item { height: 100%; flex: 0 0 auto; justify-content: center; gap: 3px; }
-  .shop-shelf .shop-trick-card,
-  .shop-shelf .shop-knack-card,
-  .shop-shelf .shop-sleight-card {
-    width: 76px; height: auto; flex: 1 1 0; min-height: 0; max-height: 128px; overflow: hidden;
+  /* CRT shop tile: reuses the reward grid's .reward-cell/.entity look (border,
+     scanlines, neon rarity, Orbitron name), sized for the bay + a price chip. */
+  .shop-tile.reward-cell {
+    width: 82px; height: 110px; flex: 0 0 auto;
+    cursor: pointer; padding: 6px;
   }
-  .shop-shelf .shop-limit-card {
-    width: 100px; height: auto; flex: 1 1 0; min-height: 0; max-height: 128px; overflow: hidden;
+  .shop-shelf .shop-tile.shop-tile-upgrade { width: 108px; }
+  .shop-tile.reward-cell:hover { transform: translate(var(--fx,0), calc(var(--fy,0px) - 4px)) rotate(var(--fr,0deg)) scale(calc(var(--fs,1) * 1.02)); }
+  .shop-tile.entity-knack:hover { transform: translateY(-4px) scale(1.05); }
+  .shop-tile.reward-cell.purchased { opacity: 0.4; cursor: default; }
+  .shop-tile.reward-cell.purchased:hover { transform: none; }
+
+  /* Upgrade tile: CRT resource look (mint neon, no entity chrome).
+     3 classes → beats .reward-cell.buff / .reward-cell.rar-* that come later in the file. */
+  .shop-tile.reward-cell.shop-tile-upgrade {
+    --rc: var(--c-mint);
+    border: 2px solid var(--rc);
+    background: linear-gradient(180deg, #0e1a16, #08110d);
+    box-shadow: 0 0 0 2px var(--plastic-lo), 0 0 10px -1px var(--rc),
+                inset 0 0 14px -4px var(--rc), 0 6px 14px rgba(0,0,0,0.5);
+    justify-content: center; gap: 3px;
+  }
+  .shop-tile.shop-tile-upgrade .reward-icon { font-size: 22px; margin-bottom: 2px; filter: drop-shadow(0 0 6px var(--rc)); }
+  .shop-tile-sub {
+    position: relative; z-index: 2; margin-top: 2px;
+    font-family: 'Share Tech Mono', monospace; font-size: 10px; color: var(--rc);
+    text-shadow: 0 0 6px var(--rc);
   }
 
-  /* Generic shop item wrapper */
-  .shop-item { display: flex; flex-direction: column; align-items: center; gap: 5px; cursor: pointer; }
-  .shop-item.purchased { cursor: default; }
-
-  /* Trick card in shop */
-  .shop-trick-card {
-    width: 80px; height: 106px; border-radius: 7px;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 3px; padding: 5px 4px;
-    transition: transform 0.12s, box-shadow 0.12s;
+  /* Price chip — CRT sticker pinned to the top-right corner of each tile */
+  .shop-price-chip {
+    position: absolute; top: 5px; right: 5px; z-index: 3;
+    font-family: 'Share Tech Mono', monospace; font-size: 9px; letter-spacing: 0.3px;
+    color: var(--phosphor); background: rgba(0,0,0,0.66);
+    border: 1px solid rgba(255,176,46,0.5); border-radius: 6px; padding: 1px 5px;
+    text-shadow: 0 0 6px rgba(255,176,46,0.5);
   }
-  .shop-trick-card:hover { transform: translateY(-4px); }
-  .shop-item.purchased .shop-trick-card { opacity: 0.38; transform: none !important; }
-  .shop-trick-card .trick-tier-label { font-size: 8px; }
-  .shop-trick-emoji { font-size: 30px; line-height: 1; margin: 2px 0; }
-  .shop-trick-card .trick-name { font-size: 9px; text-align: center; }
-  .shop-trick-desc { font-family: 'Crimson Pro', serif; font-size: 8px; color: #aaa; text-align: center; line-height: 1.3; padding: 0 2px; }
-  .shop-trick-card.trick-tier-common    { background: linear-gradient(160deg,#1a2a1a,#0f1f0f); border: 2px solid #4a7a4a; box-shadow: 0 0 6px rgba(74,122,74,0.3); }
-  .shop-trick-card.trick-tier-rare      { background: linear-gradient(160deg,#0d1a2e,#0a1020); border: 2px solid #3a6fca; box-shadow: 0 0 8px rgba(58,111,202,0.4); }
-  .shop-trick-card.trick-tier-epic      { background: linear-gradient(160deg,#1a0a2e,#0f0620); border: 2px solid #9b4dca; box-shadow: 0 0 8px rgba(155,77,202,0.4); }
-  .shop-trick-card.trick-tier-legendary { background: linear-gradient(160deg,#2a1a00,#1a1000); border: 2px solid #e8b84b; box-shadow: 0 0 10px rgba(232,184,75,0.5); animation: trick-legendary-pulse 2s ease-in-out infinite; }
-  .shop-trick-card:hover { transform: translateY(-4px); box-shadow: 0 6px 20px rgba(201,168,76,0.2) !important; }
+  .shop-price-chip.cant-afford { color: #ff5a6a; border-color: rgba(255,90,106,0.55); text-shadow: 0 0 6px rgba(255,90,106,0.4); }
+  .shop-price-chip.sold  { color: var(--c-mint); border-color: rgba(53,213,155,0.5); text-shadow: none; background: rgba(0,0,0,0.5); }
+  .shop-price-chip.maxed { color: var(--cream-dim); border-color: var(--plastic-deep); text-shadow: none; }
 
-  /* Limit card in shop */
-  .shop-limit-card {
-    width: 106px; height: 88px;
-    background: linear-gradient(160deg,#0e1a1a,#080f0f);
-    border: 2px solid #2a6a5a; border-radius: 7px;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 3px; padding: 6px;
-    transition: transform 0.12s, box-shadow 0.12s;
+  /* ── Grid-takeover HUD (r126): location readout replaces the pips/mult chips;
+     the hand-preview slot becomes the shop cost/discount readout. ── */
+  #screen-location { display:none; flex:1 1 auto; flex-direction:column; align-items:center; justify-content:center; gap:1px; }
+  #screen-location .loc-tag  { font-family:'Orbitron',sans-serif; font-size:7px; letter-spacing:2px; color:var(--cream-dim); text-transform:uppercase; }
+  #screen-location .loc-name { font-family:'Orbitron',sans-serif; font-weight:900; font-size:17px; letter-spacing:3px; text-transform:uppercase; color:var(--cream); }
+  #screen-location.tone-reward .loc-name { color:var(--c-mint);   text-shadow:0 0 12px rgba(53,213,155,0.55); }
+  #screen-location.tone-shop   .loc-name { color:var(--phosphor); text-shadow:0 0 12px rgba(255,176,46,0.55); }
+  body.grid-screen #score-subboxes .score-subbox,
+  body.grid-screen #score-subboxes .subbox-times { display:none !important; }
+  body.grid-screen #screen-location { display:flex; }
+  body.grid-screen #hand-name { visibility:hidden; }
+
+  #selected-cards .shop-cost { display:flex; flex-direction:column; justify-content:center; gap:3px; width:100%; font-family:'Share Tech Mono',monospace; }
+  #selected-cards .shop-cost .sc-line { display:flex; justify-content:space-between; gap:6px; font-size:10px; color:var(--cream); white-space:nowrap; }
+  #selected-cards .shop-cost .sc-line s { color:var(--cream-dim); }
+  #selected-cards .shop-cost .sc-line b { color:var(--phosphor); }
+  #selected-cards .shop-cost .sc-off { color:var(--c-mint); }
+  #selected-cards .shop-cost .sc-actions { display:flex; gap:6px; margin-top:1px; }
+  #selected-cards .shop-cost .sc-actions button { flex:1; font-family:'Orbitron',sans-serif; font-size:8px; letter-spacing:1px; text-transform:uppercase; padding:4px 2px; border-radius:5px; cursor:pointer; border:1px solid var(--plastic-deep); background:transparent; color:var(--cream-dim); transition:all .12s; }
+  #selected-cards .shop-cost .sc-actions button:hover:not(:disabled) { border-color:var(--phosphor); color:var(--phosphor); }
+  #selected-cards .shop-cost .sc-actions button:disabled { opacity:0.4; cursor:not-allowed; }
+  #selected-cards .shop-cost .sc-actions button.sc-sell-on { border-color:var(--c-mint); color:var(--c-mint); }
+  .reward-cell.on-grid.shop-tile.sold { opacity:0.34; }
+
+  /* ── Shop-on-grid preview (r114): null slot + info banner ── */
+  .reward-cell.shop-prev-null {
+    border: 2px dashed var(--plastic-deep);
+    background: repeating-linear-gradient(45deg, rgba(255,255,255,0.02) 0 6px, transparent 6px 12px), #0b0a07;
+    box-shadow: none; opacity: 0.5;
   }
-  .shop-limit-card:hover { transform: translateY(-4px); box-shadow: 0 6px 18px rgba(42,106,90,0.35); }
-  .shop-item.purchased .shop-limit-card,
-  .shop-limit-card.maxed { opacity: 0.38; transform: none !important; cursor: default; }
-  .shop-limit-icon  { font-size: 20px; }
-  .shop-limit-label { font-family: 'Cinzel', serif; font-size: 9px; color: #5ad4c0; text-align: center; }
-  .shop-limit-progress { font-family: 'Cinzel', serif; font-size: 11px; color: #eee; }
-  .shop-limit-desc  { font-family: 'Crimson Pro', serif; font-size: 8px; color: #888; text-align: center; line-height: 1.3; }
-
-  /* Knack card in shop */
-  .shop-knack-card {
-    width: 80px; height: 106px;
-    background: linear-gradient(160deg,#1a1500,#0e0e00);
-    border: 2px solid #b8860b; border-radius: 7px;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 3px; padding: 6px 4px;
-    transition: transform 0.12s, box-shadow 0.12s;
+  .reward-cell.shop-prev-null .reward-icon { color: var(--plastic-deep); filter: none; }
+  .reward-cell.shop-prev-null .rwd-name { color: var(--cream-dim); text-shadow: none; }
+  #shop-prev-banner {
+    position: fixed; top: 14px; left: 50%; transform: translateX(-50%); z-index: 300;
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    background: linear-gradient(180deg, #15110b, #0a0906);
+    border: 1.5px solid var(--phosphor); border-radius: 12px; padding: 10px 18px;
+    box-shadow: 0 0 0 2px var(--plastic-lo), 0 0 16px -3px var(--phosphor), 0 10px 24px rgba(0,0,0,0.6);
   }
-  .shop-knack-card:hover { transform: translateY(-4px); box-shadow: 0 6px 18px rgba(184,134,11,0.3); }
-  .shop-item.purchased .shop-knack-card { opacity: 0.38; transform: none !important; }
-  .shop-knack-emoji { font-size: 22px; }
-  .shop-knack-name  { font-family: 'Cinzel', serif; font-size: 9px; color: #d4a017; text-align: center; }
-  .shop-knack-desc  { font-family: 'Crimson Pro', serif; font-size: 8px; color: #aaa; text-align: center; line-height: 1.3; }
-
-  /* Sleight card in shop */
-  .shop-sleight-card {
-    width: 80px; height: 106px; border-radius: 7px;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 3px; padding: 5px 4px;
-    transition: transform 0.12s, box-shadow 0.12s;
+  #shop-prev-title  { font-family: 'Orbitron', sans-serif; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--phosphor); text-shadow: 0 0 8px rgba(255,176,46,0.5); }
+  #shop-prev-total  { font-family: 'Share Tech Mono', monospace; font-size: 14px; color: var(--cream); }
+  #shop-prev-total s { color: var(--cream-dim); }
+  #shop-prev-total b { color: var(--phosphor); }
+  #shop-prev-total .shop-prev-off { color: var(--c-mint); }
+  #shop-prev-actions { display: flex; gap: 10px; margin-top: 2px; }
+  #shop-prev-actions button {
+    font-family: 'Orbitron', sans-serif; font-size: 9px; letter-spacing: 1px; text-transform: uppercase;
+    padding: 6px 14px; border-radius: 6px; cursor: pointer;
+    border: 1px solid var(--plastic-deep); background: transparent; color: var(--cream-dim); transition: all 0.12s;
   }
-  .shop-sleight-card:hover { transform: translateY(-4px); }
-  .shop-item.purchased .shop-sleight-card { opacity: 0.38; transform: none !important; }
-  .shop-sleight-card.jk-rarity-common    { background: linear-gradient(160deg,#1a1a12,#111108); border: 2px solid #7a7a4a; box-shadow: 0 0 6px rgba(122,122,74,0.3); }
-  .shop-sleight-card.jk-rarity-rare      { background: linear-gradient(160deg,#0d1a2e,#0a1020); border: 2px solid #3a6fca; box-shadow: 0 0 8px rgba(58,111,202,0.4); }
-  .shop-sleight-card.jk-rarity-epic      { background: linear-gradient(160deg,#1a0a2e,#0f0620); border: 2px solid #9b4dca; box-shadow: 0 0 8px rgba(155,77,202,0.4); }
-  .shop-sleight-card.jk-rarity-legendary { background: linear-gradient(160deg,#2a1a00,#1a1000); border: 2px solid #e8b84b; box-shadow: 0 0 10px rgba(232,184,75,0.5); }
-  .shop-sleight-card.jk-rarity-mythic { background: linear-gradient(160deg,#2a0010,#16000a); border: 2px solid #ff4d6d; box-shadow: 0 0 10px rgba(255,77,109,0.5); }
-  .shop-sleight-emoji   { font-size: 22px; }
-  .shop-sleight-name    { font-family: 'Cinzel', serif; font-size: 9px; color: #ddd; text-align: center; }
-  .shop-sleight-desc    { font-family: 'Crimson Pro', serif; font-size: 8px; color: #aaa; text-align: center; line-height: 1.3; }
-  .shop-sleight-charges { font-family: 'Cinzel', serif; font-size: 7px; color: #888; }
-
-  /* Price tag */
-  .shop-item-price { font-family: 'Cinzel', serif; font-size: 11px; color: var(--gold); }
-  .shop-item-price.cant-afford { color: var(--red); }
-  .shop-item-price.purchased   { color: var(--cream-dim); }
+  #shop-prev-actions button:hover { border-color: var(--phosphor); color: var(--phosphor); }
 
   /* Footer row */
   #shop-footer-row {
     display: flex; align-items: center; gap: 14px; flex-wrap: wrap; justify-content: center;
-    width: 100%; max-width: 640px; flex: 0 0 auto;
-    padding-top: 10px; border-top: 1px solid #2a2010;
+    width: 100%; max-width: 680px; flex: 0 0 auto;
+    padding-top: 12px; border-top: 1px solid var(--plastic-deep);
   }
   #shop-reroll-btn {
-    font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: 1px;
-    text-transform: uppercase; padding: 9px 20px; border-radius: 6px;
-    cursor: pointer; border: 2px solid #7a5a2a;
-    background: #1a1000; color: #d4a017; transition: all 0.15s;
+    font-family: 'Orbitron', sans-serif; font-size: 10px; letter-spacing: 1px;
+    text-transform: uppercase; padding: 9px 20px; border-radius: 7px;
+    cursor: pointer; border: 1.5px solid var(--phosphor);
+    background: rgba(255,176,46,0.08); color: var(--phosphor);
+    text-shadow: 0 0 8px rgba(255,176,46,0.4); transition: all 0.15s;
   }
-  #shop-reroll-btn:hover:not(:disabled) { border-color: var(--gold); color: var(--gold); background: #2a1800; }
+  #shop-reroll-btn:hover:not(:disabled) { background: rgba(255,176,46,0.18); box-shadow: 0 0 12px -2px var(--phosphor); }
   #shop-reroll-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-  #shop-reroll-info { font-family: 'Crimson Pro', serif; font-size: 11px; color: var(--cream-dim); }
+  #shop-reroll-info { font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--cream-dim); }
 
   /* Legacy services (hidden) */
   .svc-btn {
@@ -2084,12 +2126,12 @@
   #svc-cancel:hover { border-color: var(--gold-dim); color: var(--cream); }
 
   #shop-close {
-    font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: 2px;
-    text-transform: uppercase; padding: 10px 28px; border-radius: 5px;
-    cursor: pointer; border: 1px solid var(--border);
+    font-family: 'Orbitron', sans-serif; font-size: 10px; letter-spacing: 2px;
+    text-transform: uppercase; padding: 10px 26px; border-radius: 7px;
+    cursor: pointer; border: 1.5px solid var(--plastic-deep);
     background: transparent; color: var(--cream-dim); transition: all 0.12s;
   }
-  #shop-close:hover { border-color: var(--gold-dim); color: var(--cream); }
+  #shop-close:hover { border-color: var(--phosphor); color: var(--phosphor); box-shadow: 0 0 12px -3px var(--phosphor); }
 
   /* ── LEVEL UP OVERLAY ── */
   #levelup-overlay {
@@ -2302,6 +2344,78 @@
     cursor: pointer; border: 2px solid var(--gold); background: transparent;
     color: var(--gold); transition: all 0.15s; margin-top: 8px;
   }
+
+  /* ── PAUSE OVERLAY (LETHE arcade reskin, r130) ──
+     Reskinned from the old serif/gold sheet to match the main-menu cabinet
+     look: paneled pop-up, Orbitron title, rainbow stripe, plastic buttons.
+     JS toggles #pause-overlay's inline display between flex/none. */
+  #pause-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    z-index: 190;
+    flex-direction: column; align-items: center; justify-content: center;
+    background:
+      repeating-linear-gradient(0deg, rgba(0,0,0,0.18) 0 1px, transparent 1px 3px),
+      radial-gradient(ellipse at 50% 40%, rgba(36,29,63,0.96) 0%, rgba(11,10,28,0.97) 72%);
+  }
+  #pause-panel {
+    position: relative;
+    width: 100%; max-width: 300px;
+    display: flex; flex-direction: column; align-items: center; gap: 11px;
+    padding: 26px 26px 22px;
+    border-radius: 16px;
+    background: linear-gradient(180deg, rgba(20,16,11,0.94), rgba(11,9,6,0.96));
+    box-shadow: 0 0 0 2px var(--plastic-lo), 0 0 0 5px #17120c,
+                inset 0 0 46px rgba(255,176,46,0.05), 0 18px 44px rgba(0,0,0,0.6);
+  }
+  #pause-title {
+    font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 30px; letter-spacing: 8px;
+    background: linear-gradient(180deg, #fff2c8, var(--c-yellow) 55%, var(--c-coral));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    text-shadow: 0 0 26px rgba(255,206,43,0.3);
+  }
+  #pause-stripe {
+    width: 70%; height: 5px; border-radius: 4px; margin: 0 0 6px;
+    background: linear-gradient(90deg, var(--c-magenta) 0 20%, var(--c-coral) 20% 40%,
+      var(--c-yellow) 40% 60%, var(--c-mint) 60% 80%, var(--c-cyan) 80% 100%);
+    box-shadow: inset 0 1px 2px rgba(255,255,255,0.4), 0 0 12px rgba(255,206,43,0.2);
+  }
+  .pause-btn {
+    width: 100%;
+    font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 15px; letter-spacing: 4px;
+    text-transform: uppercase; cursor: pointer; border-radius: 10px; padding: 13px 10px;
+    transition: transform 0.07s ease, filter 0.12s ease, border-color 0.12s ease, color 0.12s ease, background 0.12s ease;
+  }
+  .pause-btn:active { transform: translateY(3px); }
+  .pause-btn-primary {
+    color: #3a2a08; border: none;
+    background: linear-gradient(180deg, #ffe06a, var(--c-yellow) 55%, #e0a814);
+    box-shadow: inset 0 2px 0 rgba(255,255,255,0.7), inset 0 -4px 0 rgba(0,0,0,0.25), 0 4px 0 #b5820f, 0 6px 10px rgba(0,0,0,0.45);
+  }
+  .pause-btn-primary:hover { filter: brightness(1.06); }
+  .pause-btn-primary:active { box-shadow: inset 0 2px 0 rgba(255,255,255,0.7), inset 0 -2px 0 rgba(0,0,0,0.25), 0 1px 0 #b5820f; }
+  .pause-btn-ghost {
+    color: var(--cream); background: rgba(255,255,255,0.04);
+    border: 1.5px solid var(--plastic-lo);
+    box-shadow: inset 0 0 18px rgba(0,0,0,0.4);
+  }
+  .pause-btn-ghost:hover { border-color: var(--c-yellow); color: var(--c-yellow); background: rgba(255,206,43,0.07); }
+  #pause-settings {
+    display: flex; flex-direction: column; align-items: stretch; gap: 9px;
+    width: 100%; margin-top: 6px; padding-top: 13px;
+    border-top: 1px solid rgba(183,172,147,0.28);
+  }
+  .pause-settings-label {
+    font-family: 'Share Tech Mono', monospace; font-size: 9px; letter-spacing: 3px;
+    color: var(--c-mint); text-transform: uppercase; text-align: center; margin-bottom: 2px;
+  }
+  .pause-toggle {
+    display: flex; align-items: center; justify-content: space-between;
+    font-family: 'Share Tech Mono', monospace; font-size: 11px; letter-spacing: 1px;
+    color: var(--cream-dim); cursor: pointer;
+  }
+  .pause-toggle input { width: 16px; height: 16px; cursor: pointer; accent-color: var(--c-yellow); }
+
   /* ── DESKTOP LAYOUT (DISABLED) ──
      Fixed-canvas + zoom-scale system replaces this. The mobile layout is
      now the canonical design at 520×820 and is uniformly scaled up on
@@ -2573,6 +2687,10 @@
     text-align: center;
     cursor: pointer;
     transition: transform 0.12s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+    /* --fx/--fy/--fr/--fs come from the shared float driver (js/float-anim.js).
+       Composed here so hover/.selected can add their scale without the two
+       fighting over the transform property. */
+    transform: translate(var(--fx,0), var(--fy,0)) rotate(var(--fr,0deg)) scale(var(--fs,1));
     color: var(--cream);
     font-family: 'Cinzel', serif;
     user-select: none;
@@ -2587,10 +2705,10 @@
   .reward-cell.dest .reward-tier { color: #bb88ff; }
   .reward-cell.selected  {
     box-shadow: 0 0 18px rgba(140,110,230,0.75), inset 0 0 12px rgba(140,110,230,0.3);
-    transform: scale(1.05);
+    transform: translate(var(--fx,0), var(--fy,0)) rotate(var(--fr,0deg)) scale(calc(var(--fs,1) * 1.05));
     border-color: #b39cf5 !important;
   }
-  .reward-cell.selectable:not(.selected):hover { transform: scale(1.04); }
+  .reward-cell.selectable:not(.selected):hover { transform: translate(var(--fx,0), var(--fy,0)) rotate(var(--fr,0deg)) scale(calc(var(--fs,1) * 1.04)); }
   .reward-cell.unselectable { opacity: 0.3; cursor: not-allowed; }
   .reward-icon {
     font-size: 26px;
@@ -2765,6 +2883,26 @@
     text-shadow: 0 1px 0 rgba(255,255,255,0.4) !important;
     box-shadow: inset 0 2px 0 rgba(255,255,255,0.7), inset 0 -3px 0 rgba(0,0,0,0.25), 0 4px 0 #b5820f, 0 6px 8px rgba(0,0,0,0.4) !important;
   }
+  /* Reward SKIP — the swap-indicator slot repurposed into a button; slightly larger + bolder than normal */
+  #action-col #swap-indicator.reward-skip {
+    background: linear-gradient(180deg, #9fd6ff, #5aa9e6 55%, #2c7cc0) !important;
+    color: #06213a !important; border: 2px solid #5aa9e6 !important;
+    cursor: pointer; font-size: 11px; font-weight: 700; letter-spacing: 1px;
+    padding: 6px 2px; word-break: normal; white-space: normal; gap: 1px;
+    text-shadow: 0 1px 0 rgba(255,255,255,0.4);
+    box-shadow: inset 0 2px 0 rgba(255,255,255,0.5), inset 0 -3px 0 rgba(0,0,0,0.25), 0 4px 0 #216ba5, 0 6px 8px rgba(0,0,0,0.4);
+    transition: transform 0.1s;
+  }
+  #action-col #swap-indicator.reward-skip:hover  { transform: translateY(-1px); }
+  #action-col #swap-indicator.reward-skip:active { transform: translateY(2px); box-shadow: inset 0 2px 0 rgba(255,255,255,0.5), 0 1px 0 #216ba5; }
+  /* SKIP now states its payout: word over an arrow over the gold (and Rain Check seconds). */
+  #action-col #swap-indicator.reward-skip .rskip-word  { font-size: 11px; letter-spacing: 1px; line-height: 1; }
+  #action-col #swap-indicator.reward-skip .rskip-arrow { font-size: 8px; line-height: 1; opacity: 0.7; margin: -1px 0; }
+  #action-col #swap-indicator.reward-skip .rskip-gain  {
+    font-size: 10px; font-weight: 700; letter-spacing: 0; line-height: 1.1; white-space: nowrap;
+    color: #4a2f00; text-shadow: 0 1px 0 rgba(255,255,255,0.45);
+  }
+  #action-col #swap-indicator.reward-skip .rskip-gain-time { font-size: 9px; color: #0b3a2a; }
 
   /* ── reward resolve (r110): impact reactions on HUD targets + mystery reveal ── */
   /* good reward lands → target pops + mint glow */
@@ -3047,6 +3185,21 @@
     transition: background 0.12s ease, color 0.12s ease;
   }
   #menu-settings-btn:hover { background: linear-gradient(180deg, #235055, #12292c); color: #fff; }
+  #menu-fullscreen-btn {
+    margin-top: 8px; width: 100%; max-width: 300px;
+    font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 3px;
+    color: var(--c-cyan); text-transform: uppercase; cursor: pointer; padding: 11px;
+    background: linear-gradient(180deg, #1d3a3e, rgba(16,36,39,0)); border: 1px solid var(--c-cyan); border-radius: 9px;
+    transition: background 0.12s ease, color 0.12s ease;
+  }
+  #menu-fullscreen-btn:hover { background: linear-gradient(180deg, #235055, #12292c); color: #fff; }
+  #ios-fullscreen-hint {
+    margin-top: 10px; width: 100%; max-width: 300px;
+    font-family: 'Crimson Pro', serif; font-size: 12.5px; line-height: 1.5;
+    color: var(--cream-dim, #8a7d60); text-align: center;
+    background: rgba(0,0,0,0.25); border: 1px solid rgba(120,200,210,0.3); border-radius: 9px; padding: 10px 12px;
+  }
+  #ios-fullscreen-hint strong { color: var(--c-cyan); }
   #menu-match3-btn {
     margin-top: 8px; width: 100%; max-width: 300px;
     font-family: 'Orbitron', sans-serif; font-weight: 800; font-size: 14px; letter-spacing: 3px;
@@ -3192,6 +3345,8 @@
   /* preview: full-width frame; hand-name sits inside it on the dark background (left); cards render exactly like the grid, bonuses and all */
   #stage.landscape #selected-cards { left:1.56%; top:38%; width:37.74%; height:18%; --card-w:38px; --card-h:50px; display:flex; align-items:center; justify-content:center; gap:4px; padding:4px 8px 4px 44px; background:var(--panel); border:1px solid var(--border); border-radius:6px; overflow:hidden; }
   #stage.landscape #hand-name { position:absolute; left:1.56%; top:38%; width:6%; height:18%; display:flex; align-items:center; justify-content:center; text-align:center; background:none; border:none; margin:0; font-size:10px; line-height:1.15; letter-spacing:0.5px; color:var(--gold); padding:0 3px; z-index:2; }
+  /* Shop cost readout uses the full preview slot (no room reserved for the hand-name label). */
+  body.shop-active #stage.landscape #selected-cards { padding:5px 9px; justify-content:stretch; align-items:stretch; }
 
   /* tricks: enlarged now that the time/money chips left this column — big reward-grid-style tiles */
   #stage.landscape #trick-tray-area { left:1.56%; top:57%; width:37.74%; height:25.5%; display:flex !important; flex-direction:row; align-items:center; justify-content:flex-start; padding:6px 8px; gap:6px; overflow:hidden; }
@@ -3221,6 +3376,7 @@
   #interact-costs .ic-h { font-family:'Cinzel',serif; font-size:7px; letter-spacing:1px; color:var(--gold-dim); text-transform:uppercase; text-align:center; }
   #interact-costs .ic-r { display:flex; justify-content:space-between; font-family:'Courier New',monospace; font-size:9px; color:var(--cream); }
   #interact-costs .ic-r span:last-child { color:var(--gold); font-weight:700; }
+  #interact-costs .ic-sep { height:1px; margin:3px 0; background:var(--plastic-deep); opacity:0.5; }
   #run-progress .rp-act { font-family:'Cinzel',serif; font-size:11px; font-weight:700; color:var(--gold); letter-spacing:1px; line-height:1; }
   #run-progress .rp-nodes { display:flex; gap:3px; align-items:center; }
   #run-progress .rp-nodes span { width:6px; height:6px; border-radius:50%; background:#2a2010; border:1px solid var(--gold-dim); box-sizing:border-box; }
@@ -3339,7 +3495,15 @@
     background: radial-gradient(120% 90% at 28% 6%, rgba(255,255,255,0.09), transparent 46%);
   }
   #stage { background: radial-gradient(ellipse at 50% 42%, #1a140c 0%, #100d09 78%);
-           border-radius: 8px; box-shadow: inset 0 0 40px rgba(0,0,0,0.7); }
+           border-radius: 8px; box-shadow: inset 0 0 40px rgba(0,0,0,0.7);
+           transition: background 0.45s ease; }
+  /* ── Per-screen background tint (r124): differentiates the "grid" you're on.
+     Low saturation, but noticeable. Play = warm near-black (above); reward = teal;
+     boss reward = red; challenge = purple; on-grid shop = gold. ── */
+  body.reward-active #stage                     { background: radial-gradient(ellipse at 50% 42%, #0d2320 0%, #081311 78%); }
+  body.reward-active.reward-boss #stage         { background: radial-gradient(ellipse at 50% 42%, #2a1010 0%, #150908 78%); }
+  body.challenge-active #stage                  { background: radial-gradient(ellipse at 50% 42%, #1e1030 0%, #100a1c 78%); }
+  body.shop-prev-active #stage, body.shop-active #stage { background: radial-gradient(ellipse at 50% 42%, #241c0b 0%, #130f07 78%); }
 
   /* Thin beige base line (replaces the control deck) */
   #cab-baseline {
