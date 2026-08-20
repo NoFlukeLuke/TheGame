@@ -38,7 +38,7 @@ Rough guide to `js/` (engine): `menu` `devlog` `grid-metrics` `focus-config` `li
 
 - **Branch:** `main` is the source of truth and auto-deploys to GitHub Pages — never commit directly to it. Develop on the `claude/*` feature branch this session was assigned. If none was given, branch off the latest main: `git checkout -b claude/<topic> origin/main`.
 - **Deploy:** push your feature branch, then fast-forward `main` to it: `git push origin HEAD && git push origin HEAD:main`. Pages serves from `main`.
-- **Build stamp:** bump the `BUILD` constant at the top of **`js/menu.js`** (currently `'2026-08-20 · r146 · LETHE orientation (tutorial), seeded runs, Limits tile'`) on every commit. It shows in the menu footer + dev panel so the owner can confirm the cache is fresh. Increment the `rN` each commit.
+- **Build stamp:** bump the `BUILD` constant at the top of **`js/menu.js`** (currently `'2026-08-20 · r147 · Split seed streams — deck, reward grids and shops pinned per seed'`) on every commit. It shows in the menu footer + dev panel so the owner can confirm the cache is fresh. Increment the `rN` each commit.
 - **Commit messages:** detailed, since a fresh Claude session re-orients from git history. End with the session URL line.
 - After editing, validate syntax (loads every JS file in order, exactly as the browser does):
   ```
@@ -182,7 +182,26 @@ A 5×5 board where **matches play themselves**. Listed in the mode-select carous
 `applyRunSeed(seed)` **replaces the global `Math.random`** with a mulberry32 stream for the duration of a run. The game makes ~135 bare `Math.random()` calls across 24 files; this seeds every one of them without touching a single call site. Seeds are human-typeable strings, FNV-1a hashed (`LETHE-4F2A`). Called from `startGame` — the single point where a run's randomness is established, before any deck is built. A mode may pin one (`ACTIVE_MODE.seed`; the tutorial does) and the dev panel's **Run Seed** group sets one for the next run.
 
 - **Cosmetic randomness must use `fxRandom()`**, which is always the real unseeded generator. This is not stylistic: a seeded stream only reproduces if draws happen in the same ORDER, and animation code draws on rAF/timer callbacks whose timing depends on frame rate, tab focus and click speed. Leaving those on the seeded stream would shuffle the gameplay draws behind them. Already converted: `score-dance` (particles, noise, tick chance), `audio` (noise buffer), `channel-change` (CRT static), `float-anim` (tile phases). **Any new animation code should call `fxRandom()`.**
-- **It is a seed, not a replay.** Two runs on one seed diverge the moment the player acts differently, because the next draw comes off the shared stream. Enough for sharing a run, reproducing a bug, and pinning a tutorial's opening deal.
+### Split streams (r147) — what a seed actually pins
+
+One shared stream pins the OPENING deal (the deck is shuffled right after the seed is installed, before the player can act) but nothing later: every draw comes off one sequence in call order, so a single extra discard shifts everything after it. So each domain now gets **its own generator**, via `withSeededRng(fn, ...key)`:
+
+| domain | key | wrapped at |
+|---|---|---|
+| deck | `'deck'` (continuing) | `deckShuffle()` in `deck-grid.js`; also the drawPile reshuffles in `events.js` / `shop.js`, and the Famine draw-swap |
+| reward grid | `'reward', rewardVisitIndex` | `generateRewardContent()` |
+| Mart | `'shop', shopVisitIndex, martRerollN` | `buildMartStock()` |
+| legacy shop | `'shop', shopVisitIndex, 0` | `generateShopItems()` |
+
+A key containing a **number is positional**: it builds a fresh generator at that position instead of continuing a cursor. That is what makes "reward grid #3 on seed X" the same grid no matter how the player got there. `deck` is deliberately continuing (a reshuffle must follow from the previous state) but is now isolated, so a Trick proc or boss roll can't perturb the draw order.
+
+Two traps this encodes:
+- **`shuffle()` itself is NOT deck-bound.** It's also used to pick Trick options, shop rows and challenge columns; binding it to the deck would let those advance the deck order. Only the real deck operations are wrapped — hence `deckShuffle()` existing alongside it.
+- **A Mart reroll must not advance `shopVisitIndex`**, or how many times you rerolled shop #1 would change what shop #2 stocks. The reroll count is part of the key instead.
+
+Anything not wrapped still falls through to the shared global stream, so nothing regressed and unseeded play is untouched.
+
+- **It is still a seed, not a replay.** The pinned domains hold regardless of play, but anything downstream of a player *decision* (which Trick you took, so which Tricks remain in the pool) naturally differs. Enough for sharing a run, reproducing a bug, and pinning a tutorial's opening deal.
 
 ## Limits tile (▲ Limits, r145)
 

@@ -101,7 +101,12 @@ function _grantedSleightSet() {
   return s;
 }
 
+// Legacy overlay shop (superseded by the Mart). Kept on the same positional
+// shop stream so a seed behaves identically if USE_MART_SHOP is flipped back.
 function generateShopItems() {
+  return withSeededRng(_generateShopItems, 'shop', shopVisitIndex, 0);
+}
+function _generateShopItems() {
   const ownedBcIds    = new Set(acquiredTricks.map(b => b.id));
   const ownedKnackIds = new Set(acquiredKnacks.map(t => t.id));
   const grantedSleights = _grantedSleightSet();
@@ -542,7 +547,7 @@ document.getElementById('svc-duplicate-btn').addEventListener('click', () => {
       shopSvcUsed.duplicate++;
       expectedDeckTotal++;
       drawPile.push({ rank: picked[0].rank, suit: picked[0].suit });
-      drawPile = shuffle(drawPile);
+      drawPile = deckShuffle(drawPile);
       updateDeckHud();
       closeSvcPicker();
       renderShop();
@@ -664,7 +669,7 @@ document.getElementById('svc-combine-btn').addEventListener('click', () => {
           return true;
         });
         drawPile.push(combined);
-        drawPile = shuffle(drawPile);
+        drawPile = deckShuffle(drawPile);
       }
       closeSvcPicker();
       renderShop();

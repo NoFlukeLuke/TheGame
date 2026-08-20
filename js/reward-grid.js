@@ -1,4 +1,11 @@
+// Reward grids run on a POSITIONAL seeded stream keyed by visit index, so the
+// Nth grid of a seed is always the same grid — however many cards the player
+// discarded, whatever Tricks fired, whichever route they took to get here.
+// See js/seed.js.
 function generateRewardContent() {
+  return withSeededRng(_generateRewardContent, 'reward', rewardVisitIndex++);
+}
+function _generateRewardContent() {
   const ROWS = limits.grid_rows.current;
   const COLS = limits.grid_cols.current;
 

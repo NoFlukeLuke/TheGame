@@ -59,7 +59,17 @@ function martLimitStock(count){
   });
 }
 
+// The Mart's stock runs on a POSITIONAL seeded stream keyed by shop-visit index,
+// so the Nth shop of a seed always offers the same catalog. Rerolls deliberately
+// sit OUTSIDE it (see martReroll) — a reroll is a player action, and rerolling
+// into the same shelves would make the button pointless.
 function buildMartStock() {
+  // Keyed by (visit, reroll count): a reroll is deterministic for a seed but does
+  // NOT advance the visit index, so how many times you reroll shop #1 cannot
+  // change what shop #2 stocks.
+  return withSeededRng(_buildMartStock, 'shop', shopVisitIndex, martRerollN);
+}
+function _buildMartStock() {
   const others = shuffle(['sleights','knacks','limits']).slice(0, 2);   // 3 of 4 (tricks always featured)
   martCats = ['tricks', ...others];
   martStock = {};
@@ -90,6 +100,7 @@ function ensureMartOverlay() {
 // The overlay is revealed at the collapse, hidden inside the flash.
 function openMart() {
   martActive = true; martCart = []; martRerollN = 0;
+  shopVisitIndex++;                       // this is shop visit N for the run's seed
   gameTimerPaused = true;
   try { sfxShopOpen && sfxShopOpen(); } catch(e){}
   buildMartStock();

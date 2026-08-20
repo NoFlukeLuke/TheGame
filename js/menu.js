@@ -1,4 +1,4 @@
-const BUILD = '2026-08-20 · r146 · LETHE orientation (tutorial), seeded runs, Limits tile';
+const BUILD = '2026-08-20 · r147 · Split seed streams — deck, reward grids and shops pinned per seed';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
