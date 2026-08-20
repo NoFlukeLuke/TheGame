@@ -1,4 +1,4 @@
-const BUILD = '2026-08-20 · r148 · Orientation board is audited + re-dealt; swap and discard are now taught hands-on';
+const BUILD = '2026-08-20 · r149 · FX tuner preview (score pops, time charge, focus, credits)';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
