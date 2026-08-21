@@ -29,6 +29,10 @@ let bossTimeFromFocus  = false;      // the boss clock runs at the Focus multipl
 let _bossTimeDebt      = 0;          // fractional carry so ×1.4 ticks smoothly
 let bossInteractMultV  = 1;          // interact-cost multiplier (The Tollman)
 let bossPlayCostAdded  = 0;          // seconds this boss added to the play cost
+let bossGoalRatchet    = 0;          // fraction the objective grows per interact (The Ratchet)
+let bossInteractFee    = 0;          // credits charged per interact (The Turnstile)
+let bossRedactedHand   = null;       // hand type marked down this round (The Redaction)
+let bossRedactedMult   = 1;          // what it is multiplied by
 
 // ── The Contingency Plan knack ───────────────────────────────────────────────
 // "Boss effects are 10% weaker." Two readings, both applied:
@@ -91,6 +95,44 @@ function bossInteractMult() {
   // 10% weaker → a ×2 surcharge becomes ×1.9, not ×1.8: the knack shaves the
   // SURCHARGE, not the base cost the player would have paid anyway.
   return 1 + (bossInteractMultV - 1) * bossMagScale();
+}
+
+// ── Per-interact effects (The Ratchet, The Turnstile) ────────────────────────
+// Called from doSwap and doDiscard for every board interaction.
+function bossOnInteract(kind) {
+  if (!bossActive) return;
+  if (typeof bossEffectsIgnored === 'function' && bossEffectsIgnored()) return;
+
+  // The Ratchet: the bar moves every time you touch the board. During a boss the
+  // real target is the OBJECTIVE, not roundGoal — roundGoal is not what
+  // checkBossObjective compares against — so raise that, and keep roundGoal in
+  // step so the HUD does not contradict itself.
+  if (bossGoalRatchet && currentBoss?.objective?.type === 'score') {
+    const rate = bossGoalRatchet * bossMagScale();
+    const before = currentBoss.objective.target;
+    currentBoss.objective.target = Math.round(before * (1 + rate));
+    roundGoal = Math.round(roundGoal * (1 + rate));
+    showMessage(`Objective ${before.toLocaleString()} → ${currentBoss.objective.target.toLocaleString()}`, 'var(--red)');
+    if (typeof updateBossObjectiveUI === 'function') updateBossObjectiveUI();
+    if (typeof updateScoreUI === 'function') updateScoreUI();
+  }
+
+  // The Turnstile: a flat fee per interaction, floored at zero (no debt).
+  if (bossInteractFee) {
+    const fee = Math.max(1, Math.round(bossInteractFee * bossMagScale()));
+    const paid = Math.min(coins, fee);
+    if (paid > 0) { coins -= paid; updateCoinsUI(); showMessage(`−${paid} credits`, 'var(--red)'); }
+    else showMessage('No credits to seize', 'var(--cream-dim)');
+  }
+}
+
+// ── The Redaction: one hand type is marked down for the round ────────────────
+// Picked ONCE at boss start and never re-rolled, so the player can plan around it.
+function bossRedactedHandMult(handName) {
+  if (!bossActive || !bossRedactedHand || handName !== bossRedactedHand) return 1;
+  if (typeof bossEffectsIgnored === 'function' && bossEffectsIgnored()) return 1;
+  // 10% weaker → the penalty shrinks toward 1, not the score toward 0.
+  return 1 - (1 - bossRedactedMult) * bossMagScale();
 }
 
 // ── Trick blackout (The Censor) ──────────────────────────────────────────────
@@ -206,6 +248,23 @@ function applyBossEffectModifier(mod, params) {
     case 'ration_cut':
       bossSchedule(params.everySecs || 30, bossRationTick);
       return true;
+    case 'goal_ratchet':
+      bossGoalRatchet = params.rate || 0.05;
+      return true;
+    case 'interact_fee':
+      bossInteractFee = params.fee || 3;
+      return true;
+    case 'redact_hand': {
+      // Only hand types the player can actually make are worth marking down —
+      // redacting Straight Flush on a 4×4 board would be a free round.
+      const pool = (typeof achievableHandTypes === 'function' ? achievableHandTypes() : null)
+                || Object.keys(HAND_BASE);
+      const usable = pool.filter(h => HAND_BASE[h]);
+      bossRedactedHand = usable.length ? usable[Math.floor(Math.random() * usable.length)] : null;
+      bossRedactedMult = params.mult || 0.4;
+      if (bossRedactedHand) showMessage(`${bossRedactedHand} redacted`, 'var(--red)');
+      return true;
+    }
   }
   return false;   // not ours — boss.js handles the legacy modifiers
 }
@@ -219,6 +278,8 @@ function clearBossEffects() {
   bossTimeFromFocus = false; _bossTimeDebt = 0;
   if (bossPlayCostAdded) { playHandCostThisRound = Math.max(0, (playHandCostThisRound || 0) - bossPlayCostAdded); bossPlayCostAdded = 0; }
   bossInteractMultV = 1;
+  bossGoalRatchet = 0; bossInteractFee = 0;
+  bossRedactedHand = null; bossRedactedMult = 1;
 }
 
 // How many whole seconds the boss clock should consume this tick. Normally 1;

@@ -95,9 +95,13 @@ function updateInteractCosts() {
   let disc = (typeof BAL !== 'undefined') ? BAL._resources.discard_seconds_per_card : 3;
   if (typeof hasKnack === 'function' && hasKnack('free_discards')) disc = 0;
   else { if (typeof hasKnack === 'function' && hasKnack('hoarder')) disc = BAL.hoarder.discard_seconds_per_card; disc += (discardCostThisRound || 0); }
+  if (typeof bossInteractMult === 'function') disc = Math.round(disc * bossInteractMult());
   set('ic-discard', `${disc}s`);
   // Swap cost: 4 base, 0 with Free Swaps.
-  const swap = (typeof hasKnack === 'function' && hasKnack('free_swaps')) ? 0 : (typeof SWAP_TIME_COST !== 'undefined' ? SWAP_TIME_COST : 4);
+  let swap = (typeof BAL !== 'undefined') ? BAL._resources.swap_seconds : 8;
+  if (typeof hasKnack === 'function' && hasKnack('free_swaps')) swap = 0;
+  else if (typeof hasKnack === 'function' && hasKnack('steady_hand')) swap = BAL.steady_hand.swap_seconds;
+  if (typeof bossInteractMult === 'function') swap = Math.round(swap * bossInteractMult());
   set('ic-swap', `${swap}s`);
   // Max time = round cap minus permanent (−5s) penalties.
   const base = (typeof ROUND_DURATION !== 'undefined') ? ROUND_DURATION : 180;

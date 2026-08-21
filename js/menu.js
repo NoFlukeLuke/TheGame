@@ -1,4 +1,4 @@
-const BUILD = '2026-08-21 · r150 · Eight new bosses, Contingency Plan knack, boss preamble, themed payout';
+const BUILD = '2026-08-21 · r151 · Interact costs fixed (3s/card, 8s swap, free play), Blight fix, 3 more bosses';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

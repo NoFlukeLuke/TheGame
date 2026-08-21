@@ -115,6 +115,33 @@ const BOSS_PRESETS = [
     objective: { type: 'score', target: 4000 },
     modifiers: ['ration_cut'],
     params: { everySecs: 30 }
+  },
+  {
+    id: 'the_ratchet',
+    name: 'THE RATCHET',
+    flavor: 'The bar only moves one way',
+    brief: 'Every swap and every discard raises the objective by 5%. It never comes back down. Fixing the board is now a decision with a price attached.',
+    objective: { type: 'score', target: 3800 },
+    modifiers: ['goal_ratchet'],
+    params: { rate: 0.05 }
+  },
+  {
+    id: 'the_turnstile',
+    name: 'THE TURNSTILE',
+    flavor: 'Access is metered',
+    brief: 'Every swap and every discard is billed 3 credits. Your balance cannot go below zero — but interest is paid on what survives the round.',
+    objective: { type: 'score', target: 4000 },
+    modifiers: ['interact_fee'],
+    params: { fee: 3 }
+  },
+  {
+    id: 'the_redaction',
+    name: 'THE REDACTION',
+    flavor: 'That hand is no longer recognised',
+    brief: 'One hand type is marked down for the whole round — it scores 60% less. The hand is chosen when the review begins and does not change. Find another line.',
+    objective: { type: 'score', target: 4200 },
+    modifiers: ['redact_hand'],
+    params: { mult: 0.4 }
   }
 ];
 

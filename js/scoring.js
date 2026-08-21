@@ -129,9 +129,17 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   _scoreCells.forEach(([r, c]) => {
     const card = gridData[r][c];
     const _cpSnap = ledger ? Object.assign({}, _cp) : null; // to diff this card's per-card pip tricks
-    // Same snapshot, taken unconditionally, so The Blight can undo this card's
-    // per-card Trick contributions when its 20% suppression roll comes up.
-    const _cpSnapBlight = (typeof isCellDamped === 'function' && isCellDamped(r, c)) ? Object.assign({}, _cp) : null;
+    // ── The Blight ──────────────────────────────────────────────────────────
+    // A contaminated cell halves the card's pips AND may suppress the Tricks it
+    // would have fired. The roll happens HERE, before any Trick logic, for two
+    // reasons: the per-card MULT accumulators (_asmMult / _fsMult) have to be
+    // skippable, and the pip fallback has to be the card's RAW value. Rolling
+    // back after the fact only corrected the contributions ledger while the
+    // score kept every Trick bonus — which made the suppression cosmetic.
+    const _blighted = (typeof isCellDamped === 'function') && isCellDamped(r, c);
+    const _blightMute = _blighted && Math.random() < 0.2;
+    const _cpSnapBlight = _blightMute ? Object.assign({}, _cp) : null;
+    const _cmSnapBlight = _blightMute ? Object.assign({}, _cm) : null;
     const baseRank = card.rank;
     const _origPips = cardPips(baseRank);
     let rawPips = _origPips;
@@ -214,11 +222,11 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     if (hasTrick('club_double') && (card.suit === '♣' || (card.combined && card.suit2 === '♣'))) _clubHits += _retrig;
     if (card._vulturePause) _vultureFires += card._vulturePause * _retrig; // Vulture buff fires once per (re)trigger
     // Assembly Line: each (re)play of a mark card earns the running counter, then increments it
-    if (_asmOn && cellHasRowColBonus(r, c, 'assembly_line')) {
+    if (_asmOn && !_blightMute && cellHasRowColBonus(r, c, 'assembly_line')) {
       for (let _ai = 0; _ai < _retrig; _ai++) { _asmMult += _asmK; _asmK++; }
     }
     // Five Stack: +mult per card, once per (re)trigger of that card
-    if (_fiveCard) _fsMult += BAL.five_stack.mult * _retrig;
+    if (_fiveCard && !_blightMute) _fsMult += BAL.five_stack.mult * _retrig;
     if (_retrig > 1) {
       const _pre = cp; cp *= _retrig;
       const _extra = cp - _pre;
@@ -241,16 +249,21 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
       else if (_encoreHand) bPip('encore', _pre);
       else if (_cKey === _3rdKey) bPip('third_charm', _extra);
     }
-    // The Blight: a card scored from a contaminated cell contributes half its
-    // pips, and may fail to fire the per-card Trick bonuses it just accrued —
-    // which is why the ledger snapshot is rolled back rather than never taken.
-    // TBD: whole-hand Tricks are unaffected; only per-card contributions are.
-    if (typeof isCellDamped === 'function' && isCellDamped(r, c)) {
-      cp = cp * 0.5;
-      if (Math.random() < 0.2) {
-        Object.keys(_cp).forEach(k => { if (_cpSnapBlight && _cpSnapBlight[k] !== undefined) _cp[k] = _cpSnapBlight[k]; else delete _cp[k]; });
-      }
+    // The Blight, applied. A muted card falls back to its RAW pip value (plus any
+    // permanent per-card buff, which is a property of the card rather than a
+    // Trick trigger) — replays still apply, they are a separate mechanic. Then
+    // the ledger is restored so the contributions tab matches what was scored.
+    // TBD: whole-hand Tricks are still unaffected; only this card's own
+    // contributions are suppressed.
+    if (_blightMute) {
+      cp = (_origPips + _pp) * Math.max(1, _retrig);
+      const restore = (live, snap) => Object.keys(live).forEach(k => {
+        if (snap && snap[k] !== undefined) live[k] = snap[k]; else delete live[k];
+      });
+      restore(_cp, _cpSnapBlight);
+      restore(_cm, _cmSnapBlight);
     }
+    if (_blighted) cp = cp * 0.5;
     totalPips += cp;
   });
   _lastHandRetrigs = _handRetrigs; // snapshot for Cuckoo (read after captureRoundContrib in playHand)
@@ -602,6 +615,8 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   let s = totalPips * mult;
 
   // 4. x score multipliers
+  // The Redaction (boss): one hand type, fixed for the round, is marked down.
+  if (typeof bossRedactedHandMult === 'function') s *= bossRedactedHandMult(handName);
   if (hasTrick('last_stand') && score < roundGoal) s *= BAL.last_stand.score_mult;
   // Echoes: same hand type as the previous hand retriggers each card (handled in the per-card loop above).
   // Blackjack: raw face values total exactly 21
