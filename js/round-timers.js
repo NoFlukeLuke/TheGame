@@ -100,7 +100,7 @@ function startTimers() {
     // Match-3 and Dominoes run their own round-goal loops, so they must NOT take
     // the legacy timer-based progression below (which would pop shops/bosses off
     // the 20-minute game clock and hard-end the run at 0).
-    if (!isActMode() && !match3Active() && !dominoActive()) {
+    if (!isActMode() && !match3Active() && !dominoActive() && !survivalActive()) {
       const m = Math.floor(gameSeconds/60);
       const s = gameSeconds%60;
       document.getElementById('game-timer').textContent = `${m}:${s.toString().padStart(2,'0')}`;
@@ -140,8 +140,9 @@ function updateClockUI() {
   const clockEl = document.getElementById('clock');
   const barEl = document.getElementById('clock-bar');
   clockEl.textContent = `${m}:${s.toString().padStart(2,'0')}`;
-  barEl.style.width = (secs/ROUND_DURATION*100)+'%';
-  const vf = document.getElementById('vclock-fill'); if (vf) vf.style.width = (secs/ROUND_DURATION*100)+'%';
+  const _dur = currentRoundDuration();
+  barEl.style.width = (secs/_dur*100)+'%';
+  const vf = document.getElementById('vclock-fill'); if (vf) vf.style.width = (secs/_dur*100)+'%';
   clockEl.classList.toggle('clock-paused', pipeTimerPaused);
   if (secs <= 10) { clockEl.classList.add('urgent'); barEl.classList.add('urgent'); }
   else { clockEl.classList.remove('urgent'); barEl.classList.remove('urgent'); }

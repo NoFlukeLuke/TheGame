@@ -13,8 +13,9 @@ function computeRoundResources() {
   const baseDiscards = 4 + limitDiscardBonus + (hasKnack('extra_discards') ? BAL.extra_discards.discards : 0);
   const baseSwaps    = (hasKnack('free_range_t') ? 2 : 3) + limitSwapBonus + (hasKnack('extra_swaps') ? BAL.extra_swaps.swaps : 0);
   // Round-time cap = full duration minus permanent penalties, plus any limit-break trick.
-  const baseSeconds  = Math.max(10, (ROUND_DURATION - roundPenaltySeconds) + limitTimeBonus);
-  const secCap = Math.max(ROUND_DURATION, limits.round_time.current);
+  const _roundDur = currentRoundDuration();
+  const baseSeconds  = Math.max(10, (_roundDur - roundPenaltySeconds) + limitTimeBonus);
+  const secCap = Math.max(_roundDur, limits.round_time.current);
 
   let d   = Math.min(99, baseDiscards + accumulatedDiscards) + nextRoundDiscardDelta;
   let s   = Math.min(99, baseSwaps    + accumulatedSwaps)    + nextRoundSwapDelta;
@@ -57,16 +58,25 @@ function triggerLevelUp() {
     gridData = newGrid;
   }
 
+  // Survival: capture leftover clock time (for coins + boss bank) and the score
+  // OVERFLOW above the just-cleared goal — the overflow seeds the next round so
+  // every point counts toward the next goal (owner spec). Must read these BEFORE
+  // roundGoal is recomputed and score is zeroed below.
+  let _svLeftover = 0, _svOverflow = 0;
+  if (survivalActive()) { _svLeftover = Math.max(0, roundSeconds); _svOverflow = Math.max(0, score - roundGoal); }
+
   level++;
   // This round's score target, from zero
   roundGoal = Math.round(Math.round(BASE_GOAL * Math.pow(GOAL_SCALE, level - 1)) / 500) * 500;
   // Zen has no clock, so its goals are doubled — levelling and the reward grid
   // stay reachable, just at a slower, self-paced rate.
   if (match3IsZen()) roundGoal *= 2;
-  totalScore += score; // bank the completed round's score for the end-of-run display
+  // Bank the completed round's score for the end-of-run display. In Survival the
+  // overflow is carried to the next round, so only the counted portion is banked.
+  totalScore += survivalActive() ? Math.max(0, score - _svOverflow) : score;
   // Life Lessons: each completed round permanently raises max Focus
   if (hasTrick('life_lessons')) focusCapPerm += BAL.life_lessons.cap_gain;
-  score = 0;           // fresh round, fresh score
+  score = survivalActive() ? _svOverflow : 0;  // Survival carries overflow; others start fresh
 
   // Reset round
   flushPlayedDeck(); // played cards rejoin the pool for the new round
@@ -201,6 +211,10 @@ function triggerLevelUp() {
     });
   }
 
+  // Survival: pay coins (flat + leftover-time bonus) and bank leftover time toward
+  // the next boss. Done here so the coin total is right when the pick/shop shows.
+  if (survivalActive()) survivalAfterLevelUp(_svLeftover);
+
   updateScoreUI();
 
   // Mark whether a challenge should spawn when the round starts (after all bonuses picked)
@@ -211,6 +225,11 @@ function triggerLevelUp() {
 }
 
 async function showLevelUpScreen() {
+  // Survival: its own on-brand pick-of-three (Trick/Sleight/Knack/Limit) opens over
+  // the frozen board; the deal happens after the player picks. No grid placement,
+  // no reward grid — see js/survival.js.
+  if (survivalActive()) { dealPhase = true; showSurvivalPickScreen(); return; }
+
   // Match-3 modes have their own between-rounds flow: a genuine pick-of-three
   // that goes to the side TRAY (never the grid), no reserved grid slots. The
   // legacy path below places Tricks on the board and derives its option count

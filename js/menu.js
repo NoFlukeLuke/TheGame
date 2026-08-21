@@ -1,4 +1,4 @@
-const BUILD = '2026-08-12 · r131 · Pause menu → LETHE arcade reskin + Home button [merged: Match-3 between-rounds shop]';
+const BUILD = '2026-08-13 · r132 · Survival mode: on-brand pick-of-3 (any Trick/Sleight/Knack/Limit) on goal clear, reroll economy, 2-min rounds, score+time carryover, on-demand shop';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -34,15 +34,16 @@ const MODES = {
   },
   survival: {
     id: 'survival',
-    name: 'Survival Mode',
-    desc: 'The original prototype. Survive escalating goals for 20 minutes.',
-    winCondition: 'survive_20_min',
-    enableBosses: false,
-    enableShops: false,
+    name: 'Survival',
+    desc: 'Endless escalating goals. Clear a goal to pick from three rewards (Trick, Sleight, Knack or Limit). Miss one and the run ends.',
+    winCondition: 'endless',
+    enableBosses: true,
+    enableShops: true,
     enableEvents: false,
     autoRefillGrid: true,
     timeIsCurrency: false,
-    autoPlayHands: false
+    autoPlayHands: false,
+    survival: true
   },
   tetris: {
     id: 'tetris',
@@ -177,12 +178,14 @@ function startMatch3FromMenu(modeId = 'match3') {
 // MODE SELECT (scroll-sideways carousel off the PLAY button)
 // ══════════════════════════════════════════════
 // The shipping modes, shown left→right in the carousel.
-const MODE_SELECT_LIST = ['normal', 'sixsuits', 'match3', 'zen', 'dominoes'];
+const MODE_SELECT_LIST = ['normal', 'sixsuits', 'survival', 'match3', 'zen', 'dominoes'];
 const MODE_META = {
   normal:   { accent: 'var(--c-yellow)', suits: '♠ ♥ ♦ ♣',
               blurb: 'The original four-suit game. Three Acts of rounds, shops, events and bosses.' },
   sixsuits: { accent: 'var(--c-mint)',   suits: '♠ ♥ ♦ ♣ ★ ▲',
               blurb: 'Two extra suits dilute the deck, so flushes are hard-won. Flush of 3, 4 and 5 are all in play.' },
+  survival: { accent: 'var(--c-coral)',  suits: 'ENDLESS',
+              blurb: 'Clear escalating goals on a 2-minute clock. Each clear: pick one of three rewards from every pool. Overflow score and leftover time carry forward. Miss a goal and the run is over.' },
   match3:   { accent: '#ff7ad0',         suits: '5 × 5',
               blurb: 'Matches play themselves. Line up 3+ in a row or column and it scores and cascades — you just swap and discard to set them up.' },
   zen:      { accent: '#7fe3c0',         suits: 'NO CLOCK',

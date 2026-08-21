@@ -1,0 +1,126 @@
+/* ══════════════════════════════════════════════
+   SURVIVAL MODE — pick-of-three + on-demand shop button (r131+)
+   Arcade/LETHE look, matched to the main-menu + pause-menu reskin.
+   ══════════════════════════════════════════════ */
+
+/* ── Pick-of-three overlay: centred over the (frozen) board ── */
+#survival-pick-overlay {
+  display: none;
+  position: absolute; inset: 0;
+  z-index: 180;
+  align-items: center; justify-content: center;
+  pointer-events: none;
+}
+#survival-pick-overlay.show { display: flex; }
+/* Soft vignette so the frozen board still reads around the panel. */
+#survival-pick-overlay.show::before {
+  content: ""; position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 50% 50%, rgba(11,10,28,0.30) 30%, rgba(11,10,28,0.74) 100%);
+}
+
+#survival-pick-panel {
+  position: relative; pointer-events: auto;
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  padding: 14px 16px 13px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(20,16,11,0.96), rgba(11,9,6,0.97));
+  box-shadow: 0 0 0 2px var(--plastic-lo, #b7ac93), 0 0 0 5px #17120c,
+              inset 0 0 40px rgba(255,176,46,0.05), 0 16px 40px rgba(0,0,0,0.6);
+  animation: sv-panel-in 0.24s cubic-bezier(.2,.8,.3,1);
+}
+@keyframes sv-panel-in { from { opacity: 0; transform: scale(0.92); } to { opacity: 1; transform: scale(1); } }
+
+.sv-pick-head { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+.sv-pick-kicker {
+  font-family: 'Share Tech Mono', monospace; font-size: 8px; letter-spacing: 3px;
+  color: var(--c-mint, #35d59b); text-transform: uppercase;
+}
+.sv-pick-title {
+  font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 17px; letter-spacing: 5px;
+  background: linear-gradient(180deg, #fff2c8, var(--c-yellow, #ffce2b) 55%, var(--c-coral, #ff6a3c));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+
+#sv-pick-cards { display: flex; gap: 9px; }
+
+.sv-pick-card {
+  width: 116px; min-height: 150px;
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  padding: 10px 9px 9px;
+  border-radius: 11px; cursor: pointer;
+  background: linear-gradient(180deg, #1b1710, #100d09);
+  border: 1.5px solid var(--sv-accent, var(--c-yellow, #ffce2b));
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.5), 0 4px 10px rgba(0,0,0,0.4);
+  transition: transform 0.1s ease, box-shadow 0.15s ease, filter 0.15s ease;
+  animation: sv-card-in 0.28s both cubic-bezier(.2,.8,.3,1);
+}
+@keyframes sv-card-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.sv-pick-card:hover {
+  transform: translateY(-4px);
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.5), 0 0 16px 2px var(--sv-accent, #ffce2b), 0 8px 16px rgba(0,0,0,0.5);
+  filter: brightness(1.06);
+}
+.sv-pick-card:active { transform: translateY(-1px); }
+
+/* Type accents */
+.sv-type-trick   { --sv-accent: var(--c-yellow, #ffce2b); }
+.sv-type-sleight { --sv-accent: #c07aee; }
+.sv-type-knack   { --sv-accent: #16c8d8; }
+.sv-type-limit   { --sv-accent: #35d59b; }
+
+.sv-pick-tag {
+  font-family: 'Share Tech Mono', monospace; font-size: 7px; letter-spacing: 2px;
+  color: #0e0c0a; background: var(--sv-accent, #ffce2b);
+  padding: 2px 7px; border-radius: 999px; text-transform: uppercase; font-weight: 700;
+}
+.sv-pick-icon { font-size: 30px; line-height: 1; margin-top: 1px; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.5)); }
+.sv-pick-name {
+  font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 11px; letter-spacing: 0.5px;
+  color: var(--cream, #f0e6c8); text-align: center; line-height: 1.15;
+}
+.sv-pick-desc {
+  font-family: 'Crimson Pro', serif; font-size: 10.5px; line-height: 1.28;
+  color: var(--cream-dim, #8a7d60); text-align: center; flex: 1;
+}
+.sv-pick-kind {
+  font-family: 'Share Tech Mono', monospace; font-size: 7px; letter-spacing: 2px;
+  color: var(--sv-accent, #ffce2b); text-transform: uppercase; opacity: 0.8;
+}
+
+#sv-pick-reroll {
+  margin-top: 2px;
+  font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 11px; letter-spacing: 2px;
+  text-transform: uppercase; cursor: pointer; color: var(--cream, #f0e6c8);
+  background: rgba(255,255,255,0.05); border: 1.5px solid var(--plastic-lo, #b7ac93);
+  border-radius: 9px; padding: 8px 18px;
+  transition: border-color 0.12s ease, color 0.12s ease, background 0.12s ease, transform 0.07s ease;
+}
+#sv-pick-reroll:hover { border-color: var(--c-yellow, #ffce2b); color: var(--c-yellow, #ffce2b); background: rgba(255,206,43,0.07); }
+#sv-pick-reroll:active { transform: translateY(2px); }
+#sv-pick-reroll.sv-cant-afford { opacity: 0.5; }
+
+/* ── On-demand shop button by the coins chip (Survival only) ── */
+.survival-shop-btn {
+  display: none;                 /* JS adds .sv-on only in Survival */
+  font-family: 'Share Tech Mono', monospace; letter-spacing: 1px;
+  cursor: pointer; color: #0e0c0a;
+  background: linear-gradient(180deg, #ffe06a, var(--c-yellow, #ffce2b) 60%, #e0a814);
+  border: none; border-radius: 7px; font-weight: 700;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.6), 0 2px 0 #b5820f, 0 3px 5px rgba(0,0,0,0.4);
+  transition: filter 0.12s ease, transform 0.07s ease;
+}
+.survival-shop-btn:hover { filter: brightness(1.06); }
+.survival-shop-btn:active { transform: translateY(2px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.6), 0 1px 0 #b5820f; }
+.survival-shop-btn.sv-cant-afford { filter: grayscale(0.5) brightness(0.85); }
+
+/* Top-bar (portrait) variant sits inline next to the coins value. */
+#coins-shop-btn.sv-on { display: inline-block; font-size: 9px; padding: 2px 8px; margin-left: 6px; vertical-align: middle; }
+/* Landscape coin-info variant is a full-width chip under the gold readout. */
+#ci-shop-btn.sv-on { display: block; font-size: 10px; padding: 5px 8px; margin-top: 6px; width: 100%; text-align: center; }
+
+/* Act-mode run-progress block (ACT n + node pips + boss skull) is meaningless in
+   endless Survival — hide it so the HUD doesn't imply a 3-Act structure. */
+#stage.survival-mode #run-progress { display: none; }
+/* Survival has no interest/cash-out economy — hide those readouts so the coin
+   block is just the gold total + the SHOP button. */
+#stage.survival-mode #coin-info .ci-row { display: none; }

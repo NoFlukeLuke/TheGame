@@ -748,6 +748,9 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   const elById = {}; tricks.forEach((t, ti) => { if (entityEls[ti]) elById[t.id] = entityEls[ti]; });
 
   if(isGoalHand){
+    // Survival: skip the explode/fly-to-preview finale. Spread + freeze the board
+    // and open the pick-of-three centred over it (see js/survival.js).
+    if(survivalActive()){ survivalGoalHandoff(stage); return; }
     // ── WIN FINALE (runs BEFORE the tally) ──
     // The cards AROUND the winning hand jitter for ~2s, then explode gently
     // outward while the winning cards fly up into the preview slots. The score

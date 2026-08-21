@@ -30,7 +30,7 @@ function resumeGame() {
     if (gameTimerPaused) return;
     gameSeconds--;
     // See startTimers: match-3 and dominoes own their round loops, skip legacy progression.
-    if (!isActMode() && !match3Active() && !dominoActive()) {
+    if (!isActMode() && !match3Active() && !dominoActive() && !survivalActive()) {
       const m = Math.floor(gameSeconds/60);
       const s = gameSeconds%60;
       document.getElementById('game-timer').textContent = `${m}:${s.toString().padStart(2,'0')}`;
@@ -146,6 +146,10 @@ function startGame() {
     limits.grid_rows.current = 5; limits.grid_rows.base = 5;
     limits.grid_cols.current = 5; limits.grid_cols.base = 5;
   }
+  // Survival: reset its per-run state and flag the stage (shows the shop button).
+  document.getElementById('stage')?.classList.toggle('survival-mode', survivalActive());
+  if (survivalActive()) survivalInitRun();
+  if (typeof updateSurvivalShopBtn === 'function') updateSurvivalShopBtn();
   discards = limits.discards.current;
   swaps = limits.swaps.current;
   // Sync playing-grid dimensions from limits and size the cards
@@ -175,7 +179,7 @@ function startGame() {
   lastTapCell = null;
   lastTapTime = 0;
   lastSwapTime = 0;
-  roundSeconds = ROUND_DURATION;
+  roundSeconds = currentRoundDuration();  // Survival runs shorter rounds
   gameSeconds = GAME_DURATION;
   trickCardPos = null;
   trickCardTimer = 0;
@@ -204,7 +208,7 @@ function startGame() {
   const BASE_HAND_KEYS = ['run3','threeofakind','twopair','fourofakind'];
   // Match-3 scores real hand names (Flush, Straight, Straight Flush, Run of 4…),
   // so it needs the full hand set active like the act modes, not the legacy base four.
-  const startKeys = [...(isActMode() || match3Active() ? ALL_HAND_KEYS : BASE_HAND_KEYS)];
+  const startKeys = [...(isActMode() || match3Active() || survivalActive() ? ALL_HAND_KEYS : BASE_HAND_KEYS)];
   // Six Suits mode makes the short flushes playable from the start alongside the 5-card Flush.
   if (ACTIVE_MODE.suitCount === 6) startKeys.push('flush3', 'flush4');
   activeHands = new Set(startKeys);
