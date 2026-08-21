@@ -54,7 +54,7 @@ function doDiscard() {
   selected.forEach(([r,c]) => { if (gridData[r]?.[c]) discardToDrawPile(gridData[r][c]); });
   // Hoarder: discards don't count against limit (but cost 2× time below)
   if (!hasKnack('hoarder')) discards--;
-  spendRoundTime(DISCARD_TIME_COST);   // discards cost time
+  spendRoundTime(Math.round(DISCARD_TIME_COST * bossInteractMult()));   // discards cost time
   // Discard time cost — 3s/card default, 0s with Free Discards, 6s/card with Hoarder.
   // Reward-grid time penalties add to the per-card cost (unless discards are free).
   let perCardCost = BAL._resources.discard_seconds_per_card;
@@ -62,7 +62,7 @@ function doDiscard() {
   else { if (hasKnack('hoarder')) perCardCost = BAL.hoarder.discard_seconds_per_card; perCardCost += (discardCostThisRound || 0); }
   const usingFreeDiscard = perCardCost > 0 && freeDiscardsLeft > 0;
   if (usingFreeDiscard) freeDiscardsLeft--;
-  const timeCost = usingFreeDiscard ? 0 : discardedCards.length * perCardCost;
+  const timeCost = usingFreeDiscard ? 0 : Math.round(discardedCards.length * perCardCost * bossInteractMult());
   if (timeCost > 0) {
     roundSeconds = Math.max(1, roundSeconds - timeCost);
     showTimeCost(`-${timeCost}s`);

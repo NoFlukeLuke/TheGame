@@ -20,6 +20,7 @@
 <link rel="stylesheet" href="css/dominoes.css">
 <link rel="stylesheet" href="css/mart.css">
 <link rel="stylesheet" href="css/tooltip.css">
+<link rel="stylesheet" href="css/boss.css">
 <link rel="stylesheet" href="css/tutorial.css">
 </head>
 <body>
@@ -615,6 +616,8 @@
   <div id="run-progress" class="v7-ls">
     <div class="rp-act">ACT 1</div>
     <div class="rp-nodes"><span></span><span></span><span></span><span></span><span></span><span class="boss">&#9760;</span></div>
+    <!-- On a boss round the node pips collapse into this single mark (see css/boss.css) -->
+    <div class="rp-sigil">&#9760;</div>
   </div>
   <div id="coin-info" class="v7-ls">
     <div class="ci-main">&#128176;<b id="ci-gold">0</b></div>
@@ -887,6 +890,7 @@
 <script src="js/round-timers.js"></script>
 <script src="js/data/bosses.js"></script>
 <script src="js/boss.js"></script>
+<script src="js/boss-effects.js"></script>
 <script src="js/reward-grid.js"></script>
 <script src="js/limit-break.js"></script>
 <script src="js/sleights-runtime.js"></script>

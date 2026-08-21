@@ -1,4 +1,4 @@
-const BUILD = '2026-08-20 · r149 · FX tuner preview (score pops, time charge, focus, credits)';
+const BUILD = '2026-08-21 · r150 · Eight new bosses, Contingency Plan knack, boss preamble, themed payout';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

@@ -129,6 +129,9 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   _scoreCells.forEach(([r, c]) => {
     const card = gridData[r][c];
     const _cpSnap = ledger ? Object.assign({}, _cp) : null; // to diff this card's per-card pip tricks
+    // Same snapshot, taken unconditionally, so The Blight can undo this card's
+    // per-card Trick contributions when its 20% suppression roll comes up.
+    const _cpSnapBlight = (typeof isCellDamped === 'function' && isCellDamped(r, c)) ? Object.assign({}, _cp) : null;
     const baseRank = card.rank;
     const _origPips = cardPips(baseRank);
     let rawPips = _origPips;
@@ -237,6 +240,16 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
       else if (_wfi) bPip('wait_for_it', _pre);
       else if (_encoreHand) bPip('encore', _pre);
       else if (_cKey === _3rdKey) bPip('third_charm', _extra);
+    }
+    // The Blight: a card scored from a contaminated cell contributes half its
+    // pips, and may fail to fire the per-card Trick bonuses it just accrued —
+    // which is why the ledger snapshot is rolled back rather than never taken.
+    // TBD: whole-hand Tricks are unaffected; only per-card contributions are.
+    if (typeof isCellDamped === 'function' && isCellDamped(r, c)) {
+      cp = cp * 0.5;
+      if (Math.random() < 0.2) {
+        Object.keys(_cp).forEach(k => { if (_cpSnapBlight && _cpSnapBlight[k] !== undefined) _cp[k] = _cpSnapBlight[k]; else delete _cp[k]; });
+      }
     }
     totalPips += cp;
   });

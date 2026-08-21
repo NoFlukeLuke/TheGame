@@ -38,6 +38,83 @@ const BOSS_PRESETS = [
     objective: { type: 'score', target: 4500 },
     modifiers: ['periodic_null'],
     params: { nullIntervalSecs: 8, nullCount: 1 }
+  },
+
+  // ── r150 roster ────────────────────────────────────────────────────────────
+  // Every one of these acts ONCE at round start and then on its interval — that
+  // shape lives in bossSchedule (js/boss-effects.js), which is also where the
+  // Contingency Plan knack stretches the timings.
+  {
+    id: 'the_metronome',
+    name: 'THE METRONOME',
+    flavor: 'It keeps your time now',
+    brief: 'The clock runs at your Focus multiplier. At ×3 Focus, three seconds leave the clock every second. Focus is still worth having — it just costs you the round to hold.',
+    objective: { type: 'score', target: 4200 },
+    modifiers: ['time_scales_with_focus'],
+    params: {}
+  },
+  {
+    id: 'the_tollman',
+    name: 'THE TOLLMAN',
+    flavor: 'Every touch is billed',
+    brief: 'Swaps and discards cost double, and playing a hand — normally free — is billed 3 seconds. Fix the board less. Play what you are dealt.',
+    objective: { type: 'score', target: 4000 },
+    modifiers: ['interact_surcharge'],
+    params: { costMult: 2, playCostAdd: 3 }
+  },
+  {
+    id: 'the_undertow',
+    name: 'THE UNDERTOW',
+    flavor: 'Concentration will not hold',
+    brief: 'Every 15 seconds, 10 Focus is pulled out of the meter. Build it faster than it drains, or accept a low multiplier and score on volume.',
+    objective: { type: 'score', target: 4200 },
+    modifiers: ['focus_drain'],
+    params: { everySecs: 15, amount: 10 }
+  },
+  {
+    id: 'the_quarantine',
+    name: 'THE QUARANTINE',
+    flavor: 'The board is being condemned, cell by cell',
+    brief: 'Every 15 seconds a cell is marked with a cross. Ten seconds later it goes dark: cards still fall into it, but nothing there can be selected, played, discarded or swapped. The dark cells accumulate.',
+    objective: { type: 'score', target: 4000 },
+    modifiers: ['cell_quarantine'],
+    params: { everySecs: 15 }
+  },
+  {
+    id: 'the_censor',
+    name: 'THE CENSOR',
+    flavor: 'Your paperwork is under review',
+    brief: 'Every 35 seconds one of your Tricks is suspended for 45 seconds. The windows overlap, so for 10 seconds of every cycle two of them are down at once.',
+    objective: { type: 'score', target: 4300 },
+    modifiers: ['trick_blackout'],
+    params: { everySecs: 35, holdSecs: 45 }
+  },
+  {
+    id: 'the_blight',
+    name: 'THE BLIGHT',
+    flavor: 'It spreads through the board',
+    brief: 'Every 20 seconds three more cells are contaminated, for the rest of the round. Cards scored from a contaminated cell contribute half their pips, and may fail to trigger a Trick they otherwise would.',
+    objective: { type: 'score', target: 4200 },
+    modifiers: ['cell_blight'],
+    params: { everySecs: 20, count: 3 }
+  },
+  {
+    id: 'the_recall',
+    name: 'THE RECALL',
+    flavor: 'That rank has been withdrawn',
+    brief: 'One rank is withdrawn from play at a time — those cards sit on the board, inert. Every 45 seconds the previous rank is reinstated and a different one is taken. No rank is recalled twice.',
+    objective: { type: 'score', target: 4000 },
+    modifiers: ['rank_recall'],
+    params: { everySecs: 45 }
+  },
+  {
+    id: 'the_auditor',
+    name: 'THE AUDITOR',
+    flavor: 'Your allowances are under revision',
+    brief: 'Every 30 seconds one swap or one discard is struck off your allowance for this round. Spend them while you still have them.',
+    objective: { type: 'score', target: 4000 },
+    modifiers: ['ration_cut'],
+    params: { everySecs: 30 }
   }
 ];
 

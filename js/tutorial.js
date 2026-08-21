@@ -209,7 +209,7 @@ const TUTORIAL_STEPS = [
     side: 'left', gate: true, hold: true, noAutoPlay: true,
     eyebrow: 'Module 05',
     title: 'Corrective action — discard',
-    body: `Cards that contribute to nothing can be returned and replaced.<br><br>The highlighted cards are in no hand on this board. <b>Select one, then press DISCARD.</b> Replacements fall in from above.<br><br>Billed <b>3s</b> per card. Swaps and discards are both rationed per round — the remaining allowance is printed on each control.`,
+    body: `Cards that contribute to nothing can be returned and replaced.<br><br>The highlighted cards are in no hand on this board. <b>Select one, then press DISCARD.</b> Replacements fall in from above.<br><br>A discarded card goes to the <b>back of the deck</b> and you will see it again this round. A card you <b>score</b> is held out until the round ends. Discarding is recycling; scoring is spending.<br><br>Billed per card. Swaps and discards are both rationed per round — the remaining allowance is printed on each control.`,
     onEnter: () => {
       selected = []; swapPending = null;
       tutorialDiscardPlan = tutorialFindDeadCards();

@@ -108,13 +108,15 @@ function doSwap(r1, c1, r2, c2) {
 
   // Swap charge — skipped on a free swap; Steady Hand bypasses the limit
   if (!hasKnack('steady_hand') && !freeThisSwap) swaps--;
-  if (!freeThisSwap) spendRoundTime(SWAP_TIME_COST);   // swaps cost time (free swaps exempt)
+  // The Tollman multiplies the surcharge; bossInteractMult() is 1 with no boss.
+  if (!freeThisSwap) spendRoundTime(Math.round(SWAP_TIME_COST * bossInteractMult()));
   if (sleightFreeSwapPending) sleightFreeSwapPending = false;
   // Swap time cost — 0s for first 2 swaps/round, 0s with Free Swaps, 20s with Steady Hand, else 10s
   let swapTimeCost = BAL._resources.swap_seconds;
   if (freeThisSwap || hasKnack('free_swaps')) swapTimeCost = 0;
   else if (freeSwapsLeft > 0) { freeSwapsLeft--; swapTimeCost = 0; }
   else if (hasKnack('steady_hand')) swapTimeCost = BAL.steady_hand.swap_seconds;
+  swapTimeCost = Math.round(swapTimeCost * bossInteractMult());
   if (swapTimeCost > 0) {
     roundSeconds = Math.max(1, roundSeconds - swapTimeCost);
     showTimeCost(`-${swapTimeCost}s`);

@@ -40,7 +40,7 @@ Rough guide to `js/` (engine): `menu` `devlog` `grid-metrics` `focus-config` `li
 
 - **Branch:** `main` is the source of truth and auto-deploys to GitHub Pages — never commit directly to it. Develop on the `claude/*` feature branch this session was assigned. If none was given, branch off the latest main: `git checkout -b claude/<topic> origin/main`.
 - **Deploy:** push your feature branch, then fast-forward `main` to it: `git push origin HEAD && git push origin HEAD:main`. Pages serves from `main`.
-- **Build stamp:** bump the `BUILD` constant at the top of **`js/menu.js`** (currently `'2026-08-20 · r149 · FX tuner preview (score pops, time charge, focus, credits)'`) on every commit. It shows in the menu footer + dev panel so the owner can confirm the cache is fresh. Increment the `rN` each commit.
+- **Build stamp:** bump the `BUILD` constant at the top of **`js/menu.js`** (currently `'2026-08-21 · r150 · Eight new bosses, Contingency Plan knack, boss preamble, themed payout'`) on every commit. It shows in the menu footer + dev panel so the owner can confirm the cache is fresh. Increment the `rN` each commit.
 - **Commit messages:** detailed, since a fresh Claude session re-orients from git history. End with the session URL line.
 - After editing, validate syntax (loads every JS file in order, exactly as the browser does):
   ```
@@ -142,6 +142,23 @@ Owned Tricks/knacks and already-granted sleights are filtered out of the pools s
 
 ## Boss system
 `BOSS_PRESETS`, `triggerBoss()`, `endBoss()`. Modifiers: blocked cells (`isCellBlocked`), Trick disabling (`isTrickDisabledByBoss`), low-card famine (`maybeFamineDrawSwap`). The `fight_power` sleight bypasses all of these via `bossEffectsIgnored()`.
+
+### The r150 roster — `js/boss-effects.js`
+Eight bosses that all share one shape: **act once at round start, then on an interval**. `bossSchedule(secs, fn)` *is* that shape — it fires immediately then repeats — and it is the single place the **Contingency Plan** knack stretches timings, so a new boss inherits the knack interaction for free. `applyBossModifiers` calls `applyBossEffectModifier(mod, params)` first; it claims its own ids and returns true, leaving the legacy modifiers untouched.
+
+The Metronome (clock runs at the Focus multiplier) · The Tollman (interact costs ×2, +3s to play) · The Undertow (−10 Focus/15s) · The Quarantine (a cell goes dark every 15s, 10s warning) · The Censor (a Trick suspended 45s every 35s) · The Blight (3 cells contaminated every 20s) · The Recall (a rank withdrawn every 45s, never repeated) · The Auditor (−1 swap or discard every 30s).
+
+- **TWO kinds of unusable cell, and the difference matters.** `blockedCells` = **VOID** (legacy patterns): the card is returned to the deck and nothing falls in. `nullCells` = **QUARANTINED**: cards still fall in and fill the slot, they are just inert — *a null cell, not a null card*. `isCellBlocked()` covers both, so every existing select/tap/swipe guard handles quarantine with no change; the refill logic in `card-fall.js` deliberately asks `isCellVoid()` instead so quarantined cells keep receiving cards. `cellCountsForTriggers()` is what excludes them from "while on the grid" entity triggers.
+- **Cell overlays repaint from `render()`**, not just when the boss starts — they are absolutely-positioned siblings of the cards, so they have to follow the board.
+- **`startGame()` tears down boss effects.** Abandoning a run mid-boss otherwise left scheduled effects running, and a quarantine cross would land 10 seconds into the *next* run.
+- **The Metronome** uses a fractional carry (`_bossTimeDebt`) so ×1.4 Focus really costs 1.4s/s instead of rounding away to ×1.
+- **The Blight's Trick suppression** rolls once per scored card and rolls back that card's per-card Trick contributions from the ledger. Whole-hand Tricks are unaffected — tagged TBD in `scoring.js`.
+- **Contingency Plan** shaves the *surcharge*, not the base: a ×2 interact cost becomes ×1.9, not ×1.8.
+
+### Boss presentation (r150)
+`preset.brief` is the plain-English description shown on the **preamble** — a briefing over the board with the sigil, name, flavour, what the boss does, the objective, and PROCEED. **The clock does not start until PROCEED**, then a boss-only 3-2-1 runs (`showBossCountdown` — the round-start `show321Countdown` also deals cards and refills the clock, which a boss needs neither of). On a boss round `#run-progress` gets `.boss-sigil`: the node pips collapse into one pulsing mark that leaks smoke.
+
+The **3-2-1 is now centred on the grid** in landscape — `#countdown-321-overlay` was `position:fixed; inset:0` with a 30% top pad, i.e. centred on the *viewport*. The **payout panel** is re-themed as a LETHE remittance advice (`css/boss.css`) — overrides only, so `interlude.js`'s animation classes still drive it.
 
 ## Scoring dance (preview-window · `playPreviewDance`)
 When a hand is played, the escalating score animation ("dance") runs in the hand-preview slot (`#selected-cards`, `.dnc-active`). `newDanceEnabled` (default on) routes `playScoreDance` → `playPreviewDance`. Behaviour (desktop):
