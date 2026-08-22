@@ -45,6 +45,10 @@ function startRoundTimer() {
   if (roundInterval) clearInterval(roundInterval);
   startHeartbeat();                 // the board's idle pulse runs with the round
   roundStartSeconds = roundSeconds; // mark the start of the countdown for ♠ "first 30s" exalt
+  // Save point. Every round start funnels through here, so this is where a run
+  // snapshot is taken; Settings → SAVE RUN just writes the latest one out. See
+  // js/save.js for why the save point is a round boundary and not "right now".
+  if (typeof captureRunCheckpoint === 'function') captureRunCheckpoint();
   roundInterval = setInterval(() => {
     if (pipeTimerPaused) return;
     if (gameTimerPaused) return; // global pause covers menus/shop/events

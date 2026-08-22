@@ -1,4 +1,4 @@
-const BUILD = '2026-08-22 · r154 · Survival: goal transition now reuses Classic\'s flourish (minus payout) with the pick beside the preview, + a 📊 contributions breakdown (base mult, replays & time when applicable); limits apply next round';
+const BUILD = '2026-08-22 · r155 · Storage safety shim (game no longer dies where browser storage is blocked) + save/resume a run from Settings, CONTINUE on the main menu';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -153,6 +153,7 @@ function isActMode() { return !!ACTIVE_MODE && ACTIVE_MODE.actStructure === true
 function initMainMenu() {
   ACTIVE_MODE = MODES.normal;
   document.getElementById('main-menu-overlay').classList.add('show');
+  if (typeof updateContinueBtn === 'function') updateContinueBtn();
 }
 
 function switchMenuTab(e, tabId) {

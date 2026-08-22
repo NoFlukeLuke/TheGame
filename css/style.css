@@ -3177,6 +3177,30 @@
   #menu-start-btn:hover { filter: brightness(1.06); }
   #menu-start-btn:active { transform: translateY(4px);
     box-shadow: inset 0 2px 0 rgba(255,255,255,0.5), inset 0 -2px 0 rgba(0,0,0,0.25), 0 1px 0 #b5820f; }
+  /* CONTINUE — shown only when a saved run exists (see js/save.js). Sits above
+     PLAY and reads as the primary action when it is there, so a returning player
+     lands on their run rather than accidentally starting a fresh one. */
+  #menu-continue-btn {
+    margin-top: 10px; width: 100%; max-width: 300px;
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 18px; letter-spacing: 5px;
+    color: #06231f; text-transform: uppercase; cursor: pointer; border: none; border-radius: 12px; padding: 13px 16px;
+    background: linear-gradient(180deg, #7ff0d4, #35c9a6 55%, #17967a);
+    box-shadow: inset 0 2px 0 rgba(255,255,255,0.6), inset 0 -4px 0 rgba(0,0,0,0.22), 0 5px 0 #0f7a63, 0 8px 12px rgba(0,0,0,0.45);
+    transition: transform 0.07s ease, filter 0.12s ease;
+  }
+  #menu-continue-btn:hover { filter: brightness(1.06); }
+  #menu-continue-btn:active { transform: translateY(4px);
+    box-shadow: inset 0 2px 0 rgba(255,255,255,0.45), inset 0 -2px 0 rgba(0,0,0,0.22), 0 1px 0 #0f7a63; }
+  .menu-continue-sub {
+    font-family: 'Share Tech Mono', monospace; font-weight: 400; font-size: 10px; letter-spacing: 1px;
+    color: rgba(6,35,31,0.72); text-transform: none;
+  }
+  /* With CONTINUE present, PLAY steps back to a secondary weight so the two
+     don't compete for the same emphasis. */
+  #menu-continue-btn:not([style*="display: none"]) ~ #menu-start-btn {
+    font-size: 17px; padding: 12px; letter-spacing: 5px;
+  }
   #menu-settings-btn {
     width: 100%; max-width: 300px;
     font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 3px;

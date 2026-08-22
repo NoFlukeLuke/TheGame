@@ -65,7 +65,13 @@ document.getElementById('btn-resume').addEventListener('click', resumeGame);
 // the home menu on load (index.html #main-menu-overlay starts shown; bootstrap.js
 // calls initMainMenu()). Guarded by a confirm so a stray tap can't lose a run.
 function quitToMainMenu() {
-  if (!confirm('Return to the home screen? Your current run will be lost.')) return;
+  // A saved run is not lost by quitting — only the progress made since the save
+  // point is, so the warning should not claim otherwise.
+  const _saved = (typeof savedRunSummary === 'function') ? savedRunSummary() : null;
+  const _msg = _saved
+    ? `Return to the home screen? You can CONTINUE from your save (Round ${_saved.level}); anything since then is lost.`
+    : 'Return to the home screen? Your current run will be lost.';
+  if (!confirm(_msg)) return;
   location.reload();
 }
 
