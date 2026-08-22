@@ -12,11 +12,17 @@
   pointer-events: none;
 }
 #survival-pick-overlay.show { display: flex; }
-/* Soft vignette so the frozen board still reads around the panel. */
+/* Desktop/landscape: the preview lives in the left column, so anchor the pick over
+   the grid (to the RIGHT of the preview) — the score count-up stays visible while
+   you choose. Portrait keeps it centred. */
+#stage.landscape #survival-pick-overlay { justify-content: flex-end; padding-right: 2.5%; }
+/* No full-screen dim in landscape — the preview + board must stay readable. A soft
+   vignette only in portrait where the panel is centred. */
 #survival-pick-overlay.show::before {
   content: ""; position: absolute; inset: 0;
-  background: radial-gradient(ellipse at 50% 50%, rgba(11,10,28,0.30) 30%, rgba(11,10,28,0.74) 100%);
+  background: radial-gradient(ellipse at 50% 50%, rgba(11,10,28,0.20) 40%, rgba(11,10,28,0.55) 100%);
 }
+#stage.landscape #survival-pick-overlay.show::before { display: none; }
 
 #survival-pick-panel {
   position: relative; pointer-events: auto;
@@ -87,17 +93,53 @@
   color: var(--sv-accent, #ffce2b); text-transform: uppercase; opacity: 0.8;
 }
 
+.sv-pick-foot { display: flex; align-items: stretch; gap: 7px; margin-top: 2px; }
 #sv-pick-reroll {
-  margin-top: 2px;
   font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 11px; letter-spacing: 2px;
   text-transform: uppercase; cursor: pointer; color: var(--cream, #f0e6c8);
   background: rgba(255,255,255,0.05); border: 1.5px solid var(--plastic-lo, #b7ac93);
-  border-radius: 9px; padding: 8px 18px;
+  border-radius: 9px; padding: 8px 16px;
   transition: border-color 0.12s ease, color 0.12s ease, background 0.12s ease, transform 0.07s ease;
 }
 #sv-pick-reroll:hover { border-color: var(--c-yellow, #ffce2b); color: var(--c-yellow, #ffce2b); background: rgba(255,206,43,0.07); }
 #sv-pick-reroll:active { transform: translateY(2px); }
 #sv-pick-reroll.sv-cant-afford { opacity: 0.5; }
+/* Contributions (breakdown) toggle — small square button next to reroll. */
+#sv-pick-contrib-btn {
+  cursor: pointer; font-size: 14px; line-height: 1; color: var(--cream, #f0e6c8);
+  background: rgba(255,255,255,0.05); border: 1.5px solid var(--plastic-lo, #b7ac93);
+  border-radius: 9px; padding: 0 12px;
+  transition: border-color 0.12s ease, background 0.12s ease, transform 0.07s ease;
+}
+#sv-pick-contrib-btn:hover { border-color: var(--c-mint, #35d59b); background: rgba(53,213,155,0.08); }
+#sv-pick-contrib-btn:active { transform: translateY(2px); }
+#sv-pick-contrib-btn.sv-open { border-color: var(--c-mint, #35d59b); background: rgba(53,213,155,0.12); }
+
+/* Contributions dropdown — reuses the payout's .contrib-* row markup. */
+#sv-pick-contrib { display: none; }
+#sv-pick-contrib.show {
+  display: block; width: 100%; margin-top: 4px;
+  max-height: 180px; overflow-y: auto;
+  padding: 8px 10px; border-radius: 9px;
+  background: rgba(0,0,0,0.35); border: 1px solid rgba(183,172,147,0.28);
+  text-align: left;
+}
+#sv-pick-contrib .contrib-group-title {
+  font-family: 'Share Tech Mono', monospace; font-size: 8px; letter-spacing: 2px;
+  color: var(--c-mint, #35d59b); text-transform: uppercase; margin: 6px 0 2px;
+}
+#sv-pick-contrib .contrib-group-title:first-child { margin-top: 0; }
+#sv-pick-contrib .contrib-row {
+  display: flex; justify-content: space-between; gap: 10px;
+  font-family: 'Crimson Pro', serif; font-size: 12px; line-height: 1.5;
+  color: var(--cream, #f0e6c8);
+}
+#sv-pick-contrib .contrib-count { font-size: 9px; color: var(--cream-dim, #8a7d60); margin-left: 5px; }
+#sv-pick-contrib .contrib-val { font-family: 'Share Tech Mono', monospace; font-size: 11px; white-space: nowrap; }
+#sv-pick-contrib .contrib-pip  { color: #8fb7ff; }
+#sv-pick-contrib .contrib-mult { color: #ff8f8f; }
+#sv-pick-contrib .contrib-fx   { color: var(--c-mint, #35d59b); }
+#sv-pick-contrib .contrib-empty { font-family: 'Crimson Pro', serif; font-size: 12px; color: var(--cream-dim, #8a7d60); }
 
 /* ── On-demand shop button by the coins chip (Survival only) ── */
 .survival-shop-btn {

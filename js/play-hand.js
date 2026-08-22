@@ -182,6 +182,8 @@ function playHand() {
   const _contribSnapshot = captureRoundContrib(result);
   // Cuckoo: tally this hand's retriggers (captureRoundContrib just ran calcScore on the real hand).
   if (hasTrick('cuckoo')) retriggersThisRound += _lastHandRetrigs;
+  // General replay tally for the Contributions view (all hands, not just Cuckoo).
+  if (_lastHandRetrigs > 0) replaysThisRound += _lastHandRetrigs;
   // Rewound Echo knack: each card replay this hand has a chance to rewind 2 seconds.
   if (hasKnack('replay_rewind') && _lastHandRetrigs > 0) {
     let _rw = 0;
@@ -279,19 +281,19 @@ function playHand() {
   resetFocusDecayTimer();
 
   // Deluge: Flushes add seconds to the clock
-  if (hand === 'Flush' && hasTrick('deluge')) { roundSeconds += BAL.deluge.seconds; updateClockUI(); showMessage('Deluge! +' + BAL.deluge.seconds + 's', '#5aa9e6'); }
+  if (hand === 'Flush' && hasTrick('deluge')) { roundSeconds += BAL.deluge.seconds; timeManipRound += BAL.deluge.seconds; updateClockUI(); showMessage('Deluge! +' + BAL.deluge.seconds + 's', '#5aa9e6'); }
   // Overtime: scales seconds with cards scored from its marked line this round (counter bumped above)
-  if (hasTrick('overtime')) { const _os = Math.floor(markCount_overtime / 3) * BAL.overtime.seconds_per_3; if (_os > 0) { roundSeconds += _os; updateClockUI(); } }
+  if (hasTrick('overtime')) { const _os = Math.floor(markCount_overtime / 3) * BAL.overtime.seconds_per_3; if (_os > 0) { roundSeconds += _os; timeManipRound += _os; updateClockUI(); } }
   // Right Time: each card scored in its marked line pauses the clock (rewind conversion pending, task #10)
   if (hasTrick('right_time')) { const _rt = handCells.filter(([r,c]) => cellHasRowColBonus(r, c, 'right_time')).length; if (_rt > 0) pauseRound(BAL.right_time.pause_seconds * _rt); }
   // Threepeat: hand pip-sum divisible by 3 → +3 seconds
-  if (hasTrick('ninesong')) { const _ps = handCells.reduce((s,[r,c]) => s + (gridData[r]?.[c] ? cardPips(gridData[r][c].rank) : 0), 0); if (_ps % 3 === 0) { roundSeconds += BAL.ninesong.seconds; updateClockUI(); } }
+  if (hasTrick('ninesong')) { const _ps = handCells.reduce((s,[r,c]) => s + (gridData[r]?.[c] ? cardPips(gridData[r][c].rank) : 0), 0); if (_ps % 3 === 0) { roundSeconds += BAL.ninesong.seconds; timeManipRound += BAL.ninesong.seconds; updateClockUI(); } }
   // Blood Diamonds: a hand with at least one heart AND one diamond grants +1 coin and +10s
   if (hasTrick('monochrome')) {
     const _bdc = handCells.map(([r,c]) => gridData[r]?.[c]).filter(Boolean);
     const _hasHeart = _bdc.some(c => c.suit === '♥' || (c.combined && c.suit2 === '♥'));
     const _hasDia   = _bdc.some(c => c.suit === '♦' || (c.combined && c.suit2 === '♦'));
-    if (_hasHeart && _hasDia) { coins += BAL.monochrome.coins; updateCoinsUI(); roundSeconds += BAL.monochrome.seconds; updateClockUI(); showMessage('Blood Diamonds! +' + BAL.monochrome.coins + ' coin, +' + BAL.monochrome.seconds + 's', '#c0353e'); }
+    if (_hasHeart && _hasDia) { coins += BAL.monochrome.coins; updateCoinsUI(); roundSeconds += BAL.monochrome.seconds; timeManipRound += BAL.monochrome.seconds; updateClockUI(); showMessage('Blood Diamonds! +' + BAL.monochrome.coins + ' coin, +' + BAL.monochrome.seconds + 's', '#c0353e'); }
   }
 
   // ── Playing a hand is free by default (owner request, r50) — base cost is 0. ──

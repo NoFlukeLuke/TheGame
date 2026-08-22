@@ -37,6 +37,8 @@ let survivalPickOffered       = null; // the 3 options currently shown
 let survivalRerollsUsed       = 0;    // rerolls spent this level (resets each level-up)
 let survivalBossPending       = false;// next dealt round is a boss (set every 8 clears)
 let survivalPickKicker        = 'GOAL CLEARED'; // header line above the pick (set per context)
+let survivalBonusPick         = false;// true while showing the post-boss BONUS pick (no goal cleared)
+let survivalSkipCarryover     = false;// triggerLevelUp flag: boss-reward round doesn't carry score / pay time-coins
 const SURVIVAL_FREE_REROLLS   = 2;    // first 2 rerolls are free
 const SURVIVAL_REROLL_STEP    = 5;    // then 5, 10, 15… (STEP × paid-index)
 
@@ -165,7 +167,11 @@ function survivalPickOverlay() {
     el.innerHTML = `<div id="survival-pick-panel">
         <div class="sv-pick-head"><span class="sv-pick-kicker">GOAL CLEARED</span><span class="sv-pick-title">CHOOSE ONE</span></div>
         <div id="sv-pick-cards"></div>
-        <button id="sv-pick-reroll" onclick="survivalReroll()"></button>
+        <div class="sv-pick-foot">
+          <button id="sv-pick-reroll" onclick="survivalReroll()"></button>
+          <button id="sv-pick-contrib-btn" onclick="survivalToggleContrib()" title="What contributed to your score">📊</button>
+        </div>
+        <div id="sv-pick-contrib"></div>
       </div>`;
     (document.getElementById('stage') || document.body).appendChild(el);
   }
@@ -204,16 +210,42 @@ function survivalUpdateRerollBtn() {
   btn.classList.toggle('sv-cant-afford', !free && coins < cost);
 }
 
-// Show the pick panel over the (already spread + frozen) board.
-function showSurvivalPickScreen(kicker = 'GOAL CLEARED') {
+// Show the pick panel beside the preview. Called from the goal dance (after the
+// cards fly into the preview) and from the post-boss reward. Does NOT advance the
+// level — the deal happens when the player chooses (survivalChoose).
+function survivalShowPick(bonus = false, kicker) {
   animating = false;
   trickSelectionPhase = false;
-  survivalPickKicker = kicker;
-  survivalRerollsUsed = 0;             // free rerolls refresh every level-up
+  survivalBonusPick = !!bonus;
+  survivalPickKicker = kicker || (bonus ? 'BOSS DEFEATED' : 'GOAL CLEARED');
+  survivalRerollsUsed = 0;             // free rerolls refresh every pick
   survivalPickOffered = survivalPickOptions(false);
   if (typeof sfxLevelUp === 'function') sfxLevelUp();
   survivalRenderPick();
-  survivalPickOverlay().classList.add('show');
+  const ov = survivalPickOverlay();
+  ov.classList.add('show');
+  survivalHideContrib(); // start collapsed
+  // The goal hand's score panel isn't refreshed by the (skipped) interlude — sync it
+  // so the SCORE total reflects the cleared goal while the preview dance climbs.
+  if (typeof updateScoreUI === 'function') updateScoreUI();
+}
+
+// ── Contributions breakdown (the payout's Contributions view, surfaced on the pick
+//    because survival skips the payout). Reads the live round tally, which is still
+//    populated here — triggerLevelUp (which resets it) only runs once you choose. ──
+function survivalToggleContrib() {
+  const panel = document.getElementById('sv-pick-contrib');
+  if (!panel) return;
+  if (panel.classList.contains('show')) { survivalHideContrib(); return; }
+  panel.innerHTML = (typeof roundContributionRowsHTML === 'function')
+    ? roundContributionRowsHTML() : '<div class="contrib-empty">No breakdown.</div>';
+  panel.classList.add('show');
+  document.getElementById('sv-pick-contrib-btn')?.classList.add('sv-open');
+}
+function survivalHideContrib() {
+  const panel = document.getElementById('sv-pick-contrib');
+  if (panel) { panel.classList.remove('show'); panel.innerHTML = ''; }
+  document.getElementById('sv-pick-contrib-btn')?.classList.remove('sv-open');
 }
 
 function survivalReroll() {
@@ -229,14 +261,23 @@ function survivalReroll() {
   survivalRenderPick();
 }
 
-// Grant the chosen option, hide the panel, and deal the next round.
+// Grant the chosen option, then run the level-up → deal. Because the grant happens
+// BEFORE triggerLevelUp, the new limit values are already in place when triggerLevelUp
+// sizes the board and computes swaps/discards/time — so a picked Limit applies to the
+// very next round with no special-casing.
 function survivalChoose(i) {
   const opt = (survivalPickOffered || [])[i];
   if (!opt) return;
-  survivalGrant(opt);
-  survivalPickOffered = null;
+  if (typeof cancelDance === 'function') cancelDance(); // stop the score count-up if still running
+  survivalHideContrib();
   survivalPickOverlay().classList.remove('show');
-  survivalDealNext();
+  survivalPickOffered = null;
+  survivalGrant(opt);
+  // Post-boss BONUS pick doesn't carry score or pay the time-coins (no goal was cleared).
+  survivalSkipCarryover = survivalBonusPick;
+  survivalBonusPick = false;
+  triggerLevelUp(); // → showLevelUpScreen (survival) → survivalDealNext
+  survivalSkipCarryover = false;
 }
 
 // Route each option type to the existing grant primitive.
@@ -245,21 +286,7 @@ function survivalGrant(opt) {
     case 'trick':   injectTrickAfterReward(opt.data); break;
     case 'sleight': grantSleight(opt.data); showMessage(`${opt.icon} ${opt.name}!`, '#c07aee'); break;
     case 'knack':   acquiredKnacks.push({ ...opt.data }); updateKnackList?.(); showMessage(`${opt.icon} ${opt.name}!`, '#d4a017'); break;
-    case 'limit': {
-      // triggerLevelUp already sized THIS round's board + resources from the OLD
-      // limit values (it runs before the pick), and onLimitChanged defers grid_rows/
-      // cols to "next round start". So apply the gain to the round we're about to
-      // deal: swaps/discards/time here, grid size in survivalDealNext's re-sync.
-      const lid = opt.data.id;
-      const before = limits[lid].current;
-      incrementLimit(lid);
-      const delta = limits[lid].current - before;
-      if (lid === 'swaps')      swaps += delta;
-      else if (lid === 'discards') discards += delta;
-      else if (lid === 'round_time') { roundSeconds = Math.min(limits.round_time.current, roundSeconds + delta); updateClockUI(); }
-      showMessage(`${opt.icon} ${opt.name} upgraded!`, '#5ad4c0');
-      break;
-    }
+    case 'limit':   incrementLimit(opt.data.id); showMessage(`${opt.icon} ${opt.name} upgraded!`, '#5ad4c0'); break;
   }
 }
 
@@ -326,6 +353,7 @@ function survivalDealNext() {
   //    shared deal-in animation, which clears leftover real cards and repaints.
   dealPhase = true;
   setTimeout(() => {
+    gameTimerPaused = false;           // the goal dance froze the clock; the new round is live
     startNewRoundDealAnims();          // builds temp cards from gridData, drops them, clears dealPhase
     updateClockUI();
     if (survivalBossPending) {
@@ -351,23 +379,7 @@ function survivalTriggerBoss() {
 // (endBoss already cleared modifiers/blocked cells and zeroed the time bank.)
 function survivalPostBossReward() {
   survivalSpreadFreeze();
-  setTimeout(() => { dealPhase = true; showSurvivalPickScreen('BOSS DEFEATED'); }, 320);
-}
-
-// ══════════════════════════════════════════════
-// GOAL HAND HAND-OFF (called from playPreviewDance's isGoalHand branch)
-// ══════════════════════════════════════════════
-// Skip the normal explode/fly-to-preview finale. Just clean up the (unused)
-// preview stage, spread+freeze the board, then run the level-up machinery which
-// pays out and opens the pick panel.
-function survivalGoalHandoff(stage) {
-  try { if (stage) { stage.classList.remove('dnc-active'); stage.innerHTML = ''; } } catch (e) {}
-  if (typeof dncCleanupReal === 'function') dncCleanupReal();
-  if (typeof dncRestoreHiddenGridEls === 'function') dncRestoreHiddenGridEls();
-  updateScoreUI();
-  survivalSpreadFreeze();
-  // Let the spread read for a beat, then reset state + show the pick.
-  setTimeout(() => triggerLevelUp(), 360);
+  setTimeout(() => survivalShowPick(true, 'BOSS DEFEATED'), 320);
 }
 
 // ══════════════════════════════════════════════

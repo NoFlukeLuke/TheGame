@@ -520,7 +520,9 @@ function handleDanceAbort(isGoalHand) {
     heldBackScore = 0;
     suppressScoreDisplay = false;
     if (pendingLevelUps > 0) sfxMultiGoal(pendingLevelUps);
-    if (!challengeActive) {
+    // Survival drives its own goal transition (pick → deal); the interlude/payout +
+    // its round-freeze must NOT run on abort, or they'd clobber the freshly dealt board.
+    if (!challengeActive && !survivalActive()) {
       clearInterval(roundInterval);
       roundInterval = null;
       gameTimerPaused = true;
@@ -748,9 +750,6 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   const elById = {}; tricks.forEach((t, ti) => { if (entityEls[ti]) elById[t.id] = entityEls[ti]; });
 
   if(isGoalHand){
-    // Survival: skip the explode/fly-to-preview finale. Spread + freeze the board
-    // and open the pick-of-three centred over it (see js/survival.js).
-    if(survivalActive()){ survivalGoalHandoff(stage); return; }
     // ── WIN FINALE (runs BEFORE the tally) ──
     // The cards AROUND the winning hand jitter for ~2s, then explode gently
     // outward while the winning cards fly up into the preview slots. The score
@@ -803,6 +802,10 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
     // Remove all original grid card DOM (exploded losers + flown winners). The
     // deck accounting for every card still runs in showLevelUpScreen_fallOnly.
     gridCards.forEach(el => el.remove()); dncHiddenGridEls=[];
+    // Survival: open the pick-of-three NOW (right of the preview), so the score
+    // count-up below runs alongside it — the player can watch the tally or start
+    // picking a bonus. (In survival the deck accounting happens in survivalDealNext.)
+    if(survivalActive()) survivalShowPick();
   } else {
     // ── Normal hand: the selected grid cards physically fly into their preview slots. ──
     const FLY_STAGGER=95/dncSpeed, FLY_DUR=400/dncSpeed;
@@ -946,7 +949,9 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
       sfxVictory(); const ctx=getAudioCtx();
       if(sfxDuckGain){ sfxDuckGain.gain.setValueAtTime(0.4, ctx.currentTime); }
       else { sfxDuckGain=ctx.createGain(); sfxDuckGain.gain.setValueAtTime(0.4, ctx.currentTime); sfxDuckGain.connect(ctx.destination); }
-      startInterlude();
+      // Survival opened its pick during the fly (above); the deal happens when the
+      // player chooses. Everyone else hands off to the standard interlude/payout.
+      if(!survivalActive()) startInterlude();
     }
   }
 }

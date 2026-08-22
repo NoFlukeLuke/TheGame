@@ -1,4 +1,4 @@
-const BUILD = '2026-08-22 · r153 · Survival: limits picked in the pick now apply to the very next round (grid size re-synced on deal; swaps/discards/time deltas applied on grant)';
+const BUILD = '2026-08-22 · r154 · Survival: goal transition now reuses Classic\'s flourish (minus payout) with the pick beside the preview, + a 📊 contributions breakdown (base mult, replays & time when applicable); limits apply next round';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

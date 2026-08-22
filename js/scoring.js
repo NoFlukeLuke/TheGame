@@ -727,6 +727,10 @@ function captureRoundContrib(result) {
     let cardPipsTotal = Math.round(base.pips * levelScale);
     handCells.forEach(([r, c]) => { const card = gridData[r]?.[c]; if (card?.rank) cardPipsTotal += cardPips(card.rank); });
     rows.push({ label: 'Base + card pips', kind: 'pip', amount: cardPipsTotal });
+    // Base MULT from the hand type (calcScore seeds mult at base.mult — see scoring
+    // "let mult = base.mult …"). It's the starting multiplier every trick adds onto,
+    // so surface it in the Mult group too.
+    if (base.mult) rows.push({ label: 'Base (hand type)', kind: 'mult', amount: base.mult });
   }
   return rows;
 }
@@ -766,6 +770,21 @@ function roundContributionRowsHTML() {
       </div>`;
     });
   });
+  // Effects group — replays/retriggers and clock manipulation, shown ONLY when they
+  // actually happened this round (owner request).
+  const _timeManip = (timeManipRound || 0) + (rewoundSecondsRound || 0) + (pausedSecondsRound || 0);
+  const fxRows = [];
+  if (replaysThisRound > 0) fxRows.push({ label: 'Replays', val: `×${replaysThisRound}` });
+  if (_timeManip > 0)       fxRows.push({ label: 'Time manipulation', val: `+${_timeManip}s` });
+  if (fxRows.length) {
+    html += `<div class="contrib-group-title">Effects</div>`;
+    fxRows.forEach(r => {
+      html += `<div class="contrib-row">
+        <span class="contrib-label">${r.label}</span>
+        <span class="contrib-val contrib-fx">${r.val}</span>
+      </div>`;
+    });
+  }
   return html;
 }
 

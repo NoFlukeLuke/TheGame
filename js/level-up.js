@@ -63,7 +63,12 @@ function triggerLevelUp() {
   // every point counts toward the next goal (owner spec). Must read these BEFORE
   // roundGoal is recomputed and score is zeroed below.
   let _svLeftover = 0, _svOverflow = 0;
-  if (survivalActive()) { _svLeftover = Math.max(0, roundSeconds); _svOverflow = Math.max(0, score - roundGoal); }
+  if (survivalActive()) {
+    _svLeftover = Math.max(0, roundSeconds);
+    // Post-boss BONUS round carries nothing (no goal was cleared); a normal clear
+    // carries the score overflow above the goal into the next round.
+    _svOverflow = survivalSkipCarryover ? 0 : Math.max(0, score - roundGoal);
+  }
 
   level++;
   // This round's score target, from zero
@@ -168,6 +173,8 @@ function triggerLevelUp() {
   pausesThisRound = 0;
   rewindsThisRound = 0;
   retriggersThisRound = 0;
+  replaysThisRound = 0;
+  timeManipRound = 0;
   cuckooNextMinute = BAL.cuckoo.interval_seconds;
   // Clock-mark Tricks + Déjà Vu: pending bonuses and rank-history reset each round
   pendingHandPips = 0; pendingHandMult = 0; pendingCardPips = 0;
@@ -214,8 +221,8 @@ function triggerLevelUp() {
   }
 
   // Survival: pay coins (flat + leftover-time bonus) and bank leftover time toward
-  // the next boss. Done here so the coin total is right when the pick/shop shows.
-  if (survivalActive()) survivalAfterLevelUp(_svLeftover);
+  // the next boss. Skipped on the post-boss bonus round (no goal cleared).
+  if (survivalActive() && !survivalSkipCarryover) survivalAfterLevelUp(_svLeftover);
 
   updateScoreUI();
 
@@ -230,7 +237,9 @@ async function showLevelUpScreen() {
   // Survival: its own on-brand pick-of-three (Trick/Sleight/Knack/Limit) opens over
   // the frozen board; the deal happens after the player picks. No grid placement,
   // no reward grid — see js/survival.js.
-  if (survivalActive()) { dealPhase = true; showSurvivalPickScreen(); return; }
+  // Survival: the pick already happened (shown during the goal dance / post-boss).
+  // triggerLevelUp reaches here on CHOOSE, so just deal the next round.
+  if (survivalActive()) { survivalDealNext(); return; }
 
   // Match-3 modes have their own between-rounds flow: a genuine pick-of-three
   // that goes to the side TRAY (never the grid), no reserved grid slots. The
