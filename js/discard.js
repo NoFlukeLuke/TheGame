@@ -1,7 +1,8 @@
 function doDiscard() {
   // Dominoes mode has its own discard flow (tiles return to the domino deck).
   if (typeof ACTIVE_MODE !== 'undefined' && ACTIVE_MODE.id === 'dominoes') { dominoDiscard(); return; }
-  // During the on-grid reward step the Discard button is the yellow CLEAR button.
+  // On grid-takeover screens the Discard button is repurposed: LEAVE (shop) / CLEAR (reward).
+  if (typeof shopGridActive !== 'undefined' && shopGridActive) { closeShopGrid(); return; }
   if (rewardOnGrid) { clearRewardSelection(); return; }
   if (roundEnded || animating) return;
   if (falling) { if (selected.length > 0) { pendingAction = 'discard'; dbgEvent('info', 'discard queued (falling)'); } return; }
@@ -53,20 +54,23 @@ function doDiscard() {
   selected.forEach(([r,c]) => { if (gridData[r]?.[c]) discardToDrawPile(gridData[r][c]); });
   // Hoarder: discards don't count against limit (but cost 2× time below)
   if (!hasKnack('hoarder')) discards--;
-  spendRoundTime(DISCARD_TIME_COST);   // discards cost time
-  // Discard time cost — 3s/card default, 0s with Free Discards, 6s/card with Hoarder.
+  // Discard time cost — 3s PER CARD (BAL._resources.discard_seconds_per_card).
+  // There used to be a flat spendRoundTime(DISCARD_TIME_COST) here as well, so a
+  // 1-card discard billed 3 + 3 = 6s while the UI said 3s, and the Free Discards
+  // knack ("costs no time") still charged the flat 3s. One charge only now.
   // Reward-grid time penalties add to the per-card cost (unless discards are free).
   let perCardCost = BAL._resources.discard_seconds_per_card;
   if (hasKnack('free_discards')) perCardCost = 0;
   else { if (hasKnack('hoarder')) perCardCost = BAL.hoarder.discard_seconds_per_card; perCardCost += (discardCostThisRound || 0); }
   const usingFreeDiscard = perCardCost > 0 && freeDiscardsLeft > 0;
   if (usingFreeDiscard) freeDiscardsLeft--;
-  const timeCost = usingFreeDiscard ? 0 : discardedCards.length * perCardCost;
+  const timeCost = usingFreeDiscard ? 0 : Math.round(discardedCards.length * perCardCost * bossInteractMult());
   if (timeCost > 0) {
     roundSeconds = Math.max(1, roundSeconds - timeCost);
     showTimeCost(`-${timeCost}s`);
   }
   updateClockUI();
+  if (typeof bossOnInteract === 'function') bossOnInteract('discard');
   // Track discard counts
   const count = discardedCards.length;
   cardsDiscardedTotal += count;
@@ -166,6 +170,7 @@ function rewindTime(seconds, label) {
   const gained = roundSeconds - before;
   if (gained <= 0) return 0;
   rewoundSecondsRound += gained; // Kingfisher scales on seconds rewound this round
+  rewindsThisRound++;            // per-round rewind count (time popup)
   updateClockUI();
   const el = document.getElementById('time-cost-flash') ||
     (() => { const e = document.createElement('div'); e.id = 'time-cost-flash'; e.style.cssText =
@@ -226,6 +231,7 @@ function pauseRound(seconds) {
   // Long Pause knack: all pauses are 1.5x longer
   if (hasKnack('long_pause')) seconds *= BAL.long_pause.multiplier;
   pauseInstanceGame++; // Hummingbird (counts every pause triggered this game)
+  pausesThisRound++;   // per-round pause count (time popup)
   // The Vulture: mark the start of the round's FIRST continuous pause stretch. An extension
   // landing while already paused does NOT start a new stretch (pipeTimerPaused is still true).
   if (!pipeTimerPaused && !firstPauseStartedRound) { firstPauseStartedRound = true; firstPauseActive = true; }

@@ -145,6 +145,8 @@ function trickLiveDesc(trick) {
       case 'acorns':         return now(`+${Math.floor(bonusFocus_acorns || 0)} Focus/hand · ${(bonusFocus_acorns || 0).toFixed(2)} stored`);
       case 'plan_ahead':     return now(`+${Math.max(1, Math.round((handsPlayedGame || 0) / Math.max(1, level)))} Focus every 3rd hand`);
       case 'more_better':    return now(`+${bonusMult_morebetter || 0} mult`);
+      case 'wild_side':      return now(`+${(negativeTilesTakenRun || 0) * (B.wild_side?.mult_per ?? 3)} mult`);
+      case 'wait_for_it':    return now(`${Math.round((negativeTilesTakenRun || 0) * (B.wait_for_it?.chance_per ?? 0.02) * 100)}% replay chance`);
       case 'big_win':        return now(`+${bonusMult_jackpot || 0} mult`);
       case 'feng_shui':      return now(`+${bonusPips_fengshui || 0} pips`);
       case 'sapling':        return now(`${level - 1} levels applied`);
@@ -396,15 +398,9 @@ function showTrickTrayTooltip(trick, anchorEl) {
   tip.addEventListener('mouseenter', cancelTrickHoverHide);
   tip.addEventListener('mouseleave', scheduleTrickHoverHide);
   void tip.offsetWidth;
-  const ar = anchorEl.getBoundingClientRect();
-  const tipW = tip.offsetWidth || 180;
-  const tipH = tip.offsetHeight || 80;
-  let left = ar.left + ar.width / 2 - tipW / 2;
-  let top  = ar.top - tipH - 8;
-  left = Math.max(4, Math.min(window.innerWidth - tipW - 4, left));
-  if (top < 4) top = ar.bottom + 8;
-  tip.style.left = left + 'px';
-  tip.style.top  = top + 'px';
+  // Opens into whichever side of the chip has the most room (was hardcoded to
+  // above, which put it off-screen for tray tiles near the top).
+  placeTipSmart(anchorEl, tip);
   tip.style.opacity = '1';
 }
 

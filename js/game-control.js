@@ -70,12 +70,12 @@ function quitToMainMenu() {
 }
 
 document.getElementById('btn-stats').addEventListener('click', () => {
-  pauseGame(false); // pause timers but don't hide grid
+  if (!screenOwnsClock()) pauseGame(false); // pause timers but don't hide grid
   showStats();
 });
 
 document.getElementById('btn-deck').addEventListener('click', () => {
-  pauseGame(false);
+  if (!screenOwnsClock()) pauseGame(false);
   showDeck();
 });
 
@@ -85,11 +85,37 @@ function hideTimePopup() {
   const pop = document.getElementById('interact-costs');
   if (pop) pop.classList.remove('show');
 }
+// Fill the time popup with LIVE values: interaction costs (incl. reward-grid
+// debuffs), the round's max time, and how many times it's been paused / rewound.
+function updateInteractCosts() {
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  // Play is 0 by default (r50); a "Hands +Ns" debuff makes it cost that much.
+  set('ic-play', `${playHandCostThisRound || 0}s`);
+  // Discard cost per card: 3 base, 0 with Free Discards, 6 with Hoarder, + reward debuff.
+  let disc = (typeof BAL !== 'undefined') ? BAL._resources.discard_seconds_per_card : 3;
+  if (typeof hasKnack === 'function' && hasKnack('free_discards')) disc = 0;
+  else { if (typeof hasKnack === 'function' && hasKnack('hoarder')) disc = BAL.hoarder.discard_seconds_per_card; disc += (discardCostThisRound || 0); }
+  if (typeof bossInteractMult === 'function') disc = Math.round(disc * bossInteractMult());
+  set('ic-discard', `${disc}s`);
+  // Swap cost: 4 base, 0 with Free Swaps.
+  let swap = (typeof BAL !== 'undefined') ? BAL._resources.swap_seconds : 8;
+  if (typeof hasKnack === 'function' && hasKnack('free_swaps')) swap = 0;
+  else if (typeof hasKnack === 'function' && hasKnack('steady_hand')) swap = BAL.steady_hand.swap_seconds;
+  if (typeof bossInteractMult === 'function') swap = Math.round(swap * bossInteractMult());
+  set('ic-swap', `${swap}s`);
+  // Max time = round cap minus permanent (−5s) penalties.
+  const base = (typeof ROUND_DURATION !== 'undefined') ? ROUND_DURATION : 180;
+  const cap  = Math.max(base, limits.round_time.current) - (roundPenaltySeconds || 0);
+  set('ic-maxtime', (typeof formatTime === 'function') ? formatTime(Math.max(0, cap)) : `${cap}s`);
+  set('ic-paused',  `${pausesThisRound  || 0}×`);
+  set('ic-rewound', `${rewindsThisRound || 0}×`);
+}
 function toggleTimePopup() {
   const pop = document.getElementById('interact-costs');
   const btn = document.getElementById('btn-time');
   if (!pop || !btn) return;
   if (pop.classList.contains('show')) { hideTimePopup(); return; }
+  updateInteractCosts();                     // refresh live values before showing
   pop.classList.add('show');                 // .show → display:flex (CSS)
   const r = btn.getBoundingClientRect();
   const pw = pop.offsetWidth, ph = pop.offsetHeight;
@@ -102,22 +128,73 @@ function toggleTimePopup() {
 }
 document.getElementById('btn-time')?.addEventListener('click', (e) => {
   e.stopPropagation();
+  hideLimitsPopup();
   toggleTimePopup();
 });
 document.addEventListener('click', (e) => {
   if (!e.target.closest('#btn-time') && !e.target.closest('#interact-costs')) hideTimePopup();
 }, true);
 
-// Resume when overlays are closed
-document.querySelector('#stats-overlay .overlay-close').addEventListener('click', () => {
-  document.getElementById('stats-overlay').classList.remove('show');
-  resumeGame();
+// ▲ Limits — the same lightweight bubble as ⏱ Time, but for the upgradeable caps.
+// Limits are the run's skeleton (how big the board is, how many swaps/discards you
+// get, how long a round lasts, how many Tricks you can hold) and until now they were
+// only visible inside the Mart. This puts them one tap away during play.
+function hideLimitsPopup() { document.getElementById('limits-popup')?.classList.remove('show'); }
+function updateLimitsPopup() {
+  const rows = document.getElementById('limits-popup-rows');
+  if (!rows) return;
+  rows.innerHTML = LIMITS_DEF.map(def => {
+    const l = limits[def.id];
+    const maxed = l.current >= l.max;
+    // hideMax limits (Selection Size) have no meaningful ceiling to show.
+    const right = def.hideMax ? `${l.current}` : `${l.current}<span class="lp-max">/${l.max}</span>`;
+    return `<div class="ic-r lp-r${maxed ? ' lp-maxed' : ''}" title="${def.desc}">` +
+           `<span><span class="lp-ico">${def.icon}</span>${def.label}</span>` +
+           `<span>${right}</span></div>`;
+  }).join('');
+}
+function toggleLimitsPopup() {
+  const pop = document.getElementById('limits-popup');
+  const btn = document.getElementById('btn-limits');
+  if (!pop || !btn) return;
+  if (pop.classList.contains('show')) { hideLimitsPopup(); return; }
+  updateLimitsPopup();
+  pop.classList.add('show');
+  const r = btn.getBoundingClientRect();
+  const pw = pop.offsetWidth, ph = pop.offsetHeight;
+  let left = r.left + r.width / 2 - pw / 2;
+  let top  = r.top - ph - 8;
+  left = Math.max(6, Math.min(window.innerWidth - pw - 6, left));
+  if (top < 6) top = r.bottom + 8;
+  pop.style.left = left + 'px';
+  pop.style.top  = top + 'px';
+}
+document.getElementById('btn-limits')?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  hideTimePopup();
+  toggleLimitsPopup();
 });
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('#btn-limits') && !e.target.closest('#limits-popup')) hideLimitsPopup();
+}, true);
 
-document.querySelector('#deck-overlay .overlay-close').addEventListener('click', () => {
-  document.getElementById('deck-overlay').classList.remove('show');
-  resumeGame();
-});
+// Stats / Deck can also be opened from a takeover screen (the Mart shop), where there is
+// no round running to resume — resuming there would start the round timer behind the shop.
+// screenOwnsClock() is true whenever some other screen owns the clock, and the openers below
+// skip pauseGame() in that case, so the close handler must skip resumeGame() to match.
+function screenOwnsClock() {
+  return (typeof martActive !== 'undefined' && martActive)
+      || (typeof shopGridActive !== 'undefined' && shopGridActive)
+      || document.getElementById('shop-overlay')?.classList.contains('show')
+      || (typeof rewardOnGrid !== 'undefined' && rewardOnGrid);
+}
+function closeInfoOverlay(id) {
+  document.getElementById(id).classList.remove('show');
+  if (!screenOwnsClock()) resumeGame();
+}
+// Resume when overlays are closed
+document.querySelector('#stats-overlay .overlay-close').addEventListener('click', () => closeInfoOverlay('stats-overlay'));
+document.querySelector('#deck-overlay .overlay-close').addEventListener('click', () => closeInfoOverlay('deck-overlay'));
 
 function startGame() {
   document.getElementById('end-overlay').classList.remove('show');
@@ -125,6 +202,21 @@ function startGame() {
   document.getElementById('shop-overlay').classList.remove('show');
   stopTimers();
   if (levelupTimer) { clearInterval(levelupTimer); levelupTimer = null; }
+
+  // Abandoning a run mid-boss would otherwise leave its scheduled effects running
+  // — a quarantine cross landing 10 seconds into the NEXT run. Kill them here,
+  // where every new run funnels through.
+  bossActive = false;
+  if (typeof clearBossEffects === 'function') clearBossEffects();
+  if (typeof bossInterval !== 'undefined' && bossInterval) { clearInterval(bossInterval); bossInterval = null; }
+  document.getElementById('boss-preamble')?.remove();
+  document.getElementById('run-progress')?.classList.remove('boss-sigil');
+
+  // Install this run's RNG BEFORE any deck is built or shuffled — startGame is
+  // the single point where a run's randomness is established (see js/seed.js).
+  // A mode may pin a seed (the tutorial does); otherwise the dev panel's seed is
+  // used, and with neither the run is plain unseeded.
+  applyRunSeed(ACTIVE_MODE.seed || pendingRunSeed || null);
 
   // Pick the suit list for this mode BEFORE any deck is built. Six Suits mode uses
   // the expanded 6-suit list; every other mode uses the classic four.
@@ -155,7 +247,7 @@ function startGame() {
   // Sync playing-grid dimensions from limits and size the cards
   gridRows = limits.grid_rows.current;
   gridCols = limits.grid_cols.current;
-  if (ACTIVE_MODE.id === 'dominoes') { gridRows = 8; gridCols = 8; }
+  if (dominoActive()) { gridRows = DOMINO_ROWS; gridCols = DOMINO_COLS; }
   recomputeGridMetrics();
   // Reset focus meter
   focusNodes = 0;
@@ -248,6 +340,7 @@ function startGame() {
   bonusFocus_acorns  = 0;   // Acorns (per-game Focus accumulator)
   handsPlayedGame    = 0;   // Plan Ahead (per-game hand count)
   bonusMult_morebetter = 0; // More Better (per-game reward-grid mult accumulator)
+  negativeTilesTakenRun = 0; // Wild Side / Wait For Iiiit / Shady Stimulants (per-run negative-tile tally)
   bonusPips_fengshui = 0;   // Feng Shui (per-game permanent scaler)
   _perMinuteFired = {};
   bonusMult_jackpot  = 0;
@@ -296,6 +389,7 @@ function startGame() {
   rewardConfirmed = false;
   actNumber = 1;
   nodeInAct = 0;
+  rewardGridsSeen = 0;
   forceBossNextRound = false;
   shopFromNodeFlow = false;
   updateActProgressUI();
@@ -345,6 +439,9 @@ function startGame() {
   startTimers();
   // Zen mode hands out unlimited swaps/discards (see match3ApplyZenResources).
   if (match3Active()) { match3ApplyZenResources(); setTimeout(() => match3Resolve(), 400); }
+  // Tutorial mode: rig the opening board + goal, then start the coach-marks.
+  // Must run LAST — it overwrites roundGoal/coins and re-renders the stacked grid.
+  if (tutorialActive()) tutorialBeginRun();
 }
 
 // ══════════════════════════════════════════════

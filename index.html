@@ -3,6 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<!-- PWA / "Add to Home Screen": launches bar-free (fullscreen) on mobile.
+     Just a shortcut to the live URL — always loads the newest version, nothing is downloaded per-version. -->
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="The Game">
+<meta name="theme-color" content="#0d2010">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22512%22%20height%3D%22512%22%3E%3Crect%20width%3D%22512%22%20height%3D%22512%22%20rx%3D%2296%22%20fill%3D%22%230d2010%22%2F%3E%3Crect%20x%3D%2240%22%20y%3D%2240%22%20width%3D%22432%22%20height%3D%22432%22%20rx%3D%2264%22%20fill%3D%22none%22%20stroke%3D%22%23f2c94c%22%20stroke-width%3D%2216%22%2F%3E%3Ctext%20x%3D%22256%22%20y%3D%22360%22%20font-size%3D%22300%22%20text-anchor%3D%22middle%22%20fill%3D%22%23f2c94c%22%20font-family%3D%22serif%22%3EA%3C%2Ftext%3E%3C%2Fsvg%3E">
+<link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22The%20Game%22%2C%22short_name%22%3A%22The%20Game%22%2C%22start_url%22%3A%22.%22%2C%22scope%22%3A%22.%22%2C%22display%22%3A%22fullscreen%22%2C%22background_color%22%3A%22%230d2010%22%2C%22theme_color%22%3A%22%230d2010%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data%3Aimage%2Fsvg%2Bxml%2C%253Csvg%2520xmlns%253D%2522http%253A%252F%252Fwww.w3.org%252F2000%252Fsvg%2522%2520width%253D%2522512%2522%2520height%253D%2522512%2522%253E%253Crect%2520width%253D%2522512%2522%2520height%253D%2522512%2522%2520rx%253D%252296%2522%2520fill%253D%2522%25230d2010%2522%252F%253E%253Crect%2520x%253D%252240%2522%2520y%253D%252240%2522%2520width%253D%2522432%2522%2520height%253D%2522432%2522%2520rx%253D%252264%2522%2520fill%253D%2522none%2522%2520stroke%253D%2522%2523f2c94c%2522%2520stroke-width%253D%252216%2522%252F%253E%253Ctext%2520x%253D%2522256%2522%2520y%253D%2522360%2522%2520font-size%253D%2522300%2522%2520text-anchor%253D%2522middle%2522%2520fill%253D%2522%2523f2c94c%2522%2520font-family%253D%2522serif%2522%253EA%253C%252Ftext%253E%253C%252Fsvg%253E%22%2C%22sizes%22%3A%22any%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%2C%22purpose%22%3A%22any%20maskable%22%7D%5D%7D">
 <title>Poker Grid — Arcade Prototype</title>
 <link rel="stylesheet" href="css/style.css">
 <link rel="stylesheet" href="css/dance.css">
@@ -10,6 +19,10 @@
 <link rel="stylesheet" href="css/match3.css">
 <link rel="stylesheet" href="css/dominoes.css">
 <link rel="stylesheet" href="css/survival.css">
+<link rel="stylesheet" href="css/mart.css">
+<link rel="stylesheet" href="css/tooltip.css">
+<link rel="stylesheet" href="css/boss.css">
+<link rel="stylesheet" href="css/tutorial.css">
 </head>
 <body>
 <div id="knack-tooltip" role="tooltip"></div>
@@ -22,8 +35,13 @@
     <div id="menu-stripe"></div>
     <div id="menu-title">THE GAME</div>
     <div id="menu-tagline">A LETHE amusement product. Please continue<br>playing until further notice.</div>
-    <button id="menu-start-btn" onclick="openModeSelect()">PLAY</button>
+    <button id="menu-start-btn" onclick="maybeAutoFullscreen(); openModeSelect()">PLAY</button>
     <button id="menu-settings-btn" onclick="openSettingsFromMenu()">SETTINGS</button>
+    <button id="menu-fullscreen-btn" onclick="toggleFullscreen()" style="display:none;">⛶ FULLSCREEN</button>
+    <div id="ios-fullscreen-hint" style="display:none;">
+      On iPhone / iPad: tap the <strong>Share</strong> button, then <strong>“Add to Home Screen.”</strong>
+      Launch from that icon for bar-free fullscreen — it always loads the newest version.
+    </div>
     <div id="menu-build-stamp"></div>
   </div>
 </div>
@@ -36,8 +54,43 @@
   </div>
   <div id="dev-panel-body">
 
+  <!-- Group menu. The dev panel used to be one long scroll of every section at once;
+       now it lists groups and each opens as its own pop-up (devOpenGroup). -->
+  <div id="dev-group-menu"></div>
+
+  <!-- Sub-pop-up. The .dev-section divs below are NEVER moved or removed — every
+       one keeps its id because lots of code binds to them — devOpenGroup just shows
+       the sections whose data-group matches and hides the rest. -->
+  <div id="dev-group-pop">
+    <div id="dev-group-pop-bar">
+      <button id="dev-group-back" onclick="devCloseGroup()">&#9664; BACK</button>
+      <span id="dev-group-pop-title"></span>
+    </div>
+    <div id="dev-group-pop-body">
+
   <!-- TIME -->
-  <div class="dev-section">
+  <div class="dev-section" data-group="seed">
+    <div class="dev-section-title">Run Seed</div>
+    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);line-height:1.4;">
+      A seed makes a run reproducible — same seed, same deal, same shops, same reward grids
+      (as long as you play the same way). Visual effects stay random either way.
+      Seeds apply when a run <b>starts</b>.
+    </div>
+    <input id="dev-seed-input" type="text" placeholder="e.g. LETHE-4F2A — blank = random"
+      oninput="devSetSeed(this.value)"
+      style="width:100%;background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--cream);font-family:'Share Tech Mono',monospace;font-size:12px;padding:6px 8px;border-radius:4px;letter-spacing:1px;">
+    <div class="dev-row">
+      <button class="dev-btn" onclick="devRollSeed()">Random</button>
+      <button class="dev-btn" onclick="devClearSeed()">Clear</button>
+      <button class="dev-btn" onclick="devStartSeededRun()">Start Run</button>
+    </div>
+    <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--cream-dim);line-height:1.7;">
+      <div>this run: <span id="dev-seed-now" style="color:var(--gold);">— (unseeded)</span></div>
+      <div>next run: <span id="dev-seed-next" style="color:var(--gold);">— (unseeded)</span></div>
+    </div>
+  </div>
+
+  <div class="dev-section" data-group="time">
     <div class="dev-section-title">Time</div>
     <div class="dev-row">
       <button class="dev-btn" onclick="devAddTime(30)">+30s</button>
@@ -48,7 +101,7 @@
   </div>
 
   <!-- COINS -->
-  <div class="dev-section">
+  <div class="dev-section" data-group="coins">
     <div class="dev-section-title">Coins</div>
     <div class="dev-row">
       <button class="dev-btn" onclick="devAddCoins(10)">+10</button>
@@ -59,7 +112,7 @@
   </div>
 
   <!-- SCORE -->
-  <div class="dev-section">
+  <div class="dev-section" data-group="score">
     <div class="dev-section-title">Score</div>
     <div class="dev-row">
       <button class="dev-btn" onclick="devAddScore(100)">+100</button>
@@ -69,7 +122,7 @@
   </div>
 
   <!-- LEVEL -->
-  <div class="dev-section">
+  <div class="dev-section" data-group="score">
     <div class="dev-section-title">Level</div>
     <div class="dev-row">
       <button class="dev-btn" onclick="devSkipLevel()">Skip Level</button>
@@ -78,68 +131,145 @@
   </div>
 
   <!-- BOSS -->
-  <div class="dev-section">
+  <div class="dev-section" data-group="boss">
     <div class="dev-section-title">Boss</div>
-    <div class="dev-row">
-      <button class="dev-btn" onclick="devTriggerBoss('stone_lord')">Stone Lord</button>
-      <button class="dev-btn" onclick="devTriggerBoss('voidwright')">Voidwright</button>
-    </div>
-    <div class="dev-row">
-      <button class="dev-btn" onclick="devTriggerBoss('hand_of_famine')">Hand of Famine</button>
-      <button class="dev-btn" onclick="devTriggerBoss('cornerless_king')">Cornerless King</button>
-    </div>
+    <!-- rows generated from BOSS_PRESETS by devRenderBosses() -->
+    <div class="dev-row" style="flex-wrap:wrap;gap:4px;" id="dev-boss-btns"></div>
     <div class="dev-row">
       <button class="dev-btn" onclick="devEndBossWin()">End Boss (Win)</button>
       <button class="dev-btn" onclick="devEndBossLose()">End Boss (Lose)</button>
     </div>
     <div class="dev-row">
       <button class="dev-btn" onclick="devOpenRewardGrid()">Open Reward Grid</button>
+      <button class="dev-btn" onclick="devOpenShopGridPreview()">Shop-on-Grid Preview</button>
     </div>
   </div>
 
   <!-- EVENTS -->
-  <div class="dev-section">
+  <div class="dev-section" data-group="events">
     <div class="dev-section-title">Events</div>
     <div class="dev-row">
       <button class="dev-btn" onclick="devTriggerEvent('limit_break')">Limit Break</button>
       <button class="dev-btn" onclick="devTriggerEvent('shop')">Shop</button>
     </div>
-    <div class="dev-row">
-      <button class="dev-btn" onclick="devTriggerEvent('confluence')">Confluence</button>
-      <button class="dev-btn" onclick="devTriggerEvent('crossroads')">Crossroads</button>
-      <button class="dev-btn" onclick="devTriggerEvent('gamble')">Gamble</button>
-    </div>
-    <div class="dev-row">
-      <button class="dev-btn" onclick="devTriggerEvent('merchant')">Merchant</button>
-      <button class="dev-btn" onclick="devTriggerEvent('altar')">Altar</button>
-      <button class="dev-btn" onclick="devTriggerEvent('spring')">Spring</button>
-    </div>
-    <div class="dev-row">
-      <button class="dev-btn" onclick="devTriggerEvent('twin_path')">Twin Path</button>
-      <button class="dev-btn" onclick="devTriggerEvent('forge')">Forge</button>
-      <button class="dev-btn" onclick="devTriggerEvent('bargain')">Bargain</button>
-    </div>
-    <div class="dev-row">
-      <button class="dev-btn" onclick="devTriggerEvent('wager')">Wager</button>
-    </div>
+    <!-- node-event buttons generated from EVENT_META by devRenderEvents() -->
+    <div class="dev-row" style="flex-wrap:wrap;gap:4px;" id="dev-event-btns"></div>
+  </div>
+
+  <!-- LIMITS (was nested inside the Events section) -->
+  <div class="dev-section" data-group="limits">
+    <div class="dev-section-title">Limits</div>
     <div id="dev-limits-display" style="font-family:'Courier New',monospace;font-size:9px;color:var(--cream-dim);line-height:1.6;margin-top:4px;"></div>
     <div class="dev-row" style="flex-wrap:wrap;gap:4px;" id="dev-limits-btns"></div>
   </div>
 
   <!-- CARD FALL SPEED -->
-  <div class="dev-section">
+  <div class="dev-section" data-group="anim">
     <div class="dev-section-title">Card Fall Speed (interlude) <span id="dev-fall-val">1×</span></div>
     <input type="range" min="0.25" max="4" value="1" step="0.25" oninput="devSetFallSpeed(this.value)" style="width:100%;accent-color:var(--gold);">
   </div>
 
   <!-- ANIMATION SPEED -->
-  <div class="dev-section">
+  <div class="dev-section" data-group="anim">
     <div class="dev-section-title">Score Anim Speed <span id="dev-anim-val">5 t/s</span></div>
     <input type="range" min="1" max="100" value="5" step="1" oninput="devSetAnimSpeed(this.value)" style="width:100%;accent-color:var(--gold);">
   </div>
 
+  <!-- ITEM FLOAT (shop + reward grid) -->
+  <div class="dev-section" data-group="anim">
+    <div class="dev-section-title">Item Float — shop + reward grid</div>
+    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:4px;">
+      The barely-there drift on shop / reward tiles. Open the shop or a reward grid to see it live.
+    </div>
+    <div class="dev-slider-row"><span>Drift X <b id="dev-float-dx-val">1.5</b>px</span>
+      <input id="dev-float-dx" type="range" min="0" max="12" value="1.5" step="0.1" oninput="devSetFloat('dx', this.value)"></div>
+    <div class="dev-slider-row"><span>Drift Y <b id="dev-float-dy-val">2.5</b>px</span>
+      <input id="dev-float-dy" type="range" min="0" max="12" value="2.5" step="0.1" oninput="devSetFloat('dy', this.value)"></div>
+    <div class="dev-slider-row"><span>Rotation <b id="dev-float-rot-val">0.5</b>&deg;</span>
+      <input id="dev-float-rot" type="range" min="0" max="5" value="0.5" step="0.05" oninput="devSetFloat('rot', this.value)"></div>
+    <div class="dev-slider-row"><span>Period <b id="dev-float-per-val">6</b>s</span>
+      <input id="dev-float-per" type="range" min="1" max="20" value="6" step="0.5" oninput="devSetFloat('per', this.value)"></div>
+    <div class="dev-slider-row"><span>Scale pulse <b id="dev-float-sc-val">0</b>%</span>
+      <input id="dev-float-sc" type="range" min="0" max="8" value="0" step="0.1" oninput="devSetFloat('sc', this.value)"></div>
+    <div class="dev-row">
+      <button class="dev-btn" onclick="devResetFloat()">Reset to default</button>
+    </div>
+  </div>
+
+  <!-- GRID HEARTBEAT -->
+  <div class="dev-section" data-group="anim">
+    <div class="dev-section-title">Grid Heartbeat — play grid</div>
+    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:4px;">
+      A double thump (lub-dub) that starts at the left edge, middle row(s), and radiates outward.
+      Full tuner with a live grid: <b>heartbeat-preview.html</b>.
+    </div>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;">
+      <input id="dev-hb-enabled" type="checkbox" onchange="setHbEnabled(this.checked)" style="accent-color:var(--gold);">
+      Heartbeat on
+    </label>
+    <div class="dev-slider-row"><span>Drift X <b id="dev-hb-dx-val">1.5</b>px</span>
+      <input id="dev-hb-dx" type="range" min="0" max="12" value="1.5" step="0.1" oninput="devSetHb('dx', this.value)"></div>
+    <div class="dev-slider-row"><span>Lift Y <b id="dev-hb-dy-val">5</b>px</span>
+      <input id="dev-hb-dy" type="range" min="0" max="20" value="5" step="0.1" oninput="devSetHb('dy', this.value)"></div>
+    <div class="dev-slider-row"><span>Rotation <b id="dev-hb-rot-val">0.25</b>&deg;</span>
+      <input id="dev-hb-rot" type="range" min="0" max="5" value="0.25" step="0.05" oninput="devSetHb('rot', this.value)"></div>
+    <div class="dev-slider-row"><span>Scale pulse <b id="dev-hb-scale-val">3</b>%</span>
+      <input id="dev-hb-scale" type="range" min="0" max="10" value="3" step="0.1" oninput="devSetHb('scale', this.value)"></div>
+    <div class="dev-slider-row"><span>Every <b id="dev-hb-period-val">5</b>s</span>
+      <input id="dev-hb-period" type="range" min="1" max="15" value="5" step="0.5" oninput="devSetHb('period', this.value)"></div>
+    <div class="dev-slider-row"><span>Beat length <b id="dev-hb-beat-val">260</b>ms</span>
+      <input id="dev-hb-beat" type="range" min="80" max="700" value="260" step="10" oninput="devSetHb('beat', this.value)"></div>
+    <div class="dev-slider-row"><span>Lub&rarr;dub gap <b id="dev-hb-gap-val">190</b>ms</span>
+      <input id="dev-hb-gap" type="range" min="60" max="600" value="190" step="10" oninput="devSetHb('gap', this.value)"></div>
+    <div class="dev-slider-row"><span>2nd beat <b id="dev-hb-beat2-val">0.72</b>&times;</span>
+      <input id="dev-hb-beat2" type="range" min="0" max="1" value="0.72" step="0.02" oninput="devSetHb('beat2', this.value)"></div>
+    <div class="dev-slider-row"><span>Stagger / col <b id="dev-hb-colStagger-val">110</b>ms</span>
+      <input id="dev-hb-colStagger" type="range" min="0" max="400" value="110" step="5" oninput="devSetHb('colStagger', this.value)"></div>
+    <div class="dev-slider-row"><span>Stagger / row <b id="dev-hb-rowStagger-val">55</b>ms</span>
+      <input id="dev-hb-rowStagger" type="range" min="0" max="400" value="55" step="5" oninput="devSetHb('rowStagger', this.value)"></div>
+    <div class="dev-row">
+      <button class="dev-btn" onclick="devResetHb()">Reset to default</button>
+    </div>
+  </div>
+
+  <!-- CHANNEL CHANGE -->
+  <div class="dev-section" data-group="anim">
+    <div class="dev-section-title">Channel Change — screen transition</div>
+    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:4px;">
+      The CRT flick between screens (play &harr; Mart). Full tuner: <b>channel-change-preview.html</b>.
+    </div>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;">
+      <input id="dev-cc-enabled" type="checkbox" onchange="setCcEnabled(this.checked)" style="accent-color:var(--gold);">
+      Channel change on
+    </label>
+    <div class="dev-row">
+      <button class="dev-btn" onclick="devCcPreset('snap')">Snap</button>
+      <button class="dev-btn" onclick="devCcPreset('classic')">Classic</button>
+      <button class="dev-btn" onclick="devCcPreset('rough')">Rough</button>
+      <button class="dev-btn" onclick="devCcPreset('degauss')">Degauss</button>
+    </div>
+    <div class="dev-slider-row"><span>Duration <b id="dev-cc-dur-val">520</b>ms</span>
+      <input id="dev-cc-dur" type="range" min="120" max="1400" value="520" step="20" oninput="devSetCc('dur', this.value)"></div>
+    <div class="dev-slider-row"><span>Static <b id="dev-cc-static-val">0.6</b></span>
+      <input id="dev-cc-static" type="range" min="0" max="1" value="0.6" step="0.05" oninput="devSetCc('static', this.value)"></div>
+    <div class="dev-slider-row"><span>Roll <b id="dev-cc-roll-val">1</b>&times;</span>
+      <input id="dev-cc-roll" type="range" min="0" max="3" value="1" step="0.1" oninput="devSetCc('roll', this.value)"></div>
+    <div class="dev-slider-row"><span>Collapse <b id="dev-cc-collapse-val">1</b></span>
+      <input id="dev-cc-collapse" type="range" min="0" max="1" value="1" step="0.05" oninput="devSetCc('collapse', this.value)"></div>
+    <div class="dev-slider-row"><span>RGB split <b id="dev-cc-split-val">4</b>px</span>
+      <input id="dev-cc-split" type="range" min="0" max="16" value="4" step="0.5" oninput="devSetCc('split', this.value)"></div>
+    <div class="dev-slider-row"><span>Flash <b id="dev-cc-flash-val">0.6</b></span>
+      <input id="dev-cc-flash" type="range" min="0" max="1" value="0.6" step="0.05" oninput="devSetCc('flash', this.value)"></div>
+    <div class="dev-slider-row"><span>Black hold <b id="dev-cc-hold-val">90</b>ms</span>
+      <input id="dev-cc-hold" type="range" min="0" max="400" value="90" step="10" oninput="devSetCc('hold', this.value)"></div>
+    <div class="dev-row">
+      <button class="dev-btn" onclick="devCcTest()">Test transition</button>
+      <button class="dev-btn" onclick="devResetCc()">Reset preset</button>
+    </div>
+  </div>
+
   <!-- ADD TRICK -->
-  <div class="dev-section">
+  <div class="dev-section" data-group="tricks">
     <div class="dev-section-title">Add Trick</div>
     <input id="dev-trick-search" type="text" placeholder="Search trick name..." oninput="devFilterTricks(this.value)"
       style="width:100%;background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--cream);font-family:'Crimson Pro',serif;font-size:13px;padding:6px 8px;border-radius:4px;margin-bottom:6px;">
@@ -147,7 +277,7 @@
   </div>
 
   <!-- ADD KNACK -->
-  <div class="dev-section">
+  <div class="dev-section" data-group="knacks">
     <div class="dev-section-title">Add Knack</div>
     <input id="dev-knack-search" type="text" placeholder="Search knack name..." oninput="devFilterKnacks(this.value)"
       style="width:100%;background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--cream);font-family:'Crimson Pro',serif;font-size:13px;padding:6px 8px;border-radius:4px;margin-bottom:6px;">
@@ -155,7 +285,7 @@
   </div>
 
   <!-- ADD SLEIGHT -->
-  <div class="dev-section">
+  <div class="dev-section" data-group="sleights">
     <div class="dev-section-title">Add Sleight</div>
     <div class="dev-row" style="flex-wrap:wrap;gap:4px;">
       <!-- populated by JS -->
@@ -164,7 +294,7 @@
   </div>
 
   <!-- ADD FOCUS -->
-  <div class="dev-section">
+  <div class="dev-section" data-group="focus">
     <div class="dev-section-title">Add Focus</div>
     <div class="dev-row">
       <button class="dev-btn" onclick="devAddFocus(1)">+1</button>
@@ -175,19 +305,19 @@
   </div>
 
   <!-- FOCUS: DECAY INTERVAL -->
-  <div class="dev-section">
+  <div class="dev-section" data-group="focus">
     <div class="dev-section-title">Focus: Decay Interval <span id="dev-focus-decay-val">2.00s</span></div>
     <input id="dev-focus-decay-slider" type="range" min="0.1" max="15" value="2" step="0.25" oninput="devSetFocusDecay(this.value)" style="width:100%;accent-color:var(--gold);">
   </div>
 
   <!-- FOCUS: BEAT DURATION -->
-  <div class="dev-section">
+  <div class="dev-section" data-group="focus">
     <div class="dev-section-title">Focus: Beat Duration <span id="dev-focus-beat-val">300ms</span></div>
     <input id="dev-focus-beat-slider" type="range" min="100" max="2000" value="300" step="50" oninput="devSetFocusBeat(this.value)" style="width:100%;accent-color:var(--gold);">
   </div>
 
   <!-- FOCUS: SPEED BONUS FORMULA -->
-  <div class="dev-section">
+  <div class="dev-section" data-group="focus">
     <div class="dev-section-title">Focus: Speed Bonus Formula</div>
     <select id="dev-focus-speed-select" onchange="devSetFocusSpeedFormula(this.value)"
       style="width:100%;background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--cream);font-family:'Crimson Pro',serif;font-size:13px;padding:5px 6px;border-radius:4px;">
@@ -200,7 +330,7 @@
   </div>
 
   <!-- HUD TOGGLES -->
-  <div class="dev-section">
+  <div class="dev-section" data-group="hud">
     <div class="dev-section-title">HUD</div>
     <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;">
       <input id="dev-deck-hud-toggle" type="checkbox" onchange="toggleDeckHud(this.checked)" style="accent-color:var(--gold);">
@@ -224,7 +354,20 @@
     </label>
   </div>
 
-  <div class="dev-section">
+  <!-- DISPLAY (fullscreen — usable mid-run since Settings = this panel) -->
+  <div class="dev-section" data-group="display">
+    <div class="dev-section-title">Display</div>
+    <button class="dev-btn" id="dev-fullscreen-btn" onclick="toggleFullscreen(); devSyncFullscreen();">Enter Fullscreen</button>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;margin-top:8px;">
+      <input id="dev-autofs-toggle" type="checkbox" onchange="setAutoFullscreenPref(this.checked)" style="accent-color:var(--gold);">
+      Auto-fullscreen when a run starts
+    </label>
+    <div id="dev-fs-note" style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-top:6px;">
+      On iPhone / iPad, use the browser Share menu → “Add to Home Screen” for fullscreen instead.
+    </div>
+  </div>
+
+  <div class="dev-section" data-group="match3">
     <div class="dev-section-title">Match-3 Mode</div>
     <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:-2px;">Match types — turn one off to remove it from detection entirely.</div>
     <div style="display:flex;gap:14px;flex-wrap:wrap;">
@@ -255,7 +398,7 @@
     </label>
   </div>
 
-  <div class="dev-section">
+  <div class="dev-section" data-group="log">
     <div class="dev-section-title">Event Log <span id="dev-log-count" style="color:var(--cream-dim);">(0)</span></div>
     <div id="dev-event-log">No events yet.</div>
     <div style="display:flex;align-items:center;gap:8px;margin-top:2px;">
@@ -268,8 +411,31 @@
       <button id="dev-log-clear" onclick="devLogClear()">Clear</button>
     </div>
   </div>
+    </div><!-- /#dev-group-pop-body -->
+  </div><!-- /#dev-group-pop -->
   </div><!-- /#dev-panel-body -->
 </div>
+
+<!-- Interaction pop-ups (⏱ Time · ▲ Limits). These live OUTSIDE #cabinet on purpose:
+     they are position:fixed and placed from JS in raw viewport pixels, and inside the
+     cabinet the CSS `zoom` multiplied those coordinates and pushed them off-screen. -->
+  <div id="interact-costs" class="time-popup" style="display:none">
+    <div class="ic-h">Interact Cost</div>
+    <div class="ic-r"><span>Play</span><span id="ic-play">0s</span></div>
+    <div class="ic-r"><span>Discard</span><span id="ic-discard">3s</span></div>
+    <div class="ic-r"><span>Swap</span><span id="ic-swap">4s</span></div>
+    <div class="ic-sep"></div>
+    <div class="ic-r"><span>Max Time</span><span id="ic-maxtime">3:00</span></div>
+    <div class="ic-r"><span>Paused</span><span id="ic-paused">0×</span></div>
+    <div class="ic-r"><span>Rewound</span><span id="ic-rewound">0×</span></div>
+  </div>
+
+  <div id="limits-popup" class="time-popup" style="display:none">
+    <div class="ic-h">Operating Limits</div>
+    <div id="limits-popup-rows"></div>
+    <div class="ic-sep"></div>
+    <div class="lp-foot">Raise these in the Mart, or with a Limit Break.</div>
+  </div>
 
 <div id="mode-select-overlay">
   <div id="mode-select-inner">
@@ -282,6 +448,22 @@
     </div>
     <button id="mode-back-btn" onclick="closeModeSelect()">◄ BACK</button>
   </div>
+</div>
+
+<!-- STATS / DECK OVERLAYS — deliberately OUTSIDE #stage (same reason as #dev-panel).
+     Inside the stage their z-index was trapped in the cabinet's stacking context, so the
+     Mart shop overlay (a body-level z-index:250) painted over them and swallowed the
+     Close button's clicks; they also inherited the stage's CSS zoom. -->
+<div id="stats-overlay">
+  <div class="overlay-title">GAME STATS</div>
+  <div id="stats-content"></div>
+  <button class="overlay-close">Close</button>
+</div>
+
+<div id="deck-overlay">
+  <div class="overlay-title">YOUR DECK</div>
+  <div id="deck-content"></div>
+  <button class="overlay-close">Close</button>
 </div>
 
 <div id="cabinet">
@@ -352,6 +534,9 @@
             <div class="subbox-label">FOCUS</div>
             <div class="subbox-val" id="focus-val">×1</div>
           </div>
+          <!-- Location readout: replaces the pips/mult/focus chips on grid-takeover
+               screens (Rewards / Shop / Event) to show WHERE you are. -->
+          <div id="screen-location"><span class="loc-tag">LOCATION</span><span class="loc-name">—</span></div>
         </div>
         <!-- Center: current score (dance overlay covers this) -->
         <div id="score-center">
@@ -424,6 +609,7 @@
     <button class="act-btn btn-secondary" id="btn-stats">📊 Stats</button>
     <button class="act-btn btn-secondary" id="btn-deck">🃏 Deck</button>
     <button class="act-btn btn-secondary" id="btn-time">⏱ Time</button>
+    <button class="act-btn btn-secondary" id="btn-limits">▲ Limits</button>
     <button class="act-btn btn-secondary" id="btn-pause">⏸ Pause</button>
   </div>
 
@@ -432,6 +618,8 @@
   <div id="run-progress" class="v7-ls">
     <div class="rp-act">ACT 1</div>
     <div class="rp-nodes"><span></span><span></span><span></span><span></span><span></span><span class="boss">&#9760;</span></div>
+    <!-- On a boss round the node pips collapse into this single mark (see css/boss.css) -->
+    <div class="rp-sigil">&#9760;</div>
   </div>
   <div id="coin-info" class="v7-ls">
     <div class="ci-main">&#128176;<b id="ci-gold">0</b></div>
@@ -439,13 +627,8 @@
     <div class="ci-row"><span>Cash out</span><span id="ci-cashout">+0</span></div>
     <button id="ci-shop-btn" class="survival-shop-btn" onclick="survivalOpenShop()" title="Open shop (5 coins)">🛒 SHOP — 5 💰</button>
   </div>
-  <!-- Time-cost breakdown: a pop-up toggled by the ⏱ Time button (no longer a permanent chip) -->
-  <div id="interact-costs" class="time-popup" style="display:none">
-    <div class="ic-h">Time Cost</div>
-    <div class="ic-r"><span>Play</span><span id="ic-play">0s</span></div>
-    <div class="ic-r"><span>Discard</span><span>3s</span></div>
-    <div class="ic-r"><span>Swap</span><span>4s</span></div>
-  </div>
+  <!-- The ⏱ Time and ▲ Limits pop-ups used to live here; they now sit outside
+       #cabinet (next to #dev-panel) so the stage's CSS zoom can't displace them. -->
 
   <!-- Hidden elements still needed by render() -->
   <div style="display:none">
@@ -492,19 +675,7 @@
 
 
 
-<!-- STATS OVERLAY -->
-<div id="stats-overlay">
-  <div class="overlay-title">GAME STATS</div>
-  <div id="stats-content"></div>
-  <button class="overlay-close" onclick="document.getElementById('stats-overlay').classList.remove('show')">Close</button>
-</div>
-
-<!-- DECK OVERLAY -->
-<div id="deck-overlay">
-  <div class="overlay-title">YOUR DECK</div>
-  <div id="deck-content"></div>
-  <button class="overlay-close" onclick="document.getElementById('deck-overlay').classList.remove('show')">Close</button>
-</div>
+<!-- STATS + DECK OVERLAYS live outside #stage — see the block just before #cabinet -->
 
 <!-- HAND UNLOCK OVERLAY -->
 <div id="unlock-overlay">
@@ -688,6 +859,7 @@
 </div>
 
 
+<script src="js/seed.js"></script>
 <script src="js/menu.js"></script>
 <script src="js/devlog.js"></script>
 <script src="js/grid-metrics.js"></script>
@@ -695,6 +867,12 @@
 <script src="js/data/dominoes.js"></script>
 <script src="js/data/tricks.js"></script>
 <script src="js/focus-config.js"></script>
+<script src="js/fit-text.js"></script>
+<script src="js/keywords.js"></script>
+<script src="js/entity-tooltip.js"></script>
+<script src="js/float-anim.js"></script>
+<script src="js/heartbeat.js"></script>
+<script src="js/channel-change.js"></script>
 <script src="js/limits.js"></script>
 <script src="js/data/knacks.js"></script>
 <script src="js/data/sleights.js"></script>
@@ -715,6 +893,7 @@
 <script src="js/round-timers.js"></script>
 <script src="js/data/bosses.js"></script>
 <script src="js/boss.js"></script>
+<script src="js/boss-effects.js"></script>
 <script src="js/reward-grid.js"></script>
 <script src="js/limit-break.js"></script>
 <script src="js/sleights-runtime.js"></script>
@@ -724,6 +903,9 @@
 <script src="js/level-up.js"></script>
 <script src="js/tricks-ui.js"></script>
 <script src="js/shop.js"></script>
+<script src="js/shop-grid-preview.js"></script>
+<script src="js/mart-shop.js"></script>
+<script src="js/wheel.js"></script>
 <script src="js/hands-meta.js"></script>
 <script src="js/stats.js"></script>
 <script src="js/deck-view.js"></script>
@@ -733,6 +915,7 @@
 <script src="js/audio.js"></script>
 <script src="js/match3.js"></script>
 <script src="js/survival.js"></script>
+<script src="js/tutorial.js"></script>
 <script src="js/dev-panel.js"></script>
 <script src="js/bootstrap.js"></script>
 </div><!-- /#stage -->

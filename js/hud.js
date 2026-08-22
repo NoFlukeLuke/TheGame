@@ -163,20 +163,10 @@ function showKnackTooltip(chip, id) {
     e.stopPropagation();
     sellKnack(knack);
   });
-  // Position above the chip, centered horizontally
-  const rect = chip.getBoundingClientRect();
+  // Opens into whichever side of the chip has the most room (was hardcoded to
+  // above). One frame's wait so the bubble has been laid out and can be measured.
   tt.classList.add('show');
-  // Need to wait one frame for layout
-  requestAnimationFrame(() => {
-    const ttRect = tt.getBoundingClientRect();
-    let left = rect.left + rect.width / 2 - ttRect.width / 2;
-    let top = rect.top - ttRect.height - 8;
-    // Clamp to viewport
-    left = Math.max(6, Math.min(window.innerWidth - ttRect.width - 6, left));
-    if (top < 6) top = rect.bottom + 8;
-    tt.style.left = left + 'px';
-    tt.style.top = top + 'px';
-  });
+  requestAnimationFrame(() => placeTipSmart(chip, tt, { gap: 8 }));
 }
 function hideKnackTooltip() {
   const tt = document.getElementById('knack-tooltip');

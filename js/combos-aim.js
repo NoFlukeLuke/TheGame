@@ -122,6 +122,8 @@ let pendingCardPips = 0;   // Second Hand: +5 pips per minute mark passed
 let pausedSecondsRound = 0;   // total seconds the clock has spent paused this round (Albatross)
 let rewoundSecondsRound = 0;  // total seconds rewound (given back) this round (Kingfisher)
 let pauseInstanceGame = 0;    // PER GAME: number of clock pauses triggered (Hummingbird); reset only at newGame
+let pausesThisRound = 0;      // PER ROUND: how many times the clock has been paused (time popup)
+let rewindsThisRound = 0;     // PER ROUND: how many times the clock has been rewound (time popup)
 let retriggersThisRound = 0;  // count of card retriggers in scored hands this round (Cuckoo's pause length)
 let _lastHandRetrigs = 0;     // extra retriggers in the most recent calcScore of a real hand (read in playHand)
 let cuckooNextMinute = 0;     // next roundStartSeconds-roundSeconds threshold for Cuckoo's pause
@@ -154,7 +156,10 @@ function achievableHandTypes() {
 let resilience = false; // once per game second chance
 let resilienceUsed = false;
 let firstHandThisRound = true;
-let freeSwapsLeft    = 2;   // free (no time cost) swaps remaining this round
+// DEAD as of r151 — the "first 2 swaps of a round are free" exemption was part of
+// the old double-charge tangle and contradicted the flat 8s the UI now quotes.
+// Still reset each round so restoring it is a one-line change in doSwap.
+let freeSwapsLeft    = 2;
 let freeDiscardsLeft = 2;   // free (no time cost) discards remaining this round
 let levelupTimer = null;
 let levelupSeconds = 0;

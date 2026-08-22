@@ -158,7 +158,8 @@ function generateHandFocus(hand, handCells, vultureSec) {
 function playHand() {
   // Dominoes mode has its own play flow.
   if (typeof ACTIVE_MODE !== 'undefined' && ACTIVE_MODE.id === 'dominoes') { dominoPlay(); return; }
-  // During the on-grid reward step the Play button is the green CONFIRM button.
+  // On grid-takeover screens the Play button is repurposed: BUY (shop) / CONFIRM (reward).
+  if (typeof shopGridActive !== 'undefined' && shopGridActive) { shopGridBuySelection(); return; }
   if (rewardOnGrid) { confirmRewardPath(); return; }
   // Match-3: the board plays its own matches (match3Resolve). Manual play is off.
   if (match3Active()) { dbgEvent('info', 'play ignored (match-3 auto-plays)'); return; }
@@ -293,10 +294,14 @@ function playHand() {
     if (_hasHeart && _hasDia) { coins += BAL.monochrome.coins; updateCoinsUI(); roundSeconds += BAL.monochrome.seconds; updateClockUI(); showMessage('Blood Diamonds! +' + BAL.monochrome.coins + ' coin, +' + BAL.monochrome.seconds + 's', '#c0353e'); }
   }
 
-  // ── Playing a hand no longer costs time (owner request). ──
-  // Previously each manual play cost 5s + any reward-grid time penalties; that drain is removed.
-  // (playHandCostThisRound from reward-grid debuffs is now inert — left in place so those events
-  //  still parse, but hands are free to play.)
+  // ── Playing a hand is free by default (owner request, r50) — base cost is 0. ──
+  // BUT a reward-grid "Hands +Ns" debuff sets playHandCostThisRound > 0; when it does,
+  // that penalty is now live (owner: "make sure that debuff works"). No debuff → 0 → free.
+  if (playHandCostThisRound > 0) {
+    roundSeconds = Math.max(1, roundSeconds - playHandCostThisRound);
+    if (typeof showTimeCost === 'function') showTimeCost(`-${playHandCostThisRound}s`);
+    updateClockUI();
+  }
 
   // Streak tracking
   const now = Date.now();

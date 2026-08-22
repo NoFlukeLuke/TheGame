@@ -107,7 +107,14 @@ const BAL = {
   more_better:   { mult: 4, min_tiles: 3 },
   rain_check:    { seconds: 30 },
   temporal_rift: { pause: 3 },
-  reward_skip:   { gold: 15 },   // baseline gold for skipping a reward grid (placeholder)
+  // Spin-the-wheel (Mart special). default_sell is the fallback payout when a prize
+  // has no sell price of its own and there's no room for it.
+  wheel:         { cost: 20, slots: 10, jackpot_coins: 25, default_sell: 15 },
+  shop_discount: { per_item: 5, bulk_per_item: 10 },  // bundle discount % per ADDITIONAL item; cap = rate × Selection Size
+  reward_skip:   { gold: 20 },   // gold paid for skipping the whole reward grid (shown on the SKIP button)
+  wild_side:     { mult_per: 3 },       // +mult per negative reward tile taken this run
+  wait_for_it:   { chance_per: 0.02 },  // +replay chance per negative reward tile taken this run
+  greedy_boi:    { selection: 2 },      // +reward-grid selection size (knack)
   huddle:        { pips_per_adj: 11 },
   combo_score: { mult_per_type: 2 },
   heart_double: { heart_mult: 1 },
@@ -186,7 +193,7 @@ const BAL = {
   carry_discards: { max: 8 },
   carry_time: { max_seconds: 60 },
   // ── system: base resource time costs ──
-  _resources: { swap_seconds: 10, discard_seconds_per_card: 3 },
+  _resources: { swap_seconds: 8, discard_seconds_per_card: 3 },   // play is free by default
   _exalt: { club_pips: 10, diamond_coins: 3, heart_mult: 2, spade_time: 4 },
   _corrupt: { club_pips: 25, club_mult: -3, diamond_coins: 5, diamond_pips: -20, heart_mult: 5, heart_time: -5, spade_time: 7, spade_coins: -8 },
 };

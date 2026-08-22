@@ -111,7 +111,134 @@ function openDevPanel() {
   devFilterKnacks('');
   devRenderLimits();
   devRenderSleights();
+  devRenderBosses();
+  devRenderEvents();
+  devRenderGroupMenu();
+  devSyncFloatSliders();
+  devSyncHbSliders();
+  devSyncCcSliders();
+  devSyncFullscreen();
+  devCloseGroup();          // always land on the group menu, not the last group opened
   stopTimers();
+}
+
+// ── Group menu / sub-pop-ups ─────────────────────────────────────────────────
+// The panel used to render every section at once in one long scroll. Now it opens
+// on a menu of groups and each group is its own pop-up. The .dev-section elements
+// are never moved — they all keep their ids (plenty of code binds to them) and are
+// simply shown or hidden by data-group.
+const DEV_GROUPS = [
+  { g:'tricks',   icon:'✦', label:'Tricks',    sub:() => `${TRICK_POOL.length} in pool` },
+  { g:'sleights', icon:'▶', label:'Sleights',  sub:() => `${SLEIGHT_POOL.length} in pool` },
+  { g:'knacks',   icon:'♦', label:'Knacks',    sub:() => `${KNACK_POOL.length} in pool` },
+  { g:'limits',   icon:'▲', label:'Limits',    sub:() => `${LIMITS_DEF.length} upgradeable` },
+  { g:'events',   icon:'✧', label:'Events',    sub:() => `${Object.keys(EVENT_META).length} + shop / limit break` },
+  { g:'boss',     icon:'☠', label:'Bosses',    sub:() => `${BOSS_PRESETS.length} presets` },
+  { g:'anim',     icon:'✺', label:'Animation', sub:() => 'fall · score · item float' },
+  { g:'focus',    icon:'◎', label:'Focus',     sub:() => 'meter · decay · speed bonus' },
+  { g:'time',     icon:'⏱', label:'Time',      sub:() => 'add / set round seconds' },
+  { g:'coins',    icon:'💰', label:'Coins',    sub:() => 'add / zero credits' },
+  { g:'score',    icon:'#', label:'Score',     sub:() => 'add score · win · skip level' },
+  { g:'hud',      icon:'▤', label:'HUD',       sub:() => 'toggles · scoring dance' },
+  { g:'display',  icon:'⛶', label:'Display',   sub:() => 'fullscreen' },
+  { g:'seed',     icon:'⚄', label:'Run Seed',  sub:() => runSeed ? `on · ${runSeed}` : 'off · random' },
+  { g:'match3',   icon:'⬚', label:'Match-3',   sub:() => 'match types · sandbox' },
+  { g:'log',      icon:'✎', label:'Event Log', sub:() => 'in-game debug log' },
+];
+function devRenderGroupMenu() {
+  const el = document.getElementById('dev-group-menu'); if (!el) return;
+  el.innerHTML = DEV_GROUPS.map(d => {
+    let sub = ''; try { sub = d.sub(); } catch (e) {}
+    return `<button class="dev-group-btn" onclick="devOpenGroup('${d.g}')">
+      <span class="dg-icon">${d.icon}</span>
+      <span class="dg-label">${d.label}</span>
+      <span class="dg-sub">${sub}</span>
+    </button>`;
+  }).join('');
+}
+function devOpenGroup(g) {
+  const def = DEV_GROUPS.find(d => d.g === g);
+  document.getElementById('dev-group-menu').style.display = 'none';
+  document.getElementById('dev-group-pop').style.display = 'flex';
+  document.getElementById('dev-group-pop-title').textContent = def ? def.label : g;
+  document.querySelectorAll('#dev-group-pop-body .dev-section').forEach(sec => {
+    sec.style.display = sec.dataset.group === g ? '' : 'none';
+  });
+  document.getElementById('dev-group-pop-body').scrollTop = 0;
+  if (g === 'seed') devRefreshSeed();
+}
+function devCloseGroup() {
+  document.getElementById('dev-group-menu').style.display = '';
+  document.getElementById('dev-group-pop').style.display = 'none';
+}
+
+// Boss + event buttons are generated from the data files, so a newly added preset
+// or event shows up in the panel automatically (the_hollow was missing before).
+function devRenderBosses() {
+  const el = document.getElementById('dev-boss-btns'); if (!el) return;
+  el.innerHTML = BOSS_PRESETS.map(b =>
+    `<button class="dev-btn" onclick="devTriggerBoss('${b.id}')">${b.name || b.id}</button>`).join('');
+}
+function devRenderEvents() {
+  const el = document.getElementById('dev-event-btns'); if (!el) return;
+  el.innerHTML = Object.keys(EVENT_META).map(id =>
+    `<button class="dev-btn" onclick="devTriggerEvent('${id}')">${EVENT_META[id].name}</button>`).join('');
+}
+
+// ── Item float sliders (FLOAT_CFG lives in js/float-anim.js) ──
+function devSetFloat(k, v) {
+  setFloatParam(k, v);
+  const lab = document.getElementById('dev-float-' + k + '-val');
+  if (lab) lab.textContent = (+v).toString();
+}
+function devResetFloat() { resetFloatCfg(); devSyncFloatSliders(); }
+
+// ── Grid heartbeat sliders (HB_CFG lives in js/heartbeat.js) ──
+const HB_KEYS = ['dx','dy','rot','scale','period','beat','gap','beat2','colStagger','rowStagger'];
+function devSetHb(k, v) {
+  setHbParam(k, v);
+  const lab = document.getElementById('dev-hb-' + k + '-val');
+  if (lab) lab.textContent = (+v).toString();
+}
+function devResetHb() { resetHbCfg(); devSyncHbSliders(); }
+
+// ── Channel-change sliders (CC_CFG lives in js/channel-change.js) ──
+const CC_KEYS = ['dur','static','roll','collapse','split','flash','hold'];
+function devSetCc(k, v) {
+  setCcParam(k, v);
+  const lab = document.getElementById('dev-cc-' + k + '-val');
+  if (lab) lab.textContent = (+v).toString();
+}
+function devCcPreset(name) { setCcPreset(name); devSyncCcSliders(); devCcTest(); }
+function devResetCc() { resetCcCfg(); devSyncCcSliders(); }
+function devCcTest() { channelChange(() => {}, { channel: 'TEST' }); }
+function devSyncCcSliders() {
+  const on = document.getElementById('dev-cc-enabled');
+  if (on) on.checked = ccEnabled;
+  CC_KEYS.forEach(k => {
+    const sl = document.getElementById('dev-cc-' + k);
+    const lab = document.getElementById('dev-cc-' + k + '-val');
+    if (sl)  sl.value = CC_CFG[k];
+    if (lab) lab.textContent = CC_CFG[k].toString();
+  });
+}
+function devSyncHbSliders() {
+  const on = document.getElementById('dev-hb-enabled');
+  if (on) on.checked = hbEnabled;
+  HB_KEYS.forEach(k => {
+    const sl = document.getElementById('dev-hb-' + k);
+    const lab = document.getElementById('dev-hb-' + k + '-val');
+    if (sl)  sl.value = HB_CFG[k];
+    if (lab) lab.textContent = HB_CFG[k].toString();
+  });
+}
+function devSyncFloatSliders() {
+  ['dx','dy','rot','per','sc'].forEach(k => {
+    const sl = document.getElementById('dev-float-' + k);
+    const lab = document.getElementById('dev-float-' + k + '-val');
+    if (sl)  sl.value = FLOAT_CFG[k];
+    if (lab) lab.textContent = FLOAT_CFG[k].toString();
+  });
 }
 
 function closeDevPanel() {
@@ -176,6 +303,10 @@ function devOpenRewardGrid() {
   rewardGridContext = 'boss'; // dev open = mid-round, just resume the round when closed
   openRewardGrid();
 }
+function devOpenShopGridPreview() {
+  closeDevPanel();
+  openShopGridPreview();
+}
 
 function devTriggerEvent(eventId) {
   closeDevPanel();
@@ -185,9 +316,8 @@ function devTriggerEvent(eventId) {
     document.getElementById('shop-overlay').classList.add('show');
     renderShop();
   } else {
-    // All node events
-    const nodeEvents = ['confluence','crossroads','gamble','merchant','altar','spring','twin_path','forge','bargain','wager'];
-    if (nodeEvents.includes(eventId)) {
+    // Any node event in the registry (was a hardcoded list that could drift)
+    if (EVENT_META[eventId]) {
       afterEventFn = () => {};
       activeEventId = eventId;
       eventState = {};
@@ -375,3 +505,37 @@ function devAddSleight(id) {
 
 // ── End of dev mode ──
 
+
+
+// ── Run seed (dev panel → Run Seed) ──────────────────────────────────────────
+// The seed is CONSUMED BY startGame, so setting one here only affects the next
+// run — the current run's stream is already running. See js/seed.js.
+function devSetSeed(v) {
+  setPendingRunSeed(v.trim());
+  devRefreshSeed();
+}
+function devRollSeed() {
+  const v = randomSeedString();
+  const el = document.getElementById('dev-seed-input');
+  if (el) el.value = v;
+  setPendingRunSeed(v);
+  devRefreshSeed();
+}
+function devClearSeed() {
+  const el = document.getElementById('dev-seed-input');
+  if (el) el.value = '';
+  setPendingRunSeed(null);
+  devRefreshSeed();
+}
+function devRefreshSeed() {
+  const now = document.getElementById('dev-seed-now');
+  const nxt = document.getElementById('dev-seed-next');
+  if (now) now.textContent = runSeed ? runSeed : '— (unseeded)';
+  if (nxt) nxt.textContent = pendingRunSeed ? pendingRunSeed : '— (unseeded)';
+}
+function devStartSeededRun() {
+  const el = document.getElementById('dev-seed-input');
+  if (el) setPendingRunSeed(el.value.trim());
+  closeDevPanel();
+  startGame();
+}

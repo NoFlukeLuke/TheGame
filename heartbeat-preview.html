@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Grid Heartbeat Tuner</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --plastic:#e4dccb; --plastic-hi:#f7f2e6; --plastic-lo:#b7ac93; --plastic-deep:#85795f;
+    --c-cyan:#16c8d8; --c-magenta:#ff2f8e; --c-yellow:#ffce2b; --c-mint:#35d59b;
+    --phosphor:#ffb02e; --cream:#f4ecd6; --cream-dim:#b7a684;
+    --card-bg:#f7f2e6; --card-border:#c9bfa5;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:#0d0a06;font-family:'Orbitron',sans-serif;color:var(--cream);min-height:100vh;
+    display:flex;flex-direction:column;align-items:center;gap:14px;padding:20px;}
+  h1{font-size:17px;letter-spacing:4px;color:var(--phosphor);text-shadow:0 0 12px rgba(255,176,46,.5);}
+  .sub{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--cream-dim);margin-top:-6px;text-align:center;line-height:1.6;max-width:760px;}
+
+  .stage{width:760px;max-width:96vw;min-height:330px;border-radius:12px;position:relative;padding:26px;
+    background:radial-gradient(ellipse at 50% 30%,#211a0c,#0d0a06 80%);
+    box-shadow:inset 0 0 60px rgba(0,0,0,.8),inset 0 0 0 2px #2a2416;
+    display:flex;align-items:center;justify-content:center;overflow:hidden;}
+  .stage::after{content:'';position:absolute;inset:0;pointer-events:none;
+    background:repeating-linear-gradient(0deg,rgba(0,0,0,.14) 0 1px,transparent 1px 3px);mix-blend-mode:overlay;}
+
+  #grid{display:grid;gap:8px;position:relative;z-index:2;}
+  /* The card composes the heartbeat exactly the way the real game does — the
+     driver publishes --hbx/--hby/--hbr/--hbs and CSS folds them into transform. */
+  .card{width:56px;height:74px;border-radius:5px;background:var(--card-bg);border:2px solid var(--card-border);
+    display:flex;align-items:center;justify-content:center;font-family:'Share Tech Mono',monospace;
+    font-size:17px;font-weight:700;color:#1a1510;
+    transform:translate(var(--hbx,0),var(--hby,0)) rotate(var(--hbr,0deg)) scale(var(--hbs,1));}
+  .card.red{color:#b8323f;}
+  /* the origin row(s) — the left-edge cells the wave starts from */
+  .card.origin{box-shadow:0 0 0 2px var(--c-mint),0 0 14px -2px var(--c-mint);}
+  .card.origin.lead{box-shadow:0 0 0 2px var(--phosphor),0 0 18px -1px var(--phosphor);}
+
+  .panel{width:760px;max-width:96vw;display:grid;grid-template-columns:repeat(auto-fit,minmax(232px,1fr));gap:8px 18px;
+    background:rgba(255,255,255,.03);border:1px solid #2a2416;border-radius:10px;padding:14px 16px;}
+  .row{display:flex;align-items:center;gap:9px;}
+  .row label{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--cream-dim);min-width:104px;}
+  .row b{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--phosphor);min-width:44px;text-align:right;}
+  .row input[type=range]{flex:1;accent-color:var(--phosphor);}
+  .btns{width:760px;max-width:96vw;display:flex;gap:10px;flex-wrap:wrap;justify-content:center;}
+  button{font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:1.5px;padding:8px 14px;border-radius:6px;
+    background:rgba(255,176,46,.1);border:1px solid #5a4a12;color:var(--phosphor);cursor:pointer;}
+  button:hover{background:rgba(255,176,46,.2);}
+  button.alt{color:var(--c-cyan);border-color:#16606a;background:rgba(22,200,216,.08);}
+  #readout{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--c-mint);text-align:center;line-height:1.7;}
+  #css-out{width:760px;max-width:96vw;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--cream-dim);
+    background:#070f0c;border:1px solid #1c3a30;border-radius:8px;padding:10px 12px;white-space:pre;overflow-x:auto;}
+</style>
+</head>
+<body>
+
+<h1>GRID HEARTBEAT</h1>
+<div class="sub">
+  Every few seconds the board gives a double thump — <b>lub-dub</b>. It starts at the <b>left edge, middle row(s)</b>
+  and radiates outward, so a wavefront crosses the grid.<br>
+  Gold ring = the very first card to fire · mint ring = the rest of the origin row(s).
+</div>
+
+<div class="stage"><div id="grid"></div></div>
+
+<div class="panel" id="panel"></div>
+
+<div class="btns">
+  <button onclick="pulseNow()">PULSE NOW</button>
+  <button class="alt" onclick="setRows(-1)">− ROW</button>
+  <button class="alt" onclick="setRows(1)">+ ROW</button>
+  <button class="alt" onclick="setCols(-1)">− COL</button>
+  <button class="alt" onclick="setCols(1)">+ COL</button>
+  <button onclick="resetAll()">RESET</button>
+</div>
+
+<div id="readout"></div>
+<div id="css-out"></div>
+
+<script>
+// ── the same maths as js/heartbeat.js, kept standalone so this page opens on its own ──
+const DEFAULTS = {
+  dx:1.5, dy:5, rot:0.25, scale:3,
+  period:5, beat:260, gap:190, beat2:0.72,
+  colStagger:110, rowStagger:55,
+};
+let CFG = {...DEFAULTS};
+let rows = 4, cols = 4;
+
+const PARAMS = [
+  ['dx',        'Drift X',      0, 12,  0.1, 'px'],
+  ['dy',        'Lift Y',       0, 20,  0.1, 'px'],
+  ['rot',       'Rotation',     0,  5,  0.05, '°'],
+  ['scale',     'Scale pulse',  0, 10,  0.1, '%'],
+  ['period',    'Every',        1, 15,  0.5, 's'],
+  ['beat',      'Beat length', 80, 700,  10, 'ms'],
+  ['gap',       'Lub→dub gap', 60, 600,  10, 'ms'],
+  ['beat2',     '2nd beat',     0,  1, 0.02, '×'],
+  ['colStagger','Stagger / col',0, 400,   5, 'ms'],
+  ['rowStagger','Stagger / row',0, 400,   5, 'ms'],
+];
+
+function buildPanel() {
+  document.getElementById('panel').innerHTML = PARAMS.map(([k,label,min,max,step,unit]) =>
+    `<div class="row"><label>${label}</label>
+       <input type="range" min="${min}" max="${max}" step="${step}" value="${CFG[k]}"
+              oninput="CFG['${k}']=+this.value; document.getElementById('v-${k}').textContent=this.value+'${unit}'; refresh();">
+       <b id="v-${k}">${CFG[k]}${unit}</b></div>`).join('');
+}
+
+function rowDist(r, n) {
+  if (n % 2) return Math.abs(r - (n - 1) / 2);
+  return Math.min(Math.abs(r - (n / 2 - 1)), Math.abs(r - n / 2));
+}
+function envelope(ms) {
+  if (ms < 0 || ms > CFG.beat) return 0;
+  return Math.sin(Math.PI * (ms / CFG.beat));
+}
+function amplitude(t, delay) {
+  return Math.max(envelope(t - delay), envelope(t - delay - CFG.gap) * CFG.beat2);
+}
+
+const RANKS = ['A','K','Q','J','10','9','8','7','6','5','4','3','2'];
+const SUITS = ['♠','♥','♦','♣'];
+function buildGrid() {
+  const g = document.getElementById('grid');
+  g.style.gridTemplateColumns = `repeat(${cols}, 56px)`;
+  g.innerHTML = '';
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+    const d = document.createElement('div');
+    const suit = SUITS[(r + c) % 4];
+    d.className = 'card' + ('♥♦'.includes(suit) ? ' red' : '')
+                + (rowDist(r, rows) === 0 ? ' origin' : '')
+                + (rowDist(r, rows) === 0 && c === 0 ? ' lead' : '');
+    d.dataset.row = r; d.dataset.col = c;
+    d.textContent = RANKS[(r * cols + c) % RANKS.length] + suit;
+    g.appendChild(d);
+  }
+  refresh();
+}
+
+let forcedStart = null;   // set by PULSE NOW to restart the cycle immediately
+function loop(ms) {
+  const periodMs = Math.max(500, CFG.period * 1000);
+  const t = forcedStart === null ? (ms % periodMs) : (ms - forcedStart);
+  if (forcedStart !== null && t > periodMs) forcedStart = null;
+  document.querySelectorAll('#grid .card').forEach(el => {
+    const r = +el.dataset.row, c = +el.dataset.col;
+    const delay = c * CFG.colStagger + rowDist(r, rows) * CFG.rowStagger;
+    const e = amplitude(t, delay);
+    const side = Math.sign(r - (rows - 1) / 2) || 1;
+    el.style.setProperty('--hbx', (CFG.dx * e).toFixed(2) + 'px');
+    el.style.setProperty('--hby', (-CFG.dy * e).toFixed(2) + 'px');
+    el.style.setProperty('--hbr', (CFG.rot * e * side).toFixed(3) + 'deg');
+    el.style.setProperty('--hbs', (1 + (CFG.scale / 100) * e).toFixed(4));
+  });
+  requestAnimationFrame(loop);
+}
+
+function pulseNow() { forcedStart = performance.now(); }
+function setRows(d) { rows = Math.max(2, Math.min(8, rows + d)); buildGrid(); }
+function setCols(d) { cols = Math.max(2, Math.min(8, cols + d)); buildGrid(); }
+function resetAll() { CFG = {...DEFAULTS}; buildPanel(); refresh(); }
+
+function refresh() {
+  const originRows = [];
+  for (let r = 0; r < rows; r++) if (rowDist(r, rows) === 0) originRows.push(r);
+  const travel = (cols - 1) * CFG.colStagger + Math.max(...Array.from({length:rows},(_,r)=>rowDist(r,rows))) * CFG.rowStagger;
+  document.getElementById('readout').innerHTML =
+    `grid ${rows}×${cols} · row count is <b>${rows % 2 ? 'ODD → one middle row' : 'EVEN → two middle rows'}</b> ` +
+    `· origin row${originRows.length>1?'s':''} ${originRows.join(' & ')}<br>` +
+    `wavefront takes <b>${Math.round(travel)}ms</b> to cross the board · full thump ` +
+    `<b>${Math.round(travel + CFG.gap + CFG.beat)}ms</b> · repeats every <b>${CFG.period}s</b>`;
+  document.getElementById('css-out').textContent =
+    'HB_DEFAULTS = ' + JSON.stringify(
+      Object.fromEntries(PARAMS.map(([k]) => [k, CFG[k]])), null, 2)
+      .replace(/"/g,'').replace(/\n/g,'\n');
+}
+
+buildPanel();
+buildGrid();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

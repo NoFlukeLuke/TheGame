@@ -165,6 +165,8 @@ function triggerLevelUp() {
   // ── Timing/Streak batch: pause-themed Trick state, reset each round ──
   pausedSecondsRound = 0;
   rewoundSecondsRound = 0;
+  pausesThisRound = 0;
+  rewindsThisRound = 0;
   retriggersThisRound = 0;
   cuckooNextMinute = BAL.cuckoo.interval_seconds;
   // Clock-mark Tricks + Déjà Vu: pending bonuses and rank-history reset each round

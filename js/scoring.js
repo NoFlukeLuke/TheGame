@@ -40,6 +40,16 @@ function isSetHand(handName) {
   return ['Pair','Two Pair','Three of a Kind','Four of a Kind','Full House'].includes(handName);
 }
 
+// Deterministic [0,1) hash for chance-based replays (Wait For Iiiit). Keyed on card id + a salt
+// (the round-hand index) so a card's roll is STABLE across the preview/score recomputes of the same
+// hand — never a live Math.random(), which would desync the dance ledger — yet independent per card
+// and re-rolled the next hand. Same philosophy as Echo Location's deterministic 50%.
+function _detReplayRand(id, salt) {
+  let h = (((id | 0) * 2654435761) + ((salt | 0) * 40503) + 0x9e3779b9) >>> 0;
+  h ^= h >>> 15; h = (h * 2246822519) >>> 0; h ^= h >>> 13; h = (h * 3266489917) >>> 0; h ^= h >>> 16;
+  return (h >>> 0) / 4294967296;
+}
+
 // Four Horse-man's random bonus: deterministic per hand (keyed on handsPlayedRound + first cell)
 // so the preview and the scored result always agree. 0=pips, 1=mult, 2=Focus, 3=pause.
 function fourHorsemanRoll(cells) {
@@ -110,6 +120,8 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   let _slFirstPips = 0, _slLastPips = 0;
   // Encore: an all-odd-rank Set hand scores a second time (whole-hand replay via +1 retrig per card).
   const _encoreHand = hasTrick('encore') && isSetHand(handName) && cards.every(c => ['A','3','5','7','9'].includes(c.rank));
+  // Wait For Iiiit: per-card replay chance = 2% per negative reward tile taken this run (same for every card).
+  const _wfiChance = hasTrick('wait_for_it') ? negativeTilesTakenRun * BAL.wait_for_it.chance_per : 0;
   // Per-card replay count (key 'r-c' → times this card scores). Lets the post-loop
   // per-card MULT / coin / time bonuses re-fire on replay too (not just pips).
   const retrigByKey = {};
@@ -117,6 +129,17 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   _scoreCells.forEach(([r, c]) => {
     const card = gridData[r][c];
     const _cpSnap = ledger ? Object.assign({}, _cp) : null; // to diff this card's per-card pip tricks
+    // ── The Blight ──────────────────────────────────────────────────────────
+    // A contaminated cell halves the card's pips AND may suppress the Tricks it
+    // would have fired. The roll happens HERE, before any Trick logic, for two
+    // reasons: the per-card MULT accumulators (_asmMult / _fsMult) have to be
+    // skippable, and the pip fallback has to be the card's RAW value. Rolling
+    // back after the fact only corrected the contributions ledger while the
+    // score kept every Trick bonus — which made the suppression cosmetic.
+    const _blighted = (typeof isCellDamped === 'function') && isCellDamped(r, c);
+    const _blightMute = _blighted && Math.random() < 0.2;
+    const _cpSnapBlight = _blightMute ? Object.assign({}, _cp) : null;
+    const _cmSnapBlight = _blightMute ? Object.assign({}, _cm) : null;
     const baseRank = card.rank;
     const _origPips = cardPips(baseRank);
     let rawPips = _origPips;
@@ -176,12 +199,16 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     const _hnm = _hnmOn && _rankHigh(baseRank) === _hnmMax; // High and Mighty: top-rank card(s)
     const _ech = hasTrick('echo_hand') && _effStreak >= 2; // Echoes
     const _wp = hasTrick('woodpecker') && woodpeckerPos && r === woodpeckerPos.r && c === woodpeckerPos.c; // Woodpecker
+    // Wait For Iiiit: each card independently rolls a replay at 2% × negative reward tiles taken this
+    // run. Deterministic per (card, hand) so preview == score (see _detReplayRand).
+    const _wfi = _wfiChance > 0 && _detReplayRand(card._id || 0, handsPlayedRound) < _wfiChance;
     if (_r2) _retrig++; if (_r8) _retrig += (_eightCount - 1); if (_rc) _retrig++; if (_rl) _retrig++; if (_pt) _retrig++;
     if (_res) _retrig++; if (_rip) _retrig++;
     if (_refl) _retrig++; _retrig += _soul;
     _retrig += _re;
     if (_rne) _retrig++; if (_ech) _retrig++; if (_wp) _retrig += BAL.woodpecker.retrigger_count;
     if (_hnm) _retrig++;
+    if (_wfi) _retrig++; // Wait For Iiiit: chance replay scaling with negative tiles taken
     if (_encoreHand) _retrig++; // Encore: all-odd-rank Set scores a second time
     if (_cKey === _3rdKey) _retrig += BAL.third_charm.extra_replays; // 3rd Time's a Charm: 3rd card gets +2 replays
     retrigByKey[r + '-' + c] = _retrig;
@@ -195,11 +222,11 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     if (hasTrick('club_double') && (card.suit === '♣' || (card.combined && card.suit2 === '♣'))) _clubHits += _retrig;
     if (card._vulturePause) _vultureFires += card._vulturePause * _retrig; // Vulture buff fires once per (re)trigger
     // Assembly Line: each (re)play of a mark card earns the running counter, then increments it
-    if (_asmOn && cellHasRowColBonus(r, c, 'assembly_line')) {
+    if (_asmOn && !_blightMute && cellHasRowColBonus(r, c, 'assembly_line')) {
       for (let _ai = 0; _ai < _retrig; _ai++) { _asmMult += _asmK; _asmK++; }
     }
     // Five Stack: +mult per card, once per (re)trigger of that card
-    if (_fiveCard) _fsMult += BAL.five_stack.mult * _retrig;
+    if (_fiveCard && !_blightMute) _fsMult += BAL.five_stack.mult * _retrig;
     if (_retrig > 1) {
       const _pre = cp; cp *= _retrig;
       const _extra = cp - _pre;
@@ -218,9 +245,25 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
       else if (_rne) bPip('closing_time', _pre);
       else if (_ech) bPip('echo_hand', _pre);
       else if (_wp) bPip('woodpecker', _extra);
+      else if (_wfi) bPip('wait_for_it', _pre);
       else if (_encoreHand) bPip('encore', _pre);
       else if (_cKey === _3rdKey) bPip('third_charm', _extra);
     }
+    // The Blight, applied. A muted card falls back to its RAW pip value (plus any
+    // permanent per-card buff, which is a property of the card rather than a
+    // Trick trigger) — replays still apply, they are a separate mechanic. Then
+    // the ledger is restored so the contributions tab matches what was scored.
+    // TBD: whole-hand Tricks are still unaffected; only this card's own
+    // contributions are suppressed.
+    if (_blightMute) {
+      cp = (_origPips + _pp) * Math.max(1, _retrig);
+      const restore = (live, snap) => Object.keys(live).forEach(k => {
+        if (snap && snap[k] !== undefined) live[k] = snap[k]; else delete live[k];
+      });
+      restore(_cp, _cpSnapBlight);
+      restore(_cm, _cmSnapBlight);
+    }
+    if (_blighted) cp = cp * 0.5;
     totalPips += cp;
   });
   _lastHandRetrigs = _handRetrigs; // snapshot for Cuckoo (read after captureRoundContrib in playHand)
@@ -456,6 +499,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // Accumulating scalers
   if (hasTrick('compound_mult') && bonusMult_compound > 0) { mult += bonusMult_compound; bMult('compound_mult', bonusMult_compound); }
   if (hasTrick('more_better') && bonusMult_morebetter > 0) { mult += bonusMult_morebetter; bMult('more_better', bonusMult_morebetter); }
+  if (hasTrick('wild_side') && negativeTilesTakenRun > 0) { const _a = negativeTilesTakenRun * BAL.wild_side.mult_per; mult += _a; bMult('wild_side', _a); }
   if (hasTrick('prolific') && bonusPips_prolific > 0) { totalPips += bonusPips_prolific; bPip('prolific', bonusPips_prolific); }
   if (hasTrick('feng_shui') && bonusPips_fengshui > 0) { totalPips += bonusPips_fengshui; bPip('feng_shui', bonusPips_fengshui); }
   if (hasTrick('big_win') && bonusMult_jackpot > 0) { mult += bonusMult_jackpot; bMult('big_win', bonusMult_jackpot); }
@@ -571,6 +615,8 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   let s = totalPips * mult;
 
   // 4. x score multipliers
+  // The Redaction (boss): one hand type, fixed for the round, is marked down.
+  if (typeof bossRedactedHandMult === 'function') s *= bossRedactedHandMult(handName);
   if (hasTrick('last_stand') && score < roundGoal) s *= BAL.last_stand.score_mult;
   // Echoes: same hand type as the previous hand retriggers each card (handled in the per-card loop above).
   // Blackjack: raw face values total exactly 21

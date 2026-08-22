@@ -352,7 +352,7 @@ function enhanceCardKey(key, e) {
 function copyCardToDeck(card) {
   if (!card) return;
   drawPile.push({ rank: card.rank, suit: card.suit });
-  drawPile = shuffle(drawPile);
+  drawPile = deckShuffle(drawPile);
   expectedDeckTotal++;
   updateDeckHud?.();
 }

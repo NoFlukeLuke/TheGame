@@ -1,4 +1,4 @@
-const BUILD = '2026-08-13 · r133 · Survival mode complete: pick-of-3 reward, reroll economy, 2-min rounds, score+time carryover, on-demand shop, + boss every 8 clears (banked-time clock)';
+const BUILD = '2026-08-22 · r152 · Survival mode complete: pick-of-3 reward + reroll, 2-min rounds, score+time carryover, on-demand shop, boss every 8 clears (banked-time clock) [merged r151]';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -17,6 +17,27 @@ const MODES = {
     autoPlayHands: false,
     actStructure: true,
     suitCount: 4
+  },
+  // Guided first run. Mechanically IDENTICAL to Classic (actStructure: true) —
+  // an ordinary seeded run with coach-marks over it. See js/tutorial.js.
+  tutorial: {
+    id: 'tutorial',
+    name: 'Orientation',
+    desc: 'A guided first run — a normal Classic run with the terminal explaining itself as you go. Play a round, take the payout, walk a reward path, visit the Mart.',
+    // Pinned seed: orientation is the same experience for everyone, and a bug
+    // report against it is reproducible. The board is still a normal random
+    // deal — the tutorial finds a hand on it rather than stacking one.
+    seed: 'LETHE-INDUCTION',
+    winCondition: 'boss_defeat',
+    enableBosses: true,
+    enableShops: true,
+    enableEvents: true,
+    autoRefillGrid: true,
+    timeIsCurrency: true,
+    autoPlayHands: false,
+    actStructure: true,
+    suitCount: 4,
+    tutorial: true
   },
   sixsuits: {
     id: 'sixsuits',
@@ -178,8 +199,10 @@ function startMatch3FromMenu(modeId = 'match3') {
 // MODE SELECT (scroll-sideways carousel off the PLAY button)
 // ══════════════════════════════════════════════
 // The shipping modes, shown left→right in the carousel.
-const MODE_SELECT_LIST = ['normal', 'sixsuits', 'survival', 'match3', 'zen', 'dominoes'];
+const MODE_SELECT_LIST = ['tutorial', 'normal', 'sixsuits', 'survival', 'match3', 'zen', 'dominoes'];
 const MODE_META = {
+  tutorial: { accent: '#8fd0ff',         suits: 'START HERE',
+              blurb: 'LETHE Corp staff orientation. A normal Classic run with the terminal explaining each control as you reach it — scoring, Focus, limits, the reward path, the Mart. About three minutes.' },
   normal:   { accent: 'var(--c-yellow)', suits: '♠ ♥ ♦ ♣',
               blurb: 'The original four-suit game. Three Acts of rounds, shops, events and bosses.' },
   sixsuits: { accent: 'var(--c-mint)',   suits: '♠ ♥ ♦ ♣ ★ ▲',
@@ -190,7 +213,7 @@ const MODE_META = {
               blurb: 'Matches play themselves. Line up 3+ in a row or column and it scores and cascades — you just swap and discard to set them up.' },
   zen:      { accent: '#7fe3c0',         suits: 'NO CLOCK',
               blurb: 'The same auto-playing board with the pressure off: no timer, unlimited swaps and discards. Goals are doubled.' },
-  dominoes: { accent: '#9b57d3',         suits: '⚀ ⚁ ⚂ ⚃ ⚄ ⚅',
+  dominoes: { accent: '#9b57d3',         suits: 'VALUES 1–7',
               blurb: 'Beta. Two-value tiles fall sideways or upright and leave gaps. Pick 3 touching tiles — every run and set of 3+ across their six halves scores at once.' },
 };
 

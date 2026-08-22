@@ -11,15 +11,21 @@ flagged PROPOSED and awaiting sign-off.**
 
 ## 1. The tiles (the "deck")
 
-- A domino carries **two values**, each **0–6** (blanks/`0` included).
-- **Set = the full double-six set: 28 unique tiles** (all unordered pairs incl. doubles
-  and blanks: `C(7,2)+7 = 21+7 = 28`). **×2 copies = 56 tiles total.**
-  - *Note:* the owner said "42" before deciding to include blanks, and "~20ish" as an
-    early gut number. Including blanks makes it **56**. **← confirm this is the intent.**
+- A domino carries **two values**, each **1–7**. **No blanks** — every half is a real
+  number.
+- **Deck = 49 tiles.** Every number owns a **full set of partners 1–7**: the 1s are
+  1-1…1-7, the 2s are 2-1…2-7, … the 7s are 7-1…7-7 (7 × 7 = 49).
+  - Read as *unordered* tiles that means the **seven doubles** (1-1 … 7-7) exist
+    **once each**, while every **mixed pair appears twice** (1-2 comes from the 1s,
+    2-1 from the 2s) — 7 + (21 × 2) = 49.
+  - So there ARE duplicates, but it is **not a second copy of the whole set** — the
+    distinction the owner asked for when dropping the old ×2 double-six deck.
 - **Shape:** twice as long as wide (2:1), noticeably **thinner** than current cards.
 - **Face:** two pip clusters split by a center line — one value per half.
-- **Pip colors by value:** 0 = white, 1 = red, 2 = orange, 3 = yellow, 4 = green,
-  5 = blue, 6 = purple. (Cosmetic; not used for matching.)
+- **Pip colors by value:** 1 = red, 2 = orange, 3 = yellow, 4 = green, 5 = blue,
+  6 = purple, **7 = magenta** (extends the owner's rainbow now the range is 1–7;
+  white was the old blank's colour and is dropped with the blanks — white pips would
+  barely read on the cream tile face). Cosmetic; not used for matching.
 - **Doubles** (e.g. `3|3`) count as **two of that number** for set-making.
 
 ### Optional suit plumbing
@@ -32,7 +38,8 @@ shared code from choking on a missing suit.
 
 ## 2. The board & physics
 
-- **Grid: start 8×8.** Existing grid-size **upgrades apply**.
+- **Grid: 7×7** (49 cells — one cell per tile in the deck). Existing grid-size
+  **upgrades apply**.
 - **One domino occupies two adjacent cells** — horizontal or vertical — as **one rigid
   piece**.
 - **Orientation** is decided when the piece spawns and is **fixed** thereafter (it does
@@ -230,12 +237,26 @@ of the owner's scoring examples.
 - Grid-size upgrades / shop / events wiring.
 - Timer-expiry behavior in this mode currently falls through to the shared timer.
 
+### v4 (shipped, r130) — 7×7 board, 49-tile 1–7 deck
+- Board **8×8 → 7×7** (owner: "smaller by one on both sides"). Tiles render larger
+  and the pip faces read much more clearly.
+- Deck rebuilt to the **49-tile 1–7 set** described in §1 (was 56 tiles of 0–6 ×2).
+  Blanks removed; **7** added with a magenta pip colour and a 7-pip face (the
+  6-pattern plus a centre pip).
+- `DOMINO_ROWS`/`DOMINO_COLS` are now the single source of truth — `startGame`
+  reads them via `dominoActive()` instead of repeating a hardcoded 8.
+
 ### Tuning note (needs a play-test verdict)
-Boards settle at **38–58 of 64 cells filled (~25% gaps on average)**. That is the
-structural consequence of rigid 2-cell pieces + gravity — odd-shaped pockets can
-never be filled by a 2-cell tile. It may play great (gaps create shape) or feel
-sparse; easy levers if it's too empty: spawn more aggressively, allow a piece to
-rotate to fit a pocket, or shrink the board.
+Boards settle at **32–48 of 49 cells filled (~11 empty cells, ~23% gaps)**. That is
+the structural consequence of rigid 2-cell pieces + gravity — an odd-shaped
+one-cell pocket can never be filled by a 2-cell tile. It may play great (gaps
+create shape and make the adjacency rule bite) or feel sparse; easy levers if it's
+too empty: spawn more aggressively, allow a piece to rotate to fit a pocket, or
+shrink the board again.
+
+Deck-vs-board note: 49 tiles against a board that holds ~19–24 means roughly two
+boardfuls in the deck, so there is a real draw pile and refills bring genuinely
+unseen tiles before it recycles.
 
 ---
 

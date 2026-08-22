@@ -43,6 +43,7 @@ function showSuitEffect(text, color) {
 // ══════════════════════════════════════════════
 function startRoundTimer() {
   if (roundInterval) clearInterval(roundInterval);
+  startHeartbeat();                 // the board's idle pulse runs with the round
   roundStartSeconds = roundSeconds; // mark the start of the countdown for ♠ "first 30s" exalt
   roundInterval = setInterval(() => {
     if (pipeTimerPaused) return;
@@ -122,7 +123,11 @@ function startTimers() {
   }, 1000);
 }
 
-// v7 interact time-costs — spending an action burns seconds off the round clock.
+// DEAD as of r151 — kept only so nothing referencing them throws. These were a
+// SECOND, flat interact charge that ran alongside the BAL._resources one, so a
+// 1-card discard cost 3+3=6s and the 3rd swap of a round cost 4+10=14s while the
+// UI quoted 3s and 4s. Interact costs now come from BAL._resources ALONE
+// (discard 3s per card, swap 8s flat, play free). Do not charge these again.
 const DISCARD_TIME_COST = 3;
 const SWAP_TIME_COST    = 4;
 function spendRoundTime(sec) {
@@ -162,6 +167,7 @@ function stopTimers() {
   roundInterval = null;
   gameInterval = null;
   stopFocusDecay();
+  stopHeartbeat();
 }
 
 // ══════════════════════════════════════════════

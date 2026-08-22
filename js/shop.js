@@ -101,7 +101,12 @@ function _grantedSleightSet() {
   return s;
 }
 
+// Legacy overlay shop (superseded by the Mart). Kept on the same positional
+// shop stream so a seed behaves identically if USE_MART_SHOP is flipped back.
 function generateShopItems() {
+  return withSeededRng(_generateShopItems, 'shop', shopVisitIndex, 0);
+}
+function _generateShopItems() {
   const ownedBcIds    = new Set(acquiredTricks.map(b => b.id));
   const ownedKnackIds = new Set(acquiredKnacks.map(t => t.id));
   const grantedSleights = _grantedSleightSet();
@@ -154,6 +159,16 @@ function triggerShop() {
   clearInterval(roundInterval);
   roundInterval = null;
   gameTimerPaused = true;
+  // LETHE Mart (r127): the off-grid shop. Preferred route; on-grid + overlay below
+  // stay as one-flag fallbacks (USE_MART_SHOP / USE_ONGRID_SHOP).
+  if (typeof USE_MART_SHOP !== 'undefined' && USE_MART_SHOP && typeof openMart === 'function') {
+    openMart();
+    return;
+  }
+  if (typeof USE_ONGRID_SHOP !== 'undefined' && USE_ONGRID_SHOP && typeof openShopGrid === 'function') {
+    openShopGrid();
+    return;
+  }
   sfxShopOpen();
   shopPurchased   = new Set();
   shopRerollCount = 0;
@@ -173,35 +188,62 @@ function renderShop() {
   renderShopFooter();
 }
 
+// ── CRT/neon shop tiles (shared visual language with the reward grid) ──
+// Each shop tile reuses the reward grid's entity look — rarity = neon border,
+// Orbitron name, scanlines, sleight tab, knack diamond — with a price chip
+// pinned to the corner. Descriptions live in the shared reward tooltip on hover.
+function buildShopTileInner(p) {
+  if (p.entity === 'knack') {
+    return `<div class="rwd-diamond"><span class="rwd-diamond-emoji">${p.emoji || p.icon}</span></div>`
+         + `<div class="rwd-name">${p.label}</div>`;
+  }
+  if (p.entity === 'trick') {
+    // Shop shows the real trick glyph (you're deciding what to buy) rather than
+    // the reward grid's mystery placeholder.
+    return `<div class="rwd-glyph">✦</div><div class="rwd-art">${p.emoji || '✦'}</div><div class="rwd-name">${p.label}</div>`;
+  }
+  if (p.entity === 'sleight') {
+    return `<div class="rwd-tab">▶</div><div class="rwd-art">${p.emoji || '🃏'}</div><div class="rwd-name">${p.label}</div>`
+         + (p.uses != null ? `<div class="rwd-uses">${p.uses}</div>` : '');
+  }
+  // upgrade / resource tile: icon + name + progress sub-line
+  return `<div class="reward-icon">${p.icon}</div><div class="rwd-name">${p.label}</div>`
+       + (p.sub ? `<div class="shop-tile-sub">${p.sub}</div>` : '');
+}
+
+// Build one purchasable tile. `altLabel` overrides the price chip: '✓' is shown
+// when sold, 'MAXED' for maxed upgrades. Sold/maxed tiles dim + ignore clicks.
+function makeShopTile(p, kind, price, purchased, altLabel, onBuy) {
+  const rar = rewardRarity(p);
+  const disabled = purchased || altLabel === 'MAXED';
+  const canAfford = coins >= price;
+  const el = document.createElement('div');
+  el.className = [
+    'shop-tile', 'reward-cell', kind,
+    p.entity ? 'entity' : '', p.entity ? 'entity-' + p.entity : '',
+    'rar-' + rar,
+    p._upgrade ? 'shop-tile-upgrade' : '',
+    disabled ? 'purchased' : '',
+  ].filter(Boolean).join(' ');
+  const chipState = purchased ? 'sold' : altLabel === 'MAXED' ? 'maxed' : (!canAfford ? 'cant-afford' : '');
+  const chipTxt   = purchased ? '✓' : (altLabel || ('💰' + price));
+  el.innerHTML = buildShopTileInner(p) + `<div class="shop-price-chip ${chipState}">${chipTxt}</div>`;
+  const nameEl = el.querySelector('.rwd-name');
+  if (nameEl) fitRewardName(nameEl);
+  if (p.desc) attachRewardTooltip(el, p, kind);
+  if (!disabled) el.addEventListener('click', () => { hideRewardTooltip(); onBuy(); });
+  return el;
+}
+
 function renderShopTricks() {
   const row = document.getElementById('shop-trick-row');
   if (!row) return;
   row.innerHTML = '';
   shopItems.tricks.forEach((trick, i) => {
-    const key = `trick-${i}`;
-    const purchased = shopPurchased.has(key);
-    const price = SHOP_TRICK_PRICES[trick.tier] || 8;
-    const canAfford = coins >= price;
-    const tier = trick.tier || 'common';
-    const item = document.createElement('div');
-    item.className = `shop-item${purchased ? ' purchased' : ''}`;
-    item.innerHTML = `
-      <div class="shop-trick-card trick-tier-${tier}">
-        <div class="trick-tier-label">${tier.toUpperCase()}</div>
-        <div class="shop-trick-emoji">${trickEmoji(trick)}</div>
-        <div class="trick-name">${trick.name}</div>
-      </div>
-      <div class="shop-item-price${purchased ? ' purchased' : (!canAfford ? ' cant-afford' : '')}">
-        ${purchased ? '\u2713' : '💰' + price}
-      </div>`;
-    const cardEl = item.querySelector('.shop-trick-card');
-    attachHoverHold(cardEl, () => showTrickDescTooltip(trick, cardEl), hideTrickDescTooltip);
-    if (!purchased) cardEl.addEventListener('click', () => {
-      if (cardEl._lpFired) { cardEl._lpFired = false; return; } // long-press = read, not buy
-      hideTrickDescTooltip();
-      buyShopTrick(i);
-    });
-    row.appendChild(item);
+    const tier  = trick.tier || 'common';
+    const price = SHOP_TRICK_PRICES[tier] || 8;
+    const p = { entity: 'trick', label: trick.name, desc: trick.desc, rarity: tier, tier, emoji: trickEmoji(trick) };
+    row.appendChild(makeShopTile(p, 'buff', price, shopPurchased.has(`trick-${i}`), null, () => buyShopTrick(i)));
   });
 }
 
@@ -210,27 +252,12 @@ function renderShopLimits() {
   if (!row) return;
   row.innerHTML = '';
   shopItems.limits.forEach((def, i) => {
-    const key = `limit-${i}`;
-    const purchased = shopPurchased.has(key);
     const maxed = limits[def.id].current >= limits[def.id].max;
     const price = shopLimitPrice(def);
-    const canAfford = coins >= price;
-    const cur = limits[def.id].current;
-    const next = Math.min(cur + 1, limits[def.id].max);
-    const item = document.createElement('div');
-    item.className = `shop-item${purchased || maxed ? ' purchased' : ''}`;
-    item.innerHTML = `
-      <div class="shop-limit-card${maxed ? ' maxed' : ''}">
-        <div class="shop-limit-icon">${def.icon}</div>
-        <div class="shop-limit-label">${def.label}</div>
-        <div class="shop-limit-progress">${cur} → ${next}</div>
-        <div class="shop-limit-desc">${def.desc}</div>
-      </div>
-      <div class="shop-item-price${purchased || maxed ? ' purchased' : (!canAfford ? ' cant-afford' : '')}">
-        ${maxed ? 'MAXED' : purchased ? '\u2713' : '💰' + price}
-      </div>`;
-    if (!purchased && !maxed) item.querySelector('.shop-limit-card').addEventListener('click', () => buyShopLimit(i));
-    row.appendChild(item);
+    const cur   = limits[def.id].current;
+    const next  = Math.min(cur + 1, limits[def.id].max);
+    const p = { _upgrade: true, icon: def.icon, label: def.label, desc: def.desc, sub: `${cur} → ${next}`, rarity: 'common' };
+    row.appendChild(makeShopTile(p, 'buff', price, shopPurchased.has(`limit-${i}`), maxed ? 'MAXED' : null, () => buyShopLimit(i)));
   });
 }
 
@@ -239,22 +266,8 @@ function renderShopKnacks() {
   if (!row) return;
   row.innerHTML = '';
   shopItems.knacks.forEach((knack, i) => {
-    const key = `knack-${i}`;
-    const purchased = shopPurchased.has(key);
-    const canAfford = coins >= SHOP_KNACK_PRICE;
-    const item = document.createElement('div');
-    item.className = `shop-item${purchased ? ' purchased' : ''}`;
-    item.innerHTML = `
-      <div class="shop-knack-card">
-        <div class="shop-knack-emoji">${knack.emoji}</div>
-        <div class="shop-knack-name">${knack.name}</div>
-        <div class="shop-knack-desc">${knack.desc}</div>
-      </div>
-      <div class="shop-item-price${purchased ? ' purchased' : (!canAfford ? ' cant-afford' : '')}">
-        ${purchased ? '\u2713' : '💰' + SHOP_KNACK_PRICE}
-      </div>`;
-    if (!purchased) item.querySelector('.shop-knack-card').addEventListener('click', () => buyShopKnack(i));
-    row.appendChild(item);
+    const p = { entity: 'knack', label: knack.name, desc: knack.desc, emoji: knack.emoji, rarity: knack.rarity || 'common' };
+    row.appendChild(makeShopTile(p, 'buff', SHOP_KNACK_PRICE, shopPurchased.has(`knack-${i}`), null, () => buyShopKnack(i)));
   });
 }
 
@@ -263,25 +276,10 @@ function renderShopSleights() {
   if (!row) return;
   row.innerHTML = '';
   shopItems.sleights.forEach((sleight, i) => {
-    const key = `sleight-${i}`;
-    const purchased = shopPurchased.has(key);
     const price = SHOP_SLEIGHT_PRICES[sleight.rarity] || 12;
-    const canAfford = coins >= price;
-    const charges = sleight.durability === 'infinite' ? '\u221e' : `${sleight.durability}\u00d7`;
-    const item = document.createElement('div');
-    item.className = `shop-item${purchased ? ' purchased' : ''}`;
-    item.innerHTML = `
-      <div class="shop-sleight-card jk-rarity-${sleight.rarity || 'common'}">
-        <div class="shop-sleight-emoji">${sleight.emoji || '🃏'}</div>
-        <div class="shop-sleight-name">${sleight.name}</div>
-        <div class="shop-sleight-desc">${sleight.desc}</div>
-        <div class="shop-sleight-charges">${charges}</div>
-      </div>
-      <div class="shop-item-price${purchased ? ' purchased' : (!canAfford ? ' cant-afford' : '')}">
-        ${purchased ? '\u2713' : '💰' + price}
-      </div>`;
-    if (!purchased) item.querySelector('.shop-sleight-card').addEventListener('click', () => buyShopSleight(i));
-    row.appendChild(item);
+    const uses  = sleight.durability === 'infinite' ? '∞' : `${sleight.durability}×`;
+    const p = { entity: 'sleight', label: sleight.name, desc: sleight.desc, emoji: sleight.emoji || '🃏', uses, rarity: sleight.rarity || 'common' };
+    row.appendChild(makeShopTile(p, 'buff', price, shopPurchased.has(`sleight-${i}`), null, () => buyShopSleight(i)));
   });
 }
 
@@ -549,7 +547,7 @@ document.getElementById('svc-duplicate-btn').addEventListener('click', () => {
       shopSvcUsed.duplicate++;
       expectedDeckTotal++;
       drawPile.push({ rank: picked[0].rank, suit: picked[0].suit });
-      drawPile = shuffle(drawPile);
+      drawPile = deckShuffle(drawPile);
       updateDeckHud();
       closeSvcPicker();
       renderShop();
@@ -671,7 +669,7 @@ document.getElementById('svc-combine-btn').addEventListener('click', () => {
           return true;
         });
         drawPile.push(combined);
-        drawPile = shuffle(drawPile);
+        drawPile = deckShuffle(drawPile);
       }
       closeSvcPicker();
       renderShop();

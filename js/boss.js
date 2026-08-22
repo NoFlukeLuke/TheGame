@@ -1,6 +1,13 @@
+// TWO kinds of unusable cell, both funnelled through here so every existing
+// select/tap/swipe guard covers both without change:
+//   · blockedCells — VOID: no card at all (legacy boss patterns)
+//   · nullCells    — QUARANTINED: a card is present but inert (The Quarantine)
+// Anything that needs to tell them apart (card refill, render) asks isCellVoid /
+// isCellNulled directly.
 function isCellBlocked(r, c) {
   if (typeof bossEffectsIgnored === 'function' && bossEffectsIgnored()) return false; // Fight the Power
-  return blockedCells.has(`${r}-${c}`);
+  if (blockedCells.has(`${r}-${c}`)) return true;
+  return typeof nullCells !== 'undefined' && nullCells.has(`${r}-${c}`);
 }
 
 function getVoidPattern(pattern) {
@@ -45,7 +52,10 @@ function getVoidPattern(pattern) {
 
 function renderBlockedCells() {
   const gridEl = document.getElementById('grid');
+  if (typeof renderBossCellOverlays === 'function') renderBossCellOverlays();
   gridEl.querySelectorAll('.blocked-cell').forEach(el => el.remove());
+  // Only VOID cells lose their card; quarantined cells (The Quarantine) keep
+  // receiving and holding cards, they are just inert.
   blockedCells.forEach(key => {
     const [r, c] = key.split('-').map(Number);
     const stone = document.createElement('div');
@@ -147,6 +157,9 @@ function trickIdToName(id) {
 // ── Boss modifier application ──
 function applyBossModifiers(preset) {
   preset.modifiers.forEach(mod => {
+    // The r150 roster lives in js/boss-effects.js; it claims its own modifier
+    // ids and returns true, leaving the legacy ones below untouched.
+    if (typeof applyBossEffectModifier === 'function' && applyBossEffectModifier(mod, preset.params || {})) return;
     switch (mod) {
       case 'inject_stones':
         injectStonesIntoDeck(preset.params.stoneInjectCount || 5);
@@ -236,6 +249,7 @@ function clearBossModifiers() {
   trickPoolB = new Set();
   bossPhase = 1;
   if (bossNullInterval) { clearInterval(bossNullInterval); bossNullInterval = null; }
+  if (typeof clearBossEffects === 'function') clearBossEffects();
 }
 
 // Hook called every time a card is drawn — biases toward low cards during Famine
@@ -253,6 +267,7 @@ function maybeFamineDrawSwap(card) {
 function isTrickDisabledByBoss(trickId) {
   if (!bossActive) return false;
   if (hasSleightOnGrid('fight_power')) return false; // Fight the Power ignores boss effects
+  if (typeof bossTrickBlackedOut === 'function' && bossTrickBlackedOut(trickId)) return true; // The Censor
   if (bossPhase === 1 && trickPoolA.has(trickId)) return true;
   if (bossPhase === 2 && trickPoolB.has(trickId)) return true;
   return false;
@@ -304,6 +319,7 @@ function triggerBoss(presetOverride = null, windowSeconds = null) {
   document.getElementById('clock').classList.add('boss-mode');
   document.getElementById('clock-bar').classList.add('boss-mode');
   document.getElementById('grid').classList.add('boss-active');
+  document.getElementById('run-progress')?.classList.add('boss-sigil');
 
   updateBossClockDisplay();
 
@@ -322,8 +338,67 @@ function triggerBoss(presetOverride = null, windowSeconds = null) {
   render();
   updateActProgressUI();
 
-  // Tick
-  startBossTimer();
+  // The clock does NOT start here. The preamble names the boss and explains what
+  // it does; only when the player presses PROCEED does the 3-2-1 run and the
+  // boss timer start. gameTimerPaused is held for the duration so nothing ticks
+  // behind the briefing.
+  showBossPreamble(preset, () => {
+    showBossCountdown().then(() => { startBossTimer(); });
+  });
+}
+
+// Boss briefing rendered over the board. `onProceed` fires when dismissed.
+function showBossPreamble(preset, onProceed) {
+  // Mounted on #grid (not #grid-slot) so the briefing covers the board exactly;
+  // the slot is wider and the panel spilled past the cards.
+  const slot = document.getElementById('grid');
+  if (!slot) { onProceed(); return; }
+  document.getElementById('boss-preamble')?.remove();
+  const obj = preset.objective;
+  const objText = obj.type === 'score'
+    ? `OBJECTIVE — SCORE ${obj.target.toLocaleString()} IN ${Math.floor(BOSS_WINDOW_DURATION/60)}:00`
+    : `OBJECTIVE — PLAY ${obj.count} × ${obj.handName.toUpperCase()}`;
+  const el = document.createElement('div');
+  el.id = 'boss-preamble';
+  el.innerHTML =
+    `<div class="bp-sigil">&#9760;</div>` +
+    `<div class="bp-eyebrow">Supervisor review</div>` +
+    `<div class="bp-name">${preset.name}</div>` +
+    `<div class="bp-flavor">${preset.flavor || ''}</div>` +
+    `<div class="bp-brief">${preset.brief || 'Survive the review.'}</div>` +
+    `<div class="bp-obj">${objText}</div>` +
+    `<button class="bp-go">PROCEED</button>`;
+  slot.appendChild(el);
+  _bossPreambleHeld = true;
+  gameTimerPaused = true;
+  requestAnimationFrame(() => el.classList.add('show'));
+  el.querySelector('.bp-go').onclick = () => {
+    el.classList.remove('show');
+    setTimeout(() => el.remove(), 320);
+    if (_bossPreambleHeld) { gameTimerPaused = false; _bossPreambleHeld = false; }
+    onProceed();
+  };
+}
+let _bossPreambleHeld = false;
+
+// The round-start 3-2-1 (show321Countdown) also deals cards and refills the
+// clock; a boss needs neither. This is just the numbers.
+function showBossCountdown() {
+  const overlay = document.getElementById('countdown-321-overlay');
+  const numEl   = document.getElementById('countdown-321-number');
+  if (!overlay || !numEl) return Promise.resolve();
+  if (typeof sfxCountdown321 === 'function') sfxCountdown321();
+  return (async () => {
+    for (const n of ['3','2','1']) {
+      numEl.textContent = n;
+      numEl.style.animation = 'none'; void numEl.offsetWidth;
+      numEl.style.animation = 'countdown-pop 500ms ease forwards';
+      overlay.classList.add('show');
+      await new Promise(r => setTimeout(r, 500));
+    }
+    overlay.classList.remove('show');
+    await new Promise(r => setTimeout(r, 120));
+  })();
 }
 
 function updateBossClockDisplay() {
@@ -342,7 +417,7 @@ function startBossTimer() {
   bossInterval = setInterval(() => {
     if (!bossActive) { clearInterval(bossInterval); bossInterval = null; return; }
     if (gameTimerPaused) return;
-    bossSecondsLeft--;
+    bossSecondsLeft -= (typeof bossClockStep === 'function') ? bossClockStep() : 1;
     if (bossSecondsLeft < 0) bossSecondsLeft = 0;
     updateBossClockDisplay();
     if (bossPhase === 1 && bossSecondsLeft === Math.floor(bossWindowDuration / 2)) {
@@ -387,6 +462,9 @@ function endBoss(success) {
   clearBlockedCellDOM();
   hideBossObjectiveHUD();
   document.getElementById('grid').classList.remove('boss-active');
+  document.getElementById('run-progress')?.classList.remove('boss-sigil');
+  document.getElementById('boss-preamble')?.remove();
+  if (_bossPreambleHeld) { gameTimerPaused = false; _bossPreambleHeld = false; }
   document.getElementById('clock').classList.remove('boss-mode');
   document.getElementById('clock-bar').classList.remove('boss-mode');
   updateActProgressUI();
@@ -439,4 +517,5 @@ let rewardOnGrid   = false;     // true while the reward grid is rendered onto t
 let rewardDealing  = false;     // true while reward tiles are dealing in / resolving (blocks clicks)
 let rewardGridContext = 'interlude'; // 'interlude' | 'boss' — determines what closeRewardGrid does
 let skipTrickChoiceOverlay = false;    // set before drainLevelUpQueue when reward grid is the reward screen
+let rewardGridsSeen = 0;               // how many reward grids opened this run (for first-5 guaranteed upgrades)
 
