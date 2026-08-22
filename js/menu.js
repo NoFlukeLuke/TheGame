@@ -1,4 +1,4 @@
-const BUILD = '2026-08-22 · r152 · Survival mode complete: pick-of-3 reward + reroll, 2-min rounds, score+time carryover, on-demand shop, boss every 8 clears (banked-time clock) [merged r151]';
+const BUILD = '2026-08-22 · r153 · Survival: limits picked in the pick now apply to the very next round (grid size re-synced on deal; swaps/discards/time deltas applied on grant)';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

@@ -245,7 +245,21 @@ function survivalGrant(opt) {
     case 'trick':   injectTrickAfterReward(opt.data); break;
     case 'sleight': grantSleight(opt.data); showMessage(`${opt.icon} ${opt.name}!`, '#c07aee'); break;
     case 'knack':   acquiredKnacks.push({ ...opt.data }); updateKnackList?.(); showMessage(`${opt.icon} ${opt.name}!`, '#d4a017'); break;
-    case 'limit':   incrementLimit(opt.data.id); showMessage(`${opt.icon} ${opt.name} upgraded!`, '#5ad4c0'); break;
+    case 'limit': {
+      // triggerLevelUp already sized THIS round's board + resources from the OLD
+      // limit values (it runs before the pick), and onLimitChanged defers grid_rows/
+      // cols to "next round start". So apply the gain to the round we're about to
+      // deal: swaps/discards/time here, grid size in survivalDealNext's re-sync.
+      const lid = opt.data.id;
+      const before = limits[lid].current;
+      incrementLimit(lid);
+      const delta = limits[lid].current - before;
+      if (lid === 'swaps')      swaps += delta;
+      else if (lid === 'discards') discards += delta;
+      else if (lid === 'round_time') { roundSeconds = Math.min(limits.round_time.current, roundSeconds + delta); updateClockUI(); }
+      showMessage(`${opt.icon} ${opt.name} upgraded!`, '#5ad4c0');
+      break;
+    }
   }
 }
 
@@ -297,11 +311,17 @@ function survivalDealNext() {
       { transform: 'translateY(220px)', opacity: 0 }
     ], { duration: 380, delay: (i % 6) * 20, easing: 'cubic-bezier(.4,0,.9,.5)', fill: 'forwards' });
   });
-  // 2) Recycle + deal a fresh board into gridData (kept hidden until the drop anim).
+  // 2) Recycle the old board (iterate the CURRENT/old dims to recover every card),
+  //    then apply any grid-size Limit picked this level and rebuild to the new dims.
   survivalRecycleBoard();
-  for (let r = 0; r < gridRows; r++)
-    for (let c = 0; c < gridCols; c++)
-      gridData[r][c] = drawCard() || null;
+  gridRows = limits.grid_rows.current;
+  gridCols = limits.grid_cols.current;
+  recomputeGridMetrics();
+  gridData = [];
+  for (let r = 0; r < gridRows; r++) {
+    gridData[r] = [];
+    for (let c = 0; c < gridCols; c++) gridData[r][c] = drawCard() || null;
+  }
   // 3) New cards drop in slightly after the old ones start leaving — reuse the
   //    shared deal-in animation, which clears leftover real cards and repaints.
   dealPhase = true;
