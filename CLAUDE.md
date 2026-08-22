@@ -4,7 +4,7 @@ A browser-based HTML/JS roguelike poker game. **No build step, no framework, no 
 
 - **Live site:** https://noflukeluke.github.io/TheGame/ (GitHub Pages, auto-deploys from `main`)
 - **Owner:** non-technical developer — explain changes plainly, avoid jargon dumps.
-- **Platform focus — DESKTOP FIRST (landscape).** New features, layout work, and polish target the **desktop / landscape** experience (the `#stage.landscape` layout). Portrait / mobile is **deprioritized** — it still runs, but don't spend effort on it or block desktop work to keep it pixel-perfect. When a change could affect both, get it right on desktop; only touch portrait if explicitly asked. (Scope layout/visual CSS under `#stage.landscape` so portrait is left as-is.)
+- **Platform focus — DESKTOP FIRST (landscape).** New features, layout work, and polish target the **desktop / landscape** experience (the `#stage.landscape` layout). Portrait / mobile is **deprioritized** — it still runs, but don't spend effort on it or block desktop work to keep it pixel-perfect. (Exception: r156 reworked the portrait strip on purpose, as groundwork for local co-op — see "Portrait shared strip" below. Desktop is still the default target.) When a change could affect both, get it right on desktop; only touch portrait if explicitly asked. (Scope layout/visual CSS under `#stage.landscape` so portrait is left as-is.)
 - **LETHE reskin (this branch):** the whole game is wrapped in an `#cabinet` div — a retro-futuristic 80s arcade-cabinet shell (marquee, CRT screen bezel, deck/vents) around `#stage`. Its look lives in `css/style.css`; the wrapper markup is in `index.html`. Gameplay is unchanged from `main` r95 (this branch = r95 logic + the reskin).
 
 ## File layout (read this first — it saves you from loading the whole game)
@@ -16,6 +16,7 @@ The game **used to be one giant `index.html`**. It's now split into many small f
 - `css/dance.css` — the score-“dance” / hand-preview animation styles.
 - `css/dev-overlays.css` — dev-panel + event-overlay styling.
 - `js/` — the game code, one file per system (list below).
+- `js/storage.js` — **loads FIRST**, before every other script. A safety shim for browser storage (see below). Nothing else may be moved above it.
 - `js/data/` — **the "entities": pure content/data, no logic.** Edit these to tune or add game content without touching engine code:
   - `cards.js` — suits, ranks, rank order, `HAND_BASE` values, round/goal durations, `cardCan`.
   - `tricks.js` — `TRICK_POOL`, `TRICK_CATEGORIES`, trick emoji.
@@ -34,7 +35,7 @@ The game **used to be one giant `index.html`**. It's now split into many small f
 
 **How the split works (important — don't break this):** all `js/*.js` files are plain **classic scripts that share one global scope** — a `const`/`let`/`function` defined in one file is visible to all the others, exactly as if they were still one big `<script>`. **Load order is preserved and matters:** the `<script>` tags in `index.html` are in the same order the code originally ran, because several files run set-up code at load time (event bindings; `LIMITS_DEF.forEach`, `TRICK_CATEGORIES.forEach`, `applyBalDescriptions()`; and `js/bootstrap.js` at the very end, which calls `initMainMenu()`). If you add a new `.js` file, put its `<script>` tag in the right spot (data files load up top with the rest; `bootstrap.js` stays last). If you're not sure which file a function lives in, `grep -rn "functionName" js/`.
 
-Rough guide to `js/` (engine): `menu` `devlog` `grid-metrics` `focus-config` `limits` `combos-aim` (combo families + aim sleights) · `deck-grid` (deck + gridData + curses) · `hand-detect` (findBestHand/detectHand) · `scoring` (calcScore, exalt/corrupt, contributions) · `render` · `focus` (focus meter) · `hud` · `input` (tap/swap/select) · `play-hand` · `score-anims` / `score-dance` (the scoring “dance”) · `discard` · `card-fall` (renderCardAppearance + fall anim) · `round-timers` · `boss` · `reward-grid` · `limit-break` · `sleights-runtime` · `events-core` / `events` · `interlude` / `level-up` / `tricks-ui` · `shop` · `hands-meta` · `stats` · `deck-view` · `game-control` (pause/resume/startGame) · `challenge` · `audio` · `dev-panel` · `bootstrap` (runs last).
+Rough guide to `js/` (engine): `menu` `devlog` `grid-metrics` `focus-config` `limits` `combos-aim` (combo families + aim sleights) · `deck-grid` (deck + gridData + curses) · `hand-detect` (findBestHand/detectHand) · `scoring` (calcScore, exalt/corrupt, contributions) · `render` · `focus` (focus meter) · `hud` · `input` (tap/swap/select) · `play-hand` · `score-anims` / `score-dance` (the scoring “dance”) · `discard` · `card-fall` (renderCardAppearance + fall anim) · `round-timers` · `boss` · `reward-grid` · `limit-break` · `sleights-runtime` · `events-core` / `events` · `interlude` / `level-up` / `tricks-ui` · `shop` · `hands-meta` · `stats` · `deck-view` · `game-control` (pause/resume/startGame) · `challenge` · `audio` · `dev-panel` · `save` (run save/resume) · `portrait-panel` (portrait shared strip) · `bootstrap` (runs last).
 
 ## Workflow
 
@@ -262,6 +263,40 @@ A guided first run listed **first** in the mode carousel. `MODES.tutorial` sets 
 - **Timing gotchas the steps encode:** the scoring dance runs ~6s (the step after PLAY waits on `tutIdle()` and stays hidden, so the count-up is undimmed); the payout panel counts up for ~6s (its step waits for `#po-valued.show`, not for the overlay to exist); reward tiles deal in with `rewardDealing` gating clicks; and the Mart's markup **exists while collapsed to zero size** mid-channel-change, so `tutMartReady()` tests with `tutEl`, not `getElementById`. Anchors that vanish for a frame keep their last holes (`_tutLastHoles`) so the bubble can't snap to centre and back.
 - **Anti-stall:** a step whose `when` never flips shows anyway after `whenTimeoutMs` (20s), so a stalled predicate can't leave the orientation silently dead.
 - `tutorialHoldClock()` only releases a pause **it** took (`_tutClockHeld`), so the reward grid and Mart keep ownership of `gameTimerPaused` during their own steps.
+
+## Browser storage — `js/storage.js` (r155)
+
+**Loads before every other script, and must stay there.** Some browsers do not return `null` from `localStorage`, they **throw on first access**: Safari private browsing, "block site data" settings, and a **cross-site sandboxed iframe — which is how itch.io embeds an HTML5 game**.
+
+That mattered because ~12 files read storage *at load time, at the top level, outside any try/catch* (`let devMode = localStorage.getItem(...)`). A throw there **aborts the rest of that file**. Measured with storage blocked: 8 files died partway through, `bossInterval` / `BOSS_LOOP_DURATION` / `devMode` were never defined, the menu drew perfectly, and pressing PLAY threw — the game looked healthy right up until it wouldn't start.
+
+The shim swaps in a same-shaped in-memory stand-in when the real thing is unusable, so settings last the session but not beyond it. **Every existing `localStorage` call site works untouched — don't wrap them.** Two traps it encodes: the probe must actually WRITE (Safari private mode *has* a localStorage object and throws on `setItem`), and reading `window.localStorage` is itself guarded because that access is what throws in a blocked iframe. `window.LETHE_STORAGE_OK` reports which mode is live.
+
+## Save & resume — `js/save.js` (r155)
+
+Settings → **Save Run** writes the run to storage; **CONTINUE** on the main menu resumes it. Two decisions shape the whole file:
+
+- **The save point is the START OF A ROUND, not "wherever you are".** `captureRunCheckpoint()` is called from `startRoundTimer()` — the one call site every round start funnels through — and SAVE writes that snapshot out. So the player can save at any moment and what lands on disk is a clean board with a full clock: no half-selected hand, no animation in flight, no scoring dance to resume. **Resuming replays the current round from its start.** Serialising a live mid-round would mean capturing timers, the dance, boss schedules and in-flight fall animations for very little gain.
+- **Restore reuses `startGame()` as its baseline.** A run touches ~130 globals; if restore only assigned the manifest, anything missed would keep the value left over from the PREVIOUS run in the tab. Resume calls `startGame()` first (every global to a known-clean run) then lays the snapshot on top — **a variable missing from `SAVE_VARS` costs that one value, not a corrupt hybrid of two runs.**
+
+**Why indirect eval:** the game's globals are top-level `let`, which — unlike `var` — do **NOT** become properties of `window`. `window['score']` is `undefined` even though `score` is a perfectly good global (verified). Indirect eval (`geval`) runs in global scope and sees the global lexical environment, which is what lets one 130-name manifest replace 260 hand-written assignments that would silently rot. `limits` and `C` are `const`, so their **contents** are copied (`SAVE_MUTATE`) rather than reassigned.
+
+Sets get an explicit tag on serialise (JSON turns a Set into `{}`) — they're everywhere here: `activeHands`, `blockedCells`, `grantedSleightIds`, `rewardSelected`. No entity in any pool carries a function, so tricks/knacks/sleights survive the JSON round-trip intact. The **seed is saved and re-pinned** on resume so reward grids and shops keep following the same sequence. A finished run clears its save, but only when the save belongs to the run that ended (matched on `gameStartTime` — a player may have saved run A, started run B and died in B).
+
+**Adding run state?** Add the variable name to `SAVE_VARS` or it won't survive a save.
+
+## Portrait shared strip — `js/portrait-panel.js` (r156)
+
+Portrait has one narrow strip (`#trick-panel`) for three things that all want room. Landscape anchors each in its own box; portrait can't, so **the Knacks row and the hand preview SHARE the right-hand half** and `#panel-swap-btn` (small, top-right) swaps between them. The Trick tray keeps the left half.
+
+Before this, **portrait had no hand preview at all**: `syncTrickTrayUI()` sets `#hand-preview-area { display:none }` *inline* whenever Tricks live in the tray (the default), and only landscape overrode it. The scoring dance renders into `#selected-cards` inside that hidden element — so in portrait the **entire dance ran in a 0×0 invisible box** (verified: `.dnc-active` set, children inside, zero size). `flyGridCardToSlot` bails to a plain reveal on a zero-width target, which is why portrait scoring looked like nothing happened.
+
+- **The swap is a class on `#stage`** (`pv-knacks` / `pv-preview`) and the CSS carries `!important` because it must beat that inline `display:none`.
+- **Every portrait rule is scoped `#stage:not(.landscape)`.** That's deliberate: the block stops matching the moment `.landscape` is on, so there's no specificity race with the landscape layout. **Follow this pattern for new portrait CSS.**
+- **`portraitDanceBegin/End`** (wired into `playPreviewDance` and both its abort and normal-completion paths) auto-swap to the preview for the dance, then hand the strip back to whichever half the player chose — an auto-swap never overwrites `portraitPanelUserView`.
+- **Gaining a Knack flips back to Knacks**, hooked on the count inside `updateKnackList()` rather than the nine separate `acquiredKnacks.push` sites, so a future grant path gets it free. **That call re-enters `updateKnackList`** (to re-measure the marquee), so the tally is updated *before* the flip and `_pvRemeasuring` guards the re-entry — get that order wrong and it recurses forever.
+- **`.trick-card` is the GRID tile** (`position:absolute`, `width:var(--card-w,57px)`) and is defined later in the stylesheet than `.trick-tray-chip`, so it won for portrait tray chips: every Trick stacked absolutely at the tray's origin with one grid-sized card hanging outside the panel. Landscape already re-flows them; portrait now has its own smaller version. Rarity colours (`--rc`) were also landscape-only and are now assigned for portrait too.
+- Chip rows use `applyChipMarquee`, which measures `clientWidth` — **a row rendered while its half is hidden measures 0 and never gets its auto-scroll**, hence the re-measure on swap.
 
 ## Dev panel / Settings
 `#dev-panel` is **both** the in-game dev panel (🛠 button) and the main menu's **Settings** screen (`openSettingsFromMenu`); the title bar swaps between `DEV MODE` and `SETTINGS`. As of **r117** it's a centred, bounded arcade pop-up (`css/dev-overlays.css`) rather than a full-screen sheet: sticky gold title bar, internally-scrolling `#dev-panel-body`, and a backdrop dim made by a `0 0 0 100vmax` box-shadow spread so no extra wrapper element is needed. **It lives OUTSIDE `#stage` in `index.html`** (a sibling of `#main-menu-overlay`) — inside the stage it inherited the cabinet's CSS `zoom`, which scaled its `vh` sizing by ~1.3× and pushed it off-screen.

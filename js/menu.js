@@ -1,4 +1,4 @@
-const BUILD = '2026-08-22 · r155 · Storage safety shim (game no longer dies where browser storage is blocked) + save/resume a run from Settings, CONTINUE on the main menu';
+const BUILD = '2026-08-22 · r156 · Portrait: Knacks + hand preview share the strip with a swap button, chips given room, Trick tray tiles fixed, scoring dance now actually visible in portrait';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

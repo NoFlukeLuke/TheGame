@@ -592,6 +592,10 @@
         <span class="panel-title">Knacks</span>
         <div id="knack-list"></div>
       </div>
+      <!-- Portrait only: Knacks and the hand preview share the right-hand half of
+           this strip, and this swaps between them (see js/portrait-panel.js).
+           Hidden in landscape, where both have their own anchored boxes. -->
+      <button id="panel-swap-btn" onclick="togglePortraitPanel()" title="Show hand preview" aria-label="Show hand preview">🂠</button>
     </div>
 
   </div>
@@ -898,6 +902,7 @@
 <script src="js/scoring.js"></script>
 <script src="js/render.js"></script>
 <script src="js/focus.js"></script>
+<script src="js/portrait-panel.js"></script>
 <script src="js/hud.js"></script>
 <script src="js/input.js"></script>
 <script src="js/play-hand.js"></script>
