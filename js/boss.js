@@ -259,8 +259,14 @@ function isTrickDisabledByBoss(trickId) {
 }
 
 // ── Boss trigger / end ──
-function triggerBoss(presetOverride = null) {
+// The active boss's clock length. Defaults to BOSS_WINDOW_DURATION; Survival passes
+// its banked leftover time here (see survivalTriggerBoss) so the boss clock is
+// "the time you saved across the last 8 clears, capped at 3 minutes."
+let bossWindowDuration = BOSS_WINDOW_DURATION;
+
+function triggerBoss(presetOverride = null, windowSeconds = null) {
   if (bossActive) return;
+  bossWindowDuration = (typeof windowSeconds === 'number' && windowSeconds > 0) ? windowSeconds : BOSS_WINDOW_DURATION;
   // Pick preset (cycle or random; v1 random)
   const preset = presetOverride
     ? structuredClone(presetOverride)
@@ -294,7 +300,7 @@ function triggerBoss(presetOverride = null) {
   if (roundInterval) { clearInterval(roundInterval); roundInterval = null; }
 
   // Boss timer + UI
-  bossSecondsLeft = BOSS_WINDOW_DURATION;
+  bossSecondsLeft = bossWindowDuration;
   document.getElementById('clock').classList.add('boss-mode');
   document.getElementById('clock-bar').classList.add('boss-mode');
   document.getElementById('grid').classList.add('boss-active');
@@ -325,7 +331,7 @@ function updateBossClockDisplay() {
   const m = Math.floor(bossSecondsLeft / 60);
   const s = bossSecondsLeft % 60;
   document.getElementById('clock').textContent = `${m}:${s.toString().padStart(2,'0')}`;
-  document.getElementById('clock-bar').style.width = (bossSecondsLeft / BOSS_WINDOW_DURATION * 100) + '%';
+  document.getElementById('clock-bar').style.width = (bossSecondsLeft / bossWindowDuration * 100) + '%';
 }
 
 // Single source of truth for the boss countdown. Clears any existing boss interval first
@@ -339,7 +345,7 @@ function startBossTimer() {
     bossSecondsLeft--;
     if (bossSecondsLeft < 0) bossSecondsLeft = 0;
     updateBossClockDisplay();
-    if (bossPhase === 1 && bossSecondsLeft === Math.floor(BOSS_WINDOW_DURATION / 2)) {
+    if (bossPhase === 1 && bossSecondsLeft === Math.floor(bossWindowDuration / 2)) {
       bossPhase = 2;
       updateBossObjectiveUI();
       showMessage('PHASE 2', 'var(--red)');
@@ -395,7 +401,12 @@ function endBoss(success) {
 
   if (success) {
     render();
-    if (isActMode()) {
+    if (survivalActive()) {
+      // Survival: no reward grid — a bonus pick-of-three, then back to normal rounds.
+      // The banked time was spent on this boss, so reset it for the next 8-clear cycle.
+      survivalBossTimeBank = 0;
+      setTimeout(() => survivalPostBossReward(), 1100);
+    } else if (isActMode()) {
       // Node-based: post-boss reward grid is an interlude that starts the next act.
       // nodeInAct stays at 5 so closeRewardGrid knows to reset it and advance actNumber.
       setTimeout(() => { rewardGridContext = 'interlude'; openRewardGrid(); }, 1000);

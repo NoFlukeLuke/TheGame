@@ -1,4 +1,4 @@
-const BUILD = '2026-08-13 · r132 · Survival mode: on-brand pick-of-3 (any Trick/Sleight/Knack/Limit) on goal clear, reroll economy, 2-min rounds, score+time carryover, on-demand shop';
+const BUILD = '2026-08-13 · r133 · Survival mode complete: pick-of-3 reward, reroll economy, 2-min rounds, score+time carryover, on-demand shop, + boss every 8 clears (banked-time clock)';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

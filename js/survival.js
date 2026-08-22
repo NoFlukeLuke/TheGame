@@ -16,8 +16,9 @@ const SURVIVAL_ROUND_SECONDS = 120;   // 2-minute rounds (owner request; was 3)
 const SURVIVAL_LEVEL_COINS   = 3;     // flat coins per goal cleared
 const SURVIVAL_COINS_PER_10S = 1;     // + this per full 10s left on the goal timer
 const SURVIVAL_SHOP_COST     = 5;     // coins to open the shop on demand
-const SURVIVAL_BOSS_EVERY     = 8;    // a boss round every N level-ups (stage 2)
+const SURVIVAL_BOSS_EVERY     = 8;    // a boss appears every N clears
 const SURVIVAL_BOSS_TIME_CAP  = 180;  // banked leftover time feeding the boss, capped
+const SURVIVAL_BOSS_MIN_TIME  = 30;   // floor so a low bank can't hand an unwinnable boss
 // Pick-3 draw weights (weighted "but not heavily" — Tricks/Sleights lead, the
 // permanent Knacks/Limits show up less). Guarantee below overrides droughts.
 const SURVIVAL_PICK_WEIGHTS  = { trick: 42, sleight: 30, knack: 16, limit: 12 };
@@ -34,6 +35,8 @@ let survivalLevelsSinceLimit  = 99;  // start high so the first few levels can f
 let survivalLevelsSinceKnack  = 99;
 let survivalPickOffered       = null; // the 3 options currently shown
 let survivalRerollsUsed       = 0;    // rerolls spent this level (resets each level-up)
+let survivalBossPending       = false;// next dealt round is a boss (set every 8 clears)
+let survivalPickKicker        = 'GOAL CLEARED'; // header line above the pick (set per context)
 const SURVIVAL_FREE_REROLLS   = 2;    // first 2 rerolls are free
 const SURVIVAL_REROLL_STEP    = 5;    // then 5, 10, 15… (STEP × paid-index)
 
@@ -56,6 +59,8 @@ function survivalInitRun() {
   survivalLevelsSinceKnack = 99;
   survivalRerollsUsed      = 0;
   survivalPickOffered      = null;
+  survivalBossPending      = false;
+  bossNumber               = 0;
   document.getElementById('stage')?.classList.add('survival-mode');
   updateSurvivalShopBtn();
 }
@@ -72,6 +77,10 @@ function survivalAfterLevelUp(leftover) {
   updateCoinsUI();
   survivalBossTimeBank = Math.min(SURVIVAL_BOSS_TIME_CAP, survivalBossTimeBank + Math.max(0, leftover));
   if (gained > 0) showMessage(`+${gained} 💰`, 'var(--c-yellow, #ffce2b)');
+  // Every 8th clear the NEXT dealt round is a boss. `level` has already been
+  // incremented (this is the level about to be dealt), so the boss lands on
+  // levels 9, 17, 25… i.e. after each run of 8 cleared goals.
+  if (level > 1 && (level - 1) % SURVIVAL_BOSS_EVERY === 0) survivalBossPending = true;
 }
 
 // ══════════════════════════════════════════════
@@ -165,6 +174,8 @@ function survivalPickOverlay() {
 
 function survivalRenderPick() {
   const overlay = survivalPickOverlay();
+  const kick = overlay.querySelector('.sv-pick-kicker');
+  if (kick) kick.textContent = survivalPickKicker || 'GOAL CLEARED';
   const cards = overlay.querySelector('#sv-pick-cards');
   cards.innerHTML = '';
   (survivalPickOffered || []).forEach((opt, i) => {
@@ -194,9 +205,10 @@ function survivalUpdateRerollBtn() {
 }
 
 // Show the pick panel over the (already spread + frozen) board.
-function showSurvivalPickScreen() {
+function showSurvivalPickScreen(kicker = 'GOAL CLEARED') {
   animating = false;
   trickSelectionPhase = false;
+  survivalPickKicker = kicker;
   survivalRerollsUsed = 0;             // free rerolls refresh every level-up
   survivalPickOffered = survivalPickOptions(false);
   if (typeof sfxLevelUp === 'function') sfxLevelUp();
@@ -296,8 +308,30 @@ function survivalDealNext() {
   setTimeout(() => {
     startNewRoundDealAnims();          // builds temp cards from gridData, drops them, clears dealPhase
     updateClockUI();
-    startRoundTimer();                 // 120s round (roundSeconds set by computeRoundResources)
+    if (survivalBossPending) {
+      // This dealt board is a BOSS round — trigger it once the cards settle
+      // instead of starting a normal goal timer.
+      survivalBossPending = false;
+      setTimeout(() => survivalTriggerBoss(), 950);
+    } else {
+      startRoundTimer();               // 120s round (roundSeconds set by computeRoundResources)
+    }
   }, 90);
+}
+
+// ══════════════════════════════════════════════
+// BOSS ROUND (every 8 clears) — uses the banked leftover time as its clock
+// ══════════════════════════════════════════════
+function survivalTriggerBoss() {
+  const t = Math.max(SURVIVAL_BOSS_MIN_TIME, Math.min(SURVIVAL_BOSS_TIME_CAP, Math.round(survivalBossTimeBank)));
+  triggerBoss(null, t);  // boss objective is checked in playHand (survival plays real hands)
+}
+
+// Boss defeated: a bonus pick-of-three over the board, then back to normal rounds.
+// (endBoss already cleared modifiers/blocked cells and zeroed the time bank.)
+function survivalPostBossReward() {
+  survivalSpreadFreeze();
+  setTimeout(() => { dealPhase = true; showSurvivalPickScreen('BOSS DEFEATED'); }, 320);
 }
 
 // ══════════════════════════════════════════════
