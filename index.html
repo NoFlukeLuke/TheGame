@@ -19,6 +19,8 @@
 <link rel="stylesheet" href="css/match3.css">
 <link rel="stylesheet" href="css/dominoes.css">
 <link rel="stylesheet" href="css/survival.css">
+<link rel="stylesheet" href="css/records.css">
+<link rel="stylesheet" href="css/settings.css">
 <link rel="stylesheet" href="css/mart.css">
 <link rel="stylesheet" href="css/tooltip.css">
 <link rel="stylesheet" href="css/boss.css">
@@ -36,7 +38,7 @@
     <div id="menu-title">THE GAME</div>
     <div id="menu-tagline">A LETHE amusement product. Please continue<br>playing until further notice.</div>
     <button id="menu-start-btn" onclick="maybeAutoFullscreen(); openModeSelect()">PLAY</button>
-    <button id="menu-settings-btn" onclick="openSettingsFromMenu()">SETTINGS</button>
+    <button id="menu-settings-btn" onclick="openSettings(true)">SETTINGS</button>
     <button id="menu-fullscreen-btn" onclick="toggleFullscreen()" style="display:none;">⛶ FULLSCREEN</button>
     <div id="ios-fullscreen-hint" style="display:none;">
       On iPhone / iPad: tap the <strong>Share</strong> button, then <strong>“Add to Home Screen.”</strong>
@@ -606,10 +608,7 @@
 
   <!-- Secondary row: stats/deck/time/pause -->
   <div id="action-row-2">
-    <button class="act-btn btn-secondary" id="btn-stats">📊 Stats</button>
-    <button class="act-btn btn-secondary" id="btn-deck">🃏 Deck</button>
-    <button class="act-btn btn-secondary" id="btn-time">⏱ Time</button>
-    <button class="act-btn btn-secondary" id="btn-limits">▲ Limits</button>
+    <button class="act-btn btn-secondary" id="btn-records" onclick="openRecords()">🗄 Records</button>
     <button class="act-btn btn-secondary" id="btn-pause">⏸ Pause</button>
   </div>
 
@@ -653,6 +652,7 @@
     <div id="pause-title">PAUSED</div>
     <div id="pause-stripe"></div>
     <button id="btn-resume" class="pause-btn pause-btn-primary">▶ Resume</button>
+    <button id="btn-pause-settings" class="pause-btn pause-btn-ghost" onclick="openSettings(false)">⚙ Settings</button>
     <button id="btn-pause-home" class="pause-btn pause-btn-ghost" onclick="quitToMainMenu()">⌂ Home</button>
     <div id="pause-settings">
       <div class="pause-settings-label">Settings</div>
@@ -915,6 +915,8 @@
 <script src="js/audio.js"></script>
 <script src="js/match3.js"></script>
 <script src="js/survival.js"></script>
+<script src="js/records.js"></script>
+<script src="js/settings.js"></script>
 <script src="js/tutorial.js"></script>
 <script src="js/dev-panel.js"></script>
 <script src="js/bootstrap.js"></script>

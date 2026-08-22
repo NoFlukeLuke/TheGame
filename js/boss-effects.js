@@ -103,16 +103,14 @@ function bossOnInteract(kind) {
   if (!bossActive) return;
   if (typeof bossEffectsIgnored === 'function' && bossEffectsIgnored()) return;
 
-  // The Ratchet: the bar moves every time you touch the board. During a boss the
-  // real target is the OBJECTIVE, not roundGoal — roundGoal is not what
-  // checkBossObjective compares against — so raise that, and keep roundGoal in
-  // step so the HUD does not contradict itself.
-  if (bossGoalRatchet && currentBoss?.objective?.type === 'score') {
+  // The Ratchet: the bar moves every time you touch the board. Since r155 the boss
+  // win bar IS roundGoal (bosses no longer carry their own score target), so this
+  // raises roundGoal — the one number checkBossObjective now compares against.
+  if (bossGoalRatchet) {
     const rate = bossGoalRatchet * bossMagScale();
-    const before = currentBoss.objective.target;
-    currentBoss.objective.target = Math.round(before * (1 + rate));
+    const before = roundGoal;
     roundGoal = Math.round(roundGoal * (1 + rate));
-    showMessage(`Objective ${before.toLocaleString()} → ${currentBoss.objective.target.toLocaleString()}`, 'var(--red)');
+    showMessage(`Objective ${before.toLocaleString()} → ${roundGoal.toLocaleString()}`, 'var(--red)');
     if (typeof updateBossObjectiveUI === 'function') updateBossObjectiveUI();
     if (typeof updateScoreUI === 'function') updateScoreUI();
   }

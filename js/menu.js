@@ -1,4 +1,4 @@
-const BUILD = '2026-08-22 · r154 · Survival: goal transition now reuses Classic\'s flourish (minus payout) with the pick beside the preview, + a 📊 contributions breakdown (base mult, replays & time when applicable); limits apply next round';
+const BUILD = '2026-08-22 · r155 · RECORDS hub (tabbed, pauses; deck map overhaul + Personnel File), player Settings screen, bosses use the round goal, survival: 750 opener, 5-min bosses, carry-over rerolls, 5-boss finish + endless';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

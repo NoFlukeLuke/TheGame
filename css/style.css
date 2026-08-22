@@ -3354,13 +3354,10 @@
   #stage.landscape .trick-tray-chip { width:48px; height:64px; font-size:14px; border-radius:6px; flex-direction:column; }
   /* money: compact single-row bar (replaces the old tall coin chip) */
   #stage.landscape #coin-info      { left:1.56%; top:84%; width:37.74%; height:6.5%; flex-direction:row; align-items:center; justify-content:flex-start; gap:10px; padding:0 10px; }
-  /* Five secondary buttons now (Limits joined in r145), so the row is re-divided:
-     the same 1.56%→39.3% span, 5 slots of 6.83% with the same 0.9% gutters. */
-  #stage.landscape #btn-stats      { position:absolute; left:1.56%;  top:91.67%; width:6.83%; height:6.39%; }
-  #stage.landscape #btn-deck       { position:absolute; left:9.29%;  top:91.67%; width:6.83%; height:6.39%; }
-  #stage.landscape #btn-time       { position:absolute; left:17.02%; top:91.67%; width:6.83%; height:6.39%; }
-  #stage.landscape #btn-limits     { position:absolute; left:24.75%; top:91.67%; width:6.83%; height:6.39%; }
-  #stage.landscape #btn-pause      { position:absolute; left:32.48%; top:91.67%; width:6.83%; height:6.39%; }
+  /* TWO secondary buttons since r155: Stats/Deck/Time/Limits merged into RECORDS.
+     The same 1.56%→39.3% span, now 2 equal slots of 18.4% with the 0.9% gutter. */
+  #stage.landscape #btn-records    { position:absolute; left:1.56%;  top:91.67%; width:18.4%; height:6.39%; }
+  #stage.landscape #btn-pause      { position:absolute; left:20.86%; top:91.67%; width:18.44%; height:6.39%; }
   /* focus meter hugs the grid's left edge; grid + clock bar shifted right for the wider left column */
   #stage.landscape #focus-meter-wrap { position:absolute; left:39.9%; top:1.39%; width:4.6%; height:96.67%; }
   #stage.landscape #focus-bar-outer { width:21px; }   /* landscape focus bar (25% thinner than the old 28px) */

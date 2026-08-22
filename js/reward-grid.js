@@ -1007,7 +1007,7 @@ function rewardTargetEl(key) {
   switch (key) {
     case 'tricks':   return document.getElementById('trick-tray-area');
     case 'knacks':   return document.getElementById('knack-carousel-wrap');
-    case 'deck':     return document.getElementById('btn-deck');
+    case 'deck':     return document.getElementById('btn-records');
     case 'clock':    return document.getElementById('vclock') || document.getElementById('round-clock');
     case 'swaps':    return document.getElementById('swap-indicator');
     case 'discards': return document.getElementById('btn-discard');

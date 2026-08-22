@@ -72,7 +72,8 @@ function triggerLevelUp() {
 
   level++;
   // This round's score target, from zero
-  roundGoal = Math.round(Math.round(BASE_GOAL * Math.pow(GOAL_SCALE, level - 1)) / 500) * 500;
+  roundGoal = survivalActive() ? survivalGoalForLevel(level)
+            : Math.round(Math.round(BASE_GOAL * Math.pow(GOAL_SCALE, level - 1)) / 500) * 500;
   // Zen has no clock, so its goals are doubled — levelling and the reward grid
   // stay reachable, just at a slower, self-paced rate.
   if (match3IsZen()) roundGoal *= 2;
