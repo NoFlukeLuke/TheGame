@@ -1,4 +1,4 @@
-const BUILD = '2026-08-22 · r156 · Portrait: Knacks + hand preview share the strip with a swap button, chips given room, Trick tray tiles fixed, scoring dance now actually visible in portrait';
+const BUILD = '2026-08-22 · r157 · Portrait score panel split 50/50 (PIPS·MULT·FOCUS | SCORE over GOAL); PIPS·MULT·FOCUS now jitter and fuse into one HAND chip while the score climbs, then split back — both orientations';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

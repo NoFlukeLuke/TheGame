@@ -593,6 +593,111 @@
   .trick-tray-chip.trick-tier-legendary { border-color: #e8b84b; color: #e8b84b; background: #160e00; }
 
   /* ══════════════════════════════════════════════
+     PMF MERGE (r157) — see js/pmf-merge.js
+     ══════════════════════════════════════════════
+     Both orientations. The three chips slide to the row's centre and fade while
+     a single fused chip grows out sideways in their place, reading the hand's
+     score. --pmf-dx is measured per chip in JS (the two layouts space them very
+     differently); --pmf-dur is set per phase so the merge keeps pace with a
+     fast-forwarded dance. */
+  #score-subboxes { position: relative; }
+  /* Landscape positions this box absolutely, and `position:relative` would
+     break that — it only needs to become a containing block where it is static. */
+  #stage.landscape #score-subboxes { position: absolute; }
+
+  @keyframes pmfJitter {
+    0%,100% { transform: translate(0,0) rotate(0deg); }
+    15%     { transform: translate(-1.5px, 1px) rotate(-1.1deg); }
+    30%     { transform: translate(1.5px, -1px) rotate(1.1deg); }
+    45%     { transform: translate(-1.2px, -1px) rotate(-0.8deg); }
+    60%     { transform: translate(1.2px, 1px) rotate(0.8deg); }
+    80%     { transform: translate(-0.8px, 0) rotate(-0.4deg); }
+  }
+  .score-subbox.pmf-jitter { animation: pmfJitter 0.3s ease-in-out 2; }
+
+  #score-subboxes .score-subbox,
+  #score-subboxes .subbox-times {
+    transition: transform var(--pmf-dur, 340ms) cubic-bezier(.5,0,.2,1),
+                opacity   var(--pmf-dur, 340ms) ease;
+  }
+  #score-subboxes.pmf-merging .score-subbox {
+    transform: translateX(var(--pmf-dx, 0px)) scaleX(0.16);
+    opacity: 0;
+  }
+  #score-subboxes.pmf-merging .subbox-times { opacity: 0; transform: scaleX(0.2); }
+
+  #pmf-merged {
+    position: absolute; left: 4px; right: 4px; top: 4px; bottom: 4px;
+    z-index: 6; pointer-events: none;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+    border-radius: 5px;
+    background: linear-gradient(180deg, #3a2c08, #201802);
+    border: 1px solid var(--gold, #d4a857);
+    box-shadow: 0 0 14px -2px rgba(212,168,87,0.55), inset 0 0 18px -8px rgba(212,168,87,0.9);
+    opacity: 0;
+    transform: scaleX(0.22);
+    transform-origin: center center;
+    transition: transform var(--pmf-dur, 340ms) cubic-bezier(.34,1.3,.5,1),
+                opacity   var(--pmf-dur, 340ms) ease;
+  }
+  #pmf-merged.show { opacity: 1; transform: scaleX(1); }
+  .pmf-merged-label {
+    font-family: 'Cinzel', serif; font-size: 7px; font-weight: 700;
+    letter-spacing: 2.5px; text-transform: uppercase; line-height: 1;
+    color: var(--gold-dim, #9a7c3a);
+  }
+  .pmf-merged-val {
+    font-family: 'Cinzel', serif; font-weight: 900; line-height: 1;
+    font-size: 22px; color: var(--gold, #d4a857);
+    text-shadow: 0 0 12px rgba(212,168,87,0.5);
+    white-space: nowrap;
+  }
+  /* Landscape has a wider row to fill, so the fused number can be bigger. */
+  #stage.landscape .pmf-merged-val   { font-size: 30px; }
+  #stage.landscape .pmf-merged-label { font-size: 8px; }
+
+  /* ══════════════════════════════════════════════
+     PORTRAIT SCORE PANEL — PMF half / SCORE-over-GOAL half (r157)
+     ══════════════════════════════════════════════
+     PORTRAIT ONLY, by owner's call — landscape keeps its existing three-box
+     arrangement untouched. (The PMF merge animation, by contrast, runs in both.)
+
+     The portrait panel is split 50/50: PIPS·MULT·FOCUS own the left half at full
+     height, and SCORE sits directly above GOAL in the right half, separated by a
+     hairline rather than by two panel edges. Score and goal keep their existing
+     type sizes — the room comes from the split, not from shrinking them.
+
+     #score-panel-inner is re-laid as a 2x2 grid (it is a flex row by default).
+     Scoped `#stage:not(.landscape)` because landscape sets
+     `display:contents !important` on the same element and positions the three
+     children absolutely — see the v7 block. */
+  #stage:not(.landscape) #score-panel-inner {
+    display: grid;
+    grid-template-columns: 50% 50%;
+    grid-template-rows: 1fr 1fr;
+    align-items: stretch;
+  }
+  #stage:not(.landscape) #score-subboxes {
+    grid-column: 1; grid-row: 1 / 3;
+    border-right: 1px solid var(--border);
+  }
+  #stage:not(.landscape) #score-center {
+    grid-column: 2; grid-row: 1;
+    height: auto; min-height: 0;
+  }
+  #stage:not(.landscape) #score-left {
+    grid-column: 2; grid-row: 2;
+    height: auto; min-height: 0;
+    border-left: none;
+    border-top: 1px solid var(--border);   /* the hairline between score and goal */
+    padding: 2px 6px;
+    gap: 2px;
+  }
+  /* The two halves now carry more content each, so the panel needs the height
+     back that the old three-across row didn't need. */
+  #stage:not(.landscape) #score-panel { height: 108px; }
+
+  /* ══════════════════════════════════════════════
      PORTRAIT STRIP (r156)
      ══════════════════════════════════════════════
      Every rule here is scoped `#stage:not(.landscape)` on purpose: it makes the
