@@ -626,6 +626,10 @@ function selectTrick(trick, fromTrickFlow = false) {
 // GAME END
 // ══════════════════════════════════════════════
 function updateActProgressUI() {
+  // Keep the ACT/node/sigil blocks in step — every caller of this (boss start,
+  // boss end, startGame, reward-grid advance, save restore) is exactly a moment
+  // the progress block needs repainting.
+  if (typeof updateRunProgressUI === 'function') updateRunProgressUI();
   const labelEl = document.getElementById('game-timer-label');
   const valEl   = document.getElementById('game-timer');
   if (!labelEl || !valEl) return;

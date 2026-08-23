@@ -211,7 +211,7 @@ function startGame() {
   if (typeof clearBossEffects === 'function') clearBossEffects();
   if (typeof bossInterval !== 'undefined' && bossInterval) { clearInterval(bossInterval); bossInterval = null; }
   document.getElementById('boss-preamble')?.remove();
-  document.getElementById('run-progress')?.classList.remove('boss-sigil');
+  document.querySelectorAll('.rp-block').forEach(el => el.classList.remove('boss-sigil'));
 
   // Install this run's RNG BEFORE any deck is built or shuffled — startGame is
   // the single point where a run's randomness is established (see js/seed.js).
@@ -361,6 +361,7 @@ function startGame() {
   nineSecondsCounter = 0;
   highestHandScore = 0;
   highestHandName  = null;
+  if (typeof resetHandLog === 'function') resetHandLog();
   gameStartTime    = Date.now();
   fullHouseThisRound = 0;
   rowColBonuses = [];

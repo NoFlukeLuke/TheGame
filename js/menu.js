@@ -1,4 +1,4 @@
-const BUILD = '2026-08-22 · r159 · BUILDS: procurement catalogue + requisitions (merged onto r158)';
+const BUILD = '2026-08-23 · r160 · boss sigil in the progress slot · hand log · portrait HUD · action-column + chip sizing';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

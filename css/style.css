@@ -641,11 +641,7 @@
                 opacity   var(--pmf-dur, 340ms) ease;
   }
   #pmf-merged.show { opacity: 1; transform: scaleX(1); }
-  .pmf-merged-label {
-    font-family: 'Cinzel', serif; font-size: 7px; font-weight: 700;
-    letter-spacing: 2.5px; text-transform: uppercase; line-height: 1;
-    color: var(--gold-dim, #9a7c3a);
-  }
+  /* .pmf-merged-label is gone (r160) — the word "HAND" did not fit the chip. */
   .pmf-merged-val {
     font-family: 'Cinzel', serif; font-weight: 900; line-height: 1;
     font-size: 22px; color: var(--gold, #d4a857);
@@ -654,7 +650,6 @@
   }
   /* Landscape has a wider row to fill, so the fused number can be bigger. */
   #stage.landscape .pmf-merged-val   { font-size: 30px; }
-  #stage.landscape .pmf-merged-label { font-size: 8px; }
 
   /* ══════════════════════════════════════════════
      PORTRAIT SCORE PANEL — PMF half / SCORE-over-GOAL half (r157)
@@ -1434,11 +1429,16 @@
   }
 
   #action-col #swap-indicator {
+    /* SWAP sits ABOVE discard/play (r160). #action-col is the portrait column —
+       landscape sets it display:contents and places all three absolutely — so
+       source order only matters here, and `order` is the whole fix. */
+    order: -1;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 6px 3px;
+    /* 30% taller: 6px → 13px of vertical padding on a ~45px content box. */
+    padding: 13px 3px;
     font-size: 8px;
     border-radius: 6px;
     flex-shrink: 0;
@@ -1944,7 +1944,8 @@
   .subbox-times { font-family: 'Cinzel', serif; font-size: 11px; color: var(--cream-dim); flex-shrink: 0; }
 
   /* Center: current score */
-  #score-center { flex: 1.2; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; height: 100%; }
+  /* cursor:help — the SCORE box is hoverable/long-pressable for the hand log (r160). */
+  #score-center { flex: 1.2; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; height: 100%; cursor: help; }
   #score-total-label { font-family: 'Cinzel', serif; font-size: 7px; letter-spacing: 2px; color: var(--gold-dim); text-transform: uppercase; }
   #score-total-num { font-family: 'Cinzel', serif; font-size: 24px; font-weight: 900; color: var(--cream); line-height: 1; }
 
@@ -3618,15 +3619,24 @@
   #stage.landscape #knack-list { flex-wrap:nowrap; gap:5px; max-height:none; overflow:hidden; }
 
   /* preview: full-width frame; hand-name sits inside it on the dark background (left); cards render exactly like the grid, bonuses and all */
-  #stage.landscape #selected-cards { left:1.56%; top:38%; width:37.74%; height:18%; --card-w:38px; --card-h:50px; display:flex; align-items:center; justify-content:center; gap:4px; padding:4px 8px 4px 44px; background:var(--panel); border:1px solid var(--border); border-radius:6px; overflow:hidden; }
-  #stage.landscape #hand-name { position:absolute; left:1.56%; top:38%; width:6%; height:18%; display:flex; align-items:center; justify-content:center; text-align:center; background:none; border:none; margin:0; font-size:10px; line-height:1.15; letter-spacing:0.5px; color:var(--gold); padding:0 3px; z-index:2; }
+  /* HAND and TRICKS are the same size box (r160). They used to be 18% and 25.5%
+     tall, which made a Trick tile (48×64) noticeably bigger than a preview card
+     (38×50) even though both are "one item you hold". The 38%→82.5% span is now
+     split evenly, and the tiles are sized to match: the preview card is as wide
+     as five-across allows in this column, and the Trick chip is a touch smaller. */
+  #stage.landscape #selected-cards { left:1.56%; top:38%; width:37.74%; height:21.75%; --card-w:42px; --card-h:55px; display:flex; align-items:center; justify-content:center; gap:4px; padding:4px 8px 4px 44px; background:var(--panel); border:1px solid var(--border); border-radius:6px; overflow:hidden; }
+  #stage.landscape #hand-name { position:absolute; left:1.56%; top:38%; width:6%; height:21.75%; display:flex; align-items:center; justify-content:center; text-align:center; background:none; border:none; margin:0; font-size:10px; line-height:1.15; letter-spacing:0.5px; color:var(--gold); padding:0 3px; z-index:2; }
   /* Shop cost readout uses the full preview slot (no room reserved for the hand-name label). */
   body.shop-active #stage.landscape #selected-cards { padding:5px 9px; justify-content:stretch; align-items:stretch; }
 
   /* tricks: enlarged now that the time/money chips left this column — big reward-grid-style tiles */
-  #stage.landscape #trick-tray-area { left:1.56%; top:57%; width:37.74%; height:25.5%; display:flex !important; flex-direction:row; align-items:center; justify-content:flex-start; padding:6px 8px; gap:6px; overflow:hidden; }
+  #stage.landscape #trick-tray-area { left:1.56%; top:60.75%; width:37.74%; height:21.75%; display:flex !important; flex-direction:row; align-items:center; justify-content:flex-start; padding:6px 8px; gap:6px; overflow:hidden; }
   #stage.landscape #trick-tray-list { flex-direction:row; flex-wrap:nowrap; align-items:center; gap:5px; max-height:none; overflow:hidden; padding:0; width:100%; }
-  #stage.landscape .trick-tray-chip { width:48px; height:64px; font-size:14px; border-radius:6px; flex-direction:column; }
+  /* 40×53 — a hair under the 42×55 preview card, and narrow enough that SIX fit
+     across the column (the old 48px capped it at five, below the trick_slots max). */
+  #stage.landscape .trick-tray-chip { width:40px; height:53px; font-size:12px; border-radius:6px; flex-direction:column; }
+  #stage.landscape .trick-tray-chip .trick-card-emoji { font-size:19px; }
+  #stage.landscape .trick-tray-chip .trick-card-name  { font-size:5.2px; }
   /* money: compact single-row bar (replaces the old tall coin chip) */
   #stage.landscape #coin-info      { left:1.56%; top:84%; width:37.74%; height:6.5%; flex-direction:row; align-items:center; justify-content:flex-start; gap:10px; padding:0 10px; }
   /* TWO secondary buttons since r155: Stats/Deck/Time/Limits merged into RECORDS.
@@ -3638,9 +3648,13 @@
   #stage.landscape #focus-bar-outer { width:21px; }   /* landscape focus bar (25% thinner than the old 28px) */
   #stage.landscape #grid-slot      { position:absolute; left:45%; top:11.11%; width:45%; height:86.11%; }
   #stage.landscape #run-progress   { left:90.63%; top:1.39%; width:8.59%; height:8.33%; flex-direction:column; align-items:center; justify-content:center; gap:3px; padding:3px; }
-  #stage.landscape #btn-discard    { position:absolute; left:91.41%; top:11.11%; width:7.81%; height:29.17%; }
-  #stage.landscape #btn-play       { position:absolute; left:91.41%; top:41.67%; width:7.81%; height:38.89%; }
-  #stage.landscape #swap-indicator { position:absolute; left:91.41%; top:81.94%; width:7.81%; height:15.28%; }
+  /* Action column order (r160): SWAP on top, then DISCARD, then PLAY. Swap is
+     30% taller than it was (15.28% → 19.86%); the two buttons below absorb the
+     difference in their old 29.17 : 38.89 ratio, so the column still runs
+     11.11% → 97.22% with the same 1.39% gutters. */
+  #stage.landscape #swap-indicator { position:absolute; left:91.41%; top:11.11%; width:7.81%; height:19.86%; }
+  #stage.landscape #btn-discard    { position:absolute; left:91.41%; top:32.36%; width:7.81%; height:27.20%; }
+  #stage.landscape #btn-play       { position:absolute; left:91.41%; top:60.95%; width:7.81%; height:36.27%; }
   /* new-block internals */
   #vclock-fill { position:absolute; left:0; top:0; bottom:0; width:64%; background:linear-gradient(90deg,var(--gold-dim),var(--gold)); transition:width .25s linear; }
   #vclock-band { position:absolute; top:0; bottom:0; left:33%; width:34%; background:repeating-linear-gradient(45deg, rgba(201,168,76,0.18) 0 6px, transparent 6px 12px); border-left:1px dashed rgba(201,168,76,0.5); border-right:1px dashed rgba(201,168,76,0.5); }
@@ -3656,12 +3670,33 @@
   #limits-popup .ic-r { display:flex; justify-content:space-between; font-family:'Courier New',monospace; font-size:9px; color:var(--cream); }
   #limits-popup .ic-r span:last-child { color:var(--gold); font-weight:700; }
   #limits-popup .ic-sep { height:1px; margin:3px 0; background:var(--plastic-deep); opacity:0.5; }
-  #run-progress .rp-act { font-family:'Cinzel',serif; font-size:11px; font-weight:700; color:var(--gold); letter-spacing:1px; line-height:1; }
-  #run-progress .rp-nodes { display:flex; gap:3px; align-items:center; }
-  #run-progress .rp-nodes span { width:6px; height:6px; border-radius:50%; background:#2a2010; border:1px solid var(--gold-dim); box-sizing:border-box; }
-  #run-progress .rp-nodes span.on { background:var(--gold); border-color:var(--gold); }
-  #run-progress .rp-nodes span.cur { background:var(--cream); border-color:var(--cream); }
-  #run-progress .rp-nodes .boss { width:auto; height:auto; border:none; background:none; color:var(--red); font-size:10px; }
+  /* .rp-block internals — shared by the landscape box (#run-progress) and the
+     portrait top-bar copy (#run-progress-pt), so both read identically. */
+  .rp-block .rp-act { font-family:'Cinzel',serif; font-size:11px; font-weight:700; color:var(--gold); letter-spacing:1px; line-height:1; }
+  .rp-block .rp-nodes { display:flex; gap:3px; align-items:center; }
+  .rp-block .rp-nodes span { width:6px; height:6px; border-radius:50%; background:#2a2010; border:1px solid var(--gold-dim); box-sizing:border-box; }
+  .rp-block .rp-nodes span.on { background:var(--gold); border-color:var(--gold); }
+  .rp-block .rp-nodes span.cur { background:var(--cream); border-color:var(--cream); }
+  .rp-block .rp-nodes .boss { width:auto; height:auto; border:none; background:none; color:var(--red); font-size:10px; }
+
+  /* ── Portrait progress block (r160) ──
+     The portrait top-left used to be a text stat ("Progress / ACT 1 · 0/5").
+     It is now the same ACT + node-pip block landscape uses — and, on a boss
+     round in ANY mode, the same sigil. It is display:none until
+     updateRunProgressUI() decides it has something to say (.rp-live), at which
+     point #game-timer-stat yields the slot (.rp-yielded).
+     Scoped `#stage:not(.landscape)` per the portrait convention; the landscape
+     rule below is a belt-and-braces hide since .v7-ls doesn't apply here. */
+  #run-progress-pt { display: none; }
+  #stage:not(.landscape) #run-progress-pt.rp-live {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 3px; padding: 4px 6px; box-sizing: border-box;
+    background: var(--panel); border: 1px solid var(--border); border-radius: 6px;
+    flex-shrink: 0; min-width: 62px;
+  }
+  #stage:not(.landscape) #run-progress-pt .rp-act { font-size: 9px; }
+  #stage:not(.landscape) #game-timer-stat.rp-yielded { display: none; }
+  #stage.landscape #run-progress-pt { display: none !important; }
 
   /* ============================================================= */
   /* ==  LETHE CABINET RESKIN — 80s consumer-plastic + CRT      == */
@@ -3871,9 +3906,19 @@
     box-shadow: inset 0 2px 0 rgba(255,255,255,0.3), inset 0 -2px 0 rgba(0,0,0,0.28), 0 1px 0 #a9330f !important; }
   /* PLAY / DISCARD never gray out — they always read as live caps (r100) */
   .btn-play:disabled, .btn-discard:disabled { opacity: 1 !important; cursor: pointer !important; }
-  #swap-indicator { font-family:'Share Tech Mono',monospace !important;
-    background: linear-gradient(180deg, #241d12, #14100a) !important; border:1px solid #000 !important;
-    color: var(--c-cyan) !important; box-shadow: inset 0 1px 4px rgba(0,0,0,0.6) !important; }
+  /* SWAP used to be a dark inset plaque with cyan text — next to two lit candy
+     caps it read as scenery, not as a resource you spend. It is now a cap of the
+     same family in the one accent PLAY (yellow) and DISCARD (coral) don't use. */
+  /* :not(.reward-skip) throughout — the reward grid repurposes this same element
+     into a blue SKIP button, and that skin must keep winning. */
+  #swap-indicator:not(.reward-skip) { font-family:'Share Tech Mono',monospace !important; font-weight:700 !important;
+    background: linear-gradient(180deg, #7ceef8, var(--c-cyan) 55%, #0e8c99) !important;
+    border:none !important; border-radius:8px !important;
+    color:#04292d !important; text-shadow:0 1px 0 rgba(255,255,255,0.35) !important;
+    box-shadow: inset 0 2px 0 rgba(255,255,255,0.65), inset 0 -3px 0 rgba(0,0,0,0.22),
+                0 4px 0 #0a6b75, 0 6px 8px rgba(0,0,0,0.4) !important; }
+  #swap-indicator:not(.reward-skip) #swap-count { color:#04292d !important; }
+  #swap-indicator:not(.reward-skip) .act-cost   { color:#0a4d54 !important; opacity:0.8 !important; }
   .btn-secondary { font-family:'Orbitron',sans-serif !important;
     background: linear-gradient(180deg, #1d3a3e, #10242700) !important; border:1px solid var(--c-cyan) !important; color: var(--c-cyan) !important; }
   .btn-secondary:hover { background: linear-gradient(180deg, #235055, #12292c) !important; color:#fff !important; }
@@ -3982,13 +4027,45 @@
   }
 
   #interact-costs.time-popup { display: none; }
-  #interact-costs.time-popup.show, #limits-popup.time-popup.show {
+  #interact-costs.time-popup.show, #limits-popup.time-popup.show, #hand-log-popup.time-popup.show {
     display: flex !important; position: fixed; z-index: 320; min-width: 116px;
     flex-direction: column; gap: 2px; padding: 8px 12px; margin: 0;
     background: linear-gradient(180deg, #15110b, #0b0906) !important;
     border: 1.5px solid var(--c-cyan) !important; border-radius: 9px;
     box-shadow: 0 0 0 2px var(--plastic-lo), 0 0 14px -2px var(--c-cyan), 0 10px 24px rgba(0,0,0,0.6) !important;
   }
+
+  /* ── Hand log (r160) — the same bubble as ⏱ Time / ▲ Limits, but a table:
+     hand name, the cards that made it, what it scored. Wider than those two
+     because a five-card hand has to fit on one line. ── */
+  #hand-log-popup.time-popup { display: none; }
+  #hand-log-popup.time-popup.show { min-width: 232px; max-width: 300px; gap: 0; }
+  #hand-log-rows { display: flex; flex-direction: column; gap: 1px; margin-top: 3px; }
+  .hl-r {
+    display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: baseline;
+    padding: 2px 0; border-bottom: 1px solid rgba(58,48,32,0.45);
+  }
+  .hl-r:last-of-type { border-bottom: none; }
+  .hl-name  { font-family: 'Cinzel', serif; font-size: 9px; color: var(--cream);
+              white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hl-cards { font-family: 'Crimson Pro', serif; font-size: 10px; line-height: 1; white-space: nowrap; }
+  .hl-cards i { font-style: normal; margin-left: 3px; }
+  .hl-cards i:first-child { margin-left: 0; }
+  .hl-h { color: var(--suit-hearts); }
+  .hl-d { color: var(--suit-diamonds); }
+  .hl-s { color: var(--cream); }
+  .hl-c { color: var(--cream); }
+  .hl-x { color: var(--cream-dim); }
+  .hl-score { font-family: 'Share Tech Mono', monospace; font-size: 10px; font-weight: 700;
+              color: var(--gold); min-width: 44px; text-align: right; }
+  /* A boss round's hands are marked — its modifiers make those scores atypical. */
+  .hl-boss .hl-name::before { content: '☠ '; color: var(--red); }
+  .hl-sep { font-family: 'Cinzel', serif; font-size: 7px; letter-spacing: 1.5px; text-transform: uppercase;
+            color: var(--gold-dim); padding: 4px 0 2px; border-top: 1px solid rgba(58,48,32,0.7); margin-top: 2px; }
+  .hl-foot { display: flex; justify-content: space-between; gap: 10px;
+             font-family: 'Share Tech Mono', monospace; font-size: 8px; color: var(--cream-dim); }
+  .hl-empty { font-family: 'Crimson Pro', serif; font-size: 11px; color: var(--cream-dim);
+              text-align: center; padding: 4px 0; }
 
   /* Compact one-line money bar (replaces the old tall coin chip) */
   #stage.landscape #coin-info .ci-main { font-size: 13px; }

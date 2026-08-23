@@ -234,7 +234,9 @@ const TUTORIAL_STEPS = [
     onExit: () => closeRecords(),
   },
   {
-    id: 'progress', anchor: () => tutEl('#run-progress'), side: 'left', hold: true, next: true,
+    // Two progress blocks since r160 — landscape's box and the portrait top-bar
+    // copy. tutEl takes the first VISIBLE one, so no orientation branch is needed.
+    id: 'progress', anchor: () => tutEl('#run-progress', '#run-progress-pt'), side: 'left', hold: true, next: true,
     eyebrow: 'Module 07',
     title: 'Assignment schedule',
     body: `Your position in the current contract.<br><br>Five assignments, then a <b>supervisor review</b>. Three acts of the same. Complete the third and your contract is fulfilled.<br><br>Quotas rise at every step. This is not negotiable.`,

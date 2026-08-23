@@ -54,7 +54,6 @@ function updateScoreUI() {
   const bar = document.getElementById('score-progress-bar');
   if (bar) bar.style.width = Math.round(pct * 100) + '%';
   document.getElementById('goal-display').textContent = roundGoal.toLocaleString();
-  document.getElementById('hands-display').textContent = handsPlayed;
   document.getElementById('level-display').textContent = level;
   updateCoinsUI();
   updateRunProgressUI();
@@ -78,14 +77,38 @@ function updateCoinsUI() {
   if (typeof survivalUpdateRerollBtn === 'function' && document.getElementById('survival-pick-overlay')?.classList.contains('show')) survivalUpdateRerollBtn();
 }
 
-// v7 landscape: run-progress block (Act + node pips)
+// Run-progress block (ACT n + node pips, or the boss sigil).
+//
+// There are TWO of these in the DOM and they carry the same content: #run-progress
+// (the landscape box at the top-right) and #run-progress-pt (the portrait top-bar
+// copy, which as of r160 replaces the old "Progress / ACT 1 · 0/5" text). Both
+// carry `.rp-block`, so this fills whichever one the layout is showing and neither
+// orientation needs its own update path.
+//
+// The BOSS SIGIL is set here rather than at the boss's own call sites, so it can
+// never drift out of sync with the block it lives in: render() → updateScoreUI()
+// → here repaints it, which matters because a boss round is exactly when the HUD
+// is being rewritten constantly.
 function updateRunProgressUI() {
-  const rp = document.getElementById('run-progress'); if (!rp) return;
-  const act = rp.querySelector('.rp-act'); if (act) act.textContent = 'ACT ' + actNumber;
-  rp.querySelectorAll('.rp-nodes span:not(.boss)').forEach((s, i) => {
-    s.classList.toggle('on', i < nodeInAct);
-    s.classList.toggle('cur', i === nodeInAct);
+  const bossOn = (typeof bossActive !== 'undefined') && bossActive;
+  const actMode = (typeof isActMode === 'function') && isActMode();
+  document.querySelectorAll('.rp-block').forEach(rp => {
+    rp.classList.toggle('boss-sigil', bossOn);
+    const act = rp.querySelector('.rp-act');
+    // Outside the 3-Act structure (Survival) "ACT n" is meaningless, but a boss
+    // still needs a name over its mark.
+    if (act) act.textContent = actMode ? ('ACT ' + actNumber) : (bossOn ? 'REVIEW' : '');
+    rp.querySelectorAll('.rp-nodes span:not(.boss)').forEach((s, i) => {
+      s.classList.toggle('on', i < nodeInAct);
+      s.classList.toggle('cur', i === nodeInAct);
+    });
   });
+  // Portrait: the block takes the top-left slot whenever it has something to say
+  // — an act-mode run, or ANY mode's boss round. Otherwise that slot stays the
+  // legacy game timer.
+  const live = actMode || bossOn;
+  document.getElementById('run-progress-pt')?.classList.toggle('rp-live', live);
+  document.getElementById('game-timer-stat')?.classList.toggle('rp-yielded', live);
 }
 
 let _knackCountShown = 0;

@@ -314,7 +314,9 @@ function triggerBoss(presetOverride = null, windowSeconds = null) {
   document.getElementById('clock').classList.add('boss-mode');
   document.getElementById('clock-bar').classList.add('boss-mode');
   document.getElementById('grid').classList.add('boss-active');
-  document.getElementById('run-progress')?.classList.add('boss-sigil');
+  // The sigil itself is applied by updateRunProgressUI (called from
+  // updateActProgressUI below) so BOTH progress blocks — landscape and portrait —
+  // get it, in every mode that can run a boss.
 
   updateBossClockDisplay();
 
@@ -366,15 +368,68 @@ function showBossPreamble(preset, onProceed) {
   slot.appendChild(el);
   _bossPreambleHeld = true;
   gameTimerPaused = true;
-  requestAnimationFrame(() => el.classList.add('show'));
+  // The briefing grows out of the boss sigil in the run-progress block and, on
+  // PROCEED, shrinks back into it — so the mark that will sit there for the whole
+  // round is visibly where the boss came from. Falls back to the plain fade if
+  // the sigil isn't on screen (no anchor to fly from).
+  //
+  // The ENTRY is a Web Animation, not the CSS transition the return flight uses.
+  // Setting the start transform inline and clearing it a frame later gets
+  // coalesced into one style recalc, so the transition never has two values to
+  // interpolate between and the panel just fades in at full size (verified: the
+  // measured width never left 407px). Forcing layout doesn't help either —
+  // transform doesn't affect layout, so there is nothing for offsetWidth to
+  // flush. el.animate() states both ends explicitly and can't be coalesced away.
+  // The return flight is a genuine change on a settled element, so the CSS
+  // transition handles that one correctly.
+  const fly = _bossPreambleFlyTransform(el);
+  el.classList.add('show');
+  if (fly && typeof el.animate === 'function') {
+    el.animate([{ transform: fly, opacity: 0 }, { transform: 'none', opacity: 1 }],
+               { duration: 400, easing: 'cubic-bezier(.2,.8,.3,1)' });
+  }
   el.querySelector('.bp-go').onclick = () => {
+    const back = _bossPreambleFlyTransform(el);
+    if (back) el.style.transform = back;
     el.classList.remove('show');
-    setTimeout(() => el.remove(), 320);
+    setTimeout(() => el.remove(), 420);
     if (_bossPreambleHeld) { gameTimerPaused = false; _bossPreambleHeld = false; }
     onProceed();
   };
 }
 let _bossPreambleHeld = false;
+
+// The on-screen rect of the boss sigil — the mark inside whichever .rp-block the
+// current layout is showing (landscape's #run-progress, portrait's top-bar copy).
+function _bossSigilAnchorRect() {
+  for (const b of document.querySelectorAll('.rp-block.boss-sigil')) {
+    const r = b.getBoundingClientRect();
+    if (r.width < 1 || r.height < 1) continue;           // the other orientation's copy
+    const sr = b.querySelector('.rp-sigil')?.getBoundingClientRect();
+    return (sr && sr.width > 1) ? sr : r;
+  }
+  return null;
+}
+
+// The transform that puts `el` over the sigil, shrunk to its size.
+//
+// Both rects come from getBoundingClientRect, i.e. real viewport pixels — but a
+// `transform: translate()` on an element INSIDE #cabinet is in that element's own
+// CSS pixels, which the cabinet's `zoom` then scales. So the measured delta has
+// to be divided by the effective zoom, read off the element itself (rect width vs
+// layout width) rather than assumed from --stage-zoom.
+function _bossPreambleFlyTransform(el) {
+  const a = _bossSigilAnchorRect();
+  if (!a) return null;
+  const r = el.getBoundingClientRect();
+  if (r.width < 2 || r.height < 2) return null;
+  const zoom = r.width / (el.offsetWidth || r.width);
+  if (!(zoom > 0)) return null;
+  const scale = Math.max(0.05, Math.min(1, a.width / r.width));
+  const dx = (a.left + a.width  / 2 - (r.left + r.width  / 2)) / zoom;
+  const dy = (a.top  + a.height / 2 - (r.top  + r.height / 2)) / zoom;
+  return `translate(${Math.round(dx)}px, ${Math.round(dy)}px) scale(${scale.toFixed(3)})`;
+}
 
 // The round-start 3-2-1 (show321Countdown) also deals cards and refills the
 // clock; a boss needs neither. This is just the numbers.
@@ -458,7 +513,6 @@ function endBoss(success) {
   clearBlockedCellDOM();
   hideBossObjectiveHUD();
   document.getElementById('grid').classList.remove('boss-active');
-  document.getElementById('run-progress')?.classList.remove('boss-sigil');
   document.getElementById('boss-preamble')?.remove();
   if (_bossPreambleHeld) { gameTimerPaused = false; _bossPreambleHeld = false; }
   document.getElementById('clock').classList.remove('boss-mode');

@@ -222,8 +222,13 @@
 #ci-shop-btn.sv-on { display: block; font-size: 10px; padding: 5px 8px; margin-top: 6px; width: 100%; text-align: center; }
 
 /* Act-mode run-progress block (ACT n + node pips + boss skull) is meaningless in
-   endless Survival — hide it so the HUD doesn't imply a 3-Act structure. */
+   endless Survival — hide it so the HUD doesn't imply a 3-Act structure.
+   EXCEPT on a boss round (r160): Survival runs real bosses, and the boss sigil
+   belongs in the same place it lives in every other mode. .boss-sigil already
+   collapses the node pips to the single mark, so what shows here is just the
+   sigil under a REVIEW label — no implied act structure. */
 #stage.survival-mode #run-progress { display: none; }
+#stage.survival-mode.landscape #run-progress.boss-sigil { display: flex; }
 /* Survival has no interest/cash-out economy — hide those readouts so the coin
    block is just the gold total + the SHOP button. */
 #stage.survival-mode #coin-info .ci-row { display: none; }

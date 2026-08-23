@@ -84,7 +84,7 @@ const SAVE_VARS = [
   // ── Round/run counters ──
   'handsPlayedRound', 'runsPlayedRound', 'setsPlayedRound', 'runStreak',
   'cardsDiscardedTotal', 'cardsDiscardedRound', 'cardsScoredTotal', 'nineSecondsCounter',
-  'highestHandScore', 'highestHandName', 'fullHouseThisRound', 'gameStartTime',
+  'highestHandScore', 'highestHandName', 'fullHouseThisRound', 'gameStartTime', 'handLog',
   'lastHandType', 'streakCount', 'lastHandTime', 'resilience', 'resilienceUsed',
   'firstHandThisRound', 'replaysThisRound', 'timeManipRound', 'roundContributions',
   // ── Reward grid / shop ──

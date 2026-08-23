@@ -28,6 +28,8 @@ initDevMode();
     // Turning a tablet mid-run switches layouts; re-assert the portrait strip's
     // shared-half state so it isn't left showing whatever landscape left behind.
     if (typeof syncPortraitPanel === 'function') syncPortraitPanel();
+    // …and re-fit any preview cards on screen, which are sized from the strip.
+    if (typeof fitPortraitPreviewCards === 'function') fitPortraitPreviewCards();
     if (cabinet) cabinet.classList.toggle('landscape', isLandscape);
     // Larger inter-card gap in landscape keeps bigger cards visually separated.
     CARD_GAP = isLandscape ? 5 : 3;

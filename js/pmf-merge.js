@@ -57,7 +57,11 @@ function _pmfEnsureMerged(wrap) {
   if (_pmfMerged && _pmfMerged.parentNode) _pmfMerged.parentNode.removeChild(_pmfMerged);
   const el = document.createElement('div');
   el.id = 'pmf-merged';
-  el.innerHTML = '<div class="pmf-merged-label">HAND</div><div class="pmf-merged-val">0</div>';
+  // No label: the word "HAND" never fit the chip cleanly at either orientation
+  // (it crowded the number in portrait and read as a second, competing line in
+  // landscape). The fused number is self-evident in context — it appears exactly
+  // where PIPS × MULT × FOCUS just were, and the SCORE total climbs by it next.
+  el.innerHTML = '<div class="pmf-merged-val">0</div>';
   wrap.appendChild(el);
   _pmfMerged = el;
   return el;

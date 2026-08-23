@@ -216,6 +216,11 @@ function playHand() {
   // Clock-mark Tricks: the pending pip/mult bonuses were already folded into finalScore — clear them now.
   pendingHandPips = 0; pendingHandMult = 0; pendingCardPips = 0;
   handsPlayed++;
+  // Record the hand for the SCORE-box hand log. Written here, not in the dance:
+  // the dance is a presentation that can be interrupted or cut, whereas this is
+  // the point the hand becomes a fact. handCells is read for card faces before
+  // removeAndFall clears them.
+  if (typeof logPlayedHand === 'function') logPlayedHand(hand, handCells, finalScore, { boss: bossActive });
 
   // Boss objective progress.
   // Snapshot boss state BEFORE checkBossObjective — a boss-winning hand calls endBoss(),
@@ -268,6 +273,7 @@ function playHand() {
     console.log('[POST-GOAL] hand attempted after goal — ignoring');
     score -= finalScore;
     handsPlayed--;
+    if (typeof unlogLastHand === 'function') unlogLastHand();   // the hand is being unwound
     if (finalScore > highestHandScore) { highestHandScore -= finalScore; }
     if (hand === 'Full House' && hasTrick('full_house_streak')) fullHouseThisRound--;
     return;

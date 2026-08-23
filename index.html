@@ -465,6 +465,12 @@
     <div class="ic-r"><span>Rewound</span><span id="ic-rewound">0×</span></div>
   </div>
 
+  <!-- Hand log — hover / long-press the SCORE box (see js/hand-log.js). -->
+  <div id="hand-log-popup" class="time-popup" style="display:none">
+    <div class="ic-h">Hand Log</div>
+    <div id="hand-log-rows"></div>
+  </div>
+
   <div id="limits-popup" class="time-popup" style="display:none">
     <div class="ic-h">Operating Limits</div>
     <div id="limits-popup-rows"></div>
@@ -521,6 +527,15 @@
 
 <!-- TOP BAR -->
 <div id="top-bar">
+  <!-- Portrait progress: the same ACT + node-pip block landscape uses (and the
+       same boss sigil), instead of the old "Progress / ACT 1 · 0/5" text.
+       .rp-block is what updateRunProgressUI() fills — #run-progress below is the
+       landscape one. Only one of these two and #game-timer-stat is ever visible. -->
+  <div id="run-progress-pt" class="rp-block">
+    <div class="rp-act">ACT 1</div>
+    <div class="rp-nodes"><span></span><span></span><span></span><span></span><span></span><span class="boss">&#9760;</span></div>
+    <div class="rp-sigil">&#9760;</div>
+  </div>
   <div id="game-timer-stat" class="top-stat">
     <span class="top-label" id="game-timer-label">Game Timer</span>
     <span class="top-value gold" id="game-timer">20:00</span>
@@ -534,10 +549,8 @@
     <div id="clock-bar-wrap"><div id="clock-bar"></div></div>
     <button id="skip-btn" type="button">Skip »</button>
   </div>
-  <div class="top-stat">
-    <span class="top-label">Hands</span>
-    <span class="top-value" id="hands-display">0</span>
-  </div>
+  <!-- The "Hands" counter was removed from the top bar (r160) — it is a
+       statistic, not a live decision input, and it is still in Records. -->
   <div class="top-stat">
     <span class="top-label">Coins</span>
     <span class="top-value gold" id="coins-display">💰 0</span>
@@ -651,7 +664,7 @@
 
   <!-- v7 landscape-only blocks (hidden in portrait) -->
   <div id="vclock" class="v7-ls"><div id="vclock-band"></div><div id="vclock-fill"></div></div>
-  <div id="run-progress" class="v7-ls">
+  <div id="run-progress" class="v7-ls rp-block">
     <div class="rp-act">ACT 1</div>
     <div class="rp-nodes"><span></span><span></span><span></span><span></span><span></span><span class="boss">&#9760;</span></div>
     <!-- On a boss round the node pips collapse into this single mark (see css/boss.css) -->
@@ -928,6 +941,7 @@
 <script src="js/play-hand.js"></script>
 <script src="js/score-anims.js"></script>
 <script src="js/pmf-merge.js"></script>
+<script src="js/hand-log.js"></script>
 <script src="js/score-dance.js"></script>
 <script src="js/discard.js"></script>
 <script src="js/card-fall.js"></script>

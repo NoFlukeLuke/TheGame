@@ -751,6 +751,10 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
     const { className, innerHTML } = renderCardAppearance(card, r, c);
     d.className=className+' preview-card'; d.innerHTML=innerHTML;
     outer.appendChild(d); handTrack.appendChild(outer); return d; });
+  // Portrait sizes its preview cards to the strip, and overlaps them if the hand
+  // is too wide to fit. Must run BEFORE the fly-in — flyGridCardToSlot measures
+  // each slot's rect to land the clone on it.
+  if (typeof fitPortraitPreviewCards === 'function') fitPortraitPreviewCards();
   // Resolve the REAL on-screen element for each contributing entity (aligned with `tricks`;
   // may be null, e.g. exalt or Amplifier that has no rack element — those still tally, no jitter).
   const entityEls = tricks.map(t => danceEntityEl(t.source, t.id));

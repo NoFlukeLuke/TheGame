@@ -165,7 +165,11 @@ function match3TypesOf(cards) {
 function match3ScoreMatch(type, cells, comboMult) {
   const hand = match3HandName(type, cells.length, cells);
   const raw = calcScore(hand, cells);
-  return Math.max(0, Math.round(raw * comboMult));
+  const out = Math.max(0, Math.round(raw * comboMult));
+  // Match-3 never calls playHand, so it logs its own auto-played matches for the
+  // SCORE-box hand log (js/hand-log.js).
+  if (typeof logPlayedHand === 'function') logPlayedHand(hand, cells, out, { src: 'match3' });
+  return out;
 }
 
 // Every valid contiguous window of 3+ in every row and column.
