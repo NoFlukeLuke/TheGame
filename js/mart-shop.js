@@ -115,7 +115,9 @@ const martRar = p => (MART_TIERS.includes(p.rarity) ? p.rarity : 'common');
 function martTileHTML(p, key) {
   const inCart = martCart.includes(key);
   const cant = coins < p.price;
-  const cls = ['m-item', 'r-'+martRar(p), inCart?'in-cart':'', p._sold?'sold':''].filter(Boolean).join(' ');
+  // A star + pulse if this entity is on the filed requisition (Builds screen).
+  const wanted = (typeof isRequisitioned === 'function') && p.ref && isRequisitioned(p.ref.id);
+  const cls = ['m-item', 'r-'+martRar(p), inCart?'in-cart':'', p._sold?'sold':'', wanted?'requisitioned':''].filter(Boolean).join(' ');
   const price = `<div class="price ${cant&&!inCart?'cant':''}">${p._sold?'✓':'💰'+p.price}</div>`;
   let inner;
   if (p.type==='trick')   inner = `<div class="trick"><div class="emblem">✦ TRICK</div><div class="art">${p.emoji}</div><div class="nm">${p.label}</div></div>`;
@@ -138,6 +140,7 @@ function martSectionHTML(cat) {
 }
 
 function renderMart() {
+  syncDiscoveredFromOwned();
   renderMartLoadout();
   renderMartMain();
   renderMartCheckout();

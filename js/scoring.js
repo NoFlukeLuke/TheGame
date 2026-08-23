@@ -744,9 +744,11 @@ function roundContributionRowsHTML() {
 function hasTrick(id) {
   if (isTrickDisabledByBoss(id)) return false;
   if (trickTrayMode && trickTray.some(b => b.id === id)) return true;
+  // gridData?.[r] — the grid is empty between screens (menu, Builds, mid-deal), and
+  // a stray timer tick landing there would otherwise throw on gridData[r][c].
   for (let r = 0; r < gridRows; r++)
     for (let c = 0; c < gridCols; c++) {
-      const cell = gridData[r][c];
+      const cell = gridData?.[r]?.[c];
       if (cell?._isTrick && cell.trick?.id === id) return true;
     }
   return false;

@@ -20,6 +20,7 @@
 <link rel="stylesheet" href="css/dominoes.css">
 <link rel="stylesheet" href="css/mart.css">
 <link rel="stylesheet" href="css/tooltip.css">
+<link rel="stylesheet" href="css/builds.css">
 </head>
 <body>
 <div id="knack-tooltip" role="tooltip"></div>
@@ -33,6 +34,7 @@
     <div id="menu-title">THE GAME</div>
     <div id="menu-tagline">A LETHE amusement product. Please continue<br>playing until further notice.</div>
     <button id="menu-start-btn" onclick="maybeAutoFullscreen(); openModeSelect()">PLAY</button>
+    <button id="menu-builds-btn" onclick="openBuilds()">BUILDS</button>
     <button id="menu-settings-btn" onclick="openSettingsFromMenu()">SETTINGS</button>
     <button id="menu-fullscreen-btn" onclick="toggleFullscreen()" style="display:none;">⛶ FULLSCREEN</button>
     <div id="ios-fullscreen-hint" style="display:none;">
@@ -241,6 +243,23 @@
     <div class="dev-row">
       <button class="dev-btn" onclick="devCcTest()">Test transition</button>
       <button class="dev-btn" onclick="devResetCc()">Reset preset</button>
+    </div>
+  </div>
+
+  <!-- BUILDS ARCHIVE -->
+  <div class="dev-section" data-group="builds">
+    <div class="dev-section-title">Builds Archive</div>
+    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:4px;">
+      Records start as FILE MISSING and open as you acquire entities in a run. Reveal-all lets you browse the real thing.
+    </div>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;">
+      <input id="dev-reveal-all" type="checkbox" onchange="devSetRevealAll(this.checked)" style="accent-color:var(--gold);">
+      Reveal every record (ignore discovery)
+    </label>
+    <div id="dev-disco-count" style="font-family:'Courier New',monospace;font-size:10px;color:var(--gold-dim);margin-top:2px;"></div>
+    <div class="dev-row">
+      <button class="dev-btn" onclick="devDiscoverAll()">Mark all discovered</button>
+      <button class="dev-btn" onclick="devForgetAll()">Forget all</button>
     </div>
   </div>
 
@@ -813,6 +832,7 @@
 <script src="js/data/tricks.js"></script>
 <script src="js/focus-config.js"></script>
 <script src="js/fit-text.js"></script>
+<script src="js/discovery.js"></script>
 <script src="js/keywords.js"></script>
 <script src="js/entity-tooltip.js"></script>
 <script src="js/float-anim.js"></script>
@@ -850,6 +870,7 @@
 <script src="js/shop-grid-preview.js"></script>
 <script src="js/mart-shop.js"></script>
 <script src="js/wheel.js"></script>
+<script src="js/builds.js"></script>
 <script src="js/hands-meta.js"></script>
 <script src="js/stats.js"></script>
 <script src="js/deck-view.js"></script>

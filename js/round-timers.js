@@ -44,6 +44,7 @@ function showSuitEffect(text, color) {
 function startRoundTimer() {
   if (roundInterval) clearInterval(roundInterval);
   startHeartbeat();                 // the board's idle pulse runs with the round
+  syncDiscoveredFromOwned();        // log anything new for the Builds archive
   roundStartSeconds = roundSeconds; // mark the start of the countdown for ♠ "first 30s" exalt
   roundInterval = setInterval(() => {
     if (pipeTimerPaused) return;

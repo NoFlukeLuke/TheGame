@@ -1,4 +1,4 @@
-const BUILD = '2026-08-19 · r143 · Tooltips everywhere + keyword defs · drag-to-cart · wheel confirm';
+const BUILD = '2026-08-19 · r144 · BUILDS: the LETHE personnel archive + requisitions';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
