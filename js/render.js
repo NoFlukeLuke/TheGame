@@ -4,6 +4,11 @@ function render() {
   // While the reward grid occupies the play #grid, its own renderer owns the DOM.
   // Skip re-rendering mid-animation (deal-in / resolve) so flying tiles aren't clobbered.
   if (rewardOnGrid) { if (!rewardDealing) renderRewardTiles(); return; }
+  // Boss cell overlays (quarantine crosses, dark cells, contamination) are
+  // absolutely-positioned siblings of the cards, so they have to be repainted
+  // whenever the board is. renderBossCellOverlays no-ops cheaply when nothing
+  // is marked.
+  if (typeof renderBossCellOverlays === 'function' && typeof bossActive !== 'undefined' && bossActive) renderBossCellOverlays();
   const gridEl = document.getElementById('grid');
   const reachable = getReachable();
   const bestHandResult = selected.length >= 2 ? findBestHand(selected) : null;

@@ -30,7 +30,7 @@ function resumeGame() {
     if (gameTimerPaused) return;
     gameSeconds--;
     // See startTimers: match-3 and dominoes own their round loops, skip legacy progression.
-    if (!isActMode() && !match3Active() && !dominoActive()) {
+    if (!isActMode() && !match3Active() && !dominoActive() && !survivalActive()) {
       const m = Math.floor(gameSeconds/60);
       const s = gameSeconds%60;
       document.getElementById('game-timer').textContent = `${m}:${s.toString().padStart(2,'0')}`;
@@ -69,15 +69,10 @@ function quitToMainMenu() {
   location.reload();
 }
 
-document.getElementById('btn-stats').addEventListener('click', () => {
-  if (!screenOwnsClock()) pauseGame(false); // pause timers but don't hide grid
-  showStats();
-});
-
-document.getElementById('btn-deck').addEventListener('click', () => {
-  if (!screenOwnsClock()) pauseGame(false);
-  showDeck();
-});
+// The four secondary chips (Stats / Deck / Time / Limits) were merged into the single
+// RECORDS hub in r155 (js/records.js) — a large tabbed pop-up that pauses the round.
+// showStats() / showDeck() and the Time + Limits pop-ups are kept: the dev panel and
+// the Mart still open them, and the tutorial's Limits step points at Records now.
 
 // ⏱ Time — small pop-up showing the time-cost breakdown (like stats/deck/pause,
 // but a lightweight bubble anchored above the button). Replaces the old chip.
@@ -95,9 +90,13 @@ function updateInteractCosts() {
   let disc = (typeof BAL !== 'undefined') ? BAL._resources.discard_seconds_per_card : 3;
   if (typeof hasKnack === 'function' && hasKnack('free_discards')) disc = 0;
   else { if (typeof hasKnack === 'function' && hasKnack('hoarder')) disc = BAL.hoarder.discard_seconds_per_card; disc += (discardCostThisRound || 0); }
+  if (typeof bossInteractMult === 'function') disc = Math.round(disc * bossInteractMult());
   set('ic-discard', `${disc}s`);
   // Swap cost: 4 base, 0 with Free Swaps.
-  const swap = (typeof hasKnack === 'function' && hasKnack('free_swaps')) ? 0 : (typeof SWAP_TIME_COST !== 'undefined' ? SWAP_TIME_COST : 4);
+  let swap = (typeof BAL !== 'undefined') ? BAL._resources.swap_seconds : 8;
+  if (typeof hasKnack === 'function' && hasKnack('free_swaps')) swap = 0;
+  else if (typeof hasKnack === 'function' && hasKnack('steady_hand')) swap = BAL.steady_hand.swap_seconds;
+  if (typeof bossInteractMult === 'function') swap = Math.round(swap * bossInteractMult());
   set('ic-swap', `${swap}s`);
   // Max time = round cap minus permanent (−5s) penalties.
   const base = (typeof ROUND_DURATION !== 'undefined') ? ROUND_DURATION : 180;
@@ -124,10 +123,54 @@ function toggleTimePopup() {
 }
 document.getElementById('btn-time')?.addEventListener('click', (e) => {
   e.stopPropagation();
+  hideLimitsPopup();
   toggleTimePopup();
 });
 document.addEventListener('click', (e) => {
   if (!e.target.closest('#btn-time') && !e.target.closest('#interact-costs')) hideTimePopup();
+}, true);
+
+// ▲ Limits — the same lightweight bubble as ⏱ Time, but for the upgradeable caps.
+// Limits are the run's skeleton (how big the board is, how many swaps/discards you
+// get, how long a round lasts, how many Tricks you can hold) and until now they were
+// only visible inside the Mart. This puts them one tap away during play.
+function hideLimitsPopup() { document.getElementById('limits-popup')?.classList.remove('show'); }
+function updateLimitsPopup() {
+  const rows = document.getElementById('limits-popup-rows');
+  if (!rows) return;
+  rows.innerHTML = LIMITS_DEF.map(def => {
+    const l = limits[def.id];
+    const maxed = l.current >= l.max;
+    // hideMax limits (Selection Size) have no meaningful ceiling to show.
+    const right = def.hideMax ? `${l.current}` : `${l.current}<span class="lp-max">/${l.max}</span>`;
+    return `<div class="ic-r lp-r${maxed ? ' lp-maxed' : ''}" title="${def.desc}">` +
+           `<span><span class="lp-ico">${def.icon}</span>${def.label}</span>` +
+           `<span>${right}</span></div>`;
+  }).join('');
+}
+function toggleLimitsPopup() {
+  const pop = document.getElementById('limits-popup');
+  const btn = document.getElementById('btn-limits');
+  if (!pop || !btn) return;
+  if (pop.classList.contains('show')) { hideLimitsPopup(); return; }
+  updateLimitsPopup();
+  pop.classList.add('show');
+  const r = btn.getBoundingClientRect();
+  const pw = pop.offsetWidth, ph = pop.offsetHeight;
+  let left = r.left + r.width / 2 - pw / 2;
+  let top  = r.top - ph - 8;
+  left = Math.max(6, Math.min(window.innerWidth - pw - 6, left));
+  if (top < 6) top = r.bottom + 8;
+  pop.style.left = left + 'px';
+  pop.style.top  = top + 'px';
+}
+document.getElementById('btn-limits')?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  hideTimePopup();
+  toggleLimitsPopup();
+});
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('#btn-limits') && !e.target.closest('#limits-popup')) hideLimitsPopup();
 }, true);
 
 // Stats / Deck can also be opened from a takeover screen (the Mart shop), where there is
@@ -155,6 +198,21 @@ function startGame() {
   stopTimers();
   if (levelupTimer) { clearInterval(levelupTimer); levelupTimer = null; }
 
+  // Abandoning a run mid-boss would otherwise leave its scheduled effects running
+  // — a quarantine cross landing 10 seconds into the NEXT run. Kill them here,
+  // where every new run funnels through.
+  bossActive = false;
+  if (typeof clearBossEffects === 'function') clearBossEffects();
+  if (typeof bossInterval !== 'undefined' && bossInterval) { clearInterval(bossInterval); bossInterval = null; }
+  document.getElementById('boss-preamble')?.remove();
+  document.getElementById('run-progress')?.classList.remove('boss-sigil');
+
+  // Install this run's RNG BEFORE any deck is built or shuffled — startGame is
+  // the single point where a run's randomness is established (see js/seed.js).
+  // A mode may pin a seed (the tutorial does); otherwise the dev panel's seed is
+  // used, and with neither the run is plain unseeded.
+  applyRunSeed(ACTIVE_MODE.seed || pendingRunSeed || null);
+
   // Pick the suit list for this mode BEFORE any deck is built. Six Suits mode uses
   // the expanded 6-suit list; every other mode uses the classic four.
   ACTIVE_SUITS = (ACTIVE_MODE.suitCount === 6) ? SUITS_SIX : SUITS;
@@ -175,6 +233,10 @@ function startGame() {
     limits.grid_rows.current = 5; limits.grid_rows.base = 5;
     limits.grid_cols.current = 5; limits.grid_cols.base = 5;
   }
+  // Survival: reset its per-run state and flag the stage (shows the shop button).
+  document.getElementById('stage')?.classList.toggle('survival-mode', survivalActive());
+  if (survivalActive()) survivalInitRun();
+  if (typeof updateSurvivalShopBtn === 'function') updateSurvivalShopBtn();
   discards = limits.discards.current;
   swaps = limits.swaps.current;
   // Sync playing-grid dimensions from limits and size the cards
@@ -204,7 +266,7 @@ function startGame() {
   lastTapCell = null;
   lastTapTime = 0;
   lastSwapTime = 0;
-  roundSeconds = ROUND_DURATION;
+  roundSeconds = currentRoundDuration();  // Survival runs shorter rounds
   gameSeconds = GAME_DURATION;
   trickCardPos = null;
   trickCardTimer = 0;
@@ -233,7 +295,7 @@ function startGame() {
   const BASE_HAND_KEYS = ['run3','threeofakind','twopair','fourofakind'];
   // Match-3 scores real hand names (Flush, Straight, Straight Flush, Run of 4…),
   // so it needs the full hand set active like the act modes, not the legacy base four.
-  const startKeys = [...(isActMode() || match3Active() ? ALL_HAND_KEYS : BASE_HAND_KEYS)];
+  const startKeys = [...(isActMode() || match3Active() || survivalActive() ? ALL_HAND_KEYS : BASE_HAND_KEYS)];
   // Six Suits mode makes the short flushes playable from the start alongside the 5-card Flush.
   if (ACTIVE_MODE.suitCount === 6) startKeys.push('flush3', 'flush4');
   activeHands = new Set(startKeys);
@@ -328,7 +390,8 @@ function startGame() {
   updateActProgressUI();
   // Clear any leftover card elements from previous game
   document.getElementById('grid').querySelectorAll('.card').forEach(el => el.remove());
-  roundGoal = match3IsZen() ? BASE_GOAL * 2 : BASE_GOAL; // Zen: doubled goals, no clock
+  roundGoal = survivalActive() ? survivalGoalForLevel(1)
+            : (match3IsZen() ? BASE_GOAL * 2 : BASE_GOAL); // Zen: doubled goals, no clock
   totalScore = 0;
   coins = 0;
   shopItems = null;
@@ -372,6 +435,9 @@ function startGame() {
   startTimers();
   // Zen mode hands out unlimited swaps/discards (see match3ApplyZenResources).
   if (match3Active()) { match3ApplyZenResources(); setTimeout(() => match3Resolve(), 400); }
+  // Tutorial mode: rig the opening board + goal, then start the coach-marks.
+  // Must run LAST — it overwrites roundGoal/coins and re-renders the stacked grid.
+  if (tutorialActive()) tutorialBeginRun();
 }
 
 // ══════════════════════════════════════════════

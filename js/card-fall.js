@@ -152,7 +152,7 @@ async function removeAndFall(removingCells, mode = 'play') {
   const gridEl = document.getElementById('grid');
 
   // Slide removed cards toward target icon
-  const targetId = mode === 'discard' ? 'btn-discard' : 'btn-deck';
+  const targetId = mode === 'discard' ? 'btn-discard' : 'btn-records';
   const targetEl = document.getElementById(targetId);
   const targetRect = targetEl ? targetEl.getBoundingClientRect() : null;
 
@@ -199,7 +199,7 @@ async function removeAndFall(removingCells, mode = 'play') {
     // Playable rows in this column, ordered TOP-to-BOTTOM
     const playableRows = [];
     for (let r = 0; r < gridRows; r++) {
-      if (!isCellBlocked(r, col)) playableRows.push(r);
+      if (!isCellVoid(r, col)) playableRows.push(r);
     }
     if (playableRows.length === 0) continue;
 
@@ -238,7 +238,7 @@ async function removeAndFall(removingCells, mode = 'play') {
   removingCells.forEach(([r,c]) => { gridData[r][c] = null; });
   for (let col = 0; col < gridCols; col++) {
     const playableRows = [];
-    for (let r = 0; r < gridRows; r++) if (!isCellBlocked(r, col)) playableRows.push(r);
+    for (let r = 0; r < gridRows; r++) if (!isCellVoid(r, col)) playableRows.push(r);
     const survivors = [];
     for (const r of playableRows) {
       if (gridData[r][col] !== null) survivors.push(gridData[r][col]);
@@ -248,7 +248,7 @@ async function removeAndFall(removingCells, mode = 'play') {
       gridData[playableRows[playableRows.length - survivors.length + i]][col] = card;
     });
     newCards.filter(n => n.col === col).forEach(({ finalRow, card }) => {
-      if (card && !isCellBlocked(finalRow, col)) gridData[finalRow][col] = card;
+      if (card && !isCellVoid(finalRow, col)) gridData[finalRow][col] = card;
     });
   }
 

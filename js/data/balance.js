@@ -193,7 +193,7 @@ const BAL = {
   carry_discards: { max: 8 },
   carry_time: { max_seconds: 60 },
   // ── system: base resource time costs ──
-  _resources: { swap_seconds: 10, discard_seconds_per_card: 3 },
+  _resources: { swap_seconds: 8, discard_seconds_per_card: 3 },   // play is free by default
   _exalt: { club_pips: 10, diamond_coins: 3, heart_mult: 2, spade_time: 4 },
   _corrupt: { club_pips: 25, club_mult: -3, diamond_coins: 5, diamond_pips: -20, heart_mult: 5, heart_time: -5, spade_time: 7, spade_coins: -8 },
 };

@@ -1,7 +1,11 @@
 // ══════════════════════════════════════════════════════════════════════════
-// BUILDS — the LETHE personnel archive. Every entity in the game laid out on one
-// pannable, zoomable canvas so you can browse the whole catalogue and assemble a
-// dream build.
+// BUILDS — the LETHE procurement catalogue. Every entity in the game laid out on
+// one pannable, zoomable canvas so you can browse the whole catalogue and
+// assemble a dream build.
+//
+// NOT to be confused with the RECORDS hub's "Personnel File" (js/records.js),
+// which lists what you own in the CURRENT run. This is the full catalogue of what
+// exists, gated by what you've discovered, and it lives on the main menu.
 //
 // LAYOUT      Grouped by TYPE (Tricks / Sleights / Knacks / Events) always, and
 //             sub-grouped within each type by RARITY or by KEYWORD on a toggle.
@@ -76,7 +80,7 @@ function ensureBuildsOverlay() {
   el.innerHTML = `
     <div class="bv-bar">
       <button class="bv-back" onclick="closeBuilds()">&#9664; MENU</button>
-      <span class="bv-title">PERSONNEL ARCHIVE</span>
+      <span class="bv-title">PROCUREMENT CATALOGUE</span>
       <span class="bv-sub" id="bv-count"></span>
       <div class="bv-bar-right">
         <button class="bv-chip" id="bv-group-btn">GROUP: RARITY</button>

@@ -1,4 +1,11 @@
+// Reward grids run on a POSITIONAL seeded stream keyed by visit index, so the
+// Nth grid of a seed is always the same grid — however many cards the player
+// discarded, whatever Tricks fired, whichever route they took to get here.
+// See js/seed.js.
 function generateRewardContent() {
+  return withSeededRng(_generateRewardContent, 'reward', rewardVisitIndex++);
+}
+function _generateRewardContent() {
   const ROWS = limits.grid_rows.current;
   const COLS = limits.grid_cols.current;
 
@@ -267,7 +274,7 @@ function generateRewardContent() {
   const shuffledBuff = shuffled(buffPos);
   const grid = Array.from({length: ROWS}, () => Array(COLS).fill(null));
 
-  // One destination in a random buff slot
+  // One destination in a random buff slot.
   grid[shuffledBuff[0][0]][shuffledBuff[0][1]] = { kind: 'dest', payload: pickRand(destOptions) };
 
   // Guaranteed tiles first (protected from the Trick-minimum conversion below)
@@ -321,7 +328,19 @@ function generateRewardContent() {
     grid[r][c] = { kind: 'debuff', payload: pick || pickRand(debuffs) };
   }
 
-  return grid;
+  // The tutorial rewrites its FIRST grid into a Trick → liability → Mart row so
+  // the reward step can teach the path rule by making the player walk one. Every
+  // later grid (and every other mode) passes through untouched.
+  _rewardTrickPayloadFactory = makeTrickPayload;
+  return (typeof tutorialScriptRewardGrid === 'function') ? tutorialScriptRewardGrid(grid) : grid;
+}
+
+// generateRewardContent builds its payload factories as closures, so the only
+// way to mint a Trick tile from outside is to capture one on the way past.
+let _rewardTrickPayloadFactory = null;
+function makeRewardTrickPayload() {
+  return _rewardTrickPayloadFactory ? _rewardTrickPayloadFactory()
+                                    : { icon: '★', label: 'Trick', tier: 'rare', entity: 'trick', rarity: 'rare', apply: applyRewardRandomTrick };
 }
 
 // ── Mystery tile resolution ──
@@ -988,7 +1007,7 @@ function rewardTargetEl(key) {
   switch (key) {
     case 'tricks':   return document.getElementById('trick-tray-area');
     case 'knacks':   return document.getElementById('knack-carousel-wrap');
-    case 'deck':     return document.getElementById('btn-deck');
+    case 'deck':     return document.getElementById('btn-records');
     case 'clock':    return document.getElementById('vclock') || document.getElementById('round-clock');
     case 'swaps':    return document.getElementById('swap-indicator');
     case 'discards': return document.getElementById('btn-discard');

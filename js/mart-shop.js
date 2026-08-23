@@ -59,13 +59,26 @@ function martLimitStock(count){
   });
 }
 
+// The Mart's stock runs on a POSITIONAL seeded stream keyed by shop-visit index,
+// so the Nth shop of a seed always offers the same catalog. Rerolls deliberately
+// sit OUTSIDE it (see martReroll) — a reroll is a player action, and rerolling
+// into the same shelves would make the button pointless.
 function buildMartStock() {
+  // Keyed by (visit, reroll count): a reroll is deterministic for a seed but does
+  // NOT advance the visit index, so how many times you reroll shop #1 cannot
+  // change what shop #2 stocks.
+  return withSeededRng(_buildMartStock, 'shop', shopVisitIndex, martRerollN);
+}
+function _buildMartStock() {
   const others = shuffle(['sleights','knacks','limits']).slice(0, 2);   // 3 of 4 (tricks always featured)
   martCats = ['tricks', ...others];
   martStock = {};
-  martStock.tricks = martPick(TRICK_POOL, 'tier', 4).map(martTrickPayload);
-  if (martCats.includes('sleights')) martStock.sleights = martPick(SLEIGHT_POOL, 'rarity', 4).map(martSleightPayload);
-  if (martCats.includes('knacks'))   martStock.knacks   = martPick(KNACK_POOL, 'rarity', 4).map(martKnackPayload);
+  // Survival has no reward grid, so reward-grid-only entities are filtered out here
+  // too — otherwise the Mart could sell a item that does nothing in this mode.
+  const _ok = p => typeof survivalEntityBanned !== 'function' || !survivalEntityBanned(p.id);
+  martStock.tricks = martPick(TRICK_POOL.filter(_ok), 'tier', 4).map(martTrickPayload);
+  if (martCats.includes('sleights')) martStock.sleights = martPick(SLEIGHT_POOL.filter(_ok), 'rarity', 4).map(martSleightPayload);
+  if (martCats.includes('knacks'))   martStock.knacks   = martPick(KNACK_POOL.filter(_ok), 'rarity', 4).map(martKnackPayload);
   if (martCats.includes('limits'))   martStock.limits   = martLimitStock(4);
 }
 
@@ -90,6 +103,7 @@ function ensureMartOverlay() {
 // The overlay is revealed at the collapse, hidden inside the flash.
 function openMart() {
   martActive = true; martCart = []; martRerollN = 0;
+  shopVisitIndex++;                       // this is shop visit N for the run's seed
   gameTimerPaused = true;
   try { sfxShopOpen && sfxShopOpen(); } catch(e){}
   buildMartStock();
@@ -106,6 +120,20 @@ function closeMart() {
     document.getElementById('mart-overlay')?.classList.remove('show');
     gameTimerPaused = false;
     if (shopFromNodeFlow) { shopFromNodeFlow = false; drainLevelUpQueue(); }
+    else if (typeof survivalActive === 'function' && survivalActive() && !bossActive) {
+      if (typeof survivalShopFromPick !== 'undefined' && survivalShopFromPick) {
+        // Opened from the PICK screen: the pick is still up behind the Mart and owns
+        // the flow (the round deals when you choose). Stay paused, just refresh prices.
+        survivalShopFromPick = false;
+        gameTimerPaused = true;
+        if (typeof survivalUpdateRerollBtn === 'function') survivalUpdateRerollBtn();
+      } else {
+        // Mid-round visit: triggerShop() nulled the round interval, so restart it
+        // (closeMart only unpauses the flag).
+        if (typeof render === 'function') render();
+        startRoundTimer();
+      }
+    }
     else if (typeof render === 'function') render();
   }, { channel: 'CH 01' });
 }

@@ -118,6 +118,7 @@ function openDevPanel() {
   devSyncHbSliders();
   devSyncCcSliders();
   devSyncDisco();
+  devSyncFullscreen();
   devCloseGroup();          // always land on the group menu, not the last group opened
   stopTimers();
 }
@@ -140,6 +141,8 @@ const DEV_GROUPS = [
   { g:'coins',    icon:'💰', label:'Coins',    sub:() => 'add / zero credits' },
   { g:'score',    icon:'#', label:'Score',     sub:() => 'add score · win · skip level' },
   { g:'hud',      icon:'▤', label:'HUD',       sub:() => 'toggles · scoring dance' },
+  { g:'display',  icon:'⛶', label:'Display',   sub:() => 'fullscreen' },
+  { g:'seed',     icon:'⚄', label:'Run Seed',  sub:() => runSeed ? `on · ${runSeed}` : 'off · random' },
   { g:'match3',   icon:'⬚', label:'Match-3',   sub:() => 'match types · sandbox' },
   { g:'builds',   icon:'▤', label:'Builds',    sub:() => `${discoveredIds.size} records open` },
   { g:'log',      icon:'✎', label:'Event Log', sub:() => 'in-game debug log' },
@@ -164,6 +167,7 @@ function devOpenGroup(g) {
     sec.style.display = sec.dataset.group === g ? '' : 'none';
   });
   document.getElementById('dev-group-pop-body').scrollTop = 0;
+  if (g === 'seed') devRefreshSeed();
 }
 function devCloseGroup() {
   document.getElementById('dev-group-menu').style.display = '';
@@ -522,3 +526,37 @@ function devAddSleight(id) {
 
 // ── End of dev mode ──
 
+
+
+// ── Run seed (dev panel → Run Seed) ──────────────────────────────────────────
+// The seed is CONSUMED BY startGame, so setting one here only affects the next
+// run — the current run's stream is already running. See js/seed.js.
+function devSetSeed(v) {
+  setPendingRunSeed(v.trim());
+  devRefreshSeed();
+}
+function devRollSeed() {
+  const v = randomSeedString();
+  const el = document.getElementById('dev-seed-input');
+  if (el) el.value = v;
+  setPendingRunSeed(v);
+  devRefreshSeed();
+}
+function devClearSeed() {
+  const el = document.getElementById('dev-seed-input');
+  if (el) el.value = '';
+  setPendingRunSeed(null);
+  devRefreshSeed();
+}
+function devRefreshSeed() {
+  const now = document.getElementById('dev-seed-now');
+  const nxt = document.getElementById('dev-seed-next');
+  if (now) now.textContent = runSeed ? runSeed : '— (unseeded)';
+  if (nxt) nxt.textContent = pendingRunSeed ? pendingRunSeed : '— (unseeded)';
+}
+function devStartSeededRun() {
+  const el = document.getElementById('dev-seed-input');
+  if (el) setPendingRunSeed(el.value.trim());
+  closeDevPanel();
+  startGame();
+}

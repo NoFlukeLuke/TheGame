@@ -57,15 +57,15 @@ async function goalCelebration(handCells) {
       const c = document.createElement('div');
       c.style.cssText = `position:absolute;width:7px;height:10px;border-radius:1px;background:${COLORS[(idx+i) % COLORS.length]};left:${cx}px;top:${cy}px;will-change:transform,opacity;`;
       overlay.appendChild(c);
-      const angle = Math.random() * Math.PI * 2;
-      const dist = 80 + Math.random() * 180;
+      const angle = fxRandom() * Math.PI * 2;
+      const dist = 80 + fxRandom() * 180;
       const dx = Math.cos(angle) * dist;
       const dy = Math.sin(angle) * dist;
-      const rot = (Math.random() * 720 - 360);
+      const rot = (fxRandom() * 720 - 360);
       c.animate([
         { transform: 'translate(0,0) rotate(0)', opacity: 1 },
         { transform: `translate(${dx}px, ${dy + 80}px) rotate(${rot}deg)`, opacity: 0 },
-      ], { duration: 1100 + Math.random() * 400, easing: 'cubic-bezier(0.2,0.4,0.4,1)', fill: 'forwards' });
+      ], { duration: 1100 + fxRandom() * 400, easing: 'cubic-bezier(0.2,0.4,0.4,1)', fill: 'forwards' });
     }
   });
 
@@ -106,7 +106,7 @@ function sfxWinExplode(){
     });
     // White-noise crash through a sweeping bandpass — the blast body.
     const dur=0.5; const buf=actx.createBuffer(1, actx.sampleRate*dur, actx.sampleRate);
-    const d=buf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*(1-i/d.length);
+    const d=buf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=(fxRandom()*2-1)*(1-i/d.length);
     const n=actx.createBufferSource(); n.buffer=buf;
     const nf=actx.createBiquadFilter(); nf.type='bandpass'; nf.frequency.setValueAtTime(2000,t);
     nf.frequency.exponentialRampToValueAtTime(300,t+0.4); nf.Q.value=1.2;
@@ -175,7 +175,7 @@ async function danceInterruptFlourish(mode, fromVal, toVal, sig){
       function tk(now){ if(done) return; if(sig&&sig.aborted){ clearTimeout(guard); bail(); return; }
         const t=Math.min((now-start)/dur,1), e=1-Math.pow(1-t,3);
         scoreEl.textContent = Math.round(fromVal+(toVal-fromVal)*e).toLocaleString();
-        if(typeof sfxScoreTick==='function' && Math.random()<0.4) sfxScoreTick();
+        if(typeof sfxScoreTick==='function' && fxRandom()<0.4) sfxScoreTick();
         if(t<1) requestAnimationFrame(tk); else { clearTimeout(guard); finish(); } }
       requestAnimationFrame(tk); });
   }
@@ -520,7 +520,9 @@ function handleDanceAbort(isGoalHand) {
     heldBackScore = 0;
     suppressScoreDisplay = false;
     if (pendingLevelUps > 0) sfxMultiGoal(pendingLevelUps);
-    if (!challengeActive) {
+    // Survival drives its own goal transition (pick → deal); the interlude/payout +
+    // its round-freeze must NOT run on abort, or they'd clobber the freshly dealt board.
+    if (!challengeActive && !survivalActive()) {
       clearInterval(roundInterval);
       roundInterval = null;
       gameTimerPaused = true;
@@ -782,7 +784,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
     loseEls.forEach(el => {
       const r=el.getBoundingClientRect(); let ax=(r.left+r.width/2)-cx, ay=(r.top+r.height/2)-cy;
       const len=Math.hypot(ax,ay)||1; ax/=len; ay/=len;
-      const dist=200+Math.random()*140, rot=(Math.random()*2-1)*160;
+      const dist=200+fxRandom()*140, rot=(fxRandom()*2-1)*160;
       el.style.zIndex='30';
       el.animate([{transform:'translate(0,0) rotate(0) scale(1)', opacity:1},
         {transform:`translate(${ax*dist}px,${ay*dist}px) rotate(${rot}deg) scale(.82)`, opacity:0}],
@@ -800,6 +802,10 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
     // Remove all original grid card DOM (exploded losers + flown winners). The
     // deck accounting for every card still runs in showLevelUpScreen_fallOnly.
     gridCards.forEach(el => el.remove()); dncHiddenGridEls=[];
+    // Survival: open the pick-of-three NOW (right of the preview), so the score
+    // count-up below runs alongside it — the player can watch the tally or start
+    // picking a bonus. (In survival the deck accounting happens in survivalDealNext.)
+    if(survivalActive()) survivalShowPick();
   } else {
     // ── Normal hand: the selected grid cards physically fly into their preview slots. ──
     const FLY_STAGGER=95/dncSpeed, FLY_DUR=400/dncSpeed;
@@ -915,7 +921,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
       const cur=Math.round(scoreBefore+(scoreAfter-scoreBefore)*e);
       if(scoreEl) scoreEl.textContent=cur.toLocaleString();
       if(isGoalHand && !goalFlashed && cur>=roundGoal){ goalFlashed=true; if(typeof flashRoundEnd==='function') flashRoundEnd(); }
-      if(typeof sfxScoreTick==='function' && Math.random()<0.35) sfxScoreTick();
+      if(typeof sfxScoreTick==='function' && fxRandom()<0.35) sfxScoreTick();
       if(tt<1) requestAnimationFrame(tk); else res(); }
     requestAnimationFrame(tk); });
   if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
@@ -943,7 +949,9 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
       sfxVictory(); const ctx=getAudioCtx();
       if(sfxDuckGain){ sfxDuckGain.gain.setValueAtTime(0.4, ctx.currentTime); }
       else { sfxDuckGain=ctx.createGain(); sfxDuckGain.gain.setValueAtTime(0.4, ctx.currentTime); sfxDuckGain.connect(ctx.destination); }
-      startInterlude();
+      // Survival opened its pick during the fly (above); the deal happens when the
+      // player chooses. Everyone else hands off to the standard interlude/payout.
+      if(!survivalActive()) startInterlude();
     }
   }
 }

@@ -54,20 +54,23 @@ function doDiscard() {
   selected.forEach(([r,c]) => { if (gridData[r]?.[c]) discardToDrawPile(gridData[r][c]); });
   // Hoarder: discards don't count against limit (but cost 2× time below)
   if (!hasKnack('hoarder')) discards--;
-  spendRoundTime(DISCARD_TIME_COST);   // discards cost time
-  // Discard time cost — 3s/card default, 0s with Free Discards, 6s/card with Hoarder.
+  // Discard time cost — 3s PER CARD (BAL._resources.discard_seconds_per_card).
+  // There used to be a flat spendRoundTime(DISCARD_TIME_COST) here as well, so a
+  // 1-card discard billed 3 + 3 = 6s while the UI said 3s, and the Free Discards
+  // knack ("costs no time") still charged the flat 3s. One charge only now.
   // Reward-grid time penalties add to the per-card cost (unless discards are free).
   let perCardCost = BAL._resources.discard_seconds_per_card;
   if (hasKnack('free_discards')) perCardCost = 0;
   else { if (hasKnack('hoarder')) perCardCost = BAL.hoarder.discard_seconds_per_card; perCardCost += (discardCostThisRound || 0); }
   const usingFreeDiscard = perCardCost > 0 && freeDiscardsLeft > 0;
   if (usingFreeDiscard) freeDiscardsLeft--;
-  const timeCost = usingFreeDiscard ? 0 : discardedCards.length * perCardCost;
+  const timeCost = usingFreeDiscard ? 0 : Math.round(discardedCards.length * perCardCost * bossInteractMult());
   if (timeCost > 0) {
     roundSeconds = Math.max(1, roundSeconds - timeCost);
     showTimeCost(`-${timeCost}s`);
   }
   updateClockUI();
+  if (typeof bossOnInteract === 'function') bossOnInteract('discard');
   // Track discard counts
   const count = discardedCards.length;
   cardsDiscardedTotal += count;

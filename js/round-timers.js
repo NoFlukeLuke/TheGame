@@ -57,6 +57,7 @@ function startRoundTimer() {
       const _cd = gridData[_r]?.[_c];
       if (_cd && _cd._isSleight && _cd.sleightId === 'slow_burn') _cd._slowBurnSecs = (_cd._slowBurnSecs || 0) + 1;
     }
+    if (survivalActive()) survivalTickBossClock(); // 5-minute boss cadence (live play time)
     handleClockMarks(roundSeconds); // clock-mark Tricks (Tick-Tock, Quarter Chime, Minute/Second Hand, Hourglass)
     trickCardTimer++;
     if (trickCardTimer >= TRICK_CARD_INTERVAL) { trickCardTimer = 0; assignTrickCard(); }
@@ -102,7 +103,7 @@ function startTimers() {
     // Match-3 and Dominoes run their own round-goal loops, so they must NOT take
     // the legacy timer-based progression below (which would pop shops/bosses off
     // the 20-minute game clock and hard-end the run at 0).
-    if (!isActMode() && !match3Active() && !dominoActive()) {
+    if (!isActMode() && !match3Active() && !dominoActive() && !survivalActive()) {
       const m = Math.floor(gameSeconds/60);
       const s = gameSeconds%60;
       document.getElementById('game-timer').textContent = `${m}:${s.toString().padStart(2,'0')}`;
@@ -124,7 +125,11 @@ function startTimers() {
   }, 1000);
 }
 
-// v7 interact time-costs — spending an action burns seconds off the round clock.
+// DEAD as of r151 — kept only so nothing referencing them throws. These were a
+// SECOND, flat interact charge that ran alongside the BAL._resources one, so a
+// 1-card discard cost 3+3=6s and the 3rd swap of a round cost 4+10=14s while the
+// UI quoted 3s and 4s. Interact costs now come from BAL._resources ALONE
+// (discard 3s per card, swap 8s flat, play free). Do not charge these again.
 const DISCARD_TIME_COST = 3;
 const SWAP_TIME_COST    = 4;
 function spendRoundTime(sec) {
@@ -142,8 +147,9 @@ function updateClockUI() {
   const clockEl = document.getElementById('clock');
   const barEl = document.getElementById('clock-bar');
   clockEl.textContent = `${m}:${s.toString().padStart(2,'0')}`;
-  barEl.style.width = (secs/ROUND_DURATION*100)+'%';
-  const vf = document.getElementById('vclock-fill'); if (vf) vf.style.width = (secs/ROUND_DURATION*100)+'%';
+  const _dur = currentRoundDuration();
+  barEl.style.width = (secs/_dur*100)+'%';
+  const vf = document.getElementById('vclock-fill'); if (vf) vf.style.width = (secs/_dur*100)+'%';
   clockEl.classList.toggle('clock-paused', pipeTimerPaused);
   if (secs <= 10) { clockEl.classList.add('urgent'); barEl.classList.add('urgent'); }
   else { clockEl.classList.remove('urgent'); barEl.classList.remove('urgent'); }

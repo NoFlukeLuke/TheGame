@@ -74,6 +74,8 @@ function updateCoinsUI() {
   document.getElementById('coins-display').textContent = '💰 ' + coins;
   const cg = document.getElementById('ci-gold'); if (cg) cg.textContent = coins;
   if (document.getElementById('shop-overlay').classList.contains('show')) refreshShopAffordability();
+  if (typeof updateSurvivalShopBtn === 'function') updateSurvivalShopBtn();
+  if (typeof survivalUpdateRerollBtn === 'function' && document.getElementById('survival-pick-overlay')?.classList.contains('show')) survivalUpdateRerollBtn();
 }
 
 // v7 landscape: run-progress block (Act + node pips)

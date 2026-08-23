@@ -42,6 +42,10 @@ function scheduleAutoSubmit() {
   if (!result) return; // no valid hand, don't schedule
   handReadyForSubmit = true;
   render(); // trigger pulse immediately
+  // Tutorial: the early steps teach "select, look at the preview, then press
+  // PLAY". A 2s auto-play would fire the hand out from under the lesson, so the
+  // countdown is suppressed while those steps are up (the pulse still shows).
+  if (typeof tutorialHoldsAutoSubmit === 'function' && tutorialHoldsAutoSubmit()) return;
   autoSubmitTimer = setTimeout(() => {
     autoSubmitTimer = null;
     handReadyForSubmit = false;
@@ -104,18 +108,21 @@ function doSwap(r1, c1, r2, c2) {
 
   // Swap charge — skipped on a free swap; Steady Hand bypasses the limit
   if (!hasKnack('steady_hand') && !freeThisSwap) swaps--;
-  if (!freeThisSwap) spendRoundTime(SWAP_TIME_COST);   // swaps cost time (free swaps exempt)
   if (sleightFreeSwapPending) sleightFreeSwapPending = false;
-  // Swap time cost — 0s for first 2 swaps/round, 0s with Free Swaps, 20s with Steady Hand, else 10s
+  // Swap time cost — a flat 8s (BAL._resources.swap_seconds), 0s with Free Swaps
+  // or a free swap, Steady Hand's own figure otherwise. There used to be an extra
+  // flat spendRoundTime(SWAP_TIME_COST) on top of this, which made the 3rd swap of
+  // a round cost 14s while the UI said 4s. One charge only now.
   let swapTimeCost = BAL._resources.swap_seconds;
   if (freeThisSwap || hasKnack('free_swaps')) swapTimeCost = 0;
-  else if (freeSwapsLeft > 0) { freeSwapsLeft--; swapTimeCost = 0; }
   else if (hasKnack('steady_hand')) swapTimeCost = BAL.steady_hand.swap_seconds;
+  swapTimeCost = Math.round(swapTimeCost * bossInteractMult());
   if (swapTimeCost > 0) {
     roundSeconds = Math.max(1, roundSeconds - swapTimeCost);
     showTimeCost(`-${swapTimeCost}s`);
   }
   updateClockUI();
+  if (typeof bossOnInteract === 'function') bossOnInteract('swap');
   lastSwapTime = Date.now();
   lastSwapRoundSeconds = roundSeconds; // for Eagle Eye
   resetFocusDecayTimer();
