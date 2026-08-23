@@ -507,6 +507,11 @@ async function playScoreDance(result, toRemove, isGoalHand = false) {
 
 function handleDanceAbort(isGoalHand) {
   danceAbortController = null;
+  // An interrupted hand must never leave the PMF row fused — the next hand
+  // writes its numbers into chips the player would not be able to see.
+  if (typeof pmfResetNow === 'function') pmfResetNow();
+  // Hand the portrait strip back to whichever half the player had chosen.
+  if (typeof portraitDanceEnd === 'function') portraitDanceEnd();
   if (stopwatchActive) endStopwatch(); // release the Stopwatch freeze if the dance was cut short
   updateScoreUI();
   const pipsValEl = document.getElementById('pips-val');
@@ -659,6 +664,10 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   const ctrl = new AbortController(); danceAbortController = ctrl; const sig = ctrl.signal;
   const myGen = ++dncGen; // this dance's generation; if it's superseded, its abort handler stays silent
   dncFF = false; resetParticleStep();
+  // Portrait shares one strip between Knacks and the hand preview, and this dance
+  // draws into the preview — so make sure the preview is the visible half before
+  // any card flies at it. No-op in landscape. (see js/portrait-panel.js)
+  if (typeof portraitDanceBegin === 'function') portraitDanceBegin();
   // Ordinary hands fast-forward to a legible ~3× by default; the goal hand plays full.
   dncSpeed = isGoalHand ? 1 : (DANCE_CFG.norm || 1);
   const aborted = () => sig.aborted;
@@ -911,6 +920,14 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
     await dwait(DANCE_CFG.tickRest); if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
   }
 
+  // ── PMF merge ── all three chips have landed on their totals, so they stop
+  // being three numbers and become one: this hand's score. Jitter, fuse, then
+  // let the SCORE climb below run against the fused chip. (js/pmf-merge.js)
+  if(typeof pmfMergeIn==='function'){
+    await pmfMergeIn(finalScore, { speed: dncFF ? DANCE_CFG.ff : dncSpeed, signal: sig });
+    if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
+  }
+
   // ── SCORE climb ──
   if(scoreEl) scoreEl.textContent=scoreBefore.toLocaleString();
   const climb = dncFF ? Math.max(120, DANCE_CFG.scoreClimb/DANCE_CFG.ff) : Math.max(120, DANCE_CFG.scoreClimb/dncSpeed);
@@ -926,6 +943,10 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
     requestAnimationFrame(tk); });
   if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
 
+  // ── PMF split ── the hand is banked; hand the row back as three chips.
+  if(typeof pmfSplitOut==='function') await pmfSplitOut({ speed: dncFF ? DANCE_CFG.ff : dncSpeed });
+  if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
+
   // ── Settle (same tail as playScoreDance) ──
   stage.classList.remove('dnc-active'); stage.innerHTML=''; dncCleanupReal();
   if(scoreEl) scoreEl.textContent=scoreAfter.toLocaleString();
@@ -935,6 +956,9 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   await wait(300/dncSpeed); if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
 
   danceAbortController = null;
+  // Normal completion (the abort paths go through handleDanceAbort) — give the
+  // portrait strip back to whichever half the player had chosen.
+  if (typeof portraitDanceEnd === 'function') portraitDanceEnd();
   if(pipsEl) pipsEl.textContent='0'; if(multEl) multEl.textContent='0';
   if(isGoalHand){ if(score>highestHandScore) highestHandScore=score; if(pendingLevelUps>0) sfxMultiGoal(pendingLevelUps); }
   updateScoreUI();

@@ -1,4 +1,4 @@
-const BUILD = '2026-08-22 · r156 · BUILDS archive + requisitions, merged onto r155';
+const BUILD = '2026-08-22 · r159 · BUILDS: procurement catalogue + requisitions (merged onto r158)';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -153,6 +153,7 @@ function isActMode() { return !!ACTIVE_MODE && ACTIVE_MODE.actStructure === true
 function initMainMenu() {
   ACTIVE_MODE = MODES.normal;
   document.getElementById('main-menu-overlay').classList.add('show');
+  if (typeof updateContinueBtn === 'function') updateContinueBtn();
 }
 
 function switchMenuTab(e, tabId) {

@@ -647,6 +647,7 @@ function updateActProgressUI() {
 
 function onGameWin() {
   stopTimers();
+  if (typeof retireSavedRunIfCurrent === 'function') retireSavedRunIfCurrent();  // the run is over; its save is stale
   const overlay = document.getElementById('end-overlay');
   const title   = document.getElementById('end-title');
   title.textContent = 'VICTORY';
@@ -668,6 +669,7 @@ function onGameWin() {
 
 function onGameEnd(gameover) {
   stopTimers();
+  if (typeof retireSavedRunIfCurrent === 'function') retireSavedRunIfCurrent();  // the run is over; its save is stale
   const overlay = document.getElementById('end-overlay');
   const title = document.getElementById('end-title');
   title.textContent = gameover ? 'GAME OVER' : "TIME'S UP";

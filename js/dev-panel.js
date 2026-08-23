@@ -119,6 +119,7 @@ function openDevPanel() {
   devSyncCcSliders();
   devSyncDisco();
   devSyncFullscreen();
+  devSyncSaveSection();
   devCloseGroup();          // always land on the group menu, not the last group opened
   stopTimers();
 }
@@ -142,6 +143,7 @@ const DEV_GROUPS = [
   { g:'score',    icon:'#', label:'Score',     sub:() => 'add score · win · skip level' },
   { g:'hud',      icon:'▤', label:'HUD',       sub:() => 'toggles · scoring dance' },
   { g:'display',  icon:'⛶', label:'Display',   sub:() => 'fullscreen' },
+  { g:'save',     icon:'💾', label:'Save Run',  sub:() => { const s = savedRunSummary(); return s ? `saved · Round ${s.level}` : 'no save yet'; } },
   { g:'seed',     icon:'⚄', label:'Run Seed',  sub:() => runSeed ? `on · ${runSeed}` : 'off · random' },
   { g:'match3',   icon:'⬚', label:'Match-3',   sub:() => 'match types · sandbox' },
   { g:'builds',   icon:'▤', label:'Builds',    sub:() => `${discoveredIds.size} records open` },
@@ -559,4 +561,61 @@ function devStartSeededRun() {
   if (el) setPendingRunSeed(el.value.trim());
   closeDevPanel();
   startGame();
+}
+
+
+// ══════════════════════════════════════════════
+// SAVE RUN (Settings group) — see js/save.js
+// ══════════════════════════════════════════════
+function devSaveMsg(text, ok) {
+  const el = document.getElementById('dev-save-msg');
+  if (el) { el.textContent = text || ''; el.style.color = ok === false ? 'var(--red)' : 'var(--gold)'; }
+}
+
+function devSyncSaveSection() {
+  const stateEl = document.getElementById('dev-save-state');
+  const s = savedRunSummary();
+  // A run is only "in progress" once a round has actually started — that is what
+  // produces the checkpoint this panel writes out.
+  const inRun = !!runCheckpoint;
+  if (stateEl) {
+    stateEl.innerHTML = s
+      ? `<strong style="color:var(--cream)">Saved run:</strong> ${s.modeName} · Round ${s.level} · ${s.totalScore.toLocaleString()} pts · ${s.tricks} tricks · ${s.knacks} knacks<br><span style="opacity:.7">${s.whenStr}</span>`
+      : 'No saved run yet.';
+  }
+  const saveBtn = document.getElementById('dev-save-btn');
+  if (saveBtn) {
+    saveBtn.disabled = !inRun;
+    saveBtn.style.opacity = inRun ? '' : '0.45';
+    saveBtn.textContent = inRun ? `💾 Save Run (Round ${runCheckpoint.meta.level})` : '💾 Save Run — start a round first';
+  }
+  const resumeBtn = document.getElementById('dev-save-resume-btn');
+  if (resumeBtn) { resumeBtn.style.display = s ? '' : 'none'; }
+  const clearBtn = document.getElementById('dev-save-clear-btn');
+  if (clearBtn) { clearBtn.style.display = s ? '' : 'none'; }
+  devSaveMsg('');
+}
+
+function devSaveRun() {
+  const r = saveRunToStorage();
+  devSaveMsg(r.msg, r.ok);
+  devSyncSaveSection();
+  if (r.ok) devSaveMsg(r.msg, true);   // re-set: devSyncSaveSection clears it
+  updateContinueBtn();
+  devRenderGroupMenu();
+}
+
+function devClearSave() {
+  clearSavedRun();
+  devSyncSaveSection();
+  devSaveMsg('Save deleted.');
+  devRenderGroupMenu();
+}
+
+function devResumeRun() {
+  if (!hasSavedRun()) return;
+  closeDevPanel();
+  document.getElementById('main-menu-overlay').classList.remove('show');
+  document.getElementById('mode-select-overlay')?.classList.remove('show');
+  resumeSavedRun();
 }

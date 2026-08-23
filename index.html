@@ -38,6 +38,7 @@
     <div id="menu-stripe"></div>
     <div id="menu-title">THE GAME</div>
     <div id="menu-tagline">A LETHE amusement product. Please continue<br>playing until further notice.</div>
+    <button id="menu-continue-btn" onclick="continueSavedRun()" style="display:none;">CONTINUE</button>
     <button id="menu-start-btn" onclick="maybeAutoFullscreen(); openModeSelect()">PLAY</button>
     <button id="menu-builds-btn" onclick="openBuilds()">BUILDS</button>
     <button id="menu-settings-btn" onclick="openSettings(true)">SETTINGS</button>
@@ -388,6 +389,19 @@
     </div>
   </div>
 
+  <div class="dev-section" data-group="save">
+    <div class="dev-section-title">Save Run</div>
+    <div id="dev-save-state" style="font-family:'Crimson Pro',serif;font-size:12px;color:var(--cream-dim);margin-bottom:8px;line-height:1.5;"></div>
+    <button class="dev-btn" id="dev-save-btn" onclick="devSaveRun()">💾 Save Run</button>
+    <button class="dev-btn" id="dev-save-resume-btn" onclick="devResumeRun()" style="margin-top:6px;">▶ Resume Saved Run</button>
+    <button class="dev-btn" id="dev-save-clear-btn" onclick="devClearSave()" style="margin-top:6px;">🗑 Delete Save</button>
+    <div id="dev-save-msg" style="font-family:'Crimson Pro',serif;font-size:12px;color:var(--gold);margin-top:8px;min-height:16px;"></div>
+    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-top:8px;line-height:1.5;">
+      A run is saved at the start of the round you are on — resuming replays that round from the beginning with a full clock.
+      Only one save is kept; saving again replaces it.
+    </div>
+  </div>
+
   <div class="dev-section" data-group="match3">
     <div class="dev-section-title">Match-3 Mode</div>
     <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:-2px;">Match types — turn one off to remove it from detection entirely.</div>
@@ -599,6 +613,10 @@
         <span class="panel-title">Knacks</span>
         <div id="knack-list"></div>
       </div>
+      <!-- Portrait only: Knacks and the hand preview share the right-hand half of
+           this strip, and this swaps between them (see js/portrait-panel.js).
+           Hidden in landscape, where both have their own anchored boxes. -->
+      <button id="panel-swap-btn" onclick="togglePortraitPanel()" title="Show hand preview" aria-label="Show hand preview">🂠</button>
     </div>
 
   </div>
@@ -878,6 +896,7 @@
 </div>
 
 
+<script src="js/storage.js"></script>
 <script src="js/seed.js"></script>
 <script src="js/menu.js"></script>
 <script src="js/devlog.js"></script>
@@ -903,10 +922,12 @@
 <script src="js/scoring.js"></script>
 <script src="js/render.js"></script>
 <script src="js/focus.js"></script>
+<script src="js/portrait-panel.js"></script>
 <script src="js/hud.js"></script>
 <script src="js/input.js"></script>
 <script src="js/play-hand.js"></script>
 <script src="js/score-anims.js"></script>
+<script src="js/pmf-merge.js"></script>
 <script src="js/score-dance.js"></script>
 <script src="js/discard.js"></script>
 <script src="js/card-fall.js"></script>
@@ -940,6 +961,7 @@
 <script src="js/settings.js"></script>
 <script src="js/tutorial.js"></script>
 <script src="js/dev-panel.js"></script>
+<script src="js/save.js"></script>
 <script src="js/bootstrap.js"></script>
 </div><!-- /#stage -->
   </div><!-- /#cab-screen -->

@@ -592,6 +592,246 @@
   .trick-tray-chip.trick-tier-epic      { border-color: #9b4dca; color: #c07aee; background: #130a1a; }
   .trick-tray-chip.trick-tier-legendary { border-color: #e8b84b; color: #e8b84b; background: #160e00; }
 
+  /* ══════════════════════════════════════════════
+     PMF MERGE (r157) — see js/pmf-merge.js
+     ══════════════════════════════════════════════
+     Both orientations. The three chips slide to the row's centre and fade while
+     a single fused chip grows out sideways in their place, reading the hand's
+     score. --pmf-dx is measured per chip in JS (the two layouts space them very
+     differently); --pmf-dur is set per phase so the merge keeps pace with a
+     fast-forwarded dance. */
+  #score-subboxes { position: relative; }
+  /* Landscape positions this box absolutely, and `position:relative` would
+     break that — it only needs to become a containing block where it is static. */
+  #stage.landscape #score-subboxes { position: absolute; }
+
+  @keyframes pmfJitter {
+    0%,100% { transform: translate(0,0) rotate(0deg); }
+    15%     { transform: translate(-1.5px, 1px) rotate(-1.1deg); }
+    30%     { transform: translate(1.5px, -1px) rotate(1.1deg); }
+    45%     { transform: translate(-1.2px, -1px) rotate(-0.8deg); }
+    60%     { transform: translate(1.2px, 1px) rotate(0.8deg); }
+    80%     { transform: translate(-0.8px, 0) rotate(-0.4deg); }
+  }
+  .score-subbox.pmf-jitter { animation: pmfJitter 0.3s ease-in-out 2; }
+
+  #score-subboxes .score-subbox,
+  #score-subboxes .subbox-times {
+    transition: transform var(--pmf-dur, 340ms) cubic-bezier(.5,0,.2,1),
+                opacity   var(--pmf-dur, 340ms) ease;
+  }
+  #score-subboxes.pmf-merging .score-subbox {
+    transform: translateX(var(--pmf-dx, 0px)) scaleX(0.16);
+    opacity: 0;
+  }
+  #score-subboxes.pmf-merging .subbox-times { opacity: 0; transform: scaleX(0.2); }
+
+  #pmf-merged {
+    position: absolute; left: 4px; right: 4px; top: 4px; bottom: 4px;
+    z-index: 6; pointer-events: none;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+    border-radius: 5px;
+    background: linear-gradient(180deg, #3a2c08, #201802);
+    border: 1px solid var(--gold, #d4a857);
+    box-shadow: 0 0 14px -2px rgba(212,168,87,0.55), inset 0 0 18px -8px rgba(212,168,87,0.9);
+    opacity: 0;
+    transform: scaleX(0.22);
+    transform-origin: center center;
+    transition: transform var(--pmf-dur, 340ms) cubic-bezier(.34,1.3,.5,1),
+                opacity   var(--pmf-dur, 340ms) ease;
+  }
+  #pmf-merged.show { opacity: 1; transform: scaleX(1); }
+  .pmf-merged-label {
+    font-family: 'Cinzel', serif; font-size: 7px; font-weight: 700;
+    letter-spacing: 2.5px; text-transform: uppercase; line-height: 1;
+    color: var(--gold-dim, #9a7c3a);
+  }
+  .pmf-merged-val {
+    font-family: 'Cinzel', serif; font-weight: 900; line-height: 1;
+    font-size: 22px; color: var(--gold, #d4a857);
+    text-shadow: 0 0 12px rgba(212,168,87,0.5);
+    white-space: nowrap;
+  }
+  /* Landscape has a wider row to fill, so the fused number can be bigger. */
+  #stage.landscape .pmf-merged-val   { font-size: 30px; }
+  #stage.landscape .pmf-merged-label { font-size: 8px; }
+
+  /* ══════════════════════════════════════════════
+     PORTRAIT SCORE PANEL — PMF half / SCORE-over-GOAL half (r157)
+     ══════════════════════════════════════════════
+     PORTRAIT ONLY, by owner's call — landscape keeps its existing three-box
+     arrangement untouched. (The PMF merge animation, by contrast, runs in both.)
+
+     The portrait panel is split 50/50: PIPS·MULT·FOCUS own the left half at full
+     height, and SCORE sits directly above GOAL in the right half, separated by a
+     hairline rather than by two panel edges. Score and goal keep their existing
+     type sizes — the room comes from the split, not from shrinking them.
+
+     #score-panel-inner is re-laid as a 2x2 grid (it is a flex row by default).
+     Scoped `#stage:not(.landscape)` because landscape sets
+     `display:contents !important` on the same element and positions the three
+     children absolutely — see the v7 block. */
+  #stage:not(.landscape) #score-panel-inner {
+    display: grid;
+    grid-template-columns: 50% 50%;
+    grid-template-rows: 1fr 1fr;
+    align-items: stretch;
+  }
+  #stage:not(.landscape) #score-subboxes {
+    grid-column: 1; grid-row: 1 / 3;
+    border-right: 1px solid var(--border);
+  }
+  #stage:not(.landscape) #score-center {
+    grid-column: 2; grid-row: 1;
+    height: auto; min-height: 0;
+  }
+  #stage:not(.landscape) #score-left {
+    grid-column: 2; grid-row: 2;
+    height: auto; min-height: 0;
+    border-left: none;
+    border-top: 1px solid var(--border);   /* the hairline between score and goal */
+    padding: 2px 6px;
+    gap: 2px;
+  }
+  /* The two halves now carry more content each, so the panel needs the height
+     back that the old three-across row didn't need. */
+  #stage:not(.landscape) #score-panel { height: 108px; }
+
+  /* ══════════════════════════════════════════════
+     PORTRAIT STRIP (r156)
+     ══════════════════════════════════════════════
+     Every rule here is scoped `#stage:not(.landscape)` on purpose: it makes the
+     whole block stop matching the moment landscape is on, so none of it can
+     collide with the landscape layout further down the file. `!important` is
+     needed because syncTrickTrayUI() writes `display` INLINE on both
+     #hand-preview-area and #trick-tray-area. */
+
+  /* Chips: the old 4px gap with 58px-tall boxes left PIPS/MULT/FOCUS shoulder to
+     shoulder against the panel edge. Give each one real padding and separation. */
+  #stage:not(.landscape) #score-subboxes {
+    gap: 7px;
+    padding: 6px 10px 6px 8px;
+    justify-content: space-evenly;
+  }
+  #stage:not(.landscape) .score-subbox {
+    height: 54px; max-height: 54px;
+    padding: 5px 7px;
+    min-width: 0;
+    border-radius: 5px;
+  }
+  #stage:not(.landscape) .subbox-times { opacity: 0.55; font-size: 10px; flex: 0 0 auto; }
+  #stage:not(.landscape) #score-panel { height: 100px; }
+
+  /* The strip: [ Tricks | shared half ] with the swap button pinned top-right. */
+  #stage:not(.landscape) #trick-panel { position: relative; height: 92px; padding-right: 2px; }
+
+  /* Shared half — Knacks and the hand preview occupy the SAME box; the pv-*
+     class on #stage decides which one is in it. */
+  #stage:not(.landscape) #knack-carousel-wrap,
+  #stage:not(.landscape) #hand-preview-area {
+    flex: 1 1 0; min-width: 0;
+    padding: 4px 22px 4px 9px;   /* right pad clears the swap button */
+    border-right: none;
+    box-sizing: border-box;
+  }
+  #stage:not(.landscape).pv-knacks  #knack-carousel-wrap { display: flex !important; }
+  #stage:not(.landscape).pv-knacks  #hand-preview-area   { display: none !important; }
+  #stage:not(.landscape).pv-preview #knack-carousel-wrap { display: none !important; }
+  #stage:not(.landscape).pv-preview #hand-preview-area   { display: flex !important; }
+
+  /* Preview cards are sized to the strip so a full 5-card hand fits without
+     spilling out of the panel the way the tray tiles used to. */
+  #stage:not(.landscape) #hand-preview-area { flex-direction: column; align-items: flex-start; justify-content: center; gap: 3px; }
+  #stage:not(.landscape) #selected-cards { --card-w: 30px; --card-h: 40px; gap: 3px; }
+  #stage:not(.landscape) #hand-name { font-size: 9px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+  /* The preview is deliberately inert until a hand is SUBMITTED (r99) — it is the
+     scoring stage, not a live selection readout — so idle it is empty. Landscape
+     fills that emptiness with a faint HAND watermark; portrait needs it too, or
+     swapping to the preview half looks like a broken panel. :empty hides it the
+     moment the dance drops cards in, so there is no z-index fight. */
+  #stage:not(.landscape) #hand-preview-area { position: relative; }
+  #stage:not(.landscape) #selected-cards:empty::before {
+    content: "HAND"; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+    display: flex; align-items: center; justify-content: center; white-space: nowrap;
+    font-family: 'Orbitron', sans-serif; font-weight: 900; letter-spacing: 5px; font-size: 20px;
+    color: rgba(244,236,214,0.07); text-transform: uppercase;
+  }
+  #stage:not(.landscape) #selected-cards { position: relative; width: 100%; }
+
+  /* Trick tray — its tiles were rendering at grid-card size and overflowing the
+     strip (a Trick's name card hung outside the panel entirely). Constrain them. */
+  /* Source order puts #hand-preview-area before the tray, so without an explicit
+     order the strip's two halves SWAP SIDES when the preview is showing — and the
+     swap button (pinned top-right) would end up sitting over the Trick tray.
+     Pin the tray left and the shared half right in both views. */
+  #stage:not(.landscape) #trick-tray-area     { order: 1; flex: 1 1 0; min-width: 0; padding: 4px 9px 4px 4px; }
+  #stage:not(.landscape) #hand-preview-area,
+  #stage:not(.landscape) #knack-carousel-wrap { order: 2; }
+  #stage:not(.landscape) #panel-swap-btn      { order: 3; }
+  #stage:not(.landscape) #trick-tray-list { max-height: 76px; gap: 4px; align-content: center; overflow: hidden; }
+  /* renderTrickTray gives each chip BOTH .trick-tray-chip and .trick-card, and
+     `.trick-card` (position:absolute, width:var(--card-w,57px) — it is the GRID
+     tile) is defined later in this file, so it won a portrait chip. The result
+     was every Trick stacked absolutely at the tray's origin, one grid-sized card
+     hanging outside the panel and the rest hidden behind it. Landscape already
+     re-flows them; portrait needs its own, smaller version. */
+  #stage:not(.landscape) #trick-tray-list .trick-tray-chip.trick-card,
+  #stage:not(.landscape) #trick-tray-list .trick-tray-chip {
+    position: relative; flex: 0 0 auto; box-sizing: border-box; overflow: hidden;
+    width: 34px; height: 46px;
+    display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+    gap: 0; padding: 2px 1px 3px; border-radius: 5px;
+    border: 1.5px solid var(--rc, #6aaa6a);
+    background: linear-gradient(180deg, #15110b, #0a0906);
+    box-shadow: 0 0 6px -2px var(--rc, #6aaa6a), inset 0 0 10px -4px var(--rc, #6aaa6a);
+  }
+  #stage:not(.landscape) #trick-tray-list .trick-tray-chip .trick-card-emoji { font-size: 16px; margin-top: auto; }
+  #stage:not(.landscape) #trick-tray-list .trick-tray-chip .trick-card-name  { font-size: 4.5px; letter-spacing: 0; }
+  /* Rarity colours are only assigned under .landscape, so portrait chips had no
+     --rc at all and fell back to the plain border. Assign them here too. */
+  #stage:not(.landscape) .trick-tray-chip.rar-common    { --rc: var(--c-mint); }
+  #stage:not(.landscape) .trick-tray-chip.rar-rare      { --rc: var(--c-cyan); }
+  #stage:not(.landscape) .trick-tray-chip.rar-epic      { --rc: var(--c-purple); }
+  #stage:not(.landscape) .trick-tray-chip.rar-legendary { --rc: var(--c-yellow); }
+  #stage:not(.landscape) .trick-tray-chip.rar-mythic    { --rc: var(--c-magenta); }
+  /* The "n/5" count sits bottom-right of the tray rather than inline, where the
+     label used to be pushed around by the chips. */
+  #stage:not(.landscape) #trick-tray-area { position: relative; }
+  #stage:not(.landscape) #trick-tray-area .panel-title {
+    position: absolute; right: 6px; bottom: 2px; margin: 0; z-index: 3;
+    font-size: 8px; letter-spacing: 0.5px; opacity: 0.75;
+  }
+
+  /* Knack chips get their own breathing room too. */
+  /* Match the tray's treatment: a small corner label instead of a full-size
+     heading, so the chips get the vertical space instead. */
+  #stage:not(.landscape) #knack-carousel-wrap { position: relative; }
+  #stage:not(.landscape) #knack-carousel-wrap .panel-title {
+    position: absolute; left: 9px; bottom: 2px; margin: 0; z-index: 3;
+    font-size: 8px; letter-spacing: 0.5px; opacity: 0.75;
+  }
+  #stage:not(.landscape) #knack-list { gap: 6px; max-height: 68px; margin-bottom: 8px; }
+  #stage:not(.landscape) .knack-chip { width: 28px; height: 28px; font-size: 16px; }
+
+  /* The swap button. Deliberately small and quiet — it is a view toggle, not an
+     action, so it must not read as a third button next to PLAY / DISCARD. */
+  #stage:not(.landscape) #panel-swap-btn {
+    position: absolute; top: 4px; right: 4px; z-index: 4;
+    width: 19px; height: 19px; padding: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; line-height: 1;
+    color: var(--c-cyan, #7fd4dd);
+    background: rgba(10, 22, 24, 0.9);
+    border: 1px solid rgba(127, 212, 221, 0.45);
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.12s ease, color 0.12s ease, transform 0.08s ease;
+  }
+  #stage:not(.landscape) #panel-swap-btn:hover { background: rgba(28, 62, 66, 0.95); color: #fff; }
+  #stage:not(.landscape) #panel-swap-btn:active { transform: scale(0.9); }
+  /* Landscape gives both halves their own anchored boxes, so the swap is dead weight there. */
+  #stage.landscape #panel-swap-btn { display: none; }
+
   /* ── Focus Meter (formerly Fate Meter) ── */
   #focus-meter-wrap {
     display: flex;
@@ -3177,16 +3417,41 @@
   #menu-start-btn:hover { filter: brightness(1.06); }
   #menu-start-btn:active { transform: translateY(4px);
     box-shadow: inset 0 2px 0 rgba(255,255,255,0.5), inset 0 -2px 0 rgba(0,0,0,0.25), 0 1px 0 #b5820f; }
-  /* BUILDS — the archive. Mint, so it reads as its own thing next to the cyan
-     utility buttons without competing with the gold PLAY. */
+  /* CONTINUE — shown only when a saved run exists (see js/save.js). Sits above
+     PLAY and reads as the primary action when it is there, so a returning player
+     lands on their run rather than accidentally starting a fresh one. */
+  #menu-continue-btn {
+    margin-top: 10px; width: 100%; max-width: 300px;
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 18px; letter-spacing: 5px;
+    color: #06231f; text-transform: uppercase; cursor: pointer; border: none; border-radius: 12px; padding: 13px 16px;
+    background: linear-gradient(180deg, #7ff0d4, #35c9a6 55%, #17967a);
+    box-shadow: inset 0 2px 0 rgba(255,255,255,0.6), inset 0 -4px 0 rgba(0,0,0,0.22), 0 5px 0 #0f7a63, 0 8px 12px rgba(0,0,0,0.45);
+    transition: transform 0.07s ease, filter 0.12s ease;
+  }
+  #menu-continue-btn:hover { filter: brightness(1.06); }
+  #menu-continue-btn:active { transform: translateY(4px);
+    box-shadow: inset 0 2px 0 rgba(255,255,255,0.45), inset 0 -2px 0 rgba(0,0,0,0.22), 0 1px 0 #0f7a63; }
+  .menu-continue-sub {
+    font-family: 'Share Tech Mono', monospace; font-weight: 400; font-size: 10px; letter-spacing: 1px;
+    color: rgba(6,35,31,0.72); text-transform: none;
+  }
+  /* With CONTINUE present, PLAY steps back to a secondary weight so the two
+     don't compete for the same emphasis. */
+  #menu-continue-btn:not([style*="display: none"]) ~ #menu-start-btn {
+    font-size: 17px; padding: 12px; letter-spacing: 5px;
+  }
+  /* BUILDS — the procurement catalogue. Purple: gold PLAY and mint CONTINUE are
+     the run actions, cyan is utility, so the catalogue gets its own colour and
+     doesn't compete with CONTINUE (added on main in r155). */
   #menu-builds-btn {
     width: 100%; max-width: 300px; margin-bottom: 8px;
     font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 3px;
-    color: var(--c-mint); text-transform: uppercase; cursor: pointer; padding: 11px;
-    background: linear-gradient(180deg, #133528, rgba(12,32,24,0)); border: 1px solid var(--c-mint); border-radius: 9px;
+    color: var(--c-purple); text-transform: uppercase; cursor: pointer; padding: 11px;
+    background: linear-gradient(180deg, #241a3d, rgba(20,14,34,0)); border: 1px solid var(--c-purple); border-radius: 9px;
     transition: background 0.12s ease, color 0.12s ease;
   }
-  #menu-builds-btn:hover { background: linear-gradient(180deg, #1a4a35, #0e2a1f); color: #fff; }
+  #menu-builds-btn:hover { background: linear-gradient(180deg, #34265a, #1c1430); color: #fff; }
   #menu-settings-btn {
     width: 100%; max-width: 300px;
     font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 3px;

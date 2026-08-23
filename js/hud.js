@@ -88,9 +88,19 @@ function updateRunProgressUI() {
   });
 }
 
+let _knackCountShown = 0;
 function updateKnackList() {
   const el = document.getElementById('knack-list');
   if (!el) return;
+  // A newly GAINED Knack should land somewhere the player can see. In portrait
+  // the Knacks row shares its box with the hand preview, so flip back to Knacks
+  // when the count grows. Hooking the count here rather than the nine separate
+  // acquiredKnacks.push sites means a future grant path gets this for free.
+  // Update the tally BEFORE flipping the view: setPortraitPanelView re-runs this
+  // function to re-measure the marquee, so a stale tally here recurses forever.
+  const _knackGrew = acquiredKnacks.length > _knackCountShown;
+  _knackCountShown = acquiredKnacks.length;
+  if (_knackGrew && typeof portraitShowKnacks === 'function') portraitShowKnacks();
   if (acquiredKnacks.length === 0) {
     el.innerHTML = '';   // empty → faint KNACKS watermark shows through (r95)
     return;
