@@ -7,6 +7,8 @@ function getAudioCtx() {
 function playTone({ freq = 440, type = 'sine', gain = 0.18, attack = 0.005,
                     decay = 0.08, sustain = 0.4, release = 0.25, duration = 0.35,
                     detune = 0, delay = 0 } = {}) {
+  gain *= sfxVolume();          // Settings → master volume / mute (js/settings.js)
+  if (gain <= 0) return;
   const ctx = getAudioCtx();
   const osc = ctx.createOscillator();
   const env = ctx.createGain();
@@ -28,6 +30,8 @@ function playTone({ freq = 440, type = 'sine', gain = 0.18, attack = 0.005,
 }
 
 function playNoise({ gain = 0.05, attack = 0.002, release = 0.06, delay = 0 } = {}) {
+  gain *= sfxVolume();
+  if (gain <= 0) return;
   const ctx = getAudioCtx();
   const bufSize = ctx.sampleRate * (release + 0.1);
   const buffer = ctx.createBuffer(1, bufSize, ctx.sampleRate);

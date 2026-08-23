@@ -152,7 +152,7 @@ async function removeAndFall(removingCells, mode = 'play') {
   const gridEl = document.getElementById('grid');
 
   // Slide removed cards toward target icon
-  const targetId = mode === 'discard' ? 'btn-discard' : 'btn-deck';
+  const targetId = mode === 'discard' ? 'btn-discard' : 'btn-records';
   const targetEl = document.getElementById(targetId);
   const targetRect = targetEl ? targetEl.getBoundingClientRect() : null;
 

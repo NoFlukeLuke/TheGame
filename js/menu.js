@@ -1,4 +1,4 @@
-const BUILD = '2026-08-22 · r157 · Portrait score panel split 50/50 (PIPS·MULT·FOCUS | SCORE over GOAL); PIPS·MULT·FOCUS now jitter and fuse into one HAND chip while the score climbs, then split back — both orientations';
+const BUILD = '2026-08-22 · r158 · Storage safety shim, save/resume a run, portrait strip rework (Knacks + hand preview share a swap button), portrait score panel split, PIPS·MULT·FOCUS fuse animation';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

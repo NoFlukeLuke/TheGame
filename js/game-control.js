@@ -75,15 +75,10 @@ function quitToMainMenu() {
   location.reload();
 }
 
-document.getElementById('btn-stats').addEventListener('click', () => {
-  if (!screenOwnsClock()) pauseGame(false); // pause timers but don't hide grid
-  showStats();
-});
-
-document.getElementById('btn-deck').addEventListener('click', () => {
-  if (!screenOwnsClock()) pauseGame(false);
-  showDeck();
-});
+// The four secondary chips (Stats / Deck / Time / Limits) were merged into the single
+// RECORDS hub in r155 (js/records.js) — a large tabbed pop-up that pauses the round.
+// showStats() / showDeck() and the Time + Limits pop-ups are kept: the dev panel and
+// the Mart still open them, and the tutorial's Limits step points at Records now.
 
 // ⏱ Time — small pop-up showing the time-cost breakdown (like stats/deck/pause,
 // but a lightweight bubble anchored above the button). Replaces the old chip.
@@ -401,7 +396,8 @@ function startGame() {
   updateActProgressUI();
   // Clear any leftover card elements from previous game
   document.getElementById('grid').querySelectorAll('.card').forEach(el => el.remove());
-  roundGoal = match3IsZen() ? BASE_GOAL * 2 : BASE_GOAL; // Zen: doubled goals, no clock
+  roundGoal = survivalActive() ? survivalGoalForLevel(1)
+            : (match3IsZen() ? BASE_GOAL * 2 : BASE_GOAL); // Zen: doubled goals, no clock
   totalScore = 0;
   coins = 0;
   shopItems = null;

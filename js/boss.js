@@ -103,21 +103,17 @@ function purgeStonesFromDeck() {
 }
 
 // ── Boss objective checking ──
+// Bosses no longer carry their own score target (r155, all modes): the win bar is
+// simply THIS ROUND'S GOAL, exactly like a normal round. A boss's challenge is its
+// modifier — plus, for 'hand' bosses, a hand requirement layered ON TOP of the goal.
+function bossGoalMet() { return score >= roundGoal; }
+
 function checkBossObjective(handName, handFinalScore) {
   if (!bossActive || !currentBoss) return;
   const obj = currentBoss.objective;
-  if (obj.type === 'score') {
-    // Use total `score` accumulated during this boss (we snapshot at start)
-    bossObjectiveProgress = score - bossScoreAtStart;
-    if (bossObjectiveProgress >= obj.target) {
-      endBoss(true);
-    }
-  } else if (obj.type === 'hand') {
-    if (handName === obj.handName) {
-      bossObjectiveProgress++;
-      if (bossObjectiveProgress >= obj.count) endBoss(true);
-    }
-  }
+  if (obj.type === 'hand' && handName === obj.handName) bossObjectiveProgress++;
+  const handDone = (obj.type !== 'hand') || (bossObjectiveProgress >= obj.count);
+  if (handDone && bossGoalMet()) endBoss(true);
   updateBossObjectiveUI();
 }
 let bossScoreAtStart = 0;
@@ -127,12 +123,11 @@ function updateBossObjectiveUI() {
   const obj = currentBoss.objective;
   const el = document.getElementById('boss-objective-text');
   if (!el) return;
-  if (obj.type === 'score') {
-    const prog = score - bossScoreAtStart;
-    el.textContent = `${Math.max(0, prog).toLocaleString()} / ${obj.target.toLocaleString()}`;
-  } else if (obj.type === 'hand') {
-    el.textContent = `${obj.handName}: ${bossObjectiveProgress} / ${obj.count}`;
-  }
+  // Always show progress toward the round goal; hand bosses show their tally too.
+  const goalLine = `${Math.max(0, score).toLocaleString()} / ${roundGoal.toLocaleString()}`;
+  el.textContent = (obj.type === 'hand')
+    ? `${goalLine}  ·  ${obj.handName}: ${bossObjectiveProgress}/${obj.count}`
+    : goalLine;
   // Voidwright: also update the pool display
   const poolEl = document.getElementById('boss-trick-pools');
   if (poolEl && currentBoss.modifiers.includes('trick_pool_split')) {
@@ -437,7 +432,8 @@ function showBossObjectiveHUD(preset) {
     document.getElementById('grid').appendChild(hud);
   }
   const obj = preset.objective;
-  const label = obj.type === 'score' ? 'OBJECTIVE: SCORE' : `OBJECTIVE: ${obj.handName.toUpperCase()}`;
+  // The bar is always the round goal; hand bosses add their hand on top.
+  const label = obj.type === 'hand' ? `OBJECTIVE: GOAL + ${obj.handName.toUpperCase()}` : 'OBJECTIVE: REACH GOAL';
   hud.innerHTML = `
     <div class="boss-objective-label">${label}</div>
     <div class="boss-objective-progress" id="boss-objective-text"></div>

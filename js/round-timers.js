@@ -60,6 +60,7 @@ function startRoundTimer() {
       const _cd = gridData[_r]?.[_c];
       if (_cd && _cd._isSleight && _cd.sleightId === 'slow_burn') _cd._slowBurnSecs = (_cd._slowBurnSecs || 0) + 1;
     }
+    if (survivalActive()) survivalTickBossClock(); // 5-minute boss cadence (live play time)
     handleClockMarks(roundSeconds); // clock-mark Tricks (Tick-Tock, Quarter Chime, Minute/Second Hand, Hourglass)
     trickCardTimer++;
     if (trickCardTimer >= TRICK_CARD_INTERVAL) { trickCardTimer = 0; assignTrickCard(); }

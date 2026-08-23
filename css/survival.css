@@ -115,6 +115,67 @@
 #sv-pick-contrib-btn:active { transform: translateY(2px); }
 #sv-pick-contrib-btn.sv-open { border-color: var(--c-mint, #35d59b); background: rgba(53,213,155,0.12); }
 
+/* Shop entry button — lives on the pick screen (r155), fee spelled out. */
+#sv-pick-shop {
+  width: 100%; margin-top: 6px;
+  font-family: 'Share Tech Mono', monospace; font-size: 11px; letter-spacing: 1px;
+  cursor: pointer; color: #0e0c0a; border: none; border-radius: 9px; padding: 8px 10px; font-weight: 700;
+  background: linear-gradient(180deg, #ffe06a, var(--c-yellow, #ffce2b) 60%, #e0a814);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.6), 0 3px 0 #b5820f, 0 4px 7px rgba(0,0,0,0.4);
+  transition: filter 0.12s ease, transform 0.07s ease;
+}
+#sv-pick-shop:hover { filter: brightness(1.06); }
+#sv-pick-shop:active { transform: translateY(2px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.6), 0 1px 0 #b5820f; }
+#sv-pick-shop.sv-cant-afford { filter: grayscale(0.55) brightness(0.85); }
+
+/* ── RUN COMPLETE (5 bosses) — retire or continue endless ── */
+#survival-complete-overlay {
+  display: none; position: absolute; inset: 0; z-index: 200;
+  align-items: center; justify-content: center;
+  background: radial-gradient(ellipse at 50% 45%, rgba(36,29,63,0.93) 0%, rgba(11,10,28,0.97) 70%);
+}
+#survival-complete-overlay.show { display: flex; }
+#sv-complete-panel {
+  width: 100%; max-width: 340px; text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 9px;
+  padding: 22px 22px 18px; border-radius: 16px;
+  background: linear-gradient(180deg, rgba(20,16,11,0.96), rgba(11,9,6,0.97));
+  box-shadow: 0 0 0 2px var(--plastic-lo, #b7ac93), 0 0 0 5px #17120c, 0 18px 44px rgba(0,0,0,0.6);
+}
+.sv-c-kicker { font-family: 'Share Tech Mono', monospace; font-size: 9px; letter-spacing: 3px; color: var(--c-mint, #35d59b); }
+.sv-c-title {
+  font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 24px; letter-spacing: 5px;
+  background: linear-gradient(180deg, #fff2c8, var(--c-yellow, #ffce2b) 55%, var(--c-coral, #ff6a3c));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+#sv-complete-stats { width: 100%; margin: 4px 0 2px; }
+.sv-c-row {
+  display: flex; justify-content: space-between; gap: 12px;
+  font-family: 'Crimson Pro', serif; font-size: 13px; line-height: 1.75;
+  color: var(--cream-dim, #8a7d60); border-bottom: 1px solid rgba(183,172,147,0.14);
+}
+.sv-c-row b { color: var(--cream, #f0e6c8); font-family: 'Share Tech Mono', monospace; font-size: 12px; }
+.sv-c-btns { display: flex; flex-direction: column; gap: 7px; width: 100%; }
+.sv-c-btn {
+  width: 100%; cursor: pointer; border-radius: 9px; padding: 10px;
+  font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 12px; letter-spacing: 2px;
+  text-transform: uppercase; transition: filter 0.12s ease, transform 0.07s ease, border-color 0.12s ease, color 0.12s ease;
+}
+.sv-c-btn:active { transform: translateY(2px); }
+.sv-c-primary {
+  color: #3a2a08; border: none;
+  background: linear-gradient(180deg, #ffb06a, var(--c-coral, #ff6a3c) 60%, #d9491f);
+  box-shadow: inset 0 2px 0 rgba(255,255,255,0.5), 0 4px 0 #a5361a, 0 6px 10px rgba(0,0,0,0.45);
+}
+.sv-c-primary:hover { filter: brightness(1.07); }
+.sv-c-ghost {
+  color: var(--cream, #f0e6c8); background: rgba(255,255,255,0.04);
+  border: 1.5px solid var(--plastic-lo, #b7ac93);
+}
+.sv-c-ghost:hover { border-color: var(--c-mint, #35d59b); color: var(--c-mint, #35d59b); }
+.sv-c-note { font-family: 'Crimson Pro', serif; font-size: 11px; line-height: 1.4; color: var(--cream-dim, #8a7d60); }
+.sv-c-note b { color: var(--c-coral, #ff6a3c); }
+
 /* Contributions dropdown — reuses the payout's .contrib-* row markup. */
 #sv-pick-contrib { display: none; }
 #sv-pick-contrib.show {
