@@ -1919,6 +1919,67 @@
   .card.suit-clubs .rank,    .card.suit-clubs .suit    { color: var(--suit-clubs); }
   .card.suit-stars .rank,    .card.suit-stars .suit    { color: var(--suit-stars); }
   .card.suit-triangles .rank,.card.suit-triangles .suit{ color: var(--suit-triangles); }
+
+  /* ══ SPECTRUM — numeric colour deck (mode: spectrum) ══
+     No suits, no court cards: the whole card face IS the colour and the value
+     sits large in the middle. `num-suit` + `col-*` come from suitClass(), so the
+     two tokens below are available anywhere a colour card is drawn (grid, hand
+     preview, score dance, deck chips); `num-card` is the grid/preview face. */
+  .col-red    { --num-color: #d43b3b; --num-ink: #fff4ec; }
+  .col-yellow { --num-color: #e0b81c; --num-ink: #1a1510; }
+  .col-blue   { --num-color: #2f6fd0; --num-ink: #f2f7ff; }
+  .col-green  { --num-color: #2f9e54; --num-ink: #f2fff6; }
+  .col-purple { --num-color: #8b4bc8; --num-ink: #faf2ff; }
+  .col-orange { --num-color: #e07a1f; --num-ink: #1a1510; }
+  .col-black  { --num-color: #23201c; --num-ink: #efe7d8; }
+
+  .card.num-card {
+    background: var(--num-color);
+    border-color: rgba(0,0,0,0.4);
+    box-shadow: inset 0 0 0 2px rgba(255,255,255,0.16), inset 0 -6px 12px rgba(0,0,0,0.18);
+  }
+  /* The generic .card:hover background would wash the colour out. */
+  .card.num-card:hover:not(.unreachable) { background: var(--num-color); filter: brightness(1.12); }
+  .card.num-card .num-rank {
+    font-family: 'Cinzel', serif;
+    font-size: calc(var(--card-h, 75px) * 0.54);
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: -1px;
+    color: var(--num-ink);
+    text-shadow: 0 2px 4px rgba(0,0,0,0.32);
+  }
+  /* Two-digit values (10-15, 20) need a touch less size to stay inside the card. */
+  .card.num-card .num-rank.num-wide { font-size: calc(var(--card-h, 75px) * 0.42); }
+  /* Selection would otherwise repaint the face cream (.card.selected.hand-valid /
+     .hand-ready set --card-bg) and hide the colour — ring it instead. */
+  .card.num-card.selected,
+  .card.num-card.selected.hand-valid,
+  .card.num-card.selected.hand-ready {
+    background: var(--num-color);
+    filter: brightness(1.15);
+    box-shadow: 0 0 0 3px #4a9eff, 0 0 12px rgba(74,158,255,0.55);
+  }
+
+  /* Row/column marker tints would otherwise repaint the whole face, hiding the
+     card's colour — mark them with a ring instead so both stay readable. */
+  .card.num-card.rc-pips,
+  .card.num-card.rc-mult,
+  .card.num-card.rc-pips.rc-mult,
+  .card.num-card.rc-retrigger { background: var(--num-color); }
+  .card.num-card.rc-pips           { box-shadow: inset 0 0 0 3px #3a6fca; }
+  .card.num-card.rc-mult           { box-shadow: inset 0 0 0 3px #c0392b; }
+  .card.num-card.rc-pips.rc-mult   { box-shadow: inset 0 0 0 3px #9b59b6; }
+  .card.num-card.rc-retrigger      { box-shadow: inset 0 0 0 3px #e0ddd0; }
+  .card.num-card.rc-retrigger .rank { color: var(--num-ink) !important; text-shadow: 0 2px 4px rgba(0,0,0,0.32); }
+
+  /* Deck view / records chips: fill the chip with its colour. */
+  .deck-chip.num-suit { background: var(--num-color); color: var(--num-ink); border: 1px solid rgba(0,0,0,0.35); }
+  .deck-suit-symbol.num-suit { color: var(--num-color); }
+  .mini-card.num-suit .mini-rank, .mini-card.num-suit .mini-suit { color: var(--num-color); }
+  .unlock-ex-card.num-suit, .svc-card.num-suit { color: var(--num-color); }
+  .reward-face.num-suit .reward-face-rank, .reward-face.num-suit .reward-face-suit { color: var(--num-color); }
+  .suit-choice.num-suit { color: var(--num-ink) !important; background: var(--num-color) !important; }
   .card .sel-num {
     position: absolute;
     top: 2px; left: 3px;
@@ -3462,6 +3523,17 @@
   #menu-continue-btn:not([style*="display: none"]) ~ #menu-start-btn {
     font-size: 17px; padding: 12px; letter-spacing: 5px;
   }
+  /* BUILDS — the procurement catalogue. Purple: gold PLAY and mint CONTINUE are
+     the run actions, cyan is utility, so the catalogue gets its own colour and
+     doesn't compete with CONTINUE (added on main in r155). */
+  #menu-builds-btn {
+    width: 100%; max-width: 300px; margin-bottom: 8px;
+    font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 3px;
+    color: var(--c-purple); text-transform: uppercase; cursor: pointer; padding: 11px;
+    background: linear-gradient(180deg, #241a3d, rgba(20,14,34,0)); border: 1px solid var(--c-purple); border-radius: 9px;
+    transition: background 0.12s ease, color 0.12s ease;
+  }
+  #menu-builds-btn:hover { background: linear-gradient(180deg, #34265a, #1c1430); color: #fff; }
   #menu-settings-btn {
     width: 100%; max-width: 300px;
     font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 3px;

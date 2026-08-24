@@ -44,6 +44,7 @@ function showSuitEffect(text, color) {
 function startRoundTimer() {
   if (roundInterval) clearInterval(roundInterval);
   startHeartbeat();                 // the board's idle pulse runs with the round
+  syncDiscoveredFromOwned();        // log anything new for the Builds archive
   roundStartSeconds = roundSeconds; // mark the start of the countdown for ♠ "first 30s" exalt
   // Save point. Every round start funnels through here, so this is where a run
   // snapshot is taken; Settings → SAVE RUN just writes the latest one out. See

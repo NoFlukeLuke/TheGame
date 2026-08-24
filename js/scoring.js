@@ -145,7 +145,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     let rawPips = _origPips;
     if (hasTrick('face_value') && ['J','Q','K'].includes(baseRank)) { rawPips = BAL.face_value.face_pips; bPip('face_value', rawPips - _origPips); }
     else if (hasTrick('first_light') && baseRank === 'A') { rawPips = BAL.first_light.worth; bPip('first_light', rawPips - _origPips); }
-    if (hasTrick('humble_roots') && ['A','2','3','4','5'].includes(baseRank)) { const _b = rawPips; rawPips *= BAL.humble_roots.pip_mult; bPip('humble_roots', rawPips - _b); }
+    if (hasTrick('humble_roots') && ['A','1','2','3','4','5'].includes(baseRank)) { const _b = rawPips; rawPips *= BAL.humble_roots.pip_mult; bPip('humble_roots', rawPips - _b); }
     if (hasTrick('summit') && (RANK_ORDER[baseRank] || 0) === _handMinRankVal) { const _b = cardPips(baseRank) * level; rawPips += _b; bPip('summit', _b); }
     let cp = rawPips;
     if (hasTrick('rich_soil')) { cp += BAL.rich_soil.pips; bPip('rich_soil', BAL.rich_soil.pips); }
@@ -791,9 +791,11 @@ function roundContributionRowsHTML() {
 function hasTrick(id) {
   if (isTrickDisabledByBoss(id)) return false;
   if (trickTrayMode && trickTray.some(b => b.id === id)) return true;
+  // gridData?.[r] — the grid is empty between screens (menu, Builds, mid-deal), and
+  // a stray timer tick landing there would otherwise throw on gridData[r][c].
   for (let r = 0; r < gridRows; r++)
     for (let c = 0; c < gridCols; c++) {
-      const cell = gridData[r][c];
+      const cell = gridData?.[r]?.[c];
       if (cell?._isTrick && cell.trick?.id === id) return true;
     }
   return false;

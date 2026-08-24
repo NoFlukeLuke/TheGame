@@ -256,6 +256,7 @@ function flyParticle({ sourceRect, targetRect, label, color, delay = 0, duration
 // COLLECT PARTICLES — derive sources from result
 // ══════════════════════════════════════════════
 function suitColor(suit) {
+  if (COLOR_HEX[suit]) return COLOR_HEX[suit];   // Spectrum colour cards
   return suit === '♥' ? '#c0353e'
        : suit === '♦' ? '#EC9F05'
        : suit === '♣' ? '#2255cc'

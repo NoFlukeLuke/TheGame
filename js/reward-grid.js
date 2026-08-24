@@ -71,7 +71,7 @@ function _generateRewardContent() {
   // un-cursed identity exists). Card is pre-picked so the tile shows exactly it.
   {
     const _uncursed = [];
-    RANKS.forEach(rank => ACTIVE_SUITS.forEach(suit => { if (!cardCurses[cardKey(rank, suit)]) _uncursed.push({ rank, suit }); }));
+    ACTIVE_RANKS.forEach(rank => ACTIVE_SUITS.forEach(suit => { if (!cardCurses[cardKey(rank, suit)]) _uncursed.push({ rank, suit }); }));
     if (_uncursed.length) {
       const _victim = _uncursed[Math.floor(Math.random() * _uncursed.length)];
       const _cids = Object.keys(CURSE_DEFS);
@@ -164,7 +164,7 @@ function _generateRewardContent() {
 
   // Blessed-card buff: a specific shown card gains a permanent bonus.
   function makeBlessedPayload() {
-    const rank = RANKS[Math.floor(Math.random() * RANKS.length)];
+    const rank = ACTIVE_RANKS[Math.floor(Math.random() * ACTIVE_RANKS.length)];
     const suit = ACTIVE_SUITS[Math.floor(Math.random() * ACTIVE_SUITS.length)];
     const mult = Math.random() < 0.3; // 30% of blessings are the (stronger) +1 mult
     return mult
@@ -362,7 +362,7 @@ function rollRewardMystery(goodChance) {
       apply:()=>{ nextRoundDiscardDelta += 2; showMessage('Mystery: +2 discards next round!', 'var(--gold)'); } };
     if (roll === 3) return { good, icon:'⏱', label:'+25s Round', flyTo:'clock', desc:'Next round starts with +25 seconds.',
       apply:()=>{ nextRoundSecondsDelta += 25; showMessage('Mystery: +25s next round!', 'var(--gold)'); } };
-    const rank = RANKS[Math.floor(Math.random()*RANKS.length)], suit = ACTIVE_SUITS[Math.floor(Math.random()*ACTIVE_SUITS.length)];
+    const rank = ACTIVE_RANKS[Math.floor(Math.random()*ACTIVE_RANKS.length)], suit = ACTIVE_SUITS[Math.floor(Math.random()*ACTIVE_SUITS.length)];
     return { good, icon:'✨', label:`Blessed ${rank}${suit}`, flyTo:'deck', desc:`${rank}${suit} permanently gains +10 pips.`,
       apply:()=>{ const k = cardKey(rank, suit); permPips[k] = (permPips[k]||0)+10; showMessage(`Mystery: ${rank}${suit} +10 pips!`, 'var(--gold)'); } };
   }

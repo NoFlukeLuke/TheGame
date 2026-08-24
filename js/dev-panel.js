@@ -117,6 +117,7 @@ function openDevPanel() {
   devSyncFloatSliders();
   devSyncHbSliders();
   devSyncCcSliders();
+  devSyncDisco();
   devSyncFullscreen();
   devSyncSaveSection();
   devCloseGroup();          // always land on the group menu, not the last group opened
@@ -145,6 +146,7 @@ const DEV_GROUPS = [
   { g:'save',     icon:'💾', label:'Save Run',  sub:() => { const s = savedRunSummary(); return s ? `saved · Round ${s.level}` : 'no save yet'; } },
   { g:'seed',     icon:'⚄', label:'Run Seed',  sub:() => runSeed ? `on · ${runSeed}` : 'off · random' },
   { g:'match3',   icon:'⬚', label:'Match-3',   sub:() => 'match types · sandbox' },
+  { g:'builds',   icon:'▤', label:'Builds',    sub:() => `${discoveredIds.size} records open` },
   { g:'log',      icon:'✎', label:'Event Log', sub:() => 'in-game debug log' },
 ];
 function devRenderGroupMenu() {
@@ -213,6 +215,25 @@ function devSetCc(k, v) {
 }
 function devCcPreset(name) { setCcPreset(name); devSyncCcSliders(); devCcTest(); }
 function devResetCc() { resetCcCfg(); devSyncCcSliders(); }
+
+// ── Builds archive / discovery ──
+function devSetRevealAll(on) { setDevRevealAll(on); devSyncDisco(); if (buildsOpen) renderBuilds(); }
+function devDiscoverAll() {
+  [...TRICK_POOL, ...KNACK_POOL, ...SLEIGHT_POOL].forEach(e => markDiscovered(e.id));
+  devSyncDisco(); if (buildsOpen) renderBuilds();
+  showMessage('All records opened', 'var(--gold)');
+}
+function devForgetAll() {
+  discoveredIds.clear(); saveDiscovered();
+  devSyncDisco(); if (buildsOpen) renderBuilds();
+  showMessage('Archive cleared', 'var(--cream-dim)');
+}
+function devSyncDisco() {
+  const cb = document.getElementById('dev-reveal-all');
+  if (cb) cb.checked = devRevealAll;
+  const n = document.getElementById('dev-disco-count');
+  if (n) n.textContent = `${discoveredIds.size} of ${TRICK_POOL.length + KNACK_POOL.length + SLEIGHT_POOL.length} entities discovered`;
+}
 function devCcTest() { channelChange(() => {}, { channel: 'TEST' }); }
 function devSyncCcSliders() {
   const on = document.getElementById('dev-cc-enabled');

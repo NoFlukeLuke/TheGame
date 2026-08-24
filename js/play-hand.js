@@ -633,15 +633,15 @@ function playHand() {
       getNeighbors(r, c).forEach(([nr, nc]) => {
         if (!scoredSet.has(`${nr}-${nc}`) && gridData[nr][nc]) {
           const adj = gridData[nr][nc];
-          const curIdx = RANKS.indexOf(adj.rank);
+          const curIdx = ACTIVE_RANKS.indexOf(adj.rank);
           if (curIdx === -1) return;
           let newIdx;
           if (isQueen && hasTrick('queens_upgrade')) {
-            newIdx = curIdx === RANKS.length - 1 ? 1 : curIdx + 1; // K wraps to 2
+            newIdx = curIdx === ACTIVE_RANKS.length - 1 ? 1 : curIdx + 1; // K wraps to 2
           } else {
-            newIdx = curIdx === 0 ? RANKS.length - 1 : curIdx - 1; // A wraps to K (2 wraps to A)
+            newIdx = curIdx === 0 ? ACTIVE_RANKS.length - 1 : curIdx - 1; // A wraps to K (2 wraps to A)
           }
-          gridData[nr][nc] = { ...adj, rank: RANKS[newIdx] };
+          gridData[nr][nc] = { ...adj, rank: ACTIVE_RANKS[newIdx] };
         }
       });
     }

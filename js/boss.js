@@ -286,7 +286,7 @@ function triggerBoss(presetOverride = null, windowSeconds = null) {
   bossNumber++;
   bossPhase = 1;
   bossObjectiveProgress = 0;
-  bossScoreAtStart = score;
+  bossScoreAtStart = score;   // vestigial since r155 (boss bar = roundGoal); kept for save/debug shape
 
   // Apply modifiers
   applyBossModifiers(preset);
