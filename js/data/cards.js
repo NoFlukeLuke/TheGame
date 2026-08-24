@@ -24,7 +24,10 @@ const COLOR_HEX = { '🔴':'#d43b3b', '🟡':'#e0b81c', '🔵':'#2f6fd0', '🟢'
 // Two classes: `num-suit` (generic hook — carries the --num-color/--num-ink
 // tokens wherever a colour card is drawn) plus the colour's own class.
 const COLOR_CLASS = { '🔴':'num-suit col-red', '🟡':'num-suit col-yellow', '🔵':'num-suit col-blue', '🟢':'num-suit col-green', '🟣':'num-suit col-purple', '🟠':'num-suit col-orange', '⚫':'num-suit col-black' };
-const RANKS_NUMERIC = ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','20'];
+// Values: 0-11, then a lone 15 and a lone 20. The gaps are deliberate — 15 and
+// 20 are big-pip loners that can never be part of a run or straight, and the 0
+// is a genuine dead card (0 pips) that still counts for sets and colour flushes.
+const RANKS_NUMERIC = ['0','1','2','3','4','5','6','7','8','9','10','11','15','20'];
 // True for a card that belongs to the numeric deck — asked of the CARD, not the
 // mode, so the hand preview / score dance / saved runs all render it correctly
 // wherever they get their cards from.
@@ -38,7 +41,7 @@ let ACTIVE_RANKS = RANKS;
 
 // RANK_ORDER / RANK_PIPS carry the numeric ranks too. '2'-'10' already map to
 // themselves, so only 1, 11-15 and 20 are new — no classic key changes value.
-const RANK_ORDER = {A:1,'1':1,'2':2,'3':3,'4':4,'5':5,'6':6,'7':7,'8':8,'9':9,'10':10,J:11,Q:12,K:13,
+const RANK_ORDER = {A:1,'0':0,'1':1,'2':2,'3':3,'4':4,'5':5,'6':6,'7':7,'8':8,'9':9,'10':10,J:11,Q:12,K:13,
                     '11':11,'12':12,'13':13,'14':14,'15':15,'20':20};
 const RANK_PIPS  = {A:11,J:10,Q:10,K:10};   // numeric ranks fall through to parseInt (pips = value)
 

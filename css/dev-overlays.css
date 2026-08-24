@@ -109,6 +109,16 @@
   .dev-row { display:flex; gap:6px; flex-wrap:wrap; }
   .dev-btn { font-family:'Cinzel',serif; font-size:10px; letter-spacing:1px; padding:7px 10px; background:rgba(244,234,213,0.06); border:1px solid var(--border); border-radius:5px; color:var(--cream); cursor:pointer; flex:1; min-width:60px; }
   .dev-btn:active { background:rgba(244,234,213,0.14); }
+
+  /* Spectrum deck tuner (dev panel → Spectrum) — one chip per value / colour. */
+  .dev-spec-row { display:flex; flex-wrap:wrap; gap:5px; margin-top:4px; }
+  .dev-spec-chip {
+    font-family:'Share Tech Mono',monospace; font-size:12px; min-width:30px; padding:5px 7px;
+    background:rgba(244,234,213,0.04); border:1px solid var(--border); border-radius:5px;
+    color:rgba(244,234,213,0.35); cursor:pointer; line-height:1;
+  }
+  .dev-spec-chip.on { background:rgba(255,215,0,0.14); border-color:var(--gold); color:var(--cream); }
+  .dev-spec-chip:active { transform:translateY(1px); }
   .dev-trick-item { display:flex; justify-content:space-between; align-items:center; padding:5px 8px; background:rgba(255,255,255,0.03); border-radius:4px; gap:8px; }
   .dev-trick-name { font-family:'Cinzel',serif; font-size:9px; color:var(--cream); letter-spacing:1px; }
   .dev-trick-add { font-family:'Cinzel',serif; font-size:9px; padding:3px 8px; background:rgba(201,168,76,0.1); border:1px solid rgba(201,168,76,0.3); border-radius:4px; color:var(--gold); cursor:pointer; white-space:nowrap; }

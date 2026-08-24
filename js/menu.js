@@ -1,4 +1,4 @@
-const BUILD = '2026-08-24 · r160 · SPECTRUM: numeric colour deck (1-15 + 20, seven colours)';
+const BUILD = '2026-08-24 · r161 · SPECTRUM: 0-11/15/20, four payout cards, deck tuner, Monopoly';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -59,7 +59,7 @@ const MODES = {
   spectrum: {
     id: 'spectrum',
     name: 'Spectrum',
-    desc: 'No suits, no face cards. Seven colours and the numbers 1-15 plus a lone 20. Runs, sets and colour flushes only.',
+    desc: 'No suits, no face cards. Seven colours and the values 0-11 plus a lone 15 and 20. Runs, sets and colour flushes only.',
     winCondition: 'boss_defeat',
     enableBosses: true,
     enableShops: true,
@@ -227,7 +227,7 @@ const MODE_META = {
   sixsuits: { accent: 'var(--c-mint)',   suits: '♠ ♥ ♦ ♣ ★ ▲',
               blurb: 'Two extra suits dilute the deck, so flushes are hard-won. Flush of 3, 4 and 5 are all in play.' },
   spectrum: { accent: '#ff9d3c',        suits: '🔴 🟡 🔵 🟢 🟣 🟠 ⚫',
-              blurb: 'The deck loses its suits and its court. Seven colours, values 1 to 15, and one lone 20 — big pips that can never join a run. Flushes are colour flushes, so Flush of 3, 4 and 5 are all in play; Ace and face-card Tricks sit this one out.' },
+              blurb: 'The deck loses its suits and its court. Seven colours and the values 0 to 11, plus a lone 15 and 20 — big pips that can never join a run. Four payout cards are shuffled in: score two hands beside one and it pays. Flushes are colour flushes, so Flush of 3, 4 and 5 are all in play.' },
   survival: { accent: 'var(--c-coral)',  suits: 'ENDLESS',
               blurb: 'Clear escalating goals on a 2-minute clock. Each clear: pick one of three rewards from every pool. Overflow score and leftover time carry forward. Miss a goal and the run is over.' },
   match3:   { accent: '#ff7ad0',         suits: '5 × 5',

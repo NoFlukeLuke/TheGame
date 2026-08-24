@@ -38,7 +38,22 @@ const SLEIGHT_POOL = [
   // ── Focus-capacity sleights (r104) ──
   { id:'power_cell',  name:'Power Cell',  emoji:'🔋', rarity:'rare',   activation:'on_draw', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['focus'], desc:'When it enters the grid: +5 Focus. While it remains on the grid: +10 maximum Focus.' },
   { id:'slow_burn',   name:'Slow Burn',   emoji:'🕯️', rarity:'rare',   activation:'passive', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['focus'], desc:'+1 maximum Focus for every minute this sleight spends on the grid.' },
+  // ── Spectrum deck fixtures (r161) — four extra cards shuffled into the Spectrum
+  // deck at run start. They are NOT offered by the shop, Mart, wheel, reward grid
+  // or events (see SLEIGHT_FIXTURES): the only way to have one is to draw it.
+  // activation:'adjacent' — count the hands scored in a cell touching this card;
+  // at `adjacentPlays` it pays out `payout` and the counter resets.
+  { id:'shift_swap',  name:'Shift Swap',  emoji:'🔀', rarity:'fixture', activation:'adjacent', adjacentPlays:2, payout:{ swaps:2 },    durability:'infinite', defaultRank:null, defaultSuit:null, tags:['resource','position'], desc:'Score two hands touching this card and it grants +2 swaps. Repeats.' },
+  { id:'recycler',    name:'Recycler',    emoji:'♻️', rarity:'fixture', activation:'adjacent', adjacentPlays:2, payout:{ discards:2 }, durability:'infinite', defaultRank:null, defaultSuit:null, tags:['resource','position'], desc:'Score two hands touching this card and it grants +2 discards. Repeats.' },
+  { id:'time_clock',  name:'Time Clock',  emoji:'⏱️', rarity:'fixture', activation:'adjacent', adjacentPlays:2, payout:{ seconds:10 }, durability:'infinite', defaultRank:null, defaultSuit:null, tags:['time','position'],     desc:'Score two hands touching this card and it adds +10 seconds to the clock. Repeats.' },
+  { id:'petty_cash',  name:'Petty Cash',  emoji:'💵', rarity:'fixture', activation:'adjacent', adjacentPlays:2, payout:{ coins:5 },    durability:'infinite', defaultRank:null, defaultSuit:null, tags:['coins','position'],    desc:'Score two hands touching this card and it pays 5 credits. Repeats.' },
 ];
+
+// Deck fixtures: dealt into the Spectrum deck, never sold or awarded. Kept in
+// SLEIGHT_POOL (sleightDef / rendering look them up there) but filtered out of
+// every offer pool.
+const SLEIGHT_FIXTURES = new Set(['shift_swap', 'recycler', 'time_clock', 'petty_cash']);
+function sleightOfferable(def) { return !!def && !SLEIGHT_FIXTURES.has(def.id); }
 
 // ── Aim sleights (Reflect, Soul Mirror): fixtures that point at an adjacent cell ──
 // ══════════════════════════════════════════════

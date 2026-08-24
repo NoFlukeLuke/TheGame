@@ -77,7 +77,7 @@ function _buildMartStock() {
   // too — otherwise the Mart could sell a item that does nothing in this mode.
   const _ok = p => typeof survivalEntityBanned !== 'function' || !survivalEntityBanned(p.id);
   martStock.tricks = martPick(TRICK_POOL.filter(_ok), 'tier', 4).map(martTrickPayload);
-  if (martCats.includes('sleights')) martStock.sleights = martPick(SLEIGHT_POOL.filter(_ok), 'rarity', 4).map(martSleightPayload);
+  if (martCats.includes('sleights')) martStock.sleights = martPick(SLEIGHT_POOL.filter(j => _ok(j) && sleightOfferable(j)), 'rarity', 4).map(martSleightPayload);
   if (martCats.includes('knacks'))   martStock.knacks   = martPick(KNACK_POOL.filter(_ok), 'rarity', 4).map(martKnackPayload);
   if (martCats.includes('limits'))   martStock.limits   = martLimitStock(4);
 }

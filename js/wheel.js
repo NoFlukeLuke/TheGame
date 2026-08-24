@@ -32,7 +32,7 @@ function buildWheelSlots() {
     const r = Math.random();
     if (r < 0.45) return martTrickPayload(martPick(TRICK_POOL, 'tier', 1)[0]);
     if (r < 0.78) return martKnackPayload(martPick(KNACK_POOL, 'rarity', 1)[0]);
-    return martSleightPayload(martPick(SLEIGHT_POOL, 'rarity', 1)[0]);
+    return martSleightPayload(martPick(SLEIGHT_POOL.filter(sleightOfferable), 'rarity', 1)[0]);
   };
   for (let i = 0; i < n - 2; i++) out.push(pickOne());
   out.push({ type: 'bust', label: 'BUST', emoji: '✖', rarity: 'common', desc: 'Nothing. Better luck next spin.' });

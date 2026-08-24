@@ -57,7 +57,11 @@ function render() {
         if (!animating && !falling) div.style.top = cellTop(r) + 'px';
         const isSwapPendingJ = swapPending && swapPending[0]===r && swapPending[1]===c;
         const selIdxJ = selected.findIndex(([sr,sc]) => sr===r && sc===c);
-        const usesStr = card._usesLeft === 'infinite' ? '∞' : card._usesLeft;
+        // An 'adjacent' fixture counts hands scored beside it, so show that progress
+        // (1/2) instead of its charges — same rule as renderCardAppearance.
+        const usesStr = def?.activation === 'adjacent'
+          ? `${card._adjPlays || 0}/${def.adjacentPlays || 2}`
+          : (card._usesLeft === 'infinite' ? '∞' : card._usesLeft);
         const _isAim = AIM_SLEIGHTS.has(def?.id);
         if (_isAim) {
           const dir = card._aimDir || (card._aimDir = 'up');
