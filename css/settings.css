@@ -97,13 +97,22 @@
 .set-reset:hover { color: var(--c-coral, #ff6a3c); border-color: var(--c-coral, #ff6a3c); }
 
 /* ══ Setting effects ══ */
-body.reduced-motion .card,
+/* Reduced motion: kill the idle/ambient drift (float-anim publishes --fx/--fy/--fr
+   custom properties, so zeroing them stops the drift without touching the
+   transforms those elements also use for hover/selection). */
 body.reduced-motion .m-item,
-body.reduced-motion .reward-tile { animation: none !important; }
+body.reduced-motion .reward-cell {
+  --fx: 0px !important; --fy: 0px !important; --fr: 0deg !important; --fs: 1 !important;
+}
+body.reduced-motion #grid .card { --hbx: 0px !important; --hby: 0px !important; --hbr: 0deg !important; --hbs: 1 !important; }
 body.reduced-motion #cabinet::before,
 body.reduced-motion #cabinet::after { animation: none !important; }
-body.no-shake #stage,
-body.no-shake #grid { animation: none !important; }
+
+/* No screen shake: the real shake animations are the reward-grid hit/mystery
+   shakes and the focus-meter jitter. */
+body.no-shake .reward-hit,
+body.no-shake .reward-mshake { animation: none !important; }
+body.no-shake #focus-meter-wrap, body.no-shake #focus-bar-outer { transform: none !important; }
 body.big-text #records-body,
 body.big-text #settings-body,
 body.big-text .sv-pick-desc,

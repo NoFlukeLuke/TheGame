@@ -1,4 +1,4 @@
-const BUILD = '2026-08-24 · r161 · SPECTRUM: 0-11/15/20, four payout cards, deck tuner, Monopoly';
+const BUILD = '2026-08-24 · r162 · SPECTRUM: 0-11/15/20, four payout cards, deck tuner, Monopoly [merged: r156 audit pass]';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

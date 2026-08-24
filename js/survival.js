@@ -56,7 +56,6 @@ let survivalRerollsLeft       = SURVIVAL_REROLLS_START; // carry-over pool (neve
 let survivalBossesBeaten      = 0;    // bosses defeated this run
 let survivalSecondsToBoss     = SURVIVAL_BOSS_EVERY_SECONDS; // live countdown to the next boss
 let survivalEndless           = false;// true after the player continues past the 5-boss run
-const SURVIVAL_FREE_REROLLS   = 2;    // first 2 rerolls are free
 const SURVIVAL_REROLL_STEP    = 5;    // then 5, 10, 15… (STEP × paid-index)
 
 // The round clock length for the active mode. Survival runs shorter rounds; every
