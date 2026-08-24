@@ -17,7 +17,9 @@ const SETTINGS_DEF = [
     type: 'slider', min: 0, max: 100, step: 5, default: 100, unit: '%' },
 
   // ── Motion ──
-  { group: 'Motion', id: 'animSpeed', label: 'Animation speed', hint: 'Scales the scoring dance and transitions. Higher is faster.',
+  // NOTE: dncSpeed is `isGoalHand ? 1 : DANCE_CFG.norm`, so this deliberately does
+  // not rush the goal-clearing finale — only ordinary scoring hands.
+  { group: 'Motion', id: 'animSpeed', label: 'Scoring speed', hint: 'How fast ordinary hands score. The goal-clearing finale always plays in full.',
     type: 'select', default: '1', options: [['0.75','Relaxed'], ['1','Normal'], ['1.5','Brisk'], ['2','Rapid']],
     apply: v => { if (typeof DANCE_CFG !== 'undefined') DANCE_CFG.norm = parseFloat(v); } },
   { group: 'Motion', id: 'reducedMotion', label: 'Reduced motion', hint: 'Cuts drifting, shaking and idle flourishes. Scoring still animates.',

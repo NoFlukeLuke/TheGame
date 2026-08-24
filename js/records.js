@@ -105,7 +105,6 @@ function recordsRenderDeck() {
       const marks = (pp ? '<i class="rec-m rec-m-p"></i>' : '') + (pm ? '<i class="rec-m rec-m-m"></i>' : '');
       return `<span class="${cls}" title="${tip}">${rk}${marks}</span>`;
     }).join('');
-    const left = suits.filter(x => x === s).length; // placeholder to keep map simple
     const remaining = RANKS.filter(rk => where[cardKey(rk, s)] === 'draw').length;
     return `<div class="rec-deck-row">
       <span class="rec-deck-suit ${suitClass(s)}">${s}<b>${remaining}</b></span>${cells}</div>`;
