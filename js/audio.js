@@ -294,6 +294,12 @@ function sfxScoreTick() {
 
 // Per-card pop chirp. Short triangle blip with a sine overtone, suit-tinted.
 function sfxCardPop(suit) {
+  // Spectrum colours: spread the seven across the same register as the suits.
+  if (typeof COLOR_HEX !== 'undefined' && COLOR_HEX[suit]) {
+    const i = COLORS.indexOf(suit);
+    playTone({ freq: 200 + i * 24, type:'triangle', gain:0.06, attack:0.001, decay:0.02, sustain:0.08, release:0.07, duration:0.11 });
+    return;
+  }
   const baseFreq = suit === '♥' ? 280
                 : suit === '♦' ? 320
                 : suit === '♣' ? 240

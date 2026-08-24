@@ -145,7 +145,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     let rawPips = _origPips;
     if (hasTrick('face_value') && ['J','Q','K'].includes(baseRank)) { rawPips = BAL.face_value.face_pips; bPip('face_value', rawPips - _origPips); }
     else if (hasTrick('first_light') && baseRank === 'A') { rawPips = BAL.first_light.worth; bPip('first_light', rawPips - _origPips); }
-    if (hasTrick('humble_roots') && ['A','2','3','4','5'].includes(baseRank)) { const _b = rawPips; rawPips *= BAL.humble_roots.pip_mult; bPip('humble_roots', rawPips - _b); }
+    if (hasTrick('humble_roots') && ['A','1','2','3','4','5'].includes(baseRank)) { const _b = rawPips; rawPips *= BAL.humble_roots.pip_mult; bPip('humble_roots', rawPips - _b); }
     if (hasTrick('summit') && (RANK_ORDER[baseRank] || 0) === _handMinRankVal) { const _b = cardPips(baseRank) * level; rawPips += _b; bPip('summit', _b); }
     let cp = rawPips;
     if (hasTrick('rich_soil')) { cp += BAL.rich_soil.pips; bPip('rich_soil', BAL.rich_soil.pips); }

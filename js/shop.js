@@ -439,13 +439,11 @@ function openSvcPicker(title, sub, source, maxSelect, onConfirm) {
     });
   }
 
-  const SUIT_ORDER = { '♣': 0, '♦': 1, '♥': 2, '♠': 3 };
-  const RANK_ORDER = { 'A':0,'2':1,'3':2,'4':3,'5':4,'6':5,'7':6,'8':7,'9':8,'10':9,'J':10,'Q':11,'K':12 };
-
+  // Order by the deck this run is using (suits, six suits, or Spectrum colours).
   allCards.sort((a, b) => {
-    const sd = (SUIT_ORDER[a.suit] ?? 4) - (SUIT_ORDER[b.suit] ?? 4);
+    const sd = suitSortVal(a.suit) - suitSortVal(b.suit);
     if (sd !== 0) return sd;
-    return (RANK_ORDER[a.rank] ?? 99) - (RANK_ORDER[b.rank] ?? 99);
+    return rankSortVal(a.rank) - rankSortVal(b.rank);
   });
 
   let currentSuit = null;
@@ -591,7 +589,9 @@ function applySuitChange(pickedCards) {
       const btn = document.createElement('div');
       btn.className = 'suit-choice';
       btn.textContent = s;
-      btn.style.color = { '♥':'var(--suit-hearts)', '♦':'var(--suit-diamonds)', '♠':'var(--suit-spades)', '♣':'var(--suit-clubs)' }[s] || 'var(--cream)';
+      btn.style.color = COLOR_HEX[s]
+        || { '♥':'var(--suit-hearts)', '♦':'var(--suit-diamonds)', '♠':'var(--suit-spades)', '♣':'var(--suit-clubs)' }[s]
+        || 'var(--cream)';
       btn.style.background = '#f5efe0';
       btn.addEventListener('click', () => {
         newSuits[cardIndex] = s;

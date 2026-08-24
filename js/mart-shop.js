@@ -46,7 +46,7 @@ function martPick(pool, tierKey, count) {
 function martTrickPayload(t){ return { type:'trick', ref:t, label:t.name, desc:t.desc, rarity:t.tier||'common', emoji:trickEmoji(t),
   price:SHOP_TRICK_PRICES[t.tier]||8, buy:()=>injectTrickAfterReward(t) }; }
 function martSleightPayload(s){ return { type:'sleight', ref:s, label:s.name, desc:s.desc, rarity:s.rarity||'common', emoji:s.emoji||'🃏',
-  uses:(s.durability==='infinite'||s.durability==null)?'∞':`${s.durability}×`, suit:['♦','♥','♣','♠'][Math.floor(Math.random()*4)], rank:['A','K','Q','J','10','9','8','7'][Math.floor(Math.random()*8)],
+  uses:(s.durability==='infinite'||s.durability==null)?'∞':`${s.durability}×`, suit:ACTIVE_SUITS[Math.floor(Math.random()*ACTIVE_SUITS.length)], rank:ACTIVE_RANKS[Math.floor(Math.random()*ACTIVE_RANKS.length)],
   price:SHOP_SLEIGHT_PRICES[s.rarity]||12, buy:()=>grantSleight(s) }; }
 function martKnackPayload(k){ return { type:'knack', ref:k, label:k.name, desc:k.desc, rarity:k.rarity||'common', emoji:k.emoji,
   price:SHOP_KNACK_PRICE, buy:()=>{ acquiredKnacks.push({...k}); if (typeof updateKnackList==='function') updateKnackList(); } }; }
