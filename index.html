@@ -25,6 +25,7 @@
 <link rel="stylesheet" href="css/tooltip.css">
 <link rel="stylesheet" href="css/boss.css">
 <link rel="stylesheet" href="css/tutorial.css">
+<link rel="stylesheet" href="css/builds.css">
 </head>
 <body>
 <div id="knack-tooltip" role="tooltip"></div>
@@ -37,7 +38,9 @@
     <div id="menu-stripe"></div>
     <div id="menu-title">THE GAME</div>
     <div id="menu-tagline">A LETHE amusement product. Please continue<br>playing until further notice.</div>
+    <button id="menu-continue-btn" onclick="continueSavedRun()" style="display:none;">CONTINUE</button>
     <button id="menu-start-btn" onclick="maybeAutoFullscreen(); openModeSelect()">PLAY</button>
+    <button id="menu-builds-btn" onclick="openBuilds()">BUILDS</button>
     <button id="menu-settings-btn" onclick="openSettings(true)">SETTINGS</button>
     <button id="menu-fullscreen-btn" onclick="toggleFullscreen()" style="display:none;">⛶ FULLSCREEN</button>
     <div id="ios-fullscreen-hint" style="display:none;">
@@ -270,6 +273,23 @@
     </div>
   </div>
 
+  <!-- BUILDS ARCHIVE -->
+  <div class="dev-section" data-group="builds">
+    <div class="dev-section-title">Builds Archive</div>
+    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:4px;">
+      Records start as FILE MISSING and open as you acquire entities in a run. Reveal-all lets you browse the real thing.
+    </div>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;">
+      <input id="dev-reveal-all" type="checkbox" onchange="devSetRevealAll(this.checked)" style="accent-color:var(--gold);">
+      Reveal every record (ignore discovery)
+    </label>
+    <div id="dev-disco-count" style="font-family:'Courier New',monospace;font-size:10px;color:var(--gold-dim);margin-top:2px;"></div>
+    <div class="dev-row">
+      <button class="dev-btn" onclick="devDiscoverAll()">Mark all discovered</button>
+      <button class="dev-btn" onclick="devForgetAll()">Forget all</button>
+    </div>
+  </div>
+
   <!-- ADD TRICK -->
   <div class="dev-section" data-group="tricks">
     <div class="dev-section-title">Add Trick</div>
@@ -366,6 +386,19 @@
     </label>
     <div id="dev-fs-note" style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-top:6px;">
       On iPhone / iPad, use the browser Share menu → “Add to Home Screen” for fullscreen instead.
+    </div>
+  </div>
+
+  <div class="dev-section" data-group="save">
+    <div class="dev-section-title">Save Run</div>
+    <div id="dev-save-state" style="font-family:'Crimson Pro',serif;font-size:12px;color:var(--cream-dim);margin-bottom:8px;line-height:1.5;"></div>
+    <button class="dev-btn" id="dev-save-btn" onclick="devSaveRun()">💾 Save Run</button>
+    <button class="dev-btn" id="dev-save-resume-btn" onclick="devResumeRun()" style="margin-top:6px;">▶ Resume Saved Run</button>
+    <button class="dev-btn" id="dev-save-clear-btn" onclick="devClearSave()" style="margin-top:6px;">🗑 Delete Save</button>
+    <div id="dev-save-msg" style="font-family:'Crimson Pro',serif;font-size:12px;color:var(--gold);margin-top:8px;min-height:16px;"></div>
+    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-top:8px;line-height:1.5;">
+      A run is saved at the start of the round you are on — resuming replays that round from the beginning with a full clock.
+      Only one save is kept; saving again replaces it.
     </div>
   </div>
 
@@ -579,6 +612,10 @@
         <span class="panel-title">Knacks</span>
         <div id="knack-list"></div>
       </div>
+      <!-- Portrait only: Knacks and the hand preview share the right-hand half of
+           this strip, and this swaps between them (see js/portrait-panel.js).
+           Hidden in landscape, where both have their own anchored boxes. -->
+      <button id="panel-swap-btn" onclick="togglePortraitPanel()" title="Show hand preview" aria-label="Show hand preview">🂠</button>
     </div>
 
   </div>
@@ -857,6 +894,7 @@
 </div>
 
 
+<script src="js/storage.js"></script>
 <script src="js/seed.js"></script>
 <script src="js/menu.js"></script>
 <script src="js/devlog.js"></script>
@@ -866,6 +904,7 @@
 <script src="js/data/tricks.js"></script>
 <script src="js/focus-config.js"></script>
 <script src="js/fit-text.js"></script>
+<script src="js/discovery.js"></script>
 <script src="js/keywords.js"></script>
 <script src="js/entity-tooltip.js"></script>
 <script src="js/float-anim.js"></script>
@@ -881,10 +920,12 @@
 <script src="js/scoring.js"></script>
 <script src="js/render.js"></script>
 <script src="js/focus.js"></script>
+<script src="js/portrait-panel.js"></script>
 <script src="js/hud.js"></script>
 <script src="js/input.js"></script>
 <script src="js/play-hand.js"></script>
 <script src="js/score-anims.js"></script>
+<script src="js/pmf-merge.js"></script>
 <script src="js/score-dance.js"></script>
 <script src="js/discard.js"></script>
 <script src="js/card-fall.js"></script>
@@ -904,6 +945,7 @@
 <script src="js/shop-grid-preview.js"></script>
 <script src="js/mart-shop.js"></script>
 <script src="js/wheel.js"></script>
+<script src="js/builds.js"></script>
 <script src="js/hands-meta.js"></script>
 <script src="js/stats.js"></script>
 <script src="js/deck-view.js"></script>
@@ -917,6 +959,7 @@
 <script src="js/settings.js"></script>
 <script src="js/tutorial.js"></script>
 <script src="js/dev-panel.js"></script>
+<script src="js/save.js"></script>
 <script src="js/bootstrap.js"></script>
 </div><!-- /#stage -->
   </div><!-- /#cab-screen -->

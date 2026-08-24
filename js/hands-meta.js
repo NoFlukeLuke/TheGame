@@ -114,7 +114,14 @@ function showUnlockScreen(key) {
     highcard: [{r:'A',s:'♠'}],
     blackjack: [{r:'A',s:'♠'},{r:'10',s:'♥'}],
   };
-  const ex = examples[key] || [];
+  // Spectrum has no suits and no courts, so the example cards are translated into
+  // its deck (A→1, J/Q/K→11/12/13, suit→colour) — the shape of each example (run,
+  // pair, flush) survives the swap. Blackjack needs its own pair to still total 21.
+  const _exToNumeric = c => ({ r: String(RANK_ORDER[c.r] ?? c.r), s: COLORS[SUITS.indexOf(c.s)] || COLORS[0] });
+  let ex = examples[key] || [];
+  if (isNumericMode()) {
+    ex = (key === 'blackjack') ? [{r:'20',s:COLORS[0]},{r:'1',s:COLORS[2]}] : ex.map(_exToNumeric);
+  }
   const exEl = document.getElementById('unlock-example');
   exEl.innerHTML = ex.map(c =>
     `<div class="unlock-ex-card ${suitClass(c.s)}">${c.r}<div class="ex-suit">${c.s}</div></div>`

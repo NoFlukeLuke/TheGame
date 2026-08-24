@@ -177,22 +177,22 @@ function spanStats(cells) {
 // Wild-sleight assignment heuristics — pick rank/suit that best helps the hand.
 // TBD: optimal run-completion; current picks modal rank/suit (completes pairs/flushes).
 function bestWildRank(normalCards) {
-  if (normalCards.length === 0) return 'A';
+  if (normalCards.length === 0) return ACTIVE_RANKS[0];
   const counts = {};
   normalCards.forEach(c => { if (c.rank) counts[c.rank] = (counts[c.rank]||0)+1; });
   let best = null, bestN = -1;
   Object.entries(counts).forEach(([rank, n]) => {
     if (n > bestN || (n === bestN && cardPips(rank) > cardPips(best))) { best = rank; bestN = n; }
   });
-  return best || normalCards[0].rank || 'A';
+  return best || normalCards[0].rank || ACTIVE_RANKS[0];
 }
 function bestWildSuit(normalCards) {
-  if (normalCards.length === 0) return '♠';
+  if (normalCards.length === 0) return ACTIVE_SUITS[0];
   const counts = {};
   normalCards.forEach(c => { if (c.suit) counts[c.suit] = (counts[c.suit]||0)+1; });
   let best = null, bestN = -1;
   Object.entries(counts).forEach(([suit, n]) => { if (n > bestN) { best = suit; bestN = n; } });
-  return best || '♠';
+  return best || ACTIVE_SUITS[0];
 }
 
 function findBestHand(cells) {

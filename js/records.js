@@ -93,9 +93,9 @@ function recordsRenderDeck() {
 
   // Rank × suit matrix.
   const head = `<div class="rec-deck-row rec-deck-head"><span class="rec-deck-corner"></span>` +
-    RANKS.map(r => `<span class="rec-deck-rank">${r}</span>`).join('') + `</div>`;
+    ACTIVE_RANKS.map(r => `<span class="rec-deck-rank">${r}</span>`).join('') + `</div>`;
   const rows = suits.map(s => {
-    const cells = RANKS.map(rk => {
+    const cells = ACTIVE_RANKS.map(rk => {
       const k = cardKey(rk, s);
       const w = where[k];
       const pp = permPips[k] || 0, pm = permMult[k] || 0;
@@ -105,13 +105,13 @@ function recordsRenderDeck() {
       const marks = (pp ? '<i class="rec-m rec-m-p"></i>' : '') + (pm ? '<i class="rec-m rec-m-m"></i>' : '');
       return `<span class="${cls}" title="${tip}">${rk}${marks}</span>`;
     }).join('');
-    const remaining = RANKS.filter(rk => where[cardKey(rk, s)] === 'draw').length;
+    const remaining = ACTIVE_RANKS.filter(rk => where[cardKey(rk, s)] === 'draw').length;
     return `<div class="rec-deck-row">
       <span class="rec-deck-suit ${suitClass(s)}">${s}<b>${remaining}</b></span>${cells}</div>`;
   }).join('');
 
   // Remaining-by-rank bar (what is still drawable) — the planning tool.
-  const rankBars = RANKS.map(rk => {
+  const rankBars = ACTIVE_RANKS.map(rk => {
     const left = suits.filter(s => where[cardKey(rk, s)] === 'draw').length;
     const pct = Math.round((left / suits.length) * 100);
     return `<div class="rec-bar"><span class="rec-bar-l">${rk}</span>

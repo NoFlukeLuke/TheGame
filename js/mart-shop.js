@@ -46,7 +46,7 @@ function martPick(pool, tierKey, count) {
 function martTrickPayload(t){ return { type:'trick', ref:t, label:t.name, desc:t.desc, rarity:t.tier||'common', emoji:trickEmoji(t),
   price:SHOP_TRICK_PRICES[t.tier]||8, buy:()=>injectTrickAfterReward(t) }; }
 function martSleightPayload(s){ return { type:'sleight', ref:s, label:s.name, desc:s.desc, rarity:s.rarity||'common', emoji:s.emoji||'🃏',
-  uses:(s.durability==='infinite'||s.durability==null)?'∞':`${s.durability}×`, suit:['♦','♥','♣','♠'][Math.floor(Math.random()*4)], rank:['A','K','Q','J','10','9','8','7'][Math.floor(Math.random()*8)],
+  uses:(s.durability==='infinite'||s.durability==null)?'∞':`${s.durability}×`, suit:ACTIVE_SUITS[Math.floor(Math.random()*ACTIVE_SUITS.length)], rank:ACTIVE_RANKS[Math.floor(Math.random()*ACTIVE_RANKS.length)],
   price:SHOP_SLEIGHT_PRICES[s.rarity]||12, buy:()=>grantSleight(s) }; }
 function martKnackPayload(k){ return { type:'knack', ref:k, label:k.name, desc:k.desc, rarity:k.rarity||'common', emoji:k.emoji,
   price:SHOP_KNACK_PRICE, buy:()=>{ acquiredKnacks.push({...k}); if (typeof updateKnackList==='function') updateKnackList(); } }; }
@@ -143,7 +143,9 @@ const martRar = p => (MART_TIERS.includes(p.rarity) ? p.rarity : 'common');
 function martTileHTML(p, key) {
   const inCart = martCart.includes(key);
   const cant = coins < p.price;
-  const cls = ['m-item', 'r-'+martRar(p), inCart?'in-cart':'', p._sold?'sold':''].filter(Boolean).join(' ');
+  // A star + pulse if this entity is on the filed requisition (Builds screen).
+  const wanted = (typeof isRequisitioned === 'function') && p.ref && isRequisitioned(p.ref.id);
+  const cls = ['m-item', 'r-'+martRar(p), inCart?'in-cart':'', p._sold?'sold':'', wanted?'requisitioned':''].filter(Boolean).join(' ');
   const price = `<div class="price ${cant&&!inCart?'cant':''}">${p._sold?'✓':'💰'+p.price}</div>`;
   let inner;
   if (p.type==='trick')   inner = `<div class="trick"><div class="emblem">✦ TRICK</div><div class="art">${p.emoji}</div><div class="nm">${p.label}</div></div>`;
@@ -166,6 +168,7 @@ function martSectionHTML(cat) {
 }
 
 function renderMart() {
+  syncDiscoveredFromOwned();
   renderMartLoadout();
   renderMartMain();
   renderMartCheckout();

@@ -65,8 +65,13 @@ function renderCardAppearance(card, r, c, {
   const rcWoodpecker = woodpeckerPos && woodpeckerPos.r === r && woodpeckerPos.c === c ? ' rc-woodpecker' : '';
 
   const bothClass = hasPip && hasMult ? ' has-both' : hasPip ? ' has-pip' : hasMult ? ' has-mult' : '';
+  // Spectrum (numeric) cards: the whole face is the colour and the value sits
+  // big in the middle — no suit glyph. Keyed off the CARD's suit, not the mode,
+  // so the hand preview, score dance and fall animation all agree.
+  const isNum = isColorSuit(card.suit);
   const className = [
     'card',
+    isNum ? 'num-card' : '',
     suitClass(card.suit),
     isSel        ? 'selected'    : '',
     isHandValid  ? 'hand-valid'  : '',
@@ -90,8 +95,8 @@ function renderCardAppearance(card, r, c, {
     ${isTrick ? `<div class="trick-star">⭐</div>` : ''}
     ${curse ? `<div class="curse-badge" title="${CURSE_DEFS[curse.id].name}: ${CURSE_DEFS[curse.id].desc}">${CURSE_DEFS[curse.id].icon}<span class="curse-left">${curse.left}</span></div>` : ''}
     ${combinedLabel}
-    <div class="rank">${card.rank}</div>
-    <div class="suit">${card.suit}</div>
+    ${isNum ? `<div class="rank num-rank${String(card.rank).length > 1 ? ' num-wide' : ''}">${card.rank}</div>`
+            : `<div class="rank">${card.rank}</div><div class="suit">${card.suit}</div>`}
     ${pp ? `<div style="position:absolute;bottom:2px;left:3px;font-size:8px;font-family:'Cinzel',serif;color:#3a6fca;font-weight:700">+${pp}p</div>` : ''}
     ${pm ? `<div style="position:absolute;bottom:2px;right:3px;font-size:8px;font-family:'Cinzel',serif;color:#c0392b;font-weight:700">+${pm}m</div>` : ''}
     ${buffBandHTML('tl', pp, '#3a6fca')}

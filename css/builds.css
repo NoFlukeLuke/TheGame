@@ -1,0 +1,158 @@
+/* ══ BUILDS — the LETHE personnel archive ═══════════════════════════════════ */
+#builds-overlay{ display:none; position:fixed; inset:0; z-index:400; flex-direction:column;
+  background:radial-gradient(ellipse at 50% -10%, #171008, #08070a 70%); color:var(--cream); }
+#builds-overlay.show{ display:flex; }
+#builds-overlay::after{ content:''; position:absolute; inset:0; pointer-events:none; z-index:9;
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,.16) 0 1px,transparent 1px 3px); mix-blend-mode:overlay; }
+
+/* top bar */
+#builds-overlay .bv-bar{ flex:0 0 auto; display:flex; align-items:center; gap:12px; padding:9px 14px;
+  background:linear-gradient(180deg,#241906,#140d04); border-bottom:1px solid #5a4a12; z-index:12; }
+#builds-overlay .bv-back{ font-family:'Orbitron',sans-serif; font-size:9px; letter-spacing:1.5px; padding:6px 11px;
+  background:rgba(255,255,255,.05); border:1px solid #3a3020; border-radius:5px; color:var(--cream); cursor:pointer; }
+#builds-overlay .bv-back:hover{ border-color:var(--phosphor); color:var(--phosphor); }
+#builds-overlay .bv-title{ font-family:'Cinzel',serif; font-size:13px; letter-spacing:4px; color:var(--phosphor); }
+#builds-overlay .bv-sub{ font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--cream-dim); }
+#builds-overlay .bv-bar-right{ margin-left:auto; display:flex; align-items:center; gap:6px; }
+#builds-overlay .bv-chip{ font-family:'Orbitron',sans-serif; font-size:9px; letter-spacing:1px; padding:6px 10px;
+  background:rgba(255,176,46,.09); border:1px solid #5a4a12; border-radius:5px; color:var(--phosphor); cursor:pointer; }
+#builds-overlay .bv-chip:hover{ background:rgba(255,176,46,.2); }
+#builds-overlay .bv-zoom{ font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--cream-dim); min-width:38px; text-align:center; }
+
+#builds-overlay .bv-body{ flex:1 1 auto; min-height:0; display:flex; }
+
+/* sticky left rail — mirrors the in-game panel stack, Sleights in the
+   hand-preview slot between Knacks and Tricks */
+#builds-overlay .bv-rail{ flex:0 0 218px; overflow-y:auto; padding:10px; display:flex; flex-direction:column; gap:8px;
+  background:linear-gradient(180deg,#140f07,#0b0906); border-right:1px solid #2a2416; z-index:11; }
+#builds-overlay .bv-panel{ background:#14100b; border:1px solid #46381f; border-radius:7px; padding:7px 9px; }
+#builds-overlay .p-knacks{ border-top:2px solid var(--c-yellow); }
+#builds-overlay .p-sleights{ border-top:2px solid var(--c-cyan); }
+#builds-overlay .p-tricks{ border-top:2px solid var(--c-coral); }
+#builds-overlay .bv-pt{ display:flex; justify-content:space-between; font-family:'Cinzel',serif; font-size:8px;
+  letter-spacing:2px; text-transform:uppercase; color:var(--gold-dim); margin-bottom:5px; }
+#builds-overlay .bv-prow{ display:flex; flex-wrap:wrap; gap:4px; min-height:30px; align-items:center; }
+#builds-overlay .bv-empty{ font-family:'Share Tech Mono',monospace; font-size:9px; color:#5f563f; }
+#builds-overlay .bv-mini{ width:30px; height:30px; border-radius:5px; display:flex; align-items:center; justify-content:center;
+  font-size:15px; cursor:pointer; background:rgba(255,255,255,.05); border:1.5px solid var(--rc,var(--c-mint)); }
+#builds-overlay .bv-mini:hover{ filter:brightness(1.2); }
+
+#builds-overlay .bv-actions{ display:flex; flex-direction:column; gap:5px; margin-top:2px; }
+#builds-overlay .bv-name-in{ background:rgba(255,255,255,.06); border:1px solid #3a3020; border-radius:5px;
+  color:var(--cream); font-family:'Share Tech Mono',monospace; font-size:10px; padding:6px 8px; }
+#builds-overlay .bv-act{ font-family:'Orbitron',sans-serif; font-size:8.5px; letter-spacing:1px; padding:8px 6px;
+  border-radius:5px; background:rgba(255,255,255,.05); border:1px solid #3a3020; color:var(--cream); cursor:pointer; }
+#builds-overlay .bv-act:hover{ border-color:var(--phosphor); color:var(--phosphor); }
+#builds-overlay .bv-file{ background:rgba(53,213,155,.14); border-color:#2a7a5c; color:var(--c-mint); }
+#builds-overlay .bv-file:hover{ background:rgba(53,213,155,.26); color:#eafff6; border-color:var(--c-mint); }
+#builds-overlay .bv-clear-b{ color:#c98; }
+#builds-overlay .bv-saved{ margin-top:4px; display:flex; flex-direction:column; gap:3px; }
+#builds-overlay .bv-saved-head,#builds-overlay .bv-saved-empty{ font-family:'Cinzel',serif; font-size:8px;
+  letter-spacing:2px; color:var(--gold-dim); margin-top:4px; }
+#builds-overlay .bv-saved-row{ display:flex; gap:3px; }
+#builds-overlay .bv-saved-name{ flex:1; text-align:left; font-family:'Share Tech Mono',monospace; font-size:9.5px;
+  padding:5px 7px; border-radius:4px; background:rgba(255,255,255,.04); border:1px solid #2a2416;
+  color:var(--cream); cursor:pointer; display:flex; justify-content:space-between; gap:6px; }
+#builds-overlay .bv-saved-name small{ color:#6f6449; }
+#builds-overlay .bv-saved-row.filed .bv-saved-name{ border-color:var(--c-mint); color:var(--c-mint); }
+#builds-overlay .bv-saved-del{ width:22px; background:rgba(255,90,106,.08); border:1px solid #4a2028;
+  border-radius:4px; color:#c9707a; cursor:pointer; font-size:9px; }
+
+/* canvas */
+#builds-overlay .bv-canvas-wrap{ flex:1 1 auto; position:relative; overflow:hidden; cursor:grab; touch-action:none; }
+#builds-overlay .bv-canvas-wrap.grabbing{ cursor:grabbing; }
+#builds-overlay .bv-canvas{ position:absolute; left:0; top:0; transform-origin:0 0; will-change:transform;
+  display:flex; flex-direction:column; gap:34px; padding:20px 40px 80px; width:max-content; }
+
+#builds-overlay .bv-section{ display:flex; flex-direction:column; gap:12px; }
+#builds-overlay .bv-sec-head{ display:flex; align-items:baseline; gap:12px; border-bottom:2px solid #3a3020; padding-bottom:5px; }
+#builds-overlay .bv-sec-title{ font-family:'Cinzel',serif; font-size:20px; letter-spacing:7px; color:var(--phosphor); }
+#builds-overlay .bv-sec-n{ font-family:'Share Tech Mono',monospace; font-size:10px; color:#6f6449; }
+#builds-overlay .bv-t-sleight .bv-sec-title{ color:var(--c-cyan); }
+#builds-overlay .bv-t-knack   .bv-sec-title{ color:var(--c-yellow); }
+#builds-overlay .bv-t-event   .bv-sec-title{ color:var(--c-purple); }
+
+#builds-overlay .bv-group{ display:flex; flex-direction:column; gap:6px; }
+#builds-overlay .bv-group-label{ font-family:'Orbitron',sans-serif; font-size:9px; letter-spacing:3px;
+  color:var(--cream-dim); text-transform:uppercase; }
+#builds-overlay .bv-group-label span{ color:#5f563f; margin-left:5px; }
+#builds-overlay .bv-group-items{ display:flex; flex-wrap:wrap; gap:8px; max-width:1500px; }
+
+/* one record */
+#builds-overlay .bv-entity{ width:190px; min-height:96px; box-sizing:border-box; padding:8px 10px; border-radius:7px;
+  background:linear-gradient(180deg,#161009,#0b0906); border:1.5px solid var(--rc,var(--c-mint));
+  box-shadow:0 0 14px -6px var(--rc,var(--c-mint)); cursor:pointer; position:relative;
+  transition:transform .1s, box-shadow .15s, opacity .15s; }
+#builds-overlay .bv-entity:hover{ transform:translateY(-2px); box-shadow:0 0 20px -4px var(--rc,var(--c-mint)); }
+#builds-overlay .bv-entity.dim{ opacity:.2; }
+#builds-overlay .bv-entity.in-draft{ box-shadow:0 0 0 2px var(--c-mint), 0 0 22px -4px var(--c-mint); }
+#builds-overlay .bv-head{ display:flex; align-items:center; gap:6px; }
+#builds-overlay .bv-emoji{ font-size:17px; line-height:1; flex:0 0 auto; }
+#builds-overlay .bv-name{ font-family:'Orbitron',sans-serif; font-size:10px; font-weight:700; letter-spacing:.4px;
+  text-transform:uppercase; color:#fff; line-height:1.2; overflow-wrap:anywhere; hyphens:auto; }
+#builds-overlay .bv-rar{ font-family:'Share Tech Mono',monospace; font-size:7.5px; letter-spacing:2px;
+  text-transform:uppercase; color:var(--rc,var(--c-mint)); margin-top:3px; }
+#builds-overlay .bv-desc{ font-family:'Share Tech Mono',monospace; font-size:9.5px; line-height:1.5;
+  color:#d9cfb4; margin-top:5px; overflow-wrap:anywhere; }
+#builds-overlay .bv-tick{ font-family:'Orbitron',sans-serif; font-size:7px; letter-spacing:1.5px; color:var(--c-mint); margin-top:5px; }
+
+#builds-overlay .r-common   { --rc:var(--c-mint); }
+#builds-overlay .r-rare     { --rc:var(--c-cyan); }
+#builds-overlay .r-epic     { --rc:var(--c-purple); }
+#builds-overlay .r-legendary{ --rc:var(--c-yellow); }
+#builds-overlay .r-mythic   { --rc:var(--c-magenta); }
+
+/* FILE MISSING — a sticky note slapped over an empty folder */
+#builds-overlay .bv-entity.st-missing,
+#builds-overlay .bv-entity.st-classified{ border-style:dashed; border-color:#3d3524; background:#0d0b07;
+  box-shadow:none; display:flex; align-items:center; justify-content:center; }
+#builds-overlay .bv-note{ background:#e8dfa8; color:#3a3208; padding:9px 8px; border-radius:2px; text-align:center;
+  transform:rotate(-1.6deg); box-shadow:2px 3px 7px rgba(0,0,0,.55); width:150px;
+  font-family:'Share Tech Mono',monospace; }
+#builds-overlay .bv-note-stamp{ font-family:'Orbitron',sans-serif; font-size:10px; font-weight:900; letter-spacing:1.5px; }
+#builds-overlay .bv-note-sub{ font-size:8px; margin-top:3px; opacity:.72; line-height:1.35; }
+#builds-overlay .bv-note-red{ background:#e5b7ae; color:#4a0f08; transform:rotate(1.4deg); }
+
+/* zoomed-out tier: icon + name only */
+#builds-overlay .bv-far .bv-desc,
+#builds-overlay .bv-far .bv-rar,
+#builds-overlay .bv-far .bv-tick,
+#builds-overlay .bv-far .bv-note-sub{ display:none; }
+#builds-overlay .bv-far .bv-entity{ width:150px; min-height:0; padding:7px 8px; }
+#builds-overlay .bv-far .bv-note{ width:120px; padding:7px 6px; }
+
+/* filter panel */
+#builds-overlay .bv-filters{ display:none; position:absolute; right:14px; top:52px; width:330px; max-height:74vh;
+  overflow-y:auto; z-index:20; padding:12px; border-radius:9px;
+  background:linear-gradient(180deg,#191207,#0b0906); border:1.5px solid #5a4a12; box-shadow:0 12px 34px rgba(0,0,0,.7); }
+#builds-overlay .bv-filters.show{ display:block; }
+#builds-overlay .bv-f-head{ display:flex; justify-content:space-between; align-items:center;
+  font-family:'Cinzel',serif; font-size:10px; letter-spacing:3px; color:var(--phosphor); margin-bottom:9px; }
+#builds-overlay .bv-x{ background:none; border:1px solid #3a3020; border-radius:4px; color:var(--cream-dim);
+  cursor:pointer; width:20px; height:20px; font-size:10px; }
+#builds-overlay .bv-f-row{ display:flex; align-items:center; gap:5px; margin-bottom:7px; }
+#builds-overlay .bv-f-label{ font-family:'Share Tech Mono',monospace; font-size:9px; color:var(--cream-dim); flex:0 0 96px; }
+#builds-overlay .bv-toggle{ flex:1; font-family:'Orbitron',sans-serif; font-size:8px; letter-spacing:1px; padding:6px 4px;
+  border-radius:4px; background:rgba(255,255,255,.05); border:1px solid #3a3020; color:var(--cream-dim); cursor:pointer; }
+#builds-overlay .bv-toggle.on{ background:var(--c-mint); border-color:var(--c-mint); color:#04241a; font-weight:700; }
+#builds-overlay .bv-f-sec{ font-family:'Cinzel',serif; font-size:8px; letter-spacing:2px; color:var(--gold-dim);
+  margin:9px 0 5px; }
+#builds-overlay .bv-f-tags{ display:flex; flex-wrap:wrap; gap:4px; }
+#builds-overlay .bv-tag{ font-family:'Share Tech Mono',monospace; font-size:9px; padding:4px 7px; border-radius:4px;
+  background:rgba(255,255,255,.04); border:1px solid #2a2416; color:var(--cream); cursor:pointer; text-transform:capitalize; }
+#builds-overlay .bv-tag.on{ background:rgba(255,176,46,.2); border-color:var(--phosphor); }
+#builds-overlay .bv-f-foot{ margin-top:10px; }
+#builds-overlay .bv-clear{ width:100%; font-family:'Orbitron',sans-serif; font-size:8.5px; letter-spacing:1.5px;
+  padding:7px; border-radius:5px; background:rgba(255,90,106,.1); border:1px solid #4a2028; color:#e08a92; cursor:pointer; }
+
+#bv-toast{ position:fixed; left:50%; bottom:26px; transform:translateX(-50%) translateY(14px); z-index:660;
+  font-family:'Share Tech Mono',monospace; font-size:11px; color:#04241a; background:var(--c-mint);
+  padding:9px 16px; border-radius:6px; opacity:0; pointer-events:none; transition:opacity .18s, transform .18s;
+  box-shadow:0 6px 20px rgba(0,0,0,.5); }
+#bv-toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+/* an entity that's on the filed requisition, wherever it appears in a run */
+.requisitioned{ position:relative; }
+.requisitioned::before{ content:'★'; position:absolute; top:-5px; left:-5px; z-index:8; font-size:13px;
+  color:var(--c-mint); text-shadow:0 0 7px var(--c-mint), 0 1px 2px #000; animation:reqPulse 1.7s ease-in-out infinite; }
+@keyframes reqPulse{ 0%,100%{ transform:scale(1); opacity:.85; } 50%{ transform:scale(1.22); opacity:1; } }

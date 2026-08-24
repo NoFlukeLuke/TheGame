@@ -223,6 +223,35 @@ const TRICK_EMOJI = {};
 TRICK_CATEGORIES.forEach(cat => cat.ids.forEach(id => { TRICK_EMOJI[id] = cat.emoji; }));
 function trickEmoji(trick) { return (trick && TRICK_EMOJI[trick.id]) || '✦'; }
 
+// ── Mode entity filter (Spectrum) ─────────────────────────────────────────────
+// Spectrum's deck has no Ace, no J/Q/K and no ♠♥♦♣, so a handful of Tricks are
+// simply dead there (or, worse, free — "little guys" wants a 5-card hand with no
+// face cards, which is EVERY hand). They're pulled out of the pool for that mode
+// so the player is never offered one.
+//
+// Rather than patch the dozen places that draw from TRICK_POOL (reward grid,
+// events, shop, Mart, wheel, survival, dev panel…), the pool ARRAY ITSELF is
+// re-filled in place at startGame: every reader shares the one array reference,
+// so they all see the mode's pool with no call-site changes. TRICK_POOL_ALL keeps
+// the pristine list so switching back to a classic mode restores it.
+const TRICK_POOL_ALL = [...TRICK_POOL];
+const NUMERIC_BANNED_TRICKS = new Set([
+  // Ace / court-card dependent — those ranks don't exist in Spectrum
+  'first_light', 'wild_heart', 'face_value', 'king_guard', 'knave_power',
+  'royal_trio', 'queens_upgrade', 'aces_absorb', 'undue_influence', 'little_guys',
+  // Named-suit dependent — Spectrum has colours, not ♠♥♦♣
+  'club_double', 'monochrome', 'spade_flood',
+]);
+// Colour-COUNT tricks (Rainbow = 4 distinct, Balance = exactly 2, Kaleidoscope =
+// 4+) still work as written, so they stay in.
+function applyModeEntityFilter() {
+  const banned = isNumericMode() ? NUMERIC_BANNED_TRICKS : null;
+  const keep = banned ? TRICK_POOL_ALL.filter(t => !banned.has(t.id)) : TRICK_POOL_ALL;
+  TRICK_POOL.length = 0;
+  keep.forEach(t => TRICK_POOL.push(t));
+}
+function trickBannedInMode(id) { return isNumericMode() && NUMERIC_BANNED_TRICKS.has(id); }
+
 // ══════════════════════════════════════════════
 // STATE
 // ══════════════════════════════════════════════

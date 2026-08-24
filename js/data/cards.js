@@ -8,8 +8,44 @@ const SUITS_SIX = [...SUITS, ...SUITS_EXTRA];
 let ACTIVE_SUITS = SUITS;
 const RANKS = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
 const RED = new Set(['♥','♦']);
-const RANK_ORDER = {A:1,'2':2,'3':3,'4':4,'5':5,'6':6,'7':7,'8':8,'9':9,'10':10,J:11,Q:12,K:13};
-const RANK_PIPS  = {A:11,J:10,Q:10,K:10};
+
+// ── SPECTRUM MODE (numeric deck) ──────────────────────────────────────────────
+// A deck with no suits and no court cards: seven COLOURS instead of four suits,
+// and plain values 1-15 plus a lone 20 instead of A/2-10/J/Q/K.
+// The colour is stored in the card's `suit` field and the value in `rank`, so
+// every existing system (flush = all one suit, cardKey, curses, saves, the deck
+// audit) keeps working untouched — only the CONTENT of the two fields changes.
+// Colours are emoji so any UI that just prints the suit character (deck view,
+// records, tooltips, the Mart) stays readable with no extra styling.
+const COLORS = ['🔴','🟡','🔵','🟢','🟣','🟠','⚫'];
+const COLOR_NAMES = { '🔴':'Red', '🟡':'Yellow', '🔵':'Blue', '🟢':'Green', '🟣':'Purple', '🟠':'Orange', '⚫':'Black' };
+// Face hex for each colour — used by the card face, score particles and chips.
+const COLOR_HEX = { '🔴':'#d43b3b', '🟡':'#e0b81c', '🔵':'#2f6fd0', '🟢':'#2f9e54', '🟣':'#8b4bc8', '🟠':'#e07a1f', '⚫':'#23201c' };
+// Two classes: `num-suit` (generic hook — carries the --num-color/--num-ink
+// tokens wherever a colour card is drawn) plus the colour's own class.
+const COLOR_CLASS = { '🔴':'num-suit col-red', '🟡':'num-suit col-yellow', '🔵':'num-suit col-blue', '🟢':'num-suit col-green', '🟣':'num-suit col-purple', '🟠':'num-suit col-orange', '⚫':'num-suit col-black' };
+const RANKS_NUMERIC = ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','20'];
+// True for a card that belongs to the numeric deck — asked of the CARD, not the
+// mode, so the hand preview / score dance / saved runs all render it correctly
+// wherever they get their cards from.
+function isColorSuit(suit) { return !!COLOR_HEX[suit]; }
+function isNumericMode() { return !!(typeof ACTIVE_MODE !== 'undefined' && ACTIVE_MODE && ACTIVE_MODE.numeric); }
+
+// ACTIVE_RANKS is the rank list the current game actually uses (the mirror of
+// ACTIVE_SUITS below). Set per-mode in startGame(); classic modes leave it equal
+// to RANKS so nothing about the A-K game changes.
+let ACTIVE_RANKS = RANKS;
+
+// RANK_ORDER / RANK_PIPS carry the numeric ranks too. '2'-'10' already map to
+// themselves, so only 1, 11-15 and 20 are new — no classic key changes value.
+const RANK_ORDER = {A:1,'1':1,'2':2,'3':3,'4':4,'5':5,'6':6,'7':7,'8':8,'9':9,'10':10,J:11,Q:12,K:13,
+                    '11':11,'12':12,'13':13,'14':14,'15':15,'20':20};
+const RANK_PIPS  = {A:11,J:10,Q:10,K:10};   // numeric ranks fall through to parseInt (pips = value)
+
+// Sort helpers — deck view / shop card list. Numeric ranks sort by value; an
+// unknown rank sinks to the end.
+function rankSortVal(rk) { return RANK_ORDER[rk] ?? (parseInt(rk) || 99); }
+function suitSortVal(s)  { const i = ACTIVE_SUITS.indexOf(s); return i < 0 ? 99 : i; }
 
 const HAND_BASE = {
   'Run of 3':        { pips:20, mult:3 },
@@ -34,7 +70,8 @@ const GOAL_SCALE = 1.35;
 const TRICK_CARD_INTERVAL = 20; // seconds
 
 function suitClass(suit) {
-  return { '♥':'suit-hearts', '♦':'suit-diamonds', '♠':'suit-spades', '♣':'suit-clubs', '★':'suit-stars', '▲':'suit-triangles' }[suit] || '';
+  return COLOR_CLASS[suit]
+      || { '♥':'suit-hearts', '♦':'suit-diamonds', '♠':'suit-spades', '♣':'suit-clubs', '★':'suit-stars', '▲':'suit-triangles' }[suit] || '';
 }
 
 // Central card capability gate — add new card types here, nowhere else

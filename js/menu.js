@@ -1,4 +1,4 @@
-const BUILD = '2026-08-22 · r156 · Audit pass: reduced-motion/no-shake now bind to the real classes, dead shop chips + unused constants removed, scoring-speed label corrected';
+const BUILD = '2026-08-24 · r161 · Audit pass on the Records/Settings batch: motion toggles bind to real classes, dead chips + constants removed [merged: Spectrum mode]';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -52,6 +52,24 @@ const MODES = {
     autoPlayHands: false,
     actStructure: true,
     suitCount: 6
+  },
+  // Spectrum: the same 3-Act game on a deck with no suits and no court cards —
+  // seven COLOURS and plain values 1-15 plus a lone 20. Face/Ace Tricks are
+  // filtered out of the pool (see applyModeEntityFilter in js/data/tricks.js).
+  spectrum: {
+    id: 'spectrum',
+    name: 'Spectrum',
+    desc: 'No suits, no face cards. Seven colours and the numbers 1-15 plus a lone 20. Runs, sets and colour flushes only.',
+    winCondition: 'boss_defeat',
+    enableBosses: true,
+    enableShops: true,
+    enableEvents: true,
+    autoRefillGrid: true,
+    timeIsCurrency: true,
+    autoPlayHands: false,
+    actStructure: true,
+    suitCount: 7,
+    numeric: true
   },
   survival: {
     id: 'survival',
@@ -153,6 +171,7 @@ function isActMode() { return !!ACTIVE_MODE && ACTIVE_MODE.actStructure === true
 function initMainMenu() {
   ACTIVE_MODE = MODES.normal;
   document.getElementById('main-menu-overlay').classList.add('show');
+  if (typeof updateContinueBtn === 'function') updateContinueBtn();
 }
 
 function switchMenuTab(e, tabId) {
@@ -199,7 +218,7 @@ function startMatch3FromMenu(modeId = 'match3') {
 // MODE SELECT (scroll-sideways carousel off the PLAY button)
 // ══════════════════════════════════════════════
 // The shipping modes, shown left→right in the carousel.
-const MODE_SELECT_LIST = ['tutorial', 'normal', 'sixsuits', 'survival', 'match3', 'zen', 'dominoes'];
+const MODE_SELECT_LIST = ['tutorial', 'normal', 'sixsuits', 'spectrum', 'survival', 'match3', 'zen', 'dominoes'];
 const MODE_META = {
   tutorial: { accent: '#8fd0ff',         suits: 'START HERE',
               blurb: 'LETHE Corp staff orientation. A normal Classic run with the terminal explaining each control as you reach it — scoring, Focus, limits, the reward path, the Mart. About three minutes.' },
@@ -207,6 +226,8 @@ const MODE_META = {
               blurb: 'The original four-suit game. Three Acts of rounds, shops, events and bosses.' },
   sixsuits: { accent: 'var(--c-mint)',   suits: '♠ ♥ ♦ ♣ ★ ▲',
               blurb: 'Two extra suits dilute the deck, so flushes are hard-won. Flush of 3, 4 and 5 are all in play.' },
+  spectrum: { accent: '#ff9d3c',        suits: '🔴 🟡 🔵 🟢 🟣 🟠 ⚫',
+              blurb: 'The deck loses its suits and its court. Seven colours, values 1 to 15, and one lone 20 — big pips that can never join a run. Flushes are colour flushes, so Flush of 3, 4 and 5 are all in play; Ace and face-card Tricks sit this one out.' },
   survival: { accent: 'var(--c-coral)',  suits: 'ENDLESS',
               blurb: 'Clear escalating goals on a 2-minute clock. Each clear: pick one of three rewards from every pool. Overflow score and leftover time carry forward. Miss a goal and the run is over.' },
   match3:   { accent: '#ff7ad0',         suits: '5 × 5',

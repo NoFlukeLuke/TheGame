@@ -25,6 +25,9 @@ initDevMode();
     // Set on :root so both #cabinet (zoom) and #stage (grid measurement) inherit it.
     document.documentElement.style.setProperty('--stage-zoom', z);
     stage.classList.toggle('landscape', isLandscape);
+    // Turning a tablet mid-run switches layouts; re-assert the portrait strip's
+    // shared-half state so it isn't left showing whatever landscape left behind.
+    if (typeof syncPortraitPanel === 'function') syncPortraitPanel();
     if (cabinet) cabinet.classList.toggle('landscape', isLandscape);
     // Larger inter-card gap in landscape keeps bigger cards visually separated.
     CARD_GAP = isLandscape ? 5 : 3;

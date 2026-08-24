@@ -120,3 +120,36 @@ body.big-text .rec-ent-desc { font-size: 1.12em; }
 body.high-contrast .card { border-width: 2px !important; border-color: #2a2418 !important; }
 body.high-contrast .card .rank,
 body.high-contrast .card .suit { text-shadow: 0 0 1px rgba(0,0,0,0.55); }
+
+
+/* ── Action rows (Run save/resume — r158) ────────────────────────────────────
+   Buttons rather than a stored preference, so they get their own control
+   styling alongside the switches and segmented selects. They also STACK: a
+   toggle's label can share a line with its control, but three buttons plus a
+   status line squeeze the text column into a two-word ribbon if they don't. */
+.set-row.set-row-action { flex-direction: column; align-items: stretch; gap: 8px; }
+.set-row.set-row-action .set-row-text { width: 100%; }
+.set-row.set-row-action .set-actions { justify-content: flex-start; }
+/* A row with no label or hint is just its control — don't reserve the text column. */
+.set-row.set-row-bare { justify-content: flex-start; }
+.set-actions { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; flex: 0 0 auto; }
+.set-action-b {
+  font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 10px; letter-spacing: 1.5px;
+  text-transform: uppercase; cursor: pointer; white-space: nowrap;
+  padding: 8px 12px; border-radius: 7px;
+  color: var(--c-cyan, #7fd4dd);
+  background: linear-gradient(180deg, #1d3a3e, rgba(16,36,39,0));
+  border: 1px solid var(--c-cyan, #7fd4dd);
+  transition: background 0.12s ease, color 0.12s ease, opacity 0.12s ease;
+}
+.set-action-b:hover:not([disabled]) { background: linear-gradient(180deg, #235055, #12292c); color: #fff; }
+.set-action-b.primary {
+  color: #3a2a08; border-color: #b5820f;
+  background: linear-gradient(180deg, #ffe06a, var(--c-yellow, #e8b84b) 55%, #e0a814);
+}
+.set-action-b.primary:hover:not([disabled]) { filter: brightness(1.06); }
+.set-action-b[disabled] { opacity: 0.4; cursor: default; }
+#settings-run-msg {
+  font-family: 'Crimson Pro', serif; font-size: 13px; color: var(--gold, #d4a857);
+  min-height: 18px; padding: 6px 2px 0; text-align: right;
+}
