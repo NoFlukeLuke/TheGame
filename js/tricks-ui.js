@@ -309,9 +309,17 @@ function attachHoverHold(el, showFn, hideFn) {
 }
 
 // ── Trick Tray: render chips for all tray Tricks ──
+let _trickCountShown = 0;
 function renderTrickTray() {
   const list = document.getElementById('trick-tray-list');
   if (!list) return;
+  // A newly GAINED Trick should land somewhere visible. In portrait the Tricks
+  // view shares the strip with Knacks and the preview, so flip to it when the
+  // count grows. Tally updated BEFORE the flip: setPortraitPanelView re-enters
+  // this function to re-measure the marquee (see js/portrait-panel.js).
+  const _trickGrew = trickTray.length > _trickCountShown;
+  _trickCountShown = trickTray.length;
+  if (_trickGrew && typeof portraitShowTricks === 'function') portraitShowTricks();
   const countEl = document.getElementById('trick-tray-count');
   if (countEl) {
     countEl.textContent = `${trickTray.length}/${trickCapacity()}`;
@@ -648,6 +656,7 @@ function updateActProgressUI() {
 function onGameWin() {
   stopTimers();
   if (typeof retireSavedRunIfCurrent === 'function') retireSavedRunIfCurrent();  // the run is over; its save is stale
+  if (typeof recordRunToHistory === 'function') recordRunToHistory('win');       // log it before the numbers are reset
   const overlay = document.getElementById('end-overlay');
   const title   = document.getElementById('end-title');
   title.textContent = 'VICTORY';
@@ -670,6 +679,7 @@ function onGameWin() {
 function onGameEnd(gameover) {
   stopTimers();
   if (typeof retireSavedRunIfCurrent === 'function') retireSavedRunIfCurrent();  // the run is over; its save is stale
+  if (typeof recordRunToHistory === 'function') recordRunToHistory(gameover ? 'loss' : 'timeup');
   const overlay = document.getElementById('end-overlay');
   const title = document.getElementById('end-title');
   title.textContent = gameover ? 'GAME OVER' : "TIME'S UP";

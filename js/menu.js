@@ -1,4 +1,4 @@
-const BUILD = '2026-08-24 · r162 · SPECTRUM: 0-11/15/20, four payout cards, deck tuner, Monopoly [merged: r156 audit pass]';
+const BUILD = '2026-08-24 · r163 · SPECTRUM: 0-11/15/20, four payout cards, deck tuner, Monopoly [merged: run history + portrait swap cycle]';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -172,6 +172,7 @@ function initMainMenu() {
   ACTIVE_MODE = MODES.normal;
   document.getElementById('main-menu-overlay').classList.add('show');
   if (typeof updateContinueBtn === 'function') updateContinueBtn();
+  if (typeof updateHistoryBtn === 'function') updateHistoryBtn();
 }
 
 function switchMenuTab(e, tabId) {
