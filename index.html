@@ -21,6 +21,7 @@
 <link rel="stylesheet" href="css/survival.css">
 <link rel="stylesheet" href="css/records.css">
 <link rel="stylesheet" href="css/settings.css">
+<link rel="stylesheet" href="css/history.css">
 <link rel="stylesheet" href="css/mart.css">
 <link rel="stylesheet" href="css/tooltip.css">
 <link rel="stylesheet" href="css/boss.css">
@@ -39,6 +40,7 @@
     <div id="menu-tagline">A LETHE amusement product. Please continue<br>playing until further notice.</div>
     <button id="menu-continue-btn" onclick="continueSavedRun()" style="display:none;">CONTINUE</button>
     <button id="menu-start-btn" onclick="maybeAutoFullscreen(); openModeSelect()">PLAY</button>
+    <button id="menu-history-btn" onclick="openHistory(true)" style="display:none;">HISTORY</button>
     <button id="menu-settings-btn" onclick="openSettings(true)">SETTINGS</button>
     <button id="menu-fullscreen-btn" onclick="toggleFullscreen()" style="display:none;">⛶ FULLSCREEN</button>
     <div id="ios-fullscreen-hint" style="display:none;">
@@ -940,6 +942,7 @@
 <script src="js/settings.js"></script>
 <script src="js/tutorial.js"></script>
 <script src="js/dev-panel.js"></script>
+<script src="js/history.js"></script>
 <script src="js/save.js"></script>
 <script src="js/bootstrap.js"></script>
 </div><!-- /#stage -->

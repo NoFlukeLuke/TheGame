@@ -1,4 +1,4 @@
-const BUILD = '2026-08-22 · r158 · Storage safety shim, save/resume a run, portrait strip rework (Knacks + hand preview share a swap button), portrait score panel split, PIPS·MULT·FOCUS fuse animation';
+const BUILD = '2026-08-22 · r159 · Run history (HISTORY on the main menu, logged when a run ends) + portrait: Tricks joins the swap cycle so all three views get the full strip, tiles and preview cards at 70%';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -154,6 +154,7 @@ function initMainMenu() {
   ACTIVE_MODE = MODES.normal;
   document.getElementById('main-menu-overlay').classList.add('show');
   if (typeof updateContinueBtn === 'function') updateContinueBtn();
+  if (typeof updateHistoryBtn === 'function') updateHistoryBtn();
 }
 
 function switchMenuTab(e, tabId) {
