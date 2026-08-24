@@ -228,8 +228,6 @@ if (typeof requestAnimationFrame === 'function') requestAnimationFrame(focusFxLo
 
 function addFocus(amount) {
   if (!amount || amount <= 0) return;
-  // Growth Spurt blocks Focus gain for a few seconds after each max — decay still ticks.
-  if (focusGainBlockUntil && Date.now() < focusGainBlockUntil) return;
   focusGenGame += amount; focusGenRound += amount; // total Focus generated (any source) — Wellspring / Feedback Loop
   focusDecayBuffer = 0;   // gaining focus resets the x.0 grace buffer
   const cap = focusCapNodes();
@@ -258,23 +256,37 @@ function addFocus(amount) {
 // *drop* is deferred ~260ms so the fill-to-max animation plays first (a visible
 // "discharge" beat) and we never call removeFocus() while addFocus's queue is mid-flight.
 function onFocusMaxed() {
-  let drop = 0;
+  // Immediate grants; any Focus DROP or cap change is deferred ~260ms so the fill-to-max
+  // animation plays first and we never mutate focusNodes while addFocus's queue is in flight.
+  let keepFrac = null; // smallest "fraction of cap to keep" across active droppers (min wins)
   if (hasKnack('dividend')) {
     coins += BAL.dividend.credits; updateCoinsUI();
     showMessage(`🏦 Dividend — +${BAL.dividend.credits} credits`, 'var(--gold)');
+    keepFrac = Math.min(keepFrac ?? 1, BAL.dividend.keep_fraction);   // reset to 33% of max
   }
   if (hasTrick('release_valve')) {
     swaps++; discards++;
-    drop = Math.max(drop, BAL.release_valve.focus_drop);
     showMessage('🎚️ Release Valve — +1 swap, +1 discard', 'var(--gold)');
     if (!animating && !falling) render();
+    keepFrac = Math.min(keepFrac ?? 1, BAL.release_valve.keep_fraction); // lose 50% Focus
   }
-  if (hasKnack('growth_spurt')) {
-    grantRandomLimit('🌱 Growth Spurt');
-    drop = Math.max(drop, BAL.growth_spurt.focus_drop);
-    focusGainBlockUntil = Date.now() + BAL.growth_spurt.block_seconds * 1000;
+  const _gs = hasKnack('growth_spurt');
+  if (_gs) {
+    // Each max lowers the ceiling by 5 (permanent, floored in focusCapNodes); the random
+    // limit is banked once and granted at round end (triggerLevelUp) if you maxed at all.
+    growthSpurtMaxedThisRound = true;
+    showMessage(`🌱 Growth Spurt — max Focus −${BAL.growth_spurt.cap_reduction}`, 'var(--gold)');
   }
-  if (drop > 0) setTimeout(() => removeFocus(drop), 260);
+  if (keepFrac !== null || _gs) setTimeout(() => {
+    if (_gs) growthSpurtCapPenalty += BAL.growth_spurt.cap_reduction;
+    const cap = focusCapNodes();
+    let target = focusNodes;
+    if (keepFrac !== null) target = Math.min(target, Math.floor(cap * keepFrac));
+    target = Math.min(target, cap);                  // Growth Spurt may have lowered the ceiling
+    const amt = Math.max(0, focusNodes - target);
+    if (amt > 0) removeFocus(amt);
+    else { buildFocusMeter(); syncFocusMeterState(); } // cap shrank but nothing to drop — resync
+  }, 260);
 }
 
 // Spawn a temp clone of `srcEl` at its current viewport position on document.body,

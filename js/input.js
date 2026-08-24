@@ -298,22 +298,29 @@ function onCardTap(r, c) {
         return;
       }
       hideSleightGridTooltip();
-      // Capacitor: pay 10 Focus for 10 credits, then the sleight is consumed off the grid.
+      // Capacitor: pay 10 Focus AND 20 seconds for 10 credits, then the sleight is consumed.
       if (jdef.id === 'capacitor') {
         if (focusNodes < BAL.capacitor.focus_cost) { showMessage(`Capacitor needs ${BAL.capacitor.focus_cost} Focus`, 'var(--cream-dim)'); return; }
         removeFocus(BAL.capacitor.focus_cost);
+        roundSeconds = Math.max(1, roundSeconds - BAL.capacitor.time_cost); showTimeCost(`-${BAL.capacitor.time_cost}s`); updateClockUI();
         coins += BAL.capacitor.credits; updateCoinsUI();
-        showMessage(`🔋 Capacitor — ${BAL.capacitor.focus_cost} Focus → ${BAL.capacitor.credits} credits`, 'var(--gold)');
+        showMessage(`🔋 Capacitor — ${BAL.capacitor.focus_cost} Focus & ${BAL.capacitor.time_cost}s → ${BAL.capacitor.credits} credits`, 'var(--gold)');
         gridData[r][c] = null; selected = []; render();
         return;
       }
-      // Siphon: pay 15 Focus to charge the next hand with ×3 mult (once per round).
+      // Siphon: pay 15 Focus to charge the next hand with ×4 mult, then leave the grid.
+      // Like a normal discard it returns to the deck with its remaining charges; if that
+      // was its last charge it's spent for good.
       if (jdef.id === 'siphon') {
         if (focusNodes < BAL.siphon.focus_cost) { showMessage(`Siphon needs ${BAL.siphon.focus_cost} Focus`, 'var(--cream-dim)'); return; }
         removeFocus(BAL.siphon.focus_cost);
         siphonMultX = BAL.siphon.mult;
+        if (typeof jcard._usesLeft === 'number') jcard._usesLeft--;
+        const _spent = (typeof jcard._usesLeft === 'number' && jcard._usesLeft <= 0);
+        gridData[r][c] = null;
+        if (!_spent) discardToDrawPile(jcard);   // back into circulation with charges left
         showMessage(`🩸 Siphon — next hand ×${BAL.siphon.mult} mult!`, 'var(--gold)');
-        lockSleightForRound(jcard); render();
+        selected = []; render();
         return;
       }
       // Magnet: don't fire yet — arm it and wait for the player to tap a target card.

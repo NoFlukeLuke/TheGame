@@ -91,8 +91,9 @@ let _dabiSwapNext = false;          // Down and Back In: alternates discard/swap
 let magnetArmed = null;             // {r,c,card} while Magnet waits for a target-rank tap
 let sleightLegacyMult    = false; // Legacy: next hand ×3
 let sleightAmplifierMult = 0;     // Amplifier: accumulated trick mult for next hand
-let siphonMultX          = 1;     // Siphon: multiplies the next hand's mult (×3), cleared after the hand
-let focusGainBlockUntil  = 0;     // Growth Spurt: Date.now() timestamp; addFocus is inert until then
+let siphonMultX          = 1;     // Siphon: multiplies the next hand's mult (×4), cleared after the hand
+let growthSpurtCapPenalty = 0;    // Growth Spurt: permanent max-Focus reduction (−5 per max), floored in focusCapNodes
+let growthSpurtMaxedThisRound = false; // Growth Spurt: hit max this round → grant a random limit at round end
 let grantedSleightIds = new Set(); // dedup: tracks which sleight IDs have been granted
 
 // Altar effect tracking — investments that pay off over future rounds

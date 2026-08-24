@@ -42,6 +42,9 @@ function triggerLevelUp() {
   roundInterval = null;
   goalReachedThisRound = false;
   roundEnded = false;
+  // Growth Spurt: if the player reached max Focus at all this round, bank a random limit now.
+  if (hasKnack('growth_spurt') && growthSpurtMaxedThisRound) grantRandomLimit('🌱 Growth Spurt');
+  growthSpurtMaxedThisRound = false;
 
   // Apply any pending grid-size changes for the new round, then resize cards.
   // Must happen before Trick re-placement and the deal animation populate gridData.

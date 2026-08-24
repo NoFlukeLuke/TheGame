@@ -1,4 +1,4 @@
-const BUILD = '2026-08-24 · r163 · SPECTRUM: 0-11/15/20, four payout cards, deck tuner, Monopoly [merged: run history + portrait swap cycle]';
+const BUILD = '2026-08-24 · r164 · adjacency + Tempo + focus-payout entities [merged onto r163]';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

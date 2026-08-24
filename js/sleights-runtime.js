@@ -434,7 +434,7 @@ function showSleightGridTooltip(r, c, card) {
   if (def.id === 'entourage') uses = `+${entourageMult()} mult right now`;
   // Focus-spend sleights: show what they'll cost against what you have right now.
   if (def.id === 'capacitor') uses = `needs ${BAL.capacitor.focus_cost} Focus · you have ${focusNodes}`;
-  if (def.id === 'siphon')    uses = `needs ${BAL.siphon.focus_cost} Focus · you have ${focusNodes}` + (card._usedThisRound ? ' · used' : '');
+  if (def.id === 'siphon')    uses = `needs ${BAL.siphon.focus_cost} Focus · you have ${focusNodes}`;
   const tip = document.createElement('div');
   tip.id = 'sleight-grid-tooltip';
   tip.className = 'sleight-tooltip';
