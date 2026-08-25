@@ -9,7 +9,11 @@
 // Self-contained like js/match3.js / js/dominoes-mode.js: survivalActive() gates
 // everything and the hooks in the shared engine are one-liners.
 
-function survivalActive() { return !!ACTIVE_MODE && ACTIVE_MODE.id === 'survival'; }
+// True for BOTH survival flavours. Flow (js/flow-mode.js) is Survival with the round
+// clock removed, and it reuses this whole file — the pick-of-three, the reward grants,
+// the on-demand Mart, the boss reward and the 5-boss completion screen. Anything that
+// must differ asks flowActive() specifically.
+function survivalActive() { return !!ACTIVE_MODE && (ACTIVE_MODE.id === 'survival' || ACTIVE_MODE.id === 'flow'); }
 
 // ── Tunables (all easy to change) ──
 const SURVIVAL_ROUND_SECONDS = 120;   // 2-minute rounds (owner request; was 3)
@@ -61,7 +65,13 @@ const SURVIVAL_REROLL_STEP    = 5;    // then 5, 10, 15… (STEP × paid-index)
 // The round clock length for the active mode. Survival runs shorter rounds; every
 // other mode keeps the global ROUND_DURATION. (Used by computeRoundResources and
 // the clock-bar fill so both agree.)
-function currentRoundDuration() { return survivalActive() ? SURVIVAL_ROUND_SECONDS : ROUND_DURATION; }
+// Flow's clock is the 5-minute SESSION clock counting down to the inspection, not a
+// round clock — but it is the same variable, so the bar fill and computeRoundResources
+// must size against it too.
+function currentRoundDuration() {
+  if (typeof flowActive === 'function' && flowActive()) return FLOW_SESSION_SECONDS;
+  return survivalActive() ? SURVIVAL_ROUND_SECONDS : ROUND_DURATION;
+}
 
 // Survival's goal curve: same growth rate as Classic from a lower start, and
 // rounded to 50 (Classic rounds to 500, which would snap the 750 opener to 1000).
@@ -110,10 +120,15 @@ function survivalInitRun() {
 // banks time toward the next boss. Score carry-over is handled inline in
 // triggerLevelUp (overflow above the goal seeds the next round).
 function survivalAfterLevelUp(leftover) {
-  const gained = SURVIVAL_LEVEL_COINS + Math.floor(Math.max(0, leftover) / 10) * SURVIVAL_COINS_PER_10S;
+  // Flow: the session clock is NOT spent by clearing a goal (it spans every goal in
+  // the 5 minutes), so there is no "leftover" to pay out and no time to bank — its
+  // boss runs a fixed window. Flat coins only.
+  const _flow = (typeof flowActive === 'function' && flowActive());
+  const gained = _flow ? SURVIVAL_LEVEL_COINS
+                       : SURVIVAL_LEVEL_COINS + Math.floor(Math.max(0, leftover) / 10) * SURVIVAL_COINS_PER_10S;
   coins += gained;
   updateCoinsUI();
-  survivalBossTimeBank = Math.min(SURVIVAL_BOSS_TIME_CAP, survivalBossTimeBank + Math.max(0, leftover));
+  if (!_flow) survivalBossTimeBank = Math.min(SURVIVAL_BOSS_TIME_CAP, survivalBossTimeBank + Math.max(0, leftover));
   if (gained > 0) showMessage(`+${gained} 💰`, 'var(--c-yellow, #ffce2b)');
 }
 
@@ -121,6 +136,10 @@ function survivalAfterLevelUp(leftover) {
 // paused during picks, the shop and menus, so this measures real playing time).
 // When the 5-minute timer runs out the NEXT dealt round is a boss.
 function survivalTickBossClock() {
+  // Flow counts down to its boss on the VISIBLE clock (roundSeconds); onRoundEnd
+  // fires the inspection at zero. This hidden cadence would be a second, competing
+  // boss timer, so it sits out.
+  if (typeof flowActive === 'function' && flowActive()) return;
   if (!survivalActive() || bossActive || survivalBossPending) return;
   survivalSecondsToBoss--;
   if (survivalSecondsToBoss <= 0) {
@@ -433,6 +452,7 @@ function survivalTriggerBoss() {
 // 5th boss) or hand out a bonus pick and continue.
 // (endBoss already cleared modifiers/blocked cells and zeroed the time bank.)
 function survivalPostBossReward() {
+  if (typeof flowEndBoss === 'function') flowEndBoss(); // Flow: refill the session clock on the next deal
   survivalBossesBeaten++;
   survivalRerollsLeft += SURVIVAL_REROLLS_PER_BOSS;
   survivalSecondsToBoss = SURVIVAL_BOSS_EVERY_SECONDS; // restart the 5-minute cadence

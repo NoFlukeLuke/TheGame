@@ -4119,3 +4119,13 @@
   #trick-tray-area:hover   .chip-marquee.scrolling { animation-play-state: paused; }
   @keyframes chipMarquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 
+
+/* ══════════════════════════════════════════════
+   FLOW MODE (r164) — the no-clock Survival variant
+   ══════════════════════════════════════════════
+   Flow charges no time for anything (spendRoundTime is a no-op there; its clock is
+   the countdown to the inspection, not a round budget), so the "3s"/"4s" costs baked
+   into the DISCARD and swap buttons in index.html would be quoting a charge that
+   never happens. .survival-mode deliberately does NOT get this — Survival still bills
+   its round clock for swaps and discards. */
+#stage.flow-mode .act-cost { display: none; }

@@ -137,6 +137,10 @@ function startTimers() {
 const DISCARD_TIME_COST = 3;
 const SWAP_TIME_COST    = 4;
 function spendRoundTime(sec) {
+  // Flow: timeIsCurrency is false. Its clock is the countdown to the boss, so
+  // charging swaps/discards against it would make interacting summon the inspection
+  // early. Swaps and discards are still capped by their per-round COUNTS.
+  if (typeof flowActive === 'function' && flowActive()) return;
   if (roundEnded || !sec || sec <= 0) return;
   roundSeconds -= sec;
   if (roundSeconds < 0) roundSeconds = 0;
@@ -180,6 +184,15 @@ function stopTimers() {
 // ROUND END
 // ══════════════════════════════════════════════
 function onRoundEnd() {
+  // Flow: the clock is a 5-minute SESSION clock, not a round clock. Reaching zero
+  // summons the boss on the board as it stands — there is no round to fail here, and
+  // no goal to have missed. (During the boss itself the boss timer owns the clock, so
+  // this can only be the session clock.)
+  if (typeof flowActive === 'function' && flowActive() && !bossActive) {
+    if (roundInterval) { clearInterval(roundInterval); roundInterval = null; }
+    flowTriggerBoss();
+    return;
+  }
   if (challengeActive) {
     // Timer expired with challenge incomplete
     if (hasTrick('resilience') && !resilienceUsed) {

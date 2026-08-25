@@ -90,6 +90,16 @@ function hideTimePopup() {
 // debuffs), the round's max time, and how many times it's been paused / rewound.
 function updateInteractCosts() {
   const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  // Flow charges no time for anything — spendRoundTime is a no-op there, because its
+  // clock is the countdown to the boss rather than a round budget. Quote that, or the
+  // pop-up drifts from reality the way it did before r151.
+  if (typeof flowActive === 'function' && flowActive()) {
+    set('ic-play', '0s'); set('ic-discard', '0s'); set('ic-swap', '0s');
+    set('ic-maxtime', (typeof formatTime === 'function') ? formatTime(FLOW_SESSION_SECONDS) : `${FLOW_SESSION_SECONDS}s`);
+    set('ic-paused',  `${pausesThisRound  || 0}×`);
+    set('ic-rewound', `${rewindsThisRound || 0}×`);
+    return;
+  }
   // Play is 0 by default (r50); a "Hands +Ns" debuff makes it cost that much.
   set('ic-play', `${playHandCostThisRound || 0}s`);
   // Discard cost per card: 3 base, 0 with Free Discards, 6 with Hoarder, + reward debuff.
@@ -254,6 +264,10 @@ function startGame() {
   // Survival: reset its per-run state and flag the stage (shows the shop button).
   document.getElementById('stage')?.classList.toggle('survival-mode', survivalActive());
   if (survivalActive()) survivalInitRun();
+  if (typeof flowInitRun === 'function' && flowActive()) flowInitRun();
+  // Flow hook for mode-scoped CSS (it charges no time, so the action buttons must
+  // not advertise a second-cost). Separate from .survival-mode, which still does.
+  document.getElementById('stage')?.classList.toggle('flow-mode', typeof flowActive === 'function' && flowActive());
   if (typeof updateSurvivalShopBtn === 'function') updateSurvivalShopBtn();
   discards = limits.discards.current;
   swaps = limits.swaps.current;
@@ -264,7 +278,11 @@ function startGame() {
   recomputeGridMetrics();
   // Reset focus meter
   focusNodes = 0;
-  focusCapBase = (typeof limits !== 'undefined' && limits.focus_cap) ? limits.focus_cap.current : 30;
+  // Flow runs a short 20-node Focus bar (decay is that mode's only pressure); every
+  // other mode takes the Focus Cap limit as before. See flowFocusCapBase().
+  focusCapBase = (typeof flowFocusCapBase === 'function')
+               ? flowFocusCapBase()
+               : ((typeof limits !== 'undefined' && limits.focus_cap) ? limits.focus_cap.current : 30);
   focusCapPerm = 0;
   focusGenGame = 0; focusGenRound = 0;
   focusAnimQueue = [];

@@ -50,7 +50,10 @@ function onLimitChanged(id) {
     render();
   }
   if (id === 'focus_cap') {
-    focusCapBase = limits.focus_cap.current;      // new baseline max Focus
+    // New baseline max Focus. In Flow the baseline is the mode's short bar plus the
+    // upgrades bought so far, so a Focus Cap pick raises 20 → 21 rather than snapping
+    // the bar out to Classic's 30.
+    focusCapBase = (typeof flowFocusCapBase === 'function') ? flowFocusCapBase() : limits.focus_cap.current;
     if (typeof buildFocusMeter === 'function') { buildFocusMeter(); syncFocusMeterState(); }
   }
   // grid_rows / grid_cols take effect at next round start (see grid sizing work)

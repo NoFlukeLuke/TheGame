@@ -491,6 +491,7 @@ function endBoss(success) {
       setTimeout(() => { rewardGridContext = 'boss'; openRewardGrid(); }, 1000);
     }
   } else {
+    if (typeof flowEndBoss === 'function') flowEndBoss();
     setTimeout(() => onGameEnd(true), 1200);
   }
 

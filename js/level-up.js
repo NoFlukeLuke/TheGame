@@ -64,7 +64,7 @@ function triggerLevelUp() {
   // roundGoal is recomputed and score is zeroed below.
   let _svLeftover = 0, _svOverflow = 0;
   if (survivalActive()) {
-    _svLeftover = Math.max(0, roundSeconds);
+    _svLeftover = (typeof flowActive === 'function' && flowActive()) ? 0 : Math.max(0, roundSeconds);
     // Post-boss BONUS round carries nothing (no goal was cleared); a normal clear
     // carries the score overflow above the goal into the next round.
     _svOverflow = survivalSkipCarryover ? 0 : Math.max(0, score - roundGoal);
@@ -93,13 +93,20 @@ function triggerLevelUp() {
   // Bank unused resources before resetting
   if (hasKnack('carry_swaps'))    accumulatedSwaps    = Math.min(BAL.carry_swaps.max, accumulatedSwaps    + swaps);
   if (hasKnack('carry_discards')) accumulatedDiscards = Math.min(BAL.carry_discards.max, accumulatedDiscards + discards);
-  if (hasKnack('carry_time'))     accumulatedSeconds  = Math.min(BAL.carry_time.max_seconds, accumulatedSeconds + roundSeconds);
+  // Carry Time banks the round's UNUSED seconds. Flow's clock isn't a round clock and
+  // isn't reset below, so banking it would pay out the same seconds every level-up.
+  if (hasKnack('carry_time') && !(typeof flowActive === 'function' && flowActive()))
+    accumulatedSeconds  = Math.min(BAL.carry_time.max_seconds, accumulatedSeconds + roundSeconds);
 
   // Base reset — resource values computed by computeRoundResources() (single source of truth).
   const _rr = computeRoundResources();
   discards     = _rr.discards;
   swaps        = _rr.swaps;
-  roundSeconds = _rr.seconds;
+  // Flow: swaps and discards refresh per level as usual, but the CLOCK does not —
+  // the five minutes span every goal cleared inside them. flowNextRoundSeconds keeps
+  // the running countdown, and only refills it at run start and after an inspection.
+  roundSeconds = (typeof flowNextRoundSeconds === 'function' && flowActive())
+               ? flowNextRoundSeconds(roundSeconds) : _rr.seconds;
   match3ApplyZenResources(); // Zen/infinite: refill swaps & discards to "unlimited"
   match3PendingSettle = true; // the round's fresh board settles when its timer starts
   // Per-action time-cost debuffs active this round = permanent + next-round-only.

@@ -1,4 +1,4 @@
-const BUILD = '2026-08-24 · r163 · SPECTRUM: 0-11/15/20, four payout cards, deck tuner, Monopoly [merged: run history + portrait swap cycle]';
+const BUILD = '2026-08-25 · r164 · FLOW: no-clock Survival variant — level up on goals, inspection boss every 5 minutes, max Focus 20';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -83,6 +83,26 @@ const MODES = {
     timeIsCurrency: false,
     autoPlayHands: false,
     survival: true
+  },
+  // Flow: Survival with the ROUND clock removed. No per-round time limit and no way
+  // to fail a round — clear a goal, take a pick-of-three, get the next goal, repeat.
+  // The only clock is a 5-minute SESSION clock counting down to a boss with a real
+  // objective and score bar. Max Focus is 20, so decay is the mode's pressure.
+  // survivalActive() is true here too, so it reuses Survival's whole flow.
+  // See js/flow-mode.js.
+  flow: {
+    id: 'flow',
+    name: 'Flow',
+    desc: 'No round clock. Clear goals back to back for as many level-ups as you can, then a boss arrives every five minutes. Max Focus is 20 — decay is the only pressure.',
+    winCondition: 'endless',
+    enableBosses: true,
+    enableShops: true,
+    enableEvents: false,
+    autoRefillGrid: true,
+    timeIsCurrency: false,
+    autoPlayHands: false,
+    survival: true,
+    flow: true
   },
   tetris: {
     id: 'tetris',
@@ -219,7 +239,7 @@ function startMatch3FromMenu(modeId = 'match3') {
 // MODE SELECT (scroll-sideways carousel off the PLAY button)
 // ══════════════════════════════════════════════
 // The shipping modes, shown left→right in the carousel.
-const MODE_SELECT_LIST = ['tutorial', 'normal', 'sixsuits', 'spectrum', 'survival', 'match3', 'zen', 'dominoes'];
+const MODE_SELECT_LIST = ['tutorial', 'normal', 'sixsuits', 'spectrum', 'survival', 'flow', 'match3', 'zen', 'dominoes'];
 const MODE_META = {
   tutorial: { accent: '#8fd0ff',         suits: 'START HERE',
               blurb: 'LETHE Corp staff orientation. A normal Classic run with the terminal explaining each control as you reach it — scoring, Focus, limits, the reward path, the Mart. About three minutes.' },
@@ -231,6 +251,8 @@ const MODE_META = {
               blurb: 'The deck loses its suits and its court. Seven colours and the values 0 to 11, plus a lone 15 and 20 — big pips that can never join a run. Four payout cards are shuffled in: score two hands beside one and it pays. Flushes are colour flushes, so Flush of 3, 4 and 5 are all in play.' },
   survival: { accent: 'var(--c-coral)',  suits: 'ENDLESS',
               blurb: 'Clear escalating goals on a 2-minute clock. Each clear: pick one of three rewards from every pool. Overflow score and leftover time carry forward. Miss a goal and the run is over.' },
+  flow:     { accent: '#6fd0ff',         suits: 'NO CLOCK',
+              blurb: 'Survival with the round clock taken off. Nothing forces a goal, so you clear one after another for as many level-ups as you can hold together — but Focus caps at 20 and decays the moment you slow down. Five minutes of play and the inspection arrives: a boss with an objective and a quota, on its own clock.' },
   match3:   { accent: '#ff7ad0',         suits: '5 × 5',
               blurb: 'Matches play themselves. Line up 3+ in a row or column and it scores and cascades — you just swap and discard to set them up.' },
   zen:      { accent: '#7fe3c0',         suits: 'NO CLOCK',

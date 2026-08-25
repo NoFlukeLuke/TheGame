@@ -345,7 +345,13 @@ function isFocusDecayPaused() {
   // First Wind: no decay for first 45s of round (measured via mutable roundSeconds,
   // so swaps/discards that consume time also consume the grace window)
   if (typeof hasTrick === 'function' && hasTrick('first_wind')) {
-    const elapsed = ROUND_DURATION - roundSeconds;
+    // Flow's clock starts at FLOW_SESSION_SECONDS (300), well above ROUND_DURATION
+    // (180) — so `ROUND_DURATION - roundSeconds` is NEGATIVE there and the grace
+    // window would hold decay off for the first ~165 seconds of every session.
+    // Measure from where this round's clock actually started instead.
+    const elapsed = (typeof flowActive === 'function' && flowActive())
+                  ? (roundStartSeconds - roundSeconds)
+                  : (ROUND_DURATION - roundSeconds);
     if (elapsed < 45) return true;
   }
   return (typeof isPaused !== 'undefined' && isPaused)
