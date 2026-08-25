@@ -33,6 +33,19 @@ const FLOW_BOSS_WINDOW     = 120;  // the boss's own clock — Flow banks no lef
 // picks. Make it a hard cap by clamping in focusCapNodes() instead.
 const FLOW_FOCUS_CAP       = 20;
 
+// Entities whose whole effect is about a ROUND CLOCK that Flow does not have. Same
+// idea as SURVIVAL_BANNED_ENTITIES (reward-grid-only entities in a mode with no
+// reward grid): rather than special-casing each one wherever it fires, keep it out
+// of every offer pool so it can never be owned here.
+//   first_wind — "no Focus decay for the first 45s of the round". Flow has no round,
+//     and its clock starts ABOVE ROUND_DURATION, so the grace window it measures is
+//     nonsense here (it would compute negative elapsed and hold decay off for ~165s
+//     of every session). Focus decay is Flow's only pressure — a Trick that switches
+//     it off is the one thing the mode can't offer.
+//   carry_time  — "bank the round's unused seconds". Flow's clock is not reset by a
+//     level-up, so the same seconds would be banked again at every level.
+const FLOW_BANNED_ENTITIES = new Set(['first_wind', 'carry_time']);
+
 // ── Per-run state ──
 let flowBossFighting = false;  // true from the inspection trigger until endBoss resolves
 let flowRefillClock  = true;   // consumed by triggerLevelUp: refill the session clock?

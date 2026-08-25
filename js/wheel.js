@@ -30,9 +30,13 @@ function buildWheelSlots() {
   const out = [];
   const pickOne = () => {
     const r = Math.random();
-    if (r < 0.45) return martTrickPayload(martPick(TRICK_POOL, 'tier', 1)[0]);
-    if (r < 0.78) return martKnackPayload(martPick(KNACK_POOL, 'rarity', 1)[0]);
-    return martSleightPayload(martPick(SLEIGHT_POOL.filter(sleightOfferable), 'rarity', 1)[0]);
+    // The wheel draws straight from the pools, so it needs the same mode ban the Mart
+    // and the pick-of-three apply — without this it could hand out a reward-grid-only
+    // entity in Survival, or a round-clock entity in Flow, that does nothing there.
+    const _ok = p => typeof survivalEntityBanned !== 'function' || !survivalEntityBanned(p.id);
+    if (r < 0.45) return martTrickPayload(martPick(TRICK_POOL.filter(_ok), 'tier', 1)[0]);
+    if (r < 0.78) return martKnackPayload(martPick(KNACK_POOL.filter(_ok), 'rarity', 1)[0]);
+    return martSleightPayload(martPick(SLEIGHT_POOL.filter(j => _ok(j) && sleightOfferable(j)), 'rarity', 1)[0]);
   };
   for (let i = 0; i < n - 2; i++) out.push(pickOne());
   out.push({ type: 'bust', label: 'BUST', emoji: '✖', rarity: 'common', desc: 'Nothing. Better luck next spin.' });

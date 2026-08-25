@@ -93,10 +93,10 @@ function triggerLevelUp() {
   // Bank unused resources before resetting
   if (hasKnack('carry_swaps'))    accumulatedSwaps    = Math.min(BAL.carry_swaps.max, accumulatedSwaps    + swaps);
   if (hasKnack('carry_discards')) accumulatedDiscards = Math.min(BAL.carry_discards.max, accumulatedDiscards + discards);
-  // Carry Time banks the round's UNUSED seconds. Flow's clock isn't a round clock and
-  // isn't reset below, so banking it would pay out the same seconds every level-up.
-  if (hasKnack('carry_time') && !(typeof flowActive === 'function' && flowActive()))
-    accumulatedSeconds  = Math.min(BAL.carry_time.max_seconds, accumulatedSeconds + roundSeconds);
+  // NOTE: banks the round's UNUSED seconds, which assumes the clock is reset below.
+  // Flow's is not (it carries across level-ups), so carry_time would pay out the same
+  // seconds every level — which is why it is in FLOW_BANNED_ENTITIES.
+  if (hasKnack('carry_time'))     accumulatedSeconds  = Math.min(BAL.carry_time.max_seconds, accumulatedSeconds + roundSeconds);
 
   // Base reset — resource values computed by computeRoundResources() (single source of truth).
   const _rr = computeRoundResources();

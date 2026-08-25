@@ -154,7 +154,14 @@ function survivalTickBossClock() {
 // ══════════════════════════════════════════════
 // True for entities whose whole effect is about the reward grid — survival has no
 // reward grid, so offering them would be a dead pick. Also used to filter the Mart.
-function survivalEntityBanned(id) { return survivalActive() && SURVIVAL_BANNED_ENTITIES.has(id); }
+// Also the chokepoint for Flow's own ban list (clock entities in a mode with no round
+// clock) — every offer pool already routes through here, so one test covers both.
+function survivalEntityBanned(id) {
+  if (!survivalActive()) return false;
+  if (SURVIVAL_BANNED_ENTITIES.has(id)) return true;
+  return (typeof flowActive === 'function' && flowActive())
+      && typeof FLOW_BANNED_ENTITIES !== 'undefined' && FLOW_BANNED_ENTITIES.has(id);
+}
 
 function survivalBuildPools() {
   const ownedTrick = new Set(acquiredTricks.map(b => b.id));
