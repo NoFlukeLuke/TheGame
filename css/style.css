@@ -725,26 +725,27 @@
   /* The strip: [ Tricks | shared half ] with the swap button pinned top-right. */
   #stage:not(.landscape) #trick-panel { position: relative; height: 92px; padding-right: 2px; }
 
-  /* THREE views share the strip (r159): Tricks, Knacks and the hand preview all
-     occupy the SAME full-width box and the pv-* class on #stage decides which is
-     in it. Tricks used to hold its own half; giving it the whole strip is what
-     lets its tiles be drawn large. `!important` because syncTrickTrayUI() writes
-     `display` INLINE on both #trick-tray-area and #hand-preview-area. */
-  #stage:not(.landscape) #trick-tray-area,
+  /* The Trick tray keeps the LEFT half and is always on screen; Knacks and the
+     hand preview share the RIGHT half and the swap button picks between them
+     (r160 — an earlier pass had all three take turns, which hid the Tricks the
+     player needs at a glance). Tricks that don't fit their half FAN over each
+     other instead — see fanTrickTray() in js/tricks-ui.js. `!important` because
+     syncTrickTrayUI() writes `display` INLINE on the tray and the preview. */
+  #stage:not(.landscape) #trick-tray-area {
+    flex: 1 1 0; min-width: 0;
+    display: flex !important;
+    border-right: 1px solid var(--border);
+    box-sizing: border-box;
+  }
   #stage:not(.landscape) #knack-carousel-wrap,
   #stage:not(.landscape) #hand-preview-area {
-    flex: 1 1 100%; min-width: 0; width: 100%;
+    flex: 1 1 0; min-width: 0;
     padding: 3px 24px 3px 9px;   /* right pad clears the swap button */
     border-right: none;
     box-sizing: border-box;
   }
-  #stage:not(.landscape).pv-tricks  #trick-tray-area     { display: flex !important; }
-  #stage:not(.landscape).pv-tricks  #knack-carousel-wrap { display: none !important; }
-  #stage:not(.landscape).pv-tricks  #hand-preview-area   { display: none !important; }
-  #stage:not(.landscape).pv-knacks  #trick-tray-area     { display: none !important; }
   #stage:not(.landscape).pv-knacks  #knack-carousel-wrap { display: flex !important; }
   #stage:not(.landscape).pv-knacks  #hand-preview-area   { display: none !important; }
-  #stage:not(.landscape).pv-preview #trick-tray-area     { display: none !important; }
   #stage:not(.landscape).pv-preview #knack-carousel-wrap { display: none !important; }
   #stage:not(.landscape).pv-preview #hand-preview-area   { display: flex !important; }
 
@@ -785,11 +786,25 @@
      order the strip's two halves SWAP SIDES when the preview is showing — and the
      swap button (pinned top-right) would end up sitting over the Trick tray.
      Pin the tray left and the shared half right in both views. */
-  #stage:not(.landscape) #trick-tray-area     { order: 1; flex: 1 1 0; min-width: 0; padding: 4px 9px 4px 4px; }
+  #stage:not(.landscape) #trick-tray-area     { order: 1; padding: 4px 6px 4px 6px; }
   #stage:not(.landscape) #hand-preview-area,
   #stage:not(.landscape) #knack-carousel-wrap { order: 2; }
   #stage:not(.landscape) #panel-swap-btn      { order: 3; }
-  #stage:not(.landscape) #trick-tray-list { max-height: 78px; gap: 5px; align-content: center; overflow: hidden; }
+  /* --fan-step is the visible width of each tucked tile, measured and set by
+     fanTrickTray(): --fan-gap is the space between tiles, POSITIVE when they all
+     fit (an ordinary row) and NEGATIVE when they have to tuck over each other.
+     Right-aligned so the NEWEST Trick is always the fully visible one. */
+  #stage:not(.landscape) #trick-tray-list {
+    flex: 0 0 auto; max-height: 66px; overflow: hidden;
+    display: flex; align-items: center; justify-content: flex-end;
+    gap: 0; width: 100%;
+  }
+  #stage:not(.landscape) #trick-tray-list .chip-marquee { gap: 0; }
+  /* Each tile after the first pulls left by however much the row is short. The
+     later tile sits ON TOP, so the fan reads left-to-right like a held hand. */
+  #stage:not(.landscape) #trick-tray-list .trick-tray-chip + .trick-tray-chip {
+    margin-left: var(--fan-gap, 4px);
+  }
   /* renderTrickTray gives each chip BOTH .trick-tray-chip and .trick-card, and
      `.trick-card` (position:absolute, width:var(--card-w,57px) — it is the GRID
      tile) is defined later in this file, so it won a portrait chip. The result
@@ -799,6 +814,7 @@
   #stage:not(.landscape) #trick-tray-list .trick-tray-chip.trick-card,
   #stage:not(.landscape) #trick-tray-list .trick-tray-chip {
     position: relative; flex: 0 0 auto; box-sizing: border-box; overflow: hidden;
+    z-index: var(--fan-z, 1);   /* set per tile so later ones sit on top */
     width: 47px; height: 64px;
     display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
     gap: 0; padding: 2px 1px 3px; border-radius: 5px;
@@ -806,6 +822,22 @@
     background: linear-gradient(180deg, #15110b, #0a0906);
     box-shadow: 0 0 6px -2px var(--rc, #6aaa6a), inset 0 0 10px -4px var(--rc, #6aaa6a);
   }
+  /* Overlapping tiles need a dark edge or the fan reads as one smeared block. */
+  #stage:not(.landscape) #trick-tray-list.fanned .trick-tray-chip + .trick-tray-chip {
+    box-shadow: -3px 0 5px -1px rgba(0,0,0,0.75),
+                0 0 6px -2px var(--rc, #6aaa6a), inset 0 0 10px -4px var(--rc, #6aaa6a);
+  }
+  /* A tucked tile only shows an ~11-14px strip of its LEFT edge, and the emoji is
+     centred, so the sliver came out blank — a row of dead dark slices. Move the
+     emoji into the top-left corner and shrink it, the way a fanned hand of cards
+     shows its corner index. The name has no room at all and is dropped. */
+  #stage:not(.landscape) #trick-tray-list.fanned .trick-tray-chip:not(:last-child) {
+    justify-content: flex-start; align-items: flex-start; padding: 2px 0 2px 2px;
+  }
+  #stage:not(.landscape) #trick-tray-list.fanned .trick-tray-chip:not(:last-child) .trick-card-emoji {
+    font-size: 13px; margin-top: 0; line-height: 1;
+  }
+  #stage:not(.landscape) #trick-tray-list.fanned .trick-tray-chip:not(:last-child) .trick-card-name { display: none; }
   #stage:not(.landscape) #trick-tray-list .trick-tray-chip .trick-card-emoji { font-size: 23px; margin-top: auto; }
   #stage:not(.landscape) #trick-tray-list .trick-tray-chip .trick-card-name  { font-size: 6px; letter-spacing: 0; }
   /* Rarity colours are only assigned under .landscape, so portrait chips had no
@@ -817,10 +849,14 @@
   #stage:not(.landscape) .trick-tray-chip.rar-mythic    { --rc: var(--c-magenta); }
   /* The "n/5" count sits bottom-right of the tray rather than inline, where the
      label used to be pushed around by the chips. */
-  #stage:not(.landscape) #trick-tray-area { position: relative; }
+  /* Column, so the "n/10" count has its own line instead of being buried under
+     a right-aligned fan that now reaches the full width of the tray. */
+  #stage:not(.landscape) #trick-tray-area {
+    position: relative; flex-direction: column; align-items: stretch; justify-content: center; gap: 1px;
+  }
   #stage:not(.landscape) #trick-tray-area .panel-title {
-    position: absolute; right: 26px; bottom: 1px; margin: 0; z-index: 3;
-    font-size: 8px; letter-spacing: 0.5px; opacity: 0.75;
+    position: static; margin: 0; z-index: 3; text-align: right; flex: 0 0 auto;
+    font-size: 8px; letter-spacing: 0.5px; opacity: 0.75; line-height: 1;
   }
 
   /* Knack chips get their own breathing room too. */
@@ -4133,3 +4169,13 @@
   #trick-tray-area:hover   .chip-marquee.scrolling { animation-play-state: paused; }
   @keyframes chipMarquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 
+
+/* ══════════════════════════════════════════════
+   FLOW MODE (r164) — the no-clock Survival variant
+   ══════════════════════════════════════════════
+   Flow charges no time for anything (spendRoundTime is a no-op there; its clock is
+   the countdown to the inspection, not a round budget), so the "3s"/"4s" costs baked
+   into the DISCARD and swap buttons in index.html would be quoting a charge that
+   never happens. .survival-mode deliberately does NOT get this — Survival still bills
+   its round clock for swaps and discards. */
+#stage.flow-mode .act-cost { display: none; }

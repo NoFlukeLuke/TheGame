@@ -22,23 +22,26 @@
 // specificity race with the landscape block.
 
 let _pvRemeasuring        = false;  // guards the re-measure below from re-entering
-// Three views share the strip now (r159): Tricks joined Knacks and the hand
-// preview, so each gets the FULL width and can be drawn much larger.
-const PORTRAIT_VIEWS = ['tricks', 'knacks', 'preview'];
-let portraitPanelView     = 'tricks';   // what is showing right now
-let portraitPanelUserView = 'tricks';   // what the PLAYER chose — restored after an auto-swap
+// The Trick tray keeps its own half of the strip and is ALWAYS visible; only
+// Knacks and the hand preview share the other half (r160 — an earlier pass made
+// all three take turns, which hid the Tricks the player needs at a glance).
+// Tricks that don't fit their half FAN over each other instead — see
+// fanTrickTray() in js/tricks-ui.js.
+const PORTRAIT_VIEWS = ['knacks', 'preview'];
+let portraitPanelView     = 'knacks';   // what is showing right now
+let portraitPanelUserView = 'knacks';   // what the PLAYER chose — restored after an auto-swap
 
 function isPortraitLayout() {
   const st = document.getElementById('stage');
   return !!st && !st.classList.contains('landscape');
 }
 
-const _PV_NEXT_LABEL = { tricks: '♦', knacks: '🂠', preview: '✦' };
-const _PV_NEXT_TITLE = { tricks: 'Show Knacks', knacks: 'Show hand preview', preview: 'Show Tricks' };
+const _PV_NEXT_LABEL = { knacks: '🂠', preview: '♦' };
+const _PV_NEXT_TITLE = { knacks: 'Show hand preview', preview: 'Show Knacks' };
 
 function setPortraitPanelView(view, opts) {
   const auto = !!(opts && opts.auto);
-  if (!PORTRAIT_VIEWS.includes(view)) view = 'tricks';
+  if (!PORTRAIT_VIEWS.includes(view)) view = 'knacks';
   portraitPanelView = view;
   if (!auto) portraitPanelUserView = view;   // an auto-swap must not overwrite the player's choice
   const st = document.getElementById('stage');
@@ -49,14 +52,13 @@ function setPortraitPanelView(view, opts) {
   if (!_pvRemeasuring) {
     _pvRemeasuring = true;
     try {
-      if (view === 'knacks' && typeof updateKnackList  === 'function') updateKnackList();
-      if (view === 'tricks' && typeof renderTrickTray  === 'function') renderTrickTray();
+      if (view === 'knacks' && typeof updateKnackList === 'function') updateKnackList();
     } finally { _pvRemeasuring = false; }
   }
   const btn = document.getElementById('panel-swap-btn');
   if (btn) {
     // The button shows where it will take you, not where you are.
-    btn.textContent = _PV_NEXT_LABEL[view] || '♦';
+    btn.textContent = _PV_NEXT_LABEL[view] || '🂠';
     btn.title = _PV_NEXT_TITLE[view] || 'Swap panel';
     btn.setAttribute('aria-label', btn.title);
   }
@@ -102,9 +104,6 @@ function syncPortraitPanel() {
 }
 
 
-// Gaining a Trick surfaces the Tricks view, the same way a granted Knack
-// surfaces Knacks — otherwise the new Trick lands behind the swap.
-function portraitShowTricks() {
-  if (!isPortraitLayout()) return;
-  setPortraitPanelView('tricks', { auto: true });
-}
+// The Trick tray is always on screen now, so a granted Trick needs no view
+// switch — it only needs the fan re-measured, which renderTrickTray does.
+function portraitShowTricks() { /* no-op: Tricks is never hidden behind the swap */ }

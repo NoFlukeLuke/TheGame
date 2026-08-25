@@ -72,7 +72,7 @@ function pickSleightByRarity(count, excluded) {
   const result = [];
   const usedIds = new Set(excluded);
   for (let i = 0; i < count; i++) {
-    const pool = SLEIGHT_POOL.filter(j => !usedIds.has(j.id) && sleightOfferable(j));
+    const pool = SLEIGHT_POOL.filter(j => !usedIds.has(j.id) && sleightOfferable(j) && !_shopModeBanned(j.id));
     if (!pool.length) break;
     const roll = Math.random() * 100;
     let cum = 0, targetIdx = 0;
@@ -103,6 +103,9 @@ function _grantedSleightSet() {
 
 // Legacy overlay shop (superseded by the Mart). Kept on the same positional
 // shop stream so a seed behaves identically if USE_MART_SHOP is flipped back.
+// The legacy shop is the USE_MART_SHOP=false fallback; it draws from the raw pools,
+// so it needs the same mode ban the Mart applies (see survivalEntityBanned).
+function _shopModeBanned(id) { return typeof survivalEntityBanned === 'function' && survivalEntityBanned(id); }
 function generateShopItems() {
   return withSeededRng(_generateShopItems, 'shop', shopVisitIndex, 0);
 }
@@ -111,9 +114,9 @@ function _generateShopItems() {
   const ownedKnackIds = new Set(acquiredKnacks.map(t => t.id));
   const grantedSleights = _grantedSleightSet();
 
-  const tricks    = shuffle(TRICK_POOL.filter(b => !ownedBcIds.has(b.id))).slice(0, 3);
+  const tricks    = shuffle(TRICK_POOL.filter(b => !ownedBcIds.has(b.id) && !_shopModeBanned(b.id))).slice(0, 3);
   const lims   = pickWeightedLimits(2);
-  const knacks = shuffle(KNACK_POOL.filter(t => !ownedKnackIds.has(t.id))).slice(0, 2);
+  const knacks = shuffle(KNACK_POOL.filter(t => !ownedKnackIds.has(t.id) && !_shopModeBanned(t.id))).slice(0, 2);
   const sleights = pickSleightByRarity(3, grantedSleights);
 
   shopItems = { tricks, limits: lims, knacks, sleights };
@@ -128,7 +131,7 @@ function rerollShopItems() {
   // Tricks
   const usedBcIds = new Set(ownedBcIds);
   shopItems.tricks.forEach((trick, i) => { if (trick && shopPurchased.has(`trick-${i}`)) usedBcIds.add(trick.id); });
-  const freshTricks = shuffle(TRICK_POOL.filter(b => !usedBcIds.has(b.id)));
+  const freshTricks = shuffle(TRICK_POOL.filter(b => !usedBcIds.has(b.id) && !_shopModeBanned(b.id)));
   let bi = 0;
   shopItems.tricks = shopItems.tricks.map((trick, i) => shopPurchased.has(`trick-${i}`) ? trick : (freshTricks[bi++] || trick));
 
@@ -142,7 +145,7 @@ function rerollShopItems() {
   // Knacks
   const usedTotIds = new Set(ownedKnackIds);
   shopItems.knacks.forEach((t, i) => { if (t && shopPurchased.has(`knack-${i}`)) usedTotIds.add(t.id); });
-  const freshTots = shuffle(KNACK_POOL.filter(t => !usedTotIds.has(t.id)));
+  const freshTots = shuffle(KNACK_POOL.filter(t => !usedTotIds.has(t.id) && !_shopModeBanned(t.id)));
   let ti = 0;
   shopItems.knacks = shopItems.knacks.map((t, i) => shopPurchased.has(`knack-${i}`) ? t : (freshTots[ti++] || t));
 

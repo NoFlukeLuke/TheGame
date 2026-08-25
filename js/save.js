@@ -96,6 +96,12 @@ const SAVE_VARS = [
   'challengeCard', 'challengeActive', 'trickCardPos', 'trickCardTimer',
   // ── Survival ──
   'survivalBossTimeBank', 'survivalBossPending', 'survivalLevelsSinceLimit', 'survivalRerollsUsed',
+  // The rest of the Survival loop's state. survivalBossesBeaten in particular gates the
+  // 5-boss completion screen, so without it a resumed run never finishes.
+  'survivalLevelsSinceKnack', 'survivalRerollsLeft', 'survivalBossesBeaten',
+  'survivalSecondsToBoss', 'survivalEndless', 'survivalEndlessFromLevel',
+  // ── Flow (js/flow-mode.js) ──
+  'flowBossFighting', 'flowRefillClock',
   // ── Seed (keeps future reward grids / shops deterministic) ──
   'runSeed', 'rewardVisitIndex', 'shopVisitIndex',
 ];

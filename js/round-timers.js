@@ -62,6 +62,20 @@ function startRoundTimer() {
       if (_cd && _cd._isSleight && _cd.sleightId === 'slow_burn') _cd._slowBurnSecs = (_cd._slowBurnSecs || 0) + 1;
     }
     if (survivalActive()) survivalTickBossClock(); // 5-minute boss cadence (live play time)
+    // Tempo knack: every N seconds hand back 1 resource, alternating swap → discard → swap.
+    // The alternation always advances, even when that stock is already full, so the rhythm
+    // stays predictable instead of stalling on a capped resource.
+    if (hasKnack('tempo')) {
+      if (++tempoElapsed >= BAL.tempo.interval_seconds) {
+        tempoElapsed = 0;
+        // Refill up to the CURRENT limit, not a hardcoded 2 — so raising the swap/discard
+        // limit (shop, events, other knacks) also raises where Tempo's drip tops out.
+        if (tempoNextIsSwap) { if (swaps    < limits.swaps.current)    { swaps++;    showMessage('⏲️ Tempo — +1 swap',    'var(--gold)'); } }
+        else                 { if (discards < limits.discards.current) { discards++; showMessage('⏲️ Tempo — +1 discard', 'var(--gold)'); } }
+        tempoNextIsSwap = !tempoNextIsSwap;
+        if (!animating && !falling) render();
+      }
+    }
     handleClockMarks(roundSeconds); // clock-mark Tricks (Tick-Tock, Quarter Chime, Minute/Second Hand, Hourglass)
     trickCardTimer++;
     if (trickCardTimer >= TRICK_CARD_INTERVAL) { trickCardTimer = 0; assignTrickCard(); }
@@ -137,6 +151,10 @@ function startTimers() {
 const DISCARD_TIME_COST = 3;
 const SWAP_TIME_COST    = 4;
 function spendRoundTime(sec) {
+  // Flow: timeIsCurrency is false. Its clock is the countdown to the boss, so
+  // charging swaps/discards against it would make interacting summon the inspection
+  // early. Swaps and discards are still capped by their per-round COUNTS.
+  if (typeof flowActive === 'function' && flowActive()) return;
   if (roundEnded || !sec || sec <= 0) return;
   roundSeconds -= sec;
   if (roundSeconds < 0) roundSeconds = 0;
@@ -180,6 +198,15 @@ function stopTimers() {
 // ROUND END
 // ══════════════════════════════════════════════
 function onRoundEnd() {
+  // Flow: the clock is a 5-minute SESSION clock, not a round clock. Reaching zero
+  // summons the boss on the board as it stands — there is no round to fail here, and
+  // no goal to have missed. (During the boss itself the boss timer owns the clock, so
+  // this can only be the session clock.)
+  if (typeof flowActive === 'function' && flowActive() && !bossActive) {
+    if (roundInterval) { clearInterval(roundInterval); roundInterval = null; }
+    flowTriggerBoss();
+    return;
+  }
   if (challengeActive) {
     // Timer expired with challenge incomplete
     if (hasTrick('resilience') && !resilienceUsed) {

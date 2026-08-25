@@ -568,6 +568,7 @@ function applyRewardKnack() {
   if (eligible.length === 0) return;
   const pick = eligible[Math.floor(Math.random() * eligible.length)];
   acquiredKnacks.push({ ...pick });
+  updateKnackList?.();   // refresh the HUD + apply limit-setting knacks (Tempo)
   showMessage(`+ ${pick.name}`, 'var(--gold)');
 }
 
