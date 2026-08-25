@@ -247,9 +247,8 @@ function onCardTap(r, c) {
     }
     const _m = magnetArmed; magnetArmed = null;
     const _moved = magnetCluster(_m.r, _m.c, _t.rank);
-    lockSleightForRound(_m.card); // spends a charge / locks for the round
     showMessage(_moved ? `🧲 Magnet pulled ${_moved} ${_t.rank}${_moved > 1 ? 's' : ''} in` : `🧲 No ${_t.rank}s to pull`, _moved ? '#8fd0ff' : 'var(--cream-dim)');
-    render();
+    discardSleightAfterUse(_m.card, _m.r, _m.c); // spends a charge, then leaves the grid
     return;
   }
   // Block null cells
@@ -298,29 +297,24 @@ function onCardTap(r, c) {
         return;
       }
       hideSleightGridTooltip();
-      // Capacitor: pay 10 Focus AND 20 seconds for 10 credits, then the sleight is consumed.
+      // Capacitor: pay 10 Focus AND 20 seconds for 10 credits, then it leaves the grid (spent).
       if (jdef.id === 'capacitor') {
         if (focusNodes < BAL.capacitor.focus_cost) { showMessage(`Capacitor needs ${BAL.capacitor.focus_cost} Focus`, 'var(--cream-dim)'); return; }
         removeFocus(BAL.capacitor.focus_cost);
         roundSeconds = Math.max(1, roundSeconds - BAL.capacitor.time_cost); showTimeCost(`-${BAL.capacitor.time_cost}s`); updateClockUI();
         coins += BAL.capacitor.credits; updateCoinsUI();
         showMessage(`🔋 Capacitor — ${BAL.capacitor.focus_cost} Focus & ${BAL.capacitor.time_cost}s → ${BAL.capacitor.credits} credits`, 'var(--gold)');
-        gridData[r][c] = null; selected = []; render();
+        selected = []; discardSleightAfterUse(jcard, r, c);
         return;
       }
-      // Siphon: pay 15 Focus to charge the next hand with ×4 mult, then leave the grid.
-      // Like a normal discard it returns to the deck with its remaining charges; if that
-      // was its last charge it's spent for good.
+      // Siphon: pay 15 Focus to charge the next hand with ×4 mult, then leave the grid — it
+      // cycles back into the deck with its remaining charges, or is spent on its last charge.
       if (jdef.id === 'siphon') {
         if (focusNodes < BAL.siphon.focus_cost) { showMessage(`Siphon needs ${BAL.siphon.focus_cost} Focus`, 'var(--cream-dim)'); return; }
         removeFocus(BAL.siphon.focus_cost);
         siphonMultX = BAL.siphon.mult;
-        if (typeof jcard._usesLeft === 'number') jcard._usesLeft--;
-        const _spent = (typeof jcard._usesLeft === 'number' && jcard._usesLeft <= 0);
-        gridData[r][c] = null;
-        if (!_spent) discardToDrawPile(jcard);   // back into circulation with charges left
         showMessage(`🩸 Siphon — next hand ×${BAL.siphon.mult} mult!`, 'var(--gold)');
-        selected = []; render();
+        selected = []; discardSleightAfterUse(jcard, r, c);
         return;
       }
       // Magnet: don't fire yet — arm it and wait for the player to tap a target card.
@@ -331,8 +325,9 @@ function onCardTap(r, c) {
         render();
         return;
       }
+      // Amplifier / Snooze / Piggy Bank: fire, then leave the grid (discard-on-use, r164).
       applySleightGridEffect(jdef.id, r, c);
-      lockSleightForRound(jcard);
+      selected = []; discardSleightAfterUse(jcard, r, c);
       return;
     }
     // otherwise fall through to normal selection/swap handling below

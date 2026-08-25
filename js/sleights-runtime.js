@@ -47,6 +47,18 @@ function lockSleightForRound(card) {
     showMessage(`${sleightDef(card)?.name || 'Sleight'} consumed — locked until discarded or played`, 'var(--cream-dim)');
 }
 
+// Active-tap sleights (Amplifier/Snooze/Piggy Bank/Magnet/Capacitor/Siphon) LEAVE the grid
+// the moment they fire — replacing the old once-per-round lock. Like a normal discard the
+// card cycles back into the deck with its remaining charges (discardToPlayed drops it once
+// fully spent), and removeAndFall animates it out AND refills the hole (nulling the cell by
+// hand would leave a permanent gap). Fire-and-forget, mirroring doDiscard.
+function discardSleightAfterUse(card, r, c) {
+  if (!card) return;
+  if (typeof card._usesLeft === 'number') card._usesLeft--;
+  discardToPlayed(card);                 // back into circulation with charges left (or dropped if spent)
+  removeAndFall([[r, c]], 'discard');    // slide it out + gravity-refill the cell
+}
+
 // ── Exalt / Corrupt helpers ──
 function exaltCard(r, c) {
   if (!exaltCorruptEnabled) return; // mechanic paused
@@ -440,7 +452,7 @@ function showSleightGridTooltip(r, c, card) {
   tip.className = 'sleight-tooltip';
   const _usedLock = card._usedThisRound ? ' · USED THIS ROUND' : '';
   const _hint = def.id === 'stopwatch' ? 'DOUBLE-TAP TO FREEZE THE CLOCK'
-              : def.activation === 'double_tap' ? `DOUBLE-TAP TO ACTIVATE · ONCE PER ROUND${_usedLock}`
+              : def.activation === 'double_tap' ? 'DOUBLE-TAP TO ACTIVATE · DISCARDED AFTER USE'
               : def.activation === 'on_play' ? 'SELECT &amp; PLAY TO ACTIVATE'
               : def.activation === 'on_discard' ? 'SELECT &amp; DISCARD TO ACTIVATE'
               : def.activation === 'on_swap' ? `SWAP TO ACTIVATE · ONCE PER ROUND${_usedLock}`

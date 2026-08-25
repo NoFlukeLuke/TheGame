@@ -1,4 +1,4 @@
-const BUILD = '2026-08-24 · r165 · Portrait Tricks stay on screen in their own half; when there are more than fit they fan over each other like a held hand, newest fully visible';
+const BUILD = '2026-08-24 · r166 · double-tap sleights discard on use (Amplifier/Snooze/Piggy Bank/Magnet/Capacitor/Siphon cycle back to deck); Siphon 4-charge + hole-refill fixes [onto r165 portrait]';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
