@@ -47,6 +47,18 @@ function lockSleightForRound(card) {
     showMessage(`${sleightDef(card)?.name || 'Sleight'} consumed — locked until discarded or played`, 'var(--cream-dim)');
 }
 
+// Active-tap sleights (Amplifier/Snooze/Piggy Bank/Magnet/Capacitor/Siphon) LEAVE the grid
+// the moment they fire — replacing the old once-per-round lock. Like a normal discard the
+// card cycles back into the deck with its remaining charges (discardToPlayed drops it once
+// fully spent), and removeAndFall animates it out AND refills the hole (nulling the cell by
+// hand would leave a permanent gap). Fire-and-forget, mirroring doDiscard.
+function discardSleightAfterUse(card, r, c) {
+  if (!card) return;
+  if (typeof card._usesLeft === 'number') card._usesLeft--;
+  discardToPlayed(card);                 // back into circulation with charges left (or dropped if spent)
+  removeAndFall([[r, c]], 'discard');    // slide it out + gravity-refill the cell
+}
+
 // ── Exalt / Corrupt helpers ──
 function exaltCard(r, c) {
   if (!exaltCorruptEnabled) return; // mechanic paused
@@ -80,6 +92,92 @@ function getNeighborsAll(r, c) {
     if (nr >= 0 && nr < gridRows && nc >= 0 && nc < gridCols) out.push([nr, nc]);
   }
   return out;
+}
+
+// ── Orthogonal neighbors (adjacency for Whetstone / Jury-Rig) ──
+function getNeighborsOrtho(r, c) {
+  const out = [];
+  [[r-1,c],[r+1,c],[r,c-1],[r,c+1]].forEach(([nr, nc]) => {
+    if (nr >= 0 && nr < gridRows && nc >= 0 && nc < gridCols) out.push([nr, nc]);
+  });
+  return out;
+}
+const _isOrthoAdj = (r1, c1, r2, c2) => Math.abs(r1 - r2) + Math.abs(c1 - c2) === 1;
+
+// ── Whetstone: sharpens on nearby churn ──────────────────────────────────────
+// Every adjacent card swapped or discarded adds +1 mult, banked on the card itself
+// (_whetMult) so it survives deck cycling. `cells` = the cells just swapped/discarded.
+function feedWhetstones(cells) {
+  let fed = 0;
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
+    const card = gridData[r]?.[c];
+    if (!card?._isSleight || card.sleightId !== 'whetstone') continue;
+    // The Whetstone's own cell never counts — only cards moved/removed beside it.
+    const gain = cells.filter(([cr, cc]) => !(cr === r && cc === c) && _isOrthoAdj(cr, cc, r, c)).length;
+    if (gain) { card._whetMult = (card._whetMult || 0) + gain * BAL.whetstone.mult_per_event; fed += gain; }
+  }
+  if (fed) showMessage(`🔪 Whetstone +${fed} mult`, '#ffd700');
+}
+// Mult a scored hand collects: each Whetstone next to at least one scored card gives
+// everything it has sharpened. Several Whetstones stack.
+function whetstoneMultForCells(cells) {
+  let total = 0;
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
+    const card = gridData[r]?.[c];
+    if (!card?._isSleight || card.sleightId !== 'whetstone' || !card._whetMult) continue;
+    if (cells.some(([cr, cc]) => _isOrthoAdj(cr, cc, r, c))) total += card._whetMult;
+  }
+  return total;
+}
+
+// ── Entourage: +mult per OTHER Sleight on the grid (each Entourage counts the rest) ──
+function entourageMult() {
+  let sleightCount = 0, entourages = 0;
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
+    const card = gridData[r]?.[c];
+    if (!card?._isSleight) continue;
+    sleightCount++;
+    if (card.sleightId === 'entourage') entourages++;
+  }
+  return entourages ? entourages * Math.max(0, sleightCount - 1) * BAL.entourage.mult_per_sleight : 0;
+}
+
+// ── Lighthouse: full mult in the round's favored column, decaying by distance, floored at 0 ──
+function lighthouseMult() {
+  let total = 0;
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
+    const card = gridData[r]?.[c];
+    if (!card?._isSleight || card.sleightId !== 'lighthouse') continue;
+    const dist = Math.abs(c - lighthouseColumn);
+    total += Math.max(0, BAL.lighthouse.mult - dist * BAL.lighthouse.falloff_per_column);
+  }
+  return total;
+}
+
+// ── Jury-Rig knack: swapping/discarding beside a Sleight may restore one of its charges ──
+// Restore 1 charge, never above the Sleight's printed durability ('infinite' is a no-op).
+function restoreSleightCharge(card) {
+  if (!card || card._usesLeft === 'infinite') return false;
+  const def = sleightDef(card);
+  const cap = (def && typeof def.durability === 'number') ? def.durability : null;
+  if (cap === null || (card._usesLeft || 0) >= cap) return false;
+  card._usesLeft = Math.min(cap, (card._usesLeft || 0) + BAL.jury_rig.charges);
+  return true;
+}
+// One roll per adjacent Sleight (deduped by _id so a Sleight beside both swapped cells
+// still only rolls once for that action).
+function juryRigRoll(cells) {
+  if (!hasKnack('jury_rig')) return;
+  const seen = new Set(), targets = [];
+  cells.forEach(([cr, cc]) => getNeighborsOrtho(cr, cc).forEach(([nr, nc]) => {
+    const card = gridData[nr]?.[nc];
+    if (!card?._isSleight || seen.has(card._id)) return;
+    seen.add(card._id); targets.push(card);
+  }));
+  targets.forEach(card => {
+    if (Math.random() >= BAL.jury_rig.chance) return;
+    if (restoreSleightCharge(card)) showMessage(`🔧 Jury-Rig — ${sleightDef(card)?.name || 'Sleight'} +1 charge`, '#6aaa6a');
+  });
 }
 
 // ── round_start sleights (none in current pool, kept for framework) ──
@@ -337,16 +435,28 @@ function showSleightGridTooltip(r, c, card) {
   const gridEl = document.getElementById('grid');
   const sleightEl = gridEl?.querySelector(`[data-card-id="${card._id}"]`);
   if (!sleightEl) return;
-  const uses = card._usesLeft === 'infinite' ? '∞ uses' : `${card._usesLeft} use${card._usesLeft !== 1 ? 's' : ''} left`;
+  let uses = card._usesLeft === 'infinite' ? '∞ uses' : `${card._usesLeft} use${card._usesLeft !== 1 ? 's' : ''} left`;
+  // Whetstone banks mult on the card itself — surface it, it's the whole point of the Sleight.
+  if (def.id === 'whetstone') uses = `+${card._whetMult || 0} mult sharpened`;
+  // Lighthouse's value depends on where it is right now — show the live number.
+  if (def.id === 'lighthouse') {
+    const _v = Math.max(0, BAL.lighthouse.mult - Math.abs(c - lighthouseColumn) * BAL.lighthouse.falloff_per_column);
+    uses = `+${_v} mult here · favors column ${lighthouseColumn + 1}`;
+  }
+  if (def.id === 'entourage') uses = `+${entourageMult()} mult right now`;
+  // Focus-spend sleights: show what they'll cost against what you have right now.
+  if (def.id === 'capacitor') uses = `needs ${BAL.capacitor.focus_cost} Focus · you have ${focusNodes}`;
+  if (def.id === 'siphon')    uses = `needs ${BAL.siphon.focus_cost} Focus · you have ${focusNodes}`;
   const tip = document.createElement('div');
   tip.id = 'sleight-grid-tooltip';
   tip.className = 'sleight-tooltip';
   const _usedLock = card._usedThisRound ? ' · USED THIS ROUND' : '';
   const _hint = def.id === 'stopwatch' ? 'DOUBLE-TAP TO FREEZE THE CLOCK'
-              : def.activation === 'double_tap' ? `DOUBLE-TAP TO ACTIVATE · ONCE PER ROUND${_usedLock}`
+              : def.activation === 'double_tap' ? 'DOUBLE-TAP TO ACTIVATE · DISCARDED AFTER USE'
               : def.activation === 'on_play' ? 'SELECT &amp; PLAY TO ACTIVATE'
               : def.activation === 'on_discard' ? 'SELECT &amp; DISCARD TO ACTIVATE'
               : def.activation === 'on_swap' ? `SWAP TO ACTIVATE · ONCE PER ROUND${_usedLock}`
+              : def.activation === 'passive' ? 'ALWAYS ACTIVE WHILE ON THE GRID'
               : 'LONG-PRESS FOR TOOLTIP';
     tip.innerHTML = `<div class="sleight-tooltip-name">${def.emoji} ${def.name}</div><div class="sleight-tooltip-desc">${colorizeKeywords(def.desc)}</div><div class="sleight-tooltip-uses">${uses}</div><div class="sleight-tooltip-hint">${_hint}</div>`;
   tip.style.opacity = '0';

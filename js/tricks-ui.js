@@ -363,8 +363,14 @@ function renderTrickTray() {
     track.appendChild(chip);
   });
   list.appendChild(track);
-  // Slow horizontal auto-scroll if the strip overflows (no scroll UI).
-  applyChipMarquee(list, track);
+  // Portrait fans the tiles over each other when they don't fit; landscape (and
+  // the fallback) keeps the slow auto-scroll marquee. Doing both would fight:
+  // the marquee duplicates the tiles, which the fan would then measure.
+  if (typeof fanTrickTray === 'function' && fanTrickTray(list, track)) {
+    // fanned — no marquee
+  } else {
+    applyChipMarquee(list, track);
+  }
   // Hover tooltips for every tile (originals + marquee clones).
   list.querySelectorAll('.trick-tray-chip').forEach(chip => {
     const trick = trickTray.find(t => t.id === chip.dataset.trickId);
@@ -717,3 +723,65 @@ document.getElementById('btn-play').addEventListener('click', () => {
 document.getElementById('btn-discard').addEventListener('click', doDiscard);
 
 // ══════════════════════════════════════════════
+
+
+// ══════════════════════════════════════════════
+// TRICK TRAY FAN  (r160)
+// ══════════════════════════════════════════════
+// The portrait tray is half a narrow strip, and its tiles are drawn at ~70% of
+// the strip's height, so anything past three Tricks will not fit side by side.
+// Rather than shrink them or scroll them out of sight, the tiles TUCK OVER each
+// other like a held hand: each one covers part of the previous, the newest sits
+// fully visible on the right, and the rarity edge of every earlier tile still
+// shows. A row that fits is left exactly as it was.
+//
+// Returns true when it took charge of the layout (so the caller skips the
+// marquee), false in landscape or when there is nothing to measure.
+const FAN_MIN_STEP = 13;   // px of each tucked tile that must stay visible
+
+function fanTrickTray(list, track) {
+  if (!list || !track) return false;
+  // Landscape anchors the tray in its own wide box and already re-flows there.
+  const stage = document.getElementById('stage');
+  if (!stage || stage.classList.contains('landscape')) return false;
+
+  const chips = [...track.querySelectorAll('.trick-tray-chip')];
+  list.classList.remove('fanned');
+  if (!chips.length) return false;
+
+  // Measured, not assumed: the tile width comes from CSS (it changes with the
+  // 70% sizing) and the room available depends on the live strip.
+  //
+  // BOTH measurements must be in the same units. The cabinet applies CSS `zoom`,
+  // which getBoundingClientRect() reports scaled but offsetWidth/clientWidth do
+  // not — mixing the two silently divides the step by the zoom factor.
+  // offsetWidth/clientWidth are the layout-px pair, which is also the unit the
+  // value is written back out in.
+  const tile  = chips[0].offsetWidth || 47;
+  const avail = list.clientWidth;
+  chips.forEach((c, i) => c.style.setProperty('--fan-z', String(i + 1)));  // later tiles on top
+
+  if (avail <= 0) return false;   // not laid out yet — leave it alone
+
+  const GAP = 4;
+  const PAD = 3;          // rounding + the track's own box; without it the fan
+                          // lands a few px wide and clips its leftmost tile
+  const room = avail - PAD;
+  const n = chips.length;
+
+  // ONE variable, and it is the gap between tiles — positive when they fit,
+  // negative when they tuck. Writing the measured TILE width back into a var
+  // that the tile's own `width` reads would be a feedback loop; this cannot be.
+  if (n * tile + (n - 1) * GAP <= room) {
+    track.style.setProperty('--fan-gap', GAP + 'px');   // fits: an ordinary row
+    return true;
+  }
+  // Doesn't fit: tuck each tile over the last until the row does, but never past
+  // the point where a tucked tile stops being visible. Past that floor the
+  // leftmost tiles clip instead — the list is right-aligned, so the newest
+  // Trick always stays whole.
+  const step = Math.max(FAN_MIN_STEP, (room - tile) / (n - 1));
+  track.style.setProperty('--fan-gap', (step - tile).toFixed(2) + 'px');
+  list.classList.add('fanned');
+  return true;
+}

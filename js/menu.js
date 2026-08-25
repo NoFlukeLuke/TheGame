@@ -1,4 +1,4 @@
-const BUILD = '2026-08-25 · r165 · FLOW: no-clock Survival variant — level up on goals, inspection boss every 5 minutes, max Focus 20 [clock entities banned from the pool]';
+const BUILD = '2026-08-25 · r167 · FLOW: no-clock Survival variant — level up on goals, inspection boss every 5 minutes, max Focus 20, clock entities banned from the pool [onto r166 double-tap sleights]';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

@@ -278,6 +278,9 @@ function startGame() {
   recomputeGridMetrics();
   // Reset focus meter
   focusNodes = 0;
+  growthSpurtCapPenalty = 0;      // reset Growth Spurt's eroded Focus ceiling
+  growthSpurtMaxedThisRound = false;
+  siphonMultX = 1;               // clear any pending Siphon charge
   // Flow runs a short 20-node Focus bar (decay is that mode's only pressure); every
   // other mode takes the Focus Cap limit as before. See flowFocusCapBase().
   focusCapBase = (typeof flowFocusCapBase === 'function')
@@ -340,6 +343,7 @@ function startGame() {
   handsPendingUnlock = [];
   acquiredTricks = [];
   acquiredKnacks  = [];
+  tempoInitApplied = false;   // Tempo's one-time limit-set can run again for a fresh run
   trickTray          = [];
   _trickReplaceQueue = [];
   syncTrickTrayUI();   // show the Trick tray (or grid-preview) to match trickTrayMode for the new game

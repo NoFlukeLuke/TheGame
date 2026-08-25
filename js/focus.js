@@ -233,10 +233,13 @@ function addFocus(amount) {
   const cap = focusCapNodes();
   const prev = Math.min(focusNodes, cap);
   focusNodes = Math.min(focusNodes + amount, cap);
+  const _justMaxed = prev < cap && focusNodes === cap;
   // Expanse: each time we hit max capacity, bump the cap by 10 nodes (for the rest of the run)
-  if (hasTrick('expanse') && prev < cap && focusNodes === cap) {
+  if (hasTrick('expanse') && _justMaxed) {
     focusCapPerm += 10;
   }
+  // r123 focus-payout entities fire on the transition INTO max Focus.
+  if (_justMaxed) onFocusMaxed();
   // Keep the bar's node count in sync if capacity changed, preserving already-filled nodes.
   if (focusNodeEls.length !== focusCapNodes()) {
     buildFocusMeter();
@@ -246,6 +249,44 @@ function addFocus(amount) {
   const newTotal = Math.min(focusNodes, focusCapNodes());
   for (let i = prev; i < newTotal; i++) focusAnimQueue.push({ nodeIdx: i });
   runFocusAnimQueue();
+}
+
+// ── Focus-payout entities (r123): fire when Focus transitions INTO max ──
+// Called from inside addFocus. Resource/credit grants happen immediately; any Focus
+// *drop* is deferred ~260ms so the fill-to-max animation plays first (a visible
+// "discharge" beat) and we never call removeFocus() while addFocus's queue is mid-flight.
+function onFocusMaxed() {
+  // Immediate grants; any Focus DROP or cap change is deferred ~260ms so the fill-to-max
+  // animation plays first and we never mutate focusNodes while addFocus's queue is in flight.
+  let keepFrac = null; // smallest "fraction of cap to keep" across active droppers (min wins)
+  if (hasKnack('dividend')) {
+    coins += BAL.dividend.credits; updateCoinsUI();
+    showMessage(`🏦 Dividend — +${BAL.dividend.credits} credits`, 'var(--gold)');
+    keepFrac = Math.min(keepFrac ?? 1, BAL.dividend.keep_fraction);   // reset to 33% of max
+  }
+  if (hasTrick('release_valve')) {
+    swaps++; discards++;
+    showMessage('🎚️ Release Valve — +1 swap, +1 discard', 'var(--gold)');
+    if (!animating && !falling) render();
+    keepFrac = Math.min(keepFrac ?? 1, BAL.release_valve.keep_fraction); // lose 50% Focus
+  }
+  const _gs = hasKnack('growth_spurt');
+  if (_gs) {
+    // Each max lowers the ceiling by 5 (permanent, floored in focusCapNodes); the random
+    // limit is banked once and granted at round end (triggerLevelUp) if you maxed at all.
+    growthSpurtMaxedThisRound = true;
+    showMessage(`🌱 Growth Spurt — max Focus −${BAL.growth_spurt.cap_reduction}`, 'var(--gold)');
+  }
+  if (keepFrac !== null || _gs) setTimeout(() => {
+    if (_gs) growthSpurtCapPenalty += BAL.growth_spurt.cap_reduction;
+    const cap = focusCapNodes();
+    let target = focusNodes;
+    if (keepFrac !== null) target = Math.min(target, Math.floor(cap * keepFrac));
+    target = Math.min(target, cap);                  // Growth Spurt may have lowered the ceiling
+    const amt = Math.max(0, focusNodes - target);
+    if (amt > 0) removeFocus(amt);
+    else { buildFocusMeter(); syncFocusMeterState(); } // cap shrank but nothing to drop — resync
+  }, 260);
 }
 
 // Spawn a temp clone of `srcEl` at its current viewport position on document.body,
