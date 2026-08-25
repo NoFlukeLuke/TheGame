@@ -333,7 +333,9 @@ A log of FINISHED runs, written once when a run ends and read from the main menu
 
 ## Portrait shared strip — `js/portrait-panel.js` (r156)
 
-Portrait has one narrow strip (`#trick-panel`) for three things that all want room. Landscape anchors each in its own box; portrait can't, so **all three — Tricks, Knacks and the hand preview — SHARE the whole strip** and `#panel-swap-btn` (small, top-right) cycles between them (`PORTRAIT_VIEWS`, r159). Tricks used to hold its own half; giving each view the full width is what lets the tiles and preview cards be drawn at **~70% of the strip's height** (owner's spec) instead of 50%.
+Portrait has one narrow strip (`#trick-panel`) for three things that all want room. Landscape anchors each in its own box; portrait can't, so **the Trick tray keeps the left half and is always on screen**, while **Knacks and the hand preview share the right half** — `#panel-swap-btn` (small, top-right) picks between those two (`PORTRAIT_VIEWS`). Tiles and preview cards are drawn at **~70% of the strip's height** (owner's spec) instead of 50%.
+
+**r159 briefly made all three take turns and that was wrong** — it hid the Tricks the player needs at a glance. Tricks that don't fit their half **fan over each other** instead (below).
 
 Before this, **portrait had no hand preview at all**: `syncTrickTrayUI()` sets `#hand-preview-area { display:none }` *inline* whenever Tricks live in the tray (the default), and only landscape overrode it. The scoring dance renders into `#selected-cards` inside that hidden element — so in portrait the **entire dance ran in a 0×0 invisible box** (verified: `.dnc-active` set, children inside, zero size). `flyGridCardToSlot` bails to a plain reveal on a zero-width target, which is why portrait scoring looked like nothing happened.
 
@@ -341,9 +343,21 @@ Before this, **portrait had no hand preview at all**: `syncTrickTrayUI()` sets `
 - **Every portrait rule is scoped `#stage:not(.landscape)`.** That's deliberate: the block stops matching the moment `.landscape` is on, so there's no specificity race with the landscape layout. **Follow this pattern for new portrait CSS.**
 - **`portraitDanceBegin/End`** (wired into `playPreviewDance` and both its abort and normal-completion paths) auto-swap to the preview for the dance, then restore **whatever was actually showing** (`_pvBeforeDance`), not the last manual pick — a Knack granted just before the hand surfaces Knacks, and bouncing to Tricks afterwards reads as a glitch. An auto-swap still never overwrites `portraitPanelUserView`.
 - **`.dnc-track`'s 8px vertical padding is trimmed in portrait.** At 70% card height a 5-card hand's dance stage came within 2px of the strip's edge; trimming the padding keeps the card size and buys the headroom (measured 73px → 58px in a 75px strip).
-- **Gaining a Knack flips to Knacks, gaining a Trick flips to Tricks**, hooked on the count inside `updateKnackList()` / `renderTrickTray()` rather than the many separate grant sites, so a future grant path gets it free. **That call re-enters `updateKnackList`** (to re-measure the marquee), so the tally is updated *before* the flip and `_pvRemeasuring` guards the re-entry — get that order wrong and it recurses forever.
+- **Gaining a Knack flips to Knacks**, hooked on the count inside `updateKnackList()` rather than the many separate grant sites, so a future grant path gets it free. (Tricks needs no such flip — its half is never hidden; `portraitShowTricks()` is kept as a no-op so the grant path doesn't have to know that.) **That call re-enters `updateKnackList`** (to re-measure the marquee), so the tally is updated *before* the flip and `_pvRemeasuring` guards the re-entry — get that order wrong and it recurses forever.
 - **`.trick-card` is the GRID tile** (`position:absolute`, `width:var(--card-w,57px)`) and is defined later in the stylesheet than `.trick-tray-chip`, so it won for portrait tray chips: every Trick stacked absolutely at the tray's origin with one grid-sized card hanging outside the panel. Landscape already re-flows them; portrait now has its own smaller version. Rarity colours (`--rc`) were also landscape-only and are now assigned for portrait too.
 - Chip rows use `applyChipMarquee`, which measures `clientWidth` — **a row rendered while its half is hidden measures 0 and never gets its auto-scroll**, hence the re-measure on swap.
+
+### The Trick fan (`fanTrickTray`, r160)
+
+The tray is half a narrow strip and its tiles are ~70% of the strip's height, so past three Tricks they cannot sit side by side. Rather than shrink or scroll them, the tiles **tuck over each other like a held hand**: each covers part of the previous, the **newest sits fully visible on the right**, and the rarity edge of every earlier tile still shows.
+
+- **One CSS variable, `--fan-gap`** — the space between tiles, positive when they all fit (an ordinary row) and negative when they tuck. Measured and set in JS.
+- **Do NOT write the measured tile width back into a var the tile's own `width` reads.** The first version did (`--fan-tile`) and that is a feedback loop.
+- **Measure `offsetWidth`/`clientWidth`, never `getBoundingClientRect()`, for this.** The cabinet applies CSS `zoom`: `getBoundingClientRect()` reports scaled, `offsetWidth` does not, and mixing them silently divides the step by the zoom factor. That bug produced a fan that *looked* fine and was wrong by ~20%.
+- **`FAN_MIN_STEP` (13px) floors how far a tile can tuck.** Past that the leftmost tiles clip instead — the row is right-aligned, so the newest Trick always stays whole. At the 10-Trick cap the step lands at ~14px, just inside the floor.
+- **A tucked tile shows only its LEFT edge**, and the emoji is centred, so the sliver came out blank — a row of dead dark slices. Fanned tiles move the emoji to the **top-left corner** at 13px, the way a fanned hand shows its corner index, and drop the name (no room).
+- **The fan replaces the marquee in portrait, and the two must not both run**: `applyChipMarquee` duplicates the tiles, which the fan would then measure. `renderTrickTray` calls `fanTrickTray` first and only falls back to the marquee when it returns false (landscape, or nothing to measure).
+- The **`n/10` count moved onto its own line** (the tray is a column now); it used to be pinned bottom-right, where a full-width fan buried it.
 
 ## Score panel & the PMF merge (r157)
 

@@ -1,4 +1,4 @@
-const BUILD = '2026-08-24 · r162 · Run history (HISTORY on the main menu) + portrait: Tricks joins the swap cycle so all three views get the full strip, tiles and preview cards at 70%';
+const BUILD = '2026-08-24 · r163 · Portrait Tricks stay on screen in their own half again; when there are more than fit they fan over each other like a held hand, newest fully visible';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
