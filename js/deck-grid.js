@@ -265,7 +265,11 @@ function dealGrid() {
 // HELPERS
 // ══════════════════════════════════════════════
 function cardPips(rank) {
-  return RANK_PIPS[rank] || parseInt(rank) || 10;
+  // NB: the old `parseInt(rank) || 10` turned Spectrum's 0 card into a 10 —
+  // 0 is falsy. Check for a real number instead; classic ranks are unchanged.
+  if (RANK_PIPS[rank] != null) return RANK_PIPS[rank];
+  const n = parseInt(rank);
+  return Number.isFinite(n) ? n : 10;
 }
 
 function cardKey(rank, suit) { return `${rank}-${suit}`; }

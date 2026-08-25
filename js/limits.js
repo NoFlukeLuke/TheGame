@@ -69,9 +69,39 @@ function pickWeightedLimits(n, pool) {
   }
   return out;
 }
+// ── Tempo knack: sets the swap/discard limits to 2, ONCE, when it's acquired ──
+// Like every other limit-changing entity, Tempo imposes its value on top of whatever the
+// limits were, then gets out of the way — it does NOT lock them. Later increases (shop
+// upgrades, Swap Shop / Harvest, events, other knacks) stack on top of the 2 exactly as
+// they would on the base, so wild combos stay open. The per-round drip (round-timers.js)
+// refills up to the *current* limit, so raising the limit also raises where the drip tops
+// out. The one-shot flag (tempoInitApplied) makes sure repeated updateKnackList() calls
+// from later acquisitions don't re-slam the limit back to 2. Reset on new game.
+function applyTempoLimitOnce() {
+  if (typeof hasKnack !== 'function' || !hasKnack('tempo') || tempoInitApplied) return;
+  tempoInitApplied = true;
+  const n = BAL.tempo.limit;
+  limits.swaps.current    = n;
+  limits.discards.current = n;
+  if (typeof swaps    === 'number') swaps    = Math.min(swaps, n);
+  if (typeof discards === 'number') discards = Math.min(discards, n);
+}
+
 // Trick tray capacity (the trick_slots limit). Enforced in injectTrickAfterReward.
 function trickCapacity() {
   return (limits.trick_slots?.current ?? 5) + ((typeof hasKnack === 'function' && hasKnack('curator')) ? 1 : 0);
+}
+
+// Raise a random non-maxed limit by its step (Growth Spurt). Uses the shop's weighted
+// picker so rare limits (trick_slots, focus_cap) show up proportionally less often.
+function grantRandomLimit(label) {
+  const pool = LIMITS_DEF.filter(d => limits[d.id].current < limits[d.id].max);
+  if (pool.length === 0) { showMessage(`${label || 'Limit up'} — all limits maxed!`, 'var(--cream-dim)'); return; }
+  const pick = pickWeightedLimits(1, pool)[0];
+  if (!pick) return;
+  const step = pick.step || 1;
+  incrementLimit(pick.id);
+  showMessage(`${label || 'Limit up'} — ${pick.label} +${step}`, 'var(--gold)');
 }
 
 // Rank value with Ace HIGH (=14). Shared by knacks that care about the grid's

@@ -435,6 +435,23 @@
     </label>
   </div>
 
+  <div class="dev-section" data-group="spectrum">
+    <div class="dev-section-title">Spectrum Deck</div>
+    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:-2px;">
+      Which values and colours are in the deck. Changes apply at the START OF THE NEXT ROUND — the round you are playing keeps the deck it was dealt.
+    </div>
+    <div style="font-family:Cinzel,serif;font-size:9px;letter-spacing:2px;color:var(--gold-dim);margin-top:4px;">VALUES</div>
+    <div id="dev-spectrum-ranks" class="dev-spec-row"></div>
+    <div style="font-family:Cinzel,serif;font-size:9px;letter-spacing:2px;color:var(--gold-dim);margin-top:4px;">COLOURS</div>
+    <div id="dev-spectrum-colors" class="dev-spec-row"></div>
+    <div id="dev-spectrum-status" style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--cream-dim);margin-top:6px;"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;">
+      <button class="dev-btn" onclick="spectrumTuneAll('ranks')">All values</button>
+      <button class="dev-btn" onclick="spectrumTuneAll('colors')">All colours</button>
+      <button class="dev-btn" onclick="spectrumApplyNow()">Apply now (re-deal)</button>
+    </div>
+  </div>
+
   <div class="dev-section" data-group="log">
     <div class="dev-section-title">Event Log <span id="dev-log-count" style="color:var(--cream-dim);">(0)</span></div>
     <div id="dev-event-log">No events yet.</div>
@@ -957,6 +974,7 @@
 <script src="js/audio.js"></script>
 <script src="js/match3.js"></script>
 <script src="js/survival.js"></script>
+<script src="js/spectrum.js"></script>
 <script src="js/records.js"></script>
 <script src="js/settings.js"></script>
 <script src="js/tutorial.js"></script>

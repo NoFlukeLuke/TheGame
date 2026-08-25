@@ -72,7 +72,7 @@ function pickSleightByRarity(count, excluded) {
   const result = [];
   const usedIds = new Set(excluded);
   for (let i = 0; i < count; i++) {
-    const pool = SLEIGHT_POOL.filter(j => !usedIds.has(j.id));
+    const pool = SLEIGHT_POOL.filter(j => !usedIds.has(j.id) && sleightOfferable(j));
     if (!pool.length) break;
     const roll = Math.random() * 100;
     let cum = 0, targetIdx = 0;

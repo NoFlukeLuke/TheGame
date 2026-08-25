@@ -10,7 +10,7 @@ function confluencePoolForTheme(theme) {
     if (t && !ownedKnacks.has(t.id))
       items.push({ type:'knack', icon:t.emoji, name:t.name, desc:t.desc, rarity:'legendary', payload:t });
   });
-  SLEIGHT_POOL.filter(j => !ownedSleights.has(j.id) && j.tags?.some(t => theme.sleightTags.includes(t)))
+  SLEIGHT_POOL.filter(j => !ownedSleights.has(j.id) && sleightOfferable(j) && j.tags?.some(t => theme.sleightTags.includes(t)))
     .forEach(j => items.push({ type:'sleight', icon:j.emoji, name:j.name, desc:j.desc, rarity:j.rarity, payload:j }));
   // shuffle and cap at 3
   const a = [...items]; for (let i = a.length-1; i > 0; i--) { const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
@@ -144,7 +144,7 @@ function buildCrossroadsTrades() {
     const rarityUp = { common:'rare', rare:'legendary' };
     const nextRarity = rarityUp[j.rarity];
     if (nextRarity) {
-      const eligible = SLEIGHT_POOL.filter(x=>!grantedSleightIds.has(x.id) && x.rarity===nextRarity);
+      const eligible = SLEIGHT_POOL.filter(x=>!grantedSleightIds.has(x.id) && sleightOfferable(x) && x.rarity===nextRarity);
       if (eligible.length > 0) {
         const pick = eligible[Math.floor(Math.random()*eligible.length)];
         trades.push({ icon:'🔁', name:`Upgrade Sleight: ${pick.emoji} ${pick.name}`, desc:`Lose "${j.name}". Gain the ${nextRarity} sleight "${pick.name}". ${pick.desc}`, rarity:nextRarity,
@@ -540,7 +540,7 @@ function renderMerchant() {
   const ownedKnacks = new Set((acquiredKnacks ||[]).map(t=>t.id));
   const legends = TRICK_POOL.filter(b=>!ownedTrick.has(b.id) && (b.tier==='legendary'||b.tier==='rare'));
   const knacks  = KNACK_POOL.filter(t=>!ownedKnacks.has(t.id));
-  const sleights  = SLEIGHT_POOL.filter(j=>!grantedSleightIds.has(j.id) && (j.rarity==='rare'||j.rarity==='legendary'));
+  const sleights  = SLEIGHT_POOL.filter(j=>!grantedSleightIds.has(j.id) && sleightOfferable(j) && (j.rarity==='rare'||j.rarity==='legendary'));
   const sh = a => { const r=[...a]; for(let i=r.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[r[i],r[j]]=[r[j],r[i]];} return r; };
   const items = [];
   sh(legends).slice(0,2).forEach(b => items.push({ type:'trick', icon:'★', rarity:b.tier, name:b.name, desc:b.desc, payload:b }));

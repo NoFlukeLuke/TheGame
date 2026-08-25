@@ -135,7 +135,7 @@ function _generateRewardContent() {
   }
 
   function makeSleightPayload() {
-    const eligible = SLEIGHT_POOL.filter(j => !grantedSleightIds.has(j.id));
+    const eligible = SLEIGHT_POOL.filter(j => !grantedSleightIds.has(j.id) && sleightOfferable(j));
     if (!eligible.length) return makeTrickPayload(); // fallback
     const [pick] = pickSleightByRarity(1, grantedSleightIds);
     if (!pick) return makeTrickPayload();
@@ -567,6 +567,7 @@ function applyRewardKnack() {
   if (eligible.length === 0) return;
   const pick = eligible[Math.floor(Math.random() * eligible.length)];
   acquiredKnacks.push({ ...pick });
+  updateKnackList?.();   // refresh the HUD + apply limit-setting knacks (Tempo)
   showMessage(`+ ${pick.name}`, 'var(--gold)');
 }
 

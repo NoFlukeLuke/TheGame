@@ -26,6 +26,10 @@ function computeRoundResources() {
   if (hasKnack('extra_swaps'))    s += BAL.extra_swaps.swaps;
   if (hasKnack('extra_discards')) d += BAL.extra_discards.discards;
 
+  // NOTE: Tempo is NOT special-cased here. It sets limits.swaps/discards.current to 2 once
+  // (applyTempoLimitOnce), so the normal computation above already reflects it via the
+  // limitSwapBonus / limitDiscardBonus deltas — and any later limit increases flow through
+  // untouched, keeping the door open to combos.
   return { discards: Math.max(0, d), swaps: Math.max(0, s), seconds: Math.max(1, sec) };
 }
 
@@ -38,6 +42,9 @@ function triggerLevelUp() {
   roundInterval = null;
   goalReachedThisRound = false;
   roundEnded = false;
+  // Growth Spurt: if the player reached max Focus at all this round, bank a random limit now.
+  if (hasKnack('growth_spurt') && growthSpurtMaxedThisRound) grantRandomLimit('🌱 Growth Spurt');
+  growthSpurtMaxedThisRound = false;
 
   // Apply any pending grid-size changes for the new round, then resize cards.
   // Must happen before Trick re-placement and the deal animation populate gridData.
@@ -86,6 +93,9 @@ function triggerLevelUp() {
 
   // Reset round
   flushPlayedDeck(); // played cards rejoin the pool for the new round
+  // Spectrum: a rank/colour change made in the dev tuner during the round lands
+  // here, at the boundary — never under the player's hand mid-round.
+  if (typeof spectrumApplyPendingDeck === 'function') spectrumApplyPendingDeck();
 
   // Bank unused resources before resetting
   if (hasKnack('carry_swaps'))    accumulatedSwaps    = Math.min(BAL.carry_swaps.max, accumulatedSwaps    + swaps);
@@ -195,6 +205,10 @@ function triggerLevelUp() {
   } else metronomeHandType = null;
   // Shady Tree sleight: pick this round's "shady" column.
   shadyColumn = Math.floor(Math.random() * gridCols);
+  // Lighthouse sleight: its favored column alternates first ↔ last each round.
+  lighthouseColumn = (lighthouseFlip++ % 2 === 0) ? 0 : gridCols - 1;
+  // Tempo knack: restart the alternating swap/discard drip, swap first.
+  tempoElapsed = 0; tempoNextIsSwap = true;
   // Stopwatch: clear any lingering freeze/timer from the previous round.
   stopwatchActive = false;
   if (stopwatchTimer) { clearInterval(stopwatchTimer); stopwatchTimer = null; }

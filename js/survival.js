@@ -143,7 +143,7 @@ function survivalBuildPools() {
   const ownedKnack = new Set(acquiredKnacks.map(k => k.id));
   const knacks = KNACK_POOL.filter(k => !survivalEntityBanned(k.id) && !ownedKnack.has(k.id));
   const grantedSl = _grantedSleightSet();
-  const sleights = SLEIGHT_POOL.filter(j => !survivalEntityBanned(j.id) && !grantedSl.has(j.id));
+  const sleights = SLEIGHT_POOL.filter(j => !survivalEntityBanned(j.id) && !grantedSl.has(j.id) && sleightOfferable(j));
   const lims = LIMITS_DEF.filter(d => limits[d.id].current < limits[d.id].max);
   return { trick: tricks, knack: knacks, sleight: sleights, limit: lims };
 }

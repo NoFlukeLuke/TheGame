@@ -19,7 +19,11 @@ function renderCardAppearance(card, r, c, {
   // ── Sleight card ──
   if (!isChallenge && card._isSleight) {
     const def = SLEIGHT_POOL.find(j => j.id === card.sleightId);
-    const usesStr = card._usesLeft === 'infinite' ? '∞' : card._usesLeft;
+    // An 'adjacent' fixture shows how close it is to paying out (1/2) rather than
+    // its charge count, which is the number that actually matters on the board.
+    const usesStr = def?.activation === 'adjacent'
+      ? `${card._adjPlays || 0}/${def.adjacentPlays || 2}`
+      : (card._usesLeft === 'infinite' ? '∞' : card._usesLeft);
     return {
       className: `trick-card sleight-card${isSwapPending ? ' swap-pending' : ''}`,
       innerHTML: `<div class="sleight-card-emoji">${def?.emoji||'🃏'}</div><div class="sleight-card-name">${def?.name||'Sleight'}</div><div class="sleight-card-uses">${usesStr}</div>`,

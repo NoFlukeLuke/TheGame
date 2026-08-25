@@ -223,9 +223,14 @@ function startGame() {
   // uses the expanded 6-suit list, Spectrum swaps both lists for the numeric
   // colour deck (7 colours × 1-15,20 = 112 cards); every other mode uses the
   // classic four suits and A-K.
-  ACTIVE_SUITS = ACTIVE_MODE.numeric ? COLORS
-               : (ACTIVE_MODE.suitCount === 6) ? SUITS_SIX : SUITS;
-  ACTIVE_RANKS = ACTIVE_MODE.numeric ? RANKS_NUMERIC : RANKS;
+  if (ACTIVE_MODE.numeric) {
+    // Spectrum reads its lists from the dev tuner (dev panel → Spectrum), which
+    // defaults to every value and every colour. See js/spectrum.js.
+    spectrumInstallLists();
+  } else {
+    ACTIVE_SUITS = (ACTIVE_MODE.suitCount === 6) ? SUITS_SIX : SUITS;
+    ACTIVE_RANKS = RANKS;
+  }
   // Some Tricks can't exist in this mode's deck (no Ace / no court / no ♠♥♦♣) —
   // rebuild the offerable pool before anything can draw from it.
   if (typeof applyModeEntityFilter === 'function') applyModeEntityFilter();
@@ -259,6 +264,9 @@ function startGame() {
   recomputeGridMetrics();
   // Reset focus meter
   focusNodes = 0;
+  growthSpurtCapPenalty = 0;      // reset Growth Spurt's eroded Focus ceiling
+  growthSpurtMaxedThisRound = false;
+  siphonMultX = 1;               // clear any pending Siphon charge
   focusCapBase = (typeof limits !== 'undefined' && limits.focus_cap) ? limits.focus_cap.current : 30;
   focusCapPerm = 0;
   focusGenGame = 0; focusGenRound = 0;
@@ -317,6 +325,7 @@ function startGame() {
   handsPendingUnlock = [];
   acquiredTricks = [];
   acquiredKnacks  = [];
+  tempoInitApplied = false;   // Tempo's one-time limit-set can run again for a fresh run
   trickTray          = [];
   _trickReplaceQueue = [];
   syncTrickTrayUI();   // show the Trick tray (or grid-preview) to match trickTrayMode for the new game
@@ -439,6 +448,9 @@ function startGame() {
   document.getElementById('clock-bar').classList.remove('urgent');
 
   initGridData();
+  // Spectrum: shuffle the four deck fixtures in. AFTER initGridData — it assigns
+  // drawPile wholesale, so anything added before this would be thrown away.
+  spectrumGrantDeckCards();
   // Match-3: quietly re-draw any matches the deal happened to create, so the
   // player starts from a still board instead of being handed a free cascade.
   if (match3Active()) match3SettleBoard();
