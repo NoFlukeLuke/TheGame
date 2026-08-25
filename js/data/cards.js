@@ -18,16 +18,41 @@ const RED = new Set(['♥','♦']);
 // Colours are emoji so any UI that just prints the suit character (deck view,
 // records, tooltips, the Mart) stays readable with no extra styling.
 const COLORS = ['🔴','🟡','🔵','🟢','🟣','🟠','⚫'];
-const COLOR_NAMES = { '🔴':'Red', '🟡':'Yellow', '🔵':'Blue', '🟢':'Green', '🟣':'Purple', '🟠':'Orange', '⚫':'Black' };
+const COLOR_NAMES = { '🔴':'Red', '🟡':'Yellow', '🔵':'Blue', '🟢':'Green', '🟣':'Purple', '🟠':'Orange', '⚫':'Black', '⚪':'White' };
 // Face hex for each colour — used by the card face, score particles and chips.
-const COLOR_HEX = { '🔴':'#d43b3b', '🟡':'#e0b81c', '🔵':'#2f6fd0', '🟢':'#2f9e54', '🟣':'#8b4bc8', '🟠':'#e07a1f', '⚫':'#23201c' };
+const COLOR_HEX = { '🔴':'#d43b3b', '🟡':'#e0b81c', '🔵':'#2f6fd0', '🟢':'#2f9e54', '🟣':'#8b4bc8', '🟠':'#e07a1f', '⚫':'#23201c', '⚪':'#efe7d6' };
 // Two classes: `num-suit` (generic hook — carries the --num-color/--num-ink
 // tokens wherever a colour card is drawn) plus the colour's own class.
-const COLOR_CLASS = { '🔴':'num-suit col-red', '🟡':'num-suit col-yellow', '🔵':'num-suit col-blue', '🟢':'num-suit col-green', '🟣':'num-suit col-purple', '🟠':'num-suit col-orange', '⚫':'num-suit col-black' };
+const COLOR_CLASS = { '🔴':'num-suit col-red', '🟡':'num-suit col-yellow', '🔵':'num-suit col-blue', '🟢':'num-suit col-green', '🟣':'num-suit col-purple', '🟠':'num-suit col-orange', '⚫':'num-suit col-black', '⚪':'num-suit col-white' };
 // Values: 0-11, then a lone 15 and a lone 20. The gaps are deliberate — 15 and
 // 20 are big-pip loners that can never be part of a run or straight, and the 0
 // is a genuine dead card (0 pips) that still counts for sets and colour flushes.
 const RANKS_NUMERIC = ['0','1','2','3','4','5','6','7','8','9','10','11','15','20'];
+// ── WHITE: the colourless values (r164) ──
+// 9, 10 and 11 have no colour of their own — every one of them is WHITE. White is
+// deliberately NOT in COLORS/ACTIVE_SUITS, and that single fact is what makes it
+// flush-inert: detectHand's flush test asks whether some ACTIVE suit covers the
+// whole hand, so a white card can never complete one. It still pairs, sets and
+// runs normally, and still counts as a colour for the colour-COUNT Tricks.
+// This is the lever that pulls flushes down without adding a playable colour —
+// measured on a 4×4 board, a Flush of 3 is available 28% of deals instead of 51%,
+// against an unchanged 58% for a Run of 3.
+// NB: the seven 9s all share the card key '9-⚪', so a permanent pip/mult buff or
+// a curse on one white 9 applies to every white 9. Same for the 10s and 11s.
+const WHITE = '⚪';
+const WHITE_RANKS = ['9', '10', '11'];
+// Paint a card's colour at deck-build time: in Spectrum the white ranks lose the
+// colour the rank × colour cross-product gave them. Idempotent.
+// Colours to SHOW in the deck read-outs: the active list, plus white in Spectrum
+// (white is deliberately absent from ACTIVE_SUITS, so it needs adding back here).
+function deckDisplaySuits() {
+  const base = (typeof ACTIVE_SUITS !== 'undefined' && ACTIVE_SUITS.length) ? [...ACTIVE_SUITS] : [...SUITS];
+  if (isNumericMode()) base.push(WHITE);
+  return base;
+}
+function spectrumPaintSuit(rank, suit) {
+  return (isNumericMode() && WHITE_RANKS.includes(rank)) ? WHITE : suit;
+}
 // True for a card that belongs to the numeric deck — asked of the CARD, not the
 // mode, so the hand preview / score dance / saved runs all render it correctly
 // wherever they get their cards from.
@@ -64,6 +89,34 @@ const HAND_BASE = {
   'Four of a Kind':  { pips:60, mult:7 },
   'Straight Flush':  { pips:100,mult:8 },
 };
+
+// ── Per-mode hand-value overrides (r164) ──
+// Spectrum zeroes the Flush of 3: no base pips, no multiplier of its own (×1 is
+// the neutral value — calcScore SEEDS mult from this table) and no Focus. With
+// white in the deck a flush of 3 is still the second-most-common 3-card hand, so
+// it stays legal and countable, it just isn't worth playing for.
+// HAND_BASE / HAND_FOCUS are shared by every mode, so the pristine values are kept
+// and re-applied whenever a non-Spectrum run starts.
+// Pristine copies are taken on FIRST CALL, not at load: HAND_FOCUS lives in
+// js/focus-config.js, which loads after this file. By the time startGame runs,
+// both tables exist and neither has been touched.
+let _handValuesPristine = null;
+const NUMERIC_HAND_BASE  = { 'Flush of 3': { pips: 0, mult: 1 } };
+const NUMERIC_HAND_FOCUS = { 'Flush of 3': 0 };
+function applyModeHandValues() {
+  if (!_handValuesPristine) {
+    _handValuesPristine = {
+      base:  JSON.parse(JSON.stringify(HAND_BASE)),
+      focus: { ...HAND_FOCUS },
+    };
+  }
+  const P = _handValuesPristine;
+  Object.keys(P.base).forEach(h => { HAND_BASE[h].pips = P.base[h].pips; HAND_BASE[h].mult = P.base[h].mult; });
+  Object.keys(P.focus).forEach(h => { HAND_FOCUS[h] = P.focus[h]; });
+  if (!isNumericMode()) return;
+  Object.entries(NUMERIC_HAND_BASE).forEach(([h, v]) => { if (HAND_BASE[h]) { HAND_BASE[h].pips = v.pips; HAND_BASE[h].mult = v.mult; } });
+  Object.entries(NUMERIC_HAND_FOCUS).forEach(([h, v]) => { HAND_FOCUS[h] = v; });
+}
 
 const GAME_DURATION = 1200; // 20 minutes in seconds
 const ROUND_DURATION = 180;

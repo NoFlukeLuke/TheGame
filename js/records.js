@@ -87,7 +87,7 @@ function recordsDeckCensus() {
 
 function recordsRenderDeck() {
   const where = recordsDeckCensus();
-  const suits = (typeof ACTIVE_SUITS !== 'undefined' && ACTIVE_SUITS.length) ? ACTIVE_SUITS : SUITS;
+  const suits = deckDisplaySuits();
   const counts = { draw: 0, grid: 0, played: 0 };
   Object.values(where).forEach(w => { if (counts[w] !== undefined) counts[w]++; });
 

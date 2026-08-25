@@ -153,6 +153,10 @@ let _enterFromGridTop = false; // when true, new cards enter from grid top, not 
 let _cardIdCounter = 0;
 function stampId(card) {
   if (card && !card._id) card._id = ++_cardIdCounter;
+  // Spectrum: 9/10/11 have no colour of their own — they're WHITE. Painting here
+  // rather than at each deck-composition site catches every card that can reach
+  // play (fresh deck, reward-grid grants, shop adds) through one funnel.
+  if (card && card.rank && typeof spectrumPaintSuit === 'function') card.suit = spectrumPaintSuit(card.rank, card.suit);
   return card;
 }
 

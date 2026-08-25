@@ -35,7 +35,9 @@ function showDeck() {
       if (!bySuit[card.suit]) bySuit[card.suit] = [];
       bySuit[card.suit].push(card);
     });
-    const SUIT_DISPLAY_ORDER = [...ACTIVE_SUITS];
+    // White isn't an ACTIVE suit (that's what makes it flush-inert), so it has
+    // to be appended here or its cards would be missing from the deck view.
+    const SUIT_DISPLAY_ORDER = deckDisplaySuits();
     return SUIT_DISPLAY_ORDER.filter(s => bySuit[s]).map(s => {
       const chips = bySuit[s].map(c => makeChip(c, state)).join('');
       return `<div class="deck-suit-row">

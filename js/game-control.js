@@ -231,6 +231,9 @@ function startGame() {
     ACTIVE_SUITS = (ACTIVE_MODE.suitCount === 6) ? SUITS_SIX : SUITS;
     ACTIVE_RANKS = RANKS;
   }
+  // Spectrum zeroes the Flush of 3 (see applyModeHandValues); every other mode
+  // gets the pristine table back.
+  applyModeHandValues();
   // Some Tricks can't exist in this mode's deck (no Ace / no court / no ♠♥♦♣) —
   // rebuild the offerable pool before anything can draw from it.
   if (typeof applyModeEntityFilter === 'function') applyModeEntityFilter();

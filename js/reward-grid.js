@@ -71,7 +71,8 @@ function _generateRewardContent() {
   // un-cursed identity exists). Card is pre-picked so the tile shows exactly it.
   {
     const _uncursed = [];
-    ACTIVE_RANKS.forEach(rank => ACTIVE_SUITS.forEach(suit => { if (!cardCurses[cardKey(rank, suit)]) _uncursed.push({ rank, suit }); }));
+    ACTIVE_RANKS.forEach(rank => ACTIVE_SUITS.forEach(_s => { const suit = spectrumPaintSuit(rank, _s);
+      if (!cardCurses[cardKey(rank, suit)] && !_uncursed.some(u => u.rank === rank && u.suit === suit)) _uncursed.push({ rank, suit }); }));
     if (_uncursed.length) {
       const _victim = _uncursed[Math.floor(Math.random() * _uncursed.length)];
       const _cids = Object.keys(CURSE_DEFS);
