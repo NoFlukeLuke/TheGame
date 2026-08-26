@@ -825,15 +825,18 @@
     box-shadow: -3px 0 5px -1px rgba(0,0,0,0.75),
                 0 0 6px -2px var(--rc, #6aaa6a), inset 0 0 10px -4px var(--rc, #6aaa6a);
   }
-  /* A tucked tile only shows an ~11-14px strip of its LEFT edge, and the emoji is
-     centred, so the sliver came out blank — a row of dead dark slices. Move the
-     emoji into the top-left corner and shrink it, the way a fanned hand of cards
-     shows its corner index. The name has no room at all and is dropped. */
+  /* A tucked tile only shows a strip of its LEFT edge. r171: the emoji KEEPS ITS
+     FULL SIZE and is simply left-aligned, so the visible strip shows the left
+     part of a full-size icon and the tile's own overflow:hidden clips the rest —
+     the way a fanned hand of real cards shows part of a full-size index. The
+     previous version shrank every tucked emoji to 13px, which made every Trick
+     but the newest one look like a different, tinier object (owner's report).
+     The name has no room in a strip and is still dropped. */
   #stage:not(.landscape) #trick-tray-list.fanned .trick-tray-chip:not(:last-child) {
-    justify-content: flex-start; align-items: flex-start; padding: 2px 0 2px 2px;
+    justify-content: center; align-items: flex-start; padding: 2px 0 3px 3px;
   }
   #stage:not(.landscape) #trick-tray-list.fanned .trick-tray-chip:not(:last-child) .trick-card-emoji {
-    font-size: 13px; margin-top: 0; line-height: 1;
+    font-size: 23px; margin-top: 0; line-height: 1; flex: 0 0 auto;
   }
   #stage:not(.landscape) #trick-tray-list.fanned .trick-tray-chip:not(:last-child) .trick-card-name { display: none; }
   #stage:not(.landscape) #trick-tray-list .trick-tray-chip .trick-card-emoji { font-size: 23px; margin-top: auto; }
@@ -4200,3 +4203,63 @@
    never happens. .survival-mode deliberately does NOT get this — Survival still bills
    its round clock for swaps and discards. */
 #stage.flow-mode .act-cost { display: none; }
+/* r171 — the top-left "Game Timer" is the legacy 20-minute run clock, and Flow is
+   excluded from it (js/round-timers.js), so in Flow it sits frozen on 20:00
+   forever. Landscape already hides the whole stat; portrait showed the dead
+   number. Level keeps its own slot beside it.
+   NOTE: Survival, Match-3 and Dominoes are excluded from that clock too and
+   still show it — same dead readout, left alone because only Flow was asked for. */
+#stage.flow-mode #game-timer-stat { display: none; }
+
+
+/* ══════════════════════════════════════════════
+   BOSS ALARM (r171) — the score and goal chips ARE the boss HUD
+   ══════════════════════════════════════════════
+   There is no separate objective panel over the board any more, in any mode or
+   orientation: the win bar is simply this round's goal (r155), which already has
+   a chip, and a second panel restating it sat on top of the cards. Instead the
+   two numbers that decide the round go red and pulse, and they double as the way
+   back to the boss briefing (js/boss.js → bindBossBriefReopen).
+   Deliberately on the chips themselves rather than on a layout wrapper: landscape
+   positions #score-center / #score-left absolutely and portrait grids them, but
+   both keep these two elements, so one rule covers both. */
+@keyframes bossAlarmPulse {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(255,60,74,0.55), inset 0 0 14px -8px rgba(255,60,74,0.6); }
+  50%      { box-shadow: 0 0 16px 2px rgba(255,60,74,0.75), inset 0 0 20px -6px rgba(255,60,74,0.85); }
+}
+@keyframes bossAlarmText {
+  0%, 100% { color: #ff5a6a; text-shadow: 0 0 8px rgba(255,60,74,0.55); }
+  50%      { color: #ff9aa4; text-shadow: 0 0 16px rgba(255,60,74,0.95); }
+}
+#score-center.boss-alarm, #score-left.boss-alarm {
+  border-color: #ff3c4a !important;
+  background: linear-gradient(160deg, #2a0d10, #170709) !important;
+  animation: bossAlarmPulse 1.15s ease-in-out infinite;
+  cursor: pointer;
+}
+#score-center.boss-alarm #score-total-num,
+#score-left.boss-alarm #goal-display {
+  animation: bossAlarmText 1.15s ease-in-out infinite;
+}
+#score-center.boss-alarm #score-total-label,
+#score-left.boss-alarm #score-goal-label { color: #ff8a94 !important; opacity: 0.9; }
+#score-left.boss-alarm #score-progress-bar { background: linear-gradient(90deg, #ff3c4a, #ff8a5a) !important; }
+/* A hand boss's tally — the one thing the goal chip could not say by itself. */
+#boss-goal-extra {
+  font-family: 'Share Tech Mono', monospace; font-size: 8px; letter-spacing: 0.5px;
+  color: #ff8a94; margin-top: 2px; line-height: 1; white-space: nowrap;
+}
+#boss-goal-extra.done { color: #6ee7a8; }
+
+/* Briefing: the ✕ and the reopened state (js/boss.js). */
+#boss-preamble .bp-x {
+  position: absolute; top: 6px; right: 8px; z-index: 4;
+  width: 24px; height: 24px; line-height: 1; padding: 0;
+  background: rgba(0,0,0,0.45); border: 1px solid #5a4a12; border-radius: 6px;
+  color: var(--cream-dim); font-size: 13px; cursor: pointer;
+}
+#boss-preamble .bp-x:hover { color: var(--phosphor); border-color: var(--phosphor); }
+#boss-preamble .bp-hint {
+  font-family: 'Share Tech Mono', monospace; font-size: 8px; letter-spacing: 1px;
+  color: var(--cream-dim); opacity: 0.7; margin-top: 6px;
+}

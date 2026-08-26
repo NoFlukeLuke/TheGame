@@ -1,4 +1,4 @@
-const BUILD = '2026-08-26 · r171 · SHOP: flat 20% bundle cap, uncapped cart, PIN replaces Freezer, 3/3/3/3 stock';
+const BUILD = '2026-08-26 · r172 · BOSS: score/goal alarm replaces the objective panel, reopenable brief · Flow timer gone · trick icons keep size';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
