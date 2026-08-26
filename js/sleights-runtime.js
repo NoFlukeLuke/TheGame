@@ -1,48 +1,72 @@
 function sleightDef(card) { return SLEIGHT_POOL.find(j => j.id === card.sleightId); }
 
-// ── Sleight card FACE (r172) ───────────────────────────────────────────────
-// Every Sleight carries a rank and a suit on its face, so it reads as a real
-// card in the deck rather than a floating icon.
+// ── Sleight card FACE (r172, reworked r175) ────────────────────────────────
+// A Sleight is a card in the deck, so it wears a card's furniture: an index in
+// the top-left corner. What that index SAYS depends on what the Sleight is.
 //
-// These are DELIBERATELY cosmetic, stored in _faceRank/_faceSuit rather than in
-// rank/suit. Two reasons:
-//   1. Hand detection excludes non-wild Sleights by the _isSleight flag, not by
-//      rank, so a real rank would not make them score — it would just be a lie.
-//   2. The wildcard Sleights read their OWN rank/suit: findBestHand only fills a
-//      null one ("Warehouse … has no rank"). Writing a real rank there would
-//      silently un-wild them.
-// Assigned lazily on first render, which is the one funnel every Sleight passes
-// through no matter which site built it (grantSleight, the Spectrum fixtures,
-// discardToPlayed's rebuild, a restored save).
-function sleightFace(card) {
-  if (!card) return { rank: '?', suit: '?' };
-  if (card._faceRank == null) {
-    const ranks = (typeof ACTIVE_RANKS !== 'undefined' && ACTIVE_RANKS.length) ? ACTIVE_RANKS : RANKS;
-    card._faceRank = ranks[Math.floor(Math.random() * ranks.length)];
-  }
-  if (card._faceSuit == null) {
-    const suits = (typeof ACTIVE_SUITS !== 'undefined' && ACTIVE_SUITS.length) ? ACTIVE_SUITS : SUITS;
-    card._faceSuit = suits[Math.floor(Math.random() * suits.length)];
-  }
-  return { rank: card._faceRank, suit: card._faceSuit };
+//   plain Sleight   S over a house mark (◈ ◇ ✦ …)  — "this is a Sleight, and it
+//                   has no playing identity"
+//   wildcard        W over ∞                      — wild rank, endless suit
+//   tinkered        a REAL rank over a REAL suit   — it has been given an
+//                   identity at the Mart's Tinker bench and now plays as a card
+//
+// r172 gave every Sleight a RANDOM rank and suit. That was worse than nothing:
+// it printed 7♦ on a card that could never be part of a seven, so the face was
+// a lie. The marks below identify rather than impersonate, and a real rank only
+// ever appears on a Sleight that has actually earned one (see sleightAssignIdentity).
+const SLEIGHT_HOUSE_MARKS = ['◈', '◇', '✦', '❖', '⬥', '◆'];
+
+function sleightIsWild(def) { return !!def && def.activation === 'wildcard'; }
+// A Sleight that has been given a playing identity at the Tinker bench. Wildcards
+// can never be tinkered, so this and sleightIsWild are mutually exclusive.
+function sleightIsPlayable(card) { return !!(card && card._playable && card.rank && card.suit); }
+
+function sleightFace(card, def) {
+  if (!card) return { rank: 'S', suit: '◈', kind: 'plain' };
+  if (sleightIsPlayable(card)) return { rank: card.rank, suit: card.suit, kind: 'playable' };
+  if (sleightIsWild(def || sleightDef(card))) return { rank: 'W', suit: '∞', kind: 'wild' };
+  // The house mark is stable per card, so a Sleight keeps the same face across
+  // renders and deck cycles rather than flickering through the set.
+  if (card._faceMark == null) card._faceMark = SLEIGHT_HOUSE_MARKS[Math.floor(Math.random() * SLEIGHT_HOUSE_MARKS.length)];
+  return { rank: 'S', suit: card._faceMark, kind: 'plain' };
 }
-// Markup shared by both render paths (js/render.js and js/card-fall.js) so the
-// grid, the fall animation and the hand preview can never disagree.
+
 // Rarity → the card's edge colour, as a class both render paths add.
 function sleightRarityClass(def) {
   const r = def && def.rarity;
   return ['common','rare','epic','legendary','mythic','fixture'].includes(r) ? ' sl-rar-' + r : ' sl-rar-common';
 }
+
+// Markup shared by both render paths (js/render.js and js/card-fall.js) so the
+// grid, the fall animation and the hand preview can never disagree.
 function sleightFaceHTML(card, def, usesStr) {
-  const f = sleightFace(card);
-  const red = '♥♦'.includes(f.suit);
-  const numeric = (typeof isColorSuit === 'function') && isColorSuit(f.suit);
-  return `<div class="sleight-index ${red ? 'sl-red' : 'sl-blk'}${numeric ? ' sl-num' : ''}">`
+  const f = sleightFace(card, def);
+  const red = f.kind === 'playable' && '♥♦'.includes(f.suit);
+  const numeric = f.kind === 'playable' && (typeof isColorSuit === 'function') && isColorSuit(f.suit);
+  const tone = f.kind === 'playable' ? (red ? 'sl-red' : 'sl-blk') : 'sl-mark';
+  return `<div class="sleight-index ${tone} sl-k-${f.kind}${numeric ? ' sl-num' : ''}">`
        +   `<span class="sl-rank">${f.rank}</span><span class="sl-suit">${f.suit}</span>`
        + `</div>`
        + `<div class="sleight-card-emoji">${def?.emoji || '🃏'}</div>`
        + `<div class="sleight-card-name">${def?.name || 'Sleight'}</div>`
        + `<div class="sleight-card-uses">${usesStr}</div>`;
+}
+
+// ── The Tinker bench: give a Sleight a real playing identity ────────────────
+// The card keeps everything it already does AND starts counting as a normal
+// card in hand detection. Wildcards are refused: they already have the best
+// identity in the game, and pinning one would silently un-wild it.
+function sleightCanTinker(card, def) {
+  return !!card && !sleightIsWild(def || sleightDef(card)) && !sleightIsPlayable(card);
+}
+function sleightAssignIdentity(card, rank, suit) {
+  if (!card) return null;
+  const ranks = (typeof ACTIVE_RANKS !== 'undefined' && ACTIVE_RANKS.length) ? ACTIVE_RANKS : RANKS;
+  const suits = (typeof ACTIVE_SUITS !== 'undefined' && ACTIVE_SUITS.length) ? ACTIVE_SUITS : SUITS;
+  card.rank = rank || ranks[Math.floor(Math.random() * ranks.length)];
+  card.suit = suit || suits[Math.floor(Math.random() * suits.length)];
+  card._playable = true;
+  return { rank: card.rank, suit: card.suit };
 }
 
 function grantSleight(def) {

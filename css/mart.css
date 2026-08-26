@@ -486,3 +486,44 @@
   font-family:'Share Tech Mono',monospace; font-size:9px; letter-spacing:.5px; color:#ffd9a0;
   background:rgba(255,106,60,.14); border:1px solid rgba(255,106,60,.5);
   box-shadow:0 0 14px -5px var(--c-coral); }
+
+/* ── TINKER BENCH (r175) ─────────────────────────────────────────────────────
+   Issue a Sleight a real rank and suit. A modal over the Mart rather than a
+   shelf row: it lists what you OWN, not what is for sale, so it does not belong
+   in the catalog's grammar. */
+#mart-overlay .m-tool-tinker{ border-style:solid; border-color:var(--phosphor); opacity:1; cursor:pointer;
+  background:linear-gradient(180deg,#211705,#120b04); transition:transform .12s, box-shadow .15s; }
+#mart-overlay .m-tool-tinker:hover{ transform:translateY(-2px); box-shadow:0 0 22px -4px var(--phosphor); }
+#mart-overlay .m-tool-tinker .tt{ color:var(--phosphor); }
+
+#mart-tinker{ position:fixed; inset:0; z-index:300; display:flex; align-items:center; justify-content:center;
+  background:rgba(4,3,2,.78); opacity:0; transition:opacity .18s; padding:16px; }
+#mart-tinker.show{ opacity:1; }
+#mart-tinker .tk-box{ width:400px; max-width:94vw; max-height:86vh; display:flex; flex-direction:column;
+  border-radius:12px; overflow:hidden; border:2px solid #5a4a12;
+  background:linear-gradient(180deg,#171008,#0b0906); box-shadow:0 0 50px -10px rgba(255,176,46,.45); }
+#mart-tinker .tk-bar{ display:flex; align-items:center; justify-content:space-between; padding:10px 12px;
+  background:linear-gradient(180deg,#2a1d06,#170f04); border-bottom:1px solid #5a4a12;
+  font-family:'Cinzel',serif; font-size:11px; letter-spacing:2px; color:var(--phosphor); }
+#mart-tinker .tk-x{ background:none; border:1px solid #5a4a12; border-radius:4px; color:var(--cream-dim);
+  font-size:12px; width:24px; height:24px; cursor:pointer; line-height:1; }
+#mart-tinker .tk-x:hover{ color:var(--phosphor); border-color:var(--phosphor); }
+#mart-tinker .tk-lead{ font-family:'Share Tech Mono',monospace; font-size:10px; line-height:1.55;
+  color:var(--cream-dim); padding:11px 13px 9px; }
+#mart-tinker .tk-lead b{ color:var(--cream); }
+#mart-tinker .tk-list{ flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:6px; padding:0 13px 11px; }
+#mart-tinker .tk-row{ display:flex; align-items:center; gap:10px; width:100%; text-align:left; cursor:pointer;
+  padding:9px 11px; border-radius:7px; border:1px solid #3a3020; background:rgba(255,255,255,.05); color:var(--cream); }
+#mart-tinker .tk-row:hover:not(.off){ border-color:var(--phosphor); background:rgba(255,176,46,.12); }
+#mart-tinker .tk-row.off{ opacity:.45; cursor:not-allowed; }
+#mart-tinker .tk-em{ font-size:17px; flex:0 0 auto; }
+#mart-tinker .tk-nm{ flex:1; font-family:'Orbitron',sans-serif; font-size:9.5px; letter-spacing:.5px; text-transform:uppercase; }
+#mart-tinker .tk-state{ font-family:'Share Tech Mono',monospace; font-size:9px; flex:0 0 auto; }
+#mart-tinker .tk-state.open{ color:var(--c-mint); }
+#mart-tinker .tk-state.done{ color:var(--phosphor); }
+#mart-tinker .tk-state.wild{ color:var(--c-purple); }
+#mart-tinker .tk-empty{ font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--cream-dim); opacity:.6;
+  text-align:center; padding:16px 0; }
+#mart-tinker .tk-foot{ display:flex; align-items:baseline; justify-content:space-between; padding:10px 13px;
+  border-top:1px solid #2a2416; font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--cream-dim); }
+#mart-tinker .tk-fee{ font-size:16px; color:var(--phosphor); }

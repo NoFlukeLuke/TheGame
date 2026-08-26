@@ -373,7 +373,8 @@ function renderMartMain() {
     <div class="m-tool m-tool-spin ${canSpin?'':'cant'}" id="mart-spin"><div class="tt"><span>◎ Spin the Wheel</span><span>💰${BAL.wheel.cost}</span></div>
       <div class="td"><span class="m-wheel"></span>Win any item · 1-in-10 jackpot.</div></div>
     <div class="m-tool"><div class="tt"><span>⚡ Recharge Bay</span><span>WIP</span></div><div class="td">Recharge sleights (built later).</div></div>
-    <div class="m-tool"><div class="tt"><span>✦ Trick Tinker</span><span>WIP</span></div><div class="td">Improve a Trick you own (built later).</div></div>
+    <div class="m-tool m-tool-tinker" id="mart-tinker-btn"><div class="tt"><span>✦ Tinker Bench</span><span>💰${tinkerCost()}</span></div>
+      <div class="td">Issue a Sleight a real rank and suit — it starts counting as a card in a hand.</div></div>
   </div></div>`;
   el.innerHTML = feat + sections + tools;
   document.getElementById('mart-pin-toggle').onclick = () => martSetPinMode(!martPinMode);
@@ -438,6 +439,8 @@ function bindMartItems() {
   const main = document.getElementById('mart-main'); if (!main) return;
   const spin = document.getElementById('mart-spin');
   if (spin) spin.onclick = openWheel;
+  const tink = document.getElementById('mart-tinker-btn');
+  if (tink) tink.onclick = martOpenTinker;
   // EVERY tile gets a tooltip now. Previously only Limits did, which meant three
   // of the four catalog categories — nearly everything you browse — had none.
   main.querySelectorAll('.m-item').forEach(it => {
@@ -713,3 +716,66 @@ function martReroll() {
 const MART_FLOAT_SEL = '#mart-overlay .m-item';
 function startMartFloat() { startFloat('mart', MART_FLOAT_SEL, el => el.classList.contains('frozen') || el.classList.contains('sold')); }
 function stopMartFloat()  { stopFloat('mart'); clearFloat(MART_FLOAT_SEL); }
+
+// ══════════════════════════════════════════════════════════════════════════
+// TINKER BENCH (r175) — issue a Sleight a playing identity
+// ══════════════════════════════════════════════════════════════════════════
+// A Sleight lives in the deck, falls, swaps and gets discarded like a card, but
+// it has never BEEN one: hand detection skips it. The bench stamps a real rank
+// and suit onto one you own, and from then on it counts as an ordinary card in
+// a hand ON TOP of whatever it already does — so a Whetstone can be part of the
+// pair it is buffing.
+//
+// Wildcards are refused rather than priced: a wild rank already reads as whatever
+// makes the best hand, so pinning it to a 7 would be paying to make it worse.
+// Their face says W over ∞ and the bench lists them as already-issued.
+let martTinkerN = 0;                 // identities issued this run — the price climbs
+
+function tinkerCost() { return BAL.tinker_identity.cost + martTinkerN * BAL.tinker_identity.cost_step; }
+
+function martOpenTinker() {
+  if (martCheckingOut) return;
+  const host = document.getElementById('mart-overlay'); if (!host) return;
+  document.getElementById('mart-tinker')?.remove();
+  const insts = (typeof ownedSleightInstances === 'function' ? ownedSleightInstances() : []);
+  const cost = tinkerCost();
+  const rows = insts.map((inst, i) => {
+    const wild = sleightIsWild(inst.def);
+    const done = sleightIsPlayable(inst.card);
+    const f = sleightFace(inst.card, inst.def);
+    const state = wild ? `<span class="tk-state wild">W ∞ · already wild</span>`
+                : done ? `<span class="tk-state done">${f.rank}${f.suit} · issued</span>`
+                       : `<span class="tk-state open">unissued</span>`;
+    return `<button class="tk-row${(wild||done)?' off':''}" data-i="${i}"${(wild||done)?' disabled':''}>
+      <span class="tk-em">${inst.def.emoji || '🃏'}</span>
+      <span class="tk-nm">${inst.def.name}</span>${state}
+    </button>`;
+  }).join('') || `<div class="tk-empty">No Sleights in your deck yet.</div>`;
+
+  const el = document.createElement('div');
+  el.id = 'mart-tinker';
+  el.innerHTML = `<div class="tk-box">
+    <div class="tk-bar"><span>✦ TINKER BENCH · IDENTITY ISSUE</span><button class="tk-x" aria-label="Close">&#10005;</button></div>
+    <div class="tk-lead">Stamp a rank and suit onto a Sleight. It keeps everything it already does and
+      <b>starts counting as a normal card in a hand</b>. Wildcards cannot be issued — they already read as anything.</div>
+    <div class="tk-list">${rows}</div>
+    <div class="tk-foot"><span>fee</span><b class="tk-fee">💰${cost}</b></div>
+  </div>`;
+  host.appendChild(el);
+  requestAnimationFrame(() => el.classList.add('show'));
+  const close = () => { el.classList.remove('show'); setTimeout(() => el.remove(), 200); };
+  el.querySelector('.tk-x').onclick = close;
+  el.onclick = e => { if (e.target === el) close(); };      // click the backdrop
+  el.querySelectorAll('.tk-row:not(.off)').forEach(btn => btn.onclick = () => {
+    if (coins < cost) { martRejectPurchase(null); return; }
+    const inst = insts[+btn.dataset.i];
+    const issued = sleightAssignIdentity(inst.card);
+    if (!issued) return;
+    coins -= cost; martTinkerN++; updateCoinsUI();
+    try { sfxRewardGood && sfxRewardGood(); } catch(e){}
+    showMessage(`${inst.def.name} issued ${issued.rank}${issued.suit}`, 'var(--gold)');
+    close();
+    if (typeof render === 'function') render();          // the board copy repaints
+    renderMart();
+  });
+}

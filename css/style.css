@@ -4203,13 +4203,13 @@
    never happens. .survival-mode deliberately does NOT get this — Survival still bills
    its round clock for swaps and discards. */
 #stage.flow-mode .act-cost { display: none; }
-/* r171 — the top-left "Game Timer" is the legacy 20-minute run clock, and Flow is
-   excluded from it (js/round-timers.js), so in Flow it sits frozen on 20:00
-   forever. Landscape already hides the whole stat; portrait showed the dead
-   number. Level keeps its own slot beside it.
-   NOTE: Survival, Match-3 and Dominoes are excluded from that clock too and
-   still show it — same dead readout, left alone because only Flow was asked for. */
-#stage.flow-mode #game-timer-stat { display: none; }
+/* r175 — the top-left "Game Timer" is the legacy 20-minute run clock. Every mode
+   excluded from that clock (Match-3, Dominoes, Survival, Flow) showed it frozen
+   on 20:00 forever; landscape already hid the whole stat, portrait did not.
+   .no-game-clock is set in startGame from the same predicate the timer is gated
+   on (js/game-control.js), so a new mode cannot drift out of sync with it.
+   Level keeps its own slot beside it. */
+#stage.no-game-clock #game-timer-stat { display: none; }
 
 
 /* ══════════════════════════════════════════════
@@ -4286,10 +4286,17 @@
 }
 .sleight-index .sl-rank { font-size: calc(var(--card-h, 75px) * 0.19); }
 .sleight-index .sl-suit { font-size: calc(var(--card-h, 75px) * 0.15); margin-top: -1px; }
-/* Bright enough to read on the dark card the classic ink colours were made for
-   a cream one. */
-.sleight-index.sl-red { color: #ff6b7a; }
-.sleight-index.sl-blk { color: #dfe6ef; }
+/* Bright enough to read on the dark card — the classic ink colours were made for
+   a cream one. `sl-mark` is the un-issued face (S over a house mark, or W over ∞
+   for a wildcard): deliberately the card's own rarity colour rather than a
+   playing-card red or black, because it is an IDENTIFIER, not a playing value. */
+.sleight-index.sl-red  { color: #ff6b7a; }
+.sleight-index.sl-blk  { color: #dfe6ef; }
+.sleight-index.sl-mark { color: var(--sl-rc, #cc88ff); opacity: 0.95; }
+/* A wildcard's ∞ is the whole point of its face, so it gets the room to read. */
+.sleight-index.sl-k-wild .sl-suit { font-size: calc(var(--card-h, 75px) * 0.18); margin-top: -2px; }
+/* An issued identity is a real card value — give it the weight of one. */
+.sleight-index.sl-k-playable .sl-rank { font-size: calc(var(--card-h, 75px) * 0.21); }
 /* Spectrum's colour deck has no suit glyph worth printing tiny — the emoji IS
    the colour, so stack it under the value at the same size. */
 .sleight-index.sl-num .sl-suit { font-size: calc(var(--card-h, 75px) * 0.13); }
@@ -4303,8 +4310,8 @@
   /* Symmetric side padding keeps the name centred while reserving the corners:
      the charge count sits top-right and the selection badge bottom-right, and a
      full-bleed name printed straight over both. */
-  padding: 2px 11% 1px;
-  font-size: calc(var(--card-h, 75px) * 0.092) !important;
+  padding: 2px 8% 1px;
+  font-size: calc(var(--card-h, 75px) * 0.088) !important;
   font-family: 'Orbitron', sans-serif !important; font-weight: 700;
   letter-spacing: 0; text-transform: uppercase;
   color: #fff !important; text-align: center; line-height: 1.05;

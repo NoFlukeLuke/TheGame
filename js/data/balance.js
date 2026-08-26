@@ -115,6 +115,10 @@ const BAL = {
   // rate and the cap. This used to be capped at rate × Selection Size, which tied
   // shopping to how many CARDS you can pick for a poker hand — unrelated things.
   shop_discount: { per_item: 5, cap: 20, bulk_per_item: 10, bulk_cap: 40 },
+  // Tinker bench (Mart → Tools): stamp a real rank + suit onto a Sleight you own,
+  // so it starts counting as a normal card in hand detection on top of whatever
+  // it already does. Price climbs per identity issued in a run.
+  tinker_identity: { cost: 18, cost_step: 8 },
   reward_skip:   { gold: 20 },   // gold paid for skipping the whole reward grid (shown on the SKIP button)
   wild_side:     { mult_per: 3 },       // +mult per negative reward tile taken this run
   wait_for_it:   { chance_per: 0.02 },  // +replay chance per negative reward tile taken this run

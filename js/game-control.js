@@ -271,6 +271,15 @@ function startGame() {
   // Flow hook for mode-scoped CSS (it charges no time, so the action buttons must
   // not advertise a second-cost). Separate from .survival-mode, which still does.
   document.getElementById('stage')?.classList.toggle('flow-mode', typeof flowActive === 'function' && flowActive());
+  // r175 — the top-left "Game Timer" is the legacy 20-minute run clock. Match-3,
+  // Dominoes and Survival/Flow are all excluded from it (see the startTimers
+  // guard above and in resumeGame), so in those modes it sat frozen on 20:00
+  // forever. Act modes reuse the same slot for the ACT · node readout, and the
+  // remaining legacy timer modes genuinely run it — so the slot is hidden for
+  // exactly the set that neither uses. Derived from the SAME predicate the timer
+  // itself is gated on, so a new mode cannot drift out of sync with it.
+  document.getElementById('stage')?.classList.toggle('no-game-clock',
+    match3Active() || dominoActive() || survivalActive());
   if (typeof updateSurvivalShopBtn === 'function') updateSurvivalShopBtn();
   discards = limits.discards.current;
   swaps = limits.swaps.current;
@@ -354,6 +363,11 @@ function startGame() {
   cardSwapCount   = {};
   cardDealtCount  = {};
   grantedSleightIds = new Set();
+  // Mart per-run state: pinned catalog items (r171) and the Tinker bench's fee
+  // ladder (r175). Pins hold payload objects with live buy() functions, which is
+  // why they are NOT in SAVE_VARS — the Mart is shut at every save point anyway.
+  if (typeof martPins   !== 'undefined') martPins   = {};
+  if (typeof martTinkerN !== 'undefined') martTinkerN = 0;
   altarEffects    = [];
   sleightNextHandDouble = false;
   sleightLegacyMult    = false;

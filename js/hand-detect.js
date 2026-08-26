@@ -200,15 +200,24 @@ function findBestHand(cells) {
   cells = cells.filter(([r,c]) => gridData[r][c] !== null);
   if (cells.length < 2) return null;
 
-  // Sleights: wild sleights get a temporary rank/suit and join detection;
-  // non-wild sleights ride along (excluded from the poker combination, no penalty).
-  const normalCards = cells.filter(([r,c]) => !gridData[r][c]._isSleight).map(([r,c]) => gridData[r][c]);
+  // Sleights: wild sleights get a temporary rank/suit and join detection; a
+  // TINKERED sleight (given a real identity at the Mart's Tinker bench, r175)
+  // joins as an ordinary card; every other sleight rides along, excluded from
+  // the poker combination with no penalty.
+  // A tinkered sleight counts as a normal card for the wilds to read off, too —
+  // it has a real rank and suit, so a wild should be able to match it.
+  const normalCards = cells.map(([r,c]) => gridData[r][c])
+    .filter(card => !card._isSleight || (typeof sleightIsPlayable === 'function' && sleightIsPlayable(card)));
   const wildAssignments = [];
   const detectionCells = [];
   for (const [r, c] of cells) {
     const card = gridData[r][c];
     if (!card._isSleight) { detectionCells.push([r, c]); continue; }
     const def = sleightDef(card);
+    if (typeof sleightIsPlayable === 'function' && sleightIsPlayable(card)) {
+      detectionCells.push([r, c]);      // a tinkered sleight is just a card here
+      continue;
+    }
     if (def?.activation === 'wildcard') {
       const orig = { rank: card.rank, suit: card.suit };
       if (def.wild === 'rank' || def.wild === 'both') card.rank = bestWildRank(normalCards);

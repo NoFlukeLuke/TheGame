@@ -103,7 +103,7 @@ const SAVE_VARS = [
   // ── Flow (js/flow-mode.js) ──
   'flowBossFighting', 'flowRefillClock',
   // ── Seed (keeps future reward grids / shops deterministic) ──
-  'runSeed', 'rewardVisitIndex', 'shopVisitIndex',
+  'runSeed', 'rewardVisitIndex', 'shopVisitIndex', 'martTinkerN',
 ];
 
 // `const` objects can't be reassigned, so their CONTENTS are copied instead.

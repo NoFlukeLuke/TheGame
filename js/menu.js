@@ -1,4 +1,4 @@
-const BUILD = '2026-08-26 · r174 · DANCE: rapid-fire handoff — the outgoing hand always fuses and throws its score at the total';
+const BUILD = '2026-08-26 · r175 · SLEIGHTS: S/house-mark + W/∞ faces, Tinker Bench issues a real identity · dead clock hidden everywhere';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

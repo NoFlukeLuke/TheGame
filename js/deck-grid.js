@@ -211,8 +211,11 @@ function discardToPlayed(card) {
       // _faceRank/_faceSuit ride along so a Sleight keeps the same printed card
       // face across a deck cycle (this rebuild is a fixed field list — anything
       // not named here is silently dropped).
+      // _faceMark and _playable ride along so a Sleight keeps its printed face —
+      // and a tinkered one keeps the identity it was PAID for — across a deck
+      // cycle (this rebuild is a fixed field list; anything not named is lost).
       playedPile.push({ _isSleight: true, sleightId: card.sleightId, rank: card.rank, suit: card.suit, _id: card._id,
-                        _usesLeft: card._usesLeft, _faceRank: card._faceRank, _faceSuit: card._faceSuit, _drawFired: false });
+                        _usesLeft: card._usesLeft, _faceMark: card._faceMark, _playable: card._playable, _drawFired: false });
       updateDeckHud();
     }
     return;
