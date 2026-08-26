@@ -4353,3 +4353,7 @@
   border-color: var(--sl-rc, #8844cc) !important;
   box-shadow: 0 0 9px -1px var(--sl-rc, #8844cc), inset 0 0 14px -6px var(--sl-rc, #8844cc);
 }
+
+/* The flying copy of the fused PMF chip (js/pmf-merge.js → pmfFlyToScore). It is
+   a body-level clone, so it inherits none of #score-subboxes' positioning. */
+.pmf-flying { display: flex !important; opacity: 1 !important; transform: none; }

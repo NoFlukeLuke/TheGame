@@ -1,4 +1,4 @@
-const BUILD = '2026-08-26 · r173 · SLEIGHTS: printed rank+suit face, name along the bottom, rarity edge, real selected state';
+const BUILD = '2026-08-26 · r174 · DANCE: rapid-fire handoff — the outgoing hand always fuses and throws its score at the total';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

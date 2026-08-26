@@ -4,6 +4,15 @@ function cancelDance() {
     console.log('[DANCE] cancelDance — aborting in-progress dance');
     danceAbortController.abort();
     danceAbortController = null;
+    // Stamp the moment a LIVE dance was cut. playHand() calls cancelDance()
+    // before it starts the replacement dance, so by the time playPreviewDance
+    // looked at danceAbortController it was already null and `outgoing` was
+    // ALWAYS false — the whole interrupt handoff, including the r116 fix, was
+    // dead on the one path that actually plays hands. That is why the score sat
+    // still through a burst and only jumped when the last dance finished.
+    // The stamp is read within the same synchronous block, so the window is
+    // tiny and an unrelated cancel (round end, a boss firing) never matches it.
+    dncCutAt = performance.now();
   }
   // Clear jitter/glow left on the aborted dance's real tray/grid elements before a successor rebinds them.
   if (typeof dncCleanupReal === 'function') dncCleanupReal();
