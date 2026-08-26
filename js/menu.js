@@ -1,4 +1,4 @@
-const BUILD = '2026-08-26 · r170 · MART: reward-grid tiles, colour-coded shelves, portrait drawer, gesture rewrite · focus bar + teal SWAP';
+const BUILD = '2026-08-26 · r171 · SHOP: flat 20% bundle cap, uncapped cart, PIN replaces Freezer, 3/3/3/3 stock';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

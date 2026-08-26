@@ -44,17 +44,45 @@
 
 /* ── CENTER: catalog ── */
 #mart-overlay .mart-main{ display:flex; flex-direction:column; gap:8px; min-height:0; overflow-y:auto; }
-#mart-overlay .m-feat{ display:grid; grid-template-columns:1.5fr 1fr 108px; gap:8px; min-height:100px; }
-#mart-overlay .m-special{ border:1.5px solid var(--rc,var(--plastic-deep)); border-radius:10px; padding:8px 10px; background:linear-gradient(180deg,#15110b,#0a0906); display:flex; align-items:center; gap:10px; position:relative; }
-#mart-overlay .m-special .wip{ position:absolute; top:5px; right:7px; font-family:'Share Tech Mono',monospace; font-size:8px; letter-spacing:1px; color:#000; background:var(--c-yellow); border-radius:4px; padding:0 4px; }
-#mart-overlay .m-special .stag{ font-size:8px; letter-spacing:2px; color:var(--rc,var(--phosphor)); text-shadow:0 0 6px var(--rc,var(--phosphor)); }
-#mart-overlay .m-special .sname{ font-size:12px; font-weight:700; text-transform:uppercase; color:#fff; margin-top:2px; }
-#mart-overlay .m-special .sdesc{ font-family:'Share Tech Mono',monospace; font-size:9px; color:var(--cream-dim); margin-top:3px; }
-#mart-overlay .m-wheel{ width:52px; height:52px; border-radius:50%; flex-shrink:0;
+/* ── PIN BAR (r171) ─────────────────────────────────────────────────────────
+   The top strip used to be Spotlight (WIP) + SPIN + Freezer (WIP): the two most
+   valuable rows on the screen, two thirds of them inert. It is one control now.
+   Press it to enter pin mode, then tap items to hold them through rerolls and
+   between visits. SPIN moved down into Tools with the other services. */
+#mart-overlay .m-feat{ display:block; }
+#mart-overlay .m-pinbar{ display:flex; align-items:center; gap:11px; cursor:pointer;
+  border:1.5px dashed var(--c-cyan); border-radius:10px; padding:8px 12px;
+  background:linear-gradient(180deg, rgba(22,200,216,.07), #0a0906);
+  transition:background .14s, box-shadow .14s, border-color .14s; }
+#mart-overlay .m-pinbar:hover{ background:linear-gradient(180deg, rgba(22,200,216,.14), #0a0906); }
+#mart-overlay .m-pinbar.on{ border-style:solid; border-color:var(--c-yellow);
+  background:linear-gradient(180deg, rgba(255,206,43,.16), #0a0906);
+  box-shadow:0 0 20px -4px var(--c-yellow), inset 0 0 26px -12px var(--c-yellow); }
+#mart-overlay .m-pinbar .pb-ico{ font-size:20px; line-height:1; flex:0 0 auto; }
+#mart-overlay .m-pinbar.on .pb-ico{ animation:martPinBlink 1.1s ease-in-out infinite; }
+@keyframes martPinBlink{ 0%,100%{ transform:rotate(-12deg) scale(1); } 50%{ transform:rotate(8deg) scale(1.14); } }
+#mart-overlay .m-pinbar .pb-body{ display:flex; flex-direction:column; gap:2px; min-width:0; }
+#mart-overlay .m-pinbar .pb-title{ font-size:10px; font-weight:700; letter-spacing:2px; color:var(--c-cyan); }
+#mart-overlay .m-pinbar.on .pb-title{ color:var(--c-yellow); }
+#mart-overlay .m-pinbar .pb-sub{ font-family:'Share Tech Mono',monospace; font-size:8.5px; color:var(--cream-dim); }
+#mart-overlay .m-pinbar .pb-count{ margin-left:auto; font-family:'Share Tech Mono',monospace;
+  font-size:10px; color:var(--c-yellow); flex:0 0 auto; }
+/* While pinning, a tap pins instead of adding to the cart — say so by dimming
+   what is NOT the current job and lifting what is. */
+#mart-overlay.pin-mode .mart-checkout{ opacity:.45; }
+#mart-overlay.pin-mode .m-item{ cursor:crosshair; }
+#mart-overlay .m-wheel{ width:20px; height:20px; border-radius:50%; flex-shrink:0; display:inline-block;
+  vertical-align:middle; margin-right:6px;
   background:conic-gradient(var(--c-magenta) 0 60deg,var(--c-cyan) 60deg 120deg,var(--c-yellow) 120deg 180deg,var(--c-mint) 180deg 240deg,var(--c-purple) 240deg 300deg,var(--c-coral) 300deg 360deg);
-  box-shadow:0 0 0 2px #0b0906, 0 0 12px -2px #fff; }
-#mart-overlay .m-freezer{ border:1.5px dashed var(--c-cyan); border-radius:10px; display:flex; flex-direction:column; align-items:center; justify-content:center; color:var(--c-cyan); background:rgba(22,200,216,0.05); text-align:center; position:relative; }
-#mart-overlay .m-freezer .fi{ font-size:24px; } #mart-overlay .m-freezer .ft{ font-size:7px; letter-spacing:2px; margin-top:3px; }
+  box-shadow:0 0 0 1px #0b0906, 0 0 8px -2px #fff; }
+/* SPIN is a real, affordable action sitting among WIP placeholders — it must not
+   look like one of them. */
+#mart-overlay .m-tool-spin{ border-style:solid; border-color:var(--c-magenta); opacity:1; cursor:pointer;
+  background:linear-gradient(180deg,#220d1a,#120610); transition:transform .12s, box-shadow .15s; }
+#mart-overlay .m-tool-spin:hover{ transform:translateY(-2px); box-shadow:0 0 22px -4px var(--c-magenta); }
+#mart-overlay .m-tool-spin .tt{ color:var(--c-magenta); }
+#mart-overlay .m-tool-spin.cant{ opacity:.5; cursor:not-allowed; }
+#mart-overlay .m-tool-spin.cant:hover{ transform:none; box-shadow:none; }
 
 /* ── SHELVES (r170) ───────────────────────────────────────────────────────────
    Every shelf used to be the same near-black rectangle with a grey label, so the
@@ -371,11 +399,12 @@
 
   /* ── 2. catalog ── */
   #mart-overlay .mart-main{ flex:1 1 auto; gap:7px; }
-  /* The three WIP specials are a luxury the small screen cannot afford. SPIN is
-     the only one that does anything, so it is the only one kept. */
-  #mart-overlay .m-feat{ grid-template-columns:1fr; min-height:0; }
-  #mart-overlay .m-feat .m-special:not(.m-spin), #mart-overlay .m-freezer{ display:none; }
-  #mart-overlay .m-sec-tools{ display:none; }
+  /* PIN stays — it is the one control up here and it works. Tools keeps SPIN, so
+     it can no longer be hidden wholesale; the two WIP entries in it are. */
+  #mart-overlay .m-pinbar{ padding:7px 10px; gap:9px; }
+  #mart-overlay .m-pinbar .pb-sub{ display:none; }
+  #mart-overlay .m-tool{ min-width:0; width:100%; }
+  #mart-overlay .m-sec-tools .m-tool:not(.m-tool-spin){ display:none; }
   #mart-overlay .m-sec{ padding:7px 9px 9px 11px; }
   #mart-overlay .m-sec .m-sh{ flex-wrap:wrap; gap:6px; font-size:9px; letter-spacing:2px; }
   #mart-overlay .m-sec .m-sh-note{ flex:1 0 100%; order:3; font-size:8px; }
@@ -432,3 +461,28 @@
   #mart-overlay .m-drop .m-drop-drag{ display:none; }
   #mart-overlay .m-drop .m-drop-tap{ display:block; }
 }
+
+/* ── PIN badge, refusals and the Trick capacity notice (r171) ─────────────── */
+#mart-overlay .m-item .m-pin{ display:none; position:absolute; top:-7px; right:-7px; z-index:7;
+  width:22px; height:22px; border-radius:50%; font-size:12px;
+  background:var(--c-yellow); color:#2a2000; align-items:center; justify-content:center;
+  box-shadow:0 0 12px -1px var(--c-yellow), 0 2px 4px rgba(0,0,0,.6); }
+#mart-overlay .m-item.pinned .m-pin{ display:flex; }
+#mart-overlay .m-item.pinned > .reward-cell{ box-shadow:0 0 0 2px var(--c-yellow), 0 0 16px -3px var(--c-yellow); }
+/* An item you cannot afford — measured against what the cart has already
+   committed, and against the discount this item would unlock. */
+#mart-overlay .m-item.cant-afford{ opacity:.5; filter:grayscale(.45); }
+#mart-overlay .m-item.cant-afford:hover{ opacity:.72; }
+
+@keyframes martDeny{
+  0%,100%{ transform:translateX(0) scale(1); }
+  15%{ transform:translateX(-4px) scale(1.16); } 32%{ transform:translateX(4px) scale(1.16); }
+  50%{ transform:translateX(-3px) scale(1.1); }  68%{ transform:translateX(3px) scale(1.06); }
+}
+#mart-overlay .m-deny{ animation:martDeny .6s ease; color:#ff5a6a !important;
+  border-color:#ff5a6a !important; text-shadow:0 0 10px rgba(255,90,106,.8); }
+
+#mart-overlay .m-sec-notice{ margin-top:7px; padding:5px 9px; border-radius:6px;
+  font-family:'Share Tech Mono',monospace; font-size:9px; letter-spacing:.5px; color:#ffd9a0;
+  background:rgba(255,106,60,.14); border:1px solid rgba(255,106,60,.5);
+  box-shadow:0 0 14px -5px var(--c-coral); }

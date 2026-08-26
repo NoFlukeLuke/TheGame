@@ -110,7 +110,11 @@ const BAL = {
   // Spin-the-wheel (Mart special). default_sell is the fallback payout when a prize
   // has no sell price of its own and there's no room for it.
   wheel:         { cost: 20, slots: 10, jackpot_coins: 25, default_sell: 15 },
-  shop_discount: { per_item: 5, bulk_per_item: 10 },  // bundle discount % per ADDITIONAL item; cap = rate × Selection Size
+  // Bundle discount: % off per ADDITIONAL item in the cart, with its own flat cap.
+  // 1 item = 0%, 2 = 5%, 3 = 10%, 4 = 15%, 5+ = 20%. Bulk Buyer doubles BOTH the
+  // rate and the cap. This used to be capped at rate × Selection Size, which tied
+  // shopping to how many CARDS you can pick for a poker hand — unrelated things.
+  shop_discount: { per_item: 5, cap: 20, bulk_per_item: 10, bulk_cap: 40 },
   reward_skip:   { gold: 20 },   // gold paid for skipping the whole reward grid (shown on the SKIP button)
   wild_side:     { mult_per: 3 },       // +mult per negative reward tile taken this run
   wait_for_it:   { chance_per: 0.02 },  // +replay chance per negative reward tile taken this run
