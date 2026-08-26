@@ -57,10 +57,9 @@ function _pmfEnsureMerged(wrap) {
   if (_pmfMerged && _pmfMerged.parentNode) _pmfMerged.parentNode.removeChild(_pmfMerged);
   const el = document.createElement('div');
   el.id = 'pmf-merged';
-  // No label: the word "HAND" never fit the chip cleanly at either orientation
-  // (it crowded the number in portrait and read as a second, competing line in
-  // landscape). The fused number is self-evident in context — it appears exactly
-  // where PIPS × MULT × FOCUS just were, and the SCORE total climbs by it next.
+  // No label (r169) — the fused chip is just the number. The word "HAND" was
+  // redundant against the animation that put it there, and it stole the height
+  // the number wanted.
   el.innerHTML = '<div class="pmf-merged-val">0</div>';
   wrap.appendChild(el);
   _pmfMerged = el;
@@ -114,6 +113,53 @@ async function pmfMergeIn(handScore, opts) {
   if (typeof sfxFocusBeat === 'function') sfxFocusBeat();
   await _pmfWait((PMF_CFG.merge + PMF_CFG.settle) / speed);
   if (sig && sig.aborted) { pmfResetNow(); return false; }
+  return true;
+}
+
+// The fused chip FLIES to the SCORE total (r173). This is the beat the owner
+// asked to be unskippable: however hurried a hand's animation gets, the number it
+// made must always be seen leaving the PMF row and landing on the score.
+//
+// A body-level fixed clone, like flyGridCardToSlot and flyMartTile: the row can
+// re-render underneath and would otherwise yank the element out mid-flight. The
+// cabinet's CSS zoom lives on #cabinet, and this sits outside it on <body>, so
+// getBoundingClientRect coordinates map straight onto it.
+async function pmfFlyToScore(opts) {
+  const o = opts || {};
+  const speed = Math.max(0.25, o.speed || 1);
+  const target = document.getElementById('score-total-num');
+  if (!target || !_pmfMerged || !_pmfMerged.classList.contains('show')) return false;
+  const a = _pmfMerged.getBoundingClientRect();
+  const b = target.getBoundingClientRect();
+  if (a.width < 2 || b.width < 1) return false;
+
+  const ghost = _pmfMerged.cloneNode(true);
+  ghost.removeAttribute('id');
+  ghost.classList.add('show', 'pmf-flying');
+  ghost.style.cssText = `position:fixed;margin:0;z-index:700;pointer-events:none;transition:none;` +
+    `left:${a.left}px;top:${a.top}px;width:${a.width}px;height:${a.height}px;transform-origin:center center;`;
+  document.body.appendChild(ghost);
+  _pmfMerged.style.visibility = 'hidden';
+
+  const dx = (b.left + b.width/2) - (a.left + a.width/2);
+  const dy = (b.top  + b.height/2) - (a.top  + a.height/2);
+  const dur = Math.max(110, 380 / speed);
+  await new Promise(res => {
+    let done = false;
+    const fin = () => { if (done) return; done = true; res(); };
+    const anim = ghost.animate([
+      { transform: 'translate(0,0) scale(1)', opacity: 1 },
+      { transform: `translate(${dx*0.62}px, ${dy*0.62}px) scale(0.78)`, opacity: 1, offset: 0.65 },
+      { transform: `translate(${dx}px, ${dy}px) scale(0.28)`, opacity: 0 },
+    ], { duration: dur, easing: 'cubic-bezier(.4,.1,.3,1)', fill: 'forwards' });
+    anim.onfinish = fin;
+    setTimeout(fin, dur + 160);          // rAF is throttled to zero in a background tab
+  });
+  ghost.remove();
+  if (_pmfMerged) _pmfMerged.style.visibility = '';
+  const box = document.getElementById('score-mid') || document.getElementById('score-center');
+  if (box) { box.classList.remove('box-popping'); void box.offsetWidth; box.classList.add('box-popping'); }
+  if (typeof sfxScoreTick === 'function') sfxScoreTick();
   return true;
 }
 

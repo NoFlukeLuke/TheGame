@@ -53,7 +53,7 @@ const SAVE_VARS = [
   'pendingEventOverride', 'rewardGridContext', 'skipTrickChoiceOverlay', 'pendingLevelUps',
   'goalReachedThisRound', 'roundEnded', 'suppressScoreDisplay', 'heldBackScore',
   // ── Deck & board ──
-  'drawPile', 'playedPile', 'gridData', 'gridRows', 'gridCols', 'expectedDeckTotal', 'ACTIVE_SUITS',
+  'drawPile', 'playedPile', 'gridData', 'gridRows', 'gridCols', 'expectedDeckTotal', 'ACTIVE_SUITS', 'ACTIVE_RANKS',
   // ── Clock & resources ──
   'roundSeconds', 'gameSeconds', 'roundStartSeconds', 'swaps', 'discards',
   'accumulatedSwaps', 'accumulatedDiscards', 'accumulatedSeconds',
@@ -96,8 +96,14 @@ const SAVE_VARS = [
   'challengeCard', 'challengeActive', 'trickCardPos', 'trickCardTimer',
   // ── Survival ──
   'survivalBossTimeBank', 'survivalBossPending', 'survivalLevelsSinceLimit', 'survivalRerollsUsed',
+  // The rest of the Survival loop's state. survivalBossesBeaten in particular gates the
+  // 5-boss completion screen, so without it a resumed run never finishes.
+  'survivalLevelsSinceKnack', 'survivalRerollsLeft', 'survivalBossesBeaten',
+  'survivalSecondsToBoss', 'survivalEndless', 'survivalEndlessFromLevel',
+  // ── Flow (js/flow-mode.js) ──
+  'flowBossFighting', 'flowRefillClock',
   // ── Seed (keeps future reward grids / shops deterministic) ──
-  'runSeed', 'rewardVisitIndex', 'shopVisitIndex',
+  'runSeed', 'rewardVisitIndex', 'shopVisitIndex', 'martTinkerN',
 ];
 
 // `const` objects can't be reassigned, so their CONTENTS are copied instead.

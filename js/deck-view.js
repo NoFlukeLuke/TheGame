@@ -1,13 +1,12 @@
 function showDeck() {
   const el = document.getElementById('deck-content');
 
-  const SUIT_ORDER = { '♣': 0, '♦': 1, '♥': 2, '♠': 3 };
-  const RANK_ORDER = { 'A':0,'2':1,'3':2,'4':3,'5':4,'6':5,'7':6,'8':7,'9':8,'10':9,'J':10,'Q':11,'K':12 };
-
+  // Suit/colour order follows the deck the run is actually using (four suits, six
+  // suits, or Spectrum's seven colours) — see suitSortVal/rankSortVal in cards.js.
   function sortCards(cards) {
     return [...cards].sort((a, b) => {
-      const sd = (SUIT_ORDER[a.suit] ?? 4) - (SUIT_ORDER[b.suit] ?? 4);
-      return sd !== 0 ? sd : (RANK_ORDER[a.rank] ?? 99) - (RANK_ORDER[b.rank] ?? 99);
+      const sd = suitSortVal(a.suit) - suitSortVal(b.suit);
+      return sd !== 0 ? sd : rankSortVal(a.rank) - rankSortVal(b.rank);
     });
   }
 
@@ -36,7 +35,9 @@ function showDeck() {
       if (!bySuit[card.suit]) bySuit[card.suit] = [];
       bySuit[card.suit].push(card);
     });
-    const SUIT_DISPLAY_ORDER = ['♣','♦','♥','♠'];
+    // White isn't an ACTIVE suit (that's what makes it flush-inert), so it has
+    // to be appended here or its cards would be missing from the deck view.
+    const SUIT_DISPLAY_ORDER = deckDisplaySuits();
     return SUIT_DISPLAY_ORDER.filter(s => bySuit[s]).map(s => {
       const chips = bySuit[s].map(c => makeChip(c, state)).join('');
       return `<div class="deck-suit-row">

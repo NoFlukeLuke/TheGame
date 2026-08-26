@@ -26,6 +26,10 @@ function computeRoundResources() {
   if (hasKnack('extra_swaps'))    s += BAL.extra_swaps.swaps;
   if (hasKnack('extra_discards')) d += BAL.extra_discards.discards;
 
+  // NOTE: Tempo is NOT special-cased here. It sets limits.swaps/discards.current to 2 once
+  // (applyTempoLimitOnce), so the normal computation above already reflects it via the
+  // limitSwapBonus / limitDiscardBonus deltas — and any later limit increases flow through
+  // untouched, keeping the door open to combos.
   return { discards: Math.max(0, d), swaps: Math.max(0, s), seconds: Math.max(1, sec) };
 }
 
@@ -38,6 +42,9 @@ function triggerLevelUp() {
   roundInterval = null;
   goalReachedThisRound = false;
   roundEnded = false;
+  // Growth Spurt: if the player reached max Focus at all this round, bank a random limit now.
+  if (hasKnack('growth_spurt') && growthSpurtMaxedThisRound) grantRandomLimit('🌱 Growth Spurt');
+  growthSpurtMaxedThisRound = false;
 
   // Apply any pending grid-size changes for the new round, then resize cards.
   // Must happen before Trick re-placement and the deal animation populate gridData.
@@ -64,7 +71,7 @@ function triggerLevelUp() {
   // roundGoal is recomputed and score is zeroed below.
   let _svLeftover = 0, _svOverflow = 0;
   if (survivalActive()) {
-    _svLeftover = Math.max(0, roundSeconds);
+    _svLeftover = (typeof flowActive === 'function' && flowActive()) ? 0 : Math.max(0, roundSeconds);
     // Post-boss BONUS round carries nothing (no goal was cleared); a normal clear
     // carries the score overflow above the goal into the next round.
     _svOverflow = survivalSkipCarryover ? 0 : Math.max(0, score - roundGoal);
@@ -86,17 +93,27 @@ function triggerLevelUp() {
 
   // Reset round
   flushPlayedDeck(); // played cards rejoin the pool for the new round
+  // Spectrum: a rank/colour change made in the dev tuner during the round lands
+  // here, at the boundary — never under the player's hand mid-round.
+  if (typeof spectrumApplyPendingDeck === 'function') spectrumApplyPendingDeck();
 
   // Bank unused resources before resetting
   if (hasKnack('carry_swaps'))    accumulatedSwaps    = Math.min(BAL.carry_swaps.max, accumulatedSwaps    + swaps);
   if (hasKnack('carry_discards')) accumulatedDiscards = Math.min(BAL.carry_discards.max, accumulatedDiscards + discards);
+  // NOTE: banks the round's UNUSED seconds, which assumes the clock is reset below.
+  // Flow's is not (it carries across level-ups), so carry_time would pay out the same
+  // seconds every level — which is why it is in FLOW_BANNED_ENTITIES.
   if (hasKnack('carry_time'))     accumulatedSeconds  = Math.min(BAL.carry_time.max_seconds, accumulatedSeconds + roundSeconds);
 
   // Base reset — resource values computed by computeRoundResources() (single source of truth).
   const _rr = computeRoundResources();
   discards     = _rr.discards;
   swaps        = _rr.swaps;
-  roundSeconds = _rr.seconds;
+  // Flow: swaps and discards refresh per level as usual, but the CLOCK does not —
+  // the five minutes span every goal cleared inside them. flowNextRoundSeconds keeps
+  // the running countdown, and only refills it at run start and after an inspection.
+  roundSeconds = (typeof flowNextRoundSeconds === 'function' && flowActive())
+               ? flowNextRoundSeconds(roundSeconds) : _rr.seconds;
   match3ApplyZenResources(); // Zen/infinite: refill swaps & discards to "unlimited"
   match3PendingSettle = true; // the round's fresh board settles when its timer starts
   // Per-action time-cost debuffs active this round = permanent + next-round-only.
@@ -195,6 +212,10 @@ function triggerLevelUp() {
   } else metronomeHandType = null;
   // Shady Tree sleight: pick this round's "shady" column.
   shadyColumn = Math.floor(Math.random() * gridCols);
+  // Lighthouse sleight: its favored column alternates first ↔ last each round.
+  lighthouseColumn = (lighthouseFlip++ % 2 === 0) ? 0 : gridCols - 1;
+  // Tempo knack: restart the alternating swap/discard drip, swap first.
+  tempoElapsed = 0; tempoNextIsSwap = true;
   // Stopwatch: clear any lingering freeze/timer from the previous round.
   stopwatchActive = false;
   if (stopwatchTimer) { clearInterval(stopwatchTimer); stopwatchTimer = null; }

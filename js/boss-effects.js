@@ -194,7 +194,7 @@ function bossCensorTick(holdSecs) {
 function bossRecallTick() {
   // Restore the previous rank, then take a NEW one — never one already used, so
   // the boss works through the deck rather than hammering the same rank.
-  const pool = RANKS.filter(r => !bossUsedRanks.has(r));
+  const pool = ACTIVE_RANKS.filter(r => !bossUsedRanks.has(r));
   if (!pool.length) return;                        // every rank has had its turn
   const pick = pool[Math.floor(Math.random() * pool.length)];
   bossUsedRanks.add(pick);

@@ -213,6 +213,7 @@ function playHand() {
   if (sleightNextHandDouble) { score += finalScore; sleightNextHandDouble = false; }
   if (sleightLegacyMult)     { score += finalScore * BAL.the_legacy.extra_mult; sleightLegacyMult = false; } // ×3 total = base + 2× extra
   if (sleightAmplifierMult) sleightAmplifierMult = 0;
+  if (siphonMultX > 1) siphonMultX = 1;   // Siphon's ×3 is spent on this hand
   // Clock-mark Tricks: the pending pip/mult bonuses were already folded into finalScore — clear them now.
   pendingHandPips = 0; pendingHandMult = 0; pendingCardPips = 0;
   handsPlayed++;
@@ -242,6 +243,8 @@ function playHand() {
 
   // on_play sleights (Good Friend exalt, Shortcut challenge-complete) fire when played
   fireSleightsOnPlay(playedCells, handCells, hand);
+  // Spectrum deck fixtures: count this hand against any fixture it scored beside.
+  if (typeof fireAdjacentSleights === 'function') fireAdjacentSleights(handCells);
 
   updateCounters(hand, handCells);
   checkUnlocks();
@@ -639,48 +642,28 @@ function playHand() {
       getNeighbors(r, c).forEach(([nr, nc]) => {
         if (!scoredSet.has(`${nr}-${nc}`) && gridData[nr][nc]) {
           const adj = gridData[nr][nc];
-          const curIdx = RANKS.indexOf(adj.rank);
+          const curIdx = ACTIVE_RANKS.indexOf(adj.rank);
           if (curIdx === -1) return;
           let newIdx;
           if (isQueen && hasTrick('queens_upgrade')) {
-            newIdx = curIdx === RANKS.length - 1 ? 1 : curIdx + 1; // K wraps to 2
+            newIdx = curIdx === ACTIVE_RANKS.length - 1 ? 1 : curIdx + 1; // K wraps to 2
           } else {
-            newIdx = curIdx === 0 ? RANKS.length - 1 : curIdx - 1; // A wraps to K (2 wraps to A)
+            newIdx = curIdx === 0 ? ACTIVE_RANKS.length - 1 : curIdx - 1; // A wraps to K (2 wraps to A)
           }
-          gridData[nr][nc] = { ...adj, rank: RANKS[newIdx] };
+          gridData[nr][nc] = { ...adj, rank: ACTIVE_RANKS[newIdx] };
         }
       });
     }
   });
 
-  // Ace Absorb: when an Ace scores, one random adjacent non-scored card is forgotten and its bonuses added to the Ace
-  if (hasTrick('aces_absorb') && scoringRanks.includes('A')) {
-    const aceCell = result.handCells.find(([r,c]) => gridData[r][c].rank === 'A');
-    if (aceCell) {
-      const [ar, ac] = aceCell;
-      const eligibleNeighbors = getNeighbors(ar, ac).filter(([nr,nc]) =>
-        !scoredSet.has(`${nr}-${nc}`) && gridData[nr][nc]
-      );
-      if (eligibleNeighbors.length > 0) {
-        const [tr, tc] = eligibleNeighbors[Math.floor(Math.random() * eligibleNeighbors.length)];
-        const target = gridData[tr][tc];
-        const tk = cardKey(target.rank, target.suit);
-        const ak = cardKey('A', gridData[ar][ac].suit);
-        // Transfer perm bonuses to ace
-        permPips[ak] = (permPips[ak] || 0) + (permPips[tk] || 0) + cardPips(target.rank);
-        permMult[ak] = (permMult[ak] || 0) + (permMult[tk] || 0);
-        delete permPips[tk]; delete permMult[tk];
-        // Forget from deck — count how many we actually erase, plus the target itself on grid
-        const beforeCount = drawPile.length + playedPile.length;
-        drawPile = drawPile.filter(c => !(c.rank === target.rank && c.suit === target.suit));
-        playedPile = playedPile.filter(c => !(c.rank === target.rank && c.suit === target.suit));
-        const afterCount = drawPile.length + playedPile.length;
-        expectedDeckTotal -= (1 + (beforeCount - afterCount)); // 1 for target (on grid), rest from pools
-        // Replace on grid with new drawn card
-        gridData[tr][tc] = drawCard() || null;
-      }
-    }
-  }
+  // Ace Absorb: when an Ace scores, one random adjacent non-scored card is forgotten and its bonuses added to the Ace.
+  // Monopoly (Spectrum) is the same effect on a 15 or a 20 — Spectrum has no Aces, so it gets its own trigger rank set.
+  const _absorbCell = hasTrick('aces_absorb') && scoringRanks.includes('A')
+        ? result.handCells.find(([r,c]) => gridData[r][c].rank === 'A')
+        : hasTrick('monopoly') && scoringRanks.some(rk => MONOPOLY_RANKS.includes(rk))
+        ? result.handCells.find(([r,c]) => MONOPOLY_RANKS.includes(gridData[r][c].rank))
+        : null;
+  if (_absorbCell) absorbAdjacentInto(_absorbCell, scoredSet);
 
   // Clear trick card
   trickCardPos = null;
@@ -700,3 +683,32 @@ function playHand() {
 let danceAbortController = null;
 let dncGen = 0; // bumped when a new preview-dance starts; a superseded dance bails without touching shared UI
 
+// Ace Absorb / Monopoly: the card at `cell` swallows one random adjacent card
+// that wasn't part of the hand — the neighbour's permanent bonuses plus its pip
+// value transfer over, and every copy of it is erased from the deck.
+const MONOPOLY_RANKS = ['15', '20'];
+function absorbAdjacentInto(cell, scoredSet) {
+  const [ar, ac] = cell;
+  const eater = gridData[ar]?.[ac];
+  if (!eater) return;
+  const eligibleNeighbors = getNeighbors(ar, ac).filter(([nr,nc]) =>
+    !scoredSet.has(`${nr}-${nc}`) && gridData[nr][nc] && gridData[nr][nc].rank
+  );
+  if (!eligibleNeighbors.length) return;
+  const [tr, tc] = eligibleNeighbors[Math.floor(Math.random() * eligibleNeighbors.length)];
+  const target = gridData[tr][tc];
+  const tk = cardKey(target.rank, target.suit);
+  const ak = cardKey(eater.rank, eater.suit);
+  // Transfer perm bonuses to the eater
+  permPips[ak] = (permPips[ak] || 0) + (permPips[tk] || 0) + cardPips(target.rank);
+  permMult[ak] = (permMult[ak] || 0) + (permMult[tk] || 0);
+  delete permPips[tk]; delete permMult[tk];
+  // Forget from deck — count how many we actually erase, plus the target itself on grid
+  const beforeCount = drawPile.length + playedPile.length;
+  drawPile   = drawPile.filter(c => !(c.rank === target.rank && c.suit === target.suit));
+  playedPile = playedPile.filter(c => !(c.rank === target.rank && c.suit === target.suit));
+  const afterCount = drawPile.length + playedPile.length;
+  expectedDeckTotal -= (1 + (beforeCount - afterCount)); // 1 for target (on grid), rest from pools
+  // Replace on grid with new drawn card
+  gridData[tr][tc] = drawCard() || null;
+}

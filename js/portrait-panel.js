@@ -22,6 +22,12 @@
 // specificity race with the landscape block.
 
 let _pvRemeasuring        = false;  // guards the re-measure below from re-entering
+// The Trick tray keeps its own half of the strip and is ALWAYS visible; only
+// Knacks and the hand preview share the other half (r160 — an earlier pass made
+// all three take turns, which hid the Tricks the player needs at a glance).
+// Tricks that don't fit their half FAN over each other instead — see
+// fanTrickTray() in js/tricks-ui.js.
+const PORTRAIT_VIEWS = ['knacks', 'preview'];
 let portraitPanelView     = 'knacks';   // what is showing right now
 let portraitPanelUserView = 'knacks';   // what the PLAYER chose — restored after an auto-swap
 
@@ -30,44 +36,57 @@ function isPortraitLayout() {
   return !!st && !st.classList.contains('landscape');
 }
 
+const _PV_NEXT_LABEL = { knacks: '🂠', preview: '♦' };
+const _PV_NEXT_TITLE = { knacks: 'Show hand preview', preview: 'Show Knacks' };
+
 function setPortraitPanelView(view, opts) {
   const auto = !!(opts && opts.auto);
-  view = (view === 'preview') ? 'preview' : 'knacks';
+  if (!PORTRAIT_VIEWS.includes(view)) view = 'knacks';
   portraitPanelView = view;
   if (!auto) portraitPanelUserView = view;   // an auto-swap must not overwrite the player's choice
   const st = document.getElementById('stage');
-  if (st) { st.classList.toggle('pv-preview', view === 'preview'); st.classList.toggle('pv-knacks', view !== 'preview'); }
+  if (st) PORTRAIT_VIEWS.forEach(v => st.classList.toggle('pv-' + v, v === view));
   // The chip marquees size themselves from the container's measured width, so a
-  // row rendered while its half was hidden (clientWidth 0) never got its
-  // auto-scroll. Re-run them for whichever half just became visible.
-  if (view === 'knacks' && !_pvRemeasuring && typeof updateKnackList === 'function') {
+  // row rendered while its view was hidden (clientWidth 0) never got its
+  // auto-scroll. Re-run whichever one just became visible.
+  if (!_pvRemeasuring) {
     _pvRemeasuring = true;
-    try { updateKnackList(); } finally { _pvRemeasuring = false; }
+    try {
+      if (view === 'knacks' && typeof updateKnackList === 'function') updateKnackList();
+    } finally { _pvRemeasuring = false; }
   }
   const btn = document.getElementById('panel-swap-btn');
   if (btn) {
     // The button shows where it will take you, not where you are.
-    btn.textContent = view === 'preview' ? '◆' : '🂠';
-    btn.title = view === 'preview' ? 'Show Knacks' : 'Show hand preview';
+    btn.textContent = _PV_NEXT_LABEL[view] || '🂠';
+    btn.title = _PV_NEXT_TITLE[view] || 'Swap panel';
     btn.setAttribute('aria-label', btn.title);
   }
 }
 
 function togglePortraitPanel() {
-  setPortraitPanelView(portraitPanelView === 'preview' ? 'knacks' : 'preview');
+  const i = PORTRAIT_VIEWS.indexOf(portraitPanelView);
+  setPortraitPanelView(PORTRAIT_VIEWS[(i + 1) % PORTRAIT_VIEWS.length]);
 }
 
 // The scoring dance draws into the hand preview, so in portrait the preview has
 // to be the visible half while it runs — otherwise cards fly to a hidden box.
 // flyGridCardToSlot bails out to a plain reveal on a zero-width target, which is
 // exactly what used to make portrait scoring look like nothing happened.
+let _pvBeforeDance = null;
 function portraitDanceBegin() {
   if (!isPortraitLayout()) return;
+  // Restore to whatever was ACTUALLY showing, not to the last manual choice: a
+  // Knack granted just before the hand auto-surfaced Knacks, and bouncing to
+  // Tricks afterwards because that was the last thing the player picked reads
+  // as a glitch.
+  if (portraitPanelView !== 'preview') _pvBeforeDance = portraitPanelView;
   setPortraitPanelView('preview', { auto: true });
 }
 function portraitDanceEnd() {
   if (!isPortraitLayout()) return;
-  setPortraitPanelView(portraitPanelUserView, { auto: true });
+  setPortraitPanelView(_pvBeforeDance || portraitPanelUserView, { auto: true });
+  _pvBeforeDance = null;
 }
 
 // Knacks are granted between rounds (reward grid, Mart, survival picks). If the
@@ -83,6 +102,11 @@ function portraitShowKnacks() {
 function syncPortraitPanel() {
   setPortraitPanelView(portraitPanelUserView, { auto: true });
 }
+
+
+// The Trick tray is always on screen now, so a granted Trick needs no view
+// switch — it only needs the fan re-measured, which renderTrickTray does.
+function portraitShowTricks() { /* no-op: Tricks is never hidden behind the swap */ }
 
 // ══════════════════════════════════════════════
 // PORTRAIT PREVIEW CARD SIZING  (r160)

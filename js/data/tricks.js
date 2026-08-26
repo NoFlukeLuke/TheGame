@@ -28,6 +28,7 @@ const TRICK_POOL = [
   { id:'summit',     name:'Unsummit',   tier:'common', desc:'The lowest-ranking card in each hand scores +(its value × level) pips.' },
   { id:'last_stand', name:'Last Stand', tier:'rare',   desc:'If your score is below the round goal when you play, that hand scores x2.' },
   { id:'light_touch',    name:'Nimble',              tier:'common',    desc:'2-card hands score +5 mult' },
+  { id:'release_valve',  name:'Release Valve',       tier:'rare',      desc:'Each time you reach max Focus, gain +1 swap and +1 discard, then lose half your Focus.' },
   { id:'heavy_hand',     name:'Full Load',           tier:'rare',      desc:'5-card hands score +6 pips per card' },
   { id:'blackjack_bonus', name:'Twenty-One',         tier:'legendary', desc:'If the face values of your cards total exactly 21, score ×3' },
   // ── Rank-specific pips / mult ──
@@ -133,6 +134,7 @@ const TRICK_POOL = [
   { id:'big_win',        name:'Jackpot',             tier:'legendary', desc:'The first time a single hand scores 10,000+, permanently add +5 mult to this trick' },
   { id:'queens_upgrade', name:'Royal Favour',        tier:'epic',      tags:['scaling','grid','value'], desc:'After scoring, cards adjacent to Queens permanently gain +1 rank' },
   { id:'aces_absorb',    name:'Ace Absorb',          tier:'legendary', tags:['scaling','value'], desc:'When an Ace scores, one random adjacent card is forgotten and its bonuses added to the Ace (once per hand)' },
+  { id:'monopoly',       name:'Monopoly',            tier:'legendary', tags:['scaling','value'], modes:['spectrum'], desc:'When a 15 or a 20 scores, one random adjacent card is forgotten and its bonuses added to it (once per hand)' },
   // ── Situational pip ──
   { id:'sands_of_time',  name:'Sands of Time',       tier:'rare',      desc:'Current round time remaining ÷ 2 added as pips' },
   { id:'discard_pips',   name:'Compost',             tier:'common',    tags:['pips','discard'], desc:'+3 pips per card discarded this round' },
@@ -213,7 +215,7 @@ const TRICK_CATEGORIES = [
   { emoji:'🌈', ids:['number_crunch'] }, // Rank diversity
   { emoji:'📍', ids:['rowcol_triple_pips','rowcol_mult','rowcol_retrigger','perfect_timing','right_time','study_hall','rowcol_perm_double','shape_square','shape_cross','shape_line','corner_retrigger','two_corners','edge_pips','wide_span_mult','column_rush','row_power','groove','assembly_line','overtime','feng_shui','huddle','clean_sweep','temporal_rift'] }, // Position
   { emoji:'📈', ids:['rising_tide','veteran_bonus'] }, // Level scaling
-  { emoji:'🧮', ids:['compound_mult','prolific','acorns','plan_ahead','more_better','fives_discard','nines_mult','tens_mult','sixes_perm','fours_perm','twos_retrigger','prime_times','eights_retrigger','snowball','big_win','queens_upgrade','aces_absorb'] }, // Accumulating
+  { emoji:'🧮', ids:['compound_mult','prolific','acorns','plan_ahead','more_better','fives_discard','nines_mult','tens_mult','sixes_perm','fours_perm','twos_retrigger','prime_times','eights_retrigger','snowball','big_win','queens_upgrade','aces_absorb','monopoly'] }, // Accumulating
   { emoji:'🎲', ids:['sands_of_time','discard_pips','spade_flood','mirror','wild_side','wait_for_it'] }, // Situational pip
   { emoji:'🔀', ids:['combo_score','escalation','move_as_one'] }, // Diverse conditions
   { emoji:'🎯', ids:['meditation','tunnel_vision','first_wind','rhythm','restless','cull','expanse','kaleidoscope','flow_state'] }, // Focus
@@ -222,6 +224,41 @@ const TRICK_CATEGORIES = [
 const TRICK_EMOJI = {};
 TRICK_CATEGORIES.forEach(cat => cat.ids.forEach(id => { TRICK_EMOJI[id] = cat.emoji; }));
 function trickEmoji(trick) { return (trick && TRICK_EMOJI[trick.id]) || '✦'; }
+
+// ── Mode entity filter (Spectrum) ─────────────────────────────────────────────
+// Spectrum's deck has no Ace, no J/Q/K and no ♠♥♦♣, so a handful of Tricks are
+// simply dead there (or, worse, free — "little guys" wants a 5-card hand with no
+// face cards, which is EVERY hand). They're pulled out of the pool for that mode
+// so the player is never offered one.
+//
+// Rather than patch the dozen places that draw from TRICK_POOL (reward grid,
+// events, shop, Mart, wheel, survival, dev panel…), the pool ARRAY ITSELF is
+// re-filled in place at startGame: every reader shares the one array reference,
+// so they all see the mode's pool with no call-site changes. TRICK_POOL_ALL keeps
+// the pristine list so switching back to a classic mode restores it.
+const TRICK_POOL_ALL = [...TRICK_POOL];
+const NUMERIC_BANNED_TRICKS = new Set([
+  // Ace / court-card dependent — those ranks don't exist in Spectrum
+  'first_light', 'wild_heart', 'face_value', 'king_guard', 'knave_power',
+  'royal_trio', 'queens_upgrade', 'aces_absorb', 'undue_influence', 'little_guys',
+  // Named-suit dependent — Spectrum has colours, not ♠♥♦♣
+  'club_double', 'monochrome', 'spade_flood',
+]);
+// Colour-COUNT tricks (Rainbow = 4 distinct, Balance = exactly 2, Kaleidoscope =
+// 4+) still work as written, so they stay in.
+// A Trick may also be EXCLUSIVE to a mode via `modes:['spectrum']` — Monopoly is
+// Spectrum's stand-in for Ace Absorb (same effect, on 15s and 20s), so it must not
+// leak into the classic pools.
+function applyModeEntityFilter() {
+  const modeId = (typeof ACTIVE_MODE !== 'undefined' && ACTIVE_MODE) ? ACTIVE_MODE.id : 'normal';
+  const banned = isNumericMode() ? NUMERIC_BANNED_TRICKS : null;
+  const keep = TRICK_POOL_ALL.filter(t =>
+    !(banned && banned.has(t.id)) && (!t.modes || t.modes.includes(modeId))
+  );
+  TRICK_POOL.length = 0;
+  keep.forEach(t => TRICK_POOL.push(t));
+}
+function trickBannedInMode(id) { return isNumericMode() && NUMERIC_BANNED_TRICKS.has(id); }
 
 // ══════════════════════════════════════════════
 // STATE

@@ -120,6 +120,7 @@ function openDevPanel() {
   devSyncDisco();
   devSyncFullscreen();
   devSyncSaveSection();
+  renderSpectrumDev();
   devCloseGroup();          // always land on the group menu, not the last group opened
   stopTimers();
 }
@@ -146,6 +147,7 @@ const DEV_GROUPS = [
   { g:'save',     icon:'💾', label:'Save Run',  sub:() => { const s = savedRunSummary(); return s ? `saved · Round ${s.level}` : 'no save yet'; } },
   { g:'seed',     icon:'⚄', label:'Run Seed',  sub:() => runSeed ? `on · ${runSeed}` : 'off · random' },
   { g:'match3',   icon:'⬚', label:'Match-3',   sub:() => 'match types · sandbox' },
+  { g:'spectrum', icon:'◐', label:'Spectrum',  sub:() => `${spectrumRanks().length} values × ${spectrumColors().length} colours` },
   { g:'builds',   icon:'▤', label:'Builds',    sub:() => `${discoveredIds.size} records open` },
   { g:'log',      icon:'✎', label:'Event Log', sub:() => 'in-game debug log' },
 ];
@@ -170,6 +172,7 @@ function devOpenGroup(g) {
   });
   document.getElementById('dev-group-pop-body').scrollTop = 0;
   if (g === 'seed') devRefreshSeed();
+  if (g === 'spectrum') renderSpectrumDev();
 }
 function devCloseGroup() {
   document.getElementById('dev-group-menu').style.display = '';
@@ -600,6 +603,7 @@ function devSaveRun() {
   const r = saveRunToStorage();
   devSaveMsg(r.msg, r.ok);
   devSyncSaveSection();
+  renderSpectrumDev();
   if (r.ok) devSaveMsg(r.msg, true);   // re-set: devSyncSaveSection clears it
   updateContinueBtn();
   devRenderGroupMenu();
@@ -608,6 +612,7 @@ function devSaveRun() {
 function devClearSave() {
   clearSavedRun();
   devSyncSaveSection();
+  renderSpectrumDev();
   devSaveMsg('Save deleted.');
   devRenderGroupMenu();
 }

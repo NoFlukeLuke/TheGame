@@ -110,7 +110,15 @@ const BAL = {
   // Spin-the-wheel (Mart special). default_sell is the fallback payout when a prize
   // has no sell price of its own and there's no room for it.
   wheel:         { cost: 20, slots: 10, jackpot_coins: 25, default_sell: 15 },
-  shop_discount: { per_item: 5, bulk_per_item: 10 },  // bundle discount % per ADDITIONAL item; cap = rate × Selection Size
+  // Bundle discount: % off per ADDITIONAL item in the cart, with its own flat cap.
+  // 1 item = 0%, 2 = 5%, 3 = 10%, 4 = 15%, 5+ = 20%. Bulk Buyer doubles BOTH the
+  // rate and the cap. This used to be capped at rate × Selection Size, which tied
+  // shopping to how many CARDS you can pick for a poker hand — unrelated things.
+  shop_discount: { per_item: 5, cap: 20, bulk_per_item: 10, bulk_cap: 40 },
+  // Tinker bench (Mart → Tools): stamp a real rank + suit onto a Sleight you own,
+  // so it starts counting as a normal card in hand detection on top of whatever
+  // it already does. Price climbs per identity issued in a run.
+  tinker_identity: { cost: 18, cost_step: 8 },
   reward_skip:   { gold: 20 },   // gold paid for skipping the whole reward grid (shown on the SKIP button)
   wild_side:     { mult_per: 3 },       // +mult per negative reward tile taken this run
   wait_for_it:   { chance_per: 0.02 },  // +replay chance per negative reward tile taken this run
@@ -177,7 +185,20 @@ const BAL = {
   the_wanderer: { swaps: 1 },
   amplifier: { mult: 5 },
   piggy_bank: { coins: 5 },
+  // ── adjacency / position sleights (r120) ──
+  whetstone:  { mult_per_event: 1 },
+  entourage:  { mult_per_sleight: 10 },
+  lighthouse: { mult: 20, falloff_per_column: 5 },
+  // ── focus-payout entities (r123) ──
+  capacitor:    { focus_cost: 10, time_cost: 20, credits: 10 },
+  siphon:       { focus_cost: 15, mult: 4 },
+  release_valve:{ keep_fraction: 0.5 },
+  dividend:     { credits: 8, keep_fraction: 0.33 },
+  trade_winds:  { cap_reduction: 10, payout_fraction: 0.5 },
+  growth_spurt: { cap_reduction: 5 },
   // ── knacks ──
+  tempo:    { limit: 2, interval_seconds: 15 },
+  jury_rig: { chance: 0.5, charges: 1 },
   time_slip: { chance: 0.25 },
   replay_rewind: { chance: 0.25, seconds: 2 },
   deja_vu: { seconds: 5 },
@@ -203,6 +224,15 @@ const BAL = {
 // value change via the balance sheet updates the in-game description too. Only
 // entities whose wording maps unambiguously to their params are listed.
 const DESC_TEMPLATES = {
+  whetstone: 'Whenever an adjacent card is swapped or discarded, Whetstone gains +{mult_per_event} mult. Hands that score a card adjacent to Whetstone score that mult.',
+  entourage: 'Hands score +{mult_per_sleight} mult for every other Sleight on the grid.',
+  lighthouse: 'Each round Lighthouse favors the first or last column. Hands score +{mult} mult while it sits in that column, −{falloff_per_column} per column of distance away (minimum 0).',
+  tempo: 'When acquired, sets your swap and discard limits to {limit}. Every {interval_seconds} seconds, gain 1 back — alternating swap, then discard.',
+  capacitor: 'Double-tap to spend {focus_cost} Focus and {time_cost} seconds for {credits} credits. Consumed on use.',
+  siphon: 'Double-tap to spend {focus_cost} Focus: your next scored hand gets ×{mult} mult. Returns to your deck after use.',
+  release_valve: 'Each time you reach max Focus, gain +1 swap and +1 discard, then lose half your Focus.',
+  dividend: 'Each time you reach max Focus, gain {credits} credits, then Focus resets to a third of max.',
+  growth_spurt: 'Each time you reach max Focus, your max Focus drops by {cap_reduction}. If you reached max Focus during a round, a random limit rises by 1 at the end of that round.',
   overgrowth: 'Runs score +{pips_per_card} pips per card',
   long_road: 'Runs score +{mult_per_card} mult per card',
   river_run: 'Runs add +{focus_per_card} Focus per card',

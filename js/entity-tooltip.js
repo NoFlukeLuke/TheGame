@@ -29,10 +29,10 @@ function ensureEntityTooltip() {
     </div>
     <div class="et-defs"></div>`;
   document.body.appendChild(_etEl);
-  // Keep it up while the pointer is over the tooltip itself (so definitions can
-  // be read) but never let it eat clicks meant for the tile underneath.
-  _etEl.addEventListener('pointerenter', () => { clearTimeout(_etHideTimer); });
-  _etEl.addEventListener('pointerleave', hideEntityTooltip);
+  // No hover-to-keep-alive listeners: the tooltip is pointer-events:none (see
+  // css/tooltip.css) precisely so it can never swallow a click meant for a tile
+  // underneath it, and an element that takes no pointer events cannot receive
+  // pointerenter either. Nothing to bind.
   return _etEl;
 }
 

@@ -1,5 +1,74 @@
 function sleightDef(card) { return SLEIGHT_POOL.find(j => j.id === card.sleightId); }
 
+// ── Sleight card FACE (r172, reworked r175) ────────────────────────────────
+// A Sleight is a card in the deck, so it wears a card's furniture: an index in
+// the top-left corner. What that index SAYS depends on what the Sleight is.
+//
+//   plain Sleight   S over a house mark (◈ ◇ ✦ …)  — "this is a Sleight, and it
+//                   has no playing identity"
+//   wildcard        W over ∞                      — wild rank, endless suit
+//   tinkered        a REAL rank over a REAL suit   — it has been given an
+//                   identity at the Mart's Tinker bench and now plays as a card
+//
+// r172 gave every Sleight a RANDOM rank and suit. That was worse than nothing:
+// it printed 7♦ on a card that could never be part of a seven, so the face was
+// a lie. The marks below identify rather than impersonate, and a real rank only
+// ever appears on a Sleight that has actually earned one (see sleightAssignIdentity).
+const SLEIGHT_HOUSE_MARKS = ['◈', '◇', '✦', '❖', '⬥', '◆'];
+
+function sleightIsWild(def) { return !!def && def.activation === 'wildcard'; }
+// A Sleight that has been given a playing identity at the Tinker bench. Wildcards
+// can never be tinkered, so this and sleightIsWild are mutually exclusive.
+function sleightIsPlayable(card) { return !!(card && card._playable && card.rank && card.suit); }
+
+function sleightFace(card, def) {
+  if (!card) return { rank: 'S', suit: '◈', kind: 'plain' };
+  if (sleightIsPlayable(card)) return { rank: card.rank, suit: card.suit, kind: 'playable' };
+  if (sleightIsWild(def || sleightDef(card))) return { rank: 'W', suit: '∞', kind: 'wild' };
+  // The house mark is stable per card, so a Sleight keeps the same face across
+  // renders and deck cycles rather than flickering through the set.
+  if (card._faceMark == null) card._faceMark = SLEIGHT_HOUSE_MARKS[Math.floor(Math.random() * SLEIGHT_HOUSE_MARKS.length)];
+  return { rank: 'S', suit: card._faceMark, kind: 'plain' };
+}
+
+// Rarity → the card's edge colour, as a class both render paths add.
+function sleightRarityClass(def) {
+  const r = def && def.rarity;
+  return ['common','rare','epic','legendary','mythic','fixture'].includes(r) ? ' sl-rar-' + r : ' sl-rar-common';
+}
+
+// Markup shared by both render paths (js/render.js and js/card-fall.js) so the
+// grid, the fall animation and the hand preview can never disagree.
+function sleightFaceHTML(card, def, usesStr) {
+  const f = sleightFace(card, def);
+  const red = f.kind === 'playable' && '♥♦'.includes(f.suit);
+  const numeric = f.kind === 'playable' && (typeof isColorSuit === 'function') && isColorSuit(f.suit);
+  const tone = f.kind === 'playable' ? (red ? 'sl-red' : 'sl-blk') : 'sl-mark';
+  return `<div class="sleight-index ${tone} sl-k-${f.kind}${numeric ? ' sl-num' : ''}">`
+       +   `<span class="sl-rank">${f.rank}</span><span class="sl-suit">${f.suit}</span>`
+       + `</div>`
+       + `<div class="sleight-card-emoji">${def?.emoji || '🃏'}</div>`
+       + `<div class="sleight-card-name">${def?.name || 'Sleight'}</div>`
+       + `<div class="sleight-card-uses">${usesStr}</div>`;
+}
+
+// ── The Tinker bench: give a Sleight a real playing identity ────────────────
+// The card keeps everything it already does AND starts counting as a normal
+// card in hand detection. Wildcards are refused: they already have the best
+// identity in the game, and pinning one would silently un-wild it.
+function sleightCanTinker(card, def) {
+  return !!card && !sleightIsWild(def || sleightDef(card)) && !sleightIsPlayable(card);
+}
+function sleightAssignIdentity(card, rank, suit) {
+  if (!card) return null;
+  const ranks = (typeof ACTIVE_RANKS !== 'undefined' && ACTIVE_RANKS.length) ? ACTIVE_RANKS : RANKS;
+  const suits = (typeof ACTIVE_SUITS !== 'undefined' && ACTIVE_SUITS.length) ? ACTIVE_SUITS : SUITS;
+  card.rank = rank || ranks[Math.floor(Math.random() * ranks.length)];
+  card.suit = suit || suits[Math.floor(Math.random() * suits.length)];
+  card._playable = true;
+  return { rank: card.rank, suit: card.suit };
+}
+
 function grantSleight(def) {
   const card = {
     _isSleight: true, sleightId: def.id,
@@ -47,6 +116,18 @@ function lockSleightForRound(card) {
     showMessage(`${sleightDef(card)?.name || 'Sleight'} consumed — locked until discarded or played`, 'var(--cream-dim)');
 }
 
+// Active-tap sleights (Amplifier/Snooze/Piggy Bank/Magnet/Capacitor/Siphon) LEAVE the grid
+// the moment they fire — replacing the old once-per-round lock. Like a normal discard the
+// card cycles back into the deck with its remaining charges (discardToPlayed drops it once
+// fully spent), and removeAndFall animates it out AND refills the hole (nulling the cell by
+// hand would leave a permanent gap). Fire-and-forget, mirroring doDiscard.
+function discardSleightAfterUse(card, r, c) {
+  if (!card) return;
+  if (typeof card._usesLeft === 'number') card._usesLeft--;
+  discardToPlayed(card);                 // back into circulation with charges left (or dropped if spent)
+  removeAndFall([[r, c]], 'discard');    // slide it out + gravity-refill the cell
+}
+
 // ── Exalt / Corrupt helpers ──
 function exaltCard(r, c) {
   if (!exaltCorruptEnabled) return; // mechanic paused
@@ -80,6 +161,92 @@ function getNeighborsAll(r, c) {
     if (nr >= 0 && nr < gridRows && nc >= 0 && nc < gridCols) out.push([nr, nc]);
   }
   return out;
+}
+
+// ── Orthogonal neighbors (adjacency for Whetstone / Jury-Rig) ──
+function getNeighborsOrtho(r, c) {
+  const out = [];
+  [[r-1,c],[r+1,c],[r,c-1],[r,c+1]].forEach(([nr, nc]) => {
+    if (nr >= 0 && nr < gridRows && nc >= 0 && nc < gridCols) out.push([nr, nc]);
+  });
+  return out;
+}
+const _isOrthoAdj = (r1, c1, r2, c2) => Math.abs(r1 - r2) + Math.abs(c1 - c2) === 1;
+
+// ── Whetstone: sharpens on nearby churn ──────────────────────────────────────
+// Every adjacent card swapped or discarded adds +1 mult, banked on the card itself
+// (_whetMult) so it survives deck cycling. `cells` = the cells just swapped/discarded.
+function feedWhetstones(cells) {
+  let fed = 0;
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
+    const card = gridData[r]?.[c];
+    if (!card?._isSleight || card.sleightId !== 'whetstone') continue;
+    // The Whetstone's own cell never counts — only cards moved/removed beside it.
+    const gain = cells.filter(([cr, cc]) => !(cr === r && cc === c) && _isOrthoAdj(cr, cc, r, c)).length;
+    if (gain) { card._whetMult = (card._whetMult || 0) + gain * BAL.whetstone.mult_per_event; fed += gain; }
+  }
+  if (fed) showMessage(`🔪 Whetstone +${fed} mult`, '#ffd700');
+}
+// Mult a scored hand collects: each Whetstone next to at least one scored card gives
+// everything it has sharpened. Several Whetstones stack.
+function whetstoneMultForCells(cells) {
+  let total = 0;
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
+    const card = gridData[r]?.[c];
+    if (!card?._isSleight || card.sleightId !== 'whetstone' || !card._whetMult) continue;
+    if (cells.some(([cr, cc]) => _isOrthoAdj(cr, cc, r, c))) total += card._whetMult;
+  }
+  return total;
+}
+
+// ── Entourage: +mult per OTHER Sleight on the grid (each Entourage counts the rest) ──
+function entourageMult() {
+  let sleightCount = 0, entourages = 0;
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
+    const card = gridData[r]?.[c];
+    if (!card?._isSleight) continue;
+    sleightCount++;
+    if (card.sleightId === 'entourage') entourages++;
+  }
+  return entourages ? entourages * Math.max(0, sleightCount - 1) * BAL.entourage.mult_per_sleight : 0;
+}
+
+// ── Lighthouse: full mult in the round's favored column, decaying by distance, floored at 0 ──
+function lighthouseMult() {
+  let total = 0;
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
+    const card = gridData[r]?.[c];
+    if (!card?._isSleight || card.sleightId !== 'lighthouse') continue;
+    const dist = Math.abs(c - lighthouseColumn);
+    total += Math.max(0, BAL.lighthouse.mult - dist * BAL.lighthouse.falloff_per_column);
+  }
+  return total;
+}
+
+// ── Jury-Rig knack: swapping/discarding beside a Sleight may restore one of its charges ──
+// Restore 1 charge, never above the Sleight's printed durability ('infinite' is a no-op).
+function restoreSleightCharge(card) {
+  if (!card || card._usesLeft === 'infinite') return false;
+  const def = sleightDef(card);
+  const cap = (def && typeof def.durability === 'number') ? def.durability : null;
+  if (cap === null || (card._usesLeft || 0) >= cap) return false;
+  card._usesLeft = Math.min(cap, (card._usesLeft || 0) + BAL.jury_rig.charges);
+  return true;
+}
+// One roll per adjacent Sleight (deduped by _id so a Sleight beside both swapped cells
+// still only rolls once for that action).
+function juryRigRoll(cells) {
+  if (!hasKnack('jury_rig')) return;
+  const seen = new Set(), targets = [];
+  cells.forEach(([cr, cc]) => getNeighborsOrtho(cr, cc).forEach(([nr, nc]) => {
+    const card = gridData[nr]?.[nc];
+    if (!card?._isSleight || seen.has(card._id)) return;
+    seen.add(card._id); targets.push(card);
+  }));
+  targets.forEach(card => {
+    if (Math.random() >= BAL.jury_rig.chance) return;
+    if (restoreSleightCharge(card)) showMessage(`🔧 Jury-Rig — ${sleightDef(card)?.name || 'Sleight'} +1 charge`, '#6aaa6a');
+  });
 }
 
 // ── round_start sleights (none in current pool, kept for framework) ──
@@ -337,16 +504,28 @@ function showSleightGridTooltip(r, c, card) {
   const gridEl = document.getElementById('grid');
   const sleightEl = gridEl?.querySelector(`[data-card-id="${card._id}"]`);
   if (!sleightEl) return;
-  const uses = card._usesLeft === 'infinite' ? '∞ uses' : `${card._usesLeft} use${card._usesLeft !== 1 ? 's' : ''} left`;
+  let uses = card._usesLeft === 'infinite' ? '∞ uses' : `${card._usesLeft} use${card._usesLeft !== 1 ? 's' : ''} left`;
+  // Whetstone banks mult on the card itself — surface it, it's the whole point of the Sleight.
+  if (def.id === 'whetstone') uses = `+${card._whetMult || 0} mult sharpened`;
+  // Lighthouse's value depends on where it is right now — show the live number.
+  if (def.id === 'lighthouse') {
+    const _v = Math.max(0, BAL.lighthouse.mult - Math.abs(c - lighthouseColumn) * BAL.lighthouse.falloff_per_column);
+    uses = `+${_v} mult here · favors column ${lighthouseColumn + 1}`;
+  }
+  if (def.id === 'entourage') uses = `+${entourageMult()} mult right now`;
+  // Focus-spend sleights: show what they'll cost against what you have right now.
+  if (def.id === 'capacitor') uses = `needs ${BAL.capacitor.focus_cost} Focus · you have ${focusNodes}`;
+  if (def.id === 'siphon')    uses = `needs ${BAL.siphon.focus_cost} Focus · you have ${focusNodes}`;
   const tip = document.createElement('div');
   tip.id = 'sleight-grid-tooltip';
   tip.className = 'sleight-tooltip';
   const _usedLock = card._usedThisRound ? ' · USED THIS ROUND' : '';
   const _hint = def.id === 'stopwatch' ? 'DOUBLE-TAP TO FREEZE THE CLOCK'
-              : def.activation === 'double_tap' ? `DOUBLE-TAP TO ACTIVATE · ONCE PER ROUND${_usedLock}`
+              : def.activation === 'double_tap' ? 'DOUBLE-TAP TO ACTIVATE · DISCARDED AFTER USE'
               : def.activation === 'on_play' ? 'SELECT &amp; PLAY TO ACTIVATE'
               : def.activation === 'on_discard' ? 'SELECT &amp; DISCARD TO ACTIVATE'
               : def.activation === 'on_swap' ? `SWAP TO ACTIVATE · ONCE PER ROUND${_usedLock}`
+              : def.activation === 'passive' ? 'ALWAYS ACTIVE WHILE ON THE GRID'
               : 'LONG-PRESS FOR TOOLTIP';
     tip.innerHTML = `<div class="sleight-tooltip-name">${def.emoji} ${def.name}</div><div class="sleight-tooltip-desc">${colorizeKeywords(def.desc)}</div><div class="sleight-tooltip-uses">${uses}</div><div class="sleight-tooltip-hint">${_hint}</div>`;
   tip.style.opacity = '0';

@@ -145,7 +145,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     let rawPips = _origPips;
     if (hasTrick('face_value') && ['J','Q','K'].includes(baseRank)) { rawPips = BAL.face_value.face_pips; bPip('face_value', rawPips - _origPips); }
     else if (hasTrick('first_light') && baseRank === 'A') { rawPips = BAL.first_light.worth; bPip('first_light', rawPips - _origPips); }
-    if (hasTrick('humble_roots') && ['A','2','3','4','5'].includes(baseRank)) { const _b = rawPips; rawPips *= BAL.humble_roots.pip_mult; bPip('humble_roots', rawPips - _b); }
+    if (hasTrick('humble_roots') && ['A','1','2','3','4','5'].includes(baseRank)) { const _b = rawPips; rawPips *= BAL.humble_roots.pip_mult; bPip('humble_roots', rawPips - _b); }
     if (hasTrick('summit') && (RANK_ORDER[baseRank] || 0) === _handMinRankVal) { const _b = cardPips(baseRank) * level; rawPips += _b; bPip('summit', _b); }
     let cp = rawPips;
     if (hasTrick('rich_soil')) { cp += BAL.rich_soil.pips; bPip('rich_soil', BAL.rich_soil.pips); }
@@ -431,6 +431,14 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // Landfill: +1 mult per 5 cards discarded this round
   if (hasTrick('landfill')) { const _a = Math.floor(cardsDiscardedRound / BAL.landfill.discards_per) * BAL.landfill.mult_per_n; if (_a) { mult += _a; bMult('landfill', _a); } }
 
+  // Sleight-sourced mult (r120) — these come from Sleights sitting on the grid, not Tricks,
+  // so they're tracked separately and attributed with source:'sleight' in the contributions.
+  const _whetM  = whetstoneMultForCells(cells); // Whetstone: sharpened mult, if it neighbors the hand
+  const _entM   = entourageMult();              // Entourage: +mult per other Sleight on the grid
+  const _lightM = lighthouseMult();             // Lighthouse: mult by distance from its favored column
+  mult += _whetM + _entM + _lightM;
+  let _siphonM = 0;                              // Siphon: multiplicative ×mult, applied after additive mults (below)
+
   // Hearts: neutral by default; +1 mult each with Devoted Trick (per-card → per replay)
   const heartCount = _wc(c => c.suit === '♥' || (c.combined && c.suit2 === '♥'));
   if (hasTrick('heart_double') && heartCount > 0) { mult += heartCount * BAL.heart_double.heart_mult; bMult('heart_double', heartCount * BAL.heart_double.heart_mult); }
@@ -603,6 +611,12 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   if (hasTrick('flow_state') && fMult >= 1.5) {
     const _a = BAL.flow_state.pips_per_card * cards.length; totalPips += _a; bPip('flow_state', _a);
   }
+  // Siphon (sleight): ×3 the whole mult, applied last so it multiplies every additive bonus.
+  // Read-only here (not consumed) — playHand clears siphonMultX after the hand commits, so
+  // findBestHand's candidate scoring sees it consistently.
+  if (typeof siphonMultX === 'number' && siphonMultX > 1) {
+    const _pre = mult; mult = Math.round(mult * siphonMultX * 10) / 10; _siphonM = mult - _pre;
+  }
   // MULT stays "pure" — Focus is a SEPARATE third multiplier applied at the end (see below).
   lastPreFocusMult = mult;   // kept for dance compatibility (now == pure mult)
   lastCalcMult = mult;       // pure mult for the MULT box
@@ -662,6 +676,10 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     // push {type,source:'knack'|'sleight',id,delta} and the dance will render it automatically.
     if (typeof sleightAmplifierMult === 'number' && sleightAmplifierMult > 0)
       contrib.push({type:'mult',source:'sleight',id:'amplifier',delta:Math.round(sleightAmplifierMult*10)/10});
+    if (_whetM  > 0) contrib.push({type:'mult',source:'sleight',id:'whetstone', delta:Math.round(_whetM*10)/10});
+    if (_entM   > 0) contrib.push({type:'mult',source:'sleight',id:'entourage', delta:Math.round(_entM*10)/10});
+    if (_lightM > 0) contrib.push({type:'mult',source:'sleight',id:'lighthouse',delta:Math.round(_lightM*10)/10});
+    if (_siphonM > 0) contrib.push({type:'mult',source:'sleight',id:'siphon',    delta:Math.round(_siphonM*10)/10});
   }
 
   // Finalize the animation ledger: attach the known per-card MULT / exalt single-iteration
@@ -696,6 +714,9 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
 // ══════════════════════════════════════════════
 function contribDisplayName(source, id) {
   if (source === 'exalt') return 'Exalt / Corrupt';
+  // Sleight/knack-sourced rows resolve against their own pools (Tricks are the default).
+  if (source === 'sleight') return SLEIGHT_POOL.find(s => s.id === id)?.name || id;
+  if (source === 'knack')   return KNACK_POOL.find(k => k.id === id)?.name || id;
   const def = TRICK_POOL.find(t => t.id === id);
   return def ? def.name : id;
 }

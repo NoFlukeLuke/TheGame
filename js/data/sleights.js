@@ -26,19 +26,41 @@ const SLEIGHT_POOL = [
   { id:'the_catalyst',   name:'Catalyst',       emoji:'🧪', rarity:'rare',      activation:'on_swap',    durability:'infinite', defaultRank:null, defaultSuit:null, tags:['scoring','mult'],     desc:'When swapped, the card it traded with permanently gains +1 mult.' },
   { id:'the_wanderer',   name:'Wanderer',       emoji:'🧭', rarity:'common',    activation:'on_swap',    durability:'infinite', defaultRank:null, defaultSuit:null, tags:['resource'],           desc:'When swapped, refunds the swap (+1 swap back).' },
   // ── Double-tap-based ──
-  { id:'amplifier',      name:'Amplifier',      emoji:'📢', rarity:'common',    activation:'double_tap', durability:5,          defaultRank:null, defaultSuit:null, tags:['scoring','mult'],     desc:'Double-tap: the next hand scores +5 mult. (5 charges)' },
-  { id:'snooze',         name:'Snooze Button',  emoji:'😴', rarity:'common',    activation:'double_tap', durability:5,          defaultRank:null, defaultSuit:null, tags:['time'],                desc:'Double-tap: pause the clock for 10 seconds. (5 charges)' },
+  { id:'amplifier',      name:'Amplifier',      emoji:'📢', rarity:'common',    activation:'double_tap', durability:5,          defaultRank:null, defaultSuit:null, tags:['scoring','mult'],     desc:'Double-tap: your next hand scores +5 mult, then Amplifier returns to your deck. (5 charges)' },
+  { id:'snooze',         name:'Snooze Button',  emoji:'😴', rarity:'common',    activation:'double_tap', durability:5,          defaultRank:null, defaultSuit:null, tags:['time'],                desc:'Double-tap: pause the clock for 10 seconds, then Snooze returns to your deck. (5 charges)' },
   { id:'shady_tree',     name:'Shady Tree',     emoji:'🌳', rarity:'rare',      activation:'on_play',    durability:10,         defaultRank:null, defaultSuit:null, tags:['time','position'],    desc:'Play this from the round’s shady column to pause the clock. Pauses for its remaining charges (10 → 1), −1 each use; destroyed at 0.' },
   { id:'stopwatch',      name:'Stopwatch',      emoji:'⏱️', rarity:'epic',      activation:'double_tap', durability:60,         defaultRank:null, defaultSuit:null, tags:['time'],                desc:'Double-tap: freeze the clock until you next play a hand (swaps and discards keep it frozen). Holds up to 60 paused seconds total, drained 1 per second; destroyed at 0.' },
-  { id:'piggy_bank',     name:'Piggy Bank',     emoji:'🐷', rarity:'common',    activation:'double_tap', durability:5,          defaultRank:null, defaultSuit:null, tags:['resource','coins'],   desc:'Double-tap: gain 5 credits. (5 charges)' },
-  { id:'magnet',         name:'Magnet',         emoji:'🧲', rarity:'common',    activation:'double_tap', durability:3,          defaultRank:null, defaultSuit:null, tags:['position','swap'],    desc:'Double-tap, then tap a card: every card of that rank slides next to Magnet (counts as several swaps). 3 charges, once per round.' },
+  { id:'piggy_bank',     name:'Piggy Bank',     emoji:'🐷', rarity:'common',    activation:'double_tap', durability:5,          defaultRank:null, defaultSuit:null, tags:['resource','coins'],   desc:'Double-tap: gain 5 credits, then Piggy Bank returns to your deck. (5 charges)' },
+  { id:'magnet',         name:'Magnet',         emoji:'🧲', rarity:'common',    activation:'double_tap', durability:3,          defaultRank:null, defaultSuit:null, tags:['position','swap'],    desc:'Double-tap, then tap a card: every card of that rank slides next to Magnet (counts as several swaps), then Magnet returns to your deck. (3 charges)' },
   // ── Aim-based (fixtures: tap to rotate aim; cannot be swapped or discarded) ──
   { id:'reflect',     name:'Reflect',     emoji:'🪞', rarity:'epic',   activation:'aim', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['retrigger','position'], desc:'Tap to rotate its aim (up→right→down→left). The card it faces replays once when a hand scores. Cannot be swapped or discarded.' },
   { id:'soul_mirror', name:'Soul Mirror', emoji:'👁️', rarity:'mythic', activation:'aim', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['retrigger','rank'],     desc:'Tap to rotate its aim. While it faces a card, every scored card of that rank replays — anywhere on the grid. Multiple Soul Mirrors stack. Cannot be swapped or discarded.' },
+  // ── Adjacency / position sleights (r120) ──
+  { id:'whetstone',  name:'Whetstone',  emoji:'🔪', rarity:'epic', activation:'passive', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['scoring','mult','position'], desc:'Whenever an adjacent card is swapped or discarded, Whetstone gains +1 mult. Hands that score a card adjacent to Whetstone score that mult.' },
+  { id:'entourage',  name:'Entourage',  emoji:'👥', rarity:'epic', activation:'passive', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['scoring','mult'],            desc:'Hands score +10 mult for every other Sleight on the grid.' },
+  { id:'lighthouse', name:'Lighthouse', emoji:'🗼', rarity:'rare', activation:'passive', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['scoring','mult','position'], desc:'Each round Lighthouse favors the first or last column. Hands score +20 mult while it sits in that column, −5 per column of distance away (minimum 0).' },
+  // ── Focus-spending sleights (r123) ──
+  { id:'capacitor', name:'Capacitor', emoji:'🔋', rarity:'common', activation:'double_tap', durability:1, defaultRank:null, defaultSuit:null, tags:['focus','coins'], desc:'Double-tap to spend 10 Focus and 20 seconds for 10 credits. Consumed on use.' },
+  { id:'siphon',    name:'Siphon',    emoji:'🩸', rarity:'rare',   activation:'double_tap', durability:4, defaultRank:null, defaultSuit:null, tags:['focus','mult'],  desc:'Double-tap to spend 15 Focus: your next scored hand gets ×4 mult. Returns to your deck after use.' },
   // ── Focus-capacity sleights (r104) ──
   { id:'power_cell',  name:'Power Cell',  emoji:'🔋', rarity:'rare',   activation:'on_draw', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['focus'], desc:'When it enters the grid: +5 Focus. While it remains on the grid: +10 maximum Focus.' },
   { id:'slow_burn',   name:'Slow Burn',   emoji:'🕯️', rarity:'rare',   activation:'passive', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['focus'], desc:'+1 maximum Focus for every minute this sleight spends on the grid.' },
+  // ── Spectrum deck fixtures (r161) — four extra cards shuffled into the Spectrum
+  // deck at run start. They are NOT offered by the shop, Mart, wheel, reward grid
+  // or events (see SLEIGHT_FIXTURES): the only way to have one is to draw it.
+  // activation:'adjacent' — count the hands scored in a cell touching this card;
+  // at `adjacentPlays` it pays out `payout` and the counter resets.
+  { id:'shift_swap',  name:'Shift Swap',  emoji:'🔀', rarity:'fixture', activation:'adjacent', adjacentPlays:2, payout:{ swaps:2 },    durability:'infinite', defaultRank:null, defaultSuit:null, tags:['resource','position'], desc:'Score two hands touching this card and it grants +2 swaps. Repeats.' },
+  { id:'recycler',    name:'Recycler',    emoji:'♻️', rarity:'fixture', activation:'adjacent', adjacentPlays:2, payout:{ discards:2 }, durability:'infinite', defaultRank:null, defaultSuit:null, tags:['resource','position'], desc:'Score two hands touching this card and it grants +2 discards. Repeats.' },
+  { id:'time_clock',  name:'Time Clock',  emoji:'⏱️', rarity:'fixture', activation:'adjacent', adjacentPlays:2, payout:{ seconds:10 }, durability:'infinite', defaultRank:null, defaultSuit:null, tags:['time','position'],     desc:'Score two hands touching this card and it adds +10 seconds to the clock. Repeats.' },
+  { id:'petty_cash',  name:'Petty Cash',  emoji:'💵', rarity:'fixture', activation:'adjacent', adjacentPlays:2, payout:{ coins:5 },    durability:'infinite', defaultRank:null, defaultSuit:null, tags:['coins','position'],    desc:'Score two hands touching this card and it pays 5 credits. Repeats.' },
 ];
+
+// Deck fixtures: dealt into the Spectrum deck, never sold or awarded. Kept in
+// SLEIGHT_POOL (sleightDef / rendering look them up there) but filtered out of
+// every offer pool.
+const SLEIGHT_FIXTURES = new Set(['shift_swap', 'recycler', 'time_clock', 'petty_cash']);
+function sleightOfferable(def) { return !!def && !SLEIGHT_FIXTURES.has(def.id); }
 
 // ── Aim sleights (Reflect, Soul Mirror): fixtures that point at an adjacent cell ──
 // ══════════════════════════════════════════════

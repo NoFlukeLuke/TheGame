@@ -37,7 +37,7 @@ const CURSE_DEFS = {
 // Curse a random un-cursed card identity; returns {rank,suit,curse} or null.
 function curseRandomCard(curseId) {
   const pool = [];
-  RANKS.forEach(rank => ACTIVE_SUITS.forEach(suit => { if (!cardCurses[cardKey(rank, suit)]) pool.push({ rank, suit }); }));
+  ACTIVE_RANKS.forEach(rank => ACTIVE_SUITS.forEach(suit => { if (!cardCurses[cardKey(rank, suit)]) pool.push({ rank, suit }); }));
   if (!pool.length) return null;
   const pick = pool[Math.floor(Math.random() * pool.length)];
   const id = curseId || Object.keys(CURSE_DEFS)[Math.floor(Math.random() * Object.keys(CURSE_DEFS).length)];
@@ -153,12 +153,16 @@ let _enterFromGridTop = false; // when true, new cards enter from grid top, not 
 let _cardIdCounter = 0;
 function stampId(card) {
   if (card && !card._id) card._id = ++_cardIdCounter;
+  // Spectrum: 9/10/11 have no colour of their own — they're WHITE. Painting here
+  // rather than at each deck-composition site catches every card that can reach
+  // play (fresh deck, reward-grid grants, shop adds) through one funnel.
+  if (card && card.rank && typeof spectrumPaintSuit === 'function') card.suit = spectrumPaintSuit(card.rank, card.suit);
   return card;
 }
 
 function freshShuffledDeck() {
   const d = [];
-  for (const s of ACTIVE_SUITS) for (const r of RANKS) d.push(stampId({ rank:r, suit:s }));
+  for (const s of ACTIVE_SUITS) for (const r of ACTIVE_RANKS) d.push(stampId({ rank:r, suit:s }));
   return deckShuffle([...d]);
 }
 
@@ -204,7 +208,14 @@ function discardToPlayed(card) {
   // (unless fully consumed, in which case they're dropped).
   if (card._isSleight) {
     if (card._usesLeft === 'infinite' || card._usesLeft > 0) {
-      playedPile.push({ _isSleight: true, sleightId: card.sleightId, rank: card.rank, suit: card.suit, _id: card._id, _usesLeft: card._usesLeft, _drawFired: false });
+      // _faceRank/_faceSuit ride along so a Sleight keeps the same printed card
+      // face across a deck cycle (this rebuild is a fixed field list — anything
+      // not named here is silently dropped).
+      // _faceMark and _playable ride along so a Sleight keeps its printed face —
+      // and a tinkered one keeps the identity it was PAID for — across a deck
+      // cycle (this rebuild is a fixed field list; anything not named is lost).
+      playedPile.push({ _isSleight: true, sleightId: card.sleightId, rank: card.rank, suit: card.suit, _id: card._id,
+                        _usesLeft: card._usesLeft, _faceMark: card._faceMark, _playable: card._playable, _drawFired: false });
       updateDeckHud();
     }
     return;
@@ -265,7 +276,11 @@ function dealGrid() {
 // HELPERS
 // ══════════════════════════════════════════════
 function cardPips(rank) {
-  return RANK_PIPS[rank] || parseInt(rank) || 10;
+  // NB: the old `parseInt(rank) || 10` turned Spectrum's 0 card into a 10 —
+  // 0 is falsy. Check for a real number instead; classic ranks are unchanged.
+  if (RANK_PIPS[rank] != null) return RANK_PIPS[rank];
+  const n = parseInt(rank);
+  return Number.isFinite(n) ? n : 10;
 }
 
 function cardKey(rank, suit) { return `${rank}-${suit}`; }

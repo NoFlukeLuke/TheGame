@@ -121,15 +121,21 @@ let bossScoreAtStart = 0;
 function updateBossObjectiveUI() {
   if (!bossActive || !currentBoss) return;
   const obj = currentBoss.objective;
-  const el = document.getElementById('boss-objective-text');
-  if (!el) return;
-  // Always show progress toward the round goal; hand bosses show their tally too.
-  const goalLine = `${Math.max(0, score).toLocaleString()} / ${roundGoal.toLocaleString()}`;
-  el.textContent = (obj.type === 'hand')
-    ? `${goalLine}  ·  ${obj.handName}: ${bossObjectiveProgress}/${obj.count}`
-    : goalLine;
+  // r171 — there is no separate "score requirement" panel over the board any
+  // more, in any mode or orientation. The bar IS the round goal (r155), and the
+  // round goal already has a chip on screen; a second panel restating it was
+  // both redundant and covering the cards. What the goal chip could NOT say on
+  // its own is a hand boss's tally, so that goes underneath it.
+  const extra = document.getElementById('boss-goal-extra');
+  if (extra) {
+    if (obj.type === 'hand') {
+      extra.textContent = `${obj.handName.toUpperCase()} ${bossObjectiveProgress}/${obj.count}`;
+      extra.classList.toggle('done', bossObjectiveProgress >= obj.count);
+      extra.style.display = '';
+    } else extra.style.display = 'none';
+  }
   // Voidwright: also update the pool display
-  const poolEl = document.getElementById('boss-trick-pools');
+  const poolEl = document.getElementById('boss-trick-pools');   // lives in the brief now
   if (poolEl && currentBoss.modifiers.includes('trick_pool_split')) {
     const phaseAActive = bossPhase === 1;
     const aNames = [...trickPoolA].map(id => trickIdToName(id)).join(', ') || '(none)';
@@ -286,7 +292,7 @@ function triggerBoss(presetOverride = null, windowSeconds = null) {
   bossNumber++;
   bossPhase = 1;
   bossObjectiveProgress = 0;
-  bossScoreAtStart = score;
+  bossScoreAtStart = score;   // vestigial since r155 (boss bar = roundGoal); kept for save/debug shape
 
   // Apply modifiers
   applyBossModifiers(preset);
@@ -345,33 +351,50 @@ function triggerBoss(presetOverride = null, windowSeconds = null) {
 }
 
 // Boss briefing rendered over the board. `onProceed` fires when dismissed.
-function showBossPreamble(preset, onProceed) {
-  // Mounted on #grid (not #grid-slot) so the briefing covers the board exactly;
-  // the slot is wider and the panel spilled past the cards.
-  const slot = document.getElementById('grid');
-  if (!slot) { onProceed(); return; }
-  document.getElementById('boss-preamble')?.remove();
+//
+// r171 — the briefing is REOPENABLE. It is the only place the boss's rules are
+// written down, and it used to be a one-shot you could dismiss and never see
+// again; now the red SCORE / GOAL chips are also its handle (see bindBossBriefReopen).
+// Reopening does NOT pause the clock — a pausable rules panel would be a free
+// timeout on every boss round.
+let _bossBriefPreset = null;
+
+function bossBriefHTML(preset, intro) {
   const obj = preset.objective;
-  const objText = obj.type === 'score'
-    ? `OBJECTIVE — SCORE ${obj.target.toLocaleString()} IN ${Math.floor(BOSS_WINDOW_DURATION/60)}:00`
-    : `OBJECTIVE — PLAY ${obj.count} × ${obj.handName.toUpperCase()}`;
-  const el = document.createElement('div');
-  el.id = 'boss-preamble';
-  el.innerHTML =
+  // The bar is THIS ROUND'S GOAL (r155). objective.target is vestigial for score
+  // bosses, and quoting it here was showing a number nothing compares against.
+  const objText = (obj.type === 'hand')
+    ? `OBJECTIVE — REACH THE GOAL, AND PLAY ${obj.count} × ${obj.handName.toUpperCase()}`
+    : `OBJECTIVE — REACH THE GOAL (${roundGoal.toLocaleString()})`;
+  return `<button class="bp-x" aria-label="Close briefing">&#10005;</button>` +
     `<div class="bp-sigil">&#9760;</div>` +
     `<div class="bp-eyebrow">Supervisor review</div>` +
     `<div class="bp-name">${preset.name}</div>` +
     `<div class="bp-flavor">${preset.flavor || ''}</div>` +
     `<div class="bp-brief">${preset.brief || 'Survive the review.'}</div>` +
     `<div class="bp-obj">${objText}</div>` +
-    `<button class="bp-go">PROCEED</button>`;
+    `<div id="boss-trick-pools"></div>` +
+    (intro ? `<button class="bp-go">PROCEED</button>`
+           : `<div class="bp-hint">the clock is still running</div>`);
+}
+
+function showBossPreamble(preset, onProceed) {
+  // Mounted on #grid (not #grid-slot) so the briefing covers the board exactly;
+  // the slot is wider and the panel spilled past the cards.
+  const slot = document.getElementById('grid');
+  if (!slot) { onProceed(); return; }
+  document.getElementById('boss-preamble')?.remove();
+  _bossBriefPreset = preset;
+  const el = document.createElement('div');
+  el.id = 'boss-preamble';
+  el.innerHTML = bossBriefHTML(preset, true);
   slot.appendChild(el);
   _bossPreambleHeld = true;
   gameTimerPaused = true;
   // The briefing grows out of the boss sigil in the run-progress block and, on
-  // PROCEED, shrinks back into it — so the mark that will sit there for the whole
-  // round is visibly where the boss came from. Falls back to the plain fade if
-  // the sigil isn't on screen (no anchor to fly from).
+  // close, shrinks back into it — so the mark that sits there for the whole round
+  // is visibly where the boss came from. Falls back to the plain fade if the
+  // sigil isn't on screen (no anchor to fly from).
   //
   // The ENTRY is a Web Animation, not the CSS transition the return flight uses.
   // Setting the start transform inline and clearing it a frame later gets
@@ -388,7 +411,9 @@ function showBossPreamble(preset, onProceed) {
     el.animate([{ transform: fly, opacity: 0 }, { transform: 'none', opacity: 1 }],
                { duration: 400, easing: 'cubic-bezier(.2,.8,.3,1)' });
   }
-  el.querySelector('.bp-go').onclick = () => {
+  // Both the ✕ and PROCEED start the round — the briefing is the gate, and
+  // closing it must never leave the boss un-started.
+  const go = () => {
     const back = _bossPreambleFlyTransform(el);
     if (back) el.style.transform = back;
     el.classList.remove('show');
@@ -396,7 +421,45 @@ function showBossPreamble(preset, onProceed) {
     if (_bossPreambleHeld) { gameTimerPaused = false; _bossPreambleHeld = false; }
     onProceed();
   };
+  el.querySelector('.bp-go').onclick = go;
+  el.querySelector('.bp-x').onclick  = go;
 }
+
+// Re-open the briefing mid-boss as a reference. No pause, no PROCEED.
+function reopenBossBrief() {
+  if (!bossActive || !_bossBriefPreset) return;
+  const existing = document.getElementById('boss-preamble');
+  if (existing) { existing.classList.remove('show'); setTimeout(() => existing.remove(), 320); return; }
+  const slot = document.getElementById('grid');
+  if (!slot) return;
+  const el = document.createElement('div');
+  el.id = 'boss-preamble';
+  el.className = 'bp-reopened';
+  el.innerHTML = bossBriefHTML(_bossBriefPreset, false);
+  slot.appendChild(el);
+  requestAnimationFrame(() => el.classList.add('show'));
+  el.querySelector('.bp-x').onclick = () => {
+    el.classList.remove('show');
+    setTimeout(() => el.remove(), 320);
+  };
+  if (typeof updateBossObjectiveUI === 'function') updateBossObjectiveUI();
+}
+
+// The alarming SCORE / GOAL chips double as the way back to the briefing, plus
+// the act/level readout in the top bar. Bound once at load; each handler checks
+// bossActive, so they are inert the rest of the time.
+function bindBossBriefReopen() {
+  // run-progress-pt is the portrait copy of the progress block (r176). In act
+  // mode / on a boss it is what shows there and game-timer-stat is hidden, so
+  // without it portrait would lose the top-bar handle entirely.
+  ['score-center', 'score-left', 'game-timer-stat', 'run-progress', 'run-progress-pt'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el || el._bossBriefBound) return;
+    el._bossBriefBound = true;
+    el.addEventListener('click', () => { if (bossActive) reopenBossBrief(); });
+  });
+}
+
 let _bossPreambleHeld = false;
 
 // The on-screen rect of the boss sigil — the mark inside whichever .rp-block the
@@ -479,28 +542,42 @@ function startBossTimer() {
   }, 1000);
 }
 
+// r171 — no panel. A boss puts the SCORE and GOAL chips into alarm state (red,
+// pulsing) so the two numbers that decide the round are the two that shout, and
+// hangs the hand-tally line under the goal.
 function showBossObjectiveHUD(preset) {
-  let hud = document.getElementById('boss-objective-hud');
-  if (!hud) {
-    hud = document.createElement('div');
-    hud.id = 'boss-objective-hud';
-    document.getElementById('grid').appendChild(hud);
-  }
-  const obj = preset.objective;
-  // The bar is always the round goal; hand bosses add their hand on top.
-  const label = obj.type === 'hand' ? `OBJECTIVE: GOAL + ${obj.handName.toUpperCase()}` : 'OBJECTIVE: REACH GOAL';
-  hud.innerHTML = `
-    <div class="boss-objective-label">${label}</div>
-    <div class="boss-objective-progress" id="boss-objective-text"></div>
-    <div id="boss-trick-pools"></div>
-  `;
-  hud.classList.add('show');
+  document.getElementById('boss-objective-hud')?.remove();
+  bossSetAlarm(true);
+  ensureBossGoalExtra();
   updateBossObjectiveUI();
 }
 
 function hideBossObjectiveHUD() {
-  const hud = document.getElementById('boss-objective-hud');
-  if (hud) hud.classList.remove('show');
+  document.getElementById('boss-objective-hud')?.remove();
+  bossSetAlarm(false);
+  const extra = document.getElementById('boss-goal-extra');
+  if (extra) extra.style.display = 'none';
+}
+
+// The alarm lives on the two chips themselves so it follows them into either
+// orientation — landscape positions #score-center / #score-left absolutely and
+// portrait grids them, but both keep the elements.
+function bossSetAlarm(on) {
+  ['score-center', 'score-left'].forEach(id =>
+    document.getElementById(id)?.classList.toggle('boss-alarm', !!on));
+  document.getElementById('score-panel')?.classList.toggle('boss-alarm-panel', !!on);
+}
+
+// A hand boss's tally, parked under the goal number. Created once and reused.
+function ensureBossGoalExtra() {
+  let el = document.getElementById('boss-goal-extra');
+  if (el) return el;
+  const host = document.getElementById('score-left');
+  if (!host) return null;
+  el = document.createElement('div');
+  el.id = 'boss-goal-extra';
+  host.appendChild(el);
+  return el;
 }
 
 function endBoss(success) {
@@ -514,6 +591,7 @@ function endBoss(success) {
   hideBossObjectiveHUD();
   document.getElementById('grid').classList.remove('boss-active');
   document.getElementById('boss-preamble')?.remove();
+  _bossBriefPreset = null;
   if (_bossPreambleHeld) { gameTimerPaused = false; _bossPreambleHeld = false; }
   document.getElementById('clock').classList.remove('boss-mode');
   document.getElementById('clock-bar').classList.remove('boss-mode');
@@ -545,6 +623,7 @@ function endBoss(success) {
       setTimeout(() => { rewardGridContext = 'boss'; openRewardGrid(); }, 1000);
     }
   } else {
+    if (typeof flowEndBoss === 'function') flowEndBoss();
     setTimeout(() => onGameEnd(true), 1200);
   }
 

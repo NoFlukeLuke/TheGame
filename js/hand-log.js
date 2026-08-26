@@ -150,6 +150,13 @@ function toggleHandLogPopup() {
     // Suppress the synthetic click that trails a long-press; otherwise the popup
     // opens and immediately toggles shut.
     if (longFired) { longFired = false; e.stopPropagation(); return; }
+    // On a boss round the SCORE chip is already spoken for: r172 made the red
+    // score/goal chips the handle that reopens the boss briefing, and both
+    // handlers sit on this same element (stopPropagation would not stop the
+    // other one — it is a sibling listener, not an ancestor). The brief is the
+    // more urgent of the two, so the log yields the CLICK there. Hover and
+    // long-press still open it, and neither is bound by the brief.
+    if (typeof bossActive !== 'undefined' && bossActive) return;
     e.stopPropagation();
     toggleHandLogPopup();
   });

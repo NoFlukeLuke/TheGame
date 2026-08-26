@@ -177,22 +177,22 @@ function spanStats(cells) {
 // Wild-sleight assignment heuristics — pick rank/suit that best helps the hand.
 // TBD: optimal run-completion; current picks modal rank/suit (completes pairs/flushes).
 function bestWildRank(normalCards) {
-  if (normalCards.length === 0) return 'A';
+  if (normalCards.length === 0) return ACTIVE_RANKS[0];
   const counts = {};
   normalCards.forEach(c => { if (c.rank) counts[c.rank] = (counts[c.rank]||0)+1; });
   let best = null, bestN = -1;
   Object.entries(counts).forEach(([rank, n]) => {
     if (n > bestN || (n === bestN && cardPips(rank) > cardPips(best))) { best = rank; bestN = n; }
   });
-  return best || normalCards[0].rank || 'A';
+  return best || normalCards[0].rank || ACTIVE_RANKS[0];
 }
 function bestWildSuit(normalCards) {
-  if (normalCards.length === 0) return '♠';
+  if (normalCards.length === 0) return ACTIVE_SUITS[0];
   const counts = {};
   normalCards.forEach(c => { if (c.suit) counts[c.suit] = (counts[c.suit]||0)+1; });
   let best = null, bestN = -1;
   Object.entries(counts).forEach(([suit, n]) => { if (n > bestN) { best = suit; bestN = n; } });
-  return best || '♠';
+  return best || ACTIVE_SUITS[0];
 }
 
 function findBestHand(cells) {
@@ -200,15 +200,24 @@ function findBestHand(cells) {
   cells = cells.filter(([r,c]) => gridData[r][c] !== null);
   if (cells.length < 2) return null;
 
-  // Sleights: wild sleights get a temporary rank/suit and join detection;
-  // non-wild sleights ride along (excluded from the poker combination, no penalty).
-  const normalCards = cells.filter(([r,c]) => !gridData[r][c]._isSleight).map(([r,c]) => gridData[r][c]);
+  // Sleights: wild sleights get a temporary rank/suit and join detection; a
+  // TINKERED sleight (given a real identity at the Mart's Tinker bench, r175)
+  // joins as an ordinary card; every other sleight rides along, excluded from
+  // the poker combination with no penalty.
+  // A tinkered sleight counts as a normal card for the wilds to read off, too —
+  // it has a real rank and suit, so a wild should be able to match it.
+  const normalCards = cells.map(([r,c]) => gridData[r][c])
+    .filter(card => !card._isSleight || (typeof sleightIsPlayable === 'function' && sleightIsPlayable(card)));
   const wildAssignments = [];
   const detectionCells = [];
   for (const [r, c] of cells) {
     const card = gridData[r][c];
     if (!card._isSleight) { detectionCells.push([r, c]); continue; }
     const def = sleightDef(card);
+    if (typeof sleightIsPlayable === 'function' && sleightIsPlayable(card)) {
+      detectionCells.push([r, c]);      // a tinkered sleight is just a card here
+      continue;
+    }
     if (def?.activation === 'wildcard') {
       const orig = { rank: card.rank, suit: card.suit };
       if (def.wild === 'rank' || def.wild === 'both') card.rank = bestWildRank(normalCards);
@@ -302,7 +311,13 @@ function detectHand(cells) {
   // Short flushes (Six Suits mode). Checked before the same-size run/straight so a
   // same-suit run scores as the (higher-value) flush, mirroring poker's flush > straight.
   if (activeHands.has('flush4') && n===4 && allSameSuitStrict) return 'Flush of 4';
-  if (activeHands.has('flush3') && n===3 && allSameSuitStrict) return 'Flush of 3';
+  // Flush of 3 and Run of 3 can describe the very same three cards, so the
+  // higher-scoring of the two wins rather than a fixed order. Six Suits pays more
+  // for the flush (75 vs 60) and is unchanged; Spectrum zeroes the flush, so there
+  // a single-colour run scores as the Run it also is instead of paying nothing.
+  const _worth = h => (HAND_BASE[h] ? HAND_BASE[h].pips * HAND_BASE[h].mult : 0);
+  if (activeHands.has('flush3') && n===3 && allSameSuitStrict
+      && !(activeHands.has('run3') && isStr && _worth('Run of 3') > _worth('Flush of 3'))) return 'Flush of 3';
   if (activeHands.has('straight') && n===5 && isStr) return 'Straight';
   if (activeHands.has('threeofakind') && counts[0]>=3 && (n===3||n===5)) return 'Three of a Kind';
   if (activeHands.has('twopair') && n>=4 && counts[0]>=2 && counts[1]>=2) return 'Two Pair';

@@ -43,6 +43,11 @@ async function showLevelUpScreen_fallOnly() {
   // Fire focus fall ~150ms BEFORE card fall so notches leave first (small stagger).
   // Collect lit dots and filled nodes, spawn fall clones, then zero focusNodes silently.
   const FOCUS_LEAD_MS = 150;
+  // Trade Winds: cash out half the round's remaining Focus before it falls away.
+  if (hasKnack('trade_winds') && focusNodes > 0) {
+    const _payout = Math.floor(focusNodes * BAL.trade_winds.payout_fraction);
+    if (_payout > 0) { coins += _payout; updateCoinsUI(); showMessage(`⛵ Trade Winds — +${_payout} credits`, 'var(--gold)'); }
+  }
   if (focusNodes > 0) {
     const cap = focusCapNodes();
     const total = Math.min(focusNodes, cap);

@@ -21,6 +21,7 @@
 <link rel="stylesheet" href="css/survival.css">
 <link rel="stylesheet" href="css/records.css">
 <link rel="stylesheet" href="css/settings.css">
+<link rel="stylesheet" href="css/history.css">
 <link rel="stylesheet" href="css/mart.css">
 <link rel="stylesheet" href="css/tooltip.css">
 <link rel="stylesheet" href="css/boss.css">
@@ -40,6 +41,7 @@
     <div id="menu-tagline">A LETHE amusement product. Please continue<br>playing until further notice.</div>
     <button id="menu-continue-btn" onclick="continueSavedRun()" style="display:none;">CONTINUE</button>
     <button id="menu-start-btn" onclick="maybeAutoFullscreen(); openModeSelect()">PLAY</button>
+    <button id="menu-history-btn" onclick="openHistory(true)" style="display:none;">HISTORY</button>
     <button id="menu-builds-btn" onclick="openBuilds()">BUILDS</button>
     <button id="menu-settings-btn" onclick="openSettings(true)">SETTINGS</button>
     <button id="menu-fullscreen-btn" onclick="toggleFullscreen()" style="display:none;">⛶ FULLSCREEN</button>
@@ -433,6 +435,23 @@
     </label>
   </div>
 
+  <div class="dev-section" data-group="spectrum">
+    <div class="dev-section-title">Spectrum Deck</div>
+    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:-2px;">
+      Which values and colours are in the deck. Changes apply at the START OF THE NEXT ROUND — the round you are playing keeps the deck it was dealt.
+    </div>
+    <div style="font-family:Cinzel,serif;font-size:9px;letter-spacing:2px;color:var(--gold-dim);margin-top:4px;">VALUES</div>
+    <div id="dev-spectrum-ranks" class="dev-spec-row"></div>
+    <div style="font-family:Cinzel,serif;font-size:9px;letter-spacing:2px;color:var(--gold-dim);margin-top:4px;">COLOURS</div>
+    <div id="dev-spectrum-colors" class="dev-spec-row"></div>
+    <div id="dev-spectrum-status" style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--cream-dim);margin-top:6px;"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;">
+      <button class="dev-btn" onclick="spectrumTuneAll('ranks')">All values</button>
+      <button class="dev-btn" onclick="spectrumTuneAll('colors')">All colours</button>
+      <button class="dev-btn" onclick="spectrumApplyNow()">Apply now (re-deal)</button>
+    </div>
+  </div>
+
   <div class="dev-section" data-group="log">
     <div class="dev-section-title">Event Log <span id="dev-log-count" style="color:var(--cream-dim);">(0)</span></div>
     <div id="dev-event-log">No events yet.</div>
@@ -554,7 +573,6 @@
   <div class="top-stat">
     <span class="top-label">Coins</span>
     <span class="top-value gold" id="coins-display">💰 0</span>
-    <button id="coins-shop-btn" class="survival-shop-btn" onclick="survivalOpenShop()" title="Open shop (5 coins)">🛒 5</button>
   </div>
 </div>
 
@@ -649,10 +667,12 @@
         <div id="boss-result"><div class="boss-result-text" id="boss-result-text"></div></div>
       </div>
     </div>
+    <!-- Swap sits at the TOP of the interact column (r169). Landscape absolutely
+         positions each of these three, so only portrait reads this order. -->
     <div id="action-col">
+      <div id="swap-indicator">🔄&#10;<span id="swap-count">3</span><span class="act-cost" id="swap-cost">4s</span></div>
       <button class="act-btn btn-discard" id="btn-discard" disabled>D&#10;I&#10;S&#10;C&#10;A&#10;R&#10;D<br><span id="disc-count" style="writing-mode:initial;transform:none;font-size:9px"></span><span class="act-cost" id="disc-cost">3s</span></button>
       <button class="act-btn btn-play" id="btn-play" disabled>P&#10;L&#10;A&#10;Y</button>
-      <div id="swap-indicator">🔄&#10;<span id="swap-count">3</span><span class="act-cost" id="swap-cost">4s</span></div>
     </div>
   </div>
 
@@ -674,7 +694,6 @@
     <div class="ci-main">&#128176;<b id="ci-gold">0</b></div>
     <div class="ci-row"><span>Interest</span><span class="pos" id="ci-interest">+0</span></div>
     <div class="ci-row"><span>Cash out</span><span id="ci-cashout">+0</span></div>
-    <button id="ci-shop-btn" class="survival-shop-btn" onclick="survivalOpenShop()" title="Open shop (5 coins)">🛒 SHOP — 5 💰</button>
   </div>
   <!-- The ⏱ Time and ▲ Limits pop-ups used to live here; they now sit outside
        #cabinet (next to #dev-panel) so the stage's CSS zoom can't displace them. -->
@@ -971,10 +990,13 @@
 <script src="js/audio.js"></script>
 <script src="js/match3.js"></script>
 <script src="js/survival.js"></script>
+<script src="js/flow-mode.js"></script>
+<script src="js/spectrum.js"></script>
 <script src="js/records.js"></script>
 <script src="js/settings.js"></script>
 <script src="js/tutorial.js"></script>
 <script src="js/dev-panel.js"></script>
+<script src="js/history.js"></script>
 <script src="js/save.js"></script>
 <script src="js/bootstrap.js"></script>
 </div><!-- /#stage -->

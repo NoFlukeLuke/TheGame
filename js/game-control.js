@@ -90,6 +90,16 @@ function hideTimePopup() {
 // debuffs), the round's max time, and how many times it's been paused / rewound.
 function updateInteractCosts() {
   const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  // Flow charges no time for anything — spendRoundTime is a no-op there, because its
+  // clock is the countdown to the boss rather than a round budget. Quote that, or the
+  // pop-up drifts from reality the way it did before r151.
+  if (typeof flowActive === 'function' && flowActive()) {
+    set('ic-play', '0s'); set('ic-discard', '0s'); set('ic-swap', '0s');
+    set('ic-maxtime', (typeof formatTime === 'function') ? formatTime(FLOW_SESSION_SECONDS) : `${FLOW_SESSION_SECONDS}s`);
+    set('ic-paused',  `${pausesThisRound  || 0}×`);
+    set('ic-rewound', `${rewindsThisRound || 0}×`);
+    return;
+  }
   // Play is 0 by default (r50); a "Hands +Ns" debuff makes it cost that much.
   set('ic-play', `${playHandCostThisRound || 0}s`);
   // Discard cost per card: 3 base, 0 with Free Discards, 6 with Hoarder, + reward debuff.
@@ -219,11 +229,26 @@ function startGame() {
   // used, and with neither the run is plain unseeded.
   applyRunSeed(ACTIVE_MODE.seed || pendingRunSeed || null);
 
-  // Pick the suit list for this mode BEFORE any deck is built. Six Suits mode uses
-  // the expanded 6-suit list; every other mode uses the classic four.
-  ACTIVE_SUITS = (ACTIVE_MODE.suitCount === 6) ? SUITS_SIX : SUITS;
+  // Pick the suit + rank lists for this mode BEFORE any deck is built. Six Suits
+  // uses the expanded 6-suit list, Spectrum swaps both lists for the numeric
+  // colour deck (7 colours × 1-15,20 = 112 cards); every other mode uses the
+  // classic four suits and A-K.
+  if (ACTIVE_MODE.numeric) {
+    // Spectrum reads its lists from the dev tuner (dev panel → Spectrum), which
+    // defaults to every value and every colour. See js/spectrum.js.
+    spectrumInstallLists();
+  } else {
+    ACTIVE_SUITS = (ACTIVE_MODE.suitCount === 6) ? SUITS_SIX : SUITS;
+    ACTIVE_RANKS = RANKS;
+  }
+  // Spectrum zeroes the Flush of 3 (see applyModeHandValues); every other mode
+  // gets the pristine table back.
+  applyModeHandValues();
+  // Some Tricks can't exist in this mode's deck (no Ace / no court / no ♠♥♦♣) —
+  // rebuild the offerable pool before anything can draw from it.
+  if (typeof applyModeEntityFilter === 'function') applyModeEntityFilter();
   // Reset deck audit (a full deck = one of every rank in every active suit)
-  expectedDeckTotal = ACTIVE_SUITS.length * RANKS.length;
+  expectedDeckTotal = ACTIVE_SUITS.length * ACTIVE_RANKS.length;
   dealPhase = false;
 
   // Reset all state
@@ -242,6 +267,19 @@ function startGame() {
   // Survival: reset its per-run state and flag the stage (shows the shop button).
   document.getElementById('stage')?.classList.toggle('survival-mode', survivalActive());
   if (survivalActive()) survivalInitRun();
+  if (typeof flowInitRun === 'function' && flowActive()) flowInitRun();
+  // Flow hook for mode-scoped CSS (it charges no time, so the action buttons must
+  // not advertise a second-cost). Separate from .survival-mode, which still does.
+  document.getElementById('stage')?.classList.toggle('flow-mode', typeof flowActive === 'function' && flowActive());
+  // r175 — the top-left "Game Timer" is the legacy 20-minute run clock. Match-3,
+  // Dominoes and Survival/Flow are all excluded from it (see the startTimers
+  // guard above and in resumeGame), so in those modes it sat frozen on 20:00
+  // forever. Act modes reuse the same slot for the ACT · node readout, and the
+  // remaining legacy timer modes genuinely run it — so the slot is hidden for
+  // exactly the set that neither uses. Derived from the SAME predicate the timer
+  // itself is gated on, so a new mode cannot drift out of sync with it.
+  document.getElementById('stage')?.classList.toggle('no-game-clock',
+    match3Active() || dominoActive() || survivalActive());
   if (typeof updateSurvivalShopBtn === 'function') updateSurvivalShopBtn();
   discards = limits.discards.current;
   swaps = limits.swaps.current;
@@ -252,7 +290,14 @@ function startGame() {
   recomputeGridMetrics();
   // Reset focus meter
   focusNodes = 0;
-  focusCapBase = (typeof limits !== 'undefined' && limits.focus_cap) ? limits.focus_cap.current : 30;
+  growthSpurtCapPenalty = 0;      // reset Growth Spurt's eroded Focus ceiling
+  growthSpurtMaxedThisRound = false;
+  siphonMultX = 1;               // clear any pending Siphon charge
+  // Flow runs a short 20-node Focus bar (decay is that mode's only pressure); every
+  // other mode takes the Focus Cap limit as before. See flowFocusCapBase().
+  focusCapBase = (typeof flowFocusCapBase === 'function')
+               ? flowFocusCapBase()
+               : ((typeof limits !== 'undefined' && limits.focus_cap) ? limits.focus_cap.current : 30);
   focusCapPerm = 0;
   focusGenGame = 0; focusGenRound = 0;
   focusAnimQueue = [];
@@ -302,13 +347,15 @@ function startGame() {
   // Match-3 scores real hand names (Flush, Straight, Straight Flush, Run of 4…),
   // so it needs the full hand set active like the act modes, not the legacy base four.
   const startKeys = [...(isActMode() || match3Active() || survivalActive() ? ALL_HAND_KEYS : BASE_HAND_KEYS)];
-  // Six Suits mode makes the short flushes playable from the start alongside the 5-card Flush.
-  if (ACTIVE_MODE.suitCount === 6) startKeys.push('flush3', 'flush4');
+  // Six Suits (6) and Spectrum (7 colours) both dilute the deck enough that the
+  // short flushes are playable from the start alongside the 5-card Flush.
+  if (ACTIVE_MODE.suitCount >= 6) startKeys.push('flush3', 'flush4');
   activeHands = new Set(startKeys);
   unlockedHands = new Set(startKeys);
   handsPendingUnlock = [];
   acquiredTricks = [];
   acquiredKnacks  = [];
+  tempoInitApplied = false;   // Tempo's one-time limit-set can run again for a fresh run
   trickTray          = [];
   _trickReplaceQueue = [];
   syncTrickTrayUI();   // show the Trick tray (or grid-preview) to match trickTrayMode for the new game
@@ -316,6 +363,11 @@ function startGame() {
   cardSwapCount   = {};
   cardDealtCount  = {};
   grantedSleightIds = new Set();
+  // Mart per-run state: pinned catalog items (r171) and the Tinker bench's fee
+  // ladder (r175). Pins hold payload objects with live buy() functions, which is
+  // why they are NOT in SAVE_VARS — the Mart is shut at every save point anyway.
+  if (typeof martPins   !== 'undefined') martPins   = {};
+  if (typeof martTinkerN !== 'undefined') martTinkerN = 0;
   altarEffects    = [];
   sleightNextHandDouble = false;
   sleightLegacyMult    = false;
@@ -432,6 +484,9 @@ function startGame() {
   document.getElementById('clock-bar').classList.remove('urgent');
 
   initGridData();
+  // Spectrum: shuffle the four deck fixtures in. AFTER initGridData — it assigns
+  // drawPile wholesale, so anything added before this would be thrown away.
+  spectrumGrantDeckCards();
   // Match-3: quietly re-draw any matches the deal happened to create, so the
   // player starts from a still board instead of being handed a free cascade.
   if (match3Active()) match3SettleBoard();
