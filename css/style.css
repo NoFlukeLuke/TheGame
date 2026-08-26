@@ -4263,3 +4263,93 @@
   font-family: 'Share Tech Mono', monospace; font-size: 8px; letter-spacing: 1px;
   color: var(--cream-dim); opacity: 0.7; margin-top: 6px;
 }
+
+
+/* ══════════════════════════════════════════════
+   SLEIGHT CARD FACE (r172)
+   ══════════════════════════════════════════════
+   A Sleight lives in the deck and is played and discarded like a card, so it now
+   looks like one: a corner index (rank over suit) top-left, the emoji in the
+   middle, the NAME ALONG THE BOTTOM, charges bottom-right, rarity-coloured edge.
+   The rank/suit are cosmetic — see sleightFace() in js/sleights-runtime.js for
+   why they must not be the real rank/suit fields. */
+.sleight-card {
+  justify-content: flex-end !important;
+  padding: 0 0 calc(var(--card-h, 75px) * 0.035);
+  gap: 0 !important;
+}
+.sleight-index {
+  position: absolute; top: 3%; left: 6%; z-index: 3; line-height: 0.95;
+  display: flex; flex-direction: column; align-items: center;
+  font-family: 'Cinzel', serif; font-weight: 800;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.9);
+}
+.sleight-index .sl-rank { font-size: calc(var(--card-h, 75px) * 0.19); }
+.sleight-index .sl-suit { font-size: calc(var(--card-h, 75px) * 0.15); margin-top: -1px; }
+/* Bright enough to read on the dark card the classic ink colours were made for
+   a cream one. */
+.sleight-index.sl-red { color: #ff6b7a; }
+.sleight-index.sl-blk { color: #dfe6ef; }
+/* Spectrum's colour deck has no suit glyph worth printing tiny — the emoji IS
+   the colour, so stack it under the value at the same size. */
+.sleight-index.sl-num .sl-suit { font-size: calc(var(--card-h, 75px) * 0.13); }
+.sleight-card .sleight-card-emoji {
+  position: absolute; top: 28%; left: 0; right: 0; z-index: 2;
+  font-size: calc(var(--card-h, 75px) * 0.30) !important; text-align: center;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));
+}
+.sleight-card .sleight-card-name {
+  position: relative; z-index: 3; width: 100%; box-sizing: border-box;
+  /* Symmetric side padding keeps the name centred while reserving the corners:
+     the charge count sits top-right and the selection badge bottom-right, and a
+     full-bleed name printed straight over both. */
+  padding: 2px 11% 1px;
+  font-size: calc(var(--card-h, 75px) * 0.092) !important;
+  font-family: 'Orbitron', sans-serif !important; font-weight: 700;
+  letter-spacing: 0; text-transform: uppercase;
+  color: #fff !important; text-align: center; line-height: 1.05;
+  overflow-wrap: anywhere; hyphens: auto;
+  background: linear-gradient(180deg, transparent, rgba(0,0,0,0.72) 45%);
+  text-shadow: 0 0 7px var(--sl-rc, #cc88ff), 0 1px 2px #000;
+}
+.sleight-card .sleight-card-uses {
+  position: absolute; top: 4%; right: 5%; z-index: 4; margin-top: 0 !important;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: calc(var(--card-h, 75px) * 0.10) !important;
+  color: var(--sl-rc, #cc88ff) !important;
+  background: rgba(0,0,0,0.5); border-radius: 5px; padding: 0 3px;
+}
+
+/* ── SELECTED ─────────────────────────────────────────────────────────────
+   Sleights have always been selectable, but .card.selected never applied to
+   them: a grid Sleight is .trick-card.sleight-card, not .card. The only feedback
+   was the small order badge, which is why picking one up "was really hard to
+   tell". They now get the same lift, blue edge and glow as a normal card. */
+.trick-card.sleight-card.selected {
+  border-color: #4a9eff !important;
+  box-shadow: 0 0 0 2px rgba(74,158,255,0.55), 0 0 16px 2px rgba(74,158,255,0.65),
+              inset 0 0 16px -6px rgba(74,158,255,0.9) !important;
+  transform: translate(var(--hbx,0), calc(var(--hby,0px) - 5px)) rotate(var(--hbr,0deg)) scale(calc(var(--hbs,1) * 1.03));
+  z-index: 8;
+}
+.trick-card.sleight-card.selected .sel-num {
+  position: absolute; bottom: 3%; right: 4%; top: auto; left: auto; z-index: 6;
+  font-family: 'Cinzel', serif; font-weight: 800;
+  font-size: calc(var(--card-h, 75px) * 0.12);
+  color: #06213a; background: #4a9eff; border-radius: 50%;
+  min-width: calc(var(--card-h, 75px) * 0.18); height: calc(var(--card-h, 75px) * 0.18);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 0 8px rgba(74,158,255,0.9);
+}
+/* Rarity edge, so a Sleight's worth reads off the board like everywhere else.
+   Assigned by js/render.js / renderCardAppearance via a sl-rar-* class. */
+.sleight-card.sl-rar-common    { --sl-rc: var(--c-mint,#35d59b); }
+.sleight-card.sl-rar-rare      { --sl-rc: var(--c-cyan,#16c8d8); }
+.sleight-card.sl-rar-epic      { --sl-rc: var(--c-purple,#9a6cff); }
+.sleight-card.sl-rar-legendary { --sl-rc: var(--c-yellow,#ffce2b); }
+.sleight-card.sl-rar-mythic    { --sl-rc: var(--c-magenta,#ff2f8e); }
+.sleight-card.sl-rar-fixture   { --sl-rc: var(--c-coral,#ff6a3c); }
+.trick-card.sleight-card:not(.selected) {
+  border-color: var(--sl-rc, #8844cc) !important;
+  box-shadow: 0 0 9px -1px var(--sl-rc, #8844cc), inset 0 0 14px -6px var(--sl-rc, #8844cc);
+}

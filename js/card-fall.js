@@ -25,8 +25,8 @@ function renderCardAppearance(card, r, c, {
       ? `${card._adjPlays || 0}/${def.adjacentPlays || 2}`
       : (card._usesLeft === 'infinite' ? '∞' : card._usesLeft);
     return {
-      className: `trick-card sleight-card${isSwapPending ? ' swap-pending' : ''}`,
-      innerHTML: `<div class="sleight-card-emoji">${def?.emoji||'🃏'}</div><div class="sleight-card-name">${def?.name||'Sleight'}</div><div class="sleight-card-uses">${usesStr}</div>`,
+      className: `trick-card sleight-card${sleightRarityClass(def)}${isSwapPending ? ' swap-pending' : ''}`,
+      innerHTML: sleightFaceHTML(card, def, usesStr),
     };
   }
 

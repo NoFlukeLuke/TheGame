@@ -76,8 +76,8 @@ function render() {
           attachLongPress(div, r, c);
           continue;
         }
-        div.className = 'trick-card sleight-card' + (isSwapPendingJ ? ' swap-pending' : '') + (selIdxJ >= 0 ? ' selected' : '');
-        div.innerHTML = `${selIdxJ >= 0 ? `<div class="sel-num">${selIdxJ+1}</div>` : ''}<div class="sleight-card-emoji">${def?.emoji||'🃏'}</div><div class="sleight-card-name">${def?.name||'Sleight'}</div><div class="sleight-card-uses">${usesStr}</div>`;
+        div.className = 'trick-card sleight-card' + sleightRarityClass(def) + (isSwapPendingJ ? ' swap-pending' : '') + (selIdxJ >= 0 ? ' selected' : '');
+        div.innerHTML = `${selIdxJ >= 0 ? `<div class="sel-num">${selIdxJ+1}</div>` : ''}` + sleightFaceHTML(card, def, usesStr);
         div.onclick = () => onCardTap(r, c);
         attachLongPress(div, r, c);
         continue;

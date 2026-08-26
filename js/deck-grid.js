@@ -208,7 +208,11 @@ function discardToPlayed(card) {
   // (unless fully consumed, in which case they're dropped).
   if (card._isSleight) {
     if (card._usesLeft === 'infinite' || card._usesLeft > 0) {
-      playedPile.push({ _isSleight: true, sleightId: card.sleightId, rank: card.rank, suit: card.suit, _id: card._id, _usesLeft: card._usesLeft, _drawFired: false });
+      // _faceRank/_faceSuit ride along so a Sleight keeps the same printed card
+      // face across a deck cycle (this rebuild is a fixed field list — anything
+      // not named here is silently dropped).
+      playedPile.push({ _isSleight: true, sleightId: card.sleightId, rank: card.rank, suit: card.suit, _id: card._id,
+                        _usesLeft: card._usesLeft, _faceRank: card._faceRank, _faceSuit: card._faceSuit, _drawFired: false });
       updateDeckHud();
     }
     return;

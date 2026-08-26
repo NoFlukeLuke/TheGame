@@ -1,5 +1,50 @@
 function sleightDef(card) { return SLEIGHT_POOL.find(j => j.id === card.sleightId); }
 
+// ── Sleight card FACE (r172) ───────────────────────────────────────────────
+// Every Sleight carries a rank and a suit on its face, so it reads as a real
+// card in the deck rather than a floating icon.
+//
+// These are DELIBERATELY cosmetic, stored in _faceRank/_faceSuit rather than in
+// rank/suit. Two reasons:
+//   1. Hand detection excludes non-wild Sleights by the _isSleight flag, not by
+//      rank, so a real rank would not make them score — it would just be a lie.
+//   2. The wildcard Sleights read their OWN rank/suit: findBestHand only fills a
+//      null one ("Warehouse … has no rank"). Writing a real rank there would
+//      silently un-wild them.
+// Assigned lazily on first render, which is the one funnel every Sleight passes
+// through no matter which site built it (grantSleight, the Spectrum fixtures,
+// discardToPlayed's rebuild, a restored save).
+function sleightFace(card) {
+  if (!card) return { rank: '?', suit: '?' };
+  if (card._faceRank == null) {
+    const ranks = (typeof ACTIVE_RANKS !== 'undefined' && ACTIVE_RANKS.length) ? ACTIVE_RANKS : RANKS;
+    card._faceRank = ranks[Math.floor(Math.random() * ranks.length)];
+  }
+  if (card._faceSuit == null) {
+    const suits = (typeof ACTIVE_SUITS !== 'undefined' && ACTIVE_SUITS.length) ? ACTIVE_SUITS : SUITS;
+    card._faceSuit = suits[Math.floor(Math.random() * suits.length)];
+  }
+  return { rank: card._faceRank, suit: card._faceSuit };
+}
+// Markup shared by both render paths (js/render.js and js/card-fall.js) so the
+// grid, the fall animation and the hand preview can never disagree.
+// Rarity → the card's edge colour, as a class both render paths add.
+function sleightRarityClass(def) {
+  const r = def && def.rarity;
+  return ['common','rare','epic','legendary','mythic','fixture'].includes(r) ? ' sl-rar-' + r : ' sl-rar-common';
+}
+function sleightFaceHTML(card, def, usesStr) {
+  const f = sleightFace(card);
+  const red = '♥♦'.includes(f.suit);
+  const numeric = (typeof isColorSuit === 'function') && isColorSuit(f.suit);
+  return `<div class="sleight-index ${red ? 'sl-red' : 'sl-blk'}${numeric ? ' sl-num' : ''}">`
+       +   `<span class="sl-rank">${f.rank}</span><span class="sl-suit">${f.suit}</span>`
+       + `</div>`
+       + `<div class="sleight-card-emoji">${def?.emoji || '🃏'}</div>`
+       + `<div class="sleight-card-name">${def?.name || 'Sleight'}</div>`
+       + `<div class="sleight-card-uses">${usesStr}</div>`;
+}
+
 function grantSleight(def) {
   const card = {
     _isSleight: true, sleightId: def.id,

@@ -1,4 +1,4 @@
-const BUILD = '2026-08-26 · r172 · BOSS: score/goal alarm replaces the objective panel, reopenable brief · Flow timer gone · trick icons keep size';
+const BUILD = '2026-08-26 · r173 · SLEIGHTS: printed rank+suit face, name along the bottom, rarity edge, real selected state';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
