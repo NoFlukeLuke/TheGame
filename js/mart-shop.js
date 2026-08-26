@@ -70,16 +70,35 @@ function buildMartStock() {
   return withSeededRng(_buildMartStock, 'shop', shopVisitIndex, martRerollN);
 }
 function _buildMartStock() {
-  const others = shuffle(['sleights','knacks','limits']).slice(0, 2);   // 3 of 4 (tricks always featured)
-  martCats = ['tricks', ...others];
+  // Which three categories are stocked is decided ONCE per shop visit, not per
+  // reroll. Re-rolling the categories meant `martStock.knacks` could vanish
+  // under the sold-item markers martReroll carries across (they are keyed
+  // `<category>-<index>`), so an item you had already paid for could come back
+  // on the shelf at full price. A reroll now restocks the same three shelves.
+  if (!martCats.length || !martRerollN) {
+    const others = shuffle(['sleights','knacks','limits']).slice(0, 2);   // 3 of 4 (tricks always featured)
+    martCats = ['tricks', ...others];
+  }
   martStock = {};
   // Survival has no reward grid, so reward-grid-only entities are filtered out here
   // too — otherwise the Mart could sell a item that does nothing in this mode.
   const _ok = p => typeof survivalEntityBanned !== 'function' || !survivalEntityBanned(p.id);
-  martStock.tricks = martPick(TRICK_POOL.filter(_ok), 'tier', 4).map(martTrickPayload);
-  if (martCats.includes('sleights')) martStock.sleights = martPick(SLEIGHT_POOL.filter(j => _ok(j) && sleightOfferable(j)), 'rarity', 4).map(martSleightPayload);
-  if (martCats.includes('knacks'))   martStock.knacks   = martPick(KNACK_POOL.filter(_ok), 'rarity', 4).map(martKnackPayload);
+  // …and never offer something you already have. The legacy shop always filtered
+  // owned Tricks/Knacks and granted Sleights out of its pools; the Mart replaced
+  // it without carrying that over, so it would happily sell you a second copy of
+  // a Knack — and a Knack is a boolean (hasKnack), so the second copy does
+  // literally nothing. Same story for a duplicate Trick.
+  const ownedTricks = new Set((acquiredTricks||[]).map(t => t.id));
+  const ownedKnacks = new Set((acquiredKnacks||[]).map(k => k.id));
+  const ownedSleights = (typeof _grantedSleightSet === 'function') ? _grantedSleightSet()
+                      : (typeof grantedSleightIds !== 'undefined' ? grantedSleightIds : new Set());
+  martStock.tricks = martPick(TRICK_POOL.filter(t => _ok(t) && !ownedTricks.has(t.id)), 'tier', 4).map(martTrickPayload);
+  if (martCats.includes('sleights')) martStock.sleights = martPick(SLEIGHT_POOL.filter(j => _ok(j) && sleightOfferable(j) && !ownedSleights.has(j.id)), 'rarity', 4).map(martSleightPayload);
+  if (martCats.includes('knacks'))   martStock.knacks   = martPick(KNACK_POOL.filter(k => _ok(k) && !ownedKnacks.has(k.id)), 'rarity', 4).map(martKnackPayload);
   if (martCats.includes('limits'))   martStock.limits   = martLimitStock(4);
+  // Owning everything in a category (or having maxed every Limit) now empties
+  // its pool, and an empty shelf is worse than no shelf.
+  martCats = martCats.filter(c => (martStock[c] || []).length);
 }
 
 // ── open / close ──
@@ -103,6 +122,7 @@ function ensureMartOverlay() {
 // The overlay is revealed at the collapse, hidden inside the flash.
 function openMart() {
   martActive = true; martCart = []; martRerollN = 0;
+  martCats = [];                          // a new visit re-picks its three shelves
   shopVisitIndex++;                       // this is shop visit N for the run's seed
   gameTimerPaused = true;
   try { sfxShopOpen && sfxShopOpen(); } catch(e){}
@@ -110,7 +130,7 @@ function openMart() {
   const el = ensureMartOverlay();
   renderMart();
   channelChange(() => { el.classList.add('show'); }, { channel: 'CH 02 · MART' })
-    .then(startMartFloat);
+    .then(() => { startMartFloat(); martMeasureDrawer(); });   // measurable only once shown
 }
 function closeMart() {
   if (!martActive) return;
@@ -140,31 +160,70 @@ function closeMart() {
 
 // ── render ──
 const martRar = p => (MART_TIERS.includes(p.rarity) ? p.rarity : 'common');
+
+// The catalog speaks the REWARD GRID's visual language (r170). Before this the
+// Mart had its own private set of tile designs, so the same Trick looked like
+// one thing on the reward grid and a different thing in the shop. These tiles
+// now reuse the reward grid's own classes — .reward-cell.entity plus the
+// entity-<type> and rar-<rarity> modifiers — which is what carries the neon
+// rarity border, the scanline overlay, the top glare and the knack diamond.
+//
+// It is NOT buildRewardTileInner(): the reward grid deliberately hides a Trick's
+// emoji behind a ✦ placeholder (you are picking a mystery off a board), whereas
+// in a shop you are choosing what to buy and need to see the thing. Same shell,
+// different contents.
+function martEntityInner(p) {
+  if (p.type === 'knack')
+    return `<div class="rwd-diamond"><span class="rwd-diamond-emoji">${p.emoji || '♛'}</span></div>`
+         + `<div class="rwd-name">${p.label}</div>`;
+  if (p.type === 'trick')
+    return `<div class="rwd-glyph">✦</div><div class="rwd-art">${p.emoji}</div><div class="rwd-name">${p.label}</div>`;
+  if (p.type === 'sleight')
+    return `<div class="rwd-tab">▶</div><div class="rwd-art">${p.emoji}</div><div class="rwd-name">${p.label}</div>`
+         + `<div class="rwd-uses">${p.uses}</div>`;
+  return `<div class="reward-icon">${p.icon || '▲'}</div><div class="rwd-name">${p.label}</div>`;
+}
+
 function martTileHTML(p, key) {
   const inCart = martCart.includes(key);
   const cant = coins < p.price;
   // A star + pulse if this entity is on the filed requisition (Builds screen).
   const wanted = (typeof isRequisitioned === 'function') && p.ref && isRequisitioned(p.ref.id);
-  const cls = ['m-item', 'r-'+martRar(p), inCart?'in-cart':'', p._sold?'sold':'', wanted?'requisitioned':''].filter(Boolean).join(' ');
+  const cls = ['m-item', 'm-'+p.type, 'r-'+martRar(p), inCart?'in-cart':'', p._sold?'sold':'', wanted?'requisitioned':''].filter(Boolean).join(' ');
   const price = `<div class="price ${cant&&!inCart?'cant':''}">${p._sold?'✓':'💰'+p.price}</div>`;
+  const tick  = `<div class="m-tick">✓</div>`;   // shown by .in-cart — see mart.css
   let inner;
-  if (p.type==='trick')   inner = `<div class="trick"><div class="emblem">✦ TRICK</div><div class="art">${p.emoji}</div><div class="nm">${p.label}</div></div>`;
-  else if (p.type==='sleight') inner = `<div class="sleight"><span class="corner ${'♥♦'.includes(p.suit)?'suit-red':'suit-blk'}">${p.rank}${p.suit}</span><span class="corner br ${'♥♦'.includes(p.suit)?'suit-red':'suit-blk'}">${p.rank}${p.suit}</span><div class="art">${p.emoji}</div><div class="nm">${p.label}</div><div class="uses">${p.uses}</div></div>`;
-  else if (p.type==='knack') inner = `<div class="knack"><div class="mini-knack"><span>${p.emoji}</span></div><div class="nm">${p.label}</div></div>`;
-  else if (p.type==='limit') inner = `<div class="limit"><span class="ico">▲</span><div class="body"><span class="lname">${p.label}</span><span class="lprog">${p.cur} → ${p.next}</span></div></div>`;
-  return `<div class="${cls}" data-key="${key}">${inner}${price}</div>`;
+  if (p.type === 'limit') {
+    // A Limit is a numeric upgrade, not a collectible, so it keeps its own wide
+    // bar shape — but on the reward grid's palette rather than its own.
+    inner = `<div class="limit reward-cell entity rar-common"><span class="ico">▲</span>`
+          + `<div class="body"><span class="lname">${p.label}</span><span class="lprog">${p.cur} → ${p.next}</span></div></div>`;
+  } else {
+    inner = `<div class="reward-cell entity entity-${p.type} rar-${martRar(p)}">${martEntityInner(p)}</div>`;
+  }
+  return `<div class="${cls}" data-key="${key}">${inner}${price}${tick}</div>`;
 }
 
+// Each shelf is its own colour-coded panel (r170). They used to be four barely
+// distinguishable dark rectangles on a dark page; --sc drives the header, the
+// rule under it, the left edge and the panel wash, so the categories separate at
+// a glance instead of having to be read.
+const MART_SEC_META = {
+  tricks:   { label:'TRICKS',         glyph:'✦', sc:'var(--phosphor)', note:'scoring buffs · side tray' },
+  sleights: { label:'SLEIGHTS',       glyph:'▶', sc:'var(--c-cyan)',   note:'cards that live in your deck' },
+  knacks:   { label:'KNACKS',         glyph:'◆', sc:'var(--c-yellow)', note:'permanent rule changes' },
+  limits:   { label:'LIMIT UPGRADES', glyph:'▲', sc:'var(--c-mint)',   note:'raise a cap for the run' },
+};
 function martSectionHTML(cat) {
   const stock = martStock[cat] || [];
-  const meta = {
-    tricks:   { cls:'m-sec tricks', label:'★ Tricks (featured)' },
-    sleights: { cls:'m-sec',        label:'Sleights ▶' },
-    knacks:   { cls:'m-sec',        label:'Knacks ♦' },
-    limits:   { cls:'m-sec tall',   label:'Limit Upgrades ▲' },
-  }[cat];
+  const meta = MART_SEC_META[cat];
   const items = stock.map((p,i) => martTileHTML(p, `${cat}-${i}`)).join('');
-  return `<div class="${meta.cls}"><div class="m-sh"><span>${meta.label}</span><span class="slots">${stock.length} / ${stock.length} slots</span></div><div class="m-rowc" data-cat="${cat}">${items}</div></div>`;
+  const left = stock.filter(p => !p._sold).length;
+  return `<div class="m-sec m-sec-${cat}" style="--sc:${meta.sc}">
+    <div class="m-sh"><span class="m-sh-l"><i class="m-sh-g">${meta.glyph}</i>${meta.label}</span>`
+    + `<span class="m-sh-note">${meta.note}</span>`
+    + `<span class="slots">${left} left</span></div>
+    <div class="m-rowc" data-cat="${cat}">${items}</div></div>`;
 }
 
 function renderMart() {
@@ -174,8 +233,9 @@ function renderMart() {
   renderMartCheckout();
   bindMartItems();
   // Names must never clip on a tile — hyphenate/shrink to fit (js/fit-text.js).
-  fitEntityNames(document.getElementById('mart-main'), '.trick .nm, .sleight .nm, .knack .nm', { maxLines: 2 });
-  fitEntityNames(document.getElementById('mart-main'), '.limit .lname', { maxLines: 2 });
+  // The selector follows the reward grid's markup now that the tiles do.
+  fitEntityNames(document.getElementById('mart-main'), '.m-item .rwd-name', { maxLines: 3 });
+  fitEntityNames(document.getElementById('mart-main'), '.m-item .lname', { maxLines: 2 });
 }
 
 function renderMartLoadout() {
@@ -223,7 +283,9 @@ function renderMartMain() {
     <div class="m-freezer"><span class="wip" style="position:absolute;top:4px;right:5px">WIP</span><div class="fi">❄</div><div class="ft">FREEZER<br>drag to keep</div></div>
   </div>`;
   const sections = martCats.map(martSectionHTML).join('');
-  const tools = `<div class="m-sec tall"><div class="m-sh"><span>Tools 🛠</span><span class="slots">WIP</span></div><div class="m-rowc">
+  const tools = `<div class="m-sec m-sec-tools" style="--sc:var(--c-coral)">
+    <div class="m-sh"><span class="m-sh-l"><i class="m-sh-g">🛠</i>TOOLS</span><span class="m-sh-note">services on what you already own</span><span class="slots">WIP</span></div>
+    <div class="m-rowc">
     <div class="m-tool"><div class="tt"><span>⚡ Recharge Bay</span><span>WIP</span></div><div class="td">Recharge sleights (built later).</div></div>
     <div class="m-tool"><div class="tt"><span>✦ Trick Tinker</span><span>WIP</span></div><div class="td">Improve a Trick you own (built later).</div></div>
   </div></div>`;
@@ -236,27 +298,56 @@ function renderMartCheckout() {
     const [cat,i] = key.split('-'); const p = martStock[cat][+i];
     return `<div class="m-rline" data-key="${key}"><span>${p.emoji||p.icon||'•'} ${p.label}</span><span>💰${p.price} <span class="x">✕</span></span></div>`;
   }).join('') || '';
-  const drop = `<div class="m-drop" id="mart-drop">click an item to add it<br><small>or drag one here</small></div>`;
+  // Two hints, one shown per input type (css/mart.css): there is no drag on
+  // touch, so the drop zone must not promise one.
+  const drop = `<div class="m-drop" id="mart-drop"><span class="m-drop-tap">tap an item to add it</span>`
+             + `<span class="m-drop-drag">click an item to add it<br><small>or drag one here</small></span></div>`;
   const base = martCart.reduce((s,key)=>{ const [cat,i]=key.split('-'); return s + martStock[cat][+i].price; }, 0);
   const pct = martDiscountPct(martCart.length);
   const total = Math.round(base * (1 - pct/100));
   const afford = coins >= total && martCart.length>0;
+  const maxR = limits.reroll ? limits.reroll.current : 3;
+  const rerollsLeft = Math.max(0, maxR - martRerollN);
+  const rerollCost = 8 + martRerollN*2;
+  const cartCap = martSelectionSize();
   el.innerHTML = `
     <div class="m-brand">LETHE MART<small>AUTHORIZED TERMINAL</small></div>
     <div class="m-wallet">💰 ${coins}</div>
-    <div class="m-ch"><span>🧾 CHECKOUT</span><small>${martCart.length} item${martCart.length!==1?'s':''}</small></div>
+    <div class="m-ch" id="mart-cart-handle"><span>🧾 CHECKOUT</span><small>${martCart.length} / ${cartCap} item${martCart.length!==1?'s':''}</small><span class="m-ch-wallet">💰 ${coins}</span></div>
     <div class="m-rcpt">${lines}${drop}</div>
     <div class="m-sum">
       <div class="srow"><span>subtotal</span><span>💰${base}</span></div>
       <div class="srow disc"><span>bundle −${pct}% (cap ${martDiscountCap()}%)</span><span>−💰${base-total}</span></div>
       <div class="grand"><span>total</span><span>${pct>0?`<s>💰${base}</s> `:''}<b>💰${total}</b></span></div>
       <div class="m-buy ${afford?'':'disabled'}" id="mart-buy">CHECKOUT</div>
-      <div class="m-foot"><div class="m-fbtn" id="mart-reroll">🎲 Reroll ${8+martRerollN*2}</div><div class="m-fbtn leave" id="mart-leave">⏻ Leave</div></div>
+      <div class="m-foot">
+        <div class="m-fbtn ${rerollsLeft?'':'spent'}" id="mart-reroll">🎲 Reroll 💰${rerollCost}<br><small>${rerollsLeft} left</small></div>
+        <div class="m-fbtn leave" id="mart-leave">⏻ Leave</div>
+      </div>
     </div>`;
   el.querySelectorAll('.m-rline').forEach(l => l.onclick = () => martToggleCart(l.dataset.key));
   el.querySelector('#mart-buy').onclick = martCheckout;
   el.querySelector('#mart-reroll').onclick = martReroll;
   el.querySelector('#mart-leave').onclick = closeMart;
+  // The narrow layout turns this panel into a bottom drawer whose header is the
+  // handle. Harmless on desktop, where the receipt is always open anyway.
+  el.querySelector('#mart-cart-handle').onclick = () => {
+    document.getElementById('mart-overlay')?.classList.toggle('cart-open');
+    martMeasureDrawer();
+  };
+  martMeasureDrawer();
+}
+
+// The drawer is position:fixed, so the catalog behind it has to be told how much
+// of the bottom of the screen is covered or its last shelf sits under the drawer
+// and cannot be scrolled into view.
+function martMeasureDrawer() {
+  const ov = document.getElementById('mart-overlay');
+  const co = document.getElementById('mart-checkout');
+  if (!ov || !co) return;
+  requestAnimationFrame(() => {
+    ov.style.setProperty('--mart-drawer', Math.round(co.getBoundingClientRect().height) + 'px');
+  });
 }
 
 function bindMartItems() {
@@ -270,32 +361,63 @@ function bindMartItems() {
   // of the four catalog categories — nearly everything you browse — had none.
   main.querySelectorAll('.m-item').forEach(it => {
     const key = it.dataset.key;
-    it.onclick = (e) => { if (it._martDragged) { it._martDragged = false; return; } martToggleCart(key); };
     const [cat,i] = key.split('-'); const p = martStock[cat][+i];
     if (!p) return;
-    attachEntityTooltip(it, () => martTooltipPayload(p));
-    attachMartDrag(it, key);
+    attachMartTileGesture(it, key, p);
   });
 }
 
-// ── drag an item to the checkout ─────────────────────────────────────────────
-// Click still adds (martToggleCart on click); dragging is the second route the
-// shop notes asked for. A drag only starts after the pointer has moved past a
-// small threshold, so an ordinary click is never swallowed. The dragged tile is
-// a body-level clone — the catalog re-renders and would otherwise yank it away.
+// ── one gesture handler per tile: tap / hover / long-press / drag ────────────
+// This used to be TWO overlapping systems — an `onclick` that added to the cart,
+// plus attachEntityTooltip()'s own pointer listeners, plus a drag handler — all
+// on the same element, each unaware of the others. That is what made the shop
+// feel finicky. Now one handler owns the whole gesture and decides at pointerup
+// what it was.
+//
+// MOUSE: hover → tooltip. click → toggle cart. drag past the slop → ghost to the
+// checkout. `preventDefault` on pointerdown is what stops a drag from selecting
+// the tile's text instead of moving the card.
+//
+// TOUCH: tap → toggle cart. press-and-hold → tooltip. Dragging is deliberately
+// NOT wired on touch: the catalog scrolls, so the browser claims any touch that
+// moves and fires pointercancel at us — the old drag could not work on a phone
+// and silently did nothing. Forcing it would need touch-action:none on every
+// tile, which costs you the ability to scroll the catalog by swiping a tile.
+// Tap is one gesture and always works, so that is the route on touch.
 const MART_DRAG_SLOP = 6;
-function attachMartDrag(tile, key) {
-  tile.addEventListener('pointerdown', e => {
-    if (e.button !== 0 || martCheckingOut) return;
-    const st = { x: e.clientX, y: e.clientY, id: e.pointerId, ghost: null, moved: false, ox: 0, oy: 0 };
+const MART_LONGPRESS_MS = 420;
 
-    // Listen on the DOCUMENT, not the tile: once the drag leaves the tile the
+function attachMartTileGesture(tile, key, p) {
+  const payload = () => martTooltipPayload(p);
+
+  // Hover tooltip — mouse only. pointerenter fires for touch too, which used to
+  // pop the tooltip on every tap.
+  tile.addEventListener('pointerenter', e => { if (e.pointerType !== 'touch') showEntityTooltip(tile, payload()); });
+  tile.addEventListener('pointerleave', e => { if (e.pointerType !== 'touch') hideEntityTooltip(); });
+
+  tile.addEventListener('pointerdown', e => {
+    if (martCheckingOut || p._sold) return;
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+
+    const touch = e.pointerType === 'touch';
+    // Mouse: kill the native text selection a drag would otherwise start.
+    if (!touch) e.preventDefault();
+    else hideEntityTooltip();          // a fresh touch dismisses a previous bubble
+
+    const st = { x: e.clientX, y: e.clientY, id: e.pointerId, ghost: null, moved: false, held: false, ox: 0, oy: 0 };
+    let lp = null;
+    if (touch) lp = setTimeout(() => { st.held = true; showEntityTooltip(tile, payload()); }, MART_LONGPRESS_MS);
+    const clearLp = () => { if (lp) { clearTimeout(lp); lp = null; } };
+
+    // Listen on the DOCUMENT, not the tile: once the pointer leaves the tile the
     // tile stops receiving pointermove, so tile-level listeners never see the
     // rest of the gesture.
     const onMove = ev => {
       if (ev.pointerId !== st.id) return;
       const dx = ev.clientX - st.x, dy = ev.clientY - st.y;
       if (!st.moved && Math.hypot(dx, dy) < MART_DRAG_SLOP) return;
+      clearLp();                              // moved — this is not a long-press
+      if (touch) return;                      // touch never drags (see note above)
       if (!st.moved) {
         st.moved = true;
         const r = tile.getBoundingClientRect();
@@ -314,24 +436,39 @@ function attachMartDrag(tile, key) {
       document.getElementById('mart-checkout')?.classList
         .toggle('m-drop-hot', martOverCheckout(ev.clientX, ev.clientY));
     };
-    const onUp = ev => {
+
+    const finish = ev => {
       if (ev.pointerId !== st.id) return;
+      clearLp();
       document.removeEventListener('pointermove', onMove);
-      document.removeEventListener('pointerup', onUp);
-      document.removeEventListener('pointercancel', onUp);
+      document.removeEventListener('pointerup', finish);
+      document.removeEventListener('pointercancel', onCancel);
       tile.classList.remove('m-drag-src');
       document.getElementById('mart-checkout')?.classList.remove('m-drop-armed', 'm-drop-hot');
       if (st.ghost) st.ghost.remove();
-      if (!st.moved) return;                  // a plain click — the onclick handles it
-      tile._martDragged = true;               // suppress the click this drag emits
-      if (martOverCheckout(ev.clientX, ev.clientY)) {
-        if (!martCart.includes(key)) martToggleCart(key);
-        else showMessage('Already in the cart', 'var(--cream-dim)');
+
+      if (st.moved) {                                     // a drag
+        if (martOverCheckout(ev.clientX, ev.clientY)) {
+          if (!martCart.includes(key)) martToggleCart(key);
+          else showMessage('Already in the cart', 'var(--cream-dim)');
+        }
+        return;
       }
+      if (st.held) return;                                // a long-press: tooltip only
+      // A tap / click. Confirm the pointer actually lifted on this tile — the
+      // browser's own click event would not fire if it had not, and we are
+      // standing in for that click.
+      const r = tile.getBoundingClientRect();
+      if (ev.clientX >= r.left && ev.clientX <= r.right && ev.clientY >= r.top && ev.clientY <= r.bottom)
+        martToggleCart(key);
     };
+    // A cancelled pointer (the browser took the gesture for a scroll) must tear
+    // down exactly like a lift, but must never count as a tap.
+    const onCancel = ev => { st.moved = true; finish(ev); };
+
     document.addEventListener('pointermove', onMove);
-    document.addEventListener('pointerup', onUp);
-    document.addEventListener('pointercancel', onUp);
+    document.addEventListener('pointerup', finish);
+    document.addEventListener('pointercancel', onCancel);
   });
 }
 function martOverCheckout(x, y) {
@@ -448,8 +585,9 @@ async function martCheckout() {
   closeMart();
 }
 function martReroll() {
+  if (martCheckingOut) return;
   const maxR = limits.reroll ? limits.reroll.current : 3;
-  if (martRerollN >= maxR) { showMessage('No rerolls left', 'var(--red)'); return; }
+  if (martRerollN >= maxR) { showMessage('No rerolls left this visit', 'var(--red)'); return; }
   const cost = 8 + martRerollN*2;
   if (coins < cost) { showMessage('Not enough credits', 'var(--red)'); return; }
   coins -= cost; updateCoinsUI(); martRerollN++;

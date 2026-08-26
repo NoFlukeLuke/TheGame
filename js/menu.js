@@ -1,4 +1,4 @@
-const BUILD = '2026-08-26 · r169 · SWAP chip resized + moved to the top of the interact column; PMF fused chip drops the HAND label';
+const BUILD = '2026-08-26 · r170 · MART: reward-grid tiles, colour-coded shelves, portrait drawer, gesture rewrite · focus bar + teal SWAP';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
