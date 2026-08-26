@@ -354,7 +354,8 @@ function triggerBoss(presetOverride = null, windowSeconds = null) {
 //
 // r171 — the briefing is REOPENABLE. It is the only place the boss's rules are
 // written down, and it used to be a one-shot you could dismiss and never see
-// again; now the red SCORE / GOAL chips are also its handle (see bindBossBriefReopen).
+// again; now the red GOAL chip and the act/sigil readout are also its handle
+// (see bindBossBriefReopen — SCORE is the hand log's, not the brief's).
 // Reopening does NOT pause the clock — a pausable rules panel would be a free
 // timeout on every boss round.
 let _bossBriefPreset = null;
@@ -449,10 +450,15 @@ function reopenBossBrief() {
 // the act/level readout in the top bar. Bound once at load; each handler checks
 // bossActive, so they are inert the rest of the time.
 function bindBossBriefReopen() {
+  // NOT #score-center (r177): that chip belongs to the hand log, which is a
+  // whole-run reference the player wants during a boss as much as outside one.
+  // The GOAL chip beside it is in the same alarm state and sits right there, and
+  // the act/sigil readout is the other natural "what am I fighting" handle, so
+  // the brief loses nothing by giving up SCORE.
   // run-progress-pt is the portrait copy of the progress block (r176). In act
   // mode / on a boss it is what shows there and game-timer-stat is hidden, so
   // without it portrait would lose the top-bar handle entirely.
-  ['score-center', 'score-left', 'game-timer-stat', 'run-progress', 'run-progress-pt'].forEach(id => {
+  ['score-left', 'game-timer-stat', 'run-progress', 'run-progress-pt'].forEach(id => {
     const el = document.getElementById(id);
     if (!el || el._bossBriefBound) return;
     el._bossBriefBound = true;

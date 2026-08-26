@@ -1,4 +1,4 @@
-const BUILD = '2026-08-26 · r176 · boss sigil in the progress slot + brief flight · hand log on SCORE · portrait progress block · preview card sizing';
+const BUILD = '2026-08-26 · r177 · boss approach: drain + heartbeat + countdown + score wipe · RECORDS Hands tab · tutorial modules';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

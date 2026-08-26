@@ -95,10 +95,26 @@ function flowTriggerBoss() {
   roundEnded = false;                    // the session clock hitting 0 is not a round end here
   goalReachedThisRound = false;
   selected = [];
-  roundGoal = score + survivalGoalForLevel(level);
-  updateScoreUI();
+  // ── The slate is wiped, visibly (r177) ──
+  // This used to read `roundGoal = score + survivalGoalForLevel(level)`: the score
+  // carried into the boss and the quota was raised to match, so the bar opened
+  // part-full at some arbitrary fraction and the player had to work out that the
+  // DELTA was what mattered. The delta is identical either way, so it is banked
+  // and zeroed instead and the boss starts from a clean 0 / quota — which is what
+  // every other mode's boss looks like, and what the wipe animation can show.
+  // Banked into totalScore exactly as triggerLevelUp does, so the lifetime
+  // display-only counter doesn't lose the round.
+  const _wiped = score;
+  totalScore += Math.max(0, score);
+  score = 0;
+  roundGoal = survivalGoalForLevel(level);
+  // Held while the wipe animates the OLD number down to the new zero — the state
+  // above is already correct, so an abort can't strand a half-reset run.
+  suppressScoreDisplay = true;
   showMessage('⚠ INSPECTION', 'var(--red)');
-  triggerBoss(null, FLOW_BOSS_WINDOW);
+  const _go = () => triggerBoss(null, FLOW_BOSS_WINDOW);
+  if (typeof bossApproachWipe === 'function') bossApproachWipe(_wiped).then(_go);
+  else { suppressScoreDisplay = false; updateScoreUI(); _go(); }
 }
 
 // Boss resolved (win or loss). Survival's post-boss path takes it from here; this

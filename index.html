@@ -534,6 +534,17 @@
     <div id="cab-stripe"></div>
   </div>
   <div id="cab-screen">
+<!-- Boss-approach FX (js/boss-approach.js). A SIBLING of #stage, not a child:
+     the approach drains the colour out of #stage with a `filter`, and a filter
+     applies to the whole subtree — inside it the red alarm would drain along with
+     everything else. Sitting on #cab-screen also means one overlay covers the CRT
+     in BOTH orientations with nothing measured. Inert until .ba-on. -->
+<div id="boss-approach-fx">
+  <div class="ba-vignette"></div>
+  <div class="ba-count" id="ba-count"></div>
+  <div class="ba-label" id="ba-label">INSPECTION INBOUND</div>
+  <div class="ba-band"></div>
+</div>
 <div id="stage">
 
 <!-- DECK HUD (debug) -->
@@ -968,6 +979,7 @@
 <script src="js/data/bosses.js"></script>
 <script src="js/boss.js"></script>
 <script src="js/boss-effects.js"></script>
+<script src="js/boss-approach.js"></script>
 <script src="js/reward-grid.js"></script>
 <script src="js/limit-break.js"></script>
 <script src="js/sleights-runtime.js"></script>

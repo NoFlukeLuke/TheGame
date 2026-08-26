@@ -11,6 +11,7 @@ let recordsTab  = 'deck';
 
 const RECORDS_TABS = [
   { id: 'deck',      label: 'Deck',           icon: '🂠', render: () => recordsRenderDeck() },
+  { id: 'hands',     label: 'Hands',          icon: '♠', render: () => recordsRenderHands() },
   { id: 'personnel', label: 'Personnel File', icon: '📁', render: () => recordsRenderPersonnel() },
   { id: 'limits',    label: 'Limits',         icon: '▲', render: () => recordsRenderLimits() },
   { id: 'time',      label: 'Time',           icon: '⏱', render: () => recordsRenderTime() },
@@ -246,6 +247,51 @@ function recordsRenderTime() {
   return `<div class="rec-summary">${facts}</div>
     <div class="rec-h">Interaction charges <span class="rec-h-note">seconds off the clock</span></div>
     <div class="rec-lims">${rows}</div>`;
+}
+
+// ── HANDS ──
+// The rate card: which hand types this mode actually scores, and what each one is
+// worth before anything modifies it.
+//
+// Read LIVE from HAND_BASE / HAND_FOCUS rather than from a written-out table.
+// That matters because those two are global and modes overwrite them —
+// applyModeHandValues() zeroes Flush of 3 in Spectrum, so the older hardcoded
+// HAND_FORMULAS strings in js/stats.js state a payout that mode does not pay.
+// Reading the tables means this screen cannot say something the scorer won't do.
+//
+// `activeHands` holds KEYS (run3, twopair…) while both value tables are keyed by
+// NAME, so the reverse of HAND_KEY_TO_NAME is what joins them.
+function recordsRenderHands() {
+  const nameToKey = {};
+  Object.entries(HAND_KEY_TO_NAME).forEach(([k, n]) => { nameToKey[n] = k; });
+  const rows = Object.keys(HAND_BASE).map(name => {
+    const b     = HAND_BASE[name] || { pips: 0, mult: 0 };
+    const focus = HAND_FOCUS[name] || 0;
+    const key   = nameToKey[name];
+    const live  = !key || activeHands.has(key);
+    // pips × mult is the number that actually decides which hand to chase; the
+    // two factors on their own do not compare across rows.
+    const base  = Math.round((b.pips || 0) * (b.mult || 0));
+    return `<div class="rec-hand${live ? '' : ' locked'}">
+      <span class="rh-n">${live ? '' : '⬡ '}${name}</span>
+      <span class="rh-v rh-p">${b.pips}</span>
+      <span class="rh-v rh-m">×${b.mult}</span>
+      <span class="rh-v rh-f">${focus ? '+' + focus : '—'}</span>
+      <span class="rh-v rh-b">${base.toLocaleString()}</span>
+    </div>`;
+  }).join('');
+  const liveCount = Object.keys(HAND_BASE).filter(n => {
+    const k = nameToKey[n]; return !k || activeHands.has(k);
+  }).length;
+  return `<div class="rec-h">Scoring hands
+      <span class="rec-h-note">${liveCount} of ${Object.keys(HAND_BASE).length} playable in this mode</span></div>
+    <div class="rec-hand rec-hand-head">
+      <span class="rh-n">Hand</span><span class="rh-v">Pips</span><span class="rh-v">Mult</span>
+      <span class="rh-v">Focus</span><span class="rh-v">Base</span>
+    </div>
+    <div class="rec-hands">${rows}</div>
+    <div class="rec-foot">Base = pips × mult, before card pips, Tricks, Knacks or your Focus
+      multiplier. Focus is what the hand adds to the meter. Greyed rows are not scored in this mode.</div>`;
 }
 
 function recordsRenderStats() {

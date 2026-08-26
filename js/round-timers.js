@@ -96,6 +96,10 @@ function startRoundTimer() {
       }
     }
     updateClockUI();
+    // Dread before a boss that arrives with no screen in front of it (Flow).
+    // Self-gating: a no-op in every mode whose boss is announced by the reward
+    // grid / payout / pick that precedes it.
+    if (typeof tickBossApproach === 'function') tickBossApproach();
     if (roundSeconds <= 0) onRoundEnd();
   }, 1000);
   // Start focus decay alongside the round timer (pauses internally during overlays)

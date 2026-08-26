@@ -222,7 +222,7 @@ const TUTORIAL_STEPS = [
     id: 'limits-btn', anchor: () => tutEl('#btn-records'), side: 'top', gate: true, hold: true,
     eyebrow: 'Module 06',
     title: 'Operating limits',
-    body: `Every ration you have just been issued is a <b>limit</b>.<br><br>Open <b>RECORDS</b> — your deck, personnel file, limits and performance, all in one. The clock holds while it is open.`,
+    body: `Every ration you have just been issued is a <b>limit</b>.<br><br>Open <b>RECORDS</b> — your deck, hands, personnel file, limits and performance, all in one. The clock holds while it is open.`,
     until: () => !!recordsOpen,
   },
   {
@@ -231,6 +231,23 @@ const TUTORIAL_STEPS = [
     title: 'Your allowances',
     body: `The <b>LIMITS</b> tab lists them: board size, swaps, discards, round length, Trick slots, rerolls, Focus capacity.<br><br>These are fixed for the run unless raised — purchased at the Mart, or awarded by a <b>Limit Break</b>.<br><br>Associates consistently undervalue them. A raised limit compounds across every remaining round; a single item does not.`,
     onEnter: () => { if (recordsOpen) recordsSwitchTab('limits'); },
+  },
+  {
+    // Records stays OPEN across these three steps — they are three tabs of one
+    // screen, so closing and reopening between them would read as three errands.
+    // Only the last one closes it.
+    id: 'hands-panel', anchor: () => tutEl('#records-panel'), side: 'left', hold: true, next: true,
+    eyebrow: 'Module 06',
+    title: 'What counts as a hand',
+    body: `The <b>HANDS</b> tab is the rate card, and it is the answer to "what should I be looking for".<br><br>Every hand type this assignment scores is listed: <b>Pair</b>, <b>Two Pair</b>, <b>Three</b> and <b>Four of a Kind</b>, <b>Runs of 3 and 4</b>, a <b>Straight</b>, <b>Flushes of 3, 4 and 5</b>, a <b>Full House</b>, a <b>Straight Flush</b>. Greyed rows are not scored here — a variant assignment prices its hands differently, and this tab always states what the current one pays.<br><br>Each row gives the <b>base pips</b>, the <b>mult</b>, the <b>Focus</b> it adds to the meter, and their product. That product is what to compare: a Pair opens at 40, a Straight Flush at 800. Your cards' own pips, your Tricks and your Focus multiplier all build on top of it.`,
+    onEnter: () => { if (recordsOpen) recordsSwitchTab('hands'); },
+  },
+  {
+    id: 'personnel-panel', anchor: () => tutEl('#records-panel'), side: 'left', hold: true, next: true,
+    eyebrow: 'Module 06',
+    title: 'Personnel file',
+    body: `The <b>PERSONNEL FILE</b> is everything currently issued to you — Tricks, Sleights and Knacks — each with its full text, expanded.<br><br>Descriptions read <i>live</i>: a Trick that scales with what you have done this run shows the figure it is actually paying, not the one it was printed with.<br><br>You will accumulate more of these than you can hold in mind. Consult the file. The clock is held while it is open.`,
+    onEnter: () => { if (recordsOpen) recordsSwitchTab('personnel'); },
     onExit: () => closeRecords(),
   },
   {

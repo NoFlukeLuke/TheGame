@@ -197,3 +197,30 @@
 .rec-row.locked { color: var(--cream-dim, #8a7d60); }
 .rec-row-v { font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--c-yellow, #ffce2b); text-align: right; }
 .rec-row-v i { color: var(--cream-dim, #8a7d60); font-size: 9px; font-style: normal; }
+
+/* ── Hands tab (r177): the rate card — pips / mult / focus per hand type ── */
+.rec-hand {
+  display: grid; grid-template-columns: 1fr 52px 52px 52px 64px;
+  gap: 6px; align-items: baseline; padding: 4px 6px;
+  border-bottom: 1px solid rgba(58, 48, 32, 0.5);
+}
+.rec-hand:last-child { border-bottom: none; }
+.rec-hand .rh-n { font-family: 'Cinzel', serif; font-size: 12px; color: var(--cream); }
+.rec-hand .rh-v { font-family: 'Share Tech Mono', monospace; font-size: 12px; text-align: right; }
+.rec-hand .rh-p { color: #8fb7ff; }
+.rec-hand .rh-m { color: #ff8f8f; }
+.rec-hand .rh-f { color: var(--c-purple, #b07dff); }
+.rec-hand .rh-b { color: var(--gold); font-weight: 700; }
+/* Not scored in this mode — dimmed, but still listed, so the absence is information. */
+.rec-hand.locked { opacity: 0.4; }
+.rec-hand.locked .rh-b { color: var(--cream-dim); }
+.rec-hand-head { border-bottom: 1px solid var(--gold-dim); margin-bottom: 2px; }
+.rec-hand-head span {
+  font-family: 'Orbitron', sans-serif; font-size: 8px; letter-spacing: 1px;
+  text-transform: uppercase; color: var(--gold-dim);
+}
+.rec-hands { display: flex; flex-direction: column; }
+.rec-foot {
+  margin-top: 8px; padding-top: 6px; border-top: 1px solid rgba(58, 48, 32, 0.6);
+  font-family: 'Crimson Pro', serif; font-size: 11px; line-height: 1.4; color: var(--cream-dim);
+}
