@@ -57,7 +57,10 @@ function _pmfEnsureMerged(wrap) {
   if (_pmfMerged && _pmfMerged.parentNode) _pmfMerged.parentNode.removeChild(_pmfMerged);
   const el = document.createElement('div');
   el.id = 'pmf-merged';
-  el.innerHTML = '<div class="pmf-merged-label">HAND</div><div class="pmf-merged-val">0</div>';
+  // No label (r169) — the fused chip is just the number. The word "HAND" was
+  // redundant against the animation that put it there, and it stole the height
+  // the number wanted.
+  el.innerHTML = '<div class="pmf-merged-val">0</div>';
   wrap.appendChild(el);
   _pmfMerged = el;
   return el;

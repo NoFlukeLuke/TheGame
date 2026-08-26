@@ -641,20 +641,18 @@
                 opacity   var(--pmf-dur, 340ms) ease;
   }
   #pmf-merged.show { opacity: 1; transform: scaleX(1); }
-  .pmf-merged-label {
-    font-family: 'Cinzel', serif; font-size: 7px; font-weight: 700;
-    letter-spacing: 2.5px; text-transform: uppercase; line-height: 1;
-    color: var(--gold-dim, #9a7c3a);
-  }
+  /* The fused chip carries no label (r169) — just the number, which now owns
+     the chip's full height. Portrait is width-constrained (the chip is half a
+     narrow panel), so its bump is the smaller of the two. */
   .pmf-merged-val {
     font-family: 'Cinzel', serif; font-weight: 900; line-height: 1;
-    font-size: 22px; color: var(--gold, #d4a857);
+    font-size: 25px; color: var(--gold, #d4a857);
     text-shadow: 0 0 12px rgba(212,168,87,0.5);
     white-space: nowrap;
+    padding: 0 5px;
   }
   /* Landscape has a wider row to fill, so the fused number can be bigger. */
-  #stage.landscape .pmf-merged-val   { font-size: 30px; }
-  #stage.landscape .pmf-merged-label { font-size: 8px; }
+  #stage.landscape .pmf-merged-val { font-size: 34px; }
 
   /* ══════════════════════════════════════════════
      PORTRAIT SCORE PANEL — PMF half / SCORE-over-GOAL half (r157)
@@ -1490,21 +1488,26 @@
     word-break: break-all;
   }
 
+  /* r169 — the swap chip is the FIRST thing in the interact column, and it is
+     sized as a peer of the DISCARD / PLAY caps rather than a footnote tucked
+     under them: bigger glyph, bigger count, a real minimum height. */
   #action-col #swap-indicator {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 6px 3px;
-    font-size: 8px;
+    padding: 8px 4px;
+    font-size: 11px;
     border-radius: 6px;
     flex-shrink: 0;
     text-align: center;
     width: 72px;
+    min-height: 52px;
     word-break: break-all;
     white-space: pre;
-    line-height: 1.4;
+    line-height: 1.3;
   }
+  #action-col #swap-indicator #swap-count { font-size: 15px; line-height: 1.2; }
 
   /* ── ACTION ROW 2 ── */
   #action-row-2 {
@@ -3770,9 +3773,11 @@
   #stage.landscape #focus-bar-outer { width:21px; }   /* landscape focus bar (25% thinner than the old 28px) */
   #stage.landscape #grid-slot      { position:absolute; left:45%; top:11.11%; width:45%; height:86.11%; }
   #stage.landscape #run-progress   { left:90.63%; top:1.39%; width:8.59%; height:8.33%; flex-direction:column; align-items:center; justify-content:center; gap:3px; padding:3px; }
-  #stage.landscape #btn-discard    { position:absolute; left:91.41%; top:11.11%; width:7.81%; height:29.17%; }
-  #stage.landscape #btn-play       { position:absolute; left:91.41%; top:41.67%; width:7.81%; height:38.89%; }
-  #stage.landscape #swap-indicator { position:absolute; left:91.41%; top:81.94%; width:7.81%; height:15.28%; }
+  /* r169 — swap first, then discard, then play. The three still span 11.11% →
+     97.22% with 1.39% gaps; the extra height for swap comes off PLAY. */
+  #stage.landscape #swap-indicator { position:absolute; left:91.41%; top:11.11%; width:7.81%; height:18.06%; }
+  #stage.landscape #btn-discard    { position:absolute; left:91.41%; top:30.56%; width:7.81%; height:29.17%; }
+  #stage.landscape #btn-play       { position:absolute; left:91.41%; top:61.11%; width:7.81%; height:36.11%; }
   /* new-block internals */
   #vclock-fill { position:absolute; left:0; top:0; bottom:0; width:64%; background:linear-gradient(90deg,var(--gold-dim),var(--gold)); transition:width .25s linear; }
   #vclock-band { position:absolute; top:0; bottom:0; left:33%; width:34%; background:repeating-linear-gradient(45deg, rgba(201,168,76,0.18) 0 6px, transparent 6px 12px); border-left:1px dashed rgba(201,168,76,0.5); border-right:1px dashed rgba(201,168,76,0.5); }

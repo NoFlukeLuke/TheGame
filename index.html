@@ -654,10 +654,12 @@
         <div id="boss-result"><div class="boss-result-text" id="boss-result-text"></div></div>
       </div>
     </div>
+    <!-- Swap sits at the TOP of the interact column (r169). Landscape absolutely
+         positions each of these three, so only portrait reads this order. -->
     <div id="action-col">
+      <div id="swap-indicator">🔄&#10;<span id="swap-count">3</span><span class="act-cost" id="swap-cost">4s</span></div>
       <button class="act-btn btn-discard" id="btn-discard" disabled>D&#10;I&#10;S&#10;C&#10;A&#10;R&#10;D<br><span id="disc-count" style="writing-mode:initial;transform:none;font-size:9px"></span><span class="act-cost" id="disc-cost">3s</span></button>
       <button class="act-btn btn-play" id="btn-play" disabled>P&#10;L&#10;A&#10;Y</button>
-      <div id="swap-indicator">🔄&#10;<span id="swap-count">3</span><span class="act-cost" id="swap-cost">4s</span></div>
     </div>
   </div>
 

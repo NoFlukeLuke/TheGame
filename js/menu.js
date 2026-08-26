@@ -1,4 +1,4 @@
-const BUILD = '2026-08-25 · r168 · SPECTRUM: white (colourless 9/10/11), Flush of 3 pays nothing [onto r167 Flow]';
+const BUILD = '2026-08-26 · r169 · SWAP chip resized + moved to the top of the interact column; PMF fused chip drops the HAND label';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
