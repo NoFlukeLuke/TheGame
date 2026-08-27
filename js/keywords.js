@@ -1,5 +1,5 @@
 // ══════════════════════════════════════════════════════════════════════════
-// MECHANIC KEYWORDS — one registry for colour + plain-English definition.
+// MECHANIC KEYWORDS - one registry for colour + plain-English definition.
 //
 // Every keyword that appears in entity text gets a colour (matching the UI where
 // there is one to match: pips = the blue PIPS chip, mult = the red MULT chip,
@@ -8,7 +8,7 @@
 // to already know the vocabulary to read a card.
 //
 // The term list was built by scanning every desc in TRICK_POOL / KNACK_POOL /
-// SLEIGHT_POOL, not guessed — see the frequency counts in the r143 commit.
+// SLEIGHT_POOL, not guessed - see the frequency counts in the r143 commit.
 // Order matters: multi-word terms are matched before single words, so
 // "selection size" wins over "size", and "x pips" wins over "pips".
 // ══════════════════════════════════════════════════════════════════════════
@@ -36,7 +36,7 @@ const KEYWORD_DEFS = [
   { key:'time',      cls:'kw-time',    terms:['seconds','second','time'],
     name:'Time',     def:'The round clock. It runs down while you play; at zero the round ends.' },
   { key:'pause',     cls:'kw-time',    terms:['pause','paused','pauses'],
-    name:'Pause',    def:'Freezes the round clock for a moment — you act for free while it is held.' },
+    name:'Pause',    def:'Freezes the round clock for a moment - you act for free while it is held.' },
   { key:'rewind',    cls:'kw-rewind',  terms:['rewind','rewinds','rewound'],
     name:'Rewind',   def:'Moves the clock backward, re-entering time you already spent.' },
 
@@ -48,7 +48,7 @@ const KEYWORD_DEFS = [
   { key:'play',      cls:'kw-play',    terms:['played','plays','play'],
     name:'Play',     def:'Submitting a selected hand to score it.' },
   { key:'sell',      cls:'kw-sell',    terms:['sell','sold','sells'],
-    name:'Sell',     def:'Trade an owned Trick or Knack back for credits — always less than it cost.' },
+    name:'Sell',     def:'Trade an owned Trick or Knack back for credits - always less than it cost.' },
   { key:'buy',       cls:'kw-buy',     terms:['buy','bought','buys','purchase'],
     name:'Buy',      def:'Spend credits in the shop. Buying several at once earns a bundle discount.' },
   { key:'draw',      cls:'kw-play',    terms:['draw','draws','drawn'],
@@ -76,7 +76,7 @@ const KEYWORD_DEFS = [
   { key:'selection', cls:'kw-limit',   terms:['selection size'],
     name:'Selection Size', def:'How many cards you can select at once. Upgradeable; also caps the shop bundle discount.' },
   { key:'adjacent',  cls:'kw-board',   terms:['adjacent','adjacency','orthogonally'],
-    name:'Adjacent', def:'Sharing an edge on the grid — up, down, left or right (not diagonal).' },
+    name:'Adjacent', def:'Sharing an edge on the grid - up, down, left or right (not diagonal).' },
   { key:'row',       cls:'kw-board',   terms:['rows','row'],
     name:'Row',      def:'A horizontal line of grid cells.' },
   { key:'column',    cls:'kw-board',   terms:['columns','column'],
@@ -88,7 +88,7 @@ const KEYWORD_DEFS = [
   { key:'deck',      cls:'kw-board',   terms:['deck'],
     name:'Deck',     def:'Every card you own. Scored cards return to it and are reshuffled each round.' },
   { key:'suit',      cls:'kw-board',   terms:['suits','suit'],
-    name:'Suit',     def:'♠ ♥ ♦ ♣. Suits are neutral by default — effects come from entities.' },
+    name:'Suit',     def:'♠ ♥ ♦ ♣. Suits are neutral by default - effects come from entities.' },
   { key:'rank',      cls:'kw-board',   terms:['ranks','rank'],
     name:'Rank',     def:'A card’s number or letter, A through K.' },
   { key:'wild',      cls:'kw-wild',    terms:['wild','wildcard'],
@@ -102,7 +102,7 @@ const KEYWORD_DEFS = [
   { key:'knack',     cls:'kw-knack',   terms:['knacks','knack'],
     name:'Knack',    def:'A permanent rule-changer. Always on once owned, never takes a slot on the grid.' },
   { key:'limit',     cls:'kw-limit',   terms:['limits','limit'],
-    name:'Limit',    def:'An upgradeable cap — grid size, swaps, discards, selection size, trick slots and so on.' },
+    name:'Limit',    def:'An upgradeable cap - grid size, swaps, discards, selection size, trick slots and so on.' },
   { key:'curse',     cls:'kw-bad',     terms:['curse','cursed'],
     name:'Curse',    def:'A penalty attached to a card in your deck until it is cleansed.' },
   { key:'stone',     cls:'kw-bad',     terms:['stone','stones'],
@@ -137,7 +137,7 @@ const _KW_RE = new RegExp('(?<![\\w-])(' + _KW_TERMS.map(x => _kwEscape(x.t)).jo
 const _KW_BY_TERM = {};
 _KW_TERMS.forEach(x => { _KW_BY_TERM[x.t.toLowerCase()] = x.d; });
 
-// Wrap every mechanic keyword in its colour class. Safe on plain text only —
+// Wrap every mechanic keyword in its colour class. Safe on plain text only -
 // callers must not pass HTML they care about, since this does not parse tags.
 function highlightKeywords(text) {
   if (text == null) return '';
@@ -147,7 +147,7 @@ function highlightKeywords(text) {
   });
 }
 
-// The distinct keywords present in a piece of text, in first-appearance order —
+// The distinct keywords present in a piece of text, in first-appearance order -
 // this is what the tooltip turns into definition boxes.
 function keywordsIn(text) {
   if (text == null) return [];

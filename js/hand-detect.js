@@ -81,7 +81,7 @@ function isSnake(cells) {
     colCounts[c] = (colCounts[c]||0)+1;
     if (rowCounts[r] > 2 || colCounts[c] > 2) return false;
   }
-  // Also verify direction alternates — each consecutive pair alternates row vs col movement
+  // Also verify direction alternates - each consecutive pair alternates row vs col movement
   // We need to find a valid ordered path through the cells
   // Try all orderings of cells as a path (for small hands this is fine)
   function tryPath(path, remaining) {
@@ -174,7 +174,7 @@ function spanStats(cells) {
 // Find all valid subsets of selected cells, score each,
 // return { hand, handCells, penaltyCells, score }
 // ══════════════════════════════════════════════
-// Wild-sleight assignment heuristics — pick rank/suit that best helps the hand.
+// Wild-sleight assignment heuristics - pick rank/suit that best helps the hand.
 // TBD: optimal run-completion; current picks modal rank/suit (completes pairs/flushes).
 function bestWildRank(normalCards) {
   if (normalCards.length === 0) return ACTIVE_RANKS[0];
@@ -204,7 +204,7 @@ function findBestHand(cells) {
   // TINKERED sleight (given a real identity at the Mart's Tinker bench, r175)
   // joins as an ordinary card; every other sleight rides along, excluded from
   // the poker combination with no penalty.
-  // A tinkered sleight counts as a normal card for the wilds to read off, too —
+  // A tinkered sleight counts as a normal card for the wilds to read off, too -
   // it has a real rank and suit, so a wild should be able to match it.
   const normalCards = cells.map(([r,c]) => gridData[r][c])
     .filter(card => !card._isSleight || (typeof sleightIsPlayable === 'function' && sleightIsPlayable(card)));
@@ -275,12 +275,12 @@ function detectHand(cells) {
   });
   const counts = Object.values(rankCounts).sort((a,b)=>b-a);
 
-  // Flush check: combined cards count as both suits — check if all cards share a common suit
+  // Flush check: combined cards count as both suits - check if all cards share a common suit
   const allSameSuitStrict = ACTIVE_SUITS.some(s =>
     cards.every(c => c.suit === s || (c.combined && c.suit2 === s))
   );
 
-  // Run check: combined cards can use either rank value — try all combos
+  // Run check: combined cards can use either rank value - try all combos
   const rankOptions = cards.map(c => {
     const opts = [RANK_ORDER[c.rank]];
     if (c.combined && c.rank2) opts.push(RANK_ORDER[c.rank2]);
@@ -337,7 +337,7 @@ function detectHand(cells) {
 // Exalted:   ♣ +10 pips | ♦ +3 coins | ♥ +2 mult | ♠ +4 time
 // Corrupted: ♣ +25 pips/-3 mult | ♦ +5 coins/-20 pips | ♥ +5 mult/-5 time | ♠ +7 time/-8 coins
 // ══════════════════════════════════════════════
-// BALANCE CONFIG (BAL) — single source of truth for tunable numbers
+// BALANCE CONFIG (BAL) - single source of truth for tunable numbers
 // ══════════════════════════════════════════════
 // Pulled out of calcScore / exaltCorruptTotals so a balance sweep can edit them
 // in one place. Defaults EQUAL the original literals (behaviour-preserving).

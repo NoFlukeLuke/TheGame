@@ -41,14 +41,14 @@ const BOSS_PRESETS = [
   },
 
   // ── r150 roster ────────────────────────────────────────────────────────────
-  // Every one of these acts ONCE at round start and then on its interval — that
+  // Every one of these acts ONCE at round start and then on its interval - that
   // shape lives in bossSchedule (js/boss-effects.js), which is also where the
   // Contingency Plan knack stretches the timings.
   {
     id: 'the_metronome',
     name: 'THE METRONOME',
     flavor: 'It keeps your time now',
-    brief: 'The clock runs at your Focus multiplier. At ×3 Focus, three seconds leave the clock every second. Focus is still worth having — it just costs you the round to hold.',
+    brief: 'The clock runs at your Focus multiplier. At ×3 Focus, three seconds leave the clock every second. Focus is still worth having - it just costs you the round to hold.',
     objective: { type: 'score', target: 4200 },
     modifiers: ['time_scales_with_focus'],
     params: {}
@@ -57,7 +57,7 @@ const BOSS_PRESETS = [
     id: 'the_tollman',
     name: 'THE TOLLMAN',
     flavor: 'Every touch is billed',
-    brief: 'Swaps and discards cost double, and playing a hand — normally free — is billed 3 seconds. Fix the board less. Play what you are dealt.',
+    brief: 'Swaps and discards cost double, and playing a hand - normally free - is billed 3 seconds. Fix the board less. Play what you are dealt.',
     objective: { type: 'score', target: 4000 },
     modifiers: ['interact_surcharge'],
     params: { costMult: 2, playCostAdd: 3 }
@@ -102,7 +102,7 @@ const BOSS_PRESETS = [
     id: 'the_recall',
     name: 'THE RECALL',
     flavor: 'That rank has been withdrawn',
-    brief: 'One rank is withdrawn from play at a time — those cards sit on the board, inert. Every 45 seconds the previous rank is reinstated and a different one is taken. No rank is recalled twice.',
+    brief: 'One rank is withdrawn from play at a time - those cards sit on the board, inert. Every 45 seconds the previous rank is reinstated and a different one is taken. No rank is recalled twice.',
     objective: { type: 'score', target: 4000 },
     modifiers: ['rank_recall'],
     params: { everySecs: 45 }
@@ -129,7 +129,7 @@ const BOSS_PRESETS = [
     id: 'the_turnstile',
     name: 'THE TURNSTILE',
     flavor: 'Access is metered',
-    brief: 'Every swap and every discard is billed 3 credits. Your balance cannot go below zero — but interest is paid on what survives the round.',
+    brief: 'Every swap and every discard is billed 3 credits. Your balance cannot go below zero - but interest is paid on what survives the round.',
     objective: { type: 'score', target: 4000 },
     modifiers: ['interact_fee'],
     params: { fee: 3 }
@@ -138,7 +138,7 @@ const BOSS_PRESETS = [
     id: 'the_redaction',
     name: 'THE REDACTION',
     flavor: 'That hand is no longer recognised',
-    brief: 'One hand type is marked down for the whole round — it scores 60% less. The hand is chosen when the review begins and does not change. Find another line.',
+    brief: 'One hand type is marked down for the whole round - it scores 60% less. The hand is chosen when the review begins and does not change. Find another line.',
     objective: { type: 'score', target: 4200 },
     modifiers: ['redact_hand'],
     params: { mult: 0.4 }

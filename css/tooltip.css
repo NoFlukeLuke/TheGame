@@ -41,10 +41,10 @@
   max-width: min(560px, 94vw);
   font-family: 'Share Tech Mono', monospace;
 }
-/* r170 — NEVER pointer-events:auto. This tooltip is up to 560px wide (card +
+/* r170 - NEVER pointer-events:auto. This tooltip is up to 560px wide (card +
    keyword rail) and opens into whichever side of the anchor has more room, so
    hovering a tile on the left of a shelf lays it straight over the tiles to the
-   right. With pointer-events:auto those tiles could not be clicked at all — the
+   right. With pointer-events:auto those tiles could not be clicked at all - the
    clicks landed on the tooltip. That was the "I can't add certain things to the
    cart, usually the ones on the right" bug. The rail is short enough to read
    without hovering it, which is what the old value was buying. */

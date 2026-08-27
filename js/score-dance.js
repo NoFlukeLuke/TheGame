@@ -13,7 +13,7 @@ async function goalCelebration(handCells) {
 
   console.log('[SALUTE] found handEls:', handEls.length);
 
-  // Strip score-pop classes — they have animation: ... !important which would block our transform
+  // Strip score-pop classes - they have animation: ... !important which would block our transform
   handEls.forEach(el => {
     el.classList.remove('score-pop-h','score-pop-d','score-pop-c','score-pop-s');
     el.style.animation = 'none';
@@ -29,7 +29,7 @@ async function goalCelebration(handCells) {
     await new Promise(r => setTimeout(r, 140));
   }
 
-  // Confetti burst — SUCCESS text + particles from each lifted card
+  // Confetti burst - SUCCESS text + particles from each lifted card
   const overlay = document.createElement('div');
   overlay.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:600;display:flex;align-items:center;justify-content:center;';
   const word = document.createElement('div');
@@ -87,14 +87,14 @@ async function goalCelebration(handCells) {
   overlay.remove();
 }
 
-// ── 80s-electronic explosion SFX (synthesized, no asset) — fires as the board blasts apart. ──
+// ── 80s-electronic explosion SFX (synthesized, no asset) - fires as the board blasts apart. ──
 function sfxWinExplode(){
   try{
     const actx = getAudioCtx(); if(!actx) return;
     const t = actx.currentTime;
     const master = actx.createGain(); master.gain.value = 0.8;
     master.connect(sfxDuckGain || actx.destination);
-    // Detuned saw "zap" sweeping down — the analog-synth stab.
+    // Detuned saw "zap" sweeping down - the analog-synth stab.
     [0,7].forEach(detune=>{
       const o=actx.createOscillator(); o.type='sawtooth'; o.detune.value=detune;
       o.frequency.setValueAtTime(880,t); o.frequency.exponentialRampToValueAtTime(70,t+0.42);
@@ -104,7 +104,7 @@ function sfxWinExplode(){
       f.frequency.exponentialRampToValueAtTime(400,t+0.45); f.Q.value=8;
       o.connect(f); f.connect(g); g.connect(master); o.start(t); o.stop(t+0.55);
     });
-    // White-noise crash through a sweeping bandpass — the blast body.
+    // White-noise crash through a sweeping bandpass - the blast body.
     const dur=0.5; const buf=actx.createBuffer(1, actx.sampleRate*dur, actx.sampleRate);
     const d=buf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=(fxRandom()*2-1)*(1-i/d.length);
     const n=actx.createBufferSource(); n.buffer=buf;
@@ -121,7 +121,7 @@ function sfxWinExplode(){
 }
 
 // (The win finale visuals now live inline at the top of the goal-hand branch in
-//  playPreviewDance — jitter → gentle explode → winners fly to preview — so they
+//  playPreviewDance - jitter → gentle explode → winners fly to preview - so they
 //  play BEFORE the tally. sfxWinExplode above is the 80s blast they fire.)
 
 // ── New preview-window scoring dance (dev toggle; owner-locked settings) ──
@@ -130,7 +130,7 @@ const DANCE_CFG = {
   trig:{cls:'dnc-pop',dur:260,mag:0.7}, jitInit:0.10, jitGrow:0.18,
   tickRest:600, pFlight:550, scoreClimb:1250, ff:15, pScale:2.6,
   // Base tally speed multiplier for ordinary hands. 1 = full speed (ordinary
-  // hands are NOT globally sped up — only a hand interrupted by a NEW hand
+  // hands are NOT globally sped up - only a hand interrupted by a NEW hand
   // fast-forwards, via danceInterruptMode below). Kept as a hook the win finale's
   // fast-forward button can raise. `ff` (15×) is the separate "illegible" speed.
   norm:1,
@@ -139,13 +139,13 @@ let newDanceEnabled = (function(){ try { return localStorage.getItem('newDance')
 function setNewDance(on){ newDanceEnabled = !!on; try { localStorage.setItem('newDance', on ? '1' : '0'); } catch(e){} }
 
 // How a still-animating hand hands off when the next hand is submitted (dev-tunable, feel comparison):
-//   'cut'     — the old dance vanishes instantly, new one starts (original behaviour)
-//   'ff'      — briefly rush the old hand's score up to its final, then start the new one
-//   'resolve' — snap the old hand's score to final with one quick pop, then start the new one
+//   'cut'     - the old dance vanishes instantly, new one starts (original behaviour)
+//   'ff'      - briefly rush the old hand's score up to its final, then start the new one
+//   'resolve' - snap the old hand's score to final with one quick pop, then start the new one
 // All three cut the old dance's grid/logic immediately (grid-safe); they differ only in the brief visual handoff.
 // Default 'ff': when a NEW hand is submitted while the previous hand is still
 // resolving, the OLD (superseded) hand's score rushes up to its final ("fast
-// forward"), then the new hand starts. Only the interrupted hand speeds up —
+// forward"), then the new hand starts. Only the interrupted hand speeds up -
 // hands played on their own resolve at full speed. The outgoing hand's total now
 // lands on ALL paths, including 'cut' and the spam valve (see playPreviewDance).
 let danceInterruptMode = (function(){ try { return localStorage.getItem('danceInterrupt') || 'ff'; } catch(e){ return 'ff'; } })();
@@ -158,18 +158,18 @@ function _scoreDisplayed(){ const el=document.getElementById('score-total-num');
 // through a burst and then jumping at the end.
 //
 // The rule now: the outgoing hand ALWAYS finishes visibly, and the deeper the
-// burst gets the more brutally that finish is compressed — but the last beat,
+// burst gets the more brutally that finish is compressed - but the last beat,
 // the fused PMF chip flying into the SCORE, never gets skipped.
 //
 //   burst depth 1  ('rush')  the outgoing hand hurries to its end: fuse, fly,
 //                            and the score counts up behind the incoming cards.
-//   burst depth 2+ ('snap')  no ceremony left — fuse and fly at ~3x, score set
+//   burst depth 2+ ('snap')  no ceremony left - fuse and fly at ~3x, score set
 //                            on landing. The INCOMING hand also drops its fly-in
 //                            and its card beats (see skipBeats) and goes straight
 //                            to its own fuse-and-fly, so a five-hand burst reads
 //                            as five chips hitting the score instead of one.
 //
-// The grid and the deck are still cut immediately in every case — that has always
+// The grid and the deck are still cut immediately in every case - that has always
 // been the safety property here and it is untouched. This is visual only.
 let dncChain = 0;              // how many hands deep the current burst is
 let dncCutAt = -1e9;           // when cancelDance() last cut a LIVE dance (see js/score-anims.js)
@@ -189,7 +189,7 @@ async function danceHandoffToScore(tier, outHandScore, fromVal, toVal, sig) {
   }
   if (sig && sig.aborted) { land(); return; }     // land it even when cut again
   if (!flew || tier === 'snap') { land(); return; }
-  // The chip landed on the total — run the number up to meet it.
+  // The chip landed on the total - run the number up to meet it.
   const dur = 300, start = performance.now();
   await new Promise(res => {
     let done = false;
@@ -320,7 +320,7 @@ async function playScoreDance(result, toRemove, isGoalHand = false) {
     }
   });
 
-  // Save card data and remove cards (skip for goal hands — salute will use cards in place)
+  // Save card data and remove cards (skip for goal hands - salute will use cards in place)
   const savedCards = handCells.map(([r,c]) => ({ card: gridData[r][c], r, c }));
   if (!isGoalHand) {
     sfxFlipShuffle();
@@ -384,7 +384,7 @@ async function playScoreDance(result, toRemove, isGoalHand = false) {
     });
   });
 
-  // ── 5. Score ticker — uses the latest particle land time (card + Trick particles) ──
+  // ── 5. Score ticker - uses the latest particle land time (card + Trick particles) ──
   const _lastPipDelay  = particles.pip.reduce( (mx, p, i) => Math.max(mx, p._explicitDelay !== undefined ? p._explicitDelay : i * PIP_STAGGER), 0);
   const _lastMultDelay = particles.mult.reduce((mx, m, i) => Math.max(mx, m._explicitDelay !== undefined ? m._explicitDelay : (multStartDelay + i * MULT_STAGGER)), 0);
   const pipParticleEnd  = _lastPipDelay  + 620;
@@ -404,7 +404,7 @@ async function playScoreDance(result, toRemove, isGoalHand = false) {
   let goalFlashFired = false;
   const goalCrossedAt = isGoalHand ? roundGoal : Infinity;
 
-  // Focus beat — fires after mult particles finish. MULT stays pure; the FOCUS box shows the
+  // Focus beat - fires after mult particles finish. MULT stays pure; the FOCUS box shows the
   // hand's starting multiplier, then pops up to the post-Focus multiplier, then the score climbs by it.
   if (focusValEl) focusValEl.textContent = _fmtFocus(preHandFocus);
   if (focusActive) {
@@ -450,7 +450,7 @@ async function playScoreDance(result, toRemove, isGoalHand = false) {
     if (isGoalHand) requestAnimationFrame(watchScore);
 
     tickValue(scoreEl, scoreBefore, scoreAfter, scoreDur);
-    // Parallel tick SFX — fire roughly every 80ms while score climbs, capped
+    // Parallel tick SFX - fire roughly every 80ms while score climbs, capped
     (function scoreTicks() {
       const interval = 80;
       const maxTicks = Math.min(Math.ceil(scoreDur / interval), 22);
@@ -503,12 +503,12 @@ async function playScoreDance(result, toRemove, isGoalHand = false) {
     if (pendingLevelUps > 0) sfxMultiGoal(pendingLevelUps);
   }
 
-  // Always sync display to actual score after dance — covers heldBack additions, bonus side-effects, etc.
+  // Always sync display to actual score after dance - covers heldBack additions, bonus side-effects, etc.
   updateScoreUI();
 
   if (isGoalHand) {
     if (challengeActive) {
-      showMessage('GOAL MET — COMPLETE THE CHALLENGE', '#c9a84c');
+      showMessage('GOAL MET - COMPLETE THE CHALLENGE', '#c9a84c');
     } else {
       clearInterval(roundInterval);
       roundInterval = null;
@@ -538,7 +538,7 @@ function handleDanceAbort(isGoalHand) {
   // dance from whether one was already running, so an abort with no successor
   // (round end, a boss firing) self-corrects on the next hand, and an abort WITH
   // a successor must not have the depth pulled out from under it.
-  // An interrupted hand must never leave the PMF row fused — the next hand
+  // An interrupted hand must never leave the PMF row fused - the next hand
   // writes its numbers into chips the player would not be able to see.
   if (typeof pmfResetNow === 'function') pmfResetNow();
   // Hand the portrait strip back to whichever half the player had chosen.
@@ -613,7 +613,7 @@ function dncFly(srcEl, boxEl, label, color, onLand){
 }
 function dncFinishAbort(stage, isGoalHand, myGen){
   // If a newer dance has taken over (myGen behind the global), this dance was superseded:
-  // do NOT touch the shared stage/score UI — the successor owns it now.
+  // do NOT touch the shared stage/score UI - the successor owns it now.
   if(myGen!==undefined && myGen!==dncGen) return;
   if(stage){ stage.classList.remove('dnc-active'); stage.innerHTML=''; } dncCleanupReal(); dncRestoreHiddenGridEls(); handleDanceAbort(isGoalHand); }
 // Display name for a contribution entity, by source (Trick / Sleight / Knack / Exalt).
@@ -687,7 +687,7 @@ function flyGridCardToSlot(gEl, slotEl, dur){
 }
 
 async function playPreviewDance(result, toRemove, isGoalHand = false){
-  // "Did this hand interrupt another?" — true if a dance is still live, OR if one
+  // "Did this hand interrupt another?" - true if a dance is still live, OR if one
   // was cut microseconds ago by the caller (playHand does exactly that).
   const outgoing = !!danceAbortController || (performance.now() - dncCutAt) < DNC_CUT_WINDOW;
   const preDisplay = _scoreDisplayed();             // score number shown right now (mid-climb)
@@ -696,17 +696,17 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   dncChain = outgoing ? dncChain + 1 : 0;
   const chain = dncChain;
   // Third hand of a burst and beyond: no fly-in, no card beats. Straight to the
-  // fuse and the throw. A goal hand always plays in full — it ends the round.
+  // fuse and the throw. A goal hand always plays in full - it ends the round.
   const skipBeats = chain >= 2 && !isGoalHand;
   const outHandScore = _dncOutHandScore;            // the hand we are cutting short
   _dncOutHandScore = result.finalScore || 0;
-  dncCutAt = -1e9;                                  // consumed — one handoff per cut
+  dncCutAt = -1e9;                                  // consumed - one handoff per cut
   cancelDance();
   const ctrl = new AbortController(); danceAbortController = ctrl; const sig = ctrl.signal;
   const myGen = ++dncGen; // this dance's generation; if it's superseded, its abort handler stays silent
   dncFF = false; resetParticleStep();
   // Portrait shares one strip between Knacks and the hand preview, and this dance
-  // draws into the preview — so make sure the preview is the visible half before
+  // draws into the preview - so make sure the preview is the visible half before
   // any card flies at it. No-op in landscape. (see js/portrait-panel.js)
   if (typeof portraitDanceBegin === 'function') portraitDanceBegin();
   // Ordinary hands fast-forward to a legible ~3× by default; the goal hand plays full.
@@ -717,7 +717,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   // The outgoing hand's total ALWAYS lands here, one way or another. Previously this only ran for
   // the non-default 'ff'/'resolve' modes and was skipped by the spam valve, so on rapid chaining the
   // score display sat on a stale mid-climb number until the *next* completed dance reached its own
-  // score climb (which happens only after the fly-in + the whole card-beat phase — seconds later).
+  // score climb (which happens only after the fly-in + the whole card-beat phase - seconds later).
   // That was the "score doesn't update until a hand finishes animating" bug.
   //
   // The handoff now runs CONCURRENTLY with this hand's fly-in rather than blocking before it: the
@@ -762,7 +762,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   const perCardIds = new Set();
   cellInfo.forEach(ci=>{ Object.keys(ci.pipT).forEach(id=>perCardIds.add(id)); Object.keys(ci.multT).forEach(id=>perCardIds.add(id)); });
   // Ids the end sweep must skip: replay sources (shown by repeating the card beat) plus 'sapling'
-  // (per-card perm-pip / retrigger bookkeeping — always emitted per-card above, never hand-level).
+  // (per-card perm-pip / retrigger bookkeeping - always emitted per-card above, never hand-level).
   const REPLAY_SRC = new Set(['twos_retrigger','eights_retrigger','rowcol_retrigger','perfect_timing','eye_of_storm','ripple','reflect','soul_mirror','high_and_mighty','closing_time','echo_hand','woodpecker','sapling']);
 
   // ── Stage: render ONLY the played cards into the dedicated hand-preview slot. ──
@@ -787,11 +787,11 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
     d.className=className+' preview-card'; d.innerHTML=innerHTML;
     outer.appendChild(d); handTrack.appendChild(outer); return d; });
   // Portrait sizes its preview cards to the strip, and overlaps them if the hand
-  // is too wide to fit. Must run BEFORE the fly-in — flyGridCardToSlot measures
+  // is too wide to fit. Must run BEFORE the fly-in - flyGridCardToSlot measures
   // each slot's rect to land the clone on it.
   if (typeof fitPortraitPreviewCards === 'function') fitPortraitPreviewCards();
   // Resolve the REAL on-screen element for each contributing entity (aligned with `tricks`;
-  // may be null, e.g. exalt or Amplifier that has no rack element — those still tally, no jitter).
+  // may be null, e.g. exalt or Amplifier that has no rack element - those still tally, no jitter).
   const entityEls = tricks.map(t => danceEntityEl(t.source, t.id));
   dncRealEls = entityEls.filter(Boolean);
   // id → rack element, so a card can release the specific tricks it triggered.
@@ -801,13 +801,13 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
     // ── WIN FINALE (runs BEFORE the tally) ──
     // The cards AROUND the winning hand jitter for ~2s, then explode gently
     // outward while the winning cards fly up into the preview slots. The score
-    // number stays at its pre-hand value — the tally below does the counting.
+    // number stays at its pre-hand value - the tally below does the counting.
     const winIds = new Set(handCells.map(([r,c]) => gridData[r]?.[c]?._id).filter(v=>v!=null));
     const gridCards = [...(gridEl?.querySelectorAll('[data-card-id]')||[])];
     const winEls=[], loseEls=[];
     gridCards.forEach(el => { (winIds.has(+el.getAttribute('data-card-id')) ? winEls : loseEls).push(el); });
     gridCards.forEach(el => { el.classList.remove('score-pop-h','score-pop-d','score-pop-c','score-pop-s'); el.style.animation='none'; });
-    // Keep the preview EMPTY during the jitter/explosion — the dnc-cards only
+    // Keep the preview EMPTY during the jitter/explosion - the dnc-cards only
     // appear when the winners physically fly in (step 3 reveals each slot).
     cardEls.forEach(d=>{ const o=d.parentElement; if(o) o.style.opacity='0'; });
     // Winners: a gentle gold glow marks them while the rest jitter.
@@ -826,7 +826,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
     await wait(2000);
     if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
     jitters.forEach(a=>{ try{ a.cancel(); }catch(e){} });
-    // 2) Surrounding cards explode outward — gentle (short travel, slow).
+    // 2) Surrounding cards explode outward - gentle (short travel, slow).
     sfxWinExplode();
     const gr = gridEl.getBoundingClientRect(); const cx=gr.left+gr.width/2, cy=gr.top+gr.height/2;
     loseEls.forEach(el => {
@@ -851,7 +851,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
     // deck accounting for every card still runs in showLevelUpScreen_fallOnly.
     gridCards.forEach(el => el.remove()); dncHiddenGridEls=[];
     // Survival: open the pick-of-three NOW (right of the preview), so the score
-    // count-up below runs alongside it — the player can watch the tally or start
+    // count-up below runs alongside it - the player can watch the tally or start
     // picking a bonus. (In survival the deck accounting happens in survivalDealNext.)
     if(survivalActive()) survivalShowPick();
   } else if(skipBeats){
@@ -891,7 +891,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   if(focusEl) focusEl.textContent=_fmtFocus(preHandFocus);   // FOCUS starts at the hand's pre-scoring multiplier
   await dwait(DANCE_CFG.tickRest); if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
 
-  // ── CARD PHASE — cards score; tricks charge (jitter ramps) ──
+  // ── CARD PHASE - cards score; tricks charge (jitter ramps) ──
   // Large hands overflow the clipped viewport: as each card scores, slide the track left so
   // the current card stays in view and the hidden cards on the right get revealed.
   const needScroll = handTrack.scrollWidth > handItems.clientWidth + 2;
@@ -907,7 +907,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
       dncFly(el||cardEl, multBox, '+'+fmtM(d), '#b07dea', ()=>{ rm+=d; if(multEl) multEl.textContent=fmtM(rm); dncTick(multEl); if(typeof sfxParticleStep==='function') sfxParticleStep('mult'); }); });
   };
   // `!skipBeats` short-circuits both beat loops rather than wrapping them in a
-  // block — same effect, and it cannot desync the aborts inside them.
+  // block - same effect, and it cannot desync the aborts inside them.
   for(let i=0; !skipBeats && i<cardEls.length; i++){
     if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
     if(needScroll){
@@ -936,7 +936,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   // Hand finished animating → stop ALL jitter at once.
   entityEls.forEach(el=>{ if(el){ el.classList.remove('dnc-jitter'); el.style.removeProperty('--dnc-jit'); } });
 
-  // ── HAND-LEVEL SWEEP — tricks not tied to any single card (base-hand shape/timing/set bonuses,
+  // ── HAND-LEVEL SWEEP - tricks not tied to any single card (base-hand shape/timing/set bonuses,
   //    multipliers) release after the card run. Per-card and replay-source tricks already fired above. ──
   for(let ti=0; !skipBeats && ti<tricks.length; ti++){
     if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
@@ -959,7 +959,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   if(pipsEl) pipsEl.textContent = Math.round(lastCalcPips);
   if(multEl) multEl.textContent = fmtM(Math.round(lastCalcMult*10)/10);
 
-  // ── FOCUS beat — the box updates from the hand's starting multiplier to the post-Focus one ──
+  // ── FOCUS beat - the box updates from the hand's starting multiplier to the post-Focus one ──
   if(targetFocus>1 || targetFocus!==preHandFocus){
     if(focusEl) focusEl.textContent=_fmtFocus(targetFocus);
     const fb=document.getElementById('focus-box'); if(fb){ fb.classList.remove('focus-beat'); void fb.offsetWidth; fb.classList.add('focus-beat'); }
@@ -1012,7 +1012,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
 
   danceAbortController = null;
   dncChain = 0; _dncOutHandScore = 0;   // the burst has landed
-  // Normal completion (the abort paths go through handleDanceAbort) — give the
+  // Normal completion (the abort paths go through handleDanceAbort) - give the
   // portrait strip back to whichever half the player had chosen.
   if (typeof portraitDanceEnd === 'function') portraitDanceEnd();
   if(pipsEl) pipsEl.textContent='0'; if(multEl) multEl.textContent='0';
@@ -1020,7 +1020,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   updateScoreUI();
 
   if(isGoalHand){
-    if(challengeActive){ showMessage('GOAL MET — COMPLETE THE CHALLENGE','#c9a84c'); }
+    if(challengeActive){ showMessage('GOAL MET - COMPLETE THE CHALLENGE','#c9a84c'); }
     else {
       // The win finale (jitter → explode → fly) already played BEFORE this
       // tally, up front in the isGoalHand branch. Here we just settle audio and

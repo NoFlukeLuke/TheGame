@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <!-- PWA / "Add to Home Screen": launches bar-free (fullscreen) on mobile.
-     Just a shortcut to the live URL — always loads the newest version, nothing is downloaded per-version. -->
+     Just a shortcut to the live URL - always loads the newest version, nothing is downloaded per-version. -->
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -12,7 +12,7 @@
 <meta name="theme-color" content="#0d2010">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22512%22%20height%3D%22512%22%3E%3Crect%20width%3D%22512%22%20height%3D%22512%22%20rx%3D%2296%22%20fill%3D%22%230d2010%22%2F%3E%3Crect%20x%3D%2240%22%20y%3D%2240%22%20width%3D%22432%22%20height%3D%22432%22%20rx%3D%2264%22%20fill%3D%22none%22%20stroke%3D%22%23f2c94c%22%20stroke-width%3D%2216%22%2F%3E%3Ctext%20x%3D%22256%22%20y%3D%22360%22%20font-size%3D%22300%22%20text-anchor%3D%22middle%22%20fill%3D%22%23f2c94c%22%20font-family%3D%22serif%22%3EA%3C%2Ftext%3E%3C%2Fsvg%3E">
 <link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22The%20Game%22%2C%22short_name%22%3A%22The%20Game%22%2C%22start_url%22%3A%22.%22%2C%22scope%22%3A%22.%22%2C%22display%22%3A%22fullscreen%22%2C%22background_color%22%3A%22%230d2010%22%2C%22theme_color%22%3A%22%230d2010%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data%3Aimage%2Fsvg%2Bxml%2C%253Csvg%2520xmlns%253D%2522http%253A%252F%252Fwww.w3.org%252F2000%252Fsvg%2522%2520width%253D%2522512%2522%2520height%253D%2522512%2522%253E%253Crect%2520width%253D%2522512%2522%2520height%253D%2522512%2522%2520rx%253D%252296%2522%2520fill%253D%2522%25230d2010%2522%252F%253E%253Crect%2520x%253D%252240%2522%2520y%253D%252240%2522%2520width%253D%2522432%2522%2520height%253D%2522432%2522%2520rx%253D%252264%2522%2520fill%253D%2522none%2522%2520stroke%253D%2522%2523f2c94c%2522%2520stroke-width%253D%252216%2522%252F%253E%253Ctext%2520x%253D%2522256%2522%2520y%253D%2522360%2522%2520font-size%253D%2522300%2522%2520text-anchor%253D%2522middle%2522%2520fill%253D%2522%2523f2c94c%2522%2520font-family%253D%2522serif%2522%253EA%253C%252Ftext%253E%253C%252Fsvg%253E%22%2C%22sizes%22%3A%22any%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%2C%22purpose%22%3A%22any%20maskable%22%7D%5D%7D">
-<title>Poker Grid — Arcade Prototype</title>
+<title>Poker Grid - Arcade Prototype</title>
 <link rel="stylesheet" href="css/style.css">
 <link rel="stylesheet" href="css/dance.css">
 <link rel="stylesheet" href="css/dev-overlays.css">
@@ -47,7 +47,7 @@
     <button id="menu-fullscreen-btn" onclick="toggleFullscreen()" style="display:none;">⛶ FULLSCREEN</button>
     <div id="ios-fullscreen-hint" style="display:none;">
       On iPhone / iPad: tap the <strong>Share</strong> button, then <strong>“Add to Home Screen.”</strong>
-      Launch from that icon for bar-free fullscreen — it always loads the newest version.
+      Launch from that icon for bar-free fullscreen - it always loads the newest version.
     </div>
     <div id="menu-build-stamp"></div>
   </div>
@@ -65,8 +65,8 @@
        now it lists groups and each opens as its own pop-up (devOpenGroup). -->
   <div id="dev-group-menu"></div>
 
-  <!-- Sub-pop-up. The .dev-section divs below are NEVER moved or removed — every
-       one keeps its id because lots of code binds to them — devOpenGroup just shows
+  <!-- Sub-pop-up. The .dev-section divs below are NEVER moved or removed - every
+       one keeps its id because lots of code binds to them - devOpenGroup just shows
        the sections whose data-group matches and hides the rest. -->
   <div id="dev-group-pop">
     <div id="dev-group-pop-bar">
@@ -79,11 +79,11 @@
   <div class="dev-section" data-group="seed">
     <div class="dev-section-title">Run Seed</div>
     <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);line-height:1.4;">
-      A seed makes a run reproducible — same seed, same deal, same shops, same reward grids
+      A seed makes a run reproducible - same seed, same deal, same shops, same reward grids
       (as long as you play the same way). Visual effects stay random either way.
       Seeds apply when a run <b>starts</b>.
     </div>
-    <input id="dev-seed-input" type="text" placeholder="e.g. LETHE-4F2A — blank = random"
+    <input id="dev-seed-input" type="text" placeholder="e.g. LETHE-4F2A - blank = random"
       oninput="devSetSeed(this.value)"
       style="width:100%;background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--cream);font-family:'Share Tech Mono',monospace;font-size:12px;padding:6px 8px;border-radius:4px;letter-spacing:1px;">
     <div class="dev-row">
@@ -92,8 +92,8 @@
       <button class="dev-btn" onclick="devStartSeededRun()">Start Run</button>
     </div>
     <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--cream-dim);line-height:1.7;">
-      <div>this run: <span id="dev-seed-now" style="color:var(--gold);">— (unseeded)</span></div>
-      <div>next run: <span id="dev-seed-next" style="color:var(--gold);">— (unseeded)</span></div>
+      <div>this run: <span id="dev-seed-now" style="color:var(--gold);">- (unseeded)</span></div>
+      <div>next run: <span id="dev-seed-next" style="color:var(--gold);">- (unseeded)</span></div>
     </div>
   </div>
 
@@ -184,7 +184,7 @@
 
   <!-- ITEM FLOAT (shop + reward grid) -->
   <div class="dev-section" data-group="anim">
-    <div class="dev-section-title">Item Float — shop + reward grid</div>
+    <div class="dev-section-title">Item Float - shop + reward grid</div>
     <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:4px;">
       The barely-there drift on shop / reward tiles. Open the shop or a reward grid to see it live.
     </div>
@@ -205,7 +205,7 @@
 
   <!-- GRID HEARTBEAT -->
   <div class="dev-section" data-group="anim">
-    <div class="dev-section-title">Grid Heartbeat — play grid</div>
+    <div class="dev-section-title">Grid Heartbeat - play grid</div>
     <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:4px;">
       A double thump (lub-dub) that starts at the left edge, middle row(s), and radiates outward.
       Full tuner with a live grid: <b>heartbeat-preview.html</b>.
@@ -241,7 +241,7 @@
 
   <!-- CHANNEL CHANGE -->
   <div class="dev-section" data-group="anim">
-    <div class="dev-section-title">Channel Change — screen transition</div>
+    <div class="dev-section-title">Channel Change - screen transition</div>
     <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:4px;">
       The CRT flick between screens (play &harr; Mart). Full tuner: <b>channel-change-preview.html</b>.
     </div>
@@ -345,9 +345,9 @@
     <div class="dev-section-title">Focus: Speed Bonus Formula</div>
     <select id="dev-focus-speed-select" onchange="devSetFocusSpeedFormula(this.value)"
       style="width:100%;background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--cream);font-family:'Crimson Pro',serif;font-size:13px;padding:5px 6px;border-radius:4px;">
-      <option value="linear">Linear   — max(0, max_bonus − slope × t)</option>
-      <option value="stepped">Stepped  — t&lt;t1 ? bonus1 : t&lt;t2 ? bonus2 : 0</option>
-      <option value="exponential">Exponential — floor(max_bonus / t)</option>
+      <option value="linear">Linear   - max(0, max_bonus − slope × t)</option>
+      <option value="stepped">Stepped  - t&lt;t1 ? bonus1 : t&lt;t2 ? bonus2 : 0</option>
+      <option value="exponential">Exponential - floor(max_bonus / t)</option>
     </select>
     <div id="dev-focus-speed-params" style="display:flex;flex-direction:column;gap:4px;margin-top:4px;"></div>
     <div id="dev-focus-speed-preview" style="font-family:'Courier New',monospace;font-size:10px;color:var(--gold-dim);margin-top:6px;letter-spacing:0.5px;"></div>
@@ -372,13 +372,13 @@
       Interrupt a scoring hand by
       <select id="dev-dance-interrupt" onchange="setDanceInterruptMode(this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor:pointer;">
         <option value="ff">Fast-forward the old hand (default)</option>
-        <option value="cut">Cut — instant</option>
-        <option value="resolve">Resolve — quick pop</option>
+        <option value="cut">Cut - instant</option>
+        <option value="resolve">Resolve - quick pop</option>
       </select>
     </label>
   </div>
 
-  <!-- DISPLAY (fullscreen — usable mid-run since Settings = this panel) -->
+  <!-- DISPLAY (fullscreen - usable mid-run since Settings = this panel) -->
   <div class="dev-section" data-group="display">
     <div class="dev-section-title">Display</div>
     <button class="dev-btn" id="dev-fullscreen-btn" onclick="toggleFullscreen(); devSyncFullscreen();">Enter Fullscreen</button>
@@ -399,14 +399,14 @@
     <button class="dev-btn" id="dev-save-clear-btn" onclick="devClearSave()" style="margin-top:6px;">🗑 Delete Save</button>
     <div id="dev-save-msg" style="font-family:'Crimson Pro',serif;font-size:12px;color:var(--gold);margin-top:8px;min-height:16px;"></div>
     <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-top:8px;line-height:1.5;">
-      A run is saved at the start of the round you are on — resuming replays that round from the beginning with a full clock.
+      A run is saved at the start of the round you are on - resuming replays that round from the beginning with a full clock.
       Only one save is kept; saving again replaces it.
     </div>
   </div>
 
   <div class="dev-section" data-group="match3">
     <div class="dev-section-title">Match-3 Mode</div>
-    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:-2px;">Match types — turn one off to remove it from detection entirely.</div>
+    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:-2px;">Match types - turn one off to remove it from detection entirely.</div>
     <div style="display:flex;gap:14px;flex-wrap:wrap;">
       <label style="display:flex;align-items:center;gap:6px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;">
         <input id="dev-match3-type-flush" type="checkbox" onchange="this.checked = setMatch3Type('flush', this.checked)" style="accent-color:var(--gold);">
@@ -427,7 +427,7 @@
     </label>
     <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;margin-top:6px;">
       <input id="dev-match3-infinite-mode" type="checkbox" onchange="setMatch3InfiniteMode(this.checked)" style="accent-color:var(--gold);">
-      Infinite mode (no clock, no goal — sandbox)
+      Infinite mode (no clock, no goal - sandbox)
     </label>
     <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;margin-top:6px;">
       <input id="dev-match3-preview-select" type="checkbox" onchange="setMatch3PreviewSelect(this.checked)" style="accent-color:var(--gold);">
@@ -438,7 +438,7 @@
   <div class="dev-section" data-group="spectrum">
     <div class="dev-section-title">Spectrum Deck</div>
     <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:-2px;">
-      Which values and colours are in the deck. Changes apply at the START OF THE NEXT ROUND — the round you are playing keeps the deck it was dealt.
+      Which values and colours are in the deck. Changes apply at the START OF THE NEXT ROUND - the round you are playing keeps the deck it was dealt.
     </div>
     <div style="font-family:Cinzel,serif;font-size:9px;letter-spacing:2px;color:var(--gold-dim);margin-top:4px;">VALUES</div>
     <div id="dev-spectrum-ranks" class="dev-spec-row"></div>
@@ -484,7 +484,7 @@
     <div class="ic-r"><span>Rewound</span><span id="ic-rewound">0×</span></div>
   </div>
 
-  <!-- Hand log — hover / long-press the SCORE box (see js/hand-log.js). -->
+  <!-- Hand log - hover / long-press the SCORE box (see js/hand-log.js). -->
   <div id="hand-log-popup" class="time-popup" style="display:none">
     <div class="ic-h">Hand Log</div>
     <div id="hand-log-rows"></div>
@@ -510,7 +510,7 @@
   </div>
 </div>
 
-<!-- STATS / DECK OVERLAYS — deliberately OUTSIDE #stage (same reason as #dev-panel).
+<!-- STATS / DECK OVERLAYS - deliberately OUTSIDE #stage (same reason as #dev-panel).
      Inside the stage their z-index was trapped in the cabinet's stacking context, so the
      Mart shop overlay (a body-level z-index:250) painted over them and swallowed the
      Close button's clicks; they also inherited the stage's CSS zoom. -->
@@ -536,13 +536,13 @@
   <div id="cab-screen">
 <!-- Boss-approach FX (js/boss-approach.js). A SIBLING of #stage, not a child:
      the approach drains the colour out of #stage with a `filter`, and a filter
-     applies to the whole subtree — inside it the red alarm would drain along with
+     applies to the whole subtree - inside it the red alarm would drain along with
      everything else. Sitting on #cab-screen also means one overlay covers the CRT
      in BOTH orientations with nothing measured. Inert until .ba-on. -->
 <div id="boss-approach-fx">
   <div class="ba-vignette"></div>
   <div class="ba-count" id="ba-count"></div>
-  <div class="ba-label" id="ba-label">INSPECTION INBOUND</div>
+  <div class="ba-label" id="ba-label">BOSS INCOMING</div>
   <div class="ba-band"></div>
 </div>
 <div id="stage">
@@ -559,7 +559,7 @@
 <div id="top-bar">
   <!-- Portrait progress: the same ACT + node-pip block landscape uses (and the
        same boss sigil), instead of the old "Progress / ACT 1 · 0/5" text.
-       .rp-block is what updateRunProgressUI() fills — #run-progress below is the
+       .rp-block is what updateRunProgressUI() fills - #run-progress below is the
        landscape one. Only one of these two and #game-timer-stat is ever visible. -->
   <div id="run-progress-pt" class="rp-block">
     <div class="rp-act">ACT 1</div>
@@ -579,7 +579,7 @@
     <div id="clock-bar-wrap"><div id="clock-bar"></div></div>
     <button id="skip-btn" type="button">Skip »</button>
   </div>
-  <!-- The "Hands" counter was removed from the top bar (r160) — it is a
+  <!-- The "Hands" counter was removed from the top bar (r160) - it is a
        statistic, not a live decision input, and it is still in Records. -->
   <div class="top-stat">
     <span class="top-label">Coins</span>
@@ -613,7 +613,7 @@
           </div>
           <!-- Location readout: replaces the pips/mult/focus chips on grid-takeover
                screens (Rewards / Shop / Event) to show WHERE you are. -->
-          <div id="screen-location"><span class="loc-tag">LOCATION</span><span class="loc-name">—</span></div>
+          <div id="screen-location"><span class="loc-tag">LOCATION</span><span class="loc-name">·</span></div>
         </div>
         <!-- Center: current score (dance overlay covers this) -->
         <div id="score-center">
@@ -643,7 +643,7 @@
            (or replace it) at this anchor; #hand-name is the label just under it. -->
       <div id="hand-preview-area">
         <div id="selected-cards"></div>
-        <div id="hand-name">—</div>
+        <div id="hand-name">·</div>
       </div>
       <!-- Trick Tray (visible only in trickTrayMode) -->
       <div id="trick-tray-area" style="display:none">
@@ -751,16 +751,16 @@
 <!-- DEV PANEL -->
 <div id="dev-btn" onclick="toggleDevPanel()" style="display:none;position:fixed;bottom:60px;right:6px;z-index:500;width:32px;height:32px;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.4);border-radius:8px;font-size:16px;display:none;align-items:center;justify-content:center;cursor:pointer;">🛠</div>
 
-<!-- Preview-window scoring dance — renders INTO the dedicated hand-preview slot (#selected-cards) -->
+<!-- Preview-window scoring dance - renders INTO the dedicated hand-preview slot (#selected-cards) -->
 
 
 
-<!-- STATS + DECK OVERLAYS live outside #stage — see the block just before #cabinet -->
+<!-- STATS + DECK OVERLAYS live outside #stage - see the block just before #cabinet -->
 
 <!-- HAND UNLOCK OVERLAY -->
 <div id="unlock-overlay">
   <div id="unlock-eyebrow">New Hand Unlocked</div>
-  <div id="unlock-hand-name">—</div>
+  <div id="unlock-hand-name">·</div>
   <div id="unlock-desc"></div>
   <div id="unlock-example"></div>
   <div id="unlock-trick-title">Choose a trick</div>
@@ -796,7 +796,7 @@
 
   <!-- Footer: reroll + leave -->
   <div id="shop-footer-row">
-    <button id="shop-reroll-btn">🎲 Reroll — <span id="shop-reroll-cost">8</span> coins</button>
+    <button id="shop-reroll-btn">🎲 Reroll - <span id="shop-reroll-cost">8</span> coins</button>
     <span id="shop-reroll-info"></span>
     <button id="shop-close">Leave Shop</button>
   </div>
@@ -852,7 +852,7 @@
   <div id="reward-grid"></div>
 
   <div id="reward-footer">
-    <div id="reward-collected">Claiming: <span id="reward-collected-list">—</span></div>
+    <div id="reward-collected">Claiming: <span id="reward-collected-list">·</span></div>
     <div id="reward-btn-row">
       <button id="reward-clear" disabled>Clear</button>
       <button id="reward-confirm" disabled>Confirm</button>
@@ -863,7 +863,7 @@
 <!-- Trick LOSE PICKER OVERLAY -->
 <div id="trick-lose-picker">
   <div id="blp-title">CHOOSE A TRICK TO LOSE</div>
-  <div id="blp-sub">Select one — it will be removed permanently.</div>
+  <div id="blp-sub">Select one - it will be removed permanently.</div>
   <div id="blp-list"></div>
   <div id="blp-actions">
     <button id="blp-confirm" disabled onclick="confirmTrickLosePicker()">Remove Selected</button>
@@ -874,7 +874,7 @@
 <!-- EVENT OVERLAY (all node events render here) -->
 <div id="event-overlay">
   <div id="event-eyebrow">EVENT</div>
-  <div id="event-name">—</div>
+  <div id="event-name">·</div>
   <div id="event-flavor"></div>
   <div id="event-body"></div>
   <div id="event-actions">
@@ -889,7 +889,7 @@
   <div id="lb-sub">Choose one limit to break. Sacrifice to break a second.</div>
   <div id="lb-offers"></div>
   <div id="lb-sacrifice">
-    <div id="lb-sacrifice-title">Second Pick — Sacrifice</div>
+    <div id="lb-sacrifice-title">Second Pick - Sacrifice</div>
     <div id="lb-sacrifice-hint">Pick a second limit by giving something up.</div>
     <div id="lb-sacrifice-options"></div>
   </div>
@@ -899,7 +899,7 @@
 <!-- LEVEL UP OVERLAY -->
 <div id="levelup-overlay">
   <div id="levelup-title">LEVEL UP</div>
-  <div id="levelup-sub">Choose a trick — <span id="lu-timer">15</span>s remaining</div>
+  <div id="levelup-sub">Choose a trick - <span id="lu-timer">15</span>s remaining</div>
   <div id="levelup-timer-bar-wrap"><div id="levelup-timer-bar"></div></div>
   <div id="trick-options"></div>
 </div>
@@ -915,7 +915,7 @@
   </div>
   <div id="trick-choice-cards"></div>
   <div id="trick-choice-hint">Tap to preview · Tap again to choose</div>
-  <button id="trick-choice-skip">Pass — No Trick</button>
+  <button id="trick-choice-skip">Pass - No Trick</button>
 </div>
 
 <!-- CHALLENGE TOOLTIP -->

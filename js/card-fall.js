@@ -8,7 +8,7 @@ function renderCardAppearance(card, r, c, {
   isChallenge  = false,
   isPendingTrick  = false,
 } = {}) {
-  // ── Stone (boss obstacle — falls normally, can't be played/discarded) ──
+  // ── Stone (boss obstacle - falls normally, can't be played/discarded) ──
   if (!isChallenge && card._isStone) {
     return {
       className: `card stone-card${isSwapPending ? ' swap-pending' : ''}`,
@@ -70,7 +70,7 @@ function renderCardAppearance(card, r, c, {
 
   const bothClass = hasPip && hasMult ? ' has-both' : hasPip ? ' has-pip' : hasMult ? ' has-mult' : '';
   // Spectrum (numeric) cards: the whole face is the colour and the value sits
-  // big in the middle — no suit glyph. Keyed off the CARD's suit, not the mode,
+  // big in the middle - no suit glyph. Keyed off the CARD's suit, not the mode,
   // so the hand preview, score dance and fall animation all agree.
   const isNum = isColorSuit(card.suit);
   const className = [
@@ -148,7 +148,7 @@ async function removeAndFall(removingCells, mode = 'play') {
   if (mode === 'play') {
     removingCells.forEach(([r,c]) => discardToPlayed(gridData[r][c]));
   } else if (mode === 'match3') {
-    // Match-3 cascade. Finite deck (default) behaves like a normal play — scored
+    // Match-3 cascade. Finite deck (default) behaves like a normal play - scored
     // cards are held out until round end. The infinite-deck dev toggle instead
     // requeues them to the BACK of the draw pile so the board never runs dry.
     removingCells.forEach(([r,c]) => {
@@ -227,7 +227,7 @@ async function removeAndFall(removingCells, mode = 'play') {
       const targetRow = playableRows[playableRows.length - survivors.length + i];
       if (targetRow !== entry.origRow) {
         const fallBy = targetRow - entry.origRow;
-        // Capture the card NOW — gridData is updated below (pre-animation), so the
+        // Capture the card NOW - gridData is updated below (pre-animation), so the
         // fall loop can no longer look it up by old position.
         fallPlan.push({ row: entry.origRow, col, fallBy, card: entry.card });
         if (challengeCard && challengeCard.pos[0] === entry.origRow && challengeCard.pos[1] === col) {
@@ -272,7 +272,7 @@ async function removeAndFall(removingCells, mode = 'play') {
     }
   }
 
-  // Transition: slide-out done, now entering fall phase — allow selection
+  // Transition: slide-out done, now entering fall phase - allow selection
   animating = false;
   falling = true;
 
@@ -369,7 +369,7 @@ async function removeAndFall(removingCells, mode = 'play') {
   gridEl.querySelectorAll('.temp-anim').forEach(el => el.remove());
   gridEl.querySelectorAll('[data-card-id]').forEach(el => el.remove());
 
-  // gridData was already updated before animations — just clear selection and finish
+  // gridData was already updated before animations - just clear selection and finish
   falling = false;
   console.log('[FALL] complete');
 
@@ -382,7 +382,7 @@ async function removeAndFall(removingCells, mode = 'play') {
 
   // Match-3: the settled board may have created new matches (e.g. after the
   // player discarded). match3Resolve() self-guards, so a cascade already in
-  // flight — which awaits this call — is unaffected.
+  // flight - which awaits this call - is unaffected.
   if (mode !== 'match3' && match3Active() && !roundEnded) match3Resolve();
 }
 

@@ -1,6 +1,6 @@
 const SLEIGHT_POOL = [
-  { id:'the_queen',     name:'The Queen',      emoji:'👑', rarity:'legendary', activation:'wildcard',   wild:'rank', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['wildrank','scoring'],        desc:'Wild rank — becomes the rank that makes the best hand. (Reach + queen-replay: TBD)', needsResolve:true },
-  { id:'warehouse',     name:'Warehouse',      emoji:'🏭', rarity:'rare',      activation:'wildcard',   wild:'suit', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['wildsuit','suit'],           desc:'Wild suit — becomes any suit to complete a flush. Has no rank.' },
+  { id:'the_queen',     name:'The Queen',      emoji:'👑', rarity:'legendary', activation:'wildcard',   wild:'rank', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['wildrank','scoring'],        desc:'Wild rank - becomes the rank that makes the best hand. (Reach + queen-replay: TBD)', needsResolve:true },
+  { id:'warehouse',     name:'Warehouse',      emoji:'🏭', rarity:'rare',      activation:'wildcard',   wild:'suit', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['wildsuit','suit'],           desc:'Wild suit - becomes any suit to complete a flush. Has no rank.' },
   { id:'good_friend',   name:'The Good Friend',emoji:'🤝', rarity:'rare',      activation:'on_play',    durability:3,          defaultRank:null, defaultSuit:null, tags:['exalt','position'],          desc:'Play it as part of a hand: exalts all adjacent cards. (3 charges)' },
   { id:'not_a_friend',  name:'Not a Friend',   emoji:'🗡️', rarity:'rare',      activation:'on_discard', durability:3,          defaultRank:null, defaultSuit:null, tags:['corrupt','position'],        desc:'Discard it: corrupts all adjacent cards. (3 charges)' },
   { id:'shepherd',      name:'Shepherd',       emoji:'🐑', rarity:'common',    activation:'on_draw',    durability:'infinite', defaultRank:null, defaultSuit:null, tags:['exalt'],                     desc:'When drawn onto the grid, exalts 1 random card.' },
@@ -34,7 +34,7 @@ const SLEIGHT_POOL = [
   { id:'magnet',         name:'Magnet',         emoji:'🧲', rarity:'common',    activation:'double_tap', durability:3,          defaultRank:null, defaultSuit:null, tags:['position','swap'],    desc:'Double-tap, then tap a card: every card of that rank slides next to Magnet (counts as several swaps), then Magnet returns to your deck. (3 charges)' },
   // ── Aim-based (fixtures: tap to rotate aim; cannot be swapped or discarded) ──
   { id:'reflect',     name:'Reflect',     emoji:'🪞', rarity:'epic',   activation:'aim', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['retrigger','position'], desc:'Tap to rotate its aim (up→right→down→left). The card it faces replays once when a hand scores. Cannot be swapped or discarded.' },
-  { id:'soul_mirror', name:'Soul Mirror', emoji:'👁️', rarity:'mythic', activation:'aim', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['retrigger','rank'],     desc:'Tap to rotate its aim. While it faces a card, every scored card of that rank replays — anywhere on the grid. Multiple Soul Mirrors stack. Cannot be swapped or discarded.' },
+  { id:'soul_mirror', name:'Soul Mirror', emoji:'👁️', rarity:'mythic', activation:'aim', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['retrigger','rank'],     desc:'Tap to rotate its aim. While it faces a card, every scored card of that rank replays - anywhere on the grid. Multiple Soul Mirrors stack. Cannot be swapped or discarded.' },
   // ── Adjacency / position sleights (r120) ──
   { id:'whetstone',  name:'Whetstone',  emoji:'🔪', rarity:'epic', activation:'passive', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['scoring','mult','position'], desc:'Whenever an adjacent card is swapped or discarded, Whetstone gains +1 mult. Hands that score a card adjacent to Whetstone score that mult.' },
   { id:'entourage',  name:'Entourage',  emoji:'👥', rarity:'epic', activation:'passive', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['scoring','mult'],            desc:'Hands score +10 mult for every other Sleight on the grid.' },
@@ -45,10 +45,10 @@ const SLEIGHT_POOL = [
   // ── Focus-capacity sleights (r104) ──
   { id:'power_cell',  name:'Power Cell',  emoji:'🔋', rarity:'rare',   activation:'on_draw', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['focus'], desc:'When it enters the grid: +5 Focus. While it remains on the grid: +10 maximum Focus.' },
   { id:'slow_burn',   name:'Slow Burn',   emoji:'🕯️', rarity:'rare',   activation:'passive', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['focus'], desc:'+1 maximum Focus for every minute this sleight spends on the grid.' },
-  // ── Spectrum deck fixtures (r161) — four extra cards shuffled into the Spectrum
+  // ── Spectrum deck fixtures (r161) - four extra cards shuffled into the Spectrum
   // deck at run start. They are NOT offered by the shop, Mart, wheel, reward grid
   // or events (see SLEIGHT_FIXTURES): the only way to have one is to draw it.
-  // activation:'adjacent' — count the hands scored in a cell touching this card;
+  // activation:'adjacent' - count the hands scored in a cell touching this card;
   // at `adjacentPlays` it pays out `payout` and the counter resets.
   { id:'shift_swap',  name:'Shift Swap',  emoji:'🔀', rarity:'fixture', activation:'adjacent', adjacentPlays:2, payout:{ swaps:2 },    durability:'infinite', defaultRank:null, defaultSuit:null, tags:['resource','position'], desc:'Score two hands touching this card and it grants +2 swaps. Repeats.' },
   { id:'recycler',    name:'Recycler',    emoji:'♻️', rarity:'fixture', activation:'adjacent', adjacentPlays:2, payout:{ discards:2 }, durability:'infinite', defaultRank:null, defaultSuit:null, tags:['resource','position'], desc:'Score two hands touching this card and it grants +2 discards. Repeats.' },
@@ -64,10 +64,10 @@ function sleightOfferable(def) { return !!def && !SLEIGHT_FIXTURES.has(def.id); 
 
 // ── Aim sleights (Reflect, Soul Mirror): fixtures that point at an adjacent cell ──
 // ══════════════════════════════════════════════
-// COMBO FAMILIES — legibility layer (r83)
+// COMBO FAMILIES - legibility layer (r83)
 // Each family is a set of "slots"; a slot is one required entity id, or an array
 // (own ANY one of these). checkComboMilestones() (called at round start) fires a
 // one-time "COMBO ONLINE" toast when a family is fully owned, and a one-time
-// "combo close — need X" hint when you own all but one slot — so synergies feel
+// "combo close - need X" hint when you own all but one slot - so synergies feel
 // discovered, not stumbled into. A wrong/renamed id just fails to fire (harmless).
 // ══════════════════════════════════════════════

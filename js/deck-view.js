@@ -2,7 +2,7 @@ function showDeck() {
   const el = document.getElementById('deck-content');
 
   // Suit/colour order follows the deck the run is actually using (four suits, six
-  // suits, or Spectrum's seven colours) — see suitSortVal/rankSortVal in cards.js.
+  // suits, or Spectrum's seven colours) - see suitSortVal/rankSortVal in cards.js.
   function sortCards(cards) {
     return [...cards].sort((a, b) => {
       const sd = suitSortVal(a.suit) - suitSortVal(b.suit);
@@ -46,7 +46,7 @@ function showDeck() {
     }).join('');
   }
 
-  // Present — on grid (exclude Tricks and sleights)
+  // Present - on grid (exclude Tricks and sleights)
   const presentCards = [];
   const presentSleights = [];
   for (let r = 0; r < gridRows; r++)
@@ -76,7 +76,7 @@ function showDeck() {
       <div class="deck-cards">${makeSectionHtml(drawNormal, 'future')}</div>
     </div>
     <div class="deck-section">
-      <span class="deck-section-title">Played — Returns Next Round (${playedNormal.length})</span>
+      <span class="deck-section-title">Played - Returns Next Round (${playedNormal.length})</span>
       <div class="deck-cards">${makeSectionHtml(playedNormal, 'past')}</div>
     </div>
     ${allSleights.length ? `<div class="deck-section">

@@ -78,7 +78,7 @@ function onLbOfferClick(i) {
     renderLimitBreak();
     return;
   }
-  // Second pick requires a sacrifice — toggle selection, sacrifice chosen below
+  // Second pick requires a sacrifice - toggle selection, sacrifice chosen below
   if (lbSecondPick === i) {
     lbSecondPick = null;
     lbSacrifice = null;
@@ -132,7 +132,7 @@ function renderLbSacrifice() {
   });
 
   if (options.length === 0) {
-    hint.textContent = 'Nothing left to sacrifice — your second pick is free!';
+    hint.textContent = 'Nothing left to sacrifice - your second pick is free!';
     lbSacrifice = { type: 'none' };
     optsEl.innerHTML = '';
     return;
@@ -208,7 +208,7 @@ function closeLimitBreak() {
 })();
 
 // ══════════════════════════════════════════════
-// SLEIGHT SYSTEM — physical deck cards
+// SLEIGHT SYSTEM - physical deck cards
 // ══════════════════════════════════════════════
 // Sleights live in the deck as special cards (_isSleight:true).
 // They fall onto the grid and can be swapped/discarded/selected/played.

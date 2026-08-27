@@ -1,8 +1,8 @@
 // ══════════════════════════════════════════════════════════════════════════
-// GRID HEARTBEAT — a wave that pulses across the play grid every few seconds.
+// GRID HEARTBEAT - a wave that pulses across the play grid every few seconds.
 //
 // Every HB_CFG.period seconds the board gives one soft swell. It does not hit the
-// whole grid at once — it STARTS at the left edge, at the middle row(s), and
+// whole grid at once - it STARTS at the left edge, at the middle row(s), and
 // radiates outward, so a visible wavefront travels across the board.
 // (A second, softer beat is available via HB_CFG.beat2, off by default.)
 //
@@ -15,12 +15,12 @@
 //
 // Like the item float this publishes CSS custom properties rather than writing
 // el.style.transform, which matters on the grid: the discard fly-out sets an
-// INLINE transform, and an inline style beats a stylesheet declaration — so the
+// INLINE transform, and an inline style beats a stylesheet declaration - so the
 // fly-out keeps working with no special-casing. .card.removing (transform with
 // !important) and the .card.score-pop-* keyframes likewise still win.
 // ══════════════════════════════════════════════════════════════════════════
 
-// Toned down in r143 — the first pass read as too busy under the cards. Movement
+// Toned down in r143 - the first pass read as too busy under the cards. Movement
 // is roughly halved and the second beat is off, so the board gives ONE soft swell
 // per period instead of a lub-dub. beat2 is still a live knob: raise it above 0 in
 // the dev panel to bring the double beat back.
@@ -30,8 +30,8 @@ const HB_DEFAULTS = {
   rot: 0.12,      // degrees
   scale: 1.5,     // % scale pulse
   period: 5,      // seconds between waves
-  beat: 300,      // ms — length of the beat's envelope (slightly longer = softer)
-  gap: 190,       // ms — spacing to the second beat, when one is enabled
+  beat: 300,      // ms - length of the beat's envelope (slightly longer = softer)
+  gap: 190,       // ms - spacing to the second beat, when one is enabled
   beat2: 0,       // second beat's share of the amplitude (0 = single wave)
   colStagger: 110, // ms per column away from the left edge
   rowStagger: 55,  // ms per row away from the middle

@@ -129,7 +129,7 @@ function buildFocusMeter() {
 
 function syncFocusMeterState() {
   const cap = focusCapNodes();
-  // Capacity can grow mid-run (Expanse / Quick Draw) — keep the bar's node count in sync.
+  // Capacity can grow mid-run (Expanse / Quick Draw) - keep the bar's node count in sync.
   if (focusNodeEls.length !== cap) buildFocusMeter();
   const total = Math.min(focusNodes, cap);
   // Meter-wide glow color tracks the current top of the fill.
@@ -168,7 +168,7 @@ function updateFocusMeter() {
 }
 
 // ══════════════════════════════════════════════
-// FOCUS GAUGE FX — fill-scaled jitter + glow (r97)
+// FOCUS GAUGE FX - fill-scaled jitter + glow (r97)
 // ══════════════════════════════════════════════
 // Fraction of the bar that's full (0..1).
 function focusFillFrac() {
@@ -228,7 +228,7 @@ if (typeof requestAnimationFrame === 'function') requestAnimationFrame(focusFxLo
 
 function addFocus(amount) {
   if (!amount || amount <= 0) return;
-  focusGenGame += amount; focusGenRound += amount; // total Focus generated (any source) — Wellspring / Feedback Loop
+  focusGenGame += amount; focusGenRound += amount; // total Focus generated (any source) - Wellspring / Feedback Loop
   focusDecayBuffer = 0;   // gaining focus resets the x.0 grace buffer
   const cap = focusCapNodes();
   const prev = Math.min(focusNodes, cap);
@@ -261,12 +261,12 @@ function onFocusMaxed() {
   let keepFrac = null; // smallest "fraction of cap to keep" across active droppers (min wins)
   if (hasKnack('dividend')) {
     coins += BAL.dividend.credits; updateCoinsUI();
-    showMessage(`🏦 Dividend — +${BAL.dividend.credits} credits`, 'var(--gold)');
+    showMessage(`🏦 Dividend - +${BAL.dividend.credits} credits`, 'var(--gold)');
     keepFrac = Math.min(keepFrac ?? 1, BAL.dividend.keep_fraction);   // reset to 33% of max
   }
   if (hasTrick('release_valve')) {
     swaps++; discards++;
-    showMessage('🎚️ Release Valve — +1 swap, +1 discard', 'var(--gold)');
+    showMessage('🎚️ Release Valve - +1 swap, +1 discard', 'var(--gold)');
     if (!animating && !falling) render();
     keepFrac = Math.min(keepFrac ?? 1, BAL.release_valve.keep_fraction); // lose 50% Focus
   }
@@ -275,7 +275,7 @@ function onFocusMaxed() {
     // Each max lowers the ceiling by 5 (permanent, floored in focusCapNodes); the random
     // limit is banked once and granted at round end (triggerLevelUp) if you maxed at all.
     growthSpurtMaxedThisRound = true;
-    showMessage(`🌱 Growth Spurt — max Focus −${BAL.growth_spurt.cap_reduction}`, 'var(--gold)');
+    showMessage(`🌱 Growth Spurt - max Focus −${BAL.growth_spurt.cap_reduction}`, 'var(--gold)');
   }
   if (keepFrac !== null || _gs) setTimeout(() => {
     if (_gs) growthSpurtCapPenalty += BAL.growth_spurt.cap_reduction;
@@ -285,7 +285,7 @@ function onFocusMaxed() {
     target = Math.min(target, cap);                  // Growth Spurt may have lowered the ceiling
     const amt = Math.max(0, focusNodes - target);
     if (amt > 0) removeFocus(amt);
-    else { buildFocusMeter(); syncFocusMeterState(); } // cap shrank but nothing to drop — resync
+    else { buildFocusMeter(); syncFocusMeterState(); } // cap shrank but nothing to drop - resync
   }, 260);
 }
 
@@ -387,7 +387,7 @@ function isFocusDecayPaused() {
   // so swaps/discards that consume time also consume the grace window)
   // NOTE: this measures the grace window against ROUND_DURATION, so it only makes
   // sense in a mode whose clock starts at (or below) that. Flow's starts at 300 and
-  // would compute negative elapsed — which is why first_wind is in
+  // would compute negative elapsed - which is why first_wind is in
   // FLOW_BANNED_ENTITIES and can never be owned there.
   if (typeof hasTrick === 'function' && hasTrick('first_wind')) {
     const elapsed = ROUND_DURATION - roundSeconds;
@@ -402,12 +402,12 @@ function isFocusDecayPaused() {
 
 function focusDecayTick() {
   if (isFocusDecayPaused()) return;
-  // Don't decay mid-animation — removeFocus() would mutate focusNodes and re-sync the
+  // Don't decay mid-animation - removeFocus() would mutate focusNodes and re-sync the
   // meter while addFocus()'s fill animation is still in flight, causing the visual
   // "jump up then get wiped" desync.
   if (focusAnimRunning) return;
   if (focusNodes <= 0) return;
-  // Buffer: when focus lands on a whole-number multiplier (x.0 — i.e. focusNodes is a
+  // Buffer: when focus lands on a whole-number multiplier (x.0 - i.e. focusNodes is a
   // multiple of the threshold), hold for 3 ticks before dropping to (x-1).9. Feels nicer.
   if (focusNodes >= FOCUS_THRESHOLD && focusNodes % FOCUS_THRESHOLD === 0) {
     if (focusDecayBuffer < 2) { focusDecayBuffer++; return; }
@@ -428,7 +428,7 @@ function stopFocusDecay() {
   }
 }
 
-// Reset the decay timer — called on every play/swap/discard so the next decay tick
+// Reset the decay timer - called on every play/swap/discard so the next decay tick
 // is the full interval away from the most recent action.
 function resetFocusDecayTimer() {
   if (focusDecayTimerId !== null) {

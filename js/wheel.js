@@ -1,17 +1,17 @@
 // ══════════════════════════════════════════════════════════════════════════
-// SPIN THE WHEEL — the Mart's second special slot.
+// SPIN THE WHEEL - the Mart's second special slot.
 //
 // Pay BAL.wheel.cost to spin a 10-space wheel stocked with Tricks / Sleights /
 // Knacks at the shop's rarity odds, plus one BUST (nothing) and one JACKPOT.
 //
 // The spin is a CLICK-AND-DRAG throw: flick the wheel and the release velocity
-// sets the speed. Two rules keep it honest —
+// sets the speed. Two rules keep it honest -
 //   1. a floor on the total travel, so a limp flick still turns it right round;
 //   2. a random extra force on every throw, so the landing can't be aimed.
 // While it is spinning there is NO way out: the close button, the backdrop and
 // Escape are all inert until the result has been applied.
 //
-// If a prize doesn't fit (Tricks are the only capped entity — trick_slots), the
+// If a prize doesn't fit (Tricks are the only capped entity - trick_slots), the
 // overflow prompt offers a choice: sell one of your Tricks to make room, or sell
 // the prize itself.
 // ══════════════════════════════════════════════════════════════════════════
@@ -31,7 +31,7 @@ function buildWheelSlots() {
   const pickOne = () => {
     const r = Math.random();
     // The wheel draws straight from the pools, so it needs the same mode ban the Mart
-    // and the pick-of-three apply — without this it could hand out a reward-grid-only
+    // and the pick-of-three apply - without this it could hand out a reward-grid-only
     // entity in Survival, or a round-clock entity in Flow, that does nothing there.
     const _ok = p => typeof survivalEntityBanned !== 'function' || !survivalEntityBanned(p.id);
     if (r < 0.45) return martTrickPayload(martPick(TRICK_POOL.filter(_ok), 'tier', 1)[0]);
@@ -109,7 +109,7 @@ function ensureWheelOverlay() {
   return el;
 }
 
-// Opening only PREVIEWS the wheel — you can see what's on it, and nothing is
+// Opening only PREVIEWS the wheel - you can see what's on it, and nothing is
 // charged until you confirm. Credits leave your pocket in confirmWheelSpin().
 let wheelPaid = false;
 function openWheel() {
@@ -161,7 +161,7 @@ function renderWheel() {
   const face = document.getElementById('wheel-face');
   const labels = document.getElementById('wheel-labels');
   if (!face || !labels) return;
-  // Slices as a conic gradient — one hard stop per space.
+  // Slices as a conic gradient - one hard stop per space.
   face.style.background = 'conic-gradient(' + wheelSlots.map((p, i) => {
     const c = p.type === 'bust' ? 'rgba(40,34,24,0.95)'
             : p.type === 'jackpot' ? 'var(--c-magenta)'
@@ -177,7 +177,7 @@ function renderWheel() {
         <div class="wh-name">${name}</div>
       </div></div>`;
   }).join('');
-  // Each space explains itself on hover — you should be able to read the wheel
+  // Each space explains itself on hover - you should be able to read the wheel
   // before deciding to pay for it.
   labels.querySelectorAll('.wh-slot').forEach((el, i) => {
     const p = wheelSlots[i];
@@ -244,14 +244,14 @@ function bindWheelDrag(disc) {
 
 // Coast-down is exponential: travel(t) = TOTAL * (1 - e^(-k t)). Because TOTAL is
 // known up front, the floor and the random force can both be applied to it
-// directly — which is what makes "always at least one full turn" a guarantee
+// directly - which is what makes "always at least one full turn" a guarantee
 // rather than a hope.
 const WHEEL_K = 1.5;
 function spinWheel(v0) {
   if (wheelSpinning) return;
   const dir = v0 < 0 ? -1 : 1;
   let total = Math.abs(v0) / WHEEL_K;
-  total *= 0.9 + Math.random() * 0.35;          // random force — can't be aimed
+  total *= 0.9 + Math.random() * 0.35;          // random force - can't be aimed
   total += 140 + Math.random() * 260;
   total = Math.max(total, 720 + Math.random() * 360);   // never fewer than two turns
   total *= dir;
@@ -328,7 +328,7 @@ function awardWheelPrize(p) {
       // "Upgraded" = bumped a rarity tier for the payout it represents. The pools
       // are fixed content, so this is expressed as the item plus a credit kicker
       // equal to the tier step. TBD: real per-entity upgrade levels (see
-      // ENTITY_IMPROVEMENTS.md) — swap this out when that lands.
+      // ENTITY_IMPROVEMENTS.md) - swap this out when that lands.
       const bonus = Math.round((item.price || 10) * 0.5);
       coins += bonus; updateCoinsUI();
       awardWheelItems([item], `${item.label} +${bonus} credits (upgraded)`);
@@ -364,7 +364,7 @@ function finishWheelPrize(msg) {
 }
 
 // ── overflow: the prize doesn't fit ──────────────────────────────────────────
-// Two ways out, and only these two — the wheel still won't let you leave.
+// Two ways out, and only these two - the wheel still won't let you leave.
 let _whOverflowNext = null;
 function openWheelOverflow(item, next) {
   _whOverflowNext = next;
@@ -390,7 +390,7 @@ function openWheelOverflow(item, next) {
       <div class="wo-or">or</div>
       <button class="wo-sell-prize">SELL ${item.label.toUpperCase()} &middot; +${sell} credits</button>
     </div>`;
-  // Grab the continuation BEFORE closing — closeWheelOverflow() clears
+  // Grab the continuation BEFORE closing - closeWheelOverflow() clears
   // _whOverflowNext, and losing it would strand the wheel un-exitable.
   el.querySelectorAll('.wo-trick').forEach(b => b.onclick = () => {
     const t = trickTray[+b.dataset.i];

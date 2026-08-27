@@ -1,12 +1,12 @@
 // ══════════════════════════════════════════════
 // HAND LOG  (r160)
 // ══════════════════════════════════════════════
-// A running record of every hand played this run — what it was, which cards made
-// it, and what it scored — surfaced by hovering (or long-pressing) the SCORE box.
+// A running record of every hand played this run - what it was, which cards made
+// it, and what it scored - surfaced by hovering (or long-pressing) the SCORE box.
 //
 // The score readout answers "where am I"; it never answered "how did I get here".
-// That question comes up constantly mid-round — whether the last Trick actually
-// paid, whether a Flush is worth chasing at this Focus, why the total jumped —
+// That question comes up constantly mid-round - whether the last Trick actually
+// paid, whether a Flush is worth chasing at this Focus, why the total jumped -
 // and until now the only record was the payout screen, which arrives after the
 // decision it would have informed.
 //
@@ -123,7 +123,7 @@ function toggleHandLogPopup() {
 // ── Wiring ──
 // Mouse hovers; touch long-presses. Both land on the same popup.
 // A long-press must not also fire the click that follows it on touch, and a
-// scroll/drag started on the score box must cancel the press — hence the move
+// scroll/drag started on the score box must cancel the press - hence the move
 // threshold rather than a bare timer.
 (function wireHandLog() {
   const el = document.getElementById('score-center');

@@ -30,7 +30,7 @@ function focusCapNodes() {
 const FOCUS_COLORS  = ['#54af88','#3a8fbf','#7a50c0','#9a30d0'];
 
 // Focus-gauge feel (tuned in the LETHE gauge mockup, r97).
-//   jitter: bar vibrates as it fills — OFF at/below ×1.0, ramps to jitterMaxPx at full
+//   jitter: bar vibrates as it fills - OFF at/below ×1.0, ramps to jitterMaxPx at full
 //           along jitterCurve (<1 = climbs fast early then eases → noticeable sooner),
 //           and shakes faster the fuller it gets. Respects prefers-reduced-motion.
 //   glow:   fill-scaled bloom around the bar, subtle early, up to glowMaxPx at full.
@@ -41,9 +41,9 @@ const FOCUS_FX = {
   glowCurve:   1.3,   // glow ramp (>1 = subtle early)
 };
 let lastCalcMult   = 0;   // set by calcScore so playHand can generate focus from it
-let lastCalcFocus  = 1;   // focus multiplier applied to the last scored hand (FOCUS box) — POST-hand value
-let lastPreHandFocus = 1; // focus multiplier when the hand STARTED scoring — the FOCUS box's dance-start value
-let lastPreFocusMult = 0; // mult before focus multiplier applied — used by score dance
+let lastCalcFocus  = 1;   // focus multiplier applied to the last scored hand (FOCUS box) - POST-hand value
+let lastPreHandFocus = 1; // focus multiplier when the hand STARTED scoring - the FOCUS box's dance-start value
+let lastPreFocusMult = 0; // mult before focus multiplier applied - used by score dance
 let focusNodeEls    = [];  // bottom=index 0, top=index 9 (10 per active segment)
 let focusAnimQueue  = [];  // pending node indices to animate
 let focusAnimRunning = false;
@@ -77,14 +77,16 @@ function recomputeFocusDecayInterval() {
 }
 
 // Hand-type focus contribution table
+// Focus tracks the same difficulty order as HAND_BASE (see the note there):
+// flushes cheapest, runs dearest, sets in between.
 const HAND_FOCUS = {
   'Pair': 1,
-  'Two Pair': 1,
-  'Run of 3': 1,
-  'Run of 4': 2,
-  'Straight': 3,
-  'Flush of 3': 2,
-  'Flush of 4': 3,
+  'Two Pair': 2,
+  'Run of 3': 2,
+  'Run of 4': 3,
+  'Straight': 4,
+  'Flush of 3': 1,
+  'Flush of 4': 2,
   'Flush': 3,
   'Three of a Kind': 3,
   'Full House': 4,
@@ -96,7 +98,7 @@ const HAND_FOCUS = {
   'Flush House': 14,
 };
 
-// Speed bonus formula — dev-tunable. Three formulas, params held in focusSpeedParams.
+// Speed bonus formula - dev-tunable. Three formulas, params held in focusSpeedParams.
 // t = seconds since last play; returns extra focus (pre-floor).
 function speedBonusFromTime(t) {
   if (t === Infinity || t < 0) t = 0;
@@ -134,5 +136,5 @@ let swaps = 3;
 // The game reads limits.X.current wherever it previously used a hard-coded cap.
 // hideMax: don't surface the max anywhere in UI (limit feels "open-ended").
 // `weight` (default 1) sets how often a limit is offered in the shop / Limit
-// Break / reward-grid limit tiles — lower = rarer. Picked via pickWeightedLimits.
+// Break / reward-grid limit tiles - lower = rarer. Picked via pickWeightedLimits.
 // Grid rows/cols also drive the REWARD grid's shape (reward grid = play grid).

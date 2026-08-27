@@ -1,19 +1,13 @@
-const HAND_FORMULAS = {
-  'Run of 3':        'Base 20 pips × 3 mult',
-  'Three of a Kind': 'Base 30 pips × 3 mult',
-  'Four of a Kind':  'Base 60 pips × 7 mult',
-  'Run of 4':        'Base 28 pips × 4 mult',
-  'Pair':            'Base 20 pips × 2 mult',
-  'Two Pair':        'Base 20 pips × 2 mult',
-  'Straight':        'Base 30 pips × 4 mult',
-  'Flush of 3':      'Base 25 pips × 3 mult',
-  'Flush of 4':      'Base 32 pips × 4 mult',
-  'Flush':           'Base 35 pips × 4 mult',
-  'Full House':      'Base 40 pips × 4 mult',
-  'Straight Flush':  'Base 100 pips × 8 mult',
-  'High Card':       'Base 5 pips × 1 mult',
-  'Blackjack':       'Base 21 pips × 4 mult',
-};
+// Derived from HAND_BASE, never written out. These used to be hardcoded strings
+// and they drifted: modes overwrite HAND_BASE (applyModeHandValues zeroes Flush
+// of 3 in Spectrum), so the written table stated a payout the scorer would not
+// pay. Reading the live table means it cannot say the wrong thing.
+const HAND_FORMULAS = new Proxy({}, {
+  get: (_, name) => {
+    const b = (typeof HAND_BASE !== 'undefined') && HAND_BASE[name];
+    return b ? `Base ${b.pips} pips x ${b.mult} mult` : '';
+  },
+});
 
 const HAND_KEY_TO_NAME = {
   run3:'Run of 3', threeofakind:'Three of a Kind',

@@ -113,7 +113,7 @@ const BAL = {
   // Bundle discount: % off per ADDITIONAL item in the cart, with its own flat cap.
   // 1 item = 0%, 2 = 5%, 3 = 10%, 4 = 15%, 5+ = 20%. Bulk Buyer doubles BOTH the
   // rate and the cap. This used to be capped at rate × Selection Size, which tied
-  // shopping to how many CARDS you can pick for a poker hand — unrelated things.
+  // shopping to how many CARDS you can pick for a poker hand - unrelated things.
   shop_discount: { per_item: 5, cap: 20, bulk_per_item: 10, bulk_cap: 40 },
   // Tinker bench (Mart → Tools): stamp a real rank + suit onto a Sleight you own,
   // so it starts counting as a normal card in hand detection on top of whatever
@@ -219,7 +219,7 @@ const BAL = {
   _corrupt: { club_pips: 25, club_mult: -3, diamond_coins: 5, diamond_pips: -20, heart_mult: 5, heart_time: -5, spade_time: 7, spade_coins: -8 },
 };
 
-// ── Description templates — keep tooltip text in sync with BAL numbers ──
+// ── Description templates - keep tooltip text in sync with BAL numbers ──
 // {param} tokens are filled from BAL[id] at load (applyBalDescriptions), so a
 // value change via the balance sheet updates the in-game description too. Only
 // entities whose wording maps unambiguously to their params are listed.
@@ -227,7 +227,7 @@ const DESC_TEMPLATES = {
   whetstone: 'Whenever an adjacent card is swapped or discarded, Whetstone gains +{mult_per_event} mult. Hands that score a card adjacent to Whetstone score that mult.',
   entourage: 'Hands score +{mult_per_sleight} mult for every other Sleight on the grid.',
   lighthouse: 'Each round Lighthouse favors the first or last column. Hands score +{mult} mult while it sits in that column, −{falloff_per_column} per column of distance away (minimum 0).',
-  tempo: 'When acquired, sets your swap and discard limits to {limit}. Every {interval_seconds} seconds, gain 1 back — alternating swap, then discard.',
+  tempo: 'When acquired, sets your swap and discard limits to {limit}. Every {interval_seconds} seconds, gain 1 back - alternating swap, then discard.',
   capacitor: 'Double-tap to spend {focus_cost} Focus and {time_cost} seconds for {credits} credits. Consumed on use.',
   siphon: 'Double-tap to spend {focus_cost} Focus: your next scored hand gets ×{mult} mult. Returns to your deck after use.',
   release_valve: 'Each time you reach max Focus, gain +1 swap and +1 discard, then lose half your Focus.',

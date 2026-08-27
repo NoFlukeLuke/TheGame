@@ -15,7 +15,7 @@ function cancelAutoSubmit() {
 
 // Watchdog: a play/discard submitted mid-animation is queued (pendingAction), then
 // auto-executed here once the animating/falling flags settle. Double-safe with the
-// falling-complete flush — whichever fires first clears pendingAction atomically.
+// falling-complete flush - whichever fires first clears pendingAction atomically.
 let _queuedRetries = 0;
 function scheduleQueuedRetry() {
   _queuedRetries = 0;
@@ -34,7 +34,7 @@ function scheduleQueuedRetry() {
 
 function scheduleAutoSubmit() {
   cancelAutoSubmit();
-  // Match-3: hands are never submitted by selection — matches play themselves.
+  // Match-3: hands are never submitted by selection - matches play themselves.
   // Selection exists purely to choose cards to DISCARD.
   if (match3Active()) return;
   if (danceAbortController) return; // dance in progress, don't schedule
@@ -106,10 +106,10 @@ function doSwap(r1, c1, r2, c2) {
     });
   }
 
-  // Swap charge — skipped on a free swap; Steady Hand bypasses the limit
+  // Swap charge - skipped on a free swap; Steady Hand bypasses the limit
   if (!hasKnack('steady_hand') && !freeThisSwap) swaps--;
   if (sleightFreeSwapPending) sleightFreeSwapPending = false;
-  // Swap time cost — a flat 8s (BAL._resources.swap_seconds), 0s with Free Swaps
+  // Swap time cost - a flat 8s (BAL._resources.swap_seconds), 0s with Free Swaps
   // or a free swap, Steady Hand's own figure otherwise. There used to be an extra
   // flat spendRoundTime(SWAP_TIME_COST) on top of this, which made the 3rd swap of
   // a round cost 14s while the UI said 4s. One charge only now.
@@ -128,7 +128,7 @@ function doSwap(r1, c1, r2, c2) {
   resetFocusDecayTimer();
   // Restless: swapping adds 1 focus
   if (hasTrick('restless')) addFocus(1);
-  // ♥ corruption: a swapped heart goes "on probation" — it must appear in the next scored
+  // ♥ corruption: a swapped heart goes "on probation" - it must appear in the next scored
   // hand or it corrupts (resolved in playHand; also corrupts if discarded). Re-swapping
   // just re-arms the flag (fresh chance). Already-locked hearts are unaffected.
   if (exaltCorruptEnabled) [[r1,c1],[r2,c2]].forEach(([_r,_c]) => {
@@ -152,7 +152,7 @@ function doSwap(r1, c1, r2, c2) {
     if (_el1) _el1.animate([{ transform:`translate(${-_swDx}px,${-_swDy}px) scale(1.09)`,offset:0 },{ transform:'translate(0,0) scale(1)',offset:1 }], { duration: _dur, easing: _ease });
     if (_el2) _el2.animate([{ transform:`translate(${_swDx}px,${_swDy}px) scale(1.09)`,offset:0 },{ transform:'translate(0,0) scale(1)',offset:1 }], { duration: _dur, easing: _ease });
   }
-  // Match-3: a swap is the player's main way to CREATE a match — resolve the
+  // Match-3: a swap is the player's main way to CREATE a match - resolve the
   // board once the swap animation has landed. (The swap itself stays manual;
   // only the resulting matches play themselves.)
   if (match3Active()) setTimeout(() => match3Resolve(), 240);
@@ -285,7 +285,7 @@ function onCardTap(r, c) {
       if (jdef.id === 'stopwatch') {
         hideSleightGridTooltip();
         if (stopwatchActive && stopwatchCardPos && stopwatchCardPos.card === jcard) {
-          endStopwatch(); showMessage('⏱️ Stopwatch — stopped', 'var(--cream-dim)');
+          endStopwatch(); showMessage('⏱️ Stopwatch - stopped', 'var(--cream-dim)');
         } else if (!stopwatchActive) {
           if (jcard._usesLeft !== 'infinite' && jcard._usesLeft <= 0) showMessage('Stopwatch is spent', 'var(--cream-dim)');
           else startStopwatch(jcard, r, c);
@@ -303,25 +303,25 @@ function onCardTap(r, c) {
         removeFocus(BAL.capacitor.focus_cost);
         roundSeconds = Math.max(1, roundSeconds - BAL.capacitor.time_cost); showTimeCost(`-${BAL.capacitor.time_cost}s`); updateClockUI();
         coins += BAL.capacitor.credits; updateCoinsUI();
-        showMessage(`🔋 Capacitor — ${BAL.capacitor.focus_cost} Focus & ${BAL.capacitor.time_cost}s → ${BAL.capacitor.credits} credits`, 'var(--gold)');
+        showMessage(`🔋 Capacitor - ${BAL.capacitor.focus_cost} Focus & ${BAL.capacitor.time_cost}s → ${BAL.capacitor.credits} credits`, 'var(--gold)');
         selected = []; discardSleightAfterUse(jcard, r, c);
         return;
       }
-      // Siphon: pay 15 Focus to charge the next hand with ×4 mult, then leave the grid — it
+      // Siphon: pay 15 Focus to charge the next hand with ×4 mult, then leave the grid - it
       // cycles back into the deck with its remaining charges, or is spent on its last charge.
       if (jdef.id === 'siphon') {
         if (focusNodes < BAL.siphon.focus_cost) { showMessage(`Siphon needs ${BAL.siphon.focus_cost} Focus`, 'var(--cream-dim)'); return; }
         removeFocus(BAL.siphon.focus_cost);
         siphonMultX = BAL.siphon.mult;
-        showMessage(`🩸 Siphon — next hand ×${BAL.siphon.mult} mult!`, 'var(--gold)');
+        showMessage(`🩸 Siphon - next hand ×${BAL.siphon.mult} mult!`, 'var(--gold)');
         selected = []; discardSleightAfterUse(jcard, r, c);
         return;
       }
-      // Magnet: don't fire yet — arm it and wait for the player to tap a target card.
+      // Magnet: don't fire yet - arm it and wait for the player to tap a target card.
       // (Lock/charge are spent when the cluster actually happens, in the intercept below.)
       if (jdef.id === 'magnet') {
         magnetArmed = { r, c, card: jcard };
-        showMessage('Magnet armed — tap a card to pull its rank', '#8fd0ff');
+        showMessage('Magnet armed - tap a card to pull its rank', '#8fd0ff');
         render();
         return;
       }
@@ -333,7 +333,7 @@ function onCardTap(r, c) {
     // otherwise fall through to normal selection/swap handling below
   }
 
-  // Trick during normal play — double-tap enters swap; long-press shows tooltip
+  // Trick during normal play - double-tap enters swap; long-press shows tooltip
   if (!trickSelectionPhase && gridData[r]?.[c]?._isTrick) {
     if (isDoubleTap) {
       hideCardTooltip();
@@ -352,7 +352,7 @@ function onCardTap(r, c) {
   if (swapPending) {
     const [pr, pc] = swapPending;
     if (r === pr && c === pc) {
-      // Same card — cancel swap
+      // Same card - cancel swap
       swapPending = null;
       render();
     } else {
@@ -417,7 +417,7 @@ gridEl2.addEventListener('pointermove', e => {
   // Detect movement
   if (r !== ps.r || c !== ps.c) {
     if (!ps.moved) {
-      // First movement — officially start swipe, add the origin card first
+      // First movement - officially start swipe, add the origin card first
       ps.moved = true;
       isSwiping = true;
       swipeStopped = false;
@@ -430,10 +430,10 @@ gridEl2.addEventListener('pointermove', e => {
       // Only start fresh if no selection yet, or origin isn't part of selection
       const originKey = `${ps.r}-${ps.c}`;
       if (!selected.some(([sr,sc]) => sr===ps.r && sc===ps.c)) {
-        // Origin not in selection — check if it's reachable
+        // Origin not in selection - check if it's reachable
         const reachable = getReachable();
         if (reachable && !reachable.has(originKey)) {
-          // Not adjacent to existing selection — start fresh
+          // Not adjacent to existing selection - start fresh
           selected = [[ps.r, ps.c]];
         } else {
           tryAddToSelection(ps.r, ps.c);
@@ -444,7 +444,7 @@ gridEl2.addEventListener('pointermove', e => {
     if (isSwiping && !swipeStopped) {
       const key = `${r}-${c}`;
       if (selected.some(([sr,sc]) => sr===r && sc===c)) {
-        // Swiped over already-selected card — ignore (don't deselect during swipe)
+        // Swiped over already-selected card - ignore (don't deselect during swipe)
         return;
       }
       // Skip non-selectable cells (stones, Tricks, voids)
@@ -453,7 +453,7 @@ gridEl2.addEventListener('pointermove', e => {
       if (!cardAtCell || !cardCan(cardAtCell, 'select')) return;
       const reachable = getReachable();
       if (reachable && !reachable.has(key)) {
-        // Not reachable — stop swipe here, don't add
+        // Not reachable - stop swipe here, don't add
         swipeStopped = true;
         return;
       }
@@ -500,7 +500,7 @@ gridEl2.addEventListener('contextmenu', e => e.preventDefault());
 // ══════════════════════════════════════════════
 // FOCUS GENERATION (r95)
 // ══════════════════════════════════════════════
-// All the Focus a hand EARNS — hand-type value, speed bonus, and every focus Trick.
+// All the Focus a hand EARNS - hand-type value, speed bonus, and every focus Trick.
 // Called from playHand BEFORE the hand's score is locked in, so the Focus the hand builds
 // up multiplies THIS hand (previously a hand's Focus only kicked in on the NEXT hand).
 // `vultureSec` is the retrigger-aware Vulture pause snapshot captured in playHand.

@@ -98,7 +98,7 @@ function confirmConfluence() {
 // ══════════════════════════════════════════════
 function buildCrossroadsTrades() {
   const trades = [];
-  // Trade 1: always available — pay coins for a legendary Trick
+  // Trade 1: always available - pay coins for a legendary Trick
   if (coins >= 12) {
     const ownedTrick = new Set((acquiredTricks||[]).map(b=>b.id));
     const legends = TRICK_POOL.filter(b => !ownedTrick.has(b.id) && b.tier === 'legendary');
@@ -479,7 +479,7 @@ function confirmBargain() {
 }
 
 // ══════════════════════════════════════════════
-// EVENT: THE WAGER  (coin flip — get more or lose more)
+// EVENT: THE WAGER  (coin flip - get more or lose more)
 // ══════════════════════════════════════════════
 function renderWager() {
   const body = document.getElementById('event-body');
@@ -491,16 +491,16 @@ function renderWager() {
   eventState.wagerResolved = false;
   const lbl = document.createElement('div');
   lbl.style.cssText = 'font-family:Cinzel,serif;font-size:9px;letter-spacing:2px;color:var(--gold-dim);margin-bottom:4px';
-  lbl.textContent = 'CHOOSE YOUR STAKE — THEN FLIP';
+  lbl.textContent = 'CHOOSE YOUR STAKE - THEN FLIP';
   body.appendChild(lbl);
   const stakes = [
-    { icon:'🪙', rarity:'common', name:'Modest — 70%', desc:'Heads: a random card scores ×2 pips. Tails: that card loses 10 pips.', odds:0.70,
+    { icon:'🪙', rarity:'common', name:'Modest - 70%', desc:'Heads: a random card scores ×2 pips. Tails: that card loses 10 pips.', odds:0.70,
       win:(t)=>{ enhanceCardKey(cardKey(t.rank,t.suit), {xpips:2}); return `${cardLabel(t)} ×2 pips!`; },
       lose:(t)=>{ enhanceCardKey(cardKey(t.rank,t.suit), {subpips:10}); return `${cardLabel(t)} −10 pips.`; } },
-    { icon:'🎲', rarity:'rare', name:'Bold — 55%', desc:'Heads: a random card scores ×3 pips and replays. Tails: that card is removed from your deck.', odds:0.55,
+    { icon:'🎲', rarity:'rare', name:'Bold - 55%', desc:'Heads: a random card scores ×3 pips and replays. Tails: that card is removed from your deck.', odds:0.55,
       win:(t)=>{ enhanceCardKey(cardKey(t.rank,t.suit), {xpips:3, retrig:1}); return `${cardLabel(t)} ×3 pips + replay!`; },
       lose:(t)=>{ removeRandomDeckCards(1); return `${cardLabel(t)} lost.`; } },
-    { icon:'💀', rarity:'epic', name:'Reckless — 40%', desc:'Heads: a random card scores ×4 pips, ×2 mult and replays. Tails: 2 random cards are removed.', odds:0.40,
+    { icon:'💀', rarity:'epic', name:'Reckless - 40%', desc:'Heads: a random card scores ×4 pips, ×2 mult and replays. Tails: 2 random cards are removed.', odds:0.40,
       win:(t)=>{ enhanceCardKey(cardKey(t.rank,t.suit), {xpips:4, xmult:2, retrig:1}); return `${cardLabel(t)} ×4 pips, ×2 mult + replay!`; },
       lose:(t)=>{ removeRandomDeckCards(2); return `2 cards lost.`; } },
   ];
@@ -526,7 +526,7 @@ function confirmWager() {
   let msg = '';
   if (target) msg = won ? stake.win(target) : stake.lose(target);
   render();
-  showMessage(won ? `HEADS — ${msg}` : `TAILS — ${msg}`, won ? 'var(--gold)' : 'var(--red)');
+  showMessage(won ? `HEADS - ${msg}` : `TAILS - ${msg}`, won ? 'var(--gold)' : 'var(--red)');
   setEventConfirm(false);
   document.getElementById('event-skip').textContent = 'Continue';
 }
@@ -535,7 +535,7 @@ function confirmWager() {
 // EVENT: WANDERING MERCHANT
 // ══════════════════════════════════════════════
 function renderMerchant() {
-  // 2 legendary/rare Tricks + 1 sleight or knack — all free (it's a gift event, not a shop)
+  // 2 legendary/rare Tricks + 1 sleight or knack - all free (it's a gift event, not a shop)
   const ownedTrick     = new Set((acquiredTricks||[]).map(b=>b.id));
   const ownedKnacks = new Set((acquiredKnacks ||[]).map(t=>t.id));
   const legends = TRICK_POOL.filter(b=>!ownedTrick.has(b.id) && (b.tier==='legendary'||b.tier==='rare'));
@@ -552,7 +552,7 @@ function renderMerchant() {
   const body = document.getElementById('event-body');
   const lbl = document.createElement('div');
   lbl.style.cssText = 'font-family:Cinzel,serif;font-size:9px;letter-spacing:2px;color:var(--gold-dim);margin-bottom:4px';
-  lbl.textContent = 'TAKE ONE — FREE OF CHARGE';
+  lbl.textContent = 'TAKE ONE - FREE OF CHARGE';
   body.appendChild(lbl);
   if (eventState.merchantItems.length === 0) {
     body.innerHTML += '<div style="color:var(--cream-dim);font-size:11px;text-align:center">The merchant has nothing new to offer.</div>';
@@ -598,7 +598,7 @@ function renderAltar() {
       apply: () => { coins -= 10; updateCoinsUI(); altarEffects.push({ type:'time_boost', value:20, roundsLeft:2 }); showMessage('Altar: +20s for 2 rounds', 'var(--gold)'); }
     },
     { icon:'🌑', name:'Dark Bargain', rarity:'legendary',
-      desc:'Sacrifice a random owned Trick. The next 4 rounds score at 1.5× goal — but goal is halved.',
+      desc:'Sacrifice a random owned Trick. The next 4 rounds score at 1.5× goal - but goal is halved.',
       cost:'−1 Random Trick',
       canTake: () => acquiredTricks.length > 0,
       apply: () => {
@@ -661,7 +661,7 @@ function renderSpring() {
   const body = document.getElementById('event-body');
   const info = document.createElement('div');
   info.style.cssText = 'font-size:12px;color:var(--cream-dim);font-family:Crimson Pro,serif;text-align:center;max-width:300px;margin-bottom:12px;line-height:1.5;';
-  info.textContent = 'Remove one card permanently from your deck — no cost, no replacement. Or restore lost resources.';
+  info.textContent = 'Remove one card permanently from your deck - no cost, no replacement. Or restore lost resources.';
   body.appendChild(info);
 
   // Option A: Remove a card from draw pile
@@ -747,7 +747,7 @@ function confirmSpring() {
       discards = limits.discards.current;
       render(); showMessage('Swaps & Discards restored!', 'var(--gold)'); break;
     case 'cleanse_debuff':
-      // Reverse one small debuff — restore a discard or 5s
+      // Reverse one small debuff - restore a discard or 5s
       discards = Math.min(discards + 1, limits.discards.current + 2);
       render(); showMessage('+1 Discard restored', 'var(--gold)'); break;
   }
@@ -775,7 +775,7 @@ function renderTwinPath() {
 
   const lbl = document.createElement('div');
   lbl.style.cssText='font-family:Cinzel,serif;font-size:9px;letter-spacing:2px;color:var(--gold-dim);margin-bottom:4px';
-  lbl.textContent='YOU GAIN BOTH — OR NEITHER';
+  lbl.textContent='YOU GAIN BOTH - OR NEITHER';
   body.appendChild(lbl);
 
   picks.forEach(trick => {

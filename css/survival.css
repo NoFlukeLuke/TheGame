@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════
-   SURVIVAL MODE — pick-of-three + on-demand shop button (r131+)
+   SURVIVAL MODE - pick-of-three + on-demand shop button (r131+)
    Arcade/LETHE look, matched to the main-menu + pause-menu reskin.
    ══════════════════════════════════════════════ */
 
@@ -13,10 +13,10 @@
 }
 #survival-pick-overlay.show { display: flex; }
 /* Desktop/landscape: the preview lives in the left column, so anchor the pick over
-   the grid (to the RIGHT of the preview) — the score count-up stays visible while
+   the grid (to the RIGHT of the preview) - the score count-up stays visible while
    you choose. Portrait keeps it centred. */
 #stage.landscape #survival-pick-overlay { justify-content: flex-end; padding-right: 2.5%; }
-/* No full-screen dim in landscape — the preview + board must stay readable. A soft
+/* No full-screen dim in landscape - the preview + board must stay readable. A soft
    vignette only in portrait where the panel is centred. */
 #survival-pick-overlay.show::before {
   content: ""; position: absolute; inset: 0;
@@ -104,7 +104,7 @@
 #sv-pick-reroll:hover { border-color: var(--c-yellow, #ffce2b); color: var(--c-yellow, #ffce2b); background: rgba(255,206,43,0.07); }
 #sv-pick-reroll:active { transform: translateY(2px); }
 #sv-pick-reroll.sv-cant-afford { opacity: 0.5; }
-/* Contributions (breakdown) toggle — small square button next to reroll. */
+/* Contributions (breakdown) toggle - small square button next to reroll. */
 #sv-pick-contrib-btn {
   cursor: pointer; font-size: 14px; line-height: 1; color: var(--cream, #f0e6c8);
   background: rgba(255,255,255,0.05); border: 1.5px solid var(--plastic-lo, #b7ac93);
@@ -115,7 +115,7 @@
 #sv-pick-contrib-btn:active { transform: translateY(2px); }
 #sv-pick-contrib-btn.sv-open { border-color: var(--c-mint, #35d59b); background: rgba(53,213,155,0.12); }
 
-/* Shop entry button — lives on the pick screen (r155), fee spelled out. */
+/* Shop entry button - lives on the pick screen (r155), fee spelled out. */
 #sv-pick-shop {
   width: 100%; margin-top: 6px;
   font-family: 'Share Tech Mono', monospace; font-size: 11px; letter-spacing: 1px;
@@ -128,7 +128,7 @@
 #sv-pick-shop:active { transform: translateY(2px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.6), 0 1px 0 #b5820f; }
 #sv-pick-shop.sv-cant-afford { filter: grayscale(0.55) brightness(0.85); }
 
-/* ── RUN COMPLETE (5 bosses) — retire or continue endless ── */
+/* ── RUN COMPLETE (5 bosses) - retire or continue endless ── */
 #survival-complete-overlay {
   display: none; position: absolute; inset: 0; z-index: 200;
   align-items: center; justify-content: center;
@@ -176,7 +176,7 @@
 .sv-c-note { font-family: 'Crimson Pro', serif; font-size: 11px; line-height: 1.4; color: var(--cream-dim, #8a7d60); }
 .sv-c-note b { color: var(--c-coral, #ff6a3c); }
 
-/* Contributions dropdown — reuses the payout's .contrib-* row markup. */
+/* Contributions dropdown - reuses the payout's .contrib-* row markup. */
 #sv-pick-contrib { display: none; }
 #sv-pick-contrib.show {
   display: block; width: 100%; margin-top: 4px;
@@ -222,13 +222,13 @@
 #ci-shop-btn.sv-on { display: block; font-size: 10px; padding: 5px 8px; margin-top: 6px; width: 100%; text-align: center; }
 
 /* Act-mode run-progress block (ACT n + node pips + boss skull) is meaningless in
-   endless Survival — hide it so the HUD doesn't imply a 3-Act structure.
+   endless Survival - hide it so the HUD doesn't imply a 3-Act structure.
    EXCEPT on a boss round (r160): Survival runs real bosses, and the boss sigil
    belongs in the same place it lives in every other mode. .boss-sigil already
    collapses the node pips to the single mark, so what shows here is just the
-   sigil under a REVIEW label — no implied act structure. */
+   sigil under a REVIEW label - no implied act structure. */
 #stage.survival-mode #run-progress { display: none; }
 #stage.survival-mode.landscape #run-progress.boss-sigil { display: flex; }
-/* Survival has no interest/cash-out economy — hide those readouts so the coin
+/* Survival has no interest/cash-out economy - hide those readouts so the coin
    block is just the gold total + the SHOP button. */
 #stage.survival-mode #coin-info .ci-row { display: none; }

@@ -6,7 +6,7 @@
 // In Classic the boss is announced by the architecture: you finish a round, the
 // payout counts up, the reward grid deals, you walk a path to a node marked with a
 // skull. By the time the briefing appears you have had three screens of warning.
-// Flow has none of that — its five-minute session clock simply reaches zero and a
+// Flow has none of that - its five-minute session clock simply reaches zero and a
 // boss lands on the board you were mid-hand on. The clock was the only warning and
 // it reads like an ordinary round timer right up to the moment it isn't.
 //
@@ -17,12 +17,12 @@
 // own CSS transitions, so it costs nothing to run and cannot drift.
 //
 // ── Which modes get this ──
-// bossApproachSecondsLeft() is the single question — "how many seconds until a boss
+// bossApproachSecondsLeft() is the single question - "how many seconds until a boss
 // starts, or null if that isn't a thing here". Only Flow answers it today, because
 // only Flow summons a boss from a clock with nothing in between. Survival's boss is
 // deliberately NOT wired: its boss fires on the next DEAL after the cadence elapses,
 // so a countdown would hit zero and then sit there through however long the current
-// goal takes — a countdown that lies is worse than none. If Survival ever gains a
+// goal takes - a countdown that lies is worse than none. If Survival ever gains a
 // hard boss deadline, teach it to this function and the rest follows.
 
 const BOSS_APPROACH_CFG = {
@@ -64,7 +64,7 @@ function beginBossApproach() {
   _baScheduleBeat();
 }
 
-// Idempotent — the tick calls it on every ordinary second, and the wipe calls it
+// Idempotent - the tick calls it on every ordinary second, and the wipe calls it
 // again before the briefing so the boss round itself is not played in greyscale.
 function endBossApproach() {
   if (_baBeatTimer) { clearTimeout(_baBeatTimer); _baBeatTimer = null; }
@@ -81,7 +81,7 @@ function endBossApproach() {
 function _baPaint(left) {
   const cfg = BOSS_APPROACH_CFG;
   const t = Math.min(1, Math.max(0, 1 - left / cfg.warnSeconds));
-  // On :root, not on #stage — the FX overlay is a SIBLING of #stage (see
+  // On :root, not on #stage - the FX overlay is a SIBLING of #stage (see
   // index.html), so a property set on #stage would never reach it.
   document.documentElement.style.setProperty('--ba-t', t.toFixed(3));
   const fx = document.getElementById('boss-approach-fx');
@@ -111,7 +111,7 @@ function _baScheduleBeat() {
   const t = Math.min(1, Math.max(0, 1 - left / cfg.warnSeconds));
   const gap = cfg.beatSlowMs + (cfg.beatFastMs - cfg.beatSlowMs) * t;
   _baBeatTimer = setTimeout(() => {
-    // gameTimerPaused covers the Mart, the pick screen and the pause menu — the
+    // gameTimerPaused covers the Mart, the pick screen and the pause menu - the
     // dread should not thump away behind a menu.
     if (bossApproachOn && !gameTimerPaused && typeof sfxHeartbeat === 'function') {
       sfxHeartbeat(0.5 + 0.7 * t);
@@ -124,7 +124,7 @@ function _baScheduleBeat() {
 // THE WIPE
 // ══════════════════════════════════════════════
 // Called by flowTriggerBoss once the score has ALREADY been banked and zeroed and
-// roundGoal is already the boss quota — this is presentation only, so an abort or a
+// roundGoal is already the boss quota - this is presentation only, so an abort or a
 // missing element can never leave the run in a half-reset state.
 //
 // suppressScoreDisplay is held for the duration for the same reason the scoring

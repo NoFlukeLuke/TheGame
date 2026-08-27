@@ -1,5 +1,5 @@
 function sfxBonusHand() {
-  // Soft, quick rising ping — ducks under the goal-dance audio
+  // Soft, quick rising ping - ducks under the goal-dance audio
   playTone({ freq: 880, type: 'sine', gain: 0.08, attack: 0.005,
              decay: 0.05, sustain: 0.4, release: 0.18, duration: 0.1 });
   playTone({ freq: 1320, type: 'sine', gain: 0.05, attack: 0.005,
@@ -97,14 +97,14 @@ function updateRunProgressUI() {
     const act = rp.querySelector('.rp-act');
     // Outside the 3-Act structure (Survival) "ACT n" is meaningless, but a boss
     // still needs a name over its mark.
-    if (act) act.textContent = actMode ? ('ACT ' + actNumber) : (bossOn ? 'REVIEW' : '');
+    if (act) act.textContent = actMode ? ('ACT ' + actNumber) : (bossOn ? 'BOSS' : '');
     rp.querySelectorAll('.rp-nodes span:not(.boss)').forEach((s, i) => {
       s.classList.toggle('on', i < nodeInAct);
       s.classList.toggle('cur', i === nodeInAct);
     });
   });
   // Portrait: the block takes the top-left slot whenever it has something to say
-  // — an act-mode run, or ANY mode's boss round. Otherwise that slot stays the
+  // - an act-mode run, or ANY mode's boss round. Otherwise that slot stays the
   // legacy game timer.
   const live = actMode || bossOn;
   document.getElementById('run-progress-pt')?.classList.toggle('rp-live', live);
@@ -130,7 +130,7 @@ function updateKnackList() {
     return;
   }
   // Chips live in a marquee track so the row can slowly auto-scroll when it
-  // overflows (no arrows / no scrollbar — r113).
+  // overflows (no arrows / no scrollbar - r113).
   el.innerHTML = `<div class="chip-marquee">${acquiredKnacks.map(t =>
     `<div class="knack-chip" data-knack-id="${t.id}" tabindex="0" role="button" aria-label="${t.name}">${t.emoji}</div>`
   ).join('')}</div>`;
@@ -161,16 +161,16 @@ function applyChipMarquee(list, track) {
   track.classList.remove('scrolling');
   track.style.removeProperty('--marquee-dur');
   const listW = list.clientWidth;
-  if (listW <= 0) return;                       // not laid out yet — leave static
+  if (listW <= 0) return;                       // not laid out yet - leave static
   const oneSet = track.scrollWidth;
-  if (oneSet <= listW + 2) return;              // fits — no scroll needed
+  if (oneSet <= listW + 2) return;              // fits - no scroll needed
   track.innerHTML += track.innerHTML;           // duplicate for a seamless loop
   const dur = Math.max(12, Math.round(oneSet / 26));
   track.style.setProperty('--marquee-dur', dur + 's');
   track.classList.add('scrolling');
 }
 
-// Back-compat alias — older call sites updateTrickList() still re-render the rack
+// Back-compat alias - older call sites updateTrickList() still re-render the rack
 function updateTrickList() { updateKnackList(); }
 
 // Grace-delay hide so the pointer can travel from the chip to the tooltip's Sell button.
@@ -212,7 +212,7 @@ document.addEventListener('click', (e) => {
 }, true);
 
 // ══════════════════════════════════════════════
-// CARD INTERACTION — tap or swipe to select, double-tap to swap
+// CARD INTERACTION - tap or swipe to select, double-tap to swap
 // ══════════════════════════════════════════════
 
 let swapPending = null;   // [r,c] of first card in pending swap

@@ -8,7 +8,7 @@
 // the same storage a single save would strain.
 //
 // Every write goes through recordRunToHistory(), called from onGameWin and
-// onGameEnd — the two places a run can finish — so a mode that ends some other
+// onGameEnd - the two places a run can finish - so a mode that ends some other
 // way simply won't be recorded rather than recording something wrong.
 
 const HISTORY_KEY  = 'letheRunHistory';
@@ -46,7 +46,7 @@ function recordRunToHistory(outcome) {
     endedAt:   Date.now(),
     seconds:   Math.max(0, Math.floor((Date.now() - gameStartTime) / 1000)),
     outcome:   outcome || 'loss',
-    mode:      (typeof ACTIVE_MODE !== 'undefined' && ACTIVE_MODE) ? ACTIVE_MODE.name : '—',
+    mode:      (typeof ACTIVE_MODE !== 'undefined' && ACTIVE_MODE) ? ACTIVE_MODE.name : '·',
     modeId:    (typeof ACTIVE_MODE !== 'undefined' && ACTIVE_MODE) ? ACTIVE_MODE.id : '',
     // `score` is the round in progress; totalScore banks the rounds already cleared.
     score:     (typeof totalScore === 'number' ? totalScore : 0) + (typeof score === 'number' ? score : 0),
@@ -104,7 +104,7 @@ const _HIST_OUTCOME = {
 };
 
 // ── Overlay ──────────────────────────────────────────────────────────────────
-// Lives at body level, OUTSIDE #stage — the cabinet applies CSS `zoom`, which
+// Lives at body level, OUTSIDE #stage - the cabinet applies CSS `zoom`, which
 // would scale a fixed-position panel's viewport sizing (same reason the dev
 // panel, Records and the interact pop-ups live out here).
 function historyOverlay() {

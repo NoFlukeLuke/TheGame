@@ -9,7 +9,7 @@
 // ── The one thing that does need care: cosmetics ──
 // A seeded stream is only reproducible if the draws happen in the SAME ORDER
 // every time. Animation code draws randomly on rAF/timer callbacks, whose timing
-// depends on frame rate, tab focus and how fast the player clicks — so leaving
+// depends on frame rate, tab focus and how fast the player clicks - so leaving
 // those on the seeded stream would shuffle the gameplay draws behind them and
 // two runs on one seed would diverge. Cosmetic randomness therefore calls
 // `fxRandom()`, which is always the real, unseeded generator: particle angles,
@@ -29,7 +29,7 @@ function fxRandom() { return _nativeRandom(); }
 
 let runSeed = null;   // the seed this run is playing on; null = unseeded (normal play)
 
-// mulberry32 — small, fast, good enough distribution for a card game.
+// mulberry32 - small, fast, good enough distribution for a card game.
 function mulberry32(a) {
   return function () {
     a |= 0; a = (a + 0x6D2B79F5) | 0;
@@ -74,8 +74,8 @@ function setPendingRunSeed(seed) { pendingRunSeed = (seed === '' ? null : seed);
 // One shared stream is enough to pin the OPENING deal (the deck is shuffled
 // immediately after the seed is installed, before the player can do anything),
 // but it cannot pin anything later in the run. Every draw comes off the same
-// sequence in call order, so a single extra discard — or a Trick that happens to
-// roll a number — shifts every subsequent draw. The 3rd reward grid on one seed
+// sequence in call order, so a single extra discard - or a Trick that happens to
+// roll a number - shifts every subsequent draw. The 3rd reward grid on one seed
 // would depend on exactly how the player had been playing.
 //
 // The fix is one generator PER DOMAIN, each keyed to its own position in the
@@ -91,7 +91,7 @@ function setPendingRunSeed(seed) { pendingRunSeed = (seed === '' ? null : seed);
 // OWN stream, so a boss roll or a Trick proc no longer perturbs the shuffle.
 //
 // Everything not wrapped still falls through to the shared global stream, so
-// nothing regresses — this narrows what can drift, it does not change unseeded
+// nothing regresses - this narrows what can drift, it does not change unseeded
 // play at all.
 const _seedStreams = {};
 

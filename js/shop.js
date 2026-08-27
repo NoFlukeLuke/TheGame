@@ -25,7 +25,7 @@ let shopRerollCount = 0;
 
 // ── Selling (r127) ──
 // Owner decision: Tricks and Knacks can be sold ANYWHERE (tray / HUD), any time.
-// Sleights are NOT sellable — they leave only by being played, discarded, or removed in the shop.
+// Sleights are NOT sellable - they leave only by being played, discarded, or removed in the shop.
 // Sell value = half the shop buy price, floored, min 1 (always < buy → no buy/sell exploit).
 const SELL_FRACTION = 0.5;
 function trickSellValue(trick) { return Math.max(1, Math.floor((SHOP_TRICK_PRICES[trick.tier] || 8) * SELL_FRACTION)); }
@@ -192,8 +192,8 @@ function renderShop() {
 }
 
 // ── CRT/neon shop tiles (shared visual language with the reward grid) ──
-// Each shop tile reuses the reward grid's entity look — rarity = neon border,
-// Orbitron name, scanlines, sleight tab, knack diamond — with a price chip
+// Each shop tile reuses the reward grid's entity look - rarity = neon border,
+// Orbitron name, scanlines, sleight tab, knack diamond - with a price chip
 // pinned to the corner. Descriptions live in the shared reward tooltip on hover.
 function buildShopTileInner(p) {
   if (p.entity === 'knack') {
@@ -381,7 +381,7 @@ function doShopReroll() {
     corruptCard(tr, tc);
     render();
     showMessage('💀 Reroll: a card was corrupted!', '#9b4dca');
-    // Debuff reroll fully refills the shop — purchased/empty slots come back stocked
+    // Debuff reroll fully refills the shop - purchased/empty slots come back stocked
     shopRerollCount++;
     shopPurchased = new Set();
     generateShopItems();
@@ -419,7 +419,7 @@ function openSvcPicker(title, sub, source, maxSelect, onConfirm) {
 
   const allCards = [];
 
-  // Grid cards (exclude Tricks — they aren't real deck cards)
+  // Grid cards (exclude Tricks - they aren't real deck cards)
   if (source === 'grid' || source === 'both') {
     for (let r = 0; r < gridRows; r++) {
       for (let c = 0; c < gridCols; c++) {
@@ -539,7 +539,7 @@ document.getElementById('svc-duplicate-btn').addEventListener('click', () => {
   document.getElementById('svc-duplicate-btn').classList.add('active-svc');
   openSvcPicker(
     'Duplicate a Card',
-    'Choose one card — a copy will be added to your future deck',
+    'Choose one card - a copy will be added to your future deck',
     'both', 1,
     (picked) => {
       if (picked.length !== 1) return;
@@ -562,7 +562,7 @@ document.getElementById('svc-suit-btn').addEventListener('click', () => {
   if (coins < shopPrice('suit') || shopSvcUsed.suit >= SHOP_SVC_MAX.suit) return;
   document.getElementById('svc-suit-btn').classList.add('active-svc');
   openSvcPicker(
-    'Change Suit — Step 1',
+    'Change Suit - Step 1',
     'Choose 2 cards to change suit',
     'both', 2,
     (picked) => {

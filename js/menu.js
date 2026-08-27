@@ -1,4 +1,4 @@
-const BUILD = '2026-08-26 · r177 · boss approach: drain + heartbeat + countdown + score wipe · RECORDS Hands tab · tutorial modules';
+const BUILD = '2026-08-27 · r178 · hand values retuned to measured difficulty · plain-language copy · Hands tab shows Unavailable';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -18,15 +18,15 @@ const MODES = {
     actStructure: true,
     suitCount: 4
   },
-  // Guided first run. Mechanically IDENTICAL to Classic (actStructure: true) —
+  // Guided first run. Mechanically IDENTICAL to Classic (actStructure: true) -
   // an ordinary seeded run with coach-marks over it. See js/tutorial.js.
   tutorial: {
     id: 'tutorial',
     name: 'Orientation',
-    desc: 'A guided first run — a normal Classic run with the terminal explaining itself as you go. Play a round, take the payout, walk a reward path, visit the Mart.',
+    desc: 'A guided first run - a normal Classic run with the terminal explaining itself as you go. Play a round, take the payout, walk a reward path, visit the Mart.',
     // Pinned seed: orientation is the same experience for everyone, and a bug
     // report against it is reproducible. The board is still a normal random
-    // deal — the tutorial finds a hand on it rather than stacking one.
+    // deal - the tutorial finds a hand on it rather than stacking one.
     seed: 'LETHE-INDUCTION',
     winCondition: 'boss_defeat',
     enableBosses: true,
@@ -42,7 +42,7 @@ const MODES = {
   sixsuits: {
     id: 'sixsuits',
     name: 'Six Suits',
-    desc: 'Same 3-Act game, but the deck has six suits — flushes are far rarer, so Flush of 3, 4, and 5 are all playable.',
+    desc: 'Same 3-Act game, but the deck has six suits - flushes are far rarer, so Flush of 3, 4, and 5 are all playable.',
     winCondition: 'boss_defeat',
     enableBosses: true,
     enableShops: true,
@@ -53,7 +53,7 @@ const MODES = {
     actStructure: true,
     suitCount: 6
   },
-  // Spectrum: the same 3-Act game on a deck with no suits and no court cards —
+  // Spectrum: the same 3-Act game on a deck with no suits and no court cards -
   // seven COLOURS and plain values 1-15 plus a lone 20. Face/Ace Tricks are
   // filtered out of the pool (see applyModeEntityFilter in js/data/tricks.js).
   spectrum: {
@@ -85,7 +85,7 @@ const MODES = {
     survival: true
   },
   // Flow: Survival with the ROUND clock removed. No per-round time limit and no way
-  // to fail a round — clear a goal, take a pick-of-three, get the next goal, repeat.
+  // to fail a round - clear a goal, take a pick-of-three, get the next goal, repeat.
   // The only clock is a 5-minute SESSION clock counting down to a boss with a real
   // objective and score bar. Max Focus is 20, so decay is the mode's pressure.
   // survivalActive() is true here too, so it reuses Survival's whole flow.
@@ -93,7 +93,7 @@ const MODES = {
   flow: {
     id: 'flow',
     name: 'Flow',
-    desc: 'No round clock. Clear goals back to back for as many level-ups as you can, then a boss arrives every five minutes. Max Focus is 20 — decay is the only pressure.',
+    desc: 'No round clock. Clear goals back to back for as many level-ups as you can, then a boss arrives every five minutes. Max Focus is 20 - decay is the only pressure.',
     winCondition: 'endless',
     enableBosses: true,
     enableShops: true,
@@ -130,12 +130,12 @@ const MODES = {
   },
   // Match-3 auto-play mode. A full 5×5 board of cards: straight-line flushes,
   // runs, and sets of 3+ AUTO-PLAY the instant they exist, then cascade (candy-
-  // crush style). The player only swaps & discards to set matches up — the
+  // crush style). The player only swaps & discards to set matches up - the
   // playing is automatic. Goal + timer progression (Normal's shape). See match3.js.
   match3: {
     id: 'match3',
     name: 'Match-3 (Auto)',
-    desc: 'A 5×5 board where flushes, runs, and sets of 3 auto-play and cascade. You just swap & discard to line them up — the game plays them for you.',
+    desc: 'A 5×5 board where flushes, runs, and sets of 3 auto-play and cascade. You just swap & discard to line them up - the game plays them for you.',
     winCondition: 'goal_timer',
     enableBosses: false,
     enableShops: false,
@@ -145,13 +145,13 @@ const MODES = {
     autoPlayHands: true,
     match3: true
   },
-  // Zen: the same Match-3 board with the pressure removed — no round clock and
+  // Zen: the same Match-3 board with the pressure removed - no round clock and
   // no swap/discard limits. Goals still exist (doubled, see triggerLevelUp) so
   // levelling and the reward grid remain reachable, just at a slower pace.
   zen: {
     id: 'zen',
     name: 'Zen (Match-3)',
-    desc: 'Match-3 with no clock and unlimited swaps & discards. Goals are doubled — play at your own pace.',
+    desc: 'Match-3 with no clock and unlimited swaps & discards. Goals are doubled - play at your own pace.',
     winCondition: 'goal_only',
     enableBosses: false,
     enableShops: false,
@@ -185,7 +185,7 @@ let ACTIVE_MODE = MODES.normal;
 
 // True for the 3-Act "board" modes (Classic + Six Suits). Legacy timer modes
 // (survival/tetris/autoplay) are false. Gates all the 3-Act-vs-timer branches so
-// Six Suits plays exactly like Classic — only the deck's suits differ.
+// Six Suits plays exactly like Classic - only the deck's suits differ.
 function isActMode() { return !!ACTIVE_MODE && ACTIVE_MODE.actStructure === true; }
 
 function initMainMenu() {
@@ -242,23 +242,23 @@ function startMatch3FromMenu(modeId = 'match3') {
 const MODE_SELECT_LIST = ['tutorial', 'normal', 'sixsuits', 'spectrum', 'survival', 'flow', 'match3', 'zen', 'dominoes'];
 const MODE_META = {
   tutorial: { accent: '#8fd0ff',         suits: 'START HERE',
-              blurb: 'LETHE Corp staff orientation. A normal Classic run with the terminal explaining each control as you reach it — scoring, Focus, limits, the reward path, the Mart. About three minutes.' },
+              blurb: 'LETHE Corp staff orientation. A normal Classic run with the terminal explaining each control as you reach it - scoring, Focus, limits, the reward path, the Mart. About three minutes.' },
   normal:   { accent: 'var(--c-yellow)', suits: '♠ ♥ ♦ ♣',
               blurb: 'The original four-suit game. Three Acts of rounds, shops, events and bosses.' },
   sixsuits: { accent: 'var(--c-mint)',   suits: '♠ ♥ ♦ ♣ ★ ▲',
               blurb: 'Two extra suits dilute the deck, so flushes are hard-won. Flush of 3, 4 and 5 are all in play.' },
   spectrum: { accent: '#ff9d3c',        suits: '🔴 🟡 🔵 🟢 🟣 🟠 ⚫ ⚪',
-              blurb: 'The deck loses its suits and its court. Seven colours and the values 0 to 11, plus a lone 15 and 20. The 9s, 10s and 11s are WHITE — colourless, and they can never complete a flush. Four payout cards are shuffled in: score two hands beside one and it pays.' },
+              blurb: 'The deck loses its suits and its court. Seven colours and the values 0 to 11, plus a lone 15 and 20. The 9s, 10s and 11s are WHITE - colourless, and they can never complete a flush. Four payout cards are shuffled in: score two hands beside one and it pays.' },
   survival: { accent: 'var(--c-coral)',  suits: 'ENDLESS',
               blurb: 'Clear escalating goals on a 2-minute clock. Each clear: pick one of three rewards from every pool. Overflow score and leftover time carry forward. Miss a goal and the run is over.' },
   flow:     { accent: '#6fd0ff',         suits: 'NO CLOCK',
-              blurb: 'Survival with the round clock taken off. Nothing forces a goal, so you clear one after another for as many level-ups as you can hold together — but Focus caps at 20 and decays the moment you slow down. Five minutes of play and the inspection arrives: a boss with an objective and a quota, on its own clock.' },
+              blurb: 'Survival with the round clock taken off. Nothing forces a goal, so you clear one after another for as many level-ups as you can hold together - but Focus caps at 20 and decays the moment you slow down. Five minutes of play and the inspection arrives: a boss with an objective and a quota, on its own clock.' },
   match3:   { accent: '#ff7ad0',         suits: '5 × 5',
-              blurb: 'Matches play themselves. Line up 3+ in a row or column and it scores and cascades — you just swap and discard to set them up.' },
+              blurb: 'Matches play themselves. Line up 3+ in a row or column and it scores and cascades - you just swap and discard to set them up.' },
   zen:      { accent: '#7fe3c0',         suits: 'NO CLOCK',
               blurb: 'The same auto-playing board with the pressure off: no timer, unlimited swaps and discards. Goals are doubled.' },
   dominoes: { accent: '#9b57d3',         suits: 'VALUES 1–7',
-              blurb: 'Beta. Two-value tiles fall sideways or upright and leave gaps. Pick 3 touching tiles — every run and set of 3+ across their six halves scores at once.' },
+              blurb: 'Beta. Two-value tiles fall sideways or upright and leave gaps. Pick 3 touching tiles - every run and set of 3+ across their six halves scores at once.' },
 };
 
 function openModeSelect() {

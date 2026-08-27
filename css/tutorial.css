@@ -5,12 +5,12 @@
 
    The dim is ONE element whose clip-path cuts N holes out of it with the evenodd
    fill rule. Because a clipped-away region is not hit-testable, the holes let
-   clicks through and the rest of the dim swallows them — so highlighting three
+   clicks through and the rest of the dim swallows them - so highlighting three
    reward tiles and gating input to exactly those three tiles is one mechanism,
    not two. `.gated` is what turns the swallowing on.
 
    Visual register: LETHE Corp internal terminal. Orbitron/Share Tech Mono,
-   plastic-and-phosphor, no rounded friendliness — this is a staff notice. */
+   plastic-and-phosphor, no rounded friendliness - this is a staff notice. */
 
 #tut-layer { display: none; }
 #tut-layer.show { display: block; }
@@ -24,7 +24,7 @@
 #tut-layer.gated #tut-dim { pointer-events: auto; }
 #tut-layer.nodim #tut-dim { display: none; }
 
-/* Decorative outlines over each hole — a clip-path can't give you a radius or a
+/* Decorative outlines over each hole - a clip-path can't give you a radius or a
    glow, so the ring is a separate, inert element. */
 #tut-rings { position: fixed; inset: 0; z-index: 200001; pointer-events: none; }
 .tut-ring {

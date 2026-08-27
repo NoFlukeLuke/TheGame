@@ -1,8 +1,8 @@
 // ════════════════════════════════════════════════════════════════════════════
-// SHOP-ON-GRID (r126) — the real shop, played on the board like the reward grid.
+// SHOP-ON-GRID (r126) - the real shop, played on the board like the reward grid.
 // ────────────────────────────────────────────────────────────────────────────
 // 4 rows × 4 slots: row0 Knacks · row1 Tricks · row2 Sleights · row3 Limit upgrades.
-// Select a CONNECTED group of items and BUY the batch — connected buys are
+// Select a CONNECTED group of items and BUY the batch - connected buys are
 // discounted (1 = full, 2 = −10%, 3+ = −25%). Reroll refreshes unsold stock;
 // Sell mode sells owned items back. ~10% of grids null one slot ("SOLD OUT").
 //
@@ -251,7 +251,7 @@ function shopGridBuySelection() {
     if (p && !p._sold && typeof p.buy === 'function') { try { p.buy(); } catch (e) { console.error('[SHOP] buy failed', e); } p._sold = true; }
   });
   try { sfxRewardGood?.(); } catch (e) {}
-  showMessage(`Bought ${shopGridSel.size} — 💰${total}`, 'var(--gold)');
+  showMessage(`Bought ${shopGridSel.size} - 💰${total}`, 'var(--gold)');
   shopGridSel = new Set();
   renderShopGrid();
 }
@@ -263,7 +263,7 @@ function doShopSell(r, c) {
   coins += p.price; updateCoinsUI();
   try { p.sell(); } catch (e) { console.error('[SHOP] sell failed', e); }
   try { sfxRewardGood?.(); } catch (e) {}
-  showMessage(`Sold ${p.label} — +💰${p.price}`, 'var(--gold)');
+  showMessage(`Sold ${p.label} - +💰${p.price}`, 'var(--gold)');
   shopGridItems = buildShopSellStock();   // refresh owned view
   renderShopGrid();
 }
@@ -321,7 +321,7 @@ function renderShopCostReadout() {
   sc.innerHTML =
     `<div class="shop-cost">${costLine}` +
       `<div class="sc-actions">` +
-        `<button id="sc-reroll" ${shopGridMode==='sell'||rerollLeft<=0?'disabled':''}>🎲 ${rerollLeft>0?rerollCost:'—'}</button>` +
+        `<button id="sc-reroll" ${shopGridMode==='sell'||rerollLeft<=0?'disabled':''}>🎲 ${rerollLeft>0?rerollCost:'·'}</button>` +
         `<button id="sc-sell" class="${shopGridMode==='sell'?'sc-sell-on':''}">${shopGridMode==='sell'?'Back':'Sell'}</button>` +
       `</div>` +
     `</div>`;

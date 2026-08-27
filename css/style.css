@@ -23,7 +23,7 @@
     --suit-triangles:#9b4dff;
   }
 
-  /* Spade ♠ on dark surfaces — warm cream halo so pure-black stays legible.
+  /* Spade ♠ on dark surfaces - warm cream halo so pure-black stays legible.
      Only applied on dark backgrounds; spade glyphs on cream cards stay plain black. */
   .spade-halo {
     color: #000 !important;
@@ -59,7 +59,7 @@
 
   /* ── SCORE ANIMATION SYSTEM ── */
 
-  /* Card pop + suit glow — higher specificity than .selected.hand-ready */
+  /* Card pop + suit glow - higher specificity than .selected.hand-ready */
   @keyframes card-pop-anim {
     0%   { transform: translateY(-5px) scale(1.02); }
     25%  { transform: translateY(-18px) scale(1.30); }
@@ -403,7 +403,7 @@
   }
   #clock-bar.urgent { background: linear-gradient(90deg, #8b1a1a, var(--red)); }
 
-  /* Skip button — replaces clock UI during skippable phases */
+  /* Skip button - replaces clock UI during skippable phases */
   #skip-btn {
     display: none;
     background: rgba(245, 192, 66, 0.08);
@@ -463,7 +463,7 @@
     min-height: 0;
   }
 
-  /* Top info strip — stacked vertically */
+  /* Top info strip - stacked vertically */
   #top-strip {
     display: flex;
     flex-direction: column;
@@ -474,7 +474,7 @@
   #score-panel { width: 100%; height: 96px; overflow: visible; box-sizing: border-box; }
   #trick-panel { width: 100%; overflow: hidden; display: flex; flex-direction: row; gap: 0; height: 84px; box-sizing: border-box; }
 
-  /* Hand preview — left half */
+  /* Hand preview - left half */
   #hand-preview-area {
     flex: 1;
     min-width: 0;
@@ -508,7 +508,7 @@
   #selected-cards .card { position: relative !important; flex: 0 0 auto; will-change: auto; transition: none; cursor: default; }
   #selected-cards .preview-empty { width: var(--card-w, 38px); height: var(--card-h, 50px); border: 1px dashed var(--border); border-radius: 5px; flex: 0 0 auto; }
 
-  /* Tricks carousel — right half */
+  /* Tricks carousel - right half */
   #knack-carousel-wrap { flex: 1; min-width: 0; overflow: hidden; padding-left: 8px; display: flex; flex-direction: column; justify-content: center; }
   #knack-list {
     display: flex;
@@ -545,7 +545,9 @@
   #knack-tooltip {
     position: fixed;
     z-index: 300;
-    max-width: 200px;
+    /* 200px, but never wider or taller than the screen it is on. */
+    max-width: min(200px, calc(100vw - 20px));
+    max-height: calc(100vh - 20px); overflow-y: auto;
     box-sizing: border-box;
     white-space: normal;
     overflow-wrap: break-word;
@@ -593,7 +595,7 @@
   .trick-tray-chip.trick-tier-legendary { border-color: #e8b84b; color: #e8b84b; background: #160e00; }
 
   /* ══════════════════════════════════════════════
-     PMF MERGE (r157) — see js/pmf-merge.js
+     PMF MERGE (r157) - see js/pmf-merge.js
      ══════════════════════════════════════════════
      Both orientations. The three chips slide to the row's centre and fade while
      a single fused chip grows out sideways in their place, reading the hand's
@@ -602,7 +604,7 @@
      fast-forwarded dance. */
   #score-subboxes { position: relative; }
   /* Landscape positions this box absolutely, and `position:relative` would
-     break that — it only needs to become a containing block where it is static. */
+     break that - it only needs to become a containing block where it is static. */
   #stage.landscape #score-subboxes { position: absolute; }
 
   @keyframes pmfJitter {
@@ -641,7 +643,7 @@
                 opacity   var(--pmf-dur, 340ms) ease;
   }
   #pmf-merged.show { opacity: 1; transform: scaleX(1); }
-  /* The fused chip carries no label (r169) — just the number, which now owns
+  /* The fused chip carries no label (r169) - just the number, which now owns
      the chip's full height. Portrait is width-constrained (the chip is half a
      narrow panel), so its bump is the smaller of the two. */
   .pmf-merged-val {
@@ -655,20 +657,20 @@
   #stage.landscape .pmf-merged-val { font-size: 34px; }
 
   /* ══════════════════════════════════════════════
-     PORTRAIT SCORE PANEL — PMF half / SCORE-over-GOAL half (r157)
+     PORTRAIT SCORE PANEL - PMF half / SCORE-over-GOAL half (r157)
      ══════════════════════════════════════════════
-     PORTRAIT ONLY, by owner's call — landscape keeps its existing three-box
+     PORTRAIT ONLY, by owner's call - landscape keeps its existing three-box
      arrangement untouched. (The PMF merge animation, by contrast, runs in both.)
 
      The portrait panel is split 50/50: PIPS·MULT·FOCUS own the left half at full
      height, and SCORE sits directly above GOAL in the right half, separated by a
      hairline rather than by two panel edges. Score and goal keep their existing
-     type sizes — the room comes from the split, not from shrinking them.
+     type sizes - the room comes from the split, not from shrinking them.
 
      #score-panel-inner is re-laid as a 2x2 grid (it is a flex row by default).
      Scoped `#stage:not(.landscape)` because landscape sets
      `display:contents !important` on the same element and positions the three
-     children absolutely — see the v7 block. */
+     children absolutely - see the v7 block. */
   #stage:not(.landscape) #score-panel-inner {
     display: grid;
     grid-template-columns: 50% 50%;
@@ -725,9 +727,9 @@
 
   /* The Trick tray keeps the LEFT half and is always on screen; Knacks and the
      hand preview share the RIGHT half and the swap button picks between them
-     (r160 — an earlier pass had all three take turns, which hid the Tricks the
+     (r160 - an earlier pass had all three take turns, which hid the Tricks the
      player needs at a glance). Tricks that don't fit their half FAN over each
-     other instead — see fanTrickTray() in js/tricks-ui.js. `!important` because
+     other instead - see fanTrickTray() in js/tricks-ui.js. `!important` because
      syncTrickTrayUI() writes `display` INLINE on the tray and the preview. */
   #stage:not(.landscape) #trick-tray-area {
     flex: 1 1 0; min-width: 0;
@@ -764,8 +766,8 @@
   #stage:not(.landscape) #selected-cards.dnc-active .dnc-card .r { font-size: 21px; }
   #stage:not(.landscape) #selected-cards.dnc-active .dnc-card .s { font-size: 16px; }
   #stage:not(.landscape) #hand-name { font-size: 9px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
-  /* The preview is deliberately inert until a hand is SUBMITTED (r99) — it is the
-     scoring stage, not a live selection readout — so idle it is empty. Landscape
+  /* The preview is deliberately inert until a hand is SUBMITTED (r99) - it is the
+     scoring stage, not a live selection readout - so idle it is empty. Landscape
      fills that emptiness with a faint HAND watermark; portrait needs it too, or
      swapping to the preview half looks like a broken panel. :empty hides it the
      moment the dance drops cards in, so there is no z-index fight. */
@@ -778,10 +780,10 @@
   }
   #stage:not(.landscape) #selected-cards { position: relative; width: 100%; }
 
-  /* Trick tray — its tiles were rendering at grid-card size and overflowing the
+  /* Trick tray - its tiles were rendering at grid-card size and overflowing the
      strip (a Trick's name card hung outside the panel entirely). Constrain them. */
   /* Source order puts #hand-preview-area before the tray, so without an explicit
-     order the strip's two halves SWAP SIDES when the preview is showing — and the
+     order the strip's two halves SWAP SIDES when the preview is showing - and the
      swap button (pinned top-right) would end up sitting over the Trick tray.
      Pin the tray left and the shared half right in both views. */
   #stage:not(.landscape) #trick-tray-area     { order: 1; padding: 4px 6px 4px 6px; }
@@ -804,7 +806,7 @@
     margin-left: var(--fan-gap, 4px);
   }
   /* renderTrickTray gives each chip BOTH .trick-tray-chip and .trick-card, and
-     `.trick-card` (position:absolute, width:var(--card-w,57px) — it is the GRID
+     `.trick-card` (position:absolute, width:var(--card-w,57px) - it is the GRID
      tile) is defined later in this file, so it won a portrait chip. The result
      was every Trick stacked absolutely at the tray's origin, one grid-sized card
      hanging outside the panel and the rest hidden behind it. Landscape already
@@ -827,7 +829,7 @@
   }
   /* A tucked tile only shows a strip of its LEFT edge. r171: the emoji KEEPS ITS
      FULL SIZE and is simply left-aligned, so the visible strip shows the left
-     part of a full-size icon and the tile's own overflow:hidden clips the rest —
+     part of a full-size icon and the tile's own overflow:hidden clips the rest -
      the way a fanned hand of real cards shows part of a full-size index. The
      previous version shrank every tucked emoji to 13px, which made every Trick
      but the newest one look like a different, tinier object (owner's report).
@@ -871,7 +873,7 @@
   #stage:not(.landscape) #knack-list { gap: 7px; max-height: 72px; margin-bottom: 8px; }
   #stage:not(.landscape) .knack-chip { width: 42px; height: 42px; font-size: 23px; }
 
-  /* The swap button. Deliberately small and quiet — it is a view toggle, not an
+  /* The swap button. Deliberately small and quiet - it is a view toggle, not an
      action, so it must not read as a third button next to PLAY / DISCARD. */
   #stage:not(.landscape) #panel-swap-btn {
     position: absolute; top: 4px; right: 4px; z-index: 4;
@@ -954,7 +956,7 @@
   .focus-node.locked {
     background: color-mix(in srgb, var(--focus-color, #54af88) 60%, #1a1510);
   }
-  /* Multiplier readout — replaces old % display */
+  /* Multiplier readout - replaces old % display */
   #focus-mult-readout {
     font-family: 'Cinzel', serif;
     font-size: 8px;
@@ -999,7 +1001,7 @@
   #mult-box.focus-beat, #focus-box.focus-beat {
     animation: multBoxFocusBeat 0.4s ease-out;
   }
-  /* Clock paused (Pause mechanic) — frozen countdown pulses blue */
+  /* Clock paused (Pause mechanic) - frozen countdown pulses blue */
   #clock.clock-paused { color: #5aa9e6; animation: clockPausePulse 0.9s ease-in-out infinite; }
   @keyframes clockPausePulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
   @keyframes focusNodePop {
@@ -1395,7 +1397,7 @@
   }
   #next-goal-bg.show { opacity: 1; }
 
-  /* Dance overlay — covers only center column */
+  /* Dance overlay - covers only center column */
   #dance-overlay {
     display: none;
     position: absolute;
@@ -1491,12 +1493,12 @@
     word-break: break-all;
   }
 
-  /* r169 — the swap chip is the FIRST thing in the interact column, and it is
+  /* r169 - the swap chip is the FIRST thing in the interact column, and it is
      sized as a peer of the DISCARD / PLAY caps rather than a footnote tucked
      under them: bigger glyph, bigger count, a real minimum height. */
   #action-col #swap-indicator {
-    /* SWAP sits ABOVE discard/play (r160). #action-col is the portrait column —
-       landscape sets it display:contents and places all three absolutely — so
+    /* SWAP sits ABOVE discard/play (r160). #action-col is the portrait column -
+       landscape sets it display:contents and places all three absolutely - so
        source order only matters here, and `order` is the whole fix. */
     order: -1;
     display: flex;
@@ -1564,7 +1566,7 @@
   }
   #swap-indicator.swap-pop { animation: swapPop 0.35s ease forwards; }
 
-  /* ── RIGHT PANEL — unused ── */
+  /* ── RIGHT PANEL - unused ── */
   #right-panel { display: none; }
   #bottom-strip { display: none; }
 
@@ -1598,7 +1600,7 @@
   }
   .card:hover:not(.unreachable) { background: #fffaee; }
 
-  /* Row/col positional bonus tints — pips=clubs(blue), mult=hearts(red), combo=spruce */
+  /* Row/col positional bonus tints - pips=clubs(blue), mult=hearts(red), combo=spruce */
   .card.rc-pips {
     background: #e8eef8;
     box-shadow: inset 0 0 10px rgba(34,85,204,0.35), 0 0 6px rgba(34,85,204,0.2);
@@ -1841,7 +1843,7 @@
     transition: background 0.12s;
   }
   .trick-tooltip-discard:hover { background: rgba(180,40,40,0.35); }
-  /* Sell buttons (Tricks in the tray, Knacks in the HUD) — gold, matches the credits economy */
+  /* Sell buttons (Tricks in the tray, Knacks in the HUD) - gold, matches the credits economy */
   .trick-tooltip-sell, .knack-tooltip-sell {
     flex: 1; padding: 4px 8px; border-radius: 4px;
     background: rgba(200,160,60,0.18); border: 1px solid rgba(200,160,60,0.55);
@@ -1966,7 +1968,7 @@
   .card.suit-stars .rank,    .card.suit-stars .suit    { color: var(--suit-stars); }
   .card.suit-triangles .rank,.card.suit-triangles .suit{ color: var(--suit-triangles); }
 
-  /* ══ SPECTRUM — numeric colour deck (mode: spectrum) ══
+  /* ══ SPECTRUM - numeric colour deck (mode: spectrum) ══
      No suits, no court cards: the whole card face IS the colour and the value
      sits large in the middle. `num-suit` + `col-*` come from suitClass(), so the
      two tokens below are available anywhere a colour card is drawn (grid, hand
@@ -1979,7 +1981,7 @@
   .col-orange { --num-color: #e07a1f; --num-ink: #1a1510; }
   .col-black  { --num-color: #23201c; --num-ink: #efe7d8; }
   /* WHITE = colourless (9/10/11). It can never complete a flush, so it is drawn
-     as a pale, un-saturated card with a dashed inner edge — the visual tell that
+     as a pale, un-saturated card with a dashed inner edge - the visual tell that
      it has no colour to match. */
   .col-white  { --num-color: #efe7d6; --num-ink: #2a2118; }
   .card.num-card.col-white {
@@ -2012,7 +2014,7 @@
   /* Two-digit values (10-15, 20) need a touch less size to stay inside the card. */
   .card.num-card .num-rank.num-wide { font-size: calc(var(--card-h, 75px) * 0.42); }
   /* Selection would otherwise repaint the face cream (.card.selected.hand-valid /
-     .hand-ready set --card-bg) and hide the colour — ring it instead. */
+     .hand-ready set --card-bg) and hide the colour - ring it instead. */
   .card.num-card.selected,
   .card.num-card.selected.hand-valid,
   .card.num-card.selected.hand-ready {
@@ -2022,7 +2024,7 @@
   }
 
   /* Row/column marker tints would otherwise repaint the whole face, hiding the
-     card's colour — mark them with a ring instead so both stay readable. */
+     card's colour - mark them with a ring instead so both stay readable. */
   .card.num-card.rc-pips,
   .card.num-card.rc-mult,
   .card.num-card.rc-pips.rc-mult,
@@ -2071,7 +2073,7 @@
   .panel-box { background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; }
   #score-panel.panel-box { overflow: visible; padding: 0 8px; display: flex; align-items: center; }
 
-  /* ── Score panel — PIPS×MULT | Score | Goal ── */
+  /* ── Score panel - PIPS×MULT | Score | Goal ── */
   #score-panel-inner { display: flex; flex-direction: row; align-items: center; gap: 0; height: 100%; width: 100%; }
 
   /* Left: pips × mult */
@@ -2086,7 +2088,7 @@
   .subbox-times { font-family: 'Cinzel', serif; font-size: 11px; color: var(--cream-dim); flex-shrink: 0; }
 
   /* Center: current score */
-  /* cursor:help — the SCORE box is hoverable/long-pressable for the hand log (r160). */
+  /* cursor:help - the SCORE box is hoverable/long-pressable for the hand log (r160). */
   #score-center { flex: 1.2; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; height: 100%; cursor: help; }
   #score-total-label { font-family: 'Cinzel', serif; font-size: 7px; letter-spacing: 2px; color: var(--gold-dim); text-transform: uppercase; }
   #score-total-num { font-family: 'Cinzel', serif; font-size: 24px; font-weight: 900; color: var(--cream); line-height: 1; }
@@ -2262,7 +2264,7 @@
   #shop-overlay {
     display: none;
     position: fixed; inset: 0;
-    /* Warm phosphor wash over near-black — the shop's own CRT identity, kept
+    /* Warm phosphor wash over near-black - the shop's own CRT identity, kept
        distinct from the reward map's cool indigo. */
     background:
       radial-gradient(circle at 50% 12%, rgba(255,176,46,0.10), transparent 58%),
@@ -2272,7 +2274,7 @@
     align-items: center;
     justify-content: flex-start;
     padding: 16px 14px;
-    overflow: hidden;            /* bays are sized to fit — never scroll */
+    overflow: hidden;            /* bays are sized to fit - never scroll */
     gap: 12px;
   }
   #shop-overlay.show { display: flex; }
@@ -2353,7 +2355,7 @@
     text-shadow: 0 0 6px var(--rc);
   }
 
-  /* Price chip — CRT sticker pinned to the top-right corner of each tile */
+  /* Price chip - CRT sticker pinned to the top-right corner of each tile */
   .shop-price-chip {
     position: absolute; top: 5px; right: 5px; z-index: 3;
     font-family: 'Share Tech Mono', monospace; font-size: 9px; letter-spacing: 0.3px;
@@ -2831,7 +2833,7 @@
   /* ══════════════════════════════════════════════
      BOSS SYSTEM
      ══════════════════════════════════════════════ */
-  /* Blocked cell — a "stone" obstacle on the grid during boss fights.
+  /* Blocked cell - a "stone" obstacle on the grid during boss fights.
      Rendered as a div positioned in the same coordinate space as cards. */
   .blocked-cell {
     position: absolute;
@@ -2858,7 +2860,7 @@
     content: '✦';
     font-family: serif;
   }
-  /* Stone card — boss-injected obstacle that occupies grid slots */
+  /* Stone card - boss-injected obstacle that occupies grid slots */
   .stone-card {
     position: absolute;
     width: var(--card-w, 57px);
@@ -2892,7 +2894,7 @@
     pointer-events: none;
   }
 
-  /* Boss objective HUD — small panel above the grid */
+  /* Boss objective HUD - small panel above the grid */
   #boss-objective-hud {
     position: absolute;
     top: -52px;
@@ -2949,7 +2951,7 @@
     50%      { box-shadow: 0 0 36px rgba(192,57,43,0.55), inset 0 0 28px rgba(192,57,43,0.28); }
   }
 
-  /* Boss banner — slides in at top of grid when boss starts */
+  /* Boss banner - slides in at top of grid when boss starts */
   #boss-banner {
     position: absolute;
     top: 50%; left: 50%;
@@ -2983,7 +2985,7 @@
     text-transform: uppercase;
   }
 
-  /* Boss timer — replaces the clock visually during boss */
+  /* Boss timer - replaces the clock visually during boss */
   #clock.boss-mode { color: var(--red); }
   #clock-bar.boss-mode { background: linear-gradient(90deg, #c0392b, #e84a3a); }
 
@@ -3014,7 +3016,7 @@
   #reward-overlay {
     position: fixed;
     inset: 0;
-    /* Cool indigo wash — deliberately NOT the warm gameplay backdrop, so it's
+    /* Cool indigo wash - deliberately NOT the warm gameplay backdrop, so it's
        instantly obvious you're on the reward map, not playing a hand. */
     background:
       radial-gradient(circle at 50% 18%, rgba(90,70,160,0.22), transparent 60%),
@@ -3055,7 +3057,7 @@
     margin: 20px 0;
   }
   /* Reward cells share the play-card silhouette: same rounded rect, same 2px
-     border, same aspect (set in JS) — but tinted per kind so the map reads at a
+     border, same aspect (set in JS) - but tinted per kind so the map reads at a
      glance. A cool base separates it further from the warm gameplay grid. */
   .reward-cell {
     position: relative;
@@ -3266,7 +3268,7 @@
     text-shadow: 0 1px 0 rgba(255,255,255,0.4) !important;
     box-shadow: inset 0 2px 0 rgba(255,255,255,0.7), inset 0 -3px 0 rgba(0,0,0,0.25), 0 4px 0 #b5820f, 0 6px 8px rgba(0,0,0,0.4) !important;
   }
-  /* Reward SKIP — the swap-indicator slot repurposed into a button; slightly larger + bolder than normal */
+  /* Reward SKIP - the swap-indicator slot repurposed into a button; slightly larger + bolder than normal */
   #action-col #swap-indicator.reward-skip {
     background: linear-gradient(180deg, #9fd6ff, #5aa9e6 55%, #2c7cc0) !important;
     color: #06213a !important; border: 2px solid #5aa9e6 !important;
@@ -3560,7 +3562,7 @@
   #menu-start-btn:hover { filter: brightness(1.06); }
   #menu-start-btn:active { transform: translateY(4px);
     box-shadow: inset 0 2px 0 rgba(255,255,255,0.5), inset 0 -2px 0 rgba(0,0,0,0.25), 0 1px 0 #b5820f; }
-  /* CONTINUE — shown only when a saved run exists (see js/save.js). Sits above
+  /* CONTINUE - shown only when a saved run exists (see js/save.js). Sits above
      PLAY and reads as the primary action when it is there, so a returning player
      lands on their run rather than accidentally starting a fresh one. */
   #menu-continue-btn {
@@ -3584,7 +3586,7 @@
   #menu-continue-btn:not([style*="display: none"]) ~ #menu-start-btn {
     font-size: 17px; padding: 12px; letter-spacing: 5px;
   }
-  /* BUILDS — the procurement catalogue. Purple: gold PLAY and mint CONTINUE are
+  /* BUILDS - the procurement catalogue. Purple: gold PLAY and mint CONTINUE are
      the run actions, cyan is utility, so the catalogue gets its own colour and
      doesn't compete with CONTINUE (added on main in r155). */
   #menu-builds-btn {
@@ -3637,6 +3639,9 @@
   #menu-build-stamp {
     margin-top: 8px; font-family: 'Share Tech Mono', monospace; font-size: 9px; letter-spacing: 2px;
     color: rgba(183,166,132,0.5);
+    /* The stamp is a free-text line that grows every build; let it wrap rather
+       than push the menu wider than the phone. */
+    max-width: 100%; overflow-wrap: anywhere; line-height: 1.35;
   }
 
   /* ═══════════════ MODE SELECT (scroll-sideways carousel) ═══════════════ */
@@ -3771,13 +3776,13 @@
   /* Shop cost readout uses the full preview slot (no room reserved for the hand-name label). */
   body.shop-active #stage.landscape #selected-cards { padding:5px 9px; justify-content:stretch; align-items:stretch; }
 
-  /* tricks: enlarged now that the time/money chips left this column — big reward-grid-style tiles */
+  /* tricks: enlarged now that the time/money chips left this column - big reward-grid-style tiles */
   #stage.landscape #trick-tray-area { left:1.56%; top:60.75%; width:37.74%; height:21.75%; display:flex !important; flex-direction:row; align-items:center; justify-content:flex-start; padding:6px 8px; gap:6px; overflow:hidden; }
   #stage.landscape #trick-tray-list { flex-direction:row; flex-wrap:nowrap; align-items:center; gap:5px; max-height:none; overflow:hidden; padding:0; width:100%; }
-  /* 40×53 — a hair under the 42×55 preview card, and narrow enough that SIX fit
+  /* 40×53 - a hair under the 42×55 preview card, and narrow enough that SIX fit
      across the column (the old 48px capped it at five, below the trick_slots max). */
   /* The TILE shrinks to match the preview card; the ICON does NOT. Scaling the
-     emoji down with the tile is exactly what r172 undid in the portrait fan —
+     emoji down with the tile is exactly what r172 undid in the portrait fan -
      a Trick whose glyph changes size reads as a different, tinier object. The
      emoji keeps its full 24px and the tile's own overflow clips what doesn't
      fit, the way a real card shows part of a full-size index. */
@@ -3793,7 +3798,7 @@
   #stage.landscape #focus-bar-outer { width:21px; }   /* landscape focus bar (25% thinner than the old 28px) */
   #stage.landscape #grid-slot      { position:absolute; left:45%; top:11.11%; width:45%; height:86.11%; }
   #stage.landscape #run-progress   { left:90.63%; top:1.39%; width:8.59%; height:8.33%; flex-direction:column; align-items:center; justify-content:center; gap:3px; padding:3px; }
-  /* r169 — swap first, then discard, then play. The three still span 11.11% →
+  /* r169 - swap first, then discard, then play. The three still span 11.11% →
      97.22% with 1.39% gaps; the extra height for swap comes off PLAY. */
   #stage.landscape #swap-indicator { position:absolute; left:91.41%; top:11.11%; width:7.81%; height:19.87%; }
   #stage.landscape #btn-discard    { position:absolute; left:91.41%; top:32.37%; width:7.81%; height:29.17%; }
@@ -3813,7 +3818,7 @@
   #limits-popup .ic-r { display:flex; justify-content:space-between; font-family:'Courier New',monospace; font-size:9px; color:var(--cream); }
   #limits-popup .ic-r span:last-child { color:var(--gold); font-weight:700; }
   #limits-popup .ic-sep { height:1px; margin:3px 0; background:var(--plastic-deep); opacity:0.5; }
-  /* .rp-block internals — shared by the landscape box (#run-progress) and the
+  /* .rp-block internals - shared by the landscape box (#run-progress) and the
      portrait top-bar copy (#run-progress-pt), so both read identically. */
   .rp-block .rp-act { font-family:'Cinzel',serif; font-size:11px; font-weight:700; color:var(--gold); letter-spacing:1px; line-height:1; }
   .rp-block .rp-nodes { display:flex; gap:3px; align-items:center; }
@@ -3824,7 +3829,7 @@
 
   /* ── Portrait progress block (r160) ──
      The portrait top-left used to be a text stat ("Progress / ACT 1 · 0/5").
-     It is now the same ACT + node-pip block landscape uses — and, on a boss
+     It is now the same ACT + node-pip block landscape uses - and, on a boss
      round in ANY mode, the same sigil. It is display:none until
      updateRunProgressUI() decides it has something to say (.rp-live), at which
      point #game-timer-stat yields the slot (.rp-yielded).
@@ -3842,7 +3847,7 @@
   #stage.landscape #run-progress-pt { display: none !important; }
 
   /* ============================================================= */
-  /* ==  LETHE CABINET RESKIN — 80s consumer-plastic + CRT      == */
+  /* ==  LETHE CABINET RESKIN - 80s consumer-plastic + CRT      == */
   /* ==  Visual skin only; layout coordinates untouched.        == */
   /* ============================================================= */
   :root {
@@ -3906,7 +3911,7 @@
   }
   #cabinet::before { left:12px; } #cabinet::after { right:12px; }
 
-  /* Thin top bar — brand/model on the left, rainbow line filling the right */
+  /* Thin top bar - brand/model on the left, rainbow line filling the right */
   #cab-topbar {
     position: relative; height: 26px; margin: 0 20px 8px; border-radius: 8px;
     display: flex; align-items: center; gap: 9px; padding: 0 12px; overflow: hidden;
@@ -3927,7 +3932,7 @@
     box-shadow:0 0 8px var(--c-mint), inset 0 0 3px #fff; animation: cab-led-blink 2.4s infinite; }
   @keyframes cab-led-blink { 0%,92%,100%{opacity:1} 96%{opacity:0.25} }
 
-  /* Rainbow accent line — fills the remaining width of the top bar */
+  /* Rainbow accent line - fills the remaining width of the top bar */
   #cab-stripe {
     flex: 1 1 auto; height: 6px; margin-left: 6px; border-radius: 3px;
     background: linear-gradient(90deg, var(--c-magenta) 0 20%, var(--c-coral) 20% 40%,
@@ -4047,9 +4052,9 @@
   }
   .btn-discard:not(:disabled):active { transform: translateY(3px);
     box-shadow: inset 0 2px 0 rgba(255,255,255,0.3), inset 0 -2px 0 rgba(0,0,0,0.28), 0 1px 0 #a9330f !important; }
-  /* PLAY / DISCARD never gray out — they always read as live caps (r100) */
+  /* PLAY / DISCARD never gray out - they always read as live caps (r100) */
   .btn-play:disabled, .btn-discard:disabled { opacity: 1 !important; cursor: pointer !important; }
-  /* r170 — SWAP is teal, and reads as a cap like PLAY / DISCARD instead of a
+  /* r170 - SWAP is teal, and reads as a cap like PLAY / DISCARD instead of a
      recessed readout. Deliberately left at ONE-id specificity: the reward grid
      repurposes this element as its SKIP button via #action-col #swap-indicator
      .reward-skip (two ids + a class), which must keep winning over this. */
@@ -4124,14 +4129,14 @@
     will-change: transform;
   }
   #stage.landscape #focus-bar-outer { width: 26px !important; }
-  /* r170 — portrait ran a 10.5px bar against landscape's 26px, so the same gauge
+  /* r170 - portrait ran a 10.5px bar against landscape's 26px, so the same gauge
      read as a hairline on the smaller screen. Same width in both orientations now;
      the wrap widens to match so the ×1.0 readout still has a box to sit in.
      The grid absorbs the ~12px: recomputeGridMetrics() measures the real slot. */
   #stage:not(.landscape) #focus-bar-outer  { width: 26px !important; }
   #stage:not(.landscape) #focus-meter-wrap { width: 34px; }
   #focus-active-segment { gap: 3.5px; }        /* divider: between-node border */
-  /* NOTE: no !important on background — the JS sets each filled node's bright fill
+  /* NOTE: no !important on background - the JS sets each filled node's bright fill
      color inline (focusNodeColor); an !important here would override it and leave the
      bar dark inside (only the edge glow showing). */
   .focus-node { background: #17110a; border-radius: 0 !important;
@@ -4151,7 +4156,7 @@
     text-shadow: 0 0 9px rgba(53,213,155,0.75) !important;
   }
 
-  /* ═══════════════ r113 — enlarged tricks · time popup · money bar · chip marquee ═══════════════ */
+  /* ═══════════════ r113 - enlarged tricks · time popup · money bar · chip marquee ═══════════════ */
 
   /* Faded time-cost hints on the discard / swap action buttons */
   .act-cost {
@@ -4163,7 +4168,7 @@
   #swap-indicator .act-cost { color: #063b43; opacity: 0.62; }   /* r170: dark ink on the teal cap */
 
   /* Time-cost breakdown pop-up (toggled by the ⏱ Time button) */
-  /* ── Limits pop-up (▲ Limits) — wider than the Time bubble because it lists
+  /* ── Limits pop-up (▲ Limits) - wider than the Time bubble because it lists
      every cap with its label and ceiling. ── */
   #limits-popup.time-popup.show { min-width: 188px; }
   #limits-popup .lp-r { gap: 10px; align-items: baseline; }
@@ -4178,13 +4183,17 @@
   #interact-costs.time-popup { display: none; }
   #interact-costs.time-popup.show, #limits-popup.time-popup.show, #hand-log-popup.time-popup.show {
     display: flex !important; position: fixed; z-index: 320; min-width: 116px;
+    /* Never taller or wider than the phone it is on. These bubbles are placed
+       from JS in raw viewport pixels, so without a cap a longer list would run
+       off the bottom edge with no way to reach it. */
+    max-width: calc(100vw - 20px); max-height: calc(100vh - 20px); overflow-y: auto;
     flex-direction: column; gap: 2px; padding: 8px 12px; margin: 0;
     background: linear-gradient(180deg, #15110b, #0b0906) !important;
     border: 1.5px solid var(--c-cyan) !important; border-radius: 9px;
     box-shadow: 0 0 0 2px var(--plastic-lo), 0 0 14px -2px var(--c-cyan), 0 10px 24px rgba(0,0,0,0.6) !important;
   }
 
-  /* ── Hand log (r160) — the same bubble as ⏱ Time / ▲ Limits, but a table:
+  /* ── Hand log (r160) - the same bubble as ⏱ Time / ▲ Limits, but a table:
      hand name, the cards that made it, what it scored. Wider than those two
      because a five-card hand has to fit on one line. ── */
   #hand-log-popup.time-popup { display: none; }
@@ -4207,7 +4216,7 @@
   .hl-x { color: var(--cream-dim); }
   .hl-score { font-family: 'Share Tech Mono', monospace; font-size: 10px; font-weight: 700;
               color: var(--gold); min-width: 44px; text-align: right; }
-  /* A boss round's hands are marked — its modifiers make those scores atypical. */
+  /* A boss round's hands are marked - its modifiers make those scores atypical. */
   .hl-boss .hl-name::before { content: '☠ '; color: var(--red); }
   .hl-sep { font-family: 'Cinzel', serif; font-size: 7px; letter-spacing: 1.5px; text-transform: uppercase;
             color: var(--gold-dim); padding: 4px 0 2px; border-top: 1px solid rgba(58,48,32,0.7); margin-top: 2px; }
@@ -4265,15 +4274,15 @@
 
 
 /* ══════════════════════════════════════════════
-   FLOW MODE (r164) — the no-clock Survival variant
+   FLOW MODE (r164) - the no-clock Survival variant
    ══════════════════════════════════════════════
    Flow charges no time for anything (spendRoundTime is a no-op there; its clock is
    the countdown to the inspection, not a round budget), so the "3s"/"4s" costs baked
    into the DISCARD and swap buttons in index.html would be quoting a charge that
-   never happens. .survival-mode deliberately does NOT get this — Survival still bills
+   never happens. .survival-mode deliberately does NOT get this - Survival still bills
    its round clock for swaps and discards. */
 #stage.flow-mode .act-cost { display: none; }
-/* r175 — the top-left "Game Timer" is the legacy 20-minute run clock. Every mode
+/* r175 - the top-left "Game Timer" is the legacy 20-minute run clock. Every mode
    excluded from that clock (Match-3, Dominoes, Survival, Flow) showed it frozen
    on 20:00 forever; landscape already hid the whole stat, portrait did not.
    .no-game-clock is set in startGame from the same predicate the timer is gated
@@ -4283,7 +4292,7 @@
 
 
 /* ══════════════════════════════════════════════
-   BOSS ALARM (r171) — the score and goal chips ARE the boss HUD
+   BOSS ALARM (r171) - the score and goal chips ARE the boss HUD
    ══════════════════════════════════════════════
    There is no separate objective panel over the board any more, in any mode or
    orientation: the win bar is simply this round's goal (r155), which already has
@@ -4314,7 +4323,7 @@
 #score-center.boss-alarm #score-total-label,
 #score-left.boss-alarm #score-goal-label { color: #ff8a94 !important; opacity: 0.9; }
 #score-left.boss-alarm #score-progress-bar { background: linear-gradient(90deg, #ff3c4a, #ff8a5a) !important; }
-/* A hand boss's tally — the one thing the goal chip could not say by itself. */
+/* A hand boss's tally - the one thing the goal chip could not say by itself. */
 #boss-goal-extra {
   font-family: 'Share Tech Mono', monospace; font-size: 8px; letter-spacing: 0.5px;
   color: #ff8a94; margin-top: 2px; line-height: 1; white-space: nowrap;
@@ -4341,7 +4350,7 @@
    A Sleight lives in the deck and is played and discarded like a card, so it now
    looks like one: a corner index (rank over suit) top-left, the emoji in the
    middle, the NAME ALONG THE BOTTOM, charges bottom-right, rarity-coloured edge.
-   The rank/suit are cosmetic — see sleightFace() in js/sleights-runtime.js for
+   The rank/suit are cosmetic - see sleightFace() in js/sleights-runtime.js for
    why they must not be the real rank/suit fields. */
 .sleight-card {
   justify-content: flex-end !important;
@@ -4356,7 +4365,7 @@
 }
 .sleight-index .sl-rank { font-size: calc(var(--card-h, 75px) * 0.19); }
 .sleight-index .sl-suit { font-size: calc(var(--card-h, 75px) * 0.15); margin-top: -1px; }
-/* Bright enough to read on the dark card — the classic ink colours were made for
+/* Bright enough to read on the dark card - the classic ink colours were made for
    a cream one. `sl-mark` is the un-issued face (S over a house mark, or W over ∞
    for a wildcard): deliberately the card's own rarity colour rather than a
    playing-card red or black, because it is an IDENTIFIER, not a playing value. */
@@ -4365,9 +4374,9 @@
 .sleight-index.sl-mark { color: var(--sl-rc, #cc88ff); opacity: 0.95; }
 /* A wildcard's ∞ is the whole point of its face, so it gets the room to read. */
 .sleight-index.sl-k-wild .sl-suit { font-size: calc(var(--card-h, 75px) * 0.18); margin-top: -2px; }
-/* An issued identity is a real card value — give it the weight of one. */
+/* An issued identity is a real card value - give it the weight of one. */
 .sleight-index.sl-k-playable .sl-rank { font-size: calc(var(--card-h, 75px) * 0.21); }
-/* Spectrum's colour deck has no suit glyph worth printing tiny — the emoji IS
+/* Spectrum's colour deck has no suit glyph worth printing tiny - the emoji IS
    the colour, so stack it under the value at the same size. */
 .sleight-index.sl-num .sl-suit { font-size: calc(var(--card-h, 75px) * 0.13); }
 .sleight-card .sleight-card-emoji {

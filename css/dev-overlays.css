@@ -1,4 +1,4 @@
-  /* ═══════════════ SETTINGS / DEV PANEL — centred arcade pop-up (r117) ═══════════════
+  /* ═══════════════ SETTINGS / DEV PANEL - centred arcade pop-up (r117) ═══════════════
      Was a full-screen `position:fixed;inset:0` black sheet. It's now a bounded, on-theme
      dialog: a sticky title bar with the LETHE marquee treatment, an internally-scrolling
      body, and a dimmed backdrop produced by a huge box-shadow spread (so no extra wrapper
@@ -24,7 +24,7 @@
       0 0 26px rgba(255, 176, 46, 0.10),
       inset 0 1px 0 rgba(255, 255, 255, 0.07);
   }
-  /* Title bar — echoes the cabinet marquee (thin gold rule + wide-tracked caps). */
+  /* Title bar - echoes the cabinet marquee (thin gold rule + wide-tracked caps). */
   #dev-panel-bar {
     flex: 0 0 auto;
     display: flex; align-items: center; justify-content: space-between; gap: 10px;
@@ -55,7 +55,7 @@
     transition: background 0.12s ease, color 0.12s ease;
   }
   #dev-panel-close:hover { background: linear-gradient(180deg, rgba(255,176,46,0.3), rgba(255,176,46,0.1)); color: #fff; }
-  /* Scrolling body — this is what makes the pop-up "fit" instead of running off-screen. */
+  /* Scrolling body - this is what makes the pop-up "fit" instead of running off-screen. */
   #dev-panel-body {
     flex: 1 1 auto;
     min-height: 0;
@@ -110,7 +110,7 @@
   .dev-btn { font-family:'Cinzel',serif; font-size:10px; letter-spacing:1px; padding:7px 10px; background:rgba(244,234,213,0.06); border:1px solid var(--border); border-radius:5px; color:var(--cream); cursor:pointer; flex:1; min-width:60px; }
   .dev-btn:active { background:rgba(244,234,213,0.14); }
 
-  /* Spectrum deck tuner (dev panel → Spectrum) — one chip per value / colour. */
+  /* Spectrum deck tuner (dev panel → Spectrum) - one chip per value / colour. */
   .dev-spec-row { display:flex; flex-wrap:wrap; gap:5px; margin-top:4px; }
   .dev-spec-chip {
     font-family:'Share Tech Mono',monospace; font-size:12px; min-width:30px; padding:5px 7px;
@@ -279,8 +279,8 @@
   .sleight-tooltip-hint { font-size:8px; color:var(--gold-dim); margin-top:5px; letter-spacing:0.5px; }
 
 /* ── Channel change (js/channel-change.js) ────────────────────────────────────
-   Full-viewport CRT transition layers. They sit above every screen — the Mart
-   overlay is a body-level z-index:250 — so they live on <body>, not in #stage. */
+   Full-viewport CRT transition layers. They sit above every screen - the Mart
+   overlay is a body-level z-index:250 - so they live on <body>, not in #stage. */
 #channel-fx { position: fixed; inset: 0; z-index: 900; pointer-events: none; display: none; }
 #channel-fx.on { display: block; }
 #cc-static { position:absolute; inset:0; opacity:0; mix-blend-mode:screen;

@@ -1,6 +1,6 @@
 initMainMenu();
 // The red SCORE / GOAL chips (and the top-bar act readout) reopen a boss's
-// briefing. Bound once — each handler no-ops unless a boss is running.
+// briefing. Bound once - each handler no-ops unless a boss is running.
 if (typeof bindBossBriefReopen === 'function') bindBossBriefReopen();
 initDevMode();
 
@@ -39,21 +39,21 @@ initDevMode();
     // Fallback footprints (only used if the slot can't be measured pre-layout).
     GRID_FOOTPRINT_W = isLandscape ? 380 : 320;
     GRID_FOOTPRINT_H = isLandscape ? 408 : 392;
-    // Card sizing now measures the real grid slot — recompute after the class
+    // Card sizing now measures the real grid slot - recompute after the class
     // toggle/zoom have been applied so the measurement reflects this layout.
     recomputeGridMetrics();
   }
   window.addEventListener('resize', update);
   window.addEventListener('orientationchange', update);
-  update(); // initial run — also handles the first recomputeGridMetrics
+  update(); // initial run - also handles the first recomputeGridMetrics
   // One more pass after first paint, in case fonts/layout shifted the slot size.
   requestAnimationFrame(update);
 })();
 
 // ── Fullscreen support ──────────────────────────────────────────────
 // Two paths to a bar-free view on mobile:
-//   1) Fullscreen API — works in-browser on Android Chrome (and desktop).
-//   2) "Add to Home Screen" (PWA) — the only bar-free option on iOS Safari.
+//   1) Fullscreen API - works in-browser on Android Chrome (and desktop).
+//   2) "Add to Home Screen" (PWA) - the only bar-free option on iOS Safari.
 // Both just show the live page; nothing is downloaded per-version.
 function fsElement() {
   return document.fullscreenElement || document.webkitFullscreenElement || null;
@@ -79,14 +79,14 @@ function toggleFullscreen() {
   try {
     if (fsElement()) {
       (document.exitFullscreen || document.webkitExitFullscreen).call(document);
-      setAutoFullscreenPref(false); // player chose windowed — remember it
+      setAutoFullscreenPref(false); // player chose windowed - remember it
     } else {
       requestFs();
       setAutoFullscreenPref(true);
     }
   } catch (e) { /* older engines may reject; the iOS hint covers those */ }
 }
-// Fullscreen must be requested inside a user gesture — this rides the PLAY tap,
+// Fullscreen must be requested inside a user gesture - this rides the PLAY tap,
 // so on Android/desktop the game goes fullscreen when a run starts, no extra tap.
 // (Browsers forbid entering fullscreen automatically on page load.)
 function maybeAutoFullscreen() {
@@ -116,11 +116,11 @@ document.addEventListener('webkitfullscreenchange', onFsChange);
 (function initFullscreenControls() {
   const btn = document.getElementById('menu-fullscreen-btn');
   const hint = document.getElementById('ios-fullscreen-hint');
-  if (isStandalone()) return; // launched fullscreen already — show neither control
+  if (isStandalone()) return; // launched fullscreen already - show neither control
   if (fsSupported()) {
     if (btn) { btn.style.display = 'block'; updateFullscreenBtn(); }
   } else if (hint) {
-    // iOS Safari: no Fullscreen API — guide the player to Add to Home Screen.
+    // iOS Safari: no Fullscreen API - guide the player to Add to Home Screen.
     hint.style.display = 'block';
   }
 })();

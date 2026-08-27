@@ -77,7 +77,7 @@ function spawnChallengeCard() {
     thresholdMet: false,
   };
   challengeActive = true;
-  gridData[0][col] = null; // challenge card occupies this cell — render handles display
+  gridData[0][col] = null; // challenge card occupies this cell - render handles display
   render();
   showMessage('CHALLENGE!', '#dd6666');
   sfxChallengeAppear();
@@ -181,7 +181,7 @@ function showChallengeTrick() {
   isChallengeTrickPick = true;
   const overlay = document.getElementById('levelup-overlay');
   document.getElementById('levelup-title').textContent = 'CHALLENGE REWARD';
-  document.getElementById('levelup-sub').innerHTML = 'Choose a trick — <span id="lu-timer">15</span>s remaining';
+  document.getElementById('levelup-sub').innerHTML = 'Choose a trick - <span id="lu-timer">15</span>s remaining';
   overlay.classList.add('show');
   const options = pickTrickOptions(3);
   const container = document.getElementById('trick-options');

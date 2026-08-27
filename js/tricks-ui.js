@@ -37,7 +37,7 @@ function showTrickChoiceOverlay() {
   renderCards();
   overlay.classList.add('show');
 
-  // Skip button — pass on the trick choice
+  // Skip button - pass on the trick choice
   const skipBtn = document.getElementById('trick-choice-skip');
   if (skipBtn) {
     skipBtn.onclick = () => {
@@ -126,7 +126,7 @@ function onTrickTap(trick) {
 // Owner rule: every Trick whose bonus can change always shows its CURRENT value
 // in parentheses. Persistent/level/owned-based tricks always have a number.
 // Round-scoped tricks (they scale with round time / round counters) can only be
-// computed during a live round — in the shop or reward grid they show "(N/A)".
+// computed during a live round - in the shop or reward grid they show "(N/A)".
 function trickLiveDesc(trick) {
   const base = trick.desc;
   try {
@@ -219,7 +219,7 @@ function showTrickTooltip(trick, readOnly = false) {
 
   void tip.offsetWidth;
 
-  // Position using bounding rects — works regardless of animation state
+  // Position using bounding rects - works regardless of animation state
   const gridRect = gridEl.getBoundingClientRect();
   const cardRect = trickEl.getBoundingClientRect();
   const tipW = tip.offsetWidth;
@@ -344,7 +344,7 @@ function renderTrickTray() {
       chip.classList.add('trick-mirror');
       chip.innerHTML = `<div class="trick-card-emoji">${dir === -1 ? '◀' : dir === 1 ? '▶' : '◆'}</div>`
                      + `<div class="trick-card-name">${trick.name}</div>`;
-      chip.title = trick.name + ' — tap to aim left/right';
+      chip.title = trick.name + ' - tap to aim left/right';
       chip.addEventListener('click', e => {           // single tap cycles borrow direction
         e.stopPropagation();
         trick._tiltDir = (trick._tiltDir === -1) ? 1 : -1;
@@ -367,7 +367,7 @@ function renderTrickTray() {
   // the fallback) keeps the slow auto-scroll marquee. Doing both would fight:
   // the marquee duplicates the tiles, which the fan would then measure.
   if (typeof fanTrickTray === 'function' && fanTrickTray(list, track)) {
-    // fanned — no marquee
+    // fanned - no marquee
   } else {
     applyChipMarquee(list, track);
   }
@@ -487,7 +487,7 @@ async function confirmFullscreenTrickSelection(trick) {
     _trickState: 'acquired', trick, _id: trickIdCounter
   };
   // ── Salvage any normal card sitting at the target cell back into the draw pile ──
-  // (Without this, the card would be silently dropped — a slow leak to the deck.)
+  // (Without this, the card would be silently dropped - a slow leak to the deck.)
   const displaced = gridData[targetRow][targetCol];
   if (displaced && !displaced._isTrick && displaced.rank) {
     drawPile.push({ rank: displaced.rank, suit: displaced.suit });
@@ -553,7 +553,7 @@ async function confirmTrickSelection(trick) {
   pendingTrickChoice = null;
   hideTrickTooltip();
 
-  // Only remove NEW unchosen Tricks — acquired/upgradeable/upgraded stay in the grid
+  // Only remove NEW unchosen Tricks - acquired/upgradeable/upgraded stay in the grid
   const unchosenCells = [];
   for (let r = 0; r < gridRows; r++)
     for (let c = 0; c < gridCols; c++) {
@@ -562,7 +562,7 @@ async function confirmTrickSelection(trick) {
         unchosenCells.push([r, c]);
     }
 
-  // Mark chosen Trick settled — acquired or upgraded depending on prior state
+  // Mark chosen Trick settled - acquired or upgraded depending on prior state
   for (let r = 0; r < gridRows; r++)
     for (let c = 0; c < gridCols; c++) {
       const cell = gridData[r][c];
@@ -571,7 +571,7 @@ async function confirmTrickSelection(trick) {
       cell._trickState = cell._trickState === 'upgradeable' ? 'upgraded' : 'acquired';
     }
 
-  // Apply trick (stack if upgrading — option 4)
+  // Apply trick (stack if upgrading - option 4)
   const isUpgrade = (() => {
     for (let r = 0; r < gridRows; r++)
       for (let c = 0; c < gridCols; c++)
@@ -580,7 +580,7 @@ async function confirmTrickSelection(trick) {
     return false;
   })();
 
-  // Apply trick (stack on upgrade — apply twice)
+  // Apply trick (stack on upgrade - apply twice)
   selectTrick(trick, true);
   if (isUpgrade) selectTrick(trick, true);
 
@@ -592,11 +592,11 @@ async function confirmTrickSelection(trick) {
   render();
 
   if (pendingLevelUps > 0) {
-    // More level-ups queued — chain into next one
+    // More level-ups queued - chain into next one
     pendingLevelUps--;
     setTimeout(() => drainLevelUpQueue(), 400);
   } else {
-    // All done — 3-2-1 then start round
+    // All done - 3-2-1 then start round
     show321Countdown().then(() => {
       sfxRoundStart();
       startRoundTimer();
@@ -611,7 +611,7 @@ function selectTrick(trick, fromTrickFlow = false) {
   clearInterval(levelupTimer);
   acquiredTricks.push(trick);
 
-  // Positional bonuses get an axis+index at pick time — steered by the position knacks
+  // Positional bonuses get an axis+index at pick time - steered by the position knacks
   // (Surveyor/Leveler/Alignment/District). See assignPositionMark() in scoring.js.
   assignPositionMark(trick);
 
@@ -622,11 +622,11 @@ function selectTrick(trick, fromTrickFlow = false) {
   if (fromTrickFlow) return; // confirmTrickSelection handles timer + render
 
   if (pendingLevelUps > 0) {
-    // More levels queued — show next trick screen after a short pause
+    // More levels queued - show next trick screen after a short pause
     pendingLevelUps--;
     setTimeout(() => drainLevelUpQueue(), 400);
   } else {
-    // All done — resume round
+    // All done - resume round
     startRoundTimer();
     updateClockUI();
     render();
@@ -640,7 +640,7 @@ function selectTrick(trick, fromTrickFlow = false) {
 // GAME END
 // ══════════════════════════════════════════════
 function updateActProgressUI() {
-  // Keep the ACT/node/sigil blocks in step — every caller of this (boss start,
+  // Keep the ACT/node/sigil blocks in step - every caller of this (boss start,
   // boss end, startGame, reward-grid advance, save restore) is exactly a moment
   // the progress block needs repainting.
   if (typeof updateRunProgressUI === 'function') updateRunProgressUI();
@@ -681,7 +681,7 @@ function onGameWin() {
     Time Played: <strong>${m}:${s.toString().padStart(2,'0')}</strong><br>
     Levels Cleared: <strong>${level}</strong><br>
     Hands Played: <strong>${handsPlayed}</strong><br>
-    Best Hand: <strong>${highestHandName ? `${highestHandName} (${highestHandScore.toLocaleString()})` : '—'}</strong>
+    Best Hand: <strong>${highestHandName ? `${highestHandName} (${highestHandScore.toLocaleString()})` : '·'}</strong>
   `;
   overlay.classList.add('show');
 }
@@ -705,7 +705,7 @@ function onGameEnd(gameover) {
     Time Lasted: <strong>${timePlayed}</strong><br>
     Level Reached: <strong>${level}</strong><br>
     Hands Played: <strong>${handsPlayed}</strong><br>
-    Best Hand: <strong>${highestHandName ? `${highestHandName} (${highestHandScore.toLocaleString()})` : '—'}</strong><br>
+    Best Hand: <strong>${highestHandName ? `${highestHandName} (${highestHandScore.toLocaleString()})` : '·'}</strong><br>
     Tricks: <strong>${acquiredTricks.length}</strong>
   `;
   overlay.classList.add('show');
@@ -758,14 +758,14 @@ function fanTrickTray(list, track) {
   //
   // BOTH measurements must be in the same units. The cabinet applies CSS `zoom`,
   // which getBoundingClientRect() reports scaled but offsetWidth/clientWidth do
-  // not — mixing the two silently divides the step by the zoom factor.
+  // not - mixing the two silently divides the step by the zoom factor.
   // offsetWidth/clientWidth are the layout-px pair, which is also the unit the
   // value is written back out in.
   const tile  = chips[0].offsetWidth || 47;
   const avail = list.clientWidth;
   chips.forEach((c, i) => c.style.setProperty('--fan-z', String(i + 1)));  // later tiles on top
 
-  if (avail <= 0) return false;   // not laid out yet — leave it alone
+  if (avail <= 0) return false;   // not laid out yet - leave it alone
 
   const GAP = 4;
   const PAD = 3;          // rounding + the track's own box; without it the fan
@@ -773,7 +773,7 @@ function fanTrickTray(list, track) {
   const room = avail - PAD;
   const n = chips.length;
 
-  // ONE variable, and it is the gap between tiles — positive when they fit,
+  // ONE variable, and it is the gap between tiles - positive when they fit,
   // negative when they tuck. Writing the measured TILE width back into a var
   // that the tile's own `width` reads would be a feedback loop; this cannot be.
   if (n * tile + (n - 1) * GAP <= room) {
@@ -782,7 +782,7 @@ function fanTrickTray(list, track) {
   }
   // Doesn't fit: tuck each tile over the last until the row does, but never past
   // the point where a tucked tile stops being visible. Past that floor the
-  // leftmost tiles clip instead — the list is right-aligned, so the newest
+  // leftmost tiles clip instead - the list is right-aligned, so the newest
   // Trick always stays whole.
   const step = Math.max(FAN_MIN_STEP, (room - tile) / (n - 1));
   track.style.setProperty('--fan-gap', (step - tile).toFixed(2) + 'px');

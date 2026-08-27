@@ -28,7 +28,7 @@ function render() {
       const isChallenge = !!(challengeCard && challengeCard.pos[0]===r && challengeCard.pos[1]===c && card === null);
       if (card === null && !isChallenge) continue;
 
-      // During deal phase, skip rendering cards into the grid — temp-anim elements handle visuals
+      // During deal phase, skip rendering cards into the grid - temp-anim elements handle visuals
       if (dealPhase) continue;
 
       const cardId = isChallenge ? 'challenge' : String(card._id);
@@ -58,7 +58,7 @@ function render() {
         const isSwapPendingJ = swapPending && swapPending[0]===r && swapPending[1]===c;
         const selIdxJ = selected.findIndex(([sr,sc]) => sr===r && sc===c);
         // An 'adjacent' fixture counts hands scored beside it, so show that progress
-        // (1/2) instead of its charges — same rule as renderCardAppearance.
+        // (1/2) instead of its charges - same rule as renderCardAppearance.
         const usesStr = def?.activation === 'adjacent'
           ? `${card._adjPlays || 0}/${def.adjacentPlays || 2}`
           : (card._usesLeft === 'infinite' ? '∞' : card._usesLeft);
@@ -145,12 +145,12 @@ function render() {
     }
   });
 
-  // Update deck HUD on every render — catches grid mutations from any source
+  // Update deck HUD on every render - catches grid mutations from any source
   updateDeckHud();
 
   // Hand preview
   if (!danceAbortController) {
-    // Owner request: the preview no longer reacts to selection — it stays empty (inert)
+    // Owner request: the preview no longer reacts to selection - it stays empty (inert)
     // until a hand is SUBMITTED, at which point the scoring dance (playPreviewDance) fills
     // #selected-cards. Selecting cards no longer renders preview cards or a hand name here.
     document.getElementById('hand-name').textContent = '';   // empty → "HAND" watermark shows (r99)
@@ -170,7 +170,7 @@ function render() {
       if (multEl) animateDigitEl(multEl, 0);
     }
     // FOCUS box tracks the live focus multiplier (the multiplier the next hand will START at,
-    // before that hand's own Focus is added — see generateHandFocus / the dance's focus beat)
+    // before that hand's own Focus is added - see generateHandFocus / the dance's focus beat)
     const _fvEl = document.getElementById('focus-val');
     if (_fvEl) { const _fm = focusMultiplier(); _fvEl.textContent = (_fm === 1) ? '×1' : '×' + _fm.toFixed(1); }
   }
@@ -219,7 +219,7 @@ function render() {
       if (_previewStreak > 1) bonusLines.push({ label:`Kindling ×${_previewStreak-1}`, val:`+${4*(_previewStreak-1)} pips`, type:'pip' });
     }
 
-    // Suits neutral by default — preview only shows active Trick effects
+    // Suits neutral by default - preview only shows active Trick effects
     const clubCnt  = cards.filter(c => c.suit==='♣'||(c.combined&&c.suit2==='♣')).length;
     const heartCnt = cards.filter(c => c.suit==='♥'||(c.combined&&c.suit2==='♥')).length;
     if (clubCnt  && hasTrick('club_double'))  bonusLines.push({ label:'♣ Hard Labour', val:`+${5*(Math.pow(2,clubCnt)-1)} pips`, type:'pip' });
@@ -243,7 +243,7 @@ function render() {
   }
 
   // Buttons
-  // Match-3 auto-plays its matches, so Play is inert there — keep it visibly
+  // Match-3 auto-plays its matches, so Play is inert there - keep it visibly
   // disabled rather than lighting up on a selection it will never submit.
   document.getElementById('btn-play').disabled    = match3Active() || !bestHandResult || (animating && !falling);
   document.getElementById('btn-discard').disabled = selected.length === 0 || (animating && !falling);

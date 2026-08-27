@@ -29,7 +29,7 @@
 @keyframes null-warn-pulse { 0%,100% { opacity: 0.55; } 50% { opacity: 1; } }
 
 /* ── The Quarantine, step 2: the cell is dark. The card underneath is still
-   there and still visible — greyed out under a thick, slowly-moving smoke. ── */
+   there and still visible - greyed out under a thick, slowly-moving smoke. ── */
 .null-cell {
   position: absolute;
   width: var(--card-w, 57px); height: var(--card-h, 75px);
@@ -50,7 +50,7 @@
    that pulses and leaks smoke. The block keeps its box; only the contents swap,
    so the placement rules are untouched.
    Scoped to .rp-block (r160) rather than #run-progress, because there are now
-   TWO progress blocks — the landscape box and the portrait top-bar copy — and
+   TWO progress blocks - the landscape box and the portrait top-bar copy - and
    the sigil has to be the same mark in whichever one the layout is showing. ── */
 .rp-block.boss-sigil .rp-nodes { display: none; }
 .rp-block.boss-sigil .rp-act { color: var(--red); text-shadow: 0 0 8px rgba(192,57,43,0.7); }
@@ -65,7 +65,7 @@
   0%,100% { transform: scale(1);    filter: brightness(1); }
   50%     { transform: scale(1.14); filter: brightness(1.5); }
 }
-/* the ooze — two soft blobs drifting up out of the mark */
+/* the ooze - two soft blobs drifting up out of the mark */
 .rp-block.boss-sigil .rp-sigil::before,
 .rp-block.boss-sigil .rp-sigil::after {
   content: ''; position: absolute; left: 50%; bottom: 60%;
@@ -140,7 +140,7 @@
 
 /* ── The 3-2-1 belongs over the BOARD, not the viewport. #countdown-321-overlay
    was `position:fixed; inset:0` with a 30% top pad, which centred it on the
-   screen — off-centre from the grid in the landscape layout. It is now sized to
+   screen - off-centre from the grid in the landscape layout. It is now sized to
    the grid slot instead. ── */
 #stage.landscape #countdown-321-overlay {
   position: absolute;
@@ -148,10 +148,10 @@
   inset: auto; padding-top: 0;
 }
 
-/* ═══════════════ PAYOUT — LETHE REMITTANCE ADVICE (r150) ═══════════════
+/* ═══════════════ PAYOUT - LETHE REMITTANCE ADVICE (r150) ═══════════════
    The payout panel was the last screen still wearing the pre-cabinet look:
    Cinzel on a transparent field, no frame, nothing tying it to the terminal.
-   It is now a printed statement from the machine — plastic frame, phosphor rule,
+   It is now a printed statement from the machine - plastic frame, phosphor rule,
    monospaced figures. Overrides only; the animation classes (.show on each line,
    the counters, the ff button) are untouched so interlude.js keeps working. */
 
@@ -222,12 +222,12 @@
 }
 
 /* ══════════════════════════════════════════════
-   BOSS APPROACH (r177) — js/boss-approach.js
+   BOSS APPROACH (r177) - js/boss-approach.js
    ══════════════════════════════════════════════
    Everything scales off ONE custom property, --ba-t (0 → 1 across the warning
    window), published on #stage by _baPaint(). That is what makes this work in
    both orientations with no per-layout rule: nothing here is positioned in stage
-   percentages, it is all filters and an inset overlay on #grid — and #grid is the
+   percentages, it is all filters and an inset overlay on #grid - and #grid is the
    board in portrait and landscape alike.
 
    The drain goes on #stage rather than on #grid alone because the point is that
@@ -238,7 +238,7 @@
    itself is never played in greyscale. */
 /* The drain is an EXPLICIT LIST, not a single filter on #stage, and that is
    deliberate. A `filter` makes its element the containing block for every
-   position:fixed descendant — and #stage contains the Mart, the pause menu, the
+   position:fixed descendant - and #stage contains the Mart, the pause menu, the
    pick screen and half a dozen other fixed overlays, any of which the player can
    open during these thirty seconds. Draining #stage wholesale would silently
    re-anchor them to the stage box. Every element below is a leaf of the HUD with
@@ -327,7 +327,7 @@
 
 /* The replacement quota is stamped in, so it is seen arriving rather than just
    being different. Applied to #score-left, which is the GOAL chip in BOTH
-   orientations (landscape places it absolutely, portrait grids it — either way
+   orientations (landscape places it absolutely, portrait grids it - either way
    the element is the same one). */
 .ba-goal-pop { animation: ba-goal-stamp 0.62s cubic-bezier(.3,1.4,.5,1); }
 @keyframes ba-goal-stamp {

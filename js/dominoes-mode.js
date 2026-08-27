@@ -1,12 +1,12 @@
 // ══════════════════════════════════════════════
-// DOMINOES MODE — runtime subsystem
+// DOMINOES MODE - runtime subsystem
 // ══════════════════════════════════════════════
 // Fully isolated from Normal mode. The shared entry points (render, playHand,
 // doDiscard, initGridData, startGame grid-sizing) route here when
 // ACTIVE_MODE.id === 'dominoes'; otherwise none of this runs.
 //
 // Board model (separate from Normal's gridData):
-//   dominoGrid[r][c] = pieceId | null      — cell occupancy, for gravity/gaps
+//   dominoGrid[r][c] = pieceId | null      - cell occupancy, for gravity/gaps
 //   dominoPieces[id] = { id, a, b, orient:'h'|'v', cells:[[r,c],[r,c]] }
 //     - cells[0] is the top/left half (shows value `a`); cells[1] shows `b`.
 // One <div data-domino-id> is rendered per piece, spanning its two cells.
@@ -14,7 +14,7 @@
 let dominoGrid     = [];
 let dominoPieces   = {};
 let dominoDeck     = [];
-let dominoSelected = [];   // piece ids, max 3 — must stay orthogonally connected
+let dominoSelected = [];   // piece ids, max 3 - must stay orthogonally connected
 let dominoSwapPending = null; // piece id armed for a swap
 let _dpieceId      = 0;
 let _domLastTapId  = null;
@@ -25,7 +25,7 @@ const DOMINO_COLS = 7;
 
 // True while the Dominoes mode is the active game. Used to gate the shared
 // engine's legacy timer progression (shops/bosses off the 20-minute game clock),
-// exactly as match3Active() does — Dominoes runs its own round-goal loop.
+// exactly as match3Active() does - Dominoes runs its own round-goal loop.
 function dominoActive() { return !!ACTIVE_MODE?.dominoes; }
 
 function _domWait(ms) { return new Promise(res => setTimeout(res, ms)); }
@@ -166,7 +166,7 @@ function dominoRenderBoard() {
     // Size the piece to its two-cell footprint, then inset the SHORT axis so the
     // tile reads as a true 2:1 domino centred in that footprint. The inset is
     // computed here (not as a CSS %) because percentage padding always resolves
-    // against the element's WIDTH — as vertical padding on a wide horizontal tile
+    // against the element's WIDTH - as vertical padding on a wide horizontal tile
     // that collapsed the body to a hairline.
     if (p.orient === 'h') {
       const W = 2 * CARD_W + CARD_GAP, H = CARD_H;
@@ -404,7 +404,7 @@ function dominoAdvanceLevel() {
   if (typeof syncFocusMeterState === 'function') syncFocusMeterState();
   const lv = document.getElementById('level-display'); if (lv) lv.textContent = level;
   if (typeof updateScoreUI === 'function') updateScoreUI();
-  showMessage('Round ' + level + ' — goal ' + roundGoal.toLocaleString(), 'var(--gold)');
+  showMessage('Round ' + level + ' - goal ' + roundGoal.toLocaleString(), 'var(--gold)');
   dominoInitBoard();
   dominoRenderBoard();
   const rr = (typeof computeRoundResources === 'function') ? computeRoundResources() : { seconds: ROUND_DURATION };

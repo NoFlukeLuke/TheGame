@@ -1,5 +1,5 @@
 // ══════════════════════════════════════════════════════════════════════════
-// LETHE MART — the off-grid shop (r127). Built into the game as a full overlay.
+// LETHE MART - the off-grid shop (r127). Built into the game as a full overlay.
 // Routed from triggerShop() when USE_MART_SHOP. The old overlay + on-grid shops
 // stay as fallbacks. Fancy features (Spotlight / Wheel / Tools / drag-to-freeze)
 // are visible but WIP placeholders for now; core buying/reroll/leave is real.
@@ -7,7 +7,7 @@
 
 let USE_MART_SHOP = true;
 let martActive    = false;
-let martCats      = [];      // e.g. ['tricks','sleights','limits'] — 3 of 4, tricks always featured
+let martCats      = [];      // e.g. ['tricks','sleights','limits'] - 3 of 4, tricks always featured
 let martStock     = {};      // { tricks:[payload…], sleights:[…], limits:[…], knacks:[…] }
 let martCart      = [];      // ['tricks-0', 'sleights-2', …] keys into martStock
 let martRerollN   = 0;
@@ -17,7 +17,7 @@ let martRerollN   = 0;
 // knack doubles the rate AND the cap (10%/item, up to 40%).
 //
 // The cap used to be rate × Selection Size, and the CART was capped at Selection
-// Size too — so how many cards you can pick for a poker hand decided how much you
+// Size too - so how many cards you can pick for a poker hand decided how much you
 // could buy. Two unrelated things. The cart is uncapped now; only the discount
 // stops growing.
 function martDiscountRate() {
@@ -31,7 +31,7 @@ function martDiscountCap() {
 function martDiscountPct(n) {
   return Math.max(0, Math.min(martDiscountRate() * (n - 1), martDiscountCap()));
 }
-// The DISCOUNT rounds down (owner's call), so the total rounds up — the store
+// The DISCOUNT rounds down (owner's call), so the total rounds up - the store
 // never gives away a fractional credit. Both figures come from here so the
 // receipt, the tile prices and the actual charge can never disagree.
 function martCartBase(cart) {
@@ -80,7 +80,7 @@ function martLimitStock(count){
 
 // The Mart's stock runs on a POSITIONAL seeded stream keyed by shop-visit index,
 // so the Nth shop of a seed always offers the same catalog. Rerolls deliberately
-// sit OUTSIDE it (see martReroll) — a reroll is a player action, and rerolling
+// sit OUTSIDE it (see martReroll) - a reroll is a player action, and rerolling
 // into the same shelves would make the button pointless.
 function buildMartStock() {
   // Keyed by (visit, reroll count): a reroll is deterministic for a seed but does
@@ -90,19 +90,19 @@ function buildMartStock() {
 }
 function _buildMartStock() {
   // All four shelves, every visit, three items each (owner's spec: 3 Tricks,
-  // 3 Knacks, 3 Sleights — Limits keeps its shelf on the same count). The old
+  // 3 Knacks, 3 Sleights - Limits keeps its shelf on the same count). The old
   // "3 categories out of 4, picked at random" is gone: it made a shelf you were
   // saving up for simply not exist, and it broke pinning, whose keys are
   // <category>-<index>.
   martCats = ['tricks', 'sleights', 'knacks', 'limits'];
   martStock = {};
   // Survival has no reward grid, so reward-grid-only entities are filtered out here
-  // too — otherwise the Mart could sell a item that does nothing in this mode.
+  // too - otherwise the Mart could sell a item that does nothing in this mode.
   const _ok = p => typeof survivalEntityBanned !== 'function' || !survivalEntityBanned(p.id);
   // …and never offer something you already have. The legacy shop always filtered
   // owned Tricks/Knacks and granted Sleights out of its pools; the Mart replaced
   // it without carrying that over, so it would happily sell you a second copy of
-  // a Knack — and a Knack is a boolean (hasKnack), so the second copy does
+  // a Knack - and a Knack is a boolean (hasKnack), so the second copy does
   // literally nothing. Same story for a duplicate Trick.
   const ownedTricks = new Set((acquiredTricks||[]).map(t => t.id));
   const ownedKnacks = new Set((acquiredKnacks||[]).map(k => k.id));
@@ -123,7 +123,7 @@ function _buildMartStock() {
 // survive a reroll AND leaving and re-entering the shop. The pinned PAYLOAD is
 // stored, not just its key, because a rebuild replaces every object in martStock.
 let martPinMode = false;
-let martPins    = {};        // { 'tricks-0': payload, … } — persists across visits
+let martPins    = {};        // { 'tricks-0': payload, … } - persists across visits
 function martPinCount() { return Object.keys(martPins).length; }
 function martIsPinned(key) { return !!martPins[key]; }
 function martTogglePin(key) {
@@ -141,7 +141,7 @@ function martApplyPins() {
   Object.keys(martPins).forEach(key => {
     const [cat,i] = key.split('-');
     if (martStock[cat] && martStock[cat][+i]) martStock[cat][+i] = martPins[key];
-    else delete martPins[key];        // shelf gone (exhausted) — the pin can't be honoured
+    else delete martPins[key];        // shelf gone (exhausted) - the pin can't be honoured
   });
 }
 function martSetPinModeQuiet(on) {
@@ -217,8 +217,8 @@ const martRar = p => (MART_TIERS.includes(p.rarity) ? p.rarity : 'common');
 // The catalog speaks the REWARD GRID's visual language (r170). Before this the
 // Mart had its own private set of tile designs, so the same Trick looked like
 // one thing on the reward grid and a different thing in the shop. These tiles
-// now reuse the reward grid's own classes — .reward-cell.entity plus the
-// entity-<type> and rar-<rarity> modifiers — which is what carries the neon
+// now reuse the reward grid's own classes - .reward-cell.entity plus the
+// entity-<type> and rar-<rarity> modifiers - which is what carries the neon
 // rarity border, the scanline overlay, the top glare and the knack diamond.
 //
 // It is NOT buildRewardTileInner(): the reward grid deliberately hides a Trick's
@@ -238,7 +238,7 @@ function martEntityInner(p) {
 }
 
 // Can this item still be added? Measured against what the cart has ALREADY
-// committed, and against the total the cart WOULD cost with this item in it —
+// committed, and against the total the cart WOULD cost with this item in it -
 // so the discount an extra item unlocks counts in its favour rather than the
 // tile showing red for a price you can actually afford.
 function martCantAfford(p, key) {
@@ -255,12 +255,12 @@ function martTileHTML(p, key) {
   const cls = ['m-item', 'm-'+p.type, 'r-'+martRar(p), inCart?'in-cart':'', p._sold?'sold':'',
                pinned?'pinned':'', cant&&!inCart&&!p._sold?'cant-afford':'', wanted?'requisitioned':''].filter(Boolean).join(' ');
   const price = `<div class="price ${cant&&!inCart?'cant':''}">${p._sold?'✓':'💰'+p.price}</div>`;
-  const tick  = `<div class="m-tick">✓</div>`;   // shown by .in-cart — see mart.css
+  const tick  = `<div class="m-tick">✓</div>`;   // shown by .in-cart - see mart.css
   const pin   = `<div class="m-pin">📌</div>`;   // shown by .pinned
   let inner;
   if (p.type === 'limit') {
     // A Limit is a numeric upgrade, not a collectible, so it keeps its own wide
-    // bar shape — but on the reward grid's palette rather than its own.
+    // bar shape - but on the reward grid's palette rather than its own.
     inner = `<div class="limit reward-cell entity rar-common"><span class="ico">▲</span>`
           + `<div class="body"><span class="lname">${p.label}</span><span class="lprog">${p.cur} → ${p.next}</span></div></div>`;
   } else {
@@ -290,7 +290,7 @@ function martSectionHTML(cat) {
   if (cat === 'tricks') {
     const held = (typeof trickTrayMode !== 'undefined' && trickTrayMode ? (trickTray||[]) : (acquiredTricks||[])).length;
     const cap  = (typeof trickCapacity === 'function') ? trickCapacity() : 5;
-    if (held >= cap) notice = `<div class="m-sec-notice">⚠ TRICK ALLOCATION FULL — ${held}/${cap} · a purchase requires a replacement</div>`;
+    if (held >= cap) notice = `<div class="m-sec-notice">⚠ TRICK ALLOCATION FULL - ${held}/${cap} · a purchase requires a replacement</div>`;
   }
   return `<div class="m-sec m-sec-${cat}" style="--sc:${meta.sc}">
     <div class="m-sh"><span class="m-sh-l"><i class="m-sh-g">${meta.glyph}</i>${meta.label}</span>`
@@ -305,7 +305,7 @@ function renderMart() {
   renderMartMain();
   renderMartCheckout();
   bindMartItems();
-  // Names must never clip on a tile — hyphenate/shrink to fit (js/fit-text.js).
+  // Names must never clip on a tile - hyphenate/shrink to fit (js/fit-text.js).
   // The selector follows the reward grid's markup now that the tiles do.
   fitEntityNames(document.getElementById('mart-main'), '.m-item .rwd-name', { maxLines: 3 });
   fitEntityNames(document.getElementById('mart-main'), '.m-item .lname', { maxLines: 2 });
@@ -321,7 +321,7 @@ function renderMartLoadout() {
   const trickList = (typeof trickTrayMode!=='undefined' && trickTrayMode) ? (trickTray||[]) : (acquiredTricks||[]);
   const tricks = trickList.map(t => `<div class="mini-trick r-${MART_TIERS.includes(t.tier)?t.tier:'common'}"><span class="a">${trickEmoji(t)}</span></div>`).join('') || '<span class="m-empty">none yet</span>';
   const trickCap = (typeof trickCapacity==='function') ? trickCapacity() : 5;
-  // Current caps, so you can see what you're upgrading without leaving the shop —
+  // Current caps, so you can see what you're upgrading without leaving the shop -
   // and so a bought Limit has somewhere to fly to at checkout.
   const limitChips = LIMITS_DEF.map(d => {
     const l = limits[d.id], maxed = l.current >= l.max;
@@ -337,7 +337,7 @@ function renderMartLoadout() {
       <div class="m-schip" data-act="time">⏱ Time</div><div class="m-schip" data-act="wip">⚙ More·WIP</div>
     </div>`;
   // Stats / Deck work in here now: their overlays sit at z-index 260, above the Mart's 250,
-  // and closeInfoOverlay() skips resumeGame() while a takeover screen owns the clock — so
+  // and closeInfoOverlay() skips resumeGame() while a takeover screen owns the clock - so
   // closing one returns to the shop instead of starting the round behind it.
   el.querySelectorAll('.m-schip').forEach(chip => chip.onclick = () => {
     const a = chip.dataset.act;
@@ -351,7 +351,7 @@ function renderMartLoadout() {
 function renderMartMain() {
   const el = document.getElementById('mart-main'); if (!el) return;
   // The top strip used to hold Spotlight (WIP, inert), SPIN and the Freezer
-  // (WIP, inert) — two thirds of the most valuable space on the screen doing
+  // (WIP, inert) - two thirds of the most valuable space on the screen doing
   // nothing. It is now the PIN control, which is real, and SPIN has moved down
   // into Tools where the other services live.
   const pinned = martPinCount();
@@ -359,7 +359,7 @@ function renderMartMain() {
     <div class="m-pinbar ${martPinMode?'on':''}" id="mart-pin-toggle">
       <span class="pb-ico">📌</span>
       <span class="pb-body">
-        <span class="pb-title">${martPinMode ? 'PIN MODE — TAP ITEMS TO HOLD' : 'PIN ITEMS'}</span>
+        <span class="pb-title">${martPinMode ? 'PIN MODE - TAP ITEMS TO HOLD' : 'PIN ITEMS'}</span>
         <span class="pb-sub">${martPinMode ? 'tap PIN again when you are done' : 'held through rerolls and between visits'}</span>
       </span>
       <span class="pb-count">${pinned ? pinned + ' held' : ''}</span>
@@ -374,7 +374,7 @@ function renderMartMain() {
       <div class="td"><span class="m-wheel"></span>Win any item · 1-in-10 jackpot.</div></div>
     <div class="m-tool"><div class="tt"><span>⚡ Recharge Bay</span><span>WIP</span></div><div class="td">Recharge sleights (built later).</div></div>
     <div class="m-tool m-tool-tinker" id="mart-tinker-btn"><div class="tt"><span>✦ Tinker Bench</span><span>💰${tinkerCost()}</span></div>
-      <div class="td">Issue a Sleight a real rank and suit — it starts counting as a card in a hand.</div></div>
+      <div class="td">Issue a Sleight a real rank and suit - it starts counting as a card in a hand.</div></div>
   </div></div>`;
   el.innerHTML = feat + sections + tools;
   document.getElementById('mart-pin-toggle').onclick = () => martSetPinMode(!martPinMode);
@@ -442,7 +442,7 @@ function bindMartItems() {
   const tink = document.getElementById('mart-tinker-btn');
   if (tink) tink.onclick = martOpenTinker;
   // EVERY tile gets a tooltip now. Previously only Limits did, which meant three
-  // of the four catalog categories — nearly everything you browse — had none.
+  // of the four catalog categories - nearly everything you browse - had none.
   main.querySelectorAll('.m-item').forEach(it => {
     const key = it.dataset.key;
     const [cat,i] = key.split('-'); const p = martStock[cat][+i];
@@ -452,8 +452,8 @@ function bindMartItems() {
 }
 
 // ── one gesture handler per tile: tap / hover / long-press / drag ────────────
-// This used to be TWO overlapping systems — an `onclick` that added to the cart,
-// plus attachEntityTooltip()'s own pointer listeners, plus a drag handler — all
+// This used to be TWO overlapping systems - an `onclick` that added to the cart,
+// plus attachEntityTooltip()'s own pointer listeners, plus a drag handler - all
 // on the same element, each unaware of the others. That is what made the shop
 // feel finicky. Now one handler owns the whole gesture and decides at pointerup
 // what it was.
@@ -464,7 +464,7 @@ function bindMartItems() {
 //
 // TOUCH: tap → toggle cart. press-and-hold → tooltip. Dragging is deliberately
 // NOT wired on touch: the catalog scrolls, so the browser claims any touch that
-// moves and fires pointercancel at us — the old drag could not work on a phone
+// moves and fires pointercancel at us - the old drag could not work on a phone
 // and silently did nothing. Forcing it would need touch-action:none on every
 // tile, which costs you the ability to scroll the catalog by swiping a tile.
 // Tap is one gesture and always works, so that is the route on touch.
@@ -474,7 +474,7 @@ const MART_LONGPRESS_MS = 420;
 function attachMartTileGesture(tile, key, p) {
   const payload = () => martTooltipPayload(p);
 
-  // Hover tooltip — mouse only. pointerenter fires for touch too, which used to
+  // Hover tooltip - mouse only. pointerenter fires for touch too, which used to
   // pop the tooltip on every tap.
   tile.addEventListener('pointerenter', e => { if (e.pointerType !== 'touch') showEntityTooltip(tile, payload()); });
   tile.addEventListener('pointerleave', e => { if (e.pointerType !== 'touch') hideEntityTooltip(); });
@@ -500,7 +500,7 @@ function attachMartTileGesture(tile, key, p) {
       if (ev.pointerId !== st.id) return;
       const dx = ev.clientX - st.x, dy = ev.clientY - st.y;
       if (!st.moved && Math.hypot(dx, dy) < MART_DRAG_SLOP) return;
-      clearLp();                              // moved — this is not a long-press
+      clearLp();                              // moved - this is not a long-press
       if (touch) return;                      // touch never drags (see note above)
       if (!st.moved) {
         st.moved = true;
@@ -539,7 +539,7 @@ function attachMartTileGesture(tile, key, p) {
         return;
       }
       if (st.held) return;                                // a long-press: tooltip only
-      // A tap / click. Confirm the pointer actually lifted on this tile — the
+      // A tap / click. Confirm the pointer actually lifted on this tile - the
       // browser's own click event would not fire if it had not, and we are
       // standing in for that click.
       const r = tile.getBoundingClientRect();
@@ -588,7 +588,7 @@ function martToggleCart(key) {
   const at = martCart.indexOf(key);
   if (at >= 0) martCart.splice(at,1);
   else {
-    // No cart cap. It used to stop at your Selection Size (3 at run start) — how
+    // No cart cap. It used to stop at your Selection Size (3 at run start) - how
     // many CARDS you can pick for a poker hand, which has nothing to do with
     // shopping and meant you could never buy a fourth thing in one visit. Only
     // the DISCOUNT stops growing now; the cart itself is limited by your wallet.
@@ -600,7 +600,7 @@ function martToggleCart(key) {
 }
 
 // Not enough credits: say so loudly and do nothing. Nothing is charged and
-// nothing enters the cart — the wallet and the offending price both pop, so the
+// nothing enters the cart - the wallet and the offending price both pop, so the
 // refusal points at the two numbers that caused it.
 function martRejectPurchase(key) {
   try { sfxRewardBad && sfxRewardBad(); } catch(e){}
@@ -612,7 +612,7 @@ function martRejectPurchase(key) {
   showMessage('Insufficient credits', 'var(--red)');
 }
 
-// Where a bought item lands in the loadout column — the same idea as the reward
+// Where a bought item lands in the loadout column - the same idea as the reward
 // grid's rewardTargetEl, pointed at the Mart's own panels.
 function martTargetEl(p) {
   const q = sel => document.querySelector('#mart-loadout ' + sel);
@@ -656,7 +656,7 @@ function flyMartTile(tileEl, p) {
 let martCheckingOut = false;
 async function martCheckout() {
   if (!martCart.length || martCheckingOut) return;
-  // The discount is applied ONCE, to the whole cart — not per item as it lands.
+  // The discount is applied ONCE, to the whole cart - not per item as it lands.
   // Cleaner arithmetic (one rounding, on the total) and it matches the receipt
   // the player just read.
   const { total } = martCartTotals();
@@ -664,7 +664,7 @@ async function martCheckout() {
   martCheckingOut = true;
   coins -= total; updateCoinsUI();
 
-  // One at a time, each flying to where it actually goes — the reward grid's
+  // One at a time, each flying to where it actually goes - the reward grid's
   // resolve reads as "the board hands you your winnings", and checkout should
   // read the same way. The buy fires as the item lands, so the loadout panel
   // updates on impact.
@@ -676,11 +676,11 @@ async function martCheckout() {
     if (!p || p._sold) continue;
     const tile = document.querySelector(`#mart-main .m-item[data-key="${key}"]`);
     await flyMartTile(tile, p);
-    // A grant that throws used to be logged to the console and forgotten — you
+    // A grant that throws used to be logged to the console and forgotten - you
     // had paid and received nothing, silently. Refund that item's share instead.
     let ok = true;
     if (typeof p.buy === 'function') { try { p.buy(); } catch(e){ ok = false; console.error('[MART] buy failed', e); } }
-    if (!ok) { refund += p.price; showMessage(`${p.label} unavailable — refunded`, 'var(--red)'); continue; }
+    if (!ok) { refund += p.price; showMessage(`${p.label} unavailable - refunded`, 'var(--red)'); continue; }
     p._sold = true;
     delete martPins[key];                      // a bought item no longer needs holding
     renderMartLoadout();                       // panel reflects the new item immediately
@@ -688,14 +688,14 @@ async function martCheckout() {
   }
   if (refund) { coins += refund; updateCoinsUI(); }
 
-  showMessage(`Bought ${bought.length - (refund?1:0)} — 💰${total - refund}`, 'var(--gold)');
+  showMessage(`Bought ${bought.length - (refund?1:0)} - 💰${total - refund}`, 'var(--gold)');
   martCart = [];
   martCheckingOut = false;
   renderMart();
   // Checking out no longer ends the visit. With the cart uncapped you may well
   // want a second basket, and being ejected the moment you buy anything was the
   // other half of the "you can only buy three things" problem.
-  showMessage('Still open — press Leave when you are done', 'var(--cream-dim)');
+  showMessage('Still open - press Leave when you are done', 'var(--cream-dim)');
 }
 function martReroll() {
   if (martCheckingOut) return;
@@ -711,25 +711,25 @@ function martReroll() {
   renderMart();
 }
 
-// ── slow, slight float on every shop item — shared driver, see js/float-anim.js.
+// ── slow, slight float on every shop item - shared driver, see js/float-anim.js.
 // Frozen and sold tiles hold still (a frozen item stopping its drift is the tell).
 const MART_FLOAT_SEL = '#mart-overlay .m-item';
 function startMartFloat() { startFloat('mart', MART_FLOAT_SEL, el => el.classList.contains('frozen') || el.classList.contains('sold')); }
 function stopMartFloat()  { stopFloat('mart'); clearFloat(MART_FLOAT_SEL); }
 
 // ══════════════════════════════════════════════════════════════════════════
-// TINKER BENCH (r175) — issue a Sleight a playing identity
+// TINKER BENCH (r175) - issue a Sleight a playing identity
 // ══════════════════════════════════════════════════════════════════════════
 // A Sleight lives in the deck, falls, swaps and gets discarded like a card, but
 // it has never BEEN one: hand detection skips it. The bench stamps a real rank
 // and suit onto one you own, and from then on it counts as an ordinary card in
-// a hand ON TOP of whatever it already does — so a Whetstone can be part of the
+// a hand ON TOP of whatever it already does - so a Whetstone can be part of the
 // pair it is buffing.
 //
 // Wildcards are refused rather than priced: a wild rank already reads as whatever
 // makes the best hand, so pinning it to a 7 would be paying to make it worse.
 // Their face says W over ∞ and the bench lists them as already-issued.
-let martTinkerN = 0;                 // identities issued this run — the price climbs
+let martTinkerN = 0;                 // identities issued this run - the price climbs
 
 function tinkerCost() { return BAL.tinker_identity.cost + martTinkerN * BAL.tinker_identity.cost_step; }
 
@@ -757,7 +757,7 @@ function martOpenTinker() {
   el.innerHTML = `<div class="tk-box">
     <div class="tk-bar"><span>✦ TINKER BENCH · IDENTITY ISSUE</span><button class="tk-x" aria-label="Close">&#10005;</button></div>
     <div class="tk-lead">Stamp a rank and suit onto a Sleight. It keeps everything it already does and
-      <b>starts counting as a normal card in a hand</b>. Wildcards cannot be issued — they already read as anything.</div>
+      <b>starts counting as a normal card in a hand</b>. Wildcards cannot be issued - they already read as anything.</div>
     <div class="tk-list">${rows}</div>
     <div class="tk-foot"><span>fee</span><b class="tk-fee">💰${cost}</b></div>
   </div>`;

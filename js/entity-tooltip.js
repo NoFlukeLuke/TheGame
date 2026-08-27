@@ -1,5 +1,5 @@
 // ══════════════════════════════════════════════════════════════════════════
-// ENTITY TOOLTIP — one tooltip for every entity surface (shop, wheel, reward
+// ENTITY TOOLTIP - one tooltip for every entity surface (shop, wheel, reward
 // grid, trays). Replaces the per-screen tooltips that each had to be wired by
 // hand, which is why most of the Mart had none at all.
 //
@@ -10,7 +10,7 @@
 //     tooltip, so the vocabulary is never assumed.
 //
 //  2. SPACE-AWARE PLACEMENT. It measures the gap on all four sides of the anchor
-//     and opens into whichever has the most room — horizontally first, then it
+//     and opens into whichever has the most room - horizontally first, then it
 //     clamps vertically. The definition rail goes on the tooltip's outer side,
 //     flipping to the other side if that would run off screen.
 // ══════════════════════════════════════════════════════════════════════════
@@ -79,8 +79,8 @@ function hideEntityTooltip() {
   _etHideTimer = setTimeout(() => { if (_etEl) _etEl.classList.remove('show'); }, 60);
 }
 
-// Open into whichever side has the most room. Horizontal first — the definition
-// rail makes the tooltip wide, so left/right is the decision that matters — then
+// Open into whichever side has the most room. Horizontal first - the definition
+// rail makes the tooltip wide, so left/right is the decision that matters - then
 // clamp vertically, preferring to centre on the anchor.
 function placeEntityTooltip(anchorEl, el) {
   const GAP = 12, PAD = 8;

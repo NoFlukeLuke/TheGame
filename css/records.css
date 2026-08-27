@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════
-   RECORDS — combined info hub (r155)
+   RECORDS - combined info hub (r155)
    Lives OUTSIDE #stage (appended to body) for the same reason as the dev panel and
    the pop-ups: inside the stage it would inherit the cabinet's CSS `zoom`.
    ══════════════════════════════════════════════ */
@@ -198,22 +198,30 @@
 .rec-row-v { font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--c-yellow, #ffce2b); text-align: right; }
 .rec-row-v i { color: var(--cream-dim, #8a7d60); font-size: 9px; font-style: normal; }
 
-/* ── Hands tab (r177): the rate card — pips / mult / focus per hand type ── */
+/* ── Hands tab: pips / mult / focus per hand type ──
+   Column widths are in ch so they track the font instead of guessing pixels,
+   which is what keeps the name column readable down to a 360px phone. */
 .rec-hand {
-  display: grid; grid-template-columns: 1fr 52px 52px 52px 64px;
-  gap: 6px; align-items: baseline; padding: 4px 6px;
+  display: grid; grid-template-columns: minmax(0, 1fr) 4.5ch 4.5ch 4ch 6ch;
+  gap: 8px; align-items: baseline; padding: 4px 6px;
   border-bottom: 1px solid rgba(58, 48, 32, 0.5);
 }
 .rec-hand:last-child { border-bottom: none; }
-.rec-hand .rh-n { font-family: 'Cinzel', serif; font-size: 12px; color: var(--cream); }
+.rec-hand .rh-n { font-family: 'Cinzel', serif; font-size: 12px; color: var(--cream);
+                  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .rec-hand .rh-v { font-family: 'Share Tech Mono', monospace; font-size: 12px; text-align: right; }
 .rec-hand .rh-p { color: #8fb7ff; }
 .rec-hand .rh-m { color: #ff8f8f; }
 .rec-hand .rh-f { color: var(--c-purple, #b07dff); }
 .rec-hand .rh-b { color: var(--gold); font-weight: 700; }
-/* Not scored in this mode — dimmed, but still listed, so the absence is information. */
-.rec-hand.locked { opacity: 0.4; }
-.rec-hand.locked .rh-b { color: var(--cream-dim); }
+/* Not scored in this mode. The row stays so the absence is visible, but it
+   carries no numbers to compare against, so it spans the value columns. */
+.rec-hand.off .rh-n { color: var(--cream-dim); }
+.rec-hand.off { grid-template-columns: minmax(0, 1fr) auto; }
+.rec-hand .rh-off {
+  font-family: 'Orbitron', sans-serif; font-size: 8px; letter-spacing: 1px;
+  text-transform: uppercase; color: var(--cream-dim); opacity: 0.75; text-align: right;
+}
 .rec-hand-head { border-bottom: 1px solid var(--gold-dim); margin-bottom: 2px; }
 .rec-hand-head span {
   font-family: 'Orbitron', sans-serif; font-size: 8px; letter-spacing: 1px;

@@ -1,10 +1,10 @@
 // ══════════════════════════════════════════════
-// RECORDS — the combined info hub (r155)
+// RECORDS - the combined info hub (r155)
 // ══════════════════════════════════════════════
 // Replaces the four separate secondary chips (Stats / Deck / Time / Limits) with a
 // single large tabbed pop-up that PAUSES the round while it is open. Tabs:
 //   DECK · TIME · LIMITS · PERFORMANCE · PERSONNEL FILE
-// Each tab is a render function in RECORDS_TABS — adding a tab is one entry.
+// Each tab is a render function in RECORDS_TABS - adding a tab is one entry.
 
 let recordsOpen = false;
 let recordsTab  = 'deck';
@@ -12,7 +12,7 @@ let recordsTab  = 'deck';
 const RECORDS_TABS = [
   { id: 'deck',      label: 'Deck',           icon: '🂠', render: () => recordsRenderDeck() },
   { id: 'hands',     label: 'Hands',          icon: '♠', render: () => recordsRenderHands() },
-  { id: 'personnel', label: 'Personnel File', icon: '📁', render: () => recordsRenderPersonnel() },
+  { id: 'personnel', label: 'Owned',          icon: '📁', render: () => recordsRenderPersonnel() },
   { id: 'limits',    label: 'Limits',         icon: '▲', render: () => recordsRenderLimits() },
   { id: 'time',      label: 'Time',           icon: '⏱', render: () => recordsRenderTime() },
   { id: 'stats',     label: 'Performance',    icon: '📈', render: () => recordsRenderStats() },
@@ -25,7 +25,7 @@ function recordsOverlay() {
     el.id = 'records-overlay';
     el.innerHTML = `<div id="records-panel">
         <div id="records-head">
-          <div class="rec-brand"><span class="rec-dot"></span>LETHE CORP · RECORDS</div>
+          <div class="rec-brand"><span class="rec-dot"></span>RECORDS</div>
           <button id="rec-close" onclick="closeRecords()">✕</button>
         </div>
         <div id="records-tabs"></div>
@@ -69,11 +69,11 @@ function renderRecords() {
 }
 
 // ══════════════════════════════════════════════
-// DECK TAB — a real deck read-out (r155 overhaul)
+// DECK TAB - a real deck read-out (r155 overhaul)
 // ══════════════════════════════════════════════
 // The old view was a flat list of rank chips, which told you almost nothing. This
 // one answers the question you actually have mid-round: WHAT IS LEFT TO DRAW, and
-// which of my cards are buffed. It is a rank × suit matrix — every cell is one card
+// which of my cards are buffed. It is a rank × suit matrix - every cell is one card
 // of the deck, coloured by where that card currently is (draw pile / grid / played),
 // and flagged if it carries permanent pips or mult.
 function recordsDeckCensus() {
@@ -101,7 +101,7 @@ function recordsRenderDeck() {
       const w = where[k];
       const pp = permPips[k] || 0, pm = permMult[k] || 0;
       const cls = ['rec-deck-cell', w ? 'w-' + w : 'w-gone', pp ? 'has-pip' : '', pm ? 'has-mult' : ''].filter(Boolean).join(' ');
-      const tip = `${rk}${s} — ${w === 'draw' ? 'in draw pile' : w === 'grid' ? 'on the board' : w === 'played' ? 'played (returns next round)' : 'not in deck'}` +
+      const tip = `${rk}${s} - ${w === 'draw' ? 'in draw pile' : w === 'grid' ? 'on the board' : w === 'played' ? 'played (returns next round)' : 'not in deck'}` +
                   `${pp ? ` · +${pp} pips` : ''}${pm ? ` · +${pm} mult` : ''}`;
       const marks = (pp ? '<i class="rec-m rec-m-p"></i>' : '') + (pm ? '<i class="rec-m rec-m-m"></i>' : '');
       return `<span class="${cls}" title="${tip}">${rk}${marks}</span>`;
@@ -111,7 +111,7 @@ function recordsRenderDeck() {
       <span class="rec-deck-suit ${suitClass(s)}">${s}<b>${remaining}</b></span>${cells}</div>`;
   }).join('');
 
-  // Remaining-by-rank bar (what is still drawable) — the planning tool.
+  // Remaining-by-rank bar (what is still drawable) - the planning tool.
   const rankBars = ACTIVE_RANKS.map(rk => {
     const left = suits.filter(s => where[cardKey(rk, s)] === 'draw').length;
     const pct = Math.round((left / suits.length) * 100);
@@ -120,7 +120,7 @@ function recordsRenderDeck() {
       <span class="rec-bar-v">${left}</span></div>`;
   }).join('');
 
-  // Sleights are deck cards too — list them with charges left.
+  // Sleights are deck cards too - list them with charges left.
   const sleightCards = [];
   drawPile.forEach(c => { if (c._isSleight) sleightCards.push([c, 'draw']); });
   playedPile.forEach(c => { if (c._isSleight) sleightCards.push([c, 'played']); });
@@ -163,7 +163,7 @@ function recordsRenderDeck() {
 }
 
 // ══════════════════════════════════════════════
-// PERSONNEL FILE — every owned entity, description shown by default
+// PERSONNEL FILE - every owned entity, description shown by default
 // ══════════════════════════════════════════════
 function recordsEntityCard(icon, name, tag, desc, cls) {
   const d = (typeof colorizeKeywords === 'function') ? colorizeKeywords(withSuitHalo(desc || '')) : (desc || '');
@@ -200,7 +200,7 @@ function recordsRenderPersonnel() {
     : `<div class="rec-empty">No Knacks on file.</div>`;
 
   return `
-    <div class="rec-note">Active personnel and equipment. Descriptions reflect current values — the clock is held while this file is open.</div>
+    <div class="rec-note">Active personnel and equipment. Descriptions reflect current values - the clock is held while this file is open.</div>
     <div class="rec-h">Tricks <span class="rec-h-note">${tricks.length}${typeof trickCapacity === 'function' ? ' / ' + trickCapacity() : ''}</span></div>
     <div class="rec-ents">${trickHTML}</div>
     <div class="rec-h">Sleights <span class="rec-h-note">${owned.length}</span></div>
@@ -229,7 +229,7 @@ function recordsRenderLimits() {
 
 function recordsRenderTime() {
   if (typeof updateInteractCosts === 'function') updateInteractCosts(); // refresh the hidden pop-up's values
-  const g = id => document.getElementById(id)?.textContent ?? '—';
+  const g = id => document.getElementById(id)?.textContent ?? '·';
   const dur = (typeof currentRoundDuration === 'function') ? currentRoundDuration() : ROUND_DURATION;
   const cap = Math.max(dur, limits.round_time.current) - (roundPenaltySeconds || 0);
   const fmt = s => (typeof formatTime === 'function') ? formatTime(Math.max(0, s)) : `${s}s`;
@@ -250,48 +250,54 @@ function recordsRenderTime() {
 }
 
 // ── HANDS ──
-// The rate card: which hand types this mode actually scores, and what each one is
-// worth before anything modifies it.
+// What each hand is worth. Read LIVE from HAND_BASE / HAND_FOCUS, never from a
+// written-out table: both are global and modes overwrite them, so a written copy
+// drifts. Spectrum zeroes Flush of 3, and this screen shows that.
 //
-// Read LIVE from HAND_BASE / HAND_FOCUS rather than from a written-out table.
-// That matters because those two are global and modes overwrite them —
-// applyModeHandValues() zeroes Flush of 3 in Spectrum, so the older hardcoded
-// HAND_FORMULAS strings in js/stats.js state a payout that mode does not pay.
-// Reading the tables means this screen cannot say something the scorer won't do.
+// A hand the current mode does not score is listed as UNAVAILABLE with no
+// numbers. Showing its numbers greyed invited the reader to compare a price that
+// is not on offer; the row stays so the absence is visible, but it stops
+// pretending to be a quote.
 //
-// `activeHands` holds KEYS (run3, twopair…) while both value tables are keyed by
+// activeHands holds KEYS (run3, twopair) and both value tables are keyed by
 // NAME, so the reverse of HAND_KEY_TO_NAME is what joins them.
 function recordsRenderHands() {
   const nameToKey = {};
   Object.entries(HAND_KEY_TO_NAME).forEach(([k, n]) => { nameToKey[n] = k; });
+  const playable = name => { const k = nameToKey[name]; return !k || activeHands.has(k); };
+
   const rows = Object.keys(HAND_BASE).map(name => {
+    if (!playable(name)) {
+      return `<div class="rec-hand off">
+        <span class="rh-n">${name}</span>
+        <span class="rh-off">Unavailable</span>
+      </div>`;
+    }
     const b     = HAND_BASE[name] || { pips: 0, mult: 0 };
     const focus = HAND_FOCUS[name] || 0;
-    const key   = nameToKey[name];
-    const live  = !key || activeHands.has(key);
-    // pips × mult is the number that actually decides which hand to chase; the
-    // two factors on their own do not compare across rows.
+    // pips x mult is the number that decides which hand to go for; the two
+    // factors on their own do not compare across rows.
     const base  = Math.round((b.pips || 0) * (b.mult || 0));
-    return `<div class="rec-hand${live ? '' : ' locked'}">
-      <span class="rh-n">${live ? '' : '⬡ '}${name}</span>
+    return `<div class="rec-hand">
+      <span class="rh-n">${name}</span>
       <span class="rh-v rh-p">${b.pips}</span>
-      <span class="rh-v rh-m">×${b.mult}</span>
-      <span class="rh-v rh-f">${focus ? '+' + focus : '—'}</span>
+      <span class="rh-v rh-m">x${b.mult}</span>
+      <span class="rh-v rh-f">${focus || 0}</span>
       <span class="rh-v rh-b">${base.toLocaleString()}</span>
     </div>`;
   }).join('');
-  const liveCount = Object.keys(HAND_BASE).filter(n => {
-    const k = nameToKey[n]; return !k || activeHands.has(k);
-  }).length;
-  return `<div class="rec-h">Scoring hands
-      <span class="rec-h-note">${liveCount} of ${Object.keys(HAND_BASE).length} playable in this mode</span></div>
+
+  const all  = Object.keys(HAND_BASE);
+  const live = all.filter(playable).length;
+  return `<div class="rec-h">Hand values
+      <span class="rec-h-note">${live} of ${all.length} score in this mode</span></div>
     <div class="rec-hand rec-hand-head">
       <span class="rh-n">Hand</span><span class="rh-v">Pips</span><span class="rh-v">Mult</span>
-      <span class="rh-v">Focus</span><span class="rh-v">Base</span>
+      <span class="rh-v">Focus</span><span class="rh-v">Score</span>
     </div>
     <div class="rec-hands">${rows}</div>
-    <div class="rec-foot">Base = pips × mult, before card pips, Tricks, Knacks or your Focus
-      multiplier. Focus is what the hand adds to the meter. Greyed rows are not scored in this mode.</div>`;
+    <div class="rec-foot">Score is pips x mult, before your cards' own pips, Tricks,
+      Knacks and your Focus multiplier. Focus is what the hand adds to the meter.</div>`;
 }
 
 function recordsRenderStats() {

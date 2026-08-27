@@ -58,14 +58,14 @@ function playNoise({ gain = 0.05, attack = 0.002, release = 0.06, delay = 0 } = 
 // ── Individual sound designs ──
 
 function sfxCardSelect() {
-  // Soft wooden tap — quick noise burst + low thud (+20% louder)
+  // Soft wooden tap - quick noise burst + low thud (+20% louder)
   playNoise({ gain: 0.084, attack: 0.001, release: 0.05 });
   playTone({ freq: 180, type: 'triangle', gain: 0.108, attack: 0.002,
              decay: 0.04, sustain: 0.1, release: 0.08, duration: 0.06 });
 }
 
 function sfxNoSwaps() {
-  // Descending "nuh-uh" — two short low tones
+  // Descending "nuh-uh" - two short low tones
   playTone({ freq: 220, type: 'square', gain: 0.10, attack: 0.002, decay: 0.04, sustain: 0.1, release: 0.08, duration: 0.1 });
   playTone({ freq: 160, type: 'square', gain: 0.10, attack: 0.002, decay: 0.04, sustain: 0.1, release: 0.08, duration: 0.1, delay: 0.12 });
 }
@@ -79,7 +79,7 @@ function popSwapIndicator() {
 }
 
 function sfxFlipShuffle() {
-  // Rapid card flip/shuffle — quick staggered noise bursts at varying pitches
+  // Rapid card flip/shuffle - quick staggered noise bursts at varying pitches
   const ctx = getAudioCtx();
   const flipCount = 5;
   for (let i = 0; i < flipCount; i++) {
@@ -91,7 +91,7 @@ function sfxFlipShuffle() {
 }
 
 function sfxHandScored(finalScore) {
-  // Ascending chime — pitch and brightness scale with score
+  // Ascending chime - pitch and brightness scale with score
   const base = Math.min(Math.max(finalScore, 10), 2000);
   const rootFreq = 261.6 + (base / 2000) * 400; // C4 to ~E5
   const chord = [1, 1.26, 1.5, 2]; // minor-ish triad + octave
@@ -114,7 +114,7 @@ function sfxHandScored(finalScore) {
 }
 
 function sfxSuccess() {
-  // Brief celebratory chime — major triad arpeggio with bell shimmer
+  // Brief celebratory chime - major triad arpeggio with bell shimmer
   // Distinct from sfxVictory (which is longer/grander)
   const root = 523.3; // C5
   [[1, 0],     // C
@@ -195,13 +195,13 @@ function sfxCountdown321() {
 }
 
 function sfxRoundStart() {
-  // Bright upward swoosh — round begins
+  // Bright upward swoosh - round begins
   playTone({ freq: 440, type: 'sine', gain: 0.15, attack: 0.01, decay: 0.1, sustain: 0.2, release: 0.3, duration: 0.5 });
   playTone({ freq: 880, type: 'sine', gain: 0.08, attack: 0.02, decay: 0.1, sustain: 0.1, release: 0.3, duration: 0.4, delay: 0.08 });
 }
 
 function sfxLevelUp() {
-  // Warm arpeggiated flourish — pentatonic run upward
+  // Warm arpeggiated flourish - pentatonic run upward
   const notes = [261.6, 293.7, 329.6, 392.0, 440.0, 523.3, 659.3];
   notes.forEach((freq, i) => {
     playTone({
@@ -231,7 +231,7 @@ function sfxLevelUp() {
 }
 
 function sfxShopOpen() {
-  // Gentle shimmer — high bell tones with reverb-like tail
+  // Gentle shimmer - high bell tones with reverb-like tail
   const bells = [523.3, 659.3, 783.9, 1046.5];
   bells.forEach((freq, i) => {
     playTone({
@@ -409,7 +409,7 @@ function sfxMultiGoal(count) {
   }
 }
 
-// Focus beat — a swelling tone that resolves into a bright pop, signalling the focus
+// Focus beat - a swelling tone that resolves into a bright pop, signalling the focus
 // multiplier is applying to the mult.
 function sfxFocusBeat() {
   // Low swell
@@ -472,6 +472,6 @@ let devFallSpeed = 1;
 let devAnimSpeed = 5; // t/s for score animation
 let devPanelOpen = false;
 
-// Card counter HUD visibility — default hidden, toggleable via dev panel. Persisted.
+// Card counter HUD visibility - default hidden, toggleable via dev panel. Persisted.
 let showDeckHud = (localStorage.getItem('showDeckHud') === 'true');
 

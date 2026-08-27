@@ -1,5 +1,5 @@
 // ══════════════════════════════════════════════
-// TUTORIAL MODE — LETHE CORP ORIENTATION  (r146)
+// TUTORIAL MODE - LETHE CORP ORIENTATION  (r146)
 // ══════════════════════════════════════════════
 // A guided first run over an ORDINARY run. MODES.tutorial sets
 // `actStructure: true`, so every system is the real one (round → payout →
@@ -10,21 +10,21 @@
 // Two things are pinned rather than random:
 //   1. The run is SEEDED (MODES.tutorial.seed), so orientation is the same
 //      experience for everyone and reproducible when something goes wrong.
-//   2. The FIRST reward grid is scripted — a Trick, a liability and the Mart
-//      destination in a row — because the reward step teaches the path rule by
+//   2. The FIRST reward grid is scripted - a Trick, a liability and the Mart
+//      destination in a row - because the reward step teaches the path rule by
 //      making the player walk one. See tutorialScriptRewardGrid.
 //
 // ── Why it needs almost no hooks in engine code ──
 // The step machine is POLLED, not event-driven: each step declares `when` (hold
 // the step back until true) and `until` (auto-advance when true) as predicates
-// over globals that already exist — `selected`, `handsPlayed`,
+// over globals that already exist - `selected`, `handsPlayed`,
 // `goalReachedThisRound`, `rewardSelected`, `martActive`… One rAF loop
 // evaluates them. Adding or reordering steps means editing TUTORIAL_STEPS and
 // nothing else. Outside this file the total footprint is:
-//   · menu.js         — the MODES.tutorial entry + carousel card
-//   · game-control.js — one call at the end of startGame()
-//   · input.js        — suppress the 2s auto-submit on the "press PLAY" steps
-//   · reward-grid.js  — one call to script the first reward grid
+//   · menu.js         - the MODES.tutorial entry + carousel card
+//   · game-control.js - one call at the end of startGame()
+//   · input.js        - suppress the 2s auto-submit on the "press PLAY" steps
+//   · reward-grid.js  - one call to script the first reward grid
 //
 // ── Why the overlay lives OUTSIDE #stage ──
 // #cabinet/#stage carry a CSS `zoom`. Anything inside them inherits it, which
@@ -35,7 +35,7 @@
 // ── The dim, the holes, and gating ──
 // One full-screen `#tut-dim` whose `clip-path: path(evenodd, …)` cuts N holes
 // out of it. Because a clipped-away region is not hit-testable, the holes let
-// clicks through and the rest of the dim swallows them — so gating a step to
+// clicks through and the rest of the dim swallows them - so gating a step to
 // one control, or to three specific reward tiles, is the same single mechanism.
 // `pointer-events` on the dim is what switches gating on and off.
 
@@ -51,8 +51,8 @@ let _tutClockHeld    = false; // this file's claim on gameTimerPaused
 let tutorialTeachCells = null;  // the hand the board step points at, [[r,c],…]
 let tutorialRewardPlan = null;  // { trick:[r,c], debuff:[r,c], dest:[r,c] } for the scripted grid
 let _tutLastHoles      = [];    // last non-empty hole set, held across re-render gaps
-let tutorialSwapPlan    = null; // { pair:[[r,c],[r,c]], makes:[cells] } — a swap worth making
-let tutorialDiscardPlan = null; // [[r,c],…] — cards in no hand, i.e. what a discard is for
+let tutorialSwapPlan    = null; // { pair:[[r,c],[r,c]], makes:[cells] } - a swap worth making
+let tutorialDiscardPlan = null; // [[r,c],…] - cards in no hand, i.e. what a discard is for
 let _tutSwapMark        = 0;    // lastSwapTime when the swap step opened
 let _tutDiscardMark     = 0;    // cardsDiscardedRound when the discard step opened
 
@@ -60,13 +60,13 @@ let _tutDiscardMark     = 0;    // cardsDiscardedRound when the discard step ope
 // First VISIBLE match wins, so one step can target a landscape widget or its
 // portrait equivalent without branching (#vclock → #clock-area).
 // IMPORTANT: the landscape layout gives several wrappers `display: contents`
-// (#score-panel, #hand-preview-area, #action-col…) — they have no box at all,
+// (#score-panel, #hand-preview-area, #action-col…) - they have no box at all,
 // hence the width test, and hence why the steps below anchor the real
 // positioned widgets (#score-center, #selected-cards, #btn-discard…).
 // NOTE: visibility is tested by the RECT ALONE, deliberately. The obvious check
 // (`offsetParent !== null`) is wrong here twice over: it is null for any
-// position:fixed element — which is what the Limits pop-up and the Mart's panels
-// are — and a `display: contents` wrapper passes it while having no box at all.
+// position:fixed element - which is what the Limits pop-up and the Mart's panels
+// are - and a `display: contents` wrapper passes it while having no box at all.
 // A zero-size rect catches display:none and display:contents together, and lets
 // fixed elements through.
 function tutEl(...sels) {
@@ -97,63 +97,63 @@ function tutRewardPicked(rc) {
 }
 function tutMartOpen()   { return typeof martActive !== 'undefined' && martActive; }
 // `martActive` flips at the TOP of openMart, but the Mart's DOM is built behind
-// the channel-change CRT transition — and mid-transition the markup EXISTS while
+// the channel-change CRT transition - and mid-transition the markup EXISTS while
 // being collapsed to zero size. So readiness is tested with tutEl (which demands
 // a real rect), not getElementById; otherwise the first Mart step fires against a
 // zero-size anchor and lands centred with no spotlight.
 function tutMartReady()  { return tutMartOpen() && !!tutEl('#mart-loadout'); }
 function tutRewardOpen() { return document.body.classList.contains('reward-active'); }
 function tutPayoutEl()   { return document.getElementById('payout-overlay'); }
-// True once every animation/dance has settled — used by `when` so a bubble never
+// True once every animation/dance has settled - used by `when` so a bubble never
 // lands on top of the scoring dance or the round-start deal.
 function tutIdle() { return !animating && !falling && !dealPhase && !danceAbortController; }
 
 // ── The script ───────────────────────────────────────────────────────────────
-// anchor:     () => Element | Element[] | null — each element gets its own hole
+// anchor:     () => Element | Element[] | null - each element gets its own hole
 // side:       bubble placement: right/left/top/bottom, 'center' (veil + centred
 //             card) or 'float' (no dim at all, bubble parked in a corner)
-// corner:     'left' (default) | 'right' — which corner a float step parks in
+// corner:     'left' (default) | 'right' - which corner a float step parks in
 // gate:       block every click outside the holes (forces the taught action)
 // hold:       freeze the round clock while this step is up (read-only steps)
 // noAutoPlay: suppress the 2s auto-submit so the player presses PLAY themselves
 // next:       show a CONTINUE button;  actions: custom buttons instead
-// when:       predicate — hold the step back until true (whenTimeoutMs escape)
-// until:      predicate — auto-advance when true
+// when:       predicate - hold the step back until true (whenTimeoutMs escape)
+// until:      predicate - auto-advance when true
 // onEnter:    run once when the bubble appears
 //
-// VOICE: LETHE Corp staff orientation. Flat, procedural, faintly indifferent to
-// the employee. No mascot, no exclamation marks, no second-person enthusiasm.
+// VOICE: plain and direct. Say what the thing does and what it costs, in the
+// fewest words that stay accurate. No in-world corporate framing, no em dashes.
 const TUTORIAL_STEPS = [
   {
     id: 'welcome', side: 'center', hold: true, next: true,
-    eyebrow: 'Induction',
-    title: 'Welcome, Associate',
-    body: `You have been assigned to an <b>OBLIVISCORE</b> terminal.<br><br>The work is straightforward: form hands from the cards on the board, meet the quota before the clock expires, and proceed to the next assignment.<br><br>This orientation covers terminal operation and takes approximately three minutes. It may be terminated at any point, though we would prefer that it were not.`,
+    eyebrow: 'Getting started',
+    title: 'How this works',
+    body: `Make poker hands out of cards on the board. Reach the score goal before the clock runs out, then do it again with a bigger goal.<br><br>This walkthrough takes about three minutes and covers the whole game. You can quit it any time.`,
   },
   {
     id: 'board',
     anchor: () => tutorialTeachCells ? tutorialTeachCells.map(tutGridCell).filter(Boolean) : tutEl('#grid'),
     side: 'left', gate: true, hold: true, noAutoPlay: true,
-    eyebrow: 'Module 01',
-    title: 'Selecting a hand',
-    body: `Cards are selected by tapping them, or by dragging across them.<br><br>Selected cards must be <b>adjacent</b> — sharing an edge. Diagonals are not recognised by the terminal.<br><br>The cards highlighted here already form a valid hand. <b>Select them.</b>`,
+    eyebrow: 'Basics',
+    title: 'Selecting cards',
+    body: `Tap cards to select them, or drag across them.<br><br>Selected cards have to touch edge to edge. Diagonals do not count.<br><br>The highlighted cards already make a hand. <b>Select them.</b>`,
     onEnter: () => { selected = []; render(); },
     until: () => selected.length >= 2 && !!findBestHand(selected),
   },
   {
     id: 'valuation', anchor: () => tutEl('#score-subboxes'), side: 'bottom',
     gate: true, hold: true, next: true, noAutoPlay: true,
-    eyebrow: 'Module 02',
-    title: 'Valuation',
-    body: `<b>PIPS</b> is drawn from the cards themselves — their face values, added up.<br><br><b>MULT</b> is set by the hand those cards form. Bigger and rarer hands multiply harder.<br><br><b>FOCUS</b> is applied on top of both.<br><br>The three are multiplied together. That product is the hand's score.`,
+    eyebrow: 'Scoring',
+    title: 'How a hand scores',
+    body: `<b>PIPS</b> is your cards' face values added up, plus a bonus for the hand type. Ace is 11, face cards are 10.<br><br><b>MULT</b> comes from the hand type. Harder hands multiply more.<br><br><b>FOCUS</b> multiplies on top of both.<br><br>Score is pips x mult x focus.`,
   },
   {
     id: 'play', anchor: () => tutEl('#btn-play'), side: 'left', gate: true, hold: true, noAutoPlay: true,
-    eyebrow: 'Module 02',
-    title: 'Submission',
-    body: `Press <b>PLAY</b> to submit the hand for valuation.<br><br>A valid selection also submits itself after two seconds of inactivity. The terminal does not wait indefinitely.`,
+    eyebrow: 'Scoring',
+    title: 'Playing a hand',
+    body: `Press <b>PLAY</b> to score the cards you selected.<br><br>A valid selection also plays itself after two seconds if you leave it alone.`,
     // PLAY is disabled without a valid selection and a gated step exposes only
-    // PLAY — so if the selection was lost, restore it rather than strand the
+    // PLAY - so if the selection was lost, restore it rather than strand the
     // player on a dead button.
     onEnter: () => { if (!(selected.length >= 2 && findBestHand(selected))) tutorialSelectTeachingHand(); },
     until: () => handsPlayed >= 1,
@@ -163,21 +163,21 @@ const TUTORIAL_STEPS = [
     // Wait for the scoring dance (~6s) to finish. The layer stays hidden
     // meanwhile, so the count-up plays out undimmed.
     when: () => tutIdle() && handsPlayed >= 1,
-    eyebrow: 'Module 03',
-    title: 'Focus',
-    body: `Focus accrues every time you submit a hand. Two factors set how much:<br><br>— the <b>complexity</b> of the hand submitted<br>— the <b>speed</b> at which you submitted it after the last one<br><br>It drains while the terminal sits idle. Sustained output is rewarded; deliberation is not.`,
+    eyebrow: 'Focus',
+    title: 'The Focus meter',
+    body: `Focus is a multiplier on everything you score. It builds each time you play a hand, based on two things:<br><br>the hand type, since harder hands give more Focus<br>how quickly you played it after the last one<br><br>It drains while you sit still, so keep playing.`,
   },
   {
     id: 'quota', anchor: () => tutEls('#score-center', '#score-left'), side: 'bottom', hold: true, next: true,
-    eyebrow: 'Module 04',
-    title: 'Quota',
-    body: `Your score for the round, and the <b>quota</b> you are required to reach.<br><br>Meeting it ends the round at once. There is no premium for exceeding it, and no partial credit for approaching it.<br><br>Score resets each round. The quota does not.`,
+    eyebrow: 'Scoring',
+    title: 'Score and goal',
+    body: `Your score this round, and the goal you need to hit.<br><br>Reaching the goal ends the round straight away. Going over it earns you nothing extra, and falling short earns you nothing at all.<br><br>Score resets to zero each round. The goal gets bigger.`,
   },
   {
     id: 'clock', anchor: () => tutEl('#vclock', '#clock-area'), side: 'bottom', hold: true, next: true,
-    eyebrow: 'Module 05',
-    title: 'The clock',
-    body: `Submitting hands is free of charge.<br><br>Corrective action is not: a swap is billed <b>4s</b>, a discard <b>3s</b>.<br><br>Time remaining at the end of a round is converted to credits. Unused time is not wasted — it is banked.`,
+    eyebrow: 'The clock',
+    title: 'Time is the cost',
+    body: `Playing a hand is free.<br><br>Fixing the board is not. A swap costs <b>8s</b>. A discard costs <b>3s</b> per card.<br><br>Time still on the clock when you finish a round is paid out as credits, so finishing fast is worth money.`,
   },
   {
     // Interactive. The board was audited at deal time to guarantee an exchange
@@ -186,9 +186,9 @@ const TUTORIAL_STEPS = [
     id: 'swap',
     anchor: () => tutorialSwapPlan ? tutorialSwapPlan.pair.map(tutGridCell).filter(Boolean) : tutEl('#grid'),
     side: 'left', gate: true, hold: true, noAutoPlay: true,
-    eyebrow: 'Module 05',
-    title: 'Corrective action — swap',
-    body: `Two cards may be exchanged if they are adjacent. <b>Double-tap</b> the first, then <b>tap</b> the second.<br><br>These two are highlighted because trading them puts a scoring hand on the board that is not there now.<br><br>A swap is billed <b>4s</b> and draws on your swap allowance.`,
+    eyebrow: 'The clock',
+    title: 'Swapping two cards',
+    body: `Two touching cards can trade places. <b>Double-tap</b> the first, then <b>tap</b> the second.<br><br>These two are highlighted because swapping them creates a hand that is not on the board right now.<br><br>Costs <b>8s</b> and one of your swaps for this round.`,
     onEnter: () => {
       selected = []; swapPending = null;
       tutorialSwapPlan = tutorialFindSwap();
@@ -198,7 +198,7 @@ const TUTORIAL_STEPS = [
     until: () => lastSwapTime !== _tutSwapMark,
   },
   {
-    // Interactive. Points at a card that is in no hand at all — which is the
+    // Interactive. Points at a card that is in no hand at all - which is the
     // honest case for spending a discard.
     id: 'discard',
     anchor: () => {
@@ -207,9 +207,9 @@ const TUTORIAL_STEPS = [
       return cards.length ? [...cards, btn].filter(Boolean) : tutEls('#grid', '#btn-discard');
     },
     side: 'left', gate: true, hold: true, noAutoPlay: true,
-    eyebrow: 'Module 05',
-    title: 'Corrective action — discard',
-    body: `Cards that contribute to nothing can be returned and replaced.<br><br>The highlighted cards are in no hand on this board. <b>Select one, then press DISCARD.</b> Replacements fall in from above.<br><br>A discarded card goes to the <b>back of the deck</b> and you will see it again this round. A card you <b>score</b> is held out until the round ends. Discarding is recycling; scoring is spending.<br><br>Billed per card. Swaps and discards are both rationed per round — the remaining allowance is printed on each control.`,
+    eyebrow: 'The clock',
+    title: 'Discarding cards',
+    body: `Cards you cannot use can be thrown back. The highlighted ones are in no hand on this board. <b>Select one, then press DISCARD.</b> Replacements fall in from above.<br><br>A discarded card goes to the <b>back of the deck</b>, so you will see it again this round. A card you <b>score</b> is set aside until the round ends. Discarding recycles a card, scoring spends it.<br><br>Costs <b>3s</b> per card. You get a limited number of swaps and discards each round, and the number left is printed on each button.`,
     onEnter: () => {
       selected = []; swapPending = null;
       tutorialDiscardPlan = tutorialFindDeadCards();
@@ -220,51 +220,51 @@ const TUTORIAL_STEPS = [
   },
   {
     id: 'limits-btn', anchor: () => tutEl('#btn-records'), side: 'top', gate: true, hold: true,
-    eyebrow: 'Module 06',
-    title: 'Operating limits',
-    body: `Every ration you have just been issued is a <b>limit</b>.<br><br>Open <b>RECORDS</b> — your deck, hands, personnel file, limits and performance, all in one. The clock holds while it is open.`,
+    eyebrow: 'Records',
+    title: 'Open Records',
+    body: `Everything you might need to look up is in one place.<br><br>Open <b>RECORDS</b> for your deck, what each hand pays, what you own, your limits and your stats. The clock stops while it is open.`,
     until: () => !!recordsOpen,
   },
   {
     id: 'limits-panel', anchor: () => tutEl('#records-panel'), side: 'left', hold: true, next: true,
-    eyebrow: 'Module 06',
-    title: 'Your allowances',
-    body: `The <b>LIMITS</b> tab lists them: board size, swaps, discards, round length, Trick slots, rerolls, Focus capacity.<br><br>These are fixed for the run unless raised — purchased at the Mart, or awarded by a <b>Limit Break</b>.<br><br>Associates consistently undervalue them. A raised limit compounds across every remaining round; a single item does not.`,
+    eyebrow: 'Records',
+    title: 'Limits',
+    body: `The <b>LIMITS</b> tab: board size, swaps, discards, round length, Trick slots, rerolls, Focus capacity.<br><br>These stay fixed for the whole run unless you raise them, either by buying an upgrade at the Mart or getting a <b>Limit Break</b>.<br><br>They are easy to underrate. A raised limit helps in every round you play after it. A single item usually does not.`,
     onEnter: () => { if (recordsOpen) recordsSwitchTab('limits'); },
   },
   {
-    // Records stays OPEN across these three steps — they are three tabs of one
+    // Records stays OPEN across these three steps - they are three tabs of one
     // screen, so closing and reopening between them would read as three errands.
     // Only the last one closes it.
     id: 'hands-panel', anchor: () => tutEl('#records-panel'), side: 'left', hold: true, next: true,
-    eyebrow: 'Module 06',
-    title: 'What counts as a hand',
-    body: `The <b>HANDS</b> tab is the rate card, and it is the answer to "what should I be looking for".<br><br>Every hand type this assignment scores is listed: <b>Pair</b>, <b>Two Pair</b>, <b>Three</b> and <b>Four of a Kind</b>, <b>Runs of 3 and 4</b>, a <b>Straight</b>, <b>Flushes of 3, 4 and 5</b>, a <b>Full House</b>, a <b>Straight Flush</b>. Greyed rows are not scored here — a variant assignment prices its hands differently, and this tab always states what the current one pays.<br><br>Each row gives the <b>base pips</b>, the <b>mult</b>, the <b>Focus</b> it adds to the meter, and their product. That product is what to compare: a Pair opens at 40, a Straight Flush at 800. Your cards' own pips, your Tricks and your Focus multiplier all build on top of it.`,
+    eyebrow: 'Records',
+    title: 'What each hand is worth',
+    body: `The <b>HANDS</b> tab answers "what should I be looking for".<br><br>It lists every hand type: <b>Pair</b>, <b>Two Pair</b>, <b>Three</b> and <b>Four of a Kind</b>, <b>Runs of 3 and 4</b>, a <b>Straight</b>, <b>Flushes of 3, 4 and 5</b>, a <b>Full House</b> and a <b>Straight Flush</b>. Rows marked <b>Unavailable</b> do not score in this mode.<br><br>Flushes pay least, because same suit is easy to spot without reading a single rank. Runs pay most, because you have to read every rank and put them in order. Pairs and sets sit between the two.<br><br>The <b>Score</b> column is pips x mult, and it is the number to compare. Your own cards' pips, your Tricks and your Focus all build on top of it.`,
     onEnter: () => { if (recordsOpen) recordsSwitchTab('hands'); },
   },
   {
     id: 'personnel-panel', anchor: () => tutEl('#records-panel'), side: 'left', hold: true, next: true,
-    eyebrow: 'Module 06',
-    title: 'Personnel file',
-    body: `The <b>PERSONNEL FILE</b> is everything currently issued to you — Tricks, Sleights and Knacks — each with its full text, expanded.<br><br>Descriptions read <i>live</i>: a Trick that scales with what you have done this run shows the figure it is actually paying, not the one it was printed with.<br><br>You will accumulate more of these than you can hold in mind. Consult the file. The clock is held while it is open.`,
+    eyebrow: 'Records',
+    title: 'What you own',
+    body: `The <b>OWNED</b> tab lists every Trick, Sleight and Knack you have, with its full description.<br><br>Descriptions update as you play, so a Trick that grows during a run shows what it is actually paying right now, not what it said when you picked it up.<br><br>You will end up holding more of these than you can keep in your head. Check here.`,
     onEnter: () => { if (recordsOpen) recordsSwitchTab('personnel'); },
     onExit: () => closeRecords(),
   },
   {
-    // Two progress blocks since r160 — landscape's box and the portrait top-bar
+    // Two progress blocks since r160 - landscape's box and the portrait top-bar
     // copy. tutEl takes the first VISIBLE one, so no orientation branch is needed.
     id: 'progress', anchor: () => tutEl('#run-progress', '#run-progress-pt'), side: 'left', hold: true, next: true,
-    eyebrow: 'Module 07',
-    title: 'Assignment schedule',
-    body: `Your position in the current contract.<br><br>Five assignments, then a <b>supervisor review</b>. Three acts of the same. Complete the third and your contract is fulfilled.<br><br>Quotas rise at every step. This is not negotiable.`,
+    eyebrow: 'The run',
+    title: 'Where you are',
+    body: `Five rounds, then a <b>boss</b>. Three sets of that, and you win the run.<br><br>The goal goes up every round.`,
   },
   {
     // Float: no dim at all. The associate has to actually work here, so the
     // board cannot sit behind a veil.
     id: 'clear', side: 'float',
-    eyebrow: 'Module 08',
-    title: 'Proceed',
-    body: `The clock is running. Meet the quota — any hands will do.`,
+    eyebrow: 'Your turn',
+    title: 'Go',
+    body: `The clock is running. Reach the goal. Any hands will do.`,
     until: () => goalReachedThisRound,
   },
   {
@@ -273,52 +273,52 @@ const TUTORIAL_STEPS = [
     // to exist: the panel spends ~6s counting up, and a bubble explaining
     // figures that have not appeared yet explains nothing.
     when: () => !!document.querySelector('#po-valued.show'),
-    eyebrow: 'Module 09',
-    title: 'Remuneration',
-    body: `<b>Interest</b> — 10% of the credits you are holding. Balances are rewarded for existing.<br><br><b>Efficiency</b> — 1 credit for every 10 seconds left on the clock.<br><br>Acknowledge the statement to continue.`,
+    eyebrow: 'Payout',
+    title: 'End of round pay',
+    body: `<b>Interest</b> pays 10% of the credits you are holding, so saving up is worth something.<br><br><b>Efficiency</b> pays 1 credit for every 10 seconds left on the clock.`,
     until: () => !tutPayoutEl(),
   },
   {
     id: 'reward-intro', anchor: () => tutEl('#grid'), side: 'left', next: true,
-    // Let the tiles finish dealing in — `rewardDealing` also gates
+    // Let the tiles finish dealing in - `rewardDealing` also gates
     // onRewardCellClick, so showing earlier would invite taps that do nothing.
     when: () => tutRewardOpen() && !rewardDealing,
-    eyebrow: 'Module 10',
-    title: 'Spoils',
-    body: `You are not selecting an item. You are selecting a <b>path</b>.<br><br>Choose a connected run of tiles and you receive <b>everything on it</b> — including what you would rather not.<br><br>Gold assists. Red does not. Placement is not accidental: desirable material is sited behind undesirable material as a matter of policy.`,
+    eyebrow: 'Rewards',
+    title: 'You are picking a path',
+    body: `This is not a pick-one screen. You choose a connected run of tiles and you get <b>everything on it</b>, including the parts you do not want.<br><br>Gold tiles help you. Red tiles hurt. The good ones are deliberately placed behind the bad ones, so most paths cost you something.`,
   },
   {
     id: 'reward-types', anchor: () => tutEl('#grid'), side: 'left', next: true,
-    eyebrow: 'Module 10',
-    title: 'Inventory classes',
-    body: `<b>Tricks</b> — permanent scoring modifiers. Your build.<br><b>Sleights</b> — physical cards inserted into your deck.<br><b>Knacks</b> — rule changes that run for the whole contract.<br><b>Limits</b> — a permanent raise to one allowance.<br><br><b>Liabilities</b> — curses, rationing, stones on the board, theft.<br><br>One tile is a <b>destination</b>. It sets your next assignment: the <b>Mart</b>, or an <b>Event</b> — a single one-off decision screen with no shopping.<br><br>Declining the grid entirely pays a flat <b>SKIP</b> fee.`,
+    eyebrow: 'Rewards',
+    title: 'What is on the grid',
+    body: `<b>Tricks</b> are permanent scoring bonuses. They are most of your build.<br><b>Sleights</b> are special cards shuffled into your deck.<br><b>Knacks</b> change the rules for the rest of the run.<br><b>Limits</b> permanently raise one of your allowances.<br><br><b>Red tiles</b> are the downside: curses, fewer swaps or discards, stones stuck on the board, stolen credits.<br><br>One tile is a <b>destination</b> and decides where you go next, either the <b>Mart</b> to shop or an <b>Event</b>, which is a one-off choice screen.<br><br>You can skip the grid entirely for a flat payment.`,
   },
   {
     id: 'pick-trick', anchor: () => tutRewardCell(tutorialRewardPlan?.trick), side: 'left', gate: true,
-    eyebrow: 'Module 10',
-    title: 'Select the Trick',
-    body: `Begin the path here.`,
+    eyebrow: 'Rewards',
+    title: 'Start here',
+    body: `Tap this tile to start the path.`,
     until: () => tutRewardPicked(tutorialRewardPlan?.trick),
   },
   {
     id: 'pick-debuff', anchor: () => tutRewardCell(tutorialRewardPlan?.debuff), side: 'left', gate: true,
-    eyebrow: 'Module 10',
-    title: 'The liability',
-    body: `The path runs through this tile. There is no route around it.<br><br>Select it. The cost is part of the offer.`,
+    eyebrow: 'Rewards',
+    title: 'The bad tile',
+    body: `The path has to run through this one. There is no way around it.<br><br>Tap it. Taking the downside is what pays for the tile after it.`,
     until: () => tutRewardPicked(tutorialRewardPlan?.debuff),
   },
   {
     id: 'pick-dest', anchor: () => tutRewardCell(tutorialRewardPlan?.dest), side: 'left', gate: true,
-    eyebrow: 'Module 10',
-    title: 'Destination',
-    body: `And your next assignment: the <b>Mart</b>.<br><br>Note that three tiles is your entire allowance — <b>Selection Size</b> caps the path, here and on the board.`,
+    eyebrow: 'Rewards',
+    title: 'Where you go next',
+    body: `This tile sends you to the <b>Mart</b>.<br><br>Three tiles is all you get. <b>Selection Size</b> caps the path here, and it caps how many cards you can put in a hand.`,
     until: () => tutRewardPicked(tutorialRewardPlan?.dest),
   },
   {
     id: 'reward-confirm', anchor: () => tutEl('#btn-play'), side: 'left', gate: true,
-    eyebrow: 'Module 10',
+    eyebrow: 'Rewards',
     title: 'Confirm',
-    body: `Submit the path.`,
+    body: `Press <b>CONFIRM</b> to take the path.`,
     until: () => !tutRewardOpen(),
   },
   {
@@ -326,45 +326,45 @@ const TUTORIAL_STEPS = [
     // the bubble sitting on top of the shelves it is describing.
     id: 'mart-loadout', anchor: () => tutEl('#mart-loadout'), side: 'right', next: true,
     when: () => tutMartReady(),
-    eyebrow: 'Module 11',
-    title: 'The Mart — your loadout',
-    body: `Everything currently issued to you: Knacks, Sleights in deck, Tricks, and your limits.<br><br>Note the Trick counter. Trick slots are finite; acquiring one beyond your allowance requires disposing of another.`,
+    eyebrow: 'The Mart',
+    title: 'What you are carrying',
+    body: `This column is everything you own: Knacks, Sleights in your deck, Tricks, and your limits.<br><br>Watch the Trick counter. Trick slots are limited, and taking one more than you can hold means selling one first.`,
   },
   {
     id: 'mart-catalog', side: 'float', corner: 'right', next: true,
     when: () => tutMartReady(),
-    eyebrow: 'Module 11',
-    title: 'Catalog',
-    body: `<b>Three of the four categories</b> are stocked each visit — Tricks are always featured, the rest rotate.<br><br>Each shelf shows a slot count. Limit upgrades are priced by how far the limit has already been raised.<br><br>Prices do not fall while you deliberate.`,
+    eyebrow: 'The Mart',
+    title: 'The shelves',
+    body: `Three of the four categories are stocked each visit. Tricks are always there and the rest rotate.<br><br>Limit upgrades cost more the more times you have already raised that limit.`,
   },
   {
     id: 'mart-wheel', anchor: () => tutEl('#mart-spin'), side: 'bottom', next: true,
     when: () => tutMartReady(),
-    eyebrow: 'Module 11',
-    title: 'Spin the Wheel',
-    body: `A fixed fee buys one spin. <b>Drag the wheel</b> to throw it — release speed sets the throw, and the terminal adds a random force, so it cannot be aimed.<br><br>One space is a <b>BUST</b>. One is a jackpot. You may not leave the Mart while the wheel is turning.`,
+    eyebrow: 'The Mart',
+    title: 'The wheel',
+    body: `A flat fee buys one spin. <b>Drag the wheel</b> to throw it. How fast you release sets the spin, plus a random amount on top, so you cannot aim it.<br><br>One space is a <b>BUST</b> and one is a jackpot. You cannot leave the Mart while it is spinning.`,
   },
   {
     id: 'mart-checkout', anchor: () => tutEl('#mart-checkout'), side: 'left', next: true,
     when: () => tutMartReady(),
-    eyebrow: 'Module 11',
-    title: 'Checkout',
-    body: `Click an item, or drag it, to add it to the cart.<br><br><b>Bundle discount:</b> every item after the first takes a further percentage off the whole cart, to a cap. Buying three at once is materially cheaper than buying three one at a time.<br><br>The cart is capped at your <b>Selection Size</b> — the same limit that caps a hand and a reward path.`,
+    eyebrow: 'The Mart',
+    title: 'Buying',
+    body: `Click an item, or drag it, to put it in the cart.<br><br>Every item after the first takes a further percentage off the <i>whole</i> cart, up to a cap. Buying three at once is genuinely cheaper than buying three one at a time.<br><br>The cart holds up to your <b>Selection Size</b>, the same limit that caps a hand and a reward path.`,
   },
   {
     id: 'mart-leave', anchor: () => tutEls('#mart-reroll', '#mart-leave'), side: 'top',
     when: () => tutMartReady(),
-    eyebrow: 'Module 11',
-    title: 'Reroll, or leave',
-    body: `<b>Reroll</b> restocks the catalog at an escalating fee.<br><br><b>Leave</b> when your business is concluded. The next round deals immediately.`,
+    eyebrow: 'The Mart',
+    title: 'Reroll or leave',
+    body: `<b>Reroll</b> restocks the shelves. It costs more each time you do it.<br><br><b>Leave</b> when you are done. The next round deals straight away.`,
     until: () => !tutMartOpen(),
   },
   {
     id: 'outro', side: 'center',
     when: () => !tutMartOpen() && tutIdle(),
-    eyebrow: 'Induction complete',
-    title: 'You are cleared for work',
-    body: `<b>Round → payout → spoils → Mart</b>, repeating.<br><br>Everything not covered here — Sleights on the board, Events, supervisor reviews — is assembled from the same parts you have just used.<br><br>LETHE Corp thanks you for your attention. Please continue playing until further notice.`,
+    eyebrow: 'Done',
+    title: 'That is the whole game',
+    body: `The loop is <b>round, payout, reward grid, Mart</b>, over and over, with the goal rising each time.<br><br>What this did not cover (Sleights sitting on the board, Events, boss rounds) is built out of the same parts you just used.<br><br>Have fun.`,
     actions: [
       { label: 'Continue this run', fn: () => tutorialEnd() },
       { label: 'Start a fresh run', fn: () => { tutorialEnd(); ACTIVE_MODE = MODES.normal; startGame(); } },
@@ -375,12 +375,12 @@ const TUTORIAL_STEPS = [
 
 // ── Run setup ────────────────────────────────────────────────────────────────
 // Called at the very end of startGame() when the tutorial mode is active. The
-// board is whatever the seed dealt — nothing is stacked. The only preparation
+// board is whatever the seed dealt - nothing is stacked. The only preparation
 // is finding a hand on it to point at.
 function tutorialBeginRun() {
   tutorialRewardPlan = null;
   const audit = tutorialQualifyBoard();
-  // Prefer a 3-card hand for the opening lesson — a bare pair under-sells it.
+  // Prefer a 3-card hand for the opening lesson - a bare pair under-sells it.
   tutorialTeachCells = (audit.big[0] || audit.hands[0] || null);
   tutorialSwapPlan    = audit.swap;
   tutorialDiscardPlan = audit.dead;
@@ -391,7 +391,7 @@ function tutorialBeginRun() {
 }
 
 // ── Board audit + qualification (r148) ───────────────────────────────────────
-// The tutorial teaches three board actions — play a hand, swap, discard — and
+// The tutorial teaches three board actions - play a hand, swap, discard - and
 // each needs the board to actually AFFORD it. Rather than stack the deck, the
 // opening board is AUDITED and, if it falls short, re-dealt. Re-dealing runs off
 // the seeded deck stream, so "attempt 3 of seed X" is still the same board every
@@ -406,7 +406,7 @@ function _tutUsable(r, c) {
 const _tutKey = cells => cells.map(([r, c]) => r * 100 + c).sort((a, b) => a - b).join(',');
 
 // Is every card in this shape actually PULLING ITS WEIGHT?
-// The obvious test — findBestHand().handCells.length === cells.length — does not
+// The obvious test - findBestHand().handCells.length === cells.length - does not
 // work: detectHand happily calls {5♣ 7♠ 7♥} a "Pair", so the 5♣ is inside
 // handCells while contributing nothing. Highlighting that during a lesson
 // teaches precisely the wrong thing.
@@ -449,7 +449,7 @@ function tutorialScanHands(cap) {
   return out;
 }
 
-// Cards that appear in NO clean hand — dead weight, and therefore exactly what a
+// Cards that appear in NO clean hand - dead weight, and therefore exactly what a
 // discard is for. This is what the discard lesson points at.
 function tutorialFindDeadCards(hands) {
   const inHand = new Set();
@@ -460,7 +460,7 @@ function tutorialFindDeadCards(hands) {
   return dead;
 }
 
-// An adjacent exchange that CREATES a hand which is not available right now —
+// An adjacent exchange that CREATES a hand which is not available right now -
 // i.e. a swap that is worth the 4 seconds. Returns { pair, makes } or null.
 // Simulates each swap against the live gridData and restores it; findBestHand
 // only reads gridData, so this is safe as long as the restore always runs.
@@ -512,7 +512,7 @@ function tutorialQualifyBoard() {
     tries++;
   }
   audit.tries = tries;
-  // If nothing qualified in TUT_BOARD_TRIES the lesson still runs — the swap and
+  // If nothing qualified in TUT_BOARD_TRIES the lesson still runs - the swap and
   // discard steps fall back to "perform the action anywhere" rather than
   // pointing at a specific pair. Better a vaguer lesson than a stuck one.
   return audit;
@@ -548,7 +548,7 @@ function tutorialScriptRewardGrid(grid) {
   }
   grid[0][0] = { kind: 'buff', payload: makeRewardTrickPayload() };
   grid[0][2] = { kind: 'dest', payload: { icon: '🏪', label: 'Next: Shop', tier: 'dest', apply: () => { pendingEventOverride = 'shop'; } } };
-  // [0,1] is already a debuff slot by parity — leave whatever the generator rolled.
+  // [0,1] is already a debuff slot by parity - leave whatever the generator rolled.
   tutorialRewardPlan = { trick: [0, 0], debuff: [0, 1], dest: [0, 2] };
   return grid;
 }
@@ -588,7 +588,7 @@ function tutorialBuildLayer() {
 }
 
 // Freeze/unfreeze the round clock. Wrapped so the tutorial only ever RELEASES a
-// pause it took itself — the reward grid and the Mart own gameTimerPaused during
+// pause it took itself - the reward grid and the Mart own gameTimerPaused during
 // their own steps and must not be un-paused from under them.
 function tutorialHoldClock(on) {
   if (on === _tutClockHeld) return;
@@ -670,7 +670,7 @@ function tutorialPosition() {
   const vw = window.innerWidth, vh = window.innerHeight;
   const bw = E.bubble.offsetWidth, bh = E.bubble.offsetHeight;
 
-  // 'float' — no dim at all: the player uses the whole screen normally and the
+  // 'float' - no dim at all: the player uses the whole screen normally and the
   // bubble parks in whichever corner that screen leaves empty.
   if (st.side === 'float') {
     E.dim.style.clipPath = 'none';
@@ -690,7 +690,7 @@ function tutorialPosition() {
     return { x: r.left - TUT_PAD, y: r.top - TUT_PAD, w: r.width + TUT_PAD * 2, h: r.height + TUT_PAD * 2 };
   }).filter(h => h.w > 4 && h.h > 4);
 
-  // Anchors can vanish for a frame or two mid-re-render — the Mart rebuilds its
+  // Anchors can vanish for a frame or two mid-re-render - the Mart rebuilds its
   // whole DOM behind the channel-change transition, for instance. Without this
   // the spotlight would collapse and the bubble would snap to screen centre and
   // back. A step that HAS an anchor keeps its last known holes through the gap;
@@ -700,7 +700,7 @@ function tutorialPosition() {
 
   // The dim is one element; its holes are cut with an evenodd clip-path. A
   // clipped-away region is not hit-testable, so the holes pass clicks through
-  // and the remaining dim swallows them — which is the whole gating mechanism.
+  // and the remaining dim swallows them - which is the whole gating mechanism.
   if (!holes.length) {
     E.dim.style.clipPath = 'none';
     E.rings.innerHTML = '';
@@ -759,7 +759,7 @@ function tutorialPosition() {
   }
 }
 
-// Tear down. Safe at any point (skip button, outro, mode change) — the run
+// Tear down. Safe at any point (skip button, outro, mode change) - the run
 // itself keeps going, it just stops being narrated.
 function tutorialEnd() {
   if (!tutorialRunning) return;

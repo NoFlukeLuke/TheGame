@@ -12,11 +12,11 @@
   .dnc-outer{display:inline-flex;flex:0 0 auto;transform-origin:center;}
   /* ── Portrait preview sizing (r160) ──
      fitPortraitPreviewCards() publishes --card-w/--card-h (the card size) and
-     --dnc-lap (the margin between cards — NEGATIVE when the hand has to overlap
+     --dnc-lap (the margin between cards - NEGATIVE when the hand has to overlap
      to fit the strip). The track's own gap is zeroed so --dnc-lap is the single
      source of spacing. Later cards are later in the DOM, so they paint on top and
      the row reads as a fan; the rim keeps each card's edge legible against the
-     one under it. Cards can now be tall enough that the row exceeds the strip —
+     one under it. Cards can now be tall enough that the row exceeds the strip -
      .dnc-active is already overflow:visible / z-index:60 for exactly that. */
   #stage:not(.landscape) #selected-cards.dnc-active .dnc-row.hand{min-height:0;}
   #stage:not(.landscape) #selected-cards.dnc-active .dnc-items{justify-content:center;}

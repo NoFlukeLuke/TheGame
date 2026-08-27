@@ -24,7 +24,7 @@ function initDevMode() {
   if (diSel) diSel.value = danceInterruptMode;
   syncMatch3DevToggles();
   applyDeckHudVisibility();
-  // Focus dev controls — restore persisted values
+  // Focus dev controls - restore persisted values
   const decaySlider = document.getElementById('dev-focus-decay-slider');
   const decayLabel  = document.getElementById('dev-focus-decay-val');
   if (decaySlider) {
@@ -128,7 +128,7 @@ function openDevPanel() {
 // ── Group menu / sub-pop-ups ─────────────────────────────────────────────────
 // The panel used to render every section at once in one long scroll. Now it opens
 // on a menu of groups and each group is its own pop-up. The .dev-section elements
-// are never moved — they all keep their ids (plenty of code binds to them) and are
+// are never moved - they all keep their ids (plenty of code binds to them) and are
 // simply shown or hidden by data-group.
 const DEV_GROUPS = [
   { g:'tricks',   icon:'✦', label:'Tricks',    sub:() => `${TRICK_POOL.length} in pool` },
@@ -271,7 +271,7 @@ function closeDevPanel() {
   devPanelOpen = false;
   document.getElementById('dev-panel').style.display = 'none';
   if (devPanelFromMenu) {
-    // Return to the main menu — do NOT start game timers (no game is running).
+    // Return to the main menu - do NOT start game timers (no game is running).
     devPanelFromMenu = false;
     renderMenuModes();
     document.getElementById('main-menu-overlay').classList.add('show');
@@ -535,7 +535,7 @@ function devAddSleight(id) {
 
 // ── Run seed (dev panel → Run Seed) ──────────────────────────────────────────
 // The seed is CONSUMED BY startGame, so setting one here only affects the next
-// run — the current run's stream is already running. See js/seed.js.
+// run - the current run's stream is already running. See js/seed.js.
 function devSetSeed(v) {
   setPendingRunSeed(v.trim());
   devRefreshSeed();
@@ -556,8 +556,8 @@ function devClearSeed() {
 function devRefreshSeed() {
   const now = document.getElementById('dev-seed-now');
   const nxt = document.getElementById('dev-seed-next');
-  if (now) now.textContent = runSeed ? runSeed : '— (unseeded)';
-  if (nxt) nxt.textContent = pendingRunSeed ? pendingRunSeed : '— (unseeded)';
+  if (now) now.textContent = runSeed ? runSeed : '- (unseeded)';
+  if (nxt) nxt.textContent = pendingRunSeed ? pendingRunSeed : '- (unseeded)';
 }
 function devStartSeededRun() {
   const el = document.getElementById('dev-seed-input');
@@ -568,7 +568,7 @@ function devStartSeededRun() {
 
 
 // ══════════════════════════════════════════════
-// SAVE RUN (Settings group) — see js/save.js
+// SAVE RUN (Settings group) - see js/save.js
 // ══════════════════════════════════════════════
 function devSaveMsg(text, ok) {
   const el = document.getElementById('dev-save-msg');
@@ -578,7 +578,7 @@ function devSaveMsg(text, ok) {
 function devSyncSaveSection() {
   const stateEl = document.getElementById('dev-save-state');
   const s = savedRunSummary();
-  // A run is only "in progress" once a round has actually started — that is what
+  // A run is only "in progress" once a round has actually started - that is what
   // produces the checkpoint this panel writes out.
   const inRun = !!runCheckpoint;
   if (stateEl) {
@@ -590,7 +590,7 @@ function devSyncSaveSection() {
   if (saveBtn) {
     saveBtn.disabled = !inRun;
     saveBtn.style.opacity = inRun ? '' : '0.45';
-    saveBtn.textContent = inRun ? `💾 Save Run (Round ${runCheckpoint.meta.level})` : '💾 Save Run — start a round first';
+    saveBtn.textContent = inRun ? `💾 Save Run (Round ${runCheckpoint.meta.level})` : '💾 Save Run - start a round first';
   }
   const resumeBtn = document.getElementById('dev-save-resume-btn');
   if (resumeBtn) { resumeBtn.style.display = s ? '' : 'none'; }

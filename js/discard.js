@@ -31,10 +31,10 @@ function doDiscard() {
     if (card._exalted || card._corrupted) return;
     if (card.suit === '♠') {
       card._spadeDiscards = (card._spadeDiscards || 0) + 1;
-      if (card._spadeDiscards >= 2) { card._exalted = false; card._corrupted = true; showMessage('♠ Spade corrupted — discarded one too many times', '#cc88ff'); }
+      if (card._spadeDiscards >= 2) { card._exalted = false; card._corrupted = true; showMessage('♠ Spade corrupted - discarded one too many times', '#cc88ff'); }
     } else if (card.suit === '♥' && card._heartSwapPending) {
       card._exalted = false; card._corrupted = true; card._heartSwapPending = false;
-      showMessage('♥ Heart corrupted — discarded after a swap', '#cc88ff');
+      showMessage('♥ Heart corrupted - discarded after a swap', '#cc88ff');
     }
   });
   // on_discard sleights (Not a Friend corrupt) fire with their grid position before removal.
@@ -57,7 +57,7 @@ function doDiscard() {
   selected.forEach(([r,c]) => { if (gridData[r]?.[c]) discardToDrawPile(gridData[r][c]); });
   // Hoarder: discards don't count against limit (but cost 2× time below)
   if (!hasKnack('hoarder')) discards--;
-  // Discard time cost — 3s PER CARD (BAL._resources.discard_seconds_per_card).
+  // Discard time cost - 3s PER CARD (BAL._resources.discard_seconds_per_card).
   // There used to be a flat spendRoundTime(DISCARD_TIME_COST) here as well, so a
   // 1-card discard billed 3 + 3 = 6s while the UI said 3s, and the Free Discards
   // knack ("costs no time") still charged the flat 3s. One charge only now.
@@ -192,7 +192,7 @@ function rewindTime(seconds, label) {
 
 // ── Clock-mark Tricks: fire as the round clock passes static timestamps ──
 // Called once per real second from the round timer with the NEW roundSeconds value.
-// Because rewinds add seconds, the clock can pass the same mark more than once — that
+// Because rewinds add seconds, the clock can pass the same mark more than once - that
 // re-fires these bonuses, which is an intended synergy with the rewind entities.
 function handleClockMarks(secs) {
   if (secs <= 0) return;
@@ -201,12 +201,12 @@ function handleClockMarks(secs) {
   // Quarter Chime: clock reads a multiple of 15 → +45 pips to the next hand
   if (secs % 15 === 0 && hasTrick('quarter_chime')) {
     pendingHandPips += BAL.quarter_chime.pips;
-    showMessage(`🔔 Quarter Chime — next hand +${BAL.quarter_chime.pips} pips`, '#e8c56b');
+    showMessage(`🔔 Quarter Chime - next hand +${BAL.quarter_chime.pips} pips`, '#e8c56b');
   }
   // Minute marks (clock reads N:00) → accrue mult / card pips / retrigger chance
   if (secs % 60 === 0) {
-    if (hasTrick('minute_hand'))  { pendingHandMult += BAL.minute_hand.mult; showMessage(`🕐 Minute Hand — next hand +${BAL.minute_hand.mult} mult`, '#cc88ff'); }
-    if (hasTrick('second_hand'))  { pendingCardPips += BAL.second_hand.pips; showMessage(`🕐 Second Hand — next hand +${BAL.second_hand.pips} pips`, '#e8c56b'); }
+    if (hasTrick('minute_hand'))  { pendingHandMult += BAL.minute_hand.mult; showMessage(`🕐 Minute Hand - next hand +${BAL.minute_hand.mult} mult`, '#cc88ff'); }
+    if (hasTrick('second_hand'))  { pendingCardPips += BAL.second_hand.pips; showMessage(`🕐 Second Hand - next hand +${BAL.second_hand.pips} pips`, '#e8c56b'); }
     if (hasTrick('hourglass') && Math.random() < BAL.hourglass.chance) {
       // Grant one permanent retrigger to a random real card currently on the grid
       const spots = [];
@@ -218,7 +218,7 @@ function handleClockMarks(secs) {
         const card = spots[Math.floor(Math.random() * spots.length)];
         const k = cardKey(card.rank, card.suit);
         permRetrig[k] = (permRetrig[k] || 0) + 1;
-        showMessage(`⏳ Hourglass — ${card.rank}${card.suit} gains a retrigger`, '#e8c56b');
+        showMessage(`⏳ Hourglass - ${card.rank}${card.suit} gains a retrigger`, '#e8c56b');
         if (!animating && !falling) render();
       }
     }
@@ -228,7 +228,7 @@ function handleClockMarks(secs) {
 function pauseRound(seconds) {
   // Time Slip knack: whenever the clock WOULD pause, a chance to rewind that many seconds instead
   if (hasKnack('time_slip') && Math.random() < BAL.time_slip.chance) {
-    rewindTime(seconds, '⏮️ Time Slip — rewound instead of paused!');
+    rewindTime(seconds, '⏮️ Time Slip - rewound instead of paused!');
     return;
   }
   // Long Pause knack: all pauses are 1.5x longer
@@ -238,7 +238,7 @@ function pauseRound(seconds) {
   // The Vulture: mark the start of the round's FIRST continuous pause stretch. An extension
   // landing while already paused does NOT start a new stretch (pipeTimerPaused is still true).
   if (!pipeTimerPaused && !firstPauseStartedRound) { firstPauseStartedRound = true; firstPauseActive = true; }
-  // Pauses always stack — an active pause is extended, not reset.
+  // Pauses always stack - an active pause is extended, not reset.
   pauseSecondsLeft += seconds;
   pipeTimerPaused = true;
   const clockEl = document.getElementById('clock');
@@ -273,7 +273,7 @@ function startStopwatch(card, r, c) {
   pipeTimerPaused = true;
   const clockEl = document.getElementById('clock');
   if (clockEl) clockEl.classList.add('clock-paused');
-  showMessage('⏱️ Stopwatch — clock frozen', '#5aa9e6');
+  showMessage('⏱️ Stopwatch - clock frozen', '#5aa9e6');
   if (stopwatchTimer) clearInterval(stopwatchTimer);
   stopwatchTimer = setInterval(() => {
     if (!stopwatchActive) { clearInterval(stopwatchTimer); stopwatchTimer = null; return; }
@@ -326,7 +326,7 @@ function buffBandHTML(corner, count, color) {
 
 // ── Single source of truth for card visual appearance ──────────────────────────
 // Returns { className, innerHTML } describing how a card looks at position (r,c).
-// Both render() and fall-animation paths call this — add a new card type here
+// Both render() and fall-animation paths call this - add a new card type here
 // once and both static and animated rendering automatically pick it up.
 //
 // Interaction state (isSel, isSwapPending, etc.) defaults to "no interaction"

@@ -1,15 +1,15 @@
 // ══════════════════════════════════════════════════════════════════════════
-// PERSONNEL FILE — what the player has actually met, and what they aren't
+// PERSONNEL FILE - what the player has actually met, and what they aren't
 // cleared to see yet. Drives the Builds archive's three states.
 //
-//   DISCOVERED    — acquired at least once in a run. Full record visible.
-//   FILE MISSING  — never acquired. The entity exists but its record is blank.
-//   AUTHORIZATION — gated behind a task. You can see there IS a file; not what's
-//     REQUIRED      in it. (The task system isn't built yet — ENTITY_LOCKS is the
+//   DISCOVERED    - acquired at least once in a run. Full record visible.
+//   FILE MISSING  - never acquired. The entity exists but its record is blank.
+//   AUTHORIZATION - gated behind a task. You can see there IS a file; not what's
+//     REQUIRED      in it. (The task system isn't built yet - ENTITY_LOCKS is the
 //                    hook it will populate.)
 //
 // Discovery is recorded whenever an entity is granted, from any source: shop,
-// wheel, reward grid, event. Persisted across runs — it's a collection log, not
+// wheel, reward grid, event. Persisted across runs - it's a collection log, not
 // run state.
 // ══════════════════════════════════════════════════════════════════════════
 
@@ -32,7 +32,7 @@ function markDiscovered(id) {
 function isDiscovered(id) { return discoveredIds.has(id); }
 
 // Entities gated behind a task. Shape: { id: 'reach act 3 without discarding' }.
-// Empty for now — the unlock-task system will fill it. Anything listed here reads
+// Empty for now - the unlock-task system will fill it. Anything listed here reads
 // as AUTHORIZATION REQUIRED until its task is recorded in unlockedTasks.
 const ENTITY_LOCKS = {};
 
@@ -67,7 +67,7 @@ function fileState(id) {
 
 // ── recording ───────────────────────────────────────────────────────────────
 // A sweep, not wrappers. Knacks are granted by inline `acquiredKnacks.push(...)`
-// in several places, so there is no single choke point to hook — but everything
+// in several places, so there is no single choke point to hook - but everything
 // the player owns is reachable from four arrays. Sweeping them catches every
 // grant path (shop, wheel, reward grid, events) and can't drift when a new one
 // is added. Cheap enough to call on every round start and shop render.

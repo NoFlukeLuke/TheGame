@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════════════════════════════════
-   LETHE MART — in-game off-grid shop (r127). Styles scoped under #mart-overlay.
+   LETHE MART - in-game off-grid shop (r127). Styles scoped under #mart-overlay.
    Mirrors shop-preview-5-lethemart-v3.html. Uses the game's palette tokens.
    ══════════════════════════════════════════════════════════════════════════ */
 #mart-overlay{ display:none; position:fixed; inset:0; z-index:250;
@@ -67,7 +67,7 @@
 #mart-overlay .m-pinbar .pb-sub{ font-family:'Share Tech Mono',monospace; font-size:8.5px; color:var(--cream-dim); }
 #mart-overlay .m-pinbar .pb-count{ margin-left:auto; font-family:'Share Tech Mono',monospace;
   font-size:10px; color:var(--c-yellow); flex:0 0 auto; }
-/* While pinning, a tap pins instead of adding to the cart — say so by dimming
+/* While pinning, a tap pins instead of adding to the cart - say so by dimming
    what is NOT the current job and lifting what is. */
 #mart-overlay.pin-mode .mart-checkout{ opacity:.45; }
 #mart-overlay.pin-mode .m-item{ cursor:crosshair; }
@@ -75,7 +75,7 @@
   vertical-align:middle; margin-right:6px;
   background:conic-gradient(var(--c-magenta) 0 60deg,var(--c-cyan) 60deg 120deg,var(--c-yellow) 120deg 180deg,var(--c-mint) 180deg 240deg,var(--c-purple) 240deg 300deg,var(--c-coral) 300deg 360deg);
   box-shadow:0 0 0 1px #0b0906, 0 0 8px -2px #fff; }
-/* SPIN is a real, affordable action sitting among WIP placeholders — it must not
+/* SPIN is a real, affordable action sitting among WIP placeholders - it must not
    look like one of them. */
 #mart-overlay .m-tool-spin{ border-style:solid; border-color:var(--c-magenta); opacity:1; cursor:pointer;
   background:linear-gradient(180deg,#220d1a,#120610); transition:transform .12s, box-shadow .15s; }
@@ -89,7 +89,7 @@
    four categories ran together into one long dark page. Each now declares its own
    --sc (set inline by martSectionHTML) and that single value drives the header
    text, the glyph badge, the rule under the header, the left edge and a faint
-   wash of the panel — so you can tell which shelf you are looking at without
+   wash of the panel - so you can tell which shelf you are looking at without
    reading it. Adding a category means adding one row to MART_SEC_META. */
 #mart-overlay .m-sec{ position:relative; flex-shrink:0; border-radius:10px;
   padding:8px 11px 10px 13px;
@@ -107,7 +107,7 @@
   width:19px; height:19px; border-radius:5px; font-size:11px; letter-spacing:0;
   color:#0b0906; background:var(--sc,#2a2416); box-shadow:0 0 10px -2px var(--sc); }
 /* The one-line "what is this category" note. It is the shelf's job to teach the
-   vocabulary — a new player has no idea what a Sleight is versus a Knack. */
+   vocabulary - a new player has no idea what a Sleight is versus a Knack. */
 #mart-overlay .m-sec .m-sh-note{ font-family:'Share Tech Mono',monospace; font-size:8.5px; letter-spacing:0;
   text-transform:none; color:var(--cream-dim); opacity:.75; flex:1; }
 #mart-overlay .m-sec .m-sh .slots{ font-family:'Share Tech Mono',monospace; font-size:8.5px; letter-spacing:0;
@@ -121,12 +121,12 @@
 #mart-overlay .m-tool .tt{ font-size:9px; letter-spacing:1px; color:var(--c-coral); text-transform:uppercase; display:flex; justify-content:space-between; }
 #mart-overlay .m-tool .td{ font-family:'Share Tech Mono',monospace; font-size:9px; color:var(--cream); line-height:1.35; }
 
-/* shop entity tiles (purchasable) — r170 ─────────────────────────────────────
+/* shop entity tiles (purchasable) - r170 ─────────────────────────────────────
    The tile CONTENT is now the reward grid's own .reward-cell.entity markup (see
    martEntityInner in js/mart-shop.js), so everything below is only about the
    FRAME: how big the tile is, and the shop-only furniture on top of it (price,
    cart tick, sold state). The neon rarity border, scanlines, glare, diamond and
-   name styling all come from css/style.css and are shared with the reward grid —
+   name styling all come from css/style.css and are shared with the reward grid -
    change them once and both surfaces move together.
 
    --fx/--fy/--fr/--fs are published by the shared float driver (js/float-anim.js).
@@ -138,7 +138,7 @@
   user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; }
 /* Hover DROPS the float offsets entirely rather than composing with them, so the
    tile snaps still under the cursor. The drift is only ±1.5px × ±2.5px, but a
-   target that never stops moving is a target you have to chase — enough that
+   target that never stops moving is a target you have to chase - enough that
    browser automation refuses to click one as "not stable". Holding still is the
    difference between aiming at a card and aiming at a card that is wandering. */
 #mart-overlay .m-item:hover{ transform: translate(0, -3px) scale(1.03); z-index:4; }
@@ -163,7 +163,7 @@
 #mart-overlay .m-item .rwd-diamond-emoji{ font-size:21px; }
 
 /* IN CART: a solid tick + a mint frame. The old treatment was `outline` with a
-   positive offset, which the shelf's own overflow clipped away — so an item you
+   positive offset, which the shelf's own overflow clipped away - so an item you
    had added often looked exactly like one you had not. */
 /* Bottom-left: the price owns the top-right and the Builds requisition star
    (.requisitioned::before, css/builds.css) owns the top-left. */
@@ -177,7 +177,7 @@
 #mart-overlay .m-item.in-cart .rwd-diamond{ box-shadow:0 0 0 2px var(--c-mint), 0 0 16px -1px var(--c-mint),
   inset 0 2px 0 rgba(255,255,255,0.6); }
 
-/* Limit bar — reward-grid palette, but a wide readout rather than a card. */
+/* Limit bar - reward-grid palette, but a wide readout rather than a card. */
 #mart-overlay .limit{ display:flex; flex-direction:row; align-items:center; gap:9px; padding:0 12px; border-radius:8px;
   justify-content:flex-start; }
 #mart-overlay .limit .ico{ font-size:17px; color:var(--c-mint); text-shadow:0 0 8px var(--c-mint); flex:0 0 auto; }
@@ -328,7 +328,7 @@
 }
 .m-ghost{ will-change:transform,opacity; }
 
-/* wheel confirm gate — nothing is charged until you press SPIN */
+/* wheel confirm gate - nothing is charged until you press SPIN */
 #wheel-overlay .wh-confirm{ display:none; flex-direction:column; gap:8px; align-items:center; padding:2px 16px 0; width:100%; }
 #wheel-overlay.unpaid .wh-confirm{ display:flex; }
 #wheel-overlay.unpaid .wh-wheel{ cursor:default; }
@@ -344,7 +344,7 @@
 #wheel-overlay .wh-go{ background:var(--c-magenta); border:none; color:#2a021a; font-weight:700; }
 #wheel-overlay .wh-go:hover{ filter:brightness(1.12); }
 /* wheel slot labels must be hoverable for their tooltip (the wheel disc itself
-   still owns the drag — the labels sit above it but don't swallow pointerdown) */
+   still owns the drag - the labels sit above it but don't swallow pointerdown) */
 #wheel-overlay .wh-slot-in{ pointer-events:auto; }
 #wheel-overlay.unpaid .wh-slot-in{ pointer-events:auto; }
 
@@ -357,17 +357,17 @@
 #mart-overlay .m-drop small{ opacity:.7; font-size:8px; }
 
 /* ══════════════════════════════════════════════════════════════════════════
-   PORTRAIT / NARROW — r170
+   PORTRAIT / NARROW - r170
    ══════════════════════════════════════════════════════════════════════════
    The Mart had NO responsive rules at all. Its grid is `210px 1fr 240px`, so on
-   a 420px-wide phone the two fixed columns alone are 450px — wider than the
-   screen — and the catalog column was squeezed to nothing. That is why portrait
+   a 420px-wide phone the two fixed columns alone are 450px - wider than the
+   screen - and the catalog column was squeezed to nothing. That is why portrait
    was unusable: it was never laid out for it, at any width.
 
    The rework is a three-part stack rather than three columns:
-     1. LOADOUT  — a short horizontally-scrolling strip of what you own.
-     2. CATALOG  — takes all the remaining height and is the only thing you scroll.
-     3. CHECKOUT — a drawer pinned to the bottom edge, collapsed to one line
+     1. LOADOUT  - a short horizontally-scrolling strip of what you own.
+     2. CATALOG  - takes all the remaining height and is the only thing you scroll.
+     3. CHECKOUT - a drawer pinned to the bottom edge, collapsed to one line
         (total + CHECKOUT) and tapped open to show the receipt.
    The drawer is what makes this work on a phone: the total and the buy button
    are always on screen and always in thumb reach, instead of living at the
@@ -399,7 +399,7 @@
 
   /* ── 2. catalog ── */
   #mart-overlay .mart-main{ flex:1 1 auto; gap:7px; }
-  /* PIN stays — it is the one control up here and it works. Tools keeps SPIN, so
+  /* PIN stays - it is the one control up here and it works. Tools keeps SPIN, so
      it can no longer be hidden wholesale; the two WIP entries in it are. */
   #mart-overlay .m-pinbar{ padding:7px 10px; gap:9px; }
   #mart-overlay .m-pinbar .pb-sub{ display:none; }
@@ -419,7 +419,7 @@
   #mart-overlay .m-item .price{ font-size:10px; padding:1px 5px; top:4px; right:5px; }
   /* Bigger hit area for the cart tick, and it must not be clipped at the row edge. */
   #mart-overlay .m-item .m-tick{ width:24px; height:24px; font-size:14px; bottom:-5px; left:-5px; }
-  /* No hover lift on a touch screen — it fires on tap and reads as a glitch. */
+  /* No hover lift on a touch screen - it fires on tap and reads as a glitch. */
   #mart-overlay .m-item:hover{ transform: translate(var(--fx,0), var(--fy,0)) rotate(var(--fr,0deg)) scale(var(--fs,1)); z-index:auto; }
 
   /* ── 3. checkout drawer ── */
@@ -437,7 +437,7 @@
   #mart-overlay.cart-open .m-ch::before{ transform:rotate(180deg); }
   #mart-overlay .m-ch .m-ch-wallet{ margin-left:auto; font-family:'Share Tech Mono',monospace;
     font-size:13px; color:var(--phosphor); }
-  /* Collapsed by default. The summary and the buy button stay visible always —
+  /* Collapsed by default. The summary and the buy button stay visible always -
      that is the whole point of the drawer. */
   #mart-overlay .m-rcpt{ max-height:0; padding:0; overflow:hidden; transition:max-height .2s ease, padding .2s ease; }
   #mart-overlay.cart-open .m-rcpt{ max-height:46vh; padding:6px 0; overflow-y:auto; }
@@ -469,7 +469,7 @@
   box-shadow:0 0 12px -1px var(--c-yellow), 0 2px 4px rgba(0,0,0,.6); }
 #mart-overlay .m-item.pinned .m-pin{ display:flex; }
 #mart-overlay .m-item.pinned > .reward-cell{ box-shadow:0 0 0 2px var(--c-yellow), 0 0 16px -3px var(--c-yellow); }
-/* An item you cannot afford — measured against what the cart has already
+/* An item you cannot afford - measured against what the cart has already
    committed, and against the discount this item would unlock. */
 #mart-overlay .m-item.cant-afford{ opacity:.5; filter:grayscale(.45); }
 #mart-overlay .m-item.cant-afford:hover{ opacity:.72; }

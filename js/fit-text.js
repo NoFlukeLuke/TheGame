@@ -1,23 +1,23 @@
 // ══════════════════════════════════════════════════════════════════════════
-// ENTITY NAME FITTING — names must never clip on a tile.
+// ENTITY NAME FITTING - names must never clip on a tile.
 //
 // Order of attack, cheapest first:
 //   1. Insert SOFT HYPHENS (U+00AD) at syllable breaks in long words. These are
 //      invisible unless the browser actually needs to break there, in which case
-//      it renders a real hyphen — so "Stimulants" can become "Stimu-lants"
+//      it renders a real hyphen - so "Stimulants" can become "Stimu-lants"
 //      instead of being shrunk into unreadability or cut off.
 //   2. Shrink the font, half a pixel at a time, until it fits the box.
 //
 // Step 1 first is deliberate: hyphenating buys a wrap point, which usually costs
-// far less legibility than shrinking would. The floor is a real floor — if a name
+// far less legibility than shrinking would. The floor is a real floor - if a name
 // still doesn't fit at MIN_PX it is allowed to ellipsise rather than vanish.
 // ══════════════════════════════════════════════════════════════════════════
 
 const SHY = '­';
 
 // Rough English syllable breaks. Two classic patterns:
-//   VC|CV  — between a pair of consonants flanked by vowels  (stim-u-lant)
-//   V|CV   — before a lone consonant between vowels          (fo-cus)
+//   VC|CV  - between a pair of consonants flanked by vowels  (stim-u-lant)
+//   V|CV   - before a lone consonant between vowels          (fo-cus)
 // It only needs to be plausible: a soft hyphen at a slightly odd spot is far
 // better than a clipped name, and most breaks never render at all.
 function syllableBreaks(w) {
@@ -27,7 +27,7 @@ function syllableBreaks(w) {
     if (isV(w[i - 1]) && !isV(w[i]) && !isV(w[i + 1]) && isV(w[i + 2])) out.push(i + 1);
     else if (isV(w[i - 1]) && !isV(w[i]) && isV(w[i + 1])) out.push(i);
   }
-  // Never break within 2 characters of either end — orphaned letters read badly.
+  // Never break within 2 characters of either end - orphaned letters read badly.
   return out.filter(i => i >= 3 && i <= w.length - 3);
 }
 
@@ -46,13 +46,13 @@ function hyphenateText(text) {
 }
 
 // Fit one element's text to its own box.
-//   maxLines  — how many lines the box can show (default 2)
-//   minPx     — hard floor for the font size (default 6)
+//   maxLines  - how many lines the box can show (default 2)
+//   minPx     - hard floor for the font size (default 6)
 // Reads the element's own computed size as the starting point, so each surface
 // keeps its designed size when the name already fits.
 function fitEntityName(el, { maxLines = 2, minPx = 6 } = {}) {
   if (!el) return;
-  // 1. hyphenate (idempotent — SHY chars are skipped on re-run)
+  // 1. hyphenate (idempotent - SHY chars are skipped on re-run)
   if (!el.dataset.fitDone) {
     const t = el.textContent;
     if (t && /[A-Za-z]{8,}/.test(t)) el.textContent = hyphenateText(t);

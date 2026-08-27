@@ -3,12 +3,12 @@
 // ══════════════════════════════════════════════
 // The PIPS · MULT · FOCUS chips are the running arithmetic of a hand. Once all
 // three have landed on their totals they stop being three numbers and become
-// one: the score this hand just made. This animates that idea — the three chips
+// one: the score this hand just made. This animates that idea - the three chips
 // jitter, slide sideways into each other and fuse into a single chip reading the
 // hand's score; the main SCORE total then climbs by that amount; then the chip
 // splits back into three ready for the next hand.
 //
-// Runs in BOTH orientations (owner's call — only the score-panel LAYOUT change
+// Runs in BOTH orientations (owner's call - only the score-panel LAYOUT change
 // is portrait-only). It works off measured rects rather than any assumed
 // arrangement, so the landscape row and the portrait half-panel both animate
 // correctly without a per-orientation branch.
@@ -57,7 +57,7 @@ function _pmfEnsureMerged(wrap) {
   if (_pmfMerged && _pmfMerged.parentNode) _pmfMerged.parentNode.removeChild(_pmfMerged);
   const el = document.createElement('div');
   el.id = 'pmf-merged';
-  // No label (r169) — the fused chip is just the number. The word "HAND" was
+  // No label (r169) - the fused chip is just the number. The word "HAND" was
   // redundant against the animation that put it there, and it stole the height
   // the number wanted.
   el.innerHTML = '<div class="pmf-merged-val">0</div>';
@@ -177,7 +177,7 @@ async function pmfSplitOut(opts) {
   pmfResetNow();
 }
 
-// Instant, unconditional teardown. Called on every dance abort — an interrupted
+// Instant, unconditional teardown. Called on every dance abort - an interrupted
 // hand must never leave the row fused, because the next hand writes its numbers
 // into chips the player cannot see.
 function pmfResetNow() {

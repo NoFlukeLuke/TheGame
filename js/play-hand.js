@@ -62,7 +62,7 @@ function generateHandFocus(hand, handCells, vultureSec) {
     }
     // ── 4-card-hand family ──
     if (handCells.length === 4) {
-      // Four Horse-man: random bonus — Focus/pause halves (pips/mult handled in calcScore)
+      // Four Horse-man: random bonus - Focus/pause halves (pips/mult handled in calcScore)
       if (hasTrick('four_horseman')) {
         const _fhm = fourHorsemanRoll(handCells);
         if (_fhm === 2) totalFocus += BAL.four_horseman.focus;
@@ -126,7 +126,7 @@ function generateHandFocus(hand, handCells, vultureSec) {
       doubleJeopardyPos = null; // mark consumed; highlight clears
     }
     // Vulture buff: scored cards carrying the permanent "+Ns pause" buff pause the clock, counting
-    // retriggers (each (re)trigger fires the buff). Not gated on hasTrick — the buff lives on the card.
+    // retriggers (each (re)trigger fires the buff). Not gated on hasTrick - the buff lives on the card.
     if (vultureSec) pauseRound(vultureSec);
     console.log('[FOCUS] hand=' + hand + ' base=' + handFocus + ' speedBonus=' + speedBonus + ' total=' + totalFocus + ' t=' + secondsSinceLast.toFixed(2) + 's');
   }
@@ -172,7 +172,7 @@ function playHand() {
   if (!result) { dbgEvent('warn', 'play: no valid hand', { selected: selected.length, animating, falling, roundEnded, dance: !!danceAbortController, swapPending: !!swapPending, swiping: isSwiping }); console.log('[PLAY] no result, exiting'); return; }
   // Abort any prior in-flight score dance ONLY now that we have a real hand to play.
   // (A spurious double-fire of Play on a now-empty selection must NOT cancel the
-  //  in-progress dance — that was the "cards wiggle but never score" bug.)
+  //  in-progress dance - that was the "cards wiggle but never score" bug.)
   cancelDance();
 
   const playedCells = [...selected]; // capture before any path clears selection (for on_play sleights)
@@ -188,7 +188,7 @@ function playHand() {
   if (hasKnack('replay_rewind') && _lastHandRetrigs > 0) {
     let _rw = 0;
     for (let i = 0; i < _lastHandRetrigs; i++) if (Math.random() < BAL.replay_rewind.chance) _rw += BAL.replay_rewind.seconds;
-    if (_rw > 0) rewindTime(_rw, `🔂 Rewound Echo — rewound ${_rw}s`);
+    if (_rw > 0) rewindTime(_rw, `🔂 Rewound Echo - rewound ${_rw}s`);
   }
   // Vulture: retrigger-aware pause-seconds from buffed cards in this hand (same fresh snapshot).
   const _vultureSec = _lastHandVultureSeconds;
@@ -214,7 +214,7 @@ function playHand() {
   if (sleightLegacyMult)     { score += finalScore * BAL.the_legacy.extra_mult; sleightLegacyMult = false; } // ×3 total = base + 2× extra
   if (sleightAmplifierMult) sleightAmplifierMult = 0;
   if (siphonMultX > 1) siphonMultX = 1;   // Siphon's ×3 is spent on this hand
-  // Clock-mark Tricks: the pending pip/mult bonuses were already folded into finalScore — clear them now.
+  // Clock-mark Tricks: the pending pip/mult bonuses were already folded into finalScore - clear them now.
   pendingHandPips = 0; pendingHandMult = 0; pendingCardPips = 0;
   handsPlayed++;
   // Record the hand for the SCORE-box hand log. Written here, not in the dance:
@@ -224,7 +224,7 @@ function playHand() {
   if (typeof logPlayedHand === 'function') logPlayedHand(hand, handCells, finalScore, { boss: bossActive });
 
   // Boss objective progress.
-  // Snapshot boss state BEFORE checkBossObjective — a boss-winning hand calls endBoss(),
+  // Snapshot boss state BEFORE checkBossObjective - a boss-winning hand calls endBoss(),
   // which flips bossActive to false; without this snapshot the normal goal-reach below
   // would then also fire, double-running the interlude (boss grid + payout + new grid).
   const _bossThisHand = bossActive;
@@ -233,7 +233,7 @@ function playHand() {
   // Lucky Seven knack: every 7th hand grants +1 swap
   if (hasKnack('lucky_seven') && handsPlayed % BAL.lucky_seven.interval_hands === 0) {
     swaps = Math.min(99, swaps + BAL.lucky_seven.swaps);
-    showMessage('🎯 LUCKY SEVEN — +1 SWAP', '#c9a84c');
+    showMessage('🎯 LUCKY SEVEN - +1 SWAP', '#c9a84c');
   }
   if (finalScore > highestHandScore) { highestHandScore = finalScore; highestHandName = hand; }
   if (hand === 'Full House' && hasTrick('full_house_streak')) fullHouseThisRound++;
@@ -258,9 +258,9 @@ function playHand() {
     goalReachedThisRound = true;
     roundEnded = true; // freeze input immediately
     // Stop the round clock the instant the goal is met (unless a challenge is
-    // still pending — that path keeps its own timer running). This freezes the
+    // still pending - that path keeps its own timer running). This freezes the
     // clock as a clear "goal reached" signal AND prevents a late timer tick from
-    // firing the legacy level-up flow mid-dance — the double level-up / stray-
+    // firing the legacy level-up flow mid-dance - the double level-up / stray-
     // trick bug that surfaced when the clock hit 0 during the win animation.
     if (!challengeActive) { clearInterval(roundInterval); roundInterval = null; }
     const toRemove = [...selected];
@@ -271,9 +271,9 @@ function playHand() {
     return;
   }
 
-  // ── Goal already reached — input is frozen, this shouldn't fire ──
+  // ── Goal already reached - input is frozen, this shouldn't fire ──
   if (goalReachedThisRound) {
-    console.log('[POST-GOAL] hand attempted after goal — ignoring');
+    console.log('[POST-GOAL] hand attempted after goal - ignoring');
     score -= finalScore;
     handsPlayed--;
     if (typeof unlogLastHand === 'function') unlogLastHand();   // the hand is being unwound
@@ -282,7 +282,7 @@ function playHand() {
     return;
   }
 
-  // (Animating is guarded at the top of playHand now — a hand submitted mid-animation
+  // (Animating is guarded at the top of playHand now - a hand submitted mid-animation
   //  is queued and auto-executed once the animation settles, instead of silently failing.)
 
   // ── Focus for this hand was already generated above (generateHandFocus), so it could
@@ -305,7 +305,7 @@ function playHand() {
     if (_hasHeart && _hasDia) { coins += BAL.monochrome.coins; updateCoinsUI(); roundSeconds += BAL.monochrome.seconds; timeManipRound += BAL.monochrome.seconds; updateClockUI(); showMessage('Blood Diamonds! +' + BAL.monochrome.coins + ' coin, +' + BAL.monochrome.seconds + 's', '#c0353e'); }
   }
 
-  // ── Playing a hand is free by default (owner request, r50) — base cost is 0. ──
+  // ── Playing a hand is free by default (owner request, r50) - base cost is 0. ──
   // BUT a reward-grid "Hands +Ns" debuff sets playHandCostThisRound > 0; when it does,
   // that penalty is now live (owner: "make sure that debuff works"). No debuff → 0 → free.
   if (playHandCostThisRound > 0) {
@@ -321,7 +321,7 @@ function playHand() {
     // The Starling: every 2nd hand of an unbroken same-type streak grants +1 discard
     if (hasTrick('starling') && streakCount % 2 === 0) {
       discards = Math.min(99, discards + 1);
-      showMessage('📋 Type A — +1 discard', '#8fc98f');
+      showMessage('📋 Type A - +1 discard', '#8fc98f');
     }
     // Re-arming progress for Combo Keeper
     if (!streakSaveArmed) {
@@ -329,7 +329,7 @@ function playHand() {
       if (streakSaveProgress >= 2) { streakSaveArmed = true; streakSaveProgress = 0; }
     }
   } else {
-    // Different hand type — would normally break the streak
+    // Different hand type - would normally break the streak
     if (hasKnack('combo_keeper') && streakSaveArmed && lastHandType !== null) {
       // Save the streak: consume the save, leave streakCount + lastHandType intact
       streakSaveArmed = false;
@@ -348,18 +348,18 @@ function playHand() {
   // every 3 such "no-streak" hands grants +1 swap. Feeds resource-hoarding Tricks (Hoarder House).
   if (hasTrick('mockingbird') && streakCount === 1) {
     _altSwapCount++;
-    if (_altSwapCount >= 3) { _altSwapCount = 0; swaps = Math.min(99, swaps + 1); showMessage('🧳 Traveler — +1 swap', '#8fbfd9'); }
+    if (_altSwapCount >= 3) { _altSwapCount = 0; swaps = Math.min(99, swaps + 1); showMessage('🧳 Traveler - +1 swap', '#8fbfd9'); }
   }
 
   // Hoarder House: playing a hand rewinds the clock 1s per 2 unspent manipulate actions (swaps + discards).
   if (hasTrick('magpie')) {
     const _sec = Math.floor((swaps + discards) / BAL.magpie.actions_per_second);
-    if (_sec > 0) rewindTime(_sec, `🏚️ Hoarder House — rewound ${_sec}s`);
+    if (_sec > 0) rewindTime(_sec, `🏚️ Hoarder House - rewound ${_sec}s`);
   }
 
   // Clockmaker knack: a single hand scoring ≥30% of the round goal rewinds the clock.
   if (hasKnack('clockmaker') && roundGoal > 0 && finalScore >= roundGoal * BAL.clockmaker.goal_fraction) {
-    rewindTime(BAL.clockmaker.seconds, `⏱️ Clockmaker — big hand, rewound ${BAL.clockmaker.seconds}s`);
+    rewindTime(BAL.clockmaker.seconds, `⏱️ Clockmaker - big hand, rewound ${BAL.clockmaker.seconds}s`);
   }
 
   // Déjà Vu knack: playing the same ranks in two hands in a row rewinds the clock.
@@ -367,7 +367,7 @@ function playHand() {
     const _ranks = handCells.map(([r,c]) => gridData[r]?.[c]).filter(cc => cc && cc.rank && !cc._isSleight).map(cc => cc.rank).sort();
     const _rankKey = _ranks.join(',');
     if (hasKnack('deja_vu') && lastHandRankKey !== null && _rankKey !== '' && _rankKey === lastHandRankKey) {
-      rewindTime(BAL.deja_vu.seconds, `🔁 Déjà Vu — rewound ${BAL.deja_vu.seconds}s`);
+      rewindTime(BAL.deja_vu.seconds, `🔁 Déjà Vu - rewound ${BAL.deja_vu.seconds}s`);
     }
     lastHandRankKey = _rankKey;
   }
@@ -433,7 +433,7 @@ function playHand() {
   }
   // Temporal Rift: a card scored at a row×column effect intersection permanently gains a "pause
   // when scored" buff (reuses The Vulture's _vulturePause pipeline). Once per minute, and it skips
-  // any card that already carries a time buff — no stacking from this trick. Mirrors Ley Line.
+  // any card that already carries a time buff - no stacking from this trick. Mirrors Ley Line.
   if (hasTrick('temporal_rift')) {
     const _tr = handCells.find(([r,c]) => isEffectIntersection(r, c) && gridData[r]?.[c] && gridData[r][c].rank && !gridData[r][c]._vulturePause);
     if (_tr && firesThisMinute('temporal_rift')) {
@@ -496,7 +496,7 @@ function playHand() {
     firstHandThisRound = false;
   }
 
-  // Heartwood — dead center card
+  // Heartwood - dead center card
   const _hwR = Math.floor(gridRows / 2), _hwC = Math.floor(gridCols / 2);
   if (hasTrick('heartwood') && handCells.some(([r,c])=>r===_hwR&&c===_hwC)) {
     const k = cardKey(gridData[_hwR][_hwC].rank, gridData[_hwR][_hwC].suit);
@@ -507,12 +507,12 @@ function playHand() {
   // ── Suit effects (applied per scoring card) ──
   const scoringCards = result.handCells.map(([r,c]) => gridData[r][c]);
 
-  // Suits are neutral by default — effects only via exalt/corrupt or Tricks.
+  // Suits are neutral by default - effects only via exalt/corrupt or Tricks.
   // (♥ and ♣ Tricks handled in calcScore; ♦/♠ base effects removed with neutral suits)
 
   // Spade Flood Trick still needs allSpades flag (computed in calcScore via spade_flood)
 
-  // ── Exalt / Corrupt — coins & time (pips & mult applied in calcScore) ──
+  // ── Exalt / Corrupt - coins & time (pips & mult applied in calcScore) ──
   // Replay-weighted: a card that replayed fires its exalt/corrupt coin/time once per (re)play,
   // matching the pip/mult side in calcScore. `_lastRetrigByCell` is from the finalScore calcScore above.
   const _ecReps = result.handCells.map(([r,c]) => _handRetrigByCell[r + '-' + c] || 1);
@@ -535,28 +535,28 @@ function playHand() {
     if (_card.suit === '♣') {
       if (_clubsInHand >= 3) {
         _card._clubPackPlays = (_card._clubPackPlays || 0) + 1;
-        if (_card._clubPackPlays >= 2) { exaltCard(_r, _c); showMessage('♣ Club exalted — strength in numbers!', '#ffd700'); }
+        if (_card._clubPackPlays >= 2) { exaltCard(_r, _c); showMessage('♣ Club exalted - strength in numbers!', '#ffd700'); }
       } else if (_clubsInHand === 1) {
         _card._clubSoloPlays = (_card._clubSoloPlays || 0) + 1;
-        if (_card._clubSoloPlays >= 2) { corruptCard(_r, _c); showMessage('♣ Club corrupted — solo glory!', '#cc88ff'); }
+        if (_card._clubSoloPlays >= 2) { corruptCard(_r, _c); showMessage('♣ Club corrupted - solo glory!', '#cc88ff'); }
       }
     } else if (_card.suit === '♥') {
       if (_heartsInHand === 1) {
         _card._heartSoloPlays = (_card._heartSoloPlays || 0) + 1;
-        if (_card._heartSoloPlays >= 2) { exaltCard(_r, _c); showMessage('♥ Heart exalted — stood alone!', '#ffd700'); }
+        if (_card._heartSoloPlays >= 2) { exaltCard(_r, _c); showMessage('♥ Heart exalted - stood alone!', '#ffd700'); }
       }
     } else if (_card.suit === '♠') {
       if (_spadeEarly) {
         _card._spadeEarlyPlays = (_card._spadeEarlyPlays || 0) + 1;
-        if (_card._spadeEarlyPlays >= 2) { exaltCard(_r, _c); showMessage('♠ Spade exalted — early strike!', '#ffd700'); }
+        if (_card._spadeEarlyPlays >= 2) { exaltCard(_r, _c); showMessage('♠ Spade exalted - early strike!', '#ffd700'); }
       }
     } else if (_card.suit === '♦') {
       if (coinsAtPlay < 5) {
         _card._diaPoorPlays = (_card._diaPoorPlays || 0) + 1;
-        if (_card._diaPoorPlays >= 2) { exaltCard(_r, _c); showMessage('♦ Diamond exalted — scarcity!', '#ffd700'); }
+        if (_card._diaPoorPlays >= 2) { exaltCard(_r, _c); showMessage('♦ Diamond exalted - scarcity!', '#ffd700'); }
       } else if (coinsAtPlay > 65) {
         _card._diaRichPlays = (_card._diaRichPlays || 0) + 1;
-        if (_card._diaRichPlays >= 2) { corruptCard(_r, _c); showMessage('♦ Diamond corrupted — excess!', '#cc88ff'); }
+        if (_card._diaRichPlays >= 2) { corruptCard(_r, _c); showMessage('♦ Diamond corrupted - excess!', '#cc88ff'); }
       }
     }
   });
@@ -568,7 +568,7 @@ function playHand() {
     _h._heartSwapPending = false; // resolved either way
     if (!_inHand && !_h._exalted && !_h._corrupted) {
       corruptCard(_hr, _hc);
-      showMessage('♥ Heart corrupted — swapped, then left behind', '#cc88ff');
+      showMessage('♥ Heart corrupted - swapped, then left behind', '#cc88ff');
     }
   }
   } // end exaltCorruptEnabled trigger block
@@ -657,7 +657,7 @@ function playHand() {
   });
 
   // Ace Absorb: when an Ace scores, one random adjacent non-scored card is forgotten and its bonuses added to the Ace.
-  // Monopoly (Spectrum) is the same effect on a 15 or a 20 — Spectrum has no Aces, so it gets its own trigger rank set.
+  // Monopoly (Spectrum) is the same effect on a 15 or a 20 - Spectrum has no Aces, so it gets its own trigger rank set.
   const _absorbCell = hasTrick('aces_absorb') && scoringRanks.includes('A')
         ? result.handCells.find(([r,c]) => gridData[r][c].rank === 'A')
         : hasTrick('monopoly') && scoringRanks.some(rk => MONOPOLY_RANKS.includes(rk))
@@ -673,7 +673,7 @@ function playHand() {
   selected = [];
 
   commitRoundContrib(_contribSnapshot); // committed (non-goal) hand counts toward the tally
-  // Kick off the score dance — it handles updateScoreUI, removeAndFall, levelUp
+  // Kick off the score dance - it handles updateScoreUI, removeAndFall, levelUp
   playScoreDance(result, toRemove);
 }
 
@@ -684,7 +684,7 @@ let danceAbortController = null;
 let dncGen = 0; // bumped when a new preview-dance starts; a superseded dance bails without touching shared UI
 
 // Ace Absorb / Monopoly: the card at `cell` swallows one random adjacent card
-// that wasn't part of the hand — the neighbour's permanent bonuses plus its pip
+// that wasn't part of the hand - the neighbour's permanent bonuses plus its pip
 // value transfer over, and every copy of it is erased from the deck.
 const MONOPOLY_RANKS = ['15', '20'];
 function absorbAdjacentInto(cell, scoredSet) {
@@ -703,7 +703,7 @@ function absorbAdjacentInto(cell, scoredSet) {
   permPips[ak] = (permPips[ak] || 0) + (permPips[tk] || 0) + cardPips(target.rank);
   permMult[ak] = (permMult[ak] || 0) + (permMult[tk] || 0);
   delete permPips[tk]; delete permMult[tk];
-  // Forget from deck — count how many we actually erase, plus the target itself on grid
+  // Forget from deck - count how many we actually erase, plus the target itself on grid
   const beforeCount = drawPile.length + playedPile.length;
   drawPile   = drawPile.filter(c => !(c.rank === target.rank && c.suit === target.suit));
   playedPile = playedPile.filter(c => !(c.rank === target.rank && c.suit === target.suit));

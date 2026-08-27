@@ -9,7 +9,7 @@ const CONFLUENCE_THEMES = [
 // Shared mutable state for the active event
 let eventState = {};
 let activeEventId = null;
-// afterEvent callback — called by closeEvent to continue game flow
+// afterEvent callback - called by closeEvent to continue game flow
 let afterEventFn = null;
 
 function openEvent(afterFn) {

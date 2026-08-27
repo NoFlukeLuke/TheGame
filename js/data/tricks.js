@@ -78,7 +78,7 @@ const TRICK_POOL = [
   { id:'wildfire',       name:'Wildfire',            tier:'rare',      desc:'3 same hands in a row scores +2 mult' },
   { id:'echo_hand',      name:'Echoes',              tier:'common',    desc:'Playing the same hand type as the previous hand replays each card' },
   // ── Suit conditions ──
-  { id:'club_double',    name:'Hard Labour',         tier:'mythic',    tags:['suit','pips'], desc:'Each club scored adds escalating pips — +5, doubling per club; replays count' },
+  { id:'club_double',    name:'Hard Labour',         tier:'mythic',    tags:['suit','pips'], desc:'Each club scored adds escalating pips - +5, doubling per club; replays count' },
   { id:'monochrome',     name:'Blood Diamonds',      tier:'epic',      desc:'Hands with at least one heart and one diamond grant +1 credit and +10 seconds' },
   { id:'full_color',     name:'Rainbow',             tier:'rare',      desc:'Hands with all four suits score +16 pips and +4 mult per card' },
   { id:'balanced_diet',  name:'Balance',             tier:'common',    desc:'Hands with exactly 2 suits score +2 mult per card' },
@@ -128,7 +128,7 @@ const TRICK_POOL = [
   { id:'sixes_perm',     name:'D6',                  tier:'epic',      tags:['scaling','pips','value'], desc:'Every 6th card scored permanently gains a random +1–6 pips' },
   { id:'fours_perm',     name:'Middle Management',   tier:'common',    tags:['scaling','pips','value'], desc:'4-card hands permanently give the 4th card +4 pips' },
   { id:'twos_retrigger', name:'Double Take',         tier:'rare',      tags:['retrigger','value'], desc:'Each 2 scored duplicates your most recently acquired Trick’s effect' },
-  { id:'prime_times',    name:'Prime Times',         tier:'rare',      tags:['retrigger','prime'], desc:'When a prime-rank card (A,2,3,5,7) scores, prime your next Trick — cycling 1st→2nd→3rd→5th→7th' },
+  { id:'prime_times',    name:'Prime Times',         tier:'rare',      tags:['retrigger','prime'], desc:'When a prime-rank card (A,2,3,5,7) scores, prime your next Trick - cycling 1st→2nd→3rd→5th→7th' },
   { id:'eights_retrigger', name:'Sideways to Infinity', tier:'rare',   tags:['retrigger','value'], desc:'Each 8 in a hand scores a number of times equal to the number of 8s in that hand' },
   { id:'snowball',       name:'Snowball',            tier:'epic',      desc:'After any hand scoring 500+ pips, each scored card permanently gains +2 pips' },
   { id:'big_win',        name:'Jackpot',             tier:'legendary', desc:'The first time a single hand scores 10,000+, permanently add +5 mult to this trick' },
@@ -227,7 +227,7 @@ function trickEmoji(trick) { return (trick && TRICK_EMOJI[trick.id]) || '✦'; }
 
 // ── Mode entity filter (Spectrum) ─────────────────────────────────────────────
 // Spectrum's deck has no Ace, no J/Q/K and no ♠♥♦♣, so a handful of Tricks are
-// simply dead there (or, worse, free — "little guys" wants a 5-card hand with no
+// simply dead there (or, worse, free - "little guys" wants a 5-card hand with no
 // face cards, which is EVERY hand). They're pulled out of the pool for that mode
 // so the player is never offered one.
 //
@@ -238,15 +238,15 @@ function trickEmoji(trick) { return (trick && TRICK_EMOJI[trick.id]) || '✦'; }
 // the pristine list so switching back to a classic mode restores it.
 const TRICK_POOL_ALL = [...TRICK_POOL];
 const NUMERIC_BANNED_TRICKS = new Set([
-  // Ace / court-card dependent — those ranks don't exist in Spectrum
+  // Ace / court-card dependent - those ranks don't exist in Spectrum
   'first_light', 'wild_heart', 'face_value', 'king_guard', 'knave_power',
   'royal_trio', 'queens_upgrade', 'aces_absorb', 'undue_influence', 'little_guys',
-  // Named-suit dependent — Spectrum has colours, not ♠♥♦♣
+  // Named-suit dependent - Spectrum has colours, not ♠♥♦♣
   'club_double', 'monochrome', 'spade_flood',
 ]);
 // Colour-COUNT tricks (Rainbow = 4 distinct, Balance = exactly 2, Kaleidoscope =
 // 4+) still work as written, so they stay in.
-// A Trick may also be EXCLUSIVE to a mode via `modes:['spectrum']` — Monopoly is
+// A Trick may also be EXCLUSIVE to a mode via `modes:['spectrum']` - Monopoly is
 // Spectrum's stand-in for Ace Absorb (same effect, on 15s and 20s), so it must not
 // leak into the classic pools.
 function applyModeEntityFilter() {
@@ -266,11 +266,11 @@ function trickBannedInMode(id) { return isNumericMode() && NUMERIC_BANNED_TRICKS
 let gridData = [];        // gridData[row][col] = { rank, suit, trickStar, permPips, permMult }
 let selected = [];        // array of [row,col] in order
 let animating = false;
-let falling = false;   // true during card fall animations — allows selection, queues play/discard
-let pendingAction = null; // 'play' | 'discard' — queued while falling
-let dealPhase = false; // true while deal anims are running — suppresses render() card placement
+let falling = false;   // true during card fall animations - allows selection, queues play/discard
+let pendingAction = null; // 'play' | 'discard' - queued while falling
+let dealPhase = false; // true while deal anims are running - suppresses render() card placement
 
-let score = 0;      // current round's score — resets to 0 at the start of every round
+let score = 0;      // current round's score - resets to 0 at the start of every round
 let totalScore = 0; // lifetime total banked from completed rounds; display-only (end-of-run screens)
 let roundGoal = BASE_GOAL;      // this round's score target, from zero
 let level = 1;
