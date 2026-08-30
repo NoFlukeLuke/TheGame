@@ -27,31 +27,16 @@
 <link rel="stylesheet" href="css/boss.css">
 <link rel="stylesheet" href="css/tutorial.css">
 <link rel="stylesheet" href="css/builds.css">
+<link rel="stylesheet" href="css/room.css">
 </head>
 <body>
 <div id="knack-tooltip" role="tooltip"></div>
 
-<div id="main-menu-overlay" class="show">
-  <div id="menu-container">
-    <div id="menu-led-row"><span class="cab-led"></span>SYSTEM READY</div>
-    <div id="menu-brand">OBLIVISCORE</div>
-    <div id="menu-model">brought to you by Lethe Corp</div>
-    <div id="menu-stripe"></div>
-    <div id="menu-title">THE GAME</div>
-    <div id="menu-tagline">A LETHE amusement product. Please continue<br>playing until further notice.</div>
-    <button id="menu-continue-btn" onclick="continueSavedRun()" style="display:none;">CONTINUE</button>
-    <button id="menu-start-btn" onclick="maybeAutoFullscreen(); openModeSelect()">PLAY</button>
-    <button id="menu-history-btn" onclick="openHistory(true)" style="display:none;">HISTORY</button>
-    <button id="menu-builds-btn" onclick="openBuilds()">BUILDS</button>
-    <button id="menu-settings-btn" onclick="openSettings(true)">SETTINGS</button>
-    <button id="menu-fullscreen-btn" onclick="toggleFullscreen()" style="display:none;">⛶ FULLSCREEN</button>
-    <div id="ios-fullscreen-hint" style="display:none;">
-      On iPhone / iPad: tap the <strong>Share</strong> button, then <strong>“Add to Home Screen.”</strong>
-      Launch from that icon for bar-free fullscreen - it always loads the newest version.
-    </div>
-    <div id="menu-build-stamp"></div>
-  </div>
-</div>
+
+<!-- The main menu and the mode-select carousel now live INSIDE #cab-screen -
+     they are the cabinet's attract screen, so the camera can hold them at the
+     wide "whole cabinet on a desk" framing and dolly in when a run starts.
+     See css/room.css + js/camera.js. -->
 
 <div id="dev-panel" style="display:none;">
   <div id="dev-panel-bar">
@@ -506,18 +491,6 @@
     <div class="lp-foot">Raise these in the Mart, or with a Limit Break.</div>
   </div>
 
-<div id="mode-select-overlay">
-  <div id="mode-select-inner">
-    <div id="mode-select-title">SELECT MODE</div>
-    <div id="mode-select-sub">Scroll sideways · press PLAY to begin</div>
-    <div id="mode-carousel-wrap">
-      <button class="mode-arrow" id="mode-arrow-left" onclick="scrollModes(-1)" aria-label="Previous mode">‹</button>
-      <div id="mode-carousel"></div>
-      <button class="mode-arrow" id="mode-arrow-right" onclick="scrollModes(1)" aria-label="Next mode">›</button>
-    </div>
-    <button id="mode-back-btn" onclick="closeModeSelect()">◄ BACK</button>
-  </div>
-</div>
 
 <!-- STATS / DECK OVERLAYS - deliberately OUTSIDE #stage (same reason as #dev-panel).
      Inside the stage their z-index was trapped in the cabinet's stacking context, so the
@@ -535,6 +508,36 @@
   <button class="overlay-close">Close</button>
 </div>
 
+<!-- ROOM + CAMERA (r180) - js/camera.js + css/room.css.
+     #camera is a fixed, transform-scaled viewport onto the world. The room and
+     the cabinet are BOTH inside it, so a single transform dollies the whole scene
+     in on the CRT. Everything in #room is sized in px (never vw/vh) or it would
+     stop scaling with the camera and the dolly would come apart. -->
+<div id="camera">
+<div id="room" aria-hidden="true">
+  <div class="rm-ceiling"></div>
+  <div class="rm-strip-light"></div>
+  <div class="rm-wall"></div>
+  <div class="rm-rail"></div>
+  <div class="rm-part rm-part-l"></div>
+  <div class="rm-part rm-part-r"></div>
+  <div class="rm-pin rm-pin-a"><span>SHIFT ROSTER</span><i></i><i></i><i></i></div>
+  <div class="rm-note rm-note-a">BACK<br>IN 5</div>
+  <div class="rm-note rm-note-b">DO NOT<br>UNPLUG</div>
+  <div class="rm-clock"><i></i><b></b></div>
+  <div class="rm-cable"></div>
+  <div class="rm-desk">
+    <div class="rm-desk-top"></div>
+    <div class="rm-desk-edge"></div>
+    <div class="rm-desk-front"></div>
+  </div>
+  <div class="rm-shadow"></div>
+  <div class="rm-keyboard"><span></span><span></span><span></span><span></span></div>
+  <div class="rm-mug"><i></i></div>
+  <div class="rm-papers"><i></i><i></i><i></i></div>
+  <div class="rm-plant"><i></i><i></i><i></i><b></b></div>
+  <div class="rm-haze"></div>
+</div>
 <div id="cabinet">
   <div id="cab-topbar">
     <span class="cab-led"></span>
@@ -554,6 +557,53 @@
   <div class="ba-label" id="ba-label">BOSS INCOMING</div>
   <div class="ba-band"></div>
 </div>
+<!-- The attract screens are drawn ON the glass (see css/room.css). They sit
+     BEFORE #stage on purpose: the game scripts are loaded at the bottom of
+     #stage and bootstrap.js touches #main-menu-overlay as it runs, so the menu
+     has to already exist in the document by then. z-index 50 is what puts them
+     over the board and under the bezel glare. -->
+<div id="main-menu-overlay" class="show">
+  <div id="menu-container">
+    <!-- The two halves are display:contents in portrait, so that layout is exactly
+         what it always was; in landscape they become the branding column and the
+         button column, which is what makes the menu fit a 747x420 CRT. -->
+    <div id="menu-left">
+    <div id="menu-led-row"><span class="cab-led"></span>SYSTEM READY</div>
+    <div id="menu-brand">OBLIVISCORE</div>
+    <div id="menu-model">brought to you by Lethe Corp</div>
+    <div id="menu-stripe"></div>
+    <div id="menu-title">THE GAME</div>
+    <div id="menu-tagline">A LETHE amusement product. Please continue<br>playing until further notice.</div>
+    </div>
+    <div id="menu-right">
+    <button id="menu-continue-btn" onclick="continueSavedRun()" style="display:none;">CONTINUE</button>
+    <button id="menu-start-btn" onclick="maybeAutoFullscreen(); openModeSelect()">PLAY</button>
+    <button id="menu-history-btn" onclick="openHistory(true)" style="display:none;">HISTORY</button>
+    <button id="menu-builds-btn" onclick="openBuilds()">BUILDS</button>
+    <button id="menu-settings-btn" onclick="openSettings(true)">SETTINGS</button>
+    <button id="menu-fullscreen-btn" onclick="toggleFullscreen()" style="display:none;">⛶ FULLSCREEN</button>
+    <div id="ios-fullscreen-hint" style="display:none;">
+      On iPhone / iPad: tap the <strong>Share</strong> button, then <strong>“Add to Home Screen.”</strong>
+      Launch from that icon for bar-free fullscreen - it always loads the newest version.
+    </div>
+    <div id="menu-build-stamp"></div>
+    </div>
+  </div>
+</div>
+
+<div id="mode-select-overlay">
+  <div id="mode-select-inner">
+    <div id="mode-select-title">SELECT MODE</div>
+    <div id="mode-select-sub">Scroll sideways · press PLAY to begin</div>
+    <div id="mode-carousel-wrap">
+      <button class="mode-arrow" id="mode-arrow-left" onclick="scrollModes(-1)" aria-label="Previous mode">‹</button>
+      <div id="mode-carousel"></div>
+      <button class="mode-arrow" id="mode-arrow-right" onclick="scrollModes(1)" aria-label="Next mode">›</button>
+    </div>
+    <button id="mode-back-btn" onclick="closeModeSelect()">◄ BACK</button>
+  </div>
+</div>
+
 <div id="stage">
 
 <!-- DECK HUD (debug) -->
@@ -949,6 +999,7 @@
 
 
 <script src="js/storage.js"></script>
+<script src="js/camera.js"></script>
 <script src="js/seed.js"></script>
 <script src="js/menu.js"></script>
 <script src="js/devlog.js"></script>
@@ -1021,8 +1072,11 @@
 <script src="js/save.js"></script>
 <script src="js/bootstrap.js"></script>
 </div><!-- /#stage -->
+
+
   </div><!-- /#cab-screen -->
   <div id="cab-baseline"></div>
 </div><!-- /#cabinet -->
+</div><!-- /#camera -->
 </body>
 </html>

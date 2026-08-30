@@ -1,4 +1,4 @@
-const BUILD = '2026-08-27 · r179 · scoring-model toggle (pips/mult ladder/hand size) · Focus tuning in plain English';
+const BUILD = '2026-08-30 · r180 · the room: menu on the cabinet screen, camera dollies in on the CRT for play';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

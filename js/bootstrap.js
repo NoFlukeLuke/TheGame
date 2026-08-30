@@ -5,9 +5,12 @@ if (typeof bindBossBriefReopen === 'function') bindBossBriefReopen();
 initDevMode();
 
 // ── STAGE SCALING (zoom-based) ──
-// Computes a uniform zoom factor that fits the design canvas inside the viewport.
-// Portrait: 420×740 canvas (default). Landscape/wide: 760×420 canvas.
-// Letterbox area shows the body's green-felt background.
+// The zoom itself now belongs to js/camera.js: as of r180 it fits the STAGE to
+// the viewport (not the whole cabinet housing), so the beige housing falls off
+// the edges during play and the board gets the full display. The wide "cabinet
+// on a desk" framing the menu sits in is a camera transform on top of that, not
+// a second zoom - see the header of js/camera.js. This block keeps what it
+// always owned: deciding landscape vs portrait, and everything downstream of it.
 (function setupStageScaling() {
   const stage = document.getElementById('stage');
   if (!stage) return;
@@ -18,22 +21,17 @@ initDevMode();
     const availH = window.innerHeight - BODY_PAD * 2;
     // Landscape when wider than tall AND wide enough to be meaningful
     const isLandscape = availW > availH && availW >= 480;
-    // Zoom now fits the whole CABINET housing (stage + bezel/marquee/deck).
-    const DESIGN_W = isLandscape ? 824 : 496;
-    // Cabinet housing height after the thinned top bar + beige baseline (r117).
-    // Smaller than before → the zoom-to-fit scales the whole game up into the
-    // space the old thick marquee/deck used to occupy.
-    const DESIGN_H = isLandscape ? 506 : 826;
-    const z = Math.min(availW / DESIGN_W, availH / DESIGN_H);
-    // Set on :root so both #cabinet (zoom) and #stage (grid measurement) inherit it.
-    document.documentElement.style.setProperty('--stage-zoom', z);
+    // The class has to land BEFORE camLayout measures, or the stage is still the
+    // other orientation's size when the camera works out where to centre it.
     stage.classList.toggle('landscape', isLandscape);
+    if (cabinet) cabinet.classList.toggle('landscape', isLandscape);
+    // Sets --stage-zoom, --cab-w/--cab-h, places the scene, re-applies the framing.
+    camLayout(isLandscape);
     // Turning a tablet mid-run switches layouts; re-assert the portrait strip's
     // shared-half state so it isn't left showing whatever landscape left behind.
     if (typeof syncPortraitPanel === 'function') syncPortraitPanel();
     // …and re-fit any preview cards on screen, which are sized from the strip.
     if (typeof fitPortraitPreviewCards === 'function') fitPortraitPreviewCards();
-    if (cabinet) cabinet.classList.toggle('landscape', isLandscape);
     // Larger inter-card gap in landscape keeps bigger cards visually separated.
     CARD_GAP = isLandscape ? 5 : 3;
     // Fallback footprints (only used if the slot can't be measured pre-layout).
@@ -46,8 +44,18 @@ initDevMode();
   window.addEventListener('resize', update);
   window.addEventListener('orientationchange', update);
   update(); // initial run - also handles the first recomputeGridMetrics
+  camInit();
   // One more pass after first paint, in case fonts/layout shifted the slot size.
   requestAnimationFrame(update);
+  // …and again once the document is actually finished. This is not belt-and-braces:
+  // the game's <script> tags live at the bottom of #stage, so while they run the
+  // parser has NOT yet reached #cab-baseline - the cabinet measures 10px short and
+  // the camera centres the board 5px high for the rest of the session. The rAF pass
+  // above can still fire before the parser gets there, so DOMContentLoaded is the
+  // first moment the housing is whole.
+  document.addEventListener('DOMContentLoaded', update);
+  window.addEventListener('load', update);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(update).catch(() => {});
 })();
 
 // ── Fullscreen support ──────────────────────────────────────────────

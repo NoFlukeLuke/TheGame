@@ -208,6 +208,11 @@ document.querySelector('#stats-overlay .overlay-close').addEventListener('click'
 document.querySelector('#deck-overlay .overlay-close').addEventListener('click', () => closeInfoOverlay('deck-overlay'));
 
 function startGame() {
+  // Dolly the camera in onto the CRT (js/camera.js). A run starting is the only
+  // thing that means "we are at the machine now" - the way back out is driven off
+  // the menu screens showing, so SETTINGS / HISTORY / BUILDS, which all hide the
+  // main menu to open their own screen, can't push the camera in behind them.
+  if (typeof camEnterGame === 'function') camEnterGame();
   document.getElementById('end-overlay').classList.remove('show');
   document.getElementById('levelup-overlay').classList.remove('show');
   document.getElementById('shop-overlay').classList.remove('show');

@@ -1,0 +1,345 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   THE ROOM + THE CAMERA  (r180)   ·   drives: js/camera.js
+
+   The game used to open straight onto a cabinet floating on a gradient. It now
+   opens on the machine sitting on a desk in an office cubicle, with the main
+   menu drawn on its CRT, and dollies in on the screen when a run starts - so by
+   the time you are playing, the beige housing is off every edge of the viewport
+   and the board has the whole display.
+
+   THREE THINGS TO KNOW BEFORE EDITING:
+
+   1. Everything in #room is authored in the CABINET'S OWN px (the same design
+      units #stage uses), on a fixed 3000 x 2400 canvas whose centre (--rc-x,
+      --rc-y) is the cabinet's centre. Those two numbers are duplicated as
+      ROOM_W / ROOM_H in js/camera.js, which maps the canvas onto the cabinet -
+      change one and you must change the other. NEVER use vw/vh/% of the
+      viewport in here: the camera
+      scales the scene with a transform, and viewport units do not scale with a
+      transform, so the room would slide off the cabinet as it dollies.
+
+   2. The room's geometry is DERIVED FROM THE CABINET, via --cab-w / --cab-h
+      (set by js/camera.js per orientation). The back wall keeps a fixed margin
+      around the housing and the desk line lands exactly on its base, so portrait
+      and landscape - very different cabinet shapes - both come out framed.
+
+   3. One-point perspective, vanishing at the centre. The back wall is the rect
+      --rw-l/-r/-t/-b; the ceiling and the two side partitions are trapezoids
+      running from it out to the canvas corners; the desk is the same trapezoid
+      run downward from the cabinet's base. Move the back wall and the rest
+      follows on its own.
+   ═════════════════════════════════════════════════════════════════════════ */
+
+/* The camera. position:fixed + inset:0 makes its box the viewport, so the wide
+   framing is a plain scale() about the viewport centre - see js/camera.js for
+   why it must be transform-LESS at the play framing. */
+#camera {
+  position: fixed; inset: 0; z-index: 1;
+  display: flex; align-items: center; justify-content: center;
+  transform-origin: 50% 50%;
+  backface-visibility: hidden;
+}
+/* The housing is nudged (position:relative, set from JS) so the STAGE, not the
+   cabinet, is what the camera centres on. */
+#cabinet { position: relative; }
+
+#room {
+  position: absolute; left: 0; top: 0;
+  width: 3000px; height: 2400px;
+  transform-origin: 0 0;
+  transform: translate(var(--room-tx, 0px), var(--room-ty, 0px)) scale(var(--stage-zoom, 1));
+  pointer-events: none;
+  overflow: hidden;
+  background: #0e0f12;
+
+  /* Cabinet footprint on the canvas. */
+  --rc-x: 1500px; --rc-y: 1200px;
+  --cab-l: calc(var(--rc-x) - var(--cab-w, 824px) / 2);
+  --cab-r: calc(var(--rc-x) + var(--cab-w, 824px) / 2);
+  --cab-t: calc(var(--rc-y) - var(--cab-h, 506px) / 2);
+  /* Back wall: a constant margin of wall around the housing, in every direction. */
+  --rw-l: calc(var(--cab-l) - 190px);
+  --rw-r: calc(var(--cab-r) + 190px);
+  --rw-t: calc(var(--cab-t) - 240px);
+  --rw-b: calc(var(--rc-y) + var(--cab-h, 506px) / 2 + 140px);
+  /* The desk surface starts exactly at the cabinet's base. */
+  --desk-y: calc(var(--rc-y) + var(--cab-h, 506px) / 2);
+
+  --fabric:   #6f7a88;
+  --fabric-d: #47505c;
+  --trim:     #b9bec6;
+  --laminate: #b79a72;
+}
+
+/* ── Ceiling: the dark space over the cubicle, with one recessed light ── */
+.rm-ceiling {
+  position: absolute; inset: 0;
+  clip-path: polygon(0 0, 3000px 0, var(--rw-r) var(--rw-t), var(--rw-l) var(--rw-t));
+  background:
+    repeating-linear-gradient(90deg, rgba(0,0,0,0.22) 0 2px, transparent 2px 130px),
+    linear-gradient(180deg, #363d49 0%, #262b34 55%, #191c23 100%);
+}
+.rm-strip-light {
+  position: absolute; inset: 0;
+  clip-path: polygon(calc(var(--rc-x) - 300px) calc(var(--rw-t) - 420px), calc(var(--rc-x) + 300px) calc(var(--rw-t) - 420px), calc(var(--rc-x) + 118px) var(--rw-t), calc(var(--rc-x) - 118px) var(--rw-t));
+  background: linear-gradient(180deg, #fffdf2 0%, #e9f2ff 55%, #b9c8dc 100%);
+  box-shadow: 0 0 120px 40px rgba(220,236,255,0.28);
+  opacity: 0.92;
+}
+
+/* ── Back wall: the cubicle partition, fabric with an aluminium cap ── */
+.rm-wall {
+  position: absolute;
+  left: var(--rw-l); top: var(--rw-t);
+  width:  calc(var(--rw-r) - var(--rw-l));
+  height: calc(var(--rw-b) - var(--rw-t));
+  background:
+    repeating-linear-gradient(45deg,  rgba(255,255,255,0.035) 0 2px, transparent 2px 5px),
+    repeating-linear-gradient(-45deg, rgba(0,0,0,0.05) 0 2px, transparent 2px 5px),
+    repeating-linear-gradient(90deg, rgba(0,0,0,0.16) 0 4px, transparent 4px 340px),
+    linear-gradient(180deg, #7e8896 0%, var(--fabric) 46%, #59626e 100%);
+  box-shadow: inset 0 24px 46px rgba(0,0,0,0.28);
+}
+.rm-rail {
+  position: absolute;
+  left: calc(var(--rw-l) - 10px); top: calc(var(--rw-t) - 14px);
+  width: calc(var(--rw-r) - var(--rw-l) + 20px); height: 20px;
+  border-radius: 5px;
+  background: linear-gradient(180deg, #dfe3e9 0%, var(--trim) 40%, #7d838d 100%);
+  box-shadow: 0 6px 14px rgba(0,0,0,0.4);
+}
+
+/* ── Side partitions: the same wall, running toward the viewer ── */
+.rm-part { position: absolute; inset: 0; }
+.rm-part-l {
+  clip-path: polygon(0 0, var(--rw-l) var(--rw-t), var(--rw-l) var(--rw-b), 0 2400px);
+  background:
+    repeating-linear-gradient(45deg, rgba(0,0,0,0.06) 0 2px, transparent 2px 5px),
+    linear-gradient(90deg, #313943 0%, #4d5765 58%, #69737f 100%);
+}
+.rm-part-r {
+  clip-path: polygon(3000px 0, var(--rw-r) var(--rw-t), var(--rw-r) var(--rw-b), 3000px 2400px);
+  background:
+    repeating-linear-gradient(-45deg, rgba(0,0,0,0.06) 0 2px, transparent 2px 5px),
+    linear-gradient(270deg, #313943 0%, #4d5765 58%, #69737f 100%);
+}
+
+/* ── Wall dressing ── */
+.rm-pin {
+  position: absolute;
+  left: calc(var(--rw-l) + 26px); top: calc(var(--cab-t) + 16px);
+  width: 136px; height: 178px;
+  transform: rotate(-1.4deg);
+  background: linear-gradient(180deg, #f6f1e2, #ddd5c1);
+  box-shadow: 0 8px 16px rgba(0,0,0,0.4);
+  padding: 14px 12px;
+}
+.rm-pin span {
+  display: block; font-family: 'Share Tech Mono', monospace; font-size: 13px;
+  letter-spacing: 1px; color: #5d5648; margin-bottom: 12px;
+}
+.rm-pin i { display: block; height: 5px; margin-bottom: 12px; background: #b9b1a0; }
+.rm-pin i:nth-child(3) { width: 74%; }
+.rm-pin i:nth-child(4) { width: 88%; }
+
+.rm-note {
+  position: absolute; width: 96px; height: 96px;
+  font-family: 'Share Tech Mono', monospace; font-size: 15px; line-height: 1.35;
+  letter-spacing: 1px; color: #6a5a1c; text-align: center;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 6px 14px rgba(0,0,0,0.35);
+}
+.rm-note-a {
+  left: calc(var(--cab-r) + 44px); top: calc(var(--cab-t) + 36px);
+  background: #f2d95c; transform: rotate(2.6deg);
+}
+.rm-note-b {
+  left: calc(var(--cab-r) + 62px); top: calc(var(--cab-t) + 158px);
+  background: #f0a3c0; color: #6d2a45; transform: rotate(-3.2deg);
+}
+
+.rm-clock {
+  position: absolute;
+  left: calc(var(--rc-x) - 49px); top: calc(var(--cab-t) - 134px);
+  width: 98px; height: 98px; border-radius: 50%;
+  background: radial-gradient(circle at 42% 34%, #fbfaf6 0%, #e2ded2 62%, #b6b1a4 100%);
+  box-shadow: 0 0 0 6px #2b2f37, 0 10px 20px rgba(0,0,0,0.45);
+}
+.rm-clock i, .rm-clock b {
+  position: absolute; left: 50%; top: 50%; background: #23262c; border-radius: 2px;
+  transform-origin: 50% 100%;
+}
+.rm-clock i { width: 4px; height: 30px; transform: translate(-50%,-100%) rotate(112deg); }
+.rm-clock b { width: 3px; height: 40px; transform: translate(-50%,-100%) rotate(-24deg); }
+
+.rm-cable {
+  position: absolute;
+  left: calc(var(--cab-r) - 26px); top: calc(var(--desk-y) - 106px);
+  width: 130px; height: 116px;
+  border-right: 9px solid #16151a; border-bottom: 9px solid #16151a;
+  border-radius: 0 0 110px 0;
+}
+
+/* ── Desk: the same perspective trapezoid, run down from the cabinet's base ── */
+.rm-desk { position: absolute; inset: 0; }
+.rm-desk-top {
+  position: absolute; inset: 0;
+  clip-path: polygon(var(--rw-l) var(--desk-y), var(--rw-r) var(--desk-y), 3000px 2400px, 0 2400px);
+  background:
+    repeating-linear-gradient(0deg, rgba(255,255,255,0.028) 0 3px, transparent 3px 11px),
+    linear-gradient(180deg, #8d7455 0%, var(--laminate) 30%, #c8ab83 62%, #9d8261 100%);
+}
+.rm-desk-edge {
+  position: absolute;
+  left: var(--rw-l); top: var(--desk-y);
+  width: calc(var(--rw-r) - var(--rw-l)); height: 7px;
+  background: linear-gradient(180deg, #f0dcbb, #7d6647);
+}
+.rm-desk-front {
+  position: absolute; left: 0; bottom: 0; width: 3000px; height: 220px;
+  background: linear-gradient(180deg, transparent, rgba(0,0,0,0.55));
+}
+.rm-shadow {
+  position: absolute;
+  left: calc(var(--cab-l) - 60px); top: calc(var(--desk-y) - 34px);
+  width: calc(var(--cab-w, 824px) + 120px); height: 108px;
+  background: radial-gradient(ellipse at 50% 34%, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.28) 46%, transparent 72%);
+  filter: blur(9px);
+}
+
+/* ── Desk props. All of them sit BELOW --desk-y, i.e. below the cabinet's base,
+      so they never need to paint over the housing (which is a later sibling of
+      #room and therefore always on top of it). ── */
+.rm-keyboard {
+  position: absolute;
+  left: calc(var(--rc-x) - 236px); top: calc(var(--desk-y) + 74px);
+  width: 472px; height: 116px;
+  clip-path: polygon(38px 0, 434px 0, 472px 116px, 0 116px);
+  background: linear-gradient(180deg, #2b2f36 0%, #1d2026 60%, #14161a 100%);
+  padding: 16px 30px;
+}
+.rm-keyboard span {
+  display: block; height: 11px; margin-bottom: 10px; border-radius: 3px;
+  background: linear-gradient(180deg, #555c67, #3a4049);
+}
+.rm-keyboard span:nth-child(2) { margin-left: 8px;  }
+.rm-keyboard span:nth-child(3) { margin-left: 16px; }
+.rm-keyboard span:nth-child(4) { margin-left: 60px; width: 60%; }
+
+.rm-mug {
+  position: absolute;
+  left: calc(var(--rc-x) + 244px); top: calc(var(--desk-y) + 58px);
+  width: 78px; height: 88px; border-radius: 8px 8px 16px 16px;
+  background: linear-gradient(90deg, #cfd6dd 0%, #f4f7fa 34%, #e0e5ea 64%, #9aa3ad 100%);
+  box-shadow: 0 10px 16px rgba(0,0,0,0.4), inset 0 6px 0 rgba(0,0,0,0.18);
+}
+.rm-mug i {
+  position: absolute; right: -26px; top: 20px; width: 32px; height: 40px;
+  border: 9px solid #e4e9ee; border-left: none; border-radius: 0 20px 20px 0;
+}
+
+.rm-papers { position: absolute; left: calc(var(--cab-l) - 16px); top: calc(var(--desk-y) + 86px); width: 168px; height: 108px; }
+.rm-papers i {
+  position: absolute; inset: 0; background: #efeadd;
+  box-shadow: 0 3px 7px rgba(0,0,0,0.32);
+}
+.rm-papers i:nth-child(1) { transform: rotate(-4deg); }
+.rm-papers i:nth-child(2) { transform: rotate(1.5deg); background: #f6f2e8; }
+.rm-papers i:nth-child(3) { transform: rotate(5deg);  background: #fbf8f0; }
+
+.rm-plant { position: absolute; left: calc(var(--cab-l) - 214px); top: calc(var(--desk-y) + 14px); width: 150px; height: 190px; }
+.rm-plant b {
+  position: absolute; left: 30px; bottom: 0; width: 90px; height: 74px;
+  clip-path: polygon(8px 0, 82px 0, 70px 74px, 20px 74px);
+  background: linear-gradient(180deg, #b6663f, #7d4227);
+}
+.rm-plant i {
+  position: absolute; bottom: 62px; width: 34px; height: 84px; border-radius: 50% 50% 40% 40%;
+  background: linear-gradient(180deg, #4f9d5c, #2c6437);
+}
+.rm-plant i:nth-child(1) { left: 34px; transform: rotate(-26deg); }
+.rm-plant i:nth-child(2) { left: 58px; height: 100px; }
+.rm-plant i:nth-child(3) { left: 82px; transform: rotate(24deg); }
+
+/* ── Light: the CRT spills onto the desk and wall, then everything falls off
+      toward the edges so the eye is pulled to the screen. ── */
+.rm-haze {
+  position: absolute; inset: 0; mix-blend-mode: screen;
+  background: radial-gradient(ellipse 1000px 700px at var(--rc-x) var(--rc-y), rgba(255,176,46,0.22), transparent 72%);
+}
+#room::after {
+  content: ""; position: absolute; inset: 0;
+  background: radial-gradient(ellipse 1180px 820px at var(--rc-x) var(--rc-y), transparent 30%, rgba(0,0,0,0.7) 100%);
+}
+
+/* ═══════════════ THE MENU, ON THE CRT ═══════════════
+   #main-menu-overlay and #mode-select-overlay used to be full-viewport fixed
+   sheets. They now live inside #cab-screen as absolutely-positioned siblings of
+   #stage, sitting exactly on the glass. z-index 50 keeps them UNDER the bezel's
+   scanline/glare layers (60 and 61), which are pointer-events:none, so the
+   menu reads as something the machine is displaying. */
+#cab-screen > #main-menu-overlay,
+#cab-screen > #mode-select-overlay {
+  position: absolute; inset: 12px; z-index: 50;
+  border-radius: 8px; padding: 14px;
+}
+
+/* Landscape: 747 x 420 of glass cannot take the portrait stack, so the branding
+   and the buttons become two columns. #menu-left / #menu-right are
+   display:contents everywhere else, which leaves the portrait menu untouched. */
+#menu-left, #menu-right { display: contents; }
+
+#cabinet.landscape #menu-container {
+  max-width: 700px; min-height: 82%;
+  display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 36px;
+  padding: 26px 32px; text-align: left;
+}
+#cabinet.landscape #menu-left,
+#cabinet.landscape #menu-right {
+  display: flex; flex-direction: column; justify-content: center; gap: 9px;
+}
+#cabinet.landscape #menu-left  { flex: 1 1 auto; align-items: flex-start; }
+#cabinet.landscape #menu-right { flex: 0 0 268px; align-items: stretch; }
+#cabinet.landscape #menu-tagline { text-align: left; max-width: 340px; margin-top: 2px; }
+#cabinet.landscape #menu-stripe  { width: 100%; }
+#cabinet.landscape #menu-build-stamp { text-align: left; margin-top: 6px; }
+/* The buttons carry max-width:300px and assorted top margins from style.css,
+   which fight a fixed-width column. */
+#cabinet.landscape #menu-right > button,
+#cabinet.landscape #menu-right > #ios-fullscreen-hint {
+  max-width: none; width: 100%; margin-top: 0; margin-bottom: 0;
+}
+#cabinet.landscape #menu-start-btn    { font-size: 19px; padding: 13px; }
+#cabinet.landscape #menu-continue-btn { font-size: 16px; padding: 11px 14px; }
+#cabinet.landscape #menu-history-btn,
+#cabinet.landscape #menu-builds-btn,
+#cabinet.landscape #menu-settings-btn,
+#cabinet.landscape #menu-fullscreen-btn { font-size: 12px; padding: 9px; }
+
+/* Mode select on the same glass: the carousel card was designed against a full
+   desktop viewport and is 40px too tall for a 420px stage. */
+#cabinet.landscape #mode-select-inner { max-width: 700px; gap: 8px; }
+#cabinet.landscape #mode-select-title { font-size: 24px; letter-spacing: 5px; }
+#cabinet.landscape #mode-select-sub   { font-size: 10px; }
+#cabinet.landscape #mode-carousel     { gap: 14px; padding: 8px 6px 10px; }
+#cabinet.landscape .mode-card         { width: 232px; min-height: 224px; gap: 8px; padding: 16px 16px; }
+#cabinet.landscape .mode-card-name    { font-size: 17px; letter-spacing: 2px; }
+#cabinet.landscape .mode-card-suits   { font-size: 19px; letter-spacing: 3px; }
+#cabinet.landscape .mode-card-blurb   { font-size: 9.5px; line-height: 1.5; }
+#cabinet.landscape .mode-card-play    { font-size: 13px; padding: 9px; }
+#cabinet.landscape .mode-arrow        { width: 34px; height: 34px; font-size: 20px; }
+#cabinet.landscape #mode-back-btn     { font-size: 11px; padding: 7px 18px; }
+
+/* Portrait puts a tall, narrow cabinet on a much narrower stretch of visible
+   desk, so the two flanking props would sit under the housing. Drop them rather
+   than shuffle every prop twice. */
+#room.room-portrait .rm-plant,
+#room.room-portrait .rm-papers { display: none; }
+
+/* The scene is decoration; hide it from anyone who asked for less motion or
+   more contrast, and never let it cost a frame while the board is live. */
+/* The fade waits out the whole dolly (js/camera.js CAM_DUR = 1250ms) - start it
+   early and the room dissolves while it is still the thing you are looking at. */
+body.cam-play #room { opacity: 0; transition: opacity 0.35s ease 1.15s; }
+body.cam-wide #room { opacity: 1; transition: opacity 0.4s ease; }
+body.high-contrast #room .rm-haze { display: none; }
