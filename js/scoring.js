@@ -67,9 +67,11 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // only after calcScore runs, so reading streakCount directly here is one hand stale).
   const _effStreak = (lastHandType !== null && handName === lastHandType) ? streakCount + 1 : 1;
 
-  // 1. Base pips (scaled by level) + card pips
+  // 1. Base pips (scaled by level) + card pips.
+  // handBasePips is 0 in the no-pips scoring models, so all pips then come from
+  // the cards themselves (see SCORING_MODELS in js/focus-config.js).
   const levelScale = Math.pow(1.1, level - 1);
-  let totalPips = Math.round(base.pips * levelScale);
+  let totalPips = Math.round(handBasePips(handName) * levelScale);
 
   // Rising Tide: +1 base mult per level
   const risingTideBonus = hasTrick('rising_tide') ? (level - 1) : 0;
@@ -326,7 +328,9 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     cards.some(c => ['3','6','9'].includes(c.rank));
 
   // 2. Base mult + bonuses
-  let mult = base.mult + sleightAmplifierMult;
+  // handBaseMult is the hand's ladder mult, or the hand's CARD COUNT under the
+  // hand_size model. _scoreCells is the hand actually being scored.
+  let mult = handBaseMult(handName, _scoreCells.length) + sleightAmplifierMult;
 
   // Assembly Line: apply the mult accumulated in the per-card loop; snapshot the round counter
   if (_asmMult > 0) { mult += _asmMult * BAL.assembly_line.mult_per_prior; bMult('assembly_line', _asmMult * BAL.assembly_line.mult_per_prior); }
@@ -745,13 +749,13 @@ function captureRoundContrib(result) {
   const base = HAND_BASE[hand];
   if (base) {
     const levelScale = Math.pow(1.1, level - 1);
-    let cardPipsTotal = Math.round(base.pips * levelScale);
+    let cardPipsTotal = Math.round(handBasePips(hand) * levelScale);
     handCells.forEach(([r, c]) => { const card = gridData[r]?.[c]; if (card?.rank) cardPipsTotal += cardPips(card.rank); });
     rows.push({ label: 'Base + card pips', kind: 'pip', amount: cardPipsTotal });
-    // Base MULT from the hand type (calcScore seeds mult at base.mult - see scoring
-    // "let mult = base.mult …"). It's the starting multiplier every trick adds onto,
-    // so surface it in the Mult group too.
-    if (base.mult) rows.push({ label: 'Base (hand type)', kind: 'mult', amount: base.mult });
+    // Base MULT from the hand type (calcScore seeds mult from handBaseMult). It's
+    // the starting multiplier every trick adds onto, so surface it in Mult too.
+    const _bm = handBaseMult(hand, handCells.length);
+    if (_bm) rows.push({ label: 'Base (hand type)', kind: 'mult', amount: _bm });
   }
   return rows;
 }

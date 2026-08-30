@@ -102,6 +102,32 @@ The old table had four inversions, all fixed:
 
 **`HAND_FORMULAS` in `js/stats.js` is now a Proxy over `HAND_BASE`**, not a written-out string table. The written one had already drifted: modes overwrite `HAND_BASE`, so it stated a payout Spectrum does not pay.
 
+### Scoring models (r179) - a dev toggle, not a decision
+
+Three ways a hand type can be worth something, switchable in the dev panel's **Focus** group so they can be played against each other rather than argued about. `scoringModel` persists in `localStorage`; `classic` is the default and the shipped balance.
+
+| model | base pips | mult | what hand type is then worth |
+|---|---|---|---|
+| `classic` | from `HAND_BASE` | from `HAND_BASE` | pips, mult and Focus |
+| `mult_ladder` | 0 | from `HAND_BASE` | mult and Focus. All pips come from the cards you played. |
+| `hand_size` | 0 | the number of cards played | Focus only |
+
+**`handBasePips()` / `handBaseMult()` in `js/focus-config.js` are the single chokepoint.** Every read of a hand's pips or mult goes through them, so a model applies everywhere at once: `calcScore`, the payout breakdown, the live PIPS/MULT chips, the scoring dance and the RECORDS Hands tab. **A new site that reads `HAND_BASE[h].pips` directly silently ignores the model.**
+
+- `detectHand`'s "flush unless the run is worth more" tiebreak compares `pips x mult`, which is 0 for every hand once base pips are zeroed. It now compares `max(pips, 1) x mult`, so the ranking still works in the no-pips models.
+- **The retuned ladder is already close to hand size for most hands.** `mult_ladder` and `hand_size` differ only on Flush of 3/4/5 (2/3/4 vs 3/4/5), Two Pair (3 vs 4), Four of a Kind (7 vs 4) and Straight Flush (8 vs 5). Everything else has a ladder mult equal to its card count, so those two models are nearer each other than the names suggest.
+- The Hands tab footer states which model is live, because two of the three make the Pips and Score columns meaningless.
+
+### Focus tuning is plain English (r179)
+
+The Focus dev controls used to be sliders labelled with the formula itself (`Linear - max(0, max_bonus - slope x t)`), which needed the source open to use. Every control is now a sentence plus a number you can type.
+
+- **One table drives it: `FOCUS_TUNABLES` + `FOCUS_SPEED_MODES` in `js/dev-panel.js`.** Add a row and the panel, the persistence and the reset button all pick it up. Each row is `{ label, min, max, step, dp, unit, get, set }`; `get`/`set` read and write the live global.
+- **Steppers, not sliders**: `[-] [number] [+]`, because these are exact values worth typing (2.5 seconds, 0.15 per node) and a slider cannot hit them across a useful range. Typed values are clamped to `min`/`max`.
+- `focusMultStartNodes` and `focusMultPerNode` are new tunables for the multiplier's shape. They are deliberately **separate from `FOCUS_THRESHOLD`**, which also sets the meter's node colouring and charge spacing: retuning the multiplier should not redraw the bar.
+- **`_devSafeRender()` guards every repaint.** The dev panel doubles as the main menu's Settings screen, where there is no board, and `render()` reads `gridData[0]` and throws. This was a live crash on the pre-existing exalt/corrupt toggle too.
+- Both groups show a live preview of what the numbers produce (`Play after 0s: +12 · 1s: +10 …`).
+
 ### Interact costs (r151) - ONE charge each, from `BAL._resources`
 **Discard 3s per card · Swap 8s flat · Play free.** Until r151 there were **two overlapping cost systems** and both were live: a flat `spendRoundTime(DISCARD_TIME_COST/SWAP_TIME_COST)` *and* the `BAL._resources` figures. A 1-card discard billed 3+3 = **6s**, the 3rd swap of a round billed 4+10 = **14s**, and the Free Discards knack ("costs no time") still charged the flat 3s - all while the ⏱ Time pop-up quoted 3s and 4s. `DISCARD_TIME_COST` / `SWAP_TIME_COST` are now **dead constants**, kept and commented so nothing reintroduces the double charge; `freeSwapsLeft` (the "first 2 swaps free" exemption) is dead for the same reason. Costs come from `BAL._resources` alone, and `updateInteractCosts()` reads the same source so the pop-up can't drift from reality again.
 

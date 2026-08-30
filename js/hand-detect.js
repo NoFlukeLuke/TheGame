@@ -315,7 +315,9 @@ function detectHand(cells) {
   // higher-scoring of the two wins rather than a fixed order. Six Suits pays more
   // for the flush (75 vs 60) and is unchanged; Spectrum zeroes the flush, so there
   // a single-colour run scores as the Run it also is instead of paying nothing.
-  const _worth = h => (HAND_BASE[h] ? HAND_BASE[h].pips * HAND_BASE[h].mult : 0);
+  // Worth under the ACTIVE scoring model, not the printed table: with base pips
+  // zeroed, "flush unless the run is worth more" has to compare mults instead.
+  const _worth = h => (HAND_BASE[h] ? Math.max(handBasePips(h), 1) * handBaseMult(h) : 0);
   if (activeHands.has('flush3') && n===3 && allSameSuitStrict
       && !(activeHands.has('run3') && isStr && _worth('Run of 3') > _worth('Flush of 3'))) return 'Flush of 3';
   if (activeHands.has('straight') && n===5 && isStr) return 'Straight';

@@ -328,29 +328,38 @@
     </div>
   </div>
 
-  <!-- FOCUS: DECAY INTERVAL -->
+  <!-- FOCUS + SCORING: all plain-language controls, built by devRenderFocusPanel()
+       in js/dev-panel.js from FOCUS_TUNABLES. Number steppers rather than sliders
+       so an exact value can be typed. -->
   <div class="dev-section" data-group="focus">
-    <div class="dev-section-title">Focus: Decay Interval <span id="dev-focus-decay-val">2.00s</span></div>
-    <input id="dev-focus-decay-slider" type="range" min="0.1" max="15" value="2" step="0.25" oninput="devSetFocusDecay(this.value)" style="width:100%;accent-color:var(--gold);">
+    <div class="dev-section-title">Where a hand's value comes from</div>
+    <div class="dev-note">Changes apply to the next hand scored. Existing runs keep playing.</div>
+    <div id="dev-scoring-model"></div>
   </div>
 
-  <!-- FOCUS: BEAT DURATION -->
   <div class="dev-section" data-group="focus">
-    <div class="dev-section-title">Focus: Beat Duration <span id="dev-focus-beat-val">300ms</span></div>
-    <input id="dev-focus-beat-slider" type="range" min="100" max="2000" value="300" step="50" oninput="devSetFocusBeat(this.value)" style="width:100%;accent-color:var(--gold);">
+    <div class="dev-section-title">Focus: building it</div>
+    <div class="dev-note">Playing fast is worth extra Focus on top of the hand type's own value.</div>
+    <div id="dev-focus-speed-mode"></div>
+    <div id="dev-focus-speed-params"></div>
+    <div id="dev-focus-speed-preview" class="dev-preview"></div>
   </div>
 
-  <!-- FOCUS: SPEED BONUS FORMULA -->
   <div class="dev-section" data-group="focus">
-    <div class="dev-section-title">Focus: Speed Bonus Formula</div>
-    <select id="dev-focus-speed-select" onchange="devSetFocusSpeedFormula(this.value)"
-      style="width:100%;background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--cream);font-family:'Crimson Pro',serif;font-size:13px;padding:5px 6px;border-radius:4px;">
-      <option value="linear">Linear   - max(0, max_bonus − slope × t)</option>
-      <option value="stepped">Stepped  - t&lt;t1 ? bonus1 : t&lt;t2 ? bonus2 : 0</option>
-      <option value="exponential">Exponential - floor(max_bonus / t)</option>
-    </select>
-    <div id="dev-focus-speed-params" style="display:flex;flex-direction:column;gap:4px;margin-top:4px;"></div>
-    <div id="dev-focus-speed-preview" style="font-family:'Courier New',monospace;font-size:10px;color:var(--gold-dim);margin-top:6px;letter-spacing:0.5px;"></div>
+    <div class="dev-section-title">Focus: losing it</div>
+    <div id="dev-focus-decay-rows"></div>
+  </div>
+
+  <div class="dev-section" data-group="focus">
+    <div class="dev-section-title">Focus: the multiplier</div>
+    <div id="dev-focus-mult-rows"></div>
+    <div id="dev-focus-mult-preview" class="dev-preview"></div>
+  </div>
+
+  <div class="dev-section" data-group="focus">
+    <div class="dev-section-title">Focus: animation</div>
+    <div id="dev-focus-anim-rows"></div>
+    <button class="dev-btn" onclick="devResetFocusTunables()" style="margin-top:8px;">Reset all of the above to defaults</button>
   </div>
 
   <!-- HUD TOGGLES -->

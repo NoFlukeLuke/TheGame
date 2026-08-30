@@ -1,4 +1,4 @@
-const BUILD = '2026-08-27 · r178 · hand values retuned to measured difficulty · plain-language copy · Hands tab shows Unavailable';
+const BUILD = '2026-08-27 · r179 · scoring-model toggle (pips/mult ladder/hand size) · Focus tuning in plain English';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

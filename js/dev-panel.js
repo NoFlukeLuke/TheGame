@@ -24,24 +24,9 @@ function initDevMode() {
   if (diSel) diSel.value = danceInterruptMode;
   syncMatch3DevToggles();
   applyDeckHudVisibility();
-  // Focus dev controls - restore persisted values
-  const decaySlider = document.getElementById('dev-focus-decay-slider');
-  const decayLabel  = document.getElementById('dev-focus-decay-val');
-  if (decaySlider) {
-    const s = (focusDecayBaseMs / 1000);
-    decaySlider.value = s;
-    if (decayLabel) decayLabel.textContent = s.toFixed(2) + 's';
-  }
-  const beatSlider = document.getElementById('dev-focus-beat-slider');
-  const beatLabel  = document.getElementById('dev-focus-beat-val');
-  if (beatSlider) {
-    beatSlider.value = focusBeatDurationMs;
-    if (beatLabel) beatLabel.textContent = Math.round(focusBeatDurationMs) + 'ms';
-  }
-  const speedSelect = document.getElementById('dev-focus-speed-select');
-  if (speedSelect) speedSelect.value = focusSpeedFormula;
-  renderFocusSpeedParams();
-  updateFocusSpeedPreview();
+  // Focus + scoring controls are generated from FOCUS_TUNABLES, so one call
+  // rebuilds every row at its persisted value.
+  devRenderFocusPanel();
   applyDevMode();
 }
 
@@ -55,7 +40,7 @@ function toggleDevMode(on) {
 function toggleExaltCorrupt(on) {
   exaltCorruptEnabled = !!on;
   localStorage.setItem('exaltCorruptEnabled', exaltCorruptEnabled);
-  if (typeof render === 'function') render(); // refresh glows immediately
+  _devSafeRender();   // refresh glows immediately (no-op with no board yet)
 }
 
 // Push the Match-3 dev toggles' real state into their checkboxes. Called both at
@@ -386,66 +371,210 @@ function devSetAnimSpeed(val) {
   document.getElementById('dev-anim-val').textContent = val + ' t/s';
 }
 
-// ── Focus dev controls (chunk 3) ──
+// ══════════════════════════════════════════════
+// FOCUS + SCORING DEV CONTROLS  (rebuilt r179)
+// ══════════════════════════════════════════════
+// These used to be raw sliders labelled with the formula itself
+// ("Linear - max(0, max_bonus - slope x t)"), which required reading the source
+// to use. Every control here is now a sentence plus a number you can type,
+// generated from ONE table: add a row to FOCUS_TUNABLES and the panel, the
+// persistence and the reset button all pick it up.
+//
+// Steppers rather than sliders: these are exact values worth typing (2.5 seconds,
+// 0.15 per node), and a slider cannot hit them reliably at a useful range.
+
 function devAddFocus(n) { addFocus(n); }
 
-function devSetFocusDecay(val) {
-  focusDecayBaseMs = parseFloat(val) * 1000;
-  localStorage.setItem('focusDecayBaseMs', focusDecayBaseMs);
-  document.getElementById('dev-focus-decay-val').textContent = parseFloat(val).toFixed(2) + 's';
-  recomputeFocusDecayInterval();
+// The dev panel doubles as the main menu's Settings screen, where there is no
+// board: render() reads gridData[0] and throws before a run has started. Every
+// tunable that wants a repaint goes through this.
+function _devSafeRender() {
+  if (typeof render !== 'function') return;
+  if (typeof gridData === 'undefined' || !Array.isArray(gridData) || !gridData.length) return;
+  render();
 }
 
-function devSetFocusBeat(val) {
-  focusBeatDurationMs = parseFloat(val);
-  localStorage.setItem('focusBeatDurationMs', focusBeatDurationMs);
-  document.getElementById('dev-focus-beat-val').textContent = Math.round(val) + 'ms';
+// { get, set } read and write the live global. `min`/`max` clamp; `step` is what
+// the +/- buttons move by; `dp` is decimal places shown.
+const FOCUS_TUNABLES = {
+  decay: [
+    { key: 'decayEvery', label: 'Seconds of stillness before Focus drops one node',
+      min: 0.1, max: 60, step: 0.25, dp: 2, unit: 's',
+      get: () => focusDecayBaseMs / 1000,
+      set: v => { focusDecayBaseMs = v * 1000; localStorage.setItem('focusDecayBaseMs', focusDecayBaseMs); recomputeFocusDecayInterval(); } },
+  ],
+  mult: [
+    { key: 'multStart', label: 'Nodes you must hold before the multiplier starts climbing',
+      min: 0, max: 100, step: 1, dp: 0, unit: '',
+      get: () => focusMultStartNodes,
+      set: v => { focusMultStartNodes = v; localStorage.setItem('focusMultStartNodes', v); _devSafeRender(); } },
+    { key: 'multPer', label: 'Multiplier added per node above that',
+      min: 0.01, max: 2, step: 0.05, dp: 2, unit: 'x',
+      get: () => focusMultPerNode,
+      set: v => { focusMultPerNode = v; localStorage.setItem('focusMultPerNode', v); _devSafeRender(); } },
+  ],
+  anim: [
+    { key: 'beat', label: 'Time the meter takes to animate one node',
+      min: 20, max: 3000, step: 25, dp: 0, unit: 'ms',
+      get: () => focusBeatDurationMs,
+      set: v => { focusBeatDurationMs = v; localStorage.setItem('focusBeatDurationMs', v); } },
+  ],
+};
+
+// Plain-language names for the speed-bonus shapes, and their parameters.
+const FOCUS_SPEED_MODES = {
+  linear: {
+    name: 'Fades evenly with every second you wait',
+    params: [
+      { key: 'max_bonus', label: 'Focus for playing instantly', min: 0, max: 100, step: 1,   dp: 0, unit: '' },
+      { key: 'slope',     label: 'Focus lost per second waited', min: 0, max: 50,  step: 0.5, dp: 1, unit: '' },
+    ],
+  },
+  stepped: {
+    name: 'Two brackets, then nothing',
+    params: [
+      { key: 't1',     label: 'Play within this many seconds', min: 0.1, max: 60, step: 0.5, dp: 1, unit: 's' },
+      { key: 'bonus1', label: 'and get this much Focus',       min: 0,   max: 100, step: 1,  dp: 0, unit: '' },
+      { key: 't2',     label: 'Play within this many seconds',  min: 0.1, max: 60, step: 0.5, dp: 1, unit: 's' },
+      { key: 'bonus2', label: 'and get this much Focus',        min: 0,   max: 100, step: 1,  dp: 0, unit: '' },
+    ],
+  },
+  exponential: {
+    name: 'Halves fast, then trails off',
+    params: [
+      { key: 'max_bonus', label: 'Focus for playing instantly', min: 0, max: 100, step: 1, dp: 0, unit: '' },
+    ],
+  },
+};
+
+const SCORING_MODEL_COPY = {
+  classic:     ['Hand type sets both pips and mult',
+                'The shipped table. A Straight is worth 40 pips and x5 before your cards are counted.'],
+  mult_ladder: ['Hand type sets mult only, no bonus pips',
+                'All pips come from the cards you actually played. Hand type still pays immediately, through the mult.'],
+  hand_size:   ['Mult is just how many cards you played',
+                'No bonus pips and no mult ladder. Hand type is then worth only the Focus it gives.'],
+};
+
+// One stepper: a sentence, a [-] [number] [+] group, and a unit.
+function _devStepper(t, onchangeFn) {
+  const v = t.get ? t.get() : t.value;
+  return `<div class="dev-tune" data-key="${t.key}">
+      <span class="dev-tune-label">${t.label}</span>
+      <span class="dev-tune-ctl">
+        <button class="dev-step" onclick="${onchangeFn}('${t.key}', -1)" aria-label="decrease">&minus;</button>
+        <input class="dev-tune-num" type="number" inputmode="decimal"
+               min="${t.min}" max="${t.max}" step="${t.step}" value="${(+v).toFixed(t.dp)}"
+               onchange="${onchangeFn}('${t.key}', 0, this.value)">
+        <button class="dev-step" onclick="${onchangeFn}('${t.key}', 1)" aria-label="increase">+</button>
+        ${t.unit ? `<span class="dev-tune-unit">${t.unit}</span>` : ''}
+      </span>
+    </div>`;
+}
+
+function _devFindTunable(key) {
+  for (const group of Object.values(FOCUS_TUNABLES)) {
+    const t = group.find(x => x.key === key);
+    if (t) return t;
+  }
+  return null;
+}
+
+// dir: -1 / +1 to step, 0 to take the typed value.
+function devTuneFocus(key, dir, typed) {
+  const t = _devFindTunable(key);
+  if (!t) return;
+  let v = (dir === 0) ? parseFloat(typed) : t.get() + dir * t.step;
+  if (!isFinite(v)) v = t.get();
+  v = Math.min(t.max, Math.max(t.min, +v.toFixed(4)));
+  t.set(v);
+  devRenderFocusPanel();
+}
+
+function devTuneSpeed(key, dir, typed) {
+  const mode = FOCUS_SPEED_MODES[focusSpeedFormula];
+  const t = mode && mode.params.find(p => p.key === key);
+  if (!t) return;
+  if (!focusSpeedParams[focusSpeedFormula]) focusSpeedParams[focusSpeedFormula] = {};
+  const cur = focusSpeedParams[focusSpeedFormula][key] ?? 0;
+  let v = (dir === 0) ? parseFloat(typed) : cur + dir * t.step;
+  if (!isFinite(v)) v = cur;
+  v = Math.min(t.max, Math.max(t.min, +v.toFixed(4)));
+  focusSpeedParams[focusSpeedFormula][key] = v;
+  localStorage.setItem('focusSpeedParams', JSON.stringify(focusSpeedParams));
+  devRenderFocusPanel();
 }
 
 function devSetFocusSpeedFormula(formula) {
   focusSpeedFormula = formula;
   localStorage.setItem('focusSpeedFormula', formula);
-  renderFocusSpeedParams();
-  updateFocusSpeedPreview();
+  devRenderFocusPanel();
 }
 
-function devSetFocusSpeedParam(key, val) {
-  if (!focusSpeedParams[focusSpeedFormula]) focusSpeedParams[focusSpeedFormula] = {};
-  focusSpeedParams[focusSpeedFormula][key] = parseFloat(val);
-  localStorage.setItem('focusSpeedParams', JSON.stringify(focusSpeedParams));
-  updateFocusSpeedPreview();
+function devSetScoringModel(model) {
+  if (!SCORING_MODELS.includes(model)) return;
+  scoringModel = model;
+  localStorage.setItem('scoringModel', model);
+  // The preview slot and the RECORDS Hands tab both read the model, and the
+  // selected-hand readout is rebuilt by render().
+  _devSafeRender();
+  if (typeof recordsOpen !== 'undefined' && recordsOpen && typeof renderRecords === 'function') renderRecords();
+  devRenderFocusPanel();
 }
 
-function renderFocusSpeedParams() {
-  const container = document.getElementById('dev-focus-speed-params');
-  if (!container) return;
-  const p = focusSpeedParams[focusSpeedFormula] || {};
-  const numInput = (key, label, val, step) =>
-    `<label style="display:flex;align-items:center;gap:6px;font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream);">
-       <span style="min-width:78px;color:var(--cream-dim);">${label}</span>
-       <input type="number" step="${step}" value="${val}" oninput="devSetFocusSpeedParam('${key}', this.value)"
-         style="width:70px;background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--cream);font-family:'Crimson Pro',serif;font-size:12px;padding:3px 6px;border-radius:3px;">
-     </label>`;
-  let html = '';
-  if (focusSpeedFormula === 'linear') {
-    html += numInput('max_bonus', 'Max trick', p.max_bonus ?? 12, '0.5');
-    html += numInput('slope',     'Slope',     p.slope     ?? 1.5, '0.1');
-  } else if (focusSpeedFormula === 'stepped') {
-    html += numInput('t1',     't1 (s)',  p.t1     ?? 2, '0.5');
-    html += numInput('bonus1', 'bonus1',  p.bonus1 ?? 6, '1');
-    html += numInput('t2',     't2 (s)',  p.t2     ?? 5, '0.5');
-    html += numInput('bonus2', 'bonus2',  p.bonus2 ?? 2, '1');
-  } else if (focusSpeedFormula === 'exponential') {
-    html += numInput('max_bonus', 'Max trick', p.max_bonus ?? 8, '1');
-  }
-  container.innerHTML = html;
+function devResetFocusTunables() {
+  ['focusDecayBaseMs','focusBeatDurationMs','focusMultStartNodes','focusMultPerNode',
+   'focusSpeedFormula','focusSpeedParams','scoringModel'].forEach(k => localStorage.removeItem(k));
+  focusDecayBaseMs    = 2000;
+  focusBeatDurationMs = 300;
+  focusMultStartNodes = FOCUS_THRESHOLD;
+  focusMultPerNode    = 0.1;
+  focusSpeedFormula   = 'linear';
+  focusSpeedParams    = { linear: { max_bonus: 12, slope: 1.5 },
+                          stepped: { t1: 2, bonus1: 6, t2: 5, bonus2: 2 },
+                          exponential: { max_bonus: 8 } };
+  scoringModel        = 'classic';
+  recomputeFocusDecayInterval();
+  _devSafeRender();
+  devRenderFocusPanel();
 }
 
-function updateFocusSpeedPreview() {
-  const el = document.getElementById('dev-focus-speed-preview');
-  if (!el) return;
-  const samples = [1, 2, 4, 8];
-  el.textContent = samples.map(t => `t=${t}s: +${Math.floor(speedBonusFromTime(t))}`).join('  |  ');
+function _devRadioRow(name, value, current, title, sub, onchangeFn) {
+  return `<label class="dev-pick${value === current ? ' on' : ''}">
+      <input type="radio" name="${name}" ${value === current ? 'checked' : ''}
+             onchange="${onchangeFn}('${value}')">
+      <span class="dev-pick-body"><b>${title}</b><i>${sub}</i></span>
+    </label>`;
+}
+
+// Rebuilds every focus/scoring control from the tables above. Safe to call any
+// time; each slot is only filled if it exists in the DOM.
+function devRenderFocusPanel() {
+  const fill = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML = html; };
+
+  fill('dev-scoring-model', SCORING_MODELS
+    .map(m => _devRadioRow('dev-scoring', m, scoringModel, SCORING_MODEL_COPY[m][0], SCORING_MODEL_COPY[m][1], 'devSetScoringModel'))
+    .join(''));
+
+  fill('dev-focus-speed-mode', Object.keys(FOCUS_SPEED_MODES)
+    .map(k => _devRadioRow('dev-focus-speed', k, focusSpeedFormula, FOCUS_SPEED_MODES[k].name, '', 'devSetFocusSpeedFormula'))
+    .join(''));
+
+  const mode = FOCUS_SPEED_MODES[focusSpeedFormula] || { params: [] };
+  const sp   = focusSpeedParams[focusSpeedFormula] || {};
+  fill('dev-focus-speed-params', mode.params
+    .map(p => _devStepper({ ...p, get: () => sp[p.key] ?? 0 }, 'devTuneSpeed')).join(''));
+
+  ['decay', 'mult', 'anim'].forEach(g =>
+    fill('dev-focus-' + g + '-rows', FOCUS_TUNABLES[g].map(t => _devStepper(t, 'devTuneFocus')).join('')));
+
+  // Previews: what the numbers above actually produce.
+  const sec = [0, 1, 2, 4, 8];
+  fill('dev-focus-speed-preview',
+    'Play after ' + sec.map(t => `${t}s: +${Math.floor(speedBonusFromTime(t))}`).join('  ·  '));
+  const nodes = [focusMultStartNodes, focusMultStartNodes + 5, focusMultStartNodes + 10, focusMultStartNodes + 20];
+  fill('dev-focus-mult-preview',
+    nodes.map(n => `${n} nodes: x${(1 + Math.max(0, n - focusMultStartNodes) * focusMultPerNode).toFixed(2)}`).join('  ·  '));
 }
 
 function devFilterTricks(query) {

@@ -335,8 +335,8 @@ async function playScoreDance(result, toRemove, isGoalHand = false) {
 
   const base       = HAND_BASE[hand] || { pips: 0, mult: 1 };
   const levelScale = Math.pow(1.1, level - 1);
-  const basePips   = Math.round(base.pips * levelScale);
-  const baseMult   = base.mult;
+  const basePips   = Math.round(handBasePips(hand) * levelScale);
+  const baseMult   = handBaseMult(hand, handCells?.length);
 
   // ── Measure box rects upfront ──
   const pipsBoxEl    = document.getElementById('pips-box');
@@ -739,7 +739,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   const scoreAfter = score, scoreBefore = score - finalScore;
   const levelScale = Math.pow(1.1, level - 1);
   const base = HAND_BASE[hand] || { pips:0, mult:1 };
-  const basePips = Math.round(base.pips * levelScale), baseMult = base.mult;
+  const basePips = Math.round(handBasePips(hand) * levelScale), baseMult = handBaseMult(hand, handCells.length);
   // Capture per-card pips BEFORE removeAndFall nulls gridData.
   const cardPipVals = handCells.map(([r,c]) => cardPips(gridData[r][c].rank));
 

@@ -249,6 +249,23 @@ function recordsRenderTime() {
     <div class="rec-lims">${rows}</div>`;
 }
 
+// The footer explains the ACTIVE scoring model, since two of the three make the
+// Pips and Score columns meaningless.
+function _recHandsFoot() {
+  const m = (typeof scoringModel !== 'undefined') ? scoringModel : 'classic';
+  if (m === 'hand_size') {
+    return 'In this mode the hand type does not change your score directly. Mult is simply how '
+         + 'many cards you played, and pips come only from the cards themselves. What a hand '
+         + 'type is worth to you is the Focus it gives.';
+  }
+  if (m === 'mult_ladder') {
+    return 'In this mode pips come only from the cards you play. The hand type sets the mult and '
+         + 'the Focus it adds to the meter. Tricks, Knacks and your Focus multiplier build on top.';
+  }
+  return "Score is pips x mult, before your cards' own pips, Tricks, Knacks and your Focus "
+       + 'multiplier. Focus is what the hand adds to the meter.';
+}
+
 // ── HANDS ──
 // What each hand is worth. Read LIVE from HAND_BASE / HAND_FOCUS, never from a
 // written-out table: both are global and modes overwrite them, so a written copy
@@ -273,17 +290,21 @@ function recordsRenderHands() {
         <span class="rh-off">Unavailable</span>
       </div>`;
     }
-    const b     = HAND_BASE[name] || { pips: 0, mult: 0 };
+    // Read through the model helpers, so switching the scoring model in the dev
+    // panel is reflected here rather than quoting a table the scorer ignores.
+    const pips  = handBasePips(name);
+    const mult  = handBaseMult(name);
     const focus = HAND_FOCUS[name] || 0;
+    const sizeMult = (typeof scoringModel !== 'undefined') && scoringModel === 'hand_size';
     // pips x mult is the number that decides which hand to go for; the two
     // factors on their own do not compare across rows.
-    const base  = Math.round((b.pips || 0) * (b.mult || 0));
+    const base  = Math.round(pips * mult);
     return `<div class="rec-hand">
       <span class="rh-n">${name}</span>
-      <span class="rh-v rh-p">${b.pips}</span>
-      <span class="rh-v rh-m">x${b.mult}</span>
+      <span class="rh-v rh-p">${pips}</span>
+      <span class="rh-v rh-m">${sizeMult ? 'cards' : 'x' + mult}</span>
       <span class="rh-v rh-f">${focus || 0}</span>
-      <span class="rh-v rh-b">${base.toLocaleString()}</span>
+      <span class="rh-v rh-b">${sizeMult || !pips ? '&middot;' : base.toLocaleString()}</span>
     </div>`;
   }).join('');
 
@@ -296,8 +317,7 @@ function recordsRenderHands() {
       <span class="rh-v">Focus</span><span class="rh-v">Score</span>
     </div>
     <div class="rec-hands">${rows}</div>
-    <div class="rec-foot">Score is pips x mult, before your cards' own pips, Tricks,
-      Knacks and your Focus multiplier. Focus is what the hand adds to the meter.</div>`;
+    <div class="rec-foot">${_recHandsFoot()}</div>`;
 }
 
 function recordsRenderStats() {

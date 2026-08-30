@@ -292,3 +292,61 @@
 #cc-osd { position:absolute; top:22px; left:26px; opacity:0;
   font-family:'Share Tech Mono',monospace; font-size:16px; letter-spacing:3px; color:#8dff9f;
   text-shadow:0 0 8px rgba(120,255,150,.8); background:rgba(0,0,0,.45); padding:5px 10px; border-radius:3px; }
+
+  /* ── Focus + scoring tunables (r179) ──
+     A sentence, then a [-] [number] [+] stepper. Steppers rather than sliders
+     because these are exact values worth typing, and the rows read as sentences
+     rather than as the formula they drive. */
+  .dev-note {
+    font-family: 'Crimson Pro', serif; font-size: 11px; line-height: 1.35;
+    color: var(--cream-dim); margin: -2px 0 8px;
+  }
+  .dev-preview {
+    font-family: 'Share Tech Mono', monospace; font-size: 10px; letter-spacing: 0.3px;
+    color: var(--gold-dim); margin-top: 8px; line-height: 1.5;
+  }
+  .dev-tune {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 5px 0; border-bottom: 1px solid rgba(58, 48, 32, 0.4);
+  }
+  .dev-tune:last-child { border-bottom: none; }
+  .dev-tune-label {
+    font-family: 'Crimson Pro', serif; font-size: 12px; line-height: 1.3;
+    color: var(--cream); flex: 1; min-width: 0;
+  }
+  .dev-tune-ctl { display: flex; align-items: center; gap: 4px; flex: 0 0 auto; }
+  .dev-step {
+    width: 26px; height: 26px; flex: 0 0 auto; cursor: pointer;
+    font-family: 'Orbitron', sans-serif; font-size: 14px; font-weight: 700; line-height: 1;
+    color: var(--gold); background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--border); border-radius: 5px;
+  }
+  .dev-step:hover  { background: rgba(255, 255, 255, 0.13); color: var(--cream); }
+  .dev-step:active { transform: translateY(1px); }
+  .dev-tune-num {
+    width: 62px; text-align: center;
+    font-family: 'Share Tech Mono', monospace; font-size: 13px;
+    color: var(--cream); background: rgba(0, 0, 0, 0.35);
+    border: 1px solid var(--border); border-radius: 5px; padding: 4px 2px;
+  }
+  .dev-tune-unit {
+    font-family: 'Share Tech Mono', monospace; font-size: 10px;
+    color: var(--cream-dim); min-width: 18px;
+  }
+  /* Radio rows: title plus one line saying what it means. */
+  .dev-pick {
+    display: flex; align-items: flex-start; gap: 8px; cursor: pointer;
+    padding: 7px 8px; margin-bottom: 4px; border-radius: 6px;
+    border: 1px solid var(--border); background: rgba(255, 255, 255, 0.03);
+  }
+  .dev-pick.on { border-color: var(--gold); background: rgba(201, 168, 76, 0.10); }
+  .dev-pick input { accent-color: var(--gold); margin-top: 2px; flex: 0 0 auto; }
+  .dev-pick-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .dev-pick-body b {
+    font-family: 'Crimson Pro', serif; font-size: 12.5px; font-weight: 700; color: var(--cream);
+  }
+  .dev-pick-body i {
+    font-family: 'Crimson Pro', serif; font-size: 11px; font-style: normal;
+    line-height: 1.35; color: var(--cream-dim);
+  }
+  .dev-pick-body i:empty { display: none; }
