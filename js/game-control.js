@@ -444,6 +444,8 @@ function startGame() {
   rewardGridContext = 'interlude';
   skipTrickChoiceOverlay = false;
   rewardSelected = new Set();
+  rewardPickOrder = [];
+  rewardTipKey = null;
   rewardCells = [];
   rewardConfirmed = false;
   actNumber = 1;

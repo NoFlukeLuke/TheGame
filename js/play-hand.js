@@ -291,8 +291,16 @@ function playHand() {
 
   // Deluge: Flushes add seconds to the clock
   if (hand === 'Flush' && hasTrick('deluge')) { roundSeconds += BAL.deluge.seconds; timeManipRound += BAL.deluge.seconds; updateClockUI(); showMessage('Deluge! +' + BAL.deluge.seconds + 's', '#5aa9e6'); }
-  // Overtime: scales seconds with cards scored from its marked line this round (counter bumped above)
-  if (hasTrick('overtime')) { const _os = Math.floor(markCount_overtime / 3) * BAL.overtime.seconds_per_3; if (_os > 0) { roundSeconds += _os; timeManipRound += _os; updateClockUI(); } }
+  // Overtime (r182): a REWIND, and now routed through the real rewind path.
+  // It used to add raw seconds straight onto roundSeconds, which meant it was a
+  // rewind that the game did not know was a rewind - it never showed the ⏪
+  // floater, never counted toward Kingfisher or the round's rewind tally, and
+  // was not capped at the round length. rewindTime() does all four, and returns
+  // 0 during a boss (bosses run their own clock), which is the correct no-op.
+  if (hasTrick('overtime')) {
+    const _os = Math.floor(markCount_overtime / 3) * BAL.overtime.seconds_per_3;
+    if (_os > 0) rewindTime(_os, `⏱ Overtime - rewound ${_os}s`);
+  }
   // Right Time: each card scored in its marked line pauses the clock (rewind conversion pending, task #10)
   if (hasTrick('right_time')) { const _rt = handCells.filter(([r,c]) => cellHasRowColBonus(r, c, 'right_time')).length; if (_rt > 0) pauseRound(BAL.right_time.pause_seconds * _rt); }
   // Threepeat: hand pip-sum divisible by 3 → +3 seconds

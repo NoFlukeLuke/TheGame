@@ -14,7 +14,7 @@ let afterEventFn = null;
 
 function openEvent(afterFn) {
   afterEventFn = afterFn || (() => drainLevelUpQueue());
-  const pool = ['confluence','crossroads','gamble','merchant','altar','spring','twin_path','forge','bargain','wager'];
+  const pool = ['confluence','crossroads','gamble','merchant','altar','spring','twin_path','forge','bargain','wager','shift_change'];
   activeEventId = pool[Math.floor(Math.random() * pool.length)];
   eventState = {};
   renderEventShell(activeEventId);
@@ -53,6 +53,7 @@ function confirmEvent() {
     forge:       confirmForge,
     bargain:     confirmBargain,
     wager:       confirmWager,
+    shift_change: confirmShiftChange,
   };
   if (handlers[activeEventId]) handlers[activeEventId]();
   else closeEvent();
@@ -70,6 +71,7 @@ const EVENT_META = {
   forge:       { name:'The Forge',           flavor:'Heat, hammer, and a card made mighty.' },
   bargain:     { name:'The Bargain',         flavor:'Every gain has its price in flesh.' },
   wager:       { name:'The Wager',           flavor:'One flip. Fortune or ruin.' },
+  shift_change:{ name:'Shift Change',        flavor:'Same crew, new rota. Put your Tricks in the order you want them.' },
 };
 
 function renderEventShell(id) {
@@ -91,6 +93,7 @@ function renderEventShell(id) {
     forge:       renderForge,
     bargain:     renderBargain,
     wager:       renderWager,
+    shift_change: renderShiftChange,
   };
   if (renderers[id]) renderers[id]();
 }

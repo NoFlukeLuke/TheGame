@@ -1,4 +1,4 @@
-const BUILD = '2026-08-31 · r181 · the grimy office (Settings > Display) + intro replay';
+const BUILD = '2026-08-31 · r182 · one entity tile everywhere, tap-to-read tooltips, Shift Change';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

@@ -159,7 +159,7 @@ function trickLiveDesc(trick) {
       case 'scalper':        return now(`×${(1 + (B.scalper?.pip_mult_per_missing ?? 0.2) * sleightChargeInfo().missing).toFixed(2)} pips`);
       // ── position-line accumulators (reset each round) ──
       case 'groove':         return roundNow(`+${Math.floor((markCount_groove || 0) / 2)} Focus/hand`);
-      case 'overtime':       return roundNow(`+${Math.floor((markCount_overtime || 0) / 3)}s/hand`);
+      case 'overtime':       return roundNow(`rewinds ${Math.floor((markCount_overtime || 0) / 3)}s per hand`);
       case 'assembly_line':  return roundNow(`next mark card +${assemblyMarkCount || 0} mult`);
       // ── round-time / round-counter scaling (live round only) ──
       case 'swift':          return roundNow(`+${Math.floor(el / B.swift.interval_seconds) * B.swift.mult_per_interval} mult`);
@@ -337,13 +337,19 @@ function renderTrickTray() {
   trickTray.forEach(trick => {
     const chip = document.createElement('div');
     const rar = RARS.includes(trick.tier) ? trick.tier : 'common';
-    chip.className = `trick-tray-chip trick-card trick-tier-${trick.tier} rar-${rar}`;
+    // r182: the chip is now only a FRAME. Its contents are the shared entity tile
+    // (js/entity-tile.js) - the exact markup the reward grid and the Mart use - so
+    // a Trick looks the same in your tray as it did when you picked it up and as
+    // it does on the shelf. Mirror keeps its aim arrow in place of the emoji.
+    chip.className = `trick-tray-chip trick-tier-${trick.tier} rar-${rar}`;
     chip.dataset.trickId = trick.id;
-    if (trick.id === 'mirror') {
-      const dir = trick._tiltDir; // -1 left, +1 right, undefined = not aimed
+    const isMirror = trick.id === 'mirror';
+    const dir = trick._tiltDir; // -1 left, +1 right, undefined = not aimed
+    const tile = { entity: 'trick', label: trick.name,
+                   emoji: isMirror ? (dir === -1 ? '◀' : dir === 1 ? '▶' : '◆') : trickEmoji(trick) };
+    chip.innerHTML = entityTileHTML(tile, rar);
+    if (isMirror) {
       chip.classList.add('trick-mirror');
-      chip.innerHTML = `<div class="trick-card-emoji">${dir === -1 ? '◀' : dir === 1 ? '▶' : '◆'}</div>`
-                     + `<div class="trick-card-name">${trick.name}</div>`;
       chip.title = trick.name + ' - tap to aim left/right';
       chip.addEventListener('click', e => {           // single tap cycles borrow direction
         e.stopPropagation();
@@ -351,10 +357,9 @@ function renderTrickTray() {
         renderTrickTray();
       });
     } else {
-      chip.innerHTML = `<div class="trick-card-emoji">${trickEmoji(trick)}</div>`
-                     + `<div class="trick-card-name">${trick.name}</div>`;
       chip.addEventListener('click', e => {
         e.stopPropagation();
+        if (chip._sellHeld) { chip._sellHeld = false; return; }  // the lift that ended a hold
         const existing = document.getElementById('trick-tooltip');
         if (existing) { hideTrickTooltip(); return; }
         showTrickTrayTooltip(trick, chip);
@@ -374,8 +379,10 @@ function renderTrickTray() {
   // Hover tooltips for every tile (originals + marquee clones).
   list.querySelectorAll('.trick-tray-chip').forEach(chip => {
     const trick = trickTray.find(t => t.id === chip.dataset.trickId);
-    if (trick) attachTrickHover(chip, trick);
+    if (trick) { attachTrickHover(chip, trick); attachTrickSellHold(chip, trick); }
   });
+  // Names are word-atomic and shrink to fit - never broken across a letter (r182).
+  fitEntityNames(list, '.trick-tray-chip .rwd-name', { maxLines: 2, minPx: 5 });
 }
 
 // Hover → show tooltip; a short grace on leave lets the pointer reach the
@@ -388,16 +395,51 @@ function attachTrickHover(chip, trick) {
   chip.addEventListener('mouseleave', scheduleTrickHoverHide);
 }
 
-function showTrickTrayTooltip(trick, anchorEl) {
+// Press-and-hold a Trick you own to bring up its sell / discard options (r182).
+// Works with a finger and with a held mouse button, so the gesture is the same
+// on a phone and on a desktop. A hold sets chip._sellHeld, which the chip's own
+// click handler checks so the lift that ends the hold does not immediately
+// toggle the bubble back off.
+const TRICK_SELL_HOLD_MS = 430;
+function attachTrickSellHold(chip, trick) {
+  let timer = null, sx = 0, sy = 0;
+  const cancel = () => { if (timer) { clearTimeout(timer); timer = null; } };
+  chip.addEventListener('pointerdown', e => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    sx = e.clientX; sy = e.clientY;
+    chip._sellHeld = false;
+    cancel();
+    timer = setTimeout(() => {
+      chip._sellHeld = true;
+      cancelTrickHoverHide();
+      showTrickTrayTooltip(trick, chip, { actions: true });
+      if (navigator.vibrate) { try { navigator.vibrate(12); } catch (err) {} }
+    }, TRICK_SELL_HOLD_MS);
+  });
+  chip.addEventListener('pointermove', e => {
+    if (timer && Math.hypot(e.clientX - sx, e.clientY - sy) > 8) cancel();
+  });
+  chip.addEventListener('pointerup', cancel);
+  chip.addEventListener('pointercancel', () => { cancel(); chip._sellHeld = false; });
+}
+
+// r182 - READING a Trick and DISPOSING of one are now two different gestures.
+//   tap / hover  → the description, nothing you can hit by accident
+//   tap-and-hold → the same bubble with SELL and DISCARD on it
+// Before this, every tap put a live Sell button under your thumb just for asking
+// what a Trick did.
+function showTrickTrayTooltip(trick, anchorEl, { actions = false } = {}) {
   hideTrickTooltip();
   const tip = document.createElement('div');
   tip.id = 'trick-tooltip';
-  tip.className = `trick-tooltip trick-tier-${trick.tier}`;
+  tip.className = `trick-tooltip trick-tier-${trick.tier}` + (actions ? ' has-actions' : '');
   const liveDesc = trickLiveDesc(trick);
   const _sv = (typeof trickSellValue === 'function') ? trickSellValue(trick) : 0;
   tip.innerHTML = `<div class="trick-tooltip-name">${trick.name}</div><div class="trick-tooltip-desc">${colorizeKeywords(withSuitHalo(liveDesc))}</div>`
-                + `<div class="trick-tooltip-actions"><button class="trick-tooltip-sell" id="trick-tooltip-sell-btn">Sell 💰${_sv}</button>`
-                + `<button class="trick-tooltip-discard" id="trick-tooltip-discard-btn">Discard</button></div>`;
+                + (actions
+                    ? `<div class="trick-tooltip-actions"><button class="trick-tooltip-sell" id="trick-tooltip-sell-btn">Sell 💰${_sv}</button>`
+                      + `<button class="trick-tooltip-discard" id="trick-tooltip-discard-btn">Discard</button></div>`
+                    : `<div class="trick-tooltip-hint">hold for sell / discard</div>`);
   tip.style.cssText = 'position:fixed;opacity:0;z-index:300;';
   document.body.appendChild(tip);
   tip.querySelector('#trick-tooltip-sell-btn')?.addEventListener('click', e => {

@@ -225,17 +225,7 @@ const martRar = p => (MART_TIERS.includes(p.rarity) ? p.rarity : 'common');
 // emoji behind a ✦ placeholder (you are picking a mystery off a board), whereas
 // in a shop you are choosing what to buy and need to see the thing. Same shell,
 // different contents.
-function martEntityInner(p) {
-  if (p.type === 'knack')
-    return `<div class="rwd-diamond"><span class="rwd-diamond-emoji">${p.emoji || '♛'}</span></div>`
-         + `<div class="rwd-name">${p.label}</div>`;
-  if (p.type === 'trick')
-    return `<div class="rwd-glyph">✦</div><div class="rwd-art">${p.emoji}</div><div class="rwd-name">${p.label}</div>`;
-  if (p.type === 'sleight')
-    return `<div class="rwd-tab">▶</div><div class="rwd-art">${p.emoji}</div><div class="rwd-name">${p.label}</div>`
-         + `<div class="rwd-uses">${p.uses}</div>`;
-  return `<div class="reward-icon">${p.icon || '▲'}</div><div class="rwd-name">${p.label}</div>`;
-}
+function martEntityInner(p) { return entityTileInner(p); }
 
 // Can this item still be added? Measured against what the cart has ALREADY
 // committed, and against the total the cart WOULD cost with this item in it -
@@ -309,17 +299,30 @@ function renderMart() {
   // The selector follows the reward grid's markup now that the tiles do.
   fitEntityNames(document.getElementById('mart-main'), '.m-item .rwd-name', { maxLines: 3 });
   fitEntityNames(document.getElementById('mart-main'), '.m-item .lname', { maxLines: 2 });
+  fitEntityNames(document.getElementById('mart-checkout'), '.m-cthumb .rwd-name', { maxLines: 2, minPx: 4 });
 }
 
 function renderMartLoadout() {
   const el = document.getElementById('mart-loadout'); if (!el) return;
-  const rc = r => 'var(--c-'+({common:'mint',rare:'cyan',epic:'purple',legendary:'yellow',mythic:'magenta'}[r]||'mint')+')';
-  const knacks = (acquiredKnacks||[]).map(k => `<div class="mini-knack" style="--rc:${rc(k.rarity||'common')}"><span>${k.emoji||'♛'}</span></div>`).join('') || '<span class="m-empty">none yet</span>';
-  const sleights = (typeof ownedSleightInstances==='function' ? ownedSleightInstances() : []).map(inst => {
-    const d = inst.def; return `<div class="mini-sleight r-${MART_TIERS.includes(d.rarity)?d.rarity:'common'}"><span class="c">${d.emoji||'🃏'}</span></div>`;
+  // r182: what you OWN is drawn with the same entity tile as what is for sale and
+  // what came off the reward grid (js/entity-tile.js). These three strips used to
+  // be a third visual language - a cream card for a Sleight, an octagon for a
+  // Trick, a plastic diamond for a Knack - so your own loadout did not look like
+  // the shop shelf two inches below it.
+  const rar = r => MART_TIERS.includes(r) ? r : 'common';
+  const mini = (cls, p, r, i) =>
+    `<div class="m-mini ${cls}" data-mini="${cls}" data-idx="${i}">${entityTileHTML(p, r)}</div>`;
+  const knacks = (acquiredKnacks||[]).map((k, i) =>
+    mini('mini-knack', { entity:'knack', label:k.name, emoji:k.emoji||'♛' }, rar(k.rarity), i)
+  ).join('') || '<span class="m-empty">none yet</span>';
+  const sleights = (typeof ownedSleightInstances==='function' ? ownedSleightInstances() : []).map((inst, i) => {
+    const d = inst.def;
+    return mini('mini-sleight', { entity:'sleight', label:d.name, emoji:d.emoji||'🃏', uses:inst.card._usesLeft }, rar(d.rarity), i);
   }).join('') || '<span class="m-empty">none in deck</span>';
   const trickList = (typeof trickTrayMode!=='undefined' && trickTrayMode) ? (trickTray||[]) : (acquiredTricks||[]);
-  const tricks = trickList.map(t => `<div class="mini-trick r-${MART_TIERS.includes(t.tier)?t.tier:'common'}"><span class="a">${trickEmoji(t)}</span></div>`).join('') || '<span class="m-empty">none yet</span>';
+  const tricks = trickList.map((t, i) =>
+    mini('mini-trick', { entity:'trick', label:t.name, emoji:trickEmoji(t) }, rar(t.tier), i)
+  ).join('') || '<span class="m-empty">none yet</span>';
   const trickCap = (typeof trickCapacity==='function') ? trickCapacity() : 5;
   // Current caps, so you can see what you're upgrading without leaving the shop -
   // and so a bought Limit has somewhere to fly to at checkout.
@@ -346,6 +349,33 @@ function renderMartLoadout() {
     else if (a==='time'  && typeof toggleTimePopup==='function') toggleTimePopup();
     else showMessage('That panel is WIP in the shop', 'var(--cream-dim)');
   });
+
+  // A tap on anything you own opens its tooltip too (r182). Reading what you are
+  // holding while you decide what to buy is the whole reason the strip is on this
+  // screen; before this the loadout was decorative.
+  const owned = {
+    'mini-knack':   () => (acquiredKnacks||[]).map(k => ({ label:k.name, desc:k.desc, rarity:k.rarity, type:'knack' })),
+    'mini-sleight': () => (typeof ownedSleightInstances==='function' ? ownedSleightInstances() : [])
+                            .map(i => ({ label:i.def.name, desc:i.def.desc, rarity:i.def.rarity, type:'sleight', uses:i.card._usesLeft })),
+    'mini-trick':   () => trickList.map(t => ({ label:t.name,
+                            desc:(typeof trickLiveDesc==='function') ? trickLiveDesc(t) : t.desc,
+                            rarity:t.tier, type:'trick' })),
+  };
+  el.querySelectorAll('.m-mini').forEach(m => {
+    const list = owned[m.dataset.mini]; if (!list) return;
+    const get = () => list()[+m.dataset.idx];
+    m.onclick = e => { e.stopPropagation(); const p = get(); if (p) showEntityTooltip(m, p, { actions: [
+      { label: 'Close', onClick: () => hideEntityTooltip(true) } ] }); };
+    m.addEventListener('pointerenter', ev => {
+      if (ev.pointerType === 'touch' || entityTooltipInteractive()) return;
+      const p = get(); if (p) showEntityTooltip(m, p);
+    });
+    m.addEventListener('pointerleave', ev => {
+      if (ev.pointerType === 'touch' || entityTooltipInteractive()) return;
+      hideEntityTooltip();
+    });
+  });
+  fitEntityNames(el, '.m-mini .rwd-name', { maxLines: 2, minPx: 4 });
 }
 
 function renderMartMain() {
@@ -382,14 +412,24 @@ function renderMartMain() {
 
 function renderMartCheckout() {
   const el = document.getElementById('mart-checkout'); if (!el) return;
+  // r182: the cart shows the ENTITIES, not a receipt of names. An item keeps the
+  // same tile it had on the shelf - same frame, same rarity colour, same art -
+  // so what you are about to buy is recognisably the thing you picked, instead
+  // of turning into a line of text at the moment of purchase.
   const lines = martCart.map(key => {
     const [cat,i] = key.split('-'); const p = martStock[cat][+i];
-    return `<div class="m-rline" data-key="${key}"><span>${p.emoji||p.icon||'•'} ${p.label}</span><span>💰${p.price} <span class="x">✕</span></span></div>`;
+    const tile = p.type === 'limit'
+      ? `<div class="reward-cell entity rar-common"><div class="reward-icon">▲</div><div class="rwd-name">${p.label}</div></div>`
+      : entityTileHTML(p, martRar(p));
+    return `<div class="m-cline" data-key="${key}">`
+         + `<div class="m-cthumb mc-${p.type}">${tile}</div>`
+         + `<div class="m-cinfo"><span class="m-cname">${p.label}</span><span class="m-crar">${martRar(p)} · ${p.type}</span></div>`
+         + `<span class="m-cprice">💰${p.price}</span><span class="x" title="Remove">✕</span></div>`;
   }).join('') || '';
   // Two hints, one shown per input type (css/mart.css): there is no drag on
   // touch, so the drop zone must not promise one.
-  const drop = `<div class="m-drop" id="mart-drop"><span class="m-drop-tap">tap an item to add it</span>`
-             + `<span class="m-drop-drag">click an item to add it<br><small>or drag one here</small></span></div>`;
+  const drop = `<div class="m-drop" id="mart-drop"><span class="m-drop-tap">tap an item to read it,<br>then Add to cart</span>`
+             + `<span class="m-drop-drag">click an item to read it<br><small>then Add to cart, or drag one here</small></span></div>`;
   const { base, pct, off, total } = martCartTotals();
   const afford = coins >= total && martCart.length>0;
   const maxR = limits.reroll ? limits.reroll.current : 3;
@@ -410,7 +450,16 @@ function renderMartCheckout() {
         <div class="m-fbtn leave" id="mart-leave">⏻ Leave</div>
       </div>
     </div>`;
-  el.querySelectorAll('.m-rline').forEach(l => l.onclick = () => martToggleCart(l.dataset.key));
+  // Only the ✕ removes a line - tapping the tile itself opens its tooltip, so you
+  // can re-read something already in the cart without dropping it by accident.
+  el.querySelectorAll('.m-cline').forEach(l => {
+    const key = l.dataset.key;
+    const [cat,i] = key.split('-'); const p = martStock[cat]?.[+i];
+    l.querySelector('.x').onclick = e => { e.stopPropagation(); martToggleCart(key, true); };
+    if (p) l.onclick = () => showEntityTooltip(l, martTooltipPayload(p),
+      { actions: [{ label: 'Remove from cart', cls: 'danger',
+                    onClick: () => { martToggleCart(key, true); hideEntityTooltip(true); } }] });
+  });
   el.querySelector('#mart-buy').onclick = martCheckout;
   el.querySelector('#mart-reroll').onclick = martReroll;
   el.querySelector('#mart-leave').onclick = closeMart;
@@ -458,11 +507,18 @@ function bindMartItems() {
 // feel finicky. Now one handler owns the whole gesture and decides at pointerup
 // what it was.
 //
-// MOUSE: hover → tooltip. click → toggle cart. drag past the slop → ghost to the
-// checkout. `preventDefault` on pointerdown is what stops a drag from selecting
-// the tile's text instead of moving the card.
+// r182 - A TAP NOW OPENS THE TOOLTIP, and the tooltip carries the actions.
+// Tapping a tile used to silently drop it in the cart, so the only way to read
+// what you were buying was to discover the press-and-hold. Now one tap shows the
+// thing - name, rarity, full description, keyword definitions, price - with PIN
+// and ADD TO CART on the bubble. Buying is two deliberate taps instead of one
+// accidental one, and reading is the default rather than the hidden gesture.
 //
-// TOUCH: tap → toggle cart. press-and-hold → tooltip. Dragging is deliberately
+// MOUSE: hover → the same tooltip, read-only. click → open it with its actions.
+// drag past the slop → ghost to the checkout, unchanged. `preventDefault` on
+// pointerdown is what stops a drag from selecting text instead of moving a card.
+//
+// TOUCH: tap → tooltip with actions. Dragging is deliberately
 // NOT wired on touch: the catalog scrolls, so the browser claims any touch that
 // moves and fires pointercancel at us - the old drag could not work on a phone
 // and silently did nothing. Forcing it would need touch-action:none on every
@@ -471,13 +527,44 @@ function bindMartItems() {
 const MART_DRAG_SLOP = 6;
 const MART_LONGPRESS_MS = 420;
 
+// The actions the tooltip shows for one catalog tile. Rebuilt on every open so
+// the labels always describe what the button will actually do right now.
+function martTileActions(tile, key, p) {
+  const inCart = martCart.includes(key);
+  const pinned = martIsPinned(key);
+  const cant   = martCantAfford(p, key);
+  const reopen = () => { renderMart();
+    // renderMart replaces the tile node, so re-anchor to the fresh one.
+    const fresh = document.querySelector(`#mart-main .m-item[data-key="${key}"]`) || tile;
+    showEntityTooltip(fresh, martTooltipPayload(p), { actions: martTileActions(fresh, key, p) });
+  };
+  return [
+    { label: pinned ? '📌 Pinned' : '📌 Pin', cls: pinned ? 'on' : '',
+      onClick: () => { martTogglePin(key); reopen(); } },
+    { label: inCart ? '✓ In cart' : (cant ? 'Too dear' : 'Add to cart'),
+      cls: inCart ? 'on' : 'primary', disabled: !inCart && cant,
+      onClick: () => { martToggleCart(key, true); hideEntityTooltip(true); } },
+  ];
+}
+
 function attachMartTileGesture(tile, key, p) {
   const payload = () => martTooltipPayload(p);
+  const openWithActions = () => showEntityTooltip(tile, payload(), { actions: martTileActions(tile, key, p) });
 
-  // Hover tooltip - mouse only. pointerenter fires for touch too, which used to
-  // pop the tooltip on every tap.
-  tile.addEventListener('pointerenter', e => { if (e.pointerType !== 'touch') showEntityTooltip(tile, payload()); });
-  tile.addEventListener('pointerleave', e => { if (e.pointerType !== 'touch') hideEntityTooltip(); });
+  // Hover preview - mouse only, and read-only. pointerenter fires for touch too,
+  // which used to pop the tooltip on every tap. A hover NEVER replaces an open
+  // interactive bubble: moving the mouse off a tile you just clicked would
+  // otherwise close the buttons you were reaching for.
+  tile.addEventListener('pointerenter', e => {
+    if (e.pointerType === 'touch') return;
+    if (entityTooltipInteractive()) return;
+    showEntityTooltip(tile, payload());
+  });
+  tile.addEventListener('pointerleave', e => {
+    if (e.pointerType === 'touch') return;
+    if (entityTooltipInteractive()) return;
+    hideEntityTooltip();
+  });
 
   tile.addEventListener('pointerdown', e => {
     if (martCheckingOut || p._sold) return;
@@ -486,12 +573,11 @@ function attachMartTileGesture(tile, key, p) {
     const touch = e.pointerType === 'touch';
     // Mouse: kill the native text selection a drag would otherwise start.
     if (!touch) e.preventDefault();
-    else hideEntityTooltip();          // a fresh touch dismisses a previous bubble
 
     const st = { x: e.clientX, y: e.clientY, id: e.pointerId, ghost: null, moved: false, held: false, ox: 0, oy: 0 };
-    let lp = null;
-    if (touch) lp = setTimeout(() => { st.held = true; showEntityTooltip(tile, payload()); }, MART_LONGPRESS_MS);
-    const clearLp = () => { if (lp) { clearTimeout(lp); lp = null; } };
+    // The long-press no longer has a job here: a plain tap opens the tooltip, so
+    // holding would only show what tapping already shows.
+    const clearLp = () => {};
 
     // Listen on the DOCUMENT, not the tile: once the pointer leaves the tile the
     // tile stops receiving pointermove, so tile-level listeners never see the
@@ -538,13 +624,17 @@ function attachMartTileGesture(tile, key, p) {
         }
         return;
       }
-      if (st.held) return;                                // a long-press: tooltip only
       // A tap / click. Confirm the pointer actually lifted on this tile - the
       // browser's own click event would not fire if it had not, and we are
-      // standing in for that click.
+      // standing in for that click. A tap OPENS THE TOOLTIP; the cart is reached
+      // from the button on it.
       const r = tile.getBoundingClientRect();
-      if (ev.clientX >= r.left && ev.clientX <= r.right && ev.clientY >= r.top && ev.clientY <= r.bottom)
-        martToggleCart(key);
+      if (!(ev.clientX >= r.left && ev.clientX <= r.right && ev.clientY >= r.top && ev.clientY <= r.bottom)) return;
+      // PIN MODE is a bulk mode: while it is on, a tap pins, so you can hold four
+      // things in a row without opening and dismissing four tooltips. Off, a tap
+      // opens the tooltip (which carries its own Pin button).
+      if (martPinMode) martTogglePin(key);
+      else openWithActions();
     };
     // A cancelled pointer (the browser took the gesture for a scroll) must tear
     // down exactly like a lift, but must never count as a tap.
@@ -581,8 +671,11 @@ function placeMartTip(e, tt) {
 }
 
 // ── cart ──
-function martToggleCart(key) {
-  if (martPinMode) { martTogglePin(key); return; }
+// `force` skips the PIN-mode redirect: the tooltip has its own separate Pin and
+// Add-to-cart buttons, so a press of Add to cart means the cart even while the
+// shelf is in pin mode.
+function martToggleCart(key, force = false) {
+  if (martPinMode && !force) { martTogglePin(key); return; }
   const [cat,i] = key.split('-'); const p = martStock[cat]?.[+i];
   if (!p || p._sold) return;
   const at = martCart.indexOf(key);

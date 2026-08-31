@@ -18,6 +18,8 @@ The game **used to be one giant `index.html`**. It's now split into many small f
 - `css/dance.css` - the score-“dance” / hand-preview animation styles.
 - `css/dev-overlays.css` - dev-panel + event-overlay styling.
 - `js/` - the game code, one file per system (list below).
+- `js/entity-tile.js` - **`entityTileInner` / `entityTileHTML` (r182): the ONE way an entity is drawn.** See "One entity tile" below - change a Trick's look here and the reward grid, the Mart shelf, the cart, the loadout strip, your tray and the Shift Change event all move together.
+- `js/fit-text.js` - `fitEntityName`. Shrinks an entity name until it fits, **never breaking a word** (r182).
 - `js/storage.js` - **loads FIRST**, before every other script. A safety shim for browser storage (see below). Nothing else may be moved above it.
 - `js/data/` - **the "entities": pure content/data, no logic.** Edit these to tune or add game content without touching engine code:
   - `cards.js` - suits, ranks, rank order, `HAND_BASE` values, round/goal durations, `cardCan`, **and the Spectrum colour deck** (`COLORS` / `RANKS_NUMERIC` / `ACTIVE_RANKS`).
@@ -203,7 +205,11 @@ The `double_tap` sleights **no longer sit locked on the grid once-per-round** - 
 
 ## Events (node-based, Normal mode)
 
-Reward grid destination tiles set `pendingEventOverride` → `closeRewardGrid()` routes to shop or `openEvent()`. Events render in `#event-overlay`. Implemented: **Confluence** (theme draft), **Crossroads** (sacrifice trades), **Gamble** (doors / double-or-nothing), **Wandering Merchant** (free rare items), **Altar** (multi-round investments via `altarEffects[]`), **Cleansing Spring** (purge/restore), **Twin Path** (2 Tricks + shadow debuff). All triggerable from the dev panel.
+Reward grid destination tiles set `pendingEventOverride` → `closeRewardGrid()` routes to shop or `openEvent()`. Events render in `#event-overlay`. Implemented: **Confluence** (theme draft), **Crossroads** (sacrifice trades), **Gamble** (doors / double-or-nothing), **Wandering Merchant** (free rare items), **Altar** (multi-round investments via `altarEffects[]`), **Cleansing Spring** (purge/restore), **Twin Path** (2 Tricks + shadow debuff), **Shift Change** (reorder your Trick tray). All triggerable from the dev panel.
+
+**Adding an event:** write `renderX` + `confirmX` in `js/events.js`, then register the id in FOUR places in `js/events-core.js` - the `pool` array in `openEvent`, the `handlers` map in `confirmEvent`, `EVENT_META`, and the `renderers` map in `renderEventShell`. The dev panel's event list is generated from `EVENT_META`, so it picks the new one up on its own.
+
+**Shift Change (r182)** - `renderShiftChange` / `renderShiftRow` / `confirmShiftChange`. Tray ORDER is load-bearing (Inspirato primes first+last · Mirror borrows from its neighbour · Prime Times cycles 1st→2nd→3rd→5th→7th · the Alignment knack marks the column matching a Trick's slot · Move as One picks the lowest-rarity keyword match) and until now there was no way to change it after a Trick landed. Interaction is **tap-to-swap** (tap to lift, tap another to trade), which works the same with a finger and a mouse and needs no drag; `eventState.shiftOrder` is a copy, so nothing is committed until Confirm, and Skip leaves the tray alone. Holding fewer than 2 Tricks pays `BAL.shift_change.consolation_credits` instead. Position Tricks **keep the line they already marked** - `assignPositionMark` is guarded by `_posAssigned` and is deliberately not re-run, so reshuffling moves the Tricks and not the lines you were building around.
 
 ## Shop
 
@@ -340,6 +346,74 @@ Endless escalating-goals poker, listed in the mode carousel (`MODE_SELECT_LIST`)
 - **Rerolls are a CARRY-OVER POOL, not per-level:** 3 at run start (`SURVIVAL_REROLLS_START`), **+2 per boss beaten**, unspent ones roll forward. Once the pool is empty rerolls fall back to the escalating 5/10/15 price within that pick.
 - **Reward-grid-only entities are filtered out** (`SURVIVAL_BANNED_ENTITIES` = `greedy_boi`, `more_better`, `rain_check`) from both the survival pick pools and the Mart stock - survival has no reward grid, so they'd be dead picks.
 - **Shop entry moved onto the PICK screen** (`#sv-pick-shop`, "entry fee 5 💰"). Opening it from there sets `survivalShopFromPick`, which makes `closeMart` return to the still-open pick instead of restarting the round timer.
+
+## One entity tile, everywhere (r182) - `js/entity-tile.js`
+
+A Trick used to look like **three different objects** depending on where you met it: a neon CRT card on the reward grid, a slightly different neon card in the Mart, and a small hand-styled chip with an ellipsised name in your own tray. `entityTileInner(p, {mystery})` is now the single source, and every surface wraps its own frame around a `.reward-cell.entity.entity-<type>.rar-<rarity>` and fills it from there:
+
+| surface | frame | notes |
+|---|---|---|
+| reward grid | `.reward-cell.on-grid` | the one deliberate difference: `mystery:true` hides a Trick's emoji behind a ✦ (you are picking off a board) |
+| Mart shelf | `.m-item` | 3 across on a phone (`flex: 0 0 calc((100% - 12px)/3)`) |
+| Mart cart | `.m-cthumb.mc-<type>` | **`mc-`, not `m-`** - `.m-knack`/`.m-sleight` are the SHELF's sizing classes, and reusing them blew a 32px thumbnail up to a full tile |
+| Mart loadout strip | `.m-mini.mini-<type>` | what you own, drawn like what is for sale |
+| Trick tray | `.trick-tray-chip` | frame only; must state its own `width`/`height` (it used to borrow `var(--card-w)` from `.trick-card`) |
+| Shift Change | `.shift-slot` | plus the slot number badge |
+
+**Frames carry size and stacking only.** The neon rarity border, scanlines, glare, knack diamond, sleight tab and name styling all live on `.reward-cell.*` in `css/style.css` - change them once and every surface moves.
+
+### Names never break mid-word (r182) - `js/fit-text.js`
+Owner's report: "The Heron" rendered as `the / hero / n`. Two causes, both fixed:
+1. the tile allowed `overflow-wrap: break-word`, and
+2. `fitEntityName` only checked HEIGHT - three short lines fit three allowed lines, so it never shrank anything.
+
+Now **words are atomic**. CSS is `overflow-wrap: normal; word-break: keep-all; hyphens: none`, and the fitter works in three passes:
+1. **width** - measure the longest word on an offscreen canvas (honouring weight, `letter-spacing` and `text-transform`) and solve directly for the font size that fits it on one line, then verify and step down by 0.5px.
+2. **height** - shrink until the wrapped result fits `maxLines`.
+3. **last resort** - `truncateToWidth` shortens the offending WORD with an ellipsis ("KALEIDOSC…"). There is deliberately **no "break it anyway" fallback**; the full name is always one tap away in the tooltip.
+
+Two subtleties worth keeping:
+- **`sealBreaks`** wraps `/ - – — ·` in U+2060 WORD JOINER. `word-break: keep-all` does not stop a browser breaking at punctuation, so "Swaps/Round" split after the slash while being measured as one word.
+- **`FIT_SLOP` (0.75px)** and not counting the *trailing* letter-space. Canvas metrics ran ~0.4px wide of layout, which was enough to truncate "Overtime" to "Overti…" - a name that fits perfectly.
+- `el.dataset.fitSrc` holds the pristine name so a re-fit never truncates an already-truncated string.
+
+Audit script: render every name in `TRICK_POOL` / `KNACK_POOL` / `SLEIGHT_POOL` / `LIMITS_DEF` at 47/66/118px and assert no element has `scrollWidth > clientWidth` and no name uses more lines than it has words.
+
+## Tooltips: tap to read (r182)
+
+**One tap opens the tooltip; the tooltip carries the actions.** Tapping a Mart tile used to silently drop it in the cart, so the only way to see what you were buying was to discover the press-and-hold.
+
+- **`showEntityTooltip(anchor, payload, { actions })`** (`js/entity-tooltip.js`). Passing any action puts the bubble in **interactive mode**: `.et-card` takes pointer events and a transparent full-screen `#entity-tip-backdrop` goes in underneath, so every click that is not on the bubble dismisses it. That backdrop is what makes interactivity safe - the bubble is up to 560px wide and lies over its neighbours, and `pointer-events:auto` without it was the old "I can't add the ones on the right" bug.
+- **Mart:** hover = read-only preview (mouse only); tap/click = tooltip with **📌 Pin** and **Add to cart**. A hover never replaces an open interactive bubble, or moving the mouse off the tile would close the buttons you were reaching for. **PIN MODE** stays a bulk mode: while it is on a tap pins directly, so you can hold four things without opening four tooltips.
+- **Trick tray:** reading and disposing are now separate gestures - **tap** = description + a "hold for sell / discard" hint; **press-and-hold** (`attachTrickSellHold`, 430ms, finger or mouse) = the same bubble with **Sell** and **Discard**. Before this every tap put a live Sell button under your thumb just for asking what a Trick did. The hold sets `chip._sellHeld` so the lift that ends it does not toggle the bubble straight back off.
+
+## Reward grid: one tap, two meanings (r182)
+
+A tile answers two questions - "what is this?" and "I want it" - and the grid decides by whether the tile is one you could actually take:
+
+| you tap | result |
+|---|---|
+| a **selectable** tile | select it **and** pin its tooltip |
+| a **non-adjacent** tile (or one blocked by the cap / the one-destination rule) | pin its tooltip only - **the selection is untouched** |
+| an **already-selected** tile | deselect it and hand the tooltip to the previous pick |
+
+So the most recently picked tile is always the one being explained, and you can read anything on the board without that reading costing you a pick. State is `rewardTipKey` (which tile is pinned) + `rewardPickOrder` (the order tiles were taken, so `lastRewardPickKey()` can hand the tooltip back after a deselect) - both declared in `js/boss.js` beside `rewardSelected` and reset everywhere it is. `renderRewardTiles` throws the tiles away and rebuilds them, so it calls `restoreRewardTooltip()` to re-anchor the pinned bubble to the new node.
+
+## PAUSE vs REWIND - the clock vocabulary (r182)
+
+Two different things, and the descriptions must not blur them:
+
+- **PAUSE** (`pauseRound(seconds)`, `js/discard.js`) - the clock **freezes** for N seconds. Pauses **stack** (an active pause is extended, not reset). Counts into `pausesThisRound` / `pauseInstanceGame` (Hummingbird) and `pausedSecondsRound` (Albatross). The **Long Pause** knack makes every pause 1.5× longer; **Time Slip** gives each pause a 25% chance to become a rewind instead.
+- **REWIND** (`rewindTime(seconds, label)`, `js/discard.js`) - the clock **gets seconds back**: `roundSeconds += n`, **capped at `ROUND_DURATION`**, with a ⏪ floater. Counts into `rewoundSecondsRound` (Kingfisher) and `rewindsThisRound`. **Returns 0 during a boss**, which is correct - bosses run their own timer.
+
+Because a rewind can push the clock back past a mark it already passed, `handleClockMarks` can fire the same clock-mark Trick twice. That is an intended synergy, not a bug.
+
+**Roughly: pause entities outnumber rewind entities about 2:1.** Causes a pause: High Water · The Cuckoo · Double Jeopardy · The Vulture · Right Time · Temporal Rift · Five Second Rule · Four Horse-man · Wait Four It · Dam Holding… (Tricks) · Sundial · Metronome · Long Pause (Knacks) · Syncopation · Snooze Button · Stopwatch (Sleights). Causes a rewind: Overtime · Hoarder House (Tricks) · Time Slip · Rewound Echo · Déjà Vu · Clockmaker (Knacks) · Rewind · Last Call · Sandbagger (Sleights). A separate group only *scales off* the clock without touching it: The Falcon, The Hummingbird, The Albatross, The Phoenix (pause) and The Kingfisher (both).
+
+**Known inconsistency, deliberately left:** Deluge, Threepeat and Blood Diamonds still write `roundSeconds += n` directly instead of calling `rewindTime()`. They are rewinds in everything but name - they skip the cap, the floater and the Kingfisher/rewind counters. **Overtime was fixed in r182** (it was the one the owner asked about); routing the other three through `rewindTime()` is a small change but it is a balance change, so it wants a decision rather than a drive-by.
+
+## No text selection (r182)
+`html, body` carry `user-select:none` + `-webkit-touch-callout:none` + `-webkit-tap-highlight-color:transparent`, re-enabled for `input, textarea, [contenteditable], .selectable-text`. A click-drag across the board, or the press-and-hold that opens a tooltip, used to blue-highlight whatever label the finger landed on and pop iOS's copy/define callout over the card you were trying to read.
 
 ## The Mart (off-grid shop) - `js/mart-shop.js` + `js/wheel.js` + `css/mart.css`
 `USE_MART_SHOP` routes `triggerShop()` to the LETHE Mart: left **loadout** column (Knacks / Sleights / Tricks / Limits panels + Stats·Deck·Time chips) · centre **catalog** (3 of 4 categories, Tricks always featured, plus Spotlight/Spin/Freezer specials) · right **checkout**.

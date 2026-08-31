@@ -646,6 +646,10 @@ function endBoss(success) {
 // by limits.selection - so upgrading play-grid limits upgrades rewards too.
 
 let rewardSelected = new Set(); // "r-c" keys
+// The order tiles were picked in, and which tile's tooltip is pinned. Together
+// they keep "the most recently picked tile is the one being explained" true even
+// after a deselect (js/reward-grid.js, r182).
+let rewardPickOrder = [];
 let rewardCells    = [];        // NxN array of { kind, payload }
 let rewardConfirmed = false;
 let rewardOnGrid   = false;     // true while the reward grid is rendered onto the play #grid (r100+)

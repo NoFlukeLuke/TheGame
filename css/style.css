@@ -2,6 +2,22 @@
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+  /* ── NO TEXT SELECTION ANYWHERE (r182) ─────────────────────────────────────
+     This is a game, not a document. A click-drag across the board, or the
+     press-and-hold that opens a tooltip, used to blue-highlight whatever label
+     the finger happened to land on and pop iOS's copy/define callout on top of
+     the card you were trying to read. Selection is off globally and turned back
+     ON only for the handful of places you might genuinely want to copy from
+     (the dev panel's log box and any real <input>). */
+  html, body {
+    -webkit-user-select: none; -ms-user-select: none; user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  input, textarea, [contenteditable="true"], .selectable-text, .selectable-text * {
+    -webkit-user-select: text; user-select: text; -webkit-touch-callout: default;
+  }
+
   :root {
     --bg: #0e0c0a;
     --gold: #c9a84c;
@@ -587,12 +603,13 @@
   #trick-tray-area { flex: 1; min-width: 0; padding-right: 8px; border-right: 1px solid var(--border); display: flex; flex-direction: column; justify-content: center; overflow: hidden; }
   #trick-tray-list { display: flex; flex-direction: row; flex-wrap: wrap; gap: 3px; max-height: 60px; overflow-y: auto; scrollbar-width: none; align-content: flex-start; padding: 2px 0; }
   #trick-tray-list::-webkit-scrollbar { display: none; }
-  .trick-tray-chip { width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-family: 'Cinzel', serif; font-size: 9px; font-weight: 700; border-radius: 4px; cursor: pointer; border: 1.5px solid; user-select: none; transition: transform 0.1s ease, box-shadow 0.15s ease; }
-  .trick-tray-chip:hover { transform: translateY(-1px); box-shadow: 0 2px 6px rgba(0,0,0,0.5); }
-  .trick-tray-chip.trick-tier-common    { border-color: #4a7a4a; color: #6aaa6a; background: #0d1208; }
-  .trick-tray-chip.trick-tier-rare      { border-color: #3a6fca; color: #6a9fea; background: #0a1020; }
-  .trick-tray-chip.trick-tier-epic      { border-color: #9b4dca; color: #c07aee; background: #130a1a; }
-  .trick-tray-chip.trick-tier-legendary { border-color: #e8b84b; color: #e8b84b; background: #160e00; }
+  /* The tray chip is a sizing shell around one .reward-cell (r182); the frame
+     styling that used to live here now comes from the shared entity tile. */
+  .trick-tray-chip { position: relative; cursor: pointer; user-select: none; }
+  .trick-tray-chip > .reward-cell { width: 100%; height: 100%; cursor: pointer; padding: 3px 2px 4px; }
+  /* r182: the chip's own tier colours are gone - the tile inside it carries the
+     rarity, via .rar-* → --rc, exactly as on the reward grid and in the Mart.
+     Painting a second border here would show through behind the tile. */
 
   /* ══════════════════════════════════════════════
      PMF MERGE (r157) - see js/pmf-merge.js
@@ -811,21 +828,19 @@
      was every Trick stacked absolutely at the tray's origin, one grid-sized card
      hanging outside the panel and the rest hidden behind it. Landscape already
      re-flows them; portrait needs its own, smaller version. */
-  #stage:not(.landscape) #trick-tray-list .trick-tray-chip.trick-card,
+  /* r182: the chip is a FRAME ONLY. Its single child is a real
+     .reward-cell.entity.entity-trick (js/entity-tile.js), which carries the neon
+     border, the scanlines, the glare, the ✦ and the name - the same element the
+     reward grid and the Mart draw. Everything here is size and stacking. */
   #stage:not(.landscape) #trick-tray-list .trick-tray-chip {
-    position: relative; flex: 0 0 auto; box-sizing: border-box; overflow: hidden;
+    position: relative; flex: 0 0 auto; box-sizing: border-box;
     z-index: var(--fan-z, 1);   /* set per tile so later ones sit on top */
-    width: 47px; height: 64px;
-    display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
-    gap: 0; padding: 2px 1px 3px; border-radius: 5px;
-    border: 1.5px solid var(--rc, #6aaa6a);
-    background: linear-gradient(180deg, #15110b, #0a0906);
-    box-shadow: 0 0 6px -2px var(--rc, #6aaa6a), inset 0 0 10px -4px var(--rc, #6aaa6a);
+    width: 47px; height: 64px; padding: 0; border: none; background: none; box-shadow: none;
   }
   /* Overlapping tiles need a dark edge or the fan reads as one smeared block. */
-  #stage:not(.landscape) #trick-tray-list.fanned .trick-tray-chip + .trick-tray-chip {
+  #stage:not(.landscape) #trick-tray-list.fanned .trick-tray-chip + .trick-tray-chip > .reward-cell {
     box-shadow: -3px 0 5px -1px rgba(0,0,0,0.75),
-                0 0 6px -2px var(--rc, #6aaa6a), inset 0 0 10px -4px var(--rc, #6aaa6a);
+                0 0 0 2px var(--plastic-lo), 0 0 8px -1px var(--rc), inset 0 0 12px -4px var(--rc);
   }
   /* A tucked tile only shows a strip of its LEFT edge. r171: the emoji KEEPS ITS
      FULL SIZE and is simply left-aligned, so the visible strip shows the left
@@ -834,15 +849,17 @@
      previous version shrank every tucked emoji to 13px, which made every Trick
      but the newest one look like a different, tinier object (owner's report).
      The name has no room in a strip and is still dropped. */
-  #stage:not(.landscape) #trick-tray-list.fanned .trick-tray-chip:not(:last-child) {
+  #stage:not(.landscape) #trick-tray-list.fanned .trick-tray-chip:not(:last-child) > .reward-cell {
     justify-content: center; align-items: flex-start; padding: 2px 0 3px 3px;
   }
-  #stage:not(.landscape) #trick-tray-list.fanned .trick-tray-chip:not(:last-child) .trick-card-emoji {
-    font-size: 23px; margin-top: 0; line-height: 1; flex: 0 0 auto;
+  #stage:not(.landscape) #trick-tray-list.fanned .trick-tray-chip:not(:last-child) .rwd-art {
+    position: static; font-size: 23px; margin: 0; line-height: 1; flex: 0 0 auto;
   }
-  #stage:not(.landscape) #trick-tray-list.fanned .trick-tray-chip:not(:last-child) .trick-card-name { display: none; }
-  #stage:not(.landscape) #trick-tray-list .trick-tray-chip .trick-card-emoji { font-size: 23px; margin-top: auto; }
-  #stage:not(.landscape) #trick-tray-list .trick-tray-chip .trick-card-name  { font-size: 6px; letter-spacing: 0; }
+  #stage:not(.landscape) #trick-tray-list.fanned .trick-tray-chip:not(:last-child) .rwd-name,
+  #stage:not(.landscape) #trick-tray-list.fanned .trick-tray-chip:not(:last-child) .rwd-glyph { display: none; }
+  #stage:not(.landscape) #trick-tray-list .trick-tray-chip .rwd-art   { font-size: 21px; top: 12%; }
+  #stage:not(.landscape) #trick-tray-list .trick-tray-chip .rwd-glyph { font-size: 8px; top: 3px; }
+  #stage:not(.landscape) #trick-tray-list .trick-tray-chip .rwd-name  { font-size: 7px; letter-spacing: 0; }
   /* Rarity colours are only assigned under .landscape, so portrait chips had no
      --rc at all and fell back to the plain border. Assign them here too. */
   #stage:not(.landscape) .trick-tray-chip.rar-common    { --rc: var(--c-mint); }
@@ -1773,7 +1790,7 @@
     50%       { box-shadow: 0 0 22px rgba(255,77,109,0.95); }
   }
   .trick-tier-mythic .trick-tier-label { color: #ff4d6d; }
-  .trick-tray-chip.trick-tier-mythic { border-color: #ff4d6d; color: #ff4d6d; background: #16000a; }
+  /* (mythic tier colour: see .rar-mythic → --rc, r182) */
   #trick-tooltip.trick-tier-mythic { border-color: #ff4d6d; }
   .shop-trick-card.trick-tier-mythic { background: linear-gradient(160deg,#2a0012,#16000a); border: 2px solid #ff4d6d; box-shadow: 0 0 10px rgba(255,77,109,0.5); animation: trick-mythic-pulse 2s ease-in-out infinite; }
   .trick-choice-card.tier-mythic { border: 2px solid #ff4d6d; box-shadow: 0 0 16px rgba(255,77,109,0.4); animation: trick-mythic-pulse 2s ease-in-out infinite; }
@@ -3217,9 +3234,16 @@
     /* Never overflow the tile: wrap at spaces; break a too-long single word,
        hyphenating cleanly (lang="en" is set on <html>). fitRewardName shrinks
        the font only if the wrapped name is still too tall. */
-    white-space: normal; overflow-wrap: break-word; word-break: normal; hyphens: auto;
+    /* WORDS ARE ATOMIC (r182). Wrapping happens at spaces only - a name is never
+       broken across a letter ("THE / HERO / N"). fitEntityName (js/fit-text.js)
+       measures the longest word and shrinks the font until it fits on one line,
+       so "The Heron" comes out as "THE / HERON" a little smaller instead. */
+    white-space: normal; overflow-wrap: normal; word-break: keep-all; hyphens: none;
     color: #fff; text-shadow: 0 0 8px var(--rc, rgba(255,255,255,0.4)), 0 1px 2px #000;
   }
+  /* There is no "break it anyway" fallback. A name that cannot fit even at the
+     font floor is TRUNCATED with an ellipsis by fitEntityName instead, and the
+     whole name is always one tap away in the tooltip. */
 
   /* knack diamond: beige molded plastic + neon inset ring */
   .rwd-diamond {
@@ -4236,34 +4260,24 @@
   #stage.landscape .trick-tray-chip.rar-epic      { --rc: var(--c-purple); }
   #stage.landscape .trick-tray-chip.rar-legendary { --rc: var(--c-yellow); }
   #stage.landscape .trick-tray-chip.rar-mythic    { --rc: var(--c-magenta); }
-  #stage.landscape .trick-tray-chip.trick-card {
-    position: relative; flex: 0 0 auto; box-sizing: border-box; overflow: hidden;
-    align-items: center; justify-content: flex-end; gap: 0; padding: 3px 2px 4px; cursor: pointer;
-    border: 2px solid var(--rc) !important;
-    background: linear-gradient(180deg, #15110b, #0a0906) !important;
-    box-shadow: 0 0 0 2px var(--plastic-lo), 0 0 8px -1px var(--rc), inset 0 0 12px -4px var(--rc) !important;
-    transition: transform 0.1s ease, box-shadow 0.15s ease;
+  /* Frame only - the neon card itself is the shared .reward-cell child (r182).
+     The size has to be stated: the chip used to borrow `width: var(--card-w)`
+     from .trick-card, and without it the chip and its child sized off each
+     other's content, leaving a 68px chip wrapping a 35px card and every name
+     shrunk to fit a box a third too small. */
+  #stage.landscape .trick-tray-chip {
+    position: relative; flex: 0 0 auto; box-sizing: border-box; cursor: pointer;
+    width: var(--card-w, 57px); height: var(--card-h, 75px);
+    padding: 0; border: none; background: none; box-shadow: none;
+    transition: transform 0.1s ease;
   }
-  #stage.landscape .trick-tray-chip.trick-card::after {   /* scanlines */
-    content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 1;
-    background: repeating-linear-gradient(0deg, rgba(0,0,0,0.16) 0 1px, transparent 1px 3px);
-    mix-blend-mode: overlay;
+  #stage.landscape .trick-tray-chip:hover { transform: translateY(-2px); }
+  #stage.landscape .trick-tray-chip:hover > .reward-cell {
+    box-shadow: 0 0 0 2px var(--plastic-lo), 0 0 14px 0 var(--rc), inset 0 0 12px -4px var(--rc);
   }
-  #stage.landscape .trick-tray-chip.trick-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 0 0 2px var(--plastic-lo), 0 0 14px 0 var(--rc), inset 0 0 12px -4px var(--rc) !important;
-  }
-  .trick-card-emoji {
-    z-index: 2; margin-top: auto; font-size: 24px; line-height: 1;
-    filter: drop-shadow(0 0 5px var(--rc));
-  }
-  .trick-card-name {
-    z-index: 2; width: 100%; max-width: 100%;
-    font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 6px;
-    letter-spacing: 0.2px; text-transform: uppercase; line-height: 1.05; text-align: center;
-    color: #fff; text-shadow: 0 0 6px var(--rc), 0 1px 1px #000;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  }
+  #stage.landscape .trick-tray-chip .rwd-art   { font-size: 22px; top: 12%; }
+  #stage.landscape .trick-tray-chip .rwd-glyph { font-size: 9px; top: 4px; }
+  #stage.landscape .trick-tray-chip .rwd-name  { font-size: 7px; letter-spacing: 0.2px; }
 
   /* ── Horizontal auto-scroll marquee track (knacks always; tricks on overflow) ── */
   .chip-marquee { display: flex; flex-direction: row; align-items: center; flex: 0 0 auto; gap: 5px; }

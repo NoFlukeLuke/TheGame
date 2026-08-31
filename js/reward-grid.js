@@ -577,6 +577,8 @@ function openRewardGrid() {
   rewardGridsSeen++;               // count this grid (gates the first-5 guaranteed upgrades)
   rewardCells     = generateRewardContent();
   rewardSelected  = new Set();
+  rewardPickOrder = [];
+  rewardTipKey    = null;
   rewardConfirmed = false;
   rewardOnGrid    = true;
   // The reward grid now lives ON the play grid (r100). Reveal the board: drop the
@@ -660,6 +662,9 @@ function renderRewardTiles(animateIn = false) {
     }
   }
   updateRewardButtons();
+  // The tiles were just thrown away and rebuilt, so the pinned tooltip has to be
+  // re-anchored to the new node for the tile it belongs to (r182).
+  restoreRewardTooltip();
 
   if (animateIn && dealAnimsLocal.length) {
     rewardDealing = true;
@@ -741,6 +746,7 @@ function skipRewardGrid() {
   if (hasTrick('rain_check')) { nextRoundSecondsDelta += BAL.rain_check.seconds; _msg += ` · +${BAL.rain_check.seconds}s next round`; }
   showMessage(_msg, 'var(--gold)');
   rewardSelected = new Set(); // abandon any in-progress picks
+  rewardPickOrder = []; rewardTipKey = null;
   closeRewardGrid();
 }
 
@@ -759,28 +765,11 @@ function rewardTypeLabel(p, kind) {
   if (kind === 'dest')   return 'Destination';
   return 'Reward';
 }
-function buildRewardTileInner(p) {
-  if (p.entity === 'knack') {
-    return `<div class="rwd-diamond"><span class="rwd-diamond-emoji">${p.emoji || p.icon}</span></div>`
-         + `<div class="rwd-name">${p.label}</div>`;
-  }
-  if (p.entity === 'trick') {
-    return `<div class="rwd-glyph">✦</div><div class="rwd-art rwd-art-ph">✦</div><div class="rwd-name">${p.label}</div>`;
-  }
-  if (p.entity === 'sleight') {
-    return `<div class="rwd-tab">▶</div><div class="rwd-art">${p.emoji || p.icon}</div><div class="rwd-name">${p.label}</div>`
-         + (p.uses != null ? `<div class="rwd-uses">${p.uses}</div>` : '');
-  }
-  // Card-face tiles (blessed/cursed/cull): mini playing card + name only.
-  // The full explanation lives in the hover tooltip (like every other tile) - the
-  // old inline description was cramped and got clipped.
-  if (p.cardFace) {
-    return `<div class="reward-face ${suitClass(p.cardFace.suit)}"><span class="reward-face-rank">${p.cardFace.rank}</span><span class="reward-face-suit">${p.cardFace.suit}</span></div>`
-         + `<div class="rwd-name">${p.label}</div>`;
-  }
-  // Plain resource / debuff / dest / mystery tile: icon + name (desc → tooltip).
-  return `<div class="reward-icon">${p.icon}</div><div class="rwd-name">${p.label}</div>`;
-}
+// The reward grid's tile contents come from the shared builder (js/entity-tile.js)
+// so a Trick/Sleight/Knack is drawn identically here, in the Mart, in your tray
+// and in the cart. `mystery` is the grid's one deliberate difference: a Trick you
+// have not picked yet shows a ✦ instead of its category emoji.
+function buildRewardTileInner(p) { return entityTileInner(p, { mystery: p.entity === 'trick' }); }
 // Owner rule: names never overflow the tile. The name wraps at spaces and a
 // too-long single word hyphenates (CSS). Here we shrink the font only if the
 // wrapped/hyphenated name is still too tall (more than MAX_LINES) or too wide
@@ -798,29 +787,51 @@ function ensureRewardTooltip() {
   document.body.appendChild(_rewardTT);
   return _rewardTT;
 }
-function hideRewardTooltip() { if (_rewardTT) _rewardTT.classList.remove('show'); }
-function attachRewardTooltip(el, p, kind) {
-  const rar  = rewardRarity(p);
-  const type = rewardTypeLabel(p, kind);
-  // Anchor the tooltip to the TILE (not the cursor) and open it on whichever side
-  // has more horizontal room - so entities in the right-most columns pop out to the
-  // LEFT instead of getting squeezed / wrapping tall against the edge.
+function hideRewardTooltip() { if (_rewardTT) { _rewardTT.classList.remove('show'); _rewardTT.dataset.key = ''; } }
+
+// Which tile's tooltip is currently pinned open. This is the tile you most
+// recently picked (or last tapped to inspect) - see onRewardCellClick.
+let rewardTipKey = null;
+
+// Fill and show the tooltip for one tile, anchored to it.
+function showRewardTooltipFor(r, c) {
+  const cell = rewardCells[r]?.[c];
+  if (!cell || !cell.payload || !cell.payload.desc) { hideRewardTooltip(); return; }
+  const p = cell.payload;
+  // Works for the on-board tiles (#grid) and the legacy overlay grid alike.
+  const el = document.querySelector(`#grid .reward-cell[data-r="${r}"][data-c="${c}"], #reward-grid .reward-cell[data-r="${r}"][data-c="${c}"]`);
+  if (!el) return;
+  const tt = ensureRewardTooltip();
+  tt.className = 'rar-' + rewardRarity(p);
+  tt.dataset.key = `${r}-${c}`;
+  tt.querySelector('.rtt-rar').textContent  = (p.entity ? rewardRarity(p) + ' · ' : '') + rewardTypeLabel(p, cell.kind);
+  tt.querySelector('.rtt-name').textContent = p.label;
+  // Tricks show their current bonus value in () via trickLiveDesc (N/A here in
+  // the reward grid for round-scoped tricks - the round isn't live yet).
+  const descText = (p._trick && typeof trickLiveDesc === 'function') ? trickLiveDesc(p._trick) : (p.desc || '');
+  tt.querySelector('.rtt-desc').innerHTML   = colorizeKeywords(descText);
+  tt.classList.add('show');
   // Shared placement (js/entity-tooltip.js): roomiest side horizontally, with an
-  // above/below fallback when neither side can fit the bubble.
-  const place = () => { if (_rewardTT) placeTipSmart(el, _rewardTT, { gap: 12 }); };
-  el.addEventListener('mouseenter', () => {
-    const tt = ensureRewardTooltip();
-    tt.className = 'rar-' + rar;
-    tt.querySelector('.rtt-rar').textContent  = (p.entity ? rar + ' · ' : '') + type;
-    tt.querySelector('.rtt-name').textContent = p.label;
-    // Tricks show their current bonus value in () via trickLiveDesc (N/A here in
-    // the reward grid for round-scoped tricks - the round isn't live yet).
-    const descText = (p._trick && typeof trickLiveDesc === 'function') ? trickLiveDesc(p._trick) : (p.desc || '');
-    tt.querySelector('.rtt-desc').innerHTML   = colorizeKeywords(descText);
-    tt.classList.add('show');
-    place();                                       // measure after content + show
-  });
-  el.addEventListener('mouseleave', hideRewardTooltip);
+  // above/below fallback when neither side can fit the bubble - so a tile in the
+  // right-most column pops out to the LEFT instead of squeezing against the edge.
+  placeTipSmart(el, tt, { gap: 12 });
+}
+
+// Re-show whatever tooltip was up before a re-render, since renderRewardTiles
+// throws the tiles away and rebuilds them.
+function restoreRewardTooltip() {
+  if (!rewardTipKey) { hideRewardTooltip(); return; }
+  const [r, c] = rewardTipKey.split('-').map(Number);
+  showRewardTooltipFor(r, c);
+}
+
+function attachRewardTooltip(el, p, kind) {
+  // Mouse hover still previews any tile, but it must not fight the pinned
+  // tooltip: leaving a tile snaps back to the tile that is actually pinned
+  // rather than leaving the board with nothing explained.
+  const r = +el.dataset.r, c = +el.dataset.c;
+  el.addEventListener('mouseenter', () => showRewardTooltipFor(r, c));
+  el.addEventListener('mouseleave', restoreRewardTooltip);
 }
 
 function renderRewardGrid() {
@@ -936,25 +947,52 @@ function isRewardCellSelectable(r, c) {
   return neighbors.some(([nr,nc]) => rewardSelected.has(`${nr}-${nc}`));
 }
 
+// ── ONE TAP, TWO MEANINGS (r182) ───────────────────────────────────────────
+// A reward tile answers two different questions - "what is this?" and "I want
+// it" - and the grid now serves both from a single tap, deciding by whether the
+// tile is one you could actually take:
+//
+//   tap a SELECTABLE tile      → select it AND pin its tooltip open
+//   tap a NON-ADJACENT tile    → pin its tooltip only; the selection is untouched
+//   tap a SELECTED tile        → deselect it and drop its tooltip
+//
+// So the most recently picked tile is always the one being explained, and you
+// can read any tile on the board - including ones you cannot reach from your
+// current group - without that reading costing you a pick or disturbing one.
 function onRewardCellClick(r, c) {
   if (rewardConfirmed || rewardDealing) return;
   const key = `${r}-${c}`;
 
-  // Clicking a selected cell deselects it (only if it's on the "fringe" - removing it
-  // wouldn't disconnect the remaining group)
+  // Already selected: tapping it takes it back and clears its bubble. Still only
+  // allowed from the fringe - removing a middle tile would split the group.
   if (rewardSelected.has(key)) {
-    // Check: would removing this cell leave the rest connected?
     const remaining = new Set([...rewardSelected].filter(k => k !== key));
     if (remaining.size === 0 || isGroupConnected(remaining)) {
       rewardSelected.delete(key);
+      // Hand the tooltip to whatever is now the most recent pick, or nothing.
+      if (rewardTipKey === key) rewardTipKey = lastRewardPickKey();
       renderRewardTiles();
     }
     return;
   }
 
-  if (!isRewardCellSelectable(r, c)) return;
+  // Not selectable (not adjacent, cap reached, second destination tile…): this is
+  // a read, not a pick. Pin its tooltip and leave the selection exactly as it was.
+  if (!isRewardCellSelectable(r, c)) { rewardTipKey = key; restoreRewardTooltip(); return; }
+
   rewardSelected.add(key);
+  rewardPickOrder.push(key);
+  rewardTipKey = key;               // the newest pick is the one being explained
   renderRewardTiles();
+}
+
+// The most recent still-selected pick, for handing the tooltip back after a
+// deselect. rewardPickOrder is the order tiles were taken; entries for tiles that
+// have since been dropped are skipped.
+function lastRewardPickKey() {
+  for (let i = rewardPickOrder.length - 1; i >= 0; i--)
+    if (rewardSelected.has(rewardPickOrder[i])) return rewardPickOrder[i];
+  return null;
 }
 
 // BFS connectivity check - ensures remaining selected cells are still one connected group
@@ -979,6 +1017,8 @@ function isGroupConnected(keySet) {
 function clearRewardSelection() {
   if (rewardConfirmed || rewardDealing) return;
   rewardSelected = new Set();
+  rewardPickOrder = [];
+  rewardTipKey = null;
   renderRewardTiles();
 }
 
@@ -1184,6 +1224,8 @@ function closeRewardGrid() {
     document.getElementById('next-goal-bg')?.classList.add('show');
   }
   rewardSelected  = new Set();
+  rewardPickOrder = [];
+  rewardTipKey    = null;
   rewardCells     = [];
   gameTimerPaused = false;
 

@@ -813,3 +813,131 @@ function confirmTwinPath() {
 
 
 
+
+// ══════════════════════════════════════════════
+// EVENT: SHIFT CHANGE  (r182)
+// ══════════════════════════════════════════════
+// Reorder your Trick tray. This is a real decision, not housekeeping: slot order
+// is load-bearing in several places and there was previously no way to change it
+// once a Trick landed.
+//
+//   · Inspirato primes your FIRST and LAST Tricks
+//   · Mirror borrows from whichever Trick sits beside it
+//   · Prime Times cycles 1st → 2nd → 3rd → 5th → 7th
+//   · the Alignment knack marks the column matching a Trick's slot number
+//   · Move as One fires your lowest-rarity Trick sharing a keyword
+//
+// Interaction is tap-to-swap, which works identically with a finger and a mouse
+// and needs no drag: tap a Trick to lift it, tap a second to trade their places.
+// Tapping the lifted Trick again puts it back down. Nothing is committed until
+// Confirm, and Skip leaves the tray exactly as it was.
+function renderShiftChange() {
+  const body = document.getElementById('event-body');
+  const tray = (typeof trickTray !== 'undefined' && trickTray) ? trickTray : [];
+
+  // Fewer than two Tricks: there is no order to change, so the shift pays out
+  // instead of wasting the node.
+  if (tray.length < 2) {
+    eventState.shiftPayout = BAL.shift_change ? BAL.shift_change.consolation_credits : 15;
+    body.appendChild(makeChoiceEl({
+      icon: '🕓', name: 'Nothing to reshuffle',
+      desc: `You need at least two Tricks before the order means anything. Take ${eventState.shiftPayout} credits for turning up.`,
+    }));
+    setEventConfirm(true);
+    document.getElementById('event-skip').textContent = 'Leave';
+    return;
+  }
+
+  // Work on a copy - the real tray is only written on Confirm.
+  eventState.shiftOrder = tray.slice();
+  eventState.shiftLifted = null;
+
+  const lbl = document.createElement('div');
+  lbl.style.cssText = 'font-family:Cinzel,serif;font-size:9px;letter-spacing:2px;color:var(--gold-dim);margin-bottom:6px';
+  lbl.textContent = 'TAP TWO TRICKS TO TRADE THEIR PLACES';
+  body.appendChild(lbl);
+
+  const row = document.createElement('div');
+  row.id = 'shift-row';
+  body.appendChild(row);
+
+  const hint = document.createElement('div');
+  hint.id = 'shift-hint';
+  body.appendChild(hint);
+
+  const tools = document.createElement('div');
+  tools.id = 'shift-tools';
+  const mkTool = (label, fn) => {
+    const b = document.createElement('button');
+    b.className = 'shift-tool';
+    b.textContent = label;
+    b.addEventListener('click', () => { fn(); renderShiftRow(); });
+    return b;
+  };
+  tools.appendChild(mkTool('↔ Reverse', () => { eventState.shiftOrder.reverse(); eventState.shiftLifted = null; }));
+  tools.appendChild(mkTool('↺ Reset',   () => { eventState.shiftOrder = tray.slice(); eventState.shiftLifted = null; }));
+  body.appendChild(tools);
+
+  renderShiftRow();
+  setEventConfirm(true);
+  document.getElementById('event-skip').textContent = 'Leave Order Unchanged';
+}
+
+function renderShiftRow() {
+  const row = document.getElementById('shift-row');
+  if (!row) return;
+  const RARS = ['common','rare','epic','legendary','mythic'];
+  const order = eventState.shiftOrder || [];
+  row.innerHTML = '';
+  order.forEach((trick, i) => {
+    const rar = RARS.includes(trick.tier) ? trick.tier : 'common';
+    const slot = document.createElement('div');
+    slot.className = 'shift-slot' + (eventState.shiftLifted === i ? ' lifted' : '');
+    // The same entity tile the reward grid, the Mart and your tray all draw
+    // (js/entity-tile.js) - a Trick looks like itself here too.
+    slot.innerHTML = `<div class="shift-num">${i + 1}</div>`
+                   + entityTileHTML({ entity: 'trick', label: trick.name, emoji: trickEmoji(trick) }, rar);
+    slot.addEventListener('click', () => {
+      if (eventState.shiftLifted === null)      eventState.shiftLifted = i;      // lift
+      else if (eventState.shiftLifted === i)    eventState.shiftLifted = null;   // put back down
+      else {                                                                     // trade places
+        const a = eventState.shiftLifted;
+        [order[a], order[i]] = [order[i], order[a]];
+        eventState.shiftLifted = null;
+      }
+      renderShiftRow();
+    });
+    row.appendChild(slot);
+  });
+  fitEntityNames(row, '.rwd-name', { maxLines: 2, minPx: 5 });
+
+  const hint = document.getElementById('shift-hint');
+  if (hint) {
+    const lifted = eventState.shiftLifted;
+    hint.textContent = lifted === null
+      ? 'Slot 1 is first, and the last slot is last - both matter to Inspirato.'
+      : `${order[lifted].name} is lifted - tap another Trick to trade places, or tap it again to put it back.`;
+    hint.classList.toggle('active', lifted !== null);
+  }
+}
+
+function confirmShiftChange() {
+  if (eventState.shiftPayout) {
+    coins += eventState.shiftPayout;
+    updateCoinsUI();
+    showMessage(`+${eventState.shiftPayout} credits`, 'var(--gold)');
+  } else if (eventState.shiftOrder) {
+    // Write the new order back in place. trickTray is referenced by identity all
+    // over the codebase (scoring walks it by index, the tray UI re-reads it), so
+    // it is refilled rather than replaced.
+    trickTray.length = 0;
+    eventState.shiftOrder.forEach(t => trickTray.push(t));
+    if (typeof renderTrickTray === 'function') renderTrickTray();
+    // A position Trick's marked row/column is fixed when you ACQUIRE it
+    // (assignPositionMark, guarded by _posAssigned) and is deliberately left
+    // alone here - reshuffling the tray moves the Tricks, not the lines they
+    // already own, so nothing you were building around silently relocates.
+    showMessage('Shift change - Trick order updated', 'var(--gold)');
+  }
+  closeEvent();
+}

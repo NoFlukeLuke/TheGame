@@ -89,7 +89,9 @@
 #builds-overlay .bv-head{ display:flex; align-items:center; gap:6px; }
 #builds-overlay .bv-emoji{ font-size:17px; line-height:1; flex:0 0 auto; }
 #builds-overlay .bv-name{ font-family:'Orbitron',sans-serif; font-size:10px; font-weight:700; letter-spacing:.4px;
-  text-transform:uppercase; color:#fff; line-height:1.2; overflow-wrap:anywhere; hyphens:auto; }
+  text-transform:uppercase; color:#fff; line-height:1.2;
+  /* words are atomic - fitEntityName shrinks instead of breaking (r182) */
+  overflow-wrap:normal; word-break:keep-all; hyphens:none; }
 #builds-overlay .bv-rar{ font-family:'Share Tech Mono',monospace; font-size:7.5px; letter-spacing:2px;
   text-transform:uppercase; color:var(--rc,var(--c-mint)); margin-top:3px; }
 #builds-overlay .bv-desc{ font-family:'Share Tech Mono',monospace; font-size:9.5px; line-height:1.5;

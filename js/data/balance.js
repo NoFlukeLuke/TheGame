@@ -84,6 +84,7 @@ const BAL = {
   groove:        { focus_per_2: 1 },
   assembly_line: { mult_per_prior: 1 },
   overtime:      { seconds_per_3: 1 },
+  shift_change:  { consolation_credits: 15 },   // Shift Change event, when you hold under 2 Tricks
   feng_shui:     { pips_per_hand: 3 },
   five_stack:    { pips: 20, mult: 5, focus_per_card: 1 },
   little_guys:   { cap_gain: 1 },
@@ -264,7 +265,7 @@ const DESC_TEMPLATES = {
   rowcol_perm_double: 'Cards scored at the intersection of a row effect and a column effect permanently gain +{perm_mult} mult, once per minute',
   groove:        'This trick scales +{focus_per_2} Focus for every 2 cards scored from a marked row or column. Resets each round.',
   assembly_line: 'Cards scored in a marked row or column score +{mult_per_prior} mult for every card already scored from that line this round.',
-  overtime:      'This trick scales +{seconds_per_3} second for every 3 cards scored from a marked row or column. Resets each round.',
+  overtime:      'Every hand rewinds the clock {seconds_per_3} second for every 3 cards you have scored from its marked row or column this round. The count resets each round.',
   feng_shui:     'Permanently scores +{pips_per_hand} pips each hand another position trick triggers.',
   huddle:        'Each scored card scores +{pips_per_adj} pips for every adjacent card or sleight in the hand.',
   veteran_bonus: '+{pips_per_level} pips per level reached this run',

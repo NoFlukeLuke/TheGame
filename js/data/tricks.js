@@ -110,7 +110,7 @@ const TRICK_POOL = [
   // ── New position tricks (owner batch) ──
   { id:'groove',         name:'Groove',              tier:'rare',      tags:['focus','position','scaling'], desc:'This trick scales +1 Focus for every 2 cards scored from a marked row or column. Resets each round.' },
   { id:'assembly_line',  name:'Assembly Line',       tier:'epic',      tags:['mult','position','scaling'],  desc:'Cards scored in a marked row or column score +1 mult for every card already scored from that line this round.' },
-  { id:'overtime',       name:'Overtime',            tier:'rare',      tags:['time','position','scaling'],  desc:'This trick scales +1 second for every 3 cards scored from a marked row or column. Resets each round.' },
+  { id:'overtime',       name:'Overtime',            tier:'rare',      tags:['time','position','scaling'],  desc:'Every hand rewinds the clock 1 second for every 3 cards you have scored from its marked row or column this round. The count resets each round.' },
   { id:'feng_shui',      name:'Feng Shui',           tier:'epic',      tags:['pips','position','scaling'],  desc:'Permanently scores +3 pips each hand another position trick triggers.' },
   { id:'huddle',         name:'Huddle',              tier:'rare',      tags:['pips','position'],            desc:'Each scored card scores +11 pips for every adjacent card or sleight in the hand.' },
   { id:'clean_sweep',    name:'Clean Sweep',         tier:'epic',      tags:['focus','position'],           desc:'Cover a full row or column within two hands to advance Focus to the next threshold.' },
