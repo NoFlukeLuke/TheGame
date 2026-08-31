@@ -1607,7 +1607,7 @@
        than written to el.style.transform on purpose: an INLINE transform (the
        discard fly-out) and a !important one (.card.removing) both beat this, so
        those effects keep working untouched. */
-    transform: translate(var(--hbx,0), var(--hby,0)) rotate(var(--hbr,0deg)) scale(var(--hbs,1));
+    transform: translate(var(--hbx,0), var(--hby,0)) rotate(calc(var(--hbr,0deg) + var(--frzr,0deg))) scale(var(--hbs,1));
   }
   .card.removing {
     transition: opacity 0.18s ease-in, transform 0.18s ease-in !important;
@@ -1668,7 +1668,7 @@
     border-color: #4a9eff;
     border-width: 1px;
     box-shadow: 0 0 6px rgba(74,158,255,0.5);
-    transform: translateY(-5px) scale(1.02);
+    transform: translateY(-5px) rotate(var(--frzr,0deg)) scale(1.02);
   }
   .card.selected.hand-valid {
     border-color: #4a9eff !important;
@@ -1742,7 +1742,7 @@
     will-change: top, opacity;
     transition: top 0.32s cubic-bezier(0.4,0,0.2,1), left 0.32s cubic-bezier(0.4,0,0.2,1);
     overflow: hidden;
-    transform: translate(var(--hbx,0), var(--hby,0)) rotate(var(--hbr,0deg)) scale(var(--hbs,1));  /* grid heartbeat */
+    transform: translate(var(--hbx,0), var(--hby,0)) rotate(calc(var(--hbr,0deg) + var(--frzr,0deg))) scale(var(--hbs,1));  /* grid heartbeat */
   }
   .trick-card.trick-tier-common {
     background: linear-gradient(160deg, #1a2a1a 0%, #0f1f0f 100%);
@@ -4429,7 +4429,7 @@
   border-color: #4a9eff !important;
   box-shadow: 0 0 0 2px rgba(74,158,255,0.55), 0 0 16px 2px rgba(74,158,255,0.65),
               inset 0 0 16px -6px rgba(74,158,255,0.9) !important;
-  transform: translate(var(--hbx,0), calc(var(--hby,0px) - 5px)) rotate(var(--hbr,0deg)) scale(calc(var(--hbs,1) * 1.03));
+  transform: translate(var(--hbx,0), calc(var(--hby,0px) - 5px)) rotate(calc(var(--hbr,0deg) + var(--frzr,0deg))) scale(calc(var(--hbs,1) * 1.03));
   z-index: 8;
 }
 .trick-card.sleight-card.selected .sel-num {

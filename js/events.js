@@ -26,7 +26,7 @@ function renderConfluence() {
   eventState.themes = themes.slice(0, 3);
   const body = document.getElementById('event-body');
   const lbl = document.createElement('div');
-  lbl.style.cssText = 'font-family:Cinzel,serif;font-size:9px;letter-spacing:2px;color:var(--gold-dim);margin-bottom:4px';
+  lbl.className = 'ev-label';
   lbl.textContent = 'CHOOSE A THEME';
   body.appendChild(lbl);
   const row = document.createElement('div');
@@ -45,7 +45,7 @@ function renderConfluence() {
   });
   body.appendChild(row);
   eventState.itemsContainer = document.createElement('div');
-  eventState.itemsContainer.style.cssText = 'width:100%;display:flex;flex-direction:column;gap:10px;margin-top:8px;';
+  eventState.itemsContainer.className = 'ev-stack';
   body.appendChild(eventState.itemsContainer);
 }
 
@@ -57,12 +57,12 @@ function showConfluenceItems(theme) {
   const c = eventState.itemsContainer;
   c.innerHTML = '';
   if (pool.length === 0) {
-    c.innerHTML = '<div style="color:var(--cream-dim);font-size:11px;text-align:center">Nothing available for this theme.</div>';
+    c.innerHTML = evEmptyHTML('Nothing available for this theme.');
     setEventConfirm(true); // allow skip
     return;
   }
   const lbl = document.createElement('div');
-  lbl.style.cssText = 'font-family:Cinzel,serif;font-size:9px;letter-spacing:2px;color:var(--gold-dim)';
+  lbl.className = 'ev-label';
   lbl.textContent = 'CHOOSE A REWARD';
   c.appendChild(lbl);
   pool.forEach(item => {
@@ -238,7 +238,7 @@ function renderGambleDoors() {
   eventState.doorsRevealed = false;
   const body = document.getElementById('event-body');
   const label = document.createElement('div');
-  label.style.cssText = 'font-family:Cinzel,serif;font-size:9px;letter-spacing:2px;color:var(--gold-dim);margin-bottom:8px';
+  label.className = 'ev-label';
   label.textContent = 'CHOOSE A DOOR';
   body.appendChild(label);
   const row = document.createElement('div');
@@ -300,12 +300,12 @@ function renderGambleDouble() {
   eventState.stakedTrick = null;
   const body = document.getElementById('event-body');
   const info = document.createElement('div');
-  info.style.cssText = 'font-size:12px;color:var(--cream-dim);font-family:Crimson Pro,serif;text-align:center;max-width:300px;margin-bottom:10px;line-height:1.5';
+  info.className = 'ev-note';
   info.textContent = '60% chance: keep your Trick and gain another. 40% chance: lose your Trick. Choose one to stake.';
   body.appendChild(info);
   const ownedTrick = acquiredTricks || [];
   if (ownedTrick.length === 0) {
-    body.innerHTML += '<div style="color:var(--cream-dim);font-size:11px">You have no Tricks to stake.</div>';
+    body.innerHTML += evEmptyHTML('You have no Tricks to stake.');
     setEventConfirm(true); return;
   }
   ownedTrick.forEach(trick => {
@@ -381,11 +381,11 @@ function renderForge() {
   const body = document.getElementById('event-body');
   const all = allDeckCards();
   if (!all.length) {
-    body.innerHTML = '<div style="color:var(--cream-dim);font-size:11px;text-align:center">No cards to enhance.</div>';
+    body.innerHTML = evEmptyHTML('No cards to enhance.');
     setEventConfirm(true); return;
   }
   const lbl = document.createElement('div');
-  lbl.style.cssText = 'font-family:Cinzel,serif;font-size:9px;letter-spacing:2px;color:var(--gold-dim);margin-bottom:4px';
+  lbl.className = 'ev-label';
   lbl.textContent = 'CHOOSE ONE ENHANCEMENT';
   body.appendChild(lbl);
 
@@ -458,7 +458,7 @@ function renderBargain() {
   eventState.bargainChoice = null;
   const body = document.getElementById('event-body');
   const lbl = document.createElement('div');
-  lbl.style.cssText = 'font-family:Cinzel,serif;font-size:9px;letter-spacing:2px;color:var(--gold-dim);margin-bottom:4px';
+  lbl.className = 'ev-label';
   lbl.textContent = 'PAY THE PRICE';
   body.appendChild(lbl);
   eventState.bargainTrades.forEach(trade => {
@@ -484,13 +484,13 @@ function confirmBargain() {
 function renderWager() {
   const body = document.getElementById('event-body');
   if (!allDeckCards().length) {
-    body.innerHTML = '<div style="color:var(--cream-dim);font-size:11px;text-align:center">No cards to wager.</div>';
+    body.innerHTML = evEmptyHTML('No cards to wager.');
     setEventConfirm(true); return;
   }
   eventState.wagerStake = null;
   eventState.wagerResolved = false;
   const lbl = document.createElement('div');
-  lbl.style.cssText = 'font-family:Cinzel,serif;font-size:9px;letter-spacing:2px;color:var(--gold-dim);margin-bottom:4px';
+  lbl.className = 'ev-label';
   lbl.textContent = 'CHOOSE YOUR STAKE - THEN FLIP';
   body.appendChild(lbl);
   const stakes = [
@@ -551,11 +551,11 @@ function renderMerchant() {
   eventState.merchantPick  = null;
   const body = document.getElementById('event-body');
   const lbl = document.createElement('div');
-  lbl.style.cssText = 'font-family:Cinzel,serif;font-size:9px;letter-spacing:2px;color:var(--gold-dim);margin-bottom:4px';
+  lbl.className = 'ev-label';
   lbl.textContent = 'TAKE ONE - FREE OF CHARGE';
   body.appendChild(lbl);
   if (eventState.merchantItems.length === 0) {
-    body.innerHTML += '<div style="color:var(--cream-dim);font-size:11px;text-align:center">The merchant has nothing new to offer.</div>';
+    body.innerHTML += evEmptyHTML('The merchant has nothing new to offer.');
     setEventConfirm(true); return;
   }
   eventState.merchantItems.forEach(item => {
@@ -660,7 +660,7 @@ function renderSpring() {
   eventState.springPick = null;
   const body = document.getElementById('event-body');
   const info = document.createElement('div');
-  info.style.cssText = 'font-size:12px;color:var(--cream-dim);font-family:Crimson Pro,serif;text-align:center;max-width:300px;margin-bottom:12px;line-height:1.5;';
+  info.className = 'ev-note';
   info.textContent = 'Remove one card permanently from your deck - no cost, no replacement. Or restore lost resources.';
   body.appendChild(info);
 
@@ -714,19 +714,19 @@ function showSpringCardPicker() {
   const body = document.getElementById('event-body');
   const wrap = document.createElement('div');
   wrap.id = 'spring-card-picker';
-  wrap.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:8px;max-width:340px';
+  wrap.className = 'ev-cardchips';
   const pool = [...drawPile];
   const seen = new Set();
   pool.forEach((card, i) => {
     const key = card.rank + card.suit;
     if (seen.has(key)) return; seen.add(key);
     const chip = document.createElement('div');
-    chip.style.cssText = `padding:4px 8px;border-radius:5px;border:1px solid var(--gold-dim);font-family:Cinzel,serif;font-size:11px;cursor:pointer;background:#1a1410;color:${['♥','♦'].includes(card.suit)?'#c0392b':'var(--cream)'}`;
+    // A tiny playing card, not a text chip - a deck screen should look like cards.
+    chip.className = 'ev-cardchip' + (['♥','♦'].includes(card.suit) ? ' red' : '');
     chip.textContent = card.rank + card.suit;
     chip.addEventListener('click', () => {
-      wrap.querySelectorAll('div').forEach(c=>c.style.boxShadow='');
-      chip.style.boxShadow = '0 0 8px rgba(201,168,76,0.6)';
-      chip.style.borderColor = 'var(--gold)';
+      wrap.querySelectorAll('.ev-cardchip').forEach(c => c.classList.remove('picked'));
+      chip.classList.add('picked');
       eventState.cardToRemove = card;
     });
     wrap.appendChild(chip);
@@ -774,7 +774,7 @@ function renderTwinPath() {
   const body = document.getElementById('event-body');
 
   const lbl = document.createElement('div');
-  lbl.style.cssText='font-family:Cinzel,serif;font-size:9px;letter-spacing:2px;color:var(--gold-dim);margin-bottom:4px';
+  lbl.className = 'ev-label';
   lbl.textContent='YOU GAIN BOTH - OR NEITHER';
   body.appendChild(lbl);
 
@@ -785,14 +785,14 @@ function renderTwinPath() {
   const shadowEl = makeChoiceEl({ icon: eventState.shadow.icon, name: eventState.shadow.name, desc: eventState.shadow.desc, cls:'debuff' });
   shadowEl.style.marginTop = '6px';
   const shadowLbl = document.createElement('div');
-  shadowLbl.style.cssText='font-family:Cinzel,serif;font-size:9px;letter-spacing:2px;color:var(--red);margin-top:8px;margin-bottom:4px';
+  shadowLbl.className = 'ev-label danger';
   shadowLbl.textContent='THE SHADOW (always applies)';
   body.appendChild(shadowLbl);
   body.appendChild(shadowEl);
 
   const acceptBtn = document.createElement('button');
   acceptBtn.textContent = 'Accept Both + Shadow';
-  acceptBtn.style.cssText='margin-top:12px;';
+  acceptBtn.className = 'ev-btn';
   acceptBtn.addEventListener('click', () => {
     eventState.twinAccepted = true;
     acceptBtn.disabled = true;
@@ -853,7 +853,7 @@ function renderShiftChange() {
   eventState.shiftLifted = null;
 
   const lbl = document.createElement('div');
-  lbl.style.cssText = 'font-family:Cinzel,serif;font-size:9px;letter-spacing:2px;color:var(--gold-dim);margin-bottom:6px';
+  lbl.className = 'ev-label';
   lbl.textContent = 'TAP TWO TRICKS TO TRADE THEIR PLACES';
   body.appendChild(lbl);
 

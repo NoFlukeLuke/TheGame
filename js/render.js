@@ -249,5 +249,9 @@ function render() {
   document.getElementById('btn-discard').disabled = selected.length === 0 || (animating && !falling);
   document.getElementById('disc-count').textContent = `(${discards})`;
   document.getElementById('swap-count').textContent  = swaps;
+
+  // A card dealt in while the clock is frozen arrives untilted - put it back in
+  // line with the rest of the held board (js/clock-fx.js). No-ops when running.
+  if (typeof reapplyClockFreeze === 'function') reapplyClockFreeze();
 }
 

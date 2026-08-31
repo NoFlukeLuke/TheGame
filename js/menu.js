@@ -1,4 +1,4 @@
-const BUILD = '2026-08-31 · r182 · one entity tile everywhere, tap-to-read tooltips, Shift Change';
+const BUILD = '2026-08-31 · r183 · events + Trick-slots screen on theme, clock FX (wave/freeze/rewind)';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

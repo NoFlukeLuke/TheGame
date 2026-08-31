@@ -28,6 +28,7 @@
 <link rel="stylesheet" href="css/tutorial.css">
 <link rel="stylesheet" href="css/builds.css">
 <link rel="stylesheet" href="css/room.css">
+<link rel="stylesheet" href="css/clock-fx.css">
 </head>
 <body>
 <div id="knack-tooltip" role="tooltip"></div>
@@ -192,8 +193,9 @@
   <div class="dev-section" data-group="anim">
     <div class="dev-section-title">Grid Heartbeat - play grid</div>
     <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:4px;">
-      A double thump (lub-dub) that starts at the left edge, middle row(s), and radiates outward.
-      Full tuner with a live grid: <b>heartbeat-preview.html</b>.
+      A soft swell that falls from the TOP row and travels down the board, once every 10s,
+      on the same beat as the clock's tick. Stagger / row is what makes it fall; stagger / col
+      only leans the wavefront (0 = dead flat). Full tuner with a live grid: <b>heartbeat-preview.html</b>.
     </div>
     <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;">
       <input id="dev-hb-enabled" type="checkbox" onchange="setHbEnabled(this.checked)" style="accent-color:var(--gold);">
@@ -207,18 +209,18 @@
       <input id="dev-hb-rot" type="range" min="0" max="5" value="0.25" step="0.05" oninput="devSetHb('rot', this.value)"></div>
     <div class="dev-slider-row"><span>Scale pulse <b id="dev-hb-scale-val">3</b>%</span>
       <input id="dev-hb-scale" type="range" min="0" max="10" value="3" step="0.1" oninput="devSetHb('scale', this.value)"></div>
-    <div class="dev-slider-row"><span>Every <b id="dev-hb-period-val">5</b>s</span>
-      <input id="dev-hb-period" type="range" min="1" max="15" value="5" step="0.5" oninput="devSetHb('period', this.value)"></div>
+    <div class="dev-slider-row"><span>Every <b id="dev-hb-period-val">10</b>s</span>
+      <input id="dev-hb-period" type="range" min="1" max="30" value="10" step="0.5" oninput="devSetHb('period', this.value)"></div>
     <div class="dev-slider-row"><span>Beat length <b id="dev-hb-beat-val">260</b>ms</span>
       <input id="dev-hb-beat" type="range" min="80" max="700" value="260" step="10" oninput="devSetHb('beat', this.value)"></div>
     <div class="dev-slider-row"><span>Lub&rarr;dub gap <b id="dev-hb-gap-val">190</b>ms</span>
       <input id="dev-hb-gap" type="range" min="60" max="600" value="190" step="10" oninput="devSetHb('gap', this.value)"></div>
     <div class="dev-slider-row"><span>2nd beat <b id="dev-hb-beat2-val">0.72</b>&times;</span>
       <input id="dev-hb-beat2" type="range" min="0" max="1" value="0.72" step="0.02" oninput="devSetHb('beat2', this.value)"></div>
-    <div class="dev-slider-row"><span>Stagger / col <b id="dev-hb-colStagger-val">110</b>ms</span>
-      <input id="dev-hb-colStagger" type="range" min="0" max="400" value="110" step="5" oninput="devSetHb('colStagger', this.value)"></div>
-    <div class="dev-slider-row"><span>Stagger / row <b id="dev-hb-rowStagger-val">55</b>ms</span>
-      <input id="dev-hb-rowStagger" type="range" min="0" max="400" value="55" step="5" oninput="devSetHb('rowStagger', this.value)"></div>
+    <div class="dev-slider-row"><span>Lean / col <b id="dev-hb-colStagger-val">26</b>ms</span>
+      <input id="dev-hb-colStagger" type="range" min="0" max="400" value="26" step="2" oninput="devSetHb('colStagger', this.value)"></div>
+    <div class="dev-slider-row"><span>Fall / row <b id="dev-hb-rowStagger-val">120</b>ms</span>
+      <input id="dev-hb-rowStagger" type="range" min="0" max="400" value="120" step="5" oninput="devSetHb('rowStagger', this.value)"></div>
     <div class="dev-row">
       <button class="dev-btn" onclick="devResetHb()">Reset to default</button>
     </div>
@@ -923,25 +925,47 @@
 </div>
 
 <!-- Trick LOSE PICKER OVERLAY -->
+<!-- TRICK SLOTS FULL / CHOOSE A TRICK TO LOSE
+     One screen, two jobs: a debuff taking a Trick off you ('lose' mode) and the
+     tray being full when a new one arrives ('replace' mode). r183 gave it the
+     same console shell as the reward grid and the events, and #blp-incoming -
+     in replace mode the NEW Trick is shown at the top as a real entity tile, so
+     you can see what you are trading before you trade it. -->
 <div id="trick-lose-picker">
-  <div id="blp-title">CHOOSE A TRICK TO LOSE</div>
-  <div id="blp-sub">Select one - it will be removed permanently.</div>
-  <div id="blp-list"></div>
-  <div id="blp-actions">
-    <button id="blp-confirm" disabled onclick="confirmTrickLosePicker()">Remove Selected</button>
-    <button id="blp-cancel" style="display:none" onclick="cancelTrickReplacePicker()">Skip New Trick</button>
+  <div id="blp-panel">
+    <div id="blp-bar">
+      <span id="blp-eyebrow">TRICK SLOTS</span>
+      <span id="blp-count"></span>
+    </div>
+    <div id="blp-title">CHOOSE A TRICK TO LOSE</div>
+    <div id="blp-sub">Select one - it will be removed permanently.</div>
+    <div id="blp-incoming"></div>
+    <div id="blp-list"></div>
+    <div id="blp-actions">
+      <button id="blp-confirm" disabled onclick="confirmTrickLosePicker()">Remove Selected</button>
+      <button id="blp-cancel" style="display:none" onclick="cancelTrickReplacePicker()">Skip New Trick</button>
+    </div>
   </div>
 </div>
 
-<!-- EVENT OVERLAY (all node events render here) -->
+<!-- EVENT OVERLAY (all node events render here)
+     r183: the loose stack of divs is now wrapped in #event-panel, a CRT console
+     with a bezel and a marquee bar - the same material as the reward grid and the
+     Mart, so an Event stops looking like a different game's dialog box. Every id
+     inside is unchanged; js/events.js writes into exactly the same elements. -->
 <div id="event-overlay">
-  <div id="event-eyebrow">EVENT</div>
-  <div id="event-name">·</div>
-  <div id="event-flavor"></div>
-  <div id="event-body"></div>
-  <div id="event-actions">
-    <button id="event-skip" onclick="closeEvent()">Skip</button>
-    <button id="event-confirm" disabled onclick="confirmEvent()">Confirm</button>
+  <div id="event-panel">
+    <div id="event-bar">
+      <span id="event-eyebrow">EVENT</span>
+      <span id="event-bar-dots"><i></i><i></i><i></i></span>
+    </div>
+    <div id="event-name">·</div>
+    <div id="event-flavor"></div>
+    <div id="event-body"></div>
+    <div id="event-actions">
+      <button id="event-skip" onclick="closeEvent()">Skip</button>
+      <button id="event-confirm" disabled onclick="confirmEvent()">Confirm</button>
+    </div>
   </div>
 </div>
 
@@ -1064,6 +1088,7 @@
 <script src="js/dominoes-mode.js"></script>
 <script src="js/challenge.js"></script>
 <script src="js/audio.js"></script>
+<script src="js/clock-fx.js"></script>
 <script src="js/match3.js"></script>
 <script src="js/survival.js"></script>
 <script src="js/flow-mode.js"></script>

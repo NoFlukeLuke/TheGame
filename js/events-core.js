@@ -96,13 +96,27 @@ function renderEventShell(id) {
     shift_change: renderShiftChange,
   };
   if (renderers[id]) renderers[id]();
+  // The panel scrolls internally and is reused between events - reopening it
+  // where the last one left off would hide the title under the sticky bar.
+  const panel = document.getElementById('event-panel');
+  if (panel) panel.scrollTop = 0;
 }
 
 // ─── helper: build a choice card DOM element ───
+// The rarity is not just a word printed on the tile - it sets `rar-<tier>`,
+// which is what gives the tile its --rc neon edge in css/dev-overlays.css. Same
+// five tiers, same five colours as a reward-grid tile, so an epic looks like an
+// epic wherever you meet it. Anything off the tier list (or a debuff, which owns
+// its own red) is left uncoloured rather than guessed at.
+const EV_TIERS = ['common', 'rare', 'epic', 'legendary', 'mythic'];
+
 function makeChoiceEl(opts) {
   // opts: { icon, rarity, name, desc, cost, cls, onClick }
   const div = document.createElement('div');
-  div.className = 'event-choice' + (opts.cls ? ' ' + opts.cls : '');
+  const rar = String(opts.rarity || '').toLowerCase();
+  div.className = 'event-choice'
+    + (EV_TIERS.includes(rar) ? ' rar-' + rar : '')
+    + (opts.cls ? ' ' + opts.cls : '');
   div.innerHTML = `
     <div class="ec-top">
       <div class="ec-icon">${opts.icon || '★'}</div>
@@ -117,6 +131,23 @@ function makeChoiceEl(opts) {
   if (opts.onClick) div.addEventListener('click', opts.onClick);
   return div;
 }
+
+// ─── helper: the three bits of chrome every event body reuses ───
+// These were a dozen near-identical inline cssText strings scattered through
+// js/events.js, which is how the events drifted apart in the first place.
+function evLabel(text, danger) {
+  const d = document.createElement('div');
+  d.className = 'ev-label' + (danger ? ' danger' : '');
+  d.textContent = text;
+  return d;
+}
+function evNote(html) {
+  const d = document.createElement('div');
+  d.className = 'ev-note';
+  d.innerHTML = html;
+  return d;
+}
+function evEmptyHTML(text) { return `<div class="ev-empty">${text}</div>`; }
 
 // ══════════════════════════════════════════════
 // EVENT: CONFLUENCE

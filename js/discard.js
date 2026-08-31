@@ -175,6 +175,8 @@ function rewindTime(seconds, label) {
   rewoundSecondsRound += gained; // Kingfisher scales on seconds rewound this round
   rewindsThisRound++;            // per-round rewind count (time popup)
   updateClockUI();
+  // Infinity-mirror copies under every card + the reversed swell (js/clock-fx.js)
+  if (typeof playRewindFX === 'function') playRewindFX();
   const el = document.getElementById('time-cost-flash') ||
     (() => { const e = document.createElement('div'); e.id = 'time-cost-flash'; e.style.cssText =
       `position:absolute; pointer-events:none; z-index:300; font-family:'Cinzel',serif; font-size:13px; font-weight:700;
@@ -243,6 +245,9 @@ function pauseRound(seconds) {
   pipeTimerPaused = true;
   const clockEl = document.getElementById('clock');
   if (clockEl) clockEl.classList.add('clock-paused');
+  // Lit clock, tick-tock, and the ripple that turns and holds every card
+  // (js/clock-fx.js). Idempotent - an extension of a live pause does nothing.
+  if (typeof beginClockFreeze === 'function') beginClockFreeze();
   if (pauseTimer) clearTimeout(pauseTimer);
   // count down pause
   const tick = () => {
@@ -252,7 +257,11 @@ function pauseRound(seconds) {
       pauseSecondsLeft = 0;
       firstPauseActive = false; // the first continuous pause stretch is over (Vulture)
       // Don't unfreeze if a Stopwatch is still holding the clock frozen.
-      if (!stopwatchActive) { pipeTimerPaused = false; if (clockEl) clockEl.classList.remove('clock-paused'); }
+      if (!stopwatchActive) {
+        pipeTimerPaused = false;
+        if (clockEl) clockEl.classList.remove('clock-paused');
+        if (typeof endClockFreeze === 'function') endClockFreeze();
+      }
       updateClockUI();
     } else {
       pauseTimer = setTimeout(tick, 1000);
@@ -273,6 +282,7 @@ function startStopwatch(card, r, c) {
   pipeTimerPaused = true;
   const clockEl = document.getElementById('clock');
   if (clockEl) clockEl.classList.add('clock-paused');
+  if (typeof beginClockFreeze === 'function') beginClockFreeze();
   showMessage('⏱️ Stopwatch - clock frozen', '#5aa9e6');
   if (stopwatchTimer) clearInterval(stopwatchTimer);
   stopwatchTimer = setInterval(() => {
@@ -300,6 +310,7 @@ function endStopwatch() {
     pipeTimerPaused = false;
     const clockEl = document.getElementById('clock');
     if (clockEl) clockEl.classList.remove('clock-paused');
+    if (typeof endClockFreeze === 'function') endClockFreeze();
     updateClockUI();
   }
 }

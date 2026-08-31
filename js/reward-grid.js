@@ -463,21 +463,44 @@ let _blpMode      = 'lose';        // 'lose' (debuff: must remove) | 'replace' (
 let _trickReplaceQueue = [];       // new Tricks waiting while the tray is at trick_slots capacity
 
 // Tray is full - show the picker in 'replace' mode for the next queued new Trick.
+// The incoming Trick is drawn as a real entity tile (js/entity-tile.js) rather
+// than quoted into the subtitle: it is the thing you are deciding about, and it
+// should look like it looks everywhere else you have met it.
 function maybeOpenTrickReplacePicker() {
   if (!_trickReplaceQueue.length) return;
   if (document.getElementById('trick-lose-picker').classList.contains('show')) return; // one at a time
   const incoming = _trickReplaceQueue[0];
   _blpMode = 'replace';
-  document.getElementById('blp-title').textContent = 'TRICK SLOTS FULL';
+  document.getElementById('blp-eyebrow').textContent = 'Trick slots full';
+  document.getElementById('blp-title').textContent = 'NO ROOM FOR THIS ONE';
   document.getElementById('blp-sub').textContent =
-    `New Trick: “${incoming.name}” - ${incoming.desc || ''}  Choose a Trick to replace, or skip the new one.`;
+    'Every slot is taken. Pick the Trick it replaces, or turn the new one away.';
   document.getElementById('blp-confirm').textContent = 'Replace Selected';
   document.getElementById('blp-cancel').style.display = '';
+  const inc = document.getElementById('blp-incoming');
+  // Tile first: #blp-incoming is a 2-column grid and the tile spans both rows.
+  inc.innerHTML =
+    `<div class="blp-inc-tile">${entityTileHTML(
+        { entity:'trick', label: incoming.name, emoji: trickEmoji(incoming) },
+        blpRarity(incoming.tier))}</div>
+     <div class="blp-inc-label">Incoming</div>
+     <div class="blp-inc-desc">${colorizeKeywords(incoming.desc || '')}</div>`;
+  inc.classList.add('show');
+  fitEntityNames(inc, '.rwd-name', { maxLines: 3 });
   openTrickLosePicker(trickTray.map((trick, idx) => ({ trick, source: 'tray', idx })));
+}
+
+// Trick tiers and entity rarities are the same five words, but a Trick can carry
+// a tier the tile has no colour for - fall back rather than paint nothing.
+const BLP_TIERS = ['common', 'rare', 'epic', 'legendary', 'mythic'];
+function blpRarity(tier) {
+  const t = String(tier || '').toLowerCase();
+  return BLP_TIERS.includes(t) ? t : 'common';
 }
 
 function cancelTrickReplacePicker() {
   document.getElementById('trick-lose-picker').classList.remove('show');
+  document.getElementById('blp-incoming').classList.remove('show');
   const skipped = _trickReplaceQueue.shift();
   if (skipped) showMessage(`Skipped ${skipped.name} (tray full)`, 'var(--cream-dim)');
   _blpMode = 'lose';
@@ -487,26 +510,44 @@ function cancelTrickReplacePicker() {
 function openTrickLosePicker(options) {
   if (_blpMode !== 'replace') {
     // restore the default 'lose' chrome (replace mode pre-sets its own)
+    document.getElementById('blp-eyebrow').textContent = 'Forfeit';
     document.getElementById('blp-title').textContent = 'CHOOSE A TRICK TO LOSE';
     document.getElementById('blp-sub').textContent = 'Select one - it will be removed permanently.';
     document.getElementById('blp-confirm').textContent = 'Remove Selected';
     document.getElementById('blp-cancel').style.display = 'none';
+    const inc = document.getElementById('blp-incoming');
+    inc.innerHTML = ''; inc.classList.remove('show');
   }
   _blpOptions  = options;
   _blpSelected = -1;
+  const cap = (typeof trickCapacity === 'function') ? trickCapacity() : options.length;
+  document.getElementById('blp-count').textContent = `${trickTray.length} / ${cap}`;
   const list = document.getElementById('blp-list');
   list.innerHTML = '';
   options.forEach((opt, i) => {
     const el = document.createElement('div');
-    el.className = 'blp-item';
-    el.innerHTML = `<div class="blp-item-tier">${opt.trick.tier || 'common'}</div>`
-                 + `<div class="blp-item-name">${opt.trick.name}</div>`
-                 + `<div class="blp-item-desc">${opt.trick.desc || ''}</div>`;
+    el.className = 'blp-item rar-' + blpRarity(opt.trick.tier);
+    // Same tile as the reward grid, the Mart shelf and your own tray, so what
+    // you are giving up is recognisable at a glance instead of being a line of text.
+    el.innerHTML = `<div class="blp-item-tile">${entityTileHTML(
+                        { entity:'trick', label: opt.trick.name, emoji: trickEmoji(opt.trick) },
+                        blpRarity(opt.trick.tier))}</div>`
+                 + `<div class="blp-item-body">`
+                 +   `<div class="blp-item-tier">${opt.trick.tier || 'common'}</div>`
+                 +   `<div class="blp-item-name">${opt.trick.name}</div>`
+                 +   `<div class="blp-item-desc">${colorizeKeywords(opt.trick.desc || '')}</div>`
+                 + `</div>`
+                 + `<div class="blp-item-mark">✕</div>`;
     el.addEventListener('click', () => selectBLPItem(i));
     list.appendChild(el);
   });
   document.getElementById('blp-confirm').disabled = true;
   document.getElementById('trick-lose-picker').classList.add('show');
+  // The panel is reused, so it reopens wherever it was last scrolled to - which
+  // hides the title and the incoming tile under the sticky bar.
+  const panel = document.getElementById('blp-panel');
+  if (panel) panel.scrollTop = 0;
+  fitEntityNames(list, '.rwd-name', { maxLines: 3 });
 }
 
 function selectBLPItem(i) {
@@ -520,6 +561,7 @@ function confirmTrickLosePicker() {
   const opt = _blpOptions[_blpSelected];
   if (!opt) return;
   document.getElementById('trick-lose-picker').classList.remove('show');
+  document.getElementById('blp-incoming').classList.remove('show');
 
   if (opt.source === 'tray') {
     trickTray.splice(opt.idx, 1);
