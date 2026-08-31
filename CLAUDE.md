@@ -410,7 +410,38 @@ Because a rewind can push the clock back past a mark it already passed, `handleC
 
 **Roughly: pause entities outnumber rewind entities about 2:1.** Causes a pause: High Water · The Cuckoo · Double Jeopardy · The Vulture · Right Time · Temporal Rift · Five Second Rule · Four Horse-man · Wait Four It · Dam Holding… (Tricks) · Sundial · Metronome · Long Pause (Knacks) · Syncopation · Snooze Button · Stopwatch (Sleights). Causes a rewind: Overtime · Hoarder House (Tricks) · Time Slip · Rewound Echo · Déjà Vu · Clockmaker (Knacks) · Rewind · Last Call · Sandbagger (Sleights). A separate group only *scales off* the clock without touching it: The Falcon, The Hummingbird, The Albatross, The Phoenix (pause) and The Kingfisher (both).
 
-**Known inconsistency, deliberately left:** Deluge, Threepeat and Blood Diamonds still write `roundSeconds += n` directly instead of calling `rewindTime()`. They are rewinds in everything but name - they skip the cap, the floater and the Kingfisher/rewind counters. **Overtime was fixed in r182** (it was the one the owner asked about); routing the other three through `rewindTime()` is a small change but it is a balance change, so it wants a decision rather than a drive-by.
+**Every rewind now goes through `rewindTime()` (r183).** Deluge, Threepeat, Blood Diamonds and the Spectrum Time Clock fixture used to write `roundSeconds += n` directly, which skipped the ceiling, the floater and the Kingfisher/rewind tallies. There are no raw `roundSeconds +=` sites left; a new one is a bug.
+
+### `rewindCeiling()` - do NOT clamp a rewind to `ROUND_DURATION` (r183)
+
+`rewindTime` used to end with `roundSeconds = Math.min(ROUND_DURATION, roundSeconds + n)`. `ROUND_DURATION` is Classic's **180**, and the clock legitimately sits above it all the time:
+
+| situation | round starts at |
+|---|---|
+| Flow's session clock | 300 |
+| Round Time limit upgraded | up to the limit |
+| Time Bank knack | +30s |
+| Clock Tower knack | carries up to +60s |
+
+In every one of those the `min` **cut the clock down to 180 and then returned 0**, so the player silently lost the difference and nothing reported it - 110 seconds destroyed by a single Flush in Flow. The ceiling is now `max(currentRoundDuration(), roundStartSeconds, roundSeconds)`:
+- **`roundStartSeconds` is the whole answer for the limit, Time Bank and Clock Tower** - `startRoundTimer` records it after `computeRoundResources` has already folded all three in, so no separate `limits.round_time` lookup is needed. Reading the limit as well would let a 120s Survival round be rewound up to 180.
+- **`roundSeconds` is in the max**, so the clamp can never move the clock backwards. The worst a rewind can do is nothing.
+
+### Clock-mark Tricks, and why rewinding pays (r183)
+
+`handleClockMarks(secs)` fires once per real second with the NEW `roundSeconds`, so a rewind that pushes the clock back above a mark makes it fire again on the way down. That is the whole rewind payoff, and it only works if the marks are **dense enough to re-cross**. Measured over a full 180s round (`+1 pip` = 4.26 score, `+1 mult` = 77.3, `+1 Focus node` = 33.4, measured over 500 real boards at level 1, average best hand 334):
+
+| Trick | tier | mark | fires/round | plain round | with 60s of rewinds |
+|---|---|---|---|---|---|
+| Tick-Tock | common | every 10s | 17 | 34 Focus | 46 Focus (+35%) |
+| Second Hand | common | every 10s | 17 | 362 | 490 (+35%) |
+| Quarter Chime | rare | every 15s | 11 | 2110 | 2877 (+36%) |
+| Minute Hand | rare | every 60s | 2 | 464 | 696 (+50%) |
+| Hourglass | epic | every 60s | 2 x 1/3 | a permanent retrigger | +50% more chances |
+
+- **Second Hand moved from the minute mark to the 10-second mark (r183).** It used to share Minute Hand's exact trigger and pay +5 pips against Minute Hand's +3 mult: **43 score a round against 464**, the weakest Trick in the game by a distance. Only the hand it rides on changed - the +5 is untouched - which puts it at ~360, an ordinary common, and makes it the Trick rewinding pays best (any rewind of 10s or more buys a guaranteed extra fire).
+- **Quarter Chime is the outstanding outlier at 2110 a round, against a 1200 round goal**, for a rare. Left alone deliberately - it is a nerf, not the buff that was asked for, so it wants a decision.
+- **Minute Hand and Hourglass are nearly rewind-proof** by construction: two marks a round means only a rewind that crosses a whole minute buys anything.
 
 ## No text selection (r182)
 `html, body` carry `user-select:none` + `-webkit-touch-callout:none` + `-webkit-tap-highlight-color:transparent`, re-enabled for `input, textarea, [contenteditable], .selectable-text`. A click-drag across the board, or the press-and-hold that opens a tooltip, used to blue-highlight whatever label the finger landed on and pop iOS's copy/define callout over the card you were trying to read.

@@ -65,7 +65,7 @@ const TRICK_POOL = [
   { id:'ticktock',       name:'Tick-Tock',           tier:'common',    tags:['time','focus'],     desc:'Every time the round clock ends in a 0, gain +2 Focus' },
   { id:'quarter_chime',  name:'Quarter Chime',       tier:'rare',      tags:['time','pips'],      desc:'Every time the round clock reads a multiple of 15 seconds, your next hand scores +45 pips' },
   { id:'minute_hand',    name:'Minute Hand',         tier:'rare',      tags:['time','mult'],      desc:'Every minute mark the clock passes adds +3 mult to your next hand' },
-  { id:'second_hand',    name:'Second Hand',         tier:'common',    tags:['time','pips'],      desc:'Every minute mark the clock passes adds +5 pips to your next hand' },
+  { id:'second_hand',    name:'Second Hand',         tier:'common',    tags:['time','pips'],      desc:'Every 10 seconds the clock passes adds +5 pips to your next hand. Rewinding the clock earns them again' },
   { id:'hourglass',      name:'Hourglass',           tier:'epic',      tags:['time','retrigger'], desc:'Every minute mark the clock passes has a 1-in-3 chance to give a random card on the grid a permanent retrigger' },
   { id:'sediment',       name:'Sediment',            tier:'rare',      tags:['time','pips'],      desc:'Gains +10 pips for every 10 seconds of round time elapsed (resets each round)' },
   { id:'kingfisher',     name:'The Kingfisher',      tier:'epic',      tags:['time','mult'],      desc:'+1 mult for every 5 seconds the clock has been paused or rewound this round' },

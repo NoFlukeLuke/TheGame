@@ -127,7 +127,11 @@ function paySpectrumFixture(def, card, r, c) {
   const bits = [];
   if (p.swaps)    { swaps    += p.swaps;                       bits.push(`+${p.swaps} swaps`); }
   if (p.discards) { discards  = Math.min(99, discards + p.discards); bits.push(`+${p.discards} discards`); }
-  if (p.seconds)  { roundSeconds += p.seconds; timeManipRound += p.seconds; updateClockUI(); bits.push(`+${p.seconds}s`); }
+  // The Time Clock fixture is a rewind like any other (r183) - same conversion as
+  // Deluge / Threepeat / Blood Diamonds, so it caps, floats, and counts for The
+  // Kingfisher. `gained` and not `p.seconds` in the message, because a rewind up
+  // against the round cap can hand back less than it offered.
+  if (p.seconds)  { const g = rewindTime(p.seconds); if (g > 0) bits.push(`+${g}s`); }
   if (p.coins)    { coins    += p.coins; updateCoinsUI();      bits.push(`+${p.coins} credits`); }
   showMessage(`${def.emoji} ${def.name} - ${bits.join(', ')}!`, '#ffd700');
   consumeSleightCharge(card, r, c);   // no-op while durability is 'infinite'

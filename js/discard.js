@@ -164,12 +164,36 @@ function showTimeCost(label) {
 // ── Rewind: give round seconds back (clock counts down, so rewinding = adding time) ──
 // Adds `seconds` to roundSeconds, capped at ROUND_DURATION, and shows a floater/message.
 // Returns the seconds actually restored. Bosses run their own timer, so rewinds are ignored there.
+// How high a rewind is allowed to push the clock. NOT the bare ROUND_DURATION
+// (r183): that constant is Classic's 180, and the clock legitimately sits ABOVE
+// it in several ordinary situations -
+//   · Survival rounds are 120s and Flow's session clock is 300s
+//   · the Round Time LIMIT can be upgraded past 180, and a round starts at it
+//   · Time Bank (+30s at round start) and Clock Tower (carries up to 60s over)
+//   · Rain Check (+30s next round)
+// against `Math.min(ROUND_DURATION, …)` every one of those made a rewind CUT the
+// clock down to 180 and then return 0, so it reported nothing and the player just
+// lost the time. In Flow that was 120 seconds destroyed by a single Flush.
+//
+// `roundStartSeconds` is what this round ACTUALLY began with - startRoundTimer
+// records it after computeRoundResources has already folded in the Round Time
+// limit, Time Bank and Clock Tower - so it is the whole answer for those three
+// and no separate limits lookup is needed. Reading the limit as well would let a
+// 120s Survival round be rewound up to Classic's 180.
+//
+// `roundSeconds` is in the max too, so the clamp can never move the clock
+// backwards: the worst a rewind can now do is nothing.
+function rewindCeiling() {
+  const dur = (typeof currentRoundDuration === 'function') ? currentRoundDuration() : ROUND_DURATION;
+  return Math.max(dur, roundStartSeconds || 0, roundSeconds);
+}
+
 function rewindTime(seconds, label) {
   if (bossActive) return 0;
   seconds = Math.floor(seconds);
   if (seconds <= 0) return 0;
   const before = roundSeconds;
-  roundSeconds = Math.min(ROUND_DURATION, roundSeconds + seconds);
+  roundSeconds = Math.min(rewindCeiling(), roundSeconds + seconds);
   const gained = roundSeconds - before;
   if (gained <= 0) return 0;
   rewoundSecondsRound += gained; // Kingfisher scales on seconds rewound this round
@@ -203,10 +227,21 @@ function handleClockMarks(secs) {
     pendingHandPips += BAL.quarter_chime.pips;
     showMessage(`🔔 Quarter Chime - next hand +${BAL.quarter_chime.pips} pips`, '#e8c56b');
   }
-  // Minute marks (clock reads N:00) → accrue mult / card pips / retrigger chance
+  // Second Hand: the SECOND hand of a clock sweeps - it now fires on every
+  // 10-second mark, not on the minute (r183). It used to share Minute Hand's
+  // trigger and pay +5 pips against Minute Hand's +3 mult, which on measured
+  // boards is 43 score a round against 464 - the same trigger for a tenth of the
+  // payout, and the weakest Trick in the game by a distance. The number is
+  // unchanged; only the hand it rides on. 17 fires a round instead of 2 puts it
+  // at ~360, an ordinary common, and makes it the Trick that rewinding pays best:
+  // any rewind of 10s or more buys a guaranteed extra fire.
+  if (secs % 10 === 0 && hasTrick('second_hand')) {
+    pendingCardPips += BAL.second_hand.pips;
+    showMessage(`🕐 Second Hand - next hand +${BAL.second_hand.pips} pips`, '#e8c56b');
+  }
+  // Minute marks (clock reads N:00) → accrue mult / retrigger chance
   if (secs % 60 === 0) {
     if (hasTrick('minute_hand'))  { pendingHandMult += BAL.minute_hand.mult; showMessage(`🕐 Minute Hand - next hand +${BAL.minute_hand.mult} mult`, '#cc88ff'); }
-    if (hasTrick('second_hand'))  { pendingCardPips += BAL.second_hand.pips; showMessage(`🕐 Second Hand - next hand +${BAL.second_hand.pips} pips`, '#e8c56b'); }
     if (hasTrick('hourglass') && Math.random() < BAL.hourglass.chance) {
       // Grant one permanent retrigger to a random real card currently on the grid
       const spots = [];

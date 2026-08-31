@@ -1,4 +1,4 @@
-const BUILD = '2026-08-31 · r182 · one entity tile everywhere, tap-to-read tooltips, Shift Change';
+const BUILD = '2026-08-31 · r183 · every rewind goes through rewindTime; Second Hand on the 10s mark';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
