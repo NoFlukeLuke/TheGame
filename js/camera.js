@@ -170,6 +170,35 @@ function camInit() {
     }).observe(el, { attributes: true, attributeFilter: ['class'] });
   });
   camSetView(document.getElementById('main-menu-overlay')?.classList.contains('show') ? 'wide' : 'play', false);
+  // js/settings.js applies its stored values at load, before #room may have been
+  // reachable from every path; re-assert here now the scene definitely exists.
+  if (typeof SETTINGS !== 'undefined') camSetRoomStyle(SETTINGS.roomStyle);
+}
+
+// ── The office's two moods ──────────────────────────────────────────────────
+// 'grimy' (the default) is the same room left running for years: dimmer,
+// yellower, stained, with a failing tube. It is a class on #room, so css/room.css
+// carries it as overrides on one shared geometry. Wired to Settings > Display.
+function camSetRoomStyle(style) {
+  camRoom()?.classList.toggle('grimy', style !== 'clean');
+}
+
+// Replay the opening move, for anyone who wants to look at it again (Settings >
+// Display > Intro animation). From the menu it pulls back, pushes in, and returns
+// to the menu; from inside a run it pulls out to the desk and comes back, so the
+// run is exactly where it was when it finishes.
+let camIntroRunning = false;
+function camPlayIntro() {
+  if (camIntroRunning) return;
+  camIntroRunning = true;
+  if (typeof closeSettings === 'function') { try { closeSettings(); } catch (e) {} }
+  const fromPlay = (camView === 'play');
+  const outFor = fromPlay ? CAM_DUR + 250 : 0;   // time spent pulling back first
+  camSetView('wide', fromPlay);
+  const hold = 900;                               // a beat on the desk before the push
+  setTimeout(() => camSetView('play', true), outFor + hold);
+  if (!fromPlay) setTimeout(() => camSetView('wide', true), outFor + hold + CAM_DUR + 1100);
+  setTimeout(() => { camIntroRunning = false; }, outFor + hold + CAM_DUR * 2 + 1200);
 }
 
 function camEnterGame() {

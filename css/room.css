@@ -330,6 +330,166 @@
 #cabinet.landscape .mode-arrow        { width: 34px; height: 34px; font-size: 20px; }
 #cabinet.landscape #mode-back-btn     { font-size: 11px; padding: 7px 18px; }
 
+/* ═══════════════ THE GRIMY OFFICE ═══════════════
+   The same room after nobody has cared about it for a long time. Dimmer,
+   yellower, stained; the tube is failing, the plant is dead and the clock has
+   stopped. Nothing is BROKEN - that would read as a disaster movie. It is just
+   a place that has been left running.
+
+   Chosen in Settings > Display > Office; the class goes on #room from
+   camSetRoomStyle() in js/camera.js. Everything below is an override on the
+   clean room, so the two share one geometry - a change to the perspective or
+   the props lands in both without being written twice. */
+#room.grimy {
+  /* One filter does the mood: nothing here is a repainted colour, so the clean
+     room stays the single source of every hue. Safe on #room because it holds
+     no position:fixed descendants - it is absolutes all the way down. */
+  filter: saturate(0.62) brightness(0.8) contrast(1.05) sepia(0.13);
+  --fabric:   #5f646b;
+  --fabric-d: #3d4149;
+  --trim:     #8f9298;
+  --laminate: #a08a66;
+}
+/* Every grime layer MULTIPLIES. Painted normally, a translucent brown over an
+   already-dimmed room comes out LIGHTER than what it is meant to be dirtying -
+   the first pass had coffee rings glowing on the desk like chalk. Multiply can
+   only ever darken, which is what dirt does. */
+#room:not(.grimy) .rm-grime { display: none; }
+.rm-grime { position: absolute; inset: 0; mix-blend-mode: multiply; }
+.rm-grime i { position: absolute; display: block; border-radius: 50%; }
+/* Damp wicking UP the partition from the two bottom corners. Anchored to the
+   corner and fading inward and upward - a centred ellipse reads as a blob on the
+   wall rather than as something rising out of the floor. */
+.rm-grime i:nth-child(1) {
+  left: calc(var(--rw-l) - 6px); top: calc(var(--desk-y) - 430px); width: 260px; height: 430px;
+  border-radius: 0;
+  background: radial-gradient(ellipse 150% 100% at 0% 100%, rgba(40,33,22,0.82), transparent 72%);
+}
+.rm-grime i:nth-child(2) {
+  left: calc(var(--rw-r) - 254px); top: calc(var(--desk-y) - 380px); width: 260px; height: 380px;
+  border-radius: 0;
+  background: radial-gradient(ellipse 150% 100% at 100% 100%, rgba(40,33,22,0.72), transparent 72%);
+}
+/* A ceiling leak that dried a long time ago. */
+.rm-grime i:nth-child(3) {
+  left: calc(var(--rc-x) + 150px); top: calc(var(--rw-t) - 210px); width: 300px; height: 230px;
+  background: radial-gradient(ellipse at 50% 60%, rgba(96,74,38,0.5) 0%, rgba(74,58,32,0.26) 52%, transparent 74%);
+}
+/* Hand grime around the cabinet - where somebody has actually been touching it. */
+.rm-grime i:nth-child(4) {
+  left: calc(var(--cab-l) - 130px); top: calc(var(--desk-y) - 210px); width: 260px; height: 300px;
+  background: radial-gradient(ellipse at 70% 60%, rgba(30,25,18,0.4), transparent 70%);
+}
+.rm-grime i:nth-child(5) {
+  left: calc(var(--cab-r) - 130px); top: calc(var(--desk-y) - 210px); width: 260px; height: 300px;
+  background: radial-gradient(ellipse at 30% 60%, rgba(30,25,18,0.4), transparent 70%);
+}
+/* Dust on the desk, thickest where nothing has been moved. */
+.rm-grime i:nth-child(6) {
+  left: 0; top: var(--desk-y); width: 3000px; height: calc(2400px - var(--desk-y)); border-radius: 0;
+  background:
+    radial-gradient(ellipse 760px 170px at calc(var(--rc-x) - 720px) 130px, rgba(58,50,34,0.4), transparent 72%),
+    radial-gradient(ellipse 760px 170px at calc(var(--rc-x) + 720px) 160px, rgba(58,50,34,0.36), transparent 72%),
+    linear-gradient(180deg, rgba(30,26,18,0.5) 0%, transparent 34%);
+}
+
+/* Stains on the fabric, and a tide line where the mop never reaches. */
+#room.grimy .rm-wall { box-shadow: inset 0 24px 46px rgba(0,0,0,0.5), inset 0 -60px 70px rgba(0,0,0,0.45); }
+#room.grimy .rm-wall::after {
+  content: ""; position: absolute; inset: 0; mix-blend-mode: multiply;
+  background:
+    radial-gradient(ellipse 160px 300px at 18% 4%,  rgba(58,46,28,0.5), transparent 70%),
+    radial-gradient(ellipse 120px 220px at 62% 0%,  rgba(58,46,28,0.42), transparent 72%),
+    radial-gradient(ellipse 210px 90px  at 88% 100%, rgba(34,29,20,0.55), transparent 70%);
+}
+#room.grimy .rm-rail { background: linear-gradient(180deg, #a9aab0 0%, #7e8188 42%, #4b4e55 100%); }
+/* Nicotine-brown ceiling tiles with the leak stain over them. */
+#room.grimy .rm-ceiling::after {
+  content: ""; position: absolute; inset: 0; mix-blend-mode: multiply;
+  background:
+    radial-gradient(ellipse 320px 150px at calc(var(--rc-x) - 210px) calc(var(--rw-t) - 70px), rgba(120,92,44,0.4), transparent 70%),
+    linear-gradient(180deg, rgba(70,56,30,0.28), rgba(20,17,12,0.5));
+}
+
+/* The tube is on its way out: dimmer, greener, and it stutters. */
+#room.grimy .rm-strip-light {
+  opacity: 0.5;
+  background: linear-gradient(180deg, #e8f0dc 0%, #cfd8bd 55%, #8f9a86 100%);
+  box-shadow: 0 0 90px 26px rgba(190,205,170,0.16);
+  animation: grim-flicker 7.3s linear infinite;
+}
+/* Irregular on purpose - an even blink reads as a signal, not a failing lamp. */
+@keyframes grim-flicker {
+  0%, 41%, 43%, 55%, 100% { opacity: 0.5; }
+  42%   { opacity: 0.16; }
+  56%   { opacity: 0.22; }
+  57%   { opacity: 0.5; }
+  58%   { opacity: 0.18; }
+  59.5% { opacity: 0.5; }
+  86%   { opacity: 0.3; }
+  87%   { opacity: 0.5; }
+}
+body.reduced-motion #room.grimy .rm-strip-light { animation: none; }
+
+/* Rings, scratches and worn laminate. */
+#room.grimy .rm-desk-top::after {
+  content: ""; position: absolute; inset: 0; mix-blend-mode: multiply;
+  background:
+    /* Coffee rings. The stops ramp rather than step: a hard-edged ring reads as
+       a drawn circle, not as something spilled and dried. */
+    radial-gradient(circle 52px at calc(var(--rc-x) + 330px) calc(var(--desk-y) + 210px), transparent 0 30px, rgba(58,40,18,0.3) 37px 41px, transparent 50px),
+    radial-gradient(circle 44px at calc(var(--rc-x) - 430px) calc(var(--desk-y) + 96px),  transparent 0 24px, rgba(58,40,18,0.24) 30px 33px, transparent 42px),
+    radial-gradient(ellipse 300px 80px at calc(var(--rc-x) - 40px) calc(var(--desk-y) + 40px), rgba(40,30,16,0.3), transparent 74%);
+}
+#room.grimy .rm-desk-edge { background: linear-gradient(180deg, #b9a888, #4f412c); }
+
+/* The plant died some time ago and nobody threw it out. */
+#room.grimy .rm-plant i { background: linear-gradient(180deg, #7d6a34, #4a3d1f); }
+#room.grimy .rm-plant i:nth-child(1) { transform: rotate(-58deg); }
+#room.grimy .rm-plant i:nth-child(2) { transform: rotate(9deg) scaleY(0.82); }
+#room.grimy .rm-plant i:nth-child(3) { transform: rotate(54deg); }
+#room.grimy .rm-plant b { background: linear-gradient(180deg, #8a5238, #5a3320); }
+
+/* Paper goes yellow and lets go at one corner. */
+#room.grimy .rm-pin {
+  background: linear-gradient(180deg, #ded1ac, #b7a882);
+  transform: rotate(-3.4deg);
+  clip-path: polygon(0 0, 100% 0, 100% 86%, 88% 100%, 0 100%);
+}
+#room.grimy .rm-pin i { background: #9c9075; }
+#room.grimy .rm-note-a { background: #d9c257; color: #6a5c22; transform: rotate(5.4deg); }
+#room.grimy .rm-note-b { background: #cf9aae; color: #5f2a3d; transform: rotate(-6.6deg) translateY(6px); }
+#room.grimy .rm-note { box-shadow: 0 8px 18px rgba(0,0,0,0.5); }
+
+/* The paperwork and the mug are the only white things in the room, so left alone
+   they end up the brightest thing in frame after the CRT. */
+#room.grimy .rm-papers i:nth-child(1) { background: #bdb49c; }
+#room.grimy .rm-papers i:nth-child(2) { background: #c6bda4; }
+#room.grimy .rm-papers i:nth-child(3) { background: #cec5ab; }
+#room.grimy .rm-mug {
+  background: linear-gradient(90deg, #9aa0a4 0%, #c3c7c6 34%, #adb2b1 64%, #71767a 100%);
+  box-shadow: 0 10px 16px rgba(0,0,0,0.5), inset 0 6px 0 rgba(0,0,0,0.3);
+}
+#room.grimy .rm-mug i { border-color: #b3b8b7; }
+
+/* Stopped clock, dirty face. Not smashed - just not running. */
+#room.grimy .rm-clock {
+  background: radial-gradient(circle at 42% 34%, #cfc9b6 0%, #a9a394 58%, #726d60 100%);
+  box-shadow: 0 0 0 6px #1d1f24, 0 10px 20px rgba(0,0,0,0.55);
+}
+#room.grimy .rm-clock i { transform: translate(-50%,-100%) rotate(176deg); }
+#room.grimy .rm-clock b { transform: translate(-50%,-100%) rotate(151deg); }
+
+/* The CRT is the only thing in here still trying, so its spill stays - it just
+   has less to bounce off. The falloff closes in around it. */
+#room.grimy .rm-haze {
+  background: radial-gradient(ellipse 1340px 980px at var(--rc-x) var(--rc-y),
+    rgba(255,168,52,0.24) 0%, rgba(255,168,52,0.09) 44%, transparent 80%);
+}
+#room.grimy::after {
+  background: radial-gradient(ellipse 1240px 900px at var(--rc-x) var(--rc-y), transparent 28%, rgba(0,0,0,0.8) 100%);
+}
+
 /* Portrait puts a tall, narrow cabinet on a much narrower stretch of visible
    desk, so the two flanking props would sit under the housing. Drop them rather
    than shuffle every prop twice. */

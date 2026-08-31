@@ -36,6 +36,13 @@ const SETTINGS_DEF = [
   { group: 'Display', id: 'highContrast', label: 'High-contrast cards', hint: 'Stronger card borders and darker pips for legibility.',
     type: 'toggle', default: false,
     apply: v => document.body.classList.toggle('high-contrast', !!v) },
+  // The room the cabinet sits in on the menu (js/camera.js + css/room.css).
+  { group: 'Display', id: 'roomStyle', label: 'Office', hint: 'The room around the cabinet on the menu. Grimy is dimmer and dirtier; clean is the lit version.',
+    type: 'select', default: 'grimy', options: [['grimy','Grimy'], ['clean','Clean']],
+    apply: v => { if (typeof camSetRoomStyle === 'function') camSetRoomStyle(v); } },
+  { group: 'Display', id: 'introReplay', type: 'action',
+    label: 'Intro animation', hint: 'Watch the camera pull back to the desk and zoom in on the screen.',
+    buttons: () => [{ label: 'Play intro', fn: 'camPlayIntro()' }] },
 
   // ── Run ── save / resume (see js/save.js). `action` rows are buttons, not a
   // stored preference, so they are skipped by loadSettings/resetSettings.

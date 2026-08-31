@@ -567,6 +567,18 @@ The game opens on the cabinet **sitting on a desk in an office cubicle**, with t
 - **The same parse-order trap bites the camera itself.** While those scripts run the parser has not yet reached `#cab-baseline`, so the cabinet measures 10px short and the board ends up centred 5px high for the whole session. The `requestAnimationFrame` pass can still fire before the parser gets there; `DOMContentLoaded` is the first moment the housing is whole, so `update()` is bound to that and to `load` and `document.fonts.ready`.
 - `#menu-left` / `#menu-right` are `display:contents` everywhere except landscape, where they become the branding column and the button column. 747x420 of glass cannot take the portrait stack; portrait is untouched.
 
+### Two offices, and the intro replay (r181)
+
+**Settings > Display > Office** picks between **Grimy** (the default) and **Clean**. Grimy is the same room left running for years: dimmer, yellower, damp wicking up the partition corners, a stopped clock, a dead plant, faded notes, coffee rings, and a fluorescent tube that stutters on an irregular loop.
+
+- **It is a `.grimy` class on `#room`, written entirely as overrides on the clean room**, so the two share one geometry - a change to the perspective or the props lands in both without being written twice. `camSetRoomStyle()` is the single site that sets it.
+- **One `filter` on `#room` does the mood** (`saturate .62 brightness .8 contrast 1.05 sepia .13`) rather than a second palette. Safe there because `#room` holds no `position:fixed` descendants; it is absolutes all the way down.
+- **Every grime layer is `mix-blend-mode: multiply`, and that is not a style choice.** Painted normally, a translucent brown over an already-dimmed room comes out LIGHTER than the thing it is meant to be dirtying: the first pass had coffee rings glowing on the desk like chalk (measured: ring 50,42,32 against a desk of 80,71,59 only after the switch to multiply). Dirt can only darken.
+- **The paper and the mug needed explicit dulling.** They are the only white objects in the room, so under the dim filter they became the brightest thing in frame after the CRT.
+- **Damp is anchored to the wall's bottom corners and fades up and inward.** A centred ellipse reads as a blob stuck on the wall rather than as something rising out of the floor.
+- The cabinet itself is deliberately left pristine - it is the one thing in the room still working, and dimming it would also dim the screen the game is played on.
+- **`camPlayIntro()`** (Settings > Display > Intro animation) replays the opening move. From the menu it pulls back, pushes in and returns to the menu; from inside a run it pulls out to the desk and comes back, so the run is exactly where it was when it finishes.
+
 ## Dev panel / Settings
 `#dev-panel` is **both** the in-game dev panel (🛠 button) and the main menu's **Settings** screen (`openSettingsFromMenu`); the title bar swaps between `DEV MODE` and `SETTINGS`. As of **r117** it's a centred, bounded arcade pop-up (`css/dev-overlays.css`) rather than a full-screen sheet: sticky gold title bar, internally-scrolling `#dev-panel-body`, and a backdrop dim made by a `0 0 0 100vmax` box-shadow spread so no extra wrapper element is needed. **It lives OUTSIDE `#stage` in `index.html`** (a sibling of `#main-menu-overlay`) - inside the stage it inherited the cabinet's CSS `zoom`, which scaled its `vh` sizing by ~1.3× and pushed it off-screen.
 

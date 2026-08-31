@@ -1,4 +1,4 @@
-const BUILD = '2026-08-30 · r180 · the room: menu on the cabinet screen, camera dollies in on the CRT for play';
+const BUILD = '2026-08-31 · r181 · the grimy office (Settings > Display) + intro replay';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
