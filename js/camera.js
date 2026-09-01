@@ -40,6 +40,12 @@ const CAM_DESIGN = {
 const CAM_WIDE_FIT = { landscape: 0.55, portrait: 0.78 };
 const CAM_PLAY_PAD = 2;      // px of slack at the play framing, against rounding
 const CAM_DUR      = 1250;   // dolly length, ms
+// The opening shot (r185): the page loads with the camera further back than the
+// wide framing and creeps in on the machine over seven seconds. It is a multiplier
+// on whatever framing is current rather than a third framing of its own, so it
+// composes with a relayout mid-flight instead of being cancelled by one.
+const CAM_BOOT_MS  = 7000;
+const CAM_BOOT_OUT = 0.42;   // how far back the opening shot starts, x the wide framing
 const CAM_EASE     = 'cubic-bezier(0.45, 0.04, 0.22, 1)';
 // The room canvas, in the same design px as the cabinet. Its centre is the
 // cabinet's centre; css/room.css lays the cubicle out inside this box. It has to
@@ -48,6 +54,8 @@ const CAM_EASE     = 'cubic-bezier(0.45, 0.04, 0.22, 1)';
 const ROOM_W = 3000, ROOM_H = 2400;
 
 let camView      = 'wide';   // 'wide' | 'play'
+let camBootMul   = 1;        // 1 except during the opening shot
+let camBootRaf   = null;
 let camWideK     = 0.6;      // scale that renders the wide framing
 let camPlayZoom  = 1;        // the live --stage-zoom
 let camDollyTimer = null;
@@ -122,11 +130,16 @@ function camLayout(isLandscape) {
 function camApply(animate) {
   const cam = camEl();
   if (!cam) return;
-  const k = (camView === 'play') ? 1 : camWideK;
+  const k = ((camView === 'play') ? 1 : camWideK) * camBootMul;
   if (camDollyTimer) { clearTimeout(camDollyTimer); camDollyTimer = null; }
   if (!animate) {
     cam.style.transition = 'none';
     cam.style.transform  = (k === 1) ? '' : `scale(${k})`;
+    // The flush below exists so a LATER transition starts from this value rather
+    // than animating out of the old one. During the opening shot there is no
+    // transition - the next frame just writes the next scale - so a forced reflow
+    // per frame for seven seconds would be pure cost.
+    if (camBootRaf) return;
     cam.style.willChange = '';
     void cam.offsetWidth;
     cam.style.transition = '';
@@ -147,6 +160,9 @@ function camApply(animate) {
 
 function camSetView(view, animate) {
   if (view !== 'wide' && view !== 'play') return;
+  // Pressing PLAY during the opening shot must not dolly in from 0.42 x the wide
+  // framing - end the creep on its final value first, then run the real move.
+  if (camBootRaf) camEndBootDolly();
   const changing = (view !== camView);
   camView = view;
   document.body.classList.toggle('cam-play', view === 'play');
@@ -169,7 +185,9 @@ function camInit() {
       if (el.classList.contains('show')) camSetView('wide', true);
     }).observe(el, { attributes: true, attributeFilter: ['class'] });
   });
-  camSetView(document.getElementById('main-menu-overlay')?.classList.contains('show') ? 'wide' : 'play', false);
+  const onMenu = !!document.getElementById('main-menu-overlay')?.classList.contains('show');
+  camSetView(onMenu ? 'wide' : 'play', false);
+  if (onMenu) camPlayBootDolly();
   // js/settings.js applies its stored values at load, before #room may have been
   // reachable from every path; re-assert here now the scene definitely exists.
   if (typeof SETTINGS !== 'undefined') camSetRoomStyle(SETTINGS.roomStyle);
@@ -181,6 +199,36 @@ function camInit() {
 // carries it as overrides on one shared geometry. Wired to Settings > Display.
 function camSetRoomStyle(style) {
   camRoom()?.classList.toggle('grimy', style !== 'clean');
+}
+
+// ── The opening shot ────────────────────────────────────────────────────────
+// Seven seconds of the camera drifting in on the machine while the menu waits on
+// its CRT. Driven by rAF over a multiplier rather than by a CSS transition, so
+// the several relayouts the first second triggers (rAF pass, DOMContentLoaded,
+// load, fonts.ready - see js/bootstrap.js) recompute camWideK and re-apply
+// underneath it instead of stamping on a transition halfway through.
+function camPlayBootDolly() {
+  if (document.body.classList.contains('reduced-motion')) return;
+  const cam = camEl(); if (!cam) return;
+  const t0 = performance.now();
+  cam.style.willChange = 'transform';
+  camBootRaf = requestAnimationFrame(function step(t) {
+    const p = Math.min(1, (t - t0) / CAM_BOOT_MS);
+    const eased = 1 - Math.pow(1 - p, 3);          // ease-out: fast away, slow arrival
+    camBootMul = CAM_BOOT_OUT + (1 - CAM_BOOT_OUT) * eased;
+    camApply(false);
+    camBootRaf = (p < 1) ? requestAnimationFrame(step) : null;
+    if (!camBootRaf) camEndBootDolly();
+  });
+  camBootMul = CAM_BOOT_OUT;
+  camApply(false);
+}
+
+function camEndBootDolly() {
+  if (camBootRaf) { cancelAnimationFrame(camBootRaf); camBootRaf = null; }
+  camBootMul = 1;
+  const cam = camEl(); if (cam) cam.style.willChange = '';
+  camApply(false);
 }
 
 // Replay the opening move, for anyone who wants to look at it again (Settings >

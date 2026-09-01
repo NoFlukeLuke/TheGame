@@ -92,7 +92,11 @@ function sfxWinExplode(){
   try{
     const actx = getAudioCtx(); if(!actx) return;
     const t = actx.currentTime;
-    const master = actx.createGain(); master.gain.value = 0.8;
+    // Volume/mute: this one builds its own graph rather than going through
+    // playTone, so it has to fold in sfxVolume() itself or the mute toggle and
+    // the Sound-effects slider would not touch it (they did not, before r179).
+    const master = actx.createGain(); master.gain.value = 0.8 * sfxVolume();
+    if (master.gain.value <= 0) return;
     master.connect(sfxDuckGain || actx.destination);
     // Detuned saw "zap" sweeping down - the analog-synth stab.
     [0,7].forEach(detune=>{

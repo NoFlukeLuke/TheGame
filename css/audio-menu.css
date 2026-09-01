@@ -1,0 +1,105 @@
+/* ══════════════════════════════════════════════
+   AUDIO MENUS (r179) - sound board + music playlist.
+   Body-level, outside #cabinet, like Settings and Records: the cabinet's CSS
+   `zoom` would otherwise scale their fixed positioning. They sit ABOVE the
+   settings overlay (9998) because that is what opens them.
+   ══════════════════════════════════════════════ */
+
+.audio-overlay {
+  display: none;
+  position: fixed; inset: 0; z-index: 10002;
+  align-items: center; justify-content: center; padding: 4vh 3vw;
+  background:
+    repeating-linear-gradient(0deg, rgba(0,0,0,0.18) 0 1px, transparent 1px 3px),
+    radial-gradient(ellipse at 50% 40%, rgba(20,32,44,0.95) 0%, rgba(8,9,16,0.98) 72%);
+}
+.audio-overlay.show { display: flex; }
+
+.audio-panel {
+  width: 100%; max-width: 560px; max-height: 92vh;
+  display: flex; flex-direction: column; overflow: hidden; border-radius: 16px;
+  background: linear-gradient(180deg, rgba(20,16,11,0.97), rgba(11,9,6,0.98));
+  box-shadow: 0 0 0 2px var(--plastic-lo, #b7ac93), 0 0 0 6px #17120c, 0 24px 60px rgba(0,0,0,0.65);
+}
+.audio-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 13px 16px; border-bottom: 1px solid rgba(183,172,147,0.22);
+  background: linear-gradient(180deg, rgba(127,212,221,0.07), transparent);
+}
+.audio-close {
+  cursor: pointer; border-radius: 8px; padding: 5px 11px; font-size: 14px;
+  color: var(--cream, #f0e6c8); background: rgba(255,255,255,0.05);
+  border: 1.5px solid var(--plastic-lo, #b7ac93); transition: all 0.12s ease;
+}
+.audio-close:hover { border-color: var(--c-coral, #ff6a3c); color: var(--c-coral, #ff6a3c); }
+
+.audio-body { padding: 12px 16px 16px; overflow-y: auto; flex: 1; }
+.audio-foot {
+  padding: 11px 16px; border-top: 1px solid rgba(183,172,147,0.22);
+  display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;
+}
+
+.audio-note {
+  font-family: 'Crimson Pro', serif; font-size: 12.5px; line-height: 1.55;
+  color: var(--cream-dim, #8a7d60);
+  background: rgba(0,0,0,0.25); border: 1px solid rgba(120,200,210,0.22);
+  border-radius: 9px; padding: 10px 12px; margin-bottom: 4px;
+}
+.audio-note b { color: var(--cream, #f0e6c8); }
+.audio-note code, .audio-row-sub code {
+  font-family: 'Share Tech Mono', monospace; font-size: 11px;
+  color: var(--c-cyan, #7fd4dd); background: rgba(127,212,221,0.08);
+  padding: 1px 4px; border-radius: 4px;
+}
+.audio-steps { margin: 7px 0 5px; padding-left: 18px; }
+.audio-steps li { margin-bottom: 5px; }
+
+/* ── One sound / one track ── */
+.audio-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 0; border-bottom: 1px solid rgba(183,172,147,0.09);
+}
+.audio-row.off { opacity: 0.45; }
+.audio-row.off .set-switch { opacity: 1; }      /* the switch itself stays legible */
+.audio-row.playing { background: rgba(53,213,155,0.06); border-radius: 7px; padding-left: 6px; padding-right: 6px; }
+
+.audio-row-text { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.audio-row-label { font-family: 'Crimson Pro', serif; font-size: 14.5px; color: var(--cream, #f0e6c8); }
+.audio-row-sub {
+  font-family: 'Crimson Pro', serif; font-size: 11px; line-height: 1.35;
+  color: var(--cream-dim, #8a7d60); overflow-wrap: anywhere;
+}
+.audio-nowplaying {
+  font-family: 'Share Tech Mono', monospace; font-size: 8.5px; letter-spacing: 2px;
+  color: var(--c-mint, #35d59b); margin-left: 6px; vertical-align: middle;
+}
+
+.audio-play {
+  flex: 0 0 auto; width: 30px; height: 30px; border-radius: 50%; cursor: pointer;
+  font-size: 12px; line-height: 1; color: var(--c-yellow, #ffce2b);
+  background: rgba(255,206,43,0.08); border: 1.5px solid rgba(255,206,43,0.45);
+  transition: all 0.12s ease;
+}
+.audio-play:hover { background: var(--c-yellow, #ffce2b); color: #2a1f06; }
+.audio-play:active { transform: scale(0.92); }
+
+.audio-src {
+  flex: 0 0 auto; font-family: 'Share Tech Mono', monospace; font-size: 8px; letter-spacing: 1.5px;
+  padding: 3px 6px; border-radius: 5px; border: 1px solid;
+}
+.audio-src.file  { color: var(--c-mint, #35d59b); border-color: rgba(53,213,155,0.5); background: rgba(53,213,155,0.09); }
+.audio-src.coded { color: var(--cream-dim, #8a7d60); border-color: rgba(183,172,147,0.28); background: rgba(255,255,255,0.03); }
+
+/* ── Transport row (playlist footer) ── */
+.audio-transport { display: flex; gap: 8px; align-items: center; justify-content: center; }
+.audio-tb {
+  cursor: pointer; min-width: 42px; padding: 8px 12px; border-radius: 9px;
+  font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 1px;
+  color: var(--c-cyan, #7fd4dd);
+  background: linear-gradient(180deg, #1d3a3e, rgba(16,36,39,0));
+  border: 1px solid var(--c-cyan, #7fd4dd); transition: all 0.12s ease;
+}
+.audio-tb:hover { background: linear-gradient(180deg, #235055, #12292c); color: #fff; }
+.audio-tb.big { font-size: 16px; min-width: 58px; }
+.audio-tb.wide { font-size: 9px; letter-spacing: 2px; }
+.audio-tb.on { color: #06231f; background: linear-gradient(180deg, #7ff0d4, #35c9a6); border-color: #35c9a6; }

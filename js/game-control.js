@@ -213,6 +213,9 @@ function startGame() {
   // the menu screens showing, so SETTINGS / HISTORY / BUILDS, which all hide the
   // main menu to open their own screen, can't push the camera in behind them.
   if (typeof camEnterGame === 'function') camEnterGame();
+  // Music can differ between the menu and a run (see js/music.js); a track marked
+  // 'any' plays through the change, one marked 'menu' hands over here.
+  if (typeof musicSetScene === 'function') musicSetScene('game');
   document.getElementById('end-overlay').classList.remove('show');
   document.getElementById('levelup-overlay').classList.remove('show');
   document.getElementById('shop-overlay').classList.remove('show');

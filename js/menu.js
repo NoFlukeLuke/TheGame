@@ -1,4 +1,4 @@
-const BUILD = '2026-08-31 · r184 · events + Trick-slots screen on theme, clock FX (wave/freeze/rewind)';
+const BUILD = '2026-09-01 · r185 · your own music and sound files · sound board + playlist · seven-second boot dolly';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -190,6 +190,7 @@ function isActMode() { return !!ACTIVE_MODE && ACTIVE_MODE.actStructure === true
 
 function initMainMenu() {
   ACTIVE_MODE = MODES.normal;
+  if (typeof musicSetScene === 'function') musicSetScene('menu');
   document.getElementById('main-menu-overlay').classList.add('show');
   if (typeof updateContinueBtn === 'function') updateContinueBtn();
   if (typeof updateHistoryBtn === 'function') updateHistoryBtn();

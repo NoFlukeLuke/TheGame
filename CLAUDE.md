@@ -709,6 +709,57 @@ The game opens on the cabinet **sitting on a desk in an office cubicle**, with t
 - The cabinet itself is deliberately left pristine - it is the one thing in the room still working, and dimming it would also dim the screen the game is played on.
 - **`camPlayIntro()`** (Settings > Display > Intro animation) replays the opening move. From the menu it pulls back, pushes in and returns to the menu; from inside a run it pulls out to the desk and comes back, so the run is exactly where it was when it finishes.
 
+### The opening shot (r185)
+
+The page loads with the camera further back than the wide framing and creeps in on the machine over **seven seconds** while the menu waits on the CRT (`camPlayBootDolly`, fired from `camInit` only when the menu is the thing showing).
+
+- **It is a MULTIPLIER on the current framing (`camBootMul`), not a third framing.** The first second of a load triggers several relayouts on purpose - the rAF pass, `DOMContentLoaded`, `load`, `document.fonts.ready`, all wired in `js/bootstrap.js` - and each one runs `camLayout` -> `camApply(false)`. A CSS transition would be stamped on by the first of them; a multiplier folded into `camApply`'s `k` composes with a recomputed `camWideK` instead, so the creep survives them.
+- **Driven by rAF, so `camApply`'s reflow flush is skipped while it runs.** That flush exists so a *later* transition starts from the current value; during the creep there is no transition, the next frame simply writes the next scale, so forcing a reflow 420 times would be pure cost.
+- **Any view change cancels it** (`camSetView` calls `camEndBootDolly` first). Pressing PLAY three seconds in must dolly to play from where the camera actually is, not from 0.42x the wide framing.
+## Your own audio (r185) - `assets/`, `js/data/audio-manifest.js`
+
+The coded (synthesised) sounds are still the baseline. A file listed in the manifest
+is an **override** for one sound; an id that is not listed keeps its coded sound, so
+the ones the owner dislikes can be replaced one at a time.
+
+- **`js/data/audio-manifest.js` is the only file to edit** to add content: a `music`
+  list and an `sfx` map of id -> path. Pure data. Everything else reads from it.
+- **The override works by REPLACING the global function**, not by editing ~200 call
+  sites. Top-level `function sfxCoin()` becomes a property of `window` (top-level
+  `let`/`const` do **not** - the same fact `js/save.js` leans on), so
+  `installSfxOverrides()` in `js/audio-assets.js` can wrap every entry in
+  `SFX_CATALOG` and each bare `sfxCoin()` in the engine resolves through the wrapper.
+  The wrapper checks the on/off switch, then a decoded sample, then falls through to
+  the original (kept on `fn._coded`, which is what the audition button plays).
+  **`js/audio-assets.js` must load after every file that DEFINES an sfx**
+  (audio.js, hud.js, match3.js, score-dance.js) and after `settings.js`.
+- **Samples are Web Audio, music is an `<audio>` element** (`js/music.js`), and that
+  split is deliberate: `decodeAudioData` holds the whole file as PCM (a four-minute
+  MP3 is ~40 MB), which is fine for a 200 ms effect and wrong for a track. The cost
+  is that music does not pass through `sfxDuckGain`, so it is not ducked by the
+  heartbeat; its own volume slider covers that.
+- **Autoplay:** browsers refuse audio before an interaction. `armMusicAutostart()`
+  waits for the first click/key, and that same gesture unlocks the AudioContext and
+  prewarms every listed sample, so the first coin sound is not a download.
+- **Three volumes.** `sfxVolume()` is master x effects, `musicVolume()` is master x
+  music, and both fold in `muted`. Every `playTone`/`playNoise`/sample multiplies by
+  `sfxVolume()`, so it is the single choke point. **`sfxWinExplode` used to bypass
+  it** - it builds its own gain node rather than going through `playTone`, so mute
+  did not silence the goal blast until r179.
+- **Two pop-ups** (`js/audio-menu.js`), opened from Settings -> Audio and body-level
+  outside `#cabinet` for the usual `zoom` reason: the **sound board** (audition and
+  switch off each of the 31 catalog rows, badged FILE or CODED) and the **playlist**
+  (per-track on/off, transport, shuffle; it explains how to add a track when empty).
+  Per-sound and per-track switches live in `AUDIO_PREFS` (`lethe.audio.v1`), apart
+  from `SETTINGS` so the settings screen stays a flat list of rows.
+- **A track's `scene`** is `menu`, `game` or `any`; `musicSetScene()` is called from
+  `initMainMenu` and `startGame` and only interrupts the current track if it does not
+  belong in the new scene.
+- **Adding a sound to the catalog** is one row in `SFX_CATALOG`. Two rows may share a
+  `fn` (the pip/mult particle pair) - the wrapper picks the row whose `args[0]`
+  matches the call, so they can be switched off independently.
+
+
 ## Dev panel / Settings
 `#dev-panel` is **both** the in-game dev panel (🛠 button) and the main menu's **Settings** screen (`openSettingsFromMenu`); the title bar swaps between `DEV MODE` and `SETTINGS`. As of **r117** it's a centred, bounded arcade pop-up (`css/dev-overlays.css`) rather than a full-screen sheet: sticky gold title bar, internally-scrolling `#dev-panel-body`, and a backdrop dim made by a `0 0 0 100vmax` box-shadow spread so no extra wrapper element is needed. **It lives OUTSIDE `#stage` in `index.html`** (a sibling of `#main-menu-overlay`) - inside the stage it inherited the cabinet's CSS `zoom`, which scaled its `vh` sizing by ~1.3× and pushed it off-screen.
 

@@ -11,10 +11,25 @@ let SETTINGS = {};
 
 const SETTINGS_DEF = [
   // ── Audio ──
-  { group: 'Audio', id: 'muted', label: 'Mute all sound', hint: 'Silences every effect.',
+  // Three volumes, not one: master scales both buses, and music/effects set the
+  // balance between them. Every sound multiplies by sfxVolume(), music by
+  // musicVolume(); both fold in `muted` so the toggle needs no separate wiring.
+  { group: 'Audio', id: 'muted', label: 'Mute all sound', hint: 'Silences music and effects.',
     type: 'toggle', default: false },
-  { group: 'Audio', id: 'volume', label: 'Master volume', hint: 'Applies to all sound effects.',
+  { group: 'Audio', id: 'volume', label: 'Master volume', hint: 'Scales everything below.',
     type: 'slider', min: 0, max: 100, step: 5, default: 100, unit: '%' },
+  { group: 'Audio', id: 'musicVolume', label: 'Music', hint: 'Background tracks from assets/music/.',
+    type: 'slider', min: 0, max: 100, step: 5, default: 60, unit: '%',
+    apply: () => { if (typeof applyMusicVolume === 'function') applyMusicVolume(); } },
+  { group: 'Audio', id: 'sfxVolumePct', label: 'Sound effects', hint: 'Cards, coins, scoring, bosses.',
+    type: 'slider', min: 0, max: 100, step: 5, default: 100, unit: '%' },
+  // The two boards live in their own pop-ups (js/audio-menu.js): a flat settings
+  // list cannot hold 30 auditionable sounds without becoming the whole screen.
+  { group: 'Audio', id: 'audioBoards', type: 'action', label: '', hint: '',
+    buttons: () => [
+      { label: 'Sound effects', fn: 'openSfxBoard()' },
+      { label: 'Music playlist', fn: 'openPlaylist()' },
+    ] },
 
   // ── Motion ──
   // NOTE: dncSpeed is `isGoalHand ? 1 : DANCE_CFG.norm`, so this deliberately does
@@ -59,11 +74,14 @@ const SETTINGS_DEF = [
     } },
 ];
 
-// Master volume used by the audio engine (0 when muted).
+// Effects volume used by the audio engine (0 when muted). Master x effects.
+// Every playTone / playNoise / sample multiplies its gain by this, so it is the
+// single choke point for both the mute toggle and the two sliders.
 function sfxVolume() {
   if (SETTINGS.muted) return 0;
-  const v = SETTINGS.volume;
-  return (typeof v === 'number' ? v : 100) / 100;
+  const master = (typeof SETTINGS.volume === 'number' ? SETTINGS.volume : 100) / 100;
+  const sfx = (typeof SETTINGS.sfxVolumePct === 'number' ? SETTINGS.sfxVolumePct : 100) / 100;
+  return master * sfx;
 }
 
 function loadSettings() {
