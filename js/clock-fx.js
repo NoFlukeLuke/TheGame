@@ -162,12 +162,14 @@ function resetClockFx() {
 }
 
 // ── 3. The rewind mirror ─────────────────────────────────────────────────────
-// Two translucent copies per card, stacked straight down like an infinity
-// mirror, then absorbed back up into the original. The copies are clones with
-// their ids and data stripped: nothing on the board is moved or re-rendered, so
-// a rewind landing mid-fall cannot disturb the fall.
+// Two translucent copies per card, offset DOWN AND RIGHT a couple of pixels
+// each like a dealt stack, then absorbed back up into the original. The copies
+// are clones with their ids and data stripped: nothing on the board is moved or
+// re-rendered, so a rewind landing mid-fall cannot disturb the fall.
 const REWIND_COPIES = 2;
 const REWIND_HOLD   = 620;     // ms the mirror is held before it absorbs
+const REWIND_STEP_Y = 5;       // px each copy drops below the one above it
+const REWIND_STEP_X = 5;       // px each copy slides right of the one above it
 let _rwTimers = [];
 
 function clearRewindMirror() {
@@ -186,7 +188,6 @@ function playRewindFX() {
   if (!cards.length) return;
   const ghosts = [];
   cards.forEach(src => {
-    const h = src.offsetHeight || 75;
     for (let i = 1; i <= REWIND_COPIES; i++) {
       const g = src.cloneNode(true);
       g.className = src.className.replace(/\bselected\b/g, '') + ' rewind-ghost';
@@ -194,13 +195,14 @@ function playRewindFX() {
       g.removeAttribute('data-card-id');
       g.removeAttribute('data-row');
       g.removeAttribute('data-col');
-      // Each copy sits a little further down, fainter and slightly smaller, so
-      // the stack recedes. Kept TIGHT on purpose: at a bigger drop the copies
-      // reach the row below and the board reads as columns of cards rather than
-      // one card with its own reflections under it.
-      g.style.setProperty('--rw-drop', (h * 0.13 * i).toFixed(1) + 'px');
+      // Each copy steps down AND right by a few pixels, fainter and slightly
+      // smaller, so the stack reads like cards fanned off a deck rather than a
+      // shadow. A FIXED pixel step, not a fraction of the card: at anything
+      // larger the copies reach the row below and the board turns into columns.
+      g.style.setProperty('--rw-drop',  (REWIND_STEP_Y * i) + 'px');
+      g.style.setProperty('--rw-shift', (REWIND_STEP_X * i) + 'px');
       g.style.setProperty('--rw-fade', (0.30 / i).toFixed(3));
-      g.style.setProperty('--rw-shrink', (1 - 0.055 * i).toFixed(3));
+      g.style.setProperty('--rw-shrink', (1 - 0.04 * i).toFixed(3));
       g.style.setProperty('--rw-blur', (0.5 * i).toFixed(2) + 'px');
       g.style.zIndex = String(2 - i);   // 1 then 0; real cards are lifted to 3 below
       gridEl.appendChild(g);
