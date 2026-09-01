@@ -1,4 +1,4 @@
-const BUILD = '2026-08-31 · r183 · events + Trick-slots screen on theme, clock FX (wave/freeze/rewind)';
+const BUILD = '2026-08-31 · r184 · events + Trick-slots screen on theme, clock FX (wave/freeze/rewind)';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

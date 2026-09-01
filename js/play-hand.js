@@ -289,8 +289,20 @@ function playHand() {
   //    multiply THIS hand's score. Just reset the decay countdown now. ──
   resetFocusDecayTimer();
 
-  // Deluge: Flushes add seconds to the clock
-  if (hand === 'Flush' && hasTrick('deluge')) { roundSeconds += BAL.deluge.seconds; timeManipRound += BAL.deluge.seconds; updateClockUI(); showMessage('Deluge! +' + BAL.deluge.seconds + 's', '#5aa9e6'); }
+  // ── THE LAST THREE RAW `roundSeconds +=` SITES, converted (r183) ──────────
+  // Deluge, Threepeat and Blood Diamonds were rewinds in everything but name.
+  // Writing roundSeconds directly skipped ALL FOUR of the things rewindTime()
+  // does: the ROUND_DURATION cap, the ⏪ floater, the rewoundSecondsRound /
+  // rewindsThisRound tallies that The Kingfisher and the Time pop-up read, and
+  // the boss guard (a boss runs its own clock, so adding to roundSeconds during
+  // one did nothing you could see). They now go through the same door as every
+  // other rewind, which is also what makes them count for Kingfisher.
+  //
+  // rewindTime() adds to rewoundSecondsRound itself, so these no longer touch
+  // timeManipRound - doing both would double-count them in the payout's
+  // "Time manipulation" row (scoring.js sums the two).
+  // Deluge: Flushes rewind the clock
+  if (hand === 'Flush' && hasTrick('deluge')) rewindTime(BAL.deluge.seconds, `🌊 Deluge - rewound ${BAL.deluge.seconds}s`);
   // Overtime (r182): a REWIND, and now routed through the real rewind path.
   // It used to add raw seconds straight onto roundSeconds, which meant it was a
   // rewind that the game did not know was a rewind - it never showed the ⏪
@@ -303,14 +315,20 @@ function playHand() {
   }
   // Right Time: each card scored in its marked line pauses the clock (rewind conversion pending, task #10)
   if (hasTrick('right_time')) { const _rt = handCells.filter(([r,c]) => cellHasRowColBonus(r, c, 'right_time')).length; if (_rt > 0) pauseRound(BAL.right_time.pause_seconds * _rt); }
-  // Threepeat: hand pip-sum divisible by 3 → +3 seconds
-  if (hasTrick('ninesong')) { const _ps = handCells.reduce((s,[r,c]) => s + (gridData[r]?.[c] ? cardPips(gridData[r][c].rank) : 0), 0); if (_ps % 3 === 0) { roundSeconds += BAL.ninesong.seconds; timeManipRound += BAL.ninesong.seconds; updateClockUI(); } }
+  // Threepeat: hand pip-sum divisible by 3 → rewind (r183)
+  if (hasTrick('ninesong')) {
+    const _ps = handCells.reduce((s,[r,c]) => s + (gridData[r]?.[c] ? cardPips(gridData[r][c].rank) : 0), 0);
+    if (_ps % 3 === 0) rewindTime(BAL.ninesong.seconds, `🔁 Threepeat - rewound ${BAL.ninesong.seconds}s`);
+  }
   // Blood Diamonds: a hand with at least one heart AND one diamond grants +1 coin and +10s
   if (hasTrick('monochrome')) {
     const _bdc = handCells.map(([r,c]) => gridData[r]?.[c]).filter(Boolean);
     const _hasHeart = _bdc.some(c => c.suit === '♥' || (c.combined && c.suit2 === '♥'));
     const _hasDia   = _bdc.some(c => c.suit === '♦' || (c.combined && c.suit2 === '♦'));
-    if (_hasHeart && _hasDia) { coins += BAL.monochrome.coins; updateCoinsUI(); roundSeconds += BAL.monochrome.seconds; timeManipRound += BAL.monochrome.seconds; updateClockUI(); showMessage('Blood Diamonds! +' + BAL.monochrome.coins + ' coin, +' + BAL.monochrome.seconds + 's', '#c0353e'); }
+    if (_hasHeart && _hasDia) {
+      coins += BAL.monochrome.coins; updateCoinsUI();
+      rewindTime(BAL.monochrome.seconds, `💎 Blood Diamonds - +${BAL.monochrome.coins} credit, rewound ${BAL.monochrome.seconds}s`);
+    }
   }
 
   // ── Playing a hand is free by default (owner request, r50) - base cost is 0. ──
