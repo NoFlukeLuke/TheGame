@@ -42,7 +42,16 @@ function musicAllTracks() {
 }
 function musicTrackAt(i) { return musicAllTracks()[i] || null; }
 
-function musicTrackOn(id) { return !AUDIO_PREFS.trackOff[id]; }
+// A track is on unless the player switched it off - or, if they have never
+// touched it, unless the manifest marks it `off: true`. That default is what
+// lets a dozen ambience beds ship without the playlist starting as a wall of
+// noise; the moment the player flips one, their choice is what counts.
+function musicTrackOn(id) {
+  const pref = AUDIO_PREFS.trackOff[id];
+  if (pref !== undefined) return !pref;
+  const t = musicAllTracks().find(x => x.id === id);
+  return !(t && t.off);
+}
 function setMusicTrackOn(id, on) {
   if (on) delete AUDIO_PREFS.trackOff[id]; else AUDIO_PREFS.trackOff[id] = true;
   saveAudioPrefs();

@@ -95,7 +95,11 @@ function sfxWinExplode(){
     // Volume/mute: this one builds its own graph rather than going through
     // playTone, so it has to fold in sfxVolume() itself or the mute toggle and
     // the Sound-effects slider would not touch it (they did not, before r179).
-    const master = actx.createGain(); master.gain.value = 0.8 * sfxVolume();
+    // 0.55, not 0.8: this stacks two detuned saws, a sub and a noise burst into one
+    // gain, and measured across the whole catalog it was the only sound that
+    // clipped - peak 1.18 against a median of 0.13. At 0.55 it peaks near 0.81 and
+    // is still comfortably the loudest thing in the game, which is the intent.
+    const master = actx.createGain(); master.gain.value = 0.55 * sfxVolume();
     if (master.gain.value <= 0) return;
     master.connect(sfxDuckGain || actx.destination);
     // Detuned saw "zap" sweeping down - the analog-synth stab.

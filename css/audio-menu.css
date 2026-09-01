@@ -87,8 +87,34 @@
   flex: 0 0 auto; font-family: 'Share Tech Mono', monospace; font-size: 8px; letter-spacing: 1.5px;
   padding: 3px 6px; border-radius: 5px; border: 1px solid;
 }
-.audio-src.file  { color: var(--c-mint, #35d59b); border-color: rgba(53,213,155,0.5); background: rgba(53,213,155,0.09); }
-.audio-src.coded { color: var(--cream-dim, #8a7d60); border-color: rgba(183,172,147,0.28); background: rgba(255,255,255,0.03); }
+/* One badge colour per source, so a glance down the list says which sounds are
+   yours and which the pack is answering for. */
+.audio-src.src-file    { color: var(--c-mint, #35d59b);   border-color: rgba(53,213,155,0.5);  background: rgba(53,213,155,0.09); }
+.audio-src.src-classic { color: var(--cream-dim, #8a7d60); border-color: rgba(183,172,147,0.28); background: rgba(255,255,255,0.03); }
+.audio-src.src-onebit  { color: var(--c-cyan, #7fd4dd);   border-color: rgba(127,212,221,0.5); background: rgba(127,212,221,0.09); }
+.audio-src.src-slot    { color: var(--c-yellow, #ffce2b); border-color: rgba(255,206,43,0.5);  background: rgba(255,206,43,0.09); }
+
+/* ── Source picker at the top of the board ──
+   The board is where you audition, so the pack switch belongs here too: flip the
+   pack, press play on the same row, hear the difference. Settings has the same
+   two controls for anyone who never opens the board. */
+.audio-source {
+  background: rgba(0,0,0,0.3); border: 1px solid rgba(183,172,147,0.22);
+  border-radius: 10px; padding: 10px 12px; margin-bottom: 8px;
+}
+.audio-source-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 4px 0;
+}
+.audio-source-lab {
+  font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 10px; letter-spacing: 2px;
+  text-transform: uppercase; color: var(--cream, #f0e6c8);
+}
+.audio-source-desc {
+  font-family: 'Crimson Pro', serif; font-size: 11.5px; line-height: 1.4;
+  color: var(--cream-dim, #8a7d60); padding-bottom: 6px;
+}
+.audio-source-desc:last-child { padding-bottom: 0; }
 
 /* ── Transport row (playlist footer) ── */
 .audio-transport { display: flex; gap: 8px; align-items: center; justify-content: center; }

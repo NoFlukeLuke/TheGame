@@ -187,6 +187,14 @@ function sfxRewardReveal() {
     playTone({ freq: f, type: 'sine', gain: 0.10, attack: 0.01, decay: 0.04, sustain: 0.30, release: 0.14, duration: 0.08, delay: i * 0.06 }));
 }
 
+// Picking a tile on the reward grid (r186). There was no sound on selection at
+// all before - only on the resolve. Short and dry: it fires once per tile and a
+// path is up to five taps.
+function sfxRewardSelect() {
+  playTone({ freq: 660, type: 'triangle', gain: 0.10, attack: 0.002, decay: 0.03, sustain: 0.2, release: 0.09, duration: 0.06 });
+  playTone({ freq: 990, type: 'sine',     gain: 0.05, attack: 0.003, decay: 0.03, sustain: 0.15, release: 0.08, duration: 0.05, delay: 0.02 });
+}
+
 function sfxCountdown321() {
   // Three deep ticks
   [0, 1, 2].forEach(i => {

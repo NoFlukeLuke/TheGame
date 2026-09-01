@@ -48,35 +48,63 @@ function sfxSetAll(on) {
 
 function toggleSfx(id) { setSfxOn(id, !sfxIsOn(id)); renderSfxBoard(); }
 
+// The board doubles as the A/B surface for the packs: switching source at the top
+// and pressing play on a row is the whole comparison, without a trip back to
+// Settings between each one.
+function sfxBoardSetPack(id) { setSetting('sfxPack', id); renderSfxBoard(); }
+function sfxBoardToggleFiles() { setSetting('useSoundFiles', !sfxUseFiles()); renderSfxBoard(); }
+
+const _SRC_LABEL = { file: 'FILE', classic: 'CODED', onebit: '1-BIT', slot: 'ARCADE' };
+
 function renderSfxBoard() {
   const body = document.getElementById('sfxboard-body');
   if (!body) return;
-  const withFiles = SFX_CATALOG.filter(e => sfxUsesFile(e.id)).length;
+  const listed = SFX_CATALOG.filter(e => sfxUsesFile(e.id)).length;
+  const live = {};
+  SFX_CATALOG.forEach(e => { const s = sfxSourceFor(e.id); live[s] = (live[s] || 0) + 1; });
   const groups = [];
   SFX_CATALOG.forEach(e => {
     let g = groups.find(x => x.name === e.group);
     if (!g) groups.push(g = { name: e.group, items: [] });
     g.items.push(e);
   });
-  const intro = `<div class="audio-note">
-      Press <b>&#9654;</b> to hear a sound, or switch it off to silence it in game.
-      ${withFiles ? `<b>${withFiles}</b> of ${SFX_CATALOG.length} play your own files.`
-                  : `All ${SFX_CATALOG.length} are generated in code. To replace one, put a file in
-                     <code>assets/sfx/</code> and list it under that id in
-                     <code>js/data/audio-manifest.js</code>.`}
+
+  const packs = (typeof SFX_PACK_LIST !== 'undefined') ? SFX_PACK_LIST : [['classic', 'Classic', '']];
+  const cur = sfxPackId();
+  const files = sfxUseFiles();
+  const head = `
+    <div class="audio-source">
+      <div class="audio-source-row">
+        <span class="audio-source-lab">Sound pack</span>
+        <span class="set-seg">${packs.map(([id, name]) =>
+          `<button class="set-seg-b${cur === id ? ' on' : ''}" onclick="sfxBoardSetPack('${id}')">${name}</button>`).join('')}</span>
+      </div>
+      <div class="audio-source-desc">${(packs.find(p => p[0] === cur) || [])[2] || ''}</div>
+      <div class="audio-source-row">
+        <span class="audio-source-lab">Use my sound files</span>
+        <button class="set-switch${files ? ' on' : ''}" onclick="sfxBoardToggleFiles()"><span class="set-knob"></span></button>
+      </div>
+      <div class="audio-source-desc">${listed
+        ? `${listed} of ${SFX_CATALOG.length} sounds have a file in <code>assets/sfx/</code>. Files win where they exist; everything else uses the pack.`
+        : `No files listed yet. Put one in <code>assets/sfx/</code> and name its id in <code>js/data/audio-manifest.js</code>.`}</div>
+    </div>
+    <div class="audio-note">
+      Press <b>&#9654;</b> to hear exactly what a sound plays right now. Switching one off silences it in game.
+      Live: ${Object.keys(live).map(k => `<b>${live[k]}</b> ${_SRC_LABEL[k] || k}`).join(' &middot; ')}.
     </div>`;
-  body.innerHTML = intro + groups.map(g => `
+
+  body.innerHTML = head + groups.map(g => `
     <div class="set-group-title">${g.name}</div>
     ${g.items.map(e => {
       const on = sfxIsOn(e.id);
-      const file = sfxUsesFile(e.id);
+      const src = sfxSourceFor(e.id);
       return `<div class="audio-row${on ? '' : ' off'}">
         <button class="audio-play" onclick="sfxAudition('${e.id}')" title="Play">&#9654;</button>
         <span class="audio-row-text">
           <span class="audio-row-label">${e.label}</span>
           <span class="audio-row-sub"><code>${e.id}</code>${e.note ? ' &middot; ' + e.note : ''}</span>
         </span>
-        <span class="audio-src ${file ? 'file' : 'coded'}">${file ? 'FILE' : 'CODED'}</span>
+        <span class="audio-src src-${src}">${_SRC_LABEL[src] || src}</span>
         <button class="set-switch${on ? ' on' : ''}" onclick="toggleSfx('${e.id}')"><span class="set-knob"></span></button>
       </div>`;
     }).join('')}

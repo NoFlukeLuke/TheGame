@@ -1,4 +1,4 @@
-const BUILD = '2026-09-01 · r185 · your own music and sound files · sound board + playlist · seven-second boot dolly';
+const BUILD = '2026-09-01 · r186 · your sound files wired up · 1-bit and arcade sound packs · files/coded toggle';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

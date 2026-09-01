@@ -23,6 +23,18 @@ const SETTINGS_DEF = [
     apply: () => { if (typeof applyMusicVolume === 'function') applyMusicVolume(); } },
   { group: 'Audio', id: 'sfxVolumePct', label: 'Sound effects', hint: 'Cards, coins, scoring, bosses.',
     type: 'slider', min: 0, max: 100, step: 5, default: 100, unit: '%' },
+  // Sound source (r186). Files beat packs beat classic - see the resolution order
+  // in js/audio-assets.js. Both rows are read there rather than applied from here,
+  // so there is no `apply` to keep in step.
+  { group: 'Audio', id: 'useSoundFiles', label: 'Use my sound files',
+    hint: 'Play the files in assets/sfx/ where one is listed for a sound. Off means every sound is generated in code.',
+    type: 'toggle', default: true },
+  { group: 'Audio', id: 'sfxPack', label: 'Sound pack',
+    hint: 'Which coded sounds to use - for every effect, and for anything a file does not cover.',
+    type: 'select', default: 'classic',
+    options: (typeof SFX_PACK_LIST !== 'undefined')
+      ? SFX_PACK_LIST.map(([id, name]) => [id, name])
+      : [['classic', 'Classic']] },
   // The two boards live in their own pop-ups (js/audio-menu.js): a flat settings
   // list cannot hold 30 auditionable sounds without becoming the whole screen.
   { group: 'Audio', id: 'audioBoards', type: 'action', label: '', hint: '',

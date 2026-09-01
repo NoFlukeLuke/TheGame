@@ -1023,6 +1023,7 @@ function onRewardCellClick(r, c) {
   if (!isRewardCellSelectable(r, c)) { rewardTipKey = key; restoreRewardTooltip(); return; }
 
   rewardSelected.add(key);
+  if (typeof sfxRewardSelect === 'function') { try { sfxRewardSelect(); } catch (e) {} }
   rewardPickOrder.push(key);
   rewardTipKey = key;               // the newest pick is the one being explained
   renderRewardTiles();

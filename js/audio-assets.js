@@ -8,13 +8,15 @@
 // `sfxCoin()` call sites across the engine resolve through the wrapper with no
 // edits at any of them.
 //
-// The wrapper does three things, in this order:
-//   1. the sound is switched off in Settings -> Sound effects  -> play nothing
-//   2. a file is listed for this id in js/data/audio-manifest.js -> play the file
-//   3. otherwise -> call the original coded sound, unchanged
+// The wrapper resolves a sound in this order, and stops at the first hit:
+//   1. switched off in Settings -> Sound effects            -> play nothing
+//   2. sound files are ON and a decoded file exists for it  -> play the file
+//   3. a sound PACK is selected and covers this id          -> play the pack's
+//   4. otherwise                                            -> the classic coded one
 //
-// So the coded sounds remain the baseline and a file is an override. A missing or
-// unplayable file falls back to the coded sound rather than going silent.
+// So classic is the floor that always answers. A file that 404s or will not decode
+// falls back to the pack, and a pack that does not define an id falls back to
+// classic - nothing ever goes silent by accident. See js/audio-packs.js.
 //
 // LOAD ORDER: this file must come after every file that DEFINES an sfx (audio.js,
 // hud.js, match3.js, score-dance.js) and after settings.js (it reads sfxVolume).
@@ -59,6 +61,7 @@ const SFX_CATALOG = [
   { id: 'reward_good',   fn: 'sfxRewardGood',      group: 'Economy', label: 'Reward - good' },
   { id: 'reward_bad',    fn: 'sfxRewardBad',       group: 'Economy', label: 'Reward - bad' },
   { id: 'reward_reveal', fn: 'sfxRewardReveal',    group: 'Economy', label: 'Reward - reveal' },
+  { id: 'reward_select', fn: 'sfxRewardSelect',    group: 'Economy', label: 'Reward - tile picked' },
 
   // Challenges
   { id: 'chal_appear',   fn: 'sfxChallengeAppear', group: 'Challenge', label: 'Challenge appears' },
@@ -93,6 +96,24 @@ function saveAudioPrefs() {
 loadAudioPrefs();
 
 function sfxIsOn(id) { return !AUDIO_PREFS.sfxOff[id]; }
+
+// ── Which of the three sources answers for an id ──
+// Both read SETTINGS (js/settings.js) so the choice persists with every other
+// player option rather than in a second store.
+function sfxUseFiles() { return SETTINGS.useSoundFiles !== false; }
+function sfxPackId()   { return SETTINGS.sfxPack || 'classic'; }
+
+function sfxPackImpl(id) {
+  const p = (typeof SFX_PACKS !== 'undefined') && SFX_PACKS[sfxPackId()];
+  return (p && typeof p[id] === 'function') ? p[id] : null;
+}
+
+// What this id will actually play right now: 'file' | a pack id | 'classic'.
+// The sound board badges every row with it.
+function sfxSourceFor(id) {
+  if (sfxUseFiles() && sfxFileFor(id)) return 'file';
+  return sfxPackImpl(id) ? sfxPackId() : 'classic';
+}
 function setSfxOn(id, on) {
   if (on) delete AUDIO_PREFS.sfxOff[id]; else AUDIO_PREFS.sfxOff[id] = true;
   saveAudioPrefs();
@@ -182,8 +203,12 @@ function installSfxOverrides() {
         if (hit) row = hit;
       }
       if (!sfxIsOn(row.id)) return;
-      const buf = sfxSampleReady(row.id);
-      if (buf) return playSfxBuffer(buf);
+      if (sfxUseFiles()) {
+        const buf = sfxSampleReady(row.id);
+        if (buf) return playSfxBuffer(buf);
+      }
+      const packFn = sfxPackImpl(row.id);
+      if (packFn) { try { return packFn.apply(this, args); } catch (e) { /* fall through to classic */ } }
       return orig.apply(this, args);
     };
     window[fnName]._coded = orig;   // the audition button needs the original
@@ -191,17 +216,22 @@ function installSfxOverrides() {
 }
 installSfxOverrides();
 
-// Audition one sound from the Settings board. Ignores the on/off switch (you are
-// asking to hear it) but respects volume and mute.
+// Audition one sound from the Settings board. Plays whatever is LIVE for that id
+// so the board is a true preview, and ignores only the on/off switch - you are
+// asking to hear it. Volume and mute still apply.
 function sfxAudition(id) {
   const e = sfxCatalogEntry(id);
   if (!e) return;
-  const buf = sfxSampleReady(id);
-  if (buf) { playSfxBuffer(buf); return; }
+  if (sfxUseFiles()) {
+    const buf = sfxSampleReady(id);
+    if (buf) { playSfxBuffer(buf); return; }
+  }
+  const packFn = sfxPackImpl(id);
+  if (packFn) { try { packFn.apply(null, e.args || []); return; } catch (err) {} }
   const fn = window[e.fn];
   const coded = (fn && fn._coded) || fn;
   if (typeof coded === 'function') { try { coded.apply(null, e.args || []); } catch (err) {} }
 }
 
-// Does this id currently play a file rather than the coded sound?
+// Is a file LISTED for this id (regardless of whether files are switched on)?
 function sfxUsesFile(id) { return !!sfxFileFor(id); }

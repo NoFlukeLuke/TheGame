@@ -716,49 +716,43 @@ The page loads with the camera further back than the wide framing and creeps in 
 - **It is a MULTIPLIER on the current framing (`camBootMul`), not a third framing.** The first second of a load triggers several relayouts on purpose - the rAF pass, `DOMContentLoaded`, `load`, `document.fonts.ready`, all wired in `js/bootstrap.js` - and each one runs `camLayout` -> `camApply(false)`. A CSS transition would be stamped on by the first of them; a multiplier folded into `camApply`'s `k` composes with a recomputed `camWideK` instead, so the creep survives them.
 - **Driven by rAF, so `camApply`'s reflow flush is skipped while it runs.** That flush exists so a *later* transition starts from the current value; during the creep there is no transition, the next frame simply writes the next scale, so forcing a reflow 420 times would be pure cost.
 - **Any view change cancels it** (`camSetView` calls `camEndBootDolly` first). Pressing PLAY three seconds in must dolly to play from where the camera actually is, not from 0.42x the wide framing.
-## Your own audio (r185) - `assets/`, `js/data/audio-manifest.js`
+## Audio: files, packs, and the classic set (r186) - `assets/`, `js/data/audio-manifest.js`, `js/audio-packs.js`
 
-The coded (synthesised) sounds are still the baseline. A file listed in the manifest
-is an **override** for one sound; an id that is not listed keeps its coded sound, so
-the ones the owner dislikes can be replaced one at a time.
+Every sound resolves through **one wrapper**, in this order, stopping at the first hit:
 
-- **`js/data/audio-manifest.js` is the only file to edit** to add content: a `music`
-  list and an `sfx` map of id -> path. Pure data. Everything else reads from it.
-- **The override works by REPLACING the global function**, not by editing ~200 call
-  sites. Top-level `function sfxCoin()` becomes a property of `window` (top-level
-  `let`/`const` do **not** - the same fact `js/save.js` leans on), so
-  `installSfxOverrides()` in `js/audio-assets.js` can wrap every entry in
-  `SFX_CATALOG` and each bare `sfxCoin()` in the engine resolves through the wrapper.
-  The wrapper checks the on/off switch, then a decoded sample, then falls through to
-  the original (kept on `fn._coded`, which is what the audition button plays).
-  **`js/audio-assets.js` must load after every file that DEFINES an sfx**
-  (audio.js, hud.js, match3.js, score-dance.js) and after `settings.js`.
-- **Samples are Web Audio, music is an `<audio>` element** (`js/music.js`), and that
-  split is deliberate: `decodeAudioData` holds the whole file as PCM (a four-minute
-  MP3 is ~40 MB), which is fine for a 200 ms effect and wrong for a track. The cost
-  is that music does not pass through `sfxDuckGain`, so it is not ducked by the
-  heartbeat; its own volume slider covers that.
-- **Autoplay:** browsers refuse audio before an interaction. `armMusicAutostart()`
-  waits for the first click/key, and that same gesture unlocks the AudioContext and
-  prewarms every listed sample, so the first coin sound is not a download.
-- **Three volumes.** `sfxVolume()` is master x effects, `musicVolume()` is master x
-  music, and both fold in `muted`. Every `playTone`/`playNoise`/sample multiplies by
-  `sfxVolume()`, so it is the single choke point. **`sfxWinExplode` used to bypass
-  it** - it builds its own gain node rather than going through `playTone`, so mute
-  did not silence the goal blast until r179.
-- **Two pop-ups** (`js/audio-menu.js`), opened from Settings -> Audio and body-level
-  outside `#cabinet` for the usual `zoom` reason: the **sound board** (audition and
-  switch off each of the 31 catalog rows, badged FILE or CODED) and the **playlist**
-  (per-track on/off, transport, shuffle; it explains how to add a track when empty).
-  Per-sound and per-track switches live in `AUDIO_PREFS` (`lethe.audio.v1`), apart
-  from `SETTINGS` so the settings screen stays a flat list of rows.
-- **A track's `scene`** is `menu`, `game` or `any`; `musicSetScene()` is called from
-  `initMainMenu` and `startGame` and only interrupts the current track if it does not
-  belong in the new scene.
-- **Adding a sound to the catalog** is one row in `SFX_CATALOG`. Two rows may share a
-  `fn` (the pip/mult particle pair) - the wrapper picks the row whose `args[0]`
-  matches the call, so they can be switched off independently.
+1. switched off in Settings -> Sound effects -> silence
+2. **sound files are ON and a decoded file exists** -> play the file
+3. a **sound pack** is selected and covers this id -> play the pack's version
+4. otherwise -> the **classic** coded sound
 
+Classic is the floor that always answers, so a file that 404s falls back to the pack and a pack that omits an id falls back to classic. Nothing ever goes silent by accident. `sfxSourceFor(id)` reports which of the four is live, and the sound board badges every row with it.
+
+- **`js/data/audio-manifest.js` is the only file to edit** to add content: a `music` list and an `sfx` map of id -> path. Pure data.
+- **The override works by REPLACING the global function**, not by editing ~200 call sites. Top-level `function sfxCoin()` becomes a property of `window` (top-level `let`/`const` do **not** - the same fact `js/save.js` leans on), so `installSfxOverrides()` in `js/audio-assets.js` wraps every entry in `SFX_CATALOG` and each bare `sfxCoin()` resolves through the wrapper. The original is kept on `fn._coded`.
+  **`js/audio-assets.js` must load after every file that DEFINES an sfx** (audio.js, hud.js, match3.js, score-dance.js) and after `settings.js`. **`js/audio-packs.js` must load BEFORE `settings.js`**, because `SETTINGS_DEF` reads `SFX_PACK_LIST` at load time to build the pack picker's options.
+- **Samples are Web Audio, music is an `<audio>` element** (`js/music.js`): `decodeAudioData` holds the whole file as PCM (~40 MB for a four-minute MP3), right for a 200 ms effect and wrong for a track. The cost is that music is not ducked by the heartbeat; its own slider covers that.
+- **Autoplay:** `armMusicAutostart()` waits for the first click/key, and that gesture also unlocks the AudioContext and prewarms every listed sample.
+- **A track's `off: true`** is a DEFAULT, not a state - `musicTrackOn` prefers a stored choice and only falls back to it. That is what lets twelve ambience beds ship without the playlist opening as a wall of noise.
+- **Three volumes.** `sfxVolume()` is master x effects, `musicVolume()` is master x music, both folding in `muted`. Every `playTone`/`playNoise`/sample/pack voice multiplies by `sfxVolume()`, so it is the single choke point. **`sfxWinExplode` builds its own gain node** rather than going through `playTone`, so it has to fold that in by hand - it did not until r179, and mute never silenced the goal blast.
+
+### The packs - `js/audio-packs.js`
+
+`SFX_PACKS` is keyed by catalog id; a pack need not cover every id. The shared toolkit is `pulseWave`, `lfsrNoiseBuffer`, `crusherNode`, plus per-pack voices.
+
+- **`pulseWave(duty)`** builds a PeriodicWave from the Fourier series of a pulse: the nth harmonic of a duty-d pulse has amplitude `(2/(n*pi)) * sin(n*pi*d)`. 28 harmonics; past that it is CPU for nothing. Cached per duty **and per context** - a PeriodicWave belongs to the context that made it.
+- **`lfsrNoiseBuffer(mode)`** is the NES noise channel: a 15-bit shift register, feedback `bit0 XOR bit1` ("long", 32767 steps, a hiss) or `bit0 XOR bit6` ("short", 93 steps, a metallic ring). **The short register is the single biggest reason the slot pack sounds like a machine rather than like static.** One second is generated per mode and PITCHED with `playbackRate`, which is how the real chip varies it too.
+- **`crusherNode(bits)`** is a WaveShaper with a staircase curve - quantisation is most of what "8-bit" means, and a WaveShaper needs no AudioWorklet, which matters for a statically-hosted game.
+
+**ONE-BIT is a constraint, not a filter.** A single output line is ON or OFF, so: **no volume envelope** (the hard gate in `bitTone` - `setValueAtTime` only, never a ramp - is the whole sound, and fading anything instantly stops it reading as 1-bit); timbre comes from **pulse width alone**; pitch slides are **stepped**, because the routine recomputes a period per iteration; noise is a square whose period is re-randomised every few ms (`bitNoise`); and chords are faked by **interleaving** pulses fast enough that the ear fuses them (`bitChord`). The per-sound `gain` values are a mixing concession - a real beeper has one loudness - but the envelope stays binary. Suits are four **duty cycles** rather than four pitches: on one line the timbre is the identifier.
+
+**SLOT** is NES APU vocabulary aimed at a casino cabinet: pulses at 12.5/25/50% duty for anything melodic, triangle for bass, short-mode LFSR for reel clicks and coin edges, instant-attack linear-decay envelopes (the APU's 4-bit envelope). The anatomy the sounds follow: a firm mechanical click to commit, a whirr made of accelerating ticks, reels landing **one at a time** with the gap doing the tension (`reelStop`), a dry near-miss for a loss, bright chimes for a small win, and `coinCascade` for a big one.
+
+**Levels are matched by measurement, not by ear.** Rendering all 32 sounds of each pack through an OfflineAudioContext: median peak classic 0.13, onebit 0.12, slot 0.17. That sweep is also what caught classic's `win_explode` peaking at **1.18** - it clipped - now 0.55 gain and 0.88 peak.
+
+- **`_particleStep` is shared.** It is a top-level `let` in `js/audio.js`, so the packs increment the same counter and `resetParticleStep()` keeps working across all three.
+- **Adding a sound**: one row in `SFX_CATALOG`, then optionally an entry in each pack. Two rows may share a `fn` (the pip/mult particle pair) - the wrapper picks the row whose `args[0]` matches the call.
+- **Testing**: render each id into an `OfflineAudioContext` with `getAudioCtx` temporarily repointed at it, and assert a non-zero peak. A silent sound is the failure mode a pack has, and it is invisible otherwise.
+- **Headless Chromium cannot decode MP3** (no proprietary codecs), so file-backed sounds cannot be verified in this environment - only in a real browser. The fallback chain is what makes that safe.
 
 ## Dev panel / Settings
 `#dev-panel` is **both** the in-game dev panel (🛠 button) and the main menu's **Settings** screen (`openSettingsFromMenu`); the title bar swaps between `DEV MODE` and `SETTINGS`. As of **r117** it's a centred, bounded arcade pop-up (`css/dev-overlays.css`) rather than a full-screen sheet: sticky gold title bar, internally-scrolling `#dev-panel-body`, and a backdrop dim made by a `0 0 0 100vmax` box-shadow spread so no extra wrapper element is needed. **It lives OUTSIDE `#stage` in `index.html`** (a sibling of `#main-menu-overlay`) - inside the stage it inherited the cabinet's CSS `zoom`, which scaled its `vh` sizing by ~1.3× and pushed it off-screen.
