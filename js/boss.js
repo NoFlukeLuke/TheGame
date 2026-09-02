@@ -280,13 +280,53 @@ function isTrickDisabledByBoss(trickId) {
 // "the time you saved across the last 8 clears, capped at 3 minutes."
 let bossWindowDuration = BOSS_WINDOW_DURATION;
 
+// ── Which boss you get (r179) ──
+// This used to be BOSS_PRESETS[bossNumber % length] with bossNumber starting at 0
+// every run, so the order was FIXED: boss 1 was always The Stone Lord, boss 2
+// always The Voidwright, boss 3 always The Hand of Famine. A Classic act run
+// fights exactly 3 bosses and Survival/Flow 5, so 11 of the 16 presets - the
+// entire r150/r151 roster - could never appear in normal play, and the three you
+// always got were the quietest ones on the list. That is the whole reason bosses
+// "didn't seem to do anything".
+//
+// It is a BAG, not a re-roll per boss: shuffle the whole roster, deal from it,
+// refill when empty. No repeats inside a run, and every boss is reachable.
+let bossBag = [];
+
+// A boss whose only modifier can't bite right now is a wasted round. The
+// Voidwright splits your owned Tricks in two and disables half; The Censor
+// suspends one at a time. With 0 or 1 Tricks owned both are literally no-ops, so
+// they are passed over until the player has something to lose.
+function bossPresetIsLive(preset) {
+  const owned = (typeof acquiredTricks !== 'undefined' ? acquiredTricks : []).length;
+  const mods  = preset.modifiers || [];
+  if ((mods.includes('trick_pool_split') || mods.includes('trick_blackout')) && owned < 2) return false;
+  return true;
+}
+
+function nextBossPreset() {
+  // Two passes: prefer a boss that can actually act; if the bag holds nothing
+  // live (very early run, no Tricks yet) take the front of the bag anyway rather
+  // than loop forever.
+  for (let refill = 0; refill < 2; refill++) {
+    if (!bossBag.length) bossBag = shuffle(BOSS_PRESETS.map(p => p.id));
+    const liveIdx = bossBag.findIndex(id => {
+      const p = BOSS_PRESETS.find(x => x.id === id);
+      return p && bossPresetIsLive(p);
+    });
+    if (liveIdx >= 0) {
+      const [id] = bossBag.splice(liveIdx, 1);
+      return BOSS_PRESETS.find(p => p.id === id);
+    }
+    bossBag = [];   // nothing live in this bag - reshuffle and try once more
+  }
+  return BOSS_PRESETS[Math.floor(Math.random() * BOSS_PRESETS.length)];
+}
+
 function triggerBoss(presetOverride = null, windowSeconds = null) {
   if (bossActive) return;
   bossWindowDuration = (typeof windowSeconds === 'number' && windowSeconds > 0) ? windowSeconds : BOSS_WINDOW_DURATION;
-  // Pick preset (cycle or random; v1 random)
-  const preset = presetOverride
-    ? structuredClone(presetOverride)
-    : structuredClone(BOSS_PRESETS[bossNumber % BOSS_PRESETS.length]);
+  const preset = structuredClone(presetOverride || nextBossPreset());
   currentBoss = preset;
   bossActive = true;
   bossNumber++;
@@ -533,6 +573,10 @@ function updateBossClockDisplay() {
 // orphaned timer can't keep writing the clock - the cause of the "clock flickers to 0" bug).
 function startBossTimer() {
   if (bossInterval) { clearInterval(bossInterval); bossInterval = null; }
+  // The r150/r151 roster's timed effects are armed by applyBossModifiers but held
+  // until here, so their opening tick lands with the clock rather than behind the
+  // briefing panel (see bossSchedule).
+  if (typeof bossStartScheduledEffects === 'function') bossStartScheduledEffects();
   bossInterval = setInterval(() => {
     if (!bossActive) { clearInterval(bossInterval); bossInterval = null; return; }
     if (gameTimerPaused) return;
@@ -619,14 +663,16 @@ function endBoss(success) {
       survivalBossTimeBank = 0;
       setTimeout(() => survivalPostBossReward(), 1100);
     } else if (isActMode()) {
-      // Node-based: post-boss reward grid is an interlude that starts the next act.
+      // Node-based: the post-boss grid is an interlude that starts the next act.
       // nodeInAct stays at 5 so closeRewardGrid knows to reset it and advance actNumber.
-      setTimeout(() => { rewardGridContext = 'interlude'; openRewardGrid(); }, 1000);
+      // Since r179 that grid is the PRIZE grid - smaller, all rewards, no commons -
+      // and it REPLACES the ordinary reward grid rather than following it.
+      setTimeout(() => { rewardGridContext = 'interlude'; openPrizeGrid(); }, 1000);
     } else {
       // Timer-based modes: restore round timer and resume the interrupted round
       roundSeconds = savedRoundSeconds;
       updateClockUI();
-      setTimeout(() => { rewardGridContext = 'boss'; openRewardGrid(); }, 1000);
+      setTimeout(() => { rewardGridContext = 'boss'; openPrizeGrid(); }, 1000);
     }
   } else {
     if (typeof flowEndBoss === 'function') flowEndBoss();

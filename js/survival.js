@@ -109,6 +109,7 @@ function survivalInitRun() {
   survivalEndless          = false;
   survivalEndlessFromLevel = Infinity;
   bossNumber               = 0;
+  bossBag                  = [];
   document.getElementById('stage')?.classList.add('survival-mode');
   updateSurvivalShopBtn();
 }

@@ -234,6 +234,21 @@ One screen with two jobs, both in `js/reward-grid.js`: **'lose' mode** (a debuff
 
 The Mart wheel has its own overflow prompt (`#wheel-overflow`, "NO ROOM", js/wheel.js) with a **different** resolution - sell one of yours, or sell the prize. It already speaks the Mart's language and was deliberately left alone.
 
+## Prize Grid (r179) - the post-boss payout
+
+Beating a boss opens the **Prize Grid** instead of the ordinary reward grid (it **replaces** it - one grid, not two). Same machinery throughout: same tiles, same connected-path pick, same confirm/fly/apply, same `closeRewardGrid` continuation that advances the act. Three differences, all decided in `_generateRewardContent`:
+
+- **Two fewer rows and columns, floored at 3x3** (`Math.max(3, limits.grid_rows.current - 2)`). A 5x5 board gives a 3x3 prize; a 6x7 gives 4x5.
+- **Every cell is a reward.** The checkerboard (`(r+c)` even = buff, odd = debuff) is skipped entirely rather than having its debuff half swapped out, and there is no destination tile - a prize grid pays out, it doesn't route you anywhere. `debuffPos` comes out empty so the debuff fill loop simply never runs.
+- **Nothing common.** Common-tier Tricks/Sleights/Knacks are filtered out of their pools (each with a fall-back to the unfiltered list, so an exhausted pool gives a common rather than a blank tile), and `prizeCategories` omits the four common resource tiles (+1 swap, +1 discard, +15s, Windfall) and the Mystery tile - "probably good... probably" is a gamble, and this is a payout. `pickPrizeSleight()` is the shop's rarity table with `common` cut out. Verified over 500 generated grids: 0 common tiles, mix is rare/epic/legendary/mythic only.
+
+`MIN_TRICK_TILES` drops from 5 to 2 here - a 9-tile grid with several guaranteed upgrades can't also carry 5 Tricks. The guaranteed Limit Break tile stays.
+
+- **`rewardGridMode`** (`'normal' | 'prize'`) is the switch; `openPrizeGrid()` sets it and runs the ordinary open. `closeRewardGrid` resets it to `'normal'`, so one prize grid follows one boss and the next grid is ordinary.
+- **`renderRewardTiles` centres it.** `cellLeft`/`cellTop` are anchored at the board's top-left, so a smaller grid would sit in the corner with a wedge of empty board beside it; `offX`/`offY` centre it at normal card size. Everything else downstream already reads its dimensions from `rewardCells`, so nothing else needed changing.
+- **Survival and Flow keep their bonus pick-of-three.** They have no reward grid at all, so there is nothing for the prize grid to replace there.
+- Dev panel: **Open Prize Grid**, beside Open Reward Grid.
+
 ## Shop
 
 `triggerShop()` → `generateShopItems()` → `renderShop()`. **Layout = stacked shelves (r50):** `#shop-main-grid` is a vertical flex stack of four `.shop-shelf` rows (Tricks, Sleights, Knacks, Upgrades - each a fixed-width label + a horizontal `.shop-shelf-items` row), with a `#shop-footer-row` (reroll + leave) pinned below a divider. The overlay is `overflow:hidden` and shelves `flex:1` so the whole shop always fits one screen with no scroll; cards are capped at `max-height:128px`. Each shelf has a color-coded left border. `shopItems` holds curated rows, each rendered by its own function:
@@ -266,6 +281,22 @@ Three more (r151) hang off **`bossOnInteract(kind)`**, called from `doSwap`/`doD
 - **The Metronome** uses a fractional carry (`_bossTimeDebt`) so ×1.4 Focus really costs 1.4s/s instead of rounding away to ×1.
 - **The Blight's Trick suppression rolls BEFORE the Trick logic, not after.** The first version rolled at the end of the per-card loop and restored the `_cp` ledger - which corrected the contributions readout while the score kept every Trick bonus, i.e. the suppression was purely cosmetic. The roll now happens at the top of the loop so the per-card MULT accumulators (`_asmMult`, `_fsMult`) can be skipped too, and a muted card falls back to `(_origPips + permPips) × retriggers`. Verified numerically: a Three of a Kind with Rich Soil scores 198 clean, 144 blighted, 135 blighted-and-suppressed. Whole-hand Tricks are still unaffected - tagged TBD.
 - **Contingency Plan** shaves the *surcharge*, not the base: a ×2 interact cost becomes ×1.9, not ×1.8.
+
+### Which boss you get (r179) - `nextBossPreset()` in `js/boss.js`
+
+Bosses were dealt as `BOSS_PRESETS[bossNumber % length]` with `bossNumber` reset to 0 every run, so the order was **fixed**: boss 1 was always The Stone Lord, boss 2 always The Voidwright, boss 3 always The Hand of Famine. A Classic/Six Suits/Spectrum act run fights exactly **3** bosses and Survival/Flow **5**, so **11 of the 16 presets - the whole r150/r151 roster - could never appear in normal play**, and the three you always got were the quietest ones on the list. That is the entire reason bosses read as "not doing anything".
+
+- It is a **bag, not a re-roll**: `bossBag` holds a shuffled list of ids, dealt from and refilled when empty. No repeats inside a run, every boss reachable. Reset in `startGame` and `survivalInitRun`; in `SAVE_VARS` so a resumed run keeps its remaining bag.
+- **`bossPresetIsLive()` skips a boss that cannot bite.** The Voidwright splits your owned Tricks and disables half; The Censor suspends one at a time. At 0 or 1 Tricks owned both are literal no-ops, so they are passed over until there is something to lose. Two passes, then it takes the front of the bag anyway rather than loop.
+- The dev panel's unnamed **Trigger Boss** now deals from the same bag instead of quoting `bossNumber`.
+
+### Boss effects start with the clock, not with `triggerBoss` (r179)
+
+`bossSchedule()` used to fire its opening tick immediately, inside `applyBossModifiers` - which runs in `triggerBoss`, **before** the briefing panel and its PROCEED button. So the opening Blight/Quarantine/Censor/Undertow tick landed while the player was still reading what the boss does, and every interval tick after it was silently dropped (`run` returns early on `gameTimerPaused`) for as long as the briefing sat open. Both read as "the boss did nothing".
+
+`bossSchedule` now only **arms** an effect into `bossPendingSchedules`; **`bossStartScheduledEffects()`**, called from `startBossTimer` (the one place the boss clock actually starts), fires the opening tick and starts the repeat. `clearBossEffects` empties the pending list too, so an abandoned boss can't leave one armed.
+
+**Known gap, unchanged:** `cellCountsForTriggers()` is defined in `boss-effects.js` and **called from nowhere** - the documented rule that a quarantined cell's card shouldn't count for "while on the grid" entity triggers is not actually enforced.
 
 ### Boss approach - `js/boss-approach.js` (r177)
 

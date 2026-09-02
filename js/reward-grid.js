@@ -2,16 +2,49 @@
 // Nth grid of a seed is always the same grid - however many cards the player
 // discarded, whatever Tricks fired, whichever route they took to get here.
 // See js/seed.js.
+// ── PRIZE GRID (r179) ────────────────────────────────────────────────────────
+// The reward for beating a boss. Same machinery as the reward grid - same tiles,
+// same connected-path pick, same confirm/fly/apply - with three differences, all
+// of them decided here in generation:
+//   · it is SMALLER: two fewer rows and two fewer columns, floored at 3x3, so the
+//     path you walk is short and every step of it matters;
+//   · there are NO penalty tiles and no destination tile. Every cell is a reward,
+//     which is why the checkerboard (buff on even (r+c), debuff on odd) is skipped
+//     entirely rather than having its debuff half replaced;
+//   · NOTHING COMMON. Common-tier Tricks/Sleights/Knacks are filtered out of the
+//     pools, and the four common resource tiles (+1 swap, +1 discard, +15s,
+//     Windfall) are not in the category list at all.
+// Mystery tiles are also out: "probably good... probably" is a gamble, and this
+// grid is a payout.
+//
+// It REPLACES the post-boss reward grid rather than being shown after it - one
+// grid, not two. Survival and Flow have no reward grid at all (they run a
+// pick-of-three), so they keep their bonus pick.
+let rewardGridMode = 'normal';   // 'normal' | 'prize'
+function prizeGridActive() { return rewardGridMode === 'prize'; }
+
 function generateRewardContent() {
   return withSeededRng(_generateRewardContent, 'reward', rewardVisitIndex++);
 }
 function _generateRewardContent() {
-  const ROWS = limits.grid_rows.current;
-  const COLS = limits.grid_cols.current;
+  const PRIZE = prizeGridActive();
+  // Two smaller in each direction, never below 3x3.
+  const ROWS = PRIZE ? Math.max(3, limits.grid_rows.current - 2) : limits.grid_rows.current;
+  const COLS = PRIZE ? Math.max(3, limits.grid_cols.current - 2) : limits.grid_cols.current;
 
   // Weighted buff categories. Tricks are also guaranteed a minimum count per
   // grid (MIN_TRICK_TILES below), so their true share ends up higher than the
   // raw weight suggests - the other categories fight over the leftover slots.
+  // Prize grid: no common-tier resource tiles, no gamble. Entities and permanent
+  // upgrades only - see the PRIZE GRID note at the top of this file.
+  const prizeCategories = [
+    { weight: 34, kind: 'trick' },
+    { weight: 20, kind: 'sleight' },
+    { weight: 16, kind: 'knack' },
+    { weight: 16, kind: 'limit_up' },
+    { weight: 10, kind: 'blessed' },
+    { weight:  4, kind: 'cull' },
+  ];
   const buffCategories = [
     { weight: 40, kind: 'trick' },
     { weight: 12, kind: 'sleight' },
@@ -125,7 +158,10 @@ function _generateRewardContent() {
   function makeTrickPayload() {
     if (typeof TRICK_POOL === 'undefined') return { icon: '★', label: 'Trick', tier: 'rare', entity: 'trick', rarity: 'rare', apply: applyRewardRandomTrick };
     const owned = new Set((acquiredTricks || []).map(b => b.id));
-    const eligible = TRICK_POOL.filter(b => !owned.has(b.id));
+    let eligible = TRICK_POOL.filter(b => !owned.has(b.id));
+    // Prize grid takes no commons. Fall back to the full list if filtering would
+    // leave nothing - an empty tile is worse than a common one.
+    if (PRIZE) { const up = eligible.filter(b => (b.tier || 'common') !== 'common'); if (up.length) eligible = up; }
     if (eligible.length === 0) return { icon: '★', label: 'Trick', tier: 'rare', entity: 'trick', rarity: 'rare', apply: applyRewardRandomTrick };
     const pick = eligible[Math.floor(Math.random() * eligible.length)];
     return {
@@ -135,10 +171,24 @@ function _generateRewardContent() {
     };
   }
 
+  // Prize-grid sleight draw: the shop's rarity table with 'common' cut out of it.
+  function pickPrizeSleight() {
+    const TIERS = ['rare', 'epic', 'legendary', 'mythic'];
+    const W     = [58, 28, 9, 5];
+    const pool = SLEIGHT_POOL.filter(j => !grantedSleightIds.has(j.id) && sleightOfferable(j) && (j.rarity || 'common') !== 'common');
+    if (!pool.length) return null;
+    const total = W.reduce((a, b) => a + b, 0);
+    let roll = Math.random() * total, ti = 0;
+    for (let i = 0; i < W.length; i++) { roll -= W[i]; if (roll <= 0) { ti = i; break; } }
+    for (let i = ti; i >= 0; i--) { const t = pool.filter(j => j.rarity === TIERS[i]); if (t.length) return t[Math.floor(Math.random() * t.length)]; }
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+
   function makeSleightPayload() {
     const eligible = SLEIGHT_POOL.filter(j => !grantedSleightIds.has(j.id) && sleightOfferable(j));
     if (!eligible.length) return makeTrickPayload(); // fallback
-    const [pick] = pickSleightByRarity(1, grantedSleightIds);
+    const pick = PRIZE ? (pickPrizeSleight() || pickSleightByRarity(1, grantedSleightIds)[0])
+                       : pickSleightByRarity(1, grantedSleightIds)[0];
     if (!pick) return makeTrickPayload();
     return {
       icon: pick.emoji || '\u{1F0CF}', emoji: pick.emoji || '\u{1F0CF}', label: pick.name, desc: pick.desc, tier: pick.rarity || 'rare',
@@ -153,7 +203,8 @@ function _generateRewardContent() {
   function makeKnackPayload() {
     if (typeof KNACK_POOL === 'undefined') return { icon: '♛', label: 'Knack', tier: 'rare', entity: 'knack', rarity: 'rare', apply: applyRewardKnack };
     const owned = new Set((acquiredKnacks || []).map(t => t.id));
-    const eligible = KNACK_POOL.filter(t => !owned.has(t.id));
+    let eligible = KNACK_POOL.filter(t => !owned.has(t.id));
+    if (PRIZE) { const up = eligible.filter(t => (t.rarity || 'common') !== 'common'); if (up.length) eligible = up; }
     if (!eligible.length) return makeTrickPayload(); // fallback - all knacks owned
     const pick = eligible[Math.floor(Math.random() * eligible.length)];
     return {
@@ -197,7 +248,7 @@ function _generateRewardContent() {
   }
 
   function makeBuff() {
-    const cat = weightedPick(buffCategories);
+    const cat = weightedPick(PRIZE ? prizeCategories : buffCategories);
     switch (cat.kind) {
       case 'trick':      return makeTrickPayload();
       case 'sleight':   return makeSleightPayload();
@@ -265,22 +316,25 @@ function _generateRewardContent() {
     return out.filter(Boolean);
   }
 
-  // Checkerboard: (r+c) even → buff/dest slot, (r+c) odd → debuff slot
+  // Checkerboard: (r+c) even → buff/dest slot, (r+c) odd → debuff slot.
+  // The PRIZE grid has no debuff half and no destination tile, so every cell is a
+  // buff slot and the first index is not spent on a destination.
   const buffPos   = [];
   const debuffPos = [];
   for (let r = 0; r < ROWS; r++)
     for (let c = 0; c < COLS; c++)
-      ((r + c) % 2 === 0 ? buffPos : debuffPos).push([r, c]);
+      (PRIZE || (r + c) % 2 === 0 ? buffPos : debuffPos).push([r, c]);
 
   const shuffledBuff = shuffled(buffPos);
   const grid = Array.from({length: ROWS}, () => Array(COLS).fill(null));
 
-  // One destination in a random buff slot.
-  grid[shuffledBuff[0][0]][shuffledBuff[0][1]] = { kind: 'dest', payload: pickRand(destOptions) };
+  // One destination in a random buff slot (not on a prize grid - it pays out, it
+  // does not route you anywhere).
+  if (!PRIZE) grid[shuffledBuff[0][0]][shuffledBuff[0][1]] = { kind: 'dest', payload: pickRand(destOptions) };
 
   // Guaranteed tiles first (protected from the Trick-minimum conversion below)
   const guaranteed = buildGuaranteedRewardTiles();
-  let placeIdx = 1;
+  let placeIdx = PRIZE ? 0 : 1;
   for (const payload of guaranteed) {
     if (placeIdx >= shuffledBuff.length) break;
     const [r, c] = shuffledBuff[placeIdx++];
@@ -296,12 +350,14 @@ function _generateRewardContent() {
   // Guarantee a minimum number of Trick tiles per grid (owner spec: a reward
   // grid should always offer a real Trick choice - tricks are the connective
   // tissue of builds). Non-trick buffs are converted at random until met.
-  const MIN_TRICK_TILES = 5;
+  // A prize grid is 9 tiles at its smallest, several of them guaranteed upgrades -
+  // demanding 5 Tricks there would crowd everything else out.
+  const MIN_TRICK_TILES = PRIZE ? 2 : 5;
   {
     const isTrickTile = cell => cell?.kind === 'buff' && cell.payload && String(cell.payload.icon) === '★';
     let trickCount = 0;
     const convertible = [];
-    for (let i = 1; i < shuffledBuff.length; i++) {
+    for (let i = (PRIZE ? 0 : 1); i < shuffledBuff.length; i++) {
       const [r, c] = shuffledBuff[i];
       if (grid[r][c]?.payload?._guaranteed) continue;   // never overwrite a guaranteed tile
       if (isTrickTile(grid[r][c])) trickCount++;
@@ -314,7 +370,8 @@ function _generateRewardContent() {
     }
   }
 
-  // Fill all debuff positions - weighted, and one-per-grid for the "big" kinds
+  // Fill all debuff positions - weighted, and one-per-grid for the "big" kinds.
+  // debuffPos is empty on a prize grid, so this loop simply does not run.
   // (two identical curse/drain/mystery tiles in one grid would be confusing)
   const usedOnce = new Set();
   for (const [r, c] of debuffPos) {
@@ -614,6 +671,14 @@ function applyRewardKnack() {
   showMessage(`+ ${pick.name}`, 'var(--gold)');
 }
 
+// The post-boss payout. Sets the mode, then runs the ordinary reward-grid open -
+// everything downstream (render, selection, confirm, apply, close) reads its
+// dimensions from rewardCells, so nothing else needs to know the grid is smaller.
+function openPrizeGrid() {
+  rewardGridMode = 'prize';
+  openRewardGrid();
+}
+
 function openRewardGrid() {
   gameTimerPaused = true;
   rewardGridsSeen++;               // count this grid (gates the first-5 guaranteed upgrades)
@@ -631,7 +696,8 @@ function openRewardGrid() {
   // Boss reward grids (post-boss-win, nodeInAct 5; or timer-mode boss context) tint red;
   // ordinary reward grids stay teal (see the per-screen #stage backgrounds).
   document.body.classList.toggle('reward-boss', rewardGridContext === 'boss' || (ACTIVE_MODE?.id === 'normal' && nodeInAct === 5));
-  if (typeof enterGridScreenHud === 'function') enterGridScreenHud('REWARDS', 'reward');
+  document.body.classList.toggle('reward-prize', prizeGridActive());
+  if (typeof enterGridScreenHud === 'function') enterGridScreenHud(prizeGridActive() ? 'PRIZE' : 'REWARDS', 'reward');
   enterRewardButtonMode();
   renderRewardTiles(true);   // deal the reward tiles in like a new round's cards
 }
@@ -648,6 +714,12 @@ function renderRewardTiles(animateIn = false) {
   hideRewardTooltip();
   gridEl.innerHTML = '';
   const ROWS = rewardCells.length, COLS = rewardCells[0]?.length || 0;
+  // The prize grid is smaller than the play grid it is drawn onto, and cellLeft/
+  // cellTop are anchored at the board's top-left corner - so without this it
+  // would sit in the corner with a wedge of empty board beside it. Centre it on
+  // the board instead; the tiles keep their normal card size.
+  const offX = Math.round(Math.max(0, gridCols - COLS) / 2 * (CARD_W + CARD_GAP));
+  const offY = Math.round(Math.max(0, gridRows - ROWS) / 2 * (CARD_H + CARD_GAP));
 
   // Deal-in timing (mirrors startNewRoundDealAnims)
   const FALL_DUR = 420, COL_OFFSET = 55, BOUNCE = 8, SQUISH = 0.10;
@@ -672,8 +744,8 @@ function renderRewardTiles(animateIn = false) {
         !isSel && canSel  ? 'selectable'  : '',
         !isSel && !canSel ? 'unselectable': '',
       ].filter(Boolean).join(' ');
-      div.style.left   = cellLeft(c) + 'px';
-      div.style.top    = cellTop(r)  + 'px';
+      div.style.left   = (cellLeft(c) + offX) + 'px';
+      div.style.top    = (cellTop(r)  + offY) + 'px';
       div.style.width  = CARD_W + 'px';
       div.style.height = CARD_H + 'px';
       div.dataset.r = r; div.dataset.c = c;
@@ -1255,7 +1327,8 @@ function closeRewardGrid() {
   // Tear down the on-grid reward step: restore the action buttons, clear the
   // reward tiles from #grid, and drop back to normal render ownership.
   exitRewardButtonMode();
-  document.body.classList.remove('reward-active', 'reward-boss');
+  document.body.classList.remove('reward-active', 'reward-boss', 'reward-prize');
+  rewardGridMode = 'normal';   // one prize grid per boss; the next grid is ordinary
   if (typeof exitGridScreenHud === 'function') exitGridScreenHud();
   rewardOnGrid = false;
   const gridEl = document.getElementById('grid');

@@ -478,6 +478,7 @@ function startGame() {
   bossSecondsLeft = 0;
   blockedCells = new Set();
   bossNumber = 0;
+  bossBag = [];              // fresh shuffled boss bag per run (see nextBossPreset)
   savedRoundSeconds = 0;
   nextBossTime = GAME_DURATION - BOSS_LOOP_DURATION;
   document.getElementById('grid').classList.remove('boss-active');

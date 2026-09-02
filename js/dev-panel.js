@@ -296,9 +296,8 @@ function devOpenShop() {
 function devTriggerBoss(presetId) {
   closeDevPanel();
   if (bossActive) return;
-  const preset = presetId
-    ? BOSS_PRESETS.find(p => p.id === presetId)
-    : BOSS_PRESETS[bossNumber % BOSS_PRESETS.length];
+  // No id = "whatever the run would deal next" (the shuffled bag), same as play.
+  const preset = presetId ? BOSS_PRESETS.find(p => p.id === presetId) : null;
   triggerBoss(preset);
 }
 function devEndBossWin() {
@@ -313,6 +312,11 @@ function devOpenRewardGrid() {
   closeDevPanel();
   rewardGridContext = 'boss'; // dev open = mid-round, just resume the round when closed
   openRewardGrid();
+}
+function devOpenPrizeGrid() {
+  closeDevPanel();
+  rewardGridContext = 'boss'; // dev open = mid-round, just resume the round when closed
+  openPrizeGrid();
 }
 function devOpenShopGridPreview() {
   closeDevPanel();

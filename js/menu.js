@@ -1,4 +1,4 @@
-const BUILD = '2026-09-01 · r186 · your sound files wired up · 1-bit and arcade sound packs · files/coded toggle';
+const BUILD = '2026-09-02 · r187 · every boss reachable (shuffled bag) · boss effects start with the clock · Prize Grid after a boss win';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

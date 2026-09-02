@@ -3988,6 +3988,11 @@
      boss reward = red; challenge = purple; on-grid shop = gold. ── */
   body.reward-active #stage                     { background: radial-gradient(ellipse at 50% 42%, #0d2320 0%, #081311 78%); }
   body.reward-active.reward-boss #stage         { background: radial-gradient(ellipse at 50% 42%, #2a1010 0%, #150908 78%); }
+  /* Prize grid (post-boss payout): gold, and it wins over the boss-red tint - the
+     boss is beaten by the time this is on screen. Listed after .reward-boss so
+     equal specificity resolves in its favour. */
+  body.reward-active.reward-prize #stage        { background: radial-gradient(ellipse at 50% 42%, #2e2408 0%, #171104 78%); }
+  body.reward-prize #grid .reward-cell.on-grid  { box-shadow: 0 0 0 1px rgba(226,178,66,0.35), 0 0 14px rgba(226,178,66,0.18); }
   body.challenge-active #stage                  { background: radial-gradient(ellipse at 50% 42%, #1e1030 0%, #100a1c 78%); }
   body.shop-prev-active #stage, body.shop-active #stage { background: radial-gradient(ellipse at 50% 42%, #241c0b 0%, #130f07 78%); }
 
