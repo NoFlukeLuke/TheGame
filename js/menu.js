@@ -1,4 +1,4 @@
-const BUILD = '2026-09-02 · r180 · Focus RATE entities: 2 tricks, 2 knacks, 2 sleights on 3 levers';
+const BUILD = '2026-09-02 · r181 · Natural Scaling (hand families buff as you play them) + Short Suit knack';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

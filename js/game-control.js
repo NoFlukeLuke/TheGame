@@ -350,6 +350,7 @@ function startGame() {
   // Six Suits (6) and Spectrum (7 colours) both dilute the deck enough that the
   // short flushes are playable from the start alongside the 5-card Flush.
   if (ACTIVE_MODE.suitCount >= 6) startKeys.push('flush3', 'flush4');
+  if (typeof resetNaturalScaling === 'function') resetNaturalScaling();
   activeHands = new Set(startKeys);
   unlockedHands = new Set(startKeys);
   handsPendingUnlock = [];

@@ -90,6 +90,19 @@ function applyTempoLimitOnce() {
   if (typeof discards === 'number') discards = Math.min(discards, n);
 }
 
+// Short Suit (knack): unlocks Flush of 3 and Flush of 4 in the modes that don't
+// start with them. startGame only seeds flush3/flush4 when ACTIVE_MODE.suitCount
+// >= 6 (Six Suits, Spectrum), because on a 4-suit deck short flushes are common
+// enough to trivialise the board - so this is a real trade in Classic and a dead
+// pick everywhere they are already active (hence the has() guard, not a mode check).
+// Called from updateKnackList() for the same reason Tempo is: it is the one place
+// every grant path funnels through, so a future grant path gets this free.
+function applyShortSuitOnce() {
+  if (typeof hasKnack !== 'function' || !hasKnack('short_suit')) return;
+  if (typeof activeHands === 'undefined' || !activeHands) return;
+  ['flush3', 'flush4'].forEach(k => { activeHands.add(k); if (typeof unlockedHands !== 'undefined' && unlockedHands) unlockedHands.add(k); });
+}
+
 // Trick tray capacity (the trick_slots limit). Enforced in injectTrickAfterReward.
 function trickCapacity() {
   return (limits.trick_slots?.current ?? 5) + ((typeof hasKnack === 'function' && hasKnack('curator')) ? 1 : 0);

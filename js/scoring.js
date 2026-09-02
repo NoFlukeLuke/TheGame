@@ -69,7 +69,12 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
 
   // 1. Base pips (scaled by level) + card pips
   const levelScale = Math.pow(1.1, level - 1);
-  let totalPips = Math.round(base.pips * levelScale);
+  // Natural Scaling: the family's earned bonus is added to the hand's BASE before
+  // the level scale, so it compounds with level exactly as the printed base does.
+  // Read from the accumulator, never written back into HAND_BASE - that table is
+  // global and modes overwrite it (Spectrum zeroes Flush of 3).
+  const _ns = (typeof naturalScaleBonus === 'function') ? naturalScaleBonus(handName) : { pips: 0, mult: 0 };
+  let totalPips = Math.round((base.pips + _ns.pips) * levelScale);
 
   // Rising Tide: +1 base mult per level
   const risingTideBonus = hasTrick('rising_tide') ? (level - 1) : 0;
@@ -326,7 +331,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     cards.some(c => ['3','6','9'].includes(c.rank));
 
   // 2. Base mult + bonuses
-  let mult = base.mult + sleightAmplifierMult;
+  let mult = base.mult + _ns.mult + sleightAmplifierMult;   // _ns = Natural Scaling family bonus
 
   // Assembly Line: apply the mult accumulated in the per-card loop; snapshot the round counter
   if (_asmMult > 0) { mult += _asmMult * BAL.assembly_line.mult_per_prior; bMult('assembly_line', _asmMult * BAL.assembly_line.mult_per_prior); }

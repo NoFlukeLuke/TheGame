@@ -232,6 +232,9 @@ function playHand() {
   if (siphonMultX > 1) siphonMultX = 1;   // Siphon's ×3 is spent on this hand
   // Clock-mark Tricks: the pending pip/mult bonuses were already folded into finalScore - clear them now.
   pendingHandPips = 0; pendingHandMult = 0; pendingCardPips = 0;
+  // Natural Scaling: credit this hand's family/families. After the score is
+  // committed, so the buff lands on the NEXT hand of that family, not this one.
+  if (typeof recordNaturalScale === 'function') recordNaturalScale(hand);
   handsPlayed++;
   // Record the hand for the SCORE-box hand log. Written here, not in the dance:
   // the dance is a presentation that can be interrupted or cut, whereas this is

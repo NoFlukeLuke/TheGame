@@ -116,6 +116,7 @@ function openDevPanel() {
   devRenderGroupMenu();
   devSyncFloatSliders();
   devSyncHbSliders();
+  devSyncNs();
   devSyncCcSliders();
   devSyncDisco();
   devSyncFullscreen();
@@ -208,6 +209,30 @@ function devSetHb(k, v) {
   if (lab) lab.textContent = (+v).toString();
 }
 function devResetHb() { resetHbCfg(); devSyncHbSliders(); }
+
+// ── Natural Scaling tuner (r181) - state lives in js/natural-scaling.js ──
+// Each setting persists so a tuning session survives a reload. Changing pips/mult
+// per hand affects FUTURE grants only; the accumulators already earned stay put
+// (use "Reset accumulators" to clear them and re-measure from zero).
+function devSetNs(k, v) {
+  if (k === 'enabled') { nsEnabled = !!v; localStorage.setItem('nsEnabled', v ? '1' : '0'); }
+  if (k === 'pips')    { nsPipsPerHand = parseFloat(v) || 0; localStorage.setItem('nsPipsPerHand', nsPipsPerHand); }
+  if (k === 'mult')    { nsMultPerHand = parseFloat(v) || 0; localStorage.setItem('nsMultPerHand', nsMultPerHand); }
+  if (k === 'every')   { nsEveryHands = Math.max(1, parseInt(v, 10) || 1); localStorage.setItem('nsEveryHands', nsEveryHands); }
+  const lab = document.getElementById('dev-ns-' + k + '-val');
+  if (lab) lab.textContent = (+v).toString();
+  devSyncNs();
+}
+function devResetNs() { resetNaturalScaling(); devSyncNs(); }
+function devSyncNs() {
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+  const chk = document.getElementById('dev-ns-enabled'); if (chk) chk.checked = nsEnabled;
+  set('dev-ns-pips', nsPipsPerHand); set('dev-ns-mult', nsMultPerHand); set('dev-ns-every', nsEveryHands);
+  const lab = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  lab('dev-ns-pips-val', nsPipsPerHand); lab('dev-ns-mult-val', nsMultPerHand); lab('dev-ns-every-val', nsEveryHands);
+  const st = document.getElementById('dev-ns-state');
+  if (st) st.textContent = naturalScaleSummary();
+}
 
 // ── Channel-change sliders (CC_CFG lives in js/channel-change.js) ──
 const CC_KEYS = ['dur','static','roll','collapse','split','flash','hold'];

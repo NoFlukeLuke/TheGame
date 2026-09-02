@@ -114,6 +114,7 @@ function updateRunProgressUI() {
 let _knackCountShown = 0;
 function updateKnackList() {
   applyTempoLimitOnce();   // Tempo sets the swap/discard limits to 2 the first time it's owned
+  applyShortSuitOnce();    // Short Suit turns on Flush of 3 / Flush of 4 where they aren't already active
   const el = document.getElementById('knack-list');
   if (!el) return;
   // A newly GAINED Knack should land somewhere the player can see. In portrait

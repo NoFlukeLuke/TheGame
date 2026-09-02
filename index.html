@@ -128,6 +128,29 @@
     </div>
   </div>
 
+  <!-- NATURAL SCALING (r181) -->
+  <div class="dev-section" data-group="score">
+    <div class="dev-section-title">Natural Scaling</div>
+    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:4px;">
+      Playing a hand permanently buffs its whole family (sets / runs / flushes).
+      Straight Flush sits in the run AND flush families and takes the better of the two.
+    </div>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;">
+      <input id="dev-ns-enabled" type="checkbox" onchange="devSetNs('enabled', this.checked)" style="accent-color:var(--gold);">
+      Natural scaling on
+    </label>
+    <div class="dev-slider-row"><span>Pips per hand <b id="dev-ns-pips-val">2</b></span>
+      <input id="dev-ns-pips" type="range" min="0" max="20" value="2" step="1" oninput="devSetNs('pips', this.value)"></div>
+    <div class="dev-slider-row"><span>Mult per hand <b id="dev-ns-mult-val">0</b></span>
+      <input id="dev-ns-mult" type="range" min="0" max="5" value="0" step="0.25" oninput="devSetNs('mult', this.value)"></div>
+    <div class="dev-slider-row"><span>Every <b id="dev-ns-every-val">1</b> hand(s)</span>
+      <input id="dev-ns-every" type="range" min="1" max="5" value="1" step="1" oninput="devSetNs('every', this.value)"></div>
+    <div id="dev-ns-state" style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);white-space:pre-line;margin:4px 0;"></div>
+    <div class="dev-row">
+      <button class="dev-btn" onclick="devResetNs()">Reset accumulators</button>
+    </div>
+  </div>
+
   <!-- LEVEL -->
   <div class="dev-section" data-group="score">
     <div class="dev-section-title">Level</div>
@@ -962,7 +985,8 @@
 <script src="js/deck-grid.js"></script>
 <script src="js/hand-detect.js"></script>
 <script src="js/data/balance.js"></script>
-<script src="js/scoring.js"></script>
+<script src="js/natural-scaling.js"></script>
+  <script src="js/scoring.js"></script>
 <script src="js/render.js"></script>
 <script src="js/focus.js"></script>
 <script src="js/portrait-panel.js"></script>
