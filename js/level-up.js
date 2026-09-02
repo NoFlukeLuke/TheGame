@@ -194,6 +194,7 @@ function triggerLevelUp() {
   replaysThisRound = 0;
   timeManipRound = 0;
   cuckooNextMinute = BAL.cuckoo.interval_seconds;
+  compoundNextMark = BAL.compound.interval_seconds; compoundBanked = 0;
   // Clock-mark Tricks + Déjà Vu: pending bonuses and rank-history reset each round
   pendingHandPips = 0; pendingHandMult = 0; pendingCardPips = 0;
   lastHandRankKey = null;

@@ -212,6 +212,14 @@ function playHand() {
   score += finalScore;
   if (sleightNextHandDouble) { score += finalScore; sleightNextHandDouble = false; }
   if (sleightLegacyMult)     { score += finalScore * BAL.the_legacy.extra_mult; sleightLegacyMult = false; } // ×3 total = base + 2× extra
+  // Compound (mythic): pay out everything banked since the last hand, then clear.
+  // Added at SCORE level (not as pips or mult) on purpose - it is a copy of score
+  // already earned, so running it back through mult × Focus would multiply it twice.
+  if (compoundBanked > 0) {
+    score += compoundBanked;
+    showMessage('Compound! +' + compoundBanked.toLocaleString(), '#d8a13a');
+    compoundBanked = 0;
+  }
   if (sleightAmplifierMult) sleightAmplifierMult = 0;
   if (siphonMultX > 1) siphonMultX = 1;   // Siphon's ×3 is spent on this hand
   // Clock-mark Tricks: the pending pip/mult bonuses were already folded into finalScore - clear them now.

@@ -553,6 +553,57 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   }
   // Scalper: ×(1 + 0.2 per missing Sleight charge) to total pips - figured once, now
   if (hasTrick('scalper')) { const _miss = sleightChargeInfo().missing; if (_miss > 0) { const _m = 1 + BAL.scalper.pip_mult_per_missing * _miss; const _pre = totalPips; totalPips = Math.round(totalPips * _m); bPip('scalper', totalPips - _pre); } }
+  // ── Converted from ×score (r179) - see the note at the ×score step below ──
+  // Twenty-One: raw face values total exactly 21 → ×pips
+  if (hasTrick('blackjack_bonus')) {
+    const _bjTotal = cards.reduce((sum, c) => {
+      const v = c.rank === 'A' ? 11 : ['J','Q','K'].includes(c.rank) ? 10 : parseInt(c.rank);
+      return sum + (isNaN(v) ? 0 : v);
+    }, 0);
+    if (_bjTotal === 21) { const _pre = totalPips; totalPips = Math.round(totalPips * BAL.blackjack_bonus.pip_mult); bPip('blackjack_bonus', totalPips - _pre); }
+  }
+  if (handName === 'Straight Flush' && hasTrick('perfect_storm')) { const _pre = totalPips; totalPips = Math.round(totalPips * BAL.perfect_storm.pip_mult); bPip('perfect_storm', totalPips - _pre); }
+  if (handName === 'Four of a Kind' && hasTrick('extinction')) { const _pre = mult; mult = Math.round(mult * BAL.extinction.mult_mult * 10) / 10; bMult('extinction', mult - _pre); }
+  if (hasTrick('last_stand') && score < roundGoal) { const _pre = mult; mult = Math.round(mult * BAL.last_stand.mult_mult * 10) / 10; bMult('last_stand', mult - _pre); }
+
+  // ── r179 multiplier batch - triggers the ×pips/×mult pools had never covered ──
+  // Replays: _reps[i] is this card's total scoring iterations, so the extras are
+  // sum(_reps) - cards.length. Rerun takes them as pips, Chorus as mult.
+  const _replayExtras = Math.max(0, _reps.reduce((a, b) => a + b, 0) - cards.length);
+  if (_replayExtras > 0 && hasTrick('rerun')) {
+    const _m = 1 + BAL.rerun.pip_mult_per_replay * _replayExtras;
+    const _pre = totalPips; totalPips = Math.round(totalPips * _m); bPip('rerun', totalPips - _pre);
+  }
+  if (_replayExtras > 0 && hasTrick('chorus')) {
+    const _m = 1 + BAL.chorus.mult_mult_per_replay * _replayExtras;
+    const _pre = mult; mult = Math.round(mult * _m * 10) / 10; bMult('chorus', mult - _pre);
+  }
+  // Deep Breath: ×pips while the clock is held. Pairs with every pause entity.
+  if (hasTrick('deep_breath') && pipeTimerPaused) { const _pre = totalPips; totalPips = Math.round(totalPips * BAL.deep_breath.pip_mult); bPip('deep_breath', totalPips - _pre); }
+  // Interest: ×pips scaling with credits held, capped so a rich run can't run away.
+  if (hasTrick('interest') && coins > 0) {
+    const _m = Math.min(BAL.interest.max_pip_mult, 1 + Math.floor(coins / 10) * BAL.interest.pip_mult_per_10_credits);
+    if (_m > 1) { const _pre = totalPips; totalPips = Math.round(totalPips * _m); bPip('interest', totalPips - _pre); }
+  }
+  // Portfolio: ×mult per card ON THE GRID carrying a permanent pip/mult buff - it
+  // grows as the run invests in its deck, and shrinks as those cards cycle away.
+  if (hasTrick('portfolio')) {
+    let _buffed = 0;
+    for (let _gr = 0; _gr < gridRows; _gr++) for (let _gc = 0; _gc < gridCols; _gc++) {
+      const _cc = gridData[_gr]?.[_gc];
+      if (!_cc || _cc._isSleight || _cc._isTrick || _cc._isStone) continue;
+      const _k = cardKey(_cc.rank, _cc.suit);
+      if ((permPips[_k] || 0) > 0 || (permMult[_k] || 0) > 0) _buffed++;
+    }
+    if (_buffed > 0) {
+      const _m = 1 + BAL.portfolio.mult_mult_per_card * _buffed;
+      const _pre = mult; mult = Math.round(mult * _m * 10) / 10; bMult('portfolio', mult - _pre);
+    }
+  }
+  // Redline: ×mult once the Focus multiplier is at or above its threshold.
+  if (hasTrick('redline') && focusMultiplier() >= BAL.redline.focus_threshold) {
+    const _pre = mult; mult = Math.round(mult * BAL.redline.mult_mult * 10) / 10; bMult('redline', mult - _pre);
+  }
   // Phoenix: while paused, the Focus multiplier applies twice - handled at the Focus step below.
   // Mirror (Blueprint): duplicate each borrowed Trick's pip/mult contribution (incl. the multipliers above)
   mirroredTrickIds().forEach(mid => {
@@ -631,18 +682,12 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // 4. x score multipliers
   // The Redaction (boss): one hand type, fixed for the round, is marked down.
   if (typeof bossRedactedHandMult === 'function') s *= bossRedactedHandMult(handName);
-  if (hasTrick('last_stand') && score < roundGoal) s *= BAL.last_stand.score_mult;
+  // Last Stand / Twenty-One / Perfect Storm / Extinction were ×score until r179. A ×score
+  // fires AFTER lastCalcPips/lastCalcMult are read, so it never showed in the PIPS/MULT
+  // chips - the number just changed. They are ×pips / ×mult now (identical arithmetic,
+  // since s = totalPips × mult) and live in the multiplier block above.
   // Echoes: same hand type as the previous hand retriggers each card (handled in the per-card loop above).
   // Blackjack: raw face values total exactly 21
-  if (hasTrick('blackjack_bonus')) {
-    const faceTotal = cards.reduce((sum, c) => {
-      const v = c.rank === 'A' ? 11 : ['J','Q','K'].includes(c.rank) ? 10 : parseInt(c.rank);
-      return sum + (isNaN(v) ? 0 : v);
-    }, 0);
-    if (faceTotal === 21) s *= BAL.blackjack_bonus.score_mult;
-  }
-  if (handName === 'Straight Flush' && hasTrick('perfect_storm')) s *= BAL.perfect_storm.score_mult;
-  if (handName === 'Four of a Kind' && hasTrick('extinction')) s *= BAL.extinction.score_mult;
   // The Falcon: Focus-doubling while paused is handled in playHand's focus-generation block.
   // Shape bonuses
   // Hands of Blue (2×2) and Crossroads (+ shape) now add Focus in playHand; Stretch is a ×mult above.

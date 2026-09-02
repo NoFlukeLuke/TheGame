@@ -85,6 +85,17 @@ function startRoundTimer() {
       cuckooNextMinute += BAL.cuckoo.interval_seconds;
       if (retriggersThisRound > 0) pauseRound(retriggersThisRound);
     }
+    // Compound (mythic): bank the round score at each mark. It is paid out by the
+    // NEXT scored hand, so a mark passing with nothing scored yet banks nothing -
+    // the trick rewards scoring early and compounds from there.
+    if (hasTrick('compound') && _elapsedRound >= compoundNextMark) {
+      compoundNextMark += BAL.compound.interval_seconds;
+      const _bank = Math.floor(score * BAL.compound.bank_fraction);
+      if (_bank > 0) {
+        compoundBanked += _bank;
+        showMessage('Compound: ' + _bank.toLocaleString() + ' banked', '#d8a13a');
+      }
+    }
     // The Woodpecker: marking runs in alternating 30s blocks - active 0–30s, off 30–60s, active 60–90s, …
     // During an active block one random card is marked (pecking animation); during an off block nothing is marked.
     if (hasTrick('woodpecker')) {

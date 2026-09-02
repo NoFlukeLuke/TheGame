@@ -1,4 +1,4 @@
-const BUILD = '2026-08-27 · r178 · hand values retuned to measured difficulty · plain-language copy · Hands tab shows Unavailable';
+const BUILD = '2026-09-02 · r179 · ×score converted to ×pips/×mult · 6 new multiplier tricks · Compound (mythic)';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
