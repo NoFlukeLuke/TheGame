@@ -1,4 +1,4 @@
-const BUILD = '2026-09-02 · r188 · Voidwright shows both halves up front · switched-off Tricks grey out · Prize Grid in Survival and Flow';
+const BUILD = '2026-09-02 · r189 · prize grid: no early-run ramp tiles, at most 3 limits with one guaranteed';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

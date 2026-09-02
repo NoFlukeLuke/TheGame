@@ -268,8 +268,17 @@ function _generateRewardContent() {
       apply: () => { incrementLimit(dl.id); showMessage(`+1 ${dl.label}!`, 'var(--gold)'); } };
   }
 
+  // At most this many limit tiles on a prize grid, INCLUDING the guaranteed Limit
+  // Break - so one is guaranteed and two more are the most that can turn up. Past
+  // the ceiling the category is dropped from the draw and the slot becomes
+  // something else, rather than a limit tile being swapped in after the fact.
+  const PRIZE_MAX_LIMIT_TILES = 3;
+  let _limitTilesThisGrid = 0;
+
   function makeBuff() {
-    const cat = weightedPick(PRIZE ? prizeCategories : buffCategories);
+    let cats = PRIZE ? prizeCategories : buffCategories;
+    if (PRIZE && _limitTilesThisGrid >= PRIZE_MAX_LIMIT_TILES) cats = cats.filter(c => c.kind !== 'limit_up');
+    const cat = weightedPick(cats);
     switch (cat.kind) {
       case 'trick':      return makeTrickPayload();
       case 'sleight':   return makeSleightPayload();
@@ -286,7 +295,13 @@ function _generateRewardContent() {
       case 'coins':   return { icon: '💰', label: 'Windfall',     tier: 'common',
                                desc: `Gain 8 coins (${coins} → ${coins + 8}).`,
                                apply: () => { coins += 8; updateCoinsUI(); showMessage('+8 coins', 'var(--gold)'); } };
-      case 'limit_up': return makeLimitUpPayload();
+      case 'limit_up': {
+        // makeLimitUpPayload falls back to a Trick when nothing is upgradeable, so
+        // count the tile only when it really is a limit (its ⬆️ icon).
+        const t = makeLimitUpPayload();
+        if (t && t.icon === '⬆️') _limitTilesThisGrid++;
+        return t;
+      }
       case 'blessed': return makeBlessedPayload();
       case 'cull':    return makeCullPayload();
       case 'cleanse':
@@ -327,9 +342,15 @@ function _generateRewardContent() {
   }
   // Every grid gets a Limit Break; the first 5 grids of a run also get the core
   // growth upgrades (row/col, selection, and +2 swaps/discards) so early runs ramp.
+  //
+  // The PRIZE grid takes the Limit Break and NOTHING ELSE guaranteed. That ramp is
+  // for the opening of a run; in Survival and Flow the prize grid is the only grid
+  // there is, so the first boss kill was landing all four on a 9-tile board - four
+  // guaranteed limit upgrades stacked in one payout, which is not what a prize is
+  // for. It also has a hard ceiling on limit tiles overall (below).
   function buildGuaranteedRewardTiles() {
     const out = [ makeLimitBreakPayload() ];
-    if (rewardGridsSeen <= 5) {
+    if (!PRIZE && rewardGridsSeen <= 5) {
       out.push(makeGrowthTile());
       out.push(makeLimitUpgradeTile('selection', 1));
       out.push(makeSwapDiscardTile());
@@ -355,6 +376,9 @@ function _generateRewardContent() {
 
   // Guaranteed tiles first (protected from the Trick-minimum conversion below)
   const guaranteed = buildGuaranteedRewardTiles();
+  // The Limit Break is a limit tile too - seed the ceiling with it so the prize
+  // grid can add at most PRIZE_MAX_LIMIT_TILES - 1 more.
+  if (PRIZE) _limitTilesThisGrid = guaranteed.filter(p => p.icon === '💥' || p.icon === '⬆️').length;
   let placeIdx = PRIZE ? 0 : 1;
   for (const payload of guaranteed) {
     if (placeIdx >= shuffledBuff.length) break;
