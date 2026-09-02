@@ -150,6 +150,23 @@ function bossRedactedHandMult(handName) {
   return 1 - (1 - bossRedactedMult) * bossMagScale();
 }
 
+// ── Keeping the tray's grey state honest (r188) ──────────────────────────────
+// Two bosses switch Tricks off and neither one has an event for switching them
+// back ON: the Voidwright's halves flip on a clock tick, and the Censor's 45s
+// suspensions simply expire (bossTrickBlackedOut deletes them lazily, when read).
+// So the boss clock calls this every second. It compares the set of switched-off
+// ids against the last one and only repaints when it actually changed - a blind
+// re-render every second would restart the tray's marquee/fan on every tick.
+let _bossTrickOffSig = '';
+function bossSyncTrickTrayState() {
+  const held = ((typeof trickTrayMode !== 'undefined' && trickTrayMode) ? trickTray : acquiredTricks) || [];
+  const sig = held.filter(t => typeof isTrickDisabledByBoss === 'function' && isTrickDisabledByBoss(t.id))
+                  .map(t => t.id).sort().join(',');
+  if (sig === _bossTrickOffSig) return;
+  _bossTrickOffSig = sig;
+  if (typeof renderTrickTray === 'function') renderTrickTray();
+}
+
 // ── Trick blackout (The Censor) ──────────────────────────────────────────────
 function bossTrickBlackedOut(trickId) {
   if (!bossDisabledTricks.size) return false;
@@ -286,6 +303,7 @@ function applyBossEffectModifier(mod, params) {
 
 function clearBossEffects() {
   bossPendingSchedules = [];
+  _bossTrickOffSig = '';
   bossTickIds.forEach(clearInterval); bossTickIds = [];
   bossTimeouts.forEach(clearTimeout);  bossTimeouts = [];
   nullCells = new Set(); pendingNullCells = new Set(); dampCells = new Set();

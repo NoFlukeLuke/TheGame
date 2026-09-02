@@ -147,6 +147,19 @@ function _generateRewardContent() {
     return arr[arr.length - 1];
   }
   function pickRand(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+  // Survival and Flow keep entities out of their offer pools that their mode can't
+  // support (reward-grid-only Tricks; Flow's round-clock entities). Until r188 no
+  // reward grid ever opened in those modes, so these factories never had to ask -
+  // the prize grid is a new offer path, and a new offer path that skips this leaks
+  // the bans (see js/survival.js).
+  function offerBanned(id) { return typeof survivalEntityBanned === 'function' && survivalEntityBanned(id); }
+  // Each factory picks independently, so the same Trick could land on two tiles of
+  // one grid. Barely noticeable across 13 buff slots; on a 9-tile prize grid it is
+  // a wasted pick staring at you. Anything already placed this generation is
+  // filtered out, with a fall-back to the unfiltered list so an exhausted pool
+  // repeats rather than blanking.
+  const _usedThisGrid = new Set();
+  function freshPool(pool) { const f = pool.filter(x => !_usedThisGrid.has(x.id)); return f.length ? f : pool; }
   function shuffled(arr) {
     const a = [...arr];
     for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
@@ -158,12 +171,14 @@ function _generateRewardContent() {
   function makeTrickPayload() {
     if (typeof TRICK_POOL === 'undefined') return { icon: '★', label: 'Trick', tier: 'rare', entity: 'trick', rarity: 'rare', apply: applyRewardRandomTrick };
     const owned = new Set((acquiredTricks || []).map(b => b.id));
-    let eligible = TRICK_POOL.filter(b => !owned.has(b.id));
+    let eligible = TRICK_POOL.filter(b => !owned.has(b.id) && !offerBanned(b.id));
     // Prize grid takes no commons. Fall back to the full list if filtering would
     // leave nothing - an empty tile is worse than a common one.
     if (PRIZE) { const up = eligible.filter(b => (b.tier || 'common') !== 'common'); if (up.length) eligible = up; }
     if (eligible.length === 0) return { icon: '★', label: 'Trick', tier: 'rare', entity: 'trick', rarity: 'rare', apply: applyRewardRandomTrick };
+    eligible = freshPool(eligible);
     const pick = eligible[Math.floor(Math.random() * eligible.length)];
+    _usedThisGrid.add(pick.id);
     return {
       icon: '★', label: pick.name, desc: pick.desc, tier: pick.tier || 'rare',
       entity: 'trick', rarity: pick.tier || 'rare', _trick: pick,
@@ -175,7 +190,7 @@ function _generateRewardContent() {
   function pickPrizeSleight() {
     const TIERS = ['rare', 'epic', 'legendary', 'mythic'];
     const W     = [58, 28, 9, 5];
-    const pool = SLEIGHT_POOL.filter(j => !grantedSleightIds.has(j.id) && sleightOfferable(j) && (j.rarity || 'common') !== 'common');
+    const pool = freshPool(SLEIGHT_POOL.filter(j => !grantedSleightIds.has(j.id) && sleightOfferable(j) && !offerBanned(j.id) && (j.rarity || 'common') !== 'common'));
     if (!pool.length) return null;
     const total = W.reduce((a, b) => a + b, 0);
     let roll = Math.random() * total, ti = 0;
@@ -185,11 +200,15 @@ function _generateRewardContent() {
   }
 
   function makeSleightPayload() {
-    const eligible = SLEIGHT_POOL.filter(j => !grantedSleightIds.has(j.id) && sleightOfferable(j));
+    const eligible = SLEIGHT_POOL.filter(j => !grantedSleightIds.has(j.id) && sleightOfferable(j) && !offerBanned(j.id));
     if (!eligible.length) return makeTrickPayload(); // fallback
-    const pick = PRIZE ? (pickPrizeSleight() || pickSleightByRarity(1, grantedSleightIds)[0])
-                       : pickSleightByRarity(1, grantedSleightIds)[0];
+    // pickSleightByRarity excludes by id, so hand it the granted set PLUS whatever
+    // this grid has already placed - otherwise the dedupe stops at the prize path.
+    const _excl = new Set([...grantedSleightIds, ..._usedThisGrid]);
+    const pick = PRIZE ? (pickPrizeSleight() || pickSleightByRarity(1, _excl)[0])
+                       : pickSleightByRarity(1, _excl)[0];
     if (!pick) return makeTrickPayload();
+    _usedThisGrid.add(pick.id);
     return {
       icon: pick.emoji || '\u{1F0CF}', emoji: pick.emoji || '\u{1F0CF}', label: pick.name, desc: pick.desc, tier: pick.rarity || 'rare',
       entity: 'sleight', rarity: pick.rarity || 'rare',
@@ -203,10 +222,12 @@ function _generateRewardContent() {
   function makeKnackPayload() {
     if (typeof KNACK_POOL === 'undefined') return { icon: '♛', label: 'Knack', tier: 'rare', entity: 'knack', rarity: 'rare', apply: applyRewardKnack };
     const owned = new Set((acquiredKnacks || []).map(t => t.id));
-    let eligible = KNACK_POOL.filter(t => !owned.has(t.id));
+    let eligible = KNACK_POOL.filter(t => !owned.has(t.id) && !offerBanned(t.id));
     if (PRIZE) { const up = eligible.filter(t => (t.rarity || 'common') !== 'common'); if (up.length) eligible = up; }
     if (!eligible.length) return makeTrickPayload(); // fallback - all knacks owned
+    eligible = freshPool(eligible);
     const pick = eligible[Math.floor(Math.random() * eligible.length)];
+    _usedThisGrid.add(pick.id);
     return {
       icon: pick.emoji, emoji: pick.emoji, label: pick.name, desc: pick.desc,
       tier: pick.rarity || 'common', rarity: pick.rarity || 'common', entity: 'knack',
@@ -1399,7 +1420,18 @@ function closeRewardGrid() {
     render();
   };
 
-  const proceed = rewardGridContext === 'interlude' ? finishInterlude : finishTimer;
+  // Survival / Flow: the prize grid REPLACES their post-boss pick-of-three, so the
+  // continuation is that pick's own tail (survivalChoose) - no goal was cleared, so
+  // the level-up must not carry score over or pay the leftover-time credits.
+  const finishSurvival = () => {
+    survivalSkipCarryover = true;
+    triggerLevelUp();          // → showLevelUpScreen (survival) → survivalDealNext
+    survivalSkipCarryover = false;
+  };
+
+  const proceed = rewardGridContext === 'survival' ? finishSurvival
+                : rewardGridContext === 'interlude' ? finishInterlude
+                : finishTimer;
   if (pendingLimitBreak) { pendingLimitBreak = false; openLimitBreakEvent(proceed); }
   else proceed();
 }

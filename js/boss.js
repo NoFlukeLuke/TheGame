@@ -134,21 +134,10 @@ function updateBossObjectiveUI() {
       extra.style.display = '';
     } else extra.style.display = 'none';
   }
-  // Voidwright: also update the pool display
+  // Voidwright: refresh the pool display (the phase marker moves at halftime, and
+  // the brief can be reopened at any point in the round).
   const poolEl = document.getElementById('boss-trick-pools');   // lives in the brief now
-  if (poolEl && currentBoss.modifiers.includes('trick_pool_split')) {
-    const phaseAActive = bossPhase === 1;
-    const aNames = [...trickPoolA].map(id => trickIdToName(id)).join(', ') || '(none)';
-    const bNames = [...trickPoolB].map(id => trickIdToName(id)).join(', ') || '(none)';
-    poolEl.innerHTML = `
-      <div class="boss-pool ${phaseAActive ? 'pool-active' : 'pool-inactive'}">
-        <span class="boss-pool-label">P1 OFF:</span> ${aNames}
-      </div>
-      <div class="boss-pool ${!phaseAActive ? 'pool-active' : 'pool-inactive'}">
-        <span class="boss-pool-label">P2 OFF:</span> ${bNames}
-      </div>
-    `;
-  }
+  if (poolEl && currentBoss.modifiers.includes('trick_pool_split')) poolEl.innerHTML = bossTrickPoolsHTML();
 }
 function trickIdToName(id) {
   const trick = (acquiredTricks || []).find(b => b.id === id);
@@ -189,16 +178,25 @@ function applyBossModifiers(preset) {
         bossLockedHand = preset.params.lockedHand || null;
         break;
       case 'trick_pool_split': {
-        // Randomly split owned Tricks into two pools
-        const ownedIds = (typeof acquiredTricks !== 'undefined' ? acquiredTricks : []).map(b => b.id);
-        const shuffled = [...ownedIds];
-        for (let i = shuffled.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-        }
-        const half = Math.ceil(shuffled.length / 2);
-        trickPoolA = new Set(shuffled.slice(0, half));
-        trickPoolB = new Set(shuffled.slice(half));
+        // The Voidwright (reworked r188). It used to split your WHOLE tray in two
+        // and disable half of it per phase, which scaled with how many Tricks you
+        // owned - unreadable at 8 Tricks and near-invisible at 2. It now takes a
+        // FIXED count per phase (2 by default): two off for the first half of the
+        // round, then those two back and a different two off for the second half.
+        // Owning more Tricks no longer makes the boss hit harder; it makes it
+        // easier, which is the right way round for a reward.
+        //
+        // The split is decided ONCE, here, and never re-rolled - that is what lets
+        // the briefing print both halves up front (bossTrickPoolsHTML).
+        const per = Math.max(1, Math.round((preset.params.perPhase || 2) * (typeof bossMagScale === 'function' ? bossMagScale() : 1)));
+        const ownedIds = (typeof trickTray !== 'undefined' && trickTrayMode ? trickTray : (acquiredTricks || [])).map(b => b.id);
+        const pool = shuffle(ownedIds);
+        // Fewer Tricks than two full phases: split what there is evenly rather
+        // than putting everything in the first half and nothing in the second.
+        const take = Math.min(per * 2, pool.length);
+        const first = Math.min(per, Math.ceil(take / 2));
+        trickPoolA = new Set(pool.slice(0, first));
+        trickPoolB = new Set(pool.slice(first, take));
         break;
       }
       case 'periodic_null': {
@@ -375,6 +373,9 @@ function triggerBoss(presetOverride = null, windowSeconds = null) {
 
   // Objective HUD
   showBossObjectiveHUD(preset);
+  // Anything that switches Tricks off (Voidwright, Censor) shows as greyed tiles
+  // in the tray - repaint it now so the state is on screen behind the briefing.
+  if (typeof renderTrickTray === 'function') renderTrickTray();
 
   // Render
   renderBlockedCells();
@@ -400,6 +401,52 @@ function triggerBoss(presetOverride = null, windowSeconds = null) {
 // timeout on every boss round.
 let _bossBriefPreset = null;
 
+// ── The Voidwright's tray, printed in the briefing (r188) ────────────────────
+// The complaint this answers: a boss that switches Tricks off is invisible if you
+// cannot see WHICH, and unplannable if you cannot see WHEN they come back. The
+// split is fixed at boss start, so the briefing can show your whole tray sorted
+// into three groups - off for the first half, off for the second half, and
+// untouched - with the half you are currently in marked LIVE. Reopening the brief
+// mid-round (tap the GOAL chip or the act readout) re-renders it against the
+// current phase.
+//
+// Tiles are the shared entity tile (js/entity-tile.js), the same object you see in
+// your tray and on the reward grid, so no translation is needed to find the Trick
+// this is talking about.
+function _bossTrickById(id) {
+  const pools = [(typeof trickTray !== 'undefined' ? trickTray : []), (typeof acquiredTricks !== 'undefined' ? acquiredTricks : [])];
+  for (const p of pools) { const t = p.find(x => x.id === id); if (t) return t; }
+  return null;
+}
+function _bossTrickTilesHTML(ids) {
+  if (!ids.length) return `<div class="btp-none">nothing</div>`;
+  return ids.map(id => {
+    const t = _bossTrickById(id);
+    const rar = t && ['common','rare','epic','legendary','mythic'].includes(t.tier) ? t.tier : 'common';
+    const tile = { entity: 'trick', label: t ? t.name : trickIdToName(id),
+                   emoji: (t && typeof trickEmoji === 'function') ? trickEmoji(t) : '🃏' };
+    return `<div class="btp-tile">${entityTileHTML(tile, rar)}</div>`;
+  }).join('');
+}
+function bossTrickPoolsHTML() {
+  const held = (typeof trickTray !== 'undefined' && trickTrayMode ? trickTray : (acquiredTricks || [])).map(t => t.id);
+  const a = held.filter(id => trickPoolA.has(id));
+  const b = held.filter(id => trickPoolB.has(id));
+  const safe = held.filter(id => !trickPoolA.has(id) && !trickPoolB.has(id));
+  const p1 = bossPhase === 1;
+  const row = (cls, live, label, ids) => `
+    <div class="btp-row ${cls}${live ? ' btp-live' : ''}">
+      <div class="btp-lab">${label}${live ? ' <b>NOW</b>' : ''}</div>
+      <div class="btp-tiles">${_bossTrickTilesHTML(ids)}</div>
+    </div>`;
+  return `<div class="btp">
+    <div class="btp-head">Your Tricks this round</div>
+    ${row('btp-off', p1,  'OFF · FIRST HALF',  a)}
+    ${row('btp-off', !p1, 'OFF · SECOND HALF', b)}
+    ${row('btp-safe', false, 'UNAFFECTED', safe)}
+  </div>`;
+}
+
 function bossBriefHTML(preset, intro) {
   const obj = preset.objective;
   // The bar is THIS ROUND'S GOAL (r155). objective.target is vestigial for score
@@ -414,7 +461,7 @@ function bossBriefHTML(preset, intro) {
     `<div class="bp-flavor">${preset.flavor || ''}</div>` +
     `<div class="bp-brief">${preset.brief || 'Survive the review.'}</div>` +
     `<div class="bp-obj">${objText}</div>` +
-    `<div id="boss-trick-pools"></div>` +
+    `<div id="boss-trick-pools">${(preset.modifiers || []).includes('trick_pool_split') ? bossTrickPoolsHTML() : ''}</div>` +
     (intro ? `<button class="bp-go">PROCEED</button>`
            : `<div class="bp-hint">the clock is still running</div>`);
 }
@@ -583,10 +630,15 @@ function startBossTimer() {
     bossSecondsLeft -= (typeof bossClockStep === 'function') ? bossClockStep() : 1;
     if (bossSecondsLeft < 0) bossSecondsLeft = 0;
     updateBossClockDisplay();
+    // Repaints the tray only when the switched-off set changes - covers the
+    // Voidwright's halftime flip AND the Censor's suspensions expiring, neither of
+    // which has an event of its own.
+    if (typeof bossSyncTrickTrayState === 'function') bossSyncTrickTrayState();
     if (bossPhase === 1 && bossSecondsLeft === Math.floor(bossWindowDuration / 2)) {
       bossPhase = 2;
       updateBossObjectiveUI();
-      showMessage('PHASE 2', 'var(--red)');
+      showMessage(currentBoss?.modifiers?.includes('trick_pool_split')
+        ? 'SECOND HALF - different Tricks off' : 'PHASE 2', 'var(--red)');
     }
     if (bossSecondsLeft <= 0) endBoss(false);
   }, 1000);
@@ -639,6 +691,7 @@ function endBoss(success) {
   clearBossModifiers();
   clearBlockedCellDOM();
   hideBossObjectiveHUD();
+  if (typeof renderTrickTray === 'function') renderTrickTray();  // un-grey anything the boss had switched off
   document.getElementById('grid').classList.remove('boss-active');
   document.getElementById('boss-preamble')?.remove();
   _bossBriefPreset = null;
@@ -700,7 +753,7 @@ let rewardCells    = [];        // NxN array of { kind, payload }
 let rewardConfirmed = false;
 let rewardOnGrid   = false;     // true while the reward grid is rendered onto the play #grid (r100+)
 let rewardDealing  = false;     // true while reward tiles are dealing in / resolving (blocks clicks)
-let rewardGridContext = 'interlude'; // 'interlude' | 'boss' - determines what closeRewardGrid does
+let rewardGridContext = 'interlude'; // 'interlude' | 'boss' | 'survival' - determines what closeRewardGrid does
 let skipTrickChoiceOverlay = false;    // set before drainLevelUpQueue when reward grid is the reward screen
 let rewardGridsSeen = 0;               // how many reward grids opened this run (for first-5 guaranteed upgrades)
 

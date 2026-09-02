@@ -2943,21 +2943,52 @@
     color: var(--cream);
   }
   #boss-trick-pools {
-    margin-top: 4px;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    max-width: 240px;
+    margin-top: 6px;
+    display: block;
+    width: 100%;
   }
-  .boss-pool {
-    font-family: 'Cinzel', serif;
-    font-size: 9px;
-    letter-spacing: 0.5px;
-    line-height: 1.2;
+  /* ── The Voidwright's tray, in the briefing (r188) ──
+     Three rows: off for the first half, off for the second half, untouched. The
+     half you are in is outlined red and marked NOW; the other two sit back. The
+     tiles are the shared entity tile, so a Trick here is the same object it is in
+     your tray - which is the whole point of showing it rather than naming it. */
+  .btp { display: flex; flex-direction: column; gap: 5px; text-align: left; }
+  .btp-head {
+    font-family: 'Share Tech Mono', monospace; font-size: 8px; letter-spacing: 1.4px;
+    text-transform: uppercase; color: rgba(240,232,214,0.5);
   }
-  .boss-pool-label { font-weight: 700; }
-  .pool-active   { color: var(--red); opacity: 1; }
-  .pool-inactive { color: var(--cream); opacity: 0.55; }
+  .btp-row {
+    border: 1px solid rgba(240,232,214,0.14); border-radius: 5px;
+    padding: 4px 5px 5px; background: rgba(0,0,0,0.25);
+  }
+  .btp-row.btp-live { border-color: var(--red); background: rgba(190,40,40,0.14); }
+  .btp-lab {
+    font-family: 'Share Tech Mono', monospace; font-size: 8px; letter-spacing: 1.2px;
+    color: rgba(240,232,214,0.6); margin-bottom: 4px;
+  }
+  .btp-row.btp-live .btp-lab { color: var(--red); }
+  .btp-lab b { color: var(--red); font-weight: 700; }
+  .btp-tiles { display: flex; flex-wrap: wrap; gap: 4px; }
+  .btp-tile { width: 38px; height: 50px; position: relative; }
+  .btp-tile > .reward-cell { width: 100%; height: 100%; padding: 3px 2px 4px; }
+  /* The unaffected row is the reassuring one - leave it in colour. The two OFF
+     rows are drained, so the brief reads the same way the tray does. */
+  .btp-row.btp-off .btp-tile > .reward-cell { filter: saturate(0.15) brightness(0.62); }
+  .btp-none {
+    font-family: 'Share Tech Mono', monospace; font-size: 8px;
+    color: rgba(240,232,214,0.35); padding: 2px 0 4px;
+  }
+  /* ── A Trick a boss has switched off, in the tray ──
+     Drained and dimmed rather than hidden: it is still yours, it is still taking
+     up a slot, and it comes back. */
+  .trick-tray-chip.trick-off > .reward-cell { filter: saturate(0.12) brightness(0.55); }
+  .trick-tray-chip.trick-off { opacity: 0.85; }
+  .trick-off-mark {
+    position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) rotate(-14deg);
+    font-family: 'Share Tech Mono', monospace; font-size: 9px; letter-spacing: 1px;
+    color: #ff5a5a; background: rgba(0,0,0,0.62); border: 1px solid rgba(255,90,90,0.75);
+    border-radius: 3px; padding: 0 3px; pointer-events: none; z-index: 3;
+  }
   #grid.boss-active {
     border-color: var(--red);
     box-shadow: 0 0 24px rgba(192,57,43,0.35), inset 0 0 18px rgba(192,57,43,0.18);

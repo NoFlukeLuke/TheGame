@@ -469,7 +469,12 @@ function survivalPostBossReward() {
     setTimeout(() => showSurvivalCompleteScreen(), 420);
     return;
   }
-  setTimeout(() => survivalShowPick(true, `BOSS ${survivalBossesBeaten}/${SURVIVAL_BOSS_COUNT} DEFEATED · +${SURVIVAL_REROLLS_PER_BOSS} REROLLS`), 320);
+  // r188: the post-boss reward is the PRIZE GRID, not the pick-of-three. Same
+  // occasion, but the grid is what every other mode's boss pays out in, and it
+  // hands out several things off one connected path instead of one. The
+  // 'survival' context in closeRewardGrid runs survivalChoose's own tail.
+  showMessage(`BOSS ${survivalBossesBeaten}/${SURVIVAL_BOSS_COUNT} DEFEATED · +${SURVIVAL_REROLLS_PER_BOSS} REROLLS`, 'var(--gold)');
+  setTimeout(() => { rewardGridContext = 'survival'; openPrizeGrid(); }, 320);
 }
 
 // ══════════════════════════════════════════════
@@ -522,7 +527,7 @@ function survivalContinueEndless() {
   survivalEndlessFromLevel = level;   // levels beyond this one use the faster curve
   survivalCompleteOverlay().classList.remove('show');
   showMessage('↯ ENDLESS - quotas accelerated', 'var(--c-coral, #ff6a3c)');
-  survivalShowPick(true, 'ENDLESS ENGAGED');
+  rewardGridContext = 'survival'; openPrizeGrid();   // the payout the 5th boss earned
 }
 
 // ══════════════════════════════════════════════

@@ -165,21 +165,25 @@ function recordsRenderDeck() {
 // ══════════════════════════════════════════════
 // PERSONNEL FILE - every owned entity, description shown by default
 // ══════════════════════════════════════════════
-function recordsEntityCard(icon, name, tag, desc, cls) {
+function recordsEntityCard(icon, name, tag, desc, cls, off) {
   const d = (typeof colorizeKeywords === 'function') ? colorizeKeywords(withSuitHalo(desc || '')) : (desc || '');
-  return `<div class="rec-ent ${cls}">
+  return `<div class="rec-ent ${cls}${off ? ' ent-off' : ''}">
     <div class="rec-ent-top"><span class="rec-ent-ico">${icon}</span>
-      <span class="rec-ent-name">${name}</span><span class="rec-ent-tag">${tag}</span></div>
+      <span class="rec-ent-name">${name}</span><span class="rec-ent-tag">${off ? 'SWITCHED OFF' : tag}</span></div>
     <div class="rec-ent-desc">${d}</div></div>`;
 }
 
 function recordsRenderPersonnel() {
   // Tricks (side tray), Sleights (owned deck cards), Knacks (permanent).
   const tricks = (typeof trickTray !== 'undefined' && trickTrayMode) ? trickTray : acquiredTricks;
+  // Records is the screen you open mid-boss to work out what you still have, so a
+  // Trick a boss has switched off (Voidwright, Censor) reads as off here too.
+  const _off = t => (typeof isTrickDisabledByBoss === 'function') && isTrickDisabledByBoss(t.id);
+  const _anyOff = tricks.some(_off);
   const trickHTML = tricks.length ? tricks.map(t => recordsEntityCard(
     (typeof trickEmoji === 'function' ? trickEmoji(t) : '🃏'), t.name,
     (t.tier || 'common').toUpperCase(),
-    (typeof trickLiveDesc === 'function' ? trickLiveDesc(t) : t.desc), 'e-trick')).join('')
+    (typeof trickLiveDesc === 'function' ? trickLiveDesc(t) : t.desc), 'e-trick', _off(t))).join('')
     : `<div class="rec-empty">No Tricks on file.</div>`;
 
   const owned = [];
@@ -201,7 +205,7 @@ function recordsRenderPersonnel() {
 
   return `
     <div class="rec-note">Active personnel and equipment. Descriptions reflect current values - the clock is held while this file is open.</div>
-    <div class="rec-h">Tricks <span class="rec-h-note">${tricks.length}${typeof trickCapacity === 'function' ? ' / ' + trickCapacity() : ''}</span></div>
+    <div class="rec-h">Tricks <span class="rec-h-note">${tricks.length}${typeof trickCapacity === 'function' ? ' / ' + trickCapacity() : ''}${_anyOff ? ' · <b class="rec-off-note">some switched off</b>' : ''}</span></div>
     <div class="rec-ents">${trickHTML}</div>
     <div class="rec-h">Sleights <span class="rec-h-note">${owned.length}</span></div>
     <div class="rec-ents">${sleightHTML}</div>

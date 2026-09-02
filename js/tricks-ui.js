@@ -341,13 +341,17 @@ function renderTrickTray() {
     // (js/entity-tile.js) - the exact markup the reward grid and the Mart use - so
     // a Trick looks the same in your tray as it did when you picked it up and as
     // it does on the shelf. Mirror keeps its aim arrow in place of the emoji.
-    chip.className = `trick-tray-chip trick-tier-${trick.tier} rar-${rar}`;
+    // A Trick switched off by a boss (Voidwright's halves, the Censor's 45s
+    // suspension) is drained of colour and marked, so "which of mine is off right
+    // now" is answered by looking at the tray rather than by remembering.
+    const bossOff = (typeof isTrickDisabledByBoss === 'function') && isTrickDisabledByBoss(trick.id);
+    chip.className = `trick-tray-chip trick-tier-${trick.tier} rar-${rar}${bossOff ? ' trick-off' : ''}`;
     chip.dataset.trickId = trick.id;
     const isMirror = trick.id === 'mirror';
     const dir = trick._tiltDir; // -1 left, +1 right, undefined = not aimed
     const tile = { entity: 'trick', label: trick.name,
                    emoji: isMirror ? (dir === -1 ? '◀' : dir === 1 ? '▶' : '◆') : trickEmoji(trick) };
-    chip.innerHTML = entityTileHTML(tile, rar);
+    chip.innerHTML = entityTileHTML(tile, rar) + (bossOff ? `<div class="trick-off-mark">OFF</div>` : '');
     if (isMirror) {
       chip.classList.add('trick-mirror');
       chip.title = trick.name + ' - tap to aim left/right';

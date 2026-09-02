@@ -246,7 +246,9 @@ Beating a boss opens the **Prize Grid** instead of the ordinary reward grid (it 
 
 - **`rewardGridMode`** (`'normal' | 'prize'`) is the switch; `openPrizeGrid()` sets it and runs the ordinary open. `closeRewardGrid` resets it to `'normal'`, so one prize grid follows one boss and the next grid is ordinary.
 - **`renderRewardTiles` centres it.** `cellLeft`/`cellTop` are anchored at the board's top-left, so a smaller grid would sit in the corner with a wedge of empty board beside it; `offX`/`offY` centre it at normal card size. Everything else downstream already reads its dimensions from `rewardCells`, so nothing else needed changing.
-- **Survival and Flow keep their bonus pick-of-three.** They have no reward grid at all, so there is nothing for the prize grid to replace there.
+- **Survival and Flow use it too (r188), in place of their post-boss pick-of-three.** `rewardGridContext` gained a third value, `'survival'`, whose continuation in `closeRewardGrid` is `survivalChoose`'s own tail: set `survivalSkipCarryover` (no goal was cleared, so no score carry-over and no leftover-time credits), `triggerLevelUp()`, clear it. Both post-boss paths route here - `survivalPostBossReward` and the ENDLESS switch after the 5th boss. Their ordinary per-level pick-of-three is unchanged.
+- **That made the prize grid a new OFFER PATH, which is a trap Survival/Flow already had a rule for.** `makeTrickPayload` / `makeSleightPayload` / `makeKnackPayload` never consulted `survivalEntityBanned` - they never had to, because no reward grid had ever opened in those modes. They do now (`offerBanned`), or Survival's reward-grid-only Tricks and Flow's banned clock entities leak in. Verified: 0 banned entities across 600 generated grids.
+- **No entity appears twice in one grid.** Each factory picked independently, which is barely noticeable across 13 buff slots and a wasted pick on a 9-tile prize grid; `_usedThisGrid` + `freshPool()` filter what's already placed (falling back to the unfiltered pool rather than blanking), and `pickSleightByRarity` is handed the granted set plus that one.
 - Dev panel: **Open Prize Grid**, beside Open Reward Grid.
 
 ## Shop
@@ -289,6 +291,19 @@ Bosses were dealt as `BOSS_PRESETS[bossNumber % length]` with `bossNumber` reset
 - It is a **bag, not a re-roll**: `bossBag` holds a shuffled list of ids, dealt from and refilled when empty. No repeats inside a run, every boss reachable. Reset in `startGame` and `survivalInitRun`; in `SAVE_VARS` so a resumed run keeps its remaining bag.
 - **`bossPresetIsLive()` skips a boss that cannot bite.** The Voidwright splits your owned Tricks and disables half; The Censor suspends one at a time. At 0 or 1 Tricks owned both are literal no-ops, so they are passed over until there is something to lose. Two passes, then it takes the front of the bag anyway rather than loop.
 - The dev panel's unnamed **Trigger Boss** now deals from the same bag instead of quoting `bossNumber`.
+
+### The Voidwright, rewritten to be readable (r188)
+
+It used to split your **whole tray** in two and disable half of it per phase, so it scaled with how many Tricks you owned: unreadable at 8 Tricks, near-invisible at 2, and there was no way to see which ones were off. Three changes, all aimed at the same thing - you should be able to plan the round from the briefing.
+
+- **A fixed count per phase, not a fraction of your tray.** `params.perPhase` (2) Tricks are off for the first half of the boss window, then those come back and a **different** two go off for the second half. Owning more Tricks now makes the boss *easier*, which is the right way round for a reward. Below 4 owned the split is evened out rather than dumped into the first half (own 3 → 2 then 1; own 2 → 1 then 1); `bossPresetIsLive` already blocks the boss below 2.
+- **The split is decided once, in `applyBossModifiers`, and never re-rolled.** That is the whole reason the briefing can print both halves up front.
+- **`bossTrickPoolsHTML()`** fills `#boss-trick-pools` in the briefing with your tray sorted into three rows - OFF · FIRST HALF, OFF · SECOND HALF, UNAFFECTED - drawn as the **shared entity tiles** (`entityTileHTML`), so the Trick in the brief is the same object as the one in your tray. The row for the half you are in is outlined red and marked NOW; reopening the brief mid-round (the GOAL chip or the act readout) re-renders against the current phase.
+
+**A switched-off Trick is greyed everywhere it appears**, which covers The Censor too:
+- **Tray:** `.trick-tray-chip.trick-off` drains the tile (`saturate .12 brightness .55`) and stamps a red **OFF**. Set from `isTrickDisabledByBoss(id)` in `renderTrickTray`.
+- **Records → Owned:** `recordsEntityCard` takes an `off` flag; the card goes dashed and half-opacity and its rarity tag is replaced by **SWITCHED OFF**, with a note on the Tricks heading.
+- **`bossSyncTrickTrayState()`** (js/boss-effects.js) runs on every boss clock tick. Neither boss has an event for switching a Trick back ON - the Voidwright's halves flip on a tick and the Censor's suspensions expire lazily when read - so it compares the switched-off id set against the last one and repaints **only on a change**. A blind re-render every second would restart the tray's marquee/fan on every tick.
 
 ### Boss effects start with the clock, not with `triggerBoss` (r179)
 

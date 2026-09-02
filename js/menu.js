@@ -1,4 +1,4 @@
-const BUILD = '2026-09-02 · r187 · every boss reachable (shuffled bag) · boss effects start with the clock · Prize Grid after a boss win';
+const BUILD = '2026-09-02 · r188 · Voidwright shows both halves up front · switched-off Tricks grey out · Prize Grid in Survival and Flow';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
