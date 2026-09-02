@@ -1,9 +1,17 @@
 function generateHandFocus(hand, handCells, vultureSec) {
   {
-    const handFocus = HAND_FOCUS[hand] || 0;
+    // Focus is generated from exactly two terms: hand COMPLEXITY (HAND_FOCUS, what
+    // the hand is worth) and SPEED (how fast you played it after the last hand).
+    // The r180 focus-rate entities scale those two terms rather than adding flat
+    // Focus on top, so they multiply every other Focus source in the run instead of
+    // stacking beside it. focusRateMods() reads the whole loadout in one place.
+    const _fr = focusRateMods();
+    const handFocus = Math.round((HAND_FOCUS[hand] || 0) * _fr.complexity);
     const now = Date.now();
     const secondsSinceLast = lastHandTime > 0 ? (now - lastHandTime) / 1000 : Infinity;
-    const speedBonus = Math.floor(speedBonusFromTime(secondsSinceLast));
+    // window > 1 DILATES the speed curve: the clock is read as if less time had
+    // passed, so you get the same speed bonus with twice as long to play.
+    const speedBonus = Math.floor(speedBonusFromTime(secondsSinceLast / _fr.window) * _fr.speed);
     let totalFocus = handFocus + speedBonus;
     // Rhythm: +1 focus per hand
     if (hasTrick('rhythm')) totalFocus += 1;

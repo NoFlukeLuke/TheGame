@@ -1,4 +1,4 @@
-const BUILD = '2026-09-02 · r179 · ×score converted to ×pips/×mult · 6 new multiplier tricks · Compound (mythic)';
+const BUILD = '2026-09-02 · r180 · Focus RATE entities: 2 tricks, 2 knacks, 2 sleights on 3 levers';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

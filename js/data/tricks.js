@@ -20,6 +20,9 @@ const TRICK_POOL = [
   { id:'portfolio',   name:'Portfolio',   tier:'epic',   desc:'×0.15 mult for every card on the grid carrying a permanent bonus' },
   { id:'redline',     name:'Redline',     tier:'epic',   desc:'While your Focus multiplier is ×2 or higher, ×2 mult' },
   { id:'compound',    name:'Compound',    tier:'mythic', desc:'Every 45 seconds your round score is banked. Your next hand pays the banked amount again.' },
+  // ── Focus RATE batch (r180) - see focusRateMods() in js/focus-config.js ──
+  { id:'overclock',     name:'Overclock',     tier:'epic', desc:'The Focus speed bonus is multiplied by 2.' },
+  { id:'second_nature', name:'Second Nature', tier:'epic', desc:'Hands generate 2× their listed Focus.' },
   // ── Pairs / sets ──
   { id:'kindred',        name:'Quake',               tier:'common',    desc:'Sets score +3 mult per card in the largest set' },
   { id:'trinity',        name:'Shock',               tier:'common',    desc:'Sets score +12 pips per card in the largest set' },
@@ -229,7 +232,7 @@ const TRICK_CATEGORIES = [
   { emoji:'🧮', ids:['compound','interest','portfolio','compound_mult','prolific','acorns','plan_ahead','more_better','fives_discard','nines_mult','tens_mult','sixes_perm','fours_perm','twos_retrigger','prime_times','eights_retrigger','snowball','big_win','queens_upgrade','aces_absorb','monopoly'] }, // Accumulating
   { emoji:'🎲', ids:['sands_of_time','discard_pips','spade_flood','mirror','wild_side','wait_for_it'] }, // Situational pip
   { emoji:'🔀', ids:['combo_score','escalation','move_as_one'] }, // Diverse conditions
-  { emoji:'🎯', ids:['meditation','tunnel_vision','first_wind','rhythm','restless','cull','expanse','kaleidoscope','flow_state','redline'] }, // Focus
+  { emoji:'🎯', ids:['meditation','tunnel_vision','first_wind','rhythm','restless','cull','expanse','kaleidoscope','flow_state','redline','overclock','second_nature'] }, // Focus
   { emoji:'⭐', ids:['heartwood'] }, // Legendary misc
 ];
 const TRICK_EMOJI = {};

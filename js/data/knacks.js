@@ -50,6 +50,10 @@ const KNACK_POOL = [
   { id:'growth_spurt', emoji:'🌱',  name:'Growth Spurt',  rarity:'epic', desc:'Each time you reach max Focus, your max Focus drops by 5. If you reached max Focus during a round, a random limit rises by 1 at the end of that round.' },
   // ── Focus-capacity knacks (r104) ──
   { id:'stimulants',      emoji:'💊',  name:'Stimulants',       rarity:'rare', desc:'+10 maximum Focus while owned.' },
+  // ── Focus RATE batch (r180) - these scale how fast Focus ACCRUES. Every knack
+  // above raises the ceiling; nothing raised the rate. See focusRateMods().
+  { id:'long_fuse',       emoji:'🧨',  name:'Long Fuse',        rarity:'rare', desc:'You have 2× as long to earn the same Focus speed bonus.' },
+  { id:'shorthand',       emoji:'✍️',  name:'Shorthand',        rarity:'rare', desc:'Hands generate 1.5× their listed Focus.' },
   { id:'core_memories',   emoji:'🧠',  name:'Core Memories',    rarity:'rare', desc:'Each Event you attend permanently raises your maximum Focus by 2.' },
 ];
 // ── SLEIGHT POOL ──

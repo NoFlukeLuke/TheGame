@@ -119,6 +119,43 @@ function speedBonusFromTime(t) {
   return 0;
 }
 
+// ── Focus RATE (r180) ────────────────────────────────────────────────────────
+// Every Focus entity before this raised the CEILING (focusCapNodes). Nothing
+// touched how fast Focus accrues, which is the term that actually multiplies a
+// run's output - the cap only decides where it stops.
+//
+// generateHandFocus builds Focus from two terms, and these are the two knobs:
+//   complexity - HAND_FOCUS[hand], what the hand itself is worth
+//   speed      - speedBonusFromTime(t), how fast you played after the last hand
+//   window     - a DILATION on t: window 2 reads the clock as half-speed, so you
+//                get the same speed bonus with twice as long to play. Distinct
+//                from `speed`, which pays more for the same timing.
+// Each is a product, so several entities stack multiplicatively.
+function focusRateMods() {
+  const m = { complexity: 1, speed: 1, window: 1 };
+  if (typeof hasTrick === 'function') {
+    if (hasTrick('overclock'))     m.speed      *= BAL.overclock.speed_mult;
+    if (hasTrick('second_nature')) m.complexity *= BAL.second_nature.complexity_mult;
+  }
+  if (typeof hasKnack === 'function') {
+    if (hasKnack('long_fuse')) m.window     *= BAL.long_fuse.window_mult;
+    if (hasKnack('shorthand')) m.complexity *= BAL.shorthand.complexity_mult;
+  }
+  // Sleights work by SITTING on the grid, so they are scanned rather than owned.
+  // Quarantined/void cells are excluded the same way every other "while on the
+  // grid" trigger excludes them.
+  if (typeof gridData !== 'undefined' && gridData) {
+    for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
+      const cd = gridData[r]?.[c];
+      if (!cd || !cd._isSleight) continue;
+      if (typeof cellCountsForTriggers === 'function' && !cellCountsForTriggers(r, c)) continue;
+      if (cd.sleightId === 'flywheel') m.speed  *= BAL.flywheel.speed_mult;
+      if (cd.sleightId === 'governor') m.window *= BAL.governor.window_mult;
+    }
+  }
+  return m;
+}
+
 // Current focus multiplier: 1.0 until 10 nodes, then +0.1 per node above 10
 function focusMultiplier() {
   return 1 + Math.max(0, focusNodes - FOCUS_THRESHOLD) * 0.1;

@@ -160,6 +160,15 @@ const BAL = {
   // is banked; the next scored hand pays bank_fraction of it again. Repeats, so the
   // score compounds across a round rather than doubling once.
   compound:    { interval_seconds: 45, bank_fraction: 1 },
+  // ── Focus RATE batch (r180) - scale how fast Focus accrues, not the ceiling ──
+  // complexity_mult scales HAND_FOCUS; speed_mult scales the speed bonus;
+  // window_mult dilates the speed clock (2 = twice as long for the same bonus).
+  overclock:      { speed_mult: 2 },
+  second_nature:  { complexity_mult: 2 },
+  long_fuse:      { window_mult: 2 },
+  shorthand:      { complexity_mult: 1.5 },
+  flywheel:       { speed_mult: 1.5 },
+  governor:       { window_mult: 1.5 },
   // ── play/round-side: accumulators & permanent gains ──
   snowball: { pips: 2, score_threshold: 500 },
   first_fruits: { pips: 2 },
@@ -245,6 +254,12 @@ const DESC_TEMPLATES = {
   release_valve: 'Each time you reach max Focus, gain +1 swap and +1 discard, then lose half your Focus.',
   dividend: 'Each time you reach max Focus, gain {credits} credits, then Focus resets to a third of max.',
   growth_spurt: 'Each time you reach max Focus, your max Focus drops by {cap_reduction}. If you reached max Focus during a round, a random limit rises by 1 at the end of that round.',
+  overclock: 'The Focus speed bonus is multiplied by {speed_mult}.',
+  second_nature: 'Hands generate {complexity_mult}× their listed Focus.',
+  long_fuse: 'You have {window_mult}× as long to earn the same Focus speed bonus.',
+  shorthand: 'Hands generate {complexity_mult}× their listed Focus.',
+  flywheel: 'While on the grid, the Focus speed bonus is multiplied by {speed_mult}.',
+  governor: 'While on the grid, you have {window_mult}× as long to earn the same Focus speed bonus.',
   overgrowth: 'Runs score +{pips_per_card} pips per card',
   long_road: 'Runs score +{mult_per_card} mult per card',
   river_run: 'Runs add +{focus_per_card} Focus per card',

@@ -45,6 +45,9 @@ const SLEIGHT_POOL = [
   // ── Focus-capacity sleights (r104) ──
   { id:'power_cell',  name:'Power Cell',  emoji:'🔋', rarity:'rare',   activation:'on_draw', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['focus'], desc:'When it enters the grid: +5 Focus. While it remains on the grid: +10 maximum Focus.' },
   { id:'slow_burn',   name:'Slow Burn',   emoji:'🕯️', rarity:'rare',   activation:'passive', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['focus'], desc:'+1 maximum Focus for every minute this sleight spends on the grid.' },
+  // ── Focus-rate sleights (r180) - passive, read by focusRateMods() ──
+  { id:'flywheel', name:'Flywheel', emoji:'⚙️', rarity:'epic', activation:'passive', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['focus'], desc:'While on the grid, the Focus speed bonus is multiplied by 1.5.' },
+  { id:'governor', name:'Governor', emoji:'🎚️', rarity:'epic', activation:'passive', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['focus'], desc:'While on the grid, you have 1.5× as long to earn the same Focus speed bonus.' },
   // ── Spectrum deck fixtures (r161) - four extra cards shuffled into the Spectrum
   // deck at run start. They are NOT offered by the shop, Mart, wheel, reward grid
   // or events (see SLEIGHT_FIXTURES): the only way to have one is to draw it.
