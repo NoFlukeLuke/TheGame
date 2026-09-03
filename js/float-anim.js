@@ -11,7 +11,7 @@
 //
 // The float is published as CSS custom properties (--fx / --fy / --fr / --fs)
 // rather than written straight to el.style.transform, because .reward-cell
-// already uses transform for its hover and .selected scale — the tiles compose
+// already uses transform for its hover and .selected scale - the tiles compose
 // the float into those transforms in CSS instead of fighting over the property.
 // ══════════════════════════════════════════════════════════════════════════
 
@@ -50,9 +50,9 @@ function clearFloatSeeds(prefix) {
 // One rAF loop per key ('mart', 'reward', …) so screens can float independently.
 const _floatRAF = {};
 
-// selector  — CSS selector for the tiles to float (queried fresh each frame, so
+// selector  - CSS selector for the tiles to float (queried fresh each frame, so
 //             re-rendering a screen mid-float just works).
-// skipFn    — optional (el) => true to hold an item still (frozen / sold tiles).
+// skipFn    - optional (el) => true to hold an item still (frozen / sold tiles).
 function startFloat(key, selector, skipFn) {
   stopFloat(key);
   function loop(ms) {

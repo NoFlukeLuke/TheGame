@@ -1,5 +1,74 @@
 function sleightDef(card) { return SLEIGHT_POOL.find(j => j.id === card.sleightId); }
 
+// ── Sleight card FACE (r172, reworked r175) ────────────────────────────────
+// A Sleight is a card in the deck, so it wears a card's furniture: an index in
+// the top-left corner. What that index SAYS depends on what the Sleight is.
+//
+//   plain Sleight   S over a house mark (◈ ◇ ✦ …)  - "this is a Sleight, and it
+//                   has no playing identity"
+//   wildcard        W over ∞                      - wild rank, endless suit
+//   tinkered        a REAL rank over a REAL suit   - it has been given an
+//                   identity at the Mart's Tinker bench and now plays as a card
+//
+// r172 gave every Sleight a RANDOM rank and suit. That was worse than nothing:
+// it printed 7♦ on a card that could never be part of a seven, so the face was
+// a lie. The marks below identify rather than impersonate, and a real rank only
+// ever appears on a Sleight that has actually earned one (see sleightAssignIdentity).
+const SLEIGHT_HOUSE_MARKS = ['◈', '◇', '✦', '❖', '⬥', '◆'];
+
+function sleightIsWild(def) { return !!def && def.activation === 'wildcard'; }
+// A Sleight that has been given a playing identity at the Tinker bench. Wildcards
+// can never be tinkered, so this and sleightIsWild are mutually exclusive.
+function sleightIsPlayable(card) { return !!(card && card._playable && card.rank && card.suit); }
+
+function sleightFace(card, def) {
+  if (!card) return { rank: 'S', suit: '◈', kind: 'plain' };
+  if (sleightIsPlayable(card)) return { rank: card.rank, suit: card.suit, kind: 'playable' };
+  if (sleightIsWild(def || sleightDef(card))) return { rank: 'W', suit: '∞', kind: 'wild' };
+  // The house mark is stable per card, so a Sleight keeps the same face across
+  // renders and deck cycles rather than flickering through the set.
+  if (card._faceMark == null) card._faceMark = SLEIGHT_HOUSE_MARKS[Math.floor(Math.random() * SLEIGHT_HOUSE_MARKS.length)];
+  return { rank: 'S', suit: card._faceMark, kind: 'plain' };
+}
+
+// Rarity → the card's edge colour, as a class both render paths add.
+function sleightRarityClass(def) {
+  const r = def && def.rarity;
+  return ['common','rare','epic','legendary','mythic','fixture'].includes(r) ? ' sl-rar-' + r : ' sl-rar-common';
+}
+
+// Markup shared by both render paths (js/render.js and js/card-fall.js) so the
+// grid, the fall animation and the hand preview can never disagree.
+function sleightFaceHTML(card, def, usesStr) {
+  const f = sleightFace(card, def);
+  const red = f.kind === 'playable' && '♥♦'.includes(f.suit);
+  const numeric = f.kind === 'playable' && (typeof isColorSuit === 'function') && isColorSuit(f.suit);
+  const tone = f.kind === 'playable' ? (red ? 'sl-red' : 'sl-blk') : 'sl-mark';
+  return `<div class="sleight-index ${tone} sl-k-${f.kind}${numeric ? ' sl-num' : ''}">`
+       +   `<span class="sl-rank">${f.rank}</span><span class="sl-suit">${f.suit}</span>`
+       + `</div>`
+       + `<div class="sleight-card-emoji">${def?.emoji || '🃏'}</div>`
+       + `<div class="sleight-card-name">${def?.name || 'Sleight'}</div>`
+       + `<div class="sleight-card-uses">${usesStr}</div>`;
+}
+
+// ── The Tinker bench: give a Sleight a real playing identity ────────────────
+// The card keeps everything it already does AND starts counting as a normal
+// card in hand detection. Wildcards are refused: they already have the best
+// identity in the game, and pinning one would silently un-wild it.
+function sleightCanTinker(card, def) {
+  return !!card && !sleightIsWild(def || sleightDef(card)) && !sleightIsPlayable(card);
+}
+function sleightAssignIdentity(card, rank, suit) {
+  if (!card) return null;
+  const ranks = (typeof ACTIVE_RANKS !== 'undefined' && ACTIVE_RANKS.length) ? ACTIVE_RANKS : RANKS;
+  const suits = (typeof ACTIVE_SUITS !== 'undefined' && ACTIVE_SUITS.length) ? ACTIVE_SUITS : SUITS;
+  card.rank = rank || ranks[Math.floor(Math.random() * ranks.length)];
+  card.suit = suit || suits[Math.floor(Math.random() * suits.length)];
+  card._playable = true;
+  return { rank: card.rank, suit: card.suit };
+}
+
 function grantSleight(def) {
   const card = {
     _isSleight: true, sleightId: def.id,
@@ -44,11 +113,11 @@ function lockSleightForRound(card) {
   card._usedThisRound = true;
   if (card._usesLeft !== 'infinite') card._usesLeft--;
   if (card._usesLeft !== 'infinite' && card._usesLeft <= 0)
-    showMessage(`${sleightDef(card)?.name || 'Sleight'} consumed — locked until discarded or played`, 'var(--cream-dim)');
+    showMessage(`${sleightDef(card)?.name || 'Sleight'} consumed - locked until discarded or played`, 'var(--cream-dim)');
 }
 
 // Active-tap sleights (Amplifier/Snooze/Piggy Bank/Magnet/Capacitor/Siphon) LEAVE the grid
-// the moment they fire — replacing the old once-per-round lock. Like a normal discard the
+// the moment they fire - replacing the old once-per-round lock. Like a normal discard the
 // card cycles back into the deck with its remaining charges (discardToPlayed drops it once
 // fully spent), and removeAndFall animates it out AND refills the hole (nulling the cell by
 // hand would leave a permanent gap). Fire-and-forget, mirroring doDiscard.
@@ -112,7 +181,7 @@ function feedWhetstones(cells) {
   for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
     const card = gridData[r]?.[c];
     if (!card?._isSleight || card.sleightId !== 'whetstone') continue;
-    // The Whetstone's own cell never counts — only cards moved/removed beside it.
+    // The Whetstone's own cell never counts - only cards moved/removed beside it.
     const gain = cells.filter(([cr, cc]) => !(cr === r && cc === c) && _isOrthoAdj(cr, cc, r, c)).length;
     if (gain) { card._whetMult = (card._whetMult || 0) + gain * BAL.whetstone.mult_per_event; fed += gain; }
   }
@@ -176,7 +245,7 @@ function juryRigRoll(cells) {
   }));
   targets.forEach(card => {
     if (Math.random() >= BAL.jury_rig.chance) return;
-    if (restoreSleightCharge(card)) showMessage(`🔧 Jury-Rig — ${sleightDef(card)?.name || 'Sleight'} +1 charge`, '#6aaa6a');
+    if (restoreSleightCharge(card)) showMessage(`🔧 Jury-Rig - ${sleightDef(card)?.name || 'Sleight'} +1 charge`, '#6aaa6a');
   });
 }
 
@@ -222,11 +291,11 @@ function fireSleightsOnPlay(selectedCells, handCells, hand) {
     // shortcut requires a 4-card hand
     if (def.id === 'shortcut' && handCells.length !== 4) return;
     // Rewind: rewind the clock by the hand size in seconds. The sleight itself counts toward the
-    // size — but non-wild sleights are dropped from hand detection, so add 1 if it's not in handCells.
+    // size - but non-wild sleights are dropped from hand detection, so add 1 if it's not in handCells.
     if (def.id === 'rewind') {
       const _inHand = handCells.some(([hr, hc]) => hr === r && hc === c);
       const _size = _inHand ? handCells.length : handCells.length + 1;
-      rewindTime(_size, `⏪ Rewind — +${_size}s`);
+      rewindTime(_size, `⏪ Rewind - +${_size}s`);
       consumeSleightCharge(card, r, c);
       return;
     }
@@ -257,7 +326,7 @@ function fireSleightsOnPlay(selectedCells, handCells, hand) {
           buffed++;
         }
       });
-      if (buffed > 0) showMessage(`🌿 Naturalist — ${buffed} card${buffed>1?'s':''} +2 pips!`, '#6aaa6a');
+      if (buffed > 0) showMessage(`🌿 Naturalist - ${buffed} card${buffed>1?'s':''} +2 pips!`, '#6aaa6a');
       consumeSleightCharge(card, r, c);
       return;
     }
@@ -279,7 +348,7 @@ function fireSleightsOnSwap(r1, c1, r2, c2) {
       if (other && !other._isSleight && !other._isTrick && other.rank) {
         const k = cardKey(other.rank, other.suit);
         permPips[k] = (permPips[k] || 0) + BAL.lightning_rod.pips;
-        showMessage('⚡ Lightning Rod — +5 pips!', '#ffd700');
+        showMessage('⚡ Lightning Rod - +5 pips!', '#ffd700');
         render();
       }
     } else if (def.id === 'the_catalyst') {
@@ -287,7 +356,7 @@ function fireSleightsOnSwap(r1, c1, r2, c2) {
       if (other && !other._isSleight && !other._isTrick && other.rank) {
         const k = cardKey(other.rank, other.suit);
         permMult[k] = (permMult[k] || 0) + BAL.the_catalyst.mult;
-        showMessage('🧪 Catalyst — +1 perm mult!', '#cc88ff');
+        showMessage('🧪 Catalyst - +1 perm mult!', '#cc88ff');
         render();
       }
     } else {
@@ -344,12 +413,12 @@ function applySleightGridEffect(id, r, c) {
       exaltRandomCard();
       showMessage('Shepherd exalts a card', '#ffd700'); render(); break;
     case 'shortcut':
-      if (challengeActive) { resolveChallenge(true); showMessage('Shortcut — challenge complete!', 'var(--gold)'); }
-      else showMessage('Shortcut — no active challenge', 'var(--cream-dim)');
+      if (challengeActive) { resolveChallenge(true); showMessage('Shortcut - challenge complete!', 'var(--gold)'); }
+      else showMessage('Shortcut - no active challenge', 'var(--cream-dim)');
       break;
     case 'dazed':
       reshuffleGrid();
-      showMessage('Dazed & Confused — grid reshuffled!', '#cc88ff'); break;
+      showMessage('Dazed & Confused - grid reshuffled!', '#cc88ff'); break;
     case 'pivot':
       // Free swap + buff are applied inline in doSwap; this just announces.
       showMessage('Pivot! Free swap + cards buffed', 'var(--gold)'); break;
@@ -358,10 +427,10 @@ function applySleightGridEffect(id, r, c) {
       break;
     case 'echo_play':
       sleightNextHandDouble = true;
-      showMessage('🔁 Echo — next hand scores twice!', '#ffd700'); break;
+      showMessage('🔁 Echo - next hand scores twice!', '#ffd700'); break;
     case 'bellhop':
       swaps += BAL.bellhop.swaps; discards = Math.min(99, discards + BAL.bellhop.discards); render();
-      showMessage('🛎️ Bellhop — +2 swaps, +1 discard!', '#ffd700'); break;
+      showMessage('🛎️ Bellhop - +2 swaps, +1 discard!', '#ffd700'); break;
     case 'the_bomb': {
       let _cnt = 0;
       for (let _r = 0; _r < gridRows; _r++)
@@ -373,27 +442,27 @@ function applySleightGridEffect(id, r, c) {
             _cnt++;
           }
         }
-      showMessage(`💣 Bomb — ${_cnt} cards +3 pips!`, '#ffd700'); render(); break;
+      showMessage(`💣 Bomb - ${_cnt} cards +3 pips!`, '#ffd700'); render(); break;
     }
     case 'the_legacy':
       sleightLegacyMult = true;
-      showMessage('📜 Legacy — next hand ×3!', '#ffd700'); break;
+      showMessage('📜 Legacy - next hand ×3!', '#ffd700'); break;
     case 'cash_out':
       coins += BAL.cash_out.coins; updateCoinsUI();
-      showMessage('💰 Cash Out — +10 credits!', 'var(--gold)'); break;
+      showMessage('💰 Cash Out - +10 credits!', 'var(--gold)'); break;
     case 'the_wanderer':
       swaps = Math.min(99, swaps + BAL.the_wanderer.swaps); render();
-      showMessage('🧭 Wanderer — swap refunded!', 'var(--gold)'); break;
+      showMessage('🧭 Wanderer - swap refunded!', 'var(--gold)'); break;
     case 'amplifier':
       sleightAmplifierMult += BAL.amplifier.mult;
-      showMessage('📢 Amplifier — next hand +5 mult!', 'var(--gold)'); break;
+      showMessage('📢 Amplifier - next hand +5 mult!', 'var(--gold)'); break;
     case 'snooze':
       pauseRound(BAL.snooze.seconds);
-      showMessage('😴 Snooze — clock paused 10s!', 'var(--gold)'); break;
+      showMessage('😴 Snooze - clock paused 10s!', 'var(--gold)'); break;
     case 'last_call':
       // Only rewinds when discarded during the final minute of the round.
-      if (roundSeconds <= BAL.last_call.last_minute_at) rewindTime(BAL.last_call.seconds, `⏳ Last Call — rewound ${BAL.last_call.seconds}s`);
-      else showMessage('⏳ Last Call — only works in the final minute', 'var(--cream-dim)');
+      if (roundSeconds <= BAL.last_call.last_minute_at) rewindTime(BAL.last_call.seconds, `⏳ Last Call - rewound ${BAL.last_call.seconds}s`);
+      else showMessage('⏳ Last Call - only works in the final minute', 'var(--cream-dim)');
       break;
     case 'sandbag': {
       // Rewinds only when discarded alongside a pair of cards below rank 8; the rewind
@@ -402,13 +471,13 @@ function applySleightGridEffect(id, r, c) {
       const _counts = {};
       _co.forEach(c => { const _v = RANK_ORDER[c.rank] || 99; if (_v < BAL.sandbag.rank_below) _counts[_v] = (_counts[_v] || 0) + 1; });
       const _pairRanks = Object.keys(_counts).map(Number).filter(v => _counts[v] >= 2);
-      if (_pairRanks.length) { const _sec = Math.max(..._pairRanks); rewindTime(_sec, `⏬ Sandbagger — rewound ${_sec}s`); }
-      else showMessage('⏬ Sandbagger — needs a pair below rank 8', 'var(--cream-dim)');
+      if (_pairRanks.length) { const _sec = Math.max(..._pairRanks); rewindTime(_sec, `⏬ Sandbagger - rewound ${_sec}s`); }
+      else showMessage('⏬ Sandbagger - needs a pair below rank 8', 'var(--cream-dim)');
       break;
     }
     case 'piggy_bank':
       coins += BAL.piggy_bank.coins; updateCoinsUI();
-      showMessage('🐷 Piggy Bank — +5 credits!', 'var(--gold)'); break;
+      showMessage('🐷 Piggy Bank - +5 credits!', 'var(--gold)'); break;
     default:
       showMessage(`${SLEIGHT_POOL.find(j=>j.id===id)?.name||'Sleight'} activated!`, '#cc88ff'); break;
   }
@@ -436,9 +505,9 @@ function showSleightGridTooltip(r, c, card) {
   const sleightEl = gridEl?.querySelector(`[data-card-id="${card._id}"]`);
   if (!sleightEl) return;
   let uses = card._usesLeft === 'infinite' ? '∞ uses' : `${card._usesLeft} use${card._usesLeft !== 1 ? 's' : ''} left`;
-  // Whetstone banks mult on the card itself — surface it, it's the whole point of the Sleight.
+  // Whetstone banks mult on the card itself - surface it, it's the whole point of the Sleight.
   if (def.id === 'whetstone') uses = `+${card._whetMult || 0} mult sharpened`;
-  // Lighthouse's value depends on where it is right now — show the live number.
+  // Lighthouse's value depends on where it is right now - show the live number.
   if (def.id === 'lighthouse') {
     const _v = Math.max(0, BAL.lighthouse.mult - Math.abs(c - lighthouseColumn) * BAL.lighthouse.falloff_per_column);
     uses = `+${_v} mult here · favors column ${lighthouseColumn + 1}`;
@@ -489,7 +558,7 @@ function showCardTooltip(r, c) {
   if (!card) return;
   if (card._isTrick)    { showTrickTooltip(card.trick, true); return; }
   if (card._isSleight) { showSleightGridTooltip(r, c, card); return; }
-  // Normal card — show enhancement tooltip only if something to show
+  // Normal card - show enhancement tooltip only if something to show
   const k  = cardKey(card.rank, card.suit);
   const pp = permPips[k]   || 0;
   const pm = permMult[k]   || 0;
@@ -539,7 +608,7 @@ function attachLongPress(el, r, c) {
   };
   el.onpointerdown  = start;
   el.onpointerup    = cancel;
-  // Desktop hover in/out shows & hides the tooltip (only when no button is held —
+  // Desktop hover in/out shows & hides the tooltip (only when no button is held -
   // a held button means a swipe-select is in progress, not a hover).
   el.onpointerenter = (e) => { if (e.pointerType === 'mouse' && e.buttons === 0) showCardTooltip(r, c); };
   el.onpointerleave = (e) => { cancel(); if (e.pointerType === 'mouse') hideCardTooltip(); };

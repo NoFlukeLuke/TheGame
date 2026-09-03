@@ -3,7 +3,7 @@ function drainLevelUpQueue() {
 }
 
 // Compute the resource values (discards / swaps / seconds) a new round should start with.
-// Single source of truth — used by the round-start reset AND by reward-grid hover projections.
+// Single source of truth - used by the round-start reset AND by reward-grid hover projections.
 // Folds in limit-breaks, carry-over knacks, round-start knacks, and pending next-round deltas.
 function computeRoundResources() {
   const limitDiscardBonus = limits.discards.current   - limits.discards.base;
@@ -28,7 +28,7 @@ function computeRoundResources() {
 
   // NOTE: Tempo is NOT special-cased here. It sets limits.swaps/discards.current to 2 once
   // (applyTempoLimitOnce), so the normal computation above already reflects it via the
-  // limitSwapBonus / limitDiscardBonus deltas — and any later limit increases flow through
+  // limitSwapBonus / limitDiscardBonus deltas - and any later limit increases flow through
   // untouched, keeping the door open to combos.
   return { discards: Math.max(0, d), swaps: Math.max(0, s), seconds: Math.max(1, sec) };
 }
@@ -66,7 +66,7 @@ function triggerLevelUp() {
   }
 
   // Survival: capture leftover clock time (for coins + boss bank) and the score
-  // OVERFLOW above the just-cleared goal — the overflow seeds the next round so
+  // OVERFLOW above the just-cleared goal - the overflow seeds the next round so
   // every point counts toward the next goal (owner spec). Must read these BEFORE
   // roundGoal is recomputed and score is zeroed below.
   let _svLeftover = 0, _svOverflow = 0;
@@ -81,7 +81,7 @@ function triggerLevelUp() {
   // This round's score target, from zero
   roundGoal = survivalActive() ? survivalGoalForLevel(level)
             : Math.round(Math.round(BASE_GOAL * Math.pow(GOAL_SCALE, level - 1)) / 500) * 500;
-  // Zen has no clock, so its goals are doubled — levelling and the reward grid
+  // Zen has no clock, so its goals are doubled - levelling and the reward grid
   // stay reachable, just at a slower, self-paced rate.
   if (match3IsZen()) roundGoal *= 2;
   // Bank the completed round's score for the end-of-run display. In Survival the
@@ -94,7 +94,7 @@ function triggerLevelUp() {
   // Reset round
   flushPlayedDeck(); // played cards rejoin the pool for the new round
   // Spectrum: a rank/colour change made in the dev tuner during the round lands
-  // here, at the boundary — never under the player's hand mid-round.
+  // here, at the boundary - never under the player's hand mid-round.
   if (typeof spectrumApplyPendingDeck === 'function') spectrumApplyPendingDeck();
 
   // Bank unused resources before resetting
@@ -102,14 +102,14 @@ function triggerLevelUp() {
   if (hasKnack('carry_discards')) accumulatedDiscards = Math.min(BAL.carry_discards.max, accumulatedDiscards + discards);
   // NOTE: banks the round's UNUSED seconds, which assumes the clock is reset below.
   // Flow's is not (it carries across level-ups), so carry_time would pay out the same
-  // seconds every level — which is why it is in FLOW_BANNED_ENTITIES.
+  // seconds every level - which is why it is in FLOW_BANNED_ENTITIES.
   if (hasKnack('carry_time'))     accumulatedSeconds  = Math.min(BAL.carry_time.max_seconds, accumulatedSeconds + roundSeconds);
 
-  // Base reset — resource values computed by computeRoundResources() (single source of truth).
+  // Base reset - resource values computed by computeRoundResources() (single source of truth).
   const _rr = computeRoundResources();
   discards     = _rr.discards;
   swaps        = _rr.swaps;
-  // Flow: swaps and discards refresh per level as usual, but the CLOCK does not —
+  // Flow: swaps and discards refresh per level as usual, but the CLOCK does not -
   // the five minutes span every goal cleared inside them. flowNextRoundSeconds keeps
   // the running countdown, and only refills it at run start and after an inspection.
   roundSeconds = (typeof flowNextRoundSeconds === 'function' && flowActive())
@@ -119,7 +119,7 @@ function triggerLevelUp() {
   // Per-action time-cost debuffs active this round = permanent + next-round-only.
   playHandCostThisRound = extraPlayCostPerm    + nextRoundPlayCost;
   discardCostThisRound  = extraDiscardCostPerm + nextRoundDiscardCost;
-  // Next-round-only deltas have now been folded in — clear them.
+  // Next-round-only deltas have now been folded in - clear them.
   nextRoundDiscardDelta = 0; nextRoundSwapDelta = 0; nextRoundSecondsDelta = 0;
   nextRoundPlayCost = 0; nextRoundDiscardCost = 0;
 
@@ -173,7 +173,7 @@ function triggerLevelUp() {
   }
   setTimeout(checkComboMilestones, 600); // combo legibility toast (after the deal settles)
   fireSleightsAtRoundStart();
-  // (♠ exalt/corrupt is now play/discard-driven — handled in playHand and doDiscard, not at deal)
+  // (♠ exalt/corrupt is now play/discard-driven - handled in playHand and doDiscard, not at deal)
   fireSleightsOnDraw();
   // Reset focus meter at start of every round (chunk 2 will add notch-fall animation)
   focusNodes = 0;
@@ -194,6 +194,7 @@ function triggerLevelUp() {
   replaysThisRound = 0;
   timeManipRound = 0;
   cuckooNextMinute = BAL.cuckoo.interval_seconds;
+  compoundNextMark = BAL.compound.interval_seconds; compoundBanked = 0;
   // Clock-mark Tricks + Déjà Vu: pending bonuses and rank-history reset each round
   pendingHandPips = 0; pendingHandMult = 0; pendingCardPips = 0;
   lastHandRankKey = null;
@@ -224,7 +225,7 @@ function triggerLevelUp() {
   trickCardTimer = 0;
   selected = [];
 
-  // Sapling trick — give perm pips to 3 distinct normal cards
+  // Sapling trick - give perm pips to 3 distinct normal cards
   if (hasTrick('sapling')) {
     const eligible = [];
     for (let r = 0; r < gridRows; r++)
@@ -258,7 +259,7 @@ function triggerLevelUp() {
 async function showLevelUpScreen() {
   // Survival: its own on-brand pick-of-three (Trick/Sleight/Knack/Limit) opens over
   // the frozen board; the deal happens after the player picks. No grid placement,
-  // no reward grid — see js/survival.js.
+  // no reward grid - see js/survival.js.
   // Survival: the pick already happened (shown during the goal dance / post-boss).
   // triggerLevelUp reaches here on CHOOSE, so just deal the next round.
   if (survivalActive()) { survivalDealNext(); return; }
@@ -266,7 +267,7 @@ async function showLevelUpScreen() {
   // Match-3 modes have their own between-rounds flow: a genuine pick-of-three
   // that goes to the side TRAY (never the grid), no reserved grid slots. The
   // legacy path below places Tricks on the board and derives its option count
-  // from empty grid cells — which is why match-3 was offering just one.
+  // from empty grid cells - which is why match-3 was offering just one.
   if (match3Active()) { showMatch3LevelUpScreen(); return; }
 
   animating = true;
@@ -292,7 +293,7 @@ async function showLevelUpScreen() {
     };
   });
 
-  // Mark upgradeable — Tricks in the middle row's inner columns qualify
+  // Mark upgradeable - Tricks in the middle row's inner columns qualify
   const _trickMidRow = Math.floor(gridRows / 2);
   const _trickInnerCols = Array.from({length: Math.max(0, gridCols - 2)}, (_, i) => i + 1);
   returningTricks.forEach(trick => {
@@ -328,13 +329,13 @@ async function showLevelUpScreen() {
     trick._targetCol = targetCol;
   });
 
-  // Don't place new Tricks into gridData yet — they live in the overlay during selection
+  // Don't place new Tricks into gridData yet - they live in the overlay during selection
   // Fill ALL cells with regular cards for now (Tricks will be placed after pick)
   for (let r = 0; r < gridRows; r++)
     for (let c = 0; c < gridCols; c++)
       if (!gridData[r][c]) gridData[r][c] = drawCard() || null;
 
-  // ── Hide grid visually until 3-2-1 fires — deal anims handle the reveal ──
+  // ── Hide grid visually until 3-2-1 fires - deal anims handle the reveal ──
   dealPhase = true;
   // Remove all card DOM elements from the previous round immediately
   const _gridEl = document.getElementById('grid');
@@ -350,7 +351,7 @@ async function showLevelUpScreen() {
   animating = false; // allow Trick taps immediately
 
   // ── Mode split ──
-  // Normal (3-Act node) mode ALWAYS deals straight into the next round — its
+  // Normal (3-Act node) mode ALWAYS deals straight into the next round - its
   // rewards come from the reward grid / events, never the legacy pick-1-of-3
   // Trick overlay. The `|| ACTIVE_MODE.id === 'normal'` clause makes the legacy
   // overlay branch structurally unreachable in normal mode: even if some future
@@ -358,7 +359,7 @@ async function showLevelUpScreen() {
   // show the old Trick pick (this is what caused the double level-up glitch).
   // The `else` branch below is LEGACY / SURVIVAL-MODE ONLY.
   if (skipTrickChoiceOverlay || isActMode()) {
-    // Reward grid already handled rewards (or normal mode has no pick) —
+    // Reward grid already handled rewards (or normal mode has no pick) -
     // skip Trick pick, go straight to new round.
     skipTrickChoiceOverlay = false;
     trickSelectionPhase = false;
@@ -369,13 +370,13 @@ async function showLevelUpScreen() {
       render();
       if (forceBossNextRound) {
         forceBossNextRound = false;
-        triggerBoss(); // boss takes over timing — do NOT call startRoundTimer()
+        triggerBoss(); // boss takes over timing - do NOT call startRoundTimer()
       } else {
         startRoundTimer();
       }
     });
   } else {
-    // ═══ LEGACY / SURVIVAL MODE ONLY — the old pick-1-of-3 Trick screen. ═══
+    // ═══ LEGACY / SURVIVAL MODE ONLY - the old pick-1-of-3 Trick screen. ═══
     // Not reachable in normal mode (see the mode split above). Kept as the
     // scaffold for a future survival mode (escalating goals, pick a Trick each
     // clear, no shop/reward grid).

@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════
-   SETTINGS (r155) — player-facing options screen.
+   SETTINGS (r155) - player-facing options screen.
    Outside #stage (body-level) like Records / the dev panel: the cabinet's CSS
    `zoom` would otherwise scale its fixed positioning.
    ══════════════════════════════════════════════ */
@@ -122,7 +122,7 @@ body.high-contrast .card .rank,
 body.high-contrast .card .suit { text-shadow: 0 0 1px rgba(0,0,0,0.55); }
 
 
-/* ── Action rows (Run save/resume — r158) ────────────────────────────────────
+/* ── Action rows (Run save/resume - r158) ────────────────────────────────────
    Buttons rather than a stored preference, so they get their own control
    styling alongside the switches and segmented selects. They also STACK: a
    toggle's label can share a line with its control, but three buttons plus a
@@ -130,7 +130,7 @@ body.high-contrast .card .suit { text-shadow: 0 0 1px rgba(0,0,0,0.55); }
 .set-row.set-row-action { flex-direction: column; align-items: stretch; gap: 8px; }
 .set-row.set-row-action .set-row-text { width: 100%; }
 .set-row.set-row-action .set-actions { justify-content: flex-start; }
-/* A row with no label or hint is just its control — don't reserve the text column. */
+/* A row with no label or hint is just its control - don't reserve the text column. */
 .set-row.set-row-bare { justify-content: flex-start; }
 .set-actions { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; flex: 0 0 auto; }
 .set-action-b {

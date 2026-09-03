@@ -37,7 +37,7 @@ function showTrickChoiceOverlay() {
   renderCards();
   overlay.classList.add('show');
 
-  // Skip button — pass on the trick choice
+  // Skip button - pass on the trick choice
   const skipBtn = document.getElementById('trick-choice-skip');
   if (skipBtn) {
     skipBtn.onclick = () => {
@@ -126,7 +126,7 @@ function onTrickTap(trick) {
 // Owner rule: every Trick whose bonus can change always shows its CURRENT value
 // in parentheses. Persistent/level/owned-based tricks always have a number.
 // Round-scoped tricks (they scale with round time / round counters) can only be
-// computed during a live round — in the shop or reward grid they show "(N/A)".
+// computed during a live round - in the shop or reward grid they show "(N/A)".
 function trickLiveDesc(trick) {
   const base = trick.desc;
   try {
@@ -159,7 +159,7 @@ function trickLiveDesc(trick) {
       case 'scalper':        return now(`×${(1 + (B.scalper?.pip_mult_per_missing ?? 0.2) * sleightChargeInfo().missing).toFixed(2)} pips`);
       // ── position-line accumulators (reset each round) ──
       case 'groove':         return roundNow(`+${Math.floor((markCount_groove || 0) / 2)} Focus/hand`);
-      case 'overtime':       return roundNow(`+${Math.floor((markCount_overtime || 0) / 3)}s/hand`);
+      case 'overtime':       return roundNow(`rewinds ${Math.floor((markCount_overtime || 0) / 3)}s per hand`);
       case 'assembly_line':  return roundNow(`next mark card +${assemblyMarkCount || 0} mult`);
       // ── round-time / round-counter scaling (live round only) ──
       case 'swift':          return roundNow(`+${Math.floor(el / B.swift.interval_seconds) * B.swift.mult_per_interval} mult`);
@@ -219,7 +219,7 @@ function showTrickTooltip(trick, readOnly = false) {
 
   void tip.offsetWidth;
 
-  // Position using bounding rects — works regardless of animation state
+  // Position using bounding rects - works regardless of animation state
   const gridRect = gridEl.getBoundingClientRect();
   const cardRect = trickEl.getBoundingClientRect();
   const tipW = tip.offsetWidth;
@@ -337,24 +337,33 @@ function renderTrickTray() {
   trickTray.forEach(trick => {
     const chip = document.createElement('div');
     const rar = RARS.includes(trick.tier) ? trick.tier : 'common';
-    chip.className = `trick-tray-chip trick-card trick-tier-${trick.tier} rar-${rar}`;
+    // r182: the chip is now only a FRAME. Its contents are the shared entity tile
+    // (js/entity-tile.js) - the exact markup the reward grid and the Mart use - so
+    // a Trick looks the same in your tray as it did when you picked it up and as
+    // it does on the shelf. Mirror keeps its aim arrow in place of the emoji.
+    // A Trick switched off by a boss (Voidwright's halves, the Censor's 45s
+    // suspension) is drained of colour and marked, so "which of mine is off right
+    // now" is answered by looking at the tray rather than by remembering.
+    const bossOff = (typeof isTrickDisabledByBoss === 'function') && isTrickDisabledByBoss(trick.id);
+    chip.className = `trick-tray-chip trick-tier-${trick.tier} rar-${rar}${bossOff ? ' trick-off' : ''}`;
     chip.dataset.trickId = trick.id;
-    if (trick.id === 'mirror') {
-      const dir = trick._tiltDir; // -1 left, +1 right, undefined = not aimed
+    const isMirror = trick.id === 'mirror';
+    const dir = trick._tiltDir; // -1 left, +1 right, undefined = not aimed
+    const tile = { entity: 'trick', label: trick.name,
+                   emoji: isMirror ? (dir === -1 ? '◀' : dir === 1 ? '▶' : '◆') : trickEmoji(trick) };
+    chip.innerHTML = entityTileHTML(tile, rar) + (bossOff ? `<div class="trick-off-mark">OFF</div>` : '');
+    if (isMirror) {
       chip.classList.add('trick-mirror');
-      chip.innerHTML = `<div class="trick-card-emoji">${dir === -1 ? '◀' : dir === 1 ? '▶' : '◆'}</div>`
-                     + `<div class="trick-card-name">${trick.name}</div>`;
-      chip.title = trick.name + ' — tap to aim left/right';
+      chip.title = trick.name + ' - tap to aim left/right';
       chip.addEventListener('click', e => {           // single tap cycles borrow direction
         e.stopPropagation();
         trick._tiltDir = (trick._tiltDir === -1) ? 1 : -1;
         renderTrickTray();
       });
     } else {
-      chip.innerHTML = `<div class="trick-card-emoji">${trickEmoji(trick)}</div>`
-                     + `<div class="trick-card-name">${trick.name}</div>`;
       chip.addEventListener('click', e => {
         e.stopPropagation();
+        if (chip._sellHeld) { chip._sellHeld = false; return; }  // the lift that ended a hold
         const existing = document.getElementById('trick-tooltip');
         if (existing) { hideTrickTooltip(); return; }
         showTrickTrayTooltip(trick, chip);
@@ -367,15 +376,17 @@ function renderTrickTray() {
   // the fallback) keeps the slow auto-scroll marquee. Doing both would fight:
   // the marquee duplicates the tiles, which the fan would then measure.
   if (typeof fanTrickTray === 'function' && fanTrickTray(list, track)) {
-    // fanned — no marquee
+    // fanned - no marquee
   } else {
     applyChipMarquee(list, track);
   }
   // Hover tooltips for every tile (originals + marquee clones).
   list.querySelectorAll('.trick-tray-chip').forEach(chip => {
     const trick = trickTray.find(t => t.id === chip.dataset.trickId);
-    if (trick) attachTrickHover(chip, trick);
+    if (trick) { attachTrickHover(chip, trick); attachTrickSellHold(chip, trick); }
   });
+  // Names are word-atomic and shrink to fit - never broken across a letter (r182).
+  fitEntityNames(list, '.trick-tray-chip .rwd-name', { maxLines: 2, minPx: 5 });
 }
 
 // Hover → show tooltip; a short grace on leave lets the pointer reach the
@@ -388,16 +399,51 @@ function attachTrickHover(chip, trick) {
   chip.addEventListener('mouseleave', scheduleTrickHoverHide);
 }
 
-function showTrickTrayTooltip(trick, anchorEl) {
+// Press-and-hold a Trick you own to bring up its sell / discard options (r182).
+// Works with a finger and with a held mouse button, so the gesture is the same
+// on a phone and on a desktop. A hold sets chip._sellHeld, which the chip's own
+// click handler checks so the lift that ends the hold does not immediately
+// toggle the bubble back off.
+const TRICK_SELL_HOLD_MS = 430;
+function attachTrickSellHold(chip, trick) {
+  let timer = null, sx = 0, sy = 0;
+  const cancel = () => { if (timer) { clearTimeout(timer); timer = null; } };
+  chip.addEventListener('pointerdown', e => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    sx = e.clientX; sy = e.clientY;
+    chip._sellHeld = false;
+    cancel();
+    timer = setTimeout(() => {
+      chip._sellHeld = true;
+      cancelTrickHoverHide();
+      showTrickTrayTooltip(trick, chip, { actions: true });
+      if (navigator.vibrate) { try { navigator.vibrate(12); } catch (err) {} }
+    }, TRICK_SELL_HOLD_MS);
+  });
+  chip.addEventListener('pointermove', e => {
+    if (timer && Math.hypot(e.clientX - sx, e.clientY - sy) > 8) cancel();
+  });
+  chip.addEventListener('pointerup', cancel);
+  chip.addEventListener('pointercancel', () => { cancel(); chip._sellHeld = false; });
+}
+
+// r182 - READING a Trick and DISPOSING of one are now two different gestures.
+//   tap / hover  → the description, nothing you can hit by accident
+//   tap-and-hold → the same bubble with SELL and DISCARD on it
+// Before this, every tap put a live Sell button under your thumb just for asking
+// what a Trick did.
+function showTrickTrayTooltip(trick, anchorEl, { actions = false } = {}) {
   hideTrickTooltip();
   const tip = document.createElement('div');
   tip.id = 'trick-tooltip';
-  tip.className = `trick-tooltip trick-tier-${trick.tier}`;
+  tip.className = `trick-tooltip trick-tier-${trick.tier}` + (actions ? ' has-actions' : '');
   const liveDesc = trickLiveDesc(trick);
   const _sv = (typeof trickSellValue === 'function') ? trickSellValue(trick) : 0;
   tip.innerHTML = `<div class="trick-tooltip-name">${trick.name}</div><div class="trick-tooltip-desc">${colorizeKeywords(withSuitHalo(liveDesc))}</div>`
-                + `<div class="trick-tooltip-actions"><button class="trick-tooltip-sell" id="trick-tooltip-sell-btn">Sell 💰${_sv}</button>`
-                + `<button class="trick-tooltip-discard" id="trick-tooltip-discard-btn">Discard</button></div>`;
+                + (actions
+                    ? `<div class="trick-tooltip-actions"><button class="trick-tooltip-sell" id="trick-tooltip-sell-btn">Sell 💰${_sv}</button>`
+                      + `<button class="trick-tooltip-discard" id="trick-tooltip-discard-btn">Discard</button></div>`
+                    : `<div class="trick-tooltip-hint">hold for sell / discard</div>`);
   tip.style.cssText = 'position:fixed;opacity:0;z-index:300;';
   document.body.appendChild(tip);
   tip.querySelector('#trick-tooltip-sell-btn')?.addEventListener('click', e => {
@@ -487,7 +533,7 @@ async function confirmFullscreenTrickSelection(trick) {
     _trickState: 'acquired', trick, _id: trickIdCounter
   };
   // ── Salvage any normal card sitting at the target cell back into the draw pile ──
-  // (Without this, the card would be silently dropped — a slow leak to the deck.)
+  // (Without this, the card would be silently dropped - a slow leak to the deck.)
   const displaced = gridData[targetRow][targetCol];
   if (displaced && !displaced._isTrick && displaced.rank) {
     drawPile.push({ rank: displaced.rank, suit: displaced.suit });
@@ -553,7 +599,7 @@ async function confirmTrickSelection(trick) {
   pendingTrickChoice = null;
   hideTrickTooltip();
 
-  // Only remove NEW unchosen Tricks — acquired/upgradeable/upgraded stay in the grid
+  // Only remove NEW unchosen Tricks - acquired/upgradeable/upgraded stay in the grid
   const unchosenCells = [];
   for (let r = 0; r < gridRows; r++)
     for (let c = 0; c < gridCols; c++) {
@@ -562,7 +608,7 @@ async function confirmTrickSelection(trick) {
         unchosenCells.push([r, c]);
     }
 
-  // Mark chosen Trick settled — acquired or upgraded depending on prior state
+  // Mark chosen Trick settled - acquired or upgraded depending on prior state
   for (let r = 0; r < gridRows; r++)
     for (let c = 0; c < gridCols; c++) {
       const cell = gridData[r][c];
@@ -571,7 +617,7 @@ async function confirmTrickSelection(trick) {
       cell._trickState = cell._trickState === 'upgradeable' ? 'upgraded' : 'acquired';
     }
 
-  // Apply trick (stack if upgrading — option 4)
+  // Apply trick (stack if upgrading - option 4)
   const isUpgrade = (() => {
     for (let r = 0; r < gridRows; r++)
       for (let c = 0; c < gridCols; c++)
@@ -580,7 +626,7 @@ async function confirmTrickSelection(trick) {
     return false;
   })();
 
-  // Apply trick (stack on upgrade — apply twice)
+  // Apply trick (stack on upgrade - apply twice)
   selectTrick(trick, true);
   if (isUpgrade) selectTrick(trick, true);
 
@@ -592,11 +638,11 @@ async function confirmTrickSelection(trick) {
   render();
 
   if (pendingLevelUps > 0) {
-    // More level-ups queued — chain into next one
+    // More level-ups queued - chain into next one
     pendingLevelUps--;
     setTimeout(() => drainLevelUpQueue(), 400);
   } else {
-    // All done — 3-2-1 then start round
+    // All done - 3-2-1 then start round
     show321Countdown().then(() => {
       sfxRoundStart();
       startRoundTimer();
@@ -611,7 +657,7 @@ function selectTrick(trick, fromTrickFlow = false) {
   clearInterval(levelupTimer);
   acquiredTricks.push(trick);
 
-  // Positional bonuses get an axis+index at pick time — steered by the position knacks
+  // Positional bonuses get an axis+index at pick time - steered by the position knacks
   // (Surveyor/Leveler/Alignment/District). See assignPositionMark() in scoring.js.
   assignPositionMark(trick);
 
@@ -622,11 +668,11 @@ function selectTrick(trick, fromTrickFlow = false) {
   if (fromTrickFlow) return; // confirmTrickSelection handles timer + render
 
   if (pendingLevelUps > 0) {
-    // More levels queued — show next trick screen after a short pause
+    // More levels queued - show next trick screen after a short pause
     pendingLevelUps--;
     setTimeout(() => drainLevelUpQueue(), 400);
   } else {
-    // All done — resume round
+    // All done - resume round
     startRoundTimer();
     updateClockUI();
     render();
@@ -640,6 +686,10 @@ function selectTrick(trick, fromTrickFlow = false) {
 // GAME END
 // ══════════════════════════════════════════════
 function updateActProgressUI() {
+  // Keep the ACT/node/sigil blocks in step - every caller of this (boss start,
+  // boss end, startGame, reward-grid advance, save restore) is exactly a moment
+  // the progress block needs repainting.
+  if (typeof updateRunProgressUI === 'function') updateRunProgressUI();
   const labelEl = document.getElementById('game-timer-label');
   const valEl   = document.getElementById('game-timer');
   if (!labelEl || !valEl) return;
@@ -677,7 +727,7 @@ function onGameWin() {
     Time Played: <strong>${m}:${s.toString().padStart(2,'0')}</strong><br>
     Levels Cleared: <strong>${level}</strong><br>
     Hands Played: <strong>${handsPlayed}</strong><br>
-    Best Hand: <strong>${highestHandName ? `${highestHandName} (${highestHandScore.toLocaleString()})` : '—'}</strong>
+    Best Hand: <strong>${highestHandName ? `${highestHandName} (${highestHandScore.toLocaleString()})` : '·'}</strong>
   `;
   overlay.classList.add('show');
 }
@@ -701,7 +751,7 @@ function onGameEnd(gameover) {
     Time Lasted: <strong>${timePlayed}</strong><br>
     Level Reached: <strong>${level}</strong><br>
     Hands Played: <strong>${handsPlayed}</strong><br>
-    Best Hand: <strong>${highestHandName ? `${highestHandName} (${highestHandScore.toLocaleString()})` : '—'}</strong><br>
+    Best Hand: <strong>${highestHandName ? `${highestHandName} (${highestHandScore.toLocaleString()})` : '·'}</strong><br>
     Tricks: <strong>${acquiredTricks.length}</strong>
   `;
   overlay.classList.add('show');
@@ -754,14 +804,14 @@ function fanTrickTray(list, track) {
   //
   // BOTH measurements must be in the same units. The cabinet applies CSS `zoom`,
   // which getBoundingClientRect() reports scaled but offsetWidth/clientWidth do
-  // not — mixing the two silently divides the step by the zoom factor.
+  // not - mixing the two silently divides the step by the zoom factor.
   // offsetWidth/clientWidth are the layout-px pair, which is also the unit the
   // value is written back out in.
   const tile  = chips[0].offsetWidth || 47;
   const avail = list.clientWidth;
   chips.forEach((c, i) => c.style.setProperty('--fan-z', String(i + 1)));  // later tiles on top
 
-  if (avail <= 0) return false;   // not laid out yet — leave it alone
+  if (avail <= 0) return false;   // not laid out yet - leave it alone
 
   const GAP = 4;
   const PAD = 3;          // rounding + the track's own box; without it the fan
@@ -769,7 +819,7 @@ function fanTrickTray(list, track) {
   const room = avail - PAD;
   const n = chips.length;
 
-  // ONE variable, and it is the gap between tiles — positive when they fit,
+  // ONE variable, and it is the gap between tiles - positive when they fit,
   // negative when they tuck. Writing the measured TILE width back into a var
   // that the tile's own `width` reads would be a feedback loop; this cannot be.
   if (n * tile + (n - 1) * GAP <= room) {
@@ -778,7 +828,7 @@ function fanTrickTray(list, track) {
   }
   // Doesn't fit: tuck each tile over the last until the row does, but never past
   // the point where a tucked tile stops being visible. Past that floor the
-  // leftmost tiles clip instead — the list is right-aligned, so the newest
+  // leftmost tiles clip instead - the list is right-aligned, so the newest
   // Trick always stays whole.
   const step = Math.max(FAN_MIN_STEP, (room - tile) / (n - 1));
   track.style.setProperty('--fan-gap', (step - tile).toFixed(2) + 'px');

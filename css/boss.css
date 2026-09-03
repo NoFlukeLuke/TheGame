@@ -29,7 +29,7 @@
 @keyframes null-warn-pulse { 0%,100% { opacity: 0.55; } 50% { opacity: 1; } }
 
 /* ── The Quarantine, step 2: the cell is dark. The card underneath is still
-   there and still visible — greyed out under a thick, slowly-moving smoke. ── */
+   there and still visible - greyed out under a thick, slowly-moving smoke. ── */
 .null-cell {
   position: absolute;
   width: var(--card-w, 57px); height: var(--card-h, 75px);
@@ -47,12 +47,15 @@
 }
 
 /* ── Run-progress sigil: on a boss round the node pips collapse into one mark
-   that pulses and leaks smoke. #run-progress keeps its box; only the contents
-   swap, so the landscape placement rules are untouched. ── */
-#run-progress.boss-sigil .rp-nodes { display: none; }
-#run-progress.boss-sigil .rp-act { color: var(--red); text-shadow: 0 0 8px rgba(192,57,43,0.7); }
-#run-progress .rp-sigil { display: none; }
-#run-progress.boss-sigil .rp-sigil {
+   that pulses and leaks smoke. The block keeps its box; only the contents swap,
+   so the placement rules are untouched.
+   Scoped to .rp-block (r160) rather than #run-progress, because there are now
+   TWO progress blocks - the landscape box and the portrait top-bar copy - and
+   the sigil has to be the same mark in whichever one the layout is showing. ── */
+.rp-block.boss-sigil .rp-nodes { display: none; }
+.rp-block.boss-sigil .rp-act { color: var(--red); text-shadow: 0 0 8px rgba(192,57,43,0.7); }
+.rp-block .rp-sigil { display: none; }
+.rp-block.boss-sigil .rp-sigil {
   display: block; position: relative;
   font-size: 20px; line-height: 1; color: #ff5b5b;
   text-shadow: 0 0 10px rgba(255,60,60,0.9), 0 0 22px rgba(150,0,0,0.6);
@@ -62,16 +65,16 @@
   0%,100% { transform: scale(1);    filter: brightness(1); }
   50%     { transform: scale(1.14); filter: brightness(1.5); }
 }
-/* the ooze — two soft blobs drifting up out of the mark */
-#run-progress.boss-sigil .rp-sigil::before,
-#run-progress.boss-sigil .rp-sigil::after {
+/* the ooze - two soft blobs drifting up out of the mark */
+.rp-block.boss-sigil .rp-sigil::before,
+.rp-block.boss-sigil .rp-sigil::after {
   content: ''; position: absolute; left: 50%; bottom: 60%;
   width: 16px; height: 16px; margin-left: -8px; border-radius: 50%;
   background: radial-gradient(circle, rgba(190,40,40,0.5), transparent 70%);
   pointer-events: none;
   animation: sigil-smoke 3.4s ease-out infinite;
 }
-#run-progress.boss-sigil .rp-sigil::after { animation-delay: 1.7s; }
+.rp-block.boss-sigil .rp-sigil::after { animation-delay: 1.7s; }
 @keyframes sigil-smoke {
   0%   { transform: translate(0,0) scale(0.5); opacity: 0.7; }
   60%  { transform: translate(-5px,-16px) scale(1.3); opacity: 0.28; }
@@ -87,7 +90,10 @@
   gap: 8px; padding: 16px 20px; text-align: center;
   background: radial-gradient(ellipse at 50% 40%, rgba(48,8,8,0.94), rgba(6,4,4,0.97) 72%);
   border-radius: 8px;
-  opacity: 0; transition: opacity 0.3s ease;
+  /* Grows out of / shrinks back into the run-progress sigil (see
+     _bossPreambleFlyTransform in js/boss.js, which writes the transform). */
+  opacity: 0; transform-origin: center center;
+  transition: opacity 0.3s ease, transform 0.4s cubic-bezier(.2,.8,.3,1);
 }
 #boss-preamble.show { opacity: 1; }
 #boss-preamble .bp-sigil {
@@ -134,7 +140,7 @@
 
 /* ── The 3-2-1 belongs over the BOARD, not the viewport. #countdown-321-overlay
    was `position:fixed; inset:0` with a 30% top pad, which centred it on the
-   screen — off-centre from the grid in the landscape layout. It is now sized to
+   screen - off-centre from the grid in the landscape layout. It is now sized to
    the grid slot instead. ── */
 #stage.landscape #countdown-321-overlay {
   position: absolute;
@@ -142,10 +148,10 @@
   inset: auto; padding-top: 0;
 }
 
-/* ═══════════════ PAYOUT — LETHE REMITTANCE ADVICE (r150) ═══════════════
+/* ═══════════════ PAYOUT - LETHE REMITTANCE ADVICE (r150) ═══════════════
    The payout panel was the last screen still wearing the pre-cabinet look:
    Cinzel on a transparent field, no frame, nothing tying it to the terminal.
-   It is now a printed statement from the machine — plastic frame, phosphor rule,
+   It is now a printed statement from the machine - plastic frame, phosphor rule,
    monospaced figures. Overrides only; the animation classes (.show on each line,
    the counters, the ff button) are untouched so interlude.js keeps working. */
 
@@ -214,3 +220,124 @@
   color: var(--c-cyan, #16c8d8) !important;
   border-color: rgba(22,200,216,0.4) !important;
 }
+
+/* ══════════════════════════════════════════════
+   BOSS APPROACH (r177) - js/boss-approach.js
+   ══════════════════════════════════════════════
+   Everything scales off ONE custom property, --ba-t (0 → 1 across the warning
+   window), published on #stage by _baPaint(). That is what makes this work in
+   both orientations with no per-layout rule: nothing here is positioned in stage
+   percentages, it is all filters and an inset overlay on #grid - and #grid is the
+   board in portrait and landscape alike.
+
+   The drain goes on #stage rather than on #grid alone because the point is that
+   the MACHINE is losing its colour, not just the cards. Two things make that safe:
+   the pop-ups and the dev panel live outside #cabinet (a `filter` would otherwise
+   make #stage the containing block for their position:fixed), and the class is
+   cleared by endBossApproach() before the briefing mounts, so the boss round
+   itself is never played in greyscale. */
+/* The drain is an EXPLICIT LIST, not a single filter on #stage, and that is
+   deliberate. A `filter` makes its element the containing block for every
+   position:fixed descendant - and #stage contains the Mart, the pause menu, the
+   pick screen and half a dozen other fixed overlays, any of which the player can
+   open during these thirty seconds. Draining #stage wholesale would silently
+   re-anchor them to the stage box. Every element below is a leaf of the HUD with
+   no fixed descendant of its own, and between them they are the whole machine.
+   #grid covers the board and its cards in one go, in both orientations. */
+#stage.boss-approach #top-bar,
+#stage.boss-approach #top-strip,
+#stage.boss-approach #focus-meter-wrap,
+#stage.boss-approach #grid,
+#stage.boss-approach #action-row-2,
+#stage.boss-approach #btn-play,
+#stage.boss-approach #btn-discard,
+#stage.boss-approach #swap-indicator,
+#stage.boss-approach #run-progress,
+#stage.boss-approach #coin-info,
+#stage.boss-approach #vclock {
+  filter: saturate(calc(1 - var(--ba-t, 0) * 0.9))
+          brightness(calc(1 - var(--ba-t, 0) * 0.12));
+  transition: filter 0.9s linear;
+}
+
+#boss-approach-fx { display: none; }
+#boss-approach-fx.ba-on {
+  display: block; position: absolute; inset: 12px;   /* = #cab-screen's padding */
+  z-index: 50;                                       /* under the CRT scanlines (60) */
+  pointer-events: none; overflow: hidden; border-radius: 8px;
+}
+/* Red pressure closing in from the edges of the board. */
+#boss-approach-fx .ba-vignette {
+  position: absolute; inset: 0;
+  box-shadow: inset 0 0 calc(10px + 90px * var(--ba-t, 0)) calc(-6px + 26px * var(--ba-t, 0)) rgba(192, 57, 43, 0.85);
+  opacity: calc(0.25 + 0.75 * var(--ba-t, 0));
+  animation: ba-breathe calc(2.2s - 1.2s * var(--ba-t, 0)) ease-in-out infinite;
+}
+@keyframes ba-breathe { 0%, 100% { filter: none; } 50% { filter: brightness(1.5); } }
+
+/* Label and number are ONE centred stack, not two absolutely-placed elements.
+   Pinned near the top of the CRT the label landed on the clock row in landscape
+   and behind the score panel in portrait; sitting directly over the number it
+   clears both, in both orientations, with no per-layout rule. */
+#boss-approach-fx .ba-label {
+  position: absolute; left: 0; right: 0; top: 50%;
+  transform: translateY(-72px);
+  text-align: center; opacity: 0;
+  font-family: 'Orbitron', sans-serif; font-weight: 700;
+  font-size: 11px; letter-spacing: 4px; text-transform: uppercase;
+  color: #ff8b7a;
+  text-shadow: 0 0 12px rgba(192, 57, 43, 0.95), 0 2px 3px #000, 0 0 3px #000;
+  transition: opacity 0.4s ease;
+}
+#boss-approach-fx.ba-count-on .ba-label { opacity: 1; }
+
+/* The last ten seconds, centred on the CRT. Plain px: this layer is inside
+   #cabinet, so the cabinet's own zoom scales it to the viewport for free. */
+#boss-approach-fx .ba-count {
+  position: absolute; inset: 0; display: none;
+  align-items: center; justify-content: center;
+  font-family: 'Cinzel', serif; font-weight: 900; font-size: 84px; line-height: 1;
+  color: rgba(240, 230, 200, 0.92);
+  text-shadow: 0 0 26px rgba(192, 57, 43, 0.95), 0 4px 10px rgba(0, 0, 0, 0.7);
+}
+#boss-approach-fx.ba-count-on .ba-count { display: flex; animation: ba-tick 0.9s ease-out; }
+@keyframes ba-tick {
+  0%   { transform: scale(1.55); opacity: 0; }
+  18%  { transform: scale(1);    opacity: 1; }
+  100% { transform: scale(0.94); opacity: 0.25; }
+}
+
+/* ── The wipe ── a hard band sweeps the board top to bottom while the score
+   counts itself down to zero underneath it. */
+#boss-approach-fx .ba-band {
+  position: absolute; left: -10%; right: -10%; height: 26%; top: -30%; opacity: 0;
+  background: linear-gradient(180deg, transparent, rgba(255, 236, 210, 0.9) 45%, rgba(192, 57, 43, 0.95) 60%, transparent);
+  box-shadow: 0 0 30px 6px rgba(255, 220, 190, 0.5);
+}
+#boss-approach-fx.ba-wipe .ba-band    { animation: ba-sweep 0.62s cubic-bezier(.5,0,.6,1) forwards; }
+#boss-approach-fx.ba-wipe .ba-count,
+#boss-approach-fx.ba-wipe .ba-label   { display: none; opacity: 0; }
+#boss-approach-fx.ba-wipe .ba-vignette { animation: none; opacity: 1; }
+@keyframes ba-sweep {
+  0%   { top: -30%; opacity: 0; }
+  12%  { opacity: 1; }
+  88%  { opacity: 1; }
+  100% { top: 104%; opacity: 0; }
+}
+
+/* The replacement quota is stamped in, so it is seen arriving rather than just
+   being different. Applied to #score-left, which is the GOAL chip in BOTH
+   orientations (landscape places it absolutely, portrait grids it - either way
+   the element is the same one). */
+.ba-goal-pop { animation: ba-goal-stamp 0.62s cubic-bezier(.3,1.4,.5,1); }
+@keyframes ba-goal-stamp {
+  0%   { transform: scale(1.4);  filter: brightness(2.2) drop-shadow(0 0 14px var(--red)); }
+  55%  { transform: scale(0.97); filter: brightness(1.2); }
+  100% { transform: scale(1);    filter: none; }
+}
+
+/* Reduced motion: keep the information (colour drain, countdown, the stamp) and
+   drop the things that move for their own sake. */
+body.reduced-motion #boss-approach-fx .ba-vignette,
+body.reduced-motion #boss-approach-fx.ba-count-on .ba-count,
+body.reduced-motion .ba-goal-pop { animation: none; }

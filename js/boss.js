@@ -1,7 +1,7 @@
 // TWO kinds of unusable cell, both funnelled through here so every existing
 // select/tap/swipe guard covers both without change:
-//   · blockedCells — VOID: no card at all (legacy boss patterns)
-//   · nullCells    — QUARANTINED: a card is present but inert (The Quarantine)
+//   · blockedCells - VOID: no card at all (legacy boss patterns)
+//   · nullCells    - QUARANTINED: a card is present but inert (The Quarantine)
 // Anything that needs to tell them apart (card refill, render) asks isCellVoid /
 // isCellNulled directly.
 function isCellBlocked(r, c) {
@@ -105,7 +105,7 @@ function purgeStonesFromDeck() {
 // ── Boss objective checking ──
 // Bosses no longer carry their own score target (r155, all modes): the win bar is
 // simply THIS ROUND'S GOAL, exactly like a normal round. A boss's challenge is its
-// modifier — plus, for 'hand' bosses, a hand requirement layered ON TOP of the goal.
+// modifier - plus, for 'hand' bosses, a hand requirement layered ON TOP of the goal.
 function bossGoalMet() { return score >= roundGoal; }
 
 function checkBossObjective(handName, handFinalScore) {
@@ -121,28 +121,23 @@ let bossScoreAtStart = 0;
 function updateBossObjectiveUI() {
   if (!bossActive || !currentBoss) return;
   const obj = currentBoss.objective;
-  const el = document.getElementById('boss-objective-text');
-  if (!el) return;
-  // Always show progress toward the round goal; hand bosses show their tally too.
-  const goalLine = `${Math.max(0, score).toLocaleString()} / ${roundGoal.toLocaleString()}`;
-  el.textContent = (obj.type === 'hand')
-    ? `${goalLine}  ·  ${obj.handName}: ${bossObjectiveProgress}/${obj.count}`
-    : goalLine;
-  // Voidwright: also update the pool display
-  const poolEl = document.getElementById('boss-trick-pools');
-  if (poolEl && currentBoss.modifiers.includes('trick_pool_split')) {
-    const phaseAActive = bossPhase === 1;
-    const aNames = [...trickPoolA].map(id => trickIdToName(id)).join(', ') || '(none)';
-    const bNames = [...trickPoolB].map(id => trickIdToName(id)).join(', ') || '(none)';
-    poolEl.innerHTML = `
-      <div class="boss-pool ${phaseAActive ? 'pool-active' : 'pool-inactive'}">
-        <span class="boss-pool-label">P1 OFF:</span> ${aNames}
-      </div>
-      <div class="boss-pool ${!phaseAActive ? 'pool-active' : 'pool-inactive'}">
-        <span class="boss-pool-label">P2 OFF:</span> ${bNames}
-      </div>
-    `;
+  // r171 - there is no separate "score requirement" panel over the board any
+  // more, in any mode or orientation. The bar IS the round goal (r155), and the
+  // round goal already has a chip on screen; a second panel restating it was
+  // both redundant and covering the cards. What the goal chip could NOT say on
+  // its own is a hand boss's tally, so that goes underneath it.
+  const extra = document.getElementById('boss-goal-extra');
+  if (extra) {
+    if (obj.type === 'hand') {
+      extra.textContent = `${obj.handName.toUpperCase()} ${bossObjectiveProgress}/${obj.count}`;
+      extra.classList.toggle('done', bossObjectiveProgress >= obj.count);
+      extra.style.display = '';
+    } else extra.style.display = 'none';
   }
+  // Voidwright: refresh the pool display (the phase marker moves at halftime, and
+  // the brief can be reopened at any point in the round).
+  const poolEl = document.getElementById('boss-trick-pools');   // lives in the brief now
+  if (poolEl && currentBoss.modifiers.includes('trick_pool_split')) poolEl.innerHTML = bossTrickPoolsHTML();
 }
 function trickIdToName(id) {
   const trick = (acquiredTricks || []).find(b => b.id === id);
@@ -183,16 +178,25 @@ function applyBossModifiers(preset) {
         bossLockedHand = preset.params.lockedHand || null;
         break;
       case 'trick_pool_split': {
-        // Randomly split owned Tricks into two pools
-        const ownedIds = (typeof acquiredTricks !== 'undefined' ? acquiredTricks : []).map(b => b.id);
-        const shuffled = [...ownedIds];
-        for (let i = shuffled.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-        }
-        const half = Math.ceil(shuffled.length / 2);
-        trickPoolA = new Set(shuffled.slice(0, half));
-        trickPoolB = new Set(shuffled.slice(half));
+        // The Voidwright (reworked r188). It used to split your WHOLE tray in two
+        // and disable half of it per phase, which scaled with how many Tricks you
+        // owned - unreadable at 8 Tricks and near-invisible at 2. It now takes a
+        // FIXED count per phase (2 by default): two off for the first half of the
+        // round, then those two back and a different two off for the second half.
+        // Owning more Tricks no longer makes the boss hit harder; it makes it
+        // easier, which is the right way round for a reward.
+        //
+        // The split is decided ONCE, here, and never re-rolled - that is what lets
+        // the briefing print both halves up front (bossTrickPoolsHTML).
+        const per = Math.max(1, Math.round((preset.params.perPhase || 2) * (typeof bossMagScale === 'function' ? bossMagScale() : 1)));
+        const ownedIds = (typeof trickTray !== 'undefined' && trickTrayMode ? trickTray : (acquiredTricks || [])).map(b => b.id);
+        const pool = shuffle(ownedIds);
+        // Fewer Tricks than two full phases: split what there is evenly rather
+        // than putting everything in the first half and nothing in the second.
+        const take = Math.min(per * 2, pool.length);
+        const first = Math.min(per, Math.ceil(take / 2));
+        trickPoolA = new Set(pool.slice(0, first));
+        trickPoolB = new Set(pool.slice(first, take));
         break;
       }
       case 'periodic_null': {
@@ -247,7 +251,7 @@ function clearBossModifiers() {
   if (typeof clearBossEffects === 'function') clearBossEffects();
 }
 
-// Hook called every time a card is drawn — biases toward low cards during Famine
+// Hook called every time a card is drawn - biases toward low cards during Famine
 function maybeFamineDrawSwap(card) {
   if (!bossLowCardActive) return card;
   if (!card || card._isStone || card._isSleight) return card;
@@ -274,13 +278,53 @@ function isTrickDisabledByBoss(trickId) {
 // "the time you saved across the last 8 clears, capped at 3 minutes."
 let bossWindowDuration = BOSS_WINDOW_DURATION;
 
+// ── Which boss you get (r179) ──
+// This used to be BOSS_PRESETS[bossNumber % length] with bossNumber starting at 0
+// every run, so the order was FIXED: boss 1 was always The Stone Lord, boss 2
+// always The Voidwright, boss 3 always The Hand of Famine. A Classic act run
+// fights exactly 3 bosses and Survival/Flow 5, so 11 of the 16 presets - the
+// entire r150/r151 roster - could never appear in normal play, and the three you
+// always got were the quietest ones on the list. That is the whole reason bosses
+// "didn't seem to do anything".
+//
+// It is a BAG, not a re-roll per boss: shuffle the whole roster, deal from it,
+// refill when empty. No repeats inside a run, and every boss is reachable.
+let bossBag = [];
+
+// A boss whose only modifier can't bite right now is a wasted round. The
+// Voidwright splits your owned Tricks in two and disables half; The Censor
+// suspends one at a time. With 0 or 1 Tricks owned both are literally no-ops, so
+// they are passed over until the player has something to lose.
+function bossPresetIsLive(preset) {
+  const owned = (typeof acquiredTricks !== 'undefined' ? acquiredTricks : []).length;
+  const mods  = preset.modifiers || [];
+  if ((mods.includes('trick_pool_split') || mods.includes('trick_blackout')) && owned < 2) return false;
+  return true;
+}
+
+function nextBossPreset() {
+  // Two passes: prefer a boss that can actually act; if the bag holds nothing
+  // live (very early run, no Tricks yet) take the front of the bag anyway rather
+  // than loop forever.
+  for (let refill = 0; refill < 2; refill++) {
+    if (!bossBag.length) bossBag = shuffle(BOSS_PRESETS.map(p => p.id));
+    const liveIdx = bossBag.findIndex(id => {
+      const p = BOSS_PRESETS.find(x => x.id === id);
+      return p && bossPresetIsLive(p);
+    });
+    if (liveIdx >= 0) {
+      const [id] = bossBag.splice(liveIdx, 1);
+      return BOSS_PRESETS.find(p => p.id === id);
+    }
+    bossBag = [];   // nothing live in this bag - reshuffle and try once more
+  }
+  return BOSS_PRESETS[Math.floor(Math.random() * BOSS_PRESETS.length)];
+}
+
 function triggerBoss(presetOverride = null, windowSeconds = null) {
   if (bossActive) return;
   bossWindowDuration = (typeof windowSeconds === 'number' && windowSeconds > 0) ? windowSeconds : BOSS_WINDOW_DURATION;
-  // Pick preset (cycle or random; v1 random)
-  const preset = presetOverride
-    ? structuredClone(presetOverride)
-    : structuredClone(BOSS_PRESETS[bossNumber % BOSS_PRESETS.length]);
+  const preset = structuredClone(presetOverride || nextBossPreset());
   currentBoss = preset;
   bossActive = true;
   bossNumber++;
@@ -314,7 +358,9 @@ function triggerBoss(presetOverride = null, windowSeconds = null) {
   document.getElementById('clock').classList.add('boss-mode');
   document.getElementById('clock-bar').classList.add('boss-mode');
   document.getElementById('grid').classList.add('boss-active');
-  document.getElementById('run-progress')?.classList.add('boss-sigil');
+  // The sigil itself is applied by updateRunProgressUI (called from
+  // updateActProgressUI below) so BOTH progress blocks - landscape and portrait -
+  // get it, in every mode that can run a boss.
 
   updateBossClockDisplay();
 
@@ -327,6 +373,9 @@ function triggerBoss(presetOverride = null, windowSeconds = null) {
 
   // Objective HUD
   showBossObjectiveHUD(preset);
+  // Anything that switches Tricks off (Voidwright, Censor) shows as greyed tiles
+  // in the tray - repaint it now so the state is on screen behind the briefing.
+  if (typeof renderTrickTray === 'function') renderTrickTray();
 
   // Render
   renderBlockedCells();
@@ -343,38 +392,200 @@ function triggerBoss(presetOverride = null, windowSeconds = null) {
 }
 
 // Boss briefing rendered over the board. `onProceed` fires when dismissed.
+//
+// r171 - the briefing is REOPENABLE. It is the only place the boss's rules are
+// written down, and it used to be a one-shot you could dismiss and never see
+// again; now the red GOAL chip and the act/sigil readout are also its handle
+// (see bindBossBriefReopen - SCORE is the hand log's, not the brief's).
+// Reopening does NOT pause the clock - a pausable rules panel would be a free
+// timeout on every boss round.
+let _bossBriefPreset = null;
+
+// ── The Voidwright's tray, printed in the briefing (r188) ────────────────────
+// The complaint this answers: a boss that switches Tricks off is invisible if you
+// cannot see WHICH, and unplannable if you cannot see WHEN they come back. The
+// split is fixed at boss start, so the briefing can show your whole tray sorted
+// into three groups - off for the first half, off for the second half, and
+// untouched - with the half you are currently in marked LIVE. Reopening the brief
+// mid-round (tap the GOAL chip or the act readout) re-renders it against the
+// current phase.
+//
+// Tiles are the shared entity tile (js/entity-tile.js), the same object you see in
+// your tray and on the reward grid, so no translation is needed to find the Trick
+// this is talking about.
+function _bossTrickById(id) {
+  const pools = [(typeof trickTray !== 'undefined' ? trickTray : []), (typeof acquiredTricks !== 'undefined' ? acquiredTricks : [])];
+  for (const p of pools) { const t = p.find(x => x.id === id); if (t) return t; }
+  return null;
+}
+function _bossTrickTilesHTML(ids) {
+  if (!ids.length) return `<div class="btp-none">nothing</div>`;
+  return ids.map(id => {
+    const t = _bossTrickById(id);
+    const rar = t && ['common','rare','epic','legendary','mythic'].includes(t.tier) ? t.tier : 'common';
+    const tile = { entity: 'trick', label: t ? t.name : trickIdToName(id),
+                   emoji: (t && typeof trickEmoji === 'function') ? trickEmoji(t) : '🃏' };
+    return `<div class="btp-tile">${entityTileHTML(tile, rar)}</div>`;
+  }).join('');
+}
+function bossTrickPoolsHTML() {
+  const held = (typeof trickTray !== 'undefined' && trickTrayMode ? trickTray : (acquiredTricks || [])).map(t => t.id);
+  const a = held.filter(id => trickPoolA.has(id));
+  const b = held.filter(id => trickPoolB.has(id));
+  const safe = held.filter(id => !trickPoolA.has(id) && !trickPoolB.has(id));
+  const p1 = bossPhase === 1;
+  const row = (cls, live, label, ids) => `
+    <div class="btp-row ${cls}${live ? ' btp-live' : ''}">
+      <div class="btp-lab">${label}${live ? ' <b>NOW</b>' : ''}</div>
+      <div class="btp-tiles">${_bossTrickTilesHTML(ids)}</div>
+    </div>`;
+  return `<div class="btp">
+    <div class="btp-head">Your Tricks this round</div>
+    ${row('btp-off', p1,  'OFF · FIRST HALF',  a)}
+    ${row('btp-off', !p1, 'OFF · SECOND HALF', b)}
+    ${row('btp-safe', false, 'UNAFFECTED', safe)}
+  </div>`;
+}
+
+function bossBriefHTML(preset, intro) {
+  const obj = preset.objective;
+  // The bar is THIS ROUND'S GOAL (r155). objective.target is vestigial for score
+  // bosses, and quoting it here was showing a number nothing compares against.
+  const objText = (obj.type === 'hand')
+    ? `OBJECTIVE - REACH THE GOAL, AND PLAY ${obj.count} × ${obj.handName.toUpperCase()}`
+    : `OBJECTIVE - REACH THE GOAL (${roundGoal.toLocaleString()})`;
+  return `<button class="bp-x" aria-label="Close briefing">&#10005;</button>` +
+    `<div class="bp-sigil">&#9760;</div>` +
+    `<div class="bp-eyebrow">Boss round</div>` +
+    `<div class="bp-name">${preset.name}</div>` +
+    `<div class="bp-flavor">${preset.flavor || ''}</div>` +
+    `<div class="bp-brief">${preset.brief || 'Survive the review.'}</div>` +
+    `<div class="bp-obj">${objText}</div>` +
+    `<div id="boss-trick-pools">${(preset.modifiers || []).includes('trick_pool_split') ? bossTrickPoolsHTML() : ''}</div>` +
+    (intro ? `<button class="bp-go">PROCEED</button>`
+           : `<div class="bp-hint">the clock is still running</div>`);
+}
+
 function showBossPreamble(preset, onProceed) {
   // Mounted on #grid (not #grid-slot) so the briefing covers the board exactly;
   // the slot is wider and the panel spilled past the cards.
   const slot = document.getElementById('grid');
   if (!slot) { onProceed(); return; }
   document.getElementById('boss-preamble')?.remove();
-  const obj = preset.objective;
-  const objText = obj.type === 'score'
-    ? `OBJECTIVE — SCORE ${obj.target.toLocaleString()} IN ${Math.floor(BOSS_WINDOW_DURATION/60)}:00`
-    : `OBJECTIVE — PLAY ${obj.count} × ${obj.handName.toUpperCase()}`;
+  _bossBriefPreset = preset;
   const el = document.createElement('div');
   el.id = 'boss-preamble';
-  el.innerHTML =
-    `<div class="bp-sigil">&#9760;</div>` +
-    `<div class="bp-eyebrow">Supervisor review</div>` +
-    `<div class="bp-name">${preset.name}</div>` +
-    `<div class="bp-flavor">${preset.flavor || ''}</div>` +
-    `<div class="bp-brief">${preset.brief || 'Survive the review.'}</div>` +
-    `<div class="bp-obj">${objText}</div>` +
-    `<button class="bp-go">PROCEED</button>`;
+  el.innerHTML = bossBriefHTML(preset, true);
   slot.appendChild(el);
   _bossPreambleHeld = true;
   gameTimerPaused = true;
-  requestAnimationFrame(() => el.classList.add('show'));
-  el.querySelector('.bp-go').onclick = () => {
+  // The briefing grows out of the boss sigil in the run-progress block and, on
+  // close, shrinks back into it - so the mark that sits there for the whole round
+  // is visibly where the boss came from. Falls back to the plain fade if the
+  // sigil isn't on screen (no anchor to fly from).
+  //
+  // The ENTRY is a Web Animation, not the CSS transition the return flight uses.
+  // Setting the start transform inline and clearing it a frame later gets
+  // coalesced into one style recalc, so the transition never has two values to
+  // interpolate between and the panel just fades in at full size (verified: the
+  // measured width never left 407px). Forcing layout doesn't help either -
+  // transform doesn't affect layout, so there is nothing for offsetWidth to
+  // flush. el.animate() states both ends explicitly and can't be coalesced away.
+  // The return flight is a genuine change on a settled element, so the CSS
+  // transition handles that one correctly.
+  const fly = _bossPreambleFlyTransform(el);
+  el.classList.add('show');
+  if (fly && typeof el.animate === 'function') {
+    el.animate([{ transform: fly, opacity: 0 }, { transform: 'none', opacity: 1 }],
+               { duration: 400, easing: 'cubic-bezier(.2,.8,.3,1)' });
+  }
+  // Both the ✕ and PROCEED start the round - the briefing is the gate, and
+  // closing it must never leave the boss un-started.
+  const go = () => {
+    const back = _bossPreambleFlyTransform(el);
+    if (back) el.style.transform = back;
     el.classList.remove('show');
-    setTimeout(() => el.remove(), 320);
+    setTimeout(() => el.remove(), 420);
     if (_bossPreambleHeld) { gameTimerPaused = false; _bossPreambleHeld = false; }
     onProceed();
   };
+  el.querySelector('.bp-go').onclick = go;
+  el.querySelector('.bp-x').onclick  = go;
 }
+
+// Re-open the briefing mid-boss as a reference. No pause, no PROCEED.
+function reopenBossBrief() {
+  if (!bossActive || !_bossBriefPreset) return;
+  const existing = document.getElementById('boss-preamble');
+  if (existing) { existing.classList.remove('show'); setTimeout(() => existing.remove(), 320); return; }
+  const slot = document.getElementById('grid');
+  if (!slot) return;
+  const el = document.createElement('div');
+  el.id = 'boss-preamble';
+  el.className = 'bp-reopened';
+  el.innerHTML = bossBriefHTML(_bossBriefPreset, false);
+  slot.appendChild(el);
+  requestAnimationFrame(() => el.classList.add('show'));
+  el.querySelector('.bp-x').onclick = () => {
+    el.classList.remove('show');
+    setTimeout(() => el.remove(), 320);
+  };
+  if (typeof updateBossObjectiveUI === 'function') updateBossObjectiveUI();
+}
+
+// The alarming SCORE / GOAL chips double as the way back to the briefing, plus
+// the act/level readout in the top bar. Bound once at load; each handler checks
+// bossActive, so they are inert the rest of the time.
+function bindBossBriefReopen() {
+  // NOT #score-center (r177): that chip belongs to the hand log, which is a
+  // whole-run reference the player wants during a boss as much as outside one.
+  // The GOAL chip beside it is in the same alarm state and sits right there, and
+  // the act/sigil readout is the other natural "what am I fighting" handle, so
+  // the brief loses nothing by giving up SCORE.
+  // run-progress-pt is the portrait copy of the progress block (r176). In act
+  // mode / on a boss it is what shows there and game-timer-stat is hidden, so
+  // without it portrait would lose the top-bar handle entirely.
+  ['score-left', 'game-timer-stat', 'run-progress', 'run-progress-pt'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el || el._bossBriefBound) return;
+    el._bossBriefBound = true;
+    el.addEventListener('click', () => { if (bossActive) reopenBossBrief(); });
+  });
+}
+
 let _bossPreambleHeld = false;
+
+// The on-screen rect of the boss sigil - the mark inside whichever .rp-block the
+// current layout is showing (landscape's #run-progress, portrait's top-bar copy).
+function _bossSigilAnchorRect() {
+  for (const b of document.querySelectorAll('.rp-block.boss-sigil')) {
+    const r = b.getBoundingClientRect();
+    if (r.width < 1 || r.height < 1) continue;           // the other orientation's copy
+    const sr = b.querySelector('.rp-sigil')?.getBoundingClientRect();
+    return (sr && sr.width > 1) ? sr : r;
+  }
+  return null;
+}
+
+// The transform that puts `el` over the sigil, shrunk to its size.
+//
+// Both rects come from getBoundingClientRect, i.e. real viewport pixels - but a
+// `transform: translate()` on an element INSIDE #cabinet is in that element's own
+// CSS pixels, which the cabinet's `zoom` then scales. So the measured delta has
+// to be divided by the effective zoom, read off the element itself (rect width vs
+// layout width) rather than assumed from --stage-zoom.
+function _bossPreambleFlyTransform(el) {
+  const a = _bossSigilAnchorRect();
+  if (!a) return null;
+  const r = el.getBoundingClientRect();
+  if (r.width < 2 || r.height < 2) return null;
+  const zoom = r.width / (el.offsetWidth || r.width);
+  if (!(zoom > 0)) return null;
+  const scale = Math.max(0.05, Math.min(1, a.width / r.width));
+  const dx = (a.left + a.width  / 2 - (r.left + r.width  / 2)) / zoom;
+  const dy = (a.top  + a.height / 2 - (r.top  + r.height / 2)) / zoom;
+  return `translate(${Math.round(dx)}px, ${Math.round(dy)}px) scale(${scale.toFixed(3)})`;
+}
 
 // The round-start 3-2-1 (show321Countdown) also deals cards and refills the
 // clock; a boss needs neither. This is just the numbers.
@@ -406,46 +617,69 @@ function updateBossClockDisplay() {
 
 // Single source of truth for the boss countdown. Clears any existing boss interval first
 // (so it can't be double-started) and self-terminates if bossActive ever goes false (so an
-// orphaned timer can't keep writing the clock — the cause of the "clock flickers to 0" bug).
+// orphaned timer can't keep writing the clock - the cause of the "clock flickers to 0" bug).
 function startBossTimer() {
   if (bossInterval) { clearInterval(bossInterval); bossInterval = null; }
+  // The r150/r151 roster's timed effects are armed by applyBossModifiers but held
+  // until here, so their opening tick lands with the clock rather than behind the
+  // briefing panel (see bossSchedule).
+  if (typeof bossStartScheduledEffects === 'function') bossStartScheduledEffects();
   bossInterval = setInterval(() => {
     if (!bossActive) { clearInterval(bossInterval); bossInterval = null; return; }
     if (gameTimerPaused) return;
     bossSecondsLeft -= (typeof bossClockStep === 'function') ? bossClockStep() : 1;
     if (bossSecondsLeft < 0) bossSecondsLeft = 0;
     updateBossClockDisplay();
+    // Repaints the tray only when the switched-off set changes - covers the
+    // Voidwright's halftime flip AND the Censor's suspensions expiring, neither of
+    // which has an event of its own.
+    if (typeof bossSyncTrickTrayState === 'function') bossSyncTrickTrayState();
     if (bossPhase === 1 && bossSecondsLeft === Math.floor(bossWindowDuration / 2)) {
       bossPhase = 2;
       updateBossObjectiveUI();
-      showMessage('PHASE 2', 'var(--red)');
+      showMessage(currentBoss?.modifiers?.includes('trick_pool_split')
+        ? 'SECOND HALF - different Tricks off' : 'PHASE 2', 'var(--red)');
     }
     if (bossSecondsLeft <= 0) endBoss(false);
   }, 1000);
 }
 
+// r171 - no panel. A boss puts the SCORE and GOAL chips into alarm state (red,
+// pulsing) so the two numbers that decide the round are the two that shout, and
+// hangs the hand-tally line under the goal.
 function showBossObjectiveHUD(preset) {
-  let hud = document.getElementById('boss-objective-hud');
-  if (!hud) {
-    hud = document.createElement('div');
-    hud.id = 'boss-objective-hud';
-    document.getElementById('grid').appendChild(hud);
-  }
-  const obj = preset.objective;
-  // The bar is always the round goal; hand bosses add their hand on top.
-  const label = obj.type === 'hand' ? `OBJECTIVE: GOAL + ${obj.handName.toUpperCase()}` : 'OBJECTIVE: REACH GOAL';
-  hud.innerHTML = `
-    <div class="boss-objective-label">${label}</div>
-    <div class="boss-objective-progress" id="boss-objective-text"></div>
-    <div id="boss-trick-pools"></div>
-  `;
-  hud.classList.add('show');
+  document.getElementById('boss-objective-hud')?.remove();
+  bossSetAlarm(true);
+  ensureBossGoalExtra();
   updateBossObjectiveUI();
 }
 
 function hideBossObjectiveHUD() {
-  const hud = document.getElementById('boss-objective-hud');
-  if (hud) hud.classList.remove('show');
+  document.getElementById('boss-objective-hud')?.remove();
+  bossSetAlarm(false);
+  const extra = document.getElementById('boss-goal-extra');
+  if (extra) extra.style.display = 'none';
+}
+
+// The alarm lives on the two chips themselves so it follows them into either
+// orientation - landscape positions #score-center / #score-left absolutely and
+// portrait grids them, but both keep the elements.
+function bossSetAlarm(on) {
+  ['score-center', 'score-left'].forEach(id =>
+    document.getElementById(id)?.classList.toggle('boss-alarm', !!on));
+  document.getElementById('score-panel')?.classList.toggle('boss-alarm-panel', !!on);
+}
+
+// A hand boss's tally, parked under the goal number. Created once and reused.
+function ensureBossGoalExtra() {
+  let el = document.getElementById('boss-goal-extra');
+  if (el) return el;
+  const host = document.getElementById('score-left');
+  if (!host) return null;
+  el = document.createElement('div');
+  el.id = 'boss-goal-extra';
+  host.appendChild(el);
+  return el;
 }
 
 function endBoss(success) {
@@ -457,9 +691,10 @@ function endBoss(success) {
   clearBossModifiers();
   clearBlockedCellDOM();
   hideBossObjectiveHUD();
+  if (typeof renderTrickTray === 'function') renderTrickTray();  // un-grey anything the boss had switched off
   document.getElementById('grid').classList.remove('boss-active');
-  document.getElementById('run-progress')?.classList.remove('boss-sigil');
   document.getElementById('boss-preamble')?.remove();
+  _bossBriefPreset = null;
   if (_bossPreambleHeld) { gameTimerPaused = false; _bossPreambleHeld = false; }
   document.getElementById('clock').classList.remove('boss-mode');
   document.getElementById('clock-bar').classList.remove('boss-mode');
@@ -476,19 +711,21 @@ function endBoss(success) {
   if (success) {
     render();
     if (survivalActive()) {
-      // Survival: no reward grid — a bonus pick-of-three, then back to normal rounds.
+      // Survival: no reward grid - a bonus pick-of-three, then back to normal rounds.
       // The banked time was spent on this boss, so reset it for the next 8-clear cycle.
       survivalBossTimeBank = 0;
       setTimeout(() => survivalPostBossReward(), 1100);
     } else if (isActMode()) {
-      // Node-based: post-boss reward grid is an interlude that starts the next act.
+      // Node-based: the post-boss grid is an interlude that starts the next act.
       // nodeInAct stays at 5 so closeRewardGrid knows to reset it and advance actNumber.
-      setTimeout(() => { rewardGridContext = 'interlude'; openRewardGrid(); }, 1000);
+      // Since r179 that grid is the PRIZE grid - smaller, all rewards, no commons -
+      // and it REPLACES the ordinary reward grid rather than following it.
+      setTimeout(() => { rewardGridContext = 'interlude'; openPrizeGrid(); }, 1000);
     } else {
       // Timer-based modes: restore round timer and resume the interrupted round
       roundSeconds = savedRoundSeconds;
       updateClockUI();
-      setTimeout(() => { rewardGridContext = 'boss'; openRewardGrid(); }, 1000);
+      setTimeout(() => { rewardGridContext = 'boss'; openPrizeGrid(); }, 1000);
     }
   } else {
     if (typeof flowEndBoss === 'function') flowEndBoss();
@@ -505,14 +742,18 @@ function endBoss(success) {
 // All cells are rewards (buff / debuff / dest). Player selects any orthogonally
 // connected group, then confirms. The reward grid mirrors the PLAY grid: its
 // shape comes from limits.grid_rows/grid_cols and the number of picks is capped
-// by limits.selection — so upgrading play-grid limits upgrades rewards too.
+// by limits.selection - so upgrading play-grid limits upgrades rewards too.
 
 let rewardSelected = new Set(); // "r-c" keys
+// The order tiles were picked in, and which tile's tooltip is pinned. Together
+// they keep "the most recently picked tile is the one being explained" true even
+// after a deselect (js/reward-grid.js, r182).
+let rewardPickOrder = [];
 let rewardCells    = [];        // NxN array of { kind, payload }
 let rewardConfirmed = false;
 let rewardOnGrid   = false;     // true while the reward grid is rendered onto the play #grid (r100+)
 let rewardDealing  = false;     // true while reward tiles are dealing in / resolving (blocks clicks)
-let rewardGridContext = 'interlude'; // 'interlude' | 'boss' — determines what closeRewardGrid does
+let rewardGridContext = 'interlude'; // 'interlude' | 'boss' | 'survival' - determines what closeRewardGrid does
 let skipTrickChoiceOverlay = false;    // set before drainLevelUpQueue when reward grid is the reward screen
 let rewardGridsSeen = 0;               // how many reward grids opened this run (for first-5 guaranteed upgrades)
 

@@ -26,7 +26,7 @@ function renderConfluence() {
   eventState.themes = themes.slice(0, 3);
   const body = document.getElementById('event-body');
   const lbl = document.createElement('div');
-  lbl.style.cssText = 'font-family:Cinzel,serif;font-size:9px;letter-spacing:2px;color:var(--gold-dim);margin-bottom:4px';
+  lbl.className = 'ev-label';
   lbl.textContent = 'CHOOSE A THEME';
   body.appendChild(lbl);
   const row = document.createElement('div');
@@ -45,7 +45,7 @@ function renderConfluence() {
   });
   body.appendChild(row);
   eventState.itemsContainer = document.createElement('div');
-  eventState.itemsContainer.style.cssText = 'width:100%;display:flex;flex-direction:column;gap:10px;margin-top:8px;';
+  eventState.itemsContainer.className = 'ev-stack';
   body.appendChild(eventState.itemsContainer);
 }
 
@@ -57,12 +57,12 @@ function showConfluenceItems(theme) {
   const c = eventState.itemsContainer;
   c.innerHTML = '';
   if (pool.length === 0) {
-    c.innerHTML = '<div style="color:var(--cream-dim);font-size:11px;text-align:center">Nothing available for this theme.</div>';
+    c.innerHTML = evEmptyHTML('Nothing available for this theme.');
     setEventConfirm(true); // allow skip
     return;
   }
   const lbl = document.createElement('div');
-  lbl.style.cssText = 'font-family:Cinzel,serif;font-size:9px;letter-spacing:2px;color:var(--gold-dim)';
+  lbl.className = 'ev-label';
   lbl.textContent = 'CHOOSE A REWARD';
   c.appendChild(lbl);
   pool.forEach(item => {
@@ -98,7 +98,7 @@ function confirmConfluence() {
 // ══════════════════════════════════════════════
 function buildCrossroadsTrades() {
   const trades = [];
-  // Trade 1: always available — pay coins for a legendary Trick
+  // Trade 1: always available - pay coins for a legendary Trick
   if (coins >= 12) {
     const ownedTrick = new Set((acquiredTricks||[]).map(b=>b.id));
     const legends = TRICK_POOL.filter(b => !ownedTrick.has(b.id) && b.tier === 'legendary');
@@ -238,7 +238,7 @@ function renderGambleDoors() {
   eventState.doorsRevealed = false;
   const body = document.getElementById('event-body');
   const label = document.createElement('div');
-  label.style.cssText = 'font-family:Cinzel,serif;font-size:9px;letter-spacing:2px;color:var(--gold-dim);margin-bottom:8px';
+  label.className = 'ev-label';
   label.textContent = 'CHOOSE A DOOR';
   body.appendChild(label);
   const row = document.createElement('div');
@@ -300,12 +300,12 @@ function renderGambleDouble() {
   eventState.stakedTrick = null;
   const body = document.getElementById('event-body');
   const info = document.createElement('div');
-  info.style.cssText = 'font-size:12px;color:var(--cream-dim);font-family:Crimson Pro,serif;text-align:center;max-width:300px;margin-bottom:10px;line-height:1.5';
+  info.className = 'ev-note';
   info.textContent = '60% chance: keep your Trick and gain another. 40% chance: lose your Trick. Choose one to stake.';
   body.appendChild(info);
   const ownedTrick = acquiredTricks || [];
   if (ownedTrick.length === 0) {
-    body.innerHTML += '<div style="color:var(--cream-dim);font-size:11px">You have no Tricks to stake.</div>';
+    body.innerHTML += evEmptyHTML('You have no Tricks to stake.');
     setEventConfirm(true); return;
   }
   ownedTrick.forEach(trick => {
@@ -381,11 +381,11 @@ function renderForge() {
   const body = document.getElementById('event-body');
   const all = allDeckCards();
   if (!all.length) {
-    body.innerHTML = '<div style="color:var(--cream-dim);font-size:11px;text-align:center">No cards to enhance.</div>';
+    body.innerHTML = evEmptyHTML('No cards to enhance.');
     setEventConfirm(true); return;
   }
   const lbl = document.createElement('div');
-  lbl.style.cssText = 'font-family:Cinzel,serif;font-size:9px;letter-spacing:2px;color:var(--gold-dim);margin-bottom:4px';
+  lbl.className = 'ev-label';
   lbl.textContent = 'CHOOSE ONE ENHANCEMENT';
   body.appendChild(lbl);
 
@@ -458,7 +458,7 @@ function renderBargain() {
   eventState.bargainChoice = null;
   const body = document.getElementById('event-body');
   const lbl = document.createElement('div');
-  lbl.style.cssText = 'font-family:Cinzel,serif;font-size:9px;letter-spacing:2px;color:var(--gold-dim);margin-bottom:4px';
+  lbl.className = 'ev-label';
   lbl.textContent = 'PAY THE PRICE';
   body.appendChild(lbl);
   eventState.bargainTrades.forEach(trade => {
@@ -479,28 +479,28 @@ function confirmBargain() {
 }
 
 // ══════════════════════════════════════════════
-// EVENT: THE WAGER  (coin flip — get more or lose more)
+// EVENT: THE WAGER  (coin flip - get more or lose more)
 // ══════════════════════════════════════════════
 function renderWager() {
   const body = document.getElementById('event-body');
   if (!allDeckCards().length) {
-    body.innerHTML = '<div style="color:var(--cream-dim);font-size:11px;text-align:center">No cards to wager.</div>';
+    body.innerHTML = evEmptyHTML('No cards to wager.');
     setEventConfirm(true); return;
   }
   eventState.wagerStake = null;
   eventState.wagerResolved = false;
   const lbl = document.createElement('div');
-  lbl.style.cssText = 'font-family:Cinzel,serif;font-size:9px;letter-spacing:2px;color:var(--gold-dim);margin-bottom:4px';
-  lbl.textContent = 'CHOOSE YOUR STAKE — THEN FLIP';
+  lbl.className = 'ev-label';
+  lbl.textContent = 'CHOOSE YOUR STAKE - THEN FLIP';
   body.appendChild(lbl);
   const stakes = [
-    { icon:'🪙', rarity:'common', name:'Modest — 70%', desc:'Heads: a random card scores ×2 pips. Tails: that card loses 10 pips.', odds:0.70,
+    { icon:'🪙', rarity:'common', name:'Modest - 70%', desc:'Heads: a random card scores ×2 pips. Tails: that card loses 10 pips.', odds:0.70,
       win:(t)=>{ enhanceCardKey(cardKey(t.rank,t.suit), {xpips:2}); return `${cardLabel(t)} ×2 pips!`; },
       lose:(t)=>{ enhanceCardKey(cardKey(t.rank,t.suit), {subpips:10}); return `${cardLabel(t)} −10 pips.`; } },
-    { icon:'🎲', rarity:'rare', name:'Bold — 55%', desc:'Heads: a random card scores ×3 pips and replays. Tails: that card is removed from your deck.', odds:0.55,
+    { icon:'🎲', rarity:'rare', name:'Bold - 55%', desc:'Heads: a random card scores ×3 pips and replays. Tails: that card is removed from your deck.', odds:0.55,
       win:(t)=>{ enhanceCardKey(cardKey(t.rank,t.suit), {xpips:3, retrig:1}); return `${cardLabel(t)} ×3 pips + replay!`; },
       lose:(t)=>{ removeRandomDeckCards(1); return `${cardLabel(t)} lost.`; } },
-    { icon:'💀', rarity:'epic', name:'Reckless — 40%', desc:'Heads: a random card scores ×4 pips, ×2 mult and replays. Tails: 2 random cards are removed.', odds:0.40,
+    { icon:'💀', rarity:'epic', name:'Reckless - 40%', desc:'Heads: a random card scores ×4 pips, ×2 mult and replays. Tails: 2 random cards are removed.', odds:0.40,
       win:(t)=>{ enhanceCardKey(cardKey(t.rank,t.suit), {xpips:4, xmult:2, retrig:1}); return `${cardLabel(t)} ×4 pips, ×2 mult + replay!`; },
       lose:(t)=>{ removeRandomDeckCards(2); return `2 cards lost.`; } },
   ];
@@ -526,7 +526,7 @@ function confirmWager() {
   let msg = '';
   if (target) msg = won ? stake.win(target) : stake.lose(target);
   render();
-  showMessage(won ? `HEADS — ${msg}` : `TAILS — ${msg}`, won ? 'var(--gold)' : 'var(--red)');
+  showMessage(won ? `HEADS - ${msg}` : `TAILS - ${msg}`, won ? 'var(--gold)' : 'var(--red)');
   setEventConfirm(false);
   document.getElementById('event-skip').textContent = 'Continue';
 }
@@ -535,7 +535,7 @@ function confirmWager() {
 // EVENT: WANDERING MERCHANT
 // ══════════════════════════════════════════════
 function renderMerchant() {
-  // 2 legendary/rare Tricks + 1 sleight or knack — all free (it's a gift event, not a shop)
+  // 2 legendary/rare Tricks + 1 sleight or knack - all free (it's a gift event, not a shop)
   const ownedTrick     = new Set((acquiredTricks||[]).map(b=>b.id));
   const ownedKnacks = new Set((acquiredKnacks ||[]).map(t=>t.id));
   const legends = TRICK_POOL.filter(b=>!ownedTrick.has(b.id) && (b.tier==='legendary'||b.tier==='rare'));
@@ -551,11 +551,11 @@ function renderMerchant() {
   eventState.merchantPick  = null;
   const body = document.getElementById('event-body');
   const lbl = document.createElement('div');
-  lbl.style.cssText = 'font-family:Cinzel,serif;font-size:9px;letter-spacing:2px;color:var(--gold-dim);margin-bottom:4px';
-  lbl.textContent = 'TAKE ONE — FREE OF CHARGE';
+  lbl.className = 'ev-label';
+  lbl.textContent = 'TAKE ONE - FREE OF CHARGE';
   body.appendChild(lbl);
   if (eventState.merchantItems.length === 0) {
-    body.innerHTML += '<div style="color:var(--cream-dim);font-size:11px;text-align:center">The merchant has nothing new to offer.</div>';
+    body.innerHTML += evEmptyHTML('The merchant has nothing new to offer.');
     setEventConfirm(true); return;
   }
   eventState.merchantItems.forEach(item => {
@@ -598,7 +598,7 @@ function renderAltar() {
       apply: () => { coins -= 10; updateCoinsUI(); altarEffects.push({ type:'time_boost', value:20, roundsLeft:2 }); showMessage('Altar: +20s for 2 rounds', 'var(--gold)'); }
     },
     { icon:'🌑', name:'Dark Bargain', rarity:'legendary',
-      desc:'Sacrifice a random owned Trick. The next 4 rounds score at 1.5× goal — but goal is halved.',
+      desc:'Sacrifice a random owned Trick. The next 4 rounds score at 1.5× goal - but goal is halved.',
       cost:'−1 Random Trick',
       canTake: () => acquiredTricks.length > 0,
       apply: () => {
@@ -660,8 +660,8 @@ function renderSpring() {
   eventState.springPick = null;
   const body = document.getElementById('event-body');
   const info = document.createElement('div');
-  info.style.cssText = 'font-size:12px;color:var(--cream-dim);font-family:Crimson Pro,serif;text-align:center;max-width:300px;margin-bottom:12px;line-height:1.5;';
-  info.textContent = 'Remove one card permanently from your deck — no cost, no replacement. Or restore lost resources.';
+  info.className = 'ev-note';
+  info.textContent = 'Remove one card permanently from your deck - no cost, no replacement. Or restore lost resources.';
   body.appendChild(info);
 
   // Option A: Remove a card from draw pile
@@ -714,19 +714,19 @@ function showSpringCardPicker() {
   const body = document.getElementById('event-body');
   const wrap = document.createElement('div');
   wrap.id = 'spring-card-picker';
-  wrap.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:8px;max-width:340px';
+  wrap.className = 'ev-cardchips';
   const pool = [...drawPile];
   const seen = new Set();
   pool.forEach((card, i) => {
     const key = card.rank + card.suit;
     if (seen.has(key)) return; seen.add(key);
     const chip = document.createElement('div');
-    chip.style.cssText = `padding:4px 8px;border-radius:5px;border:1px solid var(--gold-dim);font-family:Cinzel,serif;font-size:11px;cursor:pointer;background:#1a1410;color:${['♥','♦'].includes(card.suit)?'#c0392b':'var(--cream)'}`;
+    // A tiny playing card, not a text chip - a deck screen should look like cards.
+    chip.className = 'ev-cardchip' + (['♥','♦'].includes(card.suit) ? ' red' : '');
     chip.textContent = card.rank + card.suit;
     chip.addEventListener('click', () => {
-      wrap.querySelectorAll('div').forEach(c=>c.style.boxShadow='');
-      chip.style.boxShadow = '0 0 8px rgba(201,168,76,0.6)';
-      chip.style.borderColor = 'var(--gold)';
+      wrap.querySelectorAll('.ev-cardchip').forEach(c => c.classList.remove('picked'));
+      chip.classList.add('picked');
       eventState.cardToRemove = card;
     });
     wrap.appendChild(chip);
@@ -747,7 +747,7 @@ function confirmSpring() {
       discards = limits.discards.current;
       render(); showMessage('Swaps & Discards restored!', 'var(--gold)'); break;
     case 'cleanse_debuff':
-      // Reverse one small debuff — restore a discard or 5s
+      // Reverse one small debuff - restore a discard or 5s
       discards = Math.min(discards + 1, limits.discards.current + 2);
       render(); showMessage('+1 Discard restored', 'var(--gold)'); break;
   }
@@ -774,8 +774,8 @@ function renderTwinPath() {
   const body = document.getElementById('event-body');
 
   const lbl = document.createElement('div');
-  lbl.style.cssText='font-family:Cinzel,serif;font-size:9px;letter-spacing:2px;color:var(--gold-dim);margin-bottom:4px';
-  lbl.textContent='YOU GAIN BOTH — OR NEITHER';
+  lbl.className = 'ev-label';
+  lbl.textContent='YOU GAIN BOTH - OR NEITHER';
   body.appendChild(lbl);
 
   picks.forEach(trick => {
@@ -785,14 +785,14 @@ function renderTwinPath() {
   const shadowEl = makeChoiceEl({ icon: eventState.shadow.icon, name: eventState.shadow.name, desc: eventState.shadow.desc, cls:'debuff' });
   shadowEl.style.marginTop = '6px';
   const shadowLbl = document.createElement('div');
-  shadowLbl.style.cssText='font-family:Cinzel,serif;font-size:9px;letter-spacing:2px;color:var(--red);margin-top:8px;margin-bottom:4px';
+  shadowLbl.className = 'ev-label danger';
   shadowLbl.textContent='THE SHADOW (always applies)';
   body.appendChild(shadowLbl);
   body.appendChild(shadowEl);
 
   const acceptBtn = document.createElement('button');
   acceptBtn.textContent = 'Accept Both + Shadow';
-  acceptBtn.style.cssText='margin-top:12px;';
+  acceptBtn.className = 'ev-btn';
   acceptBtn.addEventListener('click', () => {
     eventState.twinAccepted = true;
     acceptBtn.disabled = true;
@@ -813,3 +813,131 @@ function confirmTwinPath() {
 
 
 
+
+// ══════════════════════════════════════════════
+// EVENT: SHIFT CHANGE  (r182)
+// ══════════════════════════════════════════════
+// Reorder your Trick tray. This is a real decision, not housekeeping: slot order
+// is load-bearing in several places and there was previously no way to change it
+// once a Trick landed.
+//
+//   · Inspirato primes your FIRST and LAST Tricks
+//   · Mirror borrows from whichever Trick sits beside it
+//   · Prime Times cycles 1st → 2nd → 3rd → 5th → 7th
+//   · the Alignment knack marks the column matching a Trick's slot number
+//   · Move as One fires your lowest-rarity Trick sharing a keyword
+//
+// Interaction is tap-to-swap, which works identically with a finger and a mouse
+// and needs no drag: tap a Trick to lift it, tap a second to trade their places.
+// Tapping the lifted Trick again puts it back down. Nothing is committed until
+// Confirm, and Skip leaves the tray exactly as it was.
+function renderShiftChange() {
+  const body = document.getElementById('event-body');
+  const tray = (typeof trickTray !== 'undefined' && trickTray) ? trickTray : [];
+
+  // Fewer than two Tricks: there is no order to change, so the shift pays out
+  // instead of wasting the node.
+  if (tray.length < 2) {
+    eventState.shiftPayout = BAL.shift_change ? BAL.shift_change.consolation_credits : 15;
+    body.appendChild(makeChoiceEl({
+      icon: '🕓', name: 'Nothing to reshuffle',
+      desc: `You need at least two Tricks before the order means anything. Take ${eventState.shiftPayout} credits for turning up.`,
+    }));
+    setEventConfirm(true);
+    document.getElementById('event-skip').textContent = 'Leave';
+    return;
+  }
+
+  // Work on a copy - the real tray is only written on Confirm.
+  eventState.shiftOrder = tray.slice();
+  eventState.shiftLifted = null;
+
+  const lbl = document.createElement('div');
+  lbl.className = 'ev-label';
+  lbl.textContent = 'TAP TWO TRICKS TO TRADE THEIR PLACES';
+  body.appendChild(lbl);
+
+  const row = document.createElement('div');
+  row.id = 'shift-row';
+  body.appendChild(row);
+
+  const hint = document.createElement('div');
+  hint.id = 'shift-hint';
+  body.appendChild(hint);
+
+  const tools = document.createElement('div');
+  tools.id = 'shift-tools';
+  const mkTool = (label, fn) => {
+    const b = document.createElement('button');
+    b.className = 'shift-tool';
+    b.textContent = label;
+    b.addEventListener('click', () => { fn(); renderShiftRow(); });
+    return b;
+  };
+  tools.appendChild(mkTool('↔ Reverse', () => { eventState.shiftOrder.reverse(); eventState.shiftLifted = null; }));
+  tools.appendChild(mkTool('↺ Reset',   () => { eventState.shiftOrder = tray.slice(); eventState.shiftLifted = null; }));
+  body.appendChild(tools);
+
+  renderShiftRow();
+  setEventConfirm(true);
+  document.getElementById('event-skip').textContent = 'Leave Order Unchanged';
+}
+
+function renderShiftRow() {
+  const row = document.getElementById('shift-row');
+  if (!row) return;
+  const RARS = ['common','rare','epic','legendary','mythic'];
+  const order = eventState.shiftOrder || [];
+  row.innerHTML = '';
+  order.forEach((trick, i) => {
+    const rar = RARS.includes(trick.tier) ? trick.tier : 'common';
+    const slot = document.createElement('div');
+    slot.className = 'shift-slot' + (eventState.shiftLifted === i ? ' lifted' : '');
+    // The same entity tile the reward grid, the Mart and your tray all draw
+    // (js/entity-tile.js) - a Trick looks like itself here too.
+    slot.innerHTML = `<div class="shift-num">${i + 1}</div>`
+                   + entityTileHTML({ entity: 'trick', label: trick.name, emoji: trickEmoji(trick) }, rar);
+    slot.addEventListener('click', () => {
+      if (eventState.shiftLifted === null)      eventState.shiftLifted = i;      // lift
+      else if (eventState.shiftLifted === i)    eventState.shiftLifted = null;   // put back down
+      else {                                                                     // trade places
+        const a = eventState.shiftLifted;
+        [order[a], order[i]] = [order[i], order[a]];
+        eventState.shiftLifted = null;
+      }
+      renderShiftRow();
+    });
+    row.appendChild(slot);
+  });
+  fitEntityNames(row, '.rwd-name', { maxLines: 2, minPx: 5 });
+
+  const hint = document.getElementById('shift-hint');
+  if (hint) {
+    const lifted = eventState.shiftLifted;
+    hint.textContent = lifted === null
+      ? 'Slot 1 is first, and the last slot is last - both matter to Inspirato.'
+      : `${order[lifted].name} is lifted - tap another Trick to trade places, or tap it again to put it back.`;
+    hint.classList.toggle('active', lifted !== null);
+  }
+}
+
+function confirmShiftChange() {
+  if (eventState.shiftPayout) {
+    coins += eventState.shiftPayout;
+    updateCoinsUI();
+    showMessage(`+${eventState.shiftPayout} credits`, 'var(--gold)');
+  } else if (eventState.shiftOrder) {
+    // Write the new order back in place. trickTray is referenced by identity all
+    // over the codebase (scoring walks it by index, the tray UI re-reads it), so
+    // it is refilled rather than replaced.
+    trickTray.length = 0;
+    eventState.shiftOrder.forEach(t => trickTray.push(t));
+    if (typeof renderTrickTray === 'function') renderTrickTray();
+    // A position Trick's marked row/column is fixed when you ACQUIRE it
+    // (assignPositionMark, guarded by _posAssigned) and is deliberately left
+    // alone here - reshuffling the tray moves the Tricks, not the lines they
+    // already own, so nothing you were building around silently relocates.
+    showMessage('Shift change - Trick order updated', 'var(--gold)');
+  }
+  closeEvent();
+}

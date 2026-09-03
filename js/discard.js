@@ -31,10 +31,10 @@ function doDiscard() {
     if (card._exalted || card._corrupted) return;
     if (card.suit === '♠') {
       card._spadeDiscards = (card._spadeDiscards || 0) + 1;
-      if (card._spadeDiscards >= 2) { card._exalted = false; card._corrupted = true; showMessage('♠ Spade corrupted — discarded one too many times', '#cc88ff'); }
+      if (card._spadeDiscards >= 2) { card._exalted = false; card._corrupted = true; showMessage('♠ Spade corrupted - discarded one too many times', '#cc88ff'); }
     } else if (card.suit === '♥' && card._heartSwapPending) {
       card._exalted = false; card._corrupted = true; card._heartSwapPending = false;
-      showMessage('♥ Heart corrupted — discarded after a swap', '#cc88ff');
+      showMessage('♥ Heart corrupted - discarded after a swap', '#cc88ff');
     }
   });
   // on_discard sleights (Not a Friend corrupt) fire with their grid position before removal.
@@ -57,7 +57,7 @@ function doDiscard() {
   selected.forEach(([r,c]) => { if (gridData[r]?.[c]) discardToDrawPile(gridData[r][c]); });
   // Hoarder: discards don't count against limit (but cost 2× time below)
   if (!hasKnack('hoarder')) discards--;
-  // Discard time cost — 3s PER CARD (BAL._resources.discard_seconds_per_card).
+  // Discard time cost - 3s PER CARD (BAL._resources.discard_seconds_per_card).
   // There used to be a flat spendRoundTime(DISCARD_TIME_COST) here as well, so a
   // 1-card discard billed 3 + 3 = 6s while the UI said 3s, and the Free Discards
   // knack ("costs no time") still charged the flat 3s. One charge only now.
@@ -164,17 +164,43 @@ function showTimeCost(label) {
 // ── Rewind: give round seconds back (clock counts down, so rewinding = adding time) ──
 // Adds `seconds` to roundSeconds, capped at ROUND_DURATION, and shows a floater/message.
 // Returns the seconds actually restored. Bosses run their own timer, so rewinds are ignored there.
+// How high a rewind is allowed to push the clock. NOT the bare ROUND_DURATION
+// (r183): that constant is Classic's 180, and the clock legitimately sits ABOVE
+// it in several ordinary situations -
+//   · Survival rounds are 120s and Flow's session clock is 300s
+//   · the Round Time LIMIT can be upgraded past 180, and a round starts at it
+//   · Time Bank (+30s at round start) and Clock Tower (carries up to 60s over)
+//   · Rain Check (+30s next round)
+// against `Math.min(ROUND_DURATION, …)` every one of those made a rewind CUT the
+// clock down to 180 and then return 0, so it reported nothing and the player just
+// lost the time. In Flow that was 120 seconds destroyed by a single Flush.
+//
+// `roundStartSeconds` is what this round ACTUALLY began with - startRoundTimer
+// records it after computeRoundResources has already folded in the Round Time
+// limit, Time Bank and Clock Tower - so it is the whole answer for those three
+// and no separate limits lookup is needed. Reading the limit as well would let a
+// 120s Survival round be rewound up to Classic's 180.
+//
+// `roundSeconds` is in the max too, so the clamp can never move the clock
+// backwards: the worst a rewind can now do is nothing.
+function rewindCeiling() {
+  const dur = (typeof currentRoundDuration === 'function') ? currentRoundDuration() : ROUND_DURATION;
+  return Math.max(dur, roundStartSeconds || 0, roundSeconds);
+}
+
 function rewindTime(seconds, label) {
   if (bossActive) return 0;
   seconds = Math.floor(seconds);
   if (seconds <= 0) return 0;
   const before = roundSeconds;
-  roundSeconds = Math.min(ROUND_DURATION, roundSeconds + seconds);
+  roundSeconds = Math.min(rewindCeiling(), roundSeconds + seconds);
   const gained = roundSeconds - before;
   if (gained <= 0) return 0;
   rewoundSecondsRound += gained; // Kingfisher scales on seconds rewound this round
   rewindsThisRound++;            // per-round rewind count (time popup)
   updateClockUI();
+  // Infinity-mirror copies under every card + the reversed swell (js/clock-fx.js)
+  if (typeof playRewindFX === 'function') playRewindFX();
   const el = document.getElementById('time-cost-flash') ||
     (() => { const e = document.createElement('div'); e.id = 'time-cost-flash'; e.style.cssText =
       `position:absolute; pointer-events:none; z-index:300; font-family:'Cinzel',serif; font-size:13px; font-weight:700;
@@ -192,7 +218,7 @@ function rewindTime(seconds, label) {
 
 // ── Clock-mark Tricks: fire as the round clock passes static timestamps ──
 // Called once per real second from the round timer with the NEW roundSeconds value.
-// Because rewinds add seconds, the clock can pass the same mark more than once — that
+// Because rewinds add seconds, the clock can pass the same mark more than once - that
 // re-fires these bonuses, which is an intended synergy with the rewind entities.
 function handleClockMarks(secs) {
   if (secs <= 0) return;
@@ -201,12 +227,23 @@ function handleClockMarks(secs) {
   // Quarter Chime: clock reads a multiple of 15 → +45 pips to the next hand
   if (secs % 15 === 0 && hasTrick('quarter_chime')) {
     pendingHandPips += BAL.quarter_chime.pips;
-    showMessage(`🔔 Quarter Chime — next hand +${BAL.quarter_chime.pips} pips`, '#e8c56b');
+    showMessage(`🔔 Quarter Chime - next hand +${BAL.quarter_chime.pips} pips`, '#e8c56b');
   }
-  // Minute marks (clock reads N:00) → accrue mult / card pips / retrigger chance
+  // Second Hand: the SECOND hand of a clock sweeps - it now fires on every
+  // 10-second mark, not on the minute (r183). It used to share Minute Hand's
+  // trigger and pay +5 pips against Minute Hand's +3 mult, which on measured
+  // boards is 43 score a round against 464 - the same trigger for a tenth of the
+  // payout, and the weakest Trick in the game by a distance. The number is
+  // unchanged; only the hand it rides on. 17 fires a round instead of 2 puts it
+  // at ~360, an ordinary common, and makes it the Trick that rewinding pays best:
+  // any rewind of 10s or more buys a guaranteed extra fire.
+  if (secs % 10 === 0 && hasTrick('second_hand')) {
+    pendingCardPips += BAL.second_hand.pips;
+    showMessage(`🕐 Second Hand - next hand +${BAL.second_hand.pips} pips`, '#e8c56b');
+  }
+  // Minute marks (clock reads N:00) → accrue mult / retrigger chance
   if (secs % 60 === 0) {
-    if (hasTrick('minute_hand'))  { pendingHandMult += BAL.minute_hand.mult; showMessage(`🕐 Minute Hand — next hand +${BAL.minute_hand.mult} mult`, '#cc88ff'); }
-    if (hasTrick('second_hand'))  { pendingCardPips += BAL.second_hand.pips; showMessage(`🕐 Second Hand — next hand +${BAL.second_hand.pips} pips`, '#e8c56b'); }
+    if (hasTrick('minute_hand'))  { pendingHandMult += BAL.minute_hand.mult; showMessage(`🕐 Minute Hand - next hand +${BAL.minute_hand.mult} mult`, '#cc88ff'); }
     if (hasTrick('hourglass') && Math.random() < BAL.hourglass.chance) {
       // Grant one permanent retrigger to a random real card currently on the grid
       const spots = [];
@@ -218,7 +255,7 @@ function handleClockMarks(secs) {
         const card = spots[Math.floor(Math.random() * spots.length)];
         const k = cardKey(card.rank, card.suit);
         permRetrig[k] = (permRetrig[k] || 0) + 1;
-        showMessage(`⏳ Hourglass — ${card.rank}${card.suit} gains a retrigger`, '#e8c56b');
+        showMessage(`⏳ Hourglass - ${card.rank}${card.suit} gains a retrigger`, '#e8c56b');
         if (!animating && !falling) render();
       }
     }
@@ -228,7 +265,7 @@ function handleClockMarks(secs) {
 function pauseRound(seconds) {
   // Time Slip knack: whenever the clock WOULD pause, a chance to rewind that many seconds instead
   if (hasKnack('time_slip') && Math.random() < BAL.time_slip.chance) {
-    rewindTime(seconds, '⏮️ Time Slip — rewound instead of paused!');
+    rewindTime(seconds, '⏮️ Time Slip - rewound instead of paused!');
     return;
   }
   // Long Pause knack: all pauses are 1.5x longer
@@ -238,11 +275,14 @@ function pauseRound(seconds) {
   // The Vulture: mark the start of the round's FIRST continuous pause stretch. An extension
   // landing while already paused does NOT start a new stretch (pipeTimerPaused is still true).
   if (!pipeTimerPaused && !firstPauseStartedRound) { firstPauseStartedRound = true; firstPauseActive = true; }
-  // Pauses always stack — an active pause is extended, not reset.
+  // Pauses always stack - an active pause is extended, not reset.
   pauseSecondsLeft += seconds;
   pipeTimerPaused = true;
   const clockEl = document.getElementById('clock');
   if (clockEl) clockEl.classList.add('clock-paused');
+  // Lit clock, tick-tock, and the ripple that turns and holds every card
+  // (js/clock-fx.js). Idempotent - an extension of a live pause does nothing.
+  if (typeof beginClockFreeze === 'function') beginClockFreeze();
   if (pauseTimer) clearTimeout(pauseTimer);
   // count down pause
   const tick = () => {
@@ -252,7 +292,11 @@ function pauseRound(seconds) {
       pauseSecondsLeft = 0;
       firstPauseActive = false; // the first continuous pause stretch is over (Vulture)
       // Don't unfreeze if a Stopwatch is still holding the clock frozen.
-      if (!stopwatchActive) { pipeTimerPaused = false; if (clockEl) clockEl.classList.remove('clock-paused'); }
+      if (!stopwatchActive) {
+        pipeTimerPaused = false;
+        if (clockEl) clockEl.classList.remove('clock-paused');
+        if (typeof endClockFreeze === 'function') endClockFreeze();
+      }
       updateClockUI();
     } else {
       pauseTimer = setTimeout(tick, 1000);
@@ -273,7 +317,8 @@ function startStopwatch(card, r, c) {
   pipeTimerPaused = true;
   const clockEl = document.getElementById('clock');
   if (clockEl) clockEl.classList.add('clock-paused');
-  showMessage('⏱️ Stopwatch — clock frozen', '#5aa9e6');
+  if (typeof beginClockFreeze === 'function') beginClockFreeze();
+  showMessage('⏱️ Stopwatch - clock frozen', '#5aa9e6');
   if (stopwatchTimer) clearInterval(stopwatchTimer);
   stopwatchTimer = setInterval(() => {
     if (!stopwatchActive) { clearInterval(stopwatchTimer); stopwatchTimer = null; return; }
@@ -300,6 +345,7 @@ function endStopwatch() {
     pipeTimerPaused = false;
     const clockEl = document.getElementById('clock');
     if (clockEl) clockEl.classList.remove('clock-paused');
+    if (typeof endClockFreeze === 'function') endClockFreeze();
     updateClockUI();
   }
 }
@@ -326,7 +372,7 @@ function buffBandHTML(corner, count, color) {
 
 // ── Single source of truth for card visual appearance ──────────────────────────
 // Returns { className, innerHTML } describing how a card looks at position (r,c).
-// Both render() and fall-animation paths call this — add a new card type here
+// Both render() and fall-animation paths call this - add a new card type here
 // once and both static and animated rendering automatically pick it up.
 //
 // Interaction state (isSel, isSwapPending, etc.) defaults to "no interaction"

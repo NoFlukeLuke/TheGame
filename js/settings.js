@@ -1,5 +1,5 @@
 // ══════════════════════════════════════════════
-// SETTINGS (r155) — the player-facing options screen
+// SETTINGS (r155) - the player-facing options screen
 // ══════════════════════════════════════════════
 // Distinct from the DEV panel (which stays the developer/debug surface). Every
 // option is one entry in SETTINGS_DEF, so adding a new one is a single line:
@@ -11,14 +11,41 @@ let SETTINGS = {};
 
 const SETTINGS_DEF = [
   // ── Audio ──
-  { group: 'Audio', id: 'muted', label: 'Mute all sound', hint: 'Silences every effect.',
+  // Three volumes, not one: master scales both buses, and music/effects set the
+  // balance between them. Every sound multiplies by sfxVolume(), music by
+  // musicVolume(); both fold in `muted` so the toggle needs no separate wiring.
+  { group: 'Audio', id: 'muted', label: 'Mute all sound', hint: 'Silences music and effects.',
     type: 'toggle', default: false },
-  { group: 'Audio', id: 'volume', label: 'Master volume', hint: 'Applies to all sound effects.',
+  { group: 'Audio', id: 'volume', label: 'Master volume', hint: 'Scales everything below.',
     type: 'slider', min: 0, max: 100, step: 5, default: 100, unit: '%' },
+  { group: 'Audio', id: 'musicVolume', label: 'Music', hint: 'Background tracks from assets/music/.',
+    type: 'slider', min: 0, max: 100, step: 5, default: 60, unit: '%',
+    apply: () => { if (typeof applyMusicVolume === 'function') applyMusicVolume(); } },
+  { group: 'Audio', id: 'sfxVolumePct', label: 'Sound effects', hint: 'Cards, coins, scoring, bosses.',
+    type: 'slider', min: 0, max: 100, step: 5, default: 100, unit: '%' },
+  // Sound source (r186). Files beat packs beat classic - see the resolution order
+  // in js/audio-assets.js. Both rows are read there rather than applied from here,
+  // so there is no `apply` to keep in step.
+  { group: 'Audio', id: 'useSoundFiles', label: 'Use my sound files',
+    hint: 'Play the files in assets/sfx/ where one is listed for a sound. Off means every sound is generated in code.',
+    type: 'toggle', default: true },
+  { group: 'Audio', id: 'sfxPack', label: 'Sound pack',
+    hint: 'Which coded sounds to use - for every effect, and for anything a file does not cover.',
+    type: 'select', default: 'classic',
+    options: (typeof SFX_PACK_LIST !== 'undefined')
+      ? SFX_PACK_LIST.map(([id, name]) => [id, name])
+      : [['classic', 'Classic']] },
+  // The two boards live in their own pop-ups (js/audio-menu.js): a flat settings
+  // list cannot hold 30 auditionable sounds without becoming the whole screen.
+  { group: 'Audio', id: 'audioBoards', type: 'action', label: '', hint: '',
+    buttons: () => [
+      { label: 'Sound effects', fn: 'openSfxBoard()' },
+      { label: 'Music playlist', fn: 'openPlaylist()' },
+    ] },
 
   // ── Motion ──
   // NOTE: dncSpeed is `isGoalHand ? 1 : DANCE_CFG.norm`, so this deliberately does
-  // not rush the goal-clearing finale — only ordinary scoring hands.
+  // not rush the goal-clearing finale - only ordinary scoring hands.
   { group: 'Motion', id: 'animSpeed', label: 'Scoring speed', hint: 'How fast ordinary hands score. The goal-clearing finale always plays in full.',
     type: 'select', default: '1', options: [['0.75','Relaxed'], ['1','Normal'], ['1.5','Brisk'], ['2','Rapid']],
     apply: v => { if (typeof DANCE_CFG !== 'undefined') DANCE_CFG.norm = parseFloat(v); } },
@@ -36,6 +63,13 @@ const SETTINGS_DEF = [
   { group: 'Display', id: 'highContrast', label: 'High-contrast cards', hint: 'Stronger card borders and darker pips for legibility.',
     type: 'toggle', default: false,
     apply: v => document.body.classList.toggle('high-contrast', !!v) },
+  // The room the cabinet sits in on the menu (js/camera.js + css/room.css).
+  { group: 'Display', id: 'roomStyle', label: 'Office', hint: 'The room around the cabinet on the menu. Grimy is dimmer and dirtier; clean is the lit version.',
+    type: 'select', default: 'grimy', options: [['grimy','Grimy'], ['clean','Clean']],
+    apply: v => { if (typeof camSetRoomStyle === 'function') camSetRoomStyle(v); } },
+  { group: 'Display', id: 'introReplay', type: 'action',
+    label: 'Intro animation', hint: 'Watch the camera pull back to the desk and zoom in on the screen.',
+    buttons: () => [{ label: 'Play intro', fn: 'camPlayIntro()' }] },
 
   // ── Run ── save / resume (see js/save.js). `action` rows are buttons, not a
   // stored preference, so they are skipped by loadSettings/resetSettings.
@@ -52,11 +86,14 @@ const SETTINGS_DEF = [
     } },
 ];
 
-// Master volume used by the audio engine (0 when muted).
+// Effects volume used by the audio engine (0 when muted). Master x effects.
+// Every playTone / playNoise / sample multiplies its gain by this, so it is the
+// single choke point for both the mute toggle and the two sliders.
 function sfxVolume() {
   if (SETTINGS.muted) return 0;
-  const v = SETTINGS.volume;
-  return (typeof v === 'number' ? v : 100) / 100;
+  const master = (typeof SETTINGS.volume === 'number' ? SETTINGS.volume : 100) / 100;
+  const sfx = (typeof SETTINGS.sfxVolumePct === 'number' ? SETTINGS.sfxVolumePct : 100) / 100;
+  return master * sfx;
 }
 
 function loadSettings() {

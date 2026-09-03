@@ -1,4 +1,4 @@
-const CARD_MIN_W = 40;        // floor — below this cards stop shrinking
+const CARD_MIN_W = 40;        // floor - below this cards stop shrinking
 const CARD_MIN_H = 53;        // keeps playing-card aspect
 const CARD_ASPECT = 75 / 57;  // height / width, preserved on resize
 
@@ -10,9 +10,14 @@ function measureGridSlot() {
   const stage = document.getElementById('stage');
   if (!slot || !stage) return { w: GRID_FOOTPRINT_W, h: GRID_FOOTPRINT_H };
   const zoom = parseFloat(getComputedStyle(stage).getPropertyValue('--stage-zoom')) || 1;
+  // The camera (r180) can also be scaling the whole scene - it is at the wide
+  // "cabinet on a desk" framing whenever a menu is up, and mid-dolly on the way
+  // into a run. getBoundingClientRect sees that too, so both scales come out or
+  // the cards get sized for a board 40% smaller than the one being played on.
+  const cam  = (typeof camScale === 'function') ? camScale() : 1;
   const rect = slot.getBoundingClientRect();
-  const w = rect.width  / zoom;
-  const h = rect.height / zoom;
+  const w = rect.width  / zoom / cam;
+  const h = rect.height / zoom / cam;
   // Guard against pre-layout / hidden states returning ~0.
   if (w < 40 || h < 40) return { w: GRID_FOOTPRINT_W, h: GRID_FOOTPRINT_H };
   return { w, h };
@@ -25,14 +30,14 @@ function recomputeGridMetrics() {
   const slot   = measureGridSlot();
   // Reserve a small safety margin on every side so the grid never touches (and
   // never spills onto) the focus meter on the left or the action buttons on the
-  // right — even after rounding. Fixes the "buttons overlap the grid" issue.
+  // right - even after rounding. Fixes the "buttons overlap the grid" issue.
   const SLOT_SAFETY = 5;
   const innerW = slot.w - SLOT_SAFETY * 2 - GRID_PAD * 2 - CARD_GAP * (cols - 1);
   const innerH = slot.h - SLOT_SAFETY * 2 - GRID_PAD * 2 - CARD_GAP * (rows - 1);
   let w = Math.floor(innerW / cols);
   let h = Math.floor(innerH / rows);
   // Dominoes: a cell is only HALF a tile, so the playing-card aspect ratio and the
-  // card-size minimums below don't apply — enforcing them on an 8×8 board pushed
+  // card-size minimums below don't apply - enforcing them on an 8×8 board pushed
   // the grid past its slot (tiles drew over the clock bar and off the bottom).
   // Fit the board to the measured slot instead.
   if (typeof dominoActive === 'function' && dominoActive()) {
@@ -45,7 +50,7 @@ function recomputeGridMetrics() {
   // Constrain to playing-card aspect: take whichever dimension is the tighter fit.
   if (h / w > CARD_ASPECT) h = Math.round(w * CARD_ASPECT); // width-bound
   else                     w = Math.round(h / CARD_ASPECT); // height-bound
-  // Minimum floor (huge grids may slightly exceed the slot — acceptable, the
+  // Minimum floor (huge grids may slightly exceed the slot - acceptable, the
   // slot has overflow:visible so they just spill a touch, not onto buttons).
   w = Math.max(w, CARD_MIN_W);
   h = Math.max(h, CARD_MIN_H);
@@ -100,7 +105,7 @@ function syncSidebarsToGrid() {
     vclock.style.left  = (gLeft + readoutW + 0.6) + '%';
     vclock.style.width = Math.max(6, gWidth - readoutW - 0.6) + '%';
   }
-  // Focus meter sits right against the grid's left edge — but never back far
+  // Focus meter sits right against the grid's left edge - but never back far
   // enough to crowd the left column (its right edge is ~39.3% of the stage).
   if (focus) {
     const fw = pct(focus.getBoundingClientRect().width);

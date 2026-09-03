@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════
-   RUN HISTORY  (r159) — see js/history.js
+   RUN HISTORY  (r159) - see js/history.js
    ══════════════════════════════════════════════
    Body-level, OUTSIDE #cabinet: the cabinet applies CSS `zoom`, which would
    scale this panel's viewport sizing (same reason the dev panel, Records and
@@ -47,7 +47,7 @@
 }
 #history-close:hover { background: rgba(255, 255, 255, 0.08); }
 
-/* Summary strip — wraps rather than scrolling, so it stays readable on a phone. */
+/* Summary strip - wraps rather than scrolling, so it stays readable on a phone. */
 #history-summary {
   flex: 0 0 auto;
   display: flex; flex-wrap: wrap; gap: 6px;
@@ -116,7 +116,7 @@
 }
 .hist-clear:hover { background: rgba(212, 87, 78, 0.12); }
 
-/* Main-menu button — quieter than PLAY/CONTINUE, same family as SETTINGS. */
+/* Main-menu button - quieter than PLAY/CONTINUE, same family as SETTINGS. */
 #menu-history-btn {
   width: 100%; max-width: 300px;
   font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 3px;

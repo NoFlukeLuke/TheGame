@@ -58,14 +58,14 @@ document.getElementById('btn-pause').addEventListener('click', () => {
 
 document.getElementById('btn-resume').addEventListener('click', resumeGame);
 
-// Pause-menu "Home" button — abandon the current run and return to the main menu.
+// Pause-menu "Home" button - abandon the current run and return to the main menu.
 // A full page reload is the cleanest teardown: the game keeps a lot of live state
 // (round/game/boss timers, decks, overlays, match-3/dominoes state) and there is no
 // single reset function that unwinds all of it, whereas the page boots straight to
 // the home menu on load (index.html #main-menu-overlay starts shown; bootstrap.js
 // calls initMainMenu()). Guarded by a confirm so a stray tap can't lose a run.
 function quitToMainMenu() {
-  // A saved run is not lost by quitting — only the progress made since the save
+  // A saved run is not lost by quitting - only the progress made since the save
   // point is, so the warning should not claim otherwise.
   const _saved = (typeof savedRunSummary === 'function') ? savedRunSummary() : null;
   const _msg = _saved
@@ -76,11 +76,11 @@ function quitToMainMenu() {
 }
 
 // The four secondary chips (Stats / Deck / Time / Limits) were merged into the single
-// RECORDS hub in r155 (js/records.js) — a large tabbed pop-up that pauses the round.
+// RECORDS hub in r155 (js/records.js) - a large tabbed pop-up that pauses the round.
 // showStats() / showDeck() and the Time + Limits pop-ups are kept: the dev panel and
 // the Mart still open them, and the tutorial's Limits step points at Records now.
 
-// ⏱ Time — small pop-up showing the time-cost breakdown (like stats/deck/pause,
+// ⏱ Time - small pop-up showing the time-cost breakdown (like stats/deck/pause,
 // but a lightweight bubble anchored above the button). Replaces the old chip.
 function hideTimePopup() {
   const pop = document.getElementById('interact-costs');
@@ -90,7 +90,7 @@ function hideTimePopup() {
 // debuffs), the round's max time, and how many times it's been paused / rewound.
 function updateInteractCosts() {
   const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-  // Flow charges no time for anything — spendRoundTime is a no-op there, because its
+  // Flow charges no time for anything - spendRoundTime is a no-op there, because its
   // clock is the countdown to the boss rather than a round budget. Quote that, or the
   // pop-up drifts from reality the way it did before r151.
   if (typeof flowActive === 'function' && flowActive()) {
@@ -146,7 +146,7 @@ document.addEventListener('click', (e) => {
   if (!e.target.closest('#btn-time') && !e.target.closest('#interact-costs')) hideTimePopup();
 }, true);
 
-// ▲ Limits — the same lightweight bubble as ⏱ Time, but for the upgradeable caps.
+// ▲ Limits - the same lightweight bubble as ⏱ Time, but for the upgradeable caps.
 // Limits are the run's skeleton (how big the board is, how many swaps/discards you
 // get, how long a round lasts, how many Tricks you can hold) and until now they were
 // only visible inside the Mart. This puts them one tap away during play.
@@ -190,7 +190,7 @@ document.addEventListener('click', (e) => {
 }, true);
 
 // Stats / Deck can also be opened from a takeover screen (the Mart shop), where there is
-// no round running to resume — resuming there would start the round timer behind the shop.
+// no round running to resume - resuming there would start the round timer behind the shop.
 // screenOwnsClock() is true whenever some other screen owns the clock, and the openers below
 // skip pauseGame() in that case, so the close handler must skip resumeGame() to match.
 function screenOwnsClock() {
@@ -208,6 +208,14 @@ document.querySelector('#stats-overlay .overlay-close').addEventListener('click'
 document.querySelector('#deck-overlay .overlay-close').addEventListener('click', () => closeInfoOverlay('deck-overlay'));
 
 function startGame() {
+  // Dolly the camera in onto the CRT (js/camera.js). A run starting is the only
+  // thing that means "we are at the machine now" - the way back out is driven off
+  // the menu screens showing, so SETTINGS / HISTORY / BUILDS, which all hide the
+  // main menu to open their own screen, can't push the camera in behind them.
+  if (typeof camEnterGame === 'function') camEnterGame();
+  // Music can differ between the menu and a run (see js/music.js); a track marked
+  // 'any' plays through the change, one marked 'menu' hands over here.
+  if (typeof musicSetScene === 'function') musicSetScene('game');
   document.getElementById('end-overlay').classList.remove('show');
   document.getElementById('levelup-overlay').classList.remove('show');
   document.getElementById('shop-overlay').classList.remove('show');
@@ -215,15 +223,15 @@ function startGame() {
   if (levelupTimer) { clearInterval(levelupTimer); levelupTimer = null; }
 
   // Abandoning a run mid-boss would otherwise leave its scheduled effects running
-  // — a quarantine cross landing 10 seconds into the NEXT run. Kill them here,
+  // - a quarantine cross landing 10 seconds into the NEXT run. Kill them here,
   // where every new run funnels through.
   bossActive = false;
   if (typeof clearBossEffects === 'function') clearBossEffects();
   if (typeof bossInterval !== 'undefined' && bossInterval) { clearInterval(bossInterval); bossInterval = null; }
   document.getElementById('boss-preamble')?.remove();
-  document.getElementById('run-progress')?.classList.remove('boss-sigil');
+  document.querySelectorAll('.rp-block').forEach(el => el.classList.remove('boss-sigil'));
 
-  // Install this run's RNG BEFORE any deck is built or shuffled — startGame is
+  // Install this run's RNG BEFORE any deck is built or shuffled - startGame is
   // the single point where a run's randomness is established (see js/seed.js).
   // A mode may pin a seed (the tutorial does); otherwise the dev panel's seed is
   // used, and with neither the run is plain unseeded.
@@ -244,7 +252,7 @@ function startGame() {
   // Spectrum zeroes the Flush of 3 (see applyModeHandValues); every other mode
   // gets the pristine table back.
   applyModeHandValues();
-  // Some Tricks can't exist in this mode's deck (no Ace / no court / no ♠♥♦♣) —
+  // Some Tricks can't exist in this mode's deck (no Ace / no court / no ♠♥♦♣) -
   // rebuild the offerable pool before anything can draw from it.
   if (typeof applyModeEntityFilter === 'function') applyModeEntityFilter();
   // Reset deck audit (a full deck = one of every rank in every active suit)
@@ -271,6 +279,15 @@ function startGame() {
   // Flow hook for mode-scoped CSS (it charges no time, so the action buttons must
   // not advertise a second-cost). Separate from .survival-mode, which still does.
   document.getElementById('stage')?.classList.toggle('flow-mode', typeof flowActive === 'function' && flowActive());
+  // r175 - the top-left "Game Timer" is the legacy 20-minute run clock. Match-3,
+  // Dominoes and Survival/Flow are all excluded from it (see the startTimers
+  // guard above and in resumeGame), so in those modes it sat frozen on 20:00
+  // forever. Act modes reuse the same slot for the ACT · node readout, and the
+  // remaining legacy timer modes genuinely run it - so the slot is hidden for
+  // exactly the set that neither uses. Derived from the SAME predicate the timer
+  // itself is gated on, so a new mode cannot drift out of sync with it.
+  document.getElementById('stage')?.classList.toggle('no-game-clock',
+    match3Active() || dominoActive() || survivalActive());
   if (typeof updateSurvivalShopBtn === 'function') updateSurvivalShopBtn();
   discards = limits.discards.current;
   swaps = limits.swaps.current;
@@ -330,9 +347,10 @@ function startGame() {
   heldBackScore = 0;
   pipeTimerPaused = false;
   pauseSecondsLeft = 0;
-  pauseInstanceGame = 0; // Hummingbird's per-game pause counter — reset only here
+  pauseInstanceGame = 0; // Hummingbird's per-game pause counter - reset only here
   stopwatchActive = false; if (stopwatchTimer) { clearInterval(stopwatchTimer); stopwatchTimer = null; } stopwatchCardPos = null;
   if (pauseTimer) { clearTimeout(pauseTimer); pauseTimer = null; }
+  if (typeof resetClockFx === 'function') resetClockFx();  // no frozen/rotated cards carried into a new run
   const ALL_HAND_KEYS = ['run3','threeofakind','fourofakind','run4','pair','twopair','straight','flush','fullhouse','straightflush','highcard','blackjack'];
   const BASE_HAND_KEYS = ['run3','threeofakind','twopair','fourofakind'];
   // Match-3 scores real hand names (Flush, Straight, Straight Flush, Run of 4…),
@@ -341,6 +359,7 @@ function startGame() {
   // Six Suits (6) and Spectrum (7 colours) both dilute the deck enough that the
   // short flushes are playable from the start alongside the 5-card Flush.
   if (ACTIVE_MODE.suitCount >= 6) startKeys.push('flush3', 'flush4');
+  if (typeof resetNaturalScaling === 'function') resetNaturalScaling();
   activeHands = new Set(startKeys);
   unlockedHands = new Set(startKeys);
   handsPendingUnlock = [];
@@ -354,6 +373,11 @@ function startGame() {
   cardSwapCount   = {};
   cardDealtCount  = {};
   grantedSleightIds = new Set();
+  // Mart per-run state: pinned catalog items (r171) and the Tinker bench's fee
+  // ladder (r175). Pins hold payload objects with live buy() functions, which is
+  // why they are NOT in SAVE_VARS - the Mart is shut at every save point anyway.
+  if (typeof martPins   !== 'undefined') martPins   = {};
+  if (typeof martTinkerN !== 'undefined') martTinkerN = 0;
   altarEffects    = [];
   sleightNextHandDouble = false;
   sleightLegacyMult    = false;
@@ -399,6 +423,7 @@ function startGame() {
   nineSecondsCounter = 0;
   highestHandScore = 0;
   highestHandName  = null;
+  if (typeof resetHandLog === 'function') resetHandLog();
   gameStartTime    = Date.now();
   fullHouseThisRound = 0;
   rowColBonuses = [];
@@ -424,6 +449,8 @@ function startGame() {
   rewardGridContext = 'interlude';
   skipTrickChoiceOverlay = false;
   rewardSelected = new Set();
+  rewardPickOrder = [];
+  rewardTipKey = null;
   rewardCells = [];
   rewardConfirmed = false;
   actNumber = 1;
@@ -452,6 +479,7 @@ function startGame() {
   bossSecondsLeft = 0;
   blockedCells = new Set();
   bossNumber = 0;
+  bossBag = [];              // fresh shuffled boss bag per run (see nextBossPreset)
   savedRoundSeconds = 0;
   nextBossTime = GAME_DURATION - BOSS_LOOP_DURATION;
   document.getElementById('grid').classList.remove('boss-active');
@@ -469,7 +497,7 @@ function startGame() {
   document.getElementById('clock-bar').classList.remove('urgent');
 
   initGridData();
-  // Spectrum: shuffle the four deck fixtures in. AFTER initGridData — it assigns
+  // Spectrum: shuffle the four deck fixtures in. AFTER initGridData - it assigns
   // drawPile wholesale, so anything added before this would be thrown away.
   spectrumGrantDeckCards();
   // Match-3: quietly re-draw any matches the deal happened to create, so the
@@ -483,7 +511,7 @@ function startGame() {
   // Zen mode hands out unlimited swaps/discards (see match3ApplyZenResources).
   if (match3Active()) { match3ApplyZenResources(); setTimeout(() => match3Resolve(), 400); }
   // Tutorial mode: rig the opening board + goal, then start the coach-marks.
-  // Must run LAST — it overwrites roundGoal/coins and re-renders the stacked grid.
+  // Must run LAST - it overwrites roundGoal/coins and re-renders the stacked grid.
   if (tutorialActive()) tutorialBeginRun();
 }
 

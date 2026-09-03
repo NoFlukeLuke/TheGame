@@ -30,7 +30,7 @@ function focusCapNodes() {
 const FOCUS_COLORS  = ['#54af88','#3a8fbf','#7a50c0','#9a30d0'];
 
 // Focus-gauge feel (tuned in the LETHE gauge mockup, r97).
-//   jitter: bar vibrates as it fills — OFF at/below ×1.0, ramps to jitterMaxPx at full
+//   jitter: bar vibrates as it fills - OFF at/below ×1.0, ramps to jitterMaxPx at full
 //           along jitterCurve (<1 = climbs fast early then eases → noticeable sooner),
 //           and shakes faster the fuller it gets. Respects prefers-reduced-motion.
 //   glow:   fill-scaled bloom around the bar, subtle early, up to glowMaxPx at full.
@@ -41,9 +41,9 @@ const FOCUS_FX = {
   glowCurve:   1.3,   // glow ramp (>1 = subtle early)
 };
 let lastCalcMult   = 0;   // set by calcScore so playHand can generate focus from it
-let lastCalcFocus  = 1;   // focus multiplier applied to the last scored hand (FOCUS box) — POST-hand value
-let lastPreHandFocus = 1; // focus multiplier when the hand STARTED scoring — the FOCUS box's dance-start value
-let lastPreFocusMult = 0; // mult before focus multiplier applied — used by score dance
+let lastCalcFocus  = 1;   // focus multiplier applied to the last scored hand (FOCUS box) - POST-hand value
+let lastPreHandFocus = 1; // focus multiplier when the hand STARTED scoring - the FOCUS box's dance-start value
+let lastPreFocusMult = 0; // mult before focus multiplier applied - used by score dance
 let focusNodeEls    = [];  // bottom=index 0, top=index 9 (10 per active segment)
 let focusAnimQueue  = [];  // pending node indices to animate
 let focusAnimRunning = false;
@@ -57,6 +57,51 @@ let focusDecayIntervalMs = focusDecayBaseMs;
 let focusDecayTimerId    = null;   // setInterval id
 let focusDecayBuffer     = 0;      // grace ticks held while sitting on a whole-number (x.0) multiplier
 let focusBeatDurationMs  = parseFloat(localStorage.getItem('focusBeatDurationMs')) || 300;
+
+// ══════════════════════════════════════════════
+// SCORING MODEL (dev-tunable, r179)
+// ══════════════════════════════════════════════
+// Three ways a hand type can be worth something, switchable in the dev panel so
+// they can be played against each other rather than argued about.
+//
+//   classic     the shipped table. Each hand type has its own base pips AND its
+//               own mult, both from HAND_BASE.
+//   mult_ladder base pips are 0 for every hand, so ALL pips come from the cards
+//               you actually picked. Hand type still pays immediately, through
+//               the mult ladder. This is the real differentiator from the games
+//               this resembles, where the hand's flat bonus dominates early and
+//               the cards barely register.
+//   hand_size   base pips 0 AND mult = the number of cards in the hand. Hand
+//               type then affects the immediate score not at all: it is only
+//               worth the Focus it gives. Most different, and the most likely to
+//               flatten the decision, since 5 cards always beats 4.
+//
+// Every read of the hand's pips/mult goes through handBasePips/handBaseMult, so
+// a model applies everywhere at once: the scorer, findBestHand's comparisons,
+// the payout breakdown and the RECORDS Hands tab.
+const SCORING_MODELS = ['classic', 'mult_ladder', 'hand_size'];
+let scoringModel = localStorage.getItem('scoringModel') || 'classic';
+if (!SCORING_MODELS.includes(scoringModel)) scoringModel = 'classic';
+
+// Natural Scaling (r190) rides BOTH of these rather than patching calcScore,
+// so it applies under either scoring model and the RECORDS Hands tab - which
+// calls the same two functions - quotes the earned value with no extra work.
+function handBasePips(handName) {
+  const b = (typeof HAND_BASE !== 'undefined') && HAND_BASE[handName];
+  if (!b) return 0;
+  const ns = (typeof naturalScaleBonus === 'function') ? naturalScaleBonus(handName).pips : 0;
+  return (scoringModel === 'classic' ? b.pips : 0) + ns;
+}
+// cellCount is the size of the hand being scored. Only hand_size reads it, and
+// it falls back to the table when a caller has no cells (the Hands tab lists
+// values with no hand in play, so it shows the ladder's mult there).
+function handBaseMult(handName, cellCount) {
+  const b = (typeof HAND_BASE !== 'undefined') && HAND_BASE[handName];
+  if (!b) return 0;
+  const ns = (typeof naturalScaleBonus === 'function') ? naturalScaleBonus(handName).mult : 0;
+  if (scoringModel !== 'hand_size') return b.mult + ns;
+  return ((typeof cellCount === 'number' && cellCount > 0) ? cellCount : b.mult) + ns;
+}
 
 // Speed bonus formula state (dev-tunable). Persisted to localStorage.
 let focusSpeedFormula = localStorage.getItem('focusSpeedFormula') || 'linear';
@@ -77,14 +122,16 @@ function recomputeFocusDecayInterval() {
 }
 
 // Hand-type focus contribution table
+// Focus tracks the same difficulty order as HAND_BASE (see the note there):
+// flushes cheapest, runs dearest, sets in between.
 const HAND_FOCUS = {
   'Pair': 1,
-  'Two Pair': 1,
-  'Run of 3': 1,
-  'Run of 4': 2,
-  'Straight': 3,
-  'Flush of 3': 2,
-  'Flush of 4': 3,
+  'Two Pair': 2,
+  'Run of 3': 2,
+  'Run of 4': 3,
+  'Straight': 4,
+  'Flush of 3': 1,
+  'Flush of 4': 2,
   'Flush': 3,
   'Three of a Kind': 3,
   'Full House': 4,
@@ -96,7 +143,7 @@ const HAND_FOCUS = {
   'Flush House': 14,
 };
 
-// Speed bonus formula — dev-tunable. Three formulas, params held in focusSpeedParams.
+// Speed bonus formula - dev-tunable. Three formulas, params held in focusSpeedParams.
 // t = seconds since last play; returns extra focus (pre-floor).
 function speedBonusFromTime(t) {
   if (t === Infinity || t < 0) t = 0;
@@ -117,9 +164,55 @@ function speedBonusFromTime(t) {
   return 0;
 }
 
-// Current focus multiplier: 1.0 until 10 nodes, then +0.1 per node above 10
+// ── Focus RATE (r180) ────────────────────────────────────────────────────────
+// Every Focus entity before this raised the CEILING (focusCapNodes). Nothing
+// touched how fast Focus accrues, which is the term that actually multiplies a
+// run's output - the cap only decides where it stops.
+//
+// generateHandFocus builds Focus from two terms, and these are the two knobs:
+//   complexity - HAND_FOCUS[hand], what the hand itself is worth
+//   speed      - speedBonusFromTime(t), how fast you played after the last hand
+//   window     - a DILATION on t: window 2 reads the clock as half-speed, so you
+//                get the same speed bonus with twice as long to play. Distinct
+//                from `speed`, which pays more for the same timing.
+// Each is a product, so several entities stack multiplicatively.
+function focusRateMods() {
+  const m = { complexity: 1, speed: 1, window: 1 };
+  if (typeof hasTrick === 'function') {
+    if (hasTrick('overclock'))     m.speed      *= BAL.overclock.speed_mult;
+    if (hasTrick('second_nature')) m.complexity *= BAL.second_nature.complexity_mult;
+  }
+  if (typeof hasKnack === 'function') {
+    if (hasKnack('long_fuse')) m.window     *= BAL.long_fuse.window_mult;
+    if (hasKnack('shorthand')) m.complexity *= BAL.shorthand.complexity_mult;
+  }
+  // Sleights work by SITTING on the grid, so they are scanned rather than owned.
+  // Quarantined/void cells are excluded the same way every other "while on the
+  // grid" trigger excludes them.
+  if (typeof gridData !== 'undefined' && gridData) {
+    for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
+      const cd = gridData[r]?.[c];
+      if (!cd || !cd._isSleight) continue;
+      if (typeof cellCountsForTriggers === 'function' && !cellCountsForTriggers(r, c)) continue;
+      if (cd.sleightId === 'flywheel') m.speed  *= BAL.flywheel.speed_mult;
+      if (cd.sleightId === 'governor') m.window *= BAL.governor.window_mult;
+    }
+  }
+  return m;
+}
+
+
+// Current focus multiplier: x1.0 until `focusMultStartNodes`, then + per node.
+// These are separate tunables rather than FOCUS_THRESHOLD itself, because that
+// constant also sets the meter's node colouring and charge spacing - retuning
+// the multiplier should not redraw the bar.
+let focusMultStartNodes = parseFloat(localStorage.getItem('focusMultStartNodes'));
+if (!isFinite(focusMultStartNodes)) focusMultStartNodes = FOCUS_THRESHOLD;
+let focusMultPerNode = parseFloat(localStorage.getItem('focusMultPerNode'));
+if (!isFinite(focusMultPerNode)) focusMultPerNode = 0.1;
+
 function focusMultiplier() {
-  return 1 + Math.max(0, focusNodes - FOCUS_THRESHOLD) * 0.1;
+  return 1 + Math.max(0, focusNodes - focusMultStartNodes) * focusMultPerNode;
 }
 let lastCalcPips   = 0;   // set by calcScore for animation
 
@@ -134,5 +227,5 @@ let swaps = 3;
 // The game reads limits.X.current wherever it previously used a hard-coded cap.
 // hideMax: don't surface the max anywhere in UI (limit feels "open-ended").
 // `weight` (default 1) sets how often a limit is offered in the shop / Limit
-// Break / reward-grid limit tiles — lower = rarer. Picked via pickWeightedLimits.
+// Break / reward-grid limit tiles - lower = rarer. Picked via pickWeightedLimits.
 // Grid rows/cols also drive the REWARD grid's shape (reward grid = play grid).

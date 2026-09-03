@@ -9,7 +9,7 @@ async function startInterlude() {
     sfxDuckGain.connect(ctx.destination);
   }
 
-  // ── Stage 1: skip Success flash — goalCelebration already showed SUCCESS + confetti ──
+  // ── Stage 1: skip Success flash - goalCelebration already showed SUCCESS + confetti ──
   // Cards fall out next.
   const gridEl = document.getElementById('grid');
 
@@ -17,7 +17,7 @@ async function startInterlude() {
   await showLevelUpScreen_fallOnly();
 
   // ── Payout + reward now happen ON the board (r101): the empty grid shows the
-  // payout panel, then the reward tiles. The full dark veil is NOT raised here —
+  // payout panel, then the reward tiles. The full dark veil is NOT raised here -
   // it comes back later for the deal-in (closeRewardGrid + showNextGoalFlash). ──
   await new Promise(res => setTimeout(res, 200));
 
@@ -28,13 +28,13 @@ async function startInterlude() {
   sfxDuckGain.disconnect();
   sfxDuckGain = null;
 
-  // ── Reward grid replaces Trick choice — player picks spoils, then new round setup runs ──
+  // ── Reward grid replaces Trick choice - player picks spoils, then new round setup runs ──
   rewardGridContext = 'interlude';
   openRewardGrid();
 }
 
 async function showLevelUpScreen_fallOnly() {
-  // Just the fall-out phase — every card (including Tricks) visually falls.
+  // Just the fall-out phase - every card (including Tricks) visually falls.
   // Tricks' positions are preserved in gridData so showLevelUpScreen can refill them in place.
   animating = true;
   selected = [];
@@ -46,7 +46,7 @@ async function showLevelUpScreen_fallOnly() {
   // Trade Winds: cash out half the round's remaining Focus before it falls away.
   if (hasKnack('trade_winds') && focusNodes > 0) {
     const _payout = Math.floor(focusNodes * BAL.trade_winds.payout_fraction);
-    if (_payout > 0) { coins += _payout; updateCoinsUI(); showMessage(`⛵ Trade Winds — +${_payout} credits`, 'var(--gold)'); }
+    if (_payout > 0) { coins += _payout; updateCoinsUI(); showMessage(`⛵ Trade Winds - +${_payout} credits`, 'var(--gold)'); }
   }
   if (focusNodes > 0) {
     const cap = focusCapNodes();
@@ -60,7 +60,7 @@ async function showLevelUpScreen_fallOnly() {
     }
     filledNodes.forEach((n, i) => spawnFocusFallClone(n, { delay: i * 20 }));
 
-    // Zero state silently — the real DOM goes dark immediately while clones fall.
+    // Zero state silently - the real DOM goes dark immediately while clones fall.
     focusNodes = 0;
     focusAnimQueue = [];
     focusAnimRunning = false;
@@ -140,7 +140,7 @@ async function showPayoutUI() {
       const card = gridData[r]?.[c];
       if (card?._isSleight && card.sleightId === 'idol') { consumeSleightCharge(card, r, c); }
     }
-    showMessage('🗿 Idol — triple interest!', 'var(--gold)');
+    showMessage('🗿 Idol - triple interest!', 'var(--gold)');
   }
   const interestCoins  = Math.floor(coins / 10) * interestMult;
   const efficiencyCoins = Math.floor(frozenRoundSeconds / 10);
@@ -264,7 +264,7 @@ async function showPayoutUI() {
   updateCoinsUI();
   await ffSleep(400);
 
-  // ── 2. Efficiency — rapid clock countdown ──
+  // ── 2. Efficiency - rapid clock countdown ──
   el.querySelector('#po-line-efficiency').classList.add('show');
   await ffSleep(600);
   const clockEl = el.querySelector('#po-clock');
@@ -412,7 +412,7 @@ async function show321Countdown() {
   const goalEl  = document.getElementById('next-goal-flash');
   if (!overlay || !numEl) return;
 
-  // ── Start cards falling in NOW — they land during/after countdown ──
+  // ── Start cards falling in NOW - they land during/after countdown ──
   startNewRoundDealAnims();
 
   // ── Begin fading out dark bg so play area appears while numbers count ──

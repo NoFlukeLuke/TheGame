@@ -1,15 +1,15 @@
 // ══════════════════════════════════════════════
-// DOMINOES MODE — data + pure logic (no DOM)
+// DOMINOES MODE - data + pure logic (no DOM)
 // ══════════════════════════════════════════════
 // A separate game mode. Nothing here runs unless ACTIVE_MODE.id === 'dominoes'.
 // See DOMINOES_MODE.md for the full design spec.
 
-// Values 1–7. No blanks — every half carries a real number.
+// Values 1–7. No blanks - every half carries a real number.
 const DOMINO_VALUES = [1, 2, 3, 4, 5, 6, 7];
 
 // Per-value pip color, continuing the owner's rainbow now that the range is 1–7:
 // 1 red, 2 orange, 3 yellow, 4 green, 5 blue, 6 purple, 7 magenta.
-// (White was the old blank's colour; it's dropped with the blanks — white pips on
+// (White was the old blank's colour; it's dropped with the blanks - white pips on
 //  the cream tile face would barely read anyway. 7 extends purple into magenta.)
 const DOMINO_PIP_COLORS = {
   1: '#e2382f', 2: '#e88a2a', 3: '#ecc72c', 4: '#4cbf5a',
@@ -17,11 +17,11 @@ const DOMINO_PIP_COLORS = {
 };
 
 // Optional suit plumbing: values 2–5 map to the four suits; 1/6/7 are suitless.
-// Suit-based tricks do NOT apply in this mode — this only feeds shared code that
+// Suit-based tricks do NOT apply in this mode - this only feeds shared code that
 // expects a `suit` field to exist.
 const DOMINO_VALUE_SUIT = { 2: '♠', 3: '♥', 4: '♦', 5: '♣' };
 
-// Per-hand base pips / mult. PLACEHOLDERS — balance once the mode is playable.
+// Per-hand base pips / mult. PLACEHOLDERS - balance once the mode is playable.
 // (Sizes beyond this table are extrapolated in dominoHandBase().)
 const DOMINO_HAND_BASE = {
   'Run of 3': { pips: 20,  mult: 3 },
@@ -45,11 +45,11 @@ function dominoHandBase(type, size) {
 }
 
 // The 49-tile deck (owner spec): every number 1–7 gets its OWN full set of
-// partners 1–7 — the 1s are 1-1…1-7, the 2s are 2-1…2-7, … the 7s are 7-1…7-7.
+// partners 1–7 - the 1s are 1-1…1-7, the 2s are 2-1…2-7, … the 7s are 7-1…7-7.
 //
 // Read as unordered tiles that means the seven doubles (1-1, 2-2, … 7-7) exist
 // once each, while every mixed pair shows up twice (1-2 from the 1s, 2-1 from the
-// 2s). So there ARE duplicates, but it is NOT a second copy of the whole set —
+// 2s). So there ARE duplicates, but it is NOT a second copy of the whole set -
 // which is exactly the distinction the owner asked for.
 function buildDominoDeck() {
   const d = [];
@@ -66,7 +66,7 @@ function dominoHalves(pairs) {
 }
 
 // Find every scoring hand present in the half-value pool.
-//  • Sets  = a value appearing 3+ times (maximal — one Set per value).
+//  • Sets  = a value appearing 3+ times (maximal - one Set per value).
 //  • Runs  = a maximal consecutive stretch of 3+ distinct present values.
 // A value may belong to both a run and a set at once (double-counting is intended).
 // Returns [{ type:'set'|'run', name, size, value?, values:[…] }] sorted sets-then-runs.

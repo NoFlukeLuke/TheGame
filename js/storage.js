@@ -2,16 +2,16 @@
 // STORAGE SHIM  (r155)
 // ══════════════════════════════════════════════
 // Loads BEFORE every other script. Some browsers do not merely return null from
-// localStorage — they THROW on the very first access: Safari private browsing,
+// localStorage - they THROW on the very first access: Safari private browsing,
 // browsers set to block site data, and (the one that matters for us) a
 // cross-site sandboxed iframe, which is exactly how itch.io embeds a web game.
 //
 // That mattered because a dozen files read localStorage at load time, at the top
-// level, outside any try/catch — `let devMode = localStorage.getItem(...)` and
+// level, outside any try/catch - `let devMode = localStorage.getItem(...)` and
 // friends. A throw there aborts the REST OF THAT FILE. Measured with storage
 // blocked: 8 files died partway through, `bossInterval` / `BOSS_LOOP_DURATION` /
 // `devMode` never got defined, the menu still drew fine, and pressing PLAY threw
-// — the game looked healthy right up until it wouldn't start.
+// - the game looked healthy right up until it wouldn't start.
 //
 // Rather than wrap ~40 call sites (and rely on every future one remembering),
 // this swaps in a same-shaped in-memory stand-in when the real thing is
@@ -20,7 +20,7 @@
 // `localStorage.getItem/setItem` call keeps working untouched.
 (function () {
   function usable(s) {
-    // Presence is not enough — Safari private mode HAS localStorage and throws
+    // Presence is not enough - Safari private mode HAS localStorage and throws
     // on write. The probe has to actually write.
     try {
       if (!s) return false;
@@ -60,5 +60,5 @@
     // unqualified `localStorage.getItem(...)` in the game files still resolves.
     try { window.localStorage = shim; } catch (e2) {}
   }
-  console.warn('[LETHE] Browser storage unavailable — settings and saves will not persist this session.');
+  console.warn('[LETHE] Browser storage unavailable - settings and saves will not persist this session.');
 })();

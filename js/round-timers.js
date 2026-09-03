@@ -68,10 +68,10 @@ function startRoundTimer() {
     if (hasKnack('tempo')) {
       if (++tempoElapsed >= BAL.tempo.interval_seconds) {
         tempoElapsed = 0;
-        // Refill up to the CURRENT limit, not a hardcoded 2 — so raising the swap/discard
+        // Refill up to the CURRENT limit, not a hardcoded 2 - so raising the swap/discard
         // limit (shop, events, other knacks) also raises where Tempo's drip tops out.
-        if (tempoNextIsSwap) { if (swaps    < limits.swaps.current)    { swaps++;    showMessage('⏲️ Tempo — +1 swap',    'var(--gold)'); } }
-        else                 { if (discards < limits.discards.current) { discards++; showMessage('⏲️ Tempo — +1 discard', 'var(--gold)'); } }
+        if (tempoNextIsSwap) { if (swaps    < limits.swaps.current)    { swaps++;    showMessage('⏲️ Tempo - +1 swap',    'var(--gold)'); } }
+        else                 { if (discards < limits.discards.current) { discards++; showMessage('⏲️ Tempo - +1 discard', 'var(--gold)'); } }
         tempoNextIsSwap = !tempoNextIsSwap;
         if (!animating && !falling) render();
       }
@@ -85,7 +85,18 @@ function startRoundTimer() {
       cuckooNextMinute += BAL.cuckoo.interval_seconds;
       if (retriggersThisRound > 0) pauseRound(retriggersThisRound);
     }
-    // The Woodpecker: marking runs in alternating 30s blocks — active 0–30s, off 30–60s, active 60–90s, …
+    // Compound (mythic): bank the round score at each mark. It is paid out by the
+    // NEXT scored hand, so a mark passing with nothing scored yet banks nothing -
+    // the trick rewards scoring early and compounds from there.
+    if (hasTrick('compound') && _elapsedRound >= compoundNextMark) {
+      compoundNextMark += BAL.compound.interval_seconds;
+      const _bank = Math.floor(score * BAL.compound.bank_fraction);
+      if (_bank > 0) {
+        compoundBanked += _bank;
+        showMessage('Compound: ' + _bank.toLocaleString() + ' banked', '#d8a13a');
+      }
+    }
+    // The Woodpecker: marking runs in alternating 30s blocks - active 0–30s, off 30–60s, active 60–90s, …
     // During an active block one random card is marked (pecking animation); during an off block nothing is marked.
     if (hasTrick('woodpecker')) {
       const _blk = Math.floor(_elapsedRound / 30);
@@ -96,6 +107,10 @@ function startRoundTimer() {
       }
     }
     updateClockUI();
+    // Dread before a boss that arrives with no screen in front of it (Flow).
+    // Self-gating: a no-op in every mode whose boss is announced by the reward
+    // grid / payout / pick that precedes it.
+    if (typeof tickBossApproach === 'function') tickBossApproach();
     if (roundSeconds <= 0) onRoundEnd();
   }, 1000);
   // Start focus decay alongside the round timer (pauses internally during overlays)
@@ -143,7 +158,7 @@ function startTimers() {
   }, 1000);
 }
 
-// DEAD as of r151 — kept only so nothing referencing them throws. These were a
+// DEAD as of r151 - kept only so nothing referencing them throws. These were a
 // SECOND, flat interact charge that ran alongside the BAL._resources one, so a
 // 1-card discard cost 3+3=6s and the 3rd swap of a round cost 4+10=14s while the
 // UI quoted 3s and 4s. Interact costs now come from BAL._resources ALONE
@@ -192,6 +207,9 @@ function stopTimers() {
   gameInterval = null;
   stopFocusDecay();
   stopHeartbeat();
+  // The board is about to be taken away or replaced; never leave it holding a
+  // freeze tilt or a mirror stack behind an overlay (js/clock-fx.js).
+  if (typeof resetClockFx === 'function') resetClockFx();
 }
 
 // ══════════════════════════════════════════════
@@ -199,7 +217,7 @@ function stopTimers() {
 // ══════════════════════════════════════════════
 function onRoundEnd() {
   // Flow: the clock is a 5-minute SESSION clock, not a round clock. Reaching zero
-  // summons the boss on the board as it stands — there is no round to fail here, and
+  // summons the boss on the board as it stands - there is no round to fail here, and
   // no goal to have missed. (During the boss itself the boss timer owns the clock, so
   // this can only be the session clock.)
   if (typeof flowActive === 'function' && flowActive() && !bossActive) {
@@ -213,7 +231,7 @@ function onRoundEnd() {
       resilienceUsed = true;
       roundSeconds = Math.max(10, ROUND_DURATION - roundPenaltySeconds);
       updateClockUI();
-      showMessage('SECOND CHANCE — FINISH THE CHALLENGE!', '#c9a84c');
+      showMessage('SECOND CHANCE - FINISH THE CHALLENGE!', '#c9a84c');
       startRoundTimer();
       return;
     }
@@ -253,7 +271,7 @@ function _onRoundEndCore() {
     roundSeconds = 30;
     updateClockUI();
     flashScore(0);
-    showMessage('🪢 Safety Net — 30s extension!', 'var(--gold)');
+    showMessage('🪢 Safety Net - 30s extension!', 'var(--gold)');
     startRoundTimer();
     return;
   }

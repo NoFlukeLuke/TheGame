@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════════════════════════════════════
-// CHANNEL CHANGE — the CRT transition between screens (play ↔ Mart, rewards…).
+// CHANNEL CHANGE - the CRT transition between screens (play ↔ Mart, rewards…).
 //
 // Four stacked effects over one clock: static, a vertical roll bar, a collapse
 // to a line, and an RGB split, plus an optional channel-number readout. The
-// screen being swapped is changed at the collapse, under cover of the flash —
+// screen being swapped is changed at the collapse, under cover of the flash -
 // the way a real set hides the switch.
 //
 // Tuned in channel-change-preview.html; the presets below are that page's.
@@ -73,7 +73,7 @@ function ensureCcLayers() {
 const ccEase      = p => p * p * (3 - 2 * p);
 const ccOvershoot = p => { const s = 1.24; return 1 + (--p) * p * ((s + 1) * p + s); };
 
-// Everything that makes up "the picture" — squeezed and split as one.
+// Everything that makes up "the picture" - squeezed and split as one.
 function ccPictureEls() {
   return ['cabinet', 'mart-overlay', 'shop-overlay', 'event-overlay']
     .map(id => document.getElementById(id))
@@ -83,7 +83,7 @@ function ccPictureEls() {
 let ccBusy = false;
 function channelChangeBusy() { return ccBusy; }
 
-// swapFn runs at the collapse (that's the whole point — it's hidden).
+// swapFn runs at the collapse (that's the whole point - it's hidden).
 // Returns a promise that resolves when the picture has locked back on.
 function channelChange(swapFn, opts = {}) {
   if (!ccEnabled || ccBusy) {

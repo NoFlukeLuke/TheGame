@@ -1,5 +1,5 @@
 const KNACK_POOL = [
-  { id:'contingency',     emoji:'🛡️',  name:'Contingency Plan', rarity:'rare',   desc:'Boss effects are 10% weaker — timed effects tick 10% less often, and everything else is 10% smaller.' },
+  { id:'contingency',     emoji:'🛡️',  name:'Contingency Plan', rarity:'rare',   desc:'Boss effects are 10% weaker - timed effects tick 10% less often, and everything else is 10% smaller.' },
   { id:'free_swaps',      emoji:'🕊️',  name:'Free Swaps',       rarity:'common', desc:'Swapping cards costs no time.' },
   { id:'free_discards',   emoji:'🪶',  name:'Free Discards',    rarity:'common', desc:'Discarding costs no time.' },
   { id:'steady_hand',     emoji:'♾️',  name:'Steady Hand',      rarity:'common', desc:'Swaps no longer count against the swap limit, but cost 2× time.' },
@@ -30,19 +30,20 @@ const KNACK_POOL = [
   { id:'down_and_back_in',emoji:'🔁',  name:'Down and Back In', rarity:'common', desc:'Discarding the grid’s highest rank grants +1 discard or swap (alternating) and +5 coins. If several cards share that top rank, all must be discarded together.' },
   { id:'muscle_memory',   emoji:'🧠',  name:'Muscle Memory',    rarity:'common', desc:'Primed Tricks stay primed for one extra hand.' },
   { id:'curator',         emoji:'✦',   name:'Curator',          rarity:'rare',   desc:'+1 Trick Slot.' },
+  { id:'short_suit',      emoji:'🃏',  name:'Short Suit',       rarity:'rare',   desc:'Flush of 3 and Flush of 4 become scorable hands.' },
   // ── Reward-grid / risk knacks (r129) ──
-  { id:'shady_stimulants',emoji:'💊',  name:'Shady Stimulants', rarity:'rare',   desc:'Every negative reward tile you swallow sharpens you — permanently +1 maximum Focus per tile taken.' },
-  { id:'greedy_boi',      emoji:'🤑',  name:'Greedy Boi',       rarity:'rare',   desc:'+2 selection size in the reward grid — grab more tiles at once.' },
+  { id:'shady_stimulants',emoji:'💊',  name:'Shady Stimulants', rarity:'rare',   desc:'Every negative reward tile you swallow sharpens you - permanently +1 maximum Focus per tile taken.' },
+  { id:'greedy_boi',      emoji:'🤑',  name:'Greedy Boi',       rarity:'rare',   desc:'+2 selection size in the reward grid - grab more tiles at once.' },
   { id:'scavenger',       emoji:'🦴',  name:'Scavenger',        rarity:'common', desc:'Whenever a curse lifts, gain +10 coins and +1 discard next round.' },
   { id:'coin_toss',       emoji:'🪙',  name:'Coin Toss',        rarity:'common', desc:'At the start of each round, every Sleight has a 50% chance to restore 1 charge.' },
   { id:'martyr',          emoji:'⚰️',  name:'Martyr',           rarity:'common', desc:'Discarding a non-discard Sleight restores 1 charge to all Sleights on the grid.' },
-  // ── Position knacks (r102) — control which line a position Trick marks ──
+  // ── Position knacks (r102) - control which line a position Trick marks ──
   { id:'surveyor',        emoji:'📐',  name:'Surveyor',         rarity:'common', desc:'When you gain a position Trick, you choose which column it marks.' },
   { id:'leveler',         emoji:'📏',  name:'Leveler',          rarity:'common', desc:'When you gain a position Trick, you choose which row it marks.' },
   { id:'alignment',       emoji:'🧲',  name:'Alignment',        rarity:'common', desc:'Position Tricks automatically mark the column matching their tray slot (slot 3 → column 3).' },
   { id:'district',        emoji:'🏙️',  name:'District',          rarity:'common', desc:'Position Tricks may share a row or column instead of spreading onto separate lines.' },
   // ── Tempo / repair knacks (r120) ──
-  { id:'tempo',           emoji:'⏲️',  name:'Tempo',            rarity:'rare', desc:'When acquired, sets your swap and discard limits to 2. Every 15 seconds, gain 1 back — alternating swap, then discard.' },
+  { id:'tempo',           emoji:'⏲️',  name:'Tempo',            rarity:'rare', desc:'When acquired, sets your swap and discard limits to 2. Every 15 seconds, gain 1 back - alternating swap, then discard.' },
   { id:'jury_rig',        emoji:'🔧',  name:'Jury-Rig',         rarity:'rare', desc:'Swapping or discarding a card adjacent to a Sleight has a 50% chance to restore 1 charge to it. Rolls separately for each adjacent Sleight.' },
   // ── Focus-payout knacks (r123): fire when you reach max Focus ──
   { id:'dividend',     emoji:'🏦',  name:'Dividend',      rarity:'rare', desc:'Each time you reach max Focus, gain 8 credits, then Focus resets to a third of max.' },
@@ -50,21 +51,25 @@ const KNACK_POOL = [
   { id:'growth_spurt', emoji:'🌱',  name:'Growth Spurt',  rarity:'epic', desc:'Each time you reach max Focus, your max Focus drops by 5. If you reached max Focus during a round, a random limit rises by 1 at the end of that round.' },
   // ── Focus-capacity knacks (r104) ──
   { id:'stimulants',      emoji:'💊',  name:'Stimulants',       rarity:'rare', desc:'+10 maximum Focus while owned.' },
+  // ── Focus RATE batch (r180) - these scale how fast Focus ACCRUES. Every knack
+  // above raises the ceiling; nothing raised the rate. See focusRateMods().
+  { id:'long_fuse',       emoji:'🧨',  name:'Long Fuse',        rarity:'rare', desc:'You have 2× as long to earn the same Focus speed bonus.' },
+  { id:'shorthand',       emoji:'✍️',  name:'Shorthand',        rarity:'rare', desc:'Hands generate 1.5× their listed Focus.' },
   { id:'core_memories',   emoji:'🧠',  name:'Core Memories',    rarity:'rare', desc:'Each Event you attend permanently raises your maximum Focus by 2.' },
 ];
 // ── SLEIGHT POOL ──
 // Sleights live in the deck as special cards (_isSleight:true). They fall onto the grid,
 // can be swapped/discarded/selected/played like normal cards.
 // activation describes HOW the sleight's effect fires:
-//   'wildcard'    — participates in hand detection (rank/suit flexible)
-//   'on_play'     — fires when the sleight is part of a played hand
-//   'on_discard'  — fires when the sleight is discarded
-//   'on_swap'     — fires when the sleight is moved by a swap (either direction)
-//   'on_draw'     — fires when the sleight is dealt onto the grid
-//   'round_start' — fires at the start of each round while on the grid
-//   'round_end'   — fires at round end / interest calc while on the grid
-//   'passive'     — effect always active while on the grid
-//   'double_tap'  — fires when the sleight is double-tapped
+//   'wildcard'    - participates in hand detection (rank/suit flexible)
+//   'on_play'     - fires when the sleight is part of a played hand
+//   'on_discard'  - fires when the sleight is discarded
+//   'on_swap'     - fires when the sleight is moved by a swap (either direction)
+//   'on_draw'     - fires when the sleight is dealt onto the grid
+//   'round_start' - fires at the start of each round while on the grid
+//   'round_end'   - fires at round end / interest calc while on the grid
+//   'passive'     - effect always active while on the grid
+//   'double_tap'  - fires when the sleight is double-tapped
 // wild: 'rank' | 'suit' | 'both' (only for activation:'wildcard')
 // durability: number of charges (per GAME), or 'infinite'
 // defaultRank/defaultSuit: optional fixed identity (most sleights leave these null)

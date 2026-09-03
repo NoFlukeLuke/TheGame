@@ -9,6 +9,20 @@ const TRICK_POOL = [
   { id:'undertow',       name:'Undertow',            tier:'epic',      desc:'Runs ×1.5 pips, plus ×0.5 more per card beyond 3' },
   { id:'high_water',     name:'High Water',          tier:'epic',      desc:'After 3 Runs each round, every Run pauses the clock for its card count in seconds' },
   { id:'worn_path',      name:'Worn Path',           tier:'common',    desc:'Straight scores +20 pips' },
+  // ── Multiplier batch (r179) ──
+  // ×pips and ×mult on triggers the pools had never covered: replays, a held clock,
+  // credits, buffed cards on the grid, and the Focus level itself. Every one of them
+  // reads in the PIPS or MULT chip, which a ×score never did.
+  { id:'rerun',       name:'Rerun',       tier:'epic',   desc:'Each replay in a hand multiplies its pips ×0.25 more' },
+  { id:'chorus',      name:'Chorus',      tier:'epic',   desc:'Each replay in a hand multiplies its mult ×0.2 more' },
+  { id:'deep_breath', name:'Deep Breath', tier:'rare',   desc:'Hands played while the clock is paused ×2 pips' },
+  { id:'interest',    name:'Interest',    tier:'rare',   desc:'×0.1 pips for every 10 credits you hold, up to ×3' },
+  { id:'portfolio',   name:'Portfolio',   tier:'epic',   desc:'×0.15 mult for every card on the grid carrying a permanent bonus' },
+  { id:'redline',     name:'Redline',     tier:'epic',   desc:'While your Focus multiplier is ×2 or higher, ×2 mult' },
+  { id:'compound',    name:'Compound',    tier:'mythic', desc:'Every 45 seconds your round score is banked. Your next hand pays the banked amount again.' },
+  // ── Focus RATE batch (r180) - see focusRateMods() in js/focus-config.js ──
+  { id:'overclock',     name:'Overclock',     tier:'epic', desc:'The Focus speed bonus is multiplied by 2.' },
+  { id:'second_nature', name:'Second Nature', tier:'epic', desc:'Hands generate 2× their listed Focus.' },
   // ── Pairs / sets ──
   { id:'kindred',        name:'Quake',               tier:'common',    desc:'Sets score +3 mult per card in the largest set' },
   { id:'trinity',        name:'Shock',               tier:'common',    desc:'Sets score +12 pips per card in the largest set' },
@@ -65,7 +79,7 @@ const TRICK_POOL = [
   { id:'ticktock',       name:'Tick-Tock',           tier:'common',    tags:['time','focus'],     desc:'Every time the round clock ends in a 0, gain +2 Focus' },
   { id:'quarter_chime',  name:'Quarter Chime',       tier:'rare',      tags:['time','pips'],      desc:'Every time the round clock reads a multiple of 15 seconds, your next hand scores +45 pips' },
   { id:'minute_hand',    name:'Minute Hand',         tier:'rare',      tags:['time','mult'],      desc:'Every minute mark the clock passes adds +3 mult to your next hand' },
-  { id:'second_hand',    name:'Second Hand',         tier:'common',    tags:['time','pips'],      desc:'Every minute mark the clock passes adds +5 pips to your next hand' },
+  { id:'second_hand',    name:'Second Hand',         tier:'common',    tags:['time','pips'],      desc:'Every 10 seconds the clock passes adds +5 pips to your next hand. Rewinding the clock earns them again' },
   { id:'hourglass',      name:'Hourglass',           tier:'epic',      tags:['time','retrigger'], desc:'Every minute mark the clock passes has a 1-in-3 chance to give a random card on the grid a permanent retrigger' },
   { id:'sediment',       name:'Sediment',            tier:'rare',      tags:['time','pips'],      desc:'Gains +10 pips for every 10 seconds of round time elapsed (resets each round)' },
   { id:'kingfisher',     name:'The Kingfisher',      tier:'epic',      tags:['time','mult'],      desc:'+1 mult for every 5 seconds the clock has been paused or rewound this round' },
@@ -78,7 +92,7 @@ const TRICK_POOL = [
   { id:'wildfire',       name:'Wildfire',            tier:'rare',      desc:'3 same hands in a row scores +2 mult' },
   { id:'echo_hand',      name:'Echoes',              tier:'common',    desc:'Playing the same hand type as the previous hand replays each card' },
   // ── Suit conditions ──
-  { id:'club_double',    name:'Hard Labour',         tier:'mythic',    tags:['suit','pips'], desc:'Each club scored adds escalating pips — +5, doubling per club; replays count' },
+  { id:'club_double',    name:'Hard Labour',         tier:'mythic',    tags:['suit','pips'], desc:'Each club scored adds escalating pips - +5, doubling per club; replays count' },
   { id:'monochrome',     name:'Blood Diamonds',      tier:'epic',      desc:'Hands with at least one heart and one diamond grant +1 credit and +10 seconds' },
   { id:'full_color',     name:'Rainbow',             tier:'rare',      desc:'Hands with all four suits score +16 pips and +4 mult per card' },
   { id:'balanced_diet',  name:'Balance',             tier:'common',    desc:'Hands with exactly 2 suits score +2 mult per card' },
@@ -110,7 +124,7 @@ const TRICK_POOL = [
   // ── New position tricks (owner batch) ──
   { id:'groove',         name:'Groove',              tier:'rare',      tags:['focus','position','scaling'], desc:'This trick scales +1 Focus for every 2 cards scored from a marked row or column. Resets each round.' },
   { id:'assembly_line',  name:'Assembly Line',       tier:'epic',      tags:['mult','position','scaling'],  desc:'Cards scored in a marked row or column score +1 mult for every card already scored from that line this round.' },
-  { id:'overtime',       name:'Overtime',            tier:'rare',      tags:['time','position','scaling'],  desc:'This trick scales +1 second for every 3 cards scored from a marked row or column. Resets each round.' },
+  { id:'overtime',       name:'Overtime',            tier:'rare',      tags:['time','position','scaling'],  desc:'Every hand rewinds the clock 1 second for every 3 cards you have scored from its marked row or column this round. The count resets each round.' },
   { id:'feng_shui',      name:'Feng Shui',           tier:'epic',      tags:['pips','position','scaling'],  desc:'Permanently scores +3 pips each hand another position trick triggers.' },
   { id:'huddle',         name:'Huddle',              tier:'rare',      tags:['pips','position'],            desc:'Each scored card scores +11 pips for every adjacent card or sleight in the hand.' },
   { id:'clean_sweep',    name:'Clean Sweep',         tier:'epic',      tags:['focus','position'],           desc:'Cover a full row or column within two hands to advance Focus to the next threshold.' },
@@ -128,7 +142,7 @@ const TRICK_POOL = [
   { id:'sixes_perm',     name:'D6',                  tier:'epic',      tags:['scaling','pips','value'], desc:'Every 6th card scored permanently gains a random +1–6 pips' },
   { id:'fours_perm',     name:'Middle Management',   tier:'common',    tags:['scaling','pips','value'], desc:'4-card hands permanently give the 4th card +4 pips' },
   { id:'twos_retrigger', name:'Double Take',         tier:'rare',      tags:['retrigger','value'], desc:'Each 2 scored duplicates your most recently acquired Trick’s effect' },
-  { id:'prime_times',    name:'Prime Times',         tier:'rare',      tags:['retrigger','prime'], desc:'When a prime-rank card (A,2,3,5,7) scores, prime your next Trick — cycling 1st→2nd→3rd→5th→7th' },
+  { id:'prime_times',    name:'Prime Times',         tier:'rare',      tags:['retrigger','prime'], desc:'When a prime-rank card (A,2,3,5,7) scores, prime your next Trick - cycling 1st→2nd→3rd→5th→7th' },
   { id:'eights_retrigger', name:'Sideways to Infinity', tier:'rare',   tags:['retrigger','value'], desc:'Each 8 in a hand scores a number of times equal to the number of 8s in that hand' },
   { id:'snowball',       name:'Snowball',            tier:'epic',      desc:'After any hand scoring 500+ pips, each scored card permanently gains +2 pips' },
   { id:'big_win',        name:'Jackpot',             tier:'legendary', desc:'The first time a single hand scores 10,000+, permanently add +5 mult to this trick' },
@@ -208,17 +222,17 @@ const TRICK_CATEGORIES = [
   { emoji:'🎴', ids:['enriched','tidal_force','deluge','summit','last_stand','light_touch','heavy_hand','blackjack_bonus'] }, // Flush / special hands
   { emoji:'👑', ids:['first_light','wild_heart','face_value','king_guard','knave_power','humble_roots','before_the_tide','royal_trio'] }, // Rank-specific
   { emoji:'🌱', ids:['rich_soil','fertile_ground','first_fruits','sapling'] }, // Per-card pips
-  { emoji:'⏱️', ids:['early_bird','night_owl','closing_time','quick_draw','patience_reward','steady_pace','momentum','first_play','still_water','frozen_moment','ticktock','quarter_chime','minute_hand','second_hand','hourglass','sediment','kingfisher','magpie','mockingbird','starling','rain_check'] }, // Timing
-  { emoji:'🔥', ids:['kindling','wildfire','echo_hand','hot_streak'] }, // Streaks
+  { emoji:'⏱️', ids:['early_bird','night_owl','closing_time','quick_draw','patience_reward','steady_pace','momentum','first_play','still_water','frozen_moment','ticktock','quarter_chime','minute_hand','second_hand','hourglass','sediment','kingfisher','magpie','mockingbird','starling','rain_check','deep_breath'] }, // Timing
+  { emoji:'🔥', ids:['kindling','wildfire','echo_hand','hot_streak','rerun','chorus'] }, // Streaks
   { emoji:'🎨', ids:['club_double','monochrome','full_color','balanced_diet'] }, // Suit conditions
   { emoji:'🔢', ids:['lucky_sevens','ninesong','prime_time','even_score','odd_squad'] }, // Number magic
   { emoji:'🌈', ids:['number_crunch'] }, // Rank diversity
   { emoji:'📍', ids:['rowcol_triple_pips','rowcol_mult','rowcol_retrigger','perfect_timing','right_time','study_hall','rowcol_perm_double','shape_square','shape_cross','shape_line','corner_retrigger','two_corners','edge_pips','wide_span_mult','column_rush','row_power','groove','assembly_line','overtime','feng_shui','huddle','clean_sweep','temporal_rift'] }, // Position
   { emoji:'📈', ids:['rising_tide','veteran_bonus'] }, // Level scaling
-  { emoji:'🧮', ids:['compound_mult','prolific','acorns','plan_ahead','more_better','fives_discard','nines_mult','tens_mult','sixes_perm','fours_perm','twos_retrigger','prime_times','eights_retrigger','snowball','big_win','queens_upgrade','aces_absorb','monopoly'] }, // Accumulating
+  { emoji:'🧮', ids:['compound','interest','portfolio','compound_mult','prolific','acorns','plan_ahead','more_better','fives_discard','nines_mult','tens_mult','sixes_perm','fours_perm','twos_retrigger','prime_times','eights_retrigger','snowball','big_win','queens_upgrade','aces_absorb','monopoly'] }, // Accumulating
   { emoji:'🎲', ids:['sands_of_time','discard_pips','spade_flood','mirror','wild_side','wait_for_it'] }, // Situational pip
   { emoji:'🔀', ids:['combo_score','escalation','move_as_one'] }, // Diverse conditions
-  { emoji:'🎯', ids:['meditation','tunnel_vision','first_wind','rhythm','restless','cull','expanse','kaleidoscope','flow_state'] }, // Focus
+  { emoji:'🎯', ids:['meditation','tunnel_vision','first_wind','rhythm','restless','cull','expanse','kaleidoscope','flow_state','redline','overclock','second_nature'] }, // Focus
   { emoji:'⭐', ids:['heartwood'] }, // Legendary misc
 ];
 const TRICK_EMOJI = {};
@@ -227,7 +241,7 @@ function trickEmoji(trick) { return (trick && TRICK_EMOJI[trick.id]) || '✦'; }
 
 // ── Mode entity filter (Spectrum) ─────────────────────────────────────────────
 // Spectrum's deck has no Ace, no J/Q/K and no ♠♥♦♣, so a handful of Tricks are
-// simply dead there (or, worse, free — "little guys" wants a 5-card hand with no
+// simply dead there (or, worse, free - "little guys" wants a 5-card hand with no
 // face cards, which is EVERY hand). They're pulled out of the pool for that mode
 // so the player is never offered one.
 //
@@ -238,15 +252,15 @@ function trickEmoji(trick) { return (trick && TRICK_EMOJI[trick.id]) || '✦'; }
 // the pristine list so switching back to a classic mode restores it.
 const TRICK_POOL_ALL = [...TRICK_POOL];
 const NUMERIC_BANNED_TRICKS = new Set([
-  // Ace / court-card dependent — those ranks don't exist in Spectrum
+  // Ace / court-card dependent - those ranks don't exist in Spectrum
   'first_light', 'wild_heart', 'face_value', 'king_guard', 'knave_power',
   'royal_trio', 'queens_upgrade', 'aces_absorb', 'undue_influence', 'little_guys',
-  // Named-suit dependent — Spectrum has colours, not ♠♥♦♣
+  // Named-suit dependent - Spectrum has colours, not ♠♥♦♣
   'club_double', 'monochrome', 'spade_flood',
 ]);
 // Colour-COUNT tricks (Rainbow = 4 distinct, Balance = exactly 2, Kaleidoscope =
 // 4+) still work as written, so they stay in.
-// A Trick may also be EXCLUSIVE to a mode via `modes:['spectrum']` — Monopoly is
+// A Trick may also be EXCLUSIVE to a mode via `modes:['spectrum']` - Monopoly is
 // Spectrum's stand-in for Ace Absorb (same effect, on 15s and 20s), so it must not
 // leak into the classic pools.
 function applyModeEntityFilter() {
@@ -266,11 +280,11 @@ function trickBannedInMode(id) { return isNumericMode() && NUMERIC_BANNED_TRICKS
 let gridData = [];        // gridData[row][col] = { rank, suit, trickStar, permPips, permMult }
 let selected = [];        // array of [row,col] in order
 let animating = false;
-let falling = false;   // true during card fall animations — allows selection, queues play/discard
-let pendingAction = null; // 'play' | 'discard' — queued while falling
-let dealPhase = false; // true while deal anims are running — suppresses render() card placement
+let falling = false;   // true during card fall animations - allows selection, queues play/discard
+let pendingAction = null; // 'play' | 'discard' - queued while falling
+let dealPhase = false; // true while deal anims are running - suppresses render() card placement
 
-let score = 0;      // current round's score — resets to 0 at the start of every round
+let score = 0;      // current round's score - resets to 0 at the start of every round
 let totalScore = 0; // lifetime total banked from completed rounds; display-only (end-of-run screens)
 let roundGoal = BASE_GOAL;      // this round's score target, from zero
 let level = 1;

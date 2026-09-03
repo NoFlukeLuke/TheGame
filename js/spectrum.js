@@ -1,16 +1,16 @@
 // ══════════════════════════════════════════════
-// SPECTRUM MODE — deck tuning + the four deck fixtures (r161)
+// SPECTRUM MODE - deck tuning + the four deck fixtures (r161)
 // ══════════════════════════════════════════════
 // Two things live here, both Spectrum-only:
 //   1. The rank/colour TUNER (dev panel → Spectrum). Which values and which
 //      colours are in the deck, toggled live and applied at the START OF THE
-//      NEXT ROUND — never mid-round, so the board under the player's hand can't
+//      NEXT ROUND - never mid-round, so the board under the player's hand can't
 //      change while they're looking at it.
 //   2. The four DECK FIXTURES (Shift Swap · Recycler · Time Clock · Petty Cash):
 //      extra cards shuffled into the deck at run start that pay out after two
 //      hands have scored beside them. They are Sleights (activation:'adjacent')
 //      so the grid, fall animation, tooltips, swap/discard and saves handle them
-//      for free — see SLEIGHT_FIXTURES in js/data/sleights.js.
+//      for free - see SLEIGHT_FIXTURES in js/data/sleights.js.
 
 // ── Tuner state ──────────────────────────────────────────────────────────────
 // Persisted so a tuning session survives a reload. Stored as arrays; an entry
@@ -37,7 +37,7 @@ function saveSpectrumTune() {
   } catch (e) {}
 }
 
-// The lists a Spectrum run actually deals from — always in RANKS_NUMERIC / COLORS
+// The lists a Spectrum run actually deals from - always in RANKS_NUMERIC / COLORS
 // order (a Set preserves insertion order, which toggling would scramble).
 function spectrumRanks()  { const a = RANKS_NUMERIC.filter(r => spectrumRanksOn.has(r));  return a.length ? a : [...RANKS_NUMERIC]; }
 function spectrumColors() { const a = COLORS.filter(c => spectrumColorsOn.has(c));        return a.length ? a : [...COLORS]; }
@@ -57,7 +57,7 @@ function spectrumInstallLists() {
 }
 
 // Round-start hook: rebuild the deck and re-deal the board on the new lists.
-// Sleights (the four fixtures included) are carried over — they aren't part of
+// Sleights (the four fixtures included) are carried over - they aren't part of
 // the rank × colour cross-product, so a rebuild would otherwise delete them.
 function spectrumApplyPendingDeck() {
   if (!isNumericMode() || !spectrumDeckDirty) return;
@@ -73,7 +73,7 @@ function spectrumApplyPendingDeck() {
   drawPile = deckShuffle(drawPile);
   updateDeckHud();
   render();
-  showMessage(`Deck rebuilt — ${ACTIVE_RANKS.length} values × ${ACTIVE_SUITS.length} colours = ${expectedDeckTotal}`, 'var(--gold)');
+  showMessage(`Deck rebuilt - ${ACTIVE_RANKS.length} values × ${ACTIVE_SUITS.length} colours = ${expectedDeckTotal}`, 'var(--gold)');
 }
 
 // ── The four deck fixtures ───────────────────────────────────────────────────
@@ -98,7 +98,7 @@ function spectrumGrantDeckCards() {
 }
 
 // Count a scored hand against every 'adjacent' fixture it touched, and pay out
-// the ones that just hit their threshold. Called from playHand once per hand —
+// the ones that just hit their threshold. Called from playHand once per hand -
 // a fixture touched by three of the hand's cards still only counts ONE hand.
 function fireAdjacentSleights(handCells) {
   if (!handCells || !handCells.length) return;
@@ -110,7 +110,7 @@ function fireAdjacentSleights(handCells) {
       const def = sleightDef(card);
       if (!def || def.activation !== 'adjacent') continue;
       if (card._usesLeft !== 'infinite' && card._usesLeft <= 0) continue;   // spent fixture sits inert
-      // The fixture itself can be part of the played hand — that doesn't count as
+      // The fixture itself can be part of the played hand - that doesn't count as
       // "beside it", so only its NEIGHBOURS are checked.
       const touched = getNeighbors(r, c).some(([nr, nc]) => scored.has(`${nr}-${nc}`));
       if (!touched) continue;
@@ -127,14 +127,18 @@ function paySpectrumFixture(def, card, r, c) {
   const bits = [];
   if (p.swaps)    { swaps    += p.swaps;                       bits.push(`+${p.swaps} swaps`); }
   if (p.discards) { discards  = Math.min(99, discards + p.discards); bits.push(`+${p.discards} discards`); }
-  if (p.seconds)  { roundSeconds += p.seconds; timeManipRound += p.seconds; updateClockUI(); bits.push(`+${p.seconds}s`); }
+  // The Time Clock fixture is a rewind like any other (r183) - same conversion as
+  // Deluge / Threepeat / Blood Diamonds, so it caps, floats, and counts for The
+  // Kingfisher. `gained` and not `p.seconds` in the message, because a rewind up
+  // against the round cap can hand back less than it offered.
+  if (p.seconds)  { const g = rewindTime(p.seconds); if (g > 0) bits.push(`+${g}s`); }
   if (p.coins)    { coins    += p.coins; updateCoinsUI();      bits.push(`+${p.coins} credits`); }
-  showMessage(`${def.emoji} ${def.name} — ${bits.join(', ')}!`, '#ffd700');
+  showMessage(`${def.emoji} ${def.name} - ${bits.join(', ')}!`, '#ffd700');
   consumeSleightCharge(card, r, c);   // no-op while durability is 'infinite'
   render();
 }
 
-// ── Dev panel — the rank / colour tuner ──────────────────────────────────────
+// ── Dev panel - the rank / colour tuner ──────────────────────────────────────
 function renderSpectrumDev() {
   const rEl = document.getElementById('dev-spectrum-ranks');
   const cEl = document.getElementById('dev-spectrum-colors');
@@ -155,7 +159,7 @@ function renderSpectrumDev() {
 }
 
 // A toggle is refused when it would leave the deck too small to keep the board
-// fed (or would empty a list outright) — the tuner can't deal a broken run.
+// fed (or would empty a list outright) - the tuner can't deal a broken run.
 function _spectrumTryToggle(set, key) {
   const had = set.has(key);
   had ? set.delete(key) : set.add(key);

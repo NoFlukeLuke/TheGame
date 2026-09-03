@@ -40,7 +40,7 @@ function limitProgressStr(id, showNext) {
   }
   return showNext ? `${l.current} → ${next} / ${l.max}` : `${l.current} / ${l.max}`;
 }
-// Called after any limit change — applies immediate side effects
+// Called after any limit change - applies immediate side effects
 function onLimitChanged(id) {
   if (id === 'round_time') {
     roundSeconds = Math.min(roundSeconds, limits.round_time.current);
@@ -74,7 +74,7 @@ function pickWeightedLimits(n, pool) {
 }
 // ── Tempo knack: sets the swap/discard limits to 2, ONCE, when it's acquired ──
 // Like every other limit-changing entity, Tempo imposes its value on top of whatever the
-// limits were, then gets out of the way — it does NOT lock them. Later increases (shop
+// limits were, then gets out of the way - it does NOT lock them. Later increases (shop
 // upgrades, Swap Shop / Harvest, events, other knacks) stack on top of the 2 exactly as
 // they would on the base, so wild combos stay open. The per-round drip (round-timers.js)
 // refills up to the *current* limit, so raising the limit also raises where the drip tops
@@ -90,6 +90,19 @@ function applyTempoLimitOnce() {
   if (typeof discards === 'number') discards = Math.min(discards, n);
 }
 
+// Short Suit (knack): unlocks Flush of 3 and Flush of 4 in the modes that don't
+// start with them. startGame only seeds flush3/flush4 when ACTIVE_MODE.suitCount
+// >= 6 (Six Suits, Spectrum), because on a 4-suit deck short flushes are common
+// enough to trivialise the board - so this is a real trade in Classic and a dead
+// pick everywhere they are already active (hence the has() guard, not a mode check).
+// Called from updateKnackList() for the same reason Tempo is: it is the one place
+// every grant path funnels through, so a future grant path gets this free.
+function applyShortSuitOnce() {
+  if (typeof hasKnack !== 'function' || !hasKnack('short_suit')) return;
+  if (typeof activeHands === 'undefined' || !activeHands) return;
+  ['flush3', 'flush4'].forEach(k => { activeHands.add(k); if (typeof unlockedHands !== 'undefined' && unlockedHands) unlockedHands.add(k); });
+}
+
 // Trick tray capacity (the trick_slots limit). Enforced in injectTrickAfterReward.
 function trickCapacity() {
   return (limits.trick_slots?.current ?? 5) + ((typeof hasKnack === 'function' && hasKnack('curator')) ? 1 : 0);
@@ -99,12 +112,12 @@ function trickCapacity() {
 // picker so rare limits (trick_slots, focus_cap) show up proportionally less often.
 function grantRandomLimit(label) {
   const pool = LIMITS_DEF.filter(d => limits[d.id].current < limits[d.id].max);
-  if (pool.length === 0) { showMessage(`${label || 'Limit up'} — all limits maxed!`, 'var(--cream-dim)'); return; }
+  if (pool.length === 0) { showMessage(`${label || 'Limit up'} - all limits maxed!`, 'var(--cream-dim)'); return; }
   const pick = pickWeightedLimits(1, pool)[0];
   if (!pick) return;
   const step = pick.step || 1;
   incrementLimit(pick.id);
-  showMessage(`${label || 'Limit up'} — ${pick.label} +${step}`, 'var(--gold)');
+  showMessage(`${label || 'Limit up'} - ${pick.label} +${step}`, 'var(--gold)');
 }
 
 // Rank value with Ace HIGH (=14). Shared by knacks that care about the grid's
@@ -149,7 +162,7 @@ let roundStartSeconds = ROUND_DURATION; // roundSeconds value when this round's 
 let gameSeconds = GAME_DURATION;
 let roundInterval = null;
 let gameInterval = null;
-let gameTimerPaused = false; // true during interlude and shop — game timer doesn't tick down
+let gameTimerPaused = false; // true during interlude and shop - game timer doesn't tick down
 let trickCardTimer = 0;
 let trickCardPos = null; // [row,col]
 let trickStar = null;
@@ -185,5 +198,5 @@ let cardSwapCount  = {};   // times swapped this run
 let cardDealtCount = {};   // times dealt onto grid this run   // dev toggle: Tricks live in the panel tray instead of grid cells
 let trickTray = [];          // trick objects currently in the tray
 
-// Knacks — persistent UI bonuses (third entity alongside Tricks and Sleights).
+// Knacks - persistent UI bonuses (third entity alongside Tricks and Sleights).
 // Acquired via shop (TBD); for now grantable via dev mode.

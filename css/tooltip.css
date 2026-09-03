@@ -41,7 +41,14 @@
   max-width: min(560px, 94vw);
   font-family: 'Share Tech Mono', monospace;
 }
-#entity-tip.show { display: flex; pointer-events: auto; }
+/* r170 - NEVER pointer-events:auto. This tooltip is up to 560px wide (card +
+   keyword rail) and opens into whichever side of the anchor has more room, so
+   hovering a tile on the left of a shelf lays it straight over the tiles to the
+   right. With pointer-events:auto those tiles could not be clicked at all - the
+   clicks landed on the tooltip. That was the "I can't add certain things to the
+   cart, usually the ones on the right" bug. The rail is short enough to read
+   without hovering it, which is what the old value was buying. */
+#entity-tip.show { display: flex; }
 #entity-tip.flip { flex-direction: row-reverse; }   /* rail on the outer side */
 
 #entity-tip .et-card {
@@ -59,6 +66,35 @@
 #entity-tip .et-meta { display:flex; gap:8px; flex-wrap:wrap; margin-top:7px; padding-top:6px;
   border-top:1px solid rgba(255,255,255,.09); font-size:9.5px; color:#b7a684; }
 
+/* ── interactive mode (r182) ───────────────────────────────────────────────
+   A tap opens the bubble and the bubble carries the actions, so in this mode it
+   accepts pointer events. #entity-tip-backdrop sits underneath and catches every
+   click that is not on the bubble, dismissing it - so the wide bubble can never
+   swallow a click meant for the tile behind it. */
+#entity-tip-backdrop { position:fixed; inset:0; z-index:635; display:none; background:transparent; }
+#entity-tip-backdrop.show { display:block; }
+#entity-tip.interactive { pointer-events:none; }          /* the rail stays inert… */
+#entity-tip.interactive .et-card { pointer-events:auto; } /* …only the card takes clicks */
+
+#entity-tip .et-actions { display:flex; gap:6px; margin-top:9px; padding-top:8px;
+  border-top:1px solid rgba(255,255,255,.09); }
+#entity-tip .et-act {
+  flex:1 1 0; min-width:0; cursor:pointer;
+  font-family:'Orbitron',sans-serif; font-size:9px; font-weight:700; letter-spacing:.8px;
+  text-transform:uppercase; padding:9px 6px; border-radius:6px;
+  border:1.5px solid var(--rc,#35d59b); background:rgba(255,255,255,.05); color:var(--rc,#35d59b);
+  transition:background .12s, color .12s, opacity .12s;
+}
+#entity-tip .et-act:hover:not(:disabled) { background:var(--rc,#35d59b); color:#0a0906; }
+#entity-tip .et-act:disabled { opacity:.35; cursor:not-allowed; }
+/* the primary action (add to cart / confirm) reads solid */
+#entity-tip .et-act.primary { background:var(--rc,#35d59b); color:#0a0906; }
+#entity-tip .et-act.primary:hover:not(:disabled) { filter:brightness(1.15); }
+/* in-cart / pinned states flip to a "this is on" look */
+#entity-tip .et-act.on { background:var(--c-yellow); border-color:var(--c-yellow); color:#2a2000; }
+#entity-tip .et-act.danger { border-color:var(--c-magenta); color:var(--c-magenta); }
+#entity-tip .et-act.danger:hover:not(:disabled) { background:var(--c-magenta); color:#fff; }
+
 #entity-tip .et-defs { flex:0 1 auto; display:flex; flex-direction:column; gap:5px;
   max-height:min(62vh, 420px); overflow-y:auto; width:232px; }
 #entity-tip .et-defs:empty { display:none; }
@@ -75,4 +111,11 @@
   #entity-tip { flex-direction: column; max-width: 94vw; }
   #entity-tip.flip { flex-direction: column; }
   #entity-tip .et-defs { width: 232px; max-height: 34vh; }
+}
+
+/* Touch: the actions are the primary way to buy now, so give them a real thumb
+   target and let the card grow a little wider. */
+@media (hover: none), (pointer: coarse) {
+  #entity-tip .et-card { width: 250px; }
+  #entity-tip .et-act { font-size:10px; padding:12px 6px; }
 }

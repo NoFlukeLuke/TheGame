@@ -29,14 +29,14 @@ function checkComboMilestones() {
   for (const fam of COMBO_FAMILIES) {
     if (comboComplete(fam)) {
       if (!_comboAnnounced.has(fam.id)) { _comboAnnounced.add(fam.id); _comboHinted.add(fam.id);
-        showMessage(`⚡ COMBO ONLINE — ${fam.name}!`, '#ffd700'); return; }
+        showMessage(`⚡ COMBO ONLINE - ${fam.name}!`, '#ffd700'); return; }
     }
   }
   for (const fam of COMBO_FAMILIES) {
     if (comboComplete(fam) || _comboHinted.has(fam.id)) continue;
     const miss = comboMissingSlot(fam);
     if (miss) { _comboHinted.add(fam.id);
-      showMessage(`Combo close: ${fam.name} — need ${entityDisplayName(miss)}`, '#8fd0ff'); return; }
+      showMessage(`Combo close: ${fam.name} - need ${entityDisplayName(miss)}`, '#8fd0ff'); return; }
   }
 }
 
@@ -96,16 +96,16 @@ let growthSpurtCapPenalty = 0;    // Growth Spurt: permanent max-Focus reduction
 let growthSpurtMaxedThisRound = false; // Growth Spurt: hit max this round → grant a random limit at round end
 let grantedSleightIds = new Set(); // dedup: tracks which sleight IDs have been granted
 
-// Altar effect tracking — investments that pay off over future rounds
+// Altar effect tracking - investments that pay off over future rounds
 let altarEffects = []; // [{ type:'mult_boost'|'time_boost'|'goal_reduce', value, roundsLeft }]
 
 // streak tracking
 let lastHandType = null;
 let streakCount = 0;
-// Combo Keeper knack state — save is armed initially; consumed on off-type hand;
+// Combo Keeper knack state - save is armed initially; consumed on off-type hand;
 // re-arms after 2 streak hands in a row following the off-type hand
 let streakSaveArmed = true;
-let streakSaveProgress = 0; // 0..2 — counts streak hands toward re-arm
+let streakSaveProgress = 0; // 0..2 - counts streak hands toward re-arm
 let lastHandTime = 0;
 let lastSwapTime = 0; // for Still Water trick
 let lastHandRoundSeconds = null; // roundSeconds value when the previous hand was scored (Heron)
@@ -133,13 +133,17 @@ let _lastHandRetrigs = 0;     // extra retriggers in the most recent calcScore o
 let replaysThisRound = 0;     // total card replays/retriggers across scored hands this round
 let timeManipRound = 0;       // net seconds ADDED to the clock by scoring effects this round (Deluge/Overtime/etc.)
 let cuckooNextMinute = 0;     // next roundStartSeconds-roundSeconds threshold for Cuckoo's pause
-let doubleJeopardyPos = null; // { r, c } — marked tile (Double Jeopardy); fires once per round
+// Compound (mythic): the round score is banked every interval; the next scored hand
+// pays the bank again. Both reset each round (see triggerLevelUp).
+let compoundNextMark = 0;     // next elapsed-seconds threshold at which to bank
+let compoundBanked   = 0;     // banked score awaiting the next hand's payout
+let doubleJeopardyPos = null; // { r, c } - marked tile (Double Jeopardy); fires once per round
 let djUsedThisRound = false;  // Double Jeopardy has already fired its pause this round
 let firstPauseStartedRound = false; // a clock pause has begun this round (Vulture's "first pause" gate)
 let firstPauseActive = false; // currently inside the round's first continuous pause stretch (Vulture)
 let _lastHandVultureSeconds = 0; // sum of Vulture buff-seconds fired (retrigger-aware) in the last real calcScore
 let _lastRetrigByCell = {};      // { 'r-c': replayCount } from the last calcScore (playHand reads for replay-aware coin/time)
-let woodpeckerPos = null;       // { r, c } — marked tile (Woodpecker) during an active 30s block
+let woodpeckerPos = null;       // { r, c } - marked tile (Woodpecker) during an active 30s block
 let woodpeckerActiveBlock = -1; // index of the 30s block already handled (even = active/marked, odd = off)
 let metronomeHandType = null;   // Metronome knack: the hand type that pauses the clock this round
 let shadyColumn = 0;            // Shady Tree sleight: the "shady" column this round
@@ -167,7 +171,7 @@ function achievableHandTypes() {
 let resilience = false; // once per game second chance
 let resilienceUsed = false;
 let firstHandThisRound = true;
-// DEAD as of r151 — the "first 2 swaps of a round are free" exemption was part of
+// DEAD as of r151 - the "first 2 swaps of a round are free" exemption was part of
 // the old double-charge tangle and contradicted the flat 8s the UI now quotes.
 // Still reset each round so restoring it is a one-line change in doSwap.
 let freeSwapsLeft    = 2;
@@ -181,7 +185,7 @@ let pendingTrickChoice = null;     // trick the player has tapped once (awaiting
 // ── Goal / level-up queue ──
 let goalReachedThisRound = false;
 let interludeActive = false;    // true during the 5s heartbeat countdown
-let bonusWindowActive = false;  // true during the 5s ring countdown — hands score normally during this
+let bonusWindowActive = false;  // true during the 5s ring countdown - hands score normally during this
 let dealAnims = [];             // Web Animations API refs for the between-round card deal
 let frozenRoundSeconds = 0;     // clock value when goal was scored
 let sfxDuckGain = null;         // Web Audio gain node for ducking SFX during heartbeat
@@ -206,7 +210,7 @@ let nextRoundDiscardCost  = 0;     // +seconds per discarded card, next round on
 // Active for the CURRENT round (recomputed each round = permanent + next-round):
 let playHandCostThisRound = 0;     // extra seconds per hand this round
 let discardCostThisRound  = 0;     // extra seconds per discarded card this round
-// Exalt/Corrupt suit mechanic — PAUSED by default (owner request: it was interfering
+// Exalt/Corrupt suit mechanic - PAUSED by default (owner request: it was interfering
 // with hand submission). Toggle in the pause-menu Settings. Persisted across sessions.
 // When off: cards never get exalted/corrupted, existing flags grant no buffs, no glow.
 let exaltCorruptEnabled = (localStorage.getItem('exaltCorruptEnabled') === 'true');

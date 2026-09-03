@@ -1,5 +1,5 @@
 // ══════════════════════════════════════════════════════════════════════════
-// ENTITY TOOLTIP — one tooltip for every entity surface (shop, wheel, reward
+// ENTITY TOOLTIP - one tooltip for every entity surface (shop, wheel, reward
 // grid, trays). Replaces the per-screen tooltips that each had to be wired by
 // hand, which is why most of the Mart had none at all.
 //
@@ -10,7 +10,7 @@
 //     tooltip, so the vocabulary is never assumed.
 //
 //  2. SPACE-AWARE PLACEMENT. It measures the gap on all four sides of the anchor
-//     and opens into whichever has the most room — horizontally first, then it
+//     and opens into whichever has the most room - horizontally first, then it
 //     clamps vertically. The definition rail goes on the tooltip's outer side,
 //     flipping to the other side if that would run off screen.
 // ══════════════════════════════════════════════════════════════════════════
@@ -26,13 +26,14 @@ function ensureEntityTooltip() {
       <div class="et-type"></div>
       <div class="et-desc"></div>
       <div class="et-meta"></div>
+      <div class="et-actions"></div>
     </div>
     <div class="et-defs"></div>`;
   document.body.appendChild(_etEl);
-  // Keep it up while the pointer is over the tooltip itself (so definitions can
-  // be read) but never let it eat clicks meant for the tile underneath.
-  _etEl.addEventListener('pointerenter', () => { clearTimeout(_etHideTimer); });
-  _etEl.addEventListener('pointerleave', hideEntityTooltip);
+  // No hover-to-keep-alive listeners: the tooltip is pointer-events:none (see
+  // css/tooltip.css) precisely so it can never swallow a click meant for a tile
+  // underneath it, and an element that takes no pointer events cannot receive
+  // pointerenter either. Nothing to bind.
   return _etEl;
 }
 
@@ -41,8 +42,31 @@ const ET_RARITY_COLOR = {
   legendary:'--c-yellow', mythic:'--c-magenta',
 };
 
+// ── INTERACTIVE MODE (r182) ─────────────────────────────────────────────────
+// A tap now OPENS the tooltip rather than acting on the tile, and the tooltip
+// carries the actions (PIN, ADD TO CART). That needs pointer events, which the
+// bubble deliberately refuses in its default hover mode - it is up to 560px wide
+// and lies straight over its neighbours, so accepting clicks there would eat the
+// clicks meant for them (the old "can't add the ones on the right" bug).
+//
+// The fix is a BACKDROP. In interactive mode a transparent full-screen layer
+// goes in underneath the bubble: the bubble itself takes clicks, and every click
+// anywhere else lands on the backdrop and simply dismisses it. Nothing is ever
+// silently swallowed, and the surface behind is never clicked through by mistake.
+let _etBackdrop = null;
+function ensureEntityBackdrop() {
+  if (_etBackdrop && document.body.contains(_etBackdrop)) return _etBackdrop;
+  _etBackdrop = document.createElement('div');
+  _etBackdrop.id = 'entity-tip-backdrop';
+  _etBackdrop.addEventListener('pointerdown', e => { e.stopPropagation(); hideEntityTooltip(true); });
+  document.body.appendChild(_etBackdrop);
+  return _etBackdrop;
+}
+
 // payload: { label/name, desc, rarity/tier, type, emoji, price, uses, meta[] }
-function showEntityTooltip(anchorEl, p) {
+// opts:    { actions: [{ label, cls, disabled, onClick }] } - passing any action
+//          puts the tooltip in interactive mode (see above).
+function showEntityTooltip(anchorEl, p, opts = {}) {
   if (!anchorEl || !p) return;
   clearTimeout(_etHideTimer);
   const el = ensureEntityTooltip();
@@ -70,17 +94,46 @@ function showEntityTooltip(anchorEl, p) {
   el.querySelector('.et-defs').innerHTML = defs.map(d =>
     `<div class="et-def"><b class="kw ${d.cls}">${d.name}</b><span>${d.def}</span></div>`).join('');
 
+  // actions row - present only in interactive mode
+  const acts = Array.isArray(opts.actions) ? opts.actions : [];
+  const actEl = el.querySelector('.et-actions');
+  actEl.innerHTML = '';
+  acts.forEach(a => {
+    const b = document.createElement('button');
+    b.className = 'et-act' + (a.cls ? ' ' + a.cls : '');
+    b.textContent = a.label;
+    b.disabled = !!a.disabled;
+    b.addEventListener('click', e => { e.stopPropagation(); a.onClick && a.onClick(); });
+    // The backdrop listens on pointerdown, so stop that here too or pressing a
+    // button would dismiss the bubble out from under the click.
+    b.addEventListener('pointerdown', e => e.stopPropagation());
+    actEl.appendChild(b);
+  });
+  actEl.style.display = acts.length ? '' : 'none';
+  el.classList.toggle('interactive', acts.length > 0);
+  if (acts.length) ensureEntityBackdrop().classList.add('show');
+  else if (_etBackdrop) _etBackdrop.classList.remove('show');
+
   el.classList.add('show');
   placeEntityTooltip(anchorEl, el);
 }
 
-function hideEntityTooltip() {
+// `now` skips the grace delay - used when a click outside dismisses the bubble,
+// where a 60ms fade-out would let the next tap land on a tooltip already on its
+// way out.
+function hideEntityTooltip(now = false) {
   clearTimeout(_etHideTimer);
-  _etHideTimer = setTimeout(() => { if (_etEl) _etEl.classList.remove('show'); }, 60);
+  if (_etBackdrop) _etBackdrop.classList.remove('show');
+  const kill = () => { if (_etEl) { _etEl.classList.remove('show', 'interactive'); } };
+  if (now) kill(); else _etHideTimer = setTimeout(kill, 60);
 }
+function entityTooltipOpen() { return !!(_etEl && _etEl.classList.contains('show')); }
+// True while the bubble is showing action buttons. Surfaces check this so a
+// stray hover cannot close the buttons a click just opened.
+function entityTooltipInteractive() { return !!(_etEl && _etEl.classList.contains('interactive')); }
 
-// Open into whichever side has the most room. Horizontal first — the definition
-// rail makes the tooltip wide, so left/right is the decision that matters — then
+// Open into whichever side has the most room. Horizontal first - the definition
+// rail makes the tooltip wide, so left/right is the decision that matters - then
 // clamp vertically, preferring to centre on the anchor.
 function placeEntityTooltip(anchorEl, el) {
   const GAP = 12, PAD = 8;

@@ -1,16 +1,17 @@
 // ══════════════════════════════════════════════
-// BOSS EFFECTS — the r150 roster  (js/data/bosses.js holds the presets)
+// BOSS EFFECTS - the r150 roster  (js/data/bosses.js holds the presets)
 // ══════════════════════════════════════════════
 // Every boss in this roster works the same shape: it does its thing ONCE at
-// round start, then again on a fixed interval. `bossSchedule()` is that shape —
-// it fires immediately and then repeats, and it is the single place the
-// Contingency Plan knack stretches intervals, so a new boss gets the knack
-// interaction for free.
+// round start, then again on a fixed interval. `bossSchedule()` is that shape -
+// it ARMS the effect, bossStartScheduledEffects() (called when the boss clock
+// starts, after the briefing) fires the opening tick and starts the repeat - and
+// it is the single place the Contingency Plan knack stretches intervals, so a new
+// boss gets the knack interaction for free.
 //
 // Two kinds of "blocked" cell now exist, and the difference matters:
-//   · blockedCells (older, boss.js) — the cell is VOID. Its card is returned to
+//   · blockedCells (older, boss.js) - the cell is VOID. Its card is returned to
 //     the deck and nothing falls into it.
-//   · nullCells (here)              — the cell is QUARANTINED. Cards still fall
+//   · nullCells (here)              - the cell is QUARANTINED. Cards still fall
 //     in and still fill the slot; they are simply inert. Not a null card, a null
 //     cell. isCellBlocked() covers both, so selection/tap/swipe blocking comes
 //     for free; the refill logic in card-fall.js deliberately consults
@@ -19,11 +20,11 @@
 // ── State (reset by clearBossEffects) ────────────────────────────────────────
 let bossTickIds        = [];         // setInterval handles for the scheduled effects
 let bossTimeouts       = [];         // pending setTimeouts (quarantine warnings)
-let nullCells          = new Set();  // "r-c" — inert cells; cards still land here
-let pendingNullCells   = new Set();  // "r-c" — marked with an X, about to go inert
-let dampCells          = new Set();  // "r-c" — half pips, and tricks may not fire
+let nullCells          = new Set();  // "r-c" - inert cells; cards still land here
+let pendingNullCells   = new Set();  // "r-c" - marked with an X, about to go inert
+let dampCells          = new Set();  // "r-c" - half pips, and tricks may not fire
 let bossNullRank       = null;       // rank currently recalled out of play
-let bossUsedRanks      = new Set();  // ranks already recalled — never picked twice
+let bossUsedRanks      = new Set();  // ranks already recalled - never picked twice
 let bossDisabledTricks = new Map();  // trickId → expiry timestamp (ms)
 let bossTimeFromFocus  = false;      // the boss clock runs at the Focus multiplier
 let _bossTimeDebt      = 0;          // fractional carry so ×1.4 ticks smoothly
@@ -38,15 +39,31 @@ let bossRedactedMult   = 1;          // what it is multiplied by
 // "Boss effects are 10% weaker." Two readings, both applied:
 //   magnitudes shrink by 10%  ·  timed effects tick 10% LESS OFTEN.
 // A −1 ration cut can't be 10% smaller, so for those the interval stretch is the
-// whole benefit — which is why every timed effect goes through bossSchedule.
+// whole benefit - which is why every timed effect goes through bossSchedule.
 function bossDampened() { return typeof hasKnack === 'function' && hasKnack('contingency'); }
 function bossMagScale()      { return bossDampened() ? 0.9 : 1; }
 function bossIntervalScale() { return bossDampened() ? 1 / 0.9 : 1; }
 
+// Scheduled effects are ARMED at boss start but do not fire until the clock does
+// (r179). applyBossModifiers runs inside triggerBoss, which is BEFORE the briefing
+// panel and its PROCEED button - so the opening tick used to land while the player
+// was still reading what the boss does, and every interval tick after it was
+// silently dropped (`run` returns early on gameTimerPaused) for as long as the
+// briefing sat open. Both read as "the boss did nothing". bossStartScheduledEffects()
+// is called from startBossTimer, the one place the boss clock actually starts.
+let bossPendingSchedules = [];
+
 function bossSchedule(everySecs, fn) {
-  const run = () => { if (!bossActive || gameTimerPaused || roundEnded) return; try { fn(); } catch (e) { console.error('[BOSS] effect failed', e); } };
-  try { fn(); } catch (e) { console.error('[BOSS] opening effect failed', e); }   // fires at round start
-  bossTickIds.push(setInterval(run, Math.round(everySecs * 1000 * bossIntervalScale())));
+  bossPendingSchedules.push({ everySecs, fn });
+}
+function bossStartScheduledEffects() {
+  const pending = bossPendingSchedules;
+  bossPendingSchedules = [];
+  pending.forEach(({ everySecs, fn }) => {
+    const run = () => { if (!bossActive || gameTimerPaused || roundEnded) return; try { fn(); } catch (e) { console.error('[BOSS] effect failed', e); } };
+    try { fn(); } catch (e) { console.error('[BOSS] opening effect failed', e); }   // fires as the clock starts
+    bossTickIds.push(setInterval(run, Math.round(everySecs * 1000 * bossIntervalScale())));
+  });
 }
 function bossDelay(ms, fn) { bossTimeouts.push(setTimeout(fn, ms)); }
 
@@ -105,7 +122,7 @@ function bossOnInteract(kind) {
 
   // The Ratchet: the bar moves every time you touch the board. Since r155 the boss
   // win bar IS roundGoal (bosses no longer carry their own score target), so this
-  // raises roundGoal — the one number checkBossObjective now compares against.
+  // raises roundGoal - the one number checkBossObjective now compares against.
   if (bossGoalRatchet) {
     const rate = bossGoalRatchet * bossMagScale();
     const before = roundGoal;
@@ -133,6 +150,23 @@ function bossRedactedHandMult(handName) {
   return 1 - (1 - bossRedactedMult) * bossMagScale();
 }
 
+// ── Keeping the tray's grey state honest (r188) ──────────────────────────────
+// Two bosses switch Tricks off and neither one has an event for switching them
+// back ON: the Voidwright's halves flip on a clock tick, and the Censor's 45s
+// suspensions simply expire (bossTrickBlackedOut deletes them lazily, when read).
+// So the boss clock calls this every second. It compares the set of switched-off
+// ids against the last one and only repaints when it actually changed - a blind
+// re-render every second would restart the tray's marquee/fan on every tick.
+let _bossTrickOffSig = '';
+function bossSyncTrickTrayState() {
+  const held = ((typeof trickTrayMode !== 'undefined' && trickTrayMode) ? trickTray : acquiredTricks) || [];
+  const sig = held.filter(t => typeof isTrickDisabledByBoss === 'function' && isTrickDisabledByBoss(t.id))
+                  .map(t => t.id).sort().join(',');
+  if (sig === _bossTrickOffSig) return;
+  _bossTrickOffSig = sig;
+  if (typeof renderTrickTray === 'function') renderTrickTray();
+}
+
 // ── Trick blackout (The Censor) ──────────────────────────────────────────────
 function bossTrickBlackedOut(trickId) {
   if (!bossDisabledTricks.size) return false;
@@ -145,7 +179,7 @@ function bossTrickBlackedOut(trickId) {
 // ── The effects themselves ───────────────────────────────────────────────────
 function bossQuarantineTick() {
   // Pick a cell that is not already inert or spoken for, flag it, and take it out
-  // of play 10 seconds later. The warning window is the whole point — the player
+  // of play 10 seconds later. The warning window is the whole point - the player
   // gets time to spend what is standing there.
   const free = [];
   for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
@@ -192,7 +226,7 @@ function bossCensorTick(holdSecs) {
 }
 
 function bossRecallTick() {
-  // Restore the previous rank, then take a NEW one — never one already used, so
+  // Restore the previous rank, then take a NEW one - never one already used, so
   // the boss works through the deck rather than hammering the same rank.
   const pool = ACTIVE_RANKS.filter(r => !bossUsedRanks.has(r));
   if (!pool.length) return;                        // every rank has had its turn
@@ -253,7 +287,7 @@ function applyBossEffectModifier(mod, params) {
       bossInteractFee = params.fee || 3;
       return true;
     case 'redact_hand': {
-      // Only hand types the player can actually make are worth marking down —
+      // Only hand types the player can actually make are worth marking down -
       // redacting Straight Flush on a 4×4 board would be a free round.
       const pool = (typeof achievableHandTypes === 'function' ? achievableHandTypes() : null)
                 || Object.keys(HAND_BASE);
@@ -264,10 +298,12 @@ function applyBossEffectModifier(mod, params) {
       return true;
     }
   }
-  return false;   // not ours — boss.js handles the legacy modifiers
+  return false;   // not ours - boss.js handles the legacy modifiers
 }
 
 function clearBossEffects() {
+  bossPendingSchedules = [];
+  _bossTrickOffSig = '';
   bossTickIds.forEach(clearInterval); bossTickIds = [];
   bossTimeouts.forEach(clearTimeout);  bossTimeouts = [];
   nullCells = new Set(); pendingNullCells = new Set(); dampCells = new Set();

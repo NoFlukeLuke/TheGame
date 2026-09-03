@@ -1,5 +1,5 @@
 // ══════════════════════════════════════════════════════════════════════════
-// BUILDS — the LETHE procurement catalogue. Every entity in the game laid out on
+// BUILDS - the LETHE procurement catalogue. Every entity in the game laid out on
 // one pannable, zoomable canvas so you can browse the whole catalogue and
 // assemble a dream build.
 //
@@ -13,12 +13,12 @@
 //
 // ZOOM        Two tiers. At/above BUILD_TOOLTIP_ZOOM every record shows its full
 //             text; below it, icon + name only. Zooming further out just makes
-//             those smaller — nothing is removed, it simply stops being legible.
+//             those smaller - nothing is removed, it simply stops being legible.
 //
 // FILE STATE  Undiscovered entities read as FILE MISSING (a stuck-on note);
 //             task-gated ones read as AUTHORIZATION REQUIRED. Both can be hidden.
 //
-// REQUISITION A saved build can be FILED WITH PROCUREMENT — the corporate way of
+// REQUISITION A saved build can be FILED WITH PROCUREMENT - the corporate way of
 //             pinning a goal. Entities on the filed requisition are flagged
 //             wherever they appear in a run.
 // ══════════════════════════════════════════════════════════════════════════
@@ -213,7 +213,7 @@ function bindBuildsPanZoom(wrap) {
 
 // ── grouping ────────────────────────────────────────────────────────────────
 // Type is always the outer grouping. Inside it, either rarity bands or keyword
-// clusters — an entity appears under every keyword it mentions, so a card that
+// clusters - an entity appears under every keyword it mentions, so a card that
 // touches both pips and focus shows up in both neighbourhoods on purpose.
 function buildsGroupsFor(def) {
   const pool = def.pool();
@@ -227,7 +227,7 @@ function buildsGroupsFor(def) {
   const by = {};
   pool.forEach(e => {
     const kws = keywordsIn(e.desc || '');
-    if (!kws.length) (by['—'] = by['—'] || { label:'NO KEYWORDS', cls:'', items:[] }).items.push(e);
+    if (!kws.length) (by['·'] = by['·'] || { label:'NO KEYWORDS', cls:'', items:[] }).items.push(e);
     kws.forEach(k => {
       by[k.key] = by[k.key] || { label: k.name.toUpperCase(), cls: k.cls, items: [] };
       by[k.key].items.push(e);
@@ -301,7 +301,7 @@ function buildEntityHTML(e, def, state, match) {
   if (state === 'missing') {
     return `<div class="${cls}" data-type="${def.key}" data-id="${e.id}">
       <div class="bv-note"><div class="bv-note-stamp">FILE MISSING</div>
-      <div class="bv-note-sub">no record on file — acquire in a run to open</div></div></div>`;
+      <div class="bv-note-sub">no record on file - acquire in a run to open</div></div></div>`;
   }
   if (state === 'classified') {
     return `<div class="${cls}" data-type="${def.key}" data-id="${e.id}">

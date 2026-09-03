@@ -10,14 +10,14 @@
 // everything and the hooks in the shared engine are one-liners.
 
 // True for BOTH survival flavours. Flow (js/flow-mode.js) is Survival with the round
-// clock removed, and it reuses this whole file — the pick-of-three, the reward grants,
+// clock removed, and it reuses this whole file - the pick-of-three, the reward grants,
 // the on-demand Mart, the boss reward and the 5-boss completion screen. Anything that
 // must differ asks flowActive() specifically.
 function survivalActive() { return !!ACTIVE_MODE && (ACTIVE_MODE.id === 'survival' || ACTIVE_MODE.id === 'flow'); }
 
 // ── Tunables (all easy to change) ──
 const SURVIVAL_ROUND_SECONDS = 120;   // 2-minute rounds (owner request; was 3)
-const SURVIVAL_BASE_GOAL     = 750;   // first goal (lower than Classic's 1000)
+const SURVIVAL_BASE_GOAL     = 900;   // first goal (lower than Classic's 1200; both rose 20% with the r178 hand retune)
 const SURVIVAL_GOAL_ROUND_TO = 50;    // goal rounding step (500 would snap 750 → 1000)
 // Endless (post-run) scaling: the per-level GROWTH accelerates 65%, i.e. Classic's
 // +35%/level becomes +57.75%/level. Applied only after the 5-boss run is continued.
@@ -33,10 +33,10 @@ const SURVIVAL_BOSS_MIN_TIME  = 30;   // floor so a low bank can't hand an unwin
 // They do NOT refresh each level; unspent ones roll forward to the next reward.
 const SURVIVAL_REROLLS_START  = 3;
 const SURVIVAL_REROLLS_PER_BOSS = 2;
-// Entities that only do something in the reward grid — survival has no reward grid,
+// Entities that only do something in the reward grid - survival has no reward grid,
 // so they are filtered out of every pool while it is the active mode.
 const SURVIVAL_BANNED_ENTITIES = new Set(['greedy_boi', 'more_better', 'rain_check']);
-// Pick-3 draw weights (weighted "but not heavily" — Tricks/Sleights lead, the
+// Pick-3 draw weights (weighted "but not heavily" - Tricks/Sleights lead, the
 // permanent Knacks/Limits show up less). Guarantee below overrides droughts.
 const SURVIVAL_PICK_WEIGHTS  = { trick: 42, sleight: 30, knack: 16, limit: 12 };
 // Guarantee: at least one Limit AND one Knack option every 4 levels. When a type
@@ -66,7 +66,7 @@ const SURVIVAL_REROLL_STEP    = 5;    // then 5, 10, 15… (STEP × paid-index)
 // other mode keeps the global ROUND_DURATION. (Used by computeRoundResources and
 // the clock-bar fill so both agree.)
 // Flow's clock is the 5-minute SESSION clock counting down to the inspection, not a
-// round clock — but it is the same variable, so the bar fill and computeRoundResources
+// round clock - but it is the same variable, so the bar fill and computeRoundResources
 // must size against it too.
 function currentRoundDuration() {
   if (typeof flowActive === 'function' && flowActive()) return FLOW_SESSION_SECONDS;
@@ -109,6 +109,7 @@ function survivalInitRun() {
   survivalEndless          = false;
   survivalEndlessFromLevel = Infinity;
   bossNumber               = 0;
+  bossBag                  = [];
   document.getElementById('stage')?.classList.add('survival-mode');
   updateSurvivalShopBtn();
 }
@@ -121,7 +122,7 @@ function survivalInitRun() {
 // triggerLevelUp (overflow above the goal seeds the next round).
 function survivalAfterLevelUp(leftover) {
   // Flow: the session clock is NOT spent by clearing a goal (it spans every goal in
-  // the 5 minutes), so there is no "leftover" to pay out and no time to bank — its
+  // the 5 minutes), so there is no "leftover" to pay out and no time to bank - its
   // boss runs a fixed window. Flat coins only.
   const _flow = (typeof flowActive === 'function' && flowActive());
   const gained = _flow ? SURVIVAL_LEVEL_COINS
@@ -132,7 +133,7 @@ function survivalAfterLevelUp(leftover) {
   if (gained > 0) showMessage(`+${gained} 💰`, 'var(--c-yellow, #ffce2b)');
 }
 
-// Called once per second from the round tick (live play time only — the clock is
+// Called once per second from the round tick (live play time only - the clock is
 // paused during picks, the shop and menus, so this measures real playing time).
 // When the 5-minute timer runs out the NEXT dealt round is a boss.
 function survivalTickBossClock() {
@@ -145,17 +146,17 @@ function survivalTickBossClock() {
   if (survivalSecondsToBoss <= 0) {
     survivalSecondsToBoss = SURVIVAL_BOSS_EVERY_SECONDS;
     survivalBossPending = true;
-    showMessage('⚠ INSPECTION IMMINENT', 'var(--red)');
+    showMessage('⚠ BOSS INCOMING', 'var(--red)');
   }
 }
 
 // ══════════════════════════════════════════════
-// PICK-OF-THREE — option pools & draw
+// PICK-OF-THREE - option pools & draw
 // ══════════════════════════════════════════════
-// True for entities whose whole effect is about the reward grid — survival has no
+// True for entities whose whole effect is about the reward grid - survival has no
 // reward grid, so offering them would be a dead pick. Also used to filter the Mart.
 // Also the chokepoint for Flow's own ban list (clock entities in a mode with no round
-// clock) — every offer pool already routes through here, so one test covers both.
+// clock) - every offer pool already routes through here, so one test covers both.
 function survivalEntityBanned(id) {
   if (!survivalActive()) return false;
   if (SURVIVAL_BANNED_ENTITIES.has(id)) return true;
@@ -246,7 +247,7 @@ function survivalPickOverlay() {
           <button id="sv-pick-reroll" onclick="survivalReroll()"></button>
           <button id="sv-pick-contrib-btn" onclick="survivalToggleContrib()" title="What contributed to your score">📊</button>
         </div>
-        <button id="sv-pick-shop" onclick="survivalOpenShop()">🛒 Shop — entry fee 5 💰</button>
+        <button id="sv-pick-shop" onclick="survivalOpenShop()">🛒 Shop - entry fee 5 💰</button>
         <div id="sv-pick-contrib"></div>
       </div>`;
     (document.getElementById('stage') || document.body).appendChild(el);
@@ -281,7 +282,7 @@ function survivalUpdateRerollBtn() {
   if (btn) {
     const cost = survivalRerollCost();
     const free = survivalRerollsLeft > 0;
-    btn.textContent = free ? `🎲 Reroll — FREE (${survivalRerollsLeft} left)` : `🎲 Reroll — ${cost} 💰`;
+    btn.textContent = free ? `🎲 Reroll - FREE (${survivalRerollsLeft} left)` : `🎲 Reroll - ${cost} 💰`;
     btn.classList.toggle('sv-cant-afford', !free && coins < cost);
   }
   // Shop button lives on the pick screen now; keep its affordability live.
@@ -291,7 +292,7 @@ function survivalUpdateRerollBtn() {
 
 // Show the pick panel beside the preview. Called from the goal dance (after the
 // cards fly into the preview) and from the post-boss reward. Does NOT advance the
-// level — the deal happens when the player chooses (survivalChoose).
+// level - the deal happens when the player chooses (survivalChoose).
 function survivalShowPick(bonus = false, kicker) {
   animating = false;
   trickSelectionPhase = false;
@@ -304,14 +305,14 @@ function survivalShowPick(bonus = false, kicker) {
   const ov = survivalPickOverlay();
   ov.classList.add('show');
   survivalHideContrib(); // start collapsed
-  // The goal hand's score panel isn't refreshed by the (skipped) interlude — sync it
+  // The goal hand's score panel isn't refreshed by the (skipped) interlude - sync it
   // so the SCORE total reflects the cleared goal while the preview dance climbs.
   if (typeof updateScoreUI === 'function') updateScoreUI();
 }
 
 // ── Contributions breakdown (the payout's Contributions view, surfaced on the pick
 //    because survival skips the payout). Reads the live round tally, which is still
-//    populated here — triggerLevelUp (which resets it) only runs once you choose. ──
+//    populated here - triggerLevelUp (which resets it) only runs once you choose. ──
 function survivalToggleContrib() {
   const panel = document.getElementById('sv-pick-contrib');
   if (!panel) return;
@@ -343,7 +344,7 @@ function survivalReroll() {
 
 // Grant the chosen option, then run the level-up → deal. Because the grant happens
 // BEFORE triggerLevelUp, the new limit values are already in place when triggerLevelUp
-// sizes the board and computes swaps/discards/time — so a picked Limit applies to the
+// sizes the board and computes swaps/discards/time - so a picked Limit applies to the
 // very next round with no special-casing.
 function survivalChoose(i) {
   const opt = (survivalPickOffered || [])[i];
@@ -371,7 +372,7 @@ function survivalGrant(opt) {
 }
 
 // ══════════════════════════════════════════════
-// BOARD ANIMATION — spread/freeze on goal, deal on pick
+// BOARD ANIMATION - spread/freeze on goal, deal on pick
 // ══════════════════════════════════════════════
 // Goal reached: nudge every card outward from the board centre (~20%) and freeze
 // it there (fill:forwards) so the pick panel reads as opening "inside" the board.
@@ -429,7 +430,7 @@ function survivalDealNext() {
     gridData[r] = [];
     for (let c = 0; c < gridCols; c++) gridData[r][c] = drawCard() || null;
   }
-  // 3) New cards drop in slightly after the old ones start leaving — reuse the
+  // 3) New cards drop in slightly after the old ones start leaving - reuse the
   //    shared deal-in animation, which clears leftover real cards and repaints.
   dealPhase = true;
   setTimeout(() => {
@@ -437,7 +438,7 @@ function survivalDealNext() {
     startNewRoundDealAnims();          // builds temp cards from gridData, drops them, clears dealPhase
     updateClockUI();
     if (survivalBossPending) {
-      // This dealt board is a BOSS round — trigger it once the cards settle
+      // This dealt board is a BOSS round - trigger it once the cards settle
       // instead of starting a normal goal timer.
       survivalBossPending = false;
       setTimeout(() => survivalTriggerBoss(), 950);
@@ -448,7 +449,7 @@ function survivalDealNext() {
 }
 
 // ══════════════════════════════════════════════
-// BOSS ROUND (every 8 clears) — uses the banked leftover time as its clock
+// BOSS ROUND (every 8 clears) - uses the banked leftover time as its clock
 // ══════════════════════════════════════════════
 function survivalTriggerBoss() {
   const t = Math.max(SURVIVAL_BOSS_MIN_TIME, Math.min(SURVIVAL_BOSS_TIME_CAP, Math.round(survivalBossTimeBank)));
@@ -468,11 +469,16 @@ function survivalPostBossReward() {
     setTimeout(() => showSurvivalCompleteScreen(), 420);
     return;
   }
-  setTimeout(() => survivalShowPick(true, `BOSS ${survivalBossesBeaten}/${SURVIVAL_BOSS_COUNT} DEFEATED · +${SURVIVAL_REROLLS_PER_BOSS} REROLLS`), 320);
+  // r188: the post-boss reward is the PRIZE GRID, not the pick-of-three. Same
+  // occasion, but the grid is what every other mode's boss pays out in, and it
+  // hands out several things off one connected path instead of one. The
+  // 'survival' context in closeRewardGrid runs survivalChoose's own tail.
+  showMessage(`BOSS ${survivalBossesBeaten}/${SURVIVAL_BOSS_COUNT} DEFEATED · +${SURVIVAL_REROLLS_PER_BOSS} REROLLS`, 'var(--gold)');
+  setTimeout(() => { rewardGridContext = 'survival'; openPrizeGrid(); }, 320);
 }
 
 // ══════════════════════════════════════════════
-// RUN COMPLETE (5 bosses) — retire, or continue into accelerated endless
+// RUN COMPLETE (5 bosses) - retire, or continue into accelerated endless
 // ══════════════════════════════════════════════
 function survivalCompleteOverlay() {
   let el = document.getElementById('survival-complete-overlay');
@@ -484,8 +490,8 @@ function survivalCompleteOverlay() {
         <div class="sv-c-title">RUN COMPLETE</div>
         <div id="sv-complete-stats"></div>
         <div class="sv-c-btns">
-          <button id="sv-c-retire" class="sv-c-btn sv-c-ghost" onclick="survivalRetire()">⏻ Retire — bank the run</button>
-          <button id="sv-c-continue" class="sv-c-btn sv-c-primary" onclick="survivalContinueEndless()">↯ Continue — Endless</button>
+          <button id="sv-c-retire" class="sv-c-btn sv-c-ghost" onclick="survivalRetire()">⏻ Retire - bank the run</button>
+          <button id="sv-c-continue" class="sv-c-btn sv-c-primary" onclick="survivalContinueEndless()">↯ Continue - Endless</button>
         </div>
         <div class="sv-c-note">Endless: goals escalate <b>65% faster</b> from here. There is no second exit.</div>
       </div>`;
@@ -520,14 +526,14 @@ function survivalContinueEndless() {
   survivalEndless = true;
   survivalEndlessFromLevel = level;   // levels beyond this one use the faster curve
   survivalCompleteOverlay().classList.remove('show');
-  showMessage('↯ ENDLESS — quotas accelerated', 'var(--c-coral, #ff6a3c)');
-  survivalShowPick(true, 'ENDLESS ENGAGED');
+  showMessage('↯ ENDLESS - quotas accelerated', 'var(--c-coral, #ff6a3c)');
+  rewardGridContext = 'survival'; openPrizeGrid();   // the payout the 5th boss earned
 }
 
 // ══════════════════════════════════════════════
 // ON-DEMAND SHOP (button by the coins chip)
 // ══════════════════════════════════════════════
-// Opened from the PICK screen (owner request, r155) — the pick stays open behind the
+// Opened from the PICK screen (owner request, r155) - the pick stays open behind the
 // Mart, so leaving the shop returns you to your three options.
 function survivalOpenShop() {
   if (!survivalActive()) return;

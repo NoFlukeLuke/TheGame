@@ -1,5 +1,5 @@
 function sfxBonusHand() {
-  // Soft, quick rising ping — ducks under the goal-dance audio
+  // Soft, quick rising ping - ducks under the goal-dance audio
   playTone({ freq: 880, type: 'sine', gain: 0.08, attack: 0.005,
              decay: 0.05, sustain: 0.4, release: 0.18, duration: 0.1 });
   playTone({ freq: 1320, type: 'sine', gain: 0.05, attack: 0.005,
@@ -54,7 +54,6 @@ function updateScoreUI() {
   const bar = document.getElementById('score-progress-bar');
   if (bar) bar.style.width = Math.round(pct * 100) + '%';
   document.getElementById('goal-display').textContent = roundGoal.toLocaleString();
-  document.getElementById('hands-display').textContent = handsPlayed;
   document.getElementById('level-display').textContent = level;
   updateCoinsUI();
   updateRunProgressUI();
@@ -78,19 +77,44 @@ function updateCoinsUI() {
   if (typeof survivalUpdateRerollBtn === 'function' && document.getElementById('survival-pick-overlay')?.classList.contains('show')) survivalUpdateRerollBtn();
 }
 
-// v7 landscape: run-progress block (Act + node pips)
+// Run-progress block (ACT n + node pips, or the boss sigil).
+//
+// There are TWO of these in the DOM and they carry the same content: #run-progress
+// (the landscape box at the top-right) and #run-progress-pt (the portrait top-bar
+// copy, which as of r160 replaces the old "Progress / ACT 1 · 0/5" text). Both
+// carry `.rp-block`, so this fills whichever one the layout is showing and neither
+// orientation needs its own update path.
+//
+// The BOSS SIGIL is set here rather than at the boss's own call sites, so it can
+// never drift out of sync with the block it lives in: render() → updateScoreUI()
+// → here repaints it, which matters because a boss round is exactly when the HUD
+// is being rewritten constantly.
 function updateRunProgressUI() {
-  const rp = document.getElementById('run-progress'); if (!rp) return;
-  const act = rp.querySelector('.rp-act'); if (act) act.textContent = 'ACT ' + actNumber;
-  rp.querySelectorAll('.rp-nodes span:not(.boss)').forEach((s, i) => {
-    s.classList.toggle('on', i < nodeInAct);
-    s.classList.toggle('cur', i === nodeInAct);
+  const bossOn = (typeof bossActive !== 'undefined') && bossActive;
+  const actMode = (typeof isActMode === 'function') && isActMode();
+  document.querySelectorAll('.rp-block').forEach(rp => {
+    rp.classList.toggle('boss-sigil', bossOn);
+    const act = rp.querySelector('.rp-act');
+    // Outside the 3-Act structure (Survival) "ACT n" is meaningless, but a boss
+    // still needs a name over its mark.
+    if (act) act.textContent = actMode ? ('ACT ' + actNumber) : (bossOn ? 'BOSS' : '');
+    rp.querySelectorAll('.rp-nodes span:not(.boss)').forEach((s, i) => {
+      s.classList.toggle('on', i < nodeInAct);
+      s.classList.toggle('cur', i === nodeInAct);
+    });
   });
+  // Portrait: the block takes the top-left slot whenever it has something to say
+  // - an act-mode run, or ANY mode's boss round. Otherwise that slot stays the
+  // legacy game timer.
+  const live = actMode || bossOn;
+  document.getElementById('run-progress-pt')?.classList.toggle('rp-live', live);
+  document.getElementById('game-timer-stat')?.classList.toggle('rp-yielded', live);
 }
 
 let _knackCountShown = 0;
 function updateKnackList() {
   applyTempoLimitOnce();   // Tempo sets the swap/discard limits to 2 the first time it's owned
+  applyShortSuitOnce();    // Short Suit turns on Flush of 3 / Flush of 4 where they aren't already active
   const el = document.getElementById('knack-list');
   if (!el) return;
   // A newly GAINED Knack should land somewhere the player can see. In portrait
@@ -107,7 +131,7 @@ function updateKnackList() {
     return;
   }
   // Chips live in a marquee track so the row can slowly auto-scroll when it
-  // overflows (no arrows / no scrollbar — r113).
+  // overflows (no arrows / no scrollbar - r113).
   el.innerHTML = `<div class="chip-marquee">${acquiredKnacks.map(t =>
     `<div class="knack-chip" data-knack-id="${t.id}" tabindex="0" role="button" aria-label="${t.name}">${t.emoji}</div>`
   ).join('')}</div>`;
@@ -138,16 +162,16 @@ function applyChipMarquee(list, track) {
   track.classList.remove('scrolling');
   track.style.removeProperty('--marquee-dur');
   const listW = list.clientWidth;
-  if (listW <= 0) return;                       // not laid out yet — leave static
+  if (listW <= 0) return;                       // not laid out yet - leave static
   const oneSet = track.scrollWidth;
-  if (oneSet <= listW + 2) return;              // fits — no scroll needed
+  if (oneSet <= listW + 2) return;              // fits - no scroll needed
   track.innerHTML += track.innerHTML;           // duplicate for a seamless loop
   const dur = Math.max(12, Math.round(oneSet / 26));
   track.style.setProperty('--marquee-dur', dur + 's');
   track.classList.add('scrolling');
 }
 
-// Back-compat alias — older call sites updateTrickList() still re-render the rack
+// Back-compat alias - older call sites updateTrickList() still re-render the rack
 function updateTrickList() { updateKnackList(); }
 
 // Grace-delay hide so the pointer can travel from the chip to the tooltip's Sell button.
@@ -189,7 +213,7 @@ document.addEventListener('click', (e) => {
 }, true);
 
 // ══════════════════════════════════════════════
-// CARD INTERACTION — tap or swipe to select, double-tap to swap
+// CARD INTERACTION - tap or swipe to select, double-tap to swap
 // ══════════════════════════════════════════════
 
 let swapPending = null;   // [r,c] of first card in pending swap

@@ -1,17 +1,18 @@
 // ══════════════════════════════════════════════
-// RECORDS — the combined info hub (r155)
+// RECORDS - the combined info hub (r155)
 // ══════════════════════════════════════════════
 // Replaces the four separate secondary chips (Stats / Deck / Time / Limits) with a
 // single large tabbed pop-up that PAUSES the round while it is open. Tabs:
 //   DECK · TIME · LIMITS · PERFORMANCE · PERSONNEL FILE
-// Each tab is a render function in RECORDS_TABS — adding a tab is one entry.
+// Each tab is a render function in RECORDS_TABS - adding a tab is one entry.
 
 let recordsOpen = false;
 let recordsTab  = 'deck';
 
 const RECORDS_TABS = [
   { id: 'deck',      label: 'Deck',           icon: '🂠', render: () => recordsRenderDeck() },
-  { id: 'personnel', label: 'Personnel File', icon: '📁', render: () => recordsRenderPersonnel() },
+  { id: 'hands',     label: 'Hands',          icon: '♠', render: () => recordsRenderHands() },
+  { id: 'personnel', label: 'Owned',          icon: '📁', render: () => recordsRenderPersonnel() },
   { id: 'limits',    label: 'Limits',         icon: '▲', render: () => recordsRenderLimits() },
   { id: 'time',      label: 'Time',           icon: '⏱', render: () => recordsRenderTime() },
   { id: 'stats',     label: 'Performance',    icon: '📈', render: () => recordsRenderStats() },
@@ -24,7 +25,7 @@ function recordsOverlay() {
     el.id = 'records-overlay';
     el.innerHTML = `<div id="records-panel">
         <div id="records-head">
-          <div class="rec-brand"><span class="rec-dot"></span>LETHE CORP · RECORDS</div>
+          <div class="rec-brand"><span class="rec-dot"></span>RECORDS</div>
           <button id="rec-close" onclick="closeRecords()">✕</button>
         </div>
         <div id="records-tabs"></div>
@@ -68,11 +69,11 @@ function renderRecords() {
 }
 
 // ══════════════════════════════════════════════
-// DECK TAB — a real deck read-out (r155 overhaul)
+// DECK TAB - a real deck read-out (r155 overhaul)
 // ══════════════════════════════════════════════
 // The old view was a flat list of rank chips, which told you almost nothing. This
 // one answers the question you actually have mid-round: WHAT IS LEFT TO DRAW, and
-// which of my cards are buffed. It is a rank × suit matrix — every cell is one card
+// which of my cards are buffed. It is a rank × suit matrix - every cell is one card
 // of the deck, coloured by where that card currently is (draw pile / grid / played),
 // and flagged if it carries permanent pips or mult.
 function recordsDeckCensus() {
@@ -113,7 +114,7 @@ function recordsRenderDeck() {
       <span class="rec-deck-suit ${suitClass(s)}">${s}<b>${remaining}</b></span>${cells}</div>`;
   }).join('');
 
-  // Remaining-by-rank bar (what is still drawable) — the planning tool.
+  // Remaining-by-rank bar (what is still drawable) - the planning tool.
   const rankBars = ACTIVE_RANKS.map(rk => {
     const left = suits.filter(s => where[cardKey(rk, s)] === 'draw').length;
     const pct = Math.round((left / suits.length) * 100);
@@ -122,7 +123,7 @@ function recordsRenderDeck() {
       <span class="rec-bar-v">${left}</span></div>`;
   }).join('');
 
-  // Sleights are deck cards too — list them with charges left.
+  // Sleights are deck cards too - list them with charges left.
   const sleightCards = [];
   drawPile.forEach(c => { if (c._isSleight) sleightCards.push([c, 'draw']); });
   playedPile.forEach(c => { if (c._isSleight) sleightCards.push([c, 'played']); });
@@ -165,23 +166,27 @@ function recordsRenderDeck() {
 }
 
 // ══════════════════════════════════════════════
-// PERSONNEL FILE — every owned entity, description shown by default
+// PERSONNEL FILE - every owned entity, description shown by default
 // ══════════════════════════════════════════════
-function recordsEntityCard(icon, name, tag, desc, cls) {
+function recordsEntityCard(icon, name, tag, desc, cls, off) {
   const d = (typeof colorizeKeywords === 'function') ? colorizeKeywords(withSuitHalo(desc || '')) : (desc || '');
-  return `<div class="rec-ent ${cls}">
+  return `<div class="rec-ent ${cls}${off ? ' ent-off' : ''}">
     <div class="rec-ent-top"><span class="rec-ent-ico">${icon}</span>
-      <span class="rec-ent-name">${name}</span><span class="rec-ent-tag">${tag}</span></div>
+      <span class="rec-ent-name">${name}</span><span class="rec-ent-tag">${off ? 'SWITCHED OFF' : tag}</span></div>
     <div class="rec-ent-desc">${d}</div></div>`;
 }
 
 function recordsRenderPersonnel() {
   // Tricks (side tray), Sleights (owned deck cards), Knacks (permanent).
   const tricks = (typeof trickTray !== 'undefined' && trickTrayMode) ? trickTray : acquiredTricks;
+  // Records is the screen you open mid-boss to work out what you still have, so a
+  // Trick a boss has switched off (Voidwright, Censor) reads as off here too.
+  const _off = t => (typeof isTrickDisabledByBoss === 'function') && isTrickDisabledByBoss(t.id);
+  const _anyOff = tricks.some(_off);
   const trickHTML = tricks.length ? tricks.map(t => recordsEntityCard(
     (typeof trickEmoji === 'function' ? trickEmoji(t) : '🃏'), t.name,
     (t.tier || 'common').toUpperCase(),
-    (typeof trickLiveDesc === 'function' ? trickLiveDesc(t) : t.desc), 'e-trick')).join('')
+    (typeof trickLiveDesc === 'function' ? trickLiveDesc(t) : t.desc), 'e-trick', _off(t))).join('')
     : `<div class="rec-empty">No Tricks on file.</div>`;
 
   const owned = [];
@@ -202,8 +207,8 @@ function recordsRenderPersonnel() {
     : `<div class="rec-empty">No Knacks on file.</div>`;
 
   return `
-    <div class="rec-note">Active personnel and equipment. Descriptions reflect current values — the clock is held while this file is open.</div>
-    <div class="rec-h">Tricks <span class="rec-h-note">${tricks.length}${typeof trickCapacity === 'function' ? ' / ' + trickCapacity() : ''}</span></div>
+    <div class="rec-note">Active personnel and equipment. Descriptions reflect current values - the clock is held while this file is open.</div>
+    <div class="rec-h">Tricks <span class="rec-h-note">${tricks.length}${typeof trickCapacity === 'function' ? ' / ' + trickCapacity() : ''}${_anyOff ? ' · <b class="rec-off-note">some switched off</b>' : ''}</span></div>
     <div class="rec-ents">${trickHTML}</div>
     <div class="rec-h">Sleights <span class="rec-h-note">${owned.length}</span></div>
     <div class="rec-ents">${sleightHTML}</div>
@@ -231,7 +236,7 @@ function recordsRenderLimits() {
 
 function recordsRenderTime() {
   if (typeof updateInteractCosts === 'function') updateInteractCosts(); // refresh the hidden pop-up's values
-  const g = id => document.getElementById(id)?.textContent ?? '—';
+  const g = id => document.getElementById(id)?.textContent ?? '·';
   const dur = (typeof currentRoundDuration === 'function') ? currentRoundDuration() : ROUND_DURATION;
   const cap = Math.max(dur, limits.round_time.current) - (roundPenaltySeconds || 0);
   const fmt = s => (typeof formatTime === 'function') ? formatTime(Math.max(0, s)) : `${s}s`;
@@ -249,6 +254,91 @@ function recordsRenderTime() {
   return `<div class="rec-summary">${facts}</div>
     <div class="rec-h">Interaction charges <span class="rec-h-note">seconds off the clock</span></div>
     <div class="rec-lims">${rows}</div>`;
+}
+
+// The footer explains the ACTIVE scoring model, since two of the three make the
+// Pips and Score columns meaningless.
+function _recHandsFoot() {
+  const m = (typeof scoringModel !== 'undefined') ? scoringModel : 'classic';
+  if (m === 'hand_size') {
+    return 'In this mode the hand type does not change your score directly. Mult is simply how '
+         + 'many cards you played, and pips come only from the cards themselves. What a hand '
+         + 'type is worth to you is the Focus it gives.';
+  }
+  if (m === 'mult_ladder') {
+    return 'In this mode pips come only from the cards you play. The hand type sets the mult and '
+         + 'the Focus it adds to the meter. Tricks, Knacks and your Focus multiplier build on top.';
+  }
+  return "Score is pips x mult, before your cards' own pips, Tricks, Knacks and your Focus "
+       + 'multiplier. Focus is what the hand adds to the meter.';
+}
+// Natural Scaling appended to whichever model's wording is showing - it applies
+// under all of them, since handBasePips/handBaseMult carry it.
+function _recHandsFootFull() {
+  const ns = (typeof nsEnabled !== 'undefined' && nsEnabled)
+    ? ' Playing a hand permanently raises its whole family - sets, runs and flushes each build on'
+      + ' their own. Green is what this run has earned.'
+    : '';
+  return _recHandsFoot() + ns;
+}
+
+// ── HANDS ──
+// What each hand is worth. Read LIVE from HAND_BASE / HAND_FOCUS, never from a
+// written-out table: both are global and modes overwrite them, so a written copy
+// drifts. Spectrum zeroes Flush of 3, and this screen shows that.
+//
+// A hand the current mode does not score is listed as UNAVAILABLE with no
+// numbers. Showing its numbers greyed invited the reader to compare a price that
+// is not on offer; the row stays so the absence is visible, but it stops
+// pretending to be a quote.
+//
+// activeHands holds KEYS (run3, twopair) and both value tables are keyed by
+// NAME, so the reverse of HAND_KEY_TO_NAME is what joins them.
+function recordsRenderHands() {
+  const nameToKey = {};
+  Object.entries(HAND_KEY_TO_NAME).forEach(([k, n]) => { nameToKey[n] = k; });
+  const playable = name => { const k = nameToKey[name]; return !k || activeHands.has(k); };
+
+  const rows = Object.keys(HAND_BASE).map(name => {
+    if (!playable(name)) {
+      return `<div class="rec-hand off">
+        <span class="rh-n">${name}</span>
+        <span class="rh-off">Unavailable</span>
+      </div>`;
+    }
+    // Read through the model helpers, so switching the scoring model in the dev
+    // panel is reflected here rather than quoting a table the scorer ignores.
+    const pips  = handBasePips(name);
+    const mult  = handBaseMult(name);
+    const focus = HAND_FOCUS[name] || 0;
+    const sizeMult = (typeof scoringModel !== 'undefined') && scoringModel === 'hand_size';
+    // pips/mult above already INCLUDE Natural Scaling (handBasePips/handBaseMult
+    // fold it in), so this only splits out how much of the quote this run earned.
+    const ns    = (typeof naturalScaleBonus === 'function') ? naturalScaleBonus(name) : { pips: 0, mult: 0 };
+    const gain  = ns.pips ? `<span class="rh-ns">+${ns.pips}</span>` : '';
+    const gainM = ns.mult ? `<span class="rh-ns">+${ns.mult}</span>` : '';
+    // pips x mult is the number that decides which hand to go for; the two
+    // factors on their own do not compare across rows.
+    const base  = Math.round(pips * mult);
+    return `<div class="rec-hand">
+      <span class="rh-n">${name}</span>
+      <span class="rh-v rh-p">${pips}${gain}</span>
+      <span class="rh-v rh-m">${sizeMult ? 'cards' : 'x' + mult}${gainM}</span>
+      <span class="rh-v rh-f">${focus || 0}</span>
+      <span class="rh-v rh-b">${sizeMult || !pips ? '&middot;' : base.toLocaleString()}</span>
+    </div>`;
+  }).join('');
+
+  const all  = Object.keys(HAND_BASE);
+  const live = all.filter(playable).length;
+  return `<div class="rec-h">Hand values
+      <span class="rec-h-note">${live} of ${all.length} score in this mode</span></div>
+    <div class="rec-hand rec-hand-head">
+      <span class="rh-n">Hand</span><span class="rh-v">Pips</span><span class="rh-v">Mult</span>
+      <span class="rh-v">Focus</span><span class="rh-v">Score</span>
+    </div>
+    <div class="rec-hands">${rows}</div>
+    <div class="rec-foot">${_recHandsFootFull()}</div>`;
 }
 
 function recordsRenderStats() {

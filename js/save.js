@@ -5,8 +5,8 @@
 // shape everything here:
 //
 // 1. THE SAVE POINT IS THE START OF A ROUND, never "wherever you happen to be".
-//    A snapshot is taken automatically in startRoundTimer() — the one call site
-//    every round start funnels through — and SAVE writes that snapshot out. So
+//    A snapshot is taken automatically in startRoundTimer() - the one call site
+//    every round start funnels through - and SAVE writes that snapshot out. So
 //    the player can hit save at any moment and what lands on disk is a clean
 //    board with a full clock, no half-selected hand, no animation mid-flight, no
 //    scoring dance to resume. Resuming replays the current round from its start.
@@ -21,7 +21,7 @@
 //    that one value, not a corrupt hybrid of two runs.
 //
 // ── Why indirect eval ───────────────────────────────────────────────────────
-// The game's globals are top-level `let`, which — unlike `var` — do NOT become
+// The game's globals are top-level `let`, which - unlike `var` - do NOT become
 // properties of `window`. `window['score']` is undefined even though `score` is
 // a perfectly good global. Indirect eval (`geval`) runs in global scope and can
 // see the global lexical environment, so it can read and write them by name.
@@ -31,17 +31,17 @@
 const SAVE_KEY     = 'letheSavedRun';
 const SAVE_VERSION = 1;
 
-const geval = eval; // indirect — evaluates in global scope, sees `let` globals
+const geval = eval; // indirect - evaluates in global scope, sees `let` globals
 
 function _saveRead(name)     { try { return geval(name); } catch (e) { return undefined; } }
 function _saveWrite(name, v) {
   try { window.__saveTmp = v; geval(name + ' = window.__saveTmp'); return true; }
-  catch (e) { return false; }   // const bindings (limits, C) land here — see _saveMutate
+  catch (e) { return false; }   // const bindings (limits, C) land here - see _saveMutate
   finally { try { delete window.__saveTmp; } catch (e2) {} }
 }
 
-// Every global that carries run state. Derived from startGame()'s reset block —
-// that block IS the definition of "what a run is" — plus the deck/board/seed
+// Every global that carries run state. Derived from startGame()'s reset block -
+// that block IS the definition of "what a run is" - plus the deck/board/seed
 // state it sets up afterwards. Deliberately EXCLUDED: transient input and
 // animation flags (animating, falling, selected, swapPending, pendingAction,
 // dealPhase, focusAnimQueue…). Those are meaningless at a round boundary and
@@ -80,18 +80,18 @@ const SAVE_VARS = [
   'bonusPips_prolific', 'bonusFocus_acorns', 'bonusMult_morebetter', 'bonusPips_fengshui',
   'bonusMult_jackpot', 'jackpotFired', 'safetyNetUsed', 'negativeTilesTakenRun',
   '_perMinuteFired', 'handsPlayedGame', 'rowColBonuses', 'leyLinePos',
-  'cuckooNextMinute', 'retriggersThisRound', 'woodpeckerActiveBlock', 'woodpeckerPos',
+  'cuckooNextMinute', 'compoundNextMark', 'compoundBanked', 'nsPlays', 'nsBonus', 'retriggersThisRound', 'woodpeckerActiveBlock', 'woodpeckerPos',
   // ── Round/run counters ──
   'handsPlayedRound', 'runsPlayedRound', 'setsPlayedRound', 'runStreak',
   'cardsDiscardedTotal', 'cardsDiscardedRound', 'cardsScoredTotal', 'nineSecondsCounter',
-  'highestHandScore', 'highestHandName', 'fullHouseThisRound', 'gameStartTime',
+  'highestHandScore', 'highestHandName', 'fullHouseThisRound', 'gameStartTime', 'handLog',
   'lastHandType', 'streakCount', 'lastHandTime', 'resilience', 'resilienceUsed',
   'firstHandThisRound', 'replaysThisRound', 'timeManipRound', 'roundContributions',
   // ── Reward grid / shop ──
   'rewardSelected', 'rewardCells', 'rewardConfirmed',
   'shopRerollCount', 'shopPurchased', 'shopPurchaseCount', 'nextShopTime',
   // ── Boss ──
-  'bossActive', 'bossNumber', 'nextBossTime', 'blockedCells', 'nullCells',
+  'bossActive', 'bossNumber', 'bossBag', 'nextBossTime', 'blockedCells', 'nullCells',
   // ── Challenge ──
   'challengeCard', 'challengeActive', 'trickCardPos', 'trickCardTimer',
   // ── Survival ──
@@ -103,7 +103,7 @@ const SAVE_VARS = [
   // ── Flow (js/flow-mode.js) ──
   'flowBossFighting', 'flowRefillClock',
   // ── Seed (keeps future reward grids / shops deterministic) ──
-  'runSeed', 'rewardVisitIndex', 'shopVisitIndex',
+  'runSeed', 'rewardVisitIndex', 'shopVisitIndex', 'martTinkerN',
 ];
 
 // `const` objects can't be reassigned, so their CONTENTS are copied instead.
@@ -112,7 +112,7 @@ const SAVE_MUTATE = ['limits', 'C'];
 // ── (de)serialisation ────────────────────────────────────────────────────────
 // Sets are everywhere in this codebase (activeHands, blockedCells, …) and JSON
 // turns them into `{}`, so they get an explicit tag. Everything else in the
-// manifest is already plain data — verified: no entity in any pool carries a
+// manifest is already plain data - verified: no entity in any pool carries a
 // function, so tricks/knacks/sleights survive a JSON round-trip intact.
 function _saveEncode(v) {
   if (v instanceof Set) return { __t: 'set', v: [...v].map(_saveEncode) };
@@ -179,16 +179,16 @@ function captureRunCheckpoint() {
 
 // ── Storage ──────────────────────────────────────────────────────────────────
 function saveRunToStorage() {
-  if (!runCheckpoint) return { ok: false, msg: 'No round checkpoint yet — start a round first.' };
+  if (!runCheckpoint) return { ok: false, msg: 'No round checkpoint yet - start a round first.' };
   try {
     localStorage.setItem(SAVE_KEY, JSON.stringify(runCheckpoint));
   } catch (e) {
-    return { ok: false, msg: 'Storage unavailable — this browser is blocking saved data.' };
+    return { ok: false, msg: 'Storage unavailable - this browser is blocking saved data.' };
   }
   if (window.LETHE_STORAGE_OK === false)
-    return { ok: true, msg: 'Saved for this session only — this browser blocks stored data.' };
+    return { ok: true, msg: 'Saved for this session only - this browser blocks stored data.' };
   const m = runCheckpoint.meta;
-  return { ok: true, msg: `Saved — ${m.modeName}, Round ${m.level}.` };
+  return { ok: true, msg: `Saved - ${m.modeName}, Round ${m.level}.` };
 }
 
 function readSavedRun() {
@@ -225,7 +225,7 @@ function resumeSavedRun() {
 
   ACTIVE_MODE = MODES[save.meta.mode] || MODES.normal;
   // Re-pin the run's seed so reward grids and shops still follow the same
-  // sequence after resuming (they key off runSeed + visit index — see seed.js).
+  // sequence after resuming (they key off runSeed + visit index - see seed.js).
   if (typeof setPendingRunSeed === 'function') setPendingRunSeed(save.state.runSeed || null);
 
   _restoringSave = true;
@@ -303,7 +303,7 @@ function continueSavedRun() {
 }
 
 // A finished run's save is stale, but only if the save actually belongs to the
-// run that just ended — a player may have saved run A, started run B, and died
+// run that just ended - a player may have saved run A, started run B, and died
 // in B. `gameStartTime` is stamped once per run in startGame, so it identifies
 // the run cheaply.
 function retireSavedRunIfCurrent() {

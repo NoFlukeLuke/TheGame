@@ -2,7 +2,7 @@
 // MATCH-3 AUTO-PLAY MODE
 // ══════════════════════════════════════════════
 // A 5×5 board where any straight LINE (row or column) of 3+ contiguous cards
-// forming a Flush / Run / Set auto-plays itself, then cascades — the player
+// forming a Flush / Run / Set auto-plays itself, then cascades - the player
 // never presses Play. The player's ONLY board actions are swap and discard;
 // those stay 100% manual (nothing auto-swaps or auto-discards, by design).
 //
@@ -48,17 +48,17 @@ function match3ComboMult(step) { return step <= 1 ? 1 : 2 * (step - 1); }
 let match3Resolving   = false;  // a cascade is currently running
 let match3ChainStep   = 0;      // current cascade depth (for the combo badge)
 // Dev toggles (persisted)
-// · infinite DECK  — scored cards requeue to the back of the draw pile instead of
+// · infinite DECK  - scored cards requeue to the back of the draw pile instead of
 //                    being held out until round end (finite is the default).
-// · infinite MODE  — no clock and no goal gate. Pure sandbox, for testing.
-// · preview select — highlight a match for a beat before it plays, so the player
+// · infinite MODE  - no clock and no goal gate. Pure sandbox, for testing.
+// · preview select - highlight a match for a beat before it plays, so the player
 //                    could interrupt it (off by default; owner leaned against it).
 let match3InfiniteDeck  = localStorage.getItem('match3InfiniteDeck') === 'true';
 let match3InfiniteMode  = localStorage.getItem('match3InfiniteMode') === 'true';
 let match3PreviewSelect = localStorage.getItem('match3PreviewSelect') === 'true';
 
 // Which match types are live. Turning a type off removes it from detection
-// entirely — the board simply stops seeing those lines as matches.
+// entirely - the board simply stops seeing those lines as matches.
 // Flushes in particular fire very often on a random 5×5 (any 3 cards of the
 // same suit in a line), and because matches must be disjoint a high-scoring
 // flush can suppress a crossing run/set, so switching them off is a real
@@ -79,7 +79,7 @@ function setMatch3Type(type, on) {
   if (!(type in match3Types)) return false;
   if (!on && Object.keys(match3Types).filter(t => match3Types[t]).length <= 1 && match3Types[type]) {
     if (typeof showMessage === 'function') showMessage('At least one match type must stay on', 'var(--cream-dim)');
-    return true; // refused — caller re-checks the box
+    return true; // refused - caller re-checks the box
   }
   match3Types[type] = !!on;
   try { localStorage.setItem('match3Types', JSON.stringify(match3Types)); } catch (e) {}
@@ -88,14 +88,14 @@ function setMatch3Type(type, on) {
 const MATCH3_PREVIEW_MS = 1000; // highlight-before-play window when the toggle is on
 // Set when a NEW board has been dealt (level-up) and still needs its silent
 // settle. Consumed by startRoundTimer, which is the one call site every round
-// start funnels through — a mid-round resume must NOT re-settle the board.
+// start funnels through - a mid-round resume must NOT re-settle the board.
 let match3PendingSettle = false;
 
 function match3Active() { return !!ACTIVE_MODE?.match3; }
 // Zen: match-3 with no clock and no swap/discard limits (goals are doubled at
 // level-up so the reward grid is still reachable, just slower).
 function match3IsZen()  { return !!ACTIVE_MODE?.zen; }
-// True when nothing should end the round — Zen mode or the infinite dev toggle.
+// True when nothing should end the round - Zen mode or the infinite dev toggle.
 function match3NoTimer() { return match3Active() && (match3IsZen() || match3InfiniteMode); }
 function match3NoGoal()  { return match3Active() && match3InfiniteMode; }
 
@@ -113,7 +113,7 @@ function setMatch3PreviewSelect(on) {
 }
 
 // Zen (and the infinite dev toggle) run without swap/discard scarcity. Rather
-// than special-casing every spend site, we just top the pools back up — the
+// than special-casing every spend site, we just top the pools back up - the
 // existing "do you have any left?" guards then always pass.
 const MATCH3_ZEN_POOL = 99;
 function match3ApplyZenResources() {
@@ -129,7 +129,7 @@ function match3ApplyZenResources() {
 // ══════════════════════════════════════════════
 // Only plain cards match. Sleights, Tricks, stones and blocked cells act as
 // immovable blockers that break a line (a Sleight that must be played inside a
-// hand can't be auto-played, per owner call — so no Sleight joins a match).
+// hand can't be auto-played, per owner call - so no Sleight joins a match).
 // TBD: let wildcard Sleights stand in for a rank/suit here.
 function match3Matchable(r, c) {
   const card = gridData[r]?.[c];
@@ -165,7 +165,11 @@ function match3TypesOf(cards) {
 function match3ScoreMatch(type, cells, comboMult) {
   const hand = match3HandName(type, cells.length, cells);
   const raw = calcScore(hand, cells);
-  return Math.max(0, Math.round(raw * comboMult));
+  const out = Math.max(0, Math.round(raw * comboMult));
+  // Match-3 never calls playHand, so it logs its own auto-played matches for the
+  // SCORE-box hand log (js/hand-log.js).
+  if (typeof logPlayedHand === 'function') logPlayedHand(hand, cells, out, { src: 'match3' });
+  return out;
 }
 
 // Every valid contiguous window of 3+ in every row and column.
@@ -173,7 +177,7 @@ function match3AllWindows() {
   const out = [];
   const consider = (cells) => {
     const cards = cells.map(([r, c]) => gridData[r][c]);
-    // One entry per satisfied type — the overlap pass keeps only the best-scoring
+    // One entry per satisfied type - the overlap pass keeps only the best-scoring
     // reading of any given set of cells.
     match3TypesOf(cards).forEach(type => out.push({ type, cells }));
   };
@@ -249,13 +253,13 @@ function match3SettleBoard() {
   for (let guard = 0; guard < 60; guard++) {
     const matches = findMatch3Matches();
     if (!matches.length) return;
-    // Replace ONE card from each match — the cheapest way to break every line.
+    // Replace ONE card from each match - the cheapest way to break every line.
     let replaced = false;
     for (const m of matches) {
       const [r, c] = m.cells[Math.floor(m.cells.length / 2)];
       const old = gridData[r][c];
       const fresh = drawCard();
-      if (!fresh) return; // deck exhausted — let it ride, the cascade will handle it
+      if (!fresh) return; // deck exhausted - let it ride, the cascade will handle it
       gridData[r][c] = fresh;
       if (old && old.rank) drawPile.push({ rank: old.rank, suit: old.suit }); // recycle, don't lose it
       replaced = true;
@@ -342,12 +346,12 @@ async function match3PlayMatches(matches, step, comboMult) {
   // Combo badge (big ×2 / ×4 / ×6 over the grid) from the first chain link on.
   if (comboMult > 1) match3ShowComboBadge(comboMult, step);
 
-  // 1) FLASH — every matched card lights up so the player sees WHERE it happened.
+  // 1) FLASH - every matched card lights up so the player sees WHERE it happened.
   match3HighlightMatches(matches, false);
   sfxMatch3Match(step);
   await match3Wait(230);
 
-  // 2) POP — burst each match, floating score at its centre.
+  // 2) POP - burst each match, floating score at its centre.
   matches.forEach((m) => {
     const s = match3ScoreMatch(m.type, m.cells, comboMult);
     m.score = s;
@@ -385,7 +389,7 @@ function match3HighlightMatches(matches, preview) {
 // ══════════════════════════════════════════════
 function match3Wait(ms) { return new Promise(res => setTimeout(res, ms)); }
 
-// Particle burst from a cell — the genre's signature "pop".
+// Particle burst from a cell - the genre's signature "pop".
 function match3Burst(r, c, color) {
   const gridEl = document.getElementById('grid');
   if (!gridEl) return;
@@ -457,7 +461,7 @@ function match3ClearComboBadge() {
 // ══════════════════════════════════════════════
 // Mirrors the Normal-mode goal-hand finale (jitter → gentle explode → winners
 // fly to the preview), so a match-3 round win reads the same. `winCells` are the
-// cells of the match that clinched the goal — they're still on the board here
+// cells of the match that clinched the goal - they're still on the board here
 // because the goal check runs before the clear. Self-contained (doesn't touch the
 // shared score dance) and resolves when the sequence is done.
 async function match3WinFinale(winCells) {
@@ -524,12 +528,12 @@ async function match3WinFinale(winCells) {
 }
 
 // ══════════════════════════════════════════════
-// LEVEL-UP (between rounds) — run the normal SHOP
+// LEVEL-UP (between rounds) - run the normal SHOP
 // ══════════════════════════════════════════════
 // Match-3 reuses the standard between-rounds shop (owner request). The shop is
 // self-contained: it grants Tricks to the side tray (injectTrickAfterReward),
 // never the grid, and its "leave" button already starts the next round when it
-// isn't part of the node flow — see the shop-close handler's match3Active branch.
+// isn't part of the node flow - see the shop-close handler's match3Active branch.
 // The one gap is CREDITS: match-3 has no coin economy of its own yet, so we grant
 // a per-level stipend, otherwise the shop would be unaffordable.
 const MATCH3_SHOP_COINS_BASE  = 20;
@@ -574,7 +578,7 @@ function match3AfterShop() {
 // ══════════════════════════════════════════════
 // Built on the existing procedural playTone engine. Deliberately ~75% of the
 // saturation of a mainstream match-3: present and satisfying, not carnival.
-// Pitch climbs with the cascade depth — the genre's core dopamine cue.
+// Pitch climbs with the cascade depth - the genre's core dopamine cue.
 function match3StepSemitone(step) { return Math.min(step - 1, 8) * 2; } // whole steps, capped
 
 function sfxMatch3Match(step) {

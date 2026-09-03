@@ -84,6 +84,7 @@ const BAL = {
   groove:        { focus_per_2: 1 },
   assembly_line: { mult_per_prior: 1 },
   overtime:      { seconds_per_3: 1 },
+  shift_change:  { consolation_credits: 15 },   // Shift Change event, when you hold under 2 Tricks
   feng_shui:     { pips_per_hand: 3 },
   five_stack:    { pips: 20, mult: 5, focus_per_card: 1 },
   little_guys:   { cap_gain: 1 },
@@ -110,7 +111,15 @@ const BAL = {
   // Spin-the-wheel (Mart special). default_sell is the fallback payout when a prize
   // has no sell price of its own and there's no room for it.
   wheel:         { cost: 20, slots: 10, jackpot_coins: 25, default_sell: 15 },
-  shop_discount: { per_item: 5, bulk_per_item: 10 },  // bundle discount % per ADDITIONAL item; cap = rate × Selection Size
+  // Bundle discount: % off per ADDITIONAL item in the cart, with its own flat cap.
+  // 1 item = 0%, 2 = 5%, 3 = 10%, 4 = 15%, 5+ = 20%. Bulk Buyer doubles BOTH the
+  // rate and the cap. This used to be capped at rate × Selection Size, which tied
+  // shopping to how many CARDS you can pick for a poker hand - unrelated things.
+  shop_discount: { per_item: 5, cap: 20, bulk_per_item: 10, bulk_cap: 40 },
+  // Tinker bench (Mart → Tools): stamp a real rank + suit onto a Sleight you own,
+  // so it starts counting as a normal card in hand detection on top of whatever
+  // it already does. Price climbs per identity issued in a run.
+  tinker_identity: { cost: 18, cost_step: 8 },
   reward_skip:   { gold: 20 },   // gold paid for skipping the whole reward grid (shown on the SKIP button)
   wild_side:     { mult_per: 3 },       // +mult per negative reward tile taken this run
   wait_for_it:   { chance_per: 0.02 },  // +replay chance per negative reward tile taken this run
@@ -118,9 +127,9 @@ const BAL = {
   huddle:        { pips_per_adj: 11 },
   combo_score: { mult_per_type: 2 },
   heart_double: { heart_mult: 1 },
-  last_stand: { score_mult: 2 },
+  last_stand: { mult_mult: 2 },
   full_house_streak: { score_base: 1.5 },
-  blackjack_bonus: { score_mult: 3 },
+  blackjack_bonus: { pip_mult: 3 },
   ancient_grove: { min_run_len: 4 },
   trinity: { pips_per_card: 12 },
   double_bloom: { mult_mult: 1.5 },
@@ -128,8 +137,8 @@ const BAL = {
   ripple: { cooldown_ms: 30000 },
   river_run: { focus_per_card: 1 },
   deluge: { seconds: 5 },
-  perfect_storm: { score_mult: 5 },
-  extinction: { score_mult: 2 },
+  perfect_storm: { pip_mult: 5 },
+  extinction: { mult_mult: 2 },
   lucky_sevens: { focus: 3 },
   ninesong: { seconds: 3, mult: 9, focus: 3 },
   royal_trio: { mult_mult: 2 },
@@ -140,6 +149,27 @@ const BAL = {
   correct_run: { pips_per_card: 80, mult_per_card: 16, focus_per_card: 4 },
   tide_table: { mult_step: 0.75 },
   undertow: { pip_mult_base: 1.5, pip_mult_step: 0.5 },
+  // ── r179 multiplier batch: ×pips / ×mult on triggers the pools had never used ──
+  // (replays, a paused clock, credits held, buffed cards on the grid, Focus level)
+  rerun:       { pip_mult_per_replay: 0.25 },
+  deep_breath: { pip_mult: 2 },
+  interest:    { pip_mult_per_10_credits: 0.1, max_pip_mult: 3 },
+  chorus:      { mult_mult_per_replay: 0.2 },
+  portfolio:   { mult_mult_per_card: 0.15 },
+  redline:     { focus_threshold: 2, mult_mult: 2 },
+  // Compound (mythic): every interval_seconds of round time the current round score
+  // is banked; the next scored hand pays bank_fraction of it again. Repeats, so the
+  // score compounds across a round rather than doubling once.
+  compound:    { interval_seconds: 45, bank_fraction: 1 },
+  // ── Focus RATE batch (r180) - scale how fast Focus accrues, not the ceiling ──
+  // complexity_mult scales HAND_FOCUS; speed_mult scales the speed bonus;
+  // window_mult dilates the speed clock (2 = twice as long for the same bonus).
+  overclock:      { speed_mult: 2 },
+  second_nature:  { complexity_mult: 2 },
+  long_fuse:      { window_mult: 2 },
+  shorthand:      { complexity_mult: 1.5 },
+  flywheel:       { speed_mult: 1.5 },
+  governor:       { window_mult: 1.5 },
   // ── play/round-side: accumulators & permanent gains ──
   snowball: { pips: 2, score_threshold: 500 },
   first_fruits: { pips: 2 },
@@ -211,7 +241,7 @@ const BAL = {
   _corrupt: { club_pips: 25, club_mult: -3, diamond_coins: 5, diamond_pips: -20, heart_mult: 5, heart_time: -5, spade_time: 7, spade_coins: -8 },
 };
 
-// ── Description templates — keep tooltip text in sync with BAL numbers ──
+// ── Description templates - keep tooltip text in sync with BAL numbers ──
 // {param} tokens are filled from BAL[id] at load (applyBalDescriptions), so a
 // value change via the balance sheet updates the in-game description too. Only
 // entities whose wording maps unambiguously to their params are listed.
@@ -219,22 +249,28 @@ const DESC_TEMPLATES = {
   whetstone: 'Whenever an adjacent card is swapped or discarded, Whetstone gains +{mult_per_event} mult. Hands that score a card adjacent to Whetstone score that mult.',
   entourage: 'Hands score +{mult_per_sleight} mult for every other Sleight on the grid.',
   lighthouse: 'Each round Lighthouse favors the first or last column. Hands score +{mult} mult while it sits in that column, −{falloff_per_column} per column of distance away (minimum 0).',
-  tempo: 'When acquired, sets your swap and discard limits to {limit}. Every {interval_seconds} seconds, gain 1 back — alternating swap, then discard.',
+  tempo: 'When acquired, sets your swap and discard limits to {limit}. Every {interval_seconds} seconds, gain 1 back - alternating swap, then discard.',
   capacitor: 'Double-tap to spend {focus_cost} Focus and {time_cost} seconds for {credits} credits. Consumed on use.',
   siphon: 'Double-tap to spend {focus_cost} Focus: your next scored hand gets ×{mult} mult. Returns to your deck after use.',
   release_valve: 'Each time you reach max Focus, gain +1 swap and +1 discard, then lose half your Focus.',
   dividend: 'Each time you reach max Focus, gain {credits} credits, then Focus resets to a third of max.',
   growth_spurt: 'Each time you reach max Focus, your max Focus drops by {cap_reduction}. If you reached max Focus during a round, a random limit rises by 1 at the end of that round.',
+  overclock: 'The Focus speed bonus is multiplied by {speed_mult}.',
+  second_nature: 'Hands generate {complexity_mult}× their listed Focus.',
+  long_fuse: 'You have {window_mult}× as long to earn the same Focus speed bonus.',
+  shorthand: 'Hands generate {complexity_mult}× their listed Focus.',
+  flywheel: 'While on the grid, the Focus speed bonus is multiplied by {speed_mult}.',
+  governor: 'While on the grid, you have {window_mult}× as long to earn the same Focus speed bonus.',
   overgrowth: 'Runs score +{pips_per_card} pips per card',
   long_road: 'Runs score +{mult_per_card} mult per card',
   river_run: 'Runs add +{focus_per_card} Focus per card',
   correct_run: 'Runs played in correct sequential order score +{pips_per_card} pips and +{mult_per_card} mult, and add +{focus_per_card} Focus, per card',
   worn_path: 'Straight scores +{pips} pips',
-  perfect_storm: 'Straight Flush ×{score_mult} score',
+  perfect_storm: 'Straight Flush ×{pip_mult} pips',
   summit: 'The highest-ranking card in each hand scores +(level x {pips_per_level}) pips.',
   light_touch: '2-card hands score +{mult} mult',
   heavy_hand: '5-card hands score +{pips_per_card} pips per card',
-  blackjack_bonus: 'If the face values of your cards total exactly 21, score ×{score_mult}',
+  blackjack_bonus: 'If the face values of your cards total exactly 21, ×{pip_mult} pips',
   face_value: 'Face cards (J/Q/K) are worth {face_pips} pips',
   court_of_leaves: 'Face cards (J/Q/K) score +{pips} pips',
   jack_mult: 'Jacks add +{mult_per_jack} mult each',
@@ -256,7 +292,7 @@ const DESC_TEMPLATES = {
   rowcol_perm_double: 'Cards scored at the intersection of a row effect and a column effect permanently gain +{perm_mult} mult, once per minute',
   groove:        'This trick scales +{focus_per_2} Focus for every 2 cards scored from a marked row or column. Resets each round.',
   assembly_line: 'Cards scored in a marked row or column score +{mult_per_prior} mult for every card already scored from that line this round.',
-  overtime:      'This trick scales +{seconds_per_3} second for every 3 cards scored from a marked row or column. Resets each round.',
+  overtime:      'Every hand rewinds the clock {seconds_per_3} second for every 3 cards you have scored from its marked row or column this round. The count resets each round.',
   feng_shui:     'Permanently scores +{pips_per_hand} pips each hand another position trick triggers.',
   huddle:        'Each scored card scores +{pips_per_adj} pips for every adjacent card or sleight in the hand.',
   veteran_bonus: '+{pips_per_level} pips per level reached this run',
@@ -267,7 +303,7 @@ const DESC_TEMPLATES = {
   flow_state: 'While focus is ×1.5 or higher, +{pips_per_card} pips per card scored',
   low_tide: 'Cards below 6 score +{pips} pips',
   rowcol_triple_pips: 'Cards scored in a marked row or column score +{flat_pips} pips',
-  last_stand: 'If your score is below the round goal when you play, that hand scores x{score_mult}.',
+  last_stand: 'If your score is below the round goal when you play, that hand scores ×{mult_mult} mult.',
   first_fruits: 'Each card in first hand each round permanently gains +{pips} pips',
   compound_mult: 'Each hand played permanently adds +{mult_per_hand} mult to this trick',
   prolific: 'Each hand played permanently adds +{pips_per_hand} pip to this trick',

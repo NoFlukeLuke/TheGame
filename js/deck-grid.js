@@ -25,8 +25,8 @@ let permRetrig = {}; // { "A-♠": 1, ... } extra times this card scores its pip
 
 // ── CARD CURSES (reward-grid debuffs) ──
 // A curse afflicts one specific card identity (key "rank-suit", like permPips).
-// Curses are worked off by SCORING the cursed card `liftAfter` times — playing
-// through the curse is the cure — or removed instantly by a Cleanse tile.
+// Curses are worked off by SCORING the cursed card `liftAfter` times - playing
+// through the curse is the cure - or removed instantly by a Cleanse tile.
 // cardCurses = { "9-♠": { id:'leaden', left:3 }, ... }  (reset on newGame)
 let cardCurses = {};
 const CURSE_DEFS = {
@@ -62,7 +62,7 @@ let bonusPips_prolific  = 0;   // Prolific Trick: +1 pip per hand played
 let bonusFocus_acorns   = 0;   // Acorns Trick: +0.05 Focus per scored card (per game); grants floor each hand
 let handsPlayedGame     = 0;   // cumulative hands played this game (Plan Ahead average); reset on new game
 let bonusMult_morebetter = 0;  // More Better Trick: +4 mult per reward grid where 3+ tiles were selected (per game)
-let negativeTilesTakenRun = 0; // count of negative (debuff) reward tiles taken this run — Wild Side / Wait For Iiiit / Shady Stimulants
+let negativeTilesTakenRun = 0; // count of negative (debuff) reward tiles taken this run - Wild Side / Wait For Iiiit / Shady Stimulants
 // New position-trick state
 let bonusPips_fengshui  = 0;   // Feng Shui: permanent pips, grows when another position trick fires (per game)
 let focusGenGame  = 0;   // total Focus generated this game (Wellspring); reset on new game
@@ -104,7 +104,7 @@ let fullHouseThisRound = 0; // for House Rules
 // ── Positional bonus state ──
 // Each entry: { id, axis:'row'|'col', index:0-4, [intersectRow, intersectCol for ley line] }
 let rowColBonuses = [];
-let leyLinePos = null; // { r, c } — changes each round
+let leyLinePos = null; // { r, c } - changes each round
 
 // ══════════════════════════════════════════════
 // DECK
@@ -153,6 +153,7 @@ let _enterFromGridTop = false; // when true, new cards enter from grid top, not 
 let _cardIdCounter = 0;
 function stampId(card) {
   if (card && !card._id) card._id = ++_cardIdCounter;
+
   return card;
 }
 
@@ -171,7 +172,7 @@ function shuffle(arr) {
 }
 
 // Deck order runs on its OWN seeded stream (js/seed.js). shuffle() itself stays
-// generic — it is also used to pick Trick options, shop rows and challenge
+// generic - it is also used to pick Trick options, shop rows and challenge
 // columns, and binding it to the deck would let those advance the deck order.
 // Only the real deck operations are wrapped, which is what lets a seed promise
 // the same cards: an unrelated roll landing between two shuffles can no longer
@@ -181,14 +182,14 @@ function deckShuffle(arr) { return withSeededRng(() => shuffle(arr), 'deck'); }
 function drawCard() {
   if (drawPile.length === 0) return null; // exhausted
   let c = stampId(drawPile.shift());
-  // Famine modifier: bias drawn rank toward low cards. On the deck's stream — it
+  // Famine modifier: bias drawn rank toward low cards. On the deck's stream - it
   // substitutes a drawn card, so it is a deck operation.
   c = withSeededRng(() => maybeFamineDrawSwap(c), 'deck');
   updateDeckHud();
   return c;
 }
 
-// Discard action — card goes to BACK of draw pile (re-enters only after every other card seen)
+// Discard action - card goes to BACK of draw pile (re-enters only after every other card seen)
 function discardToDrawPile(card) {
   if (!cardCan(card, 'discard')) return;
   // Sleights are consumed on discard (their on_discard effect is fired by the caller
@@ -197,14 +198,21 @@ function discardToDrawPile(card) {
   drawPile.push({ rank: card.rank, suit: card.suit }); updateDeckHud();
 }
 
-// Scored card — held out until round ends
+// Scored card - held out until round ends
 function discardToPlayed(card) {
   if (!cardCan(card, 'discard')) return;
   // Sleights cycle back into the deck preserving identity & remaining charges
   // (unless fully consumed, in which case they're dropped).
   if (card._isSleight) {
     if (card._usesLeft === 'infinite' || card._usesLeft > 0) {
-      playedPile.push({ _isSleight: true, sleightId: card.sleightId, rank: card.rank, suit: card.suit, _id: card._id, _usesLeft: card._usesLeft, _drawFired: false });
+      // _faceRank/_faceSuit ride along so a Sleight keeps the same printed card
+      // face across a deck cycle (this rebuild is a fixed field list - anything
+      // not named here is silently dropped).
+      // _faceMark and _playable ride along so a Sleight keeps its printed face -
+      // and a tinkered one keeps the identity it was PAID for - across a deck
+      // cycle (this rebuild is a fixed field list; anything not named is lost).
+      playedPile.push({ _isSleight: true, sleightId: card.sleightId, rank: card.rank, suit: card.suit, _id: card._id,
+                        _usesLeft: card._usesLeft, _faceMark: card._faceMark, _playable: card._playable, _drawFired: false });
       updateDeckHud();
     }
     return;
@@ -227,7 +235,7 @@ function flushPlayedDeck() {
 function initGridData() {
   // Dominoes mode builds its own two-cell board.
   if (typeof ACTIVE_MODE !== 'undefined' && ACTIVE_MODE.id === 'dominoes') { dominoInitBoard(); return; }
-  // Clear any domino tiles left over from a previous Dominoes run — the normal
+  // Clear any domino tiles left over from a previous Dominoes run - the normal
   // renderer only reconciles [data-card-id] elements, so these would linger.
   document.getElementById('grid')?.querySelectorAll('[data-domino-id]').forEach(el => el.remove());
   const fullDeck = freshShuffledDeck();
@@ -265,7 +273,7 @@ function dealGrid() {
 // HELPERS
 // ══════════════════════════════════════════════
 function cardPips(rank) {
-  // NB: the old `parseInt(rank) || 10` turned Spectrum's 0 card into a 10 —
+  // NB: the old `parseInt(rank) || 10` turned Spectrum's 0 card into a 10 -
   // 0 is falsy. Check for a real number instead; classic ranks are unchanged.
   if (RANK_PIPS[rank] != null) return RANK_PIPS[rank];
   const n = parseInt(rank);
