@@ -235,3 +235,11 @@
   margin-top: 8px; padding-top: 6px; border-top: 1px solid rgba(58, 48, 32, 0.6);
   font-family: 'Crimson Pro', serif; font-size: 11px; line-height: 1.4; color: var(--cream-dim);
 }
+
+
+/* A Trick a boss has switched off (Voidwright's halves, the Censor's suspension).
+   Records is the screen you open mid-boss to work out what you still have, so it
+   answers that question the same way the tray does. */
+.rec-ent.ent-off { opacity: 0.5; filter: saturate(0.2); border-style: dashed; }
+.rec-ent.ent-off .rec-ent-tag { color: #ff5a5a; border-color: rgba(255,90,90,0.5); }
+.rec-off-note { color: #ff5a5a; }

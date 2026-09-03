@@ -208,6 +208,14 @@ document.querySelector('#stats-overlay .overlay-close').addEventListener('click'
 document.querySelector('#deck-overlay .overlay-close').addEventListener('click', () => closeInfoOverlay('deck-overlay'));
 
 function startGame() {
+  // Dolly the camera in onto the CRT (js/camera.js). A run starting is the only
+  // thing that means "we are at the machine now" - the way back out is driven off
+  // the menu screens showing, so SETTINGS / HISTORY / BUILDS, which all hide the
+  // main menu to open their own screen, can't push the camera in behind them.
+  if (typeof camEnterGame === 'function') camEnterGame();
+  // Music can differ between the menu and a run (see js/music.js); a track marked
+  // 'any' plays through the change, one marked 'menu' hands over here.
+  if (typeof musicSetScene === 'function') musicSetScene('game');
   document.getElementById('end-overlay').classList.remove('show');
   document.getElementById('levelup-overlay').classList.remove('show');
   document.getElementById('shop-overlay').classList.remove('show');
@@ -342,6 +350,7 @@ function startGame() {
   pauseInstanceGame = 0; // Hummingbird's per-game pause counter - reset only here
   stopwatchActive = false; if (stopwatchTimer) { clearInterval(stopwatchTimer); stopwatchTimer = null; } stopwatchCardPos = null;
   if (pauseTimer) { clearTimeout(pauseTimer); pauseTimer = null; }
+  if (typeof resetClockFx === 'function') resetClockFx();  // no frozen/rotated cards carried into a new run
   const ALL_HAND_KEYS = ['run3','threeofakind','fourofakind','run4','pair','twopair','straight','flush','fullhouse','straightflush','highcard','blackjack'];
   const BASE_HAND_KEYS = ['run3','threeofakind','twopair','fourofakind'];
   // Match-3 scores real hand names (Flush, Straight, Straight Flush, Run of 4…),
@@ -440,6 +449,8 @@ function startGame() {
   rewardGridContext = 'interlude';
   skipTrickChoiceOverlay = false;
   rewardSelected = new Set();
+  rewardPickOrder = [];
+  rewardTipKey = null;
   rewardCells = [];
   rewardConfirmed = false;
   actNumber = 1;
@@ -468,6 +479,7 @@ function startGame() {
   bossSecondsLeft = 0;
   blockedCells = new Set();
   bossNumber = 0;
+  bossBag = [];              // fresh shuffled boss bag per run (see nextBossPreset)
   savedRoundSeconds = 0;
   nextBossTime = GAME_DURATION - BOSS_LOOP_DURATION;
   document.getElementById('grid').classList.remove('boss-active');

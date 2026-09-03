@@ -207,6 +207,9 @@ function stopTimers() {
   gameInterval = null;
   stopFocusDecay();
   stopHeartbeat();
+  // The board is about to be taken away or replaced; never leave it holding a
+  // freeze tilt or a mirror stack behind an overlay (js/clock-fx.js).
+  if (typeof resetClockFx === 'function') resetClockFx();
 }
 
 // ══════════════════════════════════════════════

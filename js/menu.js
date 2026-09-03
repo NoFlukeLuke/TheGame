@@ -1,4 +1,4 @@
-const BUILD = '2026-09-02 · r182 · Hands tab shows earned Natural Scaling · CLAUDE.md scoring sections';
+const BUILD = '2026-09-03 · r190 · scoring multipliers made visible, Focus rate, Natural Scaling';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -190,6 +190,7 @@ function isActMode() { return !!ACTIVE_MODE && ACTIVE_MODE.actStructure === true
 
 function initMainMenu() {
   ACTIVE_MODE = MODES.normal;
+  if (typeof musicSetScene === 'function') musicSetScene('menu');
   document.getElementById('main-menu-overlay').classList.add('show');
   if (typeof updateContinueBtn === 'function') updateContinueBtn();
   if (typeof updateHistoryBtn === 'function') updateHistoryBtn();

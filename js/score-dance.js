@@ -92,7 +92,15 @@ function sfxWinExplode(){
   try{
     const actx = getAudioCtx(); if(!actx) return;
     const t = actx.currentTime;
-    const master = actx.createGain(); master.gain.value = 0.8;
+    // Volume/mute: this one builds its own graph rather than going through
+    // playTone, so it has to fold in sfxVolume() itself or the mute toggle and
+    // the Sound-effects slider would not touch it (they did not, before r179).
+    // 0.55, not 0.8: this stacks two detuned saws, a sub and a noise burst into one
+    // gain, and measured across the whole catalog it was the only sound that
+    // clipped - peak 1.18 against a median of 0.13. At 0.55 it peaks near 0.81 and
+    // is still comfortably the loudest thing in the game, which is the intent.
+    const master = actx.createGain(); master.gain.value = 0.55 * sfxVolume();
+    if (master.gain.value <= 0) return;
     master.connect(sfxDuckGain || actx.destination);
     // Detuned saw "zap" sweeping down - the analog-synth stab.
     [0,7].forEach(detune=>{
@@ -335,8 +343,8 @@ async function playScoreDance(result, toRemove, isGoalHand = false) {
 
   const base       = HAND_BASE[hand] || { pips: 0, mult: 1 };
   const levelScale = Math.pow(1.1, level - 1);
-  const basePips   = Math.round(base.pips * levelScale);
-  const baseMult   = base.mult;
+  const basePips   = Math.round(handBasePips(hand) * levelScale);
+  const baseMult   = handBaseMult(hand, handCells?.length);
 
   // ── Measure box rects upfront ──
   const pipsBoxEl    = document.getElementById('pips-box');
@@ -739,7 +747,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   const scoreAfter = score, scoreBefore = score - finalScore;
   const levelScale = Math.pow(1.1, level - 1);
   const base = HAND_BASE[hand] || { pips:0, mult:1 };
-  const basePips = Math.round(base.pips * levelScale), baseMult = base.mult;
+  const basePips = Math.round(handBasePips(hand) * levelScale), baseMult = handBaseMult(hand, handCells.length);
   // Capture per-card pips BEFORE removeAndFall nulls gridData.
   const cardPipVals = handCells.map(([r,c]) => cardPips(gridData[r][c].rank));
 

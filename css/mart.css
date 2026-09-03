@@ -25,21 +25,25 @@
 #mart-overlay .m-schip{ font-family:'Cinzel',serif; font-size:10px; letter-spacing:1px; color:var(--cream); background:#1a1510; border:1px solid var(--border); border-radius:6px; padding:8px 4px; text-align:center; cursor:pointer; }
 #mart-overlay .m-schip:hover{ border-color:var(--gold-dim); }
 
-/* owned mini entities */
-#mart-overlay .mini-knack{ width:32px; height:32px; transform:rotate(45deg); border-radius:6px; flex-shrink:0;
-  background:linear-gradient(150deg,var(--plastic-hi),var(--plastic) 55%,var(--plastic-lo));
-  box-shadow:0 0 0 2px var(--plastic-deep), inset 0 2px 0 rgba(255,255,255,0.6), 0 0 10px -3px var(--rc,var(--c-mint)); position:relative; display:flex; align-items:center; justify-content:center; }
-#mart-overlay .mini-knack::after{ content:''; position:absolute; inset:14%; border-radius:4px; border:2px solid var(--rc,var(--c-mint)); box-shadow:0 0 6px -1px var(--rc,var(--c-mint)); }
-#mart-overlay .mini-knack span{ transform:rotate(-45deg); font-size:15px; }
-#mart-overlay .mini-sleight{ width:44px; height:60px; border-radius:6px; position:relative; padding:3px;
-  background:linear-gradient(160deg,#f7f2e6,#e6dcc4); border:1.25px solid var(--rc); color:#1a1510; box-shadow:0 2px 5px rgba(0,0,0,.5); display:flex; align-items:center; justify-content:center; }
-#mart-overlay .mini-sleight .c{ position:absolute; top:1px; left:3px; font-family:'Share Tech Mono',monospace; font-size:8px; font-weight:700; }
-#mart-overlay .mini-sleight .a{ font-size:18px; }
-#mart-overlay .mini-trick{ width:38px; height:48px; position:relative; color:#fff;
-  background:radial-gradient(120% 80% at 50% 0%, color-mix(in srgb, var(--rc) 22%, #0b0906), #0b0906); border:1.5px solid var(--rc); border-radius:3px;
-  clip-path:polygon(0 6px,6px 0,calc(100% - 6px) 0,100% 6px,100% calc(100% - 6px),calc(100% - 6px) 100%,6px 100%,0 calc(100% - 6px));
-  box-shadow:0 0 8px -2px var(--rc); display:flex; align-items:center; justify-content:center; }
-#mart-overlay .mini-trick .a{ font-size:20px; }
+/* ── owned mini entities (r182) ────────────────────────────────────────────
+   Frames only. What you own is drawn with the shared entity tile the shelf, the
+   cart and the reward grid all use (js/entity-tile.js) - these three strips used
+   to be a private third visual language, so your own Sleight looked nothing like
+   the identical Sleight on sale two inches below it. */
+#mart-overlay .m-mini{ position:relative; flex-shrink:0; cursor:pointer; transition:transform .12s; }
+#mart-overlay .m-mini:hover{ transform:translateY(-2px); }
+#mart-overlay .m-mini > .reward-cell{ width:100%; height:100%; padding:2px 1px 3px; cursor:pointer; }
+#mart-overlay .m-mini .rwd-art{ font-size:17px; top:11%; }
+#mart-overlay .m-mini .rwd-glyph{ font-size:7px; top:2px; }
+#mart-overlay .m-mini .rwd-name{ font-size:5px; letter-spacing:0; }
+#mart-overlay .m-mini .rwd-uses{ font-size:6px; padding:0 3px; bottom:2px; right:2px; }
+#mart-overlay .mini-knack{ width:34px; height:42px; }
+#mart-overlay .mini-knack .rwd-diamond{ width:62%; }
+#mart-overlay .mini-knack .rwd-diamond-emoji{ font-size:15px; }
+#mart-overlay .mini-sleight{ width:38px; height:50px; }
+#mart-overlay .mini-sleight > .reward-cell{ clip-path:polygon(13px 0, 100% 0, 100% 100%, 0 100%, 0 13px); }
+#mart-overlay .mini-sleight .rwd-tab{ width:12px; height:12px; top:2px; left:2px; font-size:7px; border-radius:3px; }
+#mart-overlay .mini-trick{ width:38px; height:48px; }
 #mart-overlay .suit-red{ color:#c0392b; } #mart-overlay .suit-blk{ color:#1a1510; }
 
 /* ── CENTER: catalog ── */
@@ -183,7 +187,8 @@
 #mart-overlay .limit .ico{ font-size:17px; color:var(--c-mint); text-shadow:0 0 8px var(--c-mint); flex:0 0 auto; }
 #mart-overlay .limit .body{ display:flex; flex-direction:column; line-height:1.15; align-items:flex-start; text-align:left; }
 #mart-overlay .limit .lname{ font-family:'Orbitron',sans-serif; font-size:8.5px; font-weight:700; letter-spacing:1px;
-  color:#fff; text-transform:uppercase; text-shadow:0 0 6px var(--c-mint); }
+  color:#fff; text-transform:uppercase; text-shadow:0 0 6px var(--c-mint);
+  overflow-wrap:normal; word-break:keep-all; hyphens:none; }
 #mart-overlay .limit .lprog{ font-family:'Share Tech Mono',monospace; font-size:13px; color:var(--c-mint); }
 
 #mart-overlay .m-item .price{ position:absolute; top:3px; right:4px; z-index:3; font-family:'Share Tech Mono',monospace; font-size:8px; color:var(--phosphor); background:rgba(0,0,0,0.6); border:1px solid rgba(255,176,46,0.5); border-radius:5px; padding:0 3px; }
@@ -209,9 +214,46 @@
 #mart-overlay .m-wallet{ font-family:'Share Tech Mono',monospace; font-size:16px; color:var(--phosphor); background:#0c0a06; border:1px solid var(--plastic-deep); border-radius:7px; padding:7px; text-align:center; margin:9px 0; }
 #mart-overlay .m-ch{ font-size:10px; letter-spacing:2px; color:var(--phosphor); border-bottom:1px solid #2a2416; padding-bottom:6px; display:flex; justify-content:space-between; align-items:center; }
 #mart-overlay .m-ch small{ font-size:8px; color:var(--cream-dim); }
-#mart-overlay .m-rcpt{ flex:1; display:flex; flex-direction:column; gap:5px; padding:8px 0; overflow-y:auto; }
-#mart-overlay .m-rline{ display:flex; justify-content:space-between; font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--cream); border-bottom:1px dotted #241c10; padding-bottom:4px; cursor:pointer; }
-#mart-overlay .m-rline .x{ color:var(--c-magenta); }
+/* SCROLLS ONLY IF IT HAS TO (r182). `flex:1` forced the receipt to fill the
+   panel and scroll whether or not there was anything to scroll; it now sizes to
+   its contents and only starts scrolling once the cart is taller than the space
+   available - so a two-item cart is two items, not a scroll region. */
+#mart-overlay .m-rcpt{ flex:0 1 auto; display:flex; flex-direction:column; gap:6px; padding:8px 0;
+  max-height:min(46vh, 380px); overflow-y:auto; overscroll-behavior:contain; }
+/* ── cart line: the entity keeps its shape (r182) ──────────────────────────
+   A cart line is the tile you picked plus its name and price, not a row of
+   text. .m-cthumb is a small frame around the SAME .reward-cell markup the
+   shelf and the reward grid use (js/entity-tile.js). */
+#mart-overlay .m-cline{ display:flex; align-items:center; gap:9px; cursor:pointer;
+  padding:5px 6px; border-radius:8px; border:1px solid #2a2418; background:rgba(255,255,255,.025);
+  transition:border-color .12s, background .12s; }
+#mart-overlay .m-cline:hover{ border-color:var(--phosphor); background:rgba(255,176,46,.06); }
+/* NOT `.m-knack` / `.m-sleight` here: those are the SHELF's tile-sizing classes
+   (a third of the row, aspect-ratio 82/106), so reusing them blew a 32px cart
+   thumbnail up to a full-size tile - which is what made a Knack's diamond burst
+   out of its line. The cart's own type modifier is mc-*. */
+#mart-overlay .m-cthumb{ flex:0 0 auto; width:32px; height:42px; position:relative; overflow:hidden; }
+#mart-overlay .m-cthumb > .reward-cell{ width:100%; height:100%; padding:2px 1px 3px; cursor:pointer; }
+#mart-overlay .m-cthumb .rwd-art{ font-size:14px; top:10%; }
+#mart-overlay .m-cthumb .rwd-glyph{ font-size:6px; top:2px; }
+#mart-overlay .m-cthumb .rwd-name{ font-size:4.5px; letter-spacing:0; }
+#mart-overlay .m-cthumb .rwd-uses{ display:none; }
+#mart-overlay .m-cthumb .rwd-diamond{ width:60%; }
+#mart-overlay .m-cthumb .rwd-diamond-emoji{ font-size:13px; }
+#mart-overlay .m-cthumb .reward-icon{ font-size:15px; }
+#mart-overlay .m-cthumb.mc-sleight > .reward-cell{ clip-path:polygon(11px 0, 100% 0, 100% 100%, 0 100%, 0 11px); }
+#mart-overlay .m-cthumb.mc-sleight .rwd-tab{ width:10px; height:10px; top:2px; left:2px; font-size:6px; border-radius:3px; }
+#mart-overlay .m-cinfo{ flex:1 1 auto; min-width:0; display:flex; flex-direction:column; gap:1px; }
+#mart-overlay .m-cname{ font-family:'Orbitron',sans-serif; font-size:9.5px; font-weight:700; letter-spacing:.4px;
+  text-transform:uppercase; color:var(--cream); line-height:1.2;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+#mart-overlay .m-crar{ font-family:'Share Tech Mono',monospace; font-size:8px; letter-spacing:.5px;
+  text-transform:uppercase; color:var(--cream-dim); }
+#mart-overlay .m-cprice{ flex:0 0 auto; font-family:'Share Tech Mono',monospace; font-size:11px; color:var(--phosphor); }
+#mart-overlay .m-cline .x{ flex:0 0 auto; width:22px; height:22px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center; font-size:11px;
+  color:var(--c-magenta); border:1px solid rgba(255,47,142,.35); }
+#mart-overlay .m-cline .x:hover{ background:var(--c-magenta); color:#fff; }
 #mart-overlay .m-drop{ border:1px dashed #3a3020; border-radius:7px; color:var(--cream-dim); font-family:'Share Tech Mono',monospace; font-size:9px; text-align:center; padding:9px 4px; }
 #mart-overlay .m-sum{ border-top:1px solid #2a2416; padding-top:7px; }
 #mart-overlay .m-sum .srow{ display:flex; justify-content:space-between; font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--cream-dim); }
@@ -265,7 +307,7 @@
 #wheel-overlay .wh-emoji{ font-size:17px; line-height:1; }
 #wheel-overlay .wh-name{ font-family:'Orbitron',sans-serif; font-size:6.5px; font-weight:700; letter-spacing:.3px;
   text-transform:uppercase; color:#fff; text-align:center; line-height:1.1; max-height:2.2em; overflow:hidden;
-  text-shadow:0 1px 3px #000; overflow-wrap:anywhere; }
+  text-shadow:0 1px 3px #000; overflow-wrap:normal; word-break:keep-all; hyphens:none; }
 #wheel-overlay .wh-hub{ position:absolute; left:50%; top:50%; width:58px; height:58px; margin:-29px 0 0 -29px;
   border-radius:50%; background:linear-gradient(150deg,var(--plastic-hi),var(--plastic) 55%,var(--plastic-lo));
   box-shadow:0 0 0 3px #5a4a12, inset 0 2px 0 rgba(255,255,255,.6); display:flex; align-items:center; justify-content:center;
@@ -390,9 +432,16 @@
   #mart-overlay .p-tricks{ flex:0 0 auto; }
   #mart-overlay .m-panel .m-pt{ font-size:8px; letter-spacing:1px; margin-bottom:4px; gap:8px; }
   #mart-overlay .m-row{ flex-wrap:nowrap; gap:4px; }
-  #mart-overlay .mini-knack{ width:24px; height:24px; } #mart-overlay .mini-knack span{ font-size:11px; }
-  #mart-overlay .mini-sleight{ width:26px; height:34px; } #mart-overlay .mini-sleight .a{ font-size:12px; }
-  #mart-overlay .mini-trick{ width:24px; height:30px; } #mart-overlay .mini-trick .a{ font-size:13px; }
+  /* The loadout strip is a glance, not a read - the names come off below this
+     size, leaving art + rarity colour, which is what identifies them at 24px. */
+  #mart-overlay .m-mini .rwd-name{ display:none; }
+  #mart-overlay .m-mini .rwd-art{ font-size:13px; top:auto; bottom:0; }
+  #mart-overlay .mini-knack{ width:26px; height:30px; } #mart-overlay .mini-knack .rwd-diamond-emoji{ font-size:12px; }
+  #mart-overlay .mini-sleight{ width:26px; height:34px; }
+  #mart-overlay .mini-sleight > .reward-cell{ clip-path:polygon(9px 0, 100% 0, 100% 100%, 0 100%, 0 9px); }
+  #mart-overlay .mini-sleight .rwd-tab{ width:8px; height:8px; font-size:5px; }
+  #mart-overlay .mini-sleight .rwd-uses{ display:none; }
+  #mart-overlay .mini-trick{ width:26px; height:32px; }
   /* Stats / Deck / Time move into the drawer's footer on narrow screens; the
      loadout strip has no room for a 2x2 button block. */
   #mart-overlay .m-settings{ display:none; }
@@ -408,15 +457,29 @@
   #mart-overlay .m-sec{ padding:7px 9px 9px 11px; }
   #mart-overlay .m-sec .m-sh{ flex-wrap:wrap; gap:6px; font-size:9px; letter-spacing:2px; }
   #mart-overlay .m-sec .m-sh-note{ flex:1 0 100%; order:3; font-size:8px; }
-  #mart-overlay .m-rowc{ gap:9px 10px; margin-top:8px; justify-content:space-between; }
-  /* Four tiles across a phone: 2 per row with room to breathe, sized off the
-     viewport so they scale with the device instead of being pinned at 82px. */
+  #mart-overlay .m-rowc{ gap:8px 6px; margin-top:8px; justify-content:flex-start; }
+  /* THREE ACROSS, ONE ROW (r182). A shelf holds three items, so a shelf should be
+     one line - two-per-row split every category across two rows and pushed the
+     third item onto a line of its own, which made a shop of four shelves scroll
+     for pages on a phone. Sized off the row so it scales with the device, and
+     `min-width:0` lets flex actually shrink them to a third rather than refusing
+     below their content width. */
   #mart-overlay .m-trick, #mart-overlay .m-sleight, #mart-overlay .m-knack{
-    width:calc(50% - 5px); max-width:120px; height:auto; aspect-ratio:82/106; }
+    /* exactly a third of the row minus the two 6px gaps between three tiles.
+       Fixed basis (not flex:1) so a half-sold shelf keeps its tiles the size
+       they were rather than stretching the survivors across the row. */
+    flex:0 0 calc((100% - 12px) / 3); min-width:0; max-width:none;
+    height:auto; aspect-ratio:82/106; }
+  /* A shelf never wraps now - three tiles, one line. */
+  #mart-overlay .m-sec-tricks .m-rowc,
+  #mart-overlay .m-sec-sleights .m-rowc,
+  #mart-overlay .m-sec-knacks .m-rowc{ flex-wrap:nowrap; }
   #mart-overlay .m-limit{ width:100%; min-width:0; }
-  #mart-overlay .m-item .rwd-name{ font-size:10px; }
-  #mart-overlay .m-item .rwd-art{ font-size:30px; }
-  #mart-overlay .m-item .price{ font-size:10px; padding:1px 5px; top:4px; right:5px; }
+  /* Tuned for the narrower 3-across tile. fitEntityName shrinks any name that
+     still will not fit, without ever breaking a word (js/fit-text.js). */
+  #mart-overlay .m-item .rwd-name{ font-size:8.5px; padding:0 2px 1px; }
+  #mart-overlay .m-item .rwd-art{ font-size:24px; }
+  #mart-overlay .m-item .price{ font-size:9px; padding:1px 4px; top:3px; right:4px; }
   /* Bigger hit area for the cart tick, and it must not be clipped at the row edge. */
   #mart-overlay .m-item .m-tick{ width:24px; height:24px; font-size:14px; bottom:-5px; left:-5px; }
   /* No hover lift on a touch screen - it fires on tap and reads as a glitch. */
@@ -440,8 +503,10 @@
   /* Collapsed by default. The summary and the buy button stay visible always -
      that is the whole point of the drawer. */
   #mart-overlay .m-rcpt{ max-height:0; padding:0; overflow:hidden; transition:max-height .2s ease, padding .2s ease; }
-  #mart-overlay.cart-open .m-rcpt{ max-height:46vh; padding:6px 0; overflow-y:auto; }
-  #mart-overlay .m-rline{ font-size:11px; padding:6px 0; }
+  #mart-overlay.cart-open .m-rcpt{ max-height:min(46vh, 340px); padding:6px 0; overflow-y:auto; }
+  #mart-overlay .m-cline{ padding:5px; gap:8px; }
+  #mart-overlay .m-cname{ font-size:10px; }
+  #mart-overlay .m-cthumb{ width:30px; height:39px; }
   /* The subtotal/discount breakdown collapses with the receipt, so a shut drawer
      is only total + CHECKOUT + the two footer buttons. It eats a quarter of the
      screen otherwise. */

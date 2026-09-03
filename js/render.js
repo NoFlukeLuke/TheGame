@@ -160,8 +160,8 @@ function render() {
       const base = HAND_BASE[bestHandResult.hand];
       if (base) {
         const levelScale = Math.pow(1.1, level - 1);
-        const basePips = Math.round(base.pips * levelScale);
-        updateDanceSubboxes(basePips, base.mult);
+        const basePips = Math.round(handBasePips(bestHandResult.hand) * levelScale);
+        updateDanceSubboxes(basePips, handBaseMult(bestHandResult.hand, bestHandResult.handCells?.length));
       }
     } else {
       const pipsEl = document.getElementById('pips-val');
@@ -181,7 +181,7 @@ function render() {
     const { hand, handCells, penaltyCells, rawScore, penaltyPips, finalScore } = bestHandResult;
     const base = HAND_BASE[hand];
     const levelScale = Math.pow(1.1, level - 1);
-    const scaledBasePips = Math.round(base.pips * levelScale);
+    const scaledBasePips = Math.round(handBasePips(hand) * levelScale);
     const cards = handCells.map(([r,c]) => gridData[r][c]);
     const cardPipsTotal = cards.reduce((sum, card) => sum + cardPips(card.rank) + (permPips[cardKey(card.rank,card.suit)]||0), 0);
     const hasTrickCard = trickCardPos && handCells.some(([r,c])=>r===trickCardPos[0]&&c===trickCardPos[1]);
@@ -249,5 +249,9 @@ function render() {
   document.getElementById('btn-discard').disabled = selected.length === 0 || (animating && !falling);
   document.getElementById('disc-count').textContent = `(${discards})`;
   document.getElementById('swap-count').textContent  = swaps;
+
+  // A card dealt in while the clock is frozen arrives untilted - put it back in
+  // line with the rest of the held board (js/clock-fx.js). No-ops when running.
+  if (typeof reapplyClockFreeze === 'function') reapplyClockFreeze();
 }
 

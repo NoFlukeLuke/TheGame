@@ -1,0 +1,111 @@
+/* ═══════════════ CLOCK FX (r183) - see js/clock-fx.js ═══════════════
+   Three clock-driven effects on one stylesheet:
+     · .clock-wave        - the 10-second swell the timer gives with the board's wave
+     · .clock-frozen-lit  - the timer lit up while the clock is PAUSED
+     · .clock-frozen      - a card held at a small rotation for the length of that pause
+     · .rewind-ghost      - the translucent copies stacked under a card during a rewind
+
+   The card tilt is published as `--frzr` and composed into the transform declared
+   in css/style.css (alongside the heartbeat's --hb*), NOT written to
+   el.style.transform: the discard fly-out sets an inline transform and
+   .card.removing an !important one, and both have to keep winning. */
+
+/* ── 1. The tick, every 10s, on the same beat as the board's wave ───────────
+   Deliberately tiny. It plays six times a minute for a whole run, so anything
+   with real amplitude turns into a twitch you cannot stop looking at. */
+@keyframes clock-wave-swell {
+  0%   { transform: scale(1);    filter: brightness(1); }
+  22%  { transform: scale(1.055); filter: brightness(1.35); }
+  100% { transform: scale(1);    filter: brightness(1); }
+}
+#clock.clock-wave {
+  animation: clock-wave-swell 0.95s cubic-bezier(.25,.9,.35,1);
+}
+/* The landscape clock is a bar, not a numeral - it glows rather than grows, so
+   nothing in the fixed-coordinate v7 layout moves. */
+@keyframes vclock-wave-glow {
+  0%   { box-shadow: none; }
+  22%  { box-shadow: 0 0 14px -1px var(--phosphor, #ffb02e); }
+  100% { box-shadow: none; }
+}
+#vclock.clock-wave { animation: vclock-wave-glow 0.95s cubic-bezier(.25,.9,.35,1); }
+
+/* ── 2. The clock, lit, while it is paused ─────────────────────────────────
+   #clock already turns blue and breathes on .clock-paused (css/style.css). This
+   is the louder layer over the top: a proper halo, so a stopped clock is
+   readable from the corner of your eye while you are looking at the board. */
+#clock.clock-frozen-lit {
+  color: #8fd4ff !important;
+  text-shadow:
+    0 0 6px  rgba(143,212,255,0.95),
+    0 0 18px rgba(90,169,230,0.85),
+    0 0 34px rgba(90,169,230,0.45) !important;
+  animation: clock-frozen-breathe 1.6s ease-in-out infinite !important;
+}
+@keyframes clock-frozen-breathe {
+  0%, 100% { filter: brightness(1);    }
+  50%      { filter: brightness(1.45); }
+}
+#vclock.clock-frozen-lit {
+  border-color: #5aa9e6 !important;
+  box-shadow: 0 0 16px -2px rgba(90,169,230,0.9), inset 0 0 18px -8px rgba(143,212,255,0.9) !important;
+}
+#vclock.clock-frozen-lit #vclock-fill {
+  background: linear-gradient(90deg, #5aa9e6, #8fd4ff) !important;
+  box-shadow: 0 0 10px rgba(143,212,255,0.7);
+}
+
+/* ── 3. A frozen card ──────────────────────────────────────────────────────
+   The transition is on the CLASS, not on .card, so nothing else that moves a
+   card grows a transform transition it never asked for. .card.removing sets its
+   own transition with !important and still wins. */
+.clock-frozen {
+  transition: transform 0.34s cubic-bezier(.2,.85,.3,1) !important;
+}
+/* A faint cold rim while held, so the freeze reads as a state and not a wobble. */
+#grid .card.clock-frozen {
+  box-shadow: 0 0 0 1px rgba(143,212,255,0.35), 0 0 10px -2px rgba(90,169,230,0.55);
+}
+
+/* ── 4. Rewind: the infinity mirror ────────────────────────────────────────
+   Clones of the real cards, parked at the same left/top (they are clones, so
+   they inherit the inline position), then stepped DOWN AND RIGHT a few pixels
+   each in a stack that fades with depth. Removing .out is what absorbs them
+   back up into the original, which is the whole read: the copies are the
+   seconds coming back. */
+.rewind-ghost {
+  pointer-events: none !important;
+  animation: none !important;
+  opacity: 0;
+  transform: translate(0, 0) scale(1);
+  transition: transform 0.42s cubic-bezier(.2,.85,.3,1), opacity 0.42s ease;
+  /* Cool, drained and slightly blurred, so a copy never competes with the real
+     card underneath it. No blend mode: a cream card face screened over the dark
+     board turns into a white slab. */
+  filter: saturate(0.3) brightness(0.9) blur(var(--rw-blur, 0.5px)) hue-rotate(-8deg);
+}
+.rewind-ghost.out {
+  opacity: var(--rw-fade, 0.3);
+  transform: translate(var(--rw-shift, 5px), var(--rw-drop, 5px)) scale(var(--rw-shrink, 0.96));
+}
+/* For the length of the effect the real cards are lifted above the ghosts. The
+   ghosts are appended last, and .card carries no z-index of its own, so DOM
+   order would otherwise let a copy cover the card in the row beneath it. The
+   values stay well under .card.selected (8) and a falling card (5). */
+#grid.rewinding .card,
+#grid.rewinding .trick-card { z-index: 3; }
+
+/* The ghosts are decoration - never let one paint a selection ring or a badge. */
+.rewind-ghost .sel-num,
+.rewind-ghost .buff-band,
+.rewind-ghost .card-marker { display: none !important; }
+
+/* ── Reduced motion ────────────────────────────────────────────────────────
+   The lit clock and the sounds stay (they carry information); the board holds
+   still. js/clock-fx.js already skips the tilt and the mirror, and this is the
+   belt-and-braces for anything already on screen when the setting is flipped. */
+body.reduced-motion #clock.clock-wave,
+body.reduced-motion #vclock.clock-wave,
+body.reduced-motion #clock.clock-frozen-lit { animation: none !important; }
+body.reduced-motion .clock-frozen { --frzr: 0deg !important; }
+body.reduced-motion .rewind-ghost { display: none !important; }

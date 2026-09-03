@@ -165,21 +165,25 @@ function recordsRenderDeck() {
 // ══════════════════════════════════════════════
 // PERSONNEL FILE - every owned entity, description shown by default
 // ══════════════════════════════════════════════
-function recordsEntityCard(icon, name, tag, desc, cls) {
+function recordsEntityCard(icon, name, tag, desc, cls, off) {
   const d = (typeof colorizeKeywords === 'function') ? colorizeKeywords(withSuitHalo(desc || '')) : (desc || '');
-  return `<div class="rec-ent ${cls}">
+  return `<div class="rec-ent ${cls}${off ? ' ent-off' : ''}">
     <div class="rec-ent-top"><span class="rec-ent-ico">${icon}</span>
-      <span class="rec-ent-name">${name}</span><span class="rec-ent-tag">${tag}</span></div>
+      <span class="rec-ent-name">${name}</span><span class="rec-ent-tag">${off ? 'SWITCHED OFF' : tag}</span></div>
     <div class="rec-ent-desc">${d}</div></div>`;
 }
 
 function recordsRenderPersonnel() {
   // Tricks (side tray), Sleights (owned deck cards), Knacks (permanent).
   const tricks = (typeof trickTray !== 'undefined' && trickTrayMode) ? trickTray : acquiredTricks;
+  // Records is the screen you open mid-boss to work out what you still have, so a
+  // Trick a boss has switched off (Voidwright, Censor) reads as off here too.
+  const _off = t => (typeof isTrickDisabledByBoss === 'function') && isTrickDisabledByBoss(t.id);
+  const _anyOff = tricks.some(_off);
   const trickHTML = tricks.length ? tricks.map(t => recordsEntityCard(
     (typeof trickEmoji === 'function' ? trickEmoji(t) : '🃏'), t.name,
     (t.tier || 'common').toUpperCase(),
-    (typeof trickLiveDesc === 'function' ? trickLiveDesc(t) : t.desc), 'e-trick')).join('')
+    (typeof trickLiveDesc === 'function' ? trickLiveDesc(t) : t.desc), 'e-trick', _off(t))).join('')
     : `<div class="rec-empty">No Tricks on file.</div>`;
 
   const owned = [];
@@ -201,7 +205,7 @@ function recordsRenderPersonnel() {
 
   return `
     <div class="rec-note">Active personnel and equipment. Descriptions reflect current values - the clock is held while this file is open.</div>
-    <div class="rec-h">Tricks <span class="rec-h-note">${tricks.length}${typeof trickCapacity === 'function' ? ' / ' + trickCapacity() : ''}</span></div>
+    <div class="rec-h">Tricks <span class="rec-h-note">${tricks.length}${typeof trickCapacity === 'function' ? ' / ' + trickCapacity() : ''}${_anyOff ? ' · <b class="rec-off-note">some switched off</b>' : ''}</span></div>
     <div class="rec-ents">${trickHTML}</div>
     <div class="rec-h">Sleights <span class="rec-h-note">${owned.length}</span></div>
     <div class="rec-ents">${sleightHTML}</div>
@@ -249,6 +253,32 @@ function recordsRenderTime() {
     <div class="rec-lims">${rows}</div>`;
 }
 
+// The footer explains the ACTIVE scoring model, since two of the three make the
+// Pips and Score columns meaningless.
+function _recHandsFoot() {
+  const m = (typeof scoringModel !== 'undefined') ? scoringModel : 'classic';
+  if (m === 'hand_size') {
+    return 'In this mode the hand type does not change your score directly. Mult is simply how '
+         + 'many cards you played, and pips come only from the cards themselves. What a hand '
+         + 'type is worth to you is the Focus it gives.';
+  }
+  if (m === 'mult_ladder') {
+    return 'In this mode pips come only from the cards you play. The hand type sets the mult and '
+         + 'the Focus it adds to the meter. Tricks, Knacks and your Focus multiplier build on top.';
+  }
+  return "Score is pips x mult, before your cards' own pips, Tricks, Knacks and your Focus "
+       + 'multiplier. Focus is what the hand adds to the meter.';
+}
+// Natural Scaling appended to whichever model's wording is showing - it applies
+// under all of them, since handBasePips/handBaseMult carry it.
+function _recHandsFootFull() {
+  const ns = (typeof nsEnabled !== 'undefined' && nsEnabled)
+    ? ' Playing a hand permanently raises its whole family - sets, runs and flushes each build on'
+      + ' their own. Green is what this run has earned.'
+    : '';
+  return _recHandsFoot() + ns;
+}
+
 // ── HANDS ──
 // What each hand is worth. Read LIVE from HAND_BASE / HAND_FOCUS, never from a
 // written-out table: both are global and modes overwrite them, so a written copy
@@ -273,25 +303,26 @@ function recordsRenderHands() {
         <span class="rh-off">Unavailable</span>
       </div>`;
     }
-    const b     = HAND_BASE[name] || { pips: 0, mult: 0 };
+    // Read through the model helpers, so switching the scoring model in the dev
+    // panel is reflected here rather than quoting a table the scorer ignores.
+    const pips  = handBasePips(name);
+    const mult  = handBaseMult(name);
     const focus = HAND_FOCUS[name] || 0;
-    // Natural Scaling is what this run has EARNED on top of the printed table, so
-    // the rate card quotes the live number and shows the earned part beside it.
-    // Read from the same accumulator calcScore reads, never from a copy.
+    const sizeMult = (typeof scoringModel !== 'undefined') && scoringModel === 'hand_size';
+    // pips/mult above already INCLUDE Natural Scaling (handBasePips/handBaseMult
+    // fold it in), so this only splits out how much of the quote this run earned.
     const ns    = (typeof naturalScaleBonus === 'function') ? naturalScaleBonus(name) : { pips: 0, mult: 0 };
-    const pips  = (b.pips || 0) + ns.pips;
-    const mult  = (b.mult || 0) + ns.mult;
+    const gain  = ns.pips ? `<span class="rh-ns">+${ns.pips}</span>` : '';
+    const gainM = ns.mult ? `<span class="rh-ns">+${ns.mult}</span>` : '';
     // pips x mult is the number that decides which hand to go for; the two
     // factors on their own do not compare across rows.
     const base  = Math.round(pips * mult);
-    const gain  = ns.pips ? `<span class="rh-ns">+${ns.pips}</span>` : '';
-    const gainM = ns.mult ? `<span class="rh-ns">+${ns.mult}</span>` : '';
     return `<div class="rec-hand">
       <span class="rh-n">${name}</span>
       <span class="rh-v rh-p">${pips}${gain}</span>
-      <span class="rh-v rh-m">x${mult}${gainM}</span>
+      <span class="rh-v rh-m">${sizeMult ? 'cards' : 'x' + mult}${gainM}</span>
       <span class="rh-v rh-f">${focus || 0}</span>
-      <span class="rh-v rh-b">${base.toLocaleString()}</span>
+      <span class="rh-v rh-b">${sizeMult || !pips ? '&middot;' : base.toLocaleString()}</span>
     </div>`;
   }).join('');
 
@@ -304,11 +335,7 @@ function recordsRenderHands() {
       <span class="rh-v">Focus</span><span class="rh-v">Score</span>
     </div>
     <div class="rec-hands">${rows}</div>
-    <div class="rec-foot">Score is pips x mult, before your cards' own pips, Tricks,
-      Knacks and your Focus multiplier. Focus is what the hand adds to the meter.${
-        (typeof nsEnabled !== 'undefined' && nsEnabled)
-          ? ` Playing a hand permanently raises its whole family - sets, runs and flushes each build on their own. Green is what this run has earned.`
-          : ''}</div>`;
+    <div class="rec-foot">${_recHandsFootFull()}</div>`;
 }
 
 function recordsRenderStats() {

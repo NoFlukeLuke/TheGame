@@ -58,6 +58,51 @@ let focusDecayTimerId    = null;   // setInterval id
 let focusDecayBuffer     = 0;      // grace ticks held while sitting on a whole-number (x.0) multiplier
 let focusBeatDurationMs  = parseFloat(localStorage.getItem('focusBeatDurationMs')) || 300;
 
+// ══════════════════════════════════════════════
+// SCORING MODEL (dev-tunable, r179)
+// ══════════════════════════════════════════════
+// Three ways a hand type can be worth something, switchable in the dev panel so
+// they can be played against each other rather than argued about.
+//
+//   classic     the shipped table. Each hand type has its own base pips AND its
+//               own mult, both from HAND_BASE.
+//   mult_ladder base pips are 0 for every hand, so ALL pips come from the cards
+//               you actually picked. Hand type still pays immediately, through
+//               the mult ladder. This is the real differentiator from the games
+//               this resembles, where the hand's flat bonus dominates early and
+//               the cards barely register.
+//   hand_size   base pips 0 AND mult = the number of cards in the hand. Hand
+//               type then affects the immediate score not at all: it is only
+//               worth the Focus it gives. Most different, and the most likely to
+//               flatten the decision, since 5 cards always beats 4.
+//
+// Every read of the hand's pips/mult goes through handBasePips/handBaseMult, so
+// a model applies everywhere at once: the scorer, findBestHand's comparisons,
+// the payout breakdown and the RECORDS Hands tab.
+const SCORING_MODELS = ['classic', 'mult_ladder', 'hand_size'];
+let scoringModel = localStorage.getItem('scoringModel') || 'classic';
+if (!SCORING_MODELS.includes(scoringModel)) scoringModel = 'classic';
+
+// Natural Scaling (r190) rides BOTH of these rather than patching calcScore,
+// so it applies under either scoring model and the RECORDS Hands tab - which
+// calls the same two functions - quotes the earned value with no extra work.
+function handBasePips(handName) {
+  const b = (typeof HAND_BASE !== 'undefined') && HAND_BASE[handName];
+  if (!b) return 0;
+  const ns = (typeof naturalScaleBonus === 'function') ? naturalScaleBonus(handName).pips : 0;
+  return (scoringModel === 'classic' ? b.pips : 0) + ns;
+}
+// cellCount is the size of the hand being scored. Only hand_size reads it, and
+// it falls back to the table when a caller has no cells (the Hands tab lists
+// values with no hand in play, so it shows the ladder's mult there).
+function handBaseMult(handName, cellCount) {
+  const b = (typeof HAND_BASE !== 'undefined') && HAND_BASE[handName];
+  if (!b) return 0;
+  const ns = (typeof naturalScaleBonus === 'function') ? naturalScaleBonus(handName).mult : 0;
+  if (scoringModel !== 'hand_size') return b.mult + ns;
+  return ((typeof cellCount === 'number' && cellCount > 0) ? cellCount : b.mult) + ns;
+}
+
 // Speed bonus formula state (dev-tunable). Persisted to localStorage.
 let focusSpeedFormula = localStorage.getItem('focusSpeedFormula') || 'linear';
 let focusSpeedParams = JSON.parse(localStorage.getItem('focusSpeedParams') || 'null') || {
@@ -156,9 +201,18 @@ function focusRateMods() {
   return m;
 }
 
-// Current focus multiplier: 1.0 until 10 nodes, then +0.1 per node above 10
+
+// Current focus multiplier: x1.0 until `focusMultStartNodes`, then + per node.
+// These are separate tunables rather than FOCUS_THRESHOLD itself, because that
+// constant also sets the meter's node colouring and charge spacing - retuning
+// the multiplier should not redraw the bar.
+let focusMultStartNodes = parseFloat(localStorage.getItem('focusMultStartNodes'));
+if (!isFinite(focusMultStartNodes)) focusMultStartNodes = FOCUS_THRESHOLD;
+let focusMultPerNode = parseFloat(localStorage.getItem('focusMultPerNode'));
+if (!isFinite(focusMultPerNode)) focusMultPerNode = 0.1;
+
 function focusMultiplier() {
-  return 1 + Math.max(0, focusNodes - FOCUS_THRESHOLD) * 0.1;
+  return 1 + Math.max(0, focusNodes - focusMultStartNodes) * focusMultPerNode;
 }
 let lastCalcPips   = 0;   // set by calcScore for animation
 

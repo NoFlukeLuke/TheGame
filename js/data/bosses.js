@@ -10,10 +10,11 @@ const BOSS_PRESETS = [
   {
     id: 'voidwright',
     name: 'THE VOIDWRIGHT',
-    flavor: 'Your blessings flicker',
+    flavor: 'Two of your Tricks at a time',
+    brief: 'Two of your Tricks are switched off for the first half of the round, then those two come back and a different two go off for the second half. The briefing shows you which - both halves, up front - and a switched-off Trick is greyed out in your tray and in Records the whole time.',
     objective: { type: 'score', target: 4500 },
     modifiers: ['trick_pool_split'],
-    params: {}
+    params: { perPhase: 2 }
   },
   {
     id: 'hand_of_famine',

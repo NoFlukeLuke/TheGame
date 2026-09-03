@@ -10,9 +10,14 @@ function measureGridSlot() {
   const stage = document.getElementById('stage');
   if (!slot || !stage) return { w: GRID_FOOTPRINT_W, h: GRID_FOOTPRINT_H };
   const zoom = parseFloat(getComputedStyle(stage).getPropertyValue('--stage-zoom')) || 1;
+  // The camera (r180) can also be scaling the whole scene - it is at the wide
+  // "cabinet on a desk" framing whenever a menu is up, and mid-dolly on the way
+  // into a run. getBoundingClientRect sees that too, so both scales come out or
+  // the cards get sized for a board 40% smaller than the one being played on.
+  const cam  = (typeof camScale === 'function') ? camScale() : 1;
   const rect = slot.getBoundingClientRect();
-  const w = rect.width  / zoom;
-  const h = rect.height / zoom;
+  const w = rect.width  / zoom / cam;
+  const h = rect.height / zoom / cam;
   // Guard against pre-layout / hidden states returning ~0.
   if (w < 40 || h < 40) return { w: GRID_FOOTPRINT_W, h: GRID_FOOTPRINT_H };
   return { w, h };

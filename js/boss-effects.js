@@ -3,9 +3,10 @@
 // ══════════════════════════════════════════════
 // Every boss in this roster works the same shape: it does its thing ONCE at
 // round start, then again on a fixed interval. `bossSchedule()` is that shape -
-// it fires immediately and then repeats, and it is the single place the
-// Contingency Plan knack stretches intervals, so a new boss gets the knack
-// interaction for free.
+// it ARMS the effect, bossStartScheduledEffects() (called when the boss clock
+// starts, after the briefing) fires the opening tick and starts the repeat - and
+// it is the single place the Contingency Plan knack stretches intervals, so a new
+// boss gets the knack interaction for free.
 //
 // Two kinds of "blocked" cell now exist, and the difference matters:
 //   · blockedCells (older, boss.js) - the cell is VOID. Its card is returned to
@@ -43,10 +44,26 @@ function bossDampened() { return typeof hasKnack === 'function' && hasKnack('con
 function bossMagScale()      { return bossDampened() ? 0.9 : 1; }
 function bossIntervalScale() { return bossDampened() ? 1 / 0.9 : 1; }
 
+// Scheduled effects are ARMED at boss start but do not fire until the clock does
+// (r179). applyBossModifiers runs inside triggerBoss, which is BEFORE the briefing
+// panel and its PROCEED button - so the opening tick used to land while the player
+// was still reading what the boss does, and every interval tick after it was
+// silently dropped (`run` returns early on gameTimerPaused) for as long as the
+// briefing sat open. Both read as "the boss did nothing". bossStartScheduledEffects()
+// is called from startBossTimer, the one place the boss clock actually starts.
+let bossPendingSchedules = [];
+
 function bossSchedule(everySecs, fn) {
-  const run = () => { if (!bossActive || gameTimerPaused || roundEnded) return; try { fn(); } catch (e) { console.error('[BOSS] effect failed', e); } };
-  try { fn(); } catch (e) { console.error('[BOSS] opening effect failed', e); }   // fires at round start
-  bossTickIds.push(setInterval(run, Math.round(everySecs * 1000 * bossIntervalScale())));
+  bossPendingSchedules.push({ everySecs, fn });
+}
+function bossStartScheduledEffects() {
+  const pending = bossPendingSchedules;
+  bossPendingSchedules = [];
+  pending.forEach(({ everySecs, fn }) => {
+    const run = () => { if (!bossActive || gameTimerPaused || roundEnded) return; try { fn(); } catch (e) { console.error('[BOSS] effect failed', e); } };
+    try { fn(); } catch (e) { console.error('[BOSS] opening effect failed', e); }   // fires as the clock starts
+    bossTickIds.push(setInterval(run, Math.round(everySecs * 1000 * bossIntervalScale())));
+  });
 }
 function bossDelay(ms, fn) { bossTimeouts.push(setTimeout(fn, ms)); }
 
@@ -131,6 +148,23 @@ function bossRedactedHandMult(handName) {
   if (typeof bossEffectsIgnored === 'function' && bossEffectsIgnored()) return 1;
   // 10% weaker → the penalty shrinks toward 1, not the score toward 0.
   return 1 - (1 - bossRedactedMult) * bossMagScale();
+}
+
+// ── Keeping the tray's grey state honest (r188) ──────────────────────────────
+// Two bosses switch Tricks off and neither one has an event for switching them
+// back ON: the Voidwright's halves flip on a clock tick, and the Censor's 45s
+// suspensions simply expire (bossTrickBlackedOut deletes them lazily, when read).
+// So the boss clock calls this every second. It compares the set of switched-off
+// ids against the last one and only repaints when it actually changed - a blind
+// re-render every second would restart the tray's marquee/fan on every tick.
+let _bossTrickOffSig = '';
+function bossSyncTrickTrayState() {
+  const held = ((typeof trickTrayMode !== 'undefined' && trickTrayMode) ? trickTray : acquiredTricks) || [];
+  const sig = held.filter(t => typeof isTrickDisabledByBoss === 'function' && isTrickDisabledByBoss(t.id))
+                  .map(t => t.id).sort().join(',');
+  if (sig === _bossTrickOffSig) return;
+  _bossTrickOffSig = sig;
+  if (typeof renderTrickTray === 'function') renderTrickTray();
 }
 
 // ── Trick blackout (The Censor) ──────────────────────────────────────────────
@@ -268,6 +302,8 @@ function applyBossEffectModifier(mod, params) {
 }
 
 function clearBossEffects() {
+  bossPendingSchedules = [];
+  _bossTrickOffSig = '';
   bossTickIds.forEach(clearInterval); bossTickIds = [];
   bossTimeouts.forEach(clearTimeout);  bossTimeouts = [];
   nullCells = new Set(); pendingNullCells = new Set(); dampCells = new Set();

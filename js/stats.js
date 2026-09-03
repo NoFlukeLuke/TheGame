@@ -5,7 +5,12 @@
 const HAND_FORMULAS = new Proxy({}, {
   get: (_, name) => {
     const b = (typeof HAND_BASE !== 'undefined') && HAND_BASE[name];
-    return b ? `Base ${b.pips} pips x ${b.mult} mult` : '';
+    if (!b) return '';
+    // Through the model helpers, so the no-pips models do not quote a bonus the
+    // scorer will not pay.
+    const p = handBasePips(name), m = handBaseMult(name);
+    if (typeof scoringModel !== 'undefined' && scoringModel === 'hand_size') return `x cards played`;
+    return p ? `Base ${p} pips x ${m} mult` : `x${m} mult, no bonus pips`;
   },
 });
 

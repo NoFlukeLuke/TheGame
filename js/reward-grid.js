@@ -2,16 +2,49 @@
 // Nth grid of a seed is always the same grid - however many cards the player
 // discarded, whatever Tricks fired, whichever route they took to get here.
 // See js/seed.js.
+// ── PRIZE GRID (r179) ────────────────────────────────────────────────────────
+// The reward for beating a boss. Same machinery as the reward grid - same tiles,
+// same connected-path pick, same confirm/fly/apply - with three differences, all
+// of them decided here in generation:
+//   · it is SMALLER: two fewer rows and two fewer columns, floored at 3x3, so the
+//     path you walk is short and every step of it matters;
+//   · there are NO penalty tiles and no destination tile. Every cell is a reward,
+//     which is why the checkerboard (buff on even (r+c), debuff on odd) is skipped
+//     entirely rather than having its debuff half replaced;
+//   · NOTHING COMMON. Common-tier Tricks/Sleights/Knacks are filtered out of the
+//     pools, and the four common resource tiles (+1 swap, +1 discard, +15s,
+//     Windfall) are not in the category list at all.
+// Mystery tiles are also out: "probably good... probably" is a gamble, and this
+// grid is a payout.
+//
+// It REPLACES the post-boss reward grid rather than being shown after it - one
+// grid, not two. Survival and Flow have no reward grid at all (they run a
+// pick-of-three), so they keep their bonus pick.
+let rewardGridMode = 'normal';   // 'normal' | 'prize'
+function prizeGridActive() { return rewardGridMode === 'prize'; }
+
 function generateRewardContent() {
   return withSeededRng(_generateRewardContent, 'reward', rewardVisitIndex++);
 }
 function _generateRewardContent() {
-  const ROWS = limits.grid_rows.current;
-  const COLS = limits.grid_cols.current;
+  const PRIZE = prizeGridActive();
+  // Two smaller in each direction, never below 3x3.
+  const ROWS = PRIZE ? Math.max(3, limits.grid_rows.current - 2) : limits.grid_rows.current;
+  const COLS = PRIZE ? Math.max(3, limits.grid_cols.current - 2) : limits.grid_cols.current;
 
   // Weighted buff categories. Tricks are also guaranteed a minimum count per
   // grid (MIN_TRICK_TILES below), so their true share ends up higher than the
   // raw weight suggests - the other categories fight over the leftover slots.
+  // Prize grid: no common-tier resource tiles, no gamble. Entities and permanent
+  // upgrades only - see the PRIZE GRID note at the top of this file.
+  const prizeCategories = [
+    { weight: 34, kind: 'trick' },
+    { weight: 20, kind: 'sleight' },
+    { weight: 16, kind: 'knack' },
+    { weight: 16, kind: 'limit_up' },
+    { weight: 10, kind: 'blessed' },
+    { weight:  4, kind: 'cull' },
+  ];
   const buffCategories = [
     { weight: 40, kind: 'trick' },
     { weight: 12, kind: 'sleight' },
@@ -114,6 +147,19 @@ function _generateRewardContent() {
     return arr[arr.length - 1];
   }
   function pickRand(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+  // Survival and Flow keep entities out of their offer pools that their mode can't
+  // support (reward-grid-only Tricks; Flow's round-clock entities). Until r188 no
+  // reward grid ever opened in those modes, so these factories never had to ask -
+  // the prize grid is a new offer path, and a new offer path that skips this leaks
+  // the bans (see js/survival.js).
+  function offerBanned(id) { return typeof survivalEntityBanned === 'function' && survivalEntityBanned(id); }
+  // Each factory picks independently, so the same Trick could land on two tiles of
+  // one grid. Barely noticeable across 13 buff slots; on a 9-tile prize grid it is
+  // a wasted pick staring at you. Anything already placed this generation is
+  // filtered out, with a fall-back to the unfiltered list so an exhausted pool
+  // repeats rather than blanking.
+  const _usedThisGrid = new Set();
+  function freshPool(pool) { const f = pool.filter(x => !_usedThisGrid.has(x.id)); return f.length ? f : pool; }
   function shuffled(arr) {
     const a = [...arr];
     for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
@@ -125,9 +171,14 @@ function _generateRewardContent() {
   function makeTrickPayload() {
     if (typeof TRICK_POOL === 'undefined') return { icon: '★', label: 'Trick', tier: 'rare', entity: 'trick', rarity: 'rare', apply: applyRewardRandomTrick };
     const owned = new Set((acquiredTricks || []).map(b => b.id));
-    const eligible = TRICK_POOL.filter(b => !owned.has(b.id));
+    let eligible = TRICK_POOL.filter(b => !owned.has(b.id) && !offerBanned(b.id));
+    // Prize grid takes no commons. Fall back to the full list if filtering would
+    // leave nothing - an empty tile is worse than a common one.
+    if (PRIZE) { const up = eligible.filter(b => (b.tier || 'common') !== 'common'); if (up.length) eligible = up; }
     if (eligible.length === 0) return { icon: '★', label: 'Trick', tier: 'rare', entity: 'trick', rarity: 'rare', apply: applyRewardRandomTrick };
+    eligible = freshPool(eligible);
     const pick = eligible[Math.floor(Math.random() * eligible.length)];
+    _usedThisGrid.add(pick.id);
     return {
       icon: '★', label: pick.name, desc: pick.desc, tier: pick.tier || 'rare',
       entity: 'trick', rarity: pick.tier || 'rare', _trick: pick,
@@ -135,11 +186,29 @@ function _generateRewardContent() {
     };
   }
 
+  // Prize-grid sleight draw: the shop's rarity table with 'common' cut out of it.
+  function pickPrizeSleight() {
+    const TIERS = ['rare', 'epic', 'legendary', 'mythic'];
+    const W     = [58, 28, 9, 5];
+    const pool = freshPool(SLEIGHT_POOL.filter(j => !grantedSleightIds.has(j.id) && sleightOfferable(j) && !offerBanned(j.id) && (j.rarity || 'common') !== 'common'));
+    if (!pool.length) return null;
+    const total = W.reduce((a, b) => a + b, 0);
+    let roll = Math.random() * total, ti = 0;
+    for (let i = 0; i < W.length; i++) { roll -= W[i]; if (roll <= 0) { ti = i; break; } }
+    for (let i = ti; i >= 0; i--) { const t = pool.filter(j => j.rarity === TIERS[i]); if (t.length) return t[Math.floor(Math.random() * t.length)]; }
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+
   function makeSleightPayload() {
-    const eligible = SLEIGHT_POOL.filter(j => !grantedSleightIds.has(j.id) && sleightOfferable(j));
+    const eligible = SLEIGHT_POOL.filter(j => !grantedSleightIds.has(j.id) && sleightOfferable(j) && !offerBanned(j.id));
     if (!eligible.length) return makeTrickPayload(); // fallback
-    const [pick] = pickSleightByRarity(1, grantedSleightIds);
+    // pickSleightByRarity excludes by id, so hand it the granted set PLUS whatever
+    // this grid has already placed - otherwise the dedupe stops at the prize path.
+    const _excl = new Set([...grantedSleightIds, ..._usedThisGrid]);
+    const pick = PRIZE ? (pickPrizeSleight() || pickSleightByRarity(1, _excl)[0])
+                       : pickSleightByRarity(1, _excl)[0];
     if (!pick) return makeTrickPayload();
+    _usedThisGrid.add(pick.id);
     return {
       icon: pick.emoji || '\u{1F0CF}', emoji: pick.emoji || '\u{1F0CF}', label: pick.name, desc: pick.desc, tier: pick.rarity || 'rare',
       entity: 'sleight', rarity: pick.rarity || 'rare',
@@ -153,9 +222,12 @@ function _generateRewardContent() {
   function makeKnackPayload() {
     if (typeof KNACK_POOL === 'undefined') return { icon: '♛', label: 'Knack', tier: 'rare', entity: 'knack', rarity: 'rare', apply: applyRewardKnack };
     const owned = new Set((acquiredKnacks || []).map(t => t.id));
-    const eligible = KNACK_POOL.filter(t => !owned.has(t.id));
+    let eligible = KNACK_POOL.filter(t => !owned.has(t.id) && !offerBanned(t.id));
+    if (PRIZE) { const up = eligible.filter(t => (t.rarity || 'common') !== 'common'); if (up.length) eligible = up; }
     if (!eligible.length) return makeTrickPayload(); // fallback - all knacks owned
+    eligible = freshPool(eligible);
     const pick = eligible[Math.floor(Math.random() * eligible.length)];
+    _usedThisGrid.add(pick.id);
     return {
       icon: pick.emoji, emoji: pick.emoji, label: pick.name, desc: pick.desc,
       tier: pick.rarity || 'common', rarity: pick.rarity || 'common', entity: 'knack',
@@ -196,8 +268,17 @@ function _generateRewardContent() {
       apply: () => { incrementLimit(dl.id); showMessage(`+1 ${dl.label}!`, 'var(--gold)'); } };
   }
 
+  // At most this many limit tiles on a prize grid, INCLUDING the guaranteed Limit
+  // Break - so one is guaranteed and two more are the most that can turn up. Past
+  // the ceiling the category is dropped from the draw and the slot becomes
+  // something else, rather than a limit tile being swapped in after the fact.
+  const PRIZE_MAX_LIMIT_TILES = 3;
+  let _limitTilesThisGrid = 0;
+
   function makeBuff() {
-    const cat = weightedPick(buffCategories);
+    let cats = PRIZE ? prizeCategories : buffCategories;
+    if (PRIZE && _limitTilesThisGrid >= PRIZE_MAX_LIMIT_TILES) cats = cats.filter(c => c.kind !== 'limit_up');
+    const cat = weightedPick(cats);
     switch (cat.kind) {
       case 'trick':      return makeTrickPayload();
       case 'sleight':   return makeSleightPayload();
@@ -214,7 +295,13 @@ function _generateRewardContent() {
       case 'coins':   return { icon: '💰', label: 'Windfall',     tier: 'common',
                                desc: `Gain 8 coins (${coins} → ${coins + 8}).`,
                                apply: () => { coins += 8; updateCoinsUI(); showMessage('+8 coins', 'var(--gold)'); } };
-      case 'limit_up': return makeLimitUpPayload();
+      case 'limit_up': {
+        // makeLimitUpPayload falls back to a Trick when nothing is upgradeable, so
+        // count the tile only when it really is a limit (its ⬆️ icon).
+        const t = makeLimitUpPayload();
+        if (t && t.icon === '⬆️') _limitTilesThisGrid++;
+        return t;
+      }
       case 'blessed': return makeBlessedPayload();
       case 'cull':    return makeCullPayload();
       case 'cleanse':
@@ -255,9 +342,15 @@ function _generateRewardContent() {
   }
   // Every grid gets a Limit Break; the first 5 grids of a run also get the core
   // growth upgrades (row/col, selection, and +2 swaps/discards) so early runs ramp.
+  //
+  // The PRIZE grid takes the Limit Break and NOTHING ELSE guaranteed. That ramp is
+  // for the opening of a run; in Survival and Flow the prize grid is the only grid
+  // there is, so the first boss kill was landing all four on a 9-tile board - four
+  // guaranteed limit upgrades stacked in one payout, which is not what a prize is
+  // for. It also has a hard ceiling on limit tiles overall (below).
   function buildGuaranteedRewardTiles() {
     const out = [ makeLimitBreakPayload() ];
-    if (rewardGridsSeen <= 5) {
+    if (!PRIZE && rewardGridsSeen <= 5) {
       out.push(makeGrowthTile());
       out.push(makeLimitUpgradeTile('selection', 1));
       out.push(makeSwapDiscardTile());
@@ -265,22 +358,28 @@ function _generateRewardContent() {
     return out.filter(Boolean);
   }
 
-  // Checkerboard: (r+c) even → buff/dest slot, (r+c) odd → debuff slot
+  // Checkerboard: (r+c) even → buff/dest slot, (r+c) odd → debuff slot.
+  // The PRIZE grid has no debuff half and no destination tile, so every cell is a
+  // buff slot and the first index is not spent on a destination.
   const buffPos   = [];
   const debuffPos = [];
   for (let r = 0; r < ROWS; r++)
     for (let c = 0; c < COLS; c++)
-      ((r + c) % 2 === 0 ? buffPos : debuffPos).push([r, c]);
+      (PRIZE || (r + c) % 2 === 0 ? buffPos : debuffPos).push([r, c]);
 
   const shuffledBuff = shuffled(buffPos);
   const grid = Array.from({length: ROWS}, () => Array(COLS).fill(null));
 
-  // One destination in a random buff slot.
-  grid[shuffledBuff[0][0]][shuffledBuff[0][1]] = { kind: 'dest', payload: pickRand(destOptions) };
+  // One destination in a random buff slot (not on a prize grid - it pays out, it
+  // does not route you anywhere).
+  if (!PRIZE) grid[shuffledBuff[0][0]][shuffledBuff[0][1]] = { kind: 'dest', payload: pickRand(destOptions) };
 
   // Guaranteed tiles first (protected from the Trick-minimum conversion below)
   const guaranteed = buildGuaranteedRewardTiles();
-  let placeIdx = 1;
+  // The Limit Break is a limit tile too - seed the ceiling with it so the prize
+  // grid can add at most PRIZE_MAX_LIMIT_TILES - 1 more.
+  if (PRIZE) _limitTilesThisGrid = guaranteed.filter(p => p.icon === '💥' || p.icon === '⬆️').length;
+  let placeIdx = PRIZE ? 0 : 1;
   for (const payload of guaranteed) {
     if (placeIdx >= shuffledBuff.length) break;
     const [r, c] = shuffledBuff[placeIdx++];
@@ -296,12 +395,14 @@ function _generateRewardContent() {
   // Guarantee a minimum number of Trick tiles per grid (owner spec: a reward
   // grid should always offer a real Trick choice - tricks are the connective
   // tissue of builds). Non-trick buffs are converted at random until met.
-  const MIN_TRICK_TILES = 5;
+  // A prize grid is 9 tiles at its smallest, several of them guaranteed upgrades -
+  // demanding 5 Tricks there would crowd everything else out.
+  const MIN_TRICK_TILES = PRIZE ? 2 : 5;
   {
     const isTrickTile = cell => cell?.kind === 'buff' && cell.payload && String(cell.payload.icon) === '★';
     let trickCount = 0;
     const convertible = [];
-    for (let i = 1; i < shuffledBuff.length; i++) {
+    for (let i = (PRIZE ? 0 : 1); i < shuffledBuff.length; i++) {
       const [r, c] = shuffledBuff[i];
       if (grid[r][c]?.payload?._guaranteed) continue;   // never overwrite a guaranteed tile
       if (isTrickTile(grid[r][c])) trickCount++;
@@ -314,7 +415,8 @@ function _generateRewardContent() {
     }
   }
 
-  // Fill all debuff positions - weighted, and one-per-grid for the "big" kinds
+  // Fill all debuff positions - weighted, and one-per-grid for the "big" kinds.
+  // debuffPos is empty on a prize grid, so this loop simply does not run.
   // (two identical curse/drain/mystery tiles in one grid would be confusing)
   const usedOnce = new Set();
   for (const [r, c] of debuffPos) {
@@ -463,21 +565,44 @@ let _blpMode      = 'lose';        // 'lose' (debuff: must remove) | 'replace' (
 let _trickReplaceQueue = [];       // new Tricks waiting while the tray is at trick_slots capacity
 
 // Tray is full - show the picker in 'replace' mode for the next queued new Trick.
+// The incoming Trick is drawn as a real entity tile (js/entity-tile.js) rather
+// than quoted into the subtitle: it is the thing you are deciding about, and it
+// should look like it looks everywhere else you have met it.
 function maybeOpenTrickReplacePicker() {
   if (!_trickReplaceQueue.length) return;
   if (document.getElementById('trick-lose-picker').classList.contains('show')) return; // one at a time
   const incoming = _trickReplaceQueue[0];
   _blpMode = 'replace';
-  document.getElementById('blp-title').textContent = 'TRICK SLOTS FULL';
+  document.getElementById('blp-eyebrow').textContent = 'Trick slots full';
+  document.getElementById('blp-title').textContent = 'NO ROOM FOR THIS ONE';
   document.getElementById('blp-sub').textContent =
-    `New Trick: “${incoming.name}” - ${incoming.desc || ''}  Choose a Trick to replace, or skip the new one.`;
+    'Every slot is taken. Pick the Trick it replaces, or turn the new one away.';
   document.getElementById('blp-confirm').textContent = 'Replace Selected';
   document.getElementById('blp-cancel').style.display = '';
+  const inc = document.getElementById('blp-incoming');
+  // Tile first: #blp-incoming is a 2-column grid and the tile spans both rows.
+  inc.innerHTML =
+    `<div class="blp-inc-tile">${entityTileHTML(
+        { entity:'trick', label: incoming.name, emoji: trickEmoji(incoming) },
+        blpRarity(incoming.tier))}</div>
+     <div class="blp-inc-label">Incoming</div>
+     <div class="blp-inc-desc">${colorizeKeywords(incoming.desc || '')}</div>`;
+  inc.classList.add('show');
+  fitEntityNames(inc, '.rwd-name', { maxLines: 3 });
   openTrickLosePicker(trickTray.map((trick, idx) => ({ trick, source: 'tray', idx })));
+}
+
+// Trick tiers and entity rarities are the same five words, but a Trick can carry
+// a tier the tile has no colour for - fall back rather than paint nothing.
+const BLP_TIERS = ['common', 'rare', 'epic', 'legendary', 'mythic'];
+function blpRarity(tier) {
+  const t = String(tier || '').toLowerCase();
+  return BLP_TIERS.includes(t) ? t : 'common';
 }
 
 function cancelTrickReplacePicker() {
   document.getElementById('trick-lose-picker').classList.remove('show');
+  document.getElementById('blp-incoming').classList.remove('show');
   const skipped = _trickReplaceQueue.shift();
   if (skipped) showMessage(`Skipped ${skipped.name} (tray full)`, 'var(--cream-dim)');
   _blpMode = 'lose';
@@ -487,26 +612,44 @@ function cancelTrickReplacePicker() {
 function openTrickLosePicker(options) {
   if (_blpMode !== 'replace') {
     // restore the default 'lose' chrome (replace mode pre-sets its own)
+    document.getElementById('blp-eyebrow').textContent = 'Forfeit';
     document.getElementById('blp-title').textContent = 'CHOOSE A TRICK TO LOSE';
     document.getElementById('blp-sub').textContent = 'Select one - it will be removed permanently.';
     document.getElementById('blp-confirm').textContent = 'Remove Selected';
     document.getElementById('blp-cancel').style.display = 'none';
+    const inc = document.getElementById('blp-incoming');
+    inc.innerHTML = ''; inc.classList.remove('show');
   }
   _blpOptions  = options;
   _blpSelected = -1;
+  const cap = (typeof trickCapacity === 'function') ? trickCapacity() : options.length;
+  document.getElementById('blp-count').textContent = `${trickTray.length} / ${cap}`;
   const list = document.getElementById('blp-list');
   list.innerHTML = '';
   options.forEach((opt, i) => {
     const el = document.createElement('div');
-    el.className = 'blp-item';
-    el.innerHTML = `<div class="blp-item-tier">${opt.trick.tier || 'common'}</div>`
-                 + `<div class="blp-item-name">${opt.trick.name}</div>`
-                 + `<div class="blp-item-desc">${opt.trick.desc || ''}</div>`;
+    el.className = 'blp-item rar-' + blpRarity(opt.trick.tier);
+    // Same tile as the reward grid, the Mart shelf and your own tray, so what
+    // you are giving up is recognisable at a glance instead of being a line of text.
+    el.innerHTML = `<div class="blp-item-tile">${entityTileHTML(
+                        { entity:'trick', label: opt.trick.name, emoji: trickEmoji(opt.trick) },
+                        blpRarity(opt.trick.tier))}</div>`
+                 + `<div class="blp-item-body">`
+                 +   `<div class="blp-item-tier">${opt.trick.tier || 'common'}</div>`
+                 +   `<div class="blp-item-name">${opt.trick.name}</div>`
+                 +   `<div class="blp-item-desc">${colorizeKeywords(opt.trick.desc || '')}</div>`
+                 + `</div>`
+                 + `<div class="blp-item-mark">✕</div>`;
     el.addEventListener('click', () => selectBLPItem(i));
     list.appendChild(el);
   });
   document.getElementById('blp-confirm').disabled = true;
   document.getElementById('trick-lose-picker').classList.add('show');
+  // The panel is reused, so it reopens wherever it was last scrolled to - which
+  // hides the title and the incoming tile under the sticky bar.
+  const panel = document.getElementById('blp-panel');
+  if (panel) panel.scrollTop = 0;
+  fitEntityNames(list, '.rwd-name', { maxLines: 3 });
 }
 
 function selectBLPItem(i) {
@@ -520,6 +663,7 @@ function confirmTrickLosePicker() {
   const opt = _blpOptions[_blpSelected];
   if (!opt) return;
   document.getElementById('trick-lose-picker').classList.remove('show');
+  document.getElementById('blp-incoming').classList.remove('show');
 
   if (opt.source === 'tray') {
     trickTray.splice(opt.idx, 1);
@@ -572,11 +716,21 @@ function applyRewardKnack() {
   showMessage(`+ ${pick.name}`, 'var(--gold)');
 }
 
+// The post-boss payout. Sets the mode, then runs the ordinary reward-grid open -
+// everything downstream (render, selection, confirm, apply, close) reads its
+// dimensions from rewardCells, so nothing else needs to know the grid is smaller.
+function openPrizeGrid() {
+  rewardGridMode = 'prize';
+  openRewardGrid();
+}
+
 function openRewardGrid() {
   gameTimerPaused = true;
   rewardGridsSeen++;               // count this grid (gates the first-5 guaranteed upgrades)
   rewardCells     = generateRewardContent();
   rewardSelected  = new Set();
+  rewardPickOrder = [];
+  rewardTipKey    = null;
   rewardConfirmed = false;
   rewardOnGrid    = true;
   // The reward grid now lives ON the play grid (r100). Reveal the board: drop the
@@ -587,7 +741,8 @@ function openRewardGrid() {
   // Boss reward grids (post-boss-win, nodeInAct 5; or timer-mode boss context) tint red;
   // ordinary reward grids stay teal (see the per-screen #stage backgrounds).
   document.body.classList.toggle('reward-boss', rewardGridContext === 'boss' || (ACTIVE_MODE?.id === 'normal' && nodeInAct === 5));
-  if (typeof enterGridScreenHud === 'function') enterGridScreenHud('REWARDS', 'reward');
+  document.body.classList.toggle('reward-prize', prizeGridActive());
+  if (typeof enterGridScreenHud === 'function') enterGridScreenHud(prizeGridActive() ? 'PRIZE' : 'REWARDS', 'reward');
   enterRewardButtonMode();
   renderRewardTiles(true);   // deal the reward tiles in like a new round's cards
 }
@@ -604,6 +759,12 @@ function renderRewardTiles(animateIn = false) {
   hideRewardTooltip();
   gridEl.innerHTML = '';
   const ROWS = rewardCells.length, COLS = rewardCells[0]?.length || 0;
+  // The prize grid is smaller than the play grid it is drawn onto, and cellLeft/
+  // cellTop are anchored at the board's top-left corner - so without this it
+  // would sit in the corner with a wedge of empty board beside it. Centre it on
+  // the board instead; the tiles keep their normal card size.
+  const offX = Math.round(Math.max(0, gridCols - COLS) / 2 * (CARD_W + CARD_GAP));
+  const offY = Math.round(Math.max(0, gridRows - ROWS) / 2 * (CARD_H + CARD_GAP));
 
   // Deal-in timing (mirrors startNewRoundDealAnims)
   const FALL_DUR = 420, COL_OFFSET = 55, BOUNCE = 8, SQUISH = 0.10;
@@ -628,8 +789,8 @@ function renderRewardTiles(animateIn = false) {
         !isSel && canSel  ? 'selectable'  : '',
         !isSel && !canSel ? 'unselectable': '',
       ].filter(Boolean).join(' ');
-      div.style.left   = cellLeft(c) + 'px';
-      div.style.top    = cellTop(r)  + 'px';
+      div.style.left   = (cellLeft(c) + offX) + 'px';
+      div.style.top    = (cellTop(r)  + offY) + 'px';
       div.style.width  = CARD_W + 'px';
       div.style.height = CARD_H + 'px';
       div.dataset.r = r; div.dataset.c = c;
@@ -660,6 +821,9 @@ function renderRewardTiles(animateIn = false) {
     }
   }
   updateRewardButtons();
+  // The tiles were just thrown away and rebuilt, so the pinned tooltip has to be
+  // re-anchored to the new node for the tile it belongs to (r182).
+  restoreRewardTooltip();
 
   if (animateIn && dealAnimsLocal.length) {
     rewardDealing = true;
@@ -741,6 +905,7 @@ function skipRewardGrid() {
   if (hasTrick('rain_check')) { nextRoundSecondsDelta += BAL.rain_check.seconds; _msg += ` · +${BAL.rain_check.seconds}s next round`; }
   showMessage(_msg, 'var(--gold)');
   rewardSelected = new Set(); // abandon any in-progress picks
+  rewardPickOrder = []; rewardTipKey = null;
   closeRewardGrid();
 }
 
@@ -759,28 +924,11 @@ function rewardTypeLabel(p, kind) {
   if (kind === 'dest')   return 'Destination';
   return 'Reward';
 }
-function buildRewardTileInner(p) {
-  if (p.entity === 'knack') {
-    return `<div class="rwd-diamond"><span class="rwd-diamond-emoji">${p.emoji || p.icon}</span></div>`
-         + `<div class="rwd-name">${p.label}</div>`;
-  }
-  if (p.entity === 'trick') {
-    return `<div class="rwd-glyph">✦</div><div class="rwd-art rwd-art-ph">✦</div><div class="rwd-name">${p.label}</div>`;
-  }
-  if (p.entity === 'sleight') {
-    return `<div class="rwd-tab">▶</div><div class="rwd-art">${p.emoji || p.icon}</div><div class="rwd-name">${p.label}</div>`
-         + (p.uses != null ? `<div class="rwd-uses">${p.uses}</div>` : '');
-  }
-  // Card-face tiles (blessed/cursed/cull): mini playing card + name only.
-  // The full explanation lives in the hover tooltip (like every other tile) - the
-  // old inline description was cramped and got clipped.
-  if (p.cardFace) {
-    return `<div class="reward-face ${suitClass(p.cardFace.suit)}"><span class="reward-face-rank">${p.cardFace.rank}</span><span class="reward-face-suit">${p.cardFace.suit}</span></div>`
-         + `<div class="rwd-name">${p.label}</div>`;
-  }
-  // Plain resource / debuff / dest / mystery tile: icon + name (desc → tooltip).
-  return `<div class="reward-icon">${p.icon}</div><div class="rwd-name">${p.label}</div>`;
-}
+// The reward grid's tile contents come from the shared builder (js/entity-tile.js)
+// so a Trick/Sleight/Knack is drawn identically here, in the Mart, in your tray
+// and in the cart. `mystery` is the grid's one deliberate difference: a Trick you
+// have not picked yet shows a ✦ instead of its category emoji.
+function buildRewardTileInner(p) { return entityTileInner(p, { mystery: p.entity === 'trick' }); }
 // Owner rule: names never overflow the tile. The name wraps at spaces and a
 // too-long single word hyphenates (CSS). Here we shrink the font only if the
 // wrapped/hyphenated name is still too tall (more than MAX_LINES) or too wide
@@ -798,29 +946,51 @@ function ensureRewardTooltip() {
   document.body.appendChild(_rewardTT);
   return _rewardTT;
 }
-function hideRewardTooltip() { if (_rewardTT) _rewardTT.classList.remove('show'); }
-function attachRewardTooltip(el, p, kind) {
-  const rar  = rewardRarity(p);
-  const type = rewardTypeLabel(p, kind);
-  // Anchor the tooltip to the TILE (not the cursor) and open it on whichever side
-  // has more horizontal room - so entities in the right-most columns pop out to the
-  // LEFT instead of getting squeezed / wrapping tall against the edge.
+function hideRewardTooltip() { if (_rewardTT) { _rewardTT.classList.remove('show'); _rewardTT.dataset.key = ''; } }
+
+// Which tile's tooltip is currently pinned open. This is the tile you most
+// recently picked (or last tapped to inspect) - see onRewardCellClick.
+let rewardTipKey = null;
+
+// Fill and show the tooltip for one tile, anchored to it.
+function showRewardTooltipFor(r, c) {
+  const cell = rewardCells[r]?.[c];
+  if (!cell || !cell.payload || !cell.payload.desc) { hideRewardTooltip(); return; }
+  const p = cell.payload;
+  // Works for the on-board tiles (#grid) and the legacy overlay grid alike.
+  const el = document.querySelector(`#grid .reward-cell[data-r="${r}"][data-c="${c}"], #reward-grid .reward-cell[data-r="${r}"][data-c="${c}"]`);
+  if (!el) return;
+  const tt = ensureRewardTooltip();
+  tt.className = 'rar-' + rewardRarity(p);
+  tt.dataset.key = `${r}-${c}`;
+  tt.querySelector('.rtt-rar').textContent  = (p.entity ? rewardRarity(p) + ' · ' : '') + rewardTypeLabel(p, cell.kind);
+  tt.querySelector('.rtt-name').textContent = p.label;
+  // Tricks show their current bonus value in () via trickLiveDesc (N/A here in
+  // the reward grid for round-scoped tricks - the round isn't live yet).
+  const descText = (p._trick && typeof trickLiveDesc === 'function') ? trickLiveDesc(p._trick) : (p.desc || '');
+  tt.querySelector('.rtt-desc').innerHTML   = colorizeKeywords(descText);
+  tt.classList.add('show');
   // Shared placement (js/entity-tooltip.js): roomiest side horizontally, with an
-  // above/below fallback when neither side can fit the bubble.
-  const place = () => { if (_rewardTT) placeTipSmart(el, _rewardTT, { gap: 12 }); };
-  el.addEventListener('mouseenter', () => {
-    const tt = ensureRewardTooltip();
-    tt.className = 'rar-' + rar;
-    tt.querySelector('.rtt-rar').textContent  = (p.entity ? rar + ' · ' : '') + type;
-    tt.querySelector('.rtt-name').textContent = p.label;
-    // Tricks show their current bonus value in () via trickLiveDesc (N/A here in
-    // the reward grid for round-scoped tricks - the round isn't live yet).
-    const descText = (p._trick && typeof trickLiveDesc === 'function') ? trickLiveDesc(p._trick) : (p.desc || '');
-    tt.querySelector('.rtt-desc').innerHTML   = colorizeKeywords(descText);
-    tt.classList.add('show');
-    place();                                       // measure after content + show
-  });
-  el.addEventListener('mouseleave', hideRewardTooltip);
+  // above/below fallback when neither side can fit the bubble - so a tile in the
+  // right-most column pops out to the LEFT instead of squeezing against the edge.
+  placeTipSmart(el, tt, { gap: 12 });
+}
+
+// Re-show whatever tooltip was up before a re-render, since renderRewardTiles
+// throws the tiles away and rebuilds them.
+function restoreRewardTooltip() {
+  if (!rewardTipKey) { hideRewardTooltip(); return; }
+  const [r, c] = rewardTipKey.split('-').map(Number);
+  showRewardTooltipFor(r, c);
+}
+
+function attachRewardTooltip(el, p, kind) {
+  // Mouse hover still previews any tile, but it must not fight the pinned
+  // tooltip: leaving a tile snaps back to the tile that is actually pinned
+  // rather than leaving the board with nothing explained.
+  const r = +el.dataset.r, c = +el.dataset.c;
+  el.addEventListener('mouseenter', () => showRewardTooltipFor(r, c));
+  el.addEventListener('mouseleave', restoreRewardTooltip);
 }
 
 function renderRewardGrid() {
@@ -936,25 +1106,53 @@ function isRewardCellSelectable(r, c) {
   return neighbors.some(([nr,nc]) => rewardSelected.has(`${nr}-${nc}`));
 }
 
+// ── ONE TAP, TWO MEANINGS (r182) ───────────────────────────────────────────
+// A reward tile answers two different questions - "what is this?" and "I want
+// it" - and the grid now serves both from a single tap, deciding by whether the
+// tile is one you could actually take:
+//
+//   tap a SELECTABLE tile      → select it AND pin its tooltip open
+//   tap a NON-ADJACENT tile    → pin its tooltip only; the selection is untouched
+//   tap a SELECTED tile        → deselect it and drop its tooltip
+//
+// So the most recently picked tile is always the one being explained, and you
+// can read any tile on the board - including ones you cannot reach from your
+// current group - without that reading costing you a pick or disturbing one.
 function onRewardCellClick(r, c) {
   if (rewardConfirmed || rewardDealing) return;
   const key = `${r}-${c}`;
 
-  // Clicking a selected cell deselects it (only if it's on the "fringe" - removing it
-  // wouldn't disconnect the remaining group)
+  // Already selected: tapping it takes it back and clears its bubble. Still only
+  // allowed from the fringe - removing a middle tile would split the group.
   if (rewardSelected.has(key)) {
-    // Check: would removing this cell leave the rest connected?
     const remaining = new Set([...rewardSelected].filter(k => k !== key));
     if (remaining.size === 0 || isGroupConnected(remaining)) {
       rewardSelected.delete(key);
+      // Hand the tooltip to whatever is now the most recent pick, or nothing.
+      if (rewardTipKey === key) rewardTipKey = lastRewardPickKey();
       renderRewardTiles();
     }
     return;
   }
 
-  if (!isRewardCellSelectable(r, c)) return;
+  // Not selectable (not adjacent, cap reached, second destination tile…): this is
+  // a read, not a pick. Pin its tooltip and leave the selection exactly as it was.
+  if (!isRewardCellSelectable(r, c)) { rewardTipKey = key; restoreRewardTooltip(); return; }
+
   rewardSelected.add(key);
+  if (typeof sfxRewardSelect === 'function') { try { sfxRewardSelect(); } catch (e) {} }
+  rewardPickOrder.push(key);
+  rewardTipKey = key;               // the newest pick is the one being explained
   renderRewardTiles();
+}
+
+// The most recent still-selected pick, for handing the tooltip back after a
+// deselect. rewardPickOrder is the order tiles were taken; entries for tiles that
+// have since been dropped are skipped.
+function lastRewardPickKey() {
+  for (let i = rewardPickOrder.length - 1; i >= 0; i--)
+    if (rewardSelected.has(rewardPickOrder[i])) return rewardPickOrder[i];
+  return null;
 }
 
 // BFS connectivity check - ensures remaining selected cells are still one connected group
@@ -979,6 +1177,8 @@ function isGroupConnected(keySet) {
 function clearRewardSelection() {
   if (rewardConfirmed || rewardDealing) return;
   rewardSelected = new Set();
+  rewardPickOrder = [];
+  rewardTipKey = null;
   renderRewardTiles();
 }
 
@@ -1172,7 +1372,8 @@ function closeRewardGrid() {
   // Tear down the on-grid reward step: restore the action buttons, clear the
   // reward tiles from #grid, and drop back to normal render ownership.
   exitRewardButtonMode();
-  document.body.classList.remove('reward-active', 'reward-boss');
+  document.body.classList.remove('reward-active', 'reward-boss', 'reward-prize');
+  rewardGridMode = 'normal';   // one prize grid per boss; the next grid is ordinary
   if (typeof exitGridScreenHud === 'function') exitGridScreenHud();
   rewardOnGrid = false;
   const gridEl = document.getElementById('grid');
@@ -1184,6 +1385,8 @@ function closeRewardGrid() {
     document.getElementById('next-goal-bg')?.classList.add('show');
   }
   rewardSelected  = new Set();
+  rewardPickOrder = [];
+  rewardTipKey    = null;
   rewardCells     = [];
   gameTimerPaused = false;
 
@@ -1241,7 +1444,18 @@ function closeRewardGrid() {
     render();
   };
 
-  const proceed = rewardGridContext === 'interlude' ? finishInterlude : finishTimer;
+  // Survival / Flow: the prize grid REPLACES their post-boss pick-of-three, so the
+  // continuation is that pick's own tail (survivalChoose) - no goal was cleared, so
+  // the level-up must not carry score over or pay the leftover-time credits.
+  const finishSurvival = () => {
+    survivalSkipCarryover = true;
+    triggerLevelUp();          // → showLevelUpScreen (survival) → survivalDealNext
+    survivalSkipCarryover = false;
+  };
+
+  const proceed = rewardGridContext === 'survival' ? finishSurvival
+                : rewardGridContext === 'interlude' ? finishInterlude
+                : finishTimer;
   if (pendingLimitBreak) { pendingLimitBreak = false; openLimitBreakEvent(proceed); }
   else proceed();
 }

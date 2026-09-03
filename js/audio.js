@@ -187,6 +187,14 @@ function sfxRewardReveal() {
     playTone({ freq: f, type: 'sine', gain: 0.10, attack: 0.01, decay: 0.04, sustain: 0.30, release: 0.14, duration: 0.08, delay: i * 0.06 }));
 }
 
+// Picking a tile on the reward grid (r186). There was no sound on selection at
+// all before - only on the resolve. Short and dry: it fires once per tile and a
+// path is up to five taps.
+function sfxRewardSelect() {
+  playTone({ freq: 660, type: 'triangle', gain: 0.10, attack: 0.002, decay: 0.03, sustain: 0.2, release: 0.09, duration: 0.06 });
+  playTone({ freq: 990, type: 'sine',     gain: 0.05, attack: 0.003, decay: 0.03, sustain: 0.15, release: 0.08, duration: 0.05, delay: 0.02 });
+}
+
 function sfxCountdown321() {
   // Three deep ticks
   [0, 1, 2].forEach(i => {
@@ -459,6 +467,91 @@ function sfxFocusBeat() {
     duration: 0.16,
     delay: 0.08,
   });
+}
+
+// ══════════════════════════════════════════════
+// CLOCK SOUNDS (r183) - see js/clock-fx.js
+// ══════════════════════════════════════════════
+
+// A single quiet clock tick, on the heartbeat wave every 10s. Deliberately at
+// the very bottom of the mix: it plays six times a minute for a whole run, so
+// anything you can actually notice becomes maddening. Escapement click (a tiny
+// high noise pip) plus a short wooden body under it.
+function sfxClockTick() {
+  playNoise({ gain: 0.012, attack: 0.001, release: 0.018 });
+  playTone({ freq: 1750, type: 'square', gain: 0.010, attack: 0.001,
+             decay: 0.014, sustain: 0.05, release: 0.03, duration: 0.02 });
+  playTone({ freq: 430,  type: 'triangle', gain: 0.016, attack: 0.001,
+             decay: 0.02,  sustain: 0.06, release: 0.05, duration: 0.03 });
+}
+
+// TICK ... TOCK - the clock has been PAUSED. Two clicks, the second lower and a
+// beat later, which is the whole reason a stopped clock sounds like a stopped
+// clock. Louder than the idle tick because it marks a real state change.
+function sfxTickTock() {
+  const hit = (freq, delay, gain) => {
+    playNoise({ gain: gain * 0.55, attack: 0.001, release: 0.03, delay });
+    playTone({ freq, type: 'square', gain: gain * 0.5, attack: 0.001,
+               decay: 0.018, sustain: 0.06, release: 0.04, duration: 0.026, delay });
+    playTone({ freq: freq * 0.26, type: 'triangle', gain, attack: 0.001,
+               decay: 0.03, sustain: 0.1, release: 0.09, duration: 0.05, delay });
+  };
+  hit(1900, 0,    0.075);   // tick
+  hit(1380, 0.22, 0.065);   // tock
+  // A held ring underneath, so the pause has a floor rather than two dry clicks.
+  playTone({ freq: 262, type: 'sine', gain: 0.030, attack: 0.03,
+             decay: 0.2, sustain: 0.5, release: 0.55, duration: 0.5 });
+}
+
+// REWIND - a tape played backwards. A normal sound is a hit that decays; this is
+// the mirror image of that, so the envelope SWELLS from nothing and then stops
+// dead, and the pitch sweeps UP instead of down. playTone's envelope only decays,
+// so this one is built on raw nodes.
+function sfxRewind() {
+  const vol = (typeof sfxVolume === 'function') ? sfxVolume() : 1;
+  if (vol <= 0) return;
+  const ctx  = getAudioCtx();
+  const now  = ctx.currentTime;
+  const dur  = 0.62;
+  const dest = sfxDuckGain || ctx.destination;
+
+  // Two detuned saws sweeping upward - the "wind back" itself.
+  [[196, 0], [196, 9]].forEach(([f, det]) => {
+    const osc = ctx.createOscillator();
+    const env = ctx.createGain();
+    const lp  = ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.setValueAtTime(420, now);
+    lp.frequency.exponentialRampToValueAtTime(3200, now + dur);
+    osc.type = 'sawtooth';
+    osc.detune.value = det;
+    osc.frequency.setValueAtTime(f, now);
+    osc.frequency.exponentialRampToValueAtTime(f * 3.4, now + dur);
+    // Reversed envelope: silence → full, then cut off in 25ms.
+    env.gain.setValueAtTime(0.0001, now);
+    env.gain.exponentialRampToValueAtTime(0.075 * vol, now + dur);
+    env.gain.linearRampToValueAtTime(0, now + dur + 0.025);
+    osc.connect(lp); lp.connect(env); env.connect(dest);
+    osc.start(now); osc.stop(now + dur + 0.08);
+  });
+
+  // Tape hiss swelling with it, through a filter that opens as it goes.
+  const bufSize = Math.floor(ctx.sampleRate * (dur + 0.1));
+  const buffer  = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+  const data    = buffer.getChannelData(0);
+  for (let i = 0; i < bufSize; i++) data[i] = (fxRandom() * 2 - 1);
+  const src = ctx.createBufferSource();
+  src.buffer = buffer;
+  const bp = ctx.createBiquadFilter();
+  bp.type = 'bandpass'; bp.Q.value = 1.1;
+  bp.frequency.setValueAtTime(600, now);
+  bp.frequency.exponentialRampToValueAtTime(4200, now + dur);
+  const nEnv = ctx.createGain();
+  nEnv.gain.setValueAtTime(0.0001, now);
+  nEnv.gain.exponentialRampToValueAtTime(0.05 * vol, now + dur);
+  nEnv.gain.linearRampToValueAtTime(0, now + dur + 0.025);
+  src.connect(bp); bp.connect(nEnv); nEnv.connect(dest);
+  src.start(now); src.stop(now + dur + 0.1);
 }
 
 // ── Hook sounds into game events ──

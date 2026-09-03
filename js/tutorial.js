@@ -219,6 +219,15 @@ const TUTORIAL_STEPS = [
     until: () => cardsDiscardedRound > _tutDiscardMark,
   },
   {
+    // Nothing on the board explains itself until you ask it to, and the ask is
+    // not obvious - so it gets its own step rather than a line buried in another.
+    // Anchored on the board because that is where the gesture is least guessable.
+    id: 'tooltips', anchor: () => tutEl('#grid'), side: 'left', hold: true, next: true,
+    eyebrow: 'Reading the game',
+    title: 'How to pull up a tooltip',
+    body: `Anything you do not recognise will tell you what it does.<br><br>On a <b>phone or tablet</b>: press and hold it for half a second. That works on a card, a Trick or a Sleight on the board, a Trick in your tray, and the Knack chips along the top.<br><br>On a <b>computer</b>: just hover the mouse over it.<br><br>On the shop shelves and the reward grid, a single <b>tap opens the tooltip</b> instead of picking the tile, and the buttons to pin or buy live inside the tooltip. Tap anywhere else to close it.<br><br>Every tooltip also explains the coloured words inside it, so you never have to know the vocabulary first.`,
+  },
+  {
     id: 'limits-btn', anchor: () => tutEl('#btn-records'), side: 'top', gate: true, hold: true,
     eyebrow: 'Records',
     title: 'Open Records',
