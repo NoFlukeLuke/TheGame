@@ -197,3 +197,8 @@
 .rec-row.locked { color: var(--cream-dim, #8a7d60); }
 .rec-row-v { font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--c-yellow, #ffce2b); text-align: right; }
 .rec-row-v i { color: var(--cream-dim, #8a7d60); font-size: 9px; font-style: normal; }
+
+  /* Spectrum: the colourless values (9/10/11). They live in the row of the colour
+     that owns them — each is its own card — but they read as white. */
+  .rec-deck-cell.rec-white { background: rgba(239,231,214,0.16); border-color: rgba(239,231,214,0.45); color: #efe7d6; }
+  .rec-deck-cell.rec-white.w-gone { background: transparent; }

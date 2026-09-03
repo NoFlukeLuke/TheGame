@@ -12,7 +12,7 @@ function generateHandFocus(hand, handCells, vultureSec) {
       const handCards = handCells.map(([r,c]) => gridData[r][c]).filter(Boolean);
       const suitsInHand = new Set();
       handCards.forEach(c => {
-        if (c.suit) suitsInHand.add(c.suit);
+        if (c.suit) suitsInHand.add(cardColorSuit(c));   // white counts as white
         if (c.combined && c.suit2) suitsInHand.add(c.suit2);
       });
       if (suitsInHand.size >= 4) totalFocus += 4;

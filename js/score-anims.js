@@ -277,7 +277,7 @@ function collectScoreParticles(handCells, gridEl) {
     pip.push({
       sourceRect: rect,
       label: '+' + cardPips(card.rank),
-      color: suitColor(card.suit),
+      color: suitColor(cardColorSuit(card)),
       sourceType: 'card',
     });
   });

@@ -23,7 +23,9 @@ function showDeck() {
     const stateClass = state === 'present' ? ' dc-present' : state === 'past' ? ' dc-past' : '';
     const bonusClass = pp && pm ? ' has-pip has-mult' : pp ? ' has-pip' : pm ? ' has-mult' : '';
     const title = `${card.rank}${card.suit}${pp?` +${pp}p`:''}${pm?` +${pm}m`:''}`;
-    return `<span class="deck-chip ${suitClass(card.suit)}${stateClass}${bonusClass}" title="${title}">${card.rank}</span>`;
+    // Chip is tinted by the colour the card READS as, so 9/10/11 show white even
+    // though they sit in the row of the colour that owns them.
+    return `<span class="deck-chip ${suitClass(cardColorSuit(card))}${stateClass}${bonusClass}" title="${title}">${card.rank}</span>`;
   }
 
   function makeSectionHtml(cards, state) {
@@ -35,9 +37,7 @@ function showDeck() {
       if (!bySuit[card.suit]) bySuit[card.suit] = [];
       bySuit[card.suit].push(card);
     });
-    // White isn't an ACTIVE suit (that's what makes it flush-inert), so it has
-    // to be appended here or its cards would be missing from the deck view.
-    const SUIT_DISPLAY_ORDER = deckDisplaySuits();
+    const SUIT_DISPLAY_ORDER = [...ACTIVE_SUITS];
     return SUIT_DISPLAY_ORDER.filter(s => bySuit[s]).map(s => {
       const chips = bySuit[s].map(c => makeChip(c, state)).join('');
       return `<div class="deck-suit-row">

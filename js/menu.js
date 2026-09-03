@@ -1,4 +1,4 @@
-const BUILD = '2026-08-25 · r168 · SPECTRUM: white (colourless 9/10/11), Flush of 3 pays nothing [onto r167 Flow]';
+const BUILD = '2026-08-25 · r169 · SPECTRUM: white cards buff and curse independently';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

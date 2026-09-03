@@ -465,7 +465,7 @@ function openSvcPicker(title, sub, source, maxSelect, onConfirm) {
     const pm = permMult[k] || 0;
     const isCombined = !!card.combined;
     const el = document.createElement('div');
-    el.className = `svc-card ${suitClass(card.suit)}${pp && pm ? ' has-both' : pp ? ' has-pip' : pm ? ' has-mult' : ''}`;
+    el.className = `svc-card ${suitClass(cardColorSuit(card))}${pp && pm ? ' has-both' : pp ? ' has-pip' : pm ? ' has-mult' : ''}`;
 
     const combinedBadge = isCombined
       ? `<div style="position:absolute;top:2px;right:2px;font-size:7px;color:#9b59b6;font-weight:700">⚭</div>` : '';
