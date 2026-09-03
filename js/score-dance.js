@@ -101,7 +101,7 @@ function sfxWinExplode(){
     // is still comfortably the loudest thing in the game, which is the intent.
     const master = actx.createGain(); master.gain.value = 0.55 * sfxVolume();
     if (master.gain.value <= 0) return;
-    master.connect(sfxDuckGain || actx.destination);
+    master.connect(sfxOut(actx));
     // Detuned saw "zap" sweeping down - the analog-synth stab.
     [0,7].forEach(detune=>{
       const o=actx.createOscillator(); o.type='sawtooth'; o.detune.value=detune;

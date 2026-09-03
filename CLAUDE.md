@@ -824,6 +824,84 @@ Classic is the floor that always answers, so a file that 404s falls back to the 
 - **A track's `off: true`** is a DEFAULT, not a state - `musicTrackOn` prefers a stored choice and only falls back to it. That is what lets twelve ambience beds ship without the playlist opening as a wall of noise.
 - **Three volumes.** `sfxVolume()` is master x effects, `musicVolume()` is master x music, both folding in `muted`. Every `playTone`/`playNoise`/sample/pack voice multiplies by `sfxVolume()`, so it is the single choke point. **`sfxWinExplode` builds its own gain node** rather than going through `playTone`, so it has to fold that in by hand - it did not until r179, and mute never silenced the goal blast.
 
+### The mixer (r191) - `js/audio-mixer.js`
+
+Before this every sound connected straight to the output at whatever gain its own
+designer picked, so a Focus node detaching was as loud as a hand scoring. The fix
+is the standard game-audio answer, which is **three separate mechanisms** people
+often lump together as "priority":
+
+1. **Buses + static trim.** Sounds are grouped by what they MEAN, not by what
+   makes them, and each group has one fader. This is most of the fix - a
+   background tick should simply always be quieter than a headline.
+2. **Ducking.** When something important starts, every bus below it dips for as
+   long as it lasts, then comes back.
+3. **Voice limits.** A cap per bus, plus a minimum gap between repeats of one
+   sound, so a fast loop cannot turn into a buzzsaw.
+
+**The split is the point.** Doing it all with ducking gives a mix that pumps;
+doing it all with static gains gives a mix where the big moments never get room.
+
+| bus | pri | trim | ducks to | what |
+|---|---|---|---|---|
+| `detail` | 1 | 0.55 | 0.30 | score ticks, Focus node pops and drops |
+| `board` | 2 | 0.80 | 0.45 | card select/pop, riffle, reward pick |
+| `score` | 3 | 1.00 | 0.55 | the scoring dance: particles, Focus beat, hand scored |
+| `event` | 3 | 0.95 | 0.55 | coins, shop, rewards, round start, countdown |
+| `headline` | 4 | 1.00 | never | goal blast, victory, level up, multi-goal |
+| `alert` | 5 | 1.00 | never | the boss-approach heartbeat |
+
+- **`sfxOut(ctx)` is the seam.** Every voice in the game connects there instead of
+  to the destination - `playTone`, `playNoise`, `_packOut`, `bitTone`, `bitNoise`,
+  sample playback, and the two hand-built sounds (`sfxWinExplode`, `sfxRewind`).
+- **How a voice knows its bus:** the wrapper in `js/audio-assets.js` sets
+  `_mixCurrentId` around the call (`sfxWithMixId`), and `sfxOut` reads it. This
+  works because a sound's voices are all scheduled **synchronously** inside that
+  call, even the ones carrying a `delay`. A `setTimeout` that calls another sfx
+  goes through the wrapper again and gets its own id, so that is fine too.
+- **The per-sound trim is folded into `sfxVolume()`**, which is why one table
+  reaches every voice without touching any of them. `musicVolume()` deliberately
+  does not get it.
+- **`duckHold` and `voiceHold` are different numbers and sharing one is a bug.** A
+  headline should keep the mix out of its way for most of a second but must not
+  occupy a voice slot that long. The first version shared them, and the `alert`
+  bus (cap 2, hold 0.5s) then dropped heartbeats at exactly the point the boss
+  approach accelerates to one every 420ms.
+- **An already-ducked bus is EXTENDED, not re-ramped.** Cancelling and ramping
+  from the top again is what makes a mix pump audibly under a burst of beats.
+- **A refused voice never reaches the graph** - `sfxMixAllow` runs before anything
+  is built, so a dropped sound costs nothing. Limits are deliberately generous:
+  silence where the player expects a sound is a worse bug than a busy mix. The
+  sound board calls `sfxMixResetLimits()` first, so auditioning a row twice in a
+  second is never refused.
+- **Real particle spacing is 90-120ms** (`PIP_STAGGER`/`MULT_STAGGER`/
+  `TRICK_STAGGER` in `js/score-dance.js`), so the 22ms gap never bites in normal
+  play. Under the 15x fast-forward of an interrupted hand it drops most of them,
+  which is the intent - that is the buzzsaw case.
+- **Measured:** the detail bus sits at 30% of its resting level while a pip
+  particle or a scored hand plays, and is back to 100% within 900ms. Solo levels
+  put `focus_pop` at rms 0.0009 against `hand_scored` at 0.024, about 25x quieter
+  before ducking does anything.
+
+**`sfxHeartbeat` used to connect straight to the destination** so it would stay
+loud while the others ducked - which also meant it ignored `sfxVolume()`, so mute
+never silenced it (the same bug `sfxWinExplode` had). It rides the `alert` bus
+now, whose `duckTo` is 1: nothing ducks it, and the sliders reach it.
+
+### Two sounds per particle (r191)
+
+Each pip/mult particle is **a short tick and then a pitched body**, `PARTICLE_GAP`
+(45ms) apart - "t-ding", not "ding". Two transients that close together read as
+one event *with a shape*, which is what makes a long run of them sound like a
+counter ratcheting rather than a row of identical bleeps. The old version layered
+its overtone **simultaneously**, which just made one thicker bleep.
+
+Below ~25ms the two fuse into a click; above ~90ms they separate into two events.
+All three packs do it in their own vocabulary: classic uses a square tick into a
+triangle body, 1-bit a thin high pulse into a wide one (on one output line the gap
+is the only way to give a repeated event any shape), and slot a short-LFSR click
+into the coin - the detent and the digit of a counter wheel.
+
 ### The packs - `js/audio-packs.js`
 
 `SFX_PACKS` is keyed by catalog id; a pack need not cover every id. The shared toolkit is `pulseWave`, `lfsrNoiseBuffer`, `crusherNode`, plus per-pack voices.

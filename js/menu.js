@@ -1,4 +1,4 @@
-const BUILD = '2026-09-03 · r191 · SPECTRUM: white cards buff and curse independently [onto r190]';
+const BUILD = '2026-09-03 · r192 · audio mixer: buses, ducking, voice limits · two sounds per scoring particle';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
