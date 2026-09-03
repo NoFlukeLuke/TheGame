@@ -275,13 +275,21 @@ function recordsRenderHands() {
     }
     const b     = HAND_BASE[name] || { pips: 0, mult: 0 };
     const focus = HAND_FOCUS[name] || 0;
+    // Natural Scaling is what this run has EARNED on top of the printed table, so
+    // the rate card quotes the live number and shows the earned part beside it.
+    // Read from the same accumulator calcScore reads, never from a copy.
+    const ns    = (typeof naturalScaleBonus === 'function') ? naturalScaleBonus(name) : { pips: 0, mult: 0 };
+    const pips  = (b.pips || 0) + ns.pips;
+    const mult  = (b.mult || 0) + ns.mult;
     // pips x mult is the number that decides which hand to go for; the two
     // factors on their own do not compare across rows.
-    const base  = Math.round((b.pips || 0) * (b.mult || 0));
+    const base  = Math.round(pips * mult);
+    const gain  = ns.pips ? `<span class="rh-ns">+${ns.pips}</span>` : '';
+    const gainM = ns.mult ? `<span class="rh-ns">+${ns.mult}</span>` : '';
     return `<div class="rec-hand">
       <span class="rh-n">${name}</span>
-      <span class="rh-v rh-p">${b.pips}</span>
-      <span class="rh-v rh-m">x${b.mult}</span>
+      <span class="rh-v rh-p">${pips}${gain}</span>
+      <span class="rh-v rh-m">x${mult}${gainM}</span>
       <span class="rh-v rh-f">${focus || 0}</span>
       <span class="rh-v rh-b">${base.toLocaleString()}</span>
     </div>`;
@@ -297,7 +305,10 @@ function recordsRenderHands() {
     </div>
     <div class="rec-hands">${rows}</div>
     <div class="rec-foot">Score is pips x mult, before your cards' own pips, Tricks,
-      Knacks and your Focus multiplier. Focus is what the hand adds to the meter.</div>`;
+      Knacks and your Focus multiplier. Focus is what the hand adds to the meter.${
+        (typeof nsEnabled !== 'undefined' && nsEnabled)
+          ? ` Playing a hand permanently raises its whole family - sets, runs and flushes each build on their own. Green is what this run has earned.`
+          : ''}</div>`;
 }
 
 function recordsRenderStats() {

@@ -102,6 +102,47 @@ The old table had four inversions, all fixed:
 
 **`HAND_FORMULAS` in `js/stats.js` is now a Proxy over `HAND_BASE`**, not a written-out string table. The written one had already drifted: modes overwrite `HAND_BASE`, so it stated a payout Spectrum does not pay.
 
+### The score ladder (r179-r181) - where each multiplier lands, and why
+
+`calcScore` runs in five steps and **which step an effect lands on decides whether the player can see it**:
+
+```
+1. base pips x 1.1^(level-1)   2. per-card loop   3. xPIPS / xMULT block
+   -> s = totalPips * mult  ->  4. xSCORE  ->  5. x Focus
+```
+
+`lastCalcPips` / `lastCalcMult` (the PIPS and MULT chips, and everything the scoring dance shows) are written at the **end of step 3**. So a step-4 xSCORE changes the final number and **nothing on screen says why**.
+
+- **r179 moved four Tricks out of step 4** for exactly that reason: Perfect Storm and Twenty-One became xPIPS, Last Stand and Extinction became xMULT. The arithmetic is identical - `s = totalPips * mult`, so xK score = xK pips = xK mult - so this was pure legibility, no balance change. Their `BAL` keys renamed `score_mult` -> `pip_mult` / `mult_mult`, and `DESC_TEMPLATES` with them.
+- **What is still xSCORE, deliberately:** Echo and Legacy (Sleights whose identity IS "the hand scores twice"), Low and Behold (a knack that replays the whole hand), the boss Redaction, and the dev-only grid Trick card. **Adding a new xSCORE needs a reason** - the default is xPIPS or xMULT.
+- **The pools are now 10 and 10.** Grep them, don't count descriptions - `perfect_storm` and `extinction` were miscounted for exactly that reason. `grep "totalPips = Math.round(totalPips \*" js/scoring.js` and the `mult` equivalent are the real inventory.
+- **The r179 additions cover triggers nothing else read**: Rerun / Chorus (replay count, from `_reps` - sum minus card count is the extra iterations), Deep Breath (clock paused), Interest (credits held, capped), Portfolio (buffed cards on the grid, via `permPips`/`permMult` - which are keyed by card IDENTITY, so a buff on Spectrum white counts seven cards), Redline (Focus level).
+- **Compound** (mythic) banks the round score every 45s on the round tick; the next scored hand pays the bank and it re-arms, so it compounds across a round. Its payout is added at **SCORE level, not as pips or mult** - it is a copy of score already earned, and routing it through mult x Focus would multiply it a second time.
+
+### Focus RATE vs Focus CAP (r180)
+
+Every Focus entity before r180 raised the **ceiling** (`focusCapNodes`). Nothing touched the **rate**, which is the term that actually multiplies a run's output. `generateHandFocus` builds Focus from two terms, and `focusRateMods()` is the one place the whole loadout is read:
+
+| lever | scales | owned by |
+|---|---|---|
+| `complexity` | `HAND_FOCUS[hand]` | Second Nature (Trick x2), Shorthand (Knack x1.5) |
+| `speed` | `speedBonusFromTime(t)` | Overclock (Trick x2), Flywheel (Sleight x1.5) |
+| `window` | **dilates t** - same bonus, twice as long to earn it | Long Fuse (Knack x2), Governor (Sleight x1.5) |
+
+**`window` is not a weaker `speed`.** On the default linear curve (`12 - 1.5t`, zero at t=8) speed pays hard for fast play and cannot rescue a slow hand; window flattens the curve and helps slow play most. Measured on a Full House: at t=1s speed x2 gives 25 and window x2 gives 15; at t=8s speed x2 gives 4 and window x2 gives 10. The Sleights work by **sitting on the grid**, so `focusRateMods` scans for them and skips quarantined/void cells via `cellCountsForTriggers`.
+
+### Natural Scaling (r181) - `js/natural-scaling.js`
+
+The goal curve is exponential (`GOAL_SCALE` 1.35/level) while base hand pips scale at only 1.1, so a run must close a **1.227x-per-level gap** - about **32x over 18 nodes** - out of its loadout alone. Every existing source of that was a DROP. Natural Scaling makes the baseline itself grow: score a hand and its whole **family** (sets / runs / flushes) gets permanently better.
+
+- **A per-run ACCUMULATOR layered on top of `HAND_BASE`, never a mutation of it.** `HAND_BASE` is global and modes overwrite it (`applyModeHandValues` zeroes Spectrum's Flush of 3), so writing into it would leak across runs and fight the mode overrides.
+- The bonus is added to `base.pips` **before** the `1.1^(level-1)` scale, so it compounds with level the way the printed base does. `recordNaturalScale` runs **after** the score commits, so a hand's buff lands on the next hand of that family.
+- **Straight Flush is in the run AND flush families.** It credits both when scored but **takes the better of the two**, not the sum, or the top of the table would scale twice as fast as everything else.
+- Measured hands-to-clear (bare baseline, no Trick loadout, Focus x1.8, 200 runs): **OFF 2.2 -> 112 by level 18** (559 hands a run). At the +2 pips/hand default, **2.2 -> 20** (178). The curve still rises, it just stops running away. **Mult per hand is a far stronger lever than pips** - +0.25 mult/hand flattens the whole run to 6.6 hands at level 18, so mult defaults to **0**.
+- **It self-nerfs flushes, by design.** In Classic `flush3`/`flush4` are not active (`startGame` seeds them only at `suitCount >= 6`), so the flush family can only earn from the 5-card Flush - and once runs start scaling, Flush is never the best available hand. Measured over a full Classic run: run 133 hands / +266 pips, set 43 / +86, **flush 0 / +0**.
+- Which is what makes the **Short Suit** knack (rare) worth a slot: it turns on Flush of 3 / Flush of 4 where they aren't already active, letting the flush family start earning. It hangs off `updateKnackList()` for the same reason Tempo does.
+- Tuner: **dev panel -> Score -> Natural Scaling** (on/off, pips per hand, mult per hand, every N hands, live per-family readout, reset). The **RECORDS Hands tab** quotes the live value with the earned part in green beside it.
+
 ### Interact costs (r151) - ONE charge each, from `BAL._resources`
 **Discard 3s per card · Swap 8s flat · Play free.** Until r151 there were **two overlapping cost systems** and both were live: a flat `spendRoundTime(DISCARD_TIME_COST/SWAP_TIME_COST)` *and* the `BAL._resources` figures. A 1-card discard billed 3+3 = **6s**, the 3rd swap of a round billed 4+10 = **14s**, and the Free Discards knack ("costs no time") still charged the flat 3s - all while the ⏱ Time pop-up quoted 3s and 4s. `DISCARD_TIME_COST` / `SWAP_TIME_COST` are now **dead constants**, kept and commented so nothing reintroduces the double charge; `freeSwapsLeft` (the "first 2 swaps free" exemption) is dead for the same reason. Costs come from `BAL._resources` alone, and `updateInteractCosts()` reads the same source so the pop-up can't drift from reality again.
 

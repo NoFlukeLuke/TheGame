@@ -1,4 +1,4 @@
-const BUILD = '2026-09-02 · r181 · Natural Scaling (hand families buff as you play them) + Short Suit knack';
+const BUILD = '2026-09-02 · r182 · Hands tab shows earned Natural Scaling · CLAUDE.md scoring sections';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

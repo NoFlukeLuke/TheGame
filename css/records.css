@@ -212,6 +212,9 @@
 .rec-hand .rh-v { font-family: 'Share Tech Mono', monospace; font-size: 12px; text-align: right; }
 .rec-hand .rh-p { color: #8fb7ff; }
 .rec-hand .rh-m { color: #ff8f8f; }
+/* Natural Scaling: what THIS RUN has earned on top of the printed value, shown
+   beside the live number so the rate card reads as one figure plus its gain. */
+.rec-hand .rh-ns { color: #6fcf97; font-size: 0.78em; margin-left: 3px; vertical-align: super; }
 .rec-hand .rh-f { color: var(--c-purple, #b07dff); }
 .rec-hand .rh-b { color: var(--gold); font-weight: 700; }
 /* Not scored in this mode. The row stays so the absence is visible, but it
