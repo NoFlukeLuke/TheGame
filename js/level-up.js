@@ -84,6 +84,11 @@ function triggerLevelUp() {
   // Zen has no clock, so its goals are doubled - levelling and the reward grid
   // stay reachable, just at a slower, self-paced rate.
   if (match3IsZen()) roundGoal *= 2;
+  // Quota Revision (reward-grid penalty): every future goal is permanently raised.
+  // Applied here, on the computed goal, rather than by mutating BASE_GOAL - the
+  // curve is unchanged, the whole of it is just lifted. Rounded to 50 so the
+  // number on the HUD stays a number a player can hold in their head.
+  if (goalPenaltyMult > 1) roundGoal = Math.round(roundGoal * goalPenaltyMult / 50) * 50;
   // Bank the completed round's score for the end-of-run display. In Survival the
   // overflow is carried to the next round, so only the counted portion is banked.
   totalScore += survivalActive() ? Math.max(0, score - _svOverflow) : score;
@@ -160,6 +165,8 @@ function triggerLevelUp() {
     const _jcard = gridData[_jr][_jc];
     if (_jcard?._isSleight) _jcard._usedThisRound = false;
   }
+  // Reflect fires once per round; the lock is released with the on_swap sleights'.
+  if (typeof reflectUsedThisRound !== 'undefined') reflectUsedThisRound = false;
   // Coin Toss: each owned Sleight has a 50% chance to regain 1 charge at round start
   if (hasKnack('coin_toss')) {
     let _refilled = 0;

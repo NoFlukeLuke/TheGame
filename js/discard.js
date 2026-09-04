@@ -168,7 +168,7 @@ function showTimeCost(label) {
 // (r183): that constant is Classic's 180, and the clock legitimately sits ABOVE
 // it in several ordinary situations -
 //   · Survival rounds are 120s and Flow's session clock is 300s
-//   · the Round Time LIMIT can be upgraded past 180, and a round starts at it
+//   · the Starting Time LIMIT can be upgraded past 180, and a round starts at it
 //   · Time Bank (+30s at round start) and Clock Tower (carries up to 60s over)
 //   · Rain Check (+30s next round)
 // against `Math.min(ROUND_DURATION, …)` every one of those made a rewind CUT the
@@ -176,17 +176,26 @@ function showTimeCost(label) {
 // lost the time. In Flow that was 120 seconds destroyed by a single Flush.
 //
 // `roundStartSeconds` is what this round ACTUALLY began with - startRoundTimer
-// records it after computeRoundResources has already folded in the Round Time
+// records it after computeRoundResources has already folded in the Starting Time
 // limit, Time Bank and Clock Tower - so it is the whole answer for those three
 // and no separate limits lookup is needed. Reading the limit as well would let a
 // 120s Survival round be rewound up to Classic's 180.
 //
 // `roundSeconds` is in the max too, so the clamp can never move the clock
 // backwards: the worst a rewind can now do is nothing.
-function rewindCeiling() {
-  const dur = (typeof currentRoundDuration === 'function') ? currentRoundDuration() : ROUND_DURATION;
-  return Math.max(dur, roundStartSeconds || 0, roundSeconds);
-}
+// THERE IS NO CEILING ON A REWIND (r193, owner spec).
+//
+// It used to be max(currentRoundDuration, roundStartSeconds, roundSeconds) - i.e.
+// you could never bank the clock above what the round STARTED with. That made
+// every rewind past the top silently worth nothing: the seconds vanished, the
+// floater said nothing, and a time build hit a wall it could not see. The limit
+// (renamed "Starting Time" in js/limits.js for exactly this reason) now says what
+// you BEGIN a round with; what you can climb to during it is up to your build.
+//
+// Kept as a function rather than deleted at the call site: it is the one place to
+// reintroduce a ceiling if time builds turn out to run away, and rewindTime's
+// Math.min still reads correctly against Infinity.
+function rewindCeiling() { return Infinity; }
 
 function rewindTime(seconds, label) {
   if (bossActive) return 0;

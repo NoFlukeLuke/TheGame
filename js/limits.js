@@ -4,7 +4,7 @@ const LIMITS_DEF = [
   { id: 'grid_cols',   label: 'Grid Columns',    icon: '⬌', desc: 'Columns in the playing grid (and reward grid)', base: 4,   max: 7 },
   { id: 'swaps',       label: 'Swaps/Round',      icon: '🔄', desc: 'Swaps granted at round start',      base: 3,   max: 8 },
   { id: 'discards',    label: 'Discards/Round',   icon: '🗑', desc: 'Discards granted at round start',   base: 3,   max: 8 },
-  { id: 'round_time',  label: 'Round Time',       icon: '⏱', desc: 'Max seconds per round',             base: 180, max: 300, step: 15 },
+  { id: 'round_time',  label: 'Starting Time',    icon: '⏱', desc: 'Seconds you START each round with (rewinds can carry you above it)', base: 180, max: 300, step: 15 },
   { id: 'trick_slots', label: 'Trick Slots',      icon: '✦', desc: 'Max Tricks you can keep at once',   base: 5,   max: 10, weight: 0.4 },
   { id: 'reroll',      label: 'Shop Rerolls',     icon: '🎲', desc: 'Rerolls available per shop visit',  base: 3,   max: 6 },
   { id: 'focus_cap',   label: 'Focus Cap',        icon: '⚡', desc: 'Maximum Focus (nodes)',            base: 30,  max: 60, step: 3, weight: 0.5 },
@@ -43,7 +43,9 @@ function limitProgressStr(id, showNext) {
 // Called after any limit change - applies immediate side effects
 function onLimitChanged(id) {
   if (id === 'round_time') {
-    roundSeconds = Math.min(roundSeconds, limits.round_time.current);
+    // No clamp. This limit is the round's STARTING time, not a live ceiling, so
+    // changing it must never reach in and cut the clock you are currently playing
+    // - which is what the old Math.min did every time the limit moved.
     updateClockUI();
   }
   if (id === 'swaps' || id === 'discards') {

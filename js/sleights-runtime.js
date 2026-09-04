@@ -400,9 +400,17 @@ function magnetCluster(mr, mc, rank) {
 }
 
 function applySleightGridEffect(id, r, c) {
+  // Suspension (reward-grid penalty) switches one owned entity off for the first
+  // half of a round. Checked here rather than at each activation site because
+  // every activation-driven sleight passes through this one function.
+  if (typeof entitySuspended === 'function' && entitySuspended('sleight', id)) {
+    showMessage(`${id} is suspended this round`, 'var(--red)');
+    return;
+  }
   switch (id) {
     case 'power_cell':
-      addFocus(5); showMessage('Power Cell! +5 Focus', '#a25cd8'); break;
+      addFocus(BAL.power_cell.focus_on_enter);
+      showMessage(`Power Cell! +${BAL.power_cell.focus_on_enter} Focus`, '#a25cd8'); break;
     case 'good_friend':
       getNeighborsAll(r, c).forEach(([nr, nc]) => exaltCard(nr, nc));
       showMessage('The Good Friend exalts neighbors!', '#ffd700'); render(); break;

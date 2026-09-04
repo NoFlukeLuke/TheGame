@@ -142,9 +142,16 @@ async function showPayoutUI() {
     }
     showMessage('🗿 Idol - triple interest!', 'var(--gold)');
   }
-  const interestCoins  = Math.floor(coins / 10) * interestMult;
-  const efficiencyCoins = Math.floor(frozenRoundSeconds / 10);
+  // Withheld (reward-grid penalty): this payout pays nothing. The breakdown is
+  // still shown, with its figures zeroed, so the round is accounted for and the
+  // player can see exactly what the penalty cost them - a payout screen that
+  // simply did not appear would read as a bug.
+  const _withheld = !!skipNextPayout;
+  skipNextPayout = false;
+  const interestCoins  = _withheld ? 0 : Math.floor(coins / 10) * interestMult;
+  const efficiencyCoins = _withheld ? 0 : Math.floor(frozenRoundSeconds / 10);
   const totalCoins     = interestCoins + efficiencyCoins;
+  if (_withheld) showMessage('Payout withheld', 'var(--red)');
   // Show the Idol's tripled interest right on the payout breakdown.
   const interestName = interestMult > 1 ? `Interest <span style="color:#f5c042;">🗿 ×${interestMult}</span>` : 'Interest';
   const interestDesc = interestMult > 1

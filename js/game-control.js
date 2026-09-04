@@ -237,6 +237,11 @@ function startGame() {
   // used, and with neither the run is plain unseeded.
   applyRunSeed(ACTIVE_MODE.seed || pendingRunSeed || null);
 
+  // Lock in this run's difficulty tier. Copied out of pendingDifficulty here, at
+  // the one point a run begins, so nothing the player touches on a menu later can
+  // reach the board mid-run (see js/difficulty.js).
+  runDifficulty = (typeof pendingDifficulty === 'number') ? pendingDifficulty : 1;
+
   // Pick the suit + rank lists for this mode BEFORE any deck is built. Six Suits
   // uses the expanded 6-suit list, Spectrum swaps both lists for the numeric
   // colour deck (7 colours × 1-15,20 = 112 cards); every other mode uses the
@@ -337,6 +342,8 @@ function startGame() {
   nextRoundDiscardDelta = 0; nextRoundSwapDelta = 0; nextRoundSecondsDelta = 0;
   nextRoundPlayCost = 0; nextRoundDiscardCost = 0;
   playHandCostThisRound = 0; discardCostThisRound = 0;
+  goalPenaltyMult = 1; focusRatePenalty = 1; skipNextPayout = false;
+  pendingEntityLockout = null; entityLockout = null;
   clearTimeout(challengeOverlayTimer);
   document.getElementById('challenge-overlay').classList.remove('show');
   // Reset goal/level-up queue

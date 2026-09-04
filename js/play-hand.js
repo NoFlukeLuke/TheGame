@@ -218,8 +218,16 @@ function playHand() {
   console.log('[PLAY] hand result', { hand, finalScore, scoreAfterAdd: score + finalScore });
   const scoreBeforeHand = score;
   score += finalScore;
-  if (sleightNextHandDouble) { score += finalScore; sleightNextHandDouble = false; }
-  if (sleightLegacyMult)     { score += finalScore * BAL.the_legacy.extra_mult; sleightLegacyMult = false; } // ×3 total = base + 2× extra
+  // Echo and Legacy both used to be applied here, at SCORE level. Both moved (r193):
+  // Echo is now a per-card replay (js/scoring.js retrigger block) because its text is
+  // "each card replays twice", and Legacy is now a ×mult so the MULT chip shows it.
+  // Both flags are cleared below, after calcScore has read them.
+  sleightNextHandDouble = false;
+  sleightLegacyMult = false;
+  // Reflect is once per round, and only calcScore knows whether it actually
+  // replayed anything - so the lock is taken here, on the committed hand, never
+  // inside calcScore (which findBestHand runs over every candidate).
+  if (typeof reflectSpendForRound === 'function') reflectSpendForRound(handCells);
   // Compound (mythic): pay out everything banked since the last hand, then clear.
   // Added at SCORE level (not as pips or mult) on purpose - it is a copy of score
   // already earned, so running it back through mult × Focus would multiply it twice.

@@ -1,3 +1,8 @@
+// Five sleights are COMMENTED OUT below (Good Friend, Not a Friend, Shepherd,
+// Idol, Shortcut) - owner's call, not an accident. They are unreachable rather
+// than deleted, so their runtime cases in js/sleights-runtime.js and the Idol's
+// interest branch in js/interlude.js are dead code that still compiles; leave
+// them, they are what makes re-enabling one a single-line change.
 const SLEIGHT_POOL = [
   { id:'the_queen',     name:'The Queen',      emoji:'👑', rarity:'legendary', activation:'wildcard',   wild:'rank', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['wildrank','scoring'],        desc:'Wild rank - becomes the rank that makes the best hand. (Reach + queen-replay: TBD)', needsResolve:true },
   { id:'warehouse',     name:'Warehouse',      emoji:'🏭', rarity:'rare',      activation:'wildcard',   wild:'suit', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['wildsuit','suit'],           desc:'Wild suit - becomes any suit to complete a flush. Has no rank.' },
@@ -55,7 +60,7 @@ const SLEIGHT_POOL = [
   // at `adjacentPlays` it pays out `payout` and the counter resets.
   { id:'shift_swap',  name:'Shift Swap',  emoji:'🔀', rarity:'fixture', activation:'adjacent', adjacentPlays:2, payout:{ swaps:2 },    durability:'infinite', defaultRank:null, defaultSuit:null, tags:['resource','position'], desc:'Score two hands adjacent to this card for +2 swaps. Repeats.' },
   { id:'recycler',    name:'Recycler',    emoji:'♻️', rarity:'fixture', activation:'adjacent', adjacentPlays:2, payout:{ discards:2 }, durability:'infinite', defaultRank:null, defaultSuit:null, tags:['resource','position'], desc:'Score two hands adjacent to this card for +2 discards. Repeats.' },
-  { id:'time_clock',  name:'Time Clock',  emoji:'⏱️', rarity:'fixture', activation:'adjacent', adjacentPlays:2, payout:{ seconds:10 }, durability:'infinite', defaultRank:null, defaultSuit:null, tags:['time','position'],     desc:'Score two hands adjacent to this card for a 10 second pause. Repeats.' },
+  { id:'time_clock',  name:'Time Clock',  emoji:'⏱️', rarity:'fixture', activation:'adjacent', adjacentPlays:2, payout:{ pause_seconds:10 }, durability:'infinite', defaultRank:null, defaultSuit:null, tags:['time','position'],     desc:'Score two hands adjacent to this card for a 10 second pause. Repeats.' },
   { id:'petty_cash',  name:'Petty Cash',  emoji:'💵', rarity:'fixture', activation:'adjacent', adjacentPlays:2, payout:{ coins:5 },    durability:'infinite', defaultRank:null, defaultSuit:null, tags:['coins','position'],    desc:'Score two hands adjacent to this card for +5 credits. Repeats.' },
 ];
 

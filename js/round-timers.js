@@ -46,6 +46,10 @@ function startRoundTimer() {
   startHeartbeat();                 // the board's idle pulse runs with the round
   syncDiscoveredFromOwned();        // log anything new for the Builds archive
   roundStartSeconds = roundSeconds; // mark the start of the countdown for ♠ "first 30s" exalt
+  // Suspension resolves HERE, not in triggerLevelUp: it needs roundStartSeconds to
+  // know where the round's halfway mark is, and this is the one call site every
+  // round start funnels through (the same reason the save checkpoint lives here).
+  if (typeof resolveEntityLockout === 'function') resolveEntityLockout();
   // Save point. Every round start funnels through here, so this is where a run
   // snapshot is taken; Settings → SAVE RUN just writes the latest one out. See
   // js/save.js for why the save point is a round boundary and not "right now".

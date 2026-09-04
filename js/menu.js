@@ -1,4 +1,4 @@
-const BUILD = '2026-09-03 · r192 · audio mixer: buses, ducking, voice limits · two sounds per scoring particle';
+const BUILD = '2026-09-04 · r193 · difficulty tiers · reward-grid pressure · sleight spec · uncapped rewinds';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -283,8 +283,44 @@ function scrollModes(dir) {
 
 function chooseMode(id) {
   ACTIVE_MODE = MODES[id] || MODES.normal;
+  // The tier is read off the card being played, not off a global the carousel
+  // happens to have left lying around - every card carries its own choice.
+  pendingDifficulty = difficultyForMode(id);
   document.getElementById('mode-select-overlay').classList.remove('show');
   startGame();
+}
+
+// ── Difficulty picker on a mode card (r193) ─────────────────────────────────
+// Three pips under the blurb with a ‹ › either side. The pips are the readout
+// (filled up to the chosen tier), the arrows are the control, and the tier's
+// name + what it changes are printed beneath so the choice is never a mystery
+// number. Only the pip row is re-rendered on a change, so the carousel does not
+// scroll-jump under the player's finger mid-choice.
+function renderModeTier(card, id) {
+  const row = card.querySelector('.mode-tier');
+  if (!row) return;
+  const n   = difficultyForMode(id);
+  const def = difficultyDef(n);
+  const max = difficultyUnlockedThrough();
+  row.style.setProperty('--tier-accent', def.accent);
+  row.innerHTML =
+    `<div class="mode-tier-ctl">` +
+      `<button class="mode-tier-arrow" data-d="-1" ${n <= 1 ? 'disabled' : ''} aria-label="Lower difficulty">&lsaquo;</button>` +
+      `<div class="mode-tier-pips" role="img" aria-label="Tier ${n} of ${max}">` +
+        DIFFICULTY_TIERS.map(t =>
+          `<span class="mode-tier-pip${t.n <= n ? ' on' : ''}${t.n > max ? ' locked' : ''}"></span>`).join('') +
+      `</div>` +
+      `<button class="mode-tier-arrow" data-d="1" ${n >= max ? 'disabled' : ''} aria-label="Raise difficulty">&rsaquo;</button>` +
+    `</div>` +
+    `<div class="mode-tier-name">TIER ${n} · ${def.name}</div>` +
+    `<div class="mode-tier-desc">${def.detail}</div>`;
+  row.querySelectorAll('.mode-tier-arrow').forEach(b => {
+    b.onclick = (e) => {
+      e.stopPropagation();
+      setDifficultyForMode(id, difficultyForMode(id) + parseInt(b.dataset.d, 10));
+      renderModeTier(card, id);
+    };
+  });
 }
 
 function renderModeSelect() {
@@ -301,7 +337,9 @@ function renderModeSelect() {
       `<div class="mode-card-name">${m.name}</div>` +
       `<div class="mode-card-suits">${meta.suits || ''}</div>` +
       `<div class="mode-card-blurb">${meta.blurb || m.desc}</div>` +
+      `<div class="mode-tier"></div>` +
       `<button class="mode-card-play">PLAY</button>`;
+    renderModeTier(card, id);
     card.querySelector('.mode-card-play').onclick = () => chooseMode(id);
     car.appendChild(card);
   });

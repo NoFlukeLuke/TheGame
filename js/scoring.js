@@ -198,6 +198,10 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     const _rip = _rippleReady && _rippleSet.has(`${r}-${c}`);
     const _refl = reflectAimsAt(r, c);
     const _soul = soulMirrorRankCount(baseRank);
+    // Echo (sleight): armed by playing it, every card in the hand replays twice.
+    // It used to double the whole hand at SCORE level; as a per-card replay it
+    // multiplies pips only, which is what "each card replays twice" describes.
+    const _echoS = (typeof sleightNextHandDouble !== 'undefined') && sleightNextHandDouble;
     const _re = permRetrig[_eKey] || 0;  // permanent per-card retrigger (events)
     const _rne = hasTrick('closing_time') && roundFractionRemaining() < 0.25; // Near Extinction
     const _hnm = _hnmOn && _rankHigh(baseRank) === _hnmMax; // High and Mighty: top-rank card(s)
@@ -208,7 +212,8 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     const _wfi = _wfiChance > 0 && _detReplayRand(card._id || 0, handsPlayedRound) < _wfiChance;
     if (_r2) _retrig++; if (_r8) _retrig += (_eightCount - 1); if (_rc) _retrig++; if (_rl) _retrig++; if (_pt) _retrig++;
     if (_res) _retrig++; if (_rip) _retrig++;
-    if (_refl) _retrig++; _retrig += _soul;
+    if (_refl) _retrig += BAL.reflect.extra_replays; _retrig += _soul;
+    if (_echoS) _retrig++;
     _retrig += _re;
     if (_rne) _retrig++; if (_ech) _retrig++; if (_wp) _retrig += BAL.woodpecker.retrigger_count;
     if (_hnm) _retrig++;
@@ -242,6 +247,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
       else if (_pt) bPip('perfect_timing', _pre);
       else if (_res) bPip('eye_of_storm', _pre);
       else if (_rip) bPip('ripple', _pre);
+      else if (_echoS) bPip('echo_play', _pre);
       else if (_refl) bPip('reflect', _pre);
       else if (_soul) bPip('soul_mirror', _pre);
       else if (_re) bPip('sapling', _extra);
@@ -445,6 +451,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   const _lightM = lighthouseMult();             // Lighthouse: mult by distance from its favored column
   mult += _whetM + _entM + _lightM;
   let _siphonM = 0;                              // Siphon: multiplicative ×mult, applied after additive mults (below)
+  let _legacyM = 0;                              // Legacy: multiplicative ×mult, same step as Siphon (r193)
 
   // Hearts: neutral by default; +1 mult each with Devoted Trick (per-card → per replay)
   const heartCount = _wc(c => c.suit === '♥' || (c.combined && c.suit2 === '♥'));
@@ -677,6 +684,13 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   if (typeof siphonMultX === 'number' && siphonMultX > 1) {
     const _pre = mult; mult = Math.round(mult * siphonMultX * 10) / 10; _siphonM = mult - _pre;
   }
+  // Legacy (sleight): ×3 the whole mult. It used to be applied at SCORE level in
+  // playHand, where the arithmetic was identical (s = pips × mult) but nothing on
+  // screen said why the number jumped - the same legibility problem r190 fixed for
+  // the four xSCORE Tricks. Read-only here; playHand clears the flag after the hand.
+  if (typeof sleightLegacyMult !== 'undefined' && sleightLegacyMult) {
+    const _pre = mult; mult = Math.round(mult * BAL.the_legacy.mult_x * 10) / 10; _legacyM = mult - _pre;
+  }
   // MULT stays "pure" - Focus is a SEPARATE third multiplier applied at the end (see below).
   lastPreFocusMult = mult;   // kept for dance compatibility (now == pure mult)
   lastCalcMult = mult;       // pure mult for the MULT box
@@ -734,6 +748,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     if (_entM   > 0) contrib.push({type:'mult',source:'sleight',id:'entourage', delta:Math.round(_entM*10)/10});
     if (_lightM > 0) contrib.push({type:'mult',source:'sleight',id:'lighthouse',delta:Math.round(_lightM*10)/10});
     if (_siphonM > 0) contrib.push({type:'mult',source:'sleight',id:'siphon',    delta:Math.round(_siphonM*10)/10});
+    if (_legacyM > 0) contrib.push({type:'mult',source:'sleight',id:'the_legacy',delta:Math.round(_legacyM*10)/10});
   }
 
   // Finalize the animation ledger: attach the known per-card MULT / exalt single-iteration
@@ -865,6 +880,7 @@ function roundContributionRowsHTML() {
 
 function hasTrick(id) {
   if (isTrickDisabledByBoss(id)) return false;
+  if (typeof entitySuspended === 'function' && entitySuspended('trick', id)) return false;
   if (trickTrayMode && trickTray.some(b => b.id === id)) return true;
   // gridData?.[r] - the grid is empty between screens (menu, Builds, mid-deal), and
   // a stray timer tick landing there would otherwise throw on gridData[r][c].
@@ -877,7 +893,10 @@ function hasTrick(id) {
 }
 // For dedup only - checks acquiredTricks (Trick was ever granted, may not be on grid)
 function ownsTrick(id) { return acquiredTricks.some(b => b.id === id); }
-function hasKnack(id) { return acquiredKnacks.some(t => t.id === id); }
+function hasKnack(id) {
+  if (typeof entitySuspended === 'function' && entitySuspended('knack', id)) return false;
+  return acquiredKnacks.some(t => t.id === id);
+}
 // Mirror Trick: borrows the effect of the tray Trick on its tilted side (-1 left / +1 right).
 // Mirror Trick (Blueprint-style): ids of tray Tricks currently borrowed by a Mirror - the
 // neighbour on its tilted side (-1 left / +1 right). Each borrowed trick's pip/mult

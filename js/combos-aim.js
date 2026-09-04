@@ -63,16 +63,52 @@ function findAimSleight(id) {
     }
   return null;
 }
-// Reflect: true if a Reflect currently aims at cell (r,c)
-function reflectAimsAt(r, c) {
+// ── Reflect / Soul Mirror (reworked r193) ───────────────────────────────────
+// Both aim sleights used to key off the CELL they face. They now key off the
+// RANK of the card in that cell, which is what makes them worth aiming: the
+// target moves as the board falls, but the rank is a thing you can build around.
+//
+// Both are READ-ONLY from calcScore - findBestHand scores every candidate hand
+// through it, so anything that mutates state here would fire on a hover. Reflect's
+// once-per-round lock is therefore a flag that only playHand sets (see
+// reflectSpendForRound), the same contract Siphon and Legacy use.
+
+// The rank a Reflect currently faces, or null if it faces nothing / no Reflect.
+function reflectAimedRank() {
   const f = findAimSleight('reflect');
-  if (!f) return false;
+  if (!f) return null;
   const t = aimTargetCell(f.card, f.r, f.c);
-  return !!t && t[0] === r && t[1] === c;
+  if (!t) return null;
+  const tc = gridData[t[0]]?.[t[1]];
+  return (tc && tc.rank) ? tc.rank : null;
 }
-// Soul Mirror: how many Soul Mirrors currently face a card of this rank (they stack)
+let reflectUsedThisRound = false;   // cleared in the round-start sweep
+// True while Reflect would replay this card: it faces this card's rank and has
+// not yet fired this round. The (r, c) arguments are kept for call-site
+// compatibility - it is the rank that decides now, not the position.
+function reflectAimsAt(r, c) {
+  if (reflectUsedThisRound) return false;
+  const rank = reflectAimedRank();
+  if (rank === null) return false;
+  const card = gridData[r]?.[c];
+  return !!card && card.rank === rank;
+}
+// Called from playHand once a hand that used Reflect has committed.
+function reflectSpendForRound(cells) {
+  if (reflectUsedThisRound) return false;
+  const rank = reflectAimedRank();
+  if (rank === null) return false;
+  const hit = (cells || []).some(([r, c]) => gridData[r]?.[c]?.rank === rank);
+  if (hit) reflectUsedThisRound = true;
+  return hit;
+}
+
+// Soul Mirror: while it faces a card, scoring that rank replays it once per copy
+// of that rank ON THE GRID - so the payoff is a board state you can build toward,
+// not just the fact that a mirror is pointed somewhere. Several Soul Mirrors
+// facing the same rank still stack (each contributes its own count).
 function soulMirrorRankCount(rank) {
-  let n = 0;
+  let mirrors = 0;
   for (let r = 0; r < gridRows; r++)
     for (let c = 0; c < gridCols; c++) {
       const cell = gridData[r]?.[c];
@@ -80,7 +116,18 @@ function soulMirrorRankCount(rank) {
       const t = aimTargetCell(cell, r, c);
       if (!t) continue;
       const tc = gridData[t[0]]?.[t[1]];
-      if (tc && tc.rank === rank) n++;
+      if (tc && tc.rank === rank) mirrors++;
+    }
+  if (!mirrors) return 0;
+  return mirrors * rankCountOnGrid(rank);
+}
+// How many cards of this rank are on the board right now (sleights/stones excluded).
+function rankCountOnGrid(rank) {
+  let n = 0;
+  for (let r = 0; r < gridRows; r++)
+    for (let c = 0; c < gridCols; c++) {
+      const cell = gridData[r]?.[c];
+      if (cell && !cell._isSleight && !cell._isStone && cell.rank === rank) n++;
     }
   return n;
 }
@@ -207,6 +254,60 @@ let nextRoundSwapDelta    = 0;     // change to next round's swap count
 let nextRoundSecondsDelta = 0;     // change to next round's starting seconds (+15s buff)
 let nextRoundPlayCost     = 0;     // +seconds to hand cost, next round only
 let nextRoundDiscardCost  = 0;     // +seconds per discarded card, next round only
+// ── Reward-grid penalties added r193 ──
+// Permanent (reset only on a new game):
+let goalPenaltyMult   = 1;         // multiplies every future round goal (Quota Revision)
+let focusRatePenalty  = 1;         // divides the Focus a hand generates (Red Tape)
+// Next-round-only:
+let skipNextPayout    = false;     // the next round's end-of-round payout pays nothing (Withheld)
+// One owned entity is switched off for the first half of the next round (Suspension).
+// { type:'trick'|'knack'|'sleight' } while armed; gains { id } once the round deals.
+let pendingEntityLockout = null;
+let entityLockout        = null;
+
+// ── Suspension: one owned entity switched off for half a round (r193) ────────
+// The reward-grid tile names the TYPE when you take it ("a Sleight will not work
+// for the first half of next round") and the specific entity is only chosen when
+// that round deals. That is the point of the penalty: you know what kind of hole
+// is coming and you cannot plan around which one, so it is a real risk rather
+// than a known cost.
+//
+// KNOWN GAP, deliberate: the sleight case gates applySleightGridEffect, which is
+// where every ACTIVATION-driven sleight funnels through. The three passive mult
+// sleights (Whetstone, Entourage, Lighthouse) and the focus-rate pair work by
+// being scanned where they sit, so they are not covered. Suspension therefore
+// bites an activation sleight harder than a passive one - worth knowing before
+// tuning its weight up.
+function resolveEntityLockout() {
+  entityLockout = null;
+  if (!pendingEntityLockout) return;
+  const type = pendingEntityLockout.type;
+  pendingEntityLockout = null;
+  let pool = [];
+  if (type === 'trick')       pool = (trickTray || []).map(t => ({ id: t.id, name: t.name }));
+  else if (type === 'knack')  pool = (acquiredKnacks || []).map(t => ({ id: t.id, name: t.name }));
+  else if (type === 'sleight') {
+    for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
+      const cd = gridData?.[r]?.[c];
+      if (cd?._isSleight) { const d = sleightDef(cd); if (d) pool.push({ id: d.id, name: d.name }); }
+    }
+  }
+  if (!pool.length) return;   // nothing of that type owned - the penalty simply misses
+  const pick = pool[Math.floor(Math.random() * pool.length)];
+  // Half of THIS round, measured off the clock the round actually started with,
+  // so it is half a round in every mode rather than half of Classic's 180.
+  entityLockout = { type, id: pick.id, name: pick.name, until: (roundStartSeconds || roundSeconds) / 2 };
+  showMessage(`Suspended: ${pick.name} (half the round)`, 'var(--red)');
+}
+// True while the lockout window is open. Flow has no round clock to run down, so
+// the window there is the first half of the session clock, which is the same
+// reading of "half a round" the rest of the game uses.
+function entityLockoutOpen() {
+  return !!entityLockout && roundSeconds > entityLockout.until;
+}
+function entitySuspended(type, id) {
+  return entityLockoutOpen() && entityLockout.type === type && entityLockout.id === id;
+}
 // Active for the CURRENT round (recomputed each round = permanent + next-round):
 let playHandCostThisRound = 0;     // extra seconds per hand this round
 let discardCostThisRound  = 0;     // extra seconds per discarded card this round

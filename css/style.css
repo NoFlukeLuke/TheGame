@@ -3745,6 +3745,44 @@
     font-family: 'Share Tech Mono', monospace; font-size: 11px; line-height: 1.6; letter-spacing: 0.5px;
     color: var(--cream-dim); flex: 1;
   }
+  /* ── Difficulty picker (r193) ──────────────────────────────────────────
+     Sits between the blurb and PLAY. It carries its own --tier-accent (set from
+     JS off the chosen tier) rather than borrowing --mode-accent: the tier is a
+     different axis from the mode, and colouring both the same made the pips read
+     as decoration on the mode's own branding instead of as a control. */
+  .mode-tier {
+    width: 100%; display: flex; flex-direction: column; align-items: center; gap: 5px;
+    padding: 9px 0 2px; border-top: 1px solid rgba(255,255,255,0.07);
+  }
+  .mode-tier-ctl { display: flex; align-items: center; justify-content: center; gap: 12px; }
+  .mode-tier-arrow {
+    width: 24px; height: 24px; border-radius: 50%; cursor: pointer; padding: 0;
+    font-size: 17px; line-height: 1; color: var(--cream);
+    background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.16);
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.12s ease, opacity 0.12s ease;
+  }
+  .mode-tier-arrow:hover:not(:disabled) { background: rgba(255,255,255,0.18); }
+  .mode-tier-arrow:disabled { opacity: 0.22; cursor: default; }
+  .mode-tier-pips { display: flex; gap: 7px; align-items: center; }
+  .mode-tier-pip {
+    width: 9px; height: 9px; border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.28); background: transparent;
+    transition: background 0.14s ease, box-shadow 0.14s ease, border-color 0.14s ease;
+  }
+  .mode-tier-pip.on {
+    background: var(--tier-accent); border-color: var(--tier-accent);
+    box-shadow: 0 0 7px var(--tier-accent);
+  }
+  .mode-tier-pip.locked { opacity: 0.25; }
+  .mode-tier-name {
+    font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 10px; letter-spacing: 2.5px;
+    color: var(--tier-accent); text-transform: uppercase;
+  }
+  .mode-tier-desc {
+    font-family: 'Share Tech Mono', monospace; font-size: 9.5px; line-height: 1.5;
+    letter-spacing: 0.3px; color: var(--cream-dim); opacity: 0.75; max-width: 220px;
+  }
   .mode-card-play {
     width: 100%; font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 16px; letter-spacing: 4px;
     color: #3a2a08; text-transform: uppercase; cursor: pointer; border: none; border-radius: 10px; padding: 12px;

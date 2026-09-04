@@ -49,6 +49,7 @@ function _saveWrite(name, v) {
 const SAVE_VARS = [
   // ── Run progression ──
   'level', 'score', 'totalScore', 'roundGoal', 'coins', 'leaves', 'handsPlayed',
+  'runDifficulty', 'goalPenaltyMult', 'focusRatePenalty', 'skipNextPayout', 'pendingEntityLockout',
   'actNumber', 'nodeInAct', 'rewardGridsSeen', 'forceBossNextRound', 'shopFromNodeFlow',
   'pendingEventOverride', 'rewardGridContext', 'skipTrickChoiceOverlay', 'pendingLevelUps',
   'goalReachedThisRound', 'roundEnded', 'suppressScoreDisplay', 'heldBackScore',
