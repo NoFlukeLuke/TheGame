@@ -1023,8 +1023,9 @@ function showBenchCardPicker(pool) {
 function confirmBench() {
   const b = eventState.benchBoon, c = eventState.benchCard;
   if (b && c) {
-    enhanceCardKey(cardKey(c.rank, c.suit), b.e);
-    showMessage(`${cardLabel(c)} ${b.say}`, 'var(--gold)');
+    // Per CARD, not per face - resolved fresh, since the pick was made before this.
+    const t = resolveDeckCard(c);
+    if (t) { enhanceCardKey(cardId(t), b.e); showMessage(`${cardLabel(t)} ${b.say}`, 'var(--gold)'); }
   }
   closeEvent();
 }
