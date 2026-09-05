@@ -185,7 +185,11 @@ function triggerLevelUp() {
       if (card._usesLeft === 'infinite' || typeof card._usesLeft !== 'number') return;
       const def = SLEIGHT_POOL.find(j => j.id === card.sleightId);
       const cap = (def && typeof def.durability === 'number') ? def.durability : card._usesLeft;
-      if (card._usesLeft < cap && Math.random() < 0.5) { card._usesLeft++; _refilled++; }
+      // COUNTABLE, capped at the sleight's printed durability. The 0.5 lived here
+      // as a literal until r196 - it is BAL.coin_toss.chance now, like every other
+      // tunable number, which is also what lets Luck reach it.
+      const _ctN = luckRoll(BAL.coin_toss.chance) * BAL.coin_toss.charges;
+      for (let i = 0; i < _ctN && card._usesLeft < cap; i++) { card._usesLeft++; _refilled++; }
     });
     if (_refilled) showMessage(`Coin Toss: ${_refilled} Sleight${_refilled > 1 ? 's' : ''} regained a charge`, 'var(--gold)');
   }

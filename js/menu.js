@@ -1,4 +1,4 @@
-const BUILD = '2026-09-05 · r195 · one rarity table for every offer path; tricks and knacks draw on it too';
+const BUILD = '2026-09-05 · r196 · Luck: good chances fire more often, better entities turn up';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

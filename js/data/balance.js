@@ -228,6 +228,8 @@ const BAL = {
   // ── knacks ──
   tempo:    { limit: 2, interval_seconds: 15 },
   jury_rig: { chance: 0.5, charges: 1 },
+  coin_toss: { chance: 0.5, charges: 1 },   // was hardcoded in js/level-up.js until r196
+  rowcol_retrigger: { chance: 0.5 },        // was an unscalable modulo in js/scoring.js until r196
   time_slip: { chance: 0.25 },
   replay_rewind: { chance: 0.25, seconds: 2 },
   deja_vu: { seconds: 15 },
@@ -356,6 +358,8 @@ const DESC_TEMPLATES = {
   amplifier: 'Double-tap: the next hand scores +{mult} mult. (5 charges)',
   the_legacy: 'Discard this: the next hand played gets ×{mult_x} mult. (3 charges)',
   power_cell: 'When it enters the grid: +{focus_on_enter} Focus. While it remains on the grid: +{focus_cap} maximum Focus.',
+  rowcol_retrigger: 'Cards scored in a marked row or column have a {chance_pct}% chance to replay once',
+  coin_toss: 'At the start of each round, every Sleight has a {chance_pct}% chance to restore {charges} charge.',
   reflect: 'Tap to rotate its aim. The rank it faces replays {extra_replays}× when a hand scores. Works once per round. Cannot be swapped or discarded.',
   deluge: 'Flushes rewind the clock {seconds} seconds',
   monochrome: 'Hands with at least one heart and one diamond grant +{coins} credit and rewind the clock {seconds} seconds',
@@ -366,7 +370,15 @@ const DESC_TEMPLATES = {
   steady_hand: 'Swaps no longer count against the swap limit, but cost {swap_seconds}s each.',
   hoarder: 'Discards no longer count against the discard limit, but cost {discard_seconds_per_card}s per card.',
 };
-function fillDescTemplate(t, p) { return t.replace(/\{(\w+)\}/g, (m, k) => (k in p ? p[k] : m)); }
+// {key} prints the raw value; {key_pct} prints it as a percentage, which is how
+// every chance entity wants to read ("a 50% chance", not "a 0.5 chance").
+function fillDescTemplate(t, p) {
+  return t.replace(/\{(\w+)\}/g, (m, k) => {
+    if (k in p) return p[k];
+    if (k.endsWith('_pct')) { const b = k.slice(0, -4); if (b in p) return Math.round(p[b] * 100); }
+    return m;
+  });
+}
 function applyBalDescriptions() {
   [TRICK_POOL, SLEIGHT_POOL, KNACK_POOL].forEach(pool => pool.forEach(e => {
     if (DESC_TEMPLATES[e.id] && BAL[e.id]) e.desc = fillDescTemplate(DESC_TEMPLATES[e.id], BAL[e.id]);

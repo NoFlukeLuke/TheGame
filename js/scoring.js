@@ -205,7 +205,12 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     const _r2 = false; // Double Take redesigned - now duplicates a Trick, not the 2 card
     const _r8 = hasTrick('eights_retrigger') && baseRank === '8';
     const _rc = false; // Cornered redesigned - now a post-loop pip multiplier, not a replay
-    const _rl = cellHasRowColBonus(r, c, 'rowcol_retrigger') && (((card._id || 0) + handsPlayedRound) % 2 === 0); // Echo Location: deterministic 50%
+    // Echo Location: a 50% replay, deterministic so preview == score. It was
+    // `(card._id + handsPlayedRound) % 2 === 0`, which IS a fair 50% but has no
+    // probability in it for Luck to scale - so it is now the same
+    // hash-vs-threshold shape as Wait For Iiiit, off the same BAL number.
+    const _rl = cellHasRowColBonus(r, c, 'rowcol_retrigger')
+      ? luckRollDet(BAL.rowcol_retrigger.chance, (card._id || 0) + 7919, handsPlayedRound) : 0;
     const _pt = cellHasRowColBonus(r, c, 'perfect_timing'); // Perfect Timing: guaranteed replay
     const _res = _eyeStorm && _rankHigh(baseRank) === _eyeMax;
     const _rip = _rippleReady && _rippleSet.has(`${r}-${c}`);
@@ -222,15 +227,20 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     const _wp = hasTrick('woodpecker') && woodpeckerPos && r === woodpeckerPos.r && c === woodpeckerPos.c; // Woodpecker
     // Wait For Iiiit: each card independently rolls a replay at 2% × negative reward tiles taken this
     // run. Deterministic per (card, hand) so preview == score (see _detReplayRand).
-    const _wfi = _wfiChance > 0 && _detReplayRand(card._id || 0, handsPlayedRound) < _wfiChance;
-    if (_r2) _retrig++; if (_r8) _retrig += (_eightCount - 1); if (_rc) _retrig++; if (_rl) _retrig++; if (_pt) _retrig++;
+    // Luck scales the THRESHOLD here rather than adding a roll: calling
+    // Math.random() in calcScore would give findBestHand's preview a different
+    // answer than the committed score. luckRollDet keeps the same hash and
+    // compares it against the luck-scaled chance, so the preview stays honest -
+    // and it returns a COUNT, so past 100% a card replays more than once.
+    const _wfi = _wfiChance > 0 ? luckRollDet(_wfiChance, card._id || 0, handsPlayedRound) : 0;
+    if (_r2) _retrig++; if (_r8) _retrig += (_eightCount - 1); if (_rc) _retrig++; _retrig += _rl; if (_pt) _retrig++;
     if (_res) _retrig++; if (_rip) _retrig++;
     if (_refl) _retrig += BAL.reflect.extra_replays; _retrig += _soul;
     if (_echoS) _retrig++;
     _retrig += _re;
     if (_rne) _retrig++; if (_ech) _retrig++; if (_wp) _retrig += BAL.woodpecker.retrigger_count;
     if (_hnm) _retrig++;
-    if (_wfi) _retrig++; // Wait For Iiiit: chance replay scaling with negative tiles taken
+    _retrig += _wfi; // Wait For Iiiit: chance replay scaling with negative tiles taken
     if (_encoreHand) _retrig++; // Encore: all-odd-rank Set scores a second time
     if (_cKey === _3rdKey) _retrig += BAL.third_charm.extra_replays; // 3rd Time's a Charm: 3rd card gets +2 replays
     retrigByKey[r + '-' + c] = _retrig;

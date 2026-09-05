@@ -253,7 +253,9 @@ function handleClockMarks(secs) {
   // Minute marks (clock reads N:00) → accrue mult / retrigger chance
   if (secs % 60 === 0) {
     if (hasTrick('minute_hand'))  { pendingHandMult += BAL.minute_hand.mult; showMessage(`🕐 Minute Hand - next hand +${BAL.minute_hand.mult} mult`, '#cc88ff'); }
-    if (hasTrick('hourglass') && Math.random() < BAL.hourglass.chance) {
+    // COUNTABLE under Luck: past 100% it grants the retrigger to several cards.
+    const _hgN = hasTrick('hourglass') ? luckRoll(BAL.hourglass.chance) : 0;
+    for (let _hg = 0; _hg < _hgN; _hg++) {
       // Grant one permanent retrigger to a random real card currently on the grid
       const spots = [];
       for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
@@ -273,7 +275,9 @@ function handleClockMarks(secs) {
 
 function pauseRound(seconds) {
   // Time Slip knack: whenever the clock WOULD pause, a chance to rewind that many seconds instead
-  if (hasKnack('time_slip') && Math.random() < BAL.time_slip.chance) {
+  // BINARY under Luck: a pause cannot become two rewinds, so anything above
+  // 100% is wasted here on purpose. Its tooltip caps the printed figure to match.
+  if (hasKnack('time_slip') && luckRoll(BAL.time_slip.chance) > 0) {
     rewindTime(seconds, '⏮️ Time Slip - rewound instead of paused!');
     return;
   }

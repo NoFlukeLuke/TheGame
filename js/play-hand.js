@@ -195,7 +195,8 @@ function playHand() {
   // Rewound Echo knack: each card replay this hand has a chance to rewind 2 seconds.
   if (hasKnack('replay_rewind') && _lastHandRetrigs > 0) {
     let _rw = 0;
-    for (let i = 0; i < _lastHandRetrigs; i++) if (Math.random() < BAL.replay_rewind.chance) _rw += BAL.replay_rewind.seconds;
+    // COUNTABLE: each replay rolls, and past 100% one replay can pay twice.
+    for (let i = 0; i < _lastHandRetrigs; i++) _rw += luckRoll(BAL.replay_rewind.chance) * BAL.replay_rewind.seconds;
     if (_rw > 0) rewindTime(_rw, `🔂 Rewound Echo - rewound ${_rw}s`);
   }
   // Vulture: retrigger-aware pause-seconds from buffed cards in this hand (same fresh snapshot).

@@ -244,8 +244,13 @@ function juryRigRoll(cells) {
     seen.add(card._id); targets.push(card);
   }));
   targets.forEach(card => {
-    if (Math.random() >= BAL.jury_rig.chance) return;
-    if (restoreSleightCharge(card)) showMessage(`🔧 Jury-Rig - ${sleightDef(card)?.name || 'Sleight'} +1 charge`, '#6aaa6a');
+    // COUNTABLE: past 100% it restores several charges at once. restoreSleightCharge
+    // never exceeds the printed durability, so the cap is already enforced there.
+    const _jrN = luckRoll(BAL.jury_rig.chance);
+    if (_jrN <= 0) return;
+    let _got = 0;
+    for (let i = 0; i < _jrN * BAL.jury_rig.charges; i++) if (restoreSleightCharge(card)) _got++;
+    if (_got) showMessage(`🔧 Jury-Rig - ${sleightDef(card)?.name || 'Sleight'} +${_got} charge${_got > 1 ? 's' : ''}`, '#6aaa6a');
   });
 }
 

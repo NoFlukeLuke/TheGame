@@ -68,7 +68,7 @@ function shopLimitPrice(def) {
 // Cascades to lower rarity if the rolled tier has no available sleights.
 function pickSleightByRarity(count, excluded) {
   const TIER_ORDER   = ENTITY_TIERS;      // js/data/balance.js - one table for every offer path
-  const TIER_WEIGHTS = ENTITY_TIER_W;
+  const TIER_WEIGHTS = luckTierWeights(ENTITY_TIER_W);  // Luck tilts the ladder (js/luck.js)
   const result = [];
   const usedIds = new Set(excluded);
   for (let i = 0; i < count; i++) {

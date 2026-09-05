@@ -289,7 +289,7 @@ function _generateRewardContent() {
   // rather than the slightly looser one r193 gave them. That is a further
   // tightening - epic-or-better goes from 21% of a trick tile to 13%.
   const TRICK_TIERS  = ENTITY_TIERS;
-  const TRICK_TIER_W = ENTITY_TIER_W;
+  const TRICK_TIER_W = luckTierWeights(ENTITY_TIER_W);   // Luck tilts the ladder (js/luck.js)
   function pickByRarity(pool, tierOf, weights, tiers) {
     if (!pool.length) return null;
     const total = weights.reduce((a, b) => a + b, 0);
@@ -326,7 +326,7 @@ function _generateRewardContent() {
   // Prize-grid sleight draw: the shop's rarity table with 'common' cut out of it.
   function pickPrizeSleight() {
     const TIERS = ['rare', 'epic', 'legendary', 'mythic'];
-    const W     = [58, 28, 9, 5];
+    const W     = luckTierWeights([58, 28, 9, 5]);   // no commons here, but Luck still tilts it
     const pool = freshPool(SLEIGHT_POOL.filter(j => !grantedSleightIds.has(j.id) && sleightOfferable(j) && !offerBanned(j.id) && (j.rarity || 'common') !== 'common'));
     if (!pool.length) return null;
     const total = W.reduce((a, b) => a + b, 0);

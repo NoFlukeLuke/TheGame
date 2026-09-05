@@ -8,6 +8,10 @@ const LIMITS_DEF = [
   { id: 'trick_slots', label: 'Trick Slots',      icon: '✦', desc: 'Max Tricks you can keep at once',   base: 5,   max: 10, weight: 0.4 },
   { id: 'reroll',      label: 'Shop Rerolls',     icon: '🎲', desc: 'Rerolls available per shop visit',  base: 3,   max: 6 },
   { id: 'focus_cap',   label: 'Focus Cap',        icon: '⚡', desc: 'Maximum Focus (nodes)',            base: 30,  max: 60, step: 3, weight: 0.5 },
+  // Luck 10 is a nudge, 100 doubles every chance effect. Step 5 so a single pick
+  // is felt without one upgrade being the whole stat, and weight 0.6 because it
+  // touches every entity offer in the game - it should be a chase, not a staple.
+  { id: 'luck',        label: 'Luck',             icon: '🍀', desc: 'Good chance effects fire more often, and better entities turn up', base: 0, max: 100, step: 5, weight: 0.6 },
 ];
 const limits = {};
 LIMITS_DEF.forEach(def => {
