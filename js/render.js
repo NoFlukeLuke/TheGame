@@ -9,6 +9,8 @@ function render() {
   // whenever the board is. renderBossCellOverlays no-ops cheaply when nothing
   // is marked.
   if (typeof renderBossCellOverlays === 'function' && typeof bossActive !== 'undefined' && bossActive) renderBossCellOverlays();
+  // Dead Drop cells outlive the boss round, so they get their own pass.
+  if (typeof renderDeadCellOverlays === 'function') renderDeadCellOverlays();
   const gridEl = document.getElementById('grid');
   const reachable = getReachable();
   const bestHandResult = selected.length >= 2 ? findBestHand(selected) : null;

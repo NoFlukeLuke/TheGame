@@ -148,10 +148,16 @@ async function showPayoutUI() {
   // simply did not appear would read as a bug.
   const _withheld = !!skipNextPayout;
   skipNextPayout = false;
-  const interestCoins  = _withheld ? 0 : Math.floor(coins / 10) * interestMult;
+  // Interest Freeze (reward-grid penalty): interest alone is suspended for a few
+  // rounds - leftover-time credits still pay, so the round is still worth playing
+  // well; what is frozen is the reward for HOLDING credits.
+  const _frozen = interestFreezeRounds > 0;
+  if (_frozen) interestFreezeRounds--;
+  const interestCoins  = (_withheld || _frozen) ? 0 : Math.floor(coins / 10) * interestMult;
   const efficiencyCoins = _withheld ? 0 : Math.floor(frozenRoundSeconds / 10);
   const totalCoins     = interestCoins + efficiencyCoins;
   if (_withheld) showMessage('Payout withheld', 'var(--red)');
+  else if (_frozen) showMessage(`Interest frozen (${interestFreezeRounds} more)`, 'var(--red)');
   // Show the Idol's tripled interest right on the payout breakdown.
   const interestName = interestMult > 1 ? `Interest <span style="color:#f5c042;">🗿 ×${interestMult}</span>` : 'Interest';
   const interestDesc = interestMult > 1

@@ -228,6 +228,29 @@ function playHand() {
   // replayed anything - so the lock is taken here, on the committed hand, never
   // inside calcScore (which findBestHand runs over every candidate).
   if (typeof reflectSpendForRound === 'function') reflectSpendForRound(handCells);
+  // Rider (reward-grid penalty): the ridden Trick still works, it just bills you
+  // for every proc. Billed HERE, off _lastHandProcs, because calcScore is run
+  // over every candidate hand by findBestHand - charging inside it would empty
+  // the clock on hover. A Trick that has left you carries the Rider away with it.
+  if (riderTrickId) {
+    if (!hasTrick(riderTrickId) && !(acquiredTricks || []).some(t => t.id === riderTrickId)) {
+      riderTrickId = null;
+    } else {
+      const _procs = (_lastHandProcs || {})[riderTrickId] || 0;
+      if (_procs > 0) {
+        const _cost = _procs * BAL.rider.seconds_per_proc;
+        roundSeconds = Math.max(1, roundSeconds - _cost);
+        showTimeCost(`-${_cost}s`);
+        updateClockUI();
+      }
+    }
+  }
+  // Spot Check (reward-grid penalty): playing the flagged hand is what clears it.
+  if (spotCheckHand && spotCheckLeft > 0 && hand === spotCheckHand) {
+    spotCheckLeft--;
+    if (spotCheckLeft <= 0) { spotCheckHand = null; showMessage('Spot check cleared', 'var(--gold)'); }
+    else showMessage(`Spot check: ${spotCheckLeft} more`, 'var(--cream-dim)');
+  }
   // Compound (mythic): pay out everything banked since the last hand, then clear.
   // Added at SCORE level (not as pips or mult) on purpose - it is a copy of score
   // already earned, so running it back through mult × Focus would multiply it twice.

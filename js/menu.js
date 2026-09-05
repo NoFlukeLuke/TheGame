@@ -1,4 +1,4 @@
-const BUILD = '2026-09-04 · r193 · difficulty tiers · reward-grid pressure · sleight spec · uncapped rewinds';
+const BUILD = '2026-09-05 · r194 · five more reward-grid penalties: Short Staffed, Interest Freeze, Rider, Dead Drop, Spot Check';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

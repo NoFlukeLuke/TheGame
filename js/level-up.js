@@ -50,6 +50,17 @@ function triggerLevelUp() {
   // Must happen before Trick re-placement and the deal animation populate gridData.
   gridRows = limits.grid_rows.current;
   gridCols = limits.grid_cols.current;
+  // Short Staffed (reward-grid penalty): one row or column is missing for this
+  // round only. Consumed here, at the one place the round's dimensions are set,
+  // so the shrink flows through recomputeGridMetrics and the gridData conform
+  // below exactly as a limit change would - a smaller board is a thing the game
+  // already knows how to deal.
+  if (nextRoundGridShrink === 'rows') gridRows = Math.max(3, gridRows - 1);
+  if (nextRoundGridShrink === 'cols') gridCols = Math.max(3, gridCols - 1);
+  if (nextRoundGridShrink) {
+    showMessage(`Short staffed: one ${nextRoundGridShrink === 'rows' ? 'row' : 'column'} down`, 'var(--red)');
+    nextRoundGridShrink = null;
+  }
   recomputeGridMetrics();
   // Structurally conform gridData to the new dimensions, preserving in-bounds cells.
   // (Out-of-bounds cells from a shrunk grid are simply dropped; their cards are

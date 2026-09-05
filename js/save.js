@@ -50,6 +50,7 @@ const SAVE_VARS = [
   // ── Run progression ──
   'level', 'score', 'totalScore', 'roundGoal', 'coins', 'leaves', 'handsPlayed',
   'runDifficulty', 'goalPenaltyMult', 'focusRatePenalty', 'skipNextPayout', 'pendingEntityLockout',
+  'deadCells', 'riderTrickId', 'interestFreezeRounds', 'spotCheckHand', 'spotCheckLeft', 'nextRoundGridShrink',
   'actNumber', 'nodeInAct', 'rewardGridsSeen', 'forceBossNextRound', 'shopFromNodeFlow',
   'pendingEventOverride', 'rewardGridContext', 'skipTrickChoiceOverlay', 'pendingLevelUps',
   'goalReachedThisRound', 'roundEnded', 'suppressScoreDisplay', 'heldBackScore',

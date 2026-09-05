@@ -176,6 +176,7 @@ let pausesThisRound = 0;      // PER ROUND: how many times the clock has been pa
 let rewindsThisRound = 0;     // PER ROUND: how many times the clock has been rewound (time popup)
 let retriggersThisRound = 0;  // count of card retriggers in scored hands this round (Cuckoo's pause length)
 let _lastHandRetrigs = 0;     // extra retriggers in the most recent calcScore of a real hand (read in playHand)
+let _lastHandProcs   = {};    // per-id proc COUNTS from that same calcScore (read by the Rider penalty)
 // Contribution-tally summaries (shown in the Contributions view when non-zero).
 let replaysThisRound = 0;     // total card replays/retriggers across scored hands this round
 let timeManipRound = 0;       // net seconds ADDED to the clock by scoring effects this round (Deluge/Overtime/etc.)
@@ -213,6 +214,37 @@ function achievableHandTypes() {
   if (cap >= 4) t.push('Two Pair', 'Four of a Kind', 'Run of 4');
   if (cap >= 5) t.push('Straight', 'Flush', 'Full House', 'Straight Flush');
   return t;
+}
+
+// ── Dead Drop (r194): a cell that plays but does not pay ────────────────────
+// Deliberately NOT part of isCellBlocked. The two boss cell states both take the
+// cell out of play - VOID returns the card to the deck, QUARANTINED lets a card
+// land but blocks selecting it - and this is a third thing: the card is
+// selectable and COUNTS FOR HAND DETECTION, so three cards including it still
+// make a Three of a Kind, and the hand still fires its whole-hand Tricks. What
+// it does not do is contribute: zero pips, and none of its own per-card Tricks.
+// Lasts to the end of the act (cleared where actNumber advances).
+function isCellDead(r, c) { return deadCells.has(`${r}-${c}`); }
+
+// Drawn from render(), NOT from renderBossCellOverlays - that one is gated on
+// bossActive and clears itself when the boss ends, and a dead cell outlives the
+// round it was taken in. Cheap no-op while the set is empty, which is the
+// overwhelming majority of the time.
+function renderDeadCellOverlays() {
+  const gridEl = document.getElementById('grid');
+  if (!gridEl) return;
+  const had = gridEl.querySelector('.dead-cell');
+  if (!deadCells.size) { if (had) gridEl.querySelectorAll('.dead-cell').forEach(el => el.remove()); return; }
+  gridEl.querySelectorAll('.dead-cell').forEach(el => el.remove());
+  deadCells.forEach(k => {
+    const [r, c] = k.split('-').map(Number);
+    if (r >= gridRows || c >= gridCols) return;   // board shrank under it
+    const d = document.createElement('div');
+    d.className = 'dead-cell';
+    d.style.left = cellLeft(c) + 'px';
+    d.style.top  = cellTop(r) + 'px';
+    gridEl.appendChild(d);
+  });
 }
 
 let resilience = false; // once per game second chance
@@ -264,6 +296,17 @@ let skipNextPayout    = false;     // the next round's end-of-round payout pays 
 // { type:'trick'|'knack'|'sleight' } while armed; gains { id } once the round deals.
 let pendingEntityLockout = null;
 let entityLockout        = null;
+// ── Five more reward-grid penalties (r194) ──
+// Permanent for the rest of the ACT:
+let deadCells         = new Set();  // "r-c" cells whose card scores nothing (Dead Drop)
+// Permanent for the run, or until the ridden Trick leaves you:
+let riderTrickId      = null;       // Trick every proc of which costs seconds (Rider)
+// Counted down, then gone:
+let interestFreezeRounds = 0;       // rounds left with no interest paid (Interest Freeze)
+let spotCheckHand     = null;       // hand type scoring at half mult (Spot Check)
+let spotCheckLeft     = 0;          // how many more of it must be played to clear it
+// Next round only:
+let nextRoundGridShrink = null;     // 'rows' | 'cols' - the board loses one, once (Short Staffed)
 
 // ── Suspension: one owned entity switched off for half a round (r193) ────────
 // The reward-grid tile names the TYPE when you take it ("a Sleight will not work

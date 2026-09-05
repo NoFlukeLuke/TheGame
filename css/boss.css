@@ -5,6 +5,23 @@
    card elements or the render loop has to change. */
 
 /* ── The Blight: a contaminated cell. Cards still play; they just pay less. ── */
+/* Dead Drop (r194) - a cell that plays but does not pay. Deliberately NOT the
+   Blight's magenta or the quarantine's red: those are boss effects that lift,
+   and this one is a hole in the board for the rest of the act. Flat grey, an X,
+   and no glow - the card underneath stays fully readable, because you still
+   select it and it still counts toward the hand. */
+.dead-cell {
+  position: absolute;
+  width: var(--card-w, 57px); height: var(--card-h, 75px);
+  border-radius: 6px; pointer-events: none; z-index: 12;
+  background:
+    linear-gradient(45deg, transparent calc(50% - 1px), rgba(30,30,34,0.55) 50%, transparent calc(50% + 1px)),
+    linear-gradient(-45deg, transparent calc(50% - 1px), rgba(30,30,34,0.55) 50%, transparent calc(50% + 1px)),
+    rgba(20,20,24,0.34);
+  box-shadow: inset 0 0 0 1px rgba(150,150,160,0.30);
+  mix-blend-mode: multiply;
+}
+
 .damp-cell {
   position: absolute;
   width: var(--card-w, 57px); height: var(--card-h, 75px);

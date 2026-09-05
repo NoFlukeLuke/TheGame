@@ -212,6 +212,10 @@ const BAL = {
   entourage:  { mult_per_sleight: 10 },
   lighthouse: { mult: 20, falloff_per_column: 7 },
   // ── focus-payout entities (r123) ──
+  // ── reward-grid penalties (r194) ──
+  rider:        { seconds_per_proc: 2 },
+  spot_check:   { mult: 0.5, plays_to_clear: 3 },
+  interest_freeze: { rounds: 3 },
   reflect:      { extra_replays: 2 },
   soul_mirror:  { /* replays = copies of the aimed rank on the grid */ },
   power_cell:   { focus_on_enter: 10, focus_cap: 10 },

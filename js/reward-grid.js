@@ -133,7 +133,75 @@ function _generateRewardContent() {
         desc: `One random ${noun} you own stops working for the first half of next round. Which one is decided when the round deals.`,
         apply: () => { pendingEntityLockout = { type: t }; showMessage(`A ${noun} will be suspended next round`, 'var(--red)'); } };
     })(),
+    // ── r194 penalties: five that cost you a board, a habit or a Trick's rent ──
+    { weight: 7, perm: false, icon: '🧊', label: 'Interest Freeze', tier: 'penalty',
+      desc: `No interest paid for the next ${BAL.interest_freeze.rounds} rounds. Leftover-time credits still pay.`,
+      apply: () => { interestFreezeRounds += BAL.interest_freeze.rounds; showMessage(`Interest frozen for ${BAL.interest_freeze.rounds} rounds`, 'var(--red)'); } },
   ];
+
+  // ── Conditional penalties (r194) ────────────────────────────────────────────
+  // Each of these is only worth putting on the board when the run can actually
+  // pay it. A tile that resolves to nothing is worse than a tile that hurts: it
+  // reads as a penalty the player dodged, and it cost a cell to say so.
+
+  // Short Staffed - the board loses a line for one round. OWNER'S RULE: only
+  // offered at 5+ on the axis it would cut, so it can never take a board below
+  // 4 on either side. Which axis is decided at generation time so the tile can
+  // name it, and only qualifying axes are candidates.
+  {
+    const _axes = [];
+    if (limits.grid_rows.current >= 5) _axes.push(['rows', 'row',    limits.grid_rows.current]);
+    if (limits.grid_cols.current >= 5) _axes.push(['cols', 'column', limits.grid_cols.current]);
+    if (_axes.length) {
+      const [_ax, _noun, _now] = _axes[Math.floor(Math.random() * _axes.length)];
+      debuffs.push({ weight: 7, perm: false, icon: '📉', label: `Short Staffed`, tier: 'penalty',
+        desc: `Next round the board is one ${_noun} smaller (${_now} → ${_now - 1}). One round only.`,
+        apply: () => { nextRoundGridShrink = _ax; showMessage(`-1 ${_noun} next round`, 'var(--red)'); } });
+    }
+  }
+
+  // Spot Check - one hand type scores at half mult until you have played it
+  // enough times to clear it. Drawn from achievableHandTypes(), the same guard
+  // The Redaction uses: flagging Straight Flush on a 4x4 board is not a penalty,
+  // it is a rounding error.
+  {
+    const _pool = (typeof achievableHandTypes === 'function' ? achievableHandTypes() : [])
+      .filter(h => HAND_BASE[h] && !(spotCheckHand === h && spotCheckLeft > 0));
+    if (_pool.length) {
+      const _h = _pool[Math.floor(Math.random() * _pool.length)];
+      const _n = BAL.spot_check.plays_to_clear;
+      debuffs.push({ weight: 7, perm: false, icon: '🔍', label: 'Spot Check', tier: 'penalty',
+        desc: `${_h} scores at ×${BAL.spot_check.mult} mult until you have played it ${_n} more times.`,
+        apply: () => { spotCheckHand = _h; spotCheckLeft = _n; showMessage(`Spot check: ${_h} ×${BAL.spot_check.mult}`, 'var(--red)'); } });
+    }
+  }
+
+  // Dead Drop - one cell plays but does not pay. Only on a board with a cell to
+  // spare, and never one already dead.
+  {
+    const _free = [];
+    for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++)
+      if (!isCellDead(r, c) && !(typeof isCellBlocked === 'function' && isCellBlocked(r, c))) _free.push([r, c]);
+    if (_free.length > 4) {
+      const [_dr, _dc] = _free[Math.floor(Math.random() * _free.length)];
+      debuffs.push({ weight: 6, perm: true, icon: '🕳', label: 'Dead Drop', tier: 'penalty',
+        desc: `One cell goes dead for the rest of the act. Its card can still be selected and still counts toward the hand - it just scores no pips and fires none of its own Tricks.`,
+        apply: () => { deadCells.add(`${_dr}-${_dc}`); render(); showMessage('A cell went dead', 'var(--red)'); } });
+    }
+  }
+
+  // Rider - a Trick you own keeps working and starts charging rent. Needs a
+  // Trick to ride, and will not double up on one that already carries it.
+  {
+    const _owned = (trickTrayMode ? trickTray : (acquiredTricks || []))
+      .filter(t => t && t.id && t.id !== riderTrickId);
+    if (_owned.length) {
+      const _t = _owned[Math.floor(Math.random() * _owned.length)];
+      debuffs.push({ weight: 6, perm: true, icon: '🐒', label: 'Rider', tier: 'penalty',
+        desc: `${_t.name} keeps working, but every time it fires it costs ${BAL.rider.seconds_per_proc}s. Permanent - it only leaves if the Trick does.`,
+        apply: () => { riderTrickId = _t.id; showMessage(`Rider on ${_t.name}`, 'var(--red)'); } });
+    }
+  }
   // Cursed-card debuff: afflicts one specific shown card (weight 10; only if an
   // un-cursed identity exists). Card is pre-picked so the tile shows exactly it.
   {
@@ -1554,6 +1622,8 @@ function closeRewardGrid() {
         // Post-boss reward grid - transition to next act
         nodeInAct = 0;
         actNumber++;
+        // Dead Drop cells are an ACT-long penalty; a new act is a clean board.
+        deadCells = new Set();
         updateActProgressUI();
         if (actNumber > 3) {
           onGameWin();

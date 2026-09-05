@@ -344,6 +344,8 @@ function startGame() {
   playHandCostThisRound = 0; discardCostThisRound = 0;
   goalPenaltyMult = 1; focusRatePenalty = 1; skipNextPayout = false;
   pendingEntityLockout = null; entityLockout = null;
+  deadCells = new Set(); riderTrickId = null; interestFreezeRounds = 0;
+  spotCheckHand = null; spotCheckLeft = 0; nextRoundGridShrink = null;
   clearTimeout(challengeOverlayTimer);
   document.getElementById('challenge-overlay').classList.remove('show');
   // Reset goal/level-up queue

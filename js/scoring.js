@@ -80,8 +80,13 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
 
   // ── contrib tracking: accumulate per-Trick pip/mult deltas ──
   const _cp = {}, _cm = {};  // per-Trick pip/mult deltas (always tracked so Mirror can duplicate them)
-  const bPip  = (id, d) => { if (d) _cp[id] = (_cp[id]||0)+d; };
-  const bMult = (id, d) => { if (d) _cm[id] = (_cm[id]||0)+d; };
+  // _procs counts how many times each id FIRED, which is a different question
+  // from how much it was worth (_cp / _cm) and the one the Rider penalty bills
+  // against. Counted here because bPip/bMult are called once per proc already -
+  // per card, per trigger - so there is nothing to instrument at the call sites.
+  const _procs = {};
+  const bPip  = (id, d) => { if (d) { _cp[id] = (_cp[id]||0)+d; _procs[id] = (_procs[id]||0)+1; } };
+  const bMult = (id, d) => { if (d) { _cm[id] = (_cm[id]||0)+d; _procs[id] = (_procs[id]||0)+1; } };
 
   // Process cards sequentially so Knave Power can multiply running total
   const _handMinRankVal = hasTrick('summit')
@@ -142,8 +147,16 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     // score kept every Trick bonus - which made the suppression cosmetic.
     const _blighted = (typeof isCellDamped === 'function') && isCellDamped(r, c);
     const _blightMute = _blighted && Math.random() < 0.2;
-    const _cpSnapBlight = _blightMute ? Object.assign({}, _cp) : null;
-    const _cmSnapBlight = _blightMute ? Object.assign({}, _cm) : null;
+    // Dead Drop (r194): this cell's card is fully part of the HAND - it was
+    // selectable, detectHand counted it, and the hand's own Tricks fire on the
+    // hand as a whole - but the card itself contributes nothing: no pips, and
+    // none of its per-card Tricks. Same machinery as the Blight's mute (snapshot
+    // the ledger, restore it after) because the requirement is the same shape;
+    // the difference is where it lands, raw pips for the Blight and zero here.
+    const _dead = (typeof isCellDead === 'function') && isCellDead(r, c);
+    const _mute = _blightMute || _dead;
+    const _cpSnapBlight = _mute ? Object.assign({}, _cp) : null;
+    const _cmSnapBlight = _mute ? Object.assign({}, _cm) : null;
     const baseRank = card.rank;
     const _origPips = cardPips(baseRank);
     let rawPips = _origPips;
@@ -231,11 +244,11 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     if (hasTrick('club_double') && (card.suit === '♣' || (card.combined && card.suit2 === '♣'))) _clubHits += _retrig;
     if (card._vulturePause) _vultureFires += card._vulturePause * _retrig; // Vulture buff fires once per (re)trigger
     // Assembly Line: each (re)play of a mark card earns the running counter, then increments it
-    if (_asmOn && !_blightMute && cellHasRowColBonus(r, c, 'assembly_line')) {
+    if (_asmOn && !_mute && cellHasRowColBonus(r, c, 'assembly_line')) {
       for (let _ai = 0; _ai < _retrig; _ai++) { _asmMult += _asmK; _asmK++; }
     }
     // Five Stack: +mult per card, once per (re)trigger of that card
-    if (_fiveCard && !_blightMute) _fsMult += BAL.five_stack.mult * _retrig;
+    if (_fiveCard && !_mute) _fsMult += BAL.five_stack.mult * _retrig;
     if (_retrig > 1) {
       const _pre = cp; cp *= _retrig;
       const _extra = cp - _pre;
@@ -265,17 +278,19 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     // the ledger is restored so the contributions tab matches what was scored.
     // TBD: whole-hand Tricks are still unaffected; only this card's own
     // contributions are suppressed.
-    if (_blightMute) {
-      cp = (_origPips + _pp) * Math.max(1, _retrig);
+    if (_mute) {
+      // Blighted keeps the card's raw value; a dead cell keeps nothing.
+      cp = _dead ? 0 : (_origPips + _pp) * Math.max(1, _retrig);
       const restore = (live, snap) => Object.keys(live).forEach(k => {
         if (snap && snap[k] !== undefined) live[k] = snap[k]; else delete live[k];
       });
       restore(_cp, _cpSnapBlight);
       restore(_cm, _cmSnapBlight);
     }
-    if (_blighted) cp = cp * 0.5;
+    if (_blighted && !_dead) cp = cp * 0.5;
     totalPips += cp;
   });
+  _lastHandProcs = _procs;         // snapshot for the Rider penalty (read in playHand)
   _lastHandRetrigs = _handRetrigs; // snapshot for Cuckoo (read after captureRoundContrib in playHand)
   _lastHandVultureSeconds = _vultureFires; // snapshot for Vulture (retrigger-aware pause seconds)
   _lastRetrigByCell = retrigByKey; // snapshot for playHand's exalt/corrupt coin/time (replay-aware)
@@ -452,6 +467,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   mult += _whetM + _entM + _lightM;
   let _siphonM = 0;                              // Siphon: multiplicative ×mult, applied after additive mults (below)
   let _legacyM = 0;                              // Legacy: multiplicative ×mult, same step as Siphon (r193)
+  let _spotM   = 0;                              // Spot Check: multiplicative ×mult penalty (r194)
 
   // Hearts: neutral by default; +1 mult each with Devoted Trick (per-card → per replay)
   const heartCount = _wc(c => c.suit === '♥' || (c.combined && c.suit2 === '♥'));
@@ -691,6 +707,18 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   if (typeof sleightLegacyMult !== 'undefined' && sleightLegacyMult) {
     const _pre = mult; mult = Math.round(mult * BAL.the_legacy.mult_x * 10) / 10; _legacyM = mult - _pre;
   }
+  // Spot Check (reward-grid penalty): one hand type scores at half until you have
+  // played it enough times to clear the flag.
+  //
+  // Applied to MULT, not at SCORE level, and that is the whole of the owner's
+  // "I prefer the latter" - the two are the SAME arithmetic (s = totalPips x mult,
+  // and Focus is a separate multiplier after both), so a x0.5 here is a x0.5 on
+  // the final number, Focus included. What it buys is that the MULT chip visibly
+  // halves, instead of the score quietly coming out wrong. See the r190 note in
+  // CLAUDE.md: a new xSCORE needs a reason, and this one has none.
+  if (typeof spotCheckHand !== 'undefined' && spotCheckHand && spotCheckLeft > 0 && handName === spotCheckHand) {
+    const _pre = mult; mult = Math.round(mult * BAL.spot_check.mult * 10) / 10; _spotM = mult - _pre;
+  }
   // MULT stays "pure" - Focus is a SEPARATE third multiplier applied at the end (see below).
   lastPreFocusMult = mult;   // kept for dance compatibility (now == pure mult)
   lastCalcMult = mult;       // pure mult for the MULT box
@@ -749,6 +777,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     if (_lightM > 0) contrib.push({type:'mult',source:'sleight',id:'lighthouse',delta:Math.round(_lightM*10)/10});
     if (_siphonM > 0) contrib.push({type:'mult',source:'sleight',id:'siphon',    delta:Math.round(_siphonM*10)/10});
     if (_legacyM > 0) contrib.push({type:'mult',source:'sleight',id:'the_legacy',delta:Math.round(_legacyM*10)/10});
+    if (_spotM < 0) contrib.push({type:'mult',source:'penalty',id:'spot_check',delta:Math.round(_spotM*10)/10});
   }
 
   // Finalize the animation ledger: attach the known per-card MULT / exalt single-iteration
