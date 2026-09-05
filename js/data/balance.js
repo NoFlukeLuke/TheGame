@@ -252,6 +252,21 @@ const BAL = {
 // {param} tokens are filled from BAL[id] at load (applyBalDescriptions), so a
 // value change via the balance sheet updates the in-game description too. Only
 // entities whose wording maps unambiguously to their params are listed.
+// ══════════════════════════════════════════════
+// THE RARITY TABLE (r195) - one copy, read by every offer path
+// ══════════════════════════════════════════════
+// How likely each tier is when the game offers you an entity. It was written out
+// FOUR times before this - js/shop.js for sleights, js/mart-shop.js for the Mart
+// shelves and the wheel, and two in js/reward-grid.js - and the reward grid's
+// trick/knack copy had drifted to its own numbers. One table now, so tuning the
+// game's generosity is editing one line and so that a future Luck stat has a
+// single place to reach.
+//
+// The prize grid keeps its own variant (common cut out) because that IS its
+// design, not a drift.
+const ENTITY_TIERS   = ['common', 'rare', 'epic', 'legendary', 'mythic'];
+const ENTITY_TIER_W  = [59, 28, 10, 2, 1];
+
 const DESC_TEMPLATES = {
   whetstone: 'Whenever an adjacent card is swapped or discarded, Whetstone gains +{mult_per_event} mult permanently. Hands that score a card adjacent to Whetstone score that mult.',
   entourage: 'Hands score +{mult_per_sleight} mult for every other Sleight on the grid.',

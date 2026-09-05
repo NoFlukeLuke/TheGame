@@ -67,8 +67,8 @@ function shopLimitPrice(def) {
 // Picks `count` sleights using weighted rarity tiers: common 60%, rare 28%, epic 10%, legendary 2%.
 // Cascades to lower rarity if the rolled tier has no available sleights.
 function pickSleightByRarity(count, excluded) {
-  const TIER_ORDER   = ['common', 'rare', 'epic', 'legendary', 'mythic'];
-  const TIER_WEIGHTS = [59, 28, 10, 2, 1];
+  const TIER_ORDER   = ENTITY_TIERS;      // js/data/balance.js - one table for every offer path
+  const TIER_WEIGHTS = ENTITY_TIER_W;
   const result = [];
   const usedIds = new Set(excluded);
   for (let i = 0; i < count; i++) {

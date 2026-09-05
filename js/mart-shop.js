@@ -47,8 +47,8 @@ function martCartTotals(cart) {
 
 // ── rarity-weighted picking (same odds as sleights), duplicates ALLOWED ──
 const MART_PER_SHELF = 3;    // owner's spec: 3 Tricks, 3 Knacks, 3 Sleights (Limits matches)
-const MART_TIERS   = ['common','rare','epic','legendary','mythic'];
-const MART_WEIGHTS = [59,28,10,2,1];
+const MART_TIERS   = ENTITY_TIERS;      // js/data/balance.js - one table for every offer path
+const MART_WEIGHTS = ENTITY_TIER_W;
 function martRollTier() { const r = Math.random()*100; let c=0; for (let i=0;i<MART_WEIGHTS.length;i++){ c+=MART_WEIGHTS[i]; if (r<c) return MART_TIERS[i]; } return 'common'; }
 function martPick(pool, tierKey, count) {
   const out = []; if (!pool || !pool.length) return out;

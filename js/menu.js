@@ -1,4 +1,4 @@
-const BUILD = '2026-09-05 · r194 · five more reward-grid penalties: Short Staffed, Interest Freeze, Rider, Dead Drop, Spot Check';
+const BUILD = '2026-09-05 · r195 · one rarity table for every offer path; tricks and knacks draw on it too';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

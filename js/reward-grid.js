@@ -285,8 +285,11 @@ function _generateRewardContent() {
   // a grid guarantees five of them. Sleights had gone through pickSleightByRarity
   // since the shop was written; tricks and knacks never did, which is most of why
   // a reward grid reads as a pile of epics.
-  const TRICK_TIERS = ['common', 'rare', 'epic', 'legendary', 'mythic'];
-  const TRICK_TIER_W = [46, 33, 16, 3.5, 1.5];
+  // Owner's call (r195): tricks and knacks draw on the SAME table as sleights,
+  // rather than the slightly looser one r193 gave them. That is a further
+  // tightening - epic-or-better goes from 21% of a trick tile to 13%.
+  const TRICK_TIERS  = ENTITY_TIERS;
+  const TRICK_TIER_W = ENTITY_TIER_W;
   function pickByRarity(pool, tierOf, weights, tiers) {
     if (!pool.length) return null;
     const total = weights.reduce((a, b) => a + b, 0);
