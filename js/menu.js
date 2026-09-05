@@ -1,4 +1,4 @@
-const BUILD = '2026-09-05 · r196 · Luck: good chances fire more often, better entities turn up';
+const BUILD = '2026-09-05 · r197 · Fortune and Jinx tiles; limit tiles state their real size';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

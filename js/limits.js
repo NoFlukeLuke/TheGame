@@ -11,7 +11,7 @@ const LIMITS_DEF = [
   // Luck 10 is a nudge, 100 doubles every chance effect. Step 5 so a single pick
   // is felt without one upgrade being the whole stat, and weight 0.6 because it
   // touches every entity offer in the game - it should be a chase, not a staple.
-  { id: 'luck',        label: 'Luck',             icon: '🍀', desc: 'Good chance effects fire more often, and better entities turn up', base: 0, max: 100, step: 5, weight: 0.6 },
+  { id: 'luck',        label: 'Luck',             icon: '🍀', desc: 'Good chance effects fire more often, and better entities turn up', base: 0, max: 100, step: 10, weight: 0.6 },
 ];
 const limits = {};
 LIMITS_DEF.forEach(def => {
@@ -33,6 +33,22 @@ function decrementLimit(id) {
   l.current = Math.max(0, l.current - (l.step || 1));
   onLimitChanged(id);
   return true;
+}
+// ── Displaying a limit (r197) ────────────────────────────────────────────────
+// Every limit but Luck is exactly its `current`. Luck also carries luckModifiers
+// - the Fortune / Jinx reward tiles, which move Luck WITHOUT moving the limit so
+// that they can stack past the ceiling and, in Jinx's case, take you below zero
+// (decrementLimit floors at 0, so a limit could never do that).
+//
+// Both readouts - the in-play Limits pop-up and the RECORDS tab - used to print
+// `limits[id].current` directly, which would have made those tiles invisible on
+// the one screen that exists to tell you what your limits are.
+function limitShownValue(id) {
+  const cur = limits[id].current;
+  return (id === 'luck' && typeof luckModifiers === 'number') ? cur + luckModifiers : cur;
+}
+function limitShownDelta(id) {
+  return (id === 'luck' && typeof luckModifiers === 'number') ? luckModifiers : 0;
 }
 // Returns the display string for a limit's progress, respecting hideMax
 function limitProgressStr(id, showNext) {

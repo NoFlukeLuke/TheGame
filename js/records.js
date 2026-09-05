@@ -224,11 +224,22 @@ function recordsRenderLimits() {
     const l = limits[def.id];
     const maxed = l.current >= l.max;
     const pct = def.hideMax ? 100 : Math.round(((l.current - def.base) / Math.max(1, l.max - def.base)) * 100);
+    const shown = limitShownValue(def.id), dl = limitShownDelta(def.id);
+    const dlStr = dl ? ` <span style="color:${dl > 0 ? 'var(--gold)' : 'var(--red)'}">${dl > 0 ? '+' : ''}${dl}</span>` : '';
+    // Luck is the one limit whose number means nothing on its own, so its row
+    // prints the consequence: what a chance effect becomes, and the live rarity
+    // table. Otherwise it is a stat you have to take on faith.
+    let extra = def.desc;
+    if (def.id === 'luck' && typeof luckTierPercents === 'function') {
+      const pc = luckTierPercents();
+      extra = `${def.desc}<br><span style="opacity:.75">Chance effects fire at ×${luckScale().toFixed(2)} · ` +
+              ENTITY_TIERS.map((t, i) => `${t} ${pc[i]}%`).join(' · ') + `</span>`;
+    }
     return `<div class="rec-lim${maxed ? ' maxed' : ''}">
       <div class="rec-lim-top"><span><span class="rec-lim-ico">${def.icon}</span>${def.label}</span>
-        <span class="rec-lim-v">${l.current}${def.hideMax ? '' : `<span class="rec-lim-max">/${l.max}</span>`}${maxed ? ' <b>MAX</b>' : ''}</span></div>
+        <span class="rec-lim-v">${shown}${dlStr}${def.hideMax ? '' : `<span class="rec-lim-max">/${l.max}</span>`}${maxed ? ' <b>MAX</b>' : ''}</span></div>
       <div class="rec-bar-track"><span class="rec-bar-fill" style="width:${Math.max(0, Math.min(100, pct))}%"></span></div>
-      <div class="rec-lim-desc">${def.desc}</div></div>`;
+      <div class="rec-lim-desc">${extra}</div></div>`;
   }).join('');
   return `<div class="rec-note">Operating allowances for this run. Raised at the Mart, by a Limit Break, or as a reward.</div>
     <div class="rec-lims">${rows}</div>`;

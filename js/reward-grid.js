@@ -43,6 +43,16 @@ function _generateRewardContent() {
   // raw weight suggests - the other categories fight over the leftover slots.
   // Prize grid: no common-tier resource tiles, no gamble. Entities and permanent
   // upgrades only - see the PRIZE GRID note at the top of this file.
+  // Fortune / Jinx both move Luck by the same ladder: 5, 10 or 15, rolled at
+  // GENERATION time so the tile states the exact figure before you take it.
+  // They move luckModifiers rather than the limit, which is what lets Jinx push
+  // Luck below zero (decrementLimit floors at 0) and lets Fortune stack past the
+  // ceiling. The limit itself is what the shop, the Mart and a Limit Break sell.
+  const LUCK_STEPS = [5, 10, 15];
+  const _luckAmt = () => LUCK_STEPS[Math.floor(Math.random() * LUCK_STEPS.length)];
+  // Bigger swings are rarer things to meet.
+  const _luckTier = n => (n >= 15 ? 'legendary' : n >= 10 ? 'epic' : 'rare');
+
   const prizeCategories = [
     { weight: 34, kind: 'trick' },
     { weight: 20, kind: 'sleight' },
@@ -50,6 +60,7 @@ function _generateRewardContent() {
     { weight: 16, kind: 'limit_up' },
     { weight: 10, kind: 'blessed' },
     { weight:  4, kind: 'cull' },
+    { weight:  8, kind: 'luck' },
   ];
   const buffCategories = [
     { weight: 40, kind: 'trick' },
@@ -64,6 +75,7 @@ function _generateRewardContent() {
     { weight:  4, kind: 'cull' },
     { weight:  3, kind: 'cleanse' },
     { weight:  3, kind: 'mystery' },
+    { weight:  4, kind: 'luck' },
   ];
   // Hover projections (computed when the grid opens, reflecting current standing debuffs).
   const _proj    = computeRoundResources();
@@ -134,6 +146,12 @@ function _generateRewardContent() {
         apply: () => { pendingEntityLockout = { type: t }; showMessage(`A ${noun} will be suspended next round`, 'var(--red)'); } };
     })(),
     // ── r194 penalties: five that cost you a board, a habit or a Trick's rent ──
+    (() => {
+      const n = _luckAmt();
+      return { weight: 7, perm: true, icon: '🐈‍⬛', label: `-${n} Luck`, tier: 'penalty',
+        desc: `Luck ${luckTotal()} → ${luckTotal() - n}. Chance effects fire less often and worse entities turn up. Permanent, and it can take Luck below zero.`,
+        apply: () => { luckModifiers -= n; showMessage(`-${n} Luck`, 'var(--red)'); } };
+    })(),
     { weight: 7, perm: false, icon: '🧊', label: 'Interest Freeze', tier: 'penalty',
       desc: `No interest paid for the next ${BAL.interest_freeze.rounds} rounds. Leftover-time credits still pay.`,
       apply: () => { interestFreezeRounds += BAL.interest_freeze.rounds; showMessage(`Interest frozen for ${BAL.interest_freeze.rounds} rounds`, 'var(--red)'); } },
@@ -223,9 +241,11 @@ function _generateRewardContent() {
     const _drainable = LIMITS_DEF.filter(d => d.id !== 'round_time' && limits[d.id].current > 1);
     if (_drainable.length) {
       const _dl = pickWeightedLimits(1, _drainable)[0];
-      debuffs.push({ weight: 5, perm: true, icon: '⬇️', label: `-1 ${_dl.label}`, tier: 'penalty',
-        desc: `${_dl.label}: ${limits[_dl.id].current} → ${limits[_dl.id].current - 1} · permanent (limits are precious!)`,
-        apply: () => { decrementLimit(_dl.id); showMessage(`-1 ${_dl.label}`, 'var(--red)'); } });
+      const _dst = limits[_dl.id].step || 1;
+      const _dto = Math.max(0, limits[_dl.id].current - _dst);
+      debuffs.push({ weight: 5, perm: true, icon: '⬇️', label: `-${_dst} ${_dl.label}`, tier: 'penalty',
+        desc: `${_dl.label}: ${limits[_dl.id].current} → ${_dto} · permanent (limits are precious!)`,
+        apply: () => { decrementLimit(_dl.id); showMessage(`-${_dst} ${_dl.label}`, 'var(--red)'); } });
     }
   }
   // Dark mystery: unknown until claimed - mostly bad (weight 6).
@@ -403,9 +423,15 @@ function _generateRewardContent() {
     const eligible = LIMITS_DEF.filter(d => d.id !== 'round_time' && limits[d.id].current < limits[d.id].max);
     if (!eligible.length) return makeTrickPayload();
     const dl = pickWeightedLimits(1, eligible)[0];
-    return { icon: '⬆️', label: `+1 ${dl.label}`, tier: 'epic',
-      desc: `${dl.label}: ${limits[dl.id].current} → ${limits[dl.id].current + 1} · permanent`,
-      apply: () => { incrementLimit(dl.id); showMessage(`+1 ${dl.label}!`, 'var(--gold)'); } };
+    // PRINT THE STEP, not "+1". incrementLimit has always moved a limit by its
+    // `step`, while this tile hardcoded 1 in its label, its before/after and its
+    // toast - so Focus Cap (step 3) has been quietly paying triple what the tile
+    // promised, and Luck (step 10) made it impossible to miss.
+    const _st = limits[dl.id].step || 1;
+    const _to = Math.min(limits[dl.id].max, limits[dl.id].current + _st);
+    return { icon: '⬆️', label: `+${_st} ${dl.label}`, tier: 'epic',
+      desc: `${dl.label}: ${limits[dl.id].current} → ${_to} · permanent`,
+      apply: () => { incrementLimit(dl.id); showMessage(`+${_st} ${dl.label}!`, 'var(--gold)'); } };
   }
 
   // At most this many limit tiles on a prize grid, INCLUDING the guaranteed Limit
@@ -441,6 +467,12 @@ function _generateRewardContent() {
         const t = makeLimitUpPayload();
         if (t && t.icon === '⬆️') _limitTilesThisGrid++;
         return t;
+      }
+      case 'luck': {
+        const n = _luckAmt();
+        return { icon: '🍀', label: `+${n} Luck`, tier: _luckTier(n),
+                 desc: `Luck ${luckTotal()} → ${luckTotal() + n}. Good chance effects fire more often and better entities turn up. Permanent.`,
+                 apply: () => { luckModifiers += n; showMessage(`+${n} Luck`, 'var(--gold)'); } };
       }
       case 'blessed': return makeBlessedPayload();
       case 'cull':    return makeCullPayload();
@@ -648,7 +680,7 @@ function _generateRewardContent() {
     const pool = table.length ? table : debuffs;
     for (let tries = 0; tries < 12; tries++) {
       const cand = weightedPickBy(pool, _wOf);
-      const isOnceKind = cand.cardFace || cand.icon === '⬇️' || cand.tier === 'mystery';
+      const isOnceKind = cand.cardFace || cand.icon === '⬇️' || cand.icon === '🐈‍⬛' || cand.tier === 'mystery';
       if (isOnceKind && usedOnce.has(cand.label)) continue;
       if (isOnceKind) usedOnce.add(cand.label);
       pick = cand; break;

@@ -157,8 +157,11 @@ function updateLimitsPopup() {
   rows.innerHTML = LIMITS_DEF.map(def => {
     const l = limits[def.id];
     const maxed = l.current >= l.max;
-    // hideMax limits (Selection Size) have no meaningful ceiling to show.
-    const right = def.hideMax ? `${l.current}` : `${l.current}<span class="lp-max">/${l.max}</span>`;
+    // Shown value folds in luckModifiers (see limitShownValue); the /max stays on
+    // the LIMIT, which is the part that can actually be maxed out.
+    const shown = limitShownValue(def.id), dl = limitShownDelta(def.id);
+    const dlStr = dl ? ` <span class="lp-max" style="color:${dl > 0 ? 'var(--gold)' : 'var(--red)'}">${dl > 0 ? '+' : ''}${dl}</span>` : '';
+    const right = def.hideMax ? `${shown}${dlStr}` : `${shown}${dlStr}<span class="lp-max">/${l.max}</span>`;
     return `<div class="ic-r lp-r${maxed ? ' lp-maxed' : ''}" title="${def.desc}">` +
            `<span><span class="lp-ico">${def.icon}</span>${def.label}</span>` +
            `<span>${right}</span></div>`;
