@@ -1664,11 +1664,15 @@
   .buff-band.bb-thick { height:4px; }
   .buff-band.bb-tl, .buff-band.bb-br { transform: rotate(-45deg); transform-origin: center; }
   .buff-band.bb-tr, .buff-band.bb-bl { transform: rotate(45deg);  transform-origin: center; }
+  /* Selection lift + swell (r179): ~2px up, 7% bigger. Composed on top of the
+     grid heartbeat's --hb* vars, the way the base .card transform is, so a
+     selected card keeps drifting with the rest of the board instead of
+     freezing the moment it is picked. */
   .card.selected {
     border-color: #4a9eff;
     border-width: 1px;
     box-shadow: 0 0 6px rgba(74,158,255,0.5);
-    transform: translateY(-5px) rotate(var(--frzr,0deg)) scale(1.02);
+    transform: translate(var(--hbx,0), calc(var(--hby,0px) - 2px)) rotate(calc(var(--hbr,0deg) + var(--frzr,0deg))) scale(calc(var(--hbs,1) * 1.07));
   }
   .card.selected.hand-valid {
     border-color: #4a9eff !important;
@@ -1683,8 +1687,8 @@
     animation: handReadyPulse 0.7s ease-in-out infinite alternate;
   }
   @keyframes handReadyPulse {
-    from { transform: translateY(-5px) scale(1.02); box-shadow: 0 0 6px rgba(74,158,255,0.4); }
-    to   { transform: translateY(-7px) scale(1.07); box-shadow: 0 0 14px rgba(74,158,255,0.7); }
+    from { transform: translate(var(--hbx,0), calc(var(--hby,0px) - 2px)) rotate(calc(var(--hbr,0deg) + var(--frzr,0deg))) scale(calc(var(--hbs,1) * 1.07)); box-shadow: 0 0 6px rgba(74,158,255,0.4); }
+    to   { transform: translate(var(--hbx,0), calc(var(--hby,0px) - 4px)) rotate(calc(var(--hbr,0deg) + var(--frzr,0deg))) scale(calc(var(--hbs,1) * 1.10)); box-shadow: 0 0 14px rgba(74,158,255,0.7); }
   }
   @keyframes handPulse {
     from { border-width: 1px; box-shadow: 0 0 6px rgba(74,158,255,0.4); }
@@ -4465,8 +4469,45 @@
   border-color: #4a9eff !important;
   box-shadow: 0 0 0 2px rgba(74,158,255,0.55), 0 0 16px 2px rgba(74,158,255,0.65),
               inset 0 0 16px -6px rgba(74,158,255,0.9) !important;
-  transform: translate(var(--hbx,0), calc(var(--hby,0px) - 5px)) rotate(calc(var(--hbr,0deg) + var(--frzr,0deg))) scale(calc(var(--hbs,1) * 1.03));
+  transform: translate(var(--hbx,0), calc(var(--hby,0px) - 2px)) rotate(calc(var(--hbr,0deg) + var(--frzr,0deg))) scale(calc(var(--hbs,1) * 1.07));
   z-index: 8;
+}
+/* Selecting a Sleight now reads EXACTLY like selecting any other card (r179).
+   These three states are the ones a grid Sleight never had: the board would
+   tell you a hand was valid or ready to play on every card except the Sleight
+   sitting in it, and an out-of-reach Sleight looked fully available. */
+.trick-card.sleight-card.selected.hand-ready {
+  animation: handReadyPulse 0.7s ease-in-out infinite alternate;
+}
+.trick-card.sleight-card.unreachable { opacity: 0.28; cursor: default; }
+/* Double-tapping a Sleight arms a swap, same as any card - but .card.swap-pending
+   never matched (a grid Sleight is .trick-card, not .card) and the rarity rule
+   below repainted the edge anyway, so the tile looked untouched and the only
+   thing that visibly changed was the selection number vanishing. */
+.trick-card.sleight-card.swap-pending {
+  border-color: #9b59b6 !important;
+  box-shadow: 0 0 0 2px #9b59b6, 0 0 14px rgba(155,89,182,0.55),
+              inset 0 0 16px -6px rgba(155,89,182,0.9) !important;
+  transform: translate(var(--hbx,0), calc(var(--hby,0px) - 2px)) rotate(calc(var(--hbr,0deg) + var(--frzr,0deg))) scale(calc(var(--hbs,1) * 1.07));
+  z-index: 8;
+}
+/* Used up but still on the board (Stopwatch out of freeze, Dazed/Pivot locked
+   for the round). It can still be played or discarded, so it is dimmed rather
+   than hidden - and the rarity glow goes, since there is nothing left to spend. */
+.trick-card.sleight-card.sleight-spent:not(.selected):not(.swap-pending) {
+  filter: grayscale(0.85);
+  opacity: 0.55;
+  box-shadow: none !important;
+}
+/* Fired. The tile spins horizontally in place before it leaves the grid. */
+@keyframes sleight-spin {
+  0%   { transform: translate(var(--hbx,0), var(--hby,0)) perspective(500px) rotateY(0deg) scale(var(--hbs,1)); }
+  55%  { transform: translate(var(--hbx,0), var(--hby,0)) perspective(500px) rotateY(360deg) scale(calc(var(--hbs,1) * 1.12)); }
+  100% { transform: translate(var(--hbx,0), var(--hby,0)) perspective(500px) rotateY(720deg) scale(var(--hbs,1)); }
+}
+.trick-card.sleight-card.sl-spin {
+  animation: sleight-spin 420ms cubic-bezier(0.4,0,0.25,1) both;
+  z-index: 12;
 }
 .trick-card.sleight-card.selected .sel-num {
   position: absolute; bottom: 3%; right: 4%; top: auto; left: auto; z-index: 6;
@@ -4485,7 +4526,9 @@
 .sleight-card.sl-rar-legendary { --sl-rc: var(--c-yellow,#ffce2b); }
 .sleight-card.sl-rar-mythic    { --sl-rc: var(--c-magenta,#ff2f8e); }
 .sleight-card.sl-rar-fixture   { --sl-rc: var(--c-coral,#ff6a3c); }
-.trick-card.sleight-card:not(.selected) {
+/* Rarity edge is the RESTING look only - it must not repaint the selected or
+   swap-armed states, which sit earlier in this file and would lose the tie. */
+.trick-card.sleight-card:not(.selected):not(.swap-pending) {
   border-color: var(--sl-rc, #8844cc) !important;
   box-shadow: 0 0 9px -1px var(--sl-rc, #8844cc), inset 0 0 14px -6px var(--sl-rc, #8844cc);
 }

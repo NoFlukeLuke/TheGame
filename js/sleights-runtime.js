@@ -123,9 +123,45 @@ function lockSleightForRound(card) {
 // hand would leave a permanent gap). Fire-and-forget, mirroring doDiscard.
 function discardSleightAfterUse(card, r, c) {
   if (!card) return;
-  if (typeof card._usesLeft === 'number') card._usesLeft--;
-  discardToPlayed(card);                 // back into circulation with charges left (or dropped if spent)
-  removeAndFall([[r, c]], 'discard');    // slide it out + gravity-refill the cell
+  // Spin first, then leave. The spin IS the "it fired" feedback for every
+  // double-tap sleight (r179), so it lives here rather than at the six call
+  // sites; removeAndFall's fly-out would paint over it if they overlapped.
+  spinSleightTile(r, c, () => {
+    if (typeof card._usesLeft === 'number') card._usesLeft--;
+    discardToPlayed(card);                 // back into circulation with charges left (or dropped if spent)
+    removeAndFall([[r, c]], 'discard');    // slide it out + gravity-refill the cell
+  });
+}
+
+// ── Double-tap spin (r179) ────────────────────────────────────────────────
+// A double-tap sleight used to fire with no feedback on the tile itself: the
+// only sign was the message line. It now spins horizontally in place. The
+// class is re-applied by render() (which rewrites className every repaint), so
+// a repaint mid-spin can't cut the animation short.
+const SLEIGHT_SPIN_MS = 420;
+let sleightSpinLock = false;   // taps are ignored while a tile is spinning
+function spinSleightTile(r, c, done) {
+  const el = document.querySelector(`#grid .sleight-card[data-row="${r}"][data-col="${c}"]`);
+  if (!el) { if (done) done(); return; }
+  sleightSpinLock = true;
+  el.classList.add('sl-spin');
+  setTimeout(() => {
+    sleightSpinLock = false;
+    el.classList.remove('sl-spin');
+    if (done) done();
+  }, SLEIGHT_SPIN_MS);
+}
+
+// A sleight that can no longer be activated but is still sitting on the grid.
+// Only the ACTIVE kinds can go inert this way: double_tap (Stopwatch, once its
+// freeze budget is gone) and on_swap (Dazed / Pivot, which lock for the round
+// rather than leaving). Passive / wildcard / on_play / adjacent sleights work
+// by being there, so they are never "spent".
+function sleightIsSpent(card, def) {
+  if (!card || !def) return false;
+  if (def.activation !== 'double_tap' && def.activation !== 'on_swap') return false;
+  if (typeof card._usesLeft === 'number' && card._usesLeft <= 0) return true;
+  return def.activation === 'on_swap' && !!card._usedThisRound;
 }
 
 // ── Exalt / Corrupt helpers ──

@@ -1,4 +1,4 @@
-const BUILD = '2026-09-05 · r194 · upgrade events: The Bench, Rehearsal, The Workshop';
+const BUILD = '2026-09-05 · r195 · sleights select like any other card · 2px lift + 7% swell on selection · double-tap spin';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
