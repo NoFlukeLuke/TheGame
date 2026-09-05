@@ -17,7 +17,7 @@ function showDeck() {
       const uses = card._usesLeft === 'infinite' ? '∞' : card._usesLeft;
       return `<span class="deck-chip deck-chip-sleight${stateClass}" title="${def?.name||'Sleight'}: ${def?.desc||''} (${uses} uses)">${def?.emoji||'🃏'}</span>`;
     }
-    const k = cardKey(card.rank, card.suit);
+    const k = cardId(card);
     const pp = permPips[k] || 0;
     const pm = permMult[k] || 0;
     const stateClass = state === 'present' ? ' dc-present' : state === 'past' ? ' dc-past' : '';

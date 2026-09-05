@@ -103,8 +103,7 @@ function _generateRewardContent() {
   // Cursed-card debuff: afflicts one specific shown card (weight 10; only if an
   // un-cursed identity exists). Card is pre-picked so the tile shows exactly it.
   {
-    const _uncursed = [];
-    ACTIVE_RANKS.forEach(rank => ACTIVE_SUITS.forEach(suit => { if (!cardCurses[cardKey(rank, suit)]) _uncursed.push({ rank, suit }); }));
+    const _uncursed = everyDeckCard().filter(c => !cardCurses[cardId(c)]);
     if (_uncursed.length) {
       const _victim = _uncursed[Math.floor(Math.random() * _uncursed.length)];
       const _cids = Object.keys(CURSE_DEFS);
@@ -112,7 +111,8 @@ function _generateRewardContent() {
       debuffs.push({ weight: 10, icon: CURSE_DEFS[_cid].icon, label: `${CURSE_DEFS[_cid].name} Curse`, tier: 'penalty',
         cardFace: { rank: _victim.rank, suit: _victim.suit },
         desc: `${_victim.rank}${_victim.suit} is cursed - ${CURSE_DEFS[_cid].desc}`,
-        apply: () => { cardCurses[cardKey(_victim.rank, _victim.suit)] = { id: _cid, left: CURSE_DEFS[_cid].liftAfter }; showMessage(`${_victim.rank}${_victim.suit} cursed: ${CURSE_DEFS[_cid].name}`, '#9b59b6'); } });
+        apply: () => { const v = resolveDeckCard(_victim); if (!v) return;
+          cardCurses[cardId(v)] = { id: _cid, left: CURSE_DEFS[_cid].liftAfter }; showMessage(`${v.rank}${v.suit} cursed: ${CURSE_DEFS[_cid].name}`, '#9b59b6'); } });
     }
   }
   // Limit-drain debuff: -1 to a shown limit (weight 5; only if something is drainable).
@@ -236,16 +236,20 @@ function _generateRewardContent() {
 
   // Blessed-card buff: a specific shown card gains a permanent bonus.
   function makeBlessedPayload() {
-    const rank = ACTIVE_RANKS[Math.floor(Math.random() * ACTIVE_RANKS.length)];
-    const suit = ACTIVE_SUITS[Math.floor(Math.random() * ACTIVE_SUITS.length)];
+    // ONE card out of the run, not one rank+suit: a blessing lands on the card the
+    // tile names and on no other copy of it.
+    const _all = everyDeckCard();
+    if (!_all.length) return null;
+    const card = _all[Math.floor(Math.random() * _all.length)];
+    const rank = card.rank, suit = card.suit;
     const mult = Math.random() < 0.3; // 30% of blessings are the (stronger) +1 mult
     return mult
       ? { icon: '✨', label: 'Blessed Card', tier: 'epic', cardFace: { rank, suit },
           desc: `${rank}${suit} permanently gains +1 mult when scored.`,
-          apply: () => { const k = cardKey(rank, suit); permMult[k] = (permMult[k] || 0) + 1; showMessage(`${rank}${suit} blessed: +1 mult`, 'var(--gold)'); } }
+          apply: () => { const t = resolveDeckCard(card); if (!t) return; const k = cardId(t); permMult[k] = (permMult[k] || 0) + 1; showMessage(`${rank}${suit} blessed: +1 mult`, 'var(--gold)'); } }
       : { icon: '✨', label: 'Blessed Card', tier: 'rare', cardFace: { rank, suit },
           desc: `${rank}${suit} permanently gains +12 pips.`,
-          apply: () => { const k = cardKey(rank, suit); permPips[k] = (permPips[k] || 0) + 12; showMessage(`${rank}${suit} blessed: +12 pips`, 'var(--gold)'); } };
+          apply: () => { const t = resolveDeckCard(card); if (!t) return; const k = cardId(t); permPips[k] = (permPips[k] || 0) + 12; showMessage(`${rank}${suit} blessed: +12 pips`, 'var(--gold)'); } };
   }
   // Cull buff: deck thinning - a specific low card leaves the run for good.
   function makeCullPayload() {
@@ -301,14 +305,14 @@ function _generateRewardContent() {
         if (t && t.icon === '⬆️') _limitTilesThisGrid++;
         return t;
       }
-      case 'blessed': return makeBlessedPayload();
+      case 'blessed': return makeBlessedPayload() || makeTrickPayload();
       case 'cull':    return makeCullPayload();
       case 'cleanse':
         // Only meaningful if something is cursed; otherwise fall back to a Trick
         if (!Object.keys(cardCurses).length) return makeTrickPayload();
         return { icon: '🕊️', label: 'Cleanse', tier: 'rare',
                  desc: 'Lift one random curse from your deck.',
-                 apply: () => { const _cl = cleanseRandomCurse(); showMessage(_cl ? `Curse lifted: ${_cl.key.replace('-', '')}` : 'No curses to lift', '#54af88'); } };
+                 apply: () => { const _cl = cleanseRandomCurse(); showMessage(_cl ? `Curse lifted: ${_cl.face}` : 'No curses to lift', '#54af88'); } };
       case 'mystery': return { icon: '❓', label: 'Mystery', tier: 'mystery',
                                desc: 'Unknown until claimed. Probably good… probably.',
                                _mystery: true, _goodChance: 0.7,
@@ -464,9 +468,11 @@ function rollRewardMystery(goodChance) {
       apply:()=>{ nextRoundDiscardDelta += 2; showMessage('Mystery: +2 discards next round!', 'var(--gold)'); } };
     if (roll === 3) return { good, icon:'⏱', label:'+25s Round', flyTo:'clock', desc:'Next round starts with +25 seconds.',
       apply:()=>{ nextRoundSecondsDelta += 25; showMessage('Mystery: +25s next round!', 'var(--gold)'); } };
-    const rank = ACTIVE_RANKS[Math.floor(Math.random()*ACTIVE_RANKS.length)], suit = ACTIVE_SUITS[Math.floor(Math.random()*ACTIVE_SUITS.length)];
+    const _all = everyDeckCard();
+    const _c = _all.length ? _all[Math.floor(Math.random()*_all.length)] : null;
+    const rank = _c ? _c.rank : '?', suit = _c ? _c.suit : '';
     return { good, icon:'✨', label:`Blessed ${rank}${suit}`, flyTo:'deck', desc:`${rank}${suit} permanently gains +10 pips.`,
-      apply:()=>{ const k = cardKey(rank, suit); permPips[k] = (permPips[k]||0)+10; showMessage(`Mystery: ${rank}${suit} +10 pips!`, 'var(--gold)'); } };
+      apply:()=>{ const t = resolveDeckCard(_c); if (!t) return; const k = cardId(t); permPips[k] = (permPips[k]||0)+10; showMessage(`Mystery: ${rank}${suit} +10 pips!`, 'var(--gold)'); } };
   }
   const roll = Math.floor(Math.random() * 5);
   if (roll === 0) return { good, icon:'💸', label:'-8 Credits', flyTo:'coins', desc:'Lose 8 credits.',
@@ -699,7 +705,7 @@ function applyRewardPipsCard() {
   }
   if (cells.length === 0) return;
   const card = cells[Math.floor(Math.random() * cells.length)];
-  const k = cardKey(card.rank, card.suit);
+  const k = cardId(card);
   permPips[k] = (permPips[k] || 0) + 10;
   render();
   showMessage('+10 PIPS', 'var(--gold)');

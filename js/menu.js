@@ -1,4 +1,4 @@
-const BUILD = '2026-09-03 · r191 · SPECTRUM: white cards buff and curse independently [onto r190]';
+const BUILD = '2026-09-05 · r192 · card identity: buffs, curses and services target one card, not every card sharing its face';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

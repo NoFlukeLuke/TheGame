@@ -159,7 +159,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     if (hasTrick('ten_strong') && baseRank === '10') { cp += BAL.ten_strong.pips; bPip('ten_strong', BAL.ten_strong.pips); }
     if (hasTrick('king_guard') && (baseRank === 'K' || baseRank === 'J')) { cp += BAL.king_guard.pips; bPip('king_guard', BAL.king_guard.pips); }
     if (hasTrick('dark_matter') && card._corrupted) { cp += BAL.dark_matter.pips; bPip('dark_matter', BAL.dark_matter.pips); }
-    const _eKey = cardKey(card.rank, card.suit);
+    const _eKey = cardId(card);
     const _pp = permPips[_eKey] || 0;
     cp += _pp;
     bPip('sapling', _pp);
@@ -415,13 +415,13 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
 
   // Perm mult (per-card buff → fires once per replay)
   cards.forEach((card, i) => {
-    const _pm = (permMult[cardKey(card.rank, card.suit)] || 0) * _reps[i];
+    const _pm = (permMult[cardId(card)] || 0) * _reps[i];
     mult += _pm;
     bMult('perm_mult', _pm);
   });
   // Permanent ×mult enhancement (The Forge / Bargain / Wager events) - applied once per replay
   cards.forEach((card, i) => {
-    const _xm = permXMult[cardKey(card.rank, card.suit)] || 1;
+    const _xm = permXMult[cardId(card)] || 1;
     if (_xm !== 1) {
       const _preXm = mult; mult *= Math.pow(_xm, _reps[i]); bMult('perm_mult', mult - _preXm);
       // Ledger: attribute this card's ×mult to it so the dance releases it per-card (not the end
@@ -431,7 +431,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   });
   // Old Growth: each scored card also adds its permanent pip bonus to mult (per replay)
   if (hasTrick('old_growth')) {
-    cards.forEach((card, i) => { const _og = (permPips[cardKey(card.rank, card.suit)] || 0) * _reps[i]; if (_og) { mult += _og; bMult('old_growth', _og); } });
+    cards.forEach((card, i) => { const _og = (permPips[cardId(card)] || 0) * _reps[i]; if (_og) { mult += _og; bMult('old_growth', _og); } });
   }
   // Magician: +3 mult per Sleight owned
   if (hasTrick('magician')) { const _a = ownedSleightCount() * BAL.magician.mult_per_sleight; if (_a) { mult += _a; bMult('magician', _a); } }
@@ -601,7 +601,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     for (let _gr = 0; _gr < gridRows; _gr++) for (let _gc = 0; _gc < gridCols; _gc++) {
       const _cc = gridData[_gr]?.[_gc];
       if (!_cc || _cc._isSleight || _cc._isTrick || _cc._isStone) continue;
-      const _k = cardKey(_cc.rank, _cc.suit);
+      const _k = cardId(_cc);
       if ((permPips[_k] || 0) > 0 || (permMult[_k] || 0) > 0) _buffed++;
     }
     if (_buffed > 0) {
@@ -740,8 +740,8 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // deltas to each card (these are computed post-loop, so they're not in the loop's pip diff).
   if (ledger && _ledgerCells) {
     _ledgerCells.forEach(e => {
-      const _k = cardKey(e.rank, e.suit);
       const card = e.card;
+      const _k = cardId(card);
       const addM = (id, d) => { if (d) e.multT[id] = (e.multT[id] || 0) + d; };
       const _isHeart = e.suit === '♥' || (card && card.combined && card.suit2 === '♥');
       if (hasTrick('heart_double') && _isHeart) addM('heart_double', BAL.heart_double.heart_mult);

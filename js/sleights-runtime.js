@@ -321,7 +321,7 @@ function fireSleightsOnPlay(selectedCells, handCells, hand) {
         if (hr === r && hc === c) return; // skip the sleight itself
         const hc2 = gridData[hr]?.[hc];
         if (hc2 && !hc2._isSleight && !hc2._isTrick && hc2.rank) {
-          const k = cardKey(hc2.rank, hc2.suit);
+          const k = cardId(hc2);
           permPips[k] = (permPips[k] || 0) + BAL.the_naturalist.pips;
           buffed++;
         }
@@ -346,7 +346,7 @@ function fireSleightsOnSwap(r1, c1, r2, c2) {
     if (def.id === 'lightning_rod') {
       const other = gridData[or2]?.[oc2];
       if (other && !other._isSleight && !other._isTrick && other.rank) {
-        const k = cardKey(other.rank, other.suit);
+        const k = cardId(other);
         permPips[k] = (permPips[k] || 0) + BAL.lightning_rod.pips;
         showMessage('⚡ Lightning Rod - +5 pips!', '#ffd700');
         render();
@@ -354,7 +354,7 @@ function fireSleightsOnSwap(r1, c1, r2, c2) {
     } else if (def.id === 'the_catalyst') {
       const other = gridData[or2]?.[oc2];
       if (other && !other._isSleight && !other._isTrick && other.rank) {
-        const k = cardKey(other.rank, other.suit);
+        const k = cardId(other);
         permMult[k] = (permMult[k] || 0) + BAL.the_catalyst.mult;
         showMessage('🧪 Catalyst - +1 perm mult!', '#cc88ff');
         render();
@@ -437,7 +437,7 @@ function applySleightGridEffect(id, r, c) {
         for (let _c = 0; _c < gridCols; _c++) {
           const _card = gridData[_r]?.[_c];
           if (_card && !_card._isSleight && !_card._isTrick && !_card._isStone && _card.rank) {
-            const _k = cardKey(_card.rank, _card.suit);
+            const _k = cardId(_card);
             permPips[_k] = (_k in permPips ? permPips[_k] : 0) + BAL.the_bomb.pips;
             _cnt++;
           }
@@ -559,7 +559,7 @@ function showCardTooltip(r, c) {
   if (card._isTrick)    { showTrickTooltip(card.trick, true); return; }
   if (card._isSleight) { showSleightGridTooltip(r, c, card); return; }
   // Normal card - show enhancement tooltip only if something to show
-  const k  = cardKey(card.rank, card.suit);
+  const k  = cardId(card);
   const pp = permPips[k]   || 0;
   const pm = permMult[k]   || 0;
   const xp = permXPips[k]  || 1;

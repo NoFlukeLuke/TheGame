@@ -76,47 +76,67 @@ function renderRecords() {
 // which of my cards are buffed. It is a rank × suit matrix - every cell is one card
 // of the deck, coloured by where that card currently is (draw pile / grid / played),
 // and flagged if it carries permanent pips or mult.
+// The matrix is a rank x suit view, but a rank+suit is no longer necessarily ONE
+// card - the shop's Duplicate service makes a second copy of the same face. So the
+// census aggregates the real cards into each cell: how many there are, where they
+// are, and whether ANY of them carries a buff.
+// `where` for a cell is the most present copy (on the board beats in the pile beats
+// played), because "can I still draw this" is the question the matrix answers.
 function recordsDeckCensus() {
-  const where = {};                      // cardKey → 'draw' | 'grid' | 'played'
-  const add = (c, w) => { if (c && c.rank && !c._isSleight) where[cardKey(c.rank, c.suit)] = w; };
+  const cells = {};                      // cardKey (rank+suit) → cell summary
+  const rank = { grid: 3, draw: 2, played: 1 };
+  const add = (c, w) => {
+    if (!c || !c.rank || c._isSleight) return;
+    const t = cardKey(c.rank, c.suit);
+    const cell = cells[t] || (cells[t] = { n: 0, where: null, draw: 0, pips: 0, mult: 0, cursed: false });
+    const id = cardId(c);
+    cell.n++;
+    if (w === 'draw') cell.draw++;
+    if (!cell.where || rank[w] > rank[cell.where]) cell.where = w;
+    cell.pips  = Math.max(cell.pips, permPips[id] || 0);
+    cell.mult  = Math.max(cell.mult, permMult[id] || 0);
+    if (cardCurses[id]) cell.cursed = true;
+  };
   drawPile.forEach(c => add(c, 'draw'));
   playedPile.forEach(c => add(c, 'played'));
   for (let r = 0; r < gridRows; r++)
     for (let c = 0; c < gridCols; c++) add(gridData[r]?.[c], 'grid');
-  return where;
+  return cells;
 }
 
 function recordsRenderDeck() {
   const where = recordsDeckCensus();
   const suits = (typeof ACTIVE_SUITS !== 'undefined' && ACTIVE_SUITS.length) ? ACTIVE_SUITS : SUITS;
   const counts = { draw: 0, grid: 0, played: 0 };
-  Object.values(where).forEach(w => { if (counts[w] !== undefined) counts[w]++; });
+  Object.values(where).forEach(cell => { if (counts[cell.where] !== undefined) counts[cell.where] += cell.n; });
 
   // Rank × suit matrix.
   const head = `<div class="rec-deck-row rec-deck-head"><span class="rec-deck-corner"></span>` +
     ACTIVE_RANKS.map(r => `<span class="rec-deck-rank">${r}</span>`).join('') + `</div>`;
   const rows = suits.map(s => {
     const cells = ACTIVE_RANKS.map(rk => {
-      const k = cardKey(rk, s);
-      const w = where[k];
-      const pp = permPips[k] || 0, pm = permMult[k] || 0;
+      const cell = where[cardKey(rk, s)];
+      const w  = cell ? cell.where : null;
+      const pp = cell ? cell.pips : 0, pm = cell ? cell.mult : 0;
       // Spectrum's white values sit in the row of the colour that owns them (each
-      // one is still its own card) — tint the cell so it reads as colourless.
+      // one is still its own card) - tint the cell so it reads as colourless.
       const cls = ['rec-deck-cell', w ? 'w-' + w : 'w-gone', pp ? 'has-pip' : '', pm ? 'has-mult' : '',
                    isWhiteRankValue(rk) ? 'rec-white' : ''].filter(Boolean).join(' ');
-      const tip = `${rk}${s} — ${w === 'draw' ? 'in draw pile' : w === 'grid' ? 'on the board' : w === 'played' ? 'played (returns next round)' : 'not in deck'}` +
-                  `${pp ? ` · +${pp} pips` : ''}${pm ? ` · +${pm} mult` : ''}`;
-      const marks = (pp ? '<i class="rec-m rec-m-p"></i>' : '') + (pm ? '<i class="rec-m rec-m-m"></i>' : '');
+      const dup = cell && cell.n > 1 ? ` (x${cell.n} in the run)` : '';
+      const tip = `${rk}${s} - ${w === 'draw' ? 'in draw pile' : w === 'grid' ? 'on the board' : w === 'played' ? 'played (returns next round)' : 'not in deck'}${dup}` +
+                  `${pp ? ` · +${pp} pips` : ''}${pm ? ` · +${pm} mult` : ''}${cell && cell.cursed ? ' · cursed' : ''}`;
+      const marks = (pp ? '<i class="rec-m rec-m-p"></i>' : '') + (pm ? '<i class="rec-m rec-m-m"></i>' : '')
+                  + (cell && cell.n > 1 ? `<i class="rec-dup">${cell.n}</i>` : '');
       return `<span class="${cls}" title="${tip}">${rk}${marks}</span>`;
     }).join('');
-    const remaining = ACTIVE_RANKS.filter(rk => where[cardKey(rk, s)] === 'draw').length;
+    const remaining = ACTIVE_RANKS.reduce((n, rk) => n + (where[cardKey(rk, s)]?.draw || 0), 0);
     return `<div class="rec-deck-row">
       <span class="rec-deck-suit ${suitClass(s)}">${s}<b>${remaining}</b></span>${cells}</div>`;
   }).join('');
 
   // Remaining-by-rank bar (what is still drawable) - the planning tool.
   const rankBars = ACTIVE_RANKS.map(rk => {
-    const left = suits.filter(s => where[cardKey(rk, s)] === 'draw').length;
+    const left = suits.reduce((n, s) => n + (where[cardKey(rk, s)]?.draw || 0), 0);
     const pct = Math.round((left / suits.length) * 100);
     return `<div class="rec-bar"><span class="rec-bar-l">${rk}</span>
       <span class="rec-bar-track"><span class="rec-bar-fill" style="width:${pct}%"></span></span>

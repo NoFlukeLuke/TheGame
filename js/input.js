@@ -100,7 +100,7 @@ function doSwap(r1, c1, r2, c2) {
     [[r1,c1],[r2,c2]].forEach(([r,c]) => {
       const card = gridData[r][c];
       if (card && !card._isSleight && card.rank) {
-        const k = cardKey(card.rank, card.suit);
+        const k = cardId(card);
         permMult[k] = (permMult[k] || 0) + BAL.pivot.mult;
       }
     });

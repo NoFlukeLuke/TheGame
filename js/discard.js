@@ -253,7 +253,7 @@ function handleClockMarks(secs) {
       }
       if (spots.length) {
         const card = spots[Math.floor(Math.random() * spots.length)];
-        const k = cardKey(card.rank, card.suit);
+        const k = cardId(card);
         permRetrig[k] = (permRetrig[k] || 0) + 1;
         showMessage(`⏳ Hourglass - ${card.rank}${card.suit} gains a retrigger`, '#e8c56b');
         if (!animating && !falling) render();

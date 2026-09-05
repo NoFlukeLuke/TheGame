@@ -29,7 +29,9 @@
 // hand-written assignments that would silently rot as the game grows.
 
 const SAVE_KEY     = 'letheSavedRun';
-const SAVE_VERSION = 1;
+// v2 (r192): the per-card maps are keyed by card id instead of "rank-suit".
+// A v1 save is still accepted and migrated on resume (see migrateCardKeysToIds).
+const SAVE_VERSION = 2;
 
 const geval = eval; // indirect - evaluates in global scope, sees `let` globals
 
@@ -54,6 +56,7 @@ const SAVE_VARS = [
   'goalReachedThisRound', 'roundEnded', 'suppressScoreDisplay', 'heldBackScore',
   // ── Deck & board ──
   'drawPile', 'playedPile', 'gridData', 'gridRows', 'gridCols', 'expectedDeckTotal', 'ACTIVE_SUITS', 'ACTIVE_RANKS',
+  '_cardIdCounter',   // cards carry ids now; without this a resumed run reissues ids already in play
   // ── Clock & resources ──
   'roundSeconds', 'gameSeconds', 'roundStartSeconds', 'swaps', 'discards',
   'accumulatedSwaps', 'accumulatedDiscards', 'accumulatedSeconds',
@@ -197,7 +200,8 @@ function readSavedRun() {
   if (!raw) return null;
   try {
     const s = JSON.parse(raw);
-    if (!s || s.v !== SAVE_VERSION || !s.state || !s.meta) return null;
+    if (!s || !s.state || !s.meta) return null;
+    if (s.v !== SAVE_VERSION && s.v !== 1) return null;   // v1 is migrated on resume
     return s;
   } catch (e) { return null; }
 }
@@ -231,6 +235,7 @@ function resumeSavedRun() {
   _restoringSave = true;
   startGame();                    // clean baseline: every global at a known value
   applySavedState(save.state);
+  if (save.v < 2) migrateCardKeysToIds();
   _restoringSave = false;
 
   // The board came out of the save, so the grid has to be re-measured (a saved
@@ -259,6 +264,22 @@ function resumeSavedRun() {
   startRoundTimer();
   captureRunCheckpoint();
   return true;
+}
+
+// A save written before r192 keys every per-card map by "rank-suit". Re-key them
+// onto the cards themselves. Where a face has more than one card (a duplicate), all
+// of them inherit the buff, which is exactly what the old save meant by it - so a
+// resumed run loses nothing and nothing gets worse.
+function migrateCardKeysToIds() {
+  const maps = [permPips, permMult, permXPips, permXMult, permRetrig,
+                cardCurses, cardPlayCount, cardSwapCount, cardDealtCount];
+  const olds = maps.map(m => ({ ...m }));
+  maps.forEach(m => Object.keys(m).forEach(k => delete m[k]));
+  everyDeckCard().forEach(card => {
+    const face = cardKey(card.rank, card.suit);
+    const id   = cardId(card);
+    maps.forEach((m, i) => { if (face in olds[i]) m[id] = olds[i][face]; });
+  });
 }
 
 function applySavedState(state) {

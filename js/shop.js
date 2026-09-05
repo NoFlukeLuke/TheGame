@@ -431,13 +431,15 @@ function openSvcPicker(title, sub, source, maxSelect, onConfirm) {
 
   // Deck cards (future + past, deduplicated by key)
   if (source === 'deck' || source === 'both') {
+    // Deduped per CARD, not per rank+suit: a duplicated 7 of spades is two cards
+    // and both have to be pickable, or a service could not target the copy.
     const seen = new Set();
     // Mark grid cards as seen so deck section shows only off-grid cards
     for (let r = 0; r < gridRows; r++)
       for (let c = 0; c < gridCols; c++)
-        if (gridData[r][c] && !gridData[r][c]._isTrick) seen.add(cardKey(gridData[r][c].rank, gridData[r][c].suit));
+        if (gridData[r][c] && !gridData[r][c]._isTrick) seen.add(cardId(gridData[r][c]));
     [...drawPile].forEach(card => {
-      const k = cardKey(card.rank, card.suit);
+      const k = cardId(card);
       if (!seen.has(k)) { seen.add(k); allCards.push({ ...card, loc: 'deck' }); }
     });
   }
@@ -460,7 +462,7 @@ function openSvcPicker(title, sub, source, maxSelect, onConfirm) {
       row.innerHTML = `<span class="svc-suit-label ${suitClass(card.suit)}" style="font-size:13px">${card.suit}</span><hr style="flex:1;border:none;border-top:1px solid rgba(255,255,255,0.1)">`;
       grid.appendChild(row);
     }
-    const k = cardKey(card.rank, card.suit);
+    const k = cardId(card);
     const pp = permPips[k] || 0;
     const pm = permMult[k] || 0;
     const isCombined = !!card.combined;
@@ -517,10 +519,13 @@ document.getElementById('svc-remove-btn').addEventListener('click', () => {
       shopPurchaseCount.remove++;
       shopSvcUsed.remove++;
       expectedDeckTotal--;
-      const { rank, suit, loc, r, c } = picked[0];
+      const { loc, r, c } = picked[0];
+      // By card id, not by face: a duplicated card is two cards, and removing one
+      // used to filter BOTH out of the pile.
+      const _rid = cardId(picked[0]);
       if (loc === 'deck') {
-        drawPile = drawPile.filter(card => !(card.rank === rank && card.suit === suit));
-        playedPile = playedPile.filter(card => !(card.rank === rank && card.suit === suit));
+        drawPile   = drawPile.filter(card => cardId(card) !== _rid);
+        playedPile = playedPile.filter(card => cardId(card) !== _rid);
       } else {
         const drawn = drawCard();
         gridData[r][c] = drawn || gridData[r][c]; // keep existing if deck empty
@@ -610,10 +615,13 @@ function applySuitChange(pickedCards) {
             if (card.loc === 'grid') {
               gridData[card.r][card.c] = { ...gridData[card.r][card.c], suit: newSuit };
             } else {
-              const updateInDeck = (deck) => deck.map(c =>
-                c.rank === card.rank && c.suit === card.suit ? { ...c, suit: newSuit } : c
-              );
-              drawPile = updateInDeck(drawPile);
+              // Match on card id so only the picked copy is re-suited. The id is
+              // carried over, so the card keeps the buffs it had - it is the same
+              // physical card, wearing a different colour.
+              const _sid = cardId(card);
+              const updateInDeck = (deck) => deck.map(c => cardId(c) === _sid ? { ...c, suit: newSuit } : c);
+              drawPile   = updateInDeck(drawPile);
+              playedPile = updateInDeck(playedPile);
             }
           });
           render();
@@ -657,18 +665,19 @@ document.getElementById('svc-combine-btn').addEventListener('click', () => {
         gridData[b.r][b.c] = drawCard() || null;
         render();
       } else {
+        // By id, so combining two copies of one face consumes exactly those two.
+        const _aid = cardId(a), _bid = cardId(b);
         let removedA = false, removedB = false;
         drawPile = drawPile.filter(c => {
-          if (!removedA && c.rank === a.rank && c.suit === a.suit) { removedA = true; return false; }
-          if (!removedB && c.rank === b.rank && c.suit === b.suit) { removedB = true; return false; }
+          const k = cardId(c);
+          if (!removedA && k === _aid) { removedA = true; return false; }
+          if (!removedB && k === _bid) { removedB = true; return false; }
           return true;
         });
-        if (!removedA) playedPile = playedPile.filter(c => {
-          if (c.rank === a.rank && c.suit === a.suit) { removedA = true; return false; }
-          return true;
-        });
-        if (!removedB) playedPile = playedPile.filter(c => {
-          if (c.rank === b.rank && c.suit === b.suit) { removedB = true; return false; }
+        playedPile = playedPile.filter(c => {
+          const k = cardId(c);
+          if (!removedA && k === _aid) { removedA = true; return false; }
+          if (!removedB && k === _bid) { removedB = true; return false; }
           return true;
         });
         drawPile.push(combined);

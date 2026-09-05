@@ -473,7 +473,7 @@ function playHand() {
     const _lc = handCells.find(([r,c]) => isEffectIntersection(r, c));
     if (_lc && firesThisMinute('rowcol_perm_double')) {
       const _lcc = gridData[_lc[0]]?.[_lc[1]];
-      if (_lcc && _lcc.rank) { const _lk = cardKey(_lcc.rank, _lcc.suit); permMult[_lk] = (permMult[_lk] || 0) + BAL.rowcol_perm_double.perm_mult; showMessage('Ley Line! +' + BAL.rowcol_perm_double.perm_mult + ' mult', '#a25cd8'); }
+      if (_lcc && _lcc.rank) { const _lk = cardId(_lcc); permMult[_lk] = (permMult[_lk] || 0) + BAL.rowcol_perm_double.perm_mult; showMessage('Ley Line! +' + BAL.rowcol_perm_double.perm_mult + ' mult', '#a25cd8'); }
     }
   }
   // Temporal Rift: a card scored at a row×column effect intersection permanently gains a "pause
@@ -491,7 +491,7 @@ function playHand() {
   if (hasTrick('snowball') && lastCalcPips >= BAL.snowball.score_threshold) {
     result.handCells.forEach(([r,c]) => {
       const card = gridData[r]?.[c]; if (!card || !card.rank) return;
-      const k = cardKey(card.rank, card.suit);
+      const k = cardId(card);
       permPips[k] = (permPips[k]||0) + BAL.snowball.pips;
     });
     showMessage('Snowball! +2 pips to scored cards', '#e8c56b');
@@ -502,7 +502,7 @@ function playHand() {
   result.handCells.forEach(([r, c]) => {
     const card = gridData[r]?.[c];
     if (!card || !card.rank || card._isSleight || card._isStone) return;
-    const k = cardKey(card.rank, card.suit);
+    const k = cardId(card);
     const curse = cardCurses[k];
     if (!curse) return;
     if (curse.id === 'taxing') {
@@ -525,7 +525,7 @@ function playHand() {
 
   // Bedrock: Four of a Kind permanently buffs its 4 cards
   if (hand === 'Four of a Kind' && hasTrick('rare_bloom')) {
-    result.handCells.forEach(([r,c]) => { const card = gridData[r]?.[c]; if (!card || !card.rank) return; const k = cardKey(card.rank, card.suit); permPips[k] = (permPips[k]||0) + BAL.rare_bloom.perm_pips; });
+    result.handCells.forEach(([r,c]) => { const card = gridData[r]?.[c]; if (!card || !card.rank) return; const k = cardId(card); permPips[k] = (permPips[k]||0) + BAL.rare_bloom.perm_pips; });
     showMessage('Bedrock! +' + BAL.rare_bloom.perm_pips + ' pips to those cards', '#e8c56b');
   }
 
@@ -533,7 +533,7 @@ function playHand() {
   if (firstHandThisRound) {
     if (hasTrick('first_fruits')) {
       handCells.forEach(([r,c]) => {
-        const k = cardKey(gridData[r][c].rank, gridData[r][c].suit);
+        const k = cardId(gridData[r][c]);
         permPips[k] = (permPips[k]||0) + BAL.first_fruits.pips;
       });
     }
@@ -544,7 +544,7 @@ function playHand() {
   // Heartwood - dead center card
   const _hwR = Math.floor(gridRows / 2), _hwC = Math.floor(gridCols / 2);
   if (hasTrick('heartwood') && handCells.some(([r,c])=>r===_hwR&&c===_hwC)) {
-    const k = cardKey(gridData[_hwR][_hwC].rank, gridData[_hwR][_hwC].suit);
+    const k = cardId(gridData[_hwR][_hwC]);
     permPips[k] = (permPips[k]||0) + BAL.heartwood.pips;
     permMult[k] = (permMult[k]||0) + BAL.heartwood.mult;
   }
@@ -659,7 +659,7 @@ function playHand() {
   // Fours perm: 4-card hand permanently gives 4th card +4 pips
   if (hasTrick('fours_perm') && result.handCells.length === 4) {
     const fourthCell = result.handCells[3];
-    const k = cardKey(gridData[fourthCell[0]][fourthCell[1]].rank, gridData[fourthCell[0]][fourthCell[1]].suit);
+    const k = cardId(gridData[fourthCell[0]][fourthCell[1]]);
     permPips[k] = (permPips[k] || 0) + BAL.fours_perm.pips;
   }
 
@@ -669,7 +669,7 @@ function playHand() {
       cardsScoredTotal++;
       if (cardsScoredTotal % BAL.sixes_perm.interval === 0) {
         const roll = Math.floor(Math.random() * (BAL.sixes_perm.roll_max - BAL.sixes_perm.roll_min + 1)) + BAL.sixes_perm.roll_min;
-        const k = cardKey(card.rank, card.suit);
+        const k = cardId(card);
         permPips[k] = (permPips[k] || 0) + roll;
       }
     });
@@ -742,8 +742,8 @@ function absorbAdjacentInto(cell, scoredSet) {
   if (!eligibleNeighbors.length) return;
   const [tr, tc] = eligibleNeighbors[Math.floor(Math.random() * eligibleNeighbors.length)];
   const target = gridData[tr][tc];
-  const tk = cardKey(target.rank, target.suit);
-  const ak = cardKey(eater.rank, eater.suit);
+  const tk = cardId(target);
+  const ak = cardId(eater);
   // Transfer perm bonuses to the eater
   permPips[ak] = (permPips[ak] || 0) + (permPips[tk] || 0) + cardPips(target.rank);
   permMult[ak] = (permMult[ak] || 0) + (permMult[tk] || 0);

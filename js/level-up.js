@@ -238,7 +238,7 @@ function triggerLevelUp() {
     drawPile.forEach(card => { if (card && !card._isTrick && !card._isSleight && !card._isStone && card.rank) eligible.push(card); });
     for (let i = eligible.length - 1; i > 0; i--) { const j = Math.floor(Math.random()*(i+1)); [eligible[i],eligible[j]]=[eligible[j],eligible[i]]; }
     eligible.slice(0, 3).forEach(card => {
-      const k = cardKey(card.rank, card.suit);
+      const k = cardId(card);
       permPips[k] = (permPips[k]||0) + 2;
     });
   }

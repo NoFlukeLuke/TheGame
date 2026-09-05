@@ -325,17 +325,7 @@ function renderGambleDouble() {
 // CARD-ENHANCEMENT HELPERS (shared by Forge / Bargain / Wager events)
 // ══════════════════════════════════════════════
 // Every distinct real card sitting in the player's deck (grid + draw + played).
-function allDeckCards() {
-  const out = [];
-  for (let r = 0; r < gridRows; r++)
-    for (let c = 0; c < gridCols; c++) {
-      const cd = gridData[r]?.[c];
-      if (cd && !cd._isTrick && !cd._isSleight && !cd._isStone && cd.rank) out.push(cd);
-    }
-  drawPile.forEach(cd => { if (cd && !cd._isSleight && cd.rank) out.push(cd); });
-  playedPile.forEach(cd => { if (cd && !cd._isSleight && cd.rank) out.push(cd); });
-  return out;
-}
+function allDeckCards() { return everyDeckCard(); }   // see js/deck-grid.js
 function randomDeckCard() {
   const all = allDeckCards();
   return all.length ? all[Math.floor(Math.random() * all.length)] : null;
@@ -396,15 +386,15 @@ function renderForge() {
 
   const boons = [
     (t) => ({ icon:'🔨', rarity:'common', name:`Temper ${cardLabel(t)}`, desc:`${cardLabel(t)} permanently gains +30 pips.`,
-              apply:()=>{ enhanceCardKey(cardKey(t.rank,t.suit), {pips:30}); showMessage(`${cardLabel(t)} +30 pips`, 'var(--gold)'); } }),
+              apply:()=>{ enhanceCardKey(cardId(t), {pips:30}); showMessage(`${cardLabel(t)} +30 pips`, 'var(--gold)'); } }),
     (t) => ({ icon:'⚒️', rarity:'rare', name:`Sharpen ${cardLabel(t)}`, desc:`${cardLabel(t)} permanently scores ×2 pips.`,
-              apply:()=>{ enhanceCardKey(cardKey(t.rank,t.suit), {xpips:2}); showMessage(`${cardLabel(t)} ×2 pips`, 'var(--gold)'); } }),
+              apply:()=>{ enhanceCardKey(cardId(t), {xpips:2}); showMessage(`${cardLabel(t)} ×2 pips`, 'var(--gold)'); } }),
     (t) => ({ icon:'✨', rarity:'common', name:`Empower ${cardLabel(t)}`, desc:`${cardLabel(t)} permanently gains +5 mult.`,
-              apply:()=>{ enhanceCardKey(cardKey(t.rank,t.suit), {mult:5}); showMessage(`${cardLabel(t)} +5 mult`, 'var(--gold)'); } }),
+              apply:()=>{ enhanceCardKey(cardId(t), {mult:5}); showMessage(`${cardLabel(t)} +5 mult`, 'var(--gold)'); } }),
     (t) => ({ icon:'💥', rarity:'epic', name:`Overcharge ${cardLabel(t)}`, desc:`${cardLabel(t)} permanently scores ×2 mult.`,
-              apply:()=>{ enhanceCardKey(cardKey(t.rank,t.suit), {xmult:2}); showMessage(`${cardLabel(t)} ×2 mult`, 'var(--gold)'); } }),
+              apply:()=>{ enhanceCardKey(cardId(t), {xmult:2}); showMessage(`${cardLabel(t)} ×2 mult`, 'var(--gold)'); } }),
     (t) => ({ icon:'🔁', rarity:'rare', name:`Echo ${cardLabel(t)}`, desc:`${cardLabel(t)} permanently scores its pips twice.`,
-              apply:()=>{ enhanceCardKey(cardKey(t.rank,t.suit), {retrig:1}); showMessage(`${cardLabel(t)} replays`, 'var(--gold)'); } }),
+              apply:()=>{ enhanceCardKey(cardId(t), {retrig:1}); showMessage(`${cardLabel(t)} replays`, 'var(--gold)'); } }),
   ];
   const chosen = sh(boons).slice(0, 3).map((make, i) => make(target(i)));
   eventState.forgeChoice = null;
@@ -433,22 +423,22 @@ function buildBargainTrades() {
   const trades = [];
   if (offGrid >= 2) {
     trades.push({ icon:'⚖️', rarity:'rare', name:'Blood Price', desc:'Remove 2 random cards from your deck. A random remaining card permanently scores ×3 pips.',
-      apply:()=>{ removeRandomDeckCards(2); const t=randomDeckCard(); if(t){ enhanceCardKey(cardKey(t.rank,t.suit), {xpips:3}); showMessage(`${cardLabel(t)} ×3 pips`, 'var(--gold)'); } } });
+      apply:()=>{ removeRandomDeckCards(2); const t=randomDeckCard(); if(t){ enhanceCardKey(cardId(t), {xpips:3}); showMessage(`${cardLabel(t)} ×3 pips`, 'var(--gold)'); } } });
   }
   trades.push({ icon:'🕯️', rarity:'rare', name:'Time Tithe', desc:'Permanently lose 8s of round time. Copy a random card; that card permanently gains +20 pips.',
-    apply:()=>{ limits.round_time.current=Math.max(30, limits.round_time.current-8); const t=randomDeckCard(); if(t){ copyCardToDeck(t); enhanceCardKey(cardKey(t.rank,t.suit), {pips:20}); showMessage(`Copied ${cardLabel(t)} · +20 pips`, 'var(--gold)'); } } });
+    apply:()=>{ limits.round_time.current=Math.max(30, limits.round_time.current-8); const t=randomDeckCard(); if(t){ copyCardToDeck(t); enhanceCardKey(cardId(t), {pips:20}); showMessage(`Copied ${cardLabel(t)} · +20 pips`, 'var(--gold)'); } } });
   if (coins >= 10) {
     trades.push({ icon:'🪙', rarity:'epic', name:'The Toll', desc:'Lose 10 credits. A random card permanently replays and scores ×2 mult.',
-      apply:()=>{ coins-=10; updateCoinsUI(); const t=randomDeckCard(); if(t){ enhanceCardKey(cardKey(t.rank,t.suit), {retrig:1, xmult:2}); showMessage(`${cardLabel(t)} replay + ×2 mult`, 'var(--gold)'); } } });
+      apply:()=>{ coins-=10; updateCoinsUI(); const t=randomDeckCard(); if(t){ enhanceCardKey(cardId(t), {retrig:1, xmult:2}); showMessage(`${cardLabel(t)} replay + ×2 mult`, 'var(--gold)'); } } });
   }
   if (offGrid >= 3) {
     trades.push({ icon:'🗑️', rarity:'epic', name:'Purge', desc:'Remove 3 random cards from your deck. Gain +2 permanent swaps and a random card gains +40 pips.',
-      apply:()=>{ removeRandomDeckCards(3); limits.swaps.current+=2; swaps=Math.min(swaps+2, limits.swaps.current); const t=randomDeckCard(); if(t){ enhanceCardKey(cardKey(t.rank,t.suit), {pips:40}); showMessage(`+2 swaps · ${cardLabel(t)} +40 pips`, 'var(--gold)'); } } });
+      apply:()=>{ removeRandomDeckCards(3); limits.swaps.current+=2; swaps=Math.min(swaps+2, limits.swaps.current); const t=randomDeckCard(); if(t){ enhanceCardKey(cardId(t), {pips:40}); showMessage(`+2 swaps · ${cardLabel(t)} +40 pips`, 'var(--gold)'); } } });
   }
   // Always-available fallback
   if (trades.length === 0) {
     trades.push({ icon:'🕯️', rarity:'common', name:'Last Ember', desc:'Lose 5s of round time. A random card permanently gains +15 pips.',
-      apply:()=>{ limits.round_time.current=Math.max(30, limits.round_time.current-5); const t=randomDeckCard(); if(t){ enhanceCardKey(cardKey(t.rank,t.suit), {pips:15}); showMessage(`${cardLabel(t)} +15 pips`, 'var(--gold)'); } } });
+      apply:()=>{ limits.round_time.current=Math.max(30, limits.round_time.current-5); const t=randomDeckCard(); if(t){ enhanceCardKey(cardId(t), {pips:15}); showMessage(`${cardLabel(t)} +15 pips`, 'var(--gold)'); } } });
   }
   const a=[...trades]; for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
   return a.slice(0,3);
@@ -495,13 +485,13 @@ function renderWager() {
   body.appendChild(lbl);
   const stakes = [
     { icon:'🪙', rarity:'common', name:'Modest - 70%', desc:'Heads: a random card scores ×2 pips. Tails: that card loses 10 pips.', odds:0.70,
-      win:(t)=>{ enhanceCardKey(cardKey(t.rank,t.suit), {xpips:2}); return `${cardLabel(t)} ×2 pips!`; },
-      lose:(t)=>{ enhanceCardKey(cardKey(t.rank,t.suit), {subpips:10}); return `${cardLabel(t)} −10 pips.`; } },
+      win:(t)=>{ enhanceCardKey(cardId(t), {xpips:2}); return `${cardLabel(t)} ×2 pips!`; },
+      lose:(t)=>{ enhanceCardKey(cardId(t), {subpips:10}); return `${cardLabel(t)} −10 pips.`; } },
     { icon:'🎲', rarity:'rare', name:'Bold - 55%', desc:'Heads: a random card scores ×3 pips and replays. Tails: that card is removed from your deck.', odds:0.55,
-      win:(t)=>{ enhanceCardKey(cardKey(t.rank,t.suit), {xpips:3, retrig:1}); return `${cardLabel(t)} ×3 pips + replay!`; },
+      win:(t)=>{ enhanceCardKey(cardId(t), {xpips:3, retrig:1}); return `${cardLabel(t)} ×3 pips + replay!`; },
       lose:(t)=>{ removeRandomDeckCards(1); return `${cardLabel(t)} lost.`; } },
     { icon:'💀', rarity:'epic', name:'Reckless - 40%', desc:'Heads: a random card scores ×4 pips, ×2 mult and replays. Tails: 2 random cards are removed.', odds:0.40,
-      win:(t)=>{ enhanceCardKey(cardKey(t.rank,t.suit), {xpips:4, xmult:2, retrig:1}); return `${cardLabel(t)} ×4 pips, ×2 mult + replay!`; },
+      win:(t)=>{ enhanceCardKey(cardId(t), {xpips:4, xmult:2, retrig:1}); return `${cardLabel(t)} ×4 pips, ×2 mult + replay!`; },
       lose:(t)=>{ removeRandomDeckCards(2); return `2 cards lost.`; } },
   ];
   stakes.forEach(stake => {

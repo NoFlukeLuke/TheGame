@@ -183,7 +183,7 @@ function render() {
     const levelScale = Math.pow(1.1, level - 1);
     const scaledBasePips = Math.round(handBasePips(hand) * levelScale);
     const cards = handCells.map(([r,c]) => gridData[r][c]);
-    const cardPipsTotal = cards.reduce((sum, card) => sum + cardPips(card.rank) + (permPips[cardKey(card.rank,card.suit)]||0), 0);
+    const cardPipsTotal = cards.reduce((sum, card) => sum + cardPips(card.rank) + (permPips[cardId(card)]||0), 0);
     const hasTrickCard = trickCardPos && handCells.some(([r,c])=>r===trickCardPos[0]&&c===trickCardPos[1]);
 
     const bonusLines = [];
