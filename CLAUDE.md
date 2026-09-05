@@ -408,19 +408,20 @@ When a hand is played, the escalating score animation ("dance") runs in the hand
 
 ## Spectrum mode - the numeric colour deck (`MODES.spectrum`, r160–r164)
 
-Classic's 3-Act game on a deck with **no suits and no court cards**: seven **colours** (🔴 🟡 🔵 🟢 🟣 🟠 ⚫) plus **white**, and the values **0–11 plus a lone 15 and a lone 20** - 7 × 14 = **98 cards** (of which the 21 nines/tens/elevens are white), plus the four payout fixtures below. Everything else (rounds, reward grid, events, Mart, bosses, Tricks, Sleights, Knacks, Focus) is Classic's, untouched.
+Classic's 3-Act game on a deck with **no suits and no court cards**: seven **colours** (🔴 🟡 🔵 🟢 🟣 🟠 ⚫) with the 9s, 10s and 11s drawn as **white**, and the values **0–11 plus a lone 15 and a lone 20** — 7 × 14 = **98 cards** (of which the 21 nines/tens/elevens are white), plus the four payout fixtures below. Everything else (rounds, reward grid, events, Mart, bosses, Tricks, Sleights, Knacks, Focus) is Classic's, untouched.
 
 - **How the deck is swapped.** The colour goes in the card's existing `suit` field and the value in `rank`, so *every* system that already keys off those two fields keeps working with no changes: flush = "all one suit" = all one colour, `cardKey`, curses, perm pips/mult, the deck audit, saves. Only the CONTENT of the fields changes. `startGame` picks the lists: `ACTIVE_SUITS = COLORS`, `ACTIVE_RANKS = RANKS_NUMERIC` (`ACTIVE_RANKS` is the new mirror of `ACTIVE_SUITS` - every deck-composition site now reads it instead of the raw `RANKS`).
 - **Colours are emoji**, deliberately. Any UI that just prints the suit character (deck view, RECORDS, tooltips, the Mart, shop pickers) stays readable with zero extra styling, and `suitClass()` returns `num-suit col-<name>` so anything that *does* want to style it can.
-- **Rank maths.** `RANK_ORDER` gained `0`, `1` and `11`–`15` and `20`; `2`–`10` already mapped to themselves, so no classic key changed value. Pips fall through `cardPips` - **pips = the number on the card**. The gaps are deliberate: **15 and 20 can never be part of a run or straight** (big-pip loners that only pair/set), and **0 is a genuine dead card** that still counts for sets and colour flushes.
-  - **`cardPips` had to be fixed for the 0.** It was `RANK_PIPS[rank] || parseInt(rank) || 10` - and `parseInt('0')` is `0`, which is falsy, so a 0 card would have scored **10**. It now tests for a real number instead. Classic ranks are unchanged.
-- **WHITE - the colourless values (r164).** **9, 10 and 11 have no colour**: every one of them is `WHITE` (⚪). White is deliberately **NOT in `COLORS`/`ACTIVE_SUITS`**, and that one fact is what makes it flush-inert - `detectHand`'s flush test asks whether some ACTIVE suit covers the whole hand, so a white card can never complete one. White still pairs, sets and runs normally, and still counts as a colour for the colour-COUNT Tricks (Rainbow / Balance / Kaleidoscope).
-  - **This is the lever that cuts flushes without adding a playable colour.** Measured over 8,000 opening 4×4 deals: a Flush of 3 is available on **28%** of boards instead of 51%, while a Run of 3 is unchanged at **58%** (only the colour label moved, not the value spread). Three-of-a-kind is unchanged too (14%) - there were always seven 9s, they just aren't seven *different* 9s any more. On a 5×5 board it's 45% vs 71%.
-  - **Painting happens in `stampId()`** (`js/deck-grid.js`), the one funnel every card passes through before it can reach play - fresh deck, reward-grid grants, shop adds. Painting at each deck-composition site instead would have meant finding all five of them.
-  - **The seven 9s share one card key** (`9-⚪`), so a permanent pip/mult buff - or a curse - on one white 9 applies to **every** white 9. Same for the 10s and 11s. Worth knowing before tuning: a buff spent on white is worth seven cards.
-  - White is not a tuner chip; it's derived. Turning value `9` off in the dev tuner removes the white 9s, and turning a colour off shrinks white too (its cards come from each colour's 9/10/11 slot).
-  - `deckDisplaySuits()` adds white back for the deck view and RECORDS matrix, which iterate `ACTIVE_SUITS` and would otherwise show none of it.
-- **Flush of 3 pays nothing (r164).** `applyModeHandValues()` overrides `HAND_BASE['Flush of 3']` to **0 pips / ×1 mult** and `HAND_FOCUS['Flush of 3']` to **0** for Spectrum only, restoring the pristine table for every other mode (both tables are global). The same three cards now score 15 as a flush and 105 as a run. It stays legal and detectable - it just isn't worth playing for.
+- **Rank maths.** `RANK_ORDER` gained `0`, `1` and `11`–`15` and `20`; `2`–`10` already mapped to themselves, so no classic key changed value. Pips fall through `cardPips` — **pips = the number on the card**. The gaps are deliberate: **15 and 20 can never be part of a run or straight** (big-pip loners that only pair/set), and **0 is a genuine dead card** that still counts for sets and colour flushes.
+  - **`cardPips` had to be fixed for the 0.** It was `RANK_PIPS[rank] || parseInt(rank) || 10` — and `parseInt('0')` is `0`, which is falsy, so a 0 card would have scored **10**. It now tests for a real number instead. Classic ranks are unchanged.
+- **WHITE — the colourless values (r164, reworked r165).** **9, 10 and 11 are drawn WHITE (⚪) and can never complete a flush.** This is the lever that cuts flushes without adding a playable colour: measured over 8,000 opening 4×4 deals, a Flush of 3 is available on **28%** of boards instead of 51%, while a Run of 3 is unchanged at **58%** (only the colour label moved, not the value spread). Three-of-a-kind is unchanged too (14%) — there were always seven 9s. On a 5×5 board it's 45% vs 71%.
+  - **Whiteness is DERIVED FROM THE VALUE, never stored on the card** (`isWhiteCard` / `cardColorSuit` in `js/data/cards.js`). Each card keeps the colour its deck slot gave it, so the seven white 9s are **seven separate cards with seven separate `cardKey`s** — they buff, curse and get tracked independently like any other card.
+  - **r164 got this wrong and it is the trap to remember.** It repainted `suit` to `'⚪'` at deck-build time, which collapsed all seven onto the single key `9-⚪`: a permanent pip/mult buff — or a curse — on one white 9 applied to **all seven**. Deriving whiteness instead also removes any need to preserve per-card state through the discard → reshuffle → redraw round trip, which rebuilds cards from `{rank, suit}` alone and would have dropped a stored flag.
+  - **The split is: `cardColorSuit()` for anything the player SEES, `card.suit` for anything that IDENTIFIES a card.** Display sites routed through it: the card face (`renderCardAppearance`), deck-view chips, score particles, the per-card audio chirp, the shop's card list, and the colour-COUNT Tricks (a white card counts as the colour *white*, not as the colour of the slot it came from).
+  - **Flush-inertness is now an explicit test**, not a side effect: `detectHand`'s `allSameSuitStrict` is false if any card `isWhiteCard`. Under r164 white got this for free by being absent from `ACTIVE_SUITS`; now that white cards carry a real colour underneath, three of them from the same slot would otherwise read as a flush.
+  - White is not a tuner chip; it's derived. Turning value `9` off in the dev tuner removes the white 9s, and turning a colour off removes that colour's white cards too.
+  - The RECORDS deck map keeps its rank × colour shape (every cell is exactly one real card again) and tints the 9/10/11 cells white.
+- **Flush of 3 pays nothing (r164).** `applyModeHandValues()` overrides `HAND_BASE['Flush of 3']` to **0 pips / ×1 mult** and `HAND_FOCUS['Flush of 3']` to **0** for Spectrum only, restoring the pristine table for every other mode (both tables are global). The same three cards now score 15 as a flush and 105 as a run. It stays legal and detectable — it just isn't worth playing for.
   - **`detectHand` now picks by VALUE, not by fixed order.** Flush of 3 and Run of 3 can describe the same three cards, and flush was checked first. With the flush zeroed that would have silently punished single-colour runs, so the check is now "flush unless the run is worth more" (`HAND_BASE[h].pips * HAND_BASE[h].mult`). Six Suits pays more for the flush (75 vs 60) and is unchanged; Spectrum's run wins at 60 vs 0. Verified in both modes.
 - **Hands.** Detection is unchanged. Flushes are colour flushes and with seven colours they're rare, so (like Six Suits) `Flush of 3` and `Flush of 4` are active from the start - the check in `startGame` is now `suitCount >= 6`. Blackjack (pip total exactly 21) still works - 20+1, 15+6, …
 - **Tricks that can't exist here are filtered out of the pool** - see `NUMERIC_BANNED_TRICKS` / `applyModeEntityFilter()` in `js/data/tricks.js`. Thirteen are pulled: the Ace/court ones (`first_light`, `wild_heart`, `face_value`, `king_guard`, `knave_power`, `royal_trio`, `queens_upgrade`, `aces_absorb`, `undue_influence`, and `little_guys`, which would otherwise be *free* - every hand has "no face cards") and the named-suit ones (`club_double`, `monochrome`, `spade_flood`). Colour-**count** Tricks (Rainbow = 4 distinct, Balance = exactly 2, Kaleidoscope = 4+) still work as written and stay in. **166 → 153.**
@@ -849,6 +850,84 @@ Classic is the floor that always answers, so a file that 404s falls back to the 
 - **Autoplay:** `armMusicAutostart()` waits for the first click/key, and that gesture also unlocks the AudioContext and prewarms every listed sample.
 - **A track's `off: true`** is a DEFAULT, not a state - `musicTrackOn` prefers a stored choice and only falls back to it. That is what lets twelve ambience beds ship without the playlist opening as a wall of noise.
 - **Three volumes.** `sfxVolume()` is master x effects, `musicVolume()` is master x music, both folding in `muted`. Every `playTone`/`playNoise`/sample/pack voice multiplies by `sfxVolume()`, so it is the single choke point. **`sfxWinExplode` builds its own gain node** rather than going through `playTone`, so it has to fold that in by hand - it did not until r179, and mute never silenced the goal blast.
+
+### The mixer (r191) - `js/audio-mixer.js`
+
+Before this every sound connected straight to the output at whatever gain its own
+designer picked, so a Focus node detaching was as loud as a hand scoring. The fix
+is the standard game-audio answer, which is **three separate mechanisms** people
+often lump together as "priority":
+
+1. **Buses + static trim.** Sounds are grouped by what they MEAN, not by what
+   makes them, and each group has one fader. This is most of the fix - a
+   background tick should simply always be quieter than a headline.
+2. **Ducking.** When something important starts, every bus below it dips for as
+   long as it lasts, then comes back.
+3. **Voice limits.** A cap per bus, plus a minimum gap between repeats of one
+   sound, so a fast loop cannot turn into a buzzsaw.
+
+**The split is the point.** Doing it all with ducking gives a mix that pumps;
+doing it all with static gains gives a mix where the big moments never get room.
+
+| bus | pri | trim | ducks to | what |
+|---|---|---|---|---|
+| `detail` | 1 | 0.55 | 0.30 | score ticks, Focus node pops and drops |
+| `board` | 2 | 0.80 | 0.45 | card select/pop, riffle, reward pick |
+| `score` | 3 | 1.00 | 0.55 | the scoring dance: particles, Focus beat, hand scored |
+| `event` | 3 | 0.95 | 0.55 | coins, shop, rewards, round start, countdown |
+| `headline` | 4 | 1.00 | never | goal blast, victory, level up, multi-goal |
+| `alert` | 5 | 1.00 | never | the boss-approach heartbeat |
+
+- **`sfxOut(ctx)` is the seam.** Every voice in the game connects there instead of
+  to the destination - `playTone`, `playNoise`, `_packOut`, `bitTone`, `bitNoise`,
+  sample playback, and the two hand-built sounds (`sfxWinExplode`, `sfxRewind`).
+- **How a voice knows its bus:** the wrapper in `js/audio-assets.js` sets
+  `_mixCurrentId` around the call (`sfxWithMixId`), and `sfxOut` reads it. This
+  works because a sound's voices are all scheduled **synchronously** inside that
+  call, even the ones carrying a `delay`. A `setTimeout` that calls another sfx
+  goes through the wrapper again and gets its own id, so that is fine too.
+- **The per-sound trim is folded into `sfxVolume()`**, which is why one table
+  reaches every voice without touching any of them. `musicVolume()` deliberately
+  does not get it.
+- **`duckHold` and `voiceHold` are different numbers and sharing one is a bug.** A
+  headline should keep the mix out of its way for most of a second but must not
+  occupy a voice slot that long. The first version shared them, and the `alert`
+  bus (cap 2, hold 0.5s) then dropped heartbeats at exactly the point the boss
+  approach accelerates to one every 420ms.
+- **An already-ducked bus is EXTENDED, not re-ramped.** Cancelling and ramping
+  from the top again is what makes a mix pump audibly under a burst of beats.
+- **A refused voice never reaches the graph** - `sfxMixAllow` runs before anything
+  is built, so a dropped sound costs nothing. Limits are deliberately generous:
+  silence where the player expects a sound is a worse bug than a busy mix. The
+  sound board calls `sfxMixResetLimits()` first, so auditioning a row twice in a
+  second is never refused.
+- **Real particle spacing is 90-120ms** (`PIP_STAGGER`/`MULT_STAGGER`/
+  `TRICK_STAGGER` in `js/score-dance.js`), so the 22ms gap never bites in normal
+  play. Under the 15x fast-forward of an interrupted hand it drops most of them,
+  which is the intent - that is the buzzsaw case.
+- **Measured:** the detail bus sits at 30% of its resting level while a pip
+  particle or a scored hand plays, and is back to 100% within 900ms. Solo levels
+  put `focus_pop` at rms 0.0009 against `hand_scored` at 0.024, about 25x quieter
+  before ducking does anything.
+
+**`sfxHeartbeat` used to connect straight to the destination** so it would stay
+loud while the others ducked - which also meant it ignored `sfxVolume()`, so mute
+never silenced it (the same bug `sfxWinExplode` had). It rides the `alert` bus
+now, whose `duckTo` is 1: nothing ducks it, and the sliders reach it.
+
+### Two sounds per particle (r191)
+
+Each pip/mult particle is **a short tick and then a pitched body**, `PARTICLE_GAP`
+(45ms) apart - "t-ding", not "ding". Two transients that close together read as
+one event *with a shape*, which is what makes a long run of them sound like a
+counter ratcheting rather than a row of identical bleeps. The old version layered
+its overtone **simultaneously**, which just made one thicker bleep.
+
+Below ~25ms the two fuse into a click; above ~90ms they separate into two events.
+All three packs do it in their own vocabulary: classic uses a square tick into a
+triangle body, 1-bit a thin high pulse into a wide one (on one output line the gap
+is the only way to give a repeated event any shape), and slot a short-LFSR click
+into the coin - the detent and the digit of a counter wheel.
 
 ### The packs - `js/audio-packs.js`
 

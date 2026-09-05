@@ -1,4 +1,4 @@
-const BUILD = '2026-09-05 · r191 · Guided mode: a fixed act route, shop guaranteed, no repeat events';
+const BUILD = '2026-09-05 · r193 · Guided mode: a fixed act route, shop guaranteed, no repeat events';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

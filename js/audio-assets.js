@@ -76,6 +76,12 @@ const SFX_CATALOG = [
 
 function sfxCatalogEntry(id) { return SFX_CATALOG.find(s => s.id === id); }
 
+// The mixer is a separate file; if it ever fails to load, sounds still play -
+// they just all land on the destination at full trim, which is exactly the
+// pre-r191 behaviour.
+if (typeof sfxWithMixId !== 'function') { window.sfxWithMixId = (id, fn) => fn(); }
+if (typeof sfxOut !== 'function') { window.sfxOut = (ctx) => (ctx || getAudioCtx()).destination; }
+
 // ══ Preferences (per-sound on/off, per-track on/off, shuffle) ══
 // Kept apart from SETTINGS so the settings screen stays a flat list of rows and
 // this can be an open-ended map of ids.
@@ -166,7 +172,7 @@ function playSfxBuffer(buf, gain = 1) {
   env.gain.value = g;
   src.buffer = buf;
   src.connect(env);
-  env.connect(sfxDuckGain || ctx.destination);
+  env.connect(sfxOut(ctx));
   src.start();
 }
 
@@ -203,13 +209,22 @@ function installSfxOverrides() {
         if (hit) row = hit;
       }
       if (!sfxIsOn(row.id)) return;
-      if (sfxUseFiles()) {
-        const buf = sfxSampleReady(row.id);
-        if (buf) return playSfxBuffer(buf);
-      }
-      const packFn = sfxPackImpl(row.id);
-      if (packFn) { try { return packFn.apply(this, args); } catch (e) { /* fall through to classic */ } }
-      return orig.apply(this, args);
+      // Voice limits first: a call the mixer refuses never reaches the graph at
+      // all, so a refused sound costs nothing (js/audio-mixer.js).
+      if (typeof sfxMixAllow === 'function' && !sfxMixAllow(row.id)) return;
+      // Everything below runs with row.id as the current sound, which is what
+      // puts its voices on the right bus and applies its trim.
+      return sfxWithMixId(row.id, () => {
+        if (typeof sfxDuckFor === 'function') sfxDuckFor(row.id);
+        if (typeof sfxMixHold === 'function') sfxMixHold(row.id);
+        if (sfxUseFiles()) {
+          const buf = sfxSampleReady(row.id);
+          if (buf) return playSfxBuffer(buf);
+        }
+        const packFn = sfxPackImpl(row.id);
+        if (packFn) { try { return packFn.apply(this, args); } catch (e) { /* fall through to classic */ } }
+        return orig.apply(this, args);
+      });
     };
     window[fnName]._coded = orig;   // the audition button needs the original
   });
@@ -222,6 +237,10 @@ installSfxOverrides();
 function sfxAudition(id) {
   const e = sfxCatalogEntry(id);
   if (!e) return;
+  if (typeof sfxMixResetLimits === 'function') sfxMixResetLimits();
+  return sfxWithMixId(id, () => _sfxAuditionInner(e, id));
+}
+function _sfxAuditionInner(e, id) {
   if (sfxUseFiles()) {
     const buf = sfxSampleReady(id);
     if (buf) { playSfxBuffer(buf); return; }

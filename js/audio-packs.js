@@ -123,7 +123,7 @@ function _packOut(node, gain, bits) {
   let head = node;
   if (bits) { const c = crusherNode(bits); head.connect(c); head = c; }
   head.connect(g);
-  g.connect(sfxDuckGain || ctx.destination);
+  g.connect(sfxOut(ctx));
   return g;
 }
 
@@ -150,7 +150,7 @@ function bitTone({ freq = 880, dur = 0.06, duty = 0.5, gain = 0.13, delay = 0, t
   g.gain.setValueAtTime(lvl, t);            // ON
   g.gain.setValueAtTime(0, t + dur);        // OFF. Nothing in between - that is the sound.
   osc.connect(g);
-  g.connect(sfxDuckGain || ctx.destination);
+  g.connect(sfxOut(ctx));
   osc.start(t);
   osc.stop(t + dur + 0.01);
 }
@@ -170,7 +170,7 @@ function bitNoise({ dur = 0.08, lo = 400, hi = 5000, gain = 0.1, delay = 0, grai
   g.gain.setValueAtTime(lvl, t);
   g.gain.setValueAtTime(0, t + dur);
   osc.connect(g);
-  g.connect(sfxDuckGain || ctx.destination);
+  g.connect(sfxOut(ctx));
   osc.start(t);
   osc.stop(t + dur + 0.01);
 }
@@ -271,8 +271,14 @@ const SFX_PACKS = {
       bitTone({ freq: 190, dur: 0.11, duty: 0.125, gain: 0.12, delay: 0.09 });
     },
 
-    particle_pip:  () => { const i = _particleStep++; bitTone({ freq: 420 + i * 55, dur: 0.045, duty: 0.25, gain: 0.10 }); },
-    particle_mult: () => { const i = _particleStep++; bitTone({ freq: 620 + i * 70, dur: 0.045, duty: 0.125, gain: 0.10 }); },
+    // Two pulses per particle (r191) - a thin tick, then the body. On one output
+    // line the gap is the only way to give a repeated event any shape at all.
+    particle_pip:  () => { const i = _particleStep++; const f = 420 + i * 55;
+      bitTone({ freq: f * 2.7, dur: 0.014, duty: 0.125, gain: 0.055 });
+      bitTone({ freq: f,       dur: 0.045, duty: 0.25,  gain: 0.10, delay: PARTICLE_GAP }); },
+    particle_mult: () => { const i = _particleStep++; const f = 620 + i * 70;
+      bitTone({ freq: f * 3.1, dur: 0.014, duty: 0.125, gain: 0.055 });
+      bitTone({ freq: f,       dur: 0.045, duty: 0.125, gain: 0.10, delay: PARTICLE_GAP }); },
     score_tick:    () => bitTone({ freq: 2600, dur: 0.008, duty: 0.125, gain: 0.05 }),
     focus_beat:    () => bitTone({ freq: 350, to: 1500, dur: 0.16, duty: 0.25, gain: 0.11, steps: 10 }),
     hand_scored: (s) => {
@@ -348,8 +354,14 @@ const SFX_PACKS = {
     },
 
     // The credit meter counting up - the sound a slot spends most of its time making.
-    particle_pip:  () => { const i = _particleStep++; chipTone({ freq: 660 + i * 60, dur: 0.06, duty: 0.5,   gain: 0.085 }); chipNoise({ dur: 0.016, gain: 0.035, rate: 2.4, mode: 'short' }); },
-    particle_mult: () => { const i = _particleStep++; chipTone({ freq: 880 + i * 80, dur: 0.06, duty: 0.125, gain: 0.085 }); chipNoise({ dur: 0.016, gain: 0.035, rate: 3.0, mode: 'short' }); },
+    // The credit meter: a mechanical click, then the coin lands (r191). The two
+    // are what a counter wheel actually sounds like - the detent and the digit.
+    particle_pip:  () => { const i = _particleStep++;
+      chipNoise({ dur: 0.016, gain: 0.045, rate: 2.4, mode: 'short' });
+      chipTone({ freq: 660 + i * 60, dur: 0.06, duty: 0.5,   gain: 0.085, delay: PARTICLE_GAP }); },
+    particle_mult: () => { const i = _particleStep++;
+      chipNoise({ dur: 0.016, gain: 0.045, rate: 3.0, mode: 'short' });
+      chipTone({ freq: 880 + i * 80, dur: 0.06, duty: 0.125, gain: 0.085, delay: PARTICLE_GAP }); },
     score_tick:    () => chipNoise({ dur: 0.012, gain: 0.045, rate: 3.2, mode: 'short' }),
     focus_beat:    () => { chipTone({ freq: 330, to: 1320, dur: 0.16, duty: 0.25, gain: 0.10 }); chipTone({ freq: 660, to: 2640, dur: 0.16, duty: 0.125, gain: 0.05, delay: 0.02 }); },
     hand_scored: (s) => {

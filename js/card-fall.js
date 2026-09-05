@@ -70,13 +70,15 @@ function renderCardAppearance(card, r, c, {
 
   const bothClass = hasPip && hasMult ? ' has-both' : hasPip ? ' has-pip' : hasMult ? ' has-mult' : '';
   // Spectrum (numeric) cards: the whole face is the colour and the value sits
-  // big in the middle - no suit glyph. Keyed off the CARD's suit, not the mode,
-  // so the hand preview, score dance and fall animation all agree.
-  const isNum = isColorSuit(card.suit);
+  // big in the middle — no suit glyph. Keyed off the CARD, not the mode, so the
+  // hand preview, score dance and fall animation all agree. cardColorSuit() is
+  // what makes 9/10/11 render white while keeping their own identity underneath.
+  const _faceSuit = cardColorSuit(card);
+  const isNum = isColorSuit(_faceSuit);
   const className = [
     'card',
     isNum ? 'num-card' : '',
-    suitClass(card.suit),
+    suitClass(_faceSuit),
     isSel        ? 'selected'    : '',
     isHandValid  ? 'hand-valid'  : '',
     isHandReady  ? 'hand-ready'  : '',

@@ -93,7 +93,12 @@ function sfxVolume() {
   if (SETTINGS.muted) return 0;
   const master = (typeof SETTINGS.volume === 'number' ? SETTINGS.volume : 100) / 100;
   const sfx = (typeof SETTINGS.sfxVolumePct === 'number' ? SETTINGS.sfxVolumePct : 100) / 100;
-  return master * sfx;
+  // ...and the per-sound trim for whichever sound is being built right now
+  // (js/audio-mixer.js). Folding it in HERE is what makes one table of gains
+  // reach every voice - playTone, playNoise, the packs, samples and the two
+  // hand-built sounds - without touching any of them.
+  const trim = (typeof sfxIdGain === 'function') ? sfxIdGain() : 1;
+  return master * sfx * trim;
 }
 
 function loadSettings() {

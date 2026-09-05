@@ -275,8 +275,13 @@ function detectHand(cells) {
   });
   const counts = Object.values(rankCounts).sort((a,b)=>b-a);
 
-  // Flush check: combined cards count as both suits - check if all cards share a common suit
-  const allSameSuitStrict = ACTIVE_SUITS.some(s =>
+  // Flush check: combined cards count as both suits — check if all cards share a common suit
+  // Spectrum's white values (9/10/11) keep the colour of the deck slot they came
+  // from — that is their identity — but they READ as colourless, so they can never
+  // complete a flush. This explicit test is what enforces that; the cards' own
+  // suits would otherwise match like any other colour.
+  const _anyWhite = cards.some(c => isWhiteCard(c));
+  const allSameSuitStrict = !_anyWhite && ACTIVE_SUITS.some(s =>
     cards.every(c => c.suit === s || (c.combined && c.suit2 === s))
   );
 

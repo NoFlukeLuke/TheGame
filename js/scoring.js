@@ -480,7 +480,9 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // Suit conditions
   const _allRed   = cards.every(c => c.suit === '♥' || c.suit === '♦');
   const _allBlack = cards.every(c => c.suit === '♣' || c.suit === '♠');
-  const _suitSet = new Set(cards.map(c => c.suit));
+  // Rainbow / Balance count COLOURS as seen, so a white card counts as white
+  // rather than as the colour of the slot it came from.
+  const _suitSet = new Set(cards.map(c => cardColorSuit(c)));
   if (hasTrick('full_color') && _suitSet.size === 4) { const _ap = BAL.full_color.pips_per_card * cells.length; totalPips += _ap; bPip('full_color', _ap); const _am = BAL.full_color.mult_per_card * cells.length; mult += _am; bMult('full_color', _am); }
   if (hasTrick('balanced_diet') && _suitSet.size === 2) { const _a = BAL.balanced_diet.mult_per_card * cells.length; mult += _a; bMult('balanced_diet', _a); }
   // Rank diversity

@@ -101,7 +101,7 @@ function sfxWinExplode(){
     // is still comfortably the loudest thing in the game, which is the intent.
     const master = actx.createGain(); master.gain.value = 0.55 * sfxVolume();
     if (master.gain.value <= 0) return;
-    master.connect(sfxDuckGain || actx.destination);
+    master.connect(sfxOut(actx));
     // Detuned saw "zap" sweeping down - the analog-synth stab.
     [0,7].forEach(detune=>{
       const o=actx.createOscillator(); o.type='sawtooth'; o.detune.value=detune;
@@ -248,7 +248,7 @@ async function playScoreDance(result, toRemove, isGoalHand = false) {
     void el.offsetWidth;
     el.classList.add(`score-pop-${sc}`);
     // SFX fires when this card's pop begins
-    setTimeout(() => sfxCardPop(card.suit), i * STAGGER_MS);
+    setTimeout(() => sfxCardPop(cardColorSuit(card)), i * STAGGER_MS);
   });
 
   // Wait for last card's pop to fully finish
@@ -876,7 +876,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
     handCells.forEach(([r,c],i)=>{ const card=gridData[r][c]; if(!card) return;
       const gEl=gridEl?.querySelector(`[data-card-id="${card._id}"]`);
       const slot=cardEls[i].parentElement;
-      setTimeout(()=>{ if(aborted()) return; flyGridCardToSlot(gEl, slot, FLY_DUR); if(typeof sfxCardPop==='function') sfxCardPop(card.suit); }, i*FLY_STAGGER);
+      setTimeout(()=>{ if(aborted()) return; flyGridCardToSlot(gEl, slot, FLY_DUR); if(typeof sfxCardPop==='function') sfxCardPop(cardColorSuit(card)); }, i*FLY_STAGGER);
     });
     await wait(handCells.length*FLY_STAGGER + FLY_DUR);
     if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }

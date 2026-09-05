@@ -28,32 +28,31 @@ const COLOR_CLASS = { '🔴':'num-suit col-red', '🟡':'num-suit col-yellow', '
 // 20 are big-pip loners that can never be part of a run or straight, and the 0
 // is a genuine dead card (0 pips) that still counts for sets and colour flushes.
 const RANKS_NUMERIC = ['0','1','2','3','4','5','6','7','8','9','10','11','15','20'];
-// ── WHITE: the colourless values (r164) ──
-// 9, 10 and 11 have no colour of their own - every one of them is WHITE. White is
-// deliberately NOT in COLORS/ACTIVE_SUITS, and that single fact is what makes it
-// flush-inert: detectHand's flush test asks whether some ACTIVE suit covers the
-// whole hand, so a white card can never complete one. It still pairs, sets and
-// runs normally, and still counts as a colour for the colour-COUNT Tricks.
-// This is the lever that pulls flushes down without adding a playable colour -
-// measured on a 4×4 board, a Flush of 3 is available 28% of deals instead of 51%,
-// against an unchanged 58% for a Run of 3.
-// NB: the seven 9s all share the card key '9-⚪', so a permanent pip/mult buff or
-// a curse on one white 9 applies to every white 9. Same for the 10s and 11s.
+// ── WHITE: the colourless values (r164, reworked r165) ──
+// 9, 10 and 11 have no colour of their own — they are drawn WHITE (⚪) and can
+// never complete a flush.
+//
+// Whiteness is DERIVED FROM THE VALUE, never stored on the card. Each card keeps
+// the colour its deck slot gave it, so the seven white 9s are seven SEPARATE
+// cards with seven separate `cardKey`s — they buff, curse and get tracked
+// independently, exactly like any other card. (r164 repainted `suit` to '⚪',
+// which collapsed all seven onto the one key '9-⚪' and made a buff on one a buff
+// on all seven; this replaces that.) Deriving it also means there is no per-card
+// state to preserve through the discard → reshuffle → redraw round trip, which
+// rebuilds cards from `{rank, suit}` alone.
+//
+// Everything the player SEES asks cardColorSuit(); everything that IDENTIFIES a
+// card keeps using card.suit.
 const WHITE = '⚪';
 const WHITE_RANKS = ['9', '10', '11'];
-// Paint a card's colour at deck-build time: in Spectrum the white ranks lose the
-// colour the rank × colour cross-product gave them. Idempotent.
-// Colours to SHOW in the deck read-outs: the active list, plus white in Spectrum
-// (white is deliberately absent from ACTIVE_SUITS, so it needs adding back here).
-function deckDisplaySuits() {
-  const base = (typeof ACTIVE_SUITS !== 'undefined' && ACTIVE_SUITS.length) ? [...ACTIVE_SUITS] : [...SUITS];
-  if (isNumericMode()) base.push(WHITE);
-  return base;
-}
-function spectrumPaintSuit(rank, suit) {
-  return (isNumericMode() && WHITE_RANKS.includes(rank)) ? WHITE : suit;
-}
-// True for a card that belongs to the numeric deck - asked of the CARD, not the
+function isWhiteRankValue(rank) { return isNumericMode() && WHITE_RANKS.includes(rank); }
+function isWhiteCard(card) { return !!card && isWhiteRankValue(card.rank); }
+// The colour a card READS as — white for the colourless values, its own colour
+// otherwise. Used by the card face, the deck read-outs, score particles, and the
+// colour-COUNT Tricks (a white card counts as the colour "white", not as the
+// colour of the slot it came from).
+function cardColorSuit(card) { return isWhiteCard(card) ? WHITE : (card ? card.suit : null); }
+// True for a card that belongs to the numeric deck — asked of the CARD, not the
 // mode, so the hand preview / score dance / saved runs all render it correctly
 // wherever they get their cards from.
 function isColorSuit(suit) { return !!COLOR_HEX[suit]; }

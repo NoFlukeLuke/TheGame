@@ -88,7 +88,7 @@ function recordsDeckCensus() {
 
 function recordsRenderDeck() {
   const where = recordsDeckCensus();
-  const suits = deckDisplaySuits();
+  const suits = (typeof ACTIVE_SUITS !== 'undefined' && ACTIVE_SUITS.length) ? ACTIVE_SUITS : SUITS;
   const counts = { draw: 0, grid: 0, played: 0 };
   Object.values(where).forEach(w => { if (counts[w] !== undefined) counts[w]++; });
 
@@ -100,8 +100,11 @@ function recordsRenderDeck() {
       const k = cardKey(rk, s);
       const w = where[k];
       const pp = permPips[k] || 0, pm = permMult[k] || 0;
-      const cls = ['rec-deck-cell', w ? 'w-' + w : 'w-gone', pp ? 'has-pip' : '', pm ? 'has-mult' : ''].filter(Boolean).join(' ');
-      const tip = `${rk}${s} - ${w === 'draw' ? 'in draw pile' : w === 'grid' ? 'on the board' : w === 'played' ? 'played (returns next round)' : 'not in deck'}` +
+      // Spectrum's white values sit in the row of the colour that owns them (each
+      // one is still its own card) — tint the cell so it reads as colourless.
+      const cls = ['rec-deck-cell', w ? 'w-' + w : 'w-gone', pp ? 'has-pip' : '', pm ? 'has-mult' : '',
+                   isWhiteRankValue(rk) ? 'rec-white' : ''].filter(Boolean).join(' ');
+      const tip = `${rk}${s} — ${w === 'draw' ? 'in draw pile' : w === 'grid' ? 'on the board' : w === 'played' ? 'played (returns next round)' : 'not in deck'}` +
                   `${pp ? ` · +${pp} pips` : ''}${pm ? ` · +${pm} mult` : ''}`;
       const marks = (pp ? '<i class="rec-m rec-m-p"></i>' : '') + (pm ? '<i class="rec-m rec-m-m"></i>' : '');
       return `<span class="${cls}" title="${tip}">${rk}${marks}</span>`;
