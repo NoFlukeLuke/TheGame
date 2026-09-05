@@ -458,6 +458,8 @@ function startGame() {
   rewardGridsSeen = 0;
   forceBossNextRound = false;
   shopFromNodeFlow = false;
+  nodeFlowAfterShop = null;
+  recentEventIds = [];
   updateActProgressUI();
   // Clear any leftover card elements from previous game
   document.getElementById('grid').querySelectorAll('.card').forEach(el => el.remove());
