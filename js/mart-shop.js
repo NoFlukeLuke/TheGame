@@ -192,7 +192,7 @@ function closeMart() {
   channelChange(() => {
     document.getElementById('mart-overlay')?.classList.remove('show');
     gameTimerPaused = false;
-    if (shopFromNodeFlow) { shopFromNodeFlow = false; drainLevelUpQueue(); }
+    if (shopFromNodeFlow) { resumeAfterNodeFlowShop(); }
     else if (typeof survivalActive === 'function' && survivalActive() && !bossActive) {
       if (typeof survivalShopFromPick !== 'undefined' && survivalShopFromPick) {
         // Opened from the PICK screen: the pick is still up behind the Mart and owns

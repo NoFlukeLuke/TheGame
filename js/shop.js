@@ -728,8 +728,7 @@ document.getElementById('shop-close').addEventListener('click', () => {
     // pre-dealt board in with the 3-2-1 and starts the round (settle + cascade).
     match3AfterShop();
   } else if (shopFromNodeFlow) {
-    shopFromNodeFlow = false;
-    drainLevelUpQueue(); // continue to next round (node-based flow)
+    resumeAfterNodeFlowShop(); // next round, or Guided's next stop
   } else {
     startRoundTimer();
   }

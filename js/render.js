@@ -63,9 +63,22 @@ function render() {
           ? `${card._adjPlays || 0}/${def.adjacentPlays || 2}`
           : (card._usesLeft === 'infinite' ? '∞' : card._usesLeft);
         const _isAim = AIM_SLEIGHTS.has(def?.id);
+        // Selection parity with normal cards (r179). A grid Sleight is .trick-card,
+        // not .card, so none of the .card.selected.hand-valid / .hand-ready /
+        // .unreachable states ever reached it - picking one into a hand looked
+        // different from picking any other card. Same flags, same class names.
+        const _readyJ = handReadyForSubmit && selIdxJ >= 0;
+        const _validJ = !_readyJ && selIdxJ >= 0 && !!bestHandResult;
+        const _unreachJ = reachable && !reachable.has(key) && selIdxJ < 0;
+        const _stateJ = (_validJ ? ' hand-valid' : '') + (_readyJ ? ' hand-ready' : '')
+                      + (_unreachJ ? ' unreachable' : '')
+                      + (sleightIsSpent(card, def) ? ' sleight-spent' : '')
+                      // className is rewritten wholesale below, so an in-flight
+                      // double-tap spin has to be carried across the repaint.
+                      + (div.classList.contains('sl-spin') ? ' sl-spin' : '');
         if (_isAim) {
           const dir = card._aimDir || (card._aimDir = 'up');
-          div.className = 'trick-card sleight-card aim-sleight' + (selIdxJ >= 0 ? ' selected' : '');
+          div.className = 'trick-card sleight-card aim-sleight' + (selIdxJ >= 0 ? ' selected' : '') + _stateJ;
           div.innerHTML =
             `<div class="sleight-aim-inner" style="transform:perspective(360px) ${AIM_TILT[dir]}">` +
               `<div class="sleight-card-emoji">${def?.emoji||'🪞'}</div>` +
@@ -76,7 +89,7 @@ function render() {
           attachLongPress(div, r, c);
           continue;
         }
-        div.className = 'trick-card sleight-card' + sleightRarityClass(def) + (isSwapPendingJ ? ' swap-pending' : '') + (selIdxJ >= 0 ? ' selected' : '');
+        div.className = 'trick-card sleight-card' + sleightRarityClass(def) + (isSwapPendingJ ? ' swap-pending' : '') + (selIdxJ >= 0 ? ' selected' : '') + _stateJ;
         div.innerHTML = `${selIdxJ >= 0 ? `<div class="sel-num">${selIdxJ+1}</div>` : ''}` + sleightFaceHTML(card, def, usesStr);
         div.onclick = () => onCardTap(r, c);
         attachLongPress(div, r, c);

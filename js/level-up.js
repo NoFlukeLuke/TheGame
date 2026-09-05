@@ -166,7 +166,7 @@ function triggerLevelUp() {
     ownedSleightCards().forEach(card => {
       if (card._usesLeft === 'infinite' || typeof card._usesLeft !== 'number') return;
       const def = SLEIGHT_POOL.find(j => j.id === card.sleightId);
-      const cap = (def && typeof def.durability === 'number') ? def.durability : card._usesLeft;
+      const cap = sleightMaxCharges(def) ?? card._usesLeft;
       if (card._usesLeft < cap && Math.random() < 0.5) { card._usesLeft++; _refilled++; }
     });
     if (_refilled) showMessage(`Coin Toss: ${_refilled} Sleight${_refilled > 1 ? 's' : ''} regained a charge`, 'var(--gold)');

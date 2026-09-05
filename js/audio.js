@@ -24,7 +24,7 @@ function playTone({ freq = 440, type = 'sine', gain = 0.18, attack = 0.005,
   env.gain.linearRampToValueAtTime(0, now + duration + release);
 
   osc.connect(env);
-  env.connect(sfxDuckGain || ctx.destination);
+  env.connect(sfxOut(ctx));
   osc.start(now);
   osc.stop(now + duration + release + 0.05);
 }
@@ -50,7 +50,7 @@ function playNoise({ gain = 0.05, attack = 0.002, release = 0.06, delay = 0 } = 
   env.gain.exponentialRampToValueAtTime(0.0001, now + attack + release);
   src.connect(filter);
   filter.connect(env);
-  env.connect(sfxDuckGain || ctx.destination);
+  env.connect(sfxOut(ctx));
   src.start(now);
   src.stop(now + release + 0.15);
 }
@@ -148,18 +148,24 @@ function sfxVictory() {
 }
 
 function sfxHeartbeat(gain = 1.0) {
-  // Two-thump heartbeat: lub-dub. Bypasses duck so it stays loud while SFX duck.
+  // Two-thump heartbeat: lub-dub. It used to connect straight to the destination
+  // to stay loud while the other effects ducked - which also meant it ignored
+  // sfxVolume() entirely, so mute never silenced it (the same bug sfxWinExplode
+  // had). It now rides the `alert` bus, whose duckTo is 1: nothing ducks it, and
+  // the volume sliders reach it like everything else.
+  const vol = sfxVolume();
+  if (vol <= 0) return;
   const ctx = getAudioCtx();
   [[0, 0.18], [0.18, 0.12]].forEach(([delay, g]) => {
     const osc = ctx.createOscillator();
     const gainNode = ctx.createGain();
     osc.connect(gainNode);
-    gainNode.connect(ctx.destination);
+    gainNode.connect(sfxOut(ctx));
     osc.type = 'sine';
     osc.frequency.setValueAtTime(80, ctx.currentTime + delay);
     osc.frequency.exponentialRampToValueAtTime(40, ctx.currentTime + delay + 0.12);
     gainNode.gain.setValueAtTime(0, ctx.currentTime + delay);
-    gainNode.gain.linearRampToValueAtTime(g * gain, ctx.currentTime + delay + 0.02);
+    gainNode.gain.linearRampToValueAtTime(g * gain * vol, ctx.currentTime + delay + 0.02);
     gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.22);
     osc.start(ctx.currentTime + delay);
     osc.stop(ctx.currentTime + delay + 0.25);
@@ -376,11 +382,34 @@ function sfxFocusNodeDrop() {
 // Two types: 'pip' = lower base, 'mult' = higher base.
 let _particleStep = 0;
 function resetParticleStep() { _particleStep = 0; }
+// TWO sounds, not one (r191). Each particle is a short attack tick and then a
+// pitched body a beat behind it - "t-ding", not "ding". Two transients that close
+// together read as one event with a shape, which is what makes a long run of them
+// sound like a counter ratcheting rather than like a row of identical bleeps; the
+// old version layered its overtone SIMULTANEOUSLY, which just made one thicker
+// bleep. PARTICLE_GAP is the whole effect: below ~25ms the two fuse into a click,
+// above ~90ms they separate into two events.
+const PARTICLE_GAP = 0.045;
+
 function sfxParticleStep(type = 'pip') {
   const i = _particleStep++;
   const baseFreq = type === 'mult' ? 520 : 380;
   const step = type === 'mult' ? 70 : 55;
   const freq = baseFreq + i * step;
+
+  // 1. The tick: bright, tiny, no pitch to speak of. The "t".
+  playTone({
+    freq: freq * (type === 'mult' ? 3.1 : 2.7),
+    type: 'square',
+    gain: 0.030,
+    attack: 0.001,
+    decay: 0.012,
+    sustain: 0.05,
+    release: 0.02,
+    duration: 0.028,
+  });
+
+  // 2. The body: the note that actually carries the climb. The "ding".
   playTone({
     freq,
     type: 'triangle',
@@ -390,17 +419,18 @@ function sfxParticleStep(type = 'pip') {
     sustain: 0.1,
     release: 0.06,
     duration: 0.12,
+    delay: PARTICLE_GAP,
   });
-  // Subtle harmonic overtone for richness
   playTone({
     freq: freq * 2,
     type: 'sine',
-    gain: 0.035,
+    gain: 0.030,
     attack: 0.002,
     decay: 0.03,
     sustain: 0.08,
     release: 0.05,
     duration: 0.1,
+    delay: PARTICLE_GAP,
   });
 }
 
@@ -513,7 +543,7 @@ function sfxRewind() {
   const ctx  = getAudioCtx();
   const now  = ctx.currentTime;
   const dur  = 0.62;
-  const dest = sfxDuckGain || ctx.destination;
+  const dest = sfxOut(ctx);
 
   // Two detuned saws sweeping upward - the "wind back" itself.
   [[196, 0], [196, 9]].forEach(([f, det]) => {

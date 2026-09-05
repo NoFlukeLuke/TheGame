@@ -120,7 +120,7 @@ function doDiscard() {
       const _sc = gridData[_r]?.[_c];
       if (!_sc?._isSleight || discardedCards.includes(_sc) || _sc._usesLeft === 'infinite' || typeof _sc._usesLeft !== 'number') continue;
       const _def = SLEIGHT_POOL.find(j => j.id === _sc.sleightId);
-      const _cap = _def && typeof _def.durability === 'number' ? _def.durability : _sc._usesLeft;
+      const _cap = sleightMaxCharges(_def) ?? _sc._usesLeft;
       if (_sc._usesLeft < _cap) { _sc._usesLeft++; _restored++; }
     }
     if (_restored) showMessage(`Martyr: +1 charge to ${_restored} Sleight${_restored > 1 ? 's' : ''}`, 'var(--gold)');

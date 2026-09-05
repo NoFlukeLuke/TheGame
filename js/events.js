@@ -363,6 +363,14 @@ function removeRandomDeckCards(n) {
   return removed;
 }
 function cardLabel(card) { return card ? `${card.rank}${card.suit}` : 'a card'; }
+// A local shuffle. reward-grid.js has a `shuffled` but it is scoped INSIDE
+// _generateRewardContent, so it is not reachable from here - calling it threw a
+// ReferenceError the moment The Bench opened.
+function evShuffle(arr) {
+  const r = [...arr];
+  for (let i = r.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [r[i], r[j]] = [r[j], r[i]]; }
+  return r;
+}
 
 // ══════════════════════════════════════════════
 // EVENT: THE FORGE  (this-or-that card enhancement)
@@ -928,6 +936,235 @@ function confirmShiftChange() {
     // alone here - reshuffling the tray moves the Tricks, not the lines they
     // already own, so nothing you were building around silently relocates.
     showMessage('Shift change - Trick order updated', 'var(--gold)');
+  }
+  closeEvent();
+}
+
+// ══════════════════════════════════════════════
+// UPGRADE EVENTS (r194) - improve what you already have
+// ══════════════════════════════════════════════
+// Every event before these HANDED you something. That is the wrong shape for a
+// run that has to close a 1.227x-per-level gap (see Natural Scaling in
+// CLAUDE.md): a Trick tray caps at 10 and fills long before an act does, so a
+// twelfth grant is a replace-or-decline, while an upgrade always has somewhere
+// to go. Each of these rides an engine seam that already existed rather than
+// inventing per-entity code:
+//   cards    enhanceCardKey  (permPips / permXMult / permRetrig …)
+//   Tricks   t._rank         (a permanent prime - see calcScore)
+//   Sleights sleightCapBonus (a raisable charge ceiling - sleights-runtime.js)
+
+// ─── EVENT: THE BENCH (card enhancement, on a card YOU choose) ───
+// The Forge offers three enhancements on three RANDOM cards. The Bench offers
+// the same kind of power on a card you pick, which is the version that can be
+// aimed at a build.
+function renderBench() {
+  const body = document.getElementById('event-body');
+  const pool = [...drawPile].filter(c => c && c.rank && !c._isSleight);
+  if (!pool.length) {
+    body.innerHTML = evEmptyHTML('No cards in the draw pile to work on.');
+    setEventConfirm(true); return;
+  }
+  eventState.benchBoon = null;
+  eventState.benchCard = null;
+  body.appendChild(evNote('Pick a treatment, then pick the card it goes on. The card keeps it for the rest of the run.'));
+
+  const boons = [
+    { icon:'🔨', rarity:'common', name:'Weight',   desc:'+40 pips, permanently.',        e:{ pips:40 },  say:'+40 pips'  },
+    { icon:'✨', rarity:'rare',   name:'Charge',   desc:'+6 mult, permanently.',         e:{ mult:6 },   say:'+6 mult'   },
+    { icon:'💥', rarity:'epic',   name:'Overwind', desc:'Scores ×2 mult, permanently.',  e:{ xmult:2 },  say:'×2 mult'   },
+    { icon:'🔁', rarity:'rare',   name:'Double',   desc:'Scores twice, permanently.',    e:{ retrig:1 }, say:'replays'   },
+  ];
+  const chosen = evShuffle(boons).slice(0, 3);
+  chosen.forEach(b => {
+    const el = makeChoiceEl({ icon:b.icon, rarity:b.rarity, name:b.name, desc:b.desc,
+      onClick: () => {
+        body.querySelectorAll('.event-choice').forEach(e => e.classList.remove('selected'));
+        el.classList.add('selected');
+        eventState.benchBoon = b;
+        showBenchCardPicker(pool);
+        setEventConfirm(!!eventState.benchCard);
+      }
+    });
+    body.appendChild(el);
+  });
+}
+// One chip per card IDENTITY, not per copy - permPips and friends are keyed by
+// "rank-suit", so treating one 7♠ treats every 7♠ in the deck. Showing three
+// identical chips would imply otherwise.
+function showBenchCardPicker(pool) {
+  // Rebuilt whenever a different treatment is picked, so the label has to live
+  // INSIDE the removable wrapper - appending it separately stacked a fresh
+  // "CHOOSE THE CARD" every time the player changed their mind.
+  document.getElementById('bench-card-picker')?.remove();
+  const body = document.getElementById('event-body');
+  const wrap = document.createElement('div');
+  wrap.id = 'bench-card-picker';
+  wrap.appendChild(evLabel('CHOOSE THE CARD'));
+  const chips = document.createElement('div');
+  chips.className = 'ev-cardchips';
+  const seen = new Set();
+  pool.forEach(card => {
+    const key = card.rank + card.suit;
+    if (seen.has(key)) return; seen.add(key);
+    const chip = document.createElement('div');
+    chip.className = 'ev-cardchip' + (['♥','♦'].includes(card.suit) ? ' red' : '');
+    chip.textContent = card.rank + card.suit;
+    chip.addEventListener('click', () => {
+      chips.querySelectorAll('.ev-cardchip').forEach(c => c.classList.remove('picked'));
+      chip.classList.add('picked');
+      eventState.benchCard = card;
+      setEventConfirm(!!eventState.benchBoon);
+    });
+    chips.appendChild(chip);
+  });
+  wrap.appendChild(chips);
+  body.appendChild(wrap);
+}
+function confirmBench() {
+  const b = eventState.benchBoon, c = eventState.benchCard;
+  if (b && c) {
+    enhanceCardKey(cardKey(c.rank, c.suit), b.e);
+    showMessage(`${cardLabel(c)} ${b.say}`, 'var(--gold)');
+  }
+  closeEvent();
+}
+
+// ─── EVENT: REHEARSAL (Trick upgrade) ───
+// Permanently primes one Trick: it fires its effect an extra time, every hand,
+// for the rest of the run. Generic by construction - calcScore duplicates
+// whatever pip/mult delta the Trick reported, so this works on all of them
+// without a line of per-Trick code.
+function renderRehearsal() {
+  const body = document.getElementById('event-body');
+  if (!trickTrayMode || !trickTray.length) {
+    body.innerHTML = evEmptyHTML('No Tricks to rehearse. Take the fee instead.');
+    eventState.rehearseNone = true;
+    setEventConfirm(true); return;
+  }
+  eventState.rehearsePick = null;
+  body.appendChild(evNote('One Trick works twice as hard from now on: it fires its effect an extra time, every hand, for the rest of the run.'));
+  trickTray.forEach(t => {
+    const rank = t._rank || 0;
+    const el = makeChoiceEl({
+      icon: (typeof trickEmoji === 'function') ? trickEmoji(t) : '✦',
+      rarity: t.tier,
+      name: t.name + (rank ? ` · rehearsed ×${rank + 1}` : ''),
+      desc: (typeof trickLiveDesc === 'function') ? trickLiveDesc(t) : t.desc,
+      onClick: () => {
+        body.querySelectorAll('.event-choice').forEach(e => e.classList.remove('selected'));
+        el.classList.add('selected');
+        eventState.rehearsePick = t;
+        setEventConfirm(true);
+      }
+    });
+    body.appendChild(el);
+  });
+}
+function confirmRehearsal() {
+  if (eventState.rehearseNone) {
+    coins += BAL.rehearsal.consolation_credits;
+    updateCoinsUI?.();
+    showMessage(`+${BAL.rehearsal.consolation_credits} credits`, 'var(--gold)');
+  } else if (eventState.rehearsePick) {
+    const t = eventState.rehearsePick;
+    t._rank = (t._rank || 0) + 1;
+    showMessage(`${t.name} rehearsed - fires ${t._rank + 1}× a hand`, 'var(--gold)');
+    if (typeof renderTrickTray === 'function') renderTrickTray();
+  }
+  closeEvent();
+}
+
+// ─── EVENT: THE WORKSHOP (Sleight upgrade) ───
+// Sleights run on charges and, once spent, sit inert or leave the deck. Nothing
+// in the game raised a charge CEILING before this.
+function renderWorkshop() {
+  const body = document.getElementById('event-body');
+  const owned = allOwnedSleightCards().filter(c => sleightMaxCharges(sleightDef(c)) !== null);
+  if (!owned.length) {
+    body.innerHTML = evEmptyHTML('No Sleights with charges to service. Take the fee instead.');
+    eventState.workshopNone = true;
+    setEventConfirm(true); return;
+  }
+  eventState.workshopPick = null;
+  eventState.workshopCard = null;
+  body.appendChild(evNote('Charges are per run, not per round. Service refills what you have; reinforcing raises the ceiling for good.'));
+
+  const service = makeChoiceEl({
+    icon:'🧰', rarity:'common', name:'Service', desc:`Refill every Sleight you own to full charges (${owned.length} held).`,
+    onClick: () => {
+      body.querySelectorAll('.event-choice').forEach(e => e.classList.remove('selected'));
+      service.classList.add('selected');
+      eventState.workshopPick = 'service';
+      document.getElementById('workshop-picker')?.remove();
+      setEventConfirm(true);
+    }
+  });
+  body.appendChild(service);
+
+  const reinforce = makeChoiceEl({
+    icon:'⚙️', rarity:'epic', name:'Reinforce',
+    desc:`One Sleight permanently gains +${BAL.workshop.cap_bonus} maximum charges, and refills to that new ceiling.`,
+    onClick: () => {
+      body.querySelectorAll('.event-choice').forEach(e => e.classList.remove('selected'));
+      reinforce.classList.add('selected');
+      eventState.workshopPick = 'reinforce';
+      showWorkshopPicker(owned);
+      setEventConfirm(!!eventState.workshopCard);
+    }
+  });
+  body.appendChild(reinforce);
+}
+// One row per Sleight IDENTITY - the cap bonus is stored by sleightId, so
+// reinforcing one copy reinforces every copy of that Sleight.
+function showWorkshopPicker(owned) {
+  document.getElementById('workshop-picker')?.remove();
+  const body = document.getElementById('event-body');
+  const wrap = document.createElement('div');
+  wrap.id = 'workshop-picker';
+  wrap.className = 'ev-stack';
+  wrap.appendChild(evLabel('CHOOSE THE SLEIGHT'));
+  const seen = new Set();
+  owned.forEach(card => {
+    const def = sleightDef(card);
+    if (!def || seen.has(def.id)) return; seen.add(def.id);
+    const cap = sleightMaxCharges(def);
+    const el = makeChoiceEl({
+      icon: def.emoji || '◈', rarity: def.rarity, name: def.name,
+      desc: `${def.desc}<br>Now ${card._usesLeft ?? cap} of ${cap} charges · would become ${cap + BAL.workshop.cap_bonus}.`,
+      onClick: () => {
+        wrap.querySelectorAll('.event-choice').forEach(e => e.classList.remove('selected'));
+        el.classList.add('selected');
+        eventState.workshopCard = card;
+        setEventConfirm(true);
+      }
+    });
+    wrap.appendChild(el);
+  });
+  body.appendChild(wrap);
+}
+function confirmWorkshop() {
+  if (eventState.workshopNone) {
+    coins += BAL.workshop.consolation_credits;
+    updateCoinsUI?.();
+    showMessage(`+${BAL.workshop.consolation_credits} credits`, 'var(--gold)');
+  } else if (eventState.workshopPick === 'service') {
+    let n = 0;
+    allOwnedSleightCards().forEach(c => {
+      const cap = sleightMaxCharges(sleightDef(c));
+      if (cap !== null && (c._usesLeft || 0) < cap) { c._usesLeft = cap; n++; }
+    });
+    showMessage(n ? `${n} Sleight${n > 1 ? 's' : ''} refilled` : 'All Sleights already full', 'var(--gold)');
+  } else if (eventState.workshopPick === 'reinforce' && eventState.workshopCard) {
+    const def = sleightDef(eventState.workshopCard);
+    if (def) {
+      sleightCapBonus[def.id] = (sleightCapBonus[def.id] || 0) + BAL.workshop.cap_bonus;
+      // Refill every copy to the NEW ceiling, not just the one that was picked -
+      // the bonus is stored per sleightId, so they all share it.
+      allOwnedSleightCards().forEach(c => {
+        if (c.sleightId === def.id) c._usesLeft = sleightMaxCharges(def);
+      });
+      showMessage(`${def.name} reinforced - ${sleightMaxCharges(def)} charges`, 'var(--gold)');
+    }
   }
   closeEvent();
 }

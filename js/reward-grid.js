@@ -375,14 +375,15 @@ function _generateRewardContent() {
 
   // One destination in a random buff slot (not on a prize grid - it pays out, it
   // does not route you anywhere).
-  if (!PRIZE) grid[shuffledBuff[0][0]][shuffledBuff[0][1]] = { kind: 'dest', payload: pickRand(destOptions) };
+  const NO_DEST = PRIZE || (typeof guidedActive === 'function' && guidedActive());
+  if (!NO_DEST) grid[shuffledBuff[0][0]][shuffledBuff[0][1]] = { kind: 'dest', payload: pickRand(destOptions) };
 
   // Guaranteed tiles first (protected from the Trick-minimum conversion below)
   const guaranteed = buildGuaranteedRewardTiles();
   // The Limit Break is a limit tile too - seed the ceiling with it so the prize
   // grid can add at most PRIZE_MAX_LIMIT_TILES - 1 more.
   if (PRIZE) _limitTilesThisGrid = guaranteed.filter(p => p.icon === '💥' || p.icon === '⬆️').length;
-  let placeIdx = PRIZE ? 0 : 1;
+  let placeIdx = NO_DEST ? 0 : 1;
   for (const payload of guaranteed) {
     if (placeIdx >= shuffledBuff.length) break;
     const [r, c] = shuffledBuff[placeIdx++];
@@ -745,7 +746,11 @@ function openRewardGrid() {
   document.body.classList.add('reward-active');
   // Boss reward grids (post-boss-win, nodeInAct 5; or timer-mode boss context) tint red;
   // ordinary reward grids stay teal (see the per-screen #stage backgrounds).
-  document.body.classList.toggle('reward-boss', rewardGridContext === 'boss' || (ACTIVE_MODE?.id === 'normal' && nodeInAct === 5));
+  // The post-boss grid tints red. This tested ACTIVE_MODE.id === 'normal', which
+  // missed every OTHER act mode - Six Suits, Spectrum, Orientation and now Guided
+  // all route their post-boss prize grid through here with nodeInAct 5 and were
+  // silently getting the ordinary tint. isActMode() is the real question.
+  document.body.classList.toggle('reward-boss', rewardGridContext === 'boss' || (isActMode() && nodeInAct === 5));
   document.body.classList.toggle('reward-prize', prizeGridActive());
   if (typeof enterGridScreenHud === 'function') enterGridScreenHud(prizeGridActive() ? 'PRIZE' : 'REWARDS', 'reward');
   enterRewardButtonMode();
@@ -1400,6 +1405,10 @@ function closeRewardGrid() {
   const finishInterlude = () => {
     skipTrickChoiceOverlay = true;
 
+    // The node this reward grid belonged to, captured BEFORE the advance below.
+    // Guided routes off it, and 5 is the post-boss prize grid.
+    const _node = nodeInAct;
+
     if (isActMode()) {
       if (nodeInAct === 5) {
         // Post-boss reward grid - transition to next act
@@ -1419,12 +1428,20 @@ function closeRewardGrid() {
       }
     }
 
+    // Guided: the act runs a fixed spine, so the node index decides what comes
+    // next, not a destination tile (which Guided's grids do not carry).
+    if (typeof guidedActive === 'function' && guidedActive() && isActMode()) {
+      pendingEventOverride = null;
+      guidedRunStops(guidedStopsAfterNode(_node), () => drainLevelUpQueue());
+      return;
+    }
+
     // Route based on destination tile the player selected (if any)
     const override = pendingEventOverride;
     pendingEventOverride = null;
     if (override === 'shop') {
       shopFromNodeFlow = true;
-      triggerShop(); // shop close → drainLevelUpQueue (wired in shop-close handler)
+      triggerShop(); // shop close → resumeAfterNodeFlowShop (wired in shop-close handler)
     } else if (override === 'event') {
       shopFromNodeFlow = false;
       openEvent(() => drainLevelUpQueue());
@@ -1474,7 +1491,19 @@ function closeRewardGrid() {
 })();
 
 let pendingEventOverride = null; // 'normal' | 'shop' | 'event' - set by reward grid dest tiles
-let shopFromNodeFlow    = false;  // true when shop was opened mid-interlude; close → drainLevelUpQueue
+let shopFromNodeFlow    = false;  // true when shop was opened mid-interlude; close → resumeAfterNodeFlowShop
+// Where a node-flow shop hands control back. Classic leaves this null and goes
+// straight to the next round; Guided sets it so the shop can be one stop in a
+// longer chain (js/guided-mode.js). Three files close a node-flow shop
+// (shop.js, mart-shop.js, shop-grid-preview.js) and all three route through here
+// rather than repeating the continuation.
+let nodeFlowAfterShop   = null;
+function resumeAfterNodeFlowShop() {
+  shopFromNodeFlow = false;
+  const fn = nodeFlowAfterShop;
+  nodeFlowAfterShop = null;
+  (fn || drainLevelUpQueue)();
+}
 let pendingLimitBreak   = false;  // a claimed Limit Break reward tile → open the LB screen on close
 
 // ── LIMIT BREAK EVENT ──

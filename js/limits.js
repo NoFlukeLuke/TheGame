@@ -144,7 +144,7 @@ function sleightChargeInfo() {
     if (card._usesLeft === 'infinite') { total += 1; return; }
     const def = SLEIGHT_POOL.find(j => j.id === card.sleightId);
     const cur = Math.max(0, card._usesLeft || 0);
-    const cap = (def && typeof def.durability === 'number') ? def.durability : cur;
+    const cap = sleightMaxCharges(def) ?? cur;
     total += cur;
     missing += Math.max(0, cap - cur);
   });

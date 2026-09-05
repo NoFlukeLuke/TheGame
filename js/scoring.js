@@ -621,11 +621,17 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   });
   // Primed Tricks (Inspirato / Prime Times): a primed Trick fires its effect an extra time
   // per prime stack the hand it naturally contributes. Stacks are consumed in playHand.
+  // _rank is a PERMANENT prime (Rehearsal event, r194): it fires the Trick an
+  // extra time exactly as a prime stack does, but playHand's consumption block
+  // only decrements _primed, so a rank never runs out. Reusing the prime loop is
+  // what makes a Trick upgrade generic - it needs no code in any of the 177
+  // Tricks, because it duplicates whatever pip/mult delta the Trick reported.
   if (trickTrayMode) trickTray.forEach(t => {
-    if (!t._primed || t._primed <= 0) return;
+    const _extra = (t._primed || 0) + (t._rank || 0);
+    if (_extra <= 0) return;
     const _pd = _cp[t.id] || 0, _md = _cm[t.id] || 0;
     if (!_pd && !_md) return;
-    for (let k = 0; k < t._primed; k++) { if (_pd) { totalPips += _pd; bPip('primed', _pd); } if (_md) { mult += _md; bMult('primed', _md); } }
+    for (let k = 0; k < _extra; k++) { if (_pd) { totalPips += _pd; bPip('primed', _pd); } if (_md) { mult += _md; bMult('primed', _md); } }
   });
   // Double Take: each scored 2 duplicates your most recently acquired Trick's contribution
   if (hasTrick('twos_retrigger') && trickTrayMode) {

@@ -1,4 +1,4 @@
-const BUILD = '2026-09-05 · r192 · card identity: buffs, curses and services target one card, not every card sharing its face';
+const BUILD = '2026-09-05 · r196 · card identity: buffs, curses and services target one card, not every card sharing its face [onto r195]';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -17,6 +17,24 @@ const MODES = {
     autoPlayHands: false,
     actStructure: true,
     suitCount: 4
+  },
+  // Guided: Classic with the route fixed instead of chosen. The reward grid's
+  // destination tile is suppressed and the act runs a set spine - see
+  // GUIDED_ACT_FLOW / GUIDED_POST_BOSS in js/guided-mode.js.
+  guided: {
+    id: 'guided',
+    name: 'Guided',
+    desc: 'The 3-Act game on a set route. Every act runs reward grid, Mart, reward grid, event, and so on into the boss - then a prize grid and two events.',
+    winCondition: 'boss_defeat',
+    enableBosses: true,
+    enableShops: true,
+    enableEvents: true,
+    autoRefillGrid: true,
+    timeIsCurrency: true,
+    autoPlayHands: false,
+    actStructure: true,
+    suitCount: 4,
+    guided: true
   },
   // Guided first run. Mechanically IDENTICAL to Classic (actStructure: true) -
   // an ordinary seeded run with coach-marks over it. See js/tutorial.js.
@@ -240,12 +258,14 @@ function startMatch3FromMenu(modeId = 'match3') {
 // MODE SELECT (scroll-sideways carousel off the PLAY button)
 // ══════════════════════════════════════════════
 // The shipping modes, shown left→right in the carousel.
-const MODE_SELECT_LIST = ['tutorial', 'normal', 'sixsuits', 'spectrum', 'survival', 'flow', 'match3', 'zen', 'dominoes'];
+const MODE_SELECT_LIST = ['tutorial', 'normal', 'guided', 'sixsuits', 'spectrum', 'survival', 'flow', 'match3', 'zen', 'dominoes'];
 const MODE_META = {
   tutorial: { accent: '#8fd0ff',         suits: 'START HERE',
               blurb: 'LETHE Corp staff orientation. A normal Classic run with the terminal explaining each control as you reach it - scoring, Focus, limits, the reward path, the Mart. About three minutes.' },
   normal:   { accent: 'var(--c-yellow)', suits: '♠ ♥ ♦ ♣',
               blurb: 'The original four-suit game. Three Acts of rounds, shops, events and bosses.' },
+  guided:   { accent: '#c9a0ff',         suits: 'SET ROUTE',
+              blurb: 'The same four-suit game with the path laid out for you. Instead of routing yourself from the reward grid, each act alternates reward grid, Mart, reward grid, event, into the boss - then a prize grid and two events. The Mart is guaranteed, so a run can always buy its way up the curve.' },
   sixsuits: { accent: 'var(--c-mint)',   suits: '♠ ♥ ♦ ♣ ★ ▲',
               blurb: 'Two extra suits dilute the deck, so flushes are hard-won. Flush of 3, 4 and 5 are all in play.' },
   spectrum: { accent: '#ff9d3c',        suits: '🔴 🟡 🔵 🟢 🟣 🟠 ⚫ ⚪',

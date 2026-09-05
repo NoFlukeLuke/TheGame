@@ -161,6 +161,9 @@ const BAL = {
   // is banked; the next scored hand pays bank_fraction of it again. Repeats, so the
   // score compounds across a round rather than doubling once.
   compound:    { interval_seconds: 45, bank_fraction: 1 },
+  // ── Upgrade events (r194) ──
+  rehearsal: { consolation_credits: 12 },
+  workshop:  { cap_bonus: 2, consolation_credits: 12 },
   // ── Focus RATE batch (r180) - scale how fast Focus accrues, not the ceiling ──
   // complexity_mult scales HAND_FOCUS; speed_mult scales the speed bonus;
   // window_mult dilates the speed clock (2 = twice as long for the same bonus).

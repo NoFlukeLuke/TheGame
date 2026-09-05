@@ -288,6 +288,53 @@ One screen with two jobs, both in `js/reward-grid.js`: **'lose' mode** (a debuff
 
 The Mart wheel has its own overflow prompt (`#wheel-overflow`, "NO ROOM", js/wheel.js) with a **different** resolution - sell one of yours, or sell the prize. It already speaks the Mart's language and was deliberately left alone.
 
+## Guided mode (r191) - `js/guided-mode.js`
+
+Classic with the route decided for you. In Classic the reward grid carries a **destination tile** and the player routes themselves; a run can therefore go a long stretch with no shop, which matters in a game where a run has to close a 1.227x-per-level gap out of its loadout. Guided fixes the rotation instead, so the economy is guaranteed and the spine is legible.
+
+**The spine is two lines of data, not branching code.** Index = the node whose reward grid just closed; value = what happens between that grid and the next round. Reshaping a Guided act is editing these and nothing else:
+
+```js
+const GUIDED_ACT_FLOW  = ['shop', 'event', 'shop', 'event', null];  // nodes 0-4
+const GUIDED_POST_BOSS = ['event', 'event'];                        // after the prize grid
+```
+
+Which plays out as `RG -> Mart -> RG -> event -> RG -> Mart -> RG -> event -> RG -> BOSS -> prize grid -> event -> event`, three times. **6 shops and 10 events a run.** The final boss ends the run before its post-boss events, because `finishInterlude`'s `actNumber > 3` win check returns first.
+
+- **`finishInterlude` captures `_node` BEFORE the node advance.** The reward grid belongs to the node just finished, and the advance has already incremented past it by the time the routing runs. Node **5** is the post-boss prize grid.
+- **Guided grids carry no destination tile** - the route is fixed, so it would be a dead tile. It reuses the prize grid's existing suppression (`NO_DEST = PRIZE || guidedActive()`), and `placeIdx` starts at 0 so the freed slot becomes a real reward rather than a hole.
+- **`resumeAfterNodeFlowShop()` is new and shared.** `shop.js`, `mart-shop.js` and `shop-grid-preview.js` each had the same inline "node-flow shop closed, go to the next round" line. Guided needs a shop to be one stop in a longer chain, so all three now route through one function that runs `nodeFlowAfterShop` if set and falls back to `drainLevelUpQueue`. **A new shop-close path must call it**, not `drainLevelUpQueue` directly.
+- **`guidedRunStops` is a callback chain, not a loop** - each stop hands control to a screen that closes on its own schedule. Stops after the first are delayed 280ms: the event overlay closes and reopens on the same element, so the post-boss pair would otherwise hard-cut from one event into the next.
+- **Nothing here needs saving.** The save point is the START OF A ROUND (see `js/save.js`), and a stop chain only ever runs between rounds, so `nodeFlowAfterShop` is always null when a checkpoint is taken - which is just as well, since it holds a function.
+
+### Upgrade events (r194) - improve what you already have
+
+Every event before these HANDED you something, which is the wrong shape late in a run: the Trick tray caps at 10 and fills long before an act does, so a twelfth grant is a replace-or-decline, while an upgrade always has somewhere to go. Three new events, pool **11 -> 14**:
+
+| event | upgrades | rides |
+|---|---|---|
+| **The Bench** | a card YOU pick (Forge picks three at random) | `enhanceCardKey` |
+| **Rehearsal** | one Trick - it fires an extra time, every hand, for the rest of the run | `t._rank` |
+| **The Workshop** | Sleights - refill all, or raise one's charge ceiling for good | `sleightCapBonus` |
+
+**Each rides a seam that already existed rather than adding per-entity code.** That is the whole reason three upgrade events cost so little:
+
+- **`t._rank` is a PERMANENT prime.** `calcScore` already fires a Trick an extra time per `_primed` stack, duplicating whatever pip/mult delta the Trick reported - so a rank works on all 177 Tricks with no code in any of them. The loop now reads `(t._primed || 0) + (t._rank || 0)`, and `playHand`'s consumption block only decrements `_primed`, so a rank never runs out. It is deliberately **uncapped**: each one costs a whole event choice. A rehearsed multiplicative Trick is bounded too - it re-adds the same delta, so a x1.5 becomes x2, not x2.25.
+- **`sleightCapBonus` (id -> extra charges) raises a Sleight's ceiling**, which nothing could do before. `sleightMaxCharges(def)` is the new chokepoint and **all four "restore up to the cap" sites read it** (`restoreSleightCharge`, `limits.js`, `discard.js`, `level-up.js`'s Coin Toss) - miss one and a reinforced Sleight refills only to its printed durability and the upgrade silently does nothing. It returns `null` for an infinite Sleight, which every caller already treats as "leave alone". Stored by sleightId, so reinforcing one copy reinforces every copy; it is in `SAVE_VARS` and resets on a new run.
+- `allOwnedSleightCards()` (sleights-runtime.js) is the Sleight counterpart to `allDeckCards()` - board, draw pile and played pile.
+
+**Two traps this hit, both found by rendering the events in a real browser and neither visible to a syntax check or a static call audit:**
+- **`shuffled()` in `js/reward-grid.js` is scoped INSIDE `_generateRewardContent`** - it is not a global, and calling it threw the moment The Bench opened. `events.js` has its own `evShuffle` now. A grep for `function shuffled` finds it and tells you nothing about its scope.
+- A picker rebuilt on each choice must keep its **label inside the removable wrapper**, or changing your mind stacks a fresh "CHOOSE THE CARD" every time.
+
+### Events cannot repeat back-to-back (r191)
+
+`openEvent` drew from an 11-event pool (14 since r194) with a bare `Math.random`. Classic routes to an event rarely enough that this never showed; Guided runs ~10 a run, where a repeat - and especially the same event twice in the post-boss pair - was near certain. `recentEventIds` (last 4) is filtered out of the draw, falling back to the full pool if that would empty it. Measured over 20,000 simulated Guided runs: **0 back-to-back repeats**, per-event share flat to within 1.5%.
+
+### One pre-existing bug this surfaced
+
+The post-boss red tint tested `ACTIVE_MODE?.id === 'normal'`, so **Six Suits, Spectrum and Orientation never got it** - every act mode routes its post-boss prize grid through the same place with `nodeInAct === 5`. Now `isActMode()`.
+
 ## Prize Grid (r179) - the post-boss payout
 
 Beating a boss opens the **Prize Grid** instead of the ordinary reward grid (it **replaces** it - one grid, not two). Same machinery throughout: same tiles, same connected-path pick, same confirm/fly/apply, same `closeRewardGrid` continuation that advances the act. Three differences, all decided in `_generateRewardContent`:
@@ -837,6 +884,84 @@ Classic is the floor that always answers, so a file that 404s falls back to the 
 - **Autoplay:** `armMusicAutostart()` waits for the first click/key, and that gesture also unlocks the AudioContext and prewarms every listed sample.
 - **A track's `off: true`** is a DEFAULT, not a state - `musicTrackOn` prefers a stored choice and only falls back to it. That is what lets twelve ambience beds ship without the playlist opening as a wall of noise.
 - **Three volumes.** `sfxVolume()` is master x effects, `musicVolume()` is master x music, both folding in `muted`. Every `playTone`/`playNoise`/sample/pack voice multiplies by `sfxVolume()`, so it is the single choke point. **`sfxWinExplode` builds its own gain node** rather than going through `playTone`, so it has to fold that in by hand - it did not until r179, and mute never silenced the goal blast.
+
+### The mixer (r191) - `js/audio-mixer.js`
+
+Before this every sound connected straight to the output at whatever gain its own
+designer picked, so a Focus node detaching was as loud as a hand scoring. The fix
+is the standard game-audio answer, which is **three separate mechanisms** people
+often lump together as "priority":
+
+1. **Buses + static trim.** Sounds are grouped by what they MEAN, not by what
+   makes them, and each group has one fader. This is most of the fix - a
+   background tick should simply always be quieter than a headline.
+2. **Ducking.** When something important starts, every bus below it dips for as
+   long as it lasts, then comes back.
+3. **Voice limits.** A cap per bus, plus a minimum gap between repeats of one
+   sound, so a fast loop cannot turn into a buzzsaw.
+
+**The split is the point.** Doing it all with ducking gives a mix that pumps;
+doing it all with static gains gives a mix where the big moments never get room.
+
+| bus | pri | trim | ducks to | what |
+|---|---|---|---|---|
+| `detail` | 1 | 0.55 | 0.30 | score ticks, Focus node pops and drops |
+| `board` | 2 | 0.80 | 0.45 | card select/pop, riffle, reward pick |
+| `score` | 3 | 1.00 | 0.55 | the scoring dance: particles, Focus beat, hand scored |
+| `event` | 3 | 0.95 | 0.55 | coins, shop, rewards, round start, countdown |
+| `headline` | 4 | 1.00 | never | goal blast, victory, level up, multi-goal |
+| `alert` | 5 | 1.00 | never | the boss-approach heartbeat |
+
+- **`sfxOut(ctx)` is the seam.** Every voice in the game connects there instead of
+  to the destination - `playTone`, `playNoise`, `_packOut`, `bitTone`, `bitNoise`,
+  sample playback, and the two hand-built sounds (`sfxWinExplode`, `sfxRewind`).
+- **How a voice knows its bus:** the wrapper in `js/audio-assets.js` sets
+  `_mixCurrentId` around the call (`sfxWithMixId`), and `sfxOut` reads it. This
+  works because a sound's voices are all scheduled **synchronously** inside that
+  call, even the ones carrying a `delay`. A `setTimeout` that calls another sfx
+  goes through the wrapper again and gets its own id, so that is fine too.
+- **The per-sound trim is folded into `sfxVolume()`**, which is why one table
+  reaches every voice without touching any of them. `musicVolume()` deliberately
+  does not get it.
+- **`duckHold` and `voiceHold` are different numbers and sharing one is a bug.** A
+  headline should keep the mix out of its way for most of a second but must not
+  occupy a voice slot that long. The first version shared them, and the `alert`
+  bus (cap 2, hold 0.5s) then dropped heartbeats at exactly the point the boss
+  approach accelerates to one every 420ms.
+- **An already-ducked bus is EXTENDED, not re-ramped.** Cancelling and ramping
+  from the top again is what makes a mix pump audibly under a burst of beats.
+- **A refused voice never reaches the graph** - `sfxMixAllow` runs before anything
+  is built, so a dropped sound costs nothing. Limits are deliberately generous:
+  silence where the player expects a sound is a worse bug than a busy mix. The
+  sound board calls `sfxMixResetLimits()` first, so auditioning a row twice in a
+  second is never refused.
+- **Real particle spacing is 90-120ms** (`PIP_STAGGER`/`MULT_STAGGER`/
+  `TRICK_STAGGER` in `js/score-dance.js`), so the 22ms gap never bites in normal
+  play. Under the 15x fast-forward of an interrupted hand it drops most of them,
+  which is the intent - that is the buzzsaw case.
+- **Measured:** the detail bus sits at 30% of its resting level while a pip
+  particle or a scored hand plays, and is back to 100% within 900ms. Solo levels
+  put `focus_pop` at rms 0.0009 against `hand_scored` at 0.024, about 25x quieter
+  before ducking does anything.
+
+**`sfxHeartbeat` used to connect straight to the destination** so it would stay
+loud while the others ducked - which also meant it ignored `sfxVolume()`, so mute
+never silenced it (the same bug `sfxWinExplode` had). It rides the `alert` bus
+now, whose `duckTo` is 1: nothing ducks it, and the sliders reach it.
+
+### Two sounds per particle (r191)
+
+Each pip/mult particle is **a short tick and then a pitched body**, `PARTICLE_GAP`
+(45ms) apart - "t-ding", not "ding". Two transients that close together read as
+one event *with a shape*, which is what makes a long run of them sound like a
+counter ratcheting rather than a row of identical bleeps. The old version layered
+its overtone **simultaneously**, which just made one thicker bleep.
+
+Below ~25ms the two fuse into a click; above ~90ms they separate into two events.
+All three packs do it in their own vocabulary: classic uses a square tick into a
+triangle body, 1-bit a thin high pulse into a wide one (on one output line the gap
+is the only way to give a repeated event any shape), and slot a short-LFSR click
+into the coin - the detent and the digit of a counter wheel.
 
 ### The packs - `js/audio-packs.js`
 
