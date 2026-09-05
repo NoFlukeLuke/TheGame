@@ -225,10 +225,32 @@ function lighthouseMult() {
 
 // ── Jury-Rig knack: swapping/discarding beside a Sleight may restore one of its charges ──
 // Restore 1 charge, never above the Sleight's printed durability ('infinite' is a no-op).
+// A Sleight's charge ceiling: the printed durability plus anything the Workshop
+// event has added (r194). Every "restore up to the cap" site reads this rather
+// than def.durability, or a reinforced Sleight would refill only to its printed
+// value and the upgrade would silently do nothing.
+let sleightCapBonus = {};   // sleightId -> extra charges above the printed durability
+function sleightMaxCharges(def) {
+  if (!def || def.durability === 'infinite') return null;
+  if (typeof def.durability !== 'number') return null;
+  return def.durability + (sleightCapBonus[def.id] || 0);
+}
+// Every Sleight the run currently holds, wherever it is - board, draw or played.
+function allOwnedSleightCards() {
+  const out = [];
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
+    const cd = gridData[r]?.[c];
+    if (cd && cd._isSleight) out.push(cd);
+  }
+  (typeof drawPile   !== 'undefined' ? drawPile   : []).forEach(cd => { if (cd && cd._isSleight) out.push(cd); });
+  (typeof playedPile !== 'undefined' ? playedPile : []).forEach(cd => { if (cd && cd._isSleight) out.push(cd); });
+  return out;
+}
+
 function restoreSleightCharge(card) {
   if (!card || card._usesLeft === 'infinite') return false;
   const def = sleightDef(card);
-  const cap = (def && typeof def.durability === 'number') ? def.durability : null;
+  const cap = sleightMaxCharges(def);
   if (cap === null || (card._usesLeft || 0) >= cap) return false;
   card._usesLeft = Math.min(cap, (card._usesLeft || 0) + BAL.jury_rig.charges);
   return true;

@@ -293,9 +293,29 @@ Which plays out as `RG -> Mart -> RG -> event -> RG -> Mart -> RG -> event -> RG
 - **`guidedRunStops` is a callback chain, not a loop** - each stop hands control to a screen that closes on its own schedule. Stops after the first are delayed 280ms: the event overlay closes and reopens on the same element, so the post-boss pair would otherwise hard-cut from one event into the next.
 - **Nothing here needs saving.** The save point is the START OF A ROUND (see `js/save.js`), and a stop chain only ever runs between rounds, so `nodeFlowAfterShop` is always null when a checkpoint is taken - which is just as well, since it holds a function.
 
+### Upgrade events (r194) - improve what you already have
+
+Every event before these HANDED you something, which is the wrong shape late in a run: the Trick tray caps at 10 and fills long before an act does, so a twelfth grant is a replace-or-decline, while an upgrade always has somewhere to go. Three new events, pool **11 -> 14**:
+
+| event | upgrades | rides |
+|---|---|---|
+| **The Bench** | a card YOU pick (Forge picks three at random) | `enhanceCardKey` |
+| **Rehearsal** | one Trick - it fires an extra time, every hand, for the rest of the run | `t._rank` |
+| **The Workshop** | Sleights - refill all, or raise one's charge ceiling for good | `sleightCapBonus` |
+
+**Each rides a seam that already existed rather than adding per-entity code.** That is the whole reason three upgrade events cost so little:
+
+- **`t._rank` is a PERMANENT prime.** `calcScore` already fires a Trick an extra time per `_primed` stack, duplicating whatever pip/mult delta the Trick reported - so a rank works on all 177 Tricks with no code in any of them. The loop now reads `(t._primed || 0) + (t._rank || 0)`, and `playHand`'s consumption block only decrements `_primed`, so a rank never runs out. It is deliberately **uncapped**: each one costs a whole event choice. A rehearsed multiplicative Trick is bounded too - it re-adds the same delta, so a x1.5 becomes x2, not x2.25.
+- **`sleightCapBonus` (id -> extra charges) raises a Sleight's ceiling**, which nothing could do before. `sleightMaxCharges(def)` is the new chokepoint and **all four "restore up to the cap" sites read it** (`restoreSleightCharge`, `limits.js`, `discard.js`, `level-up.js`'s Coin Toss) - miss one and a reinforced Sleight refills only to its printed durability and the upgrade silently does nothing. It returns `null` for an infinite Sleight, which every caller already treats as "leave alone". Stored by sleightId, so reinforcing one copy reinforces every copy; it is in `SAVE_VARS` and resets on a new run.
+- `allOwnedSleightCards()` (sleights-runtime.js) is the Sleight counterpart to `allDeckCards()` - board, draw pile and played pile.
+
+**Two traps this hit, both found by rendering the events in a real browser and neither visible to a syntax check or a static call audit:**
+- **`shuffled()` in `js/reward-grid.js` is scoped INSIDE `_generateRewardContent`** - it is not a global, and calling it threw the moment The Bench opened. `events.js` has its own `evShuffle` now. A grep for `function shuffled` finds it and tells you nothing about its scope.
+- A picker rebuilt on each choice must keep its **label inside the removable wrapper**, or changing your mind stacks a fresh "CHOOSE THE CARD" every time.
+
 ### Events cannot repeat back-to-back (r191)
 
-`openEvent` drew from an 11-event pool with a bare `Math.random`. Classic routes to an event rarely enough that this never showed; Guided runs ~10 a run, where a repeat - and especially the same event twice in the post-boss pair - was near certain. `recentEventIds` (last 4) is filtered out of the draw, falling back to the full pool if that would empty it. Measured over 20,000 simulated Guided runs: **0 back-to-back repeats**, per-event share flat to within 1.5%.
+`openEvent` drew from an 11-event pool (14 since r194) with a bare `Math.random`. Classic routes to an event rarely enough that this never showed; Guided runs ~10 a run, where a repeat - and especially the same event twice in the post-boss pair - was near certain. `recentEventIds` (last 4) is filtered out of the draw, falling back to the full pool if that would empty it. Measured over 20,000 simulated Guided runs: **0 back-to-back repeats**, per-event share flat to within 1.5%.
 
 ### One pre-existing bug this surfaced
 

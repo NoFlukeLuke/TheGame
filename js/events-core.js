@@ -22,7 +22,7 @@ const EVENT_NO_REPEAT = 4;
 
 function openEvent(afterFn) {
   afterEventFn = afterFn || (() => drainLevelUpQueue());
-  const pool = ['confluence','crossroads','gamble','merchant','altar','spring','twin_path','forge','bargain','wager','shift_change'];
+  const pool = ['confluence','crossroads','gamble','merchant','altar','spring','twin_path','forge','bargain','wager','shift_change','bench','rehearsal','workshop'];
   // Fall back to the full pool if the memory has eaten it - never draw a blank.
   const fresh = pool.filter(id => !recentEventIds.includes(id));
   const draw  = fresh.length ? fresh : pool;
@@ -67,6 +67,9 @@ function confirmEvent() {
     bargain:     confirmBargain,
     wager:       confirmWager,
     shift_change: confirmShiftChange,
+    bench:       confirmBench,
+    rehearsal:   confirmRehearsal,
+    workshop:    confirmWorkshop,
   };
   if (handlers[activeEventId]) handlers[activeEventId]();
   else closeEvent();
@@ -85,6 +88,9 @@ const EVENT_META = {
   bargain:     { name:'The Bargain',         flavor:'Every gain has its price in flesh.' },
   wager:       { name:'The Wager',           flavor:'One flip. Fortune or ruin.' },
   shift_change:{ name:'Shift Change',        flavor:'Same crew, new rota. Put your Tricks in the order you want them.' },
+  bench:       { name:'The Bench',           flavor:'Pick the treatment, then pick the card it goes on.' },
+  rehearsal:   { name:'Rehearsal',           flavor:'Run it again until it is second nature. One Trick, twice the work.' },
+  workshop:    { name:'The Workshop',        flavor:'Charges topped up, or a ceiling raised for good.' },
 };
 
 function renderEventShell(id) {
@@ -107,6 +113,9 @@ function renderEventShell(id) {
     bargain:     renderBargain,
     wager:       renderWager,
     shift_change: renderShiftChange,
+    bench:       renderBench,
+    rehearsal:   renderRehearsal,
+    workshop:    renderWorkshop,
   };
   if (renderers[id]) renderers[id]();
   // The panel scrolls internally and is reused between events - reopening it
