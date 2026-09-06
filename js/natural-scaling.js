@@ -81,6 +81,8 @@ function recordNaturalScale(handName, cells) {
   const names = (cells && typeof handLayersFor === 'function') ? handLayersFor(handName, cells) : [handName];
   names.forEach(name => {
     if (!name || !HAND_BASE[name]) return;
+    // High Card has no family and must never scale - it is the escape valve.
+    if (!NS_HAND_FAMILIES[name]) return;
     nsPlays[name] = (nsPlays[name] || 0) + 1;
     if (nsPlays[name] % nsEveryHands !== 0) return;
     const s = nsSlot(name);

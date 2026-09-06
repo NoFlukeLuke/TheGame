@@ -1,5 +1,5 @@
 const LIMITS_DEF = [
-  { id: 'selection',   label: 'Selection Size',  icon: '✋', desc: 'Max cards selectable at once (play grid AND reward grid)', base: 3, max: 9, hideMax: true },
+  { id: 'selection',   label: 'Selection Size',  icon: '✋', desc: 'Cards selectable at once (play grid AND reward grid). Raising it also raises the MINIMUM you must play: min = max - 2.', base: 3, max: 9, hideMax: true },
   { id: 'grid_rows',   label: 'Grid Rows',       icon: '⬍', desc: 'Rows in the playing grid (and reward grid)',    base: 4,   max: 7 },
   { id: 'grid_cols',   label: 'Grid Columns',    icon: '⬌', desc: 'Columns in the playing grid (and reward grid)', base: 4,   max: 7 },
   { id: 'swaps',       label: 'Swaps/Round',      icon: '🔄', desc: 'Swaps granted at round start',      base: 3,   max: 8 },
@@ -9,6 +9,31 @@ const LIMITS_DEF = [
   { id: 'reroll',      label: 'Shop Rerolls',     icon: '🎲', desc: 'Rerolls available per shop visit',  base: 3,   max: 6 },
   { id: 'focus_cap',   label: 'Focus Cap',        icon: '⚡', desc: 'Maximum Focus (nodes)',            base: 30,  max: 60, step: 3, weight: 0.5 },
 ];
+// ══════════════════════════════════════════════
+// MINIMUM SELECTION (r200) - raising your hand size raises the FLOOR too
+// ══════════════════════════════════════════════
+// Selection Size is a maximum, and a maximum alone is pure upside: you take the
+// upgrade and keep playing pairs. Tying a minimum to it makes the upgrade a real
+// decision - you must commit that many cards to every hand, so you cannot lean
+// on a two-card Pair to tick the board over or use one as a free discard.
+//
+// min = limit - 2, floored at 1. Limit 3 -> 1 (no constraint in practice, a hand
+// needs two cards anyway), 5 -> 3, 7 -> 5, 9 -> 7. At the top limit the minimum
+// meets HAND_MAX_CARDS exactly, so a 9-card selection can still be one 7-card
+// hand plus two penalty cards, and nothing is unplayable.
+//
+// It applies to the PLAY GRID ONLY. `limits.selection` also caps the reward grid
+// and the shop pickers, and a minimum there would force you to take seven tiles.
+const MIN_SELECTION_GAP = 2;
+function minSelection() {
+  const cap = (typeof limits !== 'undefined' && limits.selection) ? limits.selection.current : 3;
+  return Math.max(1, cap - MIN_SELECTION_GAP);
+}
+// Does the minimum actually bite? Below 3 it cannot - two cards is the floor for
+// a hand regardless - and High Card is gated on this, so the early game (and the
+// tutorial, which runs at limit 3) is untouched.
+function minSelectionBinds() { return minSelection() > 2; }
+
 const limits = {};
 LIMITS_DEF.forEach(def => {
   limits[def.id] = { current: def.base, base: def.base, max: def.max, step: def.step || 1 };

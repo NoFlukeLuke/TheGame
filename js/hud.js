@@ -239,6 +239,15 @@ function updateHandNameLabel(result) {
   if (!el) return;
   // handLayersFor is what calcScore pays for, so the label can never name a hand
   // the score did not count (or miss one it did).
+  // r200: below the minimum selection the label states the requirement instead of
+  // naming a hand. The player is looking right here to find out what they have,
+  // so it is where "you cannot play this yet, and why" belongs.
+  if (result && result.short) {
+    const html = `<span class="hn-l hn-need"><b>NEED</b><i>${result.short}</i></span>`;
+    if (html !== _handNameKey || el.innerHTML !== html) { _handNameKey = html; el.innerHTML = html; }
+    el.classList.remove('hn-layered');
+    return;
+  }
   let names = (result && result.hand)
     ? ((typeof handLayersFor === 'function') ? handLayersFor(result.hand, result.handCells) : [result.hand])
     : [];

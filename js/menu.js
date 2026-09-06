@@ -1,4 +1,4 @@
-const BUILD = '2026-09-06 · r199 · hand components: Phase-10 partitions to 7 cards, flush overlay, layer-only short flushes [onto r198]';
+const BUILD = '2026-09-06 · r200 · minimum selection size ties to the limit; High Card as the escape valve [onto r199]';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

@@ -174,6 +174,12 @@ function playHand() {
   if (roundEnded) { dbgEvent('warn', 'play ignored (round ended)'); return; }
   if (falling)   { pendingAction = 'play'; dbgEvent('info', 'play queued (falling)'); return; }
   if (animating) { pendingAction = 'play'; dbgEvent('info', 'play queued (animating)'); scheduleQueuedRetry(); return; }
+  // r200: the minimum selection is a rule, not just a disabled button - keyboard
+  // and queued-action paths reach here without going past the button's state.
+  if (typeof minSelection === 'function' && selected.length < minSelection()) {
+    dbgEvent('warn', 'play: below minimum selection', { selected: selected.length, min: minSelection() });
+    return;
+  }
   cancelAutoSubmit();
   console.log('[PLAY] entry', { score, goal: roundGoal, goalReachedThisRound, bonusWindowActive, animating, hasDance: !!danceAbortController });
   const result = findBestHand(selected);

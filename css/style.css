@@ -514,6 +514,10 @@
   #hand-name .hn-l i { display: block; font-style: normal; font-weight: 400; letter-spacing: 0.5px; opacity: 0.85; }
   #hand-name .hn-plus { display: block; opacity: 0.5; font-weight: 400; }
   #hand-name .hn-l u { text-decoration: none; opacity: 0.75; }   /* the x2 on a repeated component */
+  /* Below the minimum selection: the label states the requirement, in the same
+     two-line shape as a hand so nothing shifts when it flips to a real name. */
+  #hand-name .hn-need b, #hand-name .hn-need i { color: var(--red, #d9534f); }
+  #hand-name .hn-need i { opacity: 1; font-weight: 700; }
   .mini-card { width: 26px; height: 34px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 3px; display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0; }
   .mini-card-empty { width: 26px; height: 34px; border: 1px dashed var(--border); border-radius: 3px; flex-shrink: 0; }
   .mini-card .mini-rank { font-family: 'Cinzel', serif; font-size: 10px; font-weight: 700; line-height: 1; color: #1a1510; }

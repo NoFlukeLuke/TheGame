@@ -489,6 +489,17 @@ function handComponentsFor(cells) {
     const fl = flushOverlayFor(cells);
     if (fl) components.push(fl);
   }
+  // High Card (r200): the escape valve for a forced-large selection. Only offered
+  // once the minimum actually bites (limit 5+), so the early game and the
+  // tutorial keep their "there is no hand here" state - which the tutorial's
+  // dead-card lesson depends on, since with High Card live no card is ever dead.
+  // It carries 0 base pips and 0 Focus, so it is never worth reaching for; the
+  // cards' own pips are the entire score.
+  if (!components.length && activeHands.has('highcard')
+      && typeof minSelectionBinds === 'function' && minSelectionBinds()
+      && cells.length >= minSelection()) {
+    components.push({ name: 'High Card', cells: cells.slice() });
+  }
   let res = null;
   if (components.length) {
     let primary = components[0].name;

@@ -145,6 +145,7 @@ const HAND_FOCUS = {
   'Five of a Kind': 10,
   'Six of a Kind': 12,
   'Seven of a Kind': 14,
+  'High Card': 0,        // deliberately zero - it is the escape valve, not a hand
   'Flush Five': 12,
   'Flush House': 14,
 };

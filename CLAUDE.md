@@ -192,6 +192,19 @@ Phase 10 rules, on a grid. A played hand is broken into **components**, and ever
 - **The `handName` guard.** `calcScore` drops exactly ONE component by name (so two Sets of 3 are still paid twice) and, if the caller's name is not a component at all, adds **none** of them. Match-3 names its own hands, so that path is reachable and would otherwise pay for the same cards twice.
 - Dev toggles: **Score -> Layered hands** (`layeredHandsEnabled` switches the flush overlay off; the rank partition always runs) and a **flush overlay needs N of a suit** slider (`flushOverlayMin`, 3-7). At 3 the overlay fires on roughly half of all five-card hands, which is the intent - the owner is deliberately pushing average score up so goals can be raised steeply later.
 
+### Minimum selection + High Card (r200)
+
+**Selection Size was pure upside**: a maximum you raise and then keep playing Pairs. It now carries a floor with it - `minSelection()` in `js/limits.js` is `limit - 2`, floored at 1 (3 -> 1, 5 -> 3, 7 -> 5, 9 -> 7). You must commit that many cards to every hand, so a two-card Pair can no longer tick the board over or stand in for a free discard. Taking the upgrade is a real decision.
+
+- **It applies to the PLAY GRID ONLY.** `limits.selection` also caps the reward grid and the shop pickers; a minimum there would force you to take seven tiles.
+- **Enforced in four places, not one.** The PLAY button's `disabled` state (`js/render.js`), the auto-submit scheduler AND its firing callback (`js/input.js`), and a hard guard at the top of `playHand` - queued actions and any future keyboard path reach `playHand` without passing the button's state.
+- **The `#hand-name` label states the requirement** ("NEED / 5", red) instead of naming a hand. That is where the player is already looking to find out what they have, so it is where "you cannot play this yet, and why" belongs.
+- **`minSelectionBinds()`** is "does the minimum actually bite" (`> 2`). Two cards is the floor for a hand regardless, so at limit 3 and 4 nothing changes.
+- **High Card** (`HAND_BASE` 0 pips / x1 mult, `HAND_FOCUS` **0**) is the escape valve: a selection you are forced to make but cannot shape is still playable, and scores the cards' own pips and nothing else. `handWorth` puts it at 1, so it never beats a real component, and `recordNaturalScale` skips it (no NS family) so **it can never grow**.
+- **It is gated on `minSelectionBinds()`, and that gate is load-bearing.** With High Card live, `detectHand` returns non-null for ANY two cards, so nothing is ever "no hand here" - and **`tutorialFindDeadCards` finds cards in no hand at all**, which would have gone permanently empty. The tutorial runs at limit 3, where the gate keeps High Card off. Verified: 6 dead cards still found at limit 3, 0 regressions.
+
+**Every hand tolerates junk cards, as of r199** - worth knowing, because it is what the minimum is really spending. Components are strict but **unclaimed cards stay in `handCells` and score their own pips**, so a Run of 3 plus two unrelated cards is a legal five-card hand and the two extras are a small BONUS, never a penalty. Before r199 only the loose set hands (Pair, Two Pair, Three/Four of a Kind) could carry a spare; runs, straights and flushes needed an exact count and `findBestHand` paid a penalty for the rest. So the minimum costs you **cards off the board**, not score - if it should also cost score, unclaimed cards need to stop paying.
+
 ### The hand-type label (r198) - `#hand-name`
 
 What you are about to play, named, beside the hand preview. The preview CARDS stay inert until a hand is submitted (r99 - it is the scoring stage, not a live readout), but the NAME is live from the first selection, and with layered hands it is the only place the second hand is visible at all.

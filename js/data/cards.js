@@ -125,6 +125,10 @@ const HAND_BASE = {
   'Five of a Kind':  { pips:85, mult:9 },   //  765
   'Six of a Kind':   { pips:115,mult:11 },  // 1265
   'Seven of a Kind': { pips:150,mult:13 },  // 1950
+  // High Card (r200) pays NOTHING of its own - the cards' own pips are the whole
+  // score, and HAND_FOCUS gives it 0. It exists so a forced-large selection is
+  // always playable; it must never be worth reaching for.
+  'High Card':       { pips:0,  mult:1 },   //    0
 };
 
 // ── The short label the HUD prints beside the hand preview (r198) ──
@@ -152,6 +156,7 @@ const HAND_LABEL = {
   'Five of a Kind':  { fam:'SET',   size:'5' },
   'Six of a Kind':   { fam:'SET',   size:'6' },
   'Seven of a Kind': { fam:'SET',   size:'7' },
+  'High Card':       { fam:'HIGH',  size:'CARD' },
 };
 
 // ── Per-mode hand-value overrides (r164) ──
