@@ -79,8 +79,25 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // It is computed HERE, from the cells, rather than passed in by the six callers
   // of calcScore, so the live PIPS/MULT chips, the scoring dance, findBestHand's
   // comparison and the committed score can never disagree about what was played.
-  const _layers = (typeof handLayersFor === 'function') ? handLayersFor(handName, cells) : [handName];
-  const _extraLayers = _layers.filter(h => h !== handName && HAND_BASE[h]);
+  const _comp = (typeof handComponentsFor === 'function') ? handComponentsFor(cells) : null;
+  // Every component past the one that named the hand. `handName` is passed in by
+  // the caller and is normally _comp.primary, but match-3 names its own hands, so
+  // one is dropped by NAME rather than assumed to be the first entry.
+  // Exactly ONE entry is dropped by name, not every entry matching it, so a hand
+  // holding two Sets of 3 is still paid twice.
+  const _extraLayers = [];
+  if (_comp) {
+    let seen = false;
+    _comp.components.forEach(c => { if (!seen && c.name === handName) { seen = true; return; } if (HAND_BASE[c.name]) _extraLayers.push(c.name); });
+    // If the caller named a hand that is not one of the components at all, the
+    // components are describing something else and adding them would pay for the
+    // same cards twice. Match-3 names its own hands, so this is reachable.
+    if (!seen) _extraLayers.length = 0;
+  }
+  // Extra scoring passes per cell: one per component past the first that holds
+  // it. This is what makes "the five suited cards of a Fullest House replay"
+  // land on those five cards and not on the whole hand.
+  const _compReps = (_extraLayers.length && typeof handReplayMap === 'function') ? handReplayMap(cells) : null;
   // handBasePips folds in Natural Scaling's earned bonus for that hand type, so
   // the bonus rides the 1.1^(level-1) scale exactly as the printed base does.
   let totalPips = Math.round(handBasePips(handName) * levelScale);
@@ -225,7 +242,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     if (_hnm) _retrig++;
     if (_wfi) _retrig++; // Wait For Iiiit: chance replay scaling with negative tiles taken
     if (_encoreHand) _retrig++; // Encore: all-odd-rank Set scores a second time
-    if (_extraLayers.length) _retrig++; // Layered hand: you played two hands, so every card scores twice
+    if (_compReps) _retrig += (_compReps[_cKey] || 0); // Layered hand: this card scores again for each extra component it is in
     if (_cKey === _3rdKey) _retrig += BAL.third_charm.extra_replays; // 3rd Time's a Charm: 3rd card gets +2 replays
     retrigByKey[r + '-' + c] = _retrig;
     if (_ledgerCells) {
@@ -346,8 +363,8 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // hand_size model, plus Natural Scaling's earned family bonus. _scoreCells is
   // the hand actually being scored.
   let mult = handBaseMult(handName, _scoreCells.length) + sleightAmplifierMult;
-  // Layered hands: every other family this shape satisfies adds its base mult too.
-  // Additive, not multiplied - two hands' worth of ladder, not the product of them.
+  // Layered hands: every other component adds its base mult too. Additive, not
+  // multiplied - two hands' worth of ladder, not the product of them.
   _extraLayers.forEach(h => { mult += handBaseMult(h, _scoreCells.length); });
 
   // Assembly Line: apply the mult accumulated in the per-card loop; snapshot the round counter
@@ -823,15 +840,19 @@ function captureRoundContrib(result) {
     // A layered hand pays every family's base, so the breakdown has to count them
     // all or it reports less base than calcScore actually used (see calcScore).
     const _layers = (typeof handLayersFor === 'function') ? handLayersFor(hand, handCells) : [hand];
-    const _extra = _layers.filter(h => h !== hand && HAND_BASE[h]);
+    // Drop ONE entry by name (the component that named the hand), not every entry
+    // matching it - two Sets of 3 must still be counted twice. If the name is not
+    // a component at all, count none of them (same guard as calcScore).
+    const _di = _layers.indexOf(hand);
+    const _extra = _di >= 0 ? _layers.slice(0, _di).concat(_layers.slice(_di + 1)) : [];
     let cardPipsTotal = Math.round(handBasePips(hand) * levelScale);
-    _extra.forEach(h => { cardPipsTotal += Math.round(handBasePips(h) * levelScale); });
+    _extra.forEach(h => { if (HAND_BASE[h]) cardPipsTotal += Math.round(handBasePips(h) * levelScale); });
     handCells.forEach(([r, c]) => { const card = gridData[r]?.[c]; if (card?.rank) cardPipsTotal += cardPips(card.rank); });
     rows.push({ label: 'Base + card pips', kind: 'pip', amount: cardPipsTotal });
     // Base MULT from the hand type (calcScore seeds mult from handBaseMult). It's
     // the starting multiplier every trick adds onto, so surface it in Mult too.
     let _bm = handBaseMult(hand, handCells.length);
-    _extra.forEach(h => { _bm += handBaseMult(h, handCells.length); });
+    _extra.forEach(h => { if (HAND_BASE[h]) _bm += handBaseMult(h, handCells.length); });
     if (_bm) rows.push({ label: _extra.length ? 'Base (' + _layers.join(' + ') + ')' : 'Base (hand type)', kind: 'mult', amount: _bm });
   }
   return rows;

@@ -219,6 +219,15 @@ function devSetLayeredHands(on) {
   const chk = document.getElementById('dev-layered-enabled'); if (chk) chk.checked = layeredHandsEnabled;
   _devSafeRender();
 }
+// How many cards of one suit a hand needs before the flush overlay pays. At 3 it
+// fires on about half of all five-card hands, which is the intent; 4 or 5 makes
+// it something you have to build for again.
+function devSetFlushOverlayMin(v) {
+  flushOverlayMin = Math.max(3, Math.min(7, parseInt(v, 10) || 3));
+  localStorage.setItem('flushOverlayMin', flushOverlayMin);
+  const lab = document.getElementById('dev-flushmin-val'); if (lab) lab.textContent = flushOverlayMin;
+  _devSafeRender();
+}
 function devSyncNs() {
   const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
   const chk = document.getElementById('dev-ns-enabled'); if (chk) chk.checked = nsEnabled;
@@ -228,6 +237,8 @@ function devSyncNs() {
   const st = document.getElementById('dev-ns-state');
   if (st) st.textContent = naturalScaleSummary();
   const lay = document.getElementById('dev-layered-enabled'); if (lay) lay.checked = layeredHandsEnabled;
+  const fm = document.getElementById('dev-flushmin'); if (fm) fm.value = flushOverlayMin;
+  const fml = document.getElementById('dev-flushmin-val'); if (fml) fml.textContent = flushOverlayMin;
 }
 
 // ── Channel-change sliders (CC_CFG lives in js/channel-change.js) ──

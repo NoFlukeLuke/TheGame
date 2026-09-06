@@ -233,12 +233,14 @@ function findBestHand(cells) {
 
   if (detectionCells.length < 2) { restoreWilds(); return null; }
 
-  // Generate all subsets of size 2-5 that are orthogonally connected
+  // Generate all connected subsets of 2 to HAND_MAX_CARDS cards. The cap used to
+  // be 5, which is why Selection Size (max 9) bought nothing past the fifth card:
+  // the extra cards could never be in the hand and were billed as penalty pips.
   const subsets = [];
   const n = detectionCells.length;
   for (let mask = 1; mask < (1 << n); mask++) {
     const subset = detectionCells.filter((_, i) => mask & (1 << i));
-    if (subset.length < 2 || subset.length > 5) continue;
+    if (subset.length < 2 || subset.length > HAND_MAX_CARDS) continue;
     if (!isConnected(subset)) continue;
     const hand = detectHand(subset);
     if (hand) subsets.push({ hand, handCells: subset });
@@ -313,89 +315,226 @@ function _handShape(cells) {
 // for everything, so the pips term is floored at 1 and the mults decide.
 function handWorth(h) { return HAND_BASE[h] ? Math.max(handBasePips(h), 1) * handBaseMult(h) : 0; }
 
-// The hand's NAME: the best-paying reading of these cards.
+// ══════════════════════════════════════════════
+// HAND COMPONENTS (r199) - a hand is a LIST of shapes, not one shape
+// ══════════════════════════════════════════════
+// Phase 10 rules, on a grid. A played hand is broken into COMPONENTS, and every
+// component pays its own printed base pips and base mult, earns its own Natural
+// Scaling, and names itself in the HUD. Two tracks build the list:
 //
-// This used to be a fixed priority list with one special case bolted on - "flush
-// of 3, unless the run of 3 is worth more" - because Flush of 3 and Run of 3 can
-// describe the very same three cards. The special case was right and its scope
-// was too narrow: three same-suit cards of one rank were named Flush of 3 (30)
-// over Three of a Kind (105) for exactly the same reason, and four same-suit
-// cards holding two pairs were named Flush of 4 (60) over Two Pair (90). Asking
-// for the best-paying match instead covers every such pair, now and later.
+//   TRACK 1 - the RANK PARTITION. Sets and runs, carved out of the selection as
+//   DISJOINT pieces, chosen to pay the most. This is what makes "a Run of 4 AND
+//   a Set of 3" one seven-card hand, and two Sets of 3 another. Straight Flush
+//   is a candidate here too, because it is a run that is paid extra for being
+//   suited - not a run with a flush stacked on it.
 //
-// Ties fall to handMatchesFor's order, which is the old priority list - and ties
-// are the normal case in the no-pips scoring models, where worth is mult alone.
+//   TRACK 2 - the FLUSH OVERLAY. The biggest same-suit GROUP in the hand, three
+//   cards or more, added on top of whatever Track 1 found. It overlaps rather
+//   than partitions: the same cards can be in a set and in the flush at once.
+//   Skipped when Track 1 already took a Straight Flush, which is that hand.
 //
-// The name is not the whole payout any more (see LAYERED HANDS below - the other
-// readings are paid too). It is what the hand's Focus, its streak, the hand log
-// and Natural Scaling's primary credit are counted as.
-function detectHand(cells) {
-  if (cells.length < 2) return null;
-  const matches = handMatchesFor(cells);
-  if (!matches.length) return null;
-  let best = matches[0];
-  for (const m of matches) if (handWorth(m) > handWorth(best)) best = m;
+// A card in more than one component REPLAYS - once per extra component it is in.
+// So a Fullest House (Set of 4 + Set of 3) where five of the seven share a suit
+// pays 4oK + 3oK + Flush of 5, and exactly those five cards score twice.
+//
+// **`activeHands` gates what you may PLAY, not what a hand may LAYER.** The rank
+// partition only ever takes an active hand, so a mode that has not unlocked
+// Flush of 3 still cannot let you play three suited cards as a hand. The flush
+// OVERLAY ignores activeHands entirely: play a suited Run of 3 in Classic and
+// you are paid the Flush of 3 as well. That is the whole point of the split -
+// the flush is never the thing you chose to build, so unlocking it is about
+// being allowed to build it on purpose. (Short Suit still does exactly that.)
+//
+// COMPONENTS ARE STRICT; UNCLAIMED CARDS STILL SCORE THEIR PIPS. A component
+// must use every one of its cards - a Pair is exactly two cards, never two cards
+// and a spare. The spare stays in `handCells` and scores its own pips exactly as
+// it always did, it just adds no base value. That is what keeps every pre-r199
+// hand scoring what it used to: {5C 7S 7H} is still a three-card Pair.
+let layeredHandsEnabled = localStorage.getItem('layeredHands') !== '0';   // default ON
+// The biggest same-suit group that still pays a flush overlay. Raise it to 4 or
+// 5 to make the overlay rare again; a 5-card hand very often holds three of one
+// suit, so at 3 the overlay is close to universal - which is the intent.
+let flushOverlayMin = parseInt(localStorage.getItem('flushOverlayMin'), 10);
+if (!isFinite(flushOverlayMin) || flushOverlayMin < 3) flushOverlayMin = 3;
+// Hands cap at seven cards. Selection Size goes to nine, so cards past the
+// seventh stay outside the hand and are billed as penalty pips by findBestHand.
+const HAND_MAX_CARDS = 7;
+
+const FLUSH_BY_SIZE = { 3:'Flush of 3', 4:'Flush of 4', 5:'Flush', 6:'Flush of 6', 7:'Flush of 7' };
+const SET_BY_SIZE   = { 2:'Pair', 3:'Three of a Kind', 4:'Four of a Kind', 5:'Five of a Kind', 6:'Six of a Kind', 7:'Seven of a Kind' };
+const RUN_BY_SIZE   = { 3:'Run of 3', 4:'Run of 4', 5:'Straight', 6:'Run of 6', 7:'Run of 7' };
+// name -> the activeHands key that unlocks PLAYING it
+const HAND_NAME_TO_KEY = {};
+(function () {
+  const m = { 'Flush of 3':'flush3','Flush of 4':'flush4','Flush':'flush','Flush of 6':'flush6','Flush of 7':'flush7',
+              'Pair':'pair','Two Pair':'twopair','Three of a Kind':'threeofakind','Full House':'fullhouse',
+              'Four of a Kind':'fourofakind','Five of a Kind':'fiveofakind','Six of a Kind':'sixofakind','Seven of a Kind':'sevenofakind',
+              'Run of 3':'run3','Run of 4':'run4','Straight':'straight','Run of 6':'run6','Run of 7':'run7','Straight Flush':'straightflush' };
+  Object.keys(m).forEach(n => { HAND_NAME_TO_KEY[n] = m[n]; });
+})();
+function handIsActive(name) { const k = HAND_NAME_TO_KEY[name]; return !k || activeHands.has(k); }
+
+// What a hand is worth under the ACTIVE scoring model, not the printed table:
+// with base pips zeroed (mult_ladder / hand_size) a pips x mult comparison is 0
+// for everything, so the pips term is floored at 1 and the mults decide.
+function handWorth(h) { return HAND_BASE[h] ? Math.max(handBasePips(h), 1) * handBaseMult(h) : 0; }
+
+// ── TRACK 1: the best ACTIVE set/run this exact group of cards is, or null ──
+// Strict: n is exact for every shape, so a component never claims a spare card.
+function rankHandForGroup(cells) {
+  const n = cells.length;
+  if (n < 2 || n > HAND_MAX_CARDS) return null;
+  const { counts, allSameSuitStrict, isStr } = _handShape(cells);
+  const out = [];
+  const add = name => { if (HAND_BASE[name] && handIsActive(name)) out.push(name); };
+  if (n === 5 && isStr && allSameSuitStrict) add('Straight Flush');
+  if (counts[0] >= n) add(SET_BY_SIZE[n]);                       // n of a kind
+  if (n === 5 && counts[0] >= 3 && counts[1] >= 2) add('Full House');
+  if (n === 4 && counts[0] >= 2 && counts[1] >= 2) add('Two Pair');
+  if (isStr) add(RUN_BY_SIZE[n]);
+  if (!out.length) return null;
+  let best = out[0];
+  for (const h of out) if (handWorth(h) > handWorth(best)) best = h;
   return best;
 }
 
-// ══════════════════════════════════════════════
-// LAYERED HANDS (r198) - one shape, more than one hand
-// ══════════════════════════════════════════════
-// Three cards of one suit in sequence are a Run of 3 AND a Flush of 3. Until now
-// detectHand picked one of them and the other was simply thrown away, which is
-// why building the harder shape felt like it paid nothing extra. Now every hand
-// the cards satisfy is a LAYER: each layer's printed base pips and base mult are
-// added, each layer earns its own Natural Scaling, and a layered hand replays -
-// every card scores one extra time.
-//
-// THE RULE IS ONE LAYER PER FAMILY (set / run / flush), best-worth wins. Without
-// it a Full House would also claim Three of a Kind, Two Pair and Pair - that is
-// one shape read four ways, not four shapes, and it would pay four times for the
-// same cards. Straight Flush sits in BOTH families and so occupies both slots on
-// its own, which is correct: it already IS the run and the flush, and layering
-// Straight + Flush on top of it would pay the same cards twice.
-let layeredHandsEnabled = localStorage.getItem('layeredHands') !== '0';   // default ON
-
-// Every ACTIVE hand type these cards satisfy, in no particular order. Same tests
-// as detectHand, minus the priority order and the flush/run tiebreak.
-function handMatchesFor(cells) {
-  if (!cells || cells.length < 2) return [];
-  const { n, counts, allSameSuitStrict, isStr } = _handShape(cells);
-  const out = [];
-  const add = (key, name, ok) => { if (ok && activeHands.has(key)) out.push(name); };
-  // ORDER IS LOAD-BEARING: it is the old detectHand priority list, and detectHand
-  // still falls back to it whenever two matches are worth the same - which is the
-  // normal case in the no-pips scoring models, where worth is the mult alone.
-  add('straightflush', 'Straight Flush',  n===5 && allSameSuitStrict && isStr);
-  add('fourofakind',   'Four of a Kind',  n>=4 && counts[0]>=4);
-  add('fullhouse',     'Full House',      n===5 && counts[0]>=3 && counts[1]>=2);
-  add('flush',         'Flush',           n===5 && allSameSuitStrict);
-  add('flush4',        'Flush of 4',      n===4 && allSameSuitStrict);
-  add('flush3',        'Flush of 3',      n===3 && allSameSuitStrict);
-  add('straight',      'Straight',        n===5 && isStr);
-  add('threeofakind',  'Three of a Kind', counts[0]>=3 && (n===3||n===5));
-  add('twopair',       'Two Pair',        n>=4 && counts[0]>=2 && counts[1]>=2);
-  add('run4',          'Run of 4',        n===4 && isStr);
-  add('run3',          'Run of 3',        n===3 && isStr);
-  add('pair',          'Pair',            (n===2 && counts[0]>=2) || (n>=3 && n<=5 && counts[0]>=2 && counts[1]>=1));
-  return out;
+// ── TRACK 2: the biggest same-suit group, as a flush hand ──
+// Deliberately NOT gated on activeHands (see the note above). Spectrum's white
+// values can never join a flush, which is why isWhiteCard is asked here as well
+// as in _handShape.
+function flushOverlayFor(cells) {
+  const bySuit = {};
+  cells.forEach(([r, c]) => {
+    const card = gridData[r][c];
+    if (!card || isWhiteCard(card)) return;
+    const push = s => { if (s) (bySuit[s] = bySuit[s] || []).push([r, c]); };
+    push(card.suit);
+    if (card.combined && card.suit2) push(card.suit2);
+  });
+  let best = null;
+  Object.keys(bySuit).forEach(s => {
+    const group = bySuit[s].slice(0, HAND_MAX_CARDS);
+    const name = FLUSH_BY_SIZE[group.length];
+    if (group.length < flushOverlayMin || !name || !HAND_BASE[name]) return;
+    if (!best || handWorth(name) > handWorth(best.name)) best = { name, cells: group };
+  });
+  return best;
 }
 
-// The hands this play pays for. Always contains `primary` first (the hand's NAME,
-// which is what its Focus, its streak and the hand log are counted as); any extra
-// entries are the other families it also satisfies.
+// ── The rank partition ──
+// Carve `cells` into disjoint groups, each a valid rank hand, worth as much as
+// possible. Cards may be left unclaimed (they still score their pips).
+// Standard set-partition recursion on a bitmask: always decide the LOWEST unused
+// card first, either by dropping it or by putting it in a group with some subset
+// of what is left. Memoised per mask, so the whole search is 3^n and n caps at 7.
+function _bestRankPartition(cells) {
+  const n = cells.length;
+  const memo = new Map();
+  const groupCache = new Map();
+  const handFor = mask => {
+    if (groupCache.has(mask)) return groupCache.get(mask);
+    const g = []; for (let i = 0; i < n; i++) if (mask & (1 << i)) g.push(cells[i]);
+    const h = rankHandForGroup(g);
+    groupCache.set(mask, h);
+    return h;
+  };
+  const solve = mask => {
+    if (!mask) return { worth: 0, parts: [] };
+    if (memo.has(mask)) return memo.get(mask);
+    let low = 0; while (!(mask & (1 << low))) low++;
+    const lowBit = 1 << low;
+    let best = solve(mask & ~lowBit);                 // leave the lowest card out
+    const rest = mask & ~lowBit;
+    // every subset of the remaining cards, joined with the lowest card
+    for (let sub = rest; ; sub = (sub - 1) & rest) {
+      const g = sub | lowBit;
+      const h = handFor(g);
+      if (h) {
+        const tail = solve(mask & ~g);
+        const w = handWorth(h) + tail.worth;
+        if (w > best.worth) best = { worth: w, parts: [{ mask: g, name: h }].concat(tail.parts) };
+      }
+      if (sub === 0) break;
+    }
+    memo.set(mask, best);
+    return best;
+  };
+  return solve((1 << n) - 1);
+}
+
+// ── The public answer ──
+// { components: [{name, cells}], primary, playable } or null when there is no
+// hand here at all. `playable` is what gates PLAY: at least one component has to
+// be a hand this mode has unlocked, so a bare Flush of 3 in Classic is still not
+// a hand even though its overlay would have paid.
+const _compCache = new Map();
+function _compKey(cells) {
+  return cells.map(([r, c]) => { const k = gridData[r] && gridData[r][c]; return k ? r + ',' + c + ':' + k.rank + k.suit + (k._id || '') : r + ',' + c + ':-'; }).join('|');
+}
+function handComponentsFor(cells) {
+  if (!cells || cells.length < 2 || cells.length > HAND_MAX_CARDS) return null;
+  // Keyed on the cards themselves, so a board that moves invalidates its own
+  // entries rather than needing anything to remember to clear this.
+  const key = (layeredHandsEnabled ? 'L' : 'l') + flushOverlayMin + '|' + _compKey(cells);
+  if (_compCache.has(key)) return _compCache.get(key);
+  if (_compCache.size > 4000) _compCache.clear();
+
+  const part = _bestRankPartition(cells);
+  const components = part.parts.map(p => ({
+    name: p.name,
+    cells: cells.filter((_, i) => p.mask & (1 << i)),
+  }));
+  // The flush overlay, unless Track 1 already took the hand that IS a flush.
+  if (layeredHandsEnabled && !components.some(c => c.name === 'Straight Flush')) {
+    const fl = flushOverlayFor(cells);
+    if (fl) components.push(fl);
+  }
+  let res = null;
+  if (components.length) {
+    let primary = components[0].name;
+    components.forEach(c => { if (handWorth(c.name) > handWorth(primary)) primary = c.name; });
+    res = { components, primary, playable: components.some(c => handIsActive(c.name)) };
+    if (!res.playable) res = null;
+  }
+  _compCache.set(key, res);
+  return res;
+}
+
+// The hand's NAME: the best-paying component. It is no longer the whole payout
+// (every component pays), but it is what the hand's Focus, its streak, the hand
+// log and the boss Redaction are counted as.
+function detectHand(cells) {
+  const r = handComponentsFor(cells);
+  return r ? r.primary : null;
+}
+
+// Back-compat shim: the names this hand pays for, primary first. Callers that
+// only want the list (Natural Scaling, the HUD label) use this; calcScore wants
+// the cells too and calls handComponentsFor directly.
 function handLayersFor(primary, cells) {
-  if (!primary) return [];
-  if (!layeredHandsEnabled || !cells || typeof NS_HAND_FAMILIES === 'undefined') return [primary];
-  const best = {};                              // family -> the best hand in it
-  handMatchesFor(cells).forEach(name => {
-    (NS_HAND_FAMILIES[name] || []).forEach(f => {
-      if (!best[f] || handWorth(name) > handWorth(best[f])) best[f] = name;
-    });
-  });
-  const out = [primary];
-  Object.keys(best).forEach(f => { if (!out.includes(best[f])) out.push(best[f]); });
-  return out;
+  const r = handComponentsFor(cells);
+  if (!r) return primary ? [primary] : [];
+  // NOT deduped: two Sets of 3 is two components and two payouts, and collapsing
+  // them to one name would under-credit Natural Scaling and mis-label the hand.
+  // The primary's own entry is moved to the front; the rest keep partition order.
+  const names = r.components.map(c => c.name);
+  const i = names.indexOf(r.primary);
+  if (i > 0) names.splice(0, 0, names.splice(i, 1)[0]);
+  return names;
+}
+
+// How many EXTRA times each cell scores: one per component past the first that
+// contains it. Keyed 'r-c', read by calcScore's per-card loop.
+function handReplayMap(cells) {
+  const r = handComponentsFor(cells);
+  const map = {};
+  if (!r) return map;
+  r.components.forEach(c => c.cells.forEach(([rr, cc]) => {
+    const k = rr + '-' + cc;
+    map[k] = (map[k] || 0) + 1;
+  }));
+  Object.keys(map).forEach(k => { map[k] = Math.max(0, map[k] - 1); });
+  return map;
 }
 
 // ══════════════════════════════════════════════

@@ -1,4 +1,4 @@
-const BUILD = '2026-09-06 · r198 · natural scaling per hand type + Old Tricks; layered hands; hand-type label [onto r196]';
+const BUILD = '2026-09-06 · r199 · hand components: Phase-10 partitions to 7 cards, flush overlay, layer-only short flushes [onto r198]';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

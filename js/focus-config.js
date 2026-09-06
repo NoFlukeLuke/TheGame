@@ -138,7 +138,13 @@ const HAND_FOCUS = {
   'Four of a Kind': 6,
   'Straight Flush': 8,
   'Royal Flush': 9,
+  'Flush of 6': 4,
+  'Flush of 7': 5,
+  'Run of 6': 6,
+  'Run of 7': 8,
   'Five of a Kind': 10,
+  'Six of a Kind': 12,
+  'Seven of a Kind': 14,
   'Flush Five': 12,
   'Flush House': 14,
 };

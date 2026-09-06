@@ -351,7 +351,11 @@ function startGame() {
   stopwatchActive = false; if (stopwatchTimer) { clearInterval(stopwatchTimer); stopwatchTimer = null; } stopwatchCardPos = null;
   if (pauseTimer) { clearTimeout(pauseTimer); pauseTimer = null; }
   if (typeof resetClockFx === 'function') resetClockFx();  // no frozen/rotated cards carried into a new run
-  const ALL_HAND_KEYS = ['run3','threeofakind','fourofakind','run4','pair','twopair','straight','flush','fullhouse','straightflush','highcard','blackjack'];
+  // The big hands (r199) are always in the list - they need Selection Size past 5
+  // to be reachable at all, which is gate enough. flush3/flush4 stay OUT: they are
+  // still not something you may PLAY here, only something a hand may LAYER.
+  const ALL_HAND_KEYS = ['run3','threeofakind','fourofakind','run4','pair','twopair','straight','flush','fullhouse','straightflush','highcard','blackjack',
+                         'run6','run7','flush6','flush7','fiveofakind','sixofakind','sevenofakind'];
   const BASE_HAND_KEYS = ['run3','threeofakind','twopair','fourofakind'];
   // Match-3 scores real hand names (Flush, Straight, Straight Flush, Run of 4…),
   // so it needs the full hand set active like the act modes, not the legacy base four.

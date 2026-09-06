@@ -23,9 +23,9 @@
 // mode overrides. calcScore reads the bonus and adds it; the Hands tab in RECORDS
 // reads the same function to show the live rate card.
 const NS_FAMILIES = {
-  set:   ['Pair', 'Two Pair', 'Three of a Kind', 'Full House', 'Four of a Kind'],
-  run:   ['Run of 3', 'Run of 4', 'Straight', 'Straight Flush'],
-  flush: ['Flush of 3', 'Flush of 4', 'Flush', 'Straight Flush'],
+  set:   ['Pair', 'Two Pair', 'Three of a Kind', 'Full House', 'Four of a Kind', 'Five of a Kind', 'Six of a Kind', 'Seven of a Kind'],
+  run:   ['Run of 3', 'Run of 4', 'Straight', 'Run of 6', 'Run of 7', 'Straight Flush'],
+  flush: ['Flush of 3', 'Flush of 4', 'Flush', 'Flush of 6', 'Flush of 7', 'Straight Flush'],
 };
 // hand name -> the families it belongs to (Straight Flush is in two).
 // handLayersFor (js/hand-detect.js) reads this too: one layer per family.
@@ -72,9 +72,10 @@ function naturalScaleBonus(handName) {
   return { pips, mult };
 }
 
-// Called from playHand once a hand is committed. Credits EVERY LAYER the hand
+// Called from playHand once a hand is committed. Credits EVERY COMPONENT the hand
 // paid for (js/hand-detect.js), so a same-suit run advances both the run and the
-// flush - it earned both, because it was scored as both.
+// flush - it earned both, because it was scored as both. A hand holding two Sets
+// of 3 credits Three of a Kind twice, for the same reason.
 function recordNaturalScale(handName, cells) {
   if (!nsEnabled) return;
   const names = (cells && typeof handLayersFor === 'function') ? handLayersFor(handName, cells) : [handName];

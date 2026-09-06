@@ -225,11 +225,12 @@ document.addEventListener('click', (e) => {
 // with CSS - one renderer, no per-orientation branch.
 let _handNameKey = null;   // last markup written, so render() does not thrash the DOM
 
-function handLabelHTML(names) {
-  return names.map(n => {
+function handLabelHTML(runs) {
+  return runs.map(({ n, k }) => {
     const l = HAND_LABEL[n];
-    return l ? `<span class="hn-l"><b>${l.fam}</b><i>${l.size}</i></span>`
-             : `<span class="hn-l"><b>${n}</b></span>`;
+    const x = k > 1 ? `<u>x${k}</u>` : '';
+    return l ? `<span class="hn-l"><b>${l.fam}</b><i>${l.size}${x}</i></span>`
+             : `<span class="hn-l"><b>${n}</b>${x}</span>`;
   }).join('<span class="hn-plus">+</span>');
 }
 
@@ -238,16 +239,21 @@ function updateHandNameLabel(result) {
   if (!el) return;
   // handLayersFor is what calcScore pays for, so the label can never name a hand
   // the score did not count (or miss one it did).
-  const names = (result && result.hand)
+  let names = (result && result.hand)
     ? ((typeof handLayersFor === 'function') ? handLayersFor(result.hand, result.handCells) : [result.hand])
     : [];
+  // Repeats are real (two Sets of 3), but printing SET 3 + SET 3 in a 44px column
+  // is not - so a repeat collapses to a count: SET 3 x2.
+  const runs = [];
+  names.forEach(n => { const last = runs[runs.length - 1]; if (last && last.n === n) last.k++; else runs.push({ n, k: 1 }); });
+  names = runs;
   const html = names.length ? handLabelHTML(names) : '';
   // Also compare the live DOM: other screens (Dominoes) write this element
   // directly, and a cache hit would then leave their text standing.
   if (html === _handNameKey && el.innerHTML === html) return;
   _handNameKey = html;
   el.innerHTML = html;
-  el.classList.toggle('hn-layered', names.length > 1);
+  el.classList.toggle('hn-layered', names.length > 1);   // two or more components: step the type down
 }
 
 // ══════════════════════════════════════════════

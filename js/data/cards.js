@@ -114,6 +114,17 @@ const HAND_BASE = {
   'Run of 4':        { pips:30, mult:4 },   // 120
   'Straight':        { pips:40, mult:5 },   // 200
   'Straight Flush':  { pips:100,mult:8 },   // 800
+  // ── Big hands (r199) - only reachable once Selection Size is upgraded past 5,
+  // and the sets past four only in Spectrum (7 colours, one card each per value)
+  // or with duplicated cards from the shop. Priced to keep each ladder's shape:
+  // flushes +5 pips / +1 mult per card, runs steeper, sets steepest.
+  'Flush of 6':      { pips:30, mult:5 },   //  150
+  'Flush of 7':      { pips:35, mult:6 },   //  210
+  'Run of 6':        { pips:55, mult:6 },   //  330
+  'Run of 7':        { pips:75, mult:7 },   //  525
+  'Five of a Kind':  { pips:85, mult:9 },   //  765
+  'Six of a Kind':   { pips:115,mult:11 },  // 1265
+  'Seven of a Kind': { pips:150,mult:13 },  // 1950
 };
 
 // ── The short label the HUD prints beside the hand preview (r198) ──
@@ -134,6 +145,13 @@ const HAND_LABEL = {
   'Full House':      { fam:'SET',   size:'3+2' },
   'Four of a Kind':  { fam:'SET',   size:'4' },
   'Straight Flush':  { fam:'RUN 5', size:'FLUSH' },
+  'Flush of 6':      { fam:'FLUSH', size:'6' },
+  'Flush of 7':      { fam:'FLUSH', size:'7' },
+  'Run of 6':        { fam:'RUN',   size:'6' },
+  'Run of 7':        { fam:'RUN',   size:'7' },
+  'Five of a Kind':  { fam:'SET',   size:'5' },
+  'Six of a Kind':   { fam:'SET',   size:'6' },
+  'Seven of a Kind': { fam:'SET',   size:'7' },
 };
 
 // ── Per-mode hand-value overrides (r164) ──

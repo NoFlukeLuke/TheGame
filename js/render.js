@@ -176,8 +176,15 @@ function render() {
       const base = HAND_BASE[bestHandResult.hand];
       if (base) {
         const levelScale = Math.pow(1.1, level - 1);
-        const basePips = Math.round(handBasePips(bestHandResult.hand) * levelScale);
-        updateDanceSubboxes(basePips, handBaseMult(bestHandResult.hand, bestHandResult.handCells?.length));
+        // Every component, not just the one that named the hand - the chips have
+        // to quote what calcScore will actually seed, or a layered hand reads as
+        // the smaller of the two hands it is about to pay.
+        const _n = bestHandResult.handCells?.length;
+        const _names = (typeof handLayersFor === 'function')
+          ? handLayersFor(bestHandResult.hand, bestHandResult.handCells) : [bestHandResult.hand];
+        let basePips = 0, baseMult = 0;
+        _names.forEach(h => { if (!HAND_BASE[h]) return; basePips += Math.round(handBasePips(h) * levelScale); baseMult += handBaseMult(h, _n); });
+        updateDanceSubboxes(basePips, baseMult);
       }
     } else {
       const pipsEl = document.getElementById('pips-val');
