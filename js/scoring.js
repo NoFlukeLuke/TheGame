@@ -71,9 +71,20 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // handBasePips is 0 in the no-pips scoring models, so all pips then come from
   // the cards themselves (see SCORING_MODELS in js/focus-config.js).
   const levelScale = Math.pow(1.1, level - 1);
-  // handBasePips folds in Natural Scaling's earned family bonus, so the bonus
-  // rides the 1.1^(level-1) scale exactly as the printed base does.
+  // ── Layered hands (r198) ──
+  // One shape can be several hands at once: a same-suit run is a Run AND a Flush.
+  // handLayersFor returns every hand this play pays for, one per family, primary
+  // first. Each extra layer adds its printed base pips and base mult, and every
+  // card scores one more time (the retrigger below) - "you played two hands".
+  // It is computed HERE, from the cells, rather than passed in by the six callers
+  // of calcScore, so the live PIPS/MULT chips, the scoring dance, findBestHand's
+  // comparison and the committed score can never disagree about what was played.
+  const _layers = (typeof handLayersFor === 'function') ? handLayersFor(handName, cells) : [handName];
+  const _extraLayers = _layers.filter(h => h !== handName && HAND_BASE[h]);
+  // handBasePips folds in Natural Scaling's earned bonus for that hand type, so
+  // the bonus rides the 1.1^(level-1) scale exactly as the printed base does.
   let totalPips = Math.round(handBasePips(handName) * levelScale);
+  _extraLayers.forEach(h => { totalPips += Math.round(handBasePips(h) * levelScale); });
 
   // Rising Tide: +1 base mult per level
   const risingTideBonus = hasTrick('rising_tide') ? (level - 1) : 0;
@@ -214,6 +225,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     if (_hnm) _retrig++;
     if (_wfi) _retrig++; // Wait For Iiiit: chance replay scaling with negative tiles taken
     if (_encoreHand) _retrig++; // Encore: all-odd-rank Set scores a second time
+    if (_extraLayers.length) _retrig++; // Layered hand: you played two hands, so every card scores twice
     if (_cKey === _3rdKey) _retrig += BAL.third_charm.extra_replays; // 3rd Time's a Charm: 3rd card gets +2 replays
     retrigByKey[r + '-' + c] = _retrig;
     if (_ledgerCells) {
@@ -334,6 +346,9 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // hand_size model, plus Natural Scaling's earned family bonus. _scoreCells is
   // the hand actually being scored.
   let mult = handBaseMult(handName, _scoreCells.length) + sleightAmplifierMult;
+  // Layered hands: every other family this shape satisfies adds its base mult too.
+  // Additive, not multiplied - two hands' worth of ladder, not the product of them.
+  _extraLayers.forEach(h => { mult += handBaseMult(h, _scoreCells.length); });
 
   // Assembly Line: apply the mult accumulated in the per-card loop; snapshot the round counter
   if (_asmMult > 0) { mult += _asmMult * BAL.assembly_line.mult_per_prior; bMult('assembly_line', _asmMult * BAL.assembly_line.mult_per_prior); }
@@ -805,13 +820,19 @@ function captureRoundContrib(result) {
   const base = HAND_BASE[hand];
   if (base) {
     const levelScale = Math.pow(1.1, level - 1);
+    // A layered hand pays every family's base, so the breakdown has to count them
+    // all or it reports less base than calcScore actually used (see calcScore).
+    const _layers = (typeof handLayersFor === 'function') ? handLayersFor(hand, handCells) : [hand];
+    const _extra = _layers.filter(h => h !== hand && HAND_BASE[h]);
     let cardPipsTotal = Math.round(handBasePips(hand) * levelScale);
+    _extra.forEach(h => { cardPipsTotal += Math.round(handBasePips(h) * levelScale); });
     handCells.forEach(([r, c]) => { const card = gridData[r]?.[c]; if (card?.rank) cardPipsTotal += cardPips(card.rank); });
     rows.push({ label: 'Base + card pips', kind: 'pip', amount: cardPipsTotal });
     // Base MULT from the hand type (calcScore seeds mult from handBaseMult). It's
     // the starting multiplier every trick adds onto, so surface it in Mult too.
-    const _bm = handBaseMult(hand, handCells.length);
-    if (_bm) rows.push({ label: 'Base (hand type)', kind: 'mult', amount: _bm });
+    let _bm = handBaseMult(hand, handCells.length);
+    _extra.forEach(h => { _bm += handBaseMult(h, handCells.length); });
+    if (_bm) rows.push({ label: _extra.length ? 'Base (' + _layers.join(' + ') + ')' : 'Base (hand type)', kind: 'mult', amount: _bm });
   }
   return rows;
 }

@@ -439,7 +439,7 @@ function startGame() {
   cancelAutoSubmit();
   cancelDance();
   handReadyForSubmit = false;
-  document.getElementById('hand-name').textContent = '';   // empty → "HAND" watermark shows (r99)
+  updateHandNameLabel(null);   // clears the label AND its cache (js/hud.js)
   document.getElementById('selected-cards').innerHTML = '';
   selected = [];
   animating = false;

@@ -1,4 +1,4 @@
-const BUILD = '2026-09-05 · r196 · card identity: buffs, curses and services target one card, not every card sharing its face [onto r195]';
+const BUILD = '2026-09-06 · r198 · natural scaling per hand type + Old Tricks; layered hands; hand-type label [onto r196]';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

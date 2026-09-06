@@ -209,6 +209,16 @@ function devSetNs(k, v) {
   devSyncNs();
 }
 function devResetNs() { resetNaturalScaling(); devSyncNs(); }
+
+// ── Layered hands (r198) - state lives in js/hand-detect.js ──
+// A big balance lever (a same-suit run pays two hands' base AND replays every
+// card), so it gets a switch rather than being a fact of the game.
+function devSetLayeredHands(on) {
+  layeredHandsEnabled = !!on;
+  localStorage.setItem('layeredHands', on ? '1' : '0');
+  const chk = document.getElementById('dev-layered-enabled'); if (chk) chk.checked = layeredHandsEnabled;
+  _devSafeRender();
+}
 function devSyncNs() {
   const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
   const chk = document.getElementById('dev-ns-enabled'); if (chk) chk.checked = nsEnabled;
@@ -217,6 +227,7 @@ function devSyncNs() {
   lab('dev-ns-pips-val', nsPipsPerHand); lab('dev-ns-mult-val', nsMultPerHand); lab('dev-ns-every-val', nsEveryHands);
   const st = document.getElementById('dev-ns-state');
   if (st) st.textContent = naturalScaleSummary();
+  const lay = document.getElementById('dev-layered-enabled'); if (lay) lay.checked = layeredHandsEnabled;
 }
 
 // ── Channel-change sliders (CC_CFG lives in js/channel-change.js) ──

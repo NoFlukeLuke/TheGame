@@ -506,6 +506,13 @@
   .mini-card { width: 26px; height: 34px; min-height: unset; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 3px; display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0; }
   .mini-card-empty { width: 26px; height: 34px; min-height: unset; border: 1px dashed var(--border); border-radius: 3px; flex-shrink: 0; }
   #hand-name { font-family: 'Cinzel', serif; font-size: 9px; color: var(--gold); letter-spacing: 1px; line-height: 1.3; word-break: break-word; min-width: 0; }
+  /* ── Hand-type label (r198): family over size, one block per layer ──
+     One markup shape for both orientations - landscape stacks it into its narrow
+     column, portrait flattens it onto one line (see the portrait block below). */
+  #hand-name .hn-l { display: block; }
+  #hand-name .hn-l b { display: block; font-weight: 700; letter-spacing: 1px; }
+  #hand-name .hn-l i { display: block; font-style: normal; font-weight: 400; letter-spacing: 0.5px; opacity: 0.85; }
+  #hand-name .hn-plus { display: block; opacity: 0.5; font-weight: 400; }
   .mini-card { width: 26px; height: 34px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 3px; display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0; }
   .mini-card-empty { width: 26px; height: 34px; border: 1px dashed var(--border); border-radius: 3px; flex-shrink: 0; }
   .mini-card .mini-rank { font-family: 'Cinzel', serif; font-size: 10px; font-weight: 700; line-height: 1; color: #1a1510; }
@@ -782,7 +789,16 @@
   #stage:not(.landscape) #selected-cards.dnc-active .dnc-row.hand { min-height: 0; }
   #stage:not(.landscape) #selected-cards.dnc-active .dnc-card .r { font-size: 21px; }
   #stage:not(.landscape) #selected-cards.dnc-active .dnc-card .s { font-size: 16px; }
-  #stage:not(.landscape) #hand-name { font-size: 9px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+  /* Portrait puts the label ABOVE the cards (source order has it after them, so
+     order:-1 moves it) on ONE line - the strip is wide and short, which is the
+     opposite of the landscape column. Sized to match the tray's own n/10 count. */
+  #stage:not(.landscape) #hand-name { order: -1; font-size: 10px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+  #stage:not(.landscape) #hand-name .hn-l,
+  #stage:not(.landscape) #hand-name .hn-l b,
+  #stage:not(.landscape) #hand-name .hn-l i,
+  #stage:not(.landscape) #hand-name .hn-plus { display: inline; }
+  #stage:not(.landscape) #hand-name .hn-l b::after { content: '\00a0'; }
+  #stage:not(.landscape) #hand-name .hn-plus { margin: 0 3px; }
   /* The preview is deliberately inert until a hand is SUBMITTED (r99) - it is the
      scoring stage, not a live selection readout - so idle it is empty. Landscape
      fills that emptiness with a faint HAND watermark; portrait needs it too, or
@@ -3831,7 +3847,17 @@
      split evenly, and the tiles are sized to match: the preview card is as wide
      as five-across allows in this column, and the Trick chip is a touch smaller. */
   #stage.landscape #selected-cards { left:1.56%; top:38%; width:37.74%; height:21.75%; --card-w:42px; --card-h:55px; display:flex; align-items:center; justify-content:center; gap:4px; padding:4px 8px 4px 44px; background:var(--panel); border:1px solid var(--border); border-radius:6px; overflow:hidden; }
-  #stage.landscape #hand-name { position:absolute; left:1.56%; top:38%; width:6%; height:21.75%; display:flex; align-items:center; justify-content:center; text-align:center; background:none; border:none; margin:0; font-size:10px; line-height:1.15; letter-spacing:0.5px; color:var(--gold); padding:0 3px; z-index:2; }
+  #stage.landscape #hand-name { position:absolute; left:1.56%; top:38%; width:5.75%; height:21.75%; overflow:hidden; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; background:none; border:none; margin:0; font-size:10px; line-height:1.15; letter-spacing:0.5px; color:var(--gold); padding:0 2px; z-index:2; }
+  /* A layered hand prints two blocks and a separator - five lines in a column
+     sized for two - so it steps down rather than spilling out of the frame.
+     Scoped through #trick-panel to out-specify the older 11px rule up the file. */
+  #stage.landscape #trick-panel #hand-name { font-size: 10px; }
+  /* 44px is #selected-cards' left padding, i.e. the gap reserved for this label.
+     The label must never grow past it or a five-card hand's first card renders
+     underneath the text. overflow:hidden is the hard stop; the smaller layered
+     type is what keeps FLUSH inside it in the first place. */
+  #stage.landscape #trick-panel #hand-name.hn-layered { font-size: 7px; line-height: 1.15; letter-spacing: 0; }
+  #stage.landscape #hand-name .hn-l i { font-size: 0.95em; }
   /* Shop cost readout uses the full preview slot (no room reserved for the hand-name label). */
   body.shop-active #stage.landscape #selected-cards { padding:5px 9px; justify-content:stretch; align-items:stretch; }
 

@@ -260,10 +260,11 @@ function findBestHand(cells) {
   restoreWilds();
   return best;
 }
-function detectHand(cells) {
-  if (cells.length < 2) return null;
+// ── Hand shape: every fact the hand tests read, computed once ──
+// detectHand (the primary hand) and handMatchesFor (every hand these cards are
+// at once) must never disagree about what the cards ARE, so both read this.
+function _handShape(cells) {
   const cards = cells.map(([r,c]) => gridData[r][c]);
-  const ranks = cards.map(c => c.rank);
   const n = cells.length;
   const isSeq = os => { for(let i=1;i<os.length;i++) if(os[i]-os[i-1]!==1) return false; return true; };
 
@@ -275,9 +276,9 @@ function detectHand(cells) {
   });
   const counts = Object.values(rankCounts).sort((a,b)=>b-a);
 
-  // Flush check: combined cards count as both suits — check if all cards share a common suit
+  // Flush check: combined cards count as both suits - check if all cards share a common suit
   // Spectrum's white values (9/10/11) keep the colour of the deck slot they came
-  // from — that is their identity — but they READ as colourless, so they can never
+  // from - that is their identity - but they READ as colourless, so they can never
   // complete a flush. This explicit test is what enforces that; the cards' own
   // suits would otherwise match like any other colour.
   const _anyWhite = cards.some(c => isWhiteCard(c));
@@ -304,35 +305,97 @@ function detectHand(cells) {
     }
     return false;
   }
-  const isStr = tryRunCombos(0, []);
-  const ordersLow = ranks.map(r => RANK_ORDER[r]).sort((a,b)=>a-b);
-  const ordersHigh = ranks.map(r => r==='A'?14:RANK_ORDER[r]).sort((a,b)=>a-b);
-  const allUnique = new Set(ranks).size === n;
+  return { n, counts, allSameSuitStrict, isStr: tryRunCombos(0, []) };
+}
 
-  if (activeHands.has('straightflush') && n===5 && allSameSuitStrict && isStr) return 'Straight Flush';
-  if (activeHands.has('fourofakind') && n>=4 && counts[0]>=4) return 'Four of a Kind';
-  if (activeHands.has('fullhouse') && n===5 && counts[0]>=3 && counts[1]>=2) return 'Full House';
-  if (activeHands.has('flush') && n===5 && allSameSuitStrict) return 'Flush';
-  // Short flushes (Six Suits mode). Checked before the same-size run/straight so a
-  // same-suit run scores as the (higher-value) flush, mirroring poker's flush > straight.
-  if (activeHands.has('flush4') && n===4 && allSameSuitStrict) return 'Flush of 4';
-  // Flush of 3 and Run of 3 can describe the very same three cards, so the
-  // higher-scoring of the two wins rather than a fixed order. Six Suits pays more
-  // for the flush (75 vs 60) and is unchanged; Spectrum zeroes the flush, so there
-  // a single-colour run scores as the Run it also is instead of paying nothing.
-  // Worth under the ACTIVE scoring model, not the printed table: with base pips
-  // zeroed, "flush unless the run is worth more" has to compare mults instead.
-  const _worth = h => (HAND_BASE[h] ? Math.max(handBasePips(h), 1) * handBaseMult(h) : 0);
-  if (activeHands.has('flush3') && n===3 && allSameSuitStrict
-      && !(activeHands.has('run3') && isStr && _worth('Run of 3') > _worth('Flush of 3'))) return 'Flush of 3';
-  if (activeHands.has('straight') && n===5 && isStr) return 'Straight';
-  if (activeHands.has('threeofakind') && counts[0]>=3 && (n===3||n===5)) return 'Three of a Kind';
-  if (activeHands.has('twopair') && n>=4 && counts[0]>=2 && counts[1]>=2) return 'Two Pair';
-  if (activeHands.has('run4') && n===4 && isStr) return 'Run of 4';
-  if (activeHands.has('run3') && n===3 && isStr) return 'Run of 3';
-  if (activeHands.has('pair') && n===2 && counts[0]>=2) return 'Pair';
-  if (activeHands.has('pair') && n>=3 && counts[0]>=2 && counts[1]>=1 && n<=5) return 'Pair';
-  return null;
+// What a hand is worth under the ACTIVE scoring model, not the printed table:
+// with base pips zeroed (mult_ladder / hand_size) a pips x mult comparison is 0
+// for everything, so the pips term is floored at 1 and the mults decide.
+function handWorth(h) { return HAND_BASE[h] ? Math.max(handBasePips(h), 1) * handBaseMult(h) : 0; }
+
+// The hand's NAME: the best-paying reading of these cards.
+//
+// This used to be a fixed priority list with one special case bolted on - "flush
+// of 3, unless the run of 3 is worth more" - because Flush of 3 and Run of 3 can
+// describe the very same three cards. The special case was right and its scope
+// was too narrow: three same-suit cards of one rank were named Flush of 3 (30)
+// over Three of a Kind (105) for exactly the same reason, and four same-suit
+// cards holding two pairs were named Flush of 4 (60) over Two Pair (90). Asking
+// for the best-paying match instead covers every such pair, now and later.
+//
+// Ties fall to handMatchesFor's order, which is the old priority list - and ties
+// are the normal case in the no-pips scoring models, where worth is mult alone.
+//
+// The name is not the whole payout any more (see LAYERED HANDS below - the other
+// readings are paid too). It is what the hand's Focus, its streak, the hand log
+// and Natural Scaling's primary credit are counted as.
+function detectHand(cells) {
+  if (cells.length < 2) return null;
+  const matches = handMatchesFor(cells);
+  if (!matches.length) return null;
+  let best = matches[0];
+  for (const m of matches) if (handWorth(m) > handWorth(best)) best = m;
+  return best;
+}
+
+// ══════════════════════════════════════════════
+// LAYERED HANDS (r198) - one shape, more than one hand
+// ══════════════════════════════════════════════
+// Three cards of one suit in sequence are a Run of 3 AND a Flush of 3. Until now
+// detectHand picked one of them and the other was simply thrown away, which is
+// why building the harder shape felt like it paid nothing extra. Now every hand
+// the cards satisfy is a LAYER: each layer's printed base pips and base mult are
+// added, each layer earns its own Natural Scaling, and a layered hand replays -
+// every card scores one extra time.
+//
+// THE RULE IS ONE LAYER PER FAMILY (set / run / flush), best-worth wins. Without
+// it a Full House would also claim Three of a Kind, Two Pair and Pair - that is
+// one shape read four ways, not four shapes, and it would pay four times for the
+// same cards. Straight Flush sits in BOTH families and so occupies both slots on
+// its own, which is correct: it already IS the run and the flush, and layering
+// Straight + Flush on top of it would pay the same cards twice.
+let layeredHandsEnabled = localStorage.getItem('layeredHands') !== '0';   // default ON
+
+// Every ACTIVE hand type these cards satisfy, in no particular order. Same tests
+// as detectHand, minus the priority order and the flush/run tiebreak.
+function handMatchesFor(cells) {
+  if (!cells || cells.length < 2) return [];
+  const { n, counts, allSameSuitStrict, isStr } = _handShape(cells);
+  const out = [];
+  const add = (key, name, ok) => { if (ok && activeHands.has(key)) out.push(name); };
+  // ORDER IS LOAD-BEARING: it is the old detectHand priority list, and detectHand
+  // still falls back to it whenever two matches are worth the same - which is the
+  // normal case in the no-pips scoring models, where worth is the mult alone.
+  add('straightflush', 'Straight Flush',  n===5 && allSameSuitStrict && isStr);
+  add('fourofakind',   'Four of a Kind',  n>=4 && counts[0]>=4);
+  add('fullhouse',     'Full House',      n===5 && counts[0]>=3 && counts[1]>=2);
+  add('flush',         'Flush',           n===5 && allSameSuitStrict);
+  add('flush4',        'Flush of 4',      n===4 && allSameSuitStrict);
+  add('flush3',        'Flush of 3',      n===3 && allSameSuitStrict);
+  add('straight',      'Straight',        n===5 && isStr);
+  add('threeofakind',  'Three of a Kind', counts[0]>=3 && (n===3||n===5));
+  add('twopair',       'Two Pair',        n>=4 && counts[0]>=2 && counts[1]>=2);
+  add('run4',          'Run of 4',        n===4 && isStr);
+  add('run3',          'Run of 3',        n===3 && isStr);
+  add('pair',          'Pair',            (n===2 && counts[0]>=2) || (n>=3 && n<=5 && counts[0]>=2 && counts[1]>=1));
+  return out;
+}
+
+// The hands this play pays for. Always contains `primary` first (the hand's NAME,
+// which is what its Focus, its streak and the hand log are counted as); any extra
+// entries are the other families it also satisfies.
+function handLayersFor(primary, cells) {
+  if (!primary) return [];
+  if (!layeredHandsEnabled || !cells || typeof NS_HAND_FAMILIES === 'undefined') return [primary];
+  const best = {};                              // family -> the best hand in it
+  handMatchesFor(cells).forEach(name => {
+    (NS_HAND_FAMILIES[name] || []).forEach(f => {
+      if (!best[f] || handWorth(name) > handWorth(best[f])) best[f] = name;
+    });
+  });
+  const out = [primary];
+  Object.keys(best).forEach(f => { if (!out.includes(best[f])) out.push(best[f]); });
+  return out;
 }
 
 // ══════════════════════════════════════════════

@@ -296,10 +296,13 @@ function _recHandsFoot() {
 // under all of them, since handBasePips/handBaseMult carry it.
 function _recHandsFootFull() {
   const ns = (typeof nsEnabled !== 'undefined' && nsEnabled)
-    ? ' Playing a hand permanently raises its whole family - sets, runs and flushes each build on'
-      + ' their own. Green is what this run has earned.'
+    ? ' Playing a hand permanently raises THAT HAND, and nothing else - so a hand you have played'
+      + ' forty times can out-score one you have never reached. Green is what this run has earned.'
     : '';
-  return _recHandsFoot() + ns;
+  const lay = (typeof layeredHandsEnabled !== 'undefined' && layeredHandsEnabled)
+    ? ' Cards that are two hands at once pay for both, and score twice.'
+    : '';
+  return _recHandsFoot() + ns + lay;
 }
 
 // ── HANDS ──

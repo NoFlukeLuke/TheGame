@@ -119,8 +119,9 @@
   <div class="dev-section" data-group="score">
     <div class="dev-section-title">Natural Scaling</div>
     <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:4px;">
-      Playing a hand permanently buffs its whole family (sets / runs / flushes).
-      Straight Flush sits in the run AND flush families and takes the better of the two.
+      Playing a hand permanently buffs THAT HAND TYPE (r198), not its whole family,
+      so climbing to a bigger hand is a real decision. The Old Tricks knack pools a
+      family: every hand in it reads the family's best bonus instead of its own.
     </div>
     <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;">
       <input id="dev-ns-enabled" type="checkbox" onchange="devSetNs('enabled', this.checked)" style="accent-color:var(--gold);">
@@ -136,6 +137,22 @@
     <div class="dev-row">
       <button class="dev-btn" onclick="devResetNs()">Reset accumulators</button>
     </div>
+  </div>
+
+  <!-- LAYERED HANDS (r198) -->
+  <div class="dev-section" data-group="score">
+    <div class="dev-section-title">Layered hands</div>
+    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:4px;">
+      One shape can be several hands at once - a same-suit run is a Run AND a Flush.
+      Every family the cards satisfy adds its base pips and base mult, each one earns
+      its own Natural Scaling, and every card in a layered hand scores twice.
+      One layer per family, best wins, so a Full House cannot also claim Three of a
+      Kind, Two Pair and Pair off the same five cards.
+    </div>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;">
+      <input id="dev-layered-enabled" type="checkbox" onchange="devSetLayeredHands(this.checked)" style="accent-color:var(--gold);">
+      Layered hands on
+    </label>
   </div>
 
   <!-- LEVEL -->

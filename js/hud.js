@@ -213,6 +213,44 @@ document.addEventListener('click', (e) => {
 }, true);
 
 // ══════════════════════════════════════════════
+// HAND-TYPE LABEL (r198) - #hand-name, beside the hand preview
+// ══════════════════════════════════════════════
+// What you are about to play, named. The preview CARDS are deliberately inert
+// until a hand is submitted (r99 - the preview is the scoring stage, not a live
+// readout), but the NAME is the one thing you want before you commit, and with
+// layered hands it is now the only place the second hand is visible at all.
+//
+// Two lines per layer, family over size ("RUN / 3"), because the desktop panel
+// gives this a 6%-wide column. Portrait flattens the same markup onto one line
+// with CSS - one renderer, no per-orientation branch.
+let _handNameKey = null;   // last markup written, so render() does not thrash the DOM
+
+function handLabelHTML(names) {
+  return names.map(n => {
+    const l = HAND_LABEL[n];
+    return l ? `<span class="hn-l"><b>${l.fam}</b><i>${l.size}</i></span>`
+             : `<span class="hn-l"><b>${n}</b></span>`;
+  }).join('<span class="hn-plus">+</span>');
+}
+
+function updateHandNameLabel(result) {
+  const el = document.getElementById('hand-name');
+  if (!el) return;
+  // handLayersFor is what calcScore pays for, so the label can never name a hand
+  // the score did not count (or miss one it did).
+  const names = (result && result.hand)
+    ? ((typeof handLayersFor === 'function') ? handLayersFor(result.hand, result.handCells) : [result.hand])
+    : [];
+  const html = names.length ? handLabelHTML(names) : '';
+  // Also compare the live DOM: other screens (Dominoes) write this element
+  // directly, and a cache hit would then leave their text standing.
+  if (html === _handNameKey && el.innerHTML === html) return;
+  _handNameKey = html;
+  el.innerHTML = html;
+  el.classList.toggle('hn-layered', names.length > 1);
+}
+
+// ══════════════════════════════════════════════
 // CARD INTERACTION - tap or swipe to select, double-tap to swap
 // ══════════════════════════════════════════════
 
