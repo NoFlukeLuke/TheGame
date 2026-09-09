@@ -128,6 +128,7 @@ const DEV_GROUPS = [
   { g:'time',     icon:'⏱', label:'Time',      sub:() => 'add / set round seconds' },
   { g:'coins',    icon:'💰', label:'Coins',    sub:() => 'add / zero credits' },
   { g:'score',    icon:'#', label:'Score',     sub:() => 'add score · win · skip level' },
+  { g:'goals',    icon:'◈', label:'Goals',     sub:() => devGoalGroupSub() },
   { g:'hud',      icon:'▤', label:'HUD',       sub:() => 'toggles · scoring dance' },
   { g:'display',  icon:'⛶', label:'Display',   sub:() => 'fullscreen' },
   { g:'save',     icon:'💾', label:'Save Run',  sub:() => { const s = savedRunSummary(); return s ? `saved · Round ${s.level}` : 'no save yet'; } },
@@ -159,6 +160,7 @@ function devOpenGroup(g) {
   document.getElementById('dev-group-pop-body').scrollTop = 0;
   if (g === 'seed') devRefreshSeed();
   if (g === 'spectrum') renderSpectrumDev();
+  if (g === 'goals') devRenderGoalPanel();
 }
 function devCloseGroup() {
   document.getElementById('dev-group-menu').style.display = '';
@@ -604,6 +606,113 @@ function devRenderFocusPanel() {
   const nodes = [focusMultStartNodes, focusMultStartNodes + 5, focusMultStartNodes + 10, focusMultStartNodes + 20];
   fill('dev-focus-mult-preview',
     nodes.map(n => `${n} nodes: x${(1 + Math.max(0, n - focusMultStartNodes) * focusMultPerNode).toFixed(2)}`).join('  ·  '));
+}
+
+// ══════════════════════════════════════════════
+// GOALS  (r197)  -  the round-goal curve, live
+// ══════════════════════════════════════════════
+// Same shape as FOCUS_TUNABLES: one table drives the rows, the persistence and
+// the reset. Values live in js/goal-tuning.js; every set() re-applies the curve
+// to the round in progress, so a change is visible without restarting the run.
+
+const GOAL_TUNABLES = {
+  global: [
+    { key: 'globalMult', label: 'Multiply every mode’s goal by',
+      min: 0.1, max: 10, step: 0.05, dp: 2, unit: 'x',
+      get: () => goalTune('globalMult'), set: v => setGoalTune('globalMult', v) },
+  ],
+  classic: [
+    { key: 'classicBase', label: 'Round 1 goal',
+      min: 100, max: 100000, step: 100, dp: 0, unit: '',
+      get: () => goalTune('classicBase'), set: v => setGoalTune('classicBase', v) },
+    { key: 'classicGrowth', label: 'Harder each round by',
+      min: 0, max: 200, step: 1, dp: 1, unit: '%',
+      get: () => goalTune('classicGrowth'), set: v => setGoalTune('classicGrowth', v) },
+    { key: 'classicRoundTo', label: 'Round the goal to the nearest',
+      min: 1, max: 5000, step: 50, dp: 0, unit: '',
+      get: () => goalTune('classicRoundTo'), set: v => setGoalTune('classicRoundTo', v) },
+  ],
+  survival: [
+    { key: 'survivalBase', label: 'Round 1 goal',
+      min: 100, max: 100000, step: 100, dp: 0, unit: '',
+      get: () => goalTune('survivalBase'), set: v => setGoalTune('survivalBase', v) },
+    { key: 'survivalGrowth', label: 'Harder each round by',
+      min: 0, max: 200, step: 1, dp: 1, unit: '%',
+      get: () => goalTune('survivalGrowth'), set: v => setGoalTune('survivalGrowth', v) },
+    { key: 'survivalRoundTo', label: 'Round the goal to the nearest',
+      min: 1, max: 5000, step: 10, dp: 0, unit: '',
+      get: () => goalTune('survivalRoundTo'), set: v => setGoalTune('survivalRoundTo', v) },
+    { key: 'endlessAccel', label: 'Endless mode grows faster by',
+      min: 1, max: 5, step: 0.05, dp: 2, unit: 'x',
+      get: () => goalTune('endlessAccel'), set: v => setGoalTune('endlessAccel', v) },
+  ],
+  other: [
+    { key: 'zenMult', label: 'Zen (no clock) multiplies the classic goal by',
+      min: 0.5, max: 10, step: 0.25, dp: 2, unit: 'x',
+      get: () => goalTune('zenMult'), set: v => setGoalTune('zenMult', v) },
+  ],
+};
+
+function _devFindGoalTunable(key) {
+  for (const group of Object.values(GOAL_TUNABLES)) {
+    const t = group.find(x => x.key === key);
+    if (t) return t;
+  }
+  return null;
+}
+
+// dir: -1 / +1 to step, 0 to take the typed value.
+function devTuneGoal(key, dir, typed) {
+  const t = _devFindGoalTunable(key);
+  if (!t) return;
+  let v = (dir === 0) ? parseFloat(typed) : t.get() + dir * t.step;
+  if (!isFinite(v)) v = t.get();
+  v = Math.min(t.max, Math.max(t.min, +v.toFixed(4)));
+  t.set(v);
+  devGoalApplyAndRender();
+}
+
+function devResetGoalTune() { resetGoalTune(); devGoalApplyAndRender(); }
+
+// Every change moves the live round's bar too - that is the point of tuning here
+// rather than in the data files. applyGoalTuneLive() reports what it did (or why
+// it held off, during a boss).
+function devGoalApplyAndRender() {
+  const line = applyGoalTuneLive();
+  devRenderGoalPanel(line);
+  devRenderGroupMenu();
+}
+
+function devGoalGroupSub() {
+  const g1 = classicGoalForLevel(1);
+  return `R1 ${g1.toLocaleString()} · +${(+goalTune('classicGrowth')).toFixed(0)}%/round`
+       + (goalTuneTouched() ? ' · tuned' : '');
+}
+
+// A curve is only readable as a list of what it actually asks for, so both
+// previews print the real goals and the round-1 multiple at the far end.
+function _devGoalCurveLine(fn, rounds) {
+  const vals = rounds.map(fn);
+  const grow = vals[vals.length - 1] / Math.max(1, vals[0]);
+  return rounds.map((r, i) => `R${r}: ${vals[i].toLocaleString()}`).join('  ·  ')
+       + `\n(R${rounds[rounds.length - 1]} is ${grow.toFixed(1)}x round 1)`;
+}
+
+function devRenderGoalPanel(liveLine) {
+  const fill = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML = html; };
+  ['global', 'classic', 'survival', 'other'].forEach(g =>
+    fill('dev-goal-' + g + '-rows', GOAL_TUNABLES[g].map(t => _devStepper(t, 'devTuneGoal')).join('')));
+
+  fill('dev-goal-classic-preview', _devGoalCurveLine(classicGoalForLevel, [1, 2, 3, 6, 9, 12, 15, 18]));
+
+  // survivalGoalForLevel reads the run's endless state, so the preview is the
+  // ordinary (pre-endless) curve unless the live run has already switched.
+  fill('dev-goal-survival-preview', _devGoalCurveLine(survivalGoalForLevel, [1, 2, 3, 5, 8, 11, 14, 17]));
+
+  const live = (typeof roundGoal === 'number' && typeof level === 'number' && typeof gridData !== 'undefined'
+                && Array.isArray(gridData) && gridData.length)
+    ? `Live: round ${level}, goal ${roundGoal.toLocaleString()}` : 'No run in progress';
+  fill('dev-goal-live', live + (liveLine ? `\n${liveLine}` : ''));
 }
 
 function devFilterTricks(query) {

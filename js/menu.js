@@ -1,4 +1,4 @@
-const BUILD = '2026-09-05 · r196 · card identity: buffs, curses and services target one card, not every card sharing its face [onto r195]';
+const BUILD = '2026-09-09 · r197 · goal tuning: every mode\'s round-goal curve is live in the dev panel (Goals group)';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

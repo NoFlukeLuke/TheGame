@@ -147,6 +147,35 @@
     </div>
   </div>
 
+  <!-- GOALS (r197): every mode's round-goal curve, live. Rows are built by
+       devRenderGoalPanel() in js/dev-panel.js from GOAL_TUNABLES. -->
+  <div class="dev-section" data-group="goals">
+    <div class="dev-section-title">All modes</div>
+    <div class="dev-note">Scales every mode's goal at once. Leave at 1.00 and tune the per-mode numbers below.</div>
+    <div id="dev-goal-global-rows"></div>
+    <div id="dev-goal-live" class="dev-preview"></div>
+  </div>
+
+  <div class="dev-section" data-group="goals">
+    <div class="dev-section-title">Classic curve</div>
+    <div class="dev-note">Classic, Six Suits, Spectrum, Guided, Orientation, Match-3, Dominoes.</div>
+    <div id="dev-goal-classic-rows"></div>
+    <div id="dev-goal-classic-preview" class="dev-preview"></div>
+  </div>
+
+  <div class="dev-section" data-group="goals">
+    <div class="dev-section-title">Survival / Flow curve</div>
+    <div class="dev-note">Survival and Flow run their own curve from a lower start.</div>
+    <div id="dev-goal-survival-rows"></div>
+    <div id="dev-goal-survival-preview" class="dev-preview"></div>
+  </div>
+
+  <div class="dev-section" data-group="goals">
+    <div class="dev-section-title">Zen</div>
+    <div id="dev-goal-other-rows"></div>
+    <button class="dev-btn" onclick="devResetGoalTune()" style="margin-top:8px;">Reset all goals to shipped values</button>
+  </div>
+
   <!-- BOSS -->
   <div class="dev-section" data-group="boss">
     <div class="dev-section-title">Boss</div>
@@ -1120,6 +1149,7 @@
 <script src="js/match3.js"></script>
 <script src="js/survival.js"></script>
 <script src="js/flow-mode.js"></script>
+<script src="js/goal-tuning.js"></script>
 <script src="js/spectrum.js"></script>
 <script src="js/records.js"></script>
 <script src="js/audio-mixer.js"></script>

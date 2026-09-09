@@ -802,6 +802,8 @@
   .dev-preview {
     font-family: 'Share Tech Mono', monospace; font-size: 10px; letter-spacing: 0.3px;
     color: var(--gold-dim); margin-top: 8px; line-height: 1.5;
+    /* pre-line so a multi-line preview (the goal curves) keeps its breaks */
+    white-space: pre-line;
   }
   .dev-tune {
     display: flex; align-items: center; justify-content: space-between; gap: 10px;
