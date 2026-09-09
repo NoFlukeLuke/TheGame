@@ -79,11 +79,10 @@ function triggerLevelUp() {
 
   level++;
   // This round's score target, from zero
-  roundGoal = survivalActive() ? survivalGoalForLevel(level)
-            : Math.round(Math.round(BASE_GOAL * Math.pow(GOAL_SCALE, level - 1)) / 500) * 500;
-  // Zen has no clock, so its goals are doubled - levelling and the reward grid
-  // stay reachable, just at a slower, self-paced rate.
-  if (match3IsZen()) roundGoal *= 2;
+  // One chokepoint for every mode's curve (js/goal-tuning.js) - it picks the
+  // survival curve in Survival/Flow and applies Zen's doubling, and it is what
+  // the dev panel's Goals group retunes live.
+  roundGoal = goalForLevel(level);
   // Bank the completed round's score for the end-of-run display. In Survival the
   // overflow is carried to the next round, so only the counted portion is banked.
   totalScore += survivalActive() ? Math.max(0, score - _svOverflow) : score;

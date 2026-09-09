@@ -1,4 +1,4 @@
-const BUILD = '2026-09-06 · r200 · minimum selection size ties to the limit; High Card as the escape valve [onto r199]';
+const BUILD = '2026-09-09 · r201 · extra cards banned by default + Tagalong knack; natural-scaling bonus editor [r200 onto r197]';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

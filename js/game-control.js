@@ -468,8 +468,7 @@ function startGame() {
   updateActProgressUI();
   // Clear any leftover card elements from previous game
   document.getElementById('grid').querySelectorAll('.card').forEach(el => el.remove());
-  roundGoal = survivalActive() ? survivalGoalForLevel(1)
-            : (match3IsZen() ? BASE_GOAL * 2 : BASE_GOAL); // Zen: doubled goals, no clock
+  roundGoal = goalForLevel(1);  // js/goal-tuning.js: per-mode curve + Zen's doubling
   totalScore = 0;
   coins = 0;
   shopItems = null;
