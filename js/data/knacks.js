@@ -36,6 +36,10 @@ const KNACK_POOL = [
   // hand you actually play. This pools it: every hand in a family reads the best
   // bonus in that family. It REPLACES the hand's own bonus, never adds to it.
   { id:'old_tricks',      emoji:'🎩',  name:'Old Tricks',       rarity:'epic',   desc:'Every hand type scores with the best growth anywhere in its family - sets, runs and flushes each pool their own. It replaces what that hand had earned, it does not add to it.' },
+  // ── Passenger knack (r201) ──
+  // A hand normally has to use every card you select; a spare makes it not a hand,
+  // and the spare is billed as a penalty card. This lifts that.
+  { id:'tagalong',       emoji:'🧳',  name:'Tagalong',        rarity:'rare',   desc:'Your hands may carry cards that are not part of them. Those cards still score their own pips instead of being billed as penalties.' },
   // ── Reward-grid / risk knacks (r129) ──
   { id:'shady_stimulants',emoji:'💊',  name:'Shady Stimulants', rarity:'rare',   desc:'Every negative reward tile you swallow sharpens you - permanently +1 maximum Focus per tile taken.' },
   { id:'greedy_boi',      emoji:'🤑',  name:'Greedy Boi',       rarity:'rare',   desc:'+2 selection size in the reward grid - grab more tiles at once.' },

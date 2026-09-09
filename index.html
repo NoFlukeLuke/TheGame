@@ -134,6 +134,12 @@
     <div class="dev-slider-row"><span>Every <b id="dev-ns-every-val">1</b> hand(s)</span>
       <input id="dev-ns-every" type="range" min="1" max="5" value="1" step="1" oninput="devSetNs('every', this.value)"></div>
     <div id="dev-ns-state" style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);white-space:pre-line;margin:4px 0;"></div>
+    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin:6px 0 2px;">
+      Earned bonus per hand type - type a value to jump straight to it rather than
+      grinding the hands out. This is what the hand carries NOW; the sliders above
+      only decide how fast it grows.
+    </div>
+    <div id="dev-ns-rows"></div>
     <div class="dev-row">
       <button class="dev-btn" onclick="devResetNs()">Reset accumulators</button>
     </div>

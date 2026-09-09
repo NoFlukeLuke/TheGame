@@ -111,6 +111,27 @@ function migrateNaturalScaleFamilies() {
   });
 }
 
+// ── Dev-panel editing (r201) ──
+// Set a hand type's EARNED bonus directly, so a balance question ("what does a
+// run of 3 at +50 feel like?") can be answered by playing it rather than by
+// grinding forty hands first. Writes the accumulator, not the per-hand rate -
+// the rate sliders decide how fast it grows, this decides where it is now.
+function setNaturalScaleBonus(handName, field, value) {
+  if (!HAND_BASE[handName] || !NS_HAND_FAMILIES[handName]) return;
+  const v = Math.max(0, parseFloat(value) || 0);
+  const s = nsSlot(handName);
+  if (field === 'pips') s.pips = v; else if (field === 'mult') s.mult = v;
+}
+// Every hand type Natural Scaling can touch, with what it currently carries.
+// Drawn from HAND_BASE so a new hand type shows up in the editor for free;
+// High Card is absent because it has no family and can never scale.
+function naturalScaleRows() {
+  return Object.keys(HAND_BASE).filter(n => NS_HAND_FAMILIES[n]).map(n => {
+    const b = nsBonus[n] || { pips: 0, mult: 0 };
+    return { name: n, pips: b.pips, mult: b.mult, plays: nsPlays[n] || 0 };
+  });
+}
+
 // One line per hand type that has been played, for the dev panel and RECORDS.
 function naturalScaleSummary() {
   const rows = Object.keys(HAND_BASE)

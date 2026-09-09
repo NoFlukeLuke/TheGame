@@ -475,7 +475,10 @@ function handComponentsFor(cells) {
   if (!cells || cells.length < 2 || cells.length > HAND_MAX_CARDS) return null;
   // Keyed on the cards themselves, so a board that moves invalidates its own
   // entries rather than needing anything to remember to clear this.
-  const key = (layeredHandsEnabled ? 'L' : 'l') + flushOverlayMin + '|' + _compKey(cells);
+  // The knack is in the cache key: granting Tagalong mid-run changes the answer
+  // for cells whose cards have not moved, so the entries must not be reused.
+  const key = (layeredHandsEnabled ? 'L' : 'l') + flushOverlayMin
+    + (((typeof hasKnack === 'function') && hasKnack('tagalong')) ? 'T' : 't') + '|' + _compKey(cells);
   if (_compCache.has(key)) return _compCache.get(key);
   if (_compCache.size > 4000) _compCache.clear();
 
@@ -489,12 +492,33 @@ function handComponentsFor(cells) {
     const fl = flushOverlayFor(cells);
     if (fl) components.push(fl);
   }
-  // High Card (r200): the escape valve for a forced-large selection. Only offered
-  // once the minimum actually bites (limit 5+), so the early game and the
-  // tutorial keep their "there is no hand here" state - which the tutorial's
-  // dead-card lesson depends on, since with High Card live no card is ever dead.
-  // It carries 0 base pips and 0 Focus, so it is never worth reaching for; the
-  // cards' own pips are the entire score.
+  // ── EVERY CARD MUST BE LOAD-BEARING (r201) ──
+  // A hand may not carry a passenger. If the components do not account for every
+  // selected card, this subset is not a hand at all - findBestHand then falls
+  // back to the smaller subset that IS fully used, and the leftovers become
+  // PENALTY cards: their pips are subtracted, and they are consumed anyway
+  // (toRemove is the whole selection, not just handCells). So a spare card went
+  // from a small bonus to a real cost.
+  //
+  // The Tagalong knack lifts it, which is the whole reason it is a knack: before
+  // r201 this was free and unremarkable, so making it the default and selling it
+  // back turns "my hand has a spare in it" into something you paid for.
+  const _tagalong = (typeof hasKnack === 'function') && hasKnack('tagalong');
+  if (!_tagalong && components.length) {
+    const claimed = new Set();
+    components.forEach(c => c.cells.forEach(([r, cc]) => claimed.add(r + '-' + cc)));
+    if (claimed.size < cells.length) components.length = 0;   // a passenger: not a hand
+  }
+
+  // High Card (r200): the escape valve. It covers EVERY cell by definition, so it
+  // is also what a selection falls back to when the rule above rejects a hand
+  // with a passenger - "play them all for their pips and nothing else" beats
+  // "score the pair and eat five penalty cards" more often than not, and
+  // findBestHand picks whichever actually pays more.
+  // Only offered once the minimum actually bites (limit 5+), so the early game
+  // and the tutorial keep their "there is no hand here" state - which the
+  // tutorial's dead-card lesson depends on, since with High Card live no card is
+  // ever dead. 0 base pips and 0 Focus, so it is never worth reaching for.
   if (!components.length && activeHands.has('highcard')
       && typeof minSelectionBinds === 'function' && minSelectionBinds()
       && cells.length >= minSelection()) {

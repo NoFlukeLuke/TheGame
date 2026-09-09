@@ -212,6 +212,46 @@ function devSetNs(k, v) {
 }
 function devResetNs() { resetNaturalScaling(); devSyncNs(); }
 
+// ── Natural Scaling bonus editor (r201) ──
+// A table of every scalable hand type with its EARNED pips and mult, typed
+// directly. Rebuilt only when the set of rows changes, so typing in a field does
+// not tear the field out from under the caret on the next sync.
+let _nsRowsKey = '';
+function devRenderNsRows() {
+  const host = document.getElementById('dev-ns-rows');
+  if (!host || typeof naturalScaleRows !== 'function') return;
+  const rows = naturalScaleRows();
+  const key = rows.map(r => r.name).join('|');
+  if (key !== _nsRowsKey) {
+    _nsRowsKey = key;
+    host.innerHTML = rows.map(r => `<div class="dev-ns-row">
+      <span class="dev-ns-name">${r.name}</span>
+      <label>pips <input type="number" step="1" min="0" data-ns="${r.name}" data-f="pips"
+        oninput="devSetNsBonus(this)"></label>
+      <label>mult <input type="number" step="0.25" min="0" data-ns="${r.name}" data-f="mult"
+        oninput="devSetNsBonus(this)"></label>
+      <span class="dev-ns-plays"></span>
+    </div>`).join('');
+  }
+  // Values are written separately from the markup so a live field is only
+  // updated when it is not the one being typed in.
+  rows.forEach(r => {
+    host.querySelectorAll(`[data-ns="${CSS.escape(r.name)}"]`).forEach(inp => {
+      if (inp === document.activeElement) return;
+      inp.value = inp.dataset.f === 'pips' ? r.pips : r.mult;
+    });
+    const row = host.querySelector(`[data-ns="${CSS.escape(r.name)}"]`)?.closest('.dev-ns-row');
+    const pl = row && row.querySelector('.dev-ns-plays');
+    if (pl) pl.textContent = r.plays ? r.plays + ' played' : '';
+  });
+}
+function devSetNsBonus(inp) {
+  setNaturalScaleBonus(inp.dataset.ns, inp.dataset.f, inp.value);
+  const st = document.getElementById('dev-ns-state');
+  if (st) st.textContent = naturalScaleSummary();
+  _devSafeRender();   // the live PIPS/MULT chips quote it, so repaint
+}
+
 // ── Layered hands (r198) - state lives in js/hand-detect.js ──
 // A big balance lever (a same-suit run pays two hands' base AND replays every
 // card), so it gets a switch rather than being a fact of the game.
@@ -240,6 +280,7 @@ function devSyncNs() {
   if (st) st.textContent = naturalScaleSummary();
   const lay = document.getElementById('dev-layered-enabled'); if (lay) lay.checked = layeredHandsEnabled;
   const fm = document.getElementById('dev-flushmin'); if (fm) fm.value = flushOverlayMin;
+  devRenderNsRows();
   const fml = document.getElementById('dev-flushmin-val'); if (fml) fml.textContent = flushOverlayMin;
 }
 
