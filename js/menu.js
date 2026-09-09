@@ -1,4 +1,4 @@
-const BUILD = '2026-09-09 · r201 · extra cards banned by default + Tagalong knack; natural-scaling bonus editor [r200 onto r197]';
+const BUILD = '2026-09-09 · r202 · entity improvement sheet filled: every Trick, Knack and Sleight has its improve options [docs]';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
