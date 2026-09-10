@@ -274,6 +274,11 @@ function handleClockMarks(secs) {
 }
 
 function pauseRound(seconds) {
+  // A pause of no length is not a pause. Callers multiply their seconds by
+  // trickFires(), which is 0 for a Trick you do not own, so this is the normal way
+  // an unowned Trick's pause arrives here - and without this guard it would still
+  // count toward Hummingbird (+mult per pause triggered) and the Time popup's tally.
+  if (!seconds || seconds <= 0) return;
   // Time Slip knack: whenever the clock WOULD pause, a chance to rewind that many seconds instead
   // BINARY under Luck: a pause cannot become two rewinds, so anything above
   // 100% is wasted here on purpose. Its tooltip caps the printed figure to match.

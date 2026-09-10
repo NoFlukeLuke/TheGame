@@ -1,4 +1,4 @@
-const BUILD = '2026-09-10 · r203 · difficulty tiers, Luck, reward-grid pressure (r193-r197) merged onto r202';
+const BUILD = '2026-09-10 · r204 · trickFires(): a rehearsed or mirrored Trick now fires its Focus, clock and credit effects too';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

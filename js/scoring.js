@@ -1003,6 +1003,32 @@ function mirroredTrickIds() {
   return ids;
 }
 
+// How many times a Trick's NON-SCORE effect should land this hand: 1 for owning it,
+// plus one per prime stack, per permanent rank (Rehearsal), and per Mirror aimed at it.
+//
+// The pip/mult path already does this - calcScore keeps a per-Trick ledger (_cp/_cm)
+// and replays a Trick's recorded delta once per extra firing, which is what makes an
+// upgrade generic across all 177 Tricks with no code in any of them. That ledger can
+// only carry pips and mult, so ~71 Tricks that pay in Focus, clock seconds, credits,
+// swaps or discards fired exactly once no matter how many times they were duplicated:
+// a rehearsed Tick-Tock or a mirrored Deluge did nothing at all. This is the same
+// count, for the effects the ledger cannot carry.
+//
+// It returns 0 when the Trick is not owned or a boss has switched it off, so it stands
+// in for the hasTrick() test at the call site rather than sitting beside it - the
+// effect is multiplied by 0 and never lands. Every caller must therefore be an amount
+// being granted, never a flag being set or a tally being kept.
+function trickFires(id) {
+  if (!hasTrick(id)) return 0;
+  let n = 1;
+  if (trickTrayMode) {
+    const t = trickTray.find(b => b.id === id);
+    if (t) n += (t._primed || 0) + (t._rank || 0);
+    n += mirroredTrickIds().filter(m => m === id).length;
+  }
+  return n;
+}
+
 // Returns all row/col bonus entries matching this card position
 function getRowColBonusesForCell(r, c) {
   return rowColBonuses.filter(b => (b.axis === 'row' && b.index === r) || (b.axis === 'col' && b.index === c));

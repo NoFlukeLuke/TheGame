@@ -402,6 +402,49 @@ Every event before these HANDED you something, which is the wrong shape late in 
 - **`sleightCapBonus` (id -> extra charges) raises a Sleight's ceiling**, which nothing could do before. `sleightMaxCharges(def)` is the new chokepoint and **all four "restore up to the cap" sites read it** (`restoreSleightCharge`, `limits.js`, `discard.js`, `level-up.js`'s Coin Toss) - miss one and a reinforced Sleight refills only to its printed durability and the upgrade silently does nothing. It returns `null` for an infinite Sleight, which every caller already treats as "leave alone". Stored by sleightId, so reinforcing one copy reinforces every copy; it is in `SAVE_VARS` and resets on a new run.
 - `allOwnedSleightCards()` (sleights-runtime.js) is the Sleight counterpart to `allDeckCards()` - board, draw pile and played pile.
 
+### `trickFires(id)` (r203) - firing a Trick again, for the effects the ledger cannot carry
+
+`calcScore` keeps a per-Trick ledger of what each Trick contributed this hand (`_cp` pips,
+`_cm` mult). **Mirror** replays its neighbour's entry, and **`_primed` / `_rank`** replay a
+Trick's own entry once per stack. That is what makes "fire it again" generic across all 177
+Tricks with no code in any of them, and it is the seam the whole improvement system rests on.
+
+**That ledger can only carry pips and mult.** Roughly **71 of the 177 Tricks** pay in Focus,
+clock seconds, credits, swaps, discards or permanent card buffs, and those fired **exactly
+once** no matter how many times they were duplicated: a **rehearsed Tick-Tock or a mirrored
+Deluge did nothing at all**. That was a live gap in the shipped Rehearsal event and in Mirror,
+not just a future problem.
+
+`trickFires(id)` (js/scoring.js, beside `hasTrick`) is the same count for those effects:
+`1 + _primed + _rank + (Mirrors aimed at it)`, and **0 when the Trick is not owned or a boss
+has switched it off**.
+
+- **It replaces the `hasTrick()` test at the call site, it does not sit beside it.** An
+  unowned Trick multiplies its amount by 0 and never lands. So **every caller must be an
+  amount being granted** - never a flag being set, a tally being kept, or a cooldown being
+  consumed. Groove's per-line tally and Overtime's are deliberately still inside their
+  `hasTrick` blocks; only the Focus they pay out is multiplied.
+- **`pauseRound()` gained a zero-guard, and it is load-bearing.** `pauseRound(3 * trickFires(...))`
+  reaches it with 0 for a Trick you do not own, and unguarded that still counted a pause of no
+  length toward **Hummingbird** (+mult per pause triggered this game) and the Time popup tally.
+- **A predicate that reads `gridData` must stay behind the ownership check.** Hoisting
+  `canBeOrderedRun(handCells)` out of Rogue Wave's `hasTrick` guard threw on an empty grid
+  (`gridData` is empty between screens). Rogue Wave reads its fire count FIRST and only then
+  calls the predicate. `isSquare` / `isCross` / `counts3CardHand` are pure and safe to call
+  unconditionally; `canBeOrderedRun` is not. **This was caught by running the game in a real
+  browser and is invisible to the syntax check.**
+- **Four Horse-man rolls ONCE and pays the rolled half per firing.** Re-rolling per firing
+  would make a duplicate a different Trick (several chances at the good half), and it would
+  also draw extra times from the seeded stream.
+- **Threshold-advance Tricks advance N thresholds** (Flash Flood, Collapsing Columns, Richter).
+- **Knacks are deliberately untouched.** Knacks always improve and are never duplicated, and
+  neither Mirror nor a rank applies to them, so Sundial / Metronome / Clockmaker still read
+  `hasKnack` directly.
+
+**Verified:** every one of the 177 Tricks measured across 8 hand shapes (Focus generated,
+pauses, rewinds) is **byte-identical before and after**, and Dam Holding pauses 3s / 6s / 9s at
+rank 0 / 1 / 2 and 6s with a Mirror on it, where it used to pause 3s in every case.
+
 **Two traps this hit, both found by rendering the events in a real browser and neither visible to a syntax check or a static call audit:**
 - **`shuffled()` in `js/reward-grid.js` is scoped INSIDE `_generateRewardContent`** - it is not a global, and calling it threw the moment The Bench opened. `events.js` has its own `evShuffle` now. A grep for `function shuffled` finds it and tells you nothing about its scope.
 - A picker rebuilt on each choice must keep its **label inside the removable wrapper**, or changing your mind stacks a fresh "CHOOSE THE CARD" every time.
