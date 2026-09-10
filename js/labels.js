@@ -4,7 +4,7 @@
 // The ONE place a code id becomes a word the player reads. See TERMINOLOGY.md.
 //
 // TWO VOCABULARIES, one switch (Settings -> Display -> Wording):
-//   corporate - WORK / SKILL / OUTPUT / QUOTA, Utilities / Hires / Certs,
+//   corporate - WORK / SKILL / OUTPUT / QUOTA, Utilities / Vendors / Certs,
 //               Lite / Standard / Plus / Deluxe
 //   gamer     - PIPS / MULT / SCORE / GOAL, Tricks / Sleights / Knacks,
 //               Common / Rare / Epic / Legendary
@@ -39,7 +39,7 @@ const LEXICONS = {
     // Category words.
     entities: {
       trick:   { one: 'Utility', many: 'Utilities' },
-      sleight: { one: 'Hire',    many: 'Hires'     },
+      sleight: { one: 'Vendor',  many: 'Vendors'   },
       knack:   { one: 'Cert',    many: 'Certs'     },
       card:    { one: 'Doc',     many: 'Docs'      },
     },
@@ -49,7 +49,7 @@ const LEXICONS = {
     // so epic and legendary fold onto the top word rather than inventing rungs.
     tiers: {
       trick:   { common:'Lite', rare:'Standard',   epic:'Plus',  legendary:'Deluxe'    },
-      sleight: { common:'Temp', rare:'Contractor', epic:'Staff', legendary:'Executive' },
+      sleight: { common:'Trial', rare:'Contract', epic:'Retainer', legendary:'Partner' },
       knack:   { common:'Basic', rare:'Advanced',  epic:'Advanced', legendary:'Advanced' },
       _generic:{ common:'Lite', rare:'Standard',   epic:'Plus',  legendary:'Deluxe'    },
     },
@@ -118,7 +118,7 @@ function tierLabel(type, raw) {
 // the id - 'common' would otherwise stamp C where the player reads "Lite".
 function tierInitial(type, raw) { return tierLabel(type, raw).charAt(0).toUpperCase(); }
 
-// The category word. entityLabel('sleight') -> 'Hire'; plural -> 'Hires'.
+// The category word. entityLabel('sleight') -> 'Vendor'; plural -> 'Vendors'.
 function entityLabel(type, plural) {
   const e = lexicon().entities[type];
   if (!e) return type;

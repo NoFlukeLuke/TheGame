@@ -69,7 +69,7 @@ const SETTINGS_DEF = [
   // translated on the way to the screen, so the toggle is live and needs no
   // second copy of anything.
   { group: 'Display', id: 'lexicon', label: 'Wording',
-    hint: 'Corporate: work, skill, output, quota, Utilities and Hires. Gamer: pips, mult, score, goal, Tricks and Sleights.',
+    hint: 'Corporate: work, skill, output, quota, Utilities and Vendors. Gamer: pips, mult, score, goal, Tricks and Sleights.',
     type: 'select', default: 'corporate', options: [['corporate','Corporate'], ['gamer','Gamer']],
     apply: v => { if (typeof setLexicon === 'function') setLexicon(v); } },
   // The room the cabinet sits in on the menu (js/camera.js + css/room.css).

@@ -1,4 +1,4 @@
-const BUILD = '2026-09-10 · r199 · rarity is the body colour on badges and floppies; cards become Docs; mixed board preview';
+const BUILD = '2026-09-10 · r200 · Sleights are Vendors, not Hires: a business card from the rolodex, Trial / Contract / Retainer / Partner';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

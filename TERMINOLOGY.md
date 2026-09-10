@@ -16,11 +16,11 @@ this system - "Cascade" is content, not vocabulary, and never changes.
 | banked score | `score` | **OUTPUT** | SCORE |
 | round target | `goal` | **QUOTA** | GOAL |
 | scoring buff, side tray | `trick` | **Utility** | Trick |
-| deck card with an effect | `sleight` | **Hire** | Sleight |
+| deck card with an effect | `sleight` | **Vendor** | Sleight |
 | permanent rule-changer | `knack` | **Cert** | Knack |
 | playing card | `card` | **Doc** | Card |
 | `common` / `rare` / `epic` / `legendary` (trick) | | Lite / Standard / Plus / Deluxe | Common / Rare / Epic / Legendary |
-| the same ids (sleight) | | Temp / Contractor / Staff / Executive | Common / Rare / Epic / Legendary |
+| the same ids (sleight) | | Trial / Contract / Retainer / Partner | Common / Rare / Epic / Legendary |
 
 **Descriptions are STORED in the gamer wording and translated at display time.**
 `lexProse()` runs inside `highlightKeywords()`, which every description already
@@ -69,7 +69,7 @@ a raw id, you are creating the next rename's problem.
 |---|---|---|---|
 | playing card | `card` | **Doc** | document with a folded corner |
 | scoring buff, side tray | `trick` | **Utility** | floppy disc, body coloured by rarity |
-| deck card with an effect | `sleight` | **Hire** | ID badge, body coloured by rarity |
+| deck card with an effect | `sleight` | **Vendor** | business card, stock coloured by rarity |
 | permanent rule-changer | `knack` | **Cert** | line on your record |
 | currency | `coins` | **Credits** | (unchanged) |
 
@@ -99,40 +99,54 @@ Four tiers. Each entity type grades on its own ladder, because a floppy disc and
 a person are not graded the same way, but they share one colour spine so the
 player learns the ordering once.
 
-| code id (frozen) | colour | Utility (trick) | Hire (sleight) | Cert (knack) |
+| code id (frozen) | colour | Utility (trick) | Vendor (sleight) | Cert (knack) |
 |---|---|---|---|---|
-| `common` | mint | **Lite** | **Temp** | *(TBD)* |
-| `rare` | cyan | **Standard** | **Contractor** | *(TBD)* |
-| `epic` | purple | **Plus** | **Staff** | not used |
-| `legendary` | magenta | **Deluxe** | **Executive** | not used |
+| `common` | mint | **Lite** | **Trial** | *(TBD)* |
+| `rare` | cyan | **Standard** | **Contract** | *(TBD)* |
+| `epic` | purple | **Plus** | **Retainer** | not used |
+| `legendary` | magenta | **Deluxe** | **Partner** | not used |
 
 **Certs use only two tiers, deliberately.** The knack pool has 24 common and 24
 rare and that is the shape it is meant to be. The two names are still to be
 chosen; until then they display as Common / Rare.
 
 **`mythic` was merged into `legendary` (r197).** Five tiers meant the top two were
-one tier wearing two hats: 12 of 177 Utilities and 4 of 40 Hires between them, at
-2% and 1% drop weights. Across a Classic run's ~18 Hire offers that is 0.36
+one tier wearing two hats: 12 of 177 Utilities and 4 of 40 Vendors between them, at
+2% and 1% drop weights. Across a Classic run's ~18 Vendor offers that is 0.36
 expected Legendaries and 0.18 Mythics, so most runs met neither, and a tier the
 player never meets teaches nothing. `mythic` is not a valid tier id any more.
 
 The retired fifth colour is **yellow**. The top tier took magenta rather than
 yellow so that it also inherits the pulse animation the old mythic tier had.
 
-### What each Hire tier means mechanically
+### Why Vendors, not Hires (r200)
 
-The Hire ladder is not a power ranking, it is a **duration** ranking, and that is
-the point of it. The tier says how long you keep them:
+The category was **Hires** for one revision, and it was wrong. Read the roster:
+Warehouse, Lighthouse, Whetstone, Flywheel, Governor, Catalyst, Lightning Rod,
+Amplifier, Magnet, Capacitor, Power Cell, Piggy Bank, Shady Tree, Bellhop,
+Recycler, Petty Cash. **Not one of the 43 Sleights is a person's name**, and
+every one of them reads as a small company. Framing them as people you hired
+meant explaining how "Lighthouse" is an employee, which nothing else in the
+world supports.
+
+They are **vendors**: a card in your rolodex, a company you can call. The object
+is a business card - a logo mark and a company name, never a photo and a face.
+
+### What each Vendor tier means mechanically
+
+The ladder is not a power ranking, it is a **duration** ranking, and that is the
+point of it. The tier says how long the relationship lasts:
 
 | tier | keeps |
 |---|---|
-| Temp | expires after N rounds |
-| Contractor | N uses, then gone (this is `durability` / `_usesLeft`) |
-| Staff | permanent |
-| Executive | permanent, and scales with the run |
+| Trial | expires after N rounds |
+| Contract | N jobs left (this is `durability` / `_usesLeft`) |
+| Retainer | permanent |
+| Partner | permanent, and scales with the run |
 
-Contractor maps 1:1 onto the charge system Sleights already have. Do not drop that
-rung when reshuffling the ladder.
+**Contract** maps 1:1 onto the charge system Sleights already have, and is a
+better word for "3 uses left" than Contractor ever was. Do not drop that rung
+when reshuffling the ladder.
 
 ### Utility versions are a SECOND axis, not part of the tier
 
@@ -148,7 +162,8 @@ Kept so an old screenshot, comment or commit message can still be decoded.
 |---|---|
 | File (the card, briefly) | **Doc** |
 | Bonus Card / BC | Trick -> **Utility** |
-| Joker | Sleight -> **Hire** |
+| Joker | Sleight -> **Vendor** |
+| Hire (briefly, r197-r199) | **Vendor** |
 | Totem | Knack -> **Cert** |
 | Personnel File (RECORDS tab) | Owned |
 | mythic | merged into `legendary` -> **Deluxe** / **Executive** |

@@ -81,7 +81,7 @@ h2{font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:2.5px;margin:
 
 <div id="top">
   <h1>ART DIRECTION</h1>
-  <span class="sub">docs · floppies · badges &nbsp;·&nbsp; colour is rarity, shape is type</span>
+  <span class="sub">docs · floppies · business cards &nbsp;·&nbsp; colour is rarity, shape is type</span>
   <span class="sub" id="modeNote" style="margin-left:auto"></span>
 </div>
 
@@ -111,7 +111,7 @@ h2{font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:2.5px;margin:
     </div>
 
     <div class="shelf">
-      <div class="hdr"><h2 style="margin:0">Badges</h2><span class="note">Hires · they share the grid cell with the docs</span></div>
+      <div class="hdr"><h2 style="margin:0">Business cards</h2><span class="note">Vendors · they share the grid cell with the docs</span></div>
       <div class="specimens" id="shelfBadge"></div>
     </div>
 
@@ -132,7 +132,9 @@ const SPECTRUM_SAMPLES = [
 const CLASSIC_SAMPLES = [ {v:'A',s:'♠'}, {v:'10',s:'♥'}, {v:'K',s:'♣'}, {v:'4',s:'♦'} ];
 const TIERS = ['common','rare','epic','legendary'];
 const TIER_WORD = { common:'Lite', rare:'Standard', epic:'Plus', legendary:'Deluxe' };
-const HIRE_WORD = { common:'Temp', rare:'Contractor', epic:'Staff', legendary:'Executive' };
+const HIRE_WORD = { common:'Trial', rare:'Contract', epic:'Retainer', legendary:'Partner' };
+// Real Sleight emoji, so the logo block is judged at the size it is read at.
+const BIZ_SAMPLES = ['\u{1F3ED}', '\u{1F451}', '\u{1F9F2}', '\u2699\uFE0F', '\u{1F4B5}'];
 
 // ── the tunable model ──────────────────────────────────────────────────────
 const CFG = {
@@ -155,9 +157,9 @@ const CFG = {
   flopAspect:0.95,                       // 90mm x 94mm, real 3.5" disk
   flopShutW:45, flopShutH:31, flopShutX:60, flopChamfer:16,
   flopLabelTop:41, flopLabelInset:7, flopHub:0,
-  // badge
-  badgeAspect:1.47,                      // credit card is 1.586
-  badgePhoto:60, badgeStripe:'left', badgeStripeH:34, badgeSlot:22, badgeSlotOn:1,
+  // business card (a vendor's card, not an ID badge - r200)
+  bizAspect:1.37,                        // a real business card is 1.75
+  bizLogo:56, bizMark:'square', bizShowEmoji:1,
 };
 
 // ── control rail ───────────────────────────────────────────────────────────
@@ -176,7 +178,7 @@ const GROUPS = [
     {t:'seg', k:'_aspectPreset', label:'Presets', opts:[['1.316','Today 75x57'],['1','Square'],['0.76','On its side'],['0.645','Credit card']], apply:v=>{CFG.cellAspect=+v}},
     {t:'range', k:'cols', label:'Columns', min:3, max:8, step:1},
     {t:'range', k:'rows', label:'Rows',    min:3, max:8, step:1},
-    {t:'range', k:'boardMix', label:'Badges scattered into the mock board', min:0, max:8, step:1},
+    {t:'range', k:'boardMix', label:'Business cards scattered into the mock board', min:0, max:8, step:1},
   ]},
   { name:'Doc (card)', open:true, rows:[
     {t:'seg', k:'docTab', label:'Silhouette', opts:[['fold','Document · folded corner'],['tab','Folder · tab']]},
@@ -198,13 +200,12 @@ const GROUPS = [
     {t:'range', k:'flopLabelInset', label:'Label side inset', min:0, max:25, step:1, unit:'%'},
     {t:'range', k:'flopHub',      label:'Hub cutout (0 = off)', min:0, max:30, step:1, unit:'%'},
   ]},
-  { name:'Badge (Hire)', open:false, rows:[
-    {t:'range', k:'badgeAspect', label:'Aspect (w/h). 1.586 = a credit card', min:1.1, max:2.1, step:.01},
-    {t:'range', k:'badgePhoto',  label:'Photo block width', min:0, max:60, step:1, unit:'%'},
-    {t:'seg',   k:'badgeStripe', label:'Rarity stripe', opts:[['top','Top'],['bottom','Bottom'],['left','Left'],['none','None']]},
-    {t:'range', k:'badgeStripeH',label:'Stripe thickness', min:4, max:34, step:1, unit:'%'},
-    {t:'range', k:'badgeSlot',   label:'Lanyard slot width', min:0, max:60, step:1, unit:'%'},
-    {t:'seg',   k:'badgeSlotOn', label:'Lanyard slot', opts:[['1','On'],['0','Off']]},
+  { name:'Business card (Vendor)', open:false, rows:[
+    {t:'range', k:'bizAspect', label:'Aspect (w/h). A real business card is 1.75', min:1.1, max:2.1, step:.01},
+    {t:'range', k:'bizLogo',   label:'Logo block width', min:0, max:70, step:1, unit:'%'},
+    {t:'seg',   k:'bizMark',   label:'Logo mark (stands in for the entity emoji)',
+      opts:[['square','Square'],['circle','Circle'],['diamond','Diamond'],['chevron','Chevron'],['bars','Bars']]},
+    {t:'seg',   k:'bizShowEmoji', label:'Logo block content', opts:[['1','The entity emoji'],['0','Geometric mark']]},
   ]},
 ];
 
@@ -307,8 +308,8 @@ function renderFit(){
       // A badge is shorter than the cell, so it is bottom-anchored - centred, it
       // floats and reads as a rendering mistake rather than as an object lying
       // among the paperwork.
-      const bh = cw / CFG.badgeAspect;
-      inner = `<div style="position:absolute;left:0;bottom:0;width:${cw}px;height:${bh}px">${badgeSVG(tier, cw)}</div>`;
+      const bh = cw / CFG.bizAspect;
+      inner = `<div style="position:absolute;left:0;bottom:0;width:${cw}px;height:${bh}px">${bizCardSVG(tier, cw, BIZ_SAMPLES[i % BIZ_SAMPLES.length])}</div>`;
     } else {
       inner = docSVG('common', samples[i%samples.length], cw, chh);
     }
@@ -442,42 +443,54 @@ function floppySVG(tier, W, uid){
     ${body}${hubEl}${shutter}${label}</svg>`;
 }
 
-function badgeSVG(tier, W){
-  const H = W/CFG.badgeAspect, r = CFG.radius;
-  const pw = W*CFG.badgePhoto/100, st = Math.max(2, H*CFG.badgeStripeH/100);
-  // The card stock IS the rarity (r199). Ink and the photo/name blocks are
-  // chosen from the mixed body's luminance, so a mint Temp and a magenta
-  // Executive are both readable without a per-tier table.
-  const card = bodyFor(tier, '#191510');
-  const dark = lum(card) > 0.42;
-  const ink  = inkOn(card);
-  const blockFill = dark ? 'rgba(20,17,12,.28)' : 'rgba(0,0,0,.34)';
-  const lineHi = dark ? 'rgba(20,17,12,.80)' : 'rgba(244,238,218,.86)';
-  const lineLo = dark ? 'rgba(20,17,12,.42)' : 'rgba(244,238,218,.42)';
-  // The stripe is a DARKER band of the same stock, not a second colour - two
-  // colours on one object is exactly what "colour means rarity" rules out.
-  const stripeCol = mixHex(card, '#000000', .38);
-  let stripe = '';
-  if (CFG.badgeStripe==='top')    stripe = `<rect x="0" y="0" width="${W}" height="${st}" fill="${stripeCol}"/>`;
-  if (CFG.badgeStripe==='bottom') stripe = `<rect x="0" y="${H-st}" width="${W}" height="${st}" fill="${stripeCol}"/>`;
-  if (CFG.badgeStripe==='left')   stripe = `<rect x="0" y="0" width="${st}" height="${H}" fill="${stripeCol}"/>`;
-  const slotW = W*CFG.badgeSlot/100;
-  const slot = CFG.badgeSlotOn ? `<rect x="${(W-slotW)/2}" y="${H*.07}" width="${slotW}" height="${H*.055}" rx="${H*.028}"
-    fill="rgba(0,0,0,.55)"/>` : '';
-  const topPad = CFG.badgeSlotOn ? H*.17 : (CFG.badgeStripe==='top' ? st+H*.06 : H*.09);
-  const px = (CFG.badgeStripe==='left' ? st + W*.04 : W*.055);
-  const ph = H - topPad - H*.1;
-  const lx = px + (pw>0 ? pw + W*.055 : 0);
-  const photo = pw>0 ? `<rect x="${px}" y="${topPad}" width="${pw}" height="${ph}" rx="2" fill="${blockFill}"/>
-    <circle cx="${px+pw/2}" cy="${topPad+ph*.36}" r="${Math.min(pw,ph)*.20}" fill="${ink}" opacity=".42"/>
-    <path d="M${px+pw*.18},${topPad+ph*.95} a${pw*.32},${pw*.30} 0 0 1 ${pw*.64},0 z" fill="${ink}" opacity=".42"/>` : '';
-  const lines = `
-    <rect x="${lx}" y="${topPad+H*.06}" width="${(W-lx-W*.07)*.9}" height="${H*.11}" rx="1.5" fill="${lineHi}"/>
-    <rect x="${lx}" y="${topPad+H*.26}" width="${(W-lx-W*.07)*.62}" height="${H*.08}" rx="1.5" fill="${lineLo}"/>
-    <rect x="${lx}" y="${topPad+H*.42}" width="${(W-lx-W*.07)*.44}" height="${H*.065}" rx="1.5" fill="${lineLo}"/>`;
+// A VENDOR'S BUSINESS CARD, not an ID badge (r200). The Sleight roster is
+// Warehouse, Lighthouse, Whetstone, Flywheel, Catalyst, Piggy Bank, Petty Cash
+// - not one of the 43 is a person's name, and every one reads as a small
+// company. So the object is a card from your rolodex: a logo mark and a company
+// name, never a photo and a face.
+const BIZ_MARKS = {
+  // Simple geometric marks that survive being 20px wide on the board. In the
+  // real game this slot carries the Sleight's own emoji; these stand in for it.
+  square:  (x,y,r,f) => `<rect x="${x-r}" y="${y-r}" width="${r*2}" height="${r*2}" rx="${r*.22}" fill="${f}"/>`,
+  circle:  (x,y,r,f) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${f}"/>`,
+  diamond: (x,y,r,f) => `<path d="M${x},${y-r} L${x+r},${y} L${x},${y+r} L${x-r},${y} z" fill="${f}"/>`,
+  chevron: (x,y,r,f) => `<path d="M${x-r},${y+r*.55} L${x},${y-r*.55} L${x+r},${y+r*.55} L${x+r*.55},${y+r*.55} L${x},${y-r*.05} L${x-r*.55},${y+r*.55} z" fill="${f}"/>`,
+  bars:    (x,y,r,f) => `<g fill="${f}"><rect x="${x-r}" y="${y-r*.75}" width="${r*.55}" height="${r*1.5}" rx="1"/>`
+                      + `<rect x="${x-r*.28}" y="${y-r}" width="${r*.55}" height="${r*2}" rx="1"/>`
+                      + `<rect x="${x+r*.45}" y="${y-r*.45}" width="${r*.55}" height="${r*.9}" rx="1"/></g>`,
+};
+
+function bizCardSVG(tier, W, sampleMark){
+  const H = W/CFG.bizAspect, r = CFG.radius;
+  const stock = bodyFor(tier, '#191510');
+  const dark  = lum(stock) > 0.42;
+  const ink   = inkOn(stock);
+  const plate = dark ? 'rgba(20,17,12,.22)' : 'rgba(0,0,0,.30)';
+  const nameC = dark ? 'rgba(20,17,12,.86)' : 'rgba(244,238,218,.90)';
+  const ruleC = dark ? 'rgba(20,17,12,.40)' : 'rgba(244,238,218,.40)';
+  const lw = W*CFG.bizLogo/100;             // logo block width
+  const pad = W*.055;
+  const ly = H/2;
+  const mr = Math.min(lw, H) * 0.30;        // mark radius
+  // The geometric mark STANDS IN FOR the emoji - they are alternatives, never
+  // layered. Drawing both put a glyph on top of a solid block and read as noise
+  // at cell size, which is the only size that matters here.
+  const markEl = CFG.bizShowEmoji ? '' : (BIZ_MARKS[CFG.bizMark] || BIZ_MARKS.square)(pad + lw/2, ly, mr, ink);
+  const logo = lw > 0 ? `<rect x="${pad}" y="${H*.13}" width="${lw}" height="${H*.74}" rx="2" fill="${plate}"/>${markEl}` : '';
+  // In the game this is the Sleight's emoji; shown here so the block is judged
+  // at the size it will really be read at.
+  const emoji = (lw > 0 && sampleMark) ? `<text x="${pad+lw/2}" y="${ly}" font-size="${Math.min(lw,H)*.62}"
+    text-anchor="middle" dominant-baseline="central">${sampleMark}</text>` : '';
+  const tx = pad + (lw > 0 ? lw + W*.06 : 0);
+  const tw = W - tx - pad;
+  const text = `
+    <rect x="${tx}" y="${H*.24}" width="${tw*.94}" height="${H*.14}" rx="1.5" fill="${nameC}"/>
+    <rect x="${tx}" y="${H*.47}" width="${tw*.66}" height="${H*.055}" rx="1" fill="${ruleC}"/>
+    <rect x="${tx}" y="${H*.60}" width="${tw*.82}" height="${H*.055}" rx="1" fill="${ruleC}" opacity=".7"/>
+    <rect x="${tx}" y="${H*.73}" width="${tw*.50}" height="${H*.055}" rx="1" fill="${ruleC}" opacity=".55"/>`;
   return `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">
-    <rect x="0" y="0" width="${W}" height="${H}" rx="${r}" fill="${card}" style="${rarStyle(tier, CFG.bodyBorderW)}"/>
-    ${stripe}${slot}${photo}${lines}</svg>`;
+    <rect x="0" y="0" width="${W}" height="${H}" rx="${r}" fill="${stock}" style="${rarStyle(tier, CFG.bodyBorderW)}"/>
+    ${logo}${CFG.bizShowEmoji ? emoji : ''}${text}</svg>`;
 }
 
 // ── render ─────────────────────────────────────────────────────────────────
@@ -496,9 +509,9 @@ function render(){
     <div class="spec">${floppySVG(t, 74, 'a'+t)}<div class="cap">${TIER_WORD[t]}</div></div>`).join('')
     + `<div class="spec" style="opacity:.9">${floppySVG('legendary', 150, 'big')}<div class="cap">detail</div></div>`;
 
-  document.getElementById('shelfBadge').innerHTML = TIERS.map(t => `
-    <div class="spec">${badgeSVG(t, f.w)}<div class="cap">${HIRE_WORD[t]}</div></div>`).join('')
-    + `<div class="spec" style="opacity:.9">${badgeSVG('epic', f.w*1.9)}<div class="cap">detail</div></div>`;
+  document.getElementById('shelfBadge').innerHTML = TIERS.map((t,i) => `
+    <div class="spec">${bizCardSVG(t, f.w, BIZ_SAMPLES[i % BIZ_SAMPLES.length])}<div class="cap">${HIRE_WORD[t]}</div></div>`).join('')
+    + `<div class="spec" style="opacity:.9">${bizCardSVG('epic', f.w*2.1, '\u{1F3ED}')}<div class="cap">detail</div></div>`;
 
   dump(f);
 }
@@ -529,8 +542,8 @@ const ART_CFG = {
   floppy: { aspect: ${CFG.flopAspect}, chamfer: ${CFG.flopChamfer}, shutterW: ${CFG.flopShutW},
             shutterH: ${CFG.flopShutH}, shutterX: ${CFG.flopShutX}, labelTop: ${CFG.flopLabelTop},
             labelInset: ${CFG.flopLabelInset}, hub: ${CFG.flopHub} },
-  badge:  { aspect: ${CFG.badgeAspect}, photo: ${CFG.badgePhoto}, stripe: '${CFG.badgeStripe}',
-            stripeH: ${CFG.badgeStripeH}, slot: ${CFG.badgeSlot}, slotOn: ${!!CFG.badgeSlotOn} },
+  biz:    { aspect: ${CFG.bizAspect}, logo: ${CFG.bizLogo}, mark: '${CFG.bizMark}',
+            showEmoji: ${!!CFG.bizShowEmoji} },
 };`;
 }
 document.getElementById('copyBtn').addEventListener('click', () => {

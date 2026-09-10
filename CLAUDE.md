@@ -999,12 +999,12 @@ classes (`rar-epic`, `sl-rar-epic`, `trick-tier-epic`) and all three data pools
 key off them. What the player reads is a lookup in **`js/labels.js`**, which is
 the only file that spells a tier word out.
 
-| id | colour | Utility (trick) | Hire (sleight) | Cert (knack) |
+| id | colour | Utility (trick) | Vendor (sleight) | Cert (knack) |
 |---|---|---|---|---|
-| `common` | mint | Lite | Temp | Common |
-| `rare` | cyan | Standard | Contractor | Rare |
-| `epic` | purple | Plus | Staff | *unused* |
-| `legendary` | magenta | Deluxe | Executive | *unused* |
+| `common` | mint | Lite | Trial | Common |
+| `rare` | cyan | Standard | Contract | Rare |
+| `epic` | purple | Plus | Retainer | *unused* |
+| `legendary` | magenta | Deluxe | Partner | *unused* |
 
 - **`mythic` was merged into `legendary`.** Five tiers meant the top two were one
   tier wearing two hats: 12 of 177 Tricks and 4 of 40 Sleights across both, at 2%
@@ -1021,10 +1021,14 @@ the only file that spells a tier word out.
   hard-coded into eight screens; all of them now call `tierLabel(type, id)` /
   `tierInitial(type, id)`. A new site that upper-cases an id silently opts out of
   every future rename.
-- **The Hire ladder is a DURATION ladder, not a power ladder** - Temp expires,
-  Contractor has N uses (this is the existing `durability` / `_usesLeft`), Staff
-  is permanent, Executive is permanent and scales. Do not drop the Contractor
-  rung; it is the one the charge system was already built for.
+- **Sleights are VENDORS, not Hires (r200).** Not one of the 43 Sleight names is
+  a person's - Warehouse, Lighthouse, Whetstone, Flywheel, Piggy Bank, Petty
+  Cash - and every one reads as a small company. The object is a business card
+  from your rolodex, never an ID badge with a face.
+- **The Vendor ladder is a DURATION ladder, not a power ladder** - Trial expires,
+  Contract has N jobs (this is the existing `durability` / `_usesLeft`), Retainer
+  is permanent, Partner is permanent and scales. Do not drop the Contract rung;
+  it is the one the charge system was already built for.
 - **Two weight tables had to move together and one nearly didn't.**
   `MART_WEIGHTS` in `js/mart-shop.js` is indexed against `MART_TIERS`; leaving it
   at five entries made `martRollTier()` return `MART_TIERS[4]` (`undefined`) on
@@ -1034,7 +1038,7 @@ the only file that spells a tier word out.
 ## Two vocabularies (r198) - `js/labels.js`
 
 The game speaks either **corporate** (WORK / SKILL / OUTPUT / QUOTA, Utilities /
-Hires / Certs, Lite / Standard / Plus / Deluxe) or **gamer** (PIPS / MULT /
+Vendors / Certs, Lite / Standard / Plus / Deluxe) or **gamer** (PIPS / MULT /
 SCORE / GOAL, Tricks / Sleights / Knacks, Common / Rare / Epic / Legendary).
 Settings -> Display -> Wording. Full table in **TERMINOLOGY.md**.
 

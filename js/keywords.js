@@ -120,7 +120,7 @@ const KEYWORD_DEFS = [
 
   // ── rarity (r197) ──
   // One row per tier ID, carrying the words from BOTH ladders (Utilities and
-  // Hires grade differently - see TERMINOLOGY.md). 'plus', 'standard', 'staff'
+  // Vendors grade differently - see TERMINOLOGY.md). 'plus', 'standard', 'staff'
   // and 'temp' are deliberately NOT terms: they are ordinary English that turns
   // up in descriptions ("plus 5 pips"), and highlighting those as rarities would
   // be worse than not highlighting the tier at all. Those tiers are read from
