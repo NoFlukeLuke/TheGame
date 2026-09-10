@@ -18,7 +18,7 @@ this system - "Cascade" is content, not vocabulary, and never changes.
 | scoring buff, side tray | `trick` | **Utility** | Trick |
 | deck card with an effect | `sleight` | **Hire** | Sleight |
 | permanent rule-changer | `knack` | **Cert** | Knack |
-| playing card | `card` | **File** | Card |
+| playing card | `card` | **Doc** | Card |
 | `common` / `rare` / `epic` / `legendary` (trick) | | Lite / Standard / Plus / Deluxe | Common / Rare / Epic / Legendary |
 | the same ids (sleight) | | Temp / Contractor / Staff / Executive | Common / Rare / Epic / Legendary |
 
@@ -67,9 +67,9 @@ a raw id, you are creating the next rename's problem.
 
 | concept | code id (frozen) | player word | drawn as |
 |---|---|---|---|
-| playing card | `card` | **File** | upright file/folder icon |
-| scoring buff, side tray | `trick` | **Utility** | floppy disc |
-| deck card with an effect | `sleight` | **Hire** | ID badge |
+| playing card | `card` | **Doc** | document with a folded corner |
+| scoring buff, side tray | `trick` | **Utility** | floppy disc, body coloured by rarity |
+| deck card with an effect | `sleight` | **Hire** | ID badge, body coloured by rarity |
 | permanent rule-changer | `knack` | **Cert** | line on your record |
 | currency | `coins` | **Credits** | (unchanged) |
 
@@ -146,6 +146,7 @@ Kept so an old screenshot, comment or commit message can still be decoded.
 
 | old | current |
 |---|---|
+| File (the card, briefly) | **Doc** |
 | Bonus Card / BC | Trick -> **Utility** |
 | Joker | Sleight -> **Hire** |
 | Totem | Knack -> **Cert** |

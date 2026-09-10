@@ -41,7 +41,7 @@ const LEXICONS = {
       trick:   { one: 'Utility', many: 'Utilities' },
       sleight: { one: 'Hire',    many: 'Hires'     },
       knack:   { one: 'Cert',    many: 'Certs'     },
-      card:    { one: 'File',    many: 'Files'     },
+      card:    { one: 'Doc',     many: 'Docs'      },
     },
     // Each entity type grades on its own ladder. They share the colour spine
     // (mint / cyan / purple / magenta) so the ordering is learned once.

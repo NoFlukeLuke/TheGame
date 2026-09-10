@@ -57,6 +57,7 @@ h2{font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:2.5px;margin:
 #slotBox{position:absolute;border:1px dashed rgba(201,168,76,.45);background:rgba(201,168,76,.05)}
 #cells{position:absolute;inset:0}
 .mcell{position:absolute;border-radius:3px;background:#221d16;border:1px solid rgba(240,230,200,.22)}
+#stageMock svg{display:block}
 #fitread{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:8px;margin-top:10px}
 .stat{border:1px solid var(--line);border-radius:6px;padding:7px 9px;background:var(--panel-2)}
 .stat b{display:block;font-size:9px;letter-spacing:1.5px;color:var(--gold-dim);text-transform:uppercase;margin-bottom:3px}
@@ -80,7 +81,7 @@ h2{font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:2.5px;margin:
 
 <div id="top">
   <h1>ART DIRECTION</h1>
-  <span class="sub">files · floppies · badges &nbsp;·&nbsp; colour is rarity, shape is type</span>
+  <span class="sub">docs · floppies · badges &nbsp;·&nbsp; colour is rarity, shape is type</span>
   <span class="sub" id="modeNote" style="margin-left:auto"></span>
 </div>
 
@@ -100,7 +101,7 @@ h2{font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:2.5px;margin:
     </div>
 
     <div class="shelf">
-      <div class="hdr"><h2 style="margin:0">Files</h2><span class="note">the cards on the grid · one per rarity</span></div>
+      <div class="hdr"><h2 style="margin:0">Docs</h2><span class="note">the cards on the grid · one per rarity</span></div>
       <div class="specimens" id="shelfFile"></div>
     </div>
 
@@ -110,7 +111,7 @@ h2{font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:2.5px;margin:
     </div>
 
     <div class="shelf">
-      <div class="hdr"><h2 style="margin:0">Badges</h2><span class="note">Hires · they live on the grid, so they share the cell</span></div>
+      <div class="hdr"><h2 style="margin:0">Badges</h2><span class="note">Hires · they share the grid cell with the docs</span></div>
       <div class="specimens" id="shelfBadge"></div>
     </div>
 
@@ -136,22 +137,27 @@ const HIRE_WORD = { common:'Temp', rare:'Contractor', epic:'Staff', legendary:'E
 // ── the tunable model ──────────────────────────────────────────────────────
 const CFG = {
   // global
-  deck:'spectrum', borderW:2, glow:10, radius:3, faceDark:'#17140f',
+  deck:'spectrum', borderW:2, glow:10, radius:5, faceDark:'#17140f',
+  // How far a badge / floppy body is mixed from its own material toward the
+  // rarity hue. Not 100 by default: a raw mint shell leaves the cream label
+  // plate on top of it with almost no contrast. See bodyFor() / inkOn().
+  bodyTint:72, bodyBorderW:0,
   rar:{ common:'#35d59b', rare:'#16c8d8', epic:'#9a6cff', legendary:'#ff2f8e' },
   // grid fit
-  rows:5, cols:5, cellAspect:1.316,      // height / width. 1.316 = today's 75/57
-  // file icon
-  fileTab:'fold',   // 'fold' = document corner turned down, 'tab' = folder tab
-  fileFold:26, fileTabW:44, fileTabH:14, fileTabX:6,
-  fileBand:30, fileColorMode:'body',      // body | band | tab
-  fileValue:46,
+  rows:5, cols:5, cellAspect:1.12,       // height / width. 1.316 = the old 75/57
+  boardMix:2,                            // how many badges to scatter into the mock board
+  // doc (was "file" - the card became a document, r199)
+  docTab:'fold',    // 'fold' = document corner turned down, 'tab' = folder tab
+  docFold:20, docTabW:61, docTabH:12, docTabX:4,
+  docBand:14, docColorMode:'body',       // body | band | tab
+  docValue:43,
   // floppy
-  flopAspect:0.957,                        // 90mm x 94mm, real 3.5" disk
-  flopShutW:42, flopShutH:26, flopShutX:52, flopChamfer:16,
-  flopLabelTop:40, flopLabelInset:9, flopHub:0,
+  flopAspect:0.95,                       // 90mm x 94mm, real 3.5" disk
+  flopShutW:45, flopShutH:31, flopShutX:60, flopChamfer:16,
+  flopLabelTop:41, flopLabelInset:7, flopHub:0,
   // badge
-  badgeAspect:1.55,                        // credit card is 1.586
-  badgePhoto:38, badgeStripe:'top', badgeStripeH:14, badgeSlot:26, badgeSlotOn:1,
+  badgeAspect:1.47,                      // credit card is 1.586
+  badgePhoto:60, badgeStripe:'left', badgeStripeH:34, badgeSlot:22, badgeSlotOn:1,
 };
 
 // ── control rail ───────────────────────────────────────────────────────────
@@ -159,7 +165,9 @@ const GROUPS = [
   { name:'Global', open:true, rows:[
     {t:'seg', k:'deck', label:'Deck', opts:[['spectrum','Spectrum'],['classic','Classic']]},
     {t:'colors'},
-    {t:'range', k:'borderW', label:'Rarity border width', min:0, max:6, step:.5, unit:'px'},
+    {t:'range', k:'borderW', label:'Doc rarity border width', min:0, max:6, step:.5, unit:'px'},
+    {t:'range', k:'bodyTint', label:'Badge / floppy body tint - how far the object is mixed toward its rarity colour', min:0, max:100, step:1, unit:'%'},
+    {t:'range', k:'bodyBorderW', label:'Badge / floppy outline (normally 0 - the body carries the rarity)', min:0, max:5, step:.5, unit:'px'},
     {t:'range', k:'glow',    label:'Rarity glow',         min:0, max:26, step:1, unit:'px'},
     {t:'range', k:'radius',  label:'Corner radius',       min:0, max:12, step:.5, unit:'px'},
   ]},
@@ -168,16 +176,17 @@ const GROUPS = [
     {t:'seg', k:'_aspectPreset', label:'Presets', opts:[['1.316','Today 75x57'],['1','Square'],['0.76','On its side'],['0.645','Credit card']], apply:v=>{CFG.cellAspect=+v}},
     {t:'range', k:'cols', label:'Columns', min:3, max:8, step:1},
     {t:'range', k:'rows', label:'Rows',    min:3, max:8, step:1},
+    {t:'range', k:'boardMix', label:'Badges scattered into the mock board', min:0, max:8, step:1},
   ]},
-  { name:'File (card)', open:true, rows:[
-    {t:'seg', k:'fileTab', label:'Silhouette', opts:[['fold','Document · folded corner'],['tab','Folder · tab']]},
-    {t:'range', k:'fileFold', label:'Folded corner size', min:0, max:50, step:1, unit:'%'},
-    {t:'range', k:'fileTabW', label:'Tab width',  min:20, max:80, step:1, unit:'%'},
-    {t:'range', k:'fileTabH', label:'Tab height', min:6,  max:30, step:1, unit:'%'},
-    {t:'range', k:'fileTabX', label:'Tab offset from left', min:0, max:60, step:1, unit:'%'},
-    {t:'seg', k:'fileColorMode', label:'Where the card colour goes', opts:[['body','Whole body'],['band','Label band'],['tab','Tab only']]},
-    {t:'range', k:'fileBand',  label:'Label band height', min:0, max:60, step:1, unit:'%'},
-    {t:'range', k:'fileValue', label:'Value size', min:20, max:80, step:1, unit:'%'},
+  { name:'Doc (card)', open:true, rows:[
+    {t:'seg', k:'docTab', label:'Silhouette', opts:[['fold','Document · folded corner'],['tab','Folder · tab']]},
+    {t:'range', k:'docFold', label:'Folded corner size', min:0, max:50, step:1, unit:'%'},
+    {t:'range', k:'docTabW', label:'Tab width',  min:20, max:80, step:1, unit:'%'},
+    {t:'range', k:'docTabH', label:'Tab height', min:6,  max:30, step:1, unit:'%'},
+    {t:'range', k:'docTabX', label:'Tab offset from left', min:0, max:60, step:1, unit:'%'},
+    {t:'seg', k:'docColorMode', label:'Where the card colour goes', opts:[['body','Whole body'],['band','Label band'],['tab','Tab only']]},
+    {t:'range', k:'docBand',  label:'Label band height', min:0, max:60, step:1, unit:'%'},
+    {t:'range', k:'docValue', label:'Value size', min:20, max:80, step:1, unit:'%'},
   ]},
   { name:'Floppy (Utility)', open:false, rows:[
     {t:'range', k:'flopAspect',   label:'Aspect (h/w). 0.957 = a real 3.5in disk', min:.7, max:1.3, step:.005},
@@ -276,10 +285,34 @@ function renderFit(){
   const mock = document.getElementById('stageMock');
   mock.style.width = (STAGE_W*SC)+'px'; mock.style.height = (STAGE_H*SC)+'px';
   const sx = STAGE_W*SLOT_X*SC, sy = STAGE_H*SLOT_Y*SC;
+  // Draw the REAL objects in the mock board, docs and badges together. That is
+  // the only way to answer "does a short wide badge look wrong in a cell sized
+  // for a taller doc" - two aspect ratios are fine in the abstract and the
+  // question is entirely about how they sit side by side.
   let cells = '';
   const ox = sx + (f.slotW*SC - f.gw*SC)/2, oy = sy + (f.slotH*SC - f.gh*SC)/2;
+  const samples = CFG.deck==='spectrum' ? SPECTRUM_SAMPLES : CLASSIC_SAMPLES;
+  const total = CFG.rows*CFG.cols;
+  // Fixed positions, not random - the board must not reshuffle on every slider
+  // nudge or you cannot see what your change actually did.
+  const badgeAt = new Set();
+  for (let i=0;i<CFG.boardMix;i++) badgeAt.add(Math.floor((i+0.5) * total / Math.max(1,CFG.boardMix)) % total);
   for (let r=0;r<CFG.rows;r++) for (let c=0;c<CFG.cols;c++){
-    cells += `<div class="mcell" style="left:${ox+PAD*SC+c*(f.w+GAP)*SC}px;top:${oy+PAD*SC+r*(f.h+GAP)*SC}px;width:${f.w*SC}px;height:${f.h*SC}px"></div>`;
+    const i = r*CFG.cols + c;
+    const L = ox+PAD*SC+c*(f.w+GAP)*SC, T = oy+PAD*SC+r*(f.h+GAP)*SC;
+    const cw = f.w*SC, chh = f.h*SC;
+    const tier = TIERS[(i*3+r) % TIERS.length];
+    let inner;
+    if (badgeAt.has(i)){
+      // A badge is shorter than the cell, so it is bottom-anchored - centred, it
+      // floats and reads as a rendering mistake rather than as an object lying
+      // among the paperwork.
+      const bh = cw / CFG.badgeAspect;
+      inner = `<div style="position:absolute;left:0;bottom:0;width:${cw}px;height:${bh}px">${badgeSVG(tier, cw)}</div>`;
+    } else {
+      inner = docSVG('common', samples[i%samples.length], cw, chh);
+    }
+    cells += `<div style="position:absolute;left:${L}px;top:${T}px;width:${cw}px;height:${chh}px">${inner}</div>`;
   }
   mock.innerHTML = `<div id="slotBox" style="left:${sx}px;top:${sy}px;width:${f.slotW*SC}px;height:${f.slotH*SC}px"></div>${cells}`;
 
@@ -320,91 +353,131 @@ function fitBaseline(){
   return f;
 }
 
-// ── shape builders (SVG, so the geometry is exact and scales) ──────────────
+// ── shape builders (SVG, so the geometry is exact and scales) ─────────────
 const esc = s => String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
-function rarStyle(t){
-  return `stroke:${CFG.rar[t]};stroke-width:${CFG.borderW};filter:drop-shadow(0 0 ${CFG.glow}px ${CFG.rar[t]}88)`;
+
+// Rarity as an OUTLINE. Docs keep this; badges and floppies do not (r199) -
+// their rarity is the colour of the object itself, so borderW is normally 0
+// for them and the stroke is left in only as a tuning option.
+function rarStyle(t, w){
+  const bw = (w === undefined) ? CFG.borderW : w;
+  const glow = CFG.glow ? `;filter:drop-shadow(0 0 ${CFG.glow}px ${CFG.rar[t]}88)` : '';
+  return bw > 0 ? `stroke:${CFG.rar[t]};stroke-width:${bw}${glow}` : `stroke:none${glow}`;
 }
 
-function fileSVG(tier, sample, W, H){
+// ── colour maths ───────────────────────────────────────────────────────────
+// A saturated rarity colour used as a BODY has to be pulled down toward the
+// object's own material, or a mint floppy comes out fluorescent and the cream
+// label plate on top of it loses all its contrast. `bodyTint` is how far along
+// that mix the object sits: 0 = the old dark plastic, 100 = the raw rarity hue.
+const _hx = h => { h = h.replace('#',''); return [0,2,4].map(i => parseInt(h.slice(i,i+2),16)); };
+const _hex = a => '#' + a.map(v => Math.max(0,Math.min(255,Math.round(v))).toString(16).padStart(2,'0')).join('');
+function mixHex(a, b, t){ const A=_hx(a), B=_hx(b); return _hex(A.map((v,i)=>v+(B[i]-v)*t)); }
+// Relative luminance, for picking ink that stays readable on whatever the body
+// mixed to. Without this a Deluxe magenta body and a Lite mint body would get
+// the same ink and one of them would be unreadable.
+function lum(h){ const [r,g,b] = _hx(h).map(v => { v/=255; return v<=.03928 ? v/12.92 : Math.pow((v+.055)/1.055, 2.4); });
+  return .2126*r + .7152*g + .0722*b; }
+const inkOn = h => lum(h) > 0.42 ? '#14110c' : '#f4eeda';
+// The body colour for a rarity, at the current tint.
+function bodyFor(tier, base){ return mixHex(base, CFG.rar[tier], CFG.bodyTint/100); }
+
+function docSVG(tier, sample, W, H){
   const r = CFG.radius, c = CFG.rar[tier];
   const faceCol = CFG.deck==='spectrum' ? COLOR_HEX[sample.c] : CFG.faceDark;
   const ink = (CFG.deck==='spectrum' && (sample.c==='white'||sample.c==='yellow')) ? '#1a1712' : '#f4eeda';
-  const bodyFill = CFG.fileColorMode==='body' ? faceCol : CFG.faceDark;
+  const bodyFill = CFG.docColorMode==='body' ? faceCol : CFG.faceDark;
   let outline, tabEl='';
-  if (CFG.fileTab === 'fold'){
-    const f = H * CFG.fileFold/100;
+  if (CFG.docTab === 'fold'){
+    const f = H * CFG.docFold/100;
     outline = `<path d="M${r},0 H${W-f} L${W},${f} V${H-r} a${r},${r} 0 0 1 -${r},${r} H${r} a${r},${r} 0 0 1 -${r},-${r} V${r} a${r},${r} 0 0 1 ${r},-${r} z"
       fill="${bodyFill}" style="${rarStyle(tier)}"/>
       <path d="M${W-f},0 L${W},${f} H${W-f} z" fill="rgba(0,0,0,.42)" stroke="${c}" stroke-width="${Math.max(1,CFG.borderW*.6)}"/>`;
   } else {
-    const tw = W*CFG.fileTabW/100, th = H*CFG.fileTabH/100, tx = W*CFG.fileTabX/100;
+    const tw = W*CFG.docTabW/100, th = H*CFG.docTabH/100, tx = W*CFG.docTabX/100;
     outline = `<path d="M${tx+r},0 h${tw-2*r} a${r},${r} 0 0 1 ${r},${r} v${th-r} H${W-r} a${r},${r} 0 0 1 ${r},${r}
       V${H-r} a${r},${r} 0 0 1 -${r},${r} H${r} a${r},${r} 0 0 1 -${r},-${r} V${th+r} a${r},${r} 0 0 1 ${r},-${r} H${tx}
       V${r} a${r},${r} 0 0 1 ${r},-${r} z" fill="${bodyFill}" style="${rarStyle(tier)}"/>`;
-    if (CFG.fileColorMode==='tab') tabEl = `<rect x="${tx+1}" y="1" width="${tw-2}" height="${th}" fill="${faceCol}" rx="${r}"/>`;
+    if (CFG.docColorMode==='tab') tabEl = `<rect x="${tx+1}" y="1" width="${tw-2}" height="${th}" fill="${faceCol}" rx="${r}"/>`;
   }
-  const topPad = CFG.fileTab==='tab' ? H*CFG.fileTabH/100 : 0;
-  const bandH = (H-topPad) * CFG.fileBand/100;
-  const band = CFG.fileBand>0 ? `<rect x="${W*.1}" y="${H-bandH-H*.07}" width="${W*.8}" height="${bandH}"
-      fill="${CFG.fileColorMode==='band'?faceCol:'rgba(240,230,200,.13)'}" rx="2"/>` : '';
+  const topPad = CFG.docTab==='tab' ? H*CFG.docTabH/100 : 0;
+  const bandH = (H-topPad) * CFG.docBand/100;
+  const band = CFG.docBand>0 ? `<rect x="${W*.1}" y="${H-bandH-H*.07}" width="${W*.8}" height="${bandH}"
+      fill="${CFG.docColorMode==='band'?faceCol:'rgba(240,230,200,.13)'}" rx="2"/>` : '';
   const label = CFG.deck==='spectrum' ? esc(sample.v) : esc(sample.v)+esc(sample.s);
-  const fs = (H-topPad) * CFG.fileValue/100;
+  const fs = (H-topPad) * CFG.docValue/100;
   return `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">${outline}${tabEl}${band}
-    <text x="${W/2}" y="${topPad + (H-topPad-bandH)/2}" fill="${CFG.fileColorMode==='body'?ink:'#f4eeda'}"
+    <text x="${W/2}" y="${topPad + (H-topPad-bandH)/2}" fill="${CFG.docColorMode==='body'?ink:'#f4eeda'}"
       font-family="Orbitron,sans-serif" font-weight="800" font-size="${fs}"
       text-anchor="middle" dominant-baseline="central">${label}</text></svg>`;
 }
 
-function floppySVG(tier, W){
+function floppySVG(tier, W, uid){
   const H = W*CFG.flopAspect, ch = W*CFG.flopChamfer/100, r = CFG.radius;
   const sw = W*CFG.flopShutW/100, sh = H*CFG.flopShutH/100;
   const sx = (W - sw) * CFG.flopShutX/100;
   const lt = H*CFG.flopLabelTop/100, li = W*CFG.flopLabelInset/100;
   const hub = W*CFG.flopHub/100;
+  // The shell IS the rarity (r199). Mixed toward the plastic so the label plate
+  // that sits on top of it keeps its contrast at every tier.
+  const shell = bodyFor(tier, '#1b1813');
+  const gid = 'metal' + (uid || '');
   const body = `<path d="M${r},0 H${W-ch} L${W},${ch} V${H-r} a${r},${r} 0 0 1 -${r},${r} H${r}
-    a${r},${r} 0 0 1 -${r},-${r} V${r} a${r},${r} 0 0 1 ${r},-${r} z" fill="#1b1813" style="${rarStyle(tier)}"/>`;
+    a${r},${r} 0 0 1 -${r},-${r} V${r} a${r},${r} 0 0 1 ${r},-${r} z" fill="${shell}" style="${rarStyle(tier, CFG.bodyBorderW)}"/>
+    <path d="M${W-ch},0 L${W},${ch} H${W-ch} z" fill="rgba(0,0,0,.3)"/>`;
   const shutter = `<g>
     <rect x="${sx}" y="${H*.045}" width="${sw}" height="${sh}" rx="1.5" fill="#b9bcc2"/>
-    <rect x="${sx}" y="${H*.045}" width="${sw}" height="${sh}" rx="1.5" fill="url(#metal)"/>
+    <rect x="${sx}" y="${H*.045}" width="${sw}" height="${sh}" rx="1.5" fill="url(#${gid})"/>
     <rect x="${sx+sw*.16}" y="${H*.045+sh*.16}" width="${sw*.42}" height="${sh*.68}" rx="1" fill="#2a2d33"/>
   </g>`;
   const label = `<rect x="${li}" y="${lt}" width="${W-li*2}" height="${H-lt-H*.09}" rx="2"
-    fill="rgba(240,230,200,.9)"/>
-    <rect x="${li+W*.05}" y="${lt+H*.09}" width="${(W-li*2)*.62}" height="${H*.05}" fill="rgba(30,26,20,.35)"/>
-    <rect x="${li+W*.05}" y="${lt+H*.20}" width="${(W-li*2)*.44}" height="${H*.05}" fill="rgba(30,26,20,.22)"/>`;
-  const hubEl = hub>0 ? `<circle cx="${W/2}" cy="${lt-H*.055}" r="${hub/2}" fill="#0e0c09" stroke="#3a352c"/>` : '';
+    fill="rgba(244,238,218,.94)"/>
+    <rect x="${li+W*.05}" y="${lt+H*.09}" width="${(W-li*2)*.62}" height="${H*.05}" fill="rgba(30,26,20,.4)"/>
+    <rect x="${li+W*.05}" y="${lt+H*.20}" width="${(W-li*2)*.44}" height="${H*.05}" fill="rgba(30,26,20,.25)"/>`;
+  const hubEl = hub>0 ? `<circle cx="${W/2}" cy="${lt-H*.055}" r="${hub/2}" fill="#0e0c09" stroke="rgba(0,0,0,.5)"/>` : '';
   return `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">
-    <defs><linearGradient id="metal" x1="0" y1="0" x2="0" y2="1">
+    <defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#e6e9ee" stop-opacity=".95"/><stop offset=".5" stop-color="#9aa0a8" stop-opacity=".9"/>
       <stop offset="1" stop-color="#cfd4da" stop-opacity=".92"/></linearGradient></defs>
     ${body}${hubEl}${shutter}${label}</svg>`;
 }
 
 function badgeSVG(tier, W){
-  const H = W/CFG.badgeAspect, r = CFG.radius, c = CFG.rar[tier];
+  const H = W/CFG.badgeAspect, r = CFG.radius;
   const pw = W*CFG.badgePhoto/100, st = Math.max(2, H*CFG.badgeStripeH/100);
+  // The card stock IS the rarity (r199). Ink and the photo/name blocks are
+  // chosen from the mixed body's luminance, so a mint Temp and a magenta
+  // Executive are both readable without a per-tier table.
+  const card = bodyFor(tier, '#191510');
+  const dark = lum(card) > 0.42;
+  const ink  = inkOn(card);
+  const blockFill = dark ? 'rgba(20,17,12,.28)' : 'rgba(0,0,0,.34)';
+  const lineHi = dark ? 'rgba(20,17,12,.80)' : 'rgba(244,238,218,.86)';
+  const lineLo = dark ? 'rgba(20,17,12,.42)' : 'rgba(244,238,218,.42)';
+  // The stripe is a DARKER band of the same stock, not a second colour - two
+  // colours on one object is exactly what "colour means rarity" rules out.
+  const stripeCol = mixHex(card, '#000000', .38);
   let stripe = '';
-  if (CFG.badgeStripe==='top')    stripe = `<rect x="0" y="0" width="${W}" height="${st}" fill="${c}"/>`;
-  if (CFG.badgeStripe==='bottom') stripe = `<rect x="0" y="${H-st}" width="${W}" height="${st}" fill="${c}"/>`;
-  if (CFG.badgeStripe==='left')   stripe = `<rect x="0" y="0" width="${st}" height="${H}" fill="${c}"/>`;
+  if (CFG.badgeStripe==='top')    stripe = `<rect x="0" y="0" width="${W}" height="${st}" fill="${stripeCol}"/>`;
+  if (CFG.badgeStripe==='bottom') stripe = `<rect x="0" y="${H-st}" width="${W}" height="${st}" fill="${stripeCol}"/>`;
+  if (CFG.badgeStripe==='left')   stripe = `<rect x="0" y="0" width="${st}" height="${H}" fill="${stripeCol}"/>`;
   const slotW = W*CFG.badgeSlot/100;
   const slot = CFG.badgeSlotOn ? `<rect x="${(W-slotW)/2}" y="${H*.07}" width="${slotW}" height="${H*.055}" rx="${H*.028}"
-    fill="#080706" stroke="rgba(240,230,200,.3)" stroke-width="1"/>` : '';
+    fill="rgba(0,0,0,.55)"/>` : '';
   const topPad = CFG.badgeSlotOn ? H*.17 : (CFG.badgeStripe==='top' ? st+H*.06 : H*.09);
-  const lx = W*.055 + (pw>0 ? pw + W*.055 : 0);
+  const px = (CFG.badgeStripe==='left' ? st + W*.04 : W*.055);
+  const ph = H - topPad - H*.1;
+  const lx = px + (pw>0 ? pw + W*.055 : 0);
+  const photo = pw>0 ? `<rect x="${px}" y="${topPad}" width="${pw}" height="${ph}" rx="2" fill="${blockFill}"/>
+    <circle cx="${px+pw/2}" cy="${topPad+ph*.36}" r="${Math.min(pw,ph)*.20}" fill="${ink}" opacity=".42"/>
+    <path d="M${px+pw*.18},${topPad+ph*.95} a${pw*.32},${pw*.30} 0 0 1 ${pw*.64},0 z" fill="${ink}" opacity=".42"/>` : '';
   const lines = `
-    <rect x="${lx}" y="${topPad+H*.06}" width="${(W-lx-W*.07)*.9}" height="${H*.1}" rx="1.5" fill="rgba(240,230,200,.82)"/>
-    <rect x="${lx}" y="${topPad+H*.24}" width="${(W-lx-W*.07)*.62}" height="${H*.075}" rx="1.5" fill="rgba(240,230,200,.4)"/>
-    <rect x="${lx}" y="${topPad+H*.39}" width="${(W-lx-W*.07)*.44}" height="${H*.06}" rx="1.5" fill="${c}" opacity=".85"/>`;
+    <rect x="${lx}" y="${topPad+H*.06}" width="${(W-lx-W*.07)*.9}" height="${H*.11}" rx="1.5" fill="${lineHi}"/>
+    <rect x="${lx}" y="${topPad+H*.26}" width="${(W-lx-W*.07)*.62}" height="${H*.08}" rx="1.5" fill="${lineLo}"/>
+    <rect x="${lx}" y="${topPad+H*.42}" width="${(W-lx-W*.07)*.44}" height="${H*.065}" rx="1.5" fill="${lineLo}"/>`;
   return `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">
-    <rect x="0" y="0" width="${W}" height="${H}" rx="${r}" fill="#191510" style="${rarStyle(tier)}"/>
-    ${stripe}${slot}
-    <rect x="${W*.055}" y="${topPad}" width="${pw}" height="${H-topPad-H*.1}" rx="2" fill="#2b2621" ${pw>0?'':'opacity="0"'}/>
-    <circle cx="${W*.055+pw/2}" cy="${topPad+(H-topPad-H*.1)*.36}" r="${Math.min(pw,H)*.17}" fill="rgba(240,230,200,.32)" ${pw>0?'':'opacity="0"'}/>
-    <path d="M${W*.055+pw*.2},${topPad+(H-topPad-H*.1)*.92} a${pw*.3},${pw*.26} 0 0 1 ${pw*.6},0 z"
-      fill="rgba(240,230,200,.32)" ${pw>0?'':'opacity="0"'}/>
-    ${lines}</svg>`;
+    <rect x="0" y="0" width="${W}" height="${H}" rx="${r}" fill="${card}" style="${rarStyle(tier, CFG.bodyBorderW)}"/>
+    ${stripe}${slot}${photo}${lines}</svg>`;
 }
 
 // ── render ─────────────────────────────────────────────────────────────────
@@ -416,12 +489,12 @@ function render(){
 
   const samples = CFG.deck==='spectrum' ? SPECTRUM_SAMPLES : CLASSIC_SAMPLES;
   document.getElementById('shelfFile').innerHTML = TIERS.map((t,i) => `
-    <div class="spec">${fileSVG(t, samples[i%samples.length], f.w, f.h)}<div class="cap">${TIER_WORD[t]}</div></div>`).join('')
-    + `<div class="spec" style="opacity:.75">${fileSVG('rare', samples[0], f.w*1.9, f.h*1.9)}<div class="cap">detail</div></div>`;
+    <div class="spec">${docSVG(t, samples[i%samples.length], f.w, f.h)}<div class="cap">${TIER_WORD[t]}</div></div>`).join('')
+    + `<div class="spec" style="opacity:.75">${docSVG('rare', samples[0], f.w*1.9, f.h*1.9)}<div class="cap">detail</div></div>`;
 
   document.getElementById('shelfFloppy').innerHTML = TIERS.map(t => `
-    <div class="spec">${floppySVG(t, 74)}<div class="cap">${TIER_WORD[t]}</div></div>`).join('')
-    + `<div class="spec" style="opacity:.9">${floppySVG('legendary', 150)}<div class="cap">detail</div></div>`;
+    <div class="spec">${floppySVG(t, 74, 'a'+t)}<div class="cap">${TIER_WORD[t]}</div></div>`).join('')
+    + `<div class="spec" style="opacity:.9">${floppySVG('legendary', 150, 'big')}<div class="cap">detail</div></div>`;
 
   document.getElementById('shelfBadge').innerHTML = TIERS.map(t => `
     <div class="spec">${badgeSVG(t, f.w)}<div class="cap">${HIRE_WORD[t]}</div></div>`).join('')
@@ -447,10 +520,12 @@ const ART_CFG = {
     epic:      '${CFG.rar.epic}',
     legendary: '${CFG.rar.legendary}',
   },
-  chrome: { borderW: ${CFG.borderW}, glow: ${CFG.glow}, radius: ${CFG.radius} },
-  file:   { silhouette: '${CFG.fileTab}', fold: ${CFG.fileFold}, tabW: ${CFG.fileTabW},
-            tabH: ${CFG.fileTabH}, tabX: ${CFG.fileTabX}, colorMode: '${CFG.fileColorMode}',
-            band: ${CFG.fileBand}, valueSize: ${CFG.fileValue} },
+  chrome: { docBorderW: ${CFG.borderW}, glow: ${CFG.glow}, radius: ${CFG.radius},
+            // badges + floppies carry rarity as their BODY colour, not a border
+            bodyTint: ${CFG.bodyTint}, bodyBorderW: ${CFG.bodyBorderW} },
+  doc:    { silhouette: '${CFG.docTab}', fold: ${CFG.docFold}, tabW: ${CFG.docTabW},
+            tabH: ${CFG.docTabH}, tabX: ${CFG.docTabX}, colorMode: '${CFG.docColorMode}',
+            band: ${CFG.docBand}, valueSize: ${CFG.docValue} },
   floppy: { aspect: ${CFG.flopAspect}, chamfer: ${CFG.flopChamfer}, shutterW: ${CFG.flopShutW},
             shutterH: ${CFG.flopShutH}, shutterX: ${CFG.flopShutX}, labelTop: ${CFG.flopLabelTop},
             labelInset: ${CFG.flopLabelInset}, hub: ${CFG.flopHub} },

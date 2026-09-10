@@ -1,4 +1,4 @@
-const BUILD = '2026-09-10 · r198 · two vocabularies (corporate/gamer) behind one Settings toggle; colour means rarity, not entity type';
+const BUILD = '2026-09-10 · r199 · rarity is the body colour on badges and floppies; cards become Docs; mixed board preview';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
