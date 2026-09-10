@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Art direction · files, floppies, badges</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&family=Share+Tech+Mono&family=Crimson+Pro:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Real palette, lifted from css/style.css */
+  --cream:#f0e6c8; --cream-dim:#8a7d60; --gold:#c9a84c; --gold-dim:#7a6030;
+  --ink:#0d0c0a; --panel:#15130f; --panel-2:#1c1913; --line:rgba(183,172,147,.18);
+  /* Rarity spine - the ONLY thing colour means (r198) */
+  --rar-common:#35d59b; --rar-rare:#16c8d8; --rar-epic:#9a6cff; --rar-legendary:#ff2f8e;
+}
+*{box-sizing:border-box}
+body{margin:0;background:#0a0908;color:var(--cream);font-family:'Share Tech Mono',monospace;font-size:13px}
+h1{font-family:'Orbitron',sans-serif;font-size:15px;letter-spacing:2px;margin:0;color:var(--gold)}
+h2{font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:2.5px;margin:0 0 8px;color:var(--gold-dim);text-transform:uppercase}
+#top{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:16px;padding:10px 16px;
+     background:linear-gradient(180deg,#15130f,#100e0b);border-bottom:1px solid var(--line)}
+#top .sub{color:var(--cream-dim);font-size:11px}
+#wrap{display:grid;grid-template-columns:308px 1fr;gap:0;align-items:start}
+#rail{position:sticky;top:44px;height:calc(100vh - 44px);overflow-y:auto;padding:12px;border-right:1px solid var(--line);background:var(--panel)}
+#stageCol{padding:16px 20px 64px}
+.grp{margin-bottom:14px;border:1px solid var(--line);border-radius:8px;background:var(--panel-2)}
+.grp>summary{cursor:pointer;list-style:none;padding:8px 10px;font-family:'Orbitron',sans-serif;font-size:9.5px;
+  letter-spacing:2px;color:var(--gold);text-transform:uppercase}
+.grp>summary::-webkit-details-marker{display:none}
+.grp>summary::before{content:'▸ ';color:var(--gold-dim)}
+.grp[open]>summary::before{content:'▾ '}
+.grp .body{padding:4px 10px 10px}
+.row{display:grid;grid-template-columns:1fr 58px;gap:8px;align-items:center;margin:7px 0}
+.row label{color:var(--cream-dim);font-size:11px;line-height:1.25}
+.row input[type=range]{width:100%;accent-color:var(--gold)}
+.row output{font-size:11px;color:var(--cream);text-align:right;font-variant-numeric:tabular-nums}
+.row.full{grid-template-columns:1fr}
+.seg{display:flex;gap:4px;flex-wrap:wrap;margin:6px 0}
+.seg button{flex:1 1 auto;padding:5px 7px;font-family:'Share Tech Mono',monospace;font-size:10.5px;cursor:pointer;
+  background:#0f0d0a;color:var(--cream-dim);border:1px solid var(--line);border-radius:5px}
+.seg button.on{background:var(--gold);color:#100e0b;border-color:var(--gold);font-weight:700}
+.swatches{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:4px}
+.sw{display:flex;flex-direction:column;gap:3px;align-items:center;font-size:9px;color:var(--cream-dim)}
+.sw input{width:100%;height:26px;padding:0;border:1px solid var(--line);border-radius:4px;background:none;cursor:pointer}
+
+/* ── specimen shelves ── */
+.shelf{margin-bottom:26px;border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:14px}
+.shelf .hdr{display:flex;align-items:baseline;gap:10px;margin-bottom:12px}
+.shelf .hdr .note{color:var(--cream-dim);font-size:11px}
+.specimens{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-end}
+.spec{display:flex;flex-direction:column;align-items:center;gap:6px}
+.spec .cap{font-size:9.5px;letter-spacing:1.5px;color:var(--cream-dim);text-transform:uppercase}
+
+/* ── stage fit mock ── */
+#fit{border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:14px;margin-bottom:26px}
+#stageMock{position:relative;background:#080706;border:1px solid var(--line);border-radius:6px;margin:10px 0}
+#slotBox{position:absolute;border:1px dashed rgba(201,168,76,.45);background:rgba(201,168,76,.05)}
+#cells{position:absolute;inset:0}
+.mcell{position:absolute;border-radius:3px;background:#221d16;border:1px solid rgba(240,230,200,.22)}
+#fitread{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:8px;margin-top:10px}
+.stat{border:1px solid var(--line);border-radius:6px;padding:7px 9px;background:var(--panel-2)}
+.stat b{display:block;font-size:9px;letter-spacing:1.5px;color:var(--gold-dim);text-transform:uppercase;margin-bottom:3px}
+.stat span{font-size:14px;color:var(--cream);font-variant-numeric:tabular-nums}
+.warn{border-color:rgba(255,47,142,.5);background:rgba(255,47,142,.08)}
+.warn span{color:var(--rar-legendary)}
+.ok{border-color:rgba(53,213,155,.4)}
+.ok span{color:var(--rar-common)}
+#verdict{font-family:'Crimson Pro',serif;font-size:14px;line-height:1.5;color:var(--cream-dim);margin-top:10px}
+#verdict b{color:var(--cream)}
+
+/* ── config dump ── */
+#dump{border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:14px}
+#dumpText{width:100%;height:250px;background:#080706;color:var(--cream);border:1px solid var(--line);
+  border-radius:6px;padding:10px;font-family:'Share Tech Mono',monospace;font-size:11px;line-height:1.45;resize:vertical}
+#copyBtn{margin-top:8px;padding:7px 14px;background:var(--gold);color:#100e0b;border:none;border-radius:5px;
+  font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:1.5px;cursor:pointer;font-weight:700}
+</style>
+</head>
+<body>
+
+<div id="top">
+  <h1>ART DIRECTION</h1>
+  <span class="sub">files · floppies · badges &nbsp;·&nbsp; colour is rarity, shape is type</span>
+  <span class="sub" id="modeNote" style="margin-left:auto"></span>
+</div>
+
+<div id="wrap">
+  <div id="rail"></div>
+  <div id="stageCol">
+    <div id="fit">
+      <div class="hdr"><h2 style="margin:0">Grid fit · does it still work?</h2></div>
+      <div style="color:var(--cream-dim);font-size:11.5px;line-height:1.5;margin-bottom:8px">
+        The landscape grid slot is <b style="color:var(--cream)">45% x 86.11%</b> of the 747x420 stage =
+        <b style="color:var(--cream)">336 x 362</b> design px. It is TALLER than it is wide, which is the
+        whole problem with a landscape cell. Real constants: gap 5, pad 3, safety 5, floors 40x53.
+      </div>
+      <div id="stageMock"></div>
+      <div id="fitread"></div>
+      <div id="verdict"></div>
+    </div>
+
+    <div class="shelf">
+      <div class="hdr"><h2 style="margin:0">Files</h2><span class="note">the cards on the grid · one per rarity</span></div>
+      <div class="specimens" id="shelfFile"></div>
+    </div>
+
+    <div class="shelf">
+      <div class="hdr"><h2 style="margin:0">Floppies</h2><span class="note">Utilities · the side tray</span></div>
+      <div class="specimens" id="shelfFloppy"></div>
+    </div>
+
+    <div class="shelf">
+      <div class="hdr"><h2 style="margin:0">Badges</h2><span class="note">Hires · they live on the grid, so they share the cell</span></div>
+      <div class="specimens" id="shelfBadge"></div>
+    </div>
+
+    <div id="dump">
+      <h2>Copy-paste config</h2>
+      <textarea id="dumpText" spellcheck="false"></textarea>
+      <button id="copyBtn">Copy</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Spectrum data, straight from js/data/cards.js ──────────────────────────
+const COLOR_HEX = {red:'#d43b3b',yellow:'#e0b81c',blue:'#2f6fd0',green:'#2f9e54',purple:'#8b4bc8',orange:'#e07a1f',black:'#23201c',white:'#efe7d6'};
+const SPECTRUM_SAMPLES = [
+  {v:'7',  c:'red'},   {v:'11', c:'white'}, {v:'0',  c:'blue'},  {v:'20', c:'green'},
+];
+const CLASSIC_SAMPLES = [ {v:'A',s:'♠'}, {v:'10',s:'♥'}, {v:'K',s:'♣'}, {v:'4',s:'♦'} ];
+const TIERS = ['common','rare','epic','legendary'];
+const TIER_WORD = { common:'Lite', rare:'Standard', epic:'Plus', legendary:'Deluxe' };
+const HIRE_WORD = { common:'Temp', rare:'Contractor', epic:'Staff', legendary:'Executive' };
+
+// ── the tunable model ──────────────────────────────────────────────────────
+const CFG = {
+  // global
+  deck:'spectrum', borderW:2, glow:10, radius:3, faceDark:'#17140f',
+  rar:{ common:'#35d59b', rare:'#16c8d8', epic:'#9a6cff', legendary:'#ff2f8e' },
+  // grid fit
+  rows:5, cols:5, cellAspect:1.316,      // height / width. 1.316 = today's 75/57
+  // file icon
+  fileTab:'fold',   // 'fold' = document corner turned down, 'tab' = folder tab
+  fileFold:26, fileTabW:44, fileTabH:14, fileTabX:6,
+  fileBand:30, fileColorMode:'body',      // body | band | tab
+  fileValue:46,
+  // floppy
+  flopAspect:0.957,                        // 90mm x 94mm, real 3.5" disk
+  flopShutW:42, flopShutH:26, flopShutX:52, flopChamfer:16,
+  flopLabelTop:40, flopLabelInset:9, flopHub:0,
+  // badge
+  badgeAspect:1.55,                        // credit card is 1.586
+  badgePhoto:38, badgeStripe:'top', badgeStripeH:14, badgeSlot:26, badgeSlotOn:1,
+};
+
+// ── control rail ───────────────────────────────────────────────────────────
+const GROUPS = [
+  { name:'Global', open:true, rows:[
+    {t:'seg', k:'deck', label:'Deck', opts:[['spectrum','Spectrum'],['classic','Classic']]},
+    {t:'colors'},
+    {t:'range', k:'borderW', label:'Rarity border width', min:0, max:6, step:.5, unit:'px'},
+    {t:'range', k:'glow',    label:'Rarity glow',         min:0, max:26, step:1, unit:'px'},
+    {t:'range', k:'radius',  label:'Corner radius',       min:0, max:12, step:.5, unit:'px'},
+  ]},
+  { name:'Grid fit', open:true, rows:[
+    {t:'range', k:'cellAspect', label:'Cell aspect (height / width). 1.32 = today, 0.76 = a card on its side', min:.55, max:1.7, step:.01},
+    {t:'seg', k:'_aspectPreset', label:'Presets', opts:[['1.316','Today 75x57'],['1','Square'],['0.76','On its side'],['0.645','Credit card']], apply:v=>{CFG.cellAspect=+v}},
+    {t:'range', k:'cols', label:'Columns', min:3, max:8, step:1},
+    {t:'range', k:'rows', label:'Rows',    min:3, max:8, step:1},
+  ]},
+  { name:'File (card)', open:true, rows:[
+    {t:'seg', k:'fileTab', label:'Silhouette', opts:[['fold','Document · folded corner'],['tab','Folder · tab']]},
+    {t:'range', k:'fileFold', label:'Folded corner size', min:0, max:50, step:1, unit:'%'},
+    {t:'range', k:'fileTabW', label:'Tab width',  min:20, max:80, step:1, unit:'%'},
+    {t:'range', k:'fileTabH', label:'Tab height', min:6,  max:30, step:1, unit:'%'},
+    {t:'range', k:'fileTabX', label:'Tab offset from left', min:0, max:60, step:1, unit:'%'},
+    {t:'seg', k:'fileColorMode', label:'Where the card colour goes', opts:[['body','Whole body'],['band','Label band'],['tab','Tab only']]},
+    {t:'range', k:'fileBand',  label:'Label band height', min:0, max:60, step:1, unit:'%'},
+    {t:'range', k:'fileValue', label:'Value size', min:20, max:80, step:1, unit:'%'},
+  ]},
+  { name:'Floppy (Utility)', open:false, rows:[
+    {t:'range', k:'flopAspect',   label:'Aspect (h/w). 0.957 = a real 3.5in disk', min:.7, max:1.3, step:.005},
+    {t:'range', k:'flopChamfer',  label:'Chamfered corner', min:0, max:40, step:1, unit:'%'},
+    {t:'range', k:'flopShutW',    label:'Shutter width',  min:15, max:70, step:1, unit:'%'},
+    {t:'range', k:'flopShutH',    label:'Shutter height', min:8,  max:50, step:1, unit:'%'},
+    {t:'range', k:'flopShutX',    label:'Shutter x', min:0, max:100, step:1, unit:'%'},
+    {t:'range', k:'flopLabelTop', label:'Label top edge', min:20, max:70, step:1, unit:'%'},
+    {t:'range', k:'flopLabelInset', label:'Label side inset', min:0, max:25, step:1, unit:'%'},
+    {t:'range', k:'flopHub',      label:'Hub cutout (0 = off)', min:0, max:30, step:1, unit:'%'},
+  ]},
+  { name:'Badge (Hire)', open:false, rows:[
+    {t:'range', k:'badgeAspect', label:'Aspect (w/h). 1.586 = a credit card', min:1.1, max:2.1, step:.01},
+    {t:'range', k:'badgePhoto',  label:'Photo block width', min:0, max:60, step:1, unit:'%'},
+    {t:'seg',   k:'badgeStripe', label:'Rarity stripe', opts:[['top','Top'],['bottom','Bottom'],['left','Left'],['none','None']]},
+    {t:'range', k:'badgeStripeH',label:'Stripe thickness', min:4, max:34, step:1, unit:'%'},
+    {t:'range', k:'badgeSlot',   label:'Lanyard slot width', min:0, max:60, step:1, unit:'%'},
+    {t:'seg',   k:'badgeSlotOn', label:'Lanyard slot', opts:[['1','On'],['0','Off']]},
+  ]},
+];
+
+function buildRail(){
+  const rail = document.getElementById('rail');
+  rail.innerHTML = GROUPS.map(g => `
+    <details class="grp" ${g.open?'open':''}>
+      <summary>${g.name}</summary>
+      <div class="body">${g.rows.map(r => rowHTML(r)).join('')}</div>
+    </details>`).join('');
+  rail.addEventListener('input', onCtl);
+  rail.addEventListener('click', onCtl);
+}
+function rowHTML(r){
+  if (r.t === 'colors') return `<div class="row full"><label>Rarity colours · the only meaning colour carries</label></div>
+    <div class="swatches">${TIERS.map(t=>`<div class="sw"><input type="color" data-rar="${t}" value="${CFG.rar[t]}"><span>${TIER_WORD[t]}</span></div>`).join('')}</div>`;
+  if (r.t === 'seg') return `<div class="row full"><label>${r.label}</label></div>
+    <div class="seg" data-seg="${r.k}">${r.opts.map(([v,l])=>`<button data-v="${v}" class="${String(CFG[r.k])===v?'on':''}">${l}</button>`).join('')}</div>`;
+  return `<div class="row"><label>${r.label}</label><output data-out="${r.k}">${CFG[r.k]}${r.unit||''}</output>
+    <input class="full" style="grid-column:1/-1" type="range" data-k="${r.k}" min="${r.min}" max="${r.max}" step="${r.step}" value="${CFG[r.k]}"></div>`;
+}
+function onCtl(e){
+  const t = e.target;
+  if (t.dataset && t.dataset.k){
+    const k = t.dataset.k, r = GROUPS.flatMap(g=>g.rows).find(x=>x.k===k);
+    CFG[k] = parseFloat(t.value);
+    const o = document.querySelector(`[data-out="${k}"]`); if (o) o.textContent = CFG[k] + (r && r.unit ? r.unit : '');
+    return render();
+  }
+  if (t.dataset && t.dataset.rar){ CFG.rar[t.dataset.rar] = t.value; return render(); }
+  if (t.tagName === 'BUTTON' && t.parentElement.dataset.seg){
+    const k = t.parentElement.dataset.seg, v = t.dataset.v;
+    const r = GROUPS.flatMap(g=>g.rows).find(x=>x.k===k);
+    if (r && r.apply) r.apply(v); else CFG[k] = isNaN(+v) || k==='deck' ? v : (k.startsWith('badgeSlotOn') ? +v : v);
+    if (k === 'badgeSlotOn') CFG[k] = +v;
+    [...t.parentElement.children].forEach(b=>b.classList.toggle('on', b===t));
+    if (r && r.apply){ // preset buttons write another key - resync its slider
+      const s = document.querySelector('[data-k="cellAspect"]'); if (s){ s.value = CFG.cellAspect;
+        const o = document.querySelector('[data-out="cellAspect"]'); if (o) o.textContent = CFG.cellAspect; }
+    }
+    return render();
+  }
+}
+
+// ── grid fit, using the game's real numbers ────────────────────────────────
+const STAGE_W = 747, STAGE_H = 420, SLOT_X = .45, SLOT_Y = .1111, SLOT_W = .45, SLOT_H = .8611;
+const GAP = 5, PAD = 3, SAFETY = 5, MIN_W = 40, MIN_H = 53;
+
+function fitGrid(){
+  const slotW = STAGE_W * SLOT_W, slotH = STAGE_H * SLOT_H;
+  const innerW = slotW - SAFETY*2 - PAD*2 - GAP*(CFG.cols-1);
+  const innerH = slotH - SAFETY*2 - PAD*2 - GAP*(CFG.rows-1);
+  let w = Math.floor(innerW / CFG.cols), h = Math.floor(innerH / CFG.rows);
+  // the game's own constraint: take whichever dimension is the tighter fit
+  if (h / w > CFG.cellAspect) h = Math.round(w * CFG.cellAspect);
+  else                        w = Math.round(h / CFG.cellAspect);
+  // What the cell WANTED to be, before the floor clamps it. Keep both: a config
+  // only reaches a usable size by being clamped is not a config that fits, and
+  // reporting the clamped number alone hides that completely.
+  const rawW = w, rawH = h;
+  const hitFloor = w < MIN_W || h < MIN_H;
+  w = Math.max(w, MIN_W); h = Math.max(h, MIN_H);
+  const gw = CFG.cols*w + GAP*(CFG.cols-1) + PAD*2;
+  const gh = CFG.rows*h + GAP*(CFG.rows-1) + PAD*2;
+  const availW = slotW - SAFETY*2, availH = slotH - SAFETY*2;
+  // Unused width and height are reported SEPARATELY, not as one area figure.
+  // The whole question here is which axis the cell is wasting, and an area
+  // number averages that away - the two configs below both read "22% unused"
+  // while wasting it on opposite axes.
+  return { slotW, slotH, w, h, rawW, rawH, gw, gh, hitFloor,
+           overflowW: gw > availW, overflowH: gh > availH,
+           overflow: gw > availW || gh > availH,
+           unusedW: 1 - gw/availW, unusedH: 1 - gh/availH };
+}
+
+function renderFit(){
+  const f = fitGrid(), SC = 1.15;
+  const mock = document.getElementById('stageMock');
+  mock.style.width = (STAGE_W*SC)+'px'; mock.style.height = (STAGE_H*SC)+'px';
+  const sx = STAGE_W*SLOT_X*SC, sy = STAGE_H*SLOT_Y*SC;
+  let cells = '';
+  const ox = sx + (f.slotW*SC - f.gw*SC)/2, oy = sy + (f.slotH*SC - f.gh*SC)/2;
+  for (let r=0;r<CFG.rows;r++) for (let c=0;c<CFG.cols;c++){
+    cells += `<div class="mcell" style="left:${ox+PAD*SC+c*(f.w+GAP)*SC}px;top:${oy+PAD*SC+r*(f.h+GAP)*SC}px;width:${f.w*SC}px;height:${f.h*SC}px"></div>`;
+  }
+  mock.innerHTML = `<div id="slotBox" style="left:${sx}px;top:${sy}px;width:${f.slotW*SC}px;height:${f.slotH*SC}px"></div>${cells}`;
+
+  const uW = Math.round(f.unusedW*100), uH = Math.round(f.unusedH*100);
+  document.getElementById('fitread').innerHTML = `
+    <div class="stat ${f.hitFloor?'warn':''}"><b>Cell</b><span>${f.w} x ${f.h}${f.hitFloor?' *':''}</span></div>
+    <div class="stat"><b>Grid</b><span>${f.gw} x ${f.gh}</span></div>
+    <div class="stat ${f.overflowW?'warn':(uW>22?'warn':'ok')}"><b>Unused width</b><span>${uW<0?'over':uW+'%'}</span></div>
+    <div class="stat ${f.overflowH?'warn':(uH>22?'warn':'ok')}"><b>Unused height</b><span>${uH<0?'over':uH+'%'}</span></div>
+    <div class="stat ${f.hitFloor?'warn':'ok'}"><b>Hit size floor</b><span>${f.hitFloor?'YES ('+f.rawW+'x'+f.rawH+')':'no'}</span></div>`;
+
+  const base = fitBaseline();
+  const areaDelta = Math.round(((f.w*f.h)/(base.w*base.h) - 1) * 100);
+  const head = `At <b>${CFG.cols}x${CFG.rows}</b> and aspect <b>${CFG.cellAspect.toFixed(3)}</b> a cell is
+    <b>${f.w}x${f.h}</b>, <b style="color:${areaDelta<0?'var(--rar-legendary)':'var(--rar-common)'}">${areaDelta>=0?'+':''}${areaDelta}%</b>
+    of today's 49x65. `;
+  // Blocking conditions first. An earlier version led with the waste figure and
+  // said "fills the slot well" while the grid was overflowing its slot, which is
+  // the one thing this panel exists to catch.
+  let body;
+  if (f.overflow) body = `<b style="color:var(--rar-legendary)">This overflows the slot</b>
+      (${f.overflowW?'too wide':''}${f.overflowW&&f.overflowH?' and ':''}${f.overflowH?'too tall':''}) - in the real
+      game the grid spills toward ${f.overflowW?'the action buttons':'the clock bar'}. Drop a ${f.overflowW?'column':'row'}.`;
+  else if (f.hitFloor) body = `<b style="color:var(--rar-legendary)">The cell was clamped to the minimum size</b>
+      - it wanted to be ${f.rawW}x${f.rawH} and the floor (40x53) pushed it back up. It only looks like it fits.
+      Fewer ${f.rawW < MIN_W ? 'columns' : 'rows'}, or a less extreme aspect.`;
+  else if (uH > 22 || uW > 22) body = `<b>${Math.max(uW,uH)}% of the slot's ${uH>uW?'height':'width'} goes unused.</b>
+      The slot is 336 wide by 362 tall, so a wide cell leaves a dead band above and below.
+      ${uH>uW ? 'Adding a row is the fix, not shrinking the cell.' : 'Adding a column would take up the slack.'}`;
+  else body = `Fits cleanly, no floor clamp, both axes well used.`;
+  document.getElementById('verdict').innerHTML = head + body;
+}
+function fitBaseline(){
+  const keep = {a:CFG.cellAspect, c:CFG.cols, r:CFG.rows};
+  CFG.cellAspect = 75/57; CFG.cols = 5; CFG.rows = 5;
+  const f = fitGrid();
+  CFG.cellAspect = keep.a; CFG.cols = keep.c; CFG.rows = keep.r;
+  return f;
+}
+
+// ── shape builders (SVG, so the geometry is exact and scales) ──────────────
+const esc = s => String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+function rarStyle(t){
+  return `stroke:${CFG.rar[t]};stroke-width:${CFG.borderW};filter:drop-shadow(0 0 ${CFG.glow}px ${CFG.rar[t]}88)`;
+}
+
+function fileSVG(tier, sample, W, H){
+  const r = CFG.radius, c = CFG.rar[tier];
+  const faceCol = CFG.deck==='spectrum' ? COLOR_HEX[sample.c] : CFG.faceDark;
+  const ink = (CFG.deck==='spectrum' && (sample.c==='white'||sample.c==='yellow')) ? '#1a1712' : '#f4eeda';
+  const bodyFill = CFG.fileColorMode==='body' ? faceCol : CFG.faceDark;
+  let outline, tabEl='';
+  if (CFG.fileTab === 'fold'){
+    const f = H * CFG.fileFold/100;
+    outline = `<path d="M${r},0 H${W-f} L${W},${f} V${H-r} a${r},${r} 0 0 1 -${r},${r} H${r} a${r},${r} 0 0 1 -${r},-${r} V${r} a${r},${r} 0 0 1 ${r},-${r} z"
+      fill="${bodyFill}" style="${rarStyle(tier)}"/>
+      <path d="M${W-f},0 L${W},${f} H${W-f} z" fill="rgba(0,0,0,.42)" stroke="${c}" stroke-width="${Math.max(1,CFG.borderW*.6)}"/>`;
+  } else {
+    const tw = W*CFG.fileTabW/100, th = H*CFG.fileTabH/100, tx = W*CFG.fileTabX/100;
+    outline = `<path d="M${tx+r},0 h${tw-2*r} a${r},${r} 0 0 1 ${r},${r} v${th-r} H${W-r} a${r},${r} 0 0 1 ${r},${r}
+      V${H-r} a${r},${r} 0 0 1 -${r},${r} H${r} a${r},${r} 0 0 1 -${r},-${r} V${th+r} a${r},${r} 0 0 1 ${r},-${r} H${tx}
+      V${r} a${r},${r} 0 0 1 ${r},-${r} z" fill="${bodyFill}" style="${rarStyle(tier)}"/>`;
+    if (CFG.fileColorMode==='tab') tabEl = `<rect x="${tx+1}" y="1" width="${tw-2}" height="${th}" fill="${faceCol}" rx="${r}"/>`;
+  }
+  const topPad = CFG.fileTab==='tab' ? H*CFG.fileTabH/100 : 0;
+  const bandH = (H-topPad) * CFG.fileBand/100;
+  const band = CFG.fileBand>0 ? `<rect x="${W*.1}" y="${H-bandH-H*.07}" width="${W*.8}" height="${bandH}"
+      fill="${CFG.fileColorMode==='band'?faceCol:'rgba(240,230,200,.13)'}" rx="2"/>` : '';
+  const label = CFG.deck==='spectrum' ? esc(sample.v) : esc(sample.v)+esc(sample.s);
+  const fs = (H-topPad) * CFG.fileValue/100;
+  return `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">${outline}${tabEl}${band}
+    <text x="${W/2}" y="${topPad + (H-topPad-bandH)/2}" fill="${CFG.fileColorMode==='body'?ink:'#f4eeda'}"
+      font-family="Orbitron,sans-serif" font-weight="800" font-size="${fs}"
+      text-anchor="middle" dominant-baseline="central">${label}</text></svg>`;
+}
+
+function floppySVG(tier, W){
+  const H = W*CFG.flopAspect, ch = W*CFG.flopChamfer/100, r = CFG.radius;
+  const sw = W*CFG.flopShutW/100, sh = H*CFG.flopShutH/100;
+  const sx = (W - sw) * CFG.flopShutX/100;
+  const lt = H*CFG.flopLabelTop/100, li = W*CFG.flopLabelInset/100;
+  const hub = W*CFG.flopHub/100;
+  const body = `<path d="M${r},0 H${W-ch} L${W},${ch} V${H-r} a${r},${r} 0 0 1 -${r},${r} H${r}
+    a${r},${r} 0 0 1 -${r},-${r} V${r} a${r},${r} 0 0 1 ${r},-${r} z" fill="#1b1813" style="${rarStyle(tier)}"/>`;
+  const shutter = `<g>
+    <rect x="${sx}" y="${H*.045}" width="${sw}" height="${sh}" rx="1.5" fill="#b9bcc2"/>
+    <rect x="${sx}" y="${H*.045}" width="${sw}" height="${sh}" rx="1.5" fill="url(#metal)"/>
+    <rect x="${sx+sw*.16}" y="${H*.045+sh*.16}" width="${sw*.42}" height="${sh*.68}" rx="1" fill="#2a2d33"/>
+  </g>`;
+  const label = `<rect x="${li}" y="${lt}" width="${W-li*2}" height="${H-lt-H*.09}" rx="2"
+    fill="rgba(240,230,200,.9)"/>
+    <rect x="${li+W*.05}" y="${lt+H*.09}" width="${(W-li*2)*.62}" height="${H*.05}" fill="rgba(30,26,20,.35)"/>
+    <rect x="${li+W*.05}" y="${lt+H*.20}" width="${(W-li*2)*.44}" height="${H*.05}" fill="rgba(30,26,20,.22)"/>`;
+  const hubEl = hub>0 ? `<circle cx="${W/2}" cy="${lt-H*.055}" r="${hub/2}" fill="#0e0c09" stroke="#3a352c"/>` : '';
+  return `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">
+    <defs><linearGradient id="metal" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e6e9ee" stop-opacity=".95"/><stop offset=".5" stop-color="#9aa0a8" stop-opacity=".9"/>
+      <stop offset="1" stop-color="#cfd4da" stop-opacity=".92"/></linearGradient></defs>
+    ${body}${hubEl}${shutter}${label}</svg>`;
+}
+
+function badgeSVG(tier, W){
+  const H = W/CFG.badgeAspect, r = CFG.radius, c = CFG.rar[tier];
+  const pw = W*CFG.badgePhoto/100, st = Math.max(2, H*CFG.badgeStripeH/100);
+  let stripe = '';
+  if (CFG.badgeStripe==='top')    stripe = `<rect x="0" y="0" width="${W}" height="${st}" fill="${c}"/>`;
+  if (CFG.badgeStripe==='bottom') stripe = `<rect x="0" y="${H-st}" width="${W}" height="${st}" fill="${c}"/>`;
+  if (CFG.badgeStripe==='left')   stripe = `<rect x="0" y="0" width="${st}" height="${H}" fill="${c}"/>`;
+  const slotW = W*CFG.badgeSlot/100;
+  const slot = CFG.badgeSlotOn ? `<rect x="${(W-slotW)/2}" y="${H*.07}" width="${slotW}" height="${H*.055}" rx="${H*.028}"
+    fill="#080706" stroke="rgba(240,230,200,.3)" stroke-width="1"/>` : '';
+  const topPad = CFG.badgeSlotOn ? H*.17 : (CFG.badgeStripe==='top' ? st+H*.06 : H*.09);
+  const lx = W*.055 + (pw>0 ? pw + W*.055 : 0);
+  const lines = `
+    <rect x="${lx}" y="${topPad+H*.06}" width="${(W-lx-W*.07)*.9}" height="${H*.1}" rx="1.5" fill="rgba(240,230,200,.82)"/>
+    <rect x="${lx}" y="${topPad+H*.24}" width="${(W-lx-W*.07)*.62}" height="${H*.075}" rx="1.5" fill="rgba(240,230,200,.4)"/>
+    <rect x="${lx}" y="${topPad+H*.39}" width="${(W-lx-W*.07)*.44}" height="${H*.06}" rx="1.5" fill="${c}" opacity=".85"/>`;
+  return `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">
+    <rect x="0" y="0" width="${W}" height="${H}" rx="${r}" fill="#191510" style="${rarStyle(tier)}"/>
+    ${stripe}${slot}
+    <rect x="${W*.055}" y="${topPad}" width="${pw}" height="${H-topPad-H*.1}" rx="2" fill="#2b2621" ${pw>0?'':'opacity="0"'}/>
+    <circle cx="${W*.055+pw/2}" cy="${topPad+(H-topPad-H*.1)*.36}" r="${Math.min(pw,H)*.17}" fill="rgba(240,230,200,.32)" ${pw>0?'':'opacity="0"'}/>
+    <path d="M${W*.055+pw*.2},${topPad+(H-topPad-H*.1)*.92} a${pw*.3},${pw*.26} 0 0 1 ${pw*.6},0 z"
+      fill="rgba(240,230,200,.32)" ${pw>0?'':'opacity="0"'}/>
+    ${lines}</svg>`;
+}
+
+// ── render ─────────────────────────────────────────────────────────────────
+function render(){
+  renderFit();
+  const f = fitGrid();
+  document.getElementById('modeNote').textContent =
+    CFG.deck==='spectrum' ? 'Spectrum deck · colour + value, no suit' : 'Classic deck · rank + suit';
+
+  const samples = CFG.deck==='spectrum' ? SPECTRUM_SAMPLES : CLASSIC_SAMPLES;
+  document.getElementById('shelfFile').innerHTML = TIERS.map((t,i) => `
+    <div class="spec">${fileSVG(t, samples[i%samples.length], f.w, f.h)}<div class="cap">${TIER_WORD[t]}</div></div>`).join('')
+    + `<div class="spec" style="opacity:.75">${fileSVG('rare', samples[0], f.w*1.9, f.h*1.9)}<div class="cap">detail</div></div>`;
+
+  document.getElementById('shelfFloppy').innerHTML = TIERS.map(t => `
+    <div class="spec">${floppySVG(t, 74)}<div class="cap">${TIER_WORD[t]}</div></div>`).join('')
+    + `<div class="spec" style="opacity:.9">${floppySVG('legendary', 150)}<div class="cap">detail</div></div>`;
+
+  document.getElementById('shelfBadge').innerHTML = TIERS.map(t => `
+    <div class="spec">${badgeSVG(t, f.w)}<div class="cap">${HIRE_WORD[t]}</div></div>`).join('')
+    + `<div class="spec" style="opacity:.9">${badgeSVG('epic', f.w*1.9)}<div class="cap">detail</div></div>`;
+
+  dump(f);
+}
+
+function dump(f){
+  document.getElementById('dumpText').value =
+`// art-preview.html -> paste into js/data/ or css custom properties.
+// Cell geometry is what the GRID uses; the rest is per-entity shape.
+const ART_CFG = {
+  deck: '${CFG.deck}',
+  grid: { rows: ${CFG.rows}, cols: ${CFG.cols}, cellAspect: ${CFG.cellAspect},
+          // resulting cell at the real landscape slot (336 x 362 design px):
+          cardW: ${f.w}, cardH: ${f.h},
+          unusedW: '${Math.round(f.unusedW*100)}%', unusedH: '${Math.round(f.unusedH*100)}%',
+          clampedByFloor: ${f.hitFloor}${f.hitFloor ? ", // wanted "+f.rawW+"x"+f.rawH : ''} },
+  rarity: {
+    common:    '${CFG.rar.common}',
+    rare:      '${CFG.rar.rare}',
+    epic:      '${CFG.rar.epic}',
+    legendary: '${CFG.rar.legendary}',
+  },
+  chrome: { borderW: ${CFG.borderW}, glow: ${CFG.glow}, radius: ${CFG.radius} },
+  file:   { silhouette: '${CFG.fileTab}', fold: ${CFG.fileFold}, tabW: ${CFG.fileTabW},
+            tabH: ${CFG.fileTabH}, tabX: ${CFG.fileTabX}, colorMode: '${CFG.fileColorMode}',
+            band: ${CFG.fileBand}, valueSize: ${CFG.fileValue} },
+  floppy: { aspect: ${CFG.flopAspect}, chamfer: ${CFG.flopChamfer}, shutterW: ${CFG.flopShutW},
+            shutterH: ${CFG.flopShutH}, shutterX: ${CFG.flopShutX}, labelTop: ${CFG.flopLabelTop},
+            labelInset: ${CFG.flopLabelInset}, hub: ${CFG.flopHub} },
+  badge:  { aspect: ${CFG.badgeAspect}, photo: ${CFG.badgePhoto}, stripe: '${CFG.badgeStripe}',
+            stripeH: ${CFG.badgeStripeH}, slot: ${CFG.badgeSlot}, slotOn: ${!!CFG.badgeSlotOn} },
+};`;
+}
+document.getElementById('copyBtn').addEventListener('click', () => {
+  const t = document.getElementById('dumpText'); t.select(); document.execCommand('copy');
+  const b = document.getElementById('copyBtn'); b.textContent = 'Copied'; setTimeout(()=>b.textContent='Copy', 1200);
+});
+
+buildRail(); render();
+</script>
+</body>
+</html>
