@@ -11,7 +11,7 @@ function showTrickChoiceOverlay() {
       const card = document.createElement('div');
       card.className = `trick-choice-card tier-${trick.tier}${isPending ? ' trick-choice-pending' : ''}`;
       card.innerHTML = `
-        <div class="trick-choice-tier">${trick.tier}</div>
+        <div class="trick-choice-tier">${tierLabel('trick', trick.tier)}</div>
         <div class="trick-choice-emoji">${trickEmoji(trick)}</div>
         <div class="trick-choice-name">${trick.name}</div>
         ${isPending ? '<div class="trick-choice-confirm">Tap to confirm</div>' : '<div class="trick-choice-hold">hover / hold for details</div>'}
@@ -331,7 +331,7 @@ function renderTrickTray() {
     return;
   }
   // Reward-grid-style CRT/neon card tiles inside a scrolling marquee track (r113).
-  const RARS = ['common','rare','epic','legendary','mythic'];
+  const RARS = ['common','rare','epic','legendary'];
   const track = document.createElement('div');
   track.className = 'chip-marquee';
   trickTray.forEach(trick => {
@@ -553,7 +553,7 @@ async function confirmFullscreenTrickSelection(trick) {
 
   const flyEl = document.createElement('div');
   flyEl.className = `trick-card trick-tier-${trick.tier} temp-anim`;
-  flyEl.innerHTML = `<div class="trick-tier-label">${trick.tier.charAt(0).toUpperCase()}</div><div class="trick-name">${trick.name}</div>`;
+  flyEl.innerHTML = `<div class="trick-tier-label">${tierInitial('trick', trick.tier)}</div><div class="trick-name">${trick.name}</div>`;
   flyEl.dataset.cardId = String(trickIdCounter);
   flyEl.style.cssText = `position:absolute;width:${CARD_W}px;height:${CARD_H}px;left:${destX}px;top:${destY - dropDist}px;opacity:0;pointer-events:none;z-index:20;`;
   gridEl.appendChild(flyEl);

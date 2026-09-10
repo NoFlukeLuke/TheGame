@@ -157,7 +157,7 @@ const BAL = {
   chorus:      { mult_mult_per_replay: 0.2 },
   portfolio:   { mult_mult_per_card: 0.15 },
   redline:     { focus_threshold: 2, mult_mult: 2 },
-  // Compound (mythic): every interval_seconds of round time the current round score
+  // Compound (legendary): every interval_seconds of round time the current round score
   // is banked; the next scored hand pays bank_fraction of it again. Repeats, so the
   // score compounds across a round rather than doubling once.
   compound:    { interval_seconds: 45, bank_fraction: 1 },

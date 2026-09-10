@@ -865,8 +865,7 @@
   #stage:not(.landscape) .trick-tray-chip.rar-common    { --rc: var(--c-mint); }
   #stage:not(.landscape) .trick-tray-chip.rar-rare      { --rc: var(--c-cyan); }
   #stage:not(.landscape) .trick-tray-chip.rar-epic      { --rc: var(--c-purple); }
-  #stage:not(.landscape) .trick-tray-chip.rar-legendary { --rc: var(--c-yellow); }
-  #stage:not(.landscape) .trick-tray-chip.rar-mythic    { --rc: var(--c-magenta); }
+  #stage:not(.landscape) .trick-tray-chip.rar-legendary { --rc: var(--c-magenta); }
   /* The "n/5" count sits bottom-right of the tray rather than inline, where the
      label used to be pushed around by the chips. */
   /* Column, so the "n/10" count has its own line instead of being buried under
@@ -1763,15 +1762,17 @@
     border: 2px solid #9b4dca;
     box-shadow: 0 0 10px rgba(155,77,202,0.5);
   }
+  /* Top tier (Deluxe / Executive). Took the crimson look and the faster pulse
+     from the retired mythic tier in r197 - it is the loudest tier now. */
   .trick-card.trick-tier-legendary {
-    background: linear-gradient(160deg, #2a1a00 0%, #1a1000 100%);
-    border: 2px solid #e8b84b;
-    box-shadow: 0 0 12px rgba(232,184,75,0.6);
+    background: linear-gradient(160deg, #2a0012 0%, #16000a 100%);
+    border: 2px solid #ff4d6d;
+    box-shadow: 0 0 12px rgba(255,77,109,0.6);
     animation: trick-legendary-pulse 2s ease-in-out infinite;
   }
   @keyframes trick-legendary-pulse {
-    0%, 100% { box-shadow: 0 0 10px rgba(232,184,75,0.5); }
-    50%       { box-shadow: 0 0 20px rgba(232,184,75,0.9); }
+    0%, 100% { box-shadow: 0 0 10px rgba(255,77,109,0.5); }
+    50%       { box-shadow: 0 0 22px rgba(255,77,109,0.95); }
   }
   .trick-tier-label {
     font-family: 'Cinzel', serif;
@@ -1781,24 +1782,11 @@
   .trick-tier-common  .trick-tier-label { color: #6aaa6a; }
   .trick-tier-rare    .trick-tier-label { color: #6a9fea; }
   .trick-tier-epic    .trick-tier-label { color: #9b4dca; }
-  .trick-tier-legendary .trick-tier-label { color: #e8b84b; }
-  /* Mythic tier (crimson) */
-  .trick-card.trick-tier-mythic {
-    background: linear-gradient(160deg, #2a0012 0%, #16000a 100%);
-    border: 2px solid #ff4d6d;
-    box-shadow: 0 0 12px rgba(255,77,109,0.6);
-    animation: trick-mythic-pulse 2s ease-in-out infinite;
-  }
-  @keyframes trick-mythic-pulse {
-    0%, 100% { box-shadow: 0 0 10px rgba(255,77,109,0.5); }
-    50%       { box-shadow: 0 0 22px rgba(255,77,109,0.95); }
-  }
-  .trick-tier-mythic .trick-tier-label { color: #ff4d6d; }
-  /* (mythic tier colour: see .rar-mythic → --rc, r182) */
-  #trick-tooltip.trick-tier-mythic { border-color: #ff4d6d; }
-  .shop-trick-card.trick-tier-mythic { background: linear-gradient(160deg,#2a0012,#16000a); border: 2px solid #ff4d6d; box-shadow: 0 0 10px rgba(255,77,109,0.5); animation: trick-mythic-pulse 2s ease-in-out infinite; }
-  .trick-choice-card.tier-mythic { border: 2px solid #ff4d6d; box-shadow: 0 0 16px rgba(255,77,109,0.4); animation: trick-mythic-pulse 2s ease-in-out infinite; }
-  .tier-mythic .trick-choice-tier { color: #ff4d6d; }
+  .trick-tier-legendary .trick-tier-label { color: #ff4d6d; }
+  #trick-tooltip.trick-tier-legendary { border-color: #ff4d6d; }
+  .shop-trick-card.trick-tier-legendary { background: linear-gradient(160deg,#2a0012,#16000a); border: 2px solid #ff4d6d; box-shadow: 0 0 10px rgba(255,77,109,0.5); animation: trick-legendary-pulse 2s ease-in-out infinite; }
+  .trick-choice-card.tier-legendary { border: 2px solid #ff4d6d; box-shadow: 0 0 16px rgba(255,77,109,0.4); animation: trick-legendary-pulse 2s ease-in-out infinite; }
+  .tier-legendary .trick-choice-tier { color: #ff4d6d; }
   .trick-name {
     font-family: 'Cinzel', serif;
     font-size: calc(var(--card-h, 75px) * 0.105); font-weight: 600;
@@ -1834,7 +1822,7 @@
   #trick-tooltip.trick-tier-common  { border-color: #4a7a4a; }
   #trick-tooltip.trick-tier-rare    { border-color: #3a6fca; }
   #trick-tooltip.trick-tier-epic    { border-color: #9b4dca; }
-  #trick-tooltip.trick-tier-legendary { border-color: #e8b84b; }
+  #trick-tooltip.trick-tier-legendary { border-color: #ff4d6d; }
   .trick-tooltip-name {
     font-family: 'Cinzel', serif;
     font-size: 10px; font-weight: 700;
@@ -2661,7 +2649,7 @@
   .trick-choice-card.tier-common   { border: 2px solid #4a7a4a; }
   .trick-choice-card.tier-rare     { border: 2px solid #3a6fca; box-shadow: 0 0 12px rgba(58,111,202,0.3); }
   .trick-choice-card.tier-epic     { border: 2px solid #9b4dca; box-shadow: 0 0 14px rgba(155,77,202,0.35); }
-  .trick-choice-card.tier-legendary { border: 2px solid #e8b84b; box-shadow: 0 0 16px rgba(232,184,75,0.4); animation: trick-legendary-pulse 2s ease-in-out infinite; }
+  .trick-choice-card.tier-legendary { border: 2px solid #ff4d6d; box-shadow: 0 0 16px rgba(255,77,109,0.4); animation: trick-legendary-pulse 2s ease-in-out infinite; }
   .trick-choice-card.trick-choice-pending {
     transform: translateY(-6px) scale(1.03);
     box-shadow: 0 0 24px rgba(232,184,75,0.7) !important;
@@ -2674,7 +2662,7 @@
   .tier-common  .trick-choice-tier { color: #6aaa6a; }
   .tier-rare    .trick-choice-tier { color: #6a9fea; }
   .tier-epic    .trick-choice-tier { color: #9b4dca; }
-  .tier-legendary .trick-choice-tier { color: #e8b84b; }
+  .tier-legendary .trick-choice-tier { color: #ff4d6d; }
   .trick-choice-emoji {
     font-size: 34px; line-height: 1; margin: 2px 0;
   }
@@ -3206,8 +3194,7 @@
   .reward-cell.rar-common,    #reward-tooltip.rar-common    { --rc: var(--c-mint); }
   .reward-cell.rar-rare,      #reward-tooltip.rar-rare      { --rc: var(--c-cyan); }
   .reward-cell.rar-epic,      #reward-tooltip.rar-epic      { --rc: var(--c-purple); }
-  .reward-cell.rar-legendary, #reward-tooltip.rar-legendary { --rc: var(--c-yellow); }
-  .reward-cell.rar-mythic,    #reward-tooltip.rar-mythic    { --rc: var(--c-magenta); }
+  .reward-cell.rar-legendary, #reward-tooltip.rar-legendary { --rc: var(--c-magenta); }
 
   .reward-cell.entity {
     border: 2px solid var(--rc);
@@ -4298,8 +4285,7 @@
   #stage.landscape .trick-tray-chip.rar-common    { --rc: var(--c-mint); }
   #stage.landscape .trick-tray-chip.rar-rare      { --rc: var(--c-cyan); }
   #stage.landscape .trick-tray-chip.rar-epic      { --rc: var(--c-purple); }
-  #stage.landscape .trick-tray-chip.rar-legendary { --rc: var(--c-yellow); }
-  #stage.landscape .trick-tray-chip.rar-mythic    { --rc: var(--c-magenta); }
+  #stage.landscape .trick-tray-chip.rar-legendary { --rc: var(--c-magenta); }
   /* Frame only - the neon card itself is the shared .reward-cell child (r182).
      The size has to be stated: the chip used to borrow `width: var(--card-w)`
      from .trick-card, and without it the chip and its child sized off each
@@ -4523,8 +4509,7 @@
 .sleight-card.sl-rar-common    { --sl-rc: var(--c-mint,#35d59b); }
 .sleight-card.sl-rar-rare      { --sl-rc: var(--c-cyan,#16c8d8); }
 .sleight-card.sl-rar-epic      { --sl-rc: var(--c-purple,#9a6cff); }
-.sleight-card.sl-rar-legendary { --sl-rc: var(--c-yellow,#ffce2b); }
-.sleight-card.sl-rar-mythic    { --sl-rc: var(--c-magenta,#ff2f8e); }
+.sleight-card.sl-rar-legendary { --sl-rc: var(--c-magenta,#ff2f8e); }
 .sleight-card.sl-rar-fixture   { --sl-rc: var(--c-coral,#ff6a3c); }
 /* Rarity edge is the RESTING look only - it must not repaint the selected or
    swap-armed states, which sit earlier in this file and would lose the tie. */

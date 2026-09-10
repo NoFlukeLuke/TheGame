@@ -85,7 +85,7 @@ function startRoundTimer() {
       cuckooNextMinute += BAL.cuckoo.interval_seconds;
       if (retriggersThisRound > 0) pauseRound(retriggersThisRound);
     }
-    // Compound (mythic): bank the round score at each mark. It is paid out by the
+    // Compound (legendary): bank the round score at each mark. It is paid out by the
     // NEXT scored hand, so a mark passing with nothing scored yet banks nothing -
     // the trick rewards scoring early and compounds from there.
     if (hasTrick('compound') && _elapsedRound >= compoundNextMark) {

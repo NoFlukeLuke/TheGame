@@ -193,7 +193,7 @@
 
 #mart-overlay .m-item .price{ position:absolute; top:3px; right:4px; z-index:3; font-family:'Share Tech Mono',monospace; font-size:8px; color:var(--phosphor); background:rgba(0,0,0,0.6); border:1px solid rgba(255,176,46,0.5); border-radius:5px; padding:0 3px; }
 #mart-overlay .m-item .price.cant{ color:#ff5a6a; border-color:rgba(255,90,106,.55); }
-#mart-overlay .r-common{ --rc:var(--c-mint); } #mart-overlay .r-rare{ --rc:var(--c-cyan); } #mart-overlay .r-epic{ --rc:var(--c-purple); } #mart-overlay .r-legendary{ --rc:var(--c-yellow); } #mart-overlay .r-mythic{ --rc:var(--c-magenta); }
+#mart-overlay .r-common{ --rc:var(--c-mint); } #mart-overlay .r-rare{ --rc:var(--c-cyan); } #mart-overlay .r-epic{ --rc:var(--c-purple); } #mart-overlay .r-legendary{ --rc:var(--c-magenta); }
 
 /* frozen item (WIP freeze): halt float + blue tinge */
 #mart-overlay .m-item.frozen{ filter:brightness(.92) saturate(.7); }

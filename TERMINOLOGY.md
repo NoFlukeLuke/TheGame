@@ -1,0 +1,142 @@
+# TERMINOLOGY
+
+The one reference for what things are CALLED. If you are renaming anything the
+player reads, start here and change nothing else until this file is updated.
+
+## The rule that makes renames cheap
+
+**Code identifiers never change. Only display strings change.**
+
+`tier:'epic'` stays `'epic'` in the data files forever. A single lookup turns it
+into "Plus" on screen. The same goes for `trick`, `sleight`, `knack`, `card`:
+those words are frozen in the code and are only translated at the moment they are
+drawn.
+
+Rename the ids too and you break, all at once: every save file (`SAVE_VARS`
+round-trips these strings), every CSS class (`rar-epic`, `trick-tier-epic`,
+`sl-rar-epic`), every grep in CLAUDE.md, and every entry in the three data pools.
+For nothing: the player never sees an id.
+
+So a future rename is one column of this file plus one row of `TIER_LABELS` or
+`ENTITY_LABELS`. That is the whole job.
+
+**Corollary: never print an id.** `tier.toUpperCase()` looks harmless and is how
+the old vocabulary leaked into eight different screens. Display goes through
+`tierLabel()` / `tierInitial()` (js/labels.js). If you find yourself upper-casing
+a raw id, you are creating the next rename's problem.
+
+## Entity categories
+
+| concept | code id (frozen) | player word | drawn as |
+|---|---|---|---|
+| playing card | `card` | **File** | upright file/folder icon |
+| scoring buff, side tray | `trick` | **Utility** | floppy disc |
+| deck card with an effect | `sleight` | **Hire** | ID badge |
+| permanent rule-changer | `knack` | **Cert** | line on your record |
+| currency | `coins` | **Credits** | (unchanged) |
+
+## Scoring vocabulary
+
+| concept | code id (frozen) | player word | notes |
+|---|---|---|---|
+| per-card score input | `pips` | **WORK** | the raw material you put in |
+| hand multiplier | `mult` | **SKILL** | how good an arrangement you found |
+| tempo meter | `focus` | **FOCUS** | unchanged |
+| lifetime banked score | `totalScore` | **OUTPUT** | |
+| per-round target | `roundGoal` | **QUOTA** | |
+
+`SKILL` and `FOCUS` are both 5 characters, matching the existing chip width. Any
+future replacement longer than 5 needs a measuring pass on the landscape chip row
+(`#score-subboxes`).
+
+The tutorial framing these support:
+
+> Your goal is to produce sufficient output in a timely manner. Your required
+> output is listed here, under quota. You produce output by doing work, and you
+> can improve the output of your work through skill and focus.
+
+## Rarity ladders
+
+Four tiers. Each entity type grades on its own ladder, because a floppy disc and
+a person are not graded the same way, but they share one colour spine so the
+player learns the ordering once.
+
+| code id (frozen) | colour | Utility (trick) | Hire (sleight) | Cert (knack) |
+|---|---|---|---|---|
+| `common` | mint | **Lite** | **Temp** | *(TBD)* |
+| `rare` | cyan | **Standard** | **Contractor** | *(TBD)* |
+| `epic` | purple | **Plus** | **Staff** | not used |
+| `legendary` | magenta | **Deluxe** | **Executive** | not used |
+
+**Certs use only two tiers, deliberately.** The knack pool has 24 common and 24
+rare and that is the shape it is meant to be. The two names are still to be
+chosen; until then they display as Common / Rare.
+
+**`mythic` was merged into `legendary` (r197).** Five tiers meant the top two were
+one tier wearing two hats: 12 of 177 Utilities and 4 of 40 Hires between them, at
+2% and 1% drop weights. Across a Classic run's ~18 Hire offers that is 0.36
+expected Legendaries and 0.18 Mythics, so most runs met neither, and a tier the
+player never meets teaches nothing. `mythic` is not a valid tier id any more.
+
+The retired fifth colour is **yellow**. The top tier took magenta rather than
+yellow so that it also inherits the pulse animation the old mythic tier had.
+
+### What each Hire tier means mechanically
+
+The Hire ladder is not a power ranking, it is a **duration** ranking, and that is
+the point of it. The tier says how long you keep them:
+
+| tier | keeps |
+|---|---|
+| Temp | expires after N rounds |
+| Contractor | N uses, then gone (this is `durability` / `_usesLeft`) |
+| Staff | permanent |
+| Executive | permanent, and scales with the run |
+
+Contractor maps 1:1 onto the charge system Sleights already have. Do not drop that
+rung when reshuffling the ladder.
+
+### Utility versions are a SECOND axis, not part of the tier
+
+A Utility upgraded by the improvements system gains a version: `Standard v3.0`.
+Tier is what you found; version is what you have done to it since. They read as
+different things at a glance, which is the whole reason they are separate fields.
+
+## Superseded words
+
+Kept so an old screenshot, comment or commit message can still be decoded.
+
+| old | current |
+|---|---|
+| Bonus Card / BC | Trick -> **Utility** |
+| Joker | Sleight -> **Hire** |
+| Totem | Knack -> **Cert** |
+| Personnel File (RECORDS tab) | Owned |
+| mythic | merged into `legendary` -> **Deluxe** / **Executive** |
+| Mythic / Legendary (two tiers) | one top tier |
+| PIPS | **WORK** |
+| MULT | **SKILL** |
+| coins | Credits |
+
+## Where the strings live
+
+- **js/labels.js** - `TIER_LABELS`, `ENTITY_LABELS`, `tierLabel()`,
+  `tierInitial()`. The only place a tier or category word is spelled out.
+- **js/data/*.js** - carry ids only. A `name:` or `desc:` here is content, not
+  vocabulary, and is renamed by hand.
+- **css/*.css** - class names are ids (`rar-legendary`, `trick-tier-common`).
+  They do not change when a display word does.
+- **index.html** - a handful of hard-coded labels in the action buttons and the
+  score panel.
+
+## Doing a future rename
+
+1. Change the word in the table above.
+2. Change the matching row in `js/labels.js`.
+3. Add the old word to **Superseded words**.
+4. `grep -rn "<old word>" js/ css/ index.html` and fix any content strings
+   (entity names, descriptions, tutorial copy) - those are prose, not vocabulary,
+   so they are not covered by the label table.
+
+Nothing else should need touching. If it does, that site is printing an id, and
+the fix is to route it through `js/labels.js` rather than to edit it in place.

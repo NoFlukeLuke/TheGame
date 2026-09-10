@@ -130,7 +130,7 @@ function renderEventShell(id) {
 // five tiers, same five colours as a reward-grid tile, so an epic looks like an
 // epic wherever you meet it. Anything off the tier list (or a debuff, which owns
 // its own red) is left uncoloured rather than guessed at.
-const EV_TIERS = ['common', 'rare', 'epic', 'legendary', 'mythic'];
+const EV_TIERS = ['common', 'rare', 'epic', 'legendary'];
 
 function makeChoiceEl(opts) {
   // opts: { icon, rarity, name, desc, cost, cls, onClick }

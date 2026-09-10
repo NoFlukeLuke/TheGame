@@ -673,7 +673,7 @@ function devRenderSleights() {
   list.innerHTML = SLEIGHT_POOL.map(j => {
     const owned = grantedSleightIds.has(j.id);
     return `<div class="dev-trick-item">
-      <span class="dev-trick-name">${j.emoji} ${j.name} <span style="color:var(--gold-dim);font-size:9px">${j.rarity}</span>${owned?' ✓':''}</span>
+      <span class="dev-trick-name">${j.emoji} ${j.name} <span style="color:var(--gold-dim);font-size:9px">${tierLabel('sleight', j.rarity)}</span>${owned?' ✓':''}</span>
       <button class="dev-trick-add" onclick="devAddSleight('${j.id}')" ${owned?'disabled style="opacity:0.5"':''}>
         ${owned?'Granted':'+ Add'}
       </button>

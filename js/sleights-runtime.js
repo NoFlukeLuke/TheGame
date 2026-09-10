@@ -34,7 +34,7 @@ function sleightFace(card, def) {
 // Rarity → the card's edge colour, as a class both render paths add.
 function sleightRarityClass(def) {
   const r = def && def.rarity;
-  return ['common','rare','epic','legendary','mythic','fixture'].includes(r) ? ' sl-rar-' + r : ' sl-rar-common';
+  return ['common','rare','epic','legendary','fixture'].includes(r) ? ' sl-rar-' + r : ' sl-rar-common';
 }
 
 // Markup shared by both render paths (js/render.js and js/card-fall.js) so the

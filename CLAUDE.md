@@ -18,6 +18,7 @@ The game **used to be one giant `index.html`**. It's now split into many small f
 - `css/dance.css` - the score-“dance” / hand-preview animation styles.
 - `css/dev-overlays.css` - dev-panel + event-overlay styling.
 - `js/` - the game code, one file per system (list below).
+- `TERMINOLOGY.md` - **the index of what things are CALLED.** Read it before renaming anything the player sees. The governing rule: code ids are frozen, only display strings change, and every tier/category word is spelled out in `js/labels.js` and nowhere else.
 - `js/entity-tile.js` - **`entityTileInner` / `entityTileHTML` (r182): the ONE way an entity is drawn.** See "One entity tile" below - change a Trick's look here and the reward grid, the Mart shelf, the cart, the loadout strip, your tray and the Shift Change event all move together.
 - `js/fit-text.js` - `fitEntityName`. Shrinks an entity name until it fits, **never breaking a word** (r182).
 - `js/storage.js` - **loads FIRST**, before every other script. A safety shim for browser storage (see below). Nothing else may be moved above it.
@@ -44,7 +45,7 @@ The game **used to be one giant `index.html`**. It's now split into many small f
 
 **How the split works (important - don't break this):** all `js/*.js` files are plain **classic scripts that share one global scope** - a `const`/`let`/`function` defined in one file is visible to all the others, exactly as if they were still one big `<script>`. **Load order is preserved and matters:** the `<script>` tags in `index.html` are in the same order the code originally ran, because several files run set-up code at load time (event bindings; `LIMITS_DEF.forEach`, `TRICK_CATEGORIES.forEach`, `applyBalDescriptions()`; and `js/bootstrap.js` at the very end, which calls `initMainMenu()`). If you add a new `.js` file, put its `<script>` tag in the right spot (data files load up top with the rest; `bootstrap.js` stays last). If you're not sure which file a function lives in, `grep -rn "functionName" js/`.
 
-Rough guide to `js/` (engine): `menu` `devlog` `grid-metrics` `focus-config` `limits` `combos-aim` (combo families + aim sleights) · `deck-grid` (deck + gridData + curses) · `hand-detect` (findBestHand/detectHand) · `scoring` (calcScore, exalt/corrupt, contributions) · `render` · `focus` (focus meter) · `hud` · `input` (tap/swap/select) · `play-hand` · `score-anims` / `score-dance` (the scoring “dance”) · `discard` · `card-fall` (renderCardAppearance + fall anim) · `round-timers` · `boss` · `reward-grid` · `limit-break` · `sleights-runtime` · `events-core` / `events` · `interlude` / `level-up` / `tricks-ui` · `shop` · `hands-meta` · `stats` · `deck-view` · `records` (the tabbed info hub) · `settings` (player options) · `game-control` (pause/resume/startGame) · `challenge` · `audio` · `dev-panel` · `save` (run save/resume) · `history` (finished-run log) · `portrait-panel` (portrait shared strip) · `pmf-merge` (the PIPS·MULT·FOCUS fuse) · `hand-log` (the SCORE-box hand record) · `boss-approach` (the pre-boss dread + score wipe) · `bootstrap` (runs last).
+Rough guide to `js/` (engine): `labels` (tier + category words - see TERMINOLOGY.md) · `menu` `devlog` `grid-metrics` `focus-config` `limits` `combos-aim` (combo families + aim sleights) · `deck-grid` (deck + gridData + curses) · `hand-detect` (findBestHand/detectHand) · `scoring` (calcScore, exalt/corrupt, contributions) · `render` · `focus` (focus meter) · `hud` · `input` (tap/swap/select) · `play-hand` · `score-anims` / `score-dance` (the scoring “dance”) · `discard` · `card-fall` (renderCardAppearance + fall anim) · `round-timers` · `boss` · `reward-grid` · `limit-break` · `sleights-runtime` · `events-core` / `events` · `interlude` / `level-up` / `tricks-ui` · `shop` · `hands-meta` · `stats` · `deck-view` · `records` (the tabbed info hub) · `settings` (player options) · `game-control` (pause/resume/startGame) · `challenge` · `audio` · `dev-panel` · `save` (run save/resume) · `history` (finished-run log) · `portrait-panel` (portrait shared strip) · `pmf-merge` (the PIPS·MULT·FOCUS fuse) · `hand-log` (the SCORE-box hand record) · `boss-approach` (the pre-boss dread + score wipe) · `bootstrap` (runs last).
 
 ## Workflow
 
@@ -138,7 +139,7 @@ The old table had four inversions, all fixed:
 - **What is still xSCORE, deliberately:** Echo and Legacy (Sleights whose identity IS "the hand scores twice"), Low and Behold (a knack that replays the whole hand), the boss Redaction, and the dev-only grid Trick card. **Adding a new xSCORE needs a reason** - the default is xPIPS or xMULT.
 - **The pools are now 10 and 10.** Grep them, don't count descriptions - `perfect_storm` and `extinction` were miscounted for exactly that reason. `grep "totalPips = Math.round(totalPips \*" js/scoring.js` and the `mult` equivalent are the real inventory.
 - **The r190 additions cover triggers nothing else read**: Rerun / Chorus (replay count, from `_reps` - sum minus card count is the extra iterations), Deep Breath (clock paused), Interest (credits held, capped), Portfolio (buffed cards on the grid, via `permPips`/`permMult` - which are keyed by card IDENTITY, so a buff on Spectrum white counts seven cards), Redline (Focus level).
-- **Compound** (mythic) banks the round score every 45s on the round tick; the next scored hand pays the bank and it re-arms, so it compounds across a round. Its payout is added at **SCORE level, not as pips or mult** - it is a copy of score already earned, and routing it through mult x Focus would multiply it a second time.
+- **Compound** (top tier) banks the round score every 45s on the round tick; the next scored hand pays the bank and it re-arms, so it compounds across a round. Its payout is added at **SCORE level, not as pips or mult** - it is a copy of score already earned, and routing it through mult x Focus would multiply it a second time.
 
 ### Focus RATE vs Focus CAP (r190)
 
@@ -341,7 +342,7 @@ Beating a boss opens the **Prize Grid** instead of the ordinary reward grid (it 
 
 - **Two fewer rows and columns, floored at 3x3** (`Math.max(3, limits.grid_rows.current - 2)`). A 5x5 board gives a 3x3 prize; a 6x7 gives 4x5.
 - **Every cell is a reward.** The checkerboard (`(r+c)` even = buff, odd = debuff) is skipped entirely rather than having its debuff half swapped out, and there is no destination tile - a prize grid pays out, it doesn't route you anywhere. `debuffPos` comes out empty so the debuff fill loop simply never runs.
-- **Nothing common.** Common-tier Tricks/Sleights/Knacks are filtered out of their pools (each with a fall-back to the unfiltered list, so an exhausted pool gives a common rather than a blank tile), and `prizeCategories` omits the four common resource tiles (+1 swap, +1 discard, +15s, Windfall) and the Mystery tile - "probably good... probably" is a gamble, and this is a payout. `pickPrizeSleight()` is the shop's rarity table with `common` cut out. Verified over 500 generated grids: 0 common tiles, mix is rare/epic/legendary/mythic only.
+- **Nothing common.** Common-tier Tricks/Sleights/Knacks are filtered out of their pools (each with a fall-back to the unfiltered list, so an exhausted pool gives a common rather than a blank tile), and `prizeCategories` omits the four common resource tiles (+1 swap, +1 discard, +15s, Windfall) and the Mystery tile - "probably good... probably" is a gamble, and this is a payout. `pickPrizeSleight()` is the shop's rarity table with `common` cut out. Verified over 500 generated grids: 0 common tiles, mix is rare/epic/legendary only.
 
 `MIN_TRICK_TILES` drops from 5 to 2 here - a 9-tile grid can't also carry 5 Tricks.
 
@@ -990,6 +991,45 @@ into the coin - the detent and the digit of a counter wheel.
 Boss and Event buttons are **generated** from `BOSS_PRESETS` / `EVENT_META` (`devRenderBosses` / `devRenderEvents`) rather than hand-written, so new content can't go missing - this is how `the_hollow` was found to have been absent.
 
 🛠 button (bottom-right). Add Tricks / knacks / sleights by name, trigger any event/boss, adjust time/coins/score/limits, open reward grid. HUD section also has scoring-dance toggles (new dance on/off, interrupt mode). **Animation** group has the item-float, heartbeat and channel-change tuners. Invaluable for testing.
+
+## Rarity: four tiers, three ladders (r197)
+
+Tier ids are `common` `rare` `epic` `legendary` and are **frozen** - saves, CSS
+classes (`rar-epic`, `sl-rar-epic`, `trick-tier-epic`) and all three data pools
+key off them. What the player reads is a lookup in **`js/labels.js`**, which is
+the only file that spells a tier word out.
+
+| id | colour | Utility (trick) | Hire (sleight) | Cert (knack) |
+|---|---|---|---|---|
+| `common` | mint | Lite | Temp | Common |
+| `rare` | cyan | Standard | Contractor | Rare |
+| `epic` | purple | Plus | Staff | *unused* |
+| `legendary` | magenta | Deluxe | Executive | *unused* |
+
+- **`mythic` was merged into `legendary`.** Five tiers meant the top two were one
+  tier wearing two hats: 12 of 177 Tricks and 4 of 40 Sleights across both, at 2%
+  and 1% drop weights, so a Classic run's ~18 Sleight offers expected 0.36
+  Legendaries and 0.18 Mythics and most runs met neither. Weights are now
+  `[58, 28, 11, 3]`, measured at 0.54 top-tier offers a run. **`mythic` is not a
+  valid id.** `TIER_ALIASES` in labels.js maps it onto `legendary` so an old save
+  or a stale data entry resolves instead of blanking a tile.
+- **The top tier took magenta, not yellow**, and inherited the old mythic pulse -
+  it is the loudest tier now, and there is no fifth colour to spend.
+- **Knacks use two tiers deliberately** (the pool is 24 common / 24 rare). The
+  labels table maps `epic`/`legendary` onto Rare so a stray entry still renders.
+- **Never print a tier id.** `tier.toUpperCase()` is how the vocabulary got
+  hard-coded into eight screens; all of them now call `tierLabel(type, id)` /
+  `tierInitial(type, id)`. A new site that upper-cases an id silently opts out of
+  every future rename.
+- **The Hire ladder is a DURATION ladder, not a power ladder** - Temp expires,
+  Contractor has N uses (this is the existing `durability` / `_usesLeft`), Staff
+  is permanent, Executive is permanent and scales. Do not drop the Contractor
+  rung; it is the one the charge system was already built for.
+- **Two weight tables had to move together and one nearly didn't.**
+  `MART_WEIGHTS` in `js/mart-shop.js` is indexed against `MART_TIERS`; leaving it
+  at five entries made `martRollTier()` return `MART_TIERS[4]` (`undefined`) on
+  ~1% of rolls, which fell through to an untiered random pick. If you change the
+  tier count, grep for every weight array, not just the tier arrays.
 
 ## Conventions
 - Match surrounding code style (terse, inline, lots of single-line helpers).

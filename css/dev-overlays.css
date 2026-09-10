@@ -314,8 +314,7 @@
   .event-choice.rar-common    { --rc: var(--c-mint); }
   .event-choice.rar-rare      { --rc: var(--c-cyan); }
   .event-choice.rar-epic      { --rc: var(--c-purple); }
-  .event-choice.rar-legendary { --rc: var(--c-yellow); }
-  .event-choice.rar-mythic    { --rc: var(--c-magenta); }
+  .event-choice.rar-legendary { --rc: var(--c-magenta); }
   .event-choice:hover  { transform: translateY(-2px); filter: brightness(1.08); }
   .event-choice.selected {
     box-shadow: 0 0 0 2px var(--plastic-lo), 0 0 18px rgba(140,110,230,0.8),
@@ -558,8 +557,7 @@
   .blp-item.rar-common    { --rc: var(--c-mint); }
   .blp-item.rar-rare      { --rc: var(--c-cyan); }
   .blp-item.rar-epic      { --rc: var(--c-purple); }
-  .blp-item.rar-legendary { --rc: var(--c-yellow); }
-  .blp-item.rar-mythic    { --rc: var(--c-magenta); }
+  .blp-item.rar-legendary { --rc: var(--c-magenta); }
   .blp-item {
     position:relative;
     width:100%; box-sizing:border-box;

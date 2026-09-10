@@ -187,8 +187,8 @@ function _generateRewardContent() {
 
   // Prize-grid sleight draw: the shop's rarity table with 'common' cut out of it.
   function pickPrizeSleight() {
-    const TIERS = ['rare', 'epic', 'legendary', 'mythic'];
-    const W     = [58, 28, 9, 5];
+    const TIERS = ['rare', 'epic', 'legendary'];
+    const W     = [57, 30, 13];
     const pool = freshPool(SLEIGHT_POOL.filter(j => !grantedSleightIds.has(j.id) && sleightOfferable(j) && !offerBanned(j.id) && (j.rarity || 'common') !== 'common'));
     if (!pool.length) return null;
     const total = W.reduce((a, b) => a + b, 0);
@@ -338,7 +338,7 @@ function _generateRewardContent() {
   function makeSwapDiscardTile() { const o = Math.random()<0.5 ? ['swaps','discards'] : ['discards','swaps'];         for (const id of o) { const t = makeLimitUpgradeTile(id, 2); if (t) return t; } return null; }
   function makeLimitBreakPayload() {
     return {
-      icon: '💥', label: 'Limit Break', tier: 'mythic', rarity: 'mythic', _guaranteed: true,
+      icon: '💥', label: 'Limit Break', tier: 'legendary', rarity: 'legendary', _guaranteed: true,
       desc: 'Break a limit for free - raise any one limit permanently (opens the Limit Break screen; a second break is available for a sacrifice).',
       apply: () => { pendingLimitBreak = true; }
     };
@@ -600,7 +600,7 @@ function maybeOpenTrickReplacePicker() {
 
 // Trick tiers and entity rarities are the same five words, but a Trick can carry
 // a tier the tile has no colour for - fall back rather than paint nothing.
-const BLP_TIERS = ['common', 'rare', 'epic', 'legendary', 'mythic'];
+const BLP_TIERS = ['common', 'rare', 'epic', 'legendary'];
 function blpRarity(tier) {
   const t = String(tier || '').toLowerCase();
   return BLP_TIERS.includes(t) ? t : 'common';
@@ -923,7 +923,7 @@ function skipRewardGrid() {
 // A reward tile can be an "entity" (trick / sleight / knack) rendered in the
 // cabinet's CRT/neon language, a card-face tile (blessed/cursed/cull, unchanged),
 // or a plain resource/debuff/dest tile (icon + name). Rarity → neon border color.
-const REWARD_RARITIES = ['common', 'rare', 'epic', 'legendary', 'mythic'];
+const REWARD_RARITIES = ['common', 'rare', 'epic', 'legendary'];
 function rewardRarity(p) {
   const r = p.rarity || p.tier;
   return REWARD_RARITIES.includes(r) ? r : 'rare';
@@ -1291,7 +1291,7 @@ async function revealAndFlyMystery(tile, p, c, cols) {
 
   const out = p._rolled || (p._rolled = rollRewardMystery(p._goodChance ?? 0.7));
   tile.classList.remove('entity', 'entity-trick', 'entity-sleight', 'entity-knack',
-    'rar-common', 'rar-rare', 'rar-epic', 'rar-legendary', 'rar-mythic', 'mystery');
+    'rar-common', 'rar-rare', 'rar-epic', 'rar-legendary', 'mystery');
   tile.classList.add(out.good ? 'reward-good' : 'reward-bad', 'reward-revealed');
   tile.innerHTML = `<div class="reward-icon">${out.icon}</div><div class="rwd-name">${out.label}</div>`;
   const nm = tile.querySelector('.rwd-name'); if (nm) fitRewardName(nm);

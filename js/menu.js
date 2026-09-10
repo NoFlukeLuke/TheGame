@@ -1,4 +1,4 @@
-const BUILD = '2026-09-05 · r196 · card identity: buffs, curses and services target one card, not every card sharing its face [onto r195]';
+const BUILD = '2026-09-10 · r197 · rarity: four tiers, three ladders (Utilities / Hires / Certs); mythic merged into legendary; all tier words behind js/labels.js + TERMINOLOGY.md';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

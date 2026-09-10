@@ -118,12 +118,21 @@ const KEYWORD_DEFS = [
   { key:'shop',      cls:'kw-buy',     terms:['shop','mart'],
     name:'Shop',     def:'The LETHE Mart, where credits become Tricks, Sleights, Knacks and Limit upgrades.' },
 
-  // ── rarity ──
-  { key:'common',    cls:'kw-r-common',    terms:['common'],    name:'Common',    def:'The most frequent rarity (59% of shop rolls).' },
-  { key:'rare',      cls:'kw-r-rare',      terms:['rare'],      name:'Rare',      def:'Uncommon rarity (28% of shop rolls).' },
-  { key:'epic',      cls:'kw-r-epic',      terms:['epic'],      name:'Epic',      def:'Scarce rarity (10% of shop rolls).' },
-  { key:'legendary', cls:'kw-r-legendary', terms:['legendary'], name:'Legendary', def:'Very scarce rarity (2% of shop rolls).' },
-  { key:'mythic',    cls:'kw-r-mythic',    terms:['mythic'],    name:'Mythic',    def:'The scarcest rarity (1% of shop rolls).' },
+  // ── rarity (r197) ──
+  // One row per tier ID, carrying the words from BOTH ladders (Utilities and
+  // Hires grade differently - see TERMINOLOGY.md). 'plus', 'standard', 'staff'
+  // and 'temp' are deliberately NOT terms: they are ordinary English that turns
+  // up in descriptions ("plus 5 pips"), and highlighting those as rarities would
+  // be worse than not highlighting the tier at all. Those tiers are read from
+  // the tile colour instead.
+  { key:'common',    cls:'kw-r-common',    terms:['lite'],
+    name:'Lite / Temp',          def:'The most frequent rarity (58% of shop rolls).' },
+  { key:'rare',      cls:'kw-r-rare',      terms:['contractor'],
+    name:'Standard / Contractor', def:'Uncommon rarity (28% of shop rolls).' },
+  { key:'epic',      cls:'kw-r-epic',      terms:[],
+    name:'Plus / Staff',          def:'Scarce rarity (11% of shop rolls).' },
+  { key:'legendary', cls:'kw-r-legendary', terms:['deluxe','executive'],
+    name:'Deluxe / Executive',    def:'The scarcest rarity (3% of shop rolls).' },
 ];
 
 // One flat, pre-sorted alternation. Longest terms first so multi-word and

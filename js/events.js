@@ -884,7 +884,7 @@ function renderShiftChange() {
 function renderShiftRow() {
   const row = document.getElementById('shift-row');
   if (!row) return;
-  const RARS = ['common','rare','epic','legendary','mythic'];
+  const RARS = ['common','rare','epic','legendary'];
   const order = eventState.shiftOrder || [];
   row.innerHTML = '';
   order.forEach((trick, i) => {

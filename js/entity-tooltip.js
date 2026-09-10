@@ -39,7 +39,7 @@ function ensureEntityTooltip() {
 
 const ET_RARITY_COLOR = {
   common:'--c-mint', rare:'--c-cyan', epic:'--c-purple',
-  legendary:'--c-yellow', mythic:'--c-magenta',
+  legendary:'--c-magenta',
 };
 
 // ── INTERACTIVE MODE (r182) ─────────────────────────────────────────────────
@@ -75,7 +75,7 @@ function showEntityTooltip(anchorEl, p, opts = {}) {
 
   el.style.setProperty('--rc', `var(${ET_RARITY_COLOR[rar]})`);
   el.querySelector('.et-name').textContent = p.label || p.name || '';
-  el.querySelector('.et-rar').textContent  = rar;
+  el.querySelector('.et-rar').textContent  = tierLabel(p.type || p.entity, rar);
   const typeEl = el.querySelector('.et-type');
   typeEl.textContent = (p.type || p.entity || '').toString().toUpperCase();
   typeEl.style.display = typeEl.textContent ? '' : 'none';

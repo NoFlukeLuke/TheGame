@@ -205,7 +205,7 @@ function recordsRenderPersonnel() {
   const _anyOff = tricks.some(_off);
   const trickHTML = tricks.length ? tricks.map(t => recordsEntityCard(
     (typeof trickEmoji === 'function' ? trickEmoji(t) : '🃏'), t.name,
-    (t.tier || 'common').toUpperCase(),
+    tierLabel('trick', t.tier).toUpperCase(),
     (typeof trickLiveDesc === 'function' ? trickLiveDesc(t) : t.desc), 'e-trick', _off(t))).join('')
     : `<div class="rec-empty">No Tricks on file.</div>`;
 
@@ -215,7 +215,7 @@ function recordsRenderPersonnel() {
     const def = SLEIGHT_POOL.find(j => j.id === card.sleightId);
     if (!def) return;
     const uses = card._usesLeft === 'infinite' ? '∞' : card._usesLeft;
-    owned.push(recordsEntityCard(def.emoji || '🎴', def.name, `${(def.rarity || 'common').toUpperCase()} · ${uses} left`, def.desc, 'e-sleight'));
+    owned.push(recordsEntityCard(def.emoji || '🎴', def.name, `${tierLabel('sleight', def.rarity).toUpperCase()} · ${uses} left`, def.desc, 'e-sleight'));
   };
   [...drawPile, ...playedPile].forEach(c => { if (c._isSleight && !seen.has(c._id)) { seen.add(c._id); pushSleight(c); } });
   for (let r = 0; r < gridRows; r++)
@@ -223,7 +223,7 @@ function recordsRenderPersonnel() {
   const sleightHTML = owned.length ? owned.join('') : `<div class="rec-empty">No Sleights on file.</div>`;
 
   const knackHTML = acquiredKnacks.length ? acquiredKnacks.map(k => recordsEntityCard(
-    k.emoji || '🧿', k.name, (k.rarity || 'knack').toUpperCase(), k.desc, 'e-knack')).join('')
+    k.emoji || '🧿', k.name, tierLabel('knack', k.rarity).toUpperCase(), k.desc, 'e-knack')).join('')
     : `<div class="rec-empty">No Knacks on file.</div>`;
 
   return `

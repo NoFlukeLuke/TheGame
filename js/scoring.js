@@ -653,7 +653,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     _pool.forEach(t => t.tags.forEach(tag => { _tagCount[tag] = (_tagCount[tag] || 0) + 1; }));
     const _qualTags = new Set(Object.keys(_tagCount).filter(tag => _tagCount[tag] >= 3));
     if (_qualTags.size) {
-      const _RANK = { common:0, rare:1, epic:2, legendary:3, mythic:4 };
+      const _RANK = { common:0, rare:1, epic:2, legendary:3 };
       let _best = null, _bestRank = 99;
       _pool.forEach(t => {
         if (!t.tags.some(tag => _qualTags.has(tag))) return;

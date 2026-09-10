@@ -220,7 +220,7 @@ function playHand() {
   score += finalScore;
   if (sleightNextHandDouble) { score += finalScore; sleightNextHandDouble = false; }
   if (sleightLegacyMult)     { score += finalScore * BAL.the_legacy.extra_mult; sleightLegacyMult = false; } // ×3 total = base + 2× extra
-  // Compound (mythic): pay out everything banked since the last hand, then clear.
+  // Compound (legendary): pay out everything banked since the last hand, then clear.
   // Added at SCORE level (not as pips or mult) on purpose - it is a copy of score
   // already earned, so running it back through mult × Focus would multiply it twice.
   if (compoundBanked > 0) {

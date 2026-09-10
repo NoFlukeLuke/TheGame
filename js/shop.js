@@ -14,9 +14,9 @@ let svcStep = 0;
 let svcPicked = [];
 
 // ── New shop state ──
-const SHOP_TRICK_PRICES    = { common: 5, rare: 8, epic: 12, legendary: 18, mythic: 25 };
+const SHOP_TRICK_PRICES    = { common: 5, rare: 8, epic: 12, legendary: 20 };
 const SHOP_KNACK_PRICE  = 10;
-const SHOP_SLEIGHT_PRICES = { common: 8, rare: 12, epic: 16, legendary: 22, mythic: 28 };
+const SHOP_SLEIGHT_PRICES = { common: 8, rare: 12, epic: 16, legendary: 25 };
 const SHOP_LIMIT_BASE   = 15; // coins; +5 per upgrade already purchased
 
 let shopItems       = null; // { tricks:[], limits:[], knacks:[], sleights:[] }
@@ -64,11 +64,11 @@ function shopLimitPrice(def) {
   return SHOP_LIMIT_BASE + purchases * 5;
 }
 
-// Picks `count` sleights using weighted rarity tiers: common 60%, rare 28%, epic 10%, legendary 2%.
+// Picks `count` sleights using weighted rarity tiers: 58% / 28% / 11% / 3% (r197: four tiers).
 // Cascades to lower rarity if the rolled tier has no available sleights.
 function pickSleightByRarity(count, excluded) {
-  const TIER_ORDER   = ['common', 'rare', 'epic', 'legendary', 'mythic'];
-  const TIER_WEIGHTS = [59, 28, 10, 2, 1];
+  const TIER_ORDER   = ['common', 'rare', 'epic', 'legendary'];
+  const TIER_WEIGHTS = [58, 28, 11, 3];
   const result = [];
   const usedIds = new Set(excluded);
   for (let i = 0; i < count; i++) {
