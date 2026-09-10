@@ -15,13 +15,13 @@
 
 const KEYWORD_DEFS = [
   // ── scoring core ──
-  { key:'xmult',     cls:'kw-xmult',   terms:['xmult','×mult','x mult'],
+  { key:'xmult',     cls:'kw-xmult',   terms:['xmult','×mult','x mult','xskill','×skill','x skill'],
     name:'×Mult',    def:'Multiplies your Mult itself, instead of adding to it. Applied after all + Mult.' },
-  { key:'xpips',     cls:'kw-xpips',   terms:['xpips','×pips','x pips'],
+  { key:'xpips',     cls:'kw-xpips',   terms:['xpips','×pips','x pips','xwork','×work','x work'],
     name:'×Pips',    def:'Multiplies the hand’s total Pips, instead of adding to them.' },
-  { key:'pips',      cls:'kw-pips',    terms:['pips','pip'],
+  { key:'pips',      cls:'kw-pips',    terms:['pips','pip','work'],
     name:'Pips',     def:'The base points a hand is worth. Final score = Pips × Mult.' },
-  { key:'mult',      cls:'kw-mult',    terms:['mult'],
+  { key:'mult',      cls:'kw-mult',    terms:['mult','skill'],
     name:'Mult',     def:'The multiplier applied to Pips. Final score = Pips × Mult.' },
   { key:'focus',     cls:'kw-focus',   terms:['focus'],
     name:'Focus',    def:'The meter beside the grid. It builds as you play and adds a score multiplier; it decays if you stall.' },
@@ -150,7 +150,12 @@ _KW_TERMS.forEach(x => { _KW_BY_TERM[x.t.toLowerCase()] = x.d; });
 // callers must not pass HTML they care about, since this does not parse tags.
 function highlightKeywords(text) {
   if (text == null) return '';
-  return String(text).replace(_KW_RE, (m) => {
+  // Translate to the live vocabulary FIRST, then colour (r198). Descriptions are
+  // stored in the gamer wording, so in gamer mode this is a no-op; in corporate
+  // it turns "+10 pips" into "+10 work" on the way to the screen. The keyword
+  // table carries both vocabularies' terms, so highlighting survives the swap.
+  const src = (typeof lexProse === 'function') ? lexProse(text) : String(text);
+  return src.replace(_KW_RE, (m) => {
     const d = _KW_BY_TERM[m.toLowerCase()];
     return d ? `<span class="kw ${d.cls}">${m}</span>` : m;
   });
@@ -161,7 +166,7 @@ function highlightKeywords(text) {
 function keywordsIn(text) {
   if (text == null) return [];
   const seen = new Set(), out = [];
-  String(text).replace(_KW_RE, (m) => {
+  ((typeof lexProse === 'function') ? lexProse(text) : String(text)).replace(_KW_RE, (m) => {
     const d = _KW_BY_TERM[m.toLowerCase()];
     if (d && !seen.has(d.key)) { seen.add(d.key); out.push(d); }
     return m;

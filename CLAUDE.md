@@ -1031,6 +1031,50 @@ the only file that spells a tier word out.
   ~1% of rolls, which fell through to an untiered random pick. If you change the
   tier count, grep for every weight array, not just the tier arrays.
 
+## Two vocabularies (r198) - `js/labels.js`
+
+The game speaks either **corporate** (WORK / SKILL / OUTPUT / QUOTA, Utilities /
+Hires / Certs, Lite / Standard / Plus / Deluxe) or **gamer** (PIPS / MULT /
+SCORE / GOAL, Tricks / Sleights / Knacks, Common / Rare / Epic / Legendary).
+Settings -> Display -> Wording. Full table in **TERMINOLOGY.md**.
+
+- **Entity NAMES are not in the lexicon.** "Cascade" is content, not vocabulary.
+- **Descriptions are stored in the GAMER wording and translated on the way to the
+  screen.** `lexProse()` runs inside `highlightKeywords()`, the chokepoint every
+  description already passes through, so 300-odd mentions of "pips" and "mult"
+  follow the toggle with no data edits and no second copy to keep in sync. Gamer
+  mode is the identity transform.
+- **Only unambiguous nouns are swapped.** `score` is deliberately absent from the
+  prose table - it is a VERB throughout the descriptions ("Runs score +10 pips
+  per card") and swapping it gives "Runs output +10 work per card". It changes as
+  a HUD label only.
+- **The keyword table carries both vocabularies' terms** so highlighting survives
+  the swap in either direction.
+- **`data-lex` on a static label in `index.html`** is rewritten by
+  `applyLexiconToDOM()` at bootstrap and on every toggle. Adding a HUD label
+  means adding the attribute, not a new update path.
+- **`resolveLabel(v)`** exists because section/tab tables hold a MIX - 'EVENTS'
+  is a fixed string, TRICKS is a function of the live vocabulary. Consumers
+  resolve through it rather than testing the type inline.
+
+### Colour means RARITY, shape means TYPE (r198)
+
+Three screens coloured entities by their TYPE, so every Trick you owned looked
+identical whatever its tier, and the tier pill printed on that flat colour:
+
+- `css/records.css` - the Owned panel's `--e-accent` (yellow tricks, purple
+  sleights, cyan knacks). Now four `rar-*` rules; `recordsEntityCard` takes the
+  tier as its last argument.
+- `css/survival.css` - the pick-of-three's `--sv-accent`, same three colours.
+  `survivalMakeOption` now carries `rar` and the card gets a `rar-*` class.
+- `js/mart-shop.js` - `MART_SEC_META` gave each shelf its own colour, and cyan
+  SLEIGHTS sat directly above cyan Standard-tier tiles, so the palette said two
+  things at once. All four shelves share `MART_SEC_CHROME` now; a section is told
+  apart by its glyph and heading.
+
+**A new surface must not colour by entity type.** The four rarity colours
+(mint / cyan / purple / magenta) are the only meaning colour carries.
+
 ## Conventions
 - Match surrounding code style (terse, inline, lots of single-line helpers).
 - Animation gating: `animating` / `falling` / `pendingAction` flags block input mid-animation.

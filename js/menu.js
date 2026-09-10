@@ -1,4 +1,4 @@
-const BUILD = '2026-09-10 · r197 · rarity: four tiers, three ladders (Utilities / Hires / Certs); mythic merged into legendary; all tier words behind js/labels.js + TERMINOLOGY.md';
+const BUILD = '2026-09-10 · r198 · two vocabularies (corporate/gamer) behind one Settings toggle; colour means rarity, not entity type';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

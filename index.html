@@ -687,17 +687,17 @@
         <!-- Left: pips × mult -->
         <div id="score-subboxes">
           <div class="score-subbox" id="pips-box">
-            <div class="subbox-label">PIPS</div>
+            <div class="subbox-label" data-lex="pips">PIPS</div>
             <div class="subbox-val" id="pips-val">0</div>
           </div>
           <div class="subbox-times">×</div>
           <div class="score-subbox" id="mult-box">
-            <div class="subbox-label">MULT</div>
+            <div class="subbox-label" data-lex="mult">MULT</div>
             <div class="subbox-val" id="mult-val">0</div>
           </div>
           <div class="subbox-times">×</div>
           <div class="score-subbox" id="focus-box">
-            <div class="subbox-label">FOCUS</div>
+            <div class="subbox-label" data-lex="focus">FOCUS</div>
             <div class="subbox-val" id="focus-val">×1</div>
           </div>
           <!-- Location readout: replaces the pips/mult/focus chips on grid-takeover
@@ -706,7 +706,7 @@
         </div>
         <!-- Center: current score (dance overlay covers this) -->
         <div id="score-center">
-          <span id="score-total-label">Score</span>
+          <span id="score-total-label" data-lex="score">Score</span>
           <div id="score-total-num">0</div>
           <!-- Dance overlay -->
           <div id="dance-overlay">
@@ -716,7 +716,7 @@
         </div>
         <!-- Right: goal -->
         <div id="score-left">
-          <div id="score-goal-label">GOAL</div>
+          <div id="score-goal-label" data-lex="goal">GOAL</div>
           <div id="score-to-go"><span id="goal-display">500</span></div>
           <div id="score-progress-bar-wrap"><div id="score-progress-bar" style="width:0%"></div></div>
         </div>

@@ -3,6 +3,44 @@
 The one reference for what things are CALLED. If you are renaming anything the
 player reads, start here and change nothing else until this file is updated.
 
+## Two vocabularies, one switch (r198)
+
+**Settings -> Display -> Wording** picks between them. Entity NAMES are not in
+this system - "Cascade" is content, not vocabulary, and never changes.
+
+| concept | code id (frozen) | corporate | gamer |
+|---|---|---|---|
+| per-card score input | `pips` | **WORK** | PIPS |
+| hand multiplier | `mult` | **SKILL** | MULT |
+| tempo meter | `focus` | FOCUS | FOCUS |
+| banked score | `score` | **OUTPUT** | SCORE |
+| round target | `goal` | **QUOTA** | GOAL |
+| scoring buff, side tray | `trick` | **Utility** | Trick |
+| deck card with an effect | `sleight` | **Hire** | Sleight |
+| permanent rule-changer | `knack` | **Cert** | Knack |
+| playing card | `card` | **File** | Card |
+| `common` / `rare` / `epic` / `legendary` (trick) | | Lite / Standard / Plus / Deluxe | Common / Rare / Epic / Legendary |
+| the same ids (sleight) | | Temp / Contractor / Staff / Executive | Common / Rare / Epic / Legendary |
+
+**Descriptions are STORED in the gamer wording and translated at display time.**
+`lexProse()` runs inside `highlightKeywords()`, which every description already
+passes through on its way to the screen. That is what lets 300-odd mentions of
+"pips" and "mult" follow the toggle with no data edits, no second copy of every
+description, and no way for the two to drift apart. In gamer mode it is the
+identity transform, so that side costs nothing.
+
+**Only unambiguous NOUNS are swapped.** `score` is deliberately not in the prose
+table: it is a verb throughout the descriptions ("Runs score +10 pips per card"),
+and swapping it yields "Runs output +10 work per card". It changes as a HUD
+label only.
+
+**The keyword table carries BOTH vocabularies' terms** (`terms:['pips','pip','work']`),
+so keyword colouring survives the substitution either way round.
+
+**Static labels in `index.html` carry `data-lex`** and are rewritten by
+`applyLexiconToDOM()` on load and on every toggle, so the HUD chips need no
+per-site update code.
+
 ## The rule that makes renames cheap
 
 **Code identifiers never change. Only display strings change.**

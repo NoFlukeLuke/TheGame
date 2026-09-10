@@ -177,10 +177,10 @@ function survivalBuildPools() {
 
 // Wrap a raw pool entry into a uniform option object the UI + granter understand.
 function survivalMakeOption(type, data) {
-  if (type === 'trick')   return { type, data, id: data.id, name: data.name, icon: (typeof trickEmoji === 'function' ? trickEmoji(data) : '🃏'), desc: data.desc, tag: tierLabel('trick', data.tier).toUpperCase() };
-  if (type === 'sleight') return { type, data, id: data.id, name: data.name, icon: data.emoji || '🎴', desc: data.desc, tag: tierLabel('sleight', data.rarity).toUpperCase() };
-  if (type === 'knack')   return { type, data, id: data.id, name: data.name, icon: data.emoji || '🧿', desc: data.desc, tag: 'KNACK' };
-  if (type === 'limit')   return { type, data, id: data.id, name: data.label, icon: data.icon || '⬆', desc: data.desc, tag: 'LIMIT' };
+  if (type === 'trick')   return { type, data, id: data.id, name: data.name, icon: (typeof trickEmoji === 'function' ? trickEmoji(data) : '🃏'), desc: data.desc, tag: tierLabel('trick', data.tier).toUpperCase(), rar: data.tier };
+  if (type === 'sleight') return { type, data, id: data.id, name: data.name, icon: data.emoji || '🎴', desc: data.desc, tag: tierLabel('sleight', data.rarity).toUpperCase(), rar: data.rarity };
+  if (type === 'knack')   return { type, data, id: data.id, name: data.name, icon: data.emoji || '🧿', desc: data.desc, tag: tierLabel('knack', data.rarity).toUpperCase(), rar: data.rarity };
+  if (type === 'limit')   return { type, data, id: data.id, name: data.label, icon: data.icon || '⬆', desc: data.desc, tag: 'LIMIT', rar: 'common' };
   return null;
 }
 
@@ -263,7 +263,8 @@ function survivalRenderPick() {
   cards.innerHTML = '';
   (survivalPickOffered || []).forEach((opt, i) => {
     const card = document.createElement('div');
-    card.className = `sv-pick-card sv-type-${opt.type}`;
+    // Type sets the SHAPE class; rarity sets the colour (r198).
+    card.className = `sv-pick-card sv-type-${opt.type} rar-${typeof tierId === 'function' ? tierId(opt.rar) : 'common'}`;
     card.style.animationDelay = (i * 70) + 'ms';
     card.innerHTML = `
       <div class="sv-pick-tag">${opt.tag}</div>

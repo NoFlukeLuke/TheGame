@@ -259,15 +259,21 @@ function martTileHTML(p, key) {
   return `<div class="${cls}" data-key="${key}">${inner}${price}${tick}${pin}</div>`;
 }
 
-// Each shelf is its own colour-coded panel (r170). They used to be four barely
-// distinguishable dark rectangles on a dark page; --sc drives the header, the
-// rule under it, the left edge and the panel wash, so the categories separate at
-// a glance instead of having to be read.
+// Each shelf is its own panel (r170); --sc drives the header, the rule under it,
+// the left edge and the panel wash.
+//
+// r198: every section now carries the SAME chrome colour. They used to be one
+// colour each - cyan sleights, yellow knacks, mint limits - and three of those
+// are rarity colours, so a cyan SLEIGHTS panel sat directly above cyan
+// Standard-tier tiles and the palette said two different things at once. On this
+// page colour means RARITY and nothing else; a section is told apart by its
+// glyph and its heading, which is what those are for.
+const MART_SEC_CHROME = 'var(--phosphor)';
 const MART_SEC_META = {
-  tricks:   { label:'TRICKS',         glyph:'✦', sc:'var(--phosphor)', note:'scoring buffs · side tray' },
-  sleights: { label:'SLEIGHTS',       glyph:'▶', sc:'var(--c-cyan)',   note:'cards that live in your deck' },
-  knacks:   { label:'KNACKS',         glyph:'◆', sc:'var(--c-yellow)', note:'permanent rule changes' },
-  limits:   { label:'LIMIT UPGRADES', glyph:'▲', sc:'var(--c-mint)',   note:'raise a cap for the run' },
+  tricks:   { label:() => entityLabel('trick', true).toUpperCase(),   glyph:'✦', sc:MART_SEC_CHROME, note:'scoring buffs · side tray' },
+  sleights: { label:() => entityLabel('sleight', true).toUpperCase(), glyph:'▶', sc:MART_SEC_CHROME, note:'cards that live in your deck' },
+  knacks:   { label:() => entityLabel('knack', true).toUpperCase(),   glyph:'◆', sc:MART_SEC_CHROME, note:'permanent rule changes' },
+  limits:   { label:'LIMIT UPGRADES', glyph:'▲', sc:MART_SEC_CHROME, note:'raise a cap for the run' },
 };
 function martSectionHTML(cat) {
   const stock = martStock[cat] || [];
@@ -283,7 +289,7 @@ function martSectionHTML(cat) {
     if (held >= cap) notice = `<div class="m-sec-notice">⚠ TRICK ALLOCATION FULL - ${held}/${cap} · a purchase requires a replacement</div>`;
   }
   return `<div class="m-sec m-sec-${cat}" style="--sc:${meta.sc}">
-    <div class="m-sh"><span class="m-sh-l"><i class="m-sh-g">${meta.glyph}</i>${meta.label}</span>`
+    <div class="m-sh"><span class="m-sh-l"><i class="m-sh-g">${meta.glyph}</i>${resolveLabel(meta.label)}</span>`
     + `<span class="m-sh-note">${meta.note}</span>`
     + `<span class="slots">${left} left</span></div>${notice}
     <div class="m-rowc" data-cat="${cat}">${items}</div></div>`;
@@ -423,7 +429,7 @@ function renderMartCheckout() {
       : entityTileHTML(p, martRar(p));
     return `<div class="m-cline" data-key="${key}">`
          + `<div class="m-cthumb mc-${p.type}">${tile}</div>`
-         + `<div class="m-cinfo"><span class="m-cname">${p.label}</span><span class="m-crar">${martRar(p)} · ${p.type}</span></div>`
+         + `<div class="m-cinfo"><span class="m-cname">${p.label}</span><span class="m-crar">${tierLabel(p.type, martRar(p)).toUpperCase()} · ${entityLabel(p.type).toUpperCase()}</span></div>`
          + `<span class="m-cprice">💰${p.price}</span><span class="x" title="Remove">✕</span></div>`;
   }).join('') || '';
   // Two hints, one shown per input type (css/mart.css): there is no drag on
