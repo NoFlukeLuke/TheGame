@@ -27,22 +27,22 @@ let permRetrig = {}; // { "A-♠": 1, ... } extra times this card scores its pip
 // A curse afflicts one specific card identity (key "rank-suit", like permPips).
 // Curses are worked off by SCORING the cursed card `liftAfter` times - playing
 // through the curse is the cure - or removed instantly by a Cleanse tile.
-// cardCurses = { "9-♠": { id:'leaden', left:3 }, ... }  (reset on newGame)
+// cardCurses = { "<card id>": { id:'leaden', left:3 }, ... }  (reset on newGame)
+// Keyed per CARD, not per rank+suit: cursing one 9 of spades leaves any other alone.
 let cardCurses = {};
 const CURSE_DEFS = {
   leaden: { icon: '⚓', name: 'Leaden', liftAfter: 3, desc: 'Scores 0 pips. Lifts after scoring it 3 times.' },
   taxing: { icon: '🩸', name: 'Taxing', liftAfter: 4, desc: '-3s every time it scores. Lifts after scoring it 4 times.' },
   snared: { icon: '🕸️', name: 'Snared', liftAfter: 2, desc: "Can't be swapped or discarded. Lifts after scoring it 2 times." },
 };
-// Curse a random un-cursed card identity; returns {rank,suit,curse} or null.
+// Curse one random un-cursed card; returns {rank,suit,curse} or null.
 function curseRandomCard(curseId) {
-  const pool = [];
-  ACTIVE_RANKS.forEach(rank => ACTIVE_SUITS.forEach(suit => { if (!cardCurses[cardKey(rank, suit)]) pool.push({ rank, suit }); }));
+  const pool = everyDeckCard().filter(c => !cardCurses[cardId(c)]);
   if (!pool.length) return null;
   const pick = pool[Math.floor(Math.random() * pool.length)];
   const id = curseId || Object.keys(CURSE_DEFS)[Math.floor(Math.random() * Object.keys(CURSE_DEFS).length)];
-  cardCurses[cardKey(pick.rank, pick.suit)] = { id, left: CURSE_DEFS[id].liftAfter };
-  return { ...pick, curse: id };
+  cardCurses[cardId(pick)] = { id, left: CURSE_DEFS[id].liftAfter };
+  return { rank: pick.rank, suit: pick.suit, curse: id };
 }
 function cleanseRandomCurse() {
   const keys = Object.keys(cardCurses);
@@ -50,7 +50,10 @@ function cleanseRandomCurse() {
   const k = keys[Math.floor(Math.random() * keys.length)];
   const id = cardCurses[k].id;
   delete cardCurses[k];
-  return { key: k, curse: id };
+  // The key is a card id now, which is not something to show anyone - look the
+  // card up so the message can name the face that was actually cleansed.
+  const card = everyDeckCard().find(c => cardId(c) === k);
+  return { key: k, curse: id, face: card ? `${card.rank}${card.suit}` : 'a card' };
 }
 
 // ── Scaling bonus accumulators ──
@@ -153,8 +156,70 @@ let _enterFromGridTop = false; // when true, new cards enter from grid top, not 
 let _cardIdCounter = 0;
 function stampId(card) {
   if (card && !card._id) card._id = ++_cardIdCounter;
-
   return card;
+}
+
+// ── CARD IDENTITY (r192) ─────────────────────────────────────────────────────
+// Every per-card thing - permanent pips/mult, the x-buffs, retriggers, curses,
+// the play/swap/dealt counts - is keyed by cardId(card), which is that ONE card.
+// It used to be keyed by cardKey(rank, suit), i.e. by card TYPE, which meant two
+// cards sharing a rank and suit shared everything: the shop's Duplicate service
+// hands you a second 7 of spades, and a buff on either landed on both.
+//
+// cardKey(rank, suit) still exists and still means the TYPE. Nothing per-card may
+// use it; it is for enumerating the rank x suit grid (the RECORDS matrix) only.
+function cardId(card) { return card ? String(stampId(card)._id) : ''; }
+
+// What survives the discard -> reshuffle -> redraw cycle.
+// A normal card is rebuilt from scratch every time it leaves the board, so
+// ANYTHING not named here is destroyed on the way back into the deck. `_id` heads
+// the list because without it a card has no identity to key anything by; the rest
+// were already documented as living "on the card object so they track the
+// individual card and survive deck cycling" and did not, because this rebuild
+// dropped them.
+const DURABLE_CARD_FIELDS = [
+  '_id',
+  // combined cards (the shop's Combine service)
+  'combined', 'rank2', 'suit2',
+  // exalt / corrupt state and its per-card trigger counters
+  '_exalted', '_corrupted', '_heartSwapPending',
+  '_clubPackPlays', '_clubSoloPlays', '_heartSoloPlays',
+  '_spadeEarlyPlays', '_spadeDiscards', '_diaPoorPlays', '_diaRichPlays',
+  // Whetstone's banked mult and the Vulture's clock buff
+  '_whetMult', '_vulturePause',
+];
+// Every real, ordinary card in the run, wherever it is. This is the list to pick
+// from whenever something targets "a card" - a curse, a blessing, a shop service.
+// Picking a rank and a suit instead (the old way) could name a card that is not in
+// the deck at all, and hit every copy of it if it was.
+function everyDeckCard() {
+  const out = [];
+  for (let r = 0; r < gridRows; r++)
+    for (let c = 0; c < gridCols; c++) {
+      const cd = gridData[r]?.[c];
+      if (cd && !cd._isTrick && !cd._isSleight && !cd._isStone && cd.rank) out.push(cd);
+    }
+  drawPile.forEach(cd => { if (cd && !cd._isSleight && cd.rank) out.push(cd); });
+  playedPile.forEach(cd => { if (cd && !cd._isSleight && cd.rank) out.push(cd); });
+  return out;
+}
+// A reward tile picks its victim when the grid is BUILT and applies it when the
+// tile is taken, and a card can leave the run in between (Monopoly eats one, the
+// Spectrum tuner rebuilds the deck). Re-resolve at apply time: the same card if it
+// is still here, else any card of the same face, else nothing.
+function resolveDeckCard(card) {
+  if (!card) return null;
+  const all = everyDeckCard();
+  return all.find(c => c === card)
+      || all.find(c => c.rank === card.rank && c.suit === card.suit)
+      || null;
+}
+
+// The persisted copy of a normal card. Board and animation state is shed.
+function recycleCard(card) {
+  const out = { rank: card.rank, suit: card.suit };
+  for (const f of DURABLE_CARD_FIELDS) if (card[f] !== undefined) out[f] = card[f];
+  return out;
 }
 
 function freshShuffledDeck() {
@@ -195,7 +260,7 @@ function discardToDrawPile(card) {
   // Sleights are consumed on discard (their on_discard effect is fired by the caller
   // with grid position); they are not returned to the draw pile.
   if (card._isSleight) { updateDeckHud(); return; }
-  drawPile.push({ rank: card.rank, suit: card.suit }); updateDeckHud();
+  drawPile.push(recycleCard(card)); updateDeckHud();
 }
 
 // Scored card - held out until round ends
@@ -217,7 +282,7 @@ function discardToPlayed(card) {
     }
     return;
   }
-  playedPile.push({ rank: card.rank, suit: card.suit }); updateDeckHud();
+  playedPile.push(recycleCard(card)); updateDeckHud();
 }
 
 // At round end: reshuffle played cards back into the draw pile (fresh order)

@@ -53,7 +53,7 @@ function renderCardAppearance(card, r, c, {
   }
 
   // ── Normal playing card (rank + suit, with all bonus decorations) ──
-  const k   = cardKey(card.rank, card.suit);
+  const k   = cardId(card);
   const pp  = permPips[k] || 0;
   const pm  = permMult[k] || 0;
   const curse = cardCurses[k];

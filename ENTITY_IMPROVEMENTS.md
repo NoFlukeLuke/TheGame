@@ -1,247 +1,324 @@
 # Entity Improvement Sheet
 
-> **Purpose:** for the "buy a duplicate to improve it" mechanic. When you own a Trick (and, if we extend it, a Sleight/Knack) and buy the **same one again**, its bonus improves — either a **bigger bonus** or a **looser use-case** (or another effect you define).
->
-> **How to use:** fill the **Improve · Lv2** and **Improve · Lv3** columns for each entity (Lv1 = the base bonus, already filled). Leave blank = "not improvable yet / TBD". Keep it plain — e.g. "+50% pips", "works with 2 clubs instead of 3", "also triggers on discard". We'll turn your notes into the actual numbers.
->
-> Generated from the live data (153 tricks, 36 knacks, 33 sleights). Regenerate any time; your edits in the Improve columns are the source of truth once you start filling them.
+> Every entity in the game with the ways it can get better. Generated from the live
+> pools, so the base bonus column is what the game actually pays today.
 
-Rarity legend: common · rare · epic · legendary · mythic.
+## How improving works
 
-## Tricks (153)
+Finding a **duplicate** of something you already own improves it. The player does
+**not** choose how: one of the entity's options fires **at random, equal chance**,
+regardless of what tier it is already at.
 
-| # | Name | Rarity | Base bonus (Lv1) | Improve · Lv2 (2nd copy) | Improve · Lv3 (3rd copy) | Notes |
+**Option 1 is almost always "the number again".** Each improvement adds the *base*
+amount on top, except the **5th**, which adds **3x the base**. So a +5 bonus climbs
+by +5, +5, +5, +5, +15:
+
+| tier | base | t1 | t2 | t3 | t4 | t5 |
 |---|---|---|---|---|---|---|
-| 1 | 4x4 | common | Cards scored in the 4th column score +16 pips |  |  |  |
-| 2 | 👯 Aftershock | common | Two Pair ×2 pips |  |  |  |
-| 3 | 🎨 Balance | common | Hands with exactly 2 suits score +2 mult per card |  |  |  |
-| 4 | 🪜 Cascade | common | Runs score +10 pips per card |  |  |  |
-| 5 | 🔀 Combo Score | common | +2 mult for every distinct hand type played this round |  |  |  |
-| 6 | 🎲 Compost | common | +3 pips per card discarded this round |  |  |  |
-| 7 | 🎯 Cull | common | Using a discard adds 1 focus |  |  |  |
-| 8 | ⏱️ Early Bird | common | Hands played in the first third of the round score +3 pips per card |  |  |  |
-| 9 | 🔥 Echoes | common | Playing the same hand type as the previous hand replays each card |  |  |  |
-| 10 | 🎴 Enriched | common | Flushes score +40 pips |  |  |  |
-| 11 | 🎯 Expanse | common | Each time you hit max focus, increase max focus capacity by 1 |  |  |  |
-| 12 | 👑 Face Value | common | Face cards (J/Q/K) are worth 15 pips |  |  |  |
-| 13 | 👑 First Light | common | Aces are worth 21 pips |  |  |  |
-| 14 | 🎯 First Wind | common | Focus does not decay for the first 45 seconds of a round |  |  |  |
-| 15 | Five for Fodder | common | Discarding a 5-card hand grants +5 credits |  |  |  |
-| 16 | Four Eyes | common | 4-card hands score +12 mult |  |  |  |
-| 17 | 🔢 Get Even | common | Hands with 3+ even-ranked cards score +2 mult per card |  |  |  |
-| 18 | ⏱️ Head Start | common | The first hand each round adds +5 Focus |  |  |  |
-| 19 | 🔥 Kindling | common | Same hand streak scores +4 pips × streak |  |  |  |
-| 20 | Landfill | common | Hands score +1 mult for every 5 cards you have discarded this round |  |  |  |
-| 21 | 📍 Lie Down | common | Hands with cards from only one row score +2 mult per card |  |  |  |
-| 22 | 🎯 Meditation | common | Focus decays 1 second slower |  |  |  |
-| 23 | 👑 Men of Repute | common | Kings and Jacks score +5 pips and +1 mult each |  |  |  |
-| 24 | 🧮 Middle Management | common | 4-card hands permanently give the 4th card +4 pips |  |  |  |
-| 25 | ⏱️ Night Owl | common | Hands played in the last third of the round score +1 mult per card |  |  |  |
-| 26 | 🎴 Nimble | common | 2-card hands score +5 mult |  |  |  |
-| 27 | 📍 On the Edge | common | Hands where all cards are on the outer edge score +15 pips per card |  |  |  |
-| 28 | 📍 Power Line | common | Cards scored in a marked row or column each score +2 mult |  |  |  |
-| 29 | 👯 Quake | common | Sets score +3 mult per card in the largest set |  |  |  |
-| 30 | ⏱️ Quick Draw | common | Hands played within 3 seconds of the previous permanently add +1 max Focus capacity |  |  |  |
-| 31 | Ready, Set, Go | common | A 3-card hand containing a 3 scores +9 mult |  |  |  |
-| 32 | 🎯 Restless | common | Swapping adds 1 focus |  |  |  |
-| 33 | 🎯 Rhythm | common | Each hand played adds 1 additional focus |  |  |  |
-| 34 | 🌱 Rich Soil | common | All cards score +2 pips |  |  |  |
-| 35 | 📍 Right Place | common | Cards scored in a marked row or column score +10 pips |  |  |  |
-| 36 | 📈 Rising Tide | common | Base mult increases by +1 for each level reached |  |  |  |
-| 37 | ⏱️ Second Hand | common | Every minute mark the clock passes adds +5 pips to your next hand |  |  |  |
-| 38 | 👯 Shock | common | Sets score +12 pips per card in the largest set |  |  |  |
-| 39 | 📍 Stand Up | common | Hands with cards from only one column score +2 mult per card |  |  |  |
-| 40 | 🪜 Storm | common | Runs score +2 mult per card |  |  |  |
-| 41 | ⏱️ Tick-Tock | common | Every time the round clock ends in a 0, gain +2 Focus |  |  |  |
-| 42 | 🎴 Tidal Forces | common | Flushes score +10 mult |  |  |  |
-| 43 | 🎯 Tunnel Vision | common | Start each round with 5 focus |  |  |  |
-| 44 | 🎴 Unsummit | common | The lowest-ranking card in each hand scores +(its value × level) pips. |  |  |  |
-| 45 | 📈 Veteran | common | +2 pips per level reached this run |  |  |  |
-| 46 | 🪜 Worn Path | common | Straight scores +20 pips |  |  |  |
-| 47 | 3rd Down | rare | 3-card hands add +3 Focus |  |  |  |
-| 48 | 🧮 Cloud Nine | rare | Each 9 scored permanently adds +9 mult to this trick |  |  |  |
-| 49 | 📍 Cornered | rare | Corner cards multiply the running pips by the whole minutes left on the clock |  |  |  |
-| 50 | 📍 Crossroads | rare | A + shaped hand adds +25 Focus |  |  |  |
-| 51 | 🎲 Dark Matter | rare | All-spade hands add half the remaining round time as pips |  |  |  |
-| 52 | 🎴 Deluge | rare | Flushes add +5 seconds to the clock |  |  |  |
-| 53 | 🌈 Diversity | rare | Hands with 4+ different ranks score +2 mult |  |  |  |
-| 54 | 👯 Double Dutch | rare | Play 3 hands with a pair within 30s for +16 Focus (a non-pair hand breaks the streak) |  |  |  |
-| 55 | 🧮 Double Take | rare | Each 2 scored duplicates your most recently acquired Trick’s effect |  |  |  |
-| 56 | ⏱️ Eagle Eye | rare | +5 mult for every 10 seconds elapsed without using a swap |  |  |  |
-| 57 | 📍 Echo Location | rare | Cards scored in a marked row or column have a 50% chance to replay once |  |  |  |
-| 58 | 🔀 Escalation | rare | For each hand beyond the 5th in a round, score +1 mult |  |  |  |
-| 59 | 👑 Every Day Essentials | rare | Rank-5-and-below cards (incl. Ace) contribute 3× pips |  |  |  |
-| 60 | Feedback Loop | rare | For every 5 Focus generated this round, this trick scores +1 mult (resets each round) |  |  |  |
-| 61 | 🌱 Fertile Ground | rare | All cards score +3 pips |  |  |  |
-| 62 | 🌱 First Fruits | rare | Each card in first hand each round permanently gains +2 pips |  |  |  |
-| 63 | 🎯 Flow State | rare | While focus is ×1.5 or higher, +10 pips per card scored |  |  |  |
-| 64 | 🎴 Full Load | rare | 5-card hands score +6 pips per card |  |  |  |
-| 65 | 📍 Groove | rare | This trick scales +1 Focus for every 2 cards scored from a marked row or column. Resets each round. |  |  |  |
-| 66 | 📍 Huddle | rare | Each scored card scores +11 pips for every adjacent card or sleight in the hand. |  |  |  |
-| 67 | 📍 Inclusive | rare | Hands spanning the full width or height of the grid score +25 mult |  |  |  |
-| 68 | 🎯 Kaleidoscope | rare | Playing one or more of each suit in a hand adds +4 Focus |  |  |  |
-| 69 | 🎴 Last Stand | rare | If your score is below the round goal when you play, that hand scores x2. |  |  |  |
-| 70 | Life Lessons | rare | Each round you complete permanently raises your maximum Focus by 1 |  |  |  |
-| 71 | Magician | rare | +3 mult for each Sleight you own |  |  |  |
-| 72 | ⏱️ Minute Hand | rare | Every minute mark the clock passes adds +3 mult to your next hand |  |  |  |
-| 73 | 🎲 Mirror | rare | Tap to tilt left or right; borrows the effect of the Trick on that side. Facing an empty slot = no effect. |  |  |  |
-| 74 | ⏱️ Near Extinction | rare | When less than a quarter of the round remains, each scored card replays |  |  |  |
-| 75 | 🔢 Odd One In | rare | Hands with 3+ odd-ranked cards score +5 mult per card |  |  |  |
-| 76 | 📍 Overtime | rare | This trick scales +1 second for every 3 cards scored from a marked row or column. Resets each round. |  |  |  |
-| 77 | 🧮 Penny Saved | rare | Each 5 discarded or played permanently adds +5 pips to this trick |  |  |  |
-| 78 | 🧮 Perfect Ten | rare | Every 10 cards discarded permanently adds +1 mult to this trick |  |  |  |
-| 79 | 🔢 Prime Time | rare | Hands with 3+ prime-rank cards (A,2,3,5,7) score +23 pips per card |  |  |  |
-| 80 | 🧮 Prime Times | rare | When a prime-rank card (A,2,3,5,7) scores, prime your next Trick — cycling 1st→2nd→3rd→5th→7th |  |  |  |
-| 81 | 🧮 Prolific | rare | Each hand played permanently adds +1 pip to this trick |  |  |  |
-| 82 | ⏱️ Quarter Chime | rare | Every time the round clock reads a multiple of 15 seconds, your next hand scores +45 pips |  |  |  |
-| 83 | 🎨 Rainbow | rare | Hands with all four suits score +16 pips and +4 mult per card |  |  |  |
-| 84 | 👯 Resonance | rare | Pairs and Two Pairs containing a 2 or 4 add +2 Focus per card |  |  |  |
-| 85 | 📍 Right Time | rare | Each card scored in a marked row or column pauses the clock 2 seconds |  |  |  |
-| 86 | 👯 Ripple | rare | Once every 30s, cards adjacent in rank to another card in the hand replay |  |  |  |
-| 87 | 🎲 Sands of Time | rare | Current round time remaining ÷ 2 added as pips |  |  |  |
-| 88 | 🌱 Sapling | rare | Each level, 3 cards permanently gain +2 pips |  |  |  |
-| 89 | Scalper | rare | Total pips ×(1 + 0.2 per charge your Sleights are missing), figured when the hand scores |  |  |  |
-| 90 | ⏱️ Sediment | rare | Gains +10 pips for every 10 seconds of round time elapsed (resets each round) |  |  |  |
-| 91 | 🧮 Sideways to Infinity | rare | Each 8 in a hand scores a number of times equal to the number of 8s in that hand |  |  |  |
-| 92 | Stand-Up | rare | +10 pips for each charge remaining across all your Sleights |  |  |  |
-| 93 | 📍 Study Hall | rare | Cards scored in a marked row or column add +2 Focus, once per minute |  |  |  |
-| 94 | The Albatross | rare | +5 pips for every second the clock has spent paused this round |  |  |  |
-| 95 | ⏱️ The Heron | rare | Hands played 15+ round-seconds after the previous score +3 mult |  |  |  |
-| 96 | The Hummingbird | rare | +2 mult for every clock pause triggered this game |  |  |  |
-| 97 | the little guys | rare | A 5-card hand with no face cards permanently raises your maximum Focus by 1 |  |  |  |
-| 98 | The Swift | rare | +1 mult for every 3 seconds elapsed this round |  |  |  |
-| 99 | The Woodpecker | rare | In alternating 30-second blocks a random card is marked. Scoring a marked card replays it twice |  |  |  |
-| 100 | Three's a Crowd | rare | Pairs count as 3-card hands |  |  |  |
-| 101 | 🪜 Torrent | rare | Runs add +1 Focus per card |  |  |  |
-| 102 | ⏱️ Traveler | rare | Every 3 hands you play without a same-type streak grants +1 swap |  |  |  |
-| 103 | ⏱️ Type A | rare | Every 2nd hand of an unbroken same-type streak grants +1 discard |  |  |  |
-| 104 | Wait Four It | rare | 4-card hands permanently buff their 4th card to pause the clock 1 second when scored |  |  |  |
-| 105 | Wellspring | rare | For every 10 Focus generated this game, this trick scores +2 pips |  |  |  |
-| 106 | 🔥 Wildfire | rare | 3 same hands in a row scores +2 mult |  |  |  |
-| 107 | 3rd Time's a Charm | epic | The 3rd card of a hand gets +2 replays |  |  |  |
-| 108 | 📍 Assembly Line | epic | Cards scored in a marked row or column score +1 mult for every card already scored from that line this round. |  |  |  |
-| 109 | 👯 Bedrock | epic | Four of a Kind permanently buffs its 4 cards +8 pips each |  |  |  |
-| 110 | 🎨 Blood Diamonds | epic | Hands with at least one heart and one diamond grant +1 credit and +10 seconds |  |  |  |
-| 111 | 📍 Clean Sweep | epic | Cover a full row or column within two hands to advance Focus to the next threshold. |  |  |  |
-| 112 | 👯 Collapsing Columns | epic | Each Full House instantly advances Focus to the next threshold |  |  |  |
-| 113 | 🧮 Compound | epic | Each hand played permanently adds +0.1 mult to this trick |  |  |  |
-| 114 | 🧮 D6 | epic | Every 6th card scored permanently gains a random +1–6 pips |  |  |  |
-| 115 | Double Jeopardy | epic | Once per round: a random card is marked at round start; the first time you score it, pause the clock for 15 seconds |  |  |  |
-| 116 | 👯 Eye of the Storm | epic | Hands played in the middle third of the round replay the highest-ranked card(s) |  |  |  |
-| 117 | 📍 Feng Shui | epic | Permanently scores +3 pips each hand another position trick triggers. |  |  |  |
-| 118 | Five Second Rule | epic | Playing a 5-card hand pauses the clock 5 seconds |  |  |  |
-| 119 | Four Horse-man | epic | 4-card hands grant a random bonus: +16 pips, +8 mult, +4 Focus, or a 4-second pause |  |  |  |
-| 120 | 👑 Gnomes | epic | Each rank-5-and-below card scored adds its rank in Focus |  |  |  |
-| 121 | 📍 Hands of Blue | epic | A 2×2 hand adds +16 Focus |  |  |  |
-| 122 | 👑 Heads of State | epic | A hand containing K, Q, and J scores ×2 mult |  |  |  |
-| 123 | ⭐ Heartwood | epic | Dead center card permanently gains +5 pips & +1 mult each time scored |  |  |  |
-| 124 | 🪜 High Water | epic | After 3 Runs each round, every Run pauses the clock for its card count in seconds |  |  |  |
-| 125 | ⏱️ Hoarder House | epic | Each hand rewinds the clock 1 second for every 2 unspent swaps + discards you hold |  |  |  |
-| 126 | ⏱️ Hourglass | epic | Every minute mark the clock passes has a 1-in-3 chance to give a random card on the grid a permanent retrigger |  |  |  |
-| 127 | 👑 Inspirato | epic | When an Ace scores, prime your first and last Tricks (each fires twice its next hand) |  |  |  |
-| 128 | 📍 Ley Line | epic | Cards scored at the intersection of a row effect and a column effect permanently gain +2 mult, once per minute |  |  |  |
-| 129 | 🔢 Lucky Sevens | epic | +3 Focus for each 7 scored or discarded |  |  |  |
-| 130 | 👯 Magnitude | epic | Hands containing a pair ×1.5 mult |  |  |  |
-| 131 | Old Growth | epic | Each scored card also adds its permanent pip bonus to mult |  |  |  |
-| 132 | 📍 Perfect Timing | epic | Cards scored in a marked row or column replay once |  |  |  |
-| 133 | 🧮 Royal Favour | epic | After scoring, cards adjacent to Queens permanently gain +1 rank |  |  |  |
-| 134 | 🧮 Snowball | epic | After any hand scoring 500+ pips, each scored card permanently gains +2 pips |  |  |  |
-| 135 | 📍 Straight Shot | epic | 5-card hands played in a straight line add the first and last card's pip values to mult |  |  |  |
-| 136 | 📍 Stretch | epic | When a hand has 2 or more corner cells, each corner card scores ×2 mult |  |  |  |
-| 137 | The Cuckoo | epic | Every 60 seconds of round time, pause the clock by 1 second for each replay that has happened this round |  |  |  |
-| 138 | ⏱️ The Falcon | epic | Hands played while the clock is paused add +10 Focus |  |  |  |
-| 139 | ⏱️ The Kingfisher | epic | +1 mult for every 5 seconds the clock has been paused or rewound this round |  |  |  |
-| 140 | The Vulture | epic | Cards discarded during the round’s first clock pause permanently gain: pause the clock 1 second each time they score (replays stack) |  |  |  |
-| 141 | 🔢 Threepeat | epic | If the hand's pip total is divisible by 3: +3 seconds, +9 mult, +3 Focus |  |  |  |
-| 142 | 🪜 Tide Table | epic | Runs ×mult, building +×0.75 per Run scored this round |  |  |  |
-| 143 | 🪜 Undertow | epic | Runs ×1.5 pips, plus ×0.5 more per card beyond 3 |  |  |  |
-| 144 | 🧮 Ace Absorb | legendary | When an Ace scores, one random adjacent card is forgotten and its bonuses added to the Ace (once per hand) |  |  |  |
-| 145 | 🪜 Flash Flood | legendary | Runs of 4+ cards instantly advance Focus to the next threshold |  |  |  |
-| 146 | 🧮 Jackpot | legendary | The first time a single hand scores 10,000+, permanently add +5 mult to this trick |  |  |  |
-| 147 | 👑 Knave for the People | legendary | Each Jack on the grid multiplies total pips ×2 |  |  |  |
-| 148 | 👯 Richter | legendary | Four of a Kind ×3 mult and advances Focus to the next threshold |  |  |  |
-| 149 | 🎴 Twenty-One | legendary | If the face values of your cards total exactly 21, score ×3 |  |  |  |
-| 150 | Five Stack | mythic | Each card in a 5-card hand scores +20 pips, +5 mult, and +1 Focus |  |  |  |
-| 151 | 🎨 Hard Labour | mythic | Each club scored adds escalating pips — +5, doubling per club; replays count |  |  |  |
-| 152 | 🪜 Rogue Wave | mythic | Runs played in correct sequential order score +80 pips and +16 mult, and add +4 Focus, per card |  |  |  |
-| 153 | The Phoenix | mythic | While the clock is paused, the Focus multiplier applies twice |  |  |  |
+| multiple of base | x1 | x2 | x3 | x4 | x5 | **x8** |
+| a +5 bonus | +5 | +10 | +15 | +20 | +25 | **+40** |
+| a +16 bonus | +16 | +32 | +48 | +64 | +80 | **+128** |
 
-## Knacks (36)
+For a **multiplicative** bonus the base is the part above x1: Aftershock's x2 pips
+has a base of **+1x**, so it climbs x2, x3, x4, x5, x6, **x9**.
 
-| # | Name | Rarity | Base bonus (Lv1) | Improve · Lv2 (2nd copy) | Improve · Lv3 (3rd copy) | Notes |
-|---|---|---|---|---|---|---|
-| 1 | 🧲 Alignment | common | Position Tricks automatically mark the column matching their tray slot (slot 3 → column 3). |  |  |  |
-| 2 | 🪙 Coin Toss | common | At the start of each round, every Sleight has a 50% chance to restore 1 charge. |  |  |  |
-| 3 | 📦 Collector | common | Unused discards carry over to the next round (max 8). |  |  |  |
-| 4 | 🔁 Déjà Vu | common | Playing the same ranks in two hands in a row rewinds the clock 5 seconds. |  |  |  |
-| 5 | 🏙️ District | common | Position Tricks may share a row or column instead of spreading onto separate lines. |  |  |  |
-| 6 | 🔁 Down and Back In | common | Discarding the grid’s highest rank grants +1 discard or swap (alternating) and +5 coins. If several cards share that top rank, all must be discarded together. |  |  |  |
-| 7 | 🪶 Free Discards | common | Discarding costs no time. |  |  |  |
-| 8 | 🕊️ Free Swaps | common | Swapping cards costs no time. |  |  |  |
-| 9 | 🌾 Harvest | common | Start each round with +2 extra discards. |  |  |  |
-| 10 | 🗑️ Hoarder | common | Discards no longer count against the discard limit, but cost 2× time. |  |  |  |
-| 11 | 📏 Leveler | common | When you gain a position Trick, you choose which row it marks. |  |  |  |
-| 12 | 🦉 Long Pause | common | All clock pauses last 1.5× as long. |  |  |  |
-| 13 | 🎯 Lucky Seven | common | Every 7th hand played gives +1 swap. |  |  |  |
-| 14 | ⚰️ Martyr | common | Discarding a non-discard Sleight restores 1 charge to all Sleights on the grid. |  |  |  |
-| 15 | 🥁 Metronome | common | Each round a hand type you can make is chosen; playing that hand type pauses the clock for 5 seconds. |  |  |  |
-| 16 | 🧠 Muscle Memory | common | Primed Tricks stay primed for one extra hand. |  |  |  |
-| 17 | 🎒 Pack Rat | common | Unused swaps carry over to the next round (max 8). |  |  |  |
-| 18 | 🔂 Rewound Echo | common | Any time a card replays, 25% chance to rewind the clock 2 seconds. |  |  |  |
-| 19 | 🦴 Scavenger | common | Whenever a curse lifts, gain +10 coins and +1 discard next round. |  |  |  |
-| 20 | ♾️ Steady Hand | common | Swaps no longer count against the swap limit, but cost 2× time. |  |  |  |
-| 21 | 🌇 Sundial | common | Hands where every card shares a column pause the clock for 8 seconds. |  |  |  |
-| 22 | 📐 Surveyor | common | When you gain a position Trick, you choose which column it marks. |  |  |  |
-| 23 | 🔄 Swap Shop | common | Start each round with +2 extra swaps. |  |  |  |
-| 24 | ⏮️ Time Slip | common | Whenever the clock would pause, 25% chance to rewind that many seconds instead. |  |  |  |
-| 25 | 🕰️ Clock Tower | rare | Unused round seconds carry over (max 60s). |  |  |  |
-| 26 | ⏱️ Clockmaker | rare | Any time a single hand scores at least 30% of the round goal, rewind the clock 5 seconds. |  |  |  |
-| 27 | 🔥 Combo Keeper | rare | Streaks survive one non-streak hand. Re-arms after 2 streak hands. |  |  |  |
-| 28 | 🧠 Core Memories | rare | Each Event you attend permanently raises your maximum Focus by 2. |  |  |  |
-| 29 | ✦ Curator | rare | +1 Trick Slot. |  |  |  |
-| 30 | 🦅 Free Range | rare | Can swap any two non-adjacent cards, but limited to 2 swaps per round. |  |  |  |
-| 31 | 👑 High and Mighty | rare | The highest-ranked cards in each scored hand replay once. |  |  |  |
-| 32 | 💰 Inheritance | rare | Start each round with +5 credits. |  |  |  |
-| 33 | 🐛 Low and Behold | rare | Any played hand containing the grid’s lowest rank replays the whole hand once. |  |  |  |
-| 34 | 🪢 Safety Net | rare | Once per game: if you miss the round goal, gain a 30s extension instead of failing. |  |  |  |
-| 35 | 💊 Stimulants | rare | +10 maximum Focus while owned. |  |  |  |
-| 36 | ⏳ Time Bank | rare | +30 seconds at the start of every round. |  |  |  |
+**Option 2 is the trigger getting looser** and usually has only **2 tiers**, because
+how much looser it can get varies enormously by entity. A handful of entities carry a
+**third** option where a genuinely separate axis exists.
 
-## Sleights (33)
+## Reading the columns
 
-| # | Name | Rarity | Base bonus (Lv1) | Trigger | Uses | Improve · Lv2 (2nd copy) | Improve · Lv3 (3rd copy) | Notes |
-|---|---|---|---|---|---|---|---|---|
-| 1 | 📢 Amplifier | common | Double-tap: the next hand scores +5 mult. (5 charges) | double_tap | 5 |  |  |  |
-| 2 | 🛎️ Bellhop | common | Play this: gain +2 swaps and +1 discard. (5 charges) | on_play | 5 |  |  |  |
-| 3 | 💰 Cash Out | common | Discard this: gain 10 credits. (4 charges) | on_discard | 4 |  |  |  |
-| 4 | 🧲 Magnet | common | Double-tap, then tap a card: every card of that rank slides next to Magnet (counts as several swaps). 3 charges, once per round. | double_tap | 3 |  |  |  |
-| 5 | 🐷 Piggy Bank | common | Double-tap: gain 5 credits. (5 charges) | double_tap | 5 |  |  |  |
-| 6 | 🔃 Pivot! | common | When swapped, that swap is free and both swapped cards gain +5 mult permanently. (3 charges) | on_swap | 3 |  |  |  |
-| 7 | 🐑 Shepherd | common | When drawn onto the grid, exalts 1 random card. | on_draw | ∞ |  |  |  |
-| 8 | 😴 Snooze Button | common | Double-tap: pause the clock for 10 seconds. (5 charges) | double_tap | 5 |  |  |  |
-| 9 | 🧭 Wanderer | common | When swapped, refunds the swap (+1 swap back). | on_swap | ∞ |  |  |  |
-| 10 | 🧪 Catalyst | rare | When swapped, the card it traded with permanently gains +1 mult. | on_swap | ∞ |  |  |  |
-| 11 | 😵 Dazed & Confused | rare | When swapped, reshuffles every card on the grid. | on_swap | ∞ |  |  |  |
-| 12 | 🗿 Idol | rare | Finish the round with this on your board to earn triple interest. (Once) | round_end | 1 |  |  |  |
-| 13 | 📜 Legacy | rare | Discard this: the next hand played scores ×3. (3 charges) | on_discard | 3 |  |  |  |
-| 14 | ⚡ Lightning Rod | rare | When swapped, the card it traded with permanently gains +5 pips. | on_swap | ∞ |  |  |  |
-| 15 | 🌿 Naturalist | rare | Play this: each other scored card permanently gains +2 pips. | on_play | ∞ |  |  |  |
-| 16 | 🗡️ Not a Friend | rare | Discard it: corrupts all adjacent cards. (3 charges) | on_discard | 3 |  |  |  |
-| 17 | 🔋 Power Cell | rare | When it enters the grid: +5 Focus. While it remains on the grid: +10 maximum Focus. | on_draw | ∞ |  |  |  |
-| 18 | ⏪ Rewind | rare | Play this in a hand to rewind the clock by the hand size in seconds (this Sleight counts toward the size). (5 charges) | on_play | 5 |  |  |  |
-| 19 | ⏬ Sandbagger | rare | Discard this together with a pair of cards below rank 8 to rewind the clock by that pair’s rank in seconds. (3 charges) | on_discard | 3 |  |  |  |
-| 20 | 🌳 Shady Tree | rare | Play this from the round’s shady column to pause the clock. Pauses for its remaining charges (10 → 1), −1 each use; destroyed at 0. | on_play | 10 |  |  |  |
-| 21 | 🕯️ Slow Burn | rare | +1 maximum Focus for every minute this sleight spends on the grid. | passive | ∞ |  |  |  |
-| 22 | 🎼 Syncopation | rare | Play this in a hand of a different type than your previous hand: pause the clock for 12 seconds. (3 charges) | on_play | 3 |  |  |  |
-| 23 | 🤝 The Good Friend | rare | Play it as part of a hand: exalts all adjacent cards. (3 charges) | on_play | 3 |  |  |  |
-| 24 | 🏭 Warehouse | rare | Wild suit — becomes any suit to complete a flush. Has no rank. | wildcard | ∞ |  |  |  |
-| 25 | 💣 Bomb | epic | Discard this: every card on the grid permanently gains +3 pips. (2 charges) | on_discard | 2 |  |  |  |
-| 26 | 🔁 Echo | epic | Play this in any hand: that hand scores twice. (3 charges) | on_play | 3 |  |  |  |
-| 27 | ⏳ Last Call | epic | Discard this in the final minute of a round to rewind the clock 15 seconds. (2 charges) | on_discard | 2 |  |  |  |
-| 28 | 🪞 Reflect | epic | Tap to rotate its aim (up→right→down→left). The card it faces replays once when a hand scores. Cannot be swapped or discarded. | aim | ∞ |  |  |  |
-| 29 | ⏱️ Stopwatch | epic | Double-tap: freeze the clock until you next play a hand (swaps and discards keep it frozen). Holds up to 60 paused seconds total, drained 1 per second; destroyed at 0. | double_tap | 60 |  |  |  |
-| 30 | ⚔️ Fight the Power | legendary | While on the grid, all boss effects are ignored. | passive | ∞ |  |  |  |
-| 31 | ⏩ Shortcut | legendary | Play it in any 4-card hand to instantly complete the active challenge. (Once) | on_play | 1 |  |  |  |
-| 32 | 👑 The Queen | legendary | Wild rank — becomes the rank that makes the best hand. (Reach + queen-replay: TBD) | wildcard | ∞ |  |  |  |
-| 33 | 👁️ Soul Mirror | mythic | Tap to rotate its aim. While it faces a card, every scored card of that rank replays — anywhere on the grid. Multiple Soul Mirrors stack. Cannot be swapped or discarded. | aim | ∞ |  |  |  |
+- **Improve option 1 / 2 / 3** - what that option changes. Option 1 is the number,
+  option 2 the loosened trigger, option 3 anything else.
+- **Wiring** - what each option costs to build. `BAL` means it is only a number in
+  the `BAL` table in `js/data/balance.js`, and for the 47 entities that also have a
+  `DESC_TEMPLATES` entry the printed description follows the number on its own.
+  `code` means a new condition or new logic. `charges` rides the existing
+  `sleightCapBonus` seam added in r194 for The Workshop event.
+- **Filled by** - `you` is the owner's own wording, kept verbatim. `Claude` is
+  proposed and open to being overwritten.
+
+**266 entities.** Option 1 is a pure `BAL` number change on **185** of them,
+which is the cheap majority the system can ship on first.
+
+## Tricks (177)
+
+| Name | Rarity | Base bonus | Option 1 (the number) | Option 2 (looser trigger) | Option 3 | Wiring | Filled by |
+|---|---|---|---|---|---|---|---|
+| Cascade | common | Runs score +10 pips per card | +10 pips per card | +10 pips AND +2 mult per card |  | O1 BAL · O2 code | you |
+| Storm | common | Runs score +2 mult per card | +2 mult per card | any hand holding 3 cards in sequence counts, even when it scores as another hand type |  | O1 BAL · O2 code | Claude |
+| Torrent | rare | Runs add +1 Focus per card | +1 Focus per card | any hand holding 3 cards in sequence counts, even when it scores as another hand type |  | O1 BAL · O2 code | Claude |
+| Flash Flood | legendary | Runs of 4+ cards instantly advance Focus to the next threshold | advances 2 thresholds instead of 1 | Runs of 3 qualify (-1 to the length needed, min 3) |  | O1 code · O2 BAL | Claude |
+| Rogue Wave | mythic | Runs played in correct sequential order score +80 pips and +16 mult, and add +4 Focus, per card | +80 pips, +16 mult and +4 Focus per card | a Run played in exact reverse order also counts | one card may sit out of sequence | O1 BAL · O2 code · O3 code | Claude |
+| Tide Table | epic | Runs ×mult, building +×0.75 per Run scored this round | +0.75x to the step | the build carries between rounds instead of resetting |  | O1 BAL · O2 code | Claude |
+| Undertow | epic | Runs ×1.5 pips, plus ×0.5 more per card beyond 3 | +0.5x to the base pip multiplier | +0.5x to the per-card step | counts cards beyond 2 instead of beyond 3 | O1 BAL · O2 BAL · O3 code | Claude |
+| High Water | epic | After 3 Runs each round, every Run pauses the clock for its card count in seconds | pauses for double the card count | arms after 2 Runs instead of 3 (-1 per improvement, min 1) |  | O1 code · O2 code | Claude |
+| Worn Path | common | Straight scores +20 pips | +20 pips | a Run of 4 also counts |  | O1 BAL · O2 code | Claude |
+| Rerun | epic | Each replay in a hand multiplies its pips ×0.25 more | +0.25x per replay | the base play counts as a replay too, so a hand with no replays still gets one step |  | O1 BAL · O2 code | Claude |
+| Chorus | epic | Each replay in a hand multiplies its mult ×0.2 more | +0.2x per replay | the base play counts as a replay too, so a hand with no replays still gets one step |  | O1 BAL · O2 code | Claude |
+| Deep Breath | rare | Hands played while the clock is paused ×2 pips | +1x pips | also applies for 3 seconds after a pause ends |  | O1 BAL · O2 code | Claude |
+| Interest | rare | ×0.1 pips for every 10 credits you hold, up to ×3 | +0.1x per 10 credits | counts every 5 credits instead of every 10 (-5 per improvement, min 5) | +2 to the cap | O1 BAL · O2 BAL · O3 BAL | Claude |
+| Portfolio | epic | ×0.15 mult for every card on the grid carrying a permanent bonus | +0.15x per buffed card | cursed cards on the grid count too |  | O1 BAL · O2 code | Claude |
+| Redline | epic | While your Focus multiplier is ×2 or higher, ×2 mult | +1x mult | triggers at a x1.5 Focus multiplier instead (-0.5 per improvement, min x1.2) |  | O1 BAL · O2 BAL | Claude |
+| Compound | mythic | Every 45 seconds your round score is banked. Your next hand pays the banked amount again. | +1x to the banked amount paid out | banks every 35 seconds instead of 45 (-10s per improvement, min 15s) |  | O1 BAL · O2 BAL | Claude |
+| Overclock | epic | The Focus speed bonus is multiplied by 2. | +1x speed bonus | multiplies the complexity bonus by the same amount as well |  | O1 BAL · O2 code | Claude |
+| Second Nature | epic | Hands generate 2× their listed Focus. | +1x Focus | widens the Focus speed window by the same multiplier as well |  | O1 BAL · O2 code | Claude |
+| Quake | common | Sets score +3 mult per card in the largest set | +3 mult per card | counts every card in the hand, not only the cards in the largest set |  | O1 BAL · O2 code | Claude |
+| Shock | common | Sets score +12 pips per card in the largest set | +12 pips per card | counts every card in the hand, not only the cards in the largest set |  | O1 BAL · O2 code | Claude |
+| Magnitude | epic | Hands containing a pair ×1.5 mult | +0.5x mult | two cards within 1 rank of each other count as a pair for this trick |  | O1 BAL · O2 code | Claude |
+| Resonance | rare | Pairs and Two Pairs containing a 2 or 4 add +2 Focus per card | +2 Focus per card | 6s count as well (one more even rank per improvement) |  | O1 BAL · O2 code | Claude |
+| Bedrock | epic | Four of a Kind permanently buffs its 4 cards +8 pips each | +8 pips | Three of a Kind also counts |  | O1 BAL · O2 code | Claude |
+| Collapsing Columns | epic | Each Full House instantly advances Focus to the next threshold | advances 2 thresholds instead of 1 | Two Pair also counts |  | O1 code · O2 code | Claude |
+| Aftershock | common | Two Pair ×2 pips | +1x pips | apply bonus per pair in the submitted hand (four of a kind would count twice) |  | O1 BAL · O2 code | you |
+| Double Dutch | rare | Play 3 hands with a pair within 30s for +16 Focus (a non-pair hand breaks the streak) | +16 Focus | +15 seconds to the window | 2 hands instead of 3 | O1 BAL · O2 BAL · O3 BAL | Claude |
+| Richter | legendary | Four of a Kind ×3 mult and advances Focus to the next threshold | +2x mult | Full House also counts |  | O1 BAL · O2 code | Claude |
+| Eye of the Storm | epic | Hands played in the middle third of the round replay the highest-ranked card(s) | +1 replay | hands played in the middle (add 10% to the portion of the round the trick applies to) |  | O1 code · O2 code | Claude |
+| Ripple | rare | Once every 30s, cards adjacent in rank to another card in the hand replay | -10 seconds off the cooldown (min 5s) | cards within 2 ranks of each other count | +1 replay | O1 BAL · O2 code · O3 code | Claude |
+| Enriched | common | Flushes score +40 pips | +40 pips | +16 mult |  | O1 BAL · O2 code | you |
+| Tidal Forces | common | Flushes score +10 mult | +10 mult | hands where all but one card share a suit also count |  | O1 BAL · O2 code | Claude |
+| Deluge | rare | Flushes add +5 seconds to the clock | +5 seconds | hands where all but one card share a suit also count |  | O1 BAL · O2 code | Claude |
+| Unsummit | common | The highest-ranking card in each hand scores +(level x 4) pips. | +4 pips per level | the two highest-ranking cards both get it |  | O1 BAL · O2 code | Claude |
+| Last Stand | rare | If your score is below the round goal when you play, that hand scores ×2 mult. | +1x mult | applies while below 125% of the round goal (+25% per improvement) |  | O1 BAL · O2 code | Claude |
+| Nimble | common | 2-card hands score +5 mult | +5 mult | 3-card hands also count |  | O1 BAL · O2 code | Claude |
+| Release Valve | rare | Each time you reach max Focus, gain +1 swap and +1 discard, then lose half your Focus. | +1 swap and +1 discard | keep 75% of your Focus instead of half (+25% per improvement) |  | O1 code · O2 BAL | Claude |
+| Full Load | rare | 5-card hands score +6 pips per card | +6 pips per card | 4-card hands also count |  | O1 BAL · O2 code | Claude |
+| Twenty-One | legendary | If the face values of your cards total exactly 21, ×3 pips | +2x pips | 20 or 21 counts (widens by 1 either side per improvement) |  | O1 BAL · O2 code | Claude |
+| First Light | common | Aces are worth 21 pips | +10 pips | 2s and 3s also get +10 pips | when i say 2s and 3s also get +10 pips, i say that becuase this bonus adds 10 piips to aces basically. but if you had already upgraded this trick once it happend to take the first option, so the default bonus was +15 instead of pluis 10, then 2s and 3s would also get that amount, not plus 10. if this could be worded more clearly please do that. | O1 BAL · O2 code | you |
+| Inspirato | epic | When an Ace scores, prime your first and last Tricks (each fires twice its next hand) | the primed Tricks stay primed for one extra hand | primes the second and second-to-last Tricks as well |  | O1 code · O2 code | Claude |
+| Face Value | common | Face cards (J/Q/K) are worth 15 pips | +5 pips | An additional random rank gets added |  | O1 BAL · O2 code | you |
+| Men of Repute | common | Kings and Jacks score +5 pips and +1 mult each | +10 pips | +2 mult |  | O1 BAL · O2 BAL | you |
+| Knave for the People | legendary | Each Jack on the grid multiplies total pips ×2 | +1x per Jack | Queens count as Jacks for this trick |  | O1 BAL · O2 code | Claude |
+| Every Day Essentials | rare | Rank-5-and-below cards (incl. Ace) contribute 3× pips | +2x pips | rank 6 and below (+1 to the rank ceiling per improvement) |  | O1 BAL · O2 code | Claude |
+| Gnomes | epic | Each rank-5-and-below card scored adds its rank in Focus | adds double its rank in Focus | rank 6 and below (+1 to the rank ceiling per improvement) |  | O1 code · O2 code | Claude |
+| Heads of State | epic | A hand containing K, Q, and J scores ×2 mult | +1x mult | any two of K, Q and J is enough |  | O1 BAL · O2 code | Claude |
+| Rich Soil | common | All cards score +2 pips | +2 pips | +2 pips AND +1 mult per card |  | O1 BAL · O2 code | Claude |
+| Fertile Ground | rare | All cards score +3 pips | +3 pips | +3 pips AND +1 mult per card |  | O1 BAL · O2 code | Claude |
+| First Fruits | rare | Each card in first hand each round permanently gains +2 pips | +2 pips | the first two hands each round count |  | O1 BAL · O2 code | Claude |
+| Sapling | rare | Each level, 3 cards permanently gain +2 pips | +2 pips | +2 cards each level |  | O1 code · O2 code | Claude |
+| Early Bird | common | Hands played in the first third of the round score +3 pips per card | + 3 pips per card | hands played in the first (add 10% to the portion of the round the trick applies to) |  | O1 BAL · O2 code | you |
+| Night Owl | common | Hands played in the last third of the round score +1 mult per card | +1 mult per card | hands played in the last (add 10% to the portion of the round the trick applies to) |  | O1 BAL · O2 code | Claude |
+| Near Extinction | rare | When less than a quarter of the round remains, each scored card replays | +1 replay | add 10% to the portion of the round the trick applies to |  | O1 code · O2 code | Claude |
+| Quick Draw | common | Hands played within 3 seconds of the previous permanently add +1 max Focus capacity | +1 max Focus | +1.5 seconds to the window |  | O1 code · O2 BAL | Claude |
+| The Heron | rare | Hands played 15+ round-seconds after the previous score +3 mult | +3 mult | -4 seconds off the wait required (min 3s) |  | O1 BAL · O2 BAL | Claude |
+| Head Start | common | The first hand each round adds +5 Focus | +5 focus | the first 2 hands each round give this bonus |  | O1 BAL · O2 code | you |
+| Eagle Eye | rare | +5 mult for every 10 seconds elapsed without using a swap | +5 mult per interval | every 7 seconds instead of 10 (-3s per improvement, min 3s) |  | O1 BAL · O2 BAL | Claude |
+| The Falcon | epic | Hands played while the clock is paused add +10 Focus | +10 Focus | also applies for 3 seconds after a pause ends |  | O1 BAL · O2 code | Claude |
+| The Swift | rare | +1 mult for every 3 seconds elapsed this round | +1 mult per interval | every 2 seconds instead of 3 (-1s per improvement, min 1s) |  | O1 BAL · O2 BAL | Claude |
+| The Cuckoo | epic | Every 60 seconds of round time, pause the clock by 1 second for each replay that has happened this round | pauses 2 seconds per replay instead of 1 | every 45 seconds instead of 60 (-15s per improvement, min 15s) |  | O1 code · O2 BAL | Claude |
+| Double Jeopardy | epic | Once per round: a random card is marked at round start; the first time you score it, pause the clock for 15 seconds | +15 seconds | 2 cards are marked each round (+1 per improvement) |  | O1 BAL · O2 code | Claude |
+| The Woodpecker | rare | In alternating 30-second blocks a random card is marked. Scoring a marked card replays it twice | +2 replays | 2 cards are marked per block |  | O1 BAL · O2 code | Claude |
+| The Hummingbird | rare | +2 mult for every clock pause triggered this game | +2 mult per pause | rewinds count as pauses too |  | O1 BAL · O2 code | Claude |
+| The Albatross | rare | +5 pips for every second the clock has spent paused this round | +5 pips per second | counts seconds paused this game, not this round |  | O1 BAL · O2 code | Claude |
+| The Vulture | epic | Cards discarded during the round’s first clock pause permanently gain: pause the clock 1 second each time they score (replays stack) | +1 second | cards discarded during any pause count, not only the round first |  | O1 BAL · O2 code | Claude |
+| Tick-Tock | common | Every time the round clock ends in a 0, gain +2 Focus | +2 Focus | also fires when the clock ends in a 5 |  | O1 BAL · O2 code | Claude |
+| Quarter Chime | rare | Every time the round clock reads a multiple of 15 seconds, your next hand scores +45 pips | +45 pips | every 10 seconds instead of 15 (-5s per improvement, min 5s) |  | O1 BAL · O2 code | Claude |
+| Minute Hand | rare | Every minute mark the clock passes adds +3 mult to your next hand | +3 mult | every 30 seconds instead of 60 (-15s per improvement, min 10s) |  | O1 BAL · O2 code | Claude |
+| Second Hand | common | Every 10 seconds the clock passes adds +5 pips to your next hand. Rewinding the clock earns them again | +5 pips | every 7 seconds instead of 10 (-3s per improvement, min 3s) |  | O1 BAL · O2 code | Claude |
+| Hourglass | epic | Every minute mark the clock passes has a 1-in-3 chance to give a random card on the grid a permanent retrigger | +15% chance | every 30 seconds instead of every minute |  | O1 BAL · O2 code | Claude |
+| Sediment | rare | Gains +10 pips for every 10 seconds of round time elapsed (resets each round) | +10 pips per interval | does not reset between rounds |  | O1 BAL · O2 code | Claude |
+| The Kingfisher | epic | +1 mult for every 5 seconds the clock has been paused or rewound this round | +1 mult per interval | every 3 seconds instead of 5 (-1s per improvement, min 2s) |  | O1 BAL · O2 BAL | Claude |
+| Hoarder House | epic | Each hand rewinds the clock 1 second for every 2 unspent swaps + discards you hold | +1 second | every unspent swap or discard counts, not every 2 |  | O1 code · O2 BAL | Claude |
+| Traveler | rare | Every 3 hands you play without a same-type streak grants +1 swap | +1 swap | every 2 hands instead of 3 (-1 per improvement, min 1) |  | O1 code · O2 code | Claude |
+| Type A | rare | Every 2nd hand of an unbroken same-type streak grants +1 discard | +1 discard | every hand of the streak counts, not every 2nd |  | O1 code · O2 code | Claude |
+| The Phoenix | mythic | While the clock is paused, the Focus multiplier applies twice | the Focus multiplier applies a third time | also applies for 3 seconds after a pause ends |  | O1 code · O2 code | Claude |
+| Kindling | common | Same hand streak scores +4 pips × streak | +4 pips | every third streak count also applies 2x to pips |  | O1 BAL · O2 code | you |
+| Wildfire | rare | 3 same hands in a row scores +2 mult | +2 mult | 2 same hands in a row instead of 3 |  | O1 BAL · O2 code | Claude |
+| Echoes | common | Playing the same hand type as the previous hand replays each card | the first card is replayed one additional time | the streak survives one hand of a different type |  | O1 code · O2 code | you (opt 1) + Claude (opt 2) |
+| Hard Labour | mythic | Each club scored adds escalating pips - +5, doubling per club; replays count | +5 to the starting amount | spades count as clubs for this trick |  | O1 BAL · O2 code | Claude |
+| Blood Diamonds | epic | Hands with at least one heart and one diamond grant +1 credit and +10 seconds | +1 credit and +10 seconds | one club and one spade also counts |  | O1 BAL · O2 code | Claude |
+| Rainbow | rare | Hands with all four suits score +16 pips and +4 mult per card | +16 pips and +4 mult per card | three suits qualify at half the bonus |  | O1 BAL · O2 code | Claude |
+| Balance | common | Hands with exactly 2 suits score +2 mult per card | +2 mult per card | hands with 2 or 3 suits qualify |  | O1 BAL · O2 code | you (opt 1) + Claude (opt 2) |
+| Lucky Sevens | epic | +3 Focus for each 7 scored or discarded | +3 Focus | swapped 7s count too |  | O1 BAL · O2 code | Claude |
+| Threepeat | epic | If the hand's pip total is divisible by 3: +3 seconds, +9 mult, +3 Focus | +3 seconds, +9 mult and +3 Focus | a pip total divisible by 3 OR by 2 counts |  | O1 BAL · O2 code | Claude |
+| Prime Time | rare | Hands with 3+ prime-rank cards (A,2,3,5,7) score +23 pips per card | +23 pips per card | 2+ prime-rank cards qualify (-1 per improvement, min 1) |  | O1 BAL · O2 code | Claude |
+| Get Even | common | Hands with 3+ even-ranked cards score +2 mult per card | +2 mult | hands with 2+ even ranked cards qualify for the bonus |  | O1 BAL · O2 code | you |
+| Odd One In | rare | Hands with 3+ odd-ranked cards score +5 mult per card | +5 mult per card | 2+ odd-ranked cards qualify (-1 per improvement, min 1) |  | O1 BAL · O2 code | Claude |
+| Diversity | rare | Hands with 4+ different ranks score +2 mult | +2 mult | 3+ different ranks qualify (-1 per improvement, min 2) |  | O1 BAL · O2 code | Claude |
+| Right Place | common | Cards scored in a marked row or column score +10 pips | +10 pips | the lines either side of the marked line pay half |  | O1 BAL · O2 code | Claude |
+| Power Line | common | Cards scored in a marked row or column each score +2 mult | +2 mult | the lines either side of the marked line pay half |  | O1 code · O2 code | Claude |
+| Echo Location | rare | Cards scored in a marked row or column have a 50% chance to replay once | +25% chance | cards on the lines either side get half the chance |  | O1 code · O2 code | Claude |
+| Perfect Timing | epic | Cards scored in a marked row or column replay once | +1 replay | the lines either side of the marked line replay too |  | O1 code · O2 code | Claude |
+| Right Time | rare | Each card scored in a marked row or column pauses the clock 2 seconds | +2 seconds | the lines either side of the marked line pay half |  | O1 BAL · O2 code | Claude |
+| Study Hall | rare | Cards scored in a marked row or column add +2 Focus, once per minute | +2 Focus | once every 30 seconds instead of once a minute |  | O1 BAL · O2 code | Claude |
+| Ley Line | epic | Cards scored at the intersection of a row effect and a column effect permanently gain +2 mult, once per minute | +2 mult | once every 30 seconds instead of once a minute |  | O1 BAL · O2 code | Claude |
+| Hands of Blue | epic | A 2×2 hand adds +16 Focus | +16 Focus | a 2x3 block also counts |  | O1 BAL · O2 code | Claude |
+| Crossroads | rare | A + shaped hand adds +25 Focus | +25 Focus | a T or an L shape also counts |  | O1 BAL · O2 code | Claude |
+| Straight Shot | epic | 5-card hands played in a straight line add the first and last card's pip values to mult | adds double the two cards pip values | 4-card straight lines also count |  | O1 code · O2 code | Claude |
+| Cornered | rare | Corner cards multiply the running pips by the whole minutes left on the clock | +1 to the minute count it multiplies by | the cells next to each corner count as corners |  | O1 code · O2 code | Claude |
+| Stretch | epic | When a hand has 2 or more corner cells, each corner card scores ×2 mult | +1x mult | a single corner cell is enough |  | O1 BAL · O2 code | Claude |
+| On the Edge | common | Hands where all cards are on the outer edge score +15 pips per card | +15 pips per card | all but one card on the edge qualifies |  | O1 BAL · O2 code | Claude |
+| Inclusive | rare | Hands spanning the full width or height of the grid score +25 mult | +25 mult | spanning all but one row or column qualifies |  | O1 BAL · O2 code | Claude |
+| Stand Up | common | Hands with cards from only one column score +2 mult per card | +2 mult per card | hands with cards from no more than 2 columns |  | O1 BAL · O2 code | Claude |
+| Lie Down | common | Hands with cards from only one row score +2 mult per card | +2 mult | hands with cards from no more than 2 rows |  | O1 BAL · O2 code | you |
+| Groove | rare | This trick scales +1 Focus for every 2 cards scored from a marked row or column. Resets each round. | +1 Focus | does not reset between rounds |  | O1 BAL · O2 code | Claude |
+| Assembly Line | epic | Cards scored in a marked row or column score +1 mult for every card already scored from that line this round. | +1 mult per prior card | counts cards from any marked line, not only its own |  | O1 BAL · O2 code | Claude |
+| Overtime | rare | Every hand rewinds the clock 1 second for every 3 cards you have scored from its marked row or column this round. The count resets each round. | +1 second | every 2 cards instead of 3 (-1 per improvement, min 1) |  | O1 BAL · O2 BAL | Claude |
+| Feng Shui | epic | Permanently scores +3 pips each hand another position trick triggers. | +3 pips | also gains +1 mult on the same trigger |  | O1 BAL · O2 code | Claude |
+| Huddle | rare | Each scored card scores +11 pips for every adjacent card or sleight in the hand. | +11 pips | diagonally adjacent cards count too |  | O1 BAL · O2 code | Claude |
+| Clean Sweep | epic | Cover a full row or column within two hands to advance Focus to the next threshold. | advances 2 thresholds instead of 1 | three hands instead of two (+1 per improvement) |  | O1 code · O2 code | Claude |
+| Rising Tide | common | Base mult increases by +1 for each level reached | +1 mult per level | also +1 mult per boss beaten |  | O1 code · O2 code | Claude |
+| Veteran | common | +2 pips per level reached this run | +2 pips per level | +2 pips AND +0.5 mult per level |  | O1 BAL · O2 code | Claude |
+| Compound | epic | Each hand played permanently adds +0.1 mult to this trick | +0.1 mult per hand | discarded hands count too |  | O1 BAL · O2 code | Claude |
+| Prolific | rare | Each hand played permanently adds +1 pip to this trick | +1 pip per hand | discarded hands count too |  | O1 BAL · O2 code | Claude |
+| Acorns | rare | Each card scored permanently adds +0.05 Focus to this trick; grants its whole-number Focus each hand | +0.05 Focus per card | discarded cards count too |  | O1 BAL · O2 code | Claude |
+| Plan Ahead | epic | Every 3rd hand adds Focus equal to your average hands per round | adds double your average hands per round | every 2nd hand instead of every 3rd (-1 per improvement, min 1) |  | O1 code · O2 BAL | Claude |
+| Penny Saved | rare | Each 5 discarded or played permanently adds +5 pips to this trick | +5 pips | swapped 5s count too |  | O1 BAL · O2 code | Claude |
+| Cloud Nine | rare | Each 9 scored permanently adds +9 mult to this trick | +9 mult | discarded 9s count too |  | O1 BAL · O2 code | Claude |
+| Perfect Ten | rare | Every 10 cards discarded permanently adds +1 mult to this trick | +1 mult | every 7 discards instead of 10 (-3 per improvement, min 3) |  | O1 BAL · O2 BAL | Claude |
+| D6 | epic | Every 6th card scored permanently gains a random +1–6 pips | +6 to the top of the roll (1-12) | every 4th card instead of every 6th (-2 per improvement, min 2) |  | O1 BAL · O2 BAL | Claude |
+| Middle Management | common | 4-card hands permanently give the 4th card +4 pips | +4 pips' | 4 card hands give the first and last cards the bonus |  | O1 BAL · O2 code | you |
+| Double Take | rare | Each 2 scored duplicates your most recently acquired Trick’s effect | +1 duplication | 3s count as 2s for this trick |  | O1 code · O2 code | Claude |
+| Prime Times | rare | When a prime-rank card (A,2,3,5,7) scores, prime your next Trick - cycling 1st→2nd→3rd→5th→7th | primes 2 Tricks per trigger | the cycle covers the 4th and 6th slots as well |  | O1 code · O2 code | Claude |
+| Sideways to Infinity | rare | Each 8 in a hand scores a number of times equal to the number of 8s in that hand | +1 extra scoring per 8 | 9s count as 8s for this trick |  | O1 code · O2 code | Claude |
+| Snowball | epic | After any hand scoring 500+ pips, each scored card permanently gains +2 pips | +2 pips | -150 off the pip threshold (min 100) |  | O1 BAL · O2 BAL | Claude |
+| Jackpot | legendary | The first time a single hand scores 10,000+, permanently add +5 mult to this trick | +5 mult | -3,000 off the threshold (min 2,000) | fires every time, not only the first | O1 BAL · O2 BAL · O3 code | Claude |
+| Royal Favour | epic | After scoring, cards adjacent to Queens permanently gain +1 rank | +1 rank | Kings also count |  | O1 code · O2 code | Claude |
+| Ace Absorb | legendary | When an Ace scores, one random adjacent card is forgotten and its bonuses added to the Ace (once per hand) | absorbs 2 adjacent cards | twice per hand instead of once |  | O1 code · O2 code | Claude |
+| Monopoly | legendary | When a 15 or a 20 scores, one random adjacent card is forgotten and its bonuses added to it (once per hand) | absorbs 2 adjacent cards | 11s also count |  | O1 code · O2 code | Claude |
+| Sands of Time | rare | Current round time remaining ÷ 2 added as pips | -0.5 off the divisor (min 0.5) | also adds the same figure as Focus |  | O1 BAL · O2 code | Claude |
+| Compost | common | +3 pips per card discarded this round | +3 pips | +4 pips per discarded or swapped |  | O1 BAL · O2 code | you |
+| Dark Matter | rare | All-spade hands add half the remaining round time as pips | -0.5 off the divisor (min 0.5) | all-black hands count (spades and clubs) |  | O1 BAL · O2 code | Claude |
+| Mirror | rare | Tap to tilt left or right; borrows the effect of the Trick on that side. Facing an empty slot = no effect. | borrows at 1.5x strength | borrows from both sides at once |  | O1 code · O2 code | Claude |
+| Combo Score | common | +2 mult for every distinct hand type played this round | +2 mult | x1+.3 per distinct hand type. |  | O1 BAL · O2 code | you |
+| Escalation | rare | For each hand beyond the 5th in a round, score +1 mult | +1 mult per hand | counts from the 3rd hand instead of the 5th (-2 per improvement, min 1) |  | O1 code · O2 code | Claude |
+| Move as One | epic | If 3+ of your Tricks share a keyword, your lowest-rarity Trick sharing that keyword scores its effect a second time | +1 extra scoring | 2 Tricks sharing a keyword is enough |  | O1 code · O2 code | Claude |
+| More Better | common | Each reward grid where you select 3+ tiles permanently adds +4 mult to this trick | +4 mult | 2+ tiles is enough (-1 per improvement, min 1) |  | O1 BAL · O2 BAL | Claude |
+| Rain Check | epic | Skipping a reward grid adds +30 seconds to your next round | +30 seconds | taking only one tile also counts as skipping |  | O1 BAL · O2 code | Claude |
+| Temporal Rift | epic | A card scored where a row effect and a column effect cross permanently pauses the clock 3s when scored (once per minute; a card already time-buffed is skipped) | +3 seconds | once every 30 seconds instead of once a minute |  | O1 BAL · O2 code | Claude |
+| Wild Side | rare | +3 mult for every negative reward tile you have taken this run | +3 mult per tile | curses and event debuffs count as negative tiles |  | O1 BAL · O2 code | Claude |
+| Wait For Iiiit | epic | Each negative reward tile taken this run gives every scored card a +2% chance to replay (checked per card; retroactive) | +2% per tile | curses and event debuffs count as negative tiles |  | O1 BAL · O2 code | Claude |
+| Meditation | common | Focus decays 1 second slower | +15% seconds slower' | every 5 seconds get +5 focus |  | O1 code · O2 code | you |
+| Tunnel Vision | common | Start each round with 5 focus | +5 focus | also start each round with +1 swap |  | O1 code · O2 code | Claude |
+| First Wind | common | Focus does not decay for the first 45 seconds of a round | start with 8 focus | +10 seconds of non decay time |  | O1 code · O2 code | you |
+| Rhythm | common | Each hand played adds 1 additional focus | +1 focus | discarding also adds the focus |  | O1 code · O2 code | Claude |
+| Restless | common | Swapping adds 1 focus | +1 focus | discarding also adds the focus |  | O1 code · O2 code | Claude |
+| Cull | common | Using a discard adds 1 focus | +1 focus | discarding or swapping |  | O1 code · O2 code | you |
+| Expanse | common | Each time you hit max focus, increase max focus capacity by 1 | +1 additional max focus | pause the clock +5 seconds |  | O1 code · O2 code | you |
+| Kaleidoscope | rare | Playing one or more of each suit in a hand adds +4 Focus | +4 Focus | three suits qualify |  | O1 code · O2 code | Claude |
+| Flow State | rare | While focus is ×1.5 or higher, +10 pips per card scored | +10 pips per card | triggers at a x1.25 Focus multiplier (-0.25 per improvement, min x1.1) |  | O1 BAL · O2 code | Claude |
+| Heartwood | epic | Dead center card permanently gains +5 pips & +1 mult each time scored | +5 pips and +1 mult | the four cards orthogonally adjacent to centre count too |  | O1 BAL · O2 code | Claude |
+| Landfill | common | Hands score +1 mult for every 5 cards you have discarded this round | +3 mult | -1 to the required amount of cards dsicarded. every 4 cards, if it gets improved again, every 3 cards, etc. |  | O1 BAL · O2 BAL | you |
+| Old Growth | epic | Each scored card also adds its permanent pip bonus to mult | adds double its permanent pip bonus | also adds its permanent mult bonus to pips |  | O1 code · O2 code | Claude |
+| Magician | rare | +3 mult for each Sleight you own | +3 mult per Sleight | also +3 mult per Knack owned |  | O1 BAL · O2 code | Claude |
+| Stand-Up | rare | +10 pips for each charge remaining across all your Sleights | +10 pips per charge | infinite-charge Sleights count as 5 charges |  | O1 BAL · O2 code | Claude |
+| Scalper | rare | Total pips ×(1 + 0.2 per charge your Sleights are missing), figured when the hand scores | +0.2x per missing charge | Sleights spent and gone from your deck still count as fully missing |  | O1 BAL · O2 code | Claude |
+| Five Stack | mythic | Each card in a 5-card hand scores +20 pips, +5 mult, and +1 Focus | +20 pips, +5 mult and +1 Focus per card | 4-card hands count at half |  | O1 BAL · O2 code | Claude |
+| the little guys | rare | A 5-card hand with no face cards permanently raises your maximum Focus by 1 | +1 max Focus | 4-card hands also count |  | O1 BAL · O2 code | Claude |
+| Five for Fodder | common | Discarding a 5-card hand grants +5 credits | +5 credits | discarding a 4 card hand also counts |  | O1 BAL · O2 code | you |
+| Five Second Rule | epic | Playing a 5-card hand pauses the clock 5 seconds | +5 seconds | 4-card hands also count |  | O1 BAL · O2 code | Claude |
+| Life Lessons | rare | Each round you complete permanently raises your maximum Focus by 1 | +1 max Focus | each boss beaten grants an extra one |  | O1 BAL · O2 code | Claude |
+| Wellspring | rare | For every 10 Focus generated this game, this trick scores +2 pips | +2 pips | every 7 Focus instead of 10 (-3 per improvement, min 3) |  | O1 BAL · O2 BAL | Claude |
+| Feedback Loop | rare | For every 5 Focus generated this round, this trick scores +1 mult (resets each round) | +1 mult | counts Focus generated this game, not this round |  | O1 BAL · O2 code | Claude |
+| 3rd Down | rare | 3-card hands add +3 Focus | +3 Focus | 2-card hands also count |  | O1 BAL · O2 code | Claude |
+| Ready, Set, Go | common | A 3-card hand containing a 3 scores +9 mult | +9 mult | any hand containing a 3 counts, not only 3-card hands |  | O1 BAL · O2 code | Claude |
+| 3rd Time's a Charm | epic | The 3rd card of a hand gets +2 replays | +2 replays | the 3rd and 5th cards both get it |  | O1 BAL · O2 code | Claude |
+| Three's a Crowd | rare | Pairs count as 3-card hands | Two Pair counts as a 5-card hand as well | every 2-card hand counts as a 3-card hand |  | O1 code · O2 code | Claude |
+| Four Eyes | common | 4-card hands score +12 mult | +12 mult | AND pause clock for 4 seconds |  | O1 BAL · O2 code | you |
+| 4x4 | common | Cards scored in the 4th column score +16 pips | +16 pips | cards in the second and fourth column receive the bonus |  | O1 BAL · O2 code | you |
+| Four Horse-man | epic | 4-card hands grant a random bonus: +16 pips, +8 mult, +4 Focus, or a 4-second pause | +16 pips, +8 mult, +4 Focus or +4 seconds, whichever is rolled | rolls twice | 5-card hands also count | O1 BAL · O2 code · O3 code | Claude |
+| Wait Four It | rare | 4-card hands permanently buff their 4th card to pause the clock 1 second when scored | +1 second | buffs the 2nd and the 4th card |  | O1 BAL · O2 code | Claude |
+| Undue Influence | epic | A Set containing a face card grants credits equal to the number of Sets you have played this round | double the credits | any Set counts, face card or not |  | O1 code · O2 code | Claude |
+| Encore | epic | Sets made of only odd-ranked cards score a second time | +1 extra scoring | Sets of only even-ranked cards also count |  | O1 code · O2 code | Claude |
+| Shaky Foundation | common | Every other Set scores +15 mult | +15 mult | every Set counts, not every other one |  | O1 BAL · O2 code | Claude |
+| Dam Holding… | rare | Runs pause the clock 3 seconds | +3 seconds | any hand holding 3 cards in sequence counts |  | O1 BAL · O2 code | Claude |
+| Wave Amplification | common | Consecutively played Runs score +10 pips × the current Run streak | +10 pips per streak | one non-Run hand no longer breaks the streak |  | O1 BAL · O2 code | Claude |
+
+## Knacks (50)
+
+| Name | Rarity | Base bonus | Option 1 (the number) | Option 2 (looser trigger) | Option 3 | Wiring | Filled by |
+|---|---|---|---|---|---|---|---|
+| Contingency Plan | rare | Boss effects are 10% weaker - timed effects tick 10% less often, and everything else is 10% smaller. | +10% weaker | also delays the boss first effect by 15 seconds |  | O1 BAL · O2 code | Claude |
+| Free Swaps | common | Swapping cards costs no time. | +1 to your swap limit as well | discards cost half time too |  | O1 code · O2 code | Claude |
+| Free Discards | common | Discarding costs no time. | +1 to your discard limit as well | swaps cost half time too |  | O1 code · O2 code | Claude |
+| Steady Hand | common | Swaps no longer count against the swap limit, but cost 20s each. | cost 1.75x time (goes down .25x each improvement) | the time cost applies only to the first swap each round |  | O1 BAL · O2 code | you (opt 1) + Claude (opt 2) |
+| Hoarder | common | Discards no longer count against the discard limit, but cost 6s per card. | cost 1.75x time (goes down .25x each improvement) | the time cost applies only to the first discard each round |  | O1 BAL · O2 code | you (opt 1) + Claude (opt 2) |
+| Time Bank | rare | +30 seconds at the start of every round. | +15 seconds per improvement | also +15 seconds at the start of every boss round |  | O1 BAL · O2 code | you (opt 1) + Claude (opt 2) |
+| Inheritance | rare | Start each round with +5 credits. | +5 credits per improvement | also +5 credits at the end of each round |  | O1 BAL · O2 code | you (opt 1) + Claude (opt 2) |
+| Bulk Buyer | rare | Doubles the shop bundle discount (10% per extra item instead of 5%). | +5% per extra item | +1 item worth of headroom on the discount cap |  | O1 BAL · O2 code | Claude |
+| Combo Keeper | rare | Streaks survive one non-streak hand. Re-arms after 2 streak hands. | the streak survives one more non-streak hand | re-arms after 1 streak hand instead of 2 |  | O1 code · O2 code | Claude |
+| Lucky Seven | common | Every 7th hand played gives +1 swap. | every 6th hand (-1 hand requirement each time, min =1) | grants +1 discard as well as +1 swap |  | O1 BAL · O2 code | you (opt 1) + Claude (opt 2) |
+| Swap Shop | common | Start each round with +2 extra swaps. | +1 extra swap | also +1 discard |  | O1 BAL · O2 code | you (opt 1) + Claude (opt 2) |
+| Harvest | common | Start each round with +2 extra discards. | +1 extra discard | also +1 swap |  | O1 BAL · O2 code | you (opt 1) + Claude (opt 2) |
+| Pack Rat | common | Unused swaps carry over to the next round (max 8). | +8 to the carry cap | unused discards carry over too |  | O1 BAL · O2 code | Claude |
+| Collector | common | Unused discards carry over to the next round (max 8). | +8 to the carry cap | unused swaps carry over too |  | O1 BAL · O2 code | Claude |
+| Clock Tower | rare | Unused round seconds carry over (max 60s). | max seconds +15 per improvement | unused swaps and discards carry over too |  | O1 BAL · O2 code | you (opt 1) + Claude (opt 2) |
+| Safety Net | rare | Once per game: if you miss the round goal, gain a 30s extension instead of failing. | +15 seconds per improvement | get two chances per round instead |  | O1 BAL · O2 code | you |
+| Free Range | rare | Can swap any two non-adjacent cards, but limited to 2 swaps per round. | +1 swap per improvement | diagonal swaps stop counting against the limit |  | O1 BAL · O2 code | you (opt 1) + Claude (opt 2) |
+| Long Pause | common | All clock pauses last 1.5× as long. | +.2x each improvement | rewinds are lengthened by the same multiplier |  | O1 BAL · O2 code | you (opt 1) + Claude (opt 2) |
+| Sundial | common | Hands where every card shares a column pause the clock for 8 seconds. | +5 seconds per improvement | hands where every card shares a row also count |  | O1 BAL · O2 code | you (opt 1) + Claude (opt 2) |
+| Metronome | common | Each round a hand type you can make is chosen; playing that hand type pauses the clock for 5 seconds. | +3 seconds per improvement | 2 hand types are chosen |  | O1 BAL · O2 code | you |
+| Time Slip | common | Whenever the clock would pause, 25% chance to rewind that many seconds instead. | +10% chance per improvement | the rewind is 1 second longer than the pause would have been |  | O1 BAL · O2 code | you (opt 1) + Claude (opt 2) |
+| Rewound Echo | common | Any time a card replays, 25% chance to rewind the clock 2 seconds. | +20% chance per improvement | +1 second rewind per improvement |  | O1 BAL · O2 BAL | you |
+| Déjà Vu | common | Playing the same ranks in two hands in a row rewinds the clock 5 seconds. | +2 seconds | playing just one rank in 2 subsequent hands |  | O1 BAL · O2 code | you |
+| Clockmaker | rare | Any time a single hand scores at least 30% of the round goal, rewind the clock 5 seconds. | +5 seconds rewind per improvement | triggers at 20% of the round goal (-10% per improvement, min 10%) |  | O1 BAL · O2 code | you (opt 1) + Claude (opt 2) |
+| High and Mighty | rare | The highest-ranked cards in each scored hand replay once. | the second highest rank also replays | +1 replay per improvement |  | O1 code · O2 code | you |
+| Low and Behold | rare | Any played hand containing the grid’s lowest rank replays the whole hand once. | the two lowest ranks count | +1 replay per improvement |  | O1 code · O2 code | you |
+| Down and Back In | common | Discarding the grid’s highest rank grants +1 discard or swap (alternating) and +5 coins. If several cards share that top rank, all must be discarded together. | +5 coins | the second-highest rank also counts | grants a discard AND a swap instead of alternating | O1 BAL · O2 code · O3 code | Claude |
+| Muscle Memory | common | Primed Tricks stay primed for one extra hand. | +1 extra hand (stays primed for an extra hand) | primes carry over between rounds |  | O1 code · O2 code | you (opt 1) + Claude (opt 2) |
+| Curator | rare | +1 Trick Slot. | +1 additional slot up to 5 max | raises the 5-slot ceiling that option 1 stops at by 1 |  | O1 code · O2 code | you (opt 1) + Claude (opt 2) |
+| Short Suit | rare | Flush of 3 and Flush of 4 become scorable hands. | Flush of 3 and Flush of 4 also score +10 pips per card | Flush of 2 becomes scorable as well |  | O1 code · O2 code | Claude |
+| Old Tricks | epic | Every hand type scores with the best growth anywhere in its family - sets, runs and flushes each pool their own. It replaces what that hand had earned, it does not add to it. | +50% on top of the pooled growth it applies | sets, runs and flushes pool into one, so every hand type scores the single best growth in the run |  | O1 code · O2 code | Claude |
+| Tagalong | rare | Your hands may carry cards that are not part of them. Those cards still score their own pips instead of being billed as penalties. | carried cards score double their own pips | carried cards also count for Tricks that read the whole hand, not only for their pips |  | O1 code · O2 code | Claude |
+| Shady Stimulants | rare | Every negative reward tile you swallow sharpens you - permanently +1 maximum Focus per tile taken. | +1 maximum Focus per tile | curses and event debuffs count as tiles |  | O1 code · O2 code | Claude |
+| Greedy Boi | rare | +2 selection size in the reward grid - grab more tiles at once. | +1 selection size | also +1 row and column on the reward grid |  | O1 BAL · O2 code | Claude |
+| Scavenger | common | Whenever a curse lifts, gain +10 coins and +1 discard next round. | +10 coins | also fires when a curse lands, not only when it lifts |  | O1 BAL · O2 code | Claude |
+| Coin Toss | common | At the start of each round, every Sleight has a 50% chance to restore 1 charge. | =15% | +1 charge |  | O1 code · O2 BAL | you |
+| Martyr | common | Discarding a non-discard Sleight restores 1 charge to all Sleights on the grid. | restores 1 charge to all sleights | restores +1 charge per improvement |  | O1 code · O2 code | you |
+| Surveyor | common | When you gain a position Trick, you choose which column it marks. | you choose the row as well as the column | you may re-choose one position Trick each act |  | O1 code · O2 code | Claude |
+| Leveler | common | When you gain a position Trick, you choose which row it marks. | 10% chance it buffs a second row or column (goes up +10% each improvement) | you choose the column it marks as well as the row |  | O1 code · O2 code | you (opt 1) + Claude (opt 2) |
+| Alignment | common | Position Tricks automatically mark the column matching their tray slot (slot 3 → column 3). | marks the row matching the slot as well as the column | marks the columns either side too |  | O1 code · O2 code | Claude |
+| District | common | Position Tricks may share a row or column instead of spreading onto separate lines. | a shared line pays both Tricks in full | position Tricks may share with a line marked by any source |  | O1 code · O2 code · check design | Claude |
+| Tempo | rare | When acquired, sets your swap and discard limits to 2. Every 15 seconds, gain 1 back - alternating swap, then discard. | -3 seconds off the drip interval (min 5s) | sets the limits to 3 instead of 2 (+1 per improvement) |  | O1 BAL · O2 BAL | Claude |
+| Jury-Rig | rare | Swapping or discarding a card adjacent to a Sleight has a 50% chance to restore 1 charge to it. Rolls separately for each adjacent Sleight. | +15% chance | +1 charge restored |  | O1 BAL · O2 BAL | Claude |
+| Dividend | rare | Each time you reach max Focus, gain 8 credits, then Focus resets to a third of max. | +8 credits | keeps half your Focus instead of a third |  | O1 BAL · O2 BAL | Claude |
+| Trade Winds | rare | Your max Focus is 10 lower. At the end of each round, gain credits equal to half your current Focus. | pays 75% of your Focus instead of half | -3 off the maximum Focus penalty (min 0) |  | O1 BAL · O2 BAL | Claude |
+| Growth Spurt | epic | Each time you reach max Focus, your max Focus drops by 5. If you reached max Focus during a round, a random limit rises by 1 at the end of that round. | grants 2 limits per round maxed instead of 1 | -1 off the maximum Focus cost (min 1) |  | O1 code · O2 BAL | Claude |
+| Stimulants | rare | +10 maximum Focus while owned. | +10 per improvment | also start each round with 10 Focus |  | O1 BAL · O2 code | you (opt 1) + Claude (opt 2) |
+| Long Fuse | rare | You have 2× as long to earn the same Focus speed bonus. | +1x window | also multiplies the speed bonus itself by the same amount |  | O1 BAL · O2 code | Claude |
+| Shorthand | rare | Hands generate 1.5× their listed Focus. | +0.5x Focus | also widens the speed window by the same multiplier |  | O1 BAL · O2 code | Claude |
+| Core Memories | rare | Each Event you attend permanently raises your maximum Focus by 2. | +2 additional focus per improvement | bosses beaten count as Events too |  | O1 BAL · O2 code | you (opt 1) + Claude (opt 2) |
+
+## Sleights (39)
+
+| Name | Rarity | Base bonus | Option 1 (the number) | Option 2 (looser trigger) | Option 3 | Wiring | Filled by |
+|---|---|---|---|---|---|---|---|
+| The Queen | legendary | Wild rank - becomes the rank that makes the best hand. (Reach + queen-replay: TBD) | also wild in suit | replays once when it scores |  | O1 code · O2 code | Claude |
+| Warehouse | rare | Wild suit - becomes any suit to complete a flush. Has no rank. | also wild in rank | replays once when it scores |  | O1 code · O2 code | Claude |
+| Fight the Power | legendary | While on the grid, all boss effects are ignored. | also ignores curses on the grid | keeps working for 30 seconds after it leaves the grid |  | O1 code · O2 code | Claude |
+| Dazed & Confused | rare | When swapped, reshuffles every card on the grid. | +1 charge | also refunds the swap that triggered it |  | O1 charges · O2 code | Claude |
+| Pivot! | common | When swapped, that swap is free and both swapped cards gain +5 mult permanently. (3 charges) | +5 mult | +1 charge |  | O1 BAL · O2 charges | Claude |
+| Echo | epic | Play this in any hand: each card replays twice. (3 charges) | +1 replay | +1 charge |  | O1 code · O2 charges | Claude |
+| Naturalist | rare | Play this: each other scored card permanently gains +2 pips. | +2 pips | +1 charge |  | O1 BAL · O2 charges | Claude |
+| Bellhop | common | Play this: gain +2 swaps and +1 discard. (5 charges) | +2 swaps and +1 discard | +1 charge |  | O1 BAL · O2 charges | Claude |
+| Syncopation | rare | Play this in a hand of a different type than your previous hand: pause the clock for 12 seconds. (3 charges) | +12 seconds | any hand type counts, not only a different one | +1 charge | O1 BAL · O2 code · O3 charges | Claude |
+| Rewind | rare | Play this in a hand to rewind the clock by the hand size in seconds (this Sleight counts toward the size). (5 charges) | rewinds double the hand size in seconds | +1 charge |  | O1 code · O2 charges | Claude |
+| Bomb | epic | Discard this: every card on the grid permanently gains +3 pips. (2 charges) | +3 pips | +1 charge |  | O1 BAL · O2 charges | Claude |
+| Legacy | rare | Discard this: the next hand played get x3 mult. (3 charges) | +2x mult | +1 charge |  | O1 BAL · O2 charges | Claude |
+| Cash Out | common | Discard this: gain 10 credits. (4 charges) | +10 credits | +1 charge |  | O1 BAL · O2 charges | Claude |
+| Last Call | epic | Discard this in the final minute of a round to rewind the clock 15 seconds. (2 charges) | +15 seconds | the final 90 seconds instead of 60 (+30s per improvement) | +1 charge | O1 BAL · O2 BAL · O3 charges | Claude |
+| Sandbagger | rare | Discard this together with a pair of cards below rank 8 to rewind the clock by that pair’s rank in seconds. (3 charges) | rewinds double the pair rank in seconds | pairs below rank 10 count (+2 to the ceiling per improvement) | +1 charge | O1 code · O2 BAL · O3 charges | Claude |
+| Lightning Rod | rare | When swapped, the card it traded with permanently gains +5 pips. | +5 pips | both swapped cards gain it |  | O1 BAL · O2 code | Claude |
+| Catalyst | rare | When swapped, the card it traded with permanently gains +1 mult. | +1 mult | both swapped cards gain it |  | O1 BAL · O2 code | Claude |
+| Wanderer | common | When swapped, refunds the swap (+1 swap back). | refunds 2 swaps instead of 1 | also refunds the time the swap cost |  | O1 BAL · O2 code | Claude |
+| Amplifier | common | Double-tap: the next hand scores +5 mult. (5 charges) | +5 mult | +1 charge |  | O1 BAL · O2 charges | Claude |
+| Snooze Button | common | Double-tap: pause the clock for 10 seconds, then Snooze returns to your deck. (5 charges) | +10 seconds | +1 charge |  | O1 BAL · O2 charges | Claude |
+| Shady Tree | rare | Play this from column x (changes each round) to pause the clock. Pauses for its remaining charges in seconds (10 → 1), −1 each use; destroyed at 0. | +5 to the starting charge count | either of two columns counts |  | O1 code · O2 code | Claude |
+| Stopwatch | epic | Double-tap: freeze the clock until you next play a hand (swaps and discards keep it frozen). Holds up to 60 paused seconds total, drained 1 per second; destroyed at 0. | +30 seconds to the freeze budget | drains 1 second every 2 seconds instead of every second |  | O1 code · O2 code | Claude |
+| Piggy Bank | common | Double-tap: gain 5 credits. (5 charges) | +5 credits | +1 charge |  | O1 BAL · O2 charges | Claude |
+| Magnet | common | Double-tap, then tap a card: every card of that rank slides next to Magnet (counts as several swaps), then Magnet returns to your deck. (3 charges) | also pulls the ranks either side | +1 charge |  | O1 code · O2 charges | Claude |
+| Reflect | epic | Tap to rotate its aim. The rank it faces replays 2x when a hand scores. Works once per round. Cannot be swapped or discarded. | +1 replay | works twice per round (+1 use per improvement) |  | O1 code · O2 code | Claude |
+| Soul Mirror | mythic | Tap to rotate its aim. When the rank it faces is scored, it replays equal to the count of that rank on grid. Cannot be swapped or discarded. | +1 replay on top of the rank count | aims at two ranks at once |  | O1 code · O2 code | Claude |
+| Whetstone | epic | Whenever an adjacent card is swapped or discarded, Whetstone gains +1 mult. Hands that score a card adjacent to Whetstone score that mult. | +1 mult per event | diagonally adjacent cards count too |  | O1 BAL · O2 code | Claude |
+| Entourage | epic | Hands score +10 mult for every other Sleight on the grid. | +10 mult per Sleight | counts Sleights in your deck as well as on the grid |  | O1 BAL · O2 code | Claude |
+| Lighthouse | rare | Each round Lighthouse favors the first or last column. Hands score +20 mult while it sits in that column, −5 per column of distance away (minimum 0). | +20 mult | -2 off the per-column falloff (min 0) |  | O1 BAL · O2 BAL | Claude |
+| Capacitor | common | Double-tap to spend 10 Focus and 20 seconds for 10 credits. Consumed on use. | +10 credits | -5 seconds off the time cost (min 0) | -2 Focus off the cost | O1 BAL · O2 BAL · O3 BAL | Claude |
+| Siphon | rare | Double-tap to spend 15 Focus: your next scored hand gets ×4 mult. Returns to your deck after use. | +3x mult | -3 Focus off the cost (min 5) |  | O1 BAL · O2 BAL | Claude |
+| Power Cell | rare | When it enters the grid: +10 Focus. While it remains on the grid: +10 maximum Focus. | +10 Focus on entry and +10 maximum Focus while on the grid | keeps the maximum Focus while it sits in your deck too |  | O1 code · O2 code | Claude |
+| Slow Burn | rare | +1 maximum Focus for every minute this sleight spends on the grid. | +1 maximum Focus per minute | every 30 seconds instead of every minute |  | O1 code · O2 code | Claude |
+| Flywheel | epic | While on the grid, the Focus speed bonus is multiplied by 1.5. | +0.5x speed bonus | keeps working from your deck, not only on the grid |  | O1 BAL · O2 code | Claude |
+| Governor | epic | While on the grid, you have 1.5× as long to earn the same Focus speed bonus. | +0.5x window | keeps working from your deck, not only on the grid |  | O1 BAL · O2 code | Claude |
+| Shift Swap | fixture | Score two hands adjacent to this card for +2 swaps. Repeats. |  |  |  | n/a - Spectrum deck fixture, only one exists and it is never offered | n/a |
+| Recycler | fixture | Score two hands adjacent to this card for +2 discards. Repeats. |  |  |  | n/a - Spectrum deck fixture, only one exists and it is never offered | n/a |
+| Time Clock | fixture | Score two hands adjacent to this card for a 10 second pause. Repeats. |  |  |  | n/a - Spectrum deck fixture, only one exists and it is never offered | n/a |
+| Petty Cash | fixture | Score two hands adjacent to this card for +5 credits. Repeats. |  |  |  | n/a - Spectrum deck fixture, only one exists and it is never offered | n/a |
 

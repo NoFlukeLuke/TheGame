@@ -108,3 +108,39 @@ function luckTierPercents() {
   const t = w.reduce((a, b) => a + b, 0) || 1;
   return w.map(x => Math.round((x / t) * 1000) / 10);
 }
+
+// ── The shared rarity draw (r203) ────────────────────────────────────────────
+// Every path that hands the player an entity "at random" should come through
+// here. It lived as a closure inside _generateRewardContent until r203, which is
+// exactly why two paths never got it: the Twin Path event and
+// applyRewardRandomTrick both drew FLAT from the whole pool, so a Twin Path
+// handed out two entities at 31% epic-or-better each while the reward grid
+// beside it was running 13%.
+//
+// `tierOf` differs by pool - Tricks carry `tier`, Sleights and Knacks carry
+// `rarity` - so it is passed in rather than guessed at.
+function pickEntityByRarity(pool, tierOf, weights, tiers) {
+  if (!pool || !pool.length) return null;
+  const T = tiers   || ENTITY_TIERS;
+  const W = luckTierWeights(weights || ENTITY_TIER_W);
+  const total = W.reduce((a, b) => a + b, 0);
+  let roll = Math.random() * total, ti = 0;
+  for (let i = 0; i < W.length; i++) { roll -= W[i]; if (roll <= 0) { ti = i; break; } }
+  // Walk DOWN from the rolled tier, never up: an exhausted mythic pool hands
+  // back a legendary, not a fresh roll that could land higher than it rolled.
+  for (let i = ti; i >= 0; i--) {
+    const t = pool.filter(x => tierOf(x) === T[i]);
+    if (t.length) return t[Math.floor(Math.random() * t.length)];
+  }
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+// Survival and Flow ban entities their mode cannot support, and CLAUDE.md is
+// explicit that "a new offer path must call survivalEntityBanned or the bans
+// leak". The reward grid had its own closure for this; lifting it here means the
+// two paths fixed in r203 get it as well - Twin Path never consulted it at all.
+function offerBannedGlobal(id) {
+  return typeof survivalEntityBanned === 'function' && survivalEntityBanned(id);
+}
+// The two shapes used everywhere, so call sites do not repeat the accessor.
+function pickTrickByRarity(pool) { return pickEntityByRarity(pool, b => b.tier   || 'common'); }
+function pickKnackByRarity(pool) { return pickEntityByRarity(pool, b => b.rarity || 'common'); }

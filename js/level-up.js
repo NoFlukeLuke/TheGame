@@ -90,15 +90,14 @@ function triggerLevelUp() {
 
   level++;
   // This round's score target, from zero
-  roundGoal = survivalActive() ? survivalGoalForLevel(level)
-            : Math.round(Math.round(BASE_GOAL * Math.pow(GOAL_SCALE, level - 1)) / 500) * 500;
-  // Zen has no clock, so its goals are doubled - levelling and the reward grid
-  // stay reachable, just at a slower, self-paced rate.
-  if (match3IsZen()) roundGoal *= 2;
+  // One chokepoint for every mode's curve (js/goal-tuning.js) - it picks the
+  // survival curve in Survival/Flow and applies Zen's doubling, and it is what
+  // the dev panel's Goals group retunes live.
+  roundGoal = goalForLevel(level);
   // Quota Revision (reward-grid penalty): every future goal is permanently raised.
-  // Applied here, on the computed goal, rather than by mutating BASE_GOAL - the
-  // curve is unchanged, the whole of it is just lifted. Rounded to 50 so the
-  // number on the HUD stays a number a player can hold in their head.
+  // Applied AFTER the curve rather than inside it - the curve is r197's to tune,
+  // and this lifts whatever it produced. Rounded to 50 so the number on the HUD
+  // stays one a player can hold in their head.
   if (goalPenaltyMult > 1) roundGoal = Math.round(roundGoal * goalPenaltyMult / 50) * 50;
   // Bank the completed round's score for the end-of-run display. In Survival the
   // overflow is carried to the next round, so only the counted portion is banked.
@@ -184,9 +183,9 @@ function triggerLevelUp() {
     ownedSleightCards().forEach(card => {
       if (card._usesLeft === 'infinite' || typeof card._usesLeft !== 'number') return;
       const def = SLEIGHT_POOL.find(j => j.id === card.sleightId);
-      const cap = (def && typeof def.durability === 'number') ? def.durability : card._usesLeft;
-      // COUNTABLE, capped at the sleight's printed durability. The 0.5 lived here
-      // as a literal until r196 - it is BAL.coin_toss.chance now, like every other
+      const cap = sleightMaxCharges(def) ?? card._usesLeft;
+      // COUNTABLE, capped at the sleight's max charges. The 0.5 lived here as a
+      // literal until r196 - it is BAL.coin_toss.chance now, like every other
       // tunable number, which is also what lets Luck reach it.
       const _ctN = luckRoll(BAL.coin_toss.chance) * BAL.coin_toss.charges;
       for (let i = 0; i < _ctN && card._usesLeft < cap; i++) { card._usesLeft++; _refilled++; }
@@ -260,7 +259,7 @@ function triggerLevelUp() {
     drawPile.forEach(card => { if (card && !card._isTrick && !card._isSleight && !card._isStone && card.rank) eligible.push(card); });
     for (let i = eligible.length - 1; i > 0; i--) { const j = Math.floor(Math.random()*(i+1)); [eligible[i],eligible[j]]=[eligible[j],eligible[i]]; }
     eligible.slice(0, 3).forEach(card => {
-      const k = cardKey(card.rank, card.suit);
+      const k = cardId(card);
       permPips[k] = (permPips[k]||0) + 2;
     });
   }

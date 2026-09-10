@@ -119,8 +119,9 @@
   <div class="dev-section" data-group="score">
     <div class="dev-section-title">Natural Scaling</div>
     <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:4px;">
-      Playing a hand permanently buffs its whole family (sets / runs / flushes).
-      Straight Flush sits in the run AND flush families and takes the better of the two.
+      Playing a hand permanently buffs THAT HAND TYPE (r198), not its whole family,
+      so climbing to a bigger hand is a real decision. The Old Tricks knack pools a
+      family: every hand in it reads the family's best bonus instead of its own.
     </div>
     <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;">
       <input id="dev-ns-enabled" type="checkbox" onchange="devSetNs('enabled', this.checked)" style="accent-color:var(--gold);">
@@ -133,9 +134,35 @@
     <div class="dev-slider-row"><span>Every <b id="dev-ns-every-val">1</b> hand(s)</span>
       <input id="dev-ns-every" type="range" min="1" max="5" value="1" step="1" oninput="devSetNs('every', this.value)"></div>
     <div id="dev-ns-state" style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);white-space:pre-line;margin:4px 0;"></div>
+    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin:6px 0 2px;">
+      Earned bonus per hand type - type a value to jump straight to it rather than
+      grinding the hands out. This is what the hand carries NOW; the sliders above
+      only decide how fast it grows.
+    </div>
+    <div id="dev-ns-rows"></div>
     <div class="dev-row">
       <button class="dev-btn" onclick="devResetNs()">Reset accumulators</button>
     </div>
+  </div>
+
+  <!-- LAYERED HANDS (r198) -->
+  <div class="dev-section" data-group="score">
+    <div class="dev-section-title">Layered hands</div>
+    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:4px;">
+      A hand is a LIST of shapes. Sets and runs are carved out of the selection as
+      disjoint pieces (a Run of 4 AND a Set of 3 is one seven-card hand), and the
+      biggest same-suit group of 3+ is added on top of them. Every piece pays its own
+      base pips and base mult and earns its own Natural Scaling, and a card sitting in
+      two pieces scores twice. Hands cap at 7 cards; Selection Size past that leaves
+      the extra cards outside the hand.
+      Turning this OFF drops the flush overlay only - the rank partition still runs.
+    </div>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;">
+      <input id="dev-layered-enabled" type="checkbox" onchange="devSetLayeredHands(this.checked)" style="accent-color:var(--gold);">
+      Flush overlay on
+    </label>
+    <div class="dev-slider-row"><span>Flush overlay needs <b id="dev-flushmin-val">3</b> of a suit</span>
+      <input id="dev-flushmin" type="range" min="3" max="7" value="3" step="1" oninput="devSetFlushOverlayMin(this.value)"></div>
   </div>
 
   <!-- LEVEL -->
@@ -145,6 +172,35 @@
       <button class="dev-btn" onclick="devSkipLevel()">Skip Level</button>
       <button class="dev-btn" onclick="devOpenShop()">Open Shop</button>
     </div>
+  </div>
+
+  <!-- GOALS (r197): every mode's round-goal curve, live. Rows are built by
+       devRenderGoalPanel() in js/dev-panel.js from GOAL_TUNABLES. -->
+  <div class="dev-section" data-group="goals">
+    <div class="dev-section-title">All modes</div>
+    <div class="dev-note">Scales every mode's goal at once. Leave at 1.00 and tune the per-mode numbers below.</div>
+    <div id="dev-goal-global-rows"></div>
+    <div id="dev-goal-live" class="dev-preview"></div>
+  </div>
+
+  <div class="dev-section" data-group="goals">
+    <div class="dev-section-title">Classic curve</div>
+    <div class="dev-note">Classic, Six Suits, Spectrum, Guided, Orientation, Match-3, Dominoes.</div>
+    <div id="dev-goal-classic-rows"></div>
+    <div id="dev-goal-classic-preview" class="dev-preview"></div>
+  </div>
+
+  <div class="dev-section" data-group="goals">
+    <div class="dev-section-title">Survival / Flow curve</div>
+    <div class="dev-note">Survival and Flow run their own curve from a lower start.</div>
+    <div id="dev-goal-survival-rows"></div>
+    <div id="dev-goal-survival-preview" class="dev-preview"></div>
+  </div>
+
+  <div class="dev-section" data-group="goals">
+    <div class="dev-section-title">Zen</div>
+    <div id="dev-goal-other-rows"></div>
+    <button class="dev-btn" onclick="devResetGoalTune()" style="margin-top:8px;">Reset all goals to shipped values</button>
   </div>
 
   <!-- BOSS -->
@@ -1097,7 +1153,8 @@
 <script src="js/boss.js"></script>
 <script src="js/boss-effects.js"></script>
 <script src="js/boss-approach.js"></script>
-<script src="js/reward-grid.js"></script>
+<script src="js/guided-mode.js"></script>
+  <script src="js/reward-grid.js"></script>
 <script src="js/limit-break.js"></script>
 <script src="js/sleights-runtime.js"></script>
 <script src="js/events-core.js"></script>
@@ -1121,6 +1178,7 @@
 <script src="js/match3.js"></script>
 <script src="js/survival.js"></script>
 <script src="js/flow-mode.js"></script>
+<script src="js/goal-tuning.js"></script>
 <script src="js/spectrum.js"></script>
 <script src="js/records.js"></script>
 <script src="js/audio-mixer.js"></script>

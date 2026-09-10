@@ -154,7 +154,7 @@ function closeShopGrid() {
   shopGridItems = []; shopGridSel = new Set();
   gameTimerPaused = false;
   // Continue the node flow exactly like the overlay shop-close handler.
-  if (shopFromNodeFlow) { shopFromNodeFlow = false; drainLevelUpQueue(); }
+  if (shopFromNodeFlow) { resumeAfterNodeFlowShop(); }
   else { if (typeof render === 'function') render(); }
 }
 

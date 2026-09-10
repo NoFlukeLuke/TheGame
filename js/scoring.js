@@ -71,9 +71,37 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // handBasePips is 0 in the no-pips scoring models, so all pips then come from
   // the cards themselves (see SCORING_MODELS in js/focus-config.js).
   const levelScale = Math.pow(1.1, level - 1);
-  // handBasePips folds in Natural Scaling's earned family bonus, so the bonus
-  // rides the 1.1^(level-1) scale exactly as the printed base does.
+  // ── Layered hands (r198) ──
+  // One shape can be several hands at once: a same-suit run is a Run AND a Flush.
+  // handLayersFor returns every hand this play pays for, one per family, primary
+  // first. Each extra layer adds its printed base pips and base mult, and every
+  // card scores one more time (the retrigger below) - "you played two hands".
+  // It is computed HERE, from the cells, rather than passed in by the six callers
+  // of calcScore, so the live PIPS/MULT chips, the scoring dance, findBestHand's
+  // comparison and the committed score can never disagree about what was played.
+  const _comp = (typeof handComponentsFor === 'function') ? handComponentsFor(cells) : null;
+  // Every component past the one that named the hand. `handName` is passed in by
+  // the caller and is normally _comp.primary, but match-3 names its own hands, so
+  // one is dropped by NAME rather than assumed to be the first entry.
+  // Exactly ONE entry is dropped by name, not every entry matching it, so a hand
+  // holding two Sets of 3 is still paid twice.
+  const _extraLayers = [];
+  if (_comp) {
+    let seen = false;
+    _comp.components.forEach(c => { if (!seen && c.name === handName) { seen = true; return; } if (HAND_BASE[c.name]) _extraLayers.push(c.name); });
+    // If the caller named a hand that is not one of the components at all, the
+    // components are describing something else and adding them would pay for the
+    // same cards twice. Match-3 names its own hands, so this is reachable.
+    if (!seen) _extraLayers.length = 0;
+  }
+  // Extra scoring passes per cell: one per component past the first that holds
+  // it. This is what makes "the five suited cards of a Fullest House replay"
+  // land on those five cards and not on the whole hand.
+  const _compReps = (_extraLayers.length && typeof handReplayMap === 'function') ? handReplayMap(cells) : null;
+  // handBasePips folds in Natural Scaling's earned bonus for that hand type, so
+  // the bonus rides the 1.1^(level-1) scale exactly as the printed base does.
   let totalPips = Math.round(handBasePips(handName) * levelScale);
+  _extraLayers.forEach(h => { totalPips += Math.round(handBasePips(h) * levelScale); });
 
   // Rising Tide: +1 base mult per level
   const risingTideBonus = hasTrick('rising_tide') ? (level - 1) : 0;
@@ -172,7 +200,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     if (hasTrick('ten_strong') && baseRank === '10') { cp += BAL.ten_strong.pips; bPip('ten_strong', BAL.ten_strong.pips); }
     if (hasTrick('king_guard') && (baseRank === 'K' || baseRank === 'J')) { cp += BAL.king_guard.pips; bPip('king_guard', BAL.king_guard.pips); }
     if (hasTrick('dark_matter') && card._corrupted) { cp += BAL.dark_matter.pips; bPip('dark_matter', BAL.dark_matter.pips); }
-    const _eKey = cardKey(card.rank, card.suit);
+    const _eKey = cardId(card);
     const _pp = permPips[_eKey] || 0;
     cp += _pp;
     bPip('sapling', _pp);
@@ -242,6 +270,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     if (_hnm) _retrig++;
     _retrig += _wfi; // Wait For Iiiit: chance replay scaling with negative tiles taken
     if (_encoreHand) _retrig++; // Encore: all-odd-rank Set scores a second time
+    if (_compReps) _retrig += (_compReps[_cKey] || 0); // Layered hand: this card scores again for each extra component it is in
     if (_cKey === _3rdKey) _retrig += BAL.third_charm.extra_replays; // 3rd Time's a Charm: 3rd card gets +2 replays
     retrigByKey[r + '-' + c] = _retrig;
     if (_ledgerCells) {
@@ -365,6 +394,9 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // hand_size model, plus Natural Scaling's earned family bonus. _scoreCells is
   // the hand actually being scored.
   let mult = handBaseMult(handName, _scoreCells.length) + sleightAmplifierMult;
+  // Layered hands: every other component adds its base mult too. Additive, not
+  // multiplied - two hands' worth of ladder, not the product of them.
+  _extraLayers.forEach(h => { mult += handBaseMult(h, _scoreCells.length); });
 
   // Assembly Line: apply the mult accumulated in the per-card loop; snapshot the round counter
   if (_asmMult > 0) { mult += _asmMult * BAL.assembly_line.mult_per_prior; bMult('assembly_line', _asmMult * BAL.assembly_line.mult_per_prior); }
@@ -446,13 +478,13 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
 
   // Perm mult (per-card buff → fires once per replay)
   cards.forEach((card, i) => {
-    const _pm = (permMult[cardKey(card.rank, card.suit)] || 0) * _reps[i];
+    const _pm = (permMult[cardId(card)] || 0) * _reps[i];
     mult += _pm;
     bMult('perm_mult', _pm);
   });
   // Permanent ×mult enhancement (The Forge / Bargain / Wager events) - applied once per replay
   cards.forEach((card, i) => {
-    const _xm = permXMult[cardKey(card.rank, card.suit)] || 1;
+    const _xm = permXMult[cardId(card)] || 1;
     if (_xm !== 1) {
       const _preXm = mult; mult *= Math.pow(_xm, _reps[i]); bMult('perm_mult', mult - _preXm);
       // Ledger: attribute this card's ×mult to it so the dance releases it per-card (not the end
@@ -462,7 +494,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   });
   // Old Growth: each scored card also adds its permanent pip bonus to mult (per replay)
   if (hasTrick('old_growth')) {
-    cards.forEach((card, i) => { const _og = (permPips[cardKey(card.rank, card.suit)] || 0) * _reps[i]; if (_og) { mult += _og; bMult('old_growth', _og); } });
+    cards.forEach((card, i) => { const _og = (permPips[cardId(card)] || 0) * _reps[i]; if (_og) { mult += _og; bMult('old_growth', _og); } });
   }
   // Magician: +3 mult per Sleight owned
   if (hasTrick('magician')) { const _a = ownedSleightCount() * BAL.magician.mult_per_sleight; if (_a) { mult += _a; bMult('magician', _a); } }
@@ -634,7 +666,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     for (let _gr = 0; _gr < gridRows; _gr++) for (let _gc = 0; _gc < gridCols; _gc++) {
       const _cc = gridData[_gr]?.[_gc];
       if (!_cc || _cc._isSleight || _cc._isTrick || _cc._isStone) continue;
-      const _k = cardKey(_cc.rank, _cc.suit);
+      const _k = cardId(_cc);
       if ((permPips[_k] || 0) > 0 || (permMult[_k] || 0) > 0) _buffed++;
     }
     if (_buffed > 0) {
@@ -654,11 +686,17 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   });
   // Primed Tricks (Inspirato / Prime Times): a primed Trick fires its effect an extra time
   // per prime stack the hand it naturally contributes. Stacks are consumed in playHand.
+  // _rank is a PERMANENT prime (Rehearsal event, r194): it fires the Trick an
+  // extra time exactly as a prime stack does, but playHand's consumption block
+  // only decrements _primed, so a rank never runs out. Reusing the prime loop is
+  // what makes a Trick upgrade generic - it needs no code in any of the 177
+  // Tricks, because it duplicates whatever pip/mult delta the Trick reported.
   if (trickTrayMode) trickTray.forEach(t => {
-    if (!t._primed || t._primed <= 0) return;
+    const _extra = (t._primed || 0) + (t._rank || 0);
+    if (_extra <= 0) return;
     const _pd = _cp[t.id] || 0, _md = _cm[t.id] || 0;
     if (!_pd && !_md) return;
-    for (let k = 0; k < t._primed; k++) { if (_pd) { totalPips += _pd; bPip('primed', _pd); } if (_md) { mult += _md; bMult('primed', _md); } }
+    for (let k = 0; k < _extra; k++) { if (_pd) { totalPips += _pd; bPip('primed', _pd); } if (_md) { mult += _md; bMult('primed', _md); } }
   });
   // Double Take: each scored 2 duplicates your most recently acquired Trick's contribution
   if (hasTrick('twos_retrigger') && trickTrayMode) {
@@ -794,8 +832,8 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // deltas to each card (these are computed post-loop, so they're not in the loop's pip diff).
   if (ledger && _ledgerCells) {
     _ledgerCells.forEach(e => {
-      const _k = cardKey(e.rank, e.suit);
       const card = e.card;
+      const _k = cardId(card);
       const addM = (id, d) => { if (d) e.multT[id] = (e.multT[id] || 0) + d; };
       const _isHeart = e.suit === '♥' || (card && card.combined && card.suit2 === '♥');
       if (hasTrick('heart_double') && _isHeart) addM('heart_double', BAL.heart_double.heart_mult);
@@ -853,13 +891,23 @@ function captureRoundContrib(result) {
   const base = HAND_BASE[hand];
   if (base) {
     const levelScale = Math.pow(1.1, level - 1);
+    // A layered hand pays every family's base, so the breakdown has to count them
+    // all or it reports less base than calcScore actually used (see calcScore).
+    const _layers = (typeof handLayersFor === 'function') ? handLayersFor(hand, handCells) : [hand];
+    // Drop ONE entry by name (the component that named the hand), not every entry
+    // matching it - two Sets of 3 must still be counted twice. If the name is not
+    // a component at all, count none of them (same guard as calcScore).
+    const _di = _layers.indexOf(hand);
+    const _extra = _di >= 0 ? _layers.slice(0, _di).concat(_layers.slice(_di + 1)) : [];
     let cardPipsTotal = Math.round(handBasePips(hand) * levelScale);
+    _extra.forEach(h => { if (HAND_BASE[h]) cardPipsTotal += Math.round(handBasePips(h) * levelScale); });
     handCells.forEach(([r, c]) => { const card = gridData[r]?.[c]; if (card?.rank) cardPipsTotal += cardPips(card.rank); });
     rows.push({ label: 'Base + card pips', kind: 'pip', amount: cardPipsTotal });
     // Base MULT from the hand type (calcScore seeds mult from handBaseMult). It's
     // the starting multiplier every trick adds onto, so surface it in Mult too.
-    const _bm = handBaseMult(hand, handCells.length);
-    if (_bm) rows.push({ label: 'Base (hand type)', kind: 'mult', amount: _bm });
+    let _bm = handBaseMult(hand, handCells.length);
+    _extra.forEach(h => { if (HAND_BASE[h]) _bm += handBaseMult(h, handCells.length); });
+    if (_bm) rows.push({ label: _extra.length ? 'Base (' + _layers.join(' + ') + ')' : 'Base (hand type)', kind: 'mult', amount: _bm });
   }
   return rows;
 }

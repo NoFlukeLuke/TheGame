@@ -223,8 +223,7 @@ function _generateRewardContent() {
   // Cursed-card debuff: afflicts one specific shown card (weight 10; only if an
   // un-cursed identity exists). Card is pre-picked so the tile shows exactly it.
   {
-    const _uncursed = [];
-    ACTIVE_RANKS.forEach(rank => ACTIVE_SUITS.forEach(suit => { if (!cardCurses[cardKey(rank, suit)]) _uncursed.push({ rank, suit }); }));
+    const _uncursed = everyDeckCard().filter(c => !cardCurses[cardId(c)]);
     if (_uncursed.length) {
       const _victim = _uncursed[Math.floor(Math.random() * _uncursed.length)];
       const _cids = Object.keys(CURSE_DEFS);
@@ -232,7 +231,8 @@ function _generateRewardContent() {
       debuffs.push({ weight: 10, perm: true, icon: CURSE_DEFS[_cid].icon, label: `${CURSE_DEFS[_cid].name} Curse`, tier: 'penalty',
         cardFace: { rank: _victim.rank, suit: _victim.suit },
         desc: `${_victim.rank}${_victim.suit} is cursed - ${CURSE_DEFS[_cid].desc}`,
-        apply: () => { cardCurses[cardKey(_victim.rank, _victim.suit)] = { id: _cid, left: CURSE_DEFS[_cid].liftAfter }; showMessage(`${_victim.rank}${_victim.suit} cursed: ${CURSE_DEFS[_cid].name}`, '#9b59b6'); } });
+        apply: () => { const v = resolveDeckCard(_victim); if (!v) return;
+          cardCurses[cardId(v)] = { id: _cid, left: CURSE_DEFS[_cid].liftAfter }; showMessage(`${v.rank}${v.suit} cursed: ${CURSE_DEFS[_cid].name}`, '#9b59b6'); } });
     }
   }
   // Limit-drain debuff: -1 to a shown limit (weight 5; only if something is drainable).
@@ -310,19 +310,8 @@ function _generateRewardContent() {
   // tightening - epic-or-better goes from 21% of a trick tile to 13%.
   const TRICK_TIERS  = ENTITY_TIERS;
   const TRICK_TIER_W = luckTierWeights(ENTITY_TIER_W);   // Luck tilts the ladder (js/luck.js)
-  function pickByRarity(pool, tierOf, weights, tiers) {
-    if (!pool.length) return null;
-    const total = weights.reduce((a, b) => a + b, 0);
-    let roll = Math.random() * total, ti = 0;
-    for (let i = 0; i < weights.length; i++) { roll -= weights[i]; if (roll <= 0) { ti = i; break; } }
-    // Walk DOWN from the rolled tier, never up: an exhausted mythic pool hands
-    // back a legendary, not a fresh roll that could land higher than it rolled.
-    for (let i = ti; i >= 0; i--) {
-      const t = pool.filter(x => tierOf(x) === tiers[i]);
-      if (t.length) return t[Math.floor(Math.random() * t.length)];
-    }
-    return pool[Math.floor(Math.random() * pool.length)];
-  }
+  // pickEntityByRarity now lives in js/luck.js so the events can reach it too.
+  const pickByRarity = (pool, tierOf, weights, tiers) => pickEntityByRarity(pool, tierOf, weights, tiers);
 
   function makeTrickPayload() {
     if (typeof TRICK_POOL === 'undefined') return { icon: '★', label: 'Trick', tier: 'rare', entity: 'trick', rarity: 'rare', apply: applyRewardRandomTrick };
@@ -397,16 +386,20 @@ function _generateRewardContent() {
 
   // Blessed-card buff: a specific shown card gains a permanent bonus.
   function makeBlessedPayload() {
-    const rank = ACTIVE_RANKS[Math.floor(Math.random() * ACTIVE_RANKS.length)];
-    const suit = ACTIVE_SUITS[Math.floor(Math.random() * ACTIVE_SUITS.length)];
+    // ONE card out of the run, not one rank+suit: a blessing lands on the card the
+    // tile names and on no other copy of it.
+    const _all = everyDeckCard();
+    if (!_all.length) return null;
+    const card = _all[Math.floor(Math.random() * _all.length)];
+    const rank = card.rank, suit = card.suit;
     const mult = Math.random() < 0.3; // 30% of blessings are the (stronger) +1 mult
     return mult
       ? { icon: '✨', label: 'Blessed Card', tier: 'epic', cardFace: { rank, suit },
           desc: `${rank}${suit} permanently gains +1 mult when scored.`,
-          apply: () => { const k = cardKey(rank, suit); permMult[k] = (permMult[k] || 0) + 1; showMessage(`${rank}${suit} blessed: +1 mult`, 'var(--gold)'); } }
+          apply: () => { const t = resolveDeckCard(card); if (!t) return; const k = cardId(t); permMult[k] = (permMult[k] || 0) + 1; showMessage(`${rank}${suit} blessed: +1 mult`, 'var(--gold)'); } }
       : { icon: '✨', label: 'Blessed Card', tier: 'rare', cardFace: { rank, suit },
           desc: `${rank}${suit} permanently gains +12 pips.`,
-          apply: () => { const k = cardKey(rank, suit); permPips[k] = (permPips[k] || 0) + 12; showMessage(`${rank}${suit} blessed: +12 pips`, 'var(--gold)'); } };
+          apply: () => { const t = resolveDeckCard(card); if (!t) return; const k = cardId(t); permPips[k] = (permPips[k] || 0) + 12; showMessage(`${rank}${suit} blessed: +12 pips`, 'var(--gold)'); } };
   }
   // Cull buff: deck thinning - a specific low card leaves the run for good.
   function makeCullPayload() {
@@ -474,14 +467,14 @@ function _generateRewardContent() {
                  desc: `Luck ${luckTotal()} → ${luckTotal() + n}. Good chance effects fire more often and better entities turn up. Permanent.`,
                  apply: () => { luckModifiers += n; showMessage(`+${n} Luck`, 'var(--gold)'); } };
       }
-      case 'blessed': return makeBlessedPayload();
+      case 'blessed': return makeBlessedPayload() || makeTrickPayload();
       case 'cull':    return makeCullPayload();
       case 'cleanse':
         // Only meaningful if something is cursed; otherwise fall back to a Trick
         if (!Object.keys(cardCurses).length) return makeTrickPayload();
         return { icon: '🕊️', label: 'Cleanse', tier: 'rare',
                  desc: 'Lift one random curse from your deck.',
-                 apply: () => { const _cl = cleanseRandomCurse(); showMessage(_cl ? `Curse lifted: ${_cl.key.replace('-', '')}` : 'No curses to lift', '#54af88'); } };
+                 apply: () => { const _cl = cleanseRandomCurse(); showMessage(_cl ? `Curse lifted: ${_cl.face}` : 'No curses to lift', '#54af88'); } };
       case 'mystery': return { icon: '❓', label: 'Mystery', tier: 'mystery',
                                desc: 'Unknown until claimed. Probably good… probably.',
                                _mystery: true, _goodChance: 0.7,
@@ -567,14 +560,15 @@ function _generateRewardContent() {
 
   // One destination in a random buff slot (not on a prize grid - it pays out, it
   // does not route you anywhere).
-  if (!PRIZE) grid[shuffledBuff[0][0]][shuffledBuff[0][1]] = { kind: 'dest', payload: pickRand(destOptions) };
+  const NO_DEST = PRIZE || (typeof guidedActive === 'function' && guidedActive());
+  if (!NO_DEST) grid[shuffledBuff[0][0]][shuffledBuff[0][1]] = { kind: 'dest', payload: pickRand(destOptions) };
 
   // Guaranteed tiles first (protected from the Trick-minimum conversion below)
   const guaranteed = buildGuaranteedRewardTiles();
   // The Limit Break is a limit tile too - seed the ceiling with it so the prize
   // grid can add at most PRIZE_MAX_LIMIT_TILES - 1 more.
   if (PRIZE) _limitTilesThisGrid = guaranteed.filter(p => p.icon === '💥' || p.icon === '⬆️').length;
-  let placeIdx = PRIZE ? 0 : 1;
+  let placeIdx = NO_DEST ? 0 : 1;
   for (const payload of guaranteed) {
     if (placeIdx >= shuffledBuff.length) break;
     const [r, c] = shuffledBuff[placeIdx++];
@@ -722,9 +716,11 @@ function rollRewardMystery(goodChance) {
       apply:()=>{ nextRoundDiscardDelta += 2; showMessage('Mystery: +2 discards next round!', 'var(--gold)'); } };
     if (roll === 3) return { good, icon:'⏱', label:'+25s Round', flyTo:'clock', desc:'Next round starts with +25 seconds.',
       apply:()=>{ nextRoundSecondsDelta += 25; showMessage('Mystery: +25s next round!', 'var(--gold)'); } };
-    const rank = ACTIVE_RANKS[Math.floor(Math.random()*ACTIVE_RANKS.length)], suit = ACTIVE_SUITS[Math.floor(Math.random()*ACTIVE_SUITS.length)];
+    const _all = everyDeckCard();
+    const _c = _all.length ? _all[Math.floor(Math.random()*_all.length)] : null;
+    const rank = _c ? _c.rank : '?', suit = _c ? _c.suit : '';
     return { good, icon:'✨', label:`Blessed ${rank}${suit}`, flyTo:'deck', desc:`${rank}${suit} permanently gains +10 pips.`,
-      apply:()=>{ const k = cardKey(rank, suit); permPips[k] = (permPips[k]||0)+10; showMessage(`Mystery: ${rank}${suit} +10 pips!`, 'var(--gold)'); } };
+      apply:()=>{ const t = resolveDeckCard(_c); if (!t) return; const k = cardId(t); permPips[k] = (permPips[k]||0)+10; showMessage(`Mystery: ${rank}${suit} +10 pips!`, 'var(--gold)'); } };
   }
   const roll = Math.floor(Math.random() * 5);
   if (roll === 0) return { good, icon:'💸', label:'-8 Credits', flyTo:'coins', desc:'Lose 8 credits.',
@@ -794,12 +790,16 @@ function injectTrickAfterReward(trick) {
   render();
 }
 
+// "A random Trick" - the Crossroads sacrifice trade, and makeTrickPayload's
+// fallback when a grid's pool is exhausted. It drew FLAT from the whole pool
+// until r203, which on a 177-Trick pool made it a 31% shot at epic-or-better
+// every time. On the rarity table now, like every other offer.
 function applyRewardRandomTrick() {
   if (typeof TRICK_POOL === 'undefined') return;
   const owned = new Set((acquiredTricks || []).map(b => b.id));
-  const eligible = TRICK_POOL.filter(b => !owned.has(b.id));
+  const eligible = TRICK_POOL.filter(b => !owned.has(b.id) && !offerBannedGlobal(b.id));
   if (eligible.length === 0) return;
-  const pick = eligible[Math.floor(Math.random() * eligible.length)];
+  const pick = pickTrickByRarity(eligible) || eligible[Math.floor(Math.random() * eligible.length)];
   injectTrickAfterReward(pick);
 }
 function applyRewardLoseTrick() {
@@ -957,7 +957,7 @@ function applyRewardPipsCard() {
   }
   if (cells.length === 0) return;
   const card = cells[Math.floor(Math.random() * cells.length)];
-  const k = cardKey(card.rank, card.suit);
+  const k = cardId(card);
   permPips[k] = (permPips[k] || 0) + 10;
   render();
   showMessage('+10 PIPS', 'var(--gold)');
@@ -997,7 +997,11 @@ function openRewardGrid() {
   document.body.classList.add('reward-active');
   // Boss reward grids (post-boss-win, nodeInAct 5; or timer-mode boss context) tint red;
   // ordinary reward grids stay teal (see the per-screen #stage backgrounds).
-  document.body.classList.toggle('reward-boss', rewardGridContext === 'boss' || (ACTIVE_MODE?.id === 'normal' && nodeInAct === 5));
+  // The post-boss grid tints red. This tested ACTIVE_MODE.id === 'normal', which
+  // missed every OTHER act mode - Six Suits, Spectrum, Orientation and now Guided
+  // all route their post-boss prize grid through here with nodeInAct 5 and were
+  // silently getting the ordinary tint. isActMode() is the real question.
+  document.body.classList.toggle('reward-boss', rewardGridContext === 'boss' || (isActMode() && nodeInAct === 5));
   document.body.classList.toggle('reward-prize', prizeGridActive());
   if (typeof enterGridScreenHud === 'function') enterGridScreenHud(prizeGridActive() ? 'PRIZE' : 'REWARDS', 'reward');
   enterRewardButtonMode();
@@ -1652,6 +1656,10 @@ function closeRewardGrid() {
   const finishInterlude = () => {
     skipTrickChoiceOverlay = true;
 
+    // The node this reward grid belonged to, captured BEFORE the advance below.
+    // Guided routes off it, and 5 is the post-boss prize grid.
+    const _node = nodeInAct;
+
     if (isActMode()) {
       if (nodeInAct === 5) {
         // Post-boss reward grid - transition to next act
@@ -1673,12 +1681,20 @@ function closeRewardGrid() {
       }
     }
 
+    // Guided: the act runs a fixed spine, so the node index decides what comes
+    // next, not a destination tile (which Guided's grids do not carry).
+    if (typeof guidedActive === 'function' && guidedActive() && isActMode()) {
+      pendingEventOverride = null;
+      guidedRunStops(guidedStopsAfterNode(_node), () => drainLevelUpQueue());
+      return;
+    }
+
     // Route based on destination tile the player selected (if any)
     const override = pendingEventOverride;
     pendingEventOverride = null;
     if (override === 'shop') {
       shopFromNodeFlow = true;
-      triggerShop(); // shop close → drainLevelUpQueue (wired in shop-close handler)
+      triggerShop(); // shop close → resumeAfterNodeFlowShop (wired in shop-close handler)
     } else if (override === 'event') {
       shopFromNodeFlow = false;
       openEvent(() => drainLevelUpQueue());
@@ -1728,7 +1744,19 @@ function closeRewardGrid() {
 })();
 
 let pendingEventOverride = null; // 'normal' | 'shop' | 'event' - set by reward grid dest tiles
-let shopFromNodeFlow    = false;  // true when shop was opened mid-interlude; close → drainLevelUpQueue
+let shopFromNodeFlow    = false;  // true when shop was opened mid-interlude; close → resumeAfterNodeFlowShop
+// Where a node-flow shop hands control back. Classic leaves this null and goes
+// straight to the next round; Guided sets it so the shop can be one stop in a
+// longer chain (js/guided-mode.js). Three files close a node-flow shop
+// (shop.js, mart-shop.js, shop-grid-preview.js) and all three route through here
+// rather than repeating the continuation.
+let nodeFlowAfterShop   = null;
+function resumeAfterNodeFlowShop() {
+  shopFromNodeFlow = false;
+  const fn = nodeFlowAfterShop;
+  nodeFlowAfterShop = null;
+  (fn || drainLevelUpQueue)();
+}
 let pendingLimitBreak   = false;  // a claimed Limit Break reward tile → open the LB screen on close
 
 // ── LIMIT BREAK EVENT ──

@@ -123,9 +123,45 @@ function lockSleightForRound(card) {
 // hand would leave a permanent gap). Fire-and-forget, mirroring doDiscard.
 function discardSleightAfterUse(card, r, c) {
   if (!card) return;
-  if (typeof card._usesLeft === 'number') card._usesLeft--;
-  discardToPlayed(card);                 // back into circulation with charges left (or dropped if spent)
-  removeAndFall([[r, c]], 'discard');    // slide it out + gravity-refill the cell
+  // Spin first, then leave. The spin IS the "it fired" feedback for every
+  // double-tap sleight (r179), so it lives here rather than at the six call
+  // sites; removeAndFall's fly-out would paint over it if they overlapped.
+  spinSleightTile(r, c, () => {
+    if (typeof card._usesLeft === 'number') card._usesLeft--;
+    discardToPlayed(card);                 // back into circulation with charges left (or dropped if spent)
+    removeAndFall([[r, c]], 'discard');    // slide it out + gravity-refill the cell
+  });
+}
+
+// ── Double-tap spin (r179) ────────────────────────────────────────────────
+// A double-tap sleight used to fire with no feedback on the tile itself: the
+// only sign was the message line. It now spins horizontally in place. The
+// class is re-applied by render() (which rewrites className every repaint), so
+// a repaint mid-spin can't cut the animation short.
+const SLEIGHT_SPIN_MS = 420;
+let sleightSpinLock = false;   // taps are ignored while a tile is spinning
+function spinSleightTile(r, c, done) {
+  const el = document.querySelector(`#grid .sleight-card[data-row="${r}"][data-col="${c}"]`);
+  if (!el) { if (done) done(); return; }
+  sleightSpinLock = true;
+  el.classList.add('sl-spin');
+  setTimeout(() => {
+    sleightSpinLock = false;
+    el.classList.remove('sl-spin');
+    if (done) done();
+  }, SLEIGHT_SPIN_MS);
+}
+
+// A sleight that can no longer be activated but is still sitting on the grid.
+// Only the ACTIVE kinds can go inert this way: double_tap (Stopwatch, once its
+// freeze budget is gone) and on_swap (Dazed / Pivot, which lock for the round
+// rather than leaving). Passive / wildcard / on_play / adjacent sleights work
+// by being there, so they are never "spent".
+function sleightIsSpent(card, def) {
+  if (!card || !def) return false;
+  if (def.activation !== 'double_tap' && def.activation !== 'on_swap') return false;
+  if (typeof card._usesLeft === 'number' && card._usesLeft <= 0) return true;
+  return def.activation === 'on_swap' && !!card._usedThisRound;
 }
 
 // ── Exalt / Corrupt helpers ──
@@ -225,10 +261,32 @@ function lighthouseMult() {
 
 // ── Jury-Rig knack: swapping/discarding beside a Sleight may restore one of its charges ──
 // Restore 1 charge, never above the Sleight's printed durability ('infinite' is a no-op).
+// A Sleight's charge ceiling: the printed durability plus anything the Workshop
+// event has added (r194). Every "restore up to the cap" site reads this rather
+// than def.durability, or a reinforced Sleight would refill only to its printed
+// value and the upgrade would silently do nothing.
+let sleightCapBonus = {};   // sleightId -> extra charges above the printed durability
+function sleightMaxCharges(def) {
+  if (!def || def.durability === 'infinite') return null;
+  if (typeof def.durability !== 'number') return null;
+  return def.durability + (sleightCapBonus[def.id] || 0);
+}
+// Every Sleight the run currently holds, wherever it is - board, draw or played.
+function allOwnedSleightCards() {
+  const out = [];
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
+    const cd = gridData[r]?.[c];
+    if (cd && cd._isSleight) out.push(cd);
+  }
+  (typeof drawPile   !== 'undefined' ? drawPile   : []).forEach(cd => { if (cd && cd._isSleight) out.push(cd); });
+  (typeof playedPile !== 'undefined' ? playedPile : []).forEach(cd => { if (cd && cd._isSleight) out.push(cd); });
+  return out;
+}
+
 function restoreSleightCharge(card) {
   if (!card || card._usesLeft === 'infinite') return false;
   const def = sleightDef(card);
-  const cap = (def && typeof def.durability === 'number') ? def.durability : null;
+  const cap = sleightMaxCharges(def);
   if (cap === null || (card._usesLeft || 0) >= cap) return false;
   card._usesLeft = Math.min(cap, (card._usesLeft || 0) + BAL.jury_rig.charges);
   return true;
@@ -326,7 +384,7 @@ function fireSleightsOnPlay(selectedCells, handCells, hand) {
         if (hr === r && hc === c) return; // skip the sleight itself
         const hc2 = gridData[hr]?.[hc];
         if (hc2 && !hc2._isSleight && !hc2._isTrick && hc2.rank) {
-          const k = cardKey(hc2.rank, hc2.suit);
+          const k = cardId(hc2);
           permPips[k] = (permPips[k] || 0) + BAL.the_naturalist.pips;
           buffed++;
         }
@@ -351,7 +409,7 @@ function fireSleightsOnSwap(r1, c1, r2, c2) {
     if (def.id === 'lightning_rod') {
       const other = gridData[or2]?.[oc2];
       if (other && !other._isSleight && !other._isTrick && other.rank) {
-        const k = cardKey(other.rank, other.suit);
+        const k = cardId(other);
         permPips[k] = (permPips[k] || 0) + BAL.lightning_rod.pips;
         showMessage('⚡ Lightning Rod - +5 pips!', '#ffd700');
         render();
@@ -359,7 +417,7 @@ function fireSleightsOnSwap(r1, c1, r2, c2) {
     } else if (def.id === 'the_catalyst') {
       const other = gridData[or2]?.[oc2];
       if (other && !other._isSleight && !other._isTrick && other.rank) {
-        const k = cardKey(other.rank, other.suit);
+        const k = cardId(other);
         permMult[k] = (permMult[k] || 0) + BAL.the_catalyst.mult;
         showMessage('🧪 Catalyst - +1 perm mult!', '#cc88ff');
         render();
@@ -450,7 +508,7 @@ function applySleightGridEffect(id, r, c) {
         for (let _c = 0; _c < gridCols; _c++) {
           const _card = gridData[_r]?.[_c];
           if (_card && !_card._isSleight && !_card._isTrick && !_card._isStone && _card.rank) {
-            const _k = cardKey(_card.rank, _card.suit);
+            const _k = cardId(_card);
             permPips[_k] = (_k in permPips ? permPips[_k] : 0) + BAL.the_bomb.pips;
             _cnt++;
           }
@@ -572,7 +630,7 @@ function showCardTooltip(r, c) {
   if (card._isTrick)    { showTrickTooltip(card.trick, true); return; }
   if (card._isSleight) { showSleightGridTooltip(r, c, card); return; }
   // Normal card - show enhancement tooltip only if something to show
-  const k  = cardKey(card.rank, card.suit);
+  const k  = cardId(card);
   const pp = permPips[k]   || 0;
   const pm = permMult[k]   || 0;
   const xp = permXPips[k]  || 1;

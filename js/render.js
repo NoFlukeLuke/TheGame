@@ -65,9 +65,22 @@ function render() {
           ? `${card._adjPlays || 0}/${def.adjacentPlays || 2}`
           : (card._usesLeft === 'infinite' ? '∞' : card._usesLeft);
         const _isAim = AIM_SLEIGHTS.has(def?.id);
+        // Selection parity with normal cards (r179). A grid Sleight is .trick-card,
+        // not .card, so none of the .card.selected.hand-valid / .hand-ready /
+        // .unreachable states ever reached it - picking one into a hand looked
+        // different from picking any other card. Same flags, same class names.
+        const _readyJ = handReadyForSubmit && selIdxJ >= 0;
+        const _validJ = !_readyJ && selIdxJ >= 0 && !!bestHandResult;
+        const _unreachJ = reachable && !reachable.has(key) && selIdxJ < 0;
+        const _stateJ = (_validJ ? ' hand-valid' : '') + (_readyJ ? ' hand-ready' : '')
+                      + (_unreachJ ? ' unreachable' : '')
+                      + (sleightIsSpent(card, def) ? ' sleight-spent' : '')
+                      // className is rewritten wholesale below, so an in-flight
+                      // double-tap spin has to be carried across the repaint.
+                      + (div.classList.contains('sl-spin') ? ' sl-spin' : '');
         if (_isAim) {
           const dir = card._aimDir || (card._aimDir = 'up');
-          div.className = 'trick-card sleight-card aim-sleight' + (selIdxJ >= 0 ? ' selected' : '');
+          div.className = 'trick-card sleight-card aim-sleight' + (selIdxJ >= 0 ? ' selected' : '') + _stateJ;
           div.innerHTML =
             `<div class="sleight-aim-inner" style="transform:perspective(360px) ${AIM_TILT[dir]}">` +
               `<div class="sleight-card-emoji">${def?.emoji||'🪞'}</div>` +
@@ -78,7 +91,7 @@ function render() {
           attachLongPress(div, r, c);
           continue;
         }
-        div.className = 'trick-card sleight-card' + sleightRarityClass(def) + (isSwapPendingJ ? ' swap-pending' : '') + (selIdxJ >= 0 ? ' selected' : '');
+        div.className = 'trick-card sleight-card' + sleightRarityClass(def) + (isSwapPendingJ ? ' swap-pending' : '') + (selIdxJ >= 0 ? ' selected' : '') + _stateJ;
         div.innerHTML = `${selIdxJ >= 0 ? `<div class="sel-num">${selIdxJ+1}</div>` : ''}` + sleightFaceHTML(card, def, usesStr);
         div.onclick = () => onCardTap(r, c);
         attachLongPress(div, r, c);
@@ -150,20 +163,33 @@ function render() {
   // Update deck HUD on every render - catches grid mutations from any source
   updateDeckHud();
 
+  // r200: below the minimum selection there is no play, however good the hand is.
+  const _belowMin = (typeof minSelection === 'function') && selected.length > 0 && selected.length < minSelection();
+
   // Hand preview
   if (!danceAbortController) {
     // Owner request: the preview no longer reacts to selection - it stays empty (inert)
     // until a hand is SUBMITTED, at which point the scoring dance (playPreviewDance) fills
     // #selected-cards. Selecting cards no longer renders preview cards or a hand name here.
-    document.getElementById('hand-name').textContent = '';   // empty → "HAND" watermark shows (r99)
+    // The preview CARDS stay inert until a hand is submitted (r99), but the hand
+    // NAME is live from the first selection - it is what you need before you
+    // commit, and with layered hands it is the only place the second hand shows.
+    updateHandNameLabel(_belowMin ? { short: minSelection() } : bestHandResult);
     const cardsEl = document.getElementById('selected-cards');
     cardsEl.innerHTML = '';
     if (bestHandResult) {
       const base = HAND_BASE[bestHandResult.hand];
       if (base) {
         const levelScale = Math.pow(1.1, level - 1);
-        const basePips = Math.round(handBasePips(bestHandResult.hand) * levelScale);
-        updateDanceSubboxes(basePips, handBaseMult(bestHandResult.hand, bestHandResult.handCells?.length));
+        // Every component, not just the one that named the hand - the chips have
+        // to quote what calcScore will actually seed, or a layered hand reads as
+        // the smaller of the two hands it is about to pay.
+        const _n = bestHandResult.handCells?.length;
+        const _names = (typeof handLayersFor === 'function')
+          ? handLayersFor(bestHandResult.hand, bestHandResult.handCells) : [bestHandResult.hand];
+        let basePips = 0, baseMult = 0;
+        _names.forEach(h => { if (!HAND_BASE[h]) return; basePips += Math.round(handBasePips(h) * levelScale); baseMult += handBaseMult(h, _n); });
+        updateDanceSubboxes(basePips, baseMult);
       }
     } else {
       const pipsEl = document.getElementById('pips-val');
@@ -185,7 +211,7 @@ function render() {
     const levelScale = Math.pow(1.1, level - 1);
     const scaledBasePips = Math.round(handBasePips(hand) * levelScale);
     const cards = handCells.map(([r,c]) => gridData[r][c]);
-    const cardPipsTotal = cards.reduce((sum, card) => sum + cardPips(card.rank) + (permPips[cardKey(card.rank,card.suit)]||0), 0);
+    const cardPipsTotal = cards.reduce((sum, card) => sum + cardPips(card.rank) + (permPips[cardId(card)]||0), 0);
     const hasTrickCard = trickCardPos && handCells.some(([r,c])=>r===trickCardPos[0]&&c===trickCardPos[1]);
 
     const bonusLines = [];
@@ -247,7 +273,7 @@ function render() {
   // Buttons
   // Match-3 auto-plays its matches, so Play is inert there - keep it visibly
   // disabled rather than lighting up on a selection it will never submit.
-  document.getElementById('btn-play').disabled    = match3Active() || !bestHandResult || (animating && !falling);
+  document.getElementById('btn-play').disabled    = match3Active() || !bestHandResult || _belowMin || (animating && !falling);
   document.getElementById('btn-discard').disabled = selected.length === 0 || (animating && !falling);
   document.getElementById('disc-count').textContent = `(${discards})`;
   document.getElementById('swap-count').textContent  = swaps;

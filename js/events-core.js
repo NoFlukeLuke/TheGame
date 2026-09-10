@@ -12,10 +12,23 @@ let activeEventId = null;
 // afterEvent callback - called by closeEvent to continue game flow
 let afterEventFn = null;
 
+// The last few events shown, so one cannot repeat straight after itself. Classic
+// routes to an event rarely enough that a bare random draw was fine; Guided runs
+// four an act plus two after every boss - about 12 a run against a pool of 11 -
+// where a repeat, and especially the same event twice in the post-boss pair, is
+// otherwise near certain.
+let recentEventIds = [];
+const EVENT_NO_REPEAT = 4;
+
 function openEvent(afterFn) {
   afterEventFn = afterFn || (() => drainLevelUpQueue());
-  const pool = ['confluence','crossroads','gamble','merchant','altar','spring','twin_path','forge','bargain','wager','shift_change'];
-  activeEventId = pool[Math.floor(Math.random() * pool.length)];
+  const pool = ['confluence','crossroads','gamble','merchant','altar','spring','twin_path','forge','bargain','wager','shift_change','bench','rehearsal','workshop'];
+  // Fall back to the full pool if the memory has eaten it - never draw a blank.
+  const fresh = pool.filter(id => !recentEventIds.includes(id));
+  const draw  = fresh.length ? fresh : pool;
+  activeEventId = draw[Math.floor(Math.random() * draw.length)];
+  recentEventIds.push(activeEventId);
+  if (recentEventIds.length > EVENT_NO_REPEAT) recentEventIds.shift();
   eventState = {};
   renderEventShell(activeEventId);
   document.getElementById('event-overlay').classList.add('show');
@@ -54,6 +67,9 @@ function confirmEvent() {
     bargain:     confirmBargain,
     wager:       confirmWager,
     shift_change: confirmShiftChange,
+    bench:       confirmBench,
+    rehearsal:   confirmRehearsal,
+    workshop:    confirmWorkshop,
   };
   if (handlers[activeEventId]) handlers[activeEventId]();
   else closeEvent();
@@ -72,6 +88,9 @@ const EVENT_META = {
   bargain:     { name:'The Bargain',         flavor:'Every gain has its price in flesh.' },
   wager:       { name:'The Wager',           flavor:'One flip. Fortune or ruin.' },
   shift_change:{ name:'Shift Change',        flavor:'Same crew, new rota. Put your Tricks in the order you want them.' },
+  bench:       { name:'The Bench',           flavor:'Pick the treatment, then pick the card it goes on.' },
+  rehearsal:   { name:'Rehearsal',           flavor:'Run it again until it is second nature. One Trick, twice the work.' },
+  workshop:    { name:'The Workshop',        flavor:'Charges topped up, or a ceiling raised for good.' },
 };
 
 function renderEventShell(id) {
@@ -94,6 +113,9 @@ function renderEventShell(id) {
     bargain:     renderBargain,
     wager:       renderWager,
     shift_change: renderShiftChange,
+    bench:       renderBench,
+    rehearsal:   renderRehearsal,
+    workshop:    renderWorkshop,
   };
   if (renderers[id]) renderers[id]();
   // The panel scrolls internally and is reused between events - reopening it

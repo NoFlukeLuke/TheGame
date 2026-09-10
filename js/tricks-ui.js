@@ -699,7 +699,8 @@ function updateActProgressUI() {
       valEl.textContent  = `ACT ${actNumber} · BOSS`;
       valEl.style.color  = '#ff6b6b';
     } else {
-      valEl.textContent  = `ACT ${actNumber} · ${nodeInAct}/5`;
+      const _next = (typeof guidedNextStopLabel === 'function') ? guidedNextStopLabel() : '';
+      valEl.textContent  = `ACT ${actNumber} · ${nodeInAct}/5` + (_next ? ` · ${_next}` : '');
       valEl.style.color  = '';
     }
   } else {

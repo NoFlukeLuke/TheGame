@@ -364,7 +364,11 @@ function startGame() {
   stopwatchActive = false; if (stopwatchTimer) { clearInterval(stopwatchTimer); stopwatchTimer = null; } stopwatchCardPos = null;
   if (pauseTimer) { clearTimeout(pauseTimer); pauseTimer = null; }
   if (typeof resetClockFx === 'function') resetClockFx();  // no frozen/rotated cards carried into a new run
-  const ALL_HAND_KEYS = ['run3','threeofakind','fourofakind','run4','pair','twopair','straight','flush','fullhouse','straightflush','highcard','blackjack'];
+  // The big hands (r199) are always in the list - they need Selection Size past 5
+  // to be reachable at all, which is gate enough. flush3/flush4 stay OUT: they are
+  // still not something you may PLAY here, only something a hand may LAYER.
+  const ALL_HAND_KEYS = ['run3','threeofakind','fourofakind','run4','pair','twopair','straight','flush','fullhouse','straightflush','highcard','blackjack',
+                         'run6','run7','flush6','flush7','fiveofakind','sixofakind','sevenofakind'];
   const BASE_HAND_KEYS = ['run3','threeofakind','twopair','fourofakind'];
   // Match-3 scores real hand names (Flush, Straight, Straight Flush, Run of 4…),
   // so it needs the full hand set active like the act modes, not the legacy base four.
@@ -452,7 +456,7 @@ function startGame() {
   cancelAutoSubmit();
   cancelDance();
   handReadyForSubmit = false;
-  document.getElementById('hand-name').textContent = '';   // empty → "HAND" watermark shows (r99)
+  updateHandNameLabel(null);   // clears the label AND its cache (js/hud.js)
   document.getElementById('selected-cards').innerHTML = '';
   selected = [];
   animating = false;
@@ -471,11 +475,13 @@ function startGame() {
   rewardGridsSeen = 0;
   forceBossNextRound = false;
   shopFromNodeFlow = false;
+  nodeFlowAfterShop = null;
+  recentEventIds = [];
+  sleightCapBonus = {};   // Workshop's raised charge ceilings are per run
   updateActProgressUI();
   // Clear any leftover card elements from previous game
   document.getElementById('grid').querySelectorAll('.card').forEach(el => el.remove());
-  roundGoal = survivalActive() ? survivalGoalForLevel(1)
-            : (match3IsZen() ? BASE_GOAL * 2 : BASE_GOAL); // Zen: doubled goals, no clock
+  roundGoal = goalForLevel(1);  // js/goal-tuning.js: per-mode curve + Zen's doubling
   totalScore = 0;
   coins = 0;
   shopItems = null;

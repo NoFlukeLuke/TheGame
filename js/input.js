@@ -40,6 +40,8 @@ function scheduleAutoSubmit() {
   if (danceAbortController) return; // dance in progress, don't schedule
   const result = selected.length >= 2 ? findBestHand(selected) : null;
   if (!result) return; // no valid hand, don't schedule
+  // r200: never auto-fire a hand the player is not allowed to play yet.
+  if (typeof minSelection === 'function' && selected.length < minSelection()) return;
   handReadyForSubmit = true;
   render(); // trigger pulse immediately
   // Tutorial: the early steps teach "select, look at the preview, then press
@@ -49,7 +51,7 @@ function scheduleAutoSubmit() {
   autoSubmitTimer = setTimeout(() => {
     autoSubmitTimer = null;
     handReadyForSubmit = false;
-    if (!animating && !falling && selected.length >= 2) playHand();
+    if (!animating && !falling && selected.length >= 2 && selected.length >= minSelection()) playHand();
   }, AUTO_SUBMIT_DELAY);
 }
 
@@ -100,7 +102,7 @@ function doSwap(r1, c1, r2, c2) {
     [[r1,c1],[r2,c2]].forEach(([r,c]) => {
       const card = gridData[r][c];
       if (card && !card._isSleight && card.rank) {
-        const k = cardKey(card.rank, card.suit);
+        const k = cardId(card);
         permMult[k] = (permMult[k] || 0) + BAL.pivot.mult;
       }
     });
@@ -231,6 +233,7 @@ function tryAddToSelection(r, c) {
 // ── Tap handler (called on pointerup when pointer didn't move) ──
 function onCardTap(r, c) {
   if (_longPressActive) { _longPressActive = false; return; }
+  if (sleightSpinLock) return;   // a double-tap sleight is spinning out; ignore taps
   const _card = gridData[r]?.[c];
   const _cardStr = _card ? `${_card.rank}${_card.suit}` : 'null';
   dbgEvent('info', `tap [${r},${c}] ${_cardStr}`, { animating, trickPhase: trickSelectionPhase, swapPending: !!swapPending, selected: selected.length });
@@ -288,7 +291,7 @@ function onCardTap(r, c) {
           endStopwatch(); showMessage('⏱️ Stopwatch - stopped', 'var(--cream-dim)');
         } else if (!stopwatchActive) {
           if (jcard._usesLeft !== 'infinite' && jcard._usesLeft <= 0) showMessage('Stopwatch is spent', 'var(--cream-dim)');
-          else startStopwatch(jcard, r, c);
+          else { spinSleightTile(r, c); startStopwatch(jcard, r, c); }
         }
         return;
       }

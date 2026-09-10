@@ -325,17 +325,7 @@ function renderGambleDouble() {
 // CARD-ENHANCEMENT HELPERS (shared by Forge / Bargain / Wager events)
 // ══════════════════════════════════════════════
 // Every distinct real card sitting in the player's deck (grid + draw + played).
-function allDeckCards() {
-  const out = [];
-  for (let r = 0; r < gridRows; r++)
-    for (let c = 0; c < gridCols; c++) {
-      const cd = gridData[r]?.[c];
-      if (cd && !cd._isTrick && !cd._isSleight && !cd._isStone && cd.rank) out.push(cd);
-    }
-  drawPile.forEach(cd => { if (cd && !cd._isSleight && cd.rank) out.push(cd); });
-  playedPile.forEach(cd => { if (cd && !cd._isSleight && cd.rank) out.push(cd); });
-  return out;
-}
+function allDeckCards() { return everyDeckCard(); }   // see js/deck-grid.js
 function randomDeckCard() {
   const all = allDeckCards();
   return all.length ? all[Math.floor(Math.random() * all.length)] : null;
@@ -373,6 +363,14 @@ function removeRandomDeckCards(n) {
   return removed;
 }
 function cardLabel(card) { return card ? `${card.rank}${card.suit}` : 'a card'; }
+// A local shuffle. reward-grid.js has a `shuffled` but it is scoped INSIDE
+// _generateRewardContent, so it is not reachable from here - calling it threw a
+// ReferenceError the moment The Bench opened.
+function evShuffle(arr) {
+  const r = [...arr];
+  for (let i = r.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [r[i], r[j]] = [r[j], r[i]]; }
+  return r;
+}
 
 // ══════════════════════════════════════════════
 // EVENT: THE FORGE  (this-or-that card enhancement)
@@ -396,15 +394,15 @@ function renderForge() {
 
   const boons = [
     (t) => ({ icon:'🔨', rarity:'common', name:`Temper ${cardLabel(t)}`, desc:`${cardLabel(t)} permanently gains +30 pips.`,
-              apply:()=>{ enhanceCardKey(cardKey(t.rank,t.suit), {pips:30}); showMessage(`${cardLabel(t)} +30 pips`, 'var(--gold)'); } }),
+              apply:()=>{ enhanceCardKey(cardId(t), {pips:30}); showMessage(`${cardLabel(t)} +30 pips`, 'var(--gold)'); } }),
     (t) => ({ icon:'⚒️', rarity:'rare', name:`Sharpen ${cardLabel(t)}`, desc:`${cardLabel(t)} permanently scores ×2 pips.`,
-              apply:()=>{ enhanceCardKey(cardKey(t.rank,t.suit), {xpips:2}); showMessage(`${cardLabel(t)} ×2 pips`, 'var(--gold)'); } }),
+              apply:()=>{ enhanceCardKey(cardId(t), {xpips:2}); showMessage(`${cardLabel(t)} ×2 pips`, 'var(--gold)'); } }),
     (t) => ({ icon:'✨', rarity:'common', name:`Empower ${cardLabel(t)}`, desc:`${cardLabel(t)} permanently gains +5 mult.`,
-              apply:()=>{ enhanceCardKey(cardKey(t.rank,t.suit), {mult:5}); showMessage(`${cardLabel(t)} +5 mult`, 'var(--gold)'); } }),
+              apply:()=>{ enhanceCardKey(cardId(t), {mult:5}); showMessage(`${cardLabel(t)} +5 mult`, 'var(--gold)'); } }),
     (t) => ({ icon:'💥', rarity:'epic', name:`Overcharge ${cardLabel(t)}`, desc:`${cardLabel(t)} permanently scores ×2 mult.`,
-              apply:()=>{ enhanceCardKey(cardKey(t.rank,t.suit), {xmult:2}); showMessage(`${cardLabel(t)} ×2 mult`, 'var(--gold)'); } }),
+              apply:()=>{ enhanceCardKey(cardId(t), {xmult:2}); showMessage(`${cardLabel(t)} ×2 mult`, 'var(--gold)'); } }),
     (t) => ({ icon:'🔁', rarity:'rare', name:`Echo ${cardLabel(t)}`, desc:`${cardLabel(t)} permanently scores its pips twice.`,
-              apply:()=>{ enhanceCardKey(cardKey(t.rank,t.suit), {retrig:1}); showMessage(`${cardLabel(t)} replays`, 'var(--gold)'); } }),
+              apply:()=>{ enhanceCardKey(cardId(t), {retrig:1}); showMessage(`${cardLabel(t)} replays`, 'var(--gold)'); } }),
   ];
   const chosen = sh(boons).slice(0, 3).map((make, i) => make(target(i)));
   eventState.forgeChoice = null;
@@ -433,22 +431,22 @@ function buildBargainTrades() {
   const trades = [];
   if (offGrid >= 2) {
     trades.push({ icon:'⚖️', rarity:'rare', name:'Blood Price', desc:'Remove 2 random cards from your deck. A random remaining card permanently scores ×3 pips.',
-      apply:()=>{ removeRandomDeckCards(2); const t=randomDeckCard(); if(t){ enhanceCardKey(cardKey(t.rank,t.suit), {xpips:3}); showMessage(`${cardLabel(t)} ×3 pips`, 'var(--gold)'); } } });
+      apply:()=>{ removeRandomDeckCards(2); const t=randomDeckCard(); if(t){ enhanceCardKey(cardId(t), {xpips:3}); showMessage(`${cardLabel(t)} ×3 pips`, 'var(--gold)'); } } });
   }
   trades.push({ icon:'🕯️', rarity:'rare', name:'Time Tithe', desc:'Permanently lose 8s of round time. Copy a random card; that card permanently gains +20 pips.',
-    apply:()=>{ limits.round_time.current=Math.max(30, limits.round_time.current-8); const t=randomDeckCard(); if(t){ copyCardToDeck(t); enhanceCardKey(cardKey(t.rank,t.suit), {pips:20}); showMessage(`Copied ${cardLabel(t)} · +20 pips`, 'var(--gold)'); } } });
+    apply:()=>{ limits.round_time.current=Math.max(30, limits.round_time.current-8); const t=randomDeckCard(); if(t){ copyCardToDeck(t); enhanceCardKey(cardId(t), {pips:20}); showMessage(`Copied ${cardLabel(t)} · +20 pips`, 'var(--gold)'); } } });
   if (coins >= 10) {
     trades.push({ icon:'🪙', rarity:'epic', name:'The Toll', desc:'Lose 10 credits. A random card permanently replays and scores ×2 mult.',
-      apply:()=>{ coins-=10; updateCoinsUI(); const t=randomDeckCard(); if(t){ enhanceCardKey(cardKey(t.rank,t.suit), {retrig:1, xmult:2}); showMessage(`${cardLabel(t)} replay + ×2 mult`, 'var(--gold)'); } } });
+      apply:()=>{ coins-=10; updateCoinsUI(); const t=randomDeckCard(); if(t){ enhanceCardKey(cardId(t), {retrig:1, xmult:2}); showMessage(`${cardLabel(t)} replay + ×2 mult`, 'var(--gold)'); } } });
   }
   if (offGrid >= 3) {
     trades.push({ icon:'🗑️', rarity:'epic', name:'Purge', desc:'Remove 3 random cards from your deck. Gain +2 permanent swaps and a random card gains +40 pips.',
-      apply:()=>{ removeRandomDeckCards(3); limits.swaps.current+=2; swaps=Math.min(swaps+2, limits.swaps.current); const t=randomDeckCard(); if(t){ enhanceCardKey(cardKey(t.rank,t.suit), {pips:40}); showMessage(`+2 swaps · ${cardLabel(t)} +40 pips`, 'var(--gold)'); } } });
+      apply:()=>{ removeRandomDeckCards(3); limits.swaps.current+=2; swaps=Math.min(swaps+2, limits.swaps.current); const t=randomDeckCard(); if(t){ enhanceCardKey(cardId(t), {pips:40}); showMessage(`+2 swaps · ${cardLabel(t)} +40 pips`, 'var(--gold)'); } } });
   }
   // Always-available fallback
   if (trades.length === 0) {
     trades.push({ icon:'🕯️', rarity:'common', name:'Last Ember', desc:'Lose 5s of round time. A random card permanently gains +15 pips.',
-      apply:()=>{ limits.round_time.current=Math.max(30, limits.round_time.current-5); const t=randomDeckCard(); if(t){ enhanceCardKey(cardKey(t.rank,t.suit), {pips:15}); showMessage(`${cardLabel(t)} +15 pips`, 'var(--gold)'); } } });
+      apply:()=>{ limits.round_time.current=Math.max(30, limits.round_time.current-5); const t=randomDeckCard(); if(t){ enhanceCardKey(cardId(t), {pips:15}); showMessage(`${cardLabel(t)} +15 pips`, 'var(--gold)'); } } });
   }
   const a=[...trades]; for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
   return a.slice(0,3);
@@ -495,13 +493,13 @@ function renderWager() {
   body.appendChild(lbl);
   const stakes = [
     { icon:'🪙', rarity:'common', name:'Modest - 70%', desc:'Heads: a random card scores ×2 pips. Tails: that card loses 10 pips.', odds:0.70,
-      win:(t)=>{ enhanceCardKey(cardKey(t.rank,t.suit), {xpips:2}); return `${cardLabel(t)} ×2 pips!`; },
-      lose:(t)=>{ enhanceCardKey(cardKey(t.rank,t.suit), {subpips:10}); return `${cardLabel(t)} −10 pips.`; } },
+      win:(t)=>{ enhanceCardKey(cardId(t), {xpips:2}); return `${cardLabel(t)} ×2 pips!`; },
+      lose:(t)=>{ enhanceCardKey(cardId(t), {subpips:10}); return `${cardLabel(t)} −10 pips.`; } },
     { icon:'🎲', rarity:'rare', name:'Bold - 55%', desc:'Heads: a random card scores ×3 pips and replays. Tails: that card is removed from your deck.', odds:0.55,
-      win:(t)=>{ enhanceCardKey(cardKey(t.rank,t.suit), {xpips:3, retrig:1}); return `${cardLabel(t)} ×3 pips + replay!`; },
+      win:(t)=>{ enhanceCardKey(cardId(t), {xpips:3, retrig:1}); return `${cardLabel(t)} ×3 pips + replay!`; },
       lose:(t)=>{ removeRandomDeckCards(1); return `${cardLabel(t)} lost.`; } },
     { icon:'💀', rarity:'epic', name:'Reckless - 40%', desc:'Heads: a random card scores ×4 pips, ×2 mult and replays. Tails: 2 random cards are removed.', odds:0.40,
-      win:(t)=>{ enhanceCardKey(cardKey(t.rank,t.suit), {xpips:4, xmult:2, retrig:1}); return `${cardLabel(t)} ×4 pips, ×2 mult + replay!`; },
+      win:(t)=>{ enhanceCardKey(cardId(t), {xpips:4, xmult:2, retrig:1}); return `${cardLabel(t)} ×4 pips, ×2 mult + replay!`; },
       lose:(t)=>{ removeRandomDeckCards(2); return `2 cards lost.`; } },
   ];
   stakes.forEach(stake => {
@@ -759,9 +757,17 @@ function confirmSpring() {
 // ══════════════════════════════════════════════
 function renderTwinPath() {
   const ownedTrick = new Set((acquiredTricks||[]).map(b=>b.id));
-  const pool = TRICK_POOL.filter(b=>!ownedTrick.has(b.id));
-  const sh = a => { const r=[...a]; for(let i=r.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[r[i],r[j]]=[r[j],r[i]];} return r; };
-  const picks = sh(pool).slice(0,2);
+  const pool = TRICK_POOL.filter(b=>!ownedTrick.has(b.id) && !offerBannedGlobal(b.id));
+  // Both Tricks are drawn on the rarity table (r203). This event shuffled the
+  // whole pool and took the top two until then - two flat draws from 177 Tricks,
+  // so a Twin Path was a 31%-epic-or-better offer TWICE while the reward grid
+  // beside it ran at 13%. It is most of why Tricks read as too generous.
+  const picks = [];
+  const taken = new Set();
+  for (let i = 0; i < 2; i++) {
+    const p = pickTrickByRarity(pool.filter(b => !taken.has(b.id)));
+    if (p) { picks.push(p); taken.add(p.id); }
+  }
   const shadow = [
     { icon:'☁', name:'−5s This Round', desc:'Lose 5 seconds immediately.',     apply:()=>{roundSeconds=Math.max(1,roundSeconds-5);updateClockUI();showMessage('−5s (Twin Path shadow)','var(--red)');} },
     { icon:'☠', name:'−1 Discard',    desc:'Lose 1 discard permanently.',      apply:()=>{limits.discards.current=Math.max(1,limits.discards.current-1);discards=Math.min(discards,limits.discards.current);render();showMessage('−1 Discard (Twin Path shadow)','var(--red)');} },
@@ -938,6 +944,236 @@ function confirmShiftChange() {
     // alone here - reshuffling the tray moves the Tricks, not the lines they
     // already own, so nothing you were building around silently relocates.
     showMessage('Shift change - Trick order updated', 'var(--gold)');
+  }
+  closeEvent();
+}
+
+// ══════════════════════════════════════════════
+// UPGRADE EVENTS (r194) - improve what you already have
+// ══════════════════════════════════════════════
+// Every event before these HANDED you something. That is the wrong shape for a
+// run that has to close a 1.227x-per-level gap (see Natural Scaling in
+// CLAUDE.md): a Trick tray caps at 10 and fills long before an act does, so a
+// twelfth grant is a replace-or-decline, while an upgrade always has somewhere
+// to go. Each of these rides an engine seam that already existed rather than
+// inventing per-entity code:
+//   cards    enhanceCardKey  (permPips / permXMult / permRetrig …)
+//   Tricks   t._rank         (a permanent prime - see calcScore)
+//   Sleights sleightCapBonus (a raisable charge ceiling - sleights-runtime.js)
+
+// ─── EVENT: THE BENCH (card enhancement, on a card YOU choose) ───
+// The Forge offers three enhancements on three RANDOM cards. The Bench offers
+// the same kind of power on a card you pick, which is the version that can be
+// aimed at a build.
+function renderBench() {
+  const body = document.getElementById('event-body');
+  const pool = [...drawPile].filter(c => c && c.rank && !c._isSleight);
+  if (!pool.length) {
+    body.innerHTML = evEmptyHTML('No cards in the draw pile to work on.');
+    setEventConfirm(true); return;
+  }
+  eventState.benchBoon = null;
+  eventState.benchCard = null;
+  body.appendChild(evNote('Pick a treatment, then pick the card it goes on. The card keeps it for the rest of the run.'));
+
+  const boons = [
+    { icon:'🔨', rarity:'common', name:'Weight',   desc:'+40 pips, permanently.',        e:{ pips:40 },  say:'+40 pips'  },
+    { icon:'✨', rarity:'rare',   name:'Charge',   desc:'+6 mult, permanently.',         e:{ mult:6 },   say:'+6 mult'   },
+    { icon:'💥', rarity:'epic',   name:'Overwind', desc:'Scores ×2 mult, permanently.',  e:{ xmult:2 },  say:'×2 mult'   },
+    { icon:'🔁', rarity:'rare',   name:'Double',   desc:'Scores twice, permanently.',    e:{ retrig:1 }, say:'replays'   },
+  ];
+  const chosen = evShuffle(boons).slice(0, 3);
+  chosen.forEach(b => {
+    const el = makeChoiceEl({ icon:b.icon, rarity:b.rarity, name:b.name, desc:b.desc,
+      onClick: () => {
+        body.querySelectorAll('.event-choice').forEach(e => e.classList.remove('selected'));
+        el.classList.add('selected');
+        eventState.benchBoon = b;
+        showBenchCardPicker(pool);
+        setEventConfirm(!!eventState.benchCard);
+      }
+    });
+    body.appendChild(el);
+  });
+}
+// One chip per card IDENTITY, not per copy - permPips and friends are keyed by
+// "rank-suit", so treating one 7♠ treats every 7♠ in the deck. Showing three
+// identical chips would imply otherwise.
+function showBenchCardPicker(pool) {
+  // Rebuilt whenever a different treatment is picked, so the label has to live
+  // INSIDE the removable wrapper - appending it separately stacked a fresh
+  // "CHOOSE THE CARD" every time the player changed their mind.
+  document.getElementById('bench-card-picker')?.remove();
+  const body = document.getElementById('event-body');
+  const wrap = document.createElement('div');
+  wrap.id = 'bench-card-picker';
+  wrap.appendChild(evLabel('CHOOSE THE CARD'));
+  const chips = document.createElement('div');
+  chips.className = 'ev-cardchips';
+  const seen = new Set();
+  pool.forEach(card => {
+    const key = card.rank + card.suit;
+    if (seen.has(key)) return; seen.add(key);
+    const chip = document.createElement('div');
+    chip.className = 'ev-cardchip' + (['♥','♦'].includes(card.suit) ? ' red' : '');
+    chip.textContent = card.rank + card.suit;
+    chip.addEventListener('click', () => {
+      chips.querySelectorAll('.ev-cardchip').forEach(c => c.classList.remove('picked'));
+      chip.classList.add('picked');
+      eventState.benchCard = card;
+      setEventConfirm(!!eventState.benchBoon);
+    });
+    chips.appendChild(chip);
+  });
+  wrap.appendChild(chips);
+  body.appendChild(wrap);
+}
+function confirmBench() {
+  const b = eventState.benchBoon, c = eventState.benchCard;
+  if (b && c) {
+    // Per CARD, not per face - resolved fresh, since the pick was made before this.
+    const t = resolveDeckCard(c);
+    if (t) { enhanceCardKey(cardId(t), b.e); showMessage(`${cardLabel(t)} ${b.say}`, 'var(--gold)'); }
+  }
+  closeEvent();
+}
+
+// ─── EVENT: REHEARSAL (Trick upgrade) ───
+// Permanently primes one Trick: it fires its effect an extra time, every hand,
+// for the rest of the run. Generic by construction - calcScore duplicates
+// whatever pip/mult delta the Trick reported, so this works on all of them
+// without a line of per-Trick code.
+function renderRehearsal() {
+  const body = document.getElementById('event-body');
+  if (!trickTrayMode || !trickTray.length) {
+    body.innerHTML = evEmptyHTML('No Tricks to rehearse. Take the fee instead.');
+    eventState.rehearseNone = true;
+    setEventConfirm(true); return;
+  }
+  eventState.rehearsePick = null;
+  body.appendChild(evNote('One Trick works twice as hard from now on: it fires its effect an extra time, every hand, for the rest of the run.'));
+  trickTray.forEach(t => {
+    const rank = t._rank || 0;
+    const el = makeChoiceEl({
+      icon: (typeof trickEmoji === 'function') ? trickEmoji(t) : '✦',
+      rarity: t.tier,
+      name: t.name + (rank ? ` · rehearsed ×${rank + 1}` : ''),
+      desc: (typeof trickLiveDesc === 'function') ? trickLiveDesc(t) : t.desc,
+      onClick: () => {
+        body.querySelectorAll('.event-choice').forEach(e => e.classList.remove('selected'));
+        el.classList.add('selected');
+        eventState.rehearsePick = t;
+        setEventConfirm(true);
+      }
+    });
+    body.appendChild(el);
+  });
+}
+function confirmRehearsal() {
+  if (eventState.rehearseNone) {
+    coins += BAL.rehearsal.consolation_credits;
+    updateCoinsUI?.();
+    showMessage(`+${BAL.rehearsal.consolation_credits} credits`, 'var(--gold)');
+  } else if (eventState.rehearsePick) {
+    const t = eventState.rehearsePick;
+    t._rank = (t._rank || 0) + 1;
+    showMessage(`${t.name} rehearsed - fires ${t._rank + 1}× a hand`, 'var(--gold)');
+    if (typeof renderTrickTray === 'function') renderTrickTray();
+  }
+  closeEvent();
+}
+
+// ─── EVENT: THE WORKSHOP (Sleight upgrade) ───
+// Sleights run on charges and, once spent, sit inert or leave the deck. Nothing
+// in the game raised a charge CEILING before this.
+function renderWorkshop() {
+  const body = document.getElementById('event-body');
+  const owned = allOwnedSleightCards().filter(c => sleightMaxCharges(sleightDef(c)) !== null);
+  if (!owned.length) {
+    body.innerHTML = evEmptyHTML('No Sleights with charges to service. Take the fee instead.');
+    eventState.workshopNone = true;
+    setEventConfirm(true); return;
+  }
+  eventState.workshopPick = null;
+  eventState.workshopCard = null;
+  body.appendChild(evNote('Charges are per run, not per round. Service refills what you have; reinforcing raises the ceiling for good.'));
+
+  const service = makeChoiceEl({
+    icon:'🧰', rarity:'common', name:'Service', desc:`Refill every Sleight you own to full charges (${owned.length} held).`,
+    onClick: () => {
+      body.querySelectorAll('.event-choice').forEach(e => e.classList.remove('selected'));
+      service.classList.add('selected');
+      eventState.workshopPick = 'service';
+      document.getElementById('workshop-picker')?.remove();
+      setEventConfirm(true);
+    }
+  });
+  body.appendChild(service);
+
+  const reinforce = makeChoiceEl({
+    icon:'⚙️', rarity:'epic', name:'Reinforce',
+    desc:`One Sleight permanently gains +${BAL.workshop.cap_bonus} maximum charges, and refills to that new ceiling.`,
+    onClick: () => {
+      body.querySelectorAll('.event-choice').forEach(e => e.classList.remove('selected'));
+      reinforce.classList.add('selected');
+      eventState.workshopPick = 'reinforce';
+      showWorkshopPicker(owned);
+      setEventConfirm(!!eventState.workshopCard);
+    }
+  });
+  body.appendChild(reinforce);
+}
+// One row per Sleight IDENTITY - the cap bonus is stored by sleightId, so
+// reinforcing one copy reinforces every copy of that Sleight.
+function showWorkshopPicker(owned) {
+  document.getElementById('workshop-picker')?.remove();
+  const body = document.getElementById('event-body');
+  const wrap = document.createElement('div');
+  wrap.id = 'workshop-picker';
+  wrap.className = 'ev-stack';
+  wrap.appendChild(evLabel('CHOOSE THE SLEIGHT'));
+  const seen = new Set();
+  owned.forEach(card => {
+    const def = sleightDef(card);
+    if (!def || seen.has(def.id)) return; seen.add(def.id);
+    const cap = sleightMaxCharges(def);
+    const el = makeChoiceEl({
+      icon: def.emoji || '◈', rarity: def.rarity, name: def.name,
+      desc: `${def.desc}<br>Now ${card._usesLeft ?? cap} of ${cap} charges · would become ${cap + BAL.workshop.cap_bonus}.`,
+      onClick: () => {
+        wrap.querySelectorAll('.event-choice').forEach(e => e.classList.remove('selected'));
+        el.classList.add('selected');
+        eventState.workshopCard = card;
+        setEventConfirm(true);
+      }
+    });
+    wrap.appendChild(el);
+  });
+  body.appendChild(wrap);
+}
+function confirmWorkshop() {
+  if (eventState.workshopNone) {
+    coins += BAL.workshop.consolation_credits;
+    updateCoinsUI?.();
+    showMessage(`+${BAL.workshop.consolation_credits} credits`, 'var(--gold)');
+  } else if (eventState.workshopPick === 'service') {
+    let n = 0;
+    allOwnedSleightCards().forEach(c => {
+      const cap = sleightMaxCharges(sleightDef(c));
+      if (cap !== null && (c._usesLeft || 0) < cap) { c._usesLeft = cap; n++; }
+    });
+    showMessage(n ? `${n} Sleight${n > 1 ? 's' : ''} refilled` : 'All Sleights already full', 'var(--gold)');
+  } else if (eventState.workshopPick === 'reinforce' && eventState.workshopCard) {
+    const def = sleightDef(eventState.workshopCard);
+    if (def) {
+      sleightCapBonus[def.id] = (sleightCapBonus[def.id] || 0) + BAL.workshop.cap_bonus;
+      // Refill every copy to the NEW ceiling, not just the one that was picked -
+      // the bonus is stored per sleightId, so they all share it.
+      allOwnedSleightCards().forEach(c => {
+        if (c.sleightId === def.id) c._usesLeft = sleightMaxCharges(def);
+      });
+      showMessage(`${def.name} reinforced - ${sleightMaxCharges(def)} charges`, 'var(--gold)');
+    }
   }
   closeEvent();
 }
