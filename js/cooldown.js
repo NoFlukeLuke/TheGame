@@ -1,5 +1,5 @@
 // ══════════════════════════════════════════════
-// COOLDOWN / DISABLE TIMER WIDGET  (r197)
+// COOLDOWN / DISABLE TIMER WIDGET  (r209)
 // ══════════════════════════════════════════════
 // ONE widget, used by everything that is temporarily unavailable or temporarily
 // charged: a countdown ring with the seconds left in the middle, plus a grey-out
@@ -53,7 +53,7 @@ const TRICK_TIMERS = {
     if (_perMinuteFired[id] !== minute) return null;          // ready
     return { mode: 'cooldown', left: cdUntilNextMark(60), total: 60 };
   },
-  // Minute Hand (reworked r197): every minute mark primes it for the next two
+  // Minute Hand (reworked r209): every minute mark primes it for the next two
   // hands. Primed shows the charges; otherwise it counts down to the next mark.
   minute_hand() {
     if (typeof minuteHandCharges !== 'undefined' && minuteHandCharges > 0) {
@@ -201,7 +201,7 @@ function cdStopTicker() {
     .forEach(el => el.classList.remove('cd-inactive', 'cd-off', 'cd-cooldown', 'cd-primed'));
 }
 
-// The Understudy knack (r197): primes a random Trick every 30 seconds. Its chip
+// The Understudy knack (r209): primes a random Trick every 30 seconds. Its chip
 // carries the countdown to the next prime, so the knack and the Trick it primes
 // both speak through the same widget.
 function cdForKnack(knackId) {

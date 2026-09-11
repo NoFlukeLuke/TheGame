@@ -69,6 +69,10 @@ const SURVIVAL_REROLL_STEP    = 5;    // then 5, 10, 15… (STEP × paid-index)
 // round clock - but it is the same variable, so the bar fill and computeRoundResources
 // must size against it too.
 function currentRoundDuration() {
+  // A boss round's length is its window (r205 - the boss runs on this same clock).
+  // Survival banks leftover time into it and Flow uses a flat one, so it is not
+  // simply the mode's round length, and the clock bar needs the real denominator.
+  if (bossActive) return bossWindowDuration;
   if (typeof flowActive === 'function' && flowActive()) return FLOW_SESSION_SECONDS;
   return survivalActive() ? SURVIVAL_ROUND_SECONDS : ROUND_DURATION;
 }
@@ -77,14 +81,18 @@ function currentRoundDuration() {
 // rounded to 50 (Classic rounds to 500, which would snap the 750 opener to 1000).
 // In endless mode the per-level growth accelerates (see SURVIVAL_ENDLESS_ACCEL);
 // levels before the switch keep the normal curve so the jump isn't retroactive.
+// The four numbers below come from goalTune() (js/goal-tuning.js), which falls
+// back to the constants above unless the dev panel's Goals group has moved them.
 function survivalGoalForLevel(lv) {
-  const base = Math.pow(GOAL_SCALE, Math.min(lv, survivalEndlessFromLevel) - 1);
-  let g = SURVIVAL_BASE_GOAL * base;
+  const step  = Math.max(1, goalTune('survivalRoundTo'));
+  const scale = 1 + goalTune('survivalGrowth') / 100;
+  const base  = Math.pow(scale, Math.min(lv, survivalEndlessFromLevel) - 1);
+  let g = goalTune('survivalBase') * goalTune('globalMult') * base;
   if (survivalEndless && lv > survivalEndlessFromLevel) {
-    const fast = 1 + (GOAL_SCALE - 1) * SURVIVAL_ENDLESS_ACCEL;
+    const fast = 1 + (scale - 1) * goalTune('endlessAccel');
     g *= Math.pow(fast, lv - survivalEndlessFromLevel);
   }
-  return Math.max(SURVIVAL_GOAL_ROUND_TO, Math.round(g / SURVIVAL_GOAL_ROUND_TO) * SURVIVAL_GOAL_ROUND_TO);
+  return Math.max(step, Math.round(g / step) * step);
 }
 let survivalEndlessFromLevel = Infinity; // level at which endless acceleration begins
 

@@ -171,7 +171,7 @@ function trickLiveDesc(trick) {
       case 'sands_of_time':  return roundNow(`+${Math.floor(roundSeconds / B.sands_of_time.divisor)} pips`);
       case 'discard_pips':   return roundNow(`+${(cardsDiscardedRound || 0) * B.discard_pips.pips_per_discard} pips`);
       case 'landfill':       return roundNow(`+${Math.floor((cardsDiscardedRound || 0) / B.landfill.discards_per) * B.landfill.mult_per_n} mult`);
-      case 'escalation':     return roundNow(`+${Math.max(0, (handsPlayedRound || 0) - 5)} mult`);
+      case 'escalation':     { const _h = (handsPlayedRound || 0) + 1; return roundNow(`+${_h > B.escalation.after_hands ? _h * B.escalation.mult_per_hand : 0} mult`); }
       case 'combo_score':    return roundNow(`+${(handTypesRound ? handTypesRound.size : 0) * B.combo_score.mult_per_type} mult`);
       default: return base;
     }
@@ -349,7 +349,7 @@ function renderTrickTray() {
     chip.dataset.trickId = trick.id;
     const isMirror = trick.id === 'mirror';
     const dir = trick._tiltDir; // -1 left, +1 right, undefined = not aimed
-    const tile = { entity: 'trick', label: trick.name,
+    const tile = { entity: 'trick', id: trick.id, label: trick.name,
                    emoji: isMirror ? (dir === -1 ? '◀' : dir === 1 ? '▶' : '◆') : trickEmoji(trick) };
     chip.innerHTML = entityTileHTML(tile, rar) + (bossOff ? `<div class="trick-off-mark">OFF</div>` : '');
     if (isMirror) {

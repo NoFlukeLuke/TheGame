@@ -1,5 +1,5 @@
 // ══════════════════════════════════════════════
-// ENTITY FX - "what affected what"  (r197)
+// ENTITY FX - "what affected what"  (r209)
 // ══════════════════════════════════════════════
 // One system for the question a player asks constantly and the board never
 // answered: WHY is this card different? Two surfaces, one vocabulary.

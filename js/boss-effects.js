@@ -45,6 +45,8 @@ let bossGoalRatchet    = 0;          // fraction the objective grows per interac
 let bossInteractFee    = 0;          // credits charged per interact (The Turnstile)
 let bossRedactedHand   = null;       // hand type marked down this round (The Redaction)
 let bossRedactedMult   = 1;          // what it is multiplied by
+let bossMarkEveryN     = 0;          // The Marker: 1 card in N is silently marked (0 = off)
+let bossMarkCounter    = 0;          // cards seen since the last mark
 
 // ── The Contingency Plan knack ───────────────────────────────────────────────
 // "Boss effects are 10% weaker." Two readings, both applied:
@@ -341,6 +343,111 @@ function bossRationTick() {
   render();
 }
 
+// ── THE MARKER (r205) ────────────────────────────────────────────────────────
+// One card in every ten is silently marked. Nothing on the card, in the tray or in
+// Records says so - that is the whole boss. Play a marked card and it is discarded
+// instead of scored, taking every other marked card in the same hand with it, and
+// the hand does not score.
+//
+// The mark rides `card._discardCursed`, a plain flag on the card object. It is
+// deliberately NOT in DURABLE_CARD_FIELDS: a card discarded back into the deck is
+// rebuilt from that list, so a marked card that leaves play comes back clean and
+// takes a fresh 1-in-10 roll next time it is drawn. That is the behaviour we want,
+// and it means nothing has to un-mark the piles.
+//
+// The counter is exact rather than a 10% dice roll - "one in every ten" should not
+// clump three into one hand and then none for a minute.
+function bossMarkerConsider(card) {
+  if (!bossMarkEveryN || !card) return card;
+  if (typeof bossEffectsIgnored === 'function' && bossEffectsIgnored()) return card;
+  if (card._isSleight || card._isStone || card._isTrick || !card.rank) return card;
+  if (++bossMarkCounter >= bossMarkEveryN) { bossMarkCounter = 0; card._discardCursed = true; }
+  return card;
+}
+// The board for a boss round is dealt BEFORE triggerBoss runs, so the cards already
+// on it never passed through drawCard while the boss was live. Feed them through the
+// same counter at boss start or the first tenth of the round is free.
+function bossMarkerSeedBoard() {
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) bossMarkerConsider(gridData[r]?.[c]);
+}
+function bossMarkerClearAll() {
+  bossMarkEveryN = 0; bossMarkCounter = 0;
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
+    const card = gridData[r]?.[c]; if (card) delete card._discardCursed;
+  }
+  [drawPile, playedPile].forEach(pile => (pile || []).forEach(card => { if (card) delete card._discardCursed; }));
+}
+
+// Called from playHand before anything is scored or mutated. Returns true if the
+// hand was eaten, in which case playHand must return without scoring it.
+function bossMarkerIntercept(cells) {
+  if (!bossMarkEveryN || !bossActive || !Array.isArray(cells)) return false;
+  if (typeof bossEffectsIgnored === 'function' && bossEffectsIgnored()) return false;
+  const marked = cells.filter(([r, c]) => gridData[r]?.[c]?._discardCursed);
+  if (!marked.length) return false;
+
+  animating = true;                       // hold input for the length of the fizzle
+  cancelAutoSubmit?.();
+  sfxCardDiscard(true);                   // the forced discard is the loud one
+  showMessage(marked.length > 1 ? `${marked.length} marked cards - discarded` : 'Marked card - discarded', 'var(--red)');
+  bossMarkerFizzleFX(cells, marked).then(() => {
+    marked.forEach(([r, c]) => { const card = gridData[r]?.[c]; if (card) discardToDrawPile(card); });
+    selected = [];
+    swapPending = null;
+    animating = false;
+    removeAndFall(marked, 'discard');     // slides them out and gravity-refills
+  });
+  return true;
+}
+
+// The cards fall out of the hand preview: the whole submitted hand is drawn into
+// #selected-cards exactly as the scoring dance draws it (renderCardAppearance, same
+// .dnc-* skeleton, so the sizing and the portrait overlap rules apply for free), the
+// marked ones drop out of the bottom and the rest fade.
+function bossMarkerFizzleFX(cells, marked) {
+  const stage = document.getElementById('selected-cards');
+  if (!stage) return Promise.resolve();
+  const markedKeys = new Set(marked.map(([r, c]) => `${r}-${c}`));
+  stage.classList.add('dnc-active'); stage.innerHTML = '';
+  const row = document.createElement('div'); row.className = 'dnc-row hand';
+  const lab = document.createElement('div'); lab.className = 'dnc-lab'; lab.textContent = 'Hand';
+  const items = document.createElement('div'); items.className = 'dnc-items';
+  const track = document.createElement('div'); track.className = 'dnc-track';
+  items.appendChild(track); row.appendChild(lab); row.appendChild(items); stage.appendChild(row);
+  const outers = cells.map(([r, c]) => {
+    const card = gridData[r]?.[c];
+    const outer = document.createElement('div'); outer.className = 'dnc-outer';
+    if (card) {
+      const d = document.createElement('div');
+      const { className, innerHTML } = renderCardAppearance(card, r, c);
+      d.className = className + ' preview-card'; d.innerHTML = innerHTML;
+      outer.appendChild(d);
+    }
+    track.appendChild(outer);
+    return { outer, marked: markedKeys.has(`${r}-${c}`) };
+  });
+  if (typeof fitPortraitPreviewCards === 'function') fitPortraitPreviewCards();
+  return new Promise(resolve => {
+    setTimeout(() => {
+      outers.forEach(({ outer, marked: isMarked }, i) => {
+        if (isMarked) {
+          outer.animate([
+            { transform: 'translateY(0) rotate(0deg)', opacity: 1 },
+            { transform: 'translateY(10px) rotate(-4deg)', opacity: 1, offset: 0.18 },
+            { transform: 'translateY(150px) rotate(26deg)', opacity: 0 }
+          ], { duration: 620, delay: i * 60, easing: 'cubic-bezier(0.45,0,0.9,0.55)', fill: 'forwards' });
+        } else {
+          outer.animate([{ opacity: 1 }, { opacity: 0.25 }], { duration: 400, fill: 'forwards' });
+        }
+      });
+      setTimeout(() => {
+        stage.classList.remove('dnc-active'); stage.innerHTML = '';
+        resolve();
+      }, 620 + outers.length * 60 + 120);
+    }, 260);   // a beat with the hand on screen first, so the drop reads as a reaction
+  });
+}
+
 // ── Wiring: called from applyBossModifiers for the new modifier ids ──────────
 function applyBossEffectModifier(mod, params) {
   switch (mod) {
@@ -388,6 +495,11 @@ function applyBossEffectModifier(mod, params) {
     case 'interact_fee':
       bossInteractFee = params.fee || 3;
       return true;
+    case 'discard_curse':
+      bossMarkEveryN = Math.max(2, Math.round((params.everyNthCard || 10) / bossMagScale()));
+      bossMarkCounter = 0;
+      bossMarkerSeedBoard();
+      return true;
     case 'redact_hand': {
       // Only hand types the player can actually make are worth marking down -
       // redacting Straight Flush on a 4×4 board would be a free round.
@@ -417,6 +529,7 @@ function clearBossEffects() {
   bossInteractMultV = 1;
   bossGoalRatchet = 0; bossInteractFee = 0;
   bossRedactedHand = null; bossRedactedMult = 1;
+  bossMarkerClearAll();
 }
 
 // How many whole seconds the boss clock should consume this tick. Normally 1;

@@ -127,10 +127,11 @@ function paySpectrumFixture(def, card, r, c) {
   const bits = [];
   if (p.swaps)    { swaps    += p.swaps;                       bits.push(`+${p.swaps} swaps`); }
   if (p.discards) { discards  = Math.min(99, discards + p.discards); bits.push(`+${p.discards} discards`); }
-  // The Time Clock fixture is a rewind like any other (r183) - same conversion as
-  // Deluge / Threepeat / Blood Diamonds, so it caps, floats, and counts for The
-  // Kingfisher. `gained` and not `p.seconds` in the message, because a rewind up
-  // against the round cap can hand back less than it offered.
+  // The Time Clock fixture PAUSES the clock (owner spec r193) rather than rewinding
+  // it. A pause is the stronger read on a card that sits still on the board: it
+  // buys you a window to work in rather than topping up a number, and it stacks
+  // with the rest of the pause family (Long Pause, Time Slip, the Hummingbird).
+  if (p.pause_seconds) { pauseRound(p.pause_seconds); bits.push(`${p.pause_seconds}s pause`); }
   if (p.seconds)  { const g = rewindTime(p.seconds); if (g > 0) bits.push(`+${g}s`); }
   if (p.coins)    { coins    += p.coins; updateCoinsUI();      bits.push(`+${p.coins} credits`); }
   showMessage(`${def.emoji} ${def.name} - ${bits.join(', ')}!`, '#ffd700');
