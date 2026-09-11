@@ -118,7 +118,19 @@ let _altSwapCount = 0;           // Mockingbird: counts hand-type alternations t
 // consumed by the next hand played (see calcScore / playHand). Reset each round.
 let _discardContextCards = null; // set during a discard so on_discard sleights can inspect co-discarded cards (Sandbagger)
 let pendingHandPips = 0;   // Quarter Chime: +45 pips per multiple-of-15 second passed
-let pendingHandMult = 0;   // Minute Hand: +3 mult per minute mark passed
+let pendingHandMult = 0;   // generic "+N mult to the next hand" accrual, consumed in playHand
+// Minute Hand (reworked r197). It used to add +3 mult to ONE next hand, which is
+// the same shape as Quarter Chime and gave the player nothing to see: the number
+// arrived, was spent on whatever hand came next, and left. It now PRIMES for a
+// fixed number of hands, so it has a state the timer widget can show - a charge
+// count on the tile - and the player can choose which two hands spend it.
+// A fresh minute mark re-primes to the full count rather than stacking; the value
+// of holding a mark is meant to be playing the two hands, not banking marks.
+let minuteHandCharges = 0;
+// The Understudy knack (r197): the next round-second mark at which it primes a
+// random Trick. A mark rather than a countdown so a rewind re-crosses it, the
+// same way every other clock-mark entity behaves.
+let understudyNextMark = 0;
 let pendingCardPips = 0;   // Second Hand: +5 pips per minute mark passed
 
 // ── Timing/Streak batch: pause-themed Trick state ──

@@ -195,8 +195,9 @@ function triggerLevelUp() {
   timeManipRound = 0;
   cuckooNextMinute = BAL.cuckoo.interval_seconds;
   compoundNextMark = BAL.compound.interval_seconds; compoundBanked = 0;
+  understudyNextMark = BAL.understudy.interval_seconds;
   // Clock-mark Tricks + Déjà Vu: pending bonuses and rank-history reset each round
-  pendingHandPips = 0; pendingHandMult = 0; pendingCardPips = 0;
+  pendingHandPips = 0; pendingHandMult = 0; pendingCardPips = 0; minuteHandCharges = 0;
   lastHandRankKey = null;
   _altSwapCount = 0;
   doubleJeopardyPos = hasTrick('double_jeopardy') ? { r: Math.floor(Math.random() * gridRows), c: Math.floor(Math.random() * gridCols) } : null;
@@ -343,6 +344,12 @@ async function showLevelUpScreen() {
   // Defensive: scrub any leftover boss visual state so a post-boss round starts clean
   // (blocked-cell overlays, stray temp-anim clones, boss-active styling).
   _gridEl?.querySelectorAll('.blocked-cell, .temp-anim').forEach(el => el.remove());
+  // The marked row/column lines are leftover board state in exactly the same
+  // sense (js/entity-fx.js). They cannot be guarded inside render(): this clear
+  // removes the card elements directly and no render runs before the next deal,
+  // so lines from the finished round would hang over an empty well through the
+  // whole payout. rowColBonuses is untouched, so the next board draws them again.
+  if (typeof clearLineMarkers === 'function') clearLineMarkers();
   _gridEl?.classList.remove('boss-active');
 
   // ── Grid is now populated; deal animations start in show321Countdown ──

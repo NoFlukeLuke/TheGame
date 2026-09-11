@@ -7,7 +7,13 @@
 function isCellBlocked(r, c) {
   if (typeof bossEffectsIgnored === 'function' && bossEffectsIgnored()) return false; // Fight the Power
   if (blockedCells.has(`${r}-${c}`)) return true;
-  return typeof nullCells !== 'undefined' && nullCells.has(`${r}-${c}`);
+  if (typeof nullCells !== 'undefined' && nullCells.has(`${r}-${c}`)) return true;
+  // A card on hold (The Hold, r197) is inert wherever it happens to be sitting.
+  // Answering it here is the same trick nullCells uses: every select, tap, swipe
+  // and reachability guard in the game already asks this one question, so the
+  // hold needs no changes in input.js, hand-detect.js, match3.js or tutorial.js.
+  if (typeof isCardHeld === 'function' && isCardHeld(gridData[r]?.[c])) return true;
+  return false;
 }
 
 function getVoidPattern(pattern) {
@@ -299,6 +305,11 @@ function bossPresetIsLive(preset) {
   const owned = (typeof acquiredTricks !== 'undefined' ? acquiredTricks : []).length;
   const mods  = preset.modifiers || [];
   if ((mods.includes('trick_pool_split') || mods.includes('trick_blackout')) && owned < 2) return false;
+  // The Rota rolls a single suspension. With nothing owned there is nothing to
+  // suspend; with one Trick owned it is the same Trick down for the whole boss,
+  // which is a harsher and less interesting boss than the one described, so it
+  // wants two as well.
+  if (mods.includes('trick_rotate') && owned < 2) return false;
   return true;
 }
 
@@ -624,6 +635,7 @@ function startBossTimer() {
   // until here, so their opening tick lands with the clock rather than behind the
   // briefing panel (see bossSchedule).
   if (typeof bossStartScheduledEffects === 'function') bossStartScheduledEffects();
+  cdStartTicker();   // a boss round has no round timer, so the rings start here too
   bossInterval = setInterval(() => {
     if (!bossActive) { clearInterval(bossInterval); bossInterval = null; return; }
     if (gameTimerPaused) return;

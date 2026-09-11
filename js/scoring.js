@@ -341,8 +341,13 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   if (_asmOn) _lastHandAssemblyEnd = _asmK;
 
   if (risingTideBonus > 0) { mult += risingTideBonus; bMult('rising_tide', risingTideBonus); }
-  // Minute Hand: pending mult accrued as the clock passed minute marks (consumed in playHand)
-  if (pendingHandMult > 0) { mult += pendingHandMult; bMult('minute_hand', pendingHandMult); }
+  // Minute Hand: primed by every minute mark, spent one hand at a time (r197).
+  // Read-only here - playHand decrements the charge after the score commits, the
+  // same discipline siphonMultX follows, so findBestHand stays consistent.
+  if (hasTrick('minute_hand') && minuteHandCharges > 0) { mult += BAL.minute_hand.mult; bMult('minute_hand', BAL.minute_hand.mult); }
+  // Generic pending mult (nothing feeds this today; kept as the seam a future
+  // "+N mult to your next hand" effect drops into).
+  if (pendingHandMult > 0) { mult += pendingHandMult; bMult('pending_mult', pendingHandMult); }
   // Night owl: last third of the round, +mult per card
   if (hasTrick('night_owl') && roundFractionRemaining() <= 1/3) { const _a = BAL.night_owl.mult_per_card * cells.length; mult += _a; bMult('night_owl', _a); }
   // Wildfire: 3+ same hands in a row
@@ -965,6 +970,10 @@ function finalizePositionMark(trick, axis, index) {
     .replace('a specific grid intersection', `(${label})`);
   if (typeof updateTrickList === 'function') updateTrickList();
   if (typeof renderTrickTray === 'function') renderTrickTray();
+  // Draw the line it just claimed, with an arrival sweep down the board, so the
+  // grant is visibly attached to a line instead of being a registry write and a
+  // rewritten tooltip (js/entity-fx.js). The line then stays for the run.
+  if (typeof animateLineGrant === 'function') animateLineGrant(trick);
 }
 // Decide (and, for manual choosers, prompt for) a position Trick's line at pick time.
 function assignPositionMark(trick) {

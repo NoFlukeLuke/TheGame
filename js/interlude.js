@@ -114,6 +114,13 @@ async function showLevelUpScreen_fallOnly() {
 
   // Clear DOM (every card fell)
   gridEl.querySelectorAll('[data-card-id]').forEach(el => el.remove());
+  // The marked-row / marked-column lines belong to the board that just went away
+  // (js/entity-fx.js). They have to be dropped HERE rather than guarded inside
+  // render(), because this teardown removes the card elements directly and no
+  // render runs afterwards - so a guard would never get the chance to look. The
+  // next round's first render draws them again from rowColBonuses, which is
+  // untouched: the Tricks still own their lines.
+  if (typeof clearLineMarkers === 'function') clearLineMarkers();
 
   // Reset gridData; Tricks get restored to their snapshotted positions for refill
   gridData = Array.from({length:gridRows}, () => Array(gridCols).fill(null));

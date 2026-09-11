@@ -56,6 +56,11 @@ function renderCardAppearance(card, r, c, {
   const k   = cardId(card);
   const pp  = permPips[k] || 0;
   const pm  = permMult[k] || 0;
+  // Scaling buffs (r197): NOT scored - they raise pp/pm by this much per play.
+  // Shown as their own marker so a card that grows is distinguishable at a glance
+  // from a card with a big fixed bonus, which is the whole point of the split.
+  const gp  = permPipsGrow[k] || 0;
+  const gm  = permMultGrow[k] || 0;
   const curse = cardCurses[k];
   const hasPip = pp > 0, hasMult = pm > 0;
   const isCombined = !!card.combined;
@@ -67,6 +72,21 @@ function renderCardAppearance(card, r, c, {
   const rcLeyline   = leyLinePos && leyLinePos.r === r && leyLinePos.c === c ? ' rc-leyline' : '';
   const rcJeopardy  = doubleJeopardyPos && doubleJeopardyPos.r === r && doubleJeopardyPos.c === c ? ' rc-jeopardy' : '';
   const rcWoodpecker = woodpeckerPos && woodpeckerPos.r === r && woodpeckerPos.c === c ? ' rc-woodpecker' : '';
+  // r197: the shared "what affected what" marks (js/entity-fx.js). `rcOnLine`
+  // is the piece that was missing - only 3 of the 9 line-marking Tricks tinted
+  // their cards, so Perfect Timing, Right Time, Study Hall, Groove, Assembly
+  // Line and Overtime marked a line the player could not see. One ring, in the
+  // owning Trick's colour, covers all nine.
+  const _lineMeta   = (typeof cellOnMarkedLine === 'function') ? cellOnMarkedLine(r, c) : null;
+  const rcOnLine    = _lineMeta ? ' rc-on-line' : '';
+  // The ring is an inner element rather than a class + a CSS variable, because
+  // renderCardAppearance returns className and innerHTML only - it has nowhere
+  // to hang a per-card custom property.
+  const lineRing    = _lineMeta
+    ? `<div class="rc-line-ring" style="--rcl:${_lineMeta.color}" title="${_lineMeta.name}"></div>` : '';
+  const fxMark      = (typeof cardMarkHTML === 'function') ? cardMarkHTML(r, c) : '';
+  // A boss hold greys the card and puts its countdown on it (js/cooldown.js).
+  const _cd = (typeof cardCooldownParts === 'function') ? cardCooldownParts(card, r, c) : { cls: '', html: '' };
 
   const bothClass = hasPip && hasMult ? ' has-both' : hasPip ? ' has-pip' : hasMult ? ' has-mult' : '';
   // Spectrum (numeric) cards: the whole face is the colour and the value sits
@@ -90,6 +110,8 @@ function renderCardAppearance(card, r, c, {
     curse ? 'cursed' : '',
     bothClass.trim(),
     rcPips.trim(), rcMult.trim(), rcRetrigger.trim(), rcLeyline.trim(), rcJeopardy.trim(), rcWoodpecker.trim(),
+    rcOnLine.trim(), _cd.cls,
+    (gp || gm) ? 'card-scaling' : '',
   ].filter(Boolean).join(' ');
 
   const combinedLabel = isCombined
@@ -108,6 +130,10 @@ function renderCardAppearance(card, r, c, {
     ${buffBandHTML('tl', pp, '#3a6fca')}
     ${buffBandHTML('tr', pm, '#c0392b')}
     ${buffBandHTML('br', card._vulturePause || 0, '#111')}
+    ${(gp || gm) ? `<div class="card-grow-mark" title="Scales +${gp ? gp + ' pips' : ''}${gp && gm ? ' and +' : ''}${gm ? gm + ' mult' : ''} each time it's played">\u2197</div>` : ''}
+    ${lineRing}
+    ${fxMark}
+    ${_cd.html}
   `;
 
   return { className, innerHTML };

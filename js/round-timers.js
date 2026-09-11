@@ -44,6 +44,7 @@ function showSuitEffect(text, color) {
 function startRoundTimer() {
   if (roundInterval) clearInterval(roundInterval);
   startHeartbeat();                 // the board's idle pulse runs with the round
+  cdStartTicker();                  // cooldown / disable rings (js/cooldown.js)
   syncDiscoveredFromOwned();        // log anything new for the Builds archive
   roundStartSeconds = roundSeconds; // mark the start of the countdown for ♠ "first 30s" exalt
   // Save point. Every round start funnels through here, so this is where a run
@@ -80,6 +81,21 @@ function startRoundTimer() {
     trickCardTimer++;
     if (trickCardTimer >= TRICK_CARD_INTERVAL) { trickCardTimer = 0; assignTrickCard(); }
     const _elapsedRound = roundStartSeconds - roundSeconds;
+    // Understudy: every N seconds of round time, prime one random Trick in the
+    // tray. Priming is the mechanic the Rehearsal event already built on - a
+    // primed Trick fires one extra time in calcScore - so this knack needed no
+    // per-Trick code, and the primed tile shows its charge through the same
+    // cooldown widget (js/cooldown.js).
+    if (hasKnack('understudy') && _elapsedRound >= understudyNextMark) {
+      understudyNextMark += BAL.understudy.interval_seconds;
+      const _pool = (trickTray || []).filter(t => !(typeof isTrickDisabledByBoss === 'function' && isTrickDisabledByBoss(t.id)));
+      if (_pool.length) {
+        const _t = _pool[Math.floor(Math.random() * _pool.length)];
+        _t._primed = (_t._primed || 0) + 1;
+        showMessage(`🎭 Understudy - ${_t.name} primed`, '#8a5cf0');
+        renderTrickTray?.();
+      }
+    }
     // The Cuckoo: every 60s of round time, pause the clock by 1s for each retrigger so far this round
     if (hasTrick('cuckoo') && _elapsedRound >= cuckooNextMinute) {
       cuckooNextMinute += BAL.cuckoo.interval_seconds;
@@ -207,6 +223,7 @@ function stopTimers() {
   gameInterval = null;
   stopFocusDecay();
   stopHeartbeat();
+  cdStopTicker();                   // and strip every cooldown badge (js/cooldown.js)
   // The board is about to be taken away or replaced; never leave it holding a
   // freeze tilt or a mirror stack behind an overlay (js/clock-fx.js).
   if (typeof resetClockFx === 'function') resetClockFx();

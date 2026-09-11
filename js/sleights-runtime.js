@@ -623,16 +623,15 @@ function showCardTooltip(r, c) {
   const xp = permXPips[k]  || 1;
   const xm = permXMult[k]  || 1;
   const re = permRetrig[k] || 0;
-  if (!pp && !pm && xp <= 1 && xm <= 1 && !re && !card._exalted && !card._corrupted) return;
+  const gp = permPipsGrow[k] || 0, gm = permMultGrow[k] || 0;
+  if (!pp && !pm && !gp && !gm && xp <= 1 && xm <= 1 && !re && !card._exalted && !card._corrupted) return;
   const gridEl  = document.getElementById('grid');
   const cardEl  = gridEl?.querySelector(`[data-card-id="${card._id}"]`);
   if (!cardEl) return;
-  const lines = [];
-  if (pp)     lines.push(`+${pp} pips`);
-  if (pm)     lines.push(`+${pm} mult`);
-  if (xp > 1) lines.push(`×${xp} pip score`);
-  if (xm > 1) lines.push(`×${xm} mult`);
-  if (re)     lines.push(`+${re} replay`);
+  // One shared wording for every card buff, flat and scaling alike
+  // (cardBuffLines in js/deck-grid.js) - so the tooltip cannot say something
+  // different from the tile that granted it.
+  const lines = cardBuffLines(k);
   if (card._exalted)   lines.push('Exalted');
   if (card._corrupted) lines.push('Corrupted');
   const tip = document.createElement('div');

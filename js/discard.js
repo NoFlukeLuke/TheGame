@@ -243,7 +243,12 @@ function handleClockMarks(secs) {
   }
   // Minute marks (clock reads N:00) → accrue mult / retrigger chance
   if (secs % 60 === 0) {
-    if (hasTrick('minute_hand'))  { pendingHandMult += BAL.minute_hand.mult; showMessage(`🕐 Minute Hand - next hand +${BAL.minute_hand.mult} mult`, '#cc88ff'); }
+    if (hasTrick('minute_hand')) {
+      // Primes for the next N hands rather than adding to one of them (r197).
+      // Re-priming resets the count; see the note on minuteHandCharges.
+      minuteHandCharges = BAL.minute_hand.hands;
+      showMessage(`🕐 Minute Hand primed - next ${BAL.minute_hand.hands} hands +${BAL.minute_hand.mult} mult`, '#cc88ff');
+    }
     if (hasTrick('hourglass') && Math.random() < BAL.hourglass.chance) {
       // Grant one permanent retrigger to a random real card currently on the grid
       const spots = [];

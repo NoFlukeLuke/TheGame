@@ -188,7 +188,8 @@ const BAL = {
   // ── clock-mark Tricks ──
   ticktock: { focus: 2 },
   quarter_chime: { pips: 45 },
-  minute_hand: { mult: 3 },
+  minute_hand: { mult: 5, hands: 2 },
+  understudy: { interval_seconds: 30 },
   second_hand: { pips: 5 },
   hourglass: { chance: 1/3 },
   sediment: { interval_seconds: 10, pips_per_interval: 10 },
@@ -249,6 +250,7 @@ const BAL = {
 // value change via the balance sheet updates the in-game description too. Only
 // entities whose wording maps unambiguously to their params are listed.
 const DESC_TEMPLATES = {
+  understudy: 'Every {interval_seconds} seconds one of your tricks is primed: it fires an extra time on your next hand.',
   whetstone: 'Whenever an adjacent card is swapped or discarded, Whetstone gains +{mult_per_event} mult. Hands that score a card adjacent to Whetstone score that mult.',
   entourage: 'Hands score +{mult_per_sleight} mult for every other Sleight on the grid.',
   lighthouse: 'Each round Lighthouse favors the first or last column. Hands score +{mult} mult while it sits in that column, −{falloff_per_column} per column of distance away (minimum 0).',

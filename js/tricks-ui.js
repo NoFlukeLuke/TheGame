@@ -369,6 +369,10 @@ function renderTrickTray() {
         showTrickTrayTooltip(trick, chip);
       });
     }
+    // Cooldown / disable / primed ring (js/cooldown.js). Painted here as well as
+    // by the widget's own sweep so a freshly rebuilt tray shows the right state on
+    // its first frame instead of flashing un-badged for up to 250ms.
+    if (typeof cdPaint === 'function') cdPaint(chip, cdForTrick(trick.id));
     track.appendChild(chip);
   });
   list.appendChild(track);

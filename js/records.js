@@ -88,13 +88,16 @@ function recordsDeckCensus() {
   const add = (c, w) => {
     if (!c || !c.rank || c._isSleight) return;
     const t = cardKey(c.rank, c.suit);
-    const cell = cells[t] || (cells[t] = { n: 0, where: null, draw: 0, pips: 0, mult: 0, cursed: false });
+    const cell = cells[t] || (cells[t] = { n: 0, where: null, draw: 0, pips: 0, mult: 0, grow: false, cursed: false });
     const id = cardId(c);
     cell.n++;
     if (w === 'draw') cell.draw++;
     if (!cell.where || rank[w] > rank[cell.where]) cell.where = w;
     cell.pips  = Math.max(cell.pips, permPips[id] || 0);
     cell.mult  = Math.max(cell.mult, permMult[id] || 0);
+    // A scaling buff (r197) may sit on a card whose flat pips/mult are still 0,
+    // so without this the deck map would show it as an ordinary card.
+    if ((permPipsGrow[id] || 0) || (permMultGrow[id] || 0)) cell.grow = true;
     if (cardCurses[id]) cell.cursed = true;
   };
   drawPile.forEach(c => add(c, 'draw'));
@@ -118,14 +121,18 @@ function recordsRenderDeck() {
       const cell = where[cardKey(rk, s)];
       const w  = cell ? cell.where : null;
       const pp = cell ? cell.pips : 0, pm = cell ? cell.mult : 0;
+      const gr = !!(cell && cell.grow);
       // Spectrum's white values sit in the row of the colour that owns them (each
       // one is still its own card) - tint the cell so it reads as colourless.
       const cls = ['rec-deck-cell', w ? 'w-' + w : 'w-gone', pp ? 'has-pip' : '', pm ? 'has-mult' : '',
+                   gr ? 'has-grow' : '',
                    isWhiteRankValue(rk) ? 'rec-white' : ''].filter(Boolean).join(' ');
       const dup = cell && cell.n > 1 ? ` (x${cell.n} in the run)` : '';
       const tip = `${rk}${s} - ${w === 'draw' ? 'in draw pile' : w === 'grid' ? 'on the board' : w === 'played' ? 'played (returns next round)' : 'not in deck'}${dup}` +
-                  `${pp ? ` · +${pp} pips` : ''}${pm ? ` · +${pm} mult` : ''}${cell && cell.cursed ? ' · cursed' : ''}`;
+                  `${pp ? ` · scores +${pp} pips` : ''}${pm ? ` · scores +${pm} mult` : ''}` +
+                  `${gr ? ' · scales up each play' : ''}${cell && cell.cursed ? ' · cursed' : ''}`;
       const marks = (pp ? '<i class="rec-m rec-m-p"></i>' : '') + (pm ? '<i class="rec-m rec-m-m"></i>' : '')
+                  + (gr ? '<i class="rec-m rec-m-g"></i>' : '')
                   + (cell && cell.n > 1 ? `<i class="rec-dup">${cell.n}</i>` : '');
       return `<span class="${cls}" title="${tip}">${rk}${marks}</span>`;
     }).join('');

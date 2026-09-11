@@ -26,6 +26,17 @@ let dampCells          = new Set();  // "r-c" - half pips, and tricks may not fi
 let bossNullRank       = null;       // rank currently recalled out of play
 let bossUsedRanks      = new Set();  // ranks already recalled - never picked twice
 let bossDisabledTricks = new Map();  // trickId → expiry timestamp (ms)
+let bossDisabledTotals = new Map();  // trickId → how long that suspension is, in seconds.
+                                     // Kept alongside rather than folded into the Map above
+                                     // because bossTrickBlackedOut is read from the hot path
+                                     // (isTrickDisabledByBoss, once per Trick per scored card)
+                                     // and a bare number compare is the whole function.
+let bossHeldCards      = new Map();  // cardId → { until, total } - a CARD on hold (The Hold).
+                                     // Keyed by card identity, not by cell: cards fall, and a
+                                     // cell-keyed hold would slide onto whichever card dropped
+                                     // into the slot. Same reason r192 re-keyed every per-card
+                                     // buff off cardId().
+let bossHoldEvery      = 0;          // seconds between holds, for the tray/board readout
 let bossTimeFromFocus  = false;      // the boss clock runs at the Focus multiplier
 let _bossTimeDebt      = 0;          // fractional carry so ×1.4 ticks smoothly
 let bossInteractMultV  = 1;          // interact-cost multiplier (The Tollman)
@@ -167,13 +178,53 @@ function bossSyncTrickTrayState() {
   if (typeof renderTrickTray === 'function') renderTrickTray();
 }
 
-// ── Trick blackout (The Censor) ──────────────────────────────────────────────
+// ── Trick blackout (The Censor, The Rota) ────────────────────────────────────
 function bossTrickBlackedOut(trickId) {
   if (!bossDisabledTricks.size) return false;
   const until = bossDisabledTricks.get(trickId);
   if (!until) return false;
-  if (Date.now() >= until) { bossDisabledTricks.delete(trickId); return false; }
+  if (Date.now() >= until) { bossDisabledTricks.delete(trickId); bossDisabledTotals.delete(trickId); return false; }
   return true;
+}
+// Put one Trick down for `secs`, recording the window so the countdown ring has
+// a denominator. The single place a suspension is written, so the two bosses
+// that suspend Tricks can never disagree about the bookkeeping.
+function bossSuspendTrick(trickId, secs) {
+  const total = secs * bossIntervalScale();
+  bossDisabledTricks.set(trickId, Date.now() + total * 1000);
+  bossDisabledTotals.set(trickId, total);
+}
+// ── What the cooldown widget asks (js/cooldown.js) ───────────────────────────
+// null means "off, but not on a clock" - the Voidwright's halves flip on a phase
+// change, not on a timer, so there is no honest number to print there.
+function bossTrickOffSecondsLeft(trickId) {
+  const until = bossDisabledTricks.get(trickId);
+  if (!until) return null;
+  return Math.max(0, (until - Date.now()) / 1000);
+}
+function bossTrickOffTotal(trickId) { return bossDisabledTotals.get(trickId) || null; }
+
+// ── Card hold (The Hold) ─────────────────────────────────────────────────────
+// A held card is inert for a fixed number of seconds and then comes back. It is
+// NOT the Quarantine: the Quarantine condemns a CELL for good and cards keep
+// falling into it; a hold freezes one card and expires.
+function isCardHeld(card) {
+  if (!bossHeldCards.size || !card) return false;
+  if (typeof bossEffectsIgnored === 'function' && bossEffectsIgnored()) return false;
+  const k = cardId(card);
+  const h = bossHeldCards.get(k);
+  if (!h) return false;
+  if (Date.now() >= h.until) { bossHeldCards.delete(k); return false; }
+  return true;
+}
+function bossCardHoldSecondsLeft(card) {
+  if (!bossHeldCards.size || !card) return null;
+  if (typeof bossEffectsIgnored === 'function' && bossEffectsIgnored()) return null;
+  const h = bossHeldCards.get(cardId(card));
+  if (!h) return null;
+  const left = (h.until - Date.now()) / 1000;
+  if (left <= 0) { bossHeldCards.delete(cardId(card)); return null; }
+  return { left, total: h.total };
 }
 
 // ── The effects themselves ───────────────────────────────────────────────────
@@ -220,8 +271,50 @@ function bossCensorTick(holdSecs) {
   const free = owned.filter(id => !bossTrickBlackedOut(id));
   if (!free.length) return;
   const id = free[Math.floor(Math.random() * free.length)];
-  bossDisabledTricks.set(id, Date.now() + holdSecs * 1000 * bossIntervalScale());
+  bossSuspendTrick(id, holdSecs);
   showMessage(`${trickIdToName(id)} suspended`, 'var(--red)');
+  renderTrickTray?.();
+}
+
+// The Hold: freeze one random real card for `holdSecs`. Sleights, Tricks, stones
+// and cells already out of play are skipped - there is nothing to take from a
+// cell that is void, and freezing a Sleight would read as destroying it.
+function bossHoldTick(holdSecs) {
+  const spots = [];
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
+    const card = gridData[r]?.[c];
+    if (!card || !card.rank || card._isSleight || card._isTrick || card._isStone) continue;
+    if (blockedCells.has(`${r}-${c}`) || nullCells.has(`${r}-${c}`)) continue;
+    if (isCardHeld(card)) continue;
+    spots.push([r, c, card]);
+  }
+  if (!spots.length) return;
+  const [r, c, card] = spots[Math.floor(Math.random() * spots.length)];
+  const total = holdSecs * bossIntervalScale();
+  bossHeldCards.set(cardId(card), { until: Date.now() + total * 1000, total });
+  // A held card cannot be part of a hand, so drop it out of anything in progress.
+  selected = selected.filter(([sr, sc]) => !(sr === r && sc === c));
+  if (swapPending && swapPending[0] === r && swapPending[1] === c) swapPending = null;
+  showMessage(`${card.rank}${cardColorSuit(card)} on hold ${Math.round(total)}s`, 'var(--red)');
+  if (!animating && !falling) render();
+}
+
+// The Rota: exactly ONE Trick down at a time, and when it comes back a different
+// one goes off. The Censor's windows overlap on purpose (two down at once for a
+// stretch of every cycle); this one is a single rolling suspension, which is the
+// readable version - you always know precisely what you have lost.
+function bossRotateTick(holdSecs) {
+  const held = ((typeof trickTrayMode !== 'undefined' && trickTrayMode) ? trickTray : acquiredTricks) || [];
+  const owned = held.map(t => t.id);
+  if (!owned.length) return;
+  const previous = [...bossDisabledTricks.keys()];
+  bossDisabledTricks.clear(); bossDisabledTotals.clear();   // the last one comes back now
+  // Never the same Trick twice in a row while there is another to pick.
+  let pool = owned.filter(id => !previous.includes(id));
+  if (!pool.length) pool = owned;
+  const id = pool[Math.floor(Math.random() * pool.length)];
+  bossSuspendTrick(id, holdSecs);
+  showMessage(`${trickIdToName(id)} off for ${Math.round(holdSecs * bossIntervalScale())}s`, 'var(--red)');
   renderTrickTray?.();
 }
 
@@ -277,6 +370,15 @@ function applyBossEffectModifier(mod, params) {
     case 'rank_recall':
       bossSchedule(params.everySecs || 45, bossRecallTick);
       return true;
+    case 'card_hold':
+      bossHoldEvery = params.everySecs || 15;
+      bossSchedule(bossHoldEvery, () => bossHoldTick(params.holdSecs || 15));
+      return true;
+    case 'trick_rotate':
+      // The interval IS the hold - one down, then the next - so a single param
+      // drives both and the two can never drift out of step.
+      bossSchedule(params.holdSecs || 30, () => bossRotateTick(params.holdSecs || 30));
+      return true;
     case 'ration_cut':
       bossSchedule(params.everySecs || 30, bossRationTick);
       return true;
@@ -308,7 +410,8 @@ function clearBossEffects() {
   bossTimeouts.forEach(clearTimeout);  bossTimeouts = [];
   nullCells = new Set(); pendingNullCells = new Set(); dampCells = new Set();
   bossNullRank = null; bossUsedRanks = new Set();
-  bossDisabledTricks = new Map();
+  bossDisabledTricks = new Map(); bossDisabledTotals = new Map();
+  bossHeldCards = new Map(); bossHoldEvery = 0;
   bossTimeFromFocus = false; _bossTimeDebt = 0;
   if (bossPlayCostAdded) { playHandCostThisRound = Math.max(0, (playHandCostThisRound || 0) - bossPlayCostAdded); bossPlayCostAdded = 0; }
   bossInteractMultV = 1;

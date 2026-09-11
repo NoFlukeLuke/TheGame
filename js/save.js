@@ -73,7 +73,8 @@ const SAVE_VARS = [
   'sleightNextHandDouble', 'sleightLegacyMult', 'sleightAmplifierMult',
   '_dabiSwapNext', 'sleightFreeSwapPending',
   // ── Permanent card buffs / curses ──
-  'permPips', 'permMult', 'permXPips', 'permXMult', 'permRetrig', 'cardCurses',
+  'permPips', 'permMult', 'permXPips', 'permXMult', 'permRetrig',
+  'permPipsGrow', 'permMultGrow', 'cardCurses',
   'cardPlayCount', 'cardSwapCount', 'cardDealtCount',
   // ── Hands ──
   'activeHands', 'unlockedHands', 'handsPendingUnlock', 'handTypesRound',
@@ -83,6 +84,7 @@ const SAVE_VARS = [
   'bonusPips_prolific', 'bonusFocus_acorns', 'bonusMult_morebetter', 'bonusPips_fengshui',
   'bonusMult_jackpot', 'jackpotFired', 'safetyNetUsed', 'negativeTilesTakenRun',
   '_perMinuteFired', 'handsPlayedGame', 'rowColBonuses', 'leyLinePos',
+  'minuteHandCharges', 'understudyNextMark',
   'cuckooNextMinute', 'compoundNextMark', 'compoundBanked', 'nsPlays', 'nsBonus', 'retriggersThisRound', 'woodpeckerActiveBlock', 'woodpeckerPos',
   // ── Round/run counters ──
   'handsPlayedRound', 'runsPlayedRound', 'setsPlayedRound', 'runStreak',
@@ -272,6 +274,7 @@ function resumeSavedRun() {
 // resumed run loses nothing and nothing gets worse.
 function migrateCardKeysToIds() {
   const maps = [permPips, permMult, permXPips, permXMult, permRetrig,
+                permPipsGrow, permMultGrow,
                 cardCurses, cardPlayCount, cardSwapCount, cardDealtCount];
   const olds = maps.map(m => ({ ...m }));
   maps.forEach(m => Object.keys(m).forEach(k => delete m[k]));

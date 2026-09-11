@@ -1,4 +1,9 @@
 function render() {
+  // Marked-row / marked-column lines (js/entity-fx.js) are torn down HERE, above
+  // the two early returns - otherwise a reward grid or a dominoes board inherits
+  // the lines from the last hand and wears them until the play board comes back.
+  // They are DRAWN at the bottom of this function, once the cards are in the DOM.
+  if (typeof clearLineMarkers === 'function') clearLineMarkers();
   // Dominoes mode owns its own board renderer.
   if (typeof ACTIVE_MODE !== 'undefined' && ACTIVE_MODE.id === 'dominoes') { dominoRenderBoard(); return; }
   // While the reward grid occupies the play #grid, its own renderer owns the DOM.
@@ -217,7 +222,8 @@ function render() {
     if (hasTrick('kingfisher')) { const _km = Math.floor((pausedSecondsRound+rewoundSecondsRound)/BAL.kingfisher.interval_seconds)*BAL.kingfisher.mult_per_interval; if (_km > 0) bonusLines.push({ label:'The Kingfisher', val:`+${_km} mult`, type:'mult' }); }
     if (pendingHandPips > 0) bonusLines.push({ label:'Quarter Chime', val:`+${pendingHandPips} pips`, type:'pip' });
     if (pendingCardPips > 0) bonusLines.push({ label:'Second Hand', val:`+${pendingCardPips} pips`, type:'pip' });
-    if (pendingHandMult > 0) bonusLines.push({ label:'Minute Hand', val:`+${pendingHandMult} mult`, type:'mult' });
+    if (hasTrick('minute_hand') && minuteHandCharges > 0) bonusLines.push({ label:`Minute Hand (${minuteHandCharges} left)`, val:`+${BAL.minute_hand.mult} mult`, type:'mult' });
+    if (pendingHandMult > 0) bonusLines.push({ label:'Pending mult', val:`+${pendingHandMult} mult`, type:'mult' });
     const _isRunLine = ['Run of 3','Run of 4','Straight','Straight Flush'].includes(hand);
     const _setMax = (() => { const m = {}; cards.forEach(c => m[c.rank] = (m[c.rank]||0)+1); return Math.max(0, ...Object.values(m)); })();
     if (hasTrick('overgrowth') && _isRunLine) bonusLines.push({ label:'Cascade', val:`+${10*cards.length} pips`, type:'pip' });
@@ -263,6 +269,11 @@ function render() {
   document.getElementById('disc-count').textContent = `(${discards})`;
   document.getElementById('swap-count').textContent  = swaps;
 
+  // Marked-row / marked-column lines. Drawn last, for the same reason
+  // reapplyClockFreeze is called here: it reads the finished DOM. Its "is the
+  // board empty" test is a DOM query, which would be a render out of date if it
+  // ran before the card loop above (js/entity-fx.js).
+  if (typeof renderLineMarkers === 'function') renderLineMarkers();
   // A card dealt in while the clock is frozen arrives untilted - put it back in
   // line with the rest of the held board (js/clock-fx.js). No-ops when running.
   if (typeof reapplyClockFreeze === 'function') reapplyClockFreeze();

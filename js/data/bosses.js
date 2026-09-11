@@ -82,6 +82,24 @@ const BOSS_PRESETS = [
     params: { everySecs: 15 }
   },
   {
+    id: 'the_hold',
+    name: 'THE HOLD',
+    flavor: 'That one stays where it is',
+    brief: 'Every 15 seconds a random card on the board is put on hold for 15 seconds. A held card shows its countdown and cannot be selected, played, swapped or discarded. It comes back when the timer runs out.',
+    objective: { type: 'score', target: 4000 },
+    modifiers: ['card_hold'],
+    params: { everySecs: 15, holdSecs: 15 }
+  },
+  {
+    id: 'the_rota',
+    name: 'THE ROTA',
+    flavor: 'Everyone takes a turn off',
+    brief: 'One of your Tricks is switched off for 30 seconds, with its countdown on the tile. When it comes back a different one goes off, for as long as the boss lasts. Never more than one down at a time.',
+    objective: { type: 'score', target: 4200 },
+    modifiers: ['trick_rotate'],
+    params: { holdSecs: 30 }
+  },
+  {
     id: 'the_censor',
     name: 'THE CENSOR',
     flavor: 'Your paperwork is under review',

@@ -330,10 +330,15 @@ function randomDeckCard() {
   const all = allDeckCards();
   return all.length ? all[Math.floor(Math.random() * all.length)] : null;
 }
-// Apply a permanent enhancement to every card sharing this rank/suit key.
+// Apply a permanent enhancement to one card (keyed by cardId since r192).
+// `pips`/`mult` are FLAT - scored every play. `growPips`/`growMult` are SCALING -
+// how much the flat bonus rises per play. See js/deck-grid.js for why they are
+// two stores and not one field with a flag.
 function enhanceCardKey(key, e) {
   if (e.pips)   permPips[key]   = (permPips[key]   || 0) + e.pips;
   if (e.mult)   permMult[key]   = (permMult[key]   || 0) + e.mult;
+  if (e.growPips) permPipsGrow[key] = (permPipsGrow[key] || 0) + e.growPips;
+  if (e.growMult) permMultGrow[key] = (permMultGrow[key] || 0) + e.growMult;
   if (e.xpips)  permXPips[key]  = (permXPips[key]  || 1) * e.xpips;
   if (e.xmult)  permXMult[key]  = (permXMult[key]  || 1) * e.xmult;
   if (e.retrig) permRetrig[key] = (permRetrig[key] || 0) + e.retrig;
@@ -393,12 +398,18 @@ function renderForge() {
   const target = i => picks[i % picks.length];
 
   const boons = [
-    (t) => ({ icon:'🔨', rarity:'common', name:`Temper ${cardLabel(t)}`, desc:`${cardLabel(t)} permanently gains +30 pips.`,
-              apply:()=>{ enhanceCardKey(cardId(t), {pips:30}); showMessage(`${cardLabel(t)} +30 pips`, 'var(--gold)'); } }),
+    // FLAT vs SCALING is stated in the words, not left to the reader (r197):
+    // "gains +5 mult" was a flat bonus that never grew, and read as one that did.
+    (t) => ({ icon:'🔨', rarity:'common', name:`Temper ${cardLabel(t)}`, desc:`${cardLabel(t)} scores +30 pips when played.`,
+              apply:()=>{ enhanceCardKey(cardId(t), {pips:30}); showMessage(`${cardLabel(t)} +30 pips when played`, 'var(--gold)'); } }),
     (t) => ({ icon:'⚒️', rarity:'rare', name:`Sharpen ${cardLabel(t)}`, desc:`${cardLabel(t)} permanently scores ×2 pips.`,
               apply:()=>{ enhanceCardKey(cardId(t), {xpips:2}); showMessage(`${cardLabel(t)} ×2 pips`, 'var(--gold)'); } }),
-    (t) => ({ icon:'✨', rarity:'common', name:`Empower ${cardLabel(t)}`, desc:`${cardLabel(t)} permanently gains +5 mult.`,
-              apply:()=>{ enhanceCardKey(cardId(t), {mult:5}); showMessage(`${cardLabel(t)} +5 mult`, 'var(--gold)'); } }),
+    (t) => ({ icon:'✨', rarity:'common', name:`Empower ${cardLabel(t)}`, desc:`${cardLabel(t)} scores +5 mult when played.`,
+              apply:()=>{ enhanceCardKey(cardId(t), {mult:5}); showMessage(`${cardLabel(t)} +5 mult when played`, 'var(--gold)'); } }),
+    (t) => ({ icon:'📈', rarity:'epic', name:`Train ${cardLabel(t)}`, desc:`${cardLabel(t)} scales +1 mult each time it's played.`,
+              apply:()=>{ enhanceCardKey(cardId(t), {growMult:1}); showMessage(`${cardLabel(t)} scales +1 mult per play`, 'var(--gold)'); } }),
+    (t) => ({ icon:'🌱', rarity:'rare', name:`Season ${cardLabel(t)}`, desc:`${cardLabel(t)} scales +4 pips each time it's played.`,
+              apply:()=>{ enhanceCardKey(cardId(t), {growPips:4}); showMessage(`${cardLabel(t)} scales +4 pips per play`, 'var(--gold)'); } }),
     (t) => ({ icon:'💥', rarity:'epic', name:`Overcharge ${cardLabel(t)}`, desc:`${cardLabel(t)} permanently scores ×2 mult.`,
               apply:()=>{ enhanceCardKey(cardId(t), {xmult:2}); showMessage(`${cardLabel(t)} ×2 mult`, 'var(--gold)'); } }),
     (t) => ({ icon:'🔁', rarity:'rare', name:`Echo ${cardLabel(t)}`, desc:`${cardLabel(t)} permanently scores its pips twice.`,

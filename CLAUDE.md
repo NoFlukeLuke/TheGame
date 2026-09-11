@@ -262,6 +262,63 @@ The `double_tap` sleights **no longer sit locked on the grid once-per-round** - 
 - **Stopwatch is deliberately NOT converted.** It isn't a discrete "use": it's a drainable freeze budget (durability = paused seconds, destroyed at 0) you toggle on/off, so it already never sits inert-locked and self-removes when spent. Forcing discard-on-use would collapse its multi-session design.
 - **Passive** (Whetstone/Entourage/Lighthouse/Fight the Power/Slow Burn), **aim** (Reflect/Soul Mirror) and **wildcard** sleights are exempt by nature - they work by *sitting on the grid* or leave by being played.
 
+## What affected what (r197) - `js/entity-fx.js` + `css/entity-fx.css`
+
+A player asks one question constantly and the board never answered it: **why is this card different?** Two surfaces, one vocabulary, both driven from tables rather than per-Trick code.
+
+- **A marked row or column gets a coloured LINE down the board, behind the cards.** `renderLineMarkers()` draws one absolutely-positioned sibling of the cards per `rowColBonuses` entry, coloured from `LINE_FX_META`, with the owning Trick's glyph on both end caps. It **sweeps in once** when the Trick is acquired (`animateLineGrant`, called from `finalizePositionMark`) and then simply stays for the run. `_rcSeen` on the registry entry is what stops the sweep replaying - `render()` rebuilds these on every card fall.
+- **The card side is a ring in the same colour** (`.rc-line-ring`, from `cellOnMarkedLine`). **This is the part that was missing**: only `rowcol_triple_pips`, `rowcol_mult` and `rowcol_retrigger` tinted their cards, so **Perfect Timing, Right Time, Study Hall, Groove, Assembly Line and Overtime marked a line the player could not see** - it was a number in a tooltip. One ring covers all nine.
+- **`z-index` is explicit, and it has to be.** Card elements carried no z-index at all, so paint order was DOM order - and `render()` appends new cards AFTER the markers, which would put a card dealt mid-round on top of a line while its neighbours sat under one. `css/entity-fx.css` sets cards/tricks/blocked cells to 2 and lines to 1. Boss cell overlays (12-15) and temp-anim clones (10) are unaffected.
+- **Per-card marks are `CARD_MARK_META`, keyed by a `covers(r,c)` PREDICATE, not a position.** Two of them are derived: Ley Line and Temporal Rift both fire wherever a row effect crosses a column effect, which is a set of cells. **`leyLinePos` is never assigned by anything**, so the `.card.rc-leyline` tint it drove had been dead since it was written; Ley Line has a visible mark for the first time. Heartwood's mark reuses `Math.floor(rows/2) x Math.floor(cols/2)`, the exact expression `play-hand.js` buffs, so the mark can never point at a different cell from the one that gets the bonus.
+- One mark per card by design - two glyphs in one corner of a 57px card is noise, and the tooltip lists the rest.
+
+### FLAT vs SCALING card buffs (r197)
+
+`permPips` / `permMult` are **flat**: the card scores that bonus, unchanged, every play. Every offer site said "**permanently gains** +1 mult", which reads as growth - a player could hold a blessed card for a whole run waiting for a number that was never going to move.
+
+- **The wording is now the type.** Flat says **"scores +5 mult when played"**; scaling says **"scales +1 mult each time it's played"**. `cardBuffLines(cardId)` in `js/deck-grid.js` is the single place a card's buffs are put into words, and the grid tooltip, the deck matrix and the reward tiles all read it, so they cannot drift apart again.
+- **`permPipsGrow` / `permMultGrow` are the new scaling kind** - not scored, they are *how much the flat bonus rises per play*. Applied by `growCardScaling()` from `playHand` **after the score commits**, the same discipline `recordNaturalScale` follows: a buff earned by this hand pays out on the next one. Deduped per hand, so a retriggered card grows once.
+- **Two stores, not one field with a flag**, because a card can legitimately carry both, and because every existing read of `permMult` keeps working untouched. Both are in `SAVE_VARS`, in `migrateCardKeysToIds`, and reset on a new run.
+- **A scaling card needs its own marker or it is indistinguishable from a flat one** - both print "+N" somewhere. `.card-grow-mark` (a green arrow, bottom-centre) on the board; `.rec-m-g` in the RECORDS deck matrix, which matters because a scaling card may still have 0 flat pips and would otherwise read as ordinary.
+- Offer sites: the reward grid's Blessed Card tile is now a 3-way roll (15% scaling mult / 25% flat +5 mult / 60% flat +12 pips), and The Bench event gained **Train** (scales +1 mult) and **Season** (scales +4 pips) beside its reworded flat boons.
+
+## The cooldown / disable timer widget (r197) - `js/cooldown.js`
+
+ONE widget for everything temporarily unavailable or temporarily charged: a countdown ring with the seconds left inside it, plus a grey-out of the host. Three modes, one shape - `{ mode, left, total, count }`:
+
+| mode | means | host looks |
+|---|---|---|
+| `off` | switched off by a boss | greyed, red ring, counting down |
+| `cooldown` | fired and recharging | greyed, amber ring |
+| `primed` | charged and ready | **not** greyed, violet ring, charge count |
+
+- **The rule that shapes the whole file: the widget NEVER re-renders its host.** A Trick chip lives inside a marquee/fan that measures itself on build, and a card element is reused across renders by `_id` - rebuilding either four times a second would restart the marquee and throw away in-flight card animations. `cdPaint` creates one `.cd-badge` child the first time and afterwards only writes its text and its `--cd-p` custom property; the ring is a conic-gradient reading that property. The driver is one 250ms interval (`cdStartTicker`, started from `startRoundTimer` **and** `startBossTimer` - a boss round has no round timer).
+- **The grey-out is a WASH ELEMENT, not a `filter`.** A filter applies to the whole subtree and a child cannot undo it, so a filtered card would have dragged its own countdown badge down to 16% saturation - the one part of it that has to stay legible. `.cd-wash` is a sibling of the badge at a lower z-index. It is an appended element rather than an `::after` because `.card.rc-woodpecker` already owns that pseudo-element.
+- **A tray chip a boss switched off already drains itself and stamps OFF** (r188), so on that one host the widget contributes only the ring - washing it as well double-dims it. `cdPaint` checks for `.trick-off`.
+- **`renderCardAppearance` emits the badge too** (`cardCooldownParts`). `render()` rewrites a card's className and innerHTML wholesale, so a badge added only by the sweep would be wiped and re-added on every deal, swap and score - a visible flicker. `renderTrickTray` calls `cdPaint` for the same reason.
+- **Adding a timed entity is one row in `TRICK_TIMERS`** (or one entry in `CD_PER_MINUTE_TRICKS`) and no new painting code. Wired today: the once-per-minute gates (Study Hall, Ley Line, Temporal Rift - they ride `firesThisMinute`, so the wait is always "until the clock crosses the next minute"), The Cuckoo, Compound, **The Woodpecker** (genuinely off for half of every minute, which nothing said out loud before), Minute Hand, every boss suspension, and every boss card hold.
+- **A boss suspension with no clock prints no number.** `bossTrickOffSecondsLeft` returns null for the Voidwright's halves - they flip on a phase change, not a timer, so there is no honest number to show.
+
+### Minute Hand: primed, not pending (r197)
+
+It used to add +3 mult to ONE next hand - the same shape as Quarter Chime, and nothing for the player to see: the number arrived, was spent on whatever came next, and left. Now **every minute mark primes it and the next 2 hands each score +5 mult** (`BAL.minute_hand = { mult: 5, hands: 2 }`), so it has a state the widget can show and the player chooses which two hands spend it.
+
+- **`minuteHandCharges` is read in `calcScore` and decremented in `playHand`**, never both in one place. `calcScore` is also called speculatively by `findBestHand` and by the live PIPS/MULT preview, which must not consume a charge - the same rule `siphonMultX` follows.
+- A fresh mark **re-primes to the full count rather than stacking**: the value of holding a mark is meant to be playing the two hands, not banking marks.
+- `pendingHandMult` is left in place as the seam a future "+N mult to your next hand" effect drops into; nothing feeds it today.
+
+### The Understudy knack (r197)
+
+`{ id:'understudy', rare }` - every 30s of round time, one random Trick in the tray is **primed**: it fires an extra time on the next hand. It needed **no per-Trick code** because priming is the mechanic the Rehearsal event already built (`calcScore` fires a Trick an extra time per `_primed` stack), and the primed tile shows its charge through the same widget. The knack's own chip carries the countdown to the next prime (`cdForKnack`). `understudyNextMark` is seeded to the first interval, not 0 - `_elapsedRound >= 0` is already true on the round's first tick, which would prime a Trick one second into the run.
+
+### Two bosses on the widget (r197)
+
+- **THE HOLD** (`card_hold`) - every 15s a random card is held for 15s, with its countdown on the card. **Keyed by card identity, not by cell**: cards fall, and a cell-keyed hold would slide onto whichever card dropped into the slot (the same reason r192 re-keyed every per-card buff off `cardId`). A held card is answered by **`isCellBlocked`**, which is the trick `nullCells` already uses - every select, tap, swipe and reachability guard in the game asks that one question, so the hold needed no changes in `input.js`, `hand-detect.js`, `match3.js` or `tutorial.js`.
+- **THE ROTA** (`trick_rotate`) - exactly ONE Trick down at a time for 30s, then a different one, never the same twice in a row. The Censor's windows overlap on purpose (two down at once for a stretch of every cycle); this is the readable version - you always know precisely what you have lost. Gated by `bossPresetIsLive` below 2 Tricks owned.
+- **`bossSuspendTrick(id, secs)` is the single place a suspension is written**, recording the window in `bossDisabledTotals` so the ring has a denominator. The Censor routes through it too, so the two bosses cannot disagree about the bookkeeping.
+
+**Answering "can nulled cards be played?" - no.** There are now three kinds of unusable, all funnelled through `isCellBlocked` so every existing guard covers them: **VOID** (`blockedCells`, legacy boss patterns - the card is returned to the deck and nothing falls in), **QUARANTINED** (`nullCells`, The Quarantine - cards still fall in and fill the slot, they are just inert, permanently), and **HELD** (`bossHeldCards`, The Hold - one card, inert, expires). The other card debuffs in the game are **curses** (`cardCurses` / `CURSE_DEFS` - Leaden scores 0 pips, Taxing costs 3s a score, Snared cannot be swapped or discarded; each lifts after N scores), **contamination** (`dampCells`, The Blight - half pips and Tricks may not fire), **rank recall** (The Recall - a whole rank off the board), and **hand redaction** (The Redaction - one hand type scores x0.4).
+
 ## Events (node-based, Normal mode)
 
 Reward grid destination tiles set `pendingEventOverride` → `closeRewardGrid()` routes to shop or `openEvent()`. Events render in `#event-overlay`. Implemented: **Confluence** (theme draft), **Crossroads** (sacrifice trades), **Gamble** (doors / double-or-nothing), **Wandering Merchant** (free rare items), **Altar** (multi-round investments via `altarEffects[]`), **Cleansing Spring** (purge/restore), **Twin Path** (2 Tricks + shadow debuff), **Shift Change** (reorder your Trick tray). All triggerable from the dev panel.

@@ -232,6 +232,16 @@ function playHand() {
   if (siphonMultX > 1) siphonMultX = 1;   // Siphon's ×3 is spent on this hand
   // Clock-mark Tricks: the pending pip/mult bonuses were already folded into finalScore - clear them now.
   pendingHandPips = 0; pendingHandMult = 0; pendingCardPips = 0;
+  // Minute Hand spends ONE of its primed hands (r197). Decremented here rather
+  // than inside calcScore because calcScore is also called speculatively by
+  // findBestHand and by the live PIPS/MULT preview, which must not consume it.
+  if (minuteHandCharges > 0 && hasTrick('minute_hand')) {
+    minuteHandCharges--;
+    if (minuteHandCharges === 0) showMessage('🕐 Minute Hand spent', 'var(--cream-dim)');
+  }
+  // Scaling card buffs: a card carrying permMultGrow / permPipsGrow raises its
+  // own FLAT bonus now, so the growth shows on its next play (js/deck-grid.js).
+  if (typeof growCardScaling === 'function') growCardScaling(result.handCells.map(([r, c]) => gridData[r]?.[c]));
   // Natural Scaling: credit this hand's family/families. After the score is
   // committed, so the buff lands on the NEXT hand of that family, not this one.
   if (typeof recordNaturalScale === 'function') recordNaturalScale(hand);

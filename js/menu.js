@@ -1,4 +1,4 @@
-const BUILD = '2026-09-05 · r196 · card identity: buffs, curses and services target one card, not every card sharing its face [onto r195]';
+const BUILD = '2026-09-11 · r197 · what affected what: line markers, card marks, one cooldown timer widget, flat vs scaling card buffs, The Hold + The Rota, Understudy';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
