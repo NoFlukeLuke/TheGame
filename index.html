@@ -106,6 +106,16 @@
   </div>
 
   <!-- SCORE -->
+  <div class="dev-section" data-group="improve">
+    <h4>Entity improvement (tiers)</h4>
+    <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:6px">
+      <button class="dev-btn" onclick="devImproveRandom('trick')">Improve random Trick</button>
+      <button class="dev-btn" onclick="devImproveRandom('knack')">Improve random Knack</button>
+      <button class="dev-btn" onclick="devImproveRandom('sleight')">Improve random Sleight</button>
+      <button class="dev-btn" onclick="devResetImprove()">Reset all tiers</button>
+    </div>
+    <div id="dev-improve-list" style="max-height:260px;overflow-y:auto"></div>
+  </div>
   <div class="dev-section" data-group="score">
     <div class="dev-section-title">Score</div>
     <div class="dev-row">
@@ -1134,6 +1144,7 @@
 <script src="js/deck-grid.js"></script>
 <script src="js/hand-detect.js"></script>
 <script src="js/data/balance.js"></script>
+<script src="js/improve.js"></script>
 <script src="js/natural-scaling.js"></script>
   <script src="js/scoring.js"></script>
 <script src="js/render.js"></script>

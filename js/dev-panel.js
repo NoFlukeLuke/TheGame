@@ -135,6 +135,7 @@ const DEV_GROUPS = [
   { g:'seed',     icon:'⚄', label:'Run Seed',  sub:() => runSeed ? `on · ${runSeed}` : 'off · random' },
   { g:'match3',   icon:'⬚', label:'Match-3',   sub:() => 'match types · sandbox' },
   { g:'spectrum', icon:'◐', label:'Spectrum',  sub:() => `${spectrumRanks().length} values × ${spectrumColors().length} colours` },
+  { g:'improve',  icon:'\u2191', label:'Improve',   sub:() => devImproveSub() },
   { g:'builds',   icon:'▤', label:'Builds',    sub:() => `${discoveredIds.size} records open` },
   { g:'log',      icon:'✎', label:'Event Log', sub:() => 'in-game debug log' },
 ];
@@ -161,6 +162,7 @@ function devOpenGroup(g) {
   if (g === 'seed') devRefreshSeed();
   if (g === 'spectrum') renderSpectrumDev();
   if (g === 'goals') devRenderGoalPanel();
+  if (g === 'improve') devRenderImprove();
 }
 function devCloseGroup() {
   document.getElementById('dev-group-menu').style.display = '';
@@ -953,4 +955,56 @@ function devResumeRun() {
   document.getElementById('main-menu-overlay').classList.remove('show');
   document.getElementById('mode-select-overlay')?.classList.remove('show');
   resumeSavedRun();
+}
+
+
+// ── Improve (r206) - entity tiers ────────────────────────────────────────────
+// The tier system's test surface: see what you own, what tier it is at, and
+// what one more improvement would read as, without waiting for a reward grid.
+function devImproveSub() {
+  try {
+    const n = ['trick','knack','sleight'].reduce((a,t) => a + ownedImprovable(t).length, 0);
+    const up = Object.values(entityTier || {}).filter(v => v > 0).length;
+    return `${n} improvable · ${up} improved`;
+  } catch (e) { return 'entity tiers'; }
+}
+
+function devRenderImprove() {
+  const el = document.getElementById('dev-improve-list');
+  if (!el) return;
+  const rows = [];
+  ['trick','knack','sleight'].forEach(type => {
+    const owned = (typeof ownedImprovable === 'function') ? ownedImprovable(type) : [];
+    rows.push(`<div style="margin:6px 0 2px;opacity:.7;font-size:10px;letter-spacing:.08em">${type.toUpperCase()} (${owned.length})</div>`);
+    if (!owned.length) { rows.push('<div style="opacity:.45;font-size:11px">none owned that can improve</div>'); return; }
+    owned.forEach(o => {
+      const t = entityTierOf(o.id);
+      const pv = improvePreview(o.id);
+      rows.push(`<div style="display:flex;align-items:center;gap:6px;margin:2px 0">
+        <button class="dev-btn" style="padding:2px 7px" onclick="devImproveOne('${o.id}')">+1</button>
+        <span style="min-width:118px;font-size:11px">${o.name}</span>
+        <span style="opacity:.6;font-size:10px">tier ${t}/${IMPROVE_MAX_TIER}</span>
+        <span style="opacity:.5;font-size:10px;flex:1">${pv ? pv.after : ''}</span></div>`);
+    });
+  });
+  el.innerHTML = rows.join('');
+}
+
+function devImproveOne(id) {
+  if (typeof improveEntity === 'function') improveEntity(id);
+  if (typeof renderTrickTray === 'function') renderTrickTray();
+  if (typeof updateKnackList === 'function') updateKnackList();
+  devRenderImprove();
+}
+function devImproveRandom(type) {
+  const pick = (typeof pickImproveTarget === 'function') ? pickImproveTarget(type) : null;
+  if (!pick) { showMessage(`No ${type} to improve`, 'var(--red)'); return; }
+  devImproveOne(pick.id);
+  showMessage(`\u2191 ${pick.name} improved`, 'var(--gold)');
+}
+function devResetImprove() {
+  if (typeof resetEntityTiers === 'function') resetEntityTiers();
+  if (typeof renderTrickTray === 'function') renderTrickTray();
+  if (typeof updateKnackList === 'function') updateKnackList();
+  devRenderImprove();
 }

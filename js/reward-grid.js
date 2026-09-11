@@ -61,6 +61,9 @@ function _generateRewardContent() {
     { weight: 10, kind: 'blessed' },
     { weight:  4, kind: 'cull' },
     { weight:  8, kind: 'luck' },
+    { weight:  7, kind: 'improve_trick' },
+    { weight:  5, kind: 'improve_knack' },
+    { weight:  5, kind: 'improve_sleight' },
   ];
   const buffCategories = [
     { weight: 40, kind: 'trick' },
@@ -76,6 +79,9 @@ function _generateRewardContent() {
     { weight:  3, kind: 'cleanse' },
     { weight:  3, kind: 'mystery' },
     { weight:  4, kind: 'luck' },
+    { weight:  4, kind: 'improve_trick' },
+    { weight:  3, kind: 'improve_knack' },
+    { weight:  3, kind: 'improve_sleight' },
   ];
   // Hover projections (computed when the grid opens, reflecting current standing debuffs).
   const _proj    = computeRoundResources();
@@ -345,6 +351,39 @@ function _generateRewardContent() {
     return pool[Math.floor(Math.random() * pool.length)];
   }
 
+  // ── Improve an entity you already own (r206) ───────────────────────────────
+  // The TARGET is chosen when the grid is BUILT, not when the tile is taken, so
+  // the tile can name what it will improve and show the number it will become.
+  // That follows Fortune/Jinx, which roll their Luck step at generation for the
+  // same reason. It is also why `apply` re-checks: a Trick can be taken off you
+  // between the grid being built and the tile being picked.
+  function makeImprovePayload(type) {
+    const ICON = { trick: '\u2605', knack: '\u25c6', sleight: '\u2666' };
+    const NOUN = { trick: 'Trick', knack: 'Knack', sleight: 'Sleight' };
+    const pick = (typeof pickImproveTarget === 'function') ? pickImproveTarget(type) : null;
+    // Nothing of that type owned, or everything of it is already maxed. A tile
+    // that does nothing is worse than an ordinary one.
+    if (!pick) return makeTrickPayload();
+    const prev = (typeof improvePreview === 'function') ? improvePreview(pick.id) : null;
+    const tierTxt = prev ? ` (tier ${prev.tier}/${IMPROVE_MAX_TIER})` : '';
+    return {
+      icon: ICON[type] || '\u2605', label: 'Improve: ' + pick.name,
+      desc: (prev && prev.after !== prev.before)
+              ? `${pick.name}${tierTxt}\n${prev.before}\n\u2193\n${prev.after}`
+              : `Improve your ${NOUN[type]} ${pick.name}${tierTxt}`,
+      tier: 'rare', entity: type, rarity: pick.rarity || 'rare', _improve: true,
+      apply: () => {
+        if (typeof improveEntity !== 'function' || !improveEntity(pick.id)) {
+          showMessage(`${pick.name} could not be improved`, 'var(--red)');
+          return;
+        }
+        showMessage(`\u2191 ${pick.name} improved`, 'var(--gold)');
+        if (typeof renderTrickTray === 'function') renderTrickTray();
+        if (typeof updateKnackList  === 'function') updateKnackList();
+      }
+    };
+  }
+
   function makeSleightPayload() {
     const eligible = SLEIGHT_POOL.filter(j => !grantedSleightIds.has(j.id) && sleightOfferable(j) && !offerBanned(j.id));
     if (!eligible.length) return makeTrickPayload(); // fallback
@@ -442,6 +481,9 @@ function _generateRewardContent() {
       case 'trick':      return makeTrickPayload();
       case 'sleight':   return makeSleightPayload();
       case 'knack':   return makeKnackPayload();
+      case 'improve_trick':   return makeImprovePayload('trick');
+      case 'improve_knack':   return makeImprovePayload('knack');
+      case 'improve_sleight': return makeImprovePayload('sleight');
       case 'discard': return { icon: '🗑', label: '+1 Discard',   tier: 'common',
                                desc: `Next round discards: ${_proj.discards} → ${_proj.discards + 1}`,
                                apply: () => { nextRoundDiscardDelta += 1; showMessage('+1 discard next round', 'var(--gold)'); } };
@@ -594,6 +636,10 @@ function _generateRewardContent() {
     for (let i = (PRIZE ? 0 : 1); i < shuffledBuff.length; i++) {
       const [r, c] = shuffledBuff[i];
       if (grid[r][c]?.payload?._guaranteed) continue;   // never overwrite a guaranteed tile
+      // An improve tile is not a Trick offer and must not be converted into one.
+      // Without this the minimum pass ate every improve-a-Knack and
+      // improve-a-Sleight tile before the grid was ever shown.
+      if (grid[r][c]?.payload?._improve) continue;
       if (isTrickTile(grid[r][c])) trickCount++;
       else convertible.push([r, c]);
     }

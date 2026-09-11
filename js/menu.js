@@ -1,4 +1,4 @@
-const BUILD = '2026-09-11 · r206 · Escalation counts every hand of the round, paid from the 4th (+12, +15, +18)';
+const BUILD = '2026-09-11 · r207 · Escalation counts every hand of the round, paid from the 4th (+12, +15, +18) [onto r206]';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

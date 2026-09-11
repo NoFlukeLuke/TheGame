@@ -154,7 +154,7 @@ Five Tricks whose printed effect and real effect had drifted apart. All five rea
 
 - **`studyHallCards` is a RUN counter, not a round counter.** It is declared in `deck-grid.js`, reset in `startGame` only, and is in `SAVE_VARS`. Resetting it per round would throw away a partial pair every level.
 - **`handsPlayedRound` is bumped in `playHand` AFTER scoring**, so inside `calcScore` the hand being scored is the `(handsPlayedRound + 1)`-th of the round. That off-by-one is what made the old Escalation dead; anything keyed on "how many hands so far" has to account for it. The live readout in `tricks-ui.js` uses the same expression.
-- **Escalation counts the first three hands, it just does not pay for them yet (r206).** `after_hands` is a PAYOUT THRESHOLD, not an offset subtracted from the count: nothing lands until the 4th hand, and then the bonus is the whole hand count x the rate. A first pass read it as an offset and paid +3 on the 4th instead of +12.
+- **Escalation counts the first three hands, it just does not pay for them yet (r207).** `after_hands` is a PAYOUT THRESHOLD, not an offset subtracted from the count: nothing lands until the 4th hand, and then the bonus is the whole hand count x the rate. A first pass read it as an offset and paid +3 on the 4th instead of +12.
 
 ### Focus RATE vs Focus CAP (r190)
 
@@ -427,6 +427,81 @@ Every event before these HANDED you something, which is the wrong shape late in 
 - **`t._rank` is a PERMANENT prime.** `calcScore` already fires a Trick an extra time per `_primed` stack, duplicating whatever pip/mult delta the Trick reported - so a rank works on all 177 Tricks with no code in any of them. The loop now reads `(t._primed || 0) + (t._rank || 0)`, and `playHand`'s consumption block only decrements `_primed`, so a rank never runs out. It is deliberately **uncapped**: each one costs a whole event choice. A rehearsed multiplicative Trick is bounded too - it re-adds the same delta, so a x1.5 becomes x2, not x2.25.
 - **`sleightCapBonus` (id -> extra charges) raises a Sleight's ceiling**, which nothing could do before. `sleightMaxCharges(def)` is the new chokepoint and **all four "restore up to the cap" sites read it** (`restoreSleightCharge`, `limits.js`, `discard.js`, `level-up.js`'s Coin Toss) - miss one and a reinforced Sleight refills only to its printed durability and the upgrade silently does nothing. It returns `null` for an infinite Sleight, which every caller already treats as "leave alone". Stored by sleightId, so reinforcing one copy reinforces every copy; it is in `SAVE_VARS` and resets on a new run.
 - `allOwnedSleightCards()` (sleights-runtime.js) is the Sleight counterpart to `allDeckCards()` - board, draw pile and played pile.
+
+## Entity improvement - tiers (r206) - `js/improve.js`
+
+An owned entity can get BETTER. Every entity carries an improvement **tier (0-5)** and its
+numbers in `BAL` grow with it. `ENTITY_IMPROVEMENTS.md` is the design sheet: **option 1 of
+every entity is "the number again"**, and this file is that, generically, for all of them.
+
+**The ladder** (owner's spec): each improvement adds the entity's STEP, except the 5th which
+adds three. So the cumulative steps run `0 1 2 3 4 7` and a +5 bonus climbs **5 10 15 20 25 40**.
+A x2 multiplier's step is the part above x1, so it climbs **x2 x3 x4 x5 x6 x9**, never x2 x4 x8.
+
+- **It REWRITES `BAL` in place from a pristine copy, rather than wrapping every read.** The
+  ~200 sites that read a tuning number do it as `BAL.rich_soil.pips`, and **nothing in the game
+  ever writes to BAL** (verified). So `BAL_BASE` holds the printed values and
+  `applyEntityTiers()` recomputes `BAL` whenever a tier changes. Every read site picks it up
+  with no edit, there is no per-access cost, and no proxy identity surprise.
+- **An ALLOWLIST of parameter names, never a denylist.** Only the bonus amount grows.
+  Thresholds, intervals, costs, chances, cooldowns and requirements are left alone - that is
+  what option 2 (the looser trigger) is for. A tuning number added to `BAL` later must not
+  silently start scaling. It also only touches ids that are REAL ENTITIES, so the global config
+  in `BAL` (`_resources`, `_exalt`, `wheel`, `shop_discount`) can never move.
+- **`IMPROVE_STEP` is where the sheet disagrees with "step = base".** Naming any param there
+  makes it the complete list for that entity. Harvest grants +2 discards but steps by 1;
+  Men of Repute steps its pips and not its mult, because the mult is its option 2.
+- **Descriptions follow the number, and 105 of the 196 entities needed a second mechanism.**
+  `applyBalDescriptions()` regenerates `desc` from `BAL` through `DESC_TEMPLATES`, but only
+  **91** entities have a template - the rest have the number typed into the sentence in the
+  data file. Those would improve SILENTLY: Enriched scoring +80 while still reading "+40 pips"
+  is worse than not improving at all. So for those the number is substituted into the printed
+  text, and **only a base value appearing EXACTLY ONCE is touched** - a sentence that mentions
+  its number twice cannot be rewritten safely and is left alone rather than guessed at.
+  Always rewritten from `DESC_BASE` (the pristine text), never from the last rewrite, or two
+  improvements would compound the substitution. **Measured: 159 of 172 improvable entities
+  update their description; 13 stay silent** (Redline, Resonance, Inspirato, The Woodpecker,
+  Sediment, Balance, Wait For Iiiit, Five for Fodder, Five Second Rule, 3rd Down, Time Slip,
+  Rewound Echo, Jury-Rig). The tier badge is what covers those.
+- **The pools hold the canonical entity; what the player owns are COPIES** made at grant time
+  (`{...pick}`), so `syncOwnedEntityDescs()` pushes the regenerated text onto the tray and the
+  Knack row or they keep quoting the pre-improvement number.
+- `entityTier` is in **`SAVE_VARS`**, and the restore path calls `applyEntityTiers()` - the map
+  alone would restore the tiers and play at base values. `startGame` calls `resetEntityTiers()`,
+  which also rewrites `BAL` back: clearing the map alone would leave the previous run's improved
+  numbers live for the whole of the next one.
+
+### The improvement reward tiles (r206)
+
+Three rare tiles, one per type, that improve something you **already own**:
+`improve_trick` / `improve_knack` / `improve_sleight` in `js/reward-grid.js`.
+
+- **The target is chosen when the grid is BUILT**, so the tile names what it will improve and
+  prints the before and after description. That follows Fortune/Jinx, which roll their Luck
+  step at generation for the same reason. `apply` re-checks, because a Trick can be taken off
+  you between the grid being built and the tile being picked.
+- **It draws through `pickEntityByRarity` (js/luck.js)**, the shared rarity draw, so it reads
+  the same probability table as every other entity draw and **Luck tilts it the same way**.
+  Owning three commons and one legendary favours a common twice over: once because there are
+  three of them, and again because the table itself leans common. Measured: 32% each for the
+  three commons, 2.8% for the legendary.
+- **Nothing of that type owned, or all of it maxed, falls back to an ordinary Trick tile.** A
+  tile that does nothing is worse than an ordinary one.
+- **`_improve: true` keeps the tile alive, and it is load-bearing.** The Trick-minimum pass
+  (`MIN_TRICK_TILES`) spots a Trick by its `★` icon and **converts every other buff tile until
+  it has five**. An improve-a-Knack tile (`◆`) was convertible, so it was overwritten on
+  essentially every grid and **no knack or sleight improve tile ever reached a player**. They
+  are now skipped, exactly as guaranteed tiles are. Found only by generating grids in a real
+  browser and counting what came out; a syntax check and a call audit both pass without it.
+
+**The tier badge is drawn by `entityTileInner`**, so the tray, the Mart strip, Records and the
+Shift Change slots gain it at once. **Top-right is the only free corner**: a Trick puts its
+glyph top-left, a Sleight its tab top-left and its charge count bottom-right, and the name band
+runs the full width along the bottom - the first version sat bottom-left and printed
+"+2CH SOIL" over the name.
+
+Dev panel -> **Improve**: every owned entity with its tier and what one more would read as,
+plus improve-a-random-one per type and a reset.
 
 ### `trickFires(id)` (r203) - firing a Trick again, for the effects the ledger cannot carry
 
