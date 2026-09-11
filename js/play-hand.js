@@ -48,9 +48,14 @@ function generateHandFocus(hand, handCells, vultureSec) {
     // Hands of Blue: a 2×2 hand adds Focus. Crossroads: a + shaped hand adds Focus.
     if (hasTrick('shape_square') && isSquare(handCells)) totalFocus += BAL.shape_square.focus;
     if (hasTrick('shape_cross')  && isCross(handCells))  totalFocus += BAL.shape_cross.focus;
-    // Study Hall: marked-line cards add Focus, at most once per minute
-    if (hasTrick('study_hall') && handCells.some(([r,c]) => cellHasRowColBonus(r, c, 'study_hall')) && firesThisMinute('study_hall')) {
-      totalFocus += BAL.study_hall.focus;
+    // Study Hall (r197): every Nth card scored pays Focus. It used to need a marked
+    // row/column AND a once-per-minute gate, which capped it at 3 fires a round for a
+    // rare - the counter runs across the whole run instead, so a 5-card hand pays twice.
+    if (hasTrick('study_hall')) {
+      const _prev = studyHallCards;
+      studyHallCards += handCells.length;
+      const _fires = Math.floor(studyHallCards / BAL.study_hall.every) - Math.floor(_prev / BAL.study_hall.every);
+      if (_fires > 0) totalFocus += _fires * BAL.study_hall.focus;
     }
     // Groove / Overtime: tally cards scored from their marked line this round, then scale.
     if (hasTrick('groove')) {
@@ -182,6 +187,12 @@ function playHand() {
   // (A spurious double-fire of Play on a now-empty selection must NOT cancel the
   //  in-progress dance - that was the "cards wiggle but never score" bug.)
   cancelDance();
+
+  // The Marker: a marked card is discarded instead of played, and takes every other
+  // marked card in the same hand with it. Checked here - after we know there is a
+  // real hand, before anything is scored or mutated - so a fizzled hand leaves no
+  // trace in the contributions, the hand log or handsPlayedRound.
+  if (typeof bossMarkerIntercept === 'function' && bossMarkerIntercept([...selected])) return;
 
   const playedCells = [...selected]; // capture before any path clears selection (for on_play sleights)
   const { hand, handCells, penaltyCells, penaltyPips } = result;

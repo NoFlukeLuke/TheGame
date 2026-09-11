@@ -64,11 +64,15 @@ function cardAt(el) {
 }
 
 function doSwap(r1, c1, r2, c2) {
-  // Pivot: if either card is a Pivot sleight, this swap is free + buffs both cards.
-  const cardA = gridData[r1]?.[c1], cardB = gridData[r2]?.[c2];
-  const isPivotSwap = (cardA?._isSleight && sleightDef(cardA)?.id === 'pivot') ||
-                      (cardB?._isSleight && sleightDef(cardB)?.id === 'pivot');
-  const freeThisSwap = isPivotSwap || sleightFreeSwapPending;
+  // Pivot (r197): it works by SITTING on the grid, not by being swapped. Any card
+  // touching a Pivot that still has charges swaps for FREE; if one Pivot touches
+  // BOTH ends of the swap, both cards take a permanent mult buff and that Pivot
+  // spends a charge and leaves the board. Brushing past a Pivot with only one end
+  // of the swap gets the free swap and nothing else - no buff, no discard.
+  // Resolved BEFORE the cards move, so "adjacent at the time of the swap" is what
+  // is actually measured. Pivot's own cell never counts as touching itself.
+  const _pivotCell = pivotForSwap(r1, c1, r2, c2);
+  const freeThisSwap = swapTouchesLivePivot(r1, c1, r2, c2) || sleightFreeSwapPending;
 
   // Guard: block swap when out of swaps (Steady Hand or a free swap bypasses limit)
   if (swaps <= 0 && !hasKnack('steady_hand') && !freeThisSwap) {
@@ -95,15 +99,21 @@ function doSwap(r1, c1, r2, c2) {
   gridData[r1][c1] = gridData[r2][c2];
   gridData[r2][c2] = tmp;
 
-  // Pivot: buff both swapped (non-sleight) cards with +5 permanent mult
-  if (isPivotSwap) {
+  // Pivot payout: both swapped cards take +5 permanent mult, keyed by card identity
+  // (cardId), so the buff follows that one physical card through the deck. The Pivot
+  // is spent and discarded below - but only if a real card actually took the buff.
+  let _pivotSpent = null;
+  if (_pivotCell) {
+    let _buffed = 0;
     [[r1,c1],[r2,c2]].forEach(([r,c]) => {
       const card = gridData[r][c];
       if (card && !card._isSleight && card.rank) {
         const k = cardId(card);
         permMult[k] = (permMult[k] || 0) + BAL.pivot.mult;
+        _buffed++;
       }
     });
+    if (_buffed) { _pivotSpent = _pivotCell; showMessage(`🔃 Pivot - both cards +${BAL.pivot.mult} mult`, 'var(--gold)'); }
   }
 
   // Swap charge - skipped on a free swap; Steady Hand bypasses the limit
@@ -151,6 +161,17 @@ function doSwap(r1, c1, r2, c2) {
     const _dur = 220, _ease = 'cubic-bezier(0.25,0.46,0.45,0.94)';
     if (_el1) _el1.animate([{ transform:`translate(${-_swDx}px,${-_swDy}px) scale(1.09)`,offset:0 },{ transform:'translate(0,0) scale(1)',offset:1 }], { duration: _dur, easing: _ease });
     if (_el2) _el2.animate([{ transform:`translate(${_swDx}px,${_swDy}px) scale(1.09)`,offset:0 },{ transform:'translate(0,0) scale(1)',offset:1 }], { duration: _dur, easing: _ease });
+  }
+  // Pivot leaves the board once the swap has landed. Deferred behind the 220ms FLIP
+  // above because discardSleightAfterUse spins the tile and then runs removeAndFall,
+  // which takes the `falling` lock - starting that on top of the swap animation
+  // would cut the swap short.
+  if (_pivotSpent) {
+    const [_pr, _pc] = _pivotSpent;
+    setTimeout(() => {
+      const _pv = gridData[_pr]?.[_pc];
+      if (_pv?._isSleight && _pv.sleightId === 'pivot') discardSleightAfterUse(_pv, _pr, _pc);
+    }, 260);
   }
   // Match-3: a swap is the player's main way to CREATE a match - resolve the
   // board once the swap animation has landed. (The swap itself stays manual;

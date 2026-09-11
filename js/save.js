@@ -85,7 +85,7 @@ const SAVE_VARS = [
   '_perMinuteFired', 'handsPlayedGame', 'rowColBonuses', 'leyLinePos',
   'cuckooNextMinute', 'compoundNextMark', 'compoundBanked', 'nsPlays', 'nsBonus', 'retriggersThisRound', 'woodpeckerActiveBlock', 'woodpeckerPos',
   // ── Round/run counters ──
-  'handsPlayedRound', 'runsPlayedRound', 'setsPlayedRound', 'runStreak',
+  'handsPlayedRound', 'studyHallCards', 'runsPlayedRound', 'setsPlayedRound', 'runStreak',
   'cardsDiscardedTotal', 'cardsDiscardedRound', 'cardsScoredTotal', 'nineSecondsCounter',
   'highestHandScore', 'highestHandName', 'fullHouseThisRound', 'gameStartTime', 'handLog',
   'lastHandType', 'streakCount', 'lastHandTime', 'resilience', 'resilienceUsed',

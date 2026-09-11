@@ -4,8 +4,8 @@ const BOSS_BLOCKED_CELLS_MAX = 5;
 
 let nextBossTime  = GAME_DURATION - BOSS_LOOP_DURATION; // first boss at 6-min mark elapsed
 let bossActive    = false;
-let bossSecondsLeft = 0;
-let bossInterval  = null;
+// The boss runs on the ONE round clock since r197 (roundSeconds / roundInterval);
+// there is no separate boss countdown or boss interval any more. See triggerBoss.
 let blockedCells  = new Set(); // keys like "r-c"
 let bossNumber    = 0;
 let savedRoundSeconds = 0; // round timer value at boss start
@@ -72,6 +72,7 @@ let focusGenGame  = 0;   // total Focus generated this game (Wellspring); reset 
 let focusGenRound = 0;   // total Focus generated this round (Feedback Loop); reset each round
 let assemblyMarkCount   = 0;   // Assembly Line: cards scored from its marked line this round (replays count)
 let _lastHandAssemblyEnd = 0;  // snapshot of assemblyMarkCount after the last scored hand
+let studyHallCards      = 0;   // Study Hall: running count of cards scored this run; every 2nd one pays Focus
 let markCount_groove    = 0;   // Groove: cards scored from its marked line this round
 let markCount_overtime  = 0;   // Overtime: cards scored from its marked line this round
 let _cleanSweepPrev     = [];  // Clean Sweep: cell keys scored in the previous hand (rolling 2-hand window)
@@ -250,6 +251,10 @@ function drawCard() {
   // Famine modifier: bias drawn rank toward low cards. On the deck's stream - it
   // substitutes a drawn card, so it is a deck operation.
   c = withSeededRng(() => maybeFamineDrawSwap(c), 'deck');
+  // The Marker boss silently marks one card in every ten. drawCard is the single
+  // point every card enters play through, so the count is exact and covers the
+  // opening deal and every refill alike (js/boss-effects.js).
+  if (typeof bossMarkerConsider === 'function') bossMarkerConsider(c);
   updateDeckHud();
   return c;
 }

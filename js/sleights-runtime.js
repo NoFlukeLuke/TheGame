@@ -209,6 +209,41 @@ function getNeighborsOrtho(r, c) {
 }
 const _isOrthoAdj = (r1, c1, r2, c2) => Math.abs(r1 - r2) + Math.abs(c1 - c2) === 1;
 
+// ── Pivot (r197) ─────────────────────────────────────────────────────────────
+// Pivot works by SITTING on the grid, not by being swapped. Any card touching it
+// swaps for free; swap two of its neighbours TOGETHER and both take a permanent
+// mult buff and the Pivot leaves the board (see doSwap in js/input.js).
+//
+// Adjacency here is 8-WAY, and that is load-bearing rather than a flourish. A
+// swap moves two ORTHOGONALLY adjacent cells, and two orthogonally adjacent cells
+// have no common orthogonal neighbour at all - they sit on opposite colours of the
+// board's checkerboard, and every orthogonal neighbour of a cell is the other
+// colour. So under orthogonal-only adjacency "one Pivot touching both ends of the
+// swap" could never fire once, and the payout would be dead on arrival.
+const _isTouching = (r1, c1, r2, c2) =>
+  !(r1 === r2 && c1 === c2) && Math.abs(r1 - r2) <= 1 && Math.abs(c1 - c2) <= 1;
+
+// Every Pivot with charges left that touches (r,c).
+function livePivotsTouching(r, c) {
+  const out = [];
+  for (let pr = 0; pr < gridRows; pr++) for (let pc = 0; pc < gridCols; pc++) {
+    const card = gridData[pr]?.[pc];
+    if (!card?._isSleight || card.sleightId !== 'pivot') continue;
+    if (card._usesLeft !== 'infinite' && !(card._usesLeft > 0)) continue;
+    if (_isTouching(pr, pc, r, c)) out.push([pr, pc]);
+  }
+  return out;
+}
+// Does either end of this swap touch a live Pivot? (That is what makes it free.)
+function swapTouchesLivePivot(r1, c1, r2, c2) {
+  return livePivotsTouching(r1, c1).length > 0 || livePivotsTouching(r2, c2).length > 0;
+}
+// The one Pivot touching BOTH ends - the one that pays the buff and then leaves.
+// Null when the swap only brushed past a Pivot: no bonus, and no discard either.
+function pivotForSwap(r1, c1, r2, c2) {
+  return livePivotsTouching(r1, c1).find(([pr, pc]) => _isTouching(pr, pc, r2, c2)) || null;
+}
+
 // ── Whetstone: sharpens on nearby churn ──────────────────────────────────────
 // Every adjacent card swapped or discarded adds +1 mult, banked on the card itself
 // (_whetMult) so it survives deck cycling. `cells` = the cells just swapped/discarded.
@@ -478,8 +513,10 @@ function applySleightGridEffect(id, r, c) {
       reshuffleGrid();
       showMessage('Dazed & Confused - grid reshuffled!', '#cc88ff'); break;
     case 'pivot':
-      // Free swap + buff are applied inline in doSwap; this just announces.
-      showMessage('Pivot! Free swap + cards buffed', 'var(--gold)'); break;
+      // Unreachable since r197: Pivot is `passive` now (it works by sitting on the
+      // grid), so fireSleightsOnSwap never dispatches it. The whole effect - the
+      // free swap, the buff and the discard - is inline in doSwap.
+      break;
     case 'idol':
       // handled in interest calc (round_end); no immediate effect
       break;

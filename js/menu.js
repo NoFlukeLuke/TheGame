@@ -1,4 +1,4 @@
-const BUILD = '2026-09-05 · r196 · card identity: buffs, curses and services target one card, not every card sharing its face [onto r195]';
+const BUILD = '2026-09-11 · r197 · one clock during bosses; The Marker; Study Hall / Get Even / Odd One In / Cull / Escalation / Pivot reworked';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

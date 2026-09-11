@@ -69,6 +69,10 @@ const SURVIVAL_REROLL_STEP    = 5;    // then 5, 10, 15… (STEP × paid-index)
 // round clock - but it is the same variable, so the bar fill and computeRoundResources
 // must size against it too.
 function currentRoundDuration() {
+  // A boss round's length is its window (r197 - the boss runs on this same clock).
+  // Survival banks leftover time into it and Flow uses a flat one, so it is not
+  // simply the mode's round length; the clock bar and rewindCeiling both need it.
+  if (bossActive) return bossWindowDuration;
   if (typeof flowActive === 'function' && flowActive()) return FLOW_SESSION_SECONDS;
   return survivalActive() ? SURVIVAL_ROUND_SECONDS : ROUND_DURATION;
 }

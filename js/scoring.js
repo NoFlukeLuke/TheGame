@@ -502,8 +502,14 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // Even/odd rank
   const _rankIsEven = r => ['2','4','6','8','10'].includes(r);
   const _rankIsOdd  = r => ['A','3','5','7','9'].includes(r);
-  if (hasTrick('even_score') && cards.filter(c => _rankIsEven(c.rank)).length >= 3) { const _a = cells.length * BAL.even_score.mult_per_card; mult += _a; bMult('even_score', _a); }
-  if (hasTrick('odd_squad')  && cards.filter(c => _rankIsOdd(c.rank)).length >= 3)  { const _a = cells.length * BAL.odd_squad.mult_per_card; mult += _a; bMult('odd_squad', _a); }
+  // Get Even / Odd One In are deliberately the same effect mirrored (r197): the
+  // bonus counts the EVEN (or ODD) cards, not every card in the hand. They used to
+  // pay cells.length x rate, so a Pair with 3 evens in a 5-card hand paid for the
+  // two odd cards as well, and Odd One In paid 5 where Get Even paid 2.
+  { const _ev = cards.filter(c => _rankIsEven(c.rank)).length;
+    if (hasTrick('even_score') && _ev >= 3) { const _a = _ev * BAL.even_score.mult_per_card; mult += _a; bMult('even_score', _a); } }
+  { const _od = cards.filter(c => _rankIsOdd(c.rank)).length;
+    if (hasTrick('odd_squad')  && _od >= 3) { const _a = _od * BAL.odd_squad.mult_per_card; mult += _a; bMult('odd_squad', _a); } }
   if (hasTrick('king_guard')) { const _kj = _wc(c => c.rank === 'K' || c.rank === 'J'); if (_kj) { const _a = _kj * BAL.king_guard.mult; mult += _a; bMult('king_guard', _a); } }
   if (hasTrick('ninesong')) { const _ps = cards.reduce((s,c) => s + cardPips(c.rank), 0); if (_ps % 3 === 0) { mult += BAL.ninesong.mult; bMult('ninesong', BAL.ninesong.mult); } }
   // Position: column/row
@@ -528,8 +534,13 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   if (hasTrick('triple_threat') && handName === 'Full House') { totalPips += BAL.triple_threat.pips; bPip('triple_threat', BAL.triple_threat.pips); }
   if (hasTrick('heavy_hand') && cells.length === 5) { const _a = cells.length * BAL.heavy_hand.pips_per_card; totalPips += _a; bPip('heavy_hand', _a); }
   if (hasTrick('prime_time')) { const _pc = cards.filter(c => ['A','2','3','5','7'].includes(c.rank)).length; if (_pc >= 3) { const _a = cells.length * BAL.prime_time.pips_per_card; totalPips += _a; bPip('prime_time', _a); } }
-  // Escalation: +1 mult per hand beyond 5th
-  if (hasTrick('escalation') && handsPlayedRound >= 5) { const _a = handsPlayedRound - 5; mult += _a; bMult('escalation', _a); }
+  // Escalation: the hand being scored is the (handsPlayedRound + 1)-th of the round
+  // (handsPlayedRound is bumped in playHand AFTER scoring). Nothing until the 4th
+  // hand, then +3 mult per hand past the 3rd: 4th = +3, 5th = +6, 6th = +9 ...
+  if (hasTrick('escalation')) {
+    const _past = (handsPlayedRound + 1) - BAL.escalation.after_hands;
+    if (_past > 0) { const _a = _past * BAL.escalation.mult_per_hand; mult += _a; bMult('escalation', _a); }
+  }
   // Combo score: +2 mult per distinct hand type played this round
   if (hasTrick('combo_score') && handTypesRound.size > 0) { const _a = handTypesRound.size * BAL.combo_score.mult_per_type; mult += _a; bMult('combo_score', _a); }
 
@@ -933,7 +944,7 @@ function firesThisMinute(id) {
 // row), Alignment (auto column = tray slot), District (allow >1 effect on the same line).
 // A manual chooser (Surveyor/Leveler) always beats Alignment. Assignment is idempotent
 // per Trick object so an upgrade (selectTrick called twice) doesn't re-roll the line.
-const POSITION_ASSIGN_IDS = ['rowcol_triple_pips','rowcol_mult','rowcol_retrigger','perfect_timing','right_time','study_hall','groove','assembly_line','overtime'];
+const POSITION_ASSIGN_IDS = ['rowcol_triple_pips','rowcol_mult','rowcol_retrigger','perfect_timing','right_time','groove','assembly_line','overtime'];
 
 function lineOccupied(axis, index) {
   return rowColBonuses.some(b => b.axis === axis && b.index === index);

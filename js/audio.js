@@ -90,6 +90,26 @@ function sfxFlipShuffle() {
   }
 }
 
+// ── Discard (r197) ───────────────────────────────────────────────────────────
+// There was no discard sound at all: discarding reused sfxFlipShuffle, the riffle
+// that also plays when a hand flies to the preview, so binning cards and scoring
+// them opened the same way. This is a dry downward sweep - a card thrown onto a
+// pile, not shuffled into one.
+//
+// `loud` is for The Marker's forced discard (a marked card eating the hand you
+// just played). That is not something you did, so it has to announce itself over
+// a normal discard; 1.7x and a touch lower is enough to read as "that was not you"
+// without leaving the mix.
+function sfxCardDiscard(loud) {
+  const g = loud ? 1.7 : 1;
+  playNoise({ gain: 0.075 * g, attack: 0.001, release: 0.07 });
+  playTone({ freq: loud ? 150 : 190, type: 'triangle', gain: 0.085 * g,
+             attack: 0.002, decay: 0.05, sustain: 0.08, release: 0.10, duration: 0.09 });
+  playTone({ freq: loud ? 96 : 124, type: 'sine', gain: 0.070 * g,
+             attack: 0.003, decay: 0.06, sustain: 0.06, release: 0.14, duration: 0.12, delay: 0.055 });
+  if (loud) playNoise({ gain: 0.055, attack: 0.001, release: 0.11, delay: 0.055 });
+}
+
 function sfxHandScored(finalScore) {
   // Ascending chime - pitch and brightness scale with score
   const base = Math.min(Math.max(finalScore, 10), 2000);

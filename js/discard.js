@@ -125,10 +125,14 @@ function doDiscard() {
     }
     if (_restored) showMessage(`Martyr: +1 charge to ${_restored} Sleight${_restored > 1 ? 's' : ''}`, 'var(--gold)');
   }
-  sfxFlipShuffle();
+  sfxCardDiscard();          // discarding has its own sound now (r197), not the riffle
   resetFocusDecayTimer();
-  // Cull: using a discard adds 1 focus
-  if (hasTrick('cull')) addFocus(1);
+  // Cull: 1 Focus per unit of manipulate stock still in hand. `discards` has already
+  // been decremented above, so this reads what is LEFT after paying for this discard.
+  if (hasTrick('cull')) {
+    const _stock = Math.max(0, swaps) + Math.max(0, discards);
+    if (_stock > 0) { addFocus(_stock * BAL.cull.focus_per_stock); showMessage(`Cull +${_stock * BAL.cull.focus_per_stock} Focus`, 'var(--gold)'); }
+  }
   const toRemove = [...selected];
   selected = [];
   removeAndFall(toRemove, 'discard');
@@ -189,7 +193,10 @@ function rewindCeiling() {
 }
 
 function rewindTime(seconds, label) {
-  if (bossActive) return 0;
+  // Rewinds used to return 0 during a boss because the boss ran its own clock and
+  // roundSeconds was frozen, so there was nothing to give back. Since r197 there is
+  // ONE clock, and rewindCeiling reads currentRoundDuration() - which is the boss
+  // window during a boss - so a rewind now does exactly what it says on a boss round.
   seconds = Math.floor(seconds);
   if (seconds <= 0) return 0;
   const before = roundSeconds;

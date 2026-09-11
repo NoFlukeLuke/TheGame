@@ -349,12 +349,23 @@ function triggerBoss(presetOverride = null, windowSeconds = null) {
   // Clear pending selection over void
   selected = selected.filter(([r, c]) => !isCellBlocked(r, c));
 
-  // Pause round timer (save value for restore)
+  // ── ONE CLOCK (r197) ──────────────────────────────────────────────────────
+  // A boss used to freeze `roundSeconds`, park it in savedRoundSeconds and run a
+  // SECOND countdown (`bossSecondsLeft` on `bossInterval`). That was a leftover
+  // from the old challenge system and it quietly switched off most of the game
+  // for the length of every boss: the round tick is where clock-mark Tricks fire
+  // (Tick-Tock, Second Hand, Quarter Chime, Minute Hand, Hourglass), where Tempo
+  // drips resources back, where the Cuckoo, Compound, Woodpecker and Slow Burn
+  // accrue - and, worst of it, swap and discard time costs were billed to the
+  // FROZEN clock, so interacting was free during a boss and The Tollman, whose
+  // whole gimmick is doubling those costs, did nothing on its own round.
+  //
+  // The boss now simply sets the round clock to its window and lets the ordinary
+  // round timer run. savedRoundSeconds is still taken because the legacy
+  // timer-based modes summon a boss in the MIDDLE of a live round and put the
+  // player back into it afterwards (see endBoss); no other mode restores it.
   savedRoundSeconds = roundSeconds;
-  if (roundInterval) { clearInterval(roundInterval); roundInterval = null; }
-
-  // Boss timer + UI
-  bossSecondsLeft = bossWindowDuration;
+  roundSeconds = bossWindowDuration;
   document.getElementById('clock').classList.add('boss-mode');
   document.getElementById('clock-bar').classList.add('boss-mode');
   document.getElementById('grid').classList.add('boss-active');
@@ -362,7 +373,7 @@ function triggerBoss(presetOverride = null, windowSeconds = null) {
   // updateActProgressUI below) so BOTH progress blocks - landscape and portrait -
   // get it, in every mode that can run a boss.
 
-  updateBossClockDisplay();
+  updateClockUI();
 
   // Banner
   const banner = document.getElementById('boss-banner');
@@ -607,41 +618,19 @@ function showBossCountdown() {
   })();
 }
 
-function updateBossClockDisplay() {
-  if (!bossActive) return; // never clobber the round clock when no boss is running
-  const m = Math.floor(bossSecondsLeft / 60);
-  const s = bossSecondsLeft % 60;
-  document.getElementById('clock').textContent = `${m}:${s.toString().padStart(2,'0')}`;
-  document.getElementById('clock-bar').style.width = (bossSecondsLeft / bossWindowDuration * 100) + '%';
-}
+// Kept as a thin alias: there is one clock now (r197) and updateClockUI draws it,
+// reading bossWindowDuration as the bar's denominator while a boss is running.
+function updateBossClockDisplay() { updateClockUI(); }
 
-// Single source of truth for the boss countdown. Clears any existing boss interval first
-// (so it can't be double-started) and self-terminates if bossActive ever goes false (so an
-// orphaned timer can't keep writing the clock - the cause of the "clock flickers to 0" bug).
+// The boss runs on the ONE round clock (r197). This starts the scheduled effects
+// (armed by applyBossModifiers, held back so their opening tick lands with the
+// clock rather than behind the briefing panel - see bossSchedule) and then hands
+// the countdown to startRoundTimer like any other round. The boss-specific parts
+// of the tick - the Metronome's variable step, the halftime phase flip, the
+// switched-off-Trick repaint and running out of time - live in that one tick.
 function startBossTimer() {
-  if (bossInterval) { clearInterval(bossInterval); bossInterval = null; }
-  // The r150/r151 roster's timed effects are armed by applyBossModifiers but held
-  // until here, so their opening tick lands with the clock rather than behind the
-  // briefing panel (see bossSchedule).
   if (typeof bossStartScheduledEffects === 'function') bossStartScheduledEffects();
-  bossInterval = setInterval(() => {
-    if (!bossActive) { clearInterval(bossInterval); bossInterval = null; return; }
-    if (gameTimerPaused) return;
-    bossSecondsLeft -= (typeof bossClockStep === 'function') ? bossClockStep() : 1;
-    if (bossSecondsLeft < 0) bossSecondsLeft = 0;
-    updateBossClockDisplay();
-    // Repaints the tray only when the switched-off set changes - covers the
-    // Voidwright's halftime flip AND the Censor's suspensions expiring, neither of
-    // which has an event of its own.
-    if (typeof bossSyncTrickTrayState === 'function') bossSyncTrickTrayState();
-    if (bossPhase === 1 && bossSecondsLeft === Math.floor(bossWindowDuration / 2)) {
-      bossPhase = 2;
-      updateBossObjectiveUI();
-      showMessage(currentBoss?.modifiers?.includes('trick_pool_split')
-        ? 'SECOND HALF - different Tricks off' : 'PHASE 2', 'var(--red)');
-    }
-    if (bossSecondsLeft <= 0) endBoss(false);
-  }, 1000);
+  startRoundTimer();
 }
 
 // r171 - no panel. A boss puts the SCORE and GOAL chips into alarm state (red,
@@ -685,7 +674,13 @@ function ensureBossGoalExtra() {
 function endBoss(success) {
   if (!bossActive) return;
   bossActive = false;
-  if (bossInterval) { clearInterval(bossInterval); bossInterval = null; }
+  // The boss shares the round clock now (r197), so stop it here. Without this the
+  // tick that ran the window out would keep firing at roundSeconds 0 and, with
+  // bossActive already false, fall straight through onRoundEnd's boss guard into
+  // the ordinary missed-goal path a second later.
+  if (roundInterval) { clearInterval(roundInterval); roundInterval = null; }
+  if (typeof stopFocusDecay === 'function') stopFocusDecay();
+  if (typeof stopHeartbeat === 'function') stopHeartbeat();
 
   // Clean up modifiers (must happen BEFORE render)
   clearBossModifiers();

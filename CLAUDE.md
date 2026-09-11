@@ -140,6 +140,21 @@ The old table had four inversions, all fixed:
 - **The r190 additions cover triggers nothing else read**: Rerun / Chorus (replay count, from `_reps` - sum minus card count is the extra iterations), Deep Breath (clock paused), Interest (credits held, capped), Portfolio (buffed cards on the grid, via `permPips`/`permMult` - which are keyed by card IDENTITY, so a buff on Spectrum white counts seven cards), Redline (Focus level).
 - **Compound** (mythic) banks the round score every 45s on the round tick; the next scored hand pays the bank and it re-arms, so it compounds across a round. Its payout is added at **SCORE level, not as pips or mult** - it is a copy of score already earned, and routing it through mult x Focus would multiply it a second time.
 
+### Trick numbers reworked (r197)
+
+Five Tricks whose printed effect and real effect had drifted apart. All five read their numbers out of `BAL` now, and all five have a `DESC_TEMPLATES` entry, so the description cannot drift from the value again.
+
+| Trick | was | is |
+|---|---|---|
+| **Study Hall** (rare) | marked row/column **and** a once-per-minute gate: ~3 fires a round for a rare | **every 2 cards you score adds +1 Focus**, wherever they are - a 5-card hand pays twice |
+| **Get Even** (common) | `cells.length x 2` - it paid for the *odd* cards in the hand too | **+2 mult per EVEN card** |
+| **Odd One In** (rare) | `cells.length x 5` - same trigger, 2.5x the rate | **+2 mult per ODD card** - the same effect mirrored |
+| **Cull** (common) | flat +1 Focus per discard | **+1 Focus per swap and discard you have left** (read after the discard is paid for) |
+| **Escalation** (rare) | `handsPlayedRound - 5`, and since the counter is bumped *after* scoring that meant nothing until the **7th** hand | **+3 mult per hand past the 3rd**: 4th = +3, 5th = +6, 6th = +9 |
+
+- **`studyHallCards` is a RUN counter, not a round counter.** It is declared in `deck-grid.js`, reset in `startGame` only, and is in `SAVE_VARS`. Resetting it per round would throw away a partial pair every level.
+- **`handsPlayedRound` is bumped in `playHand` AFTER scoring**, so inside `calcScore` the hand being scored is the `(handsPlayedRound + 1)`-th of the round. That off-by-one is what made the old Escalation dead; anything keyed on "how many hands so far" has to account for it. The live readout in `tricks-ui.js` uses the same expression.
+
 ### Focus RATE vs Focus CAP (r190)
 
 Every Focus entity before r190 raised the **ceiling** (`focusCapNodes`). Nothing touched the **rate**, which is the term that actually multiplies a run's output. `generateHandFocus` builds Focus from two terms, and `focusRateMods()` is the one place the whole loadout is read:
@@ -244,6 +259,16 @@ Three `passive` Sleights + two Knacks built on grid adjacency (all orthogonal - 
 - **Tempo** (Knack) - **once, when acquired**, sets the swap and discard limits to 2 (`applyTempoLimitOnce` in `limits.js`, called from `updateKnackList()` and guarded by the per-game `tempoInitApplied` flag so later acquisitions don't re-slam it). It then gets out of the way: it does NOT lock the limits, so shop upgrades / Swap Shop / Harvest / events / other knacks stack on top of the 2 exactly as they would on the base - the design keeps wild combos open. The per-round drip (round-timer tick in `round-timers.js`) hands back 1 every 15s, alternating swap → discard → swap, refilling up to the **current** limit (so raising the limit also raises where the drip tops out); the alternation advances even when that stock is full, so the rhythm never stalls. `computeRoundResources()` has NO Tempo special-case - the lowered `limits.*.current` flows through the normal `limitSwapBonus`/`limitDiscardBonus` math. (Pre-existing quirk unrelated to Tempo: round-start discards come out one higher than the discard *limit* because `computeRoundResources` seeds from a hardcoded 4 while the limit base is 3.)
 
 These Sleights add mult from *outside* the Trick system, so `calcScore` tracks them separately (`_whetM` / `_entM` / `_lightM`) and pushes `source:'sleight'` contribution rows; `contribDisplayName` now resolves `sleight`/`knack` sources against their own pools (previously sleight rows fell back to the raw id - Amplifier included).
+
+### Pivot (r197) - a Sleight that works by sitting next to things
+
+**Pivot is `passive` now, not `on_swap`.** It used to fire by being swapped itself. It now works by **sitting on the grid**: any card touching a Pivot with charges left swaps for **free**, and if one Pivot touches **both ends** of the swap, both cards take +5 permanent mult and that Pivot spends a charge and leaves the board. Brushing past a Pivot with only one end of the swap gets the free swap and nothing else - no buff, no discard.
+
+- **Adjacency is 8-WAY here, and that is load-bearing rather than a flourish.** A swap moves two **orthogonally** adjacent cells, and two orthogonally adjacent cells have **no common orthogonal neighbour at all** - they sit on opposite colours of the board's checkerboard, and every orthogonal neighbour of a cell is the other colour. Under `_isOrthoAdj` the rule "one Pivot touching both ends" could never fire once. `_isTouching` / `livePivotsTouching` / `pivotForSwap` / `swapTouchesLivePivot` live in `sleights-runtime.js` beside the orthogonal helpers; do not swap one for the other.
+- **Resolved BEFORE the cards move**, so "adjacent at the time of the swap" is what is actually measured. Pivot's own cell never counts as touching itself.
+- **The discard is deferred ~260ms**, behind the 220ms FLIP swap animation: `discardSleightAfterUse` spins the tile then runs `removeAndFall`, which takes the `falling` lock, and starting that on top of the swap animation cuts the swap short.
+- It leaves through `discardSleightAfterUse`, so it cycles back into the deck with its remaining charges (3 -> 2 -> 1) rather than being consumed outright. A 0-charge Pivot confers nothing - not even the free swap.
+- The `'pivot'` case in `applySleightGridEffect` is now unreachable and says so: `fireSleightsOnSwap` never dispatches a `passive` sleight.
 
 ### Focus-payout entities (r123, revised r162)
 Six entities that hook the **transition into max Focus** (`onFocusMaxed()` in `focus.js`, called from `addFocus` only on the `prev < cap && focusNodes === cap` edge). Credit/resource grants happen immediately; any Focus *drop* or cap change is deferred ~260ms via `setTimeout` so the fill-to-max animation plays first and we never mutate `focusNodes`/the meter while `addFocus`'s queue is mid-flight. When several entities drop Focus in one max, the deferred settle takes the **smallest keep-fraction** (biggest drop) rather than summing.
@@ -369,14 +394,49 @@ Owned Tricks/knacks and already-granted sleights are filtered out of the pools s
 3 Acts × (5 events + 1 boss) = 18 nodes. `actNumber` (1–3), `nodeInAct` (0–4, boss at 5). `forceBossNextRound` triggers the boss after the next deal. Win at `actNumber > 3` → `onGameWin()`.
 
 ## Boss system
-**Bosses have NO separate score target (r155, every mode).** The win bar is simply **this round's `roundGoal`** - `bossGoalMet()` is `score >= roundGoal`. A boss's challenge is its *modifier*; `objective.type:'hand'` bosses layer their hand requirement **on top of** the goal (`handDone && bossGoalMet()`). `objective.target` is now vestigial for score bosses, and **The Ratchet raises `roundGoal`** (the number actually being compared) rather than the old target.
+
+### ONE clock and ONE score requirement (r197)
+
+**A boss round is an ordinary round with a modifier on it.** Both halves of that are now true in code, and neither was:
+
+- **One score requirement.** `bossGoalMet()` is `score >= roundGoal` - this round's goal, same as any other round (r155). `objective.type:'hand'` bosses layer a hand requirement **on top of** it (`handDone && bossGoalMet()`). The vestigial `target: 4000`-style numbers the presets carried were read by **nothing** and have been deleted, so a preset can no longer look like it sets a second bar. **The Ratchet raises `roundGoal`**, which is the number actually compared (an older note in this file claimed it raised `currentBoss.objective.target` instead - it does not, and if it did it would do nothing).
+- **One clock.** A boss used to freeze `roundSeconds`, park it in `savedRoundSeconds` and run a **second** countdown (`bossSecondsLeft` on its own `bossInterval`). That was a leftover from the old challenge system, and it quietly switched off a large part of the game for the length of every boss, because **the round tick is where most timed things live**:
+
+| what died during every boss | because |
+|---|---|
+| Tick-Tock · Second Hand · Quarter Chime · Minute Hand · Hourglass | `handleClockMarks` runs on the round tick |
+| Tempo's resource drip · the Cuckoo · Compound · the Woodpecker · Slow Burn accrual | same tick |
+| Focus decay, the board heartbeat | started by `startRoundTimer` |
+| `pauseRound` / `rewindTime` | operate on the frozen `roundSeconds` |
+| **swap and discard time costs** | billed to the frozen clock, so **interacting was free during a boss** |
+| **The Tollman** | its whole gimmick is doubling those costs, so it did nothing on its own round |
+
+  `triggerBoss` now just sets `roundSeconds = bossWindowDuration` and lets the ordinary timer run. **`bossSecondsLeft` and `bossInterval` are gone** - do not reintroduce a second countdown. What moved where:
+  - `startBossTimer()` arms the scheduled effects (`bossStartScheduledEffects`) and then calls **`startRoundTimer()`**. It is still the one place a boss's clock starts.
+  - The boss-only parts of the tick - the Metronome's variable step (`bossClockStep()`), the halftime phase flip, `bossSyncTrickTrayState()` - are in that one tick, behind `if (bossActive)`.
+  - `currentRoundDuration()` returns **`bossWindowDuration`** during a boss, which is what makes the clock bar and `rewindCeiling()` correct without either knowing about bosses. Survival banks leftover time into that window and Flow uses a flat one, so it is not simply the mode's round length.
+  - `onRoundEnd()` opens with `if (bossActive) { endBoss(false); return; }`, and **`endBoss` clears `roundInterval`**. Without that clear the tick that ran the window out keeps firing at 0 and - `bossActive` now false - falls through the guard into the ordinary missed-goal path a second later.
+  - **A boss round is deliberately NOT a save point.** `startRoundTimer`'s `captureRunCheckpoint()` is guarded by `!bossActive`: `forceBossNextRound` has already been consumed by the time `triggerBoss` runs, so a checkpoint taken there would resume into an ordinary round with the boss gone. The previous round's checkpoint stands.
+  - `savedRoundSeconds` survives for **one** caller: the legacy timer-based modes summon a boss in the middle of a live round and put the player back into it afterwards (the `else` branch in `endBoss`). No other mode restores it.
+  - **`rewindTime` no longer returns 0 during a boss.** It did because there was nothing to give back; now there is one clock and `rewindCeiling()` reads the boss window, so a rewind does what it says on a boss round.
 
 `BOSS_PRESETS`, `triggerBoss()`, `endBoss()`. Modifiers: blocked cells (`isCellBlocked`), Trick disabling (`isTrickDisabledByBoss`), low-card famine (`maybeFamineDrawSwap`). The `fight_power` sleight bypasses all of these via `bossEffectsIgnored()`.
 
 ### The r150 roster - `js/boss-effects.js`
 Eight bosses that all share one shape: **act once at round start, then on an interval**. `bossSchedule(secs, fn)` *is* that shape - it fires immediately then repeats - and it is the single place the **Contingency Plan** knack stretches timings, so a new boss inherits the knack interaction for free. `applyBossModifiers` calls `applyBossEffectModifier(mod, params)` first; it claims its own ids and returns true, leaving the legacy modifiers untouched.
 
-The Metronome (clock runs at the Focus multiplier) · The Tollman (interact costs ×2, +3s to play) · The Undertow (−10 Focus/15s) · The Quarantine (a cell goes dark every 15s, 10s warning) · The Censor (a Trick suspended 45s every 35s) · The Blight (3 cells contaminated every 20s) · The Recall (a rank withdrawn every 45s, never repeated) · The Auditor (−1 swap or discard every 30s).
+The Metronome (clock runs at the Focus multiplier) · The Tollman (interact costs ×2, +3s to play) · The Undertow (−10 Focus/15s) · The Quarantine (a cell goes dark every 15s, 10s warning) · The Censor (a Trick suspended 45s every 35s) · The Blight (3 cells contaminated every 20s) · The Recall (a rank withdrawn every 36s, never repeated - r197, 25% more often than the 45s it shipped with) · The Auditor (−1 swap or discard every 30s).
+
+### The Marker (r197) - a boss you cannot see working
+
+**One card in every ten is silently marked. Nothing on the card, in the tray or in Records says which.** Play a marked card and it is discarded instead of scored, taking every other marked card in the same hand with it, and the hand does not score at all. Marked cards are only spent by being played, so a hand that fizzles at least clears them.
+
+- **The mark rides `card._discardCursed`, a plain flag, and is deliberately NOT in `DURABLE_CARD_FIELDS`.** A card discarded back into the deck is rebuilt from that list, so a marked card that leaves play comes back clean and takes a fresh roll next time it is drawn - which is the behaviour we want, and it means nothing has to un-mark the piles.
+- **`drawCard()` is the hook**, because it is the single point every card enters play through: the opening deal and every refill are covered by one line. The counter is **exact**, not a 10% dice roll - "one in every ten" must not clump three into one hand and then none for a minute.
+- **`bossMarkerSeedBoard()` exists because the board for a boss round is dealt BEFORE `triggerBoss` runs**, so those cards never passed through `drawCard` while the boss was live. Without it the first boardful is free.
+- **`bossMarkerIntercept(cells)` is called from `playHand` after a hand is confirmed but before anything is scored or mutated**, so a fizzled hand leaves no trace in the contributions, the hand log or `handsPlayedRound`. It returns true and `playHand` returns.
+- The cards **fall out of the hand preview** (`bossMarkerFizzleFX`): the whole submitted hand is drawn into `#selected-cards` exactly as the scoring dance draws it - `renderCardAppearance` into the same `.dnc-*` skeleton - so sizing and the portrait overlap rules apply for free. Marked cards drop out of the bottom, the rest fade.
+- `bossEffectsIgnored()` (Fight the Power) bypasses both the marking and the intercept.
 
 Three more (r151) hang off **`bossOnInteract(kind)`**, called from `doSwap`/`doDiscard`, and one score hook: The Ratchet (+5% objective per interact) · The Turnstile (−3 credits per interact) · The Redaction (one hand type scores ×0.4, picked once at boss start). **The Ratchet raises `currentBoss.objective.target`, not `roundGoal`** - during a boss `checkBossObjective` is what gates the round, so raising `roundGoal` alone would do nothing (the same trap the Twin Path debuff fell into).
 
@@ -577,7 +637,7 @@ So the most recently picked tile is always the one being explained, and you can 
 Two different things, and the descriptions must not blur them:
 
 - **PAUSE** (`pauseRound(seconds)`, `js/discard.js`) - the clock **freezes** for N seconds. Pauses **stack** (an active pause is extended, not reset). Counts into `pausesThisRound` / `pauseInstanceGame` (Hummingbird) and `pausedSecondsRound` (Albatross). The **Long Pause** knack makes every pause 1.5× longer; **Time Slip** gives each pause a 25% chance to become a rewind instead.
-- **REWIND** (`rewindTime(seconds, label)`, `js/discard.js`) - the clock **gets seconds back**: `roundSeconds += n`, **capped at `ROUND_DURATION`**, with a ⏪ floater. Counts into `rewoundSecondsRound` (Kingfisher) and `rewindsThisRound`. **Returns 0 during a boss**, which is correct - bosses run their own timer.
+- **REWIND** (`rewindTime(seconds, label)`, `js/discard.js`) - the clock **gets seconds back**: `roundSeconds += n`, **capped at `ROUND_DURATION`**, with a ⏪ floater. Counts into `rewoundSecondsRound` (Kingfisher) and `rewindsThisRound`. Since r197 it **works during a boss too** - there is one clock now, and `rewindCeiling()` reads the boss window through `currentRoundDuration()`. (It used to return 0, because the boss ran a separate countdown and `roundSeconds` was frozen.)
 
 Because a rewind can push the clock back past a mark it already passed, `handleClockMarks` can fire the same clock-mark Trick twice. That is an intended synergy, not a bug.
 
@@ -948,6 +1008,13 @@ doing it all with static gains gives a mix where the big moments never get room.
 loud while the others ducked - which also meant it ignored `sfxVolume()`, so mute
 never silenced it (the same bug `sfxWinExplode` had). It rides the `alert` bus
 now, whose `duckTo` is 1: nothing ducks it, and the sliders reach it.
+
+### The discard sound (r197)
+
+There was no discard sound at all: discarding reused **`sfxFlipShuffle`**, the riffle that also plays when a hand flies to the preview, so binning cards and scoring them opened the same way. `sfxCardDiscard(loud)` is a dry downward sweep - a card thrown onto a pile, not shuffled into one.
+
+- **One function, two catalog rows.** `card_discard` and `card_discard_forced` share `fn: 'sfxCardDiscard'` and the wrapper picks the row whose `args[0]` matches the call (the same mechanism as the pip/mult particle pair), so `sfxCardDiscard()` and `sfxCardDiscard(true)` are separately switchable, mixable and auditionable.
+- **The loud one is The Marker's forced discard** - a marked card eating the hand you just played. That is not something you did, so it has to announce itself: 1.7x gain and a touch lower in the sound itself, and it rides the **`event`** bus rather than `board`, so it also ducks the board under it. Measured peaks: 0.062 normal, 0.153 forced.
 
 ### Two sounds per particle (r191)
 

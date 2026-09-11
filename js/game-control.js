@@ -4,8 +4,6 @@ function pauseGame(hideGrid = true) {
   isPaused = true;
   clearInterval(roundInterval); roundInterval = null;
   clearInterval(gameInterval);  gameInterval  = null;
-  // Pause boss tick too if active
-  if (bossInterval) { clearInterval(bossInterval); bossInterval = null; }
   cancelAutoSubmit();
   if (hideGrid) {
     document.getElementById('pause-overlay').style.display = 'flex';
@@ -20,11 +18,10 @@ function resumeGame() {
   document.getElementById('pause-overlay').style.display = 'none';
   document.getElementById('grid').style.visibility = '';
   document.getElementById('btn-pause').textContent = '⏸ Pause';
-  if (bossActive) {
-    startBossTimer(); // resume boss tick instead of round timer
-  } else {
-    startRoundTimer();
-  }
+  // One clock (r197): startBossTimer re-arms any scheduled effects still pending
+  // and then starts the same round timer everything else uses.
+  if (bossActive) startBossTimer();
+  else startRoundTimer();
   // Restart game timer
   gameInterval = setInterval(() => {
     if (gameTimerPaused) return;
@@ -227,7 +224,6 @@ function startGame() {
   // where every new run funnels through.
   bossActive = false;
   if (typeof clearBossEffects === 'function') clearBossEffects();
-  if (typeof bossInterval !== 'undefined' && bossInterval) { clearInterval(bossInterval); bossInterval = null; }
   document.getElementById('boss-preamble')?.remove();
   document.querySelectorAll('.rp-block').forEach(el => el.classList.remove('boss-sigil'));
 
@@ -410,6 +406,7 @@ function startGame() {
   jackpotFired       = false;
   safetyNetUsed      = false;
   handsPlayedRound   = 0;
+  studyHallCards     = 0;   // Study Hall's every-2nd-card counter runs for the whole run
   runsPlayedRound    = 0;
   setsPlayedRound    = 0;
   runStreak          = 0;
@@ -477,9 +474,7 @@ function startGame() {
   nextShopTime = GAME_DURATION - 120;
 
   // Reset boss state
-  if (bossInterval) { clearInterval(bossInterval); bossInterval = null; }
   bossActive = false;
-  bossSecondsLeft = 0;
   blockedCells = new Set();
   bossNumber = 0;
   bossBag = [];              // fresh shuffled boss bag per run (see nextBossPreset)

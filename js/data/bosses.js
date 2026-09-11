@@ -1,9 +1,15 @@
+// A boss has NO score target of its own (r155, confirmed and enforced r197): the
+// win bar is simply THIS ROUND'S GOAL - `bossGoalMet()` is `score >= roundGoal`.
+// A boss's challenge is its MODIFIER. The vestigial `target: 4000`-style numbers
+// these presets used to carry were read by nothing and are gone, so a preset can
+// no longer look like it sets a second requirement. A `hand` objective is the one
+// thing layered on top of the goal, and it still carries its own handName/count.
 const BOSS_PRESETS = [
   {
     id: 'stone_lord',
     name: 'THE STONE LORD',
     flavor: 'Your deck turns to rubble',
-    objective: { type: 'score', target: 4000 },
+    objective: { type: 'score' },
     modifiers: ['inject_stones'],
     params: { stoneInjectCount: 5 }
   },
@@ -12,7 +18,7 @@ const BOSS_PRESETS = [
     name: 'THE VOIDWRIGHT',
     flavor: 'Two of your Tricks at a time',
     brief: 'Two of your Tricks are switched off for the first half of the round, then those two come back and a different two go off for the second half. The briefing shows you which - both halves, up front - and a switched-off Trick is greyed out in your tray and in Records the whole time.',
-    objective: { type: 'score', target: 4500 },
+    objective: { type: 'score' },
     modifiers: ['trick_pool_split'],
     params: { perPhase: 2 }
   },
@@ -28,7 +34,7 @@ const BOSS_PRESETS = [
     id: 'cornerless_king',
     name: 'THE CORNERLESS KING',
     flavor: 'The edges hold no salvation',
-    objective: { type: 'score', target: 5000 },
+    objective: { type: 'score' },
     modifiers: ['void_corners', 'reduce_swaps'],
     params: { swapsDelta: -1 }
   },
@@ -36,7 +42,7 @@ const BOSS_PRESETS = [
     id: 'the_hollow',
     name: 'THE HOLLOW',
     flavor: 'Cards crumble into nothing',
-    objective: { type: 'score', target: 4500 },
+    objective: { type: 'score' },
     modifiers: ['periodic_null'],
     params: { nullIntervalSecs: 8, nullCount: 1 }
   },
@@ -50,7 +56,7 @@ const BOSS_PRESETS = [
     name: 'THE METRONOME',
     flavor: 'It keeps your time now',
     brief: 'The clock runs at your Focus multiplier. At ×3 Focus, three seconds leave the clock every second. Focus is still worth having - it just costs you the round to hold.',
-    objective: { type: 'score', target: 4200 },
+    objective: { type: 'score' },
     modifiers: ['time_scales_with_focus'],
     params: {}
   },
@@ -59,7 +65,7 @@ const BOSS_PRESETS = [
     name: 'THE TOLLMAN',
     flavor: 'Every touch is billed',
     brief: 'Swaps and discards cost double, and playing a hand - normally free - is billed 3 seconds. Fix the board less. Play what you are dealt.',
-    objective: { type: 'score', target: 4000 },
+    objective: { type: 'score' },
     modifiers: ['interact_surcharge'],
     params: { costMult: 2, playCostAdd: 3 }
   },
@@ -68,7 +74,7 @@ const BOSS_PRESETS = [
     name: 'THE UNDERTOW',
     flavor: 'Concentration will not hold',
     brief: 'Every 15 seconds, 10 Focus is pulled out of the meter. Build it faster than it drains, or accept a low multiplier and score on volume.',
-    objective: { type: 'score', target: 4200 },
+    objective: { type: 'score' },
     modifiers: ['focus_drain'],
     params: { everySecs: 15, amount: 10 }
   },
@@ -77,7 +83,7 @@ const BOSS_PRESETS = [
     name: 'THE QUARANTINE',
     flavor: 'The board is being condemned, cell by cell',
     brief: 'Every 15 seconds a cell is marked with a cross. Ten seconds later it goes dark: cards still fall into it, but nothing there can be selected, played, discarded or swapped. The dark cells accumulate.',
-    objective: { type: 'score', target: 4000 },
+    objective: { type: 'score' },
     modifiers: ['cell_quarantine'],
     params: { everySecs: 15 }
   },
@@ -86,7 +92,7 @@ const BOSS_PRESETS = [
     name: 'THE CENSOR',
     flavor: 'Your paperwork is under review',
     brief: 'Every 35 seconds one of your Tricks is suspended for 45 seconds. The windows overlap, so for 10 seconds of every cycle two of them are down at once.',
-    objective: { type: 'score', target: 4300 },
+    objective: { type: 'score' },
     modifiers: ['trick_blackout'],
     params: { everySecs: 35, holdSecs: 45 }
   },
@@ -95,7 +101,7 @@ const BOSS_PRESETS = [
     name: 'THE BLIGHT',
     flavor: 'It spreads through the board',
     brief: 'Every 20 seconds three more cells are contaminated, for the rest of the round. Cards scored from a contaminated cell contribute half their pips, and may fail to trigger a Trick they otherwise would.',
-    objective: { type: 'score', target: 4200 },
+    objective: { type: 'score' },
     modifiers: ['cell_blight'],
     params: { everySecs: 20, count: 3 }
   },
@@ -103,17 +109,19 @@ const BOSS_PRESETS = [
     id: 'the_recall',
     name: 'THE RECALL',
     flavor: 'That rank has been withdrawn',
-    brief: 'One rank is withdrawn from play at a time - those cards sit on the board, inert. Every 45 seconds the previous rank is reinstated and a different one is taken. No rank is recalled twice.',
-    objective: { type: 'score', target: 4000 },
+    brief: 'One rank is withdrawn from play at a time - those cards sit on the board, inert. Every 36 seconds the previous rank is reinstated and a different one is taken. No rank is recalled twice.',
+    objective: { type: 'score' },
     modifiers: ['rank_recall'],
-    params: { everySecs: 45 }
+    // r197: 25% more often, so 45s -> 36s (45 / 1.25). Over a 180s window that is
+    // 5 recalls instead of 4.
+    params: { everySecs: 36 }
   },
   {
     id: 'the_auditor',
     name: 'THE AUDITOR',
     flavor: 'Your allowances are under revision',
     brief: 'Every 30 seconds one swap or one discard is struck off your allowance for this round. Spend them while you still have them.',
-    objective: { type: 'score', target: 4000 },
+    objective: { type: 'score' },
     modifiers: ['ration_cut'],
     params: { everySecs: 30 }
   },
@@ -122,7 +130,7 @@ const BOSS_PRESETS = [
     name: 'THE RATCHET',
     flavor: 'The bar only moves one way',
     brief: 'Every swap and every discard raises the objective by 5%. It never comes back down. Fixing the board is now a decision with a price attached.',
-    objective: { type: 'score', target: 3800 },
+    objective: { type: 'score' },
     modifiers: ['goal_ratchet'],
     params: { rate: 0.05 }
   },
@@ -131,16 +139,25 @@ const BOSS_PRESETS = [
     name: 'THE TURNSTILE',
     flavor: 'Access is metered',
     brief: 'Every swap and every discard is billed 3 credits. Your balance cannot go below zero - but interest is paid on what survives the round.',
-    objective: { type: 'score', target: 4000 },
+    objective: { type: 'score' },
     modifiers: ['interact_fee'],
     params: { fee: 3 }
+  },
+  {
+    id: 'the_marker',
+    name: 'THE MARKER',
+    flavor: 'Some of these are no good',
+    brief: 'One card in every ten is quietly marked. Nothing tells you which. Play a marked card and it is discarded instead of scored, along with every other marked card in that hand - the hand does not score at all. Marked cards are only spent by being played, so a hand that fizzles at least clears them.',
+    objective: { type: 'score' },
+    modifiers: ['discard_curse'],
+    params: { everyNthCard: 10 }
   },
   {
     id: 'the_redaction',
     name: 'THE REDACTION',
     flavor: 'That hand is no longer recognised',
     brief: 'One hand type is marked down for the whole round - it scores 60% less. The hand is chosen when the review begins and does not change. Find another line.',
-    objective: { type: 'score', target: 4200 },
+    objective: { type: 'score' },
     modifiers: ['redact_hand'],
     params: { mult: 0.4 }
   }
