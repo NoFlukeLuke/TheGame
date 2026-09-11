@@ -757,9 +757,17 @@ function confirmSpring() {
 // ══════════════════════════════════════════════
 function renderTwinPath() {
   const ownedTrick = new Set((acquiredTricks||[]).map(b=>b.id));
-  const pool = TRICK_POOL.filter(b=>!ownedTrick.has(b.id));
-  const sh = a => { const r=[...a]; for(let i=r.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[r[i],r[j]]=[r[j],r[i]];} return r; };
-  const picks = sh(pool).slice(0,2);
+  const pool = TRICK_POOL.filter(b=>!ownedTrick.has(b.id) && !offerBannedGlobal(b.id));
+  // Both Tricks are drawn on the rarity table (r203). This event shuffled the
+  // whole pool and took the top two until then - two flat draws from 177 Tricks,
+  // so a Twin Path was a 31%-epic-or-better offer TWICE while the reward grid
+  // beside it ran at 13%. It is most of why Tricks read as too generous.
+  const picks = [];
+  const taken = new Set();
+  for (let i = 0; i < 2; i++) {
+    const p = pickTrickByRarity(pool.filter(b => !taken.has(b.id)));
+    if (p) { picks.push(p); taken.add(p.id); }
+  }
   const shadow = [
     { icon:'☁', name:'−5s This Round', desc:'Lose 5 seconds immediately.',     apply:()=>{roundSeconds=Math.max(1,roundSeconds-5);updateClockUI();showMessage('−5s (Twin Path shadow)','var(--red)');} },
     { icon:'☠', name:'−1 Discard',    desc:'Lose 1 discard permanently.',      apply:()=>{limits.discards.current=Math.max(1,limits.discards.current-1);discards=Math.min(discards,limits.discards.current);render();showMessage('−1 Discard (Twin Path shadow)','var(--red)');} },

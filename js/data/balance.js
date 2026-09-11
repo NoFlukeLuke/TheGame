@@ -68,7 +68,7 @@ const BAL = {
   light_touch: { mult: 5 },
   patience_reward: { mult: 3, seconds: 15 },
   first_play: { focus: 5 },
-  monochrome: { coins: 1, seconds: 10 },
+  monochrome: { coins: 1, seconds: 15 },
   full_color: { pips_per_card: 16, mult_per_card: 4 },
   balanced_diet: { mult_per_card: 2 },
   number_crunch: { mult: 2 },
@@ -138,11 +138,11 @@ const BAL = {
   richter: { mult_mult: 3 },
   ripple: { cooldown_ms: 30000 },
   river_run: { focus_per_card: 1 },
-  deluge: { seconds: 5 },
+  deluge: { seconds: 15 },
   perfect_storm: { pip_mult: 5 },
   extinction: { mult_mult: 2 },
   lucky_sevens: { focus: 3 },
-  ninesong: { seconds: 3, mult: 9, focus: 3 },
+  ninesong: { seconds: 15, mult: 9, focus: 3 },
   royal_trio: { mult_mult: 2 },
   prime_time: { pips_per_card: 23 },
   shape_square: { focus: 16 },
@@ -202,22 +202,29 @@ const BAL = {
   sandbag: { rank_below: 8 /* seconds = the pair's rank */ },
   pivot: { mult: 5 },
   idol: { interest_mult: 3 },
-  the_legacy: { extra_mult: 2 },
-  the_naturalist: { pips: 2 },
-  lightning_rod: { pips: 5 },
-  the_catalyst: { mult: 1 },
+  the_legacy: { mult_x: 3 },
+  the_naturalist: { pips: 3 },
+  lightning_rod: { pips: 10 },
+  the_catalyst: { mult: 5 },
   the_bomb: { pips: 3 },
   bellhop: { swaps: 2, discards: 1 },
   cash_out: { coins: 10 },
   the_wanderer: { swaps: 1 },
-  amplifier: { mult: 5 },
+  amplifier: { mult: 10 },
   piggy_bank: { coins: 5 },
   // ── adjacency / position sleights (r120) ──
-  whetstone:  { mult_per_event: 1 },
+  whetstone:  { mult_per_event: 2 },
   entourage:  { mult_per_sleight: 10 },
-  lighthouse: { mult: 20, falloff_per_column: 5 },
+  lighthouse: { mult: 20, falloff_per_column: 7 },
   // ── focus-payout entities (r123) ──
-  capacitor:    { focus_cost: 10, time_cost: 20, credits: 10 },
+  // ── reward-grid penalties (r194) ──
+  rider:        { seconds_per_proc: 2 },
+  spot_check:   { mult: 0.5, plays_to_clear: 3 },
+  interest_freeze: { rounds: 3 },
+  reflect:      { extra_replays: 2 },
+  soul_mirror:  { /* replays = copies of the aimed rank on the grid */ },
+  power_cell:   { focus_on_enter: 10, focus_cap: 10 },
+  capacitor:    { focus_cost: 10, time_cost: 10, credits: 10 },
   siphon:       { focus_cost: 15, mult: 4 },
   release_valve:{ keep_fraction: 0.5 },
   dividend:     { credits: 8, keep_fraction: 0.33 },
@@ -226,10 +233,12 @@ const BAL = {
   // ── knacks ──
   tempo:    { limit: 2, interval_seconds: 15 },
   jury_rig: { chance: 0.5, charges: 1 },
+  coin_toss: { chance: 0.5, charges: 1 },   // was hardcoded in js/level-up.js until r196
+  rowcol_retrigger: { chance: 0.5 },        // was an unscalable modulo in js/scoring.js until r196
   time_slip: { chance: 0.25 },
   replay_rewind: { chance: 0.25, seconds: 2 },
-  deja_vu: { seconds: 5 },
-  clockmaker: { goal_fraction: 0.30, seconds: 5 },
+  deja_vu: { seconds: 15 },
+  clockmaker: { goal_fraction: 0.30, seconds: 15 },
   time_bank: { seconds: 30 },
   inheritance: { coins: 5 },
   lucky_seven: { interval_hands: 7, swaps: 1 },
@@ -250,10 +259,25 @@ const BAL = {
 // {param} tokens are filled from BAL[id] at load (applyBalDescriptions), so a
 // value change via the balance sheet updates the in-game description too. Only
 // entities whose wording maps unambiguously to their params are listed.
+// ══════════════════════════════════════════════
+// THE RARITY TABLE (r195) - one copy, read by every offer path
+// ══════════════════════════════════════════════
+// How likely each tier is when the game offers you an entity. It was written out
+// FOUR times before this - js/shop.js for sleights, js/mart-shop.js for the Mart
+// shelves and the wheel, and two in js/reward-grid.js - and the reward grid's
+// trick/knack copy had drifted to its own numbers. One table now, so tuning the
+// game's generosity is editing one line and so that a future Luck stat has a
+// single place to reach.
+//
+// The prize grid keeps its own variant (common cut out) because that IS its
+// design, not a drift.
+const ENTITY_TIERS   = ['common', 'rare', 'epic', 'legendary', 'mythic'];
+const ENTITY_TIER_W  = [59, 28, 10, 2, 1];
+
 const DESC_TEMPLATES = {
-  whetstone: 'Whenever an adjacent card is swapped or discarded, Whetstone gains +{mult_per_event} mult. Hands that score a card adjacent to Whetstone score that mult.',
+  whetstone: 'Whenever an adjacent card is swapped or discarded, Whetstone gains +{mult_per_event} mult permanently. Hands that score a card adjacent to Whetstone score that mult.',
   entourage: 'Hands score +{mult_per_sleight} mult for every other Sleight on the grid.',
-  lighthouse: 'Each round Lighthouse favors the first or last column. Hands score +{mult} mult while it sits in that column, −{falloff_per_column} per column of distance away (minimum 0).',
+  lighthouse: 'Each round Lighthouse picks either the first or last column. All hands score +{mult} mult when Lighthouse is in that column, −{falloff_per_column} per column away (minimum 0).',
   tempo: 'When acquired, sets your swap and discard limits to {limit}. Every {interval_seconds} seconds, gain 1 back - alternating swap, then discard.',
   capacitor: 'Double-tap to spend {focus_cost} Focus and {time_cost} seconds for {credits} credits. Consumed on use.',
   siphon: 'Double-tap to spend {focus_cost} Focus: your next scored hand gets ×{mult} mult. Returns to your deck after use.',
@@ -324,7 +348,7 @@ const DESC_TEMPLATES = {
   cash_out: 'Discard this: gain {coins} credits. (4 charges)',
   lightning_rod: 'When swapped, the card it traded with permanently gains +{pips} pips.',
   the_catalyst: 'When swapped, the card it traded with permanently gains +{mult} mult.',
-  the_wanderer: 'When swapped, refunds the swap (+{swaps} swap back).',
+  the_wanderer: 'Swap it with ANY card on the grid, next to it or not, and the swap is free (+{swaps} swap back).',
   time_bank: '+{seconds} seconds at the start of every round.',
   inheritance: 'Start each round with +{coins} credits.',
   lucky_seven: 'Every {interval_hands}th hand played gives +{swaps} swap.',
@@ -339,11 +363,29 @@ const DESC_TEMPLATES = {
   big_win: 'The first time a single hand scores 10,000+, permanently add +{mult} mult to this trick',
   idol: 'Finish the round with this on your board to earn {interest_mult}× interest. (Once)',
   amplifier: 'Double-tap: the next hand scores +{mult} mult. (5 charges)',
+  the_legacy: 'Discard this: the next hand played gets ×{mult_x} mult. (3 charges)',
+  power_cell: 'When it enters the grid: +{focus_on_enter} Focus. While it remains on the grid: +{focus_cap} maximum Focus.',
+  rowcol_retrigger: 'Cards scored in a marked row or column have a {chance_pct}% chance to replay once',
+  coin_toss: 'At the start of each round, every Sleight has a {chance_pct}% chance to restore {charges} charge.',
+  reflect: 'Tap to rotate its aim. The rank it faces replays {extra_replays}× when a hand scores. Works once per round. Cannot be swapped or discarded.',
+  deluge: 'Flushes rewind the clock {seconds} seconds',
+  monochrome: 'Hands with at least one heart and one diamond grant +{coins} credit and rewind the clock {seconds} seconds',
+  ninesong: "If the hand's pip total is divisible by 3: rewind {seconds} seconds, +{mult} mult, +{focus} Focus",
+  deja_vu: 'Playing the same ranks in two hands in a row rewinds the clock {seconds} seconds.',
+  clockmaker: 'Any time a single hand scores at least 30% of the round goal, rewind the clock {seconds} seconds.',
   piggy_bank: 'Double-tap: gain {coins} credits. (5 charges)',
   steady_hand: 'Swaps no longer count against the swap limit, but cost {swap_seconds}s each.',
   hoarder: 'Discards no longer count against the discard limit, but cost {discard_seconds_per_card}s per card.',
 };
-function fillDescTemplate(t, p) { return t.replace(/\{(\w+)\}/g, (m, k) => (k in p ? p[k] : m)); }
+// {key} prints the raw value; {key_pct} prints it as a percentage, which is how
+// every chance entity wants to read ("a 50% chance", not "a 0.5 chance").
+function fillDescTemplate(t, p) {
+  return t.replace(/\{(\w+)\}/g, (m, k) => {
+    if (k in p) return p[k];
+    if (k.endsWith('_pct')) { const b = k.slice(0, -4); if (b in p) return Math.round(p[b] * 100); }
+    return m;
+  });
+}
 function applyBalDescriptions() {
   [TRICK_POOL, SLEIGHT_POOL, KNACK_POOL].forEach(pool => pool.forEach(e => {
     if (DESC_TEMPLATES[e.id] && BAL[e.id]) e.desc = fillDescTemplate(DESC_TEMPLATES[e.id], BAL[e.id]);

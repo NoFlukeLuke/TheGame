@@ -250,7 +250,7 @@ function bossRationTick() {
   render();
 }
 
-// ── THE MARKER (r197) ────────────────────────────────────────────────────────
+// ── THE MARKER (r205) ────────────────────────────────────────────────────────
 // One card in every ten is silently marked. Nothing on the card, in the tray or in
 // Records says so - that is the whole boss. Play a marked card and it is discarded
 // instead of scored, taking every other marked card in the same hand with it, and

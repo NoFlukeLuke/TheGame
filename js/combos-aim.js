@@ -63,16 +63,52 @@ function findAimSleight(id) {
     }
   return null;
 }
-// Reflect: true if a Reflect currently aims at cell (r,c)
-function reflectAimsAt(r, c) {
+// ── Reflect / Soul Mirror (reworked r193) ───────────────────────────────────
+// Both aim sleights used to key off the CELL they face. They now key off the
+// RANK of the card in that cell, which is what makes them worth aiming: the
+// target moves as the board falls, but the rank is a thing you can build around.
+//
+// Both are READ-ONLY from calcScore - findBestHand scores every candidate hand
+// through it, so anything that mutates state here would fire on a hover. Reflect's
+// once-per-round lock is therefore a flag that only playHand sets (see
+// reflectSpendForRound), the same contract Siphon and Legacy use.
+
+// The rank a Reflect currently faces, or null if it faces nothing / no Reflect.
+function reflectAimedRank() {
   const f = findAimSleight('reflect');
-  if (!f) return false;
+  if (!f) return null;
   const t = aimTargetCell(f.card, f.r, f.c);
-  return !!t && t[0] === r && t[1] === c;
+  if (!t) return null;
+  const tc = gridData[t[0]]?.[t[1]];
+  return (tc && tc.rank) ? tc.rank : null;
 }
-// Soul Mirror: how many Soul Mirrors currently face a card of this rank (they stack)
+let reflectUsedThisRound = false;   // cleared in the round-start sweep
+// True while Reflect would replay this card: it faces this card's rank and has
+// not yet fired this round. The (r, c) arguments are kept for call-site
+// compatibility - it is the rank that decides now, not the position.
+function reflectAimsAt(r, c) {
+  if (reflectUsedThisRound) return false;
+  const rank = reflectAimedRank();
+  if (rank === null) return false;
+  const card = gridData[r]?.[c];
+  return !!card && card.rank === rank;
+}
+// Called from playHand once a hand that used Reflect has committed.
+function reflectSpendForRound(cells) {
+  if (reflectUsedThisRound) return false;
+  const rank = reflectAimedRank();
+  if (rank === null) return false;
+  const hit = (cells || []).some(([r, c]) => gridData[r]?.[c]?.rank === rank);
+  if (hit) reflectUsedThisRound = true;
+  return hit;
+}
+
+// Soul Mirror: while it faces a card, scoring that rank replays it once per copy
+// of that rank ON THE GRID - so the payoff is a board state you can build toward,
+// not just the fact that a mirror is pointed somewhere. Several Soul Mirrors
+// facing the same rank still stack (each contributes its own count).
 function soulMirrorRankCount(rank) {
-  let n = 0;
+  let mirrors = 0;
   for (let r = 0; r < gridRows; r++)
     for (let c = 0; c < gridCols; c++) {
       const cell = gridData[r]?.[c];
@@ -80,7 +116,18 @@ function soulMirrorRankCount(rank) {
       const t = aimTargetCell(cell, r, c);
       if (!t) continue;
       const tc = gridData[t[0]]?.[t[1]];
-      if (tc && tc.rank === rank) n++;
+      if (tc && tc.rank === rank) mirrors++;
+    }
+  if (!mirrors) return 0;
+  return mirrors * rankCountOnGrid(rank);
+}
+// How many cards of this rank are on the board right now (sleights/stones excluded).
+function rankCountOnGrid(rank) {
+  let n = 0;
+  for (let r = 0; r < gridRows; r++)
+    for (let c = 0; c < gridCols; c++) {
+      const cell = gridData[r]?.[c];
+      if (cell && !cell._isSleight && !cell._isStone && cell.rank === rank) n++;
     }
   return n;
 }
@@ -129,6 +176,7 @@ let pausesThisRound = 0;      // PER ROUND: how many times the clock has been pa
 let rewindsThisRound = 0;     // PER ROUND: how many times the clock has been rewound (time popup)
 let retriggersThisRound = 0;  // count of card retriggers in scored hands this round (Cuckoo's pause length)
 let _lastHandRetrigs = 0;     // extra retriggers in the most recent calcScore of a real hand (read in playHand)
+let _lastHandProcs   = {};    // per-id proc COUNTS from that same calcScore (read by the Rider penalty)
 // Contribution-tally summaries (shown in the Contributions view when non-zero).
 let replaysThisRound = 0;     // total card replays/retriggers across scored hands this round
 let timeManipRound = 0;       // net seconds ADDED to the clock by scoring effects this round (Deluge/Overtime/etc.)
@@ -166,6 +214,37 @@ function achievableHandTypes() {
   if (cap >= 4) t.push('Two Pair', 'Four of a Kind', 'Run of 4');
   if (cap >= 5) t.push('Straight', 'Flush', 'Full House', 'Straight Flush');
   return t;
+}
+
+// ── Dead Drop (r194): a cell that plays but does not pay ────────────────────
+// Deliberately NOT part of isCellBlocked. The two boss cell states both take the
+// cell out of play - VOID returns the card to the deck, QUARANTINED lets a card
+// land but blocks selecting it - and this is a third thing: the card is
+// selectable and COUNTS FOR HAND DETECTION, so three cards including it still
+// make a Three of a Kind, and the hand still fires its whole-hand Tricks. What
+// it does not do is contribute: zero pips, and none of its own per-card Tricks.
+// Lasts to the end of the act (cleared where actNumber advances).
+function isCellDead(r, c) { return deadCells.has(`${r}-${c}`); }
+
+// Drawn from render(), NOT from renderBossCellOverlays - that one is gated on
+// bossActive and clears itself when the boss ends, and a dead cell outlives the
+// round it was taken in. Cheap no-op while the set is empty, which is the
+// overwhelming majority of the time.
+function renderDeadCellOverlays() {
+  const gridEl = document.getElementById('grid');
+  if (!gridEl) return;
+  const had = gridEl.querySelector('.dead-cell');
+  if (!deadCells.size) { if (had) gridEl.querySelectorAll('.dead-cell').forEach(el => el.remove()); return; }
+  gridEl.querySelectorAll('.dead-cell').forEach(el => el.remove());
+  deadCells.forEach(k => {
+    const [r, c] = k.split('-').map(Number);
+    if (r >= gridRows || c >= gridCols) return;   // board shrank under it
+    const d = document.createElement('div');
+    d.className = 'dead-cell';
+    d.style.left = cellLeft(c) + 'px';
+    d.style.top  = cellTop(r) + 'px';
+    gridEl.appendChild(d);
+  });
 }
 
 let resilience = false; // once per game second chance
@@ -207,6 +286,71 @@ let nextRoundSwapDelta    = 0;     // change to next round's swap count
 let nextRoundSecondsDelta = 0;     // change to next round's starting seconds (+15s buff)
 let nextRoundPlayCost     = 0;     // +seconds to hand cost, next round only
 let nextRoundDiscardCost  = 0;     // +seconds per discarded card, next round only
+// ── Reward-grid penalties added r193 ──
+// Permanent (reset only on a new game):
+let goalPenaltyMult   = 1;         // multiplies every future round goal (Quota Revision)
+let focusRatePenalty  = 1;         // divides the Focus a hand generates (Red Tape)
+// Next-round-only:
+let skipNextPayout    = false;     // the next round's end-of-round payout pays nothing (Withheld)
+// One owned entity is switched off for the first half of the next round (Suspension).
+// { type:'trick'|'knack'|'sleight' } while armed; gains { id } once the round deals.
+let pendingEntityLockout = null;
+let entityLockout        = null;
+// ── Five more reward-grid penalties (r194) ──
+// Permanent for the rest of the ACT:
+let deadCells         = new Set();  // "r-c" cells whose card scores nothing (Dead Drop)
+// Permanent for the run, or until the ridden Trick leaves you:
+let riderTrickId      = null;       // Trick every proc of which costs seconds (Rider)
+// Counted down, then gone:
+let interestFreezeRounds = 0;       // rounds left with no interest paid (Interest Freeze)
+let spotCheckHand     = null;       // hand type scoring at half mult (Spot Check)
+let spotCheckLeft     = 0;          // how many more of it must be played to clear it
+// Next round only:
+let nextRoundGridShrink = null;     // 'rows' | 'cols' - the board loses one, once (Short Staffed)
+
+// ── Suspension: one owned entity switched off for half a round (r193) ────────
+// The reward-grid tile names the TYPE when you take it ("a Sleight will not work
+// for the first half of next round") and the specific entity is only chosen when
+// that round deals. That is the point of the penalty: you know what kind of hole
+// is coming and you cannot plan around which one, so it is a real risk rather
+// than a known cost.
+//
+// KNOWN GAP, deliberate: the sleight case gates applySleightGridEffect, which is
+// where every ACTIVATION-driven sleight funnels through. The three passive mult
+// sleights (Whetstone, Entourage, Lighthouse) and the focus-rate pair work by
+// being scanned where they sit, so they are not covered. Suspension therefore
+// bites an activation sleight harder than a passive one - worth knowing before
+// tuning its weight up.
+function resolveEntityLockout() {
+  entityLockout = null;
+  if (!pendingEntityLockout) return;
+  const type = pendingEntityLockout.type;
+  pendingEntityLockout = null;
+  let pool = [];
+  if (type === 'trick')       pool = (trickTray || []).map(t => ({ id: t.id, name: t.name }));
+  else if (type === 'knack')  pool = (acquiredKnacks || []).map(t => ({ id: t.id, name: t.name }));
+  else if (type === 'sleight') {
+    for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
+      const cd = gridData?.[r]?.[c];
+      if (cd?._isSleight) { const d = sleightDef(cd); if (d) pool.push({ id: d.id, name: d.name }); }
+    }
+  }
+  if (!pool.length) return;   // nothing of that type owned - the penalty simply misses
+  const pick = pool[Math.floor(Math.random() * pool.length)];
+  // Half of THIS round, measured off the clock the round actually started with,
+  // so it is half a round in every mode rather than half of Classic's 180.
+  entityLockout = { type, id: pick.id, name: pick.name, until: (roundStartSeconds || roundSeconds) / 2 };
+  showMessage(`Suspended: ${pick.name} (half the round)`, 'var(--red)');
+}
+// True while the lockout window is open. Flow has no round clock to run down, so
+// the window there is the first half of the session clock, which is the same
+// reading of "half a round" the rest of the game uses.
+function entityLockoutOpen() {
+  return !!entityLockout && roundSeconds > entityLockout.until;
+}
+function entitySuspended(type, id) {
+  return entityLockoutOpen() && entityLockout.type === type && entityLockout.id === id;
+}
 // Active for the CURRENT round (recomputed each round = permanent + next-round):
 let playHandCostThisRound = 0;     // extra seconds per hand this round
 let discardCostThisRound  = 0;     // extra seconds per discarded card this round

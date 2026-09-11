@@ -107,7 +107,7 @@ function flowTriggerBoss() {
   const _wiped = score;
   totalScore += Math.max(0, score);
   score = 0;
-  roundGoal = survivalGoalForLevel(level);
+  roundGoal = goalForLevel(level);
   // Held while the wipe animates the OLD number down to the new zero - the state
   // above is already correct, so an abort can't strand a half-reset run.
   suppressScoreDisplay = true;

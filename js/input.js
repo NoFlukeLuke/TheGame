@@ -40,6 +40,8 @@ function scheduleAutoSubmit() {
   if (danceAbortController) return; // dance in progress, don't schedule
   const result = selected.length >= 2 ? findBestHand(selected) : null;
   if (!result) return; // no valid hand, don't schedule
+  // r200: never auto-fire a hand the player is not allowed to play yet.
+  if (typeof minSelection === 'function' && selected.length < minSelection()) return;
   handReadyForSubmit = true;
   render(); // trigger pulse immediately
   // Tutorial: the early steps teach "select, look at the preview, then press
@@ -49,7 +51,7 @@ function scheduleAutoSubmit() {
   autoSubmitTimer = setTimeout(() => {
     autoSubmitTimer = null;
     handReadyForSubmit = false;
-    if (!animating && !falling && selected.length >= 2) playHand();
+    if (!animating && !falling && selected.length >= 2 && selected.length >= minSelection()) playHand();
   }, AUTO_SUBMIT_DELAY);
 }
 
@@ -64,7 +66,7 @@ function cardAt(el) {
 }
 
 function doSwap(r1, c1, r2, c2) {
-  // Pivot (r197): it works by SITTING on the grid, not by being swapped. Any card
+  // Pivot (r205): it works by SITTING on the grid, not by being swapped. Any card
   // touching a Pivot that still has charges swaps for FREE; if one Pivot touches
   // BOTH ends of the swap, both cards take a permanent mult buff and that Pivot
   // spends a charge and leaves the board. Brushing past a Pivot with only one end

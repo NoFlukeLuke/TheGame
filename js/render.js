@@ -9,6 +9,8 @@ function render() {
   // whenever the board is. renderBossCellOverlays no-ops cheaply when nothing
   // is marked.
   if (typeof renderBossCellOverlays === 'function' && typeof bossActive !== 'undefined' && bossActive) renderBossCellOverlays();
+  // Dead Drop cells outlive the boss round, so they get their own pass.
+  if (typeof renderDeadCellOverlays === 'function') renderDeadCellOverlays();
   const gridEl = document.getElementById('grid');
   const reachable = getReachable();
   const bestHandResult = selected.length >= 2 ? findBestHand(selected) : null;
@@ -161,20 +163,33 @@ function render() {
   // Update deck HUD on every render - catches grid mutations from any source
   updateDeckHud();
 
+  // r200: below the minimum selection there is no play, however good the hand is.
+  const _belowMin = (typeof minSelection === 'function') && selected.length > 0 && selected.length < minSelection();
+
   // Hand preview
   if (!danceAbortController) {
     // Owner request: the preview no longer reacts to selection - it stays empty (inert)
     // until a hand is SUBMITTED, at which point the scoring dance (playPreviewDance) fills
     // #selected-cards. Selecting cards no longer renders preview cards or a hand name here.
-    document.getElementById('hand-name').textContent = '';   // empty → "HAND" watermark shows (r99)
+    // The preview CARDS stay inert until a hand is submitted (r99), but the hand
+    // NAME is live from the first selection - it is what you need before you
+    // commit, and with layered hands it is the only place the second hand shows.
+    updateHandNameLabel(_belowMin ? { short: minSelection() } : bestHandResult);
     const cardsEl = document.getElementById('selected-cards');
     cardsEl.innerHTML = '';
     if (bestHandResult) {
       const base = HAND_BASE[bestHandResult.hand];
       if (base) {
         const levelScale = Math.pow(1.1, level - 1);
-        const basePips = Math.round(handBasePips(bestHandResult.hand) * levelScale);
-        updateDanceSubboxes(basePips, handBaseMult(bestHandResult.hand, bestHandResult.handCells?.length));
+        // Every component, not just the one that named the hand - the chips have
+        // to quote what calcScore will actually seed, or a layered hand reads as
+        // the smaller of the two hands it is about to pay.
+        const _n = bestHandResult.handCells?.length;
+        const _names = (typeof handLayersFor === 'function')
+          ? handLayersFor(bestHandResult.hand, bestHandResult.handCells) : [bestHandResult.hand];
+        let basePips = 0, baseMult = 0;
+        _names.forEach(h => { if (!HAND_BASE[h]) return; basePips += Math.round(handBasePips(h) * levelScale); baseMult += handBaseMult(h, _n); });
+        updateDanceSubboxes(basePips, baseMult);
       }
     } else {
       const pipsEl = document.getElementById('pips-val');
@@ -258,7 +273,7 @@ function render() {
   // Buttons
   // Match-3 auto-plays its matches, so Play is inert there - keep it visibly
   // disabled rather than lighting up on a selection it will never submit.
-  document.getElementById('btn-play').disabled    = match3Active() || !bestHandResult || (animating && !falling);
+  document.getElementById('btn-play').disabled    = match3Active() || !bestHandResult || _belowMin || (animating && !falling);
   document.getElementById('btn-discard').disabled = selected.length === 0 || (animating && !falling);
   document.getElementById('disc-count').textContent = `(${discards})`;
   document.getElementById('swap-count').textContent  = swaps;

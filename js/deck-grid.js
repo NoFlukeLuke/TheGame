@@ -4,7 +4,7 @@ const BOSS_BLOCKED_CELLS_MAX = 5;
 
 let nextBossTime  = GAME_DURATION - BOSS_LOOP_DURATION; // first boss at 6-min mark elapsed
 let bossActive    = false;
-// The boss runs on the ONE round clock since r197 (roundSeconds / roundInterval);
+// The boss runs on the ONE round clock since r205 (roundSeconds / roundInterval);
 // there is no separate boss countdown or boss interval any more. See triggerBoss.
 let blockedCells  = new Set(); // keys like "r-c"
 let bossNumber    = 0;

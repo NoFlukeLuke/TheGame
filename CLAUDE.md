@@ -140,7 +140,7 @@ The old table had four inversions, all fixed:
 - **The r190 additions cover triggers nothing else read**: Rerun / Chorus (replay count, from `_reps` - sum minus card count is the extra iterations), Deep Breath (clock paused), Interest (credits held, capped), Portfolio (buffed cards on the grid, via `permPips`/`permMult` - which are keyed by card IDENTITY, so a buff on Spectrum white counts seven cards), Redline (Focus level).
 - **Compound** (mythic) banks the round score every 45s on the round tick; the next scored hand pays the bank and it re-arms, so it compounds across a round. Its payout is added at **SCORE level, not as pips or mult** - it is a copy of score already earned, and routing it through mult x Focus would multiply it a second time.
 
-### Trick numbers reworked (r197)
+### Trick numbers reworked (r205)
 
 Five Tricks whose printed effect and real effect had drifted apart. All five read their numbers out of `BAL` now, and all five have a `DESC_TEMPLATES` entry, so the description cannot drift from the value again.
 
@@ -173,11 +173,90 @@ The goal curve is exponential (`GOAL_SCALE` 1.35/level) while base hand pips sca
 
 - **A per-run ACCUMULATOR layered on top of `HAND_BASE`, never a mutation of it.** `HAND_BASE` is global and modes overwrite it (`applyModeHandValues` zeroes Spectrum's Flush of 3), so writing into it would leak across runs and fight the mode overrides.
 - **It rides `handBasePips()` / `handBaseMult()`**, the scoring-model chokepoint above, rather than patching `calcScore`. That is what makes it work under all three scoring models and makes the RECORDS Hands tab quote the earned value for free - both call the same two functions. The bonus therefore rides the `1.1^(level-1)` scale the way the printed base does. `recordNaturalScale` runs **after** the score commits, so a hand's buff lands on the next hand of that family.
-- **Straight Flush is in the run AND flush families.** It credits both when scored but **takes the better of the two**, not the sum, or the top of the table would scale twice as fast as everything else.
+- **Straight Flush is in the run AND flush families.** That mattered while the bonus was per family (it credited both but **took the better of the two**, not the sum, or the top of the table would scale twice as fast as everything else). Per hand type it is simply its own accumulator; the max-not-sum rule now lives in the Old Tricks knack, for the same reason. **The rest of this section describes the pre-r198 per-family behaviour - see "Natural Scaling is PER HAND TYPE" below.**
 - Measured hands-to-clear (bare baseline, no Trick loadout, Focus x1.8, 200 runs): **OFF 2.2 -> 112 by level 18** (559 hands a run). At the +2 pips/hand default, **2.2 -> 20** (178). The curve still rises, it just stops running away. **Mult per hand is a far stronger lever than pips** - +0.25 mult/hand flattens the whole run to 6.6 hands at level 18, so mult defaults to **0**.
 - **It self-nerfs flushes, by design.** In Classic `flush3`/`flush4` are not active (`startGame` seeds them only at `suitCount >= 6`), so the flush family can only earn from the 5-card Flush - and once runs start scaling, Flush is never the best available hand. Measured over a full Classic run: run 133 hands / +266 pips, set 43 / +86, **flush 0 / +0**.
 - Which is what makes the **Short Suit** knack (rare) worth a slot: it turns on Flush of 3 / Flush of 4 where they aren't already active, letting the flush family start earning. It hangs off `updateKnackList()` for the same reason Tempo does.
 - Tuner: **dev panel -> Score -> Natural Scaling** (on/off, pips per hand, mult per hand, every N hands, live per-family readout, reset). The **RECORDS Hands tab** quotes the live value with the earned part in green beside it.
+### Natural Scaling is PER HAND TYPE (r198)
+
+It used to credit the whole **family**: play Pairs and your Four of a Kind got better too. That meant the baseline grew no matter which hand in the family you reached for, so reaching for the harder one bought you nothing you were not already getting. It is now keyed by hand NAME, so climbing the ladder is a real decision - a Three of a Kind played forty times can out-score a Four of a Kind you have never played.
+
+- `nsPlays` / `nsBonus` are keyed by hand name (`'Run of 3'`), not by family. Both are still in `SAVE_VARS`.
+- **A pre-r198 save is migrated, not dropped.** `migrateNaturalScaleFamilies()` (called from the restore path in `js/save.js`, self-detecting) spreads each family total onto every hand in it - which is exactly what that save meant by it.
+- **The family is not gone, it is a PRIZE.** The **Old Tricks** knack (epic) makes every hand read the best bonus anywhere in its family. It **REPLACES** the hand's own, it does not add to it: Three of a Kind on +50 and Four of a Kind on +24 both read **+50**, never +74. `naturalScaleBonus` takes a `Math.max` for exactly that reason, the same way Straight Flush has always taken the better of its two families rather than their sum.
+- `recordNaturalScale(handName, cells)` now takes the cells and credits **every layer** the hand paid for (below), so a same-suit run advances both the run and the flush - it earned both, because it was scored as both.
+
+### Hand components (r199) - a hand is a LIST of shapes
+
+Phase 10 rules, on a grid. A played hand is broken into **components**, and every component pays its own printed base pips and base mult, earns its own Natural Scaling, and names itself in the HUD. `handComponentsFor(cells)` in `js/hand-detect.js` is the whole answer and everything else reads it. Two tracks build the list:
+
+- **Track 1, the RANK PARTITION.** Sets and runs carved out of the selection as **disjoint** pieces, chosen to pay the most. This is what makes "a Run of 4 AND a Set of 3" one seven-card hand. Straight Flush is a candidate here too, because it is a run that is paid extra for being suited, not a run with a flush stacked on it.
+- **Track 2, the FLUSH OVERLAY.** The biggest same-suit GROUP of `flushOverlayMin` (3) cards or more, added **on top** of Track 1 - it overlaps rather than partitions, so the same cards can be in a set and in the flush at once. Skipped when Track 1 already took a Straight Flush, which IS that hand.
+
+**A card in more than one component REPLAYS**, once per extra component it is in (`handReplayMap`). So a Set of 4 + Set of 3 where five of the seven share a suit pays 4oK + 3oK + Flush, and exactly those five cards score twice. Measured in the real game: a 7-card Run of 4 + Set of 3 + Flush scored **1870** against a 1200 goal, with 90 base pips x 11 base mult.
+
+- **`activeHands` gates what you may PLAY, not what a hand may LAYER.** The rank partition only ever takes an active hand, so a mode that has not unlocked Flush of 3 still cannot let you play three suited cards as a hand. The flush OVERLAY ignores `activeHands` entirely: a suited Run of 3 in Classic is paid the Flush of 3 as well. That split is the point - the flush is never the thing you chose to build, so unlocking it is about being allowed to build it **on purpose**, which is exactly what **Short Suit** now sells. Verified: suited Run of 3 in Classic = Run of 3 + Flush of 3 (350, was 120); a bare Flush of 3 is still `null`.
+- **`playable` is a separate question from "has components".** A hand is playable only if at least ONE component is a hand this mode has unlocked - that is what keeps a bare short flush unplayable while its overlay still pays inside a run.
+- **COMPONENTS ARE STRICT; UNCLAIMED CARDS STILL SCORE THEIR PIPS.** A component uses every one of its cards - a Pair is exactly two cards, never two cards and a spare. The spare stays in `handCells` and scores its own pips exactly as before. **This is what keeps every pre-r199 hand scoring what it used to**: `{5C 7S 7H}` is still a three-card Pair, Full House still beats 3oK + Pair (225 vs 145), Two Pair still beats Pair + Pair (90 vs 80).
+- **`_bestRankPartition` is a memoised bitmask recursion**, always deciding the lowest unused card first: drop it, or group it with some subset of what is left. `3^n` with n capped at 7.
+- **`HAND_MAX_CARDS` is 7 and `findBestHand`'s subset cap moved from 5 to it.** `limits.selection` has a max of **9**, so before this, cards past the fifth could never be in a hand and were billed as penalty pips - Selection Size bought nothing past 5.
+- **Cost:** a 7-card selection re-scores in ~4ms, a 9-card one in ~16ms (one frame). The dominant term is `calcScore` per connected subset, which is pre-existing; `handComponentsFor` caches on a key built from the cards themselves, so a board that moves invalidates its own entries.
+- **New hands** (`js/data/cards.js`): Flush of 6/7, Run of 6/7, Five/Six/Seven of a Kind. The sets past four need Spectrum (7 colours, one card each per value) or duplicated cards from the shop. **Flush House / Fuller House / Fullest House are deliberately NOT hand types** - the two tracks already produce them, with better labels: a suited Full House is `Full House + Flush`, a 4+2 is `Four of a Kind + Pair`, a 4+3 is `Four of a Kind + Three of a Kind`. Adding them as names would only be a pricing knob, and would double-count if done carelessly.
+- **A pricing note, not a bug:** six cards of 3+3 come out as **Full House** (225, one card unclaimed) rather than two Threes of a Kind (210), because the partition maximises payout. If "two sets of 3" should be its own thing, that is a `HAND_BASE` decision.
+- **The `handName` guard.** `calcScore` drops exactly ONE component by name (so two Sets of 3 are still paid twice) and, if the caller's name is not a component at all, adds **none** of them. Match-3 names its own hands, so that path is reachable and would otherwise pay for the same cards twice.
+- Dev toggles: **Score -> Layered hands** (`layeredHandsEnabled` switches the flush overlay off; the rank partition always runs) and a **flush overlay needs N of a suit** slider (`flushOverlayMin`, 3-7). At 3 the overlay fires on roughly half of all five-card hands, which is the intent - the owner is deliberately pushing average score up so goals can be raised steeply later.
+
+### Minimum selection + High Card (r200)
+
+**Selection Size was pure upside**: a maximum you raise and then keep playing Pairs. It now carries a floor with it - `minSelection()` in `js/limits.js` is `limit - 2`, floored at 1 (3 -> 1, 5 -> 3, 7 -> 5, 9 -> 7). You must commit that many cards to every hand, so a two-card Pair can no longer tick the board over or stand in for a free discard. Taking the upgrade is a real decision.
+
+- **It applies to the PLAY GRID ONLY.** `limits.selection` also caps the reward grid and the shop pickers; a minimum there would force you to take seven tiles.
+- **Enforced in four places, not one.** The PLAY button's `disabled` state (`js/render.js`), the auto-submit scheduler AND its firing callback (`js/input.js`), and a hard guard at the top of `playHand` - queued actions and any future keyboard path reach `playHand` without passing the button's state.
+- **The `#hand-name` label states the requirement** ("NEED / 5", red) instead of naming a hand. That is where the player is already looking to find out what they have, so it is where "you cannot play this yet, and why" belongs.
+- **`minSelectionBinds()`** is "does the minimum actually bite" (`> 2`). Two cards is the floor for a hand regardless, so at limit 3 and 4 nothing changes.
+- **High Card** (`HAND_BASE` 0 pips / x1 mult, `HAND_FOCUS` **0**) is the escape valve: a selection you are forced to make but cannot shape is still playable, and scores the cards' own pips and nothing else. `handWorth` puts it at 1, so it never beats a real component, and `recordNaturalScale` skips it (no NS family) so **it can never grow**.
+- **It is gated on `minSelectionBinds()`, and that gate is load-bearing.** With High Card live, `detectHand` returns non-null for ANY two cards, so nothing is ever "no hand here" - and **`tutorialFindDeadCards` finds cards in no hand at all**, which would have gone permanently empty. The tutorial runs at limit 3, where the gate keeps High Card off. Verified: 6 dead cards still found at limit 3, 0 regressions.
+
+**Junk cards rode along free between r199 and r201** - see "Every card must be load-bearing" below, which is where that ended. The minimum now costs you cards off the board AND the score of anything you cannot use.
+
+### Every card must be load-bearing (r201)
+
+**A hand may not carry a passenger.** If the components do not account for every card in the subset, that subset is not a hand. `findBestHand` then falls back to the smaller subset that IS fully used, and the leftovers become **penalty cards**: their pips are subtracted, and they are consumed anyway (`toRemove` is the whole selection, not just `handCells`). A spare card went from a small bonus to a real cost.
+
+- **This reverses an r199 side effect.** Components were strict but unclaimed cards still scored their pips, so `{5C 7S 7H}` was a three-card Pair paying for the 5C. Before r199 only the loose set hands could carry a spare at all; r201 removes it from those too.
+- **The rank partition means "fully used" is not "one shape".** `{2S 2H JH QC KD}` is `Pair + Run of 3` - two disjoint components covering all five - and scores 395. That is the same machinery the 7-card hands use, so the rule is much less restrictive than it sounds.
+- **High Card is the fallback, and it covers every cell by definition.** When the rule rejects a hand with a passenger, the subset falls through to High Card, and `findBestHand` picks whichever actually pays more: measured on a Pair beside three big cards, `Pair` + 3 penalty (52) still beat High Card (30), so the escape valve costs nothing when it isn't needed.
+- **The `hasKnack` call is in the `handComponentsFor` cache key.** Granting Tagalong mid-run changes the answer for cells whose cards have not moved, and the cached entry would otherwise be reused.
+- **Tagalong** (rare knack) lifts it: hands may carry cards that are not part of them, and those cards score their own pips instead of being billed as penalties. That is the whole reason it is a knack - before r201 this was free and unremarkable, so making it the default and selling it back turns "my hand has a spare in it" into something you paid for.
+- **Verified unaffected:** the 7-card `Run of 4 + Set of 3 + Flush` still scores 1870; the tutorial's board audit passed 40 of 40 deals; RECORDS renders; match-3 is byte-for-byte the same behaviour before and after (checked by running the same deal on both commits).
+
+### Natural Scaling bonus editor (r201)
+
+The dev panel's Natural Scaling group now lists **every scalable hand type with its EARNED pips and mult as typed fields**, so "what does a Run of 3 at +50 feel like?" is answered by playing it rather than by grinding forty hands first. `setNaturalScaleBonus(name, field, value)` writes the accumulator; the sliders above it still only decide how fast it grows.
+
+- **Rows come from `naturalScaleRows()`**, which filters `HAND_BASE` by `NS_HAND_FAMILIES` - so a new hand type appears in the editor for free, and **High Card is absent** because it has no family and can never scale (`setNaturalScaleBonus` refuses it too).
+- **The markup is rebuilt only when the SET of rows changes** (`_nsRowsKey`), and values are written separately, skipping whichever field has focus. Re-rendering on every sync would tear the input out from under the caret mid-type.
+
+### The hand-type label (r198) - `#hand-name`
+
+What you are about to play, named, beside the hand preview. The preview CARDS stay inert until a hand is submitted (r99 - it is the scoring stage, not a live readout), but the NAME is live from the first selection, and with layered hands it is the only place the second hand is visible at all.
+
+- **`updateHandNameLabel(result)` in `js/hud.js` is the only writer**, called from `render()`. It reads `handLayersFor`, so the label can never name a hand the score did not count or miss one it did.
+- **One markup shape, two orientations.** Each layer is `<span class="hn-l"><b>FAM</b><i>SIZE</i></span>` from the `HAND_LABEL` table in `js/data/cards.js`; landscape stacks it into its narrow column ("RUN / 3"), portrait flattens the same spans onto one line with `display:inline`. No per-orientation renderer.
+- **44px is the budget.** `#selected-cards` reserves that much left padding for this label; grow past it and a five-card hand's first card renders under the text. The label carries `overflow:hidden` as the hard stop and `.hn-layered` steps the type down to 7px, which is what keeps FLUSH inside it. Measured: label box ends at 42.9px, widest glyph at 35.6px.
+- The cache guard compares the live `innerHTML` as well as the last value written, because Dominoes writes this element directly.
+### Goal tuning (r197) - `js/goal-tuning.js`, dev panel -> Goals
+
+The round goal was computed in **four** places, each spelling out `BASE_GOAL * GOAL_SCALE^(level-1)` with its own rounding: `level-up.js`, `game-control.js`, `dominoes-mode.js`, and Survival's own `survivalGoalForLevel`. Retuning difficulty meant an edit, a reload and a fresh run - and the start of a run and a level-up disagreed (see below). All four now call **`goalForLevel(lv)`**, which dispatches by mode (Survival/Flow curve, Zen's multiplier, otherwise Classic) and reads live tunables.
+
+- **The shipped numbers are NOT copied into the tuner.** `goalTune(key)` falls back to the real constants (`BASE_GOAL`, `GOAL_SCALE`, `SURVIVAL_BASE_GOAL`, `SURVIVAL_GOAL_ROUND_TO`, `SURVIVAL_ENDLESS_ACCEL`), so an untouched knob tracks the data files and a retune there is still the shipped balance. `localStorage` (`lethe.goalTune.v1`) holds **overrides only**, and setting a knob back to its shipped value **deletes** the override rather than pinning today's number forever.
+- **Growth is stored as a percent** ("35% harder each round"), not as a scale factor - it is the number worth typing. The panel is steppers built from `GOAL_TUNABLES` in `js/dev-panel.js`, the same shape as `FOCUS_TUNABLES`: add a row and the rendering, persistence and reset pick it up.
+- **Knobs:** a global multiplier over every mode, then per curve - round-1 goal, growth %, rounding step - plus the endless acceleration and Zen's multiplier. Each group prints the real curve (R1 · R2 · R3 · R6 · R9 · R12 · R15 · R18, and the R18/R1 multiple), because a curve is only readable as the list of what it actually asks for.
+- **Every change applies to the round in progress** (`applyGoalTuneLive()` rewrites `roundGoal` and repaints), which is the point of tuning here rather than in the data files. **Refused during a boss**: that number is being fought right now and The Ratchet has been raising it, so recomputing would move the goalposts mid-fight and throw the Ratchet's work away. It says so instead.
+- **Round 1 is deliberately not rounded to the step.** `startGame` set the opening goal to a bare `BASE_GOAL` (1200) while the level-up formula rounded to the nearest 500 - so the shipped round-1 goal is **1200**, and rounding it in the shared function would have quietly dropped it to 1000. Round 1 never goes through the level-up path, so the two never disagreed in play; both are reproduced exactly. Verified: levels 2-25 are identical to the old formula in both curves.
+- The global multiplier folds in **before** rounding, so a scaled goal still lands on the rounding step. Zen still multiplies **after** rounding, exactly as the inline `roundGoal *= 2` did.
+
 ### Scoring models (r179) - a dev toggle, not a decision
 
 Three ways a hand type can be worth something, switchable in the dev panel's **Focus** group so they can be played against each other rather than argued about. `scoringModel` persists in `localStorage`; `classic` is the default and the shipped balance.
@@ -260,7 +339,7 @@ Three `passive` Sleights + two Knacks built on grid adjacency (all orthogonal - 
 
 These Sleights add mult from *outside* the Trick system, so `calcScore` tracks them separately (`_whetM` / `_entM` / `_lightM`) and pushes `source:'sleight'` contribution rows; `contribDisplayName` now resolves `sleight`/`knack` sources against their own pools (previously sleight rows fell back to the raw id - Amplifier included).
 
-### Pivot (r197) - a Sleight that works by sitting next to things
+### Pivot (r205) - a Sleight that works by sitting next to things
 
 **Pivot is `passive` now, not `on_swap`.** It used to fire by being swapped itself. It now works by **sitting on the grid**: any card touching a Pivot with charges left swaps for **free**, and if one Pivot touches **both ends** of the swap, both cards take +5 permanent mult and that Pivot spends a charge and leaves the board. Brushing past a Pivot with only one end of the swap gets the free swap and nothing else - no buff, no discard.
 
@@ -348,6 +427,49 @@ Every event before these HANDED you something, which is the wrong shape late in 
 - **`sleightCapBonus` (id -> extra charges) raises a Sleight's ceiling**, which nothing could do before. `sleightMaxCharges(def)` is the new chokepoint and **all four "restore up to the cap" sites read it** (`restoreSleightCharge`, `limits.js`, `discard.js`, `level-up.js`'s Coin Toss) - miss one and a reinforced Sleight refills only to its printed durability and the upgrade silently does nothing. It returns `null` for an infinite Sleight, which every caller already treats as "leave alone". Stored by sleightId, so reinforcing one copy reinforces every copy; it is in `SAVE_VARS` and resets on a new run.
 - `allOwnedSleightCards()` (sleights-runtime.js) is the Sleight counterpart to `allDeckCards()` - board, draw pile and played pile.
 
+### `trickFires(id)` (r203) - firing a Trick again, for the effects the ledger cannot carry
+
+`calcScore` keeps a per-Trick ledger of what each Trick contributed this hand (`_cp` pips,
+`_cm` mult). **Mirror** replays its neighbour's entry, and **`_primed` / `_rank`** replay a
+Trick's own entry once per stack. That is what makes "fire it again" generic across all 177
+Tricks with no code in any of them, and it is the seam the whole improvement system rests on.
+
+**That ledger can only carry pips and mult.** Roughly **71 of the 177 Tricks** pay in Focus,
+clock seconds, credits, swaps, discards or permanent card buffs, and those fired **exactly
+once** no matter how many times they were duplicated: a **rehearsed Tick-Tock or a mirrored
+Deluge did nothing at all**. That was a live gap in the shipped Rehearsal event and in Mirror,
+not just a future problem.
+
+`trickFires(id)` (js/scoring.js, beside `hasTrick`) is the same count for those effects:
+`1 + _primed + _rank + (Mirrors aimed at it)`, and **0 when the Trick is not owned or a boss
+has switched it off**.
+
+- **It replaces the `hasTrick()` test at the call site, it does not sit beside it.** An
+  unowned Trick multiplies its amount by 0 and never lands. So **every caller must be an
+  amount being granted** - never a flag being set, a tally being kept, or a cooldown being
+  consumed. Groove's per-line tally and Overtime's are deliberately still inside their
+  `hasTrick` blocks; only the Focus they pay out is multiplied.
+- **`pauseRound()` gained a zero-guard, and it is load-bearing.** `pauseRound(3 * trickFires(...))`
+  reaches it with 0 for a Trick you do not own, and unguarded that still counted a pause of no
+  length toward **Hummingbird** (+mult per pause triggered this game) and the Time popup tally.
+- **A predicate that reads `gridData` must stay behind the ownership check.** Hoisting
+  `canBeOrderedRun(handCells)` out of Rogue Wave's `hasTrick` guard threw on an empty grid
+  (`gridData` is empty between screens). Rogue Wave reads its fire count FIRST and only then
+  calls the predicate. `isSquare` / `isCross` / `counts3CardHand` are pure and safe to call
+  unconditionally; `canBeOrderedRun` is not. **This was caught by running the game in a real
+  browser and is invisible to the syntax check.**
+- **Four Horse-man rolls ONCE and pays the rolled half per firing.** Re-rolling per firing
+  would make a duplicate a different Trick (several chances at the good half), and it would
+  also draw extra times from the seeded stream.
+- **Threshold-advance Tricks advance N thresholds** (Flash Flood, Collapsing Columns, Richter).
+- **Knacks are deliberately untouched.** Knacks always improve and are never duplicated, and
+  neither Mirror nor a rank applies to them, so Sundial / Metronome / Clockmaker still read
+  `hasKnack` directly.
+
+**Verified:** every one of the 177 Tricks measured across 8 hand shapes (Focus generated,
+pauses, rewinds) is **byte-identical before and after**, and Dam Holding pauses 3s / 6s / 9s at
+rank 0 / 1 / 2 and 6s with a Mirror on it, where it used to pause 3s in every case.
+
 **Two traps this hit, both found by rendering the events in a real browser and neither visible to a syntax check or a static call audit:**
 - **`shuffled()` in `js/reward-grid.js` is scoped INSIDE `_generateRewardContent`** - it is not a global, and calling it threw the moment The Bench opened. `events.js` has its own `evShuffle` now. A grep for `function shuffled` finds it and tells you nothing about its scope.
 - A picker rebuilt on each choice must keep its **label inside the removable wrapper**, or changing your mind stacks a fresh "CHOOSE THE CARD" every time.
@@ -395,7 +517,7 @@ Owned Tricks/knacks and already-granted sleights are filtered out of the pools s
 
 ## Boss system
 
-### ONE clock and ONE score requirement (r197)
+### ONE clock and ONE score requirement (r205)
 
 **A boss round is an ordinary round with a modifier on it.** Both halves of that are now true in code, and neither was:
 
@@ -425,9 +547,9 @@ Owned Tricks/knacks and already-granted sleights are filtered out of the pools s
 ### The r150 roster - `js/boss-effects.js`
 Eight bosses that all share one shape: **act once at round start, then on an interval**. `bossSchedule(secs, fn)` *is* that shape - it fires immediately then repeats - and it is the single place the **Contingency Plan** knack stretches timings, so a new boss inherits the knack interaction for free. `applyBossModifiers` calls `applyBossEffectModifier(mod, params)` first; it claims its own ids and returns true, leaving the legacy modifiers untouched.
 
-The Metronome (clock runs at the Focus multiplier) · The Tollman (interact costs ×2, +3s to play) · The Undertow (−10 Focus/15s) · The Quarantine (a cell goes dark every 15s, 10s warning) · The Censor (a Trick suspended 45s every 35s) · The Blight (3 cells contaminated every 20s) · The Recall (a rank withdrawn every 36s, never repeated - r197, 25% more often than the 45s it shipped with) · The Auditor (−1 swap or discard every 30s).
+The Metronome (clock runs at the Focus multiplier) · The Tollman (interact costs ×2, +3s to play) · The Undertow (−10 Focus/15s) · The Quarantine (a cell goes dark every 15s, 10s warning) · The Censor (a Trick suspended 45s every 35s) · The Blight (3 cells contaminated every 20s) · The Recall (a rank withdrawn every 36s, never repeated - r205, 25% more often than the 45s it shipped with) · The Auditor (−1 swap or discard every 30s).
 
-### The Marker (r197) - a boss you cannot see working
+### The Marker (r205) - a boss you cannot see working
 
 **One card in every ten is silently marked. Nothing on the card, in the tray or in Records says which.** Play a marked card and it is discarded instead of scored, taking every other marked card in the same hand with it, and the hand does not score at all. Marked cards are only spent by being played, so a hand that fizzles at least clears them.
 
@@ -637,7 +759,7 @@ So the most recently picked tile is always the one being explained, and you can 
 Two different things, and the descriptions must not blur them:
 
 - **PAUSE** (`pauseRound(seconds)`, `js/discard.js`) - the clock **freezes** for N seconds. Pauses **stack** (an active pause is extended, not reset). Counts into `pausesThisRound` / `pauseInstanceGame` (Hummingbird) and `pausedSecondsRound` (Albatross). The **Long Pause** knack makes every pause 1.5× longer; **Time Slip** gives each pause a 25% chance to become a rewind instead.
-- **REWIND** (`rewindTime(seconds, label)`, `js/discard.js`) - the clock **gets seconds back**: `roundSeconds += n`, **capped at `ROUND_DURATION`**, with a ⏪ floater. Counts into `rewoundSecondsRound` (Kingfisher) and `rewindsThisRound`. Since r197 it **works during a boss too** - there is one clock now, and `rewindCeiling()` reads the boss window through `currentRoundDuration()`. (It used to return 0, because the boss ran a separate countdown and `roundSeconds` was frozen.)
+- **REWIND** (`rewindTime(seconds, label)`, `js/discard.js`) - the clock **gets seconds back**: `roundSeconds += n`, **uncapped since r193** (`rewindCeiling()` returns `Infinity`), with a ⏪ floater. Counts into `rewoundSecondsRound` (Kingfisher) and `rewindsThisRound`. Since r205 it **works during a boss too** - there is one clock now and the boss window IS `roundSeconds`. (It used to return 0, because the boss ran a separate countdown and `roundSeconds` was frozen, so there was genuinely nothing to give back.)
 
 Because a rewind can push the clock back past a mark it already passed, `handleClockMarks` can fire the same clock-mark Trick twice. That is an intended synergy, not a bug.
 
@@ -645,7 +767,9 @@ Because a rewind can push the clock back past a mark it already passed, `handleC
 
 **Every rewind now goes through `rewindTime()` (r183).** Deluge, Threepeat, Blood Diamonds and the Spectrum Time Clock fixture used to write `roundSeconds += n` directly, which skipped the ceiling, the floater and the Kingfisher/rewind tallies. There are no raw `roundSeconds +=` sites left; a new one is a bug.
 
-### `rewindCeiling()` - do NOT clamp a rewind to `ROUND_DURATION` (r183)
+### `rewindCeiling()` - do NOT clamp a rewind to `ROUND_DURATION` (r183, superseded r193)
+
+**As of r193 `rewindCeiling()` simply returns `Infinity` - rewinds are uncapped.** The history below is why the *old* `ROUND_DURATION` clamp was wrong and why any future ceiling must not be a fixed constant; it is no longer a description of the live code.
 
 `rewindTime` used to end with `roundSeconds = Math.min(ROUND_DURATION, roundSeconds + n)`. `ROUND_DURATION` is Classic's **180**, and the clock legitimately sits above it all the time:
 
@@ -656,7 +780,7 @@ Because a rewind can push the clock back past a mark it already passed, `handleC
 | Time Bank knack | +30s |
 | Clock Tower knack | carries up to +60s |
 
-In every one of those the `min` **cut the clock down to 180 and then returned 0**, so the player silently lost the difference and nothing reported it - 110 seconds destroyed by a single Flush in Flow. The ceiling is now `max(currentRoundDuration(), roundStartSeconds, roundSeconds)`:
+In every one of those the `min` **cut the clock down to 180 and then returned 0**, so the player silently lost the difference and nothing reported it - 110 seconds destroyed by a single Flush in Flow. r183 made the ceiling `max(currentRoundDuration(), roundStartSeconds, roundSeconds)`, and r193 removed it altogether:
 - **`roundStartSeconds` is the whole answer for the limit, Time Bank and Clock Tower** - `startRoundTimer` records it after `computeRoundResources` has already folded all three in, so no separate `limits.round_time` lookup is needed. Reading the limit as well would let a 120s Survival round be rewound up to 180.
 - **`roundSeconds` is in the max**, so the clamp can never move the clock backwards. The worst a rewind can do is nothing.
 
@@ -1009,7 +1133,7 @@ loud while the others ducked - which also meant it ignored `sfxVolume()`, so mut
 never silenced it (the same bug `sfxWinExplode` had). It rides the `alert` bus
 now, whose `duckTo` is 1: nothing ducks it, and the sliders reach it.
 
-### The discard sound (r197)
+### The discard sound (r205)
 
 There was no discard sound at all: discarding reused **`sfxFlipShuffle`**, the riffle that also plays when a hand flies to the preview, so binning cards and scoring them opened the same way. `sfxCardDiscard(loud)` is a dry downward sweep - a card thrown onto a pile, not shuffled into one.
 

@@ -125,7 +125,7 @@ function doDiscard() {
     }
     if (_restored) showMessage(`Martyr: +1 charge to ${_restored} Sleight${_restored > 1 ? 's' : ''}`, 'var(--gold)');
   }
-  sfxCardDiscard();          // discarding has its own sound now (r197), not the riffle
+  sfxCardDiscard();          // discarding has its own sound now (r205), not the riffle
   resetFocusDecayTimer();
   // Cull: 1 Focus per unit of manipulate stock still in hand. `discards` has already
   // been decremented above, so this reads what is LEFT after paying for this discard.
@@ -172,7 +172,7 @@ function showTimeCost(label) {
 // (r183): that constant is Classic's 180, and the clock legitimately sits ABOVE
 // it in several ordinary situations -
 //   · Survival rounds are 120s and Flow's session clock is 300s
-//   · the Round Time LIMIT can be upgraded past 180, and a round starts at it
+//   · the Starting Time LIMIT can be upgraded past 180, and a round starts at it
 //   · Time Bank (+30s at round start) and Clock Tower (carries up to 60s over)
 //   · Rain Check (+30s next round)
 // against `Math.min(ROUND_DURATION, …)` every one of those made a rewind CUT the
@@ -180,23 +180,32 @@ function showTimeCost(label) {
 // lost the time. In Flow that was 120 seconds destroyed by a single Flush.
 //
 // `roundStartSeconds` is what this round ACTUALLY began with - startRoundTimer
-// records it after computeRoundResources has already folded in the Round Time
+// records it after computeRoundResources has already folded in the Starting Time
 // limit, Time Bank and Clock Tower - so it is the whole answer for those three
 // and no separate limits lookup is needed. Reading the limit as well would let a
 // 120s Survival round be rewound up to Classic's 180.
 //
 // `roundSeconds` is in the max too, so the clamp can never move the clock
 // backwards: the worst a rewind can now do is nothing.
-function rewindCeiling() {
-  const dur = (typeof currentRoundDuration === 'function') ? currentRoundDuration() : ROUND_DURATION;
-  return Math.max(dur, roundStartSeconds || 0, roundSeconds);
-}
+// THERE IS NO CEILING ON A REWIND (r193, owner spec).
+//
+// It used to be max(currentRoundDuration, roundStartSeconds, roundSeconds) - i.e.
+// you could never bank the clock above what the round STARTED with. That made
+// every rewind past the top silently worth nothing: the seconds vanished, the
+// floater said nothing, and a time build hit a wall it could not see. The limit
+// (renamed "Starting Time" in js/limits.js for exactly this reason) now says what
+// you BEGIN a round with; what you can climb to during it is up to your build.
+//
+// Kept as a function rather than deleted at the call site: it is the one place to
+// reintroduce a ceiling if time builds turn out to run away, and rewindTime's
+// Math.min still reads correctly against Infinity.
+function rewindCeiling() { return Infinity; }
 
 function rewindTime(seconds, label) {
-  // Rewinds used to return 0 during a boss because the boss ran its own clock and
-  // roundSeconds was frozen, so there was nothing to give back. Since r197 there is
-  // ONE clock, and rewindCeiling reads currentRoundDuration() - which is the boss
-  // window during a boss - so a rewind now does exactly what it says on a boss round.
+  // Rewinds used to return 0 during a boss, because the boss ran its own clock and
+  // roundSeconds was frozen, so there was genuinely nothing to give back. Since r205
+  // there is ONE clock and the boss window IS roundSeconds, so a rewind does exactly
+  // what it says on a boss round like any other.
   seconds = Math.floor(seconds);
   if (seconds <= 0) return 0;
   const before = roundSeconds;
@@ -251,7 +260,9 @@ function handleClockMarks(secs) {
   // Minute marks (clock reads N:00) → accrue mult / retrigger chance
   if (secs % 60 === 0) {
     if (hasTrick('minute_hand'))  { pendingHandMult += BAL.minute_hand.mult; showMessage(`🕐 Minute Hand - next hand +${BAL.minute_hand.mult} mult`, '#cc88ff'); }
-    if (hasTrick('hourglass') && Math.random() < BAL.hourglass.chance) {
+    // COUNTABLE under Luck: past 100% it grants the retrigger to several cards.
+    const _hgN = hasTrick('hourglass') ? luckRoll(BAL.hourglass.chance) : 0;
+    for (let _hg = 0; _hg < _hgN; _hg++) {
       // Grant one permanent retrigger to a random real card currently on the grid
       const spots = [];
       for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
@@ -270,8 +281,15 @@ function handleClockMarks(secs) {
 }
 
 function pauseRound(seconds) {
+  // A pause of no length is not a pause. Callers multiply their seconds by
+  // trickFires(), which is 0 for a Trick you do not own, so this is the normal way
+  // an unowned Trick's pause arrives here - and without this guard it would still
+  // count toward Hummingbird (+mult per pause triggered) and the Time popup's tally.
+  if (!seconds || seconds <= 0) return;
   // Time Slip knack: whenever the clock WOULD pause, a chance to rewind that many seconds instead
-  if (hasKnack('time_slip') && Math.random() < BAL.time_slip.chance) {
+  // BINARY under Luck: a pause cannot become two rewinds, so anything above
+  // 100% is wasted here on purpose. Its tooltip caps the printed figure to match.
+  if (hasKnack('time_slip') && luckRoll(BAL.time_slip.chance) > 0) {
     rewindTime(seconds, '⏮️ Time Slip - rewound instead of paused!');
     return;
   }

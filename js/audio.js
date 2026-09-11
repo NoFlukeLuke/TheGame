@@ -90,7 +90,7 @@ function sfxFlipShuffle() {
   }
 }
 
-// ── Discard (r197) ───────────────────────────────────────────────────────────
+// ── Discard (r205) ───────────────────────────────────────────────────────────
 // There was no discard sound at all: discarding reused sfxFlipShuffle, the riffle
 // that also plays when a hand flies to the preview, so binning cards and scoring
 // them opened the same way. This is a dry downward sweep - a card thrown onto a

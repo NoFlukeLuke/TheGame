@@ -1,4 +1,4 @@
-// A boss has NO score target of its own (r155, confirmed and enforced r197): the
+// A boss has NO score target of its own (r155, confirmed and enforced r205): the
 // win bar is simply THIS ROUND'S GOAL - `bossGoalMet()` is `score >= roundGoal`.
 // A boss's challenge is its MODIFIER. The vestigial `target: 4000`-style numbers
 // these presets used to carry were read by nothing and are gone, so a preset can
@@ -112,7 +112,7 @@ const BOSS_PRESETS = [
     brief: 'One rank is withdrawn from play at a time - those cards sit on the board, inert. Every 36 seconds the previous rank is reinstated and a different one is taken. No rank is recalled twice.',
     objective: { type: 'score' },
     modifiers: ['rank_recall'],
-    // r197: 25% more often, so 45s -> 36s (45 / 1.25). Over a 180s window that is
+    // r205: 25% more often, so 45s -> 36s (45 / 1.25). Over a 180s window that is
     // 5 recalls instead of 4.
     params: { everySecs: 36 }
   },

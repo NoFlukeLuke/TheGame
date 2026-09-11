@@ -14,7 +14,7 @@ function generateHandFocus(hand, handCells, vultureSec) {
     const speedBonus = Math.floor(speedBonusFromTime(secondsSinceLast / _fr.window) * _fr.speed);
     let totalFocus = handFocus + speedBonus;
     // Rhythm: +1 focus per hand
-    if (hasTrick('rhythm')) totalFocus += 1;
+    totalFocus += 1 * trickFires('rhythm');
     // Kaleidoscope: +4 focus if all 4 suits present in the scoring hand
     if (hasTrick('kaleidoscope')) {
       const handCards = handCells.map(([r,c]) => gridData[r][c]).filter(Boolean);
@@ -23,92 +23,113 @@ function generateHandFocus(hand, handCells, vultureSec) {
         if (c.suit) suitsInHand.add(cardColorSuit(c));   // white counts as white
         if (c.combined && c.suit2) suitsInHand.add(c.suit2);
       });
-      if (suitsInHand.size >= 4) totalFocus += 4;
+      if (suitsInHand.size >= 4) totalFocus += 4 * trickFires('kaleidoscope');
     }
     // Run focus tricks: Torrent (+1/card), Rogue Wave (+4/card if played in sequence)
     const _isRunHand = ['Run of 3','Run of 4','Straight','Straight Flush'].includes(hand);
-    if (_isRunHand && hasTrick('river_run')) totalFocus += handCells.length * BAL.river_run.focus_per_card;
-    if (_isRunHand && hasTrick('correct_run') && canBeOrderedRun(handCells)) totalFocus += handCells.length * BAL.correct_run.focus_per_card;
+    if (_isRunHand) totalFocus += handCells.length * BAL.river_run.focus_per_card * trickFires('river_run');
+    // Rogue Wave's fire count is read BEFORE canBeOrderedRun, so the predicate is
+    // still short-circuited by ownership. It reads gridData, which is empty between
+    // screens, and calling it unconditionally throws there (caught in a browser run).
+    if (_isRunHand) {
+      const _crf = trickFires('correct_run');
+      if (_crf && canBeOrderedRun(handCells)) totalFocus += handCells.length * BAL.correct_run.focus_per_card * _crf;
+    }
     // Resonance: Pairs/Two Pairs containing a 2 or 4 add +2 Focus per card
-    if ((hand === 'Pair' || hand === 'Two Pair') && hasTrick('high_pair') &&
+    if ((hand === 'Pair' || hand === 'Two Pair') &&
         handCells.some(([r,c]) => gridData[r]?.[c] && (gridData[r][c].rank === '2' || gridData[r][c].rank === '4'))) {
-      totalFocus += handCells.length * BAL.high_pair.focus_per_card;
+      totalFocus += handCells.length * BAL.high_pair.focus_per_card * trickFires('high_pair');
     }
     // Gnomes: each rank-5-and-below card scored adds its rank in Focus (Ace = 1)
-    if (hasTrick('before_the_tide')) {
-      const _rv = { A:1, '2':2, '3':3, '4':4, '5':5 };
-      handCells.forEach(([r,c]) => { const cc = gridData[r]?.[c]; if (cc && _rv[cc.rank]) totalFocus += _rv[cc.rank]; });
+    {
+      const _btf = trickFires('before_the_tide');
+      if (_btf) {
+        const _rv = { A:1, '2':2, '3':3, '4':4, '5':5 };
+        handCells.forEach(([r,c]) => { const cc = gridData[r]?.[c]; if (cc && _rv[cc.rank]) totalFocus += _rv[cc.rank] * _btf; });
+      }
     }
     // Lucky Sevens: +3 Focus per 7 scored
-    if (hasTrick('lucky_sevens')) { const _sv = handCells.filter(([r,c]) => gridData[r]?.[c]?.rank === '7').length; if (_sv) totalFocus += _sv * BAL.lucky_sevens.focus; }
+    { const _sv = handCells.filter(([r,c]) => gridData[r]?.[c]?.rank === '7').length; if (_sv) totalFocus += _sv * BAL.lucky_sevens.focus * trickFires('lucky_sevens'); }
     // Threepeat: hand pip-sum divisible by 3 → +3 Focus
-    if (hasTrick('ninesong')) { const _ps = handCells.reduce((s,[r,c]) => s + (gridData[r]?.[c] ? cardPips(gridData[r][c].rank) : 0), 0); if (_ps % 3 === 0) totalFocus += BAL.ninesong.focus; }
+    { const _ps = handCells.reduce((s,[r,c]) => s + (gridData[r]?.[c] ? cardPips(gridData[r][c].rank) : 0), 0); if (_ps % 3 === 0) totalFocus += BAL.ninesong.focus * trickFires('ninesong'); }
     // The Falcon: hands played while the clock is paused add +10 Focus
-    if (hasTrick('frozen_moment') && pipeTimerPaused) totalFocus += BAL.frozen_moment.focus;
+    if (pipeTimerPaused) totalFocus += BAL.frozen_moment.focus * trickFires('frozen_moment');
     // Hands of Blue: a 2×2 hand adds Focus. Crossroads: a + shaped hand adds Focus.
-    if (hasTrick('shape_square') && isSquare(handCells)) totalFocus += BAL.shape_square.focus;
-    if (hasTrick('shape_cross')  && isCross(handCells))  totalFocus += BAL.shape_cross.focus;
-    // Study Hall (r197): every Nth card scored pays Focus. It used to need a marked
+    if (isSquare(handCells)) totalFocus += BAL.shape_square.focus * trickFires('shape_square');
+    if (isCross(handCells))  totalFocus += BAL.shape_cross.focus  * trickFires('shape_cross');
+    // Study Hall (r205): every Nth card scored pays Focus. It used to need a marked
     // row/column AND a once-per-minute gate, which capped it at 3 fires a round for a
     // rare - the counter runs across the whole run instead, so a 5-card hand pays twice.
+    // The counter is per CARD and independent of trickFires, so a rehearsed Study Hall
+    // multiplies the payout rather than advancing the count faster.
     if (hasTrick('study_hall')) {
       const _prev = studyHallCards;
       studyHallCards += handCells.length;
       const _fires = Math.floor(studyHallCards / BAL.study_hall.every) - Math.floor(_prev / BAL.study_hall.every);
-      if (_fires > 0) totalFocus += _fires * BAL.study_hall.focus;
+      if (_fires > 0) totalFocus += _fires * BAL.study_hall.focus * trickFires('study_hall');
     }
     // Groove / Overtime: tally cards scored from their marked line this round, then scale.
     if (hasTrick('groove')) {
       markCount_groove += handCells.filter(([r,c]) => cellHasRowColBonus(r, c, 'groove')).length;
-      totalFocus += Math.floor(markCount_groove / 2) * BAL.groove.focus_per_2;
+      totalFocus += Math.floor(markCount_groove / 2) * BAL.groove.focus_per_2 * trickFires('groove');
     }
     if (hasTrick('overtime')) {
       markCount_overtime += handCells.filter(([r,c]) => cellHasRowColBonus(r, c, 'overtime')).length;
     }
     // 3rd Down: 3-card hands (or Pairs via Three's a Crowd) add Focus
-    if (hasTrick('third_down') && counts3CardHand(hand, handCells)) totalFocus += BAL.third_down.focus;
+    if (counts3CardHand(hand, handCells)) totalFocus += BAL.third_down.focus * trickFires('third_down');
     // Acorns: grant the trick's accumulated whole-number Focus (grows +0.05 per scored card, post-hand)
-    if (hasTrick('acorns')) totalFocus += Math.floor(bonusFocus_acorns);
+    totalFocus += Math.floor(bonusFocus_acorns) * trickFires('acorns');
     // Plan Ahead: every 3rd hand of the round adds Focus = average hands per round so far
-    if (hasTrick('plan_ahead') && ((handsPlayedRound + 1) % BAL.plan_ahead.every === 0)) {
-      totalFocus += Math.max(1, Math.round((handsPlayedGame + 1) / Math.max(1, level)));
+    if ((handsPlayedRound + 1) % BAL.plan_ahead.every === 0) {
+      totalFocus += Math.max(1, Math.round((handsPlayedGame + 1) / Math.max(1, level))) * trickFires('plan_ahead');
     }
     // ── 4-card-hand family ──
     if (handCells.length === 4) {
       // Four Horse-man: random bonus - Focus/pause halves (pips/mult handled in calcScore)
-      if (hasTrick('four_horseman')) {
-        const _fhm = fourHorsemanRoll(handCells);
-        if (_fhm === 2) totalFocus += BAL.four_horseman.focus;
-        else if (_fhm === 3) pauseRound(BAL.four_horseman.pause);
+      {
+        const _fhf = trickFires('four_horseman');
+        if (_fhf) {
+          // One roll, paid once per firing - re-rolling per firing would turn a
+          // duplicate into a different Trick (four chances at the good half).
+          const _fhm = fourHorsemanRoll(handCells);
+          if (_fhm === 2) totalFocus += BAL.four_horseman.focus * _fhf;
+          else if (_fhm === 3) pauseRound(BAL.four_horseman.pause * _fhf);
+        }
       }
       // Wait Four It: permanently buff the 4th card (scoring order) to pause the clock when scored
       if (hasTrick('wait_four_it')) {
         const _p = scoringOrderCells(handCells)[3];
         const _cd = _p && gridData[_p[0]]?.[_p[1]];
-        if (_cd) _cd._vulturePause = (_cd._vulturePause || 0) + BAL.wait_four_it.pause;
+        if (_cd) _cd._vulturePause = (_cd._vulturePause || 0) + BAL.wait_four_it.pause * trickFires('wait_four_it');
       }
     }
     // ── 5-card-hand family ──
     if (handCells.length === 5) {
-      if (hasTrick('five_stack')) totalFocus += handCells.length * BAL.five_stack.focus_per_card; // +Focus/card (pips+mult handled in calcScore)
-      if (hasTrick('five_second')) pauseRound(BAL.five_second.pause_seconds);                      // Five Second Rule → pause 5s
+      totalFocus += handCells.length * BAL.five_stack.focus_per_card * trickFires('five_stack'); // +Focus/card (pips+mult handled in calcScore)
+      pauseRound(BAL.five_second.pause_seconds * trickFires('five_second'));                       // Five Second Rule → pause 5s
       if (hasTrick('little_guys') && !handCells.some(([r,c]) => ['J','Q','K'].includes(gridData[r]?.[c]?.rank))) {
-        focusCapPerm += BAL.little_guys.cap_gain;                                                   // no face cards → +1 max Focus node (permanent)
-        showMessage('the little guys! +' + BAL.little_guys.cap_gain + ' max Focus', '#a25cd8');
+        const _lgf = BAL.little_guys.cap_gain * trickFires('little_guys');   // no face cards → +1 max Focus node (permanent)
+        focusCapPerm += _lgf;
+        showMessage('the little guys! +' + _lgf + ' max Focus', '#a25cd8');
       }
     }
     if (totalFocus > 0) addFocus(totalFocus);
     // Quick Draw: hands played within 3 seconds of the previous permanently add +1 max Focus capacity
-    if (hasTrick('quick_draw') && lastHandTime > 0 && secondsSinceLast * 1000 < BAL.quick_draw.window_ms) focusCapPerm += 10;
+    if (lastHandTime > 0 && secondsSinceLast * 1000 < BAL.quick_draw.window_ms) focusCapPerm += 10 * trickFires('quick_draw');
     // Flash Flood: runs of 4+ cards instantly advance focus to the next threshold
     if (_isRunHand && handCells.length >= 4 && hasTrick('ancient_grove')) {
-      const _nt = (Math.floor(focusNodes / FOCUS_THRESHOLD) + 1) * FOCUS_THRESHOLD;
+      const _nt = (Math.floor(focusNodes / FOCUS_THRESHOLD) + trickFires('ancient_grove')) * FOCUS_THRESHOLD;
       addFocus(_nt - focusNodes);
     }
     // Collapsing Columns (Full House) / Richter (Four of a Kind): advance focus to next threshold
-    if ((hand === 'Full House' && hasTrick('full_house_streak')) || (hand === 'Four of a Kind' && hasTrick('richter'))) {
-      const _nt2 = (Math.floor(focusNodes / FOCUS_THRESHOLD) + 1) * FOCUS_THRESHOLD;
-      addFocus(_nt2 - focusNodes);
+    {
+      const _adv = (hand === 'Full House' ? trickFires('full_house_streak') : 0)
+                 + (hand === 'Four of a Kind' ? trickFires('richter') : 0);
+      if (_adv > 0) {
+        const _nt2 = (Math.floor(focusNodes / FOCUS_THRESHOLD) + _adv) * FOCUS_THRESHOLD;
+        addFocus(_nt2 - focusNodes);
+      }
     }
     // Double Dutch: 3 pair-hands within 30s → +16 Focus (a non-pair hand breaks the streak)
     if (hasTrick('two_pair_mult')) {
@@ -116,7 +137,7 @@ function generateHandFocus(hand, handCells, vultureSec) {
         const _ddNow = Date.now();
         _ddPairTimes.push(_ddNow);
         _ddPairTimes = _ddPairTimes.filter(t => _ddNow - t <= BAL.two_pair_mult.window_ms);
-        if (_ddPairTimes.length >= BAL.two_pair_mult.need_count) { addFocus(BAL.two_pair_mult.focus); _ddPairTimes = []; showMessage('Double Dutch! +' + BAL.two_pair_mult.focus + ' Focus', '#5aa9e6'); }
+        if (_ddPairTimes.length >= BAL.two_pair_mult.need_count) { const _ddf = BAL.two_pair_mult.focus * trickFires('two_pair_mult'); addFocus(_ddf); _ddPairTimes = []; showMessage('Double Dutch! +' + _ddf + ' Focus', '#5aa9e6'); }
       } else { _ddPairTimes = []; }
     }
     // Ripple: consume the 30s cooldown if this hand actually had an adjacent-rank pair
@@ -125,16 +146,16 @@ function generateHandFocus(hand, handCells, vultureSec) {
       if (_hc.some((c,i) => _hc.some((o,j) => j !== i && _withinOneRank(c.rank, o.rank)))) _rippleLastFire = Date.now();
     }
     // High Water: after 3 Runs this round, each further Run pauses the clock by its card count
-    if (_isRunHand && runsPlayedRound >= 3 && hasTrick('high_water')) pauseRound(handCells.length);
+    if (_isRunHand && runsPlayedRound >= 3) pauseRound(handCells.length * trickFires('high_water'));
     // Dam Holding…: every Run pauses the clock a flat few seconds
-    if (_isRunHand && hasTrick('dam_holding')) pauseRound(BAL.dam_holding.pause);
+    if (_isRunHand) pauseRound(BAL.dam_holding.pause * trickFires('dam_holding'));
     // Sundial knack: a hand where every card shares a column pauses the clock
     if (hasKnack('sundial') && handCells.length > 0 && handCells.every(([, hc]) => hc === handCells[0][1])) pauseRound(BAL.sundial.seconds);
     // Metronome knack: playing this round's target hand type pauses the clock
     if (hasKnack('metronome') && hand === metronomeHandType) pauseRound(BAL.metronome.seconds);
     // Double Jeopardy: the first time the marked card is scored this round, pause the clock 15s (once per round)
     if (hasTrick('double_jeopardy') && !djUsedThisRound && doubleJeopardyPos && handCells.some(([r,c]) => r === doubleJeopardyPos.r && c === doubleJeopardyPos.c)) {
-      pauseRound(BAL.double_jeopardy.pause_seconds);
+      pauseRound(BAL.double_jeopardy.pause_seconds * trickFires('double_jeopardy'));
       djUsedThisRound = true;
       doubleJeopardyPos = null; // mark consumed; highlight clears
     }
@@ -179,6 +200,12 @@ function playHand() {
   if (roundEnded) { dbgEvent('warn', 'play ignored (round ended)'); return; }
   if (falling)   { pendingAction = 'play'; dbgEvent('info', 'play queued (falling)'); return; }
   if (animating) { pendingAction = 'play'; dbgEvent('info', 'play queued (animating)'); scheduleQueuedRetry(); return; }
+  // r200: the minimum selection is a rule, not just a disabled button - keyboard
+  // and queued-action paths reach here without going past the button's state.
+  if (typeof minSelection === 'function' && selected.length < minSelection()) {
+    dbgEvent('warn', 'play: below minimum selection', { selected: selected.length, min: minSelection() });
+    return;
+  }
   cancelAutoSubmit();
   console.log('[PLAY] entry', { score, goal: roundGoal, goalReachedThisRound, bonusWindowActive, animating, hasDance: !!danceAbortController });
   const result = findBestHand(selected);
@@ -206,7 +233,8 @@ function playHand() {
   // Rewound Echo knack: each card replay this hand has a chance to rewind 2 seconds.
   if (hasKnack('replay_rewind') && _lastHandRetrigs > 0) {
     let _rw = 0;
-    for (let i = 0; i < _lastHandRetrigs; i++) if (Math.random() < BAL.replay_rewind.chance) _rw += BAL.replay_rewind.seconds;
+    // COUNTABLE: each replay rolls, and past 100% one replay can pay twice.
+    for (let i = 0; i < _lastHandRetrigs; i++) _rw += luckRoll(BAL.replay_rewind.chance) * BAL.replay_rewind.seconds;
     if (_rw > 0) rewindTime(_rw, `🔂 Rewound Echo - rewound ${_rw}s`);
   }
   // Vulture: retrigger-aware pause-seconds from buffed cards in this hand (same fresh snapshot).
@@ -229,8 +257,39 @@ function playHand() {
   console.log('[PLAY] hand result', { hand, finalScore, scoreAfterAdd: score + finalScore });
   const scoreBeforeHand = score;
   score += finalScore;
-  if (sleightNextHandDouble) { score += finalScore; sleightNextHandDouble = false; }
-  if (sleightLegacyMult)     { score += finalScore * BAL.the_legacy.extra_mult; sleightLegacyMult = false; } // ×3 total = base + 2× extra
+  // Echo and Legacy both used to be applied here, at SCORE level. Both moved (r193):
+  // Echo is now a per-card replay (js/scoring.js retrigger block) because its text is
+  // "each card replays twice", and Legacy is now a ×mult so the MULT chip shows it.
+  // Both flags are cleared below, after calcScore has read them.
+  sleightNextHandDouble = false;
+  sleightLegacyMult = false;
+  // Reflect is once per round, and only calcScore knows whether it actually
+  // replayed anything - so the lock is taken here, on the committed hand, never
+  // inside calcScore (which findBestHand runs over every candidate).
+  if (typeof reflectSpendForRound === 'function') reflectSpendForRound(handCells);
+  // Rider (reward-grid penalty): the ridden Trick still works, it just bills you
+  // for every proc. Billed HERE, off _lastHandProcs, because calcScore is run
+  // over every candidate hand by findBestHand - charging inside it would empty
+  // the clock on hover. A Trick that has left you carries the Rider away with it.
+  if (riderTrickId) {
+    if (!hasTrick(riderTrickId) && !(acquiredTricks || []).some(t => t.id === riderTrickId)) {
+      riderTrickId = null;
+    } else {
+      const _procs = (_lastHandProcs || {})[riderTrickId] || 0;
+      if (_procs > 0) {
+        const _cost = _procs * BAL.rider.seconds_per_proc;
+        roundSeconds = Math.max(1, roundSeconds - _cost);
+        showTimeCost(`-${_cost}s`);
+        updateClockUI();
+      }
+    }
+  }
+  // Spot Check (reward-grid penalty): playing the flagged hand is what clears it.
+  if (spotCheckHand && spotCheckLeft > 0 && hand === spotCheckHand) {
+    spotCheckLeft--;
+    if (spotCheckLeft <= 0) { spotCheckHand = null; showMessage('Spot check cleared', 'var(--gold)'); }
+    else showMessage(`Spot check: ${spotCheckLeft} more`, 'var(--cream-dim)');
+  }
   // Compound (mythic): pay out everything banked since the last hand, then clear.
   // Added at SCORE level (not as pips or mult) on purpose - it is a copy of score
   // already earned, so running it back through mult × Focus would multiply it twice.
@@ -243,9 +302,10 @@ function playHand() {
   if (siphonMultX > 1) siphonMultX = 1;   // Siphon's ×3 is spent on this hand
   // Clock-mark Tricks: the pending pip/mult bonuses were already folded into finalScore - clear them now.
   pendingHandPips = 0; pendingHandMult = 0; pendingCardPips = 0;
-  // Natural Scaling: credit this hand's family/families. After the score is
-  // committed, so the buff lands on the NEXT hand of that family, not this one.
-  if (typeof recordNaturalScale === 'function') recordNaturalScale(hand);
+  // Natural Scaling: credit every hand type this play paid for - the primary and
+  // any other family it layered (a same-suit run earns both). After the score is
+  // committed, so the buff lands on the NEXT hand of that type, not this one.
+  if (typeof recordNaturalScale === 'function') recordNaturalScale(hand, handCells);
   handsPlayed++;
   // Record the hand for the SCORE-box hand log. Written here, not in the dance:
   // the dance is a presentation that can be interrupted or cut, whereas this is
@@ -332,23 +392,24 @@ function playHand() {
   // timeManipRound - doing both would double-count them in the payout's
   // "Time manipulation" row (scoring.js sums the two).
   // Deluge: Flushes rewind the clock
-  if (hand === 'Flush' && hasTrick('deluge')) rewindTime(BAL.deluge.seconds, `🌊 Deluge - rewound ${BAL.deluge.seconds}s`);
+  if (hand === 'Flush') { const _dl = BAL.deluge.seconds * trickFires('deluge'); if (_dl > 0) rewindTime(_dl, `🌊 Deluge - rewound ${_dl}s`); }
   // Overtime (r182): a REWIND, and now routed through the real rewind path.
   // It used to add raw seconds straight onto roundSeconds, which meant it was a
   // rewind that the game did not know was a rewind - it never showed the ⏪
   // floater, never counted toward Kingfisher or the round's rewind tally, and
   // was not capped at the round length. rewindTime() does all four, and returns
   // 0 during a boss (bosses run their own clock), which is the correct no-op.
-  if (hasTrick('overtime')) {
-    const _os = Math.floor(markCount_overtime / 3) * BAL.overtime.seconds_per_3;
+  {
+    const _os = Math.floor(markCount_overtime / 3) * BAL.overtime.seconds_per_3 * trickFires('overtime');
     if (_os > 0) rewindTime(_os, `⏱ Overtime - rewound ${_os}s`);
   }
   // Right Time: each card scored in its marked line pauses the clock (rewind conversion pending, task #10)
-  if (hasTrick('right_time')) { const _rt = handCells.filter(([r,c]) => cellHasRowColBonus(r, c, 'right_time')).length; if (_rt > 0) pauseRound(BAL.right_time.pause_seconds * _rt); }
+  { const _rt = handCells.filter(([r,c]) => cellHasRowColBonus(r, c, 'right_time')).length; if (_rt > 0) pauseRound(BAL.right_time.pause_seconds * _rt * trickFires('right_time')); }
   // Threepeat: hand pip-sum divisible by 3 → rewind (r183)
-  if (hasTrick('ninesong')) {
+  {
     const _ps = handCells.reduce((s,[r,c]) => s + (gridData[r]?.[c] ? cardPips(gridData[r][c].rank) : 0), 0);
-    if (_ps % 3 === 0) rewindTime(BAL.ninesong.seconds, `🔁 Threepeat - rewound ${BAL.ninesong.seconds}s`);
+    const _ns = BAL.ninesong.seconds * trickFires('ninesong');
+    if (_ps % 3 === 0 && _ns > 0) rewindTime(_ns, `🔁 Threepeat - rewound ${_ns}s`);
   }
   // Blood Diamonds: a hand with at least one heart AND one diamond grants +1 coin and +10s
   if (hasTrick('monochrome')) {
@@ -356,8 +417,10 @@ function playHand() {
     const _hasHeart = _bdc.some(c => c.suit === '♥' || (c.combined && c.suit2 === '♥'));
     const _hasDia   = _bdc.some(c => c.suit === '♦' || (c.combined && c.suit2 === '♦'));
     if (_hasHeart && _hasDia) {
-      coins += BAL.monochrome.coins; updateCoinsUI();
-      rewindTime(BAL.monochrome.seconds, `💎 Blood Diamonds - +${BAL.monochrome.coins} credit, rewound ${BAL.monochrome.seconds}s`);
+      const _bdf = trickFires('monochrome');
+      const _bdCoins = BAL.monochrome.coins * _bdf, _bdSecs = BAL.monochrome.seconds * _bdf;
+      coins += _bdCoins; updateCoinsUI();
+      rewindTime(_bdSecs, `💎 Blood Diamonds - +${_bdCoins} credit, rewound ${_bdSecs}s`);
     }
   }
 
@@ -408,8 +471,8 @@ function playHand() {
   }
 
   // Hoarder House: playing a hand rewinds the clock 1s per 2 unspent manipulate actions (swaps + discards).
-  if (hasTrick('magpie')) {
-    const _sec = Math.floor((swaps + discards) / BAL.magpie.actions_per_second);
+  {
+    const _sec = Math.floor((swaps + discards) / BAL.magpie.actions_per_second) * trickFires('magpie');
     if (_sec > 0) rewindTime(_sec, `🏚️ Hoarder House - rewound ${_sec}s`);
   }
 
@@ -438,9 +501,9 @@ function playHand() {
   if (isSetHand(hand)) {
     setsPlayedRound++;
     // Undue Influence: a Set with a face card grants credits = Sets played this round (incl. this one)
-    if (hasTrick('undue_influence') && handCells.some(([r,c]) => ['J','Q','K'].includes(gridData[r]?.[c]?.rank))) {
-      coins += setsPlayedRound; updateCoinsUI();
-      showMessage('Undue Influence +' + setsPlayedRound + ' credits', 'var(--gold)');
+    if (handCells.some(([r,c]) => ['J','Q','K'].includes(gridData[r]?.[c]?.rank))) {
+      const _ui = setsPlayedRound * trickFires('undue_influence');
+      if (_ui > 0) { coins += _ui; updateCoinsUI(); showMessage('Undue Influence +' + _ui + ' credits', 'var(--gold)'); }
     }
   }
   // ── Priming (Inspirato / Prime Times) ──

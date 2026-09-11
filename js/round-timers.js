@@ -46,6 +46,10 @@ function startRoundTimer() {
   startHeartbeat();                 // the board's idle pulse runs with the round
   syncDiscoveredFromOwned();        // log anything new for the Builds archive
   roundStartSeconds = roundSeconds; // mark the start of the countdown for ♠ "first 30s" exalt
+  // Suspension resolves HERE, not in triggerLevelUp: it needs roundStartSeconds to
+  // know where the round's halfway mark is, and this is the one call site every
+  // round start funnels through (the same reason the save checkpoint lives here).
+  if (typeof resolveEntityLockout === 'function') resolveEntityLockout();
   // Save point. Every round start funnels through here, so this is where a run
   // snapshot is taken; Settings → SAVE RUN just writes the latest one out. See
   // js/save.js for why the save point is a round boundary and not "right now".
@@ -58,7 +62,7 @@ function startRoundTimer() {
     if (pipeTimerPaused) return;
     if (gameTimerPaused) return; // global pause covers menus/shop/events
     if (match3NoTimer()) return; // Zen / infinite dev mode: the clock never runs down
-    // One clock, one tick (r197). Under The Metronome bossClockStep() returns the
+    // One clock, one tick (r205). Under The Metronome bossClockStep() returns the
     // live Focus multiplier instead of 1, with a fractional carry so x1.4 really
     // costs 1.4s/s rather than rounding away.
     roundSeconds -= (bossActive && typeof bossClockStep === 'function') ? bossClockStep() : 1;
@@ -145,7 +149,7 @@ function startRoundTimer() {
 }
 
 function startTimers() {
-  // One clock either way (r197) - startBossTimer arms the boss's scheduled effects
+  // One clock either way (r205) - startBossTimer arms the boss's scheduled effects
   // and then calls startRoundTimer itself.
   if (bossActive) startBossTimer();
   else startRoundTimer();
@@ -235,7 +239,7 @@ function stopTimers() {
 // ROUND END
 // ══════════════════════════════════════════════
 function onRoundEnd() {
-  // Since r197 the boss runs on this same clock, so reaching zero during a boss is
+  // Since r205 the boss runs on this same clock, so reaching zero during a boss is
   // the boss window expiring - the boss's own loss path, not a missed round goal.
   if (bossActive) { endBoss(false); return; }
   // Flow: the clock is a 5-minute SESSION clock, not a round clock. Reaching zero

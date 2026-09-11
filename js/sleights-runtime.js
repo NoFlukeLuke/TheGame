@@ -209,7 +209,7 @@ function getNeighborsOrtho(r, c) {
 }
 const _isOrthoAdj = (r1, c1, r2, c2) => Math.abs(r1 - r2) + Math.abs(c1 - c2) === 1;
 
-// ── Pivot (r197) ─────────────────────────────────────────────────────────────
+// ── Pivot (r205) ─────────────────────────────────────────────────────────────
 // Pivot works by SITTING on the grid, not by being swapped. Any card touching it
 // swaps for free; swap two of its neighbours TOGETHER and both take a permanent
 // mult buff and the Pivot leaves the board (see doSwap in js/input.js).
@@ -337,8 +337,13 @@ function juryRigRoll(cells) {
     seen.add(card._id); targets.push(card);
   }));
   targets.forEach(card => {
-    if (Math.random() >= BAL.jury_rig.chance) return;
-    if (restoreSleightCharge(card)) showMessage(`🔧 Jury-Rig - ${sleightDef(card)?.name || 'Sleight'} +1 charge`, '#6aaa6a');
+    // COUNTABLE: past 100% it restores several charges at once. restoreSleightCharge
+    // never exceeds the printed durability, so the cap is already enforced there.
+    const _jrN = luckRoll(BAL.jury_rig.chance);
+    if (_jrN <= 0) return;
+    let _got = 0;
+    for (let i = 0; i < _jrN * BAL.jury_rig.charges; i++) if (restoreSleightCharge(card)) _got++;
+    if (_got) showMessage(`🔧 Jury-Rig - ${sleightDef(card)?.name || 'Sleight'} +${_got} charge${_got > 1 ? 's' : ''}`, '#6aaa6a');
   });
 }
 
@@ -493,9 +498,17 @@ function magnetCluster(mr, mc, rank) {
 }
 
 function applySleightGridEffect(id, r, c) {
+  // Suspension (reward-grid penalty) switches one owned entity off for the first
+  // half of a round. Checked here rather than at each activation site because
+  // every activation-driven sleight passes through this one function.
+  if (typeof entitySuspended === 'function' && entitySuspended('sleight', id)) {
+    showMessage(`${id} is suspended this round`, 'var(--red)');
+    return;
+  }
   switch (id) {
     case 'power_cell':
-      addFocus(5); showMessage('Power Cell! +5 Focus', '#a25cd8'); break;
+      addFocus(BAL.power_cell.focus_on_enter);
+      showMessage(`Power Cell! +${BAL.power_cell.focus_on_enter} Focus`, '#a25cd8'); break;
     case 'good_friend':
       getNeighborsAll(r, c).forEach(([nr, nc]) => exaltCard(nr, nc));
       showMessage('The Good Friend exalts neighbors!', '#ffd700'); render(); break;
@@ -513,7 +526,7 @@ function applySleightGridEffect(id, r, c) {
       reshuffleGrid();
       showMessage('Dazed & Confused - grid reshuffled!', '#cc88ff'); break;
     case 'pivot':
-      // Unreachable since r197: Pivot is `passive` now (it works by sitting on the
+      // Unreachable since r205: Pivot is `passive` now (it works by sitting on the
       // grid), so fireSleightsOnSwap never dispatches it. The whole effect - the
       // free swap, the buff and the discard - is inline in doSwap.
       break;

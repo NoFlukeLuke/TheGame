@@ -349,7 +349,7 @@ function triggerBoss(presetOverride = null, windowSeconds = null) {
   // Clear pending selection over void
   selected = selected.filter(([r, c]) => !isCellBlocked(r, c));
 
-  // ── ONE CLOCK (r197) ──────────────────────────────────────────────────────
+  // ── ONE CLOCK (r205) ──────────────────────────────────────────────────────
   // A boss used to freeze `roundSeconds`, park it in savedRoundSeconds and run a
   // SECOND countdown (`bossSecondsLeft` on `bossInterval`). That was a leftover
   // from the old challenge system and it quietly switched off most of the game
@@ -618,11 +618,11 @@ function showBossCountdown() {
   })();
 }
 
-// Kept as a thin alias: there is one clock now (r197) and updateClockUI draws it,
+// Kept as a thin alias: there is one clock now (r205) and updateClockUI draws it,
 // reading bossWindowDuration as the bar's denominator while a boss is running.
 function updateBossClockDisplay() { updateClockUI(); }
 
-// The boss runs on the ONE round clock (r197). This starts the scheduled effects
+// The boss runs on the ONE round clock (r205). This starts the scheduled effects
 // (armed by applyBossModifiers, held back so their opening tick lands with the
 // clock rather than behind the briefing panel - see bossSchedule) and then hands
 // the countdown to startRoundTimer like any other round. The boss-specific parts
@@ -674,7 +674,7 @@ function ensureBossGoalExtra() {
 function endBoss(success) {
   if (!bossActive) return;
   bossActive = false;
-  // The boss shares the round clock now (r197), so stop it here. Without this the
+  // The boss shares the round clock now (r205), so stop it here. Without this the
   // tick that ran the window out would keep firing at roundSeconds 0 and, with
   // bossActive already false, fall straight through onRoundEnd's boss guard into
   // the ordinary missed-goal path a second later.

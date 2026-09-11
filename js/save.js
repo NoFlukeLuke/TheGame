@@ -51,6 +51,9 @@ function _saveWrite(name, v) {
 const SAVE_VARS = [
   // ── Run progression ──
   'level', 'score', 'totalScore', 'roundGoal', 'coins', 'leaves', 'handsPlayed',
+  'runDifficulty', 'goalPenaltyMult', 'focusRatePenalty', 'skipNextPayout', 'pendingEntityLockout',
+  'deadCells', 'riderTrickId', 'interestFreezeRounds', 'spotCheckHand', 'spotCheckLeft', 'nextRoundGridShrink',
+  'luckModifiers',
   'actNumber', 'nodeInAct', 'rewardGridsSeen', 'forceBossNextRound', 'shopFromNodeFlow',
   'pendingEventOverride', 'rewardGridContext', 'skipTrickChoiceOverlay', 'pendingLevelUps',
   'goalReachedThisRound', 'roundEnded', 'suppressScoreDisplay', 'heldBackScore',
@@ -236,6 +239,9 @@ function resumeSavedRun() {
   startGame();                    // clean baseline: every global at a known value
   applySavedState(save.state);
   if (save.v < 2) migrateCardKeysToIds();
+  // Natural Scaling was keyed by FAMILY before r198 and is keyed by hand type now.
+  // Self-detecting, so it is safe to call on every restore.
+  if (typeof migrateNaturalScaleFamilies === 'function') migrateNaturalScaleFamilies();
   _restoringSave = false;
 
   // The board came out of the save, so the grid has to be re-measured (a saved

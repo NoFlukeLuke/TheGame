@@ -50,6 +50,17 @@ function triggerLevelUp() {
   // Must happen before Trick re-placement and the deal animation populate gridData.
   gridRows = limits.grid_rows.current;
   gridCols = limits.grid_cols.current;
+  // Short Staffed (reward-grid penalty): one row or column is missing for this
+  // round only. Consumed here, at the one place the round's dimensions are set,
+  // so the shrink flows through recomputeGridMetrics and the gridData conform
+  // below exactly as a limit change would - a smaller board is a thing the game
+  // already knows how to deal.
+  if (nextRoundGridShrink === 'rows') gridRows = Math.max(3, gridRows - 1);
+  if (nextRoundGridShrink === 'cols') gridCols = Math.max(3, gridCols - 1);
+  if (nextRoundGridShrink) {
+    showMessage(`Short staffed: one ${nextRoundGridShrink === 'rows' ? 'row' : 'column'} down`, 'var(--red)');
+    nextRoundGridShrink = null;
+  }
   recomputeGridMetrics();
   // Structurally conform gridData to the new dimensions, preserving in-bounds cells.
   // (Out-of-bounds cells from a shrunk grid are simply dropped; their cards are
@@ -79,11 +90,15 @@ function triggerLevelUp() {
 
   level++;
   // This round's score target, from zero
-  roundGoal = survivalActive() ? survivalGoalForLevel(level)
-            : Math.round(Math.round(BASE_GOAL * Math.pow(GOAL_SCALE, level - 1)) / 500) * 500;
-  // Zen has no clock, so its goals are doubled - levelling and the reward grid
-  // stay reachable, just at a slower, self-paced rate.
-  if (match3IsZen()) roundGoal *= 2;
+  // One chokepoint for every mode's curve (js/goal-tuning.js) - it picks the
+  // survival curve in Survival/Flow and applies Zen's doubling, and it is what
+  // the dev panel's Goals group retunes live.
+  roundGoal = goalForLevel(level);
+  // Quota Revision (reward-grid penalty): every future goal is permanently raised.
+  // Applied AFTER the curve rather than inside it - the curve is r197's to tune,
+  // and this lifts whatever it produced. Rounded to 50 so the number on the HUD
+  // stays one a player can hold in their head.
+  if (goalPenaltyMult > 1) roundGoal = Math.round(roundGoal * goalPenaltyMult / 50) * 50;
   // Bank the completed round's score for the end-of-run display. In Survival the
   // overflow is carried to the next round, so only the counted portion is banked.
   totalScore += survivalActive() ? Math.max(0, score - _svOverflow) : score;
@@ -160,6 +175,8 @@ function triggerLevelUp() {
     const _jcard = gridData[_jr][_jc];
     if (_jcard?._isSleight) _jcard._usedThisRound = false;
   }
+  // Reflect fires once per round; the lock is released with the on_swap sleights'.
+  if (typeof reflectUsedThisRound !== 'undefined') reflectUsedThisRound = false;
   // Coin Toss: each owned Sleight has a 50% chance to regain 1 charge at round start
   if (hasKnack('coin_toss')) {
     let _refilled = 0;
@@ -167,7 +184,11 @@ function triggerLevelUp() {
       if (card._usesLeft === 'infinite' || typeof card._usesLeft !== 'number') return;
       const def = SLEIGHT_POOL.find(j => j.id === card.sleightId);
       const cap = sleightMaxCharges(def) ?? card._usesLeft;
-      if (card._usesLeft < cap && Math.random() < 0.5) { card._usesLeft++; _refilled++; }
+      // COUNTABLE, capped at the sleight's max charges. The 0.5 lived here as a
+      // literal until r196 - it is BAL.coin_toss.chance now, like every other
+      // tunable number, which is also what lets Luck reach it.
+      const _ctN = luckRoll(BAL.coin_toss.chance) * BAL.coin_toss.charges;
+      for (let i = 0; i < _ctN && card._usesLeft < cap; i++) { card._usesLeft++; _refilled++; }
     });
     if (_refilled) showMessage(`Coin Toss: ${_refilled} Sleight${_refilled > 1 ? 's' : ''} regained a charge`, 'var(--gold)');
   }

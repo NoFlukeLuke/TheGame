@@ -18,7 +18,7 @@ function resumeGame() {
   document.getElementById('pause-overlay').style.display = 'none';
   document.getElementById('grid').style.visibility = '';
   document.getElementById('btn-pause').textContent = '⏸ Pause';
-  // One clock (r197): startBossTimer re-arms any scheduled effects still pending
+  // One clock (r205): startBossTimer re-arms any scheduled effects still pending
   // and then starts the same round timer everything else uses.
   if (bossActive) startBossTimer();
   else startRoundTimer();
@@ -154,8 +154,11 @@ function updateLimitsPopup() {
   rows.innerHTML = LIMITS_DEF.map(def => {
     const l = limits[def.id];
     const maxed = l.current >= l.max;
-    // hideMax limits (Selection Size) have no meaningful ceiling to show.
-    const right = def.hideMax ? `${l.current}` : `${l.current}<span class="lp-max">/${l.max}</span>`;
+    // Shown value folds in luckModifiers (see limitShownValue); the /max stays on
+    // the LIMIT, which is the part that can actually be maxed out.
+    const shown = limitShownValue(def.id), dl = limitShownDelta(def.id);
+    const dlStr = dl ? ` <span class="lp-max" style="color:${dl > 0 ? 'var(--gold)' : 'var(--red)'}">${dl > 0 ? '+' : ''}${dl}</span>` : '';
+    const right = def.hideMax ? `${shown}${dlStr}` : `${shown}${dlStr}<span class="lp-max">/${l.max}</span>`;
     return `<div class="ic-r lp-r${maxed ? ' lp-maxed' : ''}" title="${def.desc}">` +
            `<span><span class="lp-ico">${def.icon}</span>${def.label}</span>` +
            `<span>${right}</span></div>`;
@@ -232,6 +235,11 @@ function startGame() {
   // A mode may pin a seed (the tutorial does); otherwise the dev panel's seed is
   // used, and with neither the run is plain unseeded.
   applyRunSeed(ACTIVE_MODE.seed || pendingRunSeed || null);
+
+  // Lock in this run's difficulty tier. Copied out of pendingDifficulty here, at
+  // the one point a run begins, so nothing the player touches on a menu later can
+  // reach the board mid-run (see js/difficulty.js).
+  runDifficulty = (typeof pendingDifficulty === 'number') ? pendingDifficulty : 1;
 
   // Pick the suit + rank lists for this mode BEFORE any deck is built. Six Suits
   // uses the expanded 6-suit list, Spectrum swaps both lists for the numeric
@@ -333,6 +341,11 @@ function startGame() {
   nextRoundDiscardDelta = 0; nextRoundSwapDelta = 0; nextRoundSecondsDelta = 0;
   nextRoundPlayCost = 0; nextRoundDiscardCost = 0;
   playHandCostThisRound = 0; discardCostThisRound = 0;
+  goalPenaltyMult = 1; focusRatePenalty = 1; skipNextPayout = false;
+  pendingEntityLockout = null; entityLockout = null;
+  luckModifiers = 0;
+  deadCells = new Set(); riderTrickId = null; interestFreezeRounds = 0;
+  spotCheckHand = null; spotCheckLeft = 0; nextRoundGridShrink = null;
   clearTimeout(challengeOverlayTimer);
   document.getElementById('challenge-overlay').classList.remove('show');
   // Reset goal/level-up queue
@@ -347,7 +360,11 @@ function startGame() {
   stopwatchActive = false; if (stopwatchTimer) { clearInterval(stopwatchTimer); stopwatchTimer = null; } stopwatchCardPos = null;
   if (pauseTimer) { clearTimeout(pauseTimer); pauseTimer = null; }
   if (typeof resetClockFx === 'function') resetClockFx();  // no frozen/rotated cards carried into a new run
-  const ALL_HAND_KEYS = ['run3','threeofakind','fourofakind','run4','pair','twopair','straight','flush','fullhouse','straightflush','highcard','blackjack'];
+  // The big hands (r199) are always in the list - they need Selection Size past 5
+  // to be reachable at all, which is gate enough. flush3/flush4 stay OUT: they are
+  // still not something you may PLAY here, only something a hand may LAYER.
+  const ALL_HAND_KEYS = ['run3','threeofakind','fourofakind','run4','pair','twopair','straight','flush','fullhouse','straightflush','highcard','blackjack',
+                         'run6','run7','flush6','flush7','fiveofakind','sixofakind','sevenofakind'];
   const BASE_HAND_KEYS = ['run3','threeofakind','twopair','fourofakind'];
   // Match-3 scores real hand names (Flush, Straight, Straight Flush, Run of 4…),
   // so it needs the full hand set active like the act modes, not the legacy base four.
@@ -436,7 +453,7 @@ function startGame() {
   cancelAutoSubmit();
   cancelDance();
   handReadyForSubmit = false;
-  document.getElementById('hand-name').textContent = '';   // empty → "HAND" watermark shows (r99)
+  updateHandNameLabel(null);   // clears the label AND its cache (js/hud.js)
   document.getElementById('selected-cards').innerHTML = '';
   selected = [];
   animating = false;
@@ -461,8 +478,7 @@ function startGame() {
   updateActProgressUI();
   // Clear any leftover card elements from previous game
   document.getElementById('grid').querySelectorAll('.card').forEach(el => el.remove());
-  roundGoal = survivalActive() ? survivalGoalForLevel(1)
-            : (match3IsZen() ? BASE_GOAL * 2 : BASE_GOAL); // Zen: doubled goals, no clock
+  roundGoal = goalForLevel(1);  // js/goal-tuning.js: per-mode curve + Zen's doubling
   totalScore = 0;
   coins = 0;
   shopItems = null;
