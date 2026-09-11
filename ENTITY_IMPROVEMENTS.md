@@ -180,7 +180,7 @@ which is the cheap majority the system can ship on first.
 | Dark Matter | rare | All-spade hands add half the remaining round time as pips | -0.5 off the divisor (min 0.5) | all-black hands count (spades and clubs) |  | O1 BAL · O2 code | Claude |
 | Mirror | rare | Tap to tilt left or right; borrows the effect of the Trick on that side. Facing an empty slot = no effect. | borrows at 1.5x strength | borrows from both sides at once |  | O1 code · O2 code | Claude |
 | Combo Score | common | +2 mult for every distinct hand type played this round | +2 mult | x1+.3 per distinct hand type. |  | O1 BAL · O2 code | you |
-| Escalation | rare | +3 mult for every hand played this round past the 3rd | +3 mult per hand | starts a hand earlier (-1 per improvement, min the 1st hand) |  | O1 code · O2 code | Claude |
+| Escalation | rare | Every hand played this round is worth +3 mult, paid from the hand after your 3rd | +3 mult per hand | pays a hand earlier (-1 per improvement, min the 1st hand) |  | O1 code · O2 code | Claude |
 | Move as One | epic | If 3+ of your Tricks share a keyword, your lowest-rarity Trick sharing that keyword scores its effect a second time | +1 extra scoring | 2 Tricks sharing a keyword is enough |  | O1 code · O2 code | Claude |
 | More Better | common | Each reward grid where you select 3+ tiles permanently adds +4 mult to this trick | +4 mult | 2+ tiles is enough (-1 per improvement, min 1) |  | O1 BAL · O2 BAL | Claude |
 | Rain Check | epic | Skipping a reward grid adds +30 seconds to your next round | +30 seconds | taking only one tile also counts as skipping |  | O1 BAL · O2 code | Claude |

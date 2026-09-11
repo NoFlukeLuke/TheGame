@@ -150,10 +150,11 @@ Five Tricks whose printed effect and real effect had drifted apart. All five rea
 | **Get Even** (common) | `cells.length x 2` - it paid for the *odd* cards in the hand too | **+2 mult per EVEN card** |
 | **Odd One In** (rare) | `cells.length x 5` - same trigger, 2.5x the rate | **+2 mult per ODD card** - the same effect mirrored |
 | **Cull** (common) | flat +1 Focus per discard | **+1 Focus per swap and discard you have left** (read after the discard is paid for) |
-| **Escalation** (rare) | `handsPlayedRound - 5`, and since the counter is bumped *after* scoring that meant nothing until the **7th** hand | **+3 mult per hand past the 3rd**: 4th = +3, 5th = +6, 6th = +9 |
+| **Escalation** (rare) | `handsPlayedRound - 5`, and since the counter is bumped *after* scoring that meant nothing until the **7th** hand | **every hand of the round is worth +3 mult**, paid from the 4th: 4th = +12, 5th = +15, 6th = +18 |
 
 - **`studyHallCards` is a RUN counter, not a round counter.** It is declared in `deck-grid.js`, reset in `startGame` only, and is in `SAVE_VARS`. Resetting it per round would throw away a partial pair every level.
 - **`handsPlayedRound` is bumped in `playHand` AFTER scoring**, so inside `calcScore` the hand being scored is the `(handsPlayedRound + 1)`-th of the round. That off-by-one is what made the old Escalation dead; anything keyed on "how many hands so far" has to account for it. The live readout in `tricks-ui.js` uses the same expression.
+- **Escalation counts the first three hands, it just does not pay for them yet (r206).** `after_hands` is a PAYOUT THRESHOLD, not an offset subtracted from the count: nothing lands until the 4th hand, and then the bonus is the whole hand count x the rate. A first pass read it as an offset and paid +3 on the 4th instead of +12.
 
 ### Focus RATE vs Focus CAP (r190)
 

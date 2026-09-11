@@ -171,7 +171,7 @@ function trickLiveDesc(trick) {
       case 'sands_of_time':  return roundNow(`+${Math.floor(roundSeconds / B.sands_of_time.divisor)} pips`);
       case 'discard_pips':   return roundNow(`+${(cardsDiscardedRound || 0) * B.discard_pips.pips_per_discard} pips`);
       case 'landfill':       return roundNow(`+${Math.floor((cardsDiscardedRound || 0) / B.landfill.discards_per) * B.landfill.mult_per_n} mult`);
-      case 'escalation':     return roundNow(`+${Math.max(0, ((handsPlayedRound || 0) + 1) - BAL.escalation.after_hands) * BAL.escalation.mult_per_hand} mult`);
+      case 'escalation':     { const _h = (handsPlayedRound || 0) + 1; return roundNow(`+${_h > B.escalation.after_hands ? _h * B.escalation.mult_per_hand : 0} mult`); }
       case 'combo_score':    return roundNow(`+${(handTypesRound ? handTypesRound.size : 0) * B.combo_score.mult_per_type} mult`);
       default: return base;
     }

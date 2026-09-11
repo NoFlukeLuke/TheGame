@@ -1,4 +1,4 @@
-const BUILD = '2026-09-11 · r205 · one clock during bosses; The Marker; Study Hall / Get Even / Odd One In / Cull / Escalation / Pivot reworked [onto r204]';
+const BUILD = '2026-09-11 · r206 · Escalation counts every hand of the round, paid from the 4th (+12, +15, +18)';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

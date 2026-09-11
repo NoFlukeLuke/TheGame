@@ -318,7 +318,7 @@ const DESC_TEMPLATES = {
   row_power: 'Hands with cards from only one row score +{mult_per_card} mult per card',
   right_time: 'Each card scored in a marked row or column pauses the clock {pause_seconds} seconds',
   study_hall: 'Every {every} cards you score adds +{focus} Focus',
-  escalation: '+{mult_per_hand} mult for every hand played this round past the {after_hands}rd',
+  escalation: 'Every hand played this round is worth +{mult_per_hand} mult, paid from the hand after your {after_hands}rd',
   cull: 'Discarding adds {focus_per_stock} Focus per swap and discard you have left',
   rowcol_perm_double: 'Cards scored at the intersection of a row effect and a column effect permanently gain +{perm_mult} mult, once per minute',
   groove:        'This trick scales +{focus_per_2} Focus for every 2 cards scored from a marked row or column. Resets each round.',

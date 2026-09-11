@@ -599,12 +599,14 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   if (hasTrick('triple_threat') && handName === 'Full House') { totalPips += BAL.triple_threat.pips; bPip('triple_threat', BAL.triple_threat.pips); }
   if (hasTrick('heavy_hand') && cells.length === 5) { const _a = cells.length * BAL.heavy_hand.pips_per_card; totalPips += _a; bPip('heavy_hand', _a); }
   if (hasTrick('prime_time')) { const _pc = cards.filter(c => ['A','2','3','5','7'].includes(c.rank)).length; if (_pc >= 3) { const _a = cells.length * BAL.prime_time.pips_per_card; totalPips += _a; bPip('prime_time', _a); } }
-  // Escalation: the hand being scored is the (handsPlayedRound + 1)-th of the round
-  // (handsPlayedRound is bumped in playHand AFTER scoring). Nothing until the 4th
-  // hand, then +3 mult per hand past the 3rd: 4th = +3, 5th = +6, 6th = +9 ...
+  // Escalation: EVERY hand of the round counts, including the first three - they
+  // just do not pay yet. Nothing lands until the (after_hands + 1)-th hand, and
+  // then the bonus is the whole count x the rate: 4th = +12, 5th = +15, 6th = +18.
+  // The hand being scored is the (handsPlayedRound + 1)-th, because handsPlayedRound
+  // is bumped in playHand AFTER scoring.
   if (hasTrick('escalation')) {
-    const _past = (handsPlayedRound + 1) - BAL.escalation.after_hands;
-    if (_past > 0) { const _a = _past * BAL.escalation.mult_per_hand; mult += _a; bMult('escalation', _a); }
+    const _hands = handsPlayedRound + 1;
+    if (_hands > BAL.escalation.after_hands) { const _a = _hands * BAL.escalation.mult_per_hand; mult += _a; bMult('escalation', _a); }
   }
   // Combo score: +2 mult per distinct hand type played this round
   if (hasTrick('combo_score') && handTypesRound.size > 0) { const _a = handTypesRound.size * BAL.combo_score.mult_per_type; mult += _a; bMult('combo_score', _a); }

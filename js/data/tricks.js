@@ -156,7 +156,7 @@ const TRICK_POOL = [
   { id:'mirror',         name:'Mirror',              tier:'rare',      tags:['utility'], desc:'Tap to tilt left or right; borrows the effect of the Trick on that side. Facing an empty slot = no effect.' },
   // ── Diverse conditions ──
   { id:'combo_score',    name:'Combo Score',         tier:'common',    desc:'+2 mult for every distinct hand type played this round' },
-  { id:'escalation',     name:'Escalation',          tier:'rare',      desc:'+3 mult for every hand played this round past the 3rd' },
+  { id:'escalation',     name:'Escalation',          tier:'rare',      desc:'Every hand played this round is worth +3 mult, paid from the hand after your 3rd' },
   { id:'move_as_one',    name:'Move as One',         tier:'epic',      tags:['synergy'], desc:'If 3+ of your Tricks share a keyword, your lowest-rarity Trick sharing that keyword scores its effect a second time' },
   // ── Reward-grid meta (r128) ──
   { id:'more_better',    name:'More Better',         tier:'common',    tags:['mult','scaling'], desc:'Each reward grid where you select 3+ tiles permanently adds +4 mult to this trick' },
