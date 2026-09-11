@@ -326,7 +326,7 @@ function onCardTap(r, c) {
         if (focusNodes < BAL.capacitor.focus_cost) { showMessage(`Capacitor needs ${BAL.capacitor.focus_cost} Focus`, 'var(--cream-dim)'); return; }
         removeFocus(BAL.capacitor.focus_cost);
         roundSeconds = Math.max(1, roundSeconds - BAL.capacitor.time_cost); showTimeCost(`-${BAL.capacitor.time_cost}s`); updateClockUI();
-        coins += BAL.capacitor.credits; updateCoinsUI();
+        grantEntityCoins(BAL.capacitor.credits, 'sleight', 'capacitor');
         showMessage(`🔋 Capacitor - ${BAL.capacitor.focus_cost} Focus & ${BAL.capacitor.time_cost}s → ${BAL.capacitor.credits} credits`, 'var(--gold)');
         selected = []; discardSleightAfterUse(jcard, r, c);
         return;

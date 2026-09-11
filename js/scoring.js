@@ -880,6 +880,19 @@ function contribDisplayName(source, id) {
   return def ? def.name : id;
 }
 
+// Credits granted BY AN ENTITY during a round. Coins are handed out from a dozen
+// scattered sites (`coins += ...`) and none of them were reaching the payout's
+// Contributions tab, which only ever tallied pips and mult - so a Trick whose whole
+// job is paying credits showed up nowhere in the round's breakdown.
+// One call adds the credits AND records who paid them.
+function grantEntityCoins(amount, source, id) {
+  const n = Math.round(amount || 0);
+  if (!n) return;
+  coins += n;
+  if (typeof updateCoinsUI === 'function') updateCoinsUI();
+  foldContribution(contribDisplayName(source, id), 'coin', n);
+}
+
 function foldContribution(label, kind, amount) {
   if (!amount) return;
   const key = label + '|' + kind;
@@ -937,6 +950,7 @@ function fmtContribution(e) {
   switch (e.kind) {
     case 'pip':  return `+${Math.round(e.amount)} pips`;
     case 'mult': return `+${r1(e.amount)} mult`;
+    case 'coin': return `${e.amount >= 0 ? '+' : ''}${Math.round(e.amount)} credits`;
     default:     return String(e.amount);
   }
 }
@@ -948,7 +962,7 @@ function roundContributionRowsHTML() {
     return `<div class="contrib-empty">No hands scored this round.</div>`;
   }
   let html = '';
-  [{ kind: 'pip', title: 'Pips' }, { kind: 'mult', title: 'Mult' }].forEach(g => {
+  [{ kind: 'pip', title: 'Pips' }, { kind: 'mult', title: 'Mult' }, { kind: 'coin', title: 'Credits' }].forEach(g => {
     const rows = entries.filter(e => e.kind === g.kind).sort((a, b) => b.amount - a.amount);
     if (!rows.length) return;
     html += `<div class="contrib-group-title">${g.title}</div>`;

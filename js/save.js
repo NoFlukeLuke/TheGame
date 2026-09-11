@@ -246,6 +246,7 @@ function resumeSavedRun() {
   // is recomputed from it. Without this a resumed run restores the tiers and
   // plays at base values.
   if (typeof applyEntityTiers === 'function') applyEntityTiers();
+  dropUnknownCurses();
   _restoringSave = false;
 
   // The board came out of the save, so the grid has to be re-measured (a saved
@@ -280,6 +281,18 @@ function resumeSavedRun() {
 // onto the cards themselves. Where a face has more than one card (a duplicate), all
 // of them inherit the buff, which is exactly what the old save meant by it - so a
 // resumed run loses nothing and nothing gets worse.
+// A save outlives deploys - main auto-deploys to Pages on every commit - so it can
+// name a curse this build no longer defines. Such an entry has no meaning left, and
+// every site that reads one assumes CURSE_DEFS has it, so drop it on the way in
+// rather than leaving a live landmine in cardCurses.
+function dropUnknownCurses() {
+  if (typeof cardCurses !== 'object' || !cardCurses) return;
+  Object.keys(cardCurses).forEach(k => {
+    const c = cardCurses[k];
+    if (!c || !CURSE_DEFS[c.id]) delete cardCurses[k];
+  });
+}
+
 function migrateCardKeysToIds() {
   const maps = [permPips, permMult, permXPips, permXMult, permRetrig,
                 cardCurses, cardPlayCount, cardSwapCount, cardDealtCount];
@@ -330,7 +343,20 @@ function continueSavedRun() {
   maybeAutoFullscreen();
   document.getElementById('main-menu-overlay').classList.remove('show');
   document.getElementById('mode-select-overlay')?.classList.remove('show');
-  resumeSavedRun();
+  // A restore that throws part-way leaves the worst possible state: the menu is gone,
+  // the round clock never started and the board is whatever the startGame baseline
+  // dealt - the "blank screen on resume" report. There is no way to finish restoring
+  // at that point, so hand the player back the menu and say so, instead of stranding
+  // them on a dead board with a CONTINUE button that fails the same way every time.
+  try {
+    resumeSavedRun();
+  } catch (e) {
+    console.error('[save] resume failed', e);
+    document.getElementById('main-menu-overlay').classList.add('show');
+    if (typeof stopTimers === 'function') stopTimers();
+    alert('That saved run could not be loaded - it was saved by a different version of the game. Starting a new run instead.');
+    clearSavedRun();
+  }
 }
 
 // A finished run's save is stale, but only if the save actually belongs to the

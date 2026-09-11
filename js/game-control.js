@@ -1,7 +1,16 @@
 function pauseGame(hideGrid = true) {
   if (isPaused) return;
-  if (!roundInterval && !gameInterval) return; // nothing to pause
+  // A running 3-2-1 counts as something to pause: the round timer has not started yet,
+  // so the old `!roundInterval && !gameInterval` test made PAUSE a no-op during the deal
+  // and the round began underneath the pause menu.
+  if (!roundInterval && !gameInterval && !countdownActive) return; // nothing to pause
   isPaused = true;
+  if (countdownActive) {
+    countdownPaused = true;
+    // The digit's pop is a CSS animation, so it has to be held separately from the wait.
+    const _cn = document.getElementById('countdown-321-number');
+    if (_cn) _cn.style.animationPlayState = 'paused';
+  }
   clearInterval(roundInterval); roundInterval = null;
   clearInterval(gameInterval);  gameInterval  = null;
   cancelAutoSubmit();
@@ -18,9 +27,18 @@ function resumeGame() {
   document.getElementById('pause-overlay').style.display = 'none';
   document.getElementById('grid').style.visibility = '';
   document.getElementById('btn-pause').textContent = '⏸ Pause';
+  // Released mid-countdown: hand the count back, but do NOT start the round/boss timer -
+  // the clock would run while the 3-2-1 is still on screen. The countdown's own
+  // continuation starts it at the right moment. The game timer below still restarts,
+  // since pauseGame cleared it and nothing else would put it back.
+  if (countdownActive) {
+    countdownPaused = false;
+    const _cn = document.getElementById('countdown-321-number');
+    if (_cn) _cn.style.animationPlayState = '';
+  }
   // One clock (r205): startBossTimer re-arms any scheduled effects still pending
   // and then starts the same round timer everything else uses.
-  if (bossActive) startBossTimer();
+  else if (bossActive) startBossTimer();
   else startRoundTimer();
   // Restart game timer
   gameInterval = setInterval(() => {

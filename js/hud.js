@@ -69,6 +69,22 @@ function updateDanceSubboxes(pips, mult) {
   if (mult !== prevMult) { animateDigitEl(multEl, parseFloat(mult.toFixed(1))); popSubbox('mult-box'); }
 }
 
+// ── Selection-size readout (r197) ──
+// How many cards are in hand right now, beside the coin count. On the reward grid
+// the same chip switches to selected/max, because there the cap is the thing being
+// played against (the grid refuses a pick past it) rather than a background limit.
+function updateSelectionUI() {
+  const el = document.getElementById('sel-display');
+  if (!el) return;
+  const onReward = (typeof rewardOnGrid !== 'undefined' && rewardOnGrid);
+  const n   = onReward ? rewardSelected.size : selected.length;
+  const cap = onReward ? rewardSelectionCap() : limits.selection.current;
+  el.textContent = onReward ? `✋ ${n}/${cap}` : `✋ ${n}`;
+  el.classList.toggle('sel-full', n >= cap);
+  const st = document.getElementById('sel-stat');
+  if (st) st.classList.toggle('sel-active', n > 0);
+}
+
 function updateCoinsUI() {
   document.getElementById('coins-display').textContent = '💰 ' + coins;
   const cg = document.getElementById('ci-gold'); if (cg) cg.textContent = coins;

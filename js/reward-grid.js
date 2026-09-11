@@ -1372,6 +1372,7 @@ function renderRewardGrid() {
       return rewardCells[sr]?.[sc]?.kind === 'dest';
     });
     const cap = rewardSelectionCap();
+    if (typeof updateSelectionUI === 'function') updateSelectionUI();
     const picks = `Picks: ${rewardSelected.size}/${cap}`;
     const atCap = rewardSelected.size >= cap;
     subEl.textContent = atCap

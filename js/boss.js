@@ -606,13 +606,15 @@ function showBossCountdown() {
   if (!overlay || !numEl) return Promise.resolve();
   if (typeof sfxCountdown321 === 'function') sfxCountdown321();
   return (async () => {
+    beginCountdown();
     for (const n of ['3','2','1']) {
       numEl.textContent = n;
       numEl.style.animation = 'none'; void numEl.offsetWidth;
       numEl.style.animation = 'countdown-pop 500ms ease forwards';
       overlay.classList.add('show');
-      await new Promise(r => setTimeout(r, 500));
+      await countdownWait(500);   // pausable - see js/interlude.js
     }
+    endCountdown();
     overlay.classList.remove('show');
     await new Promise(r => setTimeout(r, 120));
   })();

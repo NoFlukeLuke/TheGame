@@ -7,6 +7,15 @@ function doDiscard() {
   if (roundEnded || animating) return;
   if (falling) { if (selected.length > 0) { pendingAction = 'discard'; dbgEvent('info', 'discard queued (falling)'); } return; }
   if (selected.length === 0) return;
+  // Guard: block discard when out of discards. Mirrors the swap guard in input.js.
+  // Hoarder is the one bypass - its whole text is "discards no longer count against
+  // the discard limit", so it must not be stopped by that limit either.
+  if (discards <= 0 && !hasKnack('hoarder')) {
+    const btn = document.getElementById('btn-discard');
+    if (btn) { btn.style.borderColor='var(--red)'; btn.style.color='var(--red)'; setTimeout(()=>{btn.style.borderColor='';btn.style.color='';},500); }
+    showMessage('No discards left', 'var(--red)');
+    return;
+  }
   // Defensive: filter selection down to actually-discardable cards
   const validSelected = selected.filter(([r,c]) => {
     const card = gridData[r]?.[c];
@@ -80,7 +89,7 @@ function doDiscard() {
   cardsDiscardedRound += count;
   // Five for Fodder: discarding a 5-card hand grants credits
   if (hasTrick('five_fodder') && count === 5) {
-    coins += BAL.five_fodder.credits; updateCoinsUI();
+    grantEntityCoins(BAL.five_fodder.credits, 'trick', 'five_fodder');
     showMessage('Five for Fodder! +' + BAL.five_fodder.credits + ' credits', 'var(--gold)');
   }
   // Penny Saved: each 5 discarded adds +5 pips to trick
@@ -110,7 +119,7 @@ function doDiscard() {
       if (_dabiSwapNext) { swaps++; showMessage(`Down and Back In: +1 swap, +${BAL.down_and_back_in.coins} coins`, 'var(--gold)'); }
       else { discards++; showMessage(`Down and Back In: +1 discard, +${BAL.down_and_back_in.coins} coins`, 'var(--gold)'); }
       _dabiSwapNext = !_dabiSwapNext;
-      coins += BAL.down_and_back_in.coins; updateCoinsUI();
+      grantEntityCoins(BAL.down_and_back_in.coins, 'trick', 'down_and_back_in');
     }
   }
   // Martyr: sacrificing a non-discard Sleight refills 1 charge on every OTHER on-grid Sleight

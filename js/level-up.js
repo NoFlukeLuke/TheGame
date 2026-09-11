@@ -10,8 +10,11 @@ function computeRoundResources() {
   const limitSwapBonus    = limits.swaps.current      - limits.swaps.base;
   const limitTimeBonus    = limits.round_time.current - limits.round_time.base;
 
-  const baseDiscards = 4 + limitDiscardBonus + (hasKnack('extra_discards') ? BAL.extra_discards.discards : 0);
-  const baseSwaps    = (hasKnack('free_range_t') ? 2 : 3) + limitSwapBonus + (hasKnack('extra_swaps') ? BAL.extra_swaps.swaps : 0);
+  // Both seed from the LIMIT's own base, so the round-start stock can never drift from
+  // the number the Limits screen prints. Discards used to seed from a hardcoded 4 against
+  // a limit base of 3, which handed out one discard more than the limit every round.
+  const baseDiscards = limits.discards.base + limitDiscardBonus + (hasKnack('extra_discards') ? BAL.extra_discards.discards : 0);
+  const baseSwaps    = (limits.swaps.base - (hasKnack('free_range_t') ? 1 : 0)) + limitSwapBonus + (hasKnack('extra_swaps') ? BAL.extra_swaps.swaps : 0);
   // Round-time cap = full duration minus permanent penalties, plus any limit-break trick.
   const _roundDur = currentRoundDuration();
   const baseSeconds  = Math.max(10, (_roundDur - roundPenaltySeconds) + limitTimeBonus);

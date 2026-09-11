@@ -419,7 +419,7 @@ function playHand() {
     if (_hasHeart && _hasDia) {
       const _bdf = trickFires('monochrome');
       const _bdCoins = BAL.monochrome.coins * _bdf, _bdSecs = BAL.monochrome.seconds * _bdf;
-      coins += _bdCoins; updateCoinsUI();
+      grantEntityCoins(_bdCoins, 'trick', 'monochrome');
       rewindTime(_bdSecs, `💎 Blood Diamonds - +${_bdCoins} credit, rewound ${_bdSecs}s`);
     }
   }
@@ -503,7 +503,7 @@ function playHand() {
     // Undue Influence: a Set with a face card grants credits = Sets played this round (incl. this one)
     if (handCells.some(([r,c]) => ['J','Q','K'].includes(gridData[r]?.[c]?.rank))) {
       const _ui = setsPlayedRound * trickFires('undue_influence');
-      if (_ui > 0) { coins += _ui; updateCoinsUI(); showMessage('Undue Influence +' + _ui + ' credits', 'var(--gold)'); }
+      if (_ui > 0) { grantEntityCoins(_ui, 'trick', 'undue_influence'); showMessage('Undue Influence +' + _ui + ' credits', 'var(--gold)'); }
     }
   }
   // ── Priming (Inspirato / Prime Times) ──
@@ -590,7 +590,7 @@ function playHand() {
       showMessage(`Curse lifted: ${card.rank}${card.suit}`, '#54af88');
       // Scavenger: farm lifted curses for coins + a discard next round
       if (hasKnack('scavenger')) {
-        coins += BAL.scavenger.coins; updateCoinsUI();
+        grantEntityCoins(BAL.scavenger.coins, 'knack', 'scavenger');
         nextRoundDiscardDelta += 1;
         showMessage(`Scavenger: +${BAL.scavenger.coins} coins, +1 discard next round`, 'var(--gold)');
       }
@@ -691,7 +691,13 @@ function playHand() {
     }
   }
   } // end exaltCorruptEnabled trigger block
-  if (_ecPlay.coins !== 0) { coins = Math.max(0, coins + _ecPlay.coins); updateCoinsUI(); }
+  // Exalt/corrupt credits are floored at 0 (no debt), so the tally records what was
+  // actually paid rather than the raw delta.
+  if (_ecPlay.coins !== 0) {
+    const _ecPaid = Math.max(0, coins + _ecPlay.coins) - coins;
+    coins += _ecPaid; updateCoinsUI();
+    foldContribution(contribDisplayName('exalt'), 'coin', _ecPaid);
+  }
   if (_ecPlay.time !== 0) {
     roundSeconds = Math.max(1, Math.min(roundSeconds + _ecPlay.time, ROUND_DURATION));
     updateClockUI();

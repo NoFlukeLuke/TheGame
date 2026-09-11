@@ -556,7 +556,7 @@ function applySleightGridEffect(id, r, c) {
       sleightLegacyMult = true;
       showMessage('📜 Legacy - next hand ×3!', '#ffd700'); break;
     case 'cash_out':
-      coins += BAL.cash_out.coins; updateCoinsUI();
+      grantEntityCoins(BAL.cash_out.coins, 'sleight', 'cash_out');
       showMessage('💰 Cash Out - +10 credits!', 'var(--gold)'); break;
     case 'the_wanderer':
       swaps = Math.min(99, swaps + BAL.the_wanderer.swaps); render();
@@ -584,7 +584,7 @@ function applySleightGridEffect(id, r, c) {
       break;
     }
     case 'piggy_bank':
-      coins += BAL.piggy_bank.coins; updateCoinsUI();
+      grantEntityCoins(BAL.piggy_bank.coins, 'sleight', 'piggy_bank');
       showMessage('🐷 Piggy Bank - +5 credits!', 'var(--gold)'); break;
     default:
       showMessage(`${SLEIGHT_POOL.find(j=>j.id===id)?.name||'Sleight'} activated!`, '#cc88ff'); break;

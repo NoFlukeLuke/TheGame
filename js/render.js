@@ -1,6 +1,9 @@
 function render() {
   // Dominoes mode owns its own board renderer.
   if (typeof ACTIVE_MODE !== 'undefined' && ACTIVE_MODE.id === 'dominoes') { dominoRenderBoard(); return; }
+  // Selection readout first - it is the one thing that must stay true on BOTH sides of
+  // the reward-grid early return below.
+  if (typeof updateSelectionUI === 'function') updateSelectionUI();
   // While the reward grid occupies the play #grid, its own renderer owns the DOM.
   // Skip re-rendering mid-animation (deal-in / resolve) so flying tiles aren't clobbered.
   if (rewardOnGrid) { if (!rewardDealing) renderRewardTiles(); return; }
