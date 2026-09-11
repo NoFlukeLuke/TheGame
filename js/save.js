@@ -72,7 +72,7 @@ const SAVE_VARS = [
   'lastCalcMult', 'lastCalcFocus', 'lastPreHandFocus', 'lastPreFocusMult',
   // ── Entities owned ──
   'acquiredTricks', 'acquiredKnacks', 'trickTray', '_trickReplaceQueue', 'trickTrayMode',
-  'grantedSleightIds', 'altarEffects', 'sleightCapBonus',
+  'grantedSleightIds', 'altarEffects', 'sleightCapBonus', 'entityTier',
   'sleightNextHandDouble', 'sleightLegacyMult', 'sleightAmplifierMult',
   '_dabiSwapNext', 'sleightFreeSwapPending',
   // ── Permanent card buffs / curses ──
@@ -242,6 +242,10 @@ function resumeSavedRun() {
   // Natural Scaling was keyed by FAMILY before r198 and is keyed by hand type now.
   // Self-detecting, so it is safe to call on every restore.
   if (typeof migrateNaturalScaleFamilies === 'function') migrateNaturalScaleFamilies();
+  // entityTier is just a map of numbers; the BONUSES it buys live in BAL, which
+  // is recomputed from it. Without this a resumed run restores the tiers and
+  // plays at base values.
+  if (typeof applyEntityTiers === 'function') applyEntityTiers();
   _restoringSave = false;
 
   // The board came out of the save, so the grid has to be re-measured (a saved

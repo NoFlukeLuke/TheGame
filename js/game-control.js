@@ -475,6 +475,10 @@ function startGame() {
   nodeFlowAfterShop = null;
   recentEventIds = [];
   sleightCapBonus = {};   // Workshop's raised charge ceilings are per run
+  // Improvement tiers are per run. resetEntityTiers() also rewrites BAL back to
+  // its printed values - clearing the map alone would leave the previous run's
+  // improved numbers live for the whole of this one.
+  if (typeof resetEntityTiers === 'function') resetEntityTiers();
   updateActProgressUI();
   // Clear any leftover card elements from previous game
   document.getElementById('grid').querySelectorAll('.card').forEach(el => el.remove());

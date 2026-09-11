@@ -349,7 +349,7 @@ function renderTrickTray() {
     chip.dataset.trickId = trick.id;
     const isMirror = trick.id === 'mirror';
     const dir = trick._tiltDir; // -1 left, +1 right, undefined = not aimed
-    const tile = { entity: 'trick', label: trick.name,
+    const tile = { entity: 'trick', id: trick.id, label: trick.name,
                    emoji: isMirror ? (dir === -1 ? '◀' : dir === 1 ? '▶' : '◆') : trickEmoji(trick) };
     chip.innerHTML = entityTileHTML(tile, rar) + (bossOff ? `<div class="trick-off-mark">OFF</div>` : '');
     if (isMirror) {
