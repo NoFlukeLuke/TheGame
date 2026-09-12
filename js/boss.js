@@ -94,6 +94,27 @@ function injectStonesIntoDeck(count) {
   updateDeckHud();
 }
 
+// Drop `count` stones straight onto live cells, displacing the cards that were
+// there back into the deck. Boss-start only (The Stone Lord).
+function placeStonesOnGrid(count) {
+  const spots = [];
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
+    const card = gridData[r]?.[c];
+    if (!card || !card.rank || card._isSleight || card._isTrick || card._isStone) continue;
+    if (blockedCells.has(`${r}-${c}`)) continue;
+    spots.push([r, c]);
+  }
+  // Never bury the whole board - leave at least half the live cells playable.
+  const take = Math.min(count, Math.floor(spots.length / 2));
+  for (let i = 0; i < take && spots.length; i++) {
+    const [r, c] = spots.splice(Math.floor(Math.random() * spots.length), 1)[0];
+    const displaced = gridData[r][c];
+    if (displaced && displaced.rank) discardToDrawPile(displaced);
+    gridData[r][c] = makeStoneCard();
+  }
+  updateDeckHud();
+}
+
 function purgeStonesFromDeck() {
   // Remove all stones from drawPile, playedPile, and grid
   drawPile = drawPile.filter(c => !c._isStone);
@@ -157,9 +178,28 @@ function applyBossModifiers(preset) {
     // ids and returns true, leaving the legacy ones below untouched.
     if (typeof applyBossEffectModifier === 'function' && applyBossEffectModifier(mod, preset.params || {})) return;
     switch (mod) {
-      case 'inject_stones':
-        injectStonesIntoDeck(preset.params.stoneInjectCount || 5);
+      case 'inject_stones': {
+        // r214: two separate doses, because they do different jobs.
+        //
+        // 1. STONES ON THE BOARD, NOW. Before this every stone went into the draw
+        //    pile, so the boss opened on a perfectly clean board and the player
+        //    only met a stone several hands later. The count scales with the
+        //    board so a 7x7 is not trivially easy and a 4x4 is not buried:
+        //    the average of rows and cols, minus one if either side is 4 or less,
+        //    plus one if either is 6 or more (both can apply on a 4x6).
+        // 2. STONES IN THE DECK, for the rest of the round - 18% of the real deck.
+        const _rows = gridRows, _cols = gridCols;
+        let _onBoard = Math.round((_rows + _cols) / 2);
+        if (_rows <= 4 || _cols <= 4) _onBoard -= 1;
+        if (_rows >= 6 || _cols >= 6) _onBoard += 1;
+        _onBoard = Math.max(1, Math.round(_onBoard * (typeof bossMagScale === 'function' ? bossMagScale() : 1)));
+        const _deckSize = (typeof everyDeckCard === 'function') ? everyDeckCard().length : drawPile.length;
+        const _inDeck = Math.max(1, Math.round(_deckSize * (preset.params.deckStoneFraction || 0.18)
+                                 * (typeof bossMagScale === 'function' ? bossMagScale() : 1)));
+        placeStonesOnGrid(_onBoard);
+        injectStonesIntoDeck(_inDeck);
         break;
+      }
       case 'void_corners':
         blockedCells = getVoidPattern('corners');
         break;
@@ -177,8 +217,19 @@ function applyBossModifiers(preset) {
         swaps = Math.max(0, swaps + bossSwapsDelta);
         render();
         break;
+      // r214: halve BOTH pools rather than shaving one swap. "-50% rounded down"
+      // is the amount TAKEN, so an odd pool keeps the larger half: 5 -> 3, 4 -> 2.
+      case 'ration_half': {
+        const _ds = Math.floor(swaps * 0.5), _dd = Math.floor(discards * 0.5);
+        swaps = Math.max(0, swaps - _ds);
+        discards = Math.max(0, discards - _dd);
+        bossSwapsDelta = -_ds;   // restored by clearBossModifiers like any other cut
+        render();
+        break;
+      }
       case 'low_card_infusion':
         bossLowCardActive = true;
+        famineStackDeck(preset.params.lowCardWeight || 0.7);
         break;
       case 'hand_lock':
         bossLockedHand = preset.params.lockedHand || null;
@@ -279,16 +330,47 @@ function clearBossModifiers() {
   if (typeof clearBossEffects === 'function') clearBossEffects();
 }
 
-// Hook called every time a card is drawn - biases toward low cards during Famine
-function maybeFamineDrawSwap(card) {
-  if (!bossLowCardActive) return card;
-  if (!card || card._isStone || card._isSleight) return card;
-  if (hasSleightOnGrid('fight_power')) return card; // Fight the Power ignores boss effects
-  if (Math.random() > (currentBoss?.params?.lowCardWeight || 0.7)) return card;
-  // Replace card with a low rank (2–6), same suit
-  const lowRanks = ['2','3','4','5','6'];
-  return { ...card, rank: lowRanks[Math.floor(Math.random() * lowRanks.length)] };
+// ── THE HAND OF FAMINE (r214) - it reorders the DECK, it does not forge cards ──
+//
+// It used to REWRITE the rank of a card as it was drawn: `{...card, rank: '3'}`.
+// That worked, in the sense that low cards appeared - but it invented cards that
+// were not in the deck. The RECORDS deck matrix, the "still drawable by rank"
+// chart and the deck audit all describe a deck the player was not actually being
+// dealt from, and a card could be drawn as a 3, played, and cycle back in as the
+// King it really was.
+//
+// Stacking the draw pile does the same job honestly: the cards are your cards,
+// the low ones are just near the top. A weighted sort (low cards get a smaller
+// sort key, so they cluster at the front) rather than a hard sort, so the order
+// is still unpredictable and the odd high card still comes through early.
+//
+// "Low" is measured by PIPS, not by a hardcoded 2-6 list, so Spectrum's 0-20
+// deck works with no special case.
+function famineStackDeck(weight) {
+  if (!drawPile || drawPile.length < 2) return;
+  if (typeof bossEffectsIgnored === 'function' && bossEffectsIgnored()) return;
+  const pips = c => (c && c.rank && typeof cardPips === 'function') ? cardPips(c.rank) : 99;
+  const vals = drawPile.filter(c => c && c.rank && !c._isSleight && !c._isStone).map(pips).sort((a, b) => a - b);
+  if (!vals.length) return;
+  // The cut is the 40th percentile of what is actually in the deck.
+  const lowMark = vals[Math.floor(vals.length * 0.4)];
+  // bias > 1 pushes high cards back. 0.7 weight -> bias 3.3, i.e. a high card's
+  // sort key averages three times a low card's, so the front of the pile is
+  // mostly low without being purely low.
+  const bias = 1 + Math.max(0, Math.min(0.95, weight)) * 3.3;
+  withSeededRng(() => {
+    drawPile = drawPile
+      .map(c => ({ c, k: Math.random() * ((c && c.rank && pips(c) <= lowMark) ? 1 : bias) }))
+      .sort((a, b) => a.k - b.k)
+      .map(x => x.c);
+  }, 'deck');
+  updateDeckHud?.();
 }
+
+// Kept as the draw hook's no-op. The bias is applied to the PILE at boss start
+// (famineStackDeck) rather than to each card as it is drawn, so there is nothing
+// left to do here - but deck-grid.js calls it on every draw, so it must exist.
+function maybeFamineDrawSwap(card) { return card; }
 
 // Is a Trick currently disabled by Voidwright phase?
 function isTrickDisabledByBoss(trickId) {
@@ -408,12 +490,19 @@ function triggerBoss(presetOverride = null, windowSeconds = null) {
 
   updateClockUI();
 
-  // Banner
+  // Banner. Guarded: this is cosmetic, and an unguarded lookup here used to abort
+  // triggerBoss PART WAY THROUGH - bossActive already true and the modifiers
+  // already applied, but no briefing, no PROCEED and no clock. A boss must never
+  // fail to start because a decoration is missing.
   const banner = document.getElementById('boss-banner');
-  banner.querySelector('.boss-banner-title').textContent = preset.name;
-  document.getElementById('boss-banner-sub').textContent = preset.flavor;
-  banner.classList.add('show');
-  setTimeout(() => banner.classList.remove('show'), 2400);
+  if (banner) {
+    const title = banner.querySelector('.boss-banner-title');
+    if (title) title.textContent = preset.name;
+    const sub = document.getElementById('boss-banner-sub');
+    if (sub) sub.textContent = preset.flavor;
+    banner.classList.add('show');
+    setTimeout(() => banner.classList.remove('show'), 2400);
+  }
 
   // Objective HUD
   showBossObjectiveHUD(preset);

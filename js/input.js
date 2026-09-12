@@ -66,6 +66,10 @@ function cardAt(el) {
 }
 
 function doSwap(r1, c1, r2, c2) {
+  // A boss may refuse the action outright (The Turnstile with no fare). Checked
+  // FIRST, before anything commits - bossOnInteract runs after the swap has
+  // already happened, which is right for a cost and useless for a gate.
+  if (typeof bossInteractBlocked === 'function' && bossInteractBlocked('swap')) return;
   // Pivot (r205): it works by SITTING on the grid, not by being swapped. Any card
   // touching a Pivot that still has charges swaps for FREE; if one Pivot touches
   // BOTH ends of the swap, both cards take a permanent mult buff and that Pivot

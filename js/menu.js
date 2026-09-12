@@ -1,4 +1,4 @@
-const BUILD = '2026-09-12 · r213 · The Hollow churns instead of shredding; The Recall takes three ranks and shows a countdown [onto r212]';
+const BUILD = '2026-09-12 · r214 · boss roster pass: Stone Lord, Famine, Cornerless King, Tollman, Hold, Turnstile, Redaction; Rota cut; boss banner no longer eaten by the reward grid';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

@@ -159,18 +159,90 @@ function bossOnInteract(kind) {
     if (typeof updateScoreUI === 'function') updateScoreUI();
   }
 
-  // The Turnstile: a flat fee per interaction, floored at zero (no debt).
+  // The Turnstile: a flat fee per interaction. Since r214 it is a REAL toll -
+  // you cannot pass without the fare (see bossInteractBlocked, which refuses the
+  // action before it happens). By the time this runs the fare is known to be
+  // affordable, so it is a straight deduction rather than a partial seizure.
   if (bossInteractFee) {
-    const fee = Math.max(1, Math.round(bossInteractFee * bossMagScale()));
-    const paid = Math.min(coins, fee);
-    if (paid > 0) { coins -= paid; updateCoinsUI(); showMessage(`−${paid} credits`, 'var(--red)'); }
-    else showMessage('No credits to seize', 'var(--cream-dim)');
+    const fee = bossInteractFeeAmount();
+    if (coins >= fee) { coins -= fee; updateCoinsUI(); showMessage(`−${fee} credits`, 'var(--red)'); }
   }
 }
 
-// ── The Redaction: one hand type is marked down for the round ────────────────
-// Picked ONCE at boss start and never re-rolled, so the player can plan around it.
+function bossInteractFeeAmount() {
+  return Math.max(1, Math.round(bossInteractFee * bossMagScale()));
+}
+
+// Called at the TOP of doSwap / doDiscard, before anything commits. Returns true
+// if the boss refuses the action outright.
+//
+// bossOnInteract runs AFTER the swap or discard has already happened, which is
+// right for a cost but useless for a gate - so the gate is its own function. The
+// Turnstile is the only caller today; it is written as a general refusal hook so
+// a future "you may not discard" boss has somewhere to live.
+function bossInteractBlocked(kind) {
+  if (!bossActive) return false;
+  if (typeof bossEffectsIgnored === 'function' && bossEffectsIgnored()) return false;
+  if (bossInteractFee) {
+    const fee = bossInteractFeeAmount();
+    if (coins < fee) {
+      showMessage(`${kind === 'swap' ? 'Swap' : 'Discard'} costs ${fee} credits - you have ${coins}`, 'var(--red)');
+      if (typeof sfxNoSwaps === 'function') sfxNoSwaps();
+      return true;
+    }
+  }
+  return false;
+}
+
+// ── The Redaction (reworked r214) - a whole FAMILY, and it rotates ───────────
+//
+// It used to mark down ONE hand type for the whole round, chosen once. On a game
+// whose hands layer (a suited run pays Run of 3 AND Flush of 3) naming a single
+// type is both narrow and easy to sidestep - you simply never play that one.
+//
+// Now a whole family (set / run / flush) scores x0.25 for 90 seconds, then a
+// DIFFERENT family takes over, and so on for as long as the round lasts. That is
+// the shape the owner asked for across this roster: it hurts, you can plan around
+// it because you know how long it lasts, and no play style is switched off - the
+// other two families are fully live the whole time.
+const REDACT_FAMILIES = ['set', 'run', 'flush'];
+let bossRedactedFamily = null;
+let bossRedactBag      = [];
+let bossRedactUntil    = 0;
+let bossRedactHold     = 90;
+
+function bossRedactTick(holdSecs) {
+  bossRedactHold = holdSecs;
+  // A bag rather than a re-roll, so the same family never lands twice running.
+  if (!bossRedactBag.length) {
+    bossRedactBag = shuffle(REDACT_FAMILIES.filter(f => f !== bossRedactedFamily));
+    if (!bossRedactBag.length) bossRedactBag = shuffle([...REDACT_FAMILIES]);
+  }
+  bossRedactedFamily = bossRedactBag.shift();
+  bossRedactUntil = Date.now() + holdSecs * 1000;
+  showMessage(`${bossRedactedFamily.toUpperCase()} hands score a quarter`, 'var(--red)');
+  if (typeof updateBossObjectiveUI === 'function') updateBossObjectiveUI();
+}
+
+// Seconds left on the current family, for any readout that wants it.
+function bossRedactSecondsLeft() {
+  if (!bossRedactedFamily || !bossRedactUntil) return null;
+  const left = (bossRedactUntil - Date.now()) / 1000;
+  return left > 0 ? { left, total: bossRedactHold } : null;
+}
+
 function bossRedactedHandMult(handName) {
+  if (!bossActive || !bossRedactedFamily) return 1;
+  if (typeof bossEffectsIgnored === 'function' && bossEffectsIgnored()) return 1;
+  const fams = (typeof NS_HAND_FAMILIES !== 'undefined' && NS_HAND_FAMILIES[handName]) || [];
+  if (!fams.includes(bossRedactedFamily)) return 1;
+  // 10% weaker shrinks the PENALTY toward 1, not the score toward 0.
+  return 1 - (1 - bossRedactedMult) * bossMagScale();
+}
+
+// The old single-hand-type version. Unreachable now that redact_hand arms the
+// family rotation; kept so a save that stored bossRedactedHand cannot throw.
+function bossRedactedSingleMult(handName) {
   if (!bossActive || !bossRedactedHand || handName !== bossRedactedHand) return 1;
   if (typeof bossEffectsIgnored === 'function' && bossEffectsIgnored()) return 1;
   // 10% weaker → the penalty shrinks toward 1, not the score toward 0.
@@ -295,7 +367,10 @@ function bossCensorTick(holdSecs) {
 // The Hold: freeze one random real card for `holdSecs`. Sleights, Tricks, stones
 // and cells already out of play are skipped - there is nothing to take from a
 // cell that is void, and freezing a Sleight would read as destroying it.
-function bossHoldTick(holdSecs) {
+function bossHoldTick(holdSecs, count) {
+  for (let i = 0; i < Math.max(1, count || 1); i++) bossHoldOne(holdSecs);
+}
+function bossHoldOne(holdSecs) {
   const spots = [];
   for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
     const card = gridData[r]?.[c];
@@ -532,8 +607,14 @@ function applyBossEffectModifier(mod, params) {
       bossSchedule(bossRecallHold, () => bossRecallTick(params.rankCount || 3));
       return true;
     case 'card_hold':
-      bossHoldEvery = params.everySecs || 15;
-      bossSchedule(bossHoldEvery, () => bossHoldTick(params.holdSecs || 15));
+      bossHoldEvery = params.everySecs || 13;
+      // r214: TWO cards per tick, on a 13s cadence. One card every 15s was a
+      // rounding error on a 16-cell board; two on a shorter clock means a hold is
+      // usually live somewhere while you are choosing a hand. Contingency Plan
+      // shrinks the count, as it does every other magnitude.
+      bossSchedule(bossHoldEvery, () => bossHoldTick(
+        params.holdSecs || 15,
+        Math.max(1, Math.round((params.count || 2) * bossMagScale()))));
       return true;
     case 'trick_rotate':
       // The interval IS the hold - one down, then the next - so a single param
@@ -554,17 +635,15 @@ function applyBossEffectModifier(mod, params) {
       bossMarkCounter = 0;
       bossMarkerSeedBoard();
       return true;
-    case 'redact_hand': {
-      // Only hand types the player can actually make are worth marking down -
-      // redacting Straight Flush on a 4×4 board would be a free round.
-      const pool = (typeof achievableHandTypes === 'function' ? achievableHandTypes() : null)
-                || Object.keys(HAND_BASE);
-      const usable = pool.filter(h => HAND_BASE[h]);
-      bossRedactedHand = usable.length ? usable[Math.floor(Math.random() * usable.length)] : null;
-      bossRedactedMult = params.mult || 0.4;
-      if (bossRedactedHand) showMessage(`${bossRedactedHand} redacted`, 'var(--red)');
+    case 'redact_hand':
+      bossRedactedMult = params.mult || 0.25;
+      bossRedactedFamily = null; bossRedactBag = [];
+      bossRedactHold = params.holdSecs || 90;
+      // bossSchedule fires immediately then repeats, so the first family is live
+      // the moment the clock starts and swaps every holdSecs after that - which
+      // is also what makes a round past 3:00 get a third family with no extra code.
+      bossSchedule(bossRedactHold, () => bossRedactTick(params.holdSecs || 90));
       return true;
-    }
   }
   return false;   // not ours - boss.js handles the legacy modifiers
 }
@@ -584,6 +663,7 @@ function clearBossEffects() {
   bossInteractMultV = 1;
   bossGoalRatchet = 0; bossInteractFee = 0;
   bossRedactedHand = null; bossRedactedMult = 1;
+  bossRedactedFamily = null; bossRedactBag = []; bossRedactUntil = 0; bossRedactHold = 90;
   bossMarkerClearAll();
 }
 

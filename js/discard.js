@@ -5,6 +5,8 @@ function doDiscard() {
   if (typeof shopGridActive !== 'undefined' && shopGridActive) { closeShopGrid(); return; }
   if (rewardOnGrid) { clearRewardSelection(); return; }
   if (roundEnded || animating) return;
+  // Same gate as doSwap - a boss may refuse the discard before it commits.
+  if (typeof bossInteractBlocked === 'function' && bossInteractBlocked('discard')) return;
   if (falling) { if (selected.length > 0) { pendingAction = 'discard'; dbgEvent('info', 'discard queued (falling)'); } return; }
   if (selected.length === 0) return;
   // Guard: block discard when out of discards. Mirrors the swap guard in input.js.

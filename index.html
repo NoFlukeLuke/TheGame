@@ -833,11 +833,17 @@
       </div>
       <div id="focus-mult-readout" class="dim">×1.0</div>
     </div>
+    <!-- The two boss overlays sit in #grid-slot, NOT in #grid. The reward grid
+         takes #grid over and clears it with innerHTML = '' (three sites in
+         js/reward-grid.js), which DESTROYED both of these permanently the first
+         time a reward grid opened - and every round ends on one. triggerBoss then
+         threw on `banner.querySelector(...)`, half-starting the boss: active, with
+         its modifiers applied, but with no briefing, no PROCEED and no clock.
+         They are absolutely positioned over the board either way. -->
     <div id="grid-slot">
-      <div id="grid">
-        <div id="boss-banner"><div class="boss-banner-title">BOSS</div><div class="boss-banner-sub" id="boss-banner-sub">Survive 3:00</div></div>
-        <div id="boss-result"><div class="boss-result-text" id="boss-result-text"></div></div>
-      </div>
+      <div id="boss-banner"><div class="boss-banner-title">BOSS</div><div class="boss-banner-sub" id="boss-banner-sub">Survive 3:00</div></div>
+      <div id="boss-result"><div class="boss-result-text" id="boss-result-text"></div></div>
+      <div id="grid"></div>
     </div>
     <!-- Swap sits at the TOP of the interact column (r169). Landscape absolutely
          positions each of these three, so only portrait reads this order. -->

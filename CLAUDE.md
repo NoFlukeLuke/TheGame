@@ -720,6 +720,36 @@ The Metronome (clock runs at the Focus multiplier) · The Tollman (interact cost
 - The cards **fall out of the hand preview** (`bossMarkerFizzleFX`): the whole submitted hand is drawn into `#selected-cards` exactly as the scoring dance draws it - `renderCardAppearance` into the same `.dnc-*` skeleton - so sizing and the portrait overlap rules apply for free. Marked cards drop out of the bottom, the rest fade.
 - `bossEffectsIgnored()` (Fight the Power) bypasses both the marking and the intercept.
 
+### Boss roster pass (r214)
+
+Owner-specified retunes. **The Rota is deleted** - The Censor already owns "a Trick is off", and one-at-a-time was the readable half of a job that did not need two bosses. `trick_rotate` is left in `applyBossEffectModifier` with no preset pointing at it.
+
+| boss | now |
+|---|---|
+| **The Stone Lord** | stones land ON THE BOARD at once, `round((rows+cols)/2)`, **-1** if either side <= 4 and **+1** if either is >= 6 (both can apply on a 4x6), **plus** 18% of the real deck as rubble. 4x4 -> 3 on board, 5x5 -> 5, 6x6 -> 7, 7x7 -> 8; 9 into a 52-card deck. `placeStonesOnGrid` never buries more than half the live cells. `stoneInjectCount` is dead. |
+| **The Hand of Famine** | **stacks the DRAW PILE instead of forging cards** (below) |
+| **The Cornerless King** | corners voided **and half your swaps and half your discards taken**, rounded in your favour (5 -> 3, 4 -> 2), via the new `ration_half` modifier. Was -1 swap. |
+| **The Tollman** | playing costs **+5s**, added on top of anything it already cost |
+| **The Hold** | **two** cards every **13s** (was one every 15s) |
+| **The Turnstile** | **5 credits**, and it is a REAL toll (below) |
+| **The Redaction** | a whole **family** at x0.25, rotating every 90s (below) |
+
+**THE HAND OF FAMINE reorders the deck; it does not forge cards.** `maybeFamineDrawSwap` used to REWRITE the rank of each card as it was drawn (`{...card, rank:'3'}`). It worked, but it invented cards that were not in the deck: the RECORDS matrix, the "still drawable by rank" chart and the deck audit all described a deck the player was not being dealt from, and a card drawn as a 3 could cycle back in as the King it really was. `famineStackDeck()` now weights the draw pile at boss start so low cards cluster at the front - your own cards, in a bad order. "Low" is the **40th percentile of the pile by `cardPips`**, not a hardcoded 2-6, so Spectrum's 0-20 deck works with no special case. Measured: top of pile averages **4.7 pips against the deck's 7.2**, bottom **9.8**, and deck contents are byte-identical before and after. The draw hook is now a no-op that must still exist (`deck-grid.js` calls it on every draw).
+
+**THE TURNSTILE is a toll, not a tax.** `bossOnInteract` runs AFTER the swap or discard has happened, which is right for a cost and useless for a gate, so refusal is its own hook: **`bossInteractBlocked(kind)`**, called at the TOP of `doSwap` and `doDiscard` before anything commits. Below the fare the action is refused outright with a message and `sfxNoSwaps()`. Written as a general refusal hook so a future "you may not discard" boss has somewhere to live.
+
+**THE REDACTION marks down a FAMILY, and it rotates.** One hand type for a whole round was both narrow and trivially sidestepped - you simply never play that one - and on a game whose hands LAYER (a suited run pays Run of 3 and Flush of 3) naming a single type barely lands. Now set / run / flush scores **x0.25 for 90s**, then a different family takes over, for as long as the round runs; a round past 3:00 gets a third family with no extra code, because `bossSchedule` fires immediately then repeats. A **bag, not a re-roll**, so the same family never lands twice running (verified: 0 back-to-back over 7 rotations). Family lookup is `NS_HAND_FAMILIES`, the same table Natural Scaling and `handLayersFor` read. Two of the three families are always paying full.
+
+**The Metronome was already correct** and needed no change: `bossClockStep()` carries a fractional debt, so Focus x2.3 really consumes 2,2,2,3,2,2,3... averaging 2.3s per second (measured), rather than rounding away to x2.
+
+**The Tollman's ordering was already correct too**, and is now locked in by a test: `playHandCostThisRound` is charged at `play-hand.js` ~line 452, which is AFTER `score += finalScore` (271) and AFTER `checkBossObjective` (343). Verified live - with **1 second left** on a Tollman round, a hand that costs 5s still scored, still met the goal and still won the boss.
+
+### #boss-banner and #boss-result were being destroyed by the reward grid (r214)
+
+Both lived **inside `#grid`**, and `js/reward-grid.js` clears that element with `innerHTML = ''` in three places. A reward grid opens at the end of **every round**, so from the first one onward both elements were gone for the rest of the run - and `triggerBoss` then threw on `banner.querySelector(...)`, **half-starting the boss**: `bossActive` true and the modifiers applied, but no briefing, no PROCEED and no clock.
+
+Fixed structurally: they are children of **`#grid-slot`** now, which is the element the reward grid does not touch. They are `position:absolute` overlays either way, so nothing about how they look changes; `#grid-slot` gained `position:relative` because landscape already positioned it but portrait left it static, which would have thrown them out to a further ancestor. The banner lookup in `triggerBoss` is also guarded now - a boss must never fail to start because a decoration is missing. Verified: banner survives open -> close -> render and lands centred on the board.
+
 ### The Hollow and The Recall, rebalanced (r213)
 
 Both had been sped up 25% by two sessions reading "the card-removal boss" differently (r205 took it as The Recall, r211 as The Hollow). Measuring them showed the cadence was never the problem in either case - **they were mis-tuned in opposite directions, and one of them was dangerous.**

@@ -1072,6 +1072,10 @@
      sized (in JS) to exactly fit this MEASURED slot, so cards never overflow
      into the buttons regardless of grid dimensions or orientation. */
   #grid-slot {
+    /* Positioned so the two boss overlays it now hosts centre on the BOARD.
+       Landscape already sets position:absolute; portrait left it static, which
+       would have thrown them out to a further ancestor. Harmless on a flex item. */
+    position: relative;
     flex: 1 1 0;
     min-width: 0;
     min-height: 0;

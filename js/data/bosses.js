@@ -10,8 +10,11 @@ const BOSS_PRESETS = [
     name: 'THE STONE LORD',
     flavor: 'Your deck turns to rubble',
     objective: { type: 'score' },
+    brief: 'The board starts part-buried: stones land on it immediately, scaled to its size, and almost a fifth of your deck is rubble for the rest of the round. A stone cannot be selected, played, swapped or discarded - it just takes up a cell until something clears it.',
     modifiers: ['inject_stones'],
-    params: { stoneInjectCount: 5 }
+    // r214: stoneInjectCount is dead. The board dose is derived from the grid and
+    // the deck dose from the real deck size (see inject_stones in js/boss.js).
+    params: { deckStoneFraction: 0.18 }
   },
   {
     id: 'voidwright',
@@ -26,17 +29,21 @@ const BOSS_PRESETS = [
     id: 'hand_of_famine',
     name: 'THE HAND OF FAMINE',
     flavor: 'A withered deck offers little',
+    brief: 'Your deck is stacked against you: the low cards are near the top, so the early part of the round deals you far more of them than it should. Nothing is added or taken away - these are your own cards, in a bad order, and the good ones are still down there.',
     objective: { type: 'hand', handName: 'Flush', count: 2 },
     modifiers: ['low_card_infusion'],
-    params: { lowCardWeight: 0.7 } // 70% of new cards drawn during boss are low (2–6)
+    // r214: this no longer rewrites the rank of a drawn card (which invented
+    // cards that were not in the deck). It weights the DRAW PILE at boss start.
+    params: { lowCardWeight: 0.7 }
   },
   {
     id: 'cornerless_king',
     name: 'THE CORNERLESS KING',
     flavor: 'The edges hold no salvation',
     objective: { type: 'score' },
-    modifiers: ['void_corners', 'reduce_swaps'],
-    params: { swapsDelta: -1 }
+    brief: 'The four corners are gone for the round - no card falls there and nothing can be played from them. On top of that half your swaps and half your discards are taken, rounded in your favour.',
+    modifiers: ['void_corners', 'ration_half'],
+    params: {}
   },
   {
     id: 'the_hollow',
@@ -69,10 +76,10 @@ const BOSS_PRESETS = [
     id: 'the_tollman',
     name: 'THE TOLLMAN',
     flavor: 'Every touch is billed',
-    brief: 'Swaps and discards cost double, and playing a hand - normally free - is billed 3 seconds. Fix the board less. Play what you are dealt.',
+    brief: 'Swaps and discards cost double, and playing a hand - normally free - is billed 5 seconds on top of anything it already cost. The hand scores FIRST and the clock is charged after, so a hand you cannot afford still counts: if it wins the round, you win the round.',
     objective: { type: 'score' },
     modifiers: ['interact_surcharge'],
-    params: { costMult: 2, playCostAdd: 3 }
+    params: { costMult: 2, playCostAdd: 5 }
   },
   {
     id: 'the_undertow',
@@ -96,19 +103,10 @@ const BOSS_PRESETS = [
     id: 'the_hold',
     name: 'THE HOLD',
     flavor: 'That one stays where it is',
-    brief: 'Every 15 seconds a random card on the board is put on hold for 15 seconds. A held card shows its countdown and cannot be selected, played, swapped or discarded. It comes back when the timer runs out.',
+    brief: 'Every 13 seconds two random cards are put on hold for 15 seconds each. A held card shows its countdown and cannot be selected, played, swapped or discarded. They come back when their timers run out, and by then two more are down.',
     objective: { type: 'score', target: 4000 },
     modifiers: ['card_hold'],
-    params: { everySecs: 15, holdSecs: 15 }
-  },
-  {
-    id: 'the_rota',
-    name: 'THE ROTA',
-    flavor: 'Everyone takes a turn off',
-    brief: 'One of your Tricks is switched off for 30 seconds, with its countdown on the tile. When it comes back a different one goes off, for as long as the boss lasts. Never more than one down at a time.',
-    objective: { type: 'score', target: 4200 },
-    modifiers: ['trick_rotate'],
-    params: { holdSecs: 30 }
+    params: { everySecs: 13, holdSecs: 15, count: 2 }
   },
   {
     id: 'the_censor',
@@ -162,10 +160,10 @@ const BOSS_PRESETS = [
     id: 'the_turnstile',
     name: 'THE TURNSTILE',
     flavor: 'Access is metered',
-    brief: 'Every swap and every discard is billed 3 credits. Your balance cannot go below zero - but interest is paid on what survives the round.',
+    brief: 'Every swap and every discard costs 5 credits, and you must be able to pay: with fewer than 5 credits the board is simply not yours to fix. Interest is still paid on whatever survives the round.',
     objective: { type: 'score' },
     modifiers: ['interact_fee'],
-    params: { fee: 3 }
+    params: { fee: 5 }
   },
   {
     id: 'the_marker',
@@ -180,10 +178,10 @@ const BOSS_PRESETS = [
     id: 'the_redaction',
     name: 'THE REDACTION',
     flavor: 'That hand is no longer recognised',
-    brief: 'One hand type is marked down for the whole round - it scores 60% less. The hand is chosen when the review begins and does not change. Find another line.',
+    brief: 'A whole family of hands - sets, runs or flushes - scores a quarter of what it should. After 90 seconds that family is released and a different one is marked down, and so on for as long as the round runs. Two of the three are always paying full.',
     objective: { type: 'score' },
     modifiers: ['redact_hand'],
-    params: { mult: 0.4 }
+    params: { mult: 0.25, holdSecs: 90 }
   }
 ];
 
