@@ -12,7 +12,7 @@ function onGridSleightCapBonus() {
   for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
     const cd = gridData[r]?.[c];
     if (!cd || !cd._isSleight) continue;
-    if (cd.sleightId === 'power_cell') n += 10;                                  // +10 max Focus while on grid
+    if (cd.sleightId === 'power_cell') n += BAL.power_cell.focus_cap;             // +max Focus while on grid
     if (cd.sleightId === 'slow_burn')  n += Math.floor((cd._slowBurnSecs || 0) / 60); // +1 per minute on grid
   }
   return n;
@@ -138,7 +138,14 @@ const HAND_FOCUS = {
   'Four of a Kind': 6,
   'Straight Flush': 8,
   'Royal Flush': 9,
+  'Flush of 6': 4,
+  'Flush of 7': 5,
+  'Run of 6': 6,
+  'Run of 7': 8,
   'Five of a Kind': 10,
+  'Six of a Kind': 12,
+  'Seven of a Kind': 14,
+  'High Card': 0,        // deliberately zero - it is the escape valve, not a hand
   'Flush Five': 12,
   'Flush House': 14,
 };
@@ -178,6 +185,11 @@ function speedBonusFromTime(t) {
 // Each is a product, so several entities stack multiplicatively.
 function focusRateMods() {
   const m = { complexity: 1, speed: 1, window: 1 };
+  // Red Tape (reward-grid penalty) divides `complexity`, so it scales down the
+  // hand's own Focus value and leaves the speed bonus alone. That is the harsher
+  // of the two on purpose: speed is something you can play around by hurrying,
+  // whereas the hand's listed Focus is the floor you cannot out-run.
+  if (typeof focusRatePenalty === 'number' && focusRatePenalty > 1) m.complexity /= focusRatePenalty;
   if (typeof hasTrick === 'function') {
     if (hasTrick('overclock'))     m.speed      *= BAL.overclock.speed_mult;
     if (hasTrick('second_nature')) m.complexity *= BAL.second_nature.complexity_mult;

@@ -260,7 +260,7 @@ function onFocusMaxed() {
   // animation plays first and we never mutate focusNodes while addFocus's queue is in flight.
   let keepFrac = null; // smallest "fraction of cap to keep" across active droppers (min wins)
   if (hasKnack('dividend')) {
-    coins += BAL.dividend.credits; updateCoinsUI();
+    grantEntityCoins(BAL.dividend.credits, 'knack', 'dividend');
     showMessage(`🏦 Dividend - +${BAL.dividend.credits} credits`, 'var(--gold)');
     keepFrac = Math.min(keepFrac ?? 1, BAL.dividend.keep_fraction);   // reset to 33% of max
   }

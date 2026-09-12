@@ -78,7 +78,7 @@ function confirmEvent() {
 }
 
 // ─── Shell renderer ───
-// NAMES SAY WHAT THE SCREEN DOES (r197). These were high-fantasy - The Altar,
+// NAMES SAY WHAT THE SCREEN DOES (r211). These were high-fantasy - The Altar,
 // Cleansing Spring, Blood Price, "Every gain has its price in flesh" - against a
 // game whose voice was stripped to plain and direct in r178. A player meeting an
 // event for the first time should be able to read the title and know what they
@@ -150,7 +150,7 @@ const EV_TIERS = ['common', 'rare', 'epic', 'legendary', 'mythic'];
 function makeChoiceEl(opts) {
   // opts: { icon, rarity, name, desc, cost, cls, tile, onClick }
   //
-  // `tile` is what makes an Event show you the real object (r197). When the
+  // `tile` is what makes an Event show you the real object (r211). When the
   // offer IS an entity - a Trick, a Sleight, a Knack - pass
   // { entity:'trick', emoji, label } and the left-hand art becomes the SHARED
   // entity tile (js/entity-tile.js), the same one the reward grid, the Mart, your

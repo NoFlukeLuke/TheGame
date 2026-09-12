@@ -1,11 +1,18 @@
 function pauseGame(hideGrid = true) {
   if (isPaused) return;
-  if (!roundInterval && !gameInterval) return; // nothing to pause
+  // A running 3-2-1 counts as something to pause: the round timer has not started yet,
+  // so the old `!roundInterval && !gameInterval` test made PAUSE a no-op during the deal
+  // and the round began underneath the pause menu.
+  if (!roundInterval && !gameInterval && !countdownActive) return; // nothing to pause
   isPaused = true;
+  if (countdownActive) {
+    countdownPaused = true;
+    // The digit's pop is a CSS animation, so it has to be held separately from the wait.
+    const _cn = document.getElementById('countdown-321-number');
+    if (_cn) _cn.style.animationPlayState = 'paused';
+  }
   clearInterval(roundInterval); roundInterval = null;
   clearInterval(gameInterval);  gameInterval  = null;
-  // Pause boss tick too if active
-  if (bossInterval) { clearInterval(bossInterval); bossInterval = null; }
   cancelAutoSubmit();
   if (hideGrid) {
     document.getElementById('pause-overlay').style.display = 'flex';
@@ -20,11 +27,19 @@ function resumeGame() {
   document.getElementById('pause-overlay').style.display = 'none';
   document.getElementById('grid').style.visibility = '';
   document.getElementById('btn-pause').textContent = '⏸ Pause';
-  if (bossActive) {
-    startBossTimer(); // resume boss tick instead of round timer
-  } else {
-    startRoundTimer();
+  // Released mid-countdown: hand the count back, but do NOT start the round/boss timer -
+  // the clock would run while the 3-2-1 is still on screen. The countdown's own
+  // continuation starts it at the right moment. The game timer below still restarts,
+  // since pauseGame cleared it and nothing else would put it back.
+  if (countdownActive) {
+    countdownPaused = false;
+    const _cn = document.getElementById('countdown-321-number');
+    if (_cn) _cn.style.animationPlayState = '';
   }
+  // One clock (r205): startBossTimer re-arms any scheduled effects still pending
+  // and then starts the same round timer everything else uses.
+  else if (bossActive) startBossTimer();
+  else startRoundTimer();
   // Restart game timer
   gameInterval = setInterval(() => {
     if (gameTimerPaused) return;
@@ -157,8 +172,11 @@ function updateLimitsPopup() {
   rows.innerHTML = LIMITS_DEF.map(def => {
     const l = limits[def.id];
     const maxed = l.current >= l.max;
-    // hideMax limits (Selection Size) have no meaningful ceiling to show.
-    const right = def.hideMax ? `${l.current}` : `${l.current}<span class="lp-max">/${l.max}</span>`;
+    // Shown value folds in luckModifiers (see limitShownValue); the /max stays on
+    // the LIMIT, which is the part that can actually be maxed out.
+    const shown = limitShownValue(def.id), dl = limitShownDelta(def.id);
+    const dlStr = dl ? ` <span class="lp-max" style="color:${dl > 0 ? 'var(--gold)' : 'var(--red)'}">${dl > 0 ? '+' : ''}${dl}</span>` : '';
+    const right = def.hideMax ? `${shown}${dlStr}` : `${shown}${dlStr}<span class="lp-max">/${l.max}</span>`;
     return `<div class="ic-r lp-r${maxed ? ' lp-maxed' : ''}" title="${def.desc}">` +
            `<span><span class="lp-ico">${def.icon}</span>${def.label}</span>` +
            `<span>${right}</span></div>`;
@@ -227,7 +245,6 @@ function startGame() {
   // where every new run funnels through.
   bossActive = false;
   if (typeof clearBossEffects === 'function') clearBossEffects();
-  if (typeof bossInterval !== 'undefined' && bossInterval) { clearInterval(bossInterval); bossInterval = null; }
   document.getElementById('boss-preamble')?.remove();
   document.querySelectorAll('.rp-block').forEach(el => el.classList.remove('boss-sigil'));
 
@@ -236,6 +253,11 @@ function startGame() {
   // A mode may pin a seed (the tutorial does); otherwise the dev panel's seed is
   // used, and with neither the run is plain unseeded.
   applyRunSeed(ACTIVE_MODE.seed || pendingRunSeed || null);
+
+  // Lock in this run's difficulty tier. Copied out of pendingDifficulty here, at
+  // the one point a run begins, so nothing the player touches on a menu later can
+  // reach the board mid-run (see js/difficulty.js).
+  runDifficulty = (typeof pendingDifficulty === 'number') ? pendingDifficulty : 1;
 
   // Pick the suit + rank lists for this mode BEFORE any deck is built. Six Suits
   // uses the expanded 6-suit list, Spectrum swaps both lists for the numeric
@@ -266,7 +288,7 @@ function startGame() {
   handsPlayed = 0;
   // Reset limits to base values on new game.
   //
-  // `step` MUST be carried across (r197). This rebuild dropped it, so from the
+  // `step` MUST be carried across (r211). This rebuild dropped it, so from the
   // first frame of every run round_time.step was undefined and focus_cap.step was
   // undefined, and incrementLimit's `(l.step || 1)` fell back to 1. That is the
   // real reason a Round Time upgrade granted ONE SECOND instead of 15 and a Focus
@@ -348,6 +370,11 @@ function startGame() {
   nextRoundDiscardDelta = 0; nextRoundSwapDelta = 0; nextRoundSecondsDelta = 0;
   nextRoundPlayCost = 0; nextRoundDiscardCost = 0;
   playHandCostThisRound = 0; discardCostThisRound = 0;
+  goalPenaltyMult = 1; focusRatePenalty = 1; skipNextPayout = false;
+  pendingEntityLockout = null; entityLockout = null;
+  luckModifiers = 0;
+  deadCells = new Set(); riderTrickId = null; interestFreezeRounds = 0;
+  spotCheckHand = null; spotCheckLeft = 0; nextRoundGridShrink = null;
   clearTimeout(challengeOverlayTimer);
   document.getElementById('challenge-overlay').classList.remove('show');
   // Reset goal/level-up queue
@@ -362,7 +389,11 @@ function startGame() {
   stopwatchActive = false; if (stopwatchTimer) { clearInterval(stopwatchTimer); stopwatchTimer = null; } stopwatchCardPos = null;
   if (pauseTimer) { clearTimeout(pauseTimer); pauseTimer = null; }
   if (typeof resetClockFx === 'function') resetClockFx();  // no frozen/rotated cards carried into a new run
-  const ALL_HAND_KEYS = ['run3','threeofakind','fourofakind','run4','pair','twopair','straight','flush','fullhouse','straightflush','highcard','blackjack'];
+  // The big hands (r199) are always in the list - they need Selection Size past 5
+  // to be reachable at all, which is gate enough. flush3/flush4 stay OUT: they are
+  // still not something you may PLAY here, only something a hand may LAYER.
+  const ALL_HAND_KEYS = ['run3','threeofakind','fourofakind','run4','pair','twopair','straight','flush','fullhouse','straightflush','highcard','blackjack',
+                         'run6','run7','flush6','flush7','fiveofakind','sixofakind','sevenofakind'];
   const BASE_HAND_KEYS = ['run3','threeofakind','twopair','fourofakind'];
   // Match-3 scores real hand names (Flush, Straight, Straight Flush, Run of 4…),
   // so it needs the full hand set active like the act modes, not the legacy base four.
@@ -406,6 +437,7 @@ function startGame() {
   permXMult  = {};
   permRetrig = {};
   permTime   = {};
+  permPipsGrow = {}; permMultGrow = {};
   cardCurses = {};
   bonusMult_fives = 0;
   bonusMult_nines = 0;
@@ -422,6 +454,7 @@ function startGame() {
   jackpotFired       = false;
   safetyNetUsed      = false;
   handsPlayedRound   = 0;
+  studyHallCards     = 0;   // Study Hall's every-2nd-card counter runs for the whole run
   runsPlayedRound    = 0;
   setsPlayedRound    = 0;
   runStreak          = 0;
@@ -442,6 +475,10 @@ function startGame() {
   _posChooserQueue = []; _posChooserActive = false;
   { const _pc = document.getElementById('pos-chooser'); if (_pc) _pc.remove(); }
   leyLinePos = null;
+  minuteHandCharges = 0;
+  // Seeded to the first interval, not 0: `_elapsedRound >= 0` is already true on
+  // the round's first tick, which would prime a Trick one second into the run.
+  understudyNextMark = BAL.understudy.interval_seconds;
   lastHandType = null;
   streakCount = 0;
   lastHandTime = 0;
@@ -451,7 +488,7 @@ function startGame() {
   cancelAutoSubmit();
   cancelDance();
   handReadyForSubmit = false;
-  document.getElementById('hand-name').textContent = '';   // empty → "HAND" watermark shows (r99)
+  updateHandNameLabel(null);   // clears the label AND its cache (js/hud.js)
   document.getElementById('selected-cards').innerHTML = '';
   selected = [];
   animating = false;
@@ -473,11 +510,14 @@ function startGame() {
   nodeFlowAfterShop = null;
   recentEventIds = [];
   sleightCapBonus = {};   // Workshop's raised charge ceilings are per run
+  // Improvement tiers are per run. resetEntityTiers() also rewrites BAL back to
+  // its printed values - clearing the map alone would leave the previous run's
+  // improved numbers live for the whole of this one.
+  if (typeof resetEntityTiers === 'function') resetEntityTiers();
   updateActProgressUI();
   // Clear any leftover card elements from previous game
   document.getElementById('grid').querySelectorAll('.card').forEach(el => el.remove());
-  roundGoal = survivalActive() ? survivalGoalForLevel(1)
-            : (match3IsZen() ? BASE_GOAL * 2 : BASE_GOAL); // Zen: doubled goals, no clock
+  roundGoal = goalForLevel(1);  // js/goal-tuning.js: per-mode curve + Zen's doubling
   totalScore = 0;
   coins = 0;
   shopItems = null;
@@ -489,9 +529,7 @@ function startGame() {
   nextShopTime = GAME_DURATION - 120;
 
   // Reset boss state
-  if (bossInterval) { clearInterval(bossInterval); bossInterval = null; }
   bossActive = false;
-  bossSecondsLeft = 0;
   blockedCells = new Set();
   bossNumber = 0;
   bossBag = [];              // fresh shuffled boss bag per run (see nextBossPreset)

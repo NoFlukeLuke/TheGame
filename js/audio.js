@@ -90,32 +90,24 @@ function sfxFlipShuffle() {
   }
 }
 
-// ── Discard ──────────────────────────────────────────────────────────────────
-// A card leaving the board because it was thrown away, not because it scored:
-// a short paper shove into a low thud. Deliberately NOT sfxFlipShuffle, which is
-// the bright riffle a scoring hand makes - a discard should not sound like a win.
+// ── Discard (r205) ───────────────────────────────────────────────────────────
+// There was no discard sound at all: discarding reused sfxFlipShuffle, the riffle
+// that also plays when a hand flies to the preview, so binning cards and scoring
+// them opened the same way. This is a dry downward sweep - a card thrown onto a
+// pile, not shuffled into one.
 //
-// `kind` picks the catalog row (see SFX_CATALOG): 'normal' is the player's own
-// discard; 'forced' is the boss taking cards out of a hand (The Shredder), and is
-// louder and lower so it reads as an interruption rather than as something the
-// player did. Most of that loudness is the mixer's per-id trim; the rest is here,
-// so the shape changes too and it is not merely the same sound turned up.
-function sfxDiscard(kind) {
-  const hard = kind === 'forced';
-  const g = hard ? 1.55 : 1;
-  // the shove
-  playNoise({ gain: 0.075 * g, attack: 0.001, release: hard ? 0.09 : 0.055 });
-  // the thud it lands in
-  playTone({ freq: hard ? 132 : 165, type: 'triangle', gain: 0.085 * g,
-             attack: 0.002, decay: 0.05, sustain: 0.25, release: hard ? 0.16 : 0.10,
-             duration: hard ? 0.12 : 0.08, delay: 0.03 });
-  if (hard) {
-    // A second, lower stroke - two events read as "that was taken from you",
-    // where one reads as "that was put down".
-    playTone({ freq: 88, type: 'square', gain: 0.07,
-               attack: 0.002, decay: 0.05, sustain: 0.2, release: 0.2,
-               duration: 0.14, delay: 0.11 });
-  }
+// `loud` is for The Marker's forced discard (a marked card eating the hand you
+// just played). That is not something you did, so it has to announce itself over
+// a normal discard; 1.7x and a touch lower is enough to read as "that was not you"
+// without leaving the mix.
+function sfxCardDiscard(loud) {
+  const g = loud ? 1.7 : 1;
+  playNoise({ gain: 0.075 * g, attack: 0.001, release: 0.07 });
+  playTone({ freq: loud ? 150 : 190, type: 'triangle', gain: 0.085 * g,
+             attack: 0.002, decay: 0.05, sustain: 0.08, release: 0.10, duration: 0.09 });
+  playTone({ freq: loud ? 96 : 124, type: 'sine', gain: 0.070 * g,
+             attack: 0.003, decay: 0.06, sustain: 0.06, release: 0.14, duration: 0.12, delay: 0.055 });
+  if (loud) playNoise({ gain: 0.055, attack: 0.001, release: 0.11, delay: 0.055 });
 }
 
 function sfxHandScored(finalScore) {

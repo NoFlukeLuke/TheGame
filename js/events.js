@@ -278,7 +278,7 @@ function confirmGamble() {
     setEventConfirm(false);
     document.getElementById('event-skip').textContent = 'Continue';
   } else {
-    // Double or nothing, on the same even odds as Coin Flip (r197).
+    // Double or nothing, on the same even odds as Coin Flip (r211).
     const won = Math.random() < 0.5;
     if (won) {
       showMessage('You won the gamble!', 'var(--gold)');
@@ -332,10 +332,15 @@ function randomDeckCard() {
   const all = allDeckCards();
   return all.length ? all[Math.floor(Math.random() * all.length)] : null;
 }
-// Apply a permanent enhancement to every card sharing this rank/suit key.
+// Apply a permanent enhancement to one card (keyed by cardId since r192).
+// `pips`/`mult` are FLAT - scored every play. `growPips`/`growMult` are SCALING -
+// how much the flat bonus rises per play. See js/deck-grid.js for why they are
+// two stores and not one field with a flag.
 function enhanceCardKey(key, e) {
   if (e.pips)   permPips[key]   = (permPips[key]   || 0) + e.pips;
   if (e.mult)   permMult[key]   = (permMult[key]   || 0) + e.mult;
+  if (e.growPips) permPipsGrow[key] = (permPipsGrow[key] || 0) + e.growPips;
+  if (e.growMult) permMultGrow[key] = (permMultGrow[key] || 0) + e.growMult;
   if (e.xpips)  permXPips[key]  = (permXPips[key]  || 1) * e.xpips;
   if (e.xmult)  permXMult[key]  = (permXMult[key]  || 1) * e.xmult;
   if (e.retrig) permRetrig[key] = (permRetrig[key] || 0) + e.retrig;
@@ -412,12 +417,22 @@ function renderForge() {
   const target = i => picks[i % picks.length];
 
   const boons = [
-    (t) => ({ icon:'🔨', rarity:'common', name:`${cardLabel(t)}: +30 pips`, desc:`${cardLabel(t)} scores 30 more pips, for the rest of the run.`,
-              apply:()=>{ enhanceCardKey(cardId(t), {pips:30}); showMessage(`${cardLabel(t)} +30 pips`, 'var(--gold)'); } }),
+    // Two things at once here. Main's r209 point stands and is kept: FLAT vs
+    // SCALING must be stated in the words, because "gains +5 mult" was a flat
+    // bonus that never grew and read as one that did. On top of that the NAMES
+    // are plain now (r211) - "Temper"/"Season"/"Overcharge" told the player
+    // nothing about what they were choosing, and the card and the effect are the
+    // only two facts that matter.
+    (t) => ({ icon:'🔨', rarity:'common', name:`${cardLabel(t)}: +30 pips`, desc:`${cardLabel(t)} scores +30 pips every time it is played.`,
+              apply:()=>{ enhanceCardKey(cardId(t), {pips:30}); showMessage(`${cardLabel(t)} +30 pips when played`, 'var(--gold)'); } }),
     (t) => ({ icon:'⚒️', rarity:'rare', name:`${cardLabel(t)}: ×2 pips`, desc:`${cardLabel(t)} scores double pips, for the rest of the run.`,
               apply:()=>{ enhanceCardKey(cardId(t), {xpips:2}); showMessage(`${cardLabel(t)} ×2 pips`, 'var(--gold)'); } }),
-    (t) => ({ icon:'✨', rarity:'common', name:`${cardLabel(t)}: +5 mult`, desc:`${cardLabel(t)} adds 5 mult, for the rest of the run.`,
-              apply:()=>{ enhanceCardKey(cardId(t), {mult:5}); showMessage(`${cardLabel(t)} +5 mult`, 'var(--gold)'); } }),
+    (t) => ({ icon:'✨', rarity:'common', name:`${cardLabel(t)}: +5 mult`, desc:`${cardLabel(t)} scores +5 mult every time it is played.`,
+              apply:()=>{ enhanceCardKey(cardId(t), {mult:5}); showMessage(`${cardLabel(t)} +5 mult when played`, 'var(--gold)'); } }),
+    (t) => ({ icon:'📈', rarity:'epic', name:`${cardLabel(t)}: mult that grows`, desc:`${cardLabel(t)} gains another +1 mult each time it is played, for good.`,
+              apply:()=>{ enhanceCardKey(cardId(t), {growMult:1}); showMessage(`${cardLabel(t)} scales +1 mult per play`, 'var(--gold)'); } }),
+    (t) => ({ icon:'🌱', rarity:'rare', name:`${cardLabel(t)}: pips that grow`, desc:`${cardLabel(t)} gains another +4 pips each time it is played, for good.`,
+              apply:()=>{ enhanceCardKey(cardId(t), {growPips:4}); showMessage(`${cardLabel(t)} scales +4 pips per play`, 'var(--gold)'); } }),
     (t) => ({ icon:'💥', rarity:'epic', name:`${cardLabel(t)}: ×2 mult`, desc:`${cardLabel(t)} doubles the mult, for the rest of the run.`,
               apply:()=>{ enhanceCardKey(cardId(t), {xmult:2}); showMessage(`${cardLabel(t)} ×2 mult`, 'var(--gold)'); } }),
     (t) => ({ icon:'🔁', rarity:'rare', name:`${cardLabel(t)}: plays twice`, desc:`${cardLabel(t)} scores its pips twice, for the rest of the run.`,
@@ -511,7 +526,7 @@ function renderWager() {
   lbl.className = 'ev-label';
   lbl.textContent = 'PICK YOUR STAKE, THEN FLIP';
   body.appendChild(lbl);
-  // A COIN FLIP IS 50/50 (r197). These used to be 70 / 55 / 40, printed in the
+  // A COIN FLIP IS 50/50 (r211). These used to be 70 / 55 / 40, printed in the
   // option names, which made the screen two decisions wearing one coat: how much
   // to risk AND how likely it was. Worse, the odds fell as the stake rose, so the
   // expected value of every step up was worse than the last and "Reckless" was a
@@ -682,7 +697,7 @@ function getAltarGoalMultiplier() {
 // ══════════════════════════════════════════════
 // EVENT: CLEAN UP  (event id 'spring', formerly Cleansing Spring)
 // ══════════════════════════════════════════════
-// Thinning the deck is the strongest thing this event does, so r197 gives it a
+// Thinning the deck is the strongest thing this event does, so r211 gives it a
 // shape rather than a single "remove one card": FOUR cards if they are all
 // different ranks, or TWO with no strings. Four-of-different-ranks is the better
 // cut and the harder one to want - it forces the player to spread the loss across
@@ -870,7 +885,7 @@ function confirmSpring() {
       break;
     }
     case 'cleanse_debuff':
-      // Unchanged from before r197 - the owner confirmed this one reads right.
+      // Unchanged from before r211 - the owner confirmed this one reads right.
       discards = Math.min(discards + 1, limits.discards.current + 2);
       render(); showMessage('+1 discard restored', 'var(--gold)'); break;
   }
@@ -882,9 +897,17 @@ function confirmSpring() {
 // ══════════════════════════════════════════════
 function renderTwinPath() {
   const ownedTrick = new Set((acquiredTricks||[]).map(b=>b.id));
-  const pool = TRICK_POOL.filter(b=>!ownedTrick.has(b.id));
-  const sh = a => { const r=[...a]; for(let i=r.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[r[i],r[j]]=[r[j],r[i]];} return r; };
-  const picks = sh(pool).slice(0,2);
+  const pool = TRICK_POOL.filter(b=>!ownedTrick.has(b.id) && !offerBannedGlobal(b.id));
+  // Both Tricks are drawn on the rarity table (r203). This event shuffled the
+  // whole pool and took the top two until then - two flat draws from 177 Tricks,
+  // so a Twin Path was a 31%-epic-or-better offer TWICE while the reward grid
+  // beside it ran at 13%. It is most of why Tricks read as too generous.
+  const picks = [];
+  const taken = new Set();
+  for (let i = 0; i < 2; i++) {
+    const p = pickTrickByRarity(pool.filter(b => !taken.has(b.id)));
+    if (p) { picks.push(p); taken.add(p.id); }
+  }
   const shadow = [
     { icon:'☁', name:'Five seconds', desc:'Five seconds come off the clock now.',     apply:()=>{roundSeconds=Math.max(1,roundSeconds-5);updateClockUI();showMessage('The catch: −5s','var(--red)');} },
     { icon:'☠', name:'One less discard', desc:'Lose 1 discard per round, permanently.',      apply:()=>{limits.discards.current=Math.max(1,limits.discards.current-1);discards=Math.min(discards,limits.discards.current);render();showMessage('The catch: −1 discard','var(--red)');} },
@@ -1297,7 +1320,7 @@ function confirmWorkshop() {
 }
 
 // ══════════════════════════════════════════════
-// EVENT: CARD MARKET  (id 'market', r197)
+// EVENT: CARD MARKET  (id 'market', r211)
 // ══════════════════════════════════════════════
 // Buy cards INTO your deck. Every other event either hands you an entity or
 // upgrades one you already own; this is the only place the deck itself gets
@@ -1405,7 +1428,7 @@ function confirmMarket() {
 }
 
 // ══════════════════════════════════════════════
-// EVENT: DECK TRIM  (id 'deck_trim', r197)
+// EVENT: DECK TRIM  (id 'deck_trim', r211)
 // ══════════════════════════════════════════════
 // The counterweight to the Card Market, and the answer to "removal comes up too
 // rarely". Clean Up gives you one cut on the rare occasions it turns up; this is

@@ -1,14 +1,43 @@
 const LIMITS_DEF = [
-  { id: 'selection',   label: 'Selection Size',  icon: '✋', desc: 'Max cards selectable at once (play grid AND reward grid)', base: 3, max: 9, hideMax: true },
+  { id: 'selection',   label: 'Selection Size',  icon: '✋', desc: 'Cards selectable at once (play grid AND reward grid). Raising it also raises the MINIMUM you must play: min = max - 2.', base: 3, max: 9, hideMax: true },
   { id: 'grid_rows',   label: 'Grid Rows',       icon: '⬍', desc: 'Rows in the playing grid (and reward grid)',    base: 4,   max: 7 },
   { id: 'grid_cols',   label: 'Grid Columns',    icon: '⬌', desc: 'Columns in the playing grid (and reward grid)', base: 4,   max: 7 },
   { id: 'swaps',       label: 'Swaps/Round',      icon: '🔄', desc: 'Swaps granted at round start',      base: 3,   max: 8 },
   { id: 'discards',    label: 'Discards/Round',   icon: '🗑', desc: 'Discards granted at round start',   base: 3,   max: 8 },
-  { id: 'round_time',  label: 'Round Time',       icon: '⏱', desc: 'Max seconds per round',             base: 180, max: 300, step: 15 },
+  { id: 'round_time',  label: 'Starting Time',    icon: '⏱', desc: 'Seconds you START each round with (rewinds can carry you above it)', base: 180, max: 300, step: 15 },
   { id: 'trick_slots', label: 'Trick Slots',      icon: '✦', desc: 'Max Tricks you can keep at once',   base: 5,   max: 10, weight: 0.4 },
   { id: 'reroll',      label: 'Shop Rerolls',     icon: '🎲', desc: 'Rerolls available per shop visit',  base: 3,   max: 6 },
   { id: 'focus_cap',   label: 'Focus Cap',        icon: '⚡', desc: 'Maximum Focus (nodes)',            base: 30,  max: 60, step: 3, weight: 0.5 },
+  // Luck 10 is a nudge, 100 doubles every chance effect. Step 5 so a single pick
+  // is felt without one upgrade being the whole stat, and weight 0.6 because it
+  // touches every entity offer in the game - it should be a chase, not a staple.
+  { id: 'luck',        label: 'Luck',             icon: '🍀', desc: 'Good chance effects fire more often, and better entities turn up', base: 0, max: 100, step: 10, weight: 0.6 },
 ];
+// ══════════════════════════════════════════════
+// MINIMUM SELECTION (r200) - raising your hand size raises the FLOOR too
+// ══════════════════════════════════════════════
+// Selection Size is a maximum, and a maximum alone is pure upside: you take the
+// upgrade and keep playing pairs. Tying a minimum to it makes the upgrade a real
+// decision - you must commit that many cards to every hand, so you cannot lean
+// on a two-card Pair to tick the board over or use one as a free discard.
+//
+// min = limit - 2, floored at 1. Limit 3 -> 1 (no constraint in practice, a hand
+// needs two cards anyway), 5 -> 3, 7 -> 5, 9 -> 7. At the top limit the minimum
+// meets HAND_MAX_CARDS exactly, so a 9-card selection can still be one 7-card
+// hand plus two penalty cards, and nothing is unplayable.
+//
+// It applies to the PLAY GRID ONLY. `limits.selection` also caps the reward grid
+// and the shop pickers, and a minimum there would force you to take seven tiles.
+const MIN_SELECTION_GAP = 2;
+function minSelection() {
+  const cap = (typeof limits !== 'undefined' && limits.selection) ? limits.selection.current : 3;
+  return Math.max(1, cap - MIN_SELECTION_GAP);
+}
+// Does the minimum actually bite? Below 3 it cannot - two cards is the floor for
+// a hand regardless - and High Card is gated on this, so the early game (and the
+// tutorial, which runs at limit 3) is untouched.
+function minSelectionBinds() { return minSelection() > 2; }
+
 const limits = {};
 LIMITS_DEF.forEach(def => {
   limits[def.id] = { current: def.base, base: def.base, max: def.max, step: def.step || 1 };
@@ -30,6 +59,22 @@ function decrementLimit(id) {
   onLimitChanged(id);
   return true;
 }
+// ── Displaying a limit (r197) ────────────────────────────────────────────────
+// Every limit but Luck is exactly its `current`. Luck also carries luckModifiers
+// - the Fortune / Jinx reward tiles, which move Luck WITHOUT moving the limit so
+// that they can stack past the ceiling and, in Jinx's case, take you below zero
+// (decrementLimit floors at 0, so a limit could never do that).
+//
+// Both readouts - the in-play Limits pop-up and the RECORDS tab - used to print
+// `limits[id].current` directly, which would have made those tiles invisible on
+// the one screen that exists to tell you what your limits are.
+function limitShownValue(id) {
+  const cur = limits[id].current;
+  return (id === 'luck' && typeof luckModifiers === 'number') ? cur + luckModifiers : cur;
+}
+function limitShownDelta(id) {
+  return (id === 'luck' && typeof luckModifiers === 'number') ? luckModifiers : 0;
+}
 // Returns the display string for a limit's progress, respecting hideMax
 function limitProgressStr(id, showNext) {
   const def = LIMITS_DEF.find(d => d.id === id);
@@ -43,7 +88,9 @@ function limitProgressStr(id, showNext) {
 // Called after any limit change - applies immediate side effects
 function onLimitChanged(id) {
   if (id === 'round_time') {
-    roundSeconds = Math.min(roundSeconds, limits.round_time.current);
+    // No clamp. This limit is the round's STARTING time, not a live ceiling, so
+    // changing it must never reach in and cut the clock you are currently playing
+    // - which is what the old Math.min did every time the limit moved.
     updateClockUI();
   }
   if (id === 'swaps' || id === 'discards') {

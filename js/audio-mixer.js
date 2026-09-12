@@ -63,12 +63,11 @@ const SFX_MIX = {
   card_pop:      { bus: 'board', gain: 0.95 },
   flip_shuffle:  { bus: 'board' },
   no_swaps:      { bus: 'board', gain: 1.15 },
-  discard:       { bus: 'board', gain: 0.95, gap: 60 },
-  // Not on `board`: a forced discard is the boss acting, which is a change to the
-  // player's situation rather than a board noise they made, and `event` is the bus
-  // that ducks `board` and `detail` underneath it. That ducking is most of why it
-  // reads as louder - the trim alone would just be a bigger bleep in the same mix.
-  discard_forced:{ bus: 'event', gain: 1.25, gap: 60 },
+  card_discard:  { bus: 'board' },
+  // The forced discard is a thing happening TO you, so it rides `event` (a louder
+  // fader that also ducks the board under it) rather than `board`, on top of the
+  // 1.7x the sound itself carries.
+  card_discard_forced: { bus: 'event', gain: 1.1 },
   reward_select: { bus: 'board', gain: 1.05 },
 
   // ── score ── the dance
@@ -109,7 +108,9 @@ const SFX_DUCK_RELEASE = 0.28;    // come back slowly, or the mix audibly pumps
 
 let _mixNodes = null;        // bus id -> GainNode
 let _mixCtx = null;
-let _mixTail = null;         // what the buses are currently connected to
+let _mixTail = null;         // what the muffle chain is currently connected to
+let _mixMuffle = null;       // { lp, g } - the always-in-line muffle insert (below)
+let _mixMuffled = false;
 let _mixCurrentId = null;    // the sound being built right now (set by the wrapper)
 const _mixVoices = {};       // bus id -> count of voices currently sounding
 const _mixLastPlay = {};     // sound id -> when it last started, ms
@@ -126,24 +127,71 @@ function sfxMixGraph() {
   const ctx = getAudioCtx();
   if (!_mixNodes || _mixCtx !== ctx) {
     _mixCtx = ctx;
+    // The muffle insert sits between every bus and the tail, ALWAYS - see
+    // sfxSetMuffle below for why it is left in line rather than patched in.
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = SFX_MUFFLE_OPEN;
+    lp.Q.value = 0.7071;                // Butterworth: flat, no resonant peak
+    const mg = ctx.createGain();
+    mg.gain.value = 1;
+    lp.connect(mg);
+    _mixMuffle = { lp, g: mg };
+    _mixMuffled = false;
     _mixNodes = {};
     Object.keys(SFX_BUSES).forEach(b => {
       const g = ctx.createGain();
       g.gain.value = SFX_BUSES[b].trim;
+      g.connect(lp);
       _mixNodes[b] = g;
     });
     _mixTail = null;
   }
   const tail = (typeof sfxDuckGain !== 'undefined' && sfxDuckGain) ? sfxDuckGain : ctx.destination;
   if (tail !== _mixTail) {
-    Object.keys(_mixNodes).forEach(b => {
-      try { _mixNodes[b].disconnect(); } catch (e) {}
-      _mixNodes[b].connect(tail);
-    });
+    // Only the OUTPUT end re-patches. The buses stay wired to the muffle insert
+    // for the life of the context, so a tail swap can never bypass it.
+    try { _mixMuffle.g.disconnect(); } catch (e) {}
+    _mixMuffle.g.connect(tail);
     _mixTail = tail;
   }
   return _mixNodes;
 }
+
+// ── The muffle ──────────────────────────────────────────────────────────────
+// "Heard through a wall": roll the top off everything and pull it back a bit.
+// Used when a screen covers something the player still wants to hear happening
+// underneath it (Survival's pick-of-three over the goal dance, js/survival.js).
+//
+// It is a LOWPASS THAT IS ALWAYS IN LINE, opened to 20kHz when idle, rather than
+// a node patched in and out. Patching means disconnecting the graph while voices
+// are sounding through it, which clicks; a Butterworth lowpass parked above the
+// audible range is transparent and costs one node.
+//
+// This reaches samples, packs and coded sounds alike because every voice in the
+// game connects at sfxOut. MUSIC IS NOT AFFECTED - it is an <audio> element and
+// never enters this graph (js/music.js); its own slider is the control for that.
+const SFX_MUFFLE_OPEN   = 20000;  // Hz - effectively bypassed
+const SFX_MUFFLE_CLOSED = 620;    // Hz - through a wall, still clearly audible
+const SFX_MUFFLE_GAIN   = 0.55;   // the pull-back that goes with it
+const SFX_MUFFLE_RAMP   = 0.20;   // seconds, both directions
+
+function sfxSetMuffle(on) {
+  on = !!on;
+  if (on === _mixMuffled && _mixMuffle) return;   // idempotent: no re-ramp per round start
+  let ctx;
+  try { ctx = getAudioCtx(); sfxMixGraph(); } catch (e) { return; }
+  if (!_mixMuffle) return;
+  const now = ctx.currentTime, t = now + SFX_MUFFLE_RAMP;
+  const f = _mixMuffle.lp.frequency, g = _mixMuffle.g.gain;
+  f.cancelScheduledValues(now); f.setValueAtTime(Math.max(f.value, 1), now);
+  f.exponentialRampToValueAtTime(on ? SFX_MUFFLE_CLOSED : SFX_MUFFLE_OPEN, t);
+  g.cancelScheduledValues(now); g.setValueAtTime(g.value, now);
+  g.linearRampToValueAtTime(on ? SFX_MUFFLE_GAIN : 1, t);
+  _mixMuffled = on;
+}
+
+function sfxMuffled() { return _mixMuffled; }
 
 // THE SEAM. Every voice in the game connects here instead of to the destination.
 // Which bus it lands on comes from the sound id the wrapper is currently running.

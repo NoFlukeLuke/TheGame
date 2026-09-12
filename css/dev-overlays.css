@@ -838,6 +838,8 @@
   .dev-preview {
     font-family: 'Share Tech Mono', monospace; font-size: 10px; letter-spacing: 0.3px;
     color: var(--gold-dim); margin-top: 8px; line-height: 1.5;
+    /* pre-line so a multi-line preview (the goal curves) keeps its breaks */
+    white-space: pre-line;
   }
   .dev-tune {
     display: flex; align-items: center; justify-content: space-between; gap: 10px;
@@ -884,3 +886,10 @@
     line-height: 1.35; color: var(--cream-dim);
   }
   .dev-pick-body i:empty { display: none; }
+
+/* Natural Scaling bonus editor (r201) - one compact row per hand type. */
+.dev-ns-row { display:flex; align-items:center; gap:6px; margin:2px 0; font-family:'Crimson Pro',serif; font-size:11px; color:var(--cream-dim); }
+.dev-ns-row .dev-ns-name { flex:1 1 auto; min-width:0; color:var(--cream); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.dev-ns-row label { flex:0 0 auto; display:flex; align-items:center; gap:3px; }
+.dev-ns-row input { width:52px; background:#1a1510; color:var(--cream); border:1px solid var(--border); border-radius:3px; padding:1px 3px; font-size:11px; }
+.dev-ns-row .dev-ns-plays { flex:0 0 58px; text-align:right; opacity:0.7; }
