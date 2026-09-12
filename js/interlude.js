@@ -1,4 +1,12 @@
-async function startInterlude() {
+// `opts.prize` ends on the PRIZE grid instead of the ordinary reward grid. That is
+// the only thing a boss round's completion does differently (r213): before this a
+// boss jumped straight to the prize grid with no fall, no payout and no banner, so
+// the hardest round of the act was the only one in the game that paid no credits.
+// Both endings set rewardGridContext = 'interlude', so closeRewardGrid's
+// finishInterlude continuation - which is what advances the act at nodeInAct 5 -
+// is reached identically either way.
+async function startInterlude(opts) {
+  opts = opts || {};
   interludeActive = true;
 
   // Duck gain was set up by goal-reach (set to 0.4). Reuse it; lazy-init if missing.
@@ -30,7 +38,7 @@ async function startInterlude() {
 
   // ── Reward grid replaces Trick choice - player picks spoils, then new round setup runs ──
   rewardGridContext = 'interlude';
-  openRewardGrid();
+  if (opts.prize) openPrizeGrid(); else openRewardGrid();
 }
 
 async function showLevelUpScreen_fallOnly() {
@@ -161,7 +169,7 @@ async function showPayoutUI() {
   const _frozen = interestFreezeRounds > 0;
   if (_frozen) interestFreezeRounds--;
   const interestCoins  = (_withheld || _frozen) ? 0 : Math.floor(coins / 10) * interestMult;
-  const efficiencyCoins = _withheld ? 0 : Math.floor(frozenRoundSeconds / 10);
+  const efficiencyCoins = _withheld ? 0 : Math.floor(frozenRoundSeconds / EFFICIENCY_SECONDS_PER_COIN);
   const totalCoins     = interestCoins + efficiencyCoins;
   if (_withheld) showMessage('Payout withheld', 'var(--red)');
   else if (_frozen) showMessage(`Interest frozen (${interestFreezeRounds} more)`, 'var(--red)');
@@ -199,7 +207,7 @@ async function showPayoutUI() {
       <div class="payout-line" id="po-line-efficiency">
         <div class="pl-left">
           <div class="pl-name">Efficiency</div>
-          <div class="pl-desc">1 per 10s remaining</div>
+          <div class="pl-desc">1 per ${EFFICIENCY_SECONDS_PER_COIN}s remaining</div>
         </div>
         <div class="pl-right">
           <span class="pl-clock" id="po-clock">${formatTime(frozenRoundSeconds)}</span>
@@ -302,7 +310,7 @@ async function showPayoutUI() {
     while (secsLeft > 0) {
       secsLeft--;
       clockEl.textContent = formatTime(secsLeft);
-      if ((frozenRoundSeconds - secsLeft) % 10 === 0 && secsLeft < frozenRoundSeconds) {
+      if ((frozenRoundSeconds - secsLeft) % EFFICIENCY_SECONDS_PER_COIN === 0 && secsLeft < frozenRoundSeconds) {
         effEarned++;
         effCoinsEl.textContent = effEarned;
         tickCoin('po-efficiency');

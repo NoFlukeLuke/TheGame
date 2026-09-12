@@ -715,27 +715,43 @@ function endBoss(success) {
   document.getElementById('clock-bar').classList.remove('boss-mode');
   updateActProgressUI();
 
-  // Result flash
-  const resultEl = document.getElementById('boss-result');
-  const resultText = document.getElementById('boss-result-text');
-  resultText.className = 'boss-result-text ' + (success ? 'win' : 'loss');
-  resultText.textContent = success ? 'VICTORY' : 'DEFEATED';
-  resultEl.classList.add('show');
-  setTimeout(() => resultEl.classList.remove('show'), 1500);
+  // Result flash. A WIN no longer uses it: the goal-clear banner below says the same
+  // thing better (it names the boss, and it is the same stamp every other cleared
+  // round gets), and two captions over one board is one too many. A LOSS keeps it.
+  const _beaten = success ? (currentBoss && currentBoss.name) : null;
+  if (!success) {
+    const resultEl = document.getElementById('boss-result');
+    const resultText = document.getElementById('boss-result-text');
+    resultText.className = 'boss-result-text loss';
+    resultText.textContent = 'DEFEATED';
+    resultEl.classList.add('show');
+    setTimeout(() => resultEl.classList.remove('show'), 1500);
+  }
 
   if (success) {
     render();
+    // A cleared boss is a cleared round, and is now marked like one: the QUOTA
+    // CLEARED stamp (carrying the boss's name as its kicker) and the clock locking
+    // mint. js/goal-clear.js; `force` because Survival suppresses the banner for
+    // its pick-of-three, which a boss win does not open.
+    frozenRoundSeconds = roundSeconds;   // the payout's Efficiency line reads this
+    if (typeof goalClearPresent === 'function') goalClearPresent({ kicker: _beaten, force: true });
     if (survivalActive()) {
       // Survival: no reward grid - a bonus pick-of-three, then back to normal rounds.
       // The banked time was spent on this boss, so reset it for the next 8-clear cycle.
+      // (No payout here: Survival has no payout screen at all, by design.)
       survivalBossTimeBank = 0;
       setTimeout(() => survivalPostBossReward(), 1100);
     } else if (isActMode()) {
-      // Node-based: the post-boss grid is an interlude that starts the next act.
-      // nodeInAct stays at 5 so closeRewardGrid knows to reset it and advance actNumber.
-      // Since r179 that grid is the PRIZE grid - smaller, all rewards, no commons -
-      // and it REPLACES the ordinary reward grid rather than following it.
-      setTimeout(() => { rewardGridContext = 'interlude'; openPrizeGrid(); }, 1000);
+      // Node-based: a boss round ends EXACTLY like any other cleared round - cards
+      // fall, the payout counts up, and only then the grid. It used to jump straight
+      // to the prize grid, and since credits are awarded inside showPayoutUI (interest
+      // and leftover-time), that meant the hardest round of the act paid nothing at all.
+      // The prize grid still replaces the ordinary reward grid; startInterlude's
+      // `prize` option is the whole difference. nodeInAct stays at 5 so
+      // closeRewardGrid's finishInterlude resets it and advances actNumber.
+      gameTimerPaused = true;
+      setTimeout(() => startInterlude({ prize: true }), 900);
     } else {
       // Timer-based modes: restore round timer and resume the interrupted round
       roundSeconds = savedRoundSeconds;

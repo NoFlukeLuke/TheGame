@@ -111,9 +111,9 @@ function updateRunProgressUI() {
   document.querySelectorAll('.rp-block').forEach(rp => {
     rp.classList.toggle('boss-sigil', bossOn);
     const act = rp.querySelector('.rp-act');
-    // Outside the 3-Act structure (Survival) "ACT n" is meaningless, but a boss
+    // Outside the three-quarter structure (Survival) "Qn" is meaningless, but a boss
     // still needs a name over its mark.
-    if (act) act.textContent = actMode ? ('ACT ' + actNumber) : (bossOn ? 'BOSS' : '');
+    if (act) act.textContent = actMode ? ('Q' + actNumber) : (bossOn ? 'BOSS' : '');
     rp.querySelectorAll('.rp-nodes span:not(.boss)').forEach((s, i) => {
       s.classList.toggle('on', i < nodeInAct);
       s.classList.toggle('cur', i === nodeInAct);

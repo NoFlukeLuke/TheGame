@@ -780,6 +780,31 @@ Dread, then a clean slate, for a boss that arrives with **no screen in front of 
 
 The **3-2-1 is now centred on the grid** in landscape - `#countdown-321-overlay` was `position:fixed; inset:0` with a 30% top pad, i.e. centred on the *viewport*. The **payout panel** is re-themed as a LETHE remittance advice (`css/boss.css`) - overrides only, so `interlude.js`'s animation classes still drive it.
 
+## A boss round ends like any other round (r213)
+
+Beating a boss used to be: the word `VICTORY` in gold Cinzel over the still-live board for 1.5s, then the prize grid. **No fall, no payout, no banner.** Three things followed from that, and all three are fixed:
+
+- **A boss paid ZERO credits.** Interest and the leftover-time bonus are awarded *inside* `showPayoutUI` (`coins += interestCoins` / `coins += efficiencyCoins`), which is called from exactly one place - `startInterlude` - which only ran off the goal hand. `isGoalHand` is false during a boss, so the longest and hardest round of the quarter was the only round in the game that paid nothing for beating the clock.
+- **Nothing marked the clear.** The gold serif was pre-cabinet leftovers (everything else moved to Orbitron / Share Tech Mono years of builds ago) and near-illegible over cream cards.
+- **Nothing marked the quarter boundary.** The pips still showed the skull, the clock still read gold like a live round, and the grid that opened looked like every other reward grid.
+
+`endBoss(true)`'s act path now fires `goalClearPresent()` and `startInterlude({ prize: true })`.
+
+- **`startInterlude(opts)` gained exactly one option.** `opts.prize` ends on `openPrizeGrid()` instead of `openRewardGrid()`; everything before it is identical. **Both endings set `rewardGridContext = 'interlude'`**, so `closeRewardGrid`'s `finishInterlude` continuation - which is what resets `nodeInAct` and advances `actNumber` at node 5 - is reached the same way either way. That is why this needed no new continuation.
+- **`endBoss` must set `frozenRoundSeconds` itself.** The payout's Efficiency line reads it, and it is normally written by the dance's goal path, which a boss never enters. Miss it and a boss pays the *previous* round's leftover time.
+- **The old `#boss-result` flash is now LOSS-ONLY.** A win's banner says the same thing better and names the boss; two captions over one board is one too many. `DEFEATED` is untouched.
+- **Survival and Flow get the banner and the clock lock but no payout** - they have no payout screen at all, by design. Their boss win still routes to `survivalPostBossReward()`.
+
+**The banner carries the boss's name.** `showGoalBanner(opts)` takes `opts.kicker` (replacing the word ROUND above the title) and `opts.force`. `force` exists because the banner is normally suppressed in Survival/Flow - their pick-of-three opens on that beat with its own kicker - but a boss win there opens the prize grid instead, so nothing else would say it. `.gb-boss` restyles the kicker line: a boss name at the kicker's 5px letter-spacing is wider than the stamp.
+
+### Leftover time pays double (r213) - `EFFICIENCY_SECONDS_PER_COIN`
+
+**1 credit per 5 seconds left, was per 10.** Owner's call: beating the clock is the main thing a well-played round does and it was paying about a fifth of a Trick. The constant lives in `js/data/cards.js` beside `ROUND_DURATION` and is read by **three** sites that must never disagree - the payout's figure, the payout's printed "1 per Ns remaining" label, and the count-up's per-coin tick - plus **Survival's own per-clear bonus** (`survivalAfterLevelUp`), which had the 10 written into it separately. Flow is unaffected: it banks no leftover time and pays flat coins.
+
+### Acts are QUARTERS (r213)
+
+Player-facing only: **Q1 / Q2 / Q3**, three of them, same structure. Everything in code - `actNumber`, `nodeInAct`, `isActMode`, `actStructure` - is unchanged, so nothing about the progression moved. The strings are `js/hud.js` (`'Q' + actNumber`, the `.rp-act` line in both run-progress blocks), `js/tricks-ui.js` (the act readout, both branches), the two `<div class="rp-act">` defaults in `index.html`, and four mode descriptions in `js/menu.js`. This and **QUOTA CLEARED** are deliberate exceptions to the r178 voice rule - the owner is putting the corporate framing back on the *structural* labels while the entity and action text stays plain.
+
 ## Goal clear (r197) - `js/goal-clear.js` + `css/goal-clear.css`
 
 Two things happen the instant the tally crosses `roundGoal` and the game said neither out loud.
@@ -789,6 +814,7 @@ Two things happen the instant the tally crosses `roundGoal` and the game said ne
 
 **The number is kept, not wound down to zero.** Carry Time banks it and Clock Tower carries it, so it is still information; and a clock that runs itself down after you have already won reads as a penalty for winning.
 
+- **`showGoalBanner(opts)` takes a kicker and a force flag** - see the boss-win section above.
 - **`flashRoundEnd()` is the single wiring point.** It is the one function in the game that means "the tally just crossed the goal" - both dances call it and nothing else does - so `goalClearPresent()` hangs off it rather than off the dance's two call sites. `startRoundTimer()` is the single release point (it also clears any muffle, below).
 - **The banner is body-level and `position:fixed`, placed from JS in raw viewport px**, same rule as the Time / Limits pop-ups and the hand log: anything inside `#cabinet` inherits its CSS `zoom` and the coordinates get multiplied. It is centred on the **grid** rect rather than the viewport, so one rule covers both orientations. By the time it fires the board has already been cleared by the finale, so it lands on an empty grid.
 - **Survival and Flow get the clock state but not the banner** - their pick-of-three opens on this same beat and already carries a GOAL CLEARED kicker. **Flow does not get the clock state either**: its clock is a session countdown to the inspection, not a round clock, so it does not stop at a goal clear and marking it cleared would be a lie.

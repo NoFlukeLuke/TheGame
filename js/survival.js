@@ -23,7 +23,8 @@ const SURVIVAL_GOAL_ROUND_TO = 50;    // goal rounding step (500 would snap 750 
 // +35%/level becomes +57.75%/level. Applied only after the 5-boss run is continued.
 const SURVIVAL_ENDLESS_ACCEL = 1.65;
 const SURVIVAL_LEVEL_COINS   = 3;     // flat coins per goal cleared
-const SURVIVAL_COINS_PER_10S = 1;     // + this per full 10s left on the goal timer
+const SURVIVAL_COINS_PER_10S = 1;     // + this per EFFICIENCY_SECONDS_PER_COIN left on the goal timer
+                                      // (the constant is shared with the payout's Efficiency line - js/data/cards.js)
 const SURVIVAL_SHOP_COST     = 5;     // coins to open the shop from the pick screen
 const SURVIVAL_BOSS_EVERY_SECONDS = 300; // a boss arrives every 5 minutes of play
 const SURVIVAL_BOSS_COUNT     = 5;    // run "completes" after this many bosses beaten
@@ -134,7 +135,7 @@ function survivalAfterLevelUp(leftover) {
   // boss runs a fixed window. Flat coins only.
   const _flow = (typeof flowActive === 'function' && flowActive());
   const gained = _flow ? SURVIVAL_LEVEL_COINS
-                       : SURVIVAL_LEVEL_COINS + Math.floor(Math.max(0, leftover) / 10) * SURVIVAL_COINS_PER_10S;
+                       : SURVIVAL_LEVEL_COINS + Math.floor(Math.max(0, leftover) / EFFICIENCY_SECONDS_PER_COIN) * SURVIVAL_COINS_PER_10S;
   coins += gained;
   updateCoinsUI();
   if (!_flow) survivalBossTimeBank = Math.min(SURVIVAL_BOSS_TIME_CAP, survivalBossTimeBank + Math.max(0, leftover));
