@@ -73,7 +73,7 @@ const SAVE_VARS = [
   'sleightNextHandDouble', 'sleightLegacyMult', 'sleightAmplifierMult',
   '_dabiSwapNext', 'sleightFreeSwapPending',
   // ── Permanent card buffs / curses ──
-  'permPips', 'permMult', 'permXPips', 'permXMult', 'permRetrig', 'cardCurses',
+  'permPips', 'permMult', 'permXPips', 'permXMult', 'permRetrig', 'permTime', 'cardCurses',
   'cardPlayCount', 'cardSwapCount', 'cardDealtCount',
   // ── Hands ──
   'activeHands', 'unlockedHands', 'handsPendingUnlock', 'handTypesRound',

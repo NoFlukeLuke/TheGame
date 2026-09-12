@@ -36,9 +36,12 @@ const BOSS_PRESETS = [
     id: 'the_hollow',
     name: 'THE HOLLOW',
     flavor: 'Cards crumble into nothing',
+    brief: 'Every 6 seconds a card is taken off the board and returned to your deck. Nothing falls into its place until the board next settles. Play what you can reach before it goes.',
     objective: { type: 'score', target: 4500 },
+    // 8s -> 6s: 25% more often, per the r197 tuning pass. nullIntervalSecs is read
+    // by the periodic_null modifier in js/boss.js.
     modifiers: ['periodic_null'],
-    params: { nullIntervalSecs: 8, nullCount: 1 }
+    params: { nullIntervalSecs: 6, nullCount: 1 }
   },
 
   // ── r150 roster ────────────────────────────────────────────────────────────
@@ -134,6 +137,15 @@ const BOSS_PRESETS = [
     objective: { type: 'score', target: 4000 },
     modifiers: ['interact_fee'],
     params: { fee: 3 }
+  },
+  {
+    id: 'the_shredder',
+    name: 'THE SHREDDER',
+    flavor: 'Some cards will not be played',
+    brief: 'One card in ten is marked. The marks are invisible, and you will only find one by playing it: a hand holding a marked card does not score - every marked card in it is shredded back into your deck, and the rest stay where they are. You keep the swap and the discard. You lose the hand.',
+    objective: { type: 'score', target: 4200 },
+    modifiers: ['discard_mark'],
+    params: { oneIn: 10 }
   },
   {
     id: 'the_redaction',

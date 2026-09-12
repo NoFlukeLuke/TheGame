@@ -270,6 +270,17 @@ const SFX_PACKS = {
       bitTone({ freq: 300, dur: 0.07, duty: 0.125, gain: 0.12 });
       bitTone({ freq: 190, dur: 0.11, duty: 0.125, gain: 0.12, delay: 0.09 });
     },
+    // Discard: a scrape then a low stop. No envelope - one line is on or off - so
+    // the "louder" forced version is a WIDER duty and an extra stroke, not a fade.
+    discard: () => {
+      bitNoise({ dur: 0.032, lo: 700, hi: 2600, gain: 0.08, grain: 0.004 });
+      bitTone({ freq: 165, dur: 0.06, duty: 0.25, gain: 0.10, delay: 0.032 });
+    },
+    discard_forced: () => {
+      bitNoise({ dur: 0.05, lo: 420, hi: 2200, gain: 0.115, grain: 0.005 });
+      bitTone({ freq: 131, dur: 0.09, duty: 0.5, gain: 0.135, delay: 0.05 });
+      bitTone({ freq: 87,  dur: 0.12, duty: 0.5, gain: 0.115, delay: 0.15 });
+    },
 
     // Two pulses per particle (r191) - a thin tick, then the body. On one output
     // line the gap is the only way to give a repeated event any shape at all.
@@ -351,6 +362,18 @@ const SFX_PACKS = {
       chipTone({ freq: 233, dur: 0.09, duty: 0.5, gain: 0.11 });
       chipTone({ freq: 175, dur: 0.14, duty: 0.5, gain: 0.11, delay: 0.1 });
       chipNoise({ dur: 0.04, gain: 0.05, rate: 0.7, mode: 'long', delay: 0.1 });
+    },
+    // A card going into the hopper: one short-LFSR click, then the tray.
+    discard: () => {
+      chipNoise({ dur: 0.03, gain: 0.06, rate: 1.9, mode: 'short' });
+      chipTone({ freq: 165, dur: 0.08, duty: 0.5, gain: 0.10, delay: 0.03 });
+    },
+    // Forced: the long register instead of the short one - a tear rather than a
+    // click - and it takes twice as long to stop.
+    discard_forced: () => {
+      chipNoise({ dur: 0.09, gain: 0.095, rate: 1.5, to: 0.6, mode: 'long' });
+      chipTone({ freq: 123, dur: 0.11, duty: 0.5, gain: 0.13, delay: 0.06 });
+      chipTone({ freq: 82,  dur: 0.16, duty: 0.5, gain: 0.11, delay: 0.16 });
     },
 
     // The credit meter counting up - the sound a slot spends most of its time making.

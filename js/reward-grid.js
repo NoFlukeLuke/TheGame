@@ -262,13 +262,23 @@ function _generateRewardContent() {
         : showMessage(`${rank}${suit} was already gone`, 'var(--cream-dim)'); } };
   }
   function makeLimitUpPayload() {
-    // round_time excluded - its +1 = 1 second; time is handled by the +15s tile.
-    const eligible = LIMITS_DEF.filter(d => d.id !== 'round_time' && limits[d.id].current < limits[d.id].max);
+    // EVERY LIMIT HAS ITS OWN STEP, and this tile used to ignore all of them: it
+    // printed "+1" and "current → current + 1" whatever it was raising. Two limits
+    // do not step by 1 - round_time steps by 15 and focus_cap by 3 - so the tile
+    // said "+1 Focus Cap · 30 → 31" and then granted +3. round_time was excluded
+    // outright on the strength of the same wrong assumption ("its +1 = 1 second"),
+    // which is why a limit tile could never raise your round time at all.
+    // incrementLimit was always applying def.step correctly; only the label lied.
+    const eligible = LIMITS_DEF.filter(d => limits[d.id].current < limits[d.id].max);
     if (!eligible.length) return makeTrickPayload();
     const dl = pickWeightedLimits(1, eligible)[0];
-    return { icon: '⬆️', label: `+1 ${dl.label}`, tier: 'epic',
-      desc: `${dl.label}: ${limits[dl.id].current} → ${limits[dl.id].current + 1} · permanent`,
-      apply: () => { incrementLimit(dl.id); showMessage(`+1 ${dl.label}!`, 'var(--gold)'); } };
+    const l = limits[dl.id];
+    const step = l.step || 1;
+    const next = Math.min(l.max, l.current + step);
+    const unit = dl.id === 'round_time' ? 's' : '';
+    return { icon: '⬆️', label: `+${step}${unit} ${dl.label}`, tier: 'epic',
+      desc: `${dl.label}: ${l.current}${unit} → ${next}${unit} · permanent`,
+      apply: () => { incrementLimit(dl.id); showMessage(`+${step}${unit} ${dl.label}`, 'var(--gold)'); } };
   }
 
   // At most this many limit tiles on a prize grid, INCLUDING the guaranteed Limit

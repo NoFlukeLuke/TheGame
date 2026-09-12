@@ -125,7 +125,9 @@ function doDiscard() {
     }
     if (_restored) showMessage(`Martyr: +1 charge to ${_restored} Sleight${_restored > 1 ? 's' : ''}`, 'var(--gold)');
   }
-  sfxFlipShuffle();
+  // A discard has its own sound as of r197. It used to borrow sfxFlipShuffle, the
+  // bright riffle a SCORING hand makes, so throwing cards away sounded like a win.
+  sfxDiscard('normal');
   resetFocusDecayTimer();
   // Cull: using a discard adds 1 focus
   if (hasTrick('cull')) addFocus(1);

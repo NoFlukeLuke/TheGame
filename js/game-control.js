@@ -264,8 +264,19 @@ function startGame() {
   level = 1;
   leaves = 0;
   handsPlayed = 0;
-  // Reset limits to base values on new game
-  LIMITS_DEF.forEach(def => { limits[def.id] = { current: def.base, base: def.base, max: def.max }; });
+  // Reset limits to base values on new game.
+  //
+  // `step` MUST be carried across (r197). This rebuild dropped it, so from the
+  // first frame of every run round_time.step was undefined and focus_cap.step was
+  // undefined, and incrementLimit's `(l.step || 1)` fell back to 1. That is the
+  // real reason a Round Time upgrade granted ONE SECOND instead of 15 and a Focus
+  // Cap upgrade one node instead of 3, everywhere they could be bought - the
+  // shop, the reward grid, Limit Break, Growth Spurt, the Survival pick. The
+  // limits table in js/limits.js had the right numbers the whole time; this line
+  // threw them away at startGame and nothing read LIMITS_DEF again afterwards.
+  LIMITS_DEF.forEach(def => {
+    limits[def.id] = { current: def.base, base: def.base, max: def.max, step: def.step || 1 };
+  });
   // Match-3 modes start on a 5×5 board (owner spec). Setting it through `limits`
   // means level-ups keep the size instead of snapping back to the 4×4 base.
   if (match3Active()) {
@@ -394,6 +405,7 @@ function startGame() {
   permXPips  = {};
   permXMult  = {};
   permRetrig = {};
+  permTime   = {};
   cardCurses = {};
   bonusMult_fives = 0;
   bonusMult_nines = 0;

@@ -996,15 +996,24 @@
 
 <!-- LIMIT BREAK EVENT OVERLAY -->
 <div id="limitbreak-overlay">
-  <div id="lb-title">LIMIT BREAK</div>
-  <div id="lb-sub">Choose one limit to break. Sacrifice to break a second.</div>
-  <div id="lb-offers"></div>
-  <div id="lb-sacrifice">
-    <div id="lb-sacrifice-title">Second Pick - Sacrifice</div>
-    <div id="lb-sacrifice-hint">Pick a second limit by giving something up.</div>
-    <div id="lb-sacrifice-options"></div>
+  <!-- Same console as the events (#event-panel) as of r197. This screen was the
+       last of the between-round screens still wearing the old gold-on-black
+       Cinzel look, which is why it read as belonging to a different game. -->
+  <div id="lb-panel">
+    <div id="lb-bar">
+      <span id="lb-eyebrow">LIMIT BREAK</span>
+      <span id="lb-bar-dots"><i></i><i></i><i></i></span>
+    </div>
+    <div id="lb-title">RAISE A LIMIT</div>
+    <div id="lb-sub">One is free. Give something up and you can raise a second.</div>
+    <div id="lb-offers"></div>
+    <div id="lb-sacrifice">
+      <div id="lb-sacrifice-title">What you give up</div>
+      <div id="lb-sacrifice-hint">Pick a second limit by giving something up.</div>
+      <div id="lb-sacrifice-options"></div>
+    </div>
+    <div id="lb-actions"><button id="lb-confirm" disabled>Confirm</button></div>
   </div>
-  <button id="lb-confirm" disabled>Confirm</button>
 </div>
 
 <!-- LEVEL UP OVERLAY -->

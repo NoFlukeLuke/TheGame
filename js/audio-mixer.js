@@ -63,6 +63,12 @@ const SFX_MIX = {
   card_pop:      { bus: 'board', gain: 0.95 },
   flip_shuffle:  { bus: 'board' },
   no_swaps:      { bus: 'board', gain: 1.15 },
+  discard:       { bus: 'board', gain: 0.95, gap: 60 },
+  // Not on `board`: a forced discard is the boss acting, which is a change to the
+  // player's situation rather than a board noise they made, and `event` is the bus
+  // that ducks `board` and `detail` underneath it. That ducking is most of why it
+  // reads as louder - the trim alone would just be a bigger bleep in the same mix.
+  discard_forced:{ bus: 'event', gain: 1.25, gap: 60 },
   reward_select: { bus: 'board', gain: 1.05 },
 
   // ── score ── the dance

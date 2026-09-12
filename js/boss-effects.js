@@ -34,6 +34,7 @@ let bossGoalRatchet    = 0;          // fraction the objective grows per interac
 let bossInteractFee    = 0;          // credits charged per interact (The Turnstile)
 let bossRedactedHand   = null;       // hand type marked down this round (The Redaction)
 let bossRedactedMult   = 1;          // what it is multiplied by
+let bossMarkedCardIds  = new Set();  // card ids carrying a shred mark (The Shredder)
 
 // ── The Contingency Plan knack ───────────────────────────────────────────────
 // "Boss effects are 10% weaker." Two readings, both applied:
@@ -248,6 +249,62 @@ function bossRationTick() {
   render();
 }
 
+// ── The Shredder: invisible marks on one card in ten ─────────────────────────
+// Marked cards are keyed by cardId, not by face, so the mark belongs to ONE
+// physical card - duplicate a 7 of spades in the Mart and only the copy that was
+// marked carries it (see "Card identity" in CLAUDE.md).
+//
+// Nothing about a marked card renders differently, and no message is shown when
+// the marks are laid down: the briefing states the rule, the board never states
+// which cards. Finding one costs a hand, which is the boss.
+function bossMarkCards(oneIn) {
+  bossMarkedCardIds = new Set();
+  const every = (typeof everyDeckCard === 'function') ? everyDeckCard() : [];
+  if (!every.length) return;
+  // Take every Nth of a shuffled copy rather than rolling a coin per card: a
+  // per-card roll on a 52-card deck can legitimately mark nothing at all, and a
+  // boss that does nothing is exactly what this roster exists to stop.
+  const pool = (typeof shuffle === 'function') ? shuffle([...every]) : [...every];
+  // 10% weaker (Contingency Plan) = 10% fewer marks. There is no magnitude to
+  // shrink here, only a count.
+  const n = Math.max(1, Math.floor(pool.length / Math.max(2, oneIn) * bossMagScale()));
+  for (let i = 0; i < n && i < pool.length; i++) bossMarkedCardIds.add(cardId(pool[i]));
+}
+
+// Which of these cells hold a marked card. Cells, not cards, because the caller
+// needs the positions to animate them off the board.
+function bossMarkedCellsIn(cells) {
+  if (!bossActive || !bossMarkedCardIds.size) return [];
+  if (typeof bossEffectsIgnored === 'function' && bossEffectsIgnored()) return [];
+  return (cells || []).filter(([r, c]) => {
+    const cd = gridData[r]?.[c];
+    return cd && cd.rank && !cd._isSleight && !cd._isStone && !cd._isTrick
+        && bossMarkedCardIds.has(cardId(cd));
+  });
+}
+
+// Called from playHand before anything is scored. Returns true if the hand was
+// shredded, in which case the caller must not score it.
+//
+// The mark is NOT consumed. The card goes back into the deck still marked, so the
+// boss keeps its teeth for the whole round and a player who is paying attention
+// can learn a face the hard way.
+function bossShredMarkedHand(cells) {
+  const marked = bossMarkedCellsIn(cells);
+  if (!marked.length) return false;
+  marked.forEach(([r, c]) => { const cd = gridData[r]?.[c]; if (cd) discardToDrawPile(cd); });
+  selected = [];
+  // Louder than an ordinary discard - this one was done TO the player, and it has
+  // to land as an interruption rather than as something they did. Its own catalog
+  // row, so the mixer gains it separately (js/audio-mixer.js).
+  if (typeof sfxDiscard === 'function') sfxDiscard('forced');
+  showMessage(marked.length > 1
+    ? `SHREDDED - ${marked.length} marked cards`
+    : 'SHREDDED - that card was marked', 'var(--red)');
+  removeAndFall(marked, 'discard');
+  return true;
+}
+
 // ── Wiring: called from applyBossModifiers for the new modifier ids ──────────
 function applyBossEffectModifier(mod, params) {
   switch (mod) {
@@ -286,6 +343,9 @@ function applyBossEffectModifier(mod, params) {
     case 'interact_fee':
       bossInteractFee = params.fee || 3;
       return true;
+    case 'discard_mark':
+      bossMarkCards(params.oneIn || 10);
+      return true;
     case 'redact_hand': {
       // Only hand types the player can actually make are worth marking down -
       // redacting Straight Flush on a 4×4 board would be a free round.
@@ -314,6 +374,7 @@ function clearBossEffects() {
   bossInteractMultV = 1;
   bossGoalRatchet = 0; bossInteractFee = 0;
   bossRedactedHand = null; bossRedactedMult = 1;
+  bossMarkedCardIds = new Set();
 }
 
 // How many whole seconds the boss clock should consume this tick. Normally 1;

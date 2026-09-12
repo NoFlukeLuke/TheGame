@@ -1,4 +1,4 @@
-const BUILD = '2026-09-05 · r196 · card identity: buffs, curses and services target one card, not every card sharing its face [onto r195]';
+const BUILD = '2026-09-12 · r197 · boss tuning + The Shredder; events retheme, Clean Up rework, Card Market + Deck Trim';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

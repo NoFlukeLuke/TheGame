@@ -164,6 +164,15 @@ const BAL = {
   // ── Upgrade events (r194) ──
   rehearsal: { consolation_credits: 12 },
   workshop:  { cap_bonus: 2, consolation_credits: 12 },
+  // ── Card Market (r197) - buy cards INTO the deck, each carrying one effect ──
+  // Three on offer, priced by how strong the effect is. The card itself is a copy
+  // of one already in the deck, so the market can never hand out a rank or suit
+  // the mode does not use (Spectrum has no courts, Six Suits has two extra suits).
+  market: { offers: 3, prices: { pips: 8, mult: 12, time: 10, replay: 18 } },
+  // ── Deck Trim (r197) - the frequent-removal event ──
+  // Three cuts of rising size and price. first_free makes the smallest cut cost
+  // nothing, so the event always does something even at 0 credits.
+  deck_trim: { tiers: [ { cards: 1, price: 0 }, { cards: 2, price: 6 }, { cards: 4, price: 14 } ] },
   // ── Focus RATE batch (r180) - scale how fast Focus accrues, not the ceiling ──
   // complexity_mult scales HAND_FOCUS; speed_mult scales the speed bonus;
   // window_mult dilates the speed clock (2 = twice as long for the same bonus).

@@ -200,10 +200,14 @@ function applyBossModifiers(preset) {
         break;
       }
       case 'periodic_null': {
-        const intervalSecs = preset.params.nullIntervalSecs || 8;
+        const intervalSecs = preset.params.nullIntervalSecs || 6;
         const count = preset.params.nullCount || 1;
-        bossNullInterval = setInterval(() => {
-          if (gameTimerPaused || roundEnded) return;
+        // Armed, not started: bossSchedule holds the effect until the boss CLOCK
+        // starts (bossStartScheduledEffects, from startBossTimer) instead of
+        // firing behind the briefing panel, and it is also the one place the
+        // Contingency Plan knack stretches an interval. This was a raw
+        // setInterval until r197, which is why The Hollow alone got neither.
+        bossSchedule(intervalSecs, () => {
           // Replace `count` random normal cards (not Tricks/Sleights) with null
           const candidates = [];
           for (let r = 0; r < gridRows; r++)
@@ -223,7 +227,7 @@ function applyBossModifiers(preset) {
           }
           showMessage('The Hollow claims a card', 'var(--red)');
           render();
-        }, intervalSecs * 1000);
+        });
         break;
       }
     }
@@ -247,6 +251,9 @@ function clearBossModifiers() {
   trickPoolA = new Set();
   trickPoolB = new Set();
   bossPhase = 1;
+  // Dead since r197 - The Hollow's timer is a bossSchedule entry now, torn down by
+  // clearBossEffects with the rest of the roster. Kept as a no-op guard so an older
+  // save or a hand-set interval can still be cleared.
   if (bossNullInterval) { clearInterval(bossNullInterval); bossNullInterval = null; }
   if (typeof clearBossEffects === 'function') clearBossEffects();
 }

@@ -22,7 +22,7 @@ const EVENT_NO_REPEAT = 4;
 
 function openEvent(afterFn) {
   afterEventFn = afterFn || (() => drainLevelUpQueue());
-  const pool = ['confluence','crossroads','gamble','merchant','altar','spring','twin_path','forge','bargain','wager','shift_change','bench','rehearsal','workshop'];
+  const pool = ['confluence','crossroads','gamble','merchant','altar','spring','twin_path','forge','bargain','wager','shift_change','bench','rehearsal','workshop','market','deck_trim'];
   // Fall back to the full pool if the memory has eaten it - never draw a blank.
   const fresh = pool.filter(id => !recentEventIds.includes(id));
   const draw  = fresh.length ? fresh : pool;
@@ -70,27 +70,40 @@ function confirmEvent() {
     bench:       confirmBench,
     rehearsal:   confirmRehearsal,
     workshop:    confirmWorkshop,
+    market:      confirmMarket,
+    deck_trim:   confirmDeckTrim,
   };
   if (handlers[activeEventId]) handlers[activeEventId]();
   else closeEvent();
 }
 
 // ─── Shell renderer ───
+// NAMES SAY WHAT THE SCREEN DOES (r197). These were high-fantasy - The Altar,
+// Cleansing Spring, Blood Price, "Every gain has its price in flesh" - against a
+// game whose voice was stripped to plain and direct in r178. A player meeting an
+// event for the first time should be able to read the title and know what they
+// are about to be asked. The flavour line is one sentence of the same.
+//
+// The KEYS are unchanged and must stay unchanged: they are the event ids used by
+// openEvent's pool, confirmEvent's handler map, renderEventShell's renderer map,
+// recentEventIds and the dev panel's generated list.
 const EVENT_META = {
-  confluence: { name:'The Confluence',      flavor:'Choose a keyword. Then choose your reward.' },
-  crossroads:  { name:'The Crossroads',      flavor:'Every gain demands a sacrifice. Choose wisely.' },
-  gamble:      { name:'The Gamble',          flavor:'Fortune favours the bold.' },
-  merchant:    { name:'Wandering Merchant',  flavor:'A rare visitor offers wares unavailable elsewhere.' },
-  altar:       { name:'The Altar',           flavor:'Invest now. Reap rewards across the coming rounds.' },
-  spring:      { name:'Cleansing Spring',    flavor:'The water runs clear. Something may be washed away.' },
-  twin_path:   { name:'Twin Path',           flavor:'Two gifts. One shadow.' },
-  forge:       { name:'The Forge',           flavor:'Heat, hammer, and a card made mighty.' },
-  bargain:     { name:'The Bargain',         flavor:'Every gain has its price in flesh.' },
-  wager:       { name:'The Wager',           flavor:'One flip. Fortune or ruin.' },
-  shift_change:{ name:'Shift Change',        flavor:'Same crew, new rota. Put your Tricks in the order you want them.' },
-  bench:       { name:'The Bench',           flavor:'Pick the treatment, then pick the card it goes on.' },
-  rehearsal:   { name:'Rehearsal',           flavor:'Run it again until it is second nature. One Trick, twice the work.' },
-  workshop:    { name:'The Workshop',        flavor:'Charges topped up, or a ceiling raised for good.' },
+  confluence:  { name:'Theme Draft',     flavor:'Pick a theme. Then pick one reward from it.' },
+  crossroads:  { name:'The Trade',       flavor:'Every offer here gives you something and takes something.' },
+  gamble:      { name:'The Gamble',      flavor:'Pick blind. One of these is worth having.' },
+  merchant:    { name:'Free Pick',       flavor:'Three items you will not see in the Mart. Take one, no charge.' },
+  altar:       { name:'The Investment',  flavor:'Pay now. It pays you back over the next few rounds.' },
+  spring:      { name:'Clean Up',        flavor:'Cut cards out of your deck, or put back what you have lost.' },
+  twin_path:   { name:'Two and a Catch', flavor:'Two Tricks. One downside, and you cannot refuse it.' },
+  forge:       { name:'Card Upgrade',    flavor:'Three upgrades, each already assigned to a card. Take one.' },
+  bargain:     { name:'The Price',       flavor:'Every offer here costs you something first.' },
+  wager:       { name:'Coin Flip',       flavor:'Even odds. You pick how much is riding on it.' },
+  shift_change:{ name:'Tray Order',      flavor:'Put your Tricks in the order you want them to fire.' },
+  bench:       { name:'Pick a Card',     flavor:'Choose the upgrade, then choose the card it goes on.' },
+  rehearsal:   { name:'Extra Rep',       flavor:'One Trick fires an extra time, every hand, for the rest of the run.' },
+  workshop:    { name:'Maintenance',     flavor:'Top up every Sleight, or raise one charge ceiling for good.' },
+  market:      { name:'Card Market',     flavor:'Buy cards for your deck. Each one comes with something extra.' },
+  deck_trim:   { name:'Deck Trim',       flavor:'A thinner deck draws what you need more often. Cut as deep as you can pay for.' },
 };
 
 function renderEventShell(id) {
@@ -116,6 +129,8 @@ function renderEventShell(id) {
     bench:       renderBench,
     rehearsal:   renderRehearsal,
     workshop:    renderWorkshop,
+    market:      renderMarket,
+    deck_trim:   renderDeckTrim,
   };
   if (renderers[id]) renderers[id]();
   // The panel scrolls internally and is reused between events - reopening it
@@ -133,15 +148,27 @@ function renderEventShell(id) {
 const EV_TIERS = ['common', 'rare', 'epic', 'legendary', 'mythic'];
 
 function makeChoiceEl(opts) {
-  // opts: { icon, rarity, name, desc, cost, cls, onClick }
+  // opts: { icon, rarity, name, desc, cost, cls, tile, onClick }
+  //
+  // `tile` is what makes an Event show you the real object (r197). When the
+  // offer IS an entity - a Trick, a Sleight, a Knack - pass
+  // { entity:'trick', emoji, label } and the left-hand art becomes the SHARED
+  // entity tile (js/entity-tile.js), the same one the reward grid, the Mart, your
+  // tray and Shift Change all draw. Before this an Event drew a bare emoji in a
+  // disc, so the Trick you were offered and the Trick you then owned were two
+  // different-looking things. Anything that is not an entity (a resource, a
+  // trade, a downside) still gets the disc, because there is no object to show.
   const div = document.createElement('div');
   const rar = String(opts.rarity || '').toLowerCase();
   div.className = 'event-choice'
     + (EV_TIERS.includes(rar) ? ' rar-' + rar : '')
     + (opts.cls ? ' ' + opts.cls : '');
+  const art = (opts.tile && typeof entityTileHTML === 'function')
+    ? `<div class="ec-tile">${entityTileHTML(opts.tile, rar || 'common')}</div>`
+    : `<div class="ec-icon">${opts.icon || '★'}</div>`;
   div.innerHTML = `
     <div class="ec-top">
-      <div class="ec-icon">${opts.icon || '★'}</div>
+      ${art}
       <div class="ec-info">
         <div class="ec-rarity">${opts.rarity || ''}</div>
         <div class="ec-name">${opts.name}</div>

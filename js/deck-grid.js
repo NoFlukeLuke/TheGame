@@ -22,6 +22,10 @@ let permMult = {};   // { "A-♠": 1, ... }
 let permXPips  = {}; // { "A-♠": 2, ... } multiplies that card's pip contribution (default 1)
 let permXMult  = {}; // { "A-♠": 2, ... } multiplies total mult per scored card of this key (default 1)
 let permRetrig = {}; // { "A-♠": 1, ... } extra times this card scores its pips (default 0)
+// Seconds this card puts BACK on the clock when it scores (the Card Market's time
+// card, r197). It is a rewind, not a pause: it goes through rewindTime() like
+// every other clock gain, so it respects rewindCeiling() and shows the ⏪ floater.
+let permTime   = {}; // { "<card id>": 4, ... } seconds rewound per scored copy
 
 // ── CARD CURSES (reward-grid debuffs) ──
 // A curse afflicts one specific card identity (key "rank-suit", like permPips).

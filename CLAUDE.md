@@ -327,9 +327,36 @@ Every event before these HANDED you something, which is the wrong shape late in 
 - **`shuffled()` in `js/reward-grid.js` is scoped INSIDE `_generateRewardContent`** - it is not a global, and calling it threw the moment The Bench opened. `events.js` has its own `evShuffle` now. A grep for `function shuffled` finds it and tells you nothing about its scope.
 - A picker rebuilt on each choice must keep its **label inside the removable wrapper**, or changing your mind stacks a fresh "CHOOSE THE CARD" every time.
 
+### Events pass (r197) - names that say what the screen does
+
+The events were a fantasy set - The Altar, Cleansing Spring, Blood Price, "Every gain has its price in flesh" - inside a game whose voice was stripped to plain and direct in r178. Every `EVENT_META` name and flavour was rewritten so a player meeting one for the first time can read the title and know what they are about to be asked, and the in-body prose with them. **The KEYS are unchanged and must stay unchanged** - they are the ids used by `openEvent`'s pool, `confirmEvent`, `renderEventShell`, `recentEventIds` and the dev panel.
+
+The Confluence → **Theme Draft** · The Crossroads → **The Trade** · Wandering Merchant → **Free Pick** · The Altar → **The Investment** · Cleansing Spring → **Clean Up** · Twin Path → **Two and a Catch** · The Forge → **Card Upgrade** · The Bargain → **The Price** · The Wager → **Coin Flip** · Shift Change → **Tray Order** · The Bench → **Pick a Card** · Rehearsal → **Extra Rep** · The Workshop → **Maintenance**. The Gamble kept its name.
+
+- **An Event now shows you the real object.** `makeChoiceEl` takes a `tile` payload; when the offer IS an entity it draws the **shared entity tile** (`entityTileHTML`, js/entity-tile.js) in place of the emoji disc, so the Trick you are offered is visibly the Trick you will own. Wired into the Confluence, the Merchant, Twin Path and the Gamble's stake list. `evItemTile(item)` resolves the emoji: those item lists push Tricks with `icon:'★'`, the generic marker the old disc used, so a Trick's own emoji has to come from `trickEmoji` or every Trick in an Event draws as a star.
+- **Do NOT widen `#event-panel` with a viewport media query.** The overlay lives inside `#stage` and carries the cabinet's CSS `zoom` (~1.9 on a 1440px desktop), so its 420px is already about 800 real pixels. A `min-width: 900px` query sees the viewport's 1440 and widens something that was never narrow - measured at 560px the panel covered three quarters of the display and the prose ran to 90 characters a line. The px in that block are stage px.
+- **A coin flip is 50/50.** Coin Flip's three stakes were 70 / 55 / 40, printed in the option names, which made one screen two decisions - how much to risk AND how likely it was - and, because the odds FELL as the stake rose, made every step up worse in expectation and "Reckless" a trap rather than a choice. All three are 0.5 now; only the size of the bet differs. The Gamble's double-or-nothing went 0.6 → 0.5 for the same reason.
+- **Clean Up (`spring`) was reworked.** Thinning the deck is the strongest thing the event does, so it has a shape: **4 cards if they are all different ranks**, or **2 with no strings**. The picker lists **one chip per CARD, not per face**, and removes by object identity - the deck really can hold two 7♠ (the Mart sells duplicates), so a face-deduped list hides one and a face-matched splice takes whichever it finds first. Its "put your limits back" option is now **permanent**: it repairs `limits.swaps/discards.current` up to their **base** (damage, not a free copy of every upgrade skipped), and offers +1 of each permanently when nothing is missing. "Undo a downside" is unchanged - the owner confirmed it reads right.
+- **Two new events, pool 14 → 16.** **Card Market** (`market`) buys cards INTO the deck, each carrying one effect; **Deck Trim** (`deck_trim`) is the frequent-removal screen, three cuts priced by size with the smallest free so it is never a dead draw at 0 credits.
+  - **The market's card is always a COPY OF ONE ALREADY IN YOUR DECK, and that is what keeps it mode-safe.** Spectrum has no courts and no suits, Six Suits has two extra, and the deck tuner can switch values off; inventing a rank and a suit here would be the one place in the game that can put an illegal card into play.
+  - **`copyCardToDeck` returns the card it made**, and the effect lands on that. Searching the draw pile afterwards for "this face but not the original" picks the wrong card the moment a basket holds two of one face.
+  - **`permTime`** is new, beside `permPips`/`permMult`/`permRetrig`: seconds a card puts back on the clock when it scores. Applied in `playHand` through **`rewindTime()`**, never a raw `roundSeconds +=` - that is what keeps `rewindCeiling()`, the ⏪ floater and the Kingfisher tally honest. It is in `SAVE_VARS` and reset on a new run.
+
+### Limit steps were being thrown away at `startGame` (r197)
+
+`LIMITS_DEF` gives `round_time` a **step of 15** and `focus_cap` a step of **3**; every other limit steps by 1. `startGame` rebuilt the whole `limits` table as `{ current, base, max }` - **without `step`** - so from the first frame of every run those two steps were `undefined` and `incrementLimit`'s `(l.step || 1)` fell back to **1**. That is the real reason a Round Time upgrade granted **one second**: not a display bug, the grant itself. It applied everywhere a limit could be raised - the shop, the reward grid, Limit Break, Growth Spurt, the Survival pick. The table in `js/limits.js` had the right numbers the whole time; nothing read `LIMITS_DEF` again after that line.
+
+Two display bugs sat on top of it and are also fixed:
+- **The reward grid's `limit_up` tile hardcoded "+1"** and `current + 1` whatever it was raising, and excluded `round_time` outright on the strength of the same wrong assumption ("its +1 = 1 second") - which is why a limit tile could never raise round time at all. It reads `step` now, and `round_time` is back in the pool.
+- **Limit Break showed only the limit's NAME**, so "Round Time" looked like the same size of gain as "Swaps/Round". It prints `+15s` / `+3` / `+1` beside each offer, and the give-up buttons quote the real step too.
+
+### Limit Break, on the event console (r197)
+
+It was the last between-round screen still wearing the old gold-on-black Cinzel look, so arriving there from a reward grid felt like leaving the game. `#limitbreak-overlay` gained an `#lb-panel` wrapper and is now the same material as `#event-panel`: indigo wash, plastic ring, scanlines, sticky marquee bar, sticky action footer, and the events' green CONFIRM. What it deliberately does NOT copy is rarity colouring - a limit has no tier, so the offer tiles keep their own gold - and the give-up section stays **red**, for the same reason `.event-choice.debuff` does: on a screen that is otherwise all gains, the one control that takes something away must not be mistakable for another one.
+
 ### Events cannot repeat back-to-back (r191)
 
-`openEvent` drew from an 11-event pool (14 since r194) with a bare `Math.random`. Classic routes to an event rarely enough that this never showed; Guided runs ~10 a run, where a repeat - and especially the same event twice in the post-boss pair - was near certain. `recentEventIds` (last 4) is filtered out of the draw, falling back to the full pool if that would empty it. Measured over 20,000 simulated Guided runs: **0 back-to-back repeats**, per-event share flat to within 1.5%.
+`openEvent` drew from an 11-event pool (16 since r197) with a bare `Math.random`. Classic routes to an event rarely enough that this never showed; Guided runs ~10 a run, where a repeat - and especially the same event twice in the post-boss pair - was near certain. `recentEventIds` (last 4) is filtered out of the draw, falling back to the full pool if that would empty it. Measured over 20,000 simulated Guided runs: **0 back-to-back repeats**, per-event share flat to within 1.5%.
 
 ### One pre-existing bug this surfaced
 
@@ -369,6 +396,8 @@ Owned Tricks/knacks and already-granted sleights are filtered out of the pools s
 3 Acts × (5 events + 1 boss) = 18 nodes. `actNumber` (1–3), `nodeInAct` (0–4, boss at 5). `forceBossNextRound` triggers the boss after the next deal. Win at `actNumber > 3` → `onGameWin()`.
 
 ## Boss system
+**There are TWO clocks and they never run together.** `roundInterval` / `roundSeconds` is the round clock; `bossInterval` / `bossSecondsLeft` is the boss clock. `triggerBoss` saves `roundSeconds` into `savedRoundSeconds` and clears `roundInterval`, and `updateClockUI()` returns early while `bossActive` - so during a boss the boss clock alone owns both the countdown and the clock display. It does not start at `triggerBoss`: `startBossTimer` is called only after PROCEED and the 3-2-1 (see "Boss effects start with the clock", below), and every tick is gated on `gameTimerPaused`, so nothing drains behind a briefing or a menu.
+
 **Bosses have NO separate score target (r155, every mode).** The win bar is simply **this round's `roundGoal`** - `bossGoalMet()` is `score >= roundGoal`. A boss's challenge is its *modifier*; `objective.type:'hand'` bosses layer their hand requirement **on top of** the goal (`handDone && bossGoalMet()`). `objective.target` is now vestigial for score bosses, and **The Ratchet raises `roundGoal`** (the number actually being compared) rather than the old target.
 
 `BOSS_PRESETS`, `triggerBoss()`, `endBoss()`. Modifiers: blocked cells (`isCellBlocked`), Trick disabling (`isTrickDisabledByBoss`), low-card famine (`maybeFamineDrawSwap`). The `fight_power` sleight bypasses all of these via `bossEffectsIgnored()`.
@@ -378,7 +407,20 @@ Eight bosses that all share one shape: **act once at round start, then on an int
 
 The Metronome (clock runs at the Focus multiplier) · The Tollman (interact costs ×2, +3s to play) · The Undertow (−10 Focus/15s) · The Quarantine (a cell goes dark every 15s, 10s warning) · The Censor (a Trick suspended 45s every 35s) · The Blight (3 cells contaminated every 20s) · The Recall (a rank withdrawn every 45s, never repeated) · The Auditor (−1 swap or discard every 30s).
 
-Three more (r151) hang off **`bossOnInteract(kind)`**, called from `doSwap`/`doDiscard`, and one score hook: The Ratchet (+5% objective per interact) · The Turnstile (−3 credits per interact) · The Redaction (one hand type scores ×0.4, picked once at boss start). **The Ratchet raises `currentBoss.objective.target`, not `roundGoal`** - during a boss `checkBossObjective` is what gates the round, so raising `roundGoal` alone would do nothing (the same trap the Twin Path debuff fell into).
+### The Shredder (r197) - the invisible-mark boss
+
+`discard_mark` in `js/boss-effects.js`. At boss start **one card in ten is marked**, silently: nothing renders differently and no message is shown. Submit a hand holding a marked card and the hand **does not score** - every marked card in it is discarded back into the deck, the rest stay where they are, and no swap or discard is spent. `bossShredMarkedHand(selected)` is called from `playHand` **before `findBestHand`**, so no Focus, contributions or dance are generated for a hand that will not score.
+
+- **Marks are keyed by `cardId`, not by face.** Duplicate a 7♠ in the Mart and only the copy that was marked carries it.
+- **The mark is NOT consumed.** The card cycles back into the deck still marked, so the boss keeps its teeth for the whole round.
+- **Marks are laid down by walking a shuffled `everyDeckCard()` and taking every Nth**, not by rolling a coin per card - a per-card roll on a 52-card deck can legitimately mark nothing, and a boss that does nothing is what this roster exists to stop. Contingency Plan shrinks the COUNT (there is no magnitude here).
+- The briefing states the rule; it never states which cards. That is the boss.
+
+### The Hollow (r197) - 25% more often, and on the shared schedule
+
+`nullIntervalSecs` 8 → **6**. It was also the one boss in the file still using a **bare `setInterval`** rather than `bossSchedule`, so alone in the roster it got neither of the two things `bossSchedule` exists for: its opening tick fired behind the briefing panel (r179's fix) and the Contingency Plan knack could not stretch its interval. It is a `bossSchedule` entry now; `bossNullInterval` is dead and kept only as a no-op guard.
+
+Three more (r151) hang off **`bossOnInteract(kind)`**, called from `doSwap`/`doDiscard`, and one score hook: The Ratchet (+5% objective per interact) · The Turnstile (−3 credits per interact) · The Redaction (one hand type scores ×0.4, picked once at boss start). **The Ratchet raises `roundGoal`** - since r155 the boss win bar IS `roundGoal` (`bossGoalMet()` is `score >= roundGoal`), so that is the one number `checkBossObjective` compares against. `objective.target` is vestigial for score bosses. (An earlier revision of this file claimed the opposite; the code has always matched what is written here.)
 
 - **TWO kinds of unusable cell, and the difference matters.** `blockedCells` = **VOID** (legacy patterns): the card is returned to the deck and nothing falls in. `nullCells` = **QUARANTINED**: cards still fall in and fill the slot, they are just inert - *a null cell, not a null card*. `isCellBlocked()` covers both, so every existing select/tap/swipe guard handles quarantine with no change; the refill logic in `card-fall.js` deliberately asks `isCellVoid()` instead so quarantined cells keep receiving cards. `cellCountsForTriggers()` is what excludes them from "while on the grid" entity triggers.
 - **Cell overlays repaint from `render()`**, not just when the boss starts - they are absolutely-positioned siblings of the cards, so they have to follow the board.
@@ -948,6 +990,14 @@ doing it all with static gains gives a mix where the big moments never get room.
 loud while the others ducked - which also meant it ignored `sfxVolume()`, so mute
 never silenced it (the same bug `sfxWinExplode` had). It rides the `alert` bus
 now, whose `duckTo` is 1: nothing ducks it, and the sliders reach it.
+
+### The discard sound (r197)
+
+A discard used to play **`sfxFlipShuffle`** - the bright riffle a SCORING hand makes as it flies to the preview - so throwing cards away sounded like a win. `sfxDiscard(kind)` is its own sound now: a short paper shove into a low thud.
+
+- **Two catalog rows, one function.** `discard` (`args:['normal']`) and `discard_forced` (`args:['forced']`, `variantOf`), dispatched by the wrapper's first-argument match in `js/audio-assets.js`. Two rows means the mixer gains and buses them **separately**.
+- **The forced variant is The Shredder taking cards out of a hand, and it is on the `event` bus, not `board`.** That is most of why it reads as louder: `event` ducks `board` and `detail` underneath it, where a bigger trim alone would just be a louder bleep in the same mix. It is also lower and carries a second stroke - two events read as "that was taken from you", one reads as "that was put down".
+- Covered by all three packs. Measured peaks (OfflineAudioContext, no clipping): classic 0.06 / 0.15, onebit 0.08 / 0.16, slot 0.07 / 0.24 - the forced variant is 2-3× the peak and 3-5× the rms of the ordinary one in every pack.
 
 ### Two sounds per particle (r191)
 

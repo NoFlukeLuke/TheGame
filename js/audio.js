@@ -90,6 +90,34 @@ function sfxFlipShuffle() {
   }
 }
 
+// ── Discard ──────────────────────────────────────────────────────────────────
+// A card leaving the board because it was thrown away, not because it scored:
+// a short paper shove into a low thud. Deliberately NOT sfxFlipShuffle, which is
+// the bright riffle a scoring hand makes - a discard should not sound like a win.
+//
+// `kind` picks the catalog row (see SFX_CATALOG): 'normal' is the player's own
+// discard; 'forced' is the boss taking cards out of a hand (The Shredder), and is
+// louder and lower so it reads as an interruption rather than as something the
+// player did. Most of that loudness is the mixer's per-id trim; the rest is here,
+// so the shape changes too and it is not merely the same sound turned up.
+function sfxDiscard(kind) {
+  const hard = kind === 'forced';
+  const g = hard ? 1.55 : 1;
+  // the shove
+  playNoise({ gain: 0.075 * g, attack: 0.001, release: hard ? 0.09 : 0.055 });
+  // the thud it lands in
+  playTone({ freq: hard ? 132 : 165, type: 'triangle', gain: 0.085 * g,
+             attack: 0.002, decay: 0.05, sustain: 0.25, release: hard ? 0.16 : 0.10,
+             duration: hard ? 0.12 : 0.08, delay: 0.03 });
+  if (hard) {
+    // A second, lower stroke - two events read as "that was taken from you",
+    // where one reads as "that was put down".
+    playTone({ freq: 88, type: 'square', gain: 0.07,
+               attack: 0.002, decay: 0.05, sustain: 0.2, release: 0.2,
+               duration: 0.14, delay: 0.11 });
+  }
+}
+
 function sfxHandScored(finalScore) {
   // Ascending chime - pitch and brightness scale with score
   const base = Math.min(Math.max(finalScore, 10), 2000);

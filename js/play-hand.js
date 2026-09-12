@@ -176,6 +176,11 @@ function playHand() {
   if (animating) { pendingAction = 'play'; dbgEvent('info', 'play queued (animating)'); scheduleQueuedRetry(); return; }
   cancelAutoSubmit();
   console.log('[PLAY] entry', { score, goal: roundGoal, goalReachedThisRound, bonusWindowActive, animating, hasDance: !!danceAbortController });
+  // The Shredder: a hand holding an invisibly marked card never becomes a hand.
+  // Checked BEFORE findBestHand so nothing downstream - Focus, contributions, the
+  // dance - is generated for a hand that is not going to score. It runs its own
+  // removal and returns true, so playHand is finished here.
+  if (typeof bossShredMarkedHand === 'function' && bossShredMarkedHand(selected)) return;
   const result = findBestHand(selected);
   if (!result) { dbgEvent('warn', 'play: no valid hand', { selected: selected.length, animating, falling, roundEnded, dance: !!danceAbortController, swapPending: !!swapPending, swiping: isSwiping }); console.log('[PLAY] no result, exiting'); return; }
   // Abort any prior in-flight score dance ONLY now that we have a real hand to play.
@@ -213,6 +218,18 @@ function playHand() {
   result.finalScore = finalScore; // keep result in sync for the dance / downstream reads
   // Snapshot this hand's replay counts NOW (a later calcScore elsewhere could overwrite the global).
   const _handRetrigByCell = { ..._lastRetrigByCell };
+  // Card Market time cards: seconds carried by the individual cards in this hand.
+  // Routed through rewindTime, never a raw `roundSeconds +=` - that is what keeps
+  // the ceiling, the floater and the Kingfisher tally honest (see CLAUDE.md,
+  // "Every rewind now goes through rewindTime()").
+  if (typeof permTime !== 'undefined') {
+    let _cardSecs = 0;
+    handCells.forEach(([r, c]) => {
+      const _cd = gridData[r]?.[c];
+      if (_cd && _cd.rank) _cardSecs += (permTime[cardId(_cd)] || 0);
+    });
+    if (_cardSecs > 0) rewindTime(_cardSecs, `⏪ +${_cardSecs}s from your cards`);
+  }
 
   dbgEvent('ok', 'play ' + hand, { finalScore, cards: handCells.length });
   console.log('[PLAY] hand result', { hand, finalScore, scoreAfterAdd: score + finalScore });
