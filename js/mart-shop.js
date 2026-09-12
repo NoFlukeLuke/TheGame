@@ -200,6 +200,9 @@ function closeMart() {
         survivalShopFromPick = false;
         gameTimerPaused = true;
         if (typeof survivalUpdateRerollBtn === 'function') survivalUpdateRerollBtn();
+        // The pick is the thing covering the board again, so put the mix back
+        // behind glass (js/survival.js, survivalSyncPickAudio).
+        if (typeof survivalSyncPickAudio === 'function') survivalSyncPickAudio();
       } else {
         // Mid-round visit: triggerShop() nulled the round interval, so restart it
         // (closeMart only unpauses the flag).

@@ -1,4 +1,4 @@
-const BUILD = '2026-09-05 · r196 · card identity: buffs, curses and services target one card, not every card sharing its face [onto r195]';
+const BUILD = '2026-09-12 · r197 · goal clear says so: GOAL REACHED banner, the clock locks, survival pick can be peeked past';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

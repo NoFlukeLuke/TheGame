@@ -232,3 +232,50 @@
 /* Survival has no interest/cash-out economy - hide those readouts so the coin
    block is just the gold total + the SHOP button. */
 #stage.survival-mode #coin-info .ci-row { display: none; }
+
+/* ══════════════════════════════════════════════
+   PEEK (r197) - put the pick panel aside and watch the board
+   ══════════════════════════════════════════════
+   The pick opens while the goal dance is still playing, so it covers the finale
+   it is celebrating. Peeking takes the panel out of the way; #sv-peek-restore
+   brings it back. See survivalTogglePeek in js/survival.js. */
+
+/* Same square chrome as the breakdown toggle beside it. */
+#sv-pick-peek {
+  cursor: pointer; font-size: 14px; line-height: 1; color: var(--cream, #f0e6c8);
+  background: rgba(255,255,255,0.05); border: 1.5px solid var(--plastic-lo, #b7ac93);
+  border-radius: 9px; padding: 0 12px;
+  transition: border-color 0.12s ease, background 0.12s ease, transform 0.07s ease;
+}
+#sv-pick-peek:hover { border-color: var(--c-cyan, #4fd6ff); background: rgba(79,214,255,0.08); }
+#sv-pick-peek:active { transform: translateY(2px); }
+
+/* Peeking: the panel fades out and stops taking clicks. It is NOT display:none -
+   the fade has to be visible, or the panel reads as having been dismissed for
+   good rather than set aside. */
+#survival-pick-overlay.sv-peek #survival-pick-panel {
+  opacity: 0; pointer-events: none;
+  transform: scale(0.97);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+#survival-pick-overlay.sv-peek.show::before { opacity: 0; transition: opacity 0.18s ease; }
+
+/* The way back. Lives outside the panel (which is inert while peeking) and sits
+   out of the board's way in the corner the panel came from. */
+#sv-peek-restore {
+  display: none;
+  position: absolute; right: 10px; bottom: 10px;
+  pointer-events: auto; cursor: pointer;
+  font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 10px; letter-spacing: 2px;
+  color: #0e0c0a; border: none; border-radius: 9px; padding: 8px 12px;
+  background: linear-gradient(180deg, #8ff0cb, var(--c-mint, #35d59b) 60%, #1f9d72);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.5), 0 3px 0 #167a57, 0 4px 8px rgba(0,0,0,0.45);
+  animation: sv-peek-in 0.18s ease;
+}
+#survival-pick-overlay.sv-peek #sv-peek-restore { display: block; }
+/* Landscape docks it bottom-LEFT, over the Records/Pause row. Bottom-right there
+   sits on the corner of the grid, which is the one thing you peeked to see;
+   neither of those two buttons is usable during a pick anyway. */
+#stage.landscape #sv-peek-restore { left: 10px; right: auto; }
+#sv-peek-restore:active { transform: translateY(2px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.5), 0 1px 0 #167a57; }
+@keyframes sv-peek-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }

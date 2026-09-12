@@ -245,11 +245,13 @@ function survivalPickOverlay() {
         <div id="sv-pick-cards"></div>
         <div class="sv-pick-foot">
           <button id="sv-pick-reroll" onclick="survivalReroll()"></button>
+          <button id="sv-pick-peek" onclick="survivalTogglePeek()" title="Get the panel out of the way and watch the board">👁</button>
           <button id="sv-pick-contrib-btn" onclick="survivalToggleContrib()" title="What contributed to your score">📊</button>
         </div>
         <button id="sv-pick-shop" onclick="survivalOpenShop()">🛒 Shop - entry fee 5 💰</button>
         <div id="sv-pick-contrib"></div>
-      </div>`;
+      </div>
+      <button id="sv-peek-restore" onclick="survivalTogglePeek()">CHOOSE ONE &#8250;</button>`;
     (document.getElementById('stage') || document.body).appendChild(el);
   }
   return el;
@@ -304,7 +306,9 @@ function survivalShowPick(bonus = false, kicker) {
   survivalRenderPick();
   const ov = survivalPickOverlay();
   ov.classList.add('show');
+  ov.classList.remove('sv-peek');   // a fresh pick always opens in front
   survivalHideContrib(); // start collapsed
+  survivalSyncPickAudio();
   // The goal hand's score panel isn't refreshed by the (skipped) interlude - sync it
   // so the SCORE total reflects the cleared goal while the preview dance climbs.
   if (typeof updateScoreUI === 'function') updateScoreUI();
@@ -326,6 +330,37 @@ function survivalHideContrib() {
   const panel = document.getElementById('sv-pick-contrib');
   if (panel) { panel.classList.remove('show'); panel.innerHTML = ''; }
   document.getElementById('sv-pick-contrib-btn')?.classList.remove('sv-open');
+}
+
+// ── PEEK (r197) ──────────────────────────────────────────────────────────────
+// The pick opens DURING the goal dance - that is deliberate, the score count-up
+// and the choosing happen together - but the panel lands on top of the finale
+// that is still playing, and in portrait it is centred right over the board. So
+// the panel can be put aside: peek hides it and hands the screen back, and one
+// button brings it straight back. Nothing is decided or timed by this; the deal
+// still waits on survivalChoose either way.
+//
+// The button that restores it lives OUTSIDE #survival-pick-panel, because the
+// panel itself is pointer-events:none while peeking - a restore button inside it
+// would be unreachable.
+function survivalTogglePeek() {
+  const ov = survivalPickOverlay();
+  if (!ov.classList.contains('show')) return;
+  ov.classList.toggle('sv-peek');
+  if (ov.classList.contains('sv-peek')) survivalHideContrib();  // the breakdown is part of the panel
+  survivalSyncPickAudio();
+}
+
+// The board is still scoring underneath the panel, so it stays audible - just
+// muffled, the way it would sound through the thing covering it. Peeking pulls
+// the panel away, so the mix opens back up. One function owns the rule, and
+// every path that changes what is on screen calls it (show, choose, peek, and
+// the Mart's return in js/mart-shop.js).
+function survivalSyncPickAudio() {
+  if (typeof sfxSetMuffle !== 'function') return;
+  const ov = document.getElementById('survival-pick-overlay');
+  const covering = !!ov && ov.classList.contains('show') && !ov.classList.contains('sv-peek');
+  sfxSetMuffle(covering);
 }
 
 function survivalReroll() {
@@ -351,8 +386,9 @@ function survivalChoose(i) {
   if (!opt) return;
   if (typeof cancelDance === 'function') cancelDance(); // stop the score count-up if still running
   survivalHideContrib();
-  survivalPickOverlay().classList.remove('show');
+  survivalPickOverlay().classList.remove('show', 'sv-peek');
   survivalPickOffered = null;
+  survivalSyncPickAudio();
   survivalGrant(opt);
   // Post-boss BONUS pick doesn't carry score or pay the time-coins (no goal was cleared).
   survivalSkipCarryover = survivalBonusPick;
@@ -542,6 +578,7 @@ function survivalOpenShop() {
   coins -= SURVIVAL_SHOP_COST;
   updateCoinsUI();
   survivalShopFromPick = survivalPickOverlay().classList.contains('show');
+  if (typeof sfxSetMuffle === 'function') sfxSetMuffle(false);
   triggerShop();
 }
 let survivalShopFromPick = false;

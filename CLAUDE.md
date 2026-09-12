@@ -432,6 +432,38 @@ Dread, then a clean slate, for a boss that arrives with **no screen in front of 
 
 The **3-2-1 is now centred on the grid** in landscape - `#countdown-321-overlay` was `position:fixed; inset:0` with a 30% top pad, i.e. centred on the *viewport*. The **payout panel** is re-themed as a LETHE remittance advice (`css/boss.css`) - overrides only, so `interlude.js`'s animation classes still drive it.
 
+## Goal clear (r197) - `js/goal-clear.js` + `css/goal-clear.css`
+
+Two things happen the instant the tally crosses `roundGoal` and the game said neither out loud.
+
+- **The round is won.** The only signal was `flashRoundEnd()`'s grid flash and the score number quietly passing a figure printed elsewhere on the panel. The win finale (jitter -> explode -> fly) plays about **two seconds earlier**, on the hand being played, so by the time the count-up actually crosses the line there is nothing marking the moment. `showGoalBanner()` puts a **GOAL REACHED** stamp with the goal figure over the board for 1.5s, on `sfxSuccess()` - which was otherwise used only by match-3's own finale, so nothing is doubled.
+- **The clock stops mattering.** It froze mid-count and then sat there for the whole payout looking like a live countdown. `markClockCleared()` turns `#clock` / `#clock-bar` / `#vclock-fill` mint and stops the bar.
+
+**The number is kept, not wound down to zero.** Carry Time banks it and Clock Tower carries it, so it is still information; and a clock that runs itself down after you have already won reads as a penalty for winning.
+
+- **`flashRoundEnd()` is the single wiring point.** It is the one function in the game that means "the tally just crossed the goal" - both dances call it and nothing else does - so `goalClearPresent()` hangs off it rather than off the dance's two call sites. `startRoundTimer()` is the single release point (it also clears any muffle, below).
+- **The banner is body-level and `position:fixed`, placed from JS in raw viewport px**, same rule as the Time / Limits pop-ups and the hand log: anything inside `#cabinet` inherits its CSS `zoom` and the coordinates get multiplied. It is centred on the **grid** rect rather than the viewport, so one rule covers both orientations. By the time it fires the board has already been cleared by the finale, so it lands on an empty grid.
+- **Survival and Flow get the clock state but not the banner** - their pick-of-three opens on this same beat and already carries a GOAL CLEARED kicker. **Flow does not get the clock state either**: its clock is a session countdown to the inspection, not a round clock, so it does not stop at a goal clear and marking it cleared would be a lie.
+- **Match-3 is not wired.** It never calls `flashRoundEnd` - `match3WinFinale` is its own mirror of the finale. One call there would pick it up.
+
+### The audio muffle - `sfxSetMuffle(on)` in `js/audio-mixer.js`
+
+Survival's pick opens **during** the goal dance (deliberate - the count-up and the choosing happen together) which means its panel lands on top of the finale it is celebrating. The board is still scoring underneath, so it stays audible, just muffled: a lowpass rolled down to **620Hz** plus a pull-back to **0.55**.
+
+- **The lowpass is ALWAYS in line, parked at 20kHz when idle** - not a node patched in and out. Patching means disconnecting the graph while voices are sounding through it, which clicks; a Butterworth (`Q = 0.7071`) lowpass above the audible range is transparent and costs one node.
+- It sits between the buses and the tail, and **only the output end re-patches** when `sfxDuckGain` comes and goes, so a tail swap can never bypass it.
+- It reaches samples, packs and coded sounds alike because every voice connects at `sfxOut`. **Music is not affected** - it is an `<audio>` element and never enters this graph.
+- `sfxSetMuffle` is idempotent, so `startRoundTimer`'s unconditional release costs nothing.
+
+### Peek - putting the survival pick aside
+
+`survivalTogglePeek()` fades `#survival-pick-panel` out and makes it inert; `#sv-peek-restore` brings it back. Nothing is decided or timed by it - the deal still waits on `survivalChoose` either way.
+
+- **The restore button lives OUTSIDE the panel.** The panel is `pointer-events:none` while peeking, so a button inside it would be unreachable.
+- **It is `opacity:0`, not `display:none`.** The fade has to be visible or the panel reads as dismissed for good rather than set aside.
+- **Landscape docks it bottom-LEFT** (over Records/Pause, neither usable during a pick). Bottom-right there sits on the corner of the grid, which is the one thing you peeked to see.
+- **`survivalSyncPickAudio()` owns the rule** "muffled iff the pick is showing and not peeked", and every path that changes what is on screen calls it: show, choose, peek, and the Mart's return in `js/mart-shop.js`. Opening the shop from the pick releases it outright - the Mart is what covers the board then.
+
 ## Scoring dance (preview-window · `playPreviewDance`)
 When a hand is played, the escalating score animation ("dance") runs in the hand-preview slot (`#selected-cards`, `.dnc-active`). `newDanceEnabled` (default on) routes `playScoreDance` → `playPreviewDance`. Behaviour (desktop):
 - **Cards fly into the preview (r89):** normal hands fly a clone of each selected grid card (built from `renderCardAppearance`) from its grid cell into a preview slot (`flyGridCardToSlot`), then reveal the slot's `.dnc-card`. Goal hands keep the in-place pop (they salute). Grid cards hidden mid-fly are tracked in `dncHiddenGridEls` and restored if the dance aborts before `removeAndFall`.

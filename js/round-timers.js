@@ -43,6 +43,12 @@ function showSuitEffect(text, color) {
 // ══════════════════════════════════════════════
 function startRoundTimer() {
   if (roundInterval) clearInterval(roundInterval);
+  // A live clock again: drop the goal-clear lock the previous round left on it,
+  // and any banner still fading (js/goal-clear.js). Every round start funnels
+  // through here, so this is the single release point.
+  if (typeof clearClockCleared === 'function') clearClockCleared();
+  if (typeof hideGoalBanner === 'function') hideGoalBanner();
+  if (typeof sfxSetMuffle === 'function') sfxSetMuffle(false);
   startHeartbeat();                 // the board's idle pulse runs with the round
   syncDiscoveredFromOwned();        // log anything new for the Builds archive
   roundStartSeconds = roundSeconds; // mark the start of the countdown for ♠ "first 30s" exalt
