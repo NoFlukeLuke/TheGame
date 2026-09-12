@@ -26,6 +26,17 @@ let dampCells          = new Set();  // "r-c" - half pips, and tricks may not fi
 let bossNullRank       = null;       // rank currently recalled out of play
 let bossUsedRanks      = new Set();  // ranks already recalled - never picked twice
 let bossDisabledTricks = new Map();  // trickId → expiry timestamp (ms)
+let bossDisabledTotals = new Map();  // trickId → how long that suspension is, in seconds.
+                                     // Kept alongside rather than folded into the Map above
+                                     // because bossTrickBlackedOut is read from the hot path
+                                     // (isTrickDisabledByBoss, once per Trick per scored card)
+                                     // and a bare number compare is the whole function.
+let bossHeldCards      = new Map();  // cardId → { until, total } - a CARD on hold (The Hold).
+                                     // Keyed by card identity, not by cell: cards fall, and a
+                                     // cell-keyed hold would slide onto whichever card dropped
+                                     // into the slot. Same reason r192 re-keyed every per-card
+                                     // buff off cardId().
+let bossHoldEvery      = 0;          // seconds between holds, for the tray/board readout
 let bossTimeFromFocus  = false;      // the boss clock runs at the Focus multiplier
 let _bossTimeDebt      = 0;          // fractional carry so ×1.4 ticks smoothly
 let bossInteractMultV  = 1;          // interact-cost multiplier (The Tollman)
@@ -34,6 +45,8 @@ let bossGoalRatchet    = 0;          // fraction the objective grows per interac
 let bossInteractFee    = 0;          // credits charged per interact (The Turnstile)
 let bossRedactedHand   = null;       // hand type marked down this round (The Redaction)
 let bossRedactedMult   = 1;          // what it is multiplied by
+let bossMarkEveryN     = 0;          // The Marker: 1 card in N is silently marked (0 = off)
+let bossMarkCounter    = 0;          // cards seen since the last mark
 
 // ── The Contingency Plan knack ───────────────────────────────────────────────
 // "Boss effects are 10% weaker." Two readings, both applied:
@@ -167,13 +180,53 @@ function bossSyncTrickTrayState() {
   if (typeof renderTrickTray === 'function') renderTrickTray();
 }
 
-// ── Trick blackout (The Censor) ──────────────────────────────────────────────
+// ── Trick blackout (The Censor, The Rota) ────────────────────────────────────
 function bossTrickBlackedOut(trickId) {
   if (!bossDisabledTricks.size) return false;
   const until = bossDisabledTricks.get(trickId);
   if (!until) return false;
-  if (Date.now() >= until) { bossDisabledTricks.delete(trickId); return false; }
+  if (Date.now() >= until) { bossDisabledTricks.delete(trickId); bossDisabledTotals.delete(trickId); return false; }
   return true;
+}
+// Put one Trick down for `secs`, recording the window so the countdown ring has
+// a denominator. The single place a suspension is written, so the two bosses
+// that suspend Tricks can never disagree about the bookkeeping.
+function bossSuspendTrick(trickId, secs) {
+  const total = secs * bossIntervalScale();
+  bossDisabledTricks.set(trickId, Date.now() + total * 1000);
+  bossDisabledTotals.set(trickId, total);
+}
+// ── What the cooldown widget asks (js/cooldown.js) ───────────────────────────
+// null means "off, but not on a clock" - the Voidwright's halves flip on a phase
+// change, not on a timer, so there is no honest number to print there.
+function bossTrickOffSecondsLeft(trickId) {
+  const until = bossDisabledTricks.get(trickId);
+  if (!until) return null;
+  return Math.max(0, (until - Date.now()) / 1000);
+}
+function bossTrickOffTotal(trickId) { return bossDisabledTotals.get(trickId) || null; }
+
+// ── Card hold (The Hold) ─────────────────────────────────────────────────────
+// A held card is inert for a fixed number of seconds and then comes back. It is
+// NOT the Quarantine: the Quarantine condemns a CELL for good and cards keep
+// falling into it; a hold freezes one card and expires.
+function isCardHeld(card) {
+  if (!bossHeldCards.size || !card) return false;
+  if (typeof bossEffectsIgnored === 'function' && bossEffectsIgnored()) return false;
+  const k = cardId(card);
+  const h = bossHeldCards.get(k);
+  if (!h) return false;
+  if (Date.now() >= h.until) { bossHeldCards.delete(k); return false; }
+  return true;
+}
+function bossCardHoldSecondsLeft(card) {
+  if (!bossHeldCards.size || !card) return null;
+  if (typeof bossEffectsIgnored === 'function' && bossEffectsIgnored()) return null;
+  const h = bossHeldCards.get(cardId(card));
+  if (!h) return null;
+  const left = (h.until - Date.now()) / 1000;
+  if (left <= 0) { bossHeldCards.delete(cardId(card)); return null; }
+  return { left, total: h.total };
 }
 
 // ── The effects themselves ───────────────────────────────────────────────────
@@ -220,8 +273,50 @@ function bossCensorTick(holdSecs) {
   const free = owned.filter(id => !bossTrickBlackedOut(id));
   if (!free.length) return;
   const id = free[Math.floor(Math.random() * free.length)];
-  bossDisabledTricks.set(id, Date.now() + holdSecs * 1000 * bossIntervalScale());
+  bossSuspendTrick(id, holdSecs);
   showMessage(`${trickIdToName(id)} suspended`, 'var(--red)');
+  renderTrickTray?.();
+}
+
+// The Hold: freeze one random real card for `holdSecs`. Sleights, Tricks, stones
+// and cells already out of play are skipped - there is nothing to take from a
+// cell that is void, and freezing a Sleight would read as destroying it.
+function bossHoldTick(holdSecs) {
+  const spots = [];
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
+    const card = gridData[r]?.[c];
+    if (!card || !card.rank || card._isSleight || card._isTrick || card._isStone) continue;
+    if (blockedCells.has(`${r}-${c}`) || nullCells.has(`${r}-${c}`)) continue;
+    if (isCardHeld(card)) continue;
+    spots.push([r, c, card]);
+  }
+  if (!spots.length) return;
+  const [r, c, card] = spots[Math.floor(Math.random() * spots.length)];
+  const total = holdSecs * bossIntervalScale();
+  bossHeldCards.set(cardId(card), { until: Date.now() + total * 1000, total });
+  // A held card cannot be part of a hand, so drop it out of anything in progress.
+  selected = selected.filter(([sr, sc]) => !(sr === r && sc === c));
+  if (swapPending && swapPending[0] === r && swapPending[1] === c) swapPending = null;
+  showMessage(`${card.rank}${cardColorSuit(card)} on hold ${Math.round(total)}s`, 'var(--red)');
+  if (!animating && !falling) render();
+}
+
+// The Rota: exactly ONE Trick down at a time, and when it comes back a different
+// one goes off. The Censor's windows overlap on purpose (two down at once for a
+// stretch of every cycle); this one is a single rolling suspension, which is the
+// readable version - you always know precisely what you have lost.
+function bossRotateTick(holdSecs) {
+  const held = ((typeof trickTrayMode !== 'undefined' && trickTrayMode) ? trickTray : acquiredTricks) || [];
+  const owned = held.map(t => t.id);
+  if (!owned.length) return;
+  const previous = [...bossDisabledTricks.keys()];
+  bossDisabledTricks.clear(); bossDisabledTotals.clear();   // the last one comes back now
+  // Never the same Trick twice in a row while there is another to pick.
+  let pool = owned.filter(id => !previous.includes(id));
+  if (!pool.length) pool = owned;
+  const id = pool[Math.floor(Math.random() * pool.length)];
+  bossSuspendTrick(id, holdSecs);
+  showMessage(`${trickIdToName(id)} off for ${Math.round(holdSecs * bossIntervalScale())}s`, 'var(--red)');
   renderTrickTray?.();
 }
 
@@ -246,6 +341,111 @@ function bossRationTick() {
   if (cutDiscard) { discards = Math.max(0, discards - 1); showMessage('−1 discard', 'var(--red)'); }
   else            { swaps    = Math.max(0, swaps - 1);    showMessage('−1 swap', 'var(--red)'); }
   render();
+}
+
+// ── THE MARKER (r205) ────────────────────────────────────────────────────────
+// One card in every ten is silently marked. Nothing on the card, in the tray or in
+// Records says so - that is the whole boss. Play a marked card and it is discarded
+// instead of scored, taking every other marked card in the same hand with it, and
+// the hand does not score.
+//
+// The mark rides `card._discardCursed`, a plain flag on the card object. It is
+// deliberately NOT in DURABLE_CARD_FIELDS: a card discarded back into the deck is
+// rebuilt from that list, so a marked card that leaves play comes back clean and
+// takes a fresh 1-in-10 roll next time it is drawn. That is the behaviour we want,
+// and it means nothing has to un-mark the piles.
+//
+// The counter is exact rather than a 10% dice roll - "one in every ten" should not
+// clump three into one hand and then none for a minute.
+function bossMarkerConsider(card) {
+  if (!bossMarkEveryN || !card) return card;
+  if (typeof bossEffectsIgnored === 'function' && bossEffectsIgnored()) return card;
+  if (card._isSleight || card._isStone || card._isTrick || !card.rank) return card;
+  if (++bossMarkCounter >= bossMarkEveryN) { bossMarkCounter = 0; card._discardCursed = true; }
+  return card;
+}
+// The board for a boss round is dealt BEFORE triggerBoss runs, so the cards already
+// on it never passed through drawCard while the boss was live. Feed them through the
+// same counter at boss start or the first tenth of the round is free.
+function bossMarkerSeedBoard() {
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) bossMarkerConsider(gridData[r]?.[c]);
+}
+function bossMarkerClearAll() {
+  bossMarkEveryN = 0; bossMarkCounter = 0;
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
+    const card = gridData[r]?.[c]; if (card) delete card._discardCursed;
+  }
+  [drawPile, playedPile].forEach(pile => (pile || []).forEach(card => { if (card) delete card._discardCursed; }));
+}
+
+// Called from playHand before anything is scored or mutated. Returns true if the
+// hand was eaten, in which case playHand must return without scoring it.
+function bossMarkerIntercept(cells) {
+  if (!bossMarkEveryN || !bossActive || !Array.isArray(cells)) return false;
+  if (typeof bossEffectsIgnored === 'function' && bossEffectsIgnored()) return false;
+  const marked = cells.filter(([r, c]) => gridData[r]?.[c]?._discardCursed);
+  if (!marked.length) return false;
+
+  animating = true;                       // hold input for the length of the fizzle
+  cancelAutoSubmit?.();
+  sfxCardDiscard(true);                   // the forced discard is the loud one
+  showMessage(marked.length > 1 ? `${marked.length} marked cards - discarded` : 'Marked card - discarded', 'var(--red)');
+  bossMarkerFizzleFX(cells, marked).then(() => {
+    marked.forEach(([r, c]) => { const card = gridData[r]?.[c]; if (card) discardToDrawPile(card); });
+    selected = [];
+    swapPending = null;
+    animating = false;
+    removeAndFall(marked, 'discard');     // slides them out and gravity-refills
+  });
+  return true;
+}
+
+// The cards fall out of the hand preview: the whole submitted hand is drawn into
+// #selected-cards exactly as the scoring dance draws it (renderCardAppearance, same
+// .dnc-* skeleton, so the sizing and the portrait overlap rules apply for free), the
+// marked ones drop out of the bottom and the rest fade.
+function bossMarkerFizzleFX(cells, marked) {
+  const stage = document.getElementById('selected-cards');
+  if (!stage) return Promise.resolve();
+  const markedKeys = new Set(marked.map(([r, c]) => `${r}-${c}`));
+  stage.classList.add('dnc-active'); stage.innerHTML = '';
+  const row = document.createElement('div'); row.className = 'dnc-row hand';
+  const lab = document.createElement('div'); lab.className = 'dnc-lab'; lab.textContent = 'Hand';
+  const items = document.createElement('div'); items.className = 'dnc-items';
+  const track = document.createElement('div'); track.className = 'dnc-track';
+  items.appendChild(track); row.appendChild(lab); row.appendChild(items); stage.appendChild(row);
+  const outers = cells.map(([r, c]) => {
+    const card = gridData[r]?.[c];
+    const outer = document.createElement('div'); outer.className = 'dnc-outer';
+    if (card) {
+      const d = document.createElement('div');
+      const { className, innerHTML } = renderCardAppearance(card, r, c);
+      d.className = className + ' preview-card'; d.innerHTML = innerHTML;
+      outer.appendChild(d);
+    }
+    track.appendChild(outer);
+    return { outer, marked: markedKeys.has(`${r}-${c}`) };
+  });
+  if (typeof fitPortraitPreviewCards === 'function') fitPortraitPreviewCards();
+  return new Promise(resolve => {
+    setTimeout(() => {
+      outers.forEach(({ outer, marked: isMarked }, i) => {
+        if (isMarked) {
+          outer.animate([
+            { transform: 'translateY(0) rotate(0deg)', opacity: 1 },
+            { transform: 'translateY(10px) rotate(-4deg)', opacity: 1, offset: 0.18 },
+            { transform: 'translateY(150px) rotate(26deg)', opacity: 0 }
+          ], { duration: 620, delay: i * 60, easing: 'cubic-bezier(0.45,0,0.9,0.55)', fill: 'forwards' });
+        } else {
+          outer.animate([{ opacity: 1 }, { opacity: 0.25 }], { duration: 400, fill: 'forwards' });
+        }
+      });
+      setTimeout(() => {
+        stage.classList.remove('dnc-active'); stage.innerHTML = '';
+        resolve();
+      }, 620 + outers.length * 60 + 120);
+    }, 260);   // a beat with the hand on screen first, so the drop reads as a reaction
+  });
 }
 
 // ── Wiring: called from applyBossModifiers for the new modifier ids ──────────
@@ -277,6 +477,15 @@ function applyBossEffectModifier(mod, params) {
     case 'rank_recall':
       bossSchedule(params.everySecs || 45, bossRecallTick);
       return true;
+    case 'card_hold':
+      bossHoldEvery = params.everySecs || 15;
+      bossSchedule(bossHoldEvery, () => bossHoldTick(params.holdSecs || 15));
+      return true;
+    case 'trick_rotate':
+      // The interval IS the hold - one down, then the next - so a single param
+      // drives both and the two can never drift out of step.
+      bossSchedule(params.holdSecs || 30, () => bossRotateTick(params.holdSecs || 30));
+      return true;
     case 'ration_cut':
       bossSchedule(params.everySecs || 30, bossRationTick);
       return true;
@@ -285,6 +494,11 @@ function applyBossEffectModifier(mod, params) {
       return true;
     case 'interact_fee':
       bossInteractFee = params.fee || 3;
+      return true;
+    case 'discard_curse':
+      bossMarkEveryN = Math.max(2, Math.round((params.everyNthCard || 10) / bossMagScale()));
+      bossMarkCounter = 0;
+      bossMarkerSeedBoard();
       return true;
     case 'redact_hand': {
       // Only hand types the player can actually make are worth marking down -
@@ -308,12 +522,14 @@ function clearBossEffects() {
   bossTimeouts.forEach(clearTimeout);  bossTimeouts = [];
   nullCells = new Set(); pendingNullCells = new Set(); dampCells = new Set();
   bossNullRank = null; bossUsedRanks = new Set();
-  bossDisabledTricks = new Map();
+  bossDisabledTricks = new Map(); bossDisabledTotals = new Map();
+  bossHeldCards = new Map(); bossHoldEvery = 0;
   bossTimeFromFocus = false; _bossTimeDebt = 0;
   if (bossPlayCostAdded) { playHandCostThisRound = Math.max(0, (playHandCostThisRound || 0) - bossPlayCostAdded); bossPlayCostAdded = 0; }
   bossInteractMultV = 1;
   bossGoalRatchet = 0; bossInteractFee = 0;
   bossRedactedHand = null; bossRedactedMult = 1;
+  bossMarkerClearAll();
 }
 
 // How many whole seconds the boss clock should consume this tick. Normally 1;

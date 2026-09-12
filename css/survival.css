@@ -199,6 +199,7 @@
 #sv-pick-contrib .contrib-val { font-family: 'Share Tech Mono', monospace; font-size: 11px; white-space: nowrap; }
 #sv-pick-contrib .contrib-pip  { color: #8fb7ff; }
 #sv-pick-contrib .contrib-mult { color: #ff8f8f; }
+#sv-pick-contrib .contrib-coin { color: var(--gold, #e8b33a); }
 #sv-pick-contrib .contrib-fx   { color: var(--c-mint, #35d59b); }
 #sv-pick-contrib .contrib-empty { font-family: 'Crimson Pro', serif; font-size: 12px; color: var(--cream-dim, #8a7d60); }
 

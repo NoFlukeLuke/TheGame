@@ -69,6 +69,22 @@ function updateDanceSubboxes(pips, mult) {
   if (mult !== prevMult) { animateDigitEl(multEl, parseFloat(mult.toFixed(1))); popSubbox('mult-box'); }
 }
 
+// ── Selection-size readout (r197) ──
+// How many cards are in hand right now, beside the coin count. On the reward grid
+// the same chip switches to selected/max, because there the cap is the thing being
+// played against (the grid refuses a pick past it) rather than a background limit.
+function updateSelectionUI() {
+  const el = document.getElementById('sel-display');
+  if (!el) return;
+  const onReward = (typeof rewardOnGrid !== 'undefined' && rewardOnGrid);
+  const n   = onReward ? rewardSelected.size : selected.length;
+  const cap = onReward ? rewardSelectionCap() : limits.selection.current;
+  el.textContent = onReward ? `✋ ${n}/${cap}` : `✋ ${n}`;
+  el.classList.toggle('sel-full', n >= cap);
+  const st = document.getElementById('sel-stat');
+  if (st) st.classList.toggle('sel-active', n > 0);
+}
+
 function updateCoinsUI() {
   document.getElementById('coins-display').textContent = '💰 ' + coins;
   const cg = document.getElementById('ci-gold'); if (cg) cg.textContent = coins;
@@ -211,6 +227,59 @@ function hideKnackTooltip() {
 document.addEventListener('click', (e) => {
   if (!e.target.closest('.knack-chip') && !e.target.closest('#knack-tooltip')) hideKnackTooltip();
 }, true);
+
+// ══════════════════════════════════════════════
+// HAND-TYPE LABEL (r198) - #hand-name, beside the hand preview
+// ══════════════════════════════════════════════
+// What you are about to play, named. The preview CARDS are deliberately inert
+// until a hand is submitted (r99 - the preview is the scoring stage, not a live
+// readout), but the NAME is the one thing you want before you commit, and with
+// layered hands it is now the only place the second hand is visible at all.
+//
+// Two lines per layer, family over size ("RUN / 3"), because the desktop panel
+// gives this a 6%-wide column. Portrait flattens the same markup onto one line
+// with CSS - one renderer, no per-orientation branch.
+let _handNameKey = null;   // last markup written, so render() does not thrash the DOM
+
+function handLabelHTML(runs) {
+  return runs.map(({ n, k }) => {
+    const l = HAND_LABEL[n];
+    const x = k > 1 ? `<u>x${k}</u>` : '';
+    return l ? `<span class="hn-l"><b>${l.fam}</b><i>${l.size}${x}</i></span>`
+             : `<span class="hn-l"><b>${n}</b>${x}</span>`;
+  }).join('<span class="hn-plus">+</span>');
+}
+
+function updateHandNameLabel(result) {
+  const el = document.getElementById('hand-name');
+  if (!el) return;
+  // handLayersFor is what calcScore pays for, so the label can never name a hand
+  // the score did not count (or miss one it did).
+  // r200: below the minimum selection the label states the requirement instead of
+  // naming a hand. The player is looking right here to find out what they have,
+  // so it is where "you cannot play this yet, and why" belongs.
+  if (result && result.short) {
+    const html = `<span class="hn-l hn-need"><b>NEED</b><i>${result.short}</i></span>`;
+    if (html !== _handNameKey || el.innerHTML !== html) { _handNameKey = html; el.innerHTML = html; }
+    el.classList.remove('hn-layered');
+    return;
+  }
+  let names = (result && result.hand)
+    ? ((typeof handLayersFor === 'function') ? handLayersFor(result.hand, result.handCells) : [result.hand])
+    : [];
+  // Repeats are real (two Sets of 3), but printing SET 3 + SET 3 in a 44px column
+  // is not - so a repeat collapses to a count: SET 3 x2.
+  const runs = [];
+  names.forEach(n => { const last = runs[runs.length - 1]; if (last && last.n === n) last.k++; else runs.push({ n, k: 1 }); });
+  names = runs;
+  const html = names.length ? handLabelHTML(names) : '';
+  // Also compare the live DOM: other screens (Dominoes) write this element
+  // directly, and a cache hit would then leave their text standing.
+  if (html === _handNameKey && el.innerHTML === html) return;
+  _handNameKey = html;
+  el.innerHTML = html;
+  el.classList.toggle('hn-layered', names.length > 1);   // two or more components: step the type down
+}
 
 // ══════════════════════════════════════════════
 // CARD INTERACTION - tap or swipe to select, double-tap to swap

@@ -50,17 +50,29 @@ function startRoundTimer() {
   if (typeof hideGoalBanner === 'function') hideGoalBanner();
   if (typeof sfxSetMuffle === 'function') sfxSetMuffle(false);
   startHeartbeat();                 // the board's idle pulse runs with the round
+  cdStartTicker();                  // cooldown / disable rings (js/cooldown.js)
   syncDiscoveredFromOwned();        // log anything new for the Builds archive
   roundStartSeconds = roundSeconds; // mark the start of the countdown for ♠ "first 30s" exalt
+  // Suspension resolves HERE, not in triggerLevelUp: it needs roundStartSeconds to
+  // know where the round's halfway mark is, and this is the one call site every
+  // round start funnels through (the same reason the save checkpoint lives here).
+  if (typeof resolveEntityLockout === 'function') resolveEntityLockout();
   // Save point. Every round start funnels through here, so this is where a run
   // snapshot is taken; Settings → SAVE RUN just writes the latest one out. See
   // js/save.js for why the save point is a round boundary and not "right now".
-  if (typeof captureRunCheckpoint === 'function') captureRunCheckpoint();
+  // Save point. Every round start funnels through here (see js/save.js). A boss
+  // round is deliberately NOT a save point: forceBossNextRound has already been
+  // consumed by the time triggerBoss runs, so a checkpoint taken here would resume
+  // into an ordinary round with the boss gone. The previous round's checkpoint stands.
+  if (!bossActive && typeof captureRunCheckpoint === 'function') captureRunCheckpoint();
   roundInterval = setInterval(() => {
     if (pipeTimerPaused) return;
     if (gameTimerPaused) return; // global pause covers menus/shop/events
     if (match3NoTimer()) return; // Zen / infinite dev mode: the clock never runs down
-    roundSeconds--;
+    // One clock, one tick (r205). Under The Metronome bossClockStep() returns the
+    // live Focus multiplier instead of 1, with a fractional carry so x1.4 really
+    // costs 1.4s/s rather than rounding away.
+    roundSeconds -= (bossActive && typeof bossClockStep === 'function') ? bossClockStep() : 1;
     if (roundSeconds < 0) roundSeconds = 0;
     // Slow Burn sleights accrue on-grid time → +1 max Focus per minute (see onGridSleightCapBonus)
     for (let _r = 0; _r < gridRows; _r++) for (let _c = 0; _c < gridCols; _c++) {
@@ -86,6 +98,21 @@ function startRoundTimer() {
     trickCardTimer++;
     if (trickCardTimer >= TRICK_CARD_INTERVAL) { trickCardTimer = 0; assignTrickCard(); }
     const _elapsedRound = roundStartSeconds - roundSeconds;
+    // Understudy: every N seconds of round time, prime one random Trick in the
+    // tray. Priming is the mechanic the Rehearsal event already built on - a
+    // primed Trick fires one extra time in calcScore - so this knack needed no
+    // per-Trick code, and the primed tile shows its charge through the same
+    // cooldown widget (js/cooldown.js).
+    if (hasKnack('understudy') && _elapsedRound >= understudyNextMark) {
+      understudyNextMark += BAL.understudy.interval_seconds;
+      const _pool = (trickTray || []).filter(t => !(typeof isTrickDisabledByBoss === 'function' && isTrickDisabledByBoss(t.id)));
+      if (_pool.length) {
+        const _t = _pool[Math.floor(Math.random() * _pool.length)];
+        _t._primed = (_t._primed || 0) + 1;
+        showMessage(`🎭 Understudy - ${_t.name} primed`, '#8a5cf0');
+        renderTrickTray?.();
+      }
+    }
     // The Cuckoo: every 60s of round time, pause the clock by 1s for each retrigger so far this round
     if (hasTrick('cuckoo') && _elapsedRound >= cuckooNextMinute) {
       cuckooNextMinute += BAL.cuckoo.interval_seconds;
@@ -113,6 +140,19 @@ function startRoundTimer() {
       }
     }
     updateClockUI();
+    // ── Boss round: the parts of the tick that only a boss has ──────────────
+    if (bossActive) {
+      // Repaints the tray only when the switched-off set changes - covers the
+      // Voidwright's halftime flip AND the Censor's suspensions expiring, neither
+      // of which has an event of its own.
+      if (typeof bossSyncTrickTrayState === 'function') bossSyncTrickTrayState();
+      if (bossPhase === 1 && roundSeconds <= Math.floor(bossWindowDuration / 2)) {
+        bossPhase = 2;
+        updateBossObjectiveUI();
+        showMessage(currentBoss?.modifiers?.includes('trick_pool_split')
+          ? 'SECOND HALF - different Tricks off' : 'PHASE 2', 'var(--red)');
+      }
+    }
     // Dread before a boss that arrives with no screen in front of it (Flow).
     // Self-gating: a no-op in every mode whose boss is announced by the reward
     // grid / payout / pick that precedes it.
@@ -131,7 +171,8 @@ function startRoundTimer() {
 }
 
 function startTimers() {
-  // During a boss the boss timer owns the clock; don't also start the round timer.
+  // One clock either way (r205) - startBossTimer arms the boss's scheduled effects
+  // and then calls startRoundTimer itself.
   if (bossActive) startBossTimer();
   else startRoundTimer();
 
@@ -183,7 +224,6 @@ function spendRoundTime(sec) {
 }
 
 function updateClockUI() {
-  if (bossActive) return; // boss timer manages clock display itself
   const secs = Math.max(roundSeconds, 0);
   const m = Math.floor(secs/60);
   const s = secs%60;
@@ -208,11 +248,11 @@ function assignTrickCard() {
 function stopTimers() {
   clearInterval(roundInterval);
   clearInterval(gameInterval);
-  if (bossInterval) { clearInterval(bossInterval); bossInterval = null; }
   roundInterval = null;
   gameInterval = null;
   stopFocusDecay();
   stopHeartbeat();
+  cdStopTicker();                   // and strip every cooldown badge (js/cooldown.js)
   // The board is about to be taken away or replaced; never leave it holding a
   // freeze tilt or a mirror stack behind an overlay (js/clock-fx.js).
   if (typeof resetClockFx === 'function') resetClockFx();
@@ -222,6 +262,9 @@ function stopTimers() {
 // ROUND END
 // ══════════════════════════════════════════════
 function onRoundEnd() {
+  // Since r205 the boss runs on this same clock, so reaching zero during a boss is
+  // the boss window expiring - the boss's own loss path, not a missed round goal.
+  if (bossActive) { endBoss(false); return; }
   // Flow: the clock is a 5-minute SESSION clock, not a round clock. Reaching zero
   // summons the boss on the board as it stands - there is no round to fail here, and
   // no goal to have missed. (During the boss itself the boss timer owns the clock, so

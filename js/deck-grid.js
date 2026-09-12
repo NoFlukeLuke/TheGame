@@ -4,8 +4,8 @@ const BOSS_BLOCKED_CELLS_MAX = 5;
 
 let nextBossTime  = GAME_DURATION - BOSS_LOOP_DURATION; // first boss at 6-min mark elapsed
 let bossActive    = false;
-let bossSecondsLeft = 0;
-let bossInterval  = null;
+// The boss runs on the ONE round clock since r205 (roundSeconds / roundInterval);
+// there is no separate boss countdown or boss interval any more. See triggerBoss.
 let blockedCells  = new Set(); // keys like "r-c"
 let bossNumber    = 0;
 let savedRoundSeconds = 0; // round timer value at boss start
@@ -22,6 +22,56 @@ let permMult = {};   // { "A-♠": 1, ... }
 let permXPips  = {}; // { "A-♠": 2, ... } multiplies that card's pip contribution (default 1)
 let permXMult  = {}; // { "A-♠": 2, ... } multiplies total mult per scored card of this key (default 1)
 let permRetrig = {}; // { "A-♠": 1, ... } extra times this card scores its pips (default 0)
+// ── FLAT vs SCALING card buffs (r209) ────────────────────────────────────────
+// permPips / permMult above are FLAT: the card scores that bonus, the same
+// amount, every single time it is played. The wording "permanently gains +1
+// mult" was used for them everywhere, which reads as growth and is why a player
+// could hold a blessed card for a whole run waiting for a number that was never
+// going to move.
+// permPipsGrow / permMultGrow are the SCALING kind: they are not scored at all,
+// they are how much the FLAT bonus goes up each time the card is played. So a
+// card with permMultGrow 1 is worth +1 mult after its first play, +2 after its
+// second, and so on. Grown in growCardScaling() after the score commits.
+// The two are separate stores rather than one field with a flag, because a card
+// can legitimately carry both (a flat blessing AND a scaling one), and because
+// every existing read of permMult keeps working untouched.
+let permPipsGrow = {}; // { cardId: 2 } - flat pips this card gains per play
+let permMultGrow = {}; // { cardId: 1 } - flat mult this card gains per play
+
+// Called once per scored card, after the hand's score is committed (play-hand.js),
+// for the same reason recordNaturalScale is: a scaling buff earned by this hand
+// must pay out on the NEXT one, or the first play would already be the second.
+function growCardScaling(cards) {
+  if (!cards || !cards.length) return;
+  const seen = new Set();
+  cards.forEach(card => {
+    if (!card || !card.rank) return;
+    const k = cardId(card);
+    if (seen.has(k)) return;          // a retriggered card grows once per HAND
+    seen.add(k);
+    const gp = permPipsGrow[k] || 0, gm = permMultGrow[k] || 0;
+    if (gp) permPips[k] = (permPips[k] || 0) + gp;
+    if (gm) permMult[k] = (permMult[k] || 0) + gm;
+  });
+}
+
+// The one place a card's buffs are put into words, so the reward tile, the
+// event, the grid tooltip, the deck view and the shop cannot drift apart again.
+// Returns plain lines, strongest first.
+function cardBuffLines(k) {
+  const lines = [];
+  const pp = permPips[k] || 0, pm = permMult[k] || 0;
+  const gp = permPipsGrow[k] || 0, gm = permMultGrow[k] || 0;
+  const xp = permXPips[k] || 1, xm = permXMult[k] || 1, re = permRetrig[k] || 0;
+  if (gp) lines.push(`Scales +${gp} pips each time it's played`);
+  if (gm) lines.push(`Scales +${gm} mult each time it's played`);
+  if (pp) lines.push(`Scores +${pp} pips when played`);
+  if (pm) lines.push(`Scores +${pm} mult when played`);
+  if (xp > 1) lines.push(`\u00d7${xp} pip score`);
+  if (xm > 1) lines.push(`\u00d7${xm} mult`);
+  if (re) lines.push(`+${re} replay`);
+  return lines;
+}
 
 // ── CARD CURSES (reward-grid debuffs) ──
 // A curse afflicts one specific card identity (key "rank-suit", like permPips).
@@ -72,6 +122,7 @@ let focusGenGame  = 0;   // total Focus generated this game (Wellspring); reset 
 let focusGenRound = 0;   // total Focus generated this round (Feedback Loop); reset each round
 let assemblyMarkCount   = 0;   // Assembly Line: cards scored from its marked line this round (replays count)
 let _lastHandAssemblyEnd = 0;  // snapshot of assemblyMarkCount after the last scored hand
+let studyHallCards      = 0;   // Study Hall: running count of cards scored this run; every 2nd one pays Focus
 let markCount_groove    = 0;   // Groove: cards scored from its marked line this round
 let markCount_overtime  = 0;   // Overtime: cards scored from its marked line this round
 let _cleanSweepPrev     = [];  // Clean Sweep: cell keys scored in the previous hand (rolling 2-hand window)
@@ -250,6 +301,10 @@ function drawCard() {
   // Famine modifier: bias drawn rank toward low cards. On the deck's stream - it
   // substitutes a drawn card, so it is a deck operation.
   c = withSeededRng(() => maybeFamineDrawSwap(c), 'deck');
+  // The Marker boss silently marks one card in every ten. drawCard is the single
+  // point every card enters play through, so the count is exact and covers the
+  // opening deal and every refill alike (js/boss-effects.js).
+  if (typeof bossMarkerConsider === 'function') bossMarkerConsider(c);
   updateDeckHud();
   return c;
 }
