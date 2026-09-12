@@ -31,7 +31,7 @@ function goalBannerEl() {
     el.innerHTML = `<div class="gb-ring"></div>
       <div class="gb-body">
         <div class="gb-kicker">ROUND</div>
-        <div class="gb-title">GOAL REACHED</div>
+        <div class="gb-title">QUOTA CLEARED</div>
         <div class="gb-num" id="goal-banner-num"></div>
       </div>`;
     document.body.appendChild(el);
@@ -39,6 +39,10 @@ function goalBannerEl() {
   return el;
 }
 
+// Wording note: "QUOTA CLEARED" is the owner's explicit call and is a deliberate
+// exception to the r178 voice rule that pulled the corporate framing out of every
+// player-facing surface. It is the one place the word survives.
+//
 // Called from flashRoundEnd() - the one place that already means "the tally just
 // crossed the goal". Wiring it there rather than at the dance's two call sites
 // means both the preview dance and the legacy dance get it, and a future caller

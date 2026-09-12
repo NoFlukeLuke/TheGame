@@ -1,4 +1,4 @@
-const BUILD = '2026-09-12 · r211 · events retheme, Clean Up rework, Card Market + Deck Trim, limit steps [onto r210]';
+const BUILD = '2026-09-12 · r212 · the goal banner says QUOTA CLEARED [onto r211]';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
