@@ -23,7 +23,11 @@ let bossTimeouts       = [];         // pending setTimeouts (quarantine warnings
 let nullCells          = new Set();  // "r-c" - inert cells; cards still land here
 let pendingNullCells   = new Set();  // "r-c" - marked with an X, about to go inert
 let dampCells          = new Set();  // "r-c" - half pips, and tricks may not fire
-let bossNullRank       = null;       // rank currently recalled out of play
+let bossNullRanks      = new Set();  // ranks currently withdrawn (The Recall)
+let bossRecallUntil    = 0;          // ms timestamp the current rotation ends
+let bossRecallHold     = 45;         // how long a rotation lasts, for the countdown
+// The Recall may never lock up more than this share of the board at once.
+const RECALL_MAX_BOARD_FRACTION = 0.4;
 let bossUsedRanks      = new Set();  // ranks already recalled - never picked twice
 let bossDisabledTricks = new Map();  // trickId → expiry timestamp (ms)
 let bossDisabledTotals = new Map();  // trickId → how long that suspension is, in seconds.
@@ -97,9 +101,19 @@ function isCellDamped(r, c) {
 }
 // A recalled rank is off the board until the next rank is picked.
 function isCardRecalled(card) {
-  if (!bossNullRank || !card || !card.rank) return false;
+  if (!bossNullRanks.size || !card || !card.rank) return false;
   if (typeof bossEffectsIgnored === 'function' && bossEffectsIgnored()) return false;
-  return card.rank === bossNullRank;
+  return bossNullRanks.has(card.rank);
+}
+// Seconds until the current rotation is reinstated, for the card countdown ring.
+// A withdrawn card had NO visual treatment at all before r213 - you found out it
+// was inert by tapping it and nothing happening. It now wears the same greyed
+// tile and red countdown as a card The Hold has frozen (js/cooldown.js).
+function bossRecallSecondsLeft(card) {
+  if (!isCardRecalled(card) || !bossRecallUntil) return null;
+  const left = (bossRecallUntil - Date.now()) / 1000;
+  if (left <= 0) return null;
+  return { left, total: bossRecallHold };
 }
 // Cards in a quarantined cell must not count toward "while on the grid" triggers
 // (Power Cell's Focus cap, Slow Burn's accrual, hasSleightOnGrid…). Anything that
@@ -320,16 +334,55 @@ function bossRotateTick(holdSecs) {
   renderTrickTray?.();
 }
 
-function bossRecallTick() {
-  // Restore the previous rank, then take a NEW one - never one already used, so
-  // the boss works through the deck rather than hammering the same rank.
-  const pool = ACTIVE_RANKS.filter(r => !bossUsedRanks.has(r));
-  if (!pool.length) return;                        // every rank has had its turn
-  const pick = pool[Math.floor(Math.random() * pool.length)];
-  bossUsedRanks.add(pick);
-  bossNullRank = pick;
+// THE RECALL (rebalanced r213). It used to withdraw ONE rank, and measured over
+// 400 real 4x4 deals that froze an average of 1.23 cards out of 16 - and 22% of
+// the time the rank it picked was not on the board at all, so the boss did
+// literally nothing for that whole 36-second stretch. Speeding it up (r205, 45s
+// -> 36s) did not help, because the magnitude was the problem, not the cadence.
+//
+// Now: THREE ranks at a time, rotating on a slower clock. That is the owner's
+// spec exactly - enough to hurt, held long enough to plan around, and it only
+// ever takes a minority of the board so no play style is switched off.
+function bossRecallTick(count) {
+  const want = Math.max(1, Math.round((count || 3) * bossMagScale()));
+  // Prefer ranks that are ACTUALLY ON THE BOARD, so a recall is never a no-op.
+  // Ranks already used are still off the table (the boss works through the deck
+  // rather than hammering one rank) until every rank has had a turn.
+  const onBoard = new Set();
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
+    const cd = gridData[r]?.[c];
+    if (cd?.rank && !cd._isSleight && !cd._isStone) onBoard.add(cd.rank);
+  }
+  let pool = ACTIVE_RANKS.filter(rk => !bossUsedRanks.has(rk));
+  if (pool.length < want) { bossUsedRanks = new Set(); pool = [...ACTIVE_RANKS]; }
+  const live = pool.filter(rk => onBoard.has(rk));
+  const rest = pool.filter(rk => !onBoard.has(rk));
+  // Take ranks one at a time and STOP once the board would be too locked up.
+  // Biasing toward ranks that are on the board is what makes the boss bite, but
+  // it also means a bad roll can pick three ranks holding 9 of 16 cells. The cap
+  // clips that tail without touching the average: measured 4.7 cards frozen
+  // either way, worst case 9 -> 6.
+  const cellCount = gridRows * gridCols;
+  const maxFrozen = Math.max(2, Math.floor(cellCount * RECALL_MAX_BOARD_FRACTION));
+  const rankSize = {};
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
+    const cd = gridData[r]?.[c];
+    if (cd?.rank && !cd._isSleight && !cd._isStone) rankSize[cd.rank] = (rankSize[cd.rank] || 0) + 1;
+  }
+  const draw = [];
+  let frozen = 0;
+  for (const rk of shuffle(live).concat(shuffle(rest))) {
+    if (draw.length >= want) break;
+    const size = rankSize[rk] || 0;
+    if (draw.length && frozen + size > maxFrozen) continue;   // keep at least one
+    draw.push(rk); frozen += size;
+  }
+  if (!draw.length) return;
+  draw.forEach(rk => bossUsedRanks.add(rk));
+  bossNullRanks = new Set(draw);
+  bossRecallUntil = Date.now() + bossRecallHold * 1000;
   selected = selected.filter(([r, c]) => !isCardRecalled(gridData[r]?.[c]));
-  showMessage(`${pick}s recalled`, 'var(--red)');
+  showMessage(`${draw.join(', ')} withdrawn`, 'var(--red)');
   render();
 }
 
@@ -475,7 +528,8 @@ function applyBossEffectModifier(mod, params) {
       bossSchedule(params.everySecs || 20, () => bossBlightTick(Math.max(1, Math.round((params.count || 3) * bossMagScale()))));
       return true;
     case 'rank_recall':
-      bossSchedule(params.everySecs || 45, bossRecallTick);
+      bossRecallHold = params.everySecs || 45;
+      bossSchedule(bossRecallHold, () => bossRecallTick(params.rankCount || 3));
       return true;
     case 'card_hold':
       bossHoldEvery = params.everySecs || 15;
@@ -521,7 +575,8 @@ function clearBossEffects() {
   bossTickIds.forEach(clearInterval); bossTickIds = [];
   bossTimeouts.forEach(clearTimeout);  bossTimeouts = [];
   nullCells = new Set(); pendingNullCells = new Set(); dampCells = new Set();
-  bossNullRank = null; bossUsedRanks = new Set();
+  bossNullRanks = new Set(); bossUsedRanks = new Set();
+  bossRecallUntil = 0; bossRecallHold = 45;
   bossDisabledTricks = new Map(); bossDisabledTotals = new Map();
   bossHeldCards = new Map(); bossHoldEvery = 0;
   bossTimeFromFocus = false; _bossTimeDebt = 0;

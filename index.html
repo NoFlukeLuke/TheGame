@@ -838,6 +838,12 @@
         <div id="boss-banner"><div class="boss-banner-title">BOSS</div><div class="boss-banner-sub" id="boss-banner-sub">Survive 3:00</div></div>
         <div id="boss-result"><div class="boss-result-text" id="boss-result-text"></div></div>
       </div>
+      <!-- How many of the allowed picks are in hand: cards on the play grid, tiles on
+           the reward grid. A SIBLING of #grid, not a child - render() rebuilds #grid's
+           children and renderRewardTiles empties it outright. It sits in the slot's
+           empty margin around the centred grid (above it in portrait, beside it in
+           landscape), sized off --grid-w / --grid-h. -->
+      <div id="sel-count"><span id="sel-count-val">0/3</span></div>
     </div>
     <!-- Swap sits at the TOP of the interact column (r169). Landscape absolutely
          positions each of these three, so only portrait reads this order. -->

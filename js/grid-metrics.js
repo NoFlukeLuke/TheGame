@@ -72,6 +72,13 @@ function applyGridMetricsToDOM() {
   // Push live card size to CSS custom props so .card / fonts can react
   document.documentElement.style.setProperty('--card-w', CARD_W + 'px');
   document.documentElement.style.setProperty('--card-h', CARD_H + 'px');
+  // The grid's real footprint, so anything anchored in the EMPTY MARGIN of
+  // #grid-slot can size itself against it in CSS alone. #grid is centred in the
+  // slot, so that margin is (slot - grid) / 2 on each side - which is where the
+  // selection readout lives (#sel-count). Without these it would have to be
+  // measured from JS on every resize.
+  document.documentElement.style.setProperty('--grid-w', totalW + 'px');
+  document.documentElement.style.setProperty('--grid-h', totalH + 'px');
   syncSidebarsToGrid();
 }
 

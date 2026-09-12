@@ -1,4 +1,4 @@
-const BUILD = '2026-09-12 · r213 · a boss round ends like any other: banner, payout, prize grid; leftover time pays double; acts are quarters';
+const BUILD = '2026-09-12 · r215 · boss rounds end like any other round: banner, payout, prize grid; leftover time pays double; acts are quarters [onto r214]';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

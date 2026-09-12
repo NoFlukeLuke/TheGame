@@ -212,12 +212,37 @@ Phase 10 rules, on a grid. A played hand is broken into **components**, and ever
 
 **Selection Size was pure upside**: a maximum you raise and then keep playing Pairs. It now carries a floor with it - `minSelection()` in `js/limits.js` is `limit - 2`, floored at 1 (3 -> 1, 5 -> 3, 7 -> 5, 9 -> 7). You must commit that many cards to every hand, so a two-card Pair can no longer tick the board over or stand in for a free discard. Taking the upgrade is a real decision.
 
-- **It applies to the PLAY GRID ONLY.** `limits.selection` also caps the reward grid and the shop pickers; a minimum there would force you to take seven tiles.
+- **The PLAY GRID and the REWARD GRID both (r214).** It was the play grid's alone, which had it backwards: raising Selection Size made hands harder to commit while making the reward grid strictly easier. The shop pickers are still uncapped at the bottom - there you are spending credits, and a floor would be a bill, not a decision. See "The reward grid has a floor too" below.
 - **Enforced in four places, not one.** The PLAY button's `disabled` state (`js/render.js`), the auto-submit scheduler AND its firing callback (`js/input.js`), and a hard guard at the top of `playHand` - queued actions and any future keyboard path reach `playHand` without passing the button's state.
 - **The `#hand-name` label states the requirement** ("NEED / 5", red) instead of naming a hand. That is where the player is already looking to find out what they have, so it is where "you cannot play this yet, and why" belongs.
 - **`minSelectionBinds()`** is "does the minimum actually bite" (`> 2`). Two cards is the floor for a hand regardless, so at limit 3 and 4 nothing changes.
 - **High Card** (`HAND_BASE` 0 pips / x1 mult, `HAND_FOCUS` **0**) is the escape valve: a selection you are forced to make but cannot shape is still playable, and scores the cards' own pips and nothing else. `handWorth` puts it at 1, so it never beats a real component, and `recordNaturalScale` skips it (no NS family) so **it can never grow**.
 - **It is gated on `minSelectionBinds()`, and that gate is load-bearing.** With High Card live, `detectHand` returns non-null for ANY two cards, so nothing is ever "no hand here" - and **`tutorialFindDeadCards` finds cards in no hand at all**, which would have gone permanently empty. The tutorial runs at limit 3, where the gate keeps High Card off. Verified: 6 dead cards still found at limit 3, 0 regressions.
+
+### The reward grid has a floor too (r214)
+
+`rewardMinPicks()` in `js/reward-grid.js` is the reward grid's half of the rule above.
+
+- **Derived from `minSelection()`, NOT from `rewardSelectionCap()`.** Greedy Boi raises the reward-grid CEILING as a reward; having it raise the floor to match would staple a downside onto a knack meant to be pure upside. The floor is then held below the cap (`Math.min`), so a grid can never ask for more picks than it will accept.
+- **Enforced in three places**, the same shape as the play grid: the on-grid CONFIRM button (`updateRewardButtons`), the legacy overlay's `#reward-confirm`, and a hard guard at the top of `confirmRewardPath` - a queued tap reaches it without passing the button's state.
+- **CLEAR is deliberately NOT gated.** It only needs something to clear; gating it on the minimum would strand a short pick with no way to undo it.
+- **SKIP is untouched.** Taking nothing is a deliberate alternative with its own payout, not a short pick.
+- `#reward-sub` states the requirement and nothing else while it is unmet ("take 2 more to confirm, or SKIP to take none") - it is the only thing between the player and CONFIRM.
+- **The worst case is satisfiable, and it was worth checking**: the smallest grid in the game is the 3x3 prize grid, against a maximum floor of 7 at Selection Size 9. Measured in a real browser: all 9 tiles are reachable as one connected group, so CONFIRM is always attainable.
+
+### The two selection readouts (r214)
+
+They answer different questions and must not be collapsed back into one:
+
+| element | shows | where |
+|---|---|---|
+| `#sel-display` | **STATIC** - the Selection Size limit itself | top bar, beside the coins (portrait; landscape hides every `#top-bar .top-stat`) |
+| `#sel-count` | **LIVE** - `x/y`, what is in hand over what this screen will take | the board's own margin |
+
+- **`#sel-count` sits in the EMPTY MARGIN of `#grid-slot` around the centred `#grid`** - the band above the board in portrait, the gutter beside it in landscape. `applyGridMetricsToDOM` publishes `--grid-w` / `--grid-h`, so the box is sized `calc((100% - var(--grid-h)) / 2)` and its content is genuinely centred in that margin rather than nudged into place with a guessed offset. No JS measurement, no resize handler.
+- **It is a SIBLING of `#grid`, not a child.** `render()` rebuilds `#grid`'s children and `renderRewardTiles` empties it outright, so a child would be destroyed on the next repaint.
+- **`renderRewardTiles` calls `updateSelectionUI` itself.** A reward tile click calls `renderRewardTiles()` directly and never goes through `render()`, so wiring it into `render()` alone left the count frozen at 0 for the whole reward step.
+- Red below the minimum, gold at the cap, hidden when there is no board (the menu, where a stale "0/3" over an empty stage reads as a bug). `pointer-events:none`, `z-index:6` - the payout panel (40) covers it.
 
 **Junk cards rode along free between r199 and r201** - see "Every card must be load-bearing" below, which is where that ended. The minimum now costs you cards off the board AND the score of anything you cannot use.
 
@@ -707,7 +732,7 @@ Owned Tricks/knacks and already-granted sleights are filtered out of the pools s
 ### The r150 roster - `js/boss-effects.js`
 Eight bosses that all share one shape: **act once at round start, then on an interval**. `bossSchedule(secs, fn)` *is* that shape - it fires immediately then repeats - and it is the single place the **Contingency Plan** knack stretches timings, so a new boss inherits the knack interaction for free. `applyBossModifiers` calls `applyBossEffectModifier(mod, params)` first; it claims its own ids and returns true, leaving the legacy modifiers untouched.
 
-The Metronome (clock runs at the Focus multiplier) · The Tollman (interact costs ×2, +3s to play) · The Undertow (−10 Focus/15s) · The Quarantine (a cell goes dark every 15s, 10s warning) · The Censor (a Trick suspended 45s every 35s) · The Blight (3 cells contaminated every 20s) · The Recall (a rank withdrawn every 36s, never repeated - r205, 25% more often than the 45s it shipped with) · The Auditor (−1 swap or discard every 30s).
+The Metronome (clock runs at the Focus multiplier) · The Tollman (interact costs ×2, +3s to play) · The Undertow (−10 Focus/15s) · The Quarantine (a cell goes dark every 15s, 10s warning) · The Censor (a Trick suspended 45s every 35s) · The Blight (3 cells contaminated every 20s) · The Recall (three ranks withdrawn at a time, rotating every 45s - see the rebalance below) · The Auditor (−1 swap or discard every 30s).
 
 ### The Marker (r205) - a boss you cannot see working
 
@@ -720,11 +745,19 @@ The Metronome (clock runs at the Focus multiplier) · The Tollman (interact cost
 - The cards **fall out of the hand preview** (`bossMarkerFizzleFX`): the whole submitted hand is drawn into `#selected-cards` exactly as the scoring dance draws it - `renderCardAppearance` into the same `.dnc-*` skeleton - so sizing and the portrait overlap rules apply for free. Marked cards drop out of the bottom, the rest fade.
 - `bossEffectsIgnored()` (Fight the Power) bypasses both the marking and the intercept.
 
-### The Hollow (r211) - 25% more often, and on the shared schedule
+### The Hollow and The Recall, rebalanced (r213)
 
-`nullIntervalSecs` 8 → **6**. It was also the one boss in the file still using a **bare `setInterval`** rather than `bossSchedule`, so alone in the roster it got neither of the two things `bossSchedule` exists for: its opening tick fired behind the briefing panel (r179's fix) and the Contingency Plan knack could not stretch its interval. It is a `bossSchedule` entry now; `bossNullInterval` is dead and kept only as a no-op guard.
+Both had been sped up 25% by two sessions reading "the card-removal boss" differently (r205 took it as The Recall, r211 as The Hollow). Measuring them showed the cadence was never the problem in either case - **they were mis-tuned in opposite directions, and one of them was dangerous.**
 
-**Two bosses got the same 25% speed-up, from two readings of "the card-removal boss".** r205 read it as **The Recall** (45s → 36s); r211 read it as **The Hollow** (8s → 6s). The Hollow is the one that literally takes cards off the board and returns them to the deck; The Recall leaves them where they are and makes a rank inert. Both are faster now. If only one was meant, this is the pair to look at.
+**THE HOLLOW now CHURNS the board, it does not shred it.** It used to null the cell and leave the hole: no gravity, no refill, so holes accumulated until a discard happened to run the fall pass. Measured live at 6s with the player not acting: **16 cards -> 9 cards and 7 holes by t+39s**, at which point the board had fragmented so badly that `findBestHand` could not return a single legal hand, and left alone it stripped all 16 cells in **96 seconds**. A boss that can hand you an unwinnable round - and "the board shrinks" is already **The Quarantine's** job, so it was a dangerous duplicate as well.
+
+It now goes through **`removeAndFall`**, so the board is always refilled: you lose the CARD you were building a hand around, on a clock, and the board stays playable. Interval 6s -> **7s**, since a refilling tick can safely be quicker than a shredding one. Verified live: 16 cards and a legal hand available at every reading across a 40s window. **It must skip a tick while `animating || falling`** - `removeAndFall` takes the falling lock, and starting one on top of a swap or a score cuts that animation short.
+
+**THE RECALL takes THREE ranks at a time**, not one. One rank froze an average of **1.23 cards out of 16**, and **22% of the time the rank it picked was not on the board at all**, so the boss did nothing whatever for that whole stretch. Now `rankCount: 3` on a 45s rotation, and the draw **prefers ranks that are actually on the board** so a recall is never a no-op. Measured over 300 real deals: **4.6 cards frozen (29% of the board), 0 of 300 froze nothing.**
+
+- **`RECALL_MAX_BOARD_FRACTION` (0.4) clips the tail.** Biasing toward on-board ranks is what makes the boss bite, but a bad roll could pick three ranks holding 9 of 16 cells. Ranks are taken one at a time and the draw stops once the next would cross the cap (always keeping at least one). Average is unchanged at 4.6; worst case 9 -> 6.
+- **`bossNullRank` (a single rank) is now `bossNullRanks` (a Set).** `isCardRecalled` reads the Set.
+- **A withdrawn card wears a countdown now.** It had **no visual treatment at all** - you discovered a card was inert by tapping it and nothing happening. `bossRecallSecondsLeft()` feeds `cdForCard` (js/cooldown.js), so it gets the same greyed tile and red countdown ring as a card The Hold has frozen, for free.
 
 Three more (r151) hang off **`bossOnInteract(kind)`**, called from `doSwap`/`doDiscard`, and one score hook: The Ratchet (+5% objective per interact) · The Turnstile (−3 credits per interact) · The Redaction (one hand type scores ×0.4, picked once at boss start). **The Ratchet raises `roundGoal`** - since r155 the boss win bar IS `roundGoal` (`bossGoalMet()` is `score >= roundGoal`), so that is the one number `checkBossObjective` compares against. `objective.target` is vestigial for score bosses. (An earlier revision of this file claimed the opposite; the code has always matched what is written here.)
 
