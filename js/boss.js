@@ -208,7 +208,7 @@ function applyBossModifiers(preset) {
       case 'periodic_null': {
         const intervalSecs = preset.params.nullIntervalSecs || 7;
         const count = preset.params.nullCount || 1;
-        // THE HOLLOW, rebalanced r212: it CHURNS the board, it does not shred it.
+        // THE HOLLOW, rebalanced r213: it CHURNS the board, it does not shred it.
         //
         // It used to null the cell and leave the hole - no gravity, no refill -
         // so holes accumulated until a discard happened to run the fall pass.

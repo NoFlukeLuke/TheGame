@@ -720,7 +720,7 @@ The Metronome (clock runs at the Focus multiplier) · The Tollman (interact cost
 - The cards **fall out of the hand preview** (`bossMarkerFizzleFX`): the whole submitted hand is drawn into `#selected-cards` exactly as the scoring dance draws it - `renderCardAppearance` into the same `.dnc-*` skeleton - so sizing and the portrait overlap rules apply for free. Marked cards drop out of the bottom, the rest fade.
 - `bossEffectsIgnored()` (Fight the Power) bypasses both the marking and the intercept.
 
-### The Hollow and The Recall, rebalanced (r212)
+### The Hollow and The Recall, rebalanced (r213)
 
 Both had been sped up 25% by two sessions reading "the card-removal boss" differently (r205 took it as The Recall, r211 as The Hollow). Measuring them showed the cadence was never the problem in either case - **they were mis-tuned in opposite directions, and one of them was dangerous.**
 
@@ -792,7 +792,7 @@ The **3-2-1 is now centred on the grid** in landscape - `#countdown-321-overlay`
 
 Two things happen the instant the tally crosses `roundGoal` and the game said neither out loud.
 
-- **The round is won.** The only signal was `flashRoundEnd()`'s grid flash and the score number quietly passing a figure printed elsewhere on the panel. The win finale (jitter -> explode -> fly) plays about **two seconds earlier**, on the hand being played, so by the time the count-up actually crosses the line there is nothing marking the moment. `showGoalBanner()` puts a **GOAL REACHED** stamp with the goal figure over the board for 1.5s, on `sfxSuccess()` - which was otherwise used only by match-3's own finale, so nothing is doubled.
+- **The round is won.** The only signal was `flashRoundEnd()`'s grid flash and the score number quietly passing a figure printed elsewhere on the panel. The win finale (jitter -> explode -> fly) plays about **two seconds earlier**, on the hand being played, so by the time the count-up actually crosses the line there is nothing marking the moment. `showGoalBanner()` puts a **QUOTA CLEARED** stamp with the goal figure over the board for 1.5s (the wording is the owner's explicit call - the one deliberate survivor of the r178 voice rule that pulled the corporate framing off every player-facing surface), on `sfxSuccess()` - which was otherwise used only by match-3's own finale, so nothing is doubled.
 - **The clock stops mattering.** It froze mid-count and then sat there for the whole payout looking like a live countdown. `markClockCleared()` turns `#clock` / `#clock-bar` / `#vclock-fill` mint and stops the bar.
 
 **The number is kept, not wound down to zero.** Carry Time banks it and Clock Tower carries it, so it is still information; and a clock that runs itself down after you have already won reads as a penalty for winning.

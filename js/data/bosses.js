@@ -44,7 +44,7 @@ const BOSS_PRESETS = [
     flavor: 'Cards crumble into nothing',
     brief: 'Every 7 seconds one card is pulled off the board and shuffled back into your deck. Another falls in to replace it, so the board stays full - but the card you were building around may not be there when you reach for it.',
     objective: { type: 'score' },
-    // r212: the hole is REFILLED now (see periodic_null in js/boss.js), so this
+    // r213: the hole is REFILLED now (see periodic_null in js/boss.js), so this
     // is board churn rather than board destruction. 6s -> 7s alongside that,
     // because a refilling tick can safely be quicker than a shredding one and
     // the pair together land near the original threat level.
@@ -135,7 +135,7 @@ const BOSS_PRESETS = [
     brief: 'Three ranks are withdrawn at a time. Those cards stay on the board but cannot be played, swapped or discarded, and they carry a countdown. Every 45 seconds that set is reinstated and three different ranks are taken. Plan around what is down; it will come back.',
     objective: { type: 'score' },
     modifiers: ['rank_recall'],
-    // r212: ONE rank froze 1.23 cards of 16 on average and hit nothing at all 22%
+    // r213: ONE rank froze 1.23 cards of 16 on average and hit nothing at all 22%
     // of the time. Three at a time on a slower rotation is the owner's spec - it
     // hurts, it is plannable, and it still leaves most of the board live.
     params: { everySecs: 45, rankCount: 3 }

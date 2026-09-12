@@ -106,7 +106,7 @@ function isCardRecalled(card) {
   return bossNullRanks.has(card.rank);
 }
 // Seconds until the current rotation is reinstated, for the card countdown ring.
-// A withdrawn card had NO visual treatment at all before r212 - you found out it
+// A withdrawn card had NO visual treatment at all before r213 - you found out it
 // was inert by tapping it and nothing happening. It now wears the same greyed
 // tile and red countdown as a card The Hold has frozen (js/cooldown.js).
 function bossRecallSecondsLeft(card) {
@@ -334,7 +334,7 @@ function bossRotateTick(holdSecs) {
   renderTrickTray?.();
 }
 
-// THE RECALL (rebalanced r212). It used to withdraw ONE rank, and measured over
+// THE RECALL (rebalanced r213). It used to withdraw ONE rank, and measured over
 // 400 real 4x4 deals that froze an average of 1.23 cards out of 16 - and 22% of
 // the time the rank it picked was not on the board at all, so the boss did
 // literally nothing for that whole 36-second stretch. Speeding it up (r205, 45s
