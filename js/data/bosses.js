@@ -12,7 +12,7 @@ const BOSS_PRESETS = [
     objective: { type: 'score' },
     brief: 'The board starts part-buried: stones land on it immediately, scaled to its size, and almost a fifth of your deck is rubble for the rest of the round. A stone cannot be selected, played, swapped or discarded - it just takes up a cell until something clears it.',
     modifiers: ['inject_stones'],
-    // r214: stoneInjectCount is dead. The board dose is derived from the grid and
+    // r216: stoneInjectCount is dead. The board dose is derived from the grid and
     // the deck dose from the real deck size (see inject_stones in js/boss.js).
     params: { deckStoneFraction: 0.18 }
   },
@@ -32,7 +32,7 @@ const BOSS_PRESETS = [
     brief: 'Your deck is stacked against you: the low cards are near the top, so the early part of the round deals you far more of them than it should. Nothing is added or taken away - these are your own cards, in a bad order, and the good ones are still down there.',
     objective: { type: 'hand', handName: 'Flush', count: 2 },
     modifiers: ['low_card_infusion'],
-    // r214: this no longer rewrites the rank of a drawn card (which invented
+    // r216: this no longer rewrites the rank of a drawn card (which invented
     // cards that were not in the deck). It weights the DRAW PILE at boss start.
     params: { lowCardWeight: 0.7 }
   },

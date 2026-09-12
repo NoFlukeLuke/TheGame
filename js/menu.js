@@ -1,4 +1,4 @@
-const BUILD = '2026-09-12 · r214 · boss roster pass: Stone Lord, Famine, Cornerless King, Tollman, Hold, Turnstile, Redaction; Rota cut; boss banner no longer eaten by the reward grid';
+const BUILD = '2026-09-12 · r216 · boss roster pass: Stone Lord, Famine, Cornerless King, Tollman, Hold, Turnstile, Redaction; Rota cut; boss banner no longer eaten by the reward grid [onto r215]';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -7,7 +7,7 @@ const MODES = {
   normal: {
     id: 'normal',
     name: 'Classic',
-    desc: '3-Act structure. Play rounds, path through the reward grid, and defeat bosses.',
+    desc: 'Three quarters. Play rounds, path through the reward grid, and defeat bosses.',
     winCondition: 'boss_defeat',
     enableBosses: true,
     enableShops: true,
@@ -24,7 +24,7 @@ const MODES = {
   guided: {
     id: 'guided',
     name: 'Guided',
-    desc: 'The 3-Act game on a set route. Every act runs reward grid, Mart, reward grid, event, and so on into the boss - then a prize grid and two events.',
+    desc: 'The three-quarter game on a set route. Every quarter runs reward grid, Mart, reward grid, event, and so on into the boss - then a prize grid and two events.',
     winCondition: 'boss_defeat',
     enableBosses: true,
     enableShops: true,
@@ -60,7 +60,7 @@ const MODES = {
   sixsuits: {
     id: 'sixsuits',
     name: 'Six Suits',
-    desc: 'Same 3-Act game, but the deck has six suits - flushes are far rarer, so Flush of 3, 4, and 5 are all playable.',
+    desc: 'Same three-quarter game, but the deck has six suits - flushes are far rarer, so Flush of 3, 4, and 5 are all playable.',
     winCondition: 'boss_defeat',
     enableBosses: true,
     enableShops: true,
@@ -265,7 +265,7 @@ const MODE_META = {
   normal:   { accent: 'var(--c-yellow)', suits: '♠ ♥ ♦ ♣',
               blurb: 'The original four-suit game. Three Acts of rounds, shops, events and bosses.' },
   guided:   { accent: '#c9a0ff',         suits: 'SET ROUTE',
-              blurb: 'The same four-suit game with the path laid out for you. Instead of routing yourself from the reward grid, each act alternates reward grid, Mart, reward grid, event, into the boss - then a prize grid and two events. The Mart is guaranteed, so a run can always buy its way up the curve.' },
+              blurb: 'The same four-suit game with the path laid out for you. Instead of routing yourself from the reward grid, each quarter alternates reward grid, Mart, reward grid, event, into the boss - then a prize grid and two events. The Mart is guaranteed, so a run can always buy its way up the curve.' },
   sixsuits: { accent: 'var(--c-mint)',   suits: '♠ ♥ ♦ ♣ ★ ▲',
               blurb: 'Two extra suits dilute the deck, so flushes are hard-won. Flush of 3, 4 and 5 are all in play.' },
   spectrum: { accent: '#ff9d3c',        suits: '🔴 🟡 🔵 🟢 🟣 🟠 ⚫ ⚪',

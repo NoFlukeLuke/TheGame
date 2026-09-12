@@ -212,12 +212,37 @@ Phase 10 rules, on a grid. A played hand is broken into **components**, and ever
 
 **Selection Size was pure upside**: a maximum you raise and then keep playing Pairs. It now carries a floor with it - `minSelection()` in `js/limits.js` is `limit - 2`, floored at 1 (3 -> 1, 5 -> 3, 7 -> 5, 9 -> 7). You must commit that many cards to every hand, so a two-card Pair can no longer tick the board over or stand in for a free discard. Taking the upgrade is a real decision.
 
-- **It applies to the PLAY GRID ONLY.** `limits.selection` also caps the reward grid and the shop pickers; a minimum there would force you to take seven tiles.
+- **The PLAY GRID and the REWARD GRID both (r216).** It was the play grid's alone, which had it backwards: raising Selection Size made hands harder to commit while making the reward grid strictly easier. The shop pickers are still uncapped at the bottom - there you are spending credits, and a floor would be a bill, not a decision. See "The reward grid has a floor too" below.
 - **Enforced in four places, not one.** The PLAY button's `disabled` state (`js/render.js`), the auto-submit scheduler AND its firing callback (`js/input.js`), and a hard guard at the top of `playHand` - queued actions and any future keyboard path reach `playHand` without passing the button's state.
 - **The `#hand-name` label states the requirement** ("NEED / 5", red) instead of naming a hand. That is where the player is already looking to find out what they have, so it is where "you cannot play this yet, and why" belongs.
 - **`minSelectionBinds()`** is "does the minimum actually bite" (`> 2`). Two cards is the floor for a hand regardless, so at limit 3 and 4 nothing changes.
 - **High Card** (`HAND_BASE` 0 pips / x1 mult, `HAND_FOCUS` **0**) is the escape valve: a selection you are forced to make but cannot shape is still playable, and scores the cards' own pips and nothing else. `handWorth` puts it at 1, so it never beats a real component, and `recordNaturalScale` skips it (no NS family) so **it can never grow**.
 - **It is gated on `minSelectionBinds()`, and that gate is load-bearing.** With High Card live, `detectHand` returns non-null for ANY two cards, so nothing is ever "no hand here" - and **`tutorialFindDeadCards` finds cards in no hand at all**, which would have gone permanently empty. The tutorial runs at limit 3, where the gate keeps High Card off. Verified: 6 dead cards still found at limit 3, 0 regressions.
+
+### The reward grid has a floor too (r216)
+
+`rewardMinPicks()` in `js/reward-grid.js` is the reward grid's half of the rule above.
+
+- **Derived from `minSelection()`, NOT from `rewardSelectionCap()`.** Greedy Boi raises the reward-grid CEILING as a reward; having it raise the floor to match would staple a downside onto a knack meant to be pure upside. The floor is then held below the cap (`Math.min`), so a grid can never ask for more picks than it will accept.
+- **Enforced in three places**, the same shape as the play grid: the on-grid CONFIRM button (`updateRewardButtons`), the legacy overlay's `#reward-confirm`, and a hard guard at the top of `confirmRewardPath` - a queued tap reaches it without passing the button's state.
+- **CLEAR is deliberately NOT gated.** It only needs something to clear; gating it on the minimum would strand a short pick with no way to undo it.
+- **SKIP is untouched.** Taking nothing is a deliberate alternative with its own payout, not a short pick.
+- `#reward-sub` states the requirement and nothing else while it is unmet ("take 2 more to confirm, or SKIP to take none") - it is the only thing between the player and CONFIRM.
+- **The worst case is satisfiable, and it was worth checking**: the smallest grid in the game is the 3x3 prize grid, against a maximum floor of 7 at Selection Size 9. Measured in a real browser: all 9 tiles are reachable as one connected group, so CONFIRM is always attainable.
+
+### The two selection readouts (r216)
+
+They answer different questions and must not be collapsed back into one:
+
+| element | shows | where |
+|---|---|---|
+| `#sel-display` | **STATIC** - the Selection Size limit itself | top bar, beside the coins (portrait; landscape hides every `#top-bar .top-stat`) |
+| `#sel-count` | **LIVE** - `x/y`, what is in hand over what this screen will take | the board's own margin |
+
+- **`#sel-count` sits in the EMPTY MARGIN of `#grid-slot` around the centred `#grid`** - the band above the board in portrait, the gutter beside it in landscape. `applyGridMetricsToDOM` publishes `--grid-w` / `--grid-h`, so the box is sized `calc((100% - var(--grid-h)) / 2)` and its content is genuinely centred in that margin rather than nudged into place with a guessed offset. No JS measurement, no resize handler.
+- **It is a SIBLING of `#grid`, not a child.** `render()` rebuilds `#grid`'s children and `renderRewardTiles` empties it outright, so a child would be destroyed on the next repaint.
+- **`renderRewardTiles` calls `updateSelectionUI` itself.** A reward tile click calls `renderRewardTiles()` directly and never goes through `render()`, so wiring it into `render()` alone left the count frozen at 0 for the whole reward step.
+- Red below the minimum, gold at the cap, hidden when there is no board (the menu, where a stale "0/3" over an empty stage reads as a bug). `pointer-events:none`, `z-index:6` - the payout panel (40) covers it.
 
 **Junk cards rode along free between r199 and r201** - see "Every card must be load-bearing" below, which is where that ended. The minimum now costs you cards off the board AND the score of anything you cannot use.
 
@@ -720,7 +745,7 @@ The Metronome (clock runs at the Focus multiplier) · The Tollman (interact cost
 - The cards **fall out of the hand preview** (`bossMarkerFizzleFX`): the whole submitted hand is drawn into `#selected-cards` exactly as the scoring dance draws it - `renderCardAppearance` into the same `.dnc-*` skeleton - so sizing and the portrait overlap rules apply for free. Marked cards drop out of the bottom, the rest fade.
 - `bossEffectsIgnored()` (Fight the Power) bypasses both the marking and the intercept.
 
-### Boss roster pass (r214)
+### Boss roster pass (r216)
 
 Owner-specified retunes. **The Rota is deleted** - The Censor already owns "a Trick is off", and one-at-a-time was the readable half of a job that did not need two bosses. `trick_rotate` is left in `applyBossEffectModifier` with no preset pointing at it.
 
@@ -744,7 +769,7 @@ Owner-specified retunes. **The Rota is deleted** - The Censor already owns "a Tr
 
 **The Tollman's ordering was already correct too**, and is now locked in by a test: `playHandCostThisRound` is charged at `play-hand.js` ~line 452, which is AFTER `score += finalScore` (271) and AFTER `checkBossObjective` (343). Verified live - with **1 second left** on a Tollman round, a hand that costs 5s still scored, still met the goal and still won the boss.
 
-### #boss-banner and #boss-result were being destroyed by the reward grid (r214)
+### #boss-banner and #boss-result were being destroyed by the reward grid (r216)
 
 Both lived **inside `#grid`**, and `js/reward-grid.js` clears that element with `innerHTML = ''` in three places. A reward grid opens at the end of **every round**, so from the first one onward both elements were gone for the rest of the run - and `triggerBoss` then threw on `banner.querySelector(...)`, **half-starting the boss**: `bossActive` true and the modifiers applied, but no briefing, no PROCEED and no clock.
 
@@ -818,6 +843,31 @@ Dread, then a clean slate, for a boss that arrives with **no screen in front of 
 
 The **3-2-1 is now centred on the grid** in landscape - `#countdown-321-overlay` was `position:fixed; inset:0` with a 30% top pad, i.e. centred on the *viewport*. The **payout panel** is re-themed as a LETHE remittance advice (`css/boss.css`) - overrides only, so `interlude.js`'s animation classes still drive it.
 
+## A boss round ends like any other round (r213)
+
+Beating a boss used to be: the word `VICTORY` in gold Cinzel over the still-live board for 1.5s, then the prize grid. **No fall, no payout, no banner.** Three things followed from that, and all three are fixed:
+
+- **A boss paid ZERO credits.** Interest and the leftover-time bonus are awarded *inside* `showPayoutUI` (`coins += interestCoins` / `coins += efficiencyCoins`), which is called from exactly one place - `startInterlude` - which only ran off the goal hand. `isGoalHand` is false during a boss, so the longest and hardest round of the quarter was the only round in the game that paid nothing for beating the clock.
+- **Nothing marked the clear.** The gold serif was pre-cabinet leftovers (everything else moved to Orbitron / Share Tech Mono years of builds ago) and near-illegible over cream cards.
+- **Nothing marked the quarter boundary.** The pips still showed the skull, the clock still read gold like a live round, and the grid that opened looked like every other reward grid.
+
+`endBoss(true)`'s act path now fires `goalClearPresent()` and `startInterlude({ prize: true })`.
+
+- **`startInterlude(opts)` gained exactly one option.** `opts.prize` ends on `openPrizeGrid()` instead of `openRewardGrid()`; everything before it is identical. **Both endings set `rewardGridContext = 'interlude'`**, so `closeRewardGrid`'s `finishInterlude` continuation - which is what resets `nodeInAct` and advances `actNumber` at node 5 - is reached the same way either way. That is why this needed no new continuation.
+- **`endBoss` must set `frozenRoundSeconds` itself.** The payout's Efficiency line reads it, and it is normally written by the dance's goal path, which a boss never enters. Miss it and a boss pays the *previous* round's leftover time.
+- **The old `#boss-result` flash is now LOSS-ONLY.** A win's banner says the same thing better and names the boss; two captions over one board is one too many. `DEFEATED` is untouched.
+- **Survival and Flow get the banner and the clock lock but no payout** - they have no payout screen at all, by design. Their boss win still routes to `survivalPostBossReward()`.
+
+**The banner carries the boss's name.** `showGoalBanner(opts)` takes `opts.kicker` (replacing the word ROUND above the title) and `opts.force`. `force` exists because the banner is normally suppressed in Survival/Flow - their pick-of-three opens on that beat with its own kicker - but a boss win there opens the prize grid instead, so nothing else would say it. `.gb-boss` restyles the kicker line: a boss name at the kicker's 5px letter-spacing is wider than the stamp.
+
+### Leftover time pays double (r213) - `EFFICIENCY_SECONDS_PER_COIN`
+
+**1 credit per 5 seconds left, was per 10.** Owner's call: beating the clock is the main thing a well-played round does and it was paying about a fifth of a Trick. The constant lives in `js/data/cards.js` beside `ROUND_DURATION` and is read by **three** sites that must never disagree - the payout's figure, the payout's printed "1 per Ns remaining" label, and the count-up's per-coin tick - plus **Survival's own per-clear bonus** (`survivalAfterLevelUp`), which had the 10 written into it separately. Flow is unaffected: it banks no leftover time and pays flat coins.
+
+### Acts are QUARTERS (r213)
+
+Player-facing only: **Q1 / Q2 / Q3**, three of them, same structure. Everything in code - `actNumber`, `nodeInAct`, `isActMode`, `actStructure` - is unchanged, so nothing about the progression moved. The strings are `js/hud.js` (`'Q' + actNumber`, the `.rp-act` line in both run-progress blocks), `js/tricks-ui.js` (the act readout, both branches), the two `<div class="rp-act">` defaults in `index.html`, and four mode descriptions in `js/menu.js`. This and **QUOTA CLEARED** are deliberate exceptions to the r178 voice rule - the owner is putting the corporate framing back on the *structural* labels while the entity and action text stays plain.
+
 ## Goal clear (r197) - `js/goal-clear.js` + `css/goal-clear.css`
 
 Two things happen the instant the tally crosses `roundGoal` and the game said neither out loud.
@@ -827,6 +877,7 @@ Two things happen the instant the tally crosses `roundGoal` and the game said ne
 
 **The number is kept, not wound down to zero.** Carry Time banks it and Clock Tower carries it, so it is still information; and a clock that runs itself down after you have already won reads as a penalty for winning.
 
+- **`showGoalBanner(opts)` takes a kicker and a force flag** - see the boss-win section above.
 - **`flashRoundEnd()` is the single wiring point.** It is the one function in the game that means "the tally just crossed the goal" - both dances call it and nothing else does - so `goalClearPresent()` hangs off it rather than off the dance's two call sites. `startRoundTimer()` is the single release point (it also clears any muffle, below).
 - **The banner is body-level and `position:fixed`, placed from JS in raw viewport px**, same rule as the Time / Limits pop-ups and the hand log: anything inside `#cabinet` inherits its CSS `zoom` and the coordinates get multiplied. It is centred on the **grid** rect rather than the viewport, so one rule covers both orientations. By the time it fires the board has already been cleared by the finale, so it lands on an empty grid.
 - **Survival and Flow get the clock state but not the banner** - their pick-of-three opens on this same beat and already carries a GOAL CLEARED kicker. **Flow does not get the clock state either**: its clock is a session countdown to the inspection, not a round clock, so it does not stop at a goal clear and marking it cleared would be a lie.

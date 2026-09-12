@@ -1153,6 +1153,10 @@ function renderRewardTiles(animateIn = false) {
     }
   }
   updateRewardButtons();
+  // The live x/y readout, here rather than in render(): a reward tile click calls
+  // renderRewardTiles() directly and never goes through render(), so wiring it there
+  // alone left the count frozen at 0 for the whole reward step.
+  if (typeof updateSelectionUI === 'function') updateSelectionUI();
   // The tiles were just thrown away and rebuilt, so the pinned tooltip has to be
   // re-anchored to the new node for the tile it belongs to (r182).
   restoreRewardTooltip();
@@ -1182,8 +1186,10 @@ function updateRewardButtons() {
   const hasAny = rewardSelected.size > 0;
   const play = document.getElementById('btn-play');
   const disc = document.getElementById('btn-discard');
-  if (play) play.disabled = !hasAny;   // CONFIRM
-  if (disc) disc.disabled = !hasAny;   // CLEAR
+  // CONFIRM needs the minimum; CLEAR only needs something to clear, or a short
+  // pick would strand the player with no way to undo it.
+  if (play) play.disabled = !rewardPicksMet();   // CONFIRM
+  if (disc) disc.disabled = !hasAny;             // CLEAR
 }
 
 // Repurpose the two action buttons for the reward step (green CONFIRM / yellow CLEAR).
@@ -1400,15 +1406,20 @@ function renderRewardGrid() {
     if (typeof updateSelectionUI === 'function') updateSelectionUI();
     const picks = `Picks: ${rewardSelected.size}/${cap}`;
     const atCap = rewardSelected.size >= cap;
-    subEl.textContent = atCap
-      ? `${picks} - selection full. Confirm, or tap a pick to remove it.`
-      : selectedDest
-        ? `${picks} - destination locked in. Confirm to set your route.`
-        : `${picks} - choose a connected group. At most one destination.`;
+    const need  = rewardMinPicks() - rewardSelected.size;
+    // Short of the floor, say so and say nothing else - it is the only thing
+    // standing between the player and CONFIRM.
+    subEl.textContent = need > 0
+      ? `${picks} - take ${need} more to confirm, or SKIP to take none.`
+      : atCap
+        ? `${picks} - selection full. Confirm, or tap a pick to remove it.`
+        : selectedDest
+          ? `${picks} - destination locked in. Confirm to set your route.`
+          : `${picks} - choose a connected group. At most one destination.`;
   }
 
   const hasAny = rewardSelected.size > 0;
-  document.getElementById('reward-confirm').disabled = !hasAny;
+  document.getElementById('reward-confirm').disabled = !rewardPicksMet();
   document.getElementById('reward-clear').disabled   = !hasAny;
 }
 
@@ -1416,6 +1427,23 @@ function renderRewardGrid() {
 function rewardSelectionCap() {
   return limits.selection.current + (hasKnack('greedy_boi') ? BAL.greedy_boi.selection : 0);
 }
+
+// ── The minimum applies here too (r214) ──
+// Selection Size carries a floor as well as a cap (minSelection(), js/limits.js), and
+// until now that floor was the play grid's alone - so raising the limit made hands
+// harder to commit while making the reward grid strictly easier. One rule, both grids.
+//
+// It is derived from minSelection(), NOT from rewardSelectionCap(): Greedy Boi raises
+// the ceiling as a reward, and having it raise the floor with it would be a downside
+// stapled to a knack that is meant to be pure upside.
+// The floor is also held BELOW the cap, so a grid can never demand more picks than it
+// will accept - the two come from different places once Greedy Boi is in play.
+function rewardMinPicks() {
+  const min = (typeof minSelection === 'function') ? minSelection() : 1;
+  return Math.max(1, Math.min(min, rewardSelectionCap()));
+}
+// SKIP is unaffected - taking nothing is a deliberate alternative, not a short pick.
+function rewardPicksMet() { return rewardSelected.size >= rewardMinPicks(); }
 
 // A cell is selectable if: nothing selected yet (any cell), OR orthogonally adjacent to any selected cell and not already selected
 function isRewardCellSelectable(r, c) {
@@ -1662,6 +1690,9 @@ async function animateRewardResolve() {
 
 async function confirmRewardPath() {
   if (rewardConfirmed || rewardDealing || rewardSelected.size === 0) return;
+  // Hard guard: a queued tap or a keyboard path reaches here without passing the
+  // button's disabled state, the same reason playHand re-checks the play grid's floor.
+  if (!rewardPicksMet()) return;
   rewardConfirmed = true;
   const play = document.getElementById('btn-play');
   const disc = document.getElementById('btn-discard');

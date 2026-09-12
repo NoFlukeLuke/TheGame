@@ -47,13 +47,21 @@ function goalBannerEl() {
 // crossed the goal". Wiring it there rather than at the dance's two call sites
 // means both the preview dance and the legacy dance get it, and a future caller
 // does too.
-function showGoalBanner() {
-  // Survival and Flow open their pick-of-three on this same beat, and its panel
-  // already carries a GOAL CLEARED kicker. Two banners in one place is one too many.
-  if (typeof survivalActive === 'function' && survivalActive()) return;
+// `opts.kicker` replaces the small word above the title - a boss win passes the
+// boss's NAME, so the one stamp both marks the clear and says what you beat.
+// `opts.force` shows it even in Survival/Flow: their pick-of-three normally opens
+// on this same beat carrying its own GOAL CLEARED kicker (two banners in one place
+// is one too many), but a boss win there opens the prize grid instead, so there is
+// nothing else saying it.
+function showGoalBanner(opts) {
+  opts = opts || {};
+  if (!opts.force && typeof survivalActive === 'function' && survivalActive()) return;
   if (document.body.classList.contains('reduced-motion')) { /* still show it, just no burst */ }
 
   const el = goalBannerEl();
+  const kick = el.querySelector('.gb-kicker');
+  if (kick) kick.textContent = opts.kicker || 'ROUND';
+  el.classList.toggle('gb-boss', !!opts.kicker);
   const num = document.getElementById('goal-banner-num');
   if (num) num.textContent = (typeof roundGoal === 'number' ? roundGoal.toLocaleString() : '');
 
@@ -104,7 +112,7 @@ function clearClockCleared() {
 }
 
 // One entry point, so a new goal-clear path only has to call this.
-function goalClearPresent() {
-  showGoalBanner();
+function goalClearPresent(opts) {
+  showGoalBanner(opts);
   markClockCleared();
 }

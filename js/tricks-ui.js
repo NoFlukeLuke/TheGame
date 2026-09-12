@@ -700,11 +700,11 @@ function updateActProgressUI() {
   if (isActMode()) {
     labelEl.textContent = 'Progress';
     if (bossActive) {
-      valEl.textContent  = `ACT ${actNumber} · BOSS`;
+      valEl.textContent  = `Q${actNumber} · BOSS`;
       valEl.style.color  = '#ff6b6b';
     } else {
       const _next = (typeof guidedNextStopLabel === 'function') ? guidedNextStopLabel() : '';
-      valEl.textContent  = `ACT ${actNumber} · ${nodeInAct}/5` + (_next ? ` · ${_next}` : '');
+      valEl.textContent  = `Q${actNumber} · ${nodeInAct}/5` + (_next ? ` · ${_next}` : '');
       valEl.style.color  = '';
     }
   } else {

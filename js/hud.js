@@ -69,20 +69,43 @@ function updateDanceSubboxes(pips, mult) {
   if (mult !== prevMult) { animateDigitEl(multEl, parseFloat(mult.toFixed(1))); popSubbox('mult-box'); }
 }
 
-// ── Selection-size readout (r197) ──
-// How many cards are in hand right now, beside the coin count. On the reward grid
-// the same chip switches to selected/max, because there the cap is the thing being
-// played against (the grid refuses a pick past it) rather than a background limit.
+// ── Selection readouts (r197, split r214) ──
+// TWO readouts, deliberately answering different questions:
+//   #sel-display (top bar, beside the coins) is STATIC - the Selection Size limit
+//     itself. It is a property of the run, so it only moves when the limit is
+//     upgraded, and it is readable at a glance without tracking a live count.
+//   #sel-count (in the board's own margin) is the LIVE tally, x/y, where x is what
+//     is in hand right now and y is the most this screen will take. On the reward
+//     grid that is picked tiles over the pick cap.
+// Both are written here so they can never disagree about the cap.
 function updateSelectionUI() {
-  const el = document.getElementById('sel-display');
-  if (!el) return;
   const onReward = (typeof rewardOnGrid !== 'undefined' && rewardOnGrid);
   const n   = onReward ? rewardSelected.size : selected.length;
   const cap = onReward ? rewardSelectionCap() : limits.selection.current;
-  el.textContent = onReward ? `✋ ${n}/${cap}` : `✋ ${n}`;
-  el.classList.toggle('sel-full', n >= cap);
+  const min = onReward ? (typeof rewardMinPicks === 'function' ? rewardMinPicks() : 1)
+                       : (typeof minSelection  === 'function' ? minSelection()  : 1);
+
+  // Top bar: the limit, not the count.
+  const el = document.getElementById('sel-display');
+  if (el) {
+    el.textContent = `✋ ${limits.selection.current}`;
+    el.classList.remove('sel-full');
+  }
   const st = document.getElementById('sel-stat');
-  if (st) st.classList.toggle('sel-active', n > 0);
+  if (st) st.classList.remove('sel-active');
+
+  // Board margin: the live tally.
+  const cEl = document.getElementById('sel-count');
+  const vEl = document.getElementById('sel-count-val');
+  if (!cEl || !vEl) return;
+  // Only where a selection means something. The menu and the between-round screens
+  // leave the board empty, and a stale "0/3" hanging over it reads as a bug.
+  const live = onReward || (typeof gridData !== 'undefined' && gridData && gridData.length > 0);
+  cEl.classList.toggle('on', !!live);
+  if (!live) return;
+  vEl.textContent = `${n}/${cap}`;
+  cEl.classList.toggle('below', n > 0 && n < min);
+  cEl.classList.toggle('full',  n >= cap);
 }
 
 function updateCoinsUI() {
@@ -111,9 +134,9 @@ function updateRunProgressUI() {
   document.querySelectorAll('.rp-block').forEach(rp => {
     rp.classList.toggle('boss-sigil', bossOn);
     const act = rp.querySelector('.rp-act');
-    // Outside the 3-Act structure (Survival) "ACT n" is meaningless, but a boss
+    // Outside the three-quarter structure (Survival) "Qn" is meaningless, but a boss
     // still needs a name over its mark.
-    if (act) act.textContent = actMode ? ('ACT ' + actNumber) : (bossOn ? 'BOSS' : '');
+    if (act) act.textContent = actMode ? ('Q' + actNumber) : (bossOn ? 'BOSS' : '');
     rp.querySelectorAll('.rp-nodes span:not(.boss)').forEach((s, i) => {
       s.classList.toggle('on', i < nodeInAct);
       s.classList.toggle('cur', i === nodeInAct);

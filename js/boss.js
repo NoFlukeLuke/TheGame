@@ -179,7 +179,7 @@ function applyBossModifiers(preset) {
     if (typeof applyBossEffectModifier === 'function' && applyBossEffectModifier(mod, preset.params || {})) return;
     switch (mod) {
       case 'inject_stones': {
-        // r214: two separate doses, because they do different jobs.
+        // r216: two separate doses, because they do different jobs.
         //
         // 1. STONES ON THE BOARD, NOW. Before this every stone went into the draw
         //    pile, so the boss opened on a perfectly clean board and the player
@@ -217,7 +217,7 @@ function applyBossModifiers(preset) {
         swaps = Math.max(0, swaps + bossSwapsDelta);
         render();
         break;
-      // r214: halve BOTH pools rather than shaving one swap. "-50% rounded down"
+      // r216: halve BOTH pools rather than shaving one swap. "-50% rounded down"
       // is the amount TAKEN, so an odd pool keeps the larger half: 5 -> 3, 4 -> 2.
       case 'ration_half': {
         const _ds = Math.floor(swaps * 0.5), _dd = Math.floor(discards * 0.5);
@@ -330,7 +330,7 @@ function clearBossModifiers() {
   if (typeof clearBossEffects === 'function') clearBossEffects();
 }
 
-// ── THE HAND OF FAMINE (r214) - it reorders the DECK, it does not forge cards ──
+// ── THE HAND OF FAMINE (r216) - it reorders the DECK, it does not forge cards ──
 //
 // It used to REWRITE the rank of a card as it was drawn: `{...card, rank: '3'}`.
 // That worked, in the sense that low cards appeared - but it invented cards that
@@ -819,27 +819,43 @@ function endBoss(success) {
   document.getElementById('clock-bar').classList.remove('boss-mode');
   updateActProgressUI();
 
-  // Result flash
-  const resultEl = document.getElementById('boss-result');
-  const resultText = document.getElementById('boss-result-text');
-  resultText.className = 'boss-result-text ' + (success ? 'win' : 'loss');
-  resultText.textContent = success ? 'VICTORY' : 'DEFEATED';
-  resultEl.classList.add('show');
-  setTimeout(() => resultEl.classList.remove('show'), 1500);
+  // Result flash. A WIN no longer uses it: the goal-clear banner below says the same
+  // thing better (it names the boss, and it is the same stamp every other cleared
+  // round gets), and two captions over one board is one too many. A LOSS keeps it.
+  const _beaten = success ? (currentBoss && currentBoss.name) : null;
+  if (!success) {
+    const resultEl = document.getElementById('boss-result');
+    const resultText = document.getElementById('boss-result-text');
+    resultText.className = 'boss-result-text loss';
+    resultText.textContent = 'DEFEATED';
+    resultEl.classList.add('show');
+    setTimeout(() => resultEl.classList.remove('show'), 1500);
+  }
 
   if (success) {
     render();
+    // A cleared boss is a cleared round, and is now marked like one: the QUOTA
+    // CLEARED stamp (carrying the boss's name as its kicker) and the clock locking
+    // mint. js/goal-clear.js; `force` because Survival suppresses the banner for
+    // its pick-of-three, which a boss win does not open.
+    frozenRoundSeconds = roundSeconds;   // the payout's Efficiency line reads this
+    if (typeof goalClearPresent === 'function') goalClearPresent({ kicker: _beaten, force: true });
     if (survivalActive()) {
       // Survival: no reward grid - a bonus pick-of-three, then back to normal rounds.
       // The banked time was spent on this boss, so reset it for the next 8-clear cycle.
+      // (No payout here: Survival has no payout screen at all, by design.)
       survivalBossTimeBank = 0;
       setTimeout(() => survivalPostBossReward(), 1100);
     } else if (isActMode()) {
-      // Node-based: the post-boss grid is an interlude that starts the next act.
-      // nodeInAct stays at 5 so closeRewardGrid knows to reset it and advance actNumber.
-      // Since r179 that grid is the PRIZE grid - smaller, all rewards, no commons -
-      // and it REPLACES the ordinary reward grid rather than following it.
-      setTimeout(() => { rewardGridContext = 'interlude'; openPrizeGrid(); }, 1000);
+      // Node-based: a boss round ends EXACTLY like any other cleared round - cards
+      // fall, the payout counts up, and only then the grid. It used to jump straight
+      // to the prize grid, and since credits are awarded inside showPayoutUI (interest
+      // and leftover-time), that meant the hardest round of the act paid nothing at all.
+      // The prize grid still replaces the ordinary reward grid; startInterlude's
+      // `prize` option is the whole difference. nodeInAct stays at 5 so
+      // closeRewardGrid's finishInterlude resets it and advances actNumber.
+      gameTimerPaused = true;
+      setTimeout(() => startInterlude({ prize: true }), 900);
     } else {
       // Timer-based modes: restore round timer and resume the interrupted round
       roundSeconds = savedRoundSeconds;

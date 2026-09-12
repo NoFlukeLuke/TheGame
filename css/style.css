@@ -1086,6 +1086,36 @@
     position: relative;
   }
 
+  /* ── SELECTION COUNT (r216) ──
+     Lives in the EMPTY MARGIN of #grid-slot around the centred #grid: the band
+     above the board in portrait, the gutter beside it in landscape. Both are sized
+     from --grid-w / --grid-h (js/grid-metrics.js), so the box is exactly the margin
+     and its content is genuinely centred in it rather than nudged with a guess.
+     pointer-events:none - it is a readout sitting over the board's own space. */
+  #sel-count {
+    position: absolute;
+    display: none;
+    align-items: center; justify-content: center;
+    pointer-events: none;
+    z-index: 6;
+    font-family: 'Share Tech Mono', monospace;
+    letter-spacing: 1px;
+    color: var(--cream-dim);
+    transition: color .15s ease;
+  }
+  #sel-count.on { display: flex; }
+  /* Below the minimum the selection cannot be played at all, so it reads as a
+     warning rather than as a tally. Same state the hand label shows as "NEED / n". */
+  #sel-count.below { color: var(--red); text-shadow: 0 0 8px rgba(255,90,106,.4); }
+  #sel-count.full  { color: var(--gold); text-shadow: 0 0 8px rgba(245,192,66,.45); }
+
+  /* Portrait: the band between the top of the slot and the top of the board. */
+  #stage:not(.landscape) #sel-count {
+    left: 0; right: 0; top: 0;
+    height: calc((100% - var(--grid-h, 0px)) / 2);
+    font-size: 13px;
+  }
+
   /* ── GRID ── */
   #grid-wrap { display: none; }
 
@@ -4020,6 +4050,14 @@
   #stage.landscape #focus-meter-wrap { position:absolute; left:39.9%; top:1.39%; width:4.6%; height:96.67%; }
   #stage.landscape #focus-bar-outer { width:21px; }   /* landscape focus bar (25% thinner than the old 28px) */
   #stage.landscape #grid-slot      { position:absolute; left:45%; top:11.11%; width:45%; height:86.11%; }
+  /* Landscape: the gutter between the board's right edge and the action column. */
+  #stage.landscape #sel-count {
+    top: 0; bottom: 0; right: 0;
+    left: auto;
+    height: auto;
+    width: calc((100% - var(--grid-w, 0px)) / 2);
+    font-size: 12px;
+  }
   #stage.landscape #run-progress   { left:90.63%; top:1.39%; width:8.59%; height:8.33%; flex-direction:column; align-items:center; justify-content:center; gap:3px; padding:3px; }
   /* r169 - swap first, then discard, then play. The three still span 11.11% →
      97.22% with 1.39% gaps; the extra height for swap comes off PLAY. */

@@ -159,7 +159,7 @@ function bossOnInteract(kind) {
     if (typeof updateScoreUI === 'function') updateScoreUI();
   }
 
-  // The Turnstile: a flat fee per interaction. Since r214 it is a REAL toll -
+  // The Turnstile: a flat fee per interaction. Since r216 it is a REAL toll -
   // you cannot pass without the fare (see bossInteractBlocked, which refuses the
   // action before it happens). By the time this runs the fare is known to be
   // affordable, so it is a straight deduction rather than a partial seizure.
@@ -194,7 +194,7 @@ function bossInteractBlocked(kind) {
   return false;
 }
 
-// ── The Redaction (reworked r214) - a whole FAMILY, and it rotates ───────────
+// ── The Redaction (reworked r216) - a whole FAMILY, and it rotates ───────────
 //
 // It used to mark down ONE hand type for the whole round, chosen once. On a game
 // whose hands layer (a suited run pays Run of 3 AND Flush of 3) naming a single
@@ -608,7 +608,7 @@ function applyBossEffectModifier(mod, params) {
       return true;
     case 'card_hold':
       bossHoldEvery = params.everySecs || 13;
-      // r214: TWO cards per tick, on a 13s cadence. One card every 15s was a
+      // r216: TWO cards per tick, on a 13s cadence. One card every 15s was a
       // rounding error on a 16-cell board; two on a shorter clock means a hold is
       // usually live somewhere while you are choosing a hand. Contingency Plan
       // shrinks the count, as it does every other magnitude.
