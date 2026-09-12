@@ -206,15 +206,29 @@ function applyBossModifiers(preset) {
         break;
       }
       case 'periodic_null': {
-        const intervalSecs = preset.params.nullIntervalSecs || 6;
+        const intervalSecs = preset.params.nullIntervalSecs || 7;
         const count = preset.params.nullCount || 1;
-        // Armed, not started: bossSchedule holds the effect until the boss CLOCK
-        // starts (bossStartScheduledEffects, from startBossTimer) instead of
-        // firing behind the briefing panel, and it is also the one place the
-        // Contingency Plan knack stretches an interval. This was a raw
-        // setInterval until r211, which is why The Hollow alone got neither.
+        // THE HOLLOW, rebalanced r212: it CHURNS the board, it does not shred it.
+        //
+        // It used to null the cell and leave the hole - no gravity, no refill -
+        // so holes accumulated until a discard happened to run the fall pass.
+        // Measured live at the r211 interval of 6s with the player not acting:
+        // 16 cards -> 9 cards and 7 holes by t+39s, at which point the board had
+        // fragmented so badly that findBestHand could not return a single legal
+        // hand. Left alone it stripped all 16 cells in 96 seconds. That is a boss
+        // that can hand you an unwinnable round, and "the board shrinks" is
+        // already The Quarantine's job - so this was both dangerous and a
+        // duplicate.
+        //
+        // Going through removeAndFall means the board is always refilled: you
+        // lose the CARD you were building a hand around, on a clock, and the
+        // board stays playable. That is a mechanic nothing else in the roster
+        // has, and it cannot strand the round.
         bossSchedule(intervalSecs, () => {
-          // Replace `count` random normal cards (not Tricks/Sleights) with null
+          // Never fight the player's own animation - removeAndFall takes the
+          // falling lock, and starting one on top of a swap or a score cuts that
+          // animation short. Skipping a tick is free; the next one is 7s away.
+          if (animating || falling) return;
           const candidates = [];
           for (let r = 0; r < gridRows; r++)
             for (let c = 0; c < gridCols; c++) {
@@ -222,17 +236,18 @@ function applyBossModifiers(preset) {
               if (card && !card._isTrick && !card._isSleight && !card._isStone && card.rank)
                 candidates.push([r, c]);
             }
+          const taken = [];
           for (let k = 0; k < count && candidates.length > 0; k++) {
             const idx = Math.floor(Math.random() * candidates.length);
-            const [r, c] = candidates.splice(idx, 1)[0];
-            if (gridData[r]?.[c]) {
-              const displaced = gridData[r][c];
-              if (displaced && displaced.rank) discardToDrawPile(displaced);
-              gridData[r][c] = null;
-            }
+            taken.push(candidates.splice(idx, 1)[0]);
           }
+          if (!taken.length) return;
+          // Back into the deck first, exactly as doDiscard does, then let the
+          // shared fall pass animate them out and refill behind them.
+          taken.forEach(([r, c]) => { const cd = gridData[r]?.[c]; if (cd) discardToDrawPile(cd); });
+          selected = selected.filter(([r, c]) => !taken.some(([tr, tc]) => tr === r && tc === c));
           showMessage('The Hollow claims a card', 'var(--red)');
-          render();
+          removeAndFall(taken, 'discard');
         });
         break;
       }

@@ -42,14 +42,14 @@ const BOSS_PRESETS = [
     id: 'the_hollow',
     name: 'THE HOLLOW',
     flavor: 'Cards crumble into nothing',
-    brief: 'Every 6 seconds a card is taken off the board and returned to your deck. Nothing falls into its place until the board next settles. Play what you can reach before it goes.',
+    brief: 'Every 7 seconds one card is pulled off the board and shuffled back into your deck. Another falls in to replace it, so the board stays full - but the card you were building around may not be there when you reach for it.',
     objective: { type: 'score' },
-    // r211: 8s -> 6s, 25% more often. NOTE: r205 read "the card-removal boss" as
-    // The Recall and sped that up too (45s -> 36s). The Hollow is the one that
-    // literally takes cards OFF the board; The Recall leaves them there, inert.
-    // Both are faster now - if only one was meant, this is the pair to look at.
+    // r212: the hole is REFILLED now (see periodic_null in js/boss.js), so this
+    // is board churn rather than board destruction. 6s -> 7s alongside that,
+    // because a refilling tick can safely be quicker than a shredding one and
+    // the pair together land near the original threat level.
     modifiers: ['periodic_null'],
-    params: { nullIntervalSecs: 6, nullCount: 1 }
+    params: { nullIntervalSecs: 7, nullCount: 1 }
   },
 
   // ── r150 roster ────────────────────────────────────────────────────────────
@@ -132,12 +132,13 @@ const BOSS_PRESETS = [
     id: 'the_recall',
     name: 'THE RECALL',
     flavor: 'That rank has been withdrawn',
-    brief: 'One rank is withdrawn from play at a time - those cards sit on the board, inert. Every 36 seconds the previous rank is reinstated and a different one is taken. No rank is recalled twice.',
+    brief: 'Three ranks are withdrawn at a time. Those cards stay on the board but cannot be played, swapped or discarded, and they carry a countdown. Every 45 seconds that set is reinstated and three different ranks are taken. Plan around what is down; it will come back.',
     objective: { type: 'score' },
     modifiers: ['rank_recall'],
-    // r205: 25% more often, so 45s -> 36s (45 / 1.25). Over a 180s window that is
-    // 5 recalls instead of 4.
-    params: { everySecs: 36 }
+    // r212: ONE rank froze 1.23 cards of 16 on average and hit nothing at all 22%
+    // of the time. Three at a time on a slower rotation is the owner's spec - it
+    // hurts, it is plannable, and it still leaves most of the board live.
+    params: { everySecs: 45, rankCount: 3 }
   },
   {
     id: 'the_auditor',

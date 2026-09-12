@@ -104,6 +104,14 @@ function cdForCard(card, r, c) {
     const info = bossCardHoldSecondsLeft(card);
     if (info) return { mode: 'off', left: info.left, total: info.total };
   }
+  // The Recall's withdrawn ranks (r212). Same treatment as a held card, because
+  // it is the same thing from the player's side: this card is on the board and
+  // you cannot use it yet, and here is when you can. Before this a withdrawn
+  // card looked completely ordinary and you discovered it by tapping it.
+  if (typeof bossRecallSecondsLeft === 'function') {
+    const info = bossRecallSecondsLeft(card);
+    if (info) return { mode: 'off', left: info.left, total: info.total };
+  }
   return null;
 }
 

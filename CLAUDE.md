@@ -707,7 +707,7 @@ Owned Tricks/knacks and already-granted sleights are filtered out of the pools s
 ### The r150 roster - `js/boss-effects.js`
 Eight bosses that all share one shape: **act once at round start, then on an interval**. `bossSchedule(secs, fn)` *is* that shape - it fires immediately then repeats - and it is the single place the **Contingency Plan** knack stretches timings, so a new boss inherits the knack interaction for free. `applyBossModifiers` calls `applyBossEffectModifier(mod, params)` first; it claims its own ids and returns true, leaving the legacy modifiers untouched.
 
-The Metronome (clock runs at the Focus multiplier) · The Tollman (interact costs ×2, +3s to play) · The Undertow (−10 Focus/15s) · The Quarantine (a cell goes dark every 15s, 10s warning) · The Censor (a Trick suspended 45s every 35s) · The Blight (3 cells contaminated every 20s) · The Recall (a rank withdrawn every 36s, never repeated - r205, 25% more often than the 45s it shipped with) · The Auditor (−1 swap or discard every 30s).
+The Metronome (clock runs at the Focus multiplier) · The Tollman (interact costs ×2, +3s to play) · The Undertow (−10 Focus/15s) · The Quarantine (a cell goes dark every 15s, 10s warning) · The Censor (a Trick suspended 45s every 35s) · The Blight (3 cells contaminated every 20s) · The Recall (three ranks withdrawn at a time, rotating every 45s - see the rebalance below) · The Auditor (−1 swap or discard every 30s).
 
 ### The Marker (r205) - a boss you cannot see working
 
@@ -720,11 +720,19 @@ The Metronome (clock runs at the Focus multiplier) · The Tollman (interact cost
 - The cards **fall out of the hand preview** (`bossMarkerFizzleFX`): the whole submitted hand is drawn into `#selected-cards` exactly as the scoring dance draws it - `renderCardAppearance` into the same `.dnc-*` skeleton - so sizing and the portrait overlap rules apply for free. Marked cards drop out of the bottom, the rest fade.
 - `bossEffectsIgnored()` (Fight the Power) bypasses both the marking and the intercept.
 
-### The Hollow (r211) - 25% more often, and on the shared schedule
+### The Hollow and The Recall, rebalanced (r212)
 
-`nullIntervalSecs` 8 → **6**. It was also the one boss in the file still using a **bare `setInterval`** rather than `bossSchedule`, so alone in the roster it got neither of the two things `bossSchedule` exists for: its opening tick fired behind the briefing panel (r179's fix) and the Contingency Plan knack could not stretch its interval. It is a `bossSchedule` entry now; `bossNullInterval` is dead and kept only as a no-op guard.
+Both had been sped up 25% by two sessions reading "the card-removal boss" differently (r205 took it as The Recall, r211 as The Hollow). Measuring them showed the cadence was never the problem in either case - **they were mis-tuned in opposite directions, and one of them was dangerous.**
 
-**Two bosses got the same 25% speed-up, from two readings of "the card-removal boss".** r205 read it as **The Recall** (45s → 36s); r211 read it as **The Hollow** (8s → 6s). The Hollow is the one that literally takes cards off the board and returns them to the deck; The Recall leaves them where they are and makes a rank inert. Both are faster now. If only one was meant, this is the pair to look at.
+**THE HOLLOW now CHURNS the board, it does not shred it.** It used to null the cell and leave the hole: no gravity, no refill, so holes accumulated until a discard happened to run the fall pass. Measured live at 6s with the player not acting: **16 cards -> 9 cards and 7 holes by t+39s**, at which point the board had fragmented so badly that `findBestHand` could not return a single legal hand, and left alone it stripped all 16 cells in **96 seconds**. A boss that can hand you an unwinnable round - and "the board shrinks" is already **The Quarantine's** job, so it was a dangerous duplicate as well.
+
+It now goes through **`removeAndFall`**, so the board is always refilled: you lose the CARD you were building a hand around, on a clock, and the board stays playable. Interval 6s -> **7s**, since a refilling tick can safely be quicker than a shredding one. Verified live: 16 cards and a legal hand available at every reading across a 40s window. **It must skip a tick while `animating || falling`** - `removeAndFall` takes the falling lock, and starting one on top of a swap or a score cuts that animation short.
+
+**THE RECALL takes THREE ranks at a time**, not one. One rank froze an average of **1.23 cards out of 16**, and **22% of the time the rank it picked was not on the board at all**, so the boss did nothing whatever for that whole stretch. Now `rankCount: 3` on a 45s rotation, and the draw **prefers ranks that are actually on the board** so a recall is never a no-op. Measured over 300 real deals: **4.6 cards frozen (29% of the board), 0 of 300 froze nothing.**
+
+- **`RECALL_MAX_BOARD_FRACTION` (0.4) clips the tail.** Biasing toward on-board ranks is what makes the boss bite, but a bad roll could pick three ranks holding 9 of 16 cells. Ranks are taken one at a time and the draw stops once the next would cross the cap (always keeping at least one). Average is unchanged at 4.6; worst case 9 -> 6.
+- **`bossNullRank` (a single rank) is now `bossNullRanks` (a Set).** `isCardRecalled` reads the Set.
+- **A withdrawn card wears a countdown now.** It had **no visual treatment at all** - you discovered a card was inert by tapping it and nothing happening. `bossRecallSecondsLeft()` feeds `cdForCard` (js/cooldown.js), so it gets the same greyed tile and red countdown ring as a card The Hold has frozen, for free.
 
 Three more (r151) hang off **`bossOnInteract(kind)`**, called from `doSwap`/`doDiscard`, and one score hook: The Ratchet (+5% objective per interact) · The Turnstile (−3 credits per interact) · The Redaction (one hand type scores ×0.4, picked once at boss start). **The Ratchet raises `roundGoal`** - since r155 the boss win bar IS `roundGoal` (`bossGoalMet()` is `score >= roundGoal`), so that is the one number `checkBossObjective` compares against. `objective.target` is vestigial for score bosses. (An earlier revision of this file claimed the opposite; the code has always matched what is written here.)
 

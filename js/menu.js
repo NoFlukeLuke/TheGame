@@ -1,4 +1,4 @@
-const BUILD = '2026-09-12 · r211 · events retheme, Clean Up rework, Card Market + Deck Trim, limit steps [onto r210]';
+const BUILD = '2026-09-12 · r212 · The Hollow churns instead of shredding; The Recall takes three ranks and shows a countdown';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
