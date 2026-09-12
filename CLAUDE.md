@@ -212,12 +212,37 @@ Phase 10 rules, on a grid. A played hand is broken into **components**, and ever
 
 **Selection Size was pure upside**: a maximum you raise and then keep playing Pairs. It now carries a floor with it - `minSelection()` in `js/limits.js` is `limit - 2`, floored at 1 (3 -> 1, 5 -> 3, 7 -> 5, 9 -> 7). You must commit that many cards to every hand, so a two-card Pair can no longer tick the board over or stand in for a free discard. Taking the upgrade is a real decision.
 
-- **It applies to the PLAY GRID ONLY.** `limits.selection` also caps the reward grid and the shop pickers; a minimum there would force you to take seven tiles.
+- **The PLAY GRID and the REWARD GRID both (r214).** It was the play grid's alone, which had it backwards: raising Selection Size made hands harder to commit while making the reward grid strictly easier. The shop pickers are still uncapped at the bottom - there you are spending credits, and a floor would be a bill, not a decision. See "The reward grid has a floor too" below.
 - **Enforced in four places, not one.** The PLAY button's `disabled` state (`js/render.js`), the auto-submit scheduler AND its firing callback (`js/input.js`), and a hard guard at the top of `playHand` - queued actions and any future keyboard path reach `playHand` without passing the button's state.
 - **The `#hand-name` label states the requirement** ("NEED / 5", red) instead of naming a hand. That is where the player is already looking to find out what they have, so it is where "you cannot play this yet, and why" belongs.
 - **`minSelectionBinds()`** is "does the minimum actually bite" (`> 2`). Two cards is the floor for a hand regardless, so at limit 3 and 4 nothing changes.
 - **High Card** (`HAND_BASE` 0 pips / x1 mult, `HAND_FOCUS` **0**) is the escape valve: a selection you are forced to make but cannot shape is still playable, and scores the cards' own pips and nothing else. `handWorth` puts it at 1, so it never beats a real component, and `recordNaturalScale` skips it (no NS family) so **it can never grow**.
 - **It is gated on `minSelectionBinds()`, and that gate is load-bearing.** With High Card live, `detectHand` returns non-null for ANY two cards, so nothing is ever "no hand here" - and **`tutorialFindDeadCards` finds cards in no hand at all**, which would have gone permanently empty. The tutorial runs at limit 3, where the gate keeps High Card off. Verified: 6 dead cards still found at limit 3, 0 regressions.
+
+### The reward grid has a floor too (r214)
+
+`rewardMinPicks()` in `js/reward-grid.js` is the reward grid's half of the rule above.
+
+- **Derived from `minSelection()`, NOT from `rewardSelectionCap()`.** Greedy Boi raises the reward-grid CEILING as a reward; having it raise the floor to match would staple a downside onto a knack meant to be pure upside. The floor is then held below the cap (`Math.min`), so a grid can never ask for more picks than it will accept.
+- **Enforced in three places**, the same shape as the play grid: the on-grid CONFIRM button (`updateRewardButtons`), the legacy overlay's `#reward-confirm`, and a hard guard at the top of `confirmRewardPath` - a queued tap reaches it without passing the button's state.
+- **CLEAR is deliberately NOT gated.** It only needs something to clear; gating it on the minimum would strand a short pick with no way to undo it.
+- **SKIP is untouched.** Taking nothing is a deliberate alternative with its own payout, not a short pick.
+- `#reward-sub` states the requirement and nothing else while it is unmet ("take 2 more to confirm, or SKIP to take none") - it is the only thing between the player and CONFIRM.
+- **The worst case is satisfiable, and it was worth checking**: the smallest grid in the game is the 3x3 prize grid, against a maximum floor of 7 at Selection Size 9. Measured in a real browser: all 9 tiles are reachable as one connected group, so CONFIRM is always attainable.
+
+### The two selection readouts (r214)
+
+They answer different questions and must not be collapsed back into one:
+
+| element | shows | where |
+|---|---|---|
+| `#sel-display` | **STATIC** - the Selection Size limit itself | top bar, beside the coins (portrait; landscape hides every `#top-bar .top-stat`) |
+| `#sel-count` | **LIVE** - `x/y`, what is in hand over what this screen will take | the board's own margin |
+
+- **`#sel-count` sits in the EMPTY MARGIN of `#grid-slot` around the centred `#grid`** - the band above the board in portrait, the gutter beside it in landscape. `applyGridMetricsToDOM` publishes `--grid-w` / `--grid-h`, so the box is sized `calc((100% - var(--grid-h)) / 2)` and its content is genuinely centred in that margin rather than nudged into place with a guessed offset. No JS measurement, no resize handler.
+- **It is a SIBLING of `#grid`, not a child.** `render()` rebuilds `#grid`'s children and `renderRewardTiles` empties it outright, so a child would be destroyed on the next repaint.
+- **`renderRewardTiles` calls `updateSelectionUI` itself.** A reward tile click calls `renderRewardTiles()` directly and never goes through `render()`, so wiring it into `render()` alone left the count frozen at 0 for the whole reward step.
+- Red below the minimum, gold at the cap, hidden when there is no board (the menu, where a stale "0/3" over an empty stage reads as a bug). `pointer-events:none`, `z-index:6` - the payout panel (40) covers it.
 
 **Junk cards rode along free between r199 and r201** - see "Every card must be load-bearing" below, which is where that ended. The minimum now costs you cards off the board AND the score of anything you cannot use.
 
