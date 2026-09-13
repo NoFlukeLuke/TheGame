@@ -1,4 +1,4 @@
-const BUILD = '2026-09-13 · r197 · scoring animates per trigger: every Trick pays out at its own moment, x mult shows as x, toasts you can read [onto r196]';
+const BUILD = '2026-09-13 · r220 · scoring animates per trigger: every Trick pays out at its own moment, x mult shows as x, toasts you can read [onto r219]';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -7,7 +7,7 @@ const MODES = {
   normal: {
     id: 'normal',
     name: 'Classic',
-    desc: '3-Act structure. Play rounds, path through the reward grid, and defeat bosses.',
+    desc: 'Three quarters. Play rounds, path through the reward grid, and defeat bosses.',
     winCondition: 'boss_defeat',
     enableBosses: true,
     enableShops: true,
@@ -18,13 +18,14 @@ const MODES = {
     actStructure: true,
     suitCount: 4
   },
-  // Guided: Classic with the route fixed instead of chosen. The reward grid's
-  // destination tile is suppressed and the act runs a set spine - see
-  // GUIDED_ACT_FLOW / GUIDED_POST_BOSS in js/guided-mode.js.
+  // Guided: an act is GUIDED_SLOTS_PER_ACT slots and then the boss, and every
+  // slot is either a round you play or something you buy with it. The reward
+  // grid is one of the things for sale, so it is not handed out per round and
+  // its destination tile stays suppressed. See js/guided-mode.js.
   guided: {
     id: 'guided',
     name: 'Guided',
-    desc: 'The 3-Act game on a set route. Every act runs reward grid, Mart, reward grid, event, and so on into the boss - then a prize grid and two events.',
+    desc: 'The three-quarter game on a set route. Every quarter runs reward grid, Mart, reward grid, event, and so on into the boss - then a prize grid and two events.',
     winCondition: 'boss_defeat',
     enableBosses: true,
     enableShops: true,
@@ -60,7 +61,7 @@ const MODES = {
   sixsuits: {
     id: 'sixsuits',
     name: 'Six Suits',
-    desc: 'Same 3-Act game, but the deck has six suits - flushes are far rarer, so Flush of 3, 4, and 5 are all playable.',
+    desc: 'Same three-quarter game, but the deck has six suits - flushes are far rarer, so Flush of 3, 4, and 5 are all playable.',
     winCondition: 'boss_defeat',
     enableBosses: true,
     enableShops: true,
@@ -258,14 +259,22 @@ function startMatch3FromMenu(modeId = 'match3') {
 // MODE SELECT (scroll-sideways carousel off the PLAY button)
 // ══════════════════════════════════════════════
 // The shipping modes, shown left→right in the carousel.
-const MODE_SELECT_LIST = ['tutorial', 'normal', 'guided', 'sixsuits', 'spectrum', 'survival', 'flow', 'match3', 'zen', 'dominoes'];
+//
+// Match-3, Zen and Dominoes are BUILT but not shown (r197). They are experiments
+// on a different loop - Match-3 plays its own matches and has no boss wiring at
+// all, Dominoes is beta - and listing them beside the real modes invited a player
+// to start one expecting the game the other nine modes are. They are still whole
+// and still reachable: the dev panel's MODES group launches any entry in MODES by
+// name, which is why the split is two lists rather than a deletion.
+const MODE_SELECT_LIST = ['tutorial', 'normal', 'guided', 'sixsuits', 'spectrum', 'survival', 'flow'];
+const MODE_HIDDEN_LIST = ['match3', 'zen', 'dominoes'];
 const MODE_META = {
   tutorial: { accent: '#8fd0ff',         suits: 'START HERE',
               blurb: 'LETHE Corp staff orientation. A normal Classic run with the terminal explaining each control as you reach it - scoring, Focus, limits, the reward path, the Mart. About three minutes.' },
   normal:   { accent: 'var(--c-yellow)', suits: '♠ ♥ ♦ ♣',
               blurb: 'The original four-suit game. Three Acts of rounds, shops, events and bosses.' },
-  guided:   { accent: '#c9a0ff',         suits: 'SET ROUTE',
-              blurb: 'The same four-suit game with the path laid out for you. Instead of routing yourself from the reward grid, each act alternates reward grid, Mart, reward grid, event, into the boss - then a prize grid and two events. The Mart is guaranteed, so a run can always buy its way up the curve.' },
+  guided:   { accent: '#c9a0ff',         suits: '8 SLOTS',
+              blurb: 'Each act is eight slots and then the boss. Every slot is either a round you play or something you buy with it - the Mart, a reward grid, or one of two events on offer. Buying power always costs a round you will not get to play, and the goal climbs either way, so the question is how much of the act you spend getting stronger rather than getting further.' },
   sixsuits: { accent: 'var(--c-mint)',   suits: '♠ ♥ ♦ ♣ ★ ▲',
               blurb: 'Two extra suits dilute the deck, so flushes are hard-won. Flush of 3, 4 and 5 are all in play.' },
   spectrum: { accent: '#ff9d3c',        suits: '🔴 🟡 🔵 🟢 🟣 🟠 ⚫ ⚪',
@@ -303,8 +312,44 @@ function scrollModes(dir) {
 
 function chooseMode(id) {
   ACTIVE_MODE = MODES[id] || MODES.normal;
+  // The tier is read off the card being played, not off a global the carousel
+  // happens to have left lying around - every card carries its own choice.
+  pendingDifficulty = difficultyForMode(id);
   document.getElementById('mode-select-overlay').classList.remove('show');
   startGame();
+}
+
+// ── Difficulty picker on a mode card (r193) ─────────────────────────────────
+// Three pips under the blurb with a ‹ › either side. The pips are the readout
+// (filled up to the chosen tier), the arrows are the control, and the tier's
+// name + what it changes are printed beneath so the choice is never a mystery
+// number. Only the pip row is re-rendered on a change, so the carousel does not
+// scroll-jump under the player's finger mid-choice.
+function renderModeTier(card, id) {
+  const row = card.querySelector('.mode-tier');
+  if (!row) return;
+  const n   = difficultyForMode(id);
+  const def = difficultyDef(n);
+  const max = difficultyUnlockedThrough();
+  row.style.setProperty('--tier-accent', def.accent);
+  row.innerHTML =
+    `<div class="mode-tier-ctl">` +
+      `<button class="mode-tier-arrow" data-d="-1" ${n <= 1 ? 'disabled' : ''} aria-label="Lower difficulty">&lsaquo;</button>` +
+      `<div class="mode-tier-pips" role="img" aria-label="Tier ${n} of ${max}">` +
+        DIFFICULTY_TIERS.map(t =>
+          `<span class="mode-tier-pip${t.n <= n ? ' on' : ''}${t.n > max ? ' locked' : ''}"></span>`).join('') +
+      `</div>` +
+      `<button class="mode-tier-arrow" data-d="1" ${n >= max ? 'disabled' : ''} aria-label="Raise difficulty">&rsaquo;</button>` +
+    `</div>` +
+    `<div class="mode-tier-name">TIER ${n} · ${def.name}</div>` +
+    `<div class="mode-tier-desc">${def.detail}</div>`;
+  row.querySelectorAll('.mode-tier-arrow').forEach(b => {
+    b.onclick = (e) => {
+      e.stopPropagation();
+      setDifficultyForMode(id, difficultyForMode(id) + parseInt(b.dataset.d, 10));
+      renderModeTier(card, id);
+    };
+  });
 }
 
 function renderModeSelect() {
@@ -321,7 +366,9 @@ function renderModeSelect() {
       `<div class="mode-card-name">${m.name}</div>` +
       `<div class="mode-card-suits">${meta.suits || ''}</div>` +
       `<div class="mode-card-blurb">${meta.blurb || m.desc}</div>` +
+      `<div class="mode-tier"></div>` +
       `<button class="mode-card-play">PLAY</button>`;
+    renderModeTier(card, id);
     card.querySelector('.mode-card-play').onclick = () => chooseMode(id);
     car.appendChild(card);
   });

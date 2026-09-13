@@ -16,6 +16,7 @@ const KNACK_POOL = [
   { id:'carry_time',      emoji:'🕰️',  name:'Clock Tower',      rarity:'rare',   desc:'Unused round seconds carry over (max 60s).' },
   { id:'safety_net',      emoji:'🪢',  name:'Safety Net',       rarity:'rare',   desc:'Once per game: if you miss the round goal, gain a 30s extension instead of failing.' },
   { id:'free_range_t',    emoji:'🦅',  name:'Free Range',       rarity:'rare',   desc:'Can swap any two non-adjacent cards, but limited to 2 swaps per round.' },
+  { id:'understudy',      emoji:'🎭',  name:'Understudy',       rarity:'rare',   desc:'Every 30 seconds one of your tricks is primed: it fires an extra time on your next hand.' },
   { id:'long_pause',      emoji:'🦉',  name:'Long Pause',       rarity:'common', desc:'All clock pauses last 1.5× as long.' },
   { id:'sundial',         emoji:'🌇',  name:'Sundial',          rarity:'common', desc:'Hands where every card shares a column pause the clock for 8 seconds.' },
   { id:'metronome',       emoji:'🥁',  name:'Metronome',        rarity:'common', desc:'Each round a hand type you can make is chosen; playing that hand type pauses the clock for 5 seconds.' },
@@ -31,6 +32,15 @@ const KNACK_POOL = [
   { id:'muscle_memory',   emoji:'🧠',  name:'Muscle Memory',    rarity:'common', desc:'Primed Tricks stay primed for one extra hand.' },
   { id:'curator',         emoji:'✦',   name:'Curator',          rarity:'rare',   desc:'+1 Trick Slot.' },
   { id:'short_suit',      emoji:'🃏',  name:'Short Suit',       rarity:'rare',   desc:'Flush of 3 and Flush of 4 become scorable hands.' },
+  // ── Natural Scaling knack (r198) ──
+  // Natural Scaling is per HAND TYPE now, so a family's growth sits in whichever
+  // hand you actually play. This pools it: every hand in a family reads the best
+  // bonus in that family. It REPLACES the hand's own bonus, never adds to it.
+  { id:'old_tricks',      emoji:'🎩',  name:'Old Tricks',       rarity:'epic',   desc:'Every hand type scores with the best growth anywhere in its family - sets, runs and flushes each pool their own. It replaces what that hand had earned, it does not add to it.' },
+  // ── Passenger knack (r201) ──
+  // A hand normally has to use every card you select; a spare makes it not a hand,
+  // and the spare is billed as a penalty card. This lifts that.
+  { id:'tagalong',       emoji:'🧳',  name:'Tagalong',        rarity:'rare',   desc:'Your hands may carry cards that are not part of them. Those cards still score their own pips instead of being billed as penalties.' },
   // ── Reward-grid / risk knacks (r129) ──
   { id:'shady_stimulants',emoji:'💊',  name:'Shady Stimulants', rarity:'rare',   desc:'Every negative reward tile you swallow sharpens you - permanently +1 maximum Focus per tile taken.' },
   { id:'greedy_boi',      emoji:'🤑',  name:'Greedy Boi',       rarity:'rare',   desc:'+2 selection size in the reward grid - grab more tiles at once.' },

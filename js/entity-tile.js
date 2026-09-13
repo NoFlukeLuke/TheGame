@@ -19,18 +19,24 @@ function entityTileInner(p, { mystery = false } = {}) {
   const kind  = p.entity || p.type;
   const label = p.label != null ? p.label : (p.name || '');
   const name  = `<div class="rwd-name">${label}</div>`;
+  // Improvement tier (r206). Drawn here rather than per surface, so the tray,
+  // the Mart strip, Records and the Shift Change slots all gain it at once. It
+  // needs the entity's id, which a caller may not pass - absent id, no badge,
+  // which is the right answer for a resource or debuff tile anyway.
+  const _tier = (p.id && typeof entityTierOf === 'function') ? entityTierOf(p.id) : 0;
+  const tierBadge = _tier > 0 ? `<div class="rwd-tier" title="Improved ${_tier}x">+${_tier}</div>` : '';
 
   if (kind === 'knack')
-    return `<div class="rwd-diamond"><span class="rwd-diamond-emoji">${p.emoji || p.icon || '♛'}</span></div>` + name;
+    return `<div class="rwd-diamond"><span class="rwd-diamond-emoji">${p.emoji || p.icon || '♛'}</span></div>` + name + tierBadge;
 
   if (kind === 'trick')
     return `<div class="rwd-glyph">✦</div>`
          + `<div class="rwd-art${mystery ? ' rwd-art-ph' : ''}">${mystery ? '✦' : (p.emoji || p.icon || '✦')}</div>`
-         + name;
+         + name + tierBadge;
 
   if (kind === 'sleight')
     return `<div class="rwd-tab">▶</div><div class="rwd-art">${p.emoji || p.icon || '🃏'}</div>` + name
-         + (p.uses != null ? `<div class="rwd-uses">${p.uses}</div>` : '');
+         + (p.uses != null ? `<div class="rwd-uses">${p.uses}</div>` : '') + tierBadge;
 
   // Card-face tiles (blessed / cursed / cull): mini playing card + name. The
   // explanation lives in the tooltip like every other tile.

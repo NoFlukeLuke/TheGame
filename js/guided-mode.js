@@ -1,65 +1,212 @@
 // ══════════════════════════════════════════════
-// GUIDED MODE (r191) - Classic with the route decided for you
+// GUIDED MODE (r218) - eight slots an act, and you buy what fills them
 // ══════════════════════════════════════════════
-// In Classic the reward grid carries a DESTINATION tile, and what comes after a
-// round is whatever the player routed themselves to. That is a real decision,
-// but it means a run can go a long stretch with no shop - which matters a lot in
-// a game where a run has to close a 1.227x-per-level gap out of its loadout (see
-// "Natural Scaling" in CLAUDE.md). Guided fixes the rotation instead: every act
-// runs the same legible spine, so the economy is guaranteed and the player can
-// see what is coming.
+// r191's Guided fixed the route: every act ran the same spine, so the Mart was
+// guaranteed. That solved the economy problem and removed the decision with it.
+// This replaces it. An act is **GUIDED_SLOTS_PER_ACT slots** and then the boss,
+// and every slot is filled by one of two kinds of thing:
 //
-// THE SPINE IS THIS TABLE. Index = the node whose reward grid just closed, value
-// = what happens between that grid and the next round. Changing the shape of a
-// Guided act is editing these two lines and nothing else.
-const GUIDED_ACT_FLOW  = ['shop', 'event', 'shop', 'event', null];  // nodes 0-4; node 4 leads to the boss
-const GUIDED_POST_BOSS = ['event', 'event'];                        // after the prize grid, before the next act
+//   - a LEVEL: play a round. Free, and how you earn credits.
+//   - a STOP: the Mart, a reward grid, or one of two offered events. Costs
+//     credits, and costs the slot.
+//
+// **The slots are the real currency, not the credits.** Buying power always
+// costs a round you will not get to play, so the question an act asks is how
+// much of your run you are willing to spend on getting stronger rather than on
+// getting further. Credits are only the second constraint.
+//
+// ── EVERY SLOT ADVANCES THE DIFFICULTY CURVE, BOUGHT OR PLAYED ───────────────
+// This is the load-bearing rule and the mode does not work without it. The goal
+// curve is driven by `level`, and `level++` lives in triggerLevelUp - which only
+// runs when a ROUND starts. So if a bought slot left the curve alone, a player
+// could buy six stops and meet the boss at level 2 holding a level-8 loadout.
+// That is not a strategy, it is the dominant strategy, and it would be the whole
+// mode within one run of finding it.
+//
+// So guidedAdvanceCurve() bumps `level` when a stop is bought, exactly as
+// finishing a round would. The bar you eventually face is set by how far through
+// the act you are, never by how you got there - and buying is still worth it,
+// because the goal climbs at GOAL_SCALE while base pips climb at only 1.1 and
+// the loadout you bought is what covers the difference.
+
+const GUIDED_SLOTS_PER_ACT = 8;
+const GUIDED_EVENT_OFFERS  = 2;   // how many events are on the board at once
 
 function guidedActive() { return !!ACTIVE_MODE && ACTIVE_MODE.guided === true; }
 
-// What follows the reward grid of `node`. Node 5 is the post-boss prize grid.
-function guidedStopsAfterNode(node) {
-  if (node === 5) return GUIDED_POST_BOSS.slice();
-  const stop = GUIDED_ACT_FLOW[node];
-  return stop ? [stop] : [];
+// Slots filled this act (0 .. GUIDED_SLOTS_PER_ACT). At the cap, the boss.
+let guidedSlot = 0;
+// The two events currently for sale, as { id, name, flavor, price }. Rolled once
+// per crossroads so the offer is a real decision rather than a fresh gamble each
+// time the screen repaints.
+let guidedEventOffers = [];
+// Set while a bought stop is running, so its close handler knows to come back
+// here rather than to the ordinary next-round path.
+let guidedInStop = false;
+
+function guidedResetRun() { guidedSlot = 0; guidedEventOffers = []; guidedInStop = false; }
+
+// ── Pricing ─────────────────────────────────────────────────────────────────
+// Events are priced by what they do rather than flat, so the pair on offer is
+// something to weigh. Anything unlisted falls back to the default.
+function guidedStopPrice(kind, id) {
+  const B = BAL.guided;
+  if (kind === 'shop')   return B.price_shop;
+  if (kind === 'reward') return B.price_reward;
+  return (B.price_event[id] != null) ? B.price_event[id] : B.price_event_default;
 }
 
-// Run a list of stops in order, then `done`. Each stop hands control to a screen
-// that closes on its own schedule, so this is a callback chain rather than a
-// loop - openEvent already takes a continuation, and the shop reports back
-// through resumeAfterNodeFlowShop (js/reward-grid.js).
-function guidedRunStops(stops, done) {
-  let i = 0;
-  const open = (stop) => {
-    if (stop === 'shop') {
-      shopFromNodeFlow = true;
-      nodeFlowAfterShop = next;
-      triggerShop();
-    } else if (stop === 'event') {
-      shopFromNodeFlow = false;
-      openEvent(next);
-    } else {
-      next();
-    }
-  };
-  // A beat between stops. The event overlay closes and reopens on the same
-  // element, so the post-boss event pair would otherwise hard-cut from one
-  // straight into the next and read as a glitch. The FIRST stop is not delayed -
-  // that transition already exists in Classic and is timed against the grid.
-  const next = () => {
-    if (i >= stops.length) { done(); return; }
-    const stop = stops[i];
-    if (i++ === 0) open(stop);
-    else setTimeout(() => open(stop), 280);
-  };
-  next();
+// ── The act ─────────────────────────────────────────────────────────────────
+// Called when whatever filled a slot has finished. One place decides "another
+// slot, or the boss", so no caller has to know how long an act is.
+function guidedAfterSlot() {
+  guidedInStop = false;
+  guidedSlot++;
+  // Keep the HUD's node pips honest - they read nodeInAct, and the sigil that
+  // replaces them on a boss round is driven from the same place.
+  nodeInAct = Math.min(5, Math.floor(guidedSlot * 5 / GUIDED_SLOTS_PER_ACT));
+  updateActProgressUI?.();
+  if (guidedSlot >= GUIDED_SLOTS_PER_ACT) { guidedStartBoss(); return; }
+  guidedOpenCrossroads();
 }
 
-// The next stop, for the act readout - so the spine is visible from the HUD
-// rather than only being discoverable by playing it.
+function guidedStartBoss() {
+  nodeInAct = 5;
+  updateActProgressUI?.();
+  forceBossNextRound = true;
+  drainLevelUpQueue();       // deals the round, then triggerLevelUp fires the boss
+}
+
+// After the post-boss prize grid. The act rolls over and, per the owner's spec,
+// the next act opens ON A LEVEL rather than on the crossroads - an act should
+// start by playing, not by shopping.
+function guidedAfterPrizeGrid() {
+  guidedInStop = false;
+  guidedSlot = 0;
+  guidedEventOffers = [];
+  nodeInAct = 0;
+  actNumber++;
+  deadCells = new Set();     // Dead Drop cells are an act-long penalty
+  updateActProgressUI?.();
+  if (actNumber > 3) { onGameWin(); return; }
+  drainLevelUpQueue();
+}
+
+// Buying a stop costs the same step on the goal curve that finishing a round
+// does. See the header - without this the mode has a dominant strategy.
+function guidedAdvanceCurve() {
+  level++;
+  if (typeof goalForLevel === 'function') roundGoal = goalForLevel(level);
+  updateScoreUI?.();
+}
+
+// ── The crossroads ──────────────────────────────────────────────────────────
+function guidedRollEvents() {
+  const pool = (typeof EVENT_META !== 'undefined') ? Object.keys(EVENT_META) : [];
+  const fresh = pool.filter(id => !(typeof recentEventIds !== 'undefined' && recentEventIds.includes(id)));
+  const draw  = (fresh.length >= GUIDED_EVENT_OFFERS) ? fresh : pool;
+  const picked = (typeof evShuffle === 'function' ? evShuffle(draw) : draw.slice()).slice(0, GUIDED_EVENT_OFFERS);
+  guidedEventOffers = picked.map(id => ({
+    id, name: EVENT_META[id].name, flavor: EVENT_META[id].flavor,
+    price: guidedStopPrice('event', id),
+  }));
+}
+
+function guidedOpenCrossroads() {
+  if (!guidedEventOffers.length) guidedRollEvents();
+  gameTimerPaused = true;
+  let el = document.getElementById('guided-crossroads');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'guided-crossroads';
+    document.body.appendChild(el);
+  }
+  const left = GUIDED_SLOTS_PER_ACT - guidedSlot;
+  const row = (kind, id, icon, name, desc, price) => {
+    const afford = coins >= price;
+    return `<button class="gx-opt${afford ? '' : ' locked'}" data-kind="${kind}" data-id="${id || ''}"${afford ? '' : ' disabled'}>
+      <span class="gx-icon">${icon}</span>
+      <span class="gx-body"><span class="gx-name">${name}</span><span class="gx-desc">${desc}</span></span>
+      <span class="gx-price">${price ? price + ' ◆' : 'FREE'}</span>
+    </button>`;
+  };
+  el.innerHTML = `
+    <div class="gx-panel">
+      <div class="gx-bar">
+        <span class="gx-act">ACT ${actNumber}</span>
+        <span class="gx-slots">${guidedSlot} / ${GUIDED_SLOTS_PER_ACT} SLOTS USED</span>
+        <span class="gx-coins">${coins} ◆</span>
+      </div>
+      <div class="gx-note">${left === 1
+        ? 'One slot left before the boss.'
+        : `${left} slots left before the boss. Everything here costs one of them.`}</div>
+      ${row('level', '', '▶', 'Play a round', 'Clear the goal and take the payout. This is how you earn.', 0)}
+      ${row('shop', '', '🛒', 'The Mart', 'Buy Tricks, Sleights, Knacks and limit upgrades.', guidedStopPrice('shop'))}
+      ${row('reward', '', '▦', 'Reward grid', 'Pick a path across the board and take everything on it.', guidedStopPrice('reward'))}
+      ${guidedEventOffers.map(e => row('event', e.id, '✧', e.name, e.flavor, e.price)).join('')}
+    </div>`;
+  el.querySelectorAll('.gx-opt').forEach(b => {
+    b.onclick = () => guidedChoose(b.dataset.kind, b.dataset.id);
+  });
+  el.classList.add('show');
+}
+
+function guidedCloseCrossroads() {
+  document.getElementById('guided-crossroads')?.classList.remove('show');
+}
+
+function guidedChoose(kind, id) {
+  const price = kind === 'level' ? 0 : guidedStopPrice(kind, id);
+  if (coins < price) return;
+  if (price) { coins -= price; updateCoinsUI?.(); }
+  guidedCloseCrossroads();
+
+  if (kind === 'level') {
+    // The round itself fills the slot; guidedAfterSlot runs when its payout ends.
+    drainLevelUpQueue();
+    return;
+  }
+
+  // A bought stop costs the same step on the curve a played round would.
+  guidedAdvanceCurve();
+  guidedInStop = true;
+  guidedEventOffers = [];            // re-roll the pair for the next crossroads
+
+  if (kind === 'shop') {
+    shopFromNodeFlow  = true;
+    nodeFlowAfterShop = () => guidedAfterSlot();
+    triggerShop();
+  } else if (kind === 'reward') {
+    // 'interlude', not a context of its own: that is the only value whose
+    // continuation reaches finishInterlude, where the guided return lives.
+    // Anything else falls through to the legacy timer path and the grid closes
+    // into nothing. guidedInStop is what tells this grid from the prize grid.
+    rewardGridContext = 'interlude';
+    openRewardGrid();
+  } else {
+    shopFromNodeFlow = false;
+    // Force the drawn event rather than letting openEvent pick - the player just
+    // paid for this specific one by name.
+    guidedOpenNamedEvent(id, () => guidedAfterSlot());
+  }
+}
+
+// openEvent draws from its own pool; the crossroads has already chosen. This is
+// the same open sequence with the draw replaced, so the no-repeat memory is still
+// fed and every other event behaviour is unchanged.
+function guidedOpenNamedEvent(id, afterFn) {
+  afterEventFn = afterFn || (() => drainLevelUpQueue());
+  activeEventId = id;
+  recentEventIds.push(id);
+  if (recentEventIds.length > EVENT_NO_REPEAT) recentEventIds.shift();
+  eventState = {};
+  renderEventShell(id);
+  document.getElementById('event-overlay').classList.add('show');
+}
+
+// The act readout's next stop, for the HUD.
 function guidedNextStopLabel() {
   if (!guidedActive()) return '';
-  if (nodeInAct === 5) return 'BOSS';
-  const stop = GUIDED_ACT_FLOW[nodeInAct];
-  return stop === 'shop' ? 'MART' : stop === 'event' ? 'EVENT' : (nodeInAct === 4 ? 'BOSS' : '');
+  return guidedSlot >= GUIDED_SLOTS_PER_ACT ? 'BOSS'
+       : `SLOT ${guidedSlot + 1}/${GUIDED_SLOTS_PER_ACT}`;
 }

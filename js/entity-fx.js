@@ -1,118 +1,175 @@
 // ══════════════════════════════════════════════
-// ENTITY EFFECT FX (r197) - js/entity-fx.js
+// ENTITY FX - "what affected what"  (r209)
 // ══════════════════════════════════════════════
-// Tricks, Knacks and Sleights pay out in five currencies, and until now only two
-// of them were ever animated. A Trick that added pips threw a particle at the PIPS
-// chip; a Trick that handed you 20 seconds, 8 credits, a swap or 5 Focus changed a
-// number somewhere and printed a line of text that was gone before you read it.
+// One system for the question a player asks constantly and the board never
+// answered: WHY is this card different? Two surfaces, one vocabulary.
 //
-// This is the same grammar as the scoring dance, pointed at the rest of the HUD:
-// the entity POPS, a symbol flies from it to the readout it changed, and a sound
-// plays. One function, one table of targets - so a new effect is a call, not a
-// new animation.
+//   1. A marked ROW or COLUMN gets a coloured LINE drawn down the board behind
+//      the cards (renderLineMarkers). It animates in when the Trick is acquired
+//      and then simply stays there for as long as the Trick is owned.
+//   2. A card singled out by a specific Trick gets a small corner MARK in that
+//      Trick's colour (cardMarkHTML), so "something is buffed here" reads at a
+//      glance and the glyph says which Trick did it.
 //
-// BASIC VERSION, deliberately (r197). Attribution is by ENTITY ID where the caller
-// knows it and by currency alone where it does not, in which case the symbol flies
-// from the middle of the tray rather than from a specific tile. Threading the id
-// through every grant site is the follow-up; the mechanism is here and correct.
+// Before this, 3 of the 9 position Tricks tinted their cards and the other 6
+// (Perfect Timing, Right Time, Study Hall, Groove, Assembly Line, Overtime) had
+// no indicator at all - the line they marked was a number in a tooltip. The per
+// card Tricks each had their own ad-hoc background wash and no way to tell them
+// apart. Both are now driven from ONE table.
+//
+// The table is the extension seam: a new position Trick needs a row in
+// LINE_FX_META, a new per-card Trick a row in CARD_MARK_META, and nothing else.
 
-// Where each currency lives on screen. Several are orientation-dependent, so each
-// is a LIST and the first one that is actually laid out wins - the same reason
-// js/tutorial.js tests by rect rather than by offsetParent.
-const EFX_TARGETS = {
-  time:     ['#clock', '#vclock', '#clock-area', '#time-display'],
-  credits:  ['#ci-coins', '#coins-display', '#coin-count', '#coins-chip'],
-  focus:    ['#focus-meter', '#focus-box', '#focus-val'],
-  swaps:    ['#swap-indicator', '#swaps-display'],
-  discards: ['#discard-btn', '#discards-display'],
-  score:    ['#score-mid', '#score-total-num'],
+// Colour + glyph per line-marking Trick. The colour is what makes two lines on
+// one board distinguishable; the glyph is printed on the line's end cap.
+const LINE_FX_META = {
+  rowcol_triple_pips: { color: '#3a6fca', glyph: '◆', name: 'Right Place' },
+  rowcol_mult:        { color: '#c0392b', glyph: '✕', name: 'Power Line' },
+  rowcol_retrigger:   { color: '#e0ddd0', glyph: '↻', name: 'Echo Location' },
+  perfect_timing:     { color: '#d9a129', glyph: '↻', name: 'Perfect Timing' },
+  right_time:         { color: '#5aa9e6', glyph: '⏸', name: 'Right Time' },
+  study_hall:         { color: '#8a5cf0', glyph: '◉', name: 'Study Hall' },
+  groove:             { color: '#c86bd8', glyph: '♪', name: 'Groove' },
+  assembly_line:      { color: '#3aa76d', glyph: '▲', name: 'Assembly Line' },
+  overtime:           { color: '#e07c3a', glyph: '⏮', name: 'Overtime' },
+};
+function lineFXMeta(id) { return LINE_FX_META[id] || { color: '#c9a84c', glyph: '●', name: id }; }
+
+// Per-card marks: a Trick that has singled out one cell. `covers(r,c)` is a
+// predicate rather than a single position because two of these are DERIVED - Ley
+// Line and Temporal Rift both fire wherever a row effect crosses a column
+// effect, which is a set of cells, not one. `leyLinePos` (js/deck-grid.js) was
+// the old single-cell answer and is never assigned by anything, so the
+// `.card.rc-leyline` tint it drove had been dead since it was written.
+const CARD_MARK_META = {
+  rowcol_perm_double: { color: '#f0c040', glyph: '\u2726', name: 'Ley Line',
+    covers: (r, c) => hasTrick('rowcol_perm_double') && isEffectIntersection(r, c) },
+  temporal_rift:      { color: '#7ec8e3', glyph: '\u23f8', name: 'Temporal Rift',
+    covers: (r, c) => hasTrick('temporal_rift') && isEffectIntersection(r, c) },
+  double_jeopardy:    { color: '#c83c3c', glyph: '\u203c', name: 'Double Jeopardy',
+    covers: (r, c) => typeof doubleJeopardyPos !== 'undefined' && doubleJeopardyPos
+                      && doubleJeopardyPos.r === r && doubleJeopardyPos.c === c },
+  woodpecker:         { color: '#5aaa5a', glyph: '\u26cf', name: 'The Woodpecker',
+    covers: (r, c) => typeof woodpeckerPos !== 'undefined' && woodpeckerPos
+                      && woodpeckerPos.r === r && woodpeckerPos.c === c },
+  // Heartwood's cell is Math.floor(rows/2) x Math.floor(cols/2) - the same
+  // expression play-hand.js uses, so the mark can never point at a different
+  // cell from the one that actually gets the buff.
+  heartwood:          { color: '#b8823a', glyph: '\u2764', name: 'Heartwood',
+    covers: (r, c) => hasTrick('heartwood')
+                      && r === Math.floor(gridRows / 2) && c === Math.floor(gridCols / 2) },
 };
 
-const EFX_STYLE = {
-  time:     { icon: '⏱', color: '#5aa9e6' },
-  rewind:   { icon: '⏪', color: '#5aa9e6' },
-  pause:    { icon: '⏸', color: '#7fd4ff' },
-  credits:  { icon: '💰', color: '#e8c56b' },
-  focus:    { icon: '◈',  color: '#a25cd8' },
-  swaps:    { icon: '⇄',  color: '#6fd08c' },
-  discards: { icon: '✕',  color: '#e07a5f' },
-};
-
-// First laid-out element from a target list. A zero-size rect means "not showing
-// in this orientation", which is exactly the case a plain getElementById misses.
-function efxTargetEl(kind) {
-  const list = EFX_TARGETS[kind] || [];
-  for (const sel of list) {
-    const el = document.querySelector(sel);
-    if (!el) continue;
-    const r = el.getBoundingClientRect();
-    if (r.width > 0 && r.height > 0) return el;
-  }
-  return null;
-}
-
-// Fly one symbol from `srcEl` to the readout for `kind`. Body-level and fixed, so
-// it is unaffected by the cabinet's CSS `zoom` (same rule as the score particles).
-function efxFly(srcEl, kind, label, color) {
-  const target = efxTargetEl(kind);
-  if (!target) return;
-  const src = srcEl && srcEl.getBoundingClientRect && srcEl.getBoundingClientRect();
-  const a = (src && src.width) ? src : target.getBoundingClientRect();
-  const b = target.getBoundingClientRect();
-  const el = document.createElement('div');
-  el.className = 'efx-particle';
-  el.textContent = label;
-  el.style.color = color;
-  el.style.left = (a.left + a.width / 2) + 'px';
-  el.style.top  = (a.top + a.height / 2) + 'px';
-  document.body.appendChild(el);
-  const dx = (b.left + b.width / 2) - (a.left + a.width / 2);
-  const dy = (b.top + b.height / 2) - (a.top + a.height / 2);
-  const dur = (typeof SETTINGS === 'object' && SETTINGS && SETTINGS.reducedMotion) ? 120 : 620;
-  el.animate([
-    { transform: 'translate(-50%,-50%) scale(.5)', opacity: 0 },
-    { transform: 'translate(-50%,-50%) scale(1.15)', opacity: 1, offset: .22 },
-    { transform: `translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px)) scale(.85)`, opacity: 0 },
-  ], { duration: dur, easing: 'cubic-bezier(.3,.7,.4,1)', fill: 'forwards' });
-  setTimeout(() => el.remove(), dur + 80);
-  // The readout itself acknowledges the hit, so the flight has a destination that
-  // reacts rather than a number that silently changed some time earlier.
-  setTimeout(() => {
-    target.classList.remove('efx-hit'); void target.offsetWidth; target.classList.add('efx-hit');
-    setTimeout(() => target.classList.remove('efx-hit'), 380);
-  }, dur * 0.8);
-}
-
-// The one entry point. `opts.id` / `opts.source` name the entity when the caller
-// knows it, and the symbol then flies from that entity's real tray tile.
+// ── The line markers ────────────────────────────────────────────────────────
+// Absolutely-positioned siblings of the cards, the same shape renderBlockedCells
+// and renderBossCellOverlays use, so nothing about a card element changes. They
+// carry z-index 1 against the cards' 2 (css/entity-fx.css) - DOM order would not
+// be enough, because render() appends new cards after these.
 //
-//   entityEffectFX('credits', 8, { id:'dividend', source:'knack' })
-//   entityEffectFX('rewind', 12, { id:'overtime' })
-function entityEffectFX(kind, amount, opts) {
-  const o = opts || {};
-  const style = EFX_STYLE[kind] || EFX_STYLE.time;
-  const currency = (kind === 'rewind' || kind === 'pause') ? 'time' : kind;
-  let srcEl = null;
-  if (o.id && typeof danceEntityEl === 'function') {
-    try { srcEl = danceEntityEl(o.source || 'trick', o.id); } catch (e) { srcEl = null; }
-  }
-  if (srcEl && typeof dncReleaseReal === 'function') dncReleaseReal(srcEl);
-  const n = (typeof amount === 'number') ? amount : null;
-  const sign = (n !== null && n < 0) ? '' : '+';
-  const unit = currency === 'time' ? 's' : '';
-  const label = o.label || (n === null ? style.icon : `${style.icon} ${sign}${n}${unit}`);
-  efxFly(srcEl, currency, label, o.color || style.color);
-  if (o.sfx !== false) efxSound(kind);
+// Several Tricks may mark the SAME line (the District knack allows it). Their
+// lines are drawn side by side across the card's width rather than on top of
+// each other, so a doubled line still reads as two things.
+// Teardown on its own, so the screens that take the #grid away from the play
+// board (the reward grid, a dominoes board) can drop the lines without the draw
+// path having to know about them. Called from the top of render().
+function clearLineMarkers() {
+  const gridEl = document.getElementById('grid');
+  if (gridEl) gridEl.querySelectorAll('.rc-line').forEach(el => el.remove());
 }
 
-// Each currency gets the sound it already owns elsewhere in the game, so nothing
-// new has to be authored and the packs cover it for free.
-function efxSound(kind) {
-  try {
-    if (kind === 'credits' && typeof sfxCoin === 'function') return sfxCoin();
-    if (kind === 'focus' && typeof sfxFocusBeat === 'function') return sfxFocusBeat();
-    if ((kind === 'rewind') && typeof sfxRewind === 'function') return sfxRewind();
-    if ((kind === 'pause' || kind === 'time') && typeof sfxTickTock === 'function') return sfxTickTock();
-    if (typeof sfxParticleStep === 'function') sfxParticleStep('pip');
-  } catch (e) {}
+function renderLineMarkers() {
+  const gridEl = document.getElementById('grid');
+  if (!gridEl) return;
+  gridEl.querySelectorAll('.rc-line').forEach(el => el.remove());
+  if (typeof rowColBonuses === 'undefined' || !rowColBonuses.length) return;
+  // A line marks a LINE OF CARDS, so with nothing on the board there is nothing
+  // to mark - lines hanging in an empty well read as a glitch. The test is the
+  // DOM, not gridData, because those two disagree exactly when it matters: the
+  // interlude animates the cards off the board while gridData still holds them.
+  // This is why the call sits at the END of render() - run before the card loop,
+  // the DOM it is asking about would be a render behind. It does NOT cover the
+  // interlude itself, which removes the cards without rendering again; that
+  // teardown calls clearLineMarkers directly (js/interlude.js).
+  if (!gridEl.querySelector('[data-card-id]')) return;
+
+  // Group by line so co-located marks can share the width.
+  const byLine = new Map();
+  rowColBonuses.forEach(b => {
+    const k = `${b.axis}-${b.index}`;
+    if (!byLine.has(k)) byLine.set(k, []);
+    byLine.get(k).push(b);
+  });
+
+  byLine.forEach((entries, key) => {
+    const axis = entries[0].axis, index = entries[0].index;
+    const n = entries.length;
+    entries.forEach((b, i) => {
+      const meta = lineFXMeta(b.id);
+      const el = document.createElement('div');
+      el.className = 'rc-line rc-line-' + (axis === 'row' ? 'row' : 'col');
+      el.dataset.lineKey = key + ':' + b.id;
+      el.style.setProperty('--rcl', meta.color);
+      if (axis === 'row') {
+        const band = CARD_H / n;
+        el.style.left   = cellLeft(0) + 'px';
+        el.style.top    = (cellTop(index) + band * i + band / 2) + 'px';
+        el.style.width  = (cellLeft(gridCols - 1) + CARD_W - cellLeft(0)) + 'px';
+      } else {
+        const band = CARD_W / n;
+        el.style.left   = (cellLeft(index) + band * i + band / 2) + 'px';
+        el.style.top    = cellTop(0) + 'px';
+        el.style.height = (cellTop(gridRows - 1) + CARD_H - cellTop(0)) + 'px';
+      }
+      el.innerHTML = `<span class="rc-line-cap">${meta.glyph}</span><span class="rc-line-cap rc-line-cap2">${meta.glyph}</span>`;
+      el.title = `${meta.name} · ${axis === 'row' ? 'row' : 'column'} ${index + 1}`;
+      // A line the player has not seen yet sweeps in once. _rcSeen is on the
+      // registry entry, so a re-render (which happens on every card fall) does
+      // not replay the animation.
+      if (!b._rcSeen) { el.classList.add('rc-line-in'); b._rcSeen = true; }
+      gridEl.appendChild(el);
+    });
+  });
+}
+
+// Called from finalizePositionMark the moment a position Trick is acquired: a
+// pulse runs the length of the line it just claimed, so the grant is visibly
+// connected to the line rather than being a silent registry write. The line
+// itself is what stays; this is only the arrival.
+function animateLineGrant(trick) {
+  if (typeof trick !== 'object' || trick._posAxis == null) return;
+  // The board may not be up (a Trick bought in the Mart, a reward grid still on
+  // the #grid). renderLineMarkers runs from render() either way, so the line
+  // appears with its sweep the first time the board is next drawn.
+  renderLineMarkers();
+  const gridEl = document.getElementById('grid');
+  if (!gridEl) return;
+  const el = gridEl.querySelector(`.rc-line[data-line-key="${trick._posAxis}-${trick._posIndex}:${trick.id}"]`);
+  if (!el) return;
+  el.classList.remove('rc-line-in');
+  void el.offsetWidth;                    // restart the sweep
+  el.classList.add('rc-line-in', 'rc-line-grant');
+  setTimeout(() => el.classList.remove('rc-line-grant'), 1400);
+}
+
+// ── The per-card mark ───────────────────────────────────────────────────────
+// Returns the corner mark for whatever Trick owns this cell, or ''. One mark at
+// a time by design: two glyphs in one corner of a 57px card is noise, and the
+// tooltip lists the rest.
+function cardMarkHTML(r, c) {
+  for (const id in CARD_MARK_META) {
+    const m = CARD_MARK_META[id];
+    let hit = false;
+    try { hit = !!m.covers(r, c); } catch (e) { hit = false; }
+    if (hit) return `<div class="card-fx-mark" style="--cfm:${m.color}" title="${m.name}">${m.glyph}</div>`;
+  }
+  return '';
+}
+
+// Does any line-marking Trick cover this cell? Used for the shared "this card
+// is on a marked line" ring, which is what gives the 6 position Tricks that
+// never had a card indicator one for free.
+function cellOnMarkedLine(r, c) {
+  if (typeof rowColBonuses === 'undefined') return null;
+  const hit = rowColBonuses.find(b => (b.axis === 'row' && b.index === r) || (b.axis === 'col' && b.index === c));
+  return hit ? lineFXMeta(hit.id) : null;
 }

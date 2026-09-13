@@ -5,6 +5,23 @@
    card elements or the render loop has to change. */
 
 /* ── The Blight: a contaminated cell. Cards still play; they just pay less. ── */
+/* Dead Drop (r194) - a cell that plays but does not pay. Deliberately NOT the
+   Blight's magenta or the quarantine's red: those are boss effects that lift,
+   and this one is a hole in the board for the rest of the act. Flat grey, an X,
+   and no glow - the card underneath stays fully readable, because you still
+   select it and it still counts toward the hand. */
+.dead-cell {
+  position: absolute;
+  width: var(--card-w, 57px); height: var(--card-h, 75px);
+  border-radius: 6px; pointer-events: none; z-index: 12;
+  background:
+    linear-gradient(45deg, transparent calc(50% - 1px), rgba(30,30,34,0.55) 50%, transparent calc(50% + 1px)),
+    linear-gradient(-45deg, transparent calc(50% - 1px), rgba(30,30,34,0.55) 50%, transparent calc(50% + 1px)),
+    rgba(20,20,24,0.34);
+  box-shadow: inset 0 0 0 1px rgba(150,150,160,0.30);
+  mix-blend-mode: multiply;
+}
+
 .damp-cell {
   position: absolute;
   width: var(--card-w, 57px); height: var(--card-h, 75px);
@@ -170,7 +187,13 @@
   background: repeating-linear-gradient(0deg, rgba(0,0,0,0.16) 0 1px, transparent 1px 3px);
   mix-blend-mode: overlay;
 }
-#stage.landscape #payout-overlay > * { position: relative; z-index: 1; }
+/* Lift the panel's contents above the scanline ::after layer. The fast-forward
+   button is deliberately excluded: it is positioned in its own corner, and this
+   blanket rule was resetting it to `position:relative`, which put it back in the
+   flow where its bottom/right offsets dropped it straight on top of the "Valued."
+   button. It still needs a z-index of its own to clear the scanlines. */
+#stage.landscape #payout-overlay > *:not(.payout-ff-btn) { position: relative; z-index: 1; }
+#stage.landscape #payout-overlay > .payout-ff-btn { z-index: 2; }
 
 #stage.landscape .payout-title {
   font-family: 'Orbitron', sans-serif !important; font-weight: 800;

@@ -10,8 +10,11 @@ function computeRoundResources() {
   const limitSwapBonus    = limits.swaps.current      - limits.swaps.base;
   const limitTimeBonus    = limits.round_time.current - limits.round_time.base;
 
-  const baseDiscards = 4 + limitDiscardBonus + (hasKnack('extra_discards') ? BAL.extra_discards.discards : 0);
-  const baseSwaps    = (hasKnack('free_range_t') ? 2 : 3) + limitSwapBonus + (hasKnack('extra_swaps') ? BAL.extra_swaps.swaps : 0);
+  // Both seed from the LIMIT's own base, so the round-start stock can never drift from
+  // the number the Limits screen prints. Discards used to seed from a hardcoded 4 against
+  // a limit base of 3, which handed out one discard more than the limit every round.
+  const baseDiscards = limits.discards.base + limitDiscardBonus + (hasKnack('extra_discards') ? BAL.extra_discards.discards : 0);
+  const baseSwaps    = (limits.swaps.base - (hasKnack('free_range_t') ? 1 : 0)) + limitSwapBonus + (hasKnack('extra_swaps') ? BAL.extra_swaps.swaps : 0);
   // Round-time cap = full duration minus permanent penalties, plus any limit-break trick.
   const _roundDur = currentRoundDuration();
   const baseSeconds  = Math.max(10, (_roundDur - roundPenaltySeconds) + limitTimeBonus);
@@ -50,6 +53,17 @@ function triggerLevelUp() {
   // Must happen before Trick re-placement and the deal animation populate gridData.
   gridRows = limits.grid_rows.current;
   gridCols = limits.grid_cols.current;
+  // Short Staffed (reward-grid penalty): one row or column is missing for this
+  // round only. Consumed here, at the one place the round's dimensions are set,
+  // so the shrink flows through recomputeGridMetrics and the gridData conform
+  // below exactly as a limit change would - a smaller board is a thing the game
+  // already knows how to deal.
+  if (nextRoundGridShrink === 'rows') gridRows = Math.max(3, gridRows - 1);
+  if (nextRoundGridShrink === 'cols') gridCols = Math.max(3, gridCols - 1);
+  if (nextRoundGridShrink) {
+    showMessage(`Short staffed: one ${nextRoundGridShrink === 'rows' ? 'row' : 'column'} down`, 'var(--red)');
+    nextRoundGridShrink = null;
+  }
   recomputeGridMetrics();
   // Structurally conform gridData to the new dimensions, preserving in-bounds cells.
   // (Out-of-bounds cells from a shrunk grid are simply dropped; their cards are
@@ -77,13 +91,32 @@ function triggerLevelUp() {
     _svOverflow = survivalSkipCarryover ? 0 : Math.max(0, score - roundGoal);
   }
 
+  // Unspent swaps and discards pay credits (r218). Captured HERE, at the top,
+  // because the base reset below overwrites both with the NEW round's values -
+  // and Survival/Flow pay from survivalAfterLevelUp, which runs further down this
+  // same function, well after that reset.
+  //
+  // Classic does NOT use this: its payout screen runs from startInterlude, which
+  // happens BEFORE triggerLevelUp, so there the live swaps/discards are still the
+  // finished round's and are read directly. Two paths, opposite sides of the
+  // reset - hence one captured figure and one live read rather than one of each.
+  //
+  // Read BEFORE the carry-over knacks bank them, so the figure is what you
+  // finished the round holding; Carry Swaps / Carry Discards then also carry it,
+  // which is the knack doing its job.
+  frozenUnspentActions = Math.max(0, swaps) + Math.max(0, discards);
+
   level++;
   // This round's score target, from zero
-  roundGoal = survivalActive() ? survivalGoalForLevel(level)
-            : Math.round(Math.round(BASE_GOAL * Math.pow(GOAL_SCALE, level - 1)) / 500) * 500;
-  // Zen has no clock, so its goals are doubled - levelling and the reward grid
-  // stay reachable, just at a slower, self-paced rate.
-  if (match3IsZen()) roundGoal *= 2;
+  // One chokepoint for every mode's curve (js/goal-tuning.js) - it picks the
+  // survival curve in Survival/Flow and applies Zen's doubling, and it is what
+  // the dev panel's Goals group retunes live.
+  roundGoal = goalForLevel(level);
+  // Quota Revision (reward-grid penalty): every future goal is permanently raised.
+  // Applied AFTER the curve rather than inside it - the curve is r197's to tune,
+  // and this lifts whatever it produced. Rounded to 50 so the number on the HUD
+  // stays one a player can hold in their head.
+  if (goalPenaltyMult > 1) roundGoal = Math.round(roundGoal * goalPenaltyMult / 50) * 50;
   // Bank the completed round's score for the end-of-run display. In Survival the
   // overflow is carried to the next round, so only the counted portion is banked.
   totalScore += survivalActive() ? Math.max(0, score - _svOverflow) : score;
@@ -160,6 +193,8 @@ function triggerLevelUp() {
     const _jcard = gridData[_jr][_jc];
     if (_jcard?._isSleight) _jcard._usedThisRound = false;
   }
+  // Reflect fires once per round; the lock is released with the on_swap sleights'.
+  if (typeof reflectUsedThisRound !== 'undefined') reflectUsedThisRound = false;
   // Coin Toss: each owned Sleight has a 50% chance to regain 1 charge at round start
   if (hasKnack('coin_toss')) {
     let _refilled = 0;
@@ -167,7 +202,11 @@ function triggerLevelUp() {
       if (card._usesLeft === 'infinite' || typeof card._usesLeft !== 'number') return;
       const def = SLEIGHT_POOL.find(j => j.id === card.sleightId);
       const cap = sleightMaxCharges(def) ?? card._usesLeft;
-      if (card._usesLeft < cap && Math.random() < 0.5) { card._usesLeft++; _refilled++; }
+      // COUNTABLE, capped at the sleight's max charges. The 0.5 lived here as a
+      // literal until r196 - it is BAL.coin_toss.chance now, like every other
+      // tunable number, which is also what lets Luck reach it.
+      const _ctN = luckRoll(BAL.coin_toss.chance) * BAL.coin_toss.charges;
+      for (let i = 0; i < _ctN && card._usesLeft < cap; i++) { card._usesLeft++; _refilled++; }
     });
     if (_refilled) showMessage(`Coin Toss: ${_refilled} Sleight${_refilled > 1 ? 's' : ''} regained a charge`, 'var(--gold)');
   }
@@ -195,8 +234,9 @@ function triggerLevelUp() {
   timeManipRound = 0;
   cuckooNextMinute = BAL.cuckoo.interval_seconds;
   compoundNextMark = BAL.compound.interval_seconds; compoundBanked = 0;
+  understudyNextMark = BAL.understudy.interval_seconds;
   // Clock-mark Tricks + Déjà Vu: pending bonuses and rank-history reset each round
-  pendingHandPips = 0; pendingHandMult = 0; pendingCardPips = 0;
+  pendingHandPips = 0; pendingHandMult = 0; pendingCardPips = 0; minuteHandCharges = 0;
   lastHandRankKey = null;
   _altSwapCount = 0;
   doubleJeopardyPos = hasTrick('double_jeopardy') ? { r: Math.floor(Math.random() * gridRows), c: Math.floor(Math.random() * gridCols) } : null;
@@ -245,7 +285,7 @@ function triggerLevelUp() {
 
   // Survival: pay coins (flat + leftover-time bonus) and bank leftover time toward
   // the next boss. Skipped on the post-boss bonus round (no goal cleared).
-  if (survivalActive() && !survivalSkipCarryover) survivalAfterLevelUp(_svLeftover);
+  if (survivalActive() && !survivalSkipCarryover) survivalAfterLevelUp(_svLeftover, frozenUnspentActions);
 
   updateScoreUI();
 
@@ -343,6 +383,12 @@ async function showLevelUpScreen() {
   // Defensive: scrub any leftover boss visual state so a post-boss round starts clean
   // (blocked-cell overlays, stray temp-anim clones, boss-active styling).
   _gridEl?.querySelectorAll('.blocked-cell, .temp-anim').forEach(el => el.remove());
+  // The marked row/column lines are leftover board state in exactly the same
+  // sense (js/entity-fx.js). They cannot be guarded inside render(): this clear
+  // removes the card elements directly and no render runs before the next deal,
+  // so lines from the finished round would hang over an empty well through the
+  // whole payout. rowColBonuses is untouched, so the next board draws them again.
+  if (typeof clearLineMarkers === 'function') clearLineMarkers();
   _gridEl?.classList.remove('boss-active');
 
   // ── Grid is now populated; deal animations start in show321Countdown ──

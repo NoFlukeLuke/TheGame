@@ -47,3 +47,18 @@
   .dnc-particle{position:fixed;z-index:200;font-weight:700;pointer-events:none;font-family:'Crimson Pro',serif;
     font-size:calc(15px*var(--dnc-pscale,1));text-shadow:0 1px 4px rgba(0,0,0,.85);}
   /* live focus tracker beneath the FOCUS number (stays live even while the big number is locked mid-dance) */
+
+/* ── Paused dance (r197) ───────────────────────────────────────────────────
+   The dance's WAAPI animations are held by the registry in js/dance-clock.js,
+   which can call .pause() on each one. These are the CLASS-driven keyframes -
+   jitter, pop, pulse, flash, the particle's own float - which are not WAAPI
+   animations and so have to be held by CSS instead. */
+body.dance-paused .dnc-jitter,
+body.dance-paused .dnc-pop,
+body.dance-paused .dnc-pulse,
+body.dance-paused .dnc-flash,
+body.dance-paused .dnc-particle,
+body.dance-paused .dnc-card,
+body.dance-paused #selected-cards.dnc-active * {
+  animation-play-state: paused !important;
+}

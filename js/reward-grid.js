@@ -23,6 +23,12 @@
 let rewardGridMode = 'normal';   // 'normal' | 'prize'
 function prizeGridActive() { return rewardGridMode === 'prize'; }
 
+// The Trick-tile floor for a grid. A prize grid is 9 tiles at its smallest and
+// several of those are guaranteed upgrades, so demanding 5 Tricks there would
+// crowd out everything else. Lifted out of _generateRewardContent because the
+// difficulty conversion below has to reserve these slots BEFORE the fill runs.
+function MIN_TRICK_TILES_FOR(prize) { return prize ? 2 : 5; }
+
 function generateRewardContent() {
   return withSeededRng(_generateRewardContent, 'reward', rewardVisitIndex++);
 }
@@ -37,6 +43,16 @@ function _generateRewardContent() {
   // raw weight suggests - the other categories fight over the leftover slots.
   // Prize grid: no common-tier resource tiles, no gamble. Entities and permanent
   // upgrades only - see the PRIZE GRID note at the top of this file.
+  // Fortune / Jinx both move Luck by the same ladder: 5, 10 or 15, rolled at
+  // GENERATION time so the tile states the exact figure before you take it.
+  // They move luckModifiers rather than the limit, which is what lets Jinx push
+  // Luck below zero (decrementLimit floors at 0) and lets Fortune stack past the
+  // ceiling. The limit itself is what the shop, the Mart and a Limit Break sell.
+  const LUCK_STEPS = [5, 10, 15];
+  const _luckAmt = () => LUCK_STEPS[Math.floor(Math.random() * LUCK_STEPS.length)];
+  // Bigger swings are rarer things to meet.
+  const _luckTier = n => (n >= 15 ? 'legendary' : n >= 10 ? 'epic' : 'rare');
+
   const prizeCategories = [
     { weight: 34, kind: 'trick' },
     { weight: 20, kind: 'sleight' },
@@ -44,6 +60,10 @@ function _generateRewardContent() {
     { weight: 16, kind: 'limit_up' },
     { weight: 10, kind: 'blessed' },
     { weight:  4, kind: 'cull' },
+    { weight:  8, kind: 'luck' },
+    { weight:  7, kind: 'improve_trick' },
+    { weight:  5, kind: 'improve_knack' },
+    { weight:  5, kind: 'improve_sleight' },
   ];
   const buffCategories = [
     { weight: 40, kind: 'trick' },
@@ -58,48 +78,154 @@ function _generateRewardContent() {
     { weight:  4, kind: 'cull' },
     { weight:  3, kind: 'cleanse' },
     { weight:  3, kind: 'mystery' },
+    { weight:  4, kind: 'luck' },
+    { weight:  4, kind: 'improve_trick' },
+    { weight:  3, kind: 'improve_knack' },
+    { weight:  3, kind: 'improve_sleight' },
   ];
   // Hover projections (computed when the grid opens, reflecting current standing debuffs).
   const _proj    = computeRoundResources();
   const _capNow  = Math.max(10, Math.max(ROUND_DURATION, limits.round_time.current) - roundPenaltySeconds);
   const _handNow = 0 + extraPlayCostPerm + nextRoundPlayCost;   // base play cost is 0 (r50)
   const _discNow = 3 + extraDiscardCostPerm + nextRoundDiscardCost;
+  // ── Penalty tiles ──────────────────────────────────────────────────────────
+  // `perm: true` marks a penalty that outlives the next round. The difficulty
+  // tier multiplies the weight of every permanent one (diffPermWeightMult), and
+  // the epic-neighbour rule below can only draw from the permanent half - so the
+  // flag is load-bearing, not documentation. A penalty that resolves instantly
+  // and is then over (Pickpocket) is NOT permanent: it costs you once.
   const debuffs = [
-    { weight: 8, icon: '☁', label: '-5s Round Cap', tier: 'penalty',
+    { weight: 8, perm: true, icon: '☁', label: '-5s Round Cap', tier: 'penalty',
       desc: `Round cap: ${formatTime(_capNow)} → ${formatTime(Math.max(10, _capNow - 5))} · permanent, stacks`,
       apply: () => { roundPenaltySeconds += 5; showMessage('Round cap -5s (permanent)', 'var(--red)'); } },
-    { weight: 8, icon: '☠', label: '-1 Discard', tier: 'penalty',
+    { weight: 8, perm: false, icon: '☠', label: '-1 Discard', tier: 'penalty',
       desc: `Next round discards: ${_proj.discards} → ${Math.max(0, _proj.discards - 1)} · next round only`,
       apply: () => { nextRoundDiscardDelta -= 1; showMessage('-1 discard next round', 'var(--red)'); } },
-    { weight: 8, icon: '✖', label: '-1 Swap', tier: 'penalty',
+    { weight: 8, perm: false, icon: '✖', label: '-1 Swap', tier: 'penalty',
       desc: `Next round swaps: ${_proj.swaps} → ${Math.max(0, _proj.swaps - 1)} · next round only`,
       apply: () => { nextRoundSwapDelta -= 1; showMessage('-1 swap next round', 'var(--red)'); } },
-    { weight: 8, icon: '💔', label: 'Lose a Trick', tier: 'penalty',
+    { weight: 8, perm: true, icon: '💔', label: 'Lose a Trick', tier: 'penalty',
       desc: 'Discard one random Trick you own.',
       apply: applyRewardLoseTrick },
-    { weight: 8, icon: '🐌', label: 'Hands +2s', tier: 'penalty',
+    { weight: 8, perm: true, icon: '🐌', label: 'Hands +2s', tier: 'penalty',
       desc: `Hand cost: ${_handNow}s → ${_handNow + 2}s each · permanent, stacks`,
       apply: () => { extraPlayCostPerm += 2; showMessage('Playing a hand costs +2s (permanent)', 'var(--red)'); } },
-    { weight: 8, icon: '⌛', label: 'Hands +5s · 1rd', tier: 'penalty',
+    { weight: 8, perm: false, icon: '⌛', label: 'Hands +5s · 1rd', tier: 'penalty',
       desc: `Next round hand cost: ${_handNow}s → ${_handNow + 5}s each · next round only`,
       apply: () => { nextRoundPlayCost += 5; showMessage('Hands cost +5s next round', 'var(--red)'); } },
-    { weight: 8, icon: '🐌', label: 'Discards +2s', tier: 'penalty',
+    { weight: 8, perm: true, icon: '🐌', label: 'Discards +2s', tier: 'penalty',
       desc: `Discard cost: ${_discNow}s → ${_discNow + 2}s per card · permanent, stacks`,
       apply: () => { extraDiscardCostPerm += 2; showMessage('Discarding costs +2s/card (permanent)', 'var(--red)'); } },
-    { weight: 8, icon: '⌛', label: 'Discards +5s · 1rd', tier: 'penalty',
+    { weight: 8, perm: false, icon: '⌛', label: 'Discards +5s · 1rd', tier: 'penalty',
       desc: `Next round discard cost: ${_discNow}s → ${_discNow + 5}s per card · next round only`,
       apply: () => { nextRoundDiscardCost += 5; showMessage('Discards cost +5s/card next round', 'var(--red)'); } },
     // ── Variety debuffs (r74) ──
-    { weight: 8, icon: '💸', label: 'Pickpocket', tier: 'penalty',
+    { weight: 8, perm: false, icon: '💸', label: 'Pickpocket', tier: 'penalty',
       desc: `Lose 10 coins (${coins} → ${Math.max(0, coins - 10)}).`,
       apply: () => { coins = Math.max(0, coins - 10); updateCoinsUI(); showMessage('-10 coins', 'var(--red)'); } },
-    { weight: 8, icon: '🪨', label: 'Stones', tier: 'penalty',
+    { weight: 8, perm: true, icon: '🪨', label: 'Stones', tier: 'penalty',
       desc: 'Two Stones are shuffled into your deck. They block cells until purged.',
       apply: () => { injectStonesIntoDeck(2); showMessage('2 Stones added to deck', 'var(--red)'); } },
-    { weight: 8, icon: '⏳', label: 'Slow Start', tier: 'penalty',
+    { weight: 8, perm: false, icon: '⏳', label: 'Slow Start', tier: 'penalty',
       desc: 'Next round starts with 20 fewer seconds.',
       apply: () => { nextRoundSecondsDelta -= 20; showMessage('-20s next round', 'var(--red)'); } },
+    // ── r193 penalties: four that cost something other than seconds ──────────
+    // Every penalty before these took time, resources or a card. The grid needed
+    // costs aimed at the other three things a run runs on - the goal you are
+    // chasing, the Focus multiplier, the credits, and the loadout itself.
+    { weight: 7, perm: true, icon: '📈', label: 'Quota Revision', tier: 'penalty',
+      desc: `Every future round goal rises by 10% (now ×${goalPenaltyMult.toFixed(2)} → ×${(goalPenaltyMult * 1.10).toFixed(2)}) · permanent, stacks`,
+      apply: () => { goalPenaltyMult *= 1.10; showMessage('Goals +10% (permanent)', 'var(--red)'); } },
+    { weight: 7, perm: true, icon: '📋', label: 'Red Tape', tier: 'penalty',
+      desc: `Hands generate ${Math.round(100 / (focusRatePenalty * 1.25))}% of their listed Focus (now ${Math.round(100 / focusRatePenalty)}%) · permanent, stacks`,
+      apply: () => { focusRatePenalty *= 1.25; showMessage('Focus gain reduced (permanent)', 'var(--red)'); } },
+    { weight: 7, perm: false, icon: '🚫', label: 'Withheld', tier: 'penalty',
+      desc: 'The next round pays out nothing: no interest, no leftover-time credits.',
+      apply: () => { skipNextPayout = true; showMessage('Next payout withheld', 'var(--red)'); } },
+    // The TYPE is fixed when the tile is generated so the tile can name it; WHICH
+    // entity gets suspended is rolled at the start of the round it applies to.
+    (() => {
+      const t = ['trick', 'knack', 'sleight'][Math.floor(Math.random() * 3)];
+      const noun = { trick: 'Trick', knack: 'Knack', sleight: 'Sleight' }[t];
+      return { weight: 7, perm: false, icon: '⛔', label: `Suspend a ${noun}`, tier: 'penalty',
+        desc: `One random ${noun} you own stops working for the first half of next round. Which one is decided when the round deals.`,
+        apply: () => { pendingEntityLockout = { type: t }; showMessage(`A ${noun} will be suspended next round`, 'var(--red)'); } };
+    })(),
+    // ── r194 penalties: five that cost you a board, a habit or a Trick's rent ──
+    (() => {
+      const n = _luckAmt();
+      return { weight: 7, perm: true, icon: '🐈‍⬛', label: `-${n} Luck`, tier: 'penalty',
+        desc: `Luck ${luckTotal()} → ${luckTotal() - n}. Chance effects fire less often and worse entities turn up. Permanent, and it can take Luck below zero.`,
+        apply: () => { luckModifiers -= n; showMessage(`-${n} Luck`, 'var(--red)'); } };
+    })(),
+    { weight: 7, perm: false, icon: '🧊', label: 'Interest Freeze', tier: 'penalty',
+      desc: `No interest paid for the next ${BAL.interest_freeze.rounds} rounds. Leftover-time credits still pay.`,
+      apply: () => { interestFreezeRounds += BAL.interest_freeze.rounds; showMessage(`Interest frozen for ${BAL.interest_freeze.rounds} rounds`, 'var(--red)'); } },
   ];
+
+  // ── Conditional penalties (r194) ────────────────────────────────────────────
+  // Each of these is only worth putting on the board when the run can actually
+  // pay it. A tile that resolves to nothing is worse than a tile that hurts: it
+  // reads as a penalty the player dodged, and it cost a cell to say so.
+
+  // Short Staffed - the board loses a line for one round. OWNER'S RULE: only
+  // offered at 5+ on the axis it would cut, so it can never take a board below
+  // 4 on either side. Which axis is decided at generation time so the tile can
+  // name it, and only qualifying axes are candidates.
+  {
+    const _axes = [];
+    if (limits.grid_rows.current >= 5) _axes.push(['rows', 'row',    limits.grid_rows.current]);
+    if (limits.grid_cols.current >= 5) _axes.push(['cols', 'column', limits.grid_cols.current]);
+    if (_axes.length) {
+      const [_ax, _noun, _now] = _axes[Math.floor(Math.random() * _axes.length)];
+      debuffs.push({ weight: 7, perm: false, icon: '📉', label: `Short Staffed`, tier: 'penalty',
+        desc: `Next round the board is one ${_noun} smaller (${_now} → ${_now - 1}). One round only.`,
+        apply: () => { nextRoundGridShrink = _ax; showMessage(`-1 ${_noun} next round`, 'var(--red)'); } });
+    }
+  }
+
+  // Spot Check - one hand type scores at half mult until you have played it
+  // enough times to clear it. Drawn from achievableHandTypes(), the same guard
+  // The Redaction uses: flagging Straight Flush on a 4x4 board is not a penalty,
+  // it is a rounding error.
+  {
+    const _pool = (typeof achievableHandTypes === 'function' ? achievableHandTypes() : [])
+      .filter(h => HAND_BASE[h] && !(spotCheckHand === h && spotCheckLeft > 0));
+    if (_pool.length) {
+      const _h = _pool[Math.floor(Math.random() * _pool.length)];
+      const _n = BAL.spot_check.plays_to_clear;
+      debuffs.push({ weight: 7, perm: false, icon: '🔍', label: 'Spot Check', tier: 'penalty',
+        desc: `${_h} scores at ×${BAL.spot_check.mult} mult until you have played it ${_n} more times.`,
+        apply: () => { spotCheckHand = _h; spotCheckLeft = _n; showMessage(`Spot check: ${_h} ×${BAL.spot_check.mult}`, 'var(--red)'); } });
+    }
+  }
+
+  // Dead Drop - one cell plays but does not pay. Only on a board with a cell to
+  // spare, and never one already dead.
+  {
+    const _free = [];
+    for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++)
+      if (!isCellDead(r, c) && !(typeof isCellBlocked === 'function' && isCellBlocked(r, c))) _free.push([r, c]);
+    if (_free.length > 4) {
+      const [_dr, _dc] = _free[Math.floor(Math.random() * _free.length)];
+      debuffs.push({ weight: 6, perm: true, icon: '🕳', label: 'Dead Drop', tier: 'penalty',
+        desc: `One cell goes dead for the rest of the act. Its card can still be selected and still counts toward the hand - it just scores no pips and fires none of its own Tricks.`,
+        apply: () => { deadCells.add(`${_dr}-${_dc}`); render(); showMessage('A cell went dead', 'var(--red)'); } });
+    }
+  }
+
+  // Rider - a Trick you own keeps working and starts charging rent. Needs a
+  // Trick to ride, and will not double up on one that already carries it.
+  {
+    const _owned = (trickTrayMode ? trickTray : (acquiredTricks || []))
+      .filter(t => t && t.id && t.id !== riderTrickId);
+    if (_owned.length) {
+      const _t = _owned[Math.floor(Math.random() * _owned.length)];
+      debuffs.push({ weight: 6, perm: true, icon: '🐒', label: 'Rider', tier: 'penalty',
+        desc: `${_t.name} keeps working, but every time it fires it costs ${BAL.rider.seconds_per_proc}s. Permanent - it only leaves if the Trick does.`,
+        apply: () => { riderTrickId = _t.id; showMessage(`Rider on ${_t.name}`, 'var(--red)'); } });
+    }
+  }
   // Cursed-card debuff: afflicts one specific shown card (weight 10; only if an
   // un-cursed identity exists). Card is pre-picked so the tile shows exactly it.
   {
@@ -108,7 +234,7 @@ function _generateRewardContent() {
       const _victim = _uncursed[Math.floor(Math.random() * _uncursed.length)];
       const _cids = Object.keys(CURSE_DEFS);
       const _cid  = _cids[Math.floor(Math.random() * _cids.length)];
-      debuffs.push({ weight: 10, icon: CURSE_DEFS[_cid].icon, label: `${CURSE_DEFS[_cid].name} Curse`, tier: 'penalty',
+      debuffs.push({ weight: 10, perm: true, icon: CURSE_DEFS[_cid].icon, label: `${CURSE_DEFS[_cid].name} Curse`, tier: 'penalty',
         cardFace: { rank: _victim.rank, suit: _victim.suit },
         desc: `${_victim.rank}${_victim.suit} is cursed - ${CURSE_DEFS[_cid].desc}`,
         apply: () => { const v = resolveDeckCard(_victim); if (!v) return;
@@ -121,15 +247,17 @@ function _generateRewardContent() {
     const _drainable = LIMITS_DEF.filter(d => d.id !== 'round_time' && limits[d.id].current > 1);
     if (_drainable.length) {
       const _dl = pickWeightedLimits(1, _drainable)[0];
-      debuffs.push({ weight: 5, icon: '⬇️', label: `-1 ${_dl.label}`, tier: 'penalty',
-        desc: `${_dl.label}: ${limits[_dl.id].current} → ${limits[_dl.id].current - 1} · permanent (limits are precious!)`,
-        apply: () => { decrementLimit(_dl.id); showMessage(`-1 ${_dl.label}`, 'var(--red)'); } });
+      const _dst = limits[_dl.id].step || 1;
+      const _dto = Math.max(0, limits[_dl.id].current - _dst);
+      debuffs.push({ weight: 5, perm: true, icon: '⬇️', label: `-${_dst} ${_dl.label}`, tier: 'penalty',
+        desc: `${_dl.label}: ${limits[_dl.id].current} → ${_dto} · permanent (limits are precious!)`,
+        apply: () => { decrementLimit(_dl.id); showMessage(`-${_dst} ${_dl.label}`, 'var(--red)'); } });
     }
   }
   // Dark mystery: unknown until claimed - mostly bad (weight 6).
   // _mystery + _goodChance let the resolve animation pre-roll + reveal it; apply()
   // reuses that same rolled outcome so what you see is what you get.
-  debuffs.push({ weight: 6, icon: '❓', label: 'Dark Mystery', tier: 'mystery',
+  debuffs.push({ weight: 6, perm: false, icon: '❓', label: 'Dark Mystery', tier: 'mystery',
     desc: 'Unknown until claimed. Probably bad… probably.',
     _mystery: true, _goodChance: 0.3,
     apply: function () { (this._rolled || (this._rolled = rollRewardMystery(this._goodChance))).apply(); } });
@@ -139,6 +267,14 @@ function _generateRewardContent() {
     { icon: '🎲', label: 'Next: Event', tier: 'dest', apply: () => { pendingEventOverride = 'event'; } },
   ];
 
+  // Like weightedPick, but the weight is read through `wf` - which is how the
+  // difficulty tier re-weights permanent penalties without editing the table.
+  function weightedPickBy(arr, wf) {
+    const total = arr.reduce((s, x) => s + wf(x), 0);
+    let rng = Math.random() * total;
+    for (const x of arr) { rng -= wf(x); if (rng <= 0) return x; }
+    return arr[arr.length - 1];
+  }
   function weightedPick(arr) {
     const total = arr.reduce((s, x) => s + (x.weight || 1), 0);
     let rng = Math.random() * total;
@@ -167,6 +303,22 @@ function _generateRewardContent() {
 
   // Pre-pick Trick at generation time so the tile shows the exact card.
   // entity/rarity drive the LETHE reward-entity visuals (see buildRewardTileInner).
+  // Trick tiles are drawn on the SHOP'S RARITY TABLE (r193), not uniformly.
+  //
+  // They used to be picked flat out of the eligible pool, which sounds fair and is
+  // not: TRICK_POOL is 49 common / 66 rare / 50 epic / 7 legendary / 5 mythic, so a
+  // uniform draw made an epic-or-better tile a 35% event on EVERY trick slot, and
+  // a grid guarantees five of them. Sleights had gone through pickSleightByRarity
+  // since the shop was written; tricks and knacks never did, which is most of why
+  // a reward grid reads as a pile of epics.
+  // Owner's call (r195): tricks and knacks draw on the SAME table as sleights,
+  // rather than the slightly looser one r193 gave them. That is a further
+  // tightening - epic-or-better goes from 21% of a trick tile to 13%.
+  const TRICK_TIERS  = ENTITY_TIERS;
+  const TRICK_TIER_W = luckTierWeights(ENTITY_TIER_W);   // Luck tilts the ladder (js/luck.js)
+  // pickEntityByRarity now lives in js/luck.js so the events can reach it too.
+  const pickByRarity = (pool, tierOf, weights, tiers) => pickEntityByRarity(pool, tierOf, weights, tiers);
+
   function makeTrickPayload() {
     if (typeof TRICK_POOL === 'undefined') return { icon: '★', label: 'Trick', tier: 'rare', entity: 'trick', rarity: 'rare', apply: applyRewardRandomTrick };
     const owned = new Set((acquiredTricks || []).map(b => b.id));
@@ -176,7 +328,8 @@ function _generateRewardContent() {
     if (PRIZE) { const up = eligible.filter(b => (b.tier || 'common') !== 'common'); if (up.length) eligible = up; }
     if (eligible.length === 0) return { icon: '★', label: 'Trick', tier: 'rare', entity: 'trick', rarity: 'rare', apply: applyRewardRandomTrick };
     eligible = freshPool(eligible);
-    const pick = eligible[Math.floor(Math.random() * eligible.length)];
+    const pick = pickByRarity(eligible, b => (b.tier || 'common'), TRICK_TIER_W, TRICK_TIERS)
+              || eligible[Math.floor(Math.random() * eligible.length)];
     _usedThisGrid.add(pick.id);
     return {
       icon: '★', label: pick.name, desc: pick.desc, tier: pick.tier || 'rare',
@@ -188,7 +341,7 @@ function _generateRewardContent() {
   // Prize-grid sleight draw: the shop's rarity table with 'common' cut out of it.
   function pickPrizeSleight() {
     const TIERS = ['rare', 'epic', 'legendary', 'mythic'];
-    const W     = [58, 28, 9, 5];
+    const W     = luckTierWeights([58, 28, 9, 5]);   // no commons here, but Luck still tilts it
     const pool = freshPool(SLEIGHT_POOL.filter(j => !grantedSleightIds.has(j.id) && sleightOfferable(j) && !offerBanned(j.id) && (j.rarity || 'common') !== 'common'));
     if (!pool.length) return null;
     const total = W.reduce((a, b) => a + b, 0);
@@ -196,6 +349,39 @@ function _generateRewardContent() {
     for (let i = 0; i < W.length; i++) { roll -= W[i]; if (roll <= 0) { ti = i; break; } }
     for (let i = ti; i >= 0; i--) { const t = pool.filter(j => j.rarity === TIERS[i]); if (t.length) return t[Math.floor(Math.random() * t.length)]; }
     return pool[Math.floor(Math.random() * pool.length)];
+  }
+
+  // ── Improve an entity you already own (r206) ───────────────────────────────
+  // The TARGET is chosen when the grid is BUILT, not when the tile is taken, so
+  // the tile can name what it will improve and show the number it will become.
+  // That follows Fortune/Jinx, which roll their Luck step at generation for the
+  // same reason. It is also why `apply` re-checks: a Trick can be taken off you
+  // between the grid being built and the tile being picked.
+  function makeImprovePayload(type) {
+    const ICON = { trick: '\u2605', knack: '\u25c6', sleight: '\u2666' };
+    const NOUN = { trick: 'Trick', knack: 'Knack', sleight: 'Sleight' };
+    const pick = (typeof pickImproveTarget === 'function') ? pickImproveTarget(type) : null;
+    // Nothing of that type owned, or everything of it is already maxed. A tile
+    // that does nothing is worse than an ordinary one.
+    if (!pick) return makeTrickPayload();
+    const prev = (typeof improvePreview === 'function') ? improvePreview(pick.id) : null;
+    const tierTxt = prev ? ` (tier ${prev.tier}/${IMPROVE_MAX_TIER})` : '';
+    return {
+      icon: ICON[type] || '\u2605', label: 'Improve: ' + pick.name,
+      desc: (prev && prev.after !== prev.before)
+              ? `${pick.name}${tierTxt}\n${prev.before}\n\u2193\n${prev.after}`
+              : `Improve your ${NOUN[type]} ${pick.name}${tierTxt}`,
+      tier: 'rare', entity: type, rarity: pick.rarity || 'rare', _improve: true,
+      apply: () => {
+        if (typeof improveEntity !== 'function' || !improveEntity(pick.id)) {
+          showMessage(`${pick.name} could not be improved`, 'var(--red)');
+          return;
+        }
+        showMessage(`\u2191 ${pick.name} improved`, 'var(--gold)');
+        if (typeof renderTrickTray === 'function') renderTrickTray();
+        if (typeof updateKnackList  === 'function') updateKnackList();
+      }
+    };
   }
 
   function makeSleightPayload() {
@@ -225,7 +411,10 @@ function _generateRewardContent() {
     if (PRIZE) { const up = eligible.filter(t => (t.rarity || 'common') !== 'common'); if (up.length) eligible = up; }
     if (!eligible.length) return makeTrickPayload(); // fallback - all knacks owned
     eligible = freshPool(eligible);
-    const pick = eligible[Math.floor(Math.random() * eligible.length)];
+    // Same rarity table as Tricks, for the same reason - KNACK_POOL is 24 common /
+    // 23 rare / 1 epic, so a flat draw was very nearly a coin flip for a rare.
+    const pick = pickByRarity(eligible, t => (t.rarity || 'common'), TRICK_TIER_W, TRICK_TIERS)
+              || eligible[Math.floor(Math.random() * eligible.length)];
     _usedThisGrid.add(pick.id);
     return {
       icon: pick.emoji, emoji: pick.emoji, label: pick.name, desc: pick.desc,
@@ -242,14 +431,26 @@ function _generateRewardContent() {
     if (!_all.length) return null;
     const card = _all[Math.floor(Math.random() * _all.length)];
     const rank = card.rank, suit = card.suit;
-    const mult = Math.random() < 0.3; // 30% of blessings are the (stronger) +1 mult
-    return mult
-      ? { icon: '✨', label: 'Blessed Card', tier: 'epic', cardFace: { rank, suit },
-          desc: `${rank}${suit} permanently gains +1 mult when scored.`,
-          apply: () => { const t = resolveDeckCard(card); if (!t) return; const k = cardId(t); permMult[k] = (permMult[k] || 0) + 1; showMessage(`${rank}${suit} blessed: +1 mult`, 'var(--gold)'); } }
-      : { icon: '✨', label: 'Blessed Card', tier: 'rare', cardFace: { rank, suit },
-          desc: `${rank}${suit} permanently gains +12 pips.`,
-          apply: () => { const t = resolveDeckCard(card); if (!t) return; const k = cardId(t); permPips[k] = (permPips[k] || 0) + 12; showMessage(`${rank}${suit} blessed: +12 pips`, 'var(--gold)'); } };
+    // Three blessings, and the wording now says which KIND each one is (r209).
+    // "permanently gains +1 mult" was used for a FLAT bonus, which reads as
+    // growth - a player could hold that card all run waiting for a number that
+    // was never going to move. Flat says "scores"; scaling says "scales".
+    const roll = Math.random();
+    if (roll < 0.15) return { icon: '📈', label: 'Scaling Card', tier: 'legendary', cardFace: { rank, suit },
+      desc: `${rank}${suit} scales +1 mult each time it's played.`,
+      apply: () => { const t = resolveDeckCard(card); if (!t) return; const k = cardId(t);
+        permMultGrow[k] = (permMultGrow[k] || 0) + 1;
+        showMessage(`${rank}${suit} scales: +1 mult per play`, 'var(--gold)'); } };
+    if (roll < 0.4) return { icon: '✨', label: 'Blessed Card', tier: 'epic', cardFace: { rank, suit },
+      desc: `${rank}${suit} scores +5 mult when played.`,
+      apply: () => { const t = resolveDeckCard(card); if (!t) return; const k = cardId(t);
+        permMult[k] = (permMult[k] || 0) + 5;
+        showMessage(`${rank}${suit} blessed: +5 mult when played`, 'var(--gold)'); } };
+    return { icon: '✨', label: 'Blessed Card', tier: 'rare', cardFace: { rank, suit },
+      desc: `${rank}${suit} scores +12 pips when played.`,
+      apply: () => { const t = resolveDeckCard(card); if (!t) return; const k = cardId(t);
+        permPips[k] = (permPips[k] || 0) + 12;
+        showMessage(`${rank}${suit} blessed: +12 pips when played`, 'var(--gold)'); } };
   }
   // Cull buff: deck thinning - a specific low card leaves the run for good.
   function makeCullPayload() {
@@ -262,13 +463,32 @@ function _generateRewardContent() {
         : showMessage(`${rank}${suit} was already gone`, 'var(--cream-dim)'); } };
   }
   function makeLimitUpPayload() {
-    // round_time excluded - its +1 = 1 second; time is handled by the +15s tile.
-    const eligible = LIMITS_DEF.filter(d => d.id !== 'round_time' && limits[d.id].current < limits[d.id].max);
+    // EVERY LIMIT HAS ITS OWN STEP, and this tile used to ignore all of them: it
+    // printed "+1" and "current → current + 1" whatever it was raising. Two limits
+    // do not step by 1 - round_time steps by 15 and focus_cap by 3 - so the tile
+    // said "+1 Focus Cap · 30 → 31" and then granted +3. round_time was excluded
+    // outright on the strength of the same wrong assumption ("its +1 = 1 second"),
+    // which is why a limit tile could never raise your round time at all.
+    // incrementLimit was always applying def.step correctly; only the label lied.
+    const eligible = LIMITS_DEF.filter(d => limits[d.id].current < limits[d.id].max);
     if (!eligible.length) return makeTrickPayload();
     const dl = pickWeightedLimits(1, eligible)[0];
-    return { icon: '⬆️', label: `+1 ${dl.label}`, tier: 'epic',
-      desc: `${dl.label}: ${limits[dl.id].current} → ${limits[dl.id].current + 1} · permanent`,
-      apply: () => { incrementLimit(dl.id); showMessage(`+1 ${dl.label}!`, 'var(--gold)'); } };
+    // PRINT THE STEP, not "+1". incrementLimit has always moved a limit by its
+    // `step`, while this tile hardcoded 1 in its label, its before/after and its
+    // toast - so Focus Cap (step 3) has been quietly paying triple what the tile
+    // promised, and Luck (step 10) made it impossible to miss.
+    //
+    // NOTE (r211): that fix was INERT on its own, because startGame rebuilt the
+    // limits table without `step` at all - so `limits[id].step` was undefined here
+    // and `|| 1` gave back the very number this was written to stop printing. See
+    // the limits reset in js/game-control.js. Seconds also get a unit, or a Round
+    // Time tile reads "+15 Round Time" and could be 15 of anything.
+    const _st = limits[dl.id].step || 1;
+    const _to = Math.min(limits[dl.id].max, limits[dl.id].current + _st);
+    const _u  = dl.id === 'round_time' ? 's' : '';
+    return { icon: '⬆️', label: `+${_st}${_u} ${dl.label}`, tier: 'epic',
+      desc: `${dl.label}: ${limits[dl.id].current}${_u} → ${_to}${_u} · permanent`,
+      apply: () => { incrementLimit(dl.id); showMessage(`+${_st}${_u} ${dl.label}!`, 'var(--gold)'); } };
   }
 
   // At most this many limit tiles on a prize grid, INCLUDING the guaranteed Limit
@@ -286,6 +506,9 @@ function _generateRewardContent() {
       case 'trick':      return makeTrickPayload();
       case 'sleight':   return makeSleightPayload();
       case 'knack':   return makeKnackPayload();
+      case 'improve_trick':   return makeImprovePayload('trick');
+      case 'improve_knack':   return makeImprovePayload('knack');
+      case 'improve_sleight': return makeImprovePayload('sleight');
       case 'discard': return { icon: '🗑', label: '+1 Discard',   tier: 'common',
                                desc: `Next round discards: ${_proj.discards} → ${_proj.discards + 1}`,
                                apply: () => { nextRoundDiscardDelta += 1; showMessage('+1 discard next round', 'var(--gold)'); } };
@@ -304,6 +527,12 @@ function _generateRewardContent() {
         const t = makeLimitUpPayload();
         if (t && t.icon === '⬆️') _limitTilesThisGrid++;
         return t;
+      }
+      case 'luck': {
+        const n = _luckAmt();
+        return { icon: '🍀', label: `+${n} Luck`, tier: _luckTier(n),
+                 desc: `Luck ${luckTotal()} → ${luckTotal() + n}. Good chance effects fire more often and better entities turn up. Permanent.`,
+                 apply: () => { luckModifiers += n; showMessage(`+${n} Luck`, 'var(--gold)'); } };
       }
       case 'blessed': return makeBlessedPayload() || makeTrickPayload();
       case 'cull':    return makeCullPayload();
@@ -370,7 +599,30 @@ function _generateRewardContent() {
     for (let c = 0; c < COLS; c++)
       (PRIZE || (r + c) % 2 === 0 ? buffPos : debuffPos).push([r, c]);
 
+  // ── Difficulty: convert extra buff cells into penalty cells (r193) ─────────
+  // The checkerboard is a 50/50 split, which means a path of N tiles can always
+  // be walked with roughly N/2 penalties - and with Selection Size 5, one penalty
+  // and four rewards. Tier 3 raises the penalty share so that stops being true.
+  //
+  // Cells are converted from the END of the shuffled buff list, which is what
+  // keeps this safe: the destination and every guaranteed tile are placed from
+  // the FRONT of that same list, so they are never the ones taken away. A prize
+  // grid has no penalty half at all and is skipped outright.
   const shuffledBuff = shuffled(buffPos);
+  if (!PRIZE) {
+    const share = (typeof diffDebuffShare === 'function') ? diffDebuffShare() : null;
+    if (share) {
+      const cells  = ROWS * COLS;
+      const wanted = Math.round(cells * share);
+      // Never eat into the guaranteed tiles or the destination, and always leave
+      // enough buff slots for the Trick minimum - a grid with nothing worth
+      // taking is not hard, it is empty.
+      const reserved = 1 + buildGuaranteedRewardTiles().length + MIN_TRICK_TILES_FOR(PRIZE);
+      let convert = Math.min(wanted - debuffPos.length, shuffledBuff.length - reserved);
+      while (convert > 0) { debuffPos.push(shuffledBuff.pop()); convert--; }
+    }
+  }
+
   const grid = Array.from({length: ROWS}, () => Array(COLS).fill(null));
 
   // One destination in a random buff slot (not on a prize grid - it pays out, it
@@ -401,7 +653,7 @@ function _generateRewardContent() {
   // tissue of builds). Non-trick buffs are converted at random until met.
   // A prize grid is 9 tiles at its smallest, several of them guaranteed upgrades -
   // demanding 5 Tricks there would crowd everything else out.
-  const MIN_TRICK_TILES = PRIZE ? 2 : 5;
+  const MIN_TRICK_TILES = MIN_TRICK_TILES_FOR(PRIZE);
   {
     const isTrickTile = cell => cell?.kind === 'buff' && cell.payload && String(cell.payload.icon) === '★';
     let trickCount = 0;
@@ -409,6 +661,10 @@ function _generateRewardContent() {
     for (let i = (PRIZE ? 0 : 1); i < shuffledBuff.length; i++) {
       const [r, c] = shuffledBuff[i];
       if (grid[r][c]?.payload?._guaranteed) continue;   // never overwrite a guaranteed tile
+      // An improve tile is not a Trick offer and must not be converted into one.
+      // Without this the minimum pass ate every improve-a-Knack and
+      // improve-a-Sleight tile before the grid was ever shown.
+      if (grid[r][c]?.payload?._improve) continue;
       if (isTrickTile(grid[r][c])) trickCount++;
       else convertible.push([r, c]);
     }
@@ -419,20 +675,82 @@ function _generateRewardContent() {
     }
   }
 
+  // ── Difficulty: push the best tiles out to the rim (r193) ─────────────────
+  // A reward path is walked from a starting tile through orthogonally connected
+  // neighbours, so a CENTRE cell is cheap to reach - it has four ways in - and a
+  // corner is dear, with two. Above tier 1 the epic-and-better tiles are traded
+  // out to edge and corner cells, so taking the best thing on the board means
+  // committing the path to it instead of collecting it on the way past.
+  //
+  // This is a SWAP between two already-placed buff cells, never a re-roll: the
+  // grid's contents are unchanged and only their positions move, so the Trick
+  // minimum, the limit ceiling and the destination all still hold afterwards.
+  const _isEdge = (r, c) => r === 0 || c === 0 || r === ROWS - 1 || c === COLS - 1;
+  // How exposed a cell is, lowest first: a corner (2 ways in) beats an edge (3).
+  const _openness = (r, c) => [[r-1,c],[r+1,c],[r,c-1],[r,c+1]]
+    .filter(([nr, nc]) => nr >= 0 && nc >= 0 && nr < ROWS && nc < COLS).length;
+  if (!PRIZE && typeof diffWantsEdge === 'function') {
+    const highInner = [], freeEdge = [];
+    for (let i = (PRIZE ? 0 : 1); i < shuffledBuff.length; i++) {
+      const [r, c] = shuffledBuff[i];
+      const cell = grid[r][c];
+      if (!cell || cell.kind !== 'buff') continue;
+      const high = diffWantsEdge(cell.payload?.rarity || cell.payload?.tier);
+      if (high && !_isEdge(r, c))       highInner.push([r, c]);
+      else if (!high && _isEdge(r, c))  freeEdge.push([r, c]);
+    }
+    // Most exposed inner tile out first, into the least exposed edge cell going -
+    // so on a board with one corner free, the mythic is the tile that gets it.
+    highInner.sort((a, b) => _openness(b[0], b[1]) - _openness(a[0], a[1]));
+    freeEdge.sort((a, b) => _openness(a[0], a[1]) - _openness(b[0], b[1]));
+    const n = Math.min(highInner.length, freeEdge.length);
+    for (let i = 0; i < n; i++) {
+      const [ar, ac] = highInner[i], [br, bc] = freeEdge[i];
+      const t = grid[ar][ac]; grid[ar][ac] = grid[br][bc]; grid[br][bc] = t;
+    }
+  }
+
   // Fill all debuff positions - weighted, and one-per-grid for the "big" kinds.
   // debuffPos is empty on a prize grid, so this loop simply does not run.
   // (two identical curse/drain/mystery tiles in one grid would be confusing)
+  //
+  // The weight of every PERMANENT penalty is multiplied by the difficulty tier's
+  // permWeightMult, so a higher tier does not add more penalties (tier 3 does that
+  // separately, above) - it changes which ones you meet.
+  const _permMult = (typeof diffPermWeightMult === 'function') ? diffPermWeightMult() : 1;
+  const _wOf = d => (d.weight || 1) * (d.perm ? _permMult : 1);
+  // Cells that must carry a PERMANENT penalty: the ones orthogonally touching a
+  // tile of an edge-bias rarity. Computed after the swap above, so it reads the
+  // final positions.
+  const _mustBePerm = new Set();
+  if (!PRIZE && typeof diffPermNeighborCount === 'function' && diffPermNeighborCount() > 0) {
+    const want = diffPermNeighborCount();
+    for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+      const cell = grid[r][c];
+      if (!cell || cell.kind !== 'buff') continue;
+      if (!diffWantsEdge(cell.payload?.rarity || cell.payload?.tier)) continue;
+      const nb = [[r-1,c],[r+1,c],[r,c-1],[r,c+1]]
+        .filter(([nr, nc]) => debuffPos.some(([dr, dc]) => dr === nr && dc === nc));
+      // Shuffled so it is not always the same compass points that turn permanent.
+      shuffled(nb).slice(0, want).forEach(([nr, nc]) => _mustBePerm.add(`${nr}-${nc}`));
+    }
+  }
   const usedOnce = new Set();
   for (const [r, c] of debuffPos) {
     let pick = null;
+    const needPerm = _mustBePerm.has(`${r}-${c}`);
+    // A forced-permanent cell draws from the permanent half only. If that half is
+    // somehow empty it falls through to the ordinary draw rather than blanking.
+    const table = needPerm ? debuffs.filter(d => d.perm) : debuffs;
+    const pool = table.length ? table : debuffs;
     for (let tries = 0; tries < 12; tries++) {
-      const cand = weightedPick(debuffs);
-      const isOnceKind = cand.cardFace || cand.icon === '⬇️' || cand.tier === 'mystery';
+      const cand = weightedPickBy(pool, _wOf);
+      const isOnceKind = cand.cardFace || cand.icon === '⬇️' || cand.icon === '🐈‍⬛' || cand.tier === 'mystery';
       if (isOnceKind && usedOnce.has(cand.label)) continue;
       if (isOnceKind) usedOnce.add(cand.label);
       pick = cand; break;
     }
-    grid[r][c] = { kind: 'debuff', payload: pick || pickRand(debuffs) };
+    grid[r][c] = { kind: 'debuff', payload: pick || pickRand(pool) };
   }
 
   // The tutorial rewrites its FIRST grid into a Trick → liability → Mart row so
@@ -543,12 +861,16 @@ function injectTrickAfterReward(trick) {
   render();
 }
 
+// "A random Trick" - the Crossroads sacrifice trade, and makeTrickPayload's
+// fallback when a grid's pool is exhausted. It drew FLAT from the whole pool
+// until r203, which on a 177-Trick pool made it a 31% shot at epic-or-better
+// every time. On the rarity table now, like every other offer.
 function applyRewardRandomTrick() {
   if (typeof TRICK_POOL === 'undefined') return;
   const owned = new Set((acquiredTricks || []).map(b => b.id));
-  const eligible = TRICK_POOL.filter(b => !owned.has(b.id));
+  const eligible = TRICK_POOL.filter(b => !owned.has(b.id) && !offerBannedGlobal(b.id));
   if (eligible.length === 0) return;
-  const pick = eligible[Math.floor(Math.random() * eligible.length)];
+  const pick = pickTrickByRarity(eligible) || eligible[Math.floor(Math.random() * eligible.length)];
   injectTrickAfterReward(pick);
 }
 function applyRewardLoseTrick() {
@@ -831,6 +1153,10 @@ function renderRewardTiles(animateIn = false) {
     }
   }
   updateRewardButtons();
+  // The live x/y readout, here rather than in render(): a reward tile click calls
+  // renderRewardTiles() directly and never goes through render(), so wiring it there
+  // alone left the count frozen at 0 for the whole reward step.
+  if (typeof updateSelectionUI === 'function') updateSelectionUI();
   // The tiles were just thrown away and rebuilt, so the pinned tooltip has to be
   // re-anchored to the new node for the tile it belongs to (r182).
   restoreRewardTooltip();
@@ -860,8 +1186,10 @@ function updateRewardButtons() {
   const hasAny = rewardSelected.size > 0;
   const play = document.getElementById('btn-play');
   const disc = document.getElementById('btn-discard');
-  if (play) play.disabled = !hasAny;   // CONFIRM
-  if (disc) disc.disabled = !hasAny;   // CLEAR
+  // CONFIRM needs the minimum; CLEAR only needs something to clear, or a short
+  // pick would strand the player with no way to undo it.
+  if (play) play.disabled = !rewardPicksMet();   // CONFIRM
+  if (disc) disc.disabled = !hasAny;             // CLEAR
 }
 
 // Repurpose the two action buttons for the reward step (green CONFIRM / yellow CLEAR).
@@ -1075,17 +1403,23 @@ function renderRewardGrid() {
       return rewardCells[sr]?.[sc]?.kind === 'dest';
     });
     const cap = rewardSelectionCap();
+    if (typeof updateSelectionUI === 'function') updateSelectionUI();
     const picks = `Picks: ${rewardSelected.size}/${cap}`;
     const atCap = rewardSelected.size >= cap;
-    subEl.textContent = atCap
-      ? `${picks} - selection full. Confirm, or tap a pick to remove it.`
-      : selectedDest
-        ? `${picks} - destination locked in. Confirm to set your route.`
-        : `${picks} - choose a connected group. At most one destination.`;
+    const need  = rewardMinPicks() - rewardSelected.size;
+    // Short of the floor, say so and say nothing else - it is the only thing
+    // standing between the player and CONFIRM.
+    subEl.textContent = need > 0
+      ? `${picks} - take ${need} more to confirm, or SKIP to take none.`
+      : atCap
+        ? `${picks} - selection full. Confirm, or tap a pick to remove it.`
+        : selectedDest
+          ? `${picks} - destination locked in. Confirm to set your route.`
+          : `${picks} - choose a connected group. At most one destination.`;
   }
 
   const hasAny = rewardSelected.size > 0;
-  document.getElementById('reward-confirm').disabled = !hasAny;
+  document.getElementById('reward-confirm').disabled = !rewardPicksMet();
   document.getElementById('reward-clear').disabled   = !hasAny;
 }
 
@@ -1093,6 +1427,23 @@ function renderRewardGrid() {
 function rewardSelectionCap() {
   return limits.selection.current + (hasKnack('greedy_boi') ? BAL.greedy_boi.selection : 0);
 }
+
+// ── The minimum applies here too (r214) ──
+// Selection Size carries a floor as well as a cap (minSelection(), js/limits.js), and
+// until now that floor was the play grid's alone - so raising the limit made hands
+// harder to commit while making the reward grid strictly easier. One rule, both grids.
+//
+// It is derived from minSelection(), NOT from rewardSelectionCap(): Greedy Boi raises
+// the ceiling as a reward, and having it raise the floor with it would be a downside
+// stapled to a knack that is meant to be pure upside.
+// The floor is also held BELOW the cap, so a grid can never demand more picks than it
+// will accept - the two come from different places once Greedy Boi is in play.
+function rewardMinPicks() {
+  const min = (typeof minSelection === 'function') ? minSelection() : 1;
+  return Math.max(1, Math.min(min, rewardSelectionCap()));
+}
+// SKIP is unaffected - taking nothing is a deliberate alternative, not a short pick.
+function rewardPicksMet() { return rewardSelected.size >= rewardMinPicks(); }
 
 // A cell is selectable if: nothing selected yet (any cell), OR orthogonally adjacent to any selected cell and not already selected
 function isRewardCellSelectable(r, c) {
@@ -1339,6 +1690,9 @@ async function animateRewardResolve() {
 
 async function confirmRewardPath() {
   if (rewardConfirmed || rewardDealing || rewardSelected.size === 0) return;
+  // Hard guard: a queued tap or a keyboard path reaches here without passing the
+  // button's disabled state, the same reason playHand re-checks the play grid's floor.
+  if (!rewardPicksMet()) return;
   rewardConfirmed = true;
   const play = document.getElementById('btn-play');
   const disc = document.getElementById('btn-discard');
@@ -1408,12 +1762,15 @@ function closeRewardGrid() {
     // The node this reward grid belonged to, captured BEFORE the advance below.
     // Guided routes off it, and 5 is the post-boss prize grid.
     const _node = nodeInAct;
+    const _guided = (typeof guidedActive === 'function' && guidedActive() && isActMode());
 
-    if (isActMode()) {
+    if (isActMode() && !_guided) {
       if (nodeInAct === 5) {
         // Post-boss reward grid - transition to next act
         nodeInAct = 0;
         actNumber++;
+        // Dead Drop cells are an ACT-long penalty; a new act is a clean board.
+        deadCells = new Set();
         updateActProgressUI();
         if (actNumber > 3) {
           onGameWin();
@@ -1428,11 +1785,17 @@ function closeRewardGrid() {
       }
     }
 
-    // Guided: the act runs a fixed spine, so the node index decides what comes
-    // next, not a destination tile (which Guided's grids do not carry).
+    // Guided (r218) runs its own act: slots, not nodes. A grid here is either one
+    // the player BOUGHT with a slot - back to the crossroads - or the post-boss
+    // prize grid, which rolls the act over. Neither uses the node routing above,
+    // which is why guided returns before the destination-tile branch.
     if (typeof guidedActive === 'function' && guidedActive() && isActMode()) {
       pendingEventOverride = null;
-      guidedRunStops(guidedStopsAfterNode(_node), () => drainLevelUpQueue());
+      // guidedInStop, NOT the node index: a grid the player BOUGHT is one slot
+      // of the act, the post-boss PRIZE grid rolls the act over, and only the
+      // flag tells them apart - nodeInAct is kept in step with the slot count for
+      // the HUD and can legitimately read 5 for either.
+      if (guidedInStop) guidedAfterSlot(); else guidedAfterPrizeGrid();
       return;
     }
 

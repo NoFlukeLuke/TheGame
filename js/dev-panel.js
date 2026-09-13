@@ -97,6 +97,7 @@ function openDevPanel() {
   devRenderLimits();
   devRenderSleights();
   devRenderBosses();
+  devRenderModes();
   devRenderEvents();
   devRenderGroupMenu();
   devSyncFloatSliders();
@@ -123,17 +124,20 @@ const DEV_GROUPS = [
   { g:'limits',   icon:'▲', label:'Limits',    sub:() => `${LIMITS_DEF.length} upgradeable` },
   { g:'events',   icon:'✧', label:'Events',    sub:() => `${Object.keys(EVENT_META).length} + shop / limit break` },
   { g:'boss',     icon:'☠', label:'Bosses',    sub:() => `${BOSS_PRESETS.length} presets` },
+  { g:'modes',    icon:'▶', label:'Modes',     sub:() => `${Object.keys(MODES).length} playable · ${MODE_HIDDEN_LIST.length} hidden` },
   { g:'anim',     icon:'✺', label:'Animation', sub:() => 'fall · score · item float' },
   { g:'focus',    icon:'◎', label:'Focus',     sub:() => 'meter · decay · speed bonus' },
   { g:'time',     icon:'⏱', label:'Time',      sub:() => 'add / set round seconds' },
   { g:'coins',    icon:'💰', label:'Coins',    sub:() => 'add / zero credits' },
   { g:'score',    icon:'#', label:'Score',     sub:() => 'add score · win · skip level' },
+  { g:'goals',    icon:'◈', label:'Goals',     sub:() => devGoalGroupSub() },
   { g:'hud',      icon:'▤', label:'HUD',       sub:() => 'toggles · scoring dance' },
   { g:'display',  icon:'⛶', label:'Display',   sub:() => 'fullscreen' },
   { g:'save',     icon:'💾', label:'Save Run',  sub:() => { const s = savedRunSummary(); return s ? `saved · Round ${s.level}` : 'no save yet'; } },
   { g:'seed',     icon:'⚄', label:'Run Seed',  sub:() => runSeed ? `on · ${runSeed}` : 'off · random' },
   { g:'match3',   icon:'⬚', label:'Match-3',   sub:() => 'match types · sandbox' },
   { g:'spectrum', icon:'◐', label:'Spectrum',  sub:() => `${spectrumRanks().length} values × ${spectrumColors().length} colours` },
+  { g:'improve',  icon:'\u2191', label:'Improve',   sub:() => devImproveSub() },
   { g:'builds',   icon:'▤', label:'Builds',    sub:() => `${discoveredIds.size} records open` },
   { g:'log',      icon:'✎', label:'Event Log', sub:() => 'in-game debug log' },
 ];
@@ -159,6 +163,8 @@ function devOpenGroup(g) {
   document.getElementById('dev-group-pop-body').scrollTop = 0;
   if (g === 'seed') devRefreshSeed();
   if (g === 'spectrum') renderSpectrumDev();
+  if (g === 'goals') devRenderGoalPanel();
+  if (g === 'improve') devRenderImprove();
 }
 function devCloseGroup() {
   document.getElementById('dev-group-menu').style.display = '';
@@ -172,6 +178,32 @@ function devRenderBosses() {
   el.innerHTML = BOSS_PRESETS.map(b =>
     `<button class="dev-btn" onclick="devTriggerBoss('${b.id}')">${b.name || b.id}</button>`).join('');
 }
+// Every mode in MODES, not just the carousel's list - this is the only way into
+// Match-3, Zen and Dominoes now that MODE_SELECT_LIST hides them (js/menu.js).
+// Generated rather than hand-written for the same reason the boss and event rows
+// are: a new mode cannot go missing from the panel.
+function devRenderModes() {
+  const el = document.getElementById('dev-mode-btns'); if (!el) return;
+  el.innerHTML = Object.keys(MODES).map(id => {
+    const hidden = MODE_HIDDEN_LIST.includes(id);
+    return `<button class="dev-btn" onclick="devStartMode('${id}')" title="${hidden ? 'hidden from the mode carousel' : ''}">`
+         + `${MODES[id].name || id}${hidden ? ' ·' : ''}</button>`;
+  }).join('');
+}
+
+// Launch a mode from the panel. chooseMode() is the menu's own entry point, so
+// this only has to clear the surfaces the panel may be sitting on top of first -
+// the panel itself, the main menu, and the carousel if it is open behind it.
+function devStartMode(id) {
+  if (!MODES[id]) return;
+  devPanelFromMenu = false;          // never bounce back to the menu - a run is starting
+  devPanelOpen = false;
+  document.getElementById('dev-panel').style.display = 'none';
+  document.getElementById('main-menu-overlay')?.classList.remove('show');
+  document.getElementById('mode-select-overlay')?.classList.remove('show');
+  chooseMode(id);
+}
+
 function devRenderEvents() {
   const el = document.getElementById('dev-event-btns'); if (!el) return;
   el.innerHTML = Object.keys(EVENT_META).map(id =>
@@ -209,6 +241,65 @@ function devSetNs(k, v) {
   devSyncNs();
 }
 function devResetNs() { resetNaturalScaling(); devSyncNs(); }
+
+// ── Natural Scaling bonus editor (r201) ──
+// A table of every scalable hand type with its EARNED pips and mult, typed
+// directly. Rebuilt only when the set of rows changes, so typing in a field does
+// not tear the field out from under the caret on the next sync.
+let _nsRowsKey = '';
+function devRenderNsRows() {
+  const host = document.getElementById('dev-ns-rows');
+  if (!host || typeof naturalScaleRows !== 'function') return;
+  const rows = naturalScaleRows();
+  const key = rows.map(r => r.name).join('|');
+  if (key !== _nsRowsKey) {
+    _nsRowsKey = key;
+    host.innerHTML = rows.map(r => `<div class="dev-ns-row">
+      <span class="dev-ns-name">${r.name}</span>
+      <label>pips <input type="number" step="1" min="0" data-ns="${r.name}" data-f="pips"
+        oninput="devSetNsBonus(this)"></label>
+      <label>mult <input type="number" step="0.25" min="0" data-ns="${r.name}" data-f="mult"
+        oninput="devSetNsBonus(this)"></label>
+      <span class="dev-ns-plays"></span>
+    </div>`).join('');
+  }
+  // Values are written separately from the markup so a live field is only
+  // updated when it is not the one being typed in.
+  rows.forEach(r => {
+    host.querySelectorAll(`[data-ns="${CSS.escape(r.name)}"]`).forEach(inp => {
+      if (inp === document.activeElement) return;
+      inp.value = inp.dataset.f === 'pips' ? r.pips : r.mult;
+    });
+    const row = host.querySelector(`[data-ns="${CSS.escape(r.name)}"]`)?.closest('.dev-ns-row');
+    const pl = row && row.querySelector('.dev-ns-plays');
+    if (pl) pl.textContent = r.plays ? r.plays + ' played' : '';
+  });
+}
+function devSetNsBonus(inp) {
+  setNaturalScaleBonus(inp.dataset.ns, inp.dataset.f, inp.value);
+  const st = document.getElementById('dev-ns-state');
+  if (st) st.textContent = naturalScaleSummary();
+  _devSafeRender();   // the live PIPS/MULT chips quote it, so repaint
+}
+
+// ── Layered hands (r198) - state lives in js/hand-detect.js ──
+// A big balance lever (a same-suit run pays two hands' base AND replays every
+// card), so it gets a switch rather than being a fact of the game.
+function devSetLayeredHands(on) {
+  layeredHandsEnabled = !!on;
+  localStorage.setItem('layeredHands', on ? '1' : '0');
+  const chk = document.getElementById('dev-layered-enabled'); if (chk) chk.checked = layeredHandsEnabled;
+  _devSafeRender();
+}
+// How many cards of one suit a hand needs before the flush overlay pays. At 3 it
+// fires on about half of all five-card hands, which is the intent; 4 or 5 makes
+// it something you have to build for again.
+function devSetFlushOverlayMin(v) {
+  flushOverlayMin = Math.max(3, Math.min(7, parseInt(v, 10) || 3));
+  localStorage.setItem('flushOverlayMin', flushOverlayMin);
+  const lab = document.getElementById('dev-flushmin-val'); if (lab) lab.textContent = flushOverlayMin;
+  _devSafeRender();
+}
 function devSyncNs() {
   const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
   const chk = document.getElementById('dev-ns-enabled'); if (chk) chk.checked = nsEnabled;
@@ -217,6 +308,10 @@ function devSyncNs() {
   lab('dev-ns-pips-val', nsPipsPerHand); lab('dev-ns-mult-val', nsMultPerHand); lab('dev-ns-every-val', nsEveryHands);
   const st = document.getElementById('dev-ns-state');
   if (st) st.textContent = naturalScaleSummary();
+  const lay = document.getElementById('dev-layered-enabled'); if (lay) lay.checked = layeredHandsEnabled;
+  const fm = document.getElementById('dev-flushmin'); if (fm) fm.value = flushOverlayMin;
+  devRenderNsRows();
+  const fml = document.getElementById('dev-flushmin-val'); if (fml) fml.textContent = flushOverlayMin;
 }
 
 // ── Channel-change sliders (CC_CFG lives in js/channel-change.js) ──
@@ -606,6 +701,113 @@ function devRenderFocusPanel() {
     nodes.map(n => `${n} nodes: x${(1 + Math.max(0, n - focusMultStartNodes) * focusMultPerNode).toFixed(2)}`).join('  ·  '));
 }
 
+// ══════════════════════════════════════════════
+// GOALS  (r197)  -  the round-goal curve, live
+// ══════════════════════════════════════════════
+// Same shape as FOCUS_TUNABLES: one table drives the rows, the persistence and
+// the reset. Values live in js/goal-tuning.js; every set() re-applies the curve
+// to the round in progress, so a change is visible without restarting the run.
+
+const GOAL_TUNABLES = {
+  global: [
+    { key: 'globalMult', label: 'Multiply every mode’s goal by',
+      min: 0.1, max: 10, step: 0.05, dp: 2, unit: 'x',
+      get: () => goalTune('globalMult'), set: v => setGoalTune('globalMult', v) },
+  ],
+  classic: [
+    { key: 'classicBase', label: 'Round 1 goal',
+      min: 100, max: 100000, step: 100, dp: 0, unit: '',
+      get: () => goalTune('classicBase'), set: v => setGoalTune('classicBase', v) },
+    { key: 'classicGrowth', label: 'Harder each round by',
+      min: 0, max: 200, step: 1, dp: 1, unit: '%',
+      get: () => goalTune('classicGrowth'), set: v => setGoalTune('classicGrowth', v) },
+    { key: 'classicRoundTo', label: 'Round the goal to the nearest',
+      min: 1, max: 5000, step: 50, dp: 0, unit: '',
+      get: () => goalTune('classicRoundTo'), set: v => setGoalTune('classicRoundTo', v) },
+  ],
+  survival: [
+    { key: 'survivalBase', label: 'Round 1 goal',
+      min: 100, max: 100000, step: 100, dp: 0, unit: '',
+      get: () => goalTune('survivalBase'), set: v => setGoalTune('survivalBase', v) },
+    { key: 'survivalGrowth', label: 'Harder each round by',
+      min: 0, max: 200, step: 1, dp: 1, unit: '%',
+      get: () => goalTune('survivalGrowth'), set: v => setGoalTune('survivalGrowth', v) },
+    { key: 'survivalRoundTo', label: 'Round the goal to the nearest',
+      min: 1, max: 5000, step: 10, dp: 0, unit: '',
+      get: () => goalTune('survivalRoundTo'), set: v => setGoalTune('survivalRoundTo', v) },
+    { key: 'endlessAccel', label: 'Endless mode grows faster by',
+      min: 1, max: 5, step: 0.05, dp: 2, unit: 'x',
+      get: () => goalTune('endlessAccel'), set: v => setGoalTune('endlessAccel', v) },
+  ],
+  other: [
+    { key: 'zenMult', label: 'Zen (no clock) multiplies the classic goal by',
+      min: 0.5, max: 10, step: 0.25, dp: 2, unit: 'x',
+      get: () => goalTune('zenMult'), set: v => setGoalTune('zenMult', v) },
+  ],
+};
+
+function _devFindGoalTunable(key) {
+  for (const group of Object.values(GOAL_TUNABLES)) {
+    const t = group.find(x => x.key === key);
+    if (t) return t;
+  }
+  return null;
+}
+
+// dir: -1 / +1 to step, 0 to take the typed value.
+function devTuneGoal(key, dir, typed) {
+  const t = _devFindGoalTunable(key);
+  if (!t) return;
+  let v = (dir === 0) ? parseFloat(typed) : t.get() + dir * t.step;
+  if (!isFinite(v)) v = t.get();
+  v = Math.min(t.max, Math.max(t.min, +v.toFixed(4)));
+  t.set(v);
+  devGoalApplyAndRender();
+}
+
+function devResetGoalTune() { resetGoalTune(); devGoalApplyAndRender(); }
+
+// Every change moves the live round's bar too - that is the point of tuning here
+// rather than in the data files. applyGoalTuneLive() reports what it did (or why
+// it held off, during a boss).
+function devGoalApplyAndRender() {
+  const line = applyGoalTuneLive();
+  devRenderGoalPanel(line);
+  devRenderGroupMenu();
+}
+
+function devGoalGroupSub() {
+  const g1 = classicGoalForLevel(1);
+  return `R1 ${g1.toLocaleString()} · +${(+goalTune('classicGrowth')).toFixed(0)}%/round`
+       + (goalTuneTouched() ? ' · tuned' : '');
+}
+
+// A curve is only readable as a list of what it actually asks for, so both
+// previews print the real goals and the round-1 multiple at the far end.
+function _devGoalCurveLine(fn, rounds) {
+  const vals = rounds.map(fn);
+  const grow = vals[vals.length - 1] / Math.max(1, vals[0]);
+  return rounds.map((r, i) => `R${r}: ${vals[i].toLocaleString()}`).join('  ·  ')
+       + `\n(R${rounds[rounds.length - 1]} is ${grow.toFixed(1)}x round 1)`;
+}
+
+function devRenderGoalPanel(liveLine) {
+  const fill = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML = html; };
+  ['global', 'classic', 'survival', 'other'].forEach(g =>
+    fill('dev-goal-' + g + '-rows', GOAL_TUNABLES[g].map(t => _devStepper(t, 'devTuneGoal')).join('')));
+
+  fill('dev-goal-classic-preview', _devGoalCurveLine(classicGoalForLevel, [1, 2, 3, 6, 9, 12, 15, 18]));
+
+  // survivalGoalForLevel reads the run's endless state, so the preview is the
+  // ordinary (pre-endless) curve unless the live run has already switched.
+  fill('dev-goal-survival-preview', _devGoalCurveLine(survivalGoalForLevel, [1, 2, 3, 5, 8, 11, 14, 17]));
+
+  const live = (typeof roundGoal === 'number' && typeof level === 'number' && typeof gridData !== 'undefined'
+                && Array.isArray(gridData) && gridData.length)
+    ? `Live: round ${level}, goal ${roundGoal.toLocaleString()}` : 'No run in progress';
+  fill('dev-goal-live', live + (liveLine ? `\n${liveLine}` : ''));
+}
+
 function devFilterTricks(query) {
   const list = document.getElementById('dev-trick-list');
   const q = query.toLowerCase();
@@ -781,4 +983,56 @@ function devResumeRun() {
   document.getElementById('main-menu-overlay').classList.remove('show');
   document.getElementById('mode-select-overlay')?.classList.remove('show');
   resumeSavedRun();
+}
+
+
+// ── Improve (r206) - entity tiers ────────────────────────────────────────────
+// The tier system's test surface: see what you own, what tier it is at, and
+// what one more improvement would read as, without waiting for a reward grid.
+function devImproveSub() {
+  try {
+    const n = ['trick','knack','sleight'].reduce((a,t) => a + ownedImprovable(t).length, 0);
+    const up = Object.values(entityTier || {}).filter(v => v > 0).length;
+    return `${n} improvable · ${up} improved`;
+  } catch (e) { return 'entity tiers'; }
+}
+
+function devRenderImprove() {
+  const el = document.getElementById('dev-improve-list');
+  if (!el) return;
+  const rows = [];
+  ['trick','knack','sleight'].forEach(type => {
+    const owned = (typeof ownedImprovable === 'function') ? ownedImprovable(type) : [];
+    rows.push(`<div style="margin:6px 0 2px;opacity:.7;font-size:10px;letter-spacing:.08em">${type.toUpperCase()} (${owned.length})</div>`);
+    if (!owned.length) { rows.push('<div style="opacity:.45;font-size:11px">none owned that can improve</div>'); return; }
+    owned.forEach(o => {
+      const t = entityTierOf(o.id);
+      const pv = improvePreview(o.id);
+      rows.push(`<div style="display:flex;align-items:center;gap:6px;margin:2px 0">
+        <button class="dev-btn" style="padding:2px 7px" onclick="devImproveOne('${o.id}')">+1</button>
+        <span style="min-width:118px;font-size:11px">${o.name}</span>
+        <span style="opacity:.6;font-size:10px">tier ${t}/${IMPROVE_MAX_TIER}</span>
+        <span style="opacity:.5;font-size:10px;flex:1">${pv ? pv.after : ''}</span></div>`);
+    });
+  });
+  el.innerHTML = rows.join('');
+}
+
+function devImproveOne(id) {
+  if (typeof improveEntity === 'function') improveEntity(id);
+  if (typeof renderTrickTray === 'function') renderTrickTray();
+  if (typeof updateKnackList === 'function') updateKnackList();
+  devRenderImprove();
+}
+function devImproveRandom(type) {
+  const pick = (typeof pickImproveTarget === 'function') ? pickImproveTarget(type) : null;
+  if (!pick) { showMessage(`No ${type} to improve`, 'var(--red)'); return; }
+  devImproveOne(pick.id);
+  showMessage(`\u2191 ${pick.name} improved`, 'var(--gold)');
+}
+function devResetImprove() {
+  if (typeof resetEntityTiers === 'function') resetEntityTiers();
+  if (typeof renderTrickTray === 'function') renderTrickTray();
+  if (typeof updateKnackList === 'function') updateKnackList();
+  devRenderImprove();
 }

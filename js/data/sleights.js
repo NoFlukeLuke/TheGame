@@ -1,3 +1,8 @@
+// Five sleights are COMMENTED OUT below (Good Friend, Not a Friend, Shepherd,
+// Idol, Shortcut) - owner's call, not an accident. They are unreachable rather
+// than deleted, so their runtime cases in js/sleights-runtime.js and the Idol's
+// interest branch in js/interlude.js are dead code that still compiles; leave
+// them, they are what makes re-enabling one a single-line change.
 const SLEIGHT_POOL = [
   { id:'the_queen',     name:'The Queen',      emoji:'👑', rarity:'legendary', activation:'wildcard',   wild:'rank', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['wildrank','scoring'],        desc:'Wild rank - becomes the rank that makes the best hand. (Reach + queen-replay: TBD)', needsResolve:true },
   { id:'warehouse',     name:'Warehouse',      emoji:'🏭', rarity:'rare',      activation:'wildcard',   wild:'suit', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['wildsuit','suit'],           desc:'Wild suit - becomes any suit to complete a flush. Has no rank.' },
@@ -6,9 +11,10 @@ const SLEIGHT_POOL = [
  // { id:'shepherd',      name:'Shepherd',       emoji:'🐑', rarity:'common',    activation:'on_draw',    durability:'infinite', defaultRank:null, defaultSuit:null, tags:['exalt'],                     desc:'When drawn onto the grid, exalts 1 random card.' },
  // { id:'idol',          name:'Idol',           emoji:'🗿', rarity:'rare',      activation:'round_end',  durability:1,          defaultRank:null, defaultSuit:null, tags:['coins'],                     desc:'Finish the round with this on your board to earn triple interest. (Once)' },
 //  { id:'shortcut',      name:'Shortcut',       emoji:'⏩', rarity:'legendary', activation:'on_play',    durability:1,          defaultRank:null, defaultSuit:null, tags:['challenge'],                 desc:'Play it in any 4-card hand to instantly complete the active challenge. (Once)' },
+  { id:'the_ringer',    name:'The Ringer',      emoji:'🎩', rarity:'epic',      activation:'passive',    durability:10,         defaultRank:null, defaultSuit:null, tags:['scoring','grid'],            desc:'While on the grid, a hand you submit pulls in one more card off the board when that makes a better hand - a third 10 becomes a fourth, a J-Q-K becomes a run of four. Ignores your selection size. (10 charges)' },
   { id:'fight_power',   name:'Fight the Power',emoji:'⚔️', rarity:'legendary', activation:'passive',    durability:'infinite', defaultRank:null, defaultSuit:null, tags:['boss'],                      desc:'While on the grid, all boss effects are ignored.' },
   { id:'dazed',         name:'Dazed & Confused',emoji:'😵', rarity:'rare',     activation:'on_swap',    durability:'infinite', defaultRank:null, defaultSuit:null, tags:['grid'],                      desc:'When swapped, reshuffles every card on the grid.' },
-  { id:'pivot',         name:'Pivot!',         emoji:'🔃', rarity:'common',    activation:'on_swap',    durability:3,          defaultRank:null, defaultSuit:null, tags:['resource','scoring'],        desc:'When swapped, that swap is free and both swapped cards gain +5 mult permanently. (3 charges)' },
+  { id:'pivot',         name:'Pivot!',         emoji:'🔃', rarity:'common',    activation:'passive',    durability:3,          defaultRank:null, defaultSuit:null, tags:['resource','scoring'],        desc:'Cards touching Pivot swap for free. Swap two of its neighbours together and both gain +5 permanent mult, then Pivot leaves the board. (3 charges)' },
   // ── Play-based ──
   { id:'echo_play',      name:'Echo',           emoji:'🔁', rarity:'epic',      activation:'on_play',    durability:3,          defaultRank:null, defaultSuit:null, tags:['scoring'],           desc:'Play this in any hand: each card replays twice. (3 charges)' },
   { id:'the_naturalist', name:'Naturalist',     emoji:'🌿', rarity:'rare',      activation:'on_play',    durability:'infinite', defaultRank:null, defaultSuit:null, tags:['scoring','pips'],     desc:'Play this: each other scored card permanently gains +3 pips.' },
@@ -55,7 +61,7 @@ const SLEIGHT_POOL = [
   // at `adjacentPlays` it pays out `payout` and the counter resets.
   { id:'shift_swap',  name:'Shift Swap',  emoji:'🔀', rarity:'fixture', activation:'adjacent', adjacentPlays:2, payout:{ swaps:2 },    durability:'infinite', defaultRank:null, defaultSuit:null, tags:['resource','position'], desc:'Score two hands adjacent to this card for +2 swaps. Repeats.' },
   { id:'recycler',    name:'Recycler',    emoji:'♻️', rarity:'fixture', activation:'adjacent', adjacentPlays:2, payout:{ discards:2 }, durability:'infinite', defaultRank:null, defaultSuit:null, tags:['resource','position'], desc:'Score two hands adjacent to this card for +2 discards. Repeats.' },
-  { id:'time_clock',  name:'Time Clock',  emoji:'⏱️', rarity:'fixture', activation:'adjacent', adjacentPlays:2, payout:{ seconds:10 }, durability:'infinite', defaultRank:null, defaultSuit:null, tags:['time','position'],     desc:'Score two hands adjacent to this card for a 10 second pause. Repeats.' },
+  { id:'time_clock',  name:'Time Clock',  emoji:'⏱️', rarity:'fixture', activation:'adjacent', adjacentPlays:2, payout:{ pause_seconds:10 }, durability:'infinite', defaultRank:null, defaultSuit:null, tags:['time','position'],     desc:'Score two hands adjacent to this card for a 10 second pause. Repeats.' },
   { id:'petty_cash',  name:'Petty Cash',  emoji:'💵', rarity:'fixture', activation:'adjacent', adjacentPlays:2, payout:{ coins:5 },    durability:'infinite', defaultRank:null, defaultSuit:null, tags:['coins','position'],    desc:'Score two hands adjacent to this card for +5 credits. Repeats.' },
 ];
 
