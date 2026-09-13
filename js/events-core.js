@@ -22,7 +22,7 @@ const EVENT_NO_REPEAT = 4;
 
 function openEvent(afterFn) {
   afterEventFn = afterFn || (() => drainLevelUpQueue());
-  const pool = ['confluence','crossroads','gamble','merchant','altar','spring','twin_path','forge','bargain','wager','shift_change','bench','rehearsal','workshop'];
+  const pool = ['confluence','crossroads','gamble','merchant','altar','spring','twin_path','forge','bargain','wager','shift_change','bench','rehearsal','workshop','reassignment','the_draw','the_floor','the_payline','the_cull','the_mint'];
   // Fall back to the full pool if the memory has eaten it - never draw a blank.
   const fresh = pool.filter(id => !recentEventIds.includes(id));
   const draw  = fresh.length ? fresh : pool;
@@ -70,6 +70,12 @@ function confirmEvent() {
     bench:       confirmBench,
     rehearsal:   confirmRehearsal,
     workshop:    confirmWorkshop,
+    reassignment: confirmReassignment,
+    the_draw:    confirmDraw,
+    the_floor:   confirmFloor,
+    the_payline: confirmPayline,
+    the_cull:    confirmCull,
+    the_mint:    confirmMint,
   };
   if (handlers[activeEventId]) handlers[activeEventId]();
   else closeEvent();
@@ -91,6 +97,12 @@ const EVENT_META = {
   bench:       { name:'The Bench',           flavor:'Pick the treatment, then pick the card it goes on.' },
   rehearsal:   { name:'Rehearsal',           flavor:'Run it again until it is second nature. One Trick, twice the work.' },
   workshop:    { name:'The Workshop',        flavor:'Charges topped up, or a ceiling raised for good.' },
+  reassignment:{ name:'The Reassignment',    flavor:'Give up a Trick. It comes back as something else.' },
+  the_draw:    { name:'The Draw',            flavor:'Stake three. The wheel improves one of them, twice.' },
+  the_floor:   { name:'The Floor',           flavor:'Your own deck on five reels. Buy lines and spin.' },
+  the_payline: { name:'The Payline',         flavor:'Three reels of what you own. Three alike and it improves.' },
+  the_cull:    { name:'The Cull',            flavor:'A thinner deck draws what is left more often.' },
+  the_mint:    { name:'The Mint',            flavor:'New cards, pressed to order.' },
 };
 
 function renderEventShell(id) {
@@ -116,6 +128,12 @@ function renderEventShell(id) {
     bench:       renderBench,
     rehearsal:   renderRehearsal,
     workshop:    renderWorkshop,
+    reassignment: renderReassignment,
+    the_draw:    renderDraw,
+    the_floor:   renderFloor,
+    the_payline: renderPayline,
+    the_cull:    renderCull,
+    the_mint:    renderMint,
   };
   if (renderers[id]) renderers[id]();
   // The panel scrolls internally and is reused between events - reopening it

@@ -20,6 +20,9 @@ The game **used to be one giant `index.html`**. It's now split into many small f
 - `js/` - the game code, one file per system (list below).
 - `js/entity-tile.js` - **`entityTileInner` / `entityTileHTML` (r182): the ONE way an entity is drawn.** See "One entity tile" below - change a Trick's look here and the reward grid, the Mart shelf, the cart, the loadout strip, your tray and the Shift Change event all move together.
 - `js/fit-text.js` - `fitEntityName`. Shrinks an entity name until it fits, **never breaking a word** (r182).
+- `js/dance-clock.js` - **the scoring dance's own clock (r197).** Pausable waits, a WAAPI animation registry, and the per-tick acceleration. See "The dance clock" below.
+- `js/entity-upgrade.js` - `upgradeableEntities` / `upgradeEntity`. The one seam for "make this owned thing better", over `_rank` (Tricks) and `sleightCapBonus` (Sleights).
+- `js/events-upgrade.js` / `js/events-slots.js` - the r197 events. Registered in `js/events-core.js` like every other event.
 - `js/storage.js` - **loads FIRST**, before every other script. A safety shim for browser storage (see below). Nothing else may be moved above it.
 - `js/data/` - **the "entities": pure content/data, no logic.** Edit these to tune or add game content without touching engine code:
   - `cards.js` - suits, ranks, rank order, `HAND_BASE` values, round/goal durations, `cardCan`, **and the Spectrum colour deck** (`COLORS` / `RANKS_NUMERIC` / `ACTIVE_RANKS`).
@@ -235,6 +238,15 @@ Effects live in `applySleightGridEffect(id, r, c)`. `consumeSleightCharge` decre
 
 **`double_tap` / `on_swap` - once-per-round lock (not discard-on-use):** These sleights stay physically on the grid after firing. `sleightCanActivateThisRound(card)` gates activation (checks `_usedThisRound` + remaining `_usesLeft`); `lockSleightForRound(card)` sets `_usedThisRound = true` and decrements `_usesLeft` after a successful trigger. The lock is cleared for every sleight on the grid in the round-start sweep (search `_usedThisRound = false`, right before `fireSleightsAtRoundStart()`). Once `_usesLeft` hits 0 the sleight just sits inert - it is **not** auto-removed; it can still leave the grid normally by being played in a hand or discarded by the player. Grid tooltips show "ONCE PER ROUND" / "USED THIS ROUND" for these.
 
+### The Ringer (r197) - a spare card slipped into the hand
+
+An epic `passive` Sleight, 10 charges. While it sits on the grid, submitting a hand pulls in ONE more card off the board when that makes a better hand: a third 10 becomes a fourth, a J-Q-K becomes a 10-J-Q-K. Four decisions, all in `ringerAugment` (`js/sleights-runtime.js`):
+
+- **It ignores selection size.** The card is added AFTER the hand is found, so a selection limit of 3 can still submit a four-card set. That is why the hook is in `playHand` and **not in `findBestHand`** - findBestHand also feeds the live preview and the auto-submit, and augmenting there would promise a card before the player had committed.
+- **It ignores adjacency.** `findBestHand` only ever builds orthogonally connected subsets, and the card that completes a run is usually nowhere near it. `detectHand` does NOT check connectivity (it only reads the cards), so the augmented hand is assembled directly and handed to it.
+- **It fires at submit**, and the added cell joins `selected` and `handCells` before the dance runs - so the dance's existing fly-into-the-preview animation carries it with no new animation code, and `toRemove = [...selected]` clears it with the rest.
+- **It searches every rank on the board, and the first draft was wrong here.** Naming a fixed rank up front - the board's highest, say - reads well and almost never fires: nothing ranks above the highest card, so it can never extend a run. Verified on a board of 8-9-10 with a spare 10: a highest-rank Ringer found no improvement at all. Taking the best card on the board instead is what makes it do what its description promises. A hand it cannot improve spends no charge.
+
 ### Adjacency batch (r121)
 Three `passive` Sleights + two Knacks built on grid adjacency (all orthogonal - `getNeighborsOrtho` / `_isOrthoAdj` in `sleights-runtime.js`):
 - **Whetstone** - each adjacent card swapped or discarded banks `+1 mult` on the card itself (`card._whetMult`, so it survives deck cycling). A scored hand collects the full banked mult from every Whetstone orthogonally adjacent to at least one scored card; several Whetstones stack. Fed by `feedWhetstones(cells)` (called in `doSwap` + `doDiscard`, before the cards leave the grid), read by `whetstoneMultForCells(cells)` in `calcScore`.
@@ -326,6 +338,33 @@ Every event before these HANDED you something, which is the wrong shape late in 
 **Two traps this hit, both found by rendering the events in a real browser and neither visible to a syntax check or a static call audit:**
 - **`shuffled()` in `js/reward-grid.js` is scoped INSIDE `_generateRewardContent`** - it is not a global, and calling it threw the moment The Bench opened. `events.js` has its own `evShuffle` now. A grep for `function shuffled` finds it and tells you nothing about its scope.
 - A picker rebuilt on each choice must keep its **label inside the removable wrapper**, or changing your mind stacks a fresh "CHOOSE THE CARD" every time.
+
+### Six more events (r197) - slots, a wheel, and the deck
+
+Pool **14 -> 20**. Three improve what you own, three work on the deck.
+
+| event | what | rides |
+|---|---|---|
+| **The Reassignment** | give up a Trick, get a random Knack or Sleight at its tier or better | the pools themselves |
+| **The Draw** | stake three entities, a wheel picks one and improves it twice | `upgradeEntity` |
+| **The Payline** | 3 reels of what you own; three alike improves it a tier | `upgradeEntity` |
+| **The Floor** | 5 reels of your live deck; paid lines buff the cards that land on a hit | `enhanceCardKey` |
+| **The Cull** | thin 5 at random, or purge every copy of one rank | `removeRandomDeckCards` |
+| **The Mint** | 5 new cards each already buffed, or 3 more copies of one you pick | `enhanceCardKey` |
+
+- **`js/entity-upgrade.js` is the seam all three upgrade events share**, over the two levers r194 already invented: `t._rank` for Tricks and `sleightCapBonus` for Sleights. It adds no mechanic, which is why three events cost so little.
+- **KNACKS ARE NOT UPGRADEABLE and nothing offers them.** A knack is a rule change with no numeric handle - its effect is read straight out of `BAL` at thirty-odd call sites, so "one tier better" would mean routing every one of them through a scaler. Putting a knack on a reel with nothing to give it would read as a bug, so `upgradeableEntities()` returns Tricks and Sleights only.
+
+#### The slot math is computed and PRINTED, not tuned (`js/events-slots.js`)
+
+A slot machine is only honest if its odds are knowable, and these reels are built from the player's own live deck and loadout, which change every run. So nothing is hand-tuned: each reel is an **independent uniform draw** over a symbol population taken from the run, which makes the odds a closed form the panel can show before the player pays.
+
+- **Cards.** P(the leftmost three on a line share a suit) = the sum over suits of that suit's deck share cubed. Four even suits gives 4x(1/4)^3 = 1/16 a line, about 27% over five lines. Spectrum's seven colours give 1/49 - the right answer for a seven-colour deck rather than a number needing a per-mode retune. Rank runs pay more and are far rarer (1/169 a line).
+- **Entities.** Capped at `SLOT_ENT_SYMBOLS` (4) distinct symbols, so P(three alike) = 1/k^2 exactly, and the cap is what stops a large loadout making the machine unwinnable - at 12 owned entities an uncapped machine would be 1 in 144. Which four make the reels is drawn once, up front, and shown.
+- **A spin is decided in full before a pixel moves.** `slotSpin` builds the result grid and `slotRenderSpin` only shows it, so an interrupted animation or a backgrounded tab can never change the outcome. Reels stop left to right `SLOT_STAGGER` apart, which is the whole reason a slot machine is tense.
+- **A paying line takes the next buff off a rotating list** (`SLOT_BUFFS`, cursor `slotBuffIdx`, in `SAVE_VARS`), so a lucky run spreads across pips, mult and replays instead of piling one stat onto a few cards.
+- **The Cull only touches the off-grid piles.** Pulling a card off the board mid-round leaves a hole nothing refills - the same trap r164 documents for Capacitor.
+- **The Mint buffs the CARD, not the face.** `cardId(card)` on a freshly pushed object stamps it a new id, so the bonus rides that copy alone. Verified: 5 added, 5 buffed, 5 distinct keys.
 
 ### Events cannot repeat back-to-back (r191)
 
@@ -432,6 +471,16 @@ Dread, then a clean slate, for a boss that arrives with **no screen in front of 
 
 The **3-2-1 is now centred on the grid** in landscape - `#countdown-321-overlay` was `position:fixed; inset:0` with a 30% top pad, i.e. centred on the *viewport*. The **payout panel** is re-themed as a LETHE remittance advice (`css/boss.css`) - overrides only, so `interlude.js`'s animation classes still drive it.
 
+## The dance clock (r197) - `js/dance-clock.js`
+
+The dance was a chain of bare `setTimeout`s, and a `setTimeout` can neither be paused nor re-timed once armed. Two wanted behaviours both reduce to that one fact, so they share a file.
+
+- **Pause.** `dncWait(ms, signal)` polls a real-time accumulator and only spends it while unpaused, so a wait can never resolve early: `left` is decremented by MEASURED elapsed time, never by the sleep it asked for. `wait()` in `js/score-anims.js` now delegates to it, so every animation wait in the game is pausable at once. `dncSetPaused(on)` is called from `pauseGame`/`resumeGame`; it pauses every registered WAAPI animation and puts `.dance-paused` on `body` for the class-driven keyframes (jitter/pop/pulse/flash), which are not WAAPI and so are not in the registry.
+- **THE PAUSE PREDICATE IS `isPaused`, DELIBERATELY NOT `gameTimerPaused`.** The goal-hand dance sets `gameTimerPaused` ITSELF to freeze the round clock while it plays (`js/score-dance.js`), so keying off that would deadlock the very dance that set it. `isPaused` covers the pause menu and RECORDS, which is what was asked for. Known edge: `pauseGame` early-returns when no timer is live, and the goal dance has already cleared `roundInterval` - so a goal dance is not pausable. The round is already won at that point.
+- **Acceleration.** Every payout tick - a card's pips, a Trick's pips or mult, a Sleight firing - calls `dncBumpAccel()` and speeds up what is LEFT of the dance by `DNC_ACCEL_STEP` (5%), compounding, ceilinged at `DNC_ACCEL_MAX` (8 = 800% of this dance's base pace). The bump happens AFTER a flight's duration is read, so the speed-up lands on what is still to come rather than on the flight that earned it.
+- **`dncPace()` is the chokepoint.** Every duration in the dance divides by it, never by `dncSpeed` directly - a new site that reads `dncSpeed` silently opts out of the acceleration. `dncResetAccel()` runs at the top of `playPreviewDance`, so each hand winds up from its own base pace.
+- Measured: a 4-card Run of 4 pays 4 ticks and finishes at 1.22x; a 5-card hand through a full tray reaches roughly 2.3x. The 8x ceiling needs 43 ticks and is deliberately close to unreachable.
+
 ## Scoring dance (preview-window · `playPreviewDance`)
 When a hand is played, the escalating score animation ("dance") runs in the hand-preview slot (`#selected-cards`, `.dnc-active`). `newDanceEnabled` (default on) routes `playScoreDance` → `playPreviewDance`. Behaviour (desktop):
 - **Cards fly into the preview (r89):** normal hands fly a clone of each selected grid card (built from `renderCardAppearance`) from its grid cell into a preview slot (`flyGridCardToSlot`), then reveal the slot's `.dnc-card`. Goal hands keep the in-place pop (they salute). Grid cards hidden mid-fly are tracked in `dncHiddenGridEls` and restored if the dance aborts before `removeAndFall`.
@@ -480,6 +529,14 @@ Chips for every value and every colour; turning some off shrinks the deck. **Cha
 - Applying rebuilds the deck AND re-deals the board via `initGridData()`, so no off-list card is left in play. **Sleights are carried across the rebuild by hand** - they aren't part of the rank × colour cross-product, so the rebuild would otherwise delete the four fixtures.
 - `startGame` reads the tuner through `spectrumInstallLists()`, so a new run picks up the current tuning immediately. Selections persist in `localStorage` (`lethe.spectrum.tune.v1`).
 - **A toggle that would starve the board is refused** (`spectrumMinDeck()` = grid cells + 8, and never fewer than 3 values / 1 colour). Without that the deck can run dry and refills hand back `null`, filling the grid with holes.
+
+## Which modes are listed (r197)
+
+`MODE_SELECT_LIST` is the carousel; `MODE_HIDDEN_LIST` (`match3`, `zen`, `dominoes`) is built but not shown. They are experiments on a different loop - Match-3 plays its own matches and **has no boss wiring at all**, Dominoes is beta - and listing them beside the real modes invited a player to start one expecting the game the other seven modes are.
+
+They are still whole and still reachable: **dev panel -> Modes** launches any entry in `MODES` by name (`devRenderModes` / `devStartMode`), generated from `MODES` for the same reason the boss and event rows are, so a new mode cannot go missing. That is why this is two lists and not a deletion.
+
+**Bosses were audited across every mode in r197 and the wiring is sound.** Classic, Guided, Six Suits, Spectrum and Tutorial all arm `forceBossNextRound` when `nodeInAct` reaches 5 and `triggerLevelUp` fires it; Survival sets `survivalBossPending` off its own 300s live-play cadence and `survivalDealNext` fires it; Flow fires from `onRoundEnd` at zero. All seven verified reaching a live boss end to end. Match-3 and Dominoes have no boss path and never had one - that is the only real gap, and it is why they are now hidden.
 
 ## Match-3 auto-play mode (`js/match3.js` + `css/match3.css`, r115+)
 

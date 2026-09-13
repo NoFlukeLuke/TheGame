@@ -164,6 +164,13 @@ const BAL = {
   // ── Upgrade events (r194) ──
   rehearsal: { consolation_credits: 12 },
   workshop:  { cap_bonus: 2, consolation_credits: 12 },
+  // ── r197 events ──
+  reassignment: { consolation_credits: 12 },
+  the_draw:     { steps: 2, spin_ms: 3200, consolation_credits: 12 },
+  the_floor:    { line_cost: 6 },
+  the_payline:  { spin_cost: 8, consolation_credits: 12 },
+  the_cull:     { trim: 5, floor: 20 },
+  the_mint:     { fresh: 5, copies: 3 },
   // ── Focus RATE batch (r180) - scale how fast Focus accrues, not the ceiling ──
   // complexity_mult scales HAND_FOCUS; speed_mult scales the speed bonus;
   // window_mult dilates the speed clock (2 = twice as long for the same bonus).

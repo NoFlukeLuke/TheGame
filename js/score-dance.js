@@ -611,13 +611,17 @@ function dncFly(srcEl, boxEl, label, color, onLand){
   el.style.setProperty('--dnc-pscale', DANCE_CFG.pScale);
   document.body.appendChild(el);
   const dx=(b.left+b.width/2)-(a.left+a.width/2), dy=(b.top+b.height/2)-(a.top+a.height/2);
-  const dur = dncFF ? Math.max(60, DANCE_CFG.pFlight/DANCE_CFG.ff) : Math.max(60, DANCE_CFG.pFlight/dncSpeed);
-  el.animate([{transform:'translate(-50%,-50%) scale(.6)',opacity:0},
+  const dur = dncFF ? Math.max(60, DANCE_CFG.pFlight/DANCE_CFG.ff) : Math.max(60, DANCE_CFG.pFlight/dncPace());
+  dncAnimate(el, [{transform:'translate(-50%,-50%) scale(.6)',opacity:0},
     {transform:'translate(-50%,-50%) scale(1.15)',opacity:1,offset:.2},
     {transform:`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px)) scale(.9)`,opacity:0}],
     {duration:dur,easing:'cubic-bezier(.3,.7,.4,1)',fill:'forwards'});
-  setTimeout(()=>el.remove(), dur+60);
-  return new Promise(res=>setTimeout(()=>{ if(onLand) onLand(); res(); }, dur));
+  // This particle IS a payout tick - a card's pips, a Trick's pips or mult, a
+  // Sleight firing. Bump AFTER dur is read so the speed-up lands on what is
+  // still to come, not on the flight that earned it.
+  dncBumpAccel();
+  dncTimeout(()=>el.remove(), dur+60);
+  return new Promise(res=>dncTimeout(()=>{ if(onLand) onLand(); res(); }, dur));
 }
 function dncFinishAbort(stage, isGoalHand, myGen){
   // If a newer dance has taken over (myGen behind the global), this dance was superseded:
@@ -719,8 +723,10 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   if (typeof portraitDanceBegin === 'function') portraitDanceBegin();
   // Ordinary hands fast-forward to a legible ~3× by default; the goal hand plays full.
   dncSpeed = isGoalHand ? 1 : (DANCE_CFG.norm || 1);
+  dncResetAccel();          // each hand winds itself up from its own base pace
+  dncClearAnims();
   const aborted = () => sig.aborted;
-  const dwait = ms => new Promise(r => setTimeout(r, dncFF ? Math.max(6, ms/DANCE_CFG.ff) : Math.max(6, ms/dncSpeed)));
+  const dwait = ms => dncWait(dncFF ? Math.max(6, ms/DANCE_CFG.ff) : Math.max(6, ms/dncPace()));
   // ── Interrupt handoff: resolve the just-cut previous hand's score (visual only, grid untouched). ──
   // The outgoing hand's total ALWAYS lands here, one way or another. Previously this only ran for
   // the non-default 'ff'/'resolve' modes and was skipped by the spam valve, so on rapid chaining the
@@ -871,7 +877,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
     removeAndFall(toRemove,'play'); dncHiddenGridEls=[];
   } else {
     // ── Normal hand: the selected grid cards physically fly into their preview slots. ──
-    const FLY_STAGGER=95/dncSpeed, FLY_DUR=400/dncSpeed;
+    const FLY_STAGGER=95/dncPace(), FLY_DUR=400/dncPace();
     cardEls.forEach(d=>{ const o=d.parentElement; if(o) o.style.opacity='0'; });
     handCells.forEach(([r,c],i)=>{ const card=gridData[r][c]; if(!card) return;
       const gEl=gridEl?.querySelector(`[data-card-id="${card._id}"]`);
@@ -980,7 +986,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   // being three numbers and become one: this hand's score. Jitter, fuse, then
   // let the SCORE climb below run against the fused chip. (js/pmf-merge.js)
   if(typeof pmfMergeIn==='function'){
-    const _mspeed = skipBeats ? 3.2 : (dncFF ? DANCE_CFG.ff : dncSpeed);
+    const _mspeed = skipBeats ? 3.2 : (dncFF ? DANCE_CFG.ff : dncPace());
     await pmfMergeIn(finalScore, { speed: _mspeed, signal: sig });
     if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
     // ── THE THROW ── the fused chip flies into the SCORE. This beat is never
@@ -993,7 +999,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   // ── SCORE climb ──
   if(scoreEl) scoreEl.textContent=scoreBefore.toLocaleString();
   const climb = skipBeats ? 140
-              : (dncFF ? Math.max(120, DANCE_CFG.scoreClimb/DANCE_CFG.ff) : Math.max(120, DANCE_CFG.scoreClimb/dncSpeed));
+              : (dncFF ? Math.max(120, DANCE_CFG.scoreClimb/DANCE_CFG.ff) : Math.max(120, DANCE_CFG.scoreClimb/dncPace()));
   let goalFlashed=false;
   await new Promise(res=>{ const st=performance.now();
     function tk(now){ if(aborted()){ res(); return; }
@@ -1007,7 +1013,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
 
   // ── PMF split ── the hand is banked; hand the row back as three chips.
-  if(typeof pmfSplitOut==='function') await pmfSplitOut({ speed: dncFF ? DANCE_CFG.ff : dncSpeed });
+  if(typeof pmfSplitOut==='function') await pmfSplitOut({ speed: dncFF ? DANCE_CFG.ff : dncPace() });
   if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
 
   // ── Settle (same tail as playScoreDance) ──
@@ -1016,7 +1022,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   showComboFloats(hand, handCells, result);
   const scoreBoxEl=document.getElementById('score-mid');
   if(scoreBoxEl){ scoreBoxEl.classList.remove('box-popping'); void scoreBoxEl.offsetWidth; scoreBoxEl.classList.add('box-popping'); }
-  await wait(300/dncSpeed); if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
+  await wait(300/dncPace()); if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
 
   danceAbortController = null;
   dncChain = 0; _dncOutHandScore = 0;   // the burst has landed

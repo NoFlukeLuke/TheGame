@@ -7,6 +7,10 @@ function pauseGame(hideGrid = true) {
   // Pause boss tick too if active
   if (bossInterval) { clearInterval(bossInterval); bossInterval = null; }
   cancelAutoSubmit();
+  // Hold the scoring dance where it is. It runs on its own clock (js/dance-clock.js)
+  // and used to play on - and finish - behind the pause overlay, so the player came
+  // back to a score that had moved with nothing left on screen to explain it.
+  if (typeof dncSetPaused === 'function') dncSetPaused(true);
   if (hideGrid) {
     document.getElementById('pause-overlay').style.display = 'flex';
     document.getElementById('grid').style.visibility = 'hidden';
@@ -17,6 +21,7 @@ function pauseGame(hideGrid = true) {
 function resumeGame() {
   if (!isPaused) return;
   isPaused = false;
+  if (typeof dncSetPaused === 'function') dncSetPaused(false);
   document.getElementById('pause-overlay').style.display = 'none';
   document.getElementById('grid').style.visibility = '';
   document.getElementById('btn-pause').textContent = '⏸ Pause';
@@ -301,6 +306,8 @@ function startGame() {
   growthSpurtCapPenalty = 0;      // reset Growth Spurt's eroded Focus ceiling
   growthSpurtMaxedThisRound = false;
   siphonMultX = 1;               // clear any pending Siphon charge
+  slotBuffIdx = 0;               // the slot machines' rotating buff cursor (js/events-slots.js)
+  recentEventIds = [];           // the event no-repeat memory is per run, not per session
   // Flow runs a short 20-node Focus bar (decay is that mode's only pressure); every
   // other mode takes the Focus Cap limit as before. See flowFocusCapBase().
   focusCapBase = (typeof flowFocusCapBase === 'function')

@@ -1,4 +1,4 @@
-const BUILD = '2026-09-05 · r196 · card identity: buffs, curses and services target one card, not every card sharing its face [onto r195]';
+const BUILD = '2026-09-13 · r197 · six events (slots, wheel, reassignment, cull, mint) · The Ringer · dance pauses and accelerates · Match-3 and Dominoes behind the dev launcher';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -258,7 +258,15 @@ function startMatch3FromMenu(modeId = 'match3') {
 // MODE SELECT (scroll-sideways carousel off the PLAY button)
 // ══════════════════════════════════════════════
 // The shipping modes, shown left→right in the carousel.
-const MODE_SELECT_LIST = ['tutorial', 'normal', 'guided', 'sixsuits', 'spectrum', 'survival', 'flow', 'match3', 'zen', 'dominoes'];
+//
+// Match-3, Zen and Dominoes are BUILT but not shown (r197). They are experiments
+// on a different loop - Match-3 plays its own matches and has no boss wiring at
+// all, Dominoes is beta - and listing them beside the real modes invited a player
+// to start one expecting the game the other nine modes are. They are still whole
+// and still reachable: the dev panel's MODES group launches any entry in MODES by
+// name, which is why the split is two lists rather than a deletion.
+const MODE_SELECT_LIST = ['tutorial', 'normal', 'guided', 'sixsuits', 'spectrum', 'survival', 'flow'];
+const MODE_HIDDEN_LIST = ['match3', 'zen', 'dominoes'];
 const MODE_META = {
   tutorial: { accent: '#8fd0ff',         suits: 'START HERE',
               blurb: 'LETHE Corp staff orientation. A normal Classic run with the terminal explaining each control as you reach it - scoring, Focus, limits, the reward path, the Mart. About three minutes.' },

@@ -70,6 +70,8 @@ const SAVE_VARS = [
   // ── Entities owned ──
   'acquiredTricks', 'acquiredKnacks', 'trickTray', '_trickReplaceQueue', 'trickTrayMode',
   'grantedSleightIds', 'altarEffects', 'sleightCapBonus',
+  // r197: the slot machines' rotating buff cursor, and the event no-repeat memory.
+  'slotBuffIdx', 'recentEventIds',
   'sleightNextHandDouble', 'sleightLegacyMult', 'sleightAmplifierMult',
   '_dabiSwapNext', 'sleightFreeSwapPending',
   // ── Permanent card buffs / curses ──

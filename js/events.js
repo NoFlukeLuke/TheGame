@@ -1169,3 +1169,176 @@ function confirmWorkshop() {
   }
   closeEvent();
 }
+
+// ══════════════════════════════════════════════
+// EVENT: THE CULL (r197) - take cards OUT of the deck
+// ══════════════════════════════════════════════
+// Every deck event before this one added or improved. Nothing removed, and
+// removal is the other half of deck building: a thinner deck draws its good
+// cards more often, so cutting the dead weight is a buff to everything left.
+function renderCull() {
+  const body = document.getElementById('event-body');
+  const deck = everyDeckCard();
+  if (deck.length <= BAL.the_cull.floor) {
+    body.innerHTML = evEmptyHTML('The deck is already as thin as it can safely go.');
+    eventState.cullNone = true;
+    setEventConfirm(true); return;
+  }
+  eventState.cullPick = null;
+  eventState.cullRank = null;
+  body.appendChild(evNote(`${deck.length} cards in the deck. A smaller deck draws what is left more often.`));
+
+  const trim = makeChoiceEl({
+    icon:'✂️', rarity:'common', name:'Trim',
+    desc:`Take ${BAL.the_cull.trim} cards out of the deck at random.`,
+    onClick: () => { cullSelect(body, trim, 'trim'); }
+  });
+  body.appendChild(trim);
+
+  // What ranks are actually present, and how many of each - a purge is only worth
+  // taking if you can see what it costs you.
+  const byRank = {};
+  deck.forEach(c => { byRank[c.rank] = (byRank[c.rank] || 0) + 1; });
+  const purge = makeChoiceEl({
+    icon:'🗑️', rarity:'rare', name:'Purge a rank',
+    desc:'Take every copy of one rank out of the deck. Choose the rank next.',
+    onClick: () => { cullSelect(body, purge, 'purge'); showCullRanks(byRank); }
+  });
+  body.appendChild(purge);
+}
+function cullSelect(body, el, pick) {
+  body.querySelectorAll('.event-choice').forEach(e => e.classList.remove('selected'));
+  el.classList.add('selected');
+  eventState.cullPick = pick;
+  if (pick !== 'purge') { document.getElementById('ev-cull-ranks')?.remove(); eventState.cullRank = null; }
+  setEventConfirm(pick === 'purge' ? !!eventState.cullRank : true);
+}
+// Rebuilt on each pick, so the label lives inside the removable wrapper.
+function showCullRanks(byRank) {
+  document.getElementById('ev-cull-ranks')?.remove();
+  const body = document.getElementById('event-body');
+  const wrap = document.createElement('div');
+  wrap.id = 'ev-cull-ranks';
+  wrap.appendChild(evLabel('WHICH RANK'));
+  const chips = document.createElement('div');
+  chips.className = 'ev-cardchips';
+  ACTIVE_RANKS.filter(r => byRank[r]).forEach(rank => {
+    const chip = document.createElement('div');
+    chip.className = 'ev-cardchip';
+    chip.innerHTML = `${rank}<br><small>×${byRank[rank]}</small>`;
+    chip.addEventListener('click', () => {
+      chips.querySelectorAll('.ev-cardchip').forEach(c => c.classList.remove('picked'));
+      chip.classList.add('picked');
+      eventState.cullRank = rank;
+      setEventConfirm(true);
+    });
+    chips.appendChild(chip);
+  });
+  wrap.appendChild(chips);
+  body.appendChild(wrap);
+}
+function confirmCull() {
+  if (eventState.cullNone) { closeEvent(); return; }
+  if (eventState.cullPick === 'trim') {
+    const n = removeRandomDeckCards(BAL.the_cull.trim);
+    showMessage(`${n} cards removed`, 'var(--cream-dim)');
+  } else if (eventState.cullPick === 'purge' && eventState.cullRank) {
+    const rank = eventState.cullRank;
+    // Only the off-grid piles: a card on the board is mid-round and pulling it
+    // would leave a hole nothing refills (the trap r164 documents for Capacitor).
+    const before = drawPile.length + playedPile.length;
+    drawPile   = drawPile.filter(c => c._isSleight || c.rank !== rank);
+    playedPile = playedPile.filter(c => c._isSleight || c.rank !== rank);
+    const gone = before - (drawPile.length + playedPile.length);
+    expectedDeckTotal -= gone;
+    updateDeckHud?.();
+    showMessage(`${gone} ${rank}s removed`, 'var(--cream-dim)');
+  }
+  closeEvent();
+}
+
+// ══════════════════════════════════════════════
+// EVENT: THE MINT (r197) - put NEW cards into the deck
+// ══════════════════════════════════════════════
+// The opposite lever to The Cull, and the only way to grow the deck with cards
+// that arrive already worth something.
+function renderMint() {
+  const body = document.getElementById('event-body');
+  eventState.mintPick = null;
+  eventState.mintCard = null;
+  body.appendChild(evNote('New cards, shuffled into the draw pile. They are yours for the rest of the run.'));
+
+  const fresh = makeChoiceEl({
+    icon:'🪙', rarity:'rare', name:'Fresh stock',
+    desc:`${BAL.the_mint.fresh} new cards at random, each one already carrying a small permanent bonus.`,
+    onClick: () => mintSelect(body, fresh, 'fresh')
+  });
+  body.appendChild(fresh);
+
+  const pool = [...drawPile].filter(c => c && c.rank && !c._isSleight);
+  const set = makeChoiceEl({
+    icon:'🃏', rarity:'common', name:'Matched set',
+    desc: pool.length ? `${BAL.the_mint.copies} more copies of one card you choose. Plain, but you will see it far more often.`
+                      : 'Nothing in the draw pile to copy.',
+    onClick: () => { if (!pool.length) return; mintSelect(body, set, 'set'); showMintCards(pool); }
+  });
+  if (!pool.length) set.classList.add('debuff');
+  body.appendChild(set);
+}
+function mintSelect(body, el, pick) {
+  body.querySelectorAll('.event-choice').forEach(e => e.classList.remove('selected'));
+  el.classList.add('selected');
+  eventState.mintPick = pick;
+  if (pick !== 'set') { document.getElementById('ev-mint-cards')?.remove(); eventState.mintCard = null; }
+  setEventConfirm(pick === 'set' ? !!eventState.mintCard : true);
+}
+function showMintCards(pool) {
+  document.getElementById('ev-mint-cards')?.remove();
+  const body = document.getElementById('event-body');
+  const wrap = document.createElement('div');
+  wrap.id = 'ev-mint-cards';
+  wrap.appendChild(evLabel('WHICH CARD'));
+  const chips = document.createElement('div');
+  chips.className = 'ev-cardchips';
+  const seen = new Set();
+  pool.forEach(card => {
+    const key = card.rank + card.suit;
+    if (seen.has(key)) return; seen.add(key);
+    const chip = document.createElement('div');
+    chip.className = 'ev-cardchip' + (['♥','♦'].includes(card.suit) ? ' red' : '');
+    chip.textContent = card.rank + ((typeof cardColorSuit === 'function') ? cardColorSuit(card) : card.suit);
+    chip.addEventListener('click', () => {
+      chips.querySelectorAll('.ev-cardchip').forEach(c => c.classList.remove('picked'));
+      chip.classList.add('picked');
+      eventState.mintCard = card;
+      setEventConfirm(true);
+    });
+    chips.appendChild(chip);
+  });
+  wrap.appendChild(chips);
+  body.appendChild(wrap);
+}
+// Small, so a minted card is a good card rather than a better card than anything
+// the rest of the run can earn.
+const MINT_BOONS = [{ pips:15 }, { pips:25 }, { mult:3 }, { mult:5 }, { retrig:1 }];
+function confirmMint() {
+  if (eventState.mintPick === 'fresh') {
+    for (let i = 0; i < BAL.the_mint.fresh; i++) {
+      const rank = ACTIVE_RANKS[Math.floor(Math.random() * ACTIVE_RANKS.length)];
+      const suit = ACTIVE_SUITS[Math.floor(Math.random() * ACTIVE_SUITS.length)];
+      const card = { rank, suit };
+      drawPile.push(card);
+      // Buff the CARD, not the face - stampId gives this new object its own id, so
+      // the bonus rides this copy alone and not every other rank/suit twin.
+      enhanceCardKey(cardId(card), MINT_BOONS[Math.floor(Math.random() * MINT_BOONS.length)]);
+      expectedDeckTotal++;
+    }
+    drawPile = deckShuffle(drawPile);
+    updateDeckHud?.();
+    showMessage(`+${BAL.the_mint.fresh} buffed cards`, 'var(--gold)');
+  } else if (eventState.mintPick === 'set' && eventState.mintCard) {
+    for (let i = 0; i < BAL.the_mint.copies; i++) copyCardToDeck(eventState.mintCard);
+    showMessage(`+${BAL.the_mint.copies} × ${cardLabel(eventState.mintCard)}`, 'var(--gold)');
+  }
+  closeEvent();
+}

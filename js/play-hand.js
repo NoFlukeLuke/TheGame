@@ -176,12 +176,24 @@ function playHand() {
   if (animating) { pendingAction = 'play'; dbgEvent('info', 'play queued (animating)'); scheduleQueuedRetry(); return; }
   cancelAutoSubmit();
   console.log('[PLAY] entry', { score, goal: roundGoal, goalReachedThisRound, bonusWindowActive, animating, hasDance: !!danceAbortController });
-  const result = findBestHand(selected);
+  let result = findBestHand(selected);
   if (!result) { dbgEvent('warn', 'play: no valid hand', { selected: selected.length, animating, falling, roundEnded, dance: !!danceAbortController, swapPending: !!swapPending, swiping: isSwiping }); console.log('[PLAY] no result, exiting'); return; }
   // Abort any prior in-flight score dance ONLY now that we have a real hand to play.
   // (A spurious double-fire of Play on a now-empty selection must NOT cancel the
   //  in-progress dance - that was the "cards wiggle but never score" bug.)
   cancelDance();
+
+  // The Ringer (js/sleights-runtime.js): pull in one more card of the board's
+  // highest rank if that makes a better hand. Runs HERE rather than inside
+  // findBestHand because findBestHand also feeds the live preview and the
+  // auto-submit - augmenting there would promise a card before the player had
+  // committed to the hand. The added cell joins `selected` so it is removed with
+  // the rest, and joins handCells so the dance flies it into the preview.
+  const _ringer = (typeof ringerAugment === 'function') ? ringerAugment(result, selected) : null;
+  if (_ringer) {
+    result = _ringer.result;
+    selected = [...selected, _ringer.cell];
+  }
 
   const playedCells = [...selected]; // capture before any path clears selection (for on_play sleights)
   const { hand, handCells, penaltyCells, penaltyPips } = result;
