@@ -170,7 +170,21 @@ async function showPayoutUI() {
   if (_frozen) interestFreezeRounds--;
   const interestCoins  = (_withheld || _frozen) ? 0 : Math.floor(coins / 10) * interestMult;
   const efficiencyCoins = _withheld ? 0 : Math.floor(frozenRoundSeconds / EFFICIENCY_SECONDS_PER_COIN);
-  const totalCoins     = interestCoins + efficiencyCoins;
+  // Unspent (r218): swaps and discards you did NOT use pay out. Until this, a
+  // round ended with leftover manipulates worth exactly nothing, so spending them
+  // on anything at all was strictly better than holding them. Now holding is a
+  // real alternative - the round's resources are a budget you can bank instead.
+  // The LIVE swaps/discards, and that is not the obvious choice - it is worth
+  // knowing why. This payout runs from startInterlude, which is reached from the
+  // goal dance and happens BEFORE triggerLevelUp: the reward grid comes next, and
+  // only when it closes does triggerLevelUp run and reset both to the new round's
+  // values. So at this instant they still hold what the finished round had left.
+  // (Survival is the mirror image and has to use frozenUnspentActions instead -
+  // it skips this screen entirely and pays from inside triggerLevelUp, after the
+  // reset. See survivalAfterLevelUp.)
+  const unspentActions = Math.max(0, swaps) + Math.max(0, discards);
+  const unspentCoins   = _withheld ? 0 : unspentActions * BAL._resources.unspent_credits;
+  const totalCoins     = interestCoins + efficiencyCoins + unspentCoins;
   if (_withheld) showMessage('Payout withheld', 'var(--red)');
   else if (_frozen) showMessage(`Interest frozen (${interestFreezeRounds} more)`, 'var(--red)');
   // Show the Idol's tripled interest right on the payout breakdown.
@@ -212,6 +226,16 @@ async function showPayoutUI() {
         <div class="pl-right">
           <span class="pl-clock" id="po-clock">${formatTime(frozenRoundSeconds)}</span>
           <span class="pl-coins" id="po-efficiency">0</span>
+          <span class="pl-sym">◆</span>
+        </div>
+      </div>
+      <div class="payout-line" id="po-line-unspent">
+        <div class="pl-left">
+          <div class="pl-name">Unspent</div>
+          <div class="pl-desc">${BAL._resources.unspent_credits} per unused swap or discard · ${unspentActions} left</div>
+        </div>
+        <div class="pl-right">
+          <span class="pl-coins" id="po-unspent">0</span>
           <span class="pl-sym">◆</span>
         </div>
       </div>
@@ -326,6 +350,14 @@ async function showPayoutUI() {
   }
   clockEl.classList.remove('ticking');
   coins += efficiencyCoins;
+  updateCoinsUI();
+  await ffSleep(400);
+
+  // ── 3. Unspent swaps and discards ──
+  el.querySelector('#po-line-unspent').classList.add('show');
+  await ffSleep(500);
+  await animateCount('po-unspent', unspentCoins, 140);
+  coins += unspentCoins;
   updateCoinsUI();
   await ffSleep(400);
 

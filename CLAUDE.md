@@ -311,6 +311,17 @@ The Focus dev controls used to be sliders labelled with the formula itself (`Lin
 - **`_devSafeRender()` guards every repaint.** The dev panel doubles as the main menu's Settings screen, where there is no board, and `render()` reads `gridData[0]` and throws. This was a live crash on the pre-existing exalt/corrupt toggle too.
 - Both groups show a live preview of what the numbers produce (`Play after 0s: +12 · 1s: +10 …`).
 
+### Unspent actions pay out (r218)
+
+Swaps and discards you did NOT use pay `BAL._resources.unspent_credits` (3) each at the end of the round. Before this a round ended with leftover manipulates worth exactly nothing, so spending them on anything at all was strictly better than holding them; now the round's resources are a budget you can bank instead.
+
+**There are two payment sites and they sit on OPPOSITE SIDES of the resource reset, which is the only subtle thing here.**
+
+- **Classic and the act modes** pay it as a third payout line. That screen runs from `startInterlude`, which is reached from the goal dance and happens **before** `triggerLevelUp` - the reward grid comes next, and only when it closes does `triggerLevelUp` run and reset the counts. So the payout reads the **live** `swaps`/`discards`: at that instant they still hold what the finished round had left.
+- **Survival and Flow** skip the payout screen entirely and pay from `survivalAfterLevelUp`, which runs **inside** `triggerLevelUp`, well after the reset. So they need the figure captured up front: `frozenUnspentActions`, taken at the top of `triggerLevelUp` (declared in `js/limits.js` beside the other frozen round figures).
+
+The capture is taken **before** the carry-over knacks bank anything, so the figure is what you finished the round holding. Carry Swaps / Carry Discards then also carry it - that is the knack doing its job, not a double-dip to design around.
+
 ### Interact costs (r151) - ONE charge each, from `BAL._resources`
 **Discard 3s per card · Swap 8s flat · Play free.** Until r151 there were **two overlapping cost systems** and both were live: a flat `spendRoundTime(DISCARD_TIME_COST/SWAP_TIME_COST)` *and* the `BAL._resources` figures. A 1-card discard billed 3+3 = **6s**, the 3rd swap of a round billed 4+10 = **14s**, and the Free Discards knack ("costs no time") still charged the flat 3s - all while the ⏱ Time pop-up quoted 3s and 4s. `DISCARD_TIME_COST` / `SWAP_TIME_COST` are now **dead constants**, kept and commented so nothing reintroduces the double charge; `freeSwapsLeft` (the "first 2 swaps free" exemption) is dead for the same reason. Costs come from `BAL._resources` alone, and `updateInteractCosts()` reads the same source so the pop-up can't drift from reality again.
 

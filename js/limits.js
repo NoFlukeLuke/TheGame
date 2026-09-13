@@ -209,6 +209,9 @@ let roundStartSeconds = ROUND_DURATION; // roundSeconds value when this round's 
 let gameSeconds = GAME_DURATION;
 let roundInterval = null;
 let gameInterval = null;
+// Unspent swaps + discards at the moment the round ended, captured by
+// triggerLevelUp before the base reset overwrites them. The payout reads this.
+let frozenUnspentActions = 0;
 let gameTimerPaused = false; // true during interlude and shop - game timer doesn't tick down
 let trickCardTimer = 0;
 let trickCardPos = null; // [row,col]
