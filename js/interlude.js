@@ -1,4 +1,12 @@
-async function startInterlude() {
+// `opts.prize` ends on the PRIZE grid instead of the ordinary reward grid. That is
+// the only thing a boss round's completion does differently (r213): before this a
+// boss jumped straight to the prize grid with no fall, no payout and no banner, so
+// the hardest round of the act was the only one in the game that paid no credits.
+// Both endings set rewardGridContext = 'interlude', so closeRewardGrid's
+// finishInterlude continuation - which is what advances the act at nodeInAct 5 -
+// is reached identically either way.
+async function startInterlude(opts) {
+  opts = opts || {};
   interludeActive = true;
 
   // Duck gain was set up by goal-reach (set to 0.4). Reuse it; lazy-init if missing.
@@ -30,7 +38,7 @@ async function startInterlude() {
 
   // ── Reward grid replaces Trick choice - player picks spoils, then new round setup runs ──
   rewardGridContext = 'interlude';
-  openRewardGrid();
+  if (opts.prize) openPrizeGrid(); else openRewardGrid();
 }
 
 async function showLevelUpScreen_fallOnly() {
@@ -114,6 +122,13 @@ async function showLevelUpScreen_fallOnly() {
 
   // Clear DOM (every card fell)
   gridEl.querySelectorAll('[data-card-id]').forEach(el => el.remove());
+  // The marked-row / marked-column lines belong to the board that just went away
+  // (js/entity-fx.js). They have to be dropped HERE rather than guarded inside
+  // render(), because this teardown removes the card elements directly and no
+  // render runs afterwards - so a guard would never get the chance to look. The
+  // next round's first render draws them again from rowColBonuses, which is
+  // untouched: the Tricks still own their lines.
+  if (typeof clearLineMarkers === 'function') clearLineMarkers();
 
   // Reset gridData; Tricks get restored to their snapshotted positions for refill
   gridData = Array.from({length:gridRows}, () => Array(gridCols).fill(null));
@@ -142,9 +157,22 @@ async function showPayoutUI() {
     }
     showMessage('🗿 Idol - triple interest!', 'var(--gold)');
   }
-  const interestCoins  = Math.floor(coins / 10) * interestMult;
-  const efficiencyCoins = Math.floor(frozenRoundSeconds / 10);
+  // Withheld (reward-grid penalty): this payout pays nothing. The breakdown is
+  // still shown, with its figures zeroed, so the round is accounted for and the
+  // player can see exactly what the penalty cost them - a payout screen that
+  // simply did not appear would read as a bug.
+  const _withheld = !!skipNextPayout;
+  skipNextPayout = false;
+  // Interest Freeze (reward-grid penalty): interest alone is suspended for a few
+  // rounds - leftover-time credits still pay, so the round is still worth playing
+  // well; what is frozen is the reward for HOLDING credits.
+  const _frozen = interestFreezeRounds > 0;
+  if (_frozen) interestFreezeRounds--;
+  const interestCoins  = (_withheld || _frozen) ? 0 : Math.floor(coins / 10) * interestMult;
+  const efficiencyCoins = _withheld ? 0 : Math.floor(frozenRoundSeconds / EFFICIENCY_SECONDS_PER_COIN);
   const totalCoins     = interestCoins + efficiencyCoins;
+  if (_withheld) showMessage('Payout withheld', 'var(--red)');
+  else if (_frozen) showMessage(`Interest frozen (${interestFreezeRounds} more)`, 'var(--red)');
   // Show the Idol's tripled interest right on the payout breakdown.
   const interestName = interestMult > 1 ? `Interest <span style="color:#f5c042;">🗿 ×${interestMult}</span>` : 'Interest';
   const interestDesc = interestMult > 1
@@ -179,7 +207,7 @@ async function showPayoutUI() {
       <div class="payout-line" id="po-line-efficiency">
         <div class="pl-left">
           <div class="pl-name">Efficiency</div>
-          <div class="pl-desc">1 per 10s remaining</div>
+          <div class="pl-desc">1 per ${EFFICIENCY_SECONDS_PER_COIN}s remaining</div>
         </div>
         <div class="pl-right">
           <span class="pl-clock" id="po-clock">${formatTime(frozenRoundSeconds)}</span>
@@ -282,7 +310,7 @@ async function showPayoutUI() {
     while (secsLeft > 0) {
       secsLeft--;
       clockEl.textContent = formatTime(secsLeft);
-      if ((frozenRoundSeconds - secsLeft) % 10 === 0 && secsLeft < frozenRoundSeconds) {
+      if ((frozenRoundSeconds - secsLeft) % EFFICIENCY_SECONDS_PER_COIN === 0 && secsLeft < frozenRoundSeconds) {
         effEarned++;
         effCoinsEl.textContent = effEarned;
         tickCoin('po-efficiency');
@@ -405,6 +433,27 @@ async function showNextGoalFlash() {
   await new Promise(res => setTimeout(res, 1500));
 }
 
+// ── The round-start 3-2-1 is pausable (r209) ──
+// Both countdowns used to wait on a bare setTimeout, i.e. wall-clock time that nothing
+// could hold. Pressing PAUSE during the deal therefore did nothing at all: pauseGame
+// also returns early while no round timer is running, so the count kept going and the
+// round started underneath the pause menu.
+// countdownWait resolves after `ms` of UNPAUSED time, so a pause genuinely stops the count.
+let countdownActive = false;
+let countdownPaused = false;
+function countdownWait(ms) {
+  return new Promise(res => {
+    let left = ms, last = performance.now();
+    (function step(now) {
+      const dt = now - last; last = now;
+      if (!countdownPaused) left -= dt;
+      if (left <= 0) res(); else requestAnimationFrame(step);
+    })(last);
+  });
+}
+function beginCountdown() { countdownActive = true; countdownPaused = false; }
+function endCountdown()   { countdownActive = false; countdownPaused = false; }
+
 async function show321Countdown() {
   const overlay = document.getElementById('countdown-321-overlay');
   const numEl   = document.getElementById('countdown-321-number');
@@ -427,9 +476,17 @@ async function show321Countdown() {
   const refillStart = performance.now();
   let refillDone = false;
 
+  let refillPausedMs = 0, refillPauseMark = 0;
   function tickRefill() {
     if (refillDone) return;
-    const elapsed  = performance.now() - refillStart;
+    // The clock refill is driven off wall time too, so it has to discount paused time
+    // or the clock would fill while the count is held.
+    if (countdownPaused) {
+      if (!refillPauseMark) refillPauseMark = performance.now();
+      requestAnimationFrame(tickRefill); return;
+    }
+    if (refillPauseMark) { refillPausedMs += performance.now() - refillPauseMark; refillPauseMark = 0; }
+    const elapsed  = performance.now() - refillStart - refillPausedMs;
     const progress = Math.min(elapsed / TOTAL_MS, 1);
     roundSeconds   = Math.round(startSecs + (limits.round_time.current - startSecs) * progress);
     updateClockUI();
@@ -438,6 +495,7 @@ async function show321Countdown() {
   }
   requestAnimationFrame(tickRefill);
 
+  beginCountdown();
   sfxCountdown321();
   for (const n of ['3','2','1']) {
     numEl.textContent = n;
@@ -445,8 +503,9 @@ async function show321Countdown() {
     void numEl.offsetWidth;
     numEl.style.animation = `countdown-pop ${PER_NUM}ms ease forwards`;
     overlay.classList.add('show');
-    await new Promise(res => setTimeout(res, PER_NUM));
+    await countdownWait(PER_NUM);
   }
+  endCountdown();
 
   refillDone   = true;
   // Keep the round-start value triggerLevelUp/startGame already computed (it includes
@@ -462,6 +521,6 @@ async function show321Countdown() {
   // Reset bg transition for next interlude
   if (bg) bg.style.transition = 'opacity 0.35s ease';
 
-  await new Promise(res => setTimeout(res, 200));
+  await countdownWait(200);
 }
 

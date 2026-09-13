@@ -7,7 +7,13 @@
 function isCellBlocked(r, c) {
   if (typeof bossEffectsIgnored === 'function' && bossEffectsIgnored()) return false; // Fight the Power
   if (blockedCells.has(`${r}-${c}`)) return true;
-  return typeof nullCells !== 'undefined' && nullCells.has(`${r}-${c}`);
+  if (typeof nullCells !== 'undefined' && nullCells.has(`${r}-${c}`)) return true;
+  // A card on hold (The Hold, r209) is inert wherever it happens to be sitting.
+  // Answering it here is the same trick nullCells uses: every select, tap, swipe
+  // and reachability guard in the game already asks this one question, so the
+  // hold needs no changes in input.js, hand-detect.js, match3.js or tutorial.js.
+  if (typeof isCardHeld === 'function' && isCardHeld(gridData[r]?.[c])) return true;
+  return false;
 }
 
 function getVoidPattern(pattern) {
@@ -88,6 +94,27 @@ function injectStonesIntoDeck(count) {
   updateDeckHud();
 }
 
+// Drop `count` stones straight onto live cells, displacing the cards that were
+// there back into the deck. Boss-start only (The Stone Lord).
+function placeStonesOnGrid(count) {
+  const spots = [];
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
+    const card = gridData[r]?.[c];
+    if (!card || !card.rank || card._isSleight || card._isTrick || card._isStone) continue;
+    if (blockedCells.has(`${r}-${c}`)) continue;
+    spots.push([r, c]);
+  }
+  // Never bury the whole board - leave at least half the live cells playable.
+  const take = Math.min(count, Math.floor(spots.length / 2));
+  for (let i = 0; i < take && spots.length; i++) {
+    const [r, c] = spots.splice(Math.floor(Math.random() * spots.length), 1)[0];
+    const displaced = gridData[r][c];
+    if (displaced && displaced.rank) discardToDrawPile(displaced);
+    gridData[r][c] = makeStoneCard();
+  }
+  updateDeckHud();
+}
+
 function purgeStonesFromDeck() {
   // Remove all stones from drawPile, playedPile, and grid
   drawPile = drawPile.filter(c => !c._isStone);
@@ -151,9 +178,28 @@ function applyBossModifiers(preset) {
     // ids and returns true, leaving the legacy ones below untouched.
     if (typeof applyBossEffectModifier === 'function' && applyBossEffectModifier(mod, preset.params || {})) return;
     switch (mod) {
-      case 'inject_stones':
-        injectStonesIntoDeck(preset.params.stoneInjectCount || 5);
+      case 'inject_stones': {
+        // r216: two separate doses, because they do different jobs.
+        //
+        // 1. STONES ON THE BOARD, NOW. Before this every stone went into the draw
+        //    pile, so the boss opened on a perfectly clean board and the player
+        //    only met a stone several hands later. The count scales with the
+        //    board so a 7x7 is not trivially easy and a 4x4 is not buried:
+        //    the average of rows and cols, minus one if either side is 4 or less,
+        //    plus one if either is 6 or more (both can apply on a 4x6).
+        // 2. STONES IN THE DECK, for the rest of the round - 18% of the real deck.
+        const _rows = gridRows, _cols = gridCols;
+        let _onBoard = Math.round((_rows + _cols) / 2);
+        if (_rows <= 4 || _cols <= 4) _onBoard -= 1;
+        if (_rows >= 6 || _cols >= 6) _onBoard += 1;
+        _onBoard = Math.max(1, Math.round(_onBoard * (typeof bossMagScale === 'function' ? bossMagScale() : 1)));
+        const _deckSize = (typeof everyDeckCard === 'function') ? everyDeckCard().length : drawPile.length;
+        const _inDeck = Math.max(1, Math.round(_deckSize * (preset.params.deckStoneFraction || 0.18)
+                                 * (typeof bossMagScale === 'function' ? bossMagScale() : 1)));
+        placeStonesOnGrid(_onBoard);
+        injectStonesIntoDeck(_inDeck);
         break;
+      }
       case 'void_corners':
         blockedCells = getVoidPattern('corners');
         break;
@@ -171,8 +217,19 @@ function applyBossModifiers(preset) {
         swaps = Math.max(0, swaps + bossSwapsDelta);
         render();
         break;
+      // r216: halve BOTH pools rather than shaving one swap. "-50% rounded down"
+      // is the amount TAKEN, so an odd pool keeps the larger half: 5 -> 3, 4 -> 2.
+      case 'ration_half': {
+        const _ds = Math.floor(swaps * 0.5), _dd = Math.floor(discards * 0.5);
+        swaps = Math.max(0, swaps - _ds);
+        discards = Math.max(0, discards - _dd);
+        bossSwapsDelta = -_ds;   // restored by clearBossModifiers like any other cut
+        render();
+        break;
+      }
       case 'low_card_infusion':
         bossLowCardActive = true;
+        famineStackDeck(preset.params.lowCardWeight || 0.7);
         break;
       case 'hand_lock':
         bossLockedHand = preset.params.lockedHand || null;
@@ -200,11 +257,29 @@ function applyBossModifiers(preset) {
         break;
       }
       case 'periodic_null': {
-        const intervalSecs = preset.params.nullIntervalSecs || 8;
+        const intervalSecs = preset.params.nullIntervalSecs || 7;
         const count = preset.params.nullCount || 1;
-        bossNullInterval = setInterval(() => {
-          if (gameTimerPaused || roundEnded) return;
-          // Replace `count` random normal cards (not Tricks/Sleights) with null
+        // THE HOLLOW, rebalanced r213: it CHURNS the board, it does not shred it.
+        //
+        // It used to null the cell and leave the hole - no gravity, no refill -
+        // so holes accumulated until a discard happened to run the fall pass.
+        // Measured live at the r211 interval of 6s with the player not acting:
+        // 16 cards -> 9 cards and 7 holes by t+39s, at which point the board had
+        // fragmented so badly that findBestHand could not return a single legal
+        // hand. Left alone it stripped all 16 cells in 96 seconds. That is a boss
+        // that can hand you an unwinnable round, and "the board shrinks" is
+        // already The Quarantine's job - so this was both dangerous and a
+        // duplicate.
+        //
+        // Going through removeAndFall means the board is always refilled: you
+        // lose the CARD you were building a hand around, on a clock, and the
+        // board stays playable. That is a mechanic nothing else in the roster
+        // has, and it cannot strand the round.
+        bossSchedule(intervalSecs, () => {
+          // Never fight the player's own animation - removeAndFall takes the
+          // falling lock, and starting one on top of a swap or a score cuts that
+          // animation short. Skipping a tick is free; the next one is 7s away.
+          if (animating || falling) return;
           const candidates = [];
           for (let r = 0; r < gridRows; r++)
             for (let c = 0; c < gridCols; c++) {
@@ -212,18 +287,19 @@ function applyBossModifiers(preset) {
               if (card && !card._isTrick && !card._isSleight && !card._isStone && card.rank)
                 candidates.push([r, c]);
             }
+          const taken = [];
           for (let k = 0; k < count && candidates.length > 0; k++) {
             const idx = Math.floor(Math.random() * candidates.length);
-            const [r, c] = candidates.splice(idx, 1)[0];
-            if (gridData[r]?.[c]) {
-              const displaced = gridData[r][c];
-              if (displaced && displaced.rank) discardToDrawPile(displaced);
-              gridData[r][c] = null;
-            }
+            taken.push(candidates.splice(idx, 1)[0]);
           }
+          if (!taken.length) return;
+          // Back into the deck first, exactly as doDiscard does, then let the
+          // shared fall pass animate them out and refill behind them.
+          taken.forEach(([r, c]) => { const cd = gridData[r]?.[c]; if (cd) discardToDrawPile(cd); });
+          selected = selected.filter(([r, c]) => !taken.some(([tr, tc]) => tr === r && tc === c));
           showMessage('The Hollow claims a card', 'var(--red)');
-          render();
-        }, intervalSecs * 1000);
+          removeAndFall(taken, 'discard');
+        });
         break;
       }
     }
@@ -247,20 +323,54 @@ function clearBossModifiers() {
   trickPoolA = new Set();
   trickPoolB = new Set();
   bossPhase = 1;
+  // Dead since r211 - The Hollow's timer is a bossSchedule entry now, torn down by
+  // clearBossEffects with the rest of the roster. Kept as a no-op guard so an older
+  // save or a hand-set interval can still be cleared.
   if (bossNullInterval) { clearInterval(bossNullInterval); bossNullInterval = null; }
   if (typeof clearBossEffects === 'function') clearBossEffects();
 }
 
-// Hook called every time a card is drawn - biases toward low cards during Famine
-function maybeFamineDrawSwap(card) {
-  if (!bossLowCardActive) return card;
-  if (!card || card._isStone || card._isSleight) return card;
-  if (hasSleightOnGrid('fight_power')) return card; // Fight the Power ignores boss effects
-  if (Math.random() > (currentBoss?.params?.lowCardWeight || 0.7)) return card;
-  // Replace card with a low rank (2–6), same suit
-  const lowRanks = ['2','3','4','5','6'];
-  return { ...card, rank: lowRanks[Math.floor(Math.random() * lowRanks.length)] };
+// ── THE HAND OF FAMINE (r216) - it reorders the DECK, it does not forge cards ──
+//
+// It used to REWRITE the rank of a card as it was drawn: `{...card, rank: '3'}`.
+// That worked, in the sense that low cards appeared - but it invented cards that
+// were not in the deck. The RECORDS deck matrix, the "still drawable by rank"
+// chart and the deck audit all describe a deck the player was not actually being
+// dealt from, and a card could be drawn as a 3, played, and cycle back in as the
+// King it really was.
+//
+// Stacking the draw pile does the same job honestly: the cards are your cards,
+// the low ones are just near the top. A weighted sort (low cards get a smaller
+// sort key, so they cluster at the front) rather than a hard sort, so the order
+// is still unpredictable and the odd high card still comes through early.
+//
+// "Low" is measured by PIPS, not by a hardcoded 2-6 list, so Spectrum's 0-20
+// deck works with no special case.
+function famineStackDeck(weight) {
+  if (!drawPile || drawPile.length < 2) return;
+  if (typeof bossEffectsIgnored === 'function' && bossEffectsIgnored()) return;
+  const pips = c => (c && c.rank && typeof cardPips === 'function') ? cardPips(c.rank) : 99;
+  const vals = drawPile.filter(c => c && c.rank && !c._isSleight && !c._isStone).map(pips).sort((a, b) => a - b);
+  if (!vals.length) return;
+  // The cut is the 40th percentile of what is actually in the deck.
+  const lowMark = vals[Math.floor(vals.length * 0.4)];
+  // bias > 1 pushes high cards back. 0.7 weight -> bias 3.3, i.e. a high card's
+  // sort key averages three times a low card's, so the front of the pile is
+  // mostly low without being purely low.
+  const bias = 1 + Math.max(0, Math.min(0.95, weight)) * 3.3;
+  withSeededRng(() => {
+    drawPile = drawPile
+      .map(c => ({ c, k: Math.random() * ((c && c.rank && pips(c) <= lowMark) ? 1 : bias) }))
+      .sort((a, b) => a.k - b.k)
+      .map(x => x.c);
+  }, 'deck');
+  updateDeckHud?.();
 }
+
+// Kept as the draw hook's no-op. The bias is applied to the PILE at boss start
+// (famineStackDeck) rather than to each card as it is drawn, so there is nothing
+// left to do here - but deck-grid.js calls it on every draw, so it must exist.
+function maybeFamineDrawSwap(card) { return card; }
 
 // Is a Trick currently disabled by Voidwright phase?
 function isTrickDisabledByBoss(trickId) {
@@ -299,6 +409,11 @@ function bossPresetIsLive(preset) {
   const owned = (typeof acquiredTricks !== 'undefined' ? acquiredTricks : []).length;
   const mods  = preset.modifiers || [];
   if ((mods.includes('trick_pool_split') || mods.includes('trick_blackout')) && owned < 2) return false;
+  // The Rota rolls a single suspension. With nothing owned there is nothing to
+  // suspend; with one Trick owned it is the same Trick down for the whole boss,
+  // which is a harsher and less interesting boss than the one described, so it
+  // wants two as well.
+  if (mods.includes('trick_rotate') && owned < 2) return false;
   return true;
 }
 
@@ -349,12 +464,23 @@ function triggerBoss(presetOverride = null, windowSeconds = null) {
   // Clear pending selection over void
   selected = selected.filter(([r, c]) => !isCellBlocked(r, c));
 
-  // Pause round timer (save value for restore)
+  // ── ONE CLOCK (r205) ──────────────────────────────────────────────────────
+  // A boss used to freeze `roundSeconds`, park it in savedRoundSeconds and run a
+  // SECOND countdown (`bossSecondsLeft` on `bossInterval`). That was a leftover
+  // from the old challenge system and it quietly switched off most of the game
+  // for the length of every boss: the round tick is where clock-mark Tricks fire
+  // (Tick-Tock, Second Hand, Quarter Chime, Minute Hand, Hourglass), where Tempo
+  // drips resources back, where the Cuckoo, Compound, Woodpecker and Slow Burn
+  // accrue - and, worst of it, swap and discard time costs were billed to the
+  // FROZEN clock, so interacting was free during a boss and The Tollman, whose
+  // whole gimmick is doubling those costs, did nothing on its own round.
+  //
+  // The boss now simply sets the round clock to its window and lets the ordinary
+  // round timer run. savedRoundSeconds is still taken because the legacy
+  // timer-based modes summon a boss in the MIDDLE of a live round and put the
+  // player back into it afterwards (see endBoss); no other mode restores it.
   savedRoundSeconds = roundSeconds;
-  if (roundInterval) { clearInterval(roundInterval); roundInterval = null; }
-
-  // Boss timer + UI
-  bossSecondsLeft = bossWindowDuration;
+  roundSeconds = bossWindowDuration;
   document.getElementById('clock').classList.add('boss-mode');
   document.getElementById('clock-bar').classList.add('boss-mode');
   document.getElementById('grid').classList.add('boss-active');
@@ -362,14 +488,21 @@ function triggerBoss(presetOverride = null, windowSeconds = null) {
   // updateActProgressUI below) so BOTH progress blocks - landscape and portrait -
   // get it, in every mode that can run a boss.
 
-  updateBossClockDisplay();
+  updateClockUI();
 
-  // Banner
+  // Banner. Guarded: this is cosmetic, and an unguarded lookup here used to abort
+  // triggerBoss PART WAY THROUGH - bossActive already true and the modifiers
+  // already applied, but no briefing, no PROCEED and no clock. A boss must never
+  // fail to start because a decoration is missing.
   const banner = document.getElementById('boss-banner');
-  banner.querySelector('.boss-banner-title').textContent = preset.name;
-  document.getElementById('boss-banner-sub').textContent = preset.flavor;
-  banner.classList.add('show');
-  setTimeout(() => banner.classList.remove('show'), 2400);
+  if (banner) {
+    const title = banner.querySelector('.boss-banner-title');
+    if (title) title.textContent = preset.name;
+    const sub = document.getElementById('boss-banner-sub');
+    if (sub) sub.textContent = preset.flavor;
+    banner.classList.add('show');
+    setTimeout(() => banner.classList.remove('show'), 2400);
+  }
 
   // Objective HUD
   showBossObjectiveHUD(preset);
@@ -595,53 +728,33 @@ function showBossCountdown() {
   if (!overlay || !numEl) return Promise.resolve();
   if (typeof sfxCountdown321 === 'function') sfxCountdown321();
   return (async () => {
+    beginCountdown();
     for (const n of ['3','2','1']) {
       numEl.textContent = n;
       numEl.style.animation = 'none'; void numEl.offsetWidth;
       numEl.style.animation = 'countdown-pop 500ms ease forwards';
       overlay.classList.add('show');
-      await new Promise(r => setTimeout(r, 500));
+      await countdownWait(500);   // pausable - see js/interlude.js
     }
+    endCountdown();
     overlay.classList.remove('show');
     await new Promise(r => setTimeout(r, 120));
   })();
 }
 
-function updateBossClockDisplay() {
-  if (!bossActive) return; // never clobber the round clock when no boss is running
-  const m = Math.floor(bossSecondsLeft / 60);
-  const s = bossSecondsLeft % 60;
-  document.getElementById('clock').textContent = `${m}:${s.toString().padStart(2,'0')}`;
-  document.getElementById('clock-bar').style.width = (bossSecondsLeft / bossWindowDuration * 100) + '%';
-}
+// Kept as a thin alias: there is one clock now (r205) and updateClockUI draws it,
+// reading bossWindowDuration as the bar's denominator while a boss is running.
+function updateBossClockDisplay() { updateClockUI(); }
 
-// Single source of truth for the boss countdown. Clears any existing boss interval first
-// (so it can't be double-started) and self-terminates if bossActive ever goes false (so an
-// orphaned timer can't keep writing the clock - the cause of the "clock flickers to 0" bug).
+// The boss runs on the ONE round clock (r205). This starts the scheduled effects
+// (armed by applyBossModifiers, held back so their opening tick lands with the
+// clock rather than behind the briefing panel - see bossSchedule) and then hands
+// the countdown to startRoundTimer like any other round. The boss-specific parts
+// of the tick - the Metronome's variable step, the halftime phase flip, the
+// switched-off-Trick repaint and running out of time - live in that one tick.
 function startBossTimer() {
-  if (bossInterval) { clearInterval(bossInterval); bossInterval = null; }
-  // The r150/r151 roster's timed effects are armed by applyBossModifiers but held
-  // until here, so their opening tick lands with the clock rather than behind the
-  // briefing panel (see bossSchedule).
   if (typeof bossStartScheduledEffects === 'function') bossStartScheduledEffects();
-  bossInterval = setInterval(() => {
-    if (!bossActive) { clearInterval(bossInterval); bossInterval = null; return; }
-    if (gameTimerPaused) return;
-    bossSecondsLeft -= (typeof bossClockStep === 'function') ? bossClockStep() : 1;
-    if (bossSecondsLeft < 0) bossSecondsLeft = 0;
-    updateBossClockDisplay();
-    // Repaints the tray only when the switched-off set changes - covers the
-    // Voidwright's halftime flip AND the Censor's suspensions expiring, neither of
-    // which has an event of its own.
-    if (typeof bossSyncTrickTrayState === 'function') bossSyncTrickTrayState();
-    if (bossPhase === 1 && bossSecondsLeft === Math.floor(bossWindowDuration / 2)) {
-      bossPhase = 2;
-      updateBossObjectiveUI();
-      showMessage(currentBoss?.modifiers?.includes('trick_pool_split')
-        ? 'SECOND HALF - different Tricks off' : 'PHASE 2', 'var(--red)');
-    }
-    if (bossSecondsLeft <= 0) endBoss(false);
-  }, 1000);
+  startRoundTimer();
 }
 
 // r171 - no panel. A boss puts the SCORE and GOAL chips into alarm state (red,
@@ -685,7 +798,13 @@ function ensureBossGoalExtra() {
 function endBoss(success) {
   if (!bossActive) return;
   bossActive = false;
-  if (bossInterval) { clearInterval(bossInterval); bossInterval = null; }
+  // The boss shares the round clock now (r205), so stop it here. Without this the
+  // tick that ran the window out would keep firing at roundSeconds 0 and, with
+  // bossActive already false, fall straight through onRoundEnd's boss guard into
+  // the ordinary missed-goal path a second later.
+  if (roundInterval) { clearInterval(roundInterval); roundInterval = null; }
+  if (typeof stopFocusDecay === 'function') stopFocusDecay();
+  if (typeof stopHeartbeat === 'function') stopHeartbeat();
 
   // Clean up modifiers (must happen BEFORE render)
   clearBossModifiers();
@@ -700,27 +819,43 @@ function endBoss(success) {
   document.getElementById('clock-bar').classList.remove('boss-mode');
   updateActProgressUI();
 
-  // Result flash
-  const resultEl = document.getElementById('boss-result');
-  const resultText = document.getElementById('boss-result-text');
-  resultText.className = 'boss-result-text ' + (success ? 'win' : 'loss');
-  resultText.textContent = success ? 'VICTORY' : 'DEFEATED';
-  resultEl.classList.add('show');
-  setTimeout(() => resultEl.classList.remove('show'), 1500);
+  // Result flash. A WIN no longer uses it: the goal-clear banner below says the same
+  // thing better (it names the boss, and it is the same stamp every other cleared
+  // round gets), and two captions over one board is one too many. A LOSS keeps it.
+  const _beaten = success ? (currentBoss && currentBoss.name) : null;
+  if (!success) {
+    const resultEl = document.getElementById('boss-result');
+    const resultText = document.getElementById('boss-result-text');
+    resultText.className = 'boss-result-text loss';
+    resultText.textContent = 'DEFEATED';
+    resultEl.classList.add('show');
+    setTimeout(() => resultEl.classList.remove('show'), 1500);
+  }
 
   if (success) {
     render();
+    // A cleared boss is a cleared round, and is now marked like one: the QUOTA
+    // CLEARED stamp (carrying the boss's name as its kicker) and the clock locking
+    // mint. js/goal-clear.js; `force` because Survival suppresses the banner for
+    // its pick-of-three, which a boss win does not open.
+    frozenRoundSeconds = roundSeconds;   // the payout's Efficiency line reads this
+    if (typeof goalClearPresent === 'function') goalClearPresent({ kicker: _beaten, force: true });
     if (survivalActive()) {
       // Survival: no reward grid - a bonus pick-of-three, then back to normal rounds.
       // The banked time was spent on this boss, so reset it for the next 8-clear cycle.
+      // (No payout here: Survival has no payout screen at all, by design.)
       survivalBossTimeBank = 0;
       setTimeout(() => survivalPostBossReward(), 1100);
     } else if (isActMode()) {
-      // Node-based: the post-boss grid is an interlude that starts the next act.
-      // nodeInAct stays at 5 so closeRewardGrid knows to reset it and advance actNumber.
-      // Since r179 that grid is the PRIZE grid - smaller, all rewards, no commons -
-      // and it REPLACES the ordinary reward grid rather than following it.
-      setTimeout(() => { rewardGridContext = 'interlude'; openPrizeGrid(); }, 1000);
+      // Node-based: a boss round ends EXACTLY like any other cleared round - cards
+      // fall, the payout counts up, and only then the grid. It used to jump straight
+      // to the prize grid, and since credits are awarded inside showPayoutUI (interest
+      // and leftover-time), that meant the hardest round of the act paid nothing at all.
+      // The prize grid still replaces the ordinary reward grid; startInterlude's
+      // `prize` option is the whole difference. nodeInAct stays at 5 so
+      // closeRewardGrid's finishInterlude resets it and advances actNumber.
+      gameTimerPaused = true;
+      setTimeout(() => startInterlude({ prize: true }), 900);
     } else {
       // Timer-based modes: restore round timer and resume the interrupted round
       roundSeconds = savedRoundSeconds;

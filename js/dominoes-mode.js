@@ -398,7 +398,7 @@ function dominoAdvanceLevel() {
   if (typeof roundInterval !== 'undefined' && roundInterval) { clearInterval(roundInterval); roundInterval = null; }
   if (typeof totalScore === 'number') totalScore += score;
   level++;
-  roundGoal = Math.round(Math.round(BASE_GOAL * Math.pow(GOAL_SCALE, level - 1)) / 500) * 500;
+  roundGoal = goalForLevel(level);
   score = 0;
   if (typeof focusNodes !== 'undefined') focusNodes = 0;
   if (typeof syncFocusMeterState === 'function') syncFocusMeterState();

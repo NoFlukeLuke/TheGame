@@ -88,13 +88,16 @@ function recordsDeckCensus() {
   const add = (c, w) => {
     if (!c || !c.rank || c._isSleight) return;
     const t = cardKey(c.rank, c.suit);
-    const cell = cells[t] || (cells[t] = { n: 0, where: null, draw: 0, pips: 0, mult: 0, cursed: false });
+    const cell = cells[t] || (cells[t] = { n: 0, where: null, draw: 0, pips: 0, mult: 0, grow: false, cursed: false });
     const id = cardId(c);
     cell.n++;
     if (w === 'draw') cell.draw++;
     if (!cell.where || rank[w] > rank[cell.where]) cell.where = w;
     cell.pips  = Math.max(cell.pips, permPips[id] || 0);
     cell.mult  = Math.max(cell.mult, permMult[id] || 0);
+    // A scaling buff (r209) may sit on a card whose flat pips/mult are still 0,
+    // so without this the deck map would show it as an ordinary card.
+    if ((permPipsGrow[id] || 0) || (permMultGrow[id] || 0)) cell.grow = true;
     if (cardCurses[id]) cell.cursed = true;
   };
   drawPile.forEach(c => add(c, 'draw'));
@@ -118,14 +121,18 @@ function recordsRenderDeck() {
       const cell = where[cardKey(rk, s)];
       const w  = cell ? cell.where : null;
       const pp = cell ? cell.pips : 0, pm = cell ? cell.mult : 0;
+      const gr = !!(cell && cell.grow);
       // Spectrum's white values sit in the row of the colour that owns them (each
       // one is still its own card) - tint the cell so it reads as colourless.
       const cls = ['rec-deck-cell', w ? 'w-' + w : 'w-gone', pp ? 'has-pip' : '', pm ? 'has-mult' : '',
+                   gr ? 'has-grow' : '',
                    isWhiteRankValue(rk) ? 'rec-white' : ''].filter(Boolean).join(' ');
       const dup = cell && cell.n > 1 ? ` (x${cell.n} in the run)` : '';
       const tip = `${rk}${s} - ${w === 'draw' ? 'in draw pile' : w === 'grid' ? 'on the board' : w === 'played' ? 'played (returns next round)' : 'not in deck'}${dup}` +
-                  `${pp ? ` · +${pp} pips` : ''}${pm ? ` · +${pm} mult` : ''}${cell && cell.cursed ? ' · cursed' : ''}`;
+                  `${pp ? ` · scores +${pp} pips` : ''}${pm ? ` · scores +${pm} mult` : ''}` +
+                  `${gr ? ' · scales up each play' : ''}${cell && cell.cursed ? ' · cursed' : ''}`;
       const marks = (pp ? '<i class="rec-m rec-m-p"></i>' : '') + (pm ? '<i class="rec-m rec-m-m"></i>' : '')
+                  + (gr ? '<i class="rec-m rec-m-g"></i>' : '')
                   + (cell && cell.n > 1 ? `<i class="rec-dup">${cell.n}</i>` : '');
       return `<span class="${cls}" title="${tip}">${rk}${marks}</span>`;
     }).join('');
@@ -244,11 +251,22 @@ function recordsRenderLimits() {
     const l = limits[def.id];
     const maxed = l.current >= l.max;
     const pct = def.hideMax ? 100 : Math.round(((l.current - def.base) / Math.max(1, l.max - def.base)) * 100);
+    const shown = limitShownValue(def.id), dl = limitShownDelta(def.id);
+    const dlStr = dl ? ` <span style="color:${dl > 0 ? 'var(--gold)' : 'var(--red)'}">${dl > 0 ? '+' : ''}${dl}</span>` : '';
+    // Luck is the one limit whose number means nothing on its own, so its row
+    // prints the consequence: what a chance effect becomes, and the live rarity
+    // table. Otherwise it is a stat you have to take on faith.
+    let extra = def.desc;
+    if (def.id === 'luck' && typeof luckTierPercents === 'function') {
+      const pc = luckTierPercents();
+      extra = `${def.desc}<br><span style="opacity:.75">Chance effects fire at ×${luckScale().toFixed(2)} · ` +
+              ENTITY_TIERS.map((t, i) => `${t} ${pc[i]}%`).join(' · ') + `</span>`;
+    }
     return `<div class="rec-lim${maxed ? ' maxed' : ''}">
       <div class="rec-lim-top"><span><span class="rec-lim-ico">${def.icon}</span>${def.label}</span>
-        <span class="rec-lim-v">${l.current}${def.hideMax ? '' : `<span class="rec-lim-max">/${l.max}</span>`}${maxed ? ' <b>MAX</b>' : ''}</span></div>
+        <span class="rec-lim-v">${shown}${dlStr}${def.hideMax ? '' : `<span class="rec-lim-max">/${l.max}</span>`}${maxed ? ' <b>MAX</b>' : ''}</span></div>
       <div class="rec-bar-track"><span class="rec-bar-fill" style="width:${Math.max(0, Math.min(100, pct))}%"></span></div>
-      <div class="rec-lim-desc">${def.desc}</div></div>`;
+      <div class="rec-lim-desc">${extra}</div></div>`;
   }).join('');
   return `<div class="rec-note">Operating allowances for this run. Raised at the Mart, by a Limit Break, or as a reward.</div>
     <div class="rec-lims">${rows}</div>`;
@@ -296,10 +314,13 @@ function _recHandsFoot() {
 // under all of them, since handBasePips/handBaseMult carry it.
 function _recHandsFootFull() {
   const ns = (typeof nsEnabled !== 'undefined' && nsEnabled)
-    ? ' Playing a hand permanently raises its whole family - sets, runs and flushes each build on'
-      + ' their own. Green is what this run has earned.'
+    ? ' Playing a hand permanently raises THAT HAND, and nothing else - so a hand you have played'
+      + ' forty times can out-score one you have never reached. Green is what this run has earned.'
     : '';
-  return _recHandsFoot() + ns;
+  const lay = (typeof layeredHandsEnabled !== 'undefined' && layeredHandsEnabled)
+    ? ' Cards that are two hands at once pay for both, and score twice.'
+    : '';
+  return _recHandsFoot() + ns + lay;
 }
 
 // ── HANDS ──

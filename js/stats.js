@@ -19,6 +19,8 @@ const HAND_KEY_TO_NAME = {
   fourofakind:'Four of a Kind', run4:'Run of 4', pair:'Pair', twopair:'Two Pair',
   straight:'Straight', flush3:'Flush of 3', flush4:'Flush of 4', flush:'Flush', fullhouse:'Full House',
   straightflush:'Straight Flush', highcard:'High Card', blackjack:'Blackjack',
+  flush6:'Flush of 6', flush7:'Flush of 7', run6:'Run of 6', run7:'Run of 7',
+  fiveofakind:'Five of a Kind', sixofakind:'Six of a Kind', sevenofakind:'Seven of a Kind',
 };
 
 function showStats() {

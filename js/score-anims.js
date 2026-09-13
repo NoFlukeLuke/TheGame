@@ -203,6 +203,11 @@ function showComboFloats(hand, handCells, result) {
 // SCORE ANIMATION (replaces playScoreDance)
 // ══════════════════════════════════════════════
 function flashRoundEnd() {
+  // This is the one place in the game that means "the tally just crossed the
+  // round goal" - both dances call it and nothing else does - so the goal-clear
+  // presentation (banner + the clock's cleared state, js/goal-clear.js) hangs
+  // off it rather than off the two call sites.
+  if (typeof goalClearPresent === 'function') goalClearPresent();
   const grid = document.getElementById('grid');
   if (!grid) return;
   grid.classList.remove('round-end-flash');

@@ -4,6 +4,9 @@ Three pieces of work, agreed with the owner, **not yet built**. Written so a
 fresh session can pick any one of them up on its own. Owner is non-technical -
 keep explanations plain.
 
+Line references verified against **r216**. If they have drifted, the surrounding
+prose says what to grep for.
+
 Decisions already made (do not re-litigate):
 
 - The Mart overlay is **replaced**, not kept behind a flag.
@@ -83,8 +86,8 @@ tutorial, where a broken reference is silent rather than loud:
 | site | what it does | what it needs |
 |---|---|---|
 | `js/shop.js:167` | the `triggerShop` route | delete the branch |
-| `js/game-control.js:197` | `screenOwnsClock()` counts `martActive` so closing a Stats/Deck overlay does not start the round behind the shop | `shopGridActive` is **already** in that same list - just drop `martActive` |
-| `js/survival.js:540` | suppresses something while the shop is open | swap to `shopGridActive` |
+| `js/game-control.js:215` | `screenOwnsClock()` counts `martActive` so closing a Stats/Deck overlay does not start the round behind the shop | `shopGridActive` is **already** in that same list - just drop `martActive` |
+| `js/survival.js:585` | suppresses something while the shop is open | swap to `shopGridActive` |
 | `js/wheel.js:142,363` | calls `renderMart()` after a spin resolves | repoint to `renderShopGrid()` |
 | `js/tutorial.js` | **four orientation steps** | see below |
 
@@ -112,7 +115,9 @@ move - it lives in `closeMart` today.
   key rather than leaving a tuning table that tunes nothing.
 - **Pin Head** (the backlog Trick that pays mult per pinned item) was never
   actually added to `TRICK_POOL` - checked. Nothing else depends on the
-  discount.
+  discount. `BAL.shop_discount` is also explicitly excluded from the r206
+  improvement system (`js/improve.js` only scales real entity ids), so removing
+  it touches nothing there.
 
 ### Stock mix
 
@@ -128,11 +133,16 @@ enough on the reward grid**, so the shop leans the other way.
 
 On a 4-wide board that is a clean 4 / 3 / 2 / 2 plus a services row.
 
-**And on the reward grid, knacks go up.** In `_generateRewardContent`
-(`js/reward-grid.js:49-51`) the ordinary grid weights are `trick 40`,
+**And on the reward grid, knacks go up.** In `_generateRewardContent` the
+ordinary grid table `buffCategories` (`js/reward-grid.js:68-85`) is `trick 40`,
 `knack 7`. Raise knack to **12**; leave trick alone (dropping it would change
-`MIN_TRICK_TILES` guarantees too). The prize grid's own table at
-`js/reward-grid.js:40-46` is already `trick 34 / knack 16` and needs no change.
+the `MIN_TRICK_TILES` guarantees too). The prize grid's own table just above it
+(`js/reward-grid.js:56-67`) is already `trick 34 / knack 16` and needs no
+change.
+
+Note the tables have grown since these numbers were set - both now also carry
+`luck` and three `improve_*` kinds. Raising knack takes share from everything,
+so re-check the improve tiles still turn up often enough after the change.
 
 ### Services row (replaces the Mart's Tools)
 
@@ -146,29 +156,46 @@ Sits under the shelves, same row shape, not stock:
 
 One button, deliberately expensive, upgrades **one random thing you already
 own**. It exists because the Trick tray caps at 10 and fills long before an act
-does, so late in a run a shop full of grants has nowhere to put anything - the
-same reasoning that produced the r194 upgrade events.
+does, so late in a run a shop full of grants has nowhere to put anything.
 
-It rides three seams that already exist, so it needs no per-entity code:
+**This is now mostly already built.** `js/improve.js` (r206) gives every entity
+an improvement TIER (0-5) and recomputes its numbers in `BAL` in place, so an
+improved entity states its real figure to the player with no per-entity string.
+The reward grid already carries an `Improve: <name>` tile
+(`js/reward-grid.js:365`). What is missing is a **shop** entry point.
 
-| rolls | rides | effect |
-|---|---|---|
-| a random deck card | `enhanceCardKey(key, e)` - `js/events.js:334` | permanent +pips / +mult |
-| a random owned Sleight | `sleightCapBonus` -> `sleightMaxCharges(def)` | +1 charge ceiling for the run |
-| a random owned Trick | `t._rank` | the Trick fires one extra time, every hand, for the rest of the run |
+The whole API needed:
+
+| call | does |
+|---|---|
+| `pickImproveTarget(type)` | a random owned, improvable, un-maxed entity - `type` is `'trick'`, `'knack'` or `'sleight'` |
+| `improvePreview(id)` | what one more tier would read as, changing nothing |
+| `improveEntity(id)` | commits the tier |
+| `canImprove(id)` | false when maxed or when the entity has no scalable number |
+
+So the service is: roll a type over the types you actually own something
+improvable in, `pickImproveTarget`, `improveEntity`, and show the result.
 
 Notes that matter:
 
-- **Pick the card with `everyDeckCard()` and key it with `cardId(card)`**, never
-  `cardKey(rank, suit)`. Picking a random rank and suit can name a card that is
-  not in the deck, and buffing a face hits every copy of it. See the card
-  identity section of CLAUDE.md.
-- **Roll only over categories you actually own.** No Sleights in the deck means
-  the Sleight branch cannot come up, or the player pays 20 for nothing.
-- A Sleight with `durability: 'infinite'` has no ceiling to raise -
-  `sleightMaxCharges` returns `null` for it. Skip those when picking.
+- **Do not re-implement the three separate seams.** An earlier draft of this
+  spec proposed rolling between `enhanceCardKey`, `sleightCapBonus` and
+  `t._rank`. `improve.js` supersedes all three for entities - use it.
+- **A deck CARD is still not covered by `improve.js`**, which only knows
+  Tricks, Knacks and Sleights. If the service should also be able to buff a
+  card, that branch alone rides `enhanceCardKey(key, e)`
+  (`js/events.js:339`) - and it must pick with `everyDeckCard()` and key with
+  `cardId(card)`, never `cardKey(rank, suit)`, or it can name a card that is
+  not in the deck and buff every copy of a face. **Owner call: include cards or
+  keep it entity-only?**
+- **Roll only over what you own.** `pickImproveTarget` returns null for an
+  empty pool - fall through to another type rather than charging 20 for
+  nothing. If nothing at all is improvable the service should be greyed out on
+  the shelf, not sold and then refunded.
+- `pickImproveTarget` draws through `pickEntityByRarity` (`js/luck.js`), so
+  Luck already tilts it. Nothing extra to wire.
 - **Say what it hit.** A 20-credit spend that resolves silently reads as a bug.
-  Show the result the way the wheel shows a prize.
+  `improvePreview` gives you a before/after to show.
 - Price scales per use, the way `tinkerCost()` does: 20, then 20 + step.
 
 ### Limits chip
@@ -198,7 +225,7 @@ grid-takeover screen (Rewards, Shop, Event), so `#clock-area` (portrait) and
 
 The panel has two halves already: `#score-center` (label `Score` + the number)
 and `#score-left` (label `GOAL` + `#goal-display` + the progress bar) -
-`index.html:708-722`.
+`index.html:780-795`.
 
 On a grid-takeover screen:
 
@@ -234,29 +261,30 @@ covers all three.
 
 ### Start here: there are no lines today
 
-Nine Tricks mark a row or a column - `POSITION_ASSIGN_IDS` at
-`js/scoring.js:936`:
+Eight Tricks mark a row or a column - `POSITION_ASSIGN_IDS` at
+`js/scoring.js:1094`:
 
 ```
-rowcol_triple_pips  rowcol_mult  rowcol_retrigger  perfect_timing  right_time
-study_hall  groove  assembly_line  overtime
+rowcol_triple_pips  rowcol_mult  rowcol_retrigger  perfect_timing
+right_time  groove  assembly_line  overtime
 ```
 
 **Only three of them draw anything.** `renderCardAppearance` sets `rc-pips`,
-`rc-mult` and `rc-retrigger` (`js/card-fall.js:64-66`), which tint the card's
-background (`css/style.css:1621-1655`). The other six mark a line completely
-invisibly - the player is told "row 3" in the Trick's description and the board
-never confirms it.
+`rc-mult` and `rc-retrigger` (`js/card-fall.js:94-96`), which tint the card's
+background (`css/style.css:1682-1716`). The other **five** mark a line
+completely invisibly - the player is told "row 3" in the Trick's description
+and the board never confirms it.
 
 So this is not a tweak to an existing line system. It is the line system
-existing for the first time, and it fixes six Tricks that currently have no
+existing for the first time, and it fixes five Tricks that currently have no
 board presence at all.
 
 ### One function is already written and unused
 
-`getRowColBonusesForCell(r, c)` at `js/scoring.js:907` returns every bonus whose
-row or column passes through a cell. It is called from **nowhere**. It is
-exactly the "which lines touch this card" query the split highlight needs.
+`getRowColBonusesForCell(r, c)` at `js/scoring.js:1065` returns every bonus
+whose row or column passes through a cell. It is called from **nowhere** -
+verified again on r216. It is exactly the "which lines touch this card" query
+the split highlight needs.
 
 ### 3a · A line layer that survives the reward grid
 
@@ -265,7 +293,7 @@ exactly the "which lines touch this card" query the split highlight needs.
 
 - Draw lines into their own element, `#grid-lines`, a child of **`#grid-slot`**,
   not of `#grid`. (`#grid` is the only child of `#grid-slot` today -
-  `index.html:764` - so the new layer is a clean sibling of it.)
+  `index.html:843` - so the new layer is a clean sibling of it.)
 - `renderRewardTiles` clears and rebuilds `#grid`'s children, and the on-grid
   shop does `gridEl.innerHTML = ''`. A layer inside `#grid` would be wiped by
   both; a sibling under `#grid-slot` is untouched.
@@ -284,8 +312,8 @@ For the **i-th** of **n** lines on one index, the offset across the card is
 1/4, 1/2, 3/4 for three - exactly the owner's numbers, out of one formula.
 
 More than one line can legitimately sit on the same index: the **District**
-knack is what allows it (`lineOccupied` / `pickDefaultLine`,
-`js/scoring.js:938`), and without District the game already prefers a free
+knack is what allows it (`lineOccupied` / `pickDefaultLine`, just below
+`POSITION_ASSIGN_IDS`), and without District the game already prefers a free
 line. So this case is real but uncommon - do not let it complicate the common
 one-line path.
 
@@ -318,15 +346,17 @@ function clampRowColBonuses() {
 ```
 
 Call it after the four sites that set the board size from the limits:
-`js/game-control.js:295`, `js/level-up.js:51`, `js/save.js:243`,
-`js/survival.js:425`.
+`js/game-control.js:328`, `js/level-up.js:54`, `js/save.js:256`,
+`js/survival.js:470`.
 
 **The trap - do not call it on a takeover resize.** Two screens shrink the
 board temporarily and restore it on close:
 
 - the on-grid shop forces 4x4 and restores from `shopGridSaved`
-  (`js/shop-grid-preview.js:133` and `:151`);
-- Dominoes sets `DOMINO_ROWS/COLS` (`js/dominoes-mode.js:115`).
+  (`js/shop-grid-preview.js:133` and `:152`);
+- Dominoes sets `DOMINO_ROWS/COLS` (`js/dominoes-mode.js:115`, and again at
+  `js/game-control.js:330` right after the limits assignment - so that one line
+  must come *after* the clamp, not before it).
 
 Clamping on those would permanently destroy a mark on column 5 - the board
 comes back to 6 wide and the line stays at 3 forever, because the clamp is
@@ -349,8 +379,8 @@ the grid being drawn; clamp the *stored* index only on a real limits change.
 The highlight is the ring around the card. Today it is a background tint plus a
 border colour, and the three combinations are hand-written
 (`.rc-pips.rc-mult`, `.rc-pips.rc-retrigger`, `.rc-mult.rc-retrigger` -
-`css/style.css:1631-1655`). That does not scale past three, and six Tricks have
-no colour at all.
+`css/style.css:1692-1716`). That does not scale past three, and five Tricks
+have no colour at all.
 
 Replace it with one ring that divides evenly:
 
@@ -378,7 +408,7 @@ one-wedge gradient, so the common case stays cheap.
 **Drop the background tints when this lands.** Three lines crossing one card
 would make the face unreadable, and the ring already carries the information.
 Spectrum's numeric cards make this decision for you - they already override the
-`rc-*` backgrounds back to the card colour (`css/style.css:2049-2057`) because
+`rc-*` backgrounds back to the card colour (`css/style.css:2110-2118`) because
 the tint was destroying the one thing a Spectrum card has to show.
 
 ### 3e · What a line looks like

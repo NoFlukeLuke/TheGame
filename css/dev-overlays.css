@@ -233,6 +233,12 @@
     max-width: 320px; margin-bottom: 16px;
   }
   #event-body { display: flex; flex-direction: column; align-items: center; gap: 9px; width: 100%; }
+  /* DO NOT widen #event-panel with a viewport media query. The overlay lives
+     INSIDE #stage, which carries the cabinet's CSS `zoom` (~1.9 on a 1440px
+     desktop), so its 420px is already about 800 real pixels on screen - a media
+     query on the VIEWPORT width sees 1440 and widens something that was never
+     narrow. Measured at 560px the panel covered three quarters of the display and
+     the prose ran to 90 characters a line. The px here are stage px; leave them. */
   /* Sticky footer. A long event (Twin Path, the Confluence's second step) scrolls
      inside the panel, and CONFIRM must never be the thing you have to go looking
      for - it rides the bottom edge with the panel's own material behind it. */
@@ -348,6 +354,21 @@
     box-shadow: 0 0 10px -3px var(--rc, transparent), inset 0 0 10px -4px var(--rc, transparent);
     filter: drop-shadow(0 1px 2px rgba(0,0,0,0.6));
   }
+  /* When the offer IS an entity, the disc is replaced by the SHARED entity tile
+     (js/entity-tile.js) at a size that fits a row - so the Trick an Event offers
+     you is visibly the same object as the Trick on the reward grid, in the Mart
+     and in your tray. The tile brings its own rarity edge; the slot only sizes it.
+     Its own name is hidden because the row prints the name in full right beside
+     it - the same deliberate exception the tray's fanned chips make. */
+  .ec-tile {
+    flex: 0 0 auto; width: 46px; height: 61px;
+    display: flex; align-items: center; justify-content: center;
+    pointer-events: none;
+  }
+  .ec-tile .reward-cell {
+    position: static; width: 46px; height: 61px; margin: 0;
+  }
+  .ec-tile .rwd-name { display: none; }
   .ec-info { flex: 1; min-width: 0; }
   .ec-rarity {
     font-family: 'Share Tech Mono', monospace;
@@ -659,6 +680,21 @@
     box-shadow: 0 0 0 2px var(--c-yellow), 0 0 14px -2px var(--c-yellow), 0 2px 5px rgba(0,0,0,0.5);
     transform: translateY(-2px);
   }
+  /* Clean Up's four-different-ranks cut greys out a rank already taken, rather
+     than silently refusing the tap. */
+  .ev-cardchip.blocked {
+    opacity: 0.24; cursor: not-allowed; filter: grayscale(0.8);
+  }
+  .ev-cardchip.blocked:hover { transform: none; }
+
+  /* Running total on the Card Market's basket. */
+  .ev-total {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px; letter-spacing: 1px;
+    color: var(--c-mint); text-align: center;
+    margin-top: 4px;
+  }
+  .ev-total.danger { color: #ff7a86; }
 
   /* ── Confluence theme buttons → keyword keys on a console ─────────────────
      Molded plastic keycaps with a phosphor legend. Picking one lights it. */
@@ -802,6 +838,8 @@
   .dev-preview {
     font-family: 'Share Tech Mono', monospace; font-size: 10px; letter-spacing: 0.3px;
     color: var(--gold-dim); margin-top: 8px; line-height: 1.5;
+    /* pre-line so a multi-line preview (the goal curves) keeps its breaks */
+    white-space: pre-line;
   }
   .dev-tune {
     display: flex; align-items: center; justify-content: space-between; gap: 10px;
@@ -848,3 +886,10 @@
     line-height: 1.35; color: var(--cream-dim);
   }
   .dev-pick-body i:empty { display: none; }
+
+/* Natural Scaling bonus editor (r201) - one compact row per hand type. */
+.dev-ns-row { display:flex; align-items:center; gap:6px; margin:2px 0; font-family:'Crimson Pro',serif; font-size:11px; color:var(--cream-dim); }
+.dev-ns-row .dev-ns-name { flex:1 1 auto; min-width:0; color:var(--cream); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.dev-ns-row label { flex:0 0 auto; display:flex; align-items:center; gap:3px; }
+.dev-ns-row input { width:52px; background:#1a1510; color:var(--cream); border:1px solid var(--border); border-radius:3px; padding:1px 3px; font-size:11px; }
+.dev-ns-row .dev-ns-plays { flex:0 0 58px; text-align:right; opacity:0.7; }
