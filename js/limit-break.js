@@ -36,15 +36,22 @@ function renderLimitBreak() {
       div.innerHTML = `
         <div class="lb-offer-tag">?</div>
         <div class="lb-offer-icon">❓</div>
-        <div class="lb-offer-label">MYSTERY</div>
-        <div class="lb-offer-desc">A hidden limit. Revealed on pick.</div>
+        <div class="lb-offer-label">UNKNOWN</div>
+        <div class="lb-offer-desc">You find out which limit when you pick it.</div>
       `;
     } else {
       const prog = limitProgressStr(offer.id, true);
+      // Say HOW MUCH, not just which. Limits do not all step by 1 - round_time
+      // steps by 15 and focus_cap by 3 - and this screen only ever showed the
+      // limit's name, so "Round Time" looked like the same size of gain as
+      // "Swaps/Round". limitProgressStr already prints the real before → after.
+      const step = l.step || 1;
+      const unit = offer.id === 'round_time' ? 's' : '';
       div.innerHTML = `
         <div class="lb-offer-tag">${offer.blind ? '?' : ''}</div>
         <div class="lb-offer-icon">${def.icon}</div>
         <div class="lb-offer-label">${def.label}</div>
+        <div class="lb-offer-gain">+${step}${unit}</div>
         <div class="lb-offer-desc">${colorizeKeywords(def.desc)}</div>
         <div class="lb-offer-prog">${prog}</div>
       `;
@@ -99,19 +106,19 @@ function renderLbSacrifice() {
   // Sacrifice section only relevant once a primary pick exists
   if (lbPrimaryPick === null) {
     wrap.style.opacity = '0.4';
-    hint.textContent = 'Choose your free pick first.';
+    hint.textContent = 'Take your free pick first.';
     optsEl.innerHTML = '';
     return;
   }
   wrap.style.opacity = '1';
 
   if (lbSecondPick === null) {
-    hint.textContent = 'Tap a second limit above, then choose what to sacrifice for it.';
+    hint.textContent = 'Tap a second limit above, then pick what you are giving up for it.';
     optsEl.innerHTML = '';
     return;
   }
 
-  hint.textContent = 'Sacrifice one of these to break your second limit:';
+  hint.textContent = 'Give up one of these to take the second limit:';
 
   const options = [];
   // Limit sacrifices: any limit above 0 that isn't one of the two being broken
@@ -119,7 +126,7 @@ function renderLbSacrifice() {
     const l = limits[def.id];
     const isBeingBroken = (lbOffers[lbPrimaryPick]?.id === def.id) || (lbOffers[lbSecondPick]?.id === def.id);
     if (l.current > 0 && !isBeingBroken) {
-      options.push({ type: 'limit', id: def.id, label: `−1 ${def.icon} ${def.label}` });
+      options.push({ type: 'limit', id: def.id, label: `−${l.step || 1}${def.id === 'round_time' ? 's' : ''} ${def.icon} ${def.label}` });
     }
   });
   // Trick sacrifices
@@ -132,7 +139,7 @@ function renderLbSacrifice() {
   });
 
   if (options.length === 0) {
-    hint.textContent = 'Nothing left to sacrifice - your second pick is free!';
+    hint.textContent = 'Nothing left to give up, so the second pick is free.';
     lbSacrifice = { type: 'none' };
     optsEl.innerHTML = '';
     return;
@@ -157,7 +164,7 @@ function confirmLimitBreak() {
 
   // If a second pick is selected, it requires a valid sacrifice
   if (lbSecondPick !== null && !lbSacrifice) {
-    showMessage('Choose a sacrifice for your second pick', 'var(--red)');
+    showMessage('Pick what you are giving up', 'var(--red)');
     return;
   }
 
@@ -165,8 +172,14 @@ function confirmLimitBreak() {
 
   // Apply primary (free)
   const primaryId = lbOffers[lbPrimaryPick].id;
+  const _say = id => {
+    const d = LIMITS_DEF.find(x => x.id === id);
+    const st = limits[id].step || 1;
+    return `+${st}${id === 'round_time' ? 's' : ''} ${d.label}`;
+  };
+  const primarySay = _say(primaryId);   // read BEFORE the increment moves it
   incrementLimit(primaryId);
-  showMessage(`↑ ${LIMITS_DEF.find(d=>d.id===primaryId).label}`, 'var(--gold)');
+  showMessage(primarySay, 'var(--gold)');
 
   // Apply second pick + sacrifice
   if (lbSecondPick !== null && lbSacrifice) {
@@ -180,8 +193,9 @@ function confirmLimitBreak() {
       if (lost) showMessage(`✖ ${lost.name}`, 'var(--red)');
     }
     const secondId = lbOffers[lbSecondPick].id;
+    const secondSay = _say(secondId);
     incrementLimit(secondId);
-    showMessage(`↑ ${LIMITS_DEF.find(d=>d.id===secondId).label}`, 'var(--gold)');
+    showMessage(secondSay, 'var(--gold)');
   }
 
   closeLimitBreak();

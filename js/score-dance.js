@@ -864,6 +864,14 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
     // Remove all original grid card DOM (exploded losers + flown winners). The
     // deck accounting for every card still runs in showLevelUpScreen_fallOnly.
     gridCards.forEach(el => el.remove()); dncHiddenGridEls=[];
+    // The marked row/column lines belong to the board that just left (js/entity-fx.js).
+    // This is one of THREE places the card DOM is torn down without a following
+    // render - the goal-hand finale (here), the round-end fall (js/interlude.js)
+    // and the next round's deal (js/level-up.js) - which is why the teardown is a
+    // call at each of them and not a guard inside render(): render never runs
+    // again in between, so a guard would never get to look. rowColBonuses is
+    // untouched, so the next board draws the same lines.
+    if(typeof clearLineMarkers==='function') clearLineMarkers();
     // Survival: open the pick-of-three NOW (right of the preview), so the score
     // count-up below runs alongside it - the player can watch the tally or start
     // picking a bonus. (In survival the deck accounting happens in survivalDealNext.)

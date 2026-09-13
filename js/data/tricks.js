@@ -78,7 +78,7 @@ const TRICK_POOL = [
   // ── Clock-mark Tricks (fire as the round clock passes static timestamps) ──
   { id:'ticktock',       name:'Tick-Tock',           tier:'common',    tags:['time','focus'],     desc:'Every time the round clock ends in a 0, gain +2 Focus' },
   { id:'quarter_chime',  name:'Quarter Chime',       tier:'rare',      tags:['time','pips'],      desc:'Every time the round clock reads a multiple of 15 seconds, your next hand scores +45 pips' },
-  { id:'minute_hand',    name:'Minute Hand',         tier:'rare',      tags:['time','mult'],      desc:'Every minute mark the clock passes adds +3 mult to your next hand' },
+  { id:'minute_hand',    name:'Minute Hand',         tier:'rare',      tags:['time','mult'],      desc:'Every minute mark the clock passes primes this trick: your next 2 hands each score +5 mult' },
   { id:'second_hand',    name:'Second Hand',         tier:'common',    tags:['time','pips'],      desc:'Every 10 seconds the clock passes adds +5 pips to your next hand. Rewinding the clock earns them again' },
   { id:'hourglass',      name:'Hourglass',           tier:'epic',      tags:['time','retrigger'], desc:'Every minute mark the clock passes has a 1-in-3 chance to give a random card on the grid a permanent retrigger' },
   { id:'sediment',       name:'Sediment',            tier:'rare',      tags:['time','pips'],      desc:'Gains +10 pips for every 10 seconds of round time elapsed (resets each round)' },
@@ -100,8 +100,8 @@ const TRICK_POOL = [
   { id:'lucky_sevens',   name:'Lucky Sevens',        tier:'epic',      desc:'+3 Focus for each 7 scored or discarded' },
   { id:'ninesong',       name:'Threepeat',           tier:'epic',      desc:"If the hand's pip total is divisible by 3: +3 seconds, +9 mult, +3 Focus" },
   { id:'prime_time',     name:'Prime Time',          tier:'rare',      desc:'Hands with 3+ prime-rank cards (A,2,3,5,7) score +23 pips per card' },
-  { id:'even_score',     name:'Get Even',            tier:'common',    desc:'Hands with 3+ even-ranked cards score +2 mult per card' },
-  { id:'odd_squad',      name:'Odd One In',          tier:'rare',      desc:'Hands with 3+ odd-ranked cards score +5 mult per card' },
+  { id:'even_score',     name:'Get Even',            tier:'common',    desc:'Hands with 3+ even-ranked cards score +2 mult per even card' },
+  { id:'odd_squad',      name:'Odd One In',          tier:'rare',      desc:'Hands with 3+ odd-ranked cards score +2 mult per odd card' },
   // ── Rank diversity ──
   { id:'number_crunch',  name:'Diversity',           tier:'rare',      desc:'Hands with 4+ different ranks score +2 mult' },
   // ── Position ──
@@ -110,7 +110,7 @@ const TRICK_POOL = [
   { id:'rowcol_retrigger', name:'Echo Location',     tier:'rare',      tags:['replay','position'], desc:'Cards scored in a marked row or column have a 50% chance to replay once' },
   { id:'perfect_timing', name:'Perfect Timing',      tier:'epic',      tags:['replay','position'], desc:'Cards scored in a marked row or column replay once' },
   { id:'right_time',     name:'Right Time',          tier:'rare',      tags:['time','position'], desc:'Each card scored in a marked row or column pauses the clock 2 seconds' },
-  { id:'study_hall',     name:'Study Hall',          tier:'rare',      tags:['focus','position'], desc:'Cards scored in a marked row or column add +2 Focus, once per minute' },
+  { id:'study_hall',     name:'Study Hall',          tier:'rare',      tags:['focus'], desc:'Every 2 cards you score adds +1 Focus' },
   { id:'rowcol_perm_double', name:'Ley Line',        tier:'epic',      tags:['mult','position','scaling'], desc:'Cards scored at the intersection of a row effect and a column effect permanently gain +2 mult, once per minute' },
   { id:'shape_square',   name:'Hands of Blue',       tier:'epic',      tags:['position','shape','focus'], desc:'A 2×2 hand adds +16 Focus' },
   { id:'shape_cross',    name:'Crossroads',          tier:'rare',      tags:['position','shape','focus'], desc:'A + shaped hand adds +25 Focus' },
@@ -156,7 +156,7 @@ const TRICK_POOL = [
   { id:'mirror',         name:'Mirror',              tier:'rare',      tags:['utility'], desc:'Tap to tilt left or right; borrows the effect of the Trick on that side. Facing an empty slot = no effect.' },
   // ── Diverse conditions ──
   { id:'combo_score',    name:'Combo Score',         tier:'common',    desc:'+2 mult for every distinct hand type played this round' },
-  { id:'escalation',     name:'Escalation',          tier:'rare',      desc:'For each hand beyond the 5th in a round, score +1 mult' },
+  { id:'escalation',     name:'Escalation',          tier:'rare',      desc:'Every hand played this round is worth +3 mult, paid from the hand after your 3rd' },
   { id:'move_as_one',    name:'Move as One',         tier:'epic',      tags:['synergy'], desc:'If 3+ of your Tricks share a keyword, your lowest-rarity Trick sharing that keyword scores its effect a second time' },
   // ── Reward-grid meta (r128) ──
   { id:'more_better',    name:'More Better',         tier:'common',    tags:['mult','scaling'], desc:'Each reward grid where you select 3+ tiles permanently adds +4 mult to this trick' },
@@ -172,7 +172,7 @@ const TRICK_POOL = [
   { id:'first_wind',     name:'First Wind',          tier:'common',    tags:['focus'], desc:'Focus does not decay for the first 45 seconds of a round' },
   { id:'rhythm',         name:'Rhythm',              tier:'common',    tags:['focus'], desc:'Each hand played adds 1 additional focus' },
   { id:'restless',       name:'Restless',            tier:'common',    tags:['focus'], desc:'Swapping adds 1 focus' },
-  { id:'cull',           name:'Cull',                tier:'common',    tags:['focus'], desc:'Using a discard adds 1 focus' },
+  { id:'cull',           name:'Cull',                tier:'common',    tags:['focus'], desc:'Discarding adds 1 Focus per swap and discard you have left' },
   { id:'expanse',        name:'Expanse',             tier:'common',    tags:['focus'], desc:'Each time you hit max focus, increase max focus capacity by 1' },
   { id:'kaleidoscope',   name:'Kaleidoscope',        tier:'rare',      tags:['focus'], desc:'Playing one or more of each suit in a hand adds +4 Focus' },
   { id:'flow_state',     name:'Flow State',          tier:'rare',      tags:['focus','pips'], desc:'While focus is ×1.5 or higher, +10 pips per card scored' },
@@ -227,12 +227,12 @@ const TRICK_CATEGORIES = [
   { emoji:'🎨', ids:['club_double','monochrome','full_color','balanced_diet'] }, // Suit conditions
   { emoji:'🔢', ids:['lucky_sevens','ninesong','prime_time','even_score','odd_squad'] }, // Number magic
   { emoji:'🌈', ids:['number_crunch'] }, // Rank diversity
-  { emoji:'📍', ids:['rowcol_triple_pips','rowcol_mult','rowcol_retrigger','perfect_timing','right_time','study_hall','rowcol_perm_double','shape_square','shape_cross','shape_line','corner_retrigger','two_corners','edge_pips','wide_span_mult','column_rush','row_power','groove','assembly_line','overtime','feng_shui','huddle','clean_sweep','temporal_rift'] }, // Position
+  { emoji:'📍', ids:['rowcol_triple_pips','rowcol_mult','rowcol_retrigger','perfect_timing','right_time','rowcol_perm_double','shape_square','shape_cross','shape_line','corner_retrigger','two_corners','edge_pips','wide_span_mult','column_rush','row_power','groove','assembly_line','overtime','feng_shui','huddle','clean_sweep','temporal_rift'] }, // Position
   { emoji:'📈', ids:['rising_tide','veteran_bonus'] }, // Level scaling
   { emoji:'🧮', ids:['compound','interest','portfolio','compound_mult','prolific','acorns','plan_ahead','more_better','fives_discard','nines_mult','tens_mult','sixes_perm','fours_perm','twos_retrigger','prime_times','eights_retrigger','snowball','big_win','queens_upgrade','aces_absorb','monopoly'] }, // Accumulating
   { emoji:'🎲', ids:['sands_of_time','discard_pips','spade_flood','mirror','wild_side','wait_for_it'] }, // Situational pip
   { emoji:'🔀', ids:['combo_score','escalation','move_as_one'] }, // Diverse conditions
-  { emoji:'🎯', ids:['meditation','tunnel_vision','first_wind','rhythm','restless','cull','expanse','kaleidoscope','flow_state','redline','overclock','second_nature'] }, // Focus
+  { emoji:'🎯', ids:['study_hall','meditation','tunnel_vision','first_wind','rhythm','restless','cull','expanse','kaleidoscope','flow_state','redline','overclock','second_nature'] }, // Focus
   { emoji:'⭐', ids:['heartwood'] }, // Legendary misc
 ];
 const TRICK_EMOJI = {};

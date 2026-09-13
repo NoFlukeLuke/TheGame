@@ -1,6 +1,14 @@
 function render() {
+  // Marked-row / marked-column lines (js/entity-fx.js) are torn down HERE, above
+  // the two early returns - otherwise a reward grid or a dominoes board inherits
+  // the lines from the last hand and wears them until the play board comes back.
+  // They are DRAWN at the bottom of this function, once the cards are in the DOM.
+  if (typeof clearLineMarkers === 'function') clearLineMarkers();
   // Dominoes mode owns its own board renderer.
   if (typeof ACTIVE_MODE !== 'undefined' && ACTIVE_MODE.id === 'dominoes') { dominoRenderBoard(); return; }
+  // Selection readout first - it is the one thing that must stay true on BOTH sides of
+  // the reward-grid early return below.
+  if (typeof updateSelectionUI === 'function') updateSelectionUI();
   // While the reward grid occupies the play #grid, its own renderer owns the DOM.
   // Skip re-rendering mid-animation (deal-in / resolve) so flying tiles aren't clobbered.
   if (rewardOnGrid) { if (!rewardDealing) renderRewardTiles(); return; }
@@ -9,6 +17,8 @@ function render() {
   // whenever the board is. renderBossCellOverlays no-ops cheaply when nothing
   // is marked.
   if (typeof renderBossCellOverlays === 'function' && typeof bossActive !== 'undefined' && bossActive) renderBossCellOverlays();
+  // Dead Drop cells outlive the boss round, so they get their own pass.
+  if (typeof renderDeadCellOverlays === 'function') renderDeadCellOverlays();
   const gridEl = document.getElementById('grid');
   const reachable = getReachable();
   const bestHandResult = selected.length >= 2 ? findBestHand(selected) : null;
@@ -161,20 +171,33 @@ function render() {
   // Update deck HUD on every render - catches grid mutations from any source
   updateDeckHud();
 
+  // r200: below the minimum selection there is no play, however good the hand is.
+  const _belowMin = (typeof minSelection === 'function') && selected.length > 0 && selected.length < minSelection();
+
   // Hand preview
   if (!danceAbortController) {
     // Owner request: the preview no longer reacts to selection - it stays empty (inert)
     // until a hand is SUBMITTED, at which point the scoring dance (playPreviewDance) fills
     // #selected-cards. Selecting cards no longer renders preview cards or a hand name here.
-    document.getElementById('hand-name').textContent = '';   // empty → "HAND" watermark shows (r99)
+    // The preview CARDS stay inert until a hand is submitted (r99), but the hand
+    // NAME is live from the first selection - it is what you need before you
+    // commit, and with layered hands it is the only place the second hand shows.
+    updateHandNameLabel(_belowMin ? { short: minSelection() } : bestHandResult);
     const cardsEl = document.getElementById('selected-cards');
     cardsEl.innerHTML = '';
     if (bestHandResult) {
       const base = HAND_BASE[bestHandResult.hand];
       if (base) {
         const levelScale = Math.pow(1.1, level - 1);
-        const basePips = Math.round(handBasePips(bestHandResult.hand) * levelScale);
-        updateDanceSubboxes(basePips, handBaseMult(bestHandResult.hand, bestHandResult.handCells?.length));
+        // Every component, not just the one that named the hand - the chips have
+        // to quote what calcScore will actually seed, or a layered hand reads as
+        // the smaller of the two hands it is about to pay.
+        const _n = bestHandResult.handCells?.length;
+        const _names = (typeof handLayersFor === 'function')
+          ? handLayersFor(bestHandResult.hand, bestHandResult.handCells) : [bestHandResult.hand];
+        let basePips = 0, baseMult = 0;
+        _names.forEach(h => { if (!HAND_BASE[h]) return; basePips += Math.round(handBasePips(h) * levelScale); baseMult += handBaseMult(h, _n); });
+        updateDanceSubboxes(basePips, baseMult);
       }
     } else {
       const pipsEl = document.getElementById('pips-val');
@@ -217,7 +240,8 @@ function render() {
     if (hasTrick('kingfisher')) { const _km = Math.floor((pausedSecondsRound+rewoundSecondsRound)/BAL.kingfisher.interval_seconds)*BAL.kingfisher.mult_per_interval; if (_km > 0) bonusLines.push({ label:'The Kingfisher', val:`+${_km} mult`, type:'mult' }); }
     if (pendingHandPips > 0) bonusLines.push({ label:'Quarter Chime', val:`+${pendingHandPips} pips`, type:'pip' });
     if (pendingCardPips > 0) bonusLines.push({ label:'Second Hand', val:`+${pendingCardPips} pips`, type:'pip' });
-    if (pendingHandMult > 0) bonusLines.push({ label:'Minute Hand', val:`+${pendingHandMult} mult`, type:'mult' });
+    if (hasTrick('minute_hand') && minuteHandCharges > 0) bonusLines.push({ label:`Minute Hand (${minuteHandCharges} left)`, val:`+${BAL.minute_hand.mult} mult`, type:'mult' });
+    if (pendingHandMult > 0) bonusLines.push({ label:'Pending mult', val:`+${pendingHandMult} mult`, type:'mult' });
     const _isRunLine = ['Run of 3','Run of 4','Straight','Straight Flush'].includes(hand);
     const _setMax = (() => { const m = {}; cards.forEach(c => m[c.rank] = (m[c.rank]||0)+1); return Math.max(0, ...Object.values(m)); })();
     if (hasTrick('overgrowth') && _isRunLine) bonusLines.push({ label:'Cascade', val:`+${10*cards.length} pips`, type:'pip' });
@@ -258,11 +282,16 @@ function render() {
   // Buttons
   // Match-3 auto-plays its matches, so Play is inert there - keep it visibly
   // disabled rather than lighting up on a selection it will never submit.
-  document.getElementById('btn-play').disabled    = match3Active() || !bestHandResult || (animating && !falling);
+  document.getElementById('btn-play').disabled    = match3Active() || !bestHandResult || _belowMin || (animating && !falling);
   document.getElementById('btn-discard').disabled = selected.length === 0 || (animating && !falling);
   document.getElementById('disc-count').textContent = `(${discards})`;
   document.getElementById('swap-count').textContent  = swaps;
 
+  // Marked-row / marked-column lines. Drawn last, for the same reason
+  // reapplyClockFreeze is called here: it reads the finished DOM. Its "is the
+  // board empty" test is a DOM query, which would be a render out of date if it
+  // ran before the card loop above (js/entity-fx.js).
+  if (typeof renderLineMarkers === 'function') renderLineMarkers();
   // A card dealt in while the clock is frozen arrives untilted - put it back in
   // line with the rest of the held board (js/clock-fx.js). No-ops when running.
   if (typeof reapplyClockFreeze === 'function') reapplyClockFreeze();

@@ -1,0 +1,108 @@
+/* ══════════════════════════════════════════════
+   GOAL CLEAR PRESENTATION (r197)
+   The banner that marks the tally crossing the round goal, and the round
+   clock's cleared state. See js/goal-clear.js for why both exist.
+   ══════════════════════════════════════════════ */
+
+/* ── The banner ──
+   Body-level and fixed; JS puts left/top on the GRID's centre in raw viewport
+   px, so the translate(-50%,-50%) below is what actually centres it. Nothing
+   here may use the cabinet's units - this element lives outside #cabinet. */
+#goal-banner {
+  position: fixed;
+  z-index: 401;                 /* over the board, under #next-goal-flash (402) */
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  text-align: center;
+  white-space: nowrap;
+}
+#goal-banner.show { visibility: visible; animation: gb-hold 1.5s ease forwards; }
+@keyframes gb-hold {
+  0%   { opacity: 0; }
+  8%   { opacity: 1; }
+  74%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+#goal-banner .gb-body {
+  position: relative;
+  padding: 10px 26px 11px;
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(18,24,20,0.93), rgba(8,11,9,0.95));
+  box-shadow: 0 0 0 2px var(--c-mint, #35d59b),
+              0 0 26px 4px rgba(53,213,155,0.30),
+              0 14px 34px rgba(0,0,0,0.55);
+}
+#goal-banner.show .gb-body { animation: gb-punch 0.44s cubic-bezier(0.2,0.9,0.2,1); }
+@keyframes gb-punch {
+  0%   { transform: scale(0.72); }
+  58%  { transform: scale(1.07); }
+  100% { transform: scale(1); }
+}
+
+#goal-banner .gb-kicker {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px; letter-spacing: 5px; text-transform: uppercase;
+  color: rgba(53,213,155,0.75);
+  margin-bottom: 2px;
+}
+#goal-banner .gb-title {
+  font-family: 'Orbitron', sans-serif; font-weight: 900;
+  font-size: 26px; letter-spacing: 4px;
+  color: #eafff5;
+  text-shadow: 0 0 18px rgba(53,213,155,0.55);
+}
+#goal-banner .gb-num {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 12px; letter-spacing: 2px;
+  color: var(--c-yellow, #ffce2b);
+  margin-top: 3px;
+}
+
+/* The burst. One ring scaling out from behind the stamp - the same vocabulary
+   as the reward-grid pick, drawn rather than particled so it costs one element. */
+#goal-banner .gb-ring {
+  position: absolute; left: 50%; top: 50%;
+  width: 140px; height: 140px; margin: -70px 0 0 -70px;
+  border-radius: 50%;
+  border: 2px solid rgba(53,213,155,0.85);
+  opacity: 0;
+}
+#goal-banner.show .gb-ring { animation: gb-ring 0.85s cubic-bezier(0.15,0.75,0.25,1) forwards; }
+@keyframes gb-ring {
+  0%   { opacity: 0.9; transform: scale(0.35); border-width: 3px; }
+  100% { opacity: 0;   transform: scale(2.6);  border-width: 1px; }
+}
+
+/* Motion setting: keep the message, drop the movement. */
+body.reduced-motion #goal-banner.show .gb-body,
+body.reduced-motion #goal-banner.show .gb-ring { animation: none; }
+body.reduced-motion #goal-banner .gb-ring { display: none; }
+
+/* ── The clock, cleared ──
+   Stops reading as a live countdown the moment the goal is met: mint instead of
+   cream/red, the bar frozen at whatever is left. The number is deliberately
+   kept (Carry Time and Clock Tower bank it). */
+#clock.clock-cleared {
+  color: var(--c-mint, #35d59b) !important;
+  text-shadow: 0 0 10px rgba(53,213,155,0.45);
+  animation: none !important;
+}
+#clock-bar.clock-cleared,
+#vclock-fill.clock-cleared {
+  background: linear-gradient(90deg, #1f8d66, var(--c-mint, #35d59b)) !important;
+  transition: none !important;
+}
+#vclock.clock-cleared { box-shadow: 0 0 12px rgba(53,213,155,0.30); }
+
+/* Boss win: the kicker carries the BOSS'S NAME instead of the word ROUND, so it
+   needs room - 5px of letter-spacing on "THE QUARANTINE" is wider than the stamp.
+   Sized down and given its own colour so the line reads as a name, not a label. */
+#goal-banner.gb-boss .gb-kicker {
+  font-family: 'Orbitron', sans-serif; font-weight: 700;
+  font-size: 10px; letter-spacing: 2px;
+  color: var(--c-yellow, #ffce2b);
+  margin-bottom: 3px;
+}

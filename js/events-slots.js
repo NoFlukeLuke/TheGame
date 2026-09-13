@@ -17,7 +17,7 @@
 //               a line, about 27% over five lines. Spectrum's seven colours give
 //               1/49, which is the correct answer for a seven-colour deck rather
 //               than a number that needs re-tuning per mode.
-//   entities  - symbol = one owned Trick or Sleight, capped at SLOT_ENT_SYMBOLS
+//   entities  - symbol = one owned Trick, Knack or Sleight, capped at SLOT_ENT_SYMBOLS
 //               distinct, so P(three alike) = 1/k^2 exactly. The cap is what
 //               keeps a large loadout from making the machine unwinnable: at 12
 //               owned entities a free draw would be 1 in 144.
@@ -299,7 +299,7 @@ function confirmFloor() {
 // ══════════════════════════════════════════════
 function renderPayline() {
   const body = document.getElementById('event-body');
-  const all = (typeof upgradeableEntities === 'function') ? upgradeableEntities() : [];
+  const all = (typeof evImprovables === 'function') ? evImprovables() : [];
   if (all.length < 2) {
     body.innerHTML = evEmptyHTML('Not enough Tricks or Sleights to fill the reels. Take the fee instead.');
     eventState.paylineNone = true;
@@ -388,9 +388,10 @@ function paylineResolve(host, grid) {
   if (run && run.length >= SLOT_ENT_REELS) {
     const ent = grid[0][0];
     slotLightCells(host, run);
-    const say = upgradeEntity(ent, 1);
+    improveEntity(ent.id);
+    const t = (typeof entityTierOf === 'function') ? entityTierOf(ent.id) : 0;
     eventState.paylineWon.push(ent.name);
-    if (status) status.innerHTML = `<b>${say || ent.name + ' improved'}</b>`;
+    if (status) status.innerHTML = `<b>${ent.name} improved · tier ${t}</b>`;
     if (typeof sfxCoin === 'function') try { sfxCoin(); } catch (e) {}
   } else if (status) {
     status.innerHTML = 'No line. Spin again.';

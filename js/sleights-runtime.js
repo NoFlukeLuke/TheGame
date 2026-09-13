@@ -209,6 +209,41 @@ function getNeighborsOrtho(r, c) {
 }
 const _isOrthoAdj = (r1, c1, r2, c2) => Math.abs(r1 - r2) + Math.abs(c1 - c2) === 1;
 
+// ── Pivot (r205) ─────────────────────────────────────────────────────────────
+// Pivot works by SITTING on the grid, not by being swapped. Any card touching it
+// swaps for free; swap two of its neighbours TOGETHER and both take a permanent
+// mult buff and the Pivot leaves the board (see doSwap in js/input.js).
+//
+// Adjacency here is 8-WAY, and that is load-bearing rather than a flourish. A
+// swap moves two ORTHOGONALLY adjacent cells, and two orthogonally adjacent cells
+// have no common orthogonal neighbour at all - they sit on opposite colours of the
+// board's checkerboard, and every orthogonal neighbour of a cell is the other
+// colour. So under orthogonal-only adjacency "one Pivot touching both ends of the
+// swap" could never fire once, and the payout would be dead on arrival.
+const _isTouching = (r1, c1, r2, c2) =>
+  !(r1 === r2 && c1 === c2) && Math.abs(r1 - r2) <= 1 && Math.abs(c1 - c2) <= 1;
+
+// Every Pivot with charges left that touches (r,c).
+function livePivotsTouching(r, c) {
+  const out = [];
+  for (let pr = 0; pr < gridRows; pr++) for (let pc = 0; pc < gridCols; pc++) {
+    const card = gridData[pr]?.[pc];
+    if (!card?._isSleight || card.sleightId !== 'pivot') continue;
+    if (card._usesLeft !== 'infinite' && !(card._usesLeft > 0)) continue;
+    if (_isTouching(pr, pc, r, c)) out.push([pr, pc]);
+  }
+  return out;
+}
+// Does either end of this swap touch a live Pivot? (That is what makes it free.)
+function swapTouchesLivePivot(r1, c1, r2, c2) {
+  return livePivotsTouching(r1, c1).length > 0 || livePivotsTouching(r2, c2).length > 0;
+}
+// The one Pivot touching BOTH ends - the one that pays the buff and then leaves.
+// Null when the swap only brushed past a Pivot: no bonus, and no discard either.
+function pivotForSwap(r1, c1, r2, c2) {
+  return livePivotsTouching(r1, c1).find(([pr, pc]) => _isTouching(pr, pc, r2, c2)) || null;
+}
+
 // ── Whetstone: sharpens on nearby churn ──────────────────────────────────────
 // Every adjacent card swapped or discarded adds +1 mult, banked on the card itself
 // (_whetMult) so it survives deck cycling. `cells` = the cells just swapped/discarded.
@@ -302,8 +337,13 @@ function juryRigRoll(cells) {
     seen.add(card._id); targets.push(card);
   }));
   targets.forEach(card => {
-    if (Math.random() >= BAL.jury_rig.chance) return;
-    if (restoreSleightCharge(card)) showMessage(`🔧 Jury-Rig - ${sleightDef(card)?.name || 'Sleight'} +1 charge`, '#6aaa6a');
+    // COUNTABLE: past 100% it restores several charges at once. restoreSleightCharge
+    // never exceeds the printed durability, so the cap is already enforced there.
+    const _jrN = luckRoll(BAL.jury_rig.chance);
+    if (_jrN <= 0) return;
+    let _got = 0;
+    for (let i = 0; i < _jrN * BAL.jury_rig.charges; i++) if (restoreSleightCharge(card)) _got++;
+    if (_got) showMessage(`🔧 Jury-Rig - ${sleightDef(card)?.name || 'Sleight'} +${_got} charge${_got > 1 ? 's' : ''}`, '#6aaa6a');
   });
 }
 
@@ -458,9 +498,17 @@ function magnetCluster(mr, mc, rank) {
 }
 
 function applySleightGridEffect(id, r, c) {
+  // Suspension (reward-grid penalty) switches one owned entity off for the first
+  // half of a round. Checked here rather than at each activation site because
+  // every activation-driven sleight passes through this one function.
+  if (typeof entitySuspended === 'function' && entitySuspended('sleight', id)) {
+    showMessage(`${id} is suspended this round`, 'var(--red)');
+    return;
+  }
   switch (id) {
     case 'power_cell':
-      addFocus(5); showMessage('Power Cell! +5 Focus', '#a25cd8'); break;
+      addFocus(BAL.power_cell.focus_on_enter);
+      showMessage(`Power Cell! +${BAL.power_cell.focus_on_enter} Focus`, '#a25cd8'); break;
     case 'good_friend':
       getNeighborsAll(r, c).forEach(([nr, nc]) => exaltCard(nr, nc));
       showMessage('The Good Friend exalts neighbors!', '#ffd700'); render(); break;
@@ -478,8 +526,10 @@ function applySleightGridEffect(id, r, c) {
       reshuffleGrid();
       showMessage('Dazed & Confused - grid reshuffled!', '#cc88ff'); break;
     case 'pivot':
-      // Free swap + buff are applied inline in doSwap; this just announces.
-      showMessage('Pivot! Free swap + cards buffed', 'var(--gold)'); break;
+      // Unreachable since r205: Pivot is `passive` now (it works by sitting on the
+      // grid), so fireSleightsOnSwap never dispatches it. The whole effect - the
+      // free swap, the buff and the discard - is inline in doSwap.
+      break;
     case 'idol':
       // handled in interest calc (round_end); no immediate effect
       break;
@@ -506,7 +556,7 @@ function applySleightGridEffect(id, r, c) {
       sleightLegacyMult = true;
       showMessage('📜 Legacy - next hand ×3!', '#ffd700'); break;
     case 'cash_out':
-      coins += BAL.cash_out.coins; updateCoinsUI();
+      grantEntityCoins(BAL.cash_out.coins, 'sleight', 'cash_out');
       showMessage('💰 Cash Out - +10 credits!', 'var(--gold)'); break;
     case 'the_wanderer':
       swaps = Math.min(99, swaps + BAL.the_wanderer.swaps); render();
@@ -534,7 +584,7 @@ function applySleightGridEffect(id, r, c) {
       break;
     }
     case 'piggy_bank':
-      coins += BAL.piggy_bank.coins; updateCoinsUI();
+      grantEntityCoins(BAL.piggy_bank.coins, 'sleight', 'piggy_bank');
       showMessage('🐷 Piggy Bank - +5 credits!', 'var(--gold)'); break;
     default:
       showMessage(`${SLEIGHT_POOL.find(j=>j.id===id)?.name||'Sleight'} activated!`, '#cc88ff'); break;
@@ -623,16 +673,15 @@ function showCardTooltip(r, c) {
   const xp = permXPips[k]  || 1;
   const xm = permXMult[k]  || 1;
   const re = permRetrig[k] || 0;
-  if (!pp && !pm && xp <= 1 && xm <= 1 && !re && !card._exalted && !card._corrupted) return;
+  const gp = permPipsGrow[k] || 0, gm = permMultGrow[k] || 0;
+  if (!pp && !pm && !gp && !gm && xp <= 1 && xm <= 1 && !re && !card._exalted && !card._corrupted) return;
   const gridEl  = document.getElementById('grid');
   const cardEl  = gridEl?.querySelector(`[data-card-id="${card._id}"]`);
   if (!cardEl) return;
-  const lines = [];
-  if (pp)     lines.push(`+${pp} pips`);
-  if (pm)     lines.push(`+${pm} mult`);
-  if (xp > 1) lines.push(`×${xp} pip score`);
-  if (xm > 1) lines.push(`×${xm} mult`);
-  if (re)     lines.push(`+${re} replay`);
+  // One shared wording for every card buff, flat and scaling alike
+  // (cardBuffLines in js/deck-grid.js) - so the tooltip cannot say something
+  // different from the tile that granted it.
+  const lines = cardBuffLines(k);
   if (card._exalted)   lines.push('Exalted');
   if (card._corrupted) lines.push('Corrupted');
   const tip = document.createElement('div');

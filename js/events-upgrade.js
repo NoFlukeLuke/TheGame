@@ -1,11 +1,38 @@
 // ══════════════════════════════════════════════
-// UPGRADE EVENTS (r197) - The Reassignment · The Draw
+// UPGRADE EVENTS (r218) - Trade a Trick · Spin to Improve
 // ══════════════════════════════════════════════
-// Both run on the seam in js/entity-upgrade.js rather than knowing anything
-// about individual entities. Registered in the four places js/events-core.js
-// requires (pool, handlers, EVENT_META, renderers).
+// Registered in the four places js/events-core.js requires (pool, handlers,
+// EVENT_META, renderers).
+//
+// "Spin to Improve" rides **js/improve.js** (r206) and knows nothing about any
+// individual entity: `ownedImprovable(type)` lists what can still be improved,
+// `improvePreview(id)` says what one more step would read as, and
+// `improveEntity(id)` applies it. That is also why Knacks are on the wheel here
+// - improve.js recomputes BAL in place, so a Knack improves like anything else.
 
 const EV_TIER_ORDER = ['common', 'rare', 'epic', 'legendary', 'mythic'];
+
+// Everything the run owns that improve.js can still improve, across all three
+// types, in the shape the wheel draws. Emoji is looked up per type because the
+// pools spell it differently (a Trick's comes from trickEmoji).
+const EV_KIND_ICON = { trick: '✦', knack: '♦', sleight: '▶' };
+function evImprovables() {
+  if (typeof ownedImprovable !== 'function') return [];
+  const out = [];
+  ['trick', 'knack', 'sleight'].forEach(kind => {
+    ownedImprovable(kind).forEach(e => {
+      const def = (kind === 'trick'   ? TRICK_POOL
+                 : kind === 'knack'   ? KNACK_POOL
+                 :                      SLEIGHT_POOL).find(x => x.id === e.id);
+      out.push({
+        kind, id: e.id, name: e.name, rarity: e.rarity,
+        emoji: (kind === 'trick' && typeof trickEmoji === 'function' && def) ? trickEmoji(def)
+             : (def && def.emoji) || EV_KIND_ICON[kind],
+      });
+    });
+  });
+  return out;
+}
 
 // Shared draw: a random entity of `kind` at `minTier` or better that the run does
 // not already hold. Falls back DOWN the tier ladder rather than returning nothing,
@@ -137,7 +164,7 @@ const DRAW_PICKS = 3;
 
 function renderDraw() {
   const body = document.getElementById('event-body');
-  const ents = upgradeableEntities();
+  const ents = evImprovables();
   if (ents.length < 2) {
     body.innerHTML = evEmptyHTML('Not enough Tricks or Sleights to draw between. Take the fee instead.');
     eventState.drawNone = true;
@@ -159,12 +186,15 @@ function renderDraw() {
   };
 
   ents.forEach(ent => {
-    const lvl = entityUpgradeLabel(ent);
+    // improve.js rewrites the entity's printed desc from BAL, so the preview is
+    // the real sentence the player will read afterwards, not a generic promise.
+    const tier = (typeof entityTierOf === 'function') ? entityTierOf(ent.id) : 0;
+    const prev = (typeof improvePreview === 'function') ? improvePreview(ent.id) : null;
     const el = makeChoiceEl({
       icon: ent.emoji, rarity: ent.rarity,
-      name: ent.name + (lvl ? ` · ${lvl}` : ''),
-      desc: entityUpgradeHint(ent),
-      cost: ent.kind === 'trick' ? 'TRICK' : 'SLEIGHT',
+      name: ent.name + (tier ? ` · improved ×${tier}` : ''),
+      desc: prev && prev.after !== prev.before ? prev.after : (prev ? prev.before : ''),
+      cost: ent.kind.toUpperCase(),
       onClick: () => {
         if (eventState.drawDone) return;
         const at = eventState.drawPicked.indexOf(ent);
@@ -195,8 +225,11 @@ function confirmDraw() {
 
   const winner = picks[Math.floor(Math.random() * picks.length)];
   spinDrawWheel(picks, winner, () => {
-    const say = upgradeEntity(winner, BAL.the_draw.steps);
-    showMessage(say || `${winner.name} improved`, 'var(--gold)');
+    // BAL.the_draw.steps improvements, applied one tier at a time - improveEntity
+    // is the single step, and it refuses past IMPROVE_MAX_TIER on its own.
+    for (let i = 0; i < BAL.the_draw.steps; i++) improveEntity(winner.id);
+    const t = (typeof entityTierOf === 'function') ? entityTierOf(winner.id) : 0;
+    showMessage(`${winner.name} improved · tier ${t}`, 'var(--gold)');
     const btn = document.getElementById('event-confirm');
     if (btn) { btn.textContent = 'TAKE IT'; btn.disabled = false; }
   });

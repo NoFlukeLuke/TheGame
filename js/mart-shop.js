@@ -47,9 +47,16 @@ function martCartTotals(cart) {
 
 // ── rarity-weighted picking (same odds as sleights), duplicates ALLOWED ──
 const MART_PER_SHELF = 3;    // owner's spec: 3 Tricks, 3 Knacks, 3 Sleights (Limits matches)
-const MART_TIERS   = ['common','rare','epic','legendary','mythic'];
-const MART_WEIGHTS = [59,28,10,2,1];
-function martRollTier() { const r = Math.random()*100; let c=0; for (let i=0;i<MART_WEIGHTS.length;i++){ c+=MART_WEIGHTS[i]; if (r<c) return MART_TIERS[i]; } return 'common'; }
+const MART_TIERS   = ENTITY_TIERS;      // js/data/balance.js - one table for every offer path
+// Read through a function, not captured at load: Luck changes mid-run, and a
+// const snapshot taken when the file parsed would pin the Mart to luck 0 forever.
+function martWeights() { return luckTierWeights(ENTITY_TIER_W); }
+function martRollTier() {
+  const w = martWeights(), total = w.reduce((a, b) => a + b, 0);
+  let r = Math.random() * total;
+  for (let i = 0; i < w.length; i++) { r -= w[i]; if (r < 0) return MART_TIERS[i]; }
+  return 'common';
+}
 function martPick(pool, tierKey, count) {
   const out = []; if (!pool || !pool.length) return out;
   for (let n=0; n<count; n++) {
@@ -200,6 +207,9 @@ function closeMart() {
         survivalShopFromPick = false;
         gameTimerPaused = true;
         if (typeof survivalUpdateRerollBtn === 'function') survivalUpdateRerollBtn();
+        // The pick is the thing covering the board again, so put the mix back
+        // behind glass (js/survival.js, survivalSyncPickAudio).
+        if (typeof survivalSyncPickAudio === 'function') survivalSyncPickAudio();
       } else {
         // Mid-round visit: triggerShop() nulled the round interval, so restart it
         // (closeMart only unpauses the flag).

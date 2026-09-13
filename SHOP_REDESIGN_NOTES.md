@@ -7,6 +7,17 @@ explanations plain.
 
 ---
 
+## ⭐ SUPERSEDED - see REDESIGN_SPEC.md
+
+The shop direction below is the r127-r142 Mart. **It has been superseded.** The
+agreed plan is now in **`REDESIGN_SPEC.md`**: the shop becomes a grid-takeover
+screen like the reward grid, the Mart overlay is deleted, the bundle discount
+and Bulk Buyer are removed, and buying is one item at a time with a PURCHASE
+button in the Play slot. Read that file first; this one is history and the
+backlog it lists is still worth mining.
+
+---
+
 ## ⭐ Current direction (owner call, latest)
 
 ### 1. The shop should go BACK OFF the grid

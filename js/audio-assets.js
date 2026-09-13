@@ -32,6 +32,9 @@ const SFX_CATALOG = [
   { id: 'flip_shuffle',  fn: 'sfxFlipShuffle',     group: 'Board',   label: 'Cards fly to preview',
     note: 'The riffle that plays as a hand leaves the board.' },
   { id: 'no_swaps',      fn: 'sfxNoSwaps',         group: 'Board',   label: 'Action refused' },
+  { id: 'card_discard',  fn: 'sfxCardDiscard',     group: 'Board',   label: 'Cards discarded' },
+  { id: 'card_discard_forced', fn: 'sfxCardDiscard', group: 'Board', label: 'Discard forced on you', args: [true], variantOf: 'card_discard',
+    note: 'The Marker boss taking a marked card out of a hand you played.' },
 
   // Scoring
   { id: 'particle_pip',  fn: 'sfxParticleStep',    group: 'Scoring', label: 'Pip particle',    args: ['pip'] },

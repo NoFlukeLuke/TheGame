@@ -24,8 +24,26 @@ function renderCardAppearance(card, r, c, {
     const usesStr = def?.activation === 'adjacent'
       ? `${card._adjPlays || 0}/${def.adjacentPlays || 2}`
       : (card._usesLeft === 'infinite' ? '∞' : card._usesLeft);
+    // An AIM sleight (Reflect / Soul Mirror) is drawn tilted with a direction arrow,
+    // and a spent one is greyed. Both used to live ONLY in render()'s own sleight
+    // branch, so a sleight animating - falling, dealt in, or shown in the hand preview -
+    // came out as a plain tile: the aim arrow and the tilt vanished for the length of
+    // the fall and snapped back when it landed. Same markup on both paths now.
+    if (AIM_SLEIGHTS.has(def?.id)) {
+      const dir = card._aimDir || (card._aimDir = 'up');
+      return {
+        className: `trick-card sleight-card aim-sleight${sleightIsSpent(card, def) ? ' sleight-spent' : ''}`,
+        innerHTML:
+          `<div class="sleight-aim-inner" style="transform:perspective(360px) ${AIM_TILT[dir]}">` +
+            `<div class="sleight-card-emoji">${def?.emoji || '🪞'}</div>` +
+            `<div class="sleight-card-name">${def?.name || 'Sleight'}</div>` +
+          `</div>` +
+          `<div class="aim-arrow aim-${dir}">${AIM_ARROW[dir]}</div>`,
+      };
+    }
     return {
-      className: `trick-card sleight-card${sleightRarityClass(def)}${isSwapPending ? ' swap-pending' : ''}`,
+      className: `trick-card sleight-card${sleightRarityClass(def)}${isSwapPending ? ' swap-pending' : ''}`
+               + (sleightIsSpent(card, def) ? ' sleight-spent' : ''),
       innerHTML: sleightFaceHTML(card, def, usesStr),
     };
   }
@@ -56,7 +74,19 @@ function renderCardAppearance(card, r, c, {
   const k   = cardId(card);
   const pp  = permPips[k] || 0;
   const pm  = permMult[k] || 0;
+  // Scaling buffs (r209): NOT scored - they raise pp/pm by this much per play.
+  // Shown as their own marker so a card that grows is distinguishable at a glance
+  // from a card with a big fixed bonus, which is the whole point of the split.
+  const gp  = permPipsGrow[k] || 0;
+  const gm  = permMultGrow[k] || 0;
+  // Resolve the curse's DEFINITION here, not inline in the template. A saved run
+  // outlives deploys (main auto-deploys to Pages on every commit), so a save can
+  // name a curse id this build no longer has - and an unguarded CURSE_DEFS[id].name
+  // threw right here, inside render(), which aborted resumeSavedRun() before it
+  // started the round clock and left the player on a dead half-drawn board.
+  // An unknown curse now simply draws no badge.
   const curse = cardCurses[k];
+  const curseDef = curse ? CURSE_DEFS[curse.id] : null;
   const hasPip = pp > 0, hasMult = pm > 0;
   const isCombined = !!card.combined;
   const isTrick = trickCardPos && trickCardPos[0] === r && trickCardPos[1] === c;
@@ -67,6 +97,21 @@ function renderCardAppearance(card, r, c, {
   const rcLeyline   = leyLinePos && leyLinePos.r === r && leyLinePos.c === c ? ' rc-leyline' : '';
   const rcJeopardy  = doubleJeopardyPos && doubleJeopardyPos.r === r && doubleJeopardyPos.c === c ? ' rc-jeopardy' : '';
   const rcWoodpecker = woodpeckerPos && woodpeckerPos.r === r && woodpeckerPos.c === c ? ' rc-woodpecker' : '';
+  // r209: the shared "what affected what" marks (js/entity-fx.js). `rcOnLine`
+  // is the piece that was missing - only 3 of the 9 line-marking Tricks tinted
+  // their cards, so Perfect Timing, Right Time, Study Hall, Groove, Assembly
+  // Line and Overtime marked a line the player could not see. One ring, in the
+  // owning Trick's colour, covers all nine.
+  const _lineMeta   = (typeof cellOnMarkedLine === 'function') ? cellOnMarkedLine(r, c) : null;
+  const rcOnLine    = _lineMeta ? ' rc-on-line' : '';
+  // The ring is an inner element rather than a class + a CSS variable, because
+  // renderCardAppearance returns className and innerHTML only - it has nowhere
+  // to hang a per-card custom property.
+  const lineRing    = _lineMeta
+    ? `<div class="rc-line-ring" style="--rcl:${_lineMeta.color}" title="${_lineMeta.name}"></div>` : '';
+  const fxMark      = (typeof cardMarkHTML === 'function') ? cardMarkHTML(r, c) : '';
+  // A boss hold greys the card and puts its countdown on it (js/cooldown.js).
+  const _cd = (typeof cardCooldownParts === 'function') ? cardCooldownParts(card, r, c) : { cls: '', html: '' };
 
   const bothClass = hasPip && hasMult ? ' has-both' : hasPip ? ' has-pip' : hasMult ? ' has-mult' : '';
   // Spectrum (numeric) cards: the whole face is the colour and the value sits
@@ -90,6 +135,8 @@ function renderCardAppearance(card, r, c, {
     curse ? 'cursed' : '',
     bothClass.trim(),
     rcPips.trim(), rcMult.trim(), rcRetrigger.trim(), rcLeyline.trim(), rcJeopardy.trim(), rcWoodpecker.trim(),
+    rcOnLine.trim(), _cd.cls,
+    (gp || gm) ? 'card-scaling' : '',
   ].filter(Boolean).join(' ');
 
   const combinedLabel = isCombined
@@ -99,7 +146,7 @@ function renderCardAppearance(card, r, c, {
   const innerHTML = `
     ${isSel ? `<div class="sel-num">${selIdx + 1}</div>` : ''}
     ${isTrick ? `<div class="trick-star">⭐</div>` : ''}
-    ${curse ? `<div class="curse-badge" title="${CURSE_DEFS[curse.id].name}: ${CURSE_DEFS[curse.id].desc}">${CURSE_DEFS[curse.id].icon}<span class="curse-left">${curse.left}</span></div>` : ''}
+    ${curseDef ? `<div class="curse-badge" title="${curseDef.name}: ${curseDef.desc}">${curseDef.icon}<span class="curse-left">${curse.left}</span></div>` : ''}
     ${combinedLabel}
     ${isNum ? `<div class="rank num-rank${String(card.rank).length > 1 ? ' num-wide' : ''}">${card.rank}</div>`
             : `<div class="rank">${card.rank}</div><div class="suit">${card.suit}</div>`}
@@ -108,6 +155,10 @@ function renderCardAppearance(card, r, c, {
     ${buffBandHTML('tl', pp, '#3a6fca')}
     ${buffBandHTML('tr', pm, '#c0392b')}
     ${buffBandHTML('br', card._vulturePause || 0, '#111')}
+    ${(gp || gm) ? `<div class="card-grow-mark" title="Scales +${gp ? gp + ' pips' : ''}${gp && gm ? ' and +' : ''}${gm ? gm + ' mult' : ''} each time it's played">\u2197</div>` : ''}
+    ${lineRing}
+    ${fxMark}
+    ${_cd.html}
   `;
 
   return { className, innerHTML };
