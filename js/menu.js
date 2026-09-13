@@ -1,4 +1,4 @@
-const BUILD = '2026-09-05 · r196 · card identity: buffs, curses and services target one card, not every card sharing its face [onto r195]';
+const BUILD = '2026-09-13 · r197 · scoring animates per trigger: every Trick pays out at its own moment, x mult shows as x, toasts you can read [onto r196]';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
