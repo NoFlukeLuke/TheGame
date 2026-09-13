@@ -85,20 +85,9 @@ function pickTrickOptions(n) {
   // Don't offer already acquired bonuses (except stackable ones)
   const stackableIds = ['rich_soil','fertile_ground','rowcol_triple_pips','rowcol_mult','rowcol_retrigger','rowcol_perm_double'];
   const filtered = pool.filter(b => !acquiredTricks.some(a => a.id === b.id && !stackableIds.includes(b.id)));
-  const shuffled = shuffle(filtered);
-  // Weight: common 9×, rare 3×, legendary 1× 
-  const TIER_WEIGHT = { common: 9, rare: 3, legendary: 1 };
-  const weighted = [];
-  shuffled.forEach(b => {
-    const w = TIER_WEIGHT[b.tier] || 1;
-    for (let i = 0; i < w; i++) weighted.push(b);
-  });
-  const picked = [];
-  const seen = new Set();
-  for (const b of shuffle(weighted)) {
-    if (!seen.has(b.id)) { picked.push(b); seen.add(b.id); }
-    if (picked.length >= n) break;
-  }
+  // r201: this held a THREE-tier bag written before `epic` existed, so epic fell
+  // through to weight 1 and carried the same per-entity odds as legendary.
+  const picked = pickManyByRarity(filtered, n, { key: 'tier' });
   return picked;
 }
 

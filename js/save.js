@@ -49,6 +49,7 @@ function _saveWrite(name, v) {
 // dealPhase, focusAnimQueue…). Those are meaningless at a round boundary and
 // startGame() has already set them correctly.
 const SAVE_VARS = [
+  'runLuck',
   // ── Run progression ──
   'level', 'score', 'totalScore', 'roundGoal', 'coins', 'leaves', 'handsPlayed',
   'actNumber', 'nodeInAct', 'rewardGridsSeen', 'forceBossNextRound', 'shopFromNodeFlow',

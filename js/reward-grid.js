@@ -173,10 +173,12 @@ function _generateRewardContent() {
     let eligible = TRICK_POOL.filter(b => !owned.has(b.id) && !offerBanned(b.id));
     // Prize grid takes no commons. Fall back to the full list if filtering would
     // leave nothing - an empty tile is worse than a common one.
-    if (PRIZE) { const up = eligible.filter(b => (b.tier || 'common') !== 'common'); if (up.length) eligible = up; }
     if (eligible.length === 0) return { icon: '★', label: 'Trick', tier: 'rare', entity: 'trick', rarity: 'rare', apply: applyRewardRandomTrick };
     eligible = freshPool(eligible);
-    const pick = eligible[Math.floor(Math.random() * eligible.length)];
+    // r201: was a flat pick, so the POOL COMPOSITION was the drop rate. The
+    // prize grid no longer strips commons - its own table gives common a real
+    // 30% share, and filtering them out would make that number a lie.
+    const pick = pickByRarity(eligible, { key: 'tier', weights: PRIZE ? PRIZE_RARITY_WEIGHTS : RARITY_WEIGHTS });
     _usedThisGrid.add(pick.id);
     return {
       icon: '★', label: pick.name, desc: pick.desc, tier: pick.tier || 'rare',
@@ -185,17 +187,13 @@ function _generateRewardContent() {
     };
   }
 
-  // Prize-grid sleight draw: the shop's rarity table with 'common' cut out of it.
+  // Prize-grid sleight draw. r201: the prize grid's own top-heavy table
+  // (30/50/15/5) through the shared picker, commons included - it used to run a
+  // private 3-tier table with commons filtered out of the pool.
   function pickPrizeSleight() {
-    const TIERS = ['rare', 'epic', 'legendary'];
-    const W     = [57, 30, 13];
-    const pool = freshPool(SLEIGHT_POOL.filter(j => !grantedSleightIds.has(j.id) && sleightOfferable(j) && !offerBanned(j.id) && (j.rarity || 'common') !== 'common'));
+    const pool = freshPool(SLEIGHT_POOL.filter(j => !grantedSleightIds.has(j.id) && sleightOfferable(j) && !offerBanned(j.id)));
     if (!pool.length) return null;
-    const total = W.reduce((a, b) => a + b, 0);
-    let roll = Math.random() * total, ti = 0;
-    for (let i = 0; i < W.length; i++) { roll -= W[i]; if (roll <= 0) { ti = i; break; } }
-    for (let i = ti; i >= 0; i--) { const t = pool.filter(j => j.rarity === TIERS[i]); if (t.length) return t[Math.floor(Math.random() * t.length)]; }
-    return pool[Math.floor(Math.random() * pool.length)];
+    return pickByRarity(pool, { weights: PRIZE_RARITY_WEIGHTS });
   }
 
   function makeSleightPayload() {
@@ -222,10 +220,9 @@ function _generateRewardContent() {
     if (typeof KNACK_POOL === 'undefined') return { icon: '♛', label: 'Knack', tier: 'rare', entity: 'knack', rarity: 'rare', apply: applyRewardKnack };
     const owned = new Set((acquiredKnacks || []).map(t => t.id));
     let eligible = KNACK_POOL.filter(t => !owned.has(t.id) && !offerBanned(t.id));
-    if (PRIZE) { const up = eligible.filter(t => (t.rarity || 'common') !== 'common'); if (up.length) eligible = up; }
     if (!eligible.length) return makeTrickPayload(); // fallback - all knacks owned
     eligible = freshPool(eligible);
-    const pick = eligible[Math.floor(Math.random() * eligible.length)];
+    const pick = pickByRarity(eligible, { weights: PRIZE ? PRIZE_RARITY_WEIGHTS : RARITY_WEIGHTS });
     _usedThisGrid.add(pick.id);
     return {
       icon: pick.emoji, emoji: pick.emoji, label: pick.name, desc: pick.desc,
@@ -548,7 +545,7 @@ function applyRewardRandomTrick() {
   const owned = new Set((acquiredTricks || []).map(b => b.id));
   const eligible = TRICK_POOL.filter(b => !owned.has(b.id));
   if (eligible.length === 0) return;
-  const pick = eligible[Math.floor(Math.random() * eligible.length)];
+  const pick = pickByRarity(eligible, { key: 'tier' });
   injectTrickAfterReward(pick);
 }
 function applyRewardLoseTrick() {
@@ -716,7 +713,7 @@ function applyRewardKnack() {
   const owned = new Set((acquiredKnacks || []).map(t => t.id));
   const eligible = KNACK_POOL.filter(t => !owned.has(t.id));
   if (eligible.length === 0) return;
-  const pick = eligible[Math.floor(Math.random() * eligible.length)];
+  const pick = pickByRarity(eligible);
   acquiredKnacks.push({ ...pick });
   updateKnackList?.();   // refresh the HUD + apply limit-setting knacks (Tempo)
   showMessage(`+ ${pick.name}`, 'var(--gold)');

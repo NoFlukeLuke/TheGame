@@ -188,7 +188,9 @@ function survivalMakeOption(type, data) {
 function survivalDrawOne(type, pools, used) {
   const avail = pools[type].filter(d => !used[type].has(d.id));
   if (!avail.length) return null;
-  const data = avail[Math.floor(Math.random() * avail.length)];
+  // r201: SURVIVAL_PICK_WEIGHTS only ever chose the TYPE. Which ENTITY came out
+  // was a flat pick, so the pick-of-three ignored rarity entirely.
+  const data = pickByRarity(avail, { key: type === 'trick' ? 'tier' : 'rarity' }) || avail[0];
   used[type].add(data.id);
   return survivalMakeOption(type, data);
 }

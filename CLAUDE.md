@@ -1035,6 +1035,65 @@ the only file that spells a tier word out.
   ~1% of rolls, which fell through to an untiered random pick. If you change the
   tier count, grep for every weight array, not just the tier arrays.
 
+## Rarity rolls and LUCK (r201) - `js/rarity.js`
+
+**Every offer's tier is decided in one place.** Before r201 there were three live
+distributions and most of the game used none of them (measured, 200k draws):
+
+| path | common | rare | epic | legendary |
+|---|---|---|---|---|
+| weight table - Mart, shop Sleights | 58% | 28% | 11% | 3% |
+| **UNIFORM** - reward-grid Tricks, shop Tricks, the pick-of-three | 28% | 38% | 28% | 7% |
+| a stale 3-tier bag - `pickTrickOptions` | 63% | 28% | 7% | 2% |
+
+The uniform paths had **no weighting at all** (`pool[random * pool.length]`), so
+the **pool composition was the drop rate**. The Trick pool is 49/66/50/12, which
+is why "common" was rarer than "rare", epic was as likely as common, and a run
+saw **~2.0 Deluxe Utilities against 0.54 Partner Vendors** for the same tier.
+
+- **`pickByRarity(pool, {key, weights})` is the chokepoint.** It rolls a tier,
+  then picks uniformly inside it. `key` is `'tier'` for Tricks and `'rarity'`
+  for everything else - the two data pools disagree and always have, and that
+  belongs in one function rather than at every call site.
+- **The cascade steps DOWN first, then up.** A filtered pool (owned Tricks gone,
+  a mode ban, a small top tier) often has nothing at the rolled tier. Stepping up
+  would hand out something rarer than the roll said.
+- **`RARITY_WEIGHTS` = 58/28/11/3** everywhere; **`PRIZE_RARITY_WEIGHTS` =
+  30/50/15/5** for the post-boss prize grid.
+- **The prize grid no longer strips commons.** Its table gives common a real 30%
+  share, and the old `!== 'common'` pool filters would have made that a lie -
+  every common roll would have cascaded into rare. `prizeCategories` still omits
+  the common RESOURCE tiles and Mystery; that is about tile type, not rarity.
+- **Measured end to end** over real generated screens: reward grid 57.8/27.3/12.0/2.8,
+  shop 57.0/28.4/11.4/3.1, prize grid 28.5/56.8/10.3/4.4. The prize grid's rare
+  runs a little hot because only 3 Vendors and 9 Utilities exist at the top two
+  tiers, so later draws on one grid cascade down. That is the cascade working,
+  not a bug - the fix is more top-tier content, not a different table.
+
+### LUCK
+
+`runLuck` (0 by default, per run, in `SAVE_VARS`) tilts **every** roll, which is
+the real reason the chokepoint exists: luck reaches new offer paths by
+construction instead of by remembering to add it in N places.
+
+The shape is a **geometric tilt** - each tier above common is multiplied by
+`(1 + LUCK_TILT*luck)` once more than the tier below, then renormalised. That is
+the right shape because it is monotonic (more luck never makes a better tier less
+likely), it cannot produce a negative weight the way a flat subtraction can, and
+it scales the TOP tier hardest, which is what a player means by lucky.
+
+| luck | common | rare | epic | legendary |
+|---|---|---|---|---|
+| 0 | 58% | 28% | 11% | 3% |
+| 3 | 36% | 32% | 22% | 10% |
+| 8 | 18% | 26% | 31% | 25% |
+
+**Nothing grants luck yet.** The plumbing, the save slot and a dev tuner
+(dev panel -> Score -> Luck) are in; what raises it is a content decision.
+
+**A new offer path must call `pickByRarity`.** A flat `pool[random]` silently
+opts out of both the spread and luck, which is exactly how this happened.
+
 ## Two vocabularies (r198) - `js/labels.js`
 
 The game speaks either **corporate** (WORK / SKILL / OUTPUT / QUOTA, Utilities /

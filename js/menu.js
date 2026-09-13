@@ -1,4 +1,4 @@
-const BUILD = '2026-09-10 · r200 · Sleights are Vendors, not Hires: a business card from the rolodex, Trial / Contract / Retainer / Partner';
+const BUILD = '2026-09-13 · r201 · one rarity chokepoint (js/rarity.js): every offer path weighted, prize grid 30/50/15/5, luck wired everywhere';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

@@ -215,8 +215,11 @@ function buildDoorPrize(tier) {
     if (tp.length>0) { const p=tp[Math.floor(Math.random()*tp.length)]; return { icon:p.emoji, name:p.name, desc:p.desc, cls:'revealed-good', apply:()=>{acquiredKnacks.push({...p});updateKnackList?.();showMessage(`+ ${p.name}`,'var(--gold)');} }; }
   }
   if (tier === 'good') {
+    // r201: two tiers in one pool, so this one is weighted (and luck reaches it).
+    // The legendary / nextRarity pools above are narrowed to a SINGLE tier by the
+    // event's own design, where weighting would be a no-op - left flat on purpose.
     const pool = TRICK_POOL.filter(b=>!ownedTrick.has(b.id) && (b.tier==='rare'||b.tier==='common'));
-    if (pool.length>0) { const p=pool[Math.floor(Math.random()*pool.length)]; return { icon:'★', name:p.name, desc:p.desc, cls:'revealed-good', apply:()=>injectTrickAfterReward(p) }; }
+    if (pool.length>0) { const p=pickByRarity(pool,{key:'tier'}); return { icon:'★', name:p.name, desc:p.desc, cls:'revealed-good', apply:()=>injectTrickAfterReward(p) }; }
   }
   if (tier === 'bad') {
     const bads = [

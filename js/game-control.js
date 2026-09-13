@@ -301,6 +301,7 @@ function startGame() {
   growthSpurtCapPenalty = 0;      // reset Growth Spurt's eroded Focus ceiling
   growthSpurtMaxedThisRound = false;
   siphonMultX = 1;               // clear any pending Siphon charge
+  runLuck = 0;                   // r201: luck is per-run (js/rarity.js)
   // Flow runs a short 20-node Focus bar (decay is that mode's only pressure); every
   // other mode takes the Focus Cap limit as before. See flowFocusCapBase().
   focusCapBase = (typeof flowFocusCapBase === 'function')

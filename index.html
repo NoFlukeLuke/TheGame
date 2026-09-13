@@ -107,6 +107,18 @@
 
   <!-- SCORE -->
   <div class="dev-section" data-group="score">
+    <div class="dev-section-title">Luck</div>
+    <div class="dev-hint">Tilts EVERY rarity roll toward the top tier - shops, the Mart, reward and
+      prize grids, the pick-of-three, the wheel and event grants. 0 is the shipped balance.</div>
+    <div class="dev-row">
+      <button class="dev-btn" onclick="devSetLuck(runLuck - 1)">-1</button>
+      <span id="dev-luck-val" class="dev-val">0</span>
+      <button class="dev-btn" onclick="devSetLuck(runLuck + 1)">+1</button>
+      <button class="dev-btn" onclick="devSetLuck(0)">reset</button>
+    </div>
+    <div id="dev-luck-preview" class="dev-hint"></div>
+  </div>
+  <div class="dev-section" data-group="score">
     <div class="dev-section-title">Score</div>
     <div class="dev-row">
       <button class="dev-btn" onclick="devAddScore(100)">+100</button>
@@ -1052,6 +1064,7 @@
 
 <script src="js/storage.js"></script>
 <script src="js/labels.js"></script>
+<script src="js/rarity.js"></script>
 <script src="js/camera.js"></script>
 <script src="js/seed.js"></script>
 <script src="js/menu.js"></script>
