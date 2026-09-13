@@ -515,6 +515,7 @@ function startGame() {
   forceBossNextRound = false;
   shopFromNodeFlow = false;
   nodeFlowAfterShop = null;
+  if (typeof guidedResetRun === 'function') guidedResetRun();  // Guided's slot counter + event offers
   recentEventIds = [];
   sleightCapBonus = {};   // Workshop's raised charge ceilings are per run
   // Improvement tiers are per run. resetEntityTiers() also rewrites BAL back to

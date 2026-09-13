@@ -55,6 +55,10 @@ const SAVE_VARS = [
   'deadCells', 'riderTrickId', 'interestFreezeRounds', 'spotCheckHand', 'spotCheckLeft', 'nextRoundGridShrink',
   'luckModifiers',
   'actNumber', 'nodeInAct', 'rewardGridsSeen', 'forceBossNextRound', 'shopFromNodeFlow',
+  // Guided's act state. guidedInStop is deliberately NOT saved: a checkpoint is
+  // only ever taken at the START OF A ROUND, and a bought stop never straddles
+  // one, so it is always false when a save is written.
+  'guidedSlot', 'guidedEventOffers',
   'pendingEventOverride', 'rewardGridContext', 'skipTrickChoiceOverlay', 'pendingLevelUps',
   'goalReachedThisRound', 'roundEnded', 'suppressScoreDisplay', 'heldBackScore',
   // ── Deck & board ──

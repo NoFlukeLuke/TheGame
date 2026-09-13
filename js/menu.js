@@ -1,4 +1,4 @@
-const BUILD = '2026-09-13 · r218 · four events (two slot machines, the wheel, Trade a Trick) · The Ringer · the dance pauses and accelerates · Match-3 and Dominoes behind the dev launcher [onto r217]';
+const BUILD = '2026-09-13 · r219 · Guided rebuilt: eight slots an act and you buy what fills them · unused swaps and discards pay out';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -18,9 +18,10 @@ const MODES = {
     actStructure: true,
     suitCount: 4
   },
-  // Guided: Classic with the route fixed instead of chosen. The reward grid's
-  // destination tile is suppressed and the act runs a set spine - see
-  // GUIDED_ACT_FLOW / GUIDED_POST_BOSS in js/guided-mode.js.
+  // Guided: an act is GUIDED_SLOTS_PER_ACT slots and then the boss, and every
+  // slot is either a round you play or something you buy with it. The reward
+  // grid is one of the things for sale, so it is not handed out per round and
+  // its destination tile stays suppressed. See js/guided-mode.js.
   guided: {
     id: 'guided',
     name: 'Guided',
@@ -272,8 +273,8 @@ const MODE_META = {
               blurb: 'LETHE Corp staff orientation. A normal Classic run with the terminal explaining each control as you reach it - scoring, Focus, limits, the reward path, the Mart. About three minutes.' },
   normal:   { accent: 'var(--c-yellow)', suits: '♠ ♥ ♦ ♣',
               blurb: 'The original four-suit game. Three Acts of rounds, shops, events and bosses.' },
-  guided:   { accent: '#c9a0ff',         suits: 'SET ROUTE',
-              blurb: 'The same four-suit game with the path laid out for you. Instead of routing yourself from the reward grid, each quarter alternates reward grid, Mart, reward grid, event, into the boss - then a prize grid and two events. The Mart is guaranteed, so a run can always buy its way up the curve.' },
+  guided:   { accent: '#c9a0ff',         suits: '8 SLOTS',
+              blurb: 'Each act is eight slots and then the boss. Every slot is either a round you play or something you buy with it - the Mart, a reward grid, or one of two events on offer. Buying power always costs a round you will not get to play, and the goal climbs either way, so the question is how much of the act you spend getting stronger rather than getting further.' },
   sixsuits: { accent: 'var(--c-mint)',   suits: '♠ ♥ ♦ ♣ ★ ▲',
               blurb: 'Two extra suits dilute the deck, so flushes are hard-won. Flush of 3, 4 and 5 are all in play.' },
   spectrum: { accent: '#ff9d3c',        suits: '🔴 🟡 🔵 🟢 🟣 🟠 ⚫ ⚪',

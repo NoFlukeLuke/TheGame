@@ -497,24 +497,30 @@ One screen with two jobs, both in `js/reward-grid.js`: **'lose' mode** (a debuff
 
 The Mart wheel has its own overflow prompt (`#wheel-overflow`, "NO ROOM", js/wheel.js) with a **different** resolution - sell one of yours, or sell the prize. It already speaks the Mart's language and was deliberately left alone.
 
-## Guided mode (r191) - `js/guided-mode.js`
+## Guided mode (r218) - `js/guided-mode.js`
 
-Classic with the route decided for you. In Classic the reward grid carries a **destination tile** and the player routes themselves; a run can therefore go a long stretch with no shop, which matters in a game where a run has to close a 1.227x-per-level gap out of its loadout. Guided fixes the rotation instead, so the economy is guaranteed and the spine is legible.
+An act is **`GUIDED_SLOTS_PER_ACT` (8) slots** and then the boss, and every slot is filled by one of two kinds of thing: a **level** (play a round - free, and how you earn credits) or a **stop** (the Mart, a reward grid, or one of two offered events - costs credits, and costs the slot). Between every slot the **crossroads** opens and you choose the next one.
 
-**The spine is two lines of data, not branching code.** Index = the node whose reward grid just closed; value = what happens between that grid and the next round. Reshaping a Guided act is editing these and nothing else:
+**The slots are the real currency, not the credits.** Buying power always costs a round you will not get to play, so the question an act asks is how much of your run you are willing to spend getting stronger rather than getting further.
 
-```js
-const GUIDED_ACT_FLOW  = ['shop', 'event', 'shop', 'event', null];  // nodes 0-4
-const GUIDED_POST_BOSS = ['event', 'event'];                        // after the prize grid
-```
+r191's Guided fixed the route instead: a set spine of reward grid, Mart, reward grid, event, into the boss. That solved the economy problem - a Classic run can go a long stretch with no shop - and removed the decision along with it. This keeps the guarantee (the Mart is always on the menu) and gives the decision back with a price on it.
 
-Which plays out as `RG -> Mart -> RG -> event -> RG -> Mart -> RG -> event -> RG -> BOSS -> prize grid -> event -> event`, three times. **6 shops and 10 events a run.** The final boss ends the run before its post-boss events, because `finishInterlude`'s `actNumber > 3` win check returns first.
+### Every slot advances the difficulty curve, bought or played
 
-- **`finishInterlude` captures `_node` BEFORE the node advance.** The reward grid belongs to the node just finished, and the advance has already incremented past it by the time the routing runs. Node **5** is the post-boss prize grid.
-- **Guided grids carry no destination tile** - the route is fixed, so it would be a dead tile. It reuses the prize grid's existing suppression (`NO_DEST = PRIZE || guidedActive()`), and `placeIdx` starts at 0 so the freed slot becomes a real reward rather than a hole.
-- **`resumeAfterNodeFlowShop()` is new and shared.** `shop.js`, `mart-shop.js` and `shop-grid-preview.js` each had the same inline "node-flow shop closed, go to the next round" line. Guided needs a shop to be one stop in a longer chain, so all three now route through one function that runs `nodeFlowAfterShop` if set and falls back to `drainLevelUpQueue`. **A new shop-close path must call it**, not `drainLevelUpQueue` directly.
-- **`guidedRunStops` is a callback chain, not a loop** - each stop hands control to a screen that closes on its own schedule. Stops after the first are delayed 280ms: the event overlay closes and reopens on the same element, so the post-boss pair would otherwise hard-cut from one event into the next.
-- **Nothing here needs saving.** The save point is the START OF A ROUND (see `js/save.js`), and a stop chain only ever runs between rounds, so `nodeFlowAfterShop` is always null when a checkpoint is taken - which is just as well, since it holds a function.
+**This is the load-bearing rule and the mode does not work without it.** The goal curve is driven by `level`, and `level++` lives in `triggerLevelUp`, which only runs when a ROUND starts. So if a bought slot left the curve alone, a player could buy six stops and meet the boss at level 2 holding a level-8 loadout. That is not a strategy, it is *the* dominant strategy, and it would be the whole mode within one run of finding it.
+
+`guidedAdvanceCurve()` therefore bumps `level` when a stop is bought, exactly as finishing a round would. The bar you eventually face is set by how far through the act you are, never by how you got there - and buying is still worth it, because the goal climbs at `GOAL_SCALE` while base pips climb at only 1.1, and the loadout you bought is what covers the difference.
+
+### How it routes
+
+- **`guidedAfterSlot()` is the single place that decides "another slot, or the boss"**, so no caller has to know how long an act is. It is called from three places: the payout tail (a played round), a bought shop's close, and a bought event's or grid's close.
+- **The payout hands back to the crossroads, not to a reward grid.** `startInterlude` opens the ordinary reward grid for every other act mode; in Guided the grid is something you BUY, so the guided branch returns before that. The post-boss **prize** grid is not a bought stop and still opens there.
+- **`closeRewardGrid`'s node advance is skipped entirely for Guided** (`_guided` in `finishInterlude`) - `guidedAfterSlot` and `guidedAfterPrizeGrid` own `guidedSlot`, `nodeInAct` and `actNumber` instead. `_wasPrize` is captured before anything moves, because that is what tells the two apart.
+- **An act opens on a LEVEL, not on the crossroads.** `guidedAfterPrizeGrid` rolls the act over and goes straight to `drainLevelUpQueue()` - an act should start by playing.
+- **A bought event is opened BY NAME** (`guidedOpenNamedEvent`), not through `openEvent`'s own draw: the player just paid for that specific one off the menu. It still feeds `recentEventIds`, so the no-repeat memory keeps working.
+- **`nodeInAct` is kept roughly in step with the slot count** purely so the HUD's node pips and the boss sigil, which both read it, stay honest. Nothing routes off it in this mode.
+- Prices live in `BAL.guided`: the Mart is cheapest because it is the stop a run most often NEEDS, the reward grid dearest because it pays the most per visit, and events are priced individually so the pair on offer is a real weighing rather than a flat fee.
+- The crossroads is body-level, **outside `#cabinet`**, for the usual CSS `zoom` reason. An option you cannot afford is dimmed but never hidden - what you cannot buy this slot is information about what to play for.
 
 ### Upgrade events (r194) - improve what you already have
 

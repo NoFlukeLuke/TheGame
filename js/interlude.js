@@ -36,6 +36,14 @@ async function startInterlude(opts) {
   sfxDuckGain.disconnect();
   sfxDuckGain = null;
 
+  // Guided (r218): the reward grid is something you BUY with a slot, not
+  // something every round hands you, so the payout goes back to the crossroads.
+  // The post-boss PRIZE grid is not a bought stop and still opens here.
+  if (typeof guidedActive === 'function' && guidedActive() && !opts.prize) {
+    guidedAfterSlot();
+    return;
+  }
+
   // ── Reward grid replaces Trick choice - player picks spoils, then new round setup runs ──
   rewardGridContext = 'interlude';
   if (opts.prize) openPrizeGrid(); else openRewardGrid();

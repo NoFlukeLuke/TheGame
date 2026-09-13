@@ -175,7 +175,19 @@ const BAL = {
   // Three cuts of rising size and price. first_free makes the smallest cut cost
   // nothing, so the event always does something even at 0 credits.
   deck_trim: { tiers: [ { cards: 1, price: 0 }, { cards: 2, price: 6 }, { cards: 4, price: 14 } ] },
-  // ── r217 events ──
+  // ── Guided (r218): what a slot costs to fill with something other than a round.
+  // The Mart is cheapest because it is the stop a run most often NEEDS; the reward
+  // grid is dearest because it pays the most per visit. Events are priced
+  // individually - the pair on offer should be a real weighing, not a flat fee. ──
+  guided: {
+    price_shop: 10, price_reward: 15, price_event_default: 12,
+    price_event: {
+      merchant: 18, market: 14, deck_trim: 8, gamble: 6, wager: 6,
+      the_floor: 8, the_payline: 10, the_draw: 16, reassignment: 10,
+      bench: 14, rehearsal: 16, workshop: 12, shift_change: 6,
+    },
+  },
+  // ── r218 events ──
   reassignment: { consolation_credits: 12 },
   the_draw:     { steps: 2, spin_ms: 3200, consolation_credits: 12 },
   the_floor:    { line_cost: 6 },
