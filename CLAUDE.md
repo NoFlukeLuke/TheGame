@@ -338,6 +338,62 @@ legible over anything behind it. A multiply is the same hue, brighter.
 - `evKind(ev)` maps a timeline event to its colour family. The old per-op text
   colours are kept but are now read ONLY by the no-plate shape.
 
+### The particle finished (r230) - one plate for the whole game
+
+Four things r222 left on the table, plus the discovery that the preview and the
+game had drifted apart.
+
+- **The FLIGHT is tuned in the preview now, not hardcoded.** `particle-preview.html`
+  had been dumping `flightMs / pop / arc / spin / landFade` since r222 and **nothing
+  read them** - `dncFly` wrote its own keyframes - so a tuning session there could
+  not reach the game. `ptFrames` reads them, and a fresh load of the preview now
+  dumps a block byte-identical to the shipped `PARTICLE_CFG`. Keep it that way: if
+  the two disagree the preview is worse than not having one.
+- **`spin` is a PEAK hit at the HALFWAY point, and `spinEnd` is where it settles.**
+  A single end-angle reads as a constant tumble; peaking at 30deg and settling back
+  to -5deg reads as a flick of the wrist. Two numbers, not one.
+- **Per-kind `shapes` and `inks` beat one more shade.** Coins are a **circle**
+  (`shapes.credits`) and the clock plate is **white with black ink**
+  (`colors.time` + `inks.time`) - a currency that would be mistaken for another one
+  gets its own SHAPE or its own INK, because a seventh shade of the same family is
+  not a distinction anyone reads mid-tally. `ptShape` / `ptInk` / `ptTrail` are the
+  three lookups, each falling back to the global value.
+- **The rewind ghost trail** (`trails.rewind`, 4): a rewind is the one payout that
+  means "this already happened, and it is happening again", so it is the one that
+  gets an after-image. The ghosts are appended **furthest-back first** - they are
+  body-level siblings at one z-index, so DOM order IS paint order and the real plate
+  has to go in last to sit on top. The fall-off is carried by **opacity, not
+  colour**: a white plate cannot be lightened any further, and time particles are
+  white plates.
+- **Blip growth** (`growStart` 5, `growStep` 5%, `growMax` 3x, dev panel ->
+  Animation, persisted as `lethe.blipGrow.v1`): past the first N particles of a hand
+  every further one is bigger than the last, compounding, so a hand firing forty
+  payouts ENDS much louder than it started. **The counter is 1-INDEXED** - `n` is
+  "this is blip number n", so `growStart` 5 means blips 1-5 are base and blip 6 is
+  the first one bigger. Counting from 0 gives six base-size blips, which is not what
+  "after the first 5" means. `dncResetBlips()` runs beside `dncResetAccel()` at the
+  top of each hand, for the same reason: each hand winds up from its own base.
+- **`DANCE_CFG.pFlight` is no longer the flight length** - `ptBaseFlight()` is, and
+  **the beat's own wait has to read it too**. The beat applies its values after
+  `beatDur`; if that still divided 550 while the particles flew 1200, a card banked
+  its subtotal less than halfway through its own animation.
+
+**The entity payout FX now throw the SAME plate** (`js/payout-fx.js` calls
+`ptLaunch`). They had their own bare-text `.efx-particle`, which was a second visual
+vocabulary for the same idea and the one the owner called out as illegible. One
+shape, one tuner, one fix. The icon left the label with it: the plate's colour, its
+shape and the readout it flies into already say which currency this is, and an icon
+beside the number doubled the label's width on a 40px diamond.
+
+- **Two of the six `EFX_TARGETS` lists pointed at ids that do not exist.** `#ci-coins`
+  and `#coin-count` are not in the document and `#coins-display` is 0-size in
+  landscape, so **credits had no reachable target**; `#discard-btn` and
+  `#discards-display` are absent in BOTH orientations, so **discards had none
+  either**. Both currencies silently threw nothing at all since r220. The lists are
+  audited in a real browser at 1440x820 and 420x820 and every one now resolves in
+  both - the "first element with a non-zero rect wins" rule only works if at least
+  one element is real, and nothing was checking that.
+
 ### Scoring speed is a slider, and bursts are timed (r220)
 
 - **Settings > Motion > Scoring speed** is a **0.5x-16x slider** (was four presets),

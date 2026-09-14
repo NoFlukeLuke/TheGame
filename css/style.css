@@ -4805,18 +4805,12 @@ body.reduced-motion .toast-bump { animation-duration: 1ms; }
 body.big-text .toast { font-size: 17px; }
 body.high-contrast .toast { background: #000; border-color: var(--toast-ink); }
 
-/* Entity payout particles (r220) - js/payout-fx.js. Same visual grammar as the
-   score particles (.dnc-particle) so a Trick handing you 12 seconds reads as the
-   same kind of event as a Trick handing you 12 pips. Body-level and fixed, so the
-   cabinet's CSS `zoom` never scales these coordinates. */
-.efx-particle {
-  position: fixed; z-index: 860; pointer-events: none;
-  font-family: 'Share Tech Mono', 'Courier New', monospace;
-  font-size: 21px; font-weight: 700; letter-spacing: 0.5px;
-  white-space: nowrap;
-  -webkit-text-stroke: 3px rgba(10,8,6,0.95); paint-order: stroke fill;
-  text-shadow: 0 2px 6px rgba(0,0,0,0.85);
-}
+/* Entity payout particles used to be their OWN bare-text element here
+   (.efx-particle). Since r230 js/payout-fx.js throws the SAME plate the scoring
+   dance throws (ptLaunch), so a coin flying at the credits chip is visibly the
+   same object as a pip flying at the PIPS chip - one shape vocabulary, one tuner
+   in particle-preview.html, one legibility fix. The plate styling lives in
+   css/dance.css with the rest of .dnc-particle. */
 /* The readout acknowledges the hit, so the particle lands on something that
    reacts instead of on a number that changed silently a moment earlier. */
 .efx-hit { animation: efxHit 360ms cubic-bezier(.3,1.4,.5,1); }

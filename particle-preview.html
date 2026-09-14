@@ -24,7 +24,7 @@ h1{font-family:'Orbitron',sans-serif;font-size:13px;letter-spacing:2px;margin:0 
 h2{font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:2px;margin:16px 0 6px;
    color:#8fd6a8;border-bottom:1px solid #2a251e;padding-bottom:4px}
 .row{display:flex;align-items:center;gap:8px;margin:5px 0;font-size:11px}
-.row label{flex:1;color:#a89878}
+.row label{flex:1;min-width:52px;color:#a89878;white-space:nowrap}
 .row input[type=range]{flex:1.4;min-width:0}
 .row input[type=number]{width:58px;background:#1c1813;border:1px solid #3a3229;color:#e8dcc0;
    font-family:inherit;font-size:11px;padding:2px 4px;border-radius:3px}
@@ -37,6 +37,7 @@ button{font-family:'Share Tech Mono',monospace;background:#1c1813;border:1px sol
 button:hover{background:#2a2419;border-color:#c9a84c}
 button.go{background:#1d3a28;border-color:#8fd6a8;color:#bff0d0}
 .btns{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.note{font-family:'Crimson Pro',serif;font-size:11px;line-height:1.35;opacity:.65;margin:2px 0 8px}
 #dump{width:100%;height:190px;background:#0d0b09;border:1px solid #3a3229;color:#8fd6a8;
    font-family:inherit;font-size:10px;padding:6px;border-radius:4px;resize:vertical}
 
@@ -106,7 +107,7 @@ button.go{background:#1d3a28;border-color:#8fd6a8;color:#bff0d0}
 
 <div id="panel">
   <h1>PARTICLE PREVIEW</h1>
-  <div style="font-size:10px;color:#6b6152;margin-bottom:4px">r221 &middot; tune here, then paste into the game</div>
+  <div style="font-size:10px;color:#6b6152;margin-bottom:4px">r230 &middot; tune here, then paste into the game</div>
 
   <div class="btns">
     <button class="go" onclick="playHandBurst()">&#9654; Play a hand</button>
@@ -130,22 +131,44 @@ button.go{background:#1d3a28;border-color:#8fd6a8;color:#bff0d0}
       <option value="none">No plate (old look)</option>
     </select></div>
   <div class="row"><label>Size</label><input type="range" id="size" min="16" max="72" step="1" value="40" oninput="sync()"><span class="val" id="sizeV"></span></div>
-  <div class="row"><label>Font size</label><input type="range" id="font" min="8" max="30" step="0.5" value="14" oninput="sync()"><span class="val" id="fontV"></span></div>
-  <div class="row"><label>Corner round</label><input type="range" id="round" min="0" max="16" step="1" value="4" oninput="sync()"><span class="val" id="roundV"></span></div>
-  <div class="row"><label>Border width</label><input type="range" id="bw" min="0" max="5" step="0.5" value="1.5" oninput="sync()"><span class="val" id="bwV"></span></div>
-  <div class="row"><label>Border light</label><input type="range" id="bl" min="0" max="100" step="5" value="45" oninput="sync()"><span class="val" id="blV"></span></div>
-  <div class="row"><label>Glow</label><input type="range" id="glow" min="0" max="30" step="1" value="10" oninput="sync()"><span class="val" id="glowV"></span></div>
+  <div class="row"><label>Font size</label><input type="range" id="font" min="8" max="40" step="0.5" value="25.5" oninput="sync()"><span class="val" id="fontV"></span></div>
+  <div class="row"><label>Corner round</label><input type="range" id="round" min="0" max="16" step="1" value="0" oninput="sync()"><span class="val" id="roundV"></span></div>
+  <div class="row"><label>Border width</label><input type="range" id="bw" min="0" max="5" step="0.5" value="0" oninput="sync()"><span class="val" id="bwV"></span></div>
+  <div class="row"><label>Border light</label><input type="range" id="bl" min="0" max="100" step="5" value="0" oninput="sync()"><span class="val" id="blV"></span></div>
+  <div class="row"><label>Glow</label><input type="range" id="glow" min="0" max="40" step="1" value="30" oninput="sync()"><span class="val" id="glowV"></span></div>
   <div class="row"><label>Ink</label><input type="color" id="ink" value="#ffffff" oninput="sync()"></div>
 
   <h2>FLIGHT</h2>
-  <div class="row"><label>Duration ms</label><input type="range" id="dur" min="150" max="1200" step="10" value="550" oninput="sync()"><span class="val" id="durV"></span></div>
-  <div class="row"><label>Pop scale</label><input type="range" id="pop" min="1" max="2" step="0.05" value="1.2" oninput="sync()"><span class="val" id="popV"></span></div>
-  <div class="row"><label>Arc height</label><input type="range" id="arc" min="0" max="120" step="2" value="34" oninput="sync()"><span class="val" id="arcV"></span></div>
-  <div class="row"><label>Spin deg</label><input type="range" id="spin" min="-180" max="180" step="5" value="0" oninput="sync()"><span class="val" id="spinV"></span></div>
+  <div class="row"><label>Duration ms</label><input type="range" id="dur" min="150" max="2000" step="10" value="1200" oninput="sync()"><span class="val" id="durV"></span></div>
+  <div class="row"><label>Pop scale</label><input type="range" id="pop" min="1" max="2.5" step="0.05" value="1.8" oninput="sync()"><span class="val" id="popV"></span></div>
+  <div class="row"><label>Arc height</label><input type="range" id="arc" min="0" max="120" step="2" value="0" oninput="sync()"><span class="val" id="arcV"></span></div>
+  <div class="row"><label>Spin peak</label><input type="range" id="spin" min="-180" max="180" step="5" value="30" oninput="sync()"><span class="val" id="spinV"></span></div>
+  <div class="row"><label>Spin settle</label><input type="range" id="spinEnd" min="-180" max="180" step="5" value="-5" oninput="sync()"><span class="val" id="spinEndV"></span></div>
   <div class="row"><label>Land fade</label><input type="range" id="fade" min="0" max="100" step="5" value="100" oninput="sync()"><span class="val" id="fadeV"></span></div>
+  <div class="note">The spin PEAK is hit at the halfway point; the plate then settles back to the
+    settle angle on the way down - a flick of the wrist rather than a constant tumble.</div>
 
-  <h2>COLOURS</h2>
+  <h2>PER KIND &mdash; shape, plate, ink</h2>
+  <div class="note">A currency that would be mistaken for another one gets its own SHAPE or its own
+    INK rather than one more shade of the same family. Ink blank = the global ink above.</div>
   <div id="colorRows"></div>
+
+  <h2>GHOST TRAIL (rewind)</h2>
+  <div class="note">A rewind is the one payout that means "this already happened, and it is happening
+    again", so it is the one that gets an after-image: N copies lagging behind the real plate, each
+    fainter than the last.</div>
+  <div class="row"><label>Copies</label><input type="range" id="trail" min="0" max="8" step="1" value="4" oninput="sync()"><span class="val" id="trailV"></span></div>
+  <div class="row"><label>Lag</label><input type="range" id="trailLag" min="0.01" max="0.25" step="0.01" value="0.06" oninput="sync()"><span class="val" id="trailLagV"></span></div>
+  <div class="row"><label>First ghost</label><input type="range" id="trailFade" min="0.05" max="1" step="0.01" value="0.42" oninput="sync()"><span class="val" id="trailFadeV"></span></div>
+  <div class="btns"><button onclick="fireRewind()">Fire a rewind</button></div>
+
+  <h2>BLIP GROWTH</h2>
+  <div class="note">A long tally is a crescendo. Past the first N particles of a hand each further one
+    is bigger than the last, compounding to a ceiling. Also live in the dev panel under Animation.</div>
+  <div class="row"><label>Grows after</label><input type="range" id="growStart" min="0" max="40" step="1" value="5" oninput="sync()"><span class="val" id="growStartV"></span></div>
+  <div class="row"><label>% per blip</label><input type="range" id="growStep" min="0" max="25" step="0.5" value="5" oninput="sync()"><span class="val" id="growStepV"></span></div>
+  <div class="row"><label>Ceiling</label><input type="range" id="growMax" min="1" max="8" step="0.25" value="3" oninput="sync()"><span class="val" id="growMaxV"></span></div>
+  <div class="btns"><button onclick="fireRun()">Fire a 30-blip run</button></div>
 
   <h2>CONFIG</h2>
   <div class="btns">
@@ -162,21 +185,30 @@ button.go{background:#1d3a28;border-color:#8fd6a8;color:#bff0d0}
 // the Focus violet, credits the gold, time the clock blue.
 const KINDS = {
   pipAdd:  { label:'pip +',    bg:'#2f6bd8', target:'pipsChip'  },
-  pipMul:  { label:'pip x',    bg:'#1f9ad8', target:'pipsChip'  },
+  pipMul:  { label:'pip x',    bg:'#0e2a5d', target:'pipsChip'  },
   multAdd: { label:'mult +',   bg:'#c0202c', target:'multChip'  },
-  multMul: { label:'mult x',   bg:'#e0533a', target:'multChip'  },
+  multMul: { label:'mult x',   bg:'#6c0f13', target:'multChip'  },
   focus:   { label:'focus',    bg:'#8a4fd0', target:'focusChip' },
-  credits: { label:'credits',  bg:'#c9a84c', target:'pipsChip'  },
-  time:    { label:'time',     bg:'#3f9ad0', target:'pipsChip'  },
+  credits: { label:'credits',  bg:'#c9a84c', target:'pipsChip', shape:'circle' },
+  time:    { label:'time',     bg:'#ffffff', target:'pipsChip', ink:'#000000' },
 };
-const DEFAULTS = { shape:'diamond', size:40, font:14, round:4, bw:1.5, bl:45, glow:10,
-                   ink:'#ffffff', dur:550, pop:1.2, arc:34, spin:0, fade:100,
-                   colors:Object.fromEntries(Object.entries(KINDS).map(([k,v])=>[k,v.bg])) };
+const SHAPES = ['','diamond','square','circle','pill','none'];
+const DEFAULTS = { shape:'diamond', size:40, font:25.5, round:0, bw:0, bl:0, glow:30,
+                   ink:'#ffffff', dur:1200, pop:1.8, arc:0, spin:30, spinEnd:-5, fade:100,
+                   trail:4, trailLag:0.06, trailFade:0.42,
+                   growStart:5, growStep:5, growMax:3,
+                   colors:Object.fromEntries(Object.entries(KINDS).map(([k,v])=>[k,v.bg])),
+                   shapes:Object.fromEntries(Object.entries(KINDS).map(([k,v])=>[k,v.shape||''])),
+                   inks:Object.fromEntries(Object.entries(KINDS).map(([k,v])=>[k,v.ink||''])) };
 
 function buildColorRows(){
   document.getElementById('colorRows').innerHTML = Object.entries(KINDS).map(([k,v]) =>
     `<div class="row"><label>${v.label}</label>
+       <select id="s_${k}" oninput="sync()" style="width:74px">${
+         SHAPES.map(sh=>`<option value="${sh}"${(v.shape||'')===sh?' selected':''}>${sh||'(shape)'}</option>`).join('')}</select>
        <input type="color" id="c_${k}" value="${v.bg}" oninput="sync()">
+       <input type="color" id="k_${k}" value="${v.ink||'#ffffff'}" oninput="sync()" title="ink">
+       <label style="width:auto;font-size:9px"><input type="checkbox" id="ko_${k}" ${v.ink?'checked':''} oninput="sync()">ink</label>
        <button style="padding:2px 6px" onclick="fireOne('${k}','+9')">fire</button></div>`).join('');
 }
 buildColorRows();
@@ -186,14 +218,24 @@ const num = id => parseFloat($(id).value);
 function cfg(){
   return { shape:$('shape').value, size:num('size'), font:num('font'), round:num('round'),
     bw:num('bw'), bl:num('bl'), glow:num('glow'), ink:$('ink').value,
-    dur:num('dur'), pop:num('pop'), arc:num('arc'), spin:num('spin'), fade:num('fade'),
-    colors:Object.fromEntries(Object.keys(KINDS).map(k=>[k,$('c_'+k).value])) };
+    dur:num('dur'), pop:num('pop'), arc:num('arc'), spin:num('spin'),
+    spinEnd:num('spinEnd'), fade:num('fade'),
+    trail:num('trail'), trailLag:num('trailLag'), trailFade:num('trailFade'),
+    growStart:num('growStart'), growStep:num('growStep'), growMax:num('growMax'),
+    colors:Object.fromEntries(Object.keys(KINDS).map(k=>[k,$('c_'+k).value])),
+    shapes:Object.fromEntries(Object.keys(KINDS).map(k=>[k,$('s_'+k).value])),
+    inks:Object.fromEntries(Object.keys(KINDS).map(k=>[k,$('ko_'+k).checked ? $('k_'+k).value : ''])) };
 }
 function sync(){
-  ['size','font','round','bw','bl','glow','dur','pop','arc','spin','fade']
+  ['size','font','round','bw','bl','glow','dur','pop','arc','spin','spinEnd','fade',
+   'trail','trailLag','trailFade','growStart','growStep','growMax']
     .forEach(id => { const el=$(id+'V'); if(el) el.textContent = $(id).value; });
   save();
 }
+// The blip counter, reset by every burst - the same rule the game follows, where
+// dncResetBlips runs at the top of each hand.
+let blipN = 0;
+function blipScale(c){ const n = ++blipN; return Math.min(c.growMax, Math.pow(1 + c.growStep/100, Math.max(0, n - c.growStart))); }
 // Lighten a hex toward white by pct - the border is the same hue as the plate,
 // just brighter, so the shape reads as one object rather than as an outline.
 function lighten(hex, pct){
@@ -203,38 +245,64 @@ function lighten(hex, pct){
   return `rgb(${m(r)},${m(g)},${m(b)})`;
 }
 
-function fireOne(kind, label, srcEl){
-  const c = cfg(), K = KINDS[kind];
-  const src = srcEl || document.getElementById(kind==='pipAdd' ? 'srcCard' : kind==='multMul'||kind==='pipMul' ? 'srcSleight' : 'srcTrick');
-  const tgt = document.getElementById(K.target);
-  const a = src.getBoundingClientRect(), b = tgt.getBoundingClientRect();
+// One plate. Mirrors ptPlateEl in js/score-dance.js.
+function plateEl(c, kind, label, scale){
   const bg = c.colors[kind];
-
   const el = document.createElement('div');
-  el.className = 'pt sh-' + c.shape;
+  el.className = 'pt sh-' + (c.shapes[kind] || c.shape);
   el.innerHTML = `<div class="pt-box"><span class="pt-lab">${label}</span></div>`;
-  el.style.setProperty('--pt-size', c.size+'px');
-  el.style.setProperty('--pt-font', c.font+'px');
+  el.style.setProperty('--pt-size', (c.size*scale)+'px');
+  el.style.setProperty('--pt-font', (c.font*scale)+'px');
   el.style.setProperty('--pt-round', c.round+'px');
   el.style.setProperty('--pt-bw', c.bw+'px');
   el.style.setProperty('--pt-bc', lighten(bg, c.bl));
   el.style.setProperty('--pt-bg', bg);
-  el.style.setProperty('--pt-ink', c.ink);
+  el.style.setProperty('--pt-ink', c.inks[kind] || c.ink);
   el.style.setProperty('--pt-glow', c.glow+'px');
-  document.body.appendChild(el);
-
+  return el;
+}
+// The keyframes. Mirrors ptFrames: the spin PEAK is hit at the halfway point and
+// the plate settles back to spinEnd on the way down.
+function framesFor(c, x0, y0, dx, dy, scale){
+  const base = `translate(${x0}px,${y0}px) translate(-50%,-50%)`;
+  return [
+    { transform:`${base} scale(${.5*scale}) rotate(0deg)`, opacity:0, offset:0 },
+    { transform:`${base} translate(${dx*.12}px,${dy*.12 - c.arc*.5}px) scale(${c.pop*scale}) rotate(${c.spin*.5}deg)`, opacity:1, offset:.22 },
+    { transform:`${base} translate(${dx*.5}px,${dy*.5 - c.arc}px) scale(${scale}) rotate(${c.spin}deg)`, opacity:1, offset:.5 },
+    { transform:`${base} translate(${dx}px,${dy}px) scale(${.8*scale}) rotate(${c.spinEnd}deg)`, opacity:1 - c.fade/100, offset:1 },
+  ];
+}
+function fireOne(kind, label, srcEl, trail){
+  const c = cfg(), K = KINDS[kind];
+  const src = srcEl || document.getElementById(kind==='pipAdd' ? 'srcCard' : kind==='multMul'||kind==='pipMul' ? 'srcSleight' : 'srcTrick');
+  const tgt = document.getElementById(K.target);
+  const a = src.getBoundingClientRect(), b = tgt.getBoundingClientRect();
   const x0 = a.left + a.width/2, y0 = a.top + a.height/2;
   const dx = (b.left + b.width/2) - x0, dy = (b.top + b.height/2) - y0;
-  const base = `translate(${x0}px,${y0}px) translate(-50%,-50%)`;
-  // A mid keyframe offset by -arc gives the flight a lob rather than a straight line.
-  const frames = [
-    { transform:`${base} translate(0,0) scale(.45) rotate(0deg)`, opacity:0, offset:0 },
-    { transform:`${base} translate(${dx*.12}px,${dy*.12 - c.arc*.5}px) scale(${c.pop}) rotate(${c.spin*.2}deg)`, opacity:1, offset:.22 },
-    { transform:`${base} translate(${dx*.55}px,${dy*.55 - c.arc}px) scale(1) rotate(${c.spin*.6}deg)`, opacity:1, offset:.62 },
-    { transform:`${base} translate(${dx}px,${dy}px) scale(.8) rotate(${c.spin}deg)`, opacity:1 - c.fade/100, offset:1 },
-  ];
-  el.animate(frames, { duration:c.dur, easing:'cubic-bezier(.3,.7,.4,1)', fill:'forwards' });
+  const scale = blipScale(c);
+  const frames = framesFor(c, x0, y0, dx, dy, scale);
+  const tw = { duration:c.dur, easing:'cubic-bezier(.3,.7,.4,1)', fill:'forwards' };
+  const n = (trail === undefined) ? 0 : trail;
+  // Furthest-back first: these are body-level siblings at one z-index, so DOM
+  // order is paint order and the real plate has to go in last to sit on top.
+  for(let i = n; i >= 1; i--){
+    const g = plateEl(c, kind, label, scale);
+    g.querySelector('.pt-box').style.opacity = (c.trailFade * (1 - (i-1)/n)).toFixed(3);
+    document.body.appendChild(g);
+    g.animate(frames, Object.assign({}, tw, { delay: c.dur*c.trailLag*i }));
+    setTimeout(()=>g.remove(), c.dur*(1+c.trailLag*i)+60);
+  }
+  const el = plateEl(c, kind, label, scale);
+  document.body.appendChild(el);
+  el.animate(frames, tw);
   setTimeout(()=>{ el.remove(); bump(K.target); }, c.dur);
+}
+function fireRewind(){ blipN = 0; fireOne('time', '+12s', document.getElementById('srcTrick'), cfg().trail); }
+// Thirty blips back to back - the only way to see what the growth curve actually
+// does, which is the whole reason it is three numbers rather than one.
+function fireRun(){
+  blipN = 0; const c = cfg();
+  for(let i=0;i<30;i++) setTimeout(()=>fireOne(i%3===2?'multAdd':'pipAdd', '+'+(i+1), null), i*110);
 }
 
 function bump(id){
@@ -246,6 +314,7 @@ function bump(id){
 }
 
 function fireAll(){
+  blipN = 0;
   let i = 0;
   for (const k in KINDS) setTimeout(()=>fireOne(k, k.endsWith('Mul') ? '×2' : '+9'), (i++)*90);
 }
@@ -254,6 +323,7 @@ function fireAll(){
 // TOGETHER (that is the r221 behaviour), then the hand-level x mult after.
 function playHandBurst(){
   $('pipsVal').textContent = '30'; $('multVal').textContent = '4'; $('focusVal').textContent = '×1';
+  blipN = 0;
   const c = cfg();
   const together = [ ['pipAdd','+7','srcCard'], ['pipAdd','+2','srcTrick'], ['multAdd','+5','srcTrick'], ['pipMul','×2','srcSleight'] ];
   together.forEach(([k,l,s]) => fireOne(k, l, document.getElementById(s)));
@@ -271,24 +341,33 @@ const PARTICLE_CFG = {
   font:  ${c.font},               // px, the label
   round: ${c.round}, borderW: ${c.bw}, borderLight: ${c.bl}, glow: ${c.glow},
   ink:   '${c.ink}',
-  flightMs: ${c.dur}, pop: ${c.pop}, arc: ${c.arc}, spin: ${c.spin}, landFade: ${c.fade},
+  flightMs: ${c.dur}, pop: ${c.pop}, arc: ${c.arc}, spin: ${c.spin}, spinEnd: ${c.spinEnd}, landFade: ${c.fade},
+  shapes: { ${Object.entries(c.shapes).filter(([,v])=>v).map(([k,v])=>`${k}: '${v}'`).join(', ')} },
+  inks:   { ${Object.entries(c.inks).filter(([,v])=>v).map(([k,v])=>`${k}: '${v}'`).join(', ')} },
+  trails: { rewind: ${c.trail} }, trailLag: ${c.trailLag}, trailFade: ${c.trailFade},
+  growStart: ${c.growStart}, growStep: ${c.growStep}, growMax: ${c.growMax},
   colors: {
 ${Object.entries(c.colors).map(([k,v])=>`    ${k}: '${v}',`).join('\n')}
   },
 };`;
 }
 function copyCfg(){ dumpCfg(); $('dump').select(); document.execCommand('copy'); }
+const MAPS = ['colors','shapes','inks'];
 function resetCfg(){
-  for (const k in DEFAULTS) { if(k==='colors') continue; if($(k)) $(k).value = DEFAULTS[k]; }
+  for (const k in DEFAULTS) { if(MAPS.includes(k)) continue; if($(k)) $(k).value = DEFAULTS[k]; }
   for (const k in DEFAULTS.colors) $('c_'+k).value = DEFAULTS.colors[k];
+  for (const k in DEFAULTS.shapes) $('s_'+k).value = DEFAULTS.shapes[k];
+  for (const k in DEFAULTS.inks) { $('k_'+k).value = DEFAULTS.inks[k] || '#ffffff'; $('ko_'+k).checked = !!DEFAULTS.inks[k]; }
   sync();
 }
 function save(){ try{ localStorage.setItem('lethe.particlePreview', JSON.stringify(cfg())); }catch(e){} }
 function load(){
   try{
     const s = JSON.parse(localStorage.getItem('lethe.particlePreview')||'null'); if(!s) return;
-    for (const k in s) { if(k==='colors') continue; if($(k)) $(k).value = s[k]; }
+    for (const k in s) { if(MAPS.includes(k)) continue; if($(k)) $(k).value = s[k]; }
     if(s.colors) for (const k in s.colors) if($('c_'+k)) $('c_'+k).value = s.colors[k];
+    if(s.shapes) for (const k in s.shapes) if($('s_'+k)) $('s_'+k).value = s.shapes[k];
+    if(s.inks) for (const k in s.inks) if($('k_'+k)) { $('k_'+k).value = s.inks[k] || '#ffffff'; $('ko_'+k).checked = !!s.inks[k]; }
   }catch(e){}
 }
 load(); sync(); dumpCfg();

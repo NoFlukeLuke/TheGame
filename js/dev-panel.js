@@ -102,6 +102,7 @@ function openDevPanel() {
   devRenderGroupMenu();
   devSyncFloatSliders();
   devSyncHbSliders();
+  devSyncBlipSliders();
   devSyncNs();
   devSyncCcSliders();
   devSyncDisco();
@@ -217,6 +218,41 @@ function devSetFloat(k, v) {
   if (lab) lab.textContent = (+v).toString();
 }
 function devResetFloat() { resetFloatCfg(); devSyncFloatSliders(); }
+
+// ── Score-particle blip growth (r230) - PARTICLE_CFG lives in js/score-dance.js ──
+// Past the first `growStart` particles of a hand, each further one is `growStep`%
+// bigger than the last, compounding to `growMax`. Persisted, because a tuning
+// session should survive a reload. Shape, colour and the flight itself are tuned
+// in particle-preview.html instead - these three are the only ones that need to be
+// felt against a real hand, so they are the only ones here.
+const BLIP_KEYS = ['growStart','growStep','growMax'];
+function devSetBlip(k, v) {
+  if (typeof PARTICLE_CFG === 'undefined' || !BLIP_KEYS.includes(k)) return;
+  PARTICLE_CFG[k] = +v;
+  const lab = document.getElementById('dev-blip-' + k + '-val');
+  if (lab) lab.textContent = (+v).toString();
+  try { const o = {}; BLIP_KEYS.forEach(x => o[x] = PARTICLE_CFG[x]);
+        localStorage.setItem('lethe.blipGrow.v1', JSON.stringify(o)); } catch (e) {}
+}
+function devResetBlip() {
+  try { localStorage.removeItem('lethe.blipGrow.v1'); } catch (e) {}
+  if (typeof PARTICLE_CFG !== 'undefined') { PARTICLE_CFG.growStart = 5; PARTICLE_CFG.growStep = 5; PARTICLE_CFG.growMax = 3; }
+  devSyncBlipSliders();
+}
+function devSyncBlipSliders() {
+  if (typeof PARTICLE_CFG === 'undefined') return;
+  BLIP_KEYS.forEach(k => {
+    const el = document.getElementById('dev-blip-' + k), lab = document.getElementById('dev-blip-' + k + '-val');
+    if (el) el.value = PARTICLE_CFG[k];
+    if (lab) lab.textContent = String(PARTICLE_CFG[k]);
+  });
+}
+// Restore at load, before any hand is played.
+(function(){ try {
+  const raw = localStorage.getItem('lethe.blipGrow.v1'); if (!raw) return;
+  const o = JSON.parse(raw); if (typeof PARTICLE_CFG === 'undefined') return;
+  BLIP_KEYS.forEach(k => { if (typeof o[k] === 'number') PARTICLE_CFG[k] = o[k]; });
+} catch (e) {} })();
 
 // ── Grid heartbeat sliders (HB_CFG lives in js/heartbeat.js) ──
 const HB_KEYS = ['dx','dy','rot','scale','period','beat','gap','beat2','colStagger','rowStagger'];

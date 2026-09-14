@@ -1,4 +1,4 @@
-const BUILD = '2026-09-14 · r229 · Guided: four falling crossroads tiles, hard rounds, free pick-of-three · shop 4x5 with row labels · next boss named · Clean Slate [onto r228]';
+const BUILD = '2026-09-14 · r230 · particles: tuned plate, spin peak + settle, rewind ghost trail, coins round, clock white-on-black · blip growth (dev panel) · payout FX on the same plate';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
