@@ -716,6 +716,7 @@ function updateActProgressUI() {
 
 function onGameWin() {
   stopTimers();
+  if (typeof hideQuarterCard === 'function') hideQuarterCard();
   if (typeof retireSavedRunIfCurrent === 'function') retireSavedRunIfCurrent();  // the run is over; its save is stale
   if (typeof recordRunToHistory === 'function') recordRunToHistory('win');       // log it before the numbers are reset
   const overlay = document.getElementById('end-overlay');
@@ -723,22 +724,15 @@ function onGameWin() {
   title.textContent = 'VICTORY';
   title.className   = 'victory';
 
-  const secondsPlayed = Math.floor((Date.now() - gameStartTime) / 1000);
-  const m = Math.floor(secondsPlayed / 60);
-  const s = secondsPlayed % 60;
-  document.getElementById('end-stats').innerHTML = `
-    Run Complete: <strong>3 Acts</strong><br>
-    Total Score: <strong>${(totalScore + score).toLocaleString()}</strong><br>
-    Time Played: <strong>${m}:${s.toString().padStart(2,'0')}</strong><br>
-    Levels Cleared: <strong>${level}</strong><br>
-    Hands Played: <strong>${handsPlayed}</strong><br>
-    Best Hand: <strong>${highestHandName ? `${highestHandName} (${highestHandScore.toLocaleString()})` : '·'}</strong>
-  `;
+  // The full run report - quarter by quarter, then the run totals (js/quarter.js).
+  // A won run has already closed all three quarters through rolloverQuarter.
+  document.getElementById('end-stats').innerHTML = runReportHTML();
   overlay.classList.add('show');
 }
 
 function onGameEnd(gameover) {
   stopTimers();
+  if (typeof hideQuarterCard === 'function') hideQuarterCard();
   if (typeof retireSavedRunIfCurrent === 'function') retireSavedRunIfCurrent();  // the run is over; its save is stale
   if (typeof recordRunToHistory === 'function') recordRunToHistory(gameover ? 'loss' : 'timeup');
   const overlay = document.getElementById('end-overlay');
@@ -746,19 +740,9 @@ function onGameEnd(gameover) {
   title.textContent = gameover ? 'GAME OVER' : "TIME'S UP";
   title.className = gameover ? 'gameover' : 'timeup';
 
-  const secondsPlayed = Math.floor((Date.now() - gameStartTime) / 1000);
-  const m = Math.floor(secondsPlayed / 60);
-  const s = secondsPlayed % 60;
-  const timePlayed = `${m}:${s.toString().padStart(2,'0')}`;
-
-  document.getElementById('end-stats').innerHTML = `
-    Total Score: <strong>${(totalScore + score).toLocaleString()}</strong><br>
-    Time Lasted: <strong>${timePlayed}</strong><br>
-    Level Reached: <strong>${level}</strong><br>
-    Hands Played: <strong>${handsPlayed}</strong><br>
-    Best Hand: <strong>${highestHandName ? `${highestHandName} (${highestHandScore.toLocaleString()})` : '·'}</strong><br>
-    Tricks: <strong>${acquiredTricks.length}</strong>
-  `;
+  // The same report a win gets. A run that ended badly still deserves the account
+  // of itself; the quarter it died in comes through as a partial row.
+  document.getElementById('end-stats').innerHTML = runReportHTML();
   overlay.classList.add('show');
 }
 

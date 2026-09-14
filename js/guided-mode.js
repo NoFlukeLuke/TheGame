@@ -85,12 +85,10 @@ function guidedAfterPrizeGrid() {
   guidedInStop = false;
   guidedSlot = 0;
   guidedEventOffers = [];
-  nodeInAct = 0;
-  actNumber++;
-  deadCells = new Set();     // Dead Drop cells are an act-long penalty
-  updateActProgressUI?.();
-  if (actNumber > 3) { onGameWin(); return; }
-  drainLevelUpQueue();
+  // Same rollover as the node path, through the one helper (js/quarter.js): it
+  // closes the quarter's books, advances, and shows the QUARTER CLOSED card. Two
+  // copies of these five lines is exactly how a card ends up on one route only.
+  rolloverQuarter(() => drainLevelUpQueue());
 }
 
 // Buying a stop costs the same step on the goal curve that finishing a round
