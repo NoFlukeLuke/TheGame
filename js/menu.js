@@ -1,4 +1,4 @@
-const BUILD = '2026-09-12 · r216 · boss roster pass: Stone Lord, Famine, Cornerless King, Tollman, Hold, Turnstile, Redaction; Rota cut; boss banner no longer eaten by the reward grid [onto r215]';
+const BUILD = '2026-09-14 · r217 · sixteen new bosses: Quota, Tax Man, Grind, Drought, Inspector, Ledger, Short Fuse, Sommelier, Sieve, Fog, Gradient, Swell, Bookkeeper, Rerun, Magpie, Stale Deck';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

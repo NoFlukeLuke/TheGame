@@ -364,3 +364,31 @@
 body.reduced-motion #boss-approach-fx .ba-vignette,
 body.reduced-motion #boss-approach-fx.ba-count-on .ba-count,
 body.reduced-motion .ba-goal-pop { animation: none; }
+
+/* ══════════════════════════════════════════════
+   THE r217 ROSTER
+   ══════════════════════════════════════════════ */
+
+/* THE FOG - the rank is withheld until the card is selected. The '?' is sized
+   and positioned as the rank it replaces, so nothing about the card moves when
+   it is revealed; only the glyph changes. Muted rather than bold: it is an
+   absence of information, and a heavy '?' reads as a card type of its own. */
+.card .rank.fog-rank {
+  color: rgba(40, 40, 50, 0.34);
+  font-weight: 700;
+}
+.card.selected .rank.fog-rank { color: inherit; }
+
+/* THE GRADIENT - size is how the slope is communicated. The scale itself is
+   published as --grds by bossGradientPaint() and composed into the card
+   transform in css/style.css, beside --hb* and --frzr; these rules only add the
+   edge tint that says which way the slope runs, so a player can tell a shrunken
+   card from a small one. */
+.card.grad-up {
+  box-shadow: 0 0 0 1px rgba(127, 227, 160, 0.55), 0 0 10px rgba(127, 227, 160, 0.3);
+  z-index: 3;
+}
+.card.grad-dn {
+  box-shadow: 0 0 0 1px rgba(255, 90, 90, 0.4);
+  opacity: 0.82;
+}

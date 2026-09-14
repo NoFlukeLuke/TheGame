@@ -146,6 +146,12 @@ function startRoundTimer() {
       // Voidwright's halftime flip AND the Censor's suspensions expiring, neither
       // of which has an event of its own.
       if (typeof bossSyncTrickTrayState === 'function') bossSyncTrickTrayState();
+      // The Quota's deadlines are moments on the clock, not intervals - the
+      // Metronome can eat several seconds in one tick, so they are tested as
+      // "the clock has passed this" rather than fired at it.
+      if (typeof bossQuotaTick === 'function') bossQuotaTick();
+      // The Bookkeeper absorbs anything a Trick handed back into the shared pool.
+      if (typeof bossPoolSync === 'function') bossPoolSync();
       if (bossPhase === 1 && roundSeconds <= Math.floor(bossWindowDuration / 2)) {
         bossPhase = 2;
         updateBossObjectiveUI();

@@ -416,9 +416,17 @@ function focusDecayTick() {
   removeFocus(1);
 }
 
+// The live decay interval, with any boss squeeze folded in. Every site that arms
+// the timer reads THIS rather than focusDecayIntervalMs directly, so The Swell
+// cannot be left half-applied by whichever path happened to restart the timer.
+function focusDecayIntervalNow() {
+  const k = (typeof bossFocusDecayScale === 'function') ? bossFocusDecayScale() : 1;
+  return Math.max(200, Math.round(focusDecayIntervalMs * k));
+}
+
 function startFocusDecay() {
   stopFocusDecay();
-  focusDecayTimerId = setInterval(focusDecayTick, focusDecayIntervalMs);
+  focusDecayTimerId = setInterval(focusDecayTick, focusDecayIntervalNow());
 }
 
 function stopFocusDecay() {
@@ -433,7 +441,7 @@ function stopFocusDecay() {
 function resetFocusDecayTimer() {
   if (focusDecayTimerId !== null) {
     clearInterval(focusDecayTimerId);
-    focusDecayTimerId = setInterval(focusDecayTick, focusDecayIntervalMs);
+    focusDecayTimerId = setInterval(focusDecayTick, focusDecayIntervalNow());
   } else {
     startFocusDecay();
   }

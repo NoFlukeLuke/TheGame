@@ -769,6 +769,102 @@ Owner-specified retunes. **The Rota is deleted** - The Censor already owns "a Tr
 
 **The Tollman's ordering was already correct too**, and is now locked in by a test: `playHandCostThisRound` is charged at `play-hand.js` ~line 452, which is AFTER `score += finalScore` (271) and AFTER `checkBossObjective` (343). Verified live - with **1 second left** on a Tollman round, a hand that costs 5s still scored, still met the goal and still won the boss.
 
+## Sixteen new bosses (r217)
+
+The roster went 18 -> 34. Every one of them obeys the rule the owner set: **a boss may
+make a play style COST more or PAY less, but it may never make one impossible.** Nothing
+here says "runs cannot be played". The harshest of them mark a family or a set of suits
+DOWN and always leave something paying full, which is what makes a round a plan rather
+than a wall.
+
+| boss | what it does | where it hooks |
+|---|---|---|
+| **The Quota** | 20% / 40% / 60% of the goal by each third of the window; miss one and `score = 0` | the round tick, not a schedule (below) |
+| **The Tax Man** | every hand costs credits equal to its card count; run dry and the round ends | `play-hand.js`, after the score commits |
+| **The Grind** | a hand type pays 15% less per repeat, forgetting after 5 other hands | xSCORE step, beside the Redaction |
+| **The Drought** | Natural Scaling pays nothing this round | `naturalScaleBonus` |
+| **The Inspector** | a named hand type every 45s or lose 20% of score | `bossSchedule`, first tick arms only |
+| **The Ledger** | goal +15% of the ORIGINAL every 30s | `bossSchedule`, first tick arms only |
+| **Short Fuse** | 90s window, goal halved | writes `bossWindowDuration` (below) |
+| **The Sommelier** | 3 suits at a time score x0.6 for 60s, rotating | `bossCardPipScale` |
+| **The Sieve** | discarded cards do not return to the deck | `doDiscard`, not `discardToDrawPile` |
+| **The Fog** | ranks hidden until a card is selected; suits stay visible | `renderCardAppearance` |
+| **The Gradient** | a scoring slope across the board, turning 90 degrees every 40s | `bossCardPipScale` + `--grds` |
+| **The Swell** | Focus decays 3x faster, ceiling halved | `focusCapNodes` / `focusDecayIntervalNow` |
+| **The Bookkeeper** | swaps and discards share ONE pool of 4, no refill | `bossPoolSync` |
+| **The Rerun** | replays, pauses and rewinds each have a 50% chance to miss | three sites, two different rolls |
+| **The Magpie** | the two highest cards on the board taken every 20s | `removeAndFall` |
+| **The Stale Deck** | the draw pile reordered least-played first | `cardPlayCount` |
+
+### The traps these encode
+
+- **A DEADLINE is not an INTERVAL.** The Quota's three marks are held as SECONDS
+  REMAINING and tested on the round tick as "the clock has passed this", never fired at
+  by a schedule. The Metronome can consume several seconds in one tick, so a deadline
+  waited for by equality would be stepped straight over. Everything else here is a
+  `bossSchedule`, which is what gives it the Contingency Plan interaction for free.
+- **`bossSchedule` fires IMMEDIATELY and then repeats**, which is right for a Blight tick
+  and wrong for a bill. The Inspector and The Ledger both let their opening tick only
+  ARM the window (`bossInspectDone` is pre-set true; `bossLedgerArmed` starts false), or
+  the player is charged before the round has begun.
+- **Short Fuse can shorten the round only because of an ordering in `triggerBoss`**:
+  `bossWindowDuration` is set BEFORE `applyBossModifiers` and `roundSeconds` is written
+  from it AFTER. Nothing else in the file may be reordered around that.
+- **`bossCardPipScale(card, r, c)` is the ONE place a boss changes what a single card's
+  pips are worth**, called from `calcScore`'s per-card loop right where the Blight's
+  halving lands. It is a pure READ: `calcScore` is recomputed by `findBestHand` and by
+  the live PIPS/MULT preview, so anything there that consumed a charge or advanced a
+  counter would fire several times per tap. Same rule `siphonMultX` follows.
+- **The Rerun's replay roll is DETERMINISTIC and its pause/rewind rolls are not**, and
+  that split is load-bearing. A replay is decided inside `calcScore`, which runs on every
+  preview, so a live `Math.random()` there would make the chips disagree with the score -
+  it uses `_detReplayRand`, keyed on the card and the hand index, exactly as Wait For
+  Iiiit does. A pause or a rewind happens once, in `playHand` or the round tick, never
+  speculatively, so those roll live.
+- **The Sieve hooks `doDiscard`, NOT `discardToDrawPile`.** That function is also how the
+  board returns cards when a boss voids a cell, and those are not the player throwing
+  anything away. Measured: 52 cards -> 50 after a 2-card discard under the boss, 52 -> 52
+  with it off.
+- **The Gradient publishes `--grds` and composes it into the card transform in
+  `css/style.css`**, beside the heartbeat's `--hb*` and the freeze's `--frzr` - never
+  `el.style.transform`, or the discard fly-out and `.card.removing` would stop beating it.
+  `bossGradientPaint()` is called from the END of `render()` for the same reason
+  `reapplyClockFreeze` is: a card dealt mid-round has to arrive already the right size.
+  The SIZE is damped to a third of the pip scale (a 1.5x cell at full scale overlaps its
+  neighbour); the tint classes `.grad-up` / `.grad-dn` are what separate a shrunken card
+  from a small one.
+- **The Fog must be exempt in the hand preview.** `renderCardAppearance` gained
+  `revealFog`, passed by `score-dance.js` and the Marker's fizzle FX - a card in the
+  preview is one you have already committed to, and fogging it there hides the hand from
+  the animation explaining it.
+- **The Bookkeeper ABSORBS grants rather than overwriting the counters.** The owner's
+  call was explicitly *not* to disable Tricks and Knacks that hand a swap or a discard
+  back, so `bossPoolSync` reads the delta since its last sync: anything gained goes into
+  the shared pool, anything spent comes out of it, and both counters are then written
+  from the pool. Synced on the round tick AND from `bossOnInteract`, so the two can never
+  disagree for the second between an action and the next tick. Verified through the real
+  `doDiscard`: 4 -> 3 -> 2, and a +1 discard grant lands as 3.
+- **The Swell's cap lands on the TOTAL, not the base.** `focusCapNodes()` halves the
+  finished figure, so every entity that raises the ceiling still raises it and none of
+  those picks go dead for the round. `focusDecayIntervalNow()` is new and is now what
+  every site arming the decay timer reads - `focusDecayIntervalMs` directly would leave
+  the squeeze half-applied by whichever path happened to restart the timer. **`clearBossEffects`
+  clears the flag BEFORE restarting the timer**, or the next round decays 3x faster forever.
+- **The Magpie goes through `removeAndFall` and skips a tick while `animating || falling`** -
+  the same two rules r213 had to give The Hollow. Measured over nine thefts: the board
+  reads 16 of 16 at every reading.
+- **Two presets are gated by `bossPresetIsLive`.** The Tax Man is skipped below 15 credits
+  (arriving broke would make it a boss you lose on the first hand however well you play
+  it, which is the one thing a boss may never be) and The Drought is skipped before any
+  Natural Scaling has been earned, where it is just a plain score round.
+- **The Sommelier is a BAG, not a re-roll**, so the clean suit is never the same twice
+  running. With four suits, three marked leaves exactly one paying full; with Spectrum's
+  seven it leaves four, which is the same three-at-a-time rule scaling on its own.
+
+Measured for all sixteen in a real browser: every one starts, the board stays full through
+a window of effects, no page errors, and nothing leaks past `endBoss` - no fogged ranks, no
+`--grds` residue, Focus cap 15 -> 30 and decay 667ms -> 2000ms restored.
+
 ### #boss-banner and #boss-result were being destroyed by the reward grid (r216)
 
 Both lived **inside `#grid`**, and `js/reward-grid.js` clears that element with `innerHTML = ''` in three places. A reward grid opens at the end of **every round**, so from the first one onward both elements were gone for the rest of the run - and `triggerBoss` then threw on `banner.querySelector(...)`, **half-starting the boss**: `bossActive` true and the modifiers applied, but no briefing, no PROCEED and no clock.

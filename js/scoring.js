@@ -272,6 +272,14 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     if (_encoreHand) _retrig++; // Encore: all-odd-rank Set scores a second time
     if (_compReps) _retrig += (_compReps[_cKey] || 0); // Layered hand: this card scores again for each extra component it is in
     if (_cKey === _3rdKey) _retrig += BAL.third_charm.extra_replays; // 3rd Time's a Charm: 3rd card gets +2 replays
+    // The Rerun (boss): every replay past the first is a coin flip. Deterministic,
+    // keyed on the card and the hand index, so the preview and the committed score
+    // can never disagree - the same rule Wait For Iiiit follows.
+    if (typeof bossRerunKeepsReplay === 'function' && _retrig > 1) {
+      let _kept = 1;
+      for (let _ri = 1; _ri < _retrig; _ri++) if (bossRerunKeepsReplay(card._id || 0, _ri)) _kept++;
+      _retrig = _kept;
+    }
     retrigByKey[r + '-' + c] = _retrig;
     if (_ledgerCells) {
       // Per-card pip-trick single-iteration deltas = the change in _cp during THIS card's
@@ -327,6 +335,10 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
       restore(_cm, _cmSnapBlight);
     }
     if (_blighted && !_dead) cp = cp * 0.5;
+    // The ONE place a boss changes what this card's pips are worth (the Sommelier's
+    // marked-down suits, the Gradient's slope). A pure read - calcScore runs on
+    // every preview recompute, so nothing here may mutate boss state.
+    if (typeof bossCardPipScale === 'function') cp *= bossCardPipScale(card, r, c);
     totalPips += cp;
   });
   _lastHandProcs = _procs;         // snapshot for the Rider penalty (read in playHand)
@@ -799,6 +811,9 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // 4. x score multipliers
   // The Redaction (boss): one hand type, fixed for the round, is marked down.
   if (typeof bossRedactedHandMult === 'function') s *= bossRedactedHandMult(handName);
+  // The Grind (boss): a hand type pays less every time you repeat it inside its
+  // window. Read-only here; playHand is what pushes the history.
+  if (typeof bossGrindMult === 'function') s *= bossGrindMult(handName);
   // Last Stand / Twenty-One / Perfect Storm / Extinction were ×score until r179. A ×score
   // fires AFTER lastCalcPips/lastCalcMult are read, so it never showed in the PIPS/MULT
   // chips - the number just changed. They are ×pips / ×mult now (identical arithmetic,

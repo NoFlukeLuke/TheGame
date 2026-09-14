@@ -25,7 +25,10 @@ function focusCapNodes() {
   // Growth Spurt permanently erodes the ceiling as you repeatedly max (see onFocusMaxed).
   const gs = (typeof growthSpurtCapPenalty === 'number') ? growthSpurtCapPenalty : 0;
   const cap = focusCapBase + focusCapPerm + stim + trade - gs + onGridSleightCapBonus();
-  return Math.min(FOCUS_CAP_HARD, Math.max(FOCUS_THRESHOLD, cap));
+  // The Swell (boss): the ceiling is halved. Applied to the TOTAL, after every
+  // entity that raises it, so none of those picks become dead for the round.
+  const squeeze = (typeof bossFocusCapScale === 'function') ? bossFocusCapScale() : 1;
+  return Math.min(FOCUS_CAP_HARD, Math.max(FOCUS_THRESHOLD, Math.round(cap * squeeze)));
 }
 const FOCUS_COLORS  = ['#54af88','#3a8fbf','#7a50c0','#9a30d0'];
 

@@ -7,6 +7,10 @@ function renderCardAppearance(card, r, c, {
   isReachable  = true,
   isChallenge  = false,
   isPendingTrick  = false,
+  // The Fog hides ranks on the BOARD. A card in the hand preview or the scoring
+  // dance is one you have already committed to, so it is always shown - fogging
+  // it there would hide the hand from the animation that is explaining it.
+  revealFog       = false,
 } = {}) {
   // ── Stone (boss obstacle - falls normally, can't be played/discarded) ──
   if (!isChallenge && card._isStone) {
@@ -148,8 +152,11 @@ function renderCardAppearance(card, r, c, {
     ${isTrick ? `<div class="trick-star">⭐</div>` : ''}
     ${curseDef ? `<div class="curse-badge" title="${curseDef.name}: ${curseDef.desc}">${curseDef.icon}<span class="curse-left">${curse.left}</span></div>` : ''}
     ${combinedLabel}
-    ${isNum ? `<div class="rank num-rank${String(card.rank).length > 1 ? ' num-wide' : ''}">${card.rank}</div>`
-            : `<div class="rank">${card.rank}</div><div class="suit">${card.suit}</div>`}
+    ${(typeof bossFogHides === 'function' && bossFogHides(isSel || revealFog))
+        ? (isNum ? `<div class="rank num-rank fog-rank">?</div>`
+                 : `<div class="rank fog-rank">?</div><div class="suit">${card.suit}</div>`)
+        : (isNum ? `<div class="rank num-rank${String(card.rank).length > 1 ? ' num-wide' : ''}">${card.rank}</div>`
+                 : `<div class="rank">${card.rank}</div><div class="suit">${card.suit}</div>`)}
     ${pp ? `<div style="position:absolute;bottom:2px;left:3px;font-size:8px;font-family:'Cinzel',serif;color:#3a6fca;font-weight:700">+${pp}p</div>` : ''}
     ${pm ? `<div style="position:absolute;bottom:2px;right:3px;font-size:8px;font-family:'Cinzel',serif;color:#c0392b;font-weight:700">+${pm}m</div>` : ''}
     ${buffBandHTML('tl', pp, '#3a6fca')}

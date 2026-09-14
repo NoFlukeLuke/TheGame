@@ -414,6 +414,15 @@ function bossPresetIsLive(preset) {
   // which is a harsher and less interesting boss than the one described, so it
   // wants two as well.
   if (mods.includes('trick_rotate') && owned < 2) return false;
+  // The Tax Man bills credits per card and ends the round when you cannot pay.
+  // Arriving broke would make it a boss you lose on the first hand regardless of
+  // how well you play it, which is the one thing a boss may never be - so it
+  // wants enough in the account to be a squeeze rather than a verdict.
+  if (mods.includes('play_fee_credits') && (typeof coins !== 'undefined' ? coins : 0) < 15) return false;
+  // The Drought pays nothing out of Natural Scaling. Before anything has been
+  // earned there is nothing to take away and the boss is a plain score round.
+  if (mods.includes('no_natural_scaling') && typeof nsBonus !== 'undefined'
+      && !Object.keys(nsBonus || {}).some(k => nsBonus[k] && (nsBonus[k].pips || nsBonus[k].mult))) return false;
   return true;
 }
 
