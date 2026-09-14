@@ -53,8 +53,8 @@ const SETTINGS_DEF = [
   // quicker than the last within a hand (DANCE_CFG.beatAccel), so the ramp handles
   // long hands on its own and this stays a preference rather than a chore.
   { group: 'Motion', id: 'animSpeed', label: 'Scoring speed',
-    hint: 'How fast hands tally. Higher is faster. Interrupting a hand still rushes it regardless.',
-    type: 'slider', min: 0.5, max: 16, step: 0.5, default: 1, unit: 'x',
+    hint: 'How fast hands tally. Higher is faster. Interrupting a hand still rushes it regardless. Default 2x.',
+    type: 'slider', min: 0.5, max: 16, step: 0.5, default: 2, unit: 'x',
     apply: v => { const n = parseFloat(v); if (typeof DANCE_CFG !== 'undefined' && isFinite(n) && n > 0) DANCE_CFG.norm = n; } },
   { group: 'Motion', id: 'reducedMotion', label: 'Reduced motion', hint: 'Cuts drifting, shaking and idle flourishes. Scoring still animates.',
     type: 'toggle', default: false,

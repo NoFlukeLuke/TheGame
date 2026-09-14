@@ -1,4 +1,4 @@
-const BUILD = '2026-09-13 · r220 · scoring animates per trigger: every Trick pays out at its own moment, x mult shows as x, toasts you can read [onto r219]';
+const BUILD = '2026-09-14 · r221 · Focus lands before the tally, a card and its Tricks fire together, particles are coloured diamonds [onto r220]';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

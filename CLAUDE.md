@@ -187,14 +187,18 @@ enhancements, exalt/corrupt) with **0 mismatches**.
 - **Retrigger bookkeeping must NOT emit** (`bPipQ`, the quiet ledger write). The
   dance shows a replay by REPEATING the card's whole beat, which re-adds those pips
   on its own. Emitting them too counted every retrigger twice - 5,682 mismatches.
-- **A particle applies its number in its LANDING callback, so a beat's events fire
-  ONE AT A TIME.** Launching a beat's particles together cannot preserve order two
-  different ways: `dncFly` bumps the accel per particle, so each successive flight
-  is SHORTER and they land in reverse; and even pinned to one duration they race,
-  because `dncWait` polls on a 60ms tick rather than firing in registration order.
-  Measured on a card carrying a x3 and a x2 - **466 pips reversed, 512 racing, 416
-  correct**. Firing sequentially is also simply what Balatro does, and the accel
-  ramp is what keeps a heavily-buffed card from taking all day.
+- **A beat fires ALL AT ONCE, but its values are applied by ONE timer in emission
+  order (r221).** A card and everything it triggered are one event, so they leave
+  and land together - no stagger. The trap is that a particle used to apply its
+  number in its OWN landing callback, and a beat launched together could not keep
+  those in order two different ways: `dncFly` bumps the accel per particle, so
+  each successive flight is SHORTER and they land in reverse; and even pinned to
+  one duration they race, because `dncWait` polls on a 60ms tick rather than
+  firing in registration order. Measured on a card carrying a x3 and a x2 - **466
+  pips reversed, 512 racing, 416 correct**. So the values are decoupled from the
+  particles: `fireEvent(..., defer)` RETURNS the apply function instead of wiring
+  it to its own landing, every particle in the beat gets one shared duration, and
+  a single `dncWait` applies them in order when they arrive.
 - **A beat must also await its particles before banking the card's subtotal**, or
   the next step's x mult runs against a number that has not arrived. Measured: a x2
   landing ahead of a +9 finished on 13 mult, not 26.
@@ -243,10 +247,51 @@ corner card. Firing it per corner card is a one-line move into the loop and it
 **changes the score** (`(T*m)*m` over the finished total is not the same as applying
 x m twice mid-loop), so it wants a balance decision, not a quiet edit.
 
+### Focus lands BEFORE the tally (r221)
+
+The Focus a hand earns - its complexity, how fast it was played, and any Trick
+that hands out Focus - is generated in `playHand` **before** scoring, and it
+multiplies **that same hand**. The dance said the opposite: the FOCUS chip sat at
+the pre-hand value through the whole tally and only climbed at the very end,
+which reads as "this multiplier applies to the NEXT hand".
+
+It is the same number either way; only *when the player is told it changed* moved.
+The chip now settles on the multiplier the hand is actually being scored with
+**before a single card scores**, so the rest of the tally runs underneath a FOCUS
+box that is already telling the truth. `focusActive` is computed once where the
+chips are first written, so the beat and the settle cannot disagree.
+
+### The score particle is a coloured diamond (r221) - `particle-preview.html`
+
+A particle was bare serif text with a drop shadow, competing with a board of cream
+playing cards and a lit HUD. It is a small **diamond plate**, coloured by the chip
+it is flying into and lettered in white Orbitron: **pips blue** (the PIPS chip's
+own border colour), **mult red**, Focus violet, credits gold, time clock-blue - so
+the colour says what is changing before the number is read, and an opaque plate is
+legible over anything behind it. A multiply is the same hue, brighter.
+
+- **`PARTICLE_CFG` in `js/score-dance.js` is the whole shape**, and
+  **`particle-preview.html`** is where it is tuned: a mock HUD, the real flight, a
+  knob for every value, and a Dump button that prints the block to paste back.
+  Shapes are diamond / square / circle / pill / **none** (the pre-r221 bare text,
+  kept as an option). Sizes are multiplied by `DANCE_CFG.pScaleMul` (1.15).
+- **TWO nested elements, and that is load-bearing.** `.dnc-particle` is the FLIGHT
+  element - `dncFly` animates its transform every frame - and `.pt-box` is the
+  plate. A diamond IS a 45deg rotation, so on one element the flight's transform
+  would overwrite it; the box rotates and `.pt-lab` counter-rotates so the text
+  stays upright.
+- **The border is the plate's own hue lightened** (`_ptLighten`), not a separate
+  colour, so the diamond reads as one object rather than as an outline around a
+  fill.
+- `evKind(ev)` maps a timeline event to its colour family. The old per-op text
+  colours are kept but are now read ONLY by the no-plate shape.
+
 ### Scoring speed is a slider, and bursts are timed (r220)
 
 - **Settings > Motion > Scoring speed** is a **0.5x-16x slider** (was four presets),
-  writing `DANCE_CFG.norm`. It applies to the goal hand too: a player who set 8x has
+  **defaulting to 2x** (r221), writing `DANCE_CFG.norm`. The `norm:1` in
+  `DANCE_CFG` is only the value before settings apply, not the shipped default -
+  and nothing about the timing MATH changed, the slider just starts at 2. It applies to the goal hand too: a player who set 8x has
   said what they want to watch, and having the one hand that ends the round ignore
   them reads as a stall, not as ceremony.
 - **The per-payout acceleration is the dance clock's** (`dncBumpAccel` /

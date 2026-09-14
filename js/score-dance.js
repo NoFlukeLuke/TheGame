@@ -137,12 +137,55 @@ const DANCE_CFG = {
   actA:{cls:'dnc-pulse',dur:420,mag:1.0}, actB:{cls:'dnc-flash',dur:420,mag:0.4},
   trig:{cls:'dnc-pop',dur:260,mag:0.7}, jitInit:0.10, jitGrow:0.18,
   tickRest:600, pFlight:550, scoreClimb:1250, ff:15, pScale:2.6,
+  // The plate's size multiplier, on top of PARTICLE_CFG.size. 1.15 is the owner's
+  // "+15%". pScale above is the OLD bare-text scale and is now unused by the
+  // plate shapes - it still drives the no-plate fallback.
+  pScaleMul:1.15,
   // Base tally speed multiplier for ordinary hands. 1 = full speed (ordinary
   // hands are NOT globally sped up - only a hand interrupted by a NEW hand
   // fast-forwards, via danceInterruptMode below). Kept as a hook the win finale's
   // fast-forward button can raise. `ff` (15×) is the separate "illegible" speed.
+  // Overwritten at load by Settings > Motion > Scoring speed (default 2x). The 1
+  // here is only the value before settings apply; it is not the shipped default.
   norm:1,
 };
+// ══════════════════════════════════════════════
+// SCORE PARTICLE (r221) - tuned in particle-preview.html
+// ══════════════════════════════════════════════
+// A particle used to be bare serif text with a drop shadow, which had to compete
+// with a board of cream playing cards and a lit HUD behind it. It is a small
+// DIAMOND PLATE now, coloured by the chip it is flying into and lettered in
+// white: the colour says what is changing before the number is even read, and an
+// opaque plate is legible over anything.
+//
+// Open particle-preview.html, tune, press Dump, and paste the block it prints
+// over this one. `colors` are keyed by the particle kind (see evKind).
+const PARTICLE_CFG = {
+  shape: 'diamond',          // diamond | square | circle | pill | none
+  size: 40,                  // px, the plate
+  font: 14,                  // px, the label
+  round: 4, borderW: 1.5, borderLight: 45, glow: 10,
+  ink: '#ffffff',
+  colors: {
+    pipAdd:  '#2f6bd8',      // pips are blue, the PIPS chip's own border colour
+    pipMul:  '#1f9ad8',      // a multiply is the same hue, brighter
+    multAdd: '#c0202c',      // mult is red, the MULT chip's colour
+    multMul: '#e0533a',
+    focus:   '#8a4fd0',
+    credits: '#c9a84c',
+    time:    '#3f9ad0',
+  },
+};
+// Lighten a hex toward white. The border is the plate's own hue brightened, not
+// a separate colour, so the diamond reads as one object rather than as an
+// outline around a fill.
+function _ptLighten(hex, pct){
+  const n = parseInt(String(hex).slice(1), 16);
+  if (!isFinite(n)) return hex;
+  const t = (pct || 0) / 100, m = v => Math.round(v + (255 - v) * t);
+  return `rgb(${m(n>>16)},${m((n>>8)&255)},${m(n&255)})`;
+}
+
 let newDanceEnabled = (function(){ try { return localStorage.getItem('newDance') !== '0'; } catch(e){ return true; } })();
 function setNewDance(on){ newDanceEnabled = !!on; try { localStorage.setItem('newDance', on ? '1' : '0'); } catch(e){} }
 
@@ -614,11 +657,29 @@ function dncTick(el){ if(!el) return; el.style.animation='none'; void el.offsetW
 // beat fired in one go had its particles LAND IN REVERSE ORDER - and since a
 // particle applies its number on landing, that reverses the arithmetic. On a card
 // carrying a x3 and a x2 it finished on 466 pips instead of 416.
-function dncFly(srcEl, boxEl, label, color, onLand, durOverride){
+// `kind` picks the plate colour out of PARTICLE_CFG.colors; `color` stays the
+// legacy text colour and is used only by the no-plate shape.
+function dncFly(srcEl, boxEl, label, color, onLand, durOverride, kind){
   const a=srcEl.getBoundingClientRect(), b=boxEl.getBoundingClientRect();
-  const el=document.createElement('div'); el.className='dnc-particle'; el.textContent=label; el.style.color=color;
+  const C=PARTICLE_CFG, bg=(C.colors && C.colors[kind]) || color || '#d4a857';
+  const el=document.createElement('div');
+  el.className='dnc-particle pt-'+(C.shape||'diamond');
+  // Two nested elements, deliberately: the OUTER is what the flight animates, so
+  // the diamond's own 45deg rotation has to live on an inner box or the flight's
+  // transform would overwrite it every frame. The label counter-rotates.
+  el.innerHTML='<span class="pt-box"><span class="pt-lab"></span></span>';
+  el.querySelector('.pt-lab').textContent=label;
   el.style.left=(a.left+a.width/2)+'px'; el.style.top=(a.top+a.height/2)+'px';
+  el.style.color=color;                       // only read by the no-plate shape
   el.style.setProperty('--dnc-pscale', DANCE_CFG.pScale);
+  el.style.setProperty('--pt-size', (C.size*DANCE_CFG.pScaleMul)+'px');
+  el.style.setProperty('--pt-font', (C.font*DANCE_CFG.pScaleMul)+'px');
+  el.style.setProperty('--pt-round', C.round+'px');
+  el.style.setProperty('--pt-bw', C.borderW+'px');
+  el.style.setProperty('--pt-bg', bg);
+  el.style.setProperty('--pt-bc', _ptLighten(bg, C.borderLight));
+  el.style.setProperty('--pt-ink', C.ink);
+  el.style.setProperty('--pt-glow', C.glow+'px');
   document.body.appendChild(el);
   const dx=(b.left+b.width/2)-(a.left+a.width/2), dy=(b.top+b.height/2)-(a.top+a.height/2);
   const dur = durOverride || (dncFF ? Math.max(60, DANCE_CFG.pFlight/DANCE_CFG.ff) : Math.max(60, DANCE_CFG.pFlight/dncPace()));
@@ -961,7 +1022,29 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   let rm = (typeof _ledger.baseMult === 'number') ? _ledger.baseMult : baseMult;
   if(pipsEl) pipsEl.textContent=rp; if(multEl) multEl.textContent=(rm%1===0)?rm:rm.toFixed(1);
   if(focusEl) focusEl.textContent=_fmtFocus(preHandFocus);   // FOCUS starts at the hand's pre-scoring multiplier
+  // Did this hand's own Focus change the multiplier? Answered here so the beat
+  // below and the settle further down agree on it.
+  const focusActive = (targetFocus > 1 || targetFocus !== preHandFocus);
   await dwait(DANCE_CFG.tickRest); if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
+
+  // ── FOCUS FIRST (r221) ──
+  // The Focus this hand earned - its complexity, how fast it was played, and any
+  // Trick that hands out Focus - is generated in `playHand` BEFORE scoring, and it
+  // multiplies THIS hand. The dance said the opposite: the chip sat at the
+  // pre-hand value through the whole tally and only climbed at the very end,
+  // which reads as "that multiplier applies to the NEXT hand". It is the same
+  // number either way; only when the player is told it changed.
+  //
+  // So the chip settles on the multiplier this hand is actually being scored with
+  // before a single card scores, and the rest of the tally runs underneath a
+  // FOCUS box that is already telling the truth.
+  if(focusActive){
+    if(focusEl) focusEl.textContent=_fmtFocus(targetFocus);
+    const fb=document.getElementById('focus-box'); if(fb){ fb.classList.remove('focus-beat'); void fb.offsetWidth; fb.classList.add('focus-beat'); }
+    if(typeof updateFocusMultReadout==='function') updateFocusMultReadout(true);
+    if(typeof sfxFocusBeat==='function') sfxFocusBeat();
+    await dwait(DANCE_CFG.tickRest); if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
+  }
 
   // ── THE TALLY - one ordered walk of the timeline ──
   // Every entity is STILL until its own event fires. There is no charge-up phase
@@ -981,7 +1064,12 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   // A x lands on the chip it multiplies, so it is read as an operation on that
   // number rather than as one more addend. Pips fly gold, mult violet, a multiply
   // in the hotter shade of its own colour.
+  // Legacy text colours - used only by PARTICLE_CFG.shape 'none'. The plate
+  // shapes colour themselves from PARTICLE_CFG.colors via evKind below.
   const COL = { pipAdd:'#d4a857', pipMul:'#ff9d3c', multAdd:'#b07dea', multMul:'#ff6bd6', card:'#5a8fe0' };
+  // Which colour family this event belongs to. A card's own pips are pips.
+  const evKind = ev => ev.op==='pip+' ? 'pipAdd' : ev.op==='pip*' ? 'pipMul'
+                     : ev.op==='mult+' ? 'multAdd' : 'multMul';
   const evLabel = ev => ev.op==='pip+'||ev.op==='mult+' ? '+'+(ev.op==='pip+'?Math.round(ev.value):fmtM(ev.value))
                                                         : '\u00d7'+fmtM(Math.round(ev.value*100)/100);
   const evColor = ev => ev.op==='pip+' ? (ev.id==='_card'?COL.card:COL.pipAdd)
@@ -997,7 +1085,10 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   // subtotal at zero, so the multiply multiplied nothing: measured at 171 pips on a
   // hand worth 228. Mult has no per-card subtotal - calcScore accumulates per-card
   // mult into the hand mult additively - so mult ops always land on `rm`.
-  const fireEvent = (ev, fallbackEl, subRef, awaitIt, inBeat, dur) => {
+  // `defer` returns the apply-the-number function instead of wiring it to this
+  // particle's own landing, so a whole beat can launch together and still apply
+  // its values in emission order (see the beat loop below).
+  const fireEvent = (ev, fallbackEl, subRef, awaitIt, inBeat, dur, defer) => {
     const el = ev.id==='_card' ? null : elById[ev.id];
     if(el) dncReleaseReal(el);
     const src = el || fallbackEl;
@@ -1009,8 +1100,8 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
       else { rm = _rnd(rm*ev.value, ev.rnd); showMult(); }
       if(typeof sfxParticleStep==='function') sfxParticleStep((ev.op==='pip+'||ev.op==='pip*')?'pip':'mult');
     };
-    const p = dncFly(src, box, evLabel(ev), evColor(ev), land, dur);
-    return awaitIt ? p : null;
+    const p = dncFly(src, box, evLabel(ev), evColor(ev), defer ? null : land, dur, evKind(ev));
+    return defer ? land : (awaitIt ? p : null);
   };
 
   // `!skipBeats` short-circuits the walk rather than wrapping it in a block - same
@@ -1053,23 +1144,28 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
       // letting the next step's x mult run - while one is still in flight applies
       // the two out of order. Measured before this await: a x2 landing ahead of a
       // +9 finished the hand on 13 mult instead of 26.
-      // SEQUENTIALLY, and that is not a stylistic choice. A particle applies its
-      // number when it LANDS, so the landings have to happen in the order the
-      // events were emitted or the arithmetic comes out in a different order -
-      // which matters the moment a beat contains a multiply. Launching them
-      // together cannot give that: dncFly's accel bump shortens each successive
-      // flight (they then land in REVERSE), and even pinned to one duration they
-      // race, because dncWait polls on a 60ms tick rather than firing in
-      // registration order. Measured on a card carrying a x3 and a x2: 466 pips
-      // reversed, 512 racing, 416 correct.
+      // ALL AT ONCE (r221). A card and everything it triggered are one event, so
+      // they leave together and land together - no stagger.
       //
-      // Firing one at a time is also simply what Balatro does, and the accel ramp
-      // (5% compounding per payout, to 8x) is what keeps a heavily-buffed card
-      // from taking all day.
-      for(let ei=0; ei<step.events.length; ei++){
-        await fireEvent(step.events[ei], cardEl, subRef, true, true);
-        if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
-      }
+      // The ordering trap this has to dodge: a particle used to apply its number
+      // in its OWN landing callback, and launching a beat together could not keep
+      // those in order two different ways - dncFly bumps the accel per particle,
+      // so each successive flight is shorter and they land in REVERSE; and even
+      // pinned to one duration they race, because dncWait polls on a 60ms tick
+      // rather than firing in registration order. Measured on a card carrying a
+      // x3 and a x2: 466 pips reversed, 512 racing, 416 correct.
+      //
+      // So the values are decoupled from the particles: every particle in the
+      // beat is launched with ONE shared duration and NO landing callback
+      // (`defer`), and a single timer applies all of them, in emission order, at
+      // the moment they arrive. Simultaneous on screen, strictly ordered in the
+      // arithmetic.
+      const beatDur = dncFF ? Math.max(60, DANCE_CFG.pFlight/DANCE_CFG.ff)
+                            : Math.max(60, DANCE_CFG.pFlight/dncPace());
+      const applies = step.events.map(ev => fireEvent(ev, cardEl, subRef, false, true, beatDur, true));
+      await dncWait(beatDur);
+      if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
+      applies.forEach(fn => { if(fn) fn(); });
       // The card's pips join the hand total once its own beat has resolved, so a
       // card-scoped multiply has something of its own to multiply.
       rp += subRef.v; showPips(0);
@@ -1103,15 +1199,6 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   rp = _finalPips; rm = _finalMult;
   if(pipsEl) pipsEl.textContent = Math.round(_finalPips);
   if(multEl) multEl.textContent = fmtM(Math.round(_finalMult*10)/10);
-
-  // ── FOCUS beat - the box updates from the hand's starting multiplier to the post-Focus one ──
-  if(targetFocus>1 || targetFocus!==preHandFocus){
-    if(focusEl) focusEl.textContent=_fmtFocus(targetFocus);
-    const fb=document.getElementById('focus-box'); if(fb){ fb.classList.remove('focus-beat'); void fb.offsetWidth; fb.classList.add('focus-beat'); }
-    if(typeof updateFocusMultReadout==='function') updateFocusMultReadout(true);
-    if(typeof sfxFocusBeat==='function') sfxFocusBeat();
-    await dwait(DANCE_CFG.tickRest); if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
-  }
 
   // ── PMF merge ── all three chips have landed on their totals, so they stop
   // being three numbers and become one: this hand's score. Jitter, fuse, then
