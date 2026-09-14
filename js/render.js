@@ -295,5 +295,6 @@ function render() {
   // A card dealt in while the clock is frozen arrives untilted - put it back in
   // line with the rest of the held board (js/clock-fx.js). No-ops when running.
   if (typeof reapplyClockFreeze === 'function') reapplyClockFreeze();
+  if (typeof bossGradientPaint === 'function') bossGradientPaint();
 }
 

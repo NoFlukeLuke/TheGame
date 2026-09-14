@@ -62,6 +62,10 @@ function nsSlot(name) { return nsBonus[name] || (nsBonus[name] = { pips: 0, mult
 // always has: it is already the top of the table.)
 function naturalScaleBonus(handName) {
   if (!nsEnabled) return { pips: 0, mult: 0 };
+  // The Drought (boss): everything this run has earned counts for nothing until
+  // the round is over. The accumulator is untouched - it simply stops paying.
+  if (typeof bossNoScaling !== 'undefined' && bossNoScaling && bossActive
+      && !(typeof bossEffectsIgnored === 'function' && bossEffectsIgnored())) return { pips: 0, mult: 0 };
   const own = nsBonus[handName];
   if (typeof hasKnack !== 'function' || !hasKnack('old_tricks')) return own ? { pips: own.pips, mult: own.mult } : { pips: 0, mult: 0 };
   let pips = own ? own.pips : 0, mult = own ? own.mult : 0;

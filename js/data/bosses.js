@@ -182,6 +182,159 @@ const BOSS_PRESETS = [
     objective: { type: 'score' },
     modifiers: ['redact_hand'],
     params: { mult: 0.25, holdSecs: 90 }
+  },
+
+  // ══════════════════════════════════════════════
+  // THE r217 ROSTER
+  // ══════════════════════════════════════════════
+  // Sixteen bosses, all built to one rule the owner set: a boss may make a play
+  // style COST more or PAY less, but it may never make one impossible. Nothing
+  // here says "you cannot play runs". The harshest of them mark a family or a set
+  // of suits DOWN and always leave something paying full - which is what makes
+  // the round a plan rather than a wall.
+  {
+    id: 'the_quota',
+    name: 'THE QUOTA',
+    flavor: 'Show your work, or start again',
+    brief: 'Three deadlines inside the round: a fifth of the goal by the first third, two fifths by the second, three fifths by the third. Miss one and your score goes back to zero - the round is not lost, but everything you banked is. The last stretch has no deadline, which is when a loadout is meant to pay.',
+    objective: { type: 'score' },
+    modifiers: ['score_quota'],
+    params: { shares: [0.2, 0.4, 0.6] }
+  },
+  {
+    id: 'the_tax_man',
+    name: 'THE TAX MAN',
+    flavor: 'One credit a card, payable on play',
+    brief: 'Every hand costs credits equal to how many cards were in it. Big hands are still the best hands, they just cost more. The hand scores first and the bill comes after, so a hand you cannot afford still counts if it is the one that wins. Run out of credits and the round is over.',
+    objective: { type: 'score' },
+    modifiers: ['play_fee_credits'],
+    params: { perCard: 1 }
+  },
+  {
+    id: 'the_grind',
+    name: 'THE GRIND',
+    flavor: 'It worked the first time',
+    brief: 'A hand type pays 15% less every time you repeat it, and only forgets after five other hands. Nothing is switched off - your best hand is still your best hand, it just stops being the answer to everything. Move down the ladder and come back to it.',
+    objective: { type: 'score' },
+    modifiers: ['repeat_decay'],
+    params: { rate: 0.15, window: 5 }
+  },
+  {
+    id: 'the_drought',
+    name: 'THE DROUGHT',
+    flavor: 'Everything you learned, forgotten',
+    brief: 'Natural Scaling pays nothing for this round. Every bonus your hands have earned over the run is still there and comes back the moment the round ends - it just does not count right now. You are playing on the printed rate card.',
+    objective: { type: 'score' },
+    modifiers: ['no_natural_scaling'],
+    params: {}
+  },
+  {
+    id: 'the_inspector',
+    name: 'THE INSPECTOR',
+    flavor: 'One hand, on the record, regularly',
+    brief: 'A hand type is named up front, and it has to appear at least every 45 seconds. Miss a check and a fifth of your score goes. It is always something this mode actually deals, and playing it early in each window costs you nothing but the hand.',
+    objective: { type: 'score' },
+    modifiers: ['hand_inspection'],
+    params: { everySecs: 45, penalty: 0.2 }
+  },
+  {
+    id: 'the_ledger',
+    name: 'THE LEDGER',
+    flavor: 'The number keeps being revised',
+    brief: 'The goal climbs by 15% of what it started at, every 30 seconds, for the whole round. It is a straight line rather than a spiral - it does not compound - so the arithmetic is knowable from the first minute: the longer you take, the further away it is.',
+    objective: { type: 'score' },
+    modifiers: ['goal_creep'],
+    params: { rate: 0.15, everySecs: 30 }
+  },
+  {
+    id: 'short_fuse',
+    name: 'SHORT FUSE',
+    flavor: 'Ninety seconds. Go.',
+    brief: 'Half the usual window and half the usual goal. The arithmetic is even, so this is not about scoring more - it is about whether your loadout can get going at all in ninety seconds. Anything that builds slowly is worth less here than anything that starts hot.',
+    objective: { type: 'score' },
+    modifiers: ['short_window'],
+    params: { seconds: 90, goalMult: 0.5 }
+  },
+  {
+    id: 'the_sommelier',
+    name: 'THE SOMMELIER',
+    flavor: 'Only one of these is acceptable',
+    brief: 'Three suits at a time score 60% of their pips, for a minute, then a different three. Exactly one suit is paying full at any moment and it is never the same one twice running - so the round is: find it, build on it, and be ready to move when it turns.',
+    objective: { type: 'score' },
+    modifiers: ['suit_markdown'],
+    params: { mult: 0.6, holdSecs: 60, count: 3 }
+  },
+  {
+    id: 'the_sieve',
+    name: 'THE SIEVE',
+    flavor: 'What you throw away is gone',
+    brief: 'Discarded cards do not go back into the deck. You still have every discard you always had - they simply cost you the card as well as the time. A round of heavy discarding leaves you with a thinner deck to finish it on.',
+    objective: { type: 'score' },
+    modifiers: ['no_discard_return'],
+    params: {}
+  },
+  {
+    id: 'the_fog',
+    name: 'THE FOG',
+    flavor: 'You will have to look',
+    brief: 'Card ranks are hidden until you select a card. Suits stay visible the whole time, so a flush can still be spotted at a glance and a run has to be uncovered one card at a time. Selecting is how you read the board.',
+    objective: { type: 'score' },
+    modifiers: ['hide_ranks'],
+    params: {}
+  },
+  {
+    id: 'the_gradient',
+    name: 'THE GRADIENT',
+    flavor: 'Where you play is worth something',
+    brief: 'The board is a slope. One edge pays half, the opposite edge pays half again on top, and everything between is in between. It turns a quarter turn every 40 seconds. Cards on the paying end are visibly bigger and cards on the poor end visibly smaller, so you can read it without counting cells.',
+    objective: { type: 'score' },
+    modifiers: ['score_gradient'],
+    params: { lo: 0.5, hi: 1.5, everySecs: 40 }
+  },
+  {
+    id: 'the_swell',
+    name: 'THE SWELL',
+    flavor: 'It fills fast and it empties faster',
+    brief: 'Focus decays three times as quickly and the ceiling is half of what it was. Everything you own that raises the ceiling still raises it - the halving lands on the total - so a Focus build is not dead here, it is just working for a much shorter breath.',
+    objective: { type: 'score' },
+    modifiers: ['focus_squeeze'],
+    params: { decayMult: 3 }
+  },
+  {
+    id: 'the_bookkeeper',
+    name: 'THE BOOKKEEPER',
+    flavor: 'One column for both',
+    brief: 'Swaps and discards come out of one shared pool of four for the whole round, and it does not refill. Anything you own that hands a swap or a discard back still works - what it hands back goes into the same pool. Every touch of the board is now the same decision.',
+    objective: { type: 'score' },
+    modifiers: ['shared_pool'],
+    params: { pool: 4 }
+  },
+  {
+    id: 'the_rerun',
+    name: 'THE RERUN',
+    flavor: 'Half of it does not take',
+    brief: 'Replays, pauses and rewinds each have a 50% chance of simply not happening. None of it is switched off - a loadout built on any of the three still works, it just works about half as often. A miss says so on screen, so you always know which way the coin fell.',
+    objective: { type: 'score' },
+    modifiers: ['effect_miss'],
+    params: { chance: 0.5 }
+  },
+  {
+    id: 'the_magpie',
+    name: 'THE MAGPIE',
+    flavor: 'It takes the shiny ones',
+    brief: 'Every 20 seconds the two highest cards on the board are taken. The board refills straight away, so you never lose the cell - you lose the card you were building around, on a clock you can see coming.',
+    objective: { type: 'score' },
+    modifiers: ['steal_high'],
+    params: { everySecs: 20, count: 2 }
+  },
+  {
+    id: 'stale_deck',
+    name: 'THE STALE DECK',
+    flavor: 'Bottom of the box first',
+    brief: 'The deck is reordered least-played first, so the round opens on whatever this run has never found a use for. Nothing is added and nothing is taken away - your good cards are still in there, they are just all at the back.',
+    objective: { type: 'score' },
+    modifiers: ['stale_order'],
+    params: {}
   }
 ];
 

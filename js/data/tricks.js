@@ -286,6 +286,11 @@ let dealPhase = false; // true while deal anims are running - suppresses render(
 
 let score = 0;      // current round's score - resets to 0 at the start of every round
 let totalScore = 0; // lifetime total banked from completed rounds; display-only (end-of-run screens)
+// The round just finished, and the goal it was measured against. Written by
+// triggerLevelUp at the moment it banks and zeroes `score`, read by the
+// between-rounds score panel (js/hud.js). Display-only; nothing scores off them.
+let lastRoundScore = 0;
+let lastRoundGoal  = 0;
 let roundGoal = BASE_GOAL;      // this round's score target, from zero
 let level = 1;
 

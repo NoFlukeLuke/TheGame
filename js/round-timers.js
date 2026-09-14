@@ -146,6 +146,12 @@ function startRoundTimer() {
       // Voidwright's halftime flip AND the Censor's suspensions expiring, neither
       // of which has an event of its own.
       if (typeof bossSyncTrickTrayState === 'function') bossSyncTrickTrayState();
+      // The Quota's deadlines are moments on the clock, not intervals - the
+      // Metronome can eat several seconds in one tick, so they are tested as
+      // "the clock has passed this" rather than fired at it.
+      if (typeof bossQuotaTick === 'function') bossQuotaTick();
+      // The Bookkeeper absorbs anything a Trick handed back into the shared pool.
+      if (typeof bossPoolSync === 'function') bossPoolSync();
       if (bossPhase === 1 && roundSeconds <= Math.floor(bossWindowDuration / 2)) {
         bossPhase = 2;
         updateBossObjectiveUI();
@@ -385,16 +391,36 @@ function showMessage(text, color, opts) {
   const badge = document.createElement('span'); badge.className = 'toast-x'; badge.hidden = true; el.appendChild(badge);
   layer.appendChild(el);
 
-  while (layer.children.length > TOAST_MAX) dismissToast(layer.firstElementChild, true);
+  // Trim the overflow. This counts children to decide when to stop, so the
+  // dismissal it calls HAS to remove the node synchronously - see dismissToast.
+  // The extra guard is belt and braces: if a child ever refuses to leave, stop
+  // rather than spin. A `while` over a count nothing decrements is a hard hang,
+  // and this one froze the whole page the moment a 5th toast arrived.
+  while (layer.children.length > TOAST_MAX) {
+    const victim = layer.firstElementChild;
+    dismissToast(victim, true);
+    if (layer.firstElementChild === victim) { victim.remove(); break; }
+  }
   el._toastTimer = setTimeout(() => dismissToast(el), o.ms || TOAST_MS);
   return el;
 }
 
+// `now` means GONE NOW, not "fade faster". The overflow trim in showMessage
+// counts layer.children to decide when to stop, so a dismissal that only
+// scheduled the removal left the count unchanged and the loop spinning - and a
+// toast already wearing .toast-out returned at the top without removing anything,
+// which made the spin permanent. Both are handled here rather than at the call
+// site so any future caller of dismissToast(el, true) gets the same guarantee.
 function dismissToast(el, now) {
-  if (!el || el.classList.contains('toast-out')) return;
+  if (!el) return;
+  if (el.classList.contains('toast-out')) {
+    if (now && el.parentNode) el.remove();
+    return;
+  }
   clearTimeout(el._toastTimer);
   el.classList.add('toast-out');
-  setTimeout(() => { if (el.parentNode) el.remove(); }, now ? 0 : 260);
+  if (now) { if (el.parentNode) el.remove(); return; }
+  setTimeout(() => { if (el.parentNode) el.remove(); }, 260);
 }
 
 // ══════════════════════════════════════════════

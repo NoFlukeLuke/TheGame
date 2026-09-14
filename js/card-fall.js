@@ -7,6 +7,10 @@ function renderCardAppearance(card, r, c, {
   isReachable  = true,
   isChallenge  = false,
   isPendingTrick  = false,
+  // The Fog hides ranks on the BOARD. A card in the hand preview or the scoring
+  // dance is one you have already committed to, so it is always shown - fogging
+  // it there would hide the hand from the animation that is explaining it.
+  revealFog       = false,
 } = {}) {
   // ── Stone (boss obstacle - falls normally, can't be played/discarded) ──
   if (!isChallenge && card._isStone) {
@@ -102,13 +106,14 @@ function renderCardAppearance(card, r, c, {
   // their cards, so Perfect Timing, Right Time, Study Hall, Groove, Assembly
   // Line and Overtime marked a line the player could not see. One ring, in the
   // owning Trick's colour, covers all nine.
-  const _lineMeta   = (typeof cellOnMarkedLine === 'function') ? cellOnMarkedLine(r, c) : null;
-  const rcOnLine    = _lineMeta ? ' rc-on-line' : '';
+  // A card can sit on SEVERAL marked lines at once, so the ring divides itself
+  // evenly between their colours rather than naming one of them (js/entity-fx.js).
+  const _lineMetas  = (typeof lineMetasForCell === 'function') ? lineMetasForCell(r, c) : [];
+  const rcOnLine    = _lineMetas.length ? ' rc-on-line' : '';
   // The ring is an inner element rather than a class + a CSS variable, because
   // renderCardAppearance returns className and innerHTML only - it has nowhere
   // to hang a per-card custom property.
-  const lineRing    = _lineMeta
-    ? `<div class="rc-line-ring" style="--rcl:${_lineMeta.color}" title="${_lineMeta.name}"></div>` : '';
+  const lineRing    = (typeof lineRingHTML === 'function') ? lineRingHTML(r, c) : '';
   const fxMark      = (typeof cardMarkHTML === 'function') ? cardMarkHTML(r, c) : '';
   // A boss hold greys the card and puts its countdown on it (js/cooldown.js).
   const _cd = (typeof cardCooldownParts === 'function') ? cardCooldownParts(card, r, c) : { cls: '', html: '' };
@@ -148,8 +153,11 @@ function renderCardAppearance(card, r, c, {
     ${isTrick ? `<div class="trick-star">⭐</div>` : ''}
     ${curseDef ? `<div class="curse-badge" title="${curseDef.name}: ${curseDef.desc}">${curseDef.icon}<span class="curse-left">${curse.left}</span></div>` : ''}
     ${combinedLabel}
-    ${isNum ? `<div class="rank num-rank${String(card.rank).length > 1 ? ' num-wide' : ''}">${card.rank}</div>`
-            : `<div class="rank">${card.rank}</div><div class="suit">${card.suit}</div>`}
+    ${(typeof bossFogHides === 'function' && bossFogHides(isSel || revealFog))
+        ? (isNum ? `<div class="rank num-rank fog-rank">?</div>`
+                 : `<div class="rank fog-rank">?</div><div class="suit">${card.suit}</div>`)
+        : (isNum ? `<div class="rank num-rank${String(card.rank).length > 1 ? ' num-wide' : ''}">${card.rank}</div>`
+                 : `<div class="rank">${card.rank}</div><div class="suit">${card.suit}</div>`)}
     ${pp ? `<div style="position:absolute;bottom:2px;left:3px;font-size:8px;font-family:'Cinzel',serif;color:#3a6fca;font-weight:700">+${pp}p</div>` : ''}
     ${pm ? `<div style="position:absolute;bottom:2px;right:3px;font-size:8px;font-family:'Cinzel',serif;color:#c0392b;font-weight:700">+${pm}m</div>` : ''}
     ${buffBandHTML('tl', pp, '#3a6fca')}

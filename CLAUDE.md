@@ -247,6 +247,57 @@ corner card. Firing it per corner card is a one-line move into the loop and it
 **changes the score** (`(T*m)*m` over the finished total is not the same as applying
 x m twice mid-loop), so it wants a balance decision, not a quiet edit.
 
+### Per-card payers (r226) - "a rate x a number of cards"
+
+Seventeen Tricks pay a rate times a COUNT OF CARDS - Get Even is +2 mult per even
+card - and every one was still a single hand-level lump at the end of the tally.
+Owner's report: "the trick did not contribute the mult as the cards animated, it
+gave +6 mult at the end, that's incorrect."
+
+**`PER_CARD_PAYERS` in `calcScore` is that whole class as a table**, so a new one
+is a row rather than another fix: Get Even, Odd One In, Early Bird, Night Owl,
+Overgrowth, Long Road, Correct Run, Edge Pips, Full Colour, Balanced Diet,
+Column Rush, Row Power, Heavy Hand, Prime Time, Quake and Shock. Each row is
+`{ id, cond, pays }` - `cond` is evaluated ONCE before the card loop from facts
+already known there (`_pcCtx`), `pays(card, ctx)` returns what THIS card earns.
+
+**Two rules keep the score byte-identical:**
+- **NOT replay-weighted.** These read `cells.length`, not a replay-weighted count,
+  so a card that scores three times still pays them once. The events carry
+  **`once`** and the dance applies those on a card's FIRST beat only - otherwise a
+  replayed card would pay again and the running chip would drift above the real
+  total. (Contrast the r220 per-card MULT accumulators, which DO multiply by
+  `_retrig`, because the `_wc` sweeps they replaced were replay-weighted.)
+- **Emitted at the END of the card's block**, after `totalPips += cp`, so a pip
+  lands outside that card's own subtotal and is never multiplied by a card-scoped
+  x pips (Humble Roots, a card enhancement, the Blight). Each accumulator is still
+  ADDED at that Trick's original site further down, so nothing moves in the order
+  of operations either.
+
+**FLOW STATE IS DELIBERATELY NOT IN THE TABLE**, and the reference test is what
+caught it. Its payment sits **after** the x pips block (it is grouped with the
+Focus step), so every other pip in the hand has already been multiplied by
+Undertow / Scalper / Knave Power / Interest by the time it lands, and it escapes
+all of them. Paying it inside a card's beat puts it in FRONT of those multiplies -
+measured at **459 pips on a hand worth 430**. Moving its site up into the additive
+region would let those multiply it, which is a balance decision rather than an
+animation one. **Any future row has to sit in the additive region for the same
+reason** - check where the Trick's `totalPips +=` actually is before adding it.
+
+**Get Even and Odd One In lost their 3-card gate** (owner's call): both pay for
+every even / odd card with no minimum. "3+ even cards" meant a hand with one or
+two paid nothing at all, which reads as the Trick being broken rather than as a
+condition unmet, and it is the one gate in this table a player cannot see coming
+while choosing. Neither has a `DESC_TEMPLATES` entry, so their descriptions are
+the printed text - "+2 mult" appears exactly once in each, which is what keeps
+`improve.js` scaling the number. Measured: with the two out of the tray, 164 hands
+identical and 0 changed; with them forced in, **all 143 changed hands are ones the
+old gate rejected**.
+
+`_rankIsEvenRank` / `_rankIsOddRank` are hoisted to the file, because the table
+runs BEFORE the card loop and the post-loop sites are in the temporal dead zone
+above a `const` declared there.
+
 ### Focus lands BEFORE the tally (r222)
 
 The Focus a hand earns - its complexity, how fast it was played, and any Trick
@@ -626,10 +677,99 @@ The `double_tap` sleights **no longer sit locked on the grid once-per-round** - 
 A player asks one question constantly and the board never answered it: **why is this card different?** Two surfaces, one vocabulary, both driven from tables rather than per-Trick code.
 
 - **A marked row or column gets a coloured LINE down the board, behind the cards.** `renderLineMarkers()` draws one absolutely-positioned sibling of the cards per `rowColBonuses` entry, coloured from `LINE_FX_META`, with the owning Trick's glyph on both end caps. It **sweeps in once** when the Trick is acquired (`animateLineGrant`, called from `finalizePositionMark`) and then simply stays for the run. `_rcSeen` on the registry entry is what stops the sweep replaying - `render()` rebuilds these on every card fall.
-- **The card side is a ring in the same colour** (`.rc-line-ring`, from `cellOnMarkedLine`). **This is the part that was missing**: only `rowcol_triple_pips`, `rowcol_mult` and `rowcol_retrigger` tinted their cards, so **Perfect Timing, Right Time, Study Hall, Groove, Assembly Line and Overtime marked a line the player could not see** - it was a number in a tooltip. One ring covers all nine.
+- **The card side is a ring in the line's colour** (`.rc-line-ring`, from `lineRingHTML`). **This is the part that was missing**: only `rowcol_triple_pips`, `rowcol_mult` and `rowcol_retrigger` tinted their cards, so **Perfect Timing, Right Time, Study Hall, Groove, Assembly Line and Overtime marked a line the player could not see** - it was a number in a tooltip. One ring covers all nine. **A card on SEVERAL lines divides that ring between them** - see r223 below.
 - **`z-index` is explicit, and it has to be.** Card elements carried no z-index at all, so paint order was DOM order - and `render()` appends new cards AFTER the markers, which would put a card dealt mid-round on top of a line while its neighbours sat under one. `css/entity-fx.css` sets cards/tricks/blocked cells to 2 and lines to 1. Boss cell overlays (12-15) and temp-anim clones (10) are unaffected.
 - **Per-card marks are `CARD_MARK_META`, keyed by a `covers(r,c)` PREDICATE, not a position.** Two of them are derived: Ley Line and Temporal Rift both fire wherever a row effect crosses a column effect, which is a set of cells. **`leyLinePos` is never assigned by anything**, so the `.card.rc-leyline` tint it drove had been dead since it was written; Ley Line has a visible mark for the first time. Heartwood's mark reuses `Math.floor(rows/2) x Math.floor(cols/2)`, the exact expression `play-hand.js` buffs, so the mark can never point at a different cell from the one that gets the bonus.
 - One mark per card by design - two glyphs in one corner of a 57px card is noise, and the tooltip lists the rest.
+
+### The lines, finished (r223)
+
+Four things r209's lines did not do. All four are owner spec.
+
+- **They STAY ON THE BOARD DURING THE REWARD GRID.** `renderRewardTiles` empties
+  `#grid`, which took the lines with it, so they vanished for the whole of every
+  between-rounds screen - which is exactly when a player is deciding whether
+  another line-marking Trick is worth a slot. It redraws them at its tail.
+- **`renderLineMarkers(opts)` takes the GEOMETRY of the board it is drawing onto**
+  (`{rows, cols, offX, offY}`, default the play board), because the reward grid is
+  not always the play board: a **prize grid is two rows and columns smaller and is
+  centred on it**, so the lines need its size and its offset or they sit under
+  nothing.
+- **Several lines on one row or column are spaced at `(i+1)/(n+1)` of the card** -
+  one down the middle, two at a third and two thirds, three at a quarter, a half
+  and three quarters. The first version divided the card into `n` bands and centred
+  in each, which puts two lines at 25/75 and three at 17/50/83: lines hugging the
+  card's edges rather than an evenly divided lane. Measured: 0.25 / 0.50 / 0.75.
+- **A card on several lines SPLITS ITS RING between their colours** - equal wedges
+  with hard stops (`lineMetasForCell` -> `lineRingPaint` -> `lineRingHTML`), so a
+  crossing reads as both things instead of whichever the registry listed first. A
+  blend of three Trick colours is a fourth colour belonging to nothing, hence hard
+  stops. **The ring had to stop being a `box-shadow` to do this**: a box-shadow
+  takes one colour and cannot be divided. It is paint masked down to the border
+  now (`padding` + two masks + `mask-composite`). Verified: 3 lines give three
+  33.3% wedges, a row/column crossing gives four at 25%.
+
+#### `clampRowColBonuses()` - and why it reads the LIMITS
+
+A Trick marking column 5 on a board that shrinks below it is marking a line that is
+not there, which is a Trick that silently stopped working. It moves to the highest
+line that exists and **stays** there; growing the board back does not move it. That
+is lossy on purpose - the alternative is a shadow index that could resurface on a
+board the player has since rebuilt differently - and `finalizePositionMark` is what
+applies the move, so the Trick's printed description follows.
+
+**It measures against `limits.grid_rows/cols`, NEVER against `gridRows`/`gridCols`,
+and that is the whole reason it is safe to call.** Four things move the live board
+size TEMPORARILY and put it back, and clamping against the live globals would let
+any of them permanently move a line the player's real board still has room for:
+
+| what | shrinks the live board |
+|---|---|
+| **Short Staffed** (reward-grid penalty) | one row or column, **for a single round** |
+| the on-grid shop | forces 4x4, restores from `shopGridSaved` |
+| the prize grid | two smaller than the play board |
+| Dominoes | sets its own, twice (`dominoes-mode.js:115` **and** `game-control.js`, right after the limits assignment) |
+
+Short Staffed is the one that would have hurt: a one-round penalty costing a Trick
+its position for the rest of the run. So the clamp hangs off **`onLimitChanged`**,
+the single place a limit actually moves, and everything that merely BORROWS the
+board at a smaller size clamps what it **draws** instead (above) and leaves the
+registry alone. Verified: a 4x4 prize grid drew a col-5 line at col-3 with the
+stored index still 5.
+
+### The score panel between rounds (r223)
+
+`triggerLevelUp` banks and zeroes `score` before any between-rounds screen opens,
+so the panel read **"Score 0"** over the NEXT round's goal for the whole of every
+reward grid, shop and event - zero being neither true nor the number the player
+wants while deciding what to take. It reads **LAST ROUND** over what the round
+scored and **NEXT QUOTA** over what is being asked for next, with the progress bar
+hidden (it would sit at 100% and mean nothing).
+
+- It rides **`body.grid-screen`**, the class `enterGridScreenHud()` already sets for
+  the PIPS/MULT/FOCUS -> LOCATION swap, so all three screens get it with no
+  per-screen wiring. `updateScoreUI()` is the single writer.
+- **`lastRoundGoal` must be captured ABOVE the level bump** in `triggerLevelUp` -
+  `roundGoal` is recomputed four lines later and is the next round's target from
+  then on. A first pass read it afterwards and recorded 1500 where the round that
+  just cleared had been playing for 1200. `lastRoundScore` is captured lower, beside
+  the `totalScore` banking, because it needs Survival's overflow figure.
+- Both are in `SAVE_VARS` and reset in `startGame`.
+
+### `shop-room-preview.html` (r223)
+
+The two ways of giving the shop more room, on a stage laid out with the real
+landscape percentages. **Squish** narrows the left column and every panel scales
+with it (they are sized in container units against the column, so it genuinely
+squishes rather than clipping); **Slide** pushes it off the edge at full size and
+leaves an arrow tab. The readout MEASURES how many items fit a shelf rather than
+asserting it: **5 per shelf today, 7 squished to 24%, 10 slid away.**
+
+**The slide is a transform and the shop's edge is a stage percentage, so they
+cannot share one number** - a `translateX` percentage is a share of the element's
+OWN width, and the first version moved a 37.74% column by 37.74% of itself, about
+15% of the stage, so it never cleared. Two variables: `--lw` (column width, stage
+%) and `--colvis` (1 or 0).
 
 ### FLAT vs SCALING card buffs (r209)
 
@@ -1027,6 +1167,136 @@ Owner-specified retunes. **The Rota is deleted** - The Censor already owns "a Tr
 **The Metronome was already correct** and needed no change: `bossClockStep()` carries a fractional debt, so Focus x2.3 really consumes 2,2,2,3,2,2,3... averaging 2.3s per second (measured), rather than rounding away to x2.
 
 **The Tollman's ordering was already correct too**, and is now locked in by a test: `playHandCostThisRound` is charged at `play-hand.js` ~line 452, which is AFTER `score += finalScore` (271) and AFTER `checkBossObjective` (343). Verified live - with **1 second left** on a Tollman round, a hand that costs 5s still scored, still met the goal and still won the boss.
+
+## A fifth toast froze the whole game (r225)
+
+`showMessage` trims its overflow with
+
+```js
+while (layer.children.length > TOAST_MAX) dismissToast(layer.firstElementChild, true);
+```
+
+and `dismissToast(el, now)` **never removed the node synchronously** - `now` only
+meant `setTimeout(..., 0)` instead of `260`. So the count the loop tests never
+dropped. Worse, the element it had just marked `.toast-out` made the next call
+return at the top without removing anything, so the spin was permanent: **the
+fifth distinct toast in one synchronous burst hung the page for good.** No boss,
+no run in progress, nothing else required - reproduced on a freshly loaded menu
+by calling `showMessage` five times.
+
+`TOAST_MAX` is 4, so this was reachable by anything that says more than four
+things at once: a hand firing several Tricks that each report, a boss tick, a
+between-round grant. It was found by a Sommelier test that rotated the suits six
+times in a loop, which is exactly that burst.
+
+- **`now` means GONE NOW, not "fade faster".** `dismissToast` removes the node on
+  the spot when `now` is set, **including one already wearing `.toast-out`** -
+  that second case is the one that made the hang permanent rather than merely
+  long. Both live in `dismissToast` rather than at the call site, so any future
+  `dismissToast(el, true)` gets the same guarantee.
+- **The trim loop also refuses to spin.** If a child is somehow still first after
+  being dismissed, it is removed outright and the loop breaks. A `while` over a
+  count that nothing decrements is a hard hang, and this one is not worth leaving
+  a second way into.
+- Verified: 4 toasts stay 4, a burst of 40 leaves 4, the repeat-suppression
+  counter still reaches x5 on a repeated line, and the layer drains to 0 on its
+  own afterwards.
+
+## Sixteen new bosses (r217)
+
+The roster went 18 -> 34. Every one of them obeys the rule the owner set: **a boss may
+make a play style COST more or PAY less, but it may never make one impossible.** Nothing
+here says "runs cannot be played". The harshest of them mark a family or a set of suits
+DOWN and always leave something paying full, which is what makes a round a plan rather
+than a wall.
+
+| boss | what it does | where it hooks |
+|---|---|---|
+| **The Quota** | 20% / 40% / 60% of the goal by each third of the window; miss one and `score = 0` | the round tick, not a schedule (below) |
+| **The Tax Man** | every hand costs credits equal to its card count; run dry and the round ends | `play-hand.js`, after the score commits |
+| **The Grind** | a hand type pays 15% less per repeat, forgetting after 5 other hands | xSCORE step, beside the Redaction |
+| **The Drought** | Natural Scaling pays nothing this round | `naturalScaleBonus` |
+| **The Inspector** | a named hand type every 45s or lose 20% of score | `bossSchedule`, first tick arms only |
+| **The Ledger** | goal +15% of the ORIGINAL every 30s | `bossSchedule`, first tick arms only |
+| **Short Fuse** | 90s window, goal halved | writes `bossWindowDuration` (below) |
+| **The Sommelier** | 3 suits at a time score x0.6 for 60s, rotating | `bossCardPipScale` |
+| **The Sieve** | discarded cards do not return to the deck | `doDiscard`, not `discardToDrawPile` |
+| **The Fog** | ranks hidden until a card is selected; suits stay visible | `renderCardAppearance` |
+| **The Gradient** | a scoring slope across the board, turning 90 degrees every 40s | `bossCardPipScale` + `--grds` |
+| **The Swell** | Focus decays 3x faster, ceiling halved | `focusCapNodes` / `focusDecayIntervalNow` |
+| **The Bookkeeper** | swaps and discards share ONE pool of 4, no refill | `bossPoolSync` |
+| **The Rerun** | replays, pauses and rewinds each have a 50% chance to miss | three sites, two different rolls |
+| **The Magpie** | the two highest cards on the board taken every 20s | `removeAndFall` |
+| **The Stale Deck** | the draw pile reordered least-played first | `cardPlayCount` |
+
+### The traps these encode
+
+- **A DEADLINE is not an INTERVAL.** The Quota's three marks are held as SECONDS
+  REMAINING and tested on the round tick as "the clock has passed this", never fired at
+  by a schedule. The Metronome can consume several seconds in one tick, so a deadline
+  waited for by equality would be stepped straight over. Everything else here is a
+  `bossSchedule`, which is what gives it the Contingency Plan interaction for free.
+- **`bossSchedule` fires IMMEDIATELY and then repeats**, which is right for a Blight tick
+  and wrong for a bill. The Inspector and The Ledger both let their opening tick only
+  ARM the window (`bossInspectDone` is pre-set true; `bossLedgerArmed` starts false), or
+  the player is charged before the round has begun.
+- **Short Fuse can shorten the round only because of an ordering in `triggerBoss`**:
+  `bossWindowDuration` is set BEFORE `applyBossModifiers` and `roundSeconds` is written
+  from it AFTER. Nothing else in the file may be reordered around that.
+- **`bossCardPipScale(card, r, c)` is the ONE place a boss changes what a single card's
+  pips are worth**, called from `calcScore`'s per-card loop right where the Blight's
+  halving lands. It is a pure READ: `calcScore` is recomputed by `findBestHand` and by
+  the live PIPS/MULT preview, so anything there that consumed a charge or advanced a
+  counter would fire several times per tap. Same rule `siphonMultX` follows.
+- **The Rerun's replay roll is DETERMINISTIC and its pause/rewind rolls are not**, and
+  that split is load-bearing. A replay is decided inside `calcScore`, which runs on every
+  preview, so a live `Math.random()` there would make the chips disagree with the score -
+  it uses `_detReplayRand`, keyed on the card and the hand index, exactly as Wait For
+  Iiiit does. A pause or a rewind happens once, in `playHand` or the round tick, never
+  speculatively, so those roll live.
+- **The Sieve hooks `doDiscard`, NOT `discardToDrawPile`.** That function is also how the
+  board returns cards when a boss voids a cell, and those are not the player throwing
+  anything away. Measured: 52 cards -> 50 after a 2-card discard under the boss, 52 -> 52
+  with it off.
+- **The Gradient publishes `--grds` and composes it into the card transform in
+  `css/style.css`**, beside the heartbeat's `--hb*` and the freeze's `--frzr` - never
+  `el.style.transform`, or the discard fly-out and `.card.removing` would stop beating it.
+  `bossGradientPaint()` is called from the END of `render()` for the same reason
+  `reapplyClockFreeze` is: a card dealt mid-round has to arrive already the right size.
+  The SIZE is damped to a third of the pip scale (a 1.5x cell at full scale overlaps its
+  neighbour); the tint classes `.grad-up` / `.grad-dn` are what separate a shrunken card
+  from a small one.
+- **The Fog must be exempt in the hand preview.** `renderCardAppearance` gained
+  `revealFog`, passed by `score-dance.js` and the Marker's fizzle FX - a card in the
+  preview is one you have already committed to, and fogging it there hides the hand from
+  the animation explaining it.
+- **The Bookkeeper ABSORBS grants rather than overwriting the counters.** The owner's
+  call was explicitly *not* to disable Tricks and Knacks that hand a swap or a discard
+  back, so `bossPoolSync` reads the delta since its last sync: anything gained goes into
+  the shared pool, anything spent comes out of it, and both counters are then written
+  from the pool. Synced on the round tick AND from `bossOnInteract`, so the two can never
+  disagree for the second between an action and the next tick. Verified through the real
+  `doDiscard`: 4 -> 3 -> 2, and a +1 discard grant lands as 3.
+- **The Swell's cap lands on the TOTAL, not the base.** `focusCapNodes()` halves the
+  finished figure, so every entity that raises the ceiling still raises it and none of
+  those picks go dead for the round. `focusDecayIntervalNow()` is new and is now what
+  every site arming the decay timer reads - `focusDecayIntervalMs` directly would leave
+  the squeeze half-applied by whichever path happened to restart the timer. **`clearBossEffects`
+  clears the flag BEFORE restarting the timer**, or the next round decays 3x faster forever.
+- **The Magpie goes through `removeAndFall` and skips a tick while `animating || falling`** -
+  the same two rules r213 had to give The Hollow. Measured over nine thefts: the board
+  reads 16 of 16 at every reading.
+- **Two presets are gated by `bossPresetIsLive`.** The Tax Man is skipped below 15 credits
+  (arriving broke would make it a boss you lose on the first hand however well you play
+  it, which is the one thing a boss may never be) and The Drought is skipped before any
+  Natural Scaling has been earned, where it is just a plain score round.
+- **The Sommelier is a BAG, not a re-roll**, so the clean suit is never the same twice
+  running. With four suits, three marked leaves exactly one paying full; with Spectrum's
+  seven it leaves four, which is the same three-at-a-time rule scaling on its own.
+
+Measured for all sixteen in a real browser: every one starts, the board stays full through
+a window of effects, no page errors, and nothing leaks past `endBoss` - no fogged ranks, no
+`--grds` residue, Focus cap 15 -> 30 and decay 667ms -> 2000ms restored.
 
 ### #boss-banner and #boss-result were being destroyed by the reward grid (r216)
 

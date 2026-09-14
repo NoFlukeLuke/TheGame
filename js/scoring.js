@@ -416,6 +416,14 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     if (_encoreHand) _retrig++; // Encore: all-odd-rank Set scores a second time
     if (_compReps) _retrig += (_compReps[_cKey] || 0); // Layered hand: this card scores again for each extra component it is in
     if (_cKey === _3rdKey) _retrig += BAL.third_charm.extra_replays; // 3rd Time's a Charm: 3rd card gets +2 replays
+    // The Rerun (boss): every replay past the first is a coin flip. Deterministic,
+    // keyed on the card and the hand index, so the preview and the committed score
+    // can never disagree - the same rule Wait For Iiiit follows.
+    if (typeof bossRerunKeepsReplay === 'function' && _retrig > 1) {
+      let _kept = 1;
+      for (let _ri = 1; _ri < _retrig; _ri++) if (bossRerunKeepsReplay(card._id || 0, _ri)) _kept++;
+      _retrig = _kept;
+    }
     retrigByKey[r + '-' + c] = _retrig;
     if (_ledgerCells) {
       // Per-card pip-trick single-iteration deltas = the change in _cp during THIS card's
@@ -476,6 +484,13 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
       if (_tl) _tl.length = _tlMark;   // the suppressed Tricks never fired, so they never animate either
     }
     if (_blighted && !_dead) { _ev('_blight', 'pip*', 0.5, 'boss'); cp = cp * 0.5; }
+    // The ONE place a boss changes what this card's pips are worth (the Sommelier's
+    // marked-down suits, the Gradient's slope). A pure read - calcScore runs on
+    // every preview recompute, so nothing here may mutate boss state.
+    if (typeof bossCardPipScale === 'function') {
+      const _bps = bossCardPipScale(card, r, c);
+      if (_bps !== 1) { _ev('_bossCard', 'pip*', _bps, 'boss'); cp *= _bps; }
+    }
     totalPips += cp;
     // ── Per-card MULT (see the accumulators above). Emitted AFTER the Blight's
     //    rewind, because the post-loop sweeps these replace were never Blight-
@@ -1001,6 +1016,9 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // 4. x score multipliers
   // The Redaction (boss): one hand type, fixed for the round, is marked down.
   if (typeof bossRedactedHandMult === 'function') s *= bossRedactedHandMult(handName);
+  // The Grind (boss): a hand type pays less every time you repeat it inside its
+  // window. Read-only here; playHand is what pushes the history.
+  if (typeof bossGrindMult === 'function') s *= bossGrindMult(handName);
   // Last Stand / Twenty-One / Perfect Storm / Extinction were ×score until r179. A ×score
   // fires AFTER lastCalcPips/lastCalcMult are read, so it never showed in the PIPS/MULT
   // chips - the number just changed. They are ×pips / ×mult now (identical arithmetic,
@@ -1294,6 +1312,41 @@ function firesThisMinute(id) {
 // A manual chooser (Surveyor/Leveler) always beats Alignment. Assignment is idempotent
 // per Trick object so an upgrade (selectTrick called twice) doesn't re-roll the line.
 const POSITION_ASSIGN_IDS = ['rowcol_triple_pips','rowcol_mult','rowcol_retrigger','perfect_timing','right_time','groove','assembly_line','overtime'];
+
+// Keep every marked line on a line that EXISTS. Growing the board needs nothing
+// - the index is a stored number and a wider board simply has more columns past
+// it - but shrinking one can leave a Trick marking a column that is no longer
+// there, and a mark on nothing is a Trick that silently stopped working.
+// A shrunk-past line moves to the highest line that exists and STAYS there; it
+// does not remember where it was. That is lossy on purpose - the alternative is
+// carrying a shadow index that could resurface on a board the player has since
+// rebuilt differently.
+//
+// IT MEASURES AGAINST THE LIMITS, NOT AGAINST gridRows / gridCols, and that is
+// the whole reason it is safe to call. Four things move the live board size
+// TEMPORARILY and put it back: Short Staffed shrinks it for one round
+// (js/level-up.js), the on-grid shop forces 4x4, a prize grid is two smaller
+// than the play board, and Dominoes sets its own. Clamping against the live
+// globals would let any of those permanently move a line the player's real
+// board still has room for - a one-round penalty would cost a Trick its
+// position for the rest of the run. The limit is the only number that means
+// "this board will never be this wide again"; everything that merely borrows
+// the board at a smaller size clamps what it DRAWS instead (renderLineMarkers,
+// js/entity-fx.js) and leaves the registry alone.
+function clampRowColBonuses() {
+  if (typeof rowColBonuses === 'undefined' || !rowColBonuses.length) return;
+  if (typeof limits === 'undefined' || !limits.grid_rows || !limits.grid_cols) return;
+  rowColBonuses.forEach(b => {
+    const span = b.axis === 'row' ? limits.grid_rows.current : limits.grid_cols.current;
+    const max  = Math.max(0, span - 1);
+    if (b.index <= max) return;
+    // finalizePositionMark rewrites the Trick's printed description to name the
+    // line, so moving the mark without it would leave the tray quoting a row
+    // that is not there any more.
+    if (b._trickRef) finalizePositionMark(b._trickRef, b.axis, max);
+    else b.index = max;
+  });
+}
 
 function lineOccupied(axis, index) {
   return rowColBonuses.some(b => b.axis === axis && b.index === index);

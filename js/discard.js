@@ -65,7 +65,13 @@ function doDiscard() {
   // Adjacency reactions fire while the discarded cards are still in place.
   feedWhetstones(selected.map(([r,c]) => [r,c]));  // Whetstone sharpens on adjacent discards
   juryRigRoll(selected.map(([r,c]) => [r,c]));     // Jury-Rig: charge-restore roll per adjacent Sleight
-  selected.forEach(([r,c]) => { if (gridData[r]?.[c]) discardToDrawPile(gridData[r][c]); });
+  // The Sieve (boss): a discarded card does not come back. Hooked HERE, on the
+  // player's own discard, rather than inside discardToDrawPile - that function is
+  // also how the board returns cards when a boss voids a cell, and those are not
+  // the player throwing anything away.
+  const _sieve = (typeof bossSieve !== 'undefined') && bossSieve && bossActive
+                 && !(typeof bossEffectsIgnored === 'function' && bossEffectsIgnored());
+  selected.forEach(([r,c]) => { if (gridData[r]?.[c] && !_sieve) discardToDrawPile(gridData[r][c]); });
   // Hoarder: discards don't count against limit (but cost 2× time below)
   if (!hasKnack('hoarder')) discards--;
   // Discard time cost - 3s PER CARD (BAL._resources.discard_seconds_per_card).
@@ -215,6 +221,12 @@ function rewindCeiling() { return Infinity; }
 // `srcId` / `srcSource` name the entity that caused the rewind, when the caller
 // knows it, so the FX can fly the symbol from that entity's tray tile (js/payout-fx.js).
 function rewindTime(seconds, label, srcId, srcSource) {
+  // The Rerun (boss): a coin flip on every rewind. Not speculative - this is only
+  // ever reached from playHand and the round tick, never from calcScore.
+  if (typeof bossRerunMisses === 'function' && seconds > 0 && bossRerunMisses()) {
+    showMessage('⏪ MISSED', 'var(--red)');
+    return 0;
+  }
   // Rewinds used to return 0 during a boss, because the boss ran its own clock and
   // roundSeconds was frozen, so there was genuinely nothing to give back. Since r205
   // there is ONE clock and the boss window IS roundSeconds, so a rewind does exactly
@@ -308,6 +320,12 @@ function pauseRound(seconds, srcId, srcSource) {
   // an unowned Trick's pause arrives here - and without this guard it would still
   // count toward Hummingbird (+mult per pause triggered) and the Time popup's tally.
   if (!seconds || seconds <= 0) return;
+  // The Rerun (boss): a coin flip on every pause, rolled before Time Slip so a
+  // missed pause cannot become a rewind through the back door.
+  if (typeof bossRerunMisses === 'function' && bossRerunMisses()) {
+    showMessage('⏸ MISSED', 'var(--red)');
+    return;
+  }
   // Time Slip knack: whenever the clock WOULD pause, a chance to rewind that many seconds instead
   // BINARY under Luck: a pause cannot become two rewinds, so anything above
   // 100% is wasted here on purpose. Its tooltip caps the printed figure to match.

@@ -7,6 +7,13 @@ keep explanations plain.
 Line references verified against **r216**. If they have drifted, the surrounding
 prose says what to grep for.
 
+> **Part 2 and Part 3 are BUILT (r223).** The between-rounds score panel and the
+> whole grid-lines batch shipped; what is written below about them is the plan
+> they were built from, and CLAUDE.md ("The lines, finished" and "The score panel
+> between rounds") is the record of what actually landed and how it differed.
+> **Part 1, the shop, is still the outstanding work** - and `shop-room-preview.html`
+> is now the page for deciding how much room the left column keeps.
+
 Decisions already made (do not re-litigate):
 
 - The Mart overlay is **replaced**, not kept behind a flag.

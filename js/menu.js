@@ -1,4 +1,4 @@
-const BUILD = '2026-09-14 · r226 · per-card Tricks pay as the cards animate; Get Even and Odd One In lose the 3-card gate';
+const BUILD = '2026-09-14 · r226 · per-card Tricks pay as the cards animate; Get Even and Odd One In lose the 3-card gate [onto r225]';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

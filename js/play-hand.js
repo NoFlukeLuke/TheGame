@@ -468,6 +468,28 @@ function playHand() {
     updateClockUI();
   }
 
+  // ── Boss bookkeeping, deliberately HERE ───────────────────────────────────
+  // This is after `score += finalScore` and after checkBossObjective, which is the
+  // same ordering The Tollman's time charge uses and for the same reason: a hand
+  // you cannot afford still counts if it is the hand that wins the round.
+  if (bossActive) {
+    // The Grind: remember what was played, so the next one of these pays less.
+    if (typeof bossGrindPush === 'function') bossGrindPush(hand);
+    // The Inspector: the hand it asked for has been seen.
+    if (typeof bossInspectHand !== 'undefined' && bossInspectHand && hand === bossInspectHand) bossInspectDone = true;
+    // The Tax Man: credits per card. Run dry and the round is lost.
+    const _fee = (typeof bossPlayFeeFor === 'function') ? bossPlayFeeFor(handCells.length) : 0;
+    if (_fee > 0) {
+      if (coins < _fee) {
+        coins = 0; updateCoinsUI();
+        showMessage('OUT OF CREDITS', 'var(--red)');
+        if (typeof endBoss === 'function') { endBoss(false); return; }
+      }
+      coins -= _fee; updateCoinsUI();
+      showMessage(`-${_fee} credits`, 'var(--red)');
+    }
+  }
+
   // Streak tracking
   const now = Date.now();
   if (hand === lastHandType) {

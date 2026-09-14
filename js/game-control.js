@@ -527,6 +527,7 @@ function startGame() {
   document.getElementById('grid').querySelectorAll('.card').forEach(el => el.remove());
   roundGoal = goalForLevel(1);  // js/goal-tuning.js: per-mode curve + Zen's doubling
   totalScore = 0;
+  lastRoundScore = 0; lastRoundGoal = 0;
   coins = 0;
   shopItems = null;
   shopPurchased = new Set();

@@ -908,7 +908,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   const cardEls=handCells.map(([r,c])=>{ const card=gridData[r][c];
     const outer=document.createElement('div'); outer.className='dnc-outer';
     const d=document.createElement('div');
-    const { className, innerHTML } = renderCardAppearance(card, r, c);
+    const { className, innerHTML } = renderCardAppearance(card, r, c, { revealFog: true });
     d.className=className+' preview-card'; d.innerHTML=innerHTML;
     outer.appendChild(d); handTrack.appendChild(outer); return d; });
   // Portrait sizes its preview cards to the strip, and overlaps them if the hand

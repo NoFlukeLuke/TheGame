@@ -52,6 +52,43 @@ let bossRedactedMult   = 1;          // what it is multiplied by
 let bossMarkEveryN     = 0;          // The Marker: 1 card in N is silently marked (0 = off)
 let bossMarkCounter    = 0;          // cards seen since the last mark
 
+// ── The r217 roster ──────────────────────────────────────────────────────────
+// Sixteen bosses added in one pass. Every one of them obeys the owner's standing
+// rule: a boss may make a play style COST more or PAY less, but it may never make
+// one impossible. There is no "you cannot play runs" here - the harshest of these
+// (the Sommelier, the Redaction) mark a family or a set of suits DOWN, and always
+// leave something paying full.
+let bossQuotaMarks     = [];         // The Quota: [{ atSecs, need, hit }] checked on the round tick
+let bossQuotaIdx       = 0;
+let bossPlayFeeCards   = 0;          // The Tax Man: credits per CARD in a played hand (0 = off)
+let bossGrindRate      = 0;          // The Grind: score lost per repeat of a hand type (0 = off)
+let bossGrindWindow    = 5;          // ...counted over this many recent hands
+let bossGrindHistory   = [];         // recent hand names, newest last
+let bossNoScaling      = false;      // The Drought: Natural Scaling pays nothing this round
+let bossInspectHand    = null;       // The Inspector: the hand type it wants to see
+let bossInspectEvery   = 45;         // ...how often
+let bossInspectPenalty = 0.2;        // ...share of score lost on a miss
+let bossInspectDone    = false;      // ...played since the last check
+let bossInspectUntil   = 0;          // ms timestamp of the next check, for the readout
+let bossGoalCreepStep  = 0;          // The Ledger: goal added per tick (absolute, from the ORIGINAL goal)
+let bossLedgerArmed    = false;      // ...the opening tick only arms it
+let bossSieve          = false;      // The Sieve: discarded cards do not come back
+let bossFog            = false;      // The Fog: ranks hidden until a card is selected
+let bossGradient       = false;      // The Gradient: a scoring slope across the board
+let bossGradientDir    = 0;          // 0 top best, 1 right, 2 bottom, 3 left - rotates 90 degrees
+let bossGradientLo     = 0.5;        // worst end of the slope
+let bossGradientHi     = 1.5;        // best end
+let bossFocusSqueeze   = false;      // The Swell: decay runs faster and the ceiling is halved
+let bossFocusDecayMult = 3;          // ...how much faster
+let bossPoolLeft       = -1;         // The Bookkeeper: swaps and discards share ONE pool (-1 = off)
+let _bkLastS           = 0, _bkLastD = 0;   // last synced counts, so a Trick's grant is absorbed
+let bossMissChance     = 0;          // The Rerun: chance a replay / pause / rewind simply misses
+let bossSuitMarkdown   = null;       // The Sommelier: Set of suits currently marked down
+let bossSuitMult       = 0.6;        // ...what they score
+let bossSuitHold       = 60;         // ...for how long
+let bossSuitUntil      = 0;
+let bossSuitCount      = 3;          // ...how many at a time
+
 // ── The Contingency Plan knack ───────────────────────────────────────────────
 // "Boss effects are 10% weaker." Two readings, both applied:
 //   magnitudes shrink by 10%  ·  timed effects tick 10% LESS OFTEN.
@@ -146,6 +183,11 @@ function bossInteractMult() {
 function bossOnInteract(kind) {
   if (!bossActive) return;
   if (typeof bossEffectsIgnored === 'function' && bossEffectsIgnored()) return;
+
+  // The Bookkeeper: swaps and discards come out of one pool, so spending either
+  // spends both. Synced here as well as on the round tick so the two counters
+  // never disagree for the second between an action and the next tick.
+  if (typeof bossPoolSync === 'function') bossPoolSync();
 
   // The Ratchet: the bar moves every time you touch the board. Since r155 the boss
   // win bar IS roundGoal (bosses no longer carry their own score target), so this
@@ -547,7 +589,7 @@ function bossMarkerFizzleFX(cells, marked) {
     const outer = document.createElement('div'); outer.className = 'dnc-outer';
     if (card) {
       const d = document.createElement('div');
-      const { className, innerHTML } = renderCardAppearance(card, r, c);
+      const { className, innerHTML } = renderCardAppearance(card, r, c, { revealFog: true });
       d.className = className + ' preview-card'; d.innerHTML = innerHTML;
       outer.appendChild(d);
     }
@@ -577,6 +619,340 @@ function bossMarkerFizzleFX(cells, marked) {
 }
 
 // ── Wiring: called from applyBossModifiers for the new modifier ids ──────────
+// ══════════════════════════════════════════════
+// THE r217 ROSTER - effects
+// ══════════════════════════════════════════════
+// Read this before adding another: everything below is either (a) a scheduled
+// tick armed through bossSchedule, so Contingency Plan stretches it for free, or
+// (b) a pure READ from a hot path (calcScore, a render) that must never mutate
+// anything - calcScore is called speculatively by findBestHand and by the live
+// PIPS/MULT preview, so a read that consumed a charge or advanced a counter there
+// would fire several times per keystroke. Same rule siphonMultX follows.
+
+// ── THE QUOTA ────────────────────────────────────────────────────────────────
+// Three deadlines inside the one window: 20% of the goal by the first third,
+// 40% by the second, 60% by the third. Miss one and the score goes back to zero -
+// the round is not lost, but the work is. The final 40% has no deadline of its
+// own, which is deliberate: the last third is when the loadout is supposed to pay.
+function bossQuotaArm(shares) {
+  const W = bossWindowDuration || 180;
+  const n = shares.length;
+  bossQuotaMarks = shares.map((share, i) => ({
+    // Deadlines are expressed as SECONDS REMAINING, because roundSeconds counts
+    // down and the Metronome can consume more than one per tick - a deadline held
+    // as elapsed time would be crossed without ever being equal to it.
+    atSecs: Math.round(W * (n - 1 - i) / n),
+    need: 0,        // filled in by bossQuotaSync once roundGoal is known
+    share,
+    hit: false,
+  }));
+  bossQuotaIdx = 0;
+  bossQuotaSync();
+}
+// The goal can move under us (The Ledger is a different boss, but Focus Cap
+// upgrades and the goal tuner both rewrite roundGoal live), so the needs are
+// recomputed rather than frozen at arm time.
+function bossQuotaSync() {
+  bossQuotaMarks.forEach(m => { m.need = Math.round((roundGoal || 0) * m.share); });
+}
+function bossQuotaTick() {
+  if (!bossActive || !bossQuotaMarks.length) return;
+  if (typeof bossEffectsIgnored === 'function' && bossEffectsIgnored()) return;
+  bossQuotaSync();
+  for (let i = bossQuotaIdx; i < bossQuotaMarks.length; i++) {
+    const m = bossQuotaMarks[i];
+    if (m.hit || roundSeconds > m.atSecs) break;
+    m.hit = true;
+    bossQuotaIdx = i + 1;
+    if (score >= m.need) {
+      showMessage(`QUOTA ${Math.round(m.share * 100)}% MET`, '#7fe3a0');
+    } else {
+      score = 0;
+      showMessage(`QUOTA MISSED - score reset`, 'var(--red)');
+      if (typeof sfxNoSwaps === 'function') sfxNoSwaps();
+      if (typeof updateScoreUI === 'function') updateScoreUI();
+    }
+  }
+}
+// What the next deadline is, for the briefing and the goal chip.
+function bossQuotaNext() {
+  for (const m of bossQuotaMarks) if (!m.hit) return m;
+  return null;
+}
+
+// ── THE TAX MAN ──────────────────────────────────────────────────────────────
+// Every hand costs credits equal to how many cards were in it. Charged AFTER the
+// hand scores and after the objective is checked - exactly the ordering The
+// Tollman uses - so a hand you cannot afford still counts if it wins the round.
+// Running dry is what ends it.
+function bossPlayFeeFor(cardCount) {
+  if (!bossActive || !bossPlayFeeCards) return 0;
+  if (typeof bossEffectsIgnored === 'function' && bossEffectsIgnored()) return 0;
+  return Math.max(1, Math.round(cardCount * bossPlayFeeCards * bossMagScale()));
+}
+
+// ── THE GRIND ────────────────────────────────────────────────────────────────
+// A hand type pays less every time you repeat it, and only forgets after five
+// other hands. Read-only in calcScore; the history is pushed from playHand.
+function bossGrindMult(handName) {
+  if (!bossActive || !bossGrindRate || !handName) return 1;
+  if (typeof bossEffectsIgnored === 'function' && bossEffectsIgnored()) return 1;
+  let n = 0;
+  for (const h of bossGrindHistory) if (h === handName) n++;
+  if (!n) return 1;
+  return Math.max(0.1, 1 - n * bossGrindRate * bossMagScale());
+}
+function bossGrindPush(handName) {
+  if (!bossActive || !bossGrindRate || !handName) return;
+  bossGrindHistory.push(handName);
+  while (bossGrindHistory.length > bossGrindWindow) bossGrindHistory.shift();
+}
+
+// ── THE INSPECTOR ────────────────────────────────────────────────────────────
+// One hand type, named up front, has to appear on the board's record every 45
+// seconds or a fifth of the score goes. The type is drawn from what this mode
+// actually scores, so it can never ask for something unplayable.
+function bossInspectPick() {
+  const names = [];
+  if (typeof HAND_KEY_TO_NAME === 'object' && typeof activeHands !== 'undefined') {
+    activeHands.forEach(k => { const n = HAND_KEY_TO_NAME[k]; if (n && n !== 'High Card') names.push(n); });
+  }
+  // Prefer something reachable rather than the top of the ladder: anything whose
+  // base mult is modest is a hand a player can be asked for twice a minute.
+  const easy = names.filter(n => (HAND_BASE[n]?.mult || 99) <= 4);
+  const pool = easy.length ? easy : names;
+  return pool.length ? pool[Math.floor(Math.random() * pool.length)] : 'Pair';
+}
+function bossInspectTick() {
+  if (!bossActive) return;
+  bossInspectUntil = Date.now() + bossInspectEvery * 1000;
+  if (bossInspectDone) { bossInspectDone = false; return; }
+  if (typeof bossEffectsIgnored === 'function' && bossEffectsIgnored()) return;
+  const lost = Math.floor(score * bossInspectPenalty * bossMagScale());
+  if (lost > 0) {
+    score = Math.max(0, score - lost);
+    if (typeof updateScoreUI === 'function') updateScoreUI();
+  }
+  showMessage(`NO ${bossInspectHand.toUpperCase()} - ${lost} score`, 'var(--red)');
+}
+function bossInspectSecondsLeft() {
+  if (!bossActive || !bossInspectHand) return null;
+  return Math.max(0, Math.ceil((bossInspectUntil - Date.now()) / 1000));
+}
+
+// ── THE LEDGER ───────────────────────────────────────────────────────────────
+// The goal itself climbs, by a share of what it originally was, every 30s. A flat
+// share of the ORIGINAL is what makes it linear and readable; compounding the
+// current goal would run away inside two minutes.
+function bossLedgerTick() {
+  if (!bossActive || !bossGoalCreepStep) return;
+  if (typeof bossEffectsIgnored === 'function' && bossEffectsIgnored()) return;
+  roundGoal += bossGoalCreepStep;
+  showMessage(`QUOTA RAISED - ${roundGoal.toLocaleString()}`, 'var(--red)');
+  if (typeof updateScoreUI === 'function') updateScoreUI();
+}
+
+// ── THE SOMMELIER ────────────────────────────────────────────────────────────
+// Three suits at a time score a fraction of their pips, for a minute, then a
+// different three. With four suits that leaves exactly one paying full, which is
+// the whole shape of the round: find it, build on it, and be ready to move.
+// A BAG, not a re-roll, so the clean suit is never the same twice running.
+let _bossSuitBag = [];
+function bossSuitTick() {
+  if (!bossActive) return;
+  const suits = (typeof ACTIVE_SUITS !== 'undefined' && ACTIVE_SUITS.length) ? ACTIVE_SUITS.slice() : ['♠','♥','♦','♣'];
+  const keep = Math.max(1, suits.length - bossSuitCount);   // how many pay full
+  if (!_bossSuitBag.length) {
+    _bossSuitBag = shuffle(suits.slice());
+    // Never let the same suit be the clean one twice running.
+    if (bossSuitMarkdown && suits.length > keep) {
+      const wasClean = suits.filter(s => !bossSuitMarkdown.has(s));
+      if (wasClean.length === 1 && _bossSuitBag[0] === wasClean[0] && _bossSuitBag.length > 1) {
+        _bossSuitBag.push(_bossSuitBag.shift());
+      }
+    }
+  }
+  const clean = new Set();
+  for (let i = 0; i < keep && _bossSuitBag.length; i++) clean.add(_bossSuitBag.shift());
+  bossSuitMarkdown = new Set(suits.filter(s => !clean.has(s)));
+  bossSuitUntil = Date.now() + bossSuitHold * 1000;
+  showMessage(`${[...clean].join(' ')} PAYS FULL`, '#7fe3a0');
+  if (typeof render === 'function' && gridData && gridData[0]) render();
+}
+function bossSuitSecondsLeft() {
+  if (!bossActive || !bossSuitMarkdown) return null;
+  return Math.max(0, Math.ceil((bossSuitUntil - Date.now()) / 1000));
+}
+
+// ── THE GRADIENT ─────────────────────────────────────────────────────────────
+// The board is a slope: one edge pays half, the opposite edge pays half again on
+// top, and everything between is interpolated. It turns 90 degrees every 40s.
+// It is communicated by SIZE - a debuffed cell shrinks, a buffed one grows -
+// because a number in a tooltip is not something anyone reads mid-hand.
+function bossGradientTick() {
+  if (!bossActive) return;
+  bossGradientDir = (bossGradientDir + 1) % 4;
+  const where = ['TOP', 'RIGHT', 'BOTTOM', 'LEFT'][bossGradientDir];
+  showMessage(`${where} OF THE BOARD PAYS MOST`, '#7fe3a0');
+  if (typeof render === 'function' && gridData && gridData[0]) render();
+}
+// 0 (worst end) .. 1 (best end) for a cell, given the current rotation.
+function bossGradientT(r, c) {
+  const R = Math.max(1, gridRows - 1), C = Math.max(1, gridCols - 1);
+  switch (bossGradientDir) {
+    case 0:  return 1 - (r / R);   // top best
+    case 1:  return c / C;         // right best
+    case 2:  return r / R;         // bottom best
+    default: return 1 - (c / C);   // left best
+  }
+}
+function bossGradientScale(r, c) {
+  if (!bossActive || !bossGradient) return 1;
+  if (typeof bossEffectsIgnored === 'function' && bossEffectsIgnored()) return 1;
+  const t = bossGradientT(r, c);
+  const lo = 1 - (1 - bossGradientLo) * bossMagScale();
+  const hi = 1 + (bossGradientHi - 1) * bossMagScale();
+  return lo + (hi - lo) * t;
+}
+
+// The ONE place a boss changes what a single card's pips are worth. Called from
+// calcScore's per-card loop, right where the Blight's halving lands.
+function bossCardPipScale(card, r, c) {
+  if (!bossActive) return 1;
+  if (typeof bossEffectsIgnored === 'function' && bossEffectsIgnored()) return 1;
+  let k = 1;
+  if (bossSuitMarkdown && card && bossSuitMarkdown.has(cardColorSuit ? cardColorSuit(card) : card.suit)) {
+    k *= 1 - (1 - bossSuitMult) * bossMagScale();
+  }
+  if (bossGradient) k *= bossGradientScale(r, c);
+  return k;
+}
+
+// ── THE FOG ──────────────────────────────────────────────────────────────────
+// Ranks are hidden until a card is SELECTED. Suits stay visible throughout, which
+// is what keeps the round playable rather than blind: a flush can still be seen,
+// and a run has to be uncovered one card at a time. A selected card shows its own
+// rank, so a selection is how you read the board.
+function bossFogHides(isSel) {
+  if (!bossActive || !bossFog || isSel) return false;
+  if (typeof bossEffectsIgnored === 'function' && bossEffectsIgnored()) return false;
+  return true;
+}
+
+// The Gradient's visual. Published as a CSS custom property and composed into the
+// card transform in css/style.css, beside the heartbeat's --hb* and the clock
+// freeze's --frzr - never written to el.style.transform, or the discard fly-out
+// and .card.removing would stop beating it. Called from the END of render(),
+// for the same reason reapplyClockFreeze is: a card dealt mid-round has to arrive
+// already the right size.
+function bossGradientPaint() {
+  const gridEl = document.getElementById('grid');
+  if (!gridEl) return;
+  const on = bossActive && bossGradient
+             && !(typeof bossEffectsIgnored === 'function' && bossEffectsIgnored());
+  gridEl.querySelectorAll('.card, .trick-card').forEach(el => {
+    if (!on) { el.style.removeProperty('--grds'); el.classList.remove('grad-up', 'grad-dn'); return; }
+    const r = +el.dataset.row, c = +el.dataset.col;
+    if (!Number.isFinite(r) || !Number.isFinite(c)) return;
+    const k = bossGradientScale(r, c);
+    // The pip scale is the truth; the SIZE is a readable stand-in for it, damped
+    // so a 1.5x cell does not overlap its neighbour.
+    el.style.setProperty('--grds', (1 + (k - 1) * 0.34).toFixed(3));
+    el.classList.toggle('grad-up', k > 1.02);
+    el.classList.toggle('grad-dn', k < 0.98);
+  });
+}
+
+// ── THE SWELL ────────────────────────────────────────────────────────────────
+// Focus decays three times as fast and the ceiling is half of what it was. The
+// cap is applied inside focusCapNodes() so every entity that raises it still
+// raises it - the halving lands on the total, not on the base.
+function bossFocusCapScale() {
+  if (!bossActive || !bossFocusSqueeze) return 1;
+  if (typeof bossEffectsIgnored === 'function' && bossEffectsIgnored()) return 1;
+  return 1 - 0.5 * bossMagScale();
+}
+function bossFocusDecayScale() {
+  if (!bossActive || !bossFocusSqueeze) return 1;
+  if (typeof bossEffectsIgnored === 'function' && bossEffectsIgnored()) return 1;
+  return 1 / (1 + (bossFocusDecayMult - 1) * bossMagScale());
+}
+
+// ── THE BOOKKEEPER ───────────────────────────────────────────────────────────
+// Swaps and discards come out of ONE pool of four for the whole round. Nothing is
+// disabled: a Trick or Knack that hands a swap or a discard back still does, and
+// what it hands back goes into the shared pool - which is why this syncs by
+// ABSORBING any increase rather than by overwriting the two counters outright.
+function bossPoolSync() {
+  if (!bossActive || bossPoolLeft < 0) return;
+  const gained = Math.max(0, swaps - _bkLastS) + Math.max(0, discards - _bkLastD);
+  const spent  = Math.max(0, _bkLastS - swaps) + Math.max(0, _bkLastD - discards);
+  bossPoolLeft = Math.max(0, bossPoolLeft + gained - spent);
+  swaps = discards = bossPoolLeft;
+  _bkLastS = swaps; _bkLastD = discards;
+}
+
+// ── THE RERUN ────────────────────────────────────────────────────────────────
+// Replays, pauses and rewinds each have a coin-flip chance of simply not
+// happening. Nothing is switched off - a loadout built on them still works, it
+// just works half as often, which is a cost rather than a wall.
+//
+// The replay roll must be DETERMINISTIC: calcScore is recomputed on every preview,
+// so a live Math.random() there would make the number on the chips disagree with
+// the number that lands. The pause/rewind rolls are not - they happen once, in
+// playHand, and never in a speculative path.
+function bossRerunKeepsReplay(cardId, idx) {
+  if (!bossActive || !bossMissChance) return true;
+  if (typeof bossEffectsIgnored === 'function' && bossEffectsIgnored()) return true;
+  const chance = bossMissChance * bossMagScale();
+  return _detReplayRand((cardId | 0) + idx * 7919, handsPlayedRound + 1013) >= chance;
+}
+function bossRerunMisses() {
+  if (!bossActive || !bossMissChance) return false;
+  if (typeof bossEffectsIgnored === 'function' && bossEffectsIgnored()) return false;
+  return Math.random() < bossMissChance * bossMagScale();
+}
+
+// ── THE MAGPIE ───────────────────────────────────────────────────────────────
+// Every 20s the two biggest cards on the board are taken. They are removed
+// through removeAndFall, so the board refills and stays playable - the loss is
+// the card you were building around, never the cell.
+function bossMagpieTick(count) {
+  if (!bossActive) return;
+  if (typeof bossEffectsIgnored === 'function' && bossEffectsIgnored()) return;
+  if (animating || falling) return;   // removeAndFall takes the falling lock
+  const live = [];
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
+    const card = gridData[r]?.[c];
+    if (!card || card._isStone || card._isSleight || card._isTrick) continue;
+    if (isCellBlocked(r, c)) continue;
+    live.push({ r, c, p: cardPips(card.rank) });
+  }
+  if (!live.length) return;
+  live.sort((a, b) => b.p - a.p);
+  const take = live.slice(0, Math.max(1, count));
+  const labels = take.map(t => gridData[t.r]?.[t.c]?.rank).filter(Boolean).join(' ');
+  take.forEach(({ r, c }) => { const cd = gridData[r]?.[c]; if (cd) discardToDrawPile(cd); });
+  showMessage(`🪶 taken: ${labels}`, 'var(--red)');
+  removeAndFall(take.map(t => [t.r, t.c]), 'discard');
+}
+
+// ── THE STALE DECK ───────────────────────────────────────────────────────────
+// The draw pile is reordered least-played first, so the round opens on the cards
+// this run has never had a use for. Nothing is added or removed - it is a sort.
+function bossStaleOrderDeck() {
+  if (!Array.isArray(drawPile) || drawPile.length < 2) return;
+  const plays = c => (typeof cardPlayCount === 'object' && cardPlayCount) ? (cardPlayCount[cardId(c)] || 0) : 0;
+  // Stable by construction: decorate with the original index so equally-unplayed
+  // cards keep the shuffled order they already had rather than clumping by suit.
+  withSeededRng(() => {
+    drawPile = drawPile
+      .map((card, i) => ({ card, i, n: plays(card) }))
+      .sort((a, b) => (a.n - b.n) || (a.i - b.i))
+      .map(x => x.card);
+  }, 'deck');
+}
+
 function applyBossEffectModifier(mod, params) {
   switch (mod) {
     case 'time_scales_with_focus':
@@ -644,6 +1020,97 @@ function applyBossEffectModifier(mod, params) {
       // is also what makes a round past 3:00 get a third family with no extra code.
       bossSchedule(bossRedactHold, () => bossRedactTick(params.holdSecs || 90));
       return true;
+
+    // ── the r217 roster ──────────────────────────────────────────────────────
+    case 'score_quota':
+      // Checked on the round tick rather than on a schedule: a deadline is a
+      // moment on the clock, and the Metronome can consume several seconds in one
+      // tick, so it has to be tested as "the clock has passed it", not fired at it.
+      bossQuotaArm(params.shares || [0.2, 0.4, 0.6]);
+      return true;
+    case 'play_fee_credits':
+      bossPlayFeeCards = params.perCard || 1;
+      return true;
+    case 'repeat_decay':
+      bossGrindRate   = params.rate || 0.15;
+      bossGrindWindow = params.window || 5;
+      bossGrindHistory = [];
+      return true;
+    case 'no_natural_scaling':
+      bossNoScaling = true;
+      return true;
+    case 'hand_inspection':
+      bossInspectHand    = bossInspectPick();
+      bossInspectEvery   = params.everySecs || 45;
+      bossInspectPenalty = params.penalty || 0.2;
+      bossInspectDone    = false;
+      // bossSchedule fires immediately then repeats, and an immediate fire here
+      // would bill the player before the round has started - so the opening tick
+      // only arms the window (bossInspectDone is false, but so is the score).
+      bossInspectDone = true;
+      bossSchedule(bossInspectEvery, bossInspectTick);
+      return true;
+    case 'goal_creep':
+      // A share of the ORIGINAL goal, captured once. Compounding the live goal
+      // would double it inside four ticks.
+      bossGoalCreepStep = Math.max(1, Math.round((roundGoal || 0) * (params.rate || 0.15) * bossMagScale()));
+      bossLedgerArmed = false;
+      bossSchedule(params.everySecs || 30, () => {
+        if (!bossLedgerArmed) { bossLedgerArmed = true; return; }   // skip the opening tick
+        bossLedgerTick();
+      });
+      return true;
+    case 'short_window': {
+      // bossWindowDuration is set by triggerBoss BEFORE applyBossModifiers runs,
+      // and roundSeconds is written from it AFTER - which is the only reason a
+      // modifier can shorten the round at all.
+      const _w = Math.round((params.seconds || 90) / bossMagScale());
+      bossWindowDuration = _w;
+      const _cut = 1 - (1 - (params.goalMult || 0.5)) * bossMagScale();
+      roundGoal = Math.max(1, Math.round(roundGoal * _cut));
+      return true;
+    }
+    case 'suit_markdown':
+      bossSuitMult  = params.mult || 0.6;
+      bossSuitHold  = params.holdSecs || 60;
+      bossSuitCount = params.count || 3;
+      bossSuitMarkdown = null; _bossSuitBag = [];
+      bossSchedule(bossSuitHold, bossSuitTick);
+      return true;
+    case 'no_discard_return':
+      bossSieve = true;
+      return true;
+    case 'hide_ranks':
+      bossFog = true;
+      return true;
+    case 'score_gradient':
+      bossGradient   = true;
+      bossGradientLo = params.lo || 0.5;
+      bossGradientHi = params.hi || 1.5;
+      bossGradientDir = 3;   // the opening tick advances to 0 (top best)
+      bossSchedule(params.everySecs || 40, bossGradientTick);
+      return true;
+    case 'focus_squeeze':
+      bossFocusSqueeze   = true;
+      bossFocusDecayMult = params.decayMult || 3;
+      if (typeof resetFocusDecayTimer === 'function') resetFocusDecayTimer();
+      return true;
+    case 'shared_pool':
+      bossPoolLeft = Math.max(1, Math.round((params.pool || 4) / bossMagScale()));
+      swaps = discards = bossPoolLeft;
+      _bkLastS = swaps; _bkLastD = discards;
+      render();
+      return true;
+    case 'effect_miss':
+      bossMissChance = params.chance || 0.5;
+      return true;
+    case 'steal_high':
+      bossSchedule(params.everySecs || 20, () => bossMagpieTick(
+        Math.max(1, Math.round((params.count || 2) * bossMagScale()))));
+      return true;
+    case 'stale_order':
+      bossStaleOrderDeck();
+      return true;
   }
   return false;   // not ours - boss.js handles the legacy modifiers
 }
@@ -664,6 +1131,22 @@ function clearBossEffects() {
   bossGoalRatchet = 0; bossInteractFee = 0;
   bossRedactedHand = null; bossRedactedMult = 1;
   bossRedactedFamily = null; bossRedactBag = []; bossRedactUntil = 0; bossRedactHold = 90;
+  // ── the r217 roster ──
+  bossQuotaMarks = []; bossQuotaIdx = 0;
+  bossPlayFeeCards = 0;
+  bossGrindRate = 0; bossGrindWindow = 5; bossGrindHistory = [];
+  bossNoScaling = false;
+  bossInspectHand = null; bossInspectDone = false; bossInspectUntil = 0;
+  bossGoalCreepStep = 0; bossLedgerArmed = false;
+  bossSieve = false; bossFog = false;
+  bossGradient = false; bossGradientDir = 0;
+  // Focus has to be released BEFORE the flag clears, or the restart re-reads the
+  // squeezed interval and the next round decays three times as fast for good.
+  bossFocusSqueeze = false;
+  if (typeof resetFocusDecayTimer === 'function' && typeof focusDecayTimerId !== 'undefined' && focusDecayTimerId !== null) resetFocusDecayTimer();
+  bossPoolLeft = -1; _bkLastS = 0; _bkLastD = 0;
+  bossMissChance = 0;
+  bossSuitMarkdown = null; _bossSuitBag = []; bossSuitUntil = 0;
   bossMarkerClearAll();
 }
 
