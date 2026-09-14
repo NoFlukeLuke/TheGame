@@ -85,9 +85,16 @@ function pickTrickOptions(n) {
   // Don't offer already acquired bonuses (except stackable ones)
   const stackableIds = ['rich_soil','fertile_ground','rowcol_triple_pips','rowcol_mult','rowcol_retrigger','rowcol_perm_double'];
   const filtered = pool.filter(b => !acquiredTricks.some(a => a.id === b.id && !stackableIds.includes(b.id)));
-  // r201: this held a THREE-tier bag written before `epic` existed, so epic fell
-  // through to weight 1 and carried the same per-entity odds as legendary.
-  const picked = pickManyByRarity(filtered, n, { key: 'tier' });
+  // This held a THREE-tier bag written before `epic` existed, so epic fell through
+  // to weight 1 and carried the same per-entity odds as legendary. Main's shared
+  // table (and Luck) now decide it; drawn one at a time so they stay distinct.
+  const picked = [], seen = new Set();
+  for (let g = 0; g < n * 12 && picked.length < n; g++) {
+    const left = filtered.filter(b => !seen.has(b.id));
+    if (!left.length) break;
+    const p = pickTrickByRarity(left) || left[0];
+    seen.add(p.id); picked.push(p);
+  }
   return picked;
 }
 
@@ -160,7 +167,7 @@ function trickLiveDesc(trick) {
       case 'sands_of_time':  return roundNow(`+${Math.floor(roundSeconds / B.sands_of_time.divisor)} pips`);
       case 'discard_pips':   return roundNow(`+${(cardsDiscardedRound || 0) * B.discard_pips.pips_per_discard} pips`);
       case 'landfill':       return roundNow(`+${Math.floor((cardsDiscardedRound || 0) / B.landfill.discards_per) * B.landfill.mult_per_n} mult`);
-      case 'escalation':     return roundNow(`+${Math.max(0, (handsPlayedRound || 0) - 5)} mult`);
+      case 'escalation':     { const _h = (handsPlayedRound || 0) + 1; return roundNow(`+${_h > B.escalation.after_hands ? _h * B.escalation.mult_per_hand : 0} mult`); }
       case 'combo_score':    return roundNow(`+${(handTypesRound ? handTypesRound.size : 0) * B.combo_score.mult_per_type} mult`);
       default: return base;
     }
@@ -338,7 +345,7 @@ function renderTrickTray() {
     chip.dataset.trickId = trick.id;
     const isMirror = trick.id === 'mirror';
     const dir = trick._tiltDir; // -1 left, +1 right, undefined = not aimed
-    const tile = { entity: 'trick', label: trick.name,
+    const tile = { entity: 'trick', id: trick.id, label: trick.name,
                    emoji: isMirror ? (dir === -1 ? '◀' : dir === 1 ? '▶' : '◆') : trickEmoji(trick) };
     chip.innerHTML = entityTileHTML(tile, rar) + (bossOff ? `<div class="trick-off-mark">OFF</div>` : '');
     if (isMirror) {
@@ -358,6 +365,10 @@ function renderTrickTray() {
         showTrickTrayTooltip(trick, chip);
       });
     }
+    // Cooldown / disable / primed ring (js/cooldown.js). Painted here as well as
+    // by the widget's own sweep so a freshly rebuilt tray shows the right state on
+    // its first frame instead of flashing un-badged for up to 250ms.
+    if (typeof cdPaint === 'function') cdPaint(chip, cdForTrick(trick.id));
     track.appendChild(chip);
   });
   list.appendChild(track);
@@ -685,11 +696,11 @@ function updateActProgressUI() {
   if (isActMode()) {
     labelEl.textContent = 'Progress';
     if (bossActive) {
-      valEl.textContent  = `ACT ${actNumber} · BOSS`;
+      valEl.textContent  = `Q${actNumber} · BOSS`;
       valEl.style.color  = '#ff6b6b';
     } else {
       const _next = (typeof guidedNextStopLabel === 'function') ? guidedNextStopLabel() : '';
-      valEl.textContent  = `ACT ${actNumber} · ${nodeInAct}/5` + (_next ? ` · ${_next}` : '');
+      valEl.textContent  = `Q${actNumber} · ${nodeInAct}/5` + (_next ? ` · ${_next}` : '');
       valEl.style.color  = '';
     }
   } else {

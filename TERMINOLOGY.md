@@ -101,14 +101,14 @@ player learns the ordering once.
 
 | code id (frozen) | colour | Utility (trick) | Vendor (sleight) | Cert (knack) |
 |---|---|---|---|---|
-| `common` | mint | **Lite** | **Trial** | *(TBD)* |
-| `rare` | cyan | **Standard** | **Contract** | *(TBD)* |
+| `common` | mint | **Lite** | **Trial** | **Basic** |
+| `rare` | cyan | **Standard** | **Contract** | **Advanced** |
 | `epic` | purple | **Plus** | **Retainer** | not used |
 | `legendary` | magenta | **Deluxe** | **Partner** | not used |
 
 **Certs use only two tiers, deliberately.** The knack pool has 24 common and 24
-rare and that is the shape it is meant to be. The two names are still to be
-chosen; until then they display as Common / Rare.
+rare and that is the shape it is meant to be. `epic` and `legendary` fold onto
+Advanced in the labels table, so a stray entry still renders rather than blanking.
 
 **`mythic` was merged into `legendary` (r197).** Five tiers meant the top two were
 one tier wearing two hats: 12 of 177 Utilities and 4 of 40 Vendors between them, at
@@ -118,6 +118,14 @@ player never meets teaches nothing. `mythic` is not a valid tier id any more.
 
 The retired fifth colour is **yellow**. The top tier took magenta rather than
 yellow so that it also inherits the pulse animation the old mythic tier had.
+
+**The weight tables caught up in r226.** The data pools were re-tiered onto four
+at r197, but `ENTITY_TIERS` / `ENTITY_TIER_W` kept a fifth `mythic` slot at
+weight 1 that matched nothing - every roll landing there cascaded down into
+legendary anyway, and the Limit Break tile, which hard-coded `tier:'mythic'`,
+asked for a `rar-mythic` colour no stylesheet defines. Its weight is folded into
+legendary, so the effective spread is unchanged. See CLAUDE.md, "Rarity rolls and
+LUCK".
 
 ### Why Vendors, not Hires (r200)
 
@@ -166,7 +174,7 @@ Kept so an old screenshot, comment or commit message can still be decoded.
 | Hire (briefly, r197-r199) | **Vendor** |
 | Totem | Knack -> **Cert** |
 | Personnel File (RECORDS tab) | Owned |
-| mythic | merged into `legendary` -> **Deluxe** / **Executive** |
+| mythic | merged into `legendary` -> **Deluxe** / **Partner** |
 | Mythic / Legendary (two tiers) | one top tier |
 | PIPS | **WORK** |
 | MULT | **SKILL** |
@@ -174,8 +182,9 @@ Kept so an old screenshot, comment or commit message can still be decoded.
 
 ## Where the strings live
 
-- **js/labels.js** - `TIER_LABELS`, `ENTITY_LABELS`, `tierLabel()`,
-  `tierInitial()`. The only place a tier or category word is spelled out.
+- **js/labels.js** - `LEXICONS` (both vocabularies), `tierLabel()`,
+  `tierInitial()`, `entityLabel()`, `lexTerm()`, `lexProse()`. The only place a
+  tier or category word is spelled out.
 - **js/data/*.js** - carry ids only. A `name:` or `desc:` here is content, not
   vocabulary, and is renamed by hand.
 - **css/*.css** - class names are ids (`rar-legendary`, `trick-tier-common`).

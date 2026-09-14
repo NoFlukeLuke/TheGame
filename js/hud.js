@@ -43,12 +43,44 @@ function showBonusHandScoreFlash(cells, scoreAmount) {
   setTimeout(() => flash.remove(), 1100);
 }
 
+// BETWEEN ROUNDS the panel answers two different questions (r217).
+//
+// During a round it reads SCORE / GOAL, which is the live race. On a
+// grid-takeover screen - the reward grid, a shop, an event - there is no live
+// race: `score` has already been banked and zeroed by triggerLevelUp, so the
+// panel was reading "Score 0" over "GOAL <the next one>" for the whole of every
+// between-rounds screen. Zero is not what the round was worth, and it is the
+// number the player most wants while deciding what to take.
+//
+// So on those screens it reads LAST ROUND over what that round scored, and
+// NEXT QUOTA over the goal about to be asked for. The progress bar is hidden:
+// it would sit at 100% and mean nothing.
+//
+// `body.grid-screen` is the switch, set by enterGridScreenHud() and cleared by
+// exitGridScreenHud() (js/shop-grid-preview.js), which is the same class the
+// PIPS/MULT/FOCUS -> LOCATION swap already rides - so all three screens get
+// this with no per-screen wiring.
+function scorePanelIsBetweenRounds() {
+  return document.body.classList.contains('grid-screen') && lastRoundGoal > 0;
+}
+
 function updateScoreUI() {
   if (suppressScoreDisplay) return; // hold display during goal hand dance
-  animateDigitEl(document.getElementById('score-total-num'), score);
+  const between = scorePanelIsBetweenRounds();
+  const totalLabel = document.getElementById('score-total-label');
+  const goalLabel  = document.getElementById('score-goal-label');
+  const barWrap    = document.getElementById('score-progress-bar-wrap');
+  if (totalLabel) totalLabel.textContent = between ? 'Last round' : 'Score';
+  if (goalLabel)  goalLabel.textContent  = between ? 'NEXT QUOTA' : 'GOAL';
+  if (barWrap)    barWrap.style.visibility = between ? 'hidden' : '';
+
+  const shownScore = between ? lastRoundScore : score;
+  // animateDigitEl rolls the digits; between rounds the number is a finished
+  // fact rather than a climbing tally, so it is written straight in.
+  if (!between) animateDigitEl(document.getElementById('score-total-num'), shownScore);
   const scoreDisplayEl = document.getElementById('score-total-num');
   if (scoreDisplayEl && scoreDisplayEl.style.visibility !== 'hidden') {
-    scoreDisplayEl.textContent = score.toLocaleString();
+    scoreDisplayEl.textContent = shownScore.toLocaleString();
   }
   const pct = Math.min(score / roundGoal, 1);
   const bar = document.getElementById('score-progress-bar');
@@ -67,6 +99,45 @@ function updateDanceSubboxes(pips, mult) {
   const prevMult = parseFloat(multEl.dataset.displayVal) || 0;
   if (pips !== prevPips) { animateDigitEl(pipsEl, Math.round(pips)); popSubbox('pips-box'); }
   if (mult !== prevMult) { animateDigitEl(multEl, parseFloat(mult.toFixed(1))); popSubbox('mult-box'); }
+}
+
+// ── Selection readouts (r197, split r214) ──
+// TWO readouts, deliberately answering different questions:
+//   #sel-display (top bar, beside the coins) is STATIC - the Selection Size limit
+//     itself. It is a property of the run, so it only moves when the limit is
+//     upgraded, and it is readable at a glance without tracking a live count.
+//   #sel-count (in the board's own margin) is the LIVE tally, x/y, where x is what
+//     is in hand right now and y is the most this screen will take. On the reward
+//     grid that is picked tiles over the pick cap.
+// Both are written here so they can never disagree about the cap.
+function updateSelectionUI() {
+  const onReward = (typeof rewardOnGrid !== 'undefined' && rewardOnGrid);
+  const n   = onReward ? rewardSelected.size : selected.length;
+  const cap = onReward ? rewardSelectionCap() : limits.selection.current;
+  const min = onReward ? (typeof rewardMinPicks === 'function' ? rewardMinPicks() : 1)
+                       : (typeof minSelection  === 'function' ? minSelection()  : 1);
+
+  // Top bar: the limit, not the count.
+  const el = document.getElementById('sel-display');
+  if (el) {
+    el.textContent = `✋ ${limits.selection.current}`;
+    el.classList.remove('sel-full');
+  }
+  const st = document.getElementById('sel-stat');
+  if (st) st.classList.remove('sel-active');
+
+  // Board margin: the live tally.
+  const cEl = document.getElementById('sel-count');
+  const vEl = document.getElementById('sel-count-val');
+  if (!cEl || !vEl) return;
+  // Only where a selection means something. The menu and the between-round screens
+  // leave the board empty, and a stale "0/3" hanging over it reads as a bug.
+  const live = onReward || (typeof gridData !== 'undefined' && gridData && gridData.length > 0);
+  cEl.classList.toggle('on', !!live);
+  if (!live) return;
+  vEl.textContent = `${n}/${cap}`;
+  cEl.classList.toggle('below', n > 0 && n < min);
+  cEl.classList.toggle('full',  n >= cap);
 }
 
 function updateCoinsUI() {
@@ -95,9 +166,9 @@ function updateRunProgressUI() {
   document.querySelectorAll('.rp-block').forEach(rp => {
     rp.classList.toggle('boss-sigil', bossOn);
     const act = rp.querySelector('.rp-act');
-    // Outside the 3-Act structure (Survival) "ACT n" is meaningless, but a boss
+    // Outside the three-quarter structure (Survival) "Qn" is meaningless, but a boss
     // still needs a name over its mark.
-    if (act) act.textContent = actMode ? ('ACT ' + actNumber) : (bossOn ? 'BOSS' : '');
+    if (act) act.textContent = actMode ? ('Q' + actNumber) : (bossOn ? 'BOSS' : '');
     rp.querySelectorAll('.rp-nodes span:not(.boss)').forEach((s, i) => {
       s.classList.toggle('on', i < nodeInAct);
       s.classList.toggle('cur', i === nodeInAct);
@@ -211,6 +282,59 @@ function hideKnackTooltip() {
 document.addEventListener('click', (e) => {
   if (!e.target.closest('.knack-chip') && !e.target.closest('#knack-tooltip')) hideKnackTooltip();
 }, true);
+
+// ══════════════════════════════════════════════
+// HAND-TYPE LABEL (r198) - #hand-name, beside the hand preview
+// ══════════════════════════════════════════════
+// What you are about to play, named. The preview CARDS are deliberately inert
+// until a hand is submitted (r99 - the preview is the scoring stage, not a live
+// readout), but the NAME is the one thing you want before you commit, and with
+// layered hands it is now the only place the second hand is visible at all.
+//
+// Two lines per layer, family over size ("RUN / 3"), because the desktop panel
+// gives this a 6%-wide column. Portrait flattens the same markup onto one line
+// with CSS - one renderer, no per-orientation branch.
+let _handNameKey = null;   // last markup written, so render() does not thrash the DOM
+
+function handLabelHTML(runs) {
+  return runs.map(({ n, k }) => {
+    const l = HAND_LABEL[n];
+    const x = k > 1 ? `<u>x${k}</u>` : '';
+    return l ? `<span class="hn-l"><b>${l.fam}</b><i>${l.size}${x}</i></span>`
+             : `<span class="hn-l"><b>${n}</b>${x}</span>`;
+  }).join('<span class="hn-plus">+</span>');
+}
+
+function updateHandNameLabel(result) {
+  const el = document.getElementById('hand-name');
+  if (!el) return;
+  // handLayersFor is what calcScore pays for, so the label can never name a hand
+  // the score did not count (or miss one it did).
+  // r200: below the minimum selection the label states the requirement instead of
+  // naming a hand. The player is looking right here to find out what they have,
+  // so it is where "you cannot play this yet, and why" belongs.
+  if (result && result.short) {
+    const html = `<span class="hn-l hn-need"><b>NEED</b><i>${result.short}</i></span>`;
+    if (html !== _handNameKey || el.innerHTML !== html) { _handNameKey = html; el.innerHTML = html; }
+    el.classList.remove('hn-layered');
+    return;
+  }
+  let names = (result && result.hand)
+    ? ((typeof handLayersFor === 'function') ? handLayersFor(result.hand, result.handCells) : [result.hand])
+    : [];
+  // Repeats are real (two Sets of 3), but printing SET 3 + SET 3 in a 44px column
+  // is not - so a repeat collapses to a count: SET 3 x2.
+  const runs = [];
+  names.forEach(n => { const last = runs[runs.length - 1]; if (last && last.n === n) last.k++; else runs.push({ n, k: 1 }); });
+  names = runs;
+  const html = names.length ? handLabelHTML(names) : '';
+  // Also compare the live DOM: other screens (Dominoes) write this element
+  // directly, and a cache hit would then leave their text standing.
+  if (html === _handNameKey && el.innerHTML === html) return;
+  _handNameKey = html;
+  el.innerHTML = html;
+  el.classList.toggle('hn-layered', names.length > 1);   // two or more components: step the type down
+}
 
 // ══════════════════════════════════════════════
 // CARD INTERACTION - tap or swipe to select, double-tap to swap

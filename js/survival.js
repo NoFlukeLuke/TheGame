@@ -23,7 +23,8 @@ const SURVIVAL_GOAL_ROUND_TO = 50;    // goal rounding step (500 would snap 750 
 // +35%/level becomes +57.75%/level. Applied only after the 5-boss run is continued.
 const SURVIVAL_ENDLESS_ACCEL = 1.65;
 const SURVIVAL_LEVEL_COINS   = 3;     // flat coins per goal cleared
-const SURVIVAL_COINS_PER_10S = 1;     // + this per full 10s left on the goal timer
+const SURVIVAL_COINS_PER_10S = 1;     // + this per EFFICIENCY_SECONDS_PER_COIN left on the goal timer
+                                      // (the constant is shared with the payout's Efficiency line - js/data/cards.js)
 const SURVIVAL_SHOP_COST     = 5;     // coins to open the shop from the pick screen
 const SURVIVAL_BOSS_EVERY_SECONDS = 300; // a boss arrives every 5 minutes of play
 const SURVIVAL_BOSS_COUNT     = 5;    // run "completes" after this many bosses beaten
@@ -69,6 +70,10 @@ const SURVIVAL_REROLL_STEP    = 5;    // then 5, 10, 15… (STEP × paid-index)
 // round clock - but it is the same variable, so the bar fill and computeRoundResources
 // must size against it too.
 function currentRoundDuration() {
+  // A boss round's length is its window (r205 - the boss runs on this same clock).
+  // Survival banks leftover time into it and Flow uses a flat one, so it is not
+  // simply the mode's round length, and the clock bar needs the real denominator.
+  if (bossActive) return bossWindowDuration;
   if (typeof flowActive === 'function' && flowActive()) return FLOW_SESSION_SECONDS;
   return survivalActive() ? SURVIVAL_ROUND_SECONDS : ROUND_DURATION;
 }
@@ -77,14 +82,18 @@ function currentRoundDuration() {
 // rounded to 50 (Classic rounds to 500, which would snap the 750 opener to 1000).
 // In endless mode the per-level growth accelerates (see SURVIVAL_ENDLESS_ACCEL);
 // levels before the switch keep the normal curve so the jump isn't retroactive.
+// The four numbers below come from goalTune() (js/goal-tuning.js), which falls
+// back to the constants above unless the dev panel's Goals group has moved them.
 function survivalGoalForLevel(lv) {
-  const base = Math.pow(GOAL_SCALE, Math.min(lv, survivalEndlessFromLevel) - 1);
-  let g = SURVIVAL_BASE_GOAL * base;
+  const step  = Math.max(1, goalTune('survivalRoundTo'));
+  const scale = 1 + goalTune('survivalGrowth') / 100;
+  const base  = Math.pow(scale, Math.min(lv, survivalEndlessFromLevel) - 1);
+  let g = goalTune('survivalBase') * goalTune('globalMult') * base;
   if (survivalEndless && lv > survivalEndlessFromLevel) {
-    const fast = 1 + (GOAL_SCALE - 1) * SURVIVAL_ENDLESS_ACCEL;
+    const fast = 1 + (scale - 1) * goalTune('endlessAccel');
     g *= Math.pow(fast, lv - survivalEndlessFromLevel);
   }
-  return Math.max(SURVIVAL_GOAL_ROUND_TO, Math.round(g / SURVIVAL_GOAL_ROUND_TO) * SURVIVAL_GOAL_ROUND_TO);
+  return Math.max(step, Math.round(g / step) * step);
 }
 let survivalEndlessFromLevel = Infinity; // level at which endless acceleration begins
 
@@ -120,13 +129,16 @@ function survivalInitRun() {
 // leftover = seconds left on the clock when the goal was cleared. Pays coins and
 // banks time toward the next boss. Score carry-over is handled inline in
 // triggerLevelUp (overflow above the goal seeds the next round).
-function survivalAfterLevelUp(leftover) {
+function survivalAfterLevelUp(leftover, unspentActions = 0) {
   // Flow: the session clock is NOT spent by clearing a goal (it spans every goal in
   // the 5 minutes), so there is no "leftover" to pay out and no time to bank - its
   // boss runs a fixed window. Flat coins only.
   const _flow = (typeof flowActive === 'function' && flowActive());
-  const gained = _flow ? SURVIVAL_LEVEL_COINS
-                       : SURVIVAL_LEVEL_COINS + Math.floor(Math.max(0, leftover) / 10) * SURVIVAL_COINS_PER_10S;
+  // Survival and Flow skip the payout screen, so the unspent-actions credits
+  // (r218) are folded into their own coin step instead - the rule is every mode.
+  const unspent = Math.max(0, unspentActions) * BAL._resources.unspent_credits;
+  const gained = unspent + (_flow ? SURVIVAL_LEVEL_COINS
+                       : SURVIVAL_LEVEL_COINS + Math.floor(Math.max(0, leftover) / EFFICIENCY_SECONDS_PER_COIN) * SURVIVAL_COINS_PER_10S);
   coins += gained;
   updateCoinsUI();
   if (!_flow) survivalBossTimeBank = Math.min(SURVIVAL_BOSS_TIME_CAP, survivalBossTimeBank + Math.max(0, leftover));
@@ -190,7 +202,9 @@ function survivalDrawOne(type, pools, used) {
   if (!avail.length) return null;
   // r201: SURVIVAL_PICK_WEIGHTS only ever chose the TYPE. Which ENTITY came out
   // was a flat pick, so the pick-of-three ignored rarity entirely.
-  const data = pickByRarity(avail, { key: type === 'trick' ? 'tier' : 'rarity' }) || avail[0];
+  // SURVIVAL_PICK_WEIGHTS only ever chose the TYPE; which ENTITY came out was a
+  // flat pick, so the pick-of-three ignored rarity (and Luck) entirely.
+  const data = pickEntityByRarity(avail, d => (type === 'trick' ? d.tier : d.rarity) || 'common') || avail[0];
   used[type].add(data.id);
   return survivalMakeOption(type, data);
 }
@@ -247,11 +261,13 @@ function survivalPickOverlay() {
         <div id="sv-pick-cards"></div>
         <div class="sv-pick-foot">
           <button id="sv-pick-reroll" onclick="survivalReroll()"></button>
+          <button id="sv-pick-peek" onclick="survivalTogglePeek()" title="Get the panel out of the way and watch the board">👁</button>
           <button id="sv-pick-contrib-btn" onclick="survivalToggleContrib()" title="What contributed to your score">📊</button>
         </div>
         <button id="sv-pick-shop" onclick="survivalOpenShop()">🛒 Shop - entry fee 5 💰</button>
         <div id="sv-pick-contrib"></div>
-      </div>`;
+      </div>
+      <button id="sv-peek-restore" onclick="survivalTogglePeek()">CHOOSE ONE &#8250;</button>`;
     (document.getElementById('stage') || document.body).appendChild(el);
   }
   return el;
@@ -307,7 +323,9 @@ function survivalShowPick(bonus = false, kicker) {
   survivalRenderPick();
   const ov = survivalPickOverlay();
   ov.classList.add('show');
+  ov.classList.remove('sv-peek');   // a fresh pick always opens in front
   survivalHideContrib(); // start collapsed
+  survivalSyncPickAudio();
   // The goal hand's score panel isn't refreshed by the (skipped) interlude - sync it
   // so the SCORE total reflects the cleared goal while the preview dance climbs.
   if (typeof updateScoreUI === 'function') updateScoreUI();
@@ -329,6 +347,37 @@ function survivalHideContrib() {
   const panel = document.getElementById('sv-pick-contrib');
   if (panel) { panel.classList.remove('show'); panel.innerHTML = ''; }
   document.getElementById('sv-pick-contrib-btn')?.classList.remove('sv-open');
+}
+
+// ── PEEK (r197) ──────────────────────────────────────────────────────────────
+// The pick opens DURING the goal dance - that is deliberate, the score count-up
+// and the choosing happen together - but the panel lands on top of the finale
+// that is still playing, and in portrait it is centred right over the board. So
+// the panel can be put aside: peek hides it and hands the screen back, and one
+// button brings it straight back. Nothing is decided or timed by this; the deal
+// still waits on survivalChoose either way.
+//
+// The button that restores it lives OUTSIDE #survival-pick-panel, because the
+// panel itself is pointer-events:none while peeking - a restore button inside it
+// would be unreachable.
+function survivalTogglePeek() {
+  const ov = survivalPickOverlay();
+  if (!ov.classList.contains('show')) return;
+  ov.classList.toggle('sv-peek');
+  if (ov.classList.contains('sv-peek')) survivalHideContrib();  // the breakdown is part of the panel
+  survivalSyncPickAudio();
+}
+
+// The board is still scoring underneath the panel, so it stays audible - just
+// muffled, the way it would sound through the thing covering it. Peeking pulls
+// the panel away, so the mix opens back up. One function owns the rule, and
+// every path that changes what is on screen calls it (show, choose, peek, and
+// the Mart's return in js/mart-shop.js).
+function survivalSyncPickAudio() {
+  if (typeof sfxSetMuffle !== 'function') return;
+  const ov = document.getElementById('survival-pick-overlay');
+  const covering = !!ov && ov.classList.contains('show') && !ov.classList.contains('sv-peek');
+  sfxSetMuffle(covering);
 }
 
 function survivalReroll() {
@@ -354,8 +403,9 @@ function survivalChoose(i) {
   if (!opt) return;
   if (typeof cancelDance === 'function') cancelDance(); // stop the score count-up if still running
   survivalHideContrib();
-  survivalPickOverlay().classList.remove('show');
+  survivalPickOverlay().classList.remove('show', 'sv-peek');
   survivalPickOffered = null;
+  survivalSyncPickAudio();
   survivalGrant(opt);
   // Post-boss BONUS pick doesn't carry score or pay the time-coins (no goal was cleared).
   survivalSkipCarryover = survivalBonusPick;
@@ -545,6 +595,7 @@ function survivalOpenShop() {
   coins -= SURVIVAL_SHOP_COST;
   updateCoinsUI();
   survivalShopFromPick = survivalPickOverlay().classList.contains('show');
+  if (typeof sfxSetMuffle === 'function') sfxSetMuffle(false);
   triggerShop();
 }
 let survivalShopFromPick = false;

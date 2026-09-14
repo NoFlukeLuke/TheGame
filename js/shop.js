@@ -14,9 +14,9 @@ let svcStep = 0;
 let svcPicked = [];
 
 // ── New shop state ──
-const SHOP_TRICK_PRICES    = { common: 5, rare: 8, epic: 12, legendary: 20 };
+const SHOP_TRICK_PRICES    = { common: 5, rare: 8, epic: 12, legendary: 18 };
 const SHOP_KNACK_PRICE  = 10;
-const SHOP_SLEIGHT_PRICES = { common: 8, rare: 12, epic: 16, legendary: 25 };
+const SHOP_SLEIGHT_PRICES = { common: 8, rare: 12, epic: 16, legendary: 22 };
 const SHOP_LIMIT_BASE   = 15; // coins; +5 per upgrade already purchased
 
 let shopItems       = null; // { tricks:[], limits:[], knacks:[], sleights:[] }
@@ -64,16 +64,28 @@ function shopLimitPrice(def) {
   return SHOP_LIMIT_BASE + purchases * 5;
 }
 
-// r201: one call now - the weighting, the cascade and LUCK all live in
-// pickByRarity (js/rarity.js), so every offer path in the game shares them.
+// Picks `count` sleights using weighted rarity tiers: common 60%, rare 28%, epic 10%, legendary 2%.
+// Cascades to lower rarity if the rolled tier has no available sleights.
 function pickSleightByRarity(count, excluded) {
+  const TIER_ORDER   = ENTITY_TIERS;      // js/data/balance.js - one table for every offer path
+  const TIER_WEIGHTS = luckTierWeights(ENTITY_TIER_W);  // Luck tilts the ladder (js/luck.js)
   const result = [];
   const usedIds = new Set(excluded);
   for (let i = 0; i < count; i++) {
     const pool = SLEIGHT_POOL.filter(j => !usedIds.has(j.id) && sleightOfferable(j) && !_shopModeBanned(j.id));
     if (!pool.length) break;
-    const pick = pickByRarity(pool);
-    if (!pick) break;
+    const roll = Math.random() * 100;
+    let cum = 0, targetIdx = 0;
+    for (let ti = 0; ti < TIER_WEIGHTS.length; ti++) {
+      cum += TIER_WEIGHTS[ti];
+      if (roll < cum) { targetIdx = ti; break; }
+    }
+    let pick = null;
+    for (let ti = targetIdx; ti >= 0 && !pick; ti--) {
+      const tp = pool.filter(j => j.rarity === TIER_ORDER[ti]);
+      if (tp.length) pick = tp[Math.floor(Math.random() * tp.length)];
+    }
+    if (!pick) pick = pool[Math.floor(Math.random() * pool.length)];
     result.push(pick);
     usedIds.add(pick.id);
   }
@@ -102,8 +114,7 @@ function _generateShopItems() {
   const ownedKnackIds = new Set(acquiredKnacks.map(t => t.id));
   const grantedSleights = _grantedSleightSet();
 
-  // r201: was shuffle().slice(), i.e. no rarity weighting at all.
-  const tricks    = pickManyByRarity(TRICK_POOL.filter(b => !ownedBcIds.has(b.id) && !_shopModeBanned(b.id)), 3, { key: 'tier' });
+  const tricks    = shuffle(TRICK_POOL.filter(b => !ownedBcIds.has(b.id) && !_shopModeBanned(b.id))).slice(0, 3);
   const lims   = pickWeightedLimits(2);
   const knacks = shuffle(KNACK_POOL.filter(t => !ownedKnackIds.has(t.id) && !_shopModeBanned(t.id))).slice(0, 2);
   const sleights = pickSleightByRarity(3, grantedSleights);
@@ -120,7 +131,7 @@ function rerollShopItems() {
   // Tricks
   const usedBcIds = new Set(ownedBcIds);
   shopItems.tricks.forEach((trick, i) => { if (trick && shopPurchased.has(`trick-${i}`)) usedBcIds.add(trick.id); });
-  const freshTricks = pickManyByRarity(TRICK_POOL.filter(b => !usedBcIds.has(b.id) && !_shopModeBanned(b.id)), 3, { key: 'tier' });
+  const freshTricks = shuffle(TRICK_POOL.filter(b => !usedBcIds.has(b.id) && !_shopModeBanned(b.id)));
   let bi = 0;
   shopItems.tricks = shopItems.tricks.map((trick, i) => shopPurchased.has(`trick-${i}`) ? trick : (freshTricks[bi++] || trick));
 

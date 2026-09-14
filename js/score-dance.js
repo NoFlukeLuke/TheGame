@@ -137,12 +137,55 @@ const DANCE_CFG = {
   actA:{cls:'dnc-pulse',dur:420,mag:1.0}, actB:{cls:'dnc-flash',dur:420,mag:0.4},
   trig:{cls:'dnc-pop',dur:260,mag:0.7}, jitInit:0.10, jitGrow:0.18,
   tickRest:600, pFlight:550, scoreClimb:1250, ff:15, pScale:2.6,
+  // The plate's size multiplier, on top of PARTICLE_CFG.size. 1.15 is the owner's
+  // "+15%". pScale above is the OLD bare-text scale and is now unused by the
+  // plate shapes - it still drives the no-plate fallback.
+  pScaleMul:1.15,
   // Base tally speed multiplier for ordinary hands. 1 = full speed (ordinary
   // hands are NOT globally sped up - only a hand interrupted by a NEW hand
   // fast-forwards, via danceInterruptMode below). Kept as a hook the win finale's
   // fast-forward button can raise. `ff` (15×) is the separate "illegible" speed.
+  // Overwritten at load by Settings > Motion > Scoring speed (default 2x). The 1
+  // here is only the value before settings apply; it is not the shipped default.
   norm:1,
 };
+// ══════════════════════════════════════════════
+// SCORE PARTICLE (r221) - tuned in particle-preview.html
+// ══════════════════════════════════════════════
+// A particle used to be bare serif text with a drop shadow, which had to compete
+// with a board of cream playing cards and a lit HUD behind it. It is a small
+// DIAMOND PLATE now, coloured by the chip it is flying into and lettered in
+// white: the colour says what is changing before the number is even read, and an
+// opaque plate is legible over anything.
+//
+// Open particle-preview.html, tune, press Dump, and paste the block it prints
+// over this one. `colors` are keyed by the particle kind (see evKind).
+const PARTICLE_CFG = {
+  shape: 'diamond',          // diamond | square | circle | pill | none
+  size: 40,                  // px, the plate
+  font: 14,                  // px, the label
+  round: 4, borderW: 1.5, borderLight: 45, glow: 10,
+  ink: '#ffffff',
+  colors: {
+    pipAdd:  '#2f6bd8',      // pips are blue, the PIPS chip's own border colour
+    pipMul:  '#1f9ad8',      // a multiply is the same hue, brighter
+    multAdd: '#c0202c',      // mult is red, the MULT chip's colour
+    multMul: '#e0533a',
+    focus:   '#8a4fd0',
+    credits: '#c9a84c',
+    time:    '#3f9ad0',
+  },
+};
+// Lighten a hex toward white. The border is the plate's own hue brightened, not
+// a separate colour, so the diamond reads as one object rather than as an
+// outline around a fill.
+function _ptLighten(hex, pct){
+  const n = parseInt(String(hex).slice(1), 16);
+  if (!isFinite(n)) return hex;
+  const t = (pct || 0) / 100, m = v => Math.round(v + (255 - v) * t);
+  return `rgb(${m(n>>16)},${m((n>>8)&255)},${m(n&255)})`;
+}
+
 let newDanceEnabled = (function(){ try { return localStorage.getItem('newDance') !== '0'; } catch(e){ return true; } })();
 function setNewDance(on){ newDanceEnabled = !!on; try { localStorage.setItem('newDance', on ? '1' : '0'); } catch(e){} }
 
@@ -182,6 +225,11 @@ function _scoreDisplayed(){ const el=document.getElementById('score-total-num');
 let dncChain = 0;              // how many hands deep the current burst is
 let dncCutAt = -1e9;           // when cancelDance() last cut a LIVE dance (see js/score-anims.js)
 const DNC_CUT_WINDOW = 60;     // ms: a cut this recent means THIS dance is the replacement
+// ms between hand SUBMISSIONS that still counts as one burst. Longer than a
+// skipped dance's tail (so the tail alone cannot keep a burst alive) and shorter
+// than any deliberate play (so choosing a hand always gets the full tally).
+const DNC_BURST_WINDOW = 1400;
+let _dncLastHandAt = -1e9;    // when the player last submitted a hand
 let _dncOutHandScore = 0;      // the currently-dancing hand's own score, for the handoff
 
 async function danceHandoffToScore(tier, outHandScore, fromVal, toVal, sig) {
@@ -542,10 +590,10 @@ async function playScoreDance(result, toRemove, isGoalHand = false) {
 
 function handleDanceAbort(isGoalHand) {
   danceAbortController = null;
-  // dncChain deliberately is NOT reset here. It is derived at the top of every
-  // dance from whether one was already running, so an abort with no successor
-  // (round end, a boss firing) self-corrects on the next hand, and an abort WITH
-  // a successor must not have the depth pulled out from under it.
+  // dncChain is still not reset here, but the reason has changed: it is derived
+  // from the gap between hand SUBMISSIONS now, so an abort with no successor
+  // really does self-correct (the next hand is slow, the count restarts), and an
+  // abort WITH a successor keeps the depth it earned.
   // An interrupted hand must never leave the PMF row fused - the next hand
   // writes its numbers into chips the player would not be able to see.
   if (typeof pmfResetNow === 'function') pmfResetNow();
@@ -604,20 +652,47 @@ function dncTrigger(chip, n){ dncApply(chip.parentElement, DANCE_CFG.trig);
 function dncStopJitter(chip){ chip.classList.remove('dnc-jitter'); chip.style.removeProperty('--dnc-jit');
   if(chip.parentElement) chip.parentElement.classList.remove('dnc-pulse','dnc-flash','dnc-pop'); }
 function dncTick(el){ if(!el) return; el.style.animation='none'; void el.offsetWidth; el.style.animation='val-tick 0.18s ease'; }
-function dncFly(srcEl, boxEl, label, color, onLand){
+// `durOverride` pins the flight time. Every particle launched together in one beat
+// MUST share a duration: dncBumpAccel below shortens each successive flight, so a
+// beat fired in one go had its particles LAND IN REVERSE ORDER - and since a
+// particle applies its number on landing, that reverses the arithmetic. On a card
+// carrying a x3 and a x2 it finished on 466 pips instead of 416.
+// `kind` picks the plate colour out of PARTICLE_CFG.colors; `color` stays the
+// legacy text colour and is used only by the no-plate shape.
+function dncFly(srcEl, boxEl, label, color, onLand, durOverride, kind){
   const a=srcEl.getBoundingClientRect(), b=boxEl.getBoundingClientRect();
-  const el=document.createElement('div'); el.className='dnc-particle'; el.textContent=label; el.style.color=color;
+  const C=PARTICLE_CFG, bg=(C.colors && C.colors[kind]) || color || '#d4a857';
+  const el=document.createElement('div');
+  el.className='dnc-particle pt-'+(C.shape||'diamond');
+  // Two nested elements, deliberately: the OUTER is what the flight animates, so
+  // the diamond's own 45deg rotation has to live on an inner box or the flight's
+  // transform would overwrite it every frame. The label counter-rotates.
+  el.innerHTML='<span class="pt-box"><span class="pt-lab"></span></span>';
+  el.querySelector('.pt-lab').textContent=label;
   el.style.left=(a.left+a.width/2)+'px'; el.style.top=(a.top+a.height/2)+'px';
+  el.style.color=color;                       // only read by the no-plate shape
   el.style.setProperty('--dnc-pscale', DANCE_CFG.pScale);
+  el.style.setProperty('--pt-size', (C.size*DANCE_CFG.pScaleMul)+'px');
+  el.style.setProperty('--pt-font', (C.font*DANCE_CFG.pScaleMul)+'px');
+  el.style.setProperty('--pt-round', C.round+'px');
+  el.style.setProperty('--pt-bw', C.borderW+'px');
+  el.style.setProperty('--pt-bg', bg);
+  el.style.setProperty('--pt-bc', _ptLighten(bg, C.borderLight));
+  el.style.setProperty('--pt-ink', C.ink);
+  el.style.setProperty('--pt-glow', C.glow+'px');
   document.body.appendChild(el);
   const dx=(b.left+b.width/2)-(a.left+a.width/2), dy=(b.top+b.height/2)-(a.top+a.height/2);
-  const dur = dncFF ? Math.max(60, DANCE_CFG.pFlight/DANCE_CFG.ff) : Math.max(60, DANCE_CFG.pFlight/dncSpeed);
-  el.animate([{transform:'translate(-50%,-50%) scale(.6)',opacity:0},
+  const dur = durOverride || (dncFF ? Math.max(60, DANCE_CFG.pFlight/DANCE_CFG.ff) : Math.max(60, DANCE_CFG.pFlight/dncPace()));
+  dncAnimate(el, [{transform:'translate(-50%,-50%) scale(.6)',opacity:0},
     {transform:'translate(-50%,-50%) scale(1.15)',opacity:1,offset:.2},
     {transform:`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px)) scale(.9)`,opacity:0}],
     {duration:dur,easing:'cubic-bezier(.3,.7,.4,1)',fill:'forwards'});
-  setTimeout(()=>el.remove(), dur+60);
-  return new Promise(res=>setTimeout(()=>{ if(onLand) onLand(); res(); }, dur));
+  // This particle IS a payout tick - a card's pips, a Trick's pips or mult, a
+  // Sleight firing. Bump AFTER dur is read so the speed-up lands on what is
+  // still to come, not on the flight that earned it.
+  dncBumpAccel();
+  dncTimeout(()=>el.remove(), dur+60);
+  return new Promise(res=>dncTimeout(()=>{ if(onLand) onLand(); res(); }, dur));
 }
 function dncFinishAbort(stage, isGoalHand, myGen){
   // If a newer dance has taken over (myGen behind the global), this dance was superseded:
@@ -697,11 +772,27 @@ function flyGridCardToSlot(gEl, slotEl, dur){
 async function playPreviewDance(result, toRemove, isGoalHand = false){
   // "Did this hand interrupt another?" - true if a dance is still live, OR if one
   // was cut microseconds ago by the caller (playHand does exactly that).
+  // Was this hand played ON TOP of another? Two separate questions, and the code
+  // used to conflate them:
+  //   - is a dance still on screen        -> we owe the outgoing hand a handoff
+  //   - is the player BURSTING            -> how much of this hand we may skip
+  // Burst depth used to be derived from the first, which is why a hand could
+  // "fast-play" for no visible reason. A skipped dance is SHORT but still has a
+  // tail (merge, throw, climb, settle), so the next hand almost always arrived
+  // while danceAbortController was non-null and inherited the depth - once you
+  // entered skip mode you stayed in it. And cancelDance() stamps dncCutAt for
+  // cuts with no successor at all (round end, a boss firing, startGame), so a
+  // hand played just after one of those inherited a burst it never earned.
+  // Depth now comes from how fast hands are actually being SUBMITTED.
   const outgoing = !!danceAbortController || (performance.now() - dncCutAt) < DNC_CUT_WINDOW;
+  const sinceLastHand = performance.now() - _dncLastHandAt;
+  _dncLastHandAt = performance.now();
   const preDisplay = _scoreDisplayed();             // score number shown right now (mid-climb)
   _lastDanceStart = performance.now();
-  // How deep into a burst are we? A hand that interrupts nothing resets it.
-  dncChain = outgoing ? dncChain + 1 : 0;
+  // How deep into a burst are we? Only a hand submitted inside DNC_BURST_WINDOW of
+  // the previous one continues the burst; anything slower starts a fresh count, so
+  // the depth self-heals the moment the player stops hammering.
+  dncChain = (sinceLastHand < DNC_BURST_WINDOW) ? dncChain + 1 : 0;
   const chain = dncChain;
   // Third hand of a burst and beyond: no fly-in, no card beats. Straight to the
   // fuse and the throw. A goal hand always plays in full - it ends the round.
@@ -718,9 +809,16 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   // any card flies at it. No-op in landscape. (see js/portrait-panel.js)
   if (typeof portraitDanceBegin === 'function') portraitDanceBegin();
   // Ordinary hands fast-forward to a legible ~3× by default; the goal hand plays full.
-  dncSpeed = isGoalHand ? 1 : (DANCE_CFG.norm || 1);
+  // The Scoring speed setting applies to the goal hand too (r220). It was pinned at
+  // 1x there on the grounds that the finale should play in full - but the setting is
+  // a 0.5x-16x slider now, and a player who has set 8x has said what they want to
+  // watch. Having the one hand that ends the round ignore them reads as a stall,
+  // not as ceremony.
+  dncSpeed = DANCE_CFG.norm || 1;
+  dncResetAccel();          // each hand winds itself up from its own base pace
+  dncClearAnims();
   const aborted = () => sig.aborted;
-  const dwait = ms => new Promise(r => setTimeout(r, dncFF ? Math.max(6, ms/DANCE_CFG.ff) : Math.max(6, ms/dncSpeed)));
+  const dwait = ms => dncWait(dncFF ? Math.max(6, ms/DANCE_CFG.ff) : Math.max(6, ms/dncPace()));
   // ── Interrupt handoff: resolve the just-cut previous hand's score (visual only, grid untouched). ──
   // The outgoing hand's total ALWAYS lands here, one way or another. Previously this only ran for
   // the non-default 'ff'/'resolve' modes and was skipped by the spam valve, so on rapid chaining the
@@ -748,30 +846,49 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   const levelScale = Math.pow(1.1, level - 1);
   const base = HAND_BASE[hand] || { pips:0, mult:1 };
   const basePips = Math.round(handBasePips(hand) * levelScale), baseMult = handBaseMult(hand, handCells.length);
-  // Capture per-card pips BEFORE removeAndFall nulls gridData.
-  const cardPipVals = handCells.map(([r,c]) => cardPips(gridData[r][c].rank));
 
   // Grid feedback for the goal hand is the WIN FINALE below (jitter → explode →
   // fly), which runs before the tally. Normal hands fly into the preview further down.
   const gridEl = document.getElementById('grid');
 
-  // ── Contribution ledger (Tricks + exalt), aggregated per source + per-card ledger ──
+  // ── The scoring TIMELINE (r197) ──
+  // calcScore hands back an ORDERED list of everything that happened and when, so
+  // the dance no longer has to guess which Trick belonged to which card. Replaying
+  // it against a running pip/mult pair reproduces the real total exactly (verified
+  // over 10,000 scored hands), which is what lets a Trick pay out at its own moment
+  // instead of being banked into an end-of-hand lump.
   const savedPFM = lastPreFocusMult; const contrib=[]; const _ledger={}; calcScore(hand, handCells, contrib, _ledger); lastPreFocusMult = savedPFM;
-  const trickMap = new Map();
-  contrib.forEach(e=>{ if(!(e.delta>0)) return; const key=e.source+':'+e.id;
-    let t=trickMap.get(key); if(!t){ t={source:e.source,id:e.id,pip:0,mult:0}; trickMap.set(key,t); }
-    if(e.type==='pip') t.pip+=e.delta; else t.mult+=e.delta; });
-  const tricks=[...trickMap.values()];
+  const timeline = _ledger.timeline || [];
   const fmtM = m => (m%1===0)?m:m.toFixed(1);
-  // Per-animation-card ledger info, aligned to handCells order (reps + per-card trick deltas).
-  const cellInfo = handCells.map(([r,c])=>{ const e=(_ledger.cards||[]).find(x=>x.r===r&&x.c===c); return { reps: e?e.reps:1, pipT: e?e.pipT:{}, multT: e?e.multT:{} }; });
-  // Ids emitted per-card (skipped in the hand-level end sweep). Replay-source ids are shown by
-  // repeating the card beat, so they're skipped in the sweep too.
-  const perCardIds = new Set();
-  cellInfo.forEach(ci=>{ Object.keys(ci.pipT).forEach(id=>perCardIds.add(id)); Object.keys(ci.multT).forEach(id=>perCardIds.add(id)); });
-  // Ids the end sweep must skip: replay sources (shown by repeating the card beat) plus 'sapling'
-  // (per-card perm-pip / retrigger bookkeeping - always emitted per-card above, never hand-level).
-  const REPLAY_SRC = new Set(['twos_retrigger','eights_retrigger','rowcol_retrigger','perfect_timing','eye_of_storm','ripple','reflect','soul_mirror','high_and_mighty','closing_time','echo_hand','woodpecker','sapling']);
+  // Cells in SCORING order (the timeline's card indices point here, and scoring
+  // order is not selection order once the Selection Scoring knack is owned).
+  const scoreCells = (typeof scoringOrderCells === 'function') ? scoringOrderCells(handCells) : handCells.slice();
+  const repsByCard = (_ledger.cards||[]).map(c=>c.reps||1);
+  // handCells index for a scoring-order index, so a beat animates the right slot.
+  const slotOf = si => { const sc = scoreCells[si]; if(!sc) return -1;
+    return handCells.findIndex(([r,c]) => r===sc[0] && c===sc[1]); };
+
+  // Walk the timeline into STEPS: one per card (replayed `reps` times) and one per
+  // hand-level event. This is the running order of the whole tally.
+  const steps = [];
+  for(let i=0;i<timeline.length;){
+    const ev = timeline[i];
+    if(ev.card >= 0){ const ci=ev.card, start=i;
+      while(i<timeline.length && timeline[i].card===ci) i++;
+      steps.push({ kind:'card', card:ci, slot:slotOf(ci), reps:repsByCard[ci]||1, events:timeline.slice(start,i) });
+    } else { steps.push({ kind:'hand', event:ev }); i++; }
+  }
+  // Every entity that will fire, so the tray can be resolved once up front. Nothing
+  // is charged here - an entity stays perfectly still until its own event lands.
+  const elById = {};
+  const entityEls = [];
+  timeline.forEach(ev => {
+    if(ev.id === '_card') return;
+    if(elById[ev.id] !== undefined) return;
+    const el = danceEntityEl(ev.source, ev.id);
+    elById[ev.id] = el || null;
+    if(el) entityEls.push(el);
+  });
 
   // ── Stage: render ONLY the played cards into the dedicated hand-preview slot. ──
   // Tricks/Knacks animate on their REAL tray/rack elements (not copies), so the slot
@@ -791,19 +908,14 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   const cardEls=handCells.map(([r,c])=>{ const card=gridData[r][c];
     const outer=document.createElement('div'); outer.className='dnc-outer';
     const d=document.createElement('div');
-    const { className, innerHTML } = renderCardAppearance(card, r, c);
+    const { className, innerHTML } = renderCardAppearance(card, r, c, { revealFog: true });
     d.className=className+' preview-card'; d.innerHTML=innerHTML;
     outer.appendChild(d); handTrack.appendChild(outer); return d; });
   // Portrait sizes its preview cards to the strip, and overlaps them if the hand
   // is too wide to fit. Must run BEFORE the fly-in - flyGridCardToSlot measures
   // each slot's rect to land the clone on it.
   if (typeof fitPortraitPreviewCards === 'function') fitPortraitPreviewCards();
-  // Resolve the REAL on-screen element for each contributing entity (aligned with `tricks`;
-  // may be null, e.g. exalt or Amplifier that has no rack element - those still tally, no jitter).
-  const entityEls = tricks.map(t => danceEntityEl(t.source, t.id));
-  dncRealEls = entityEls.filter(Boolean);
-  // id → rack element, so a card can release the specific tricks it triggered.
-  const elById = {}; tricks.forEach((t, ti) => { if (entityEls[ti]) elById[t.id] = entityEls[ti]; });
+  dncRealEls = entityEls.slice();
 
   if(isGoalHand){
     // ── WIN FINALE (runs BEFORE the tally) ──
@@ -858,6 +970,14 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
     // Remove all original grid card DOM (exploded losers + flown winners). The
     // deck accounting for every card still runs in showLevelUpScreen_fallOnly.
     gridCards.forEach(el => el.remove()); dncHiddenGridEls=[];
+    // The marked row/column lines belong to the board that just left (js/entity-fx.js).
+    // This is one of THREE places the card DOM is torn down without a following
+    // render - the goal-hand finale (here), the round-end fall (js/interlude.js)
+    // and the next round's deal (js/level-up.js) - which is why the teardown is a
+    // call at each of them and not a guard inside render(): render never runs
+    // again in between, so a guard would never get to look. rowColBonuses is
+    // untouched, so the next board draws the same lines.
+    if(typeof clearLineMarkers==='function') clearLineMarkers();
     // Survival: open the pick-of-three NOW (right of the preview), so the score
     // count-up below runs alongside it - the player can watch the tally or start
     // picking a bonus. (In survival the deck accounting happens in survivalDealNext.)
@@ -871,7 +991,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
     removeAndFall(toRemove,'play'); dncHiddenGridEls=[];
   } else {
     // ── Normal hand: the selected grid cards physically fly into their preview slots. ──
-    const FLY_STAGGER=95/dncSpeed, FLY_DUR=400/dncSpeed;
+    const FLY_STAGGER=95/dncPace(), FLY_DUR=400/dncPace();
     cardEls.forEach(d=>{ const o=d.parentElement; if(o) o.style.opacity='0'; });
     handCells.forEach(([r,c],i)=>{ const card=gridData[r][c]; if(!card) return;
       const gEl=gridEl?.querySelector(`[data-card-id="${card._id}"]`);
@@ -894,81 +1014,31 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   const pipsEl=document.getElementById('pips-val'), multEl=document.getElementById('mult-val'),
         focusEl=document.getElementById('focus-val'), scoreEl=document.getElementById('score-total-num');
   const pipsBox=document.getElementById('pips-box'), multBox=document.getElementById('mult-box');
-  let rp=basePips, rm=baseMult;
+  // Seed from the LEDGER, not from the local basePips/baseMult: those are the
+  // primary hand's ladder alone, while the ledger's base also folds in Amplifier
+  // and any layered hand's base - neither of which goes through the ledger as an
+  // event, because both are part of what the hand is worth before anything fires.
+  let rp = (typeof _ledger.basePips === 'number') ? _ledger.basePips : basePips;
+  let rm = (typeof _ledger.baseMult === 'number') ? _ledger.baseMult : baseMult;
   if(pipsEl) pipsEl.textContent=rp; if(multEl) multEl.textContent=(rm%1===0)?rm:rm.toFixed(1);
   if(focusEl) focusEl.textContent=_fmtFocus(preHandFocus);   // FOCUS starts at the hand's pre-scoring multiplier
+  // Did this hand's own Focus change the multiplier? Answered here so the beat
+  // below and the settle further down agree on it.
+  const focusActive = (targetFocus > 1 || targetFocus !== preHandFocus);
   await dwait(DANCE_CFG.tickRest); if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
 
-  // ── CARD PHASE - cards score; tricks charge (jitter ramps) ──
-  // Large hands overflow the clipped viewport: as each card scores, slide the track left so
-  // the current card stays in view and the hidden cards on the right get revealed.
-  const needScroll = handTrack.scrollWidth > handItems.clientWidth + 2;
-  const maxScroll  = Math.max(0, handTrack.scrollWidth - handItems.clientWidth);
-  const agit={};
-  // Release the tricks a card triggers AS the card animates (Balatro-style), repeating the whole
-  // beat once per replay. Trick particles fire concurrently; the boxes reconcile to the authoritative
-  // totals after the run (per-particle values are illustrative).
-  const _fireCardTricks = (info, cardEl) => {
-    Object.entries(info.pipT).forEach(([id,d])=>{ if(!(d>0)) return; const el=elById[id]; if(el) dncReleaseReal(el);
-      dncFly(el||cardEl, pipsBox, '+'+Math.round(d), '#d4a857', ()=>{ rp+=d; if(pipsEl) pipsEl.textContent=Math.round(rp); dncTick(pipsEl); if(typeof sfxParticleStep==='function') sfxParticleStep('pip'); }); });
-    Object.entries(info.multT).forEach(([id,d])=>{ if(!(d>0)) return; const el=elById[id]; if(el) dncReleaseReal(el);
-      dncFly(el||cardEl, multBox, '+'+fmtM(d), '#b07dea', ()=>{ rm+=d; if(multEl) multEl.textContent=fmtM(rm); dncTick(multEl); if(typeof sfxParticleStep==='function') sfxParticleStep('mult'); }); });
-  };
-  // `!skipBeats` short-circuits both beat loops rather than wrapping them in a
-  // block - same effect, and it cannot desync the aborts inside them.
-  for(let i=0; !skipBeats && i<cardEls.length; i++){
-    if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
-    if(needScroll){
-      const scrollTo = Math.min(cardEls[i].parentElement.offsetLeft, maxScroll);
-      if(scrollTo>0 || handTrack.style.transform){ handTrack.style.transform = `translateX(${-scrollTo}px)`; await dwait(200); }
-      if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
-    }
-    const info = cellInfo[i];
-    // A replayed card runs its whole beat again (pops + re-emits everything it triggers).
-    for(let rep=0; rep<(info.reps||1); rep++){
-      if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
-      dncActivate(cardEls[i]);
-      // Contributing entities charge (jitter ramps) through the entire card run.
-      entityEls.forEach((el,ti)=>{ if(!el) return; agit[ti]=(agit[ti]||0)+1; dncChargeReal(el, agit[ti]); });
-      // The card scores its own rank pips…
-      await dncFly(cardEls[i], pipsBox, '+'+cardPipVals[i], '#5a8fe0', ()=>{
-        rp+=cardPipVals[i]; if(pipsEl) pipsEl.textContent=Math.round(rp); dncTick(pipsEl);
-        if(typeof sfxParticleStep==='function') sfxParticleStep('pip'); });
-      // …then every trick/knack this card triggers releases its particle right now.
-      _fireCardTricks(info, cardEls[i]);
-      await dwait(DANCE_CFG.tickRest);
-    }
-  }
-  if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
-
-  // Hand finished animating → stop ALL jitter at once.
-  entityEls.forEach(el=>{ if(el){ el.classList.remove('dnc-jitter'); el.style.removeProperty('--dnc-jit'); } });
-
-  // ── HAND-LEVEL SWEEP - tricks not tied to any single card (base-hand shape/timing/set bonuses,
-  //    multipliers) release after the card run. Per-card and replay-source tricks already fired above. ──
-  for(let ti=0; !skipBeats && ti<tricks.length; ti++){
-    if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
-    const t=tricks[ti];
-    if(perCardIds.has(t.id) || REPLAY_SRC.has(t.id)) continue;
-    const el=entityEls[ti];
-    dncReleaseReal(el);
-    const src = el || pipsBox;
-    if(t.pip>0){ await dncFly(src, pipsBox, '+'+Math.round(t.pip), '#d4a857', ()=>{
-      rp+=t.pip; if(pipsEl) pipsEl.textContent=Math.round(rp); dncTick(pipsEl);
-      if(typeof sfxParticleStep==='function') sfxParticleStep('pip'); }); }
-    if(t.mult>0){ await dncFly(el || multBox, multBox, '+'+fmtM(t.mult), '#b07dea', ()=>{
-      rm+=t.mult; if(multEl) multEl.textContent=fmtM(rm); dncTick(multEl);
-      if(typeof sfxParticleStep==='function') sfxParticleStep('mult'); }); }
-    await dwait(DANCE_CFG.tickRest);
-  }
-  if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
-
-  // Reconcile the boxes to the authoritative totals (particle values above are illustrative).
-  if(pipsEl) pipsEl.textContent = Math.round(lastCalcPips);
-  if(multEl) multEl.textContent = fmtM(Math.round(lastCalcMult*10)/10);
-
-  // ── FOCUS beat - the box updates from the hand's starting multiplier to the post-Focus one ──
-  if(targetFocus>1 || targetFocus!==preHandFocus){
+  // ── FOCUS FIRST (r221) ──
+  // The Focus this hand earned - its complexity, how fast it was played, and any
+  // Trick that hands out Focus - is generated in `playHand` BEFORE scoring, and it
+  // multiplies THIS hand. The dance said the opposite: the chip sat at the
+  // pre-hand value through the whole tally and only climbed at the very end,
+  // which reads as "that multiplier applies to the NEXT hand". It is the same
+  // number either way; only when the player is told it changed.
+  //
+  // So the chip settles on the multiplier this hand is actually being scored with
+  // before a single card scores, and the rest of the tally runs underneath a
+  // FOCUS box that is already telling the truth.
+  if(focusActive){
     if(focusEl) focusEl.textContent=_fmtFocus(targetFocus);
     const fb=document.getElementById('focus-box'); if(fb){ fb.classList.remove('focus-beat'); void fb.offsetWidth; fb.classList.add('focus-beat'); }
     if(typeof updateFocusMultReadout==='function') updateFocusMultReadout(true);
@@ -976,11 +1046,165 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
     await dwait(DANCE_CFG.tickRest); if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
   }
 
+  // ── THE TALLY - one ordered walk of the timeline ──
+  // Every entity is STILL until its own event fires. There is no charge-up phase
+  // and no end-of-hand lump: a Trick that triggers off the third card pops when
+  // the third card pops, and a whole-hand Trick pops on its own afterwards. The
+  // running chips apply each event with its real scope and rounding, so what the
+  // player watches IS the arithmetic rather than an illustration of it.
+  //
+  // Large hands overflow the clipped viewport: as each card scores, slide the track
+  // left so the current card stays in view and the hidden cards get revealed.
+  const needScroll = handTrack.scrollWidth > handItems.clientWidth + 2;
+  const maxScroll  = Math.max(0, handTrack.scrollWidth - handItems.clientWidth);
+
+  const _rnd = (v,how) => how==='int' ? Math.round(v) : how==='dp1' ? Math.round(v*10)/10 : v;
+  const showPips = extra => { if(pipsEl) pipsEl.textContent = Math.round(rp + (extra||0)); dncTick(pipsEl); };
+  const showMult = () => { if(multEl) multEl.textContent = fmtM(rm); dncTick(multEl); };
+  // A x lands on the chip it multiplies, so it is read as an operation on that
+  // number rather than as one more addend. Pips fly gold, mult violet, a multiply
+  // in the hotter shade of its own colour.
+  // Legacy text colours - used only by PARTICLE_CFG.shape 'none'. The plate
+  // shapes colour themselves from PARTICLE_CFG.colors via evKind below.
+  const COL = { pipAdd:'#d4a857', pipMul:'#ff9d3c', multAdd:'#b07dea', multMul:'#ff6bd6', card:'#5a8fe0' };
+  // Which colour family this event belongs to. A card's own pips are pips.
+  const evKind = ev => ev.op==='pip+' ? 'pipAdd' : ev.op==='pip*' ? 'pipMul'
+                     : ev.op==='mult+' ? 'multAdd' : 'multMul';
+  const evLabel = ev => ev.op==='pip+'||ev.op==='mult+' ? '+'+(ev.op==='pip+'?Math.round(ev.value):fmtM(ev.value))
+                                                        : '\u00d7'+fmtM(Math.round(ev.value*100)/100);
+  const evColor = ev => ev.op==='pip+' ? (ev.id==='_card'?COL.card:COL.pipAdd)
+                      : ev.op==='pip*' ? COL.pipMul : ev.op==='mult+' ? COL.multAdd : COL.multMul;
+
+  // Fire ONE event: pop whatever produced it, throw the particle, apply the number.
+  //
+  // `subRef` is the CURRENT CARD'S own pip subtotal, and inside a card's beat every
+  // pip op - add and multiply alike - lands on it, exactly as calcScore builds `cp`
+  // per card and only then does `totalPips += cp`. That is what gives a card-scoped
+  // x pips (Humble Roots, a card enhancement, a curse, the Blight) something of its
+  // own to multiply. Routing the adds straight to the hand total instead left the
+  // subtotal at zero, so the multiply multiplied nothing: measured at 171 pips on a
+  // hand worth 228. Mult has no per-card subtotal - calcScore accumulates per-card
+  // mult into the hand mult additively - so mult ops always land on `rm`.
+  // `defer` returns the apply-the-number function instead of wiring it to this
+  // particle's own landing, so a whole beat can launch together and still apply
+  // its values in emission order (see the beat loop below).
+  const fireEvent = (ev, fallbackEl, subRef, awaitIt, inBeat, dur, defer) => {
+    const el = ev.id==='_card' ? null : elById[ev.id];
+    if(el) dncReleaseReal(el);
+    const src = el || fallbackEl;
+    const box = (ev.op==='pip+'||ev.op==='pip*') ? pipsBox : multBox;
+    const land = () => {
+      if(ev.op==='pip+'){ if(inBeat) subRef.v += ev.value; else rp += ev.value; showPips(subRef.v); }
+      else if(ev.op==='pip*'){ if(inBeat) subRef.v = _rnd(subRef.v*ev.value, ev.rnd); else rp = _rnd(rp*ev.value, ev.rnd); showPips(subRef.v); }
+      else if(ev.op==='mult+'){ rm += ev.value; showMult(); }
+      else { rm = _rnd(rm*ev.value, ev.rnd); showMult(); }
+      if(typeof sfxParticleStep==='function') sfxParticleStep((ev.op==='pip+'||ev.op==='pip*')?'pip':'mult');
+    };
+    const p = dncFly(src, box, evLabel(ev), evColor(ev), defer ? null : land, dur, evKind(ev));
+    return defer ? land : (awaitIt ? p : null);
+  };
+
+  // `!skipBeats` short-circuits the walk rather than wrapping it in a block - same
+  // effect, and it cannot desync the aborts inside it.
+  for(let si=0; !skipBeats && si<steps.length; si++){
+    if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
+    const step = steps[si];
+
+    if(step.kind === 'hand'){
+      // A whole-hand entity: nothing on the board caused it, so it flies from its
+      // own tray tile (or from the chip it feeds, if it has no tile).
+      const ev = step.event;
+      const anchor = (ev.from >= 0 && cardEls[slotOf(ev.from)]) ? cardEls[slotOf(ev.from)]
+                   : ((ev.op==='pip+'||ev.op==='pip*') ? pipsBox : multBox);
+      await fireEvent(ev, anchor, { v:0 }, true, false);
+      await dwait(DANCE_CFG.tickRest);
+      continue;
+    }
+
+    // ── A card's beat. Runs once per replay; a replay re-pops the card and
+    //    re-fires everything it triggers, which is what a replay IS. ──
+    const slot = step.slot >= 0 ? step.slot : 0;
+    const cardEl = cardEls[slot] || cardEls[0];
+    if(needScroll && cardEl){
+      const scrollTo = Math.min(cardEl.parentElement.offsetLeft, maxScroll);
+      if(scrollTo>0 || handTrack.style.transform){ handTrack.style.transform = `translateX(${-scrollTo}px)`; await dwait(200); }
+      if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
+    }
+    for(let rep=0; rep<step.reps; rep++){
+      if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
+      dncActivate(cardEl);
+      const subRef = { v:0 };
+      // The card's own pips lead, then everything it triggered, in order. The
+      // leading pip is awaited so the beat reads as "card, then its consequences";
+      // the rest overlap, or a heavily-buffed card would take half a minute.
+      // Every particle in this beat is launched together (they overlap in the air,
+      // or a heavily-buffed card would take half a minute) but the beat does not
+      // END until all of them have LANDED. That is not cosmetic: a particle applies
+      // its number in its landing callback, so banking the card's subtotal - or
+      // letting the next step's x mult run - while one is still in flight applies
+      // the two out of order. Measured before this await: a x2 landing ahead of a
+      // +9 finished the hand on 13 mult instead of 26.
+      // ALL AT ONCE (r221). A card and everything it triggered are one event, so
+      // they leave together and land together - no stagger.
+      //
+      // The ordering trap this has to dodge: a particle used to apply its number
+      // in its OWN landing callback, and launching a beat together could not keep
+      // those in order two different ways - dncFly bumps the accel per particle,
+      // so each successive flight is shorter and they land in REVERSE; and even
+      // pinned to one duration they race, because dncWait polls on a 60ms tick
+      // rather than firing in registration order. Measured on a card carrying a
+      // x3 and a x2: 466 pips reversed, 512 racing, 416 correct.
+      //
+      // So the values are decoupled from the particles: every particle in the
+      // beat is launched with ONE shared duration and NO landing callback
+      // (`defer`), and a single timer applies all of them, in emission order, at
+      // the moment they arrive. Simultaneous on screen, strictly ordered in the
+      // arithmetic.
+      const beatDur = dncFF ? Math.max(60, DANCE_CFG.pFlight/DANCE_CFG.ff)
+                            : Math.max(60, DANCE_CFG.pFlight/dncPace());
+      const applies = step.events.map(ev => fireEvent(ev, cardEl, subRef, false, true, beatDur, true));
+      await dncWait(beatDur);
+      if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
+      applies.forEach(fn => { if(fn) fn(); });
+      // The card's pips join the hand total once its own beat has resolved, so a
+      // card-scoped multiply has something of its own to multiply.
+      rp += subRef.v; showPips(0);
+      await dwait(DANCE_CFG.tickRest);
+    }
+  }
+  if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
+
+  // Nothing should still be jittering - entities pop and settle now rather than
+  // rattling through the hand - but clear it defensively in case a dance was cut
+  // mid-beat and rebound.
+  entityEls.forEach(el=>{ if(el){ el.classList.remove('dnc-jitter'); el.style.removeProperty('--dnc-jit'); } });
+
+  // ── Reconcile ──
+  // Against the LEDGER's captured totals, not the live lastCalcPips/lastCalcMult.
+  // Those are globals that EVERY calcScore call overwrites, and plenty run during
+  // a dance: removeAndFall repaints the board, render() calls findBestHand, and
+  // findBestHand scores candidate hands. So the old reconcile could snap the chips
+  // to some other hand's numbers - measured at 228 pips on a hand worth 226.
+  const _finalPips = (typeof _ledger.finalPips === 'number') ? _ledger.finalPips : lastCalcPips;
+  const _finalMult = (typeof _ledger.finalMult === 'number') ? _ledger.finalMult : lastCalcMult;
+  // The walk above applies the same operations in the same order as calcScore, so
+  // this should be a no-op. It is kept as a safety net - and as an alarm: if the
+  // timeline ever stops describing the real arithmetic, a beat is silently lying
+  // to the player, and the only visible symptom is a snap at this line.
+  if(typeof devMode !== 'undefined' && devMode && !skipBeats){
+    const _dp = Math.abs(rp - _finalPips), _dm = Math.abs(rm - _finalMult);
+    if(_dp > 0.5 || _dm > 0.05) console.warn('[DANCE] timeline drift - pips', rp, 'vs', _finalPips, '| mult', rm, 'vs', _finalMult,
+      '| seeded', _ledger.basePips, 'x', _ledger.baseMult, '|', timeline.map(e=>`${e.card>=0?'c'+e.card:'H'} ${e.id} ${e.op} ${e.value}`).join(' , '));
+  }
+  rp = _finalPips; rm = _finalMult;
+  if(pipsEl) pipsEl.textContent = Math.round(_finalPips);
+  if(multEl) multEl.textContent = fmtM(Math.round(_finalMult*10)/10);
+
   // ── PMF merge ── all three chips have landed on their totals, so they stop
   // being three numbers and become one: this hand's score. Jitter, fuse, then
   // let the SCORE climb below run against the fused chip. (js/pmf-merge.js)
   if(typeof pmfMergeIn==='function'){
-    const _mspeed = skipBeats ? 3.2 : (dncFF ? DANCE_CFG.ff : dncSpeed);
+    const _mspeed = skipBeats ? 3.2 : (dncFF ? DANCE_CFG.ff : dncPace());
     await pmfMergeIn(finalScore, { speed: _mspeed, signal: sig });
     if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
     // ── THE THROW ── the fused chip flies into the SCORE. This beat is never
@@ -993,7 +1217,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   // ── SCORE climb ──
   if(scoreEl) scoreEl.textContent=scoreBefore.toLocaleString();
   const climb = skipBeats ? 140
-              : (dncFF ? Math.max(120, DANCE_CFG.scoreClimb/DANCE_CFG.ff) : Math.max(120, DANCE_CFG.scoreClimb/dncSpeed));
+              : (dncFF ? Math.max(120, DANCE_CFG.scoreClimb/DANCE_CFG.ff) : Math.max(120, DANCE_CFG.scoreClimb/dncPace()));
   let goalFlashed=false;
   await new Promise(res=>{ const st=performance.now();
     function tk(now){ if(aborted()){ res(); return; }
@@ -1007,7 +1231,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
 
   // ── PMF split ── the hand is banked; hand the row back as three chips.
-  if(typeof pmfSplitOut==='function') await pmfSplitOut({ speed: dncFF ? DANCE_CFG.ff : dncSpeed });
+  if(typeof pmfSplitOut==='function') await pmfSplitOut({ speed: dncFF ? DANCE_CFG.ff : dncPace() });
   if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
 
   // ── Settle (same tail as playScoreDance) ──
@@ -1016,7 +1240,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   showComboFloats(hand, handCells, result);
   const scoreBoxEl=document.getElementById('score-mid');
   if(scoreBoxEl){ scoreBoxEl.classList.remove('box-popping'); void scoreBoxEl.offsetWidth; scoreBoxEl.classList.add('box-popping'); }
-  await wait(300/dncSpeed); if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
+  await wait(300/dncPace()); if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
 
   danceAbortController = null;
   dncChain = 0; _dncOutHandScore = 0;   // the burst has landed

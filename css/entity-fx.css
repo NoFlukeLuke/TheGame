@@ -1,0 +1,216 @@
+/* ══════════════════════════════════════════════
+   ENTITY FX + COOLDOWN WIDGET  (r209)
+   js/entity-fx.js draws the line markers and card marks;
+   js/cooldown.js paints the .cd-badge ring.
+   ══════════════════════════════════════════════ */
+
+/* ── Cards sit ABOVE the line markers ─────────────────────────────────────
+   Card elements carried no z-index at all, so paint order was DOM order - and
+   render() appends new cards AFTER the markers, which would have put a card
+   dealt mid-round on top of a line while its neighbours sat under one. Two
+   explicit layers settle it regardless of order. Boss cell overlays are 12-15
+   and temp-anim clones are 10, so both still sit above cards, unchanged. */
+#grid > .card,
+#grid > .trick-card,
+#grid > .blocked-cell { z-index: 2; }
+#grid > .rc-line      { z-index: 1; }
+
+/* ── The marked row / column line ─────────────────────────────────────────
+   A single coloured line down the board's length, behind the cards. It shows in
+   the 3px gutters and, mainly, past the ends of the line - which is where the
+   eye picks up "this column" without the cards being tinted at all. */
+.rc-line {
+  position: absolute;
+  pointer-events: none;
+  --rcl: #c9a84c;
+  border-radius: 2px;
+  background: linear-gradient(to right, transparent, var(--rcl) 6%, var(--rcl) 94%, transparent);
+  box-shadow: 0 0 7px 1px color-mix(in srgb, var(--rcl) 65%, transparent),
+              0 0 18px 3px color-mix(in srgb, var(--rcl) 28%, transparent);
+  opacity: 0.85;
+}
+.rc-line-row {
+  height: 3px;
+  transform: translateY(-50%);
+}
+.rc-line-col {
+  width: 3px;
+  transform: translateX(-50%);
+  background: linear-gradient(to bottom, transparent, var(--rcl) 6%, var(--rcl) 94%, transparent);
+}
+/* End caps: the glyph names which Trick owns the line, printed clear of the
+   cards at both ends so a doubled line is still readable. */
+.rc-line-cap {
+  position: absolute;
+  font-size: 9px;
+  line-height: 1;
+  color: var(--rcl);
+  text-shadow: 0 0 5px color-mix(in srgb, var(--rcl) 70%, transparent), 0 1px 2px #000;
+}
+.rc-line-row .rc-line-cap  { left: -11px;  top: 50%; transform: translateY(-50%); }
+.rc-line-row .rc-line-cap2 { left: auto; right: -11px; }
+.rc-line-col .rc-line-cap  { top: -11px;  left: 50%; transform: translateX(-50%); }
+.rc-line-col .rc-line-cap2 { top: auto;  bottom: -11px; }
+
+/* Arrival sweep: the line draws itself from one end when the Trick is acquired.
+   scaleX/scaleY compose with the centring translate above, hence the pairs. */
+.rc-line-row.rc-line-in { animation: rcl-draw-row 0.62s cubic-bezier(.2,.8,.2,1) both; }
+.rc-line-col.rc-line-in { animation: rcl-draw-col 0.62s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes rcl-draw-row {
+  from { transform: translateY(-50%) scaleX(0);   opacity: 0; }
+  60%  { opacity: 1; }
+  to   { transform: translateY(-50%) scaleX(1);   opacity: 0.85; }
+}
+@keyframes rcl-draw-col {
+  from { transform: translateX(-50%) scaleY(0);   opacity: 0; }
+  60%  { opacity: 1; }
+  to   { transform: translateX(-50%) scaleY(1);   opacity: 0.85; }
+}
+.rc-line-row.rc-line-in { transform-origin: left center; }
+.rc-line-col.rc-line-in { transform-origin: center top; }
+/* The grant flash rides on top of the sweep and then gets out of the way. */
+.rc-line-grant { animation-name: rcl-draw-row, rcl-flash; }
+.rc-line-col.rc-line-grant { animation-name: rcl-draw-col, rcl-flash; }
+.rc-line-grant { animation-duration: 0.62s, 1.3s; animation-iteration-count: 1, 2; }
+@keyframes rcl-flash {
+  0%, 100% { filter: none; }
+  50%      { filter: brightness(1.9) saturate(1.4); }
+}
+
+/* ── "This card sits on a marked line" ────────────────────────────────────
+   The card-side half of the line marker, in the owning Trick's colour. Deliberately
+   an inset ring and nothing else: the card face has to stay readable, and the
+   line itself is already doing the loud part. */
+/* A card on SEVERAL marked lines divides its ring evenly between their colours,
+   so an intersection reads as both things rather than as whichever one the
+   registry happened to list first. --rcl-ring is a flat colour for one line and
+   a hard-stop conic gradient for more (lineRingPaint, js/entity-fx.js).
+
+   The ring is PAINT MASKED DOWN TO THE BORDER, not a box-shadow, because a
+   box-shadow takes one colour and cannot be divided. padding sets the ring's
+   thickness; the two masks cancel everything inside the padding box, leaving
+   only the 2px frame. */
+.rc-line-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 2px;
+  background: var(--rcl-ring, #c9a84c);
+  opacity: 0.82;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+          mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  pointer-events: none;
+  z-index: 5;
+}
+
+/* ── The per-card mark ────────────────────────────────────────────────────
+   One consistent shape in one consistent corner, coloured per Trick. This is
+   what a card singled out by a Trick looks like, everywhere. */
+.card-fx-mark {
+  position: absolute;
+  top: 1px; left: 50%;
+  transform: translateX(-50%);
+  font-size: 9px;
+  line-height: 1;
+  padding: 1px 3px;
+  border-radius: 0 0 4px 4px;
+  color: #14100a;
+  background: var(--cfm, #c9a84c);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--cfm, #c9a84c) 70%, transparent);
+  pointer-events: none;
+  z-index: 7;
+}
+
+/* ── A card that GROWS ────────────────────────────────────────────────────
+   A scaling buff and a flat buff both print "+N" somewhere on the card, so the
+   growing one needs a mark of its own or the two are indistinguishable on the
+   board. Green, bottom-centre, out of the way of the existing +Np / +Nm
+   corner labels and the buff bands. */
+.card-grow-mark {
+  position: absolute;
+  bottom: 1px; left: 50%;
+  transform: translateX(-50%);
+  font-size: 9px;
+  line-height: 1;
+  color: #3aa76d;
+  text-shadow: 0 0 4px rgba(58,167,109,0.8), 0 1px 2px #000;
+  pointer-events: none;
+  z-index: 6;
+}
+.card.card-scaling { border-bottom-color: #3aa76d; }
+
+/* ── Cooldown / disable widget ────────────────────────────────────────────
+   A ring reading --cd-p (1 = full, 0 = spent) with the seconds inside it. The
+   ring is a conic-gradient masked to an annulus, so there is no SVG and no
+   per-frame layout - the driver only writes the custom property. */
+.cd-badge {
+  position: absolute;
+  /* Fully inside the host: a Trick tray chip clips its own overflow (r176), so a
+     badge hanging off the corner would be cut in half there. */
+  right: 1px; bottom: 1px;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  --cd-p: 1;
+  --cd-c: #e8a13a;
+  background:
+    conic-gradient(var(--cd-c) calc(var(--cd-p) * 360deg), rgba(0,0,0,0.55) 0);
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: none;
+  z-index: 9;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.75), 0 0 7px color-mix(in srgb, var(--cd-c) 55%, transparent);
+}
+.cd-badge::before {                       /* the hole that turns the disc into a ring */
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  background: #14120c;
+}
+.cd-badge .cd-num {
+  position: relative;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  line-height: 1;
+  color: var(--cd-c);
+  text-shadow: 0 1px 2px #000;
+}
+/* A knack chip is 26x26 - the standard 18px badge covers half of it and hides the
+   emoji that identifies the knack. It does not clip its overflow, so the small
+   variant can hang off the corner instead of sitting inside. */
+#knack-list [data-knack-id] > .cd-badge {
+  width: 13px; height: 13px;
+  right: -3px; bottom: -3px;
+}
+#knack-list [data-knack-id] > .cd-badge::before { inset: 2px; }
+#knack-list [data-knack-id] > .cd-badge .cd-num { font-size: 7px; }
+
+.cd-b-primed { animation: cd-primed-pulse 1.5s ease-in-out infinite; }
+@keyframes cd-primed-pulse {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(0,0,0,0.75), 0 0 6px color-mix(in srgb, var(--cd-c) 45%, transparent); }
+  50%      { box-shadow: 0 0 0 1px rgba(0,0,0,0.75), 0 0 13px color-mix(in srgb, var(--cd-c) 95%, transparent); }
+}
+
+/* The grey-out is a WASH ELEMENT, not a filter on the host.
+   A `filter` applies to the whole subtree and a child cannot undo it, so a
+   filtered card would have dragged its own countdown badge down to 16%
+   saturation - the one part of it that has to stay legible. `.cd-wash` is a
+   sibling of the badge at a lower z-index, so it drains the card and leaves the
+   ring bright. It is an appended element rather than an ::after because
+   .card.rc-woodpecker already owns that pseudo-element. */
+.cd-wash {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: rgba(16,14,10,0.62);
+  backdrop-filter: saturate(0.2);
+  pointer-events: none;
+  z-index: 8;
+}
+.cd-off > .cd-wash { background: rgba(40,10,12,0.6); }
+.card.cd-off      { border-color: #d8474b !important; box-shadow: inset 0 0 10px rgba(216,71,75,0.35); }
+
+/* A held card cannot be picked up, and the cursor should say so before the tap
+   does. Pointer events stay ON - onCardTap reports why (js/input.js). */
+.card.cd-off { cursor: not-allowed; }

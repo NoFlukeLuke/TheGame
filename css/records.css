@@ -120,6 +120,9 @@
 .rec-m-p { right: 2px; background: #8fb7ff; }
 .rec-m-m { right: 8px; background: #ff8f8f; }
 .rec-deck-cell.has-pip.has-mult .rec-m-m { right: 8px; }
+/* A card carrying a SCALING buff (r209) - it may have no flat pips or mult yet,
+   so it needs its own dot or the matrix would show it as an ordinary card. */
+.rec-m-g { right: 14px; background: #6fe0a8; }
 .rec-legend {
   display: flex; gap: 12px; flex-wrap: wrap; margin-top: 9px;
   font-family: 'Share Tech Mono', monospace; font-size: 9px; color: var(--cream-dim, #8a7d60);

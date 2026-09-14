@@ -16,6 +16,7 @@
 <link rel="stylesheet" href="css/style.css">
 <link rel="stylesheet" href="css/dance.css">
 <link rel="stylesheet" href="css/dev-overlays.css">
+<link rel="stylesheet" href="css/guided.css">
 <link rel="stylesheet" href="css/match3.css">
 <link rel="stylesheet" href="css/dominoes.css">
 <link rel="stylesheet" href="css/survival.css">
@@ -29,6 +30,8 @@
 <link rel="stylesheet" href="css/builds.css">
 <link rel="stylesheet" href="css/room.css">
 <link rel="stylesheet" href="css/clock-fx.css">
+<link rel="stylesheet" href="css/goal-clear.css">
+<link rel="stylesheet" href="css/entity-fx.css">
 <link rel="stylesheet" href="css/audio-menu.css">
 </head>
 <body>
@@ -106,17 +109,15 @@
   </div>
 
   <!-- SCORE -->
-  <div class="dev-section" data-group="score">
-    <div class="dev-section-title">Luck</div>
-    <div class="dev-hint">Tilts EVERY rarity roll toward the top tier - shops, the Mart, reward and
-      prize grids, the pick-of-three, the wheel and event grants. 0 is the shipped balance.</div>
-    <div class="dev-row">
-      <button class="dev-btn" onclick="devSetLuck(runLuck - 1)">-1</button>
-      <span id="dev-luck-val" class="dev-val">0</span>
-      <button class="dev-btn" onclick="devSetLuck(runLuck + 1)">+1</button>
-      <button class="dev-btn" onclick="devSetLuck(0)">reset</button>
+  <div class="dev-section" data-group="improve">
+    <h4>Entity improvement (tiers)</h4>
+    <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:6px">
+      <button class="dev-btn" onclick="devImproveRandom('trick')">Improve random Trick</button>
+      <button class="dev-btn" onclick="devImproveRandom('knack')">Improve random Knack</button>
+      <button class="dev-btn" onclick="devImproveRandom('sleight')">Improve random Sleight</button>
+      <button class="dev-btn" onclick="devResetImprove()">Reset all tiers</button>
     </div>
-    <div id="dev-luck-preview" class="dev-hint"></div>
+    <div id="dev-improve-list" style="max-height:260px;overflow-y:auto"></div>
   </div>
   <div class="dev-section" data-group="score">
     <div class="dev-section-title">Score</div>
@@ -131,8 +132,9 @@
   <div class="dev-section" data-group="score">
     <div class="dev-section-title">Natural Scaling</div>
     <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:4px;">
-      Playing a hand permanently buffs its whole family (sets / runs / flushes).
-      Straight Flush sits in the run AND flush families and takes the better of the two.
+      Playing a hand permanently buffs THAT HAND TYPE (r198), not its whole family,
+      so climbing to a bigger hand is a real decision. The Old Tricks knack pools a
+      family: every hand in it reads the family's best bonus instead of its own.
     </div>
     <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;">
       <input id="dev-ns-enabled" type="checkbox" onchange="devSetNs('enabled', this.checked)" style="accent-color:var(--gold);">
@@ -145,9 +147,35 @@
     <div class="dev-slider-row"><span>Every <b id="dev-ns-every-val">1</b> hand(s)</span>
       <input id="dev-ns-every" type="range" min="1" max="5" value="1" step="1" oninput="devSetNs('every', this.value)"></div>
     <div id="dev-ns-state" style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);white-space:pre-line;margin:4px 0;"></div>
+    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin:6px 0 2px;">
+      Earned bonus per hand type - type a value to jump straight to it rather than
+      grinding the hands out. This is what the hand carries NOW; the sliders above
+      only decide how fast it grows.
+    </div>
+    <div id="dev-ns-rows"></div>
     <div class="dev-row">
       <button class="dev-btn" onclick="devResetNs()">Reset accumulators</button>
     </div>
+  </div>
+
+  <!-- LAYERED HANDS (r198) -->
+  <div class="dev-section" data-group="score">
+    <div class="dev-section-title">Layered hands</div>
+    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:4px;">
+      A hand is a LIST of shapes. Sets and runs are carved out of the selection as
+      disjoint pieces (a Run of 4 AND a Set of 3 is one seven-card hand), and the
+      biggest same-suit group of 3+ is added on top of them. Every piece pays its own
+      base pips and base mult and earns its own Natural Scaling, and a card sitting in
+      two pieces scores twice. Hands cap at 7 cards; Selection Size past that leaves
+      the extra cards outside the hand.
+      Turning this OFF drops the flush overlay only - the rank partition still runs.
+    </div>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;">
+      <input id="dev-layered-enabled" type="checkbox" onchange="devSetLayeredHands(this.checked)" style="accent-color:var(--gold);">
+      Flush overlay on
+    </label>
+    <div class="dev-slider-row"><span>Flush overlay needs <b id="dev-flushmin-val">3</b> of a suit</span>
+      <input id="dev-flushmin" type="range" min="3" max="7" value="3" step="1" oninput="devSetFlushOverlayMin(this.value)"></div>
   </div>
 
   <!-- LEVEL -->
@@ -157,6 +185,35 @@
       <button class="dev-btn" onclick="devSkipLevel()">Skip Level</button>
       <button class="dev-btn" onclick="devOpenShop()">Open Shop</button>
     </div>
+  </div>
+
+  <!-- GOALS (r211): every mode's round-goal curve, live. Rows are built by
+       devRenderGoalPanel() in js/dev-panel.js from GOAL_TUNABLES. -->
+  <div class="dev-section" data-group="goals">
+    <div class="dev-section-title">All modes</div>
+    <div class="dev-note">Scales every mode's goal at once. Leave at 1.00 and tune the per-mode numbers below.</div>
+    <div id="dev-goal-global-rows"></div>
+    <div id="dev-goal-live" class="dev-preview"></div>
+  </div>
+
+  <div class="dev-section" data-group="goals">
+    <div class="dev-section-title">Classic curve</div>
+    <div class="dev-note">Classic, Six Suits, Spectrum, Guided, Orientation, Match-3, Dominoes.</div>
+    <div id="dev-goal-classic-rows"></div>
+    <div id="dev-goal-classic-preview" class="dev-preview"></div>
+  </div>
+
+  <div class="dev-section" data-group="goals">
+    <div class="dev-section-title">Survival / Flow curve</div>
+    <div class="dev-note">Survival and Flow run their own curve from a lower start.</div>
+    <div id="dev-goal-survival-rows"></div>
+    <div id="dev-goal-survival-preview" class="dev-preview"></div>
+  </div>
+
+  <div class="dev-section" data-group="goals">
+    <div class="dev-section-title">Zen</div>
+    <div id="dev-goal-other-rows"></div>
+    <button class="dev-btn" onclick="devResetGoalTune()" style="margin-top:8px;">Reset all goals to shipped values</button>
   </div>
 
   <!-- BOSS -->
@@ -173,6 +230,14 @@
       <button class="dev-btn" onclick="devOpenPrizeGrid()">Open Prize Grid</button>
       <button class="dev-btn" onclick="devOpenShopGridPreview()">Shop-on-Grid Preview</button>
     </div>
+  </div>
+
+  <!-- MODES - launch any mode directly, including the ones the carousel hides -->
+  <div class="dev-section" data-group="modes">
+    <div class="dev-section-title">Start a mode</div>
+    <div class="dev-note">Starts a fresh run immediately. Anything in progress is abandoned.</div>
+    <!-- rows generated from MODES by devRenderModes() -->
+    <div class="dev-row" style="flex-wrap:wrap;gap:4px;" id="dev-mode-btns"></div>
   </div>
 
   <!-- EVENTS -->
@@ -658,12 +723,12 @@
 
 <!-- TOP BAR -->
 <div id="top-bar">
-  <!-- Portrait progress: the same ACT + node-pip block landscape uses (and the
+  <!-- Portrait progress: the same quarter + node-pip block landscape uses (and the
        same boss sigil), instead of the old "Progress / ACT 1 · 0/5" text.
        .rp-block is what updateRunProgressUI() fills - #run-progress below is the
        landscape one. Only one of these two and #game-timer-stat is ever visible. -->
   <div id="run-progress-pt" class="rp-block">
-    <div class="rp-act">ACT 1</div>
+    <div class="rp-act">Q1</div>
     <div class="rp-nodes"><span></span><span></span><span></span><span></span><span></span><span class="boss">&#9760;</span></div>
     <div class="rp-sigil">&#9760;</div>
   </div>
@@ -682,6 +747,10 @@
   </div>
   <!-- The "Hands" counter was removed from the top bar (r160) - it is a
        statistic, not a live decision input, and it is still in Records. -->
+  <div class="top-stat" id="sel-stat">
+    <span class="top-label">Hand</span>
+    <span class="top-value" id="sel-display">✋ 0</span>
+  </div>
   <div class="top-stat">
     <span class="top-label">Coins</span>
     <span class="top-value gold" id="coins-display">💰 0</span>
@@ -773,11 +842,23 @@
       </div>
       <div id="focus-mult-readout" class="dim">×1.0</div>
     </div>
+    <!-- The two boss overlays sit in #grid-slot, NOT in #grid. The reward grid
+         takes #grid over and clears it with innerHTML = '' (three sites in
+         js/reward-grid.js), which DESTROYED both of these permanently the first
+         time a reward grid opened - and every round ends on one. triggerBoss then
+         threw on `banner.querySelector(...)`, half-starting the boss: active, with
+         its modifiers applied, but with no briefing, no PROCEED and no clock.
+         They are absolutely positioned over the board either way. -->
     <div id="grid-slot">
-      <div id="grid">
-        <div id="boss-banner"><div class="boss-banner-title">BOSS</div><div class="boss-banner-sub" id="boss-banner-sub">Survive 3:00</div></div>
-        <div id="boss-result"><div class="boss-result-text" id="boss-result-text"></div></div>
-      </div>
+      <div id="boss-banner"><div class="boss-banner-title">BOSS</div><div class="boss-banner-sub" id="boss-banner-sub">Survive 3:00</div></div>
+      <div id="boss-result"><div class="boss-result-text" id="boss-result-text"></div></div>
+      <div id="grid"></div>
+      <!-- How many of the allowed picks are in hand: cards on the play grid, tiles on
+           the reward grid. A SIBLING of #grid, not a child - render() rebuilds #grid's
+           children and renderRewardTiles empties it outright. It sits in the slot's
+           empty margin around the centred grid (above it in portrait, beside it in
+           landscape), sized off --grid-w / --grid-h. -->
+      <div id="sel-count"><span id="sel-count-val">0/3</span></div>
     </div>
     <!-- Swap sits at the TOP of the interact column (r169). Landscape absolutely
          positions each of these three, so only portrait reads this order. -->
@@ -797,7 +878,7 @@
   <!-- v7 landscape-only blocks (hidden in portrait) -->
   <div id="vclock" class="v7-ls"><div id="vclock-band"></div><div id="vclock-fill"></div></div>
   <div id="run-progress" class="v7-ls rp-block">
-    <div class="rp-act">ACT 1</div>
+    <div class="rp-act">Q1</div>
     <div class="rp-nodes"><span></span><span></span><span></span><span></span><span></span><span class="boss">&#9760;</span></div>
     <!-- On a boss round the node pips collapse into this single mark (see css/boss.css) -->
     <div class="rp-sigil">&#9760;</div>
@@ -1008,15 +1089,24 @@
 
 <!-- LIMIT BREAK EVENT OVERLAY -->
 <div id="limitbreak-overlay">
-  <div id="lb-title">LIMIT BREAK</div>
-  <div id="lb-sub">Choose one limit to break. Sacrifice to break a second.</div>
-  <div id="lb-offers"></div>
-  <div id="lb-sacrifice">
-    <div id="lb-sacrifice-title">Second Pick - Sacrifice</div>
-    <div id="lb-sacrifice-hint">Pick a second limit by giving something up.</div>
-    <div id="lb-sacrifice-options"></div>
+  <!-- Same console as the events (#event-panel) as of r211. This screen was the
+       last of the between-round screens still wearing the old gold-on-black
+       Cinzel look, which is why it read as belonging to a different game. -->
+  <div id="lb-panel">
+    <div id="lb-bar">
+      <span id="lb-eyebrow">LIMIT BREAK</span>
+      <span id="lb-bar-dots"><i></i><i></i><i></i></span>
+    </div>
+    <div id="lb-title">RAISE A LIMIT</div>
+    <div id="lb-sub">One is free. Give something up and you can raise a second.</div>
+    <div id="lb-offers"></div>
+    <div id="lb-sacrifice">
+      <div id="lb-sacrifice-title">What you give up</div>
+      <div id="lb-sacrifice-hint">Pick a second limit by giving something up.</div>
+      <div id="lb-sacrifice-options"></div>
+    </div>
+    <div id="lb-actions"><button id="lb-confirm" disabled>Confirm</button></div>
   </div>
-  <button id="lb-confirm" disabled>Confirm</button>
 </div>
 
 <!-- LEVEL UP OVERLAY -->
@@ -1064,7 +1154,6 @@
 
 <script src="js/storage.js"></script>
 <script src="js/labels.js"></script>
-<script src="js/rarity.js"></script>
 <script src="js/camera.js"></script>
 <script src="js/seed.js"></script>
 <script src="js/menu.js"></script>
@@ -1083,13 +1172,16 @@
 <script src="js/float-anim.js"></script>
 <script src="js/heartbeat.js"></script>
 <script src="js/channel-change.js"></script>
+<script src="js/difficulty.js"></script>
 <script src="js/limits.js"></script>
+<script src="js/luck.js"></script>
 <script src="js/data/knacks.js"></script>
 <script src="js/data/sleights.js"></script>
 <script src="js/combos-aim.js"></script>
 <script src="js/deck-grid.js"></script>
 <script src="js/hand-detect.js"></script>
 <script src="js/data/balance.js"></script>
+<script src="js/improve.js"></script>
 <script src="js/natural-scaling.js"></script>
   <script src="js/scoring.js"></script>
 <script src="js/render.js"></script>
@@ -1098,10 +1190,13 @@
 <script src="js/hud.js"></script>
 <script src="js/input.js"></script>
 <script src="js/play-hand.js"></script>
+<script src="js/dance-clock.js"></script>
 <script src="js/score-anims.js"></script>
+<script src="js/goal-clear.js"></script>
 <script src="js/pmf-merge.js"></script>
 <script src="js/hand-log.js"></script>
 <script src="js/score-dance.js"></script>
+  <script src="js/payout-fx.js"></script>
 <script src="js/discard.js"></script>
 <script src="js/card-fall.js"></script>
 <script src="js/round-timers.js"></script>
@@ -1115,6 +1210,8 @@
 <script src="js/sleights-runtime.js"></script>
 <script src="js/events-core.js"></script>
 <script src="js/events.js"></script>
+<script src="js/events-upgrade.js"></script>
+<script src="js/events-slots.js"></script>
 <script src="js/interlude.js"></script>
 <script src="js/level-up.js"></script>
 <script src="js/tricks-ui.js"></script>
@@ -1131,9 +1228,12 @@
 <script src="js/challenge.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/clock-fx.js"></script>
+<script src="js/entity-fx.js"></script>
+<script src="js/cooldown.js"></script>
 <script src="js/match3.js"></script>
 <script src="js/survival.js"></script>
 <script src="js/flow-mode.js"></script>
+<script src="js/goal-tuning.js"></script>
 <script src="js/spectrum.js"></script>
 <script src="js/records.js"></script>
 <script src="js/audio-mixer.js"></script>

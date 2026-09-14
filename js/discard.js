@@ -5,8 +5,19 @@ function doDiscard() {
   if (typeof shopGridActive !== 'undefined' && shopGridActive) { closeShopGrid(); return; }
   if (rewardOnGrid) { clearRewardSelection(); return; }
   if (roundEnded || animating) return;
+  // Same gate as doSwap - a boss may refuse the discard before it commits.
+  if (typeof bossInteractBlocked === 'function' && bossInteractBlocked('discard')) return;
   if (falling) { if (selected.length > 0) { pendingAction = 'discard'; dbgEvent('info', 'discard queued (falling)'); } return; }
   if (selected.length === 0) return;
+  // Guard: block discard when out of discards. Mirrors the swap guard in input.js.
+  // Hoarder is the one bypass - its whole text is "discards no longer count against
+  // the discard limit", so it must not be stopped by that limit either.
+  if (discards <= 0 && !hasKnack('hoarder')) {
+    const btn = document.getElementById('btn-discard');
+    if (btn) { btn.style.borderColor='var(--red)'; btn.style.color='var(--red)'; setTimeout(()=>{btn.style.borderColor='';btn.style.color='';},500); }
+    showMessage('No discards left', 'var(--red)');
+    return;
+  }
   // Defensive: filter selection down to actually-discardable cards
   const validSelected = selected.filter(([r,c]) => {
     const card = gridData[r]?.[c];
@@ -20,7 +31,7 @@ function doDiscard() {
   selected = validSelected;
   const discardedCards = selected.map(([r,c]) => gridData[r][c]);
   // Lucky Sevens: +3 Focus per 7 discarded
-  if (hasTrick('lucky_sevens')) { const _sv = discardedCards.filter(c => c?.rank === '7').length; if (_sv) addFocus(_sv * BAL.lucky_sevens.focus); }
+  if (hasTrick('lucky_sevens')) { const _sv = discardedCards.filter(c => c?.rank === '7').length; if (_sv) addFocus(_sv * BAL.lucky_sevens.focus, 'lucky_sevens'); }
   // The Vulture: cards discarded during the round's first clock pause gain a permanent "pause on score" buff (stacks)
   if (hasTrick('vulture') && firstPauseActive) discardedCards.forEach(c => { if (c) c._vulturePause = (c._vulturePause || 0) + BAL.vulture.pause_seconds; });
   // ♠ corrupts after being discarded 2×; a swap-pending ♥ counts as "not played" → corrupt.
@@ -54,7 +65,13 @@ function doDiscard() {
   // Adjacency reactions fire while the discarded cards are still in place.
   feedWhetstones(selected.map(([r,c]) => [r,c]));  // Whetstone sharpens on adjacent discards
   juryRigRoll(selected.map(([r,c]) => [r,c]));     // Jury-Rig: charge-restore roll per adjacent Sleight
-  selected.forEach(([r,c]) => { if (gridData[r]?.[c]) discardToDrawPile(gridData[r][c]); });
+  // The Sieve (boss): a discarded card does not come back. Hooked HERE, on the
+  // player's own discard, rather than inside discardToDrawPile - that function is
+  // also how the board returns cards when a boss voids a cell, and those are not
+  // the player throwing anything away.
+  const _sieve = (typeof bossSieve !== 'undefined') && bossSieve && bossActive
+                 && !(typeof bossEffectsIgnored === 'function' && bossEffectsIgnored());
+  selected.forEach(([r,c]) => { if (gridData[r]?.[c] && !_sieve) discardToDrawPile(gridData[r][c]); });
   // Hoarder: discards don't count against limit (but cost 2× time below)
   if (!hasKnack('hoarder')) discards--;
   // Discard time cost - 3s PER CARD (BAL._resources.discard_seconds_per_card).
@@ -80,7 +97,7 @@ function doDiscard() {
   cardsDiscardedRound += count;
   // Five for Fodder: discarding a 5-card hand grants credits
   if (hasTrick('five_fodder') && count === 5) {
-    coins += BAL.five_fodder.credits; updateCoinsUI();
+    grantEntityCoins(BAL.five_fodder.credits, 'trick', 'five_fodder');
     showMessage('Five for Fodder! +' + BAL.five_fodder.credits + ' credits', 'var(--gold)');
   }
   // Penny Saved: each 5 discarded adds +5 pips to trick
@@ -110,7 +127,7 @@ function doDiscard() {
       if (_dabiSwapNext) { swaps++; showMessage(`Down and Back In: +1 swap, +${BAL.down_and_back_in.coins} coins`, 'var(--gold)'); }
       else { discards++; showMessage(`Down and Back In: +1 discard, +${BAL.down_and_back_in.coins} coins`, 'var(--gold)'); }
       _dabiSwapNext = !_dabiSwapNext;
-      coins += BAL.down_and_back_in.coins; updateCoinsUI();
+      grantEntityCoins(BAL.down_and_back_in.coins, 'trick', 'down_and_back_in');
     }
   }
   // Martyr: sacrificing a non-discard Sleight refills 1 charge on every OTHER on-grid Sleight
@@ -125,10 +142,14 @@ function doDiscard() {
     }
     if (_restored) showMessage(`Martyr: +1 charge to ${_restored} Sleight${_restored > 1 ? 's' : ''}`, 'var(--gold)');
   }
-  sfxFlipShuffle();
+  sfxCardDiscard();          // discarding has its own sound now (r205), not the riffle
   resetFocusDecayTimer();
-  // Cull: using a discard adds 1 focus
-  if (hasTrick('cull')) addFocus(1);
+  // Cull: 1 Focus per unit of manipulate stock still in hand. `discards` has already
+  // been decremented above, so this reads what is LEFT after paying for this discard.
+  if (hasTrick('cull')) {
+    const _stock = Math.max(0, swaps) + Math.max(0, discards);
+    if (_stock > 0) { addFocus(_stock * BAL.cull.focus_per_stock, 'cull'); showMessage(`Cull +${_stock * BAL.cull.focus_per_stock} Focus`, 'var(--gold)'); }
+  }
   const toRemove = [...selected];
   selected = [];
   removeAndFall(toRemove, 'discard');
@@ -168,7 +189,7 @@ function showTimeCost(label) {
 // (r183): that constant is Classic's 180, and the clock legitimately sits ABOVE
 // it in several ordinary situations -
 //   · Survival rounds are 120s and Flow's session clock is 300s
-//   · the Round Time LIMIT can be upgraded past 180, and a round starts at it
+//   · the Starting Time LIMIT can be upgraded past 180, and a round starts at it
 //   · Time Bank (+30s at round start) and Clock Tower (carries up to 60s over)
 //   · Rain Check (+30s next round)
 // against `Math.min(ROUND_DURATION, …)` every one of those made a rewind CUT the
@@ -176,20 +197,40 @@ function showTimeCost(label) {
 // lost the time. In Flow that was 120 seconds destroyed by a single Flush.
 //
 // `roundStartSeconds` is what this round ACTUALLY began with - startRoundTimer
-// records it after computeRoundResources has already folded in the Round Time
+// records it after computeRoundResources has already folded in the Starting Time
 // limit, Time Bank and Clock Tower - so it is the whole answer for those three
 // and no separate limits lookup is needed. Reading the limit as well would let a
 // 120s Survival round be rewound up to Classic's 180.
 //
 // `roundSeconds` is in the max too, so the clamp can never move the clock
 // backwards: the worst a rewind can now do is nothing.
-function rewindCeiling() {
-  const dur = (typeof currentRoundDuration === 'function') ? currentRoundDuration() : ROUND_DURATION;
-  return Math.max(dur, roundStartSeconds || 0, roundSeconds);
-}
+// THERE IS NO CEILING ON A REWIND (r193, owner spec).
+//
+// It used to be max(currentRoundDuration, roundStartSeconds, roundSeconds) - i.e.
+// you could never bank the clock above what the round STARTED with. That made
+// every rewind past the top silently worth nothing: the seconds vanished, the
+// floater said nothing, and a time build hit a wall it could not see. The limit
+// (renamed "Starting Time" in js/limits.js for exactly this reason) now says what
+// you BEGIN a round with; what you can climb to during it is up to your build.
+//
+// Kept as a function rather than deleted at the call site: it is the one place to
+// reintroduce a ceiling if time builds turn out to run away, and rewindTime's
+// Math.min still reads correctly against Infinity.
+function rewindCeiling() { return Infinity; }
 
-function rewindTime(seconds, label) {
-  if (bossActive) return 0;
+// `srcId` / `srcSource` name the entity that caused the rewind, when the caller
+// knows it, so the FX can fly the symbol from that entity's tray tile (js/payout-fx.js).
+function rewindTime(seconds, label, srcId, srcSource) {
+  // The Rerun (boss): a coin flip on every rewind. Not speculative - this is only
+  // ever reached from playHand and the round tick, never from calcScore.
+  if (typeof bossRerunMisses === 'function' && seconds > 0 && bossRerunMisses()) {
+    showMessage('⏪ MISSED', 'var(--red)');
+    return 0;
+  }
+  // Rewinds used to return 0 during a boss, because the boss ran its own clock and
+  // roundSeconds was frozen, so there was genuinely nothing to give back. Since r205
+  // there is ONE clock and the boss window IS roundSeconds, so a rewind does exactly
+  // what it says on a boss round like any other.
   seconds = Math.floor(seconds);
   if (seconds <= 0) return 0;
   const before = roundSeconds;
@@ -212,7 +253,11 @@ function rewindTime(seconds, label) {
   void el.offsetWidth;
   el.style.transition = 'top 0.7s ease-out, opacity 0.7s ease-out';
   el.style.top = '-22px'; el.style.opacity = '0';
-  if (label) showMessage(label, '#5aa9e6');
+  if (label) showMessage(label, '#5aa9e6', { icon: '\u23ea' });
+  // The symbol flies from the entity that caused it to the clock it changed
+  // (js/entity-fx.js). `srcId` is optional - without it the flight still happens,
+  // it just starts from the clock rather than from a tray tile.
+  if (typeof entityEffectFX === 'function') entityEffectFX('rewind', gained, { id: srcId, source: srcSource });
   return gained;
 }
 
@@ -223,7 +268,7 @@ function rewindTime(seconds, label) {
 function handleClockMarks(secs) {
   if (secs <= 0) return;
   // Tick-Tock: clock reading ends in a 0 → +2 Focus
-  if (secs % 10 === 0 && hasTrick('ticktock')) { addFocus(BAL.ticktock.focus); }
+  if (secs % 10 === 0 && hasTrick('ticktock')) { addFocus(BAL.ticktock.focus, 'ticktock'); }
   // Quarter Chime: clock reads a multiple of 15 → +45 pips to the next hand
   if (secs % 15 === 0 && hasTrick('quarter_chime')) {
     pendingHandPips += BAL.quarter_chime.pips;
@@ -243,8 +288,15 @@ function handleClockMarks(secs) {
   }
   // Minute marks (clock reads N:00) → accrue mult / retrigger chance
   if (secs % 60 === 0) {
-    if (hasTrick('minute_hand'))  { pendingHandMult += BAL.minute_hand.mult; showMessage(`🕐 Minute Hand - next hand +${BAL.minute_hand.mult} mult`, '#cc88ff'); }
-    if (hasTrick('hourglass') && Math.random() < BAL.hourglass.chance) {
+    if (hasTrick('minute_hand')) {
+      // Primes for the next N hands rather than adding to one of them (r209).
+      // Re-priming resets the count; see the note on minuteHandCharges.
+      minuteHandCharges = BAL.minute_hand.hands;
+      showMessage(`🕐 Minute Hand primed - next ${BAL.minute_hand.hands} hands +${BAL.minute_hand.mult} mult`, '#cc88ff');
+    }
+    // COUNTABLE under Luck: past 100% it grants the retrigger to several cards.
+    const _hgN = hasTrick('hourglass') ? luckRoll(BAL.hourglass.chance) : 0;
+    for (let _hg = 0; _hg < _hgN; _hg++) {
       // Grant one permanent retrigger to a random real card currently on the grid
       const spots = [];
       for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
@@ -262,10 +314,23 @@ function handleClockMarks(secs) {
   }
 }
 
-function pauseRound(seconds) {
+function pauseRound(seconds, srcId, srcSource) {
+  // A pause of no length is not a pause. Callers multiply their seconds by
+  // trickFires(), which is 0 for a Trick you do not own, so this is the normal way
+  // an unowned Trick's pause arrives here - and without this guard it would still
+  // count toward Hummingbird (+mult per pause triggered) and the Time popup's tally.
+  if (!seconds || seconds <= 0) return;
+  // The Rerun (boss): a coin flip on every pause, rolled before Time Slip so a
+  // missed pause cannot become a rewind through the back door.
+  if (typeof bossRerunMisses === 'function' && bossRerunMisses()) {
+    showMessage('⏸ MISSED', 'var(--red)');
+    return;
+  }
   // Time Slip knack: whenever the clock WOULD pause, a chance to rewind that many seconds instead
-  if (hasKnack('time_slip') && Math.random() < BAL.time_slip.chance) {
-    rewindTime(seconds, '⏮️ Time Slip - rewound instead of paused!');
+  // BINARY under Luck: a pause cannot become two rewinds, so anything above
+  // 100% is wasted here on purpose. Its tooltip caps the printed figure to match.
+  if (hasKnack('time_slip') && luckRoll(BAL.time_slip.chance) > 0) {
+    rewindTime(seconds, '⏮️ Time Slip - rewound instead of paused!', 'time_slip', 'knack');
     return;
   }
   // Long Pause knack: all pauses are 1.5x longer
@@ -283,6 +348,7 @@ function pauseRound(seconds) {
   // Lit clock, tick-tock, and the ripple that turns and holds every card
   // (js/clock-fx.js). Idempotent - an extension of a live pause does nothing.
   if (typeof beginClockFreeze === 'function') beginClockFreeze();
+  if (typeof entityEffectFX === 'function') entityEffectFX('pause', Math.round(seconds), { id: srcId, source: srcSource });
   if (pauseTimer) clearTimeout(pauseTimer);
   // count down pause
   const tick = () => {
