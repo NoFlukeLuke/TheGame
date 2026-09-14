@@ -188,7 +188,7 @@ enhancements, exalt/corrupt) with **0 mismatches**.
   dance shows a replay by REPEATING the card's whole beat, which re-adds those pips
   on its own. Emitting them too counted every retrigger twice - 5,682 mismatches.
 - **A beat fires ALL AT ONCE, but its values are applied by ONE timer in emission
-  order (r221).** A card and everything it triggered are one event, so they leave
+  order (r222).** A card and everything it triggered are one event, so they leave
   and land together - no stagger. The trap is that a particle used to apply its
   number in its OWN landing callback, and a beat launched together could not keep
   those in order two different ways: `dncFly` bumps the accel per particle, so
@@ -247,7 +247,7 @@ corner card. Firing it per corner card is a one-line move into the loop and it
 **changes the score** (`(T*m)*m` over the finished total is not the same as applying
 x m twice mid-loop), so it wants a balance decision, not a quiet edit.
 
-### Focus lands BEFORE the tally (r221)
+### Focus lands BEFORE the tally (r222)
 
 The Focus a hand earns - its complexity, how fast it was played, and any Trick
 that hands out Focus - is generated in `playHand` **before** scoring, and it
@@ -261,7 +261,7 @@ The chip now settles on the multiplier the hand is actually being scored with
 box that is already telling the truth. `focusActive` is computed once where the
 chips are first written, so the beat and the settle cannot disagree.
 
-### The score particle is a coloured diamond (r221) - `particle-preview.html`
+### The score particle is a coloured diamond (r222) - `particle-preview.html`
 
 A particle was bare serif text with a drop shadow, competing with a board of cream
 playing cards and a lit HUD. It is a small **diamond plate**, coloured by the chip
@@ -273,7 +273,7 @@ legible over anything behind it. A multiply is the same hue, brighter.
 - **`PARTICLE_CFG` in `js/score-dance.js` is the whole shape**, and
   **`particle-preview.html`** is where it is tuned: a mock HUD, the real flight, a
   knob for every value, and a Dump button that prints the block to paste back.
-  Shapes are diamond / square / circle / pill / **none** (the pre-r221 bare text,
+  Shapes are diamond / square / circle / pill / **none** (the pre-r222 bare text,
   kept as an option). Sizes are multiplied by `DANCE_CFG.pScaleMul` (1.15).
 - **TWO nested elements, and that is load-bearing.** `.dnc-particle` is the FLIGHT
   element - `dncFly` animates its transform every frame - and `.pt-box` is the
@@ -289,7 +289,7 @@ legible over anything behind it. A multiply is the same hue, brighter.
 ### Scoring speed is a slider, and bursts are timed (r220)
 
 - **Settings > Motion > Scoring speed** is a **0.5x-16x slider** (was four presets),
-  **defaulting to 2x** (r221), writing `DANCE_CFG.norm`. The `norm:1` in
+  **defaulting to 2x** (r222), writing `DANCE_CFG.norm`. The `norm:1` in
   `DANCE_CFG` is only the value before settings apply, not the shipped default -
   and nothing about the timing MATH changed, the slider just starts at 2. It applies to the goal hand too: a player who set 8x has
   said what they want to watch, and having the one hand that ends the round ignore
@@ -726,8 +726,8 @@ r191's Guided fixed the route instead: a set spine of reward grid, Mart, reward 
 - **An act opens on a LEVEL, not on the crossroads.** `guidedAfterPrizeGrid` rolls the act over and goes straight to `drainLevelUpQueue()` - an act should start by playing.
 - **A bought event is opened BY NAME** (`guidedOpenNamedEvent`), not through `openEvent`'s own draw: the player just paid for that specific one off the menu. It still feeds `recentEventIds`, so the no-repeat memory keeps working.
 - **`nodeInAct` is kept roughly in step with the slot count** purely so the HUD's node pips and the boss sigil, which both read it, stay honest. Nothing routes off it in this mode.
-- Prices live in `BAL.guided`: the Mart is cheapest because it is the stop a run most often NEEDS, the reward grid dearest because it pays the most per visit, and events are priced individually so the pair on offer is a real weighing rather than a flat fee.
-- The crossroads is body-level, **outside `#cabinet`**, for the usual CSS `zoom` reason. An option you cannot afford is dimmed but never hidden - what you cannot buy this slot is information about what to play for.
+- Prices live in `BAL.guided` - Mart 20, reward grid 15, events 10, flat per kind. Events are all one price on purpose: what separates the two on offer is what they DO, and putting different numbers on them made the cheaper one read as the worse one.
+- The crossroads is a **wrapping row of chips**, not a list: the options are siblings of the same kind, and a stack of full-width rows implied an order they do not have. Three across on the panel, two at phone width; the description is the chip's `title`, because a chip has to stay a chip. It is body-level, **outside `#cabinet`**, for the usual CSS `zoom` reason. An option you cannot afford is dimmed but never hidden - what you cannot buy this slot is information about what to play for.
 
 ### Upgrade events (r194) - improve what you already have
 

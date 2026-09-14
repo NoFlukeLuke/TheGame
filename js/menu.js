@@ -1,4 +1,4 @@
-const BUILD = '2026-09-14 · r221 · Focus lands before the tally, a card and its Tricks fire together, particles are coloured diamonds [onto r220]';
+const BUILD = '2026-09-14 · r222 · Focus lands before the tally, a card and its Tricks fire together, particles are coloured diamonds [onto r221]';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

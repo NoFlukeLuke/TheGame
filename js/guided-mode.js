@@ -47,13 +47,14 @@ let guidedInStop = false;
 function guidedResetRun() { guidedSlot = 0; guidedEventOffers = []; guidedInStop = false; }
 
 // ── Pricing ─────────────────────────────────────────────────────────────────
-// Events are priced by what they do rather than flat, so the pair on offer is
-// something to weigh. Anything unlisted falls back to the default.
+// Flat per kind, from BAL.guided. Events are all one price: what separates the
+// two on offer is what they DO, and putting different numbers on them made the
+// cheaper one read as the worse one.
 function guidedStopPrice(kind, id) {
   const B = BAL.guided;
   if (kind === 'shop')   return B.price_shop;
   if (kind === 'reward') return B.price_reward;
-  return (B.price_event[id] != null) ? B.price_event[id] : B.price_event_default;
+  return B.price_event;
 }
 
 // ── The act ─────────────────────────────────────────────────────────────────
@@ -122,13 +123,18 @@ function guidedOpenCrossroads() {
     document.body.appendChild(el);
   }
   const left = GUIDED_SLOTS_PER_ACT - guidedSlot;
-  const row = (kind, id, icon, name, desc, price) => {
+  // One chip per option. The description is the chip's title rather than a line
+  // of its own: a chip has to stay a chip, and the names here already say what
+  // the thing is. Events carry their flavour, which is the one case the name
+  // alone does not cover.
+  const chip = (kind, id, icon, name, desc, price) => {
     const afford = coins >= price;
-    return `<button class="gx-opt${afford ? '' : ' locked'}" data-kind="${kind}" data-id="${id || ''}"${afford ? '' : ' disabled'}>
-      <span class="gx-icon">${icon}</span>
-      <span class="gx-body"><span class="gx-name">${name}</span><span class="gx-desc">${desc}</span></span>
-      <span class="gx-price">${price ? price + ' ◆' : 'FREE'}</span>
-    </button>`;
+    return `<button class="gx-chip${afford ? '' : ' locked'}" data-kind="${kind}" data-id="${id || ''}"`
+      + `${afford ? '' : ' disabled'} title="${String(desc).replace(/"/g, '&quot;')}">`
+      + `<span class="gx-icon">${icon}</span>`
+      + `<span class="gx-name">${name}</span>`
+      + `<span class="gx-price">${price ? price + ' ◆' : 'FREE'}</span>`
+      + `</button>`;
   };
   el.innerHTML = `
     <div class="gx-panel">
@@ -140,12 +146,14 @@ function guidedOpenCrossroads() {
       <div class="gx-note">${left === 1
         ? 'One slot left before the boss.'
         : `${left} slots left before the boss. Everything here costs one of them.`}</div>
-      ${row('level', '', '▶', 'Play a round', 'Clear the goal and take the payout. This is how you earn.', 0)}
-      ${row('shop', '', '🛒', 'The Mart', 'Buy Tricks, Sleights, Knacks and limit upgrades.', guidedStopPrice('shop'))}
-      ${row('reward', '', '▦', 'Reward grid', 'Pick a path across the board and take everything on it.', guidedStopPrice('reward'))}
-      ${guidedEventOffers.map(e => row('event', e.id, '✧', e.name, e.flavor, e.price)).join('')}
+      <div class="gx-chips">
+        ${chip('level', '', '▶', 'Play a round', 'Clear the goal and take the payout. This is how you earn.', 0)}
+        ${chip('shop', '', '🛒', 'The Mart', 'Buy Tricks, Sleights, Knacks and limit upgrades.', guidedStopPrice('shop'))}
+        ${chip('reward', '', '▦', 'Reward grid', 'Pick a path across the board and take everything on it.', guidedStopPrice('reward'))}
+        ${guidedEventOffers.map(e => chip('event', e.id, '✧', e.name, e.flavor, e.price)).join('')}
+      </div>
     </div>`;
-  el.querySelectorAll('.gx-opt').forEach(b => {
+  el.querySelectorAll('.gx-chip').forEach(b => {
     b.onclick = () => guidedChoose(b.dataset.kind, b.dataset.id);
   });
   el.classList.add('show');
