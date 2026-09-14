@@ -219,7 +219,7 @@ function devSetFloat(k, v) {
 }
 function devResetFloat() { resetFloatCfg(); devSyncFloatSliders(); }
 
-// ── Score-particle blip growth (r231) - PARTICLE_CFG lives in js/score-dance.js ──
+// ── Score-particle blip growth (r233) - PARTICLE_CFG lives in js/score-dance.js ──
 // Past the first `growStart` particles of a hand, each further one is `growStep`%
 // bigger than the last, compounding to `growMax`. Persisted, because a tuning
 // session should survive a reload. Shape, colour and the flight itself are tuned

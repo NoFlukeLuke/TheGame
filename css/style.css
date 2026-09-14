@@ -4806,7 +4806,7 @@ body.big-text .toast { font-size: 17px; }
 body.high-contrast .toast { background: #000; border-color: var(--toast-ink); }
 
 /* Entity payout particles used to be their OWN bare-text element here
-   (.efx-particle). Since r231 js/payout-fx.js throws the SAME plate the scoring
+   (.efx-particle). Since r233 js/payout-fx.js throws the SAME plate the scoring
    dance throws (ptLaunch), so a coin flying at the credits chip is visibly the
    same object as a pip flying at the PIPS chip - one shape vocabulary, one tuner
    in particle-preview.html, one legibility fix. The plate styling lives in

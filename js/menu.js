@@ -1,4 +1,4 @@
-const BUILD = '2026-09-14 · r232 · the on-grid shop is the live shop: Mart off, survival/match-3/tutorial rerouted [onto r231]';
+const BUILD = "2026-09-14 · r233 · a card's x mult fires ON THE CARD, once per replay - the whole per-card mult region now applies in scoring order [onto r232]";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

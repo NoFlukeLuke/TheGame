@@ -248,6 +248,75 @@ corner card. Firing it per corner card is a one-line move into the loop and it
 **changes the score** (`(T*m)*m` over the finished total is not the same as applying
 x m twice mid-loop), so it wants a balance decision, not a quiet edit.
 
+### A card's x MULT fires ON THE CARD (r233)
+
+`permXMult` is the card enhancement that MULTIPLIES the mult - The Forge, The
+Price, Coin Flip, the slot machine. It used to be applied at the very end of the
+additive ladder, raised to the power of the replay count: a x1.5 on a card that
+scores three times landed as one **x3.375**, in the end lump, on a card that had
+finished animating seconds earlier, with an exponent nothing on screen explained.
+
+The replays were always honoured. They were just **compressed into one event**,
+which is the same arithmetic and cannot be communicated. It fires on its own card
+now, once per replay - **x1.5, x1.5, x1.5** across that card's three beats.
+
+**This is a real score change and a NERF.** At the end of the ladder it multiplied
+everything additive in the hand; on its card it multiplies the base mult plus the
+per-card mult of that card and the ones before it, and every hand-level +mult
+lands after it. Measured over 403 hands:
+
+| | hands moved | mean | worst |
+|---|---|---|---|
+| no enhancement in play | **0 of 403** | - | - |
+| enhancement, small tray (8 Tricks) | 39 (9.7%) | **-25.6%** | -53% |
+| enhancement, full tray (177 Tricks) | 44 (10.9%) | | **-70%** |
+
+**The nerf scales with how much hand-level +mult the loadout carries**, because
+that is exactly what the multiply no longer reaches. A card x mult is therefore a
+much weaker late-run pick than it was. If that wants compensating, the lever is
+the enhancement's own factor at the offer sites (`e.xmult` in `enhanceCardKey`),
+not its position - the position is what makes it visible.
+
+#### The whole per-card MULT region now APPLIES in scoring order
+
+r220 moved the per-card mult sweeps' **emission** into the card loop so they would
+animate on their own card, but their **arithmetic** stayed as accumulators summed
+into `mult` at scattered points after it. That was score-identical for as long as
+every term in the region was an ADD - and stopped being so the moment a per-card
+x MULT joined them, because a multiply has to know what has already landed.
+
+- **`_cardMultSeq` is the whole mechanism**: the card loop banks
+  `{ add, once, xm, reps }` per card and the sequence is replayed against `mult`
+  the moment `mult` exists. **The events are still emitted in the loop**, where
+  they belong on the timeline; only the arithmetic moved.
+- **`mult` does not exist during the card loop.** It is declared *below* it, so
+  reading it there is a temporal-dead-zone THROW, not a wrong number - the same
+  trap `_rankIsEvenRank` hit in r228. That is the entire reason for the banking.
+- **The sequence runs after the base mult and before ANY hand-level add** (base +
+  layered hands + Amplifier, and nothing else), because that is precisely where
+  the card beats sit on the timeline. Put it one line later and the running MULT
+  chip stops matching the dance.
+- **The rep loop IS the order the dance replays a beat**: the per-rep adds, then
+  the `once` payers on the first rep only, then the multiply. The dance filters
+  `once` events out of later reps and applies everything else in emission order,
+  so any other arrangement diverges the moment a REPLAYED card carries an
+  enhancement. The multiply is emitted LAST in the card's block for that reason.
+- **The per-card payers' MULT moved inline too** (`_cmOnce`). r228 deliberately
+  added each at its own Trick's site further down; that is unreachable now,
+  because a card's x mult sits between the loop and those sites. `_pcMult` is a
+  LEDGER total only - the ten `mult += _pcMult.X` lines are gone and the
+  `bMultQ` rows beside them stayed, so the contributions tab is unchanged. The
+  pip side (`_pcPips`) is untouched.
+- **The `mult < 1` corruption floor stays where it was**, applied once after the
+  loop rather than per card. A running mult driven negative mid-loop by corrupted
+  clubs and then multiplied is a corner that needs exalt/corrupt ON, an
+  enhancement, and a negative subtotal; the floor still catches the result.
+- **Verified: 0 of 403 hands move with no enhancement in play**, at 8 Tricks and
+  at 177, so the restructure itself is provably score-neutral and only the
+  deliberate change shows. The timeline replay is still **0 mismatches over 9,791
+  scored hands**, which is what proves the dance and `calcScore` agree about the
+  new order.
+
 ### Per-card payers (r228) - "a rate x a number of cards"
 
 Seventeen Tricks pay a rate times a COUNT OF CARDS - Get Even is +2 mult per even
@@ -338,7 +407,7 @@ legible over anything behind it. A multiply is the same hue, brighter.
 - `evKind(ev)` maps a timeline event to its colour family. The old per-op text
   colours are kept but are now read ONLY by the no-plate shape.
 
-### The particle finished (r231) - one plate for the whole game
+### The particle finished (r233) - one plate for the whole game
 
 Four things r222 left on the table, plus the discovery that the preview and the
 game had drifted apart.
