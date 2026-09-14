@@ -1634,6 +1634,86 @@ Anything not wrapped still falls through to the shared global stream, so nothing
 
 - **It is still a seed, not a replay.** The pinned domains hold regardless of play, but anything downstream of a player *decision* (which Trick you took, so which Tricks remain in the pool) naturally differs. Enough for sharing a run, reproducing a bug, and pinning a tutorial's opening deal.
 
+## Limits: the printed number IS the effect (r227)
+
+A limit moves by its `step` and then **clamps**, so the step is not the same
+thing as the gain. Starting Time steps by 15, and at 295/300 raising it gives 5.
+Every screen that moved a limit printed the step and let the clamp quietly take
+the difference.
+
+**`js/limits.js` is the one place the printed number is worked out**, and every
+screen reads it:
+
+| helper | answers |
+|---|---|
+| `limitGain(id)` / `limitLoss(id)` | what raising / lowering is REALLY worth right now, 0 at the rail |
+| `limitDeltaText(id, dir)` | `+15s` / `-3` |
+| `limitChangeText(id, dir)` | `Starting Time: 285s -> 300s` |
+| `limitCanIncrement` / `limitCanDecrement` | is there any room left |
+
+**Call `limitGain` / `limitLoss` BEFORE the change** - they read the live
+`current`, so a toast built after `incrementLimit` quotes the NEXT upgrade.
+Wired: the reward grid's limit tile and its drain debuff, the Limit Break's
+offers, its sacrifice list and both of its toasts, all three shop surfaces, the
+Survival pick-of-three, and the dev panel.
+
+Two things this pass also fixed:
+
+- **Limits have a FLOOR now** - `min` on `LIMITS_DEF`, honoured by
+  `decrementLimit`, which floored at **0** and nothing else. A run could be
+  drained to 0 rows, 0 columns and a Selection Size of 0, which is not hard, it
+  is broken. Selection 3 · rows/cols 3 · Starting Time 60s · Trick Slots 1 ·
+  Focus Cap 10 (one `FOCUS_THRESHOLD`, matching Growth Spurt's floor). Swaps,
+  discards and rerolls really can go to nothing and have no `min`. This matters
+  much more since the Limit Break's sacrifice became a rolled table that can put
+  the same limit in front of you repeatedly.
+- **`makeLimitRow(def)` is the ONE builder for a limit's row**, because there are
+  TWO places that build it - `js/limits.js` and the reset in `startGame` - and
+  they had already drifted once: r211 found that the `startGame` copy never
+  carried `step`, so from the first frame of every run a Round Time upgrade
+  granted 1 second instead of 15 and nothing read `LIMITS_DEF` again to notice.
+  `min` would have gone the same way. **Add a field in `makeLimitRow` and both
+  sites get it.**
+
+## Limit Break is two stages (r227) - `js/limit-break.js`
+
+It used to show three offers, a free pick, an optional second pick, and a
+sacrifice list of **every** limit, Trick and Knack you owned, all at once and all
+undoable until Confirm. Three things were wrong with that:
+
+1. **The mystery was free to read.** Tapping the blind offer revealed it and
+   tapping it again put it back, so it was never a gamble - you opened it,
+   looked, and picked something else if you did not like it.
+2. **The sacrifice was a shopping list.** Everything eligible was on screen, so
+   "give something up" meant "find your least useful limit", which on most
+   boards costs nothing you care about.
+3. **Nothing said the second pick had a price** until you had already taken it.
+
+- **Stage 1 is the free pick and nothing else**, and the button says
+  **LOCK IN <name>**. Locking in APPLIES it, and that is where a blind offer
+  reveals - once it is too late to change your mind.
+- **Stage 2** puts the locked-in pick at the top as a one-line **receipt**, then
+  the two you did not take under the heading TAKE ANOTHER AND GIVE SOMETHING UP,
+  with three sacrifices beside them. **JUST THE ONE** always walks away.
+- **The receipt is a line, not a tile.** Drawn as a full `.lb-offer` it was 150px
+  of the panel spent on the one thing already decided, and it pushed both real
+  choices and the whole sacrifice row under the sticky footer.
+- **Stage 2 lays the offers and the sacrifices SIDE BY SIDE** (`#lb-second-row`),
+  because the panel has width to spare and no height to spare. Stacking them is
+  what put the third sacrifice off-screen. `#lb-panel.stage2` also drops the
+  `RAISE A LIMIT` heading - the marquee bar already says LIMIT BREAK and the
+  receipt has just confirmed what was raised.
+- **`rollLbSacrifices()` draws THREE, flat.** Flat is the point: a weighted table
+  would make the cheap option the likely one. **All three offers are excluded**,
+  not just the one taken - the table has to stay fixed while the player chooses
+  their second limit, so it must not be able to name something they are about to
+  be given. It is rolled ONCE at lock-in and kept; re-rolling it on each change
+  of second pick would let the player shop for a cheap price.
+- **A blind SECOND pick gets a reveal beat** - the screen strips back to that one
+  tile for 1.2s before closing, or the gamble would only ever be named by a toast.
+- `lbStage` / `lbSacPool` / `lbRevealing` are declared in `js/reward-grid.js`
+  beside the other `lb*` globals and cleared in `closeLimitBreak`.
+
 ## Limits tile (▲ Limits, r145)
 
 Fifth button in the play screen's secondary row; opens a `.time-popup` listing every `LIMITS_DEF` entry with current value and ceiling (maxed ones highlighted). Built from `LIMITS_DEF`, so adding a limit needs no UI work. The landscape row divides the same 1.56%→39.3% span into five 6.83% slots.
@@ -2018,6 +2098,7 @@ three live distributions and most of the game used none of them:
 | weight table - Mart, shop Sleights | 59% | 28% | 10% | 3% |
 | **UNIFORM** - reward-grid Tricks, shop Tricks, the pick-of-three | 28% | 38% | 28% | 7% |
 | a stale 3-tier bag - `pickTrickOptions` | 63% | 28% | 7% | 2% |
+| **UNIFORM** - the legacy shop's Tricks and Knacks (found r227) | 28% | 38% | 28% | 7% |
 
 The uniform paths had **no weighting at all** (`pool[random * pool.length]`), so
 the **pool composition was the drop rate**. The Trick pool is 49/66/50/12, which
@@ -2034,16 +2115,40 @@ saw **~2.0 Deluxe Utilities against 0.54 Partner Vendors** for the same tier.
   mode ban, a small top tier) often has nothing at the rolled tier. Stepping up
   would hand out something rarer than the roll said.
 - **One table: `ENTITY_TIERS` / `ENTITY_TIER_W` in `js/data/balance.js`**, at
-  **59/28/10/3**. The shop, the Mart, the wheel and both reward-grid draws all
-  read it, so tuning the game's generosity is editing one line. The prize grid
-  keeps its own variant with common cut out - that IS its design, not a drift.
+  **71/22/5.5/1.5** (owner's numbers, r227). The shop, the Mart, the wheel and
+  both reward-grid draws all read it, so tuning the game's generosity is editing
+  one line.
+- **The PRIZE (boss) grid has its OWN table**, `PRIZE_TIER_W` = **30/55/12/3**.
+  It used to cut commons out of each pool and draw the remaining three tiers,
+  which is a different thing from a table: the FILTER decided the floor and the
+  weights only shared out what survived, so the printed spread and the real one
+  could never agree. It is a real four-tier table now - a common is about a third
+  of the tiles and RARE is more than half, which is where a prize grid pays.
+  `prizeCategories` still omits the common RESOURCE tiles and Mystery; that is
+  about tile TYPE, not rarity.
+- **Measured end to end** over real generated screens, at Luck 0: reward grid
+  73.5/20.0/5.2/1.3, prize grid 30.3/53.6/13.0/3.1, Mart 71.5/21.6/6.1/0.9,
+  Survival pick 70.6/22.2/5.8/1.3, legacy shop 70.3/21.9/6.3/1.4. The top tier
+  runs a little light everywhere because only 12 Tricks and 4 Sleights exist
+  there, so a second draw on one screen cascades down. That is the cascade
+  working; the fix is more top-tier content, not a different table.
 - **A new offer path must call `pickEntityByRarity`.** A flat `pool[random]`
   silently opts out of both the spread and Luck, which is exactly how the three
   distributions above happened. Two paths were still missing it at r203 (the
   Twin Path event and `applyRewardRandomTrick`, both drawing flat at 31%
-  epic-or-better beside a reward grid running 13%), and three more at r226 (the
+  epic-or-better beside a reward grid running 13%), three more at r226 (the
   Survival/Flow pick-of-three, `pickTrickOptions`, and one mixed pool in
-  `js/events.js`).
+  `js/events.js`), and two more at r227 - **the legacy shop's Tricks and Knacks
+  were still `shuffle(pool).slice(0, n)`**, the last survivors of the flat draw,
+  missed by the r195 sweep because the Mart had already replaced that screen.
+- **`pickSleightByRarity` kept its own copy of the roll loop, and the copy was
+  wrong once Luck was on.** It rolled `Math.random() * 100` against a running sum
+  of the weights, which is only the same thing while they add up to 100 -
+  `luckTierWeights` makes them sum ABOVE 100, so any roll past the total fell
+  through to tier 0 and handed back a common. **A lucky player was being given
+  MORE commons.** It goes through `pickEntityByRarity` now, which normalises by
+  the real total. If you write a weighted roll, divide by the total; never assume
+  the table sums to 100.
 
 ### Four tiers, not five (r226)
 

@@ -3617,6 +3617,14 @@
   .lb-offer-icon { font-size: 30px; margin-bottom: 8px; }
   .lb-offer-label { font-size: 11px; letter-spacing: 0.5px; line-height: 1.2; margin-bottom: 6px; }
   .lb-offer-desc { font-family: 'Crimson Pro', serif; font-size: 10px; color: var(--cream-dim); line-height: 1.25; }
+  /* Three lines, then clip. Selection Size's description is 20 words and pushed
+     the tile's own before/after line under the sticky footer - which is the one
+     part of the tile the player is choosing on. The full text is in the Limits
+     tab of RECORDS. */
+  .lb-offer-desc {
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
   .lb-offer-prog { font-size: 9px; color: var(--gold); margin-top: 6px; letter-spacing: 1px; }
   .lb-offer-maxed-badge { font-size: 9px; color: var(--cream-dim); margin-top: 6px; letter-spacing: 2px; }
   .lb-offer-tag { position: absolute; top: 4px; right: 6px; font-size: 8px; letter-spacing: 1px; color: var(--gold-dim); }
@@ -3680,6 +3688,98 @@
   }
   #lb-confirm:disabled { opacity: 0.32; cursor: not-allowed; box-shadow: none; }
   #lb-confirm:not(:disabled):hover { filter: brightness(1.12); }
+
+  /* ── Limit Break, stage 2 (r227) ──────────────────────────────────────────
+     The pick you locked in sits on its own above a divider, and the two you did
+     not take drop below it under the price. Same tile, three states: TAKEN is
+     settled and inert, so it loses the hover and the pointer; the two below are
+     still choices. */
+  #lb-taken { display: flex; justify-content: center; width: 100%; margin: 4px 0 12px; }
+  /* The receipt: one line, so the two real choices stay above the fold. */
+  #lb-taken.lb-bar {
+    align-items: center; gap: 9px; flex-wrap: wrap;
+    padding: 8px 14px; border-radius: 7px;
+    border: 1px solid rgba(84,175,136,0.55);
+    background: linear-gradient(180deg, rgba(31,168,119,0.16), rgba(10,9,19,0.5));
+    font-family: 'Share Tech Mono', monospace; font-size: 11px;
+  }
+  .lb-tk-check { color: var(--c-mint); font-size: 13px; }
+  .lb-tk-tag   { color: var(--c-mint); letter-spacing: 2px; font-size: 8.5px; }
+  .lb-tk-icon  { font-size: 14px; }
+  .lb-tk-name  { color: var(--cream); letter-spacing: 0.5px; }
+  .lb-tk-gain  { color: var(--c-mint); font-weight: 700; }
+  .lb-tk-prog  { color: var(--gold); opacity: 0.85; font-size: 10px; }
+  .lb-offer.taken {
+    cursor: default;
+    border-color: var(--c-mint);
+    box-shadow: 0 0 14px rgba(84,175,136,0.32);
+    opacity: 0.92;
+  }
+  .lb-offer.taken:hover { transform: none; }
+  .lb-offer.taken .lb-offer-tag { color: var(--c-mint); }
+  #lb-second-title {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px; letter-spacing: 2.5px; text-transform: uppercase;
+    color: #ff7a86; opacity: 0.9; text-align: center;
+    width: 100%; padding-top: 12px; border-top: 1px solid #4a3560;
+  }
+  /* A sacrifice button carries two lines now - what it costs, and what that
+     leaves you at - because "-15s Starting Time" alone does not say whether
+     that hurts. */
+  .lb-sac-btn { display: flex; flex-direction: column; gap: 2px; align-items: center; line-height: 1.25; }
+  .lb-sac-main { font-size: 10px; letter-spacing: 0.5px; }
+  .lb-sac-sub  { font-size: 8.5px; opacity: 0.62; letter-spacing: 0.5px; }
+  /* The way out of stage 2. Deliberately the muted secondary, not a second
+     green button - taking just the free one is the safe option, not the
+     recommended one. */
+  #lb-done {
+    font-family: 'Orbitron', sans-serif; font-weight: 700;
+    font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
+    padding: 11px 18px; margin: 8px 10px 0 0;
+    background: linear-gradient(180deg, #2a2840, #16142400 92%);
+    border: 1px solid #4a4768; color: rgba(240,230,200,0.8);
+    border-radius: 7px; cursor: pointer; transition: all 0.2s ease;
+  }
+  #lb-done:hover { border-color: #6d69a0; color: #fff; }
+
+  /* Stage 2 packs in four things; stage 1 has one. Tighten the header rather
+     than shrink the choices. */
+  /* The title goes: the marquee bar already reads LIMIT BREAK, and by stage 2 a
+     second heading saying RAISE A LIMIT is repeating what the receipt below it
+     has just confirmed. That is the ~25px that gets the sacrifices on screen. */
+  #lb-panel.stage2 #lb-title { display: none; }
+  #lb-panel.stage2 #lb-sub { font-size: 12px; margin-bottom: 6px; max-width: 420px; }
+  #lb-panel.stage2 #lb-taken { margin: 2px 0 8px; }
+  #lb-panel.stage2 #lb-second-title { padding-top: 8px; }
+  #lb-second-row { width: 100%; }
+  #lb-panel.stage2 #lb-second-row {
+    display: flex; align-items: flex-start; justify-content: center;
+    gap: 16px; width: 100%; flex-wrap: wrap;   /* narrow: stack, don't overflow */
+  }
+  #lb-panel.stage2 #lb-offers { margin: 6px 0; flex: 0 0 auto; }
+  #lb-panel.stage2 #lb-sacrifice {
+    flex: 1 1 0; min-width: 0; max-width: 330px;
+    border-top: 0; border-left: 1px solid #4a3560;
+    padding: 4px 0 0 16px; align-items: stretch;
+  }
+  #lb-panel.stage2 #lb-sacrifice-title,
+  #lb-panel.stage2 #lb-sacrifice-hint { text-align: left; }
+  #lb-panel.stage2 #lb-sacrifice-options { flex-direction: column; align-items: stretch; }
+  #lb-panel.stage2 #lb-sacrifice-hint { font-size: 11px; line-height: 1.25; }
+  #lb-panel.stage2 .lb-sac-btn { width: 100%; align-items: flex-start; text-align: left; padding: 5px 9px; }
+  #lb-panel.stage2 .lb-sac-main { font-size: 9.5px; line-height: 1.2; }
+  #lb-panel.stage2 .lb-sac-sub  { font-size: 8px; }
+  #lb-panel.stage2 .lb-offer { width: 112px; min-height: 112px; padding: 9px 7px; }
+  /* Two lines of description, then clip. The full text is on the tile in stage 1,
+     where the player read it before locking anything in. */
+  #lb-panel.stage2 .lb-offer-desc {
+    font-size: 10px; line-height: 1.25;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  #lb-panel.stage2 .lb-offer-gain { margin-bottom: 3px; }
+  #lb-panel.stage2 #lb-sacrifice { padding-top: 10px; gap: 6px; }
+  #lb-panel.stage2 #lb-actions { margin-top: 10px; padding: 9px 16px 11px; }
 
   /* ── MAIN MENU OVERLAY ── */
   /* ── Main menu → LETHE attract / boot screen (r100) ── */

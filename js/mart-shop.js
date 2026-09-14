@@ -77,10 +77,13 @@ function martSleightPayload(s){ return { type:'sleight', ref:s, label:s.name, de
 function martKnackPayload(k){ return { type:'knack', ref:k, label:k.name, desc:k.desc, rarity:k.rarity||'common', emoji:k.emoji,
   price:SHOP_KNACK_PRICE, buy:()=>{ acquiredKnacks.push({...k}); if (typeof updateKnackList==='function') updateKnackList(); } }; }
 function martLimitStock(count){
-  const elig = LIMITS_DEF.filter(d => limits[d.id].current < limits[d.id].max);
+  const elig = LIMITS_DEF.filter(d => limitCanIncrement(d.id));
   return shuffle(elig).slice(0, count).map(d => {
-    const cur = limits[d.id].current, next = Math.min(limits[d.id].max, cur + (d.step||1));
-    return { type:'limit', ref:d, id:d.id, label:d.label, icon:d.icon, desc:d.desc, rarity:'common', cur, next, max:limits[d.id].max,
+    // Through limits.js so the shelf, the tooltip and the grant cannot disagree -
+    // and so Starting Time reads '180s -> 195s', not '180 -> 195' of something.
+    const u = limitUnit(d.id);
+    const cur = `${limits[d.id].current}${u}`, next = `${limits[d.id].current + limitGain(d.id)}${u}`;
+    return { type:'limit', ref:d, id:d.id, label:d.label, icon:d.icon, desc:d.desc, rarity:'common', cur, next, max:`${limits[d.id].max}${u}`,
       price:shopLimitPrice(d), buy:()=>{ incrementLimit(d.id); if (typeof onLimitChanged==='function') onLimitChanged(d.id); } };
   });
 }

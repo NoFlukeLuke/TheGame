@@ -480,8 +480,9 @@ function devRenderLimits() {
 }
 
 function devIncrLimit(id) {
+  const say = `${limitDeltaText(id, 1)} ${LIMITS_DEF.find(d=>d.id===id)?.label}`;   // before the increment
   const ok = incrementLimit(id);
-  if (ok) showMessage(`↑ ${LIMITS_DEF.find(d=>d.id===id)?.label}`, 'var(--gold)');
+  if (ok) showMessage(say, 'var(--gold)');
   devRenderLimits();
 }
 

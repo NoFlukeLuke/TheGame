@@ -1,4 +1,4 @@
-const BUILD = '2026-09-14 · r226 · vocabulary toggle, rarity colours, four tiers [merge r225]';
+const BUILD = '2026-09-14 · r227 · rarity weights retuned, Limit Break in two stages, limit text = limit effect';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

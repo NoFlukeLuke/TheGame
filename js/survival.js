@@ -192,7 +192,10 @@ function survivalMakeOption(type, data) {
   if (type === 'trick')   return { type, data, id: data.id, name: data.name, icon: (typeof trickEmoji === 'function' ? trickEmoji(data) : '🃏'), desc: data.desc, tag: tierLabel('trick', data.tier).toUpperCase(), rar: data.tier };
   if (type === 'sleight') return { type, data, id: data.id, name: data.name, icon: data.emoji || '🎴', desc: data.desc, tag: tierLabel('sleight', data.rarity).toUpperCase(), rar: data.rarity };
   if (type === 'knack')   return { type, data, id: data.id, name: data.name, icon: data.emoji || '🧿', desc: data.desc, tag: tierLabel('knack', data.rarity).toUpperCase(), rar: data.rarity };
-  if (type === 'limit')   return { type, data, id: data.id, name: data.label, icon: data.icon || '⬆', desc: data.desc, tag: 'LIMIT', rar: 'common' };
+  // Say how much, not just which - Starting Time moves by 15 and Focus Cap by 3,
+  // and a card reading only 'Starting Time' promised the same as a +1. See
+  // limitDeltaText in js/limits.js, which also handles the clamp near the cap.
+  if (type === 'limit')   return { type, data, id: data.id, name: `${data.label} ${limitDeltaText(data.id, 1)}`, icon: data.icon || '⬆', desc: data.desc, tag: 'LIMIT', rar: 'common' };
   return null;
 }
 
@@ -420,7 +423,8 @@ function survivalGrant(opt) {
     case 'trick':   injectTrickAfterReward(opt.data); break;
     case 'sleight': grantSleight(opt.data); showMessage(`${opt.icon} ${opt.name}!`, '#c07aee'); break;
     case 'knack':   acquiredKnacks.push({ ...opt.data }); updateKnackList?.(); showMessage(`${opt.icon} ${opt.name}!`, '#d4a017'); break;
-    case 'limit':   incrementLimit(opt.data.id); showMessage(`${opt.icon} ${opt.name} upgraded!`, '#5ad4c0'); break;
+    case 'limit': { const _say = `${opt.icon} ${limitDeltaText(opt.data.id, 1)} ${opt.data.label}`;   // before the increment moves it
+                    incrementLimit(opt.data.id); showMessage(_say, '#5ad4c0'); break; }
   }
 }
 
