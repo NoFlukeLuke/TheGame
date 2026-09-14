@@ -18,6 +18,7 @@ The game **used to be one giant `index.html`**. It's now split into many small f
 - `css/dance.css` - the score-“dance” / hand-preview animation styles.
 - `css/dev-overlays.css` - dev-panel + event-overlay styling.
 - `js/` - the game code, one file per system (list below).
+- `OPEN_DECISIONS.md` - **the balance-audit backlog: measured findings left for the owner to decide on.** Over-tuned rares, under-tuned legendaries, the rare/epic tier inversion, and how to reproduce the measurement. Read it before any balance pass.
 - `js/entity-tile.js` - **`entityTileInner` / `entityTileHTML` (r182): the ONE way an entity is drawn.** See "One entity tile" below - change a Trick's look here and the reward grid, the Mart shelf, the cart, the loadout strip, your tray and the Shift Change event all move together.
 - `js/fit-text.js` - `fitEntityName`. Shrinks an entity name until it fits, **never breaking a word** (r182).
 - `js/dance-clock.js` - **the scoring dance's own clock (r218).** Pausable waits, a WAAPI animation registry, and the per-tick acceleration. See "The dance clock" below.

@@ -1,4 +1,4 @@
-const BUILD = '2026-09-14 · r226 · the quarter card between quarters, and a full run report on both end screens [onto r225]';
+const BUILD = '2026-09-14 · r227 · OPEN_DECISIONS.md, the balance-audit backlog (docs only)';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
