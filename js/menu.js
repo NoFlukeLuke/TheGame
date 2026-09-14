@@ -1,4 +1,4 @@
-const BUILD = '2026-09-14 · r218 · grid lines: reward grid, even spacing, shrink clamp, split rings; between-round score panel; shop room preview';
+const BUILD = '2026-09-14 · r223 · grid lines: reward grid, even spacing, shrink clamp, split rings; between-round score panel; shop room preview [onto r222]';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -18,9 +18,10 @@ const MODES = {
     actStructure: true,
     suitCount: 4
   },
-  // Guided: Classic with the route fixed instead of chosen. The reward grid's
-  // destination tile is suppressed and the act runs a set spine - see
-  // GUIDED_ACT_FLOW / GUIDED_POST_BOSS in js/guided-mode.js.
+  // Guided: an act is GUIDED_SLOTS_PER_ACT slots and then the boss, and every
+  // slot is either a round you play or something you buy with it. The reward
+  // grid is one of the things for sale, so it is not handed out per round and
+  // its destination tile stays suppressed. See js/guided-mode.js.
   guided: {
     id: 'guided',
     name: 'Guided',
@@ -258,14 +259,22 @@ function startMatch3FromMenu(modeId = 'match3') {
 // MODE SELECT (scroll-sideways carousel off the PLAY button)
 // ══════════════════════════════════════════════
 // The shipping modes, shown left→right in the carousel.
-const MODE_SELECT_LIST = ['tutorial', 'normal', 'guided', 'sixsuits', 'spectrum', 'survival', 'flow', 'match3', 'zen', 'dominoes'];
+//
+// Match-3, Zen and Dominoes are BUILT but not shown (r197). They are experiments
+// on a different loop - Match-3 plays its own matches and has no boss wiring at
+// all, Dominoes is beta - and listing them beside the real modes invited a player
+// to start one expecting the game the other nine modes are. They are still whole
+// and still reachable: the dev panel's MODES group launches any entry in MODES by
+// name, which is why the split is two lists rather than a deletion.
+const MODE_SELECT_LIST = ['tutorial', 'normal', 'guided', 'sixsuits', 'spectrum', 'survival', 'flow'];
+const MODE_HIDDEN_LIST = ['match3', 'zen', 'dominoes'];
 const MODE_META = {
   tutorial: { accent: '#8fd0ff',         suits: 'START HERE',
               blurb: 'LETHE Corp staff orientation. A normal Classic run with the terminal explaining each control as you reach it - scoring, Focus, limits, the reward path, the Mart. About three minutes.' },
   normal:   { accent: 'var(--c-yellow)', suits: '♠ ♥ ♦ ♣',
               blurb: 'The original four-suit game. Three Acts of rounds, shops, events and bosses.' },
-  guided:   { accent: '#c9a0ff',         suits: 'SET ROUTE',
-              blurb: 'The same four-suit game with the path laid out for you. Instead of routing yourself from the reward grid, each quarter alternates reward grid, Mart, reward grid, event, into the boss - then a prize grid and two events. The Mart is guaranteed, so a run can always buy its way up the curve.' },
+  guided:   { accent: '#c9a0ff',         suits: '8 SLOTS',
+              blurb: 'Each act is eight slots and then the boss. Every slot is either a round you play or something you buy with it - the Mart, a reward grid, or one of two events on offer. Buying power always costs a round you will not get to play, and the goal climbs either way, so the question is how much of the act you spend getting stronger rather than getting further.' },
   sixsuits: { accent: 'var(--c-mint)',   suits: '♠ ♥ ♦ ♣ ★ ▲',
               blurb: 'Two extra suits dilute the deck, so flushes are hard-won. Flush of 3, 4 and 5 are all in play.' },
   spectrum: { accent: '#ff9d3c',        suits: '🔴 🟡 🔵 🟢 🟣 🟠 ⚫ ⚪',

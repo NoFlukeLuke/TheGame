@@ -4739,6 +4739,93 @@
    a body-level clone, so it inherits none of #score-subboxes' positioning. */
 .pmf-flying { display: flex !important; opacity: 1 !important; transform: none; }
 
+/* ══════════════════════════════════════════════
+   TOASTS (r197) - js/round-timers.js showMessage()
+   ══════════════════════════════════════════════
+   The old #score-flash was one shared element, 40px Cinzel, no plate, gone in
+   0.9s. Against a board of cream playing cards a thin gold serif with no backing
+   is close to unreadable, and two messages in the same second overwrote each
+   other. These stack, sit on an opaque plate, use the house type, and hold long
+   enough to actually be read.
+
+   OUTSIDE #cabinet: fixed-position, so the cabinet's CSS `zoom` would otherwise
+   multiply these coordinates (same rule as #interact-costs / #limits-popup). */
+#toast-layer {
+  position: fixed; left: 50%; top: 12%; transform: translateX(-50%);
+  z-index: 900; pointer-events: none;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  width: max-content; max-width: calc(100vw - 24px);
+}
+.toast {
+  --toast-ink: #f0e2c0;
+  display: flex; align-items: center; gap: 8px;
+  max-width: 100%;
+  padding: 7px 14px;
+  border: 1px solid color-mix(in srgb, var(--toast-ink) 55%, transparent);
+  border-left: 3px solid var(--toast-ink);
+  border-radius: 4px;
+  /* Opaque, not translucent. Contrast is the whole point of this element and a
+     see-through plate over a board of face cards has none. */
+  background: #14100c;
+  box-shadow: 0 3px 14px rgba(0,0,0,0.75), 0 0 22px -6px var(--toast-ink);
+  font-family: 'Share Tech Mono', 'Courier New', monospace;
+  font-size: 15px; line-height: 1.25; letter-spacing: 0.4px;
+  color: var(--toast-ink);
+  /* A dark rim on the glyphs themselves, so the text survives even if the plate
+     lands on a bright card edge. Stroke OUTSIDE the glyph (paint-order) keeps the
+     letterforms their real weight. */
+  -webkit-text-stroke: 2.5px #14100c; paint-order: stroke fill;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.9);
+  white-space: pre-wrap; text-align: left;
+  animation: toastIn 200ms cubic-bezier(.2,.9,.3,1) both;
+}
+.toast-ico { font-size: 17px; -webkit-text-stroke: 0; flex: 0 0 auto; }
+.toast-text { min-width: 0; }
+.toast-x {
+  flex: 0 0 auto; margin-left: 2px; padding: 1px 5px; border-radius: 8px;
+  background: color-mix(in srgb, var(--toast-ink) 22%, transparent);
+  font-size: 11px; -webkit-text-stroke: 0; opacity: .9;
+}
+.toast-out { animation: toastOut 240ms ease forwards; }
+.toast-bump { animation: toastBump 220ms ease; }
+@keyframes toastIn  { from { opacity:0; transform:translateY(-8px) scale(.96); } to { opacity:1; transform:none; } }
+@keyframes toastOut { to   { opacity:0; transform:translateY(-6px) scale(.98); } }
+@keyframes toastBump{ 50%  { transform:scale(1.05); } }
+
+/* Landscape is the primary target: clear the clock bar across the top of the
+   board, but stay above the cards. (#toast-layer is a body child, so :has on the
+   body is what reaches it - a sibling selector cannot, #stage being inside
+   #cabinet.) */
+body:has(#stage.landscape) #toast-layer { top: 13%; }
+
+/* Settings > Motion honours these like everything else. */
+body.reduced-motion .toast,
+body.reduced-motion .toast-out,
+body.reduced-motion .toast-bump { animation-duration: 1ms; }
+body.big-text .toast { font-size: 17px; }
+body.high-contrast .toast { background: #000; border-color: var(--toast-ink); }
+
+/* Entity payout particles (r220) - js/payout-fx.js. Same visual grammar as the
+   score particles (.dnc-particle) so a Trick handing you 12 seconds reads as the
+   same kind of event as a Trick handing you 12 pips. Body-level and fixed, so the
+   cabinet's CSS `zoom` never scales these coordinates. */
+.efx-particle {
+  position: fixed; z-index: 860; pointer-events: none;
+  font-family: 'Share Tech Mono', 'Courier New', monospace;
+  font-size: 21px; font-weight: 700; letter-spacing: 0.5px;
+  white-space: nowrap;
+  -webkit-text-stroke: 3px rgba(10,8,6,0.95); paint-order: stroke fill;
+  text-shadow: 0 2px 6px rgba(0,0,0,0.85);
+}
+/* The readout acknowledges the hit, so the particle lands on something that
+   reacts instead of on a number that changed silently a moment earlier. */
+.efx-hit { animation: efxHit 360ms cubic-bezier(.3,1.4,.5,1); }
+@keyframes efxHit {
+  0%   { transform: scale(1); filter: brightness(1); }
+  35%  { transform: scale(1.13); filter: brightness(1.7); }
+  100% { transform: scale(1); filter: brightness(1); }
+}
+body.reduced-motion .efx-hit { animation-duration: 1ms; }
 /* Improvement tier badge (r206) - drawn by entityTileInner, so it appears on
    every surface that draws an entity.
    TOP-RIGHT, and that is the only free corner: a Trick puts its glyph top-left

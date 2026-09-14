@@ -1773,8 +1773,9 @@ function closeRewardGrid() {
     // The node this reward grid belonged to, captured BEFORE the advance below.
     // Guided routes off it, and 5 is the post-boss prize grid.
     const _node = nodeInAct;
+    const _guided = (typeof guidedActive === 'function' && guidedActive() && isActMode());
 
-    if (isActMode()) {
+    if (isActMode() && !_guided) {
       if (nodeInAct === 5) {
         // Post-boss reward grid - transition to next act
         nodeInAct = 0;
@@ -1795,11 +1796,17 @@ function closeRewardGrid() {
       }
     }
 
-    // Guided: the act runs a fixed spine, so the node index decides what comes
-    // next, not a destination tile (which Guided's grids do not carry).
+    // Guided (r218) runs its own act: slots, not nodes. A grid here is either one
+    // the player BOUGHT with a slot - back to the crossroads - or the post-boss
+    // prize grid, which rolls the act over. Neither uses the node routing above,
+    // which is why guided returns before the destination-tile branch.
     if (typeof guidedActive === 'function' && guidedActive() && isActMode()) {
       pendingEventOverride = null;
-      guidedRunStops(guidedStopsAfterNode(_node), () => drainLevelUpQueue());
+      // guidedInStop, NOT the node index: a grid the player BOUGHT is one slot
+      // of the act, the post-boss PRIZE grid rolls the act over, and only the
+      // flag tells them apart - nodeInAct is kept in step with the slot count for
+      // the HUD and can legitimately read 5 for either.
+      if (guidedInStop) guidedAfterSlot(); else guidedAfterPrizeGrid();
       return;
     }
 

@@ -47,3 +47,55 @@
   .dnc-particle{position:fixed;z-index:200;font-weight:700;pointer-events:none;font-family:'Crimson Pro',serif;
     font-size:calc(15px*var(--dnc-pscale,1));text-shadow:0 1px 4px rgba(0,0,0,.85);}
   /* live focus tracker beneath the FOCUS number (stays live even while the big number is locked mid-dance) */
+
+/* ── Paused dance (r197) ───────────────────────────────────────────────────
+   The dance's WAAPI animations are held by the registry in js/dance-clock.js,
+   which can call .pause() on each one. These are the CLASS-driven keyframes -
+   jitter, pop, pulse, flash, the particle's own float - which are not WAAPI
+   animations and so have to be held by CSS instead. */
+body.dance-paused .dnc-jitter,
+body.dance-paused .dnc-pop,
+body.dance-paused .dnc-pulse,
+body.dance-paused .dnc-flash,
+body.dance-paused .dnc-particle,
+body.dance-paused .dnc-card,
+body.dance-paused #selected-cards.dnc-active * {
+  animation-play-state: paused !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   SCORE PARTICLE PLATES (r221) - tuned in particle-preview.html
+   ══════════════════════════════════════════════════════════════════
+   A particle was bare serif text over a board of cream playing cards and a lit
+   HUD - the one thing in the game most often unreadable. It is a small coloured
+   DIAMOND lettered in white now: the colour says which chip is changing before
+   the number is read, and an opaque plate is legible over anything behind it.
+
+   .dnc-particle is the FLIGHT element (js/score-dance.js animates its transform);
+   .pt-box is the plate. They have to be separate elements because a diamond IS a
+   45deg rotation, and on one element the flight's transform would overwrite it
+   every frame. The label counter-rotates so the text stays upright. */
+.dnc-particle .pt-box{
+  display:flex; align-items:center; justify-content:center;
+  width:var(--pt-size,46px); height:var(--pt-size,46px);
+  background:var(--pt-bg,#2f6bd8);
+  border:var(--pt-bw,1.5px) solid var(--pt-bc,#7ba2e8);
+  box-shadow:0 0 var(--pt-glow,10px) var(--pt-bg,#2f6bd8), 0 2px 6px rgba(0,0,0,.7);
+}
+.dnc-particle .pt-lab{
+  font-family:'Orbitron',sans-serif; font-weight:900;
+  color:var(--pt-ink,#fff); font-size:var(--pt-font,16px);
+  line-height:1; white-space:nowrap; letter-spacing:.5px;
+  text-shadow:0 1px 2px rgba(0,0,0,.55);
+}
+.dnc-particle.pt-diamond .pt-box{ transform:rotate(45deg); border-radius:var(--pt-round,4px); }
+.dnc-particle.pt-diamond .pt-lab{ transform:rotate(-45deg); }
+.dnc-particle.pt-square  .pt-box{ border-radius:var(--pt-round,4px); }
+.dnc-particle.pt-circle  .pt-box{ border-radius:50%; }
+.dnc-particle.pt-pill    .pt-box{ border-radius:999px; width:auto; padding:0 calc(var(--pt-size,46px)*.30); }
+/* The pre-r221 look, kept as a shape option: no plate, the label alone. */
+.dnc-particle.pt-none .pt-box{ background:none; border:none; box-shadow:none; width:auto; height:auto; }
+.dnc-particle.pt-none .pt-lab{ font-family:'Crimson Pro',serif; color:currentColor;
+  text-shadow:0 0 3px #000, 0 2px 6px rgba(0,0,0,.9); }
+
+body.reduced-motion .dnc-particle .pt-box{ box-shadow:none; }

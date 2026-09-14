@@ -98,6 +98,21 @@ function triggerLevelUp() {
   // uses it as its "a round has finished" test.
   lastRoundGoal = roundGoal;
 
+  // Unspent swaps and discards pay credits (r218). Captured HERE, at the top,
+  // because the base reset below overwrites both with the NEW round's values -
+  // and Survival/Flow pay from survivalAfterLevelUp, which runs further down this
+  // same function, well after that reset.
+  //
+  // Classic does NOT use this: its payout screen runs from startInterlude, which
+  // happens BEFORE triggerLevelUp, so there the live swaps/discards are still the
+  // finished round's and are read directly. Two paths, opposite sides of the
+  // reset - hence one captured figure and one live read rather than one of each.
+  //
+  // Read BEFORE the carry-over knacks bank them, so the figure is what you
+  // finished the round holding; Carry Swaps / Carry Discards then also carry it,
+  // which is the knack doing its job.
+  frozenUnspentActions = Math.max(0, swaps) + Math.max(0, discards);
+
   level++;
   // This round's score target, from zero
   // One chokepoint for every mode's curve (js/goal-tuning.js) - it picks the
@@ -285,7 +300,7 @@ function triggerLevelUp() {
 
   // Survival: pay coins (flat + leftover-time bonus) and bank leftover time toward
   // the next boss. Skipped on the post-boss bonus round (no goal cleared).
-  if (survivalActive() && !survivalSkipCarryover) survivalAfterLevelUp(_svLeftover);
+  if (survivalActive() && !survivalSkipCarryover) survivalAfterLevelUp(_svLeftover, frozenUnspentActions);
 
   updateScoreUI();
 

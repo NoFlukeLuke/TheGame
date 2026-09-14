@@ -226,8 +226,21 @@ function focusFxLoop(ts) {
 }
 if (typeof requestAnimationFrame === 'function') requestAnimationFrame(focusFxLoop);
 
-function addFocus(amount) {
+// `srcId` / `srcSource` name the entity that granted this Focus, when the caller
+// knows it. Given one, the gain flies from that entity's tray tile to the Focus
+// meter and plays the Focus sound (js/entity-fx.js) - so a Knack that hands you 5
+// Focus is as visible as a Trick that hands you 5 pips. Unattributed gains (the
+// hand's own complexity/speed Focus, decay corrections, restores) stay silent:
+// they happen constantly, and a particle for each would be noise, not feedback.
+//
+// KNOWN LIMIT, and the obvious next step: generateHandFocus runs in playHand
+// BEFORE the dance, so an attributed grant fires its particle before the cards
+// have moved. Focus wants the same treatment the score just got - an ordered
+// timeline emitted by generateHandFocus and replayed between the card beats - at
+// which point these calls become events rather than immediate effects.
+function addFocus(amount, srcId, srcSource) {
   if (!amount || amount <= 0) return;
+  if (srcId && typeof entityEffectFX === 'function') entityEffectFX('focus', amount, { id: srcId, source: srcSource });
   focusGenGame += amount; focusGenRound += amount; // total Focus generated (any source) - Wellspring / Feedback Loop
   focusDecayBuffer = 0;   // gaining focus resets the x.0 grace buffer
   const cap = focusCapNodes();

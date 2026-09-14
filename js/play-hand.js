@@ -137,7 +137,7 @@ function generateHandFocus(hand, handCells, vultureSec) {
         const _ddNow = Date.now();
         _ddPairTimes.push(_ddNow);
         _ddPairTimes = _ddPairTimes.filter(t => _ddNow - t <= BAL.two_pair_mult.window_ms);
-        if (_ddPairTimes.length >= BAL.two_pair_mult.need_count) { const _ddf = BAL.two_pair_mult.focus * trickFires('two_pair_mult'); addFocus(_ddf); _ddPairTimes = []; showMessage('Double Dutch! +' + _ddf + ' Focus', '#5aa9e6'); }
+        if (_ddPairTimes.length >= BAL.two_pair_mult.need_count) { const _ddf = BAL.two_pair_mult.focus * trickFires('two_pair_mult'); addFocus(_ddf, 'two_pair_mult'); _ddPairTimes = []; showMessage('Double Dutch! +' + _ddf + ' Focus', '#5aa9e6'); }
       } else { _ddPairTimes = []; }
     }
     // Ripple: consume the 30s cooldown if this hand actually had an adjacent-rank pair
@@ -183,7 +183,7 @@ function generateHandFocus(hand, handCells, vultureSec) {
   }
 
   // Head Start: the first hand each round adds +5 Focus (flag reset stays in playHand)
-  if (firstHandThisRound && hasTrick('first_play')) addFocus(BAL.first_play.focus);
+  if (firstHandThisRound && hasTrick('first_play')) addFocus(BAL.first_play.focus, 'first_play');
 }
 
 // ══════════════════════════════════════════════
@@ -208,7 +208,7 @@ function playHand() {
   }
   cancelAutoSubmit();
   console.log('[PLAY] entry', { score, goal: roundGoal, goalReachedThisRound, bonusWindowActive, animating, hasDance: !!danceAbortController });
-  const result = findBestHand(selected);
+  let result = findBestHand(selected);
   if (!result) { dbgEvent('warn', 'play: no valid hand', { selected: selected.length, animating, falling, roundEnded, dance: !!danceAbortController, swapPending: !!swapPending, swiping: isSwiping }); console.log('[PLAY] no result, exiting'); return; }
   // Abort any prior in-flight score dance ONLY now that we have a real hand to play.
   // (A spurious double-fire of Play on a now-empty selection must NOT cancel the
@@ -220,6 +220,19 @@ function playHand() {
   // real hand, before anything is scored or mutated - so a fizzled hand leaves no
   // trace in the contributions, the hand log or handsPlayedRound.
   if (typeof bossMarkerIntercept === 'function' && bossMarkerIntercept([...selected])) return;
+
+  // The Ringer (js/sleights-runtime.js): pull in one more card off the board when
+  // that makes a better hand. Runs HERE rather than inside findBestHand, which
+  // also feeds the live preview and the auto-submit - augmenting there would
+  // promise a card before the player had committed to the hand. It runs AFTER the
+  // Marker intercept on purpose: a hand that is about to fizzle must not spend a
+  // Ringer charge. The added cell joins `selected` so it is removed with the rest,
+  // and joins handCells so the dance flies it into the preview.
+  const _ringer = (typeof ringerAugment === 'function') ? ringerAugment(result, selected) : null;
+  if (_ringer) {
+    result = _ringer.result;
+    selected = [...selected, _ringer.cell];
+  }
 
   const playedCells = [...selected]; // capture before any path clears selection (for on_play sleights)
   const { hand, handCells, penaltyCells, penaltyPips } = result;

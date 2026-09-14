@@ -22,7 +22,7 @@ const EVENT_NO_REPEAT = 4;
 
 function openEvent(afterFn) {
   afterEventFn = afterFn || (() => drainLevelUpQueue());
-  const pool = ['confluence','crossroads','gamble','merchant','altar','spring','twin_path','forge','bargain','wager','shift_change','bench','rehearsal','workshop','market','deck_trim'];
+  const pool = ['confluence','crossroads','gamble','merchant','altar','spring','twin_path','forge','bargain','wager','shift_change','bench','rehearsal','workshop','market','deck_trim','reassignment','the_draw','the_floor','the_payline'];
   // Fall back to the full pool if the memory has eaten it - never draw a blank.
   const fresh = pool.filter(id => !recentEventIds.includes(id));
   const draw  = fresh.length ? fresh : pool;
@@ -72,6 +72,10 @@ function confirmEvent() {
     workshop:    confirmWorkshop,
     market:      confirmMarket,
     deck_trim:   confirmDeckTrim,
+    reassignment: confirmReassignment,
+    the_draw:    confirmDraw,
+    the_floor:   confirmFloor,
+    the_payline: confirmPayline,
   };
   if (handlers[activeEventId]) handlers[activeEventId]();
   else closeEvent();
@@ -104,6 +108,10 @@ const EVENT_META = {
   workshop:    { name:'Maintenance',     flavor:'Top up every Sleight, or raise one charge ceiling for good.' },
   market:      { name:'Card Market',     flavor:'Buy cards for your deck. Each one comes with something extra.' },
   deck_trim:   { name:'Deck Trim',       flavor:'A thinner deck draws what you need more often. Cut as deep as you can pay for.' },
+  reassignment:{ name:'Trade a Trick',   flavor:'Give up a Trick. It comes back as a Knack or a Sleight, picked at random.' },
+  the_draw:    { name:'Spin to Improve', flavor:'Choose three of your own. The wheel picks one and improves it twice.' },
+  the_floor:   { name:'Card Slots',      flavor:'Your deck on five reels. Buy lines, and a winning line upgrades the cards that made it.' },
+  the_payline: { name:'Entity Slots',    flavor:'Three reels of what you own. Three alike and it improves a tier.' },
 };
 
 function renderEventShell(id) {
@@ -131,6 +139,10 @@ function renderEventShell(id) {
     workshop:    renderWorkshop,
     market:      renderMarket,
     deck_trim:   renderDeckTrim,
+    reassignment: renderReassignment,
+    the_draw:    renderDraw,
+    the_floor:   renderFloor,
+    the_payline: renderPayline,
   };
   if (renderers[id]) renderers[id]();
   // The panel scrolls internally and is reused between events - reopening it

@@ -97,6 +97,7 @@ function openDevPanel() {
   devRenderLimits();
   devRenderSleights();
   devRenderBosses();
+  devRenderModes();
   devRenderEvents();
   devRenderGroupMenu();
   devSyncFloatSliders();
@@ -123,6 +124,7 @@ const DEV_GROUPS = [
   { g:'limits',   icon:'▲', label:'Limits',    sub:() => `${LIMITS_DEF.length} upgradeable` },
   { g:'events',   icon:'✧', label:'Events',    sub:() => `${Object.keys(EVENT_META).length} + shop / limit break` },
   { g:'boss',     icon:'☠', label:'Bosses',    sub:() => `${BOSS_PRESETS.length} presets` },
+  { g:'modes',    icon:'▶', label:'Modes',     sub:() => `${Object.keys(MODES).length} playable · ${MODE_HIDDEN_LIST.length} hidden` },
   { g:'anim',     icon:'✺', label:'Animation', sub:() => 'fall · score · item float' },
   { g:'focus',    icon:'◎', label:'Focus',     sub:() => 'meter · decay · speed bonus' },
   { g:'time',     icon:'⏱', label:'Time',      sub:() => 'add / set round seconds' },
@@ -176,6 +178,32 @@ function devRenderBosses() {
   el.innerHTML = BOSS_PRESETS.map(b =>
     `<button class="dev-btn" onclick="devTriggerBoss('${b.id}')">${b.name || b.id}</button>`).join('');
 }
+// Every mode in MODES, not just the carousel's list - this is the only way into
+// Match-3, Zen and Dominoes now that MODE_SELECT_LIST hides them (js/menu.js).
+// Generated rather than hand-written for the same reason the boss and event rows
+// are: a new mode cannot go missing from the panel.
+function devRenderModes() {
+  const el = document.getElementById('dev-mode-btns'); if (!el) return;
+  el.innerHTML = Object.keys(MODES).map(id => {
+    const hidden = MODE_HIDDEN_LIST.includes(id);
+    return `<button class="dev-btn" onclick="devStartMode('${id}')" title="${hidden ? 'hidden from the mode carousel' : ''}">`
+         + `${MODES[id].name || id}${hidden ? ' ·' : ''}</button>`;
+  }).join('');
+}
+
+// Launch a mode from the panel. chooseMode() is the menu's own entry point, so
+// this only has to clear the surfaces the panel may be sitting on top of first -
+// the panel itself, the main menu, and the carousel if it is open behind it.
+function devStartMode(id) {
+  if (!MODES[id]) return;
+  devPanelFromMenu = false;          // never bounce back to the menu - a run is starting
+  devPanelOpen = false;
+  document.getElementById('dev-panel').style.display = 'none';
+  document.getElementById('main-menu-overlay')?.classList.remove('show');
+  document.getElementById('mode-select-overlay')?.classList.remove('show');
+  chooseMode(id);
+}
+
 function devRenderEvents() {
   const el = document.getElementById('dev-event-btns'); if (!el) return;
   el.innerHTML = Object.keys(EVENT_META).map(id =>

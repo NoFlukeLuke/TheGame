@@ -108,13 +108,65 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
 
   // ── contrib tracking: accumulate per-Trick pip/mult deltas ──
   const _cp = {}, _cm = {};  // per-Trick pip/mult deltas (always tracked so Mirror can duplicate them)
+
   // _procs counts how many times each id FIRED, which is a different question
   // from how much it was worth (_cp / _cm) and the one the Rider penalty bills
   // against. Counted here because bPip/bMult are called once per proc already -
   // per card, per trigger - so there is nothing to instrument at the call sites.
   const _procs = {};
-  const bPip  = (id, d) => { if (d) { _cp[id] = (_cp[id]||0)+d; _procs[id] = (_procs[id]||0)+1; } };
-  const bMult = (id, d) => { if (d) { _cm[id] = (_cm[id]||0)+d; _procs[id] = (_procs[id]||0)+1; } };
+  const _proc = (id, n) => { _procs[id] = (_procs[id]||0) + (n === undefined ? 1 : n); };
+
+  // ── The animation TIMELINE (r220) ────────────────────────────────────────
+  // `_cp`/`_cm` are a SET OF TOTALS: what each Trick was worth by the end. That is
+  // the right shape for the contributions tab and the wrong one for an animation,
+  // which needs to know WHEN each thing happened and WHAT KIND of thing it was.
+  // So every emit also pushes an ordered event:
+  //
+  //   { id, source, op:'pip+'|'mult+'|'pip*'|'mult*', value, card, from, scope, rnd }
+  //
+  //   op '…+'  → value is the ADDEND (what the old delta always was)
+  //   op '…*'  → value is the FACTOR, so the dance can show "x2" and multiply its
+  //              running chip instead of showing a meaningless "+35".
+  //   card     → index into _scoreCells, or -1 for a hand-level event
+  //   from     → which card the particle FLIES FROM, which is not the same
+  //              question: a card enhancement's x mult multiplies the whole
+  //              running mult, so it cannot fire inside that card's beat, but its
+  //              particle should still leave that card.
+  //   scope    → 'card' multiplies that ONE card's running subtotal (permXPips,
+  //              a curse, the Blight); 'hand' multiplies the hand total. Getting
+  //              this wrong is the difference between doubling one card and
+  //              doubling everything scored so far.
+  //   rnd      → the site's rounding, because the sites do not agree: a x pips
+  //              rounds to a whole number, a x mult to one decimal, and the
+  //              card-scoped ones do not round at all. Without it the dance's
+  //              running chip drifts a few hundredths and snaps at the end.
+  //
+  // `_cp`/`_cm` are still written exactly as before, so the contributions tab,
+  // Mirror, priming and Move as One are all untouched - they keep reading deltas.
+  const _tl = ledger ? [] : null;
+  let _tlCard = -1;
+  const _ev = (id, op, value, source, from, rnd) => {
+    if (!_tl) return;
+    if ((op === 'pip*' || op === 'mult*') ? value === 1 : !value) return;
+    const scope = _tlCard >= 0 && (op === 'pip*' || op === 'mult*') ? 'card' : 'hand';
+    _tl.push({ id, source: source || 'trick', op, value, card: _tlCard,
+               from: _tlCard >= 0 ? _tlCard : (from === undefined ? -1 : from),
+               scope,
+               rnd: rnd || (scope === 'card' ? 'none' : op === 'pip*' ? 'int' : op === 'mult*' ? 'dp1' : 'none') });
+  };
+  const bPip  = (id, d) => { if (d) { _cp[id] = (_cp[id]||0)+d; _proc(id); _ev(id, 'pip+',  d); } };
+  const bMult = (id, d) => { if (d) { _cm[id] = (_cm[id]||0)+d; _proc(id); _ev(id, 'mult+', d); } };
+  // Quiet: writes the ledger (and bills the procs the caller says it fired) but
+  // emits NO event, for totals the timeline already carries - the per-card mult
+  // accumulators, and the retrigger bookkeeping, which the dance shows by
+  // repeating the card's whole beat rather than as a particle of its own.
+  const bPipQ  = (id, d, procs) => { if (d) { _cp[id] = (_cp[id]||0)+d; _proc(id, procs === undefined ? 0 : procs); } };
+  const bMultQ = (id, d, procs) => { if (d) { _cm[id] = (_cm[id]||0)+d; _proc(id, procs === undefined ? 0 : procs); } };
+  // Multiplicative: the ledger records the DELTA (so contributions read "+240
+  // pips", which is what the player actually gained) while the timeline records
+  // the FACTOR (so the dance reads "x1.5"). Same call, two audiences.
+  const bPipX  = (id, factor, delta) => { if (delta) { _cp[id] = (_cp[id]||0)+delta; _proc(id); } _ev(id, 'pip*',  factor); };
+  const bMultX = (id, factor, delta) => { if (delta) { _cm[id] = (_cm[id]||0)+delta; _proc(id); } _ev(id, 'mult*', factor); };
 
   // Process cards sequentially so Knave Power can multiply running total
   const _handMinRankVal = hasTrick('summit')
@@ -136,6 +188,11 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
       if (_scoreCells.some(([_r2,_c2]) => (_r2!==_rr||_c2!==_cc) && gridData[_r2][_c2] && _withinOneRank(_c0.rank, gridData[_r2][_c2].rank))) _rippleSet.add(`${_rr}-${_cc}`);
     });
   }
+  // Per-card MULT, accumulated in the loop (r197). These used to be post-loop
+  // `_wc(pred) x rate` sweeps, which is the SAME SUM - but a sweep cannot tell the
+  // dance which card earned it, so every one of them animated in the end lump.
+  // Emitting per card here is what lets "+1 mult for a heart" fire on the heart.
+  let _hdMult = 0, _jmMult = 0, _kgMult = 0, _pmMult = 0, _ogMult = 0, _ecMultAcc = 0, _ecPipAcc = 0;
   let _clubHits = 0; // Hard Labour: counts club scoring hits, including retriggers
   let _handRetrigs = 0; // Cuckoo: extra retriggers in this hand (committed to retriggersThisRound in playHand)
   let _vultureFires = 0; // Vulture: total buff-seconds fired this hand, counting retriggers
@@ -163,8 +220,10 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // per-card MULT / coin / time bonuses re-fire on replay too (not just pips).
   const retrigByKey = {};
   const _ledgerCells = ledger ? [] : null;
-  _scoreCells.forEach(([r, c]) => {
+  _scoreCells.forEach(([r, c], _ci) => {
     const card = gridData[r][c];
+    _tlCard = _ci;                                          // everything emitted below belongs to THIS card
+    const _tlMark = _tl ? _tl.length : 0;                   // rewind point for the Blight
     const _cpSnap = ledger ? Object.assign({}, _cp) : null; // to diff this card's per-card pip tricks
     // ── The Blight ──────────────────────────────────────────────────────────
     // A contaminated cell halves the card's pips AND may suppress the Tricks it
@@ -187,10 +246,11 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     const _cmSnapBlight = _mute ? Object.assign({}, _cm) : null;
     const baseRank = card.rank;
     const _origPips = cardPips(baseRank);
+    _ev('_card', 'pip+', _origPips, 'card');   // the card's own pips lead its beat
     let rawPips = _origPips;
     if (hasTrick('face_value') && ['J','Q','K'].includes(baseRank)) { rawPips = BAL.face_value.face_pips; bPip('face_value', rawPips - _origPips); }
     else if (hasTrick('first_light') && baseRank === 'A') { rawPips = BAL.first_light.worth; bPip('first_light', rawPips - _origPips); }
-    if (hasTrick('humble_roots') && ['A','1','2','3','4','5'].includes(baseRank)) { const _b = rawPips; rawPips *= BAL.humble_roots.pip_mult; bPip('humble_roots', rawPips - _b); }
+    if (hasTrick('humble_roots') && ['A','1','2','3','4','5'].includes(baseRank)) { const _b = rawPips; rawPips *= BAL.humble_roots.pip_mult; bPipX('humble_roots', BAL.humble_roots.pip_mult, rawPips - _b); }
     if (hasTrick('summit') && (RANK_ORDER[baseRank] || 0) === _handMinRankVal) { const _b = cardPips(baseRank) * level; rawPips += _b; bPip('summit', _b); }
     let cp = rawPips;
     if (hasTrick('rich_soil')) { cp += BAL.rich_soil.pips; bPip('rich_soil', BAL.rich_soil.pips); }
@@ -215,7 +275,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     }
     // Permanent ×pips enhancement (The Forge / Bargain / Wager events)
     const _xp = permXPips[_eKey] || 1;
-    if (_xp !== 1) { const _preXp = cp; cp *= _xp; bPip('sapling', cp - _preXp); }
+    if (_xp !== 1) { const _preXp = cp; cp *= _xp; bPipX('sapling', _xp, cp - _preXp); }
     // Right Place: marked row/column cards score +flat pips
     if (cellHasRowColBonus(r, c, 'rowcol_triple_pips')) { cp += BAL.rowcol_triple_pips.flat_pips; bPip('rowcol_triple_pips', BAL.rowcol_triple_pips.flat_pips); }
     // Five Stack: +pips per card in a 5-card hand (before the retrigger multiply → replay-aware)
@@ -223,7 +283,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     // 4x4: cards scored in the 4th column (index 3) score +pips
     if (hasTrick('four_by_four') && c === 3) { cp += BAL.four_by_four.pips; bPip('four_by_four', BAL.four_by_four.pips); }
     // Leaden curse: this card contributes no pips at all (applied last so it wins)
-    if (cardCurses[_eKey]?.id === 'leaden') cp = 0;
+    if (cardCurses[_eKey]?.id === 'leaden') { if (cp) _ev('leaden', 'pip*', 0, 'curse'); cp = 0; }
     // Straight Shot: remember the first/last line card's modified pips (post-buff, post-curse, pre-replay)
     const _cKey = r + '-' + c;
     if (_cKey === _slFirstKey) _slFirstPips = cp;
@@ -292,24 +352,28 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
       const _pre = cp; cp *= _retrig;
       const _extra = cp - _pre;
       _handRetrigs += (_retrig - 1); // Cuckoo counts retriggers this round
-      if (_r2) bPip('twos_retrigger', _pre);
-      else if (_r8) bPip('eights_retrigger', _pre);
-      else if (_rc) bPip('corner_retrigger', _pre);
-      else if (_rl) bPip('rowcol_retrigger', _pre);
-      else if (_pt) bPip('perfect_timing', _pre);
-      else if (_res) bPip('eye_of_storm', _pre);
-      else if (_rip) bPip('ripple', _pre);
-      else if (_echoS) bPip('echo_play', _pre);
-      else if (_refl) bPip('reflect', _pre);
-      else if (_soul) bPip('soul_mirror', _pre);
-      else if (_re) bPip('sapling', _extra);
-      else if (_hnm) bPip('high_and_mighty', _pre);
-      else if (_rne) bPip('closing_time', _pre);
-      else if (_ech) bPip('echo_hand', _pre);
-      else if (_wp) bPip('woodpecker', _extra);
-      else if (_wfi) bPip('wait_for_it', _pre);
-      else if (_encoreHand) bPip('encore', _pre);
-      else if (_cKey === _3rdKey) bPip('third_charm', _extra);
+      // Ledger-only (bPipQ), but still one proc each: the timeline shows a replay
+      // by REPEATING this card's whole beat, which re-adds these pips on its own,
+      // so emitting them as events too would count every retrigger twice. The
+      // proc still happened, and the Rider penalty bills against procs.
+      if (_r2) bPipQ('twos_retrigger', _pre, 1);
+      else if (_r8) bPipQ('eights_retrigger', _pre, 1);
+      else if (_rc) bPipQ('corner_retrigger', _pre, 1);
+      else if (_rl) bPipQ('rowcol_retrigger', _pre, 1);
+      else if (_pt) bPipQ('perfect_timing', _pre, 1);
+      else if (_res) bPipQ('eye_of_storm', _pre, 1);
+      else if (_rip) bPipQ('ripple', _pre, 1);
+      else if (_echoS) bPipQ('echo_play', _pre, 1);
+      else if (_refl) bPipQ('reflect', _pre, 1);
+      else if (_soul) bPipQ('soul_mirror', _pre, 1);
+      else if (_re) bPipQ('sapling', _extra, 1);
+      else if (_hnm) bPipQ('high_and_mighty', _pre, 1);
+      else if (_rne) bPipQ('closing_time', _pre, 1);
+      else if (_ech) bPipQ('echo_hand', _pre, 1);
+      else if (_wp) bPipQ('woodpecker', _extra, 1);
+      else if (_wfi) bPipQ('wait_for_it', _pre, 1);
+      else if (_encoreHand) bPipQ('encore', _pre, 1);
+      else if (_cKey === _3rdKey) bPipQ('third_charm', _extra, 1);
     }
     // The Blight, applied. A muted card falls back to its RAW pip value (plus any
     // permanent per-card buff, which is a property of the card rather than a
@@ -325,17 +389,35 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
       });
       restore(_cp, _cpSnapBlight);
       restore(_cm, _cmSnapBlight);
+      if (_tl) _tl.length = _tlMark;   // the suppressed Tricks never fired, so they never animate either
     }
-    if (_blighted && !_dead) cp = cp * 0.5;
+    if (_blighted && !_dead) { _ev('_blight', 'pip*', 0.5, 'boss'); cp = cp * 0.5; }
     totalPips += cp;
+    // ── Per-card MULT (see the accumulators above). Emitted AFTER the Blight's
+    //    rewind, because the post-loop sweeps these replace were never Blight-
+    //    suppressed - truncating them here would make the timeline under-report.
+    //    One emit per card; the dance repeats the beat `_retrig` times, so the
+    //    particle count lands on the same total the accumulator does.
+    const _isHeartC = card.suit === '♥' || (card.combined && card.suit2 === '♥');
+    if (hasTrick('heart_double') && _isHeartC) { _hdMult += BAL.heart_double.heart_mult * _retrig; _ev('heart_double','mult+',BAL.heart_double.heart_mult); }
+    if (hasTrick('jack_mult') && baseRank === 'J') { _jmMult += BAL.jack_mult.mult_per_jack * _retrig; _ev('jack_mult','mult+',BAL.jack_mult.mult_per_jack); }
+    if (hasTrick('king_guard') && (baseRank === 'K' || baseRank === 'J')) { _kgMult += BAL.king_guard.mult * _retrig; _ev('king_guard','mult+',BAL.king_guard.mult); }
+    const _pmv = permMult[_eKey] || 0;
+    if (_pmv) { _pmMult += _pmv * _retrig; _proc('perm_mult'); _ev('perm_mult','mult+',_pmv); }
+    if (hasTrick('old_growth') && _pp) { _ogMult += _pp * _retrig; _proc('old_growth'); _ev('old_growth','mult+',_pp); }
+    const _ec1 = exaltCorruptTotals([card]);
+    if (_ec1.mult) { _ecMultAcc += _ec1.mult * _retrig; _ev('_exalt','mult+',_ec1.mult,'exalt'); }
+    if (_ec1.pips) { _ecPipAcc  += _ec1.pips * _retrig; _ev('_exalt','pip+', _ec1.pips,'exalt'); }
   });
+  _tlCard = -1;   // back to hand level - everything past here is a whole-hand event
   _lastHandProcs = _procs;         // snapshot for the Rider penalty (read in playHand)
   _lastHandRetrigs = _handRetrigs; // snapshot for Cuckoo (read after captureRoundContrib in playHand)
   _lastHandVultureSeconds = _vultureFires; // snapshot for Vulture (retrigger-aware pause seconds)
   _lastRetrigByCell = retrigByKey; // snapshot for playHand's exalt/corrupt coin/time (replay-aware)
-  // reps aligned to `cards`/`_scoreCells`; _wc(pred) = replay-weighted count of matching scored cards.
+  // reps aligned to `cards`/`_scoreCells`. The replay-weighted per-card sweeps that
+  // used to live here are accumulated in the loop instead (r197) - see the per-card
+  // MULT block - so each one can animate on the card that earned it.
   const _reps = _scoreCells.map(([r, c]) => retrigByKey[r + '-' + c] || 1);
-  const _wc = pred => { let s = 0; cards.forEach((cd, i) => { if (cd && pred(cd)) s += _reps[i]; }); return s; };
 
   // Hidden pair trick
   const rankCounts = {};
@@ -394,6 +476,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // hand_size model, plus Natural Scaling's earned family bonus. _scoreCells is
   // the hand actually being scored.
   let mult = handBaseMult(handName, _scoreCells.length) + sleightAmplifierMult;
+
   // Layered hands: every other component adds its base mult too. Additive, not
   // multiplied - two hands' worth of ladder, not the product of them.
   _extraLayers.forEach(h => { mult += handBaseMult(h, _scoreCells.length); });
@@ -464,6 +547,10 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // Row/col +2 mult per affected card
   cells.forEach(([r, c]) => {
     const matches = rowColBonuses.filter(b => b.id === 'rowcol_mult' && ((b.axis === 'row' && b.index === r) || (b.axis === 'col' && b.index === c)));
+    // Emitted, but NOT billed to _cp/_cm: this bonus has never had a contributions
+    // row and adding one would change what that tab reports. The timeline needs it
+    // regardless - a mult the dance cannot see is a mult that makes the chip drift.
+    if (matches.length) _ev('rowcol_mult', 'mult+', matches.length * 2);
     mult += matches.length * 2;
   });
 
@@ -481,26 +568,11 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     mult += BAL.wide_span_mult.mult; bMult('wide_span_mult', BAL.wide_span_mult.mult);
   }
 
-  // Perm mult (per-card buff → fires once per replay)
-  cards.forEach((card, i) => {
-    const _pm = (permMult[cardId(card)] || 0) * _reps[i];
-    mult += _pm;
-    bMult('perm_mult', _pm);
-  });
-  // Permanent ×mult enhancement (The Forge / Bargain / Wager events) - applied once per replay
-  cards.forEach((card, i) => {
-    const _xm = permXMult[cardId(card)] || 1;
-    if (_xm !== 1) {
-      const _preXm = mult; mult *= Math.pow(_xm, _reps[i]); bMult('perm_mult', mult - _preXm);
-      // Ledger: attribute this card's ×mult to it so the dance releases it per-card (not the end
-      // sweep). Single-application delta (_preXm*(_xm-1)); the dance repeats it per replay beat.
-      if (_ledgerCells && _ledgerCells[i]) _ledgerCells[i].multT['perm_mult'] = (_ledgerCells[i].multT['perm_mult'] || 0) + _preXm * (_xm - 1);
-    }
-  });
+  // Perm mult (per-card buff → fires once per replay). Summed in the card loop so
+  // it animates on the card carrying the buff; identical sum to the old sweep.
+  if (_pmMult) { mult += _pmMult; bMultQ('perm_mult', _pmMult); }
   // Old Growth: each scored card also adds its permanent pip bonus to mult (per replay)
-  if (hasTrick('old_growth')) {
-    cards.forEach((card, i) => { const _og = (permPips[cardId(card)] || 0) * _reps[i]; if (_og) { mult += _og; bMult('old_growth', _og); } });
-  }
+  if (_ogMult) { mult += _ogMult; bMultQ('old_growth', _ogMult); }
   // Magician: +3 mult per Sleight owned
   if (hasTrick('magician')) { const _a = ownedSleightCount() * BAL.magician.mult_per_sleight; if (_a) { mult += _a; bMult('magician', _a); } }
   // Landfill: +1 mult per 5 cards discarded this round
@@ -512,16 +584,20 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   const _entM   = entourageMult();              // Entourage: +mult per other Sleight on the grid
   const _lightM = lighthouseMult();             // Lighthouse: mult by distance from its favored column
   mult += _whetM + _entM + _lightM;
+  _ev('whetstone',  'mult+', _whetM,  'sleight');
+  _ev('entourage',  'mult+', _entM,   'sleight');
+  _ev('lighthouse', 'mult+', _lightM, 'sleight');
   let _siphonM = 0;                              // Siphon: multiplicative ×mult, applied after additive mults (below)
   let _legacyM = 0;                              // Legacy: multiplicative ×mult, same step as Siphon (r193)
   let _spotM   = 0;                              // Spot Check: multiplicative ×mult penalty (r194)
 
   // Hearts: neutral by default; +1 mult each with Devoted Trick (per-card → per replay)
-  const heartCount = _wc(c => c.suit === '♥' || (c.combined && c.suit2 === '♥'));
-  if (hasTrick('heart_double') && heartCount > 0) { mult += heartCount * BAL.heart_double.heart_mult; bMult('heart_double', heartCount * BAL.heart_double.heart_mult); }
+  if (_hdMult) { mult += _hdMult; bMultQ('heart_double', _hdMult, 1); }
 
   // Exalt / Corrupt - pip & mult contributions (coins & time applied in playHand); per-card → per replay
-  const _ec = exaltCorruptTotals(cards, _reps);
+  // Summed per card in the loop above (same cards, same reps) so an exalted card's
+  // buff animates on that card rather than in the end lump.
+  const _ec = { pips: _ecPipAcc, mult: _ecMultAcc };
   totalPips += _ec.pips;
   mult += _ec.mult;
   if (mult < 1) mult = 1; // corruption can't drop mult below 1
@@ -538,9 +614,8 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // ── New Trick mult bonuses ──
   // Per-rank mult
   const _aceCount   = cards.filter(c => c.rank === 'A').length;
-  const _jackCount2 = cards.filter(c => c.rank === 'J').length;
   const _threeCount = cards.filter(c => c.rank === '3').length;
-  if (hasTrick('jack_mult')  && _jackCount2) { const _a = _wc(c => c.rank === 'J') * BAL.jack_mult.mult_per_jack;  mult += _a; bMult('jack_mult', _a); }
+  if (_jmMult) { mult += _jmMult; bMultQ('jack_mult', _jmMult, 1); }
   if (hasTrick('lucky_three') && _threeCount){ mult += BAL.lucky_three.mult; bMult('lucky_three', BAL.lucky_three.mult); }
   // Hand-size
   if (hasTrick('light_touch') && cells.length === 2) { mult += BAL.light_touch.mult; bMult('light_touch', BAL.light_touch.mult); }
@@ -576,11 +651,15 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // bonus counts the EVEN (or ODD) cards, not every card in the hand. They used to
   // pay cells.length x rate, so a Pair with 3 evens in a 5-card hand paid for the
   // two odd cards as well, and Odd One In paid 5 where Get Even paid 2.
-  { const _ev = cards.filter(c => _rankIsEven(c.rank)).length;
-    if (hasTrick('even_score') && _ev >= 3) { const _a = _ev * BAL.even_score.mult_per_card; mult += _a; bMult('even_score', _a); } }
+  // (`_evenN`, not `_ev` - that name is this function's timeline emitter, and a
+  // block-scoped const of the same name shadows it.)
+  { const _evenN = cards.filter(c => _rankIsEven(c.rank)).length;
+    if (hasTrick('even_score') && _evenN >= 3) { const _a = _evenN * BAL.even_score.mult_per_card; mult += _a; bMult('even_score', _a); } }
   { const _od = cards.filter(c => _rankIsOdd(c.rank)).length;
     if (hasTrick('odd_squad')  && _od >= 3) { const _a = _od * BAL.odd_squad.mult_per_card; mult += _a; bMult('odd_squad', _a); } }
-  if (hasTrick('king_guard')) { const _kj = _wc(c => c.rank === 'K' || c.rank === 'J'); if (_kj) { const _a = _kj * BAL.king_guard.mult; mult += _a; bMult('king_guard', _a); } }
+  // King's Guard's mult is accumulated per card in the loop now, so it animates on
+  // the K or J that earned it; same replay-weighted sum the _wc sweep produced.
+  if (_kgMult) { mult += _kgMult; bMultQ('king_guard', _kgMult, 1); }
   if (hasTrick('ninesong')) { const _ps = cards.reduce((s,c) => s + cardPips(c.rank), 0); if (_ps % 3 === 0) { mult += BAL.ninesong.mult; bMult('ninesong', BAL.ninesong.mult); } }
   // Position: column/row
   const _allSameCol = cells.every(([, cc]) => cc === cells[0][1]);
@@ -616,35 +695,59 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // Combo score: +2 mult per distinct hand type played this round
   if (hasTrick('combo_score') && handTypesRound.size > 0) { const _a = handTypesRound.size * BAL.combo_score.mult_per_type; mult += _a; bMult('combo_score', _a); }
 
+  // Permanent ×mult enhancement (The Forge / Bargain / Wager events) - applied once per replay.
+  //
+  // MOVED HERE IN r197, AND IT CHANGES THE SCORE. It used to sit part-way up the
+  // additive mult list, so it multiplied the base mult and the handful of bonuses
+  // above it and NOTHING below - Old Growth, the Sleight mults, every suit and
+  // rank and shape bonus, all added after it and escaped untouched. A x1.5 card
+  // enhancement was therefore worth x1.5 of a small number and x1.0 of a big one,
+  // which is not what "x1.5 mult" says on the tin and not how any other x mult in
+  // the game behaves (r190: a x mult lands after everything additive). It is a
+  // buff to card enhancements, and it is what makes the additive mult region
+  // CONTIGUOUS - which is what lets a per-card mult Trick animate on its own card
+  // without the running number drifting from the real one.
+  cards.forEach((card, i) => {
+    const _xm = permXMult[cardId(card)] || 1;
+    if (_xm !== 1) {
+      // Hand-level even so: it multiplies the WHOLE running mult, so it cannot fire
+      // inside a card's beat (the mult is smaller there). Anchored to card `i` so
+      // the particle still flies from the buffed card. Ledger keeps the delta.
+      const _xmPow = Math.pow(_xm, _reps[i]);
+      const _preXm = mult; mult *= _xmPow; bMultQ('perm_mult', mult - _preXm, 1);
+      _ev('perm_mult', 'mult*', _xmPow, 'trick', i, 'none');
+    }
+  });
+
   // Run multipliers (epic) - applied after additive pip/mult bonuses
   if (isRun && hasTrick('undertow')) {
     const _um = BAL.undertow.pip_mult_base + BAL.undertow.pip_mult_step * Math.max(0, cells.length - 3);
-    const _pre = totalPips; totalPips = Math.round(totalPips * _um); bPip('undertow', totalPips - _pre);
+    const _pre = totalPips; totalPips = Math.round(totalPips * _um); bPipX('undertow', _um, totalPips - _pre);
   }
   if (isRun && hasTrick('tide_table')) {
     const _tm = 1 + BAL.tide_table.mult_step * (runsPlayedRound + 1);
-    const _pre = mult; mult = Math.round(mult * _tm * 10) / 10; bMult('tide_table', mult - _pre);
+    const _pre = mult; mult = Math.round(mult * _tm * 10) / 10; bMultX('tide_table', _tm, mult - _pre);
   }
   // Set multipliers (epic) - applied after additive bonuses
-  if (handName === 'Two Pair' && hasTrick('pair_pips')) { const _pre = totalPips; totalPips = Math.round(totalPips * BAL.pair_pips.pip_mult); bPip('pair_pips', totalPips - _pre); }
-  if (_maxCount >= 2 && hasTrick('double_bloom')) { const _pre = mult; mult = Math.round(mult * BAL.double_bloom.mult_mult * 10) / 10; bMult('double_bloom', mult - _pre); }
-  if (handName === 'Four of a Kind' && hasTrick('richter')) { const _pre = mult; mult = Math.round(mult * BAL.richter.mult_mult * 10) / 10; bMult('richter', mult - _pre); }
+  if (handName === 'Two Pair' && hasTrick('pair_pips')) { const _pre = totalPips; totalPips = Math.round(totalPips * BAL.pair_pips.pip_mult); bPipX('pair_pips', BAL.pair_pips.pip_mult, totalPips - _pre); }
+  if (_maxCount >= 2 && hasTrick('double_bloom')) { const _pre = mult; mult = Math.round(mult * BAL.double_bloom.mult_mult * 10) / 10; bMultX('double_bloom', BAL.double_bloom.mult_mult, mult - _pre); }
+  if (handName === 'Four of a Kind' && hasTrick('richter')) { const _pre = mult; mult = Math.round(mult * BAL.richter.mult_mult * 10) / 10; bMultX('richter', BAL.richter.mult_mult, mult - _pre); }
   // Rank multipliers
-  if (hasTrick('royal_trio') && cards.some(c=>c.rank==='K') && cards.some(c=>c.rank==='Q') && cards.some(c=>c.rank==='J')) { const _pre = mult; mult = Math.round(mult * BAL.royal_trio.mult_mult * 10) / 10; bMult('royal_trio', mult - _pre); }
-  if (hasTrick('knave_power')) { let _jg = 0; for (let _gr=0; _gr<gridRows; _gr++) for (let _gc=0; _gc<gridCols; _gc++) { const _cc = gridData[_gr]?.[_gc]; if (_cc && !_cc._isSleight && !_cc._isTrick && _cc.rank === 'J') _jg++; } if (_jg > 0) { const _pre = totalPips; totalPips = Math.round(totalPips * Math.pow(BAL.knave_power.per_jack, _jg)); bPip('knave_power', totalPips - _pre); } }
+  if (hasTrick('royal_trio') && cards.some(c=>c.rank==='K') && cards.some(c=>c.rank==='Q') && cards.some(c=>c.rank==='J')) { const _pre = mult; mult = Math.round(mult * BAL.royal_trio.mult_mult * 10) / 10; bMultX('royal_trio', BAL.royal_trio.mult_mult, mult - _pre); }
+  if (hasTrick('knave_power')) { let _jg = 0; for (let _gr=0; _gr<gridRows; _gr++) for (let _gc=0; _gc<gridCols; _gc++) { const _cc = gridData[_gr]?.[_gc]; if (_cc && !_cc._isSleight && !_cc._isTrick && _cc.rank === 'J') _jg++; } if (_jg > 0) { const _km = Math.pow(BAL.knave_power.per_jack, _jg); const _pre = totalPips; totalPips = Math.round(totalPips * _km); bPipX('knave_power', _km, totalPips - _pre); } }
   // Cornered: corner cards multiply the running pips by the whole minutes left (per corner card)
   if (hasTrick('corner_retrigger')) {
     const _minsLeft = Math.floor(roundSeconds / 60);
     const _nc = cornerCells(cells).length;
-    if (_minsLeft >= 1 && _nc > 0) { const _pre = totalPips; totalPips = Math.round(totalPips * Math.pow(_minsLeft, _nc)); bPip('corner_retrigger', totalPips - _pre); }
+    if (_minsLeft >= 1 && _nc > 0) { const _cm2 = Math.pow(_minsLeft, _nc); const _pre = totalPips; totalPips = Math.round(totalPips * _cm2); bPipX('corner_retrigger', _cm2, totalPips - _pre); }
   }
   // Stretch: when a hand has 2+ corner cells, each corner card multiplies the running mult ×2
   if (hasTrick('two_corners')) {
     const _nc = cornerCells(cells).length;
-    if (_nc >= 2) { const _pre = mult; mult = Math.round(mult * Math.pow(BAL.two_corners.mult_mult, _nc) * 10) / 10; bMult('two_corners', mult - _pre); }
+    if (_nc >= 2) { const _tcm = Math.pow(BAL.two_corners.mult_mult, _nc); const _pre = mult; mult = Math.round(mult * _tcm * 10) / 10; bMultX('two_corners', _tcm, mult - _pre); }
   }
   // Scalper: ×(1 + 0.2 per missing Sleight charge) to total pips - figured once, now
-  if (hasTrick('scalper')) { const _miss = sleightChargeInfo().missing; if (_miss > 0) { const _m = 1 + BAL.scalper.pip_mult_per_missing * _miss; const _pre = totalPips; totalPips = Math.round(totalPips * _m); bPip('scalper', totalPips - _pre); } }
+  if (hasTrick('scalper')) { const _miss = sleightChargeInfo().missing; if (_miss > 0) { const _m = 1 + BAL.scalper.pip_mult_per_missing * _miss; const _pre = totalPips; totalPips = Math.round(totalPips * _m); bPipX('scalper', _m, totalPips - _pre); } }
   // ── Converted from ×score (r179) - see the note at the ×score step below ──
   // Twenty-One: raw face values total exactly 21 → ×pips
   if (hasTrick('blackjack_bonus')) {
@@ -652,11 +755,11 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
       const v = c.rank === 'A' ? 11 : ['J','Q','K'].includes(c.rank) ? 10 : parseInt(c.rank);
       return sum + (isNaN(v) ? 0 : v);
     }, 0);
-    if (_bjTotal === 21) { const _pre = totalPips; totalPips = Math.round(totalPips * BAL.blackjack_bonus.pip_mult); bPip('blackjack_bonus', totalPips - _pre); }
+    if (_bjTotal === 21) { const _pre = totalPips; totalPips = Math.round(totalPips * BAL.blackjack_bonus.pip_mult); bPipX('blackjack_bonus', BAL.blackjack_bonus.pip_mult, totalPips - _pre); }
   }
-  if (handName === 'Straight Flush' && hasTrick('perfect_storm')) { const _pre = totalPips; totalPips = Math.round(totalPips * BAL.perfect_storm.pip_mult); bPip('perfect_storm', totalPips - _pre); }
-  if (handName === 'Four of a Kind' && hasTrick('extinction')) { const _pre = mult; mult = Math.round(mult * BAL.extinction.mult_mult * 10) / 10; bMult('extinction', mult - _pre); }
-  if (hasTrick('last_stand') && score < roundGoal) { const _pre = mult; mult = Math.round(mult * BAL.last_stand.mult_mult * 10) / 10; bMult('last_stand', mult - _pre); }
+  if (handName === 'Straight Flush' && hasTrick('perfect_storm')) { const _pre = totalPips; totalPips = Math.round(totalPips * BAL.perfect_storm.pip_mult); bPipX('perfect_storm', BAL.perfect_storm.pip_mult, totalPips - _pre); }
+  if (handName === 'Four of a Kind' && hasTrick('extinction')) { const _pre = mult; mult = Math.round(mult * BAL.extinction.mult_mult * 10) / 10; bMultX('extinction', BAL.extinction.mult_mult, mult - _pre); }
+  if (hasTrick('last_stand') && score < roundGoal) { const _pre = mult; mult = Math.round(mult * BAL.last_stand.mult_mult * 10) / 10; bMultX('last_stand', BAL.last_stand.mult_mult, mult - _pre); }
 
   // ── r179 multiplier batch - triggers the ×pips/×mult pools had never covered ──
   // Replays: _reps[i] is this card's total scoring iterations, so the extras are
@@ -664,18 +767,18 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   const _replayExtras = Math.max(0, _reps.reduce((a, b) => a + b, 0) - cards.length);
   if (_replayExtras > 0 && hasTrick('rerun')) {
     const _m = 1 + BAL.rerun.pip_mult_per_replay * _replayExtras;
-    const _pre = totalPips; totalPips = Math.round(totalPips * _m); bPip('rerun', totalPips - _pre);
+    const _pre = totalPips; totalPips = Math.round(totalPips * _m); bPipX('rerun', _m, totalPips - _pre);
   }
   if (_replayExtras > 0 && hasTrick('chorus')) {
     const _m = 1 + BAL.chorus.mult_mult_per_replay * _replayExtras;
-    const _pre = mult; mult = Math.round(mult * _m * 10) / 10; bMult('chorus', mult - _pre);
+    const _pre = mult; mult = Math.round(mult * _m * 10) / 10; bMultX('chorus', _m, mult - _pre);
   }
   // Deep Breath: ×pips while the clock is held. Pairs with every pause entity.
-  if (hasTrick('deep_breath') && pipeTimerPaused) { const _pre = totalPips; totalPips = Math.round(totalPips * BAL.deep_breath.pip_mult); bPip('deep_breath', totalPips - _pre); }
+  if (hasTrick('deep_breath') && pipeTimerPaused) { const _pre = totalPips; totalPips = Math.round(totalPips * BAL.deep_breath.pip_mult); bPipX('deep_breath', BAL.deep_breath.pip_mult, totalPips - _pre); }
   // Interest: ×pips scaling with credits held, capped so a rich run can't run away.
   if (hasTrick('interest') && coins > 0) {
     const _m = Math.min(BAL.interest.max_pip_mult, 1 + Math.floor(coins / 10) * BAL.interest.pip_mult_per_10_credits);
-    if (_m > 1) { const _pre = totalPips; totalPips = Math.round(totalPips * _m); bPip('interest', totalPips - _pre); }
+    if (_m > 1) { const _pre = totalPips; totalPips = Math.round(totalPips * _m); bPipX('interest', _m, totalPips - _pre); }
   }
   // Portfolio: ×mult per card ON THE GRID carrying a permanent pip/mult buff - it
   // grows as the run invests in its deck, and shrinks as those cards cycle away.
@@ -689,12 +792,12 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     }
     if (_buffed > 0) {
       const _m = 1 + BAL.portfolio.mult_mult_per_card * _buffed;
-      const _pre = mult; mult = Math.round(mult * _m * 10) / 10; bMult('portfolio', mult - _pre);
+      const _pre = mult; mult = Math.round(mult * _m * 10) / 10; bMultX('portfolio', _m, mult - _pre);
     }
   }
   // Redline: ×mult once the Focus multiplier is at or above its threshold.
   if (hasTrick('redline') && focusMultiplier() >= BAL.redline.focus_threshold) {
-    const _pre = mult; mult = Math.round(mult * BAL.redline.mult_mult * 10) / 10; bMult('redline', mult - _pre);
+    const _pre = mult; mult = Math.round(mult * BAL.redline.mult_mult * 10) / 10; bMultX('redline', BAL.redline.mult_mult, mult - _pre);
   }
   // Phoenix: while paused, the Focus multiplier applies twice - handled at the Focus step below.
   // Mirror (Blueprint): duplicate each borrowed Trick's pip/mult contribution (incl. the multipliers above)
@@ -765,6 +868,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // findBestHand's candidate scoring sees it consistently.
   if (typeof siphonMultX === 'number' && siphonMultX > 1) {
     const _pre = mult; mult = Math.round(mult * siphonMultX * 10) / 10; _siphonM = mult - _pre;
+    _ev('siphon', 'mult*', siphonMultX, 'sleight');
   }
   // Legacy (sleight): ×3 the whole mult. It used to be applied at SCORE level in
   // playHand, where the arithmetic was identical (s = pips × mult) but nothing on
@@ -846,26 +950,26 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     if (_spotM < 0) contrib.push({type:'mult',source:'penalty',id:'spot_check',delta:Math.round(_spotM*10)/10});
   }
 
-  // Finalize the animation ledger: attach the known per-card MULT / exalt single-iteration
-  // deltas to each card (these are computed post-loop, so they're not in the loop's pip diff).
+  // Finalize the animation ledger. The per-card MULT list that used to be
+  // hand-written here is gone: those Tricks are summed inside the card loop now,
+  // so they are already on the timeline in the right place, for every id rather
+  // than the six this list happened to name.
   if (ledger && _ledgerCells) {
-    _ledgerCells.forEach(e => {
-      const card = e.card;
-      const _k = cardId(card);
-      const addM = (id, d) => { if (d) e.multT[id] = (e.multT[id] || 0) + d; };
-      const _isHeart = e.suit === '♥' || (card && card.combined && card.suit2 === '♥');
-      if (hasTrick('heart_double') && _isHeart) addM('heart_double', BAL.heart_double.heart_mult);
-      if ((permMult[_k] || 0) !== 0) addM('perm_mult', permMult[_k]);
-      if (hasTrick('old_growth') && (permPips[_k] || 0) !== 0) addM('old_growth', permPips[_k]);
-      if (hasTrick('jack_mult') && e.rank === 'J') addM('jack_mult', BAL.jack_mult.mult_per_jack);
-      if (hasTrick('king_guard') && (e.rank === 'K' || e.rank === 'J')) addM('king_guard', BAL.king_guard.mult);
-      if (exaltCorruptEnabled && card && (card._exalted || card._corrupted)) {
-        const _t = exaltCorruptTotals([card]);
-        if (_t.mult > 0) addM('_exalt', _t.mult);
-        if (_t.pips > 0) e.pipT['_exalt'] = (e.pipT['_exalt'] || 0) + _t.pips;
-      }
-    });
     ledger.cards = _ledgerCells;
+    ledger.timeline = _tl;
+    // What the boxes must read once every event has played. The dance replays the
+    // timeline against its own running chips and then asserts against these, so a
+    // drift shows up as a visible snap rather than as a wrong number.
+    ledger.finalPips = lastCalcPips;
+    ledger.finalMult = lastCalcMult;
+    // The base the dance seeds its chips with. Layered hands (r2xx) contribute a
+    // second hand's worth of base pips and mult directly, with no ledger call, so
+    // they belong HERE rather than as events - they are part of what the hand is
+    // worth before anything fires.
+    ledger.basePips  = Math.round(handBasePips(handName) * levelScale)
+                     + _extraLayers.reduce((a, h) => a + Math.round(handBasePips(h) * levelScale), 0);
+    ledger.baseMult  = handBaseMult(handName, _scoreCells.length) + sleightAmplifierMult
+                     + _extraLayers.reduce((a, h) => a + handBaseMult(h, _scoreCells.length), 0);
   }
 
   return Math.round(s);
