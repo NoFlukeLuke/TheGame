@@ -124,6 +124,10 @@ function triggerLevelUp() {
   // and this lifts whatever it produced. Rounded to 50 so the number on the HUD
   // stays one a player can hold in their head.
   if (goalPenaltyMult > 1) roundGoal = Math.round(roundGoal * goalPenaltyMult / 50) * 50;
+  // Guided's elite: a challenge level raises THIS round's goal. Applied after the
+  // curve and the penalty, so it lifts whatever they produced rather than racing
+  // them (js/guided-mode.js).
+  if (typeof guidedApplyPendingChallenge === 'function') guidedApplyPendingChallenge();
   // Bank the completed round's score for the end-of-run display. In Survival the
   // overflow is carried to the next round, so only the counted portion is banked.
   totalScore += survivalActive() ? Math.max(0, score - _svOverflow) : score;

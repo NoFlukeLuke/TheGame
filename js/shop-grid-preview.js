@@ -17,7 +17,20 @@ let shopGridItems   = [];      // 4×4 of payloads (or null)
 let shopGridSel     = new Set();
 let shopGridMode    = 'buy';   // 'buy' | 'sell'
 let shopGridSaved   = null;    // { rows, cols } to restore on close
-const SHOPG_ROWS = 4, SHOPG_COLS = 4;
+// The BUY board is 4 rows x 5 columns: each row opens with a 3-wide tile naming
+// the category, then TWO options. Two, not four - four of everything made the
+// shop a wall to read rather than a choice to make, and the wider board is what
+// buys the room for the row labels.
+//
+// `shopGridItems[r]` stays a FULL-WIDTH array of SHOPG_COLS, with the label
+// columns held as null. That is deliberate: every existing r/c index - the
+// selection keys, the adjacency test, isGroupConnected, the click handler - keeps
+// working untouched, and only the renderer has to know about the label.
+const SHOPG_ROWS = 4, SHOPG_COLS = 5;
+const SHOPG_LABEL_SPAN = 3;            // columns 0-2 are the row's name plate
+const SHOPG_OPTIONS = SHOPG_COLS - SHOPG_LABEL_SPAN;   // 2 options a row
+const SHOPG_ROW_LABELS = ['Knacks', 'Tricks', 'Sleights', 'Upgrades'];
+const SHOPG_ROW_ICONS  = ['♦', '★', '▶', '▲'];
 
 function shopGridDiscount(n) { return n >= 3 ? 0.25 : n >= 2 ? 0.10 : 0; }
 
@@ -52,10 +65,10 @@ function buildShopGridStock() {
   const ownedTot = new Set(acquiredKnacks.map(t => t.id));
   const granted  = _grantedSleightSet();
 
-  const knacks   = shuffle(KNACK_POOL.filter(t => !ownedTot.has(t.id))).slice(0, SHOPG_COLS);
-  const tricks   = shuffle(TRICK_POOL.filter(b => !ownedBc.has(b.id))).slice(0, SHOPG_COLS);
-  const sleights = pickSleightByRarity(SHOPG_COLS, granted);
-  const lims     = shuffle(LIMITS_DEF.filter(d => limits[d.id].current < limits[d.id].max)).slice(0, SHOPG_COLS);
+  const knacks   = shuffle(KNACK_POOL.filter(t => !ownedTot.has(t.id))).slice(0, SHOPG_OPTIONS);
+  const tricks   = shuffle(TRICK_POOL.filter(b => !ownedBc.has(b.id))).slice(0, SHOPG_OPTIONS);
+  const sleights = pickSleightByRarity(SHOPG_OPTIONS, granted);
+  const lims     = shuffle(LIMITS_DEF.filter(d => limits[d.id].current < limits[d.id].max)).slice(0, SHOPG_OPTIONS);
 
   const rows = [[], [], [], []];
   rows[0] = knacks.map(k => ({ entity:'knack', label:k.name, desc:k.desc, emoji:k.emoji, rarity:k.rarity || 'common',
@@ -70,7 +83,13 @@ function buildShopGridStock() {
     return { _upgrade:true, icon:d.icon, label:d.label, desc:d.desc, sub:`${cur} → ${next}`, rarity:'common',
              price: shopLimitPrice(d), buy: () => { incrementLimit(d.id); onLimitChanged?.(d.id); } };
   });
-  for (let r = 0; r < SHOPG_ROWS; r++) { rows[r] = rows[r] || []; while (rows[r].length < SHOPG_COLS) rows[r].push(null); }
+  // Shift each row right past the label plate and pad to full width, so the
+  // options land on columns SHOPG_LABEL_SPAN.. and the label columns are null.
+  for (let r = 0; r < SHOPG_ROWS; r++) {
+    const opts = (rows[r] || []).slice(0, SHOPG_OPTIONS);
+    while (opts.length < SHOPG_OPTIONS) opts.push(null);
+    rows[r] = new Array(SHOPG_LABEL_SPAN).fill(null).concat(opts);
+  }
 
   // ~10% chance: one random filled slot becomes a "SOLD OUT" null card
   if (Math.random() < 0.10) {
@@ -95,7 +114,8 @@ function buildShopSellStock() {
       uses: def.durability === 'infinite' ? '∞' : `${inst.card._usesLeft ?? def.durability}×`, rarity:def.rarity || 'common',
       price: sleightSellValue(inst.card, def), sell: () => sellOwnedSleight(inst) });
   });
-  // Lay out into a 4×4 (extra items beyond 16 are simply not shown this view)
+  // The SELL board uses the full width and carries no row labels - what you own
+  // is a mixed list, so there is no category for a plate to name.
   const rows = [[], [], [], []];
   for (let i = 0; i < SHOPG_ROWS * SHOPG_COLS; i++) rows[Math.floor(i / SHOPG_COLS)][i % SHOPG_COLS] = items[i] || null;
   return rows;
@@ -179,8 +199,22 @@ function renderShopGrid() {
   recomputeGridMetrics();
   hideRewardTooltip();
   gridEl.innerHTML = '';
+  const labelled = (shopGridMode !== 'sell');
   for (let r = 0; r < SHOPG_ROWS; r++) {
-    for (let c = 0; c < SHOPG_COLS; c++) {
+    // The row's name plate, spanning SHOPG_LABEL_SPAN cells. Inert: it is a
+    // heading, and making it selectable would let a path route through it.
+    if (labelled) {
+      const lab = document.createElement('div');
+      lab.className = 'reward-cell on-grid shop-row-label unselectable';
+      lab.style.left = cellLeft(0) + 'px';
+      lab.style.top  = cellTop(r) + 'px';
+      lab.style.width  = (SHOPG_LABEL_SPAN * (CARD_W + CARD_GAP) - CARD_GAP) + 'px';
+      lab.style.height = CARD_H + 'px';
+      lab.innerHTML = `<span class="srl-icon">${SHOPG_ROW_ICONS[r] || ''}</span>`
+                    + `<span class="srl-name">${SHOPG_ROW_LABELS[r] || ''}</span>`;
+      gridEl.appendChild(lab);
+    }
+    for (let c = labelled ? SHOPG_LABEL_SPAN : 0; c < SHOPG_COLS; c++) {
       const p = shopGridItems[r][c];
       const div = document.createElement('div');
       div.dataset.r = r; div.dataset.c = c;

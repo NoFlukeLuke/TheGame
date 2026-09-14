@@ -177,6 +177,7 @@ function updateRunProgressUI() {
   // Portrait: the block takes the top-left slot whenever it has something to say
   // - an act-mode run, or ANY mode's boss round. Otherwise that slot stays the
   // legacy game timer.
+  if (typeof bindBossPeek === 'function') bindBossPeek();
   const live = actMode || bossOn;
   document.getElementById('run-progress-pt')?.classList.toggle('rp-live', live);
   document.getElementById('game-timer-stat')?.classList.toggle('rp-yielded', live);

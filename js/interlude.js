@@ -36,6 +36,11 @@ async function startInterlude(opts) {
   sfxDuckGain.disconnect();
   sfxDuckGain = null;
 
+  // Guided's elite pays out here, while the round's own counters are still live -
+  // triggerLevelUp resets handsPlayedRound and handTypesRound, which is what every
+  // challenge test reads (js/guided-mode.js).
+  if (typeof guidedSettleChallenge === 'function') guidedSettleChallenge();
+
   // Guided (r218): the reward grid is something you BUY with a slot, not
   // something every round hands you, so the payout goes back to the crossroads.
   // The post-boss PRIZE grid is not a bought stop and still opens here.

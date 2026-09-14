@@ -1,4 +1,4 @@
-const BUILD = '2026-09-14 · r228 · per-card Tricks pay as the cards animate; Get Even and Odd One In lose the 3-card gate [onto r227]';
+const BUILD = '2026-09-14 · r229 · Guided: four falling crossroads tiles, hard rounds, free pick-of-three · shop 4x5 with row labels · next boss named · Clean Slate [onto r228]';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

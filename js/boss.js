@@ -426,6 +426,25 @@ function bossPresetIsLive(preset) {
   return true;
 }
 
+// What the NEXT boss will be, WITHOUT dealing it. The run-progress block's hover
+// reads this so a player can build a loadout against the boss they are heading
+// for, the way Slay the Spire names its act boss from the first room.
+//
+// It fills the bag when empty, exactly as nextBossPreset does, so the answer is
+// stable rather than "unknown until the moment it is dealt". It is still a
+// forecast, not a promise: `bossPresetIsLive` reads how many Tricks you own, so
+// gaining your second Trick can legitimately change which boss is next. That is
+// the same rule the deal uses, so the readout never lies about the state it was
+// asked in.
+function peekBossPreset() {
+  if (!bossBag.length) bossBag = shuffle(BOSS_PRESETS.map(p => p.id));
+  const id = bossBag.find(bid => {
+    const p = BOSS_PRESETS.find(x => x.id === bid);
+    return p && bossPresetIsLive(p);
+  }) || bossBag[0];
+  return BOSS_PRESETS.find(p => p.id === id) || null;
+}
+
 function nextBossPreset() {
   // Two passes: prefer a boss that can actually act; if the bag holds nothing
   // live (very early run, no Tricks yet) take the front of the bag anyway rather
@@ -902,3 +921,68 @@ let rewardGridContext = 'interlude'; // 'interlude' | 'boss' | 'survival' - dete
 let skipTrickChoiceOverlay = false;    // set before drainLevelUpQueue when reward grid is the reward screen
 let rewardGridsSeen = 0;               // how many reward grids opened this run (for first-5 guaranteed upgrades)
 
+
+
+// ══════════════════════════════════════════════
+// WHAT IS COMING (r229) - the boss, named, on the progress block
+// ══════════════════════════════════════════════
+// The act boss used to be a surprise you met at the last node, which makes every
+// purchase before it general accumulation rather than preparation. Hovering the
+// run-progress block (or long-pressing it on touch) now names the boss you are
+// heading for and says what it does, so a loadout can be built against it.
+//
+// It reads `peekBossPreset()`, which does NOT deal from the bag - see the note
+// there for why the forecast can legitimately change when you gain a Trick.
+// During a live boss the brief itself is the better answer, so this stands down.
+function bossPeekHTML() {
+  if (typeof bossActive !== 'undefined' && bossActive) return '';
+  if (typeof isActMode === 'function' && !isActMode() && !(typeof survivalActive === 'function' && survivalActive())) return '';
+  const p = (typeof peekBossPreset === 'function') ? peekBossPreset() : null;
+  if (!p) return '';
+  return `<div class="tp-title">Next boss</div>`
+       + `<div class="bp-name">${p.name || ''}</div>`
+       + (p.flavor ? `<div class="bp-flavor">${p.flavor}</div>` : '')
+       + (p.brief  ? `<div class="bp-brief">${p.brief}</div>`   : '')
+       + `<div class="bp-note">Forecast. Gaining Tricks can change which boss is next.</div>`;
+}
+
+function showBossPeek(anchor) {
+  const pop = document.getElementById('boss-peek-popup');
+  if (!pop || !anchor) return;
+  const html = bossPeekHTML();
+  if (!html) return;
+  const ar = anchor.getBoundingClientRect();
+  if (ar.width < 2) return;                 // block not on screen in this orientation
+  pop.innerHTML = html;
+  pop.style.display = '';
+  pop.classList.add('show');
+  // Same placement rule as the hand log and the Time / Limits bubbles: centred on
+  // the anchor, below it when there is room, flipped above when there is not,
+  // clamped on screen. Placed in raw viewport px - it lives outside #cabinet.
+  const pw = pop.offsetWidth, ph = pop.offsetHeight;
+  let left = ar.left + ar.width / 2 - pw / 2;
+  let top  = ar.bottom + 8;
+  left = Math.max(6, Math.min(window.innerWidth - pw - 6, left));
+  if (top + ph > window.innerHeight - 6) top = Math.max(6, ar.top - ph - 8);
+  pop.style.left = left + 'px';
+  pop.style.top  = top + 'px';
+}
+function hideBossPeek() {
+  const pop = document.getElementById('boss-peek-popup');
+  if (pop) { pop.classList.remove('show'); pop.style.display = 'none'; }
+}
+
+// Bound to BOTH run-progress blocks - landscape has one and portrait the other,
+// and updateRunProgressUI already fills every .rp-block for the same reason.
+function bindBossPeek() {
+  document.querySelectorAll('.rp-block').forEach(el => {
+    if (el._bossPeekBound) return;
+    el._bossPeekBound = true;
+    el.addEventListener('mouseenter', () => showBossPeek(el));
+    el.addEventListener('mouseleave', hideBossPeek);
+    let t = null;
+    el.addEventListener('touchstart', () => { t = setTimeout(() => showBossPeek(el), 420); }, { passive: true });
+    ['touchend', 'touchcancel', 'touchmove'].forEach(ev =>
+      el.addEventListener(ev, () => { clearTimeout(t); hideBossPeek(); }, { passive: true }));
+  });
+}

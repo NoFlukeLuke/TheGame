@@ -845,30 +845,57 @@ One screen with two jobs, both in `js/reward-grid.js`: **'lose' mode** (a debuff
 
 The Mart wheel has its own overflow prompt (`#wheel-overflow`, "NO ROOM", js/wheel.js) with a **different** resolution - sell one of yours, or sell the prize. It already speaks the Mart's language and was deliberately left alone.
 
-## Guided mode (r218) - `js/guided-mode.js`
+## Guided mode (r229) - `js/guided-mode.js`
 
-An act is **`GUIDED_SLOTS_PER_ACT` (8) slots** and then the boss, and every slot is filled by one of two kinds of thing: a **level** (play a round - free, and how you earn credits) or a **stop** (the Mart, a reward grid, or one of two offered events - costs credits, and costs the slot). Between every slot the **crossroads** opens and you choose the next one.
+An act is **`GUIDED_SLOTS_PER_ACT` (8) slots** and then the boss. Between every slot the **crossroads** opens and you choose what fills the next one: a **level** (play a round - free, and how you earn credits), a **hard round**, a **reward grid**, the **Mart**, a free **pick of three**, or an **event**. Everything except a level costs the slot AND, mostly, credits.
 
 **The slots are the real currency, not the credits.** Buying power always costs a round you will not get to play, so the question an act asks is how much of your run you are willing to spend getting stronger rather than getting further.
 
-r191's Guided fixed the route instead: a set spine of reward grid, Mart, reward grid, event, into the boss. That solved the economy problem - a Classic run can go a long stretch with no shop - and removed the decision along with it. This keeps the guarantee (the Mart is always on the menu) and gives the decision back with a price on it.
-
 ### Every slot advances the difficulty curve, bought or played
 
-**This is the load-bearing rule and the mode does not work without it.** The goal curve is driven by `level`, and `level++` lives in `triggerLevelUp`, which only runs when a ROUND starts. So if a bought slot left the curve alone, a player could buy six stops and meet the boss at level 2 holding a level-8 loadout. That is not a strategy, it is *the* dominant strategy, and it would be the whole mode within one run of finding it.
+**This is the load-bearing rule and the mode does not work without it.** The goal curve is driven by `level`, and `level++` lives in `triggerLevelUp`, which only runs when a ROUND starts. So if a bought slot left the curve alone, a player could buy six stops and meet the boss at level 2 holding a level-8 loadout. That is not a strategy, it is *the* dominant strategy. `guidedAdvanceCurve()` therefore bumps `level` when a stop is bought, exactly as finishing a round would.
 
-`guidedAdvanceCurve()` therefore bumps `level` when a stop is bought, exactly as finishing a round would. The bar you eventually face is set by how far through the act you are, never by how you got there - and buying is still worth it, because the goal climbs at `GOAL_SCALE` while base pips climb at only 1.1, and the loadout you bought is what covers the difference.
+### The crossroads is FOUR tiles, drawn by weight (r229)
+
+It was a fixed menu of five chips, which made every crossroads the same decision. It is now **four tiles dealt onto the board**, so a crossroads is a hand you were dealt.
+
+| kind | chance | |
+|---|---|---|
+| level | 90% | free |
+| reward grid | 75% | `price_reward` |
+| Mart | 50% | `price_shop` |
+| hard round | 25% | free |
+| pick of three | 20% | free |
+| event | fills whatever is left | `price_event` |
+
+- **Rolled independently, then TRIMMED FROM THE BACK** (`guidedRollOffers`). The table is in descending probability, so a crowded roll keeps the staples rather than dropping them for a novelty. Verified over 4,000 draws: never more than 4.
+- **The kind you just took is not offered again**, so a crossroads can never be the decision you just made. **Events are the one exemption**: they are the filler, and a different event id is a different tile. Verified - across 3,000 draws the only kind that ever repeated was `event`.
+- **A level is forced every `GUIDED_LEVEL_EVERY` (3) choices**, and the forced level BEATS the no-repeat rule - otherwise "you must play" could be blocked by "you must not repeat". Verified: 1,333 of 1,333 due draws carried one.
+- **Repeat purchases cost `GUIDED_REPEAT_STEP` (3) more each time within the ACT** (`guidedBuysThisAct`, cleared by `guidedAfterPrizeGrid`). Buying the Mart twice is allowed and costs more the second time, which self-balances "just buy the Mart every slot" without a rule against it. Measured: 12 / 15 / 18.
+- **The tiles are drawn ON THE GRID at about a quarter of the board each**, dealt in with the reward grid's own fall animation - because that is what this screen is, a board of things to take. Leftover cells on an odd-sized board are filled with **inert black cards** (`.gx-filler`), never left as holes: a hole in a board of cards reads as something failing to load.
+
+### Hard rounds - the elite (r229)
+
+A round with a raised goal AND one extra requirement, paying credits for both. `CHALLENGE_DEFS` is the whole list.
+
+- **The requirement must be readable from counters the round already keeps**, or every one needs its own hook in `playHand`. All four read `handTypesRound`, `handsPlayedRound` or the hand log. That is the whole reason this is cheap.
+- **Failing the challenge is NOT failing the round.** Clear the raised goal and the round passes as normal; meet the requirement as well and you also take the bonus. A node that can end a run on a technicality is not an elite, it is a trap, and a player would simply never take one.
+- `guidedApplyPendingChallenge()` runs in `triggerLevelUp` **after** the curve and the penalty multiplier, so it lifts whatever they produced. `guidedSettleChallenge()` runs at the goal clear from `showPayoutUI`'s caller, **before** `triggerLevelUp` resets the counters every test reads.
+
+### Take your pick - the free pick-of-three (r229)
+
+Three rewards, one of each type, take one, no charge. It is the BASE reward of the mode: every other tile costs a slot and credits, so this is the one that simply pays.
+
+**It draws its own entities and must.** The reward grid's payload factories (`makeTrickPayload` and friends) are **NOT globals** - they are nested inside `_generateRewardContent`, the same scoping trap `shuffled()` set for the r194 events. Calling them here produced three silent nulls and an empty panel. `guidedPickThreeOffers()` draws through `pickEntityByRarity` (the shared rarity table, so Luck tilts it identically) and `survivalEntityBanned`, then grants through the ordinary paths.
 
 ### How it routes
 
-- **`guidedAfterSlot()` is the single place that decides "another slot, or the boss"**, so no caller has to know how long an act is. It is called from three places: the payout tail (a played round), a bought shop's close, and a bought event's or grid's close.
-- **The payout hands back to the crossroads, not to a reward grid.** `startInterlude` opens the ordinary reward grid for every other act mode; in Guided the grid is something you BUY, so the guided branch returns before that. The post-boss **prize** grid is not a bought stop and still opens there.
-- **`closeRewardGrid`'s node advance is skipped entirely for Guided** (`_guided` in `finishInterlude`) - `guidedAfterSlot` and `guidedAfterPrizeGrid` own `guidedSlot`, `nodeInAct` and `actNumber` instead. `_wasPrize` is captured before anything moves, because that is what tells the two apart.
-- **An act opens on a LEVEL, not on the crossroads.** `guidedAfterPrizeGrid` rolls the act over and goes straight to `drainLevelUpQueue()` - an act should start by playing.
-- **A bought event is opened BY NAME** (`guidedOpenNamedEvent`), not through `openEvent`'s own draw: the player just paid for that specific one off the menu. It still feeds `recentEventIds`, so the no-repeat memory keeps working.
-- **`nodeInAct` is kept roughly in step with the slot count** purely so the HUD's node pips and the boss sigil, which both read it, stay honest. Nothing routes off it in this mode.
-- Prices live in `BAL.guided` - Mart 20, reward grid 15, events 10, flat per kind. Events are all one price on purpose: what separates the two on offer is what they DO, and putting different numbers on them made the cheaper one read as the worse one.
-- The crossroads is a **wrapping row of chips**, not a list: the options are siblings of the same kind, and a stack of full-width rows implied an order they do not have. Three across on the panel, two at phone width; the description is the chip's `title`, because a chip has to stay a chip. It is body-level, **outside `#cabinet`**, for the usual CSS `zoom` reason. An option you cannot afford is dimmed but never hidden - what you cannot buy this slot is information about what to play for.
+- **`guidedAfterSlot()` is the single place that decides "another slot, or the boss"**, so no caller has to know how long an act is.
+- **The payout hands back to the crossroads, not to a reward grid.** In Guided the grid is something you BUY. The post-boss **prize** grid is not a bought stop and still opens from `startInterlude`.
+- **A bought reward grid must set `rewardGridContext = 'interlude'`**, not a context of its own: that is the only value whose continuation reaches `finishInterlude`, where the guided return lives. `'guided'` fell through to the legacy timer path and the grid closed into nothing.
+- **`guidedInStop`, NOT `nodeInAct`, tells a bought grid from the prize grid.** `nodeInAct` is kept in step with the slot count purely for the HUD's pips and the boss sigil, and can legitimately read 5 for either.
+- **A bought event is opened BY NAME** (`guidedOpenNamedEvent`) - the player paid for that specific one off the board. It still feeds `recentEventIds`.
+- **An act opens on a LEVEL**, not on the crossroads: `guidedAfterPrizeGrid` goes straight to `drainLevelUpQueue()`.
 
 ### Upgrade events (r194) - improve what you already have
 
@@ -1096,6 +1123,24 @@ Beating a boss opens the **Prize Grid** instead of the ordinary reward grid (it 
 - **Footer** (`renderShopFooter`): card services (remove/duplicate/change-suit/combine, capped by `SHOP_SVC_MAX`) + buy swaps/discards + **reroll** (`rerollShopItems`, which only refreshes *unpurchased* slots).
 
 Owned Tricks/knacks and already-granted sleights are filtered out of the pools so the shop never offers a duplicate.
+
+### The grid shop is 4 x 5 with row labels (r229)
+
+Two options a row instead of four - four of everything made the shop a wall to read rather than a choice to make. Each row opens with a **3-wide plate naming the category** (Knacks / Tricks / Sleights / Upgrades), then its two options: `SHOPG_ROWS` 4, `SHOPG_COLS` 5, `SHOPG_LABEL_SPAN` 3.
+
+- **`shopGridItems[r]` stays a FULL-WIDTH array** with the label columns held as `null`. That is deliberate: every existing r/c index - the selection keys, the adjacency test, `isGroupConnected`, the click handler - keeps working untouched, and only the renderer knows about the plate.
+- **The plate is inert** (`pointer-events:none`). It is a heading, and making it selectable would let a connected pick route straight through it.
+- **The SELL board uses the full width and carries no plates** - what you own is a mixed list, so there is no category for one to name.
+
+### The next boss is named on the progress block (r229)
+
+Hovering (or long-pressing) either `.rp-block` names the boss you are heading for and says what it does, so a loadout can be built against it rather than accumulated generally. `peekBossPreset()` fills the bag if empty and returns the front LIVE entry **without dealing it**, so the forecast is stable. It is still a forecast: `bossPresetIsLive` reads how many Tricks you own, so gaining your second Trick can legitimately change which boss is next - the readout says so. It stands down during a live boss, where the brief is the better answer.
+
+### Clean Slate (r229) - the counterplay to permanent penalties
+
+Reward-grid penalties and card curses are the only PERMANENT damage a run takes and nothing removed them. There is no global HP here, so a campfire that heals would have nothing to heal; what a run accumulates is liabilities. One of them comes off for good: the goal multiplier, the shortened rounds, the play surcharge, every card curse, the dead cells, the interest freeze, or a withheld payout.
+
+**Every option reads the same live global the penalty is stored in**, and an option with nothing to do is not offered - a screen full of choices that would do nothing is worse than a consolation payment, which is what an empty record gets instead.
 
 ## Progression (Normal mode)
 3 Acts × (5 events + 1 boss) = 18 nodes. `actNumber` (1–3), `nodeInAct` (0–4, boss at 5). `forceBossNextRound` triggers the boss after the next deal. Win at `actNumber > 3` → `onGameWin()`.

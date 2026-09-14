@@ -177,8 +177,9 @@ const BAL = {
   deck_trim: { tiers: [ { cards: 1, price: 0 }, { cards: 2, price: 6 }, { cards: 4, price: 14 } ] },
   // ── Guided (r219): what a slot costs to fill with something other than a round. ──
   guided: {
-    price_shop: 20, price_reward: 15, price_event: 10,
+    price_shop: 12, price_reward: 10, price_event: 6,
   },
+  clean_slate:  { consolation_credits: 14 },
   // ── r218 events ──
   reassignment: { consolation_credits: 12 },
   the_draw:     { steps: 2, spin_ms: 3200, consolation_credits: 12 },
