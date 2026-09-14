@@ -1,4 +1,4 @@
-const BUILD = '2026-09-14 · r229 · Guided: four falling crossroads tiles, hard rounds, free pick-of-three · shop 4x5 with row labels · next boss named · Clean Slate [onto r228]';
+const BUILD = '2026-09-14 · r230 · the shop squishes the left column to 25% with an arrow to restore it, and the board deals in';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
