@@ -1162,7 +1162,12 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
       // arithmetic.
       const beatDur = dncFF ? Math.max(60, DANCE_CFG.pFlight/DANCE_CFG.ff)
                             : Math.max(60, DANCE_CFG.pFlight/dncPace());
-      const applies = step.events.map(ev => fireEvent(ev, cardEl, subRef, false, true, beatDur, true));
+      // `once` events pay per CARD, not per scoring iteration (the per-card payer
+      // table in calcScore - Get Even and friends read `cells.length`, not a
+      // replay-weighted count). So a replayed card re-pops and re-fires
+      // everything else, but not those, or the chip drifts above the real total.
+      const beatEvents = rep === 0 ? step.events : step.events.filter(ev => !ev.once);
+      const applies = beatEvents.map(ev => fireEvent(ev, cardEl, subRef, false, true, beatDur, true));
       await dncWait(beatDur);
       if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
       applies.forEach(fn => { if(fn) fn(); });

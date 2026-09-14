@@ -30,6 +30,11 @@ function exaltCorruptTotals(cards, reps) {
 // are whatever's in `contrib` but not tied to any card. Populating it never changes the score.
 // A hand counts as a "3-card hand" for the 3-card tricks (3rd Down, Ready Set Go) if it has
 // 3 cards - or is a Pair while Three's a Crowd is owned.
+// Even / odd rank, hoisted to the file so the per-card payer table (which runs
+// BEFORE the card loop) and the post-loop sites can share one definition.
+function _rankIsEvenRank(r) { return ['2','4','6','8','10'].includes(r); }
+function _rankIsOddRank(r)  { return ['A','3','5','7','9'].includes(r); }
+
 function counts3CardHand(handName, cells) {
   return cells.length === 3 || (hasTrick('threes_crowd') && handName === 'Pair');
 }
@@ -145,14 +150,18 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // Mirror, priming and Move as One are all untouched - they keep reading deltas.
   const _tl = ledger ? [] : null;
   let _tlCard = -1;
-  const _ev = (id, op, value, source, from, rnd) => {
+  const _ev = (id, op, value, source, from, rnd, once) => {
     if (!_tl) return;
     if ((op === 'pip*' || op === 'mult*') ? value === 1 : !value) return;
     const scope = _tlCard >= 0 && (op === 'pip*' || op === 'mult*') ? 'card' : 'hand';
-    _tl.push({ id, source: source || 'trick', op, value, card: _tlCard,
+    const e = { id, source: source || 'trick', op, value, card: _tlCard,
                from: _tlCard >= 0 ? _tlCard : (from === undefined ? -1 : from),
                scope,
-               rnd: rnd || (scope === 'card' ? 'none' : op === 'pip*' ? 'int' : op === 'mult*' ? 'dp1' : 'none') });
+               rnd: rnd || (scope === 'card' ? 'none' : op === 'pip*' ? 'int' : op === 'mult*' ? 'dp1' : 'none') };
+    // `once`: pays per CARD, not per scoring iteration, so a replayed card must
+    // not pay it again. The dance applies these on a card's first beat only.
+    if (once) e.once = true;
+    _tl.push(e);
   };
   const bPip  = (id, d) => { if (d) { _cp[id] = (_cp[id]||0)+d; _proc(id); _ev(id, 'pip+',  d); } };
   const bMult = (id, d) => { if (d) { _cm[id] = (_cm[id]||0)+d; _proc(id); _ev(id, 'mult+', d); } };
@@ -193,6 +202,81 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // dance which card earned it, so every one of them animated in the end lump.
   // Emitting per card here is what lets "+1 mult for a heart" fire on the heart.
   let _hdMult = 0, _jmMult = 0, _kgMult = 0, _pmMult = 0, _ogMult = 0, _ecMultAcc = 0, _ecPipAcc = 0;
+
+  // ── PER-CARD PAYERS (r226) ───────────────────────────────────────────────
+  // Seventeen Tricks pay "a rate x a number of CARDS" - Get Even is +2 mult per
+  // even card - and every one of them was still a single hand-level lump at the
+  // end of the tally. Owner's report on Get Even: "it gave +6 mult at the end,
+  // that's incorrect, it should have given the mult as the cards animated."
+  //
+  // The rows below are that whole class, so a new one is a row rather than a
+  // fix. Each is `{ id, cond, pays }`:
+  //   cond(x)        - does it fire for this hand at all, evaluated ONCE up front
+  //   pays(card, x)   - { pip, mult } for THIS card, or nothing
+  //
+  // TWO RULES KEEP THE SCORE BYTE-IDENTICAL:
+  //   1. NOT replay-weighted. These read `cells.length`, not a replay-weighted
+  //      count, so a card that scores three times still pays them once. The
+  //      events carry `once`, and the dance applies those on a card's FIRST beat
+  //      only - otherwise a replayed card would pay them again and the running
+  //      chip would drift off the real total.
+  //   2. Emitted at the END of the card's block, after `totalPips += cp`, so a
+  //      pip lands outside that card's own subtotal and is never multiplied by a
+  //      card-scoped x pips (Humble Roots, a card enhancement, the Blight). That
+  //      is where they sit in the real arithmetic, so that is where they emit.
+  // The accumulators are still ADDED at each Trick's original site further down,
+  // so nothing moves in the order of operations either.
+  const PER_CARD_PAYERS = [
+    { id:'early_bird',    cond:x => x.earlyThird,                     pays:()  => ({ pip:  BAL.early_bird.pips_per_card }) },
+    { id:'night_owl',     cond:x => x.lateThird,                      pays:()  => ({ mult: BAL.night_owl.mult_per_card }) },
+    { id:'overgrowth',    cond:x => x.isRun,                          pays:()  => ({ pip:  BAL.overgrowth.pips_per_card }) },
+    { id:'long_road',     cond:x => x.isRun,                          pays:()  => ({ mult: BAL.long_road.mult_per_card }) },
+    { id:'correct_run',   cond:x => x.orderedRun,                     pays:()  => ({ pip:  BAL.correct_run.pips_per_card, mult: BAL.correct_run.mult_per_card }) },
+    { id:'edge_pips',     cond:x => x.onEdge,                         pays:()  => ({ pip:  BAL.edge_pips.pips_per_card }) },
+    { id:'full_color',    cond:x => x.suitCount === 4,                pays:()  => ({ pip:  BAL.full_color.pips_per_card, mult: BAL.full_color.mult_per_card }) },
+    { id:'balanced_diet', cond:x => x.suitCount === 2,                pays:()  => ({ mult: BAL.balanced_diet.mult_per_card }) },
+    { id:'column_rush',   cond:x => x.allSameCol,                     pays:()  => ({ mult: BAL.column_rush.mult_per_card }) },
+    { id:'row_power',     cond:x => x.allSameRow,                     pays:()  => ({ mult: BAL.row_power.mult_per_card }) },
+    { id:'heavy_hand',    cond:x => x.cardCount === 5,                pays:()  => ({ pip:  BAL.heavy_hand.pips_per_card }) },
+    { id:'prime_time',    cond:x => x.primeCount >= 3,                pays:()  => ({ pip:  BAL.prime_time.pips_per_card }) },
+    // These two count only the cards that qualify, not the whole hand, and they
+    // have NO minimum (r226, owner's call). The old "3+ even cards" gate meant a
+    // hand with one or two even cards paid nothing at all, which reads as the
+    // Trick being broken rather than as a condition being unmet - and it is the
+    // one gate in this table that the player cannot see coming while choosing.
+    { id:'even_score',    cond:() => true,                            pays:c => _rankIsEvenRank(c.rank) ? ({ mult: BAL.even_score.mult_per_card }) : null },
+    { id:'odd_squad',     cond:() => true,                            pays:c => _rankIsOddRank(c.rank)  ? ({ mult: BAL.odd_squad.mult_per_card })  : null },
+    // Quake / Shock pay per card in the LARGEST matching rank group.
+    { id:'kindred',       cond:x => x.maxCount >= 2,                  pays:(c,x) => x.topRanks.has(c.rank) ? ({ mult: BAL.kindred.mult_per_card }) : null },
+    { id:'trinity',       cond:x => x.maxCount >= 2,                  pays:(c,x) => x.topRanks.has(c.rank) ? ({ pip:  BAL.trinity.pips_per_card })  : null },
+  ];
+  // Hand-level facts every row above is allowed to ask about. Computed ONCE,
+  // before the loop, from things already known at this point.
+  const _pcRankCounts = {};
+  cards.forEach(c => { _pcRankCounts[c.rank] = (_pcRankCounts[c.rank]||0) + 1; });
+  const _pcMax = cards.length ? Math.max(...Object.values(_pcRankCounts)) : 0;
+  const _pcFrac = roundFractionRemaining();
+  const _pcIsRun = ['Run of 3','Run of 4','Straight','Straight Flush'].includes(handName);
+  const _pcCtx = {
+    cardCount:  cells.length,
+    isRun:      _pcIsRun,
+    orderedRun: _pcIsRun && canBeOrderedRun(cells),
+    earlyThird: _pcFrac > 2/3,
+    lateThird:  _pcFrac <= 1/3,
+    onEdge:     isOnEdge(cells),
+    suitCount:  new Set(cards.map(c => cardColorSuit(c))).size,
+    allSameCol: cells.every(([, cc]) => cc === cells[0][1]),
+    allSameRow: cells.every(([rr]) => rr === cells[0][0]),
+    primeCount: cards.filter(c => ['A','2','3','5','7'].includes(c.rank)).length,
+    focusMult:  focusMultiplier(),
+    evenCount:  cards.filter(c => _rankIsEvenRank(c.rank)).length,
+    oddCount:   cards.filter(c => _rankIsOddRank(c.rank)).length,
+    maxCount:   _pcMax,
+    topRanks:   new Set(Object.keys(_pcRankCounts).filter(r => _pcRankCounts[r] === _pcMax)),
+  };
+  // Which rows are live this hand, resolved once.
+  const _pcLive = PER_CARD_PAYERS.filter(row => hasTrick(row.id) && row.cond(_pcCtx));
+  const _pcPips = {}, _pcMult = {};   // id -> total, added at each Trick's own site below
   let _clubHits = 0; // Hard Labour: counts club scoring hits, including retriggers
   let _handRetrigs = 0; // Cuckoo: extra retriggers in this hand (committed to retriggersThisRound in playHand)
   let _vultureFires = 0; // Vulture: total buff-seconds fired this hand, counting retriggers
@@ -408,6 +492,14 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     const _ec1 = exaltCorruptTotals([card]);
     if (_ec1.mult) { _ecMultAcc += _ec1.mult * _retrig; _ev('_exalt','mult+',_ec1.mult,'exalt'); }
     if (_ec1.pips) { _ecPipAcc  += _ec1.pips * _retrig; _ev('_exalt','pip+', _ec1.pips,'exalt'); }
+    // Per-card payers (see PER_CARD_PAYERS). NOT multiplied by _retrig - these
+    // pay once per card however many times it scores - so the events carry
+    // `once` and the dance applies them on the card's first beat only.
+    _pcLive.forEach(row => {
+      const p = row.pays(card, _pcCtx); if (!p) return;
+      if (p.pip)  { _pcPips[row.id] = (_pcPips[row.id]||0) + p.pip;  _ev(row.id,'pip+', p.pip,  'trick', undefined, undefined, true); }
+      if (p.mult) { _pcMult[row.id] = (_pcMult[row.id]||0) + p.mult; _ev(row.id,'mult+',p.mult, 'trick', undefined, undefined, true); }
+    });
   });
   _tlCard = -1;   // back to hand level - everything past here is a whole-hand event
   _lastHandProcs = _procs;         // snapshot for the Rider penalty (read in playHand)
@@ -429,7 +521,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   if (hasTrick('enriched')     && handName === 'Flush')   { totalPips += BAL.enriched.pips; bPip('enriched', BAL.enriched.pips); }
 
   // Early bird: first third of the round, +pips per card
-  if (hasTrick('early_bird') && roundFractionRemaining() > 2/3) { const _a = BAL.early_bird.pips_per_card * cells.length; totalPips += _a; bPip('early_bird', _a); }
+  if (_pcPips.early_bird) { totalPips += _pcPips.early_bird; bPipQ('early_bird', _pcPips.early_bird, 1); }
 
   // Kindling streak: +pips per streak hand beyond the first
   if (hasTrick('kindling') && _effStreak > 1) { const _a = BAL.kindling.pips_per_streak * (_effStreak - 1); totalPips += _a; bPip('kindling', _a); }
@@ -495,7 +587,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // "+N mult to your next hand" effect drops into).
   if (pendingHandMult > 0) { mult += pendingHandMult; bMult('pending_mult', pendingHandMult); }
   // Night owl: last third of the round, +mult per card
-  if (hasTrick('night_owl') && roundFractionRemaining() <= 1/3) { const _a = BAL.night_owl.mult_per_card * cells.length; mult += _a; bMult('night_owl', _a); }
+  if (_pcMult.night_owl) { mult += _pcMult.night_owl; bMultQ('night_owl', _pcMult.night_owl, 1); }
   // Wildfire: 3+ same hands in a row
   if (hasTrick('wildfire') && _effStreak >= 3) { mult += BAL.wildfire.mult; bMult('wildfire', BAL.wildfire.mult); }
   // Hummingbird: +mult per clock pause triggered this game (uncapped)
@@ -532,14 +624,14 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
 
   // Hand-specific mult
   const isRun = ['Run of 3','Run of 4','Straight','Straight Flush'].includes(handName);
-  if (hasTrick('overgrowth') && isRun) { const _a = BAL.overgrowth.pips_per_card * cells.length; totalPips += _a; bPip('overgrowth', _a); }
-  if (hasTrick('long_road') && isRun) { const _a = BAL.long_road.mult_per_card * cells.length; mult += _a; bMult('long_road', _a); }
+  if (_pcPips.overgrowth) { totalPips += _pcPips.overgrowth; bPipQ('overgrowth', _pcPips.overgrowth, 1); }
+  if (_pcMult.long_road) { mult += _pcMult.long_road; bMultQ('long_road', _pcMult.long_road, 1); }
   // Wave Amplification: consecutive Runs score +pips × their streak position (runStreak is the streak
   // ending at the PREVIOUS hand, so this run's position = runStreak + 1). playHand advances runStreak after.
   if (hasTrick('wave_amp') && isRun) { const _a = BAL.wave_amp.pips_per_streak * (runStreak + 1); totalPips += _a; bPip('wave_amp', _a); }
   if (hasTrick('correct_run') && isRun && canBeOrderedRun(cells)) {
-    const _ap = BAL.correct_run.pips_per_card * cells.length; totalPips += _ap; bPip('correct_run', _ap);
-    const _am = BAL.correct_run.mult_per_card * cells.length; mult += _am; bMult('correct_run', _am);
+    if (_pcPips.correct_run) { totalPips += _pcPips.correct_run; bPipQ('correct_run', _pcPips.correct_run, 1); }
+    if (_pcMult.correct_run) { mult += _pcMult.correct_run; bMultQ('correct_run', _pcMult.correct_run, 1); }
   }
   if (handName === 'Flush') {
     if (hasTrick('tidal_force')) { mult += BAL.tidal_force.mult; bMult('tidal_force', BAL.tidal_force.mult); }
@@ -561,7 +653,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   }
 
   // Batch C - positional conditions
-  if (hasTrick('edge_pips') && isOnEdge(cells)) { const _a = cells.length * BAL.edge_pips.pips_per_card; totalPips += _a; bPip('edge_pips', _a); }
+  if (_pcPips.edge_pips) { totalPips += _pcPips.edge_pips; bPipQ('edge_pips', _pcPips.edge_pips, 1); }
   const { rowSpan, colSpan } = spanStats(cells);
   // Inclusive: a hand spanning the full width or full height of the grid scores +mult
   if (hasTrick('wide_span_mult') && (colSpan === gridCols || rowSpan === gridRows)) {
@@ -628,8 +720,9 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // Rainbow / Balance count COLOURS as seen, so a white card counts as white
   // rather than as the colour of the slot it came from.
   const _suitSet = new Set(cards.map(c => cardColorSuit(c)));
-  if (hasTrick('full_color') && _suitSet.size === 4) { const _ap = BAL.full_color.pips_per_card * cells.length; totalPips += _ap; bPip('full_color', _ap); const _am = BAL.full_color.mult_per_card * cells.length; mult += _am; bMult('full_color', _am); }
-  if (hasTrick('balanced_diet') && _suitSet.size === 2) { const _a = BAL.balanced_diet.mult_per_card * cells.length; mult += _a; bMult('balanced_diet', _a); }
+  if (_pcPips.full_color) { totalPips += _pcPips.full_color; bPipQ('full_color', _pcPips.full_color, 1); }
+  if (_pcMult.full_color) { mult += _pcMult.full_color; bMultQ('full_color', _pcMult.full_color, 0); }
+  if (_pcMult.balanced_diet) { mult += _pcMult.balanced_diet; bMultQ('balanced_diet', _pcMult.balanced_diet, 1); }
   // Rank diversity
   const _rankSet = new Set(cards.map(c => c.rank));
   if (hasTrick('number_crunch') && _rankSet.size >= 4) { mult += BAL.number_crunch.mult; bMult('number_crunch', BAL.number_crunch.mult); }
@@ -639,24 +732,21 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   const _maxCount = Math.max(...Object.values(_rankCounts2));
   // Sets - Quake (mult) / Shock (pips), scaling with the largest matching group
   if (_maxCount >= 2) {
-    if (hasTrick('kindred')) { const _a = _maxCount * BAL.kindred.mult_per_card; mult += _a; bMult('kindred', _a); }
-    if (hasTrick('trinity')) { const _a = _maxCount * BAL.trinity.pips_per_card; totalPips += _a; bPip('trinity', _a); }
+    if (_pcMult.kindred) { mult += _pcMult.kindred; bMultQ('kindred', _pcMult.kindred, 1); }
+    if (_pcPips.trinity) { totalPips += _pcPips.trinity; bPipQ('trinity', _pcPips.trinity, 1); }
   }
   // Shaky Foundation: every other Set scores +mult (this Set is the (setsPlayedRound+1)-th; even → fires).
   if (hasTrick('shaky_foundation') && isSetHand(handName) && ((setsPlayedRound + 1) % 2 === 0)) { mult += BAL.shaky_foundation.mult; bMult('shaky_foundation', BAL.shaky_foundation.mult); }
   // Even/odd rank
-  const _rankIsEven = r => ['2','4','6','8','10'].includes(r);
-  const _rankIsOdd  = r => ['A','3','5','7','9'].includes(r);
+  const _rankIsEven = _rankIsEvenRank, _rankIsOdd = _rankIsOddRank;
   // Get Even / Odd One In are deliberately the same effect mirrored (r205): the
   // bonus counts the EVEN (or ODD) cards, not every card in the hand. They used to
   // pay cells.length x rate, so a Pair with 3 evens in a 5-card hand paid for the
   // two odd cards as well, and Odd One In paid 5 where Get Even paid 2.
   // (`_evenN`, not `_ev` - that name is this function's timeline emitter, and a
   // block-scoped const of the same name shadows it.)
-  { const _evenN = cards.filter(c => _rankIsEven(c.rank)).length;
-    if (hasTrick('even_score') && _evenN >= 3) { const _a = _evenN * BAL.even_score.mult_per_card; mult += _a; bMult('even_score', _a); } }
-  { const _od = cards.filter(c => _rankIsOdd(c.rank)).length;
-    if (hasTrick('odd_squad')  && _od >= 3) { const _a = _od * BAL.odd_squad.mult_per_card; mult += _a; bMult('odd_squad', _a); } }
+  if (_pcMult.even_score) { mult += _pcMult.even_score; bMultQ('even_score', _pcMult.even_score, 1); }
+  if (_pcMult.odd_squad) { mult += _pcMult.odd_squad; bMultQ('odd_squad', _pcMult.odd_squad, 1); }
   // King's Guard's mult is accumulated per card in the loop now, so it animates on
   // the K or J that earned it; same replay-weighted sum the _wc sweep produced.
   if (_kgMult) { mult += _kgMult; bMultQ('king_guard', _kgMult, 1); }
@@ -664,8 +754,8 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // Position: column/row
   const _allSameCol = cells.every(([, cc]) => cc === cells[0][1]);
   const _allSameRow = cells.every(([rr]) => rr === cells[0][0]);
-  if (hasTrick('column_rush') && _allSameCol) { const _a = cells.length * BAL.column_rush.mult_per_card; mult += _a; bMult('column_rush', _a); }
-  if (hasTrick('row_power')   && _allSameRow) { const _a = cells.length * BAL.row_power.mult_per_card; mult += _a; bMult('row_power', _a); }
+  if (_pcMult.column_rush) { mult += _pcMult.column_rush; bMultQ('column_rush', _pcMult.column_rush, 1); }
+  if (_pcMult.row_power) { mult += _pcMult.row_power; bMultQ('row_power', _pcMult.row_power, 1); }
   // Level scaling
   if (hasTrick('veteran_bonus')) { const _a = (level - 1) * BAL.veteran_bonus.pips_per_level; totalPips += _a; bPip('veteran_bonus', _a); }
   // Accumulating scalers
@@ -681,8 +771,8 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // Hand type: pair-based pip bonuses
   // Hand type: specific pip bonuses
   if (hasTrick('triple_threat') && handName === 'Full House') { totalPips += BAL.triple_threat.pips; bPip('triple_threat', BAL.triple_threat.pips); }
-  if (hasTrick('heavy_hand') && cells.length === 5) { const _a = cells.length * BAL.heavy_hand.pips_per_card; totalPips += _a; bPip('heavy_hand', _a); }
-  if (hasTrick('prime_time')) { const _pc = cards.filter(c => ['A','2','3','5','7'].includes(c.rank)).length; if (_pc >= 3) { const _a = cells.length * BAL.prime_time.pips_per_card; totalPips += _a; bPip('prime_time', _a); } }
+  if (_pcPips.heavy_hand) { totalPips += _pcPips.heavy_hand; bPipQ('heavy_hand', _pcPips.heavy_hand, 1); }
+  if (_pcPips.prime_time) { totalPips += _pcPips.prime_time; bPipQ('prime_time', _pcPips.prime_time, 1); }
   // Escalation: EVERY hand of the round counts, including the first three - they
   // just do not pay yet. Nothing lands until the (after_hands + 1)-th hand, and
   // then the bonus is the whole count x the rate: 4th = +12, 5th = +15, 6th = +18.
@@ -861,6 +951,14 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   const fMult = focusMultiplier();
   // Flow State: +10 pips per card scored while focus mult >= 1.5
   if (hasTrick('flow_state') && fMult >= 1.5) {
+    // NOT a per-card payer, and this is the reason: its payment sits AFTER the
+    // x pips block (it is grouped with the Focus step), so every other pip in the
+    // hand has already been multiplied by Undertow / Scalper / Knave Power /
+    // Interest by the time it lands and it escapes all of them. Paying it inside
+    // a card's beat would put it in front of those multiplies and change the
+    // score - measured at 459 pips on a hand worth 430. Moving its site up into
+    // the additive region would let those multiply it, which is a balance
+    // decision rather than an animation one.
     const _a = BAL.flow_state.pips_per_card * cards.length; totalPips += _a; bPip('flow_state', _a);
   }
   // Siphon (sleight): ×3 the whole mult, applied last so it multiplies every additive bonus.

@@ -1,4 +1,4 @@
-const BUILD = '2026-09-14 · r222 · Focus lands before the tally, a card and its Tricks fire together, particles are coloured diamonds [onto r221]';
+const BUILD = '2026-09-14 · r226 · per-card Tricks pay as the cards animate; Get Even and Odd One In lose the 3-card gate';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

@@ -100,8 +100,8 @@ const TRICK_POOL = [
   { id:'lucky_sevens',   name:'Lucky Sevens',        tier:'epic',      desc:'+3 Focus for each 7 scored or discarded' },
   { id:'ninesong',       name:'Threepeat',           tier:'epic',      desc:"If the hand's pip total is divisible by 3: +3 seconds, +9 mult, +3 Focus" },
   { id:'prime_time',     name:'Prime Time',          tier:'rare',      desc:'Hands with 3+ prime-rank cards (A,2,3,5,7) score +23 pips per card' },
-  { id:'even_score',     name:'Get Even',            tier:'common',    desc:'Hands with 3+ even-ranked cards score +2 mult per even card' },
-  { id:'odd_squad',      name:'Odd One In',          tier:'rare',      desc:'Hands with 3+ odd-ranked cards score +2 mult per odd card' },
+  { id:'even_score',     name:'Get Even',            tier:'common',    desc:'+2 mult for every even-ranked card you score' },
+  { id:'odd_squad',      name:'Odd One In',          tier:'rare',      desc:'+2 mult for every odd-ranked card you score' },
   // ── Rank diversity ──
   { id:'number_crunch',  name:'Diversity',           tier:'rare',      desc:'Hands with 4+ different ranks score +2 mult' },
   // ── Position ──
