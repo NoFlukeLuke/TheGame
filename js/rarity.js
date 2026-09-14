@@ -22,12 +22,12 @@
 const RARITY_ORDER = ['common', 'rare', 'epic', 'legendary'];
 
 // The standard offer spread: shops, the Mart, reward grids, the pick-of-three.
-const RARITY_WEIGHTS = { common: 58, rare: 28, epic: 11, legendary: 3 };
+const RARITY_WEIGHTS = { common: 71, rare: 22, epic: 5.5, legendary: 1.5 };
 
 // The PRIZE grid (post-boss) is deliberately top-heavy and centred on rare.
 // NOTE: this table includes common, which means the prize grid no longer
 // strips commons out of its pools - see the r201 note in js/reward-grid.js.
-const PRIZE_RARITY_WEIGHTS = { common: 30, rare: 50, epic: 15, legendary: 5 };
+const PRIZE_RARITY_WEIGHTS = { common: 36, rare: 51, epic: 10, legendary: 3 };
 
 // ── LUCK ───────────────────────────────────────────────────────────────────
 // One number, applied to every roll. 0 is the shipped balance.
