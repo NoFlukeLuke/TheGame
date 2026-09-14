@@ -1,4 +1,4 @@
-const BUILD = '2026-09-13 · r219 · Guided rebuilt: eight slots an act and you buy what fills them · unused swaps and discards pay out';
+const BUILD = '2026-09-14 · r220 · Guided crossroads as chips; Mart 20, reward grid 15, events 10';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

@@ -519,8 +519,8 @@ r191's Guided fixed the route instead: a set spine of reward grid, Mart, reward 
 - **An act opens on a LEVEL, not on the crossroads.** `guidedAfterPrizeGrid` rolls the act over and goes straight to `drainLevelUpQueue()` - an act should start by playing.
 - **A bought event is opened BY NAME** (`guidedOpenNamedEvent`), not through `openEvent`'s own draw: the player just paid for that specific one off the menu. It still feeds `recentEventIds`, so the no-repeat memory keeps working.
 - **`nodeInAct` is kept roughly in step with the slot count** purely so the HUD's node pips and the boss sigil, which both read it, stay honest. Nothing routes off it in this mode.
-- Prices live in `BAL.guided`: the Mart is cheapest because it is the stop a run most often NEEDS, the reward grid dearest because it pays the most per visit, and events are priced individually so the pair on offer is a real weighing rather than a flat fee.
-- The crossroads is body-level, **outside `#cabinet`**, for the usual CSS `zoom` reason. An option you cannot afford is dimmed but never hidden - what you cannot buy this slot is information about what to play for.
+- Prices live in `BAL.guided` - Mart 20, reward grid 15, events 10, flat per kind. Events are all one price on purpose: what separates the two on offer is what they DO, and putting different numbers on them made the cheaper one read as the worse one.
+- The crossroads is a **wrapping row of chips**, not a list: the options are siblings of the same kind, and a stack of full-width rows implied an order they do not have. Three across on the panel, two at phone width; the description is the chip's `title`, because a chip has to stay a chip. It is body-level, **outside `#cabinet`**, for the usual CSS `zoom` reason. An option you cannot afford is dimmed but never hidden - what you cannot buy this slot is information about what to play for.
 
 ### Upgrade events (r194) - improve what you already have
 
