@@ -475,6 +475,8 @@ function startGame() {
   nineSecondsCounter = 0;
   highestHandScore = 0;
   highestHandName  = null;
+  if (typeof resetQuarterLog === 'function') resetQuarterLog();   // js/quarter.js
+  if (typeof hideQuarterCard === 'function') hideQuarterCard();
   if (typeof resetHandLog === 'function') resetHandLog();
   gameStartTime    = Date.now();
   fullHouseThisRound = 0;

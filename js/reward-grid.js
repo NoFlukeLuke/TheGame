@@ -1777,16 +1777,12 @@ function closeRewardGrid() {
 
     if (isActMode() && !_guided) {
       if (nodeInAct === 5) {
-        // Post-boss reward grid - transition to next act
-        nodeInAct = 0;
-        actNumber++;
-        // Dead Drop cells are an ACT-long penalty; a new act is a clean board.
-        deadCells = new Set();
-        updateActProgressUI();
-        if (actNumber > 3) {
-          onGameWin();
-          return;
-        }
+        // Post-boss reward grid - the quarter rolls over. rolloverQuarter
+        // (js/quarter.js) closes the quarter's books, does the advance, and shows
+        // the QUARTER CLOSED card before handing control back here. A won run
+        // never comes back - it goes to onGameWin and the run report.
+        rolloverQuarter(() => finishInterludeRoute(_node, _guided));
+        return;
       } else {
         nodeInAct++;
         updateActProgressUI();
@@ -1796,6 +1792,12 @@ function closeRewardGrid() {
       }
     }
 
+    finishInterludeRoute(_node, _guided);
+  };
+
+  // Everything finishInterlude does AFTER the node/quarter bookkeeping. Split out
+  // so the quarter card can run in front of it and then call it (js/quarter.js).
+  function finishInterludeRoute(_node, _guided) {
     // Guided (r218) runs its own act: slots, not nodes. A grid here is either one
     // the player BOUGHT with a slot - back to the crossroads - or the post-boss
     // prize grid, which rolls the act over. Neither uses the node routing above,
@@ -1822,7 +1824,7 @@ function closeRewardGrid() {
     } else {
       drainLevelUpQueue();
     }
-  };
+  }
   const finishTimer = () => {
     // Timer-based / dev mid-round: no round-start reset follows, so apply any pending
     // reward deltas to the LIVE round now (otherwise they'd be silently lost).

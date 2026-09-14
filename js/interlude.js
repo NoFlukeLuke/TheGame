@@ -193,6 +193,8 @@ async function showPayoutUI() {
   const unspentActions = Math.max(0, swaps) + Math.max(0, discards);
   const unspentCoins   = _withheld ? 0 : unspentActions * BAL._resources.unspent_credits;
   const totalCoins     = interestCoins + efficiencyCoins + unspentCoins;
+  // What this quarter's payouts paid, for the run report (js/quarter.js).
+  if (typeof recordQuarterPayout === 'function') recordQuarterPayout(totalCoins);
   if (_withheld) showMessage('Payout withheld', 'var(--red)');
   else if (_frozen) showMessage(`Interest frozen (${interestFreezeRounds} more)`, 'var(--red)');
   // Show the Idol's tripled interest right on the payout breakdown.

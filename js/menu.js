@@ -1,4 +1,4 @@
-const BUILD = '2026-09-14 · r225 · sixteen new bosses, and a fifth toast no longer freezes the game [onto r224]';
+const BUILD = '2026-09-14 · r226 · the quarter card between quarters, and a full run report on both end screens [onto r225]';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

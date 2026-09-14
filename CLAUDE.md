@@ -1355,6 +1355,35 @@ Beating a boss used to be: the word `VICTORY` in gold Cinzel over the still-live
 
 Player-facing only: **Q1 / Q2 / Q3**, three of them, same structure. Everything in code - `actNumber`, `nodeInAct`, `isActMode`, `actStructure` - is unchanged, so nothing about the progression moved. The strings are `js/hud.js` (`'Q' + actNumber`, the `.rp-act` line in both run-progress blocks), `js/tricks-ui.js` (the act readout, both branches), the two `<div class="rp-act">` defaults in `index.html`, and four mode descriptions in `js/menu.js`. This and **QUOTA CLEARED** are deliberate exceptions to the r178 voice rule - the owner is putting the corporate framing back on the *structural* labels while the entity and action text stays plain.
 
+## Quarter close (r226) - `js/quarter.js` + `css/quarter.css`
+
+Three quarters used to roll over in **complete silence**: `actNumber++` happened inside `finishInterlude`, the pips redrew, the next round dealt. Eighteen rounds in a row with nothing marking the two boundaries. And the end screen was six lines of run totals that said nothing about the shape of the run.
+
+- **The quarter card.** `showQuarterCard(closed, next, done)` - a ~2.4s beat: **Q1 CLOSED**, three quarter pips with one filling, **Q2 OPENS**. Auto-advances, and a tap anywhere skips it (someone on their tenth run should never have to wait). Body-level and `position:fixed`, like the goal banner: anything inside `#cabinet` inherits its CSS zoom.
+- **The run report.** `runReportHTML()` replaces `#end-stats`' text list on **both** end screens - a quarter-by-quarter table (score, hands, best hand, boss, payouts) plus run totals. A run that ended badly still gets the account of itself; the quarter it died in comes through as a **partial row** marked "unfinished".
+
+### `rolloverQuarter(next)` is the single rollover site
+
+There were **two** copies of the same five lines (`nodeInAct = 0; actNumber++; deadCells = new Set(); updateActProgressUI(); if (actNumber > 3) onGameWin()`) - `finishInterlude`'s node path in `js/reward-grid.js` and `guidedAfterPrizeGrid` in `js/guided-mode.js`, since Guided runs slots rather than nodes. That is exactly how a card ends up showing on one route and not the other. Both call the one helper now, which closes the quarter's books, does the advance, and shows the card before running its `next` callback.
+
+- **`finishInterlude` had to be split** so the card can run in front of its tail. Everything after the node bookkeeping is now `finishInterludeRoute(_node, _guided)`, which `rolloverQuarter` calls when the card finishes. **A won run never reaches it** - `actNumber > 3` goes to `onGameWin` and the report is the wrap-up there.
+
+### The books are SNAPSHOT DIFFS, not a second set of counters
+
+Every figure is a cumulative global the game already maintains - `handsPlayed`, `totalScore + score`, `acquiredTricks.length` - **marked at the quarter's start and subtracted at its close**. Adding a parallel per-quarter counter at each of those call sites is how two numbers end up disagreeing; a diff of one number cannot.
+
+The two figures with no cumulative global are fed from the **one site that already knows each**, never from a sweep: the quarter's best hand from `play-hand.js`'s existing best-hand line, and its payouts from `showPayoutUI`'s `totalCoins`. The boss comes from `endBoss`, which already resolves the name for the goal banner.
+
+- **The marks are in `SAVE_VARS`** (`quarterLog`, `qHandsMark`, `qScoreMark`, `qTricksMark`, `qStartTime`, `qBestName`, `qBestScore`, `qPayouts`, `qBossName`). Drop them and a resumed run's quarter rows read as the whole run so far, because the marks would restart at zero.
+- `_qScoreNow()` is `totalScore + score`. `totalScore` alone under-reports by the live round, the same reason `js/history.js` sums them.
+- **No ghost Q4.** `runReportHTML` only appends a live partial row when it has hands in it and fewer than three are logged; a won run has already closed its third and its tracker is empty.
+
+### The end overlay is INSIDE `#stage`, and that is the trap
+
+`#end-overlay` carries the cabinet's CSS `zoom` (~1.9 on a 1440px desktop), so **every px in the report block is a stage px and paints at about twice the number written**. The first pass sized it like an ordinary page and it overflowed the screen in both directions. Same trap as `#event-panel`.
+
+It also **never had to scroll before** - six lines of text always fit, and its `justify-content: center` silently overflowed the moment they did not. `margin: auto` on the first and last flex child is the fix that keeps the group centred when it fits AND never clips the top when it does not; flex centring plus `overflow` does clip. Verified at 1440x800 and 420x740: title and PLAY AGAIN both fully on screen, nothing scrolled off.
+
 ## Goal clear (r197) - `js/goal-clear.js` + `css/goal-clear.css`
 
 Two things happen the instant the tally crosses `roundGoal` and the game said neither out loud.

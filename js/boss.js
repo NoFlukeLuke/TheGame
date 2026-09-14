@@ -849,6 +849,7 @@ function endBoss(success) {
     // its pick-of-three, which a boss win does not open.
     frozenRoundSeconds = roundSeconds;   // the payout's Efficiency line reads this
     if (typeof goalClearPresent === 'function') goalClearPresent({ kicker: _beaten, force: true });
+    if (typeof recordQuarterBoss === 'function') recordQuarterBoss(_beaten);   // run report row
     if (survivalActive()) {
       // Survival: no reward grid - a bonus pick-of-three, then back to normal rounds.
       // The banked time was spent on this boss, so reset it for the next 8-clear cycle.

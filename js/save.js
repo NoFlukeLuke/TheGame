@@ -99,6 +99,10 @@ const SAVE_VARS = [
   'handsPlayedRound', 'studyHallCards', 'runsPlayedRound', 'setsPlayedRound', 'runStreak',
   'cardsDiscardedTotal', 'cardsDiscardedRound', 'cardsScoredTotal', 'nineSecondsCounter',
   'highestHandScore', 'highestHandName', 'fullHouseThisRound', 'gameStartTime', 'handLog',
+  // The quarter report's books (js/quarter.js). Snapshot marks, not counters:
+  // drop them and a resumed run's quarter rows read as the whole run so far.
+  'quarterLog', 'qHandsMark', 'qScoreMark', 'qTricksMark', 'qStartTime',
+  'qBestName', 'qBestScore', 'qPayouts', 'qBossName',
   'lastHandType', 'streakCount', 'lastHandTime', 'resilience', 'resilienceUsed',
   'firstHandThisRound', 'replaysThisRound', 'timeManipRound', 'roundContributions',
   // ── Reward grid / shop ──

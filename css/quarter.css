@@ -1,0 +1,143 @@
+/* ══════════════════════════════════════════════
+   QUARTER CLOSE (r226) - the card between quarters, and the run report
+   Body-level and fixed: anything inside #cabinet inherits its CSS zoom.
+   ══════════════════════════════════════════════ */
+
+#quarter-card {
+  position: fixed; inset: 0;
+  z-index: 420;                /* over the board and the veil, under nothing */
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(6, 5, 10, 0.86);
+  opacity: 0; visibility: hidden;
+  transition: opacity 0.18s ease, visibility 0.18s ease;
+  cursor: pointer;
+}
+#quarter-card.show { opacity: 1; visibility: visible; }
+
+#quarter-card .qc-panel {
+  text-align: center;
+  padding: 34px 62px 26px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(16,22,28,0.96), rgba(8,10,14,0.97));
+  box-shadow: 0 0 0 2px var(--c-cyan, #16c8d8),
+              0 0 34px 6px rgba(22,200,216,0.22),
+              0 18px 44px rgba(0,0,0,0.6);
+  transform: scale(0.9);
+  opacity: 0;
+}
+#quarter-card.show .qc-panel { animation: qc-in 0.42s cubic-bezier(0.2,0.9,0.2,1) forwards; }
+@keyframes qc-in {
+  0%   { opacity: 0; transform: scale(0.86); }
+  60%  { opacity: 1; transform: scale(1.04); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+#quarter-card .qc-kicker {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 12px; letter-spacing: 6px; text-transform: uppercase;
+  color: rgba(22,200,216,0.8);
+}
+#quarter-card .qc-big {
+  font-family: 'Orbitron', sans-serif; font-weight: 900;
+  font-size: 82px; letter-spacing: 8px; line-height: 1.05;
+  color: #eafdff;
+  text-shadow: 0 0 22px rgba(22,200,216,0.5);
+}
+/* Three pips, filled up to the quarter that just closed. */
+#quarter-card .qc-pips { display: flex; gap: 11px; justify-content: center; margin: 12px 0 14px; }
+#quarter-card .qc-pips span {
+  width: 14px; height: 14px; border-radius: 50%;
+  border: 1.5px solid rgba(22,200,216,0.55);
+  background: transparent;
+}
+#quarter-card .qc-pips span.on {
+  background: var(--c-cyan, #16c8d8);
+  box-shadow: 0 0 10px rgba(22,200,216,0.8);
+}
+#quarter-card .qc-next {
+  font-family: 'Orbitron', sans-serif; font-weight: 700;
+  font-size: 20px; letter-spacing: 5px;
+  color: var(--c-yellow, #ffce2b);
+}
+#quarter-card .qc-skip {
+  margin-top: 12px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px; letter-spacing: 2px;
+  color: rgba(244,234,213,0.34);
+}
+body.reduced-motion #quarter-card.show .qc-panel { animation: none; opacity: 1; transform: none; }
+
+/* ── The run report, inside #end-stats ──────────────────────────────────────
+   #end-overlay is INSIDE #stage, so it carries the cabinet's CSS zoom (~1.9 on a
+   1440px desktop). EVERY px in this block is a STAGE px and paints at about twice
+   the number written. Sizing it like an ordinary page overflows the screen, which
+   is exactly what the first pass did. Same trap as #event-panel. */
+
+/* The overlay never had to scroll before - it held six lines of text, and its
+   `justify-content: center` silently overflowed in both directions the moment the
+   content got taller than the screen. `margin: auto` on the first and last child
+   is the fix that keeps the group centred when it fits AND never clips the top
+   when it does not; flex centring plus overflow does clip. */
+/* Near-opaque: the report is a page to read, and at 0.92 the cream cards on the
+   board behind it stayed legible enough to compete with the table. */
+#end-overlay { overflow-y: auto; padding: 10px; justify-content: flex-start; gap: 8px;
+  background: rgba(4, 4, 7, 0.985); }
+#end-overlay.show #end-title { margin-top: auto; }
+#end-overlay.show .end-btn   { margin-bottom: auto; }
+#end-title { font-size: 26px !important; letter-spacing: 5px; }
+
+/* #end-stats carries font-size 18 / line-height 2.2 for the old text list, which
+   would inflate every table row here. The wrapper resets both. */
+#end-stats .rr-wrap {
+  text-align: left; max-width: 340px; margin: 0 auto;
+  font-size: 8px; line-height: 1.35;
+}
+#end-stats .rr-head {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 7px; letter-spacing: 3px; text-transform: uppercase;
+  color: rgba(244,234,213,0.45);
+  margin: 9px 0 3px;
+}
+#end-stats .rr-table {
+  width: 100%; border-collapse: collapse;
+  font-family: 'Share Tech Mono', monospace; font-size: 8px; line-height: 1.3;
+}
+#end-stats .rr-table th {
+  font-weight: 400; font-size: 6px; letter-spacing: 1px; text-transform: uppercase;
+  color: rgba(244,234,213,0.4);
+  text-align: right; padding: 0 3px 3px;
+}
+#end-stats .rr-table th:first-child,
+#end-stats .rr-table td:first-child { text-align: left; }
+#end-stats .rr-table td {
+  text-align: right; padding: 4px 3px;
+  color: var(--cream, #f4ead5);
+  border-top: 1px solid rgba(244,234,213,0.10);
+}
+#end-stats .rr-table .rr-q { font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 10px; color: var(--c-cyan, #16c8d8); }
+#end-stats .rr-table .rr-q i { display: block; font-style: normal; font-family: 'Share Tech Mono', monospace;
+  font-size: 5px; letter-spacing: 1px; color: rgba(244,234,213,0.35); font-weight: 400; }
+#end-stats .rr-table .rr-best i { display: block; font-style: normal; color: var(--c-yellow, #ffce2b); font-size: 7px; }
+#end-stats .rr-table .rr-boss { color: var(--red, #e05a4a); font-size: 7px; }
+#end-stats .rr-table tr.rr-partial td { opacity: 0.6; }
+
+#end-stats .rr-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+#end-stats .rr-tile {
+  display: flex; flex-direction: column; gap: 1px;
+  padding: 5px 6px; border-radius: 5px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(244,234,213,0.10);
+}
+#end-stats .rr-tile span {
+  font-family: 'Share Tech Mono', monospace; font-size: 6px;
+  letter-spacing: 1px; text-transform: uppercase; color: rgba(244,234,213,0.45);
+  white-space: nowrap;
+}
+#end-stats .rr-tile b {
+  font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 10px;
+  color: var(--cream, #f4ead5);
+}
+#end-stats .rr-tile b i { font-style: normal; font-size: 7px; color: var(--c-yellow, #ffce2b); }
+
+/* Portrait: the stage is 420 wide, so three tiles across stop fitting. */
+#stage:not(.landscape) #end-stats .rr-grid { grid-template-columns: repeat(2, 1fr); }
