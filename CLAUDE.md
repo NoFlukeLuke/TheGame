@@ -338,7 +338,7 @@ legible over anything behind it. A multiply is the same hue, brighter.
 - `evKind(ev)` maps a timeline event to its colour family. The old per-op text
   colours are kept but are now read ONLY by the no-plate shape.
 
-### The particle finished (r230) - one plate for the whole game
+### The particle finished (r231) - one plate for the whole game
 
 Four things r222 left on the table, plus the discovery that the preview and the
 game had drifted apart.

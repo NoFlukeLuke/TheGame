@@ -166,7 +166,7 @@ const PARTICLE_CFG = {
   font: 25.5,                // px, the label
   round: 0, borderW: 0, borderLight: 0, glow: 30,
   ink: '#ffffff',
-  // ── The flight itself (r230). These used to be dumped by the preview and read
+  // ── The flight itself (r231). These used to be dumped by the preview and read
   // by nobody: dncFly hardcoded its own keyframes, so a tuning session in
   // particle-preview.html could not reach the game. They are live now.
   flightMs: 1200,            // ms at 1x pace
@@ -689,7 +689,7 @@ function dncTick(el){ if(!el) return; el.style.animation='none'; void el.offsetW
 // `kind` picks the plate colour out of PARTICLE_CFG.colors; `color` stays the
 // legacy text colour and is used only by the no-plate shape.
 // ══════════════════════════════════════════════
-// ONE PARTICLE, ONE FLIGHT (r230)
+// ONE PARTICLE, ONE FLIGHT (r231)
 // ══════════════════════════════════════════════
 // The plate builder and the flight keyframes are shared by the scoring dance and
 // by the entity payout FX (js/payout-fx.js), so a coin thrown at the credits chip
@@ -697,7 +697,7 @@ function dncTick(el){ if(!el) return; el.style.animation='none'; void el.offsetW
 // in particle-preview.html reaches both.
 
 // The base flight length. PARTICLE_CFG.flightMs is the tuned value; DANCE_CFG.pFlight
-// is the pre-r230 constant, kept only as the fallback. Read through here by the
+// is the pre-r231 constant, kept only as the fallback. Read through here by the
 // particle AND by the beat's own wait, or a beat banks its subtotal before its
 // particles have landed.
 function ptBaseFlight(){ return PARTICLE_CFG.flightMs || DANCE_CFG.pFlight; }

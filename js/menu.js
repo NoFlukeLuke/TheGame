@@ -1,4 +1,4 @@
-const BUILD = '2026-09-14 · r230 · particles: tuned plate, spin peak + settle, rewind ghost trail, coins round, clock white-on-black · blip growth (dev panel) · payout FX on the same plate';
+const BUILD = '2026-09-14 · r231 · particles: tuned plate, spin peak + settle, rewind ghost trail, coins round, clock white-on-black · blip growth (dev panel) · payout FX on the same plate [onto r230]';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

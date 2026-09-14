@@ -30,13 +30,13 @@ const EFX_TARGETS = {
   discards: ['#disc-count', '#btn-discard'],
   score:    ['#score-total-num', '#score-center'],
 };
-// Two of these lists were pointing at ids that do not exist (r230). `#ci-coins`,
+// Two of these lists were pointing at ids that do not exist (r231). `#ci-coins`,
 // `#coins-display` in landscape (0-size), `#discard-btn` and `#discards-display`
 // in both orientations: credits and discards had NO reachable target, so those two
 // currencies silently threw no particle at all. Audited in a real browser at
 // 1440x820 and 420x820; every list above now resolves in both.
 
-// `plate` is the PARTICLE_CFG colour family this currency is drawn in (r230), so a
+// `plate` is the PARTICLE_CFG colour family this currency is drawn in (r231), so a
 // payout is the same object as a score particle rather than a second vocabulary.
 // Anything with no family of its own borrows one; the icon is what tells them apart.
 const EFX_STYLE = {
@@ -64,7 +64,7 @@ function efxTargetEl(kind) {
 
 // Body-level and fixed, so it is unaffected by the cabinet's CSS `zoom` (same rule
 // as the score particles).
-// Fly one PLATE from `srcEl` to the readout for `currency`. Since r230 this is the
+// Fly one PLATE from `srcEl` to the readout for `currency`. Since r231 this is the
 // SAME particle the scoring dance throws (ptLaunch, js/score-dance.js) rather than
 // a second bare-text one: one shape vocabulary, one tuner, one legibility fix.
 // `fxKind` is the effect (rewind / pause / credits...) and decides the ghost trail;

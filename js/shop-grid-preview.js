@@ -156,7 +156,13 @@ function openShopGrid() {
   document.body.classList.add('shop-active');
   enterGridScreenHud('SHOP', 'shop');
   enterShopGridButtons();
-  renderShopGrid();
+  // The left column narrows so the board can take the room (css/style.css).
+  // It must be applied BEFORE renderShopGrid: the tiles are positioned from
+  // CARD_W/CARD_H, which recomputeGridMetrics reads off the REAL #grid-slot
+  // rect - so the slot has to be at its shop width before anything measures it.
+  ensureShopSquishTab();
+  shopSquishSet(true, { instant: true });
+  renderShopGrid(true);
 }
 // Dev-panel + earlier hook both call this name.
 function openShopGridPreview() { openShopGrid(); }
@@ -166,6 +172,7 @@ function closeShopGrid() {
   shopGridActive = false;
   hideRewardTooltip();
   document.body.classList.remove('shop-active');
+  shopSquishSet(false, { instant: true });
   exitGridScreenHud();
   exitShopGridButtons();
   const gridEl = document.getElementById('grid'); if (gridEl) gridEl.innerHTML = '';
@@ -176,6 +183,68 @@ function closeShopGrid() {
   // Continue the node flow exactly like the overlay shop-close handler.
   if (shopFromNodeFlow) { resumeAfterNodeFlowShop(); }
   else { if (typeof render === 'function') render(); }
+}
+
+// ── The squish: the left column narrows while the shop is open ────────────
+// One class on #stage does the whole move (css/style.css). The arrow tab puts
+// the column back to playing size for as long as you want to read something in
+// it, and squeezes it again on a second press - so nothing is ever unreachable,
+// it is just smaller by default while you are shopping.
+let shopSquished = false;
+
+// Card metrics come from the MEASURED #grid-slot rect, and the class is what
+// changes that rect - so a resize of the slot has to be followed by a
+// re-measure and a repaint or the tiles keep the old board's geometry and sit
+// outside the new one. The CSS transition means the rect is still moving on the
+// next frame, so the re-measure waits for the transition rather than a frame.
+const SHOPG_SQUISH_MS = 340;
+function shopSquishSet(on, opts) {
+  const stage = document.getElementById('stage');
+  if (!stage) return;
+  shopSquished = !!on;
+  stage.classList.toggle('shop-squish', shopSquished);
+  const tab = document.getElementById('shop-squish-tab');
+  if (tab) {
+    tab.innerHTML = shopSquished ? '\u25b6' : '\u25c0';
+    tab.title = shopSquished ? 'Show the panels full size' : 'Give the shop the room';
+    tab.setAttribute('aria-label', tab.title);
+    tab.setAttribute('aria-expanded', shopSquished ? 'false' : 'true');
+  }
+  // `instant` is for open and close, where the board is about to be built or
+  // thrown away anyway and there is no point measuring a moving rect.
+  const settle = () => {
+    if (typeof recomputeGridMetrics === 'function') recomputeGridMetrics();
+    if (shopGridActive) renderShopGrid();
+  };
+  if (opts && opts.instant) {
+    // Kill the transition for one layout pass so the rect is at its final size
+    // the moment it is measured, then hand the transition back for the tab.
+    stage.classList.add('squish-instant');
+    void stage.offsetWidth;                  // flush the layout at the new size
+    settle();
+    requestAnimationFrame(() => stage.classList.remove('squish-instant'));
+    return;
+  }
+  setTimeout(settle, SHOPG_SQUISH_MS);
+}
+
+function shopSquishToggle() { shopSquishSet(!shopSquished); }
+
+// The tab is created once and lives inside #stage beside the panels it moves.
+// It is NOT body-level: it is positioned as a percentage of the stage like
+// every other landscape panel, so it wants the cabinet's zoom rather than raw
+// viewport pixels - the opposite of the pop-ups, which are placed from JS.
+function ensureShopSquishTab() {
+  let tab = document.getElementById('shop-squish-tab');
+  if (tab) return tab;
+  const stage = document.getElementById('stage');
+  if (!stage) return null;
+  tab = document.createElement('button');
+  tab.id = 'shop-squish-tab';
+  tab.type = 'button';
+  tab.onclick = shopSquishToggle;
+  stage.appendChild(tab);
+  return tab;
 }
 
 // ── Button repurposing: Play → BUY, Discard → LEAVE ──
@@ -194,12 +263,26 @@ function exitShopGridButtons() {
 }
 
 // ── Render ──
-function renderShopGrid() {
+// `animateIn` deals the board: the plates and options FALL in, plate first and
+// its two options behind it, so a row reads as a heading with its stock under
+// it rather than as four things that appeared together. It is passed ONLY from
+// openShopGrid - every other call is a repaint after a pick or a purchase, and
+// re-dropping the whole board each time you click a tile would be unreadable.
+function renderShopGrid(animateIn = false) {
   const gridEl = document.getElementById('grid'); if (!gridEl || !shopGridItems.length) return;
   recomputeGridMetrics();
   hideRewardTooltip();
   gridEl.innerHTML = '';
   const labelled = (shopGridMode !== 'sell');
+  // Row after row, and within a row the plate leads. 90ms a row against 55ms a
+  // column, so the board reads as dealing DOWNWARD - the same relationship the
+  // board heartbeat uses to make its wave fall rather than sweep sideways.
+  const SG_ROW_MS = 90, SG_COL_MS = 55;
+  const fallIn = (el, r, c) => {
+    if (!animateIn) return;
+    el.classList.add('shopg-in');
+    el.style.setProperty('--sgd', (r * SG_ROW_MS + c * SG_COL_MS) + 'ms');
+  };
   for (let r = 0; r < SHOPG_ROWS; r++) {
     // The row's name plate, spanning SHOPG_LABEL_SPAN cells. Inert: it is a
     // heading, and making it selectable would let a path route through it.
@@ -212,6 +295,7 @@ function renderShopGrid() {
       lab.style.height = CARD_H + 'px';
       lab.innerHTML = `<span class="srl-icon">${SHOPG_ROW_ICONS[r] || ''}</span>`
                     + `<span class="srl-name">${SHOPG_ROW_LABELS[r] || ''}</span>`;
+      fallIn(lab, r, 0);
       gridEl.appendChild(lab);
     }
     for (let c = labelled ? SHOPG_LABEL_SPAN : 0; c < SHOPG_COLS; c++) {
@@ -237,6 +321,7 @@ function renderShopGrid() {
         if (!p._sold) div.onclick = () => onShopGridClick(r, c);
         if (p.desc) attachRewardTooltip(div, p, 'buff');
       }
+      fallIn(div, r, c - (labelled ? SHOPG_LABEL_SPAN - 1 : 0));
       gridEl.appendChild(div);
       const nm = div.querySelector('.rwd-name'); if (nm) fitRewardName(nm);
     }
