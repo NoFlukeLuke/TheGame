@@ -137,7 +137,7 @@ function generateHandFocus(hand, handCells, vultureSec) {
         const _ddNow = Date.now();
         _ddPairTimes.push(_ddNow);
         _ddPairTimes = _ddPairTimes.filter(t => _ddNow - t <= BAL.two_pair_mult.window_ms);
-        if (_ddPairTimes.length >= BAL.two_pair_mult.need_count) { const _ddf = BAL.two_pair_mult.focus * trickFires('two_pair_mult'); addFocus(_ddf); _ddPairTimes = []; showMessage('Double Dutch! +' + _ddf + ' Focus', '#5aa9e6'); }
+        if (_ddPairTimes.length >= BAL.two_pair_mult.need_count) { const _ddf = BAL.two_pair_mult.focus * trickFires('two_pair_mult'); addFocus(_ddf, 'two_pair_mult'); _ddPairTimes = []; showMessage('Double Dutch! +' + _ddf + ' Focus', '#5aa9e6'); }
       } else { _ddPairTimes = []; }
     }
     // Ripple: consume the 30s cooldown if this hand actually had an adjacent-rank pair
@@ -183,7 +183,7 @@ function generateHandFocus(hand, handCells, vultureSec) {
   }
 
   // Head Start: the first hand each round adds +5 Focus (flag reset stays in playHand)
-  if (firstHandThisRound && hasTrick('first_play')) addFocus(BAL.first_play.focus);
+  if (firstHandThisRound && hasTrick('first_play')) addFocus(BAL.first_play.focus, 'first_play');
 }
 
 // ══════════════════════════════════════════════

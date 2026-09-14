@@ -1,4 +1,4 @@
-const BUILD = '2026-09-14 · r220 · Guided crossroads as chips; Mart 20, reward grid 15, events 10';
+const BUILD = '2026-09-14 · r221 · Guided crossroads as chips; Mart 20, reward grid 15, events 10 [onto r220]';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

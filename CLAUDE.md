@@ -142,6 +142,168 @@ The old table had four inversions, all fixed:
 - **The r190 additions cover triggers nothing else read**: Rerun / Chorus (replay count, from `_reps` - sum minus card count is the extra iterations), Deep Breath (clock paused), Interest (credits held, capped), Portfolio (buffed cards on the grid, via `permPips`/`permMult` - which are keyed by card IDENTITY, so a buff on Spectrum white counts seven cards), Redline (Focus level).
 - **Compound** (mythic) banks the round score every 45s on the round tick; the next scored hand pays the bank and it re-arms, so it compounds across a round. Its payout is added at **SCORE level, not as pips or mult** - it is a copy of score already earned, and routing it through mult x Focus would multiply it a second time.
 
+### The scoring TIMELINE (r220) - every Trick pays out at its own moment
+
+`calcScore` used to hand the dance a **set of totals** (`_cp`/`_cm`: what each Trick
+was worth by the end). That is the right shape for the contributions tab and the
+wrong one for an animation, which needs to know WHEN each thing happened and WHAT
+KIND of thing it was. So the dance did the only thing it could: every contributing
+Trick rattled from the first card beat, and the ones it could not attribute to a
+card all fired in one lump at the end.
+
+`calcScore` now also emits an **ordered event timeline** (`ledger.timeline`), and
+`playPreviewDance` walks it. An entity is perfectly still until its own event
+lands, then pops and throws its particle - on the card that triggered it, if a card
+did. **Replaying the timeline reproduces `calcScore` exactly**: verified over 10,000
+scored hands (400 boards x 25 hands, full 177-Trick trays, replays to 6x, curses,
+enhancements, exalt/corrupt) with **0 mismatches**.
+
+```js
+{ id, source, op:'pip+'|'mult+'|'pip*'|'mult*', value, card, from, scope, rnd }
+```
+
+- **`op` distinguishes an ADD from a MULTIPLY, and that is the whole point.** A
+  x mult used to report itself as a delta, so Double Bloom showed `+35` - a number
+  that means nothing on its own and is wrong the instant anything else changes. It
+  shows `x1.5` now and multiplies the MULT chip. **The contributions tab still gets
+  the delta** (`bPipX`/`bMultX` write the delta to the ledger and the factor to the
+  timeline - same call, two audiences), because "+240 pips" is what the player
+  actually gained.
+- **`card` is which beat it belongs to; `from` is which card it flies FROM.** Not
+  the same question. A per-card x mult (a card enhancement) multiplies the WHOLE
+  running mult, so it cannot fire inside a card's beat - the mult is smaller there -
+  but the particle should still come off the buffed card.
+- **`scope` is card vs hand for a MULTIPLY.** Inside a beat, every pip op lands on
+  that card's own subtotal, exactly as `calcScore` builds `cp` per card and only
+  then does `totalPips += cp`. That is what gives a card-scoped x pips something of
+  its own to multiply. **Routing the adds straight to the hand total instead left
+  the subtotal at zero and the multiply multiplied nothing** - measured at 171 pips
+  on a hand worth 228.
+- **`rnd` carries each site's rounding**, because the sites do not agree: a x pips
+  rounds to a whole number, a x mult to one decimal, the card-scoped ones not at
+  all. Without it the chip drifts a few hundredths and snaps at the end.
+
+**Four traps this encodes, all found by measurement rather than reading:**
+- **Retrigger bookkeeping must NOT emit** (`bPipQ`, the quiet ledger write). The
+  dance shows a replay by REPEATING the card's whole beat, which re-adds those pips
+  on its own. Emitting them too counted every retrigger twice - 5,682 mismatches.
+- **A particle applies its number in its LANDING callback, so a beat's events fire
+  ONE AT A TIME.** Launching a beat's particles together cannot preserve order two
+  different ways: `dncFly` bumps the accel per particle, so each successive flight
+  is SHORTER and they land in reverse; and even pinned to one duration they race,
+  because `dncWait` polls on a 60ms tick rather than firing in registration order.
+  Measured on a card carrying a x3 and a x2 - **466 pips reversed, 512 racing, 416
+  correct**. Firing sequentially is also simply what Balatro does, and the accel
+  ramp is what keeps a heavily-buffed card from taking all day.
+- **A beat must also await its particles before banking the card's subtotal**, or
+  the next step's x mult runs against a number that has not arrived. Measured: a x2
+  landing ahead of a +9 finished on 13 mult, not 26.
+- **The reconcile must read the LEDGER, not `lastCalcPips`/`lastCalcMult`.** Those
+  are globals every `calcScore` overwrites, and plenty run mid-dance (`removeAndFall`
+  repaints, `render()` calls `findBestHand`, `findBestHand` scores candidates), so
+  the old reconcile could snap the chips to another hand's numbers - measured at 228
+  on a hand worth 226. In dev mode a drift between the walk and the ledger now logs
+  `[DANCE] timeline drift`: if the timeline stops describing the real arithmetic, a
+  beat is lying to the player and a snap at that line is the only visible symptom.
+
+**The per-card MULT sweeps moved INTO the card loop.** Heart/Jack/King-guard mult,
+`permMult`, Old Growth and exalt/corrupt were post-loop `_wc(pred) x rate` sweeps -
+the same sum, but a sweep cannot tell the dance which card earned it, so all of them
+animated in the end lump. They are accumulated per card now (`_hdMult`, `_jmMult`,
+`_kgMult`, `_pmMult`, `_ogMult`, `_ecMultAcc`/`_ecPipAcc`) and emitted where they
+happen. Addition is order-free, so **the score is unchanged to the digit** - but
+they must be emitted AFTER the Blight's rewind, because the sweeps they replace were
+never Blight-suppressed.
+
+**One deliberate score change: `permXMult` moved to the x mult block.** It sat
+part-way up the additive mult list, so it multiplied the base mult and the few
+bonuses above it and nothing below - Old Growth, the Sleight mults, every suit, rank
+and shape bonus all added after it and escaped. A x1.5 card enhancement was worth
+x1.5 of a small number and x1.0 of a big one, which is not what it says on the tin
+and not how any other x mult behaves (r190: a x mult lands after everything
+additive). It is a **buff to card enhancements**, and it is what makes the additive
+mult region CONTIGUOUS - which is what lets a per-card mult Trick animate on its own
+card without the running number drifting. Measured: **1,264 hands byte-identical**
+with no enhancement in play; only hands scoring a x mult-enhanced card move, by
++6-14%.
+
+**Two scoring paths had to be brought onto the timeline to close it:**
+- **Row/col +2 mult per affected card never went through the ledger at all** - it is
+  the one scoring bonus with no contribution row, which was invisible while the
+  dance only showed totals. It emits an event now but is still NOT billed to
+  `_cp`/`_cm`: adding a row would change what the contributions tab reports.
+- **Layered hands and Amplifier are part of the BASE, not events.** Both add
+  straight to `totalPips`/`mult` with no ledger call, so they are folded into
+  `ledger.basePips`/`ledger.baseMult` and the dance seeds its chips from THOSE, not
+  from the primary hand's ladder alone.
+
+**Known gap:** `corner_retrigger` (Cornered) is a x pips over the whole hand
+(`totalPips *= minsLeft^corners`), so it fires once at the end rather than on each
+corner card. Firing it per corner card is a one-line move into the loop and it
+**changes the score** (`(T*m)*m` over the finished total is not the same as applying
+x m twice mid-loop), so it wants a balance decision, not a quiet edit.
+
+### Scoring speed is a slider, and bursts are timed (r220)
+
+- **Settings > Motion > Scoring speed** is a **0.5x-16x slider** (was four presets),
+  writing `DANCE_CFG.norm`. It applies to the goal hand too: a player who set 8x has
+  said what they want to watch, and having the one hand that ends the round ignore
+  them reads as a stall, not as ceremony.
+- **The per-payout acceleration is the dance clock's** (`dncBumpAccel` /
+  `dncPace`, js/dance-clock.js): +5% of the current pace per payout tick,
+  compounding, capped at 8x, reset per hand. Per-trigger payouts mean many more
+  ticks than before, so the ramp does most of the work of keeping a long hand
+  bearable. Measured, 5-card hand with 10 Tricks: **13.8s at 1x, 7.1s at 2x, 4.1s
+  at 4x, 2.9s at 8x.**
+- **Burst depth comes from how fast hands are SUBMITTED** (`DNC_BURST_WINDOW`,
+  1400ms), not from whether `danceAbortController` happens to be non-null. That was
+  the "why did this hand fast-play?" bug: a skipped dance is short but still has a
+  tail (merge, throw, climb, settle), so the next hand almost always arrived while a
+  controller existed and inherited the depth - **once you entered skip mode you
+  stayed in it**. `cancelDance()` also stamps `dncCutAt` for cuts with no successor
+  at all (round end, a boss firing, `startGame`), so a hand played just after one of
+  those inherited a burst it never earned. Depth now self-heals the moment the
+  player stops hammering.
+
+### Toasts - `showMessage()` (r220)
+
+**275 call sites shared ONE element**, one 0.9s animation, 40px Cinzel (a serif the
+game uses nowhere else), no plate behind it. Two messages in the same second
+clobbered each other and a single one was gone before it could be read against a
+board of cream playing cards. `showMessage(text, color)` is unchanged as a
+signature - **no call site moved** - but each message is now its own `.toast` in a
+`#toast-layer` stack: house mono type, an **opaque** plate, a colour-coded left
+edge, a dark stroke painted OUTSIDE the glyphs (`paint-order`) so the text survives
+landing on a bright card, and a 2.2s dwell. Max 4 at once; the same line twice in a
+row bumps an `x2` badge rather than stacking a duplicate. The optional third arg
+takes `{ icon, ms, kind }`. **Outside `#cabinet`**, for the usual `zoom` reason.
+
+### Entity payout FX - `js/payout-fx.js` (r220)
+
+**NOT `js/entity-fx.js`.** That is a different system with a confusingly similar
+name (r209): it draws the LINES and CARD MARKS that say "this cell is MARKED by
+that Trick". This one animates what an entity PAID OUT, at the moment it paid.
+
+
+Entities pay out in five currencies and only two were ever animated. `entityEffectFX(kind, amount, {id, source})`
+pops the entity, flies a symbol from its real tray tile to the readout it changed
+(clock / credits / Focus / swaps / discards) and plays that currency's existing
+sound. Targets are **lists**, and the first element with a non-zero rect wins - the
+same reason `js/tutorial.js` tests by rect rather than `offsetParent`: several
+readouts only exist in one orientation.
+
+**Basic version, deliberately.** `rewindTime` and `pauseRound` take optional
+`srcId`/`srcSource`, and `addFocus(amount, srcId, srcSource)` fires only when a
+source is named - unattributed Focus gains happen constantly and a particle for each
+would be noise. **The obvious next step is Focus getting the same treatment the
+score just got**: `generateHandFocus` runs in `playHand` BEFORE the dance, so an
+attributed grant currently fires its particle before the cards have moved. It wants
+an ordered timeline replayed between the card beats, at which point those calls
+become events rather than immediate effects.
+
+**Unrelated find, worth knowing:** `jack_mult` and `heart_double` have `BAL` entries
+and `DESC_TEMPLATES` but **no `TRICK_POOL` entry** - they are scored for, described,
+and unobtainable.
 ### Trick numbers reworked (r205)
 
 Five Tricks whose printed effect and real effect had drifted apart. All five read their numbers out of `BAL` now, and all five have a `DESC_TEMPLATES` entry, so the description cannot drift from the value again.

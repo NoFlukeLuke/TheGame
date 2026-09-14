@@ -46,9 +46,16 @@ const SETTINGS_DEF = [
   // ── Motion ──
   // NOTE: dncSpeed is `isGoalHand ? 1 : DANCE_CFG.norm`, so this deliberately does
   // not rush the goal-clearing finale - only ordinary scoring hands.
-  { group: 'Motion', id: 'animSpeed', label: 'Scoring speed', hint: 'How fast ordinary hands score. The goal-clearing finale always plays in full.',
-    type: 'select', default: '1', options: [['0.75','Relaxed'], ['1','Normal'], ['1.5','Brisk'], ['2','Rapid']],
-    apply: v => { if (typeof DANCE_CFG !== 'undefined') DANCE_CFG.norm = parseFloat(v); } },
+  // A slider rather than four presets (r197): now that every Trick pays out at its
+  // own moment, a loaded tray has many more beats than a bare one, and how fast a
+  // player wants to watch them is personal and changes as a run goes on. 1 is as
+  // authored; 16 is "I know what these do, get on with it". Each beat also runs 5%
+  // quicker than the last within a hand (DANCE_CFG.beatAccel), so the ramp handles
+  // long hands on its own and this stays a preference rather than a chore.
+  { group: 'Motion', id: 'animSpeed', label: 'Scoring speed',
+    hint: 'How fast hands tally. Higher is faster. Interrupting a hand still rushes it regardless.',
+    type: 'slider', min: 0.5, max: 16, step: 0.5, default: 1, unit: 'x',
+    apply: v => { const n = parseFloat(v); if (typeof DANCE_CFG !== 'undefined' && isFinite(n) && n > 0) DANCE_CFG.norm = n; } },
   { group: 'Motion', id: 'reducedMotion', label: 'Reduced motion', hint: 'Cuts drifting, shaking and idle flourishes. Scoring still animates.',
     type: 'toggle', default: false,
     apply: v => document.body.classList.toggle('reduced-motion', !!v) },
