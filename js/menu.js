@@ -1,4 +1,4 @@
-const BUILD = '2026-09-13 · r217 · spec: grid-takeover shop, between-round score panel, grid lines [onto r216]';
+const BUILD = '2026-09-14 · r218 · grid lines: reward grid, even spacing, shrink clamp, split rings; between-round score panel; shop room preview';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

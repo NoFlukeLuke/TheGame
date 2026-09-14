@@ -77,11 +77,25 @@ function clearLineMarkers() {
   if (gridEl) gridEl.querySelectorAll('.rc-line').forEach(el => el.remove());
 }
 
-function renderLineMarkers() {
+// The board a line is being drawn onto. The play grid is the default; the reward
+// grid passes its own, because it can be a DIFFERENT SIZE from the play board -
+// a prize grid is two rows and columns smaller - and it is centred with an
+// offset rather than anchored at the board's top-left corner.
+function lineGridGeom(opts) {
+  return {
+    rows: opts && opts.rows != null ? opts.rows : gridRows,
+    cols: opts && opts.cols != null ? opts.cols : gridCols,
+    offX: (opts && opts.offX) || 0,
+    offY: (opts && opts.offY) || 0,
+  };
+}
+
+function renderLineMarkers(opts) {
   const gridEl = document.getElementById('grid');
   if (!gridEl) return;
   gridEl.querySelectorAll('.rc-line').forEach(el => el.remove());
   if (typeof rowColBonuses === 'undefined' || !rowColBonuses.length) return;
+  const GEO = lineGridGeom(opts);
   // A line marks a LINE OF CARDS, so with nothing on the board there is nothing
   // to mark - lines hanging in an empty well read as a glitch. The test is the
   // DOM, not gridData, because those two disagree exactly when it matters: the
@@ -90,35 +104,51 @@ function renderLineMarkers() {
   // the DOM it is asking about would be a render behind. It does NOT cover the
   // interlude itself, which removes the cards without rendering again; that
   // teardown calls clearLineMarkers directly (js/interlude.js).
-  if (!gridEl.querySelector('[data-card-id]')) return;
+  // A reward tile is not a card and carries no data-card-id, but it IS a filled
+  // board - the lines stay put while you pick your rewards on top of them.
+  if (!gridEl.querySelector('[data-card-id], .reward-cell')) return;
 
-  // Group by line so co-located marks can share the width.
+  // Group by line so co-located marks can share the width. The index is CLAMPED
+  // to the board being drawn, not to the stored one: a line on column 5 of a
+  // 6-wide play board has nowhere to sit on a 4-wide prize grid, so it is shown
+  // on the highest column that exists. This is a DISPLAY clamp only - it never
+  // writes back to rowColBonuses, or a visit to a smaller grid would
+  // permanently move a line the play board still has room for. The stored index
+  // is clamped separately, and only by a real limits change
+  // (clampRowColBonuses, js/scoring.js).
   const byLine = new Map();
   rowColBonuses.forEach(b => {
-    const k = `${b.axis}-${b.index}`;
+    const span = b.axis === 'row' ? GEO.rows : GEO.cols;
+    const idx  = Math.max(0, Math.min(b.index, span - 1));
+    const k = `${b.axis}-${idx}`;
     if (!byLine.has(k)) byLine.set(k, []);
-    byLine.get(k).push(b);
+    byLine.get(k).push({ b, idx });
   });
 
   byLine.forEach((entries, key) => {
-    const axis = entries[0].axis, index = entries[0].index;
+    const axis = entries[0].b.axis, index = entries[0].idx;
     const n = entries.length;
-    entries.forEach((b, i) => {
+    entries.forEach(({ b }, i) => {
       const meta = lineFXMeta(b.id);
       const el = document.createElement('div');
       el.className = 'rc-line rc-line-' + (axis === 'row' ? 'row' : 'col');
       el.dataset.lineKey = key + ':' + b.id;
       el.style.setProperty('--rcl', meta.color);
+      // N lines on one row or column are spaced EVENLY ACROSS THE CARD at
+      // (i+1)/(n+1) of its width: one line down the middle, two at a third and
+      // two thirds, three at a quarter, a half and three quarters. Dividing the
+      // card into n bands and centring in each (the first version) puts two
+      // lines at 25% and 75% and three at 17/50/83, which reads as lines
+      // hugging the card's edges rather than as an evenly divided lane.
+      const frac = (i + 1) / (n + 1);
       if (axis === 'row') {
-        const band = CARD_H / n;
-        el.style.left   = cellLeft(0) + 'px';
-        el.style.top    = (cellTop(index) + band * i + band / 2) + 'px';
-        el.style.width  = (cellLeft(gridCols - 1) + CARD_W - cellLeft(0)) + 'px';
+        el.style.left   = (cellLeft(0) + GEO.offX) + 'px';
+        el.style.top    = (cellTop(index) + GEO.offY + CARD_H * frac) + 'px';
+        el.style.width  = (cellLeft(GEO.cols - 1) + CARD_W - cellLeft(0)) + 'px';
       } else {
-        const band = CARD_W / n;
-        el.style.left   = (cellLeft(index) + band * i + band / 2) + 'px';
-        el.style.top    = cellTop(0) + 'px';
-        el.style.height = (cellTop(gridRows - 1) + CARD_H - cellTop(0)) + 'px';
+        el.style.left   = (cellLeft(index) + GEO.offX + CARD_W * frac) + 'px';
+        el.style.top    = (cellTop(0) + GEO.offY) + 'px';
+        el.style.height = (cellTop(GEO.rows - 1) + CARD_H - cellTop(0)) + 'px';
       }
       el.innerHTML = `<span class="rc-line-cap">${meta.glyph}</span><span class="rc-line-cap rc-line-cap2">${meta.glyph}</span>`;
       el.title = `${meta.name} · ${axis === 'row' ? 'row' : 'column'} ${index + 1}`;
@@ -165,11 +195,53 @@ function cardMarkHTML(r, c) {
   return '';
 }
 
-// Does any line-marking Trick cover this cell? Used for the shared "this card
-// is on a marked line" ring, which is what gives the 6 position Tricks that
-// never had a card indicator one for free.
+// EVERY line-marking Trick covering this cell, in registry order. A card can sit
+// on several at once - trivially at a row/column crossing, and the District
+// knack allows more than one Trick on a single line - so this returns a list
+// rather than the first hit. The ring below is what divides between them.
+function lineMetasForCell(r, c) {
+  if (typeof rowColBonuses === 'undefined') return [];
+  const out = [], seen = new Set();
+  rowColBonuses.forEach(b => {
+    if (!((b.axis === 'row' && b.index === r) || (b.axis === 'col' && b.index === c))) return;
+    // Two Tricks of the same id cannot mark two lines through one cell in any
+    // way that a second identical wedge would communicate - dedupe by colour so
+    // a doubled colour never eats half the ring for nothing.
+    const meta = lineFXMeta(b.id);
+    if (seen.has(meta.color)) return;
+    seen.add(meta.color);
+    out.push(meta);
+  });
+  return out;
+}
+
+// Kept as the single-answer form: the first line covering a cell. Nothing in the
+// game reads it now that the ring takes the whole list, but it is the obvious
+// question to ask and re-deriving it wrong is easy.
 function cellOnMarkedLine(r, c) {
-  if (typeof rowColBonuses === 'undefined') return null;
-  const hit = rowColBonuses.find(b => (b.axis === 'row' && b.index === r) || (b.axis === 'col' && b.index === c));
-  return hit ? lineFXMeta(hit.id) : null;
+  const m = lineMetasForCell(r, c);
+  return m.length ? m[0] : null;
+}
+
+// The ring's paint. One colour is a flat fill; several are equal wedges of a
+// conic gradient with HARD STOPS, so a card on three lines shows three thirds
+// rather than a blend - a blend of three Trick colours is a fourth colour that
+// belongs to nothing. css/entity-fx.css masks whatever this returns down to the
+// border, so the card face is never covered.
+function lineRingPaint(metas) {
+  if (!metas.length) return '';
+  if (metas.length === 1) return metas[0].color;
+  const n = metas.length, step = 100 / n;
+  const stops = metas.map((m, i) => `${m.color} ${(i * step).toFixed(3)}% ${((i + 1) * step).toFixed(3)}%`);
+  return `conic-gradient(from -45deg, ${stops.join(', ')})`;
+}
+
+// The whole ring element for a cell, or '' when the cell is on no marked line.
+// Built here rather than in renderCardAppearance so the reward grid and any
+// future surface can draw the same ring by asking one function.
+function lineRingHTML(r, c) {
+  const metas = lineMetasForCell(r, c);
+  if (!metas.length) return '';
+  const title = metas.map(m => m.name).join(' · ');
+  return `<div class="rc-line-ring" style="--rcl-ring:${lineRingPaint(metas)}" title="${title}"></div>`;
 }

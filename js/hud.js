@@ -43,12 +43,44 @@ function showBonusHandScoreFlash(cells, scoreAmount) {
   setTimeout(() => flash.remove(), 1100);
 }
 
+// BETWEEN ROUNDS the panel answers two different questions (r217).
+//
+// During a round it reads SCORE / GOAL, which is the live race. On a
+// grid-takeover screen - the reward grid, a shop, an event - there is no live
+// race: `score` has already been banked and zeroed by triggerLevelUp, so the
+// panel was reading "Score 0" over "GOAL <the next one>" for the whole of every
+// between-rounds screen. Zero is not what the round was worth, and it is the
+// number the player most wants while deciding what to take.
+//
+// So on those screens it reads LAST ROUND over what that round scored, and
+// NEXT QUOTA over the goal about to be asked for. The progress bar is hidden:
+// it would sit at 100% and mean nothing.
+//
+// `body.grid-screen` is the switch, set by enterGridScreenHud() and cleared by
+// exitGridScreenHud() (js/shop-grid-preview.js), which is the same class the
+// PIPS/MULT/FOCUS -> LOCATION swap already rides - so all three screens get
+// this with no per-screen wiring.
+function scorePanelIsBetweenRounds() {
+  return document.body.classList.contains('grid-screen') && lastRoundGoal > 0;
+}
+
 function updateScoreUI() {
   if (suppressScoreDisplay) return; // hold display during goal hand dance
-  animateDigitEl(document.getElementById('score-total-num'), score);
+  const between = scorePanelIsBetweenRounds();
+  const totalLabel = document.getElementById('score-total-label');
+  const goalLabel  = document.getElementById('score-goal-label');
+  const barWrap    = document.getElementById('score-progress-bar-wrap');
+  if (totalLabel) totalLabel.textContent = between ? 'Last round' : 'Score';
+  if (goalLabel)  goalLabel.textContent  = between ? 'NEXT QUOTA' : 'GOAL';
+  if (barWrap)    barWrap.style.visibility = between ? 'hidden' : '';
+
+  const shownScore = between ? lastRoundScore : score;
+  // animateDigitEl rolls the digits; between rounds the number is a finished
+  // fact rather than a climbing tally, so it is written straight in.
+  if (!between) animateDigitEl(document.getElementById('score-total-num'), shownScore);
   const scoreDisplayEl = document.getElementById('score-total-num');
   if (scoreDisplayEl && scoreDisplayEl.style.visibility !== 'hidden') {
-    scoreDisplayEl.textContent = score.toLocaleString();
+    scoreDisplayEl.textContent = shownScore.toLocaleString();
   }
   const pct = Math.min(score / roundGoal, 1);
   const bar = document.getElementById('score-progress-bar');

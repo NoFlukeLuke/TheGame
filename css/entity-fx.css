@@ -81,11 +81,26 @@
    The card-side half of the line marker, in the owning Trick's colour. Deliberately
    an inset ring and nothing else: the card face has to stay readable, and the
    line itself is already doing the loud part. */
+/* A card on SEVERAL marked lines divides its ring evenly between their colours,
+   so an intersection reads as both things rather than as whichever one the
+   registry happened to list first. --rcl-ring is a flat colour for one line and
+   a hard-stop conic gradient for more (lineRingPaint, js/entity-fx.js).
+
+   The ring is PAINT MASKED DOWN TO THE BORDER, not a box-shadow, because a
+   box-shadow takes one colour and cannot be divided. padding sets the ring's
+   thickness; the two masks cancel everything inside the padding box, leaving
+   only the 2px frame. */
 .rc-line-ring {
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--rcl, #c9a84c) 78%, transparent);
+  padding: 2px;
+  background: var(--rcl-ring, #c9a84c);
+  opacity: 0.82;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+          mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
   pointer-events: none;
   z-index: 5;
 }

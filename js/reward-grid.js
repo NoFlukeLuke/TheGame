@@ -1157,6 +1157,17 @@ function renderRewardTiles(animateIn = false) {
   // renderRewardTiles() directly and never goes through render(), so wiring it there
   // alone left the count frozen at 0 for the whole reward step.
   if (typeof updateSelectionUI === 'function') updateSelectionUI();
+  // The marked row / column lines stay on the board while you pick (js/entity-fx.js).
+  // They are part of how the board reads, and the reward step is exactly when a
+  // player is deciding whether another line-marking Trick is worth taking - so
+  // hiding the ones already down is hiding the thing the choice is about.
+  // gridEl.innerHTML = '' above took the old ones with it, so this redraws them,
+  // and the grid being drawn is passed explicitly: a prize grid is smaller than
+  // the play board and centred on it, so the lines have to be clamped and offset
+  // to match the tiles rather than the board underneath them.
+  if (typeof renderLineMarkers === 'function') {
+    renderLineMarkers({ rows: ROWS, cols: COLS, offX, offY });
+  }
   // The tiles were just thrown away and rebuilt, so the pinned tooltip has to be
   // re-anchored to the new node for the tile it belongs to (r182).
   restoreRewardTooltip();

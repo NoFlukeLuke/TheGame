@@ -1093,6 +1093,41 @@ function firesThisMinute(id) {
 // per Trick object so an upgrade (selectTrick called twice) doesn't re-roll the line.
 const POSITION_ASSIGN_IDS = ['rowcol_triple_pips','rowcol_mult','rowcol_retrigger','perfect_timing','right_time','groove','assembly_line','overtime'];
 
+// Keep every marked line on a line that EXISTS. Growing the board needs nothing
+// - the index is a stored number and a wider board simply has more columns past
+// it - but shrinking one can leave a Trick marking a column that is no longer
+// there, and a mark on nothing is a Trick that silently stopped working.
+// A shrunk-past line moves to the highest line that exists and STAYS there; it
+// does not remember where it was. That is lossy on purpose - the alternative is
+// carrying a shadow index that could resurface on a board the player has since
+// rebuilt differently.
+//
+// IT MEASURES AGAINST THE LIMITS, NOT AGAINST gridRows / gridCols, and that is
+// the whole reason it is safe to call. Four things move the live board size
+// TEMPORARILY and put it back: Short Staffed shrinks it for one round
+// (js/level-up.js), the on-grid shop forces 4x4, a prize grid is two smaller
+// than the play board, and Dominoes sets its own. Clamping against the live
+// globals would let any of those permanently move a line the player's real
+// board still has room for - a one-round penalty would cost a Trick its
+// position for the rest of the run. The limit is the only number that means
+// "this board will never be this wide again"; everything that merely borrows
+// the board at a smaller size clamps what it DRAWS instead (renderLineMarkers,
+// js/entity-fx.js) and leaves the registry alone.
+function clampRowColBonuses() {
+  if (typeof rowColBonuses === 'undefined' || !rowColBonuses.length) return;
+  if (typeof limits === 'undefined' || !limits.grid_rows || !limits.grid_cols) return;
+  rowColBonuses.forEach(b => {
+    const span = b.axis === 'row' ? limits.grid_rows.current : limits.grid_cols.current;
+    const max  = Math.max(0, span - 1);
+    if (b.index <= max) return;
+    // finalizePositionMark rewrites the Trick's printed description to name the
+    // line, so moving the mark without it would leave the tray quoting a row
+    // that is not there any more.
+    if (b._trickRef) finalizePositionMark(b._trickRef, b.axis, max);
+    else b.index = max;
+  });
+}
+
 function lineOccupied(axis, index) {
   return rowColBonuses.some(b => b.axis === axis && b.index === index);
 }

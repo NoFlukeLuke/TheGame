@@ -87,6 +87,12 @@ function limitProgressStr(id, showNext) {
 }
 // Called after any limit change - applies immediate side effects
 function onLimitChanged(id) {
+  // A smaller board can strand a Trick's marked row or column off the edge of
+  // it. This is the one place a limit actually changes, so it is the one place
+  // the marks need re-checking (js/scoring.js). Growing needs nothing.
+  if (id === 'grid_rows' || id === 'grid_cols') {
+    if (typeof clampRowColBonuses === 'function') clampRowColBonuses();
+  }
   if (id === 'round_time') {
     // No clamp. This limit is the round's STARTING time, not a live ceiling, so
     // changing it must never reach in and cut the clock you are currently playing

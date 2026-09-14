@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shop room preview - squish vs slide</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Share+Tech+Mono&family=Crimson+Pro:wght@400;600&family=Cinzel:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --gold:#c9a84c; --gold-dim:#7a6030; --red:#c0392b; --green:#5a9e5a;
+  --cream:#f0e6c8; --cream-dim:#8a7d60; --panel:#13110e; --border:#3a3020;
+  --phosphor:#6ef2a0; --c-cyan:#57d9e8; --c-yellow:#e8c95a; --c-mint:#7fe3a8;
+  --c-purple:#b57ae0; --c-magenta:#e87ab5; --c-coral:#e8886a;
+  /* THE TWO NUMBERS THIS PAGE IS ABOUT -------------------------------------
+     --lw     : how wide the left column is, as a % of the stage
+     --colvis : 1 when the column holds its space, 0 when it is slid away.
+     Two variables rather than one offset, because the column is moved with a
+     TRANSFORM (a translateX percentage is a share of the element's own width,
+     so -100% is exactly "fully off" whatever the column is set to) while the
+     shop's left edge is a share of the STAGE. One number cannot mean both, and
+     the first version used a stage % for the transform - which moved a 37.74%
+     column by 37.74% OF ITSELF, about 15% of the stage, so it never cleared. */
+  --lw:37.74%; --colvis:1;
+  --gap:5.7%;                 /* breathing room between column and shop */
+}
+*{box-sizing:border-box}
+body{margin:0;background:#0b0f0c;color:var(--cream);font-family:'Crimson Pro',Georgia,serif;
+     padding:18px 16px 60px;-webkit-font-smoothing:antialiased}
+h1{font-family:'Orbitron',sans-serif;font-size:15px;letter-spacing:2px;color:var(--gold);
+   margin:0 0 4px;text-transform:uppercase}
+.sub{font-size:13px;color:var(--cream-dim);margin:0 0 14px;max-width:74ch;line-height:1.45}
+
+/* ── control bar ─────────────────────────────────────────────────────── */
+.bar{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;background:#100d09;
+     border:1px solid var(--border);border-radius:8px;padding:10px 13px;margin-bottom:14px}
+.bar .grp{display:flex;align-items:center;gap:7px}
+.bar label{font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:1px;
+           text-transform:uppercase;color:var(--cream-dim)}
+.seg{display:flex;border:1px solid var(--border);border-radius:6px;overflow:hidden}
+.seg button{background:#191510;color:var(--cream-dim);border:0;padding:6px 13px;cursor:pointer;
+            font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:1px}
+.seg button+button{border-left:1px solid var(--border)}
+.seg button.on{background:var(--gold);color:#100d09;font-weight:700}
+input[type=range]{width:150px;accent-color:var(--gold)}
+.val{font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--gold);min-width:52px}
+.readout{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--phosphor);
+         margin-left:auto;text-align:right;line-height:1.5}
+.readout b{color:var(--cream)}
+
+/* ── the stage: same 747x420 canvas + percentages as #stage.landscape ──── */
+.wrap{position:relative;width:100%;max-width:1180px;aspect-ratio:747/420;margin:0 auto;
+      border:2px solid #2a2118;border-radius:10px;background:
+      radial-gradient(ellipse at 50% 40%,#16241a 0%,#0c150e 60%,#070d09 100%);
+      overflow:hidden;box-shadow:0 0 0 1px #000,0 14px 40px rgba(0,0,0,.6)}
+.stage{position:absolute;inset:0}
+
+/* every left-column panel rides ONE transform, so squish and slide are the
+   same mechanism with different numbers */
+.col{position:absolute;left:1.56%;top:2.78%;width:var(--lw);height:94.5%;
+     /* -106%, not -100%: the column starts at left:1.56% of the stage, which is
+        another 4.1% of its OWN width, so -100% leaves a visible sliver of panel
+        edges pinned to the left rim. */
+     transform:translateX(calc((1 - var(--colvis)) * -106%));
+     transition:width .34s cubic-bezier(.2,.8,.2,1),
+     transform .34s cubic-bezier(.2,.8,.2,1);will-change:transform,width;
+     /* the panels inside are sized in cqw, so they scale WITH the column - that
+        is what makes Squish squish rather than just clip */
+     container-type:inline-size}
+.pnl{position:absolute;left:0;background:var(--panel);border:1px solid var(--border);
+     border-radius:6px;overflow:hidden}
+.pnl .lbl{position:absolute;top:3px;left:6px;font-family:'Share Tech Mono',monospace;
+          font-size:8px;letter-spacing:1px;color:var(--gold-dim)}
+
+/* panel slots, as fractions of the column (so they squish with it) */
+#p-score {top:0;      width:100%;height:13.2%}
+#p-pmf   {top:16.2%;  width:100%;height:11.8%}
+#p-knack {top:29.6%;  width:100%;height:7.4%}
+#p-hand  {top:38.4%;  width:100%;height:23%}
+#p-trick {top:63%;    width:100%;height:23%}
+#p-btns  {top:87.6%;  width:100%;height:12.4%;background:none;border:0}
+
+.scorerow{display:flex;height:100%;align-items:stretch}
+.scorebox{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px}
+.scorebox+.scorebox{border-left:1px solid var(--border)}
+.k{font-family:'Share Tech Mono',monospace;font-size:7px;letter-spacing:1px;color:var(--gold-dim)}
+.v{font-family:'Orbitron',sans-serif;font-weight:700;color:var(--cream);
+   font-size:clamp(9px,1.55cqw,19px)}
+.v.gold{color:var(--gold)}
+.chips{display:flex;height:100%;align-items:center;justify-content:space-around;padding:0 5%}
+.chip{display:flex;flex-direction:column;align-items:center;gap:1px}
+.chip .v{font-size:clamp(8px,1.35cqw,17px)}
+.chip.f .k,.chip.f .v{color:#c07aee}
+.times{font-family:'Orbitron',sans-serif;color:var(--gold-dim);font-size:clamp(7px,.9cqw,11px)}
+.krow{display:flex;height:100%;align-items:center;gap:4%;padding:0 5%}
+.kd{width:clamp(9px,1.6cqw,20px);aspect-ratio:1;background:#241c2e;border:1px solid #6b4fa0;
+    transform:rotate(45deg);border-radius:2px}
+.tilerow{display:flex;height:100%;align-items:center;gap:3.5%;padding:4% 5%}
+.tile{flex:0 0 14.5%;aspect-ratio:40/53;background:#0d0b09;border:1px solid var(--c-cyan);
+      border-radius:3px;display:flex;align-items:center;justify-content:center;
+      font-size:clamp(8px,1.25cqw,15px);box-shadow:0 0 6px rgba(87,217,232,.22) inset}
+.tile.r2{border-color:var(--c-purple);box-shadow:0 0 6px rgba(181,122,224,.22) inset}
+.tile.r3{border-color:var(--c-yellow);box-shadow:0 0 6px rgba(232,201,90,.22) inset}
+.pcard{flex:0 0 13%;aspect-ratio:42/55;background:#f5efe0;border:1px solid #d4c89a;
+       border-radius:3px;color:#1a1408;font-family:'Cinzel',serif;font-weight:700;
+       display:flex;align-items:center;justify-content:center;font-size:clamp(7px,1.1cqw,13px)}
+.btnrow{display:flex;height:100%;gap:4%;align-items:stretch}
+.btnrow div{flex:1;border:1px solid var(--border);border-radius:5px;background:#191510;
+            display:flex;align-items:center;justify-content:center;
+            font-family:'Share Tech Mono',monospace;font-size:clamp(6px,.85cqw,10px);
+            letter-spacing:1px;color:var(--cream-dim)}
+
+/* ── the shop, which is what all this room is for ─────────────────────── */
+.shop{position:absolute;top:2.78%;height:94.5%;right:1.56%;
+      left:calc(1.56% + var(--colvis) * (var(--lw) + var(--gap)));
+      background:linear-gradient(180deg,#141019,#0d0a12);border:2px solid #2f2740;
+      border-radius:8px;box-shadow:0 0 24px rgba(120,80,200,.16) inset;
+      transition:left .34s cubic-bezier(.2,.8,.2,1);
+      display:flex;flex-direction:column;padding:1.1% 1.3%;container-type:inline-size}
+.shead{display:flex;align-items:baseline;gap:10px;padding-bottom:.7%;
+       border-bottom:1px solid #322a44;margin-bottom:.8%}
+.shead h2{margin:0;font-family:'Orbitron',sans-serif;font-size:clamp(8px,1.15cqw,14px);
+          letter-spacing:2px;color:var(--gold)}
+.shead .w{margin-left:auto;font-family:'Share Tech Mono',monospace;color:var(--c-yellow);
+          font-size:clamp(7px,.95cqw,12px)}
+.shelf{flex:1;display:flex;flex-direction:column;min-height:0;padding:.45% 0}
+.sh{display:flex;align-items:center;gap:7px;margin-bottom:.4%}
+.sh span{font-family:'Share Tech Mono',monospace;font-size:clamp(6px,.8cqw,10px);
+         letter-spacing:1.5px;color:var(--sc,var(--cream-dim))}
+.sh i{flex:1;height:1px;background:var(--sc,#322a44);opacity:.45}
+.items{flex:1;display:flex;gap:1.1%;min-height:0}
+.item{flex:0 0 auto;aspect-ratio:40/53;height:100%;background:#0d0b12;
+      border:1px solid var(--sc,var(--c-cyan));border-radius:4px;position:relative;
+      display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+      box-shadow:0 0 8px rgba(255,255,255,.05) inset}
+.item .em{font-size:clamp(9px,1.5cqw,21px);line-height:1}
+.item .nm{font-family:'Share Tech Mono',monospace;font-size:clamp(4px,.62cqw,8px);
+          color:var(--cream-dim);letter-spacing:.5px;text-align:center;padding:0 2px;
+          white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.item .pr{position:absolute;bottom:2px;font-family:'Share Tech Mono',monospace;
+          font-size:clamp(4px,.6cqw,8px);color:var(--c-yellow)}
+.item.sel{outline:2px solid var(--phosphor);outline-offset:1px;
+          box-shadow:0 0 14px rgba(110,242,160,.4)}
+/* the room the extra width actually buys: more items fit before wrapping */
+.ghost{opacity:.28;border-style:dashed}
+
+/* ── the slide handle ─────────────────────────────────────────────────── */
+.handle{position:absolute;top:44%;width:2.1%;height:12%;background:#191510;
+        border:1px solid var(--gold-dim);border-left:0;border-radius:0 6px 6px 0;
+        left:calc(var(--colvis) * (1.56% + var(--lw)));
+        display:none;align-items:center;justify-content:center;cursor:pointer;
+        color:var(--gold);font-size:clamp(8px,1cqw,13px);z-index:9;
+        transition:left .34s cubic-bezier(.2,.8,.2,1)}
+.handle:hover{background:#241d13}
+body[data-mode="slide"] .handle{display:flex}
+/* tucked away, the handle sits on the very edge of the screen */
+body[data-mode="slide"][data-open="0"] .handle{border-left:1px solid var(--gold-dim)}
+
+.note{max-width:1180px;margin:14px auto 0;font-size:13px;line-height:1.5;color:var(--cream-dim)}
+.note b{color:var(--cream)}
+.note code{font-family:'Share Tech Mono',monospace;color:var(--gold);font-size:12px}
+kbd{font-family:'Share Tech Mono',monospace;background:#191510;border:1px solid var(--border);
+    border-radius:3px;padding:1px 5px;font-size:11px;color:var(--cream)}
+</style>
+</head>
+<body data-mode="today" data-open="1">
+
+<h1>Shop room - squish vs slide</h1>
+<p class="sub">The left column keeps its normal arrangement in all three. What changes is how much of the
+stage it keeps while the shop is open. Switch modes, drag the slider, and click the arrow tab in Slide mode.</p>
+
+<div class="bar">
+  <div class="grp">
+    <label>Mode</label>
+    <div class="seg" id="modeSeg">
+      <button data-m="today" class="on">Today</button>
+      <button data-m="squish">Squish</button>
+      <button data-m="slide">Slide</button>
+    </div>
+  </div>
+  <div class="grp" id="squishGrp" style="display:none">
+    <label>Column width</label>
+    <input type="range" id="sq" min="16" max="37.74" step="0.5" value="24">
+    <span class="val" id="sqv">24%</span>
+  </div>
+  <div class="grp">
+    <label>Shelf rows</label>
+    <div class="seg" id="rowSeg">
+      <button data-r="3">3</button>
+      <button data-r="4" class="on">4</button>
+    </div>
+  </div>
+  <div class="readout" id="ro"></div>
+</div>
+
+<div class="wrap">
+  <div class="stage">
+    <div class="col" id="col">
+      <div class="pnl" id="p-score">
+        <div class="scorerow">
+          <div class="scorebox"><span class="k">LAST ROUND</span><span class="v">4,180</span></div>
+          <div class="scorebox"><span class="k">NEXT QUOTA</span><span class="v gold">5,850</span></div>
+        </div>
+      </div>
+      <div class="pnl" id="p-pmf">
+        <div class="chips">
+          <div class="chip"><span class="k">PIPS</span><span class="v">0</span></div>
+          <span class="times">&times;</span>
+          <div class="chip"><span class="k">MULT</span><span class="v">0</span></div>
+          <span class="times">&times;</span>
+          <div class="chip f"><span class="k">FOCUS</span><span class="v">&times;1.4</span></div>
+        </div>
+      </div>
+      <div class="pnl" id="p-knack">
+        <div class="krow"><i class="kd"></i><i class="kd"></i><i class="kd"></i><i class="kd"></i></div>
+      </div>
+      <div class="pnl" id="p-hand">
+        <div class="tilerow">
+          <span class="pcard">K&spades;</span><span class="pcard">K&hearts;</span>
+          <span class="pcard">7&diams;</span><span class="pcard">7&clubs;</span><span class="pcard">2&spades;</span>
+        </div>
+      </div>
+      <div class="pnl" id="p-trick">
+        <div class="tilerow">
+          <span class="tile">&#10022;</span><span class="tile r2">&#9670;</span>
+          <span class="tile r3">&#9650;</span><span class="tile">&#9835;</span>
+          <span class="tile r2">&#8634;</span><span class="tile r3">&#9208;</span>
+        </div>
+      </div>
+      <div class="pnl" id="p-btns">
+        <div class="btnrow"><div>RECORDS</div><div>PAUSE</div></div>
+      </div>
+    </div>
+
+    <div class="handle" id="handle">&#9664;</div>
+
+    <div class="shop" id="shop">
+      <div class="shead">
+        <h2>MART</h2>
+        <span class="w">&#128176; 63</span>
+      </div>
+      <div id="shelves"></div>
+    </div>
+  </div>
+</div>
+
+<p class="note">
+<b>Today</b> is the current split: the column takes <code>37.74%</code> of the stage and the shop gets what is left.
+<b>Squish</b> narrows the column and every panel in it scales down together, because they are all sized as a
+fraction of one wrapper. <b>Slide</b> keeps the column at full size and pushes it off the left edge, leaving an
+arrow tab you click to bring it back - so nothing shrinks and nothing is unreadable, but you have to ask for it.
+The number to watch is the <b>items per shelf</b> readout: that is what the extra room actually buys.
+</p>
+
+<script>
+const $ = s => document.querySelector(s);
+const COL_FULL = 37.74;          // the shipped column width, in stage %
+const state = { mode:'today', sq:24, rows:4, open:1 };
+
+const SHELVES = [
+  { key:'sleights', sc:'var(--c-cyan)',   label:'SLEIGHTS', em:['▶','♠','♛','✧','◆','♪','✺','⌛','☲','✹'],
+    names:['Rewind','Echo','Whetstone','Pivot','Magnet','Siphon','Entourage','Governor','Lighthouse','Flywheel'],
+    price:[12,16,12,14,10,22,16,12,18,14] },
+  { key:'knacks',   sc:'var(--c-yellow)', label:'KNACKS', em:['◆','⚙','⚖','⏳','⚜','✴','☘','◈','✜','❋'],
+    names:['Tempo','Jury-Rig','Short Suit','Long Fuse','District','Old Tricks','Dividend','Alignment','Surveyor','Shorthand'],
+    price:[10,10,10,10,10,10,10,10,10,10] },
+  { key:'tricks',   sc:'var(--phosphor)', label:'TRICKS', em:['✦','✹','❉','✻','✵','✷','❈','✸','✶','❇'],
+    names:['Rich Soil','Escalation','Groove','Tick-Tock','Cull','Get Even','Overtime','Sediment','Last Stand','Compound'],
+    price:[5,8,8,5,5,5,8,5,12,25] },
+  { key:'services', sc:'var(--c-coral)',  label:'SERVICES', em:['◎','✦','↑','♻','⚡','✂','⚒','☰','✧','✚'],
+    names:['Spin','Tinker','Improve Random','Recharge','Reroll','Trim','Forge','Combine','Duplicate','Bless'],
+    price:[20,14,20,12,8,6,15,12,9,18] },
+];
+
+function buildShelves(){
+  const host = $('#shelves');
+  host.innerHTML = '';
+  const use = SHELVES.slice(0, state.rows);
+  host.style.cssText = 'flex:1;display:flex;flex-direction:column;min-height:0';
+  use.forEach((sh, si) => {
+    const d = document.createElement('div');
+    d.className = 'shelf'; d.style.setProperty('--sc', sh.sc);
+    d.innerHTML = `<div class="sh"><span>${sh.label}</span><i></i></div>
+                   <div class="items" data-shelf="${si}"></div>`;
+    host.appendChild(d);
+  });
+  fillItems();
+}
+
+// How many tiles fit on a shelf is MEASURED, not assumed - that is the whole
+// point of the page. Each tile is a fixed aspect ratio at the shelf's height, so
+// a wider shop fits more of them before they run out of room.
+function fillItems(){
+  document.querySelectorAll('.items').forEach((row, si) => {
+    const sh = SHELVES[si]; if (!sh) return;
+    row.innerHTML = '';
+    const probe = document.createElement('div');
+    probe.className = 'item';
+    row.appendChild(probe);
+    const tileW = probe.getBoundingClientRect().width;
+    const gap   = row.getBoundingClientRect().width * 0.011;
+    row.innerHTML = '';
+    const fit = Math.max(1, Math.floor((row.getBoundingClientRect().width + gap) / (tileW + gap)));
+    const n = Math.min(fit, sh.em.length);
+    for (let i = 0; i < n; i++){
+      const it = document.createElement('div');
+      it.className = 'item' + (si === 0 && i === 1 ? ' sel' : '');
+      it.innerHTML = `<span class="em">${sh.em[i]}</span>
+                      <span class="nm">${sh.names[i]}</span>
+                      <span class="pr">\u{1F4B0}${sh.price[i]}</span>`;
+      row.appendChild(it);
+    }
+    row.dataset.fit = n;
+  });
+  readout();
+}
+
+function readout(){
+  const shopW = $('#shop').getBoundingClientRect().width;
+  const wrapW = $('.wrap').getBoundingClientRect().width;
+  const pct = (shopW / wrapW * 100);
+  const fits = [...document.querySelectorAll('.items')].map(r => +r.dataset.fit);
+  const base = +$('.wrap').dataset.baseW || 0;
+  const gain = base ? Math.round((shopW / base - 1) * 100) : 0;
+  $('#ro').innerHTML =
+    `shop width <b>${pct.toFixed(1)}%</b> of stage` +
+    (base ? ` &middot; <b>${gain >= 0 ? '+' : ''}${gain}%</b> vs today` : '') +
+    `<br>items per shelf <b>${fits.join(' / ')}</b>`;
+}
+
+function apply(){
+  document.body.dataset.mode = state.mode;
+  document.body.dataset.open = state.open;
+  let w = COL_FULL, vis = 1;
+  if (state.mode === 'squish') w = state.sq;
+  if (state.mode === 'slide' && !state.open) vis = 0;
+  document.documentElement.style.setProperty('--lw', w + '%');
+  document.documentElement.style.setProperty('--colvis', vis);
+  $('#handle').innerHTML = state.open ? '◀' : '▶';
+  $('#handle').title = state.open ? 'Hide the panels' : 'Show the panels';
+  $('#squishGrp').style.display = state.mode === 'squish' ? '' : 'none';
+  setTimeout(fillItems, 360);   // after the width transition lands
+}
+
+$('#modeSeg').onclick = e => {
+  const b = e.target.closest('button'); if (!b) return;
+  [...e.currentTarget.children].forEach(c => c.classList.toggle('on', c === b));
+  state.mode = b.dataset.m;
+  state.open = 1;
+  apply();
+};
+$('#rowSeg').onclick = e => {
+  const b = e.target.closest('button'); if (!b) return;
+  [...e.currentTarget.children].forEach(c => c.classList.toggle('on', c === b));
+  state.rows = +b.dataset.r; buildShelves();
+};
+$('#sq').oninput = e => { state.sq = +e.target.value; $('#sqv').textContent = state.sq + '%'; apply(); };
+$('#handle').onclick = () => { state.open = state.open ? 0 : 1; apply(); };
+addEventListener('resize', () => { $('.wrap').dataset.baseW = ''; measureBase(); fillItems(); });
+
+// Record today's shop width once, so every other mode can be quoted against it.
+function measureBase(){
+  const cur = { w: document.documentElement.style.getPropertyValue('--lw') || (COL_FULL + '%'),
+                v: document.documentElement.style.getPropertyValue('--colvis') || '1' };
+  document.documentElement.style.setProperty('--lw', COL_FULL + '%');
+  document.documentElement.style.setProperty('--colvis', '1');
+  $('.wrap').dataset.baseW = $('#shop').getBoundingClientRect().width;
+  document.documentElement.style.setProperty('--lw', cur.w);
+  document.documentElement.style.setProperty('--colvis', cur.v);
+}
+
+buildShelves();
+measureBase();
+apply();
+setTimeout(fillItems, 420);
+</script>
+</body>
+</html>
