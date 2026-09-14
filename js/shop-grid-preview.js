@@ -162,6 +162,14 @@ function openShopGrid() {
   // rect - so the slot has to be at its shop width before anything measures it.
   ensureShopSquishTab();
   shopSquishSet(true, { instant: true });
+  // Survival opens the shop FROM the pick screen, and the pick panel sits
+  // centred over the board - which is now the shop. Put it aside with the
+  // pick's own peek mechanism (fade + inert); closeShopGrid brings it back.
+  // The peek's restore button is hidden while the shop owns the screen
+  // (body.shop-active rule in css/survival.css), so it cannot be recalled
+  // over the shelves.
+  const svPick = document.getElementById('survival-pick-overlay');
+  if (svPick && svPick.classList.contains('show')) svPick.classList.add('sv-peek');
   renderShopGrid(true);
 }
 // Dev-panel + earlier hook both call this name.
@@ -180,8 +188,33 @@ function closeShopGrid() {
   recomputeGridMetrics();
   shopGridItems = []; shopGridSel = new Set();
   gameTimerPaused = false;
-  // Continue the node flow exactly like the overlay shop-close handler.
+  // Continue whatever flow opened the shop. These branches mirror the Mart's
+  // closeMart tail plus the legacy #shop-close handler - the grid shop is the
+  // LIVE shop (r232), so every route the Mart served has to land here too.
   if (shopFromNodeFlow) { resumeAfterNodeFlowShop(); }
+  else if (typeof match3Active === 'function' && match3Active()) {
+    // Match-3's between-rounds shop: the board was pre-dealt behind the shop;
+    // match3AfterShop reveals it (goal flash + 3-2-1) and unpauses itself.
+    gameTimerPaused = true;
+    match3AfterShop();
+  }
+  else if (typeof survivalActive === 'function' && survivalActive() && !bossActive) {
+    if (typeof survivalShopFromPick !== 'undefined' && survivalShopFromPick) {
+      // Opened from the PICK screen: bring the peeked panel back in front. The
+      // pick owns the flow (the round deals when you choose), so stay paused.
+      survivalShopFromPick = false;
+      gameTimerPaused = true;
+      const svPick = document.getElementById('survival-pick-overlay');
+      if (svPick) svPick.classList.remove('sv-peek');
+      if (typeof survivalUpdateRerollBtn === 'function') survivalUpdateRerollBtn();
+      if (typeof render === 'function') render();
+      if (typeof survivalSyncPickAudio === 'function') survivalSyncPickAudio();
+    } else {
+      // Mid-round visit: triggerShop() nulled the round interval, so restart it.
+      if (typeof render === 'function') render();
+      startRoundTimer();
+    }
+  }
   else { if (typeof render === 'function') render(); }
 }
 

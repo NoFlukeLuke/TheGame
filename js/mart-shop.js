@@ -5,7 +5,10 @@
 // are visible but WIP placeholders for now; core buying/reroll/leave is real.
 // ══════════════════════════════════════════════════════════════════════════
 
-let USE_MART_SHOP = true;
+// r232: OFF - the on-grid shop (js/shop-grid-preview.js) is the live shop now.
+// The Mart stays intact as a one-flag fallback; the Wheel and Tinker Bench only
+// exist here, so flipping this back restores them too.
+let USE_MART_SHOP = false;
 let martActive    = false;
 let martCats      = [];      // e.g. ['tricks','sleights','limits'] - 3 of 4, tricks always featured
 let martStock     = {};      // { tricks:[payload…], sleights:[…], limits:[…], knacks:[…] }

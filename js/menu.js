@@ -1,4 +1,4 @@
-const BUILD = '2026-09-14 · r231 · particles: tuned plate, spin peak + settle, rewind ghost trail, coins round, clock white-on-black · blip growth (dev panel) · payout FX on the same plate [onto r230]';
+const BUILD = '2026-09-14 · r232 · the on-grid shop is the live shop: Mart off, survival/match-3/tutorial rerouted [onto r231]';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -25,7 +25,7 @@ const MODES = {
   guided: {
     id: 'guided',
     name: 'Guided',
-    desc: 'The three-quarter game on a set route. Every quarter runs reward grid, Mart, reward grid, event, and so on into the boss - then a prize grid and two events.',
+    desc: 'The three-quarter game on a set route. Every quarter runs reward grid, shop, reward grid, event, and so on into the boss - then a prize grid and two events.',
     winCondition: 'boss_defeat',
     enableBosses: true,
     enableShops: true,
@@ -42,7 +42,7 @@ const MODES = {
   tutorial: {
     id: 'tutorial',
     name: 'Orientation',
-    desc: 'A guided first run - a normal Classic run with the terminal explaining itself as you go. Play a round, take the payout, walk a reward path, visit the Mart.',
+    desc: 'A guided first run - a normal Classic run with the terminal explaining itself as you go. Play a round, take the payout, walk a reward path, visit the shop.',
     // Pinned seed: orientation is the same experience for everyone, and a bug
     // report against it is reproducible. The board is still a normal random
     // deal - the tutorial finds a hand on it rather than stacking one.
@@ -270,11 +270,11 @@ const MODE_SELECT_LIST = ['tutorial', 'normal', 'guided', 'sixsuits', 'spectrum'
 const MODE_HIDDEN_LIST = ['match3', 'zen', 'dominoes'];
 const MODE_META = {
   tutorial: { accent: '#8fd0ff',         suits: 'START HERE',
-              blurb: 'LETHE Corp staff orientation. A normal Classic run with the terminal explaining each control as you reach it - scoring, Focus, limits, the reward path, the Mart. About three minutes.' },
+              blurb: 'LETHE Corp staff orientation. A normal Classic run with the terminal explaining each control as you reach it - scoring, Focus, limits, the reward path, the shop. About three minutes.' },
   normal:   { accent: 'var(--c-yellow)', suits: '♠ ♥ ♦ ♣',
               blurb: 'The original four-suit game. Three Acts of rounds, shops, events and bosses.' },
   guided:   { accent: '#c9a0ff',         suits: '8 SLOTS',
-              blurb: 'Each act is eight slots and then the boss. Every slot is either a round you play or something you buy with it - the Mart, a reward grid, or one of two events on offer. Buying power always costs a round you will not get to play, and the goal climbs either way, so the question is how much of the act you spend getting stronger rather than getting further.' },
+              blurb: 'Each act is eight slots and then the boss. Every slot is either a round you play or something you buy with it - the shop, a reward grid, or one of two events on offer. Buying power always costs a round you will not get to play, and the goal climbs either way, so the question is how much of the act you spend getting stronger rather than getting further.' },
   sixsuits: { accent: 'var(--c-mint)',   suits: '♠ ♥ ♦ ♣ ★ ▲',
               blurb: 'Two extra suits dilute the deck, so flushes are hard-won. Flush of 3, 4 and 5 are all in play.' },
   spectrum: { accent: '#ff9d3c',        suits: '🔴 🟡 🔵 🟢 🟣 🟠 ⚫ ⚪',

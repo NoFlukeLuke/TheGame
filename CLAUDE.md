@@ -1767,8 +1767,17 @@ In every one of those the `min` **cut the clock down to 180 and then returned 0*
 ## No text selection (r182)
 `html, body` carry `user-select:none` + `-webkit-touch-callout:none` + `-webkit-tap-highlight-color:transparent`, re-enabled for `input, textarea, [contenteditable], .selectable-text`. A click-drag across the board, or the press-and-hold that opens a tooltip, used to blue-highlight whatever label the finger landed on and pop iOS's copy/define callout over the card you were trying to read.
 
-## The Mart (off-grid shop) - `js/mart-shop.js` + `js/wheel.js` + `css/mart.css`
-`USE_MART_SHOP` routes `triggerShop()` to the LETHE Mart: left **loadout** column (Knacks / Sleights / Tricks / Limits panels + Stats·Deck·Time chips) · centre **catalog** (3 of 4 categories, Tricks always featured, plus Spotlight/Spin/Freezer specials) · right **checkout**.
+## The live shop is the ON-GRID shop (r232) - `js/shop-grid-preview.js`
+
+`USE_MART_SHOP` is **false**: `triggerShop()` now opens `openShopGrid()` - the 4x5 board shop with row plates, the r230 left-column squish and the fall-in deal. Every route the Mart served lands there:
+
+- **`closeShopGrid`'s tail mirrors `closeMart`'s**: node flow -> `resumeAfterNodeFlowShop()`; match-3 -> `match3AfterShop()` (stays paused, that function unpauses itself); Survival from the pick -> restore the pick and STAY paused; Survival mid-round -> `render()` + `startRoundTimer()`.
+- **Survival's pick panel sits centred over the board, which IS the shop now.** `openShopGrid` puts it aside with the pick's own `sv-peek` mechanism, and `body.shop-active #sv-peek-restore { display:none }` (css/survival.css) stops the restore button recalling it over the shelves; `closeShopGrid` brings it back and calls `survivalSyncPickAudio`. `survivalOpenShop` also guards on `shopGridActive` so the entry fee cannot be double-charged.
+- **The tutorial's five Mart steps are four Shop steps** (board / buying / reroll+sell / leave), gated on `tutShopReady()` - `shopGridActive` AND a `.shop-tile` with a real rect, because the tiles deal in and a zero-size anchor lands the bubble centred with no spotlight.
+- **The Wheel and the Tinker Bench live only in the Mart** and are unreachable while the flag is off; the Mart is kept whole as a one-flag fallback. Guided's bought stop and the mode blurbs say "the Shop" now.
+
+## The Mart (off-grid shop, MOTHBALLED r232) - `js/mart-shop.js` + `js/wheel.js` + `css/mart.css`
+`USE_MART_SHOP` (now false) routes `triggerShop()` to the LETHE Mart: left **loadout** column (Knacks / Sleights / Tricks / Limits panels + Stats·Deck·Time chips) · centre **catalog** (3 of 4 categories, Tricks always featured, plus Spotlight/Spin/Freezer specials) · right **checkout**.
 - **Bundle discount:** `martDiscountRate()` (BAL.shop_discount, 5% - doubled by the **Bulk Buyer** knack) × per ADDITIONAL item, capped at `rate × Selection Size`. So 2 items = 5%, 3 = 10%, cap 15% at run start.
 - **Checkout** flies each bought item to its loadout panel one at a time (`flyMartTile`), firing `buy()` on landing. The flyer is a body-level clone because `renderMart()` rebuilds the catalog.
 - **Spin the Wheel** (`js/wheel.js`, `BAL.wheel.cost`): 10 spaces (BUST + JACKPOT + entities at shop rarity odds), **drag to spin** - release velocity sets the throw, with a floor guaranteeing ≥1 full turn and a random force so it can't be aimed. **No exit while spinning or before the prize resolves.** If a prize doesn't fit (Tricks vs `trick_slots`), an overflow prompt offers sell-a-Trick or sell-the-prize (`BAL.wheel.default_sell` = 15 unless the type has its own sell value).

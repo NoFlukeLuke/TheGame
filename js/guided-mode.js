@@ -136,7 +136,7 @@ function guidedMakeOffer(kind) {
     desc:'Clear the goal and take the payout. This is how you earn.', price:0 };
   if (kind === 'reward') return { kind, icon:'▦', name:'Reward grid',
     desc:'Pick a path across the board and take everything on it.', price:P('reward') };
-  if (kind === 'shop')   return { kind, icon:'🛒', name:'The Mart',
+  if (kind === 'shop')   return { kind, icon:'🛒', name:'The Shop',
     desc:'Buy Tricks, Sleights, Knacks and limit upgrades.', price:P('shop') };
   if (kind === 'pick3')  return { kind, icon:'✦', name:'Take your pick',
     desc:'Three rewards on the table. Take one, no charge.', price:0 };
