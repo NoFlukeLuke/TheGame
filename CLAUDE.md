@@ -626,10 +626,99 @@ The `double_tap` sleights **no longer sit locked on the grid once-per-round** - 
 A player asks one question constantly and the board never answered it: **why is this card different?** Two surfaces, one vocabulary, both driven from tables rather than per-Trick code.
 
 - **A marked row or column gets a coloured LINE down the board, behind the cards.** `renderLineMarkers()` draws one absolutely-positioned sibling of the cards per `rowColBonuses` entry, coloured from `LINE_FX_META`, with the owning Trick's glyph on both end caps. It **sweeps in once** when the Trick is acquired (`animateLineGrant`, called from `finalizePositionMark`) and then simply stays for the run. `_rcSeen` on the registry entry is what stops the sweep replaying - `render()` rebuilds these on every card fall.
-- **The card side is a ring in the same colour** (`.rc-line-ring`, from `cellOnMarkedLine`). **This is the part that was missing**: only `rowcol_triple_pips`, `rowcol_mult` and `rowcol_retrigger` tinted their cards, so **Perfect Timing, Right Time, Study Hall, Groove, Assembly Line and Overtime marked a line the player could not see** - it was a number in a tooltip. One ring covers all nine.
+- **The card side is a ring in the line's colour** (`.rc-line-ring`, from `lineRingHTML`). **This is the part that was missing**: only `rowcol_triple_pips`, `rowcol_mult` and `rowcol_retrigger` tinted their cards, so **Perfect Timing, Right Time, Study Hall, Groove, Assembly Line and Overtime marked a line the player could not see** - it was a number in a tooltip. One ring covers all nine. **A card on SEVERAL lines divides that ring between them** - see r223 below.
 - **`z-index` is explicit, and it has to be.** Card elements carried no z-index at all, so paint order was DOM order - and `render()` appends new cards AFTER the markers, which would put a card dealt mid-round on top of a line while its neighbours sat under one. `css/entity-fx.css` sets cards/tricks/blocked cells to 2 and lines to 1. Boss cell overlays (12-15) and temp-anim clones (10) are unaffected.
 - **Per-card marks are `CARD_MARK_META`, keyed by a `covers(r,c)` PREDICATE, not a position.** Two of them are derived: Ley Line and Temporal Rift both fire wherever a row effect crosses a column effect, which is a set of cells. **`leyLinePos` is never assigned by anything**, so the `.card.rc-leyline` tint it drove had been dead since it was written; Ley Line has a visible mark for the first time. Heartwood's mark reuses `Math.floor(rows/2) x Math.floor(cols/2)`, the exact expression `play-hand.js` buffs, so the mark can never point at a different cell from the one that gets the bonus.
 - One mark per card by design - two glyphs in one corner of a 57px card is noise, and the tooltip lists the rest.
+
+### The lines, finished (r223)
+
+Four things r209's lines did not do. All four are owner spec.
+
+- **They STAY ON THE BOARD DURING THE REWARD GRID.** `renderRewardTiles` empties
+  `#grid`, which took the lines with it, so they vanished for the whole of every
+  between-rounds screen - which is exactly when a player is deciding whether
+  another line-marking Trick is worth a slot. It redraws them at its tail.
+- **`renderLineMarkers(opts)` takes the GEOMETRY of the board it is drawing onto**
+  (`{rows, cols, offX, offY}`, default the play board), because the reward grid is
+  not always the play board: a **prize grid is two rows and columns smaller and is
+  centred on it**, so the lines need its size and its offset or they sit under
+  nothing.
+- **Several lines on one row or column are spaced at `(i+1)/(n+1)` of the card** -
+  one down the middle, two at a third and two thirds, three at a quarter, a half
+  and three quarters. The first version divided the card into `n` bands and centred
+  in each, which puts two lines at 25/75 and three at 17/50/83: lines hugging the
+  card's edges rather than an evenly divided lane. Measured: 0.25 / 0.50 / 0.75.
+- **A card on several lines SPLITS ITS RING between their colours** - equal wedges
+  with hard stops (`lineMetasForCell` -> `lineRingPaint` -> `lineRingHTML`), so a
+  crossing reads as both things instead of whichever the registry listed first. A
+  blend of three Trick colours is a fourth colour belonging to nothing, hence hard
+  stops. **The ring had to stop being a `box-shadow` to do this**: a box-shadow
+  takes one colour and cannot be divided. It is paint masked down to the border
+  now (`padding` + two masks + `mask-composite`). Verified: 3 lines give three
+  33.3% wedges, a row/column crossing gives four at 25%.
+
+#### `clampRowColBonuses()` - and why it reads the LIMITS
+
+A Trick marking column 5 on a board that shrinks below it is marking a line that is
+not there, which is a Trick that silently stopped working. It moves to the highest
+line that exists and **stays** there; growing the board back does not move it. That
+is lossy on purpose - the alternative is a shadow index that could resurface on a
+board the player has since rebuilt differently - and `finalizePositionMark` is what
+applies the move, so the Trick's printed description follows.
+
+**It measures against `limits.grid_rows/cols`, NEVER against `gridRows`/`gridCols`,
+and that is the whole reason it is safe to call.** Four things move the live board
+size TEMPORARILY and put it back, and clamping against the live globals would let
+any of them permanently move a line the player's real board still has room for:
+
+| what | shrinks the live board |
+|---|---|
+| **Short Staffed** (reward-grid penalty) | one row or column, **for a single round** |
+| the on-grid shop | forces 4x4, restores from `shopGridSaved` |
+| the prize grid | two smaller than the play board |
+| Dominoes | sets its own, twice (`dominoes-mode.js:115` **and** `game-control.js`, right after the limits assignment) |
+
+Short Staffed is the one that would have hurt: a one-round penalty costing a Trick
+its position for the rest of the run. So the clamp hangs off **`onLimitChanged`**,
+the single place a limit actually moves, and everything that merely BORROWS the
+board at a smaller size clamps what it **draws** instead (above) and leaves the
+registry alone. Verified: a 4x4 prize grid drew a col-5 line at col-3 with the
+stored index still 5.
+
+### The score panel between rounds (r223)
+
+`triggerLevelUp` banks and zeroes `score` before any between-rounds screen opens,
+so the panel read **"Score 0"** over the NEXT round's goal for the whole of every
+reward grid, shop and event - zero being neither true nor the number the player
+wants while deciding what to take. It reads **LAST ROUND** over what the round
+scored and **NEXT QUOTA** over what is being asked for next, with the progress bar
+hidden (it would sit at 100% and mean nothing).
+
+- It rides **`body.grid-screen`**, the class `enterGridScreenHud()` already sets for
+  the PIPS/MULT/FOCUS -> LOCATION swap, so all three screens get it with no
+  per-screen wiring. `updateScoreUI()` is the single writer.
+- **`lastRoundGoal` must be captured ABOVE the level bump** in `triggerLevelUp` -
+  `roundGoal` is recomputed four lines later and is the next round's target from
+  then on. A first pass read it afterwards and recorded 1500 where the round that
+  just cleared had been playing for 1200. `lastRoundScore` is captured lower, beside
+  the `totalScore` banking, because it needs Survival's overflow figure.
+- Both are in `SAVE_VARS` and reset in `startGame`.
+
+### `shop-room-preview.html` (r223)
+
+The two ways of giving the shop more room, on a stage laid out with the real
+landscape percentages. **Squish** narrows the left column and every panel scales
+with it (they are sized in container units against the column, so it genuinely
+squishes rather than clipping); **Slide** pushes it off the edge at full size and
+leaves an arrow tab. The readout MEASURES how many items fit a shelf rather than
+asserting it: **5 per shelf today, 7 squished to 24%, 10 slid away.**
+
+**The slide is a transform and the shop's edge is a stage percentage, so they
+cannot share one number** - a `translateX` percentage is a share of the element's
+OWN width, and the first version moved a 37.74% column by 37.74% of itself, about
+15% of the stage, so it never cleared. Two variables: `--lw` (column width, stage
+%) and `--colvis` (1 or 0).
 
 ### FLAT vs SCALING card buffs (r209)
 

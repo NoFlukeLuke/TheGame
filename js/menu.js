@@ -1,4 +1,4 @@
-const BUILD = '2026-09-14 · r223 · grid lines: reward grid, even spacing, shrink clamp, split rings; between-round score panel; shop room preview [onto r222]';
+const BUILD = '2026-09-14 · r224 · document the grid lines, the between-round score panel and the shop room preview';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
