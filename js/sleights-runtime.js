@@ -740,3 +740,83 @@ document.addEventListener('pointerdown', e => {
 // EVENT SYSTEM
 // ══════════════════════════════════════════════
 
+
+// ══════════════════════════════════════════════
+// THE RINGER (r197) - a spare card slipped into the hand
+// ══════════════════════════════════════════════
+// While it sits on the grid, submitting a hand can pull in ONE more card off the
+// board, if doing so makes a better hand: a third 10 becomes a fourth, a J-Q-K
+// becomes a 10-J-Q-K. Four deliberate decisions:
+//
+// 1. IT IGNORES SELECTION SIZE. The extra card is added AFTER the hand is found,
+//    so a selection limit of 3 can still submit a four-card set. That is the
+//    whole point of the Sleight, and it is why the augmentation lives here and
+//    not in findBestHand, which is also what the live preview and the auto-submit
+//    read - hooking it there would promise a card the player has not committed to.
+// 2. IT IGNORES ADJACENCY. findBestHand only ever builds orthogonally connected
+//    subsets, and the card that completes a run is usually nowhere near it.
+//    detectHand does NOT check connectivity (it only reads the cards), so the
+//    augmented hand is assembled here and handed to detectHand directly.
+// 3. IT FIRES AT SUBMIT. The added cell joins `selected` and `handCells` before
+//    the scoring dance runs, so the dance's existing fly-into-the-preview
+//    animation carries it with no new animation code.
+// 4. IT SEARCHES EVERY RANK ON THE BOARD, and this is the one place the first
+//    draft was wrong. Naming a fixed rank up front - the board's highest, say -
+//    reads well and barely ever fires: nothing ranks above the highest card, so
+//    it can never extend a run, and it only ever helps the one set that happens
+//    to share it. Verified on a board of 8-9-10 with a spare 10: a highest-rank
+//    Ringer found no improvement at all. Taking the best card on the board
+//    instead is what makes the Sleight do the thing its own description promises.
+
+const RINGER_ID = 'the_ringer';
+
+// The live Ringer on the grid with charges left, as [card, r, c].
+function ringerOnGrid() {
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
+    const cd = gridData[r]?.[c];
+    if (cd && cd._isSleight && cd.sleightId === RINGER_ID
+        && (cd._usesLeft === 'infinite' || cd._usesLeft > 0)
+        && (typeof cellCountsForTriggers !== 'function' || cellCountsForTriggers(r, c))) {
+      return [cd, r, c];
+    }
+  }
+  return null;
+}
+
+// How good a hand type is, under whichever scoring model is live. The same
+// max(pips,1) shape detectHand's own tiebreak uses, so the comparison still holds
+// in the two models that zero base pips (see "Scoring models" in CLAUDE.md).
+function _ringerWorth(h) {
+  if (!h) return -1;
+  return Math.max(handBasePips(h), 1) * handBaseMult(h);
+}
+
+// Try to improve `result` by adding one card off the board. Returns the improved
+// result (and spends a charge) or null. Never touches the board - the caller owns
+// `selected`.
+function ringerAugment(result, selCells) {
+  const live = ringerOnGrid();
+  if (!live || !result || !result.handCells) return null;
+
+  const taken = new Set(result.handCells.map(([r, c]) => r + '-' + c));
+  (selCells || []).forEach(([r, c]) => taken.add(r + '-' + c));
+
+  let bestCell = null, bestHand = null, bestWorth = _ringerWorth(result.hand);
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
+    if (taken.has(r + '-' + c)) continue;
+    const cd = gridData[r]?.[c];
+    if (!cd || !cd.rank || cd._isSleight || cd._isTrick || cd._isStone) continue;
+    if (isCellBlocked(r, c) || !cardCan(cd, 'select')) continue;
+    const h = detectHand([...result.handCells, [r, c]]);
+    const w = _ringerWorth(h);
+    if (h && w > bestWorth) { bestWorth = w; bestHand = h; bestCell = [r, c]; }
+  }
+  if (!bestCell) return null;   // nothing improves the hand - no charge is spent
+
+  const [card, sr, sc] = live;
+  consumeSleightCharge(card, sr, sc);
+  const added = gridData[bestCell[0]][bestCell[1]];
+  showMessage(`The Ringer - ${added.rank}${added.suit || ''} joins the hand`, '#cc88ff');
+  return { hand: bestHand, cell: bestCell,
+           result: { ...result, hand: bestHand, handCells: [...result.handCells, bestCell] } };
+}

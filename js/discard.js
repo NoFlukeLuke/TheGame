@@ -31,7 +31,7 @@ function doDiscard() {
   selected = validSelected;
   const discardedCards = selected.map(([r,c]) => gridData[r][c]);
   // Lucky Sevens: +3 Focus per 7 discarded
-  if (hasTrick('lucky_sevens')) { const _sv = discardedCards.filter(c => c?.rank === '7').length; if (_sv) addFocus(_sv * BAL.lucky_sevens.focus); }
+  if (hasTrick('lucky_sevens')) { const _sv = discardedCards.filter(c => c?.rank === '7').length; if (_sv) addFocus(_sv * BAL.lucky_sevens.focus, 'lucky_sevens'); }
   // The Vulture: cards discarded during the round's first clock pause gain a permanent "pause on score" buff (stacks)
   if (hasTrick('vulture') && firstPauseActive) discardedCards.forEach(c => { if (c) c._vulturePause = (c._vulturePause || 0) + BAL.vulture.pause_seconds; });
   // ♠ corrupts after being discarded 2×; a swap-pending ♥ counts as "not played" → corrupt.
@@ -148,7 +148,7 @@ function doDiscard() {
   // been decremented above, so this reads what is LEFT after paying for this discard.
   if (hasTrick('cull')) {
     const _stock = Math.max(0, swaps) + Math.max(0, discards);
-    if (_stock > 0) { addFocus(_stock * BAL.cull.focus_per_stock); showMessage(`Cull +${_stock * BAL.cull.focus_per_stock} Focus`, 'var(--gold)'); }
+    if (_stock > 0) { addFocus(_stock * BAL.cull.focus_per_stock, 'cull'); showMessage(`Cull +${_stock * BAL.cull.focus_per_stock} Focus`, 'var(--gold)'); }
   }
   const toRemove = [...selected];
   selected = [];
@@ -218,7 +218,9 @@ function showTimeCost(label) {
 // Math.min still reads correctly against Infinity.
 function rewindCeiling() { return Infinity; }
 
-function rewindTime(seconds, label) {
+// `srcId` / `srcSource` name the entity that caused the rewind, when the caller
+// knows it, so the FX can fly the symbol from that entity's tray tile (js/payout-fx.js).
+function rewindTime(seconds, label, srcId, srcSource) {
   // The Rerun (boss): a coin flip on every rewind. Not speculative - this is only
   // ever reached from playHand and the round tick, never from calcScore.
   if (typeof bossRerunMisses === 'function' && seconds > 0 && bossRerunMisses()) {
@@ -251,7 +253,11 @@ function rewindTime(seconds, label) {
   void el.offsetWidth;
   el.style.transition = 'top 0.7s ease-out, opacity 0.7s ease-out';
   el.style.top = '-22px'; el.style.opacity = '0';
-  if (label) showMessage(label, '#5aa9e6');
+  if (label) showMessage(label, '#5aa9e6', { icon: '\u23ea' });
+  // The symbol flies from the entity that caused it to the clock it changed
+  // (js/entity-fx.js). `srcId` is optional - without it the flight still happens,
+  // it just starts from the clock rather than from a tray tile.
+  if (typeof entityEffectFX === 'function') entityEffectFX('rewind', gained, { id: srcId, source: srcSource });
   return gained;
 }
 
@@ -262,7 +268,7 @@ function rewindTime(seconds, label) {
 function handleClockMarks(secs) {
   if (secs <= 0) return;
   // Tick-Tock: clock reading ends in a 0 → +2 Focus
-  if (secs % 10 === 0 && hasTrick('ticktock')) { addFocus(BAL.ticktock.focus); }
+  if (secs % 10 === 0 && hasTrick('ticktock')) { addFocus(BAL.ticktock.focus, 'ticktock'); }
   // Quarter Chime: clock reads a multiple of 15 → +45 pips to the next hand
   if (secs % 15 === 0 && hasTrick('quarter_chime')) {
     pendingHandPips += BAL.quarter_chime.pips;
@@ -308,7 +314,7 @@ function handleClockMarks(secs) {
   }
 }
 
-function pauseRound(seconds) {
+function pauseRound(seconds, srcId, srcSource) {
   // A pause of no length is not a pause. Callers multiply their seconds by
   // trickFires(), which is 0 for a Trick you do not own, so this is the normal way
   // an unowned Trick's pause arrives here - and without this guard it would still
@@ -324,7 +330,7 @@ function pauseRound(seconds) {
   // BINARY under Luck: a pause cannot become two rewinds, so anything above
   // 100% is wasted here on purpose. Its tooltip caps the printed figure to match.
   if (hasKnack('time_slip') && luckRoll(BAL.time_slip.chance) > 0) {
-    rewindTime(seconds, '⏮️ Time Slip - rewound instead of paused!');
+    rewindTime(seconds, '⏮️ Time Slip - rewound instead of paused!', 'time_slip', 'knack');
     return;
   }
   // Long Pause knack: all pauses are 1.5x longer
@@ -342,6 +348,7 @@ function pauseRound(seconds) {
   // Lit clock, tick-tock, and the ripple that turns and holds every card
   // (js/clock-fx.js). Idempotent - an extension of a live pause does nothing.
   if (typeof beginClockFreeze === 'function') beginClockFreeze();
+  if (typeof entityEffectFX === 'function') entityEffectFX('pause', Math.round(seconds), { id: srcId, source: srcSource });
   if (pauseTimer) clearTimeout(pauseTimer);
   // count down pause
   const tick = () => {

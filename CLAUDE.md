@@ -20,6 +20,8 @@ The game **used to be one giant `index.html`**. It's now split into many small f
 - `js/` - the game code, one file per system (list below).
 - `js/entity-tile.js` - **`entityTileInner` / `entityTileHTML` (r182): the ONE way an entity is drawn.** See "One entity tile" below - change a Trick's look here and the reward grid, the Mart shelf, the cart, the loadout strip, your tray and the Shift Change event all move together.
 - `js/fit-text.js` - `fitEntityName`. Shrinks an entity name until it fits, **never breaking a word** (r182).
+- `js/dance-clock.js` - **the scoring dance's own clock (r218).** Pausable waits, a WAAPI animation registry, and the per-tick acceleration. See "The dance clock" below.
+- `js/events-upgrade.js` / `js/events-slots.js` - the r218 events. Registered in `js/events-core.js` like every other event.
 - `js/storage.js` - **loads FIRST**, before every other script. A safety shim for browser storage (see below). Nothing else may be moved above it.
 - `js/data/` - **the "entities": pure content/data, no logic.** Edit these to tune or add game content without touching engine code:
   - `cards.js` - suits, ranks, rank order, `HAND_BASE` values, round/goal durations, `cardCan`, **and the Spectrum colour deck** (`COLORS` / `RANKS_NUMERIC` / `ACTIVE_RANKS`).
@@ -140,6 +142,213 @@ The old table had four inversions, all fixed:
 - **The r190 additions cover triggers nothing else read**: Rerun / Chorus (replay count, from `_reps` - sum minus card count is the extra iterations), Deep Breath (clock paused), Interest (credits held, capped), Portfolio (buffed cards on the grid, via `permPips`/`permMult` - which are keyed by card IDENTITY, so a buff on Spectrum white counts seven cards), Redline (Focus level).
 - **Compound** (mythic) banks the round score every 45s on the round tick; the next scored hand pays the bank and it re-arms, so it compounds across a round. Its payout is added at **SCORE level, not as pips or mult** - it is a copy of score already earned, and routing it through mult x Focus would multiply it a second time.
 
+### The scoring TIMELINE (r220) - every Trick pays out at its own moment
+
+`calcScore` used to hand the dance a **set of totals** (`_cp`/`_cm`: what each Trick
+was worth by the end). That is the right shape for the contributions tab and the
+wrong one for an animation, which needs to know WHEN each thing happened and WHAT
+KIND of thing it was. So the dance did the only thing it could: every contributing
+Trick rattled from the first card beat, and the ones it could not attribute to a
+card all fired in one lump at the end.
+
+`calcScore` now also emits an **ordered event timeline** (`ledger.timeline`), and
+`playPreviewDance` walks it. An entity is perfectly still until its own event
+lands, then pops and throws its particle - on the card that triggered it, if a card
+did. **Replaying the timeline reproduces `calcScore` exactly**: verified over 10,000
+scored hands (400 boards x 25 hands, full 177-Trick trays, replays to 6x, curses,
+enhancements, exalt/corrupt) with **0 mismatches**.
+
+```js
+{ id, source, op:'pip+'|'mult+'|'pip*'|'mult*', value, card, from, scope, rnd }
+```
+
+- **`op` distinguishes an ADD from a MULTIPLY, and that is the whole point.** A
+  x mult used to report itself as a delta, so Double Bloom showed `+35` - a number
+  that means nothing on its own and is wrong the instant anything else changes. It
+  shows `x1.5` now and multiplies the MULT chip. **The contributions tab still gets
+  the delta** (`bPipX`/`bMultX` write the delta to the ledger and the factor to the
+  timeline - same call, two audiences), because "+240 pips" is what the player
+  actually gained.
+- **`card` is which beat it belongs to; `from` is which card it flies FROM.** Not
+  the same question. A per-card x mult (a card enhancement) multiplies the WHOLE
+  running mult, so it cannot fire inside a card's beat - the mult is smaller there -
+  but the particle should still come off the buffed card.
+- **`scope` is card vs hand for a MULTIPLY.** Inside a beat, every pip op lands on
+  that card's own subtotal, exactly as `calcScore` builds `cp` per card and only
+  then does `totalPips += cp`. That is what gives a card-scoped x pips something of
+  its own to multiply. **Routing the adds straight to the hand total instead left
+  the subtotal at zero and the multiply multiplied nothing** - measured at 171 pips
+  on a hand worth 228.
+- **`rnd` carries each site's rounding**, because the sites do not agree: a x pips
+  rounds to a whole number, a x mult to one decimal, the card-scoped ones not at
+  all. Without it the chip drifts a few hundredths and snaps at the end.
+
+**Four traps this encodes, all found by measurement rather than reading:**
+- **Retrigger bookkeeping must NOT emit** (`bPipQ`, the quiet ledger write). The
+  dance shows a replay by REPEATING the card's whole beat, which re-adds those pips
+  on its own. Emitting them too counted every retrigger twice - 5,682 mismatches.
+- **A beat fires ALL AT ONCE, but its values are applied by ONE timer in emission
+  order (r222).** A card and everything it triggered are one event, so they leave
+  and land together - no stagger. The trap is that a particle used to apply its
+  number in its OWN landing callback, and a beat launched together could not keep
+  those in order two different ways: `dncFly` bumps the accel per particle, so
+  each successive flight is SHORTER and they land in reverse; and even pinned to
+  one duration they race, because `dncWait` polls on a 60ms tick rather than
+  firing in registration order. Measured on a card carrying a x3 and a x2 - **466
+  pips reversed, 512 racing, 416 correct**. So the values are decoupled from the
+  particles: `fireEvent(..., defer)` RETURNS the apply function instead of wiring
+  it to its own landing, every particle in the beat gets one shared duration, and
+  a single `dncWait` applies them in order when they arrive.
+- **A beat must also await its particles before banking the card's subtotal**, or
+  the next step's x mult runs against a number that has not arrived. Measured: a x2
+  landing ahead of a +9 finished on 13 mult, not 26.
+- **The reconcile must read the LEDGER, not `lastCalcPips`/`lastCalcMult`.** Those
+  are globals every `calcScore` overwrites, and plenty run mid-dance (`removeAndFall`
+  repaints, `render()` calls `findBestHand`, `findBestHand` scores candidates), so
+  the old reconcile could snap the chips to another hand's numbers - measured at 228
+  on a hand worth 226. In dev mode a drift between the walk and the ledger now logs
+  `[DANCE] timeline drift`: if the timeline stops describing the real arithmetic, a
+  beat is lying to the player and a snap at that line is the only visible symptom.
+
+**The per-card MULT sweeps moved INTO the card loop.** Heart/Jack/King-guard mult,
+`permMult`, Old Growth and exalt/corrupt were post-loop `_wc(pred) x rate` sweeps -
+the same sum, but a sweep cannot tell the dance which card earned it, so all of them
+animated in the end lump. They are accumulated per card now (`_hdMult`, `_jmMult`,
+`_kgMult`, `_pmMult`, `_ogMult`, `_ecMultAcc`/`_ecPipAcc`) and emitted where they
+happen. Addition is order-free, so **the score is unchanged to the digit** - but
+they must be emitted AFTER the Blight's rewind, because the sweeps they replace were
+never Blight-suppressed.
+
+**One deliberate score change: `permXMult` moved to the x mult block.** It sat
+part-way up the additive mult list, so it multiplied the base mult and the few
+bonuses above it and nothing below - Old Growth, the Sleight mults, every suit, rank
+and shape bonus all added after it and escaped. A x1.5 card enhancement was worth
+x1.5 of a small number and x1.0 of a big one, which is not what it says on the tin
+and not how any other x mult behaves (r190: a x mult lands after everything
+additive). It is a **buff to card enhancements**, and it is what makes the additive
+mult region CONTIGUOUS - which is what lets a per-card mult Trick animate on its own
+card without the running number drifting. Measured: **1,264 hands byte-identical**
+with no enhancement in play; only hands scoring a x mult-enhanced card move, by
++6-14%.
+
+**Two scoring paths had to be brought onto the timeline to close it:**
+- **Row/col +2 mult per affected card never went through the ledger at all** - it is
+  the one scoring bonus with no contribution row, which was invisible while the
+  dance only showed totals. It emits an event now but is still NOT billed to
+  `_cp`/`_cm`: adding a row would change what the contributions tab reports.
+- **Layered hands and Amplifier are part of the BASE, not events.** Both add
+  straight to `totalPips`/`mult` with no ledger call, so they are folded into
+  `ledger.basePips`/`ledger.baseMult` and the dance seeds its chips from THOSE, not
+  from the primary hand's ladder alone.
+
+**Known gap:** `corner_retrigger` (Cornered) is a x pips over the whole hand
+(`totalPips *= minsLeft^corners`), so it fires once at the end rather than on each
+corner card. Firing it per corner card is a one-line move into the loop and it
+**changes the score** (`(T*m)*m` over the finished total is not the same as applying
+x m twice mid-loop), so it wants a balance decision, not a quiet edit.
+
+### Focus lands BEFORE the tally (r222)
+
+The Focus a hand earns - its complexity, how fast it was played, and any Trick
+that hands out Focus - is generated in `playHand` **before** scoring, and it
+multiplies **that same hand**. The dance said the opposite: the FOCUS chip sat at
+the pre-hand value through the whole tally and only climbed at the very end,
+which reads as "this multiplier applies to the NEXT hand".
+
+It is the same number either way; only *when the player is told it changed* moved.
+The chip now settles on the multiplier the hand is actually being scored with
+**before a single card scores**, so the rest of the tally runs underneath a FOCUS
+box that is already telling the truth. `focusActive` is computed once where the
+chips are first written, so the beat and the settle cannot disagree.
+
+### The score particle is a coloured diamond (r222) - `particle-preview.html`
+
+A particle was bare serif text with a drop shadow, competing with a board of cream
+playing cards and a lit HUD. It is a small **diamond plate**, coloured by the chip
+it is flying into and lettered in white Orbitron: **pips blue** (the PIPS chip's
+own border colour), **mult red**, Focus violet, credits gold, time clock-blue - so
+the colour says what is changing before the number is read, and an opaque plate is
+legible over anything behind it. A multiply is the same hue, brighter.
+
+- **`PARTICLE_CFG` in `js/score-dance.js` is the whole shape**, and
+  **`particle-preview.html`** is where it is tuned: a mock HUD, the real flight, a
+  knob for every value, and a Dump button that prints the block to paste back.
+  Shapes are diamond / square / circle / pill / **none** (the pre-r222 bare text,
+  kept as an option). Sizes are multiplied by `DANCE_CFG.pScaleMul` (1.15).
+- **TWO nested elements, and that is load-bearing.** `.dnc-particle` is the FLIGHT
+  element - `dncFly` animates its transform every frame - and `.pt-box` is the
+  plate. A diamond IS a 45deg rotation, so on one element the flight's transform
+  would overwrite it; the box rotates and `.pt-lab` counter-rotates so the text
+  stays upright.
+- **The border is the plate's own hue lightened** (`_ptLighten`), not a separate
+  colour, so the diamond reads as one object rather than as an outline around a
+  fill.
+- `evKind(ev)` maps a timeline event to its colour family. The old per-op text
+  colours are kept but are now read ONLY by the no-plate shape.
+
+### Scoring speed is a slider, and bursts are timed (r220)
+
+- **Settings > Motion > Scoring speed** is a **0.5x-16x slider** (was four presets),
+  **defaulting to 2x** (r222), writing `DANCE_CFG.norm`. The `norm:1` in
+  `DANCE_CFG` is only the value before settings apply, not the shipped default -
+  and nothing about the timing MATH changed, the slider just starts at 2. It applies to the goal hand too: a player who set 8x has
+  said what they want to watch, and having the one hand that ends the round ignore
+  them reads as a stall, not as ceremony.
+- **The per-payout acceleration is the dance clock's** (`dncBumpAccel` /
+  `dncPace`, js/dance-clock.js): +5% of the current pace per payout tick,
+  compounding, capped at 8x, reset per hand. Per-trigger payouts mean many more
+  ticks than before, so the ramp does most of the work of keeping a long hand
+  bearable. Measured, 5-card hand with 10 Tricks: **13.8s at 1x, 7.1s at 2x, 4.1s
+  at 4x, 2.9s at 8x.**
+- **Burst depth comes from how fast hands are SUBMITTED** (`DNC_BURST_WINDOW`,
+  1400ms), not from whether `danceAbortController` happens to be non-null. That was
+  the "why did this hand fast-play?" bug: a skipped dance is short but still has a
+  tail (merge, throw, climb, settle), so the next hand almost always arrived while a
+  controller existed and inherited the depth - **once you entered skip mode you
+  stayed in it**. `cancelDance()` also stamps `dncCutAt` for cuts with no successor
+  at all (round end, a boss firing, `startGame`), so a hand played just after one of
+  those inherited a burst it never earned. Depth now self-heals the moment the
+  player stops hammering.
+
+### Toasts - `showMessage()` (r220)
+
+**275 call sites shared ONE element**, one 0.9s animation, 40px Cinzel (a serif the
+game uses nowhere else), no plate behind it. Two messages in the same second
+clobbered each other and a single one was gone before it could be read against a
+board of cream playing cards. `showMessage(text, color)` is unchanged as a
+signature - **no call site moved** - but each message is now its own `.toast` in a
+`#toast-layer` stack: house mono type, an **opaque** plate, a colour-coded left
+edge, a dark stroke painted OUTSIDE the glyphs (`paint-order`) so the text survives
+landing on a bright card, and a 2.2s dwell. Max 4 at once; the same line twice in a
+row bumps an `x2` badge rather than stacking a duplicate. The optional third arg
+takes `{ icon, ms, kind }`. **Outside `#cabinet`**, for the usual `zoom` reason.
+
+### Entity payout FX - `js/payout-fx.js` (r220)
+
+**NOT `js/entity-fx.js`.** That is a different system with a confusingly similar
+name (r209): it draws the LINES and CARD MARKS that say "this cell is MARKED by
+that Trick". This one animates what an entity PAID OUT, at the moment it paid.
+
+
+Entities pay out in five currencies and only two were ever animated. `entityEffectFX(kind, amount, {id, source})`
+pops the entity, flies a symbol from its real tray tile to the readout it changed
+(clock / credits / Focus / swaps / discards) and plays that currency's existing
+sound. Targets are **lists**, and the first element with a non-zero rect wins - the
+same reason `js/tutorial.js` tests by rect rather than `offsetParent`: several
+readouts only exist in one orientation.
+
+**Basic version, deliberately.** `rewindTime` and `pauseRound` take optional
+`srcId`/`srcSource`, and `addFocus(amount, srcId, srcSource)` fires only when a
+source is named - unattributed Focus gains happen constantly and a particle for each
+would be noise. **The obvious next step is Focus getting the same treatment the
+score just got**: `generateHandFocus` runs in `playHand` BEFORE the dance, so an
+attributed grant currently fires its particle before the cards have moved. It wants
+an ordered timeline replayed between the card beats, at which point those calls
+become events rather than immediate effects.
+
+**Unrelated find, worth knowing:** `jack_mult` and `heart_double` have `BAL` entries
+and `DESC_TEMPLATES` but **no `TRICK_POOL` entry** - they are scored for, described,
+and unobtainable.
 ### Trick numbers reworked (r205)
 
 Five Tricks whose printed effect and real effect had drifted apart. All five read their numbers out of `BAL` now, and all five have a `DESC_TEMPLATES` entry, so the description cannot drift from the value again.
@@ -309,6 +518,17 @@ The Focus dev controls used to be sliders labelled with the formula itself (`Lin
 - **`_devSafeRender()` guards every repaint.** The dev panel doubles as the main menu's Settings screen, where there is no board, and `render()` reads `gridData[0]` and throws. This was a live crash on the pre-existing exalt/corrupt toggle too.
 - Both groups show a live preview of what the numbers produce (`Play after 0s: +12 · 1s: +10 …`).
 
+### Unspent actions pay out (r218)
+
+Swaps and discards you did NOT use pay `BAL._resources.unspent_credits` (3) each at the end of the round. Before this a round ended with leftover manipulates worth exactly nothing, so spending them on anything at all was strictly better than holding them; now the round's resources are a budget you can bank instead.
+
+**There are two payment sites and they sit on OPPOSITE SIDES of the resource reset, which is the only subtle thing here.**
+
+- **Classic and the act modes** pay it as a third payout line. That screen runs from `startInterlude`, which is reached from the goal dance and happens **before** `triggerLevelUp` - the reward grid comes next, and only when it closes does `triggerLevelUp` run and reset the counts. So the payout reads the **live** `swaps`/`discards`: at that instant they still hold what the finished round had left.
+- **Survival and Flow** skip the payout screen entirely and pay from `survivalAfterLevelUp`, which runs **inside** `triggerLevelUp`, well after the reset. So they need the figure captured up front: `frozenUnspentActions`, taken at the top of `triggerLevelUp` (declared in `js/limits.js` beside the other frozen round figures).
+
+The capture is taken **before** the carry-over knacks bank anything, so the figure is what you finished the round holding. Carry Swaps / Carry Discards then also carry it - that is the knack doing its job, not a double-dip to design around.
+
 ### Interact costs (r151) - ONE charge each, from `BAL._resources`
 **Discard 3s per card · Swap 8s flat · Play free.** Until r151 there were **two overlapping cost systems** and both were live: a flat `spendRoundTime(DISCARD_TIME_COST/SWAP_TIME_COST)` *and* the `BAL._resources` figures. A 1-card discard billed 3+3 = **6s**, the 3rd swap of a round billed 4+10 = **14s**, and the Free Discards knack ("costs no time") still charged the flat 3s - all while the ⏱ Time pop-up quoted 3s and 4s. `DISCARD_TIME_COST` / `SWAP_TIME_COST` are now **dead constants**, kept and commented so nothing reintroduces the double charge; `freeSwapsLeft` (the "first 2 swaps free" exemption) is dead for the same reason. Costs come from `BAL._resources` alone, and `updateInteractCosts()` reads the same source so the pop-up can't drift from reality again.
 
@@ -355,6 +575,15 @@ Effects live in `applySleightGridEffect(id, r, c)`. `consumeSleightCharge` decre
 
 **`double_tap` / `on_swap` - once-per-round lock (not discard-on-use):** These sleights stay physically on the grid after firing. `sleightCanActivateThisRound(card)` gates activation (checks `_usedThisRound` + remaining `_usesLeft`); `lockSleightForRound(card)` sets `_usedThisRound = true` and decrements `_usesLeft` after a successful trigger. The lock is cleared for every sleight on the grid in the round-start sweep (search `_usedThisRound = false`, right before `fireSleightsAtRoundStart()`). Once `_usesLeft` hits 0 the sleight just sits inert - it is **not** auto-removed; it can still leave the grid normally by being played in a hand or discarded by the player. Grid tooltips show "ONCE PER ROUND" / "USED THIS ROUND" for these.
 
+### The Ringer (r218) - a spare card slipped into the hand
+
+An epic `passive` Sleight, 10 charges. While it sits on the grid, submitting a hand pulls in ONE more card off the board when that makes a better hand: a third 10 becomes a fourth, a J-Q-K becomes a 10-J-Q-K. Four decisions, all in `ringerAugment` (`js/sleights-runtime.js`):
+
+- **It ignores selection size.** The card is added AFTER the hand is found, so a selection limit of 3 can still submit a four-card set. That is why the hook is in `playHand` and **not in `findBestHand`** - findBestHand also feeds the live preview and the auto-submit, and augmenting there would promise a card before the player had committed.
+- **It ignores adjacency.** `findBestHand` only ever builds orthogonally connected subsets, and the card that completes a run is usually nowhere near it. `detectHand` does NOT check connectivity (it only reads the cards), so the augmented hand is assembled directly and handed to it.
+- **It fires at submit, after the Marker intercept** (r213) - a hand about to fizzle must not spend a Ringer charge. The added cell joins `selected` and `handCells` before the dance runs - so the dance's existing fly-into-the-preview animation carries it with no new animation code, and `toRemove = [...selected]` clears it with the rest.
+- **It searches every rank on the board, and the first draft was wrong here.** Naming a fixed rank up front - the board's highest, say - reads well and almost never fires: nothing ranks above the highest card, so it can never extend a run. Verified on a board of 8-9-10 with a spare 10: a highest-rank Ringer found no improvement at all. Taking the best card on the board instead is what makes it do what its description promises. A hand it cannot improve spends no charge.
+
 ### Adjacency batch (r121)
 Three `passive` Sleights + two Knacks built on grid adjacency (all orthogonal - `getNeighborsOrtho` / `_isOrthoAdj` in `sleights-runtime.js`):
 - **Whetstone** - each adjacent card swapped or discarded banks `+1 mult` on the card itself (`card._whetMult`, so it survives deck cycling). A scored hand collects the full banked mult from every Whetstone orthogonally adjacent to at least one scored card; several Whetstones stack. Fed by `feedWhetstones(cells)` (called in `doSwap` + `doDiscard`, before the cards leave the grid), read by `whetstoneMultForCells(cells)` in `calcScore`.
@@ -397,10 +626,99 @@ The `double_tap` sleights **no longer sit locked on the grid once-per-round** - 
 A player asks one question constantly and the board never answered it: **why is this card different?** Two surfaces, one vocabulary, both driven from tables rather than per-Trick code.
 
 - **A marked row or column gets a coloured LINE down the board, behind the cards.** `renderLineMarkers()` draws one absolutely-positioned sibling of the cards per `rowColBonuses` entry, coloured from `LINE_FX_META`, with the owning Trick's glyph on both end caps. It **sweeps in once** when the Trick is acquired (`animateLineGrant`, called from `finalizePositionMark`) and then simply stays for the run. `_rcSeen` on the registry entry is what stops the sweep replaying - `render()` rebuilds these on every card fall.
-- **The card side is a ring in the same colour** (`.rc-line-ring`, from `cellOnMarkedLine`). **This is the part that was missing**: only `rowcol_triple_pips`, `rowcol_mult` and `rowcol_retrigger` tinted their cards, so **Perfect Timing, Right Time, Study Hall, Groove, Assembly Line and Overtime marked a line the player could not see** - it was a number in a tooltip. One ring covers all nine.
+- **The card side is a ring in the line's colour** (`.rc-line-ring`, from `lineRingHTML`). **This is the part that was missing**: only `rowcol_triple_pips`, `rowcol_mult` and `rowcol_retrigger` tinted their cards, so **Perfect Timing, Right Time, Study Hall, Groove, Assembly Line and Overtime marked a line the player could not see** - it was a number in a tooltip. One ring covers all nine. **A card on SEVERAL lines divides that ring between them** - see r223 below.
 - **`z-index` is explicit, and it has to be.** Card elements carried no z-index at all, so paint order was DOM order - and `render()` appends new cards AFTER the markers, which would put a card dealt mid-round on top of a line while its neighbours sat under one. `css/entity-fx.css` sets cards/tricks/blocked cells to 2 and lines to 1. Boss cell overlays (12-15) and temp-anim clones (10) are unaffected.
 - **Per-card marks are `CARD_MARK_META`, keyed by a `covers(r,c)` PREDICATE, not a position.** Two of them are derived: Ley Line and Temporal Rift both fire wherever a row effect crosses a column effect, which is a set of cells. **`leyLinePos` is never assigned by anything**, so the `.card.rc-leyline` tint it drove had been dead since it was written; Ley Line has a visible mark for the first time. Heartwood's mark reuses `Math.floor(rows/2) x Math.floor(cols/2)`, the exact expression `play-hand.js` buffs, so the mark can never point at a different cell from the one that gets the bonus.
 - One mark per card by design - two glyphs in one corner of a 57px card is noise, and the tooltip lists the rest.
+
+### The lines, finished (r223)
+
+Four things r209's lines did not do. All four are owner spec.
+
+- **They STAY ON THE BOARD DURING THE REWARD GRID.** `renderRewardTiles` empties
+  `#grid`, which took the lines with it, so they vanished for the whole of every
+  between-rounds screen - which is exactly when a player is deciding whether
+  another line-marking Trick is worth a slot. It redraws them at its tail.
+- **`renderLineMarkers(opts)` takes the GEOMETRY of the board it is drawing onto**
+  (`{rows, cols, offX, offY}`, default the play board), because the reward grid is
+  not always the play board: a **prize grid is two rows and columns smaller and is
+  centred on it**, so the lines need its size and its offset or they sit under
+  nothing.
+- **Several lines on one row or column are spaced at `(i+1)/(n+1)` of the card** -
+  one down the middle, two at a third and two thirds, three at a quarter, a half
+  and three quarters. The first version divided the card into `n` bands and centred
+  in each, which puts two lines at 25/75 and three at 17/50/83: lines hugging the
+  card's edges rather than an evenly divided lane. Measured: 0.25 / 0.50 / 0.75.
+- **A card on several lines SPLITS ITS RING between their colours** - equal wedges
+  with hard stops (`lineMetasForCell` -> `lineRingPaint` -> `lineRingHTML`), so a
+  crossing reads as both things instead of whichever the registry listed first. A
+  blend of three Trick colours is a fourth colour belonging to nothing, hence hard
+  stops. **The ring had to stop being a `box-shadow` to do this**: a box-shadow
+  takes one colour and cannot be divided. It is paint masked down to the border
+  now (`padding` + two masks + `mask-composite`). Verified: 3 lines give three
+  33.3% wedges, a row/column crossing gives four at 25%.
+
+#### `clampRowColBonuses()` - and why it reads the LIMITS
+
+A Trick marking column 5 on a board that shrinks below it is marking a line that is
+not there, which is a Trick that silently stopped working. It moves to the highest
+line that exists and **stays** there; growing the board back does not move it. That
+is lossy on purpose - the alternative is a shadow index that could resurface on a
+board the player has since rebuilt differently - and `finalizePositionMark` is what
+applies the move, so the Trick's printed description follows.
+
+**It measures against `limits.grid_rows/cols`, NEVER against `gridRows`/`gridCols`,
+and that is the whole reason it is safe to call.** Four things move the live board
+size TEMPORARILY and put it back, and clamping against the live globals would let
+any of them permanently move a line the player's real board still has room for:
+
+| what | shrinks the live board |
+|---|---|
+| **Short Staffed** (reward-grid penalty) | one row or column, **for a single round** |
+| the on-grid shop | forces 4x4, restores from `shopGridSaved` |
+| the prize grid | two smaller than the play board |
+| Dominoes | sets its own, twice (`dominoes-mode.js:115` **and** `game-control.js`, right after the limits assignment) |
+
+Short Staffed is the one that would have hurt: a one-round penalty costing a Trick
+its position for the rest of the run. So the clamp hangs off **`onLimitChanged`**,
+the single place a limit actually moves, and everything that merely BORROWS the
+board at a smaller size clamps what it **draws** instead (above) and leaves the
+registry alone. Verified: a 4x4 prize grid drew a col-5 line at col-3 with the
+stored index still 5.
+
+### The score panel between rounds (r223)
+
+`triggerLevelUp` banks and zeroes `score` before any between-rounds screen opens,
+so the panel read **"Score 0"** over the NEXT round's goal for the whole of every
+reward grid, shop and event - zero being neither true nor the number the player
+wants while deciding what to take. It reads **LAST ROUND** over what the round
+scored and **NEXT QUOTA** over what is being asked for next, with the progress bar
+hidden (it would sit at 100% and mean nothing).
+
+- It rides **`body.grid-screen`**, the class `enterGridScreenHud()` already sets for
+  the PIPS/MULT/FOCUS -> LOCATION swap, so all three screens get it with no
+  per-screen wiring. `updateScoreUI()` is the single writer.
+- **`lastRoundGoal` must be captured ABOVE the level bump** in `triggerLevelUp` -
+  `roundGoal` is recomputed four lines later and is the next round's target from
+  then on. A first pass read it afterwards and recorded 1500 where the round that
+  just cleared had been playing for 1200. `lastRoundScore` is captured lower, beside
+  the `totalScore` banking, because it needs Survival's overflow figure.
+- Both are in `SAVE_VARS` and reset in `startGame`.
+
+### `shop-room-preview.html` (r223)
+
+The two ways of giving the shop more room, on a stage laid out with the real
+landscape percentages. **Squish** narrows the left column and every panel scales
+with it (they are sized in container units against the column, so it genuinely
+squishes rather than clipping); **Slide** pushes it off the edge at full size and
+leaves an arrow tab. The readout MEASURES how many items fit a shelf rather than
+asserting it: **5 per shelf today, 7 squished to 24%, 10 slid away.**
+
+**The slide is a transform and the shop's edge is a stage percentage, so they
+cannot share one number** - a `translateX` percentage is a share of the element's
+OWN width, and the first version moved a 37.74% column by 37.74% of itself, about
+15% of the stage, so it never cleared. Two variables: `--lw` (column width, stage
+%) and `--colvis` (1 or 0).
 
 ### FLAT vs SCALING card buffs (r209)
 
@@ -475,24 +793,30 @@ One screen with two jobs, both in `js/reward-grid.js`: **'lose' mode** (a debuff
 
 The Mart wheel has its own overflow prompt (`#wheel-overflow`, "NO ROOM", js/wheel.js) with a **different** resolution - sell one of yours, or sell the prize. It already speaks the Mart's language and was deliberately left alone.
 
-## Guided mode (r191) - `js/guided-mode.js`
+## Guided mode (r218) - `js/guided-mode.js`
 
-Classic with the route decided for you. In Classic the reward grid carries a **destination tile** and the player routes themselves; a run can therefore go a long stretch with no shop, which matters in a game where a run has to close a 1.227x-per-level gap out of its loadout. Guided fixes the rotation instead, so the economy is guaranteed and the spine is legible.
+An act is **`GUIDED_SLOTS_PER_ACT` (8) slots** and then the boss, and every slot is filled by one of two kinds of thing: a **level** (play a round - free, and how you earn credits) or a **stop** (the Mart, a reward grid, or one of two offered events - costs credits, and costs the slot). Between every slot the **crossroads** opens and you choose the next one.
 
-**The spine is two lines of data, not branching code.** Index = the node whose reward grid just closed; value = what happens between that grid and the next round. Reshaping a Guided act is editing these and nothing else:
+**The slots are the real currency, not the credits.** Buying power always costs a round you will not get to play, so the question an act asks is how much of your run you are willing to spend getting stronger rather than getting further.
 
-```js
-const GUIDED_ACT_FLOW  = ['shop', 'event', 'shop', 'event', null];  // nodes 0-4
-const GUIDED_POST_BOSS = ['event', 'event'];                        // after the prize grid
-```
+r191's Guided fixed the route instead: a set spine of reward grid, Mart, reward grid, event, into the boss. That solved the economy problem - a Classic run can go a long stretch with no shop - and removed the decision along with it. This keeps the guarantee (the Mart is always on the menu) and gives the decision back with a price on it.
 
-Which plays out as `RG -> Mart -> RG -> event -> RG -> Mart -> RG -> event -> RG -> BOSS -> prize grid -> event -> event`, three times. **6 shops and 10 events a run.** The final boss ends the run before its post-boss events, because `finishInterlude`'s `actNumber > 3` win check returns first.
+### Every slot advances the difficulty curve, bought or played
 
-- **`finishInterlude` captures `_node` BEFORE the node advance.** The reward grid belongs to the node just finished, and the advance has already incremented past it by the time the routing runs. Node **5** is the post-boss prize grid.
-- **Guided grids carry no destination tile** - the route is fixed, so it would be a dead tile. It reuses the prize grid's existing suppression (`NO_DEST = PRIZE || guidedActive()`), and `placeIdx` starts at 0 so the freed slot becomes a real reward rather than a hole.
-- **`resumeAfterNodeFlowShop()` is new and shared.** `shop.js`, `mart-shop.js` and `shop-grid-preview.js` each had the same inline "node-flow shop closed, go to the next round" line. Guided needs a shop to be one stop in a longer chain, so all three now route through one function that runs `nodeFlowAfterShop` if set and falls back to `drainLevelUpQueue`. **A new shop-close path must call it**, not `drainLevelUpQueue` directly.
-- **`guidedRunStops` is a callback chain, not a loop** - each stop hands control to a screen that closes on its own schedule. Stops after the first are delayed 280ms: the event overlay closes and reopens on the same element, so the post-boss pair would otherwise hard-cut from one event into the next.
-- **Nothing here needs saving.** The save point is the START OF A ROUND (see `js/save.js`), and a stop chain only ever runs between rounds, so `nodeFlowAfterShop` is always null when a checkpoint is taken - which is just as well, since it holds a function.
+**This is the load-bearing rule and the mode does not work without it.** The goal curve is driven by `level`, and `level++` lives in `triggerLevelUp`, which only runs when a ROUND starts. So if a bought slot left the curve alone, a player could buy six stops and meet the boss at level 2 holding a level-8 loadout. That is not a strategy, it is *the* dominant strategy, and it would be the whole mode within one run of finding it.
+
+`guidedAdvanceCurve()` therefore bumps `level` when a stop is bought, exactly as finishing a round would. The bar you eventually face is set by how far through the act you are, never by how you got there - and buying is still worth it, because the goal climbs at `GOAL_SCALE` while base pips climb at only 1.1, and the loadout you bought is what covers the difference.
+
+### How it routes
+
+- **`guidedAfterSlot()` is the single place that decides "another slot, or the boss"**, so no caller has to know how long an act is. It is called from three places: the payout tail (a played round), a bought shop's close, and a bought event's or grid's close.
+- **The payout hands back to the crossroads, not to a reward grid.** `startInterlude` opens the ordinary reward grid for every other act mode; in Guided the grid is something you BUY, so the guided branch returns before that. The post-boss **prize** grid is not a bought stop and still opens there.
+- **`closeRewardGrid`'s node advance is skipped entirely for Guided** (`_guided` in `finishInterlude`) - `guidedAfterSlot` and `guidedAfterPrizeGrid` own `guidedSlot`, `nodeInAct` and `actNumber` instead. `_wasPrize` is captured before anything moves, because that is what tells the two apart.
+- **An act opens on a LEVEL, not on the crossroads.** `guidedAfterPrizeGrid` rolls the act over and goes straight to `drainLevelUpQueue()` - an act should start by playing.
+- **A bought event is opened BY NAME** (`guidedOpenNamedEvent`), not through `openEvent`'s own draw: the player just paid for that specific one off the menu. It still feeds `recentEventIds`, so the no-repeat memory keeps working.
+- **`nodeInAct` is kept roughly in step with the slot count** purely so the HUD's node pips and the boss sigil, which both read it, stay honest. Nothing routes off it in this mode.
+- Prices live in `BAL.guided` - Mart 20, reward grid 15, events 10, flat per kind. Events are all one price on purpose: what separates the two on offer is what they DO, and putting different numbers on them made the cheaper one read as the worse one.
+- The crossroads is a **wrapping row of chips**, not a list: the options are siblings of the same kind, and a stack of full-width rows implied an order they do not have. Three across on the panel, two at phone width; the description is the chip's `title`, because a chip has to stay a chip. It is body-level, **outside `#cabinet`**, for the usual CSS `zoom` reason. An option you cannot afford is dimmed but never hidden - what you cannot buy this slot is information about what to play for.
 
 ### Upgrade events (r194) - improve what you already have
 
@@ -632,6 +956,30 @@ rank 0 / 1 / 2 and 6s with a Mirror on it, where it used to pause 3s in every ca
 - **`shuffled()` in `js/reward-grid.js` is scoped INSIDE `_generateRewardContent`** - it is not a global, and calling it threw the moment The Bench opened. `events.js` has its own `evShuffle` now. A grep for `function shuffled` finds it and tells you nothing about its scope.
 - A picker rebuilt on each choice must keep its **label inside the removable wrapper**, or changing your mind stacks a fresh "CHOOSE THE CARD" every time.
 
+### Four more events (r218) - two slot machines, a wheel, and a trade
+
+Pool **16 -> 20**.
+
+| event | what | rides |
+|---|---|---|
+| **Trade a Trick** | give up a Trick, get a random Knack or Sleight at its tier or better | the pools themselves |
+| **Spin to Improve** | stake three of your own; a wheel picks one and improves it twice | `improveEntity` |
+| **Entity Slots** | 3 reels of what you own; three alike improves it a tier | `improveEntity` |
+| **Card Slots** | 5 reels of your live deck; paid lines buff the cards that land on a hit | `enhanceCardKey` |
+
+- **Both improve events ride `js/improve.js` (r206) and know nothing about any individual entity**: `ownedImprovable(type)` lists what can still be improved, `improvePreview(id)` says what one more step would READ as (so the tile shows the real sentence, not a generic promise), and `improveEntity(id)` applies one tier. `evImprovables()` in `js/events-upgrade.js` is just the three-type union in the shape the wheel draws. **Knacks are on the wheel** precisely because improve.js recomputes BAL in place - an earlier draft of this batch shipped its own seam over `_rank` and `sleightCapBonus` and could not improve a Knack at all; improve.js is strictly better and replaced it on merge.
+- **Trade a Trick is the only way to move value BETWEEN the three entity shapes.** What you get is random, at the traded Trick's tier or better: naming the replacement would make it a shop, not naming it makes it a trade. It matters most once the tray is full, when another Trick would only be a replace-or-decline.
+
+#### The slot math is computed and PRINTED, not tuned (`js/events-slots.js`)
+
+A slot machine is only honest if its odds are knowable, and these reels are built from the player's own live deck and loadout, which change every run. So nothing is hand-tuned: each reel is an **independent uniform draw** over a symbol population taken from the run, which makes the odds a closed form the panel shows before the player pays.
+
+- **Cards.** P(the leftmost three on a line share a suit) = the sum over suits of that suit's deck share cubed. Four even suits gives 4x(1/4)^3 = 1/16 a line, about 27% over five lines. Spectrum's seven colours give 1/49 - the right answer for a seven-colour deck rather than a number needing a per-mode retune. Rank runs pay more and are far rarer (1/169 a line).
+- **Entities.** Capped at `SLOT_ENT_SYMBOLS` (4) distinct symbols, so P(three alike) = 1/k^2 exactly, and the cap is what stops a large loadout making the machine unwinnable - at 12 owned entities an uncapped machine would be 1 in 144. Which four make the reels is drawn once, up front, and shown.
+- **A spin is decided in full before a pixel moves.** `slotSpin` builds the result grid and `slotRenderSpin` only shows it, so an interrupted animation or a backgrounded tab can never change the outcome. Reels stop left to right `SLOT_STAGGER` apart, which is the whole reason a slot machine is tense.
+- **A paying card line takes the next buff off a rotating list** (`SLOT_BUFFS`, cursor `slotBuffIdx`, in `SAVE_VARS`), so a lucky run spreads across pips, mult and replays instead of piling one stat onto a few cards. Winning cards are re-resolved with `resolveDeckCard` at apply time, since the reels were built off a snapshot and a card can leave the run in between.
+- **The wheel decides its winner BEFORE it spins**, same principle: `spinDrawWheel` is handed the result and builds a strip that lands on it.
+
 ### Events pass (r211) - names that say what the screen does
 
 The events were a fantasy set - The Altar, Cleansing Spring, Blood Price, "Every gain has its price in flesh" - inside a game whose voice was stripped to plain and direct in r178. Every `EVENT_META` name and flavour was rewritten so a player meeting one for the first time can read the title and know what they are about to be asked, and the in-body prose with them. **The KEYS are unchanged and must stay unchanged** - they are the ids used by `openEvent`'s pool, `confirmEvent`, `renderEventShell`, `recentEventIds` and the dev panel.
@@ -768,6 +1116,40 @@ Owner-specified retunes. **The Rota is deleted** - The Censor already owns "a Tr
 **The Metronome was already correct** and needed no change: `bossClockStep()` carries a fractional debt, so Focus x2.3 really consumes 2,2,2,3,2,2,3... averaging 2.3s per second (measured), rather than rounding away to x2.
 
 **The Tollman's ordering was already correct too**, and is now locked in by a test: `playHandCostThisRound` is charged at `play-hand.js` ~line 452, which is AFTER `score += finalScore` (271) and AFTER `checkBossObjective` (343). Verified live - with **1 second left** on a Tollman round, a hand that costs 5s still scored, still met the goal and still won the boss.
+
+## A fifth toast froze the whole game (r225)
+
+`showMessage` trims its overflow with
+
+```js
+while (layer.children.length > TOAST_MAX) dismissToast(layer.firstElementChild, true);
+```
+
+and `dismissToast(el, now)` **never removed the node synchronously** - `now` only
+meant `setTimeout(..., 0)` instead of `260`. So the count the loop tests never
+dropped. Worse, the element it had just marked `.toast-out` made the next call
+return at the top without removing anything, so the spin was permanent: **the
+fifth distinct toast in one synchronous burst hung the page for good.** No boss,
+no run in progress, nothing else required - reproduced on a freshly loaded menu
+by calling `showMessage` five times.
+
+`TOAST_MAX` is 4, so this was reachable by anything that says more than four
+things at once: a hand firing several Tricks that each report, a boss tick, a
+between-round grant. It was found by a Sommelier test that rotated the suits six
+times in a loop, which is exactly that burst.
+
+- **`now` means GONE NOW, not "fade faster".** `dismissToast` removes the node on
+  the spot when `now` is set, **including one already wearing `.toast-out`** -
+  that second case is the one that made the hang permanent rather than merely
+  long. Both live in `dismissToast` rather than at the call site, so any future
+  `dismissToast(el, true)` gets the same guarantee.
+- **The trim loop also refuses to spin.** If a child is somehow still first after
+  being dismissed, it is removed outright and the loop breaks. A `while` over a
+  count that nothing decrements is a hard hang, and this one is not worth leaving
+  a second way into.
+- Verified: 4 toasts stay 4, a burst of 40 leaves 4, the repeat-suppression
+  counter still reaches x5 on a repeated line, and the layer drains to 0 on its
+  own afterwards.
 
 ## Sixteen new bosses (r217)
 
@@ -939,6 +1321,15 @@ Dread, then a clean slate, for a boss that arrives with **no screen in front of 
 
 The **3-2-1 is now centred on the grid** in landscape - `#countdown-321-overlay` was `position:fixed; inset:0` with a 30% top pad, i.e. centred on the *viewport*. The **payout panel** is re-themed as a LETHE remittance advice (`css/boss.css`) - overrides only, so `interlude.js`'s animation classes still drive it.
 
+## The dance clock (r218) - `js/dance-clock.js`
+
+The dance was a chain of bare `setTimeout`s, and a `setTimeout` can neither be paused nor re-timed once armed. Two wanted behaviours both reduce to that one fact, so they share a file.
+
+- **Pause.** `dncWait(ms, signal)` polls a real-time accumulator and only spends it while unpaused, so a wait can never resolve early: `left` is decremented by MEASURED elapsed time, never by the sleep it asked for. `wait()` in `js/score-anims.js` now delegates to it, so every animation wait in the game is pausable at once. `dncSetPaused(on)` is called from `pauseGame`/`resumeGame`; it pauses every registered WAAPI animation and puts `.dance-paused` on `body` for the class-driven keyframes (jitter/pop/pulse/flash), which are not WAAPI and so are not in the registry.
+- **THE PAUSE PREDICATE IS `isPaused`, DELIBERATELY NOT `gameTimerPaused`.** The goal-hand dance sets `gameTimerPaused` ITSELF to freeze the round clock while it plays (`js/score-dance.js`), so keying off that would deadlock the very dance that set it. `isPaused` covers the pause menu and RECORDS, which is what was asked for. Known edge: `pauseGame` early-returns when no timer is live, and the goal dance has already cleared `roundInterval` - so a goal dance is not pausable. The round is already won at that point.
+- **Acceleration.** Every payout tick - a card's pips, a Trick's pips or mult, a Sleight firing - calls `dncBumpAccel()` and speeds up what is LEFT of the dance by `DNC_ACCEL_STEP` (5%), compounding, ceilinged at `DNC_ACCEL_MAX` (8 = 800% of this dance's base pace). The bump happens AFTER a flight's duration is read, so the speed-up lands on what is still to come rather than on the flight that earned it.
+- **`dncPace()` is the chokepoint.** Every duration in the dance divides by it, never by `dncSpeed` directly - a new site that reads `dncSpeed` silently opts out of the acceleration. `dncResetAccel()` runs at the top of `playPreviewDance`, so each hand winds up from its own base pace.
+- Measured: a 4-card Run of 4 pays 4 ticks and finishes at 1.22x; a 5-card hand through a full tray reaches roughly 2.3x. The 8x ceiling needs 43 ticks and is deliberately close to unreachable.
 ## A boss round ends like any other round (r213)
 
 Beating a boss used to be: the word `VICTORY` in gold Cinzel over the still-live board for 1.5s, then the prize grid. **No fall, no payout, no banner.** Three things followed from that, and all three are fixed:
@@ -1045,6 +1436,14 @@ Chips for every value and every colour; turning some off shrinks the deck. **Cha
 - Applying rebuilds the deck AND re-deals the board via `initGridData()`, so no off-list card is left in play. **Sleights are carried across the rebuild by hand** - they aren't part of the rank × colour cross-product, so the rebuild would otherwise delete the four fixtures.
 - `startGame` reads the tuner through `spectrumInstallLists()`, so a new run picks up the current tuning immediately. Selections persist in `localStorage` (`lethe.spectrum.tune.v1`).
 - **A toggle that would starve the board is refused** (`spectrumMinDeck()` = grid cells + 8, and never fewer than 3 values / 1 colour). Without that the deck can run dry and refills hand back `null`, filling the grid with holes.
+
+## Which modes are listed (r218)
+
+`MODE_SELECT_LIST` is the carousel; `MODE_HIDDEN_LIST` (`match3`, `zen`, `dominoes`) is built but not shown. They are experiments on a different loop - Match-3 plays its own matches and **has no boss wiring at all**, Dominoes is beta - and listing them beside the real modes invited a player to start one expecting the game the other seven modes are.
+
+They are still whole and still reachable: **dev panel -> Modes** launches any entry in `MODES` by name (`devRenderModes` / `devStartMode`), generated from `MODES` for the same reason the boss and event rows are, so a new mode cannot go missing. That is why this is two lists and not a deletion.
+
+**Bosses were audited across every mode in r218 and the wiring is sound.** Classic, Guided, Six Suits, Spectrum and Tutorial all arm `forceBossNextRound` when `nodeInAct` reaches 5 and `triggerLevelUp` fires it; Survival sets `survivalBossPending` off its own 300s live-play cadence and `survivalDealNext` fires it; Flow fires from `onRoundEnd` at zero. All seven verified reaching a live boss end to end. Match-3 and Dominoes have no boss path and never had one - that is the only real gap, and it is why they are now hidden.
 
 ## Match-3 auto-play mode (`js/match3.js` + `css/match3.css`, r115+)
 

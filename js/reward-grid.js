@@ -1157,6 +1157,17 @@ function renderRewardTiles(animateIn = false) {
   // renderRewardTiles() directly and never goes through render(), so wiring it there
   // alone left the count frozen at 0 for the whole reward step.
   if (typeof updateSelectionUI === 'function') updateSelectionUI();
+  // The marked row / column lines stay on the board while you pick (js/entity-fx.js).
+  // They are part of how the board reads, and the reward step is exactly when a
+  // player is deciding whether another line-marking Trick is worth taking - so
+  // hiding the ones already down is hiding the thing the choice is about.
+  // gridEl.innerHTML = '' above took the old ones with it, so this redraws them,
+  // and the grid being drawn is passed explicitly: a prize grid is smaller than
+  // the play board and centred on it, so the lines have to be clamped and offset
+  // to match the tiles rather than the board underneath them.
+  if (typeof renderLineMarkers === 'function') {
+    renderLineMarkers({ rows: ROWS, cols: COLS, offX, offY });
+  }
   // The tiles were just thrown away and rebuilt, so the pinned tooltip has to be
   // re-anchored to the new node for the tile it belongs to (r182).
   restoreRewardTooltip();
@@ -1762,8 +1773,9 @@ function closeRewardGrid() {
     // The node this reward grid belonged to, captured BEFORE the advance below.
     // Guided routes off it, and 5 is the post-boss prize grid.
     const _node = nodeInAct;
+    const _guided = (typeof guidedActive === 'function' && guidedActive() && isActMode());
 
-    if (isActMode()) {
+    if (isActMode() && !_guided) {
       if (nodeInAct === 5) {
         // Post-boss reward grid - transition to next act
         nodeInAct = 0;
@@ -1784,11 +1796,17 @@ function closeRewardGrid() {
       }
     }
 
-    // Guided: the act runs a fixed spine, so the node index decides what comes
-    // next, not a destination tile (which Guided's grids do not carry).
+    // Guided (r218) runs its own act: slots, not nodes. A grid here is either one
+    // the player BOUGHT with a slot - back to the crossroads - or the post-boss
+    // prize grid, which rolls the act over. Neither uses the node routing above,
+    // which is why guided returns before the destination-tile branch.
     if (typeof guidedActive === 'function' && guidedActive() && isActMode()) {
       pendingEventOverride = null;
-      guidedRunStops(guidedStopsAfterNode(_node), () => drainLevelUpQueue());
+      // guidedInStop, NOT the node index: a grid the player BOUGHT is one slot
+      // of the act, the post-boss PRIZE grid rolls the act over, and only the
+      // flag tells them apart - nodeInAct is kept in step with the slot count for
+      // the HUD and can legitimately read 5 for either.
+      if (guidedInStop) guidedAfterSlot(); else guidedAfterPrizeGrid();
       return;
     }
 

@@ -32,12 +32,11 @@ function cancelDance() {
   }
 }
 
+// Every animation wait in the game runs on the dance clock (js/dance-clock.js),
+// so pausing holds them at the frame they are on instead of letting them finish
+// behind the pause overlay. It still rejects on abort exactly as before.
 function wait(ms, signal) {
-  return new Promise((res, rej) => {
-    if (signal?.aborted) return rej(new DOMException('aborted'));
-    const t = setTimeout(res, ms);
-    signal?.addEventListener('abort', () => { clearTimeout(t); rej(new DOMException('aborted')); }, { once: true });
-  });
+  return dncWait(ms, signal);
 }
 
 // ══════════════════════════════════════════════

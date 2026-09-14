@@ -333,14 +333,94 @@ function _onRoundEndCore() {
   onGameEnd(true);
 }
 
-function showMessage(text, color) {
-  const el = document.getElementById('score-flash');
-  el.textContent = text;
-  el.style.color = color;
-  el.className = '';
-  void el.offsetWidth;
-  el.className = 'flash';
-  setTimeout(() => { el.style.color = ''; }, 1000);
+// ══════════════════════════════════════════════
+// TOASTS (r197)
+// ══════════════════════════════════════════════
+// 275 call sites shared ONE element and one 0.9s animation, in a serif the game
+// uses nowhere else, with no plate behind it - so two messages in the same second
+// clobbered each other, and a single one was gone before it could be read against
+// a board of playing cards. Now each message is its own element in a stack, with
+// the house type, a solid plate and a readable dwell.
+//
+// Everything still enters through showMessage(text, color), so no call site
+// changed. `opts` is for the new callers that want an icon or a longer hold.
+const TOAST_MAX = 4;             // more than this on screen at once is noise
+const TOAST_MS  = 2200;          // long enough to read a short line, twice
+let _toastLayer = null;
+
+function toastLayer() {
+  if (_toastLayer && _toastLayer.isConnected) return _toastLayer;
+  _toastLayer = document.getElementById('toast-layer');
+  if (!_toastLayer) {
+    _toastLayer = document.createElement('div');
+    _toastLayer.id = 'toast-layer';
+    // OUTSIDE #cabinet, like every other fixed-position layer in this game: the
+    // cabinet applies CSS `zoom`, which would scale a fixed element's coordinates.
+    document.body.appendChild(_toastLayer);
+  }
+  return _toastLayer;
+}
+
+function showMessage(text, color, opts) {
+  if (!text) return;
+  const o = opts || {};
+  const layer = toastLayer();
+  // Repeat suppression: the same line fired twice in a row bumps a counter on the
+  // toast already up rather than stacking a duplicate under it.
+  const last = layer.lastElementChild;
+  if (last && last.dataset.msg === String(text) && !last.classList.contains('toast-out')) {
+    const n = (parseInt(last.dataset.n || '1', 10) || 1) + 1;
+    last.dataset.n = n;
+    const badge = last.querySelector('.toast-x');
+    if (badge) { badge.textContent = 'x' + n; badge.hidden = false; }
+    else { const b = document.createElement('span'); b.className = 'toast-x'; b.textContent = 'x' + n; last.appendChild(b); }
+    last.classList.remove('toast-bump'); void last.offsetWidth; last.classList.add('toast-bump');
+    clearTimeout(last._toastTimer);
+    last._toastTimer = setTimeout(() => dismissToast(last), o.ms || TOAST_MS);
+    return last;
+  }
+
+  const el = document.createElement('div');
+  el.className = 'toast' + (o.kind ? ' toast-' + o.kind : '');
+  el.dataset.msg = String(text);
+  if (color) el.style.setProperty('--toast-ink', color);
+  if (o.icon) { const i = document.createElement('span'); i.className = 'toast-ico'; i.textContent = o.icon; el.appendChild(i); }
+  const label = document.createElement('span');
+  label.className = 'toast-text'; label.textContent = text;
+  el.appendChild(label);
+  const badge = document.createElement('span'); badge.className = 'toast-x'; badge.hidden = true; el.appendChild(badge);
+  layer.appendChild(el);
+
+  // Trim the overflow. This counts children to decide when to stop, so the
+  // dismissal it calls HAS to remove the node synchronously - see dismissToast.
+  // The extra guard is belt and braces: if a child ever refuses to leave, stop
+  // rather than spin. A `while` over a count nothing decrements is a hard hang,
+  // and this one froze the whole page the moment a 5th toast arrived.
+  while (layer.children.length > TOAST_MAX) {
+    const victim = layer.firstElementChild;
+    dismissToast(victim, true);
+    if (layer.firstElementChild === victim) { victim.remove(); break; }
+  }
+  el._toastTimer = setTimeout(() => dismissToast(el), o.ms || TOAST_MS);
+  return el;
+}
+
+// `now` means GONE NOW, not "fade faster". The overflow trim in showMessage
+// counts layer.children to decide when to stop, so a dismissal that only
+// scheduled the removal left the count unchanged and the loop spinning - and a
+// toast already wearing .toast-out returned at the top without removing anything,
+// which made the spin permanent. Both are handled here rather than at the call
+// site so any future caller of dismissToast(el, true) gets the same guarantee.
+function dismissToast(el, now) {
+  if (!el) return;
+  if (el.classList.contains('toast-out')) {
+    if (now && el.parentNode) el.remove();
+    return;
+  }
+  clearTimeout(el._toastTimer);
+  el.classList.add('toast-out');
+  if (now) { if (el.parentNode) el.remove(); return; }
+  setTimeout(() => { if (el.parentNode) el.remove(); }, 260);
 }
 
 // ══════════════════════════════════════════════

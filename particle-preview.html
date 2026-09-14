@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Score particle preview - TheGame</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Share+Tech+Mono&family=Crimson+Pro:wght@700&display=swap" rel="stylesheet">
+<style>
+/* ══════════════════════════════════════════════════════════════════
+   SCORE PARTICLE PREVIEW  (standalone, r221)
+   Same idea as heartbeat-preview.html / fx-preview.html: a mock HUD, the
+   real particle flight, and every knob live. Nothing here imports the game -
+   the shape is authored here first, then the settled values go into
+   PARTICLE_CFG in js/score-dance.js and .dnc-particle in css/dance.css.
+   ══════════════════════════════════════════════════════════════════ */
+*{box-sizing:border-box}
+body{margin:0;background:#0a0908;color:#e8dcc0;font-family:'Share Tech Mono',monospace;
+     display:flex;min-height:100vh;overflow-x:hidden}
+#stageWrap{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;
+           justify-content:center;padding:24px;gap:22px;position:relative}
+#panel{width:330px;flex:0 0 330px;background:#12100d;border-left:1px solid #3a3229;
+       padding:14px;overflow-y:auto;height:100vh}
+h1{font-family:'Orbitron',sans-serif;font-size:13px;letter-spacing:2px;margin:0 0 4px;color:#c9a84c}
+h2{font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:2px;margin:16px 0 6px;
+   color:#8fd6a8;border-bottom:1px solid #2a251e;padding-bottom:4px}
+.row{display:flex;align-items:center;gap:8px;margin:5px 0;font-size:11px}
+.row label{flex:1;color:#a89878}
+.row input[type=range]{flex:1.4;min-width:0}
+.row input[type=number]{width:58px;background:#1c1813;border:1px solid #3a3229;color:#e8dcc0;
+   font-family:inherit;font-size:11px;padding:2px 4px;border-radius:3px}
+.row input[type=color]{width:38px;height:22px;padding:0;border:1px solid #3a3229;background:none}
+.row select{flex:1.4;background:#1c1813;border:1px solid #3a3229;color:#e8dcc0;
+   font-family:inherit;font-size:11px;padding:2px 4px;border-radius:3px}
+.val{width:46px;text-align:right;color:#e8c56b;font-size:11px}
+button{font-family:'Share Tech Mono',monospace;background:#1c1813;border:1px solid #4a4032;
+   color:#e8dcc0;padding:6px 10px;border-radius:4px;cursor:pointer;font-size:11px}
+button:hover{background:#2a2419;border-color:#c9a84c}
+button.go{background:#1d3a28;border-color:#8fd6a8;color:#bff0d0}
+.btns{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+#dump{width:100%;height:190px;background:#0d0b09;border:1px solid #3a3229;color:#8fd6a8;
+   font-family:inherit;font-size:10px;padding:6px;border-radius:4px;resize:vertical}
+
+/* ── The mock HUD: the three chips a particle actually flies at ── */
+#chips{display:flex;gap:10px}
+.chip{width:112px;height:66px;background:#0a0808;border:1px solid #3a3229;border-radius:5px;
+      display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative}
+.chip .lab{font-family:'Orbitron',sans-serif;font-size:7px;letter-spacing:2px;color:#8a7c63;margin-bottom:2px}
+.chip .num{font-family:'Orbitron',sans-serif;font-size:24px;font-weight:900;line-height:1}
+#pipsChip{border-color:#2255cc}  #pipsChip .num{color:#7aa6f0}
+#multChip{border-color:#A0030B}  #multChip .num{color:#f07a80}
+#focusChip{border-color:#7b3fb8} #focusChip .num{color:#c79af0}
+.tick{animation:tick .18s ease}
+@keyframes tick{0%{transform:scale(1)}45%{transform:scale(1.18)}100%{transform:scale(1)}}
+
+/* ── The source objects a particle leaves from ── */
+#sources{display:flex;gap:14px;align-items:flex-end}
+.srcCard{width:64px;height:88px;border-radius:6px;background:#efe6d0;border:1px solid #b9ab8c;
+   display:flex;align-items:center;justify-content:center;font-family:'Crimson Pro',serif;
+   font-size:26px;font-weight:700;color:#8a1220;box-shadow:0 3px 10px rgba(0,0,0,.6)}
+.srcTile{width:56px;height:74px;border-radius:5px;background:#14120f;border:2px solid var(--rc,#8fd6a8);
+   box-shadow:0 0 10px -2px var(--rc,#8fd6a8);display:flex;align-items:center;justify-content:center;font-size:24px}
+#note{font-size:10px;color:#6b6152;max-width:520px;text-align:center;line-height:1.5}
+
+/* ══ THE PARTICLE ══
+   Two nested elements on purpose: the OUTER one is what the flight animates
+   (transform), the INNER is the diamond. Rotating a diamond means rotating the
+   box 45deg - and if that were the same element the flight's transform would
+   overwrite it every frame. So the box rotates and the label counter-rotates. */
+.pt{position:fixed;z-index:200;pointer-events:none;left:0;top:0;will-change:transform}
+.pt-box{display:flex;align-items:center;justify-content:center;
+   width:var(--pt-size);height:var(--pt-size);
+   background:var(--pt-bg);
+   border:var(--pt-bw) solid var(--pt-bc);
+   box-shadow:0 0 var(--pt-glow) var(--pt-bg), 0 2px 6px rgba(0,0,0,.7);}
+.pt-lab{font-family:'Orbitron',sans-serif;font-weight:900;color:var(--pt-ink);
+   font-size:var(--pt-font);line-height:1;white-space:nowrap;letter-spacing:.5px;
+   text-shadow:0 1px 2px rgba(0,0,0,.55)}
+/* shape variants */
+.sh-diamond .pt-box{transform:rotate(45deg);border-radius:var(--pt-round)}
+.sh-diamond .pt-lab{transform:rotate(-45deg)}
+.sh-square  .pt-box{border-radius:var(--pt-round)}
+.sh-circle  .pt-box{border-radius:50%}
+.sh-pill    .pt-box{border-radius:999px;width:auto;padding:0 calc(var(--pt-size)*.30)}
+.sh-none    .pt-box{background:none;border:none;box-shadow:none;width:auto;height:auto}
+.sh-none    .pt-lab{text-shadow:0 0 3px #000,0 2px 6px rgba(0,0,0,.9)}
+</style>
+</head>
+<body>
+
+<div id="stageWrap">
+  <div id="chips">
+    <div class="chip" id="pipsChip"><span class="lab">PIPS</span><span class="num" id="pipsVal">0</span></div>
+    <div class="chip" id="multChip"><span class="lab">MULT</span><span class="num" id="multVal">1</span></div>
+    <div class="chip" id="focusChip"><span class="lab">FOCUS</span><span class="num" id="focusVal">&times;1</span></div>
+  </div>
+  <div id="sources">
+    <div class="srcCard" id="srcCard">7&hearts;</div>
+    <div class="srcTile" id="srcTrick" style="--rc:#b07dea">&#9733;</div>
+    <div class="srcTile" id="srcSleight" style="--rc:#5ad6c8">&#9670;</div>
+  </div>
+  <div id="note">
+    Particles fly from the card / Trick tile / Sleight tile up into the chip they change.
+    <b>Play a hand</b> fires a realistic burst: a card's own pips, two Tricks on that card, then a &times;mult at the end.
+  </div>
+</div>
+
+<div id="panel">
+  <h1>PARTICLE PREVIEW</h1>
+  <div style="font-size:10px;color:#6b6152;margin-bottom:4px">r221 &middot; tune here, then paste into the game</div>
+
+  <div class="btns">
+    <button class="go" onclick="playHandBurst()">&#9654; Play a hand</button>
+    <button onclick="fireOne('pipAdd','+7')">pip +</button>
+    <button onclick="fireOne('pipMul','&times;1.5')">pip &times;</button>
+    <button onclick="fireOne('multAdd','+9')">mult +</button>
+    <button onclick="fireOne('multMul','&times;2')">mult &times;</button>
+    <button onclick="fireOne('focus','+3')">focus</button>
+    <button onclick="fireOne('credits','+8')">credits</button>
+    <button onclick="fireOne('time','+12s')">time</button>
+    <button onclick="fireAll()">all at once</button>
+  </div>
+
+  <h2>SHAPE</h2>
+  <div class="row"><label>Shape</label>
+    <select id="shape" onchange="sync()">
+      <option value="diamond" selected>Diamond</option>
+      <option value="square">Rounded square</option>
+      <option value="circle">Circle</option>
+      <option value="pill">Pill</option>
+      <option value="none">No plate (old look)</option>
+    </select></div>
+  <div class="row"><label>Size</label><input type="range" id="size" min="16" max="72" step="1" value="40" oninput="sync()"><span class="val" id="sizeV"></span></div>
+  <div class="row"><label>Font size</label><input type="range" id="font" min="8" max="30" step="0.5" value="14" oninput="sync()"><span class="val" id="fontV"></span></div>
+  <div class="row"><label>Corner round</label><input type="range" id="round" min="0" max="16" step="1" value="4" oninput="sync()"><span class="val" id="roundV"></span></div>
+  <div class="row"><label>Border width</label><input type="range" id="bw" min="0" max="5" step="0.5" value="1.5" oninput="sync()"><span class="val" id="bwV"></span></div>
+  <div class="row"><label>Border light</label><input type="range" id="bl" min="0" max="100" step="5" value="45" oninput="sync()"><span class="val" id="blV"></span></div>
+  <div class="row"><label>Glow</label><input type="range" id="glow" min="0" max="30" step="1" value="10" oninput="sync()"><span class="val" id="glowV"></span></div>
+  <div class="row"><label>Ink</label><input type="color" id="ink" value="#ffffff" oninput="sync()"></div>
+
+  <h2>FLIGHT</h2>
+  <div class="row"><label>Duration ms</label><input type="range" id="dur" min="150" max="1200" step="10" value="550" oninput="sync()"><span class="val" id="durV"></span></div>
+  <div class="row"><label>Pop scale</label><input type="range" id="pop" min="1" max="2" step="0.05" value="1.2" oninput="sync()"><span class="val" id="popV"></span></div>
+  <div class="row"><label>Arc height</label><input type="range" id="arc" min="0" max="120" step="2" value="34" oninput="sync()"><span class="val" id="arcV"></span></div>
+  <div class="row"><label>Spin deg</label><input type="range" id="spin" min="-180" max="180" step="5" value="0" oninput="sync()"><span class="val" id="spinV"></span></div>
+  <div class="row"><label>Land fade</label><input type="range" id="fade" min="0" max="100" step="5" value="100" oninput="sync()"><span class="val" id="fadeV"></span></div>
+
+  <h2>COLOURS</h2>
+  <div id="colorRows"></div>
+
+  <h2>CONFIG</h2>
+  <div class="btns">
+    <button onclick="dumpCfg()">Dump</button>
+    <button onclick="copyCfg()">Copy</button>
+    <button onclick="resetCfg()">Reset</button>
+  </div>
+  <textarea id="dump" spellcheck="false"></textarea>
+</div>
+
+<script>
+// The particle families, and the chip each one flies into. Colours are the
+// game's own: pips blue (#pips-box border), mult red (#mult-box border), focus
+// the Focus violet, credits the gold, time the clock blue.
+const KINDS = {
+  pipAdd:  { label:'pip +',    bg:'#2f6bd8', target:'pipsChip'  },
+  pipMul:  { label:'pip x',    bg:'#1f9ad8', target:'pipsChip'  },
+  multAdd: { label:'mult +',   bg:'#c0202c', target:'multChip'  },
+  multMul: { label:'mult x',   bg:'#e0533a', target:'multChip'  },
+  focus:   { label:'focus',    bg:'#8a4fd0', target:'focusChip' },
+  credits: { label:'credits',  bg:'#c9a84c', target:'pipsChip'  },
+  time:    { label:'time',     bg:'#3f9ad0', target:'pipsChip'  },
+};
+const DEFAULTS = { shape:'diamond', size:40, font:14, round:4, bw:1.5, bl:45, glow:10,
+                   ink:'#ffffff', dur:550, pop:1.2, arc:34, spin:0, fade:100,
+                   colors:Object.fromEntries(Object.entries(KINDS).map(([k,v])=>[k,v.bg])) };
+
+function buildColorRows(){
+  document.getElementById('colorRows').innerHTML = Object.entries(KINDS).map(([k,v]) =>
+    `<div class="row"><label>${v.label}</label>
+       <input type="color" id="c_${k}" value="${v.bg}" oninput="sync()">
+       <button style="padding:2px 6px" onclick="fireOne('${k}','+9')">fire</button></div>`).join('');
+}
+buildColorRows();
+
+const $ = id => document.getElementById(id);
+const num = id => parseFloat($(id).value);
+function cfg(){
+  return { shape:$('shape').value, size:num('size'), font:num('font'), round:num('round'),
+    bw:num('bw'), bl:num('bl'), glow:num('glow'), ink:$('ink').value,
+    dur:num('dur'), pop:num('pop'), arc:num('arc'), spin:num('spin'), fade:num('fade'),
+    colors:Object.fromEntries(Object.keys(KINDS).map(k=>[k,$('c_'+k).value])) };
+}
+function sync(){
+  ['size','font','round','bw','bl','glow','dur','pop','arc','spin','fade']
+    .forEach(id => { const el=$(id+'V'); if(el) el.textContent = $(id).value; });
+  save();
+}
+// Lighten a hex toward white by pct - the border is the same hue as the plate,
+// just brighter, so the shape reads as one object rather than as an outline.
+function lighten(hex, pct){
+  const n = parseInt(hex.slice(1),16);
+  const r = n>>16, g = (n>>8)&255, b = n&255, t = pct/100;
+  const m = v => Math.round(v + (255-v)*t);
+  return `rgb(${m(r)},${m(g)},${m(b)})`;
+}
+
+function fireOne(kind, label, srcEl){
+  const c = cfg(), K = KINDS[kind];
+  const src = srcEl || document.getElementById(kind==='pipAdd' ? 'srcCard' : kind==='multMul'||kind==='pipMul' ? 'srcSleight' : 'srcTrick');
+  const tgt = document.getElementById(K.target);
+  const a = src.getBoundingClientRect(), b = tgt.getBoundingClientRect();
+  const bg = c.colors[kind];
+
+  const el = document.createElement('div');
+  el.className = 'pt sh-' + c.shape;
+  el.innerHTML = `<div class="pt-box"><span class="pt-lab">${label}</span></div>`;
+  el.style.setProperty('--pt-size', c.size+'px');
+  el.style.setProperty('--pt-font', c.font+'px');
+  el.style.setProperty('--pt-round', c.round+'px');
+  el.style.setProperty('--pt-bw', c.bw+'px');
+  el.style.setProperty('--pt-bc', lighten(bg, c.bl));
+  el.style.setProperty('--pt-bg', bg);
+  el.style.setProperty('--pt-ink', c.ink);
+  el.style.setProperty('--pt-glow', c.glow+'px');
+  document.body.appendChild(el);
+
+  const x0 = a.left + a.width/2, y0 = a.top + a.height/2;
+  const dx = (b.left + b.width/2) - x0, dy = (b.top + b.height/2) - y0;
+  const base = `translate(${x0}px,${y0}px) translate(-50%,-50%)`;
+  // A mid keyframe offset by -arc gives the flight a lob rather than a straight line.
+  const frames = [
+    { transform:`${base} translate(0,0) scale(.45) rotate(0deg)`, opacity:0, offset:0 },
+    { transform:`${base} translate(${dx*.12}px,${dy*.12 - c.arc*.5}px) scale(${c.pop}) rotate(${c.spin*.2}deg)`, opacity:1, offset:.22 },
+    { transform:`${base} translate(${dx*.55}px,${dy*.55 - c.arc}px) scale(1) rotate(${c.spin*.6}deg)`, opacity:1, offset:.62 },
+    { transform:`${base} translate(${dx}px,${dy}px) scale(.8) rotate(${c.spin}deg)`, opacity:1 - c.fade/100, offset:1 },
+  ];
+  el.animate(frames, { duration:c.dur, easing:'cubic-bezier(.3,.7,.4,1)', fill:'forwards' });
+  setTimeout(()=>{ el.remove(); bump(K.target); }, c.dur);
+}
+
+function bump(id){
+  const chip = document.getElementById(id), n = chip.querySelector('.num');
+  n.classList.remove('tick'); void n.offsetWidth; n.classList.add('tick');
+  if(id==='pipsChip') n.textContent = (+n.textContent || 0) + 7;
+  else if(id==='multChip') n.textContent = (+n.textContent || 1) + 3;
+  else n.textContent = '×' + ((parseFloat(n.textContent.slice(1))||1) + 0.2).toFixed(1);
+}
+
+function fireAll(){
+  let i = 0;
+  for (const k in KINDS) setTimeout(()=>fireOne(k, k.endsWith('Mul') ? '×2' : '+9'), (i++)*90);
+}
+
+// A realistic beat: the card's own pips and everything it triggered go off
+// TOGETHER (that is the r221 behaviour), then the hand-level x mult after.
+function playHandBurst(){
+  $('pipsVal').textContent = '30'; $('multVal').textContent = '4'; $('focusVal').textContent = '×1';
+  const c = cfg();
+  const together = [ ['pipAdd','+7','srcCard'], ['pipAdd','+2','srcTrick'], ['multAdd','+5','srcTrick'], ['pipMul','×2','srcSleight'] ];
+  together.forEach(([k,l,s]) => fireOne(k, l, document.getElementById(s)));
+  setTimeout(()=>{ fireOne('focus','+3', document.getElementById('srcTrick')); }, c.dur + 140);
+  setTimeout(()=>{ fireOne('multMul','×2', document.getElementById('srcSleight')); }, c.dur*2 + 280);
+}
+
+function dumpCfg(){
+  const c = cfg();
+  $('dump').value =
+`// ── paste into js/score-dance.js ──
+const PARTICLE_CFG = {
+  shape: '${c.shape}',        // diamond | square | circle | pill | none
+  size:  ${c.size},               // px, the plate
+  font:  ${c.font},               // px, the label
+  round: ${c.round}, borderW: ${c.bw}, borderLight: ${c.bl}, glow: ${c.glow},
+  ink:   '${c.ink}',
+  flightMs: ${c.dur}, pop: ${c.pop}, arc: ${c.arc}, spin: ${c.spin}, landFade: ${c.fade},
+  colors: {
+${Object.entries(c.colors).map(([k,v])=>`    ${k}: '${v}',`).join('\n')}
+  },
+};`;
+}
+function copyCfg(){ dumpCfg(); $('dump').select(); document.execCommand('copy'); }
+function resetCfg(){
+  for (const k in DEFAULTS) { if(k==='colors') continue; if($(k)) $(k).value = DEFAULTS[k]; }
+  for (const k in DEFAULTS.colors) $('c_'+k).value = DEFAULTS.colors[k];
+  sync();
+}
+function save(){ try{ localStorage.setItem('lethe.particlePreview', JSON.stringify(cfg())); }catch(e){} }
+function load(){
+  try{
+    const s = JSON.parse(localStorage.getItem('lethe.particlePreview')||'null'); if(!s) return;
+    for (const k in s) { if(k==='colors') continue; if($(k)) $(k).value = s[k]; }
+    if(s.colors) for (const k in s.colors) if($('c_'+k)) $('c_'+k).value = s.colors[k];
+  }catch(e){}
+}
+load(); sync(); dumpCfg();
+</script>
+</body>
+</html>

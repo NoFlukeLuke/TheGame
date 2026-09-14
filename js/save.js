@@ -50,11 +50,15 @@ function _saveWrite(name, v) {
 // startGame() has already set them correctly.
 const SAVE_VARS = [
   // ── Run progression ──
-  'level', 'score', 'totalScore', 'roundGoal', 'coins', 'leaves', 'handsPlayed',
+  'level', 'score', 'totalScore', 'lastRoundScore', 'lastRoundGoal', 'roundGoal', 'coins', 'leaves', 'handsPlayed',
   'runDifficulty', 'goalPenaltyMult', 'focusRatePenalty', 'skipNextPayout', 'pendingEntityLockout',
   'deadCells', 'riderTrickId', 'interestFreezeRounds', 'spotCheckHand', 'spotCheckLeft', 'nextRoundGridShrink',
   'luckModifiers',
   'actNumber', 'nodeInAct', 'rewardGridsSeen', 'forceBossNextRound', 'shopFromNodeFlow',
+  // Guided's act state. guidedInStop is deliberately NOT saved: a checkpoint is
+  // only ever taken at the START OF A ROUND, and a bought stop never straddles
+  // one, so it is always false when a save is written.
+  'guidedSlot', 'guidedEventOffers',
   'pendingEventOverride', 'rewardGridContext', 'skipTrickChoiceOverlay', 'pendingLevelUps',
   'goalReachedThisRound', 'roundEnded', 'suppressScoreDisplay', 'heldBackScore',
   // ── Deck & board ──
@@ -73,6 +77,8 @@ const SAVE_VARS = [
   // ── Entities owned ──
   'acquiredTricks', 'acquiredKnacks', 'trickTray', '_trickReplaceQueue', 'trickTrayMode',
   'grantedSleightIds', 'altarEffects', 'sleightCapBonus', 'entityTier',
+  // r217: the slot machine's rotating buff cursor, and the event no-repeat memory.
+  'slotBuffIdx', 'recentEventIds',
   'sleightNextHandDouble', 'sleightLegacyMult', 'sleightAmplifierMult',
   '_dabiSwapNext', 'sleightFreeSwapPending',
   // ── Permanent card buffs / curses ──

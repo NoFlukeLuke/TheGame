@@ -175,6 +175,15 @@ const BAL = {
   // Three cuts of rising size and price. first_free makes the smallest cut cost
   // nothing, so the event always does something even at 0 credits.
   deck_trim: { tiers: [ { cards: 1, price: 0 }, { cards: 2, price: 6 }, { cards: 4, price: 14 } ] },
+  // ── Guided (r219): what a slot costs to fill with something other than a round. ──
+  guided: {
+    price_shop: 20, price_reward: 15, price_event: 10,
+  },
+  // ── r218 events ──
+  reassignment: { consolation_credits: 12 },
+  the_draw:     { steps: 2, spin_ms: 3200, consolation_credits: 12 },
+  the_floor:    { line_cost: 6 },
+  the_payline:  { spin_cost: 8, consolation_credits: 12 },
   // ── Focus RATE batch (r180) - scale how fast Focus accrues, not the ceiling ──
   // complexity_mult scales HAND_FOCUS; speed_mult scales the speed bonus;
   // window_mult dilates the speed clock (2 = twice as long for the same bonus).
@@ -260,7 +269,7 @@ const BAL = {
   carry_discards: { max: 8 },
   carry_time: { max_seconds: 60 },
   // ── system: base resource time costs ──
-  _resources: { swap_seconds: 8, discard_seconds_per_card: 3 },   // play is free by default
+  _resources: { unspent_credits: 3, swap_seconds: 8, discard_seconds_per_card: 3 },   // play is free by default
   _exalt: { club_pips: 10, diamond_coins: 3, heart_mult: 2, spade_time: 4 },
   _corrupt: { club_pips: 25, club_mult: -3, diamond_coins: 5, diamond_pips: -20, heart_mult: 5, heart_time: -5, spade_time: 7, spade_coins: -8 },
 };

@@ -91,6 +91,28 @@ function triggerLevelUp() {
     _svOverflow = survivalSkipCarryover ? 0 : Math.max(0, score - roundGoal);
   }
 
+  // The goal the round that just finished was measured against. Captured HERE,
+  // above the level bump: roundGoal is recomputed four lines down and is the
+  // NEXT round's target from that point on, so reading it any later records the
+  // wrong number. Read by the between-rounds score panel (js/hud.js), which also
+  // uses it as its "a round has finished" test.
+  lastRoundGoal = roundGoal;
+
+  // Unspent swaps and discards pay credits (r218). Captured HERE, at the top,
+  // because the base reset below overwrites both with the NEW round's values -
+  // and Survival/Flow pay from survivalAfterLevelUp, which runs further down this
+  // same function, well after that reset.
+  //
+  // Classic does NOT use this: its payout screen runs from startInterlude, which
+  // happens BEFORE triggerLevelUp, so there the live swaps/discards are still the
+  // finished round's and are read directly. Two paths, opposite sides of the
+  // reset - hence one captured figure and one live read rather than one of each.
+  //
+  // Read BEFORE the carry-over knacks bank them, so the figure is what you
+  // finished the round holding; Carry Swaps / Carry Discards then also carry it,
+  // which is the knack doing its job.
+  frozenUnspentActions = Math.max(0, swaps) + Math.max(0, discards);
+
   level++;
   // This round's score target, from zero
   // One chokepoint for every mode's curve (js/goal-tuning.js) - it picks the
@@ -105,6 +127,14 @@ function triggerLevelUp() {
   // Bank the completed round's score for the end-of-run display. In Survival the
   // overflow is carried to the next round, so only the counted portion is banked.
   totalScore += survivalActive() ? Math.max(0, score - _svOverflow) : score;
+  // What the round just finished was worth, kept for the between-rounds score
+  // panel (js/hud.js). It has to be captured HERE: the next line zeroes `score`,
+  // and every screen that would want to show it - the reward grid, a shop, an
+  // event - opens after that. In Survival the overflow is carried into the next
+  // round rather than banked, so the round was worth what was counted, not what
+  // was on the clock when it cleared. (lastRoundGoal is captured further up,
+  // before the level bump moves roundGoal on.)
+  lastRoundScore = survivalActive() ? Math.max(0, score - _svOverflow) : score;
   // Life Lessons: each completed round permanently raises max Focus
   if (hasTrick('life_lessons')) focusCapPerm += BAL.life_lessons.cap_gain;
   score = survivalActive() ? _svOverflow : 0;  // Survival carries overflow; others start fresh
@@ -270,7 +300,7 @@ function triggerLevelUp() {
 
   // Survival: pay coins (flat + leftover-time bonus) and bank leftover time toward
   // the next boss. Skipped on the post-boss bonus round (no goal cleared).
-  if (survivalActive() && !survivalSkipCarryover) survivalAfterLevelUp(_svLeftover);
+  if (survivalActive() && !survivalSkipCarryover) survivalAfterLevelUp(_svLeftover, frozenUnspentActions);
 
   updateScoreUI();
 

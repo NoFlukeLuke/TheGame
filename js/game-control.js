@@ -14,6 +14,10 @@ function pauseGame(hideGrid = true) {
   clearInterval(roundInterval); roundInterval = null;
   clearInterval(gameInterval);  gameInterval  = null;
   cancelAutoSubmit();
+  // Hold the scoring dance where it is. It runs on its own clock (js/dance-clock.js)
+  // and used to play on - and finish - behind the pause overlay, so the player came
+  // back to a score that had moved with nothing left on screen to explain it.
+  if (typeof dncSetPaused === 'function') dncSetPaused(true);
   if (hideGrid) {
     document.getElementById('pause-overlay').style.display = 'flex';
     document.getElementById('grid').style.visibility = 'hidden';
@@ -24,6 +28,7 @@ function pauseGame(hideGrid = true) {
 function resumeGame() {
   if (!isPaused) return;
   isPaused = false;
+  if (typeof dncSetPaused === 'function') dncSetPaused(false);
   document.getElementById('pause-overlay').style.display = 'none';
   document.getElementById('grid').style.visibility = '';
   document.getElementById('btn-pause').textContent = '⏸ Pause';
@@ -334,6 +339,8 @@ function startGame() {
   growthSpurtCapPenalty = 0;      // reset Growth Spurt's eroded Focus ceiling
   growthSpurtMaxedThisRound = false;
   siphonMultX = 1;               // clear any pending Siphon charge
+  slotBuffIdx = 0;               // the slot machines' rotating buff cursor (js/events-slots.js)
+  recentEventIds = [];           // the event no-repeat memory is per run, not per session
   // Flow runs a short 20-node Focus bar (decay is that mode's only pressure); every
   // other mode takes the Focus Cap limit as before. See flowFocusCapBase().
   focusCapBase = (typeof flowFocusCapBase === 'function')
@@ -508,6 +515,7 @@ function startGame() {
   forceBossNextRound = false;
   shopFromNodeFlow = false;
   nodeFlowAfterShop = null;
+  if (typeof guidedResetRun === 'function') guidedResetRun();  // Guided's slot counter + event offers
   recentEventIds = [];
   sleightCapBonus = {};   // Workshop's raised charge ceilings are per run
   // Improvement tiers are per run. resetEntityTiers() also rewrites BAL back to
@@ -519,6 +527,7 @@ function startGame() {
   document.getElementById('grid').querySelectorAll('.card').forEach(el => el.remove());
   roundGoal = goalForLevel(1);  // js/goal-tuning.js: per-mode curve + Zen's doubling
   totalScore = 0;
+  lastRoundScore = 0; lastRoundGoal = 0;
   coins = 0;
   shopItems = null;
   shopPurchased = new Set();

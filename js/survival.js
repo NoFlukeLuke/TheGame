@@ -129,13 +129,16 @@ function survivalInitRun() {
 // leftover = seconds left on the clock when the goal was cleared. Pays coins and
 // banks time toward the next boss. Score carry-over is handled inline in
 // triggerLevelUp (overflow above the goal seeds the next round).
-function survivalAfterLevelUp(leftover) {
+function survivalAfterLevelUp(leftover, unspentActions = 0) {
   // Flow: the session clock is NOT spent by clearing a goal (it spans every goal in
   // the 5 minutes), so there is no "leftover" to pay out and no time to bank - its
   // boss runs a fixed window. Flat coins only.
   const _flow = (typeof flowActive === 'function' && flowActive());
-  const gained = _flow ? SURVIVAL_LEVEL_COINS
-                       : SURVIVAL_LEVEL_COINS + Math.floor(Math.max(0, leftover) / EFFICIENCY_SECONDS_PER_COIN) * SURVIVAL_COINS_PER_10S;
+  // Survival and Flow skip the payout screen, so the unspent-actions credits
+  // (r218) are folded into their own coin step instead - the rule is every mode.
+  const unspent = Math.max(0, unspentActions) * BAL._resources.unspent_credits;
+  const gained = unspent + (_flow ? SURVIVAL_LEVEL_COINS
+                       : SURVIVAL_LEVEL_COINS + Math.floor(Math.max(0, leftover) / EFFICIENCY_SECONDS_PER_COIN) * SURVIVAL_COINS_PER_10S);
   coins += gained;
   updateCoinsUI();
   if (!_flow) survivalBossTimeBank = Math.min(SURVIVAL_BOSS_TIME_CAP, survivalBossTimeBank + Math.max(0, leftover));
