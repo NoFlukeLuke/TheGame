@@ -3524,7 +3524,7 @@
   }
   #reward-tooltip .rtt-close:hover { color: #fff; border-color: rgba(255,255,255,0.5); }
 
-  /* The same ✕ on the knack and trick bubbles (r235). */
+  /* The same ✕ on the knack and trick bubbles (r237). */
   .tt-close {
     position: absolute; top: 3px; right: 3px; z-index: 2;
     width: 16px; height: 16px; padding: 0; line-height: 14px;
@@ -4299,7 +4299,7 @@
 
   /* tricks: enlarged now that the time/money chips left this column - big reward-grid-style tiles */
   #stage.landscape #trick-tray-area { left:1.56%; top:60.75%; width:37.74%; height:21.75%; display:flex !important; flex-direction:row; align-items:center; justify-content:flex-start; padding:6px 8px; gap:6px; overflow:hidden; }
-  /* r235: the tray FANS (tiles overlap, never more than half hidden) and only
+  /* r237: the tray FANS (tiles overlap, never more than half hidden) and only
      then scrolls - sideways, scrollbar hidden, never vertically. */
   #stage.landscape #trick-tray-list { flex-direction:row; flex-wrap:nowrap; align-items:center; gap:0; max-height:none; overflow-x:auto; overflow-y:hidden; scrollbar-width:none; padding:0; width:100%; }
   #stage.landscape #trick-tray-list::-webkit-scrollbar { display:none; }
@@ -5274,11 +5274,11 @@ body.reduced-motion .efx-hit { animation-duration: 1ms; }
      the handle of the thing it moves rather than as a button parked nearby. */
   #shop-squish-tab {
     position:absolute; display:none; z-index:7;
-    /* The tab sits just RIGHT of the column's outer edge (owner's call, r235).
+    /* The tab sits just RIGHT of the column's outer edge (owner's call, r237).
        The shop no longer squishes at all - the COMPANY STORE title row bought
        the room instead - so this tab only appears for a future grid screen
        that calls ensureShopSquishTab() + shopSquishSet(). Such a screen hides
-       the Focus meter (body.grid-screen since r235), which is what makes the
+       the Focus meter (body.grid-screen since r237), which is what makes the
        outside position safe. Landscape only. */
     left:39.4%; top:44%; width:2%; height:11%;
     align-items:center; justify-content:center;
@@ -5336,7 +5336,7 @@ body.reduced-motion .efx-hit { animation-duration: 1ms; }
   body.reduced-motion .shop-tile.shopg-in,
   body.reduced-motion .shop-row-label.shopg-in { animation:none; }
 
-  /* ══ GRID-TAKEOVER CHROME (r235) ═════════════════════════════════════════
+  /* ══ GRID-TAKEOVER CHROME (r237) ═════════════════════════════════════════
      On body.grid-screen (reward grid / shop / event boards):
        - the FOCUS BAR fades out (nothing on these screens earns Focus) and a
          small MAX note stays at its foot;

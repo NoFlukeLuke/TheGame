@@ -208,7 +208,7 @@ function flashRoundEnd() {
   // off it rather than off the two call sites.
   if (typeof goalClearPresent === 'function') {
     // A boss win's banner carries the boss's name (endBoss used to show this
-    // itself; since r235 the dance presents and endBoss skips its copy).
+    // itself; since r237 the dance presents and endBoss skips its copy).
     const bossKick = (typeof bossWinPending !== 'undefined' && bossWinPending && typeof currentBoss !== 'undefined' && currentBoss)
       ? { kicker: currentBoss.name, force: true } : undefined;
     goalClearPresent(bossKick);

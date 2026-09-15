@@ -779,7 +779,7 @@ function fanTrickTray(list, track) {
   if (!list || !track) return false;
   const stage = document.getElementById('stage');
   if (!stage) return false;
-  // Landscape fans too since r235 (it used to marquee): tiles overlap just
+  // Landscape fans too since r237 (it used to marquee): tiles overlap just
   // enough to fit, each showing AT LEAST HALF of itself. Only past that floor
   // does the row scroll - sideways, with no scrollbar (css). Handled below,
   // after the shared measurements.

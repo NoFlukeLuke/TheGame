@@ -354,7 +354,7 @@ function playHand() {
   // would then also fire, double-running the interlude (boss grid + payout + new grid).
   const _bossThisHand = bossActive;
   if (_bossThisHand) checkBossObjective(hand, finalScore);
-  // The boss-winning hand takes the SAME exit as a goal hand (r235): freeze
+  // The boss-winning hand takes the SAME exit as a goal hand (r237): freeze
   // input, stop the clock, and let the dance play the full finale. The dance
   // ends the boss via bossSettleWin() where it would start the interlude.
   if (_bossThisHand && typeof bossWinPending !== 'undefined' && bossWinPending && !goalReachedThisRound) {

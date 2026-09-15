@@ -112,7 +112,7 @@
   #gx-bar { gap: 8px; font-size: 10px; padding: 5px 10px; }
 }
 
-/* ── The grid shop's row label plate (r229, ONE cell since r235) ────────────
+/* ── The grid shop's row label plate (r229, ONE cell since r237) ────────────
    A single cell naming the category of the items beside it. Inert by design:
    it is a heading, and making it selectable would let a connected pick route
    straight through it. Bright, not greyed - the owner's call: a heading that
@@ -145,7 +145,7 @@
   filter: drop-shadow(0 0 3px rgba(0,0,0,0.8));
 }
 
-/* ── COMPANY STORE - the title tile (r235) ──────────────────────────────────
+/* ── COMPANY STORE - the title tile (r237) ──────────────────────────────────
    Full width along the top, inert, and it survives every reroll. It is also
    what makes the shop one row SHORTER than the board it sits on. */
 #grid .shop-title-tile {

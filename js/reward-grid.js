@@ -1302,7 +1302,7 @@ function ensureRewardTooltip() {
   _rewardTT.id = 'reward-tooltip';
   _rewardTT.innerHTML = `<button class="rtt-close" aria-label="Close">✕</button><div class="rtt-rar"></div><div class="rtt-name"></div><div class="rtt-desc"></div>`;
   // The ✕ unpins as well as hides: an X'd tooltip must stay closed even though
-  // its tile is still the most recently selected one (owner spec, r235).
+  // its tile is still the most recently selected one (owner spec, r237).
   _rewardTT.querySelector('.rtt-close').onclick = (e) => {
     e.stopPropagation();
     rewardTipKey = null;
@@ -1321,7 +1321,7 @@ let rewardTipKey = null;
 function showRewardTooltipFor(r, c) {
   // The shop shares this tooltip but keeps its stock in shopGridItems, not
   // rewardCells - reading rewardCells there showed the PREVIOUS reward grid's
-  // tile (or nothing), which is why shop tooltips never worked (fixed r235).
+  // tile (or nothing), which is why shop tooltips never worked (fixed r237).
   const onShop = (typeof shopGridActive !== 'undefined' && shopGridActive);
   const cell = onShop ? { kind: 'buff', payload: shopGridItems[r]?.[c] } : rewardCells[r]?.[c];
   if (!cell || !cell.payload || !cell.payload.desc) { hideRewardTooltip(); return; }

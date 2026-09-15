@@ -18,7 +18,7 @@ let shopGridSel     = new Set();
 let shopGridMode    = 'buy';   // 'buy' | 'sell'
 let shopGridSaved   = null;    // { rows, cols } to restore on close
 
-// ── The board (r235) ──
+// ── The board (r237) ──
 // The shop is the SAME SIZE as the player's board (limits.grid_rows x grid_cols),
 // so raising the board raises the shop with it. Row 0 is the COMPANY STORE title,
 // full width, and it survives every reroll. Every row below it is a CATEGORY:
@@ -32,16 +32,24 @@ let shopGridSaved   = null;    // { rows, cols } to restore on close
 function shopgRows() { return Math.max(3, limits.grid_rows?.current || 4); }
 function shopgCols() { return Math.max(4, limits.grid_cols?.current || 4); }
 
-// The category registry. `viable()` keeps a category off the board when it has
-// nothing to sell - an empty row is worse than a different row.
+// The category registry. `viable` keeps a category off the board when it has
+// nothing to sell - an empty row is worse than a different row. Labels resolve
+// through the LEXICON (js/labels.js) so the plates follow the wording toggle:
+// Utilities / Vendors / Certs / Docs in corporate, the classic set in gamer.
 const SHOP_CATS = {
-  tricks:   { label: 'Tricks',   icon: '★' },
-  sleights: { label: 'Sleights', icon: '▶' },
-  knacks:   { label: 'Knacks',   icon: '♦' },
-  cards:    { label: 'Cards',    icon: '♠' },
-  improve:  { label: 'Improve',  icon: '⬆' },
-  limits:   { label: 'Upgrades', icon: '▲' },
+  tricks:   { type: 'trick',   fallback: 'Tricks',   icon: '★' },
+  sleights: { type: 'sleight', fallback: 'Sleights', icon: '▶' },
+  knacks:   { type: 'knack',   fallback: 'Knacks',   icon: '♦' },
+  cards:    { type: 'card',    fallback: 'Cards',    icon: '♠' },
+  improve:  { fallback: 'Improve',  icon: '⬆' },
+  limits:   { fallback: 'Upgrades', icon: '▲' },
 };
+function shopgCatLabel(cat) {
+  const def = SHOP_CATS[cat];
+  if (!def) return cat;
+  if (def.type && typeof entityLabel === 'function') return entityLabel(def.type, true);
+  return def.fallback;
+}
 // One entry per category row (board rows 1..R-1): { cat, pinned }. Buying from a
 // row PINS its category: the label wears a pin and a reroll keeps that row's
 // category (its stock still refills). Unpinned rows reroll their category too.
@@ -64,7 +72,7 @@ function sleightSellValue(card, def) {
 }
 
 // ── Shared grid-takeover HUD: location readout (replaces pips/mult chips) ──
-// Since r235 the takeover also swaps the CLOCK BAR and the FOCUS BAR out:
+// Since r237 the takeover also swaps the CLOCK BAR and the FOCUS BAR out:
 //   - the timer bar shrinks away and #grid-topline fades in over the grid,
 //     "ROUND TIME m:ss" left-aligned and the credits right-aligned (the clock
 //     is frozen on these screens, so a bar implies a countdown that is not
@@ -241,9 +249,10 @@ function shopgImprovePayloads(n) {
         continue;
       }
     }
+    const typeWord = (typeof entityLabel === 'function') ? entityLabel(type) : type;
     out.push({
-      _improve: true, icon: '⬆', label: `Random ${type}`,
-      desc: `Improve a random owned ${type} one tier. Which one is decided when you buy.`,
+      _improve: true, icon: '⬆', label: `Random ${typeWord}`,
+      desc: `Improve a random owned ${typeWord} one tier. Which one is decided when you buy.`,
       rarity: 'rare', price: 20,
       buy: () => { const t = pickImproveTarget(type); if (t) { improveEntity(t.id); showMessage(`⬆ ${t.name} improved`, 'var(--c-mint)'); } },
     });
@@ -533,6 +542,7 @@ function renderShopGrid(animateIn = false) {
     if (labelled) {
       const meta = shopGridRowMeta[r - 1];
       const cat  = meta ? SHOP_CATS[meta.cat] : null;
+      const catLabel = meta ? shopgCatLabel(meta.cat) : '';
       const lab = document.createElement('div');
       lab.className = 'reward-cell on-grid shop-row-label unselectable' + (meta?.pinned ? ' pinned' : '');
       lab.style.left = cellLeft(0) + 'px';
@@ -540,7 +550,7 @@ function renderShopGrid(animateIn = false) {
       lab.style.width  = CARD_W + 'px';
       lab.style.height = CARD_H + 'px';
       lab.innerHTML = `<span class="srl-icon">${cat?.icon || ''}</span>`
-                    + `<span class="srl-name">${cat?.label || ''}</span>`
+                    + `<span class="srl-name">${catLabel}</span>`
                     + (meta?.pinned ? `<span class="srl-pin" title="Bought from: this category stays on reroll">📌</span>` : '');
       fallIn(lab, r, 0);
       gridEl.appendChild(lab);

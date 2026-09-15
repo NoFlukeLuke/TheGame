@@ -135,7 +135,7 @@ function purgeStonesFromDeck() {
 // modifier - plus, for 'hand' bosses, a hand requirement layered ON TOP of the goal.
 function bossGoalMet() { return score >= roundGoal; }
 
-// r235: a boss-winning hand no longer ends the boss MID-playHand. It used to
+// r237: a boss-winning hand no longer ends the boss MID-playHand. It used to
 // call endBoss(true) here, synchronously, before the scoring dance had drawn a
 // frame - so the winning hand never got the finale every other goal hand gets
 // (hover, jitter, explode, fly) and the screen jumped straight to the prize

@@ -213,7 +213,7 @@ function updateKnackList() {
     `<div class="knack-chip" data-knack-id="${t.id}" tabindex="0" role="button" aria-label="${t.name}">${t.emoji}</div>`
   ).join('')}</div>`;
   const track = el.firstElementChild;
-  // Landscape scrolls the row by hand (no scrollbar - css) since r235; the
+  // Landscape scrolls the row by hand (no scrollbar - css) since r237; the
   // marquee's duplicated chips would read as owning everything twice there.
   // Portrait keeps the marquee.
   const _stg = document.getElementById('stage');
