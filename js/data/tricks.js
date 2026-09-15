@@ -4,7 +4,7 @@ const TRICK_POOL = [
   { id:'long_road',      name:'Storm',               tier:'common',    desc:'Runs score +2 mult per card' },
   { id:'river_run',      name:'Torrent',             tier:'rare',      desc:'Runs add +1 Focus per card' },
   { id:'ancient_grove',  name:'Flash Flood',         tier:'legendary', desc:'Runs of 4+ cards instantly advance Focus to the next threshold' },
-  { id:'correct_run',    name:'Rogue Wave',          tier:'mythic',    desc:'Runs played in correct sequential order score +80 pips and +16 mult, and add +4 Focus, per card' },
+  { id:'correct_run',    name:'Rogue Wave',          tier:'legendary',    desc:'Runs played in correct sequential order score +80 pips and +16 mult, and add +4 Focus, per card' },
   { id:'tide_table',     name:'Tide Table',          tier:'epic',      desc:'Runs ×mult, building +×0.75 per Run scored this round' },
   { id:'undertow',       name:'Undertow',            tier:'epic',      desc:'Runs ×1.5 pips, plus ×0.5 more per card beyond 3' },
   { id:'high_water',     name:'High Water',          tier:'epic',      desc:'After 3 Runs each round, every Run pauses the clock for its card count in seconds' },
@@ -19,7 +19,7 @@ const TRICK_POOL = [
   { id:'interest',    name:'Interest',    tier:'rare',   desc:'×0.1 pips for every 10 credits you hold, up to ×3' },
   { id:'portfolio',   name:'Portfolio',   tier:'epic',   desc:'×0.15 mult for every card on the grid carrying a permanent bonus' },
   { id:'redline',     name:'Redline',     tier:'epic',   desc:'While your Focus multiplier is ×2 or higher, ×2 mult' },
-  { id:'compound',    name:'Compound',    tier:'mythic', desc:'Every 45 seconds your round score is banked. Your next hand pays the banked amount again.' },
+  { id:'compound',    name:'Compound',    tier:'legendary', desc:'Every 45 seconds your round score is banked. Your next hand pays the banked amount again.' },
   // ── Focus RATE batch (r180) - see focusRateMods() in js/focus-config.js ──
   { id:'overclock',     name:'Overclock',     tier:'epic', desc:'The Focus speed bonus is multiplied by 2.' },
   { id:'second_nature', name:'Second Nature', tier:'epic', desc:'Hands generate 2× their listed Focus.' },
@@ -86,13 +86,13 @@ const TRICK_POOL = [
   { id:'magpie',         name:'Hoarder House',       tier:'epic',      tags:['time','resource'],  desc:'Each hand rewinds the clock 1 second for every 2 unspent swaps + discards you hold' },
   { id:'mockingbird',    name:'Traveler',            tier:'rare',      tags:['resource','streak'],desc:'Every 3 hands you play without a same-type streak grants +1 swap' },
   { id:'starling',       name:'Type A',              tier:'rare',      tags:['resource','streak'],desc:'Every 2nd hand of an unbroken same-type streak grants +1 discard' },
-  { id:'phoenix',        name:'The Phoenix',         tier:'mythic',    desc:'While the clock is paused, the Focus multiplier applies twice' },
+  { id:'phoenix',        name:'The Phoenix',         tier:'legendary',    desc:'While the clock is paused, the Focus multiplier applies twice' },
   // ── Streaks ──
   { id:'kindling',       name:'Kindling',            tier:'common',    desc:'Same hand streak scores +4 pips × streak' },
   { id:'wildfire',       name:'Wildfire',            tier:'rare',      desc:'3 same hands in a row scores +2 mult' },
   { id:'echo_hand',      name:'Echoes',              tier:'common',    desc:'Playing the same hand type as the previous hand replays each card' },
   // ── Suit conditions ──
-  { id:'club_double',    name:'Hard Labour',         tier:'mythic',    tags:['suit','pips'], desc:'Each club scored adds escalating pips - +5, doubling per club; replays count' },
+  { id:'club_double',    name:'Hard Labour',         tier:'legendary',    tags:['suit','pips'], desc:'Each club scored adds escalating pips - +5, doubling per club; replays count' },
   { id:'monochrome',     name:'Blood Diamonds',      tier:'epic',      desc:'Hands with at least one heart and one diamond grant +1 credit and +10 seconds' },
   { id:'full_color',     name:'Rainbow',             tier:'rare',      desc:'Hands with all four suits score +16 pips and +4 mult per card' },
   { id:'balanced_diet',  name:'Balance',             tier:'common',    desc:'Hands with exactly 2 suits score +2 mult per card' },
@@ -185,7 +185,7 @@ const TRICK_POOL = [
   { id:'stand_up',       name:'Stand-Up',            tier:'rare',      tags:['sleight','pips'],  desc:'+10 pips for each charge remaining across all your Sleights' },
   { id:'scalper',        name:'Scalper',             tier:'rare',      tags:['sleight','pips'],  desc:'Total pips ×(1 + 0.2 per charge your Sleights are missing), figured when the hand scores' },
   // ── 5-card-hand family (r103) ──
-  { id:'five_stack',     name:'Five Stack',          tier:'mythic',    tags:['pips','mult','focus'], desc:'Each card in a 5-card hand scores +20 pips, +5 mult, and +1 Focus' },
+  { id:'five_stack',     name:'Five Stack',          tier:'legendary',    tags:['pips','mult','focus'], desc:'Each card in a 5-card hand scores +20 pips, +5 mult, and +1 Focus' },
   { id:'little_guys',    name:'the little guys',     tier:'rare',      tags:['focus'],           desc:'A 5-card hand with no face cards permanently raises your maximum Focus by 1' },
   { id:'five_fodder',    name:'Five for Fodder',     tier:'common',    tags:['credits','discard'], desc:'Discarding a 5-card hand grants +5 credits' },
   { id:'five_second',    name:'Five Second Rule',    tier:'epic',      tags:['time'],            desc:'Playing a 5-card hand pauses the clock 5 seconds' },

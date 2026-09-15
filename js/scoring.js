@@ -219,8 +219,8 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   //   pays(card, x)   - { pip, mult } for THIS card, or nothing
   //
   // TWO RULES:
-  //   1. REPLAY-WEIGHTED (r235). A card that scores three times pays these three
-  //      times, exactly as its own pips do. They paid ONCE per card until r235,
+  //   1. REPLAY-WEIGHTED (r236). A card that scores three times pays these three
+  //      times, exactly as its own pips do. They paid ONCE per card until r236,
   //      which the owner caught by playing it: "when get even is owned and an
   //      even card replays, i did not see another mult chip fly to the score
   //      area." The animation was honest - the payment really was once - and the
@@ -507,7 +507,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     const _isHeartC = card.suit === '♥' || (card.combined && card.suit2 === '♥');
     // `_cmAdd` is what this card pays EVERY time it scores. `_cmOnce` is what it
     // pays on its FIRST scoring only - NOTHING FEEDS IT TODAY (the per-card payers
-    // became replay-weighted in r235). It is kept as the seam a future
+    // became replay-weighted in r236). It is kept as the seam a future
     // once-per-card bonus drops into, because the rep loop below is already shaped
     // to interleave one correctly and that is the hard part to re-derive. The
     // accumulators are kept purely as LEDGER totals - the contributions tab wants
@@ -522,7 +522,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     const _ec1 = exaltCorruptTotals([card]);
     if (_ec1.mult) { _cmAdd += _ec1.mult; _ecMultAcc += _ec1.mult * _retrig; _ev('_exalt','mult+',_ec1.mult,'exalt'); }
     if (_ec1.pips) { _ecPipAcc  += _ec1.pips * _retrig; _ev('_exalt','pip+', _ec1.pips,'exalt'); }
-    // Per-card payers (see PER_CARD_PAYERS). REPLAY-WEIGHTED since r235: a card
+    // Per-card payers (see PER_CARD_PAYERS). REPLAY-WEIGHTED since r236: a card
     // that scores three times pays them three times, exactly as its own pips do.
     // They used to pay once per card however many times it scored, which is what
     // the owner saw and reported: "when get even is owned and an even card
@@ -1003,7 +1003,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     _pool.forEach(t => t.tags.forEach(tag => { _tagCount[tag] = (_tagCount[tag] || 0) + 1; }));
     const _qualTags = new Set(Object.keys(_tagCount).filter(tag => _tagCount[tag] >= 3));
     if (_qualTags.size) {
-      const _RANK = { common:0, rare:1, epic:2, legendary:3, mythic:4 };
+      const _RANK = { common:0, rare:1, epic:2, legendary:3 };
       let _best = null, _bestRank = 99;
       _pool.forEach(t => {
         if (!t.tags.some(tag => _qualTags.has(tag))) return;
@@ -1064,7 +1064,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     _ev('spot_check', 'mult*', BAL.spot_check.mult, 'penalty');
   }
 
-  // ── THE LAST FOUR x SCORE EFFECTS, MOVED HERE (r235) ────────────────────────
+  // ── THE LAST FOUR x SCORE EFFECTS, MOVED HERE (r236) ────────────────────────
   // There is no x SCORE step any more. `s = totalPips * mult` and Focus is a
   // separate multiplier after it, so a xK on the score and a xK on the mult are
   // the SAME arithmetic - and one of them is a number the player can watch
@@ -1115,10 +1115,10 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
 
   let s = totalPips * mult;
 
-  // 4. x SCORE - THERE IS NOTHING HERE ANY MORE, AND THAT IS THE POINT (r235).
+  // 4. x SCORE - THERE IS NOTHING HERE ANY MORE, AND THAT IS THE POINT (r236).
   // A x score fires AFTER lastCalcPips / lastCalcMult are read, so it changes the
   // final number and nothing on screen says why. r190 moved four Tricks out for
-  // that reason; r193 took Legacy, r194 Spot Check, and r235 the last four - The
+  // that reason; r193 took Legacy, r194 Spot Check, and r236 the last four - The
   // Redaction, The Grind, Low and Behold and the dev grid Trick card. All of them
   // are x mult now, which is the same arithmetic (s = totalPips x mult, Focus
   // separate and after) and visibly moves the MULT chip.

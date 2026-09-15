@@ -1,4 +1,4 @@
-const BUILD = "2026-09-15 · r235 · no x SCORE step left: the last four moved to x mult · per-card payers are replay-weighted (Get Even pays per replay) [onto r234]";
+const BUILD = "2026-09-15 · r236 · no x SCORE step left: the last four moved to x mult · per-card payers are replay-weighted (Get Even pays per replay) [onto r235]";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

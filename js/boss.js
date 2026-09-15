@@ -592,7 +592,7 @@ function _bossTrickTilesHTML(ids) {
   if (!ids.length) return `<div class="btp-none">nothing</div>`;
   return ids.map(id => {
     const t = _bossTrickById(id);
-    const rar = t && ['common','rare','epic','legendary','mythic'].includes(t.tier) ? t.tier : 'common';
+    const rar = t && ['common','rare','epic','legendary'].includes(t.tier) ? t.tier : 'common';
     const tile = { entity: 'trick', label: t ? t.name : trickIdToName(id),
                    emoji: (t && typeof trickEmoji === 'function') ? trickEmoji(t) : '🃏' };
     return `<div class="btp-tile">${entityTileHTML(tile, rar)}</div>`;

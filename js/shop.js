@@ -14,9 +14,9 @@ let svcStep = 0;
 let svcPicked = [];
 
 // ── New shop state ──
-const SHOP_TRICK_PRICES    = { common: 5, rare: 8, epic: 12, legendary: 18, mythic: 25 };
+const SHOP_TRICK_PRICES    = { common: 5, rare: 8, epic: 12, legendary: 18 };
 const SHOP_KNACK_PRICE  = 10;
-const SHOP_SLEIGHT_PRICES = { common: 8, rare: 12, epic: 16, legendary: 22, mythic: 28 };
+const SHOP_SLEIGHT_PRICES = { common: 8, rare: 12, epic: 16, legendary: 22 };
 const SHOP_LIMIT_BASE   = 15; // coins; +5 per upgrade already purchased
 
 let shopItems       = null; // { tricks:[], limits:[], knacks:[], sleights:[] }
@@ -64,32 +64,43 @@ function shopLimitPrice(def) {
   return SHOP_LIMIT_BASE + purchases * 5;
 }
 
-// Picks `count` sleights using weighted rarity tiers: common 60%, rare 28%, epic 10%, legendary 2%.
-// Cascades to lower rarity if the rolled tier has no available sleights.
+// Picks `count` sleights on the shared rarity table (js/data/balance.js), Luck
+// included, cascading DOWN when the rolled tier has nothing left.
+//
+// It had its own copy of the roll-and-cascade loop, and the copy rolled
+// `Math.random() * 100` against a running total of the weights - which is only
+// the same thing while they add up to 100. luckTierWeights makes them sum ABOVE
+// 100, so at any Luck at all a roll past the total fell through to targetIdx 0
+// and handed back a common. It goes through pickEntityByRarity now, which
+// normalises by the real total.
 function pickSleightByRarity(count, excluded) {
-  const TIER_ORDER   = ENTITY_TIERS;      // js/data/balance.js - one table for every offer path
-  const TIER_WEIGHTS = luckTierWeights(ENTITY_TIER_W);  // Luck tilts the ladder (js/luck.js)
   const result = [];
   const usedIds = new Set(excluded);
   for (let i = 0; i < count; i++) {
     const pool = SLEIGHT_POOL.filter(j => !usedIds.has(j.id) && sleightOfferable(j) && !_shopModeBanned(j.id));
     if (!pool.length) break;
-    const roll = Math.random() * 100;
-    let cum = 0, targetIdx = 0;
-    for (let ti = 0; ti < TIER_WEIGHTS.length; ti++) {
-      cum += TIER_WEIGHTS[ti];
-      if (roll < cum) { targetIdx = ti; break; }
-    }
-    let pick = null;
-    for (let ti = targetIdx; ti >= 0 && !pick; ti--) {
-      const tp = pool.filter(j => j.rarity === TIER_ORDER[ti]);
-      if (tp.length) pick = tp[Math.floor(Math.random() * tp.length)];
-    }
-    if (!pick) pick = pool[Math.floor(Math.random() * pool.length)];
+    const pick = pickEntityByRarity(pool, j => (j.rarity || 'common'))
+              || pool[Math.floor(Math.random() * pool.length)];
     result.push(pick);
     usedIds.add(pick.id);
   }
   return result;
+}
+
+// Draw `n` DISTINCT entities on the shared rarity table. The legacy shop drew
+// its Tricks and its Knacks as `shuffle(pool).slice(0, n)` - a flat pick, so the
+// POOL COMPOSITION was the drop rate and a shop Trick was 28% epic against the
+// table's 5.5%. Same bug the reward grid had, in the one offer path that never
+// got the r195 fix because the Mart had replaced it by then.
+function _shopDrawDistinct(pool, tierOf, n) {
+  const out = [], seen = new Set();
+  for (let g = 0; g < n * 12 && out.length < n; g++) {
+    const left = pool.filter(x => !seen.has(x.id));
+    if (!left.length) break;
+    const pick = pickEntityByRarity(left, tierOf) || left[0];
+    seen.add(pick.id); out.push(pick);
+  }
+  return out;
 }
 
 function _grantedSleightSet() {
@@ -114,9 +125,9 @@ function _generateShopItems() {
   const ownedKnackIds = new Set(acquiredKnacks.map(t => t.id));
   const grantedSleights = _grantedSleightSet();
 
-  const tricks    = shuffle(TRICK_POOL.filter(b => !ownedBcIds.has(b.id) && !_shopModeBanned(b.id))).slice(0, 3);
+  const tricks = _shopDrawDistinct(TRICK_POOL.filter(b => !ownedBcIds.has(b.id) && !_shopModeBanned(b.id)), b => (b.tier || 'common'), 3);
   const lims   = pickWeightedLimits(2);
-  const knacks = shuffle(KNACK_POOL.filter(t => !ownedKnackIds.has(t.id) && !_shopModeBanned(t.id))).slice(0, 2);
+  const knacks = _shopDrawDistinct(KNACK_POOL.filter(t => !ownedKnackIds.has(t.id) && !_shopModeBanned(t.id)), t => (t.rarity || 'common'), 2);
   const sleights = pickSleightByRarity(3, grantedSleights);
 
   shopItems = { tricks, limits: lims, knacks, sleights };
@@ -131,7 +142,7 @@ function rerollShopItems() {
   // Tricks
   const usedBcIds = new Set(ownedBcIds);
   shopItems.tricks.forEach((trick, i) => { if (trick && shopPurchased.has(`trick-${i}`)) usedBcIds.add(trick.id); });
-  const freshTricks = shuffle(TRICK_POOL.filter(b => !usedBcIds.has(b.id) && !_shopModeBanned(b.id)));
+  const freshTricks = _shopDrawDistinct(TRICK_POOL.filter(b => !usedBcIds.has(b.id) && !_shopModeBanned(b.id)), b => (b.tier || 'common'), 3);
   let bi = 0;
   shopItems.tricks = shopItems.tricks.map((trick, i) => shopPurchased.has(`trick-${i}`) ? trick : (freshTricks[bi++] || trick));
 
@@ -145,7 +156,7 @@ function rerollShopItems() {
   // Knacks
   const usedTotIds = new Set(ownedKnackIds);
   shopItems.knacks.forEach((t, i) => { if (t && shopPurchased.has(`knack-${i}`)) usedTotIds.add(t.id); });
-  const freshTots = shuffle(KNACK_POOL.filter(t => !usedTotIds.has(t.id) && !_shopModeBanned(t.id)));
+  const freshTots = _shopDrawDistinct(KNACK_POOL.filter(t => !usedTotIds.has(t.id) && !_shopModeBanned(t.id)), t => (t.rarity || 'common'), 2);
   let ti = 0;
   shopItems.knacks = shopItems.knacks.map((t, i) => shopPurchased.has(`knack-${i}`) ? t : (freshTots[ti++] || t));
 
@@ -255,11 +266,15 @@ function renderShopLimits() {
   if (!row) return;
   row.innerHTML = '';
   shopItems.limits.forEach((def, i) => {
-    const maxed = limits[def.id].current >= limits[def.id].max;
+    // `cur + 1` was wrong for the two limits that do not step by 1 - it offered
+    // Focus Cap as 30 -> 31 and then granted 3. limitChangeText does the clamp
+    // and the unit (js/limits.js).
+    const maxed = !limitCanIncrement(def.id);
     const price = shopLimitPrice(def);
-    const cur   = limits[def.id].current;
-    const next  = Math.min(cur + 1, limits[def.id].max);
-    const p = { _upgrade: true, icon: def.icon, label: def.label, desc: def.desc, sub: `${cur} → ${next}`, rarity: 'common' };
+    const u     = limitUnit(def.id);
+    const sub   = maxed ? `${limits[def.id].current}${u}`
+                        : `${limits[def.id].current}${u} → ${limits[def.id].current + limitGain(def.id)}${u}`;
+    const p = { _upgrade: true, icon: def.icon, label: def.label, desc: def.desc, sub, rarity: 'common' };
     row.appendChild(makeShopTile(p, 'buff', price, shopPurchased.has(`limit-${i}`), maxed ? 'MAXED' : null, () => buyShopLimit(i)));
   });
 }

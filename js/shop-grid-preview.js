@@ -79,8 +79,8 @@ function buildShopGridStock() {
                                uses: s.durability === 'infinite' ? '∞' : `${s.durability}×`, rarity:s.rarity || 'common',
                                price: SHOP_SLEIGHT_PRICES[s.rarity] || 12, buy: () => grantSleight(s) }));
   rows[3] = lims.map(d => {
-    const cur = limits[d.id].current, next = Math.min(limits[d.id].max, cur + 1);
-    return { _upgrade:true, icon:d.icon, label:d.label, desc:d.desc, sub:`${cur} → ${next}`, rarity:'common',
+    const u = limitUnit(d.id), cur = limits[d.id].current;   // step-aware, see js/limits.js
+    return { _upgrade:true, icon:d.icon, label:d.label, desc:d.desc, sub:`${cur}${u} → ${cur + limitGain(d.id)}${u}`, rarity:'common',
              price: shopLimitPrice(d), buy: () => { incrementLimit(d.id); onLimitChanged?.(d.id); } };
   });
   // Shift each row right past the label plate and pad to full width, so the

@@ -10,7 +10,7 @@
 // `improveEntity(id)` applies it. That is also why Knacks are on the wheel here
 // - improve.js recomputes BAL in place, so a Knack improves like anything else.
 
-const EV_TIER_ORDER = ['common', 'rare', 'epic', 'legendary', 'mythic'];
+const EV_TIER_ORDER = ['common', 'rare', 'epic', 'legendary'];
 
 // Everything the run owns that improve.js can still improve, across all three
 // types, in the shape the wheel draws. Emoji is looked up per type because the
