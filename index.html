@@ -31,8 +31,10 @@
 <link rel="stylesheet" href="css/room.css">
 <link rel="stylesheet" href="css/clock-fx.css">
 <link rel="stylesheet" href="css/goal-clear.css">
+<link rel="stylesheet" href="css/quarter.css">
 <link rel="stylesheet" href="css/entity-fx.css">
 <link rel="stylesheet" href="css/audio-menu.css">
+<link rel="stylesheet" href="css/picker.css">
 </head>
 <body>
 <div id="knack-tooltip" role="tooltip"></div>
@@ -288,6 +290,25 @@
       <input id="dev-float-sc" type="range" min="0" max="8" value="0" step="0.1" oninput="devSetFloat('sc', this.value)"></div>
     <div class="dev-row">
       <button class="dev-btn" onclick="devResetFloat()">Reset to default</button>
+    </div>
+  </div>
+
+  <!-- SCORE PARTICLE BLIP GROWTH (r233) -->
+  <div class="dev-section" data-group="anim">
+    <div class="dev-section-title">Score particle growth</div>
+    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:4px;">
+      A long tally is a crescendo. Past the first N particles of a hand, every further one is
+      bigger than the last, compounding to a ceiling - so a hand firing forty payouts ends much
+      louder than it started. Shape, colour and the flight are tuned in particle-preview.html.
+    </div>
+    <div class="dev-slider-row"><span>Grows after <b id="dev-blip-growStart-val">5</b> particles</span>
+      <input id="dev-blip-growStart" type="range" min="0" max="40" value="5" step="1" oninput="devSetBlip('growStart', this.value)"></div>
+    <div class="dev-slider-row"><span>Each one <b id="dev-blip-growStep-val">5</b>% bigger</span>
+      <input id="dev-blip-growStep" type="range" min="0" max="25" value="5" step="0.5" oninput="devSetBlip('growStep', this.value)"></div>
+    <div class="dev-slider-row"><span>Ceiling <b id="dev-blip-growMax-val">3</b>&times;</span>
+      <input id="dev-blip-growMax" type="range" min="1" max="8" value="3" step="0.25" oninput="devSetBlip('growMax', this.value)"></div>
+    <div class="dev-row">
+      <button class="dev-btn" onclick="devResetBlip()">Reset to default</button>
     </div>
   </div>
 
@@ -583,6 +604,7 @@
   </div>
 
   <!-- Hand log - hover / long-press the SCORE box (see js/hand-log.js). -->
+  <div id="boss-peek-popup" class="time-popup" style="display:none"></div>
   <div id="hand-log-popup" class="time-popup" style="display:none">
     <div class="ic-h">Hand Log</div>
     <div id="hand-log-rows"></div>
@@ -708,6 +730,21 @@
       <button class="mode-arrow" id="mode-arrow-right" onclick="scrollModes(1)" aria-label="Next mode">›</button>
     </div>
     <button id="mode-back-btn" onclick="closeModeSelect()">◄ BACK</button>
+  </div>
+</div>
+
+<!-- DEV PICKER (r234). Sits beside the mode-select carousel inside #cab-screen,
+     so it is drawn ON the CRT and carries no #stage zoom. Rail + scrolling body
+     + sticky footer, so NEXT / START RUN is never something you scroll to find. -->
+<div id="picker-overlay">
+  <div id="picker-panel">
+    <div id="picker-bar">
+      <div id="picker-title">BUILD A MODE</div>
+      <div id="picker-sub">Answer the questions · the run is assembled from them</div>
+    </div>
+    <div id="picker-rail"></div>
+    <div id="picker-body"></div>
+    <div id="picker-foot"></div>
   </div>
 </div>
 
@@ -1204,6 +1241,7 @@
 <script src="js/dance-clock.js"></script>
 <script src="js/score-anims.js"></script>
 <script src="js/goal-clear.js"></script>
+<script src="js/quarter.js"></script>
 <script src="js/pmf-merge.js"></script>
 <script src="js/hand-log.js"></script>
 <script src="js/score-dance.js"></script>
@@ -1245,6 +1283,9 @@
 <script src="js/survival.js"></script>
 <script src="js/flow-mode.js"></script>
 <script src="js/goal-tuning.js"></script>
+<!-- picker-mode.js: after flow-mode.js, because modeHasNoRoundClock/pickerRoundSeconds
+     are the fallbacks survival.js and round-timers.js consult AFTER flowActive(). -->
+<script src="js/picker-mode.js"></script>
 <script src="js/spectrum.js"></script>
 <script src="js/records.js"></script>
 <script src="js/audio-mixer.js"></script>

@@ -36,6 +36,11 @@ async function startInterlude(opts) {
   sfxDuckGain.disconnect();
   sfxDuckGain = null;
 
+  // Guided's elite pays out here, while the round's own counters are still live -
+  // triggerLevelUp resets handsPlayedRound and handTypesRound, which is what every
+  // challenge test reads (js/guided-mode.js).
+  if (typeof guidedSettleChallenge === 'function') guidedSettleChallenge();
+
   // Guided (r218): the reward grid is something you BUY with a slot, not
   // something every round hands you, so the payout goes back to the crossroads.
   // The post-boss PRIZE grid is not a bought stop and still opens here.
@@ -46,7 +51,13 @@ async function startInterlude(opts) {
 
   // ── Reward grid replaces Trick choice - player picks spoils, then new round setup runs ──
   rewardGridContext = 'interlude';
-  if (opts.prize) openPrizeGrid(); else openRewardGrid();
+  // opts.prize is set by endBoss. With bosses switched off there is no endBoss to
+  // set it, and node 5 is an ordinary round that closes the quarter - so it is
+  // asked for here instead. Beating the quarter should pay the prize grid whether
+  // or not a boss was standing in front of it.
+  const prize = opts.prize || (typeof isActMode === 'function' && isActMode()
+                && nodeInAct === 5 && typeof bossesEnabled === 'function' && !bossesEnabled());
+  if (prize) openPrizeGrid(); else openRewardGrid();
 }
 
 async function showLevelUpScreen_fallOnly() {
@@ -193,6 +204,8 @@ async function showPayoutUI() {
   const unspentActions = Math.max(0, swaps) + Math.max(0, discards);
   const unspentCoins   = _withheld ? 0 : unspentActions * BAL._resources.unspent_credits;
   const totalCoins     = interestCoins + efficiencyCoins + unspentCoins;
+  // What this quarter's payouts paid, for the run report (js/quarter.js).
+  if (typeof recordQuarterPayout === 'function') recordQuarterPayout(totalCoins);
   if (_withheld) showMessage('Payout withheld', 'var(--red)');
   else if (_frozen) showMessage(`Interest frozen (${interestFreezeRounds} more)`, 'var(--red)');
   // Show the Idol's tripled interest right on the payout breakdown.

@@ -435,11 +435,11 @@
   /* The loadout strip is a glance, not a read - the names come off below this
      size, leaving art + rarity colour, which is what identifies them at 24px. */
   #mart-overlay .m-mini .rwd-name{ display:none; }
-  #mart-overlay .m-mini .rwd-art{ font-size:13px; top:auto; bottom:0; }
+  #mart-overlay .m-mini .rwd-art{ font-size:13px; }
   #mart-overlay .mini-knack{ width:26px; height:30px; } #mart-overlay .mini-knack .rwd-diamond-emoji{ font-size:12px; }
   #mart-overlay .mini-sleight{ width:26px; height:34px; }
-  #mart-overlay .mini-sleight > .reward-cell{ clip-path:polygon(9px 0, 100% 0, 100% 100%, 0 100%, 0 9px); }
-  #mart-overlay .mini-sleight .rwd-tab{ width:8px; height:8px; font-size:5px; }
+  /* The notch and the tab belong to the pre-r228 sleight tile. The business
+     card has neither, and both of these outrank the object rule on the ID. */
   #mart-overlay .mini-sleight .rwd-uses{ display:none; }
   #mart-overlay .mini-trick{ width:26px; height:32px; }
   /* Stats / Deck / Time move into the drawer's footer on narrow screens; the

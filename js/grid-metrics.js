@@ -86,6 +86,16 @@ function applyGridMetricsToDOM() {
 // depends on card size + column count. Pin the focus meter to the grid's LEFT edge
 // and stretch the clock readout + timer bar across the grid's WIDTH, so both track
 // the grid and scale as it grows (more columns → wider grid → wider clock bar).
+// Where the left column's outer edge sits, as a percentage of the stage. The
+// playing layout runs it to 39.3% (1.56% + 37.74%); the shop squeezes it to
+// 26.56% (1.56% + 25%). Anything that has to sit clear of the column asks here
+// rather than carrying its own copy of the number.
+const LCOL_RIGHT_PLAY = 39.3, LCOL_RIGHT_SHOP = 26.56;
+function leftColumnRightPct() {
+  const stage = document.getElementById('stage');
+  return (stage && stage.classList.contains('shop-squish')) ? LCOL_RIGHT_SHOP : LCOL_RIGHT_PLAY;
+}
+
 function syncSidebarsToGrid() {
   const stage = document.getElementById('stage');
   const focus = document.getElementById('focus-meter-wrap');
@@ -113,10 +123,13 @@ function syncSidebarsToGrid() {
     vclock.style.width = Math.max(6, gWidth - readoutW - 0.6) + '%';
   }
   // Focus meter sits right against the grid's left edge - but never back far
-  // enough to crowd the left column (its right edge is ~39.3% of the stage).
+  // enough to crowd the left column. That floor is the COLUMN'S OWN right edge,
+  // not a constant: the shop squeezes the column to 25% of the stage (r230), and
+  // a hardcoded 39.5 pinned the meter out over the board while the column it was
+  // avoiding had moved 13% to the left.
   if (focus) {
     const fw = pct(focus.getBoundingClientRect().width);
-    focus.style.left = Math.max(39.5, gLeft - fw - 0.4) + '%';
+    focus.style.left = Math.max(leftColumnRightPct() + 0.2, gLeft - fw - 0.4) + '%';
   }
 }
 

@@ -3,14 +3,14 @@
 // ══════════════════════════════════════════════
 // A guided first run over an ORDINARY run. MODES.tutorial sets
 // `actStructure: true`, so every system is the real one (round → payout →
-// reward grid → Mart), and the board is a normal random deal. The tutorial does
+// reward grid → Shop), and the board is a normal random deal. The tutorial does
 // not stack the deck; where it needs a specific card it FINDS one that is
 // already there (see tutorialTeachingHand).
 //
 // Two things are pinned rather than random:
 //   1. The run is SEEDED (MODES.tutorial.seed), so orientation is the same
 //      experience for everyone and reproducible when something goes wrong.
-//   2. The FIRST reward grid is scripted - a Trick, a liability and the Mart
+//   2. The FIRST reward grid is scripted - a Trick, a liability and the Shop
 //      destination in a row - because the reward step teaches the path rule by
 //      making the player walk one. See tutorialScriptRewardGrid.
 //
@@ -18,7 +18,7 @@
 // The step machine is POLLED, not event-driven: each step declares `when` (hold
 // the step back until true) and `until` (auto-advance when true) as predicates
 // over globals that already exist - `selected`, `handsPlayed`,
-// `goalReachedThisRound`, `rewardSelected`, `martActive`… One rAF loop
+// `goalReachedThisRound`, `rewardSelected`, `shopGridActive`… One rAF loop
 // evaluates them. Adding or reordering steps means editing TUTORIAL_STEPS and
 // nothing else. Outside this file the total footprint is:
 //   · menu.js         - the MODES.tutorial entry + carousel card
@@ -95,13 +95,12 @@ function tutRewardCell(rc) {
 function tutRewardPicked(rc) {
   return !!rc && rewardSelected.has(`${rc[0]}-${rc[1]}`);
 }
-function tutMartOpen()   { return typeof martActive !== 'undefined' && martActive; }
-// `martActive` flips at the TOP of openMart, but the Mart's DOM is built behind
-// the channel-change CRT transition - and mid-transition the markup EXISTS while
-// being collapsed to zero size. So readiness is tested with tutEl (which demands
-// a real rect), not getElementById; otherwise the first Mart step fires against a
-// zero-size anchor and lands centred with no spotlight.
-function tutMartReady()  { return tutMartOpen() && !!tutEl('#mart-loadout'); }
+// r232: the live shop is the on-grid shop (js/shop-grid-preview.js), not the
+// Mart overlay. Readiness is tested with tutEl (which demands a real rect) on a
+// dealt shop tile, not on the flag alone - the tiles deal in with a fall
+// animation and a zero-size anchor lands the bubble centred with no spotlight.
+function tutShopOpen()   { return typeof shopGridActive !== 'undefined' && shopGridActive; }
+function tutShopReady()  { return tutShopOpen() && !!tutEl('#grid .shop-tile'); }
 function tutRewardOpen() { return document.body.classList.contains('reward-active'); }
 function tutPayoutEl()   { return document.getElementById('payout-overlay'); }
 // True once every animation/dance has settled - used by `when` so a bubble never
@@ -225,7 +224,7 @@ const TUTORIAL_STEPS = [
     id: 'tooltips', anchor: () => tutEl('#grid'), side: 'left', hold: true, next: true,
     eyebrow: 'Reading the game',
     title: 'How to pull up a tooltip',
-    body: `Anything you do not recognise will tell you what it does.<br><br>On a <b>phone or tablet</b>: press and hold it for half a second. That works on a card, a Trick or a Sleight on the board, a Trick in your tray, and the Knack chips along the top.<br><br>On a <b>computer</b>: just hover the mouse over it.<br><br>On the shop shelves and the reward grid, a single <b>tap opens the tooltip</b> instead of picking the tile, and the buttons to pin or buy live inside the tooltip. Tap anywhere else to close it.<br><br>Every tooltip also explains the coloured words inside it, so you never have to know the vocabulary first.`,
+    body: `Anything you do not recognise will tell you what it does.<br><br>On a <b>phone or tablet</b>: press and hold it for half a second. That works on a card, a Trick or a Sleight on the board, a Trick in your tray, and the Knack chips along the top.<br><br>On a <b>computer</b>: just hover the mouse over it.<br><br>On the reward grid, a single <b>tap opens the tooltip</b> instead of picking the tile, and the pin button lives inside it. Tap anywhere else to close it.<br><br>Every tooltip also explains the coloured words inside it, so you never have to know the vocabulary first.`,
   },
   {
     id: 'limits-btn', anchor: () => tutEl('#btn-records'), side: 'top', gate: true, hold: true,
@@ -238,7 +237,7 @@ const TUTORIAL_STEPS = [
     id: 'limits-panel', anchor: () => tutEl('#records-panel'), side: 'left', hold: true, next: true,
     eyebrow: 'Records',
     title: 'Limits',
-    body: `The <b>LIMITS</b> tab: board size, swaps, discards, round length, Trick slots, rerolls, Focus capacity.<br><br>These stay fixed for the whole run unless you raise them, either by buying an upgrade at the Mart or getting a <b>Limit Break</b>.<br><br>They are easy to underrate. A raised limit helps in every round you play after it. A single item usually does not.`,
+    body: `The <b>LIMITS</b> tab: board size, swaps, discards, round length, Trick slots, rerolls, Focus capacity.<br><br>These stay fixed for the whole run unless you raise them, either by buying an upgrade at the Shop or getting a <b>Limit Break</b>.<br><br>They are easy to underrate. A raised limit helps in every round you play after it. A single item usually does not.`,
     onEnter: () => { if (recordsOpen) recordsSwitchTab('limits'); },
   },
   {
@@ -300,7 +299,7 @@ const TUTORIAL_STEPS = [
     id: 'reward-types', anchor: () => tutEl('#grid'), side: 'left', next: true,
     eyebrow: 'Rewards',
     title: 'What is on the grid',
-    body: `<b>Tricks</b> are permanent scoring bonuses. They are most of your build.<br><b>Sleights</b> are special cards shuffled into your deck.<br><b>Knacks</b> change the rules for the rest of the run.<br><b>Limits</b> permanently raise one of your allowances.<br><br><b>Red tiles</b> are the downside: curses, fewer swaps or discards, stones stuck on the board, stolen credits.<br><br>One tile is a <b>destination</b> and decides where you go next, either the <b>Mart</b> to shop or an <b>Event</b>, which is a one-off choice screen.<br><br>You can skip the grid entirely for a flat payment.`,
+    body: `<b>Tricks</b> are permanent scoring bonuses. They are most of your build.<br><b>Sleights</b> are special cards shuffled into your deck.<br><b>Knacks</b> change the rules for the rest of the run.<br><b>Limits</b> permanently raise one of your allowances.<br><br><b>Red tiles</b> are the downside: curses, fewer swaps or discards, stones stuck on the board, stolen credits.<br><br>One tile is a <b>destination</b> and decides where you go next, either the <b>Shop</b> or an <b>Event</b>, which is a one-off choice screen.<br><br>You can skip the grid entirely for a flat payment.`,
   },
   {
     id: 'pick-trick', anchor: () => tutRewardCell(tutorialRewardPlan?.trick), side: 'left', gate: true,
@@ -320,7 +319,7 @@ const TUTORIAL_STEPS = [
     id: 'pick-dest', anchor: () => tutRewardCell(tutorialRewardPlan?.dest), side: 'left', gate: true,
     eyebrow: 'Rewards',
     title: 'Where you go next',
-    body: `This tile sends you to the <b>Mart</b>.<br><br>Three tiles is all you get. <b>Selection Size</b> caps the path here, and it caps how many cards you can put in a hand.`,
+    body: `This tile sends you to the <b>Shop</b>.<br><br>Three tiles is all you get. <b>Selection Size</b> caps the path here, and it caps how many cards you can put in a hand.`,
     until: () => tutRewardPicked(tutorialRewardPlan?.dest),
   },
   {
@@ -331,49 +330,41 @@ const TUTORIAL_STEPS = [
     until: () => !tutRewardOpen(),
   },
   {
-    // Float over the Mart: it is a full-screen takeover, so a hole would leave
-    // the bubble sitting on top of the shelves it is describing.
-    id: 'mart-loadout', anchor: () => tutEl('#mart-loadout'), side: 'right', next: true,
-    when: () => tutMartReady(),
-    eyebrow: 'The Mart',
-    title: 'What you are carrying',
-    body: `This column is everything you own: Knacks, Sleights in your deck, Tricks, and your limits.<br><br>Watch the Trick counter. Trick slots are limited, and taking one more than you can hold means selling one first.`,
+    // The shop is the board itself: four category rows dealt onto the grid.
+    id: 'shop-board', anchor: () => tutEl('#grid'), side: 'left', next: true,
+    when: () => tutShopReady(),
+    eyebrow: 'The Shop',
+    title: 'The Shop',
+    body: `The shop is a board too. Each row is a category with a name plate and two options: <b>Knacks</b>, <b>Tricks</b>, <b>Sleights</b> and <b>limit upgrades</b>.<br><br>The panels on the left squeeze over to give it room. The small arrow on the column edge puts them back at full size whenever you want to read one.<br><br>Tap any tile to read what it does.`,
   },
   {
-    id: 'mart-catalog', side: 'float', corner: 'right', next: true,
-    when: () => tutMartReady(),
-    eyebrow: 'The Mart',
-    title: 'The shelves',
-    body: `Three of the four categories are stocked each visit. Tricks are always there and the rest rotate.<br><br>Limit upgrades cost more the more times you have already raised that limit.`,
-  },
-  {
-    id: 'mart-wheel', anchor: () => tutEl('#mart-spin'), side: 'bottom', next: true,
-    when: () => tutMartReady(),
-    eyebrow: 'The Mart',
-    title: 'The wheel',
-    body: `A flat fee buys one spin. <b>Drag the wheel</b> to throw it. How fast you release sets the spin, plus a random amount on top, so you cannot aim it.<br><br>One space is a <b>BUST</b> and one is a jackpot. You cannot leave the Mart while it is spinning.`,
-  },
-  {
-    id: 'mart-checkout', anchor: () => tutEl('#mart-checkout'), side: 'left', next: true,
-    when: () => tutMartReady(),
-    eyebrow: 'The Mart',
+    id: 'shop-buy', anchor: () => tutEl('#btn-play'), side: 'left', next: true,
+    when: () => tutShopReady(),
+    eyebrow: 'The Shop',
     title: 'Buying',
-    body: `Click an item, or drag it, to put it in the cart.<br><br>Every item after the first takes a further percentage off the <i>whole</i> cart, up to a cap. Buying three at once is genuinely cheaper than buying three one at a time.<br><br>The cart holds up to your <b>Selection Size</b>, the same limit that caps a hand and a reward path.`,
+    body: `Tap the items you want, then press <b>BUY</b>.<br><br>Items that touch each other buy cheaper as a batch: two connected is 10% off, three or more is 25% off the lot.`,
   },
   {
-    id: 'mart-leave', anchor: () => tutEls('#mart-reroll', '#mart-leave'), side: 'top',
-    when: () => tutMartReady(),
-    eyebrow: 'The Mart',
-    title: 'Reroll or leave',
-    body: `<b>Reroll</b> restocks the shelves. It costs more each time you do it.<br><br><b>Leave</b> when you are done. The next round deals straight away.`,
-    until: () => !tutMartOpen(),
+    id: 'shop-extras', anchor: () => tutEl('#selected-cards'), side: 'top', next: true,
+    when: () => tutShopReady(),
+    eyebrow: 'The Shop',
+    title: 'Reroll and sell',
+    body: `The strip on the left totals your selection.<br><br><b>🎲</b> rerolls the unsold stock. It costs more each time.<br><br><b>Sell</b> flips the board to everything you own, priced to sell back. Tap an item to sell it.`,
+  },
+  {
+    id: 'shop-leave', anchor: () => tutEl('#btn-discard'), side: 'left',
+    when: () => tutShopReady(),
+    eyebrow: 'The Shop',
+    title: 'Leave',
+    body: `Press <b>LEAVE</b> when you are done. The next round deals straight away.`,
+    until: () => !tutShopOpen(),
   },
   {
     id: 'outro', side: 'center',
-    when: () => !tutMartOpen() && tutIdle(),
+    when: () => !tutShopOpen() && tutIdle(),
     eyebrow: 'Done',
     title: 'That is the whole game',
-    body: `The loop is <b>round, payout, reward grid, Mart</b>, over and over, with the goal rising each time.<br><br>What this did not cover (Sleights sitting on the board, Events, boss rounds) is built out of the same parts you just used.<br><br>Have fun.`,
+    body: `The loop is <b>round, payout, reward grid, Shop</b>, over and over, with the goal rising each time.<br><br>What this did not cover (Sleights sitting on the board, Events, boss rounds) is built out of the same parts you just used.<br><br>Have fun.`,
     actions: [
       { label: 'Continue this run', fn: () => tutorialEnd() },
       { label: 'Start a fresh run', fn: () => { tutorialEnd(); ACTIVE_MODE = MODES.normal; startGame(); } },
@@ -542,7 +533,7 @@ function tutorialHoldsAutoSubmit() {
 // ── Scripted first reward grid ───────────────────────────────────────────────
 // Called from generateRewardContent. The reward step teaches the path rule by
 // making the associate walk one, so the first grid guarantees a row of
-// Trick → liability → Mart destination. The checkerboard already alternates
+// Trick → liability → Shop destination. The checkerboard already alternates
 // buff/debuff by (r+c) parity, so [0,0] [0,1] [0,2] is exactly buff/debuff/buff:
 // the plan drops straight into the existing layout without breaking it.
 // Every later grid is generated normally.
@@ -597,7 +588,7 @@ function tutorialBuildLayer() {
 }
 
 // Freeze/unfreeze the round clock. Wrapped so the tutorial only ever RELEASES a
-// pause it took itself - the reward grid and the Mart own gameTimerPaused during
+// pause it took itself - the reward grid and the Shop own gameTimerPaused during
 // their own steps and must not be un-paused from under them.
 function tutorialHoldClock(on) {
   if (on === _tutClockHeld) return;

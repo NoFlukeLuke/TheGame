@@ -163,19 +163,48 @@ const DANCE_CFG = {
 const PARTICLE_CFG = {
   shape: 'diamond',          // diamond | square | circle | pill | none
   size: 40,                  // px, the plate
-  font: 14,                  // px, the label
-  round: 4, borderW: 1.5, borderLight: 45, glow: 10,
+  font: 25.5,                // px, the label
+  round: 0, borderW: 0, borderLight: 0, glow: 30,
   ink: '#ffffff',
+  // ── The flight itself (r233). These used to be dumped by the preview and read
+  // by nobody: dncFly hardcoded its own keyframes, so a tuning session in
+  // particle-preview.html could not reach the game. They are live now.
+  flightMs: 1200,            // ms at 1x pace
+  pop: 1.8,                  // scale at the launch pop
+  arc: 0,                    // px of lob; 0 is a straight line
+  spin: 30,                  // peak rotation, reached at the HALFWAY point
+  spinEnd: -5,               // where it settles by the landing
+  landFade: 100,             // % faded out on arrival
+  // ── Per-kind overrides. The plate's job is to say WHAT changed before the
+  // number is read, so a currency that would be mistaken for another one gets
+  // its own shape or its own ink rather than one more shade of the same family.
+  shapes: { credits: 'circle' },      // coins are round, because coins are round
+  inks:   { time: '#000000' },        // the clock plate is white, so its ink is black
+  // ── Ghost trail. A rewind is the one payout that means "this already happened,
+  // and it is happening again", so it is the one that gets an after-image: N
+  // copies of the plate lagging behind the real one, each fainter than the last.
+  trails:    { rewind: 4 },
+  trailLag:  0.06,           // share of the flight each successive copy lags by
+  trailFade: 0.42,           // opacity of the FIRST ghost; the rest fall off from it
+  // ── Blip growth. A long tally is a crescendo: past the first `growStart`
+  // particles every further one is `growStep`% bigger than the one before it, so
+  // a hand firing forty payouts ends much louder than it started. Compounding,
+  // capped at `growMax`. Tunable in the dev panel under Animation.
+  growStart: 5, growStep: 5, growMax: 3,
   colors: {
     pipAdd:  '#2f6bd8',      // pips are blue, the PIPS chip's own border colour
-    pipMul:  '#1f9ad8',      // a multiply is the same hue, brighter
+    pipMul:  '#0e2a5d',      // a multiply is the same hue, deeper
     multAdd: '#c0202c',      // mult is red, the MULT chip's colour
-    multMul: '#e0533a',
+    multMul: '#6c0f13',
     focus:   '#8a4fd0',
     credits: '#c9a84c',
-    time:    '#3f9ad0',
+    time:    '#ffffff',
   },
 };
+// Per-kind shape / ink / trail, each falling back to the global value.
+function ptShape(kind){ const C=PARTICLE_CFG; return (C.shapes && C.shapes[kind]) || C.shape || 'diamond'; }
+function ptInk(kind){   const C=PARTICLE_CFG; return (C.inks   && C.inks[kind])   || C.ink   || '#ffffff'; }
+function ptTrail(kind){ const C=PARTICLE_CFG; return (C.trails && C.trails[kind]) || 0; }
 // Lighten a hex toward white. The border is the plate's own hue brightened, not
 // a separate colour, so the diamond reads as one object rather than as an
 // outline around a fill.
@@ -659,39 +688,126 @@ function dncTick(el){ if(!el) return; el.style.animation='none'; void el.offsetW
 // carrying a x3 and a x2 it finished on 466 pips instead of 416.
 // `kind` picks the plate colour out of PARTICLE_CFG.colors; `color` stays the
 // legacy text colour and is used only by the no-plate shape.
-function dncFly(srcEl, boxEl, label, color, onLand, durOverride, kind){
-  const a=srcEl.getBoundingClientRect(), b=boxEl.getBoundingClientRect();
-  const C=PARTICLE_CFG, bg=(C.colors && C.colors[kind]) || color || '#d4a857';
-  const el=document.createElement('div');
-  el.className='dnc-particle pt-'+(C.shape||'diamond');
-  // Two nested elements, deliberately: the OUTER is what the flight animates, so
-  // the diamond's own 45deg rotation has to live on an inner box or the flight's
-  // transform would overwrite it every frame. The label counter-rotates.
-  el.innerHTML='<span class="pt-box"><span class="pt-lab"></span></span>';
-  el.querySelector('.pt-lab').textContent=label;
-  el.style.left=(a.left+a.width/2)+'px'; el.style.top=(a.top+a.height/2)+'px';
-  el.style.color=color;                       // only read by the no-plate shape
+// ══════════════════════════════════════════════
+// ONE PARTICLE, ONE FLIGHT (r233)
+// ══════════════════════════════════════════════
+// The plate builder and the flight keyframes are shared by the scoring dance and
+// by the entity payout FX (js/payout-fx.js), so a coin thrown at the credits chip
+// is visibly the same object as a pip thrown at the PIPS chip, and one tuning pass
+// in particle-preview.html reaches both.
+
+// The base flight length. PARTICLE_CFG.flightMs is the tuned value; DANCE_CFG.pFlight
+// is the pre-r233 constant, kept only as the fallback. Read through here by the
+// particle AND by the beat's own wait, or a beat banks its subtotal before its
+// particles have landed.
+function ptBaseFlight(){ return PARTICLE_CFG.flightMs || DANCE_CFG.pFlight; }
+
+// ── Blip growth ────────────────────────────────────────────────────────────
+// Past the first `growStart` particles of a hand, every further one is `growStep`%
+// bigger than the one before it, compounding to a `growMax` ceiling - so a hand
+// firing forty payouts ENDS much louder than it started. Reset per hand by
+// dncResetBlips (called from playPreviewDance), exactly as dncResetAccel is for
+// pace: each hand winds up from its own base size.
+let dncBlipN = 0;
+function dncResetBlips(){ dncBlipN = 0; }
+function dncBlipScale(){
+  const C = PARTICLE_CFG;
+  const start = (C.growStart === undefined) ? 5 : C.growStart;
+  const step  = ((C.growStep === undefined) ? 5 : C.growStep) / 100;
+  const max   = (C.growMax === undefined) ? 3 : C.growMax;
+  // 1-INDEXED: `n` is "this is blip number n of the hand", so `growStart` 5 means
+  // blips 1-5 are base size and blip 6 is the first one bigger. Counting from 0
+  // here gives six base-size blips, which is not what "after the first 5" means.
+  const n = ++dncBlipN;
+  return Math.min(max, Math.pow(1 + step, Math.max(0, n - start)));
+}
+
+// Build one plate. TWO nested elements, deliberately: the OUTER is what the flight
+// animates, so the diamond's own 45deg rotation has to live on an inner box or the
+// flight's transform would overwrite it every frame. The label counter-rotates.
+function ptPlateEl(kind, label, scale, color){
+  const C = PARTICLE_CFG, bg = (C.colors && C.colors[kind]) || color || '#d4a857';
+  const el = document.createElement('div');
+  el.className = 'dnc-particle pt-' + ptShape(kind);
+  el.innerHTML = '<span class="pt-box"><span class="pt-lab"></span></span>';
+  el.querySelector('.pt-lab').textContent = label;
+  el.style.color = color || bg;               // only read by the no-plate shape
   el.style.setProperty('--dnc-pscale', DANCE_CFG.pScale);
-  el.style.setProperty('--pt-size', (C.size*DANCE_CFG.pScaleMul)+'px');
-  el.style.setProperty('--pt-font', (C.font*DANCE_CFG.pScaleMul)+'px');
-  el.style.setProperty('--pt-round', C.round+'px');
-  el.style.setProperty('--pt-bw', C.borderW+'px');
+  el.style.setProperty('--pt-size', (C.size * DANCE_CFG.pScaleMul * scale) + 'px');
+  el.style.setProperty('--pt-font', (C.font * DANCE_CFG.pScaleMul * scale) + 'px');
+  el.style.setProperty('--pt-round', C.round + 'px');
+  el.style.setProperty('--pt-bw', C.borderW + 'px');
   el.style.setProperty('--pt-bg', bg);
   el.style.setProperty('--pt-bc', _ptLighten(bg, C.borderLight));
-  el.style.setProperty('--pt-ink', C.ink);
-  el.style.setProperty('--pt-glow', C.glow+'px');
+  el.style.setProperty('--pt-ink', ptInk(kind));
+  el.style.setProperty('--pt-glow', C.glow + 'px');
+  return el;
+}
+
+// The keyframes. `spin` is the PEAK and is hit at the HALFWAY point, then the plate
+// settles back to `spinEnd` on the way down - a flick of the wrist rather than a
+// constant tumble.
+function ptFrames(dx, dy, scale){
+  const C = PARTICLE_CFG, B = 'translate(-50%,-50%)';
+  const pop = ((C.pop === undefined) ? 1.2 : C.pop) * scale;
+  const arc = C.arc || 0, mid = C.spin || 0;
+  const end = (C.spinEnd === undefined) ? 0 : C.spinEnd;
+  const fade = (C.landFade === undefined) ? 100 : C.landFade;
+  return [
+    { transform:`${B} scale(${.5*scale}) rotate(0deg)`, opacity:0 },
+    { transform:`${B} translate(${dx*.12}px,${dy*.12 - arc*.5}px) scale(${pop}) rotate(${mid*.5}deg)`, opacity:1, offset:.22 },
+    { transform:`${B} translate(${dx*.5}px,${dy*.5 - arc}px) scale(${scale}) rotate(${mid}deg)`, opacity:1, offset:.5 },
+    { transform:`${B} translate(${dx}px,${dy}px) scale(${.8*scale}) rotate(${end}deg)`, opacity: 1 - fade/100 },
+  ];
+}
+
+// Throw a plate (and its ghosts) from rect `a` to rect `b`.
+// `opts.animate` / `opts.timeout` let the dance hand in its own pausable versions;
+// the payout FX, which runs outside a dance, takes the plain ones.
+function ptLaunch(a, b, kind, label, color, dur, opts){
+  const o = opts || {}, C = PARTICLE_CFG;
+  const anim  = o.animate || ((el, kf, t) => el.animate(kf, t));
+  const later = o.timeout || ((fn, ms) => setTimeout(fn, ms));
+  const scale = (o.scale === undefined) ? 1 : o.scale;
+  const x = a.left + a.width/2,  y = a.top + a.height/2;
+  const dx = (b.left + b.width/2) - x, dy = (b.top + b.height/2) - y;
+  const frames = ptFrames(dx, dy, scale);
+  const tw = { duration: dur, easing:'cubic-bezier(.3,.7,.4,1)', fill:'forwards' };
+  // GHOSTS. A rewind is the one payout that means "this already happened, and it
+  // is happening again", so it is the one that gets an after-image. Appended
+  // FURTHEST-BACK FIRST: these are body-level siblings at one z-index, so DOM
+  // order is paint order and the real plate has to go in last to sit on top.
+  const trail = (o.trail === undefined) ? ptTrail(kind) : o.trail;
+  const lag  = (C.trailLag  === undefined) ? .06 : C.trailLag;
+  const fade = (C.trailFade === undefined) ? .42 : C.trailFade;
+  for(let i = trail; i >= 1; i--){
+    const g = ptPlateEl(kind, label, scale, color);
+    g.style.left = x+'px'; g.style.top = y+'px';
+    // Opacity carries the fall-off, not the colour: a white plate cannot be
+    // lightened any further, and time particles are white plates.
+    g.querySelector('.pt-box').style.opacity = (fade * (1 - (i-1)/trail)).toFixed(3);
+    document.body.appendChild(g);
+    anim(g, frames, Object.assign({}, tw, { delay: dur * lag * i }));
+    later(()=>g.remove(), dur * (1 + lag*i) + 60);
+  }
+  const el = ptPlateEl(kind, label, scale, color);
+  el.style.left = x+'px'; el.style.top = y+'px';
   document.body.appendChild(el);
-  const dx=(b.left+b.width/2)-(a.left+a.width/2), dy=(b.top+b.height/2)-(a.top+a.height/2);
-  const dur = durOverride || (dncFF ? Math.max(60, DANCE_CFG.pFlight/DANCE_CFG.ff) : Math.max(60, DANCE_CFG.pFlight/dncPace()));
-  dncAnimate(el, [{transform:'translate(-50%,-50%) scale(.6)',opacity:0},
-    {transform:'translate(-50%,-50%) scale(1.15)',opacity:1,offset:.2},
-    {transform:`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px)) scale(.9)`,opacity:0}],
-    {duration:dur,easing:'cubic-bezier(.3,.7,.4,1)',fill:'forwards'});
+  anim(el, frames, tw);
+  later(()=>el.remove(), dur + 60);
+  return el;
+}
+
+function dncFly(srcEl, boxEl, label, color, onLand, durOverride, kind){
+  const a=srcEl.getBoundingClientRect(), b=boxEl.getBoundingClientRect();
+  const base = ptBaseFlight();
+  const dur = durOverride || (dncFF ? Math.max(60, base/DANCE_CFG.ff) : Math.max(60, base/dncPace()));
+  ptLaunch(a, b, kind, label, color, dur,
+    { scale: dncBlipScale(), animate: dncAnimate, timeout: dncTimeout });
   // This particle IS a payout tick - a card's pips, a Trick's pips or mult, a
   // Sleight firing. Bump AFTER dur is read so the speed-up lands on what is
   // still to come, not on the flight that earned it.
   dncBumpAccel();
-  dncTimeout(()=>el.remove(), dur+60);
   return new Promise(res=>dncTimeout(()=>{ if(onLand) onLand(); res(); }, dur));
 }
 function dncFinishAbort(stage, isGoalHand, myGen){
@@ -816,6 +932,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   // not as ceremony.
   dncSpeed = DANCE_CFG.norm || 1;
   dncResetAccel();          // each hand winds itself up from its own base pace
+  dncResetBlips();          // ...and from its own base particle size
   dncClearAnims();
   const aborted = () => sig.aborted;
   const dwait = ms => dncWait(dncFF ? Math.max(6, ms/DANCE_CFG.ff) : Math.max(6, ms/dncPace()));
@@ -1160,9 +1277,14 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
       // (`defer`), and a single timer applies all of them, in emission order, at
       // the moment they arrive. Simultaneous on screen, strictly ordered in the
       // arithmetic.
-      const beatDur = dncFF ? Math.max(60, DANCE_CFG.pFlight/DANCE_CFG.ff)
-                            : Math.max(60, DANCE_CFG.pFlight/dncPace());
-      const applies = step.events.map(ev => fireEvent(ev, cardEl, subRef, false, true, beatDur, true));
+      const beatDur = dncFF ? Math.max(60, ptBaseFlight()/DANCE_CFG.ff)
+                            : Math.max(60, ptBaseFlight()/dncPace());
+      // `once` events pay per CARD, not per scoring iteration (the per-card payer
+      // table in calcScore - Get Even and friends read `cells.length`, not a
+      // replay-weighted count). So a replayed card re-pops and re-fires
+      // everything else, but not those, or the chip drifts above the real total.
+      const beatEvents = rep === 0 ? step.events : step.events.filter(ev => !ev.once);
+      const applies = beatEvents.map(ev => fireEvent(ev, cardEl, subRef, false, true, beatDur, true));
       await dncWait(beatDur);
       if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
       applies.forEach(fn => { if(fn) fn(); });

@@ -1528,3 +1528,98 @@ function confirmDeckTrim() {
   render();
   closeEvent();
 }
+
+// ══════════════════════════════════════════════
+// EVENT: THE CLEAN SLATE (r229) - undo what the grids did to you
+// ══════════════════════════════════════════════
+// Reward-grid penalties and card curses are the only PERMANENT damage a run
+// takes, and nothing in the game removed them. There is no global HP here, so a
+// campfire that heals would have nothing to heal - what a run actually
+// accumulates is liabilities, and this is their counterplay.
+//
+// Every option reads the SAME live globals the penalties are stored in
+// (js/combos-aim.js, js/deck-grid.js), so an option that has nothing to do says
+// so rather than taking a choice and doing nothing.
+const CLEAN_SLATE_FIXES = [
+  { id:'goal',   icon:'📉', rarity:'epic',
+    name:'Quota revision',
+    has:  () => goalPenaltyMult > 1,
+    desc: () => `Every future goal is raised ${Math.round((goalPenaltyMult - 1) * 100)}%. Put it back to normal.`,
+    fix:  () => { goalPenaltyMult = 1; return 'Goals back to normal'; } },
+  { id:'time',   icon:'⏱', rarity:'rare',
+    name:'Shortened rounds',
+    has:  () => roundPenaltySeconds > 0,
+    desc: () => `Rounds start ${roundPenaltySeconds}s short. Give the seconds back.`,
+    fix:  () => { const n = roundPenaltySeconds; roundPenaltySeconds = 0; return `+${n}s back on every round`; } },
+  { id:'play',   icon:'🎟', rarity:'rare',
+    name:'Play surcharge',
+    has:  () => extraPlayCostPerm > 0,
+    desc: () => `Playing a hand costs ${extraPlayCostPerm}s extra. Clear it.`,
+    fix:  () => { extraPlayCostPerm = 0; return 'Playing is free again'; } },
+  { id:'curses', icon:'🩸', rarity:'epic',
+    name:'Cursed cards',
+    has:  () => Object.keys(cardCurses || {}).length > 0,
+    desc: () => `${Object.keys(cardCurses).length} card${Object.keys(cardCurses).length === 1 ? ' is' : 's are'} cursed. Lift all of them.`,
+    fix:  () => { const n = Object.keys(cardCurses).length; cardCurses = {}; return `${n} curse${n === 1 ? '' : 's'} lifted`; } },
+  { id:'dead',   icon:'⬛', rarity:'rare',
+    name:'Dead cells',
+    has:  () => (deadCells && deadCells.size > 0),
+    desc: () => `${deadCells.size} cell${deadCells.size === 1 ? '' : 's'} on the board score nothing. Bring them back.`,
+    fix:  () => { const n = deadCells.size; deadCells = new Set(); return `${n} cell${n === 1 ? '' : 's'} restored`; } },
+  { id:'freeze', icon:'❄', rarity:'common',
+    name:'Interest freeze',
+    has:  () => interestFreezeRounds > 0,
+    desc: () => `Interest is frozen for ${interestFreezeRounds} more round${interestFreezeRounds === 1 ? '' : 's'}. Thaw it.`,
+    fix:  () => { interestFreezeRounds = 0; return 'Interest paying again'; } },
+  { id:'payout', icon:'🚫', rarity:'common',
+    name:'Withheld payout',
+    has:  () => !!skipNextPayout,
+    desc: () => 'Your next payout pays nothing. Release it.',
+    fix:  () => { skipNextPayout = false; return 'Payout released'; } },
+];
+
+function renderCleanSlate() {
+  const body = document.getElementById('event-body');
+  const live = CLEAN_SLATE_FIXES.filter(f => { try { return f.has(); } catch (e) { return false; } });
+  if (!live.length) {
+    // Nothing owed. Pay instead of offering a screen full of things that would
+    // do nothing - an event that cannot act should say so and still be worth
+    // having landed on.
+    body.innerHTML = evEmptyHTML('Nothing on your record. Take the credit instead.');
+    eventState.slateNone = true;
+    setEventConfirm(true); return;
+  }
+  eventState.slatePick = null;
+  body.appendChild(evNote('One of these comes off your record for good.'));
+  live.forEach(f => {
+    const el = makeChoiceEl({
+      icon: f.icon, rarity: f.rarity, name: f.name, desc: f.desc(),
+      onClick: () => {
+        body.querySelectorAll('.event-choice').forEach(e => e.classList.remove('selected'));
+        el.classList.add('selected');
+        eventState.slatePick = f;
+        setEventConfirm(true);
+      }
+    });
+    body.appendChild(el);
+  });
+}
+
+function confirmCleanSlate() {
+  if (eventState.slateNone) {
+    coins += BAL.clean_slate.consolation_credits;
+    updateCoinsUI?.();
+    showMessage(`+${BAL.clean_slate.consolation_credits} credits`, 'var(--gold)');
+  } else if (eventState.slatePick) {
+    let say = '';
+    try { say = eventState.slatePick.fix(); } catch (e) {}
+    // The board shows dead cells and curses, so it has to be repainted for the
+    // fix to be visible rather than only true.
+    if (typeof render === 'function' && typeof gridData !== 'undefined' && gridData[0]) {
+      try { render(); } catch (e) {}
+    }
+    updateScoreUI?.();
+    showMessage(say || 'Cleared', 'var(--gold)');
+  }
+  closeEvent();
+}

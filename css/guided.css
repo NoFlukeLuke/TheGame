@@ -1,97 +1,159 @@
 /* ══════════════════════════════════════════════
-   GUIDED CROSSROADS (r218) - the between-slots menu
-   Body-level, OUTSIDE #cabinet, for the usual reason the dev panel and the
-   pop-ups are: the cabinet applies CSS `zoom`, and this panel is placed in raw
-   viewport units.
+   GUIDED (r229) - the crossroads, drawn ON THE GRID
+   Four big tiles, each about a quarter of the board, dealt in with the reward
+   grid's own fall animation. The tiles reuse `.reward-cell.on-grid` so the neon
+   rarity frame, scanlines and glare are the shared ones (css/style.css) - only
+   the sizing and the inner type live here.
    ══════════════════════════════════════════════ */
-#guided-crossroads {
-  position: fixed; inset: 0; z-index: 320;
-  display: none; align-items: center; justify-content: center;
-  background: rgba(6, 5, 16, 0.82);
-  padding: 16px;
-}
-#guided-crossroads.show { display: flex; }
 
-#guided-crossroads .gx-panel {
-  width: min(520px, 100%);
-  max-height: calc(100vh - 32px);
-  overflow-y: auto; overscroll-behavior: contain;
-  background: linear-gradient(180deg, #171335 0%, #0f0c24 100%);
-  border: 2px solid rgba(255,255,255,0.22);
-  border-radius: 8px;
-  box-shadow: 0 0 32px -6px rgba(140,110,255,0.55), inset 0 0 40px rgba(0,0,0,0.6);
-  padding: 0 0 12px;
+/* Inert black cards under the rim of an odd-sized board. Not holes: a hole in a
+   board of cards reads as something failing to load. */
+#grid .gx-filler {
+  position: absolute;
+  background: #0a0812;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+  box-shadow: inset 0 0 14px rgba(0, 0, 0, 0.8);
+  pointer-events: none;
+  z-index: 1;
 }
 
-/* Sticky, and opaque, so the panel scrolls UNDER it. */
-#guided-crossroads .gx-bar {
-  position: sticky; top: 0; z-index: 2;
-  display: flex; align-items: center; justify-content: space-between; gap: 8px;
-  padding: 10px 12px;
-  background: #120e2c;
-  border-bottom: 1px solid rgba(255,255,255,0.14);
+#grid .gx-tile {
+  position: absolute;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 4px;
+  padding: 8px 10px;
+  text-align: center;
+  cursor: pointer;
+  z-index: 2;
+  --rc: var(--c-yellow, #f5c042);
+}
+/* One colour per kind, so a crossroads is readable at a glance before a word of
+   it is read. Red is the hard round, and nothing else is red. */
+#grid .gx-tile.gx-level  { --rc: #6fd08c; }
+#grid .gx-tile.gx-reward { --rc: #8fd0ff; }
+#grid .gx-tile.gx-shop   { --rc: var(--c-yellow, #f5c042); }
+#grid .gx-tile.gx-event  { --rc: #c9a0ff; }
+#grid .gx-tile.gx-pick3  { --rc: #7fe3c0; }
+#grid .gx-tile.gx-elite  { --rc: #ff6b6b; }
+
+#grid .gx-tile:hover { transform: translateY(-3px); }
+/* Priced out: readable, plainly not takeable. Never hidden - what you cannot
+   afford this slot is information about what to play for. */
+#grid .gx-tile.gx-locked { opacity: 0.34; cursor: not-allowed; }
+#grid .gx-tile.gx-locked:hover { transform: none; }
+
+#grid .gx-t-icon { font-size: 26px; line-height: 1; }
+#grid .gx-t-name {
+  font-family: 'Orbitron', sans-serif; font-weight: 700;
+  font-size: 12px; letter-spacing: 0.03em; text-transform: uppercase;
+  color: var(--cream, #efe7d6); line-height: 1.2;
+}
+#grid .gx-t-desc {
+  font-family: 'Crimson Pro', serif; font-size: 12px; line-height: 1.25;
+  color: var(--cream-dim, #b9b0a0);
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+#grid .gx-t-price {
+  font-family: 'Share Tech Mono', monospace; font-size: 12px;
+  color: var(--rc); margin-top: 2px;
+}
+
+/* ── The act bar ────────────────────────────────────────────────────────────
+   Body-level and fixed, placed in raw viewport px - the usual rule for anything
+   outside #cabinet, which applies CSS `zoom` to its own descendants. */
+#gx-bar {
+  position: fixed; left: 50%; top: 10px; transform: translateX(-50%);
+  z-index: 260; display: none; align-items: center; gap: 14px;
+  padding: 6px 14px; border-radius: 5px;
+  background: #120e2c; border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.6);
   font-family: 'Share Tech Mono', monospace; font-size: 11px;
   letter-spacing: 0.06em; text-transform: uppercase;
+  max-width: calc(100vw - 20px);
 }
-#guided-crossroads .gx-act   { color: var(--c-yellow, #f5c042); font-weight: 700; }
-#guided-crossroads .gx-slots { color: var(--cream-dim, #b9b0a0); }
-#guided-crossroads .gx-coins { color: var(--c-yellow, #f5c042); }
+#gx-bar.show { display: flex; }
+#gx-bar .gxb-act   { color: var(--c-yellow, #f5c042); font-weight: 700; }
+#gx-bar .gxb-slots,
+#gx-bar .gxb-note  { color: var(--cream-dim, #b9b0a0); }
+#gx-bar .gxb-coins { color: var(--c-yellow, #f5c042); }
 
-#guided-crossroads .gx-note {
-  padding: 10px 14px 4px;
-  font-family: 'Crimson Pro', serif; font-size: 13px;
-  color: var(--cream-dim, #b9b0a0);
+/* ── Take your pick (the free pick-of-three) ─────────────────────────────── */
+#guided-pick3 {
+  position: fixed; inset: 0; z-index: 300;
+  display: none; align-items: center; justify-content: center;
+  background: rgba(6, 5, 16, 0.84); padding: 16px;
 }
-
-/* ── The chips ──────────────────────────────────────────────────────────────
-   A wrapping row of equal tiles rather than a stack of full-width rows: the
-   options are siblings of the same kind, and a list implied an order they do
-   not have. Three across on a desktop panel, two on a phone. */
-#guided-crossroads .gx-chips {
-  display: flex; flex-wrap: wrap; gap: 8px;
-  padding: 8px 12px 4px;
+#guided-pick3.show { display: flex; }
+#guided-pick3 .g3-panel {
+  width: min(560px, 100%);
+  background: linear-gradient(180deg, #171335 0%, #0f0c24 100%);
+  border: 2px solid rgba(255, 255, 255, 0.22); border-radius: 8px;
+  box-shadow: 0 0 32px -6px rgba(140, 110, 255, 0.55);
+  padding: 14px;
 }
-#guided-crossroads .gx-chip {
-  flex: 1 1 calc(33.333% - 6px);
-  min-width: 128px; max-width: 100%;
-  display: flex; flex-direction: column; align-items: center; gap: 5px;
-  padding: 12px 8px 10px;
-  background: rgba(255,255,255,0.035);
-  border: 1px solid rgba(255,255,255,0.16);
-  border-top: 3px solid var(--c-yellow, #f5c042);
-  border-radius: 6px;
-  color: inherit; cursor: pointer;
-  transition: transform .1s ease, background .14s ease, border-color .14s ease, box-shadow .14s ease;
+#guided-pick3 .g3-title {
+  font-family: 'Orbitron', sans-serif; font-size: 13px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--c-yellow, #f5c042); text-align: center; margin-bottom: 10px;
 }
-#guided-crossroads .gx-chip:hover:not(.locked) {
-  transform: translateY(-2px);
-  background: rgba(255,255,255,0.075);
-  border-color: var(--c-yellow, #f5c042);
-  box-shadow: 0 0 16px -4px var(--c-yellow, #f5c042);
+#guided-pick3 .g3-row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+#guided-pick3 .g3-opt {
+  flex: 0 0 140px; height: 180px; cursor: pointer;
+  transition: transform .12s ease;
 }
-/* Priced out: still readable, plainly not takeable. Never hidden - what you
-   cannot afford this slot is information about what to play for. */
-#guided-crossroads .gx-chip.locked {
-  opacity: 0.38; cursor: not-allowed;
-  border-top-color: rgba(255,255,255,0.3);
-}
-
-#guided-crossroads .gx-icon { font-size: 22px; line-height: 1; }
-#guided-crossroads .gx-name {
-  font-family: 'Orbitron', sans-serif; font-size: 10px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: 0.03em; text-align: center;
-  color: var(--cream, #efe7d6); line-height: 1.25;
-  /* Two lines, then clip - a chip must not grow to fit a long event name. */
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
-  overflow: hidden; width: 100%;
-}
-#guided-crossroads .gx-price {
-  font-family: 'Share Tech Mono', monospace; font-size: 11px;
-  color: var(--c-yellow, #f5c042); white-space: nowrap;
-}
+#guided-pick3 .g3-opt:hover { transform: translateY(-4px); }
+#guided-pick3 .g3-opt > .reward-cell { width: 100%; height: 100%; }
 
 @media (max-width: 420px) {
-  #guided-crossroads .gx-chip { flex-basis: calc(50% - 4px); min-width: 0; }
-  #guided-crossroads .gx-name { font-size: 9px; }
-  #guided-crossroads .gx-icon { font-size: 19px; }
+  #guided-pick3 .g3-opt { flex-basis: calc(50% - 5px); height: 150px; }
+  #gx-bar { gap: 8px; font-size: 10px; padding: 5px 10px; }
+}
+
+/* ── The grid shop's row label plate (r229) ─────────────────────────────────
+   Three cells wide, naming the category the two options beside it belong to.
+   Inert by design: it is a heading, and making it selectable would let a
+   connected pick route straight through it. */
+#grid .shop-row-label {
+  position: absolute;
+  display: flex; align-items: center; gap: 10px;
+  padding: 0 14px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.07), rgba(255,255,255,0.015));
+  border: 1px solid rgba(255,255,255,0.14);
+  border-left: 3px solid var(--c-yellow, #f5c042);
+  border-radius: 6px;
+  cursor: default; pointer-events: none;
+  z-index: 2;
+}
+#grid .shop-row-label .srl-icon {
+  font-size: 20px; line-height: 1; color: var(--c-yellow, #f5c042);
+}
+#grid .shop-row-label .srl-name {
+  font-family: 'Orbitron', sans-serif; font-size: 13px; font-weight: 700;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--cream, #efe7d6);
+}
+
+/* ── Next-boss forecast on the run-progress block (r229) ────────────────────
+   Reuses the .time-popup bubble the hand log and the Time / Limits pop-ups use,
+   so it is placed and capped to the viewport by the same rule. */
+#boss-peek-popup .bp-name {
+  font-family: 'Orbitron', sans-serif; font-size: 13px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--red, #ff6b6b); margin: 4px 0 2px;
+}
+#boss-peek-popup .bp-flavor {
+  font-family: 'Crimson Pro', serif; font-style: italic; font-size: 12px;
+  color: var(--cream-dim, #b9b0a0); margin-bottom: 4px;
+}
+#boss-peek-popup .bp-brief {
+  font-family: 'Crimson Pro', serif; font-size: 13px; line-height: 1.3;
+  color: var(--cream, #efe7d6);
+}
+#boss-peek-popup .bp-note {
+  font-family: 'Share Tech Mono', monospace; font-size: 9px;
+  text-transform: uppercase; letter-spacing: 0.04em;
+  color: var(--cream-dim, #b9b0a0); opacity: 0.7; margin-top: 6px;
 }

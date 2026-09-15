@@ -282,3 +282,8 @@
 #stage.landscape #sv-peek-restore { left: 10px; right: auto; }
 #sv-peek-restore:active { transform: translateY(2px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.5), 0 1px 0 #167a57; }
 @keyframes sv-peek-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* r232: the on-grid shop is opened FROM the pick screen and takes the board the
+   pick sits over, so openShopGrid peeks the panel aside. While the shop owns the
+   screen the restore button must not be able to recall the panel over it. */
+body.shop-active #sv-peek-restore { display: none !important; }

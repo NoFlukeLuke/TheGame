@@ -361,6 +361,8 @@ function playHand() {
     showMessage('🎯 LUCKY SEVEN - +1 SWAP', '#c9a84c');
   }
   if (finalScore > highestHandScore) { highestHandScore = finalScore; highestHandName = hand; }
+  // The quarter keeps its own best, for the run report's per-quarter row.
+  if (typeof recordQuarterBest === 'function') recordQuarterBest(hand, finalScore);
   if (hand === 'Full House' && hasTrick('full_house_streak')) fullHouseThisRound++;
 
   // Check challenge progress

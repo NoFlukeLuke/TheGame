@@ -22,7 +22,7 @@ const EVENT_NO_REPEAT = 4;
 
 function openEvent(afterFn) {
   afterEventFn = afterFn || (() => drainLevelUpQueue());
-  const pool = ['confluence','crossroads','gamble','merchant','altar','spring','twin_path','forge','bargain','wager','shift_change','bench','rehearsal','workshop','market','deck_trim','reassignment','the_draw','the_floor','the_payline'];
+  const pool = ['confluence','crossroads','gamble','merchant','altar','spring','twin_path','forge','bargain','wager','shift_change','bench','rehearsal','workshop','market','deck_trim','reassignment','the_draw','the_floor','the_payline','clean_slate'];
   // Fall back to the full pool if the memory has eaten it - never draw a blank.
   const fresh = pool.filter(id => !recentEventIds.includes(id));
   const draw  = fresh.length ? fresh : pool;
@@ -76,6 +76,7 @@ function confirmEvent() {
     the_draw:    confirmDraw,
     the_floor:   confirmFloor,
     the_payline: confirmPayline,
+    clean_slate: confirmCleanSlate,
   };
   if (handlers[activeEventId]) handlers[activeEventId]();
   else closeEvent();
@@ -111,6 +112,7 @@ const EVENT_META = {
   reassignment:{ name:'Trade a Trick',   flavor:'Give up a Trick. It comes back as a Knack or a Sleight, picked at random.' },
   the_draw:    { name:'Spin to Improve', flavor:'Choose three of your own. The wheel picks one and improves it twice.' },
   the_floor:   { name:'Card Slots',      flavor:'Your deck on five reels. Buy lines, and a winning line upgrades the cards that made it.' },
+  clean_slate: { name:'Clean Slate',      flavor:'One penalty comes off your record for good.' },
   the_payline: { name:'Entity Slots',    flavor:'Three reels of what you own. Three alike and it improves a tier.' },
 };
 
@@ -143,6 +145,7 @@ function renderEventShell(id) {
     the_draw:    renderDraw,
     the_floor:   renderFloor,
     the_payline: renderPayline,
+    clean_slate: renderCleanSlate,
   };
   if (renderers[id]) renderers[id]();
   // The panel scrolls internally and is reused between events - reopening it

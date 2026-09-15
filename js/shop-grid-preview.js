@@ -17,7 +17,20 @@ let shopGridItems   = [];      // 4×4 of payloads (or null)
 let shopGridSel     = new Set();
 let shopGridMode    = 'buy';   // 'buy' | 'sell'
 let shopGridSaved   = null;    // { rows, cols } to restore on close
-const SHOPG_ROWS = 4, SHOPG_COLS = 4;
+// The BUY board is 4 rows x 5 columns: each row opens with a 3-wide tile naming
+// the category, then TWO options. Two, not four - four of everything made the
+// shop a wall to read rather than a choice to make, and the wider board is what
+// buys the room for the row labels.
+//
+// `shopGridItems[r]` stays a FULL-WIDTH array of SHOPG_COLS, with the label
+// columns held as null. That is deliberate: every existing r/c index - the
+// selection keys, the adjacency test, isGroupConnected, the click handler - keeps
+// working untouched, and only the renderer has to know about the label.
+const SHOPG_ROWS = 4, SHOPG_COLS = 5;
+const SHOPG_LABEL_SPAN = 3;            // columns 0-2 are the row's name plate
+const SHOPG_OPTIONS = SHOPG_COLS - SHOPG_LABEL_SPAN;   // 2 options a row
+const SHOPG_ROW_LABELS = ['Knacks', 'Tricks', 'Sleights', 'Upgrades'];
+const SHOPG_ROW_ICONS  = ['♦', '★', '▶', '▲'];
 
 function shopGridDiscount(n) { return n >= 3 ? 0.25 : n >= 2 ? 0.10 : 0; }
 
@@ -52,10 +65,10 @@ function buildShopGridStock() {
   const ownedTot = new Set(acquiredKnacks.map(t => t.id));
   const granted  = _grantedSleightSet();
 
-  const knacks   = shuffle(KNACK_POOL.filter(t => !ownedTot.has(t.id))).slice(0, SHOPG_COLS);
-  const tricks   = shuffle(TRICK_POOL.filter(b => !ownedBc.has(b.id))).slice(0, SHOPG_COLS);
-  const sleights = pickSleightByRarity(SHOPG_COLS, granted);
-  const lims     = shuffle(LIMITS_DEF.filter(d => limits[d.id].current < limits[d.id].max)).slice(0, SHOPG_COLS);
+  const knacks   = shuffle(KNACK_POOL.filter(t => !ownedTot.has(t.id))).slice(0, SHOPG_OPTIONS);
+  const tricks   = shuffle(TRICK_POOL.filter(b => !ownedBc.has(b.id))).slice(0, SHOPG_OPTIONS);
+  const sleights = pickSleightByRarity(SHOPG_OPTIONS, granted);
+  const lims     = shuffle(LIMITS_DEF.filter(d => limits[d.id].current < limits[d.id].max)).slice(0, SHOPG_OPTIONS);
 
   const rows = [[], [], [], []];
   rows[0] = knacks.map(k => ({ entity:'knack', label:k.name, desc:k.desc, emoji:k.emoji, rarity:k.rarity || 'common',
@@ -70,7 +83,13 @@ function buildShopGridStock() {
     return { _upgrade:true, icon:d.icon, label:d.label, desc:d.desc, sub:`${cur}${u} → ${cur + limitGain(d.id)}${u}`, rarity:'common',
              price: shopLimitPrice(d), buy: () => { incrementLimit(d.id); onLimitChanged?.(d.id); } };
   });
-  for (let r = 0; r < SHOPG_ROWS; r++) { rows[r] = rows[r] || []; while (rows[r].length < SHOPG_COLS) rows[r].push(null); }
+  // Shift each row right past the label plate and pad to full width, so the
+  // options land on columns SHOPG_LABEL_SPAN.. and the label columns are null.
+  for (let r = 0; r < SHOPG_ROWS; r++) {
+    const opts = (rows[r] || []).slice(0, SHOPG_OPTIONS);
+    while (opts.length < SHOPG_OPTIONS) opts.push(null);
+    rows[r] = new Array(SHOPG_LABEL_SPAN).fill(null).concat(opts);
+  }
 
   // ~10% chance: one random filled slot becomes a "SOLD OUT" null card
   if (Math.random() < 0.10) {
@@ -95,7 +114,8 @@ function buildShopSellStock() {
       uses: def.durability === 'infinite' ? '∞' : `${inst.card._usesLeft ?? def.durability}×`, rarity:def.rarity || 'common',
       price: sleightSellValue(inst.card, def), sell: () => sellOwnedSleight(inst) });
   });
-  // Lay out into a 4×4 (extra items beyond 16 are simply not shown this view)
+  // The SELL board uses the full width and carries no row labels - what you own
+  // is a mixed list, so there is no category for a plate to name.
   const rows = [[], [], [], []];
   for (let i = 0; i < SHOPG_ROWS * SHOPG_COLS; i++) rows[Math.floor(i / SHOPG_COLS)][i % SHOPG_COLS] = items[i] || null;
   return rows;
@@ -136,7 +156,21 @@ function openShopGrid() {
   document.body.classList.add('shop-active');
   enterGridScreenHud('SHOP', 'shop');
   enterShopGridButtons();
-  renderShopGrid();
+  // The left column narrows so the board can take the room (css/style.css).
+  // It must be applied BEFORE renderShopGrid: the tiles are positioned from
+  // CARD_W/CARD_H, which recomputeGridMetrics reads off the REAL #grid-slot
+  // rect - so the slot has to be at its shop width before anything measures it.
+  ensureShopSquishTab();
+  shopSquishSet(true, { instant: true });
+  // Survival opens the shop FROM the pick screen, and the pick panel sits
+  // centred over the board - which is now the shop. Put it aside with the
+  // pick's own peek mechanism (fade + inert); closeShopGrid brings it back.
+  // The peek's restore button is hidden while the shop owns the screen
+  // (body.shop-active rule in css/survival.css), so it cannot be recalled
+  // over the shelves.
+  const svPick = document.getElementById('survival-pick-overlay');
+  if (svPick && svPick.classList.contains('show')) svPick.classList.add('sv-peek');
+  renderShopGrid(true);
 }
 // Dev-panel + earlier hook both call this name.
 function openShopGridPreview() { openShopGrid(); }
@@ -146,6 +180,7 @@ function closeShopGrid() {
   shopGridActive = false;
   hideRewardTooltip();
   document.body.classList.remove('shop-active');
+  shopSquishSet(false, { instant: true });
   exitGridScreenHud();
   exitShopGridButtons();
   const gridEl = document.getElementById('grid'); if (gridEl) gridEl.innerHTML = '';
@@ -153,9 +188,96 @@ function closeShopGrid() {
   recomputeGridMetrics();
   shopGridItems = []; shopGridSel = new Set();
   gameTimerPaused = false;
-  // Continue the node flow exactly like the overlay shop-close handler.
+  // Continue whatever flow opened the shop. These branches mirror the Mart's
+  // closeMart tail plus the legacy #shop-close handler - the grid shop is the
+  // LIVE shop (r232), so every route the Mart served has to land here too.
   if (shopFromNodeFlow) { resumeAfterNodeFlowShop(); }
+  else if (typeof match3Active === 'function' && match3Active()) {
+    // Match-3's between-rounds shop: the board was pre-dealt behind the shop;
+    // match3AfterShop reveals it (goal flash + 3-2-1) and unpauses itself.
+    gameTimerPaused = true;
+    match3AfterShop();
+  }
+  else if (typeof survivalActive === 'function' && survivalActive() && !bossActive) {
+    if (typeof survivalShopFromPick !== 'undefined' && survivalShopFromPick) {
+      // Opened from the PICK screen: bring the peeked panel back in front. The
+      // pick owns the flow (the round deals when you choose), so stay paused.
+      survivalShopFromPick = false;
+      gameTimerPaused = true;
+      const svPick = document.getElementById('survival-pick-overlay');
+      if (svPick) svPick.classList.remove('sv-peek');
+      if (typeof survivalUpdateRerollBtn === 'function') survivalUpdateRerollBtn();
+      if (typeof render === 'function') render();
+      if (typeof survivalSyncPickAudio === 'function') survivalSyncPickAudio();
+    } else {
+      // Mid-round visit: triggerShop() nulled the round interval, so restart it.
+      if (typeof render === 'function') render();
+      startRoundTimer();
+    }
+  }
   else { if (typeof render === 'function') render(); }
+}
+
+// ── The squish: the left column narrows while the shop is open ────────────
+// One class on #stage does the whole move (css/style.css). The arrow tab puts
+// the column back to playing size for as long as you want to read something in
+// it, and squeezes it again on a second press - so nothing is ever unreachable,
+// it is just smaller by default while you are shopping.
+let shopSquished = false;
+
+// Card metrics come from the MEASURED #grid-slot rect, and the class is what
+// changes that rect - so a resize of the slot has to be followed by a
+// re-measure and a repaint or the tiles keep the old board's geometry and sit
+// outside the new one. The CSS transition means the rect is still moving on the
+// next frame, so the re-measure waits for the transition rather than a frame.
+const SHOPG_SQUISH_MS = 340;
+function shopSquishSet(on, opts) {
+  const stage = document.getElementById('stage');
+  if (!stage) return;
+  shopSquished = !!on;
+  stage.classList.toggle('shop-squish', shopSquished);
+  const tab = document.getElementById('shop-squish-tab');
+  if (tab) {
+    tab.innerHTML = shopSquished ? '\u25b6' : '\u25c0';
+    tab.title = shopSquished ? 'Show the panels full size' : 'Give the shop the room';
+    tab.setAttribute('aria-label', tab.title);
+    tab.setAttribute('aria-expanded', shopSquished ? 'false' : 'true');
+  }
+  // `instant` is for open and close, where the board is about to be built or
+  // thrown away anyway and there is no point measuring a moving rect.
+  const settle = () => {
+    if (typeof recomputeGridMetrics === 'function') recomputeGridMetrics();
+    if (shopGridActive) renderShopGrid();
+  };
+  if (opts && opts.instant) {
+    // Kill the transition for one layout pass so the rect is at its final size
+    // the moment it is measured, then hand the transition back for the tab.
+    stage.classList.add('squish-instant');
+    void stage.offsetWidth;                  // flush the layout at the new size
+    settle();
+    requestAnimationFrame(() => stage.classList.remove('squish-instant'));
+    return;
+  }
+  setTimeout(settle, SHOPG_SQUISH_MS);
+}
+
+function shopSquishToggle() { shopSquishSet(!shopSquished); }
+
+// The tab is created once and lives inside #stage beside the panels it moves.
+// It is NOT body-level: it is positioned as a percentage of the stage like
+// every other landscape panel, so it wants the cabinet's zoom rather than raw
+// viewport pixels - the opposite of the pop-ups, which are placed from JS.
+function ensureShopSquishTab() {
+  let tab = document.getElementById('shop-squish-tab');
+  if (tab) return tab;
+  const stage = document.getElementById('stage');
+  if (!stage) return null;
+  tab = document.createElement('button');
+  tab.id = 'shop-squish-tab';
+  tab.type = 'button';
+  tab.onclick = shopSquishToggle;
+  stage.appendChild(tab);
+  return tab;
 }
 
 // ── Button repurposing: Play → BUY, Discard → LEAVE ──
@@ -174,13 +296,42 @@ function exitShopGridButtons() {
 }
 
 // ── Render ──
-function renderShopGrid() {
+// `animateIn` deals the board: the plates and options FALL in, plate first and
+// its two options behind it, so a row reads as a heading with its stock under
+// it rather than as four things that appeared together. It is passed ONLY from
+// openShopGrid - every other call is a repaint after a pick or a purchase, and
+// re-dropping the whole board each time you click a tile would be unreadable.
+function renderShopGrid(animateIn = false) {
   const gridEl = document.getElementById('grid'); if (!gridEl || !shopGridItems.length) return;
   recomputeGridMetrics();
   hideRewardTooltip();
   gridEl.innerHTML = '';
+  const labelled = (shopGridMode !== 'sell');
+  // Row after row, and within a row the plate leads. 90ms a row against 55ms a
+  // column, so the board reads as dealing DOWNWARD - the same relationship the
+  // board heartbeat uses to make its wave fall rather than sweep sideways.
+  const SG_ROW_MS = 90, SG_COL_MS = 55;
+  const fallIn = (el, r, c) => {
+    if (!animateIn) return;
+    el.classList.add('shopg-in');
+    el.style.setProperty('--sgd', (r * SG_ROW_MS + c * SG_COL_MS) + 'ms');
+  };
   for (let r = 0; r < SHOPG_ROWS; r++) {
-    for (let c = 0; c < SHOPG_COLS; c++) {
+    // The row's name plate, spanning SHOPG_LABEL_SPAN cells. Inert: it is a
+    // heading, and making it selectable would let a path route through it.
+    if (labelled) {
+      const lab = document.createElement('div');
+      lab.className = 'reward-cell on-grid shop-row-label unselectable';
+      lab.style.left = cellLeft(0) + 'px';
+      lab.style.top  = cellTop(r) + 'px';
+      lab.style.width  = (SHOPG_LABEL_SPAN * (CARD_W + CARD_GAP) - CARD_GAP) + 'px';
+      lab.style.height = CARD_H + 'px';
+      lab.innerHTML = `<span class="srl-icon">${SHOPG_ROW_ICONS[r] || ''}</span>`
+                    + `<span class="srl-name">${SHOPG_ROW_LABELS[r] || ''}</span>`;
+      fallIn(lab, r, 0);
+      gridEl.appendChild(lab);
+    }
+    for (let c = labelled ? SHOPG_LABEL_SPAN : 0; c < SHOPG_COLS; c++) {
       const p = shopGridItems[r][c];
       const div = document.createElement('div');
       div.dataset.r = r; div.dataset.c = c;
@@ -203,6 +354,7 @@ function renderShopGrid() {
         if (!p._sold) div.onclick = () => onShopGridClick(r, c);
         if (p.desc) attachRewardTooltip(div, p, 'buff');
       }
+      fallIn(div, r, c - (labelled ? SHOPG_LABEL_SPAN - 1 : 0));
       gridEl.appendChild(div);
       const nm = div.querySelector('.rwd-name'); if (nm) fitRewardName(nm);
     }

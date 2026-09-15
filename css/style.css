@@ -5140,18 +5140,12 @@ body.reduced-motion .toast-bump { animation-duration: 1ms; }
 body.big-text .toast { font-size: 17px; }
 body.high-contrast .toast { background: #000; border-color: var(--toast-ink); }
 
-/* Entity payout particles (r220) - js/payout-fx.js. Same visual grammar as the
-   score particles (.dnc-particle) so a Trick handing you 12 seconds reads as the
-   same kind of event as a Trick handing you 12 pips. Body-level and fixed, so the
-   cabinet's CSS `zoom` never scales these coordinates. */
-.efx-particle {
-  position: fixed; z-index: 860; pointer-events: none;
-  font-family: 'Share Tech Mono', 'Courier New', monospace;
-  font-size: 21px; font-weight: 700; letter-spacing: 0.5px;
-  white-space: nowrap;
-  -webkit-text-stroke: 3px rgba(10,8,6,0.95); paint-order: stroke fill;
-  text-shadow: 0 2px 6px rgba(0,0,0,0.85);
-}
+/* Entity payout particles used to be their OWN bare-text element here
+   (.efx-particle). Since r233 js/payout-fx.js throws the SAME plate the scoring
+   dance throws (ptLaunch), so a coin flying at the credits chip is visibly the
+   same object as a pip flying at the PIPS chip - one shape vocabulary, one tuner
+   in particle-preview.html, one legibility fix. The plate styling lives in
+   css/dance.css with the rest of .dnc-particle. */
 /* The readout acknowledges the hit, so the particle lands on something that
    reacts instead of on a number that changed silently a moment earlier. */
 .efx-hit { animation: efxHit 360ms cubic-bezier(.3,1.4,.5,1); }
@@ -5174,3 +5168,143 @@ body.reduced-motion .efx-hit { animation-duration: 1ms; }
   color:#0d1117; background:var(--rc,#8fd6a8); border:1px solid rgba(0,0,0,.4);
   box-shadow:0 0 5px var(--rc,#8fd6a8);
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   THE SHOP SQUISH (r230) - the left column narrows so the shop gets the room
+
+   The on-grid shop takes the BOARD, not the screen, so the left column stays
+   where it is and keeps doing its job - reading your Knacks and Tricks while
+   you decide what to buy is the whole reason it is still on screen. But at its
+   playing width it leaves the shop a 45% strip. So while the shop is open the
+   column squeezes from 37.74% of the stage to 25%, the board's slot takes the
+   12.74% it gave up, and an arrow tab on the column's edge puts it back to full
+   size for as long as you want to read something properly.
+
+   WRITTEN AS EXPLICIT PERCENTAGES, NOT A TRANSFORM, and that is deliberate.
+   A transform on a left-column element makes it the containing block for every
+   position:fixed descendant - the trap this codebase hits repeatedly (the
+   camera, the boss-approach drain, the pop-ups). The column also is not one
+   element: its panels are ten separate absolutely-positioned boxes, so there is
+   nothing to scale as a unit without adding a wrapper and re-laying the whole
+   landscape layout on top of it.
+
+   Every figure below is the playing layout's own number put through ONE scale,
+   k = 25 / 37.74 = 0.6624, about the column's left edge at 1.56%:
+       x -> 1.56 + (x - 1.56) * k        width -> width * k
+   so the column keeps its proportions exactly and only its size changes.
+
+   Scoped to `#stage.landscape.shop-squish`, so portrait and ordinary play never
+   see a line of it.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+  /* the column's panels ─────────────────────────────────────────────────── */
+  #stage.landscape.shop-squish #score-center      { left:1.56%;  width:12.52%; }
+  #stage.landscape.shop-squish #score-left        { left:15.10%; width:11.46%; }
+  #stage.landscape.shop-squish #score-subboxes    { left:1.56%;  width:25%; }
+  #stage.landscape.shop-squish #knack-carousel-wrap { left:1.56%; width:25%; }
+  #stage.landscape.shop-squish #selected-cards    { left:1.56%;  width:25%; --card-w:28px; --card-h:36px; padding-left:29px; }
+  #stage.landscape.shop-squish #hand-name         { left:1.56%;  width:3.81%; font-size:7px; }
+  #stage.landscape.shop-squish #trick-tray-area   { left:1.56%;  width:25%; padding:4px 5px; }
+  #stage.landscape.shop-squish #coin-info         { left:1.56%;  width:25%; padding:0 7px; }
+  #stage.landscape.shop-squish #btn-records       { left:1.56%;  width:12.19%; }
+  #stage.landscape.shop-squish #btn-pause         { left:14.34%; width:12.22%; }
+
+  /* the type inside them, through the same scale ────────────────────────── */
+  #stage.landscape.shop-squish #score-total-num   { font-size:15px; }
+  #stage.landscape.shop-squish #goal-display      { font-size:12px; }
+  #stage.landscape.shop-squish .subbox-val        { font-size:10px; }
+  #stage.landscape.shop-squish #pips-box .subbox-val,
+  #stage.landscape.shop-squish #mult-box .subbox-val { font-size:13px; }
+  #stage.landscape.shop-squish .subbox-label      { font-size:5px; }
+  #stage.landscape.shop-squish #score-total-label,
+  #stage.landscape.shop-squish #score-goal-label  { font-size:6px; }
+  /* A Trick's tile shrinks with the column; its EMOJI does not. Same rule the
+     portrait fan and the r176 landscape pass both landed on - a Trick whose
+     glyph changes size stops reading as the same object, so the tile's own
+     overflow clips instead. */
+  #stage.landscape.shop-squish .trick-tray-chip   { width:26px; height:35px; }
+  #stage.landscape.shop-squish .m-lim,
+  #stage.landscape.shop-squish #coin-info         { font-size:11px; }
+
+  /* what the column gave up, handed to the board ────────────────────────── */
+  #stage.landscape.shop-squish #grid-slot         { left:32.26%; width:57.74%; }
+  /* The clock and the Focus meter are NOT positioned from here. syncSidebarsToGrid
+     (js/grid-metrics.js) pins all three to the board's real rect with INLINE
+     styles, which beat any rule in this file - a first pass wrote them here and
+     measured no movement at all. What the squish needs from them lives there:
+     the floor that stops the meter backing into the left column. */
+
+  /* The watermarks are sized for the playing column and spill out of the
+     narrowed one - "TRICKS" is 46px with 9px of letter-spacing, about 300px of
+     word in a 240px box. They are decoration, so they shrink with the panel
+     rather than being clipped into nonsense. */
+  #stage.landscape.shop-squish #knack-carousel-wrap::before { font-size:14px; letter-spacing:3px; }
+  #stage.landscape.shop-squish #trick-tray-area::before     { font-size:28px; letter-spacing:5px; }
+  #stage.landscape.shop-squish #selected-cards:empty::before { font-size:22px; letter-spacing:4px; }
+
+  /* the arrow tab ───────────────────────────────────────────────────────── */
+  /* Sits on the column's outer edge and rides with it, so it always reads as
+     the handle of the thing it moves rather than as a button parked nearby. */
+  #shop-squish-tab {
+    position:absolute; display:none; z-index:7;
+    /* The tab's RIGHT edge sits on the column's edge, so the tab is inside the
+       column rather than beside it. Outside is the nicer read, but the Focus
+       meter hugs the column (39.9% against the column's 39.3%) and the board
+       starts 0.5% after that - there is no 2.4% of clear stage anywhere between
+       them in either state, so an outside tab lands on the meter. */
+    left:37.3%; top:44%; width:2%; height:11%;
+    align-items:center; justify-content:center;
+    background:#191510; color:var(--gold);
+    border:1px solid var(--gold-dim); border-left:0; border-radius:0 6px 6px 0;
+    font-size:11px; line-height:1; cursor:pointer; padding:0;
+    transition:left .34s cubic-bezier(.2,.8,.2,1), background .15s;
+  }
+  #stage.landscape body.shop-active #shop-squish-tab,
+  body.shop-active #stage.landscape #shop-squish-tab { display:flex; }
+  #stage.landscape.shop-squish #shop-squish-tab { left:24.56%; }
+  #shop-squish-tab:hover { background:#241d13; }
+  #shop-squish-tab:focus-visible { outline:2px solid var(--gold); outline-offset:2px; }
+
+  /* The panels slide rather than jump, so the column reads as one object
+     moving. Everything above animates the same two properties. */
+  #stage.landscape #score-center, #stage.landscape #score-left,
+  #stage.landscape #score-subboxes, #stage.landscape #knack-carousel-wrap,
+  #stage.landscape #selected-cards, #stage.landscape #hand-name,
+  #stage.landscape #trick-tray-area, #stage.landscape #coin-info,
+  #stage.landscape #btn-records, #stage.landscape #btn-pause,
+  #stage.landscape #focus-meter-wrap, #stage.landscape #grid-slot {
+    transition: left .34s cubic-bezier(.2,.8,.2,1), width .34s cubic-bezier(.2,.8,.2,1);
+  }
+  body.reduced-motion #stage.landscape #score-center,
+  body.reduced-motion #stage.landscape #grid-slot,
+  body.reduced-motion #shop-squish-tab { transition:none; }
+  /* OPENING and CLOSING the shop do not animate the column, and that is not a
+     taste call: card size is computed from the MEASURED #grid-slot rect, so a
+     slot still sliding when recomputeGridMetrics runs hands the board the wrong
+     geometry. The shop is arriving or leaving on those two frames anyway - the
+     channel change and the deal-in are what the eye is on. Only the arrow tab,
+     which moves a settled board, animates. */
+  #stage.landscape.squish-instant #score-center, #stage.landscape.squish-instant #score-left,
+  #stage.landscape.squish-instant #score-subboxes, #stage.landscape.squish-instant #knack-carousel-wrap,
+  #stage.landscape.squish-instant #selected-cards, #stage.landscape.squish-instant #hand-name,
+  #stage.landscape.squish-instant #trick-tray-area, #stage.landscape.squish-instant #coin-info,
+  #stage.landscape.squish-instant #btn-records, #stage.landscape.squish-instant #btn-pause,
+  #stage.landscape.squish-instant #focus-meter-wrap, #stage.landscape.squish-instant #grid-slot,
+  #stage.landscape.squish-instant #shop-squish-tab { transition:none !important; }
+
+/* ── The shop board deals in (r230) ──────────────────────────────────────
+   The category plates and the options FALL onto the board, the way a round's
+   cards do, instead of appearing all at once. A shop is a thing being laid out
+   in front of you, and the stagger is what says the plate is the heading its
+   two options belong to: the plate lands first and its row follows. */
+  @keyframes shopg-fall {
+    from { opacity:0; transform:translateY(-38px) scale(0.94); }
+    60%  { opacity:1; }
+    to   { opacity:1; transform:none; }
+  }
+  .shop-tile.shopg-in, .shop-row-label.shopg-in {
+    animation: shopg-fall .34s cubic-bezier(.2,.9,.25,1) both;
+    animation-delay: var(--sgd, 0ms);
+  }
+  body.reduced-motion .shop-tile.shopg-in,
+  body.reduced-motion .shop-row-label.shopg-in { animation:none; }

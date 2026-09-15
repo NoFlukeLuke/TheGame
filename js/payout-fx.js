@@ -23,22 +23,30 @@
 // is a LIST and the first one that is actually laid out wins - the same reason
 // js/tutorial.js tests by rect rather than by offsetParent.
 const EFX_TARGETS = {
-  time:     ['#clock', '#vclock', '#clock-area', '#time-display'],
-  credits:  ['#ci-coins', '#coins-display', '#coin-count', '#coins-chip'],
-  focus:    ['#focus-meter', '#focus-box', '#focus-val'],
-  swaps:    ['#swap-indicator', '#swaps-display'],
-  discards: ['#discard-btn', '#discards-display'],
-  score:    ['#score-mid', '#score-total-num'],
+  time:     ['#clock', '#vclock', '#clock-area'],
+  credits:  ['#ci-gold', '#coin-info', '#coins-display'],
+  focus:    ['#focus-box', '#focus-val'],
+  swaps:    ['#swap-indicator'],
+  discards: ['#disc-count', '#btn-discard'],
+  score:    ['#score-total-num', '#score-center'],
 };
+// Two of these lists were pointing at ids that do not exist (r233). `#ci-coins`,
+// `#coins-display` in landscape (0-size), `#discard-btn` and `#discards-display`
+// in both orientations: credits and discards had NO reachable target, so those two
+// currencies silently threw no particle at all. Audited in a real browser at
+// 1440x820 and 420x820; every list above now resolves in both.
 
+// `plate` is the PARTICLE_CFG colour family this currency is drawn in (r233), so a
+// payout is the same object as a score particle rather than a second vocabulary.
+// Anything with no family of its own borrows one; the icon is what tells them apart.
 const EFX_STYLE = {
-  time:     { icon: '⏱', color: '#5aa9e6' },
-  rewind:   { icon: '⏪', color: '#5aa9e6' },
-  pause:    { icon: '⏸', color: '#7fd4ff' },
-  credits:  { icon: '💰', color: '#e8c56b' },
-  focus:    { icon: '◈',  color: '#a25cd8' },
-  swaps:    { icon: '⇄',  color: '#6fd08c' },
-  discards: { icon: '✕',  color: '#e07a5f' },
+  time:     { icon: '⏱', color: '#5aa9e6', plate: 'time' },
+  rewind:   { icon: '⏪', color: '#5aa9e6', plate: 'time' },
+  pause:    { icon: '⏸', color: '#7fd4ff', plate: 'time' },
+  credits:  { icon: '💰', color: '#e8c56b', plate: 'credits' },
+  focus:    { icon: '◈',  color: '#a25cd8', plate: 'focus' },
+  swaps:    { icon: '⇄',  color: '#6fd08c', plate: 'focus' },
+  discards: { icon: '✕',  color: '#e07a5f', plate: 'multAdd' },
 };
 
 // First laid-out element from a target list. A zero-size rect means "not showing
@@ -54,30 +62,25 @@ function efxTargetEl(kind) {
   return null;
 }
 
-// Fly one symbol from `srcEl` to the readout for `kind`. Body-level and fixed, so
-// it is unaffected by the cabinet's CSS `zoom` (same rule as the score particles).
-function efxFly(srcEl, kind, label, color) {
-  const target = efxTargetEl(kind);
+// Body-level and fixed, so it is unaffected by the cabinet's CSS `zoom` (same rule
+// as the score particles).
+// Fly one PLATE from `srcEl` to the readout for `currency`. Since r233 this is the
+// SAME particle the scoring dance throws (ptLaunch, js/score-dance.js) rather than
+// a second bare-text one: one shape vocabulary, one tuner, one legibility fix.
+// `fxKind` is the effect (rewind / pause / credits...) and decides the ghost trail;
+// `currency` is where it flies to and which colour family it wears.
+function efxFly(srcEl, currency, label, color, fxKind) {
+  const target = efxTargetEl(currency);
   if (!target) return;
   const src = srcEl && srcEl.getBoundingClientRect && srcEl.getBoundingClientRect();
   const a = (src && src.width) ? src : target.getBoundingClientRect();
   const b = target.getBoundingClientRect();
-  const el = document.createElement('div');
-  el.className = 'efx-particle';
-  el.textContent = label;
-  el.style.color = color;
-  el.style.left = (a.left + a.width / 2) + 'px';
-  el.style.top  = (a.top + a.height / 2) + 'px';
-  document.body.appendChild(el);
-  const dx = (b.left + b.width / 2) - (a.left + a.width / 2);
-  const dy = (b.top + b.height / 2) - (a.top + a.height / 2);
   const dur = (typeof SETTINGS === 'object' && SETTINGS && SETTINGS.reducedMotion) ? 120 : 620;
-  el.animate([
-    { transform: 'translate(-50%,-50%) scale(.5)', opacity: 0 },
-    { transform: 'translate(-50%,-50%) scale(1.15)', opacity: 1, offset: .22 },
-    { transform: `translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px)) scale(.85)`, opacity: 0 },
-  ], { duration: dur, easing: 'cubic-bezier(.3,.7,.4,1)', fill: 'forwards' });
-  setTimeout(() => el.remove(), dur + 80);
+  if (typeof ptLaunch === 'function') {
+    const style = EFX_STYLE[fxKind || currency] || EFX_STYLE.time;
+    ptLaunch(a, b, style.plate || currency, label, color, dur,
+             { trail: (typeof ptTrail === 'function') ? ptTrail(fxKind || currency) : 0 });
+  }
   // The readout itself acknowledges the hit, so the flight has a destination that
   // reacts rather than a number that silently changed some time earlier.
   setTimeout(() => {
@@ -103,8 +106,12 @@ function entityEffectFX(kind, amount, opts) {
   const n = (typeof amount === 'number') ? amount : null;
   const sign = (n !== null && n < 0) ? '' : '+';
   const unit = currency === 'time' ? 's' : '';
-  const label = o.label || (n === null ? style.icon : `${style.icon} ${sign}${n}${unit}`);
-  efxFly(srcEl, currency, label, o.color || style.color);
+  // The PLATE carries the icon's old job - its colour, its shape and the readout it
+  // flies into all say which currency this is - so the label is the NUMBER alone.
+  // An icon beside it doubled the label's width on a 40px diamond and pushed the
+  // digits off the plate. An effect with no number still shows its icon.
+  const label = o.label || (n === null ? style.icon : `${sign}${n}${unit}`);
+  efxFly(srcEl, currency, label, o.color || style.color, kind);
   if (o.sfx !== false) efxSound(kind);
 }
 
