@@ -196,6 +196,10 @@ function renderShop() {
 // Orbitron name, scanlines, sleight tab, knack diamond - with a price chip
 // pinned to the corner. Descriptions live in the shared reward tooltip on hover.
 function buildShopTileInner(p) {
+  if (p._cardBuff) {
+    // A buffed-card offer: the card's face large, the buff as the name band.
+    return `<div class="stc-face">${p.icon}</div><div class="rwd-name">${p.sub || ''}</div>`;
+  }
   if (p.entity === 'knack') {
     return `<div class="rwd-diamond"><span class="rwd-diamond-emoji">${p.emoji || p.icon}</span></div>`
          + `<div class="rwd-name">${p.label}</div>`;

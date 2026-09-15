@@ -135,13 +135,29 @@ function purgeStonesFromDeck() {
 // modifier - plus, for 'hand' bosses, a hand requirement layered ON TOP of the goal.
 function bossGoalMet() { return score >= roundGoal; }
 
+// r235: a boss-winning hand no longer ends the boss MID-playHand. It used to
+// call endBoss(true) here, synchronously, before the scoring dance had drawn a
+// frame - so the winning hand never got the finale every other goal hand gets
+// (hover, jitter, explode, fly) and the screen jumped straight to the prize
+// grid. Now the win only goes PENDING; playHand routes the hand through the
+// ordinary goal-dance path, and the dance calls bossSettleWin() at the exact
+// point it would call startInterlude.
+let bossWinPending = false;
 function checkBossObjective(handName, handFinalScore) {
   if (!bossActive || !currentBoss) return;
   const obj = currentBoss.objective;
   if (obj.type === 'hand' && handName === obj.handName) bossObjectiveProgress++;
   const handDone = (obj.type !== 'hand') || (bossObjectiveProgress >= obj.count);
-  if (handDone && bossGoalMet()) endBoss(true);
+  if (handDone && bossGoalMet()) bossWinPending = true;
   updateBossObjectiveUI();
+}
+// Called by the dance (normal completion AND the abort path) where a goal hand
+// hands off to the interlude. Returns true when it took the handoff.
+function bossSettleWin() {
+  if (!bossWinPending) return false;
+  bossWinPending = false;
+  endBoss(true, { presented: true });
+  return true;
 }
 let bossScoreAtStart = 0;
 
@@ -832,9 +848,12 @@ function ensureBossGoalExtra() {
   return el;
 }
 
-function endBoss(success) {
+// opts.presented: the goal dance already showed the finale and the QUOTA
+// CLEARED banner (flashRoundEnd), so skip the re-render and the second banner.
+function endBoss(success, opts) {
   if (!bossActive) return;
   bossActive = false;
+  bossWinPending = false;
   // The boss shares the round clock now (r205), so stop it here. Without this the
   // tick that ran the window out would keep firing at roundSeconds 0 and, with
   // bossActive already false, fall straight through onRoundEnd's boss guard into
@@ -870,13 +889,12 @@ function endBoss(success) {
   }
 
   if (success) {
-    render();
-    // A cleared boss is a cleared round, and is now marked like one: the QUOTA
-    // CLEARED stamp (carrying the boss's name as its kicker) and the clock locking
-    // mint. js/goal-clear.js; `force` because Survival suppresses the banner for
-    // its pick-of-three, which a boss win does not open.
+    // Arriving from the dance (opts.presented), the finale has already cleared
+    // the board - a render() here would pop every card back for a frame before
+    // the interlude's fall - and the banner is already up.
+    if (!opts?.presented) render();
     frozenRoundSeconds = roundSeconds;   // the payout's Efficiency line reads this
-    if (typeof goalClearPresent === 'function') goalClearPresent({ kicker: _beaten, force: true });
+    if (!opts?.presented && typeof goalClearPresent === 'function') goalClearPresent({ kicker: _beaten, force: true });
     if (typeof recordQuarterBoss === 'function') recordQuarterBoss(_beaten);   // run report row
     if (survivalActive()) {
       // Survival: no reward grid - a bonus pick-of-three, then back to normal rounds.

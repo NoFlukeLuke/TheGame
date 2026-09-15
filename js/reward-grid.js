@@ -1291,7 +1291,14 @@ function ensureRewardTooltip() {
   if (_rewardTT && document.body.contains(_rewardTT)) return _rewardTT;
   _rewardTT = document.createElement('div');
   _rewardTT.id = 'reward-tooltip';
-  _rewardTT.innerHTML = `<div class="rtt-rar"></div><div class="rtt-name"></div><div class="rtt-desc"></div>`;
+  _rewardTT.innerHTML = `<button class="rtt-close" aria-label="Close">✕</button><div class="rtt-rar"></div><div class="rtt-name"></div><div class="rtt-desc"></div>`;
+  // The ✕ unpins as well as hides: an X'd tooltip must stay closed even though
+  // its tile is still the most recently selected one (owner spec, r235).
+  _rewardTT.querySelector('.rtt-close').onclick = (e) => {
+    e.stopPropagation();
+    rewardTipKey = null;
+    hideRewardTooltip();
+  };
   document.body.appendChild(_rewardTT);
   return _rewardTT;
 }
@@ -1303,7 +1310,11 @@ let rewardTipKey = null;
 
 // Fill and show the tooltip for one tile, anchored to it.
 function showRewardTooltipFor(r, c) {
-  const cell = rewardCells[r]?.[c];
+  // The shop shares this tooltip but keeps its stock in shopGridItems, not
+  // rewardCells - reading rewardCells there showed the PREVIOUS reward grid's
+  // tile (or nothing), which is why shop tooltips never worked (fixed r235).
+  const onShop = (typeof shopGridActive !== 'undefined' && shopGridActive);
+  const cell = onShop ? { kind: 'buff', payload: shopGridItems[r]?.[c] } : rewardCells[r]?.[c];
   if (!cell || !cell.payload || !cell.payload.desc) { hideRewardTooltip(); return; }
   const p = cell.payload;
   // Works for the on-board tiles (#grid) and the legacy overlay grid alike.
@@ -1340,6 +1351,21 @@ function attachRewardTooltip(el, p, kind) {
   const r = +el.dataset.r, c = +el.dataset.c;
   el.addEventListener('mouseenter', () => showRewardTooltipFor(r, c));
   el.addEventListener('mouseleave', restoreRewardTooltip);
+  // Touch: press-and-hold PINS the tooltip without acting on the tile. The
+  // click that follows the release is swallowed by whoever owns the tile's
+  // click (the shop checks el._lpJustFired), so reading never costs a pick.
+  let lpTimer = null;
+  const arm = () => { lpTimer = setTimeout(() => {
+    lpTimer = null;
+    el._lpJustFired = true;
+    rewardTipKey = `${r}-${c}`;
+    showRewardTooltipFor(r, c);
+  }, 430); };
+  const disarm = () => { if (lpTimer) { clearTimeout(lpTimer); lpTimer = null; } };
+  el.addEventListener('pointerdown', e => { if (e.pointerType !== 'mouse') arm(); });
+  el.addEventListener('pointerup', disarm);
+  el.addEventListener('pointercancel', disarm);
+  el.addEventListener('pointerleave', disarm);
 }
 
 function renderRewardGrid() {

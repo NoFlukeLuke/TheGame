@@ -112,9 +112,12 @@ function updateDanceSubboxes(pips, mult) {
 // Both are written here so they can never disagree about the cap.
 function updateSelectionUI() {
   const onReward = (typeof rewardOnGrid !== 'undefined' && rewardOnGrid);
-  const n   = onReward ? rewardSelected.size : selected.length;
-  const cap = onReward ? rewardSelectionCap() : limits.selection.current;
-  const min = onReward ? (typeof rewardMinPicks === 'function' ? rewardMinPicks() : 1)
+  const onShop   = (typeof shopGridActive !== 'undefined' && shopGridActive);
+  const n   = onShop ? (shopGridMode === 'buy' ? shopGridSel.size : 0)
+            : onReward ? rewardSelected.size : selected.length;
+  const cap = (onShop || !onReward) ? limits.selection.current : rewardSelectionCap();
+  const min = onShop ? 1
+            : onReward ? (typeof rewardMinPicks === 'function' ? rewardMinPicks() : 1)
                        : (typeof minSelection  === 'function' ? minSelection()  : 1);
 
   // Top bar: the limit, not the count.
@@ -132,7 +135,7 @@ function updateSelectionUI() {
   if (!cEl || !vEl) return;
   // Only where a selection means something. The menu and the between-round screens
   // leave the board empty, and a stale "0/3" hanging over it reads as a bug.
-  const live = onReward || (typeof gridData !== 'undefined' && gridData && gridData.length > 0);
+  const live = onReward || onShop || (typeof gridData !== 'undefined' && gridData && gridData.length > 0);
   cEl.classList.toggle('on', !!live);
   if (!live) return;
   vEl.textContent = `${n}/${cap}`;
@@ -142,6 +145,8 @@ function updateSelectionUI() {
 
 function updateCoinsUI() {
   document.getElementById('coins-display').textContent = '💰 ' + coins;
+  if (typeof updateGridTopline === 'function') updateGridTopline();
+  const scc = document.getElementById('sel-count-coins'); if (scc) scc.textContent = '💰' + coins;
   const cg = document.getElementById('ci-gold'); if (cg) cg.textContent = coins;
   if (document.getElementById('shop-overlay').classList.contains('show')) refreshShopAffordability();
   if (typeof updateSurvivalShopBtn === 'function') updateSurvivalShopBtn();
@@ -208,7 +213,11 @@ function updateKnackList() {
     `<div class="knack-chip" data-knack-id="${t.id}" tabindex="0" role="button" aria-label="${t.name}">${t.emoji}</div>`
   ).join('')}</div>`;
   const track = el.firstElementChild;
-  applyChipMarquee(el, track);
+  // Landscape scrolls the row by hand (no scrollbar - css) since r235; the
+  // marquee's duplicated chips would read as owning everything twice there.
+  // Portrait keeps the marquee.
+  const _stg = document.getElementById('stage');
+  if (!(_stg && _stg.classList.contains('landscape'))) applyChipMarquee(el, track);
   // Wire interactions on every chip (originals + marquee clones)
   el.querySelectorAll('.knack-chip').forEach(chip => {
     const id = chip.dataset.knackId;
@@ -258,6 +267,7 @@ function showKnackTooltip(chip, id) {
   if (!tt) return;
   const _sv = (typeof knackSellValue === 'function') ? knackSellValue() : 0;
   tt.innerHTML = `
+    <button class="tt-close" aria-label="Close">✕</button>
     <div class="knack-tooltip-name">${knack.emoji} ${knack.name}</div>
     <div class="knack-tooltip-desc">${colorizeKeywords(knack.desc)}</div>
     <div class="knack-tooltip-actions"><button class="knack-tooltip-sell" id="knack-tooltip-sell-btn">Sell 💰${_sv}</button></div>
@@ -270,6 +280,7 @@ function showKnackTooltip(chip, id) {
     e.stopPropagation();
     sellKnack(knack);
   });
+  tt.querySelector('.tt-close')?.addEventListener('click', e => { e.stopPropagation(); hideKnackTooltip(); });
   // Opens into whichever side of the chip has the most room (was hardcoded to
   // above). One frame's wait so the bubble has been laid out and can be measured.
   tt.classList.add('show');

@@ -1,4 +1,4 @@
-const BUILD = "2026-09-15 · r234 · dev picker mode: build the run from seven questions [+ Guided's missing routing, + Flow's interact clock]";
+const BUILD = "2026-09-15 · r235 · COMPANY STORE: shop = your board, category rows + pins, swap-rationed rerolls, card buffs + improvements · grid-screen chrome (topline, focus MAX, slide) · tray fan · boss wins play the finale [onto r234]";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

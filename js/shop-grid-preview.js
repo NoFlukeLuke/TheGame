@@ -13,24 +13,42 @@
 
 let USE_ONGRID_SHOP = true;    // flip to false to restore the overlay shop
 let shopGridActive  = false;
-let shopGridItems   = [];      // 4×4 of payloads (or null)
+let shopGridItems   = [];      // full board of payloads (or null)
 let shopGridSel     = new Set();
 let shopGridMode    = 'buy';   // 'buy' | 'sell'
 let shopGridSaved   = null;    // { rows, cols } to restore on close
-// The BUY board is 4 rows x 5 columns: each row opens with a 3-wide tile naming
-// the category, then TWO options. Two, not four - four of everything made the
-// shop a wall to read rather than a choice to make, and the wider board is what
-// buys the room for the row labels.
+
+// ── The board (r235) ──
+// The shop is the SAME SIZE as the player's board (limits.grid_rows x grid_cols),
+// so raising the board raises the shop with it. Row 0 is the COMPANY STORE title,
+// full width, and it survives every reroll. Every row below it is a CATEGORY:
+// one label cell (col 0) and cols-1 items.
 //
-// `shopGridItems[r]` stays a FULL-WIDTH array of SHOPG_COLS, with the label
-// columns held as null. That is deliberate: every existing r/c index - the
-// selection keys, the adjacency test, isGroupConnected, the click handler - keeps
-// working untouched, and only the renderer has to know about the label.
-const SHOPG_ROWS = 4, SHOPG_COLS = 5;
-const SHOPG_LABEL_SPAN = 3;            // columns 0-2 are the row's name plate
-const SHOPG_OPTIONS = SHOPG_COLS - SHOPG_LABEL_SPAN;   // 2 options a row
-const SHOPG_ROW_LABELS = ['Knacks', 'Tricks', 'Sleights', 'Upgrades'];
-const SHOPG_ROW_ICONS  = ['♦', '★', '▶', '▲'];
+// `shopGridItems[r]` is a FULL-WIDTH array with the title and label cells held as
+// null. A tile can be WIDER than one cell: the SAME payload object sits in each
+// cell it covers, the renderer draws the leftmost and skips the rest, and the
+// selection helpers below expand a key to its cells - so adjacency and the
+// connected-buy discount see the tile's whole footprint.
+function shopgRows() { return Math.max(3, limits.grid_rows?.current || 4); }
+function shopgCols() { return Math.max(4, limits.grid_cols?.current || 4); }
+
+// The category registry. `viable()` keeps a category off the board when it has
+// nothing to sell - an empty row is worse than a different row.
+const SHOP_CATS = {
+  tricks:   { label: 'Tricks',   icon: '★' },
+  sleights: { label: 'Sleights', icon: '▶' },
+  knacks:   { label: 'Knacks',   icon: '♦' },
+  cards:    { label: 'Cards',    icon: '♠' },
+  improve:  { label: 'Improve',  icon: '⬆' },
+  limits:   { label: 'Upgrades', icon: '▲' },
+};
+// One entry per category row (board rows 1..R-1): { cat, pinned }. Buying from a
+// row PINS its category: the label wears a pin and a reroll keeps that row's
+// category (its stock still refills). Unpinned rows reroll their category too.
+let shopGridRowMeta = [];
+// Rerolls are capped by the swaps you finished the last round holding - captured
+// at open, spent by shopGridReroll.
+let shopRerollCap = 0;
 
 function shopGridDiscount(n) { return n >= 3 ? 0.25 : n >= 2 ? 0.10 : 0; }
 
@@ -46,6 +64,15 @@ function sleightSellValue(card, def) {
 }
 
 // ── Shared grid-takeover HUD: location readout (replaces pips/mult chips) ──
+// Since r235 the takeover also swaps the CLOCK BAR and the FOCUS BAR out:
+//   - the timer bar shrinks away and #grid-topline fades in over the grid,
+//     "ROUND TIME m:ss" left-aligned and the credits right-aligned (the clock
+//     is frozen on these screens, so a bar implies a countdown that is not
+//     running - and the credits are what every one of these screens spends);
+//   - the focus bar fades out (nothing here earns Focus) leaving a small
+//     "MAX: n" note at its foot, and the grid slides left into the room
+//     (body.grid-screen rules in css/style.css).
+// All of it is class-driven so the moves ANIMATE via the r230 transitions.
 function enterGridScreenHud(locLabel, tone) {
   document.body.classList.add('grid-screen');
   const loc = document.getElementById('screen-location');
@@ -53,50 +80,202 @@ function enterGridScreenHud(locLabel, tone) {
     loc.className = 'tone-' + tone;
     const nm = loc.querySelector('.loc-name'); if (nm) nm.textContent = locLabel;
   }
+  // The topline lives in #stage (it is positioned in stage %), built once.
+  let tl = document.getElementById('grid-topline');
+  if (!tl) {
+    const stage = document.getElementById('stage');
+    if (stage) {
+      tl = document.createElement('div');
+      tl.id = 'grid-topline';
+      tl.innerHTML = `<span id="gt-time"></span><span id="gt-coins"></span>`;
+      stage.appendChild(tl);
+    }
+  }
+  updateGridTopline();
+  // The MAX note at the foot of the (hidden) focus bar.
+  const fw = document.getElementById('focus-meter-wrap');
+  if (fw && !document.getElementById('focus-max-note')) {
+    const note = document.createElement('div');
+    note.id = 'focus-max-note';
+    fw.appendChild(note);
+  }
+  const note = document.getElementById('focus-max-note');
+  if (note && typeof focusCapNodes === 'function') note.textContent = 'MAX: ' + focusCapNodes();
+}
+function updateGridTopline() {
+  if (!document.body.classList.contains('grid-screen')) return;
+  const t = document.getElementById('gt-time');
+  if (t && typeof roundSeconds === 'number') {
+    const m = Math.floor(Math.max(0, roundSeconds) / 60), sec = Math.max(0, roundSeconds) % 60;
+    t.textContent = `ROUND TIME ${m}:${String(sec).padStart(2, '0')}`;
+  }
+  const c = document.getElementById('gt-coins');
+  if (c && typeof coins === 'number') c.textContent = `💰 ${coins}`;
 }
 function exitGridScreenHud() {
   document.body.classList.remove('grid-screen');
   const sc = document.getElementById('selected-cards'); if (sc) sc.innerHTML = '';
 }
 
-// ── Stock generation (4 of each category, owned items filtered out) ──
-function buildShopGridStock() {
-  const ownedBc  = new Set(acquiredTricks.map(b => b.id));
-  const ownedTot = new Set(acquiredKnacks.map(t => t.id));
-  const granted  = _grantedSleightSet();
+// ── Stock generation ──
+// A category is only offered when it has something to sell.
+function shopgCatViable(cat) {
+  try {
+    if (cat === 'tricks')   return TRICK_POOL.some(t => !acquiredTricks.some(b => b.id === t.id));
+    if (cat === 'knacks')   return KNACK_POOL.some(k => !acquiredKnacks.some(a => a.id === k.id));
+    if (cat === 'sleights') return true;
+    if (cat === 'limits')   return LIMITS_DEF.some(d => limits[d.id].current < limits[d.id].max);
+    if (cat === 'cards')    return typeof everyDeckCard === 'function' && everyDeckCard().length > 0;
+    if (cat === 'improve')  return typeof ownedImprovable === 'function'
+        && ['trick', 'knack', 'sleight'].some(t => ownedImprovable(t).length > 0);
+  } catch (e) { return false; }
+  return false;
+}
 
-  const knacks   = shuffle(KNACK_POOL.filter(t => !ownedTot.has(t.id))).slice(0, SHOPG_OPTIONS);
-  const tricks   = shuffle(TRICK_POOL.filter(b => !ownedBc.has(b.id))).slice(0, SHOPG_OPTIONS);
-  const sleights = pickSleightByRarity(SHOPG_OPTIONS, granted);
-  const lims     = shuffle(LIMITS_DEF.filter(d => limits[d.id].current < limits[d.id].max)).slice(0, SHOPG_OPTIONS);
+// Deal the category rows. `prev` is the outgoing row meta on a reroll: a PINNED
+// row keeps its category; everything else redraws, no category twice on one
+// board. The FIRST board of a visit always carries the limits row (bottom, where
+// Upgrades has always lived); reroll it away unpinned and it can leave too.
+function shopgDrawCats(prev) {
+  const nRows = shopgRows() - 1;
+  const meta = new Array(nRows).fill(null);
+  const taken = new Set();
+  for (let i = 0; i < nRows; i++) {
+    const p = prev && prev[i];
+    if (p && p.pinned && shopgCatViable(p.cat)) { meta[i] = { cat: p.cat, pinned: true }; taken.add(p.cat); }
+  }
+  if (!prev && !taken.has('limits') && shopgCatViable('limits')) {
+    meta[nRows - 1] = { cat: 'limits', pinned: false };
+    taken.add('limits');
+  }
+  for (let i = 0; i < nRows; i++) {
+    if (meta[i]) continue;
+    const opts = Object.keys(SHOP_CATS).filter(c => !taken.has(c) && shopgCatViable(c));
+    const cat = opts.length ? opts[Math.floor(Math.random() * opts.length)]
+                            : Object.keys(SHOP_CATS).find(c => !taken.has(c)) || 'tricks';
+    meta[i] = { cat, pinned: false };
+    taken.add(cat);
+  }
+  return meta;
+}
 
-  const rows = [[], [], [], []];
-  rows[0] = knacks.map(k => ({ entity:'knack', label:k.name, desc:k.desc, emoji:k.emoji, rarity:k.rarity || 'common',
-                               price: SHOP_KNACK_PRICE, buy: () => { acquiredKnacks.push({ ...k }); updateKnackList?.(); } }));
-  rows[1] = tricks.map(t => ({ entity:'trick', label:t.name, desc:t.desc, emoji:trickEmoji(t), rarity:t.tier || 'common', tier:t.tier || 'common',
-                               price: SHOP_TRICK_PRICES[t.tier] || 8, buy: () => injectTrickAfterReward(t) }));
-  rows[2] = sleights.map(s => ({ entity:'sleight', label:s.name, desc:s.desc, emoji:s.emoji || '🃏',
-                               uses: s.durability === 'infinite' ? '∞' : `${s.durability}×`, rarity:s.rarity || 'common',
-                               price: SHOP_SLEIGHT_PRICES[s.rarity] || 12, buy: () => grantSleight(s) }));
-  rows[3] = lims.map(d => {
-    const cur = limits[d.id].current, next = Math.min(limits[d.id].max, cur + 1);
-    return { _upgrade:true, icon:d.icon, label:d.label, desc:d.desc, sub:`${cur} → ${next}`, rarity:'common',
-             price: shopLimitPrice(d), buy: () => { incrementLimit(d.id); onLimitChanged?.(d.id); } };
+// ── Payload factories, one per category. Each returns up to `n` CELLS of items;
+// a payload with `_span: 2` covers two cells and counts twice against n. ──
+function shopgKnackPayloads(n) {
+  const owned = new Set(acquiredKnacks.map(t => t.id));
+  return shuffle(KNACK_POOL.filter(t => !owned.has(t.id))).slice(0, n)
+    .map(k => ({ entity:'knack', label:k.name, desc:k.desc, emoji:k.emoji, rarity:k.rarity || 'common',
+                 price: SHOP_KNACK_PRICE, buy: () => { acquiredKnacks.push({ ...k }); updateKnackList?.(); } }));
+}
+function shopgTrickPayloads(n) {
+  const owned = new Set(acquiredTricks.map(b => b.id));
+  return shuffle(TRICK_POOL.filter(b => !owned.has(b.id))).slice(0, n)
+    .map(t => ({ entity:'trick', label:t.name, desc:t.desc, emoji:trickEmoji(t), rarity:t.tier || 'common', tier:t.tier || 'common',
+                 price: SHOP_TRICK_PRICES[t.tier] || 8, buy: () => injectTrickAfterReward(t) }));
+}
+function shopgSleightPayloads(n) {
+  return pickSleightByRarity(n, _grantedSleightSet())
+    .map(s => ({ entity:'sleight', label:s.name, desc:s.desc, emoji:s.emoji || '🃏',
+                 uses: s.durability === 'infinite' ? '∞' : `${s.durability}×`, rarity:s.rarity || 'common',
+                 price: SHOP_SLEIGHT_PRICES[s.rarity] || 12, buy: () => grantSleight(s) }));
+}
+function shopgLimitPayloads(n) {
+  // `reroll` is excluded: shop rerolls are rationed by leftover swaps now (r235),
+  // so the old reroll limit would be a dead purchase here.
+  return shuffle(LIMITS_DEF.filter(d => d.id !== 'reroll' && limits[d.id].current < limits[d.id].max)).slice(0, n)
+    .map(d => {
+      const step = limits[d.id].step || 1;
+      const cur = limits[d.id].current, next = Math.min(limits[d.id].max, cur + step);
+      return { _upgrade:true, icon:d.icon, label:d.label, desc:d.desc, sub:`${cur} → ${next}`, rarity:'common',
+               price: shopLimitPrice(d), buy: () => { incrementLimit(d.id); onLimitChanged?.(d.id); } };
+    });
+}
+// Buffed cards: a NAMED card from the live deck, carrying one permanent effect.
+// The card is re-resolved at apply time (resolveDeckCard) because it can leave
+// the run between the board being built and the tile being bought.
+function shopgCardPayloads(n) {
+  const deck = shuffle(everyDeckCard().slice()).slice(0, n);
+  return deck.map(card => {
+    const face = `${card.rank}${(typeof cardColorSuit === 'function' ? cardColorSuit(card) : card.suit) || ''}`;
+    const roll = Math.random();
+    const buff = roll < 0.60 ? { e:{ pips: 12 },     txt:'scores +12 pips when played',                    price: 6  }
+               : roll < 0.85 ? { e:{ mult: 5 },      txt:'scores +5 mult when played',                     price: 10 }
+                             : { e:{ growMult: 1 },  txt:'scales +1 mult each time it is played',          price: 15 };
+    return {
+      _cardBuff: true, icon: face, label: face,
+      desc: `Buff this exact card in your deck: it ${buff.txt}.`,
+      sub: buff.e.pips ? `+${buff.e.pips} pips` : buff.e.mult ? `+${buff.e.mult} mult` : `+${buff.e.growMult} mult/play`,
+      rarity: buff.e.growMult ? 'epic' : buff.e.mult ? 'rare' : 'common',
+      price: buff.price,
+      buy: () => {
+        const t = resolveDeckCard(card);
+        if (t && typeof enhanceCardKey === 'function') enhanceCardKey(cardId(t), buff.e);
+      },
+    };
   });
-  // Shift each row right past the label plate and pad to full width, so the
-  // options land on columns SHOPG_LABEL_SPAN.. and the label columns are null.
-  for (let r = 0; r < SHOPG_ROWS; r++) {
-    const opts = (rows[r] || []).slice(0, SHOPG_OPTIONS);
-    while (opts.length < SHOPG_OPTIONS) opts.push(null);
-    rows[r] = new Array(SHOPG_LABEL_SPAN).fill(null).concat(opts);
+}
+// Improvements ride js/improve.js (r206). A RANDOM improvement is one cell; a
+// SPECIFIC one - target chosen when the board is built, before/after in the
+// tooltip - is worth knowing more about, so it is TWO cells wide and priced up.
+function shopgImprovePayloads(n) {
+  const out = [];
+  let left = n;
+  const types = ['trick', 'knack', 'sleight'].filter(t => ownedImprovable(t).length > 0);
+  while (left > 0 && types.length) {
+    const type = types[Math.floor(Math.random() * types.length)];
+    if (left >= 2 && Math.random() < 0.40) {
+      const target = pickImproveTarget(type);
+      if (target) {
+        const prev = improvePreview(target.id);
+        out.push({
+          _improve: true, _span: 2, icon: '⬆', label: `Improve ${target.name}`,
+          desc: prev ? `Raise ${target.name} one tier.<br><b>Now:</b> ${prev.before}<br><b>After:</b> ${prev.after}`
+                     : `Raise ${target.name} one tier.`,
+          rarity: target.rarity || 'rare', price: 30,
+          buy: () => { if (canImprove(target.id)) improveEntity(target.id); },
+        });
+        left -= 2;
+        continue;
+      }
+    }
+    out.push({
+      _improve: true, icon: '⬆', label: `Random ${type}`,
+      desc: `Improve a random owned ${type} one tier. Which one is decided when you buy.`,
+      rarity: 'rare', price: 20,
+      buy: () => { const t = pickImproveTarget(type); if (t) { improveEntity(t.id); showMessage(`⬆ ${t.name} improved`, 'var(--c-mint)'); } },
+    });
+    left -= 1;
   }
+  return out;
+}
 
-  // ~10% chance: one random filled slot becomes a "SOLD OUT" null card
-  if (Math.random() < 0.10) {
-    const filled = [];
-    for (let r = 0; r < SHOPG_ROWS; r++) for (let c = 0; c < SHOPG_COLS; c++) if (rows[r][c]) filled.push([r, c]);
-    if (filled.length) { const [r, c] = filled[Math.floor(Math.random() * filled.length)]; rows[r][c] = null; }
-  }
+function shopgRowPayloads(cat, n) {
+  if (cat === 'tricks')   return shopgTrickPayloads(n);
+  if (cat === 'knacks')   return shopgKnackPayloads(n);
+  if (cat === 'sleights') return shopgSleightPayloads(n);
+  if (cat === 'limits')   return shopgLimitPayloads(n);
+  if (cat === 'cards')    return shopgCardPayloads(n);
+  if (cat === 'improve')  return shopgImprovePayloads(n);
+  return [];
+}
+
+// Build the whole buy board. `reroll` keeps pinned categories (shopgDrawCats);
+// stock always refills - a bought slot comes back as fresh stock, not a ✓.
+function buildShopGridStock(reroll) {
+  shopGridRowMeta = shopgDrawCats(reroll ? shopGridRowMeta : null);
+  const R = shopgRows(), C = shopgCols();
+  const rows = [new Array(C).fill(null)];              // row 0: the title
+  shopGridRowMeta.forEach(m => {
+    const row = [null];                                // col 0: the label
+    shopgRowPayloads(m.cat, C - 1).forEach(p => {
+      if (!p || row.length >= C) return;
+      row.push(p);
+      if (p._span === 2 && row.length < C) row.push(p);   // same object = the tile's 2nd cell
+    });
+    while (row.length < C) row.push(null);
+    rows.push(row);
+  });
+  while (rows.length < R) rows.push(new Array(C).fill(null));
   return rows;
 }
 
@@ -114,10 +293,11 @@ function buildShopSellStock() {
       uses: def.durability === 'infinite' ? '∞' : `${inst.card._usesLeft ?? def.durability}×`, rarity:def.rarity || 'common',
       price: sleightSellValue(inst.card, def), sell: () => sellOwnedSleight(inst) });
   });
-  // The SELL board uses the full width and carries no row labels - what you own
-  // is a mixed list, so there is no category for a plate to name.
-  const rows = [[], [], [], []];
-  for (let i = 0; i < SHOPG_ROWS * SHOPG_COLS; i++) rows[Math.floor(i / SHOPG_COLS)][i % SHOPG_COLS] = items[i] || null;
+  // The SELL board uses the full width and carries no title or labels - what you
+  // own is a mixed list, so there is no category for a plate to name.
+  const R = shopgRows(), C = shopgCols();
+  const rows = [];
+  for (let r = 0; r < R; r++) { rows.push([]); for (let c = 0; c < C; c++) rows[r][c] = items[r * C + c] || null; }
   return rows;
 }
 function ownedSleightInstances() {
@@ -141,27 +321,38 @@ function sellOwnedSleight(inst) {
 }
 
 // ── Open / close ──
+let _shopPrevPV = null;   // portrait panel view to restore on close
 function openShopGrid() {
   shopGridActive = true;
   shopGridMode   = 'buy';
   shopGridSel    = new Set();
-  shopRerollCount = (typeof shopRerollCount !== 'undefined') ? 0 : 0;
+  shopSelOrder   = [];
+  shopRerollCount = 0;
+  // Rerolls are RATIONED by the swaps you were holding when the shop opened -
+  // in the node flow that is what the finished round left you (the reset runs
+  // later, in triggerLevelUp), and on a Survival mid-round visit it is the live
+  // count. Money alone is not enough to spin the stock forever.
+  shopRerollCap = Math.max(0, (typeof swaps === 'number' ? swaps : 0));
   gameTimerPaused = true;
   try { sfxShopOpen?.(); } catch (e) {}
   shopGridItems  = buildShopGridStock();
+  // The shop board is the PLAYER'S board: same rows and columns, read from the
+  // limits (never the live globals - a boss or a penalty can have shrunk those
+  // temporarily, and the shop should not inherit the shrink).
   shopGridSaved  = { rows: gridRows, cols: gridCols };
-  gridRows = SHOPG_ROWS; gridCols = SHOPG_COLS;
+  gridRows = shopgRows(); gridCols = shopgCols();
   recomputeGridMetrics();
   document.getElementById('next-goal-bg')?.classList.remove('show');
   document.body.classList.add('shop-active');
   enterGridScreenHud('SHOP', 'shop');
   enterShopGridButtons();
-  // The left column narrows so the board can take the room (css/style.css).
-  // It must be applied BEFORE renderShopGrid: the tiles are positioned from
-  // CARD_W/CARD_H, which recomputeGridMetrics reads off the REAL #grid-slot
-  // rect - so the slot has to be at its shop width before anything measures it.
-  ensureShopSquishTab();
-  shopSquishSet(true, { instant: true });
+  // Portrait: flip the shared strip to the hand-preview half so the cost /
+  // discount readout (rendered into #selected-cards) is on screen. Restored on
+  // close; an auto-swap never overwrites the player's own choice.
+  if (typeof setPortraitPanelView === 'function' && typeof portraitPanelView !== 'undefined') {
+    _shopPrevPV = portraitPanelView;
+    setPortraitPanelView('preview', { auto: true });
+  }
   // Survival opens the shop FROM the pick screen, and the pick panel sits
   // centred over the board - which is now the shop. Put it aside with the
   // pick's own peek mechanism (fade + inert); closeShopGrid brings it back.
@@ -180,7 +371,7 @@ function closeShopGrid() {
   shopGridActive = false;
   hideRewardTooltip();
   document.body.classList.remove('shop-active');
-  shopSquishSet(false, { instant: true });
+  if (_shopPrevPV && typeof setPortraitPanelView === 'function') { setPortraitPanelView(_shopPrevPV, { auto: true }); _shopPrevPV = null; }
   exitGridScreenHud();
   exitShopGridButtons();
   const gridEl = document.getElementById('grid'); if (gridEl) gridEl.innerHTML = '';
@@ -275,6 +466,7 @@ function ensureShopSquishTab() {
   tab = document.createElement('button');
   tab.id = 'shop-squish-tab';
   tab.type = 'button';
+  tab.className = 'squish-avail';
   tab.onclick = shopSquishToggle;
   stage.appendChild(tab);
   return tab;
@@ -316,69 +508,154 @@ function renderShopGrid(animateIn = false) {
     el.classList.add('shopg-in');
     el.style.setProperty('--sgd', (r * SG_ROW_MS + c * SG_COL_MS) + 'ms');
   };
-  for (let r = 0; r < SHOPG_ROWS; r++) {
-    // The row's name plate, spanning SHOPG_LABEL_SPAN cells. Inert: it is a
+  const R = gridRows, C = gridCols;
+  for (let r = 0; r < R; r++) {
+    // Row 0 of the buy board is the COMPANY STORE title: full width, inert, and
+    // it survives every reroll (the reroll only redraws the rows below it).
+    if (labelled && r === 0) {
+      const tt = document.createElement('div');
+      tt.className = 'reward-cell on-grid shop-title-tile unselectable';
+      tt.style.left = cellLeft(0) + 'px';
+      tt.style.top  = cellTop(0) + 'px';
+      tt.style.width  = (C * (CARD_W + CARD_GAP) - CARD_GAP) + 'px';
+      tt.style.height = CARD_H + 'px';
+      tt.innerHTML = `<span class="stt-name">COMPANY STORE</span>`;
+      fallIn(tt, 0, 0);
+      gridEl.appendChild(tt);
+      continue;
+    }
+    // Each category row opens with a ONE-CELL label plate. Inert: it is a
     // heading, and making it selectable would let a path route through it.
+    // Buying from the row pins its category; the pin lives here.
     if (labelled) {
+      const meta = shopGridRowMeta[r - 1];
+      const cat  = meta ? SHOP_CATS[meta.cat] : null;
       const lab = document.createElement('div');
-      lab.className = 'reward-cell on-grid shop-row-label unselectable';
+      lab.className = 'reward-cell on-grid shop-row-label unselectable' + (meta?.pinned ? ' pinned' : '');
       lab.style.left = cellLeft(0) + 'px';
       lab.style.top  = cellTop(r) + 'px';
-      lab.style.width  = (SHOPG_LABEL_SPAN * (CARD_W + CARD_GAP) - CARD_GAP) + 'px';
+      lab.style.width  = CARD_W + 'px';
       lab.style.height = CARD_H + 'px';
-      lab.innerHTML = `<span class="srl-icon">${SHOPG_ROW_ICONS[r] || ''}</span>`
-                    + `<span class="srl-name">${SHOPG_ROW_LABELS[r] || ''}</span>`;
+      lab.innerHTML = `<span class="srl-icon">${cat?.icon || ''}</span>`
+                    + `<span class="srl-name">${cat?.label || ''}</span>`
+                    + (meta?.pinned ? `<span class="srl-pin" title="Bought from: this category stays on reroll">📌</span>` : '');
       fallIn(lab, r, 0);
       gridEl.appendChild(lab);
     }
-    for (let c = labelled ? SHOPG_LABEL_SPAN : 0; c < SHOPG_COLS; c++) {
-      const p = shopGridItems[r][c];
+    for (let c = labelled ? 1 : 0; c < C; c++) {
+      const p = shopGridItems[r]?.[c];
+      // A wider tile holds the SAME payload object in each cell it covers; only
+      // the leftmost cell draws it.
+      if (p && c > (labelled ? 1 : 0) && shopGridItems[r][c - 1] === p) continue;
+      const span = (p && shopGridItems[r][c + 1] === p) ? 2 : 1;
       const div = document.createElement('div');
       div.dataset.r = r; div.dataset.c = c;
       div.style.left = cellLeft(c) + 'px'; div.style.top = cellTop(r) + 'px';
-      div.style.width = CARD_W + 'px'; div.style.height = CARD_H + 'px';
+      div.style.width = (span * (CARD_W + CARD_GAP) - CARD_GAP) + 'px'; div.style.height = CARD_H + 'px';
       if (!p) {
+        // An empty slot is a filler card, never a hole - a hole in a board of
+        // cards reads as something failing to load (same rule as Guided's board).
         div.className = 'reward-cell on-grid shop-tile shop-prev-null unselectable';
-        div.innerHTML = `<div class="reward-icon">∅</div><div class="rwd-name">SOLD OUT</div>`;
+        div.innerHTML = `<div class="reward-icon">·</div>`;
       } else {
         const rar = p.entity ? rewardRarity(p) : (p.rarity || 'common');
         const sel = shopGridSel.has(`${r}-${c}`);
         div.className = [
           'reward-cell', 'on-grid', 'buff', 'shop-tile',
           p.entity ? 'entity' : '', p.entity ? 'entity-' + p.entity : '',
-          p._upgrade ? 'shop-tile-upgrade' : '', 'rar-' + rar,
+          p._upgrade ? 'shop-tile-upgrade' : '', p._improve ? 'shop-tile-improve' : '',
+          p._cardBuff ? 'shop-tile-card' : '', span === 2 ? 'shop-tile-wide' : '', 'rar-' + rar,
           p._sold ? 'sold' : '', sel ? 'selected' : '',
         ].filter(Boolean).join(' ');
         const chip = p._sold ? '✓' : `💰${p.price}`;
         div.innerHTML = buildShopTileInner(p) + `<div class="shop-price-chip ${p._sold ? 'sold' : (coins < p.price ? 'cant-afford' : '')}">${chip}</div>`;
-        if (!p._sold) div.onclick = () => onShopGridClick(r, c);
+        if (!p._sold) div.onclick = () => {
+          if (div._lpJustFired) { div._lpJustFired = false; return; }   // that tap was a long-press read
+          onShopGridClick(r, c);
+        };
         if (p.desc) attachRewardTooltip(div, p, 'buff');
       }
-      fallIn(div, r, c - (labelled ? SHOPG_LABEL_SPAN - 1 : 0));
+      fallIn(div, r, c);
       gridEl.appendChild(div);
       const nm = div.querySelector('.rwd-name'); if (nm) fitRewardName(nm);
     }
   }
+  if (typeof restoreRewardTooltip === 'function') restoreRewardTooltip();
+  if (typeof updateSelectionUI === 'function') updateSelectionUI();
   renderShopCostReadout();
   updateShopGridButtons();
 }
 
+// ── Span-aware selection helpers ──
+// Every cell a payload covers, from any of its keys.
+function shopgCellsOf(key) {
+  const [r, c] = key.split('-').map(Number);
+  const p = shopGridItems[r]?.[c];
+  if (!p) return [[r, c]];
+  const cells = [];
+  for (let cc = 0; cc < (shopGridItems[r] || []).length; cc++) if (shopGridItems[r][cc] === p) cells.push([r, cc]);
+  return cells.length ? cells : [[r, c]];
+}
+// The key a payload is addressed by: its leftmost cell.
+function shopgLeadKey(r, c) {
+  const p = shopGridItems[r]?.[c];
+  if (!p) return null;
+  let cc = c;
+  while (cc > 0 && shopGridItems[r][cc - 1] === p) cc--;
+  return `${r}-${cc}`;
+}
+// Connectivity over CELLS, so a two-cell tile connects through either half.
+function shopGroupConnected(keySet) {
+  const cells = new Set();
+  keySet.forEach(k => shopgCellsOf(k).forEach(([r, c]) => cells.add(`${r}-${c}`)));
+  const arr = [...cells];
+  if (arr.length <= 1) return true;
+  const seen = new Set([arr[0]]);
+  const q = [arr[0]];
+  while (q.length) {
+    const [r, c] = q.pop().split('-').map(Number);
+    [[r-1,c],[r+1,c],[r,c-1],[r,c+1]].forEach(([nr, nc]) => {
+      const k = `${nr}-${nc}`;
+      if (cells.has(k) && !seen.has(k)) { seen.add(k); q.push(k); }
+    });
+  }
+  return seen.size === cells.size;
+}
+
+// Selection order, so a deselect can hand the pinned tooltip back to the
+// previous pick (the same shape the reward grid keeps in rewardPickOrder).
+let shopSelOrder = [];
 function onShopGridClick(r, c) {
   const p = shopGridItems[r]?.[c];
   if (!p || p._sold) return;
   if (shopGridMode === 'sell') { doShopSell(r, c); return; }
-  const key = `${r}-${c}`;
+  const key = shopgLeadKey(r, c);
   if (shopGridSel.has(key)) {
     const rem = new Set([...shopGridSel].filter(k => k !== key));
-    if (rem.size === 0 || isGroupConnected(rem)) { shopGridSel.delete(key); renderShopGrid(); }
+    if (rem.size === 0 || shopGroupConnected(rem)) {
+      shopGridSel.delete(key);
+      shopSelOrder = shopSelOrder.filter(k => k !== key);
+      // Hand the tooltip to the previous pick, exactly as the reward grid does.
+      if (typeof rewardTipKey !== 'undefined' && rewardTipKey === key)
+        rewardTipKey = shopSelOrder.length ? shopSelOrder[shopSelOrder.length - 1] : null;
+      renderShopGrid();
+    }
     return;
   }
   if (shopGridSel.size >= limits.selection.current) return;             // capped by Selection Size
   if (shopGridSel.size > 0) {
-    const adj = [[r-1,c],[r+1,c],[r,c-1],[r,c+1]].some(([nr,nc]) => shopGridSel.has(`${nr}-${nc}`));
+    // Adjacent to the selection through ANY cell of this tile's footprint.
+    const adj = shopgCellsOf(key).some(([tr, tc]) =>
+      [[tr-1,tc],[tr+1,tc],[tr,tc-1],[tr,tc+1]].some(([nr, nc]) => {
+        const lk = shopgLeadKey(nr, nc);
+        return lk && shopGridSel.has(lk);
+      }));
     if (!adj) return;                                                   // must be connected
   }
   shopGridSel.add(key);
+  shopSelOrder.push(key);
+  // The newest pick is the one being explained (r182's reward-grid rule).
+  if (typeof rewardTipKey !== 'undefined') rewardTipKey = key;
   renderShopGrid();
 }
 
@@ -400,11 +677,18 @@ function shopGridBuySelection() {
   [...shopGridSel].forEach(k => {
     const [r, c] = k.split('-').map(Number);
     const p = shopGridItems[r]?.[c];
-    if (p && !p._sold && typeof p.buy === 'function') { try { p.buy(); } catch (e) { console.error('[SHOP] buy failed', e); } p._sold = true; }
+    if (p && !p._sold && typeof p.buy === 'function') {
+      try { p.buy(); } catch (e) { console.error('[SHOP] buy failed', e); }
+      p._sold = true;
+      // Buying from a row PINS its category: a reroll keeps the row, refills it.
+      if (r >= 1 && shopGridRowMeta[r - 1]) shopGridRowMeta[r - 1].pinned = true;
+    }
   });
   try { sfxRewardGood?.(); } catch (e) {}
   showMessage(`Bought ${shopGridSel.size} - 💰${total}`, 'var(--gold)');
   shopGridSel = new Set();
+  shopSelOrder = [];
+  if (typeof rewardTipKey !== 'undefined') rewardTipKey = null;
   renderShopGrid();
 }
 
@@ -420,28 +704,36 @@ function doShopSell(r, c) {
   renderShopGrid();
 }
 
+let _shopBuyCache = null;
 function toggleShopSellMode() {
   shopGridMode = shopGridMode === 'buy' ? 'sell' : 'buy';
   shopGridSel = new Set();
-  shopGridItems = shopGridMode === 'sell' ? buildShopSellStock() : (shopGridItems.length ? shopGridItems : buildShopGridStock());
-  if (shopGridMode === 'buy') shopGridItems = buildShopGridStock();   // fresh buy board (owned items changed)
+  shopSelOrder = [];
+  if (typeof rewardTipKey !== 'undefined') { rewardTipKey = null; hideRewardTooltip(); }
+  if (shopGridMode === 'sell') {
+    _shopBuyCache = shopGridItems;          // Back must not be a free reroll
+    shopGridItems = buildShopSellStock();
+  } else {
+    shopGridItems = _shopBuyCache && _shopBuyCache.length ? _shopBuyCache : buildShopGridStock(true);
+    _shopBuyCache = null;
+  }
   enterGridScreenHud(shopGridMode === 'sell' ? 'SELL' : 'SHOP', 'shop');
   renderShopGrid();
 }
 
 function shopGridReroll() {
   if (shopGridMode !== 'buy') return;
-  const maxRerolls = limits.reroll ? limits.reroll.current : 3;
-  if (shopRerollCount >= maxRerolls) { showMessage('No rerolls left', 'var(--red)'); return; }
-  const cost = 8 + shopRerollCount * 2;
+  if (shopRerollCount >= shopRerollCap) { showMessage('No rerolls left · 1 per unused swap', 'var(--red)'); return; }
+  const cost = 10 + shopRerollCount * 5;
   if (coins < cost) { showMessage('Not enough credits', 'var(--red)'); return; }
   coins -= cost; updateCoinsUI();
   shopRerollCount++;
-  // Regenerate a fresh board, preserving already-sold slots.
-  const fresh = buildShopGridStock();
-  for (let r = 0; r < SHOPG_ROWS; r++) for (let c = 0; c < SHOPG_COLS; c++) if (shopGridItems[r][c]?._sold) fresh[r][c] = shopGridItems[r][c];
-  shopGridItems = fresh;
+  // Pinned rows keep their category; everything refills fresh - a bought slot
+  // comes back as new stock rather than a ✓ (buildShopGridStock, reroll=true).
+  shopGridItems = buildShopGridStock(true);
   shopGridSel = new Set();
+  shopSelOrder = [];
+  if (typeof rewardTipKey !== 'undefined') rewardTipKey = null;
   renderShopGrid();
 }
 
@@ -453,9 +745,8 @@ function updateShopGridButtons() {
 // Cost / discount readout rendered INTO the hand-preview slot (#selected-cards).
 function renderShopCostReadout() {
   const sc = document.getElementById('selected-cards'); if (!sc) return;
-  const maxRerolls = limits.reroll ? limits.reroll.current : 3;
-  const rerollCost = 8 + shopRerollCount * 2;
-  const rerollLeft = Math.max(0, maxRerolls - shopRerollCount);
+  const rerollCost = 10 + shopRerollCount * 5;
+  const rerollLeft = Math.max(0, shopRerollCap - shopRerollCount);
   let costLine;
   if (shopGridMode === 'sell') {
     costLine = `<div class="sc-line"><span>SELL MODE</span><span class="sc-off">tap to sell</span></div>`
@@ -473,7 +764,7 @@ function renderShopCostReadout() {
   sc.innerHTML =
     `<div class="shop-cost">${costLine}` +
       `<div class="sc-actions">` +
-        `<button id="sc-reroll" ${shopGridMode==='sell'||rerollLeft<=0?'disabled':''}>🎲 ${rerollLeft>0?rerollCost:'·'}</button>` +
+        `<button id="sc-reroll" title="Rerolls left: ${rerollLeft} (1 per unused swap)" ${shopGridMode==='sell'||rerollLeft<=0?'disabled':''}>🎲 ${rerollLeft>0?`${rerollCost} (${rerollLeft})`:'·'}</button>` +
         `<button id="sc-sell" class="${shopGridMode==='sell'?'sc-sell-on':''}">${shopGridMode==='sell'?'Back':'Sell'}</button>` +
       `</div>` +
     `</div>`;

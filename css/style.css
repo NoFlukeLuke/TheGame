@@ -3367,6 +3367,26 @@
     font-family: 'Share Tech Mono', monospace;
   }
   #reward-tooltip.show { opacity: 1; transform: translateY(0); }
+  #reward-tooltip .rtt-close {
+    position: absolute; top: 3px; right: 3px; z-index: 2;
+    width: 16px; height: 16px; padding: 0; line-height: 14px;
+    background: rgba(0,0,0,0.5); color: var(--cream-dim);
+    border: 1px solid rgba(255,255,255,0.25); border-radius: 4px;
+    font-family: 'Share Tech Mono', monospace; font-size: 10px;
+    cursor: pointer; pointer-events: auto;
+  }
+  #reward-tooltip .rtt-close:hover { color: #fff; border-color: rgba(255,255,255,0.5); }
+
+  /* The same ✕ on the knack and trick bubbles (r235). */
+  .tt-close {
+    position: absolute; top: 3px; right: 3px; z-index: 2;
+    width: 16px; height: 16px; padding: 0; line-height: 14px;
+    background: rgba(0,0,0,0.5); color: var(--cream-dim);
+    border: 1px solid rgba(255,255,255,0.25); border-radius: 4px;
+    font-family: 'Share Tech Mono', monospace; font-size: 10px;
+    cursor: pointer; pointer-events: auto;
+  }
+  .tt-close:hover { color: #fff; border-color: rgba(255,255,255,0.5); }
   #reward-tooltip::after {
     content: ''; position: absolute; inset: 0; pointer-events: none;
     background: repeating-linear-gradient(0deg, rgba(0,0,0,0.15) 0 1px, transparent 1px 3px); mix-blend-mode: overlay;
@@ -4006,7 +4026,8 @@
 
   /* knacks: chip row only, directly under the PIPS/MULT/FOCUS chips */
   #stage.landscape #knack-carousel-wrap { left:1.56%; top:30%; width:37.74%; height:7%; display:flex; flex-direction:row; align-items:center; justify-content:flex-start; gap:5px; padding:2px 8px; overflow:hidden; }
-  #stage.landscape #knack-list { flex-wrap:nowrap; gap:5px; max-height:none; overflow:hidden; }
+  #stage.landscape #knack-list { flex-wrap:nowrap; gap:5px; max-height:none; overflow-x:auto; overflow-y:hidden; scrollbar-width:none; }
+  #stage.landscape #knack-list::-webkit-scrollbar { display:none; }
 
   /* preview: full-width frame; hand-name sits inside it on the dark background (left); cards render exactly like the grid, bonuses and all */
   /* HAND and TRICKS are the same size box (r160). They used to be 18% and 25.5%
@@ -4031,7 +4052,13 @@
 
   /* tricks: enlarged now that the time/money chips left this column - big reward-grid-style tiles */
   #stage.landscape #trick-tray-area { left:1.56%; top:60.75%; width:37.74%; height:21.75%; display:flex !important; flex-direction:row; align-items:center; justify-content:flex-start; padding:6px 8px; gap:6px; overflow:hidden; }
-  #stage.landscape #trick-tray-list { flex-direction:row; flex-wrap:nowrap; align-items:center; gap:5px; max-height:none; overflow:hidden; padding:0; width:100%; }
+  /* r235: the tray FANS (tiles overlap, never more than half hidden) and only
+     then scrolls - sideways, scrollbar hidden, never vertically. */
+  #stage.landscape #trick-tray-list { flex-direction:row; flex-wrap:nowrap; align-items:center; gap:0; max-height:none; overflow-x:auto; overflow-y:hidden; scrollbar-width:none; padding:0; width:100%; }
+  #stage.landscape #trick-tray-list::-webkit-scrollbar { display:none; }
+  #stage.landscape #trick-tray-list .chip-marquee { gap:0; }
+  #stage.landscape #trick-tray-list .trick-tray-chip { position:relative; z-index:var(--fan-z,1); flex:0 0 auto; }
+  #stage.landscape #trick-tray-list .trick-tray-chip + .trick-tray-chip { margin-left:var(--fan-gap,5px); }
   /* 40×53 - a hair under the 42×55 preview card, and narrow enough that SIX fit
      across the column (the old 48px capped it at five, below the trick_slots max). */
   /* The TILE shrinks to match the preview card; the ICON does NOT. Scaling the
@@ -4912,21 +4939,21 @@ body.reduced-motion .efx-hit { animation-duration: 1ms; }
      the handle of the thing it moves rather than as a button parked nearby. */
   #shop-squish-tab {
     position:absolute; display:none; z-index:7;
-    /* The tab's RIGHT edge sits on the column's edge, so the tab is inside the
-       column rather than beside it. Outside is the nicer read, but the Focus
-       meter hugs the column (39.9% against the column's 39.3%) and the board
-       starts 0.5% after that - there is no 2.4% of clear stage anywhere between
-       them in either state, so an outside tab lands on the meter. */
-    left:37.3%; top:44%; width:2%; height:11%;
+    /* The tab sits just RIGHT of the column's outer edge (owner's call, r235).
+       The shop no longer squishes at all - the COMPANY STORE title row bought
+       the room instead - so this tab only appears for a future grid screen
+       that calls ensureShopSquishTab() + shopSquishSet(). Such a screen hides
+       the Focus meter (body.grid-screen since r235), which is what makes the
+       outside position safe. Landscape only. */
+    left:39.4%; top:44%; width:2%; height:11%;
     align-items:center; justify-content:center;
     background:#191510; color:var(--gold);
-    border:1px solid var(--gold-dim); border-left:0; border-radius:0 6px 6px 0;
+    border:1px solid var(--gold-dim); border-radius:0 6px 6px 0;
     font-size:11px; line-height:1; cursor:pointer; padding:0;
     transition:left .34s cubic-bezier(.2,.8,.2,1), background .15s;
   }
-  #stage.landscape body.shop-active #shop-squish-tab,
-  body.shop-active #stage.landscape #shop-squish-tab { display:flex; }
-  #stage.landscape.shop-squish #shop-squish-tab { left:24.56%; }
+  #stage.landscape #shop-squish-tab.squish-avail { display:flex; }
+  #stage.landscape.shop-squish #shop-squish-tab { left:25.1%; }
   #shop-squish-tab:hover { background:#241d13; }
   #shop-squish-tab:focus-visible { outline:2px solid var(--gold); outline-offset:2px; }
 
@@ -4973,3 +5000,67 @@ body.reduced-motion .efx-hit { animation-duration: 1ms; }
   }
   body.reduced-motion .shop-tile.shopg-in,
   body.reduced-motion .shop-row-label.shopg-in { animation:none; }
+
+  /* ══ GRID-TAKEOVER CHROME (r235) ═════════════════════════════════════════
+     On body.grid-screen (reward grid / shop / event boards):
+       - the FOCUS BAR fades out (nothing on these screens earns Focus) and a
+         small MAX note stays at its foot;
+       - the CLOCK BAR shrinks away and #grid-topline fades in over the grid:
+         ROUND TIME left, credits right (the clock is frozen here, and a live
+         bar implies a countdown that is not running);
+       - the GRID SLIDES LEFT into the freed room, which also widens the slot's
+         side gutters - where #sel-count lives, so the x/y readout stops
+         crowding the board.
+     All transitions ride the r230 panel transition block above. */
+  #stage.landscape #focus-bar-outer, #stage.landscape #focus-mult-readout {
+    transition: opacity .3s ease, transform .3s ease;
+    transform-origin: 50% 100%;
+  }
+  body.grid-screen #stage.landscape #focus-bar-outer,
+  body.grid-screen #stage.landscape #focus-mult-readout {
+    /* opacity!important: the readout's own .dim/.lit states also set opacity.
+       visibility follows the fade so nothing ghosts under the MAX note. */
+    opacity: 0 !important; transform: scaleY(.55); pointer-events: none;
+    visibility: hidden; transition: opacity .3s ease, transform .3s ease, visibility 0s linear .3s;
+  }
+  #focus-max-note {
+    display: none;
+    position: absolute; left: 0; right: 0; bottom: 2px;
+    font-family: 'Share Tech Mono', monospace; font-size: 7px; letter-spacing: 1px;
+    text-align: center; color: var(--cream-dim);
+    opacity: 0; transition: opacity .3s ease .15s;
+  }
+  body.grid-screen #stage.landscape #focus-max-note { display: block; opacity: 1; }
+
+  #stage.landscape #clock-area, #stage.landscape #vclock {
+    transition: opacity .3s ease, transform .3s ease;
+    transform-origin: 50% 0%;
+  }
+  body.grid-screen #stage.landscape #clock-area,
+  body.grid-screen #stage.landscape #vclock {
+    opacity: 0; transform: scaleY(.15); pointer-events: none;
+  }
+  #grid-topline {
+    display: none;
+    position: absolute; left: 41%; top: 2.78%; width: 49%; height: 6.94%;
+    align-items: center; justify-content: space-between;
+    padding: 0 8px; box-sizing: border-box;
+    font-family: 'Share Tech Mono', monospace; font-size: 13px; letter-spacing: 1px;
+    color: var(--cream-dim);
+    opacity: 0; transition: opacity .35s ease .12s;
+    pointer-events: none; z-index: 3;
+  }
+  #grid-topline #gt-coins { color: var(--gold); font-size: 15px; }
+  #stage.landscape #grid-topline { display: flex; }
+  body.grid-screen #stage.landscape #grid-topline { opacity: 1; }
+
+  body.grid-screen #stage.landscape #grid-slot { left: 41%; width: 49%; }
+
+  /* Portrait shop: credits beside the live x/y count (the desktop puts them on
+     the topline instead). */
+  #sel-count-coins { display: none; }
+  body.shop-active #stage:not(.landscape) #sel-count-coins {
+    display: inline; margin-left: 10px; color: var(--gold); font-size: 12px;
+  }
+  #stage.landscape #sel-count-coins { display: none !important; }
+

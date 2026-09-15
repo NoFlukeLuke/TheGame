@@ -1973,6 +1973,35 @@ In every one of those the `min` **cut the clock down to 180 and then returned 0*
 ## No text selection (r182)
 `html, body` carry `user-select:none` + `-webkit-touch-callout:none` + `-webkit-tap-highlight-color:transparent`, re-enabled for `input, textarea, [contenteditable], .selectable-text`. A click-drag across the board, or the press-and-hold that opens a tooltip, used to blue-highlight whatever label the finger landed on and pop iOS's copy/define callout over the card you were trying to read.
 
+## The COMPANY STORE (r235) - the shop board rebuilt
+
+The shop is the PLAYER'S BOARD now: same rows and columns as `limits.grid_rows/cols` (never the live globals - a boss can have shrunk those), so raising the board raises the shop. Row 0 is a full-width **COMPANY STORE** title tile that survives every reroll; every row below is a CATEGORY: one 1-cell label plate (bright, never greyed) + cols-1 items.
+
+- **Categories are drawn per board** from `SHOP_CATS` (tricks / sleights / knacks / **cards** / **improve** / limits), no repeats, `shopgCatViable` keeping empty sellers off. **Limits is guaranteed on the FIRST board of a visit** (bottom row); reroll it away unbought and it can leave.
+- **Buying from a row PINS its category** (`shopGridRowMeta[r].pinned`, a 📌 on the label): a reroll keeps that row's category but still REFILLS its stock - a bought slot comes back as fresh goods, not a ✓. Unpinned rows reroll their category too.
+- **Rerolls cost 10 + 5 each and are CAPPED BY THE SWAPS you were holding when the shop opened** (`shopRerollCap`, captured in openShopGrid - in the node flow that is what the finished round left, since the reset runs later in triggerLevelUp). The old `reroll` LIMIT is therefore dead stock and is filtered out of the shop's own Upgrades row - it still exists everywhere else (reward grid, Limit Break, Records), which wants an owner decision.
+- **A tile can be WIDER than one cell: the SAME payload object sits in every cell it covers.** The renderer draws the leftmost and skips the rest; `shopgLeadKey`/`shopgCellsOf`/`shopGroupConnected` expand a key to its cells so adjacency and the connected-buy discount see the whole footprint. Today only Improve uses it: a 2-wide SPECIFIC improvement (target picked at build, before/after from `improvePreview`) beside 1-wide "Random {type}" tiles - all riding `js/improve.js` (r206).
+- **Cards row** offers buffs on NAMED cards from the live deck (60% +12 pips / 25% +5 mult / 15% scaling +1 mult per play), re-resolved at apply with `resolveDeckCard` + `enhanceCardKey(cardId(t))`.
+- **Sell → Back is NOT a free reroll**: the buy board is cached (`_shopBuyCache`) and restored.
+- **The shop no longer squishes the left column** - the title row made the board one row shorter instead. The squish machinery (`shopSquishSet`, the arrow tab, the r230 CSS) stays DORMANT for a future grid screen; the tab now sits just RIGHT of the column edge and only shows once a caller creates it (`ensureShopSquishTab`).
+
+### Grid-takeover chrome (r235) - what every board screen swaps out
+
+On `body.grid-screen` (reward grid, shop, crossroads), landscape:
+- The **focus bar fades out** (opacity !important - its own .dim/.lit states also set opacity) leaving a `MAX: n` note at its foot; the **clock bar shrinks away** and **`#grid-topline`** fades in over the grid: `ROUND TIME m:ss` left, credits right (`updateGridTopline`, kept live by `updateCoinsUI`).
+- The **grid slides left** (`#grid-slot` 45%→41%, w 49%) into the freed room, which widens the slot gutters - where `#sel-count` lives, so the x/y readout stops crowding the board. Safe to toggle mid-screen because the board is HEIGHT-bound: the slot's height never changes, so card metrics are identical and only the centring glides.
+- **`updateSelectionUI` counts the SHOP's connected selection** (`shopGridSel.size` / Selection Size). Portrait shows credits beside the x/y (`#sel-count-coins`, shop only); portrait also flips the shared strip to the hand-preview half on shop open (`setPortraitPanelView('preview', {auto:true})`, restored on close) so the cost readout is on screen.
+- **Shop tooltips were BROKEN since r229 and are fixed**: `showRewardTooltipFor` read `rewardCells` - the REWARD grid's array - which is stale during the shop, so it showed the previous grid's tile or nothing. It now reads `shopGridItems` when `shopGridActive`. Selecting a tile pins its tooltip (newest pick explained, r182's rule, order in `shopSelOrder`); touch long-press (430ms in `attachRewardTooltip`) pins without selecting (the following click is swallowed via `el._lpJustFired`); every bubble (reward / knack / trick) carries a ✕ that also UNPINS, so an X'd tooltip stays closed.
+
+### The trays (r235) - fan first, scroll only past half
+
+- **Landscape Trick tray FANS instead of marqueeing**: tiles overlap just enough to fit, later tiles on top, and the tuck is floored at **50% of a tile visible**. Past the floor the row keeps the 50% step and SCROLLS sideways - scrollbar hidden, never vertically - scrolled to the end so the newest Trick starts in view. All in `fanTrickTray`'s landscape branch; portrait keeps its own r160 fan.
+- **Landscape Knacks drop the marquee for a manual no-scrollbar scroll** (the marquee's duplicated chips would read as owning everything twice under manual scrolling). Portrait keeps the marquee.
+
+### A boss win plays the finale now (r235)
+
+`checkBossObjective` used to call `endBoss(true)` synchronously inside playHand - before the dance drew a frame - so the boss-winning hand never got the goal finale and the screen jumped straight at the prize grid. Now the win only goes **PENDING** (`bossWinPending`); playHand routes the hand through the ordinary goal-dance exit, and the dance calls **`bossSettleWin()`** exactly where it would call `startInterlude` (normal completion, the abort path, and the legacy dance). `endBoss(true, { presented: true })` then skips its own `render()` (the finale already cleared the board - a render would pop every card back for a frame) and its own banner (`flashRoundEnd`'s `goalClearPresent` already carried the boss's name as kicker). Survival's mid-dance pick is suppressed while a boss win is pending - that hand ends in the prize grid.
+
 ## The live shop is the ON-GRID shop (r232) - `js/shop-grid-preview.js`
 
 `USE_MART_SHOP` is **false**: `triggerShop()` now opens `openShopGrid()` - the 4x5 board shop with row plates, the r230 left-column squish and the fall-in deal. Every route the Mart served lands there:

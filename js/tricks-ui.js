@@ -201,7 +201,7 @@ function showTrickTooltip(trick, readOnly = false) {
     ? `<div class="trick-tooltip-actions"><button class="trick-tooltip-sell" id="trick-tooltip-sell-btn">Sell 💰${_sv}</button>`
       + `<button class="trick-tooltip-discard" id="trick-tooltip-discard-btn">Discard</button></div>`
     : '';
-  tip.innerHTML = `<div class="trick-tooltip-name">${trick.name}</div><div class="trick-tooltip-desc">${colorizeKeywords(withSuitHalo(liveDesc))}</div>${hint}${actionBtns}`;
+  tip.innerHTML = `<button class="tt-close" aria-label="Close">✕</button><div class="trick-tooltip-name">${trick.name}</div><div class="trick-tooltip-desc">${colorizeKeywords(withSuitHalo(liveDesc))}</div>${hint}${actionBtns}`;
   tip.style.opacity = '0';
   gridEl.appendChild(tip);
 
@@ -267,7 +267,7 @@ function showTrickDescTooltip(trick, anchorEl) {
   tip.style.maxWidth = '260px';
   tip.style.minWidth = '150px';
   tip.style.pointerEvents = 'none';
-  tip.innerHTML = `<div class="trick-tooltip-name">${trick.name}</div>`
+  tip.innerHTML = `<button class="tt-close" aria-label="Close">✕</button><div class="trick-tooltip-name">${trick.name}</div>`
                 + `<div class="trick-tooltip-desc">${withSuitHalo(trickLiveDesc(trick))}</div>`;
   tip.style.opacity = '0';
   document.body.appendChild(tip);
@@ -443,7 +443,7 @@ function showTrickTrayTooltip(trick, anchorEl, { actions = false } = {}) {
   tip.className = `trick-tooltip trick-tier-${trick.tier}` + (actions ? ' has-actions' : '');
   const liveDesc = trickLiveDesc(trick);
   const _sv = (typeof trickSellValue === 'function') ? trickSellValue(trick) : 0;
-  tip.innerHTML = `<div class="trick-tooltip-name">${trick.name}</div><div class="trick-tooltip-desc">${colorizeKeywords(withSuitHalo(liveDesc))}</div>`
+  tip.innerHTML = `<button class="tt-close" aria-label="Close">✕</button><div class="trick-tooltip-name">${trick.name}</div><div class="trick-tooltip-desc">${colorizeKeywords(withSuitHalo(liveDesc))}</div>`
                 + (actions
                     ? `<div class="trick-tooltip-actions"><button class="trick-tooltip-sell" id="trick-tooltip-sell-btn">Sell 💰${_sv}</button>`
                       + `<button class="trick-tooltip-discard" id="trick-tooltip-discard-btn">Discard</button></div>`
@@ -454,6 +454,7 @@ function showTrickTrayTooltip(trick, anchorEl, { actions = false } = {}) {
     e.stopPropagation();
     sellTrick(trick);
   });
+  tip.querySelector('.tt-close')?.addEventListener('click', e => { e.stopPropagation(); hideTrickTooltip(); });
   tip.querySelector('#trick-tooltip-discard-btn')?.addEventListener('click', e => {
     e.stopPropagation();
     discardTrickFromTray(trick);
@@ -780,9 +781,13 @@ const FAN_MIN_STEP = 13;   // px of each tucked tile that must stay visible
 
 function fanTrickTray(list, track) {
   if (!list || !track) return false;
-  // Landscape anchors the tray in its own wide box and already re-flows there.
   const stage = document.getElementById('stage');
-  if (!stage || stage.classList.contains('landscape')) return false;
+  if (!stage) return false;
+  // Landscape fans too since r235 (it used to marquee): tiles overlap just
+  // enough to fit, each showing AT LEAST HALF of itself. Only past that floor
+  // does the row scroll - sideways, with no scrollbar (css). Handled below,
+  // after the shared measurements.
+  const landscape = stage.classList.contains('landscape');
 
   const chips = [...track.querySelectorAll('.trick-tray-chip')];
   list.classList.remove('fanned');
@@ -807,6 +812,23 @@ function fanTrickTray(list, track) {
                           // lands a few px wide and clips its leftmost tile
   const room = avail - PAD;
   const n = chips.length;
+
+  if (landscape) {
+    const LGAP = 5;
+    if (n * tile + (n - 1) * LGAP <= room) {
+      track.style.setProperty('--fan-gap', LGAP + 'px');   // fits: an ordinary row
+      return true;
+    }
+    // Tuck until they fit, but never past half a tile hidden. Past that floor
+    // the row keeps the 50% step and SCROLLS instead (overflow-x on the list,
+    // scrollbar hidden) - scrolled to the end so the newest Trick starts visible.
+    const minStep = Math.ceil(tile * 0.5);
+    const step = Math.max(minStep, (room - tile) / (n - 1));
+    track.style.setProperty('--fan-gap', (step - tile).toFixed(2) + 'px');
+    list.classList.add('fanned');
+    requestAnimationFrame(() => { list.scrollLeft = list.scrollWidth; });
+    return true;
+  }
 
   // ONE variable, and it is the gap between tiles - positive when they fit,
   // negative when they tuck. Writing the measured TILE width back into a var

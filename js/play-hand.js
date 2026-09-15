@@ -354,6 +354,19 @@ function playHand() {
   // would then also fire, double-running the interlude (boss grid + payout + new grid).
   const _bossThisHand = bossActive;
   if (_bossThisHand) checkBossObjective(hand, finalScore);
+  // The boss-winning hand takes the SAME exit as a goal hand (r235): freeze
+  // input, stop the clock, and let the dance play the full finale. The dance
+  // ends the boss via bossSettleWin() where it would start the interlude.
+  if (_bossThisHand && typeof bossWinPending !== 'undefined' && bossWinPending && !goalReachedThisRound) {
+    goalReachedThisRound = true;
+    roundEnded = true;
+    clearInterval(roundInterval); roundInterval = null;
+    const toRemove = [...selected];
+    selected = [];
+    commitRoundContrib(_contribSnapshot);
+    playScoreDance(result, toRemove, true /* goalHand */);
+    return;
+  }
 
   // Lucky Seven knack: every 7th hand grants +1 swap
   if (hasKnack('lucky_seven') && handsPlayed % BAL.lucky_seven.interval_hands === 0) {
