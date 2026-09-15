@@ -156,6 +156,25 @@ point of it. The tier says how long the relationship lasts:
 better word for "3 uses left" than Contractor ever was. Do not drop that rung
 when reshuffling the ladder.
 
+### What each one LOOKS like (r228)
+
+The word and the object agree, which is the point of naming them this way:
+
+| entity | object | drawn in |
+|---|---|---|
+| Utility (trick) | a **floppy disc** - chamfered shell, metal shutter, cream label | `.reward-cell.entity-trick` |
+| Vendor (sleight) | a **business card** - logo mark upper-left, name across the bottom | `.reward-cell.entity-sleight`, and `.trick-card.sleight-card` on the board |
+| Cert (knack) | the moulded plastic diamond (unchanged) | `.rwd-diamond` |
+| Doc (card) | still an ordinary playing card | **not done** - see CLAUDE.md |
+
+The shell or the stock **is** the rarity colour, so colour still means rarity and
+shape still means type (r198). The Vendor's card is LETTERBOXED in its frame
+rather than stretched: a business card is landscape and every frame is portrait.
+
+The playing card as a **document with a folded corner** is designed in
+`art-preview.html` and is not in the game yet. It is the piece that would make
+the board one system; it is also the one that touches every card.
+
 ### Utility versions are a SECOND axis, not part of the tier
 
 A Utility upgraded by the improvements system gains a version: `Standard v3.0`.

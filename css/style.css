@@ -883,7 +883,10 @@
   }
   #stage:not(.landscape) #trick-tray-list.fanned .trick-tray-chip:not(:last-child) .rwd-name,
   #stage:not(.landscape) #trick-tray-list.fanned .trick-tray-chip:not(:last-child) .rwd-glyph { display: none; }
-  #stage:not(.landscape) #trick-tray-list .trick-tray-chip .rwd-art   { font-size: 21px; top: 12%; }
+  /* Font size only. `top` on .rwd-art was a per-surface copy of one assumption
+     about the pre-r228 tile; the floppy and the business card own where their
+     emoji sits, and .rwd-art is emitted for nothing else. */
+  #stage:not(.landscape) #trick-tray-list .trick-tray-chip .rwd-art   { font-size: 21px; }
   #stage:not(.landscape) #trick-tray-list .trick-tray-chip .rwd-glyph { font-size: 8px; top: 3px; }
   #stage:not(.landscape) #trick-tray-list .trick-tray-chip .rwd-name  { font-size: 7px; letter-spacing: 0; }
   /* Rarity colours are only assigned under .landscape, so portrait chips had no
@@ -3330,6 +3333,163 @@
      font floor is TRUNCATED with an ellipsis by fitEntityName instead, and the
      whole name is always one tap away in the tooltip. */
 
+  /* ══ THE OBJECTS (r228) ══════════════════════════════════════════════════
+     A Utility is a FLOPPY DISC and a Vendor is a BUSINESS CARD. Both are drawn
+     here, on `.reward-cell.entity-*`, and nowhere else - which is the whole
+     point of the r182 single tile: the reward grid, the Mart shelf, the cart
+     thumbnail, the loadout strip, your tray, Records and the Shift Change slots
+     all wrap their own frame around this one class list, so all seven changed
+     shape without a line of per-surface code.
+
+     Ported from art-preview.html as CSS rather than as its SVG. The preview
+     draws at one size on a blank page; the game draws this tile from a 32px
+     cart thumbnail to a 118px Records card, and CSS scales for free while
+     leaving fitEntityName, the improvement badge, the cooldown ring, the boss
+     grey-out and the selection glow working untouched.
+
+     --body is the object's material: its rarity hue mixed 72% toward its own
+     plastic, which is art-preview's bodyFor(). Its inkOn() is NOT needed - at
+     that tint against a near-black plastic all four tiers land at luminance
+     0.14-0.27, well under the 0.42 where ink would have to flip, so the ink is
+     cream on both materials at every tier (measured, all eight).
+
+     THIS BLOCK MUST STAY BELOW THE BASE TILE RULES. `.rwd-glyph` and `.rwd-tab`
+     are already selected at `.reward-cell.entity-trick .rwd-glyph` - the same
+     specificity as the overrides here - so ORDER is the only thing that decides
+     them. Written above those rules instead, the floppy kept the old Trick
+     star and the business card kept its neon tab.
+
+     They also DROP THE SCANLINES AND THE GLARE. Those are the CRT-screen
+     treatment, and a disc and a card are physical objects in front of the
+     screen, not pictures on it. That is also what frees ::before and ::after to
+     be the object's own parts, which is what keeps this CSS and not markup. */
+  .reward-cell.entity-trick,
+  .reward-cell.entity-sleight { --ink: #f4eeda; }
+
+  /* ── A UTILITY IS A FLOPPY DISC ──────────────────────────────────────────
+     Shell, shutter, label. The shell IS the rarity. The chamfer is the real
+     disc's corner notch and the strongest cue that this is a floppy at 40px, so
+     it is clipped on the element itself rather than on a layer a frame could
+     cover. */
+  .reward-cell.entity-trick {
+    --body: color-mix(in srgb, var(--rc) 72%, #1b1813);
+    background: var(--body);
+    border-color: color-mix(in srgb, var(--rc) 55%, #000);
+    clip-path: polygon(0 0, 83% 0, 100% 13%, 100% 100%, 0 100%);
+    justify-content: flex-start;
+  }
+  .reward-cell.entity-trick::before {   /* the metal shutter, window and all */
+    content: ''; position: absolute; z-index: 1; mix-blend-mode: normal;
+    left: 34%; right: 11%; top: 5.5%; height: 25%;
+    border-radius: 1.5px;
+    /* The window is punched into the metal by a hard-stop layer rather than by
+       another element - without it the shutter is a grey sticker. */
+    background:
+      linear-gradient(90deg, transparent 0 14%, #24272c 14% 44%, transparent 44%)
+        no-repeat 0 18% / 100% 64%,
+      linear-gradient(180deg, #e6e9ee 0%, #9aa0a8 52%, #cfd4da 100%);
+    box-shadow: inset 0 0 0 0.5px rgba(0,0,0,0.4);
+  }
+  .reward-cell.entity-trick::after {    /* the cream label plate */
+    content: ''; position: absolute; z-index: 1; mix-blend-mode: normal;
+    left: 7%; right: 7%; top: 38%; bottom: 7%;
+    border-radius: 2px;
+    background: rgba(244,238,218,0.94);
+    box-shadow: inset 0 0 0 0.5px rgba(30,26,20,0.3);
+  }
+  /* The star was how a Trick announced itself. The silhouette does that now. */
+  .reward-cell.entity-trick .rwd-glyph { display: none; }
+  /* Emoji and name both sit ON THE LABEL, which is what a floppy label is for.
+     Dark ink, because the plate is cream - the one place in the tile system
+     where a name is not light-on-dark. */
+  .reward-cell.entity-trick .rwd-art {
+    top: 41%; bottom: auto; height: 26%;
+    font-size: 19px; filter: none;
+  }
+  .reward-cell.entity-trick .rwd-name {
+    position: absolute; left: 10%; right: 10%; bottom: 9%; width: auto; z-index: 2;
+    color: #221d15; text-shadow: none;
+  }
+  .reward-cell.entity-trick .rwd-uses { color: #221d15; background: rgba(30,26,20,0.12); }
+
+  /* ── A VENDOR IS A BUSINESS CARD ─────────────────────────────────────────
+     LETTERBOXED (owner's call), not stretched. A business card is landscape
+     (1.37 wide) and every frame it lands in is portrait - a reward-grid cell is
+     the same 57x75 as a playing card - so the element goes transparent and the
+     CARD is painted by ::before at its real proportions, centred. Stretching it
+     to the frame was the alternative and it stops being a business card.
+
+     The card is therefore about 55% of the frame's height at every size
+     (57x75 -> 41.6 tall, 40x53 -> 29.2), and the content is centred on the same
+     line, so it lands inside the card by construction rather than by a number
+     that would have to be kept in step. */
+  .reward-cell.entity-sleight {
+    --body: color-mix(in srgb, var(--rc) 72%, #191510);
+    clip-path: none;
+    background: none; border: none; box-shadow: none;
+    justify-content: center;
+  }
+  .reward-cell.entity-sleight::before {
+    content: ''; position: absolute; z-index: 0; mix-blend-mode: normal;
+    left: 0; right: 0; top: 50%; aspect-ratio: 1.37;
+    transform: translateY(-50%);
+    border-radius: 4px;
+    /* One layered background is both parts: the logo plate is a hard stop over
+       the body, sized to the UPPER LEFT rather than run full height, so the card
+       needs no second element and the name gets the full width underneath. */
+    background:
+      linear-gradient(90deg, rgba(0,0,0,0.26) 0 44%, transparent 44%)
+        no-repeat 0 0 / 100% 62%,
+      var(--body);
+    box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--rc) 70%, #000),
+                0 0 10px -2px var(--rc), 0 4px 10px rgba(0,0,0,0.5);
+  }
+  .reward-cell.entity-sleight::after { content: none; }
+  /* Logo mark upper-left, company name across the bottom - a card out of a
+     rolodex, which is what the roster reads as (r200).
+     THE NAME IS NOT BESIDE THE LOGO, and that was measured rather than chosen:
+     the longest Vendor name is one unbroken 11-letter word (Syncopation, and
+     four more at 9-10), and a frame is only 57px wide on both the reward grid
+     and the board, so a half-width column leaves about 25px. Words are atomic
+     here (r182) - it would simply truncate every long name to an ellipsis. Full
+     width under the logo is the layout that fits the roster the game has. */
+  /* ONE CONSTRUCTION PLACES EVERY CHILD. Each is stretched to the card's own
+     band with `aspect-ratio: 1.37` and then PADDED into the region it belongs
+     in, with border-box doing the arithmetic. CSS cannot be told the card's
+     height from the frame's two dimensions, and this is what avoids a per-child
+     magic offset that would drift on every surface. */
+  .reward-cell.entity-sleight .rwd-art,
+  .reward-cell.entity-sleight .rwd-name,
+  .reward-cell.entity-sleight .rwd-uses {
+    position: absolute; left: 0; right: 0; width: auto; height: auto;
+    top: 50%; bottom: auto; transform: translateY(-50%);
+    aspect-ratio: 1.37; display: flex;
+  }
+  .reward-cell.entity-sleight .rwd-art {           /* the logo plate, upper-left */
+    padding: 0 56% 38% 0;
+    align-items: center; justify-content: center;
+    font-size: 21px; filter: none;
+  }
+  .reward-cell.entity-sleight .rwd-name {          /* the band along the bottom */
+    z-index: 2; padding: 0 16% 5% 5%;
+    align-items: flex-end; justify-content: center;
+    text-align: center; line-height: 1.05;
+    color: var(--ink); text-shadow: 0 1px 2px rgba(0,0,0,0.75);
+  }
+  .reward-cell.entity-sleight .rwd-tab { display: none; }
+  /* The charge count has to sit on the CARD's bottom-right, not the frame's,
+     and CSS cannot be told the card's height from the frame's two dimensions.
+     So the element is stretched to the card's own box with `aspect-ratio` and
+     its text pushed into the corner - the same construction that positions the
+     card itself, rather than a hardcoded inset that would drift per surface. */
+  .reward-cell.entity-sleight .rwd-uses {          /* the corner the name leaves */
+    z-index: 3; padding: 0 5% 4% 0;
+    align-items: flex-end; justify-content: flex-end;
+    background: none; border-radius: 0;
+    color: var(--ink); text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+    pointer-events: none;
+  }
+
   /* knack diamond: beige molded plastic + neon inset ring */
   .rwd-diamond {
     position: relative; width: 58%; aspect-ratio: 1; transform: rotate(45deg); border-radius: 9px;
@@ -4603,7 +4763,7 @@
   #stage.landscape .trick-tray-chip:hover > .reward-cell {
     box-shadow: 0 0 0 2px var(--plastic-lo), 0 0 14px 0 var(--rc), inset 0 0 12px -4px var(--rc);
   }
-  #stage.landscape .trick-tray-chip .rwd-art   { font-size: 22px; top: 12%; }
+  #stage.landscape .trick-tray-chip .rwd-art   { font-size: 22px; }
   #stage.landscape .trick-tray-chip .rwd-glyph { font-size: 9px; top: 4px; }
   #stage.landscape .trick-tray-chip .rwd-name  { font-size: 7px; letter-spacing: 0.2px; }
 
@@ -4818,6 +4978,96 @@
 .trick-card.sleight-card:not(.selected):not(.swap-pending) {
   border-color: var(--sl-rc, #8844cc) !important;
   box-shadow: 0 0 9px -1px var(--sl-rc, #8844cc), inset 0 0 14px -6px var(--sl-rc, #8844cc);
+}
+
+/* ── THE GRID SLEIGHT IS A BUSINESS CARD TOO (r228) ──────────────────────────
+   Same object as the tile, in the one frame that is not the tile: a Sleight on
+   the PLAY GRID is `.trick-card.sleight-card` at the full card cell (57x75),
+   not a `.reward-cell`, because it is a real deck card that falls, swaps and
+   gets played in hands.
+
+   LETTERBOXED (owner's call). A business card is landscape and a grid cell is a
+   playing card's portrait, so the cell goes transparent and the card is painted
+   by ::before at 1.37, centred - it occupies the middle ~55% of the cell and the
+   rest of the slot shows through. Stretching it to the cell was the alternative
+   and it stops being a business card.
+
+   The board does not lose anything by this. A Sleight already looked unlike a
+   playing card on purpose - that is how you pick one out of a boardful - so the
+   silhouette makes a difference that was already there mean something.
+
+   It keeps its CORNER INDEX, and that is not decoration: a grid Sleight is
+   played inside a poker hand, so its cosmetic rank and suit have to stay
+   readable (sleightFace(), js/sleights-runtime.js). On the card it reads as the
+   small mark a real card carries above the logo. */
+.trick-card.sleight-card {
+  --sl-body: color-mix(in srgb, var(--sl-rc, #8844cc) 72%, #191510);
+  background: none !important;
+  justify-content: center !important;
+  padding: 0;
+  overflow: visible;
+}
+.trick-card.sleight-card::before {
+  content: ''; position: absolute; z-index: 0;
+  left: 0; right: 0; top: 50%; aspect-ratio: 1.37;
+  transform: translateY(-50%);
+  border-radius: 4px;
+  background:
+    linear-gradient(90deg, rgba(0,0,0,0.26) 0 44%, transparent 44%)
+      no-repeat 0 0 / 100% 62%,
+    var(--sl-body);
+}
+/* The resting rarity edge moves onto the CARD. Left on the cell it outlined the
+   empty slot the card is centred in, which is the one thing the letterbox is
+   there to leave alone. */
+.trick-card.sleight-card:not(.selected):not(.swap-pending) {
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+.trick-card.sleight-card:not(.selected):not(.swap-pending)::before {
+  box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--sl-rc, #8844cc) 70%, #000),
+              0 0 10px -2px var(--sl-rc, #8844cc), 0 4px 10px rgba(0,0,0,0.5);
+}
+/* Every child is stretched to the CARD's band and padded into its region - the
+   same one construction the tile uses, for the same reason: CSS cannot work the
+   card's height out from the cell's two dimensions, and a per-child offset would
+   drift the moment --card-h moved. */
+.trick-card.sleight-card .sleight-card-emoji,
+.trick-card.sleight-card .sleight-card-name,
+.trick-card.sleight-card .sleight-index,
+.trick-card.sleight-card .sleight-card-uses {
+  position: absolute; left: 0; right: 0; width: auto; height: auto;
+  top: 50%; bottom: auto; transform: translateY(-50%);
+  aspect-ratio: 1.37; display: flex; pointer-events: none;
+}
+.trick-card.sleight-card .sleight-card-emoji {   /* the logo plate, upper-left */
+  padding: 0 56% 38% 0;
+  align-items: center; justify-content: center;
+  font-size: calc(var(--card-h, 75px) * 0.20) !important;
+}
+.trick-card.sleight-card .sleight-card-name {    /* the band along the bottom */
+  z-index: 3; padding: 0 16% 5% 5%;
+  align-items: flex-end; justify-content: center;
+  background: none; text-align: center; line-height: 1.05;
+  font-size: calc(var(--card-h, 75px) * 0.088) !important;
+  /* WORDS ARE ATOMIC here too (r182). The old rule broke anywhere, which was
+     survivable on a full-width centred name and is not in a padded band -
+     "Warehouse" came out "WAREH / OUSE". */
+  overflow-wrap: normal; word-break: keep-all; hyphens: none;
+}
+.trick-card.sleight-card .sleight-index {        /* the corner mark, top-right */
+  z-index: 4; padding: 4% 5% 0 0;
+  flex-direction: row; align-items: flex-start; justify-content: flex-end;
+  gap: 1px;
+}
+.trick-card.sleight-card .sleight-index .sl-rank,
+.trick-card.sleight-card .sleight-index .sl-suit {
+  font-size: calc(var(--card-h, 75px) * 0.115); margin-top: 0;
+}
+.trick-card.sleight-card .sleight-card-uses {    /* the corner the name leaves */
+  z-index: 4; padding: 0 5% 4% 0;
+  align-items: flex-end; justify-content: flex-end;
+  background: none; border-radius: 0;
 }
 
 /* The flying copy of the fused PMF chip (js/pmf-merge.js → pmfFlyToScore). It is

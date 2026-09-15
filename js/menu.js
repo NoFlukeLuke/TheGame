@@ -1,4 +1,4 @@
-const BUILD = '2026-09-14 · r227 · rarity weights retuned, Limit Break in two stages, limit text = limit effect';
+const BUILD = '2026-09-15 · r228 · Utilities are floppy discs, Vendors are business cards';
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

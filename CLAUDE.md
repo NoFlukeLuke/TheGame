@@ -1500,6 +1500,97 @@ A Trick used to look like **three different objects** depending on where you met
 
 **Frames carry size and stacking only.** The neon rarity border, scanlines, glare, knack diamond, sleight tab and name styling all live on `.reward-cell.*` in `css/style.css` - change them once and every surface moves.
 
+### The objects (r228) - a Utility is a FLOPPY DISC, a Vendor is a BUSINESS CARD
+
+Both are drawn in **`css/style.css` on `.reward-cell.entity-trick` /
+`.entity-sleight`**, and nowhere else. That is r182 paying off: seven surfaces
+wrap their own frame around the one class list, so **all seven changed shape
+with no per-surface code** - reward grid, Mart shelf, Mart cart thumbnail, Mart
+loadout strip, Trick tray, Shift Change slots and the trick-lose picker rows.
+(RECORDS Owned is deliberately unaffected: `recordsEntityCard` is its own
+markup, because that screen is for READING, not for picking things off a board.)
+
+**Ported from `art-preview.html` as CSS, not as its SVG.** The preview draws at
+one size on a blank page; the game draws this tile from a 32px cart thumbnail to
+a 118px card, and CSS scales for free while leaving `fitEntityName`, the
+improvement badge, the cooldown ring, the boss grey-out and the selection glow
+working untouched. Injecting an `<svg>` per tile would have meant sizing it at
+six call sites.
+
+- **`--body` is the material**: the rarity hue mixed 72% toward the object's own
+  plastic - `color-mix(in srgb, var(--rc) 72%, #1b1813)`, which is art-preview's
+  `bodyFor()`. Its `inkOn()` is **not** needed: at that tint against a near-black
+  plastic all four tiers land at luminance **0.14-0.27**, well under the 0.42
+  where ink would have to flip, so ink is cream on both materials at every tier
+  (measured, all eight combinations).
+- **Both drop the scanlines and the glare.** Those are the CRT-screen treatment,
+  and a disc and a card are physical objects in front of the screen rather than
+  pictures on it. That is also what frees `::before` and `::after` to be the
+  object's own parts, which is what keeps this CSS instead of markup.
+- **The floppy**: chamfered shell (the corner notch is the strongest "this is a
+  floppy" cue at 40px, so it is `clip-path` on the element, not on a layer a
+  frame could cover), a metal shutter whose window is punched by a hard-stop
+  gradient layer, and a cream label plate. **The emoji and the name both sit ON
+  THE LABEL** - which is what a floppy label is for - in dark ink. It is the one
+  place in the tile system where a name is not light-on-dark.
+- **The business card is LETTERBOXED** (owner's call), not stretched. It is
+  landscape (1.37) and every frame it lands in is portrait, so the element goes
+  transparent and the card is painted by `::before` at its real proportions,
+  centred: about **55% of the frame's height** at every size. Stretching it to
+  the frame was the alternative and it stops being a business card.
+
+**THE BLOCK MUST STAY BELOW THE BASE TILE RULES.** `.rwd-glyph` and `.rwd-tab`
+are already selected at `.reward-cell.entity-trick .rwd-glyph` - the SAME
+specificity as the overrides - so order is the only thing that decides them.
+Written above those rules, the floppy kept the old Trick star and the business
+card kept its neon tab, and both were visible in a screenshot while a syntax
+check passed.
+
+**`top` on `.rwd-art` was removed from five per-surface rules** (two tray, three
+Mart). Each was a copy of one assumption about the pre-r228 tile, and each
+outranked the object rule because they are written with `#stage` / `#mart-overlay`
+in the selector. Position belongs to the object now; the surfaces keep only their
+font size. `.rwd-art` is emitted for tricks and sleights and nothing else, so
+there is no third consumer still wanting the old value.
+
+#### The grid Sleight is the same card (r228)
+
+A Sleight on the PLAY GRID is `.trick-card.sleight-card` at the full card cell,
+**not** a `.reward-cell` - it is a real deck card that falls, swaps and is played
+in hands - so it is styled separately and letterboxed the same way. The board
+loses nothing: a Sleight already looked unlike a playing card on purpose, which
+is how you pick one out of a boardful, so the silhouette gives a difference that
+was already there a meaning.
+
+It keeps its **corner index**, and that is not decoration: a grid Sleight is
+played inside a poker hand, so its cosmetic rank and suit have to stay readable
+(`sleightFace()`, js/sleights-runtime.js). On the card it reads as the small mark
+a real card carries beside the logo.
+
+- **ONE CONSTRUCTION PLACES EVERY CHILD, on both cards.** Each child is stretched
+  to the card's own band with `aspect-ratio: 1.37` and then PADDED into its
+  region, with `border-box` doing the arithmetic. CSS cannot be told the card's
+  height from the frame's two dimensions, and this is what avoids a per-child
+  magic offset that would drift on every surface and every `--card-h`.
+- **The name is NOT beside the logo, and that was measured.** The longest Vendor
+  name is one unbroken 11-letter word (Syncopation, and four more at 9-10), and a
+  frame is only 57px wide on both the reward grid and the board, so a half-width
+  column leaves about 25px. Words are atomic here (r182), so it simply truncated
+  every long name to an ellipsis - "Warehouse" came out **"WAREH / OUSE"** before
+  `.sleight-card-name` was given the same `word-break: keep-all` the tile has.
+  Logo upper-left with the name full width underneath is the layout that fits the
+  roster the game actually has.
+- **The resting rarity edge moved onto the CARD.** Left on the cell it outlined
+  the empty slot the card is centred in, which is the one thing the letterbox
+  exists to leave alone.
+
+**What is NOT done yet:** the playing card itself. `art-preview.html` also draws
+the card as a **document with a folded corner** (`docSVG`), and that is the piece
+that would make the board one system rather than business cards among cream
+playing cards. It is also the expensive one - it touches every card on the board -
+and the owner's tuned `cellAspect` of 1.12 in that file is a squarer grid cell,
+which `CARD_MIN_H` (53) silently overrides at 5x5. Treat it as its own pass.
+
 ### Names never break mid-word (r182) - `js/fit-text.js`
 Owner's report: "The Heron" rendered as `the / hero / n`. Two causes, both fixed:
 1. the tile allowed `overflow-wrap: break-word`, and
