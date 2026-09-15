@@ -138,10 +138,10 @@ The old table had four inversions, all fixed:
 `lastCalcPips` / `lastCalcMult` (the PIPS and MULT chips, and everything the scoring dance shows) are written at the **end of step 3**. So a step-4 xSCORE changes the final number and **nothing on screen says why**.
 
 - **r190 moved four Tricks out of step 4** for exactly that reason: Perfect Storm and Twenty-One became xPIPS, Last Stand and Extinction became xMULT. The arithmetic is identical - `s = totalPips * mult`, so xK score = xK pips = xK mult - so this was pure legibility, no balance change. Their `BAL` keys renamed `score_mult` -> `pip_mult` / `mult_mult`, and `DESC_TEMPLATES` with them.
-- **What is still xSCORE, deliberately:** Echo and Legacy (Sleights whose identity IS "the hand scores twice"), Low and Behold (a knack that replays the whole hand), the boss Redaction, and the dev-only grid Trick card. **Adding a new xSCORE needs a reason** - the default is xPIPS or xMULT.
+- **THERE IS NO xSCORE STEP ANY MORE (r235).** This line used to list Echo, Legacy, Low and Behold, the boss Redaction and the dev grid Trick card as deliberate survivors. It had drifted even before r235: **Echo** is a per-card retrigger in the card loop, and **Legacy** became a xMULT in r193. r194 took Spot Check, and r235 took the last four - The Redaction, The Grind, Low and Behold and the dev grid Trick card. See "The last four xSCORE effects" below. **Do not add one**: anything that would go there is a xPIPS or a xMULT.
 - **The pools are now 10 and 10.** Grep them, don't count descriptions - `perfect_storm` and `extinction` were miscounted for exactly that reason. `grep "totalPips = Math.round(totalPips \*" js/scoring.js` and the `mult` equivalent are the real inventory.
 - **The r190 additions cover triggers nothing else read**: Rerun / Chorus (replay count, from `_reps` - sum minus card count is the extra iterations), Deep Breath (clock paused), Interest (credits held, capped), Portfolio (buffed cards on the grid, via `permPips`/`permMult` - which are keyed by card IDENTITY, so a buff on Spectrum white counts seven cards), Redline (Focus level).
-- **Compound** (mythic) banks the round score every 45s on the round tick; the next scored hand pays the bank and it re-arms, so it compounds across a round. Its payout is added at **SCORE level, not as pips or mult** - it is a copy of score already earned, and routing it through mult x Focus would multiply it a second time.
+- **Compound** (mythic) banks the round score every 45s on the round tick; the next scored hand pays the bank and it re-arms, so it compounds across a round. (This line used to say its payout landed at SCORE level; it is `mult += bonusMult_compound`, an ordinary additive mult, and has been for some time.)
 
 ### The scoring TIMELINE (r220) - every Trick pays out at its own moment
 
@@ -317,6 +317,43 @@ x MULT joined them, because a multiply has to know what has already landed.
   scored hands**, which is what proves the dance and `calcScore` agree about the
   new order.
 
+### The last four xSCORE effects (r235)
+
+Owner: *"are there any xscore effects left? there shouldn't be i dont think..."* There
+were four, and now there are none.
+
+| what | factor | now |
+|---|---|---|
+| **The Redaction** (boss) | x0.25 on a hand family | x mult |
+| **The Grind** (boss) | x0.85 per repeat | x mult |
+| **Low and Behold** (knack) | x2 | x mult |
+| the dev grid Trick card | x2 | x mult |
+
+**`s = totalPips * mult` and Focus is a separate multiplier after it, so a xK on the
+score and a xK on the mult are the same arithmetic** - and one of them is a number
+the player can watch change while the other is the score quietly coming out
+different. Measured with each effect FORCED ON and with all three together:
+**0 of 89 hands moved** in every case.
+
+- **They go at the VERY END of the x mult block, in the order they used to fire**,
+  after Siphon / Legacy / Spot Check. Anywhere earlier and something additive would
+  land after them, which a x score never had in front of it.
+- **They DO NOT ROUND** (`rnd:'none'` on the event). Every other x mult in that block
+  rounds to one decimal, but these were applied to a FINISHED score, so rounding the
+  mult instead would be a real, if tiny, score change. The chip still displays one
+  decimal - `fmtM` formats it - so nothing looks different.
+- **They EMIT but do not write the ledger.** None of the four ever had a contributions
+  row (they fired past every ledger call), and `_cm` is pushed as `source:'trick'`
+  wholesale - so billing `_redaction`, `_grind` or a knack there would print a raw id
+  in the breakdown and change what the tab reports. Same rule the row/col +2 mult
+  follows: the timeline gets it, the ledger does not. It also means no `_proc`, so
+  the Rider penalty is untouched.
+- **The printed descriptions are deliberately unchanged** (owner's call). "Replays the
+  whole hand once" says what Low and Behold DOES; "x2 mult" would be the
+  implementation talking.
+- **Legacy and Spot Check were already x mult but emitted NO timeline event**, so they
+  were invisible in the dance despite being in the right place. Both emit now.
+
 ### Per-card payers (r228) - "a rate x a number of cards"
 
 Seventeen Tricks pay a rate times a COUNT OF CARDS - Get Even is +2 mult per even
@@ -331,13 +368,26 @@ Column Rush, Row Power, Heavy Hand, Prime Time, Quake and Shock. Each row is
 `{ id, cond, pays }` - `cond` is evaluated ONCE before the card loop from facts
 already known there (`_pcCtx`), `pays(card, ctx)` returns what THIS card earns.
 
-**Two rules keep the score byte-identical:**
-- **NOT replay-weighted.** These read `cells.length`, not a replay-weighted count,
-  so a card that scores three times still pays them once. The events carry
-  **`once`** and the dance applies those on a card's FIRST beat only - otherwise a
-  replayed card would pay again and the running chip would drift above the real
-  total. (Contrast the r220 per-card MULT accumulators, which DO multiply by
-  `_retrig`, because the `_wc` sweeps they replaced were replay-weighted.)
+**Two rules:**
+- **REPLAY-WEIGHTED (r235).** A card that scores three times pays these three times,
+  exactly as its own pips do. They paid ONCE per card until r235, which the owner
+  caught by playing it: *"when get even is owned and an even card replays, i did not
+  see another mult chip fly to the score area. i saw pips go multiple times, but i
+  only saw the mult animate once."* The animation was honest - the payment really was
+  once - and **the CONDITION is what makes these per-card, not the bonus**, so there
+  was no reason for the bonus to behave unlike every other per-card bonus. `pays`
+  returns a flat per-card amount, so `* _retrig` is the whole edit; the events drop
+  their `once` flag and the dance repeats the beat, which makes the chip fly once per
+  replay with no work at the dance's end.
+  **It is a BUFF, and only hands with a replayed card can move.** Measured against the
+  same build with only this change reverted: at a 10-Trick tray, **15 of 142 hands
+  (11%) move, median x1.25, max x1.69**; at an unreachable 177-Trick tray, median
+  x1.45, max x4.8. Every changed hand is an increase and **0 of them lack a replayed
+  card**, in all three sweeps.
+  **`_cmOnce` is now unfed** and is kept as the seam a future once-per-card bonus
+  drops into - the rep loop is already shaped to interleave one correctly against a
+  card's x mult, and that is the hard part to re-derive. (Contrast the r220 per-card
+  MULT accumulators, which always multiplied by `_retrig`.)
 - **Emitted at the END of the card's block**, after `totalPips += cp`, so a pip
   lands outside that card's own subtotal and is never multiplied by a card-scoped
   x pips (Humble Roots, a card enhancement, the Blight). Each accumulator is still
