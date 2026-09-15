@@ -34,6 +34,7 @@
 <link rel="stylesheet" href="css/quarter.css">
 <link rel="stylesheet" href="css/entity-fx.css">
 <link rel="stylesheet" href="css/audio-menu.css">
+<link rel="stylesheet" href="css/picker.css">
 </head>
 <body>
 <div id="knack-tooltip" role="tooltip"></div>
@@ -732,6 +733,21 @@
   </div>
 </div>
 
+<!-- DEV PICKER (r234). Sits beside the mode-select carousel inside #cab-screen,
+     so it is drawn ON the CRT and carries no #stage zoom. Rail + scrolling body
+     + sticky footer, so NEXT / START RUN is never something you scroll to find. -->
+<div id="picker-overlay">
+  <div id="picker-panel">
+    <div id="picker-bar">
+      <div id="picker-title">BUILD A MODE</div>
+      <div id="picker-sub">Answer the questions · the run is assembled from them</div>
+    </div>
+    <div id="picker-rail"></div>
+    <div id="picker-body"></div>
+    <div id="picker-foot"></div>
+  </div>
+</div>
+
 <div id="stage">
 
 <!-- DECK HUD (debug) -->
@@ -1255,6 +1271,9 @@
 <script src="js/survival.js"></script>
 <script src="js/flow-mode.js"></script>
 <script src="js/goal-tuning.js"></script>
+<!-- picker-mode.js: after flow-mode.js, because modeHasNoRoundClock/pickerRoundSeconds
+     are the fallbacks survival.js and round-timers.js consult AFTER flowActive(). -->
+<script src="js/picker-mode.js"></script>
 <script src="js/spectrum.js"></script>
 <script src="js/records.js"></script>
 <script src="js/audio-mixer.js"></script>

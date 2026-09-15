@@ -13,7 +13,11 @@
 // clock removed, and it reuses this whole file - the pick-of-three, the reward grants,
 // the on-demand Mart, the boss reward and the 5-boss completion screen. Anything that
 // must differ asks flowActive() specifically.
-function survivalActive() { return !!ACTIVE_MODE && (ACTIVE_MODE.id === 'survival' || ACTIVE_MODE.id === 'flow'); }
+// Flag-based, not an id list (r234). A mode synthesized by the dev picker opts
+// into this whole package - the pick-of-three loop, the endless structure, the
+// score carry-over, the entity bans - by carrying `survival: true`, exactly as
+// Survival and Flow now do. An id list could never see it.
+function survivalActive() { return !!ACTIVE_MODE && ACTIVE_MODE.survival === true; }
 
 // ── Tunables (all easy to change) ──
 const SURVIVAL_ROUND_SECONDS = 120;   // 2-minute rounds (owner request; was 3)
@@ -75,6 +79,10 @@ function currentRoundDuration() {
   // simply the mode's round length, and the clock bar needs the real denominator.
   if (bossActive) return bossWindowDuration;
   if (typeof flowActive === 'function' && flowActive()) return FLOW_SESSION_SECONDS;
+  // A picker-built mode names its own round length, and it is checked BEFORE the
+  // survival fallback: a custom pick-of-three run still gets the clock it asked
+  // for rather than Survival's 2:00 by virtue of sharing its loop.
+  if (typeof ACTIVE_MODE !== 'undefined' && ACTIVE_MODE && ACTIVE_MODE.clock) return pickerRoundSeconds();
   return survivalActive() ? SURVIVAL_ROUND_SECONDS : ROUND_DURATION;
 }
 
@@ -153,6 +161,7 @@ function survivalTickBossClock() {
   // fires the inspection at zero. This hidden cadence would be a second, competing
   // boss timer, so it sits out.
   if (typeof flowActive === 'function' && flowActive()) return;
+  if (typeof bossesEnabled === 'function' && !bossesEnabled()) return;
   if (!survivalActive() || bossActive || survivalBossPending) return;
   survivalSecondsToBoss--;
   if (survivalSecondsToBoss <= 0) {
@@ -170,10 +179,19 @@ function survivalTickBossClock() {
 // Also the chokepoint for Flow's own ban list (clock entities in a mode with no round
 // clock) - every offer pool already routes through here, so one test covers both.
 function survivalEntityBanned(id) {
-  if (!survivalActive()) return false;
-  if (SURVIVAL_BANNED_ENTITIES.has(id)) return true;
-  return (typeof flowActive === 'function' && flowActive())
-      && typeof FLOW_BANNED_ENTITIES !== 'undefined' && FLOW_BANNED_ENTITIES.has(id);
+  // The reward-grid-only entities are dead picks wherever there is no reward
+  // grid, which is exactly the pick-of-three loop.
+  if (survivalActive() && SURVIVAL_BANNED_ENTITIES.has(id)) return true;
+  // The clock entities assume a round clock that REFILLS: First Wind measures its
+  // grace window against ROUND_DURATION, and Carry Time banks the round's unused
+  // seconds. Flow is the shipped mode with neither, and a picker-built run that
+  // answered "no limit" is the other - which is why this is asked of the CLOCK
+  // (modeHasNoRoundClock) and not of the mode, and why it is no longer behind the
+  // survivalActive() early return: a custom no-clock run played on reward grids
+  // is not survivalActive() at all.
+  if (typeof modeHasNoRoundClock === 'function' && modeHasNoRoundClock()
+      && typeof FLOW_BANNED_ENTITIES !== 'undefined' && FLOW_BANNED_ENTITIES.has(id)) return true;
+  return false;
 }
 
 function survivalBuildPools() {

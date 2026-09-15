@@ -51,7 +51,13 @@ async function startInterlude(opts) {
 
   // ── Reward grid replaces Trick choice - player picks spoils, then new round setup runs ──
   rewardGridContext = 'interlude';
-  if (opts.prize) openPrizeGrid(); else openRewardGrid();
+  // opts.prize is set by endBoss. With bosses switched off there is no endBoss to
+  // set it, and node 5 is an ordinary round that closes the quarter - so it is
+  // asked for here instead. Beating the quarter should pay the prize grid whether
+  // or not a boss was standing in front of it.
+  const prize = opts.prize || (typeof isActMode === 'function' && isActMode()
+                && nodeInAct === 5 && typeof bossesEnabled === 'function' && !bossesEnabled());
+  if (prize) openPrizeGrid(); else openRewardGrid();
 }
 
 async function showLevelUpScreen_fallOnly() {

@@ -709,6 +709,7 @@ The capture is taken **before** the carry-over knacks bank anything, so the figu
 ### Interact costs (r151) - ONE charge each, from `BAL._resources`
 **Discard 3s per card · Swap 8s flat · Play free.** Until r151 there were **two overlapping cost systems** and both were live: a flat `spendRoundTime(DISCARD_TIME_COST/SWAP_TIME_COST)` *and* the `BAL._resources` figures. A 1-card discard billed 3+3 = **6s**, the 3rd swap of a round billed 4+10 = **14s**, and the Free Discards knack ("costs no time") still charged the flat 3s - all while the ⏱ Time pop-up quoted 3s and 4s. `DISCARD_TIME_COST` / `SWAP_TIME_COST` are now **dead constants**, kept and commented so nothing reintroduces the double charge; `freeSwapsLeft` (the "first 2 swaps free" exemption) is dead for the same reason. Costs come from `BAL._resources` alone, and `updateInteractCosts()` reads the same source so the pop-up can't drift from reality again.
 
+- **Flow was billing its clock the whole time, and `interactTimeCostsOn()` (r234) is the fix.** `spendRoundTime` returns early for Flow and the Time pop-up quoted 0s, but **neither is what charges**: the two real sites (`js/discard.js`, `js/input.js`) write `roundSeconds` directly and neither consulted `flowActive()`. So every swap billed 8s off a session clock whose own comment says interacting must not be able to summon the inspection early. Both sites and the pop-up now read the one predicate, so the quote and the charge cannot drift. `spendRoundTime` has no remaining callers and is kept for the same reason `DISCARD_TIME_COST` is.
 - **Playing a hand costs no time (r50):** the old "−5s per manual play (+ reward-grid penalties)" deduction in `playHand` was removed (owner request). Reward-grid play-cost debuffs (`extraPlayCostPerm` etc.) still parse but are inert.
 - **Suits are NEUTRAL by default** (owner's decision, now shipped). A plain card scores only its pips × mult - no per-suit coin/time/pip/mult bonus. Suit effects come *only* from exalt/corrupt (below) or Tricks (♥/♣ Tricks in `calcScore`; Spade Flood etc.). The old defaults (♣ pips, ♥ mult, ♦ coin, ♠ time) are gone - see the "suits are neutral" comment in `playHand`.
 - `findBestHand(cells)` brute-forces all connected 2–5 card subsets, scores each, returns the best. Handles wild sleights (temp rank/suit) and drops non-wild sleights from detection.
@@ -1021,6 +1022,142 @@ Three rewards, one of each type, take one, no charge. It is the BASE reward of t
 - **`guidedInStop`, NOT `nodeInAct`, tells a bought grid from the prize grid.** `nodeInAct` is kept in step with the slot count purely for the HUD's pips and the boss sigil, and can legitimately read 5 for either.
 - **A bought event is opened BY NAME** (`guidedOpenNamedEvent`) - the player paid for that specific one off the board. It still feeds `recentEventIds`.
 - **An act opens on a LEVEL**, not on the crossroads: `guidedAfterPrizeGrid` goes straight to `drainLevelUpQueue()`.
+
+#### The routing was documented and never written (r234)
+
+The three functions the section above describes - **`guidedAfterSlot`,
+`guidedAfterPrizeGrid` and `guidedAdvanceCurve`** - were called from four places
+and **defined nowhere**, and `guidedOpenCrossroads` was defined and **never
+called**. So Guided threw on the first crossroads choice, and the screen the
+whole mode is never opened at all. They are written now, to the contract the rest
+of the file already assumed.
+
+- **`guidedAdvanceCurve` is deliberately NOT `triggerLevelUp`.** That function
+  also banks the score, flushes the deck, resets the round resources and deals a
+  board, none of which has happened, because no round was played. Only the two
+  lines that ARE the curve are reproduced: `level++` and the goal recompute, with
+  the Quota Revision penalty applied after it in the same order `level-up.js`
+  uses. A bought slot moves the bar and nothing else. Verified: buying a stop
+  takes level 1 to 2 and the goal 1200 to 1500.
+- **`guidedAfterSlot` is the only thing that opens the crossroads**, which is what
+  makes it the single place that decides "another slot, or the boss". It keeps
+  `nodeInAct` in step with the slot count for the HUD's pips, and arms the boss
+  through **`bossesEnabled()`** rather than unconditionally, so a run with bosses
+  switched off still reaches the end of its act.
+
+
+## Dev picker (r234) - `js/picker-mode.js` + `css/picker.css`
+
+Every other entry in `MODES` is a fixed set of answers to the same few questions.
+Classic answers them one way and Flow another, and the only way to try a
+combination nobody had written down was to add a tenth mode. **Custom** (last card
+in the mode carousel) asks the questions instead and **synthesizes a `MODES` entry
+from the answers**.
+
+That synthesis is the whole design decision. `pickerBuildMode` emits the SAME
+flags the hand-written modes carry, so everything downstream keeps reading what it
+already read and a custom run is not a special case anywhere outside this file.
+
+| question | sets | reaches |
+|---|---|---|
+| Deck | `suitCount`, `numeric` | `ACTIVE_SUITS` / `ACTIVE_RANKS`, `applyModeHandValues`, `applyModeEntityFilter` |
+| Between rounds | `actStructure`, `guided`, `survival` | the three between-round routes in `level-up.js` / `interlude.js` |
+| Round clock | `clock` | `currentRoundDuration`, `roundClockEndsRound` |
+| Interacting | `timeIsCurrency` | `interactTimeCostsOn` |
+| Bosses | `enableBosses` | `bossesEnabled` |
+| Submitting | `autoPlayHands` | `autoSubmitDelay` |
+| Hand values | `scoringModel` | `handBasePips` / `handBaseMult` |
+
+### The rule the file exists to enforce
+
+**An axis is only offered if it is a REAL CHOKEPOINT.** A question the engine
+cannot honour is worse than no question, because the run then quietly plays as
+something other than what was picked. Four of the seven flags above were
+**inert before this** - `enableBosses`, `enableShops`, `enableEvents` and
+`autoPlayHands` were read by nothing outside `menu.js`, and `timeIsCurrency` was
+read by a comment. Each one either got a chokepoint or stayed out of the picker.
+
+**Where two axes are welded together, the picker FORCES the dependent one and
+says so on screen.** `pickerResolve` is the single place that happens, it returns
+a CLEANED COPY so stepping back and changing the cause restores what the player
+had picked, and a forced answer is drawn **amber** rather than as a normal tick,
+so "I chose this" and "this was chosen for me" can never be confused. Today the
+one forced pair is no-clock implying free interacts: with nothing to fail against
+there is no deadline to bill.
+
+### Between rounds is ONE question, on purpose
+
+Reward system and run structure look like two axes and are one. `survivalActive()`
+gates the pick-of-three loop, the endless structure, the score carry-over, the
+2:00 round and the entity bans across **30 call sites**, and `level-up.js` returns
+on it before any act routing runs. Splitting them is real work on the level-up
+spine. So the picker asks the question the engine can actually answer and prints
+the structure in each option's own text rather than offering a second choice it
+would have to override.
+
+### What had to change to make the axes real
+
+- **`survivalActive()` and `flowActive()` are FLAG-BASED, not id lists.** They
+  tested `ACTIVE_MODE.id === 'survival'`, which a synthesized mode can never
+  match. Both shipped modes already carried the flags, so this is behaviour-
+  identical for them and is what lets a custom run opt into the package.
+- **`roundClockEndsRound()` suppresses the END of the round, never the tick.**
+  About fifteen sites measure "how far into the round are we" as
+  `roundStartSeconds - roundSeconds` (The Swift, Sediment, the Cuckoo, the
+  Woodpecker, the clock marks). Freezing the tick, which is what Zen does, kills
+  all of them silently. The clock runs and only `onRoundEnd` is skipped, so a
+  no-limit round still feeds every timing entity a real elapsed figure. **A boss
+  window always ends the round** - that clock is the boss. Verified: the clock
+  reaches 0, the round does not end, the timer stays live and elapsed reads 600.
+- **`interactTimeCostsOn()` is the one answer to "do swaps and discards bill the
+  clock", read by the two sites that charge AND by the Time pop-up that quotes
+  them** - the same discipline r151 imposed after the double-charge bug.
+  **Wiring an inert flag up changes whatever was carrying it wrongly, and this one
+  caught Survival.** Its mode entry said `timeIsCurrency: false` while the charge
+  sites billed its 2:00 clock anyway, so honouring the flag would have made
+  interacting free in a shipped mode as a side effect. The FLAG was corrected to
+  `true` rather than the predicate weakened, because that is what Survival does.
+  Verified: Classic, Guided, Six Suits, Spectrum, Survival and Orientation all
+  still bill 6s for a two-card discard, and only Flow bills 0.
+- **`bossesEnabled()` gates ARMING a boss, never the boss code.** A run that has
+  somehow already started one still finishes it rather than being left with
+  `bossActive` and no way out. With bosses off, node 5 is an ordinary round that
+  closes the quarter, and `startInterlude` asks for the **prize grid** there
+  anyway: beating the quarter should pay out whether or not a boss was standing
+  in front of it.
+- **`autoPlayHands` only sets the auto-submit DELAY** (2000ms, or 350ms). A valid
+  hand has always submitted itself on a timer; a separate auto-play path would be
+  a second way into `playHand` to keep in step with this one.
+- **`modeEntityTags()` gates entities on the DECK, not on the mode's name.**
+  `applyModeEntityFilter` matched `t.modes` against `ACTIVE_MODE.id`, and Monopoly
+  is `modes:['spectrum']` - so a custom run on the colour deck was the one place
+  in the game those Tricks were unobtainable. A numeric deck adds the `spectrum`
+  tag, a six-suit deck adds `sixsuits`. Verified: a custom Spectrum run offers
+  Monopoly (164 Tricks, the 13 suit and court ones filtered out).
+- **`survivalEntityBanned` asks the CLOCK, not the mode.** First Wind and Carry
+  Time assume a round clock that refills, so they are banned wherever there is
+  none. That test could not stay behind the `survivalActive()` early return,
+  because a custom no-clock run played on reward grids is not survivalActive() at
+  all.
+
+### The save has to carry the ANSWERS
+
+A picker-built mode is not in `MODES` when the page next loads, so
+`MODES[save.meta.mode]` would fall back to Classic and the run would resume as a
+different game. `meta.picker` stores the answer set and the restore path rebuilds
+`MODES.custom` from it before the lookup. `pickerBuildMode` is pure, so that
+reproduces the exact mode the run was started with.
+
+### Two notes on the screen itself
+
+- **It lives inside `#cab-screen`, beside the mode carousel**, so it is drawn ON
+  the CRT. That means the camera's wide framing scales it DOWN, the opposite of
+  the `#event-panel` trap: a 760px panel paints at about 535 real px on a 1440px
+  desktop. Three of four options fit without scrolling and the rest scrolls.
+- **Rail, scrolling body, sticky footer**, the same frame `#event-panel` uses and
+  for the same reason: the control that commits must never be something you have
+  to scroll to find. The summary rows are real buttons back to their own question,
+  because the line above them says they are tappable.
 
 ### Upgrade events (r194) - improve what you already have
 

@@ -453,3 +453,70 @@ function guidedOpenPickThree(done) {
   });
   el.classList.add('show');
 }
+
+// ══════════════════════════════════════════════
+// ROUTING (r234) - the three functions the rest of the mode calls
+// ══════════════════════════════════════════════
+// These were referenced from four places (guidedChoose x3, interlude.js's guided
+// branch, reward-grid.js's finishInterludeRoute) and DEFINED NOWHERE, so Guided
+// threw on the first crossroads choice and guidedOpenCrossroads - the screen the
+// whole mode is - was never called at all. Written here to the contract the rest
+// of the file already assumes.
+
+// A bought stop costs the same step on the difficulty curve a played round would.
+// This is the load-bearing rule at the top of this file: without it a player buys
+// six stops and meets the boss at level 2 holding a level-8 loadout.
+//
+// It is deliberately NOT triggerLevelUp. That function also banks the score,
+// flushes the deck, resets the round resources and deals a board - none of which
+// has happened, because no round was played. Only the two lines that ARE the
+// curve are reproduced (level++ and the goal recompute, penalty included, in the
+// same order level-up.js applies them), so a bought slot moves the bar and
+// nothing else.
+function guidedAdvanceCurve() {
+  level++;
+  roundGoal = goalForLevel(level);
+  if (goalPenaltyMult > 1) roundGoal = Math.round(roundGoal * goalPenaltyMult / 50) * 50;
+  updateScoreUI?.();
+  updateActProgressUI?.();
+}
+
+// The single place that decides "another slot, or the boss", so no caller has to
+// know how long an act is. Every route through a slot ends here: a played level
+// (via startInterlude's guided branch), a bought shop, reward grid, pick-three or
+// event (via their own continuations).
+function guidedAfterSlot() {
+  guidedInStop = false;
+  guidedSlot++;
+  // nodeInAct is kept in step with the slot count purely for the HUD's pips and
+  // the boss sigil - Guided routes off guidedSlot, never off the node index.
+  nodeInAct = Math.min(5, Math.round(guidedSlot * 5 / GUIDED_SLOTS_PER_ACT));
+  updateActProgressUI?.();
+
+  if (guidedSlot >= GUIDED_SLOTS_PER_ACT) {
+    // The act is full. Arm the boss and deal into it - the same two lines the
+    // node modes use, so the boss arrives through the ordinary path.
+    nodeInAct = 5;
+    if (typeof bossesEnabled !== 'function' || bossesEnabled()) forceBossNextRound = true;
+    updateActProgressUI?.();
+    drainLevelUpQueue();
+    return;
+  }
+  guidedOpenCrossroads();
+}
+
+// After the post-boss PRIZE grid: close the quarter's books, advance, and open
+// the new act on a LEVEL rather than on the crossroads - an act you have just
+// fought a boss to reach should start by letting you play.
+//
+// rolloverQuarter (js/quarter.js) is the ONE rollover site; a won run never comes
+// back from it (actNumber > 3 goes to onGameWin and the run report).
+function guidedAfterPrizeGrid() {
+  guidedInStop = false;
+  guidedSlot = 0;
+  guidedBuysThisAct = {};
+  guidedLastKind = null;
+  guidedSinceLevel = 0;
+  guidedOffers = [];
+  rolloverQuarter(() => drainLevelUpQueue());
+}

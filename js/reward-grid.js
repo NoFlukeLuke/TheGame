@@ -1786,7 +1786,7 @@ function closeRewardGrid() {
       } else {
         nodeInAct++;
         updateActProgressUI();
-        if (nodeInAct === 5) {
+        if (nodeInAct === 5 && (typeof bossesEnabled !== 'function' || bossesEnabled())) {
           forceBossNextRound = true;
         }
       }

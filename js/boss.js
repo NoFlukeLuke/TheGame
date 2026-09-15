@@ -445,6 +445,15 @@ function peekBossPreset() {
   return BOSS_PRESETS.find(p => p.id === id) || null;
 }
 
+// ── Bosses on or off (r234) ─────────────────────────────────────────────────
+// A mode may switch bosses off entirely (the dev picker asks). This is the one
+// place that question is answered, and it gates ARMING a boss, never the boss
+// code itself - a run that has somehow already started one still finishes it
+// rather than being left with bossActive and no way out.
+function bossesEnabled() {
+  return !(typeof ACTIVE_MODE !== 'undefined' && ACTIVE_MODE && ACTIVE_MODE.enableBosses === false);
+}
+
 function nextBossPreset() {
   // Two passes: prefer a boss that can actually act; if the bag holds nothing
   // live (very early run, no Tricks yet) take the front of the bag anyway rather

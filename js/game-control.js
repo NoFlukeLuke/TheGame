@@ -110,12 +110,14 @@ function hideTimePopup() {
 // debuffs), the round's max time, and how many times it's been paused / rewound.
 function updateInteractCosts() {
   const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-  // Flow charges no time for anything - spendRoundTime is a no-op there, because its
-  // clock is the countdown to the boss rather than a round budget. Quote that, or the
-  // pop-up drifts from reality the way it did before r151.
-  if (typeof flowActive === 'function' && flowActive()) {
-    set('ic-play', '0s'); set('ic-discard', '0s'); set('ic-swap', '0s');
-    set('ic-maxtime', (typeof formatTime === 'function') ? formatTime(FLOW_SESSION_SECONDS) : `${FLOW_SESSION_SECONDS}s`);
+  // Read the SAME predicate the two charge sites read (js/round-timers.js), so
+  // the quoted cost and the billed cost cannot drift. Before r234 this branch was
+  // keyed on flowActive() while the charges were keyed on nothing at all, which is
+  // how Flow came to display 0s and bill 8s.
+  if (typeof interactTimeCostsOn === 'function' && !interactTimeCostsOn()) {
+    set('ic-play', `${playHandCostThisRound || 0}s`); set('ic-discard', '0s'); set('ic-swap', '0s');
+    const _dur = (typeof currentRoundDuration === 'function') ? currentRoundDuration() : ROUND_DURATION;
+    set('ic-maxtime', (typeof formatTime === 'function') ? formatTime(_dur) : `${_dur}s`);
     set('ic-paused',  `${pausesThisRound  || 0}×`);
     set('ic-rewound', `${rewindsThisRound || 0}×`);
     return;
@@ -276,6 +278,12 @@ function startGame() {
     ACTIVE_SUITS = (ACTIVE_MODE.suitCount === 6) ? SUITS_SIX : SUITS;
     ACTIVE_RANKS = RANKS;
   }
+  // A picker-built mode may name a scoring model. It is installed into the live
+  // global only, never into localStorage: the dev panel's own choice is what a
+  // mode WITHOUT one falls back to, so a custom run cannot leave its model behind
+  // for the next Classic run. startGame is the single point both are set from.
+  scoringModel = ACTIVE_MODE.scoringModel
+              || (localStorage.getItem('scoringModel') || 'classic');
   // Spectrum zeroes the Flush of 3 (see applyModeHandValues); every other mode
   // gets the pristine table back.
   applyModeHandValues();

@@ -263,11 +263,26 @@ const NUMERIC_BANNED_TRICKS = new Set([
 // A Trick may also be EXCLUSIVE to a mode via `modes:['spectrum']` - Monopoly is
 // Spectrum's stand-in for Ace Absorb (same effect, on 15s and 20s), so it must not
 // leak into the classic pools.
+// Which mode ids an entity's `modes` list should be matched against. It is the
+// running mode's own id, PLUS a tag for the deck it is playing on (r234).
+//
+// A Trick gated to 'spectrum' is gated to the SPECTRUM DECK, not to the mode that
+// happens to be named after it - Monopoly triggers on the 15 and the 20, which any
+// numeric deck has. Matching on the bare id made a picker-built run on the colour
+// deck the one place in the game those Tricks are unobtainable.
+function modeEntityTags() {
+  const m = (typeof ACTIVE_MODE !== 'undefined' && ACTIVE_MODE) ? ACTIVE_MODE : null;
+  const tags = new Set([m ? m.id : 'normal']);
+  if (m && m.numeric) tags.add('spectrum');
+  if (m && m.suitCount === 6) tags.add('sixsuits');
+  return tags;
+}
+
 function applyModeEntityFilter() {
-  const modeId = (typeof ACTIVE_MODE !== 'undefined' && ACTIVE_MODE) ? ACTIVE_MODE.id : 'normal';
+  const tags  = modeEntityTags();
   const banned = isNumericMode() ? NUMERIC_BANNED_TRICKS : null;
   const keep = TRICK_POOL_ALL.filter(t =>
-    !(banned && banned.has(t.id)) && (!t.modes || t.modes.includes(modeId))
+    !(banned && banned.has(t.id)) && (!t.modes || t.modes.some(id => tags.has(id)))
   );
   TRICK_POOL.length = 0;
   keep.forEach(t => TRICK_POOL.push(t));

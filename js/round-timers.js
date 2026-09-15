@@ -163,7 +163,13 @@ function startRoundTimer() {
     // Self-gating: a no-op in every mode whose boss is announced by the reward
     // grid / payout / pick that precedes it.
     if (typeof tickBossApproach === 'function') tickBossApproach();
-    if (roundSeconds <= 0) onRoundEnd();
+    // A mode with no round clock lets the countdown RUN - every entity that reads
+    // "how far into the round are we" (The Swift, Sediment, the Cuckoo, the
+    // Woodpecker, First Wind, the clock marks) measures it as
+    // roundStartSeconds - roundSeconds, so freezing the tick would silently kill
+    // all of them, which is what Zen does. Only the end-of-round is suppressed.
+    // A BOSS window always ends the round: that clock is the boss.
+    if (roundSeconds <= 0 && roundClockEndsRound()) onRoundEnd();
   }, 1000);
   // Start focus decay alongside the round timer (pauses internally during overlays)
   startFocusDecay();
@@ -218,6 +224,32 @@ function startTimers() {
 // (discard 3s per card, swap 8s flat, play free). Do not charge these again.
 const DISCARD_TIME_COST = 3;
 const SWAP_TIME_COST    = 4;
+// ── The two clock chokepoints (r234) ────────────────────────────────────────
+// "Does the round end when the clock reaches zero?" A boss window always does -
+// that clock IS the boss. Otherwise a mode may say no (Flow's session clock, or a
+// picker-built run that answered "no limit").
+function roundClockEndsRound() {
+  if (bossActive) return true;
+  if (typeof modeHasNoRoundClock === 'function' && modeHasNoRoundClock()) return false;
+  return true;
+}
+
+// "Do swaps and discards bill the clock?" ONE answer, read by the two sites that
+// actually charge (js/input.js, js/discard.js) and by the Time pop-up that quotes
+// them, so the quote can never drift from the charge the way it did before r151.
+//
+// This is also the fix for a live bug: Flow is documented and displayed as
+// charging 0s, and spendRoundTime returns early for it - but spendRoundTime is
+// not what charges. Both real sites write roundSeconds directly and neither
+// consulted flowActive(), so Flow's session clock was being billed for every
+// swap and discard, which is precisely what its own comment says must not happen
+// (interacting could summon the inspection early).
+function interactTimeCostsOn() {
+  if (typeof flowActive === 'function' && flowActive()) return false;
+  if (typeof ACTIVE_MODE !== 'undefined' && ACTIVE_MODE && ACTIVE_MODE.timeIsCurrency === false) return false;
+  return true;
+}
+
 function spendRoundTime(sec) {
   // Flow: timeIsCurrency is false. Its clock is the countdown to the boss, so
   // charging swaps/discards against it would make interacting summon the inspection
