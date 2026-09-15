@@ -327,7 +327,7 @@ were four, and now there are none.
 |---|---|---|
 | **The Redaction** (boss) | x0.25 on a hand family | x mult |
 | **The Grind** (boss) | x0.85 per repeat | x mult |
-| **Low and Behold** (knack) | x2 | x mult |
+| **Low and Behold** (knack) | x2 | **a per-card replay** (r238, below) |
 | the dev grid Trick card | x2 | x mult |
 
 **`s = totalPips * mult` and Focus is a separate multiplier after it, so a xK on the
@@ -354,6 +354,48 @@ different. Measured with each effect FORCED ON and with all three together:
   implementation talking.
 - **Legacy and Spot Check were already x mult but emitted NO timeline event**, so they
   were invisible in the dance despite being in the right place. Both emit now.
+
+### Low and Behold replays the CARDS (r238)
+
+Owner: *"for the trick that says replace the whole hand once, that shouldn't touch
+any score attributes, it should replay each of the cards once."*
+
+r236 had moved it from a x SCORE to a x mult, which kept it legible but kept it a
+MULTIPLIER - and its printed text has always said something else. It is a **+1
+retrigger on every card in the hand** now (`_labOn`), exactly like **Echo**, which
+had already made this same journey from a SCORE-level double to a per-card replay.
+
+- **The CONDITION is hand-level, the EFFECT is per card.** "The hand contains the
+  grid's lowest rank" is computed ONCE above the card loop and then adds a rep to
+  every card, which is why it is a hoisted `const` rather than a per-card test.
+- **This is a real score change and it goes BOTH WAYS.** A replay re-scores what
+  the CARDS earned; it does not double the hand's base pips or any hand-level
+  bonus. So a card-heavy hand gains and a base-heavy hand loses. Measured over 136
+  hands with the knack forced on: **35 move, min x0.57, median x1.02, mean x1.11,
+  max x2.22** - 18 up, 17 down. Verified live on a controlled board: an unsuited
+  3-4-5 goes 37 pips / 111 to **49 pips / 147**, and back to 111 the moment a 2 is
+  planted elsewhere on the grid.
+- **It needs no timeline event**, because the dance already shows a replay by
+  repeating each card's beat. `low_and_behold` emits nothing now: verified 0
+  events on the timeline.
+- **A suited run ALREADY replays every card** (the flush overlay puts each card in
+  two components), so a test board of three spades shows `reps [2,2,2]` with the
+  knack switched off. That cost a confusing measurement; use an unsuited run and
+  control every cell when testing this.
+
+### Flow State is a per-card payer after all (r238)
+
+The r228 note below says it is deliberately excluded because its payment sat
+**after** the x pips block and so escaped Undertow / Scalper / Knave Power /
+Interest. The owner's rule settles it the other way: **any per-card Trick fires on
+the card**, and a pip in the additive region is a pip that every x pips
+multiplies. It is a `PER_CARD_PAYERS` row now, and its accumulator is added at the
+LAST additive pip site before the x pips block.
+
+**A deliberate buff, and a bounded one.** Measured with Flow State forced on at a
+x1.5+ Focus multiplier over 136 hands: **112 move, every one UP, min x1.02,
+median x1.11, max x1.36.** That is the x pips multipliers reaching it for the
+first time.
 
 ### Per-card payers (r228) - "a rate x a number of cards"
 
@@ -395,15 +437,13 @@ already known there (`_pcCtx`), `pays(card, ctx)` returns what THIS card earns.
   ADDED at that Trick's original site further down, so nothing moves in the order
   of operations either.
 
-**FLOW STATE IS DELIBERATELY NOT IN THE TABLE**, and the reference test is what
-caught it. Its payment sits **after** the x pips block (it is grouped with the
-Focus step), so every other pip in the hand has already been multiplied by
-Undertow / Scalper / Knave Power / Interest by the time it lands, and it escapes
-all of them. Paying it inside a card's beat puts it in FRONT of those multiplies -
-measured at **459 pips on a hand worth 430**. Moving its site up into the additive
-region would let those multiply it, which is a balance decision rather than an
-animation one. **Any future row has to sit in the additive region for the same
-reason** - check where the Trick's `totalPips +=` actually is before adding it.
+**FLOW STATE IS IN THE TABLE AS OF r238** - see the section above. It was held out
+because its payment sat **after** the x pips block and so escaped Undertow /
+Scalper / Knave Power / Interest; the owner's call is that a per-card Trick fires
+on the card and takes the multiplies with it. **Any row still has to sit in the
+additive region** - check where the Trick's `totalPips +=` actually is before
+adding one, because a site below the x pips block silently means something
+different from every other row here.
 
 **Get Even and Odd One In lost their 3-card gate** (owner's call): both pay for
 every even / odd card with no minimum. "3+ even cards" meant a hand with one or

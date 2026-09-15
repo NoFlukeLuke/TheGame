@@ -1,4 +1,4 @@
-const BUILD = "2026-09-15 · r237 · COMPANY STORE: shop = your board, category rows + pins, swap-rationed rerolls, card buffs + improvements · grid-screen chrome (topline, focus MAX, slide) · tray fan · boss wins play the finale [onto r236]";
+const BUILD = "2026-09-15 · r238 · Low and Behold replays the CARDS (not a x2 on the score) · Flow State is a per-card payer [onto r237]";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

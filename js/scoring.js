@@ -246,6 +246,12 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     { id:'row_power',     cond:x => x.allSameRow,                     pays:()  => ({ mult: BAL.row_power.mult_per_card }) },
     { id:'heavy_hand',    cond:x => x.cardCount === 5,                pays:()  => ({ pip:  BAL.heavy_hand.pips_per_card }) },
     { id:'prime_time',    cond:x => x.primeCount >= 3,                pays:()  => ({ pip:  BAL.prime_time.pips_per_card }) },
+    // Flow State joined the table in r238. It used to pay from a site AFTER the
+    // x pips block, so it escaped Undertow / Scalper / Knave Power / Interest; it
+    // is an ordinary additive per-card pip now and they all multiply it. That is
+    // a deliberate buff - a per-card Trick fires on the card, and a pip in the
+    // additive region is a pip.
+    { id:'flow_state',    cond:x => x.focusMult >= 1.5,                pays:()  => ({ pip:  BAL.flow_state.pips_per_card }) },
     // These two count only the cards that qualify, not the whole hand, and they
     // have NO minimum (r226, owner's call). The old "3+ even cards" gate meant a
     // hand with one or two even cards paid nothing at all, which reads as the
@@ -307,6 +313,22 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   const _encoreHand = hasTrick('encore') && isSetHand(handName) && cards.every(c => ['A','3','5','7','9'].includes(c.rank));
   // Wait For Iiiit: per-card replay chance = 2% per negative reward tile taken this run (same for every card).
   const _wfiChance = hasTrick('wait_for_it') ? negativeTilesTakenRun * BAL.wait_for_it.chance_per : 0;
+  // Low and Behold (knack): "any played hand containing the grid's LOWEST rank
+  // replays the whole hand once". It was a x2 on the finished score, which is a
+  // different thing entirely - THE DESCRIPTION SAYS REPLAY THE CARDS, so it is a
+  // +1 retrigger on every card, exactly like Echo. A replay re-scores what the
+  // CARDS earned; it does not double the hand's base pips or any hand-level
+  // bonus, and it is visible, because the dance already shows a replay by
+  // repeating each card's beat. Computed once here: the CONDITION is a property
+  // of the hand, the EFFECT is per card.
+  const _labOn = hasKnack('low_and_behold') && (() => {
+    let lo = 99;
+    for (let gr = 0; gr < gridRows; gr++) for (let gc = 0; gc < gridCols; gc++) {
+      const g = gridData[gr]?.[gc];
+      if (g && g.rank && !g._isSleight && !g._isStone && !g._isTrick) lo = Math.min(lo, _rankHigh(g.rank));
+    }
+    return lo < 99 && cards.some(c => _rankHigh(c.rank) === lo);
+  })();
   // Per-card replay count (key 'r-c' → times this card scores). Lets the post-loop
   // per-card MULT / coin / time bonuses re-fire on replay too (not just pips).
   const retrigByKey = {};
@@ -421,6 +443,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     if (_hnm) _retrig++;
     _retrig += _wfi; // Wait For Iiiit: chance replay scaling with negative tiles taken
     if (_encoreHand) _retrig++; // Encore: all-odd-rank Set scores a second time
+    if (_labOn) _retrig++;      // Low and Behold: the hand holds the grid's lowest rank
     if (_compReps) _retrig += (_compReps[_cKey] || 0); // Layered hand: this card scores again for each extra component it is in
     if (_cKey === _3rdKey) _retrig += BAL.third_charm.extra_replays; // 3rd Time's a Charm: 3rd card gets +2 replays
     // The Rerun (boss): every replay past the first is a coin flip. Deterministic,
@@ -866,6 +889,9 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   if (hasTrick('triple_threat') && handName === 'Full House') { totalPips += BAL.triple_threat.pips; bPip('triple_threat', BAL.triple_threat.pips); }
   if (_pcPips.heavy_hand) { totalPips += _pcPips.heavy_hand; bPipQ('heavy_hand', _pcPips.heavy_hand, 1); }
   if (_pcPips.prime_time) { totalPips += _pcPips.prime_time; bPipQ('prime_time', _pcPips.prime_time, 1); }
+  // Flow State: the LAST additive pip site before the x pips block below, which is
+  // the whole point of moving it here - see its PER_CARD_PAYERS row.
+  if (_pcPips.flow_state) { totalPips += _pcPips.flow_state; bPipQ('flow_state', _pcPips.flow_state, 1); }
   // Escalation: EVERY hand of the round counts, including the first three - they
   // just do not pay yet. Nothing lands until the (after_hands + 1)-th hand, and
   // then the bonus is the whole count x the rate: 4th = +12, 5th = +15, 6th = +18.
@@ -1023,18 +1049,13 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
 
   // 3. Base score
   const fMult = focusMultiplier();
-  // Flow State: +10 pips per card scored while focus mult >= 1.5
-  if (hasTrick('flow_state') && fMult >= 1.5) {
-    // NOT a per-card payer, and this is the reason: its payment sits AFTER the
-    // x pips block (it is grouped with the Focus step), so every other pip in the
-    // hand has already been multiplied by Undertow / Scalper / Knave Power /
-    // Interest by the time it lands and it escapes all of them. Paying it inside
-    // a card's beat would put it in front of those multiplies and change the
-    // score - measured at 459 pips on a hand worth 430. Moving its site up into
-    // the additive region would let those multiply it, which is a balance
-    // decision rather than an animation one.
-    const _a = BAL.flow_state.pips_per_card * cards.length; totalPips += _a; bPip('flow_state', _a);
-  }
+  // Flow State is a PER_CARD_PAYER now (r238) - it pays a rate per card, so it
+  // fires on each card's beat like every other one. Its accumulator is added in
+  // the additive pip region with the rest of them, NOT here: this site was after
+  // the x pips block, which is exactly why it used to escape Undertow / Scalper /
+  // Knave Power / Interest. It is multiplied by them now, and that is the owner's
+  // call - a per-card Trick fires on the card, and a pip in the additive region
+  // is a pip every x pips multiplies.
   // Siphon (sleight): ×3 the whole mult, applied last so it multiplies every additive bonus.
   // Read-only here (not consumed) - playHand clears siphonMultX after the hand commits, so
   // findBestHand's candidate scoring sees it consistently.
@@ -1095,15 +1116,9 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   if (typeof bossGrindMult === 'function') _xs('_grind', bossGrindMult(handName), 'boss');
   // The dev-only Trick card sitting on the grid (trickTrayMode off).
   if (hasTrickCard) _xs('_trickcard', 2, 'trick');
-  // Low and Behold (knack): a hand containing the grid's lowest rank replays whole.
-  if (hasKnack('low_and_behold')) {
-    let _gmin = 99;
-    for (let _gr = 0; _gr < gridRows; _gr++) for (let _gc = 0; _gc < gridCols; _gc++) {
-      const _gc0 = gridData[_gr]?.[_gc];
-      if (_gc0 && _gc0.rank && !_gc0._isSleight && !_gc0._isStone && !_gc0._isTrick) _gmin = Math.min(_gmin, _rankHigh(_gc0.rank));
-    }
-    if (_gmin < 99 && cards.some(c => _rankHigh(c.rank) === _gmin)) _xs('low_and_behold', 2, 'knack');
-  }
+  // Low and Behold is a PER-CARD REPLAY now (see _labOn in the card loop), not a
+  // x2 here. It was the one entry on this list whose printed text described cards
+  // replaying rather than a multiplier.
   // MULT stays "pure" - Focus is a SEPARATE third multiplier applied at the end (see below).
   lastPreFocusMult = mult;   // kept for dance compatibility (now == pure mult)
   lastCalcMult = mult;       // pure mult for the MULT box
