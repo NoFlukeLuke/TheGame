@@ -180,15 +180,18 @@ function shopgSleightPayloads(n) {
                  price: SHOP_SLEIGHT_PRICES[s.rarity] || 12, buy: () => grantSleight(s) }));
 }
 function shopgLimitPayloads(n) {
-  // `reroll` is excluded: shop rerolls are rationed by leftover swaps now (r235),
-  // so the old reroll limit would be a dead purchase here.
-  return shuffle(LIMITS_DEF.filter(d => d.id !== 'reroll' && limits[d.id].current < limits[d.id].max)).slice(0, n)
-    .map(d => {
-      const step = limits[d.id].step || 1;
-      const cur = limits[d.id].current, next = Math.min(limits[d.id].max, cur + step);
-      return { _upgrade:true, icon:d.icon, label:d.label, desc:d.desc, sub:`${cur} → ${next}`, rarity:'common',
-               price: shopLimitPrice(d), buy: () => { incrementLimit(d.id); onLimitChanged?.(d.id); } };
-    });
+  // `reroll` is excluded: shop rerolls are rationed by leftover swaps now, so
+  // the old reroll limit would be a dead purchase here. The sub-line goes
+  // through limitUnit/limitGain (r227) so Starting Time reads '180s -> 195s'.
+  const elig = LIMITS_DEF.filter(d => d.id !== 'reroll'
+    && (typeof limitCanIncrement === 'function' ? limitCanIncrement(d.id) : limits[d.id].current < limits[d.id].max));
+  return shuffle(elig).slice(0, n).map(d => {
+    const u = (typeof limitUnit === 'function') ? limitUnit(d.id) : '';
+    const cur = limits[d.id].current;
+    const gain = (typeof limitGain === 'function') ? limitGain(d.id) : (limits[d.id].step || 1);
+    return { _upgrade:true, icon:d.icon, label:d.label, desc:d.desc, sub:`${cur}${u} → ${cur + gain}${u}`, rarity:'common',
+             price: shopLimitPrice(d), buy: () => { incrementLimit(d.id); onLimitChanged?.(d.id); } };
+  });
 }
 // Buffed cards: a NAMED card from the live deck, carrying one permanent effect.
 // The card is re-resolved at apply time (resolveDeckCard) because it can leave

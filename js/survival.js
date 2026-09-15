@@ -207,10 +207,13 @@ function survivalBuildPools() {
 
 // Wrap a raw pool entry into a uniform option object the UI + granter understand.
 function survivalMakeOption(type, data) {
-  if (type === 'trick')   return { type, data, id: data.id, name: data.name, icon: (typeof trickEmoji === 'function' ? trickEmoji(data) : '🃏'), desc: data.desc, tag: (data.tier || 'common').toUpperCase() };
-  if (type === 'sleight') return { type, data, id: data.id, name: data.name, icon: data.emoji || '🎴', desc: data.desc, tag: (data.rarity || 'common').toUpperCase() };
-  if (type === 'knack')   return { type, data, id: data.id, name: data.name, icon: data.emoji || '🧿', desc: data.desc, tag: 'KNACK' };
-  if (type === 'limit')   return { type, data, id: data.id, name: data.label, icon: data.icon || '⬆', desc: data.desc, tag: 'LIMIT' };
+  if (type === 'trick')   return { type, data, id: data.id, name: data.name, icon: (typeof trickEmoji === 'function' ? trickEmoji(data) : '🃏'), desc: data.desc, tag: tierLabel('trick', data.tier).toUpperCase(), rar: data.tier };
+  if (type === 'sleight') return { type, data, id: data.id, name: data.name, icon: data.emoji || '🎴', desc: data.desc, tag: tierLabel('sleight', data.rarity).toUpperCase(), rar: data.rarity };
+  if (type === 'knack')   return { type, data, id: data.id, name: data.name, icon: data.emoji || '🧿', desc: data.desc, tag: tierLabel('knack', data.rarity).toUpperCase(), rar: data.rarity };
+  // Say how much, not just which - Starting Time moves by 15 and Focus Cap by 3,
+  // and a card reading only 'Starting Time' promised the same as a +1. See
+  // limitDeltaText in js/limits.js, which also handles the clamp near the cap.
+  if (type === 'limit')   return { type, data, id: data.id, name: `${data.label} ${limitDeltaText(data.id, 1)}`, icon: data.icon || '⬆', desc: data.desc, tag: 'LIMIT', rar: 'common' };
   return null;
 }
 
@@ -218,7 +221,11 @@ function survivalMakeOption(type, data) {
 function survivalDrawOne(type, pools, used) {
   const avail = pools[type].filter(d => !used[type].has(d.id));
   if (!avail.length) return null;
-  const data = avail[Math.floor(Math.random() * avail.length)];
+  // r201: SURVIVAL_PICK_WEIGHTS only ever chose the TYPE. Which ENTITY came out
+  // was a flat pick, so the pick-of-three ignored rarity entirely.
+  // SURVIVAL_PICK_WEIGHTS only ever chose the TYPE; which ENTITY came out was a
+  // flat pick, so the pick-of-three ignored rarity (and Luck) entirely.
+  const data = pickEntityByRarity(avail, d => (type === 'trick' ? d.tier : d.rarity) || 'common') || avail[0];
   used[type].add(data.id);
   return survivalMakeOption(type, data);
 }
@@ -295,7 +302,8 @@ function survivalRenderPick() {
   cards.innerHTML = '';
   (survivalPickOffered || []).forEach((opt, i) => {
     const card = document.createElement('div');
-    card.className = `sv-pick-card sv-type-${opt.type}`;
+    // Type sets the SHAPE class; rarity sets the colour (r198).
+    card.className = `sv-pick-card sv-type-${opt.type} rar-${typeof tierId === 'function' ? tierId(opt.rar) : 'common'}`;
     card.style.animationDelay = (i * 70) + 'ms';
     card.innerHTML = `
       <div class="sv-pick-tag">${opt.tag}</div>
@@ -433,7 +441,8 @@ function survivalGrant(opt) {
     case 'trick':   injectTrickAfterReward(opt.data); break;
     case 'sleight': grantSleight(opt.data); showMessage(`${opt.icon} ${opt.name}!`, '#c07aee'); break;
     case 'knack':   acquiredKnacks.push({ ...opt.data }); updateKnackList?.(); showMessage(`${opt.icon} ${opt.name}!`, '#d4a017'); break;
-    case 'limit':   incrementLimit(opt.data.id); showMessage(`${opt.icon} ${opt.name} upgraded!`, '#5ad4c0'); break;
+    case 'limit': { const _say = `${opt.icon} ${limitDeltaText(opt.data.id, 1)} ${opt.data.label}`;   // before the increment moves it
+                    incrementLimit(opt.data.id); showMessage(_say, '#5ad4c0'); break; }
   }
 }
 

@@ -39,13 +39,13 @@ const BUILD_TOOLTIP_ZOOM = 0.62;   // at/above this, full records; below, icon +
 let draftBuild = { name: '', tricks: [], sleights: [], knacks: [] };
 
 const BUILD_TYPES = [
-  { key:'trick',   label:'TRICKS',   pool:() => TRICK_POOL,   rar:'tier'    },
-  { key:'sleight', label:'SLEIGHTS', pool:() => SLEIGHT_POOL, rar:'rarity'  },
-  { key:'knack',   label:'KNACKS',   pool:() => KNACK_POOL,   rar:'rarity'  },
+  { key:'trick',   label:() => entityLabel('trick', true).toUpperCase(),   pool:() => TRICK_POOL,   rar:'tier'    },
+  { key:'sleight', label:() => entityLabel('sleight', true).toUpperCase(), pool:() => SLEIGHT_POOL, rar:'rarity'  },
+  { key:'knack',   label:() => entityLabel('knack', true).toUpperCase(),   pool:() => KNACK_POOL,   rar:'rarity'  },
   { key:'event',   label:'EVENTS',   pool:() => Object.keys(EVENT_META).map(id => ({
       id, name: EVENT_META[id].name, desc: EVENT_META[id].flavor, rarity:'rare', emoji:'✧' })), rar:'rarity' },
 ];
-const BUILD_RARITIES = ['common','rare','epic','legendary','mythic'];
+const BUILD_RARITIES = ['common','rare','epic','legendary'];
 
 function buildEntityEmoji(e, type) {
   if (type === 'trick')  return (typeof trickEmoji === 'function') ? trickEmoji(e) : '✦';
@@ -219,7 +219,7 @@ function buildsGroupsFor(def) {
   const pool = def.pool();
   if (buildsGroupMode === 'rarity') {
     return BUILD_RARITIES.map(r => ({
-      label: r.toUpperCase(),
+      label: tierLabel(def.key, r).toUpperCase(),
       cls: 'r-' + r,
       items: pool.filter(e => buildEntityRarity(e, def) === r),
     })).filter(g => g.items.length);
@@ -275,7 +275,7 @@ function renderBuilds() {
       </div>`;
     }).join('');
     return `<section class="bv-section bv-t-${def.key}">
-      <div class="bv-sec-head"><span class="bv-sec-title">${def.label}</span>
+      <div class="bv-sec-head"><span class="bv-sec-title">${resolveLabel(def.label)}</span>
         <span class="bv-sec-n">${def.pool().length} records</span></div>
       ${groups}
     </section>`;

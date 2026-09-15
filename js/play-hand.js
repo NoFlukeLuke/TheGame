@@ -315,7 +315,7 @@ function playHand() {
     if (spotCheckLeft <= 0) { spotCheckHand = null; showMessage('Spot check cleared', 'var(--gold)'); }
     else showMessage(`Spot check: ${spotCheckLeft} more`, 'var(--cream-dim)');
   }
-  // Compound (mythic): pay out everything banked since the last hand, then clear.
+  // Compound (legendary): pay out everything banked since the last hand, then clear.
   // Added at SCORE level (not as pips or mult) on purpose - it is a copy of score
   // already earned, so running it back through mult × Focus would multiply it twice.
   if (compoundBanked > 0) {

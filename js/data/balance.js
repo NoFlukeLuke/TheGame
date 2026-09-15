@@ -159,7 +159,7 @@ const BAL = {
   chorus:      { mult_mult_per_replay: 0.2 },
   portfolio:   { mult_mult_per_card: 0.15 },
   redline:     { focus_threshold: 2, mult_mult: 2 },
-  // Compound (mythic): every interval_seconds of round time the current round score
+  // Compound (legendary): every interval_seconds of round time the current round score
   // is banked; the next scored hand pays bank_fraction of it again. Repeats, so the
   // score compounds across a round rather than doubling once.
   compound:    { interval_seconds: 45, bank_fraction: 1 },
@@ -289,10 +289,25 @@ const BAL = {
 // game's generosity is editing one line and so that a future Luck stat has a
 // single place to reach.
 //
-// The prize grid keeps its own variant (common cut out) because that IS its
-// design, not a drift.
-const ENTITY_TIERS   = ['common', 'rare', 'epic', 'legendary', 'mythic'];
-const ENTITY_TIER_W  = [59, 28, 10, 2, 1];
+// The prize grid has its own table, PRIZE_TIER_W, below.
+//
+// FOUR tiers, not five (r226). `mythic` was merged into `legendary` when the
+// data pools were re-tiered, so the fifth slot matched NOTHING: every mythic
+// roll - 1% of all draws - cascaded down into legendary anyway, and the tiles
+// that hard-coded tier:'mythic' (the Limit Break) asked for a `rar-mythic`
+// colour no stylesheet defines. Its weight is folded into legendary, so the
+// effective spread is unchanged.
+const ENTITY_TIERS   = ['common', 'rare', 'epic', 'legendary'];
+const ENTITY_TIER_W  = [71, 22, 5.5, 1.5];
+
+// The post-boss PRIZE (boss) grid. It used to cut commons out of every pool and
+// draw the remaining three tiers, which is a different thing from a table: the
+// filters decided the floor and the weights only shared out what was left.
+// It is a real four-tier table now (owner's numbers), so the prize grid's
+// generosity is one line here rather than a filter in three pool builders, and
+// what it says is what it draws. A common is a third of the tiles and the
+// middle of the ladder is where a prize grid pays: RARE is more than half.
+const PRIZE_TIER_W   = [30, 55, 12, 3];
 
 const DESC_TEMPLATES = {
   understudy: 'Every {interval_seconds} seconds one of your tricks is primed: it fires an extra time on your next hand.',
