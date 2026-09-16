@@ -71,8 +71,16 @@ const OFFICE_PHOTO = {
   w: 0, h: 0,
 };
 
-const OFFICE_DOLLY_MS = 2600;   // the push in on the monitor
-const OFFICE_HOLD_MS  = 260;    // a beat at full screen before the channel change
+// THE OPENING IS ONE SLOW DRIFT AND THEN A CUT. The camera creeps in on the
+// monitor by itself for OFFICE_ATTRACT_MS while the menu waits on its screen, and
+// settles at the HERO framing - the machine centred and filling most of the shot.
+// It never pulls back out. Touch any button on that menu and a channel change
+// flashes; behind the flash the photograph is gone for good and the UI is flat and
+// full-screen. There is no second push: the drift IS the approach and the flash IS
+// the arrival, which is why the two numbers below are a duration and a size and
+// nothing else.
+const OFFICE_ATTRACT_MS = 15000;  // the drift, start to settle
+const OFFICE_HERO_FIT   = 0.78;   // share of the viewport the glass fills at rest
 
 let officeReady   = false;      // the image loaded AND the corners are calibrated
 // TWO states, and collapsing them into one is a bug. `officeActive` means THE
@@ -86,7 +94,11 @@ let officeReady   = false;      // the image loaded AND the corners are calibrat
 let officeActive  = false;
 let officeShowing = false;
 let officeWideK   = 1;          // camera scale that frames the whole photo
-let officeDollyRaf = null;
+let officeHeroK   = 1;          // where the drift settles, and the resting framing
+// The photograph is the OPENING, not a place you come back to. Once it has been
+// cut away it stays away for the session: a run that ends returns to a flat
+// full-screen menu rather than pulling the camera back out to the desk.
+let officeDone    = false;
 // Which attract screen the player was last looking at, and a latch that stops
 // camera.js's "a menu appeared, pull out to it" observer from firing while we are
 // deliberately holding one up during the push in.
@@ -164,7 +176,14 @@ function officeInit() {
     // race every time. End it now, or the wide framing sits at 0.85x of itself
     // for seven seconds with the edge of the photo showing.
     if (typeof camEndBootDolly === 'function') camEndBootDolly();
+    officeArmMenuCut();
+    // LAYOUT FIRST, THEN THE DRIFT. officeWideK and officeHeroK are both still 1
+    // until camRelayout has measured this viewport, and the drift is the ratio
+    // between them - started above it, that ratio is 1, which the "nothing to
+    // travel" guard reads as a shot with no move in it and the whole opening
+    // silently does not happen.
     if (typeof camLayout === 'function') camRelayout();
+    officeStartDrift();
   });
   img.addEventListener('error', () => {
     // Never fatal. The CSS room is still in the document underneath.
@@ -225,6 +244,11 @@ function officeLayout() {
   officeWideK = Math.min(1, Math.max(
     (W / 2) / (Math.max(1, mL) * S), (W / 2) / (Math.max(1, mR) * S),
     (H / 2) / (Math.max(1, mT) * S), (H / 2) / (Math.max(1, mB) * S)));
+  // The HERO framing is where the drift stops: the glass filling OFFICE_HERO_FIT
+  // of the viewport, against whichever axis binds first so it always fits. Held at
+  // or above the cover figure, because below it the edge of the photograph shows.
+  officeHeroK = Math.min(1, Math.max(officeWideK, Math.min(
+    (W * OFFICE_HERO_FIT) / (bb.w * S), (H * OFFICE_HERO_FIT) / (bb.h * S))));
 
   // Put the monitor's centre on the viewport centre. #camera is position:fixed
   // inset:0, so its local px ARE viewport px, and scaling about 50%/50% then
@@ -238,7 +262,12 @@ function officeLayout() {
   el.style.height = OFFICE_PHOTO.h + 'px';
 
   officeApplySkew(tx, ty, S);
-  return officeWideK;
+  // The camera's 'wide' view IS the hero framing - the drift is run as a multiplier
+  // underneath it (below), exactly as r185's opening creep is. That is what lets a
+  // relayout mid-drift recompute the framing without stamping on the movement, and
+  // it means anything that re-asserts 'wide' lands where the drift settled rather
+  // than pulling back out to the cover framing.
+  return officeHeroK;
 }
 
 // Map #cab-screen's own box onto the monitor's glass. Measured, not derived from
@@ -278,75 +307,79 @@ function officeApplySkew(tx, ty, S) {
   glass.style.transform = m;
 }
 
-// ── The push in ─────────────────────────────────────────────────────────────
-// Driven by rAF over the camera's scale rather than by a CSS transition, for the
-// reason r185's opening shot documents: the first frames of a run trigger several
-// relayouts (the board deals, fonts settle) and each one re-applies the camera.
-// A transition would be stamped on by the first of them; a value we write every
-// frame just carries on from wherever the recompute left it.
+// ── The drift, and the cut ──────────────────────────────────────────────────
+
+// Start the slow creep in on the machine. It is a MULTIPLIER on the hero framing
+// (camera.js's camBootMul), never a framing of its own, for r185's reason: the
+// first seconds of a load trigger several relayouts and each one re-applies the
+// camera, so a CSS transition would be stamped on by the first of them while a
+// multiplier folded into the scale simply composes with the recomputed value.
+function officeStartDrift() {
+  if (!officeShowing || officeDone) return;
+  if (officeHeroK <= 0) return;
+  // Start at the cover framing and finish at the hero one, expressed against the
+  // hero framing because that is what the camera is now resting at.
+  const from = Math.min(1, officeWideK / officeHeroK);
+  if (from > 0.985) return;            // nothing to travel, don't fake it
+  if (typeof camPlayBootDolly === 'function') camPlayBootDolly(from, OFFICE_ATTRACT_MS);
+}
+
+// Take the photograph away and hand the screen over, flat and full size. The swap
+// runs at the channel change's collapse, where a real set hides the switch.
 //
-// The scale is interpolated in LOG space. Perceived zoom is multiplicative - the
-// step from 0.1 to 0.2 reads as the same move as 0.5 to 1.0 - so a linear ramp
-// looks like it slams to a halt at the end. Log space makes the rate constant and
-// the smoothstep on top is what gives it the ease in and out.
-function officeDollyIn(done) {
-  const cam = document.getElementById('camera');
-  if (!cam) { done && done(); return; }
-  officeCancelDolly();
-  const k0 = officeWideK, k1 = 1;
-  if (k0 >= 0.999) { done && done(); return; }
-  const t0 = performance.now();
-  cam.style.willChange = 'transform';
-  cam.style.transition = 'none';
-  officeDollyRaf = requestAnimationFrame(function step(t) {
-    const p = Math.min(1, (t - t0) / OFFICE_DOLLY_MS);
-    const e = p * p * (3 - 2 * p);
-    const k = k0 * Math.pow(k1 / k0, e);
-    cam.style.transform = `scale(${k.toFixed(5)})`;
-    if (p < 1) { officeDollyRaf = requestAnimationFrame(step); return; }
-    officeDollyRaf = null;
-    cam.style.willChange = '';
-    done && done();
-  });
-}
-
-function officeCancelDolly() {
-  if (officeDollyRaf) { cancelAnimationFrame(officeDollyRaf); officeDollyRaf = null; }
-}
-
-// Entering a run, in photo mode. The menu STAYS on the monitor for the whole
-// push - that is the shot: you fly at a screen with something on it. It is the
-// channel change that takes it away, and the swap runs at the collapse, where a
-// real set hides the switch.
-function officeEnterGame() {
-  const reduce = document.body.classList.contains('reduced-motion');
+// `.office-photo` DELIBERATELY STAYS ON. It means THE CABINET IS REPLACED, which is
+// a layout fact: the cabinet's resting offset and the attract screens' inset:0 were
+// both measured against it, so putting the bezel back here would shift the board off
+// centre with nothing left to re-measure it. Only `.office-scene` - whether the
+// photograph is on screen - is what gets turned off.
+function officeCutToScreen() {
+  if (!officeShowing || officeDone) return;
+  officeDone = true;
+  officeEntering = true;
   const swap = () => {
     officeEntering = false;
-    document.getElementById('main-menu-overlay')?.classList.remove('show');
-    document.getElementById('mode-select-overlay')?.classList.remove('show');
-    officeSetShowing(false);       // photograph out, skew cleared - chrome stays off
-    officeCancelDolly();
-    camSetView('play', false);     // k = 1 and, crucially, NO transform at all
+    officeSetShowing(false);
+    if (typeof camEndBootDolly === 'function') camEndBootDolly();
+    camSetView('play', false);         // k = 1 and, crucially, NO transform at all
+    if (typeof camRelayout === 'function') camRelayout();
+    if (typeof recomputeGridMetrics === 'function') recomputeGridMetrics();
   };
-  if (reduce) { swap(); return; }
-  // Hold the attract screen up for the length of the push. The shot is "you fly
-  // at a screen with something on it": by this point startGame has already dealt
-  // the board behind it, and arriving at a board you were already looking at is
-  // not a transition. The latch is what stops camera.js's observer from reading
-  // this as "back at the menu" and pulling the camera the other way.
-  officeEntering = true;
-  document.getElementById(officeLastAttract)?.classList.add('show');
-  camSetView('wide', false);       // pin the camera at the wide framing to start
-  officeDollyIn(() => {
-    setTimeout(() => {
-      if (typeof channelChange === 'function') channelChange(swap);
-      else swap();
-    }, OFFICE_HOLD_MS);
+  if (document.body.classList.contains('reduced-motion') || typeof channelChange !== 'function') swap();
+  else channelChange(swap);
+}
+
+// ANY button on the attract menu is the cut, not just PLAY. Settings, History and
+// Builds open their own panels ON the glass, and on a monitor filling a third of
+// the shot at a slant those are decoration rather than something you can read - so
+// touching anything at all is what takes you into the machine.
+//
+// One delegated listener in the CAPTURE phase, and it does NOT stop the event: the
+// button's own handler runs as it always did and its panel opens during the flash,
+// which is precisely what the flash is for. A capture-phase listener also cannot be
+// beaten to it by a handler that re-renders the menu out from under the click.
+function officeArmMenuCut() {
+  ['main-menu-overlay', 'mode-select-overlay'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el || el._officeCutArmed) return;
+    el._officeCutArmed = true;
+    el.addEventListener('click', (e) => {
+      if (!officeShowing || officeDone) return;
+      if (!(e.target && e.target.closest && e.target.closest('button'))) return;
+      officeCutToScreen();
+    }, true);
   });
 }
 
-// Back to the menu: the photo comes back and the camera pulls out to it.
+// startGame's own hook. By the time a run starts the menu's button has almost
+// always cut already, so this is the backstop for any path that reaches a run with
+// the photograph still up.
+function officeEnterGame() { officeCutToScreen(); }
+
+// Coming back to the menu after a run. The photograph does not return - see
+// `officeDone` above - so this reports 'stay' and camera.js leaves the camera where
+// it is rather than pulling out to a desk that is no longer part of the session.
 function officeReturnToMenu() {
+  if (officeDone) return 'stay';
   if (!officeAvailable()) return false;
   officeSetShowing(true);
   if (typeof camRelayout === 'function') camRelayout();

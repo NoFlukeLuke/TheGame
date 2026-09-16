@@ -176,10 +176,13 @@ function camApply(animate) {
 
 function camSetView(view, animate) {
   if (view !== 'wide' && view !== 'play') return;
-  // Pressing PLAY during the opening shot must not dolly in from 0.42 x the wide
-  // framing - end the creep on its final value first, then run the real move.
-  if (camBootRaf) camEndBootDolly();
   const changing = (view !== camView);
+  // Pressing PLAY during the opening shot must not dolly in from 0.42 x the wide
+  // framing - end the creep on its final value first, then run the real move. Only
+  // when the view is REALLY changing: the attract screens re-assert 'wide' as they
+  // open and close, and cancelling on those snapped the photo office's fifteen
+  // second drift to its end the moment the mode carousel appeared.
+  if (camBootRaf && changing) camEndBootDolly();
   camView = view;
   document.body.classList.toggle('cam-play', view === 'play');
   document.body.classList.toggle('cam-wide', view === 'wide');
@@ -206,8 +209,11 @@ function camInit() {
       if (typeof officeEntering !== 'undefined' && officeEntering) return;
       if (typeof officeLastAttract !== 'undefined') officeLastAttract = id;
       // Back at the menu: the photograph comes back before the camera pulls out to
-      // it, or the pull-out would be framing a scene that is not there yet.
-      if (typeof officeReturnToMenu === 'function') officeReturnToMenu();
+      // it, or the pull-out would be framing a scene that is not there yet. Once the
+      // photo office has been cut away it answers 'stay' instead, and the camera is
+      // left where it is - the opening does not play twice and the menu comes back
+      // flat and full-screen rather than shrinking onto a desk.
+      if (typeof officeReturnToMenu === 'function' && officeReturnToMenu() === 'stay') return;
       camSetView('wide', true);
     }).observe(el, { attributes: true, attributeFilter: ['class'] });
   });
@@ -236,15 +242,20 @@ function camSetRoomStyle(style) {
 // the several relayouts the first second triggers (rAF pass, DOMContentLoaded,
 // load, fonts.ready - see js/bootstrap.js) recompute camWideK and re-apply
 // underneath it instead of stamping on a transition halfway through.
-function camPlayBootDolly() {
+function camPlayBootDolly(fromMul, ms) {
   if (document.body.classList.contains('reduced-motion')) return;
   const cam = camEl(); if (!cam) return;
+  const FROM = (typeof fromMul === 'number' && fromMul > 0 && fromMul < 1) ? fromMul : CAM_BOOT_OUT;
+  const DUR  = (typeof ms === 'number' && ms > 0) ? ms : CAM_BOOT_MS;
   const t0 = performance.now();
   cam.style.willChange = 'transform';
   camBootRaf = requestAnimationFrame(function step(t) {
-    const p = Math.min(1, (t - t0) / CAM_BOOT_MS);
-    const eased = 1 - Math.pow(1 - p, 3);          // ease-out: fast away, slow arrival
-    camBootMul = CAM_BOOT_OUT + (1 - CAM_BOOT_OUT) * eased;
+    const p = Math.min(1, (t - t0) / DUR);
+    // A gentler ease-out than the cabinet's cubic. Over fifteen seconds a cubic
+    // spends most of the shot already stopped, which reads as the drift having
+    // finished early; squared keeps it visibly moving for most of its length.
+    const eased = 1 - Math.pow(1 - p, 2);
+    camBootMul = FROM + (1 - FROM) * eased;
     camApply(false);
     camBootRaf = (p < 1) ? requestAnimationFrame(step) : null;
     if (!camBootRaf) camEndBootDolly();
