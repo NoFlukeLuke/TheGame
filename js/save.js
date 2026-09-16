@@ -59,6 +59,14 @@ const SAVE_VARS = [
   // only ever taken at the START OF A ROUND, and a bought stop never straddles
   // one, so it is always false when a save is written.
   'guidedSlot', 'guidedEventOffers',
+  // Map mode (r238). mapTiles is plain data by construction - challenges are
+  // stored by id and rehydrated from CHALLENGE_DEFS at confirm time.
+  'mapTiles', 'mapPos', 'mapVisits', 'mapSkips', 'mapBossGoal', 'mapBossArmed',
+  'mapFirstRoundDone', 'mapPosTileId', 'swapsUsedRound',
+  // The live challenge survives a save as DATA (JSON drops its test function);
+  // guidedSettleChallenge re-reads the test from CHALLENGE_DEFS by id, and a
+  // mini-boss re-arms from startRoundTimer on resume.
+  'guidedPendingChallenge', 'guidedActiveChallenge',
   'pendingEventOverride', 'rewardGridContext', 'skipTrickChoiceOverlay', 'pendingLevelUps',
   'goalReachedThisRound', 'roundEnded', 'suppressScoreDisplay', 'heldBackScore',
   // ── Deck & board ──
@@ -184,6 +192,11 @@ function captureRunCheckpoint() {
     meta: {
       mode:  ACTIVE_MODE.id,
       modeName: ACTIVE_MODE.name,
+      // A picker-built mode is not in MODES when the page next loads - it is
+      // assembled from the answers, so the ANSWERS are what has to be saved.
+      // Without this the restore below falls back to Classic and the run resumes
+      // as a different game to the one that was saved.
+      picker: ACTIVE_MODE.picker ? { ...ACTIVE_MODE.picker } : null,
       level: typeof level === 'number' ? level : 1,
       act:   typeof actNumber === 'number' ? actNumber : 1,
       node:  typeof nodeInAct === 'number' ? nodeInAct : 0,
@@ -243,6 +256,12 @@ function resumeSavedRun() {
   const save = readSavedRun();
   if (!save) return false;
 
+  // Rebuild a picker-built mode from its saved answers before the lookup, so
+  // MODES.custom exists to be found. pickerBuildMode is pure, so this reproduces
+  // the exact mode the run was started with.
+  if (save.meta.picker && typeof pickerBuildMode === 'function') {
+    MODES.custom = pickerBuildMode(save.meta.picker);
+  }
   ACTIVE_MODE = MODES[save.meta.mode] || MODES.normal;
   // Re-pin the run's seed so reward grids and shops still follow the same
   // sequence after resuming (they key off runSeed + visit index - see seed.js).

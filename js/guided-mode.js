@@ -49,6 +49,7 @@ function guidedResetRun() {
   guidedOffers = []; guidedLastKind = null; guidedSinceLevel = 0;
   guidedBuysThisAct = {};
   guidedPendingChallenge = null; guidedActiveChallenge = null;
+  miniBossActive = false;   // startGame's own boss teardown clears the effects
   guidedCrossroadsOpen = false;
 }
 
@@ -321,6 +322,11 @@ function guidedNextStopLabel() {
 // the round passes as normal; meet the requirement as well and you also take the
 // bonus. A node that can end a run on a technicality is not an elite, it is a
 // trap, and a player would simply never take one.
+// This round's own hand-log entries. Entries carry `level`, NOT `round` - the
+// first version of `big` tested h.round, which no entry has, so it never fired.
+function _chRoundHands() {
+  return (handLog || []).filter(h => h.level === level && h.src === 'play');
+}
 const CHALLENGE_DEFS = [
   { id:'types',  goalMult:1.25, credits:25,
     label:'Score three different hand types.',
@@ -329,12 +335,115 @@ const CHALLENGE_DEFS = [
     label:'Score at least five hands.',
     test: () => (handsPlayedRound || 0) >= 5 },
   { id:'big',    goalMult:1.30, credits:30,
-    label:'Score a hand of four cards or more.',
-    test: () => (handLog || []).some(h => h.round === level && (h.cards?.length || 0) >= 4) },
+    label:'Score two hands of four or more cards, back to back.',
+    test: () => { const hs = _chRoundHands();
+      for (let i = 1; i < hs.length; i++)
+        if ((hs[i - 1].cards?.length || 0) >= 4 && (hs[i].cards?.length || 0) >= 4) return true;
+      return false; } },
   { id:'lean',   goalMult:1.15, credits:22,
     label:'Clear it in three hands or fewer.',
     test: () => (handsPlayedRound || 0) <= 3 },
+  { id:'haymaker', goalMult:1.25, credits:28,
+    label:'Score one hand worth a third of the goal.',
+    test: () => _chRoundHands().some(h => (h.score || 0) >= roundGoal / 3) },
+  { id:'clean',  goalMult:1.20, credits:24,
+    label:'Use no discards.',
+    test: () => (cardsDiscardedRound || 0) === 0 },
+  { id:'notakebacks', goalMult:1.20, credits:24,
+    label:'Use no swaps.',
+    test: () => (swapsUsedRound || 0) === 0 },
+  { id:'sprinter', goalMult:1.25, credits:28,
+    label:'Clear with 45 seconds or more on the clock.',
+    test: () => (roundSeconds || 0) >= 45 },
+  { id:'specialist', goalMult:1.20, credits:22,
+    label:'Score the same hand type three times.',
+    test: () => { const n = {};
+      for (const h of _chRoundHands()) { n[h.hand] = (n[h.hand] || 0) + 1; if (n[h.hand] >= 3) return true; }
+      return false; } },
+  // Gated on Selection Size >= 5 (avail), the same liveness idea as
+  // bossPresetIsLive: a requirement that cannot be met must not be offered.
+  { id:'widenet', goalMult:1.35, credits:35,
+    label:'Score a run, a set and a flush.',
+    avail: () => (limits?.selection?.current || 0) >= 5,
+    test: () => { const fams = new Set();
+      for (const h of _chRoundHands())
+        (NS_HAND_FAMILIES[h.hand] || []).forEach(f => fams.add(f));
+      return fams.has('run') && fams.has('set') && fams.has('flush'); } },
+
+  // ── MINI-BOSSES (r239) - the second challenge kind ─────────────────────────
+  // No task to complete: the HANDICAP is the challenge, a boss modifier at half
+  // strength running inside an ordinary round, and clearing the (raised) goal
+  // pays the credits. They ride the real boss-effect machinery through
+  // bossFxLive() (js/boss-effects.js) - armed by miniBossMaybeStart when the
+  // round's clock starts, torn down by miniBossClear at the settle.
+  // test: () => true because the settle only ever runs on a cleared round.
+  { id:'mini_stones', goalMult:1.20, credits:26, mini: { modifier: '_stones' },
+    label:'Stones bury part of the board.',
+    test: () => true },
+  { id:'mini_toll',   goalMult:1.20, credits:24,
+    mini: { modifier: 'interact_surcharge', params: { costMult: 1.5, playCostAdd: 2 } },
+    label:'Swaps and discards cost half again, playing +2s.',
+    test: () => true },
+  { id:'mini_tide',   goalMult:1.20, credits:26,
+    mini: { modifier: 'focus_drain', params: { everySecs: 20, amount: 5 } },
+    label:'Lose 5 Focus every 20 seconds.',
+    test: () => true },
+  { id:'mini_hold',   goalMult:1.20, credits:26,
+    mini: { modifier: 'card_hold', params: { everySecs: 25, holdSecs: 15, count: 1 } },
+    label:'A card is frozen every 25 seconds.',
+    test: () => true },
+  { id:'mini_sip',    goalMult:1.25, credits:28,
+    mini: { modifier: 'suit_markdown', params: { count: 1, mult: 0.6, holdSecs: 60 } },
+    label:'One suit pays 60%, rotating each minute.',
+    test: () => true },
+  { id:'mini_fog',    goalMult:1.25, credits:28, mini: { modifier: '_fog', params: { secs: 60 } },
+    label:'Ranks hidden for the first minute.',
+    test: () => true },
 ];
+
+// ── The mini-boss harness ────────────────────────────────────────────────────
+// One flag, read by bossFxLive() in js/boss-effects.js, which is what lets the
+// real boss schedules, pip scale, fog and suit markdown run in a normal round.
+let miniBossActive = false;
+
+// Called from startRoundTimer - the one place every round's clock starts - so a
+// mini arms exactly when its round becomes live (and on a resumed round, since
+// resume also lands there). Never during a real boss: that round has its own
+// effects and triggerLevelUp never armed a challenge for it anyway.
+function miniBossMaybeStart() {
+  if (miniBossActive || bossActive) return;
+  const m = guidedActiveChallenge && guidedActiveChallenge.mini;
+  if (!m) return;
+  miniBossActive = true;
+  if (m.modifier === '_stones') {
+    // Stone Lord Jr: half the real boss's count, no deck rubble.
+    placeStonesOnGrid(Math.max(2, Math.round((gridRows + gridCols) / 4)));
+    if (typeof render === 'function') render();
+  } else if (m.modifier === '_fog') {
+    // Light Fog: ranks hidden, but only for the opening stretch.
+    bossFog = true;
+    bossDelay((m.params?.secs || 60) * 1000, () => {
+      bossFog = false;
+      if (typeof render === 'function' && gridData && gridData[0]) render();
+    });
+    if (typeof render === 'function') render();
+  } else {
+    applyBossEffectModifier(m.modifier, m.params || {});
+  }
+  // The real boss path fires this from startBossTimer; a mini's round has no
+  // boss timer, so it fires here. Schedules tick behind bossFxLive().
+  bossStartScheduledEffects();
+}
+
+// Torn down wherever the round stops mattering: the settle (cleared round), a
+// failed round's game-over via the next startGame (guidedResetRun), and any
+// real boss teardown (clearBossEffects is shared, so state can never leak).
+function miniBossClear() {
+  if (!miniBossActive) return;
+  miniBossActive = false;
+  clearBossEffects();
+  if (typeof render === 'function' && gridData && gridData[0]) { try { render(); } catch (e) {} }
+}
 
 // Armed by taking an elite tile; consumed when the round deals.
 let guidedPendingChallenge = null;
@@ -342,7 +451,10 @@ let guidedPendingChallenge = null;
 let guidedActiveChallenge  = null;
 
 function rollChallengeLevel() {
-  const d = CHALLENGE_DEFS[Math.floor(Math.random() * CHALLENGE_DEFS.length)];
+  // `avail` gates a requirement that cannot currently be met (Wide Net below
+  // Selection Size 5) - the same liveness idea as bossPresetIsLive.
+  const pool = CHALLENGE_DEFS.filter(d => { try { return !d.avail || d.avail(); } catch (e) { return false; } });
+  const d = pool[Math.floor(Math.random() * pool.length)] || CHALLENGE_DEFS[0];
   return { ...d, rewardText: `+${d.credits} credits` };
 }
 
@@ -350,7 +462,9 @@ function rollChallengeLevel() {
 // the real goal for this level rather than on a stale one.
 function guidedApplyPendingChallenge() {
   guidedActiveChallenge = null;
-  if (!guidedActive() || !guidedPendingChallenge) return;
+  // Map mode's challenge tiles ride the same pending/active/settle machinery.
+  const _live = guidedActive() || (typeof mapActive === 'function' && mapActive());
+  if (!_live || !guidedPendingChallenge) return;
   guidedActiveChallenge = guidedPendingChallenge;
   guidedPendingChallenge = null;
   roundGoal = Math.round(roundGoal * guidedActiveChallenge.goalMult / 50) * 50;
@@ -360,9 +474,13 @@ function guidedApplyPendingChallenge() {
 function guidedSettleChallenge() {
   const ch = guidedActiveChallenge;
   guidedActiveChallenge = null;
+  miniBossClear();
   if (!ch) return;
   let met = false;
-  try { met = !!ch.test(); } catch (e) {}
+  // A challenge restored from a save is DATA - JSON dropped its test function -
+  // so the test is always read from CHALLENGE_DEFS by id, never off the object.
+  const def = CHALLENGE_DEFS.find(d => d.id === ch.id);
+  try { met = !!(def || ch).test(); } catch (e) {}
   if (met) {
     coins += ch.credits;
     updateCoinsUI?.();
@@ -439,17 +557,93 @@ function guidedOpenPickThree(done) {
   mk.forEach(p => {
     const t = document.createElement('div');
     t.className = 'g3-opt';
-    t.innerHTML = (typeof entityTileHTML === 'function')
-      ? entityTileHTML(p)
+    // The tile is the OBJECT - drawn at its own ratio, in its rarity colour
+    // (this call used to omit the rarity, so every offer read as common) - and
+    // the title and description sit BENEATH it (owner spec, r239).
+    const tile = (typeof entityTileHTML === 'function')
+      ? entityTileHTML(p, p.rarity || 'common')
       : `<div class="reward-cell entity"><div class="rwd-name">${p.label}</div></div>`;
+    t.innerHTML = `<div class="g3-tile">${tile}</div>`
+      + `<div class="g3-name">${p.label}</div>`
+      + `<div class="g3-desc">${(typeof colorizeKeywords === 'function') ? colorizeKeywords(p.desc || '') : (p.desc || '')}</div>`;
     t.onclick = () => {
       try { p.apply?.(); } catch (e) {}
       el.classList.remove('show');
       done();
     };
     row.appendChild(t);
-    const nm = t.querySelector('.rwd-name');
-    if (nm && typeof fitRewardName === 'function') fitRewardName(nm);
   });
   el.classList.add('show');
+  // Fit after .show - a hidden element measures a zero rect and never fits.
+  requestAnimationFrame(() => {
+    if (typeof fitRewardName === 'function')
+      row.querySelectorAll('.g3-tile .rwd-name').forEach(nm => fitRewardName(nm));
+  });
+}
+
+// ══════════════════════════════════════════════
+// ROUTING (r234) - the three functions the rest of the mode calls
+// ══════════════════════════════════════════════
+// These were referenced from four places (guidedChoose x3, interlude.js's guided
+// branch, reward-grid.js's finishInterludeRoute) and DEFINED NOWHERE, so Guided
+// threw on the first crossroads choice and guidedOpenCrossroads - the screen the
+// whole mode is - was never called at all. Written here to the contract the rest
+// of the file already assumes.
+
+// A bought stop costs the same step on the difficulty curve a played round would.
+// This is the load-bearing rule at the top of this file: without it a player buys
+// six stops and meets the boss at level 2 holding a level-8 loadout.
+//
+// It is deliberately NOT triggerLevelUp. That function also banks the score,
+// flushes the deck, resets the round resources and deals a board - none of which
+// has happened, because no round was played. Only the two lines that ARE the
+// curve are reproduced (level++ and the goal recompute, penalty included, in the
+// same order level-up.js applies them), so a bought slot moves the bar and
+// nothing else.
+function guidedAdvanceCurve() {
+  level++;
+  roundGoal = goalForLevel(level);
+  if (goalPenaltyMult > 1) roundGoal = Math.round(roundGoal * goalPenaltyMult / 50) * 50;
+  updateScoreUI?.();
+  updateActProgressUI?.();
+}
+
+// The single place that decides "another slot, or the boss", so no caller has to
+// know how long an act is. Every route through a slot ends here: a played level
+// (via startInterlude's guided branch), a bought shop, reward grid, pick-three or
+// event (via their own continuations).
+function guidedAfterSlot() {
+  guidedInStop = false;
+  guidedSlot++;
+  // nodeInAct is kept in step with the slot count purely for the HUD's pips and
+  // the boss sigil - Guided routes off guidedSlot, never off the node index.
+  nodeInAct = Math.min(5, Math.round(guidedSlot * 5 / GUIDED_SLOTS_PER_ACT));
+  updateActProgressUI?.();
+
+  if (guidedSlot >= GUIDED_SLOTS_PER_ACT) {
+    // The act is full. Arm the boss and deal into it - the same two lines the
+    // node modes use, so the boss arrives through the ordinary path.
+    nodeInAct = 5;
+    if (typeof bossesEnabled !== 'function' || bossesEnabled()) forceBossNextRound = true;
+    updateActProgressUI?.();
+    drainLevelUpQueue();
+    return;
+  }
+  guidedOpenCrossroads();
+}
+
+// After the post-boss PRIZE grid: close the quarter's books, advance, and open
+// the new act on a LEVEL rather than on the crossroads - an act you have just
+// fought a boss to reach should start by letting you play.
+//
+// rolloverQuarter (js/quarter.js) is the ONE rollover site; a won run never comes
+// back from it (actNumber > 3 goes to onGameWin and the run report).
+function guidedAfterPrizeGrid() {
+  guidedInStop = false;
+  guidedSlot = 0;
+  guidedBuysThisAct = {};
+  guidedLastKind = null;
+  guidedSinceLevel = 0;
+  guidedOffers = [];
+  rolloverQuarter(() => drainLevelUpQueue());
 }

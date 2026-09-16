@@ -39,7 +39,7 @@ function ensureEntityTooltip() {
 
 const ET_RARITY_COLOR = {
   common:'--c-mint', rare:'--c-cyan', epic:'--c-purple',
-  legendary:'--c-yellow', mythic:'--c-magenta',
+  legendary:'--c-magenta',
 };
 
 // ── INTERACTIVE MODE (r182) ─────────────────────────────────────────────────
@@ -66,6 +66,10 @@ function ensureEntityBackdrop() {
 // payload: { label/name, desc, rarity/tier, type, emoji, price, uses, meta[] }
 // opts:    { actions: [{ label, cls, disabled, onClick }] } - passing any action
 //          puts the tooltip in interactive mode (see above).
+// Keyword names and definitions are authored in the gamer wording, like every
+// other stored string, and translated on the way to the screen (r198).
+const _lexP = t => (typeof lexProse === 'function') ? lexProse(t) : String(t == null ? '' : t);
+
 function showEntityTooltip(anchorEl, p, opts = {}) {
   if (!anchorEl || !p) return;
   clearTimeout(_etHideTimer);
@@ -75,7 +79,7 @@ function showEntityTooltip(anchorEl, p, opts = {}) {
 
   el.style.setProperty('--rc', `var(${ET_RARITY_COLOR[rar]})`);
   el.querySelector('.et-name').textContent = p.label || p.name || '';
-  el.querySelector('.et-rar').textContent  = rar;
+  el.querySelector('.et-rar').textContent  = tierLabel(p.type || p.entity, rar);
   const typeEl = el.querySelector('.et-type');
   typeEl.textContent = (p.type || p.entity || '').toString().toUpperCase();
   typeEl.style.display = typeEl.textContent ? '' : 'none';
@@ -92,7 +96,7 @@ function showEntityTooltip(anchorEl, p, opts = {}) {
   // definition cards for every mechanic word used
   const defs = keywordsIn(desc);
   el.querySelector('.et-defs').innerHTML = defs.map(d =>
-    `<div class="et-def"><b class="kw ${d.cls}">${d.name}</b><span>${d.def}</span></div>`).join('');
+    `<div class="et-def"><b class="kw ${d.cls}">${_lexP(d.name)}</b><span>${_lexP(d.def)}</span></div>`).join('');
 
   // actions row - present only in interactive mode
   const acts = Array.isArray(opts.actions) ? opts.actions : [];

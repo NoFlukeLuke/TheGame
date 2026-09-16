@@ -70,6 +70,15 @@ const SETTINGS_DEF = [
   { group: 'Display', id: 'highContrast', label: 'High-contrast cards', hint: 'Stronger card borders and darker pips for legibility.',
     type: 'toggle', default: false,
     apply: v => document.body.classList.toggle('high-contrast', !!v) },
+  // Which vocabulary the game speaks (js/labels.js). Entity NAMES never change -
+  // "Cascade" is content, not vocabulary - but every keyword, stat label and
+  // rarity word follows this. Descriptions are stored in the gamer wording and
+  // translated on the way to the screen, so the toggle is live and needs no
+  // second copy of anything.
+  { group: 'Display', id: 'lexicon', label: 'Wording',
+    hint: 'Corporate: work, skill, output, quota, Utilities and Vendors. Gamer: pips, mult, score, goal, Tricks and Sleights.',
+    type: 'select', default: 'corporate', options: [['corporate','Corporate'], ['gamer','Gamer']],
+    apply: v => { if (typeof setLexicon === 'function') setLexicon(v); } },
   // The room the cabinet sits in on the menu (js/camera.js + css/room.css).
   { group: 'Display', id: 'roomStyle', label: 'Office', hint: 'The room around the cabinet on the menu. Grimy is dimmer and dirtier; clean is the lit version.',
     type: 'select', default: 'grimy', options: [['grimy','Grimy'], ['clean','Clean']],

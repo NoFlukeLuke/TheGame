@@ -18,6 +18,7 @@ The game **used to be one giant `index.html`**. It's now split into many small f
 - `css/dance.css` - the score-“dance” / hand-preview animation styles.
 - `css/dev-overlays.css` - dev-panel + event-overlay styling.
 - `js/` - the game code, one file per system (list below).
+- `TERMINOLOGY.md` - **the index of what things are CALLED.** Read it before renaming anything the player sees. The governing rule: code ids are frozen, only display strings change, and every tier/category word is spelled out in `js/labels.js` and nowhere else.
 - `OPEN_DECISIONS.md` - **the balance-audit backlog: measured findings left for the owner to decide on.** Over-tuned rares, under-tuned legendaries, the rare/epic tier inversion, and how to reproduce the measurement. Read it before any balance pass.
 - `js/entity-tile.js` - **`entityTileInner` / `entityTileHTML` (r182): the ONE way an entity is drawn.** See "One entity tile" below - change a Trick's look here and the reward grid, the Mart shelf, the cart, the loadout strip, your tray and the Shift Change event all move together.
 - `js/fit-text.js` - `fitEntityName`. Shrinks an entity name until it fits, **never breaking a word** (r182).
@@ -47,7 +48,7 @@ The game **used to be one giant `index.html`**. It's now split into many small f
 
 **How the split works (important - don't break this):** all `js/*.js` files are plain **classic scripts that share one global scope** - a `const`/`let`/`function` defined in one file is visible to all the others, exactly as if they were still one big `<script>`. **Load order is preserved and matters:** the `<script>` tags in `index.html` are in the same order the code originally ran, because several files run set-up code at load time (event bindings; `LIMITS_DEF.forEach`, `TRICK_CATEGORIES.forEach`, `applyBalDescriptions()`; and `js/bootstrap.js` at the very end, which calls `initMainMenu()`). If you add a new `.js` file, put its `<script>` tag in the right spot (data files load up top with the rest; `bootstrap.js` stays last). If you're not sure which file a function lives in, `grep -rn "functionName" js/`.
 
-Rough guide to `js/` (engine): `menu` `devlog` `grid-metrics` `focus-config` `limits` `combos-aim` (combo families + aim sleights) · `deck-grid` (deck + gridData + curses) · `hand-detect` (findBestHand/detectHand) · `scoring` (calcScore, exalt/corrupt, contributions) · `render` · `focus` (focus meter) · `hud` · `input` (tap/swap/select) · `play-hand` · `score-anims` / `score-dance` (the scoring “dance”) · `discard` · `card-fall` (renderCardAppearance + fall anim) · `round-timers` · `boss` · `reward-grid` · `limit-break` · `sleights-runtime` · `events-core` / `events` · `interlude` / `level-up` / `tricks-ui` · `shop` · `hands-meta` · `stats` · `deck-view` · `records` (the tabbed info hub) · `settings` (player options) · `game-control` (pause/resume/startGame) · `challenge` · `audio` · `dev-panel` · `save` (run save/resume) · `history` (finished-run log) · `portrait-panel` (portrait shared strip) · `pmf-merge` (the PIPS·MULT·FOCUS fuse) · `hand-log` (the SCORE-box hand record) · `boss-approach` (the pre-boss dread + score wipe) · `bootstrap` (runs last).
+Rough guide to `js/` (engine): `labels` (tier + category words - see TERMINOLOGY.md) · `menu` `devlog` `grid-metrics` `focus-config` `limits` `combos-aim` (combo families + aim sleights) · `deck-grid` (deck + gridData + curses) · `hand-detect` (findBestHand/detectHand) · `scoring` (calcScore, exalt/corrupt, contributions) · `render` · `focus` (focus meter) · `hud` · `input` (tap/swap/select) · `play-hand` · `score-anims` / `score-dance` (the scoring “dance”) · `discard` · `card-fall` (renderCardAppearance + fall anim) · `round-timers` · `boss` · `reward-grid` · `limit-break` · `sleights-runtime` · `events-core` / `events` · `interlude` / `level-up` / `tricks-ui` · `shop` · `hands-meta` · `stats` · `deck-view` · `records` (the tabbed info hub) · `settings` (player options) · `game-control` (pause/resume/startGame) · `challenge` · `audio` · `dev-panel` · `save` (run save/resume) · `history` (finished-run log) · `portrait-panel` (portrait shared strip) · `pmf-merge` (the PIPS·MULT·FOCUS fuse) · `hand-log` (the SCORE-box hand record) · `boss-approach` (the pre-boss dread + score wipe) · `bootstrap` (runs last).
 
 ## Workflow
 
@@ -138,10 +139,10 @@ The old table had four inversions, all fixed:
 `lastCalcPips` / `lastCalcMult` (the PIPS and MULT chips, and everything the scoring dance shows) are written at the **end of step 3**. So a step-4 xSCORE changes the final number and **nothing on screen says why**.
 
 - **r190 moved four Tricks out of step 4** for exactly that reason: Perfect Storm and Twenty-One became xPIPS, Last Stand and Extinction became xMULT. The arithmetic is identical - `s = totalPips * mult`, so xK score = xK pips = xK mult - so this was pure legibility, no balance change. Their `BAL` keys renamed `score_mult` -> `pip_mult` / `mult_mult`, and `DESC_TEMPLATES` with them.
-- **What is still xSCORE, deliberately:** Echo and Legacy (Sleights whose identity IS "the hand scores twice"), Low and Behold (a knack that replays the whole hand), the boss Redaction, and the dev-only grid Trick card. **Adding a new xSCORE needs a reason** - the default is xPIPS or xMULT.
+- **THERE IS NO xSCORE STEP ANY MORE (r236).** This line used to list Echo, Legacy, Low and Behold, the boss Redaction and the dev grid Trick card as deliberate survivors. It had drifted even before r236: **Echo** is a per-card retrigger in the card loop, and **Legacy** became a xMULT in r193. r194 took Spot Check, and r236 took the last four - The Redaction, The Grind, Low and Behold and the dev grid Trick card. See "The last four xSCORE effects" below. **Do not add one**: anything that would go there is a xPIPS or a xMULT.
 - **The pools are now 10 and 10.** Grep them, don't count descriptions - `perfect_storm` and `extinction` were miscounted for exactly that reason. `grep "totalPips = Math.round(totalPips \*" js/scoring.js` and the `mult` equivalent are the real inventory.
 - **The r190 additions cover triggers nothing else read**: Rerun / Chorus (replay count, from `_reps` - sum minus card count is the extra iterations), Deep Breath (clock paused), Interest (credits held, capped), Portfolio (buffed cards on the grid, via `permPips`/`permMult` - which are keyed by card IDENTITY, so a buff on Spectrum white counts seven cards), Redline (Focus level).
-- **Compound** (mythic) banks the round score every 45s on the round tick; the next scored hand pays the bank and it re-arms, so it compounds across a round. Its payout is added at **SCORE level, not as pips or mult** - it is a copy of score already earned, and routing it through mult x Focus would multiply it a second time.
+- **Compound** (top tier) banks the round score every 45s on the round tick; the next scored hand pays the bank and it re-arms, so it compounds across a round. (This line used to say its payout lands at SCORE level; it is `mult += bonusMult_compound`, an ordinary additive mult, and has been for some time.)
 
 ### The scoring TIMELINE (r220) - every Trick pays out at its own moment
 
@@ -317,6 +318,85 @@ x MULT joined them, because a multiply has to know what has already landed.
   scored hands**, which is what proves the dance and `calcScore` agree about the
   new order.
 
+### The last four xSCORE effects (r236)
+
+Owner: *"are there any xscore effects left? there shouldn't be i dont think..."* There
+were four, and now there are none.
+
+| what | factor | now |
+|---|---|---|
+| **The Redaction** (boss) | x0.25 on a hand family | x mult |
+| **The Grind** (boss) | x0.85 per repeat | x mult |
+| **Low and Behold** (knack) | x2 | **a per-card replay** (r238, below) |
+| the dev grid Trick card | x2 | x mult |
+
+**`s = totalPips * mult` and Focus is a separate multiplier after it, so a xK on the
+score and a xK on the mult are the same arithmetic** - and one of them is a number
+the player can watch change while the other is the score quietly coming out
+different. Measured with each effect FORCED ON and with all three together:
+**0 of 89 hands moved** in every case.
+
+- **They go at the VERY END of the x mult block, in the order they used to fire**,
+  after Siphon / Legacy / Spot Check. Anywhere earlier and something additive would
+  land after them, which a x score never had in front of it.
+- **They DO NOT ROUND** (`rnd:'none'` on the event). Every other x mult in that block
+  rounds to one decimal, but these were applied to a FINISHED score, so rounding the
+  mult instead would be a real, if tiny, score change. The chip still displays one
+  decimal - `fmtM` formats it - so nothing looks different.
+- **They EMIT but do not write the ledger.** None of the four ever had a contributions
+  row (they fired past every ledger call), and `_cm` is pushed as `source:'trick'`
+  wholesale - so billing `_redaction`, `_grind` or a knack there would print a raw id
+  in the breakdown and change what the tab reports. Same rule the row/col +2 mult
+  follows: the timeline gets it, the ledger does not. It also means no `_proc`, so
+  the Rider penalty is untouched.
+- **The printed descriptions are deliberately unchanged** (owner's call). "Replays the
+  whole hand once" says what Low and Behold DOES; "x2 mult" would be the
+  implementation talking.
+- **Legacy and Spot Check were already x mult but emitted NO timeline event**, so they
+  were invisible in the dance despite being in the right place. Both emit now.
+
+### Low and Behold replays the CARDS (r238)
+
+Owner: *"for the trick that says replace the whole hand once, that shouldn't touch
+any score attributes, it should replay each of the cards once."*
+
+r236 had moved it from a x SCORE to a x mult, which kept it legible but kept it a
+MULTIPLIER - and its printed text has always said something else. It is a **+1
+retrigger on every card in the hand** now (`_labOn`), exactly like **Echo**, which
+had already made this same journey from a SCORE-level double to a per-card replay.
+
+- **The CONDITION is hand-level, the EFFECT is per card.** "The hand contains the
+  grid's lowest rank" is computed ONCE above the card loop and then adds a rep to
+  every card, which is why it is a hoisted `const` rather than a per-card test.
+- **This is a real score change and it goes BOTH WAYS.** A replay re-scores what
+  the CARDS earned; it does not double the hand's base pips or any hand-level
+  bonus. So a card-heavy hand gains and a base-heavy hand loses. Measured over 136
+  hands with the knack forced on: **35 move, min x0.57, median x1.02, mean x1.11,
+  max x2.22** - 18 up, 17 down. Verified live on a controlled board: an unsuited
+  3-4-5 goes 37 pips / 111 to **49 pips / 147**, and back to 111 the moment a 2 is
+  planted elsewhere on the grid.
+- **It needs no timeline event**, because the dance already shows a replay by
+  repeating each card's beat. `low_and_behold` emits nothing now: verified 0
+  events on the timeline.
+- **A suited run ALREADY replays every card** (the flush overlay puts each card in
+  two components), so a test board of three spades shows `reps [2,2,2]` with the
+  knack switched off. That cost a confusing measurement; use an unsuited run and
+  control every cell when testing this.
+
+### Flow State is a per-card payer after all (r238)
+
+The r228 note below says it is deliberately excluded because its payment sat
+**after** the x pips block and so escaped Undertow / Scalper / Knave Power /
+Interest. The owner's rule settles it the other way: **any per-card Trick fires on
+the card**, and a pip in the additive region is a pip that every x pips
+multiplies. It is a `PER_CARD_PAYERS` row now, and its accumulator is added at the
+LAST additive pip site before the x pips block.
+
+**A deliberate buff, and a bounded one.** Measured with Flow State forced on at a
+x1.5+ Focus multiplier over 136 hands: **112 move, every one UP, min x1.02,
+median x1.11, max x1.36.** That is the x pips multipliers reaching it for the
+first time.
+
 ### Per-card payers (r228) - "a rate x a number of cards"
 
 Seventeen Tricks pay a rate times a COUNT OF CARDS - Get Even is +2 mult per even
@@ -331,28 +411,39 @@ Column Rush, Row Power, Heavy Hand, Prime Time, Quake and Shock. Each row is
 `{ id, cond, pays }` - `cond` is evaluated ONCE before the card loop from facts
 already known there (`_pcCtx`), `pays(card, ctx)` returns what THIS card earns.
 
-**Two rules keep the score byte-identical:**
-- **NOT replay-weighted.** These read `cells.length`, not a replay-weighted count,
-  so a card that scores three times still pays them once. The events carry
-  **`once`** and the dance applies those on a card's FIRST beat only - otherwise a
-  replayed card would pay again and the running chip would drift above the real
-  total. (Contrast the r220 per-card MULT accumulators, which DO multiply by
-  `_retrig`, because the `_wc` sweeps they replaced were replay-weighted.)
+**Two rules:**
+- **REPLAY-WEIGHTED (r236).** A card that scores three times pays these three times,
+  exactly as its own pips do. They paid ONCE per card until r236, which the owner
+  caught by playing it: *"when get even is owned and an even card replays, i did not
+  see another mult chip fly to the score area. i saw pips go multiple times, but i
+  only saw the mult animate once."* The animation was honest - the payment really was
+  once - and **the CONDITION is what makes these per-card, not the bonus**, so there
+  was no reason for the bonus to behave unlike every other per-card bonus. `pays`
+  returns a flat per-card amount, so `* _retrig` is the whole edit; the events drop
+  their `once` flag and the dance repeats the beat, which makes the chip fly once per
+  replay with no work at the dance's end.
+  **It is a BUFF, and only hands with a replayed card can move.** Measured against the
+  same build with only this change reverted: at a 10-Trick tray, **15 of 142 hands
+  (11%) move, median x1.25, max x1.69**; at an unreachable 177-Trick tray, median
+  x1.45, max x4.8. Every changed hand is an increase and **0 of them lack a replayed
+  card**, in all three sweeps.
+  **`_cmOnce` is now unfed** and is kept as the seam a future once-per-card bonus
+  drops into - the rep loop is already shaped to interleave one correctly against a
+  card's x mult, and that is the hard part to re-derive. (Contrast the r220 per-card
+  MULT accumulators, which always multiplied by `_retrig`.)
 - **Emitted at the END of the card's block**, after `totalPips += cp`, so a pip
   lands outside that card's own subtotal and is never multiplied by a card-scoped
   x pips (Humble Roots, a card enhancement, the Blight). Each accumulator is still
   ADDED at that Trick's original site further down, so nothing moves in the order
   of operations either.
 
-**FLOW STATE IS DELIBERATELY NOT IN THE TABLE**, and the reference test is what
-caught it. Its payment sits **after** the x pips block (it is grouped with the
-Focus step), so every other pip in the hand has already been multiplied by
-Undertow / Scalper / Knave Power / Interest by the time it lands, and it escapes
-all of them. Paying it inside a card's beat puts it in FRONT of those multiplies -
-measured at **459 pips on a hand worth 430**. Moving its site up into the additive
-region would let those multiply it, which is a balance decision rather than an
-animation one. **Any future row has to sit in the additive region for the same
-reason** - check where the Trick's `totalPips +=` actually is before adding it.
+**FLOW STATE IS IN THE TABLE AS OF r238** - see the section above. It was held out
+because its payment sat **after** the x pips block and so escaped Undertow /
+Scalper / Knave Power / Interest; the owner's call is that a per-card Trick fires
+on the card and takes the multiplies with it. **Any row still has to sit in the
+additive region** - check where the Trick's `totalPips +=` actually is before
+adding one, because a site below the x pips block silently means something
+different from every other row here.
 
 **Get Even and Odd One In lost their 3-card gate** (owner's call): both pay for
 every even / odd card with no minimum. "3+ even cards" meant a hand with one or
@@ -709,6 +800,7 @@ The capture is taken **before** the carry-over knacks bank anything, so the figu
 ### Interact costs (r151) - ONE charge each, from `BAL._resources`
 **Discard 3s per card · Swap 8s flat · Play free.** Until r151 there were **two overlapping cost systems** and both were live: a flat `spendRoundTime(DISCARD_TIME_COST/SWAP_TIME_COST)` *and* the `BAL._resources` figures. A 1-card discard billed 3+3 = **6s**, the 3rd swap of a round billed 4+10 = **14s**, and the Free Discards knack ("costs no time") still charged the flat 3s - all while the ⏱ Time pop-up quoted 3s and 4s. `DISCARD_TIME_COST` / `SWAP_TIME_COST` are now **dead constants**, kept and commented so nothing reintroduces the double charge; `freeSwapsLeft` (the "first 2 swaps free" exemption) is dead for the same reason. Costs come from `BAL._resources` alone, and `updateInteractCosts()` reads the same source so the pop-up can't drift from reality again.
 
+- **Flow was billing its clock the whole time, and `interactTimeCostsOn()` (r234) is the fix.** `spendRoundTime` returns early for Flow and the Time pop-up quoted 0s, but **neither is what charges**: the two real sites (`js/discard.js`, `js/input.js`) write `roundSeconds` directly and neither consulted `flowActive()`. So every swap billed 8s off a session clock whose own comment says interacting must not be able to summon the inspection early. Both sites and the pop-up now read the one predicate, so the quote and the charge cannot drift. `spendRoundTime` has no remaining callers and is kept for the same reason `DISCARD_TIME_COST` is.
 - **Playing a hand costs no time (r50):** the old "−5s per manual play (+ reward-grid penalties)" deduction in `playHand` was removed (owner request). Reward-grid play-cost debuffs (`extraPlayCostPerm` etc.) still parse but are inert.
 - **Suits are NEUTRAL by default** (owner's decision, now shipped). A plain card scores only its pips × mult - no per-suit coin/time/pip/mult bonus. Suit effects come *only* from exalt/corrupt (below) or Tricks (♥/♣ Tricks in `calcScore`; Spade Flood etc.). The old defaults (♣ pips, ♥ mult, ♦ coin, ♠ time) are gone - see the "suits are neutral" comment in `playHand`.
 - `findBestHand(cells)` brute-forces all connected 2–5 card subsets, scores each, returns the best. Handles wild sleights (temp rank/suit) and drops non-wild sleights from detection.
@@ -980,10 +1072,10 @@ and the Trick pays anyway.
   calcScore exactly (r220), so a correction after the write is a drift by
   construction.
 
-Measured over 1,288 forced fires on real boards, with the Trick owned on both
-sides so the ratio is the forced fire alone: **common x1.67 · rare x2 · epic
-x1.68 · legendary x3 · mythic x4.4**, max x8.1 (the cap holding Rogue Wave),
-**0 below x1 and 0 with no effect**. Nine real hands each forcing a different
+Measured on the r240 tree over **1,472 forced fires** on real boards, with the
+Trick owned on both sides so the ratio is the forced fire alone: **common x1.67 ·
+rare x2 · epic x1.68 · legendary x3**, max **x8.1** (the cap holding Rogue Wave),
+**0 below x1 and 0 with no effect**. Seven real hands each forcing a different
 Trick through the full dance in dev mode logged **0 timeline drift**.
 
 ### The Hallmark knack (r234) - `js/hallmark.js`
@@ -1112,6 +1204,167 @@ Three rewards, one of each type, take one, no charge. It is the BASE reward of t
 - **`guidedInStop`, NOT `nodeInAct`, tells a bought grid from the prize grid.** `nodeInAct` is kept in step with the slot count purely for the HUD's pips and the boss sigil, and can legitimately read 5 for either.
 - **A bought event is opened BY NAME** (`guidedOpenNamedEvent`) - the player paid for that specific one off the board. It still feeds `recentEventIds`.
 - **An act opens on a LEVEL**, not on the crossroads: `guidedAfterPrizeGrid` goes straight to `drainLevelUpQueue()`.
+
+#### The routing was documented and never written (r234)
+
+The three functions the section above describes - **`guidedAfterSlot`,
+`guidedAfterPrizeGrid` and `guidedAdvanceCurve`** - were called from four places
+and **defined nowhere**, and `guidedOpenCrossroads` was defined and **never
+called**. So Guided threw on the first crossroads choice, and the screen the
+whole mode is never opened at all. They are written now, to the contract the rest
+of the file already assumed.
+
+- **`guidedAdvanceCurve` is deliberately NOT `triggerLevelUp`.** That function
+  also banks the score, flushes the deck, resets the round resources and deals a
+  board, none of which has happened, because no round was played. Only the two
+  lines that ARE the curve are reproduced: `level++` and the goal recompute, with
+  the Quota Revision penalty applied after it in the same order `level-up.js`
+  uses. A bought slot moves the bar and nothing else. Verified: buying a stop
+  takes level 1 to 2 and the goal 1200 to 1500.
+- **`guidedAfterSlot` is the only thing that opens the crossroads**, which is what
+  makes it the single place that decides "another slot, or the boss". It keeps
+  `nodeInAct` in step with the slot count for the HUD's pips, and arms the boss
+  through **`bossesEnabled()`** rather than unconditionally, so a run with bosses
+  switched off still reaches the end of its act.
+
+
+## Dev picker (r234) - `js/picker-mode.js` + `css/picker.css`
+
+Every other entry in `MODES` is a fixed set of answers to the same few questions.
+Classic answers them one way and Flow another, and the only way to try a
+combination nobody had written down was to add a tenth mode. **Custom** (last card
+in the mode carousel) asks the questions instead and **synthesizes a `MODES` entry
+from the answers**.
+
+That synthesis is the whole design decision. `pickerBuildMode` emits the SAME
+flags the hand-written modes carry, so everything downstream keeps reading what it
+already read and a custom run is not a special case anywhere outside this file.
+
+| question | sets | reaches |
+|---|---|---|
+| Deck | `suitCount`, `numeric` | `ACTIVE_SUITS` / `ACTIVE_RANKS`, `applyModeHandValues`, `applyModeEntityFilter` |
+| Between rounds | `actStructure`, `guided`, `survival` | the three between-round routes in `level-up.js` / `interlude.js` |
+| Round clock | `clock` | `currentRoundDuration`, `roundClockEndsRound` |
+| Interacting | `timeIsCurrency` | `interactTimeCostsOn` |
+| Bosses | `enableBosses` | `bossesEnabled` |
+| Submitting | `autoPlayHands` | `autoSubmitDelay` |
+| Hand values | `scoringModel` | `handBasePips` / `handBaseMult` |
+
+### The rule the file exists to enforce
+
+**An axis is only offered if it is a REAL CHOKEPOINT.** A question the engine
+cannot honour is worse than no question, because the run then quietly plays as
+something other than what was picked. Four of the seven flags above were
+**inert before this** - `enableBosses`, `enableShops`, `enableEvents` and
+`autoPlayHands` were read by nothing outside `menu.js`, and `timeIsCurrency` was
+read by a comment. Each one either got a chokepoint or stayed out of the picker.
+
+**Where two axes are welded together, the picker FORCES the dependent one and
+says so on screen.** `pickerResolve` is the single place that happens, it returns
+a CLEANED COPY so stepping back and changing the cause restores what the player
+had picked, and a forced answer is drawn **amber** rather than as a normal tick,
+so "I chose this" and "this was chosen for me" can never be confused. Today the
+one forced pair is no-clock implying free interacts: with nothing to fail against
+there is no deadline to bill.
+
+### Between rounds is ONE question, on purpose
+
+Reward system and run structure look like two axes and are one. `survivalActive()`
+gates the pick-of-three loop, the endless structure, the score carry-over, the
+2:00 round and the entity bans across **30 call sites**, and `level-up.js` returns
+on it before any act routing runs. Splitting them is real work on the level-up
+spine. So the picker asks the question the engine can actually answer and prints
+the structure in each option's own text rather than offering a second choice it
+would have to override.
+
+### What had to change to make the axes real
+
+- **`survivalActive()` and `flowActive()` are FLAG-BASED, not id lists.** They
+  tested `ACTIVE_MODE.id === 'survival'`, which a synthesized mode can never
+  match. Both shipped modes already carried the flags, so this is behaviour-
+  identical for them and is what lets a custom run opt into the package.
+- **`roundClockEndsRound()` suppresses the END of the round, never the tick.**
+  About fifteen sites measure "how far into the round are we" as
+  `roundStartSeconds - roundSeconds` (The Swift, Sediment, the Cuckoo, the
+  Woodpecker, the clock marks). Freezing the tick, which is what Zen does, kills
+  all of them silently. The clock runs and only `onRoundEnd` is skipped, so a
+  no-limit round still feeds every timing entity a real elapsed figure. **A boss
+  window always ends the round** - that clock is the boss. Verified: the clock
+  reaches 0, the round does not end, the timer stays live and elapsed reads 600.
+- **`interactTimeCostsOn()` is the one answer to "do swaps and discards bill the
+  clock", read by the two sites that charge AND by the Time pop-up that quotes
+  them** - the same discipline r151 imposed after the double-charge bug.
+  **Wiring an inert flag up changes whatever was carrying it wrongly, and this one
+  caught Survival.** Its mode entry said `timeIsCurrency: false` while the charge
+  sites billed its 2:00 clock anyway, so honouring the flag would have made
+  interacting free in a shipped mode as a side effect. The FLAG was corrected to
+  `true` rather than the predicate weakened, because that is what Survival does.
+  Verified: Classic, Guided, Six Suits, Spectrum, Survival and Orientation all
+  still bill 6s for a two-card discard, and only Flow bills 0.
+- **`bossesEnabled()` gates ARMING a boss, never the boss code.** A run that has
+  somehow already started one still finishes it rather than being left with
+  `bossActive` and no way out. With bosses off, node 5 is an ordinary round that
+  closes the quarter, and `startInterlude` asks for the **prize grid** there
+  anyway: beating the quarter should pay out whether or not a boss was standing
+  in front of it.
+- **`autoPlayHands` only sets the auto-submit DELAY** (2000ms, or 350ms). A valid
+  hand has always submitted itself on a timer; a separate auto-play path would be
+  a second way into `playHand` to keep in step with this one.
+- **`modeEntityTags()` gates entities on the DECK, not on the mode's name.**
+  `applyModeEntityFilter` matched `t.modes` against `ACTIVE_MODE.id`, and Monopoly
+  is `modes:['spectrum']` - so a custom run on the colour deck was the one place
+  in the game those Tricks were unobtainable. A numeric deck adds the `spectrum`
+  tag, a six-suit deck adds `sixsuits`. Verified: a custom Spectrum run offers
+  Monopoly (164 Tricks, the 13 suit and court ones filtered out).
+- **`survivalEntityBanned` asks the CLOCK, not the mode.** First Wind and Carry
+  Time assume a round clock that refills, so they are banned wherever there is
+  none. That test could not stay behind the `survivalActive()` early return,
+  because a custom no-clock run played on reward grids is not survivalActive() at
+  all.
+
+### The save has to carry the ANSWERS
+
+A picker-built mode is not in `MODES` when the page next loads, so
+`MODES[save.meta.mode]` would fall back to Classic and the run would resume as a
+different game. `meta.picker` stores the answer set and the restore path rebuilds
+`MODES.custom` from it before the lookup. `pickerBuildMode` is pure, so that
+reproduces the exact mode the run was started with.
+
+### Two notes on the screen itself
+
+- **It lives inside `#cab-screen`, beside the mode carousel**, so it is drawn ON
+  the CRT. That means the camera's wide framing scales it DOWN, the opposite of
+  the `#event-panel` trap: a 760px panel paints at about 535 real px on a 1440px
+  desktop. Three of four options fit without scrolling and the rest scrolls.
+- **Rail, scrolling body, sticky footer**, the same frame `#event-panel` uses and
+  for the same reason: the control that commits must never be something you have
+  to scroll to find. The summary rows are real buttons back to their own question,
+  because the line above them says they are tappable.
+
+## Map mode (r238) - `js/map-mode.js` + `css/map-mode.css`
+
+One act as a MAP drawn on the borrowed grid (the shop's borrow pattern): **4 lanes x 6 sets** of tiles plus a full-width boss column. Landscape reads left to right, portrait top to bottom - the data model is lane/set and only the renderer transposes.
+
+- **Movement is strictly orthogonal and EVERY step activates the tile.** At most 2 visits per set (so a set's two tiles must be vertically adjacent); forward always enters the next set at your lane. Leaving after ONE visit pays `MAP_SKIP_BASE + MAP_SKIP_STEP * n` credits (6, 8, 10...). Set 1 is all levels; sets 2-5 carry >=1 level each; the last set is the FUNNEL - two non-level tiles on non-adjacent lanes, you take exactly one. Two blanks (inert, not passable - a knack may change that later), up to 2 mysteries (real kind hidden until confirmed, still counted in the minimums), and half of maps carry one **2x1 event** spanning two sets (charges one visit, lands you in its second set).
+- **Dead ends are REFUSED, not discovered.** `mapCanFinishFrom(lane,set,visits)` is the DP "can the boss still be reached"; generation requires it from all four starts and `mapLegalMoves` marks doomed moves so the bar can say "that path dead-ends" instead of ever stranding a run. **The 2x1's TAIL is not a steppable tile of its second set** - treating it as one in the DP overpromised and stranded 1.4% of measured walks; both the DP and the legality function refuse it. Verified: 20,000 generated maps, 20,000 random walks, 0 strands, all reach the boss (avg 9.4 tiles, 2.4 skips).
+- **Generation is random-fill + validate-or-retry** (`_mapBuildOnce` / `_mapValidate`, the tutorialQualifyBoard shape): minimums (>=2 shops, >=2 challenges, >=3 events - re-checked in validate because the 2x1 absorb can eat one, which shipped 12% short before that check), no 2x2 of one kind, no level with 3+ level neighbours, full path from every start.
+- **Every tile advances the difficulty curve** - Guided's load-bearing rule: levels via `triggerLevelUp`, everything else via `guidedAdvanceCurve()` at confirm. **The boss quota is FIXED at map build** (`mapBossGoal` = `BASE_GOAL * MAP_BOSS_SCALE^(MAP_BOSS_LEVELS-1)`, 1.40^8 -> 17,500) and `mapApplyPendingGoal()` (hooked in triggerLevelUp after `guidedApplyPendingChallenge`) overrides the curve's figure on the boss round. The boss tile's bar text previews the boss via `peekBossPreset` plus that quota.
+- **Round 1 rides startGame's own deal.** `mapBeginRun()` (end of startGame) stops the timers and puts the map over the already-dealt board; the first level confirm resumes exactly that round (goal flash + 3-2-1 + `startRoundTimer`) - `drainLevelUpQueue` there would bump the curve to 2 before a hand was played. Guarded by `_restoringSave`: a resumed run replays its round first and the map reopens from `mapAfterLevel`'s `!mapPos` fallback.
+- **Routing reuses Guided's seams.** A cleared level: `startInterlude`'s map hook -> pick-of-three (`guidedOpenPickThree`), plus `mapKnackPickTwo` after a hard round, then back to the map. Shop tile: `shopFromNodeFlow` + `nodeFlowAfterShop`. Reward tile: `rewardGridContext='interlude'` -> `finishInterludeRoute`'s map branch (`mapAfterTile`, or `onGameWin` when `mapBossArmed` - one act, no quarter rollover; the node/quarter branch in `finishInterlude` excludes `_map`). Event tile: `guidedOpenNamedEvent`. Limit Break tile: `openLimitBreakEvent`.
+- **Challenge tiles ride `guidedPendingChallenge`** - `guidedApplyPendingChallenge`'s guard accepts map mode too. Tiles store the challenge as DATA (id + display fields, no test fn), rehydrated from `CHALLENGE_DEFS` by id at confirm, which is what keeps `mapTiles` JSON-safe for SAVE_VARS. **The hard-round knack pick draws 2 knacks with `luckModifiers += 20` around the draw** - literally the odds 20 Luck would give, through the shared `pickEntityByRarity`.
+- **CHALLENGE_DEFS grew from 4 to 10** (guided-mode.js): back-to-back 4+ card hands (replacing the trivial-or-impossible single 4-card ask; also fixed - it tested `h.round` but hand-log entries carry `h.level`, so it never fired), a third-of-goal single hand, no discards (`cardsDiscardedRound`), no swaps (**`swapsUsedRound`** - new counter in deck-grid.js, bumped in `doSwap`, reset with the round, in SAVE_VARS), clear with 45s+ left, same type three times, and run+set+flush (gated `avail: selection >= 5`; `rollChallengeLevel` filters on `avail`).
+- The map screen hides `#btn-play`/`#btn-discard`/`#swap-indicator` (`body.map-active`); the bar (`#map-bar`, body-level, raw viewport px) carries SET x/6, visits, skip price, the picked tile's description and CONFIRM. Tile names go through `fitEntityName` - except the boss, whose name is vertical in landscape and the fitter measures horizontally.
+- **The 3-2-1 was rethemed in the same pass** (css/style.css): Orbitron on a scanlined phosphor ring instead of the pre-cabinet gold Cinzel. Same element, same timing, same keyframe name.
+
+### Mini-bosses (r239) - the second challenge kind
+
+Six CHALLENGE_DEFS entries carry `mini: { modifier, params }` instead of a task: the HANDICAP is the challenge - a boss modifier at reduced strength running inside an ordinary round - and clearing the (raised) goal pays the credits (`test: () => true`, because the settle only runs on a cleared round). Stone Lord Jr (half stones, no rubble), The Apprentice (interact x1.5, play +2s), Low Tide (-5 Focus/20s), The Intern (one card held/25s), Sour Sip (ONE suit at x0.6, rotating), Light Fog (ranks hidden for the first 60s only).
+
+- **`bossFxLive()` (js/boss-effects.js) is the whole harness**: `bossActive || miniBossActive`. Five gates read it instead of `bossActive` - the schedule runner, `bossCardPipScale`, `bossFogHides`, `bossSuitTick`, `bossSuitSecondsLeft`. `bossInteractMult` and the card holds were never gated, so they needed nothing. Everything else about a mini is the REAL boss machinery: `applyBossEffectModifier` arms it, `bossSchedule`/`bossStartScheduledEffects` tick it, `clearBossEffects` tears it down - so state can never leak between a mini and a real boss.
+- **`miniBossMaybeStart()` is hooked in `startRoundTimer`** (after the checkpoint, so a save never captures half-armed effects) - which is also what re-arms a resumed mini round. `miniBossClear()` runs in `guidedSettleChallenge`; a failed round's teardown rides the next `startGame`. Never on a real boss round (`bossActive` guard) - triggerLevelUp never arms a challenge there anyway.
+- **`_stones` and `_fog` are harness-local pseudo-modifiers** (a one-shot placement and a timed flag have no schedule to arm); the other four are the shipped modifier ids with softened params.
+- **The live challenge is in `SAVE_VARS` now** (`guidedPendingChallenge`/`guidedActiveChallenge`) and survives as DATA - JSON drops the test function, so `guidedSettleChallenge` re-reads the test from `CHALLENGE_DEFS` by id, never off the object. This also fixed resumed task-challenges silently paying nothing.
+- Verified in a real browser, all six: effect live mid-round (stones on board, x1.5/+2s costs, a held card, ♥ marked, fog painting), goal raised, and every counter back to rest after the settle (toll 1, playCost 0, holds 0, markdown null, fog false).
 
 ### Upgrade events (r194) - improve what you already have
 
@@ -1316,7 +1569,7 @@ Beating a boss opens the **Prize Grid** instead of the ordinary reward grid (it 
 
 - **Two fewer rows and columns, floored at 3x3** (`Math.max(3, limits.grid_rows.current - 2)`). A 5x5 board gives a 3x3 prize; a 6x7 gives 4x5.
 - **Every cell is a reward.** The checkerboard (`(r+c)` even = buff, odd = debuff) is skipped entirely rather than having its debuff half swapped out, and there is no destination tile - a prize grid pays out, it doesn't route you anywhere. `debuffPos` comes out empty so the debuff fill loop simply never runs.
-- **Nothing common.** Common-tier Tricks/Sleights/Knacks are filtered out of their pools (each with a fall-back to the unfiltered list, so an exhausted pool gives a common rather than a blank tile), and `prizeCategories` omits the four common resource tiles (+1 swap, +1 discard, +15s, Windfall) and the Mystery tile - "probably good... probably" is a gamble, and this is a payout. `pickPrizeSleight()` is the shop's rarity table with `common` cut out. Verified over 500 generated grids: 0 common tiles, mix is rare/epic/legendary/mythic only.
+- **Nothing common.** Common-tier Tricks/Sleights/Knacks are filtered out of their pools (each with a fall-back to the unfiltered list, so an exhausted pool gives a common rather than a blank tile), and `prizeCategories` omits the four common resource tiles (+1 swap, +1 discard, +15s, Windfall) and the Mystery tile - "probably good... probably" is a gamble, and this is a payout. `pickPrizeSleight()` is the shop's rarity table with `common` cut out. Verified over 500 generated grids: 0 common tiles, mix is rare/epic/legendary only.
 
 `MIN_TRICK_TILES` drops from 5 to 2 here - a 9-tile grid can't also carry 5 Tricks.
 
@@ -1841,6 +2094,154 @@ A Trick used to look like **three different objects** depending on where you met
 
 **Frames carry size and stacking only.** The neon rarity border, scanlines, glare, knack diamond, sleight tab and name styling all live on `.reward-cell.*` in `css/style.css` - change them once and every surface moves.
 
+### The objects (r228) - a Utility is a FLOPPY DISC, a Vendor is a BUSINESS CARD
+
+Both are drawn in **`css/style.css` on `.reward-cell.entity-trick` /
+`.entity-sleight`**, and nowhere else. That is r182 paying off: seven surfaces
+wrap their own frame around the one class list, so **all seven changed shape
+with no per-surface code** - reward grid, Mart shelf, Mart cart thumbnail, Mart
+loadout strip, Trick tray, Shift Change slots and the trick-lose picker rows.
+(RECORDS Owned held out until r239, when its rows gained the shared tile too -
+see "Every listing shows the object" below.)
+
+**Ported from `art-preview.html` as CSS, not as its SVG.** The preview draws at
+one size on a blank page; the game draws this tile from a 32px cart thumbnail to
+a 118px card, and CSS scales for free while leaving `fitEntityName`, the
+improvement badge, the cooldown ring, the boss grey-out and the selection glow
+working untouched. Injecting an `<svg>` per tile would have meant sizing it at
+six call sites.
+
+- **`--body` is the material**: the rarity hue mixed 72% toward the object's own
+  plastic - `color-mix(in srgb, var(--rc) 72%, #1b1813)`, which is art-preview's
+  `bodyFor()`. Its `inkOn()` is **not** needed: at that tint against a near-black
+  plastic all four tiers land at luminance **0.14-0.27**, well under the 0.42
+  where ink would have to flip, so ink is cream on both materials at every tier
+  (measured, all eight combinations).
+- **Both drop the scanlines and the glare.** Those are the CRT-screen treatment,
+  and a disc and a card are physical objects in front of the screen rather than
+  pictures on it. That is also what frees `::before` and `::after` to be the
+  object's own parts, which is what keeps this CSS instead of markup.
+- **The floppy**: chamfered shell, a metal shutter whose window is punched by a
+  hard-stop gradient layer, and a cream label plate. (r228 clipped the chamfer on
+  the ELEMENT; since r239 the whole disc is one letterboxed band and the clip
+  moved onto it - see below.) **The emoji and the name both sit ON
+  THE LABEL** - which is what a floppy label is for - in dark ink. It is the one
+  place in the tile system where a name is not light-on-dark.
+- **The business card is LETTERBOXED** (owner's call), not stretched. It is
+  landscape (1.37) and every frame it lands in is portrait, so the element goes
+  transparent and the card is painted by `::before` at its real proportions,
+  centred: about **55% of the frame's height** at every size. Stretching it to
+  the frame was the alternative and it stops being a business card.
+
+**THE BLOCK MUST STAY BELOW THE BASE TILE RULES.** `.rwd-glyph` and `.rwd-tab`
+are already selected at `.reward-cell.entity-trick .rwd-glyph` - the SAME
+specificity as the overrides - so order is the only thing that decides them.
+Written above those rules, the floppy kept the old Trick star and the business
+card kept its neon tab, and both were visible in a screenshot while a syntax
+check passed.
+
+**Three more pre-r228 leftovers sat in `css/mart.css`'s `max-width: 820px`
+block** and only surfaced on a small screen, which is why the first pass missed
+them: a `top:auto; bottom:0` on the loadout mini's art, and the sleight notch
+plus the `.rwd-tab` sizing on `.mini-sleight`. All three carry `#mart-overlay`
+in the selector, so they outrank the object rule on the ID and would have put
+the old tile back at that width.
+
+**`top` on `.rwd-art` was removed from five per-surface rules** (two tray, three
+Mart). Each was a copy of one assumption about the pre-r228 tile, and each
+outranked the object rule because they are written with `#stage` / `#mart-overlay`
+in the selector. Position belongs to the object now; the surfaces keep only their
+font size. `.rwd-art` is emitted for tricks and sleights and nothing else, so
+there is no third consumer still wanting the old value.
+
+#### The grid Sleight is the same card (r228)
+
+A Sleight on the PLAY GRID is `.trick-card.sleight-card` at the full card cell,
+**not** a `.reward-cell` - it is a real deck card that falls, swaps and is played
+in hands - so it is styled separately and letterboxed the same way. The board
+loses nothing: a Sleight already looked unlike a playing card on purpose, which
+is how you pick one out of a boardful, so the silhouette gives a difference that
+was already there a meaning.
+
+It keeps its **corner index**, and that is not decoration: a grid Sleight is
+played inside a poker hand, so its cosmetic rank and suit have to stay readable
+(`sleightFace()`, js/sleights-runtime.js). On the card it reads as the small mark
+a real card carries beside the logo.
+
+- **ONE CONSTRUCTION PLACES EVERY CHILD, on both cards.** Each child is stretched
+  to the card's own band with `aspect-ratio: 1.37` and then PADDED into its
+  region, with `border-box` doing the arithmetic. CSS cannot be told the card's
+  height from the frame's two dimensions, and this is what avoids a per-child
+  magic offset that would drift on every surface and every `--card-h`.
+- **The name is NOT beside the logo, and that was measured.** The longest Vendor
+  name is one unbroken 11-letter word (Syncopation, and four more at 9-10), and a
+  frame is only 57px wide on both the reward grid and the board, so a half-width
+  column leaves about 25px. Words are atomic here (r182), so it simply truncated
+  every long name to an ellipsis - "Warehouse" came out **"WAREH / OUSE"** before
+  `.sleight-card-name` was given the same `word-break: keep-all` the tile has.
+  Logo upper-left with the name full width underneath is the layout that fits the
+  roster the game actually has.
+- **The resting rarity edge moved onto the CARD.** Left on the cell it outlined
+  the empty slot the card is centred in, which is the one thing the letterbox
+  exists to leave alone.
+
+### The objects keep their RATIO everywhere, and every listing shows them (r239)
+
+Owner spec, two halves.
+
+**1. A floppy is 3.5 inches wherever it appears.** Both objects letterbox against
+BOTH axes now: the frame is a `container-type: size` CONTAINER and the band is
+`width: min(100cqw, calc(100cqh * R))` + `aspect-ratio`, centred with a
+translate. Insets alone can only letterbox the axis they span - a frame WIDER
+than the object (the shop's 2-cell tiles) stretched and clipped the disc, which
+a syntax check cannot see and a screenshot can. The disc's ratio is the real
+3.5" disc's (`aspect-ratio: 20 / 19`, art-preview's `flopAspect` 0.95 h/w); the
+chamfer clip-path moved from the element onto the band, so the rarity edge is an
+INSET box-shadow (an outer one would be clipped away). Shell, shutter and label
+are LAYERED BACKGROUNDS on the one `::before`, because a second pseudo could not
+share the clip; a layer at left L% width W% sits at `background-position-x`
+L/(100-W)*100%.
+
+- **The object's TYPE scales with the object** (`33.5cqw` art / `17.5cqw` name
+  on the disc, `37cqw` / `17.5cqw` on the card - each the old px value at the
+  57px frame). Fixed px meant a 34px Records tile drowned under a 19px emoji
+  and a 119px shop tile rattled around one. `fitEntityName` still shrinks a long
+  word from wherever the cqw lands it.
+- **A frame that pins the tile must be `position: relative`, never static** -
+  the band is an abspos pseudo and anchors to the nearest positioned ancestor,
+  so a static frame paints the object across whatever contains it.
+- **Fit labels AFTER the panel shows.** A hidden element measures a zero rect
+  and the fitter leaves a long name to clip ("CAPACITOR" painted "APACITOR",
+  centred overflow eating both ends). The survival pick and the guided pick both
+  refit in a rAF after their panel is visible.
+
+**2. Anywhere an entity is LISTED, the listing leads with the OBJECT - the same
+tile the tray draws - and the words sit BENEATH it.** Wired: the Survival/Flow
+pick-of-three (`sv-pick-tile`; limits keep the bare icon - no object to show),
+the guided pick-of-three (which also finally passes its RARITY -
+`entityTileHTML(p)` with no second argument had drawn every offer common), the
+events (a `tile:` payload adds `has-tile`, flipping `.ec-top` to a column;
+Rehearsal, Workshop, Trade a Trick and the improve draws gained the payloads
+they lacked), and RECORDS Owned (`rec-ent-tilebox`, name hidden at 34px - the
+row states it; note the hide needs THREE classes, the object rule sets
+`display:flex` at the same depth).
+
+- **Tiled event choices wrap TWO ACROSS** via
+  `#event-panel div:has(> .event-choice.has-tile)` - the container is found by
+  `:has()` because event bodies wrap choices in ad-hoc divs. **`flex-direction:
+  row` must be restated**: `#event-body` is a flex COLUMN, and a column with
+  wrap at auto height never wraps - it just stayed one per line, centred, which
+  looked exactly like `:has()` failing.
+- The event tile keeps its own label now (`.ec-tile .rwd-name { display:none }`
+  is gone): the tile is a picture of the thing you will own, name included.
+
+**What is NOT done yet:** the playing card itself. `art-preview.html` also draws
+the card as a **document with a folded corner** (`docSVG`), and that is the piece
+that would make the board one system rather than business cards among cream
+playing cards. It is also the expensive one - it touches every card on the board -
+and the owner's tuned `cellAspect` of 1.12 in that file is a squarer grid cell,
+which `CARD_MIN_H` (53) silently overrides at 5x5. Treat it as its own pass.
+
 ### Names never break mid-word (r182) - `js/fit-text.js`
 Owner's report: "The Heron" rendered as `the / hero / n`. Two causes, both fixed:
 1. the tile allowed `overflow-wrap: break-word`, and
@@ -1927,6 +2328,35 @@ In every one of those the `min` **cut the clock down to 180 and then returned 0*
 ## No text selection (r182)
 `html, body` carry `user-select:none` + `-webkit-touch-callout:none` + `-webkit-tap-highlight-color:transparent`, re-enabled for `input, textarea, [contenteditable], .selectable-text`. A click-drag across the board, or the press-and-hold that opens a tooltip, used to blue-highlight whatever label the finger landed on and pop iOS's copy/define callout over the card you were trying to read.
 
+## The COMPANY STORE (r237) - the shop board rebuilt
+
+The shop is the PLAYER'S BOARD now: same rows and columns as `limits.grid_rows/cols` (never the live globals - a boss can have shrunk those), so raising the board raises the shop. Row 0 is a full-width **COMPANY STORE** title tile that survives every reroll; every row below is a CATEGORY: one 1-cell label plate (bright, never greyed) + cols-1 items.
+
+- **Categories are drawn per board** from `SHOP_CATS` (tricks / sleights / knacks / **cards** / **improve** / limits), no repeats, `shopgCatViable` keeping empty sellers off. **Limits is guaranteed on the FIRST board of a visit** (bottom row); reroll it away unbought and it can leave.
+- **Buying from a row PINS its category** (`shopGridRowMeta[r].pinned`, a 📌 on the label): a reroll keeps that row's category but still REFILLS its stock - a bought slot comes back as fresh goods, not a ✓. Unpinned rows reroll their category too.
+- **Rerolls cost 10 + 5 each and are CAPPED BY THE SWAPS you were holding when the shop opened** (`shopRerollCap`, captured in openShopGrid - in the node flow that is what the finished round left, since the reset runs later in triggerLevelUp). The old `reroll` LIMIT is therefore dead stock and is filtered out of the shop's own Upgrades row - it still exists everywhere else (reward grid, Limit Break, Records), which wants an owner decision.
+- **A tile can be WIDER than one cell: the SAME payload object sits in every cell it covers.** The renderer draws the leftmost and skips the rest; `shopgLeadKey`/`shopgCellsOf`/`shopGroupConnected` expand a key to its cells so adjacency and the connected-buy discount see the whole footprint. Today only Improve uses it: a 2-wide SPECIFIC improvement (target picked at build, before/after from `improvePreview`) beside 1-wide "Random {type}" tiles - all riding `js/improve.js` (r206).
+- **Cards row** offers buffs on NAMED cards from the live deck (60% +12 pips / 25% +5 mult / 15% scaling +1 mult per play), re-resolved at apply with `resolveDeckCard` + `enhanceCardKey(cardId(t))`.
+- **Sell → Back is NOT a free reroll**: the buy board is cached (`_shopBuyCache`) and restored.
+- **The shop no longer squishes the left column** - the title row made the board one row shorter instead. The squish machinery (`shopSquishSet`, the arrow tab, the r230 CSS) stays DORMANT for a future grid screen; the tab now sits just RIGHT of the column edge and only shows once a caller creates it (`ensureShopSquishTab`).
+
+### Grid-takeover chrome (r237) - what every board screen swaps out
+
+On `body.grid-screen` (reward grid, shop, crossroads), landscape:
+- The **focus bar fades out** (opacity !important - its own .dim/.lit states also set opacity) leaving a `MAX: n` note at its foot; the **clock bar shrinks away** and **`#grid-topline`** fades in over the grid: `ROUND TIME m:ss` left, credits right (`updateGridTopline`, kept live by `updateCoinsUI`).
+- The **grid slides left** (`#grid-slot` 45%→41%, w 49%) into the freed room, which widens the slot gutters - where `#sel-count` lives, so the x/y readout stops crowding the board. Safe to toggle mid-screen because the board is HEIGHT-bound: the slot's height never changes, so card metrics are identical and only the centring glides.
+- **`updateSelectionUI` counts the SHOP's connected selection** (`shopGridSel.size` / Selection Size). Portrait shows credits beside the x/y (`#sel-count-coins`, shop only); portrait also flips the shared strip to the hand-preview half on shop open (`setPortraitPanelView('preview', {auto:true})`, restored on close) so the cost readout is on screen.
+- **Shop tooltips were BROKEN since r229 and are fixed**: `showRewardTooltipFor` read `rewardCells` - the REWARD grid's array - which is stale during the shop, so it showed the previous grid's tile or nothing. It now reads `shopGridItems` when `shopGridActive`. Selecting a tile pins its tooltip (newest pick explained, r182's rule, order in `shopSelOrder`); touch long-press (430ms in `attachRewardTooltip`) pins without selecting (the following click is swallowed via `el._lpJustFired`); every bubble (reward / knack / trick) carries a ✕ that also UNPINS, so an X'd tooltip stays closed.
+
+### The trays (r237) - fan first, scroll only past half
+
+- **Landscape Trick tray FANS instead of marqueeing**: tiles overlap just enough to fit, later tiles on top, and the tuck is floored at **50% of a tile visible**. Past the floor the row keeps the 50% step and SCROLLS sideways - scrollbar hidden, never vertically - scrolled to the end so the newest Trick starts in view. All in `fanTrickTray`'s landscape branch; portrait keeps its own r160 fan.
+- **Landscape Knacks drop the marquee for a manual no-scrollbar scroll** (the marquee's duplicated chips would read as owning everything twice under manual scrolling). Portrait keeps the marquee.
+
+### A boss win plays the finale now (r237)
+
+`checkBossObjective` used to call `endBoss(true)` synchronously inside playHand - before the dance drew a frame - so the boss-winning hand never got the goal finale and the screen jumped straight at the prize grid. Now the win only goes **PENDING** (`bossWinPending`); playHand routes the hand through the ordinary goal-dance exit, and the dance calls **`bossSettleWin()`** exactly where it would call `startInterlude` (normal completion, the abort path, and the legacy dance). `endBoss(true, { presented: true })` then skips its own `render()` (the finale already cleared the board - a render would pop every card back for a frame) and its own banner (`flashRoundEnd`'s `goalClearPresent` already carried the boss's name as kicker). Survival's mid-dance pick is suppressed while a boss win is pending - that hand ends in the prize grid.
+
 ## The live shop is the ON-GRID shop (r232) - `js/shop-grid-preview.js`
 
 `USE_MART_SHOP` is **false**: `triggerShop()` now opens `openShopGrid()` - the 4x5 board shop with row plates, the r230 left-column squish and the fall-in deal. Every route the Mart served lands there:
@@ -1983,6 +2413,86 @@ Two traps this encodes:
 Anything not wrapped still falls through to the shared global stream, so nothing regressed and unseeded play is untouched.
 
 - **It is still a seed, not a replay.** The pinned domains hold regardless of play, but anything downstream of a player *decision* (which Trick you took, so which Tricks remain in the pool) naturally differs. Enough for sharing a run, reproducing a bug, and pinning a tutorial's opening deal.
+
+## Limits: the printed number IS the effect (r227)
+
+A limit moves by its `step` and then **clamps**, so the step is not the same
+thing as the gain. Starting Time steps by 15, and at 295/300 raising it gives 5.
+Every screen that moved a limit printed the step and let the clamp quietly take
+the difference.
+
+**`js/limits.js` is the one place the printed number is worked out**, and every
+screen reads it:
+
+| helper | answers |
+|---|---|
+| `limitGain(id)` / `limitLoss(id)` | what raising / lowering is REALLY worth right now, 0 at the rail |
+| `limitDeltaText(id, dir)` | `+15s` / `-3` |
+| `limitChangeText(id, dir)` | `Starting Time: 285s -> 300s` |
+| `limitCanIncrement` / `limitCanDecrement` | is there any room left |
+
+**Call `limitGain` / `limitLoss` BEFORE the change** - they read the live
+`current`, so a toast built after `incrementLimit` quotes the NEXT upgrade.
+Wired: the reward grid's limit tile and its drain debuff, the Limit Break's
+offers, its sacrifice list and both of its toasts, all three shop surfaces, the
+Survival pick-of-three, and the dev panel.
+
+Two things this pass also fixed:
+
+- **Limits have a FLOOR now** - `min` on `LIMITS_DEF`, honoured by
+  `decrementLimit`, which floored at **0** and nothing else. A run could be
+  drained to 0 rows, 0 columns and a Selection Size of 0, which is not hard, it
+  is broken. Selection 3 · rows/cols 3 · Starting Time 60s · Trick Slots 1 ·
+  Focus Cap 10 (one `FOCUS_THRESHOLD`, matching Growth Spurt's floor). Swaps,
+  discards and rerolls really can go to nothing and have no `min`. This matters
+  much more since the Limit Break's sacrifice became a rolled table that can put
+  the same limit in front of you repeatedly.
+- **`makeLimitRow(def)` is the ONE builder for a limit's row**, because there are
+  TWO places that build it - `js/limits.js` and the reset in `startGame` - and
+  they had already drifted once: r211 found that the `startGame` copy never
+  carried `step`, so from the first frame of every run a Round Time upgrade
+  granted 1 second instead of 15 and nothing read `LIMITS_DEF` again to notice.
+  `min` would have gone the same way. **Add a field in `makeLimitRow` and both
+  sites get it.**
+
+## Limit Break is two stages (r227) - `js/limit-break.js`
+
+It used to show three offers, a free pick, an optional second pick, and a
+sacrifice list of **every** limit, Trick and Knack you owned, all at once and all
+undoable until Confirm. Three things were wrong with that:
+
+1. **The mystery was free to read.** Tapping the blind offer revealed it and
+   tapping it again put it back, so it was never a gamble - you opened it,
+   looked, and picked something else if you did not like it.
+2. **The sacrifice was a shopping list.** Everything eligible was on screen, so
+   "give something up" meant "find your least useful limit", which on most
+   boards costs nothing you care about.
+3. **Nothing said the second pick had a price** until you had already taken it.
+
+- **Stage 1 is the free pick and nothing else**, and the button says
+  **LOCK IN <name>**. Locking in APPLIES it, and that is where a blind offer
+  reveals - once it is too late to change your mind.
+- **Stage 2** puts the locked-in pick at the top as a one-line **receipt**, then
+  the two you did not take under the heading TAKE ANOTHER AND GIVE SOMETHING UP,
+  with three sacrifices beside them. **JUST THE ONE** always walks away.
+- **The receipt is a line, not a tile.** Drawn as a full `.lb-offer` it was 150px
+  of the panel spent on the one thing already decided, and it pushed both real
+  choices and the whole sacrifice row under the sticky footer.
+- **Stage 2 lays the offers and the sacrifices SIDE BY SIDE** (`#lb-second-row`),
+  because the panel has width to spare and no height to spare. Stacking them is
+  what put the third sacrifice off-screen. `#lb-panel.stage2` also drops the
+  `RAISE A LIMIT` heading - the marquee bar already says LIMIT BREAK and the
+  receipt has just confirmed what was raised.
+- **`rollLbSacrifices()` draws THREE, flat.** Flat is the point: a weighted table
+  would make the cheap option the likely one. **All three offers are excluded**,
+  not just the one taken - the table has to stay fixed while the player chooses
+  their second limit, so it must not be able to name something they are about to
+  be given. It is rolled ONCE at lock-in and kept; re-rolling it on each change
+  of second pick would let the player shop for a cheap price.
+- **A blind SECOND pick gets a reveal beat** - the screen strips back to that one
+  tile for 1.2s before closing, or the gamble would only ever be named by a toast.
+- `lbStage` / `lbSacPool` / `lbRevealing` are declared in `js/reward-grid.js`
+  beside the other `lb*` globals and cleared in `closeLimitBreak`.
 
 ## Limits tile (▲ Limits, r145)
 
@@ -2315,6 +2825,199 @@ into the coin - the detent and the digit of a counter wheel.
 Boss and Event buttons are **generated** from `BOSS_PRESETS` / `EVENT_META` (`devRenderBosses` / `devRenderEvents`) rather than hand-written, so new content can't go missing - this is how `the_hollow` was found to have been absent.
 
 🛠 button (bottom-right). Add Tricks / knacks / sleights by name, trigger any event/boss, adjust time/coins/score/limits, open reward grid. HUD section also has scoring-dance toggles (new dance on/off, interrupt mode). **Animation** group has the item-float, heartbeat and channel-change tuners. Invaluable for testing.
+
+## Rarity: four tiers, three ladders (r197)
+
+Tier ids are `common` `rare` `epic` `legendary` and are **frozen** - saves, CSS
+classes (`rar-epic`, `sl-rar-epic`, `trick-tier-epic`) and all three data pools
+key off them. What the player reads is a lookup in **`js/labels.js`**, which is
+the only file that spells a tier word out.
+
+| id | colour | Utility (trick) | Vendor (sleight) | Cert (knack) |
+|---|---|---|---|---|
+| `common` | mint | Lite | Trial | Common |
+| `rare` | cyan | Standard | Contract | Rare |
+| `epic` | purple | Plus | Retainer | *unused* |
+| `legendary` | magenta | Deluxe | Partner | *unused* |
+
+- **`mythic` was merged into `legendary`.** Five tiers meant the top two were one
+  tier wearing two hats: 12 of 177 Tricks and 4 of 40 Sleights across both, at 2%
+  and 1% drop weights, so a Classic run's ~18 Sleight offers expected 0.36
+  Legendaries and 0.18 Mythics and most runs met neither. **`mythic` is not a
+  valid id.** `TIER_ALIASES` in labels.js maps it onto `legendary` so an old save
+  or a stale data entry resolves instead of blanking a tile.
+- **The top tier took magenta, not yellow**, and inherited the old mythic pulse -
+  it is the loudest tier now, and there is no fifth colour to spend.
+- **Knacks use two tiers deliberately** (the pool is 24 common / 24 rare). The
+  labels table maps `epic`/`legendary` onto Rare so a stray entry still renders.
+- **Never print a tier id.** `tier.toUpperCase()` is how the vocabulary got
+  hard-coded into eight screens; all of them now call `tierLabel(type, id)` /
+  `tierInitial(type, id)`. A new site that upper-cases an id silently opts out of
+  every future rename.
+- **Sleights are VENDORS, not Hires (r200).** Not one of the 43 Sleight names is
+  a person's - Warehouse, Lighthouse, Whetstone, Flywheel, Piggy Bank, Petty
+  Cash - and every one reads as a small company. The object is a business card
+  from your rolodex, never an ID badge with a face.
+- **The Vendor ladder is a DURATION ladder, not a power ladder** - Trial expires,
+  Contract has N jobs (this is the existing `durability` / `_usesLeft`), Retainer
+  is permanent, Partner is permanent and scales. Do not drop the Contract rung;
+  it is the one the charge system was already built for.
+- **A tier array and its weight array must move together.** `martRollTier()`
+  walks `MART_TIERS` by index; leaving its weights one entry longer made it
+  return `MART_TIERS[4]` (`undefined`) on ~1% of rolls, which fell through to an
+  untiered random pick. If you change the tier count, grep for every weight
+  array, not just the tier arrays.
+
+## Rarity rolls and LUCK (r203, four tiers r226) - `js/luck.js`
+
+**Every offer's tier is decided in one place.** Before the shared draw there were
+three live distributions and most of the game used none of them:
+
+| path | common | rare | epic | legendary |
+|---|---|---|---|---|
+| weight table - Mart, shop Sleights | 59% | 28% | 10% | 3% |
+| **UNIFORM** - reward-grid Tricks, shop Tricks, the pick-of-three | 28% | 38% | 28% | 7% |
+| a stale 3-tier bag - `pickTrickOptions` | 63% | 28% | 7% | 2% |
+| **UNIFORM** - the legacy shop's Tricks and Knacks (found r227) | 28% | 38% | 28% | 7% |
+
+The uniform paths had **no weighting at all** (`pool[random * pool.length]`), so
+the **pool composition was the drop rate**. The Trick pool is 49/66/50/12, which
+is why "common" was rarer than "rare", epic was as likely as common, and a run
+saw **~2.0 Deluxe Utilities against 0.54 Partner Vendors** for the same tier.
+
+- **`pickEntityByRarity(pool, tierOf, weights, tiers)` in `js/luck.js` is the
+  chokepoint.** It rolls a tier, then picks uniformly inside it. `tierOf` is
+  passed in rather than guessed at, because the pools disagree and always have:
+  Tricks carry `tier`, Sleights and Knacks carry `rarity`. `pickTrickByRarity` /
+  `pickKnackByRarity` are the two shapes, so call sites do not repeat the
+  accessor.
+- **The cascade steps DOWN, never up.** A filtered pool (owned Tricks gone, a
+  mode ban, a small top tier) often has nothing at the rolled tier. Stepping up
+  would hand out something rarer than the roll said.
+- **One table: `ENTITY_TIERS` / `ENTITY_TIER_W` in `js/data/balance.js`**, at
+  **71/22/5.5/1.5** (owner's numbers, r227). The shop, the Mart, the wheel and
+  both reward-grid draws all read it, so tuning the game's generosity is editing
+  one line.
+- **The PRIZE (boss) grid has its OWN table**, `PRIZE_TIER_W` = **30/55/12/3**.
+  It used to cut commons out of each pool and draw the remaining three tiers,
+  which is a different thing from a table: the FILTER decided the floor and the
+  weights only shared out what survived, so the printed spread and the real one
+  could never agree. It is a real four-tier table now - a common is about a third
+  of the tiles and RARE is more than half, which is where a prize grid pays.
+  `prizeCategories` still omits the common RESOURCE tiles and Mystery; that is
+  about tile TYPE, not rarity.
+- **Measured end to end** over real generated screens, at Luck 0: reward grid
+  73.5/20.0/5.2/1.3, prize grid 30.3/53.6/13.0/3.1, Mart 71.5/21.6/6.1/0.9,
+  Survival pick 70.6/22.2/5.8/1.3, legacy shop 70.3/21.9/6.3/1.4. The top tier
+  runs a little light everywhere because only 12 Tricks and 4 Sleights exist
+  there, so a second draw on one screen cascades down. That is the cascade
+  working; the fix is more top-tier content, not a different table.
+- **A new offer path must call `pickEntityByRarity`.** A flat `pool[random]`
+  silently opts out of both the spread and Luck, which is exactly how the three
+  distributions above happened. Two paths were still missing it at r203 (the
+  Twin Path event and `applyRewardRandomTrick`, both drawing flat at 31%
+  epic-or-better beside a reward grid running 13%), three more at r226 (the
+  Survival/Flow pick-of-three, `pickTrickOptions`, and one mixed pool in
+  `js/events.js`), and two more at r227 - **the legacy shop's Tricks and Knacks
+  were still `shuffle(pool).slice(0, n)`**, the last survivors of the flat draw,
+  missed by the r195 sweep because the Mart had already replaced that screen.
+- **`pickSleightByRarity` kept its own copy of the roll loop, and the copy was
+  wrong once Luck was on.** It rolled `Math.random() * 100` against a running sum
+  of the weights, which is only the same thing while they add up to 100 -
+  `luckTierWeights` makes them sum ABOVE 100, so any roll past the total fell
+  through to tier 0 and handed back a common. **A lucky player was being given
+  MORE commons.** It goes through `pickEntityByRarity` now, which normalises by
+  the real total. If you write a weighted roll, divide by the total; never assume
+  the table sums to 100.
+
+### Four tiers, not five (r226)
+
+`ENTITY_TIERS` carried a fifth `mythic` slot at weight 1 that **matched
+nothing**: the data pools were re-tiered onto four when `mythic` was merged into
+`legendary`, so every mythic roll cascaded straight down into legendary anyway.
+Two things fell out of that dead slot:
+
+- The **Limit Break** tile hard-coded `tier:'mythic'`, so the one guaranteed tile
+  on every reward grid asked for a `rar-mythic` colour **no stylesheet defines**.
+- `LUCK_TIER_STEP` had a fifth entry that only ever scaled a tier with no
+  members, so the top of the Luck ladder was doing nothing.
+
+The mythic weight is folded into legendary (`[59, 28, 10, 2, 1]` ->
+`[59, 28, 10, 3]`, prize Sleights `[58, 28, 9, 5]` -> `[58, 28, 14]`), so the
+effective spread is **unchanged**: measured over 300k draws, 58.8/28.1/10.0/3.1
+against the old table's 59.0/27.9/10.0/3.0.
+
+### LUCK
+
+The `luck` limit tilts **every** roll, which is the real reason the chokepoint
+exists: Luck reaches a new offer path by construction instead of by remembering
+to add it in N places.
+
+`luckTierWeights()` scales each tier above common by `1 + (luck/100) * step`,
+with `LUCK_TIER_STEP = [0, 0.5, 1, 1.5]`, then lets the existing weighted pick
+renormalise. **Common is deliberately left at 1.0** - it is what everything falls
+back to, and scaling it too would partly cancel the tilt out.
+
+| luck | common | rare | epic | legendary |
+|---|---|---|---|---|
+| 0 | 59% | 28% | 10% | 3% |
+| 20 | 55.8% | 29.1% | 11.4% | 3.7% |
+| 50 | 51.6% | 30.6% | 13.1% | 4.6% |
+| 100 | 45.9% | 32.7% | 15.6% | 5.8% |
+
+That is **gentle on purpose**, and it is the second shape this has had. The first
+was geometric - each tier multiplied by `(1 + k*luck)` once more than the one
+below - which put legendary at 25% by luck 8 because the exponent is the tier
+index. The Luck limit runs 0-100 in steps of 5, so a curve that steep made a
+single upgrade swing the whole table.
+
+**`luckTierPercents()` prints the live table** on the RECORDS Limits tab, through
+`tierLabel('_generic', id)` - Luck is the one limit whose number means nothing on
+its own, so its row shows the consequence rather than asking for faith.
+
+## Two vocabularies (r198) - `js/labels.js`
+
+The game speaks either **corporate** (WORK / SKILL / OUTPUT / QUOTA, Utilities /
+Vendors / Certs, Lite / Standard / Plus / Deluxe) or **gamer** (PIPS / MULT /
+SCORE / GOAL, Tricks / Sleights / Knacks, Common / Rare / Epic / Legendary).
+Settings -> Display -> Wording. Full table in **TERMINOLOGY.md**.
+
+- **Entity NAMES are not in the lexicon.** "Cascade" is content, not vocabulary.
+- **Descriptions are stored in the GAMER wording and translated on the way to the
+  screen.** `lexProse()` runs inside `highlightKeywords()`, the chokepoint every
+  description already passes through, so 300-odd mentions of "pips" and "mult"
+  follow the toggle with no data edits and no second copy to keep in sync. Gamer
+  mode is the identity transform.
+- **Only unambiguous nouns are swapped.** `score` is deliberately absent from the
+  prose table - it is a VERB throughout the descriptions ("Runs score +10 pips
+  per card") and swapping it gives "Runs output +10 work per card". It changes as
+  a HUD label only.
+- **The keyword table carries both vocabularies' terms** so highlighting survives
+  the swap in either direction.
+- **`data-lex` on a static label in `index.html`** is rewritten by
+  `applyLexiconToDOM()` at bootstrap and on every toggle. Adding a HUD label
+  means adding the attribute, not a new update path.
+- **`resolveLabel(v)`** exists because section/tab tables hold a MIX - 'EVENTS'
+  is a fixed string, TRICKS is a function of the live vocabulary. Consumers
+  resolve through it rather than testing the type inline.
+
+### Colour means RARITY, shape means TYPE (r198)
+
+Three screens coloured entities by their TYPE, so every Trick you owned looked
+identical whatever its tier, and the tier pill printed on that flat colour:
+
+- `css/records.css` - the Owned panel's `--e-accent` (yellow tricks, purple
+  sleights, cyan knacks). Now four `rar-*` rules; `recordsEntityCard` takes the
+  tier as its last argument.
+- `css/survival.css` - the pick-of-three's `--sv-accent`, same three colours.
+  `survivalMakeOption` now carries `rar` and the card gets a `rar-*` class.
+- `js/mart-shop.js` - `MART_SEC_META` gave each shelf its own colour, and cyan
+  SLEIGHTS sat directly above cyan Standard-tier tiles, so the palette said two
+  things at once. All four shelves share `MART_SEC_CHROME` now; a section is told
+  apart by its glyph and heading.
+
+**A new surface must not colour by entity type.** The four rarity colours
+(mint / cyan / purple / magenta) are the only meaning colour carries.
 
 ## Conventions
 - Match surrounding code style (terse, inline, lots of single-line helpers).

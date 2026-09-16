@@ -31,8 +31,7 @@
 .kw-r-common    { color:#35d59b; }
 .kw-r-rare      { color:#16c8d8; }
 .kw-r-epic      { color:#9a6cff; }
-.kw-r-legendary { color:#ffce2b; }
-.kw-r-mythic    { color:#ff2f8e; }
+.kw-r-legendary { color:#ff2f8e; }
 
 /* the tooltip itself: card + a rail of keyword definitions on its outer side */
 #entity-tip {

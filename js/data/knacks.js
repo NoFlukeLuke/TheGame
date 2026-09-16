@@ -59,7 +59,7 @@ const KNACK_POOL = [
   // ── Focus-payout knacks (r123): fire when you reach max Focus ──
   { id:'dividend',     emoji:'🏦',  name:'Dividend',      rarity:'rare', desc:'Each time you reach max Focus, gain 8 credits, then Focus resets to a third of max.' },
   { id:'trade_winds',  emoji:'⛵',  name:'Trade Winds',   rarity:'rare', desc:'Your max Focus is 10 lower. At the end of each round, gain credits equal to half your current Focus.' },
-  { id:'growth_spurt', emoji:'🌱',  name:'Growth Spurt',  rarity:'epic', desc:'Each time you reach max Focus, your max Focus drops by 5. If you reached max Focus during a round, a random limit rises by 1 at the end of that round.' },
+  { id:'growth_spurt', emoji:'🌱',  name:'Growth Spurt',  rarity:'rare', desc:'Each time you reach max Focus, your max Focus drops by 5. If you reached max Focus during a round, a random limit rises by 1 at the end of that round.' },
   // ── Focus-capacity knacks (r104) ──
   { id:'stimulants',      emoji:'💊',  name:'Stimulants',       rarity:'rare', desc:'+10 maximum Focus while owned.' },
   // ── Focus RATE batch (r180) - these scale how fast Focus ACCRUES. Every knack

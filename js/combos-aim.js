@@ -193,7 +193,7 @@ let _lastHandProcs   = {};    // per-id proc COUNTS from that same calcScore (re
 let replaysThisRound = 0;     // total card replays/retriggers across scored hands this round
 let timeManipRound = 0;       // net seconds ADDED to the clock by scoring effects this round (Deluge/Overtime/etc.)
 let cuckooNextMinute = 0;     // next roundStartSeconds-roundSeconds threshold for Cuckoo's pause
-// Compound (mythic): the round score is banked every interval; the next scored hand
+// Compound (legendary): the round score is banked every interval; the next scored hand
 // pays the bank again. Both reset each round (see triggerLevelUp).
 let compoundNextMark = 0;     // next elapsed-seconds threshold at which to bank
 let compoundBanked   = 0;     // banked score awaiting the next hand's payout

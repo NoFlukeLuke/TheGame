@@ -101,8 +101,7 @@
 #builds-overlay .r-common   { --rc:var(--c-mint); }
 #builds-overlay .r-rare     { --rc:var(--c-cyan); }
 #builds-overlay .r-epic     { --rc:var(--c-purple); }
-#builds-overlay .r-legendary{ --rc:var(--c-yellow); }
-#builds-overlay .r-mythic   { --rc:var(--c-magenta); }
+#builds-overlay .r-legendary{ --rc:var(--c-magenta); }
 
 /* FILE MISSING - a sticky note slapped over an empty folder */
 #builds-overlay .bv-entity.st-missing,

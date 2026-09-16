@@ -1,4 +1,4 @@
-const BUILD = "2026-09-16 · r234 · forced Trick fires (the condition ignored) + the Hallmark knack - one card a round is marked, and scoring it pays [onto r233]";
+const BUILD = "2026-09-16 · r241 · forced Trick fires (the condition ignored) + the Hallmark knack - one card a round is marked, and scoring it pays [onto r240]";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -36,6 +36,24 @@ const MODES = {
     actStructure: true,
     suitCount: 4,
     guided: true
+  },
+  // The Map (r238): one act drawn as a 4-lane board you walk tile by tile.
+  // See js/map-mode.js for the rules; actStructure keeps the interlude/payout
+  // machinery, and the map hooks intercept every routing seam Guided cut.
+  map: {
+    id: 'map',
+    name: 'The Map',
+    desc: 'One act as a map: four lanes, six sets of tiles, then the boss. Two tiles per set at most, orthogonal moves only, and everything you step on happens.',
+    winCondition: 'boss_defeat',
+    enableBosses: true,
+    enableShops: true,
+    enableEvents: true,
+    autoRefillGrid: true,
+    timeIsCurrency: true,
+    autoPlayHands: false,
+    actStructure: true,
+    suitCount: 4,
+    map: true
   },
   // Guided first run. Mechanically IDENTICAL to Classic (actStructure: true) -
   // an ordinary seeded run with coach-marks over it. See js/tutorial.js.
@@ -99,7 +117,14 @@ const MODES = {
     enableShops: true,
     enableEvents: false,
     autoRefillGrid: true,
-    timeIsCurrency: false,
+    // TRUE, corrected in r234. This said false while the flag was read by nothing,
+    // and the two sites that actually charge (js/input.js, js/discard.js) billed
+    // Survival's 2:00 clock for every swap and discard regardless. interactTimeCostsOn()
+    // now reads this flag, so leaving it false would have made interacting free in a
+    // shipped mode as a side effect of wiring up the picker. It describes what
+    // Survival does: the clock is a deadline AND a budget, same as Classic.
+    // Flow is the mode that genuinely charges nothing, and it says so on its own entry.
+    timeIsCurrency: true,
     autoPlayHands: false,
     survival: true
   },
@@ -266,13 +291,15 @@ function startMatch3FromMenu(modeId = 'match3') {
 // to start one expecting the game the other nine modes are. They are still whole
 // and still reachable: the dev panel's MODES group launches any entry in MODES by
 // name, which is why the split is two lists rather than a deletion.
-const MODE_SELECT_LIST = ['tutorial', 'normal', 'guided', 'sixsuits', 'spectrum', 'survival', 'flow'];
+const MODE_SELECT_LIST = ['tutorial', 'normal', 'guided', 'map', 'sixsuits', 'spectrum', 'survival', 'flow', 'picker'];
 const MODE_HIDDEN_LIST = ['match3', 'zen', 'dominoes'];
 const MODE_META = {
   tutorial: { accent: '#8fd0ff',         suits: 'START HERE',
               blurb: 'LETHE Corp staff orientation. A normal Classic run with the terminal explaining each control as you reach it - scoring, Focus, limits, the reward path, the shop. About three minutes.' },
   normal:   { accent: 'var(--c-yellow)', suits: '♠ ♥ ♦ ♣',
               blurb: 'The original four-suit game. Three Acts of rounds, shops, events and bosses.' },
+  map:      { accent: '#6fd08c',         suits: '4 × 6 + BOSS',
+              blurb: 'The run is a board. Four lanes, six sets of tiles - rounds, hard rounds, shops, reward grids, events, a couple of blanks and mysteries - then a full-width boss with a fixed quota you can read from the start. Orthogonal moves only, at most two tiles per set, and moving on early pays credits.' },
   guided:   { accent: '#c9a0ff',         suits: '8 SLOTS',
               blurb: 'Each act is eight slots and then the boss. Every slot is either a round you play or something you buy with it - the shop, a reward grid, or one of two events on offer. Buying power always costs a round you will not get to play, and the goal climbs either way, so the question is how much of the act you spend getting stronger rather than getting further.' },
   sixsuits: { accent: 'var(--c-mint)',   suits: '♠ ♥ ♦ ♣ ★ ▲',
@@ -287,6 +314,8 @@ const MODE_META = {
               blurb: 'Matches play themselves. Line up 3+ in a row or column and it scores and cascades - you just swap and discard to set them up.' },
   zen:      { accent: '#7fe3c0',         suits: 'NO CLOCK',
               blurb: 'The same auto-playing board with the pressure off: no timer, unlimited swaps and discards. Goals are doubled.' },
+  picker:   { accent: '#ff5fa8',         suits: 'BUILD ONE',
+              blurb: 'Answer seven questions and the run is assembled from your answers: which deck, what happens between rounds, how long a round is, whether interacting costs time, bosses or none, who submits the hands, and what a hand type is worth. Every other mode in this list is one fixed set of those answers.' },
   dominoes: { accent: '#9b57d3',         suits: 'VALUES 1–7',
               blurb: 'Beta. Two-value tiles fall sideways or upright and leave gaps. Pick 3 touching tiles - every run and set of 3+ across their six halves scores at once.' },
 };
@@ -357,8 +386,26 @@ function renderModeSelect() {
   if (!car) return;
   car.innerHTML = '';
   MODE_SELECT_LIST.forEach(id => {
-    const m = MODES[id]; if (!m) return;
     const meta = MODE_META[id] || {};
+    // 'picker' is not an entry in MODES - it is the door to one. Its card carries
+    // the same tier control as the rest (the tier is a property of the RUN, not of
+    // the mode), and PLAY opens the questions instead of starting a run.
+    if (id === 'picker') {
+      const card = document.createElement('div');
+      card.className = 'mode-card';
+      card.style.setProperty('--mode-accent', meta.accent);
+      card.innerHTML =
+        `<div class="mode-card-name">Custom</div>` +
+        `<div class="mode-card-suits">${meta.suits}</div>` +
+        `<div class="mode-card-blurb">${meta.blurb}</div>` +
+        `<div class="mode-tier"></div>` +
+        `<button class="mode-card-play">BUILD</button>`;
+      renderModeTier(card, 'custom');
+      card.querySelector('.mode-card-play').onclick = () => openPickerMode();
+      car.appendChild(card);
+      return;
+    }
+    const m = MODES[id]; if (!m) return;
     const card = document.createElement('div');
     card.className = 'mode-card';
     card.style.setProperty('--mode-accent', meta.accent || 'var(--c-yellow)');

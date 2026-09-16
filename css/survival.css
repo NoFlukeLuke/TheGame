@@ -69,10 +69,12 @@
 .sv-pick-card:active { transform: translateY(-1px); }
 
 /* Type accents */
-.sv-type-trick   { --sv-accent: var(--c-yellow, #ffce2b); }
-.sv-type-sleight { --sv-accent: #c07aee; }
-.sv-type-knack   { --sv-accent: #16c8d8; }
-.sv-type-limit   { --sv-accent: #35d59b; }
+/* Accent is RARITY, not entity type (r198) - see css/records.css for the same
+   fix. Type is carried by the card's glyph and layout. */
+.sv-pick-card.rar-common    { --sv-accent: var(--c-mint,    #35d59b); }
+.sv-pick-card.rar-rare      { --sv-accent: var(--c-cyan,    #16c8d8); }
+.sv-pick-card.rar-epic      { --sv-accent: var(--c-purple,  #9a6cff); }
+.sv-pick-card.rar-legendary { --sv-accent: var(--c-magenta, #ff2f8e); }
 
 .sv-pick-tag {
   font-family: 'Share Tech Mono', monospace; font-size: 7px; letter-spacing: 2px;
@@ -80,6 +82,12 @@
   padding: 2px 7px; border-radius: 999px; text-transform: uppercase; font-weight: 700;
 }
 .sv-pick-icon { font-size: 30px; line-height: 1; margin-top: 1px; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.5)); }
+/* An entity option shows the REAL OBJECT (r239) - the shared tile from
+   js/entity-tile.js, the same floppy / business card / cert the tray draws -
+   with the name and description below it. The slot only sizes the frame; the
+   object letterboxes itself inside it. */
+.sv-pick-tile { display: flex; justify-content: center; margin-top: 1px; pointer-events: none; }
+.sv-pick-tile .reward-cell { position: relative; width: 52px; height: 66px; margin: 0; }
 .sv-pick-name {
   font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 11px; letter-spacing: 0.5px;
   color: var(--cream, #f0e6c8); text-align: center; line-height: 1.15;
