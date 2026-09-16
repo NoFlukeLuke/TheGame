@@ -212,6 +212,7 @@ const BAL = {
   minute_hand: { mult: 5, hands: 2 },
   understudy: { interval_seconds: 30 },
   hallmark:   { mult: 5, pips: 10, seconds: 3, force_scale: 1, force_cap_x: 8 },
+  payout_pick: { pips: 12 },
   second_hand: { pips: 5 },
   hourglass: { chance: 1/3 },
   sediment: { interval_seconds: 10, pips_per_interval: 10 },

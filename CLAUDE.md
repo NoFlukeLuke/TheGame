@@ -1078,6 +1078,93 @@ rare x2 · epic x1.68 · legendary x3**, max **x8.1** (the cap holding Rogue Wav
 **0 below x1 and 0 with no effect**. Seven real hands each forcing a different
 Trick through the full dance in dev mode logged **0 timeline drift**.
 
+### The Pick (r244) - `js/payout-pick.js` + `payout-pick-preview.html`
+
+**Off by default** (Settings -> Motion -> "Card pick after payout"). After the
+payout the board you just cleared COMES BACK, you pick one card off it, and you
+do one thing to that card: **Boost** (+12 pips, permanently) · **Copy** (a second
+one into the deck) · **Remove** (gone from the run). Then the reward screens run
+as normal.
+
+It is the deck manipulation that needs no shop, no consumable inventory and no
+node. **Picking off the BOARD is the whole point** - an abstract list of 52 faces
+is a spreadsheet, while the board is one you were building hands around thirty
+seconds ago. It sits at the payout because that beat already exists, already
+pauses and already belongs to the round that finished, so the operation costs no
+node, no slot, no credits and no clock.
+
+#### The un-explode
+
+The goal finale blows the board apart (`js/score-dance.js`: outward from the
+grid's centre, 200-340px, +-160deg, scale .82, fading, 900ms). Bringing the cards
+back by REVERSING that blast is what makes this read as the round being rewound
+rather than as a new screen opening. Same geometry played backwards on
+`sfxRewind`, and **nearest the centre lands first**, so the board fills outward -
+the exact reverse of a blast, and what stops it reading as an ordinary deal.
+
+- **`render()` puts the cards back; this file only animates what the renderer
+  produced.** Building card elements here would be a second card renderer to keep
+  in step with `renderCardAppearance`.
+- **`PICK_CFG` is tuned in `payout-pick-preview.html`**, which also draws the real
+  finale for comparison. A fresh load of that page dumps a block **byte-identical
+  to the shipped one** - verified, and it is the r233 rule: a preview that
+  disagrees with the game is worse than not having one.
+
+#### THE BOARD IS REALLY GONE BY THEN, so the pick carries a SNAPSHOT
+
+The obvious reading - "the finale removes the card DOM while `gridData` still
+holds every card" - is true of the SCORING FINALE and **not** of the interlude.
+`showLevelUpScreen_fallOnly` runs before the payout and does the real thing:
+`discardToPlayed(card)` on every cell, then `gridData` replaced outright with
+nulls. Measured at the moment the pick opened: **4 rows, 0 candidates.**
+
+So `pickTakeSnapshot()` is called from the TOP of `startInterlude`, above the
+fall - the last moment the board exists - and the restore is **presentation
+only**: the deck accounting already happened in the fall and must not happen
+twice. The cards go back into `gridData` to be looked at and picked, and are
+nulled straight back out when the pick closes, so every screen after this one
+sees the post-fall board it expects.
+
+`_id` is in `DURABLE_CARD_FIELDS`, so the copy now in `playedPile` is the same
+card by identity. That is what lets Boost key off `cardId` and Remove splice the
+pile without either caring which of the two objects it was handed.
+
+#### Four traps, all found by running it rather than reading it
+
+- **A module must not persist its own copy of a settings-backed flag.**
+  `payoutPickEnabled` originally wrote its own `localStorage` key, and
+  `js/settings.js` applies every row's stored value **or its DEFAULT** at load -
+  so an unset row called `apply(false)` on boot and stamped the key back to off.
+  Measured: the key read `on`, the reload read `false`. **One store, one writer**;
+  the setting is the store and the module just holds the flag.
+- **Remove must null the BOARD CELL as well as splice the pile.** Dropping the
+  card from the snapshot alone left it sitting in `gridData` - out of the piles
+  but still on the board, and therefore dealt straight back in at the next round.
+  The board failed to empty on Remove and on nothing else.
+- **A silent `catch` around an operation is a liability.** A bare
+  `catch { note = '' }` swallowed a ReferenceError in Remove and the screen
+  carried on as though the card had gone: the pile was spliced, the deck count
+  was not, and only a deck audit two rounds later would have said so. It reports
+  in dev mode now and tells the player it did not take.
+- **The bar MEASURES itself and flips below the board when it does not fit
+  above.** It changes height when a card is picked - one line becomes three
+  option tiles - and the gap above the board is about 100px on a 1440x820
+  desktop, so the first version ran the options off the top of the screen with no
+  way to reach them. Same class of bug as the viewport cap on `.time-popup`: a
+  pop-up placed in raw viewport px has to be clamped to one. Verified fully on
+  screen at 1440x820 and 1100x620.
+
+**The tap intercept sits ABOVE `onCardTap`'s `animating` guard**, because that
+flag is routinely still true from the un-explode's flights and a tap that
+silently does nothing reads as broken.
+
+Verified in a real browser, all three operations through the real tap path: Boost
+leaves the deck at 52 and puts +12 on that card's `permPips`; Copy takes it to 53;
+Remove takes it to 51 with the card out of both piles and the board emptied. In
+every case the snapshot clears, the pick closes and the reward grid opens, with
+**the deck audit passing** and no page errors. Disabled and SKIP both leave the
+deck untouched and the audit clean.
+
 ### The Hallmark knack (r234) - `js/hallmark.js`
 
 A rare Knack. At a random moment in every round ONE card on the board is marked;

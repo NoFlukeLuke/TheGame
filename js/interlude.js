@@ -17,6 +17,11 @@ async function startInterlude(opts) {
     sfxDuckGain.connect(ctx.destination);
   }
 
+  // The Pick (r244) photographs the board HERE, above the fall - the fall
+  // discards every card to playedPile and replaces gridData with nulls, so this
+  // is the last moment the board exists to be picked from.
+  if (typeof pickTakeSnapshot === 'function') pickTakeSnapshot();
+
   // ── Stage 1: skip Success flash - goalCelebration already showed SUCCESS + confetti ──
   // Cards fall out next.
   const gridEl = document.getElementById('grid');
@@ -35,6 +40,13 @@ async function startInterlude(opts) {
   interludeActive = false;
   sfxDuckGain.disconnect();
   sfxDuckGain = null;
+
+  // The Pick (r244): the board comes back and one card is operated on. AFTER the
+  // payout (the round's accounting) and BEFORE any reward screen (the round's
+  // spoils), which is the order those two already read in. Awaited, so every
+  // route below - guided, map, the reward grid, the prize grid - resumes only
+  // once the player has chosen or skipped.
+  if (typeof runPayoutPick === 'function') await runPayoutPick();
 
   // Guided's elite pays out here, while the round's own counters are still live -
   // triggerLevelUp resets handsPlayedRound and handTypesRound, which is what every
