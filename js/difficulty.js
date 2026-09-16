@@ -45,7 +45,7 @@ const DIFFICULTY_TIERS = [
     detail: 'Epic and better tiles are pushed to the edges and corners of the reward grid, and two of the penalties beside each one are PERMANENT. Same number of penalties as Standard - they just hurt for longer, and they stand between you and the tile you want.',
     debuffShare: null,
     permWeightMult: 2,
-    edgeBiasRarities: ['epic', 'legendary', 'mythic'],
+    edgeBiasRarities: ['epic', 'legendary'],
     permNeighbors: 2,
   },
   {
@@ -54,7 +54,7 @@ const DIFFICULTY_TIERS = [
     detail: 'The reward grid stops being an even checkerboard: about three cells in five are penalties, so a five-tile path can no longer be walked clean. Permanent penalties are the norm rather than the exception.',
     debuffShare: 0.6,
     permWeightMult: 3,
-    edgeBiasRarities: ['epic', 'legendary', 'mythic'],
+    edgeBiasRarities: ['epic', 'legendary'],
     permNeighbors: 2,
   },
 ];

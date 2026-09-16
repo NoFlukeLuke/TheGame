@@ -84,7 +84,7 @@ function doDiscard() {
   else { if (hasKnack('hoarder')) perCardCost = BAL.hoarder.discard_seconds_per_card; perCardCost += (discardCostThisRound || 0); }
   const usingFreeDiscard = perCardCost > 0 && freeDiscardsLeft > 0;
   if (usingFreeDiscard) freeDiscardsLeft--;
-  const timeCost = usingFreeDiscard ? 0 : Math.round(discardedCards.length * perCardCost * bossInteractMult());
+  const timeCost = (usingFreeDiscard || !interactTimeCostsOn()) ? 0 : Math.round(discardedCards.length * perCardCost * bossInteractMult());
   if (timeCost > 0) {
     roundSeconds = Math.max(1, roundSeconds - timeCost);
     showTimeCost(`-${timeCost}s`);

@@ -90,9 +90,9 @@ function luckRollDet(p, id, salt) {
 // pick. Common is untouched at 1.0 - it is the tier everything falls back to,
 // and scaling it as well would just cancel out.
 //
-// At luck 100 the table goes 59/28/10/2/1 -> 59/42/20/5/3, i.e. mythic roughly
-// triples and common drops from 59% to about 46% of the draw once renormalised.
-const LUCK_TIER_STEP = [0, 0.5, 1, 1.5, 2];   // common, rare, epic, legendary, mythic
+// At luck 100 the table goes 59/28/10/3 -> 59/42/20/7.5, i.e. legendary roughly
+// doubles and common drops from 59% to about 46% of the draw once renormalised.
+const LUCK_TIER_STEP = [0, 0.5, 1, 1.5];   // common, rare, epic, legendary
 
 function luckTierWeights(weights) {
   const L = luckTotal();
@@ -126,8 +126,8 @@ function pickEntityByRarity(pool, tierOf, weights, tiers) {
   const total = W.reduce((a, b) => a + b, 0);
   let roll = Math.random() * total, ti = 0;
   for (let i = 0; i < W.length; i++) { roll -= W[i]; if (roll <= 0) { ti = i; break; } }
-  // Walk DOWN from the rolled tier, never up: an exhausted mythic pool hands
-  // back a legendary, not a fresh roll that could land higher than it rolled.
+  // Walk DOWN from the rolled tier, never up: an exhausted legendary pool hands
+  // back an epic, not a fresh roll that could land higher than it rolled.
   for (let i = ti; i >= 0; i--) {
     const t = pool.filter(x => tierOf(x) === T[i]);
     if (t.length) return t[Math.floor(Math.random() * t.length)];

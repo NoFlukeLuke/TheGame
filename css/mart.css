@@ -33,7 +33,7 @@
 #mart-overlay .m-mini{ position:relative; flex-shrink:0; cursor:pointer; transition:transform .12s; }
 #mart-overlay .m-mini:hover{ transform:translateY(-2px); }
 #mart-overlay .m-mini > .reward-cell{ width:100%; height:100%; padding:2px 1px 3px; cursor:pointer; }
-#mart-overlay .m-mini .rwd-art{ font-size:17px; top:11%; }
+#mart-overlay .m-mini .rwd-art{ font-size:17px; }
 #mart-overlay .m-mini .rwd-glyph{ font-size:7px; top:2px; }
 #mart-overlay .m-mini .rwd-name{ font-size:5px; letter-spacing:0; }
 #mart-overlay .m-mini .rwd-uses{ font-size:6px; padding:0 3px; bottom:2px; right:2px; }
@@ -161,7 +161,7 @@
    larger tiles bottom-right is clear; on an 82px shop tile it lands on top of
    the name ("PIGGY BANK 5x" printed over each other). */
 #mart-overlay .m-sleight .rwd-uses{ top:29px; left:5px; bottom:auto; right:auto; font-size:8px; padding:0 4px; }
-#mart-overlay .m-item .rwd-art{ font-size:26px; top:14%; }
+#mart-overlay .m-item .rwd-art{ font-size:26px; }
 #mart-overlay .m-item .rwd-name{ font-size:9px; padding:0 3px 1px; }
 #mart-overlay .m-item .rwd-diamond{ width:52%; }
 #mart-overlay .m-item .rwd-diamond-emoji{ font-size:21px; }
@@ -193,7 +193,7 @@
 
 #mart-overlay .m-item .price{ position:absolute; top:3px; right:4px; z-index:3; font-family:'Share Tech Mono',monospace; font-size:8px; color:var(--phosphor); background:rgba(0,0,0,0.6); border:1px solid rgba(255,176,46,0.5); border-radius:5px; padding:0 3px; }
 #mart-overlay .m-item .price.cant{ color:#ff5a6a; border-color:rgba(255,90,106,.55); }
-#mart-overlay .r-common{ --rc:var(--c-mint); } #mart-overlay .r-rare{ --rc:var(--c-cyan); } #mart-overlay .r-epic{ --rc:var(--c-purple); } #mart-overlay .r-legendary{ --rc:var(--c-yellow); } #mart-overlay .r-mythic{ --rc:var(--c-magenta); }
+#mart-overlay .r-common{ --rc:var(--c-mint); } #mart-overlay .r-rare{ --rc:var(--c-cyan); } #mart-overlay .r-epic{ --rc:var(--c-purple); } #mart-overlay .r-legendary{ --rc:var(--c-magenta); }
 
 /* frozen item (WIP freeze): halt float + blue tinge */
 #mart-overlay .m-item.frozen{ filter:brightness(.92) saturate(.7); }
@@ -234,7 +234,7 @@
    out of its line. The cart's own type modifier is mc-*. */
 #mart-overlay .m-cthumb{ flex:0 0 auto; width:32px; height:42px; position:relative; overflow:hidden; }
 #mart-overlay .m-cthumb > .reward-cell{ width:100%; height:100%; padding:2px 1px 3px; cursor:pointer; }
-#mart-overlay .m-cthumb .rwd-art{ font-size:14px; top:10%; }
+#mart-overlay .m-cthumb .rwd-art{ font-size:14px; }
 #mart-overlay .m-cthumb .rwd-glyph{ font-size:6px; top:2px; }
 #mart-overlay .m-cthumb .rwd-name{ font-size:4.5px; letter-spacing:0; }
 #mart-overlay .m-cthumb .rwd-uses{ display:none; }
@@ -435,11 +435,11 @@
   /* The loadout strip is a glance, not a read - the names come off below this
      size, leaving art + rarity colour, which is what identifies them at 24px. */
   #mart-overlay .m-mini .rwd-name{ display:none; }
-  #mart-overlay .m-mini .rwd-art{ font-size:13px; top:auto; bottom:0; }
+  #mart-overlay .m-mini .rwd-art{ font-size:13px; }
   #mart-overlay .mini-knack{ width:26px; height:30px; } #mart-overlay .mini-knack .rwd-diamond-emoji{ font-size:12px; }
   #mart-overlay .mini-sleight{ width:26px; height:34px; }
-  #mart-overlay .mini-sleight > .reward-cell{ clip-path:polygon(9px 0, 100% 0, 100% 100%, 0 100%, 0 9px); }
-  #mart-overlay .mini-sleight .rwd-tab{ width:8px; height:8px; font-size:5px; }
+  /* The notch and the tab belong to the pre-r228 sleight tile. The business
+     card has neither, and both of these outrank the object rule on the ID. */
   #mart-overlay .mini-sleight .rwd-uses{ display:none; }
   #mart-overlay .mini-trick{ width:26px; height:32px; }
   /* Stats / Deck / Time move into the drawer's footer on narrow screens; the

@@ -10,7 +10,7 @@
 // `improveEntity(id)` applies it. That is also why Knacks are on the wheel here
 // - improve.js recomputes BAL in place, so a Knack improves like anything else.
 
-const EV_TIER_ORDER = ['common', 'rare', 'epic', 'legendary', 'mythic'];
+const EV_TIER_ORDER = ['common', 'rare', 'epic', 'legendary'];
 
 // Everything the run owns that improve.js can still improve, across all three
 // types, in the shape the wheel draws. Emoji is looked up per type because the
@@ -81,6 +81,7 @@ function renderReassignment() {
   trickTray.forEach(t => {
     const el = makeChoiceEl({
       icon: (typeof trickEmoji === 'function') ? trickEmoji(t) : '✦',
+      tile: { entity:'trick', id:t.id, emoji:(typeof trickEmoji === 'function') ? trickEmoji(t) : '✦', label:t.name },
       rarity: t.tier, name: t.name,
       desc: (typeof trickLiveDesc === 'function') ? trickLiveDesc(t) : t.desc,
       onClick: () => {
@@ -192,6 +193,7 @@ function renderDraw() {
     const prev = (typeof improvePreview === 'function') ? improvePreview(ent.id) : null;
     const el = makeChoiceEl({
       icon: ent.emoji, rarity: ent.rarity,
+      tile: { entity: ent.kind, id: ent.id, emoji: ent.emoji, label: ent.name },
       name: ent.name + (tier ? ` · improved ×${tier}` : ''),
       desc: prev && prev.after !== prev.before ? prev.after : (prev ? prev.before : ''),
       cost: ent.kind.toUpperCase(),

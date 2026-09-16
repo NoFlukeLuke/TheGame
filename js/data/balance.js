@@ -159,7 +159,7 @@ const BAL = {
   chorus:      { mult_mult_per_replay: 0.2 },
   portfolio:   { mult_mult_per_card: 0.15 },
   redline:     { focus_threshold: 2, mult_mult: 2 },
-  // Compound (mythic): every interval_seconds of round time the current round score
+  // Compound (legendary): every interval_seconds of round time the current round score
   // is banked; the next scored hand pays bank_fraction of it again. Repeats, so the
   // score compounds across a round rather than doubling once.
   compound:    { interval_seconds: 45, bank_fraction: 1 },
@@ -211,6 +211,7 @@ const BAL = {
   quarter_chime: { pips: 45 },
   minute_hand: { mult: 5, hands: 2 },
   understudy: { interval_seconds: 30 },
+  hallmark:   { mult: 5, pips: 10, seconds: 3, force_scale: 1, force_cap_x: 8 },
   second_hand: { pips: 5 },
   hourglass: { chance: 1/3 },
   sediment: { interval_seconds: 10, pips_per_interval: 10 },
@@ -289,13 +290,29 @@ const BAL = {
 // game's generosity is editing one line and so that a future Luck stat has a
 // single place to reach.
 //
-// The prize grid keeps its own variant (common cut out) because that IS its
-// design, not a drift.
-const ENTITY_TIERS   = ['common', 'rare', 'epic', 'legendary', 'mythic'];
-const ENTITY_TIER_W  = [59, 28, 10, 2, 1];
+// The prize grid has its own table, PRIZE_TIER_W, below.
+//
+// FOUR tiers, not five (r226). `mythic` was merged into `legendary` when the
+// data pools were re-tiered, so the fifth slot matched NOTHING: every mythic
+// roll - 1% of all draws - cascaded down into legendary anyway, and the tiles
+// that hard-coded tier:'mythic' (the Limit Break) asked for a `rar-mythic`
+// colour no stylesheet defines. Its weight is folded into legendary, so the
+// effective spread is unchanged.
+const ENTITY_TIERS   = ['common', 'rare', 'epic', 'legendary'];
+const ENTITY_TIER_W  = [71, 22, 5.5, 1.5];
+
+// The post-boss PRIZE (boss) grid. It used to cut commons out of every pool and
+// draw the remaining three tiers, which is a different thing from a table: the
+// filters decided the floor and the weights only shared out what was left.
+// It is a real four-tier table now (owner's numbers), so the prize grid's
+// generosity is one line here rather than a filter in three pool builders, and
+// what it says is what it draws. A common is a third of the tiles and the
+// middle of the ladder is where a prize grid pays: RARE is more than half.
+const PRIZE_TIER_W   = [30, 55, 12, 3];
 
 const DESC_TEMPLATES = {
   understudy: 'Every {interval_seconds} seconds one of your tricks is primed: it fires an extra time on your next hand.',
+  hallmark:   'Once a round a card on the board is marked. Score it and it takes a random buff: +{mult} mult, +{pips} pips, an extra replay, {seconds}s of clock, or a trick primed or forced.',
   whetstone: 'Whenever an adjacent card is swapped or discarded, Whetstone gains +{mult_per_event} mult permanently. Hands that score a card adjacent to Whetstone score that mult.',
   entourage: 'Hands score +{mult_per_sleight} mult for every other Sleight on the grid.',
   lighthouse: 'Each round Lighthouse picks either the first or last column. All hands score +{mult} mult when Lighthouse is in that column, −{falloff_per_column} per column away (minimum 0).',

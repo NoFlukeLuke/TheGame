@@ -127,7 +127,7 @@ function camLayout(isLandscape) {
   // trapezoid's bounding box - so the board would be centred on a shape it is not.
   if (typeof officeClearSkew === 'function') officeClearSkew();
   camPlaceScene();
-  // The photo office (r234), when it is live, owns the wide framing: its scale is
+  // The photo office (r244), when it is live, owns the wide framing: its scale is
   // "the whole photograph fills the viewport", which is a different question from
   // "the cabinet fills 55% of it". It has to run AFTER camPlaceScene, because the
   // skew it writes is measured off the cabinet's final resting position.

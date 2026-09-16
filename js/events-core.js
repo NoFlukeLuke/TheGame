@@ -160,7 +160,7 @@ function renderEventShell(id) {
 // five tiers, same five colours as a reward-grid tile, so an epic looks like an
 // epic wherever you meet it. Anything off the tier list (or a debuff, which owns
 // its own red) is left uncoloured rather than guessed at.
-const EV_TIERS = ['common', 'rare', 'epic', 'legendary', 'mythic'];
+const EV_TIERS = ['common', 'rare', 'epic', 'legendary'];
 
 function makeChoiceEl(opts) {
   // opts: { icon, rarity, name, desc, cost, cls, tile, onClick }
@@ -175,8 +175,12 @@ function makeChoiceEl(opts) {
   // trade, a downside) still gets the disc, because there is no object to show.
   const div = document.createElement('div');
   const rar = String(opts.rarity || '').toLowerCase();
+  // has-tile flips the layout to a COLUMN - object on top, name and desc
+  // beneath it (owner spec, r239): an entity offer leads with what the thing
+  // will look like in your tray, everywhere, at the object's own ratio.
   div.className = 'event-choice'
     + (EV_TIERS.includes(rar) ? ' rar-' + rar : '')
+    + (opts.tile ? ' has-tile' : '')
     + (opts.cls ? ' ' + opts.cls : '');
   const art = (opts.tile && typeof entityTileHTML === 'function')
     ? `<div class="ec-tile">${entityTileHTML(opts.tile, rar || 'common')}</div>`
@@ -193,6 +197,8 @@ function makeChoiceEl(opts) {
     ${opts.cost ? `<div class="ec-cost">${opts.cost}</div>` : ''}
   `;
   if (opts.onClick) div.addEventListener('click', opts.onClick);
+  const nm = div.querySelector('.ec-tile .rwd-name');
+  if (nm && typeof fitRewardName === 'function') requestAnimationFrame(() => fitRewardName(nm));
   return div;
 }
 

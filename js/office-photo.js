@@ -1,5 +1,5 @@
 // ══════════════════════════════════════════════════════════════════════════
-// THE PHOTO OFFICE (r234) - js/office-photo.js + css/office-photo.css
+// THE PHOTO OFFICE (r244) - js/office-photo.js + css/office-photo.css
 //
 // The game opens on a PHOTOGRAPH of an office. There is a computer on the desk
 // and the game's own menu is drawn ON ITS SCREEN. Press PLAY and the camera
@@ -149,6 +149,10 @@ function officeQuadBBox(q) {
 function officeInit() {
   const img = officeImgEl();
   if (!img || !OFFICE_PHOTO.file) return;
+  // Uncalibrated: don't even ask for the file. Photo mode cannot turn on without
+  // the corners, so fetching it would only be a 404 in the console on every load
+  // of the shipped game - which reads as something being broken when nothing is.
+  if (!Array.isArray(OFFICE_PHOTO.screen) || OFFICE_PHOTO.screen.length !== 4) return;
   img.addEventListener('load', () => {
     OFFICE_PHOTO.w = img.naturalWidth;
     OFFICE_PHOTO.h = img.naturalHeight;

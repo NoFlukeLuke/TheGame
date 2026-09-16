@@ -1,3 +1,6 @@
+// Static HUD labels carry data-lex and are written from the live vocabulary
+// (js/labels.js). Runs before the menu so nothing paints in the wrong wording.
+if (typeof applyLexiconToDOM === 'function') applyLexiconToDOM();
 initMainMenu();
 // The red SCORE / GOAL chips (and the top-bar act readout) reopen a boss's
 // briefing. Bound once - each handler no-ops unless a boss is running.

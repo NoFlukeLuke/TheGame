@@ -4,7 +4,15 @@ let isSwiping = false;
 let swipeStopped = false;
 
 // Auto-submit
-const AUTO_SUBMIT_DELAY = 2000; // ms
+const AUTO_SUBMIT_DELAY = 2000;      // ms - long enough to change your mind
+const AUTO_SUBMIT_DELAY_FAST = 350;  // ms - autoPlayHands: steering, not choosing
+// A valid hand has always submitted itself on a timer; `autoPlayHands` only sets
+// how long that timer is. That is deliberately ALL it does - a separate auto-play
+// path would be a second way into playHand to keep in step with this one.
+function autoSubmitDelay() {
+  return (typeof ACTIVE_MODE !== 'undefined' && ACTIVE_MODE && ACTIVE_MODE.autoPlayHands)
+    ? AUTO_SUBMIT_DELAY_FAST : AUTO_SUBMIT_DELAY;
+}
 let autoSubmitTimer = null;
 let handReadyForSubmit = false; // true once an invalid card is hit mid-swipe
 
@@ -52,7 +60,7 @@ function scheduleAutoSubmit() {
     autoSubmitTimer = null;
     handReadyForSubmit = false;
     if (!animating && !falling && selected.length >= 2 && selected.length >= minSelection()) playHand();
-  }, AUTO_SUBMIT_DELAY);
+  }, autoSubmitDelay());
 }
 
 function cardAt(el) {
@@ -124,6 +132,7 @@ function doSwap(r1, c1, r2, c2) {
 
   // Swap charge - skipped on a free swap; Steady Hand bypasses the limit
   if (!hasKnack('steady_hand') && !freeThisSwap) swaps--;
+  swapsUsedRound++;   // every swap ACTION, free or not (the No Takebacks challenge)
   if (sleightFreeSwapPending) sleightFreeSwapPending = false;
   // Swap time cost - a flat 8s (BAL._resources.swap_seconds), 0s with Free Swaps
   // or a free swap, Steady Hand's own figure otherwise. There used to be an extra
@@ -132,7 +141,7 @@ function doSwap(r1, c1, r2, c2) {
   let swapTimeCost = BAL._resources.swap_seconds;
   if (freeThisSwap || hasKnack('free_swaps')) swapTimeCost = 0;
   else if (hasKnack('steady_hand')) swapTimeCost = BAL.steady_hand.swap_seconds;
-  swapTimeCost = Math.round(swapTimeCost * bossInteractMult());
+  swapTimeCost = interactTimeCostsOn() ? Math.round(swapTimeCost * bossInteractMult()) : 0;
   if (swapTimeCost > 0) {
     roundSeconds = Math.max(1, roundSeconds - swapTimeCost);
     showTimeCost(`-${swapTimeCost}s`);

@@ -165,11 +165,27 @@
   border-top: 1px solid rgba(183,172,147,0.16); border-right: 1px solid rgba(183,172,147,0.16);
   border-bottom: 1px solid rgba(183,172,147,0.16);
 }
-.rec-ent.e-trick   { --e-accent: var(--c-yellow, #ffce2b); }
-.rec-ent.e-sleight { --e-accent: #c07aee; }
-.rec-ent.e-knack   { --e-accent: #16c8d8; }
+/* Accent is RARITY, never entity type (r198). It used to be one colour per
+   type - yellow tricks, purple sleights, cyan knacks - so every Trick you owned
+   looked identical no matter what tier it was, and the tier pill printed on that
+   same flat colour. Type is carried by the tile's SHAPE; colour is the ladder.
+   Same four colours as the reward grid, so the spine is learned once. */
+.rec-ent.rar-common    { --e-accent: var(--c-mint,    #35d59b); }
+.rec-ent.rar-rare      { --e-accent: var(--c-cyan,    #16c8d8); }
+.rec-ent.rar-epic      { --e-accent: var(--c-purple,  #9a6cff); }
+.rec-ent.rar-legendary { --e-accent: var(--c-magenta, #ff2f8e); }
 .rec-ent-top { display: flex; align-items: center; gap: 7px; margin-bottom: 4px; }
 .rec-ent-ico { font-size: 16px; }
+/* The object itself, at a small fixed frame (r239). The tile letterboxes its
+   own shape inside it, so the disc and the card keep their ratios here too. */
+.rec-ent-tilebox { flex: 0 0 auto; display: flex; pointer-events: none; }
+.rec-ent-tilebox .reward-cell { position: relative; width: 34px; height: 44px; margin: 0; }
+/* 34px wide: the row states the name. Three classes - the object rule sets
+   display:flex at the same depth, so this must outrank it. */
+.rec-ent-tilebox .reward-cell .rwd-name { display: none; }
+.rec-ent-top { align-items: flex-start; }
+.rec-ent-top .rec-ent-name { align-self: center; }
+.rec-ent-top .rec-ent-tag { align-self: center; }
 .rec-ent-name { flex: 1; font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 11px; color: var(--cream, #f0e6c8); }
 .rec-ent-tag {
   font-family: 'Share Tech Mono', monospace; font-size: 7px; letter-spacing: 1px;

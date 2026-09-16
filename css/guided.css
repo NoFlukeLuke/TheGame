@@ -101,40 +101,93 @@
 }
 #guided-pick3 .g3-row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
 #guided-pick3 .g3-opt {
-  flex: 0 0 140px; height: 180px; cursor: pointer;
+  flex: 0 0 140px; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
   transition: transform .12s ease;
 }
 #guided-pick3 .g3-opt:hover { transform: translateY(-4px); }
-#guided-pick3 .g3-opt > .reward-cell { width: 100%; height: 100%; }
+/* The object on top at a fixed frame, the words beneath it (r239). */
+#guided-pick3 .g3-tile { pointer-events: none; }
+#guided-pick3 .g3-tile .reward-cell { position: relative; width: 72px; height: 94px; margin: 0; }
+#guided-pick3 .g3-name {
+  font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 11px;
+  letter-spacing: 0.5px; text-transform: uppercase; text-align: center;
+  color: var(--cream, #f0e6c8); line-height: 1.15;
+}
+#guided-pick3 .g3-desc {
+  font-family: 'Crimson Pro', serif; font-size: 11.5px; line-height: 1.3;
+  color: rgba(240,230,200,0.75); text-align: center;
+}
 
 @media (max-width: 420px) {
-  #guided-pick3 .g3-opt { flex-basis: calc(50% - 5px); height: 150px; }
+  #guided-pick3 .g3-opt { flex-basis: calc(50% - 5px); }
   #gx-bar { gap: 8px; font-size: 10px; padding: 5px 10px; }
 }
 
-/* ── The grid shop's row label plate (r229) ─────────────────────────────────
-   Three cells wide, naming the category the two options beside it belong to.
-   Inert by design: it is a heading, and making it selectable would let a
-   connected pick route straight through it. */
+/* ── The grid shop's row label plate (r229, ONE cell since r237) ────────────
+   A single cell naming the category of the items beside it. Inert by design:
+   it is a heading, and making it selectable would let a connected pick route
+   straight through it. Bright, not greyed - the owner's call: a heading that
+   reads as disabled looks like stock you cannot buy. */
 #grid .shop-row-label {
   position: absolute;
-  display: flex; align-items: center; gap: 10px;
-  padding: 0 14px;
-  background: linear-gradient(90deg, rgba(255,255,255,0.07), rgba(255,255,255,0.015));
-  border: 1px solid rgba(255,255,255,0.14);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  padding: 2px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.09), rgba(255,255,255,0.02));
+  border: 1px solid rgba(255,255,255,0.22);
   border-left: 3px solid var(--c-yellow, #f5c042);
   border-radius: 6px;
   cursor: default; pointer-events: none;
   z-index: 2;
 }
 #grid .shop-row-label .srl-icon {
-  font-size: 20px; line-height: 1; color: var(--c-yellow, #f5c042);
+  font-size: 16px; line-height: 1; color: var(--c-yellow, #f5c042);
+  text-shadow: 0 0 8px rgba(245,192,66,0.5);
 }
 #grid .shop-row-label .srl-name {
-  font-family: 'Orbitron', sans-serif; font-size: 13px; font-weight: 700;
-  letter-spacing: 0.08em; text-transform: uppercase;
-  color: var(--cream, #efe7d6);
+  font-family: 'Orbitron', sans-serif; font-size: 7px; font-weight: 700;
+  letter-spacing: 0.03em; text-transform: uppercase;
+  color: #fff;
+  text-shadow: 0 0 6px rgba(255,255,255,0.35);
+  max-width: 100%; overflow: hidden; white-space: nowrap;
 }
+/* Buying from the row pins its category for every reroll of this visit. */
+#grid .shop-row-label .srl-pin {
+  position: absolute; top: 1px; right: 2px; font-size: 9px; line-height: 1;
+  filter: drop-shadow(0 0 3px rgba(0,0,0,0.8));
+}
+
+/* ── COMPANY STORE - the title tile (r237) ──────────────────────────────────
+   Full width along the top, inert, and it survives every reroll. It is also
+   what makes the shop one row SHORTER than the board it sits on. */
+#grid .shop-title-tile {
+  position: absolute;
+  display: flex; align-items: center; justify-content: center;
+  background:
+    repeating-linear-gradient(0deg, rgba(0,0,0,0.16) 0 2px, transparent 2px 4px),
+    linear-gradient(180deg, rgba(245,192,66,0.16), rgba(245,192,66,0.04));
+  border: 1px solid rgba(245,192,66,0.55);
+  border-radius: 8px;
+  cursor: default; pointer-events: none;
+  z-index: 2;
+}
+#grid .shop-title-tile .stt-name {
+  font-family: 'Orbitron', sans-serif; font-weight: 900;
+  font-size: 17px; letter-spacing: 0.32em; text-indent: 0.32em;
+  color: var(--c-yellow, #f5c042);
+  text-shadow: 0 0 14px rgba(245,192,66,0.55), 0 2px 0 rgba(0,0,0,0.6);
+  white-space: nowrap;
+}
+
+/* A buffed-card offer: the card's face large in the middle. */
+#grid .shop-tile-card .stc-face {
+  font-family: 'Crimson Pro', serif; font-weight: 700;
+  font-size: 17px; line-height: 1.1; text-align: center;
+  color: var(--cream, #efe7d6);
+  margin-top: 4px;
+}
+/* An empty slot: a filler, never a hole. */
+#grid .shop-prev-null .reward-icon { opacity: 0.25; }
 
 /* ── Next-boss forecast on the run-progress block (r229) ────────────────────
    Reuses the .time-popup bubble the hand log and the Time / Limits pop-ups use,

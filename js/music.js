@@ -79,7 +79,7 @@ function musicVolume() {
 }
 function applyMusicVolume() { if (_musicEl) _musicEl.volume = Math.max(0, Math.min(1, musicVolume())); }
 
-// ── THE SPEED RAMP (r234) ───────────────────────────────────────────────────
+// ── THE SPEED RAMP (r244) ───────────────────────────────────────────────────
 // A track can get faster the longer it plays: `ramp` on its manifest row. The
 // bare `ramp: true` is every 20s, +10%, capped at 2x - write an object to say
 // something else. It is COMPOUNDING, so the cap is not decoration: +10% every
