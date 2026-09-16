@@ -1,4 +1,4 @@
-const BUILD = "2026-09-16 · r245 · map blanks are a roll: ~51% two, 38% one, 11% none [onto r244 photo office]";
+const BUILD = "2026-09-16 · r246 · map blanks are a roll: ~51% two, 38% one, 11% none [onto r245 THE PICK]";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

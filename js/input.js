@@ -267,6 +267,10 @@ function tryAddToSelection(r, c) {
 // ── Tap handler (called on pointerup when pointer didn't move) ──
 function onCardTap(r, c) {
   if (_longPressActive) { _longPressActive = false; return; }
+  // The Pick (r244) owns the board outright while it is open, so it intercepts
+  // ABOVE the `animating` guard - that flag is routinely still true from the
+  // un-explode's flights, and a tap that silently does nothing reads as broken.
+  if (typeof pickActive !== 'undefined' && pickActive) { pickSelect(r, c); return; }
   if (sleightSpinLock) return;   // a double-tap sleight is spinning out; ignore taps
   const _card = gridData[r]?.[c];
   const _cardStr = _card ? `${_card.rank}${_card.suit}` : 'null';

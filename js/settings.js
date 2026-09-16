@@ -63,6 +63,11 @@ const SETTINGS_DEF = [
     type: 'toggle', default: false,
     apply: v => document.body.classList.toggle('no-shake', !!v) },
 
+  { group: 'Motion', id: 'payoutPick', label: 'Card pick after payout',
+    hint: 'EXPERIMENTAL. After the payout the board comes back and you boost, copy or remove one card. Off by default.',
+    type: 'toggle', default: false,
+    apply: v => { if (typeof setPayoutPickEnabled === 'function') setPayoutPickEnabled(!!v); } },
+
   // ── Display ──
   { group: 'Display', id: 'bigText', label: 'Larger text', hint: 'Increases UI text size across panels and pop-ups.',
     type: 'toggle', default: false,
