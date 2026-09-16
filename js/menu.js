@@ -1,4 +1,4 @@
-const BUILD = "2026-09-16 · r235 · the hand stays named through the tally, and the preview runs left to right";
+const BUILD = "2026-09-16 · r236 · the round opens on the board - NEXT QUOTA restyled, 3-2-1 centred, one deal not two";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

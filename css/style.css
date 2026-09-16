@@ -1443,39 +1443,61 @@
     top: auto; bottom: 14px; right: 14px; width: 30px; height: 30px; font-size: 16px;
   }
 
-  /* ── Next Goal flash ── */
+  /* ── Next Quota flash (restyled r236) ──
+     It was 42px Cinzel in bare cream over a board of cream playing cards, with
+     the label "Next task:" in the browser's default sans - a serif and a typeface
+     the game uses nowhere else, the corporate-structural label in sentence case,
+     and no plate to read it against.
+     It is the same object as the goal-clear stamp now (css/goal-clear.css): a
+     plate, an Orbitron title, a Share Tech Mono kicker. The two are a matched
+     pair by design - one closes a round, one opens the next - so the cyan here
+     against that one's mint is the whole difference.
+
+     STRUCTURE: the outer element is a POSITIONER and nothing else (it is what
+     landscape re-anchors onto the grid, below); .ng-body is the plate and is
+     what animates. Keeping the punch off the positioner is what lets landscape
+     drop the translate centring without needing its own keyframes. */
   #next-goal-flash {
     position: fixed;
     left: 50%;
     top: 38%;
     transform: translate(-50%, -50%);
-    font-family: 'Cinzel', serif;
-    font-size: 42px;
-    color: var(--cream);
-    letter-spacing: 2px;
+    display: flex; align-items: center; justify-content: center;
     text-align: center;
-    text-shadow: 0 0 24px rgba(244,234,213,0.25);
     pointer-events: none;
     opacity: 0;
     z-index: 402;
     white-space: nowrap;
   }
+  #next-goal-flash .ng-body {
+    padding: 10px 26px 11px;
+    border-radius: 10px;
+    background: linear-gradient(180deg, rgba(16,22,26,0.94), rgba(7,10,12,0.96));
+    box-shadow: 0 0 0 2px var(--c-cyan, #16c8d8),
+                0 0 26px 4px rgba(22,200,216,0.28),
+                0 14px 34px rgba(0,0,0,0.55);
+  }
   #next-goal-flash .ng-label {
     display: block;
-    font-size: 12px;
-    letter-spacing: 5px;
-    color: rgba(244,234,213,0.5);
-    margin-bottom: 6px;
-    font-family: sans-serif;
-    text-transform: uppercase;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px; letter-spacing: 5px; text-transform: uppercase;
+    color: rgba(22,200,216,0.8);
+    margin-bottom: 3px;
   }
-  #next-goal-flash.show {
-    animation: ngFlashIn 0.5s cubic-bezier(0.2,0.9,0.2,1) forwards;
+  #next-goal-flash #next-goal-number {
+    display: block;
+    font-family: 'Orbitron', sans-serif; font-weight: 900;
+    font-size: 34px; letter-spacing: 3px;
+    color: #eafdff;
+    text-shadow: 0 0 18px rgba(22,200,216,0.55);
   }
-  @keyframes ngFlashIn {
-    0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.6); }
-    60%  { opacity: 1; transform: translate(-50%, -50%) scale(1.08); }
-    100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  #next-goal-flash.show { animation: ngFlashIn 0.4s ease forwards; }
+  #next-goal-flash.show .ng-body { animation: ngPunch 0.44s cubic-bezier(0.2,0.9,0.2,1); }
+  @keyframes ngFlashIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes ngPunch {
+    0%   { transform: scale(0.72); }
+    58%  { transform: scale(1.07); }
+    100% { transform: scale(1); }
   }  #next-goal-bg {
     position: fixed;
     inset: 0;
@@ -1972,11 +1994,19 @@
     transition: opacity 0.15s;
   }
   #countdown-321-overlay.show { opacity: 1; }
+  /* r236: house type, and legible over a board of cream cards. The glow alone
+     was doing nothing against a light card - the dark edge is painted OUTSIDE
+     the glyph (paint-order: stroke fill), the same trick the toasts and the
+     score particles use, so the numeral keeps its weight instead of being
+     thinned by an inset stroke. */
   #countdown-321-number {
-    font-family: 'Cinzel', serif;
-    font-size: 120px; font-weight: 900;
-    color: #e8b84b;
-    text-shadow: 0 0 40px rgba(232,184,75,0.8), 0 0 80px rgba(232,184,75,0.4);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 116px; font-weight: 900;
+    color: var(--c-yellow, #ffce2b);
+    -webkit-text-stroke: 5px rgba(6,8,10,0.92);
+    paint-order: stroke fill;
+    text-shadow: 0 0 34px rgba(255,206,43,0.75), 0 0 74px rgba(255,206,43,0.35);
+    letter-spacing: 2px;
     line-height: 1;
   }
   @keyframes countdown-pop {

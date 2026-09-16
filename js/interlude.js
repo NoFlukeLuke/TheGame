@@ -465,6 +465,22 @@ async function showNextGoalFlash() {
   const numEl = document.getElementById('next-goal-number');
   if (!el || !numEl) return;
 
+  // r236: THE BOARD IS HELD BACK FROM HERE, not from show321Countdown.
+  //
+  // triggerLevelUp has already repopulated gridData by the time this runs, and
+  // `dealPhase` was not set until startNewRoundDealAnims - so any render() in
+  // the ~1.75s this stamp is up (a Trick tap, a HUD sync, a resize) painted the
+  // whole new board instantly behind it. The 3-2-1 then cleared those elements
+  // and dealt the same cards again as a fall: the reported "it says NEXT QUOTA
+  // while the cards fall in, then the countdown restarts the fall".
+  //
+  // Safe to set here and nowhere earlier because this function is ALWAYS
+  // followed immediately by show321Countdown - all three callers (level-up.js,
+  // match3.js, tricks-ui.js) are `showNextGoalFlash().then(() => show321Countdown())`
+  // - and that is what clears the flag when the deal lands.
+  dealPhase = true;
+  document.getElementById('grid')?.querySelectorAll('[data-card-id]:not(.temp-anim)').forEach(e => e.remove());
+
   const bg = document.getElementById('next-goal-bg');
   bg.classList.add('show');
   await new Promise(res => setTimeout(res, 250));

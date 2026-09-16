@@ -159,10 +159,28 @@
    was `position:fixed; inset:0` with a 30% top pad, which centred it on the
    screen - off-centre from the grid in the landscape layout. It is now sized to
    the grid slot instead. ── */
+/* `inset: auto` MUST come before left/top, and for a long time it did not.
+   `inset` is the shorthand for all four offsets, so listing it AFTER left and
+   top reset both back to auto - this rule has been setting a size and no
+   position since it was written, which is why the 3-2-1 was still landing at
+   the stage's top-left rather than over the board. Measured before the fix:
+   overlay at x=2 against a grid slot at x=648. */
 #stage.landscape #countdown-321-overlay {
   position: absolute;
-  left: 45%; top: 11.11%; width: 45.31%; height: 86%;
   inset: auto; padding-top: 0;
+  left: 45%; top: 11.11%; width: 45.31%; height: 86%;
+}
+
+/* r236: the NEXT QUOTA stamp belongs on the board for the same reason, and it
+   is the same rectangle - it and the 3-2-1 run one after the other on the same
+   beat, so anything else reads as the screen jumping between them. The outer
+   element is a pure positioner (css/style.css), so dropping the translate
+   centring here needs no second set of keyframes. */
+#stage.landscape #next-goal-flash {
+  position: absolute;
+  inset: auto;                       /* before left/top - see the note above */
+  left: 45%; top: 11.11%; width: 45.31%; height: 86%;
+  transform: none;
 }
 
 /* ═══════════════ PAYOUT - LETHE REMITTANCE ADVICE (r150) ═══════════════
