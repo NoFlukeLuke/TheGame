@@ -206,7 +206,7 @@ function _mapBuildOnce() {
 
   // Top the minimums up, counting what the funnel already placed.
   const count = k => tiles.filter(t => t.kind === k).length;
-  const needs = [['shop', 2], ['challenge', 2], ['event', 3], ['reward', 1]];
+  const needs = [['shop', 2], ['challenge', 2], ['event', 3], ['reward', 2]];
   for (const [k, min] of needs) {
     let missing = min - count(k);
     while (missing-- > 0 && free.length) {
@@ -285,7 +285,7 @@ function _mapValidate(tiles) {
   // build placed to satisfy them. Measured before this check: 12% of maps
   // shipped short of a minimum.
   const count = k => tiles.filter(t => t.kind === k).length;
-  if (count('shop') < 2 || count('challenge') < 2 || count('event') < 3 || count('reward') < 1) return false;
+  if (count('shop') < 2 || count('challenge') < 2 || count('event') < 3 || count('reward') < 2) return false;
   for (let s = 1; s <= MAP_SETS - 2; s++)
     if (!tiles.some(t => t.set === s && t.kind === 'level')) return false;
   const kindAt = (l, s) => {

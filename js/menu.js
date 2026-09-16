@@ -1,4 +1,4 @@
-const BUILD = "2026-09-16 · r242 · map guarantees >=1 reward-grid tile (owner playtest: ~1 in 10 maps rolled none) [merged onto main r241]";
+const BUILD = "2026-09-16 · r243 · map guarantees 2 reward-grid tiles (was 1; minimums now 9 of 12 free slots) [onto r242]";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
