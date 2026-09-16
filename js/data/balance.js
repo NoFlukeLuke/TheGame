@@ -414,3 +414,44 @@ function applyBalDescriptions() {
 }
 applyBalDescriptions();
 
+
+// ══════════════════════════════════════════════════════════════════════════
+// GLOBAL PRICE MULTIPLIER (r234)
+//
+// One knob over every credit SINK in the game, so the economy can be retuned
+// (and un-retuned) without editing a dozen price tables. It is applied in two
+// different ways depending on where the number lives:
+//
+//   - a plain `const` table (shop.js) is scaled ONCE at load, so everything
+//     derived from it - sell values, the +5 limit step - scales with it for
+//     free and cannot drift out of step with the buy price.
+//   - anything read out of BAL is scaled at the READ SITE, because
+//     applyEntityTiers() rewrites BAL in place from BAL_BASE whenever a tier
+//     changes and would throw away a load-time edit.
+//
+// Persisted so a tuning session survives a reload. Set to 1 for the shipped
+// pre-r234 economy.
+// ══════════════════════════════════════════════════════════════════════════
+let PRICE_MULT = parseFloat(localStorage.getItem('lethe.priceMult'));
+if (!isFinite(PRICE_MULT) || PRICE_MULT <= 0) PRICE_MULT = 2;
+
+// Scale one price. Always at least 1 - a sink that rounds to zero stops being a
+// cost at all, which is a different game rather than a cheaper one.
+function priceOf(n) {
+  if (typeof n !== 'number' || !isFinite(n) || n <= 0) return n;
+  return Math.max(1, Math.round(n * PRICE_MULT));
+}
+
+// Scale every numeric value of a price table in place.
+function scalePriceTable(tbl) {
+  for (const k in tbl) if (typeof tbl[k] === 'number') tbl[k] = priceOf(tbl[k]);
+  return tbl;
+}
+
+function setPriceMult(v) {
+  v = parseFloat(v);
+  if (!isFinite(v) || v <= 0) return PRICE_MULT;
+  localStorage.setItem('lethe.priceMult', String(v));
+  PRICE_MULT = v;     // tables already scaled this session; takes full effect on reload
+  return PRICE_MULT;
+}

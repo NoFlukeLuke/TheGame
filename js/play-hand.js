@@ -11,7 +11,11 @@ function generateHandFocus(hand, handCells, vultureSec) {
     const secondsSinceLast = lastHandTime > 0 ? (now - lastHandTime) / 1000 : Infinity;
     // window > 1 DILATES the speed curve: the clock is read as if less time had
     // passed, so you get the same speed bonus with twice as long to play.
-    const speedBonus = Math.floor(speedBonusFromTime(secondsSinceLast / _fr.window) * _fr.speed);
+    // r234: Pair / Flush of 3 / Flush of 4 earn HALF the speed bonus. The halving
+    // is applied AFTER the rate mods and before the floor, so an Overclock or a
+    // Flywheel still doubles what is left rather than being cancelled by it.
+    const _halfSpeed = FOCUS_HALF_SPEED_HANDS.has(hand) ? 0.5 : 1;
+    const speedBonus = Math.floor(speedBonusFromTime(secondsSinceLast / _fr.window) * _fr.speed * _halfSpeed);
     let totalFocus = handFocus + speedBonus;
     // Rhythm: +1 focus per hand
     totalFocus += 1 * trickFires('rhythm');

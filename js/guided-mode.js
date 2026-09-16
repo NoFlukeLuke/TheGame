@@ -68,7 +68,9 @@ function guidedStopPrice(kind, id) {
              : kind === 'event'  ? B.price_event
              :                     0;          // level, elite and pick3 are free
   if (!base) return 0;
-  return base + GUIDED_REPEAT_STEP * (guidedBuysThisAct[kind] || 0);
+  // r234: scaled at the READ site, not in BAL - applyEntityTiers() rewrites BAL
+  // in place from BAL_BASE, so a load-time edit there would be thrown away.
+  return priceOf(base) + priceOf(GUIDED_REPEAT_STEP) * (guidedBuysThisAct[kind] || 0);
 }
 
 // ── What is on offer ───────────────────────────────────────────────────────

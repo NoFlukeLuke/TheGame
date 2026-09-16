@@ -77,6 +77,19 @@ function cardBuffLines(k) {
   return lines;
 }
 
+// Every ordinary deck card that carries at least one permanent buff (r234).
+//
+// "Two random cards leave your deck" is only a COST if the cards are worth
+// something, and on a 52-card deck a random pair almost never is - The Price was
+// selling real power for nothing. The trades that take cards now take BUFFED
+// cards, which is the only version of that cost a player can feel.
+//
+// Reads through cardBuffLines() rather than testing the seven perm* stores by
+// hand, so a buff kind added later is counted here for free.
+function buffedDeckCards() {
+  return everyDeckCard().filter(c => cardBuffLines(cardId(c)).length > 0);
+}
+
 // ── CARD CURSES (reward-grid debuffs) ──
 // A curse afflicts one specific card identity (key "rank-suit", like permPips).
 // Curses are worked off by SCORING the cursed card `liftAfter` times - playing

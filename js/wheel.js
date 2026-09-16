@@ -114,7 +114,7 @@ function ensureWheelOverlay() {
 let wheelPaid = false;
 function openWheel() {
   if (wheelActive) return;
-  const cost = BAL.wheel.cost;
+  const cost = priceOf(BAL.wheel.cost);
   if (coins < cost) { showMessage(`The wheel costs ${cost} credits`, 'var(--red)'); return; }
   wheelActive = true; wheelSpinning = false; wheelResolved = true; wheelPaid = false;
   wheelSlots = buildWheelSlots();
@@ -133,7 +133,7 @@ function openWheel() {
 // The confirm step: this is where the credits actually go.
 function confirmWheelSpin() {
   if (wheelPaid) return;
-  const cost = BAL.wheel.cost;
+  const cost = priceOf(BAL.wheel.cost);
   if (coins < cost) { showMessage('Not enough credits', 'var(--red)'); return; }
   coins -= cost; updateCoinsUI();
   wheelPaid = true;

@@ -429,11 +429,18 @@ function toggleShopSellMode() {
   renderShopGrid();
 }
 
+// Reroll cost / count, in ONE place (r234). Three surfaces read these - the
+// REROLL button on the action column, the cost readout, and shopGridReroll's own
+// affordability check - and a fourth would have been a fourth copy of the ladder.
+// Scaled by PRICE_MULT like every other sink.
+function shopRerollMax()   { return limits.reroll ? limits.reroll.current : 3; }
+function shopRerollsLeft() { return Math.max(0, shopRerollMax() - shopRerollCount); }
+function shopRerollCost()  { return priceOf(8) + shopRerollCount * priceOf(2); }
+
 function shopGridReroll() {
   if (shopGridMode !== 'buy') return;
-  const maxRerolls = limits.reroll ? limits.reroll.current : 3;
-  if (shopRerollCount >= maxRerolls) { showMessage('No rerolls left', 'var(--red)'); return; }
-  const cost = 8 + shopRerollCount * 2;
+  if (shopRerollsLeft() <= 0) { showMessage('No rerolls left', 'var(--red)'); return; }
+  const cost = shopRerollCost();
   if (coins < cost) { showMessage('Not enough credits', 'var(--red)'); return; }
   coins -= cost; updateCoinsUI();
   shopRerollCount++;
@@ -453,9 +460,8 @@ function updateShopGridButtons() {
 // Cost / discount readout rendered INTO the hand-preview slot (#selected-cards).
 function renderShopCostReadout() {
   const sc = document.getElementById('selected-cards'); if (!sc) return;
-  const maxRerolls = limits.reroll ? limits.reroll.current : 3;
-  const rerollCost = 8 + shopRerollCount * 2;
-  const rerollLeft = Math.max(0, maxRerolls - shopRerollCount);
+  const rerollCost = shopRerollCost();
+  const rerollLeft = shopRerollsLeft();
   let costLine;
   if (shopGridMode === 'sell') {
     costLine = `<div class="sc-line"><span>SELL MODE</span><span class="sc-off">tap to sell</span></div>`
