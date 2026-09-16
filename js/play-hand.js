@@ -337,6 +337,15 @@ function playHand() {
   // Scaling card buffs: a card carrying permMultGrow / permPipsGrow raises its
   // own FLAT bonus now, so the growth shows on its next play (js/deck-grid.js).
   if (typeof growCardScaling === 'function') growCardScaling(result.handCells.map(([r, c]) => gridData[r]?.[c]));
+  // Hallmark (r234): this round's marked card, if the hand scored it. After the
+  // score commits, exactly like growCardScaling above and recordNaturalScale
+  // below - a buff earned by a hand pays out on the NEXT one. Rolling it inside
+  // calcScore would fire on every speculative re-score instead.
+  if (typeof hallmarkResolve === 'function') hallmarkResolve(result.handCells.map(([r, c]) => gridData[r]?.[c]));
+  // Forced Trick fires are spent by the hand they paid for (js/force-trick.js).
+  // Cleared here rather than in calcScore for the speculative-re-score reason
+  // given there.
+  if (typeof forcedTrickIds !== 'undefined' && forcedTrickIds.length) forcedTrickIds = [];
   // Natural Scaling: credit every hand type this play paid for - the primary and
   // any other family it layered (a same-suit run earns both). After the score is
   // committed, so the buff lands on the NEXT hand of that type, not this one.

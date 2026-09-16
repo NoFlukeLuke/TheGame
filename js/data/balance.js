@@ -211,6 +211,7 @@ const BAL = {
   quarter_chime: { pips: 45 },
   minute_hand: { mult: 5, hands: 2 },
   understudy: { interval_seconds: 30 },
+  hallmark:   { mult: 5, pips: 10, seconds: 3, force_scale: 1, force_cap_x: 8 },
   second_hand: { pips: 5 },
   hourglass: { chance: 1/3 },
   sediment: { interval_seconds: 10, pips_per_interval: 10 },
@@ -296,6 +297,7 @@ const ENTITY_TIER_W  = [59, 28, 10, 2, 1];
 
 const DESC_TEMPLATES = {
   understudy: 'Every {interval_seconds} seconds one of your tricks is primed: it fires an extra time on your next hand.',
+  hallmark:   'Once a round a card on the board is marked. Score it and it takes a random buff: +{mult} mult, +{pips} pips, an extra replay, {seconds}s of clock, or a trick primed or forced.',
   whetstone: 'Whenever an adjacent card is swapped or discarded, Whetstone gains +{mult_per_event} mult permanently. Hands that score a card adjacent to Whetstone score that mult.',
   entourage: 'Hands score +{mult_per_sleight} mult for every other Sleight on the grid.',
   lighthouse: 'Each round Lighthouse picks either the first or last column. All hands score +{mult} mult when Lighthouse is in that column, −{falloff_per_column} per column away (minimum 0).',

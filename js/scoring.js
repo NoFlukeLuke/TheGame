@@ -968,6 +968,48 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     if (!_pd && !_md) return;
     for (let k = 0; k < _extra; k++) { if (_pd) { totalPips += _pd; bPip('primed', _pd); } if (_md) { mult += _md; bMult('primed', _md); } }
   });
+  // FORCED fires (r234, js/force-trick.js). Sits here, beside priming, because it
+  // is the same question - "fire this Trick again" - asked of a Trick that did
+  // NOT fire. The prime loop above returns early on an empty `_cp`/`_cm`, so an
+  // unmet condition has no delta to replay; a forced fire pays the Trick's
+  // nominal BAL payout instead, condition ignored.
+  //
+  // READ ONLY. `forcedTrickIds` is spent in playHand, never here - calcScore runs
+  // speculatively for every connected subset in findBestHand and on every tap of
+  // the live PIPS/MULT preview, so consuming here would spend the charge dozens
+  // of times per selection. Same rule siphonMultX and minuteHandCharges follow.
+  if (typeof forcedTrickIds !== 'undefined' && forcedTrickIds.length
+      && typeof trickForcedPayout === 'function') {
+    // A forced fire may MULTIPLY a hand; it may not REPLACE it. Forcing pays the
+    // Trick's real value, and a Trick's real value spans two orders of magnitude:
+    // measured over 20 boards, the median forced fire is x2 (common/rare/epic),
+    // x3 legendary and x5.7 mythic - but **Rogue Wave reached x130**, because it
+    // pays 80 pips AND 16 mult per card and a 5-card hand collects both.
+    //
+    // So each axis gets a budget, and the budget is sqrt(cap) rather than cap:
+    // pips and mult MULTIPLY each other, so capping each at the full factor would
+    // let the two compound to cap^2 (measured: an x8 per-axis cap landed at x64).
+    // Nothing at the median comes near this - a +2 pip common on a 30-pip hand is
+    // x1.07 - so the cap only ever bites the outliers it was written for.
+    //
+    // Clamped BEFORE it is emitted, never scaled back afterwards: the dance
+    // replays this timeline and must reproduce calcScore exactly (r220), so a
+    // correction applied after the event is written would be a drift by
+    // construction.
+    const _fcX  = (BAL.hallmark && BAL.hallmark.force_cap_x) || 8;
+    const _fAx  = Math.sqrt(_fcX) - 1;
+    let _fpLeft = Math.max(0, totalPips * _fAx);
+    let _fmLeft = Math.max(0, mult * _fAx);
+    forcedTrickIds.forEach(fid => {
+      const fp = trickForcedPayout(fid, cards.length);
+      const _fpAdd = Math.min(fp.pips, _fpLeft); _fpLeft -= _fpAdd;
+      const _fmAdd = Math.round(Math.min(fp.mult, _fmLeft) * 10) / 10; _fmLeft -= _fmAdd;
+      if (_fpAdd) { totalPips += _fpAdd; bPip(fid, _fpAdd); }
+      if (_fmAdd) { mult      += _fmAdd; bMult(fid, _fmAdd); }
+      if (fp.pipX !== 1)  { const _pre = totalPips; totalPips = Math.round(totalPips * fp.pipX);        bPipX(fid, fp.pipX,  totalPips - _pre); }
+      if (fp.multX !== 1) { const _pre = mult;      mult      = Math.round(mult * fp.multX * 10) / 10;  bMultX(fid, fp.multX, mult - _pre); }
+    });
+  }
   // Double Take: each scored 2 duplicates your most recently acquired Trick's contribution
   if (hasTrick('twos_retrigger') && trickTrayMode) {
     const _t2 = cards.filter(c => c.rank === '2').length;
