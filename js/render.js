@@ -298,8 +298,11 @@ function render() {
     document.getElementById('btn-play').disabled    = match3Active() || !bestHandResult || _belowMin || (animating && !falling);
     document.getElementById('btn-discard').disabled = selected.length === 0 || (animating && !falling);
   }
-  const _dc = document.getElementById('disc-count'); if (_dc) _dc.textContent = `(${discards})`;
-  const _sc = document.getElementById('swap-count'); if (_sc) _sc.textContent  = swaps;
+  // Both readouts are guarded for the same reason (r237 found the second one):
+  // a takeover screen rewrites this chrome, so neither element is in the DOM
+  // for the length of it and an unguarded write throws mid-render.
+  { const _dc = document.getElementById('disc-count'); if (_dc) _dc.textContent = `(${discards})`; }
+  { const _sc = document.getElementById('swap-count'); if (_sc) _sc.textContent = swaps; }
 
   // Marked-row / marked-column lines. Drawn last, for the same reason
   // reapplyClockFreeze is called here: it reads the finished DOM. Its "is the

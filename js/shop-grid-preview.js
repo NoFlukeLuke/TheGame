@@ -332,6 +332,100 @@ function sellOwnedSleight(inst) {
   if (typeof updateDeckHud === 'function') updateDeckHud();
 }
 
+// ── What you already own, per shop category (r237) ──────────────────────────
+//
+// Each category row's plate prints how many you hold and opens the list.
+// Keyed by the CATEGORY KEY from SHOP_CATS ('tricks', 'sleights', ...), not by
+// a row index: rows carry a rolled category and can be pinned, so row 2 is not
+// always Sleights.
+//
+// SLEIGHTS are the reason this exists: a Sleight works by SITTING ON THE GRID,
+// and the shop has taken the grid, so while you are deciding whether to buy one
+// there is no way at all to see the ones you already have. allOwnedSleightCards
+// is the right source rather than the grid - it covers the board, the draw pile
+// and the played pile, which is genuinely "what you own".
+//
+// Returns { name, desc, emoji, id, entity, rarity, uses } so the panel can draw
+// each one with the SHARED entity tile, exactly as the shelf draws what is for
+// sale. Owning something and being offered it should not look like two things.
+function shopOwnedOfKind(cat) {
+  if (cat === 'knacks')
+    return (acquiredKnacks || []).map(k => ({ ...k, entity: 'knack', rarity: k.tier || k.rarity || 'common' }));
+
+  if (cat === 'tricks')
+    return (trickTray || []).map(t => ({ ...t, entity: 'trick',
+      emoji: (typeof trickEmoji === 'function' ? trickEmoji(t.id) : t.emoji),
+      desc:  (typeof trickLiveDesc === 'function' ? trickLiveDesc(t) : t.desc),
+      rarity: t.tier || t.rarity || 'common' }));
+
+  if (cat === 'sleights') {
+    const seen = {};
+    (typeof allOwnedSleightCards === 'function' ? allOwnedSleightCards() : []).forEach(card => {
+      const def = sleightDef(card); if (!def) return;
+      // Several physical copies of one Sleight are ONE row with a charge total -
+      // a list that repeats the same name three times is not an inventory.
+      const e = seen[def.id] || (seen[def.id] = { ...def, entity: 'sleight', rarity: def.rarity || 'common', uses: 0, copies: 0 });
+      e.copies++;
+      if (card._usesLeft === 'infinite' || def.durability === 'infinite') e.infinite = true;
+      else e.uses += (card._usesLeft ?? 0);
+    });
+    return Object.values(seen);
+  }
+
+  // CARDS: the deck is 52 rows of nothing to decide about, so what is worth
+  // listing is the cards you have INVESTED in - the ones a card service would
+  // be changing. cardBuffLines is the same wording the grid tooltip uses.
+  if (cat === 'cards')
+    return (typeof buffedDeckCards === 'function' ? buffedDeckCards() : []).map(c => ({
+      name: `${c.rank}${c.suit}`, entity: null, icon: c.suit, rarity: 'common',
+      cardFace: { rank: c.rank, suit: c.suit },
+      desc: cardBuffLines(cardId(c)).join(' \u00b7 ') }));
+
+  // IMPROVE: everything you own that still has a tier left to buy.
+  if (cat === 'improve')
+    return (typeof ownedImprovable === 'function'
+      ? ['trick', 'knack', 'sleight'].flatMap(t => ownedImprovable(t) || [])
+      : []).map(e => ({ ...e, rarity: e.tier || e.rarity || 'common' }));
+
+  // UPGRADES: the limits are always all owned, so what matters is where each
+  // one currently stands rather than how many there are.
+  return (typeof LIMITS_DEF !== 'undefined' ? LIMITS_DEF : []).map(d => {
+    const l = limits[d.id] || {};
+    return { id: d.id, name: d.name, entity: null, icon: '\u25b2', rarity: 'common',
+             desc: `${l.current ?? '\u00b7'} of a possible ${l.max ?? '\u00b7'}` };
+  });
+}
+
+function openShopOwnedPanel(cat) {
+  const items = shopOwnedOfKind(cat);
+  const kind  = String((typeof shopgCatLabel === 'function' ? shopgCatLabel(cat) : cat) ?? '');
+  let el = document.getElementById('shop-owned-panel');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'shop-owned-panel';
+    // Body-level, outside #cabinet, for the usual reason: anything inside it
+    // inherits the cabinet's CSS zoom and a panel sized in px paints at about
+    // twice the number written.
+    document.body.appendChild(el);
+    el.onclick = (e) => { if (e.target === el || e.target.classList.contains('sop-close')) closeShopOwnedPanel(); };
+  }
+  el.innerHTML = `<div class="sop-box">`
+    + `<div class="sop-bar"><span>YOU OWN · ${kind.toUpperCase()}</span><button class="sop-close">✕</button></div>`
+    + `<div class="sop-list">`
+    + (items.length
+        ? items.map(it => `<div class="sop-row">`
+            + `<div class="sop-tile">${entityTileHTML(it, it.rarity)}</div>`
+            + `<div class="sop-text"><b>${it.name || ''}</b>`
+            + (it.copies > 1 ? `<i class="sop-copies">x${it.copies}</i>` : '')
+            + `<span>${it.desc || ''}</span>`
+            + (it.entity === 'sleight' ? `<span class="sop-uses">${it.infinite ? '∞ charges' : it.uses + ' charges left'}</span>` : '')
+            + `</div></div>`).join('')
+        : `<div class="sop-empty">You hold none.</div>`)
+    + `</div></div>`;
+  el.classList.add('show');
+}
+function closeShopOwnedPanel() { document.getElementById('shop-owned-panel')?.classList.remove('show'); }
+
 // ── Open / close ──
 let _shopPrevPV = null;   // portrait panel view to restore on close
 function openShopGrid() {
@@ -378,14 +472,49 @@ function openShopGrid() {
 // Dev-panel + earlier hook both call this name.
 function openShopGridPreview() { openShopGrid(); }
 
+// The stock FALLS OUT when you leave (r237), the mirror of the deal-in.
+//
+// closeShopGrid is SYNCHRONOUS - every caller's continuation runs on the same
+// tick - so the tiles cannot animate inside #grid, which is emptied immediately
+// and then rebuilt by the next round's board. They are MOVED into a throwaway
+// layer laid exactly over #grid instead, which keeps their left/top meaningful
+// (same coordinate space, same zoom) and lets the real board come back
+// underneath while the shop is still falling off it.
+//
+// Bottom row first, so it unbuilds in the reverse of the order it was dealt.
+function shopGridFallOut() {
+  const gridEl = document.getElementById('grid');
+  const host   = gridEl?.parentElement;
+  if (!gridEl || !host) return;
+  const tiles = [...gridEl.children];
+  if (!tiles.length) return;
+  const layer = document.createElement('div');
+  layer.className = 'shopg-exit-layer';
+  layer.style.cssText = `position:absolute;left:${gridEl.offsetLeft}px;top:${gridEl.offsetTop}px;`
+                      + `width:${gridEl.offsetWidth}px;height:${gridEl.offsetHeight}px;pointer-events:none;z-index:7;`;
+  const OUT_MS = 300;
+  const rows = shopgRows();       // the board is sized off the player's board
+  tiles.forEach(el => {
+    const r = +(el.dataset.r ?? 0);
+    el.classList.remove('shopg-in');
+    el.style.setProperty('--sgd', ((rows - 1 - r) * 55) + 'ms');
+    el.classList.add('shopg-out');
+    layer.appendChild(el);                 // moves it, so #grid is left empty
+  });
+  host.appendChild(layer);
+  setTimeout(() => layer.remove(), OUT_MS + rows * 55 + 80);
+}
+
 function closeShopGrid() {
   if (!shopGridActive) return;
   shopGridActive = false;
   hideRewardTooltip();
+  closeShopOwnedPanel();
   document.body.classList.remove('shop-active');
   if (_shopPrevPV && typeof setPortraitPanelView === 'function') { setPortraitPanelView(_shopPrevPV, { auto: true }); _shopPrevPV = null; }
   exitGridScreenHud();
   exitShopGridButtons();
+  shopGridFallOut();
   const gridEl = document.getElementById('grid'); if (gridEl) gridEl.innerHTML = '';
   if (shopGridSaved) { gridRows = shopGridSaved.rows; gridCols = shopGridSaved.cols; shopGridSaved = null; }
   recomputeGridMetrics();
@@ -486,17 +615,57 @@ function ensureShopSquishTab() {
 
 // ── Button repurposing: Play → BUY, Discard → LEAVE ──
 let _shopgPlayHTML = null, _shopgDiscHTML = null;
+// The SWAP cap becomes REROLL for the length of the shop (r237), exactly as the
+// reward grid repurposes it into SKIP. Swaps are a BOARD action and there is no
+// board here, so the cap was sitting dead above two live buttons - and the
+// reroll it replaces was a 9px chip tucked in the cost readout, which is not
+// where a player looks for an action.
+//
+// Three lines and no more: the word, the number of rerolls you have left (the
+// thing you are actually rationing), and the price of the next one. The
+// remaining-count is the big figure because it is the decision; the price is a
+// footnote in the same place the other two caps print their time cost.
+let _shopgSwapHTML = null;
+function shopRerollCapHTML() {
+  const left = shopRerollsLeft();
+  return `<span class="srr-word">REROLL</span>`
+       + `<span class="srr-left">${left}</span>`
+       + `<span class="srr-cost">${left > 0 ? '\ud83d\udcb0' + shopRerollCost() : 'none left'}</span>`;
+  // title, not a fourth line: the cap is a small box and "1 per unused swap" is
+  // the rule behind the number, not the number itself.
+}
+function syncShopRerollCap() {
+  const swap = document.getElementById('swap-indicator');
+  if (!swap || !shopGridActive) return;
+  swap.innerHTML = shopRerollCapHTML();
+  swap.title = 'Rerolls are rationed: 1 per swap you had left when the shop opened.';
+  const spent = shopGridMode === 'sell' || shopRerollsLeft() <= 0 || coins < shopRerollCost();
+  swap.classList.toggle('srr-spent', spent);
+}
 function enterShopGridButtons() {
   const play = document.getElementById('btn-play');
   const disc = document.getElementById('btn-discard');
+  const swap = document.getElementById('swap-indicator');
   if (play) { if (_shopgPlayHTML === null) _shopgPlayHTML = play.innerHTML; play.classList.add('reward-buy');  play.innerHTML = 'B<br>U<br>Y'; }
   if (disc) { if (_shopgDiscHTML === null) _shopgDiscHTML = disc.innerHTML; disc.classList.add('reward-clear'); disc.innerHTML = 'L<br>E<br>A<br>V<br>E'; disc.disabled = false; }
+  if (swap) {
+    if (_shopgSwapHTML === null) _shopgSwapHTML = swap.innerHTML;
+    swap.classList.add('shop-reroll');
+    swap.onclick = (e) => { e.stopPropagation(); shopGridReroll(); };
+    syncShopRerollCap();
+  }
 }
 function exitShopGridButtons() {
   const play = document.getElementById('btn-play');
   const disc = document.getElementById('btn-discard');
+  const swap = document.getElementById('swap-indicator');
   if (play && _shopgPlayHTML !== null) { play.classList.remove('reward-buy');  play.innerHTML = _shopgPlayHTML; }
   if (disc && _shopgDiscHTML !== null) { disc.classList.remove('reward-clear'); disc.innerHTML = _shopgDiscHTML; }
+  if (swap && _shopgSwapHTML !== null) {
+    swap.classList.remove('shop-reroll', 'srr-spent');
+    swap.innerHTML = _shopgSwapHTML; swap.onclick = null;
+    // The saved markup carries #swap-count back with it; render() refills it.
+  }
 }
 
 // ── Render ──
@@ -551,7 +720,20 @@ function renderShopGrid(animateIn = false) {
       lab.style.height = CARD_H + 'px';
       lab.innerHTML = `<span class="srl-icon">${cat?.icon || ''}</span>`
                     + `<span class="srl-name">${catLabel}</span>`
-                    + (meta?.pinned ? `<span class="srl-pin" title="Bought from: this category stays on reroll">📌</span>` : '');
+                    + (meta?.pinned ? `<span class="srl-pin" title="Bought from: this category stays on reroll">📌</span>` : '')
+                    + `<span class="srl-own">${meta ? (shopOwnedOfKind(meta.cat).length || '') : ''}</span>`;
+      // The plate opens WHAT YOU ALREADY OWN of that category. Sleights are the
+      // case that prompted it - they sit on the board, so once the shop has
+      // taken the board over there is no way at all to see what you are holding
+      // while deciding whether to buy another - but the same question is worth
+      // answering for every row, and it is one handler rather than a Sleight
+      // special case.
+      //
+      // It stays `unselectable` (pointer-events are re-enabled in CSS for this
+      // rule alone): this is its own handler, so it can never route a connected
+      // pick through the heading.
+      lab.classList.add('srl-openable');
+      lab.onclick = (e) => { e.stopPropagation(); openShopOwnedPanel(meta?.cat); };
       fallIn(lab, r, 0);
       gridEl.appendChild(lab);
     }
@@ -597,6 +779,7 @@ function renderShopGrid(animateIn = false) {
   if (typeof updateSelectionUI === 'function') updateSelectionUI();
   renderShopCostReadout();
   updateShopGridButtons();
+  syncShopRerollCap();
 }
 
 // ── Span-aware selection helpers ──
@@ -734,10 +917,21 @@ function toggleShopSellMode() {
   renderShopGrid();
 }
 
+// Reroll cost / count, in ONE place (r234). Three surfaces read these - the
+// REROLL button on the action column, the cost readout, and shopGridReroll's own
+// affordability check - and a fourth would have been a fourth copy of the ladder.
+// Scaled by PRICE_MULT like every other sink.
+// The cap is upstream's: rerolls are RATIONED by the swaps you were holding when
+// the shop opened (shopRerollCap, set in openShopGrid), not by a limit. The
+// ladder is this branch's, scaled by PRICE_MULT like every other sink.
+function shopRerollMax()   { return (typeof shopRerollCap === 'number') ? shopRerollCap : 0; }
+function shopRerollsLeft() { return Math.max(0, shopRerollMax() - shopRerollCount); }
+function shopRerollCost()  { return priceOf(10) + shopRerollCount * priceOf(5); }
+
 function shopGridReroll() {
   if (shopGridMode !== 'buy') return;
-  if (shopRerollCount >= shopRerollCap) { showMessage('No rerolls left · 1 per unused swap', 'var(--red)'); return; }
-  const cost = 10 + shopRerollCount * 5;
+  if (shopRerollsLeft() <= 0) { showMessage('No rerolls left · 1 per unused swap', 'var(--red)'); return; }
+  const cost = shopRerollCost();
   if (coins < cost) { showMessage('Not enough credits', 'var(--red)'); return; }
   coins -= cost; updateCoinsUI();
   shopRerollCount++;
@@ -758,8 +952,6 @@ function updateShopGridButtons() {
 // Cost / discount readout rendered INTO the hand-preview slot (#selected-cards).
 function renderShopCostReadout() {
   const sc = document.getElementById('selected-cards'); if (!sc) return;
-  const rerollCost = 10 + shopRerollCount * 5;
-  const rerollLeft = Math.max(0, shopRerollCap - shopRerollCount);
   let costLine;
   if (shopGridMode === 'sell') {
     costLine = `<div class="sc-line"><span>SELL MODE</span><span class="sc-off">tap to sell</span></div>`
@@ -776,11 +968,12 @@ function renderShopCostReadout() {
   }
   sc.innerHTML =
     `<div class="shop-cost">${costLine}` +
+      // r237: REROLL lives on the swap cap now (syncShopRerollCap). Leaving the
+      // 9px chip here as well would be the same action in two places, one of
+      // them a footnote.
       `<div class="sc-actions">` +
-        `<button id="sc-reroll" title="Rerolls left: ${rerollLeft} (1 per unused swap)" ${shopGridMode==='sell'||rerollLeft<=0?'disabled':''}>🎲 ${rerollLeft>0?`${rerollCost} (${rerollLeft})`:'·'}</button>` +
         `<button id="sc-sell" class="${shopGridMode==='sell'?'sc-sell-on':''}">${shopGridMode==='sell'?'Back':'Sell'}</button>` +
       `</div>` +
     `</div>`;
-  const rb = sc.querySelector('#sc-reroll'); if (rb) rb.onclick = (e) => { e.stopPropagation(); shopGridReroll(); };
   const sb = sc.querySelector('#sc-sell');   if (sb) sb.onclick = (e) => { e.stopPropagation(); toggleShopSellMode(); };
 }

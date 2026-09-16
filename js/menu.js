@@ -1,4 +1,4 @@
-const BUILD = "2026-09-16 · r247 · the map has a board, a route and coloured tiles + render() can no longer kill the shop LEAVE button";
+const BUILD = "2026-09-16 · r251 · the map has a board, a route and coloured tiles + render() can no longer kill the shop LEAVE button [onto r250]";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

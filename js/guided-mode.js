@@ -69,7 +69,9 @@ function guidedStopPrice(kind, id) {
              : kind === 'event'  ? B.price_event
              :                     0;          // level, elite and pick3 are free
   if (!base) return 0;
-  return base + GUIDED_REPEAT_STEP * (guidedBuysThisAct[kind] || 0);
+  // r234: scaled at the READ site, not in BAL - applyEntityTiers() rewrites BAL
+  // in place from BAL_BASE, so a load-time edit there would be thrown away.
+  return priceOf(base) + priceOf(GUIDED_REPEAT_STEP) * (guidedBuysThisAct[kind] || 0);
 }
 
 // ── What is on offer ───────────────────────────────────────────────────────
@@ -462,6 +464,24 @@ function miniBossClear() {
 let guidedPendingChallenge = null;
 // The challenge the CURRENT round is running, or null.
 let guidedActiveChallenge  = null;
+
+// A saved challenge comes back WITHOUT ITS `test` (r238).
+//
+// CHALLENGE_DEFS entries carry a `test` closure, and a save is a JSON round
+// trip, so a restored guidedActiveChallenge is the right numbers attached to no
+// predicate at all - the raised goal would persist and the bonus could never
+// settle. Re-attach it by id, which is the only part of the object that has to
+// survive. An id this build no longer defines is dropped rather than left as a
+// live landmine, the same rule dropUnknownCurses follows for curses.
+function guidedRehydrateChallenges() {
+  const fix = ch => {
+    if (!ch) return null;
+    const def = CHALLENGE_DEFS.find(d => d.id === ch.id);
+    return def ? { ...ch, test: def.test } : null;
+  };
+  guidedActiveChallenge  = fix(guidedActiveChallenge);
+  guidedPendingChallenge = fix(guidedPendingChallenge);
+}
 
 function rollChallengeLevel() {
   // `avail` gates a requirement that cannot currently be met (Wide Net below

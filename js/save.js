@@ -55,17 +55,27 @@ const SAVE_VARS = [
   'deadCells', 'riderTrickId', 'interestFreezeRounds', 'spotCheckHand', 'spotCheckLeft', 'nextRoundGridShrink',
   'luckModifiers',
   'actNumber', 'nodeInAct', 'rewardGridsSeen', 'forceBossNextRound', 'shopFromNodeFlow',
-  // Guided's act state. guidedInStop is deliberately NOT saved: a checkpoint is
-  // only ever taken at the START OF A ROUND, and a bought stop never straddles
-  // one, so it is always false when a save is written.
-  'guidedSlot', 'guidedEventOffers',
-  // Map mode (r238). mapTiles is plain data by construction - challenges are
-  // stored by id and rehydrated from CHALLENGE_DEFS at confirm time.
+  // Guided's act state. guidedInStop, guidedCrossroadsOpen and guidedOffers are
+  // deliberately NOT saved: a checkpoint is only ever taken at the START OF A
+  // ROUND, and a bought stop or an open crossroads never straddles one, so all
+  // three are always at rest when a save is written.
+  //
+  // The rest of it IS saved. startGame() resets every one of these to a
+  // fresh-run value and restore lays the save on top, so anything missing here
+  // is silently forgotten: without guidedBuysThisAct a resumed run forgets the
+  // repeat-purchase surcharge, without guidedSinceLevel the forced-level
+  // cadence, without guidedLastKind the no-repeat rule.
+  'guidedSlot', 'guidedEventOffers', 'guidedBuysThisAct', 'guidedLastKind', 'guidedSinceLevel',
+  // Map mode. mapTiles is plain data by construction - challenges are stored by
+  // id and rehydrated from CHALLENGE_DEFS at confirm time.
   'mapTiles', 'mapPos', 'mapVisits', 'mapSkips', 'mapBossGoal', 'mapBossArmed',
   'mapFirstRoundDone', 'mapPosTileId', 'swapsUsedRound',
-  // The live challenge survives a save as DATA (JSON drops its test function);
-  // guidedSettleChallenge re-reads the test from CHALLENGE_DEFS by id, and a
-  // mini-boss re-arms from startRoundTimer on resume.
+  // The live challenge survives a save as DATA (JSON drops its test function).
+  // guidedRehydrateChallenges re-attaches the test by id on the way in, so an
+  // active HARD ROUND resumes as one - without it roundGoal came back raised by
+  // guidedApplyPendingChallenge with no predicate to settle against, and the
+  // goal stayed up with the bonus unreachable. A mini-boss re-arms from
+  // startRoundTimer on resume.
   'guidedPendingChallenge', 'guidedActiveChallenge',
   'pendingEventOverride', 'rewardGridContext', 'skipTrickChoiceOverlay', 'pendingLevelUps',
   'goalReachedThisRound', 'roundEnded', 'suppressScoreDisplay', 'heldBackScore',
@@ -118,7 +128,7 @@ const SAVE_VARS = [
   'rewardSelected', 'rewardCells', 'rewardConfirmed',
   'shopRerollCount', 'shopPurchased', 'shopPurchaseCount', 'nextShopTime',
   // ── Boss ──
-  'bossActive', 'bossNumber', 'bossBag', 'nextBossTime', 'blockedCells', 'nullCells',
+  'bossActive', 'bossNumber', 'bossBag', 'actBossId', 'nextBossTime', 'blockedCells', 'nullCells',
   // ── Challenge ──
   'challengeCard', 'challengeActive', 'trickCardPos', 'trickCardTimer',
   // ── Survival ──
@@ -279,6 +289,9 @@ function resumeSavedRun() {
   // plays at base values.
   if (typeof applyEntityTiers === 'function') applyEntityTiers();
   dropUnknownCurses();
+  // Guided's challenges lost their predicate to the JSON round trip - see the
+  // note beside them in SAVE_VARS.
+  if (typeof guidedRehydrateChallenges === 'function') guidedRehydrateChallenges();
   _restoringSave = false;
 
   // The board came out of the save, so the grid has to be re-measured (a saved

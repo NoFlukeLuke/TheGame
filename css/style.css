@@ -554,6 +554,18 @@
     scrollbar-width: none;
   }
   #knack-list::-webkit-scrollbar { display: none; }
+  /* r234: the wrap is a viewport, never a scroller - overflow here showed an OS
+     scrollbar down the side of the knack rack. What does not fit is handled by
+     applyChipMarquee (it scrolls the row itself), not by the browser. */
+  #knack-carousel-wrap { overflow: hidden; scrollbar-width: none; }
+  #knack-carousel-wrap::-webkit-scrollbar { display: none; }
+  /* The tooltip DOES have to stay scrollable (it is viewport-capped like every
+     other pop-up), so it keeps its bar - just a thin themed one instead of the
+     OS default sitting on a 200px dark bubble. */
+  #knack-tooltip { scrollbar-width: thin; scrollbar-color: var(--gold-dim) transparent; }
+  #knack-tooltip::-webkit-scrollbar { width: 6px; }
+  #knack-tooltip::-webkit-scrollbar-track { background: transparent; }
+  #knack-tooltip::-webkit-scrollbar-thumb { background: var(--gold-dim); border-radius: 3px; }
   .knack-chip {
     width: 26px;
     height: 26px;
@@ -1433,39 +1445,61 @@
     top: auto; bottom: 14px; right: 14px; width: 30px; height: 30px; font-size: 16px;
   }
 
-  /* ── Next Goal flash ── */
+  /* ── Next Quota flash (restyled r236) ──
+     It was 42px Cinzel in bare cream over a board of cream playing cards, with
+     the label "Next task:" in the browser's default sans - a serif and a typeface
+     the game uses nowhere else, the corporate-structural label in sentence case,
+     and no plate to read it against.
+     It is the same object as the goal-clear stamp now (css/goal-clear.css): a
+     plate, an Orbitron title, a Share Tech Mono kicker. The two are a matched
+     pair by design - one closes a round, one opens the next - so the cyan here
+     against that one's mint is the whole difference.
+
+     STRUCTURE: the outer element is a POSITIONER and nothing else (it is what
+     landscape re-anchors onto the grid, below); .ng-body is the plate and is
+     what animates. Keeping the punch off the positioner is what lets landscape
+     drop the translate centring without needing its own keyframes. */
   #next-goal-flash {
     position: fixed;
     left: 50%;
     top: 38%;
     transform: translate(-50%, -50%);
-    font-family: 'Cinzel', serif;
-    font-size: 42px;
-    color: var(--cream);
-    letter-spacing: 2px;
+    display: flex; align-items: center; justify-content: center;
     text-align: center;
-    text-shadow: 0 0 24px rgba(244,234,213,0.25);
     pointer-events: none;
     opacity: 0;
     z-index: 402;
     white-space: nowrap;
   }
+  #next-goal-flash .ng-body {
+    padding: 10px 26px 11px;
+    border-radius: 10px;
+    background: linear-gradient(180deg, rgba(16,22,26,0.94), rgba(7,10,12,0.96));
+    box-shadow: 0 0 0 2px var(--c-cyan, #16c8d8),
+                0 0 26px 4px rgba(22,200,216,0.28),
+                0 14px 34px rgba(0,0,0,0.55);
+  }
   #next-goal-flash .ng-label {
     display: block;
-    font-size: 12px;
-    letter-spacing: 5px;
-    color: rgba(244,234,213,0.5);
-    margin-bottom: 6px;
-    font-family: sans-serif;
-    text-transform: uppercase;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px; letter-spacing: 5px; text-transform: uppercase;
+    color: rgba(22,200,216,0.8);
+    margin-bottom: 3px;
   }
-  #next-goal-flash.show {
-    animation: ngFlashIn 0.5s cubic-bezier(0.2,0.9,0.2,1) forwards;
+  #next-goal-flash #next-goal-number {
+    display: block;
+    font-family: 'Orbitron', sans-serif; font-weight: 900;
+    font-size: 34px; letter-spacing: 3px;
+    color: #eafdff;
+    text-shadow: 0 0 18px rgba(22,200,216,0.55);
   }
-  @keyframes ngFlashIn {
-    0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.6); }
-    60%  { opacity: 1; transform: translate(-50%, -50%) scale(1.08); }
-    100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  #next-goal-flash.show { animation: ngFlashIn 0.4s ease forwards; }
+  #next-goal-flash.show .ng-body { animation: ngPunch 0.44s cubic-bezier(0.2,0.9,0.2,1); }
+  @keyframes ngFlashIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes ngPunch {
+    0%   { transform: scale(0.72); }
+    58%  { transform: scale(1.07); }
+    100% { transform: scale(1); }
   }  #next-goal-bg {
     position: fixed;
     inset: 0;
@@ -3307,8 +3341,16 @@
                 inset 0 0 8px rgba(179,156,245,0.4);
   }
 
+  /* r234: the art is a BOUNDED BAND, not a glyph hung from a top offset.
+     It used to be `top: 16%` with `line-height: 1` and no bottom - so the box
+     was the glyph's own height and an emoji, which carries a lot of ascent and
+     descent, ran past the bottom of the tile art and into the name. Giving it a
+     real box between the corner glyph and the name band and centring inside it
+     means the emoji is centred in the space it actually has, at every tile size
+     the game draws (the per-surface overrides below change only the font size
+     and the top edge, so the box stays bounded). */
   .reward-cell .rwd-art {
-    position: absolute; top: 16%; left: 0; right: 0; margin: auto; z-index: 2;
+    position: absolute; top: 14%; bottom: 30%; left: 0; right: 0; margin: auto; z-index: 2;
     display: flex; align-items: center; justify-content: center;
     font-size: 30px; line-height: 1; filter: drop-shadow(0 0 6px var(--rc));
   }
@@ -4613,10 +4655,18 @@
   #clock.urgent { color: var(--c-coral) !important; }
   #vclock-fill { background: linear-gradient(90deg, var(--c-mint), var(--c-cyan)) !important; box-shadow: 0 0 8px rgba(22,200,216,0.5); }
 
-  /* Knack chips + trick tiles → plastic */
-  #stage.landscape #knack-list .knack-chip, .trick-tray-chip {
+  /* Knack chips → plastic. A knack chip IS the tile, so it carries the plate. */
+  #stage.landscape #knack-list .knack-chip {
     background: linear-gradient(180deg, #241d12, #151009) !important; border:1px solid #000 !important;
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.07) !important;
+  }
+  /* r234: a TRICK chip does NOT. It is a frame around a .reward-cell which has
+     its own plate, border and rarity edge, so a second plate on the wrapper
+     showed as a grey slab filling the chip's slot in the tray behind the tile -
+     and as a bare slab under every tucked tile in the portrait fan. The tile is
+     the whole object; the chip is just where it sits. */
+  .trick-tray-chip {
+    background: none !important; border: none !important; box-shadow: none !important;
   }
 
   /* ACT tracker LEDs */
@@ -5456,3 +5506,101 @@ body.reduced-motion .efx-hit { animation-duration: 1ms; }
   }
   #stage.landscape #sel-count-coins { display: none !important; }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   SHOP: THE REROLL CAP, THE FALL-OUT, AND THE OWNED PANEL (r237)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── The SWAP cap becomes REROLL ──
+   Swaps are a board action and the shop has the board, so the cap was dead
+   above two live buttons. It takes the reward grid's SKIP treatment (three
+   stacked lines in the same slot) rather than a look of its own - the two
+   screens repurpose the same control and should not repurpose it differently. */
+#action-col #swap-indicator.shop-reroll {
+  flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+  background: linear-gradient(180deg, #ffd35e, #e0a318) !important;
+  color: #3a2a05 !important;
+  border: 1px solid #000 !important;
+  box-shadow: inset 0 2px 0 rgba(255,255,255,0.45), 0 2px 0 #9a6f0c !important;
+  cursor: pointer; white-space: normal; text-align: center;
+  font-family: 'Share Tech Mono', monospace !important;
+}
+#action-col #swap-indicator.shop-reroll:hover  { filter: brightness(1.07); }
+#action-col #swap-indicator.shop-reroll:active { transform: translateY(2px); }
+#action-col #swap-indicator.shop-reroll .srr-word { font-size: 9px; letter-spacing: 1px; line-height: 1; opacity: 0.8; }
+#action-col #swap-indicator.shop-reroll .srr-left { font-size: 20px; font-weight: 700; line-height: 1.05; color: #3a2a05; }
+#action-col #swap-indicator.shop-reroll .srr-cost { font-size: 9px; line-height: 1; opacity: 0.75; }
+/* Spent / unaffordable: greyed but never hidden, so the slot does not appear to
+   lose a button halfway through a shop. */
+#action-col #swap-indicator.shop-reroll.srr-spent {
+  background: linear-gradient(180deg, #6a6152, #4a443a) !important;
+  color: #cfc8bb !important; cursor: default; filter: none;
+}
+#action-col #swap-indicator.shop-reroll.srr-spent .srr-left { color: #cfc8bb; }
+
+/* ── The stock falls out on the way off the board ──
+   The exact mirror of shopg-fall, dropping DOWNWARD: the board was dealt onto
+   the screen and is now being cleared off it. The layer is a throwaway placed
+   over #grid by shopGridFallOut, so the real board rebuilds underneath. */
+@keyframes shopg-drop {
+  from { opacity: 1; transform: none; }
+  to   { opacity: 0; transform: translateY(46px) scale(0.93) rotate(1.5deg); }
+}
+.shop-tile.shopg-out, .shop-row-label.shopg-out {
+  animation: shopg-drop .30s cubic-bezier(.45,0,.75,.3) both;
+  animation-delay: var(--sgd, 0ms);
+}
+body.reduced-motion .shop-tile.shopg-out,
+body.reduced-motion .shop-row-label.shopg-out { animation: none; opacity: 0; }
+
+/* ── The row plate is a button ──
+   .unselectable kills pointer events so a connected pick can never route
+   through a heading; this one rule puts them back for the plate, which has its
+   own handler and cannot reach the selection code. */
+.shop-row-label.srl-openable { pointer-events: auto; cursor: pointer; }
+.shop-row-label.srl-openable:hover { filter: brightness(1.12); }
+.shop-row-label .srl-own {
+  position: absolute; top: 4px; right: 6px;
+  font-family: 'Share Tech Mono', monospace; font-size: 9px;
+  color: var(--c-yellow, #ffce2b); opacity: 0.8;
+}
+
+/* ── "You own" panel ──
+   Body-level and outside #cabinet, so its px are real px. */
+#shop-owned-panel {
+  position: fixed; inset: 0; z-index: 620;
+  display: none; align-items: center; justify-content: center;
+  background: rgba(4,5,7,0.62);
+}
+#shop-owned-panel.show { display: flex; }
+#shop-owned-panel .sop-box {
+  width: min(420px, calc(100vw - 32px));
+  max-height: calc(100vh - 60px);
+  display: flex; flex-direction: column;
+  border-radius: 10px; overflow: hidden;
+  background: linear-gradient(180deg, rgba(16,22,26,0.98), rgba(7,10,12,0.99));
+  box-shadow: 0 0 0 2px var(--c-cyan, #16c8d8), 0 18px 46px rgba(0,0,0,0.6);
+}
+#shop-owned-panel .sop-bar {
+  flex: none; display: flex; align-items: center; justify-content: space-between;
+  padding: 9px 12px; background: rgba(22,200,216,0.14);
+  font-family: 'Share Tech Mono', monospace; font-size: 10px; letter-spacing: 3px;
+  color: var(--c-cyan, #16c8d8);
+}
+#shop-owned-panel .sop-close {
+  background: none; border: none; color: var(--c-cyan, #16c8d8);
+  font-size: 14px; cursor: pointer; line-height: 1; padding: 0 2px;
+}
+#shop-owned-panel .sop-list { overflow-y: auto; padding: 10px 12px 14px; display: flex; flex-direction: column; gap: 9px; }
+#shop-owned-panel .sop-row  { display: flex; gap: 10px; align-items: flex-start; }
+#shop-owned-panel .sop-tile { flex: 0 0 52px; width: 52px; height: 68px; }
+#shop-owned-panel .sop-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+#shop-owned-panel .sop-text b {
+  font-family: 'Orbitron', sans-serif; font-size: 11px; letter-spacing: 0.5px;
+  color: #eafdff; text-transform: uppercase;
+}
+#shop-owned-panel .sop-text span {
+  font-family: 'Crimson Pro', serif; font-size: 13px; line-height: 1.3; color: rgba(244,234,213,0.82);
+}
+#shop-owned-panel .sop-copies { font-family: 'Share Tech Mono', monospace; font-size: 10px; color: var(--c-yellow, #ffce2b); font-style: normal; }
+#shop-owned-panel .sop-uses   { font-family: 'Share Tech Mono', monospace !important; font-size: 10px !important; color: var(--c-cyan, #16c8d8) !important; }
+#shop-owned-panel .sop-empty  { font-family: 'Crimson Pro', serif; font-size: 14px; color: rgba(244,234,213,0.6); text-align: center; padding: 18px 0; }

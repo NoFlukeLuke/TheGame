@@ -127,6 +127,7 @@ function survivalInitRun() {
   survivalEndlessFromLevel = Infinity;
   bossNumber               = 0;
   bossBag                  = [];
+  actBossId                = null;   // Survival/Flow draw at trigger time (r238)
   document.getElementById('stage')?.classList.add('survival-mode');
   updateSurvivalShopBtn();
 }

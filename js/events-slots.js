@@ -176,7 +176,7 @@ function renderFloor() {
   floorRenderControls();
 }
 
-function floorLineCost() { return BAL.the_floor.line_cost * eventState.floorLines; }
+function floorLineCost() { return priceOf(BAL.the_floor.line_cost) * eventState.floorLines; }
 
 function floorRenderControls() {
   const body = document.getElementById('event-body');
@@ -353,8 +353,8 @@ function paylineRenderControls() {
   const spin = document.createElement('button');
   spin.className = 'ev-btn';
   spin.id = 'ev-payline-spin';
-  spin.textContent = `SPIN · ${BAL.the_payline.spin_cost}`;
-  spin.disabled = coins < BAL.the_payline.spin_cost;
+  spin.textContent = `SPIN · ${priceOf(BAL.the_payline.spin_cost)}`;
+  spin.disabled = coins < priceOf(BAL.the_payline.spin_cost);
   spin.onclick = () => paylineSpin();
   wrap.appendChild(spin);
 
@@ -364,7 +364,7 @@ function paylineRenderControls() {
 }
 
 function paylineSpin() {
-  const cost = BAL.the_payline.spin_cost;
+  const cost = priceOf(BAL.the_payline.spin_cost);
   if (coins < cost) return;
   coins -= cost; updateCoinsUI?.();
   eventState.paylineSpun++;
@@ -397,7 +397,7 @@ function paylineResolve(host, grid) {
     status.innerHTML = 'No line. Spin again.';
   }
   const btn = document.getElementById('ev-payline-spin');
-  if (btn) btn.disabled = coins < BAL.the_payline.spin_cost;
+  if (btn) btn.disabled = coins < priceOf(BAL.the_payline.spin_cost);
   document.getElementById('event-confirm').textContent = 'CASH OUT';
 }
 

@@ -417,6 +417,34 @@ let bossWindowDuration = BOSS_WINDOW_DURATION;
 // refill when empty. No repeats inside a run, and every boss is reachable.
 let bossBag = [];
 
+// ── THE ACT'S BOSS IS DRAWN WHEN THE ACT OPENS, AND HELD (r238) ──────────────
+//
+// It used to be drawn from the bag at the moment the boss TRIGGERED, which made
+// every forward-looking readout a guess: peekBossPreset had to re-derive a
+// likely front-runner on each paint, and bossPresetIsLive reads how many Tricks
+// you own, so gaining your second Trick could legitimately change the answer
+// halfway through a quarter. A loadout cannot be built against a boss that may
+// not turn up.
+//
+// actBossId is the quarter's boss, dealt out of the bag by drawActBoss() the
+// moment the quarter opens. The forecast is then a PROMISE, and nextBossPreset
+// simply hands it over.
+//
+// Only ACT modes hold one. Survival and Flow fire bosses off a live-play
+// cadence rather than at the end of a structure, so there is no "this act's
+// boss" to name and they keep drawing at trigger time.
+let actBossId = null;
+
+// Deal the quarter's boss. Called from startGame (quarter 1) and from
+// rolloverQuarter (quarters 2 and 3), i.e. the two places a quarter begins.
+function drawActBoss() {
+  if (typeof isActMode === 'function' && !isActMode()) { actBossId = null; return null; }
+  const p = nextBossPreset();
+  actBossId = p ? p.id : null;
+  if (typeof updateActProgressUI === 'function') updateActProgressUI();
+  return p;
+}
+
 // A boss whose only modifier can't bite right now is a wasted round. The
 // Voidwright splits your owned Tricks in two and disables half; The Censor
 // suspends one at a time. With 0 or 1 Tricks owned both are literally no-ops, so
@@ -448,17 +476,38 @@ function bossPresetIsLive(preset) {
 //
 // It fills the bag when empty, exactly as nextBossPreset does, so the answer is
 // stable rather than "unknown until the moment it is dealt". It is still a
-// forecast, not a promise: `bossPresetIsLive` reads how many Tricks you own, so
-// gaining your second Trick can legitimately change which boss is next. That is
-// the same rule the deal uses, so the readout never lies about the state it was
-// asked in.
+// forecast, not a promise IN SURVIVAL AND FLOW: `bossPresetIsLive` reads how many
+// Tricks you own, so gaining your second Trick can legitimately change which boss
+// is next. That is the same rule the deal uses, so the readout never lies about
+// the state it was asked in. In an ACT mode the quarter's boss is already dealt
+// and held (r238), and the branch at the top of the function returns it.
 function peekBossPreset() {
+  // r238: an act mode has already DEALT its boss (drawActBoss), so this is a
+  // lookup, not a prediction, and the caveat above no longer applies there. The
+  // bag fallback below is for Survival and Flow, and for a save made before
+  // r238 that carries no actBossId.
+  if (actBossId) {
+    const held = BOSS_PRESETS.find(p => p.id === actBossId);
+    if (held) return held;
+  }
   if (!bossBag.length) bossBag = shuffle(BOSS_PRESETS.map(p => p.id));
   const id = bossBag.find(bid => {
     const p = BOSS_PRESETS.find(x => x.id === bid);
     return p && bossPresetIsLive(p);
   }) || bossBag[0];
   return BOSS_PRESETS.find(p => p.id === id) || null;
+}
+
+// The boss that is about to START. Hands over the quarter's held boss if there
+// is one - and re-draws only if it has gone DEAD since the quarter opened,
+// which is possible in exactly one direction: The Tax Man needs credits at
+// trigger time and a player can spend them. Liveness otherwise only improves
+// (more Tricks owned), so this is a rare branch and not the normal path.
+function takeActBoss() {
+  if (!actBossId) return null;
+  const held = BOSS_PRESETS.find(p => p.id === actBossId);
+  actBossId = null;
+  return (held && bossPresetIsLive(held)) ? held : null;
 }
 
 // ── Bosses on or off (r234) ─────────────────────────────────────────────────
@@ -492,7 +541,7 @@ function nextBossPreset() {
 function triggerBoss(presetOverride = null, windowSeconds = null) {
   if (bossActive) return;
   bossWindowDuration = (typeof windowSeconds === 'number' && windowSeconds > 0) ? windowSeconds : BOSS_WINDOW_DURATION;
-  const preset = structuredClone(presetOverride || nextBossPreset());
+  const preset = structuredClone(presetOverride || takeActBoss() || nextBossPreset());
   currentBoss = preset;
   bossActive = true;
   bossNumber++;
@@ -958,8 +1007,11 @@ let rewardGridsSeen = 0;               // how many reward grids opened this run 
 // run-progress block (or long-pressing it on touch) now names the boss you are
 // heading for and says what it does, so a loadout can be built against it.
 //
-// It reads `peekBossPreset()`, which does NOT deal from the bag - see the note
-// there for why the forecast can legitimately change when you gain a Trick.
+// It reads `peekBossPreset()`, which does NOT deal from the bag. Since r238 an
+// act mode has already DEALT the quarter's boss (drawActBoss), so in those modes
+// this is the boss you WILL fight, not the likely one - the note below says which
+// of the two you are reading. Survival and Flow still draw at trigger time and
+// still get the forecast wording.
 // During a live boss the brief itself is the better answer, so this stands down.
 function bossPeekHTML() {
   if (typeof bossActive !== 'undefined' && bossActive) return '';
@@ -970,7 +1022,9 @@ function bossPeekHTML() {
        + `<div class="bp-name">${p.name || ''}</div>`
        + (p.flavor ? `<div class="bp-flavor">${p.flavor}</div>` : '')
        + (p.brief  ? `<div class="bp-brief">${p.brief}</div>`   : '')
-       + `<div class="bp-note">Forecast. Gaining Tricks can change which boss is next.</div>`;
+       + `<div class="bp-note">${(typeof actBossId !== 'undefined' && actBossId && p.id === actBossId)
+            ? 'Locked in for this quarter.'
+            : 'Forecast. Gaining Tricks can change which boss is next.'}</div>`;
 }
 
 function showBossPeek(anchor) {

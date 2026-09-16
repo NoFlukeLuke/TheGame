@@ -626,6 +626,10 @@ function handleDanceAbort(isGoalHand) {
   // An interrupted hand must never leave the PMF row fused - the next hand
   // writes its numbers into chips the player would not be able to see.
   if (typeof pmfResetNow === 'function') pmfResetNow();
+  // Same rule for the held hand-type label (r234): this is the hook every abort
+  // path already reaches, so releasing here means no abandoned dance can leave
+  // the label frozen on a hand that is long gone.
+  if (typeof holdHandNameLabel === 'function') holdHandNameLabel(false);
   // Hand the portrait strip back to whichever half the player had chosen.
   if (typeof portraitDanceEnd === 'function') portraitDanceEnd();
   if (stopwatchActive) endStopwatch(); // release the Stopwatch freeze if the dance was cut short
@@ -817,6 +821,7 @@ function dncFinishAbort(stage, isGoalHand, myGen){
   // If a newer dance has taken over (myGen behind the global), this dance was superseded:
   // do NOT touch the shared stage/score UI - the successor owns it now.
   if(myGen!==undefined && myGen!==dncGen) return;
+  if(typeof holdHandNameLabel==='function') holdHandNameLabel(false);
   if(stage){ stage.classList.remove('dnc-active'); stage.innerHTML=''; } dncCleanupReal(); dncRestoreHiddenGridEls(); handleDanceAbort(isGoalHand); }
 // Display name for a contribution entity, by source (Trick / Sleight / Knack / Exalt).
 function contribLabel(source, id){
@@ -984,9 +989,19 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   // order is not selection order once the Selection Scoring knack is owned).
   const scoreCells = (typeof scoringOrderCells === 'function') ? scoringOrderCells(handCells) : handCells.slice();
   const repsByCard = (_ledger.cards||[]).map(c=>c.reps||1);
-  // handCells index for a scoring-order index, so a beat animates the right slot.
-  const slotOf = si => { const sc = scoreCells[si]; if(!sc) return -1;
-    return handCells.findIndex(([r,c]) => r===sc[0] && c===sc[1]); };
+  // r234: THE PREVIEW IS LAID OUT IN SCORING ORDER, not selection order.
+  //
+  // It used to be built from handCells (the order you tapped) while the tally
+  // walked scoreCells (row-major, reading order), so the beats hopped about the
+  // strip and a hand read as scoring in no order at all. Laying the strip out in
+  // scoring order makes the tally run left to right, and it answers BOTH halves
+  // of the ask for free: scoringOrderCells returns selection order when the
+  // Selection Scoring knack is owned, so on that loadout the strip is in the
+  // order the cards were picked - which is exactly the order they then score in.
+  //
+  // With the two lists in step, a timeline card index IS its slot index.
+  const previewCells = scoreCells;
+  const slotOf = si => si;
 
   // Walk the timeline into STEPS: one per card (replayed `reps` times) and one per
   // hand-level event. This is the running order of the whole tally.
@@ -1014,6 +1029,10 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   // Tricks/Knacks animate on their REAL tray/rack elements (not copies), so the slot
   // keeps its normal size and never covers the UI below it, and the physical trick
   // rack is what actually rattles/releases.
+  // Freeze the hand-type label for the length of the tally (r234). render() runs
+  // several times below with the selection already cleared, and each one would
+  // otherwise blank it.
+  if(typeof holdHandNameLabel==='function') holdHandNameLabel(true);
   const stage=document.getElementById('selected-cards'); stage.classList.add('dnc-active'); stage.innerHTML='';
   const mkRow=(label,extra)=>{ const row=document.createElement('div'); row.className='dnc-row'+(extra?(' '+extra):'');
     const l=document.createElement('div'); l.className='dnc-lab'; l.textContent=label;
@@ -1025,7 +1044,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   // don't visually change when the dance starts (and the fly-in clone lands as an identical card).
   // Wrapped in .dnc-outer for the two-layer activation animation; sized by #selected-cards'
   // --card-w/--card-h; appended into the .dnc-track so large hands can scroll sideways as they score.
-  const cardEls=handCells.map(([r,c])=>{ const card=gridData[r][c];
+  const cardEls=previewCells.map(([r,c])=>{ const card=gridData[r][c];
     const outer=document.createElement('div'); outer.className='dnc-outer';
     const d=document.createElement('div');
     const { className, innerHTML } = renderCardAppearance(card, r, c, { revealFog: true });
@@ -1080,12 +1099,12 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
     });
     // 3) As the blast happens, the winning cards fly up into the preview slots
     //    (reveals each slot's dnc-card, same handoff normal hands use).
-    handCells.forEach(([r,c],i)=>{ const card=gridData[r]?.[c]; if(!card) return;
+    previewCells.forEach(([r,c],i)=>{ const card=gridData[r]?.[c]; if(!card) return;
       const gEl=gridEl?.querySelector(`[data-card-id="${card._id}"]`);
       const slot=cardEls[i].parentElement;
       setTimeout(()=>{ if(aborted()) return; flyGridCardToSlot(gEl, slot, 460); }, 140 + i*100);
     });
-    await wait(140 + handCells.length*100 + 460 + 220);
+    await wait(140 + previewCells.length*100 + 460 + 220);
     if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
     // Remove all original grid card DOM (exploded losers + flown winners). The
     // deck accounting for every card still runs in showLevelUpScreen_fallOnly.
@@ -1115,12 +1134,12 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
     // ── Normal hand: the selected grid cards physically fly into their preview slots. ──
     const FLY_STAGGER=95/dncPace(), FLY_DUR=400/dncPace();
     cardEls.forEach(d=>{ const o=d.parentElement; if(o) o.style.opacity='0'; });
-    handCells.forEach(([r,c],i)=>{ const card=gridData[r][c]; if(!card) return;
+    previewCells.forEach(([r,c],i)=>{ const card=gridData[r][c]; if(!card) return;
       const gEl=gridEl?.querySelector(`[data-card-id="${card._id}"]`);
       const slot=cardEls[i].parentElement;
       setTimeout(()=>{ if(aborted()) return; flyGridCardToSlot(gEl, slot, FLY_DUR); if(typeof sfxCardPop==='function') sfxCardPop(cardColorSuit(card)); }, i*FLY_STAGGER);
     });
-    await wait(handCells.length*FLY_STAGGER + FLY_DUR);
+    await wait(previewCells.length*FLY_STAGGER + FLY_DUR);
     if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
     if(typeof sfxFlipShuffle==='function') sfxFlipShuffle(); removeAndFall(toRemove,'play'); dncHiddenGridEls=[]; // flown cards now removed
   }
@@ -1362,6 +1381,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
 
   // ── Settle (same tail as playScoreDance) ──
+  if(typeof holdHandNameLabel==='function') holdHandNameLabel(false);
   stage.classList.remove('dnc-active'); stage.innerHTML=''; dncCleanupReal();
   if(scoreEl) scoreEl.textContent=scoreAfter.toLocaleString();
   showComboFloats(hand, handCells, result);

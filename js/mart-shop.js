@@ -418,11 +418,11 @@ function renderMartMain() {
     </div>
   </div>`;
   const sections = martCats.map(martSectionHTML).join('');
-  const canSpin = coins >= BAL.wheel.cost;
+  const canSpin = coins >= priceOf(BAL.wheel.cost);
   const tools = `<div class="m-sec m-sec-tools" style="--sc:var(--c-coral)">
     <div class="m-sh"><span class="m-sh-l"><i class="m-sh-g">🛠</i>TOOLS</span><span class="m-sh-note">services, not stock</span></div>
     <div class="m-rowc">
-    <div class="m-tool m-tool-spin ${canSpin?'':'cant'}" id="mart-spin"><div class="tt"><span>◎ Spin the Wheel</span><span>💰${BAL.wheel.cost}</span></div>
+    <div class="m-tool m-tool-spin ${canSpin?'':'cant'}" id="mart-spin"><div class="tt"><span>◎ Spin the Wheel</span><span>💰${priceOf(BAL.wheel.cost)}</span></div>
       <div class="td"><span class="m-wheel"></span>Win any item · 1-in-10 jackpot.</div></div>
     <div class="m-tool"><div class="tt"><span>⚡ Recharge Bay</span><span>WIP</span></div><div class="td">Recharge sleights (built later).</div></div>
     <div class="m-tool m-tool-tinker" id="mart-tinker-btn"><div class="tt"><span>✦ Tinker Bench</span><span>💰${tinkerCost()}</span></div>

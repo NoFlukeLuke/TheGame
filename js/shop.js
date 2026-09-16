@@ -2,7 +2,10 @@
 // ══════════════════════════════════════════════
 
 // ── Legacy service infrastructure (kept, buttons hidden) ──
-const SHOP_PRICES   = { buy: 4, remove: 3, duplicate: 4, suit: 4, combine: 5, swaps: 10, discards: 10 };
+// r234: every price table here is scaled ONCE by PRICE_MULT (js/data/balance.js).
+// Scaling the table rather than each read is what keeps the derived numbers -
+// sell values, the limit step, the reroll ladder - in step with the buy price.
+const SHOP_PRICES   = scalePriceTable({ buy: 4, remove: 3, duplicate: 4, suit: 4, combine: 5, swaps: 10, discards: 10 });
 const SHOP_SVC_MAX  = { remove: 3, duplicate: 3, suit: 3, combine: 3, swaps: 1, discards: 1 };
 let shopPurchaseCount = { buy: 0, remove: 0, duplicate: 0, suit: 0, combine: 0, swaps: 0, discards: 0 };
 function shopPrice(key) { return Math.round(SHOP_PRICES[key] * Math.pow(1.2, shopPurchaseCount[key] || 0)); }
@@ -14,10 +17,11 @@ let svcStep = 0;
 let svcPicked = [];
 
 // ── New shop state ──
-const SHOP_TRICK_PRICES    = { common: 5, rare: 8, epic: 12, legendary: 18 };
-const SHOP_KNACK_PRICE  = 10;
-const SHOP_SLEIGHT_PRICES = { common: 8, rare: 12, epic: 16, legendary: 22 };
-const SHOP_LIMIT_BASE   = 15; // coins; +5 per upgrade already purchased
+const SHOP_TRICK_PRICES   = scalePriceTable({ common: 5, rare: 8, epic: 12, legendary: 18 });
+const SHOP_KNACK_PRICE    = priceOf(10);
+const SHOP_SLEIGHT_PRICES = scalePriceTable({ common: 8, rare: 12, epic: 16, legendary: 22 });
+const SHOP_LIMIT_BASE     = priceOf(15);        // coins; + SHOP_LIMIT_STEP per upgrade already purchased
+const SHOP_LIMIT_STEP     = priceOf(5);
 
 let shopItems       = null; // { tricks:[], limits:[], knacks:[], sleights:[] }
 let shopPurchased   = new Set();
@@ -61,7 +65,7 @@ function shopLimitPrice(def) {
   // price scales on number of purchases, not raw units (so a step of 15/3 doesn't over-charge)
   const l = limits[def.id];
   const purchases = (l.current - l.base) / (l.step || 1);
-  return SHOP_LIMIT_BASE + purchases * 5;
+  return SHOP_LIMIT_BASE + purchases * SHOP_LIMIT_STEP;
 }
 
 // Picks `count` sleights on the shared rarity table (js/data/balance.js), Luck

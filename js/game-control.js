@@ -553,6 +553,7 @@ function startGame() {
   blockedCells = new Set();
   bossNumber = 0;
   bossBag = [];              // fresh shuffled boss bag per run (see nextBossPreset)
+  actBossId = null;          // quarter 1's boss is dealt below, once the mode is set
   savedRoundSeconds = 0;
   nextBossTime = GAME_DURATION - BOSS_LOOP_DURATION;
   document.getElementById('grid').classList.remove('boss-active');
@@ -568,6 +569,14 @@ function startGame() {
   document.getElementById('btn-pause').textContent = '⏸ Pause';
   document.getElementById('clock').classList.remove('urgent');
   document.getElementById('clock-bar').classList.remove('urgent');
+
+  // r238: deal QUARTER 1's boss. After the seed is installed (so it is part of
+  // the seeded run) and BEFORE initGridData, so it cannot perturb the deck
+  // draw order - bosses and the deck are separate seeded streams, but the draw
+  // still has to happen at a fixed point or "seed X, quarter 1" stops meaning
+  // one thing. isActMode() is already settled here, so Survival and Flow
+  // correctly hold nothing.
+  drawActBoss();
 
   initGridData();
   // Spectrum: shuffle the four deck fixtures in. AFTER initGridData - it assigns
