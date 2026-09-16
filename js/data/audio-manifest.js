@@ -20,10 +20,19 @@ const AUDIO_MANIFEST = {
   //   file   - path from the repo root
   //   scene  - 'menu' (main menu only), 'game' (in a run only), 'any' (both)
   //   artist - optional, shown under the title
+  //   off    - true to ship it switched OFF (the player turns it on)
+  //   ramp   - the track gets FASTER the longer it plays. `true` is every 20s,
+  //            +10%, capped at 2x; an object says something else. It compounds,
+  //            and it resets every time the track starts.
+  //              ramp: true
+  //              ramp: { every: 20, by: 0.10, max: 2.0, pitchUp: false }
+  //            pitchUp false = tempo only, the key is held (musical).
+  //            pitchUp true  = tape speed-up, the pitch rises with it.
   //
   // Example:
   //   { id: 'lobby',  title: 'Lobby Hum',   file: 'assets/music/lobby-hum.mp3', scene: 'menu' },
   //   { id: 'grind',  title: 'Night Shift', file: 'assets/music/night-shift.mp3', scene: 'game' },
+  //   { id: 'panic',  title: 'Deadline',    file: 'assets/music/deadline.mp3',    scene: 'game', ramp: true },
   music: [
     // ── Office ambience (r186) ──
     // The long recordings from assets/ambience/. They are beds, not one-shot

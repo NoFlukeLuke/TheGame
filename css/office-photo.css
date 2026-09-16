@@ -1,0 +1,90 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   THE PHOTO OFFICE (r234)   ·   drives: js/office-photo.js
+
+   A photograph of an office, with the game's screen mapped onto the monitor in
+   it. Inert unless <body> carries .office-photo, which js/office-photo.js only
+   sets once the image has actually loaded AND the monitor's corners have been
+   calibrated - so a missing or uncalibrated photo leaves the r180 CSS room
+   exactly as it was.
+
+   TWO RULES, both the same one css/room.css states:
+
+   1. #office is authored in the IMAGE'S OWN PIXELS and scaled by a transform.
+      Never vw/vh/% of the viewport in here: the camera scales the scene with a
+      transform and viewport units do not scale with a transform, so the photo
+      would slide out from under the monitor as the camera pushes in.
+
+   2. Nothing here may put a transform on an ancestor of #stage that survives
+      into play. A transform makes its element the containing block for every
+      position:fixed descendant, and #stage is full of them. The skew on
+      #cab-screen is written from JS and cleared at the channel change.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+#office {
+  position: absolute; left: 0; top: 0;
+  transform-origin: 0 0;
+  transform: translate(var(--of-tx, 0px), var(--of-ty, 0px)) scale(var(--of-k, 1));
+  pointer-events: none;
+  /* Under the machine, over nothing. #room sits at the same depth and is hidden
+     in photo mode, so they can never both be on screen. */
+  z-index: 0;
+  display: none;
+}
+#office img {
+  display: block; width: 100%; height: 100%;
+  /* The photo ends up magnified several times over by the end of the dolly. By
+     then the monitor covers the viewport and none of it is visible, but a smooth
+     upscale is what keeps the last second of the push from crawling with
+     nearest-neighbour edges. */
+  image-rendering: auto;
+  -webkit-user-drag: none; user-select: none;
+}
+
+/* .office-photo = the cabinet is replaced, for the whole session.
+   .office-scene  = the photograph is on screen right now. The channel change
+                    takes the second one away and leaves the first alone; see
+                    js/office-photo.js for why they cannot be one class. */
+body.office-scene #office { display: block; }
+/* The CSS cubicle and the photograph are two answers to the same question. */
+body.office-photo #room { display: none; }
+
+/* ── The cabinet gets out of the way ────────────────────────────────────────
+   The monitor in the photograph IS the machine now, so the beige housing, its
+   marquee, its screws and its bezel are all hidden. What is left of #cab-screen
+   is a box the exact size of #stage, which is what the skew maps onto the glass.
+   Scoped to body.office-photo so the r180 cabinet is untouched.               */
+body.office-photo #cabinet {
+  background: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  width: auto !important;
+}
+body.office-photo #cabinet::before,
+body.office-photo #cabinet::after,
+body.office-photo #cab-topbar,
+body.office-photo #cab-baseline { display: none !important; }
+
+body.office-photo #cab-screen {
+  padding: 0 !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  background: none !important;
+  box-shadow: none !important;
+  /* transform-style stays FLAT, and that is not an oversight. The skew is a 2D
+     projective matrix expressed as matrix3d, and flat is exactly what it wants:
+     the element renders its content normally and the whole flattened result is
+     then projected onto the trapezoid. Under preserve-3d the descendants join
+     the parent's 3D space instead and each gets projected on its own, which put
+     the menu about 25px off the glass with the element's own bounding box
+     reporting a position the matrix provably does not produce. Measured.        */
+}
+/* The scanlines and the glare are the one piece of bezel worth keeping - they
+   are what makes the board read as something a screen is displaying rather than
+   as a page. They were inset by the 12px bezel that no longer exists. */
+body.office-photo #cab-screen::after,
+body.office-photo #cab-screen::before { inset: 0 !important; border-radius: 0 !important; }
+
+/* Anti-aliasing along the trapezoid's edges. A skewed box has diagonal edges the
+   compositor has to resolve every frame of the dolly; without a hint they crawl. */
+body.office-photo #cab-screen { backface-visibility: hidden; }
