@@ -2674,6 +2674,96 @@ The game opens on the cabinet **sitting on a desk in an office cubicle**, with t
 - **The same parse-order trap bites the camera itself.** While those scripts run the parser has not yet reached `#cab-baseline`, so the cabinet measures 10px short and the board ends up centred 5px high for the whole session. The `requestAnimationFrame` pass can still fire before the parser gets there; `DOMContentLoaded` is the first moment the housing is whole, so `update()` is bound to that and to `load` and `document.fonts.ready`.
 - `#menu-left` / `#menu-right` are `display:contents` everywhere except landscape, where they become the branding column and the button column. 747x420 of glass cannot take the portrait stack; portrait is untouched.
 
+## The opening is a PHOTOGRAPH (r244) - `js/office-photo.js` + `css/office-photo.css`
+
+The game opens on a **photo of an office**. There is a computer on the desk and the
+menu is drawn ON ITS SCREEN. Press PLAY and the camera pushes in on that monitor
+until its glass fills the viewport, a **channel change** flashes, and the real UI is
+behind it at full size. The monitor in the photo IS the machine, so the r180 arcade
+cabinet - housing, marquee, bezel - is hidden while it is live.
+
+**The only thing you supply is the four corners of the monitor's GLASS, in the
+image's own pixels** (`OFFICE_PHOTO.screen`, TL/TR/BR/BL). A screen in a photograph
+is a **trapezoid**, so it takes four points and not a box. **`office-calibrate.html`**
+is where they come from: click the corners, drag them until the test card sits flush,
+paste the block it dumps. That page loads the real `js/office-photo.js`, so the
+mapping tuned there is the arithmetic the game runs - keep it that way.
+
+`screen: null` (the shipped state) means photo mode never turns on and the CSS room
+runs exactly as it did, so a missing file, a 404 or an uncalibrated quad cannot
+break the opening. **`assets/room/_test-office.svg`** is a synthetic office with its
+glass at `[[760,430],[1240,470],[1230,790],[770,745]]`; point `file` and `screen` at
+those two and the whole opening runs with no photograph in the repo.
+
+**The photo must have a BLANK screen.** The live menu is drawn onto that quad, so a
+mock-up baked into the monitor shows through underneath it.
+
+### The four things this encodes
+
+- **The camera scale at the END of the push is 1, and that is not a coincidence.**
+  The photo's own scale `S` is picked so the monitor's glass COVERS the viewport at
+  k = 1, so the flat screen the channel change reveals is already the size the
+  trapezoid had grown to and the cut is continuous. It also means **the zoom factor
+  IS how small the monitor is in the frame** - a shot where the monitor is half the
+  picture has almost no push in it, and the calibration page says so in as many words.
+- **The photo is placed so the MONITOR'S centre is on the viewport centre**, which is
+  what reduces "fly into the screen" to `scale(k)` about the viewport centre - the
+  same trick `camPlaceScene` plays with the stage. No translate to keep in step, one
+  code path for both orientations.
+- **THE SKEW IS ON `#cab-screen`. Not `#cabinet`, not `#stage`.** `js/channel-change.js`
+  writes `#cabinet.style.transform` directly during the flash; on `#cabinet` it would
+  stomp the skew and the screen would snap flat a beat BEFORE the collapse hid it. On
+  `#cab-screen` the channel change's squeeze composes on top instead. `#stage` is out
+  because it carries `zoom`.
+- **TWO body classes, and collapsing them is a bug.** `.office-photo` means THE
+  CABINET IS REPLACED - a layout fact that must hold for the whole session, because
+  the cabinet's resting offset was measured against it. `.office-scene` is the much
+  smaller question of whether the photograph is on screen, and that is what the swap
+  turns off. Putting the bezel back at the channel change would shift the board 12px
+  off centre with nothing left to re-measure it.
+
+### Two bugs found by rendering it, both invisible to a syntax check
+
+- **`#cabinet` carries `zoom: var(--stage-zoom)`** (`#stage` is pinned to `zoom: 1
+  !important`), so `#cab-screen`'s OWN coordinate system is ~1.9x smaller than the
+  pixels it paints into: its rect reads 1436x807 while its box is 747x420. **A
+  transform is applied in the element's own units**, so a matrix built from
+  `getBoundingClientRect` is off by the zoom - and because the horizontal translation
+  is near zero, it comes out as a screen that is exactly the right size and sitting
+  25px above the monitor. `officeApplySkew` divides by `rect.width / offsetWidth`.
+  **This is the r160 Trick-fan trap again: never mix the two.**
+- **`transform-style` must stay FLAT.** The skew is a 2D projective map expressed as
+  `matrix3d`, and flat is what it wants - the element renders normally and the whole
+  flattened result is projected onto the trapezoid. Under `preserve-3d` the
+  descendants join the parent's 3D space and each gets projected on its own, and the
+  element's bounding box then reports a position the matrix provably does not produce.
+
+**The attract screen is held up for the length of the push** (`officeEntering` latches
+camera.js's "a menu appeared, pull out to it" observer off, or it would fight its own
+dolly). By that point `startGame` has already dealt the board behind it, and arriving
+at a board you were already looking at is not a transition.
+
+**Verified in a real browser at 1440x820**: the glass's bounding box and the monitor
+quad agree to the pixel at the menu; the push reaches k = 1; at play the camera
+carries **no transform at all** and `#stage` is 1436x807 on a 1440x820 viewport with
+16 cards dealt.
+
+### Music: a track can speed up as it plays (r244)
+
+`ramp` on a manifest row in `js/data/audio-manifest.js`. Bare `ramp: true` is **every
+20s, +10%, capped at 2x**; an object says something else. Two rules in `js/music.js`:
+
+- **It advances on WALL CLOCK while the track is playing, never on `el.currentTime`.**
+  currentTime runs at the playback rate, so keying off it would make each step arrive
+  sooner than the last on top of the compounding, and the ramp would run away.
+- **It RESETS on every track load**, because the ramp belongs to a play of a track and
+  not to the session.
+
+The cap is not decoration: +10% every 20s reaches 2x in two minutes and 4x in four.
+`pitchUp: false` (the default) is tempo only - the browser time-stretches and the key
+is held; `pitchUp: true` is a tape speed-up with the pitch rising. `musicSetRamp({...})`
+overrides whatever is playing, for tuning from the console.
+
 ### Two offices, and the intro replay (r181)
 
 **Settings > Display > Office** picks between **Grimy** (the default) and **Clean**. Grimy is the same room left running for years: dimmer, yellower, damp wicking up the partition corners, a stopped clock, a dead plant, faded notes, coffee rings, and a fluorescent tube that stutters on an irregular loop.

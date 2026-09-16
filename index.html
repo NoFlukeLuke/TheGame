@@ -30,6 +30,7 @@
 <link rel="stylesheet" href="css/tutorial.css">
 <link rel="stylesheet" href="css/builds.css">
 <link rel="stylesheet" href="css/room.css">
+<link rel="stylesheet" href="css/office-photo.css">
 <link rel="stylesheet" href="css/clock-fx.css">
 <link rel="stylesheet" href="css/goal-clear.css">
 <link rel="stylesheet" href="css/quarter.css">
@@ -641,6 +642,12 @@
      in on the CRT. Everything in #room is sized in px (never vw/vh) or it would
      stop scaling with the camera and the dolly would come apart. -->
 <div id="camera">
+<!-- THE PHOTO OFFICE (r244) - js/office-photo.js + css/office-photo.css.
+     A photograph of an office with a computer in it; the game's screen is mapped
+     onto that monitor's glass and the camera pushes in on it when a run starts.
+     Hidden, and completely inert, until the image loads AND its four screen
+     corners are calibrated - until then the CSS room below is what you see. -->
+<div id="office" aria-hidden="true"><img id="office-img" alt=""></div>
 <div id="room" aria-hidden="true">
   <div class="rm-ceiling"></div>
   <div class="rm-strip-light"></div>
@@ -1203,6 +1210,7 @@
 
 <script src="js/storage.js"></script>
 <script src="js/labels.js"></script>
+<script src="js/office-photo.js"></script>
 <script src="js/camera.js"></script>
 <script src="js/seed.js"></script>
 <script src="js/menu.js"></script>
