@@ -2764,10 +2764,44 @@ The game opens on the cabinet **sitting on a desk in an office cubicle**, with t
 ## The opening is a PHOTOGRAPH (r244) - `js/office-photo.js` + `css/office-photo.css`
 
 The game opens on a **photo of an office**. There is a computer on the desk and the
-menu is drawn ON ITS SCREEN. Press PLAY and the camera pushes in on that monitor
-until its glass fills the viewport, a **channel change** flashes, and the real UI is
-behind it at full size. The monitor in the photo IS the machine, so the r180 arcade
-cabinet - housing, marquee, bezel - is hidden while it is live.
+menu is drawn ON ITS SCREEN. The camera **drifts in on that monitor by itself over
+fifteen seconds** and settles with it centred and filling most of the shot. Touch
+**any button** on that menu and a **channel change** flashes; behind the flash the
+photograph is gone and the UI is flat and full-screen. The monitor in the photo IS
+the machine, so the r180 arcade cabinet - housing, marquee, bezel - is hidden.
+
+### The opening is a DRIFT and then a CUT (r248)
+
+There is no push on PLAY. **The drift IS the approach and the flash IS the arrival**,
+which is why the whole choreography is two numbers: `OFFICE_ATTRACT_MS` (15s) and
+`OFFICE_HERO_FIT` (0.78, the share of the viewport the glass fills at rest).
+
+- **ANY button is the cut, not just PLAY.** Settings, History and Builds open their
+  own panels, and on a monitor filling a third of the shot at a slant those are
+  decoration rather than something you can read. `officeArmMenuCut` is one delegated
+  CAPTURE-phase listener per attract screen that **does not stop the event**: the
+  button's own handler runs as it always did and its panel opens during the flash,
+  which is exactly what the flash is for.
+- **It never pulls back out.** `officeDone` latches at the cut and
+  `officeReturnToMenu` answers **`'stay'`** from then on, which camera.js reads as
+  "leave the camera alone" - so a run that ends comes back to a flat full-screen
+  menu rather than shrinking onto a desk. The opening plays once a session.
+- **`.office-photo` deliberately STAYS ON after the cut**; only `.office-scene` goes.
+  See the two-classes note below - putting the bezel back would shift the board off
+  centre with nothing left to re-measure it.
+- **The drift is r185's `camBootMul` multiplier**, not a third framing, for r185's
+  reason: the first seconds of a load trigger several relayouts and a transition
+  would be stamped on by the first of them. `camPlayBootDolly(fromMul, ms)` takes
+  both now, and eases **squared rather than cubic** - over fifteen seconds a cubic
+  spends most of the shot already stopped.
+- **`camSetView` only cancels the creep when the view is REALLY changing.** The
+  attract screens re-assert `'wide'` as they open, and cancelling on those snapped
+  the whole fifteen-second drift to its end the moment the mode carousel appeared.
+- **Start the drift AFTER `camRelayout`, not before.** `officeWideK` and
+  `officeHeroK` are both 1 until the layout has measured the viewport, and the drift
+  is the ratio between them - started above it that ratio is 1, the "nothing to
+  travel" guard reads it as a shot with no move in it, and the opening silently does
+  not happen. Measured: 0.39 -> 0.53 -> 0.61 over the fifteen seconds at 1440x820.
 
 **The only thing you supply is the four corners of the monitor's GLASS, in the
 image's own pixels** (`OFFICE_PHOTO.screen`, TL/TR/BR/BL). A screen in a photograph
@@ -2803,6 +2837,18 @@ it. What it must NOT have is anything on the screen you want to still see.
   trapezoid had grown to and the cut is continuous. It also means **the zoom factor
   IS how small the monitor is in the frame** - a shot where the monitor is half the
   picture has almost no push in it, and the calibration page says so in as many words.
+- **THE SKEW CORRUPTS `measureGridSlot()`, and that one is not cosmetic (r248).**
+  It divided the slot's rect by the zoom and the camera scale, which is only right
+  while every transform above it is a plain scale. The skew is a PERSPECTIVE map, so
+  the rect is the TRAPEZOID'S BOUNDING BOX and no single divisor undoes it: measured
+  at 1440x820 the slot read **338 x 462 against a real box of 336 x 362**, a 28%
+  over-read on the height, and the grid came out **421px tall inside a 420px stage** -
+  the dark shape that pokes out above and below the monitor, and every card sized
+  off a distorted measurement. It measures `offsetWidth`/`offsetHeight` now, which
+  ARE design px and are immune to every transform above them, so the zoom and the
+  camera scale do not come into it at all. **Same trap as the r160 Trick fan: never
+  mix the two.** Verified behaviour-neutral outside photo mode - 336/362 either way
+  at 1440x820, 298/444 at 420x820, identical card sizes.
 - **THE WIDE FRAMING IS MEASURED FROM THE MONITOR, NOT FROM THE IMAGE'S SIZE.** The
   zoom holds the monitor on the viewport centre, and a monitor is never in the middle
   of the shot, so each of the four margins from the monitor to an edge of the photo

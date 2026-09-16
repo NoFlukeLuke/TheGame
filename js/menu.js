@@ -1,4 +1,4 @@
-const BUILD = "2026-09-16 · r247 · the office photo is calibrated and live - the menu sits on the monitor and the camera pushes into it [onto r246]";
+const BUILD = "2026-09-16 · r248 · the opening drifts in slowly and any button cuts to the flat full-screen UI; the skew was corrupting every card measurement [onto r247]";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
