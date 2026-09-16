@@ -65,6 +65,10 @@ function startRoundTimer() {
   // consumed by the time triggerBoss runs, so a checkpoint taken here would resume
   // into an ordinary round with the boss gone. The previous round's checkpoint stands.
   if (!bossActive && typeof captureRunCheckpoint === 'function') captureRunCheckpoint();
+  // Mini-boss challenge rounds (r239): the round's handicap arms exactly when
+  // its clock starts - which also covers a resumed round, since resume lands
+  // here too. AFTER the checkpoint, so a save never captures half-armed effects.
+  if (typeof miniBossMaybeStart === 'function') miniBossMaybeStart();
   roundInterval = setInterval(() => {
     if (pipeTimerPaused) return;
     if (gameTimerPaused) return; // global pause covers menus/shop/events

@@ -49,6 +49,7 @@ function guidedResetRun() {
   guidedOffers = []; guidedLastKind = null; guidedSinceLevel = 0;
   guidedBuysThisAct = {};
   guidedPendingChallenge = null; guidedActiveChallenge = null;
+  miniBossActive = false;   // startGame's own boss teardown clears the effects
   guidedCrossroadsOpen = false;
 }
 
@@ -368,7 +369,81 @@ const CHALLENGE_DEFS = [
       for (const h of _chRoundHands())
         (NS_HAND_FAMILIES[h.hand] || []).forEach(f => fams.add(f));
       return fams.has('run') && fams.has('set') && fams.has('flush'); } },
+
+  // ── MINI-BOSSES (r239) - the second challenge kind ─────────────────────────
+  // No task to complete: the HANDICAP is the challenge, a boss modifier at half
+  // strength running inside an ordinary round, and clearing the (raised) goal
+  // pays the credits. They ride the real boss-effect machinery through
+  // bossFxLive() (js/boss-effects.js) - armed by miniBossMaybeStart when the
+  // round's clock starts, torn down by miniBossClear at the settle.
+  // test: () => true because the settle only ever runs on a cleared round.
+  { id:'mini_stones', goalMult:1.20, credits:26, mini: { modifier: '_stones' },
+    label:'Stones bury part of the board.',
+    test: () => true },
+  { id:'mini_toll',   goalMult:1.20, credits:24,
+    mini: { modifier: 'interact_surcharge', params: { costMult: 1.5, playCostAdd: 2 } },
+    label:'Swaps and discards cost half again, playing +2s.',
+    test: () => true },
+  { id:'mini_tide',   goalMult:1.20, credits:26,
+    mini: { modifier: 'focus_drain', params: { everySecs: 20, amount: 5 } },
+    label:'Lose 5 Focus every 20 seconds.',
+    test: () => true },
+  { id:'mini_hold',   goalMult:1.20, credits:26,
+    mini: { modifier: 'card_hold', params: { everySecs: 25, holdSecs: 15, count: 1 } },
+    label:'A card is frozen every 25 seconds.',
+    test: () => true },
+  { id:'mini_sip',    goalMult:1.25, credits:28,
+    mini: { modifier: 'suit_markdown', params: { count: 1, mult: 0.6, holdSecs: 60 } },
+    label:'One suit pays 60%, rotating each minute.',
+    test: () => true },
+  { id:'mini_fog',    goalMult:1.25, credits:28, mini: { modifier: '_fog', params: { secs: 60 } },
+    label:'Ranks hidden for the first minute.',
+    test: () => true },
 ];
+
+// ── The mini-boss harness ────────────────────────────────────────────────────
+// One flag, read by bossFxLive() in js/boss-effects.js, which is what lets the
+// real boss schedules, pip scale, fog and suit markdown run in a normal round.
+let miniBossActive = false;
+
+// Called from startRoundTimer - the one place every round's clock starts - so a
+// mini arms exactly when its round becomes live (and on a resumed round, since
+// resume also lands there). Never during a real boss: that round has its own
+// effects and triggerLevelUp never armed a challenge for it anyway.
+function miniBossMaybeStart() {
+  if (miniBossActive || bossActive) return;
+  const m = guidedActiveChallenge && guidedActiveChallenge.mini;
+  if (!m) return;
+  miniBossActive = true;
+  if (m.modifier === '_stones') {
+    // Stone Lord Jr: half the real boss's count, no deck rubble.
+    placeStonesOnGrid(Math.max(2, Math.round((gridRows + gridCols) / 4)));
+    if (typeof render === 'function') render();
+  } else if (m.modifier === '_fog') {
+    // Light Fog: ranks hidden, but only for the opening stretch.
+    bossFog = true;
+    bossDelay((m.params?.secs || 60) * 1000, () => {
+      bossFog = false;
+      if (typeof render === 'function' && gridData && gridData[0]) render();
+    });
+    if (typeof render === 'function') render();
+  } else {
+    applyBossEffectModifier(m.modifier, m.params || {});
+  }
+  // The real boss path fires this from startBossTimer; a mini's round has no
+  // boss timer, so it fires here. Schedules tick behind bossFxLive().
+  bossStartScheduledEffects();
+}
+
+// Torn down wherever the round stops mattering: the settle (cleared round), a
+// failed round's game-over via the next startGame (guidedResetRun), and any
+// real boss teardown (clearBossEffects is shared, so state can never leak).
+function miniBossClear() {
+  if (!miniBossActive) return;
+  miniBossActive = false;
+  clearBossEffects();
+  if (typeof render === 'function' && gridData && gridData[0]) { try { render(); } catch (e) {} }
+}
 
 // Armed by taking an elite tile; consumed when the round deals.
 let guidedPendingChallenge = null;
@@ -399,9 +474,13 @@ function guidedApplyPendingChallenge() {
 function guidedSettleChallenge() {
   const ch = guidedActiveChallenge;
   guidedActiveChallenge = null;
+  miniBossClear();
   if (!ch) return;
   let met = false;
-  try { met = !!ch.test(); } catch (e) {}
+  // A challenge restored from a save is DATA - JSON dropped its test function -
+  // so the test is always read from CHALLENGE_DEFS by id, never off the object.
+  const def = CHALLENGE_DEFS.find(d => d.id === ch.id);
+  try { met = !!(def || ch).test(); } catch (e) {}
   if (met) {
     coins += ch.credits;
     updateCoinsUI?.();

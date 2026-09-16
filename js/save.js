@@ -63,6 +63,10 @@ const SAVE_VARS = [
   // stored by id and rehydrated from CHALLENGE_DEFS at confirm time.
   'mapTiles', 'mapPos', 'mapVisits', 'mapSkips', 'mapBossGoal', 'mapBossArmed',
   'mapFirstRoundDone', 'mapPosTileId', 'swapsUsedRound',
+  // The live challenge survives a save as DATA (JSON drops its test function);
+  // guidedSettleChallenge re-reads the test from CHALLENGE_DEFS by id, and a
+  // mini-boss re-arms from startRoundTimer on resume.
+  'guidedPendingChallenge', 'guidedActiveChallenge',
   'pendingEventOverride', 'rewardGridContext', 'skipTrickChoiceOverlay', 'pendingLevelUps',
   'goalReachedThisRound', 'roundEnded', 'suppressScoreDisplay', 'heldBackScore',
   // ── Deck & board ──

@@ -107,6 +107,14 @@ function bossIntervalScale() { return bossDampened() ? 1 / 0.9 : 1; }
 // is called from startBossTimer, the one place the boss clock actually starts.
 let bossPendingSchedules = [];
 
+// A boss EFFECT is live during a real boss round OR a mini-boss challenge round
+// (r239, js/guided-mode.js): the handicap versions of the boss modifiers that a
+// hard-round tile can carry. miniBossActive is declared in guided-mode.js; the
+// typeof guard keeps this file self-contained if that ever moves.
+function bossFxLive() {
+  return bossActive || (typeof miniBossActive !== 'undefined' && miniBossActive);
+}
+
 function bossSchedule(everySecs, fn) {
   bossPendingSchedules.push({ everySecs, fn });
 }
@@ -114,7 +122,7 @@ function bossStartScheduledEffects() {
   const pending = bossPendingSchedules;
   bossPendingSchedules = [];
   pending.forEach(({ everySecs, fn }) => {
-    const run = () => { if (!bossActive || gameTimerPaused || roundEnded) return; try { fn(); } catch (e) { console.error('[BOSS] effect failed', e); } };
+    const run = () => { if (!bossFxLive() || gameTimerPaused || roundEnded) return; try { fn(); } catch (e) { console.error('[BOSS] effect failed', e); } };
     try { fn(); } catch (e) { console.error('[BOSS] opening effect failed', e); }   // fires as the clock starts
     bossTickIds.push(setInterval(run, Math.round(everySecs * 1000 * bossIntervalScale())));
   });
@@ -759,7 +767,7 @@ function bossLedgerTick() {
 // A BAG, not a re-roll, so the clean suit is never the same twice running.
 let _bossSuitBag = [];
 function bossSuitTick() {
-  if (!bossActive) return;
+  if (!bossFxLive()) return;
   const suits = (typeof ACTIVE_SUITS !== 'undefined' && ACTIVE_SUITS.length) ? ACTIVE_SUITS.slice() : ['♠','♥','♦','♣'];
   const keep = Math.max(1, suits.length - bossSuitCount);   // how many pay full
   if (!_bossSuitBag.length) {
@@ -780,7 +788,7 @@ function bossSuitTick() {
   if (typeof render === 'function' && gridData && gridData[0]) render();
 }
 function bossSuitSecondsLeft() {
-  if (!bossActive || !bossSuitMarkdown) return null;
+  if (!bossFxLive() || !bossSuitMarkdown) return null;
   return Math.max(0, Math.ceil((bossSuitUntil - Date.now()) / 1000));
 }
 
@@ -818,7 +826,7 @@ function bossGradientScale(r, c) {
 // The ONE place a boss changes what a single card's pips are worth. Called from
 // calcScore's per-card loop, right where the Blight's halving lands.
 function bossCardPipScale(card, r, c) {
-  if (!bossActive) return 1;
+  if (!bossFxLive()) return 1;
   if (typeof bossEffectsIgnored === 'function' && bossEffectsIgnored()) return 1;
   let k = 1;
   if (bossSuitMarkdown && card && bossSuitMarkdown.has(cardColorSuit ? cardColorSuit(card) : card.suit)) {
@@ -834,7 +842,7 @@ function bossCardPipScale(card, r, c) {
 // and a run has to be uncovered one card at a time. A selected card shows its own
 // rank, so a selection is how you read the board.
 function bossFogHides(isSel) {
-  if (!bossActive || !bossFog || isSel) return false;
+  if (!bossFxLive() || !bossFog || isSel) return false;
   if (typeof bossEffectsIgnored === 'function' && bossEffectsIgnored()) return false;
   return true;
 }

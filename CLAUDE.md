@@ -1225,6 +1225,16 @@ One act as a MAP drawn on the borrowed grid (the shop's borrow pattern): **4 lan
 - The map screen hides `#btn-play`/`#btn-discard`/`#swap-indicator` (`body.map-active`); the bar (`#map-bar`, body-level, raw viewport px) carries SET x/6, visits, skip price, the picked tile's description and CONFIRM. Tile names go through `fitEntityName` - except the boss, whose name is vertical in landscape and the fitter measures horizontally.
 - **The 3-2-1 was rethemed in the same pass** (css/style.css): Orbitron on a scanlined phosphor ring instead of the pre-cabinet gold Cinzel. Same element, same timing, same keyframe name.
 
+### Mini-bosses (r239) - the second challenge kind
+
+Six CHALLENGE_DEFS entries carry `mini: { modifier, params }` instead of a task: the HANDICAP is the challenge - a boss modifier at reduced strength running inside an ordinary round - and clearing the (raised) goal pays the credits (`test: () => true`, because the settle only runs on a cleared round). Stone Lord Jr (half stones, no rubble), The Apprentice (interact x1.5, play +2s), Low Tide (-5 Focus/20s), The Intern (one card held/25s), Sour Sip (ONE suit at x0.6, rotating), Light Fog (ranks hidden for the first 60s only).
+
+- **`bossFxLive()` (js/boss-effects.js) is the whole harness**: `bossActive || miniBossActive`. Five gates read it instead of `bossActive` - the schedule runner, `bossCardPipScale`, `bossFogHides`, `bossSuitTick`, `bossSuitSecondsLeft`. `bossInteractMult` and the card holds were never gated, so they needed nothing. Everything else about a mini is the REAL boss machinery: `applyBossEffectModifier` arms it, `bossSchedule`/`bossStartScheduledEffects` tick it, `clearBossEffects` tears it down - so state can never leak between a mini and a real boss.
+- **`miniBossMaybeStart()` is hooked in `startRoundTimer`** (after the checkpoint, so a save never captures half-armed effects) - which is also what re-arms a resumed mini round. `miniBossClear()` runs in `guidedSettleChallenge`; a failed round's teardown rides the next `startGame`. Never on a real boss round (`bossActive` guard) - triggerLevelUp never arms a challenge there anyway.
+- **`_stones` and `_fog` are harness-local pseudo-modifiers** (a one-shot placement and a timed flag have no schedule to arm); the other four are the shipped modifier ids with softened params.
+- **The live challenge is in `SAVE_VARS` now** (`guidedPendingChallenge`/`guidedActiveChallenge`) and survives as DATA - JSON drops the test function, so `guidedSettleChallenge` re-reads the test from `CHALLENGE_DEFS` by id, never off the object. This also fixed resumed task-challenges silently paying nothing.
+- Verified in a real browser, all six: effect live mid-round (stones on board, x1.5/+2s costs, a held card, ♥ marked, fog painting), goal raised, and every counter back to rest after the settle (toll 1, playCost 0, holds 0, markdown null, fog false).
+
 ### Upgrade events (r194) - improve what you already have
 
 Every event before these HANDED you something, which is the wrong shape late in a run: the Trick tray caps at 10 and fills long before an act does, so a twelfth grant is a replace-or-decline, while an upgrade always has somewhere to go. Three new events, pool **11 -> 14**:
