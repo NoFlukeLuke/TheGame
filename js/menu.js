@@ -1,4 +1,4 @@
-const BUILD = "2026-09-16 · r237 · the shop gets a REROLL button, an inventory, and an exit";
+const BUILD = "2026-09-16 · r238 · the quarter's boss is dealt when the quarter opens, and Guided saves its act state";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

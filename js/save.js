@@ -55,10 +55,25 @@ const SAVE_VARS = [
   'deadCells', 'riderTrickId', 'interestFreezeRounds', 'spotCheckHand', 'spotCheckLeft', 'nextRoundGridShrink',
   'luckModifiers',
   'actNumber', 'nodeInAct', 'rewardGridsSeen', 'forceBossNextRound', 'shopFromNodeFlow',
-  // Guided's act state. guidedInStop is deliberately NOT saved: a checkpoint is
-  // only ever taken at the START OF A ROUND, and a bought stop never straddles
-  // one, so it is always false when a save is written.
-  'guidedSlot', 'guidedEventOffers',
+  // Guided's act state. guidedInStop, guidedCrossroadsOpen and guidedOffers are
+  // deliberately NOT saved: a checkpoint is only ever taken at the START OF A
+  // ROUND, and a bought stop or an open crossroads never straddles one, so all
+  // three are always at rest when a save is written.
+  //
+  // r238: the rest of it IS saved now, and the omission was doing real damage.
+  // startGame() resets every one of these to a fresh-run value, and only
+  // guidedSlot and guidedEventOffers were laid back on top - so a resumed run
+  // forgot the repeat-purchase surcharge (guidedBuysThisAct), the forced-level
+  // cadence (guidedSinceLevel), the no-repeat rule (guidedLastKind) and, worst,
+  // the HARD ROUND it was in the middle of: roundGoal came back raised by
+  // guidedApplyPendingChallenge with no challenge tracked, so the goal stayed
+  // up and the bonus could never be settled.
+  //
+  // guidedActiveChallenge / guidedPendingChallenge carry a `test` closure that
+  // does not survive JSON - guidedRehydrateChallenges re-attaches it by id in
+  // resumeSavedRun.
+  'guidedSlot', 'guidedEventOffers', 'guidedBuysThisAct', 'guidedLastKind',
+  'guidedSinceLevel', 'guidedPendingChallenge', 'guidedActiveChallenge',
   'pendingEventOverride', 'rewardGridContext', 'skipTrickChoiceOverlay', 'pendingLevelUps',
   'goalReachedThisRound', 'roundEnded', 'suppressScoreDisplay', 'heldBackScore',
   // ── Deck & board ──
@@ -109,7 +124,7 @@ const SAVE_VARS = [
   'rewardSelected', 'rewardCells', 'rewardConfirmed',
   'shopRerollCount', 'shopPurchased', 'shopPurchaseCount', 'nextShopTime',
   // ── Boss ──
-  'bossActive', 'bossNumber', 'bossBag', 'nextBossTime', 'blockedCells', 'nullCells',
+  'bossActive', 'bossNumber', 'bossBag', 'actBossId', 'nextBossTime', 'blockedCells', 'nullCells',
   // ── Challenge ──
   'challengeCard', 'challengeActive', 'trickCardPos', 'trickCardTimer',
   // ── Survival ──
@@ -259,6 +274,9 @@ function resumeSavedRun() {
   // plays at base values.
   if (typeof applyEntityTiers === 'function') applyEntityTiers();
   dropUnknownCurses();
+  // Guided's challenges lost their predicate to the JSON round trip - see the
+  // note beside them in SAVE_VARS.
+  if (typeof guidedRehydrateChallenges === 'function') guidedRehydrateChallenges();
   _restoringSave = false;
 
   // The board came out of the save, so the grid has to be re-measured (a saved

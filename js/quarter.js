@@ -98,6 +98,10 @@ function rolloverQuarter(next) {
   if (typeof updateActProgressUI === 'function') updateActProgressUI();
 
   if (actNumber > 3) { onGameWin(); return; }   // the report is the wrap-up there
+  // r238: deal the new quarter's boss NOW, so the progress block can name it for
+  // the whole quarter instead of guessing at it. This and startGame are the two
+  // places a quarter opens.
+  if (typeof drawActBoss === 'function') drawActBoss();
   showQuarterCard(closed, actNumber, next);
 }
 
