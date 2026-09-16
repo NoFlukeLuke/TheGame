@@ -1024,6 +1024,97 @@ It used to add +3 mult to ONE next hand - the same shape as Quarter Chime, and n
 - A fresh mark **re-primes to the full count rather than stacking**: the value of holding a mark is meant to be playing the two hands, not banking marks.
 - `pendingHandMult` is left in place as the seam a future "+N mult to your next hand" effect drops into; nothing feeds it today.
 
+### Forced Trick fires (r234) - `js/force-trick.js`
+
+**Priming cannot fire a Trick whose condition was not met, and that was never a
+tuning gap - it is what priming IS.** A primed Trick replays its pip/mult DELTA
+(`_cp[id]`/`_cm[id]`), and the replay loop opens with `if (!_pd && !_md) return;`.
+Prime Rich Soil on a hand with no clubs and you get nothing; prime it twice and
+you get nothing twice. A FORCED fire is the other half: the condition is ignored
+and the Trick pays anyway.
+
+- **It pays the Trick's NOMINAL value out of `BAL[id]`**, read through the same
+  parameter vocabulary `js/improve.js` uses to decide what an improvement scales.
+  "Only the bonus amount grows" and "only the bonus amount pays" are the same
+  question asked twice, so a BAL retune moves both and a Trick improved to tier 3
+  forces at its tier-3 value for free (`applyEntityTiers()` rewrites BAL in place).
+  177 hand-written payouts would have drifted from BAL on the first retune.
+- **An ALLOWLIST, never a denylist**, for improve.js's reason: a tuning number
+  added to BAL later must not silently start paying out. Thresholds, intervals,
+  costs, chances and cooldowns are absent on purpose.
+- **A STEP IS AN INCREMENT, NEVER A FACTOR**, and `undertow` is the whole lesson:
+  `{ pip_mult_base: 1.5, pip_mult_step: 0.5 }` is "x1.5 pips, plus x0.5 more per
+  card beyond 3". Treating the step as a second factor multiplied 1.5 by 0.5 and
+  produced **x0.75 - a forced fire that REDUCED the score by a quarter**. Measured.
+  `Math.max(1, ...)` on both multipliers is the standing guard: a forced fire may
+  pay nothing, but it may never cost.
+- **`trickCanForce(id)` is what keeps it honest.** 92 of the 176 Tricks have a
+  forceable payout; the rest pay in Focus, seconds or credits, or have no BAL
+  entry at all, and would force for a visible message worth zero. Every caller
+  draws from `forceableTrickIds()`, so an unforceable Trick is never offered
+  rather than offered and silently empty. Boss-suspended Tricks are excluded too -
+  routing round a suspension would make the Censor and the Voidwright optional.
+- **NON-SCORING side effects do not fire.** A forced Tick-Tock pays no seconds.
+  Same limit priming has always had (the `TBD` on Move as One), same reason
+  `trickFires()` exists.
+- **READ ONLY inside `calcScore`, spent in `playHand`.** calcScore runs
+  speculatively for every connected subset in `findBestHand` and on every tap of
+  the live PIPS/MULT preview, so consuming there would spend the charge dozens of
+  times per selection. Same rule `siphonMultX` and `minuteHandCharges` follow.
+  Verified: the arming survives 20 speculative re-scores.
+- **A forced fire may MULTIPLY a hand, not REPLACE it.** Forcing pays a Trick's
+  real value and a Trick's real value spans two orders of magnitude - **Rogue Wave
+  measured at x130**, because it pays 80 pips AND 16 mult per card. `force_cap_x`
+  (8) budgets each axis at **sqrt(cap)**, not cap: pips and mult multiply each
+  other, so capping each at the full factor lets the two compound to cap^2
+  (measured at x64 before the sqrt). Clamped BEFORE the event is emitted, never
+  scaled back after - the dance replays this timeline and must reproduce
+  calcScore exactly (r220), so a correction after the write is a drift by
+  construction.
+
+Measured on the r240 tree over **1,472 forced fires** on real boards, with the
+Trick owned on both sides so the ratio is the forced fire alone: **common x1.67 ·
+rare x2 · epic x1.68 · legendary x3**, max **x8.1** (the cap holding Rogue Wave),
+**0 below x1 and 0 with no effect**. Seven real hands each forcing a different
+Trick through the full dance in dev mode logged **0 timeline drift**.
+
+### The Hallmark knack (r234) - `js/hallmark.js`
+
+A rare Knack. At a random moment in every round ONE card on the board is marked;
+score it and it takes a random buff. It is deck manipulation that arrives through
+PLAY - no screen, no inventory, no node. The decision is whether to build a hand
+around the marked card before it leaves the board.
+
+Seven outcomes, all from `BAL.hallmark`: **+5 mult · +10 pips · +1 replay · 3s
+rewind · 3s pause · a Trick primed · a Trick forced.**
+
+- **THE MARK PAYS FORWARD, AND ALL SEVEN DO.** It resolves in `playHand` after the
+  score commits, beside `growCardScaling` and `recordNaturalScale`, for the reason
+  those two sit there: a buff earned by a hand pays out on the NEXT one. The card
+  buffs land permanently and pay from the card's next play; the prime and the
+  forced fire arm the next hand; only the two clock outcomes are instant, because
+  a clock is instant. One rule for all seven rather than three being special.
+  Resolving before the score would mean rolling inside `calcScore`, which fires
+  dozens of times a selection.
+- **The mark is a `cardId` in a global, not a cell and not a field on the card.**
+  A cell slides onto whatever card falls into the slot (the trap The Hold avoided
+  in r209, and why r192 re-keyed every per-card buff off `cardId`). A card field
+  would need a `DURABLE_CARD_FIELDS` entry to survive the deck cycle and
+  un-marking on three paths. One global compares clean and saves as one string.
+- **`hallmarkPlanted` is separate from `hallmarkCardId != null`**, which goes back
+  to null the moment the mark is spent - without the flag the round would
+  immediately plant another.
+- **The window stops `HALLMARK_TAIL_FRACTION` (25%) short of the round's end**, so
+  a mark always lands with time to use it. A mark with four seconds left reads as
+  the knack not working. A tick with no legal card on the board (mid-fall, a
+  blocked board) does not burn the round's mark - it retries next tick.
+- **Its `CARD_MARK_META` row is FIRST on purpose**: `cardMarkHTML` returns the
+  first hit, and a mark you must spend this round outranks a standing one.
+- Clock outcomes go through `rewindTime` / `pauseRound`, never a raw
+  `roundSeconds +=` - that is what keeps the floater and the Kingfisher/Albatross
+  tallies honest (r183). `prime` and `force` fall back to the pip buff when
+  nothing you own can take them, rather than rolling an outcome worth zero.
+
 ### The Understudy knack (r209)
 
 `{ id:'understudy', rare }` - every 30s of round time, one random Trick in the tray is **primed**: it fires an extra time on the next hand. It needed **no per-Trick code** because priming is the mechanic the Rehearsal event already built (`calcScore` fires a Trick an extra time per `_primed` stack), and the primed tile shows its charge through the same widget. The knack's own chip carries the countdown to the next prime (`cdForKnack`). `understudyNextMark` is seeded to the first interval, not 0 - `_elapsedRound >= 0` is already true on the round's first tick, which would prime a Trick one second into the run.

@@ -494,6 +494,8 @@ function startGame() {
   // Seeded to the first interval, not 0: `_elapsedRound >= 0` is already true on
   // the round's first tick, which would prime a Trick one second into the run.
   understudyNextMark = BAL.understudy.interval_seconds;
+  hallmarkCardId = null; hallmarkMarkAt = -1; hallmarkPlanted = false;
+  forcedTrickIds = [];
   lastHandType = null;
   streakCount = 0;
   lastHandTime = 0;

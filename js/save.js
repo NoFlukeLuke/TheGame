@@ -102,6 +102,7 @@ const SAVE_VARS = [
   'bonusMult_jackpot', 'jackpotFired', 'safetyNetUsed', 'negativeTilesTakenRun',
   '_perMinuteFired', 'handsPlayedGame', 'rowColBonuses', 'leyLinePos',
   'minuteHandCharges', 'understudyNextMark',
+  'hallmarkCardId', 'hallmarkMarkAt', 'hallmarkPlanted', 'forcedTrickIds',
   'cuckooNextMinute', 'compoundNextMark', 'compoundBanked', 'nsPlays', 'nsBonus', 'retriggersThisRound', 'woodpeckerActiveBlock', 'woodpeckerPos',
   // ── Round/run counters ──
   'handsPlayedRound', 'studyHallCards', 'runsPlayedRound', 'setsPlayedRound', 'runStreak',

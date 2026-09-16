@@ -1,4 +1,4 @@
-const BUILD = "2026-09-16 · r241 · MAP MODE + MINI-BOSSES: the run as a 4-lane tile board (orthogonal walk, 2 per set, skip pay, funnel, fixed-quota boss) plus six handicap challenge rounds on the real boss machinery (bossFxLive); challenges survive saves; 3-2-1 rethemed [merged onto main r239]";
+const BUILD = "2026-09-16 · r242 · map guarantees >=1 reward-grid tile (owner playtest: ~1 in 10 maps rolled none) [merged onto main r241]";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

@@ -17,6 +17,7 @@ const KNACK_POOL = [
   { id:'safety_net',      emoji:'🪢',  name:'Safety Net',       rarity:'rare',   desc:'Once per game: if you miss the round goal, gain a 30s extension instead of failing.' },
   { id:'free_range_t',    emoji:'🦅',  name:'Free Range',       rarity:'rare',   desc:'Can swap any two non-adjacent cards, but limited to 2 swaps per round.' },
   { id:'understudy',      emoji:'🎭',  name:'Understudy',       rarity:'rare',   desc:'Every 30 seconds one of your tricks is primed: it fires an extra time on your next hand.' },
+  { id:'hallmark',        emoji:'🔖',  name:'Hallmark',         rarity:'rare',   desc:'Once a round a card on the board is marked. Score it and it takes a random buff.' },
   { id:'long_pause',      emoji:'🦉',  name:'Long Pause',       rarity:'common', desc:'All clock pauses last 1.5× as long.' },
   { id:'sundial',         emoji:'🌇',  name:'Sundial',          rarity:'common', desc:'Hands where every card shares a column pause the clock for 8 seconds.' },
   { id:'metronome',       emoji:'🥁',  name:'Metronome',        rarity:'common', desc:'Each round a hand type you can make is chosen; playing that hand type pauses the clock for 5 seconds.' },

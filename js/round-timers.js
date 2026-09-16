@@ -117,6 +117,7 @@ function startRoundTimer() {
         renderTrickTray?.();
       }
     }
+    if (typeof hallmarkTick === 'function') hallmarkTick(_elapsedRound);
     // The Cuckoo: every 60s of round time, pause the clock by 1s for each retrigger so far this round
     if (hasTrick('cuckoo') && _elapsedRound >= cuckooNextMinute) {
       cuckooNextMinute += BAL.cuckoo.interval_seconds;

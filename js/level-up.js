@@ -257,6 +257,8 @@ function triggerLevelUp() {
   cuckooNextMinute = BAL.cuckoo.interval_seconds;
   compoundNextMark = BAL.compound.interval_seconds; compoundBanked = 0;
   understudyNextMark = BAL.understudy.interval_seconds;
+  if (typeof hallmarkRollRound === 'function') hallmarkRollRound();
+  forcedTrickIds = [];
   // Clock-mark Tricks + Déjà Vu: pending bonuses and rank-history reset each round
   pendingHandPips = 0; pendingHandMult = 0; pendingCardPips = 0; minuteHandCharges = 0;
   lastHandRankKey = null;
