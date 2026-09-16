@@ -200,8 +200,16 @@ function recordsRenderDeck() {
 function recordsEntityCard(icon, name, tag, desc, cls, off, rar) {
   const d = (typeof colorizeKeywords === 'function') ? colorizeKeywords(withSuitHalo(desc || '')) : (desc || '');
   const rc = 'rar-' + (typeof tierId === 'function' ? tierId(rar) : 'common');
+  // The row leads with the OBJECT (r239): the same floppy / business card /
+  // cert diamond every offer surface draws, so what you read about here is
+  // visibly the thing in your tray. `cls` carries the kind (e-trick...).
+  const kind = cls === 'e-trick' ? 'trick' : cls === 'e-sleight' ? 'sleight' : cls === 'e-knack' ? 'knack' : null;
+  const art = (kind && typeof entityTileHTML === 'function')
+    ? `<span class="rec-ent-tilebox">${entityTileHTML({ entity: kind, emoji: icon, label: name },
+        typeof tierId === 'function' ? tierId(rar) : 'common')}</span>`
+    : `<span class="rec-ent-ico">${icon}</span>`;
   return `<div class="rec-ent ${cls} ${rc}${off ? ' ent-off' : ''}">
-    <div class="rec-ent-top"><span class="rec-ent-ico">${icon}</span>
+    <div class="rec-ent-top">${art}
       <span class="rec-ent-name">${name}</span><span class="rec-ent-tag">${off ? 'SWITCHED OFF' : tag}</span></div>
     <div class="rec-ent-desc">${d}</div></div>`;
 }

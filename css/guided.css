@@ -101,14 +101,26 @@
 }
 #guided-pick3 .g3-row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
 #guided-pick3 .g3-opt {
-  flex: 0 0 140px; height: 180px; cursor: pointer;
+  flex: 0 0 140px; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
   transition: transform .12s ease;
 }
 #guided-pick3 .g3-opt:hover { transform: translateY(-4px); }
-#guided-pick3 .g3-opt > .reward-cell { width: 100%; height: 100%; }
+/* The object on top at a fixed frame, the words beneath it (r239). */
+#guided-pick3 .g3-tile { pointer-events: none; }
+#guided-pick3 .g3-tile .reward-cell { position: relative; width: 72px; height: 94px; margin: 0; }
+#guided-pick3 .g3-name {
+  font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 11px;
+  letter-spacing: 0.5px; text-transform: uppercase; text-align: center;
+  color: var(--cream, #f0e6c8); line-height: 1.15;
+}
+#guided-pick3 .g3-desc {
+  font-family: 'Crimson Pro', serif; font-size: 11.5px; line-height: 1.3;
+  color: rgba(240,230,200,0.75); text-align: center;
+}
 
 @media (max-width: 420px) {
-  #guided-pick3 .g3-opt { flex-basis: calc(50% - 5px); height: 150px; }
+  #guided-pick3 .g3-opt { flex-basis: calc(50% - 5px); }
   #gx-bar { gap: 8px; font-size: 10px; padding: 5px 10px; }
 }
 

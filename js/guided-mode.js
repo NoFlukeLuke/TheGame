@@ -439,19 +439,28 @@ function guidedOpenPickThree(done) {
   mk.forEach(p => {
     const t = document.createElement('div');
     t.className = 'g3-opt';
-    t.innerHTML = (typeof entityTileHTML === 'function')
-      ? entityTileHTML(p)
+    // The tile is the OBJECT - drawn at its own ratio, in its rarity colour
+    // (this call used to omit the rarity, so every offer read as common) - and
+    // the title and description sit BENEATH it (owner spec, r239).
+    const tile = (typeof entityTileHTML === 'function')
+      ? entityTileHTML(p, p.rarity || 'common')
       : `<div class="reward-cell entity"><div class="rwd-name">${p.label}</div></div>`;
+    t.innerHTML = `<div class="g3-tile">${tile}</div>`
+      + `<div class="g3-name">${p.label}</div>`
+      + `<div class="g3-desc">${(typeof colorizeKeywords === 'function') ? colorizeKeywords(p.desc || '') : (p.desc || '')}</div>`;
     t.onclick = () => {
       try { p.apply?.(); } catch (e) {}
       el.classList.remove('show');
       done();
     };
     row.appendChild(t);
-    const nm = t.querySelector('.rwd-name');
-    if (nm && typeof fitRewardName === 'function') fitRewardName(nm);
   });
   el.classList.add('show');
+  // Fit after .show - a hidden element measures a zero rect and never fits.
+  requestAnimationFrame(() => {
+    if (typeof fitRewardName === 'function')
+      row.querySelectorAll('.g3-tile .rwd-name').forEach(nm => fitRewardName(nm));
+  });
 }
 
 // ══════════════════════════════════════════════

@@ -3367,50 +3367,90 @@
   .reward-cell.entity-sleight { --ink: #f4eeda; }
 
   /* ── A UTILITY IS A FLOPPY DISC ──────────────────────────────────────────
-     Shell, shutter, label. The shell IS the rarity. The chamfer is the real
-     disc's corner notch and the strongest cue that this is a floppy at 40px, so
-     it is clipped on the element itself rather than on a layer a frame could
-     cover. */
+     Shell, shutter, label - and LETTERBOXED at the real 3.5" disc's ratio
+     (w/h = 1/0.95, art-preview's flopAspect), exactly as the business card is.
+     Owner's call (r239): the disc keeps its ratio NO MATTER WHAT FRAME it lands
+     in - the frames run from a 26px Mart mini to a 2-cell-wide shop tile, and
+     stretched to any of them it stops being a floppy. So the element goes
+     transparent and ::before paints the whole object. Shell, shutter and label
+     are LAYERED BACKGROUNDS on that one band, because the corner notch is a
+     clip-path on the band and a second pseudo-element could not share the clip.
+     A background-position percentage is solved for the geometry: a layer with
+     its left edge at L% and width W% sits at position-x L/(100-W)*100%. */
   .reward-cell.entity-trick {
     --body: color-mix(in srgb, var(--rc) 72%, #1b1813);
-    background: var(--body);
-    border-color: color-mix(in srgb, var(--rc) 55%, #000);
-    clip-path: polygon(0 0, 83% 0, 100% 13%, 100% 100%, 0 100%);
-    justify-content: flex-start;
+    clip-path: none;
+    background: none; border: none; box-shadow: none;
+    justify-content: center;
+    /* The frame is a CONTAINER so the band can letterbox against BOTH axes:
+       width = min(frame width, frame height x ratio). A frame narrower than
+       the disc letterboxes top and bottom, a frame WIDER than it (the shop's
+       2-cell tiles) letterboxes left and right - insets alone can only do the
+       first, which stretched and clipped the disc in a wide frame. Every
+       frame already states its own size (r182's rule), which is what
+       container-type: size requires. */
+    container-type: size;
   }
-  .reward-cell.entity-trick::before {   /* the metal shutter, window and all */
-    content: ''; position: absolute; z-index: 1; mix-blend-mode: normal;
-    left: 34%; right: 11%; top: 5.5%; height: 25%;
-    border-radius: 1.5px;
-    /* The window is punched into the metal by a hard-stop layer rather than by
-       another element - without it the shutter is a grey sticker. */
+  .reward-cell.entity-trick::before {
+    content: ''; position: absolute; z-index: 0; mix-blend-mode: normal;
+    left: 50%; top: 50%; right: auto; bottom: auto;
+    width: min(100cqw, calc(100cqh * 20 / 19)); aspect-ratio: 20 / 19;
+    transform: translate(-50%, -50%);
+    /* the corner notch - the strongest "this is a floppy" cue at 40px */
+    clip-path: polygon(0 0, 84% 0, 100% 16.8%, 100% 100%, 0 100%);
     background:
-      linear-gradient(90deg, transparent 0 14%, #24272c 14% 44%, transparent 44%)
-        no-repeat 0 18% / 100% 64%,
-      linear-gradient(180deg, #e6e9ee 0%, #9aa0a8 52%, #cfd4da 100%);
-    box-shadow: inset 0 0 0 0.5px rgba(0,0,0,0.4);
+      /* the shutter's punched window */
+      linear-gradient(#24272c, #24272c) no-repeat 49.6% 12% / 18.9% 21.1%,
+      /* the metal shutter */
+      linear-gradient(180deg, #e6e9ee 0%, #9aa0a8 52%, #cfd4da 100%)
+        no-repeat 60% 6.5% / 45% 31%,
+      /* the cream label plate */
+      linear-gradient(rgba(244,238,218,0.94), rgba(244,238,218,0.94))
+        no-repeat 50% 82% / 86% 50%,
+      var(--body);
+    /* The clip eats an outer border, so the rarity edge is painted inside. */
+    box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--rc) 55%, #000);
   }
-  .reward-cell.entity-trick::after {    /* the cream label plate */
-    content: ''; position: absolute; z-index: 1; mix-blend-mode: normal;
-    left: 7%; right: 7%; top: 38%; bottom: 7%;
-    border-radius: 2px;
-    background: rgba(244,238,218,0.94);
-    box-shadow: inset 0 0 0 0.5px rgba(30,26,20,0.3);
-  }
+  .reward-cell.entity-trick::after { content: none; }
   /* The star was how a Trick announced itself. The silhouette does that now. */
   .reward-cell.entity-trick .rwd-glyph { display: none; }
-  /* Emoji and name both sit ON THE LABEL, which is what a floppy label is for.
-     Dark ink, because the plate is cream - the one place in the tile system
-     where a name is not light-on-dark. */
-  .reward-cell.entity-trick .rwd-art {
-    top: 41%; bottom: auto; height: 26%;
-    font-size: 19px; filter: none;
+  /* Emoji and name both sit ON THE LABEL, in dark ink - the one place in the
+     tile system where a name is not light-on-dark. Same band construction as
+     the business card's children: each is stretched to the disc's own box with
+     aspect-ratio, then PADDED into its region. Padding percentages resolve
+     against WIDTH, and the disc's height is 95% of its width - these numbers
+     fold that in (39% of width = 41% of height, the label's top edge). */
+  .reward-cell.entity-trick .rwd-art,
+  .reward-cell.entity-trick .rwd-name,
+  .reward-cell.entity-trick .rwd-uses {
+    position: absolute; left: 50%; right: auto; bottom: auto; height: auto;
+    top: 50%; transform: translate(-50%, -50%); margin: 0;
+    width: min(100cqw, calc(100cqh * 20 / 19)); aspect-ratio: 20 / 19;
+    display: flex;
   }
-  .reward-cell.entity-trick .rwd-name {
-    position: absolute; left: 10%; right: 10%; bottom: 9%; width: auto; z-index: 2;
+  .reward-cell.entity-trick .rwd-art {      /* the label's upper half */
+    padding: 39% 9% 27% 9%;
+    align-items: center; justify-content: center;
+    /* Type scales WITH the disc (33.5cqw = the old 19px at a 57px frame), so
+       the object is the same picture at 34px in Records and 119px in the shop
+       rather than a fixed-size emoji drowning one and rattling in the other. */
+    font-size: 33.5cqw; filter: none;
+  }
+  .reward-cell.entity-trick .rwd-name {     /* the label's bottom edge */
+    z-index: 2; padding: 0 11% 10.5% 11%;
+    align-items: flex-end; justify-content: center;
+    text-align: center; line-height: 1.05;
+    font-size: max(6px, 17.5cqw);
     color: #221d15; text-shadow: none;
   }
-  .reward-cell.entity-trick .rwd-uses { color: #221d15; background: rgba(30,26,20,0.12); }
+  .reward-cell.entity-trick .rwd-uses {
+    z-index: 3; padding: 0 9% 10.5% 0;
+    align-items: flex-end; justify-content: flex-end;
+    background: none; border-radius: 0;
+    font-size: max(6px, 15.8cqw);
+    color: #221d15; text-shadow: none;
+    pointer-events: none;
+  }
 
   /* ── A VENDOR IS A BUSINESS CARD ─────────────────────────────────────────
      LETTERBOXED (owner's call), not stretched. A business card is landscape
@@ -3428,11 +3468,13 @@
     clip-path: none;
     background: none; border: none; box-shadow: none;
     justify-content: center;
+    container-type: size;   /* both-bounds letterbox - see the disc above */
   }
   .reward-cell.entity-sleight::before {
     content: ''; position: absolute; z-index: 0; mix-blend-mode: normal;
-    left: 0; right: 0; top: 50%; aspect-ratio: 1.37;
-    transform: translateY(-50%);
+    left: 50%; top: 50%; right: auto; bottom: auto;
+    width: min(100cqw, calc(100cqh * 1.37)); aspect-ratio: 1.37;
+    transform: translate(-50%, -50%);
     border-radius: 4px;
     /* One layered background is both parts: the logo plate is a hard stop over
        the body, sized to the UPPER LEFT rather than run full height, so the card
@@ -3461,19 +3503,21 @@
   .reward-cell.entity-sleight .rwd-art,
   .reward-cell.entity-sleight .rwd-name,
   .reward-cell.entity-sleight .rwd-uses {
-    position: absolute; left: 0; right: 0; width: auto; height: auto;
-    top: 50%; bottom: auto; transform: translateY(-50%);
-    aspect-ratio: 1.37; display: flex;
+    position: absolute; left: 50%; right: auto; bottom: auto; height: auto;
+    top: 50%; transform: translate(-50%, -50%); margin: 0;
+    width: min(100cqw, calc(100cqh * 1.37)); aspect-ratio: 1.37;
+    display: flex;
   }
   .reward-cell.entity-sleight .rwd-art {           /* the logo plate, upper-left */
     padding: 0 56% 38% 0;
     align-items: center; justify-content: center;
-    font-size: 21px; filter: none;
+    font-size: 37cqw; filter: none;   /* the old 21px at a 57px frame, scaled */
   }
   .reward-cell.entity-sleight .rwd-name {          /* the band along the bottom */
     z-index: 2; padding: 0 16% 5% 5%;
     align-items: flex-end; justify-content: center;
     text-align: center; line-height: 1.05;
+    font-size: max(6px, 17.5cqw);
     color: var(--ink); text-shadow: 0 1px 2px rgba(0,0,0,0.75);
   }
   .reward-cell.entity-sleight .rwd-tab { display: none; }
@@ -3486,6 +3530,7 @@
     z-index: 3; padding: 0 5% 4% 0;
     align-items: flex-end; justify-content: flex-end;
     background: none; border-radius: 0;
+    font-size: max(6px, 15.8cqw);
     color: var(--ink); text-shadow: 0 1px 2px rgba(0,0,0,0.8);
     pointer-events: none;
   }

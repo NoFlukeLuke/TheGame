@@ -1,4 +1,4 @@
-const BUILD = "2026-09-15 · r238 · Low and Behold replays the CARDS (not a x2 on the score) · Flow State is a per-card payer [onto r237]";
+const BUILD = "2026-09-16 · r239 · the objects keep their ratio everywhere; every entity listing shows the object";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

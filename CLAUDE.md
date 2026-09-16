@@ -1985,8 +1985,8 @@ Both are drawn in **`css/style.css` on `.reward-cell.entity-trick` /
 wrap their own frame around the one class list, so **all seven changed shape
 with no per-surface code** - reward grid, Mart shelf, Mart cart thumbnail, Mart
 loadout strip, Trick tray, Shift Change slots and the trick-lose picker rows.
-(RECORDS Owned is deliberately unaffected: `recordsEntityCard` is its own
-markup, because that screen is for READING, not for picking things off a board.)
+(RECORDS Owned held out until r239, when its rows gained the shared tile too -
+see "Every listing shows the object" below.)
 
 **Ported from `art-preview.html` as CSS, not as its SVG.** The preview draws at
 one size on a blank page; the game draws this tile from a 32px cart thumbnail to
@@ -2005,10 +2005,10 @@ six call sites.
   and a disc and a card are physical objects in front of the screen rather than
   pictures on it. That is also what frees `::before` and `::after` to be the
   object's own parts, which is what keeps this CSS instead of markup.
-- **The floppy**: chamfered shell (the corner notch is the strongest "this is a
-  floppy" cue at 40px, so it is `clip-path` on the element, not on a layer a
-  frame could cover), a metal shutter whose window is punched by a hard-stop
-  gradient layer, and a cream label plate. **The emoji and the name both sit ON
+- **The floppy**: chamfered shell, a metal shutter whose window is punched by a
+  hard-stop gradient layer, and a cream label plate. (r228 clipped the chamfer on
+  the ELEMENT; since r239 the whole disc is one letterboxed band and the clip
+  moved onto it - see below.) **The emoji and the name both sit ON
   THE LABEL** - which is what a floppy label is for - in dark ink. It is the one
   place in the tile system where a name is not light-on-dark.
 - **The business card is LETTERBOXED** (owner's call), not stretched. It is
@@ -2068,6 +2068,56 @@ a real card carries beside the logo.
 - **The resting rarity edge moved onto the CARD.** Left on the cell it outlined
   the empty slot the card is centred in, which is the one thing the letterbox
   exists to leave alone.
+
+### The objects keep their RATIO everywhere, and every listing shows them (r239)
+
+Owner spec, two halves.
+
+**1. A floppy is 3.5 inches wherever it appears.** Both objects letterbox against
+BOTH axes now: the frame is a `container-type: size` CONTAINER and the band is
+`width: min(100cqw, calc(100cqh * R))` + `aspect-ratio`, centred with a
+translate. Insets alone can only letterbox the axis they span - a frame WIDER
+than the object (the shop's 2-cell tiles) stretched and clipped the disc, which
+a syntax check cannot see and a screenshot can. The disc's ratio is the real
+3.5" disc's (`aspect-ratio: 20 / 19`, art-preview's `flopAspect` 0.95 h/w); the
+chamfer clip-path moved from the element onto the band, so the rarity edge is an
+INSET box-shadow (an outer one would be clipped away). Shell, shutter and label
+are LAYERED BACKGROUNDS on the one `::before`, because a second pseudo could not
+share the clip; a layer at left L% width W% sits at `background-position-x`
+L/(100-W)*100%.
+
+- **The object's TYPE scales with the object** (`33.5cqw` art / `17.5cqw` name
+  on the disc, `37cqw` / `17.5cqw` on the card - each the old px value at the
+  57px frame). Fixed px meant a 34px Records tile drowned under a 19px emoji
+  and a 119px shop tile rattled around one. `fitEntityName` still shrinks a long
+  word from wherever the cqw lands it.
+- **A frame that pins the tile must be `position: relative`, never static** -
+  the band is an abspos pseudo and anchors to the nearest positioned ancestor,
+  so a static frame paints the object across whatever contains it.
+- **Fit labels AFTER the panel shows.** A hidden element measures a zero rect
+  and the fitter leaves a long name to clip ("CAPACITOR" painted "APACITOR",
+  centred overflow eating both ends). The survival pick and the guided pick both
+  refit in a rAF after their panel is visible.
+
+**2. Anywhere an entity is LISTED, the listing leads with the OBJECT - the same
+tile the tray draws - and the words sit BENEATH it.** Wired: the Survival/Flow
+pick-of-three (`sv-pick-tile`; limits keep the bare icon - no object to show),
+the guided pick-of-three (which also finally passes its RARITY -
+`entityTileHTML(p)` with no second argument had drawn every offer common), the
+events (a `tile:` payload adds `has-tile`, flipping `.ec-top` to a column;
+Rehearsal, Workshop, Trade a Trick and the improve draws gained the payloads
+they lacked), and RECORDS Owned (`rec-ent-tilebox`, name hidden at 34px - the
+row states it; note the hide needs THREE classes, the object rule sets
+`display:flex` at the same depth).
+
+- **Tiled event choices wrap TWO ACROSS** via
+  `#event-panel div:has(> .event-choice.has-tile)` - the container is found by
+  `:has()` because event bodies wrap choices in ad-hoc divs. **`flex-direction:
+  row` must be restated**: `#event-body` is a flex COLUMN, and a column with
+  wrap at auto height never wraps - it just stayed one per line, centred, which
+  looked exactly like `:has()` failing.
+- The event tile keeps its own label now (`.ec-tile .rwd-name { display:none }`
+  is gone): the tile is a picture of the thing you will own, name included.
 
 **What is NOT done yet:** the playing card itself. `art-preview.html` also draws
 the card as a **document with a folded corner** (`docSVG`), and that is the piece

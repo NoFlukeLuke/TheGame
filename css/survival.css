@@ -82,6 +82,12 @@
   padding: 2px 7px; border-radius: 999px; text-transform: uppercase; font-weight: 700;
 }
 .sv-pick-icon { font-size: 30px; line-height: 1; margin-top: 1px; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.5)); }
+/* An entity option shows the REAL OBJECT (r239) - the shared tile from
+   js/entity-tile.js, the same floppy / business card / cert the tray draws -
+   with the name and description below it. The slot only sizes the frame; the
+   object letterboxes itself inside it. */
+.sv-pick-tile { display: flex; justify-content: center; margin-top: 1px; pointer-events: none; }
+.sv-pick-tile .reward-cell { position: relative; width: 52px; height: 66px; margin: 0; }
 .sv-pick-name {
   font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 11px; letter-spacing: 0.5px;
   color: var(--cream, #f0e6c8); text-align: center; line-height: 1.15;
