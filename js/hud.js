@@ -297,6 +297,21 @@ document.addEventListener('click', (e) => {
 // with CSS - one renderer, no per-orientation branch.
 let _handNameKey = null;   // last markup written, so render() does not thrash the DOM
 
+// r234: the label is HELD for the length of a scoring dance.
+//
+// updateHandNameLabel runs from render(), and the dance calls render() several
+// times (removeAndFall repaints, the board refills) with the selection already
+// cleared - so the one moment the player most wants to know what they played,
+// the label went blank. Holding it is the whole fix and it costs no space: the
+// name is already sitting in the 44px column beside the preview, so it stays
+// legible right through the tally, including the second component of a layered
+// hand ("RUN 3 + FLUSH 3") which is the part that was surprising people.
+//
+// A hold is released by whichever path ends the dance - the normal tail and
+// dncFinishAbort - never left to time out.
+let _handNameHeld = false;
+function holdHandNameLabel(on) { _handNameHeld = !!on; }
+
 function handLabelHTML(runs) {
   return runs.map(({ n, k }) => {
     const l = HAND_LABEL[n];
@@ -307,6 +322,7 @@ function handLabelHTML(runs) {
 }
 
 function updateHandNameLabel(result) {
+  if (_handNameHeld) return;         // a dance owns this label until it ends
   const el = document.getElementById('hand-name');
   if (!el) return;
   // handLayersFor is what calcScore pays for, so the label can never name a hand

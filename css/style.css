@@ -554,6 +554,18 @@
     scrollbar-width: none;
   }
   #knack-list::-webkit-scrollbar { display: none; }
+  /* r234: the wrap is a viewport, never a scroller - overflow here showed an OS
+     scrollbar down the side of the knack rack. What does not fit is handled by
+     applyChipMarquee (it scrolls the row itself), not by the browser. */
+  #knack-carousel-wrap { overflow: hidden; scrollbar-width: none; }
+  #knack-carousel-wrap::-webkit-scrollbar { display: none; }
+  /* The tooltip DOES have to stay scrollable (it is viewport-capped like every
+     other pop-up), so it keeps its bar - just a thin themed one instead of the
+     OS default sitting on a 200px dark bubble. */
+  #knack-tooltip { scrollbar-width: thin; scrollbar-color: var(--gold-dim) transparent; }
+  #knack-tooltip::-webkit-scrollbar { width: 6px; }
+  #knack-tooltip::-webkit-scrollbar-track { background: transparent; }
+  #knack-tooltip::-webkit-scrollbar-thumb { background: var(--gold-dim); border-radius: 3px; }
   .knack-chip {
     width: 26px;
     height: 26px;
@@ -3305,8 +3317,16 @@
                 inset 0 0 8px rgba(179,156,245,0.4);
   }
 
+  /* r234: the art is a BOUNDED BAND, not a glyph hung from a top offset.
+     It used to be `top: 16%` with `line-height: 1` and no bottom - so the box
+     was the glyph's own height and an emoji, which carries a lot of ascent and
+     descent, ran past the bottom of the tile art and into the name. Giving it a
+     real box between the corner glyph and the name band and centring inside it
+     means the emoji is centred in the space it actually has, at every tile size
+     the game draws (the per-surface overrides below change only the font size
+     and the top edge, so the box stays bounded). */
   .reward-cell .rwd-art {
-    position: absolute; top: 16%; left: 0; right: 0; margin: auto; z-index: 2;
+    position: absolute; top: 14%; bottom: 30%; left: 0; right: 0; margin: auto; z-index: 2;
     display: flex; align-items: center; justify-content: center;
     font-size: 30px; line-height: 1; filter: drop-shadow(0 0 6px var(--rc));
   }
@@ -4282,10 +4302,18 @@
   #clock.urgent { color: var(--c-coral) !important; }
   #vclock-fill { background: linear-gradient(90deg, var(--c-mint), var(--c-cyan)) !important; box-shadow: 0 0 8px rgba(22,200,216,0.5); }
 
-  /* Knack chips + trick tiles → plastic */
-  #stage.landscape #knack-list .knack-chip, .trick-tray-chip {
+  /* Knack chips → plastic. A knack chip IS the tile, so it carries the plate. */
+  #stage.landscape #knack-list .knack-chip {
     background: linear-gradient(180deg, #241d12, #151009) !important; border:1px solid #000 !important;
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.07) !important;
+  }
+  /* r234: a TRICK chip does NOT. It is a frame around a .reward-cell which has
+     its own plate, border and rarity edge, so a second plate on the wrapper
+     showed as a grey slab filling the chip's slot in the tray behind the tile -
+     and as a bare slab under every tucked tile in the portrait fan. The tile is
+     the whole object; the chip is just where it sits. */
+  .trick-tray-chip {
+    background: none !important; border: none !important; box-shadow: none !important;
   }
 
   /* ACT tracker LEDs */

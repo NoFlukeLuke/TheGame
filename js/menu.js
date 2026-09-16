@@ -1,4 +1,4 @@
-const BUILD = "2026-09-16 · r234 · global PRICE_MULT, easy-hand Focus cut, The Price costs buffed cards";
+const BUILD = "2026-09-16 · r235 · the hand stays named through the tally, and the preview runs left to right";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
