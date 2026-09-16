@@ -51,14 +51,14 @@
 const OFFICE_PHOTO = {
   // Any format a browser can draw. A photograph as PNG is enormous - a 2560px
   // JPG or WebP is a tenth the size and indistinguishable behind a CRT flash.
-  file: 'assets/room/office.png',
+  file: 'assets/room/office.jpg',
 
   // The monitor's glass, in the IMAGE'S OWN PIXELS, in this order:
   //   top-left, top-right, bottom-right, bottom-left
   // Left at null the photo is ignored entirely and the CSS room (r180) runs
   // exactly as it did - so an uncalibrated or missing image cannot break the
   // opening. Fill it in from office-calibrate.html.
-  screen: null,
+  screen: [[1056,351],[1344,358],[1343,561],[1056,553]],
   // e.g. screen: [[812,404],[1388,436],[1381,802],[806,758]],
   //
   // assets/room/_test-office.svg is a synthetic office with its glass at
@@ -213,7 +213,18 @@ function officeLayout() {
   // The photo must cover the viewport at the wide framing too, or the edge of the
   // image shows as a hard seam. That minimum IS the furthest the camera can pull
   // back, and the ratio between it and 1 is the whole zoom.
-  officeWideK = Math.min(1, Math.max(W / (OFFICE_PHOTO.w * S), H / (OFFICE_PHOTO.h * S)));
+  //
+  // IT IS MEASURED FROM THE MONITOR, NOT FROM THE IMAGE'S SIZE, because the zoom
+  // holds the monitor on the viewport centre and a monitor is never in the middle
+  // of the shot. Each of the four margins from the monitor to an edge of the photo
+  // has to reach half the viewport on its own, and the SMALLEST one decides: a
+  // monitor 71% across has only 29% of the picture to its right, and the naive
+  // whole-image figure left 306px of bare background down the right-hand side.
+  const mL = bb.cx, mR = OFFICE_PHOTO.w - bb.cx;
+  const mT = bb.cy, mB = OFFICE_PHOTO.h - bb.cy;
+  officeWideK = Math.min(1, Math.max(
+    (W / 2) / (Math.max(1, mL) * S), (W / 2) / (Math.max(1, mR) * S),
+    (H / 2) / (Math.max(1, mT) * S), (H / 2) / (Math.max(1, mB) * S)));
 
   // Put the monitor's centre on the viewport centre. #camera is position:fixed
   // inset:0, so its local px ARE viewport px, and scaling about 50%/50% then

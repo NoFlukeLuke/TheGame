@@ -52,8 +52,8 @@ const AUDIO_MANIFEST = {
     { id: 'amb_type1',    title: 'Typing (short)',         file: 'assets/ambience/typing-short.mp3',       scene: 'any',  off: true },
     { id: 'amb_type2',    title: 'Typing (long)',          file: 'assets/ambience/typing-long.mp3',        scene: 'any',  off: true },
     { id: 'amb_clock',    title: 'Clock tick',             file: 'assets/ambience/clock-tick.mp3',         scene: 'game', off: true },
+    { id: 'deadline',     title: 'Deadline',               file: 'assets/music/deadline.mp3',              scene: 'game', ramp: true },
   ],
-{ id: 'deadline', title: 'Deadline', file: 'assets/music/deadline.mp3', scene: 'game', ramp: true },
   // ── SOUND EFFECTS ────────────────────────────────────────────────────────
   // id: 'path/to/file'. The ids are listed in Settings -> Sound effects, and in
   // SFX_CATALOG in js/audio-assets.js.

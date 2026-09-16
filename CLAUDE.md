@@ -2776,14 +2776,24 @@ is where they come from: click the corners, drag them until the test card sits f
 paste the block it dumps. That page loads the real `js/office-photo.js`, so the
 mapping tuned there is the arithmetic the game runs - keep it that way.
 
-`screen: null` (the shipped state) means photo mode never turns on and the CSS room
+**Calibrating is a ZOOM job, not an eyeball job.** The shipped corners were read off
+the monitor at 9x with a labelled pixel grid, one corner at a time; at 3x the bottom
+edge came out **21px high**, which is invisible on the source image and shows as a
+band of unpainted glass under the menu. Auto-detection was tried twice and is not
+worth repeating: the office is unlit, so the wall beyond the monitor is as dark as
+the screen and an inward scan stops on the wall, while the photo's own chromatic
+fringing seeds an outward one all over the picture.
+
+`screen: null` means photo mode never turns on and the CSS room
 runs exactly as it did, so a missing file, a 404 or an uncalibrated quad cannot
 break the opening. **`assets/room/_test-office.svg`** is a synthetic office with its
 glass at `[[760,430],[1240,470],[1230,790],[770,745]]`; point `file` and `screen` at
 those two and the whole opening runs with no photograph in the repo.
 
-**The photo must have a BLANK screen.** The live menu is drawn onto that quad, so a
-mock-up baked into the monitor shows through underneath it.
+**The monitor in the photo may keep whatever is on its screen.** `#stage` paints an
+opaque background over the whole quad, so a mock-up baked into the glass is covered
+rather than showing through - verified against a photo that has the menu painted on
+it. What it must NOT have is anything on the screen you want to still see.
 
 ### The four things this encodes
 
@@ -2793,6 +2803,20 @@ mock-up baked into the monitor shows through underneath it.
   trapezoid had grown to and the cut is continuous. It also means **the zoom factor
   IS how small the monitor is in the frame** - a shot where the monitor is half the
   picture has almost no push in it, and the calibration page says so in as many words.
+- **THE WIDE FRAMING IS MEASURED FROM THE MONITOR, NOT FROM THE IMAGE'S SIZE.** The
+  zoom holds the monitor on the viewport centre, and a monitor is never in the middle
+  of the shot, so each of the four margins from the monitor to an edge of the photo
+  has to reach half the viewport ON ITS OWN and the smallest one decides. The shipped
+  photo has its monitor 71% across, and the naive whole-image cover figure left 306px
+  of bare background down the right-hand side of the menu.
+- **The attract screens have to be re-inset to 0.** `#main-menu-overlay` is
+  `inset: 12px`, and `inset` resolves against its positioned ancestor's PADDING box -
+  so with `#cab-screen`'s own 12px bezel it landed exactly on `#stage`, and with the
+  bezel zeroed for photo mode it lands 12px INSIDE `#stage`. That ring is live board:
+  the HUD elements are laid out from the first frame whether or not a run has started,
+  so the menu sat in a frame of cyan SWAP, red DISCARD and yellow PLAY down the side
+  of the monitor. Measured: menu 418x278 inside a 432x296 stage, against 666x374 on
+  666x374 in the r180 cabinet.
 - **The photo is placed so the MONITOR'S centre is on the viewport centre**, which is
   what reduces "fly into the screen" to `scale(k)` about the viewport centre - the
   same trick `camPlaceScene` plays with the stage. No translate to keep in step, one

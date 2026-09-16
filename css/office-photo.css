@@ -79,6 +79,17 @@ body.office-photo #cab-screen {
      the menu about 25px off the glass with the element's own bounding box
      reporting a position the matrix provably does not produce. Measured.        */
 }
+/* THE ATTRACT SCREENS MUST COVER THE WHOLE GLASS, and zeroing the bezel above is
+   what broke that. #main-menu-overlay is `inset: 12px`, and `inset` resolves
+   against its positioned ancestor's PADDING box - so with #cab-screen's own 12px
+   bezel it landed exactly on #stage, and with the bezel gone it lands 12px INSIDE
+   #stage. That ring is live board: the HUD elements are laid out from the first
+   frame whether or not a run has started, so the menu sat in a frame of cyan SWAP,
+   red DISCARD and yellow PLAY down the right of the monitor. Measured: menu
+   418x278 inside a 432x296 stage, against 666x374 on 666x374 in the r180 cabinet. */
+body.office-photo #cab-screen > #main-menu-overlay,
+body.office-photo #cab-screen > #mode-select-overlay { inset: 0 !important; }
+
 /* The scanlines and the glare are the one piece of bezel worth keeping - they
    are what makes the board read as something a screen is displaying rather than
    as a page. They were inset by the 12px bezel that no longer exists. */

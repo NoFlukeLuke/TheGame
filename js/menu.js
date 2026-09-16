@@ -1,4 +1,4 @@
-const BUILD = "2026-09-16 · r246 · map blanks are a roll: ~51% two, 38% one, 11% none [onto r245 THE PICK]";
+const BUILD = "2026-09-16 · r247 · the office photo is calibrated and live - the menu sits on the monitor and the camera pushes into it [onto r246]";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
