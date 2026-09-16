@@ -1809,8 +1809,9 @@ function closeRewardGrid() {
     // Guided routes off it, and 5 is the post-boss prize grid.
     const _node = nodeInAct;
     const _guided = (typeof guidedActive === 'function' && guidedActive() && isActMode());
+    const _map = (typeof mapActive === 'function' && mapActive());
 
-    if (isActMode() && !_guided) {
+    if (isActMode() && !_guided && !_map) {
       if (nodeInAct === 5) {
         // Post-boss reward grid - the quarter rolls over. rolloverQuarter
         // (js/quarter.js) closes the quarter's books, does the advance, and shows
@@ -1833,6 +1834,14 @@ function closeRewardGrid() {
   // Everything finishInterlude does AFTER the node/quarter bookkeeping. Split out
   // so the quarter card can run in front of it and then call it (js/quarter.js).
   function finishInterludeRoute(_node, _guided) {
+    // Map mode (r238): a grid here is either one the player LANDED ON - back to
+    // the map - or the post-boss prize grid, which is the run won. One act, so
+    // there is no quarter to roll over; mapBossArmed is what tells them apart.
+    if (typeof mapActive === 'function' && mapActive()) {
+      pendingEventOverride = null;
+      if (mapBossArmed) onGameWin(); else mapAfterTile();
+      return;
+    }
     // Guided (r218) runs its own act: slots, not nodes. A grid here is either one
     // the player BOUGHT with a slot - back to the crossroads - or the post-boss
     // prize grid, which rolls the act over. Neither uses the node routing above,

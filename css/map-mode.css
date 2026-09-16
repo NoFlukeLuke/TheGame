@@ -1,0 +1,163 @@
+/* ══════════════════════════════════════════════
+   MAP MODE (r238) - the run drawn as a board of tiles
+   The grid is borrowed exactly the way the shop borrows it; every tile is an
+   absolutely-positioned sibling at card metrics. Landscape reads left to right,
+   portrait top to bottom - the JS transposes, this file never needs to know.
+   ══════════════════════════════════════════════ */
+
+#grid .map-tile {
+  position: absolute;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 2px; padding: 3px 2px;
+  text-align: center;
+  border-radius: 6px;
+  cursor: pointer;
+  z-index: 2;
+  --rc: #8fd0ff;
+  background:
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.14) 0 2px, transparent 2px 4px),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02));
+  border: 1px solid color-mix(in srgb, var(--rc) 55%, transparent);
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+/* One colour per kind - red is the hard round and the boss, nothing else. */
+#grid .map-tile.mk-level     { --rc: #6fd08c; }
+#grid .map-tile.mk-challenge { --rc: #ff9d5c; }
+#grid .map-tile.mk-shop      { --rc: var(--c-yellow, #f5c042); }
+#grid .map-tile.mk-reward    { --rc: #8fd0ff; }
+#grid .map-tile.mk-event     { --rc: #c9a0ff; }
+#grid .map-tile.mk-limit     { --rc: #7fe3c0; }
+#grid .map-tile.mk-mystery   { --rc: #d8d0f0; }
+#grid .map-tile.mk-boss      { --rc: #ff5c5c; }
+
+#grid .map-tile.mk-blank {
+  background: #0a0812;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 0 14px rgba(0, 0, 0, 0.8);
+  cursor: default;
+}
+
+#grid .map-tile .mt-icon { font-size: 15px; line-height: 1; }
+#grid .map-tile .mt-name {
+  font-family: 'Orbitron', sans-serif; font-weight: 700;
+  font-size: 6px; letter-spacing: 0.02em; text-transform: uppercase;
+  color: var(--cream, #efe7d6); line-height: 1.15;
+  max-width: 100%; overflow: hidden;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+}
+#grid .map-tile.mk-boss .mt-icon { font-size: 22px; }
+#grid .map-tile.mk-boss .mt-name { font-size: 9px; letter-spacing: 0.25em; }
+#stage.landscape #grid .map-tile.mk-boss .mt-name { writing-mode: vertical-rl; letter-spacing: 0.3em; }
+
+/* States. A LEGAL tile glows; the SELECTED one lifts and rings; a VISITED one
+   is stamped and drained; a doomed or unreachable tile is simply dimmer -
+   readable (it is information) but plainly not on offer. */
+#grid .map-tile:not(.mt-legal):not(.mt-visited):not(.mk-blank) { opacity: 0.55; }
+#grid .map-tile.mt-legal {
+  opacity: 1;
+  border-color: var(--rc);
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5), 0 0 12px -2px var(--rc);
+  animation: map-legal-pulse 2.2s ease-in-out infinite;
+}
+#grid .map-tile.mt-legal:hover { transform: translateY(-2px); }
+@keyframes map-legal-pulse {
+  0%, 100% { box-shadow: inset 0 0 10px rgba(0,0,0,0.5), 0 0 8px -2px var(--rc); }
+  50%      { box-shadow: inset 0 0 10px rgba(0,0,0,0.5), 0 0 16px -2px var(--rc); }
+}
+#grid .map-tile.mt-selected {
+  transform: translateY(-3px);
+  outline: 2px solid var(--rc);
+  outline-offset: 1px;
+  z-index: 3;
+}
+#grid .map-tile.mt-visited {
+  opacity: 0.4; filter: saturate(0.25) brightness(0.75);
+  cursor: default;
+  animation: none;
+}
+#grid .map-tile.mt-here {
+  opacity: 0.85; filter: none;
+  outline: 2px dashed rgba(255, 255, 255, 0.65);
+  outline-offset: 1px;
+}
+#grid .map-tile .mt-stamp {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Share Tech Mono', monospace; font-size: 8px;
+  letter-spacing: 0.2em; color: rgba(255, 255, 255, 0.55);
+  transform: rotate(-14deg);
+  pointer-events: none;
+}
+#grid .map-tile.mt-here .mt-stamp { color: rgba(255,255,255,0.8); }
+
+/* ── The map bar - body-level, raw viewport px (the cabinet-zoom rule) ────── */
+#map-bar {
+  position: fixed; left: 50%; bottom: 10px; transform: translateX(-50%);
+  z-index: 260; display: none; flex-direction: column; gap: 4px;
+  width: min(520px, calc(100vw - 20px));
+  padding: 8px 12px; border-radius: 6px;
+  background: #120e2c; border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.6);
+}
+#map-bar.show { display: flex; }
+#map-bar .mb-top {
+  display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap;
+  font-family: 'Share Tech Mono', monospace; font-size: 10px;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--cream-dim, #b9b0a0);
+}
+#map-bar .mb-set   { color: var(--c-yellow, #f5c042); font-weight: 700; }
+#map-bar .mb-coins { margin-left: auto; color: var(--c-yellow, #f5c042); }
+#map-bar .mb-info {
+  font-family: 'Crimson Pro', serif; font-size: 13px; line-height: 1.3;
+  color: var(--cream, #efe7d6); min-height: 34px;
+}
+#map-bar .mb-info i { color: var(--cream-dim, #b9b0a0); }
+#map-bar .mb-actions { display: flex; justify-content: flex-end; }
+#map-bar #mb-confirm {
+  font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 12px;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 6px 22px; border-radius: 4px; cursor: pointer;
+  color: #08130b; background: #6fd08c; border: 1px solid #9df0b4;
+  box-shadow: 0 0 12px -2px rgba(111, 208, 140, 0.8);
+}
+#map-bar #mb-confirm:disabled {
+  background: #2a2740; color: rgba(255, 255, 255, 0.35);
+  border-color: rgba(255, 255, 255, 0.12); box-shadow: none; cursor: default;
+}
+
+/* ── The hard-round knack pick - same console as #guided-pick3 ───────────── */
+#map-knack-pick {
+  position: fixed; inset: 0; z-index: 300;
+  display: none; align-items: center; justify-content: center;
+  background: rgba(6, 5, 16, 0.84); padding: 16px;
+}
+#map-knack-pick.show { display: flex; }
+#map-knack-pick .g3-panel {
+  width: min(420px, 100%);
+  background: linear-gradient(180deg, #171335 0%, #0f0c24 100%);
+  border: 2px solid rgba(255, 255, 255, 0.22); border-radius: 8px;
+  box-shadow: 0 0 32px -6px rgba(255, 157, 92, 0.55);
+  padding: 14px;
+}
+#map-knack-pick .g3-title {
+  font-family: 'Orbitron', sans-serif; font-size: 13px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.06em;
+  color: #ff9d5c; text-align: center; margin-bottom: 10px;
+}
+#map-knack-pick .g3-row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+#map-knack-pick .g3-opt {
+  flex: 0 0 140px; height: 180px; cursor: pointer;
+  transition: transform .12s ease;
+}
+#map-knack-pick .g3-opt:hover { transform: translateY(-4px); }
+#map-knack-pick .g3-opt > .reward-cell { width: 100%; height: 100%; }
+
+/* While the map owns the screen, the round's action buttons are not part of the
+   conversation - the map bar carries CONFIRM. Hidden, not disabled: a greyed
+   PLAY over a board of map tiles reads as something broken. */
+body.map-active #btn-play,
+body.map-active #btn-discard,
+body.map-active #swap-indicator { visibility: hidden; pointer-events: none; }

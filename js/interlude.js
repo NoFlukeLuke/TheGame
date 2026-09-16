@@ -49,6 +49,14 @@ async function startInterlude(opts) {
     return;
   }
 
+  // Map mode (r238): a cleared level pays its pick-of-three (and a hard round's
+  // knack pick) and goes back to the map. The post-boss PRIZE grid still opens
+  // here - its close is what routes a map run to the win (js/reward-grid.js).
+  if (typeof mapActive === 'function' && mapActive() && !opts.prize) {
+    mapAfterLevel();
+    return;
+  }
+
   // ── Reward grid replaces Trick choice - player picks spoils, then new round setup runs ──
   rewardGridContext = 'interlude';
   // opts.prize is set by endBoss. With bosses switched off there is no endBoss to

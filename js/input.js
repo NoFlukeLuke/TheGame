@@ -132,6 +132,7 @@ function doSwap(r1, c1, r2, c2) {
 
   // Swap charge - skipped on a free swap; Steady Hand bypasses the limit
   if (!hasKnack('steady_hand') && !freeThisSwap) swaps--;
+  swapsUsedRound++;   // every swap ACTION, free or not (the No Takebacks challenge)
   if (sleightFreeSwapPending) sleightFreeSwapPending = false;
   // Swap time cost - a flat 8s (BAL._resources.swap_seconds), 0s with Free Swaps
   // or a free swap, Steady Hand's own figure otherwise. There used to be an extra

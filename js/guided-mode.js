@@ -321,6 +321,11 @@ function guidedNextStopLabel() {
 // the round passes as normal; meet the requirement as well and you also take the
 // bonus. A node that can end a run on a technicality is not an elite, it is a
 // trap, and a player would simply never take one.
+// This round's own hand-log entries. Entries carry `level`, NOT `round` - the
+// first version of `big` tested h.round, which no entry has, so it never fired.
+function _chRoundHands() {
+  return (handLog || []).filter(h => h.level === level && h.src === 'play');
+}
 const CHALLENGE_DEFS = [
   { id:'types',  goalMult:1.25, credits:25,
     label:'Score three different hand types.',
@@ -329,11 +334,40 @@ const CHALLENGE_DEFS = [
     label:'Score at least five hands.',
     test: () => (handsPlayedRound || 0) >= 5 },
   { id:'big',    goalMult:1.30, credits:30,
-    label:'Score a hand of four cards or more.',
-    test: () => (handLog || []).some(h => h.round === level && (h.cards?.length || 0) >= 4) },
+    label:'Score two hands of four or more cards, back to back.',
+    test: () => { const hs = _chRoundHands();
+      for (let i = 1; i < hs.length; i++)
+        if ((hs[i - 1].cards?.length || 0) >= 4 && (hs[i].cards?.length || 0) >= 4) return true;
+      return false; } },
   { id:'lean',   goalMult:1.15, credits:22,
     label:'Clear it in three hands or fewer.',
     test: () => (handsPlayedRound || 0) <= 3 },
+  { id:'haymaker', goalMult:1.25, credits:28,
+    label:'Score one hand worth a third of the goal.',
+    test: () => _chRoundHands().some(h => (h.score || 0) >= roundGoal / 3) },
+  { id:'clean',  goalMult:1.20, credits:24,
+    label:'Use no discards.',
+    test: () => (cardsDiscardedRound || 0) === 0 },
+  { id:'notakebacks', goalMult:1.20, credits:24,
+    label:'Use no swaps.',
+    test: () => (swapsUsedRound || 0) === 0 },
+  { id:'sprinter', goalMult:1.25, credits:28,
+    label:'Clear with 45 seconds or more on the clock.',
+    test: () => (roundSeconds || 0) >= 45 },
+  { id:'specialist', goalMult:1.20, credits:22,
+    label:'Score the same hand type three times.',
+    test: () => { const n = {};
+      for (const h of _chRoundHands()) { n[h.hand] = (n[h.hand] || 0) + 1; if (n[h.hand] >= 3) return true; }
+      return false; } },
+  // Gated on Selection Size >= 5 (avail), the same liveness idea as
+  // bossPresetIsLive: a requirement that cannot be met must not be offered.
+  { id:'widenet', goalMult:1.35, credits:35,
+    label:'Score a run, a set and a flush.',
+    avail: () => (limits?.selection?.current || 0) >= 5,
+    test: () => { const fams = new Set();
+      for (const h of _chRoundHands())
+        (NS_HAND_FAMILIES[h.hand] || []).forEach(f => fams.add(f));
+      return fams.has('run') && fams.has('set') && fams.has('flush'); } },
 ];
 
 // Armed by taking an elite tile; consumed when the round deals.
@@ -342,7 +376,10 @@ let guidedPendingChallenge = null;
 let guidedActiveChallenge  = null;
 
 function rollChallengeLevel() {
-  const d = CHALLENGE_DEFS[Math.floor(Math.random() * CHALLENGE_DEFS.length)];
+  // `avail` gates a requirement that cannot currently be met (Wide Net below
+  // Selection Size 5) - the same liveness idea as bossPresetIsLive.
+  const pool = CHALLENGE_DEFS.filter(d => { try { return !d.avail || d.avail(); } catch (e) { return false; } });
+  const d = pool[Math.floor(Math.random() * pool.length)] || CHALLENGE_DEFS[0];
   return { ...d, rewardText: `+${d.credits} credits` };
 }
 
@@ -350,7 +387,9 @@ function rollChallengeLevel() {
 // the real goal for this level rather than on a stale one.
 function guidedApplyPendingChallenge() {
   guidedActiveChallenge = null;
-  if (!guidedActive() || !guidedPendingChallenge) return;
+  // Map mode's challenge tiles ride the same pending/active/settle machinery.
+  const _live = guidedActive() || (typeof mapActive === 'function' && mapActive());
+  if (!_live || !guidedPendingChallenge) return;
   guidedActiveChallenge = guidedPendingChallenge;
   guidedPendingChallenge = null;
   roundGoal = Math.round(roundGoal * guidedActiveChallenge.goalMult / 50) * 50;

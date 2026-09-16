@@ -1,4 +1,4 @@
-const BUILD = "2026-09-15 · r237 · COMPANY STORE: shop = your board, category rows + pins, swap-rationed rerolls, card buffs + improvements · grid-screen chrome (topline, focus MAX, slide) · tray fan · boss wins play the finale [onto r236]";
+const BUILD = "2026-09-15 · r238 · MAP MODE: the run as a 4-lane tile board (orthogonal walk, 2 per set, skip pay, funnel + fixed-quota boss), 6 new challenge defs, knack pick at +20-luck odds, countdown retheme [onto r237]"; const BUILD_r237 = "2026-09-15 · r237 · COMPANY STORE: shop = your board, category rows + pins, swap-rationed rerolls, card buffs + improvements · grid-screen chrome (topline, focus MAX, slide) · tray fan · boss wins play the finale [onto r236]";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -36,6 +36,24 @@ const MODES = {
     actStructure: true,
     suitCount: 4,
     guided: true
+  },
+  // The Map (r238): one act drawn as a 4-lane board you walk tile by tile.
+  // See js/map-mode.js for the rules; actStructure keeps the interlude/payout
+  // machinery, and the map hooks intercept every routing seam Guided cut.
+  map: {
+    id: 'map',
+    name: 'The Map',
+    desc: 'One act as a map: four lanes, six sets of tiles, then the boss. Two tiles per set at most, orthogonal moves only, and everything you step on happens.',
+    winCondition: 'boss_defeat',
+    enableBosses: true,
+    enableShops: true,
+    enableEvents: true,
+    autoRefillGrid: true,
+    timeIsCurrency: true,
+    autoPlayHands: false,
+    actStructure: true,
+    suitCount: 4,
+    map: true
   },
   // Guided first run. Mechanically IDENTICAL to Classic (actStructure: true) -
   // an ordinary seeded run with coach-marks over it. See js/tutorial.js.
@@ -273,13 +291,15 @@ function startMatch3FromMenu(modeId = 'match3') {
 // to start one expecting the game the other nine modes are. They are still whole
 // and still reachable: the dev panel's MODES group launches any entry in MODES by
 // name, which is why the split is two lists rather than a deletion.
-const MODE_SELECT_LIST = ['tutorial', 'normal', 'guided', 'sixsuits', 'spectrum', 'survival', 'flow', 'picker'];
+const MODE_SELECT_LIST = ['tutorial', 'normal', 'guided', 'map', 'sixsuits', 'spectrum', 'survival', 'flow', 'picker'];
 const MODE_HIDDEN_LIST = ['match3', 'zen', 'dominoes'];
 const MODE_META = {
   tutorial: { accent: '#8fd0ff',         suits: 'START HERE',
               blurb: 'LETHE Corp staff orientation. A normal Classic run with the terminal explaining each control as you reach it - scoring, Focus, limits, the reward path, the shop. About three minutes.' },
   normal:   { accent: 'var(--c-yellow)', suits: '♠ ♥ ♦ ♣',
               blurb: 'The original four-suit game. Three Acts of rounds, shops, events and bosses.' },
+  map:      { accent: '#6fd08c',         suits: '4 × 6 + BOSS',
+              blurb: 'The run is a board. Four lanes, six sets of tiles - rounds, hard rounds, shops, reward grids, events, a couple of blanks and mysteries - then a full-width boss with a fixed quota you can read from the start. Orthogonal moves only, at most two tiles per set, and moving on early pays credits.' },
   guided:   { accent: '#c9a0ff',         suits: '8 SLOTS',
               blurb: 'Each act is eight slots and then the boss. Every slot is either a round you play or something you buy with it - the shop, a reward grid, or one of two events on offer. Buying power always costs a round you will not get to play, and the goal climbs either way, so the question is how much of the act you spend getting stronger rather than getting further.' },
   sixsuits: { accent: 'var(--c-mint)',   suits: '♠ ♥ ♦ ♣ ★ ▲',

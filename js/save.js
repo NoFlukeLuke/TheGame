@@ -59,6 +59,10 @@ const SAVE_VARS = [
   // only ever taken at the START OF A ROUND, and a bought stop never straddles
   // one, so it is always false when a save is written.
   'guidedSlot', 'guidedEventOffers',
+  // Map mode (r238). mapTiles is plain data by construction - challenges are
+  // stored by id and rehydrated from CHALLENGE_DEFS at confirm time.
+  'mapTiles', 'mapPos', 'mapVisits', 'mapSkips', 'mapBossGoal', 'mapBossArmed',
+  'mapFirstRoundDone', 'mapPosTileId', 'swapsUsedRound',
   'pendingEventOverride', 'rewardGridContext', 'skipTrickChoiceOverlay', 'pendingLevelUps',
   'goalReachedThisRound', 'roundEnded', 'suppressScoreDisplay', 'heldBackScore',
   // ── Deck & board ──

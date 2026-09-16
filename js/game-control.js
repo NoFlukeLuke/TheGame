@@ -475,6 +475,7 @@ function startGame() {
   freeSwapsLeft    = 2;
   freeDiscardsLeft = 2;
   cardsDiscardedRound = 0;
+  swapsUsedRound = 0;
   focusGenRound = 0;
   cardsScoredTotal = 0;
   nineSecondsCounter = 0;
@@ -523,6 +524,7 @@ function startGame() {
   shopFromNodeFlow = false;
   nodeFlowAfterShop = null;
   if (typeof guidedResetRun === 'function') guidedResetRun();  // Guided's slot counter + event offers
+  if (typeof mapResetRun === 'function') mapResetRun();        // Map mode: generate the board (js/map-mode.js)
   recentEventIds = [];
   sleightCapBonus = {};   // Workshop's raised charge ceilings are per run
   // Improvement tiers are per run. resetEntityTiers() also rewrites BAL back to
@@ -582,6 +584,9 @@ function startGame() {
   // Tutorial mode: rig the opening board + goal, then start the coach-marks.
   // Must run LAST - it overwrites roundGoal/coins and re-renders the stacked grid.
   if (tutorialActive()) tutorialBeginRun();
+  // Map mode: freeze the round startTimers just armed and put the map over it.
+  // The first level tile confirmed resumes exactly this round (js/map-mode.js).
+  if (typeof mapActive === 'function' && mapActive()) mapBeginRun();
 }
 
 // ══════════════════════════════════════════════
