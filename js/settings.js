@@ -63,6 +63,11 @@ const SETTINGS_DEF = [
     type: 'toggle', default: false,
     apply: v => document.body.classList.toggle('no-shake', !!v) },
 
+  { group: 'Motion', id: 'payoutPick', label: 'Card pick after payout',
+    hint: 'EXPERIMENTAL. After the payout the board comes back and you boost, copy or remove one card. Off by default.',
+    type: 'toggle', default: false,
+    apply: v => { if (typeof setPayoutPickEnabled === 'function') setPayoutPickEnabled(!!v); } },
+
   // ── Display ──
   { group: 'Display', id: 'bigText', label: 'Larger text', hint: 'Increases UI text size across panels and pop-ups.',
     type: 'toggle', default: false,
@@ -70,6 +75,15 @@ const SETTINGS_DEF = [
   { group: 'Display', id: 'highContrast', label: 'High-contrast cards', hint: 'Stronger card borders and darker pips for legibility.',
     type: 'toggle', default: false,
     apply: v => document.body.classList.toggle('high-contrast', !!v) },
+  // Which vocabulary the game speaks (js/labels.js). Entity NAMES never change -
+  // "Cascade" is content, not vocabulary - but every keyword, stat label and
+  // rarity word follows this. Descriptions are stored in the gamer wording and
+  // translated on the way to the screen, so the toggle is live and needs no
+  // second copy of anything.
+  { group: 'Display', id: 'lexicon', label: 'Wording',
+    hint: 'Corporate: work, skill, output, quota, Utilities and Vendors. Gamer: pips, mult, score, goal, Tricks and Sleights.',
+    type: 'select', default: 'corporate', options: [['corporate','Corporate'], ['gamer','Gamer']],
+    apply: v => { if (typeof setLexicon === 'function') setLexicon(v); } },
   // The room the cabinet sits in on the menu (js/camera.js + css/room.css).
   { group: 'Display', id: 'roomStyle', label: 'Office', hint: 'The room around the cabinet on the menu. Grimy is dimmer and dirtier; clean is the lit version.',
     type: 'select', default: 'grimy', options: [['grimy','Grimy'], ['clean','Clean']],

@@ -17,6 +17,11 @@ async function startInterlude(opts) {
     sfxDuckGain.connect(ctx.destination);
   }
 
+  // The Pick (r244) photographs the board HERE, above the fall - the fall
+  // discards every card to playedPile and replaces gridData with nulls, so this
+  // is the last moment the board exists to be picked from.
+  if (typeof pickTakeSnapshot === 'function') pickTakeSnapshot();
+
   // ── Stage 1: skip Success flash - goalCelebration already showed SUCCESS + confetti ──
   // Cards fall out next.
   const gridEl = document.getElementById('grid');
@@ -36,6 +41,13 @@ async function startInterlude(opts) {
   sfxDuckGain.disconnect();
   sfxDuckGain = null;
 
+  // The Pick (r244): the board comes back and one card is operated on. AFTER the
+  // payout (the round's accounting) and BEFORE any reward screen (the round's
+  // spoils), which is the order those two already read in. Awaited, so every
+  // route below - guided, map, the reward grid, the prize grid - resumes only
+  // once the player has chosen or skipped.
+  if (typeof runPayoutPick === 'function') await runPayoutPick();
+
   // Guided's elite pays out here, while the round's own counters are still live -
   // triggerLevelUp resets handsPlayedRound and handTypesRound, which is what every
   // challenge test reads (js/guided-mode.js).
@@ -49,9 +61,23 @@ async function startInterlude(opts) {
     return;
   }
 
+  // Map mode (r238): a cleared level pays its pick-of-three (and a hard round's
+  // knack pick) and goes back to the map. The post-boss PRIZE grid still opens
+  // here - its close is what routes a map run to the win (js/reward-grid.js).
+  if (typeof mapActive === 'function' && mapActive() && !opts.prize) {
+    mapAfterLevel();
+    return;
+  }
+
   // ── Reward grid replaces Trick choice - player picks spoils, then new round setup runs ──
   rewardGridContext = 'interlude';
-  if (opts.prize) openPrizeGrid(); else openRewardGrid();
+  // opts.prize is set by endBoss. With bosses switched off there is no endBoss to
+  // set it, and node 5 is an ordinary round that closes the quarter - so it is
+  // asked for here instead. Beating the quarter should pay the prize grid whether
+  // or not a boss was standing in front of it.
+  const prize = opts.prize || (typeof isActMode === 'function' && isActMode()
+                && nodeInAct === 5 && typeof bossesEnabled === 'function' && !bossesEnabled());
+  if (prize) openPrizeGrid(); else openRewardGrid();
 }
 
 async function showLevelUpScreen_fallOnly() {

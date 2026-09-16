@@ -42,6 +42,12 @@ function lineFXMeta(id) { return LINE_FX_META[id] || { color: '#c9a84c', glyph: 
 // the old single-cell answer and is never assigned by anything, so the
 // `.card.rc-leyline` tint it drove had been dead since it was written.
 const CARD_MARK_META = {
+  // FIRST on purpose: cardMarkHTML returns the first hit, and a mark the player
+  // has to spend before the card leaves the board outranks a standing one.
+  hallmark:           { color: '#d9a129', glyph: '\ud83d\udd16', name: 'Hallmark',
+    covers: (r, c) => typeof hallmarkCardId !== 'undefined' && hallmarkCardId
+                      && gridData[r]?.[c] && gridData[r][c].rank
+                      && cardId(gridData[r][c]) === hallmarkCardId },
   rowcol_perm_double: { color: '#f0c040', glyph: '\u2726', name: 'Ley Line',
     covers: (r, c) => hasTrick('rowcol_perm_double') && isEffectIntersection(r, c) },
   temporal_rift:      { color: '#7ec8e3', glyph: '\u23f8', name: 'Temporal Rift',

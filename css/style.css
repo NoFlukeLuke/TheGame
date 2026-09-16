@@ -895,7 +895,10 @@
   }
   #stage:not(.landscape) #trick-tray-list.fanned .trick-tray-chip:not(:last-child) .rwd-name,
   #stage:not(.landscape) #trick-tray-list.fanned .trick-tray-chip:not(:last-child) .rwd-glyph { display: none; }
-  #stage:not(.landscape) #trick-tray-list .trick-tray-chip .rwd-art   { font-size: 21px; top: 12%; }
+  /* Font size only. `top` on .rwd-art was a per-surface copy of one assumption
+     about the pre-r228 tile; the floppy and the business card own where their
+     emoji sits, and .rwd-art is emitted for nothing else. */
+  #stage:not(.landscape) #trick-tray-list .trick-tray-chip .rwd-art   { font-size: 21px; }
   #stage:not(.landscape) #trick-tray-list .trick-tray-chip .rwd-glyph { font-size: 8px; top: 3px; }
   #stage:not(.landscape) #trick-tray-list .trick-tray-chip .rwd-name  { font-size: 7px; letter-spacing: 0; }
   /* Rarity colours are only assigned under .landscape, so portrait chips had no
@@ -903,8 +906,7 @@
   #stage:not(.landscape) .trick-tray-chip.rar-common    { --rc: var(--c-mint); }
   #stage:not(.landscape) .trick-tray-chip.rar-rare      { --rc: var(--c-cyan); }
   #stage:not(.landscape) .trick-tray-chip.rar-epic      { --rc: var(--c-purple); }
-  #stage:not(.landscape) .trick-tray-chip.rar-legendary { --rc: var(--c-yellow); }
-  #stage:not(.landscape) .trick-tray-chip.rar-mythic    { --rc: var(--c-magenta); }
+  #stage:not(.landscape) .trick-tray-chip.rar-legendary { --rc: var(--c-magenta); }
   /* The "n/5" count sits bottom-right of the tray rather than inline, where the
      label used to be pushed around by the chips. */
   /* Column, so the "n/10" count has its own line instead of being buried under
@@ -1858,15 +1860,17 @@
     border: 2px solid #9b4dca;
     box-shadow: 0 0 10px rgba(155,77,202,0.5);
   }
+  /* Top tier (Deluxe / Executive). Took the crimson look and the faster pulse
+     from the retired mythic tier in r197 - it is the loudest tier now. */
   .trick-card.trick-tier-legendary {
-    background: linear-gradient(160deg, #2a1a00 0%, #1a1000 100%);
-    border: 2px solid #e8b84b;
-    box-shadow: 0 0 12px rgba(232,184,75,0.6);
+    background: linear-gradient(160deg, #2a0012 0%, #16000a 100%);
+    border: 2px solid #ff4d6d;
+    box-shadow: 0 0 12px rgba(255,77,109,0.6);
     animation: trick-legendary-pulse 2s ease-in-out infinite;
   }
   @keyframes trick-legendary-pulse {
-    0%, 100% { box-shadow: 0 0 10px rgba(232,184,75,0.5); }
-    50%       { box-shadow: 0 0 20px rgba(232,184,75,0.9); }
+    0%, 100% { box-shadow: 0 0 10px rgba(255,77,109,0.5); }
+    50%       { box-shadow: 0 0 22px rgba(255,77,109,0.95); }
   }
   .trick-tier-label {
     font-family: 'Cinzel', serif;
@@ -1876,24 +1880,11 @@
   .trick-tier-common  .trick-tier-label { color: #6aaa6a; }
   .trick-tier-rare    .trick-tier-label { color: #6a9fea; }
   .trick-tier-epic    .trick-tier-label { color: #9b4dca; }
-  .trick-tier-legendary .trick-tier-label { color: #e8b84b; }
-  /* Mythic tier (crimson) */
-  .trick-card.trick-tier-mythic {
-    background: linear-gradient(160deg, #2a0012 0%, #16000a 100%);
-    border: 2px solid #ff4d6d;
-    box-shadow: 0 0 12px rgba(255,77,109,0.6);
-    animation: trick-mythic-pulse 2s ease-in-out infinite;
-  }
-  @keyframes trick-mythic-pulse {
-    0%, 100% { box-shadow: 0 0 10px rgba(255,77,109,0.5); }
-    50%       { box-shadow: 0 0 22px rgba(255,77,109,0.95); }
-  }
-  .trick-tier-mythic .trick-tier-label { color: #ff4d6d; }
-  /* (mythic tier colour: see .rar-mythic → --rc, r182) */
-  #trick-tooltip.trick-tier-mythic { border-color: #ff4d6d; }
-  .shop-trick-card.trick-tier-mythic { background: linear-gradient(160deg,#2a0012,#16000a); border: 2px solid #ff4d6d; box-shadow: 0 0 10px rgba(255,77,109,0.5); animation: trick-mythic-pulse 2s ease-in-out infinite; }
-  .trick-choice-card.tier-mythic { border: 2px solid #ff4d6d; box-shadow: 0 0 16px rgba(255,77,109,0.4); animation: trick-mythic-pulse 2s ease-in-out infinite; }
-  .tier-mythic .trick-choice-tier { color: #ff4d6d; }
+  .trick-tier-legendary .trick-tier-label { color: #ff4d6d; }
+  #trick-tooltip.trick-tier-legendary { border-color: #ff4d6d; }
+  .shop-trick-card.trick-tier-legendary { background: linear-gradient(160deg,#2a0012,#16000a); border: 2px solid #ff4d6d; box-shadow: 0 0 10px rgba(255,77,109,0.5); animation: trick-legendary-pulse 2s ease-in-out infinite; }
+  .trick-choice-card.tier-legendary { border: 2px solid #ff4d6d; box-shadow: 0 0 16px rgba(255,77,109,0.4); animation: trick-legendary-pulse 2s ease-in-out infinite; }
+  .tier-legendary .trick-choice-tier { color: #ff4d6d; }
   .trick-name {
     font-family: 'Cinzel', serif;
     font-size: calc(var(--card-h, 75px) * 0.105); font-weight: 600;
@@ -1929,7 +1920,7 @@
   #trick-tooltip.trick-tier-common  { border-color: #4a7a4a; }
   #trick-tooltip.trick-tier-rare    { border-color: #3a6fca; }
   #trick-tooltip.trick-tier-epic    { border-color: #9b4dca; }
-  #trick-tooltip.trick-tier-legendary { border-color: #e8b84b; }
+  #trick-tooltip.trick-tier-legendary { border-color: #ff4d6d; }
   .trick-tooltip-name {
     font-family: 'Cinzel', serif;
     font-size: 10px; font-weight: 700;
@@ -1994,26 +1985,30 @@
     transition: opacity 0.15s;
   }
   #countdown-321-overlay.show { opacity: 1; }
-  /* r236: house type, and legible over a board of cream cards. The glow alone
-     was doing nothing against a light card - the dark edge is painted OUTSIDE
-     the glyph (paint-order: stroke fill), the same trick the toasts and the
-     score particles use, so the numeral keeps its weight instead of being
-     thinned by an inset stroke. */
+  /* r238 retheme: the 3-2-1 was pre-cabinet Cinzel - random gold serif over a
+     CRT. It is machine type now: Orbitron on a scanlined phosphor ring, the
+     same vocabulary as the goal banner and the grid-screen chrome. */
   #countdown-321-number {
     font-family: 'Orbitron', sans-serif;
-    font-size: 116px; font-weight: 900;
-    color: var(--c-yellow, #ffce2b);
-    -webkit-text-stroke: 5px rgba(6,8,10,0.92);
+    font-size: 96px; font-weight: 900;
+    line-height: 1.6;
+    width: 1.6em; text-align: center;
+    color: #eaf6ff;
+    -webkit-text-stroke: 2px rgba(10, 8, 20, 0.85);
     paint-order: stroke fill;
-    text-shadow: 0 0 34px rgba(255,206,43,0.75), 0 0 74px rgba(255,206,43,0.35);
-    letter-spacing: 2px;
-    line-height: 1;
+    text-shadow: 0 0 24px rgba(120, 200, 255, 0.9), 0 0 64px rgba(120, 200, 255, 0.45);
+    border-radius: 50%;
+    background:
+      repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.18) 0 2px, transparent 2px 4px),
+      radial-gradient(circle at 50% 42%, rgba(120, 200, 255, 0.16), rgba(10, 8, 20, 0.0) 68%);
+    box-shadow: inset 0 0 0 2px rgba(120, 200, 255, 0.35), inset 0 0 28px rgba(120, 200, 255, 0.18);
   }
   @keyframes countdown-pop {
-    0%   { transform: scale(1.5); opacity: 0; }
-    25%  { transform: scale(1.0); opacity: 1; }
+    0%   { transform: scale(1.5); opacity: 0; filter: brightness(2); }
+    18%  { transform: scale(0.98); opacity: 1; filter: brightness(1.3); }
+    30%  { transform: scale(1.0); opacity: 1; filter: brightness(1); }
     75%  { transform: scale(1.0); opacity: 1; }
-    100% { transform: scale(0.7); opacity: 0; }
+    100% { transform: scale(0.72); opacity: 0; filter: brightness(0.7); }
   }
   .trick-card.trick-upgradeable {
     box-shadow: 0 0 14px rgba(232,184,75,0.7) !important;
@@ -2764,7 +2759,7 @@
   .trick-choice-card.tier-common   { border: 2px solid #4a7a4a; }
   .trick-choice-card.tier-rare     { border: 2px solid #3a6fca; box-shadow: 0 0 12px rgba(58,111,202,0.3); }
   .trick-choice-card.tier-epic     { border: 2px solid #9b4dca; box-shadow: 0 0 14px rgba(155,77,202,0.35); }
-  .trick-choice-card.tier-legendary { border: 2px solid #e8b84b; box-shadow: 0 0 16px rgba(232,184,75,0.4); animation: trick-legendary-pulse 2s ease-in-out infinite; }
+  .trick-choice-card.tier-legendary { border: 2px solid #ff4d6d; box-shadow: 0 0 16px rgba(255,77,109,0.4); animation: trick-legendary-pulse 2s ease-in-out infinite; }
   .trick-choice-card.trick-choice-pending {
     transform: translateY(-6px) scale(1.03);
     box-shadow: 0 0 24px rgba(232,184,75,0.7) !important;
@@ -2777,7 +2772,7 @@
   .tier-common  .trick-choice-tier { color: #6aaa6a; }
   .tier-rare    .trick-choice-tier { color: #6a9fea; }
   .tier-epic    .trick-choice-tier { color: #9b4dca; }
-  .tier-legendary .trick-choice-tier { color: #e8b84b; }
+  .tier-legendary .trick-choice-tier { color: #ff4d6d; }
   .trick-choice-emoji {
     font-size: 34px; line-height: 1; margin: 2px 0;
   }
@@ -3311,8 +3306,7 @@
   .reward-cell.rar-common,    #reward-tooltip.rar-common    { --rc: var(--c-mint); }
   .reward-cell.rar-rare,      #reward-tooltip.rar-rare      { --rc: var(--c-cyan); }
   .reward-cell.rar-epic,      #reward-tooltip.rar-epic      { --rc: var(--c-purple); }
-  .reward-cell.rar-legendary, #reward-tooltip.rar-legendary { --rc: var(--c-yellow); }
-  .reward-cell.rar-mythic,    #reward-tooltip.rar-mythic    { --rc: var(--c-magenta); }
+  .reward-cell.rar-legendary, #reward-tooltip.rar-legendary { --rc: var(--c-magenta); }
 
   .reward-cell.entity {
     border: 2px solid var(--rc);
@@ -3393,6 +3387,208 @@
      font floor is TRUNCATED with an ellipsis by fitEntityName instead, and the
      whole name is always one tap away in the tooltip. */
 
+  /* ══ THE OBJECTS (r228) ══════════════════════════════════════════════════
+     A Utility is a FLOPPY DISC and a Vendor is a BUSINESS CARD. Both are drawn
+     here, on `.reward-cell.entity-*`, and nowhere else - which is the whole
+     point of the r182 single tile: the reward grid, the Mart shelf, the cart
+     thumbnail, the loadout strip, your tray, Records and the Shift Change slots
+     all wrap their own frame around this one class list, so all seven changed
+     shape without a line of per-surface code.
+
+     Ported from art-preview.html as CSS rather than as its SVG. The preview
+     draws at one size on a blank page; the game draws this tile from a 32px
+     cart thumbnail to a 118px Records card, and CSS scales for free while
+     leaving fitEntityName, the improvement badge, the cooldown ring, the boss
+     grey-out and the selection glow working untouched.
+
+     --body is the object's material: its rarity hue mixed 72% toward its own
+     plastic, which is art-preview's bodyFor(). Its inkOn() is NOT needed - at
+     that tint against a near-black plastic all four tiers land at luminance
+     0.14-0.27, well under the 0.42 where ink would have to flip, so the ink is
+     cream on both materials at every tier (measured, all eight).
+
+     THIS BLOCK MUST STAY BELOW THE BASE TILE RULES. `.rwd-glyph` and `.rwd-tab`
+     are already selected at `.reward-cell.entity-trick .rwd-glyph` - the same
+     specificity as the overrides here - so ORDER is the only thing that decides
+     them. Written above those rules instead, the floppy kept the old Trick
+     star and the business card kept its neon tab.
+
+     They also DROP THE SCANLINES AND THE GLARE. Those are the CRT-screen
+     treatment, and a disc and a card are physical objects in front of the
+     screen, not pictures on it. That is also what frees ::before and ::after to
+     be the object's own parts, which is what keeps this CSS and not markup. */
+  .reward-cell.entity-trick,
+  .reward-cell.entity-sleight { --ink: #f4eeda; }
+
+  /* ── A UTILITY IS A FLOPPY DISC ──────────────────────────────────────────
+     Shell, shutter, label - and LETTERBOXED at the real 3.5" disc's ratio
+     (w/h = 1/0.95, art-preview's flopAspect), exactly as the business card is.
+     Owner's call (r239): the disc keeps its ratio NO MATTER WHAT FRAME it lands
+     in - the frames run from a 26px Mart mini to a 2-cell-wide shop tile, and
+     stretched to any of them it stops being a floppy. So the element goes
+     transparent and ::before paints the whole object. Shell, shutter and label
+     are LAYERED BACKGROUNDS on that one band, because the corner notch is a
+     clip-path on the band and a second pseudo-element could not share the clip.
+     A background-position percentage is solved for the geometry: a layer with
+     its left edge at L% and width W% sits at position-x L/(100-W)*100%. */
+  .reward-cell.entity-trick {
+    --body: color-mix(in srgb, var(--rc) 72%, #1b1813);
+    clip-path: none;
+    background: none; border: none; box-shadow: none;
+    justify-content: center;
+    /* The frame is a CONTAINER so the band can letterbox against BOTH axes:
+       width = min(frame width, frame height x ratio). A frame narrower than
+       the disc letterboxes top and bottom, a frame WIDER than it (the shop's
+       2-cell tiles) letterboxes left and right - insets alone can only do the
+       first, which stretched and clipped the disc in a wide frame. Every
+       frame already states its own size (r182's rule), which is what
+       container-type: size requires. */
+    container-type: size;
+  }
+  .reward-cell.entity-trick::before {
+    content: ''; position: absolute; z-index: 0; mix-blend-mode: normal;
+    left: 50%; top: 50%; right: auto; bottom: auto;
+    width: min(100cqw, calc(100cqh * 20 / 19)); aspect-ratio: 20 / 19;
+    transform: translate(-50%, -50%);
+    /* the corner notch - the strongest "this is a floppy" cue at 40px */
+    clip-path: polygon(0 0, 84% 0, 100% 16.8%, 100% 100%, 0 100%);
+    background:
+      /* the shutter's punched window */
+      linear-gradient(#24272c, #24272c) no-repeat 49.6% 12% / 18.9% 21.1%,
+      /* the metal shutter */
+      linear-gradient(180deg, #e6e9ee 0%, #9aa0a8 52%, #cfd4da 100%)
+        no-repeat 60% 6.5% / 45% 31%,
+      /* the cream label plate */
+      linear-gradient(rgba(244,238,218,0.94), rgba(244,238,218,0.94))
+        no-repeat 50% 82% / 86% 50%,
+      var(--body);
+    /* The clip eats an outer border, so the rarity edge is painted inside. */
+    box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--rc) 55%, #000);
+  }
+  .reward-cell.entity-trick::after { content: none; }
+  /* The star was how a Trick announced itself. The silhouette does that now. */
+  .reward-cell.entity-trick .rwd-glyph { display: none; }
+  /* Emoji and name both sit ON THE LABEL, in dark ink - the one place in the
+     tile system where a name is not light-on-dark. Same band construction as
+     the business card's children: each is stretched to the disc's own box with
+     aspect-ratio, then PADDED into its region. Padding percentages resolve
+     against WIDTH, and the disc's height is 95% of its width - these numbers
+     fold that in (39% of width = 41% of height, the label's top edge). */
+  .reward-cell.entity-trick .rwd-art,
+  .reward-cell.entity-trick .rwd-name,
+  .reward-cell.entity-trick .rwd-uses {
+    position: absolute; left: 50%; right: auto; bottom: auto; height: auto;
+    top: 50%; transform: translate(-50%, -50%); margin: 0;
+    width: min(100cqw, calc(100cqh * 20 / 19)); aspect-ratio: 20 / 19;
+    display: flex;
+  }
+  .reward-cell.entity-trick .rwd-art {      /* the label's upper half */
+    padding: 39% 9% 27% 9%;
+    align-items: center; justify-content: center;
+    /* Type scales WITH the disc (33.5cqw = the old 19px at a 57px frame), so
+       the object is the same picture at 34px in Records and 119px in the shop
+       rather than a fixed-size emoji drowning one and rattling in the other. */
+    font-size: 33.5cqw; filter: none;
+  }
+  .reward-cell.entity-trick .rwd-name {     /* the label's bottom edge */
+    z-index: 2; padding: 0 11% 10.5% 11%;
+    align-items: flex-end; justify-content: center;
+    text-align: center; line-height: 1.05;
+    font-size: max(6px, 17.5cqw);
+    color: #221d15; text-shadow: none;
+  }
+  .reward-cell.entity-trick .rwd-uses {
+    z-index: 3; padding: 0 9% 10.5% 0;
+    align-items: flex-end; justify-content: flex-end;
+    background: none; border-radius: 0;
+    font-size: max(6px, 15.8cqw);
+    color: #221d15; text-shadow: none;
+    pointer-events: none;
+  }
+
+  /* ── A VENDOR IS A BUSINESS CARD ─────────────────────────────────────────
+     LETTERBOXED (owner's call), not stretched. A business card is landscape
+     (1.37 wide) and every frame it lands in is portrait - a reward-grid cell is
+     the same 57x75 as a playing card - so the element goes transparent and the
+     CARD is painted by ::before at its real proportions, centred. Stretching it
+     to the frame was the alternative and it stops being a business card.
+
+     The card is therefore about 55% of the frame's height at every size
+     (57x75 -> 41.6 tall, 40x53 -> 29.2), and the content is centred on the same
+     line, so it lands inside the card by construction rather than by a number
+     that would have to be kept in step. */
+  .reward-cell.entity-sleight {
+    --body: color-mix(in srgb, var(--rc) 72%, #191510);
+    clip-path: none;
+    background: none; border: none; box-shadow: none;
+    justify-content: center;
+    container-type: size;   /* both-bounds letterbox - see the disc above */
+  }
+  .reward-cell.entity-sleight::before {
+    content: ''; position: absolute; z-index: 0; mix-blend-mode: normal;
+    left: 50%; top: 50%; right: auto; bottom: auto;
+    width: min(100cqw, calc(100cqh * 1.37)); aspect-ratio: 1.37;
+    transform: translate(-50%, -50%);
+    border-radius: 4px;
+    /* One layered background is both parts: the logo plate is a hard stop over
+       the body, sized to the UPPER LEFT rather than run full height, so the card
+       needs no second element and the name gets the full width underneath. */
+    background:
+      linear-gradient(90deg, rgba(0,0,0,0.26) 0 44%, transparent 44%)
+        no-repeat 0 0 / 100% 62%,
+      var(--body);
+    box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--rc) 70%, #000),
+                0 0 10px -2px var(--rc), 0 4px 10px rgba(0,0,0,0.5);
+  }
+  .reward-cell.entity-sleight::after { content: none; }
+  /* Logo mark upper-left, company name across the bottom - a card out of a
+     rolodex, which is what the roster reads as (r200).
+     THE NAME IS NOT BESIDE THE LOGO, and that was measured rather than chosen:
+     the longest Vendor name is one unbroken 11-letter word (Syncopation, and
+     four more at 9-10), and a frame is only 57px wide on both the reward grid
+     and the board, so a half-width column leaves about 25px. Words are atomic
+     here (r182) - it would simply truncate every long name to an ellipsis. Full
+     width under the logo is the layout that fits the roster the game has. */
+  /* ONE CONSTRUCTION PLACES EVERY CHILD. Each is stretched to the card's own
+     band with `aspect-ratio: 1.37` and then PADDED into the region it belongs
+     in, with border-box doing the arithmetic. CSS cannot be told the card's
+     height from the frame's two dimensions, and this is what avoids a per-child
+     magic offset that would drift on every surface. */
+  .reward-cell.entity-sleight .rwd-art,
+  .reward-cell.entity-sleight .rwd-name,
+  .reward-cell.entity-sleight .rwd-uses {
+    position: absolute; left: 50%; right: auto; bottom: auto; height: auto;
+    top: 50%; transform: translate(-50%, -50%); margin: 0;
+    width: min(100cqw, calc(100cqh * 1.37)); aspect-ratio: 1.37;
+    display: flex;
+  }
+  .reward-cell.entity-sleight .rwd-art {           /* the logo plate, upper-left */
+    padding: 0 56% 38% 0;
+    align-items: center; justify-content: center;
+    font-size: 37cqw; filter: none;   /* the old 21px at a 57px frame, scaled */
+  }
+  .reward-cell.entity-sleight .rwd-name {          /* the band along the bottom */
+    z-index: 2; padding: 0 16% 5% 5%;
+    align-items: flex-end; justify-content: center;
+    text-align: center; line-height: 1.05;
+    font-size: max(6px, 17.5cqw);
+    color: var(--ink); text-shadow: 0 1px 2px rgba(0,0,0,0.75);
+  }
+  .reward-cell.entity-sleight .rwd-tab { display: none; }
+  /* The charge count has to sit on the CARD's bottom-right, not the frame's,
+     and CSS cannot be told the card's height from the frame's two dimensions.
+     So the element is stretched to the card's own box with `aspect-ratio` and
+     its text pushed into the corner - the same construction that positions the
+     card itself, rather than a hardcoded inset that would drift per surface. */
+  .reward-cell.entity-sleight .rwd-uses {          /* the corner the name leaves */
+    z-index: 3; padding: 0 5% 4% 0;
+    align-items: flex-end; justify-content: flex-end;
+    background: none; border-radius: 0;
+    font-size: max(6px, 15.8cqw);
+    color: var(--ink); text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+    pointer-events: none;
+  }
+
   /* knack diamond: beige molded plastic + neon inset ring */
   .rwd-diamond {
     position: relative; width: 58%; aspect-ratio: 1; transform: rotate(45deg); border-radius: 9px;
@@ -3417,6 +3613,26 @@
     font-family: 'Share Tech Mono', monospace;
   }
   #reward-tooltip.show { opacity: 1; transform: translateY(0); }
+  #reward-tooltip .rtt-close {
+    position: absolute; top: 3px; right: 3px; z-index: 2;
+    width: 16px; height: 16px; padding: 0; line-height: 14px;
+    background: rgba(0,0,0,0.5); color: var(--cream-dim);
+    border: 1px solid rgba(255,255,255,0.25); border-radius: 4px;
+    font-family: 'Share Tech Mono', monospace; font-size: 10px;
+    cursor: pointer; pointer-events: auto;
+  }
+  #reward-tooltip .rtt-close:hover { color: #fff; border-color: rgba(255,255,255,0.5); }
+
+  /* The same ✕ on the knack and trick bubbles (r237). */
+  .tt-close {
+    position: absolute; top: 3px; right: 3px; z-index: 2;
+    width: 16px; height: 16px; padding: 0; line-height: 14px;
+    background: rgba(0,0,0,0.5); color: var(--cream-dim);
+    border: 1px solid rgba(255,255,255,0.25); border-radius: 4px;
+    font-family: 'Share Tech Mono', monospace; font-size: 10px;
+    cursor: pointer; pointer-events: auto;
+  }
+  .tt-close:hover { color: #fff; border-color: rgba(255,255,255,0.5); }
   #reward-tooltip::after {
     content: ''; position: absolute; inset: 0; pointer-events: none;
     background: repeating-linear-gradient(0deg, rgba(0,0,0,0.15) 0 1px, transparent 1px 3px); mix-blend-mode: overlay;
@@ -3680,6 +3896,14 @@
   .lb-offer-icon { font-size: 30px; margin-bottom: 8px; }
   .lb-offer-label { font-size: 11px; letter-spacing: 0.5px; line-height: 1.2; margin-bottom: 6px; }
   .lb-offer-desc { font-family: 'Crimson Pro', serif; font-size: 10px; color: var(--cream-dim); line-height: 1.25; }
+  /* Three lines, then clip. Selection Size's description is 20 words and pushed
+     the tile's own before/after line under the sticky footer - which is the one
+     part of the tile the player is choosing on. The full text is in the Limits
+     tab of RECORDS. */
+  .lb-offer-desc {
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
   .lb-offer-prog { font-size: 9px; color: var(--gold); margin-top: 6px; letter-spacing: 1px; }
   .lb-offer-maxed-badge { font-size: 9px; color: var(--cream-dim); margin-top: 6px; letter-spacing: 2px; }
   .lb-offer-tag { position: absolute; top: 4px; right: 6px; font-size: 8px; letter-spacing: 1px; color: var(--gold-dim); }
@@ -3743,6 +3967,98 @@
   }
   #lb-confirm:disabled { opacity: 0.32; cursor: not-allowed; box-shadow: none; }
   #lb-confirm:not(:disabled):hover { filter: brightness(1.12); }
+
+  /* ── Limit Break, stage 2 (r227) ──────────────────────────────────────────
+     The pick you locked in sits on its own above a divider, and the two you did
+     not take drop below it under the price. Same tile, three states: TAKEN is
+     settled and inert, so it loses the hover and the pointer; the two below are
+     still choices. */
+  #lb-taken { display: flex; justify-content: center; width: 100%; margin: 4px 0 12px; }
+  /* The receipt: one line, so the two real choices stay above the fold. */
+  #lb-taken.lb-bar {
+    align-items: center; gap: 9px; flex-wrap: wrap;
+    padding: 8px 14px; border-radius: 7px;
+    border: 1px solid rgba(84,175,136,0.55);
+    background: linear-gradient(180deg, rgba(31,168,119,0.16), rgba(10,9,19,0.5));
+    font-family: 'Share Tech Mono', monospace; font-size: 11px;
+  }
+  .lb-tk-check { color: var(--c-mint); font-size: 13px; }
+  .lb-tk-tag   { color: var(--c-mint); letter-spacing: 2px; font-size: 8.5px; }
+  .lb-tk-icon  { font-size: 14px; }
+  .lb-tk-name  { color: var(--cream); letter-spacing: 0.5px; }
+  .lb-tk-gain  { color: var(--c-mint); font-weight: 700; }
+  .lb-tk-prog  { color: var(--gold); opacity: 0.85; font-size: 10px; }
+  .lb-offer.taken {
+    cursor: default;
+    border-color: var(--c-mint);
+    box-shadow: 0 0 14px rgba(84,175,136,0.32);
+    opacity: 0.92;
+  }
+  .lb-offer.taken:hover { transform: none; }
+  .lb-offer.taken .lb-offer-tag { color: var(--c-mint); }
+  #lb-second-title {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px; letter-spacing: 2.5px; text-transform: uppercase;
+    color: #ff7a86; opacity: 0.9; text-align: center;
+    width: 100%; padding-top: 12px; border-top: 1px solid #4a3560;
+  }
+  /* A sacrifice button carries two lines now - what it costs, and what that
+     leaves you at - because "-15s Starting Time" alone does not say whether
+     that hurts. */
+  .lb-sac-btn { display: flex; flex-direction: column; gap: 2px; align-items: center; line-height: 1.25; }
+  .lb-sac-main { font-size: 10px; letter-spacing: 0.5px; }
+  .lb-sac-sub  { font-size: 8.5px; opacity: 0.62; letter-spacing: 0.5px; }
+  /* The way out of stage 2. Deliberately the muted secondary, not a second
+     green button - taking just the free one is the safe option, not the
+     recommended one. */
+  #lb-done {
+    font-family: 'Orbitron', sans-serif; font-weight: 700;
+    font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
+    padding: 11px 18px; margin: 8px 10px 0 0;
+    background: linear-gradient(180deg, #2a2840, #16142400 92%);
+    border: 1px solid #4a4768; color: rgba(240,230,200,0.8);
+    border-radius: 7px; cursor: pointer; transition: all 0.2s ease;
+  }
+  #lb-done:hover { border-color: #6d69a0; color: #fff; }
+
+  /* Stage 2 packs in four things; stage 1 has one. Tighten the header rather
+     than shrink the choices. */
+  /* The title goes: the marquee bar already reads LIMIT BREAK, and by stage 2 a
+     second heading saying RAISE A LIMIT is repeating what the receipt below it
+     has just confirmed. That is the ~25px that gets the sacrifices on screen. */
+  #lb-panel.stage2 #lb-title { display: none; }
+  #lb-panel.stage2 #lb-sub { font-size: 12px; margin-bottom: 6px; max-width: 420px; }
+  #lb-panel.stage2 #lb-taken { margin: 2px 0 8px; }
+  #lb-panel.stage2 #lb-second-title { padding-top: 8px; }
+  #lb-second-row { width: 100%; }
+  #lb-panel.stage2 #lb-second-row {
+    display: flex; align-items: flex-start; justify-content: center;
+    gap: 16px; width: 100%; flex-wrap: wrap;   /* narrow: stack, don't overflow */
+  }
+  #lb-panel.stage2 #lb-offers { margin: 6px 0; flex: 0 0 auto; }
+  #lb-panel.stage2 #lb-sacrifice {
+    flex: 1 1 0; min-width: 0; max-width: 330px;
+    border-top: 0; border-left: 1px solid #4a3560;
+    padding: 4px 0 0 16px; align-items: stretch;
+  }
+  #lb-panel.stage2 #lb-sacrifice-title,
+  #lb-panel.stage2 #lb-sacrifice-hint { text-align: left; }
+  #lb-panel.stage2 #lb-sacrifice-options { flex-direction: column; align-items: stretch; }
+  #lb-panel.stage2 #lb-sacrifice-hint { font-size: 11px; line-height: 1.25; }
+  #lb-panel.stage2 .lb-sac-btn { width: 100%; align-items: flex-start; text-align: left; padding: 5px 9px; }
+  #lb-panel.stage2 .lb-sac-main { font-size: 9.5px; line-height: 1.2; }
+  #lb-panel.stage2 .lb-sac-sub  { font-size: 8px; }
+  #lb-panel.stage2 .lb-offer { width: 112px; min-height: 112px; padding: 9px 7px; }
+  /* Two lines of description, then clip. The full text is on the tile in stage 1,
+     where the player read it before locking anything in. */
+  #lb-panel.stage2 .lb-offer-desc {
+    font-size: 10px; line-height: 1.25;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  #lb-panel.stage2 .lb-offer-gain { margin-bottom: 3px; }
+  #lb-panel.stage2 #lb-sacrifice { padding-top: 10px; gap: 6px; }
+  #lb-panel.stage2 #lb-actions { margin-top: 10px; padding: 9px 16px 11px; }
 
   /* ── MAIN MENU OVERLAY ── */
   /* ── Main menu → LETHE attract / boot screen (r100) ── */
@@ -4056,7 +4372,8 @@
 
   /* knacks: chip row only, directly under the PIPS/MULT/FOCUS chips */
   #stage.landscape #knack-carousel-wrap { left:1.56%; top:30%; width:37.74%; height:7%; display:flex; flex-direction:row; align-items:center; justify-content:flex-start; gap:5px; padding:2px 8px; overflow:hidden; }
-  #stage.landscape #knack-list { flex-wrap:nowrap; gap:5px; max-height:none; overflow:hidden; }
+  #stage.landscape #knack-list { flex-wrap:nowrap; gap:5px; max-height:none; overflow-x:auto; overflow-y:hidden; scrollbar-width:none; }
+  #stage.landscape #knack-list::-webkit-scrollbar { display:none; }
 
   /* preview: full-width frame; hand-name sits inside it on the dark background (left); cards render exactly like the grid, bonuses and all */
   /* HAND and TRICKS are the same size box (r160). They used to be 18% and 25.5%
@@ -4081,7 +4398,13 @@
 
   /* tricks: enlarged now that the time/money chips left this column - big reward-grid-style tiles */
   #stage.landscape #trick-tray-area { left:1.56%; top:60.75%; width:37.74%; height:21.75%; display:flex !important; flex-direction:row; align-items:center; justify-content:flex-start; padding:6px 8px; gap:6px; overflow:hidden; }
-  #stage.landscape #trick-tray-list { flex-direction:row; flex-wrap:nowrap; align-items:center; gap:5px; max-height:none; overflow:hidden; padding:0; width:100%; }
+  /* r237: the tray FANS (tiles overlap, never more than half hidden) and only
+     then scrolls - sideways, scrollbar hidden, never vertically. */
+  #stage.landscape #trick-tray-list { flex-direction:row; flex-wrap:nowrap; align-items:center; gap:0; max-height:none; overflow-x:auto; overflow-y:hidden; scrollbar-width:none; padding:0; width:100%; }
+  #stage.landscape #trick-tray-list::-webkit-scrollbar { display:none; }
+  #stage.landscape #trick-tray-list .chip-marquee { gap:0; }
+  #stage.landscape #trick-tray-list .trick-tray-chip { position:relative; z-index:var(--fan-z,1); flex:0 0 auto; }
+  #stage.landscape #trick-tray-list .trick-tray-chip + .trick-tray-chip { margin-left:var(--fan-gap,5px); }
   /* 40×53 - a hair under the 42×55 preview card, and narrow enough that SIX fit
      across the column (the old 48px capped it at five, below the trick_slots max). */
   /* The TILE shrinks to match the preview card; the ICON does NOT. Scaling the
@@ -4558,8 +4881,7 @@
   #stage.landscape .trick-tray-chip.rar-common    { --rc: var(--c-mint); }
   #stage.landscape .trick-tray-chip.rar-rare      { --rc: var(--c-cyan); }
   #stage.landscape .trick-tray-chip.rar-epic      { --rc: var(--c-purple); }
-  #stage.landscape .trick-tray-chip.rar-legendary { --rc: var(--c-yellow); }
-  #stage.landscape .trick-tray-chip.rar-mythic    { --rc: var(--c-magenta); }
+  #stage.landscape .trick-tray-chip.rar-legendary { --rc: var(--c-magenta); }
   /* Frame only - the neon card itself is the shared .reward-cell child (r182).
      The size has to be stated: the chip used to borrow `width: var(--card-w)`
      from .trick-card, and without it the chip and its child sized off each
@@ -4575,7 +4897,7 @@
   #stage.landscape .trick-tray-chip:hover > .reward-cell {
     box-shadow: 0 0 0 2px var(--plastic-lo), 0 0 14px 0 var(--rc), inset 0 0 12px -4px var(--rc);
   }
-  #stage.landscape .trick-tray-chip .rwd-art   { font-size: 22px; top: 12%; }
+  #stage.landscape .trick-tray-chip .rwd-art   { font-size: 22px; }
   #stage.landscape .trick-tray-chip .rwd-glyph { font-size: 9px; top: 4px; }
   #stage.landscape .trick-tray-chip .rwd-name  { font-size: 7px; letter-spacing: 0.2px; }
 
@@ -4783,14 +5105,103 @@
 .sleight-card.sl-rar-common    { --sl-rc: var(--c-mint,#35d59b); }
 .sleight-card.sl-rar-rare      { --sl-rc: var(--c-cyan,#16c8d8); }
 .sleight-card.sl-rar-epic      { --sl-rc: var(--c-purple,#9a6cff); }
-.sleight-card.sl-rar-legendary { --sl-rc: var(--c-yellow,#ffce2b); }
-.sleight-card.sl-rar-mythic    { --sl-rc: var(--c-magenta,#ff2f8e); }
+.sleight-card.sl-rar-legendary { --sl-rc: var(--c-magenta,#ff2f8e); }
 .sleight-card.sl-rar-fixture   { --sl-rc: var(--c-coral,#ff6a3c); }
 /* Rarity edge is the RESTING look only - it must not repaint the selected or
    swap-armed states, which sit earlier in this file and would lose the tie. */
 .trick-card.sleight-card:not(.selected):not(.swap-pending) {
   border-color: var(--sl-rc, #8844cc) !important;
   box-shadow: 0 0 9px -1px var(--sl-rc, #8844cc), inset 0 0 14px -6px var(--sl-rc, #8844cc);
+}
+
+/* ── THE GRID SLEIGHT IS A BUSINESS CARD TOO (r228) ──────────────────────────
+   Same object as the tile, in the one frame that is not the tile: a Sleight on
+   the PLAY GRID is `.trick-card.sleight-card` at the full card cell (57x75),
+   not a `.reward-cell`, because it is a real deck card that falls, swaps and
+   gets played in hands.
+
+   LETTERBOXED (owner's call). A business card is landscape and a grid cell is a
+   playing card's portrait, so the cell goes transparent and the card is painted
+   by ::before at 1.37, centred - it occupies the middle ~55% of the cell and the
+   rest of the slot shows through. Stretching it to the cell was the alternative
+   and it stops being a business card.
+
+   The board does not lose anything by this. A Sleight already looked unlike a
+   playing card on purpose - that is how you pick one out of a boardful - so the
+   silhouette makes a difference that was already there mean something.
+
+   It keeps its CORNER INDEX, and that is not decoration: a grid Sleight is
+   played inside a poker hand, so its cosmetic rank and suit have to stay
+   readable (sleightFace(), js/sleights-runtime.js). On the card it reads as the
+   small mark a real card carries above the logo. */
+.trick-card.sleight-card {
+  --sl-body: color-mix(in srgb, var(--sl-rc, #8844cc) 72%, #191510);
+  background: none !important;
+  justify-content: center !important;
+  padding: 0;
+  overflow: visible;
+}
+.trick-card.sleight-card::before {
+  content: ''; position: absolute; z-index: 0;
+  left: 0; right: 0; top: 50%; aspect-ratio: 1.37;
+  transform: translateY(-50%);
+  border-radius: 4px;
+  background:
+    linear-gradient(90deg, rgba(0,0,0,0.26) 0 44%, transparent 44%)
+      no-repeat 0 0 / 100% 62%,
+    var(--sl-body);
+}
+/* The resting rarity edge moves onto the CARD. Left on the cell it outlined the
+   empty slot the card is centred in, which is the one thing the letterbox is
+   there to leave alone. */
+.trick-card.sleight-card:not(.selected):not(.swap-pending) {
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+.trick-card.sleight-card:not(.selected):not(.swap-pending)::before {
+  box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--sl-rc, #8844cc) 70%, #000),
+              0 0 10px -2px var(--sl-rc, #8844cc), 0 4px 10px rgba(0,0,0,0.5);
+}
+/* Every child is stretched to the CARD's band and padded into its region - the
+   same one construction the tile uses, for the same reason: CSS cannot work the
+   card's height out from the cell's two dimensions, and a per-child offset would
+   drift the moment --card-h moved. */
+.trick-card.sleight-card .sleight-card-emoji,
+.trick-card.sleight-card .sleight-card-name,
+.trick-card.sleight-card .sleight-index,
+.trick-card.sleight-card .sleight-card-uses {
+  position: absolute; left: 0; right: 0; width: auto; height: auto;
+  top: 50%; bottom: auto; transform: translateY(-50%);
+  aspect-ratio: 1.37; display: flex; pointer-events: none;
+}
+.trick-card.sleight-card .sleight-card-emoji {   /* the logo plate, upper-left */
+  padding: 0 56% 38% 0;
+  align-items: center; justify-content: center;
+  font-size: calc(var(--card-h, 75px) * 0.20) !important;
+}
+.trick-card.sleight-card .sleight-card-name {    /* the band along the bottom */
+  z-index: 3; padding: 0 16% 5% 5%;
+  align-items: flex-end; justify-content: center;
+  background: none; text-align: center; line-height: 1.05;
+  font-size: calc(var(--card-h, 75px) * 0.088) !important;
+  /* WORDS ARE ATOMIC here too (r182). The old rule broke anywhere, which was
+     survivable on a full-width centred name and is not in a padded band -
+     "Warehouse" came out "WAREH / OUSE". */
+  overflow-wrap: normal; word-break: keep-all; hyphens: none;
+}
+.trick-card.sleight-card .sleight-index {        /* the corner mark, top-right */
+  z-index: 4; padding: 4% 5% 0 0;
+  flex-direction: row; align-items: flex-start; justify-content: flex-end;
+  gap: 1px;
+}
+.trick-card.sleight-card .sleight-index .sl-rank,
+.trick-card.sleight-card .sleight-index .sl-suit {
+  font-size: calc(var(--card-h, 75px) * 0.115); margin-top: 0;
+}
+.trick-card.sleight-card .sleight-card-uses {    /* the corner the name leaves */
+  z-index: 4; padding: 0 5% 4% 0;
+  align-items: flex-end; justify-content: flex-end;
+  background: none; border-radius: 0;
 }
 
 /* The flying copy of the fused PMF chip (js/pmf-merge.js → pmfFlyToScore). It is
@@ -4970,21 +5381,21 @@ body.reduced-motion .efx-hit { animation-duration: 1ms; }
      the handle of the thing it moves rather than as a button parked nearby. */
   #shop-squish-tab {
     position:absolute; display:none; z-index:7;
-    /* The tab's RIGHT edge sits on the column's edge, so the tab is inside the
-       column rather than beside it. Outside is the nicer read, but the Focus
-       meter hugs the column (39.9% against the column's 39.3%) and the board
-       starts 0.5% after that - there is no 2.4% of clear stage anywhere between
-       them in either state, so an outside tab lands on the meter. */
-    left:37.3%; top:44%; width:2%; height:11%;
+    /* The tab sits just RIGHT of the column's outer edge (owner's call, r237).
+       The shop no longer squishes at all - the COMPANY STORE title row bought
+       the room instead - so this tab only appears for a future grid screen
+       that calls ensureShopSquishTab() + shopSquishSet(). Such a screen hides
+       the Focus meter (body.grid-screen since r237), which is what makes the
+       outside position safe. Landscape only. */
+    left:39.4%; top:44%; width:2%; height:11%;
     align-items:center; justify-content:center;
     background:#191510; color:var(--gold);
-    border:1px solid var(--gold-dim); border-left:0; border-radius:0 6px 6px 0;
+    border:1px solid var(--gold-dim); border-radius:0 6px 6px 0;
     font-size:11px; line-height:1; cursor:pointer; padding:0;
     transition:left .34s cubic-bezier(.2,.8,.2,1), background .15s;
   }
-  #stage.landscape body.shop-active #shop-squish-tab,
-  body.shop-active #stage.landscape #shop-squish-tab { display:flex; }
-  #stage.landscape.shop-squish #shop-squish-tab { left:24.56%; }
+  #stage.landscape #shop-squish-tab.squish-avail { display:flex; }
+  #stage.landscape.shop-squish #shop-squish-tab { left:25.1%; }
   #shop-squish-tab:hover { background:#241d13; }
   #shop-squish-tab:focus-visible { outline:2px solid var(--gold); outline-offset:2px; }
 
@@ -5031,6 +5442,69 @@ body.reduced-motion .efx-hit { animation-duration: 1ms; }
   }
   body.reduced-motion .shop-tile.shopg-in,
   body.reduced-motion .shop-row-label.shopg-in { animation:none; }
+
+  /* ══ GRID-TAKEOVER CHROME (r237) ═════════════════════════════════════════
+     On body.grid-screen (reward grid / shop / event boards):
+       - the FOCUS BAR fades out (nothing on these screens earns Focus) and a
+         small MAX note stays at its foot;
+       - the CLOCK BAR shrinks away and #grid-topline fades in over the grid:
+         ROUND TIME left, credits right (the clock is frozen here, and a live
+         bar implies a countdown that is not running);
+       - the GRID SLIDES LEFT into the freed room, which also widens the slot's
+         side gutters - where #sel-count lives, so the x/y readout stops
+         crowding the board.
+     All transitions ride the r230 panel transition block above. */
+  #stage.landscape #focus-bar-outer, #stage.landscape #focus-mult-readout {
+    transition: opacity .3s ease, transform .3s ease;
+    transform-origin: 50% 100%;
+  }
+  body.grid-screen #stage.landscape #focus-bar-outer,
+  body.grid-screen #stage.landscape #focus-mult-readout {
+    /* opacity!important: the readout's own .dim/.lit states also set opacity.
+       visibility follows the fade so nothing ghosts under the MAX note. */
+    opacity: 0 !important; transform: scaleY(.55); pointer-events: none;
+    visibility: hidden; transition: opacity .3s ease, transform .3s ease, visibility 0s linear .3s;
+  }
+  #focus-max-note {
+    display: none;
+    position: absolute; left: 0; right: 0; bottom: 2px;
+    font-family: 'Share Tech Mono', monospace; font-size: 7px; letter-spacing: 1px;
+    text-align: center; color: var(--cream-dim);
+    opacity: 0; transition: opacity .3s ease .15s;
+  }
+  body.grid-screen #stage.landscape #focus-max-note { display: block; opacity: 1; }
+
+  #stage.landscape #clock-area, #stage.landscape #vclock {
+    transition: opacity .3s ease, transform .3s ease;
+    transform-origin: 50% 0%;
+  }
+  body.grid-screen #stage.landscape #clock-area,
+  body.grid-screen #stage.landscape #vclock {
+    opacity: 0; transform: scaleY(.15); pointer-events: none;
+  }
+  #grid-topline {
+    display: none;
+    position: absolute; left: 41%; top: 2.78%; width: 49%; height: 6.94%;
+    align-items: center; justify-content: space-between;
+    padding: 0 8px; box-sizing: border-box;
+    font-family: 'Share Tech Mono', monospace; font-size: 13px; letter-spacing: 1px;
+    color: var(--cream-dim);
+    opacity: 0; transition: opacity .35s ease .12s;
+    pointer-events: none; z-index: 3;
+  }
+  #grid-topline #gt-coins { color: var(--gold); font-size: 15px; }
+  #stage.landscape #grid-topline { display: flex; }
+  body.grid-screen #stage.landscape #grid-topline { opacity: 1; }
+
+  body.grid-screen #stage.landscape #grid-slot { left: 41%; width: 49%; }
+
+  /* Portrait shop: credits beside the live x/y count (the desktop puts them on
+     the topline instead). */
+  #sel-count-coins { display: none; }
+  body.shop-active #stage:not(.landscape) #sel-count-coins {
+    display: inline; margin-left: 10px; color: var(--gold); font-size: 12px;
+  }
+  #stage.landscape #sel-count-coins { display: none !important; }
 
 /* ══════════════════════════════════════════════════════════════════════════
    SHOP: THE REROLL CAP, THE FALL-OUT, AND THE OWNED PANEL (r237)

@@ -216,8 +216,11 @@ function buildDoorPrize(tier) {
     if (tp.length>0) { const p=tp[Math.floor(Math.random()*tp.length)]; return { icon:p.emoji, name:p.name, desc:p.desc, cls:'revealed-good', apply:()=>{acquiredKnacks.push({...p});updateKnackList?.();showMessage(`+ ${p.name}`,'var(--gold)');} }; }
   }
   if (tier === 'good') {
+    // r201: two tiers in one pool, so this one is weighted (and luck reaches it).
+    // The legendary / nextRarity pools above are narrowed to a SINGLE tier by the
+    // event's own design, where weighting would be a no-op - left flat on purpose.
     const pool = TRICK_POOL.filter(b=>!ownedTrick.has(b.id) && (b.tier==='rare'||b.tier==='common'));
-    if (pool.length>0) { const p=pool[Math.floor(Math.random()*pool.length)]; return { icon:'★', name:p.name, desc:p.desc, cls:'revealed-good', apply:()=>injectTrickAfterReward(p) }; }
+    if (pool.length>0) { const p=pickTrickByRarity(pool)||pool[Math.floor(Math.random()*pool.length)]; return { icon:'★', name:p.name, desc:p.desc, cls:'revealed-good', apply:()=>injectTrickAfterReward(p) }; }
   }
   if (tier === 'bad') {
     const bads = [
@@ -305,6 +308,9 @@ function renderGambleDouble() {
   info.textContent = 'Even odds. Win and you keep your Trick and gain another; lose and the one you staked is gone. Pick which one is riding on it.';
   body.appendChild(info);
   const ownedTrick = acquiredTricks || [];
+  // A STAGE gate, not an entry gate: the Gamble's doors play fine with no Tricks
+  // and only this double-or-nothing stage stakes one, so `gamble` is deliberately
+  // absent from EVENT_REQUIRES.
   if (ownedTrick.length === 0) {
     body.innerHTML += evEmptyHTML('You have no Tricks to stake.');
     setEventConfirm(true); return;
@@ -420,7 +426,7 @@ function evShuffle(arr) {
 function renderForge() {
   const body = document.getElementById('event-body');
   const all = allDeckCards();
-  if (!all.length) {
+  if (!eventEligible('forge')) {
     body.innerHTML = evEmptyHTML('No cards to upgrade.');
     setEventConfirm(true); return;
   }
@@ -588,7 +594,7 @@ function confirmBargain() {
 // ══════════════════════════════════════════════
 function renderWager() {
   const body = document.getElementById('event-body');
-  if (!allDeckCards().length) {
+  if (!eventEligible('wager')) {
     body.innerHTML = evEmptyHTML('No cards to stake.');
     setEventConfirm(true); return;
   }
@@ -1057,7 +1063,7 @@ function renderShiftChange() {
 
   // Fewer than two Tricks: there is no order to change, so the shift pays out
   // instead of wasting the node.
-  if (tray.length < 2) {
+  if (!eventEligible('shift_change')) {
     eventState.shiftPayout = BAL.shift_change ? BAL.shift_change.consolation_credits : 15;
     body.appendChild(makeChoiceEl({
       icon: '🕓', name: 'Nothing to reshuffle',
@@ -1106,7 +1112,7 @@ function renderShiftChange() {
 function renderShiftRow() {
   const row = document.getElementById('shift-row');
   if (!row) return;
-  const RARS = ['common','rare','epic','legendary','mythic'];
+  const RARS = ['common','rare','epic','legendary'];
   const order = eventState.shiftOrder || [];
   row.innerHTML = '';
   order.forEach((trick, i) => {
@@ -1182,7 +1188,7 @@ function confirmShiftChange() {
 function renderBench() {
   const body = document.getElementById('event-body');
   const pool = [...drawPile].filter(c => c && c.rank && !c._isSleight);
-  if (!pool.length) {
+  if (!eventEligible('bench')) {
     body.innerHTML = evEmptyHTML('No cards in the draw pile to work on.');
     setEventConfirm(true); return;
   }
@@ -1259,7 +1265,7 @@ function confirmBench() {
 // without a line of per-Trick code.
 function renderRehearsal() {
   const body = document.getElementById('event-body');
-  if (!trickTrayMode || !trickTray.length) {
+  if (!eventEligible('rehearsal')) {
     body.innerHTML = evEmptyHTML('No Tricks to work on. Take the credits instead.');
     eventState.rehearseNone = true;
     setEventConfirm(true); return;
@@ -1270,6 +1276,7 @@ function renderRehearsal() {
     const rank = t._rank || 0;
     const el = makeChoiceEl({
       icon: (typeof trickEmoji === 'function') ? trickEmoji(t) : '✦',
+      tile: { entity:'trick', id:t.id, emoji:(typeof trickEmoji === 'function') ? trickEmoji(t) : '✦', label:t.name },
       rarity: t.tier,
       name: t.name + (rank ? ` · rehearsed ×${rank + 1}` : ''),
       desc: (typeof trickLiveDesc === 'function') ? trickLiveDesc(t) : t.desc,
@@ -1303,7 +1310,7 @@ function confirmRehearsal() {
 function renderWorkshop() {
   const body = document.getElementById('event-body');
   const owned = allOwnedSleightCards().filter(c => sleightMaxCharges(sleightDef(c)) !== null);
-  if (!owned.length) {
+  if (!eventEligible('workshop')) {
     body.innerHTML = evEmptyHTML('No Sleights with charges to service. Take the fee instead.');
     eventState.workshopNone = true;
     setEventConfirm(true); return;
@@ -1353,6 +1360,7 @@ function showWorkshopPicker(owned) {
     const cap = sleightMaxCharges(def);
     const el = makeChoiceEl({
       icon: def.emoji || '◈', rarity: def.rarity, name: def.name,
+      tile: { entity:'sleight', id:def.id, emoji:def.emoji || '◈', label:def.name, uses:(card._usesLeft ?? cap) },
       desc: `${def.desc}<br>Now ${card._usesLeft ?? cap} of ${cap} charges · would become ${cap + BAL.workshop.cap_bonus}.`,
       onClick: () => {
         wrap.querySelectorAll('.event-choice').forEach(e => e.classList.remove('selected'));
@@ -1422,7 +1430,7 @@ const MARKET_BOONS = [
 function renderMarket() {
   const body = document.getElementById('event-body');
   const source = allDeckCards();
-  if (!source.length) {
+  if (!eventEligible('market')) {
     body.innerHTML = evEmptyHTML('No deck to copy from.');
     setEventConfirm(true); return;
   }
@@ -1513,7 +1521,7 @@ function confirmMarket() {
 function renderDeckTrim() {
   const body = document.getElementById('event-body');
   const pool = springCuttableCards();          // shared with Clean Up
-  if (!pool.length) {
+  if (!eventEligible('deck_trim')) {
     body.innerHTML = evEmptyHTML('Nothing in the draw pile to cut.');
     setEventConfirm(true); return;
   }
@@ -1653,7 +1661,7 @@ const CLEAN_SLATE_FIXES = [
 function renderCleanSlate() {
   const body = document.getElementById('event-body');
   const live = CLEAN_SLATE_FIXES.filter(f => { try { return f.has(); } catch (e) { return false; } });
-  if (!live.length) {
+  if (!eventEligible('clean_slate')) {
     // Nothing owed. Pay instead of offering a screen full of things that would
     // do nothing - an event that cannot act should say so and still be worth
     // having landed on.

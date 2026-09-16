@@ -11,7 +11,7 @@ function showTrickChoiceOverlay() {
       const card = document.createElement('div');
       card.className = `trick-choice-card tier-${trick.tier}${isPending ? ' trick-choice-pending' : ''}`;
       card.innerHTML = `
-        <div class="trick-choice-tier">${trick.tier}</div>
+        <div class="trick-choice-tier">${tierLabel('trick', trick.tier)}</div>
         <div class="trick-choice-emoji">${trickEmoji(trick)}</div>
         <div class="trick-choice-name">${trick.name}</div>
         ${isPending ? '<div class="trick-choice-confirm">Tap to confirm</div>' : '<div class="trick-choice-hold">hover / hold for details</div>'}
@@ -85,19 +85,15 @@ function pickTrickOptions(n) {
   // Don't offer already acquired bonuses (except stackable ones)
   const stackableIds = ['rich_soil','fertile_ground','rowcol_triple_pips','rowcol_mult','rowcol_retrigger','rowcol_perm_double'];
   const filtered = pool.filter(b => !acquiredTricks.some(a => a.id === b.id && !stackableIds.includes(b.id)));
-  const shuffled = shuffle(filtered);
-  // Weight: common 9×, rare 3×, legendary 1× 
-  const TIER_WEIGHT = { common: 9, rare: 3, legendary: 1 };
-  const weighted = [];
-  shuffled.forEach(b => {
-    const w = TIER_WEIGHT[b.tier] || 1;
-    for (let i = 0; i < w; i++) weighted.push(b);
-  });
-  const picked = [];
-  const seen = new Set();
-  for (const b of shuffle(weighted)) {
-    if (!seen.has(b.id)) { picked.push(b); seen.add(b.id); }
-    if (picked.length >= n) break;
+  // This held a THREE-tier bag written before `epic` existed, so epic fell through
+  // to weight 1 and carried the same per-entity odds as legendary. Main's shared
+  // table (and Luck) now decide it; drawn one at a time so they stay distinct.
+  const picked = [], seen = new Set();
+  for (let g = 0; g < n * 12 && picked.length < n; g++) {
+    const left = filtered.filter(b => !seen.has(b.id));
+    if (!left.length) break;
+    const p = pickTrickByRarity(left) || left[0];
+    seen.add(p.id); picked.push(p);
   }
   return picked;
 }
@@ -201,7 +197,7 @@ function showTrickTooltip(trick, readOnly = false) {
     ? `<div class="trick-tooltip-actions"><button class="trick-tooltip-sell" id="trick-tooltip-sell-btn">Sell 💰${_sv}</button>`
       + `<button class="trick-tooltip-discard" id="trick-tooltip-discard-btn">Discard</button></div>`
     : '';
-  tip.innerHTML = `<div class="trick-tooltip-name">${trick.name}</div><div class="trick-tooltip-desc">${colorizeKeywords(withSuitHalo(liveDesc))}</div>${hint}${actionBtns}`;
+  tip.innerHTML = `<button class="tt-close" aria-label="Close">✕</button><div class="trick-tooltip-name">${trick.name}</div><div class="trick-tooltip-desc">${colorizeKeywords(withSuitHalo(liveDesc))}</div>${hint}${actionBtns}`;
   tip.style.opacity = '0';
   gridEl.appendChild(tip);
 
@@ -267,7 +263,7 @@ function showTrickDescTooltip(trick, anchorEl) {
   tip.style.maxWidth = '260px';
   tip.style.minWidth = '150px';
   tip.style.pointerEvents = 'none';
-  tip.innerHTML = `<div class="trick-tooltip-name">${trick.name}</div>`
+  tip.innerHTML = `<button class="tt-close" aria-label="Close">✕</button><div class="trick-tooltip-name">${trick.name}</div>`
                 + `<div class="trick-tooltip-desc">${withSuitHalo(trickLiveDesc(trick))}</div>`;
   tip.style.opacity = '0';
   document.body.appendChild(tip);
@@ -331,7 +327,7 @@ function renderTrickTray() {
     return;
   }
   // Reward-grid-style CRT/neon card tiles inside a scrolling marquee track (r113).
-  const RARS = ['common','rare','epic','legendary','mythic'];
+  const RARS = ['common','rare','epic','legendary'];
   const track = document.createElement('div');
   track.className = 'chip-marquee';
   trickTray.forEach(trick => {
@@ -443,7 +439,7 @@ function showTrickTrayTooltip(trick, anchorEl, { actions = false } = {}) {
   tip.className = `trick-tooltip trick-tier-${trick.tier}` + (actions ? ' has-actions' : '');
   const liveDesc = trickLiveDesc(trick);
   const _sv = (typeof trickSellValue === 'function') ? trickSellValue(trick) : 0;
-  tip.innerHTML = `<div class="trick-tooltip-name">${trick.name}</div><div class="trick-tooltip-desc">${colorizeKeywords(withSuitHalo(liveDesc))}</div>`
+  tip.innerHTML = `<button class="tt-close" aria-label="Close">✕</button><div class="trick-tooltip-name">${trick.name}</div><div class="trick-tooltip-desc">${colorizeKeywords(withSuitHalo(liveDesc))}</div>`
                 + (actions
                     ? `<div class="trick-tooltip-actions"><button class="trick-tooltip-sell" id="trick-tooltip-sell-btn">Sell 💰${_sv}</button>`
                       + `<button class="trick-tooltip-discard" id="trick-tooltip-discard-btn">Discard</button></div>`
@@ -454,6 +450,7 @@ function showTrickTrayTooltip(trick, anchorEl, { actions = false } = {}) {
     e.stopPropagation();
     sellTrick(trick);
   });
+  tip.querySelector('.tt-close')?.addEventListener('click', e => { e.stopPropagation(); hideTrickTooltip(); });
   tip.querySelector('#trick-tooltip-discard-btn')?.addEventListener('click', e => {
     e.stopPropagation();
     discardTrickFromTray(trick);
@@ -557,7 +554,7 @@ async function confirmFullscreenTrickSelection(trick) {
 
   const flyEl = document.createElement('div');
   flyEl.className = `trick-card trick-tier-${trick.tier} temp-anim`;
-  flyEl.innerHTML = `<div class="trick-tier-label">${trick.tier.charAt(0).toUpperCase()}</div><div class="trick-name">${trick.name}</div>`;
+  flyEl.innerHTML = `<div class="trick-tier-label">${tierInitial('trick', trick.tier)}</div><div class="trick-name">${trick.name}</div>`;
   flyEl.dataset.cardId = String(trickIdCounter);
   flyEl.style.cssText = `position:absolute;width:${CARD_W}px;height:${CARD_H}px;left:${destX}px;top:${destY - dropDist}px;opacity:0;pointer-events:none;z-index:20;`;
   gridEl.appendChild(flyEl);
@@ -780,9 +777,13 @@ const FAN_MIN_STEP = 13;   // px of each tucked tile that must stay visible
 
 function fanTrickTray(list, track) {
   if (!list || !track) return false;
-  // Landscape anchors the tray in its own wide box and already re-flows there.
   const stage = document.getElementById('stage');
-  if (!stage || stage.classList.contains('landscape')) return false;
+  if (!stage) return false;
+  // Landscape fans too since r237 (it used to marquee): tiles overlap just
+  // enough to fit, each showing AT LEAST HALF of itself. Only past that floor
+  // does the row scroll - sideways, with no scrollbar (css). Handled below,
+  // after the shared measurements.
+  const landscape = stage.classList.contains('landscape');
 
   const chips = [...track.querySelectorAll('.trick-tray-chip')];
   list.classList.remove('fanned');
@@ -807,6 +808,23 @@ function fanTrickTray(list, track) {
                           // lands a few px wide and clips its leftmost tile
   const room = avail - PAD;
   const n = chips.length;
+
+  if (landscape) {
+    const LGAP = 5;
+    if (n * tile + (n - 1) * LGAP <= room) {
+      track.style.setProperty('--fan-gap', LGAP + 'px');   // fits: an ordinary row
+      return true;
+    }
+    // Tuck until they fit, but never past half a tile hidden. Past that floor
+    // the row keeps the 50% step and SCROLLS instead (overflow-x on the list,
+    // scrollbar hidden) - scrolled to the end so the newest Trick starts visible.
+    const minStep = Math.ceil(tile * 0.5);
+    const step = Math.max(minStep, (room - tile) / (n - 1));
+    track.style.setProperty('--fan-gap', (step - tile).toFixed(2) + 'px');
+    list.classList.add('fanned');
+    requestAnimationFrame(() => { list.scrollLeft = list.scrollWidth; });
+    return true;
+  }
 
   // ONE variable, and it is the gap between tiles - positive when they fit,
   // negative when they tuck. Writing the measured TILE width back into a var

@@ -612,7 +612,7 @@ async function playScoreDance(result, toRemove, isGoalHand = false) {
       console.log('[SALUTE] about to call goalCelebration', { handCells, handCellsLen: handCells?.length });
       await goalCelebration(handCells);
       console.log('[SALUTE] goalCelebration finished, starting interlude');
-      startInterlude();
+      if (!(typeof bossSettleWin === 'function' && bossSettleWin())) startInterlude();
     }
   }
 }
@@ -645,6 +645,9 @@ function handleDanceAbort(isGoalHand) {
     heldBackScore = 0;
     suppressScoreDisplay = false;
     if (pendingLevelUps > 0) sfxMultiGoal(pendingLevelUps);
+    // A pending boss win settles even on an abort - endBoss clears the timers
+    // and opens the prize grid itself, so nothing else here should run.
+    if (typeof bossSettleWin === 'function' && bossSettleWin()) { return; }
     // Survival drives its own goal transition (pick → deal); the interlude/payout +
     // its round-freeze must NOT run on abort, or they'd clobber the freshly dealt board.
     if (!challengeActive && !survivalActive()) {
@@ -1117,7 +1120,9 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
     // Survival: open the pick-of-three NOW (right of the preview), so the score
     // count-up below runs alongside it - the player can watch the tally or start
     // picking a bonus. (In survival the deck accounting happens in survivalDealNext.)
-    if(survivalActive()) survivalShowPick();
+    // (Not on a boss win - that hand ends in the PRIZE grid via bossSettleWin,
+    // and a pick opened here would fight it for the screen.)
+    if(survivalActive() && !(typeof bossWinPending!=='undefined' && bossWinPending)) survivalShowPick();
   } else if(skipBeats){
     // ── Third hand of a burst: no fly-in. The cards leave the board immediately
     //    and the preview keeps whatever it already shows; the only thing this
@@ -1403,9 +1408,11 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
       sfxVictory(); const ctx=getAudioCtx();
       if(sfxDuckGain){ sfxDuckGain.gain.setValueAtTime(0.4, ctx.currentTime); }
       else { sfxDuckGain=ctx.createGain(); sfxDuckGain.gain.setValueAtTime(0.4, ctx.currentTime); sfxDuckGain.connect(ctx.destination); }
-      // Survival opened its pick during the fly (above); the deal happens when the
-      // player chooses. Everyone else hands off to the standard interlude/payout.
-      if(!survivalActive()) startInterlude();
+      // A pending boss win takes the handoff first (endBoss opens the prize
+      // grid itself); Survival opened its pick during the fly (above); everyone
+      // else hands off to the standard interlude/payout.
+      if(typeof bossSettleWin==='function' && bossSettleWin()){ /* endBoss routed it */ }
+      else if(!survivalActive()) startInterlude();
     }
   }
 }

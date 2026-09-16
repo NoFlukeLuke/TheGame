@@ -21,7 +21,10 @@
 // so the pick-of-three, the on-demand Mart, the boss cadence, the reward grants and
 // the 5-boss completion screen all come for free. See js/survival.js.
 
-function flowActive() { return !!ACTIVE_MODE && ACTIVE_MODE.id === 'flow'; }
+// Flag-based for the same reason survivalActive() is (r234). Flow is a package
+// of its own on top of Survival's, and only the shipped mode carries the flag -
+// the picker reproduces the parts it wants through `clock` instead.
+function flowActive() { return !!ACTIVE_MODE && ACTIVE_MODE.flow === true; }
 
 // ── Tunables ──
 const FLOW_SESSION_SECONDS = 300;  // live play between inspections (the visible clock)

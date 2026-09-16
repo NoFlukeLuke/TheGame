@@ -10,7 +10,7 @@
 // `improveEntity(id)` applies it. That is also why Knacks are on the wheel here
 // - improve.js recomputes BAL in place, so a Knack improves like anything else.
 
-const EV_TIER_ORDER = ['common', 'rare', 'epic', 'legendary', 'mythic'];
+const EV_TIER_ORDER = ['common', 'rare', 'epic', 'legendary'];
 
 // Everything the run owns that improve.js can still improve, across all three
 // types, in the shape the wheel draws. Emoji is looked up per type because the
@@ -67,7 +67,7 @@ function evDrawEntity(kind, minTier) {
 // replacement would make this a shop; not naming it makes it a trade.
 function renderReassignment() {
   const body = document.getElementById('event-body');
-  if (typeof trickTray === 'undefined' || !trickTrayMode || !trickTray.length) {
+  if (typeof trickTray === 'undefined' || !eventEligible('reassignment')) {
     body.innerHTML = evEmptyHTML('No Tricks to reassign. Take the fee instead.');
     eventState.reassignNone = true;
     setEventConfirm(true); return;
@@ -81,6 +81,7 @@ function renderReassignment() {
   trickTray.forEach(t => {
     const el = makeChoiceEl({
       icon: (typeof trickEmoji === 'function') ? trickEmoji(t) : '✦',
+      tile: { entity:'trick', id:t.id, emoji:(typeof trickEmoji === 'function') ? trickEmoji(t) : '✦', label:t.name },
       rarity: t.tier, name: t.name,
       desc: (typeof trickLiveDesc === 'function') ? trickLiveDesc(t) : t.desc,
       onClick: () => {
@@ -165,7 +166,7 @@ const DRAW_PICKS = 3;
 function renderDraw() {
   const body = document.getElementById('event-body');
   const ents = evImprovables();
-  if (ents.length < 2) {
+  if (!eventEligible('the_draw')) {
     body.innerHTML = evEmptyHTML('Not enough Tricks or Sleights to draw between. Take the fee instead.');
     eventState.drawNone = true;
     setEventConfirm(true); return;
@@ -192,6 +193,7 @@ function renderDraw() {
     const prev = (typeof improvePreview === 'function') ? improvePreview(ent.id) : null;
     const el = makeChoiceEl({
       icon: ent.emoji, rarity: ent.rarity,
+      tile: { entity: ent.kind, id: ent.id, emoji: ent.emoji, label: ent.name },
       name: ent.name + (tier ? ` · improved ×${tier}` : ''),
       desc: prev && prev.after !== prev.before ? prev.after : (prev ? prev.before : ''),
       cost: ent.kind.toUpperCase(),

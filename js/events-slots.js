@@ -163,7 +163,7 @@ function slotLightCells(host, cells) {
 function renderFloor() {
   const body = document.getElementById('event-body');
   const deck = (typeof everyDeckCard === 'function') ? everyDeckCard() : [];
-  if (deck.length < SLOT_REELS) {
+  if (!eventEligible('the_floor')) {
     body.innerHTML = evEmptyHTML('Not enough cards in the deck to fill the reels.');
     eventState.floorNone = true;
     setEventConfirm(true); return;
@@ -300,7 +300,7 @@ function confirmFloor() {
 function renderPayline() {
   const body = document.getElementById('event-body');
   const all = (typeof evImprovables === 'function') ? evImprovables() : [];
-  if (all.length < 2) {
+  if (!eventEligible('the_payline')) {
     body.innerHTML = evEmptyHTML('Not enough Tricks or Sleights to fill the reels. Take the fee instead.');
     eventState.paylineNone = true;
     setEventConfirm(true); return;

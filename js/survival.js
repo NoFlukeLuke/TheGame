@@ -13,7 +13,11 @@
 // clock removed, and it reuses this whole file - the pick-of-three, the reward grants,
 // the on-demand Mart, the boss reward and the 5-boss completion screen. Anything that
 // must differ asks flowActive() specifically.
-function survivalActive() { return !!ACTIVE_MODE && (ACTIVE_MODE.id === 'survival' || ACTIVE_MODE.id === 'flow'); }
+// Flag-based, not an id list (r234). A mode synthesized by the dev picker opts
+// into this whole package - the pick-of-three loop, the endless structure, the
+// score carry-over, the entity bans - by carrying `survival: true`, exactly as
+// Survival and Flow now do. An id list could never see it.
+function survivalActive() { return !!ACTIVE_MODE && ACTIVE_MODE.survival === true; }
 
 // ── Tunables (all easy to change) ──
 const SURVIVAL_ROUND_SECONDS = 120;   // 2-minute rounds (owner request; was 3)
@@ -75,6 +79,10 @@ function currentRoundDuration() {
   // simply the mode's round length, and the clock bar needs the real denominator.
   if (bossActive) return bossWindowDuration;
   if (typeof flowActive === 'function' && flowActive()) return FLOW_SESSION_SECONDS;
+  // A picker-built mode names its own round length, and it is checked BEFORE the
+  // survival fallback: a custom pick-of-three run still gets the clock it asked
+  // for rather than Survival's 2:00 by virtue of sharing its loop.
+  if (typeof ACTIVE_MODE !== 'undefined' && ACTIVE_MODE && ACTIVE_MODE.clock) return pickerRoundSeconds();
   return survivalActive() ? SURVIVAL_ROUND_SECONDS : ROUND_DURATION;
 }
 
@@ -154,6 +162,7 @@ function survivalTickBossClock() {
   // fires the inspection at zero. This hidden cadence would be a second, competing
   // boss timer, so it sits out.
   if (typeof flowActive === 'function' && flowActive()) return;
+  if (typeof bossesEnabled === 'function' && !bossesEnabled()) return;
   if (!survivalActive() || bossActive || survivalBossPending) return;
   survivalSecondsToBoss--;
   if (survivalSecondsToBoss <= 0) {
@@ -171,10 +180,19 @@ function survivalTickBossClock() {
 // Also the chokepoint for Flow's own ban list (clock entities in a mode with no round
 // clock) - every offer pool already routes through here, so one test covers both.
 function survivalEntityBanned(id) {
-  if (!survivalActive()) return false;
-  if (SURVIVAL_BANNED_ENTITIES.has(id)) return true;
-  return (typeof flowActive === 'function' && flowActive())
-      && typeof FLOW_BANNED_ENTITIES !== 'undefined' && FLOW_BANNED_ENTITIES.has(id);
+  // The reward-grid-only entities are dead picks wherever there is no reward
+  // grid, which is exactly the pick-of-three loop.
+  if (survivalActive() && SURVIVAL_BANNED_ENTITIES.has(id)) return true;
+  // The clock entities assume a round clock that REFILLS: First Wind measures its
+  // grace window against ROUND_DURATION, and Carry Time banks the round's unused
+  // seconds. Flow is the shipped mode with neither, and a picker-built run that
+  // answered "no limit" is the other - which is why this is asked of the CLOCK
+  // (modeHasNoRoundClock) and not of the mode, and why it is no longer behind the
+  // survivalActive() early return: a custom no-clock run played on reward grids
+  // is not survivalActive() at all.
+  if (typeof modeHasNoRoundClock === 'function' && modeHasNoRoundClock()
+      && typeof FLOW_BANNED_ENTITIES !== 'undefined' && FLOW_BANNED_ENTITIES.has(id)) return true;
+  return false;
 }
 
 function survivalBuildPools() {
@@ -190,10 +208,13 @@ function survivalBuildPools() {
 
 // Wrap a raw pool entry into a uniform option object the UI + granter understand.
 function survivalMakeOption(type, data) {
-  if (type === 'trick')   return { type, data, id: data.id, name: data.name, icon: (typeof trickEmoji === 'function' ? trickEmoji(data) : '🃏'), desc: data.desc, tag: (data.tier || 'common').toUpperCase() };
-  if (type === 'sleight') return { type, data, id: data.id, name: data.name, icon: data.emoji || '🎴', desc: data.desc, tag: (data.rarity || 'common').toUpperCase() };
-  if (type === 'knack')   return { type, data, id: data.id, name: data.name, icon: data.emoji || '🧿', desc: data.desc, tag: 'KNACK' };
-  if (type === 'limit')   return { type, data, id: data.id, name: data.label, icon: data.icon || '⬆', desc: data.desc, tag: 'LIMIT' };
+  if (type === 'trick')   return { type, data, id: data.id, name: data.name, icon: (typeof trickEmoji === 'function' ? trickEmoji(data) : '🃏'), desc: data.desc, tag: tierLabel('trick', data.tier).toUpperCase(), rar: data.tier };
+  if (type === 'sleight') return { type, data, id: data.id, name: data.name, icon: data.emoji || '🎴', desc: data.desc, tag: tierLabel('sleight', data.rarity).toUpperCase(), rar: data.rarity };
+  if (type === 'knack')   return { type, data, id: data.id, name: data.name, icon: data.emoji || '🧿', desc: data.desc, tag: tierLabel('knack', data.rarity).toUpperCase(), rar: data.rarity };
+  // Say how much, not just which - Starting Time moves by 15 and Focus Cap by 3,
+  // and a card reading only 'Starting Time' promised the same as a +1. See
+  // limitDeltaText in js/limits.js, which also handles the clamp near the cap.
+  if (type === 'limit')   return { type, data, id: data.id, name: `${data.label} ${limitDeltaText(data.id, 1)}`, icon: data.icon || '⬆', desc: data.desc, tag: 'LIMIT', rar: 'common' };
   return null;
 }
 
@@ -201,7 +222,11 @@ function survivalMakeOption(type, data) {
 function survivalDrawOne(type, pools, used) {
   const avail = pools[type].filter(d => !used[type].has(d.id));
   if (!avail.length) return null;
-  const data = avail[Math.floor(Math.random() * avail.length)];
+  // r201: SURVIVAL_PICK_WEIGHTS only ever chose the TYPE. Which ENTITY came out
+  // was a flat pick, so the pick-of-three ignored rarity entirely.
+  // SURVIVAL_PICK_WEIGHTS only ever chose the TYPE; which ENTITY came out was a
+  // flat pick, so the pick-of-three ignored rarity (and Luck) entirely.
+  const data = pickEntityByRarity(avail, d => (type === 'trick' ? d.tier : d.rarity) || 'common') || avail[0];
   used[type].add(data.id);
   return survivalMakeOption(type, data);
 }
@@ -278,16 +303,35 @@ function survivalRenderPick() {
   cards.innerHTML = '';
   (survivalPickOffered || []).forEach((opt, i) => {
     const card = document.createElement('div');
-    card.className = `sv-pick-card sv-type-${opt.type}`;
+    // Type sets the SHAPE class; rarity sets the colour (r198).
+    card.className = `sv-pick-card sv-type-${opt.type} rar-${typeof tierId === 'function' ? tierId(opt.rar) : 'common'}`;
     card.style.animationDelay = (i * 70) + 'ms';
+    // An entity option shows the REAL OBJECT - the floppy, the business card,
+    // the cert diamond the player will own - with the name and description
+    // BELOW it (owner spec, r239). Only a limit still gets the bare icon:
+    // there is no object to show.
+    const isEnt = opt.type === 'trick' || opt.type === 'sleight' || opt.type === 'knack';
+    const art = (isEnt && typeof entityTileHTML === 'function')
+      ? `<div class="sv-pick-tile">${entityTileHTML({
+            entity: opt.type, id: opt.id, emoji: opt.icon, label: opt.data.name,
+            uses: opt.type === 'sleight'
+              ? (opt.data.durability === 'infinite' ? '∞' : opt.data.durability + 'x') : undefined,
+          }, typeof tierId === 'function' ? tierId(opt.rar) : 'common')}</div>`
+      : `<div class="sv-pick-icon">${opt.icon}</div>`;
     card.innerHTML = `
       <div class="sv-pick-tag">${opt.tag}</div>
-      <div class="sv-pick-icon">${opt.icon}</div>
+      ${art}
       <div class="sv-pick-name">${opt.name}</div>
       <div class="sv-pick-desc">${typeof colorizeKeywords === 'function' ? colorizeKeywords(opt.desc || '') : (opt.desc || '')}</div>
       <div class="sv-pick-kind">${opt.type}</div>`;
     card.onclick = () => survivalChoose(i);
     cards.appendChild(card);
+  });
+  // Fit the tiles' own labels AFTER the panel is on screen - fitting while
+  // hidden measures a zero rect and leaves a long name to clip.
+  requestAnimationFrame(() => {
+    if (typeof fitRewardName === 'function')
+      cards.querySelectorAll('.sv-pick-tile .rwd-name').forEach(nm => fitRewardName(nm));
   });
   survivalUpdateRerollBtn();
 }
@@ -416,7 +460,8 @@ function survivalGrant(opt) {
     case 'trick':   injectTrickAfterReward(opt.data); break;
     case 'sleight': grantSleight(opt.data); showMessage(`${opt.icon} ${opt.name}!`, '#c07aee'); break;
     case 'knack':   acquiredKnacks.push({ ...opt.data }); updateKnackList?.(); showMessage(`${opt.icon} ${opt.name}!`, '#d4a017'); break;
-    case 'limit':   incrementLimit(opt.data.id); showMessage(`${opt.icon} ${opt.name} upgraded!`, '#5ad4c0'); break;
+    case 'limit': { const _say = `${opt.icon} ${limitDeltaText(opt.data.id, 1)} ${opt.data.label}`;   // before the increment moves it
+                    incrementLimit(opt.data.id); showMessage(_say, '#5ad4c0'); break; }
   }
 }
 

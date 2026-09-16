@@ -319,7 +319,7 @@ function playHand() {
     if (spotCheckLeft <= 0) { spotCheckHand = null; showMessage('Spot check cleared', 'var(--gold)'); }
     else showMessage(`Spot check: ${spotCheckLeft} more`, 'var(--cream-dim)');
   }
-  // Compound (mythic): pay out everything banked since the last hand, then clear.
+  // Compound (legendary): pay out everything banked since the last hand, then clear.
   // Added at SCORE level (not as pips or mult) on purpose - it is a copy of score
   // already earned, so running it back through mult × Focus would multiply it twice.
   if (compoundBanked > 0) {
@@ -341,6 +341,15 @@ function playHand() {
   // Scaling card buffs: a card carrying permMultGrow / permPipsGrow raises its
   // own FLAT bonus now, so the growth shows on its next play (js/deck-grid.js).
   if (typeof growCardScaling === 'function') growCardScaling(result.handCells.map(([r, c]) => gridData[r]?.[c]));
+  // Hallmark (r234): this round's marked card, if the hand scored it. After the
+  // score commits, exactly like growCardScaling above and recordNaturalScale
+  // below - a buff earned by a hand pays out on the NEXT one. Rolling it inside
+  // calcScore would fire on every speculative re-score instead.
+  if (typeof hallmarkResolve === 'function') hallmarkResolve(result.handCells.map(([r, c]) => gridData[r]?.[c]));
+  // Forced Trick fires are spent by the hand they paid for (js/force-trick.js).
+  // Cleared here rather than in calcScore for the speculative-re-score reason
+  // given there.
+  if (typeof forcedTrickIds !== 'undefined' && forcedTrickIds.length) forcedTrickIds = [];
   // Natural Scaling: credit every hand type this play paid for - the primary and
   // any other family it layered (a same-suit run earns both). After the score is
   // committed, so the buff lands on the NEXT hand of that type, not this one.
@@ -358,6 +367,19 @@ function playHand() {
   // would then also fire, double-running the interlude (boss grid + payout + new grid).
   const _bossThisHand = bossActive;
   if (_bossThisHand) checkBossObjective(hand, finalScore);
+  // The boss-winning hand takes the SAME exit as a goal hand (r237): freeze
+  // input, stop the clock, and let the dance play the full finale. The dance
+  // ends the boss via bossSettleWin() where it would start the interlude.
+  if (_bossThisHand && typeof bossWinPending !== 'undefined' && bossWinPending && !goalReachedThisRound) {
+    goalReachedThisRound = true;
+    roundEnded = true;
+    clearInterval(roundInterval); roundInterval = null;
+    const toRemove = [...selected];
+    selected = [];
+    commitRoundContrib(_contribSnapshot);
+    playScoreDance(result, toRemove, true /* goalHand */);
+    return;
+  }
 
   // Lucky Seven knack: every 7th hand grants +1 swap
   if (hasKnack('lucky_seven') && handsPlayed % BAL.lucky_seven.interval_hands === 0) {

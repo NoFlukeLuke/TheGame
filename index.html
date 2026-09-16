@@ -17,6 +17,8 @@
 <link rel="stylesheet" href="css/dance.css">
 <link rel="stylesheet" href="css/dev-overlays.css">
 <link rel="stylesheet" href="css/guided.css">
+<link rel="stylesheet" href="css/payout-pick.css">
+<link rel="stylesheet" href="css/map-mode.css">
 <link rel="stylesheet" href="css/match3.css">
 <link rel="stylesheet" href="css/dominoes.css">
 <link rel="stylesheet" href="css/survival.css">
@@ -29,11 +31,13 @@
 <link rel="stylesheet" href="css/tutorial.css">
 <link rel="stylesheet" href="css/builds.css">
 <link rel="stylesheet" href="css/room.css">
+<link rel="stylesheet" href="css/office-photo.css">
 <link rel="stylesheet" href="css/clock-fx.css">
 <link rel="stylesheet" href="css/goal-clear.css">
 <link rel="stylesheet" href="css/quarter.css">
 <link rel="stylesheet" href="css/entity-fx.css">
 <link rel="stylesheet" href="css/audio-menu.css">
+<link rel="stylesheet" href="css/picker.css">
 </head>
 <body>
 <div id="knack-tooltip" role="tooltip"></div>
@@ -639,6 +643,12 @@
      in on the CRT. Everything in #room is sized in px (never vw/vh) or it would
      stop scaling with the camera and the dolly would come apart. -->
 <div id="camera">
+<!-- THE PHOTO OFFICE (r244) - js/office-photo.js + css/office-photo.css.
+     A photograph of an office with a computer in it; the game's screen is mapped
+     onto that monitor's glass and the camera pushes in on it when a run starts.
+     Hidden, and completely inert, until the image loads AND its four screen
+     corners are calibrated - until then the CSS room below is what you see. -->
+<div id="office" aria-hidden="true"><img id="office-img" alt=""></div>
 <div id="room" aria-hidden="true">
   <div class="rm-ceiling"></div>
   <div class="rm-strip-light"></div>
@@ -732,6 +742,21 @@
   </div>
 </div>
 
+<!-- DEV PICKER (r234). Sits beside the mode-select carousel inside #cab-screen,
+     so it is drawn ON the CRT and carries no #stage zoom. Rail + scrolling body
+     + sticky footer, so NEXT / START RUN is never something you scroll to find. -->
+<div id="picker-overlay">
+  <div id="picker-panel">
+    <div id="picker-bar">
+      <div id="picker-title">BUILD A MODE</div>
+      <div id="picker-sub">Answer the questions · the run is assembled from them</div>
+    </div>
+    <div id="picker-rail"></div>
+    <div id="picker-body"></div>
+    <div id="picker-foot"></div>
+  </div>
+</div>
+
 <div id="stage">
 
 <!-- DECK HUD (debug) -->
@@ -789,17 +814,17 @@
         <!-- Left: pips × mult -->
         <div id="score-subboxes">
           <div class="score-subbox" id="pips-box">
-            <div class="subbox-label">PIPS</div>
+            <div class="subbox-label" data-lex="pips">PIPS</div>
             <div class="subbox-val" id="pips-val">0</div>
           </div>
           <div class="subbox-times">×</div>
           <div class="score-subbox" id="mult-box">
-            <div class="subbox-label">MULT</div>
+            <div class="subbox-label" data-lex="mult">MULT</div>
             <div class="subbox-val" id="mult-val">0</div>
           </div>
           <div class="subbox-times">×</div>
           <div class="score-subbox" id="focus-box">
-            <div class="subbox-label">FOCUS</div>
+            <div class="subbox-label" data-lex="focus">FOCUS</div>
             <div class="subbox-val" id="focus-val">×1</div>
           </div>
           <!-- Location readout: replaces the pips/mult/focus chips on grid-takeover
@@ -808,7 +833,7 @@
         </div>
         <!-- Center: current score (dance overlay covers this) -->
         <div id="score-center">
-          <span id="score-total-label">Score</span>
+          <span id="score-total-label" data-lex="score">Score</span>
           <div id="score-total-num">0</div>
           <!-- Dance overlay -->
           <div id="dance-overlay">
@@ -818,7 +843,7 @@
         </div>
         <!-- Right: goal -->
         <div id="score-left">
-          <div id="score-goal-label">GOAL</div>
+          <div id="score-goal-label" data-lex="goal">GOAL</div>
           <div id="score-to-go"><span id="goal-display">500</span></div>
           <div id="score-progress-bar-wrap"><div id="score-progress-bar" style="width:0%"></div></div>
         </div>
@@ -879,7 +904,7 @@
            children and renderRewardTiles empties it outright. It sits in the slot's
            empty margin around the centred grid (above it in portrait, beside it in
            landscape), sized off --grid-w / --grid-h. -->
-      <div id="sel-count"><span id="sel-count-val">0/3</span></div>
+      <div id="sel-count"><span id="sel-count-val">0/3</span><span id="sel-count-coins"></span></div>
     </div>
     <!-- Swap sits at the TOP of the interact column (r169). Landscape absolutely
          positions each of these three, so only portrait reads this order. -->
@@ -1121,14 +1146,25 @@
       <span id="lb-bar-dots"><i></i><i></i><i></i></span>
     </div>
     <div id="lb-title">RAISE A LIMIT</div>
-    <div id="lb-sub">One is free. Give something up and you can raise a second.</div>
-    <div id="lb-offers"></div>
-    <div id="lb-sacrifice">
-      <div id="lb-sacrifice-title">What you give up</div>
-      <div id="lb-sacrifice-hint">Pick a second limit by giving something up.</div>
-      <div id="lb-sacrifice-options"></div>
+    <div id="lb-sub">Pick one. It is free.</div>
+    <!-- Stage 2 only: the pick you locked in, above the two you did not take. -->
+    <div id="lb-taken" style="display:none"></div>
+    <div id="lb-second-title" style="display:none">Take another and give something up</div>
+    <!-- Stage 2 puts these two side by side: the panel has width to spare and no
+         height to spare, so stacking them pushed the sacrifices under the sticky
+         footer. Stage 1 hides the sacrifice half entirely. -->
+    <div id="lb-second-row">
+      <div id="lb-offers"></div>
+      <div id="lb-sacrifice">
+        <div id="lb-sacrifice-title">What you give up</div>
+        <div id="lb-sacrifice-hint">Pick a second limit by giving something up.</div>
+        <div id="lb-sacrifice-options"></div>
+      </div>
     </div>
-    <div id="lb-actions"><button id="lb-confirm" disabled>Confirm</button></div>
+    <div id="lb-actions">
+      <button id="lb-done" style="display:none">Just the one</button>
+      <button id="lb-confirm" disabled>Pick one</button>
+    </div>
   </div>
 </div>
 
@@ -1176,6 +1212,8 @@
 
 
 <script src="js/storage.js"></script>
+<script src="js/labels.js"></script>
+<script src="js/office-photo.js"></script>
 <script src="js/camera.js"></script>
 <script src="js/seed.js"></script>
 <script src="js/menu.js"></script>
@@ -1227,7 +1265,11 @@
 <script src="js/boss.js"></script>
 <script src="js/boss-effects.js"></script>
 <script src="js/boss-approach.js"></script>
+<script src="js/force-trick.js"></script>
+<script src="js/hallmark.js"></script>
+<script src="js/payout-pick.js"></script>
 <script src="js/guided-mode.js"></script>
+<script src="js/map-mode.js"></script>
   <script src="js/reward-grid.js"></script>
 <script src="js/limit-break.js"></script>
 <script src="js/sleights-runtime.js"></script>
@@ -1257,6 +1299,9 @@
 <script src="js/survival.js"></script>
 <script src="js/flow-mode.js"></script>
 <script src="js/goal-tuning.js"></script>
+<!-- picker-mode.js: after flow-mode.js, because modeHasNoRoundClock/pickerRoundSeconds
+     are the fallbacks survival.js and round-timers.js consult AFTER flowActive(). -->
+<script src="js/picker-mode.js"></script>
 <script src="js/spectrum.js"></script>
 <script src="js/records.js"></script>
 <script src="js/audio-mixer.js"></script>

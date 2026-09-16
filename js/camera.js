@@ -122,10 +122,26 @@ function camLayout(isLandscape) {
   root.setProperty('--cab-h', d.cabH + 'px');
   // The room drops the props that only fit the wide landscape desk.
   camRoom()?.classList.toggle('room-portrait', !isLandscape);
+  // The skew has to come OFF before the scene is placed. camPlaceScene centres the
+  // cabinet by measuring #stage's rect, and with the skew on that rect is the
+  // trapezoid's bounding box - so the board would be centred on a shape it is not.
+  if (typeof officeClearSkew === 'function') officeClearSkew();
   camPlaceScene();
+  // The photo office (r244), when it is live, owns the wide framing: its scale is
+  // "the whole photograph fills the viewport", which is a different question from
+  // "the cabinet fills 55% of it". It has to run AFTER camPlaceScene, because the
+  // skew it writes is measured off the cabinet's final resting position.
+  camLastLandscape = isLandscape;
+  const photoK = (typeof officeLayout === 'function') ? officeLayout() : null;
+  if (photoK) camWideK = photoK;
   camApply(false);
   return camPlayZoom;
 }
+
+// Recompute for whatever orientation is current. The photo layer calls this when
+// its image lands, which can be any number of frames after the first layout.
+let camLastLandscape = true;
+function camRelayout() { camLayout(camLastLandscape); }
 
 function camApply(animate) {
   const cam = camEl();
@@ -160,10 +176,13 @@ function camApply(animate) {
 
 function camSetView(view, animate) {
   if (view !== 'wide' && view !== 'play') return;
-  // Pressing PLAY during the opening shot must not dolly in from 0.42 x the wide
-  // framing - end the creep on its final value first, then run the real move.
-  if (camBootRaf) camEndBootDolly();
   const changing = (view !== camView);
+  // Pressing PLAY during the opening shot must not dolly in from 0.42 x the wide
+  // framing - end the creep on its final value first, then run the real move. Only
+  // when the view is REALLY changing: the attract screens re-assert 'wide' as they
+  // open and close, and cancelling on those snapped the photo office's fifteen
+  // second drift to its end the moment the mode carousel appeared.
+  if (camBootRaf && changing) camEndBootDolly();
   camView = view;
   document.body.classList.toggle('cam-play', view === 'play');
   document.body.classList.toggle('cam-wide', view === 'wide');
@@ -178,16 +197,32 @@ function camSetView(view, animate) {
 // SETTINGS / HISTORY / BUILDS all HIDE the main menu to open their own screen,
 // so reacting to the class going away would push the camera in behind them.
 function camInit() {
+  if (typeof officeInit === 'function') officeInit();
   ['main-menu-overlay', 'mode-select-overlay'].forEach(id => {
     const el = document.getElementById(id);
     if (!el || typeof MutationObserver !== 'function') return;
     new MutationObserver(() => {
-      if (el.classList.contains('show')) camSetView('wide', true);
+      if (!el.classList.contains('show')) return;
+      // The photo office puts an attract screen back up ON PURPOSE for the length
+      // of its push in. Without this latch that reads as "the player went back to
+      // the menu" and the camera would pull out through its own dolly.
+      if (typeof officeEntering !== 'undefined' && officeEntering) return;
+      if (typeof officeLastAttract !== 'undefined') officeLastAttract = id;
+      // Back at the menu: the photograph comes back before the camera pulls out to
+      // it, or the pull-out would be framing a scene that is not there yet. Once the
+      // photo office has been cut away it answers 'stay' instead, and the camera is
+      // left where it is - the opening does not play twice and the menu comes back
+      // flat and full-screen rather than shrinking onto a desk.
+      if (typeof officeReturnToMenu === 'function' && officeReturnToMenu() === 'stay') return;
+      camSetView('wide', true);
     }).observe(el, { attributes: true, attributeFilter: ['class'] });
   });
   const onMenu = !!document.getElementById('main-menu-overlay')?.classList.contains('show');
   camSetView(onMenu ? 'wide' : 'play', false);
-  if (onMenu) camPlayBootDolly();
+  // The r185 opening creep is a CABINET shot - it starts behind the wide framing,
+  // which in photo mode means behind the edge of the photograph. Photo mode opens
+  // on the framed photo instead and saves the push for the run starting.
+  if (onMenu && !(typeof officeShowing !== 'undefined' && officeShowing)) camPlayBootDolly();
   // js/settings.js applies its stored values at load, before #room may have been
   // reachable from every path; re-assert here now the scene definitely exists.
   if (typeof SETTINGS !== 'undefined') camSetRoomStyle(SETTINGS.roomStyle);
@@ -207,15 +242,20 @@ function camSetRoomStyle(style) {
 // the several relayouts the first second triggers (rAF pass, DOMContentLoaded,
 // load, fonts.ready - see js/bootstrap.js) recompute camWideK and re-apply
 // underneath it instead of stamping on a transition halfway through.
-function camPlayBootDolly() {
+function camPlayBootDolly(fromMul, ms) {
   if (document.body.classList.contains('reduced-motion')) return;
   const cam = camEl(); if (!cam) return;
+  const FROM = (typeof fromMul === 'number' && fromMul > 0 && fromMul < 1) ? fromMul : CAM_BOOT_OUT;
+  const DUR  = (typeof ms === 'number' && ms > 0) ? ms : CAM_BOOT_MS;
   const t0 = performance.now();
   cam.style.willChange = 'transform';
   camBootRaf = requestAnimationFrame(function step(t) {
-    const p = Math.min(1, (t - t0) / CAM_BOOT_MS);
-    const eased = 1 - Math.pow(1 - p, 3);          // ease-out: fast away, slow arrival
-    camBootMul = CAM_BOOT_OUT + (1 - CAM_BOOT_OUT) * eased;
+    const p = Math.min(1, (t - t0) / DUR);
+    // A gentler ease-out than the cabinet's cubic. Over fifteen seconds a cubic
+    // spends most of the shot already stopped, which reads as the drift having
+    // finished early; squared keeps it visibly moving for most of its length.
+    const eased = 1 - Math.pow(1 - p, 2);
+    camBootMul = FROM + (1 - FROM) * eased;
     camApply(false);
     camBootRaf = (p < 1) ? requestAnimationFrame(step) : null;
     if (!camBootRaf) camEndBootDolly();
@@ -256,6 +296,10 @@ function camEnterGame() {
   // forgets would leave the menu sitting over a live board instead of over
   // everything. Removing .show here cannot loop: the observer only reacts to the
   // class being ADDED.
+  // The photo office runs its own entrance: a slow push in on the monitor with
+  // the menu still lit on it, then a channel change that swaps the photograph out
+  // for the real UI. It removes the attract screens itself, at the collapse.
+  if (typeof officeShowing !== 'undefined' && officeShowing) { officeEnterGame(); return; }
   document.getElementById('main-menu-overlay')?.classList.remove('show');
   document.getElementById('mode-select-overlay')?.classList.remove('show');
   camSetView('play', true);

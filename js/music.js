@@ -79,6 +79,91 @@ function musicVolume() {
 }
 function applyMusicVolume() { if (_musicEl) _musicEl.volume = Math.max(0, Math.min(1, musicVolume())); }
 
+// ── THE SPEED RAMP (r244) ───────────────────────────────────────────────────
+// A track can get faster the longer it plays: `ramp` on its manifest row. The
+// bare `ramp: true` is every 20s, +10%, capped at 2x - write an object to say
+// something else. It is COMPOUNDING, so the cap is not decoration: +10% every
+// 20s reaches 2x in two minutes and 4x in four, and an uncapped ramp on a long
+// bed ends as a chipmunk scream.
+//
+//   ramp: true
+//   ramp: { every: 20, by: 0.10, max: 2.0, pitchUp: true }
+//
+// `pitchUp` is the difference between the two things people mean by "faster":
+//   false (default) - TEMPO only. The browser time-stretches, so the track keeps
+//                     its key and just plays quicker. Musical.
+//   true            - TAPE. Pitch rises with the speed. A machine winding up.
+//
+// TWO RULES:
+//  - It advances on WALL CLOCK while the track is actually playing, never on
+//    el.currentTime. currentTime runs at the playback rate, so keying off it
+//    would make each step arrive sooner than the last on top of the compounding
+//    and the ramp would run away.
+//  - It RESETS on every track load. The ramp belongs to a play of a track, not
+//    to the session; without this, skipping back to a track you already ran up
+//    would start it at 2x with nothing on screen explaining why.
+const MUSIC_RAMP_DEFAULT = { every: 20, by: 0.10, max: 2.0, pitchUp: false };
+const MUSIC_RAMP_TICK = 250;     // ms; how often the accumulator is read
+let _rampCfg = null, _rampAcc = 0, _rampLast = 0, _rampTimer = null;
+
+// Normalise whatever the manifest row said into a config, or null for no ramp.
+function musicRampConfig(t) {
+  const r = t && t.ramp;
+  if (!r) return null;
+  const c = Object.assign({}, MUSIC_RAMP_DEFAULT, (r === true) ? {} : r);
+  c.every = Math.max(1, +c.every || MUSIC_RAMP_DEFAULT.every);
+  c.by    = Math.max(0, +c.by    || 0);
+  c.max   = Math.max(1, +c.max   || 1);
+  return c.by ? c : null;
+}
+
+function musicSetRate(rate) {
+  const el = _musicEl; if (!el) return;
+  const r = Math.max(0.25, Math.min(4, rate));
+  // preservesPitch is the inverse of what we call pitchUp: true means "hold the
+  // key and stretch time". The prefixed spellings are for older Safari/Firefox.
+  const keep = !(_rampCfg && _rampCfg.pitchUp);
+  try { el.preservesPitch = keep; } catch (e) {}
+  try { el.mozPreservesPitch = keep; } catch (e) {}
+  try { el.webkitPreservesPitch = keep; } catch (e) {}
+  el.playbackRate = r;
+}
+
+// Live rate, for a readout or a test.
+function musicRate() { return _musicEl ? _musicEl.playbackRate : 1; }
+
+function musicResetRamp() {
+  _rampAcc = 0;
+  _rampLast = performance.now();
+  _rampCfg = musicRampConfig(musicTrackAt(_musicIndex));
+  musicSetRate(1);
+  if (_rampTimer) { clearInterval(_rampTimer); _rampTimer = null; }
+  if (_rampCfg) _rampTimer = setInterval(musicRampTick, MUSIC_RAMP_TICK);
+}
+
+function musicRampTick() {
+  const now = performance.now();
+  const dt = now - _rampLast;
+  _rampLast = now;
+  if (!_rampCfg || !musicIsPlaying()) return;   // a paused track does not age
+  _rampAcc += dt / 1000;
+  const steps = Math.floor(_rampAcc / _rampCfg.every);
+  const want = Math.min(_rampCfg.max, Math.pow(1 + _rampCfg.by, steps));
+  if (Math.abs(want - musicRate()) > 0.0005) musicSetRate(want);
+}
+
+// Override the ramp on whatever is playing right now, without editing the
+// manifest - for tuning from the console: musicSetRamp({ every: 5, by: 0.2 }).
+// Pass null to switch it off. Lasts until the next track loads.
+function musicSetRamp(cfg) {
+  _rampCfg = cfg ? musicRampConfig({ ramp: cfg }) : null;
+  _rampAcc = 0;
+  _rampLast = performance.now();
+  musicSetRate(1);
+  if (_rampTimer) { clearInterval(_rampTimer); _rampTimer = null; }
+  if (_rampCfg) _rampTimer = setInterval(musicRampTick, MUSIC_RAMP_TICK);
+}
+
 function musicIsPlaying() { return !!_musicEl && !_musicEl.paused && !_musicEl.ended; }
 
 // Pick the next index to play. Shuffle draws from the playable set at random
@@ -104,6 +189,7 @@ function musicLoadIndex(i) {
   el.src = t.file;
   el.preload = 'auto';
   applyMusicVolume();
+  musicResetRamp();
   if (typeof renderPlaylist === 'function') renderPlaylist();
   return true;
 }

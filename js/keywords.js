@@ -15,13 +15,13 @@
 
 const KEYWORD_DEFS = [
   // ── scoring core ──
-  { key:'xmult',     cls:'kw-xmult',   terms:['xmult','×mult','x mult'],
+  { key:'xmult',     cls:'kw-xmult',   terms:['xmult','×mult','x mult','xskill','×skill','x skill'],
     name:'×Mult',    def:'Multiplies your Mult itself, instead of adding to it. Applied after all + Mult.' },
-  { key:'xpips',     cls:'kw-xpips',   terms:['xpips','×pips','x pips'],
+  { key:'xpips',     cls:'kw-xpips',   terms:['xpips','×pips','x pips','xwork','×work','x work'],
     name:'×Pips',    def:'Multiplies the hand’s total Pips, instead of adding to them.' },
-  { key:'pips',      cls:'kw-pips',    terms:['pips','pip'],
+  { key:'pips',      cls:'kw-pips',    terms:['pips','pip','work'],
     name:'Pips',     def:'The base points a hand is worth. Final score = Pips × Mult.' },
-  { key:'mult',      cls:'kw-mult',    terms:['mult'],
+  { key:'mult',      cls:'kw-mult',    terms:['mult','skill'],
     name:'Mult',     def:'The multiplier applied to Pips. Final score = Pips × Mult.' },
   { key:'focus',     cls:'kw-focus',   terms:['focus'],
     name:'Focus',    def:'The meter beside the grid. It builds as you play and adds a score multiplier; it decays if you stall.' },
@@ -118,12 +118,21 @@ const KEYWORD_DEFS = [
   { key:'shop',      cls:'kw-buy',     terms:['shop','mart'],
     name:'Shop',     def:'The LETHE Mart, where credits become Tricks, Sleights, Knacks and Limit upgrades.' },
 
-  // ── rarity ──
-  { key:'common',    cls:'kw-r-common',    terms:['common'],    name:'Common',    def:'The most frequent rarity (59% of shop rolls).' },
-  { key:'rare',      cls:'kw-r-rare',      terms:['rare'],      name:'Rare',      def:'Uncommon rarity (28% of shop rolls).' },
-  { key:'epic',      cls:'kw-r-epic',      terms:['epic'],      name:'Epic',      def:'Scarce rarity (10% of shop rolls).' },
-  { key:'legendary', cls:'kw-r-legendary', terms:['legendary'], name:'Legendary', def:'Very scarce rarity (2% of shop rolls).' },
-  { key:'mythic',    cls:'kw-r-mythic',    terms:['mythic'],    name:'Mythic',    def:'The scarcest rarity (1% of shop rolls).' },
+  // ── rarity (r197) ──
+  // One row per tier ID, carrying the words from BOTH ladders (Utilities and
+  // Vendors grade differently - see TERMINOLOGY.md). 'plus', 'standard', 'staff'
+  // and 'temp' are deliberately NOT terms: they are ordinary English that turns
+  // up in descriptions ("plus 5 pips"), and highlighting those as rarities would
+  // be worse than not highlighting the tier at all. Those tiers are read from
+  // the tile colour instead.
+  { key:'common',    cls:'kw-r-common',    terms:['lite'],
+    name:'Lite / Temp',          def:'The most frequent rarity (58% of shop rolls).' },
+  { key:'rare',      cls:'kw-r-rare',      terms:['contractor'],
+    name:'Standard / Contractor', def:'Uncommon rarity (28% of shop rolls).' },
+  { key:'epic',      cls:'kw-r-epic',      terms:[],
+    name:'Plus / Staff',          def:'Scarce rarity (11% of shop rolls).' },
+  { key:'legendary', cls:'kw-r-legendary', terms:['deluxe','executive'],
+    name:'Deluxe / Executive',    def:'The scarcest rarity (3% of shop rolls).' },
 ];
 
 // One flat, pre-sorted alternation. Longest terms first so multi-word and
@@ -141,7 +150,12 @@ _KW_TERMS.forEach(x => { _KW_BY_TERM[x.t.toLowerCase()] = x.d; });
 // callers must not pass HTML they care about, since this does not parse tags.
 function highlightKeywords(text) {
   if (text == null) return '';
-  return String(text).replace(_KW_RE, (m) => {
+  // Translate to the live vocabulary FIRST, then colour (r198). Descriptions are
+  // stored in the gamer wording, so in gamer mode this is a no-op; in corporate
+  // it turns "+10 pips" into "+10 work" on the way to the screen. The keyword
+  // table carries both vocabularies' terms, so highlighting survives the swap.
+  const src = (typeof lexProse === 'function') ? lexProse(text) : String(text);
+  return src.replace(_KW_RE, (m) => {
     const d = _KW_BY_TERM[m.toLowerCase()];
     return d ? `<span class="kw ${d.cls}">${m}</span>` : m;
   });
@@ -152,7 +166,7 @@ function highlightKeywords(text) {
 function keywordsIn(text) {
   if (text == null) return [];
   const seen = new Set(), out = [];
-  String(text).replace(_KW_RE, (m) => {
+  ((typeof lexProse === 'function') ? lexProse(text) : String(text)).replace(_KW_RE, (m) => {
     const d = _KW_BY_TERM[m.toLowerCase()];
     if (d && !seen.has(d.key)) { seen.add(d.key); out.push(d); }
     return m;
