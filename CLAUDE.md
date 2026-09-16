@@ -1642,6 +1642,62 @@ Two display bugs sat on top of it and are also fixed:
 
 It was the last between-round screen still wearing the old gold-on-black Cinzel look, so arriving there from a reward grid felt like leaving the game. `#limitbreak-overlay` gained an `#lb-panel` wrapper and is now the same material as `#event-panel`: indigo wash, plastic ring, scanlines, sticky marquee bar, sticky action footer, and the events' green CONFIRM. What it deliberately does NOT copy is rarity colouring - a limit has no tier, so the offer tiles keep their own gold - and the give-up section stays **red**, for the same reason `.event-choice.debuff` does: on a screen that is otherwise all gains, the one control that takes something away must not be mistakable for another one.
 
+### An event you cannot use is never OFFERED (r248) - `EVENT_REQUIRES`
+
+Sixteen renderers open with a guard and a consolation - "Not enough Tricks or
+Sleights to fill the reels. Take the fee instead." **Every one was reachable,
+because nothing anywhere asked whether an event could do anything before offering
+it**: not `openEvent`'s pool, not Guided's crossroads, not the map's tile fill.
+
+In Classic that is a wasted screen. In Guided it is worse: the crossroads NAMES
+the event, charges `price_event` AND a slot, and `guidedAdvanceCurve` moves the
+quota - so an Entity Slots with one improvable entity cost 6 credits, a whole slot
+and a level of goal scaling to pay 12 credits back. On the map it spends a tile
+out of a 12-slot budget. Owner's call: that node should not exist until you
+qualify for it.
+
+- **`EVENT_REQUIRES` is the one answer AND THE RENDERERS READ IT.** Each predicate
+  is the renderer's own guard condition, and all fourteen gated renderers now test
+  `!eventEligible(id)` instead of repeating it. A second copy of the condition is
+  precisely how the offer filter and the empty state would drift apart.
+- **An id absent from the table is ELIGIBLE, and a predicate that THROWS is
+  eligible too.** The table must never be able to delete an event from the game by
+  being wrong about it; the renderer's own consolation is still there to catch it.
+- **A STAGE gate is not an ENTRY gate**, and the first pass got this wrong. The
+  anchor `const ownedTrick = acquiredTricks || []` is unique in `js/events.js` and
+  belongs to **`renderGambleDouble`** - the Gamble's double-or-nothing stage, which
+  stakes a Trick - not to `renderCrossroads`. Gating `gamble` on owning a Trick
+  would have blocked an event whose doors stage plays fine with none. The
+  Confluence's "Nothing left in this theme" is the same shape. Those stay ungated.
+- **`renderCrossroads` has NO consolation at all**, which the audit is what
+  surfaced: an empty `buildCrossroadsTrades()` is a blank panel, not a take-the-fee
+  tile. Its row is `buildCrossroadsTrades().length > 0` - the only gate standing
+  between the player and a dead screen rather than a cheap one.
+- **There are TWO consolation SHAPES** and testing for one misses the other: most
+  use `evEmptyHTML` (`.ev-empty`), Tray Order uses a lone `makeChoiceEl`. A first
+  audit keyed on `.ev-empty` reported Tray Order as a false mismatch. A `choices
+  === 0` proxy is worse still - the Confluence, the Gamble and both slot machines
+  legitimately build their own markup, so it flagged five working events.
+
+Measured in a real browser over all 21 events, in a barren run and a stocked one:
+**0 disagreements** between the table and the renderers in both, **7 events
+blocked when nothing is owned** (Extra Rep, Trade a Trick, Tray Order, Spin to
+Improve, Entity Slots, Maintenance, Clean Slate), **1 blocked when stocked** (Clean
+Slate, with no penalties on the record yet), and **0 blocked events leaked across
+400 draws**.
+
+### The crossroads never cleared the board it drew on (r248)
+
+`guidedCloseCrossroads` removed its bar and exited the grid-screen HUD and **left
+the four tiles in `#grid`**. `render()` could not cover for it: the renderer
+reconciles elements carrying `[data-card-id]` and `.gx-tile` / `.gx-filler` have
+none, so **nothing in the game ever removed them**. The reward grid and the shop
+happened to hide it by clearing `#grid` for their own reasons, so the tiles
+survived only on the paths that do not - an event, the pick-of-three, and a plain
+level - and the next round dealt on top of them. Measured: 16 cards over 4
+crossroads tiles with the descriptions still legible between them, for the rest of
+the run. One line at the close; verified 4 -> 0 on choose and 0 after a round deals.
+
 ### Events cannot repeat back-to-back (r191)
 
 `openEvent` drew from an 11-event pool (16 since r211) with a bare `Math.random`. Classic routes to an event rarely enough that this never showed; Guided runs ~10 a run, where a repeat - and especially the same event twice in the post-boss pair - was near certain. `recentEventIds` (last 4) is filtered out of the draw, falling back to the full pool if that would empty it. Measured over 20,000 simulated Guided runs: **0 back-to-back repeats**, per-event share flat to within 1.5%.

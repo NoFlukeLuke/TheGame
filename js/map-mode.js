@@ -267,7 +267,12 @@ function _mapBuildOnce() {
   // now, so the map can print it before the tile is taken. The stored challenge
   // is DATA ONLY (no test function) - it is rehydrated from CHALLENGE_DEFS by
   // id at confirm time, which is what keeps mapTiles JSON-safe for SAVE_VARS.
-  const evPool = (typeof EVENT_META !== 'undefined') ? _mapShuffle(Object.keys(EVENT_META).slice()) : [];
+  // Events that can do something, only (js/events-core.js) - a map tile is one of
+  // twelve free slots and a dead event spends one of them.
+  const evPool = (typeof EVENT_META !== 'undefined')
+    ? _mapShuffle((typeof eligibleEventIds === 'function')
+        ? eligibleEventIds(Object.keys(EVENT_META)) : Object.keys(EVENT_META).slice())
+    : [];
   let ei = 0;
   tiles.forEach(t => {
     if (t.kind === 'event') {

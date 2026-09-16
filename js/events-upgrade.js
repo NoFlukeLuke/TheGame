@@ -67,7 +67,7 @@ function evDrawEntity(kind, minTier) {
 // replacement would make this a shop; not naming it makes it a trade.
 function renderReassignment() {
   const body = document.getElementById('event-body');
-  if (typeof trickTray === 'undefined' || !trickTrayMode || !trickTray.length) {
+  if (typeof trickTray === 'undefined' || !eventEligible('reassignment')) {
     body.innerHTML = evEmptyHTML('No Tricks to reassign. Take the fee instead.');
     eventState.reassignNone = true;
     setEventConfirm(true); return;
@@ -166,7 +166,7 @@ const DRAW_PICKS = 3;
 function renderDraw() {
   const body = document.getElementById('event-body');
   const ents = evImprovables();
-  if (ents.length < 2) {
+  if (!eventEligible('the_draw')) {
     body.innerHTML = evEmptyHTML('Not enough Tricks or Sleights to draw between. Take the fee instead.');
     eventState.drawNone = true;
     setEventConfirm(true); return;

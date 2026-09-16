@@ -119,9 +119,13 @@ function guidedRollOffers() {
   // against recentEventIds, so the pair on the board is never one you just saw.
   const used = new Set(out.map(o => o.id).filter(Boolean));
   const pool = (typeof EVENT_META !== 'undefined') ? Object.keys(EVENT_META) : [];
-  const fresh = pool.filter(id => !used.has(id)
+  // Only events that can DO something (js/events-core.js): the crossroads names
+  // the event and charges a slot plus credits for it, so a dead one is the worst
+  // tile on the board.
+  const usable = (typeof eligibleEventIds === 'function') ? eligibleEventIds(pool) : pool;
+  const fresh = usable.filter(id => !used.has(id)
     && !(typeof recentEventIds !== 'undefined' && recentEventIds.includes(id)));
-  const draw = (typeof evShuffle === 'function' ? evShuffle(fresh.length ? fresh : pool) : (fresh.length ? fresh : pool).slice());
+  const draw = (typeof evShuffle === 'function' ? evShuffle(fresh.length ? fresh : usable) : (fresh.length ? fresh : usable).slice());
   let di = 0;
   while (out.length < GUIDED_TILE_COUNT && di < draw.length) {
     const id = draw[di++];
@@ -246,6 +250,15 @@ function guidedRenderCrossBar() {
 function guidedCloseCrossroads() {
   guidedCrossroadsOpen = false;
   document.getElementById('gx-bar')?.classList.remove('show');
+  // CLEAR THE BOARD IT DREW ON (r248). This was missing, and `render()` could not
+  // cover for it: the renderer reconciles elements carrying [data-card-id] and
+  // `.gx-tile` / `.gx-filler` have none, so nothing in the game ever removed
+  // them. The reward grid and the shop happened to hide it by clearing #grid for
+  // their own reasons - so the tiles survived only on the paths that do NOT
+  // (an event, the pick-of-three, and a plain level), and the next round dealt
+  // ON TOP of them. Measured: 16 cards over 4 crossroads tiles, the descriptions
+  // still legible between the cards, for the rest of the run.
+  document.getElementById('grid')?.querySelectorAll('.gx-tile, .gx-filler').forEach(el => el.remove());
   if (typeof exitGridScreenHud === 'function') exitGridScreenHud();
 }
 

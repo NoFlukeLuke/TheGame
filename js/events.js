@@ -308,6 +308,9 @@ function renderGambleDouble() {
   info.textContent = 'Even odds. Win and you keep your Trick and gain another; lose and the one you staked is gone. Pick which one is riding on it.';
   body.appendChild(info);
   const ownedTrick = acquiredTricks || [];
+  // A STAGE gate, not an entry gate: the Gamble's doors play fine with no Tricks
+  // and only this double-or-nothing stage stakes one, so `gamble` is deliberately
+  // absent from EVENT_REQUIRES.
   if (ownedTrick.length === 0) {
     body.innerHTML += evEmptyHTML('You have no Tricks to stake.');
     setEventConfirm(true); return;
@@ -405,7 +408,7 @@ function evShuffle(arr) {
 function renderForge() {
   const body = document.getElementById('event-body');
   const all = allDeckCards();
-  if (!all.length) {
+  if (!eventEligible('forge')) {
     body.innerHTML = evEmptyHTML('No cards to upgrade.');
     setEventConfirm(true); return;
   }
@@ -518,7 +521,7 @@ function confirmBargain() {
 // ══════════════════════════════════════════════
 function renderWager() {
   const body = document.getElementById('event-body');
-  if (!allDeckCards().length) {
+  if (!eventEligible('wager')) {
     body.innerHTML = evEmptyHTML('No cards to stake.');
     setEventConfirm(true); return;
   }
@@ -987,7 +990,7 @@ function renderShiftChange() {
 
   // Fewer than two Tricks: there is no order to change, so the shift pays out
   // instead of wasting the node.
-  if (tray.length < 2) {
+  if (!eventEligible('shift_change')) {
     eventState.shiftPayout = BAL.shift_change ? BAL.shift_change.consolation_credits : 15;
     body.appendChild(makeChoiceEl({
       icon: '🕓', name: 'Nothing to reshuffle',
@@ -1112,7 +1115,7 @@ function confirmShiftChange() {
 function renderBench() {
   const body = document.getElementById('event-body');
   const pool = [...drawPile].filter(c => c && c.rank && !c._isSleight);
-  if (!pool.length) {
+  if (!eventEligible('bench')) {
     body.innerHTML = evEmptyHTML('No cards in the draw pile to work on.');
     setEventConfirm(true); return;
   }
@@ -1189,7 +1192,7 @@ function confirmBench() {
 // without a line of per-Trick code.
 function renderRehearsal() {
   const body = document.getElementById('event-body');
-  if (!trickTrayMode || !trickTray.length) {
+  if (!eventEligible('rehearsal')) {
     body.innerHTML = evEmptyHTML('No Tricks to work on. Take the credits instead.');
     eventState.rehearseNone = true;
     setEventConfirm(true); return;
@@ -1234,7 +1237,7 @@ function confirmRehearsal() {
 function renderWorkshop() {
   const body = document.getElementById('event-body');
   const owned = allOwnedSleightCards().filter(c => sleightMaxCharges(sleightDef(c)) !== null);
-  if (!owned.length) {
+  if (!eventEligible('workshop')) {
     body.innerHTML = evEmptyHTML('No Sleights with charges to service. Take the fee instead.');
     eventState.workshopNone = true;
     setEventConfirm(true); return;
@@ -1354,7 +1357,7 @@ const MARKET_BOONS = [
 function renderMarket() {
   const body = document.getElementById('event-body');
   const source = allDeckCards();
-  if (!source.length) {
+  if (!eventEligible('market')) {
     body.innerHTML = evEmptyHTML('No deck to copy from.');
     setEventConfirm(true); return;
   }
@@ -1445,7 +1448,7 @@ function confirmMarket() {
 function renderDeckTrim() {
   const body = document.getElementById('event-body');
   const pool = springCuttableCards();          // shared with Clean Up
-  if (!pool.length) {
+  if (!eventEligible('deck_trim')) {
     body.innerHTML = evEmptyHTML('Nothing in the draw pile to cut.');
     setEventConfirm(true); return;
   }
@@ -1583,7 +1586,7 @@ const CLEAN_SLATE_FIXES = [
 function renderCleanSlate() {
   const body = document.getElementById('event-body');
   const live = CLEAN_SLATE_FIXES.filter(f => { try { return f.has(); } catch (e) { return false; } });
-  if (!live.length) {
+  if (!eventEligible('clean_slate')) {
     // Nothing owed. Pay instead of offering a screen full of things that would
     // do nothing - an event that cannot act should say so and still be worth
     // having landed on.

@@ -1,4 +1,4 @@
-const BUILD = "2026-09-16 · r247 · the office photo is calibrated and live - the menu sits on the monitor and the camera pushes into it [onto r246]";
+const BUILD = "2026-09-16 · r248 · an event you cannot use is never offered (EVENT_REQUIRES, read by the renderers too) + the guided crossroads clears the board it drew on [onto r247]";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

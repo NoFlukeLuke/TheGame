@@ -20,12 +20,82 @@ let afterEventFn = null;
 let recentEventIds = [];
 const EVENT_NO_REPEAT = 4;
 
+// ══════════════════════════════════════════════
+// EVENT ELIGIBILITY (r248) - an event you cannot use is never OFFERED
+// ══════════════════════════════════════════════
+// Sixteen renderers open with a guard and an `evEmptyHTML` consolation - "Not
+// enough Tricks or Sleights to fill the reels. Take the fee instead." Every one
+// was reachable, because **nothing anywhere asked whether an event could do
+// anything before offering it**: not openEvent's pool, not Guided's crossroads,
+// not the map's tile fill.
+//
+// In Classic that is a wasted screen. In Guided it is worse: the crossroads NAMES
+// the event, charges `price_event` AND a slot, and `guidedAdvanceCurve` moves the
+// quota - so an Entity Slots with one improvable entity cost 6 credits, a whole
+// slot and a level of goal scaling to pay 12 credits back. On the map it spends a
+// tile out of a 12-slot budget. Owner's call: that node should not exist until
+// you qualify for it.
+//
+// **THE TABLE IS THE ONE ANSWER AND THE RENDERERS READ IT.** Each predicate is
+// the renderer's OWN guard condition, and each gated renderer's guard is
+// rewritten to call `eventEligible` rather than to repeat the test - so the offer
+// filter and the empty state cannot disagree about what "usable" means. A second
+// copy of the condition is precisely how the two would drift.
+//
+// **Not every empty state is an ENTRY gate.** The Confluence's "Nothing left in
+// this theme" fires after a theme has been picked, and the Merchant builds its
+// list inside the event; those screens still have a decision on them, so they
+// stay ungated. Only an event that would open with nothing to do at all is
+// listed, and **an id absent from the table is ELIGIBLE** - a missing row must
+// never silently remove an event from the game.
+const EVENT_REQUIRES = {
+  // Needs a Trick to reorder / rehearse / reassign, or a trade to offer.
+  crossroads:   () => buildCrossroadsTrades().length > 0,   // it has NO consolation: an empty build is a blank panel
+  rehearsal:    () => trickTrayMode && (trickTray || []).length > 0,
+  reassignment: () => trickTrayMode && (trickTray || []).length > 0,
+  // Tray ORDER is the whole screen, so one Trick is not a decision.
+  shift_change: () => trickTrayMode && (trickTray || []).length >= 2,
+  // Needs something improvable to stake or to spin between.
+  the_draw:     () => evImprovables().length >= 2,
+  the_payline:  () => evImprovables().length >= 2,
+  // Needs a Sleight whose charge ceiling can actually move (infinite returns null).
+  workshop:     () => allOwnedSleightCards().filter(c => sleightMaxCharges(sleightDef(c)) !== null).length > 0,
+  // Needs cards to work on.
+  the_floor:    () => everyDeckCard().length >= SLOT_REELS,
+  bench:        () => drawPile.some(c => c && c.rank && !c._isSleight),
+  deck_trim:    () => springCuttableCards().length > 0,
+  market:       () => allDeckCards().length > 0,
+  forge:        () => allDeckCards().length > 0,
+  wager:        () => allDeckCards().length > 0,
+  // Needs a liability on the record to clear.
+  clean_slate:  () => CLEAN_SLATE_FIXES.some(f => { try { return f.has(); } catch (e) { return false; } }),
+};
+
+// An id with no row is eligible. A predicate that THROWS is eligible too: the
+// table must never be able to delete an event from the game by being wrong about
+// it, and the renderer's own consolation is still there to catch that case.
+function eventEligible(id) {
+  const req = EVENT_REQUIRES[id];
+  if (!req) return true;
+  try { return !!req(); } catch (e) { return true; }
+}
+
+// The ids worth offering right now, in the order given. Every draw site filters
+// through this; falling back to the unfiltered list is deliberate, the same rule
+// `recentEventIds` follows - never hand back an empty pool.
+function eligibleEventIds(ids) {
+  const list = ids || Object.keys(EVENT_META);
+  const ok = list.filter(eventEligible);
+  return ok.length ? ok : list;
+}
+
 function openEvent(afterFn) {
   afterEventFn = afterFn || (() => drainLevelUpQueue());
   const pool = ['confluence','crossroads','gamble','merchant','altar','spring','twin_path','forge','bargain','wager','shift_change','bench','rehearsal','workshop','market','deck_trim','reassignment','the_draw','the_floor','the_payline','clean_slate'];
   // Fall back to the full pool if the memory has eaten it - never draw a blank.
-  const fresh = pool.filter(id => !recentEventIds.includes(id));
-  const draw  = fresh.length ? fresh : pool;
+  const usable = eligibleEventIds(pool);
+  const fresh = usable.filter(id => !recentEventIds.includes(id));
+  const draw  = fresh.length ? fresh : usable;
   activeEventId = draw[Math.floor(Math.random() * draw.length)];
   recentEventIds.push(activeEventId);
   if (recentEventIds.length > EVENT_NO_REPEAT) recentEventIds.shift();
