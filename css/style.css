@@ -5031,3 +5031,102 @@ body.reduced-motion .efx-hit { animation-duration: 1ms; }
   }
   body.reduced-motion .shop-tile.shopg-in,
   body.reduced-motion .shop-row-label.shopg-in { animation:none; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   SHOP: THE REROLL CAP, THE FALL-OUT, AND THE OWNED PANEL (r237)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── The SWAP cap becomes REROLL ──
+   Swaps are a board action and the shop has the board, so the cap was dead
+   above two live buttons. It takes the reward grid's SKIP treatment (three
+   stacked lines in the same slot) rather than a look of its own - the two
+   screens repurpose the same control and should not repurpose it differently. */
+#action-col #swap-indicator.shop-reroll {
+  flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+  background: linear-gradient(180deg, #ffd35e, #e0a318) !important;
+  color: #3a2a05 !important;
+  border: 1px solid #000 !important;
+  box-shadow: inset 0 2px 0 rgba(255,255,255,0.45), 0 2px 0 #9a6f0c !important;
+  cursor: pointer; white-space: normal; text-align: center;
+  font-family: 'Share Tech Mono', monospace !important;
+}
+#action-col #swap-indicator.shop-reroll:hover  { filter: brightness(1.07); }
+#action-col #swap-indicator.shop-reroll:active { transform: translateY(2px); }
+#action-col #swap-indicator.shop-reroll .srr-word { font-size: 9px; letter-spacing: 1px; line-height: 1; opacity: 0.8; }
+#action-col #swap-indicator.shop-reroll .srr-left { font-size: 20px; font-weight: 700; line-height: 1.05; color: #3a2a05; }
+#action-col #swap-indicator.shop-reroll .srr-cost { font-size: 9px; line-height: 1; opacity: 0.75; }
+/* Spent / unaffordable: greyed but never hidden, so the slot does not appear to
+   lose a button halfway through a shop. */
+#action-col #swap-indicator.shop-reroll.srr-spent {
+  background: linear-gradient(180deg, #6a6152, #4a443a) !important;
+  color: #cfc8bb !important; cursor: default; filter: none;
+}
+#action-col #swap-indicator.shop-reroll.srr-spent .srr-left { color: #cfc8bb; }
+
+/* ── The stock falls out on the way off the board ──
+   The exact mirror of shopg-fall, dropping DOWNWARD: the board was dealt onto
+   the screen and is now being cleared off it. The layer is a throwaway placed
+   over #grid by shopGridFallOut, so the real board rebuilds underneath. */
+@keyframes shopg-drop {
+  from { opacity: 1; transform: none; }
+  to   { opacity: 0; transform: translateY(46px) scale(0.93) rotate(1.5deg); }
+}
+.shop-tile.shopg-out, .shop-row-label.shopg-out {
+  animation: shopg-drop .30s cubic-bezier(.45,0,.75,.3) both;
+  animation-delay: var(--sgd, 0ms);
+}
+body.reduced-motion .shop-tile.shopg-out,
+body.reduced-motion .shop-row-label.shopg-out { animation: none; opacity: 0; }
+
+/* ── The row plate is a button ──
+   .unselectable kills pointer events so a connected pick can never route
+   through a heading; this one rule puts them back for the plate, which has its
+   own handler and cannot reach the selection code. */
+.shop-row-label.srl-openable { pointer-events: auto; cursor: pointer; }
+.shop-row-label.srl-openable:hover { filter: brightness(1.12); }
+.shop-row-label .srl-own {
+  position: absolute; top: 4px; right: 6px;
+  font-family: 'Share Tech Mono', monospace; font-size: 9px;
+  color: var(--c-yellow, #ffce2b); opacity: 0.8;
+}
+
+/* ── "You own" panel ──
+   Body-level and outside #cabinet, so its px are real px. */
+#shop-owned-panel {
+  position: fixed; inset: 0; z-index: 620;
+  display: none; align-items: center; justify-content: center;
+  background: rgba(4,5,7,0.62);
+}
+#shop-owned-panel.show { display: flex; }
+#shop-owned-panel .sop-box {
+  width: min(420px, calc(100vw - 32px));
+  max-height: calc(100vh - 60px);
+  display: flex; flex-direction: column;
+  border-radius: 10px; overflow: hidden;
+  background: linear-gradient(180deg, rgba(16,22,26,0.98), rgba(7,10,12,0.99));
+  box-shadow: 0 0 0 2px var(--c-cyan, #16c8d8), 0 18px 46px rgba(0,0,0,0.6);
+}
+#shop-owned-panel .sop-bar {
+  flex: none; display: flex; align-items: center; justify-content: space-between;
+  padding: 9px 12px; background: rgba(22,200,216,0.14);
+  font-family: 'Share Tech Mono', monospace; font-size: 10px; letter-spacing: 3px;
+  color: var(--c-cyan, #16c8d8);
+}
+#shop-owned-panel .sop-close {
+  background: none; border: none; color: var(--c-cyan, #16c8d8);
+  font-size: 14px; cursor: pointer; line-height: 1; padding: 0 2px;
+}
+#shop-owned-panel .sop-list { overflow-y: auto; padding: 10px 12px 14px; display: flex; flex-direction: column; gap: 9px; }
+#shop-owned-panel .sop-row  { display: flex; gap: 10px; align-items: flex-start; }
+#shop-owned-panel .sop-tile { flex: 0 0 52px; width: 52px; height: 68px; }
+#shop-owned-panel .sop-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+#shop-owned-panel .sop-text b {
+  font-family: 'Orbitron', sans-serif; font-size: 11px; letter-spacing: 0.5px;
+  color: #eafdff; text-transform: uppercase;
+}
+#shop-owned-panel .sop-text span {
+  font-family: 'Crimson Pro', serif; font-size: 13px; line-height: 1.3; color: rgba(244,234,213,0.82);
+}
+#shop-owned-panel .sop-copies { font-family: 'Share Tech Mono', monospace; font-size: 10px; color: var(--c-yellow, #ffce2b); font-style: normal; }
+#shop-owned-panel .sop-uses   { font-family: 'Share Tech Mono', monospace !important; font-size: 10px !important; color: var(--c-cyan, #16c8d8) !important; }
+#shop-owned-panel .sop-empty  { font-family: 'Crimson Pro', serif; font-size: 14px; color: rgba(244,234,213,0.6); text-align: center; padding: 18px 0; }

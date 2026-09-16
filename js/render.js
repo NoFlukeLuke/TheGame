@@ -285,7 +285,10 @@ function render() {
   document.getElementById('btn-play').disabled    = match3Active() || !bestHandResult || _belowMin || (animating && !falling);
   document.getElementById('btn-discard').disabled = selected.length === 0 || (animating && !falling);
   document.getElementById('disc-count').textContent = `(${discards})`;
-  document.getElementById('swap-count').textContent  = swaps;
+  // r237: guarded. The reward grid repurposes #swap-indicator into SKIP and the
+  // shop into REROLL, and both replace its innerHTML - so #swap-count does not
+  // exist for the length of either screen and an unguarded write here throws.
+  { const _sc = document.getElementById('swap-count'); if (_sc) _sc.textContent = swaps; }
 
   // Marked-row / marked-column lines. Drawn last, for the same reason
   // reapplyClockFreeze is called here: it reads the finished DOM. Its "is the

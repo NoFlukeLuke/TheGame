@@ -1,4 +1,4 @@
-const BUILD = "2026-09-16 · r236 · the round opens on the board - NEXT QUOTA restyled, 3-2-1 centred, one deal not two";
+const BUILD = "2026-09-16 · r237 · the shop gets a REROLL button, an inventory, and an exit";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
