@@ -1,4 +1,4 @@
-const BUILD = "2026-09-16 · r243 · map guarantees 2 reward-grid tiles (was 1; minimums now 9 of 12 free slots) [onto r242]";
+const BUILD = "2026-09-16 · r244 · map blanks are a roll: ~51% two, 38% one, 11% none [onto r243]";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

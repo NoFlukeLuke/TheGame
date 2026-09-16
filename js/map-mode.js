@@ -46,7 +46,19 @@ const MAP_SETS  = 6;              // regular sets; the boss column is index MAP_
 const MAP_BOSS_SET = MAP_SETS;    // 6
 const MAP_SKIP_BASE = 4, MAP_SKIP_STEP = 2;   // skip n pays BASE + STEP*n: 6, 8, 10...
 const MAP_MAX_MYSTERY = 2;
-const MAP_BLANKS = 2;
+// Blanks are a ROLL, not a fixture: about half of maps carry two, the rest one
+// or none, so "is there a dead cell in my way" is a thing you read off the map
+// rather than a constant you learn once. Index = number of blanks.
+const MAP_BLANK_ODDS = [0.12, 0.38, 0.50];
+const MAP_BLANKS_MAX = MAP_BLANK_ODDS.length - 1;
+function mapRollBlanks() {
+  let r = Math.random();
+  for (let i = 0; i < MAP_BLANK_ODDS.length; i++) {
+    r -= MAP_BLANK_ODDS[i];
+    if (r < 0) return i;
+  }
+  return MAP_BLANKS_MAX;
+}
 // The boss quota: MAP_BOSS_LEVELS levels of a curve a notch steeper than
 // Classic's GOAL_SCALE (1.35). Computed once at run start so the map can print
 // it before the first tile is taken.
@@ -187,11 +199,12 @@ function _mapBuildOnce() {
     else put(l, MAP_SETS - 1, 'blank');
   }
 
-  // Middle sets (1 .. MAP_SETS-2): two blanks in distinct sets, one level per
-  // set, minimums topped up, the rest drawn by weight.
+  // Middle sets (1 .. MAP_SETS-2): 0-2 blanks in distinct sets, one level per
+  // set, minimums topped up, the rest drawn by weight. Fewer blanks FREES cells,
+  // so the minimums only ever get easier to satisfy.
   const midSets = [];
   for (let s = 1; s <= MAP_SETS - 2; s++) midSets.push(s);
-  const blankSets = _mapPickN(midSets, MAP_BLANKS);
+  const blankSets = _mapPickN(midSets, mapRollBlanks());
   const free = [];   // [lane, set] cells still to fill
   midSets.forEach(s => {
     const lanes = [0, 1, 2, 3];
