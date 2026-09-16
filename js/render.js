@@ -280,12 +280,26 @@ function render() {
   }
 
   // Buttons
-  // Match-3 auto-plays its matches, so Play is inert there - keep it visibly
-  // disabled rather than lighting up on a selection it will never submit.
-  document.getElementById('btn-play').disabled    = match3Active() || !bestHandResult || _belowMin || (animating && !falling);
-  document.getElementById('btn-discard').disabled = selected.length === 0 || (animating && !falling);
-  document.getElementById('disc-count').textContent = `(${discards})`;
-  document.getElementById('swap-count').textContent  = swaps;
+  // ON A GRID-TAKEOVER SCREEN THESE TWO BUTTONS ARE NOT PLAY AND DISCARD.
+  // The shop repurposes them as BUY and LEAVE and the reward grid as CONFIRM
+  // and CLEAR (enterShopGridButtons / the reward pair), and those screens own
+  // the disabled state - the shop's own LEAVE is ALWAYS enabled, because it is
+  // the only way off that screen. A render that ran while one was up wrote
+  // `selected.length === 0` over it and left the player with no exit, and then
+  // threw on #disc-count, which the takeover has removed from the DOM. Nothing
+  // calls render() during the shop today, so this is a guard rather than a
+  // sighting - but "the button that leaves is dead" is not a failure mode worth
+  // leaving one repaint away.
+  const _takeover = (typeof shopGridActive !== 'undefined' && shopGridActive)
+                 || (typeof rewardOnGrid !== 'undefined' && rewardOnGrid);
+  if (!_takeover) {
+    // Match-3 auto-plays its matches, so Play is inert there - keep it visibly
+    // disabled rather than lighting up on a selection it will never submit.
+    document.getElementById('btn-play').disabled    = match3Active() || !bestHandResult || _belowMin || (animating && !falling);
+    document.getElementById('btn-discard').disabled = selected.length === 0 || (animating && !falling);
+  }
+  const _dc = document.getElementById('disc-count'); if (_dc) _dc.textContent = `(${discards})`;
+  const _sc = document.getElementById('swap-count'); if (_sc) _sc.textContent  = swaps;
 
   // Marked-row / marked-column lines. Drawn last, for the same reason
   // reapplyClockFreeze is called here: it reads the finished DOM. Its "is the

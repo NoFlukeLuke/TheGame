@@ -464,6 +464,66 @@ function mapRender(animateIn) {
   const spanH = (n) => n * (CARD_H + CARD_GAP) - CARD_GAP;
   const FALL_DUR = 380, BOUNCE = 6, SQUISH = 0.08;
 
+  // ── The board under the tiles ──────────────────────────────────────────────
+  // One backdrop, one band per set, and the route: faint rails between sets
+  // plus the BRIGHT line of where you have actually walked. All of it is
+  // absolutely-positioned siblings behind the tiles (z-index 1 against their 2),
+  // drawn from the same cell metrics, so nothing here needs to know which way
+  // round the board reads.
+  const boardW = mapLandscape ? spanW(MAP_SETS + 1) : spanW(MAP_LANES);
+  const boardH = mapLandscape ? spanH(MAP_LANES)    : spanH(MAP_SETS + 1);
+  const PAD = 8;
+  const bg = document.createElement('div');
+  bg.className = 'map-board' + (mapLandscape ? ' mb-land' : ' mb-port');
+  bg.style.cssText = `left:${cellLeft(0) - PAD}px;top:${cellTop(0) - PAD}px;`
+                   + `width:${boardW + PAD * 2}px;height:${boardH + PAD * 2}px;`;
+  gridEl.appendChild(bg);
+
+  // A band per set, numbered, so the six-stop structure reads before any tile does.
+  for (let sIdx = 0; sIdx < MAP_SETS; sIdx++) {
+    const here = mapPos ? mapPos.set === sIdx : sIdx === 0;
+    const band = document.createElement('div');
+    band.className = 'map-band' + (sIdx % 2 ? ' mb-odd' : '') + (here ? ' mb-now' : '');
+    const a = _mapCellXY(0, sIdx);
+    band.style.cssText = mapLandscape
+      ? `left:${a.x - 2}px;top:${cellTop(0) - PAD + 2}px;width:${CARD_W + 4}px;height:${boardH + PAD * 2 - 4}px;`
+      : `left:${cellLeft(0) - PAD + 2}px;top:${a.y - 2}px;width:${boardW + PAD * 2 - 4}px;height:${CARD_H + 4}px;`;
+    band.innerHTML = `<span class="mbd-no">${sIdx + 1}</span>`;
+    gridEl.appendChild(band);
+  }
+
+  // The route. A rail is drawn between every pair of set-adjacent solid cells;
+  // the segments you actually walked are drawn again, lit, on top of them.
+  const centreOf = (lane, set) => {
+    const { x, y } = _mapCellXY(lane, set);
+    return { x: x + CARD_W / 2, y: y + CARD_H / 2 };
+  };
+  const drawLink = (a, b, cls) => {
+    const p1 = centreOf(a.lane, a.set), p2 = centreOf(b.lane, b.set);
+    const dx = p2.x - p1.x, dy = p2.y - p1.y;
+    const len = Math.hypot(dx, dy);
+    if (len < 1) return;
+    const ln = document.createElement('div');
+    ln.className = 'map-link ' + cls;
+    ln.style.cssText = `left:${p1.x}px;top:${p1.y}px;width:${len}px;`
+                     + `transform:rotate(${Math.atan2(dy, dx)}rad);`;
+    gridEl.appendChild(ln);
+  };
+  for (const t of mapTiles) {
+    if (t.kind === 'blank' || t.kind === 'boss') continue;
+    const fwd = t.set + (t.span === 2 ? 2 : 1);
+    if (fwd > MAP_SETS) continue;
+    for (let l = 0; l < MAP_LANES; l++) {
+      const n = mapCellTile(l, fwd);
+      if (!n || n.kind === 'blank') continue;
+      if (n.kind === 'boss' && l !== t.lane) continue;     // the boss is one tile
+      if (Math.abs(l - t.lane) > 1) continue;              // only a lane you could reach
+      drawLink(t, { lane: n.kind === 'boss' ? t.lane : l, set: fwd }, 'ml-rail');
+    }
+  }
+  const walked = mapTiles.filter(t => t.visited && t.step).sort((a, b) => a.step - b.step);
+  for (let i = 1; i < walked.length; i++) drawLink(walked[i - 1], walked[i], 'ml-walked');
+
   const drawTile = (t) => {
     const face = mapTileFace(t);
     const { x, y } = _mapCellXY(t.lane, t.set);
@@ -481,6 +541,8 @@ function mapRender(animateIn) {
       + (mapPosTileId === t.id ? ' mt-here' : '');
     div.style.cssText = `left:${x}px;top:${y}px;width:${w}px;height:${h}px;`;
     div.innerHTML =
+      `<div class="mt-wash"></div>` +
+      `<div class="mt-ghost">${face.icon}</div>` +
       `<div class="mt-icon">${face.icon}</div>` +
       `<div class="mt-name">${face.name}</div>` +
       (t.visited ? `<div class="mt-stamp">DONE</div>` : '');
@@ -620,6 +682,9 @@ function mapConfirm() {
   }
 
   t.visited = true;
+  // The walked route is drawn from this (mapRender's trail), so the tile has to
+  // remember WHEN it was taken. A plain number keeps mapTiles JSON-safe.
+  t.step = (mapTiles.reduce((n, x) => Math.max(n, x.step || 0), 0)) + 1;
   mapPosTileId = t.id;
   mapPos = { lane: move.after.lane, set: move.after.set };
   mapVisits = move.after.visits;

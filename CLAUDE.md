@@ -1440,6 +1440,37 @@ One act as a MAP drawn on the borrowed grid (the shop's borrow pattern): **4 lan
 - **Routing reuses Guided's seams.** A cleared level: `startInterlude`'s map hook -> pick-of-three (`guidedOpenPickThree`), plus `mapKnackPickTwo` after a hard round, then back to the map. Shop tile: `shopFromNodeFlow` + `nodeFlowAfterShop`. Reward tile: `rewardGridContext='interlude'` -> `finishInterludeRoute`'s map branch (`mapAfterTile`, or `onGameWin` when `mapBossArmed` - one act, no quarter rollover; the node/quarter branch in `finishInterlude` excludes `_map`). Event tile: `guidedOpenNamedEvent`. Limit Break tile: `openLimitBreakEvent`.
 - **Challenge tiles ride `guidedPendingChallenge`** - `guidedApplyPendingChallenge`'s guard accepts map mode too. Tiles store the challenge as DATA (id + display fields, no test fn), rehydrated from `CHALLENGE_DEFS` by id at confirm, which is what keeps `mapTiles` JSON-safe for SAVE_VARS. **The hard-round knack pick draws 2 knacks with `luckModifiers += 20` around the draw** - literally the odds 20 Luck would give, through the shared `pickEntityByRarity`.
 - **CHALLENGE_DEFS grew from 4 to 10** (guided-mode.js): back-to-back 4+ card hands (replacing the trivial-or-impossible single 4-card ask; also fixed - it tested `h.round` but hand-log entries carry `h.level`, so it never fired), a third-of-goal single hand, no discards (`cardsDiscardedRound`), no swaps (**`swapsUsedRound`** - new counter in deck-grid.js, bumped in `doSwap`, reset with the round, in SAVE_VARS), clear with 45s+ left, same type three times, and run+set+flush (gated `avail: selection >= 5`; `rollChallengeLevel` filters on `avail`).
+### The map has a BOARD, a ROUTE and coloured tiles (r247) - `css/map-mode.css`
+
+The map was tiles on the bare stage: no surface, no sense of a journey, and a
+kind identified only by a 1px border colour. Four pieces, all **absolutely
+positioned siblings BEHIND the tiles** (z-index 0 against their 2), all built
+from the same `_mapCellXY` / card metrics the tiles use - **so the renderer
+transposes for portrait and none of this had to learn which way the board
+reads.**
+
+- **`.map-board`** is the surface: a blueprint rule over a dark panel, with the
+  BOSS END GLOWING RED and the start end green, so the board reads as a journey
+  toward something rather than as a spreadsheet. Portrait gets its own gradient
+  angles (`.mb-port`) because the glow has to follow the direction of travel.
+- **`.map-band`**, one per set, alternating and numbered, with the set you are
+  standing in lit gold. The six-stop structure now reads before any tile does.
+- **THE ROUTE, and it is two layers.** A faint dashed **rail** between every
+  pair of set-adjacent solid cells (what the board offers), and over it the
+  **walked line** in gold (what you actually did) - the only record of the shape
+  of the run, and the thing that makes a finished map worth looking at.
+  **`t.step` is what makes this possible**: the walk order is recorded on the
+  tile at confirm as a plain number, because `mapTiles` has to stay JSON-safe
+  for `SAVE_VARS`. Sorting visited tiles by `set` instead would draw the wrong
+  line the moment a set holds two visits.
+- **A tile carries its kind's colour now**, not just an edge: a `--rc` wash, a
+  big faint **watermark glyph** (`.mt-ghost`) so a kind is recognisable across
+  the board before a 6px name is read, and a coloured cap on its leading edge.
+- **A blank is missing FLOOR, not a dark tile** - crosshatch, dashed edge, no
+  cap and no wash. It reads as a hole rather than as an unlit option.
+- **The boss column takes hazard stripes and a slow red breath**, so the end of
+  the board looks like the end of the board.
+
 - The map screen hides `#btn-play`/`#btn-discard`/`#swap-indicator` (`body.map-active`); the bar (`#map-bar`, body-level, raw viewport px) carries SET x/6, visits, skip price, the picked tile's description and CONFIRM. Tile names go through `fitEntityName` - except the boss, whose name is vertical in landscape and the fitter measures horizontally.
 - **The 3-2-1 was rethemed in the same pass** (css/style.css): Orbitron on a scanlined phosphor ring instead of the pre-cabinet gold Cinzel. Same element, same timing, same keyframe name.
 
@@ -1825,6 +1856,35 @@ Owner-specified retunes. **The Rota is deleted** - The Censor already owns "a Tr
 **The Metronome was already correct** and needed no change: `bossClockStep()` carries a fractional debt, so Focus x2.3 really consumes 2,2,2,3,2,2,3... averaging 2.3s per second (measured), rather than rounding away to x2.
 
 **The Tollman's ordering was already correct too**, and is now locked in by a test: `playHandCostThisRound` is charged at `play-hand.js` ~line 452, which is AFTER `score += finalScore` (271) and AFTER `checkBossObjective` (343). Verified live - with **1 second left** on a Tollman round, a hand that costs 5s still scored, still met the goal and still won the boss.
+
+## The takeover screens own PLAY and DISCARD (r247)
+
+`render()` ended with
+
+```js
+document.getElementById('btn-play').disabled    = ...;
+document.getElementById('btn-discard').disabled = selected.length === 0 || ...;
+document.getElementById('disc-count').textContent = `(${discards})`;
+```
+
+**On a grid-takeover screen those two buttons are not Play and Discard.** The
+shop repurposes them as **BUY and LEAVE** (`enterShopGridButtons`) and the
+reward grid as CONFIRM and CLEAR, and the shop's LEAVE is deliberately ALWAYS
+enabled because **it is the only way off that screen**. One `render()` while the
+shop was up wrote `selected.length === 0` over it and left the player with no
+exit - and then THREW on `#disc-count`, which the takeover has removed from the
+DOM, so everything after that line in `render()` was skipped too.
+
+Measured: calling `render()` with the shop open disabled LEAVE and threw
+`Cannot set properties of null`. **Nothing calls `render()` during the shop
+today** - a full audit of the buy / select / sell / reroll / leave sequence in
+Classic's node flow, in Map and at four viewports logged zero renders and a
+working LEAVE - so this is a guard rather than a sighting. It is worth having
+anyway: "the button that leaves is dead" is a soft-lock, and it was one repaint
+away from any boss tick, timer or future call site.
+
+The two `disabled` writes are now skipped when `shopGridActive || rewardOnGrid`,
+and the `#disc-count` / `#swap-count` writes are null-guarded.
 
 ## A fifth toast froze the whole game (r225)
 

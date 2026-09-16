@@ -73,7 +73,7 @@
   z-index: 3;
 }
 #grid .map-tile.mt-visited {
-  opacity: 0.4; filter: saturate(0.25) brightness(0.75);
+  opacity: 0.5; filter: saturate(0.3) brightness(0.8);
   cursor: default;
   animation: none;
 }
@@ -161,3 +161,125 @@
 body.map-active #btn-play,
 body.map-active #btn-discard,
 body.map-active #swap-indicator { visibility: hidden; pointer-events: none; }
+
+/* ══ The board under the tiles (r246) ═══════════════════════════════════════
+   The map used to be tiles on the bare stage: no surface, no sense of a route,
+   and colour only in a 1px border. Four pieces, all siblings BEHIND the tiles
+   (z-index 1 against their 2) and all built from the same cell metrics, so the
+   renderer transposes and this file never learns which way the board reads. */
+
+#grid .map-board {
+  position: absolute; z-index: 0; pointer-events: none;
+  border-radius: 10px;
+  border: 1px solid rgba(143, 208, 255, 0.14);
+  background:
+    /* the boss end glows: the board reads as a journey toward something */
+    radial-gradient(120% 140% at 100% 50%, rgba(255, 92, 92, 0.16), transparent 55%),
+    radial-gradient(90% 120% at 0% 50%, rgba(111, 208, 140, 0.10), transparent 60%),
+    /* blueprint rule, faint */
+    repeating-linear-gradient(0deg, rgba(143, 208, 255, 0.045) 0 1px, transparent 1px 14px),
+    repeating-linear-gradient(90deg, rgba(143, 208, 255, 0.045) 0 1px, transparent 1px 14px),
+    linear-gradient(160deg, #0f1430, #0a0a1c 60%, #120e1e);
+  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.75), 0 0 24px -8px rgba(143, 208, 255, 0.25);
+}
+#grid .map-board.mb-port {
+  background:
+    radial-gradient(140% 120% at 50% 100%, rgba(255, 92, 92, 0.16), transparent 55%),
+    radial-gradient(120% 90% at 50% 0%, rgba(111, 208, 140, 0.10), transparent 60%),
+    repeating-linear-gradient(0deg, rgba(143, 208, 255, 0.045) 0 1px, transparent 1px 14px),
+    repeating-linear-gradient(90deg, rgba(143, 208, 255, 0.045) 0 1px, transparent 1px 14px),
+    linear-gradient(160deg, #0f1430, #0a0a1c 60%, #120e1e);
+}
+
+/* One band per set, numbered. The band you are standing in is lit. */
+#grid .map-band {
+  position: absolute; z-index: 0; pointer-events: none;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.018);
+}
+#grid .map-band.mb-odd { background: rgba(255, 255, 255, 0.045); }
+#grid .map-band.mb-now {
+  background: rgba(245, 192, 66, 0.07);
+  box-shadow: inset 0 0 0 1px rgba(245, 192, 66, 0.22);
+}
+#grid .map-band .mbd-no {
+  position: absolute; top: 2px; left: 4px;
+  font-family: 'Share Tech Mono', monospace; font-size: 8px;
+  color: rgba(255, 255, 255, 0.22); letter-spacing: 0.1em;
+}
+#grid .map-band.mb-now .mbd-no { color: var(--c-yellow, #f5c042); opacity: 0.8; }
+
+/* The route. A rail is every step the board offers; the lit line is the one
+   you actually walked, which is the only record of the run's shape. */
+#grid .map-link {
+  position: absolute; z-index: 0; pointer-events: none;
+  height: 2px; transform-origin: 0 50%; margin-top: -1px;
+  border-radius: 2px;
+}
+#grid .map-link.ml-rail {
+  background: repeating-linear-gradient(90deg,
+    rgba(143, 208, 255, 0.20) 0 4px, transparent 4px 9px);
+}
+#grid .map-link.ml-walked {
+  height: 3px; margin-top: -1.5px;
+  background: linear-gradient(90deg, rgba(245, 192, 66, 0.55), rgba(245, 192, 66, 0.95));
+  box-shadow: 0 0 8px -1px rgba(245, 192, 66, 0.8);
+}
+
+/* ── The tiles carry their own colour, not just an edge ── */
+#grid .map-tile .mt-wash {
+  position: absolute; inset: 0; border-radius: 5px; pointer-events: none;
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--rc) 26%, transparent),
+    color-mix(in srgb, var(--rc) 6%, transparent) 55%,
+    transparent);
+}
+/* Its own glyph, huge and faint, behind the label: a kind is recognisable
+   across the board before any 6px name is read. */
+#grid .map-tile .mt-ghost {
+  position: absolute; inset: 0; pointer-events: none;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 40px; line-height: 1;
+  color: var(--rc); opacity: 0.11;
+  filter: grayscale(1) brightness(2);
+}
+#grid .map-tile .mt-icon, #grid .map-tile .mt-name { position: relative; z-index: 1; }
+#grid .map-tile .mt-name { text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9); }
+/* A coloured cap on the leading edge - the side you arrive from. */
+#grid .map-tile::before {
+  content: ''; position: absolute; border-radius: 5px 5px 0 0;
+  left: 0; right: 0; top: 0; height: 3px;
+  background: var(--rc); opacity: 0.85;
+}
+#grid .map-tile.mk-blank::before { display: none; }
+
+/* A blank is missing FLOOR, not a dark tile: crosshatch, no cap, no wash. */
+#grid .map-tile.mk-blank {
+  background:
+    repeating-linear-gradient(45deg, rgba(255,255,255,0.05) 0 1px, transparent 1px 7px),
+    repeating-linear-gradient(-45deg, rgba(255,255,255,0.05) 0 1px, transparent 1px 7px),
+    #08060f;
+  border-style: dashed;
+}
+#grid .map-tile.mk-blank .mt-wash, #grid .map-tile.mk-blank .mt-ghost { display: none; }
+
+/* The boss column: hazard stripes and a slow red breath, so the end of the
+   board looks like the end of the board. */
+#grid .map-tile.mk-boss {
+  background:
+    repeating-linear-gradient(135deg,
+      rgba(255, 92, 92, 0.10) 0 8px, transparent 8px 18px),
+    linear-gradient(180deg, rgba(255, 92, 92, 0.16), rgba(0, 0, 0, 0.3));
+  border-width: 2px;
+  animation: map-boss-breath 3.4s ease-in-out infinite;
+}
+#grid .map-tile.mk-boss .mt-ghost { font-size: 64px; opacity: 0.09; }
+@keyframes map-boss-breath {
+  0%, 100% { box-shadow: inset 0 0 18px rgba(0,0,0,0.6), 0 0 10px -4px #ff5c5c; }
+  50%      { box-shadow: inset 0 0 18px rgba(0,0,0,0.6), 0 0 26px -4px #ff5c5c; }
+}
+
+/* A taken tile keeps its colour but goes flat and stamped - the walked line is
+   what carries the eye now, so the tile must stop competing with it. */
+#grid .map-tile.mt-visited .mt-ghost { opacity: 0.05; }
+#grid .map-tile.mt-visited::before { opacity: 0.35; }

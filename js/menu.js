@@ -1,4 +1,4 @@
-const BUILD = "2026-09-16 · r249 · an event you cannot use is never offered (EVENT_REQUIRES, read by the renderers too) + the guided crossroads clears the board it drew on [onto r248]";
+const BUILD = "2026-09-16 · r247 · the map has a board, a route and coloured tiles + render() can no longer kill the shop LEAVE button";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
