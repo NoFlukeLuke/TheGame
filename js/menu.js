@@ -1,4 +1,4 @@
-const BUILD = "2026-09-14 · r233 · a card's x mult fires ON THE CARD, once per replay - the whole per-card mult region now applies in scoring order [onto r232]";
+const BUILD = "2026-09-16 · r234 · global PRICE_MULT, easy-hand Focus cut, The Price costs buffed cards";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
