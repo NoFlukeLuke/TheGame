@@ -365,10 +365,34 @@
     pointer-events: none;
   }
   .ec-tile .reward-cell {
-    position: static; width: 46px; height: 61px; margin: 0;
+    position: relative; width: 46px; height: 61px; margin: 0;
   }
-  .ec-tile .rwd-name { display: none; }
   .ec-info { flex: 1; min-width: 0; }
+  /* An entity offer reads as a COLUMN (r239): the object on top - at its own
+     ratio, wearing its own name, exactly as it will sit in the tray - and the
+     title and description beneath it. The tile keeps its label now for the
+     same reason: it is a picture of the thing you will own. */
+  .event-choice.has-tile .ec-top { flex-direction: column; gap: 6px; }
+  /* Two across: a tile choice is a COLUMN and much taller than a text row, so
+     a tray-length list (Rehearsal over 10 Tricks) would otherwise be a long
+     scroll. Event bodies wrap their choices in ad-hoc divs, so the CONTAINER
+     is found by :has() rather than named - any div directly holding a tile
+     choice becomes a wrapping row, and the labels and notes sharing it take a
+     full line of their own. */
+  #event-panel div:has(> .event-choice.has-tile) {
+    /* flex-direction must be restated: #event-body is a flex COLUMN, and a
+       column with wrap never wraps at auto height - it just stayed one per
+       line, centred, which looked like :has() failing. */
+    display: flex; flex-direction: row; flex-wrap: wrap; gap: 8px;
+    justify-content: center; align-items: stretch;
+  }
+  #event-panel div:has(> .event-choice.has-tile) > .ev-label,
+  #event-panel div:has(> .event-choice.has-tile) > .ev-note { flex: 1 1 100%; }
+  .event-choice.has-tile { width: calc(50% - 8px); }
+  .event-choice.has-tile .ec-tile,
+  .event-choice.has-tile .ec-tile .reward-cell { width: 56px; height: 72px; }
+  .event-choice.has-tile .ec-info { flex: 0 0 auto; width: 100%; text-align: center; }
+  .event-choice.has-tile .ec-desc { text-align: center; }
   .ec-rarity {
     font-family: 'Share Tech Mono', monospace;
     font-size: 8px; letter-spacing: 2px; text-transform: uppercase;

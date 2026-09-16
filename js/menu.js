@@ -1,4 +1,4 @@
-const BUILD = "2026-09-16 · r239 · MINI-BOSSES: six handicap challenge rounds riding the real boss machinery (bossFxLive), challenges survive saves [onto r238 MAP MODE]"; const BUILD_r237 = "2026-09-15 · r237 · COMPANY STORE: shop = your board, category rows + pins, swap-rationed rerolls, card buffs + improvements · grid-screen chrome (topline, focus MAX, slide) · tray fan · boss wins play the finale [onto r236]";
+const BUILD = "2026-09-16 · r240 · MAP MODE + MINI-BOSSES: the run as a 4-lane tile board (orthogonal walk, 2 per set, skip pay, funnel, fixed-quota boss) plus six handicap challenge rounds on the real boss machinery (bossFxLive); challenges survive saves; 3-2-1 rethemed [merged onto main r239]";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

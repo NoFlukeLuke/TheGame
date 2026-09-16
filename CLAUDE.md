@@ -327,7 +327,7 @@ were four, and now there are none.
 |---|---|---|
 | **The Redaction** (boss) | x0.25 on a hand family | x mult |
 | **The Grind** (boss) | x0.85 per repeat | x mult |
-| **Low and Behold** (knack) | x2 | x mult |
+| **Low and Behold** (knack) | x2 | **a per-card replay** (r238, below) |
 | the dev grid Trick card | x2 | x mult |
 
 **`s = totalPips * mult` and Focus is a separate multiplier after it, so a xK on the
@@ -354,6 +354,48 @@ different. Measured with each effect FORCED ON and with all three together:
   implementation talking.
 - **Legacy and Spot Check were already x mult but emitted NO timeline event**, so they
   were invisible in the dance despite being in the right place. Both emit now.
+
+### Low and Behold replays the CARDS (r238)
+
+Owner: *"for the trick that says replace the whole hand once, that shouldn't touch
+any score attributes, it should replay each of the cards once."*
+
+r236 had moved it from a x SCORE to a x mult, which kept it legible but kept it a
+MULTIPLIER - and its printed text has always said something else. It is a **+1
+retrigger on every card in the hand** now (`_labOn`), exactly like **Echo**, which
+had already made this same journey from a SCORE-level double to a per-card replay.
+
+- **The CONDITION is hand-level, the EFFECT is per card.** "The hand contains the
+  grid's lowest rank" is computed ONCE above the card loop and then adds a rep to
+  every card, which is why it is a hoisted `const` rather than a per-card test.
+- **This is a real score change and it goes BOTH WAYS.** A replay re-scores what
+  the CARDS earned; it does not double the hand's base pips or any hand-level
+  bonus. So a card-heavy hand gains and a base-heavy hand loses. Measured over 136
+  hands with the knack forced on: **35 move, min x0.57, median x1.02, mean x1.11,
+  max x2.22** - 18 up, 17 down. Verified live on a controlled board: an unsuited
+  3-4-5 goes 37 pips / 111 to **49 pips / 147**, and back to 111 the moment a 2 is
+  planted elsewhere on the grid.
+- **It needs no timeline event**, because the dance already shows a replay by
+  repeating each card's beat. `low_and_behold` emits nothing now: verified 0
+  events on the timeline.
+- **A suited run ALREADY replays every card** (the flush overlay puts each card in
+  two components), so a test board of three spades shows `reps [2,2,2]` with the
+  knack switched off. That cost a confusing measurement; use an unsuited run and
+  control every cell when testing this.
+
+### Flow State is a per-card payer after all (r238)
+
+The r228 note below says it is deliberately excluded because its payment sat
+**after** the x pips block and so escaped Undertow / Scalper / Knave Power /
+Interest. The owner's rule settles it the other way: **any per-card Trick fires on
+the card**, and a pip in the additive region is a pip that every x pips
+multiplies. It is a `PER_CARD_PAYERS` row now, and its accumulator is added at the
+LAST additive pip site before the x pips block.
+
+**A deliberate buff, and a bounded one.** Measured with Flow State forced on at a
+x1.5+ Focus multiplier over 136 hands: **112 move, every one UP, min x1.02,
+median x1.11, max x1.36.** That is the x pips multipliers reaching it for the
+first time.
 
 ### Per-card payers (r228) - "a rate x a number of cards"
 
@@ -395,15 +437,13 @@ already known there (`_pcCtx`), `pays(card, ctx)` returns what THIS card earns.
   ADDED at that Trick's original site further down, so nothing moves in the order
   of operations either.
 
-**FLOW STATE IS DELIBERATELY NOT IN THE TABLE**, and the reference test is what
-caught it. Its payment sits **after** the x pips block (it is grouped with the
-Focus step), so every other pip in the hand has already been multiplied by
-Undertow / Scalper / Knave Power / Interest by the time it lands, and it escapes
-all of them. Paying it inside a card's beat puts it in FRONT of those multiplies -
-measured at **459 pips on a hand worth 430**. Moving its site up into the additive
-region would let those multiply it, which is a balance decision rather than an
-animation one. **Any future row has to sit in the additive region for the same
-reason** - check where the Trick's `totalPips +=` actually is before adding it.
+**FLOW STATE IS IN THE TABLE AS OF r238** - see the section above. It was held out
+because its payment sat **after** the x pips block and so escaped Undertow /
+Scalper / Knave Power / Interest; the owner's call is that a per-card Trick fires
+on the card and takes the multiplies with it. **Any row still has to sit in the
+additive region** - check where the Trick's `totalPips +=` actually is before
+adding one, because a site below the x pips block silently means something
+different from every other row here.
 
 **Get Even and Odd One In lost their 3-card gate** (owner's call): both pay for
 every even / odd card with no minimum. "3+ even cards" meant a hand with one or
@@ -1970,8 +2010,8 @@ Both are drawn in **`css/style.css` on `.reward-cell.entity-trick` /
 wrap their own frame around the one class list, so **all seven changed shape
 with no per-surface code** - reward grid, Mart shelf, Mart cart thumbnail, Mart
 loadout strip, Trick tray, Shift Change slots and the trick-lose picker rows.
-(RECORDS Owned is deliberately unaffected: `recordsEntityCard` is its own
-markup, because that screen is for READING, not for picking things off a board.)
+(RECORDS Owned held out until r239, when its rows gained the shared tile too -
+see "Every listing shows the object" below.)
 
 **Ported from `art-preview.html` as CSS, not as its SVG.** The preview draws at
 one size on a blank page; the game draws this tile from a 32px cart thumbnail to
@@ -1990,10 +2030,10 @@ six call sites.
   and a disc and a card are physical objects in front of the screen rather than
   pictures on it. That is also what frees `::before` and `::after` to be the
   object's own parts, which is what keeps this CSS instead of markup.
-- **The floppy**: chamfered shell (the corner notch is the strongest "this is a
-  floppy" cue at 40px, so it is `clip-path` on the element, not on a layer a
-  frame could cover), a metal shutter whose window is punched by a hard-stop
-  gradient layer, and a cream label plate. **The emoji and the name both sit ON
+- **The floppy**: chamfered shell, a metal shutter whose window is punched by a
+  hard-stop gradient layer, and a cream label plate. (r228 clipped the chamfer on
+  the ELEMENT; since r239 the whole disc is one letterboxed band and the clip
+  moved onto it - see below.) **The emoji and the name both sit ON
   THE LABEL** - which is what a floppy label is for - in dark ink. It is the one
   place in the tile system where a name is not light-on-dark.
 - **The business card is LETTERBOXED** (owner's call), not stretched. It is
@@ -2053,6 +2093,56 @@ a real card carries beside the logo.
 - **The resting rarity edge moved onto the CARD.** Left on the cell it outlined
   the empty slot the card is centred in, which is the one thing the letterbox
   exists to leave alone.
+
+### The objects keep their RATIO everywhere, and every listing shows them (r239)
+
+Owner spec, two halves.
+
+**1. A floppy is 3.5 inches wherever it appears.** Both objects letterbox against
+BOTH axes now: the frame is a `container-type: size` CONTAINER and the band is
+`width: min(100cqw, calc(100cqh * R))` + `aspect-ratio`, centred with a
+translate. Insets alone can only letterbox the axis they span - a frame WIDER
+than the object (the shop's 2-cell tiles) stretched and clipped the disc, which
+a syntax check cannot see and a screenshot can. The disc's ratio is the real
+3.5" disc's (`aspect-ratio: 20 / 19`, art-preview's `flopAspect` 0.95 h/w); the
+chamfer clip-path moved from the element onto the band, so the rarity edge is an
+INSET box-shadow (an outer one would be clipped away). Shell, shutter and label
+are LAYERED BACKGROUNDS on the one `::before`, because a second pseudo could not
+share the clip; a layer at left L% width W% sits at `background-position-x`
+L/(100-W)*100%.
+
+- **The object's TYPE scales with the object** (`33.5cqw` art / `17.5cqw` name
+  on the disc, `37cqw` / `17.5cqw` on the card - each the old px value at the
+  57px frame). Fixed px meant a 34px Records tile drowned under a 19px emoji
+  and a 119px shop tile rattled around one. `fitEntityName` still shrinks a long
+  word from wherever the cqw lands it.
+- **A frame that pins the tile must be `position: relative`, never static** -
+  the band is an abspos pseudo and anchors to the nearest positioned ancestor,
+  so a static frame paints the object across whatever contains it.
+- **Fit labels AFTER the panel shows.** A hidden element measures a zero rect
+  and the fitter leaves a long name to clip ("CAPACITOR" painted "APACITOR",
+  centred overflow eating both ends). The survival pick and the guided pick both
+  refit in a rAF after their panel is visible.
+
+**2. Anywhere an entity is LISTED, the listing leads with the OBJECT - the same
+tile the tray draws - and the words sit BENEATH it.** Wired: the Survival/Flow
+pick-of-three (`sv-pick-tile`; limits keep the bare icon - no object to show),
+the guided pick-of-three (which also finally passes its RARITY -
+`entityTileHTML(p)` with no second argument had drawn every offer common), the
+events (a `tile:` payload adds `has-tile`, flipping `.ec-top` to a column;
+Rehearsal, Workshop, Trade a Trick and the improve draws gained the payloads
+they lacked), and RECORDS Owned (`rec-ent-tilebox`, name hidden at 34px - the
+row states it; note the hide needs THREE classes, the object rule sets
+`display:flex` at the same depth).
+
+- **Tiled event choices wrap TWO ACROSS** via
+  `#event-panel div:has(> .event-choice.has-tile)` - the container is found by
+  `:has()` because event bodies wrap choices in ad-hoc divs. **`flex-direction:
+  row` must be restated**: `#event-body` is a flex COLUMN, and a column with
+  wrap at auto height never wraps - it just stayed one per line, centred, which
+  looked exactly like `:has()` failing.
+- The event tile keeps its own label now (`.ec-tile .rwd-name { display:none }`
+  is gone): the tile is a picture of the thing you will own, name included.
 
 **What is NOT done yet:** the playing card itself. `art-preview.html` also draws
 the card as a **document with a folded corner** (`docSVG`), and that is the piece

@@ -81,6 +81,7 @@ function renderReassignment() {
   trickTray.forEach(t => {
     const el = makeChoiceEl({
       icon: (typeof trickEmoji === 'function') ? trickEmoji(t) : '✦',
+      tile: { entity:'trick', id:t.id, emoji:(typeof trickEmoji === 'function') ? trickEmoji(t) : '✦', label:t.name },
       rarity: t.tier, name: t.name,
       desc: (typeof trickLiveDesc === 'function') ? trickLiveDesc(t) : t.desc,
       onClick: () => {
@@ -192,6 +193,7 @@ function renderDraw() {
     const prev = (typeof improvePreview === 'function') ? improvePreview(ent.id) : null;
     const el = makeChoiceEl({
       icon: ent.emoji, rarity: ent.rarity,
+      tile: { entity: ent.kind, id: ent.id, emoji: ent.emoji, label: ent.name },
       name: ent.name + (tier ? ` · improved ×${tier}` : ''),
       desc: prev && prev.after !== prev.before ? prev.after : (prev ? prev.before : ''),
       cost: ent.kind.toUpperCase(),

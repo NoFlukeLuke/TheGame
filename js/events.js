@@ -1200,6 +1200,7 @@ function renderRehearsal() {
     const rank = t._rank || 0;
     const el = makeChoiceEl({
       icon: (typeof trickEmoji === 'function') ? trickEmoji(t) : '✦',
+      tile: { entity:'trick', id:t.id, emoji:(typeof trickEmoji === 'function') ? trickEmoji(t) : '✦', label:t.name },
       rarity: t.tier,
       name: t.name + (rank ? ` · rehearsed ×${rank + 1}` : ''),
       desc: (typeof trickLiveDesc === 'function') ? trickLiveDesc(t) : t.desc,
@@ -1283,6 +1284,7 @@ function showWorkshopPicker(owned) {
     const cap = sleightMaxCharges(def);
     const el = makeChoiceEl({
       icon: def.emoji || '◈', rarity: def.rarity, name: def.name,
+      tile: { entity:'sleight', id:def.id, emoji:def.emoji || '◈', label:def.name, uses:(card._usesLeft ?? cap) },
       desc: `${def.desc}<br>Now ${card._usesLeft ?? cap} of ${cap} charges · would become ${cap + BAL.workshop.cap_bonus}.`,
       onClick: () => {
         wrap.querySelectorAll('.event-choice').forEach(e => e.classList.remove('selected'));

@@ -305,14 +305,32 @@ function survivalRenderPick() {
     // Type sets the SHAPE class; rarity sets the colour (r198).
     card.className = `sv-pick-card sv-type-${opt.type} rar-${typeof tierId === 'function' ? tierId(opt.rar) : 'common'}`;
     card.style.animationDelay = (i * 70) + 'ms';
+    // An entity option shows the REAL OBJECT - the floppy, the business card,
+    // the cert diamond the player will own - with the name and description
+    // BELOW it (owner spec, r239). Only a limit still gets the bare icon:
+    // there is no object to show.
+    const isEnt = opt.type === 'trick' || opt.type === 'sleight' || opt.type === 'knack';
+    const art = (isEnt && typeof entityTileHTML === 'function')
+      ? `<div class="sv-pick-tile">${entityTileHTML({
+            entity: opt.type, id: opt.id, emoji: opt.icon, label: opt.data.name,
+            uses: opt.type === 'sleight'
+              ? (opt.data.durability === 'infinite' ? '∞' : opt.data.durability + 'x') : undefined,
+          }, typeof tierId === 'function' ? tierId(opt.rar) : 'common')}</div>`
+      : `<div class="sv-pick-icon">${opt.icon}</div>`;
     card.innerHTML = `
       <div class="sv-pick-tag">${opt.tag}</div>
-      <div class="sv-pick-icon">${opt.icon}</div>
+      ${art}
       <div class="sv-pick-name">${opt.name}</div>
       <div class="sv-pick-desc">${typeof colorizeKeywords === 'function' ? colorizeKeywords(opt.desc || '') : (opt.desc || '')}</div>
       <div class="sv-pick-kind">${opt.type}</div>`;
     card.onclick = () => survivalChoose(i);
     cards.appendChild(card);
+  });
+  // Fit the tiles' own labels AFTER the panel is on screen - fitting while
+  // hidden measures a zero rect and leaves a long name to clip.
+  requestAnimationFrame(() => {
+    if (typeof fitRewardName === 'function')
+      cards.querySelectorAll('.sv-pick-tile .rwd-name').forEach(nm => fitRewardName(nm));
   });
   survivalUpdateRerollBtn();
 }
