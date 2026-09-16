@@ -1,4 +1,4 @@
-const BUILD = "2026-09-16 · r244 · THE PICK: after the payout the board un-explodes and you boost, copy or remove one card off it (Settings > Motion, off by default) + payout-pick-preview.html [onto r243]";
+const BUILD = "2026-09-16 · r245 · THE PICK: after the payout the board un-explodes and you boost, copy or remove one card off it (Settings > Motion, off by default) + payout-pick-preview.html [onto r244]";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

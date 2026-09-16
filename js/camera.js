@@ -122,10 +122,26 @@ function camLayout(isLandscape) {
   root.setProperty('--cab-h', d.cabH + 'px');
   // The room drops the props that only fit the wide landscape desk.
   camRoom()?.classList.toggle('room-portrait', !isLandscape);
+  // The skew has to come OFF before the scene is placed. camPlaceScene centres the
+  // cabinet by measuring #stage's rect, and with the skew on that rect is the
+  // trapezoid's bounding box - so the board would be centred on a shape it is not.
+  if (typeof officeClearSkew === 'function') officeClearSkew();
   camPlaceScene();
+  // The photo office (r244), when it is live, owns the wide framing: its scale is
+  // "the whole photograph fills the viewport", which is a different question from
+  // "the cabinet fills 55% of it". It has to run AFTER camPlaceScene, because the
+  // skew it writes is measured off the cabinet's final resting position.
+  camLastLandscape = isLandscape;
+  const photoK = (typeof officeLayout === 'function') ? officeLayout() : null;
+  if (photoK) camWideK = photoK;
   camApply(false);
   return camPlayZoom;
 }
+
+// Recompute for whatever orientation is current. The photo layer calls this when
+// its image lands, which can be any number of frames after the first layout.
+let camLastLandscape = true;
+function camRelayout() { camLayout(camLastLandscape); }
 
 function camApply(animate) {
   const cam = camEl();
@@ -178,16 +194,29 @@ function camSetView(view, animate) {
 // SETTINGS / HISTORY / BUILDS all HIDE the main menu to open their own screen,
 // so reacting to the class going away would push the camera in behind them.
 function camInit() {
+  if (typeof officeInit === 'function') officeInit();
   ['main-menu-overlay', 'mode-select-overlay'].forEach(id => {
     const el = document.getElementById(id);
     if (!el || typeof MutationObserver !== 'function') return;
     new MutationObserver(() => {
-      if (el.classList.contains('show')) camSetView('wide', true);
+      if (!el.classList.contains('show')) return;
+      // The photo office puts an attract screen back up ON PURPOSE for the length
+      // of its push in. Without this latch that reads as "the player went back to
+      // the menu" and the camera would pull out through its own dolly.
+      if (typeof officeEntering !== 'undefined' && officeEntering) return;
+      if (typeof officeLastAttract !== 'undefined') officeLastAttract = id;
+      // Back at the menu: the photograph comes back before the camera pulls out to
+      // it, or the pull-out would be framing a scene that is not there yet.
+      if (typeof officeReturnToMenu === 'function') officeReturnToMenu();
+      camSetView('wide', true);
     }).observe(el, { attributes: true, attributeFilter: ['class'] });
   });
   const onMenu = !!document.getElementById('main-menu-overlay')?.classList.contains('show');
   camSetView(onMenu ? 'wide' : 'play', false);
-  if (onMenu) camPlayBootDolly();
+  // The r185 opening creep is a CABINET shot - it starts behind the wide framing,
+  // which in photo mode means behind the edge of the photograph. Photo mode opens
+  // on the framed photo instead and saves the push for the run starting.
+  if (onMenu && !(typeof officeShowing !== 'undefined' && officeShowing)) camPlayBootDolly();
   // js/settings.js applies its stored values at load, before #room may have been
   // reachable from every path; re-assert here now the scene definitely exists.
   if (typeof SETTINGS !== 'undefined') camSetRoomStyle(SETTINGS.roomStyle);
@@ -256,6 +285,10 @@ function camEnterGame() {
   // forgets would leave the menu sitting over a live board instead of over
   // everything. Removing .show here cannot loop: the observer only reacts to the
   // class being ADDED.
+  // The photo office runs its own entrance: a slow push in on the monitor with
+  // the menu still lit on it, then a channel change that swaps the photograph out
+  // for the real UI. It removes the attract screens itself, at the collapse.
+  if (typeof officeShowing !== 'undefined' && officeShowing) { officeEnterGame(); return; }
   document.getElementById('main-menu-overlay')?.classList.remove('show');
   document.getElementById('mode-select-overlay')?.classList.remove('show');
   camSetView('play', true);
