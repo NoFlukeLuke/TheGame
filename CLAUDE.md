@@ -1546,6 +1546,39 @@ names and every function in `js/map-mode.js` are untouched; this is `MAP_HELP`,
   horizontally, so the boss is deliberately exempt). Measured: the name box is
   20x99 inside a 79x444 column, so it fits with room to spare.
 
+### The obligations have schedule names too (r262)
+
+r260 renamed the map; the TILES still said Round, Hard Round, Shop, Reward
+Grid, Event and Limit Break. Owner's call, with the shop and the reward grid
+named directly:
+
+| was | short chip | in full |
+|---|---|---|
+| Round | ACCOUNT | Client Account |
+| Hard Round | PRIORITY | Priority Account |
+| Shop | MART | LETHE Mart |
+| Reward Grid | INCENTIVE | Incentive Program |
+| Event | MEETING | Meeting |
+| Limit Break | RAISE | Raise Request |
+| boss | REVIEW | Manager Review |
+
+- **A TILE CARRIES THE SHORT CHIP AND NOTHING LONGER.** It is 57px wide and a
+  name is one atomic word there (r182 - words never break), so "Incentive
+  Program" would shrink to nothing or truncate. `MAP_KIND_META` gained a
+  `full` field: the bar's info line prints it between the chip and the
+  description, and the tile's `title` carries full name plus description.
+- The full name is printed only when it says something the chip does not
+  (`face.full.toUpperCase() !== face.name`), so MEETING never reads
+  "MEETING Meeting".
+- **An event tile still shows THAT event's own name** when it has one;
+  MEETING is the fallback and the type's full name.
+- The shop already titles its own board COMPANY STORE (r237), so the tile
+  says where you are going and the screen says what it is.
+- Ids are frozen as ever: `kind:'level'`, `mk-shop`, `MAP_KIND_META` keys and
+  every function are untouched.
+
+Verified at 1440x820 and 420x820: 24 and 25 tiles, zero names overflowing.
+
 ### The map bar is one strip, and the rules live behind a ? (r255)
 
 Owner: the bar was *"too large and persistent, and doesn't feel especially on
@@ -2591,48 +2624,6 @@ a real card carries beside the logo.
 - **The resting rarity edge moved onto the CARD.** Left on the cell it outlined
   the empty slot the card is centred in, which is the one thing the letterbox
   exists to leave alone.
-
-### A Trick in the TRAY is its icon, and nothing else (r255, ships in r256)
-
-Owner's call: *"for the tricks when they're in the tray chip they should never
-have any sort of additional border or background, it should just be their icon /
-artwork."*
-
-The chip FRAME was already bare - r228 stripped the grey slab that used to fill
-the chip's slot behind the tile. What was left is the OBJECT: since r228 a Trick
-tile is a floppy disc, so the tray was drawing a rarity-tinted shell, a metal
-shutter and a cream label plate behind every icon. At 40px, six of those in a row
-read as clutter rather than as a loadout.
-
-**Only the tray changes.** The disc still draws on the reward grid, the shop, the
-Mart, Records, the Shift Change slots and the trick-lose picker - it is the thing
-that says "a Utility" on every screen where you are choosing one. The tray is the
-one place you are not choosing, only glancing.
-
-- **The disc is painted by `::before` and the NAME sits on its label**, so both go
-  with it (`.rwd-glyph`, the old star, was already hidden). The icon is then
-  re-centred over the whole chip and sized from the chip (`min(64cqw, 64cqh)`)
-  rather than from the label's upper half. `container-type: size` stays on the
-  tile, which is what keeps those cq units meaningful once the paint is gone.
-- **WHAT STAYS, because it is information and not chrome:** the cooldown ring
-  (`.cd-badge`, r209), the boss OFF stamp and its drain (`.trick-off`, r188) and
-  the improvement tier badge (`.rwd-tier`, r206). Verified live: all three still
-  render on an icon-only tray.
-- **TWO rules, because of specificity, and it is worth knowing why there are two.**
-  The tray rule carries both ids (`#stage #trick-tray-list`) and lands at
-  **(2,3,0)**. The portrait fan's tuck edge -
-  `#stage:not(.landscape) #trick-tray-list.fanned .trick-tray-chip + .trick-tray-chip > .reward-cell` -
-  is **(2,5,0)** and beat it, so portrait kept a rounded glow box floating around
-  each bare icon. It is named in its own rule rather than fought with
-  `!important`. Measured before the second rule: landscape `box-shadow: none`,
-  portrait still painting.
-- **The portrait fan's tucked tiles re-assert their own placement** after the
-  tray rule, or they lose the r171 behaviour where a tucked tile shows the LEFT
-  of a full-size icon rather than a centred one clipped through the middle.
-- **A side effect worth knowing:** rarity colour and the name are no longer shown
-  in the tray. Two Tricks that share an emoji are now told apart only by their
-  tooltip. If that wants fixing, the lever is the ICON (a per-Trick glyph nothing
-  else uses), not a border put back.
 
 ### The objects keep their RATIO everywhere, and every listing shows them (r239)
 
