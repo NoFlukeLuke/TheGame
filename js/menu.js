@@ -1,4 +1,4 @@
-const BUILD = "2026-09-17 · r255 · the map bar is one compact strip with a ? chip; the x/y readout only shows where a pick matters";
+const BUILD = "2026-09-17 · r259 · the map bar is one compact strip with a ? chip; the x/y readout only shows where a pick matters [onto r258]";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

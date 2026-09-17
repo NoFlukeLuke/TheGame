@@ -128,9 +128,13 @@ function render() {
       const selIdx       = selected.findIndex(([sr,sc])=>sr===r&&sc===c);
       const isHandReady  = handReadyForSubmit && isSel;
       const isHandValid  = !isHandReady && isSel && !!bestHandResult;
+      // r254: a selected card the best hand DROPS (r201 penalty card). Its pips
+      // will be subtracted and the card consumed - say so before the commit.
+      const isPenalty    = isSel && !!bestHandResult
+        && (bestHandResult.penaltyCells || []).some(([pr, pc]) => pr === r && pc === c);
 
       const { className, innerHTML } = renderCardAppearance(card, r, c, {
-        isSel, selIdx, isHandReady, isHandValid,
+        isSel, selIdx, isHandReady, isHandValid, isPenalty,
         isSwapPending: isSwapPend,
         isReachable: isReach,
         isChallenge,

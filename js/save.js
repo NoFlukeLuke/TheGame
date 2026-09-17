@@ -128,7 +128,7 @@ const SAVE_VARS = [
   'rewardSelected', 'rewardCells', 'rewardConfirmed',
   'shopRerollCount', 'shopPurchased', 'shopPurchaseCount', 'nextShopTime',
   // ── Boss ──
-  'bossActive', 'bossNumber', 'bossBag', 'actBossId', 'nextBossTime', 'blockedCells', 'nullCells',
+  'bossActive', 'bossNumber', 'bossBag', 'actBossId', 'nextActBossId', 'nextBossTime', 'blockedCells', 'nullCells',
   // ── Challenge ──
   'challengeCard', 'challengeActive', 'trickCardPos', 'trickCardTimer',
   // ── Survival ──

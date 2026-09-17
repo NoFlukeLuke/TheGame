@@ -723,6 +723,47 @@ They answer different questions and must not be collapsed back into one:
 
 **Junk cards rode along free between r199 and r201** - see "Every card must be load-bearing" below, which is where that ended. The minimum now costs you cards off the board AND the score of anything you cannot use.
 
+### The hand rules, stated plainly (r254) - what a selection IS
+
+The owner asked for these written out after "a fifth card keeps getting dropped
+and I cannot tell why". The rules, as the code actually is:
+
+- **Tap order NEVER matters.** `selected` is a set of cells; detection reads the
+  cards' ranks and suits and nothing else about how you picked them.
+- **The grid arrangement matters ONLY for connectivity.** The selection must be
+  one orthogonally connected group, and the smaller subset `findBestHand` falls
+  back to must itself be connected - so dropping a card CAN strand a hand if that
+  card was the bridge. Inside a connected group, position is irrelevant: 4,6,7,5
+  in any cells and any order is a Run of 4.
+- **4-6-7-5-9 is NOT a Straight.** A run needs consecutive ranks; the 9 joins no
+  component, so under r201 the five-card subset is not a hand at all.
+  `findBestHand` falls back to the 4-card Run of 4 and the 9 becomes a PENALTY
+  card: its pips are subtracted from the hand's score and it is consumed anyway.
+- **A Full House is any connected 2x + 3y.** No ordering, no shape requirement
+  beyond the whole selection being connected. Same for every set and run: the
+  rank partition does not care which cell holds which card.
+- **Measured on planted boards (r255), because the owner asked twice:**
+  `2 3 2 3 2` is a **Full House** - one component, all 5 cards used, 0 penalties,
+  285 - and `3 5 4 7 6` is a **Straight** - one component, all 5 used, 0
+  penalties, 325. Both were run in a straight line AND in a snake, and with the
+  ranks re-sorted, and all six came out identical. The physical arrangement and
+  the tap order really do not enter into it. (`4 6 7 5 9` on the same board is
+  Run of 4 + 1 penalty at 199, which is the rule above doing its job.)
+- **A dropped fifth card is r201 working as designed, plus one hard cap:**
+  `HAND_MAX_CARDS` is 7, so at Selection Size 9 at least two cards are ALWAYS
+  dropped whatever you pick. Measured over 300 real 4x4 deals (connected
+  selections, base limits): a random 5-card selection carries a penalty **80%**
+  of the time (avg 2.0 cards, -14 pips), a random 7-card one 86%, a 9-card one
+  100% by construction; even the BEST 5-card selection on a board carries one
+  29% of the time. So this is the single most common surprise in the game.
+- **What was broken was the UI, and r254 fixed that, not the rule.** A selected
+  card the best hand drops now renders **red and desaturated on the board**
+  (`.card.hand-penalty`, from `bestHandResult.penaltyCells` in `render()`), and
+  `#hand-name` prices it: `RUN 3 - DROP 2 · -14` (`.hn-drop`, red). The NEED
+  label still outranks it below the minimum selection. Tagalong lifts the rule
+  and the red state and the DROP line disappear with it, for free - both read
+  `penaltyCells`, which Tagalong empties.
+
 ### Every card must be load-bearing (r201)
 
 **A hand may not carry a passenger.** If the components do not account for every card in the subset, that subset is not a hand. `findBestHand` then falls back to the smaller subset that IS fully used, and the leftovers become **penalty cards**: their pips are subtracted, and they are consumed anyway (`toRemove` is the whole selection, not just `handCells`). A spare card went from a small bonus to a real cost.
@@ -2522,6 +2563,48 @@ a real card carries beside the logo.
   the empty slot the card is centred in, which is the one thing the letterbox
   exists to leave alone.
 
+### A Trick in the TRAY is its icon, and nothing else (r255, ships in r256)
+
+Owner's call: *"for the tricks when they're in the tray chip they should never
+have any sort of additional border or background, it should just be their icon /
+artwork."*
+
+The chip FRAME was already bare - r228 stripped the grey slab that used to fill
+the chip's slot behind the tile. What was left is the OBJECT: since r228 a Trick
+tile is a floppy disc, so the tray was drawing a rarity-tinted shell, a metal
+shutter and a cream label plate behind every icon. At 40px, six of those in a row
+read as clutter rather than as a loadout.
+
+**Only the tray changes.** The disc still draws on the reward grid, the shop, the
+Mart, Records, the Shift Change slots and the trick-lose picker - it is the thing
+that says "a Utility" on every screen where you are choosing one. The tray is the
+one place you are not choosing, only glancing.
+
+- **The disc is painted by `::before` and the NAME sits on its label**, so both go
+  with it (`.rwd-glyph`, the old star, was already hidden). The icon is then
+  re-centred over the whole chip and sized from the chip (`min(64cqw, 64cqh)`)
+  rather than from the label's upper half. `container-type: size` stays on the
+  tile, which is what keeps those cq units meaningful once the paint is gone.
+- **WHAT STAYS, because it is information and not chrome:** the cooldown ring
+  (`.cd-badge`, r209), the boss OFF stamp and its drain (`.trick-off`, r188) and
+  the improvement tier badge (`.rwd-tier`, r206). Verified live: all three still
+  render on an icon-only tray.
+- **TWO rules, because of specificity, and it is worth knowing why there are two.**
+  The tray rule carries both ids (`#stage #trick-tray-list`) and lands at
+  **(2,3,0)**. The portrait fan's tuck edge -
+  `#stage:not(.landscape) #trick-tray-list.fanned .trick-tray-chip + .trick-tray-chip > .reward-cell` -
+  is **(2,5,0)** and beat it, so portrait kept a rounded glow box floating around
+  each bare icon. It is named in its own rule rather than fought with
+  `!important`. Measured before the second rule: landscape `box-shadow: none`,
+  portrait still painting.
+- **The portrait fan's tucked tiles re-assert their own placement** after the
+  tray rule, or they lose the r171 behaviour where a tucked tile shows the LEFT
+  of a full-size icon rather than a centred one clipped through the middle.
+- **A side effect worth knowing:** rarity colour and the name are no longer shown
+  in the tray. Two Tricks that share an emoji are now told apart only by their
+  tooltip. If that wants fixing, the lever is the ICON (a per-Trick glyph nothing
+  else uses), not a border put back.
+
 ### The objects keep their RATIO everywhere, and every listing shows them (r239)
 
 Owner spec, two halves.
@@ -2693,6 +2776,14 @@ On `body.grid-screen` (reward grid, shop, crossroads), landscape:
 ### A boss win plays the finale now (r237)
 
 `checkBossObjective` used to call `endBoss(true)` synchronously inside playHand - before the dance drew a frame - so the boss-winning hand never got the goal finale and the screen jumped straight at the prize grid. Now the win only goes **PENDING** (`bossWinPending`); playHand routes the hand through the ordinary goal-dance exit, and the dance calls **`bossSettleWin()`** exactly where it would call `startInterlude` (normal completion, the abort path, and the legacy dance). `endBoss(true, { presented: true })` then skips its own `render()` (the finale already cleared the board - a render would pop every card back for a frame) and its own banner (`flashRoundEnd`'s `goalClearPresent` already carried the boss's name as kicker). Survival's mid-dance pick is suppressed while a boss win is pending - that hand ends in the prize grid.
+
+### The boss-winning hand keeps its bookkeeping (r254)
+
+The r237 rework's early return in `playHand` sat right after `checkBossObjective` - ABOVE Lucky Seven, `highestHandScore`, `recordQuarterBest`, the Full House streak, `checkChallengeAfterHand`, `fireSleightsOnPlay`, `fireAdjacentSleights`, `updateCounters` and `checkUnlocks` - so the boss-winning hand alone skipped all of it. Visibly: the run report's boss quarter printed **no best hand** ("·") however big the killing hand was, and on_play Sleights never fired on it. Pre-r237 all of that ran (`endBoss` was synchronous and `playHand` carried on), so the block simply MOVED DOWN to sit beside the ordinary goal check, below the shared bookkeeping. Verified in a real browser: the VICTORY report now names the boss-killing hand with its score.
+
+Also r254: **an aborted goal dance now fires `flashRoundEnd()`** from `handleDanceAbort`'s goal branch. The banner + cleared-clock state only ever fired from the score climb's goal-cross tick, which an aborted dance never reaches - so a goal hand cut short (round-end teardown, a boss firing mid-dance) won the round with no QUOTA CLEARED and no boss name. Fired BEFORE `bossSettleWin()` so `bossWinPending` still carries the kicker.
+
+**All three end-of-round variants were driven end to end in a real browser for this pass** (Playwright, 1440x820, both Pick states): ordinary goal clear -> finale -> PMF merge/throw/climb -> banner -> fall -> payout -> reward grid -> next deal; boss win -> same finale with the boss-named banner -> payout -> prize grid -> QUARTER CLOSED card -> Q2; final boss -> rolloverQuarter -> VICTORY + run report (no quarter card past Q3, by design). The r234 "fused chip stays put, a copy peels off to the total" behaviour is confirmed live in `pmfFlyToScore`; the persistent `#pmf-merged` element in the DOM after a hand is the REUSED chip without `.show`, not a leak.
 
 ## The live shop is the ON-GRID shop (r232) - `js/shop-grid-preview.js`
 
@@ -3019,6 +3110,37 @@ fifteen seconds** and settles with it centred and filling most of the shot. Touc
 **any button** on that menu and a **channel change** flashes; behind the flash the
 photograph is gone and the UI is flat and full-screen. The monitor in the photo IS
 the machine, so the r180 arcade cabinet - housing, marquee, bezel - is hidden.
+
+### The monitor is LANDSCAPE, so the machine shows a landscape face (r257)
+
+The skew maps **`#stage`'s whole box** onto the glass quad, so the stage's aspect and
+the quad's aspect have to be near each other or the UI is stretched. Landscape is
+747x420 (**1.78**) against a quad of **1.37**, which is the foreshortening of a
+screen seen at an angle and reads as perspective. **Portrait is 420x740 (0.57)** -
+a **2.4x horizontal crush**, and on a phone it made the menu unreadable.
+
+So while the photograph is on screen the stage is **forced landscape**, whatever the
+device is doing: `officeForcesLandscape()` is read by the one place that decides it
+(`bootstrap.js`'s `update`). It is only ever a lie for as long as the photo is up.
+
+- **`applyStageLayout` is bootstrap's own `update`, exposed.** Two paths need to
+  re-decide the orientation and neither can use `camRelayout()`, which re-uses
+  `camLastLandscape` - still the forced value: the channel change, which hands a
+  phone back its portrait layout **behind the flash**, and the photo's own `load`
+  handler, because bootstrap's first pass ran long before an image could download
+  and the stage is still portrait at that point.
+- **`OFFICE_HERO_FIT` is two numbers now.** In portrait the binding axis is the
+  WIDTH, and a landscape monitor held to 0.78 of a phone's width is a small band in
+  the middle of a very tall picture: `{ landscape: 0.78, portrait: 0.92 }`.
+- **The photo crop needed nothing.** The cover framing is already centred on the
+  monitor and cropped to the viewport's aspect, so a phone was already getting its
+  own portrait slice of the office - the owner's "middle three columns". The squish
+  was never the crop.
+
+Verified at 390x844: forced landscape while the photo is up, glass 359x262 (was
+304x222), and after a button press `landscape` is false, the stage is 420x740
+painting at 386x680 in the viewport, the camera carries no transform, the skew is
+cleared and there are no page errors. Desktop at 1440x820 is unchanged.
 
 ### The opening is a DRIFT and then a CUT (r248)
 
