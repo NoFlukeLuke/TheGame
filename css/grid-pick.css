@@ -153,7 +153,8 @@
    (r254 only) .gp-art { flex:1 1 auto; min-height:0; }  .gp-desc { -webkit-line-clamp:4; }
    ────────────────────────────────────────────────────────────────────────── */
 
-/* The x/y selection readout means nothing on a pick (there is no hand being
-   built), and it sits in the slot margin right beside the board. Hidden for
-   the length of the screen, the way the shop repurposes it. */
+/* The x/y selection readout means nothing on ANY board-takeover screen (there
+   is no hand being built), and it sits in the slot margin right beside the
+   grid. body.gp-active is set by gridScreenTakeover, so the pick and the tiled
+   payout both get it. */
 body.gp-active #sel-count { display: none !important; }

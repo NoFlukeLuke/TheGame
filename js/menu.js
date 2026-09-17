@@ -1,4 +1,4 @@
-const BUILD = "2026-09-17 · r256 · the pick-of-three IS the board: a 6x5 takeover, 2x3 option tiles, ambience cards, and the controls as tiles";
+const BUILD = "2026-09-17 · r257 · the payout is the board too: tiles placed in cell units on a 6x6 takeover, one shared board-takeover for every screen";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

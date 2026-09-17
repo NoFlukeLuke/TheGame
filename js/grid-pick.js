@@ -43,29 +43,45 @@ const GP_COLS = 6, GP_ROWS = 5;   // the board this screen asks for
 const GP_OPT_W = 2, GP_OPT_H = 3; // each option, in cells
 const GP_OPT_ROW = 1;             // options sit under the top ambience row
 
-let gridPickSaved = null;         // { rows, cols } to restore on close
+let gridScreenSaved = null;       // { rows, cols } to restore on close
 let gridPickState = null;         // { offers, actions, onChoose } for a re-render
 
-// Take the board over at the size this screen wants, exactly as the shop does.
-function gridPickTakeover() {
-  if (!gridPickSaved) gridPickSaved = { rows: gridRows, cols: gridCols };
-  gridRows = GP_ROWS; gridCols = GP_COLS;
+// ── THE BOARD TAKEOVER, shared by every screen that IS the board ────────────
+// The shop's borrow (openShopGrid), generalised: save the player's board size,
+// re-lay the grid at whatever size this screen wants, and clear the real cards
+// so nothing shows between the tiles. Used by the pick-of-three here and by the
+// tiled payout in js/interlude.js.
+//
+// NOTHING PUT IN #grid IS CLEANED UP FOR YOU. render() only reconciles elements
+// carrying [data-card-id], so a screen's tiles must be removed by hand - that is
+// the r248 crossroads leak, and gridScreenRelease is what stops it repeating.
+function gridScreenTakeover(rows, cols) {
+  // The x/y selection readout means nothing on a board screen (there is no hand
+  // being built) and it sits in the slot margin right beside the grid. Hidden
+  // for the length of any takeover. The SHOP is untouched by this - it does not
+  // come through here, because it repurposes that readout for its own count.
+  document.body.classList.add('gp-active');
+  if (!gridScreenSaved) gridScreenSaved = { rows: gridRows, cols: gridCols };
+  gridRows = rows; gridCols = cols;
   if (typeof recomputeGridMetrics === 'function') recomputeGridMetrics();
   const gridEl = document.getElementById('grid');
-  // The real cards go. Nothing may show between the tiles (owner spec) and the
-  // board is about to be re-dealt by whatever follows the pick anyway.
   if (gridEl) gridEl.innerHTML = '';
   return gridEl;
 }
 
-function gridPickRelease() {
+function gridScreenRelease() {
+  document.body.classList.remove('gp-active');
   const gridEl = document.getElementById('grid');
-  if (gridEl) gridEl.querySelectorAll('.gp-opt, .gp-amb, .gp-act').forEach(el => el.remove());
-  if (gridPickSaved) { gridRows = gridPickSaved.rows; gridCols = gridPickSaved.cols; gridPickSaved = null; }
+  if (gridEl) gridEl.querySelectorAll('.gp-opt, .gp-amb, .gp-act, #payout-overlay').forEach(el => el.remove());
+  if (gridScreenSaved) { gridRows = gridScreenSaved.rows; gridCols = gridScreenSaved.cols; gridScreenSaved = null; }
   if (typeof recomputeGridMetrics === 'function') recomputeGridMetrics();
 }
 
-// A cell box in the live board's own units.
+function gridPickTakeover() { return gridScreenTakeover(GP_ROWS, GP_COLS); }
+function gridPickRelease()  { gridScreenRelease(); }
+
+// A cell box in the live board's own units. Shared with the tiled payout:
+// every screen that inhabits the board places its tiles through this.
 function gpBox(r, c, w, h) {
   const cw = (typeof CARD_W === 'number' ? CARD_W : 57);
   const ch = (typeof CARD_H === 'number' ? CARD_H : 75);
@@ -233,7 +249,6 @@ function openGridPick(opts) {
     onChoose: (i, offer) => { closeGridPick(); opts.onChoose && opts.onChoose(i, offer); },
   };
   gameTimerPaused = true;
-  document.body.classList.add('gp-active');
   if (typeof enterGridScreenHud === 'function') enterGridScreenHud(opts.title || 'TAKE ONE', opts.tone || 'reward');
   gridPickRender(true);
 }
@@ -259,7 +274,6 @@ function gridPickSetShown(on) {
 }
 
 function closeGridPick() {
-  document.body.classList.remove('gp-active');
   gridPickRelease();
   gridPickState = null;
   if (typeof stopFloat === 'function') stopFloat('gridpick');

@@ -190,7 +190,16 @@
    monospaced figures. Overrides only; the animation classes (.show on each line,
    the counters, the ff button) are untouched so interlude.js keeps working. */
 
-#stage.landscape #payout-overlay {
+/* r257: the TILED payout (css/payout-grid.css) is a board of tiles, not a
+   panel - it has no frame, no field and no scanline layer of its own, because
+   the tiles are what is on the CRT. These panel overrides are therefore scoped
+   OFF it with :not(.po-tiled), and apply only when PAYOUT_TILED is false.
+   Without that, `#payout-overlay > *:not(.payout-ff-btn) { position: relative }`
+   below outranks the tile placement (2 ids + 2 classes against 1 id + 2) and
+   every tile that is a direct child of the overlay - the title, both tabs, the
+   total and the button - drops back into the flow and lands off the board.
+   Measured: 3 tiles outside the grid box before this. */
+#stage.landscape #payout-overlay:not(.po-tiled) {
   background: linear-gradient(180deg, rgba(10,9,7,0.97), rgba(6,6,5,0.99)) !important;
   border: 1px solid var(--plastic-lo, #b7ac93);
   border-top: 3px solid var(--c-cyan, #16c8d8);
@@ -200,7 +209,7 @@
   gap: 2px;
 }
 /* scanlines, so it reads as something on the CRT rather than a web panel */
-#stage.landscape #payout-overlay::after {
+#stage.landscape #payout-overlay:not(.po-tiled)::after {
   content: ''; position: absolute; inset: 0; pointer-events: none; border-radius: 8px;
   background: repeating-linear-gradient(0deg, rgba(0,0,0,0.16) 0 1px, transparent 1px 3px);
   mix-blend-mode: overlay;
@@ -210,8 +219,10 @@
    blanket rule was resetting it to `position:relative`, which put it back in the
    flow where its bottom/right offsets dropped it straight on top of the "Valued."
    button. It still needs a z-index of its own to clear the scanlines. */
-#stage.landscape #payout-overlay > *:not(.payout-ff-btn) { position: relative; z-index: 1; }
+#stage.landscape #payout-overlay:not(.po-tiled) > *:not(.payout-ff-btn) { position: relative; z-index: 1; }
 #stage.landscape #payout-overlay > .payout-ff-btn { z-index: 2; }
+/* The tiled payout keeps the machine's TYPE (title, tabs, figures below) - only
+   the panel chrome is scoped off it. */
 
 #stage.landscape .payout-title {
   font-family: 'Orbitron', sans-serif !important; font-weight: 800;
