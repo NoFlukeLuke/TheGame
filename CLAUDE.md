@@ -1517,6 +1517,35 @@ Measured: two-visit sets 66.5% -> 68.9%, tiles per run 9.97 -> 10.26.
 - `mapRender` marks legal tiles off the same `mapLegalMoves()` list, so branch
   targets light up with no rendering change.
 
+### The map speaks SCHEDULE (r260)
+
+Owner: *"The map is your schedule, sets are time slots, and each node is a...
+obligation. And the boss is a manager review."* The vocabulary, everywhere the
+player reads it:
+
+| was | is |
+|---|---|
+| The Map (mode name) | **The Schedule** |
+| set | **time slot** (`SLOT 2/6` on the bar) |
+| tile / node | **obligation** |
+| boss | **manager review** (the column reads `REVIEW`) |
+| THE MAP (the grid-screen location chip) | **SCHEDULE** |
+
+**Ids are frozen and nothing else moved** - TERMINOLOGY.md's rule. `mapTiles`,
+`MAP_SETS`, `mapCanFinishFrom`, `kind:'boss'`, `body.map-active`, the CSS class
+names and every function in `js/map-mode.js` are untouched; this is `MAP_HELP`,
+`MAP_KIND_META.boss.name`, `mapTileDesc`, the bar's labels, three toasts, the
+`enterGridScreenHud` label and the `MODES.map` name and description.
+
+- **The tile KINDS keep their names** (Round, Hard Round, Shop, Reward Grid,
+  Event, Limit Break). They say what the obligation IS, and Shop and Reward Grid
+  are named that on their own screens - renaming them here would give one thing
+  two names.
+- **`REVIEW` is six letters where `BOSS` was four, and the boss name is drawn
+  VERTICALLY in landscape with no fitter** (r238: the fitter measures
+  horizontally, so the boss is deliberately exempt). Measured: the name box is
+  20x99 inside a 79x444 column, so it fits with room to spare.
+
 ### The map bar is one strip, and the rules live behind a ? (r255)
 
 Owner: the bar was *"too large and persistent, and doesn't feel especially on

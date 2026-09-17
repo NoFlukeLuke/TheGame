@@ -1,4 +1,4 @@
-const BUILD = "2026-09-17 · r259 · the map bar is one compact strip with a ? chip; the x/y readout only shows where a pick matters [onto r258]";
+const BUILD = "2026-09-17 · r260 · the map is your SCHEDULE: time slots, obligations, and a manager review at the end";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -37,13 +37,14 @@ const MODES = {
     suitCount: 4,
     guided: true
   },
-  // The Map (r238): one act drawn as a 4-lane board you walk tile by tile.
+  // The Schedule (r238, renamed r260): a quarter drawn as a 4-lane board you
+  // walk one obligation at a time.
   // See js/map-mode.js for the rules; actStructure keeps the interlude/payout
   // machinery, and the map hooks intercept every routing seam Guided cut.
   map: {
     id: 'map',
-    name: 'The Map',
-    desc: 'One act as a map: four lanes, six sets of tiles, then the boss. Two tiles per set at most, orthogonal moves only, and everything you step on happens.',
+    name: 'The Schedule',
+    desc: 'Your quarter as a schedule: six time slots of obligations, then a manager review. Two obligations a slot at most, no diagonal moves, and everything you book happens.',
     winCondition: 'boss_defeat',
     enableBosses: true,
     enableShops: true,
