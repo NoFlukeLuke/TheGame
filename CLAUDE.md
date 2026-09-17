@@ -1474,6 +1474,46 @@ reads.**
 - The map screen hides `#btn-play`/`#btn-discard`/`#swap-indicator` (`body.map-active`); the bar (`#map-bar`, body-level, raw viewport px) carries SET x/6, visits, skip price, the picked tile's description and CONFIRM. Tile names go through `fitEntityName` - except the boss, whose name is vertical in landscape and the fitter measures horizontally.
 - **The 3-2-1 was rethemed in the same pass** (css/style.css): Orbitron on a scanlined phosphor ring instead of the pre-cabinet gold Cinzel. Same element, same timing, same keyframe name.
 
+### The map is THREE QUARTERS now (r252)
+
+It was one act: beat the boss and `finishInterludeRoute` called `onGameWin`. A
+map run is the full three-quarter structure every other act mode has - beat the
+boss, the quarter closes, **a fresh map is drawn** and you walk it.
+
+- **It routes through `rolloverQuarter` (js/quarter.js)**, which already closes
+  the quarter's books, advances `actNumber`, shows the QUARTER CLOSED card and
+  **goes to `onGameWin` itself past Q3**. So the map never learns how long a run
+  is, and the quarter card and the end-of-run report came free.
+- **`mapResetRun` split into `mapResetRun` + `mapResetBoard`, and the split is
+  the whole trap.** A fresh RUN and a fresh MAP are no longer the same thing:
+  **`mapFirstRoundDone` belongs to the run alone**. It is what makes the first
+  level confirm resume the board `startGame` already dealt rather than levelling
+  up past it - reset it per quarter and Q2's first tile would try to resume a
+  round dealt two quarters ago. `mapBeginQuarter` calls `mapResetBoard` only.
+- **The boss quota is anchored to the level the QUARTER opens on**
+  (`mapQuarterBossGoal`): `goalForLevel(level) * MAP_BOSS_SCALE^(MAP_BOSS_LEVELS-1)`.
+  At Q1 that reads `goalForLevel(1)` = `BASE_GOAL` and reproduces the r238 figure
+  **exactly (17,500)**, verified live; Q2 and Q3 open ten and twenty levels in, so
+  they ask what a quarter of progress from THERE is worth instead of printing
+  Q1's number three times.
+
+Verified end to end in a real browser: Q1 opens at 17,500, the boss round runs
+against that figure, the prize grid closes into the quarter card, and **Q2 opens
+on a new 25-tile map with `mapBossArmed` cleared and a requota**; forcing Q3's
+boss ends the run on the end screen with no further map.
+
+### An event tile is the only event (r252)
+
+A reward grid's **destination** tiles ("Next: Shop", "Next: Event") route the
+NEXT NODE, which only means anything in the node flow. Map mode walks to those
+as tiles, and `finishInterludeRoute`'s map branch clears `pendingEventOverride`
+unread - so a player could spend a pick on "Next: Event" and **nothing at all
+happened**. Owner's call: on the map an event is an event TILE.
+
+`NO_DEST` in `_generateRewardContent` already excluded the prize grid and
+**Guided, for this exact reason** - the map was simply missed when it landed.
+One clause. Verified: 0 destination tiles across 60 generated map reward grids.
+
 ### Mini-bosses (r239) - the second challenge kind
 
 Six CHALLENGE_DEFS entries carry `mini: { modifier, params }` instead of a task: the HANDICAP is the challenge - a boss modifier at reduced strength running inside an ordinary round - and clearing the (raised) goal pays the credits (`test: () => true`, because the settle only runs on a cleared round). Stone Lord Jr (half stones, no rubble), The Apprentice (interact x1.5, play +2s), Low Tide (-5 Focus/20s), The Intern (one card held/25s), Sour Sip (ONE suit at x0.6, rotating), Light Fog (ranks hidden for the first 60s only).

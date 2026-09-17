@@ -636,7 +636,15 @@ function _generateRewardContent() {
 
   // One destination in a random buff slot (not on a prize grid - it pays out, it
   // does not route you anywhere).
-  const NO_DEST = PRIZE || (typeof guidedActive === 'function' && guidedActive());
+  // A DESTINATION tile routes the next node ('Next: Shop' / 'Next: Event'), and
+  // that only means something in the node flow. Guided buys its stops at the
+  // crossroads and MAP mode walks to them as tiles, so in both the override is
+  // cleared unread by finishInterludeRoute - the player picks 'Next: Event',
+  // pays a tile for it, and NOTHING HAPPENS. Guided was excluded when it landed
+  // and the map was missed. Owner's call: on the map an event is an event TILE.
+  const NO_DEST = PRIZE
+    || (typeof guidedActive === 'function' && guidedActive())
+    || (typeof mapActive === 'function' && mapActive());
   if (!NO_DEST) grid[shuffledBuff[0][0]][shuffledBuff[0][1]] = { kind: 'dest', payload: pickRand(destOptions) };
 
   // Guaranteed tiles first (protected from the Trick-minimum conversion below)
@@ -1839,7 +1847,12 @@ function closeRewardGrid() {
     // there is no quarter to roll over; mapBossArmed is what tells them apart.
     if (typeof mapActive === 'function' && mapActive()) {
       pendingEventOverride = null;
-      if (mapBossArmed) onGameWin(); else mapAfterTile();
+      // A grid here is one the player LANDED ON - back to the map - or the
+      // post-boss PRIZE grid, which closes the quarter (r249). rolloverQuarter
+      // does the advance, shows the card, and goes to onGameWin itself past Q3,
+      // so the map never has to know how many quarters a run is.
+      if (mapBossArmed) rolloverQuarter(() => mapBeginQuarter());
+      else mapAfterTile();
       return;
     }
     // Guided (r218) runs its own act: slots, not nodes. A grid here is either one

@@ -1,7 +1,9 @@
 // ══════════════════════════════════════════════
 // MAP MODE (r238) - the run is a board you walk
 // ══════════════════════════════════════════════
-// One act as a MAP: 4 lanes x MAP_SETS sets of tiles, then a full-width boss.
+// EACH QUARTER is a MAP: 4 lanes x MAP_SETS sets of tiles, then a full-width
+// boss. Beat it and the quarter closes, a fresh map is drawn, and the run is
+// three of those (r252) - the same three-quarter shape every act mode has.
 // The grid IS the map (the same borrow the shop makes): tiles fall in like a
 // deal, you pick one, CONFIRM, the map falls out the bottom, the grid resizes
 // back to play size and the round deals in behind the 3-2-1.
@@ -24,7 +26,8 @@
 // - Every tile advances the difficulty curve (Guided's load-bearing rule):
 //   levels through triggerLevelUp, everything else through guidedAdvanceCurve.
 // - The boss goal is FIXED at map build: MAP_BOSS_LEVELS levels of a steeper
-//   curve than Classic's, previewable from the map before you can reach it.
+//   curve than Classic's, from the level the QUARTER OPENS ON, previewable from
+//   the map before you can reach it.
 //
 // ── DEAD ENDS ARE REFUSED, NOT DISCOVERED ────────────────────────────────────
 // Strict orthogonality + inert blanks means a route can strand you: at 2 visits
@@ -93,11 +96,32 @@ function mapResetRun() {
   if (mapScreenOpen) mapCloseScreen();
   document.getElementById('map-bar')?.classList.remove('show');
   document.body.classList.remove('map-active');
+  mapFirstRoundDone = false;
+  mapResetBoard();
+}
+
+// Everything a FRESH MAP needs, and nothing a fresh RUN needs. The two are not
+// the same thing since r252: a run is three quarters and each one draws its own
+// map, so `mapFirstRoundDone` (round 1 rides startGame's own deal) is reset by
+// mapResetRun ALONE and never here - Q2 and Q3 open on an ordinary level-up.
+function mapResetBoard() {
   mapTiles = []; mapPos = null; mapVisits = 0; mapSkips = 0;
-  mapBossArmed = false; mapFirstRoundDone = false; mapPosTileId = null;
+  mapBossArmed = false; mapPosTileId = null;
   mapScreenOpen = false; mapSelected = null; mapLastWasChallenge = false;
-  mapBossGoal = Math.round(BASE_GOAL * Math.pow(MAP_BOSS_SCALE, MAP_BOSS_LEVELS - 1) / 500) * 500;
+  mapBossGoal = mapQuarterBossGoal();
   if (mapActive()) mapGenerate();
+}
+
+// The boss quota is FIXED at map build, and ANCHORED TO THE LEVEL THE QUARTER
+// OPENS ON: MAP_BOSS_LEVELS of the steeper curve from here. At Q1 that reads
+// goalForLevel(1) = BASE_GOAL and reproduces the r238 figure exactly (17,500);
+// Q2 and Q3 open around level 11 and 21, so they ask for what a quarter of
+// progress from THERE is worth rather than repeating Q1's number three times.
+function mapQuarterBossGoal() {
+  const base = (typeof goalForLevel === 'function')
+    ? goalForLevel(Math.max(1, level || 1))
+    : BASE_GOAL;
+  return Math.round(base * Math.pow(MAP_BOSS_SCALE, MAP_BOSS_LEVELS - 1) / 500) * 500;
 }
 
 // ── Tile helpers ─────────────────────────────────────────────────────────────
@@ -839,6 +863,19 @@ function mapKnackPickTwo(done) {
 // Called from the very end of startGame. The board for round 1 is already dealt
 // and its clock started; freeze both and put the map over it. The first level
 // confirm resumes exactly this round (mapStartRound above).
+// A new QUARTER (r252). The boss just fell, the prize grid has closed and
+// rolloverQuarter has advanced actNumber and shown its card. Draw a fresh map
+// and walk it. The curve is NOT touched here - the quarter's levels carry it,
+// exactly as Q1's did - and mapFirstRoundDone stays true, so the first level of
+// Q2 goes through drainLevelUpQueue like any other rather than trying to resume
+// a round startGame dealt two quarters ago.
+function mapBeginQuarter() {
+  mapResetBoard();
+  if (typeof stopTimers === 'function') stopTimers();
+  gameTimerPaused = true;
+  mapOpen();
+}
+
 function mapBeginRun() {
   if (typeof _restoringSave !== 'undefined' && _restoringSave) return;  // resume replays its round first
   if (typeof stopTimers === 'function') stopTimers();
