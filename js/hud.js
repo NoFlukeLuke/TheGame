@@ -397,7 +397,15 @@ function updateHandNameLabel(result) {
   const runs = [];
   names.forEach(n => { const last = runs[runs.length - 1]; if (last && last.n === n) last.k++; else runs.push({ n, k: 1 }); });
   names = runs;
-  const html = names.length ? handLabelHTML(names) : '';
+  let html = names.length ? handLabelHTML(names) : '';
+  // r254: the best hand DROPS some of the selection (r201's load-bearing rule).
+  // Those cards are red on the board; here is the bill - N cards, minus their
+  // pips - stated in the one place the player is already reading before commit.
+  const _pen = (result && result.penaltyCells && result.penaltyCells.length) || 0;
+  if (html && _pen > 0) {
+    html += `<span class="hn-plus">−</span>`
+          + `<span class="hn-l hn-drop"><b>DROP</b><i>${_pen} · −${result.penaltyPips || 0}</i></span>`;
+  }
   // Also compare the live DOM: other screens (Dominoes) write this element
   // directly, and a cache hit would then leave their text standing.
   if (html === _handNameKey && el.innerHTML === html) return;

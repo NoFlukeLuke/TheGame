@@ -1,4 +1,4 @@
-const BUILD = "2026-09-17 · r254 · Advance Notice - a knack that names the NEXT quarter's boss, and voids itself when sold";
+const BUILD = "2026-09-17 · r258 · Advance Notice - a knack that names the NEXT quarter's boss, and voids itself when sold [onto r257]";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
