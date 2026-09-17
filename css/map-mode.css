@@ -318,3 +318,6 @@ body.map-active #swap-indicator { visibility: hidden; pointer-events: none; }
    what carries the eye now, so the tile must stop competing with it. */
 #grid .map-tile.mt-visited .mt-ghost { opacity: 0.05; }
 #grid .map-tile.mt-visited::before { opacity: 0.35; }
+
+/* r261: the full name beside the short chip in the bar info line */
+#map-bar .mb-full { color: #cfe0ff; opacity: .78; font-size: 8px; letter-spacing: .04em; margin-right: 2px; }

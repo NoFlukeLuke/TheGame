@@ -157,20 +157,23 @@ function mapCellSolid(lane, set) {           // a real, steppable tile lives her
   return !!t && t.kind !== 'blank';
 }
 
+// The tile's NAME is the short chip you read off the board; `full` is the
+// name in full, shown beside it in the bar and in the tile's hover tooltip.
+// Schedule vocabulary (r261): an obligation is a piece of work on your day.
 const MAP_KIND_META = {
-  level:      { icon: '▶', name: 'Round',       cls: 'mk-level' },
-  challenge:  { icon: '⚠', name: 'Hard Round',  cls: 'mk-challenge' },
-  shop:       { icon: '🛒', name: 'Shop',        cls: 'mk-shop' },
-  reward:     { icon: '▦', name: 'Reward Grid', cls: 'mk-reward' },
-  event:      { icon: '✧', name: 'Event',       cls: 'mk-event' },
-  limitbreak: { icon: '▲', name: 'Limit Break', cls: 'mk-limit' },
-  blank:      { icon: '',  name: '',            cls: 'mk-blank' },
-  boss:       { icon: '☠', name: 'REVIEW',      cls: 'mk-boss' },
+  level:      { icon: '▶', name: 'ACCOUNT',   full: 'Client Account',   cls: 'mk-level' },
+  challenge:  { icon: '⚠', name: 'PRIORITY',  full: 'Priority Account', cls: 'mk-challenge' },
+  shop:       { icon: '🛒', name: 'MART',      full: 'LETHE Mart',       cls: 'mk-shop' },
+  reward:     { icon: '▦', name: 'INCENTIVE', full: 'Incentive Program', cls: 'mk-reward' },
+  event:      { icon: '✧', name: 'MEETING',   full: 'Meeting',          cls: 'mk-event' },
+  limitbreak: { icon: '▲', name: 'RAISE',     full: 'Raise Request',    cls: 'mk-limit' },
+  blank:      { icon: '',  name: '',          full: 'Not scheduled',    cls: 'mk-blank' },
+  boss:       { icon: '☠', name: 'REVIEW',    full: 'Manager Review',   cls: 'mk-boss' },
 };
 
 function mapTileFace(t) {
   // What the PLAYER sees - a mystery hides its kind until confirmed.
-  if (t.mystery && !t.revealed) return { icon: '?', name: '???', cls: 'mk-mystery' };
+  if (t.mystery && !t.revealed) return { icon: '?', name: '???', full: 'Unconfirmed', cls: 'mk-mystery' };
   const m = MAP_KIND_META[t.kind] || MAP_KIND_META.event;
   if (t.kind === 'event' && t.eventName) return { ...m, name: t.eventName };
   return m;
@@ -181,10 +184,10 @@ function mapTileDesc(t) {
     case 'level':      return 'Play a round. Clear the goal, take the payout and a pick of three.';
     case 'challenge':  return (t.challenge ? t.challenge.label + ' ' : '')
       + `Goal +${Math.round(((t.challenge?.goalMult || 1.2) - 1) * 100)}%, pays +${t.challenge?.credits || 0} credits, plus a knack pick.`;
-    case 'shop':       return 'Buy Tricks, Sleights, Knacks and upgrades.';
+    case 'shop':       return 'The company store. Buy Tricks, Sleights, Knacks and upgrades.';
     case 'reward':     return 'Pick a path across a board of rewards.';
     case 'event':      return t.eventFlavor || 'Something happens.';
-    case 'limitbreak': return 'Raise a limit - or trade one away for credits.';
+    case 'limitbreak': return 'Raise a limit, or trade one away for credits.';
     case 'boss':       return (peekBossPresetSafe()?.brief || 'The end of the schedule.')
       + ` Quota: ${mapBossGoal}.`;
   }
@@ -646,6 +649,7 @@ function mapRender(animateIn) {
       `<div class="mt-icon">${face.icon}</div>` +
       `<div class="mt-name">${face.name}</div>` +
       (t.visited ? `<div class="mt-stamp">DONE</div>` : '');
+    if (face.full) div.title = face.full + (mapTileDesc(t) ? ' - ' + mapTileDesc(t) : '');
     div.onclick = () => mapTileTap(t);
     div.onmouseenter = () => { if (!mapSelected) mapBarInfo(t, mapMoveFor(t.id)); };
     div.onmouseleave = () => { if (!mapSelected) mapBarInfo(null); };
@@ -755,7 +759,8 @@ function mapBarInfo(t, move) {
   if (!el) return;
   if (!t) { el.innerHTML = ''; return; }
   const face = mapTileFace(t);
-  let s = `<b>${face.name}</b> ${mapTileDesc(t)}`;
+  const full = face.full && face.full.toUpperCase() !== face.name ? `<span class="mb-full">${face.full}</span> ` : '';
+  let s = `<b>${face.name}</b> ${full}${mapTileDesc(t)}`;
   if (move && !move.doomed) {
     if (move.from && move.after.set > move.from.set && move.from.visits === 1 && t.kind !== 'boss')
       s += ` <i>leaving now pays ${MAP_SKIP_BASE + MAP_SKIP_STEP * (mapSkips + 1)} ◆</i>`;
