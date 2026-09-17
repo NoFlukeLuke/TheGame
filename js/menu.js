@@ -1,4 +1,4 @@
-const BUILD = "2026-09-17 · r253 · the map funnel is not always two blanks + a dev toggle to branch from any visited tile";
+const BUILD = "2026-09-17 · r254 · the pick-of-three is drawn on the board; tiles describe themselves (tooltips everywhere); shop tooltip placement; tray chips stop tracking the board's card size";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

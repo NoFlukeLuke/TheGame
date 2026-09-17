@@ -4412,7 +4412,9 @@
      a Trick whose glyph changes size reads as a different, tinier object. The
      emoji keeps its full 24px and the tile's own overflow clips what doesn't
      fit, the way a real card shows part of a full-size index. */
-  #stage.landscape .trick-tray-chip { width:40px; height:53px; font-size:12px; border-radius:6px; flex-direction:column; }
+  /* No width/height here: the r182 tile-frame rule further down owns the size
+     (this one stated 40x53 for years and was always outranked by it). */
+  #stage.landscape .trick-tray-chip { font-size:12px; border-radius:6px; flex-direction:column; }
   /* money: compact single-row bar (replaces the old tall coin chip) */
   #stage.landscape #coin-info      { left:1.56%; top:84%; width:37.74%; height:6.5%; flex-direction:row; align-items:center; justify-content:flex-start; gap:10px; padding:0 10px; }
   /* TWO secondary buttons since r155: Stats/Deck/Time/Limits merged into RECORDS.
@@ -4886,10 +4888,16 @@
      The size has to be stated: the chip used to borrow `width: var(--card-w)`
      from .trick-card, and without it the chip and its child sized off each
      other's content, leaving a 68px chip wrapping a 35px card and every name
-     shrunk to fit a box a third too small. */
+     shrunk to fit a box a third too small.
+     FIXED px, never var(--card-w) (r254): --card-w is the LIVE BOARD's card
+     size, republished by recomputeGridMetrics for whatever board is on screen -
+     so a chip reading it was 62x82 beside a 4x4 round and shrank to 41x54 the
+     moment the map (a wider board) opened. The same Trick looked like two
+     different objects on two screens. A tray tile is its own object at its own
+     size; 57x75 is the base card, which is what the var resolved to at rest. */
   #stage.landscape .trick-tray-chip {
     position: relative; flex: 0 0 auto; box-sizing: border-box; cursor: pointer;
-    width: var(--card-w, 57px); height: var(--card-h, 75px);
+    width: 57px; height: 75px;
     padding: 0; border: none; background: none; box-shadow: none;
     transition: transform 0.1s ease;
   }

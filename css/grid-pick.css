@@ -1,0 +1,99 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   GRID PICK (r254) - the pick-of-three drawn ON the board. See js/grid-pick.js.
+   Lives inside #grid-slot, so every px here is a STAGE px (the cabinet's zoom
+   scales it up ~1.9x on a desktop) - size type for the 336x362 slot, not the
+   viewport.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+#grid-pick {
+  display: none;
+  position: absolute; inset: 0;
+  z-index: 44;                       /* over cards (2) and boss cell overlays (12-15); the payout (40) is gone by the time a pick opens */
+  flex-direction: column; gap: 6px;
+  padding: 6px 4px 4px;
+  border-radius: 8px;
+  background: radial-gradient(ellipse at center, rgba(8,11,6,0.55) 0%, rgba(8,11,6,0.86) 100%);
+}
+#grid-pick.show { display: flex; }
+
+#grid-pick .gp-head { display: flex; flex-direction: column; align-items: center; gap: 1px; flex: 0 0 auto; }
+.gp-kicker {
+  font-family: 'Share Tech Mono', monospace; font-size: 7px; letter-spacing: 3px;
+  color: var(--c-mint, #35d59b); text-transform: uppercase;
+}
+.gp-title {
+  font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 14px; letter-spacing: 4px;
+  background: linear-gradient(180deg, #fff2c8, var(--c-yellow, #ffce2b) 55%, var(--c-coral, #ff6a3c));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+
+/* The choices: as large as the board affords, spaced apart, each on a NEUTRAL
+   border - rarity colour stays on the object inside, where it means rarity. */
+#grid-pick .gp-row, #survival-pick-panel .gp-row {
+  display: flex; gap: 8px; justify-content: center; align-items: stretch;
+  flex: 1 1 auto; min-height: 0;
+}
+.gp-opt {
+  flex: 1 1 0; min-width: 0; min-height: 0; max-width: 150px;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 6px 5px 5px;
+  border-radius: 9px; cursor: pointer;
+  background: linear-gradient(180deg, rgba(27,23,16,0.94), rgba(16,13,9,0.96));
+  border: 1.5px solid rgba(183,172,147,0.55);   /* neutral - the plastic, not a rarity */
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.5), 0 4px 10px rgba(0,0,0,0.4);
+  transition: transform 0.1s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  animation: gp-in 0.3s both cubic-bezier(.2,.8,.3,1);
+}
+@keyframes gp-in { from { opacity: 0; transform: translateY(-14px); } to { opacity: 1; transform: translateY(0); } }
+.gp-opt:hover {
+  transform: translateY(-3px);
+  border-color: var(--cream, #f0e6c8);
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.5), 0 0 14px rgba(240,230,200,0.25), 0 8px 16px rgba(0,0,0,0.5);
+}
+.gp-opt:active { transform: translateY(-1px); }
+
+.gp-tag {
+  font-family: 'Share Tech Mono', monospace; font-size: 6.5px; letter-spacing: 2px;
+  color: #0e0c0a; background: var(--rc, var(--c-mint, #35d59b));
+  padding: 1px 6px; border-radius: 999px; text-transform: uppercase; font-weight: 700;
+  flex: 0 0 auto;
+}
+.gp-tag.rar-common    { --rc: var(--c-mint,    #35d59b); }
+.gp-tag.rar-rare      { --rc: var(--c-cyan,    #16c8d8); }
+.gp-tag.rar-epic      { --rc: var(--c-purple,  #9a6cff); }
+.gp-tag.rar-legendary { --rc: var(--c-magenta, #ff2f8e); }
+
+/* THE OBJECT - as big as the tile's free height. The frame must be
+   position:relative (r239: the object's band is an abspos pseudo and anchors to
+   the nearest positioned ancestor) and it letterboxes itself inside whatever
+   box this gives it. Only the ART floats - the reward grid's own drift,
+   published as --fx/--fy/--fr/--fs by js/float-anim.js. */
+/* NOT pointer-events:none: the delegated data-et tooltip needs the hover, and
+   a click on the object still bubbles up to .gp-opt and chooses. */
+.gp-art { flex: 1 1 auto; min-height: 0; width: 100%; display: flex; justify-content: center; }
+.gp-art .reward-cell {
+  position: relative; width: 100%; height: 100%; margin: 0; max-width: 120px;
+  transform: translate(var(--fx, 0px), var(--fy, 0px)) rotate(var(--fr, 0deg)) scale(var(--fs, 1));
+}
+.gp-icon { flex: 1 1 auto; display: flex; align-items: center; justify-content: center;
+  font-size: 34px; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.5));
+  transform: translate(var(--fx, 0px), var(--fy, 0px)) rotate(var(--fr, 0deg)); }
+
+/* NAME and DESCRIPTION stay stationary below the object. The description never
+   grows the tile: it clamps with an ellipsis, and a clamped one opens the rest
+   in the entity tooltip (hover, or a tap that is a read, never a pick). */
+.gp-name {
+  flex: 0 0 auto;
+  font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 10px; letter-spacing: 0.5px;
+  color: var(--cream, #f0e6c8); text-align: center; line-height: 1.15;
+}
+.gp-desc {
+  flex: 0 0 auto; width: 100%;
+  font-family: 'Crimson Pro', serif; font-size: 9.5px; line-height: 1.28;
+  color: var(--cream-dim, #9a8d70); text-align: center;
+  display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.gp-desc.gp-clip { cursor: help; pointer-events: auto; }
+
+#grid-pick .gp-foot { flex: 0 0 auto; display: flex; gap: 6px; justify-content: center; }

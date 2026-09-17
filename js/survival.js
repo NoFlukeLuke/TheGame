@@ -290,7 +290,10 @@ function survivalPickOverlay() {
         <div id="sv-pick-contrib"></div>
       </div>
       <button id="sv-peek-restore" onclick="survivalTogglePeek()">CHOOSE ONE &#8250;</button>`;
-    (document.getElementById('stage') || document.body).appendChild(el);
+    // Mounted INSIDE #grid-slot (r254): the pick is drawn on the board, the
+    // room the reward grid already owns, rather than floated over the stage.
+    // The slot is safe ground - render() only rebuilds #grid's children.
+    (document.getElementById('grid-slot') || document.getElementById('stage') || document.body).appendChild(el);
   }
   return el;
 }
@@ -300,39 +303,20 @@ function survivalRenderPick() {
   const kick = overlay.querySelector('.sv-pick-kicker');
   if (kick) kick.textContent = survivalPickKicker || 'GOAL CLEARED';
   const cards = overlay.querySelector('#sv-pick-cards');
-  cards.innerHTML = '';
-  (survivalPickOffered || []).forEach((opt, i) => {
-    const card = document.createElement('div');
-    // Type sets the SHAPE class; rarity sets the colour (r198).
-    card.className = `sv-pick-card sv-type-${opt.type} rar-${typeof tierId === 'function' ? tierId(opt.rar) : 'common'}`;
-    card.style.animationDelay = (i * 70) + 'ms';
-    // An entity option shows the REAL OBJECT - the floppy, the business card,
-    // the cert diamond the player will own - with the name and description
-    // BELOW it (owner spec, r239). Only a limit still gets the bare icon:
-    // there is no object to show.
-    const isEnt = opt.type === 'trick' || opt.type === 'sleight' || opt.type === 'knack';
-    const art = (isEnt && typeof entityTileHTML === 'function')
-      ? `<div class="sv-pick-tile">${entityTileHTML({
-            entity: opt.type, id: opt.id, emoji: opt.icon, label: opt.data.name,
-            uses: opt.type === 'sleight'
-              ? (opt.data.durability === 'infinite' ? '∞' : opt.data.durability + 'x') : undefined,
-          }, typeof tierId === 'function' ? tierId(opt.rar) : 'common')}</div>`
-      : `<div class="sv-pick-icon">${opt.icon}</div>`;
-    card.innerHTML = `
-      <div class="sv-pick-tag">${opt.tag}</div>
-      ${art}
-      <div class="sv-pick-name">${opt.name}</div>
-      <div class="sv-pick-desc">${typeof colorizeKeywords === 'function' ? colorizeKeywords(opt.desc || '') : (opt.desc || '')}</div>
-      <div class="sv-pick-kind">${opt.type}</div>`;
-    card.onclick = () => survivalChoose(i);
-    cards.appendChild(card);
-  });
-  // Fit the tiles' own labels AFTER the panel is on screen - fitting while
-  // hidden measures a zero rect and leaves a long name to clip.
-  requestAnimationFrame(() => {
-    if (typeof fitRewardName === 'function')
-      cards.querySelectorAll('.sv-pick-tile .rwd-name').forEach(nm => fitRewardName(nm));
-  });
+  cards.classList.add('gp-row');
+  // The choices are the shared on-board tiles (js/grid-pick.js, r254): the
+  // OBJECT as large as the board affords with the reward grid's float on it,
+  // the name and description stationary beneath, and a clamped description
+  // opening the rest in a tooltip. A limit keeps the bare icon - there is no
+  // object to show (gridPickTileHTML handles that case).
+  const offers = (survivalPickOffered || []).map(opt => ({
+    entity: opt.type, id: opt.id, emoji: opt.icon, icon: opt.icon,
+    label: opt.name, desc: opt.desc, rarity: opt.rar, tag: opt.tag,
+    uses: opt.type === 'sleight'
+      ? (opt.data.durability === 'infinite' ? '∞' : opt.data.durability + 'x') : undefined,
+  }));
+  cards.innerHTML = offers.map((p, i) => gridPickTileHTML(p, i)).join('');
+  gridPickAfterRender(cards, offers, (i) => survivalChoose(i));
   survivalUpdateRerollBtn();
 }
 
@@ -444,6 +428,8 @@ function survivalChoose(i) {
   if (typeof cancelDance === 'function') cancelDance(); // stop the score count-up if still running
   survivalHideContrib();
   survivalPickOverlay().classList.remove('show', 'sv-peek');
+  if (typeof stopFloat === 'function') stopFloat('gridpick');
+  if (typeof hideEntityTooltip === 'function') hideEntityTooltip(true);
   survivalPickOffered = null;
   survivalSyncPickAudio();
   survivalGrant(opt);

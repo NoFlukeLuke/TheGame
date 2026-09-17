@@ -899,29 +899,22 @@ function mapKnackPickTwo(done) {
   }
   if (!offers.length) { done(); return; }
 
-  let el = document.getElementById('map-knack-pick');
-  if (!el) { el = document.createElement('div'); el.id = 'map-knack-pick'; document.body.appendChild(el); }
-  el.innerHTML = `<div class="g3-panel"><div class="g3-title">Hard round bonus · take a knack</div><div class="g3-row"></div></div>`;
-  const row = el.querySelector('.g3-row');
-  offers.forEach(k => {
-    const p = { entity: 'knack', icon: k.emoji || '♦', emoji: k.emoji || '♦', label: k.name,
-      desc: k.desc, tier: k.rarity || 'common', rarity: k.rarity || 'common' };
-    const t = document.createElement('div');
-    t.className = 'g3-opt';
-    t.innerHTML = (typeof entityTileHTML === 'function') ? entityTileHTML(p)
-      : `<div class="reward-cell entity"><div class="rwd-name">${k.name}</div></div>`;
-    t.onclick = () => {
+  // Drawn ON the board (js/grid-pick.js, r254), the same overlay the free
+  // pick-of-three uses - name and description under the object, and a tooltip
+  // wherever the description clamps. This screen had no tooltips at all before.
+  openGridPick({
+    kicker: 'HARD ROUND BONUS', title: 'TAKE A KNACK',
+    offers: offers.map(k => ({ entity: 'knack', icon: k.emoji || '♦', emoji: k.emoji || '♦',
+      id: k.id, label: k.name, desc: k.desc, rarity: k.rarity || 'common',
+      tag: (typeof tierLabel === 'function') ? tierLabel('knack', k.rarity || 'common') : '' })),
+    onChoose: (i) => {
+      const k = offers[i];
       acquiredKnacks.push({ ...k });
       updateKnackList?.();
       showMessage(`+ ${k.name}`, 'var(--gold)');
-      el.classList.remove('show');
       done();
-    };
-    row.appendChild(t);
-    const nm = t.querySelector('.rwd-name');
-    if (nm && typeof fitRewardName === 'function') fitRewardName(nm);
+    },
   });
-  el.classList.add('show');
 }
 
 // ── Run entry ────────────────────────────────────────────────────────────────
