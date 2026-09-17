@@ -526,6 +526,15 @@
     </div>
   </div>
 
+  <div class="dev-section" data-group="map">
+    <div class="dev-section-title">Map Mode</div>
+    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:-2px;">Free branch: move out from ANY tile you have already taken, not only the one you are standing on.</div>
+    <label style="display:flex;align-items:center;gap:6px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);cursor:pointer;">
+      <input id="dev-map-freebranch" type="checkbox" onchange="setMapFreeBranch(this.checked)" style="accent-color:var(--gold);">
+      Branch from any visited tile
+    </label>
+  </div>
+
   <div class="dev-section" data-group="match3">
     <div class="dev-section-title">Match-3 Mode</div>
     <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:-2px;">Match types - turn one off to remove it from detection entirely.</div>

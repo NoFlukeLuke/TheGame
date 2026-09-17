@@ -1,4 +1,4 @@
-const BUILD = "2026-09-17 · r252 · the map runs all three quarters + no dead destination tiles in map reward grids";
+const BUILD = "2026-09-17 · r253 · the map funnel is not always two blanks + a dev toggle to branch from any visited tile";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

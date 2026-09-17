@@ -1440,6 +1440,42 @@ One act as a MAP drawn on the borrowed grid (the shop's borrow pattern): **4 lan
 - **Routing reuses Guided's seams.** A cleared level: `startInterlude`'s map hook -> pick-of-three (`guidedOpenPickThree`), plus `mapKnackPickTwo` after a hard round, then back to the map. Shop tile: `shopFromNodeFlow` + `nodeFlowAfterShop`. Reward tile: `rewardGridContext='interlude'` -> `finishInterludeRoute`'s map branch (`mapAfterTile`, or `onGameWin` when `mapBossArmed` - one act, no quarter rollover; the node/quarter branch in `finishInterlude` excludes `_map`). Event tile: `guidedOpenNamedEvent`. Limit Break tile: `openLimitBreakEvent`.
 - **Challenge tiles ride `guidedPendingChallenge`** - `guidedApplyPendingChallenge`'s guard accepts map mode too. Tiles store the challenge as DATA (id + display fields, no test fn), rehydrated from `CHALLENGE_DEFS` by id at confirm, which is what keeps `mapTiles` JSON-safe for SAVE_VARS. **The hard-round knack pick draws 2 knacks with `luckModifiers += 20` around the draw** - literally the odds 20 Luck would give, through the shared `pickEntityByRarity`.
 - **CHALLENGE_DEFS grew from 4 to 10** (guided-mode.js): back-to-back 4+ card hands (replacing the trivial-or-impossible single 4-card ask; also fixed - it tested `h.round` but hand-log entries carry `h.level`, so it never fired), a third-of-goal single hand, no discards (`cardsDiscardedRound`), no swaps (**`swapsUsedRound`** - new counter in deck-grid.js, bumped in `doSwap`, reset with the round, in SAVE_VARS), clear with 45s+ left, same type three times, and run+set+flush (gated `avail: selection >= 5`; `rollChallengeLevel` filters on `avail`).
+### The funnel is a ROLL, and you may branch from any visited tile (r253)
+
+**The funnel (the last set before the boss) is no longer always two blanks.**
+How many of its four lanes carry a real tile is rolled - `MAP_FUNNEL_SOLID_ODDS`,
+**2 at 25% · 3 at 40% · 4 at 35%** (measured 25.8 / 40.7 / 33.5 over 6,000 maps).
+At two solid they still sit on NON-ADJACENT lanes, which is the old fixed shape.
+
+**Nothing about "you take exactly one before the boss" depended on those
+blanks.** `mapLegalMoves` has a hard `set === MAP_SETS - 1` case that returns
+only the boss, so the rule holds at any funnel width; the blanks were only ever
+costing the set BEFORE the funnel a second visit, whenever your lane's funnel
+cell happened to be one of the holes. Measured with the greedy two-visit walker:
+sets giving two visits **64.6% -> 66.5%**, 0 strands over 4,000 walks.
+
+**Free branch** (dev panel -> Map, persisted as `lethe.map.freeBranch`) lets a
+move start from **any tile you have already taken**, not only the one you are
+standing on. `mapOrigins()` is the whole mechanism: normally it is just
+`mapPos`, and with the toggle on it is every visited tile at the cell it leaves
+you standing on (`_mapStandsAt` - a 2x1 head stands you in its SECOND set).
+Measured: two-visit sets 66.5% -> 68.9%, tiles per run 9.97 -> 10.26.
+
+- **Every move now carries `from` as well as `after`**, because the skip payout
+  asks "did you leave a set having visited it once" and under free branching the
+  set you are leaving is not the one `mapPos` names.
+- **`_mapArriveVisits(set)` is the trap.** A forward step used to hand the
+  dead-end DP a flat `visits: 1`, which is true only for a linear walk; under
+  free branching you can step forward INTO a set you have already visited, and
+  telling the DP there was one visit there let it plan a sideways move that no
+  longer existed. Measured before the fix: **98 strands in 4,000 walks.**
+- **The DP itself is applied UNCHANGED.** Loosening the doom test to "some other
+  origin can still finish" was tried and measured at **86 strands in 4,000**.
+  Free branching adds ORIGINS; it must not also add risk. With the strict test:
+  **0 strands, 4,000 of 4,000 walks reach the boss**, with the toggle either way.
+- `mapRender` marks legal tiles off the same `mapLegalMoves()` list, so branch
+  targets light up with no rendering change.
+
 ### The map has a BOARD, a ROUTE and coloured tiles (r247) - `css/map-mode.css`
 
 The map was tiles on the bare stage: no surface, no sense of a journey, and a

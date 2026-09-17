@@ -54,6 +54,14 @@ const MAP_MAX_MYSTERY = 2;
 // rather than a constant you learn once. Index = number of blanks.
 const MAP_BLANK_ODDS = [0.12, 0.38, 0.50];
 const MAP_BLANKS_MAX = MAP_BLANK_ODDS.length - 1;
+// How many of the funnel's four lanes carry a real tile. Two is the old fixed
+// shape and is now the least likely; four means no structural blanks at all.
+const MAP_FUNNEL_SOLID_ODDS = { 2: 0.25, 3: 0.40, 4: 0.35 };
+function mapRollFunnelSolid() {
+  let r = Math.random();
+  for (const k of [2, 3, 4]) { r -= MAP_FUNNEL_SOLID_ODDS[k]; if (r < 0) return k; }
+  return 4;
+}
 function mapRollBlanks() {
   let r = Math.random();
   for (let i = 0; i < MAP_BLANK_ODDS.length; i++) {
@@ -78,6 +86,15 @@ function mapActive() { return !!ACTIVE_MODE && ACTIVE_MODE.map === true; }
 let mapTiles = [];          // flat list of tile objects
 let mapPos = null;          // { lane, set } of the last resolved tile, or null
 let mapVisits = 0;          // visits in the current set
+// Dev toggle: move out from ANY tile you have already taken, not only the one
+// you are standing on. Persisted, because it changes how a whole run navigates.
+let mapFreeBranch = false;
+try { mapFreeBranch = localStorage.getItem('lethe.map.freeBranch') === '1'; } catch (e) {}
+function setMapFreeBranch(on) {
+  mapFreeBranch = !!on;
+  try { localStorage.setItem('lethe.map.freeBranch', mapFreeBranch ? '1' : '0'); } catch (e) {}
+  if (mapScreenOpen) mapRender();
+}
 let mapSkips = 0;           // skips paid so far this run
 let mapBossGoal = 0;        // fixed quota, computed at run start
 let mapBossArmed = false;   // boss tile confirmed; prize grid routes to the win
@@ -209,17 +226,22 @@ function _mapBuildOnce() {
   // The boss: one tile spanning every lane past the funnel.
   put(0, MAP_BOSS_SET, 'boss');
 
-  // The funnel (last set): two non-level tiles on non-adjacent lanes; the other
-  // two lanes are structural blanks (they do not count toward MAP_BLANKS).
-  const funnelPairs = [[0, 2], [0, 3], [1, 3]];
-  const fp = funnelPairs[Math.floor(Math.random() * funnelPairs.length)];
-  const funnelKinds = ['shop', 'reward', 'event', 'challenge', 'limitbreak'];
-  const fk1 = funnelKinds[Math.floor(Math.random() * funnelKinds.length)];
-  let fk2 = funnelKinds[Math.floor(Math.random() * funnelKinds.length)];
-  if (fk2 === fk1) fk2 = funnelKinds[(funnelKinds.indexOf(fk1) + 1) % funnelKinds.length];
+  // The funnel (last set): non-level tiles, and you take exactly ONE of them
+  // whatever is there - mapLegalMoves offers only the boss once you are in it.
+  // So how many lanes are solid is free to be a ROLL rather than a fixture: it
+  // was always two solid and two structural blanks, which made the last choice
+  // before the boss the same shape every map and cost the set before it a
+  // second visit whenever your lane's funnel cell was one of the holes.
+  const fsolid = mapRollFunnelSolid();
+  const funnelKinds = _mapShuffle(['shop', 'reward', 'event', 'challenge', 'limitbreak']);
+  // At two solid they sit on NON-ADJACENT lanes, which is the original funnel
+  // shape: two options as far apart as the board allows.
+  const flanes = fsolid === 2
+    ? [[0, 2], [0, 3], [1, 3]][Math.floor(Math.random() * 3)]
+    : _mapPickN([0, 1, 2, 3], fsolid);
   for (let l = 0; l < MAP_LANES; l++) {
-    if (l === fp[0]) put(l, MAP_SETS - 1, fk1);
-    else if (l === fp[1]) put(l, MAP_SETS - 1, fk2);
+    const i = flanes.indexOf(l);
+    if (i >= 0) put(l, MAP_SETS - 1, funnelKinds[i % funnelKinds.length]);
     else put(l, MAP_SETS - 1, 'blank');
   }
 
@@ -398,47 +420,90 @@ function mapCanFinishFrom(lane, set, visits) {
 }
 
 // Every tile the player may step on RIGHT NOW, with the doomed ones filtered.
+//
+// Every move carries `from` as well as `after`, because the skip payout asks
+// "did you leave a set having visited it once" and under free branching the
+// set you are leaving is not necessarily the one `mapPos` names.
+function mapVisitsInSet(s) {
+  return mapTiles.filter(t => t.visited && t.set === s).length;
+}
+// Where a visited tile actually LEAVES you: a 2x1 head spans its set and the
+// next one, and taking it moves you on.
+function _mapStandsAt(t) {
+  return { lane: t.lane, set: t.set + (t.span === 2 ? 1 : 0) };
+}
+// The places a move may originate from. Normally just where you are; with the
+// free-branch toggle on, anywhere you have already been.
+function mapOrigins() {
+  if (!mapFreeBranch) return mapPos ? [{ lane: mapPos.lane, set: mapPos.set }] : [];
+  const seen = new Set(), out = [];
+  const add = (o) => { const k = o.lane + ',' + o.set; if (!seen.has(k)) { seen.add(k); out.push(o); } };
+  mapTiles.forEach(t => { if (t.visited && t.kind !== 'boss') add(_mapStandsAt(t)); });
+  if (mapPos) add({ lane: mapPos.lane, set: mapPos.set });
+  return out;
+}
+// How many visits a set will hold once you step into it. Under free branching
+// a FORWARD step can land in a set you have already been in, so it is not
+// always 1 - and handing the dead-end DP a 1 there is exactly what let a
+// measured walk strand itself.
+function _mapArriveVisits(set) {
+  return mapFreeBranch ? mapVisitsInSet(set) + 1 : 1;
+}
 function mapLegalMoves() {
   const out = [];
-  const consider = (t, after) => {
+  const byId = new Map();
+  const push = (m) => {
+    const prev = byId.get(m.tile.id);
+    // A tile reachable from two origins keeps the move that is not doomed.
+    if (prev) { if (prev.doomed && !m.doomed) Object.assign(prev, m); return; }
+    byId.set(m.tile.id, m); out.push(m);
+  };
+  // The dead-end DP is applied UNCHANGED under free branching: a move is legal
+  // only if the linear walk from where it lands can still reach the boss.
+  // Loosening it to "some other origin can still finish" was tried and
+  // measured at 86 strands in 4,000 walks - free branching adds ORIGINS, and
+  // making it also add risk is not the trade. Stricter than necessary is the
+  // right side to err on when the cost is a lost run.
+  const canFinishAfter = (t, after) => mapCanFinishFrom(after.lane, after.set, after.visits);
+  const consider = (t, after, from) => {
     if (!t || t.visited || t.kind === 'blank') return;
-    // Refuse a move that strands the run (see the DP note above).
-    if (t.kind !== 'boss' && !mapCanFinishFrom(after.lane, after.set, after.visits)) {
-      out.push({ tile: t, doomed: true });
-      return;
-    }
-    out.push({ tile: t, after });
+    if (t.kind !== 'boss' && !canFinishAfter(t, after)) { push({ tile: t, from, doomed: true }); return; }
+    push({ tile: t, after, from });
   };
   if (!mapPos) {
     // Off-map: any solid tile in set 1.
     mapTiles.filter(t => t.set === 0 && t.kind !== 'blank' && !t.visited)
-      .forEach(t => consider(t, { lane: t.lane, set: t.span === 2 ? 1 : 0, visits: 1 }));
+      .forEach(t => consider(t, { lane: t.lane, set: t.span === 2 ? 1 : 0, visits: 1 }, null));
     return out;
   }
-  const { lane, set } = mapPos;
-  if (set === MAP_SETS - 1) {           // funnel: only the boss remains
-    const boss = mapTiles.find(t => t.kind === 'boss');
-    if (boss && !boss.visited) out.push({ tile: boss, after: { lane, set: MAP_BOSS_SET, visits: 1 } });
-    return out;
-  }
-  // Vertical, while the set has room.
-  if (mapVisits < 2) {
-    for (const dl of [-1, 1]) {
-      const t = mapCellTile(lane + dl, set);
-      if (t && t.set === set)   // a 2x1 tail cell is set+1's business, not this set's
-        consider(t, t.span === 2
-          ? { lane: t.lane, set: set + 1, visits: 1 }
-          : { lane: t.lane, set, visits: mapVisits + 1 });
+  for (const o of mapOrigins()) {
+    const { lane, set } = o;
+    const visits = mapFreeBranch ? mapVisitsInSet(set) : mapVisits;
+    const from = { lane, set, visits };
+    if (set === MAP_SETS - 1) {         // funnel: only the boss remains
+      const boss = mapTiles.find(t => t.kind === 'boss');
+      if (boss && !boss.visited) push({ tile: boss, after: { lane, set: MAP_BOSS_SET, visits: 1 }, from });
+      continue;
     }
-  }
-  // Forward, always. A 2x1's tail is refused for the same reason the DP
-  // refuses it: the head is the tile, and it is behind you.
-  const f = mapCellTile(lane, set + 1);
-  if (f) {
-    if (f.kind === 'boss') out.push({ tile: f, after: { lane, set: MAP_BOSS_SET, visits: 1 } });
-    else if (f.set === set + 1) consider(f, f.span === 2
-      ? { lane: f.lane, set: set + 2, visits: 1 }
-      : { lane: f.lane, set: set + 1, visits: 1 });
+    // Vertical, while the set has room.
+    if (visits < 2) {
+      for (const dl of [-1, 1]) {
+        const t = mapCellTile(lane + dl, set);
+        if (t && t.set === set)  // a 2x1 tail cell is set+1's business, not this set's
+          consider(t, t.span === 2
+            ? { lane: t.lane, set: set + 1, visits: _mapArriveVisits(set + 1) }
+            : { lane: t.lane, set, visits: visits + 1 }, from);
+      }
+    }
+    // Forward, always. A 2x1's tail is refused for the same reason the DP
+    // refuses it: the head is the tile, and it is behind you.
+    const f = mapCellTile(lane, set + 1);
+    if (f) {
+      if (f.kind === 'boss') push({ tile: f, after: { lane, set: MAP_BOSS_SET, visits: 1 }, from });
+      else if (f.set === set + 1) consider(f, f.span === 2
+        ? { lane: f.lane, set: set + 2, visits: _mapArriveVisits(set + 2) }
+        : { lane: f.lane, set: set + 1, visits: _mapArriveVisits(set + 1) }, from);
+    }
   }
   return out;
 }
@@ -625,7 +690,7 @@ function mapRenderBar() {
   bar.innerHTML =
     `<div class="mb-top">` +
       `<span class="mb-set">SET ${setNo} / ${MAP_SETS}</span>` +
-      `<span class="mb-visits">${mapPos ? `VISITS ${mapVisits}/2` : 'CHOOSE A START'}</span>` +
+      `<span class="mb-visits">${mapPos ? `VISITS ${mapFreeBranch ? mapVisitsInSet(mapPos.set) : mapVisits}/2${mapFreeBranch ? ' · FREE BRANCH' : ''}` : 'CHOOSE A START'}</span>` +
       `<span class="mb-skip">skip pays ${skipNext} ◆</span>` +
       `<span class="mb-coins">${coins} ◆</span>` +
     `</div>` +
@@ -643,7 +708,7 @@ function mapBarInfo(t, move) {
   const face = mapTileFace(t);
   let s = `<b>${face.name}</b> · ${mapTileDesc(t)}`;
   if (move && !move.doomed) {
-    if (mapPos && move.after.set > mapPos.set && mapVisits === 1 && t.kind !== 'boss')
+    if (move.from && move.after.set > move.from.set && move.from.visits === 1 && t.kind !== 'boss')
       s += ` <i>Moving on now pays ${MAP_SKIP_BASE + MAP_SKIP_STEP * (mapSkips + 1)} ◆.</i>`;
     if (t.span === 2) s += ` <i>Spans two sets - taking it moves you on.</i>`;
   } else if (t.visited) s += ' <i>Already taken.</i>';
@@ -697,7 +762,7 @@ function mapConfirm() {
 
   // Skip payout: leaving a set after exactly one visit. Checked BEFORE the
   // position moves; the boss step never pays (the funnel is one visit by design).
-  if (mapPos && t.kind !== 'boss' && move.after.set > mapPos.set && mapVisits === 1) {
+  if (move.from && t.kind !== 'boss' && move.after.set > move.from.set && move.from.visits === 1) {
     mapSkips++;
     const pay = MAP_SKIP_BASE + MAP_SKIP_STEP * mapSkips;
     coins += pay;

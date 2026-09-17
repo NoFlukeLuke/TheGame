@@ -57,6 +57,8 @@ function syncMatch3DevToggles() {
     const el = document.getElementById('dev-match3-type-' + t);
     if (el) el.checked = !!match3Types[t];
   });
+  const mfb = document.getElementById('dev-map-freebranch');
+  if (mfb) mfb.checked = mapFreeBranch;
 }
 
 function applyDevMode() {
@@ -136,6 +138,7 @@ const DEV_GROUPS = [
   { g:'display',  icon:'⛶', label:'Display',   sub:() => 'fullscreen' },
   { g:'save',     icon:'💾', label:'Save Run',  sub:() => { const s = savedRunSummary(); return s ? `saved · Round ${s.level}` : 'no save yet'; } },
   { g:'seed',     icon:'⚄', label:'Run Seed',  sub:() => runSeed ? `on · ${runSeed}` : 'off · random' },
+  { g:'map',      icon:'🗺', label:'Map',       sub:() => mapFreeBranch ? 'free branch ON' : 'free branch off' },
   { g:'match3',   icon:'⬚', label:'Match-3',   sub:() => 'match types · sandbox' },
   { g:'spectrum', icon:'◐', label:'Spectrum',  sub:() => `${spectrumRanks().length} values × ${spectrumColors().length} colours` },
   { g:'improve',  icon:'\u2191', label:'Improve',   sub:() => devImproveSub() },
