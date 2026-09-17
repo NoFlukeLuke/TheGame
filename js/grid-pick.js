@@ -1,75 +1,77 @@
 // ══════════════════════════════════════════════════════════════════════════
-// GRID PICK (r254, resized r255) - the pick-of-three drawn ON the board.
+// GRID PICK (r254, rebuilt r256) - the pick-of-three IS the board.
 //
-// The pick-of-three used to be a small panel floating over the grid: three
-// 116px cards over a board they had nothing to do with. This renders the same
-// choice INTO #grid-slot - the reward grid's own room - as tiles MEASURED IN
-// GRID CELLS, which fall in like cards.
+// The first two passes drew a panel OVER the grid. This one INHABITS it, the
+// way the shop and the crossroads do: the board is re-laid for the screen, the
+// real cards are cleared, and every cell is either an option tile or an inert
+// black ambience card. There is no backdrop and nothing outside the grid's
+// footprint, because there is nothing to put one behind - the tiles ARE what
+// is on the board.
 //
-// THE HEIGHT IS IN TILE UNITS, and that is the owner's rule (r255): no more
-// than 3 of a 4-row board, 4 of a 5-row board, 4 of a 6-row board. So
-// `rowsTall = min(4, rows - 1)` - a pick never covers the whole board, which
-// is what makes it read as something dealt ONTO the board rather than as a
-// panel that replaced it. Width is the board's width shared between the
-// options, because three tall thin slivers is not what a choice looks like.
+// THE LAYOUT (owner spec, r256) - a 6 x 5 board:
 //
-// Layout inside a tile: the OBJECT, then the name and the description directly
-// UNDER it with a small gap, and any slack left at the BOTTOM (r255 - they
-// used to be pushed to the bottom edge by a growing art box, which read as two
-// unrelated blocks).
+//     row 0 : 6 ambience cards
+//     rows 1-3 : three options, each 2 CELLS WIDE x 3 CELLS TALL
+//     row 4 : action tiles (Survival's reroll / peek / breakdown / shop),
+//             then ambience cards for whatever is left
 //
-// Three rules, all owner spec:
+// That closes exactly: 3 x (2x3) = 18 cells, plus 6 above and 6 below = 30.
+//
+// The title is NOT on the board - every cell is spoken for. It goes in the HUD
+// through enterGridScreenHud, the same readout the shop and the crossroads use.
+//
+// Three rules carried forward:
 //  - The OBJECT floats (js/float-anim.js, the reward grid's drift); the NAME
 //    and DESCRIPTION do not - a drifting paragraph is unreadable.
 //  - The description never grows the tile. It clamps, and a clamped one grows
 //    a tappable ellipsis; opening it moves the description ENTIRELY into the
 //    chip (the tile's copy is hidden while the chip is up, owner's call
 //    between that and continuing the text below the chip).
-//  - The choices are spaced and neutral-bordered so they read as three
-//    distinct things; rarity colour stays on the object, where it means rarity.
+//  - The choices are neutral-bordered; rarity colour stays on the object,
+//    where it means rarity.
 //
-// It is a SIBLING overlay of #grid (inside #grid-slot), never tiles inside it:
-// render() rebuilds #grid's children wholesale (the r248 crossroads leak is
-// what happens to markup left in there), and Survival opens its pick while the
-// board underneath is still finishing the goal dance - an overlay covers both
-// cases with one mechanism, and #sel-count is the precedent for the slot being
-// safe ground.
-//
-// Two consumers:
-//  - openGridPick(opts) owns the whole overlay (guided pick-of-three, the map's
-//    hard-round knack pick). Tiles are absolutely placed in cell units.
-//  - Survival keeps its own overlay (peek / reroll / shop / contributions are
-//    its machinery) but builds each choice with gridPickTileHTML and wires it
-//    with gridPickAfterRender, so the choices are the same object. Its row is
-//    a flex row given the SAME tile height, because its panel also has to fit
-//    a footer.
+// TILES LIVE IN #grid AND MUST BE REMOVED BY HAND. render() only reconciles
+// elements carrying [data-card-id], so anything else left in there is never
+// cleaned up - that is the r248 crossroads leak, and closeGridPick is what
+// stops this repeating it.
 // ══════════════════════════════════════════════════════════════════════════
 
 // The entity object AND the bare icon (a limit has no object) both drift.
 const GRID_PICK_FLOAT_SEL = '.gp-art .reward-cell, .gp-art .gp-icon';
 
-const GP_HEAD_H = 30;      // stage px reserved above the tiles for the title
+const GP_COLS = 6, GP_ROWS = 5;   // the board this screen asks for
+const GP_OPT_W = 2, GP_OPT_H = 3; // each option, in cells
+const GP_OPT_ROW = 1;             // options sit under the top ambience row
 
-// How the pick is measured against the live board. Read AFTER
-// recomputeGridMetrics, so CARD_W/CARD_H/CARD_GAP are this board's.
-function gridPickGeom(n) {
-  const rows = Math.max(2, (typeof gridRows === 'number' && gridRows) || 4);
-  const cols = Math.max(2, (typeof gridCols === 'number' && gridCols) || 4);
+let gridPickSaved = null;         // { rows, cols } to restore on close
+let gridPickState = null;         // { offers, actions, onChoose } for a re-render
+
+// Take the board over at the size this screen wants, exactly as the shop does.
+function gridPickTakeover() {
+  if (!gridPickSaved) gridPickSaved = { rows: gridRows, cols: gridCols };
+  gridRows = GP_ROWS; gridCols = GP_COLS;
+  if (typeof recomputeGridMetrics === 'function') recomputeGridMetrics();
+  const gridEl = document.getElementById('grid');
+  // The real cards go. Nothing may show between the tiles (owner spec) and the
+  // board is about to be re-dealt by whatever follows the pick anyway.
+  if (gridEl) gridEl.innerHTML = '';
+  return gridEl;
+}
+
+function gridPickRelease() {
+  const gridEl = document.getElementById('grid');
+  if (gridEl) gridEl.querySelectorAll('.gp-opt, .gp-amb, .gp-act').forEach(el => el.remove());
+  if (gridPickSaved) { gridRows = gridPickSaved.rows; gridCols = gridPickSaved.cols; gridPickSaved = null; }
+  if (typeof recomputeGridMetrics === 'function') recomputeGridMetrics();
+}
+
+// A cell box in the live board's own units.
+function gpBox(r, c, w, h) {
   const cw = (typeof CARD_W === 'number' ? CARD_W : 57);
   const ch = (typeof CARD_H === 'number' ? CARD_H : 75);
   const g  = (typeof CARD_GAP === 'number' ? CARD_GAP : 5);
-  const pad = (typeof GRID_PAD === 'number' ? GRID_PAD : 0);
-  // Owner's rule: 3 of 4, 4 of 5, 4 of 6 - never the whole board.
-  const rowsTall = Math.max(2, Math.min(4, rows - 1));
-  const innerW = cols * cw + (cols - 1) * g;
-  const innerH = rows * ch + (rows - 1) * g;
-  const tileH  = rowsTall * (ch + g) - g;
-  const GAP    = g * 2;            // visibly apart, so three choices read as three
-  const tileW  = Math.floor((innerW - (n - 1) * GAP) / Math.max(1, n));
-  const avail  = innerH - GP_HEAD_H;
-  const top    = pad + GP_HEAD_H + Math.max(0, (avail - tileH) / 2);
-  return { rows, cols, rowsTall, tileW, tileH, GAP, pad, innerW, innerH, top,
-           left: i => pad + i * (tileW + GAP) };
+  return `left:${cellLeft(c)}px;top:${cellTop(r)}px;`
+       + `width:${w * cw + (w - 1) * g}px;height:${h * ch + (h - 1) * g}px;`;
 }
 
 // One choice. p: { entity, id, emoji/icon, label, desc, rarity/tier, uses, tag }
@@ -81,7 +83,11 @@ function gridPickTileHTML(p, i) {
                      { extraClass: 'gp-obj' })
     : `<div class="gp-icon">${p.icon || p.emoji || '▲'}</div>`;
   const desc = (typeof colorizeKeywords === 'function') ? colorizeKeywords(p.desc || '') : (p.desc || '');
-  return `<div class="gp-opt" data-gp="${i}">`
+  // The art box is given the OBJECT'S OWN ASPECT (gp-art-<kind>), so the object
+  // fills it instead of letterboxing inside a taller box - that slack was the
+  // big gap between the icon and the name the owner called out.
+  const kind = isEnt ? p.entity : 'plain';
+  return `<div class="gp-opt gp-art-${kind}" data-gp="${i}">`
     + (p.tag ? `<div class="gp-tag rar-${rar}">${p.tag}</div>` : '')
     + `<div class="gp-art" data-float-key="gp-${i}-${p.id || p.label || ''}">${art}</div>`
     + `<div class="gp-name">${p.label || ''}</div>`
@@ -105,12 +111,11 @@ function gpOpenRead(opt, payload, anchor, interactive) {
     document.addEventListener('pointerdown', restore, { capture: true, once: true });
   } else {
     showEntityTooltip(anchor, payload);
-    opt._gpRestore = restore;
   }
 }
 
 // Wire a container of .gp-opt tiles: choose on click, clamp detection on the
-// descriptions, name fitting, and the float driver. Shared with Survival.
+// descriptions, name fitting, and the float driver.
 function gridPickAfterRender(root, offers, onChoose) {
   root.querySelectorAll('.gp-opt').forEach(opt => {
     const i = +opt.dataset.gp;
@@ -120,7 +125,7 @@ function gridPickAfterRender(root, offers, onChoose) {
     const more = opt.querySelector('.gp-more');
     if (desc && more) {
       // Clamp detection needs a laid-out element - callers invoke this after
-      // the overlay is visible (a hidden element measures zero, r239's rule).
+      // the tiles are on the board (a hidden element measures zero, r239).
       requestAnimationFrame(() => {
         if (desc.scrollHeight <= desc.clientHeight + 1) return;
         opt.classList.add('gp-clipped');
@@ -161,56 +166,104 @@ function gridTileFallIn(el, { delay = 0, dist = 260 } = {}) {
   ], { duration: 420, delay, easing: 'ease-in', fill: 'both' });
 }
 
-// opts: { kicker, title, offers, onChoose(i, offer), footerHTML }
-function openGridPick(opts) {
-  const slot = document.getElementById('grid-slot') || document.body;
-  let el = document.getElementById('grid-pick');
-  if (!el) { el = document.createElement('div'); el.id = 'grid-pick'; }
-  slot.appendChild(el);
-  if (typeof recomputeGridMetrics === 'function') { try { recomputeGridMetrics(); } catch (e) {} }
+// Draw (or redraw) the taken-over board from gridPickState.
+function gridPickRender(animateIn) {
+  const gridEl = gridPickTakeover();
+  if (!gridEl) return;
+  const { offers, actions, onChoose } = gridPickState;
+  const dist = (typeof CARD_H === 'number' ? CARD_H : 75) * GP_ROWS;
+  const put = (html, style, delay) => {
+    const d = document.createElement('div');
+    d.innerHTML = html;
+    const el = d.firstElementChild;
+    el.style.cssText += style;
+    gridEl.appendChild(el);
+    if (animateIn) gridTileFallIn(el, { delay, dist });
+    return el;
+  };
 
+  // The options are CENTRED: two offers (the map's knack pick) is 4 cells of a
+  // 6-wide board, and starting them at the left edge would leave a bare column
+  // rather than a board. Everything they do not cover is ambience, so no cell
+  // is ever empty.
+  const span = offers.length * GP_OPT_W;
+  const startCol = Math.max(0, Math.floor((GP_COLS - span) / 2));
+
+  // AMBIENCE FIRST, every cell not taken by an option, so a real tile always
+  // paints over it rather than the other way round.
+  for (let r = 0; r < GP_ROWS - 1; r++) {
+    for (let c = 0; c < GP_COLS; c++) {
+      const inOpt = r >= GP_OPT_ROW && r < GP_OPT_ROW + GP_OPT_H
+                 && c >= startCol && c < startCol + span;
+      if (inOpt) continue;
+      put('<div class="gp-amb"></div>', gpBox(r, c, 1, 1), (r * GP_COLS + c) * 30);
+    }
+  }
+
+  // The options themselves, 2 cells wide and 3 tall.
+  offers.forEach((p, i) => {
+    put(gridPickTileHTML(p, i), gpBox(GP_OPT_ROW, startCol + i * GP_OPT_W, GP_OPT_W, GP_OPT_H), 220 + i * 90);
+  });
+
+  // Row 4: the screen's own actions as TILES (owner spec r256 - Survival's
+  // reroll is a tile on the board, not a button under a panel), then ambience
+  // for the cells no action claimed.
+  const acts = (actions || []).slice(0, GP_COLS);
+  for (let c = 0; c < GP_COLS; c++) {
+    const a = acts[c];
+    const delay = 500 + c * 45;
+    if (!a) { put('<div class="gp-amb"></div>', gpBox(GP_ROWS - 1, c, 1, 1), delay); continue; }
+    const el = put(
+      `<div class="gp-act${a.cls ? ' ' + a.cls : ''}${a.disabled ? ' gp-act-off' : ''}">`
+      + `<div class="gp-act-icon">${a.icon || ''}</div>`
+      + `<div class="gp-act-label">${a.label || ''}</div>`
+      + (a.sub ? `<div class="gp-act-sub">${a.sub}</div>` : '')
+      + `</div>`, gpBox(GP_ROWS - 1, c, 1, 1), delay);
+    if (!a.disabled && a.onClick) el.addEventListener('click', e => { e.stopPropagation(); a.onClick(); });
+  }
+
+  gridPickAfterRender(gridEl, offers, onChoose);
+}
+
+// opts: { kicker, title, tone, offers, actions, onChoose(i, offer) }
+function openGridPick(opts) {
   const offers = opts.offers || [];
-  const G = gridPickGeom(Math.max(1, offers.length));
-  el.innerHTML =
-    `<div class="gp-board">`
-    + `<div class="gp-head" style="height:${GP_HEAD_H}px">`
-    + (opts.kicker ? `<span class="gp-kicker">${opts.kicker}</span>` : '')
-    + `<span class="gp-title">${opts.title || 'TAKE ONE'}</span></div>`
-    + `<div class="gp-row"></div>`
-    + (opts.footerHTML ? `<div class="gp-foot">${opts.footerHTML}</div>` : '')
-    + `</div>`;
-  const row = el.querySelector('.gp-row');
-  row.innerHTML = offers.map((p, i) => gridPickTileHTML(p, i)).join('');
-  // Absolute placement in CELL UNITS - the tiles are board furniture, not a
-  // flex row that happens to sit over the board.
-  row.querySelectorAll('.gp-opt').forEach((o, i) => {
-    o.style.cssText = `position:absolute;left:${G.left(i)}px;top:${G.top}px;width:${G.tileW}px;height:${G.tileH}px;`;
-    gridTileFallIn(o, { delay: i * 80, dist: G.top + G.tileH + 40 });
-  });
-  el.classList.add('show');
-  gridPickAfterRender(row, offers, (i, offer) => {
-    closeGridPick();
-    opts.onChoose && opts.onChoose(i, offer);
-  });
-  return el;
+  gridPickState = {
+    offers, actions: opts.actions || [],
+    onChoose: (i, offer) => { closeGridPick(); opts.onChoose && opts.onChoose(i, offer); },
+  };
+  gameTimerPaused = true;
+  document.body.classList.add('gp-active');
+  if (typeof enterGridScreenHud === 'function') enterGridScreenHud(opts.title || 'TAKE ONE', opts.tone || 'reward');
+  gridPickRender(true);
+}
+
+// Re-draw without re-dealing (a reroll swapped the offers under us).
+function gridPickRefresh(offers, actions) {
+  if (!gridPickState) return;
+  if (offers)  gridPickState.offers  = offers;
+  if (actions) gridPickState.actions = actions;
+  gridPickRender(false);
+}
+
+// Put the board back without ending the pick (Survival's peek), and bring it
+// back again. The offers are held in gridPickState, so this is a redraw.
+function gridPickSetShown(on) {
+  if (!gridPickState) return;
+  if (on) { gridPickRender(false); }
+  else {
+    gridPickRelease();
+    if (typeof stopFloat === 'function') stopFloat('gridpick');
+    if (typeof render === 'function') { try { render(); } catch (e) {} }
+  }
 }
 
 function closeGridPick() {
-  const el = document.getElementById('grid-pick');
-  if (el) { el.classList.remove('show'); el.innerHTML = ''; }
+  document.body.classList.remove('gp-active');
+  gridPickRelease();
+  gridPickState = null;
   if (typeof stopFloat === 'function') stopFloat('gridpick');
   if (typeof clearFloatSeeds === 'function') clearFloatSeeds('gp-');
   if (typeof hideEntityTooltip === 'function') hideEntityTooltip(true);
-}
-
-// Survival's pick keeps a flex row (its panel also carries a footer), so it is
-// handed the SAME tile height the placed tiles would get - the choice is the
-// same size wherever it is offered.
-function gridPickSizeFlexRow(rowEl, n) {
-  if (!rowEl) return;
-  if (typeof recomputeGridMetrics === 'function') { try { recomputeGridMetrics(); } catch (e) {} }
-  const G = gridPickGeom(Math.max(1, n));
-  rowEl.style.setProperty('--gp-tile-h', G.tileH + 'px');
-  rowEl.style.setProperty('--gp-tile-w', G.tileW + 'px');
-  rowEl.style.setProperty('--gp-gap', G.GAP + 'px');
+  if (typeof exitGridScreenHud === 'function') exitGridScreenHud();
 }

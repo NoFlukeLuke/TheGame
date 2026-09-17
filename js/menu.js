@@ -1,4 +1,4 @@
-const BUILD = "2026-09-17 · r255 · the payout falls in as tiles; the pick-of-three is measured in grid cells (mid-iteration: it is still a panel over the board, not the board itself)";
+const BUILD = "2026-09-17 · r256 · the pick-of-three IS the board: a 6x5 takeover, 2x3 option tiles, ambience cards, and the controls as tiles";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

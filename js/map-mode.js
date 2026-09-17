@@ -903,7 +903,7 @@ function mapKnackPickTwo(done) {
   // pick-of-three uses - name and description under the object, and a tooltip
   // wherever the description clamps. This screen had no tooltips at all before.
   openGridPick({
-    kicker: 'HARD ROUND BONUS', title: 'TAKE A KNACK',
+    title: 'TAKE A KNACK', tone: 'reward',
     offers: offers.map(k => ({ entity: 'knack', icon: k.emoji || '♦', emoji: k.emoji || '♦',
       id: k.id, label: k.name, desc: k.desc, rarity: k.rarity || 'common',
       tag: (typeof tierLabel === 'function') ? tierLabel('knack', k.rarity || 'common') : '' })),

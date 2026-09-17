@@ -589,7 +589,7 @@ function guidedOpenPickThree(done) {
   // overlay covers nothing the player still needs.
   mk.forEach(p => { p.tag = (typeof tierLabel === 'function') ? tierLabel(p.entity, p.rarity || 'common') : ''; });
   openGridPick({
-    kicker: 'ON THE HOUSE', title: 'TAKE ONE', offers: mk,
+    title: 'TAKE ONE', tone: 'reward', offers: mk,
     onChoose: (i, p) => { try { p.apply?.(); } catch (e) {} done(); },
   });
 }
