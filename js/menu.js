@@ -1,4 +1,4 @@
-const BUILD = "2026-09-17 · r253 · the map funnel is not always two blanks + a dev toggle to branch from any visited tile";
+const BUILD = "2026-09-17 · r254 · Advance Notice - a knack that names the NEXT quarter's boss, and voids itself when sold";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
