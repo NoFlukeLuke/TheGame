@@ -647,7 +647,8 @@ function mapRender(animateIn) {
       `<div class="mt-name">${face.name}</div>` +
       (t.visited ? `<div class="mt-stamp">DONE</div>` : '');
     div.onclick = () => mapTileTap(t);
-    div.onmouseenter = () => { if (!mapSelected) mapBarInfo(t); };
+    div.onmouseenter = () => { if (!mapSelected) mapBarInfo(t, mapMoveFor(t.id)); };
+    div.onmouseleave = () => { if (!mapSelected) mapBarInfo(null); };
     gridEl.appendChild(div);
     // Long event names on a card-width tile: shrink, never break mid-word
     // (js/fit-text.js - the same fitter every entity tile uses).
@@ -693,38 +694,72 @@ function mapTileTap(t) {
 }
 
 // ── The bar: where you are, what is picked, CONFIRM ──────────────────────────
+// ONE compact strip. The standing "how the map works" prose used to sit here as
+// a permanent two-line block, which is a tutorial you cannot dismiss; it lives
+// behind the ? chip now and the bar carries only what changes: where you are,
+// what you have picked, and the button.
+const MAP_HELP = [
+  ['Move', 'Step to a lit tile touching where you stand. Every tile you step on happens.'],
+  ['Two per set', 'A set will give you at most two tiles.'],
+  ['Moving on', 'Leaving a set after only one tile pays you credits.'],
+  ['Last set', 'One tile, then the boss.'],
+  ['Dark tiles', 'Holes. Nothing there and no way through.'],
+];
 function mapRenderBar() {
   let bar = document.getElementById('map-bar');
   if (!bar) { bar = document.createElement('div'); bar.id = 'map-bar'; document.body.appendChild(bar); }
   const setNo = mapPos ? Math.min(mapPos.set + 1, MAP_SETS) : 1;
   const skipNext = MAP_SKIP_BASE + MAP_SKIP_STEP * (mapSkips + 1);
+  const visits = mapPos
+    ? `${mapFreeBranch ? mapVisitsInSet(mapPos.set) : mapVisits}/2${mapFreeBranch ? ' FREE' : ''}`
+    : 'PICK A START';
   bar.innerHTML =
-    `<div class="mb-top">` +
-      `<span class="mb-set">SET ${setNo} / ${MAP_SETS}</span>` +
-      `<span class="mb-visits">${mapPos ? `VISITS ${mapFreeBranch ? mapVisitsInSet(mapPos.set) : mapVisits}/2${mapFreeBranch ? ' · FREE BRANCH' : ''}` : 'CHOOSE A START'}</span>` +
-      `<span class="mb-skip">skip pays ${skipNext} ◆</span>` +
-      `<span class="mb-coins">${coins} ◆</span>` +
-    `</div>` +
-    `<div class="mb-info" id="mb-info">Pick a lit tile. Moving on after one visit pays credits.</div>` +
-    `<div class="mb-actions"><button id="mb-confirm" disabled>CONFIRM</button></div>`;
+    `<span class="mb-set">SET ${setNo}/${MAP_SETS}</span>` +
+    `<span class="mb-visits">${visits}</span>` +
+    `<button class="mb-q" id="mb-q" title="How the map works">?</button>` +
+    `<span class="mb-info" id="mb-info"></span>` +
+    `<span class="mb-skip">SKIP ${skipNext}</span>` +
+    `<span class="mb-coins">${coins} ◆</span>` +
+    `<button id="mb-confirm" disabled>CONFIRM</button>` +
+    `<div class="mb-help" id="mb-help">` +
+      MAP_HELP.map(([k, v]) => `<div class="mb-hrow"><b>${k}</b><span>${v}</span></div>`).join('') +
+    `</div>`;
   bar.classList.add('show');
   const btn = document.getElementById('mb-confirm');
   btn.onclick = () => mapConfirm();
   btn.disabled = !mapSelected;
+  document.getElementById('mb-q').onclick = (e) => {
+    e.stopPropagation();
+    const h = document.getElementById('mb-help');
+    if (!h) return;
+    const open = h.classList.toggle('show');
+    // One-shot outside-click close, armed only while it is open - a standing
+    // document listener on a bar that is rebuilt every render would stack up.
+    if (open) setTimeout(() => document.addEventListener('click', function off(ev) {
+      if (bar.contains(ev.target)) return;
+      h.classList.remove('show');
+      document.removeEventListener('click', off);
+    }), 0);
+  };
+  if (mapSelected) { const t = mapTiles.find(x => x.id === mapSelected); if (t) mapBarInfo(t, mapMoveFor(mapSelected)); }
+  // The x/y selection readout hides on the map (r255), and nothing else repaints
+  // it while the map is up - the class goes on without a render behind it.
+  if (typeof updateSelectionUI === 'function') updateSelectionUI();
 }
 
 function mapBarInfo(t, move) {
   const el = document.getElementById('mb-info');
   if (!el) return;
+  if (!t) { el.innerHTML = ''; return; }
   const face = mapTileFace(t);
-  let s = `<b>${face.name}</b> · ${mapTileDesc(t)}`;
+  let s = `<b>${face.name}</b> ${mapTileDesc(t)}`;
   if (move && !move.doomed) {
     if (move.from && move.after.set > move.from.set && move.from.visits === 1 && t.kind !== 'boss')
-      s += ` <i>Moving on now pays ${MAP_SKIP_BASE + MAP_SKIP_STEP * (mapSkips + 1)} ◆.</i>`;
-    if (t.span === 2) s += ` <i>Spans two sets - taking it moves you on.</i>`;
-  } else if (t.visited) s += ' <i>Already taken.</i>';
-  else if (move && move.doomed) s += ' <i>That path dead-ends before the boss.</i>';
-  else if (t.kind !== 'boss') s += ' <i>Not reachable from here.</i>';
+      s += ` <i>moving on pays ${MAP_SKIP_BASE + MAP_SKIP_STEP * (mapSkips + 1)} ◆</i>`;
+    if (t.span === 2) s += ` <i>spans two sets</i>`;
+  } else if (t.visited) s += ' <i>already taken</i>';
+  else if (move && move.doomed) s += ' <i>dead-ends before the boss</i>';
+  else if (t.kind !== 'boss') s += ' <i>not reachable from here</i>';
   el.innerHTML = s;
 }
 
@@ -733,6 +768,7 @@ function mapCloseScreen() {
   mapSelected = null;
   document.getElementById('map-bar')?.classList.remove('show');
   document.body.classList.remove('map-active');
+  if (typeof updateSelectionUI === 'function') updateSelectionUI();
   if (typeof exitGridScreenHud === 'function') exitGridScreenHud();
   const gridEl = document.getElementById('grid');
   if (gridEl) gridEl.innerHTML = '';

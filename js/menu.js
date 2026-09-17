@@ -1,4 +1,4 @@
-const BUILD = "2026-09-17 · r254 · the walked route runs straight through a 2x1 tile before it turns";
+const BUILD = "2026-09-17 · r255 · the map bar is one compact strip with a ? chip; the x/y readout only shows where a pick matters";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

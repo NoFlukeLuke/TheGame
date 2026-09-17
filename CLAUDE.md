@@ -1476,6 +1476,47 @@ Measured: two-visit sets 66.5% -> 68.9%, tiles per run 9.97 -> 10.26.
 - `mapRender` marks legal tiles off the same `mapLegalMoves()` list, so branch
   targets light up with no rendering change.
 
+### The map bar is one strip, and the rules live behind a ? (r255)
+
+Owner: the bar was *"too large and persistent, and doesn't feel especially on
+theme."* It was three stacked blocks - a stats row, a two-line prose block, and
+a button row on its own line - about 100px tall, permanently across the bottom
+of the map.
+
+**It is ONE compact row now (38px)**: `SET x/6`, visits, a **? chip**, the
+picked tile's line, the skip price, credits, CONFIRM. Console material to match
+`#event-panel` (indigo plate, plastic ring) rather than a plain dark box.
+
+- **The standing "how the map works" prose is a tutorial you cannot dismiss**, so
+  it moved into `MAP_HELP` behind the ? - five one-line rules, drawn as a card
+  that opens **ABOVE** the strip. Above, because anchoring it inside the bar
+  would change the bar's height and shove the board every time it opened.
+- **`.mb-info` is `flex: 1` and CLIPPED to one line** (`text-overflow: ellipsis`,
+  `max-width: 46vw`). A long tile description would otherwise push CONFIRM off
+  the end of a `width: max-content` strip. It is `:empty { display: none }`, so
+  with nothing picked the bar shrinks to 360px.
+- **The outside-click close is armed only while the card is open.** The bar is
+  rebuilt on every map render, so a standing document listener would stack one
+  copy per render.
+- A tile's `mouseleave` clears the line now; it only ever set it.
+
+### The x/y selection readout shows only where a pick matters (r255)
+
+`#sel-count`'s live test was `gridData.length > 0` - the number of ROWS, which is
+true of a board of nulls and of every screen that merely BORROWS the grid. So
+"0/3" hung over the map, the crossroads, the payout pick and the interlude,
+describing a selection that could not be made.
+
+`updateSelectionUI` now shows it on exactly three screens: **the shop, the reward
+grid, and a live round** (`boardLive` = real cards on the board, and none of
+`map-active` / `pick-active` / `grid-screen`). Measured: hidden on the menu and
+the map, shown in a level, a reward grid and the shop.
+
+- **A class gate needs a repaint behind it.** `map-active` goes on without a
+  `render()`, so `mapRenderBar` and `mapCloseScreen` call `updateSelectionUI`
+  themselves; the payout pick's close does the same, because it renders BEFORE
+  it drops its class.
+
 ### The route runs THROUGH a 2x1, it does not cut across it (r254)
 
 A tile was ONE route node, at its head cell. A 2x1 occupies two cells, so the

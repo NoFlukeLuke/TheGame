@@ -133,9 +133,18 @@ function updateSelectionUI() {
   const cEl = document.getElementById('sel-count');
   const vEl = document.getElementById('sel-count-val');
   if (!cEl || !vEl) return;
-  // Only where a selection means something. The menu and the between-round screens
-  // leave the board empty, and a stale "0/3" hanging over it reads as a bug.
-  const live = onReward || onShop || (typeof gridData !== 'undefined' && gridData && gridData.length > 0);
+  // Only where a selection means something (r255). This used to be "gridData has
+  // rows", which is true of a board of NULLS and of every screen that merely
+  // BORROWS the grid - so the readout hung over the map, the crossroads, the
+  // payout pick and the interlude, saying 0/3 about nothing. The three screens
+  // where a number of picks is a real decision are the shop, the reward grid and
+  // a live round; everywhere else it is noise.
+  const body = document.body.classList;
+  const boardLive = !body.contains('map-active') && !body.contains('pick-active')
+    && !body.contains('grid-screen')
+    && typeof gridData !== 'undefined' && Array.isArray(gridData)
+    && gridData.some(row => row && row.some(c => c));
+  const live = onReward || onShop || boardLive;
   cEl.classList.toggle('on', !!live);
   if (!live) return;
   vEl.textContent = `${n}/${cap}`;
