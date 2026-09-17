@@ -1,4 +1,4 @@
-const BUILD = "2026-09-17 · r255 · a Trick in the tray is just its icon";
+const BUILD = "2026-09-17 · r256 · a Trick in the tray is just its icon";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

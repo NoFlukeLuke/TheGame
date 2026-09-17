@@ -587,8 +587,14 @@ function mapRender(animateIn) {
     const { x, y } = _mapCellXY(lane, set);
     return { x: x + CARD_W / 2, y: y + CARD_H / 2 };
   };
-  const drawLink = (a, b, cls) => {
-    const p1 = centreOf(a.lane, a.set), p2 = centreOf(b.lane, b.set);
+  // A 2x1 tile occupies TWO cells, so the route has to run STRAIGHT THROUGH it
+  // and only then turn: you enter at its head and leave from its tail. Drawing
+  // it as one node at the head instead put a single diagonal from the head to
+  // whatever you took next, which reads as a 45 degree short cut across a tile
+  // you actually walked the length of. Hence entry and exit rather than centre.
+  const entryOf = (t) => centreOf(t.lane, t.set);
+  const exitOf  = (t) => centreOf(t.lane, t.set + (t.span === 2 ? 1 : 0));
+  const drawSeg = (p1, p2, cls) => {
     const dx = p2.x - p1.x, dy = p2.y - p1.y;
     const len = Math.hypot(dx, dy);
     if (len < 1) return;
@@ -598,8 +604,11 @@ function mapRender(animateIn) {
                      + `transform:rotate(${Math.atan2(dy, dx)}rad);`;
     gridEl.appendChild(ln);
   };
+  // The spine of a 2x1: the straight run from its head to its tail.
+  const drawSpine = (t, cls) => { if (t.span === 2) drawSeg(entryOf(t), exitOf(t), cls); };
   for (const t of mapTiles) {
     if (t.kind === 'blank' || t.kind === 'boss') continue;
+    drawSpine(t, 'ml-rail');
     const fwd = t.set + (t.span === 2 ? 2 : 1);
     if (fwd > MAP_SETS) continue;
     for (let l = 0; l < MAP_LANES; l++) {
@@ -607,11 +616,13 @@ function mapRender(animateIn) {
       if (!n || n.kind === 'blank') continue;
       if (n.kind === 'boss' && l !== t.lane) continue;     // the boss is one tile
       if (Math.abs(l - t.lane) > 1) continue;              // only a lane you could reach
-      drawLink(t, { lane: n.kind === 'boss' ? t.lane : l, set: fwd }, 'ml-rail');
+      drawSeg(exitOf(t), centreOf(n.kind === 'boss' ? t.lane : l, fwd), 'ml-rail');
     }
   }
   const walked = mapTiles.filter(t => t.visited && t.step).sort((a, b) => a.step - b.step);
-  for (let i = 1; i < walked.length; i++) drawLink(walked[i - 1], walked[i], 'ml-walked');
+  walked.forEach(t => drawSpine(t, 'ml-walked'));
+  for (let i = 1; i < walked.length; i++)
+    drawSeg(exitOf(walked[i - 1]), entryOf(walked[i]), 'ml-walked');
 
   const drawTile = (t) => {
     const face = mapTileFace(t);
