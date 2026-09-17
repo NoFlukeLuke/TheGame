@@ -742,6 +742,13 @@ and I cannot tell why". The rules, as the code actually is:
 - **A Full House is any connected 2x + 3y.** No ordering, no shape requirement
   beyond the whole selection being connected. Same for every set and run: the
   rank partition does not care which cell holds which card.
+- **Measured on planted boards (r255), because the owner asked twice:**
+  `2 3 2 3 2` is a **Full House** - one component, all 5 cards used, 0 penalties,
+  285 - and `3 5 4 7 6` is a **Straight** - one component, all 5 used, 0
+  penalties, 325. Both were run in a straight line AND in a snake, and with the
+  ranks re-sorted, and all six came out identical. The physical arrangement and
+  the tap order really do not enter into it. (`4 6 7 5 9` on the same board is
+  Run of 4 + 1 penalty at 199, which is the rule above doing its job.)
 - **A dropped fifth card is r201 working as designed, plus one hard cap:**
   `HAND_MAX_CARDS` is 7, so at Selection Size 9 at least two cards are ALWAYS
   dropped whatever you pick. Measured over 300 real 4x4 deals (connected
@@ -2497,6 +2504,48 @@ a real card carries beside the logo.
 - **The resting rarity edge moved onto the CARD.** Left on the cell it outlined
   the empty slot the card is centred in, which is the one thing the letterbox
   exists to leave alone.
+
+### A Trick in the TRAY is its icon, and nothing else (r255)
+
+Owner's call: *"for the tricks when they're in the tray chip they should never
+have any sort of additional border or background, it should just be their icon /
+artwork."*
+
+The chip FRAME was already bare - r228 stripped the grey slab that used to fill
+the chip's slot behind the tile. What was left is the OBJECT: since r228 a Trick
+tile is a floppy disc, so the tray was drawing a rarity-tinted shell, a metal
+shutter and a cream label plate behind every icon. At 40px, six of those in a row
+read as clutter rather than as a loadout.
+
+**Only the tray changes.** The disc still draws on the reward grid, the shop, the
+Mart, Records, the Shift Change slots and the trick-lose picker - it is the thing
+that says "a Utility" on every screen where you are choosing one. The tray is the
+one place you are not choosing, only glancing.
+
+- **The disc is painted by `::before` and the NAME sits on its label**, so both go
+  with it (`.rwd-glyph`, the old star, was already hidden). The icon is then
+  re-centred over the whole chip and sized from the chip (`min(64cqw, 64cqh)`)
+  rather than from the label's upper half. `container-type: size` stays on the
+  tile, which is what keeps those cq units meaningful once the paint is gone.
+- **WHAT STAYS, because it is information and not chrome:** the cooldown ring
+  (`.cd-badge`, r209), the boss OFF stamp and its drain (`.trick-off`, r188) and
+  the improvement tier badge (`.rwd-tier`, r206). Verified live: all three still
+  render on an icon-only tray.
+- **TWO rules, because of specificity, and it is worth knowing why there are two.**
+  The tray rule carries both ids (`#stage #trick-tray-list`) and lands at
+  **(2,3,0)**. The portrait fan's tuck edge -
+  `#stage:not(.landscape) #trick-tray-list.fanned .trick-tray-chip + .trick-tray-chip > .reward-cell` -
+  is **(2,5,0)** and beat it, so portrait kept a rounded glow box floating around
+  each bare icon. It is named in its own rule rather than fought with
+  `!important`. Measured before the second rule: landscape `box-shadow: none`,
+  portrait still painting.
+- **The portrait fan's tucked tiles re-assert their own placement** after the
+  tray rule, or they lose the r171 behaviour where a tucked tile shows the LEFT
+  of a full-size icon rather than a centred one clipped through the middle.
+- **A side effect worth knowing:** rarity colour and the name are no longer shown
+  in the tray. Two Tricks that share an emoji are now told apart only by their
+  tooltip. If that wants fixing, the lever is the ICON (a per-Trick glyph nothing
+  else uses), not a border put back.
 
 ### The objects keep their RATIO everywhere, and every listing shows them (r239)
 
