@@ -1,4 +1,4 @@
-const BUILD = "2026-09-17 · r253 · the map funnel is not always two blanks + a dev toggle to branch from any visited tile";
+const BUILD = "2026-09-17 · r254 · the boss-winning hand keeps its bookkeeping + dropped cards are red and priced";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

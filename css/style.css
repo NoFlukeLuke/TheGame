@@ -523,6 +523,9 @@
      two-line shape as a hand so nothing shifts when it flips to a real name. */
   #hand-name .hn-need b, #hand-name .hn-need i { color: var(--red, #d9534f); }
   #hand-name .hn-need i { opacity: 1; font-weight: 700; }
+  /* r254: the DROP segment - selected cards the hand rejects, and what they cost */
+  #hand-name .hn-drop b, #hand-name .hn-drop i { color: var(--red, #d9534f); }
+  #hand-name .hn-drop i { opacity: 1; }
   .mini-card { width: 26px; height: 34px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 3px; display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0; }
   .mini-card-empty { width: 26px; height: 34px; border: 1px dashed var(--border); border-radius: 3px; flex-shrink: 0; }
   .mini-card .mini-rank { font-family: 'Cinzel', serif; font-size: 10px; font-weight: 700; line-height: 1; color: #1a1510; }
@@ -1777,11 +1780,23 @@
     box-shadow: 0 0 8px rgba(74,158,255,0.5);
     background: var(--card-bg, #f4ead5);
   }
+  /* r254: a selected card the best hand DROPS (r201 penalty). Red over the
+     selection blue - after .hand-valid so the later rule wins at equal
+     specificity, and restated for .hand-ready below via the class pairing. */
+  .card.selected.hand-penalty {
+    border-color: var(--red, #d9534f) !important;
+    box-shadow: 0 0 8px rgba(217, 83, 79, 0.55);
+    filter: saturate(0.55) brightness(0.9);
+  }
   .card.selected.hand-ready {
     border-color: #4a9eff !important;
     border-width: 1px;
     background: var(--card-bg, #f4ead5);
     animation: handReadyPulse 0.7s ease-in-out infinite alternate;
+  }
+  .card.selected.hand-ready.hand-penalty {
+    border-color: var(--red, #d9534f) !important;
+    filter: saturate(0.55) brightness(0.9);
   }
   @keyframes handReadyPulse {
     from { transform: translate(var(--hbx,0), calc(var(--hby,0px) - 2px)) rotate(calc(var(--hbr,0deg) + var(--frzr,0deg))) scale(calc(var(--hbs,1) * 1.07)); box-shadow: 0 0 6px rgba(74,158,255,0.4); }

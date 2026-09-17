@@ -645,6 +645,12 @@ function handleDanceAbort(isGoalHand) {
     heldBackScore = 0;
     suppressScoreDisplay = false;
     if (pendingLevelUps > 0) sfxMultiGoal(pendingLevelUps);
+    // The round IS won on this path too, and the banner + cleared-clock state
+    // only ever fired from the climb's goal-cross tick - which an aborted dance
+    // never reaches. Fire it here so a cut-short goal hand still gets QUOTA
+    // CLEARED (and a boss win its name: bossWinPending is still set, so
+    // flashRoundEnd picks up the kicker before bossSettleWin consumes it).
+    if (typeof flashRoundEnd === 'function') flashRoundEnd();
     // A pending boss win settles even on an abort - endBoss clears the timers
     // and opens the prize grid itself, so nothing else here should run.
     if (typeof bossSettleWin === 'function' && bossSettleWin()) { return; }

@@ -723,6 +723,40 @@ They answer different questions and must not be collapsed back into one:
 
 **Junk cards rode along free between r199 and r201** - see "Every card must be load-bearing" below, which is where that ended. The minimum now costs you cards off the board AND the score of anything you cannot use.
 
+### The hand rules, stated plainly (r254) - what a selection IS
+
+The owner asked for these written out after "a fifth card keeps getting dropped
+and I cannot tell why". The rules, as the code actually is:
+
+- **Tap order NEVER matters.** `selected` is a set of cells; detection reads the
+  cards' ranks and suits and nothing else about how you picked them.
+- **The grid arrangement matters ONLY for connectivity.** The selection must be
+  one orthogonally connected group, and the smaller subset `findBestHand` falls
+  back to must itself be connected - so dropping a card CAN strand a hand if that
+  card was the bridge. Inside a connected group, position is irrelevant: 4,6,7,5
+  in any cells and any order is a Run of 4.
+- **4-6-7-5-9 is NOT a Straight.** A run needs consecutive ranks; the 9 joins no
+  component, so under r201 the five-card subset is not a hand at all.
+  `findBestHand` falls back to the 4-card Run of 4 and the 9 becomes a PENALTY
+  card: its pips are subtracted from the hand's score and it is consumed anyway.
+- **A Full House is any connected 2x + 3y.** No ordering, no shape requirement
+  beyond the whole selection being connected. Same for every set and run: the
+  rank partition does not care which cell holds which card.
+- **A dropped fifth card is r201 working as designed, plus one hard cap:**
+  `HAND_MAX_CARDS` is 7, so at Selection Size 9 at least two cards are ALWAYS
+  dropped whatever you pick. Measured over 300 real 4x4 deals (connected
+  selections, base limits): a random 5-card selection carries a penalty **80%**
+  of the time (avg 2.0 cards, -14 pips), a random 7-card one 86%, a 9-card one
+  100% by construction; even the BEST 5-card selection on a board carries one
+  29% of the time. So this is the single most common surprise in the game.
+- **What was broken was the UI, and r254 fixed that, not the rule.** A selected
+  card the best hand drops now renders **red and desaturated on the board**
+  (`.card.hand-penalty`, from `bestHandResult.penaltyCells` in `render()`), and
+  `#hand-name` prices it: `RUN 3 - DROP 2 · -14` (`.hn-drop`, red). The NEED
+  label still outranks it below the minimum selection. Tagalong lifts the rule
+  and the red state and the DROP line disappear with it, for free - both read
+  `penaltyCells`, which Tagalong empties.
+
 ### Every card must be load-bearing (r201)
 
 **A hand may not carry a passenger.** If the components do not account for every card in the subset, that subset is not a hand. `findBestHand` then falls back to the smaller subset that IS fully used, and the leftovers become **penalty cards**: their pips are subtracted, and they are consumed anyway (`toRemove` is the whole selection, not just `handCells`). A spare card went from a small bonus to a real cost.
@@ -2635,6 +2669,14 @@ On `body.grid-screen` (reward grid, shop, crossroads), landscape:
 ### A boss win plays the finale now (r237)
 
 `checkBossObjective` used to call `endBoss(true)` synchronously inside playHand - before the dance drew a frame - so the boss-winning hand never got the goal finale and the screen jumped straight at the prize grid. Now the win only goes **PENDING** (`bossWinPending`); playHand routes the hand through the ordinary goal-dance exit, and the dance calls **`bossSettleWin()`** exactly where it would call `startInterlude` (normal completion, the abort path, and the legacy dance). `endBoss(true, { presented: true })` then skips its own `render()` (the finale already cleared the board - a render would pop every card back for a frame) and its own banner (`flashRoundEnd`'s `goalClearPresent` already carried the boss's name as kicker). Survival's mid-dance pick is suppressed while a boss win is pending - that hand ends in the prize grid.
+
+### The boss-winning hand keeps its bookkeeping (r254)
+
+The r237 rework's early return in `playHand` sat right after `checkBossObjective` - ABOVE Lucky Seven, `highestHandScore`, `recordQuarterBest`, the Full House streak, `checkChallengeAfterHand`, `fireSleightsOnPlay`, `fireAdjacentSleights`, `updateCounters` and `checkUnlocks` - so the boss-winning hand alone skipped all of it. Visibly: the run report's boss quarter printed **no best hand** ("·") however big the killing hand was, and on_play Sleights never fired on it. Pre-r237 all of that ran (`endBoss` was synchronous and `playHand` carried on), so the block simply MOVED DOWN to sit beside the ordinary goal check, below the shared bookkeeping. Verified in a real browser: the VICTORY report now names the boss-killing hand with its score.
+
+Also r254: **an aborted goal dance now fires `flashRoundEnd()`** from `handleDanceAbort`'s goal branch. The banner + cleared-clock state only ever fired from the score climb's goal-cross tick, which an aborted dance never reaches - so a goal hand cut short (round-end teardown, a boss firing mid-dance) won the round with no QUOTA CLEARED and no boss name. Fired BEFORE `bossSettleWin()` so `bossWinPending` still carries the kicker.
+
+**All three end-of-round variants were driven end to end in a real browser for this pass** (Playwright, 1440x820, both Pick states): ordinary goal clear -> finale -> PMF merge/throw/climb -> banner -> fall -> payout -> reward grid -> next deal; boss win -> same finale with the boss-named banner -> payout -> prize grid -> QUARTER CLOSED card -> Q2; final boss -> rolloverQuarter -> VICTORY + run report (no quarter card past Q3, by design). The r234 "fused chip stays put, a copy peels off to the total" behaviour is confirmed live in `pmfFlyToScore`; the persistent `#pmf-merged` element in the DOM after a hand is the REUSED chip without `.show`, not a leak.
 
 ## The live shop is the ON-GRID shop (r232) - `js/shop-grid-preview.js`
 
