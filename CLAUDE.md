@@ -1476,6 +1476,23 @@ Measured: two-visit sets 66.5% -> 68.9%, tiles per run 9.97 -> 10.26.
 - `mapRender` marks legal tiles off the same `mapLegalMoves()` list, so branch
   targets light up with no rendering change.
 
+### The route runs THROUGH a 2x1, it does not cut across it (r254)
+
+A tile was ONE route node, at its head cell. A 2x1 occupies two cells, so the
+segment out of it started at the head and ran to whatever you took next in the
+set beyond its tail: **one diagonal reading as a 45 degree short cut across a
+tile you had actually walked the length of.**
+
+A tile now has an **entry** (its head) and an **exit** (its tail, which is the
+head for every ordinary tile), plus a **spine** - the straight run between them,
+drawn for 2x1s only. Links go exit to entry. So a 2x1 reads as a straight run
+and then a turn: two right angles, never one diagonal.
+
+- **The rails get the spine too**, not just the walked line - the rail is what
+  the board OFFERS, and it offered the same false diagonal.
+- Verified on a real legal walk through a 2x1: every walked segment is 0 or
+  +-90 degrees, spine included.
+
 ### The map has a BOARD, a ROUTE and coloured tiles (r247) - `css/map-mode.css`
 
 The map was tiles on the bare stage: no surface, no sense of a journey, and a

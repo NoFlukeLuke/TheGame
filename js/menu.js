@@ -1,4 +1,4 @@
-const BUILD = "2026-09-17 · r253 · the map funnel is not always two blanks + a dev toggle to branch from any visited tile";
+const BUILD = "2026-09-17 · r254 · the walked route runs straight through a 2x1 tile before it turns";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
