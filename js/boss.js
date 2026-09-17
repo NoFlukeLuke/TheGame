@@ -435,11 +435,59 @@ let bossBag = [];
 // boss" to name and they keep drawing at trigger time.
 let actBossId = null;
 
+// ── THE NEXT QUARTER'S boss, for the Advance Notice knack (r254) ────────────
+//
+// actBossId is the quarter you are IN. This is the one after it, and it is
+// drawn LAZILY - nothing in the game asks for it unless Advance Notice is
+// owned, and a boss dealt out of the bag for a player who cannot see it would
+// consume the bag for no reason.
+//
+// Once drawn it is HELD and drawActBoss CONSUMES it, which is the whole point:
+// the knack names a boss and then that boss turns up. Without that the reveal
+// would be a guess dressed as a promise.
+//
+// Selling the knack CLEARS it (forgetNextActBoss, called from updateKnackList),
+// so the next draw is a different boss. That is what stops buy -> read -> sell
+// being a free scout.
+//
+// Note on seeded runs: this draw happens when the player acquires the knack, so
+// it shifts the shared seeded stream at a player-dependent moment. That is
+// already true of every other decision-driven draw (js/seed.js) - the DECK has
+// its own isolated stream and is unaffected.
+let nextActBossId = null;
+
+function peekNextActBoss() {
+  if (typeof isActMode === 'function' && !isActMode()) return null;
+  // Q3 is the last quarter. There is no next act, and saying so is better than
+  // naming a boss the run will never reach.
+  if (typeof actNumber === 'number' && actNumber >= 3) return null;
+  if (!nextActBossId) {
+    const p = nextBossPreset();
+    nextActBossId = p ? p.id : null;
+  }
+  return BOSS_PRESETS.find(p => p.id === nextActBossId) || null;
+}
+
+// The reveal is void the moment the knack leaves. Called from updateKnackList,
+// which is the one place every removal path (sell, the grid shop's sell board,
+// the Limit Break sacrifice, the event that takes a knack) already funnels
+// through - four call sites would have been four chances to miss one.
+function forgetNextActBoss() { nextActBossId = null; }
+
 // Deal the quarter's boss. Called from startGame (quarter 1) and from
 // rolloverQuarter (quarters 2 and 3), i.e. the two places a quarter begins.
 function drawActBoss() {
-  if (typeof isActMode === 'function' && !isActMode()) { actBossId = null; return null; }
-  const p = nextBossPreset();
+  if (typeof isActMode === 'function' && !isActMode()) { actBossId = null; nextActBossId = null; return null; }
+  let p = null;
+  // A boss Advance Notice already NAMED is the one that turns up - unless it
+  // has gone dead since (The Tax Man needs credits, The Voidwright needs
+  // Tricks), in which case a fresh draw is more honest than an inert round.
+  if (nextActBossId) {
+    p = BOSS_PRESETS.find(x => x.id === nextActBossId) || null;
+    nextActBossId = null;
+    if (p && !bossPresetIsLive(p)) p = null;
+  }
+  if (!p) p = nextBossPreset();
   actBossId = p ? p.id : null;
   if (typeof updateActProgressUI === 'function') updateActProgressUI();
   return p;

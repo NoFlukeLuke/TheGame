@@ -165,7 +165,7 @@ const MAP_KIND_META = {
   event:      { icon: '✧', name: 'Event',       cls: 'mk-event' },
   limitbreak: { icon: '▲', name: 'Limit Break', cls: 'mk-limit' },
   blank:      { icon: '',  name: '',            cls: 'mk-blank' },
-  boss:       { icon: '☠', name: 'BOSS',        cls: 'mk-boss' },
+  boss:       { icon: '☠', name: 'REVIEW',      cls: 'mk-boss' },
 };
 
 function mapTileFace(t) {
@@ -176,7 +176,7 @@ function mapTileFace(t) {
   return m;
 }
 function mapTileDesc(t) {
-  if (t.mystery && !t.revealed) return 'Unknown until you commit to it.';
+  if (t.mystery && !t.revealed) return 'Unconfirmed until you commit to it.';
   switch (t.kind) {
     case 'level':      return 'Play a round. Clear the goal, take the payout and a pick of three.';
     case 'challenge':  return (t.challenge ? t.challenge.label + ' ' : '')
@@ -185,7 +185,7 @@ function mapTileDesc(t) {
     case 'reward':     return 'Pick a path across a board of rewards.';
     case 'event':      return t.eventFlavor || 'Something happens.';
     case 'limitbreak': return 'Raise a limit - or trade one away for credits.';
-    case 'boss':       return (peekBossPresetSafe()?.brief || 'The end of the map.')
+    case 'boss':       return (peekBossPresetSafe()?.brief || 'The end of the schedule.')
       + ` Quota: ${mapBossGoal}.`;
   }
   return '';
@@ -527,7 +527,7 @@ function mapOpen() {
   recomputeGridMetrics();
   document.getElementById('next-goal-bg')?.classList.remove('show');
   document.body.classList.add('map-active');
-  if (typeof enterGridScreenHud === 'function') enterGridScreenHud('THE MAP', 'shop');
+  if (typeof enterGridScreenHud === 'function') enterGridScreenHud('SCHEDULE', 'shop');
   try { sfxShopOpen?.(); } catch (e) {}
   mapRender(true);
   mapRenderBar();
@@ -647,7 +647,8 @@ function mapRender(animateIn) {
       `<div class="mt-name">${face.name}</div>` +
       (t.visited ? `<div class="mt-stamp">DONE</div>` : '');
     div.onclick = () => mapTileTap(t);
-    div.onmouseenter = () => { if (!mapSelected) mapBarInfo(t); };
+    div.onmouseenter = () => { if (!mapSelected) mapBarInfo(t, mapMoveFor(t.id)); };
+    div.onmouseleave = () => { if (!mapSelected) mapBarInfo(null); };
     gridEl.appendChild(div);
     // Long event names on a card-width tile: shrink, never break mid-word
     // (js/fit-text.js - the same fitter every entity tile uses).
@@ -693,38 +694,75 @@ function mapTileTap(t) {
 }
 
 // ── The bar: where you are, what is picked, CONFIRM ──────────────────────────
+// ONE compact strip. The standing "how the map works" prose used to sit here as
+// a permanent two-line block, which is a tutorial you cannot dismiss; it lives
+// behind the ? chip now and the bar carries only what changes: where you are,
+// what you have picked, and the button.
+// The schedule's vocabulary (r260, owner's): the board is your SCHEDULE, a
+// column is a TIME SLOT, a tile is an OBLIGATION and the boss is a MANAGER
+// REVIEW. Ids are frozen - only what the player reads changes (TERMINOLOGY.md).
+const MAP_HELP = [
+  ['Move', 'Take a lit obligation touching where you stand. Everything you take happens.'],
+  ['Two a slot', 'A time slot will book you for two obligations at most.'],
+  ['Leaving early', 'Leaving a slot after only one obligation pays you credits.'],
+  ['Last slot', 'One obligation, then the review.'],
+  ['Blocked out', 'Nothing scheduled there, and no way through.'],
+];
 function mapRenderBar() {
   let bar = document.getElementById('map-bar');
   if (!bar) { bar = document.createElement('div'); bar.id = 'map-bar'; document.body.appendChild(bar); }
   const setNo = mapPos ? Math.min(mapPos.set + 1, MAP_SETS) : 1;
   const skipNext = MAP_SKIP_BASE + MAP_SKIP_STEP * (mapSkips + 1);
+  const visits = mapPos
+    ? `${mapFreeBranch ? mapVisitsInSet(mapPos.set) : mapVisits}/2${mapFreeBranch ? ' FREE' : ''}`
+    : 'PICK A START';
   bar.innerHTML =
-    `<div class="mb-top">` +
-      `<span class="mb-set">SET ${setNo} / ${MAP_SETS}</span>` +
-      `<span class="mb-visits">${mapPos ? `VISITS ${mapFreeBranch ? mapVisitsInSet(mapPos.set) : mapVisits}/2${mapFreeBranch ? ' · FREE BRANCH' : ''}` : 'CHOOSE A START'}</span>` +
-      `<span class="mb-skip">skip pays ${skipNext} ◆</span>` +
-      `<span class="mb-coins">${coins} ◆</span>` +
-    `</div>` +
-    `<div class="mb-info" id="mb-info">Pick a lit tile. Moving on after one visit pays credits.</div>` +
-    `<div class="mb-actions"><button id="mb-confirm" disabled>CONFIRM</button></div>`;
+    `<span class="mb-set">SLOT ${setNo}/${MAP_SETS}</span>` +
+    `<span class="mb-visits">${visits}</span>` +
+    `<button class="mb-q" id="mb-q" title="How the schedule works">?</button>` +
+    `<span class="mb-info" id="mb-info"></span>` +
+    `<span class="mb-skip">SKIP ${skipNext}</span>` +
+    `<span class="mb-coins">${coins} ◆</span>` +
+    `<button id="mb-confirm" disabled>CONFIRM</button>` +
+    `<div class="mb-help" id="mb-help">` +
+      MAP_HELP.map(([k, v]) => `<div class="mb-hrow"><b>${k}</b><span>${v}</span></div>`).join('') +
+    `</div>`;
   bar.classList.add('show');
   const btn = document.getElementById('mb-confirm');
   btn.onclick = () => mapConfirm();
   btn.disabled = !mapSelected;
+  document.getElementById('mb-q').onclick = (e) => {
+    e.stopPropagation();
+    const h = document.getElementById('mb-help');
+    if (!h) return;
+    const open = h.classList.toggle('show');
+    // One-shot outside-click close, armed only while it is open - a standing
+    // document listener on a bar that is rebuilt every render would stack up.
+    if (open) setTimeout(() => document.addEventListener('click', function off(ev) {
+      if (bar.contains(ev.target)) return;
+      h.classList.remove('show');
+      document.removeEventListener('click', off);
+    }), 0);
+  };
+  if (mapSelected) { const t = mapTiles.find(x => x.id === mapSelected); if (t) mapBarInfo(t, mapMoveFor(mapSelected)); }
+  // The x/y selection readout hides on the map (r255), and nothing else repaints
+  // it while the map is up - the class goes on without a render behind it.
+  if (typeof updateSelectionUI === 'function') updateSelectionUI();
 }
 
 function mapBarInfo(t, move) {
   const el = document.getElementById('mb-info');
   if (!el) return;
+  if (!t) { el.innerHTML = ''; return; }
   const face = mapTileFace(t);
-  let s = `<b>${face.name}</b> · ${mapTileDesc(t)}`;
+  let s = `<b>${face.name}</b> ${mapTileDesc(t)}`;
   if (move && !move.doomed) {
     if (move.from && move.after.set > move.from.set && move.from.visits === 1 && t.kind !== 'boss')
-      s += ` <i>Moving on now pays ${MAP_SKIP_BASE + MAP_SKIP_STEP * (mapSkips + 1)} ◆.</i>`;
-    if (t.span === 2) s += ` <i>Spans two sets - taking it moves you on.</i>`;
-  } else if (t.visited) s += ' <i>Already taken.</i>';
-  else if (move && move.doomed) s += ' <i>That path dead-ends before the boss.</i>';
-  else if (t.kind !== 'boss') s += ' <i>Not reachable from here.</i>';
+      s += ` <i>leaving now pays ${MAP_SKIP_BASE + MAP_SKIP_STEP * (mapSkips + 1)} ◆</i>`;
+    if (t.span === 2) s += ` <i>runs over two slots</i>`;
+  } else if (t.visited) s += ' <i>already taken</i>';
+  else if (move && move.doomed) s += ' <i>dead-ends before the review</i>';
+  else if (t.kind !== 'boss') s += ' <i>not reachable from here</i>';
   el.innerHTML = s;
 }
 
@@ -733,6 +771,7 @@ function mapCloseScreen() {
   mapSelected = null;
   document.getElementById('map-bar')?.classList.remove('show');
   document.body.classList.remove('map-active');
+  if (typeof updateSelectionUI === 'function') updateSelectionUI();
   if (typeof exitGridScreenHud === 'function') exitGridScreenHud();
   const gridEl = document.getElementById('grid');
   if (gridEl) gridEl.innerHTML = '';
@@ -778,7 +817,7 @@ function mapConfirm() {
     const pay = MAP_SKIP_BASE + MAP_SKIP_STEP * mapSkips;
     coins += pay;
     updateCoinsUI?.();
-    showMessage(`Moved on early · +${pay} credits`, 'var(--gold)');
+    showMessage(`Left the slot early · +${pay} credits`, 'var(--gold)');
   }
 
   t.visited = true;

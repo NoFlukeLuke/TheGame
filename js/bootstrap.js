@@ -14,6 +14,13 @@ initDevMode();
 // on a desk" framing the menu sits in is a camera transform on top of that, not
 // a second zoom - see the header of js/camera.js. This block keeps what it
 // always owned: deciding landscape vs portrait, and everything downstream of it.
+// The one way to re-run the whole stage layout from outside this file: decide
+// landscape vs portrait from the viewport again, toggle the classes, re-lay the
+// camera and re-measure the cards. Assigned by the IIFE below. The office photo's
+// channel change calls it to hand a phone back its portrait layout after the
+// monitor in the picture has borrowed a landscape one.
+let applyStageLayout = null;
+
 (function setupStageScaling() {
   const stage = document.getElementById('stage');
   if (!stage) return;
@@ -22,8 +29,11 @@ initDevMode();
   function update() {
     const availW = window.innerWidth  - BODY_PAD * 2;
     const availH = window.innerHeight - BODY_PAD * 2;
-    // Landscape when wider than tall AND wide enough to be meaningful
-    const isLandscape = availW > availH && availW >= 480;
+    // Landscape when wider than tall AND wide enough to be meaningful - unless the
+    // office photograph is on screen, where the machine is a LANDSCAPE monitor and
+    // shows a landscape face whatever the device is doing (js/office-photo.js).
+    const isLandscape = (typeof officeForcesLandscape === 'function' && officeForcesLandscape())
+      || (availW > availH && availW >= 480);
     // The class has to land BEFORE camLayout measures, or the stage is still the
     // other orientation's size when the camera works out where to centre it.
     stage.classList.toggle('landscape', isLandscape);
@@ -44,6 +54,7 @@ initDevMode();
     // toggle/zoom have been applied so the measurement reflects this layout.
     recomputeGridMetrics();
   }
+  applyStageLayout = update;
   window.addEventListener('resize', update);
   window.addEventListener('orientationchange', update);
   update(); // initial run - also handles the first recomputeGridMetrics

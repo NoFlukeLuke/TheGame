@@ -291,6 +291,7 @@ function pickFinish() {
   document.getElementById('pick-bar')?.classList.remove('show');
   document.getElementById('grid')?.querySelectorAll('.pk-chosen').forEach(el => el.classList.remove('pk-chosen'));
   document.body.classList.remove('pick-active');
+  if (typeof updateSelectionUI === 'function') updateSelectionUI();
   const done = pickDone; pickDone = null;
   if (done) done();
 }

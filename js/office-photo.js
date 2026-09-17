@@ -80,7 +80,11 @@ const OFFICE_PHOTO = {
 // the arrival, which is why the two numbers below are a duration and a size and
 // nothing else.
 const OFFICE_ATTRACT_MS = 15000;  // the drift, start to settle
-const OFFICE_HERO_FIT   = 0.78;   // share of the viewport the glass fills at rest
+// Share of the viewport the glass fills at rest. TWO numbers, because in portrait
+// the binding axis is the WIDTH and a landscape monitor held to 0.78 of a phone's
+// width is a small band in the middle of a very tall picture. 0.92 is as close as
+// it gets before the photograph's own edge comes into shot.
+const OFFICE_HERO_FIT   = { landscape: 0.78, portrait: 0.92 };
 
 let officeReady   = false;      // the image loaded AND the corners are calibrated
 // TWO states, and collapsing them into one is a bug. `officeActive` means THE
@@ -115,6 +119,20 @@ function officeAvailable() {
   const q = OFFICE_PHOTO.screen;
   return officeReady && Array.isArray(q) && q.length === 4 && OFFICE_PHOTO.w > 0;
 }
+
+// THE MONITOR IN THE PHOTOGRAPH IS A LANDSCAPE MONITOR, so while the photo is up
+// the machine shows its LANDSCAPE face whatever the device is doing. The skew maps
+// #stage's whole box onto the glass quad, so a portrait stage (420x740, aspect
+// 0.57) crushed into a quad of aspect 1.37 is a 2.4x horizontal squeeze - measured,
+// and on a phone it made the menu unreadable. Landscape against the same quad is
+// 1.78 vs 1.37, which is the foreshortening of a screen seen at an angle and reads
+// as perspective rather than as distortion. Desktop never showed the bug for
+// exactly that reason.
+//
+// It is only ever a lie for as long as the photograph is on screen: the channel
+// change re-runs the real decision behind the flash, so the board is always dealt
+// to the device's own orientation.
+function officeForcesLandscape() { return officeShowing && officeAvailable(); }
 
 // ── The homography ──────────────────────────────────────────────────────────
 // Maps the rect (0,0,w,h) onto an arbitrary quad and returns it as a CSS
@@ -178,11 +196,17 @@ function officeInit() {
     if (typeof camEndBootDolly === 'function') camEndBootDolly();
     officeArmMenuCut();
     // LAYOUT FIRST, THEN THE DRIFT. officeWideK and officeHeroK are both still 1
-    // until camRelayout has measured this viewport, and the drift is the ratio
-    // between them - started above it, that ratio is 1, which the "nothing to
-    // travel" guard reads as a shot with no move in it and the whole opening
-    // silently does not happen.
-    if (typeof camLayout === 'function') camRelayout();
+    // until the viewport has been measured, and the drift is the ratio between
+    // them - started above it, that ratio is 1, which the "nothing to travel"
+    // guard reads as a shot with no move in it and the whole opening silently does
+    // not happen.
+    //
+    // It is applyStageLayout and NOT camRelayout because the stage may have to
+    // CHANGE ORIENTATION here: bootstrap's first pass ran long before a photograph
+    // could finish downloading, so on a phone the stage is still portrait and only
+    // the shared path re-decides it.
+    if (typeof applyStageLayout === 'function') applyStageLayout();
+    else if (typeof camRelayout === 'function') camRelayout();
     officeStartDrift();
   });
   img.addEventListener('error', () => {
@@ -247,8 +271,9 @@ function officeLayout() {
   // The HERO framing is where the drift stops: the glass filling OFFICE_HERO_FIT
   // of the viewport, against whichever axis binds first so it always fits. Held at
   // or above the cover figure, because below it the edge of the photograph shows.
+  const fit = OFFICE_HERO_FIT[(W > H) ? 'landscape' : 'portrait'];
   officeHeroK = Math.min(1, Math.max(officeWideK, Math.min(
-    (W * OFFICE_HERO_FIT) / (bb.w * S), (H * OFFICE_HERO_FIT) / (bb.h * S))));
+    (W * fit) / (bb.w * S), (H * fit) / (bb.h * S))));
 
   // Put the monitor's centre on the viewport centre. #camera is position:fixed
   // inset:0, so its local px ARE viewport px, and scaling about 50%/50% then
@@ -341,8 +366,16 @@ function officeCutToScreen() {
     officeSetShowing(false);
     if (typeof camEndBootDolly === 'function') camEndBootDolly();
     camSetView('play', false);         // k = 1 and, crucially, NO transform at all
-    if (typeof camRelayout === 'function') camRelayout();
-    if (typeof recomputeGridMetrics === 'function') recomputeGridMetrics();
+    // officeShowing is false by now, so this re-decides landscape vs portrait from
+    // the viewport and lays the whole stage out again - which is what hands a phone
+    // back its portrait layout after the monitor borrowed a landscape one. It has
+    // to be the SHARED path (bootstrap's own update), not a camRelayout: that
+    // re-uses camLastLandscape, which is still the forced value.
+    if (typeof applyStageLayout === 'function') applyStageLayout();
+    else {
+      if (typeof camRelayout === 'function') camRelayout();
+      if (typeof recomputeGridMetrics === 'function') recomputeGridMetrics();
+    }
   };
   if (document.body.classList.contains('reduced-motion') || typeof channelChange !== 'function') swap();
   else channelChange(swap);

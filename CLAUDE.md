@@ -1517,6 +1517,76 @@ Measured: two-visit sets 66.5% -> 68.9%, tiles per run 9.97 -> 10.26.
 - `mapRender` marks legal tiles off the same `mapLegalMoves()` list, so branch
   targets light up with no rendering change.
 
+### The map speaks SCHEDULE (r260)
+
+Owner: *"The map is your schedule, sets are time slots, and each node is a...
+obligation. And the boss is a manager review."* The vocabulary, everywhere the
+player reads it:
+
+| was | is |
+|---|---|
+| The Map (mode name) | **The Schedule** |
+| set | **time slot** (`SLOT 2/6` on the bar) |
+| tile / node | **obligation** |
+| boss | **manager review** (the column reads `REVIEW`) |
+| THE MAP (the grid-screen location chip) | **SCHEDULE** |
+
+**Ids are frozen and nothing else moved** - TERMINOLOGY.md's rule. `mapTiles`,
+`MAP_SETS`, `mapCanFinishFrom`, `kind:'boss'`, `body.map-active`, the CSS class
+names and every function in `js/map-mode.js` are untouched; this is `MAP_HELP`,
+`MAP_KIND_META.boss.name`, `mapTileDesc`, the bar's labels, three toasts, the
+`enterGridScreenHud` label and the `MODES.map` name and description.
+
+- **The tile KINDS keep their names** (Round, Hard Round, Shop, Reward Grid,
+  Event, Limit Break). They say what the obligation IS, and Shop and Reward Grid
+  are named that on their own screens - renaming them here would give one thing
+  two names.
+- **`REVIEW` is six letters where `BOSS` was four, and the boss name is drawn
+  VERTICALLY in landscape with no fitter** (r238: the fitter measures
+  horizontally, so the boss is deliberately exempt). Measured: the name box is
+  20x99 inside a 79x444 column, so it fits with room to spare.
+
+### The map bar is one strip, and the rules live behind a ? (r255)
+
+Owner: the bar was *"too large and persistent, and doesn't feel especially on
+theme."* It was three stacked blocks - a stats row, a two-line prose block, and
+a button row on its own line - about 100px tall, permanently across the bottom
+of the map.
+
+**It is ONE compact row now (38px)**: `SET x/6`, visits, a **? chip**, the
+picked tile's line, the skip price, credits, CONFIRM. Console material to match
+`#event-panel` (indigo plate, plastic ring) rather than a plain dark box.
+
+- **The standing "how the map works" prose is a tutorial you cannot dismiss**, so
+  it moved into `MAP_HELP` behind the ? - five one-line rules, drawn as a card
+  that opens **ABOVE** the strip. Above, because anchoring it inside the bar
+  would change the bar's height and shove the board every time it opened.
+- **`.mb-info` is `flex: 1` and CLIPPED to one line** (`text-overflow: ellipsis`,
+  `max-width: 46vw`). A long tile description would otherwise push CONFIRM off
+  the end of a `width: max-content` strip. It is `:empty { display: none }`, so
+  with nothing picked the bar shrinks to 360px.
+- **The outside-click close is armed only while the card is open.** The bar is
+  rebuilt on every map render, so a standing document listener would stack one
+  copy per render.
+- A tile's `mouseleave` clears the line now; it only ever set it.
+
+### The x/y selection readout shows only where a pick matters (r255)
+
+`#sel-count`'s live test was `gridData.length > 0` - the number of ROWS, which is
+true of a board of nulls and of every screen that merely BORROWS the grid. So
+"0/3" hung over the map, the crossroads, the payout pick and the interlude,
+describing a selection that could not be made.
+
+`updateSelectionUI` now shows it on exactly three screens: **the shop, the reward
+grid, and a live round** (`boardLive` = real cards on the board, and none of
+`map-active` / `pick-active` / `grid-screen`). Measured: hidden on the menu and
+the map, shown in a level, a reward grid and the shop.
+
+- **A class gate needs a repaint behind it.** `map-active` goes on without a
+  `render()`, so `mapRenderBar` and `mapCloseScreen` call `updateSelectionUI`
+  themselves; the payout pick's close does the same, because it renders BEFORE
+  it drops its class.
+
 ### The route runs THROUGH a 2x1, it does not cut across it (r254)
 
 A tile was ONE route node, at its head cell. A 2x1 occupies two cells, so the
@@ -3027,6 +3097,37 @@ fifteen seconds** and settles with it centred and filling most of the shot. Touc
 **any button** on that menu and a **channel change** flashes; behind the flash the
 photograph is gone and the UI is flat and full-screen. The monitor in the photo IS
 the machine, so the r180 arcade cabinet - housing, marquee, bezel - is hidden.
+
+### The monitor is LANDSCAPE, so the machine shows a landscape face (r257)
+
+The skew maps **`#stage`'s whole box** onto the glass quad, so the stage's aspect and
+the quad's aspect have to be near each other or the UI is stretched. Landscape is
+747x420 (**1.78**) against a quad of **1.37**, which is the foreshortening of a
+screen seen at an angle and reads as perspective. **Portrait is 420x740 (0.57)** -
+a **2.4x horizontal crush**, and on a phone it made the menu unreadable.
+
+So while the photograph is on screen the stage is **forced landscape**, whatever the
+device is doing: `officeForcesLandscape()` is read by the one place that decides it
+(`bootstrap.js`'s `update`). It is only ever a lie for as long as the photo is up.
+
+- **`applyStageLayout` is bootstrap's own `update`, exposed.** Two paths need to
+  re-decide the orientation and neither can use `camRelayout()`, which re-uses
+  `camLastLandscape` - still the forced value: the channel change, which hands a
+  phone back its portrait layout **behind the flash**, and the photo's own `load`
+  handler, because bootstrap's first pass ran long before an image could download
+  and the stage is still portrait at that point.
+- **`OFFICE_HERO_FIT` is two numbers now.** In portrait the binding axis is the
+  WIDTH, and a landscape monitor held to 0.78 of a phone's width is a small band in
+  the middle of a very tall picture: `{ landscape: 0.78, portrait: 0.92 }`.
+- **The photo crop needed nothing.** The cover framing is already centred on the
+  monitor and cropped to the viewport's aspect, so a phone was already getting its
+  own portrait slice of the office - the owner's "middle three columns". The squish
+  was never the crop.
+
+Verified at 390x844: forced landscape while the photo is up, glass 359x262 (was
+304x222), and after a button press `landscape` is false, the stage is 420x740
+painting at 386x680 in the viewport, the camera carries no transform, the skew is
+cleared and there are no page errors. Desktop at 1440x820 is unchanged.
 
 ### The opening is a DRIFT and then a CUT (r248)
 

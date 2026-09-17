@@ -133,9 +133,18 @@ function updateSelectionUI() {
   const cEl = document.getElementById('sel-count');
   const vEl = document.getElementById('sel-count-val');
   if (!cEl || !vEl) return;
-  // Only where a selection means something. The menu and the between-round screens
-  // leave the board empty, and a stale "0/3" hanging over it reads as a bug.
-  const live = onReward || onShop || (typeof gridData !== 'undefined' && gridData && gridData.length > 0);
+  // Only where a selection means something (r255). This used to be "gridData has
+  // rows", which is true of a board of NULLS and of every screen that merely
+  // BORROWS the grid - so the readout hung over the map, the crossroads, the
+  // payout pick and the interlude, saying 0/3 about nothing. The three screens
+  // where a number of picks is a real decision are the shop, the reward grid and
+  // a live round; everywhere else it is noise.
+  const body = document.body.classList;
+  const boardLive = !body.contains('map-active') && !body.contains('pick-active')
+    && !body.contains('grid-screen')
+    && typeof gridData !== 'undefined' && Array.isArray(gridData)
+    && gridData.some(row => row && row.some(c => c));
+  const live = onReward || onShop || boardLive;
   cEl.classList.toggle('on', !!live);
   if (!live) return;
   vEl.textContent = `${n}/${cap}`;
@@ -203,6 +212,14 @@ function updateKnackList() {
   const _knackGrew = acquiredKnacks.length > _knackCountShown;
   _knackCountShown = acquiredKnacks.length;
   if (_knackGrew && typeof portraitShowKnacks === 'function') portraitShowKnacks();
+  // r254: losing Advance Notice VOIDS the reveal, so the next quarter re-draws
+  // its boss. Hooked here for the same reason the flip above is: this is the
+  // one function every removal path already calls (sellKnack, the grid shop's
+  // sell board, the Limit Break sacrifice, the event that takes a knack), and
+  // four call sites would have been four chances to miss one. It also covers
+  // selling it and buying it back, which should name a different boss.
+  if (typeof forgetNextActBoss === 'function'
+      && typeof hasKnack === 'function' && !hasKnack('advance_notice')) forgetNextActBoss();
   if (acquiredKnacks.length === 0) {
     el.innerHTML = '';   // empty → faint KNACKS watermark shows through (r95)
     return;
@@ -260,16 +277,50 @@ let _knackHoverTimer = null;
 function cancelKnackHoverHide() { if (_knackHoverTimer) { clearTimeout(_knackHoverTimer); _knackHoverTimer = null; } }
 function scheduleKnackHoverHide() { cancelKnackHoverHide(); _knackHoverTimer = setTimeout(hideKnackTooltip, 160); }
 
+// A knack's description as the player should read it RIGHT NOW (r254).
+//
+// The mirror of trickLiveDesc, and it exists for the same reason: the pool's
+// `desc` is what a knack does, and some knacks also have something to SAY. It
+// is used by the HUD tooltip and by RECORDS Owned, both of which only ever
+// draw a knack you hold - so "only after it is purchased" falls out of where
+// this is called rather than needing a test. The shop tile reads the pool's
+// plain desc and therefore never spoils the reveal.
+function knackLiveDesc(k) {
+  if (!k) return '';
+  const base = k.desc || '';
+  if (k.id !== 'advance_notice') return base;
+  // Belt and braces: the dev panel can put a chip on screen for a knack the
+  // run does not own, and an unowned Advance Notice must not reveal anything.
+  if (typeof hasKnack === 'function' && !hasKnack('advance_notice')) return base;
+  const p = (typeof peekNextActBoss === 'function') ? peekNextActBoss() : null;
+  if (!p) {
+    const last = (typeof isActMode === 'function' && isActMode() && typeof actNumber === 'number' && actNumber >= 3);
+    return base + `<div class="kn-reveal kn-reveal-none">${last
+      ? 'This is the last quarter. There is no next boss to name.'
+      : 'This mode has no next quarter to look into.'}</div>`;
+  }
+  const q = (typeof actNumber === 'number') ? actNumber + 1 : 2;
+  return base
+    + `<div class="kn-reveal"><span class="kn-reveal-q">Q${q} BOSS</span>`
+    + `<b>${p.name || ''}</b>`
+    + (p.brief ? `<span>${p.brief}</span>` : '')
+    + `</div>`;
+}
+
 function showKnackTooltip(chip, id) {
   const knack = KNACK_POOL.find(t => t.id === id);
   if (!knack) return;
   let tt = document.getElementById('knack-tooltip');
   if (!tt) return;
   const _sv = (typeof knackSellValue === 'function') ? knackSellValue() : 0;
+  // The live part is built separately and appended: colorizeKeywords rewrites
+  // prose and would chew through the reveal's own markup.
+  const _live = knackLiveDesc(knack);
+  const _reveal = _live.slice((knack.desc || '').length);
   tt.innerHTML = `
     <button class="tt-close" aria-label="Close">✕</button>
     <div class="knack-tooltip-name">${knack.emoji} ${knack.name}</div>
-    <div class="knack-tooltip-desc">${colorizeKeywords(knack.desc)}</div>
+    <div class="knack-tooltip-desc">${colorizeKeywords(knack.desc)}${_reveal}</div>
     <div class="knack-tooltip-actions"><button class="knack-tooltip-sell" id="knack-tooltip-sell-btn">Sell 💰${_sv}</button></div>
   `;
   tt.dataset.knackId = id;

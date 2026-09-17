@@ -241,7 +241,7 @@ function recordsRenderPersonnel() {
   const sleightHTML = owned.length ? owned.join('') : `<div class="rec-empty">No ${entityLabel('sleight', true)} on file.</div>`;
 
   const knackHTML = acquiredKnacks.length ? acquiredKnacks.map(k => recordsEntityCard(
-    k.emoji || '🧿', k.name, tierLabel('knack', k.rarity).toUpperCase(), k.desc, 'e-knack', false, k.rarity)).join('')
+    k.emoji || '🧿', k.name, tierLabel('knack', k.rarity).toUpperCase(), (typeof knackLiveDesc === 'function' ? knackLiveDesc(k) : k.desc), 'e-knack', false, k.rarity)).join('')
     : `<div class="rec-empty">No ${entityLabel('knack', true)} on file.</div>`;
 
   return `
