@@ -1,0 +1,100 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   THE TILED PAYOUT (r255) - js/interlude.js, payoutTiledHTML.
+
+   The payout has rendered into #grid-slot since r101, but as ONE panel, so it
+   never read as being ON the board. It is a TITLE TILE plus one tile per
+   section now, each falling in like a card at the moment its line is revealed.
+
+   Everything here is scoped to #payout-overlay.po-tiled, so PAYOUT_TILED =
+   false still gets the pre-r255 panel out of css/style.css untouched.
+
+   STAGE PX. This lives inside #grid-slot, which carries the cabinet's zoom
+   (~1.9x on a desktop) - size against the ~336x362 slot, not the viewport.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+#payout-overlay.po-tiled { padding: 0; }
+
+/* The stack is measured against the BOARD (--grid-w / --grid-h, the live
+   grid's real footprint from js/grid-metrics.js), so the tiles land on the
+   board rather than on the slot's margins. A payout line is a row of text, so
+   these tiles are board-width - they are deliberately NOT card-sized the way
+   the pick-of-three's are. */
+#payout-overlay.po-tiled .po-board {
+  width: var(--grid-w, 100%); height: var(--grid-h, 100%);
+  display: flex; flex-direction: column; align-items: stretch; gap: 4px;
+  min-height: 0;
+}
+#payout-overlay.po-tiled .po-stack {
+  display: flex; flex-direction: column; gap: 4px;
+  flex: 1 1 auto; min-height: 0;
+}
+
+/* A TILE. The same plastic-and-dark material the crossroads tiles use, so the
+   payout is made of the same furniture as every other board screen. */
+#payout-overlay.po-tiled .po-tile {
+  box-sizing: border-box;
+  background: linear-gradient(180deg, rgba(27,23,16,0.94), rgba(16,13,9,0.96));
+  border: 1.5px solid rgba(183,172,147,0.45);
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.5), 0 4px 10px rgba(0,0,0,0.4);
+  opacity: 0;
+}
+/* THE DEAL. `.show` is what the existing stage sequencing in showPayoutUI adds
+   to each line as it is revealed, so the fall costs no new code there - the
+   same shape as gridTileFallIn (js/grid-pick.js). */
+#payout-overlay.po-tiled .po-tile.show { animation: po-fall 0.42s both ease-in; }
+@keyframes po-fall {
+  0%   { opacity: 0; transform: translateY(-240px) scaleY(1); }
+  6%   { opacity: 1; transform: translateY(-240px) scaleY(1); }
+  55%  { opacity: 1; transform: translateY(-108px) scaleY(0.96); animation-timing-function: ease-in; }
+  83%  { opacity: 1; transform: translateY(8px)    scaleY(0.90); }
+  91%  { opacity: 1; transform: translateY(-6px)   scaleY(1.10); }
+  96%  { opacity: 1; transform: translateY(2px)    scaleY(0.98); }
+  100% { opacity: 1; transform: translateY(0)      scaleY(1); }
+}
+
+/* Title tile + tabs tile: fixed height, the rest of the board is the lines. */
+#payout-overlay.po-tiled .po-tile-title {
+  flex: 0 0 auto; display: flex; align-items: center; justify-content: center; padding: 5px 8px;
+}
+#payout-overlay.po-tiled .po-tile-title .payout-title { margin: 0; font-size: 12px; letter-spacing: 5px; }
+#payout-overlay.po-tiled .po-tile-tabs {
+  flex: 0 0 auto; display: flex; align-items: center; justify-content: center; padding: 4px;
+}
+#payout-overlay.po-tiled .po-tile-tabs .payout-tabs { margin: 0; }
+
+/* Payout lines: one tile each, sharing the board's free height. The base rule
+   in css/style.css gives them a bottom border and a slide-up transition; both
+   are wrong for a tile, so they are cleared here. */
+#payout-overlay.po-tiled .payout-lines {
+  display: flex; flex-direction: column; gap: 4px;
+  flex: 1 1 auto; min-height: 0; width: 100%; max-width: none;
+}
+#payout-overlay.po-tiled .payout-line {
+  flex: 1 1 0; min-height: 0;
+  border-bottom: none; transition: none; transform: none;
+  padding: 6px 10px;
+}
+/* The divider has no job here - the tiles ARE the separation - but the stage
+   sequencing still calls .show on it, so it stays in the DOM and hides. */
+#payout-overlay.po-tiled .payout-divider { display: none; }
+
+#payout-overlay.po-tiled .payout-total {
+  flex: 0 0 auto; width: 100%; max-width: none;
+  padding: 7px 10px; transition: none; transform: none;
+}
+#payout-overlay.po-tiled .payout-valued-btn {
+  flex: 0 0 auto; margin: 0; padding: 7px 10px;
+  border-radius: 8px; border: 1.5px solid rgba(245,192,66,0.5);
+  font-size: 13px;
+}
+/* The contributions view is one tall tile with its own scroll - the rows are a
+   list, and a tile per row would be a wall rather than a reading surface. */
+#payout-overlay.po-tiled .po-tile-contrib {
+  flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column;
+  padding: 6px 8px;
+}
+#payout-overlay.po-tiled .po-tile-contrib .contrib-scroll {
+  flex: 1 1 auto; min-height: 0; max-height: none; overflow-y: auto;
+}
+#payout-overlay.po-tiled .payout-ff-btn { bottom: 6px; right: 6px; }

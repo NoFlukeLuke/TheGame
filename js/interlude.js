@@ -234,66 +234,32 @@ async function showPayoutUI() {
     ? `10% of <span style="color:#f5c042;">◆ ${coins}</span> × ${interestMult} (Idol)`
     : `10% of <span style="color:#f5c042;">◆ ${coins}</span>`;
 
-  // Build overlay
+  // ── THE PAYOUT IS TILES ON THE BOARD (r255) ─────────────────────────────
+  // It has rendered into #grid-slot since r101, but as ONE panel, which did not
+  // read as being on the board at all. It is now a TITLE TILE and one tile per
+  // section, each falling in like a card at the moment its line is revealed -
+  // so the existing sequencing below drives the deal for free (every stage
+  // already does `.classList.add('show')` on its line).
+  //
+  // The tiles are NOT card-sized: a payout line is a row of text, so the tiles
+  // are board-width and the stack is measured against the board, not against
+  // the cell grid the pick-of-three uses.
+  //
+  // EVERY ID IS UNCHANGED between the two layouts, which is what lets the whole
+  // count-up / fast-forward machinery below stay untouched: po-interest,
+  // po-clock, po-efficiency, po-unspent, po-total, po-total-coins, po-divider,
+  // po-valued, po-ff, po-line-*, po-view-*, po-tab-*-btn.
+  // PAYOUT_TILED = false falls back to the pre-r255 panel (payoutPanelHTML).
+  const _poCtx = { interestName, interestDesc, unspentActions };
   const el = document.createElement('div');
   el.id = 'payout-overlay';
-  el.innerHTML = `
-    <div class="payout-title">Payout</div>
-    <div class="payout-tabs">
-      <button class="payout-tab active" id="po-tab-payout-btn">Payout</button>
-      <button class="payout-tab" id="po-tab-contrib-btn">Contributions</button>
-    </div>
-    <div id="po-view-contrib" class="po-view" style="display:none">
-      <div class="contrib-head">This round · ${roundHandsScored} hand${roundHandsScored===1?'':'s'} scored</div>
-      <div class="contrib-scroll">${roundContributionRowsHTML()}</div>
-    </div>
-    <div id="po-view-payout" class="po-view">
-    <div class="payout-lines">
-      <div class="payout-line" id="po-line-interest">
-        <div class="pl-left">
-          <div class="pl-name">${interestName}</div>
-          <div class="pl-desc">${interestDesc}</div>
-        </div>
-        <div class="pl-right">
-          <span class="pl-coins" id="po-interest">0</span>
-          <span class="pl-sym">◆</span>
-        </div>
-      </div>
-      <div class="payout-line" id="po-line-efficiency">
-        <div class="pl-left">
-          <div class="pl-name">Efficiency</div>
-          <div class="pl-desc">1 per ${EFFICIENCY_SECONDS_PER_COIN}s remaining</div>
-        </div>
-        <div class="pl-right">
-          <span class="pl-clock" id="po-clock">${formatTime(frozenRoundSeconds)}</span>
-          <span class="pl-coins" id="po-efficiency">0</span>
-          <span class="pl-sym">◆</span>
-        </div>
-      </div>
-      <div class="payout-line" id="po-line-unspent">
-        <div class="pl-left">
-          <div class="pl-name">Unspent</div>
-          <div class="pl-desc">${BAL._resources.unspent_credits} per unused swap or discard · ${unspentActions} left</div>
-        </div>
-        <div class="pl-right">
-          <span class="pl-coins" id="po-unspent">0</span>
-          <span class="pl-sym">◆</span>
-        </div>
-      </div>
-    </div>
-    <div class="payout-divider" id="po-divider"></div>
-    <div class="payout-total" id="po-total">
-      <span class="pt-label">Total</span>
-      <span class="pt-coins" id="po-total-coins">0 ◆</span>
-    </div>
-    </div>
-    <button class="payout-valued-btn" id="po-valued">Valued.</button>
-    <button class="payout-ff-btn" id="po-ff" title="Fast forward">»</button>`;
+  el.innerHTML = PAYOUT_TILED ? payoutTiledHTML(_poCtx) : payoutPanelHTML(_poCtx);
   // Render the payout INTO the grid area (r101) so it lives on the board, in the
   // beat between the cards falling out and the reward tiles coming in.
   const _slot = document.getElementById('grid-slot');
   if (_slot) { el.classList.add('in-grid'); _slot.appendChild(el); }
   else document.body.appendChild(el);
+  if (PAYOUT_TILED) el.classList.add('po-tiled');
 
   // Tab switching: Payout (coin animation) vs Contributions (round breakdown)
   const viewPayout  = el.querySelector('#po-view-payout');
@@ -613,3 +579,139 @@ async function show321Countdown() {
   await countdownWait(200);
 }
 
+
+
+// ══════════════════════════════════════════════════════════════════════════
+// PAYOUT MARKUP - two layouts, ONE set of ids (r255)
+//
+// The animation code in showPayoutUI addresses everything by id and knows
+// nothing about the layout, so the two builders below are interchangeable.
+// Flip PAYOUT_TILED to go back to the pre-r255 panel.
+// ══════════════════════════════════════════════════════════════════════════
+const PAYOUT_TILED = true;
+
+// The tiled layout (r255): a title tile, a tabs tile, one tile per payout line,
+// a total tile and the button. `.po-tile` starts invisible and falls in when
+// its `.show` class lands - which the existing stage sequencing already does.
+function payoutTiledHTML(c) {
+  return `
+    <div class="po-board">
+      <div class="po-tile po-tile-title show">
+        <div class="payout-title">Payout</div>
+      </div>
+      <div class="po-tile po-tile-tabs show">
+        <div class="payout-tabs">
+          <button class="payout-tab active" id="po-tab-payout-btn">Payout</button>
+          <button class="payout-tab" id="po-tab-contrib-btn">Contributions</button>
+        </div>
+      </div>
+      <div id="po-view-contrib" class="po-view po-stack" style="display:none">
+        <div class="po-tile po-tile-contrib show">
+          <div class="contrib-head">This round · ${roundHandsScored} hand${roundHandsScored === 1 ? '' : 's'} scored</div>
+          <div class="contrib-scroll">${roundContributionRowsHTML()}</div>
+        </div>
+      </div>
+      <div id="po-view-payout" class="po-view po-stack">
+        <div class="payout-lines">
+          <div class="po-tile payout-line" id="po-line-interest">
+            <div class="pl-left">
+              <div class="pl-name">${c.interestName}</div>
+              <div class="pl-desc">${c.interestDesc}</div>
+            </div>
+            <div class="pl-right">
+              <span class="pl-coins" id="po-interest">0</span>
+              <span class="pl-sym">◆</span>
+            </div>
+          </div>
+          <div class="po-tile payout-line" id="po-line-efficiency">
+            <div class="pl-left">
+              <div class="pl-name">Efficiency</div>
+              <div class="pl-desc">1 per ${EFFICIENCY_SECONDS_PER_COIN}s remaining</div>
+            </div>
+            <div class="pl-right">
+              <span class="pl-clock" id="po-clock">${formatTime(frozenRoundSeconds)}</span>
+              <span class="pl-coins" id="po-efficiency">0</span>
+              <span class="pl-sym">◆</span>
+            </div>
+          </div>
+          <div class="po-tile payout-line" id="po-line-unspent">
+            <div class="pl-left">
+              <div class="pl-name">Unspent</div>
+              <div class="pl-desc">${BAL._resources.unspent_credits} per unused swap or discard · ${c.unspentActions} left</div>
+            </div>
+            <div class="pl-right">
+              <span class="pl-coins" id="po-unspent">0</span>
+              <span class="pl-sym">◆</span>
+            </div>
+          </div>
+        </div>
+        <!-- The divider has no job in a tiled layout (the tiles ARE the
+             separation), but the stage sequencing still calls .show on it, so
+             it stays in the DOM and is hidden by css/payout-grid.css. -->
+        <div class="payout-divider" id="po-divider"></div>
+        <div class="po-tile payout-total" id="po-total">
+          <span class="pt-label">Total</span>
+          <span class="pt-coins" id="po-total-coins">0 ◆</span>
+        </div>
+      </div>
+      <button class="payout-valued-btn po-tile" id="po-valued">Valued.</button>
+    </div>
+    <button class="payout-ff-btn" id="po-ff" title="Fast forward">»</button>`;
+}
+
+// PRE-r255 PANEL, kept whole for revert (PAYOUT_TILED = false). One centred
+// panel over the board rather than tiles on it.
+function payoutPanelHTML(c) {
+  return `
+    <div class="payout-title">Payout</div>
+    <div class="payout-tabs">
+      <button class="payout-tab active" id="po-tab-payout-btn">Payout</button>
+      <button class="payout-tab" id="po-tab-contrib-btn">Contributions</button>
+    </div>
+    <div id="po-view-contrib" class="po-view" style="display:none">
+      <div class="contrib-head">This round · ${roundHandsScored} hand${roundHandsScored === 1 ? '' : 's'} scored</div>
+      <div class="contrib-scroll">${roundContributionRowsHTML()}</div>
+    </div>
+    <div id="po-view-payout" class="po-view">
+    <div class="payout-lines">
+      <div class="payout-line" id="po-line-interest">
+        <div class="pl-left">
+          <div class="pl-name">${c.interestName}</div>
+          <div class="pl-desc">${c.interestDesc}</div>
+        </div>
+        <div class="pl-right">
+          <span class="pl-coins" id="po-interest">0</span>
+          <span class="pl-sym">◆</span>
+        </div>
+      </div>
+      <div class="payout-line" id="po-line-efficiency">
+        <div class="pl-left">
+          <div class="pl-name">Efficiency</div>
+          <div class="pl-desc">1 per ${EFFICIENCY_SECONDS_PER_COIN}s remaining</div>
+        </div>
+        <div class="pl-right">
+          <span class="pl-clock" id="po-clock">${formatTime(frozenRoundSeconds)}</span>
+          <span class="pl-coins" id="po-efficiency">0</span>
+          <span class="pl-sym">◆</span>
+        </div>
+      </div>
+      <div class="payout-line" id="po-line-unspent">
+        <div class="pl-left">
+          <div class="pl-name">Unspent</div>
+          <div class="pl-desc">${BAL._resources.unspent_credits} per unused swap or discard · ${c.unspentActions} left</div>
+        </div>
+        <div class="pl-right">
+          <span class="pl-coins" id="po-unspent">0</span>
+          <span class="pl-sym">◆</span>
+        </div>
+      </div>
+    </div>
+    <div class="payout-divider" id="po-divider"></div>
+    <div class="payout-total" id="po-total">
+      <span class="pt-label">Total</span>
+      <span class="pt-coins" id="po-total-coins">0 ◆</span>
+    </div>
+    </div>
+    <button class="payout-valued-btn" id="po-valued">Valued.</button>
+    <button class="payout-ff-btn" id="po-ff" title="Fast forward">»</button>`;
+}

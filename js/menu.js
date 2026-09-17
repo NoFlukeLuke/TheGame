@@ -1,4 +1,4 @@
-const BUILD = "2026-09-17 · r254 · the pick-of-three is drawn on the board; tiles describe themselves (tooltips everywhere); shop tooltip placement; tray chips stop tracking the board's card size";
+const BUILD = "2026-09-17 · r255 · the payout falls in as tiles; the pick-of-three is measured in grid cells (mid-iteration: it is still a panel over the board, not the board itself)";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

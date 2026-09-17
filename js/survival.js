@@ -316,7 +316,14 @@ function survivalRenderPick() {
       ? (opt.data.durability === 'infinite' ? '∞' : opt.data.durability + 'x') : undefined,
   }));
   cards.innerHTML = offers.map((p, i) => gridPickTileHTML(p, i)).join('');
+  // Same tile height the placed tiles get (r255) - a choice is the same size
+  // wherever it is offered. Survival stays a flex row because its panel also
+  // has to fit the reroll / peek / breakdown footer and the shop button.
+  if (typeof gridPickSizeFlexRow === 'function') gridPickSizeFlexRow(cards, offers.length);
   gridPickAfterRender(cards, offers, (i) => survivalChoose(i));
+  cards.querySelectorAll('.gp-opt').forEach((o, i) => {
+    if (typeof gridTileFallIn === 'function') gridTileFallIn(o, { delay: i * 80, dist: 220 });
+  });
   survivalUpdateRerollBtn();
 }
 

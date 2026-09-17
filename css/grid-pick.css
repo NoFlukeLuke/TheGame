@@ -1,22 +1,34 @@
 /* ══════════════════════════════════════════════════════════════════════════
-   GRID PICK (r254) - the pick-of-three drawn ON the board. See js/grid-pick.js.
-   Lives inside #grid-slot, so every px here is a STAGE px (the cabinet's zoom
-   scales it up ~1.9x on a desktop) - size type for the 336x362 slot, not the
-   viewport.
+   GRID PICK (r254, resized r255) - the pick-of-three drawn ON the board.
+   See js/grid-pick.js. Lives inside #grid-slot, so every px here is a STAGE px
+   (the cabinet's zoom scales it up ~1.9x on a desktop) - size type for the
+   336x362 slot, not the viewport.
    ══════════════════════════════════════════════════════════════════════════ */
 
 #grid-pick {
   display: none;
   position: absolute; inset: 0;
-  z-index: 44;                       /* over cards (2) and boss cell overlays (12-15); the payout (40) is gone by the time a pick opens */
-  flex-direction: column; gap: 6px;
-  padding: 6px 4px 4px;
+  z-index: 44;          /* over cards (2) and boss cell overlays (12-15); the payout (40) is gone by the time a pick opens */
+  align-items: center; justify-content: center;
   border-radius: 8px;
   background: radial-gradient(ellipse at center, rgba(8,11,6,0.55) 0%, rgba(8,11,6,0.86) 100%);
 }
 #grid-pick.show { display: flex; }
 
-#grid-pick .gp-head { display: flex; flex-direction: column; align-items: center; gap: 1px; flex: 0 0 auto; }
+/* THE BOARD BOX. --grid-w / --grid-h are the live grid's real footprint
+   (js/grid-metrics.js), and #grid is centred in #grid-slot - so a box of that
+   size, centred, lands exactly on the board. Tiles inside it are then placed
+   in the same cell units the cards use. */
+#grid-pick .gp-board {
+  position: relative;
+  width: var(--grid-w, 100%); height: var(--grid-h, 100%);
+}
+#grid-pick .gp-row { position: absolute; inset: 0; }
+
+#grid-pick .gp-head {
+  position: absolute; left: 0; right: 0; top: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+}
 .gp-kicker {
   font-family: 'Share Tech Mono', monospace; font-size: 7px; letter-spacing: 3px;
   color: var(--c-mint, #35d59b); text-transform: uppercase;
@@ -27,30 +39,37 @@
   -webkit-background-clip: text; background-clip: text; color: transparent;
 }
 
-/* The choices: as large as the board affords, spaced apart, each on a NEUTRAL
-   border - rarity colour stays on the object inside, where it means rarity. */
-#grid-pick .gp-row, #survival-pick-panel .gp-row {
-  display: flex; gap: 8px; justify-content: center; align-items: stretch;
-  flex: 1 1 auto; min-height: 0;
+/* SURVIVAL's row is a flex row (its panel carries a footer too), handed the
+   same tile height by gridPickSizeFlexRow. */
+#sv-pick-cards.gp-row {
+  display: flex; gap: var(--gp-gap, 10px); justify-content: center; align-items: flex-start;
 }
+#sv-pick-cards.gp-row .gp-opt {
+  flex: 1 1 0; min-width: 0; max-width: var(--gp-tile-w, 150px);
+  /* The cell-unit height, CLAMPED to the row. Survival's panel also carries a
+     footer (reroll / peek / breakdown) and the shop button, so the board's
+     3-of-4 height does not always fit - min() takes whichever is smaller
+     rather than letting the tiles push the footer off the panel. */
+  height: min(var(--gp-tile-h, 200px), 100%);
+}
+
+/* A CHOICE. Neutral plastic border - rarity colour stays on the object inside,
+   where it means rarity. Contents run TOP-DOWN: object, name, description,
+   with any slack left at the bottom (r255). */
 .gp-opt {
-  flex: 1 1 0; min-width: 0; min-height: 0; max-width: 150px;
-  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 3px;
   padding: 6px 5px 5px;
   border-radius: 9px; cursor: pointer;
   background: linear-gradient(180deg, rgba(27,23,16,0.94), rgba(16,13,9,0.96));
-  border: 1.5px solid rgba(183,172,147,0.55);   /* neutral - the plastic, not a rarity */
+  border: 1.5px solid rgba(183,172,147,0.55);
   box-shadow: inset 0 0 0 1px rgba(0,0,0,0.5), 0 4px 10px rgba(0,0,0,0.4);
   transition: transform 0.1s ease, box-shadow 0.15s ease, border-color 0.15s ease;
-  animation: gp-in 0.3s both cubic-bezier(.2,.8,.3,1);
+  overflow: hidden;
 }
-@keyframes gp-in { from { opacity: 0; transform: translateY(-14px); } to { opacity: 1; transform: translateY(0); } }
 .gp-opt:hover {
-  transform: translateY(-3px);
   border-color: var(--cream, #f0e6c8);
   box-shadow: inset 0 0 0 1px rgba(0,0,0,0.5), 0 0 14px rgba(240,230,200,0.25), 0 8px 16px rgba(0,0,0,0.5);
 }
-.gp-opt:active { transform: translateY(-1px); }
 
 .gp-tag {
   font-family: 'Share Tech Mono', monospace; font-size: 6.5px; letter-spacing: 2px;
@@ -63,37 +82,70 @@
 .gp-tag.rar-epic      { --rc: var(--c-purple,  #9a6cff); }
 .gp-tag.rar-legendary { --rc: var(--c-magenta, #ff2f8e); }
 
-/* THE OBJECT - as big as the tile's free height. The frame must be
-   position:relative (r239: the object's band is an abspos pseudo and anchors to
-   the nearest positioned ancestor) and it letterboxes itself inside whatever
-   box this gives it. Only the ART floats - the reward grid's own drift,
-   published as --fx/--fy/--fr/--fs by js/float-anim.js. */
-/* NOT pointer-events:none: the delegated data-et tooltip needs the hover, and
+/* THE OBJECT. A fixed share of the tile, so the words below it sit directly
+   under it rather than being pushed to the far edge by a growing art box.
+   The frame must be position:relative (r239: the object's band is an abspos
+   pseudo anchoring to the nearest positioned ancestor) and it letterboxes
+   itself inside whatever box this gives it. Only the ART floats.
+   NOT pointer-events:none: the delegated data-et tooltip needs the hover, and
    a click on the object still bubbles up to .gp-opt and chooses. */
-.gp-art { flex: 1 1 auto; min-height: 0; width: 100%; display: flex; justify-content: center; }
+.gp-art { flex: 0 0 auto; height: 55%; width: 100%; display: flex; justify-content: center; }
 .gp-art .reward-cell {
   position: relative; width: 100%; height: 100%; margin: 0; max-width: 120px;
   transform: translate(var(--fx, 0px), var(--fy, 0px)) rotate(var(--fr, 0deg)) scale(var(--fs, 1));
 }
-.gp-icon { flex: 1 1 auto; display: flex; align-items: center; justify-content: center;
+.gp-icon {
+  flex: 0 0 auto; height: 55%; display: flex; align-items: center; justify-content: center;
   font-size: 34px; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.5));
-  transform: translate(var(--fx, 0px), var(--fy, 0px)) rotate(var(--fr, 0deg)); }
+  transform: translate(var(--fx, 0px), var(--fy, 0px)) rotate(var(--fr, 0deg));
+}
 
-/* NAME and DESCRIPTION stay stationary below the object. The description never
-   grows the tile: it clamps with an ellipsis, and a clamped one opens the rest
-   in the entity tooltip (hover, or a tap that is a read, never a pick). */
+/* NAME then DESCRIPTION, directly beneath the object. */
 .gp-name {
-  flex: 0 0 auto;
+  flex: 0 0 auto; margin-top: 2px;
   font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 10px; letter-spacing: 0.5px;
   color: var(--cream, #f0e6c8); text-align: center; line-height: 1.15;
 }
+.gp-body { flex: 0 0 auto; width: 100%; position: relative; }
 .gp-desc {
-  flex: 0 0 auto; width: 100%;
   font-family: 'Crimson Pro', serif; font-size: 9.5px; line-height: 1.28;
   color: var(--cream-dim, #9a8d70); text-align: center;
-  display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
   overflow: hidden;
 }
-.gp-desc.gp-clip { cursor: help; pointer-events: auto; }
+/* THE ELLIPSIS (r255). Only a clamped description grows one, and tapping it
+   moves the WHOLE description into the chip - the tile's copy goes
+   `visibility:hidden` (not display:none, so nothing in the tile jumps). */
+.gp-more { display: none; }
+.gp-opt.gp-clipped .gp-more {
+  display: block; margin: 1px auto 0; cursor: help;
+  font-family: 'Crimson Pro', serif; font-size: 12px; line-height: 1;
+  color: var(--c-yellow, #ffce2b); background: none; border: none; padding: 0 6px;
+  letter-spacing: 1px;
+}
+.gp-opt.gp-clipped .gp-more:hover { color: #fff2c8; }
+.gp-opt.gp-reading .gp-desc { visibility: hidden; }
 
-#grid-pick .gp-foot { flex: 0 0 auto; display: flex; gap: 6px; justify-content: center; }
+#grid-pick .gp-foot {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  display: flex; gap: 6px; justify-content: center;
+}
+
+/* ── PRE-r255 FLEX LAYOUT, kept for revert ────────────────────────────────
+   The first on-board version filled the slot's whole height with a flex row
+   and let the art box grow, which pushed the name and description to the
+   bottom edge. Superseded by the cell-unit placement above; kept commented
+   rather than deleted while the on-board direction is still being settled.
+
+   #grid-pick { flex-direction: column; gap: 6px; padding: 6px 4px 4px; }
+   #grid-pick .gp-row, #survival-pick-panel .gp-row {
+     display: flex; gap: 8px; justify-content: center; align-items: stretch;
+     flex: 1 1 auto; min-height: 0;
+   }
+   .gp-opt { flex: 1 1 0; min-width: 0; min-height: 0; max-width: 150px;
+             justify-content: flex-start; animation: gp-in 0.3s both cubic-bezier(.2,.8,.3,1); }
+   @keyframes gp-in { from { opacity: 0; transform: translateY(-14px); } to { opacity: 1; transform: translateY(0); } }
+   .gp-art  { flex: 1 1 auto; min-height: 0; }
+   .gp-desc { -webkit-line-clamp: 4; }
+   .gp-desc.gp-clip { cursor: help; pointer-events: auto; }
+   ────────────────────────────────────────────────────────────────────────── */
