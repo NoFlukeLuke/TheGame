@@ -1,4 +1,4 @@
-const BUILD = "2026-09-17 · r256 · a Trick in the tray is just its icon";
+const BUILD = "2026-09-17 · r257 · the monitor in the photo is landscape, so the menu is too";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

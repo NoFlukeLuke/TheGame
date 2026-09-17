@@ -3070,6 +3070,37 @@ fifteen seconds** and settles with it centred and filling most of the shot. Touc
 photograph is gone and the UI is flat and full-screen. The monitor in the photo IS
 the machine, so the r180 arcade cabinet - housing, marquee, bezel - is hidden.
 
+### The monitor is LANDSCAPE, so the machine shows a landscape face (r257)
+
+The skew maps **`#stage`'s whole box** onto the glass quad, so the stage's aspect and
+the quad's aspect have to be near each other or the UI is stretched. Landscape is
+747x420 (**1.78**) against a quad of **1.37**, which is the foreshortening of a
+screen seen at an angle and reads as perspective. **Portrait is 420x740 (0.57)** -
+a **2.4x horizontal crush**, and on a phone it made the menu unreadable.
+
+So while the photograph is on screen the stage is **forced landscape**, whatever the
+device is doing: `officeForcesLandscape()` is read by the one place that decides it
+(`bootstrap.js`'s `update`). It is only ever a lie for as long as the photo is up.
+
+- **`applyStageLayout` is bootstrap's own `update`, exposed.** Two paths need to
+  re-decide the orientation and neither can use `camRelayout()`, which re-uses
+  `camLastLandscape` - still the forced value: the channel change, which hands a
+  phone back its portrait layout **behind the flash**, and the photo's own `load`
+  handler, because bootstrap's first pass ran long before an image could download
+  and the stage is still portrait at that point.
+- **`OFFICE_HERO_FIT` is two numbers now.** In portrait the binding axis is the
+  WIDTH, and a landscape monitor held to 0.78 of a phone's width is a small band in
+  the middle of a very tall picture: `{ landscape: 0.78, portrait: 0.92 }`.
+- **The photo crop needed nothing.** The cover framing is already centred on the
+  monitor and cropped to the viewport's aspect, so a phone was already getting its
+  own portrait slice of the office - the owner's "middle three columns". The squish
+  was never the crop.
+
+Verified at 390x844: forced landscape while the photo is up, glass 359x262 (was
+304x222), and after a button press `landscape` is false, the stage is 420x740
+painting at 386x680 in the viewport, the camera carries no transform, the skew is
+cleared and there are no page errors. Desktop at 1440x820 is unchanged.
+
 ### The opening is a DRIFT and then a CUT (r248)
 
 There is no push on PLAY. **The drift IS the approach and the flash IS the arrival**,
