@@ -1,4 +1,4 @@
-const BUILD = "2026-09-17 · r261 · tray tiles keep the floppy disc (r255 reverted)";
+const BUILD = "2026-09-18 · r262 · tier-badge-preview.html: +N vs vN.0 vs gold bands";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
