@@ -1324,6 +1324,65 @@ Three rewards, one of each type, take one, no charge. It is the BASE reward of t
 
 **It draws its own entities and must.** The reward grid's payload factories (`makeTrickPayload` and friends) are **NOT globals** - they are nested inside `_generateRewardContent`, the same scoping trap `shuffled()` set for the r194 events. Calling them here produced three silent nulls and an empty panel. `guidedPickThreeOffers()` draws through `pickEntityByRarity` (the shared rarity table, so Luck tilts it identically) and `survivalEntityBanned`, then grants through the ordinary paths.
 
+### A tap selects and reads; only CONFIRM commits (r276) - `js/grid-pick.js`
+
+Owner: *"Pick threes should require a confirm. Tapping on them should extend the
+description, or bring up a tooltip. But also, the text for the description can be
+a tad smaller so you can read more of it."*
+
+A tap used to APPLY the offer on the spot. That made this the one screen in the
+game where an unrecoverable grant sat one stray tap away - and it was being made
+against a description clamped to three lines, with the rest behind a 10px `…`
+that was itself the only thing on the tile that did NOT choose. Now **one tap
+marks the tile AND opens its full description**, and a **CONFIRM tile in the
+action row** is what takes it. Reading and choosing are the same gesture;
+committing is a separate one.
+
+- **CONFIRM owns the last `GP_CONFIRM_W` (2) cells of row 4 on EVERY screen that
+  comes through here**, with or without actions of its own, so the control that
+  commits is always in the same place (the shop's LEAVE and the reward grid's
+  CONFIRM are fixed for the same reason). A caller's actions fill
+  `GP_ACT_COLS` (4) to the left of it - **`survivalPickActions()` returns exactly
+  four now**, unpadded; a fifth would be sliced off rather than drawn.
+- **It names what it is about to take** ("CONFIRM / Cornered"), so the last thing
+  read before committing is the choice itself. `gridPickPaintSelection()` writes
+  it and lights the tile, and is deliberately **not a redraw**: the options deal
+  in once per screen and re-rendering for a tap would replay the fall and restart
+  every object's drift.
+- **THE READ IS THE NON-INTERACTIVE TOOLTIP, AND THAT IS LOAD-BEARING.** An
+  interactive bubble (one carrying buttons) brings a full-screen backdrop that
+  swallows the pointerdown dismissing it (r182), so moving to another option
+  would cost two taps on the one screen where comparing three things IS the task.
+  The plain bubble is `pointer-events:none` (css/tooltip.css) and a tap goes
+  straight through it to whatever is underneath, CONFIRM included. Verified: with
+  the bubble up, one tap moves the selection.
+- **`data-et` moved onto the TILE** (`tip: false` on the object). Both carrying
+  it would re-anchor the bubble every time the pointer crossed between the object
+  and the words under it, because the delegated listener keys on the NEAREST
+  `[data-et]`. It also gives a **LIMIT** offer a tooltip for the first time - it
+  has no object at all, so it was the one offer on this screen with nothing to
+  read.
+- **The ellipsis is a MARK, not a control** (`pointer-events: none`). It says the
+  description is clamped; the tap that reads the rest is the tap on the tile. A
+  player reaching for the rest of a sentence must not fail to select the thing
+  they were reading. The r255 "move the description entirely into the chip"
+  behaviour goes with it: the selected tile going blank while its own tooltip is
+  up reads as broken.
+- **NEW OFFERS DROP THE SELECTION.** A reroll swaps what is on the board out from
+  under it, so index 1 is a different entity afterwards and holding the mark there
+  would arm CONFIRM on something the player never read. An actions-only
+  `gridPickRefresh` (Survival repainting affordability as credits move) keeps it,
+  and so does the peek.
+- **The description is 7.5px, not 9, and clamps at 5 lines rather than 3.** The
+  tile is a fixed 2x3 cells, so setting it smaller is the only way to get more of
+  the text onto it - about 80% more lands before the tooltip is needed at all.
+
+Verified in a real browser at 1440x820 and 420x820, through the real tap path, on
+all three screens that use this: the guided pick-of-three, Survival's
+pick-of-three (4 actions + CONFIRM, no overflow) and the map's 2-knack pick. A
+tap grants nothing, CONFIRM with nothing selected does nothing, the tiles are
+cleaned out of `#grid` on close, and there are no page errors.
+
 ### How it routes
 
 - **`guidedAfterSlot()` is the single place that decides "another slot, or the boss"**, so no caller has to know how long an act is.

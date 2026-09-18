@@ -12,8 +12,9 @@
 //
 //     row 0 : 6 ambience cards
 //     rows 1-3 : three options, each 2 CELLS WIDE x 3 CELLS TALL
-//     row 4 : action tiles (Survival's reroll / peek / breakdown / shop),
-//             then ambience cards for whatever is left
+//     row 4 : the screen's own action tiles (Survival's reroll / peek /
+//             breakdown / shop) in the first 4 cells, then CONFIRM across the
+//             last 2; any cell no action claims stays ambience
 //
 // That closes exactly: 3 x (2x3) = 18 cells, plus 6 above and 6 below = 30.
 //
@@ -24,11 +25,23 @@
 //  - The OBJECT floats (js/float-anim.js, the reward grid's drift); the NAME
 //    and DESCRIPTION do not - a drifting paragraph is unreadable.
 //  - The description never grows the tile. It clamps, and a clamped one grows
-//    a tappable ellipsis; opening it moves the description ENTIRELY into the
-//    chip (the tile's copy is hidden while the chip is up, owner's call
-//    between that and continuing the text below the chip).
+//    an ellipsis marking that there is more; the rest is read in the tooltip.
 //  - The choices are neutral-bordered; rarity colour stays on the object,
 //    where it means rarity.
+//
+// A TAP SELECTS AND READS; ONLY CONFIRM COMMITS (r276). A tap used to APPLY the
+// offer on the spot, which is the one screen in the game where an unrecoverable
+// grant was one stray tap away and the description was clamped to three lines
+// while you made it. Now a tap marks the tile AND opens its full description,
+// and the pick is taken by a CONFIRM tile in the action row - so reading and
+// choosing are the same gesture and committing is a separate one.
+//
+// THE READ IS THE NON-INTERACTIVE TOOLTIP, DELIBERATELY. An interactive bubble
+// (one carrying buttons) brings a full-screen backdrop that swallows the
+// pointerdown dismissing it (r182), so moving to another option would cost two
+// taps on the one screen where comparing three things IS the task. The plain
+// bubble is pointer-events:none (css/tooltip.css) and a tap goes straight
+// through it to whatever is underneath, CONFIRM included.
 //
 // TILES LIVE IN #grid AND MUST BE REMOVED BY HAND. render() only reconciles
 // elements carrying [data-card-id], so anything else left in there is never
@@ -42,6 +55,14 @@ const GRID_PICK_FLOAT_SEL = '.gp-art .reward-cell, .gp-art .gp-icon';
 const GP_COLS = 6, GP_ROWS = 5;   // the board this screen asks for
 const GP_OPT_W = 2, GP_OPT_H = 3; // each option, in cells
 const GP_OPT_ROW = 1;             // options sit under the top ambience row
+
+// CONFIRM owns the last cells of the action row, on EVERY screen that comes
+// through here, whether or not the caller brought actions of its own. A control
+// that commits has to be in the same place every time it appears - the shop's
+// LEAVE and the reward grid's CONFIRM are fixed for the same reason - so the
+// cells a caller may fill are whatever is left to the left of it.
+const GP_CONFIRM_W = 2;
+const GP_ACT_COLS  = GP_COLS - GP_CONFIRM_W;
 
 let gridScreenSaved = null;       // { rows, cols } to restore on close
 let gridPickState = null;         // { offers, actions, onChoose } for a re-render
@@ -90,72 +111,114 @@ function gpBox(r, c, w, h) {
        + `width:${w * cw + (w - 1) * g}px;height:${h * ch + (h - 1) * g}px;`;
 }
 
+// The payload the tooltip reads. Built here rather than taken from the object's
+// own data-et, because a LIMIT has no object at all and would otherwise be the
+// one offer on this screen with nothing to read.
+function gpTipPayload(p) {
+  return { label: p.label, desc: p.desc, rarity: p.rarity || p.tier || 'common',
+           type: p.entity, emoji: p.emoji || p.icon, uses: p.uses };
+}
+
 // One choice. p: { entity, id, emoji/icon, label, desc, rarity/tier, uses, tag }
 function gridPickTileHTML(p, i) {
   const rar = (typeof tierId === 'function') ? tierId(p.rarity || p.tier || 'common') : (p.rarity || 'common');
   const isEnt = p.entity === 'trick' || p.entity === 'sleight' || p.entity === 'knack';
+  // tip:false on the OBJECT and data-et on the TILE instead. Both carrying it
+  // would re-anchor the bubble every time the pointer crossed between the
+  // object and the words under it (the delegated listener keys on the NEAREST
+  // [data-et]); one payload on the whole tile is one hover target.
   const art = (isEnt && typeof entityTileHTML === 'function')
     ? entityTileHTML({ entity: p.entity, id: p.id, emoji: p.emoji || p.icon, label: p.label, uses: p.uses }, rar,
-                     { extraClass: 'gp-obj' })
-    : `<div class="gp-icon">${p.icon || p.emoji || '▲'}</div>`;
+                     { extraClass: 'gp-obj', tip: false })
+    : `<div class="gp-icon">${p.icon || p.emoji || '\u25b2'}</div>`;
   const desc = (typeof colorizeKeywords === 'function') ? colorizeKeywords(p.desc || '') : (p.desc || '');
+  const tip = encodeURIComponent(JSON.stringify(gpTipPayload(p)));
   // The art box is given the OBJECT'S OWN ASPECT (gp-art-<kind>), so the object
   // fills it instead of letterboxing inside a taller box - that slack was the
   // big gap between the icon and the name the owner called out.
   const kind = isEnt ? p.entity : 'plain';
-  return `<div class="gp-opt gp-art-${kind}" data-gp="${i}">`
+  return `<div class="gp-opt gp-art-${kind}" data-gp="${i}" data-et="${tip}">`
     + (p.tag ? `<div class="gp-tag rar-${rar}">${p.tag}</div>` : '')
     + `<div class="gp-art" data-float-key="gp-${i}-${p.id || p.label || ''}">${art}</div>`
     + `<div class="gp-name">${p.label || ''}</div>`
     + `<div class="gp-body"><div class="gp-desc">${desc}</div>`
-    + `<button class="gp-more" type="button" aria-label="Read the rest">…</button></div>`
+    + `<div class="gp-more" aria-hidden="true">\u2026</div></div>`
     + `</div>`;
 }
 
-// THE CHIP (r255). A clamped description is not shortened, it is MOVED: while
-// the chip is open the tile's own copy is hidden (visibility, so nothing in the
-// tile jumps) and the whole description is read in the bubble. The owner's
-// call, over continuing the text below the chip.
-function gpOpenRead(opt, payload, anchor, interactive) {
-  if (typeof showEntityTooltip !== 'function') return;
-  opt.classList.add('gp-reading');
-  const restore = () => opt.classList.remove('gp-reading');
-  if (interactive) {
-    showEntityTooltip(anchor, payload, { actions: [{ label: 'GOT IT', onClick: () => { hideEntityTooltip(true); restore(); } }] });
-    // The interactive bubble's backdrop dismisses on pointerdown; a capture
-    // listener gets there first, so the tile is restored however it is closed.
-    document.addEventListener('pointerdown', restore, { capture: true, once: true });
-  } else {
-    showEntityTooltip(anchor, payload);
-  }
+// ── SELECT AND READ ─────────────────────────────────────────────────────────
+// One tap does both jobs a player has on this screen: it marks the tile as the
+// one they mean, and it opens the full description. Nothing is granted until
+// CONFIRM. See the header for why the bubble is the NON-interactive one.
+function gpShowRead(opt, p) {
+  if (typeof showEntityTooltip !== 'function' || !p) return;
+  showEntityTooltip(opt, gpTipPayload(p));
 }
 
-// Wire a container of .gp-opt tiles: choose on click, clamp detection on the
+// Paint the selection onto tiles that are already on the board. Never a redraw:
+// the options deal in once per screen and re-running that for a tap would
+// replay the fall and restart every object's drift.
+function gridPickPaintSelection() {
+  const gridEl = document.getElementById('grid');
+  if (!gridEl || !gridPickState) return;
+  const sel = gridPickState.selected;
+  gridEl.querySelectorAll('.gp-opt').forEach(el => {
+    el.classList.toggle('gp-sel', +el.dataset.gp === sel);
+  });
+  const btn = gridEl.querySelector('.gp-confirm');
+  if (!btn) return;
+  const p = (gridPickState.offers || [])[sel];
+  btn.classList.toggle('gp-act-off', !p);
+  const sub = btn.querySelector('.gp-act-sub');
+  if (sub) sub.textContent = p ? (p.label || '') : 'TAP AN OPTION';
+}
+
+// A tap on an option. Tapping the one already picked closes the read and keeps
+// the selection - the bubble is a reference, not the choice, so dismissing it
+// must never cost the pick you had made.
+function gridPickSelect(i) {
+  if (!gridPickState) return;
+  const p = (gridPickState.offers || [])[i];
+  if (!p) return;
+  const gridEl = document.getElementById('grid');
+  const opt = gridEl && gridEl.querySelector(`.gp-opt[data-gp="${i}"]`);
+  if (gridPickState.selected === i) {
+    if (typeof entityTooltipOpen === 'function' && entityTooltipOpen()) { hideEntityTooltip(true); return; }
+    if (opt) gpShowRead(opt, p);
+    return;
+  }
+  gridPickState.selected = i;
+  gridPickPaintSelection();
+  if (opt) gpShowRead(opt, p);
+  if (typeof sfxCardSelect === 'function') { try { sfxCardSelect(); } catch (e) {} }
+}
+
+// CONFIRM. The only path that commits.
+function gridPickConfirm() {
+  if (!gridPickState) return;
+  const i = gridPickState.selected;
+  const p = (gridPickState.offers || [])[i];
+  if (!p) return;
+  gridPickState.onChoose(i, p);
+}
+
+// Wire a container of .gp-opt tiles: select on click, clamp detection on the
 // descriptions, name fitting, and the float driver.
 function gridPickAfterRender(root, offers, onChoose) {
   root.querySelectorAll('.gp-opt').forEach(opt => {
     const i = +opt.dataset.gp;
-    if (onChoose) opt.addEventListener('click', () => onChoose(i, offers[i]));
+    if (onChoose) opt.addEventListener('click', () => gridPickSelect(i));
 
     const desc = opt.querySelector('.gp-desc');
     const more = opt.querySelector('.gp-more');
     if (desc && more) {
       // Clamp detection needs a laid-out element - callers invoke this after
       // the tiles are on the board (a hidden element measures zero, r239).
+      // The ellipsis is a MARK, not a control: it says there is more to read
+      // and the tap that reads it is the tap on the tile (css sets
+      // pointer-events:none on it), so it can never eat a selection.
       requestAnimationFrame(() => {
-        if (desc.scrollHeight <= desc.clientHeight + 1) return;
-        opt.classList.add('gp-clipped');
-        const p = offers[i] || {};
-        const payload = { label: p.label, desc: p.desc, rarity: p.rarity || p.tier,
-                          type: p.entity, emoji: p.emoji || p.icon, uses: p.uses };
-        // Reading the rest must never cost the pick: the tap stops here.
-        more.addEventListener('click', e => { e.stopPropagation(); gpOpenRead(opt, payload, more, true); });
-        more.addEventListener('pointerdown', e => e.stopPropagation());
-        more.addEventListener('mouseenter', () => gpOpenRead(opt, payload, more, false));
-        more.addEventListener('mouseleave', () => {
-          if (typeof entityTooltipInteractive === 'function' && entityTooltipInteractive()) return;
-          hideEntityTooltip(); opt.classList.remove('gp-reading');
-        });
+        opt.classList.toggle('gp-clipped', desc.scrollHeight > desc.clientHeight + 1);
       });
     }
   });
@@ -222,10 +285,10 @@ function gridPickRender(animateIn) {
   });
 
   // Row 4: the screen's own actions as TILES (owner spec r256 - Survival's
-  // reroll is a tile on the board, not a button under a panel), then ambience
-  // for the cells no action claimed.
-  const acts = (actions || []).slice(0, GP_COLS);
-  for (let c = 0; c < GP_COLS; c++) {
+  // reroll is a tile on the board, not a button under a panel) in the cells to
+  // the LEFT of CONFIRM, then ambience for the cells no action claimed.
+  const acts = (actions || []).slice(0, GP_ACT_COLS);
+  for (let c = 0; c < GP_ACT_COLS; c++) {
     const a = acts[c];
     const delay = 500 + c * 45;
     if (!a) { put('<div class="gp-amb"></div>', gpBox(GP_ROWS - 1, c, 1, 1), delay); continue; }
@@ -238,14 +301,26 @@ function gridPickRender(animateIn) {
     if (!a.disabled && a.onClick) el.addEventListener('click', e => { e.stopPropagation(); a.onClick(); });
   }
 
+  // CONFIRM, across the last cells of the row. Drawn disabled and lit by
+  // gridPickPaintSelection - which is also what writes the chosen name into it,
+  // so the tile that commits always says what it is about to commit to.
+  const conf = put(
+    `<div class="gp-act gp-confirm gp-act-off">`
+    + `<div class="gp-act-icon">\u2713</div>`
+    + `<div class="gp-act-label">Confirm</div>`
+    + `<div class="gp-act-sub">TAP AN OPTION</div>`
+    + `</div>`, gpBox(GP_ROWS - 1, GP_ACT_COLS, GP_CONFIRM_W, 1), 500 + GP_ACT_COLS * 45);
+  conf.addEventListener('click', e => { e.stopPropagation(); gridPickConfirm(); });
+
   gridPickAfterRender(gridEl, offers, onChoose);
+  gridPickPaintSelection();
 }
 
 // opts: { kicker, title, tone, offers, actions, onChoose(i, offer) }
 function openGridPick(opts) {
   const offers = opts.offers || [];
   gridPickState = {
-    offers, actions: opts.actions || [],
+    offers, actions: opts.actions || [], selected: -1,
     onChoose: (i, offer) => { closeGridPick(); opts.onChoose && opts.onChoose(i, offer); },
   };
   gameTimerPaused = true;
@@ -256,7 +331,12 @@ function openGridPick(opts) {
 // Re-draw without re-dealing (a reroll swapped the offers under us).
 function gridPickRefresh(offers, actions) {
   if (!gridPickState) return;
-  if (offers)  gridPickState.offers  = offers;
+  // NEW OFFERS DROP THE SELECTION. A reroll swaps what is on the board out from
+  // under it, so index 1 is a different entity afterwards and holding the mark
+  // there would arm CONFIRM on something the player never read. An actions-only
+  // refresh (Survival repainting affordability as credits move) keeps it.
+  if (offers)  { gridPickState.offers = offers; gridPickState.selected = -1;
+                 if (typeof hideEntityTooltip === 'function') hideEntityTooltip(true); }
   if (actions) gridPickState.actions = actions;
   gridPickRender(false);
 }

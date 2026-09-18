@@ -1,4 +1,4 @@
-const BUILD = "2026-09-18 · r275 · bands at pitch 5%, and on the Sleight card too";
+const BUILD = "2026-09-18 · r276 · the pick-of-three needs a confirm";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

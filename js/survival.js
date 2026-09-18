@@ -291,20 +291,20 @@ function survivalPickOverlay() {
   return el;
 }
 
-// Survival's own controls, as the bottom row of the board. Padded with nulls so
-// the four sit in the middle four cells and the two ends stay ambience.
+// Survival's own controls, as the bottom row of the board. Four of them, and
+// they fill GP_ACT_COLS exactly: CONFIRM owns the last two cells of that row on
+// every grid-pick screen (r276), so a fifth entry here would be sliced off
+// rather than drawn. Add one and something has to give.
 function survivalPickActions() {
   const cost = survivalRerollCost();
   const free = survivalRerollsLeft > 0;
   return [
-    null,
     { icon: '🎲', label: 'Reroll', sub: free ? `FREE (${survivalRerollsLeft})` : `${cost} ◆`,
       disabled: !free && coins < cost, onClick: () => survivalReroll() },
     { icon: '👁', label: 'Peek', sub: 'watch', onClick: () => survivalTogglePeek() },
     { icon: '📊', label: 'Round', sub: 'breakdown', onClick: () => survivalToggleContrib() },
     { icon: '🛒', label: 'Shop', sub: `${SURVIVAL_SHOP_COST} ◆`, cls: 'gp-act-buy',
       disabled: coins < SURVIVAL_SHOP_COST, onClick: () => survivalOpenShop() },
-    null,
   ];
 }
 
