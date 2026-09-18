@@ -24,7 +24,8 @@ html,body{ margin:0; padding:0; background:#0f0d09 !important; }
 #pv .row{ display:flex !important; gap:22px; align-items:flex-end; flex-wrap:wrap; padding:14px 12px;
       background:#141109; border:1px solid #241f16; border-radius:6px; }
 #pv .slot{ text-align:center; }
-#pv .cap{ font-size:9px; color:#6d6656; margin-top:6px; letter-spacing:1px; }
+#pv .cap{ font-size:9px; color:#6d6656; margin-top:6px; letter-spacing:1px; line-height:1.5; }
+#pv .cap:empty{ display:none; }
 /* A frame, exactly as a real surface wraps one (r182): a size + position:relative. */
 #pv .frame{ position:relative; }
 #pv .f1{ width:40px;  height:53px; }
@@ -86,7 +87,7 @@ html,body{ margin:0; padding:0; background:#0f0d09 !important; }
   Kept for comparison; <b>+N</b> now means PRIMED, in violet, bottom right.<br>
   <b>C</b> &mdash; <b>gold bands</b> across a corner, one per tier, drawn <b>under</b> the label, the emoji
   and the name &mdash; plus a <b>tier-coloured shutter</b>: grey &middot; bronze &middot; silver &middot; gold &middot;
-  black &middot; polished gold &middot; iridescent. The shutter is enlarged here too.<br>
+  black &middot; <b>iridescent at 5 and up</b>. The shutter is enlarged here too.<br>
   Frames are the real ones: 40&times;53 landscape tray &middot; 47&times;64 portrait tray &middot; 57&times;76 reward grid &middot; 119&times;158 shop.
 </div>
 
@@ -104,7 +105,8 @@ html,body{ margin:0; padding:0; background:#0f0d09 !important; }
 <div class="sec"><h2>A &mdash; vN.0 stamp <small>(shipping today, r267)</small></h2><div class="row" id="rowA"></div></div>
 <div class="sec"><h2>B &mdash; the old +N pill <small>(r206, replaced)</small></h2><div class="row" id="rowB"></div></div>
 <div class="sec"><h2>C &mdash; gold bands</h2><div class="row" id="rowC"></div></div>
-<div class="sec"><h2>C &mdash; the whole ladder, at portrait tray size <small>(tier 6 = iridescent)</small></h2><div class="row" id="rowL"></div></div>
+<div class="sec"><h2>C &mdash; the whole ladder, at portrait tray size <small>(5 and up are iridescent)</small></h2><div class="row" id="rowL"></div></div>
+<div class="sec"><h2>C &mdash; every tier at every size <small>(40 &middot; 47 &middot; 57 &middot; 119)</small></h2><div class="row" id="rowAll" style="flex-direction:column;align-items:flex-start;gap:14px"></div></div>
 </main>
 
 <script>
@@ -139,14 +141,14 @@ function bandsLayer(n, corner, pitch, thick){
 // warm light, silver has a hard white edge, black keeps a cold rim so it does
 // not read as a hole.
 const SHUT = [
-  /* 0 dull grey     */ 'linear-gradient(180deg,#9c9c98 0%,#72726f 50%,#8a8a87 100%)',
-  /* 1 bronze        */ 'linear-gradient(170deg,#eec08d 0%,#b87333 34%,#7a4a1e 62%,#d9975a 100%)',
-  /* 2 shiny silver  */ 'linear-gradient(170deg,#ffffff 0%,#cfd8e2 26%,#79838f 54%,#eef4fa 72%,#aab3bd 100%)',
-  /* 3 gold          */ 'linear-gradient(170deg,#fff0bd 0%,#e3ba50 30%,#a67c14 58%,#f6dd8e 100%)',
-  /* 4 shiny black   */ 'linear-gradient(170deg,#8b929b 0%,#1b1f25 28%,#05070a 52%,#39414b 74%,#9aa2ac 100%)',
-  /* 5 polished gold */ 'linear-gradient(170deg,#fffdf0 0%,#ffe89a 22%,#c79a1e 50%,#8a6206 66%,#ffe07a 100%)',
-  /* 6+ iridescent   */ 'linear-gradient(120deg,#ff6ec7 0%,#ffd86e 18%,#6effa8 36%,#6ed8ff 54%,#a06eff 72%,#ff6ec7 90%,#ffd86e 100%)',
+  /* 0 dull grey    */ 'linear-gradient(180deg,#9c9c98 0%,#72726f 50%,#8a8a87 100%)',
+  /* 1 bronze       */ 'linear-gradient(170deg,#eec08d 0%,#b87333 34%,#7a4a1e 62%,#d9975a 100%)',
+  /* 2 shiny silver */ 'linear-gradient(170deg,#ffffff 0%,#cfd8e2 26%,#79838f 54%,#eef4fa 72%,#aab3bd 100%)',
+  /* 3 gold         */ 'linear-gradient(170deg,#fff0bd 0%,#e3ba50 30%,#a67c14 58%,#f6dd8e 100%)',
+  /* 4 shiny black  */ 'linear-gradient(170deg,#8b929b 0%,#1b1f25 28%,#05070a 52%,#39414b 74%,#9aa2ac 100%)',
+  /* 5+ iridescent  */ 'linear-gradient(120deg,#ff6ec7 0%,#ffd86e 18%,#6effa8 36%,#6ed8ff 54%,#a06eff 72%,#ff6ec7 90%,#ffd86e 100%)',
 ];
+const MATNAME = ['dull grey','bronze','shiny silver','gold','shiny black','iridescent'];
 const shutFor = n => SHUT[Math.min(n, SHUT.length - 1)];
 
 function tile(opt, size, kind, rar, n, corner, pitch, cap, thick){
@@ -170,7 +172,15 @@ function draw(){
   tv.textContent = n; pv2.textContent = pitch; tkv.textContent = thick;
   for (const [opt, row] of [['A', rowA], ['B', rowB], ['C', rowC]])
     row.innerHTML = SIZES.map(([c, cap]) => tile(opt, c, kind, rar, n, corner, pitch, cap, thick)).join('');
-  rowL.innerHTML = [0,1,2,3,4,5,6].map(t => tile('C','f2',kind,rar,t,corner,pitch,'tier '+t,thick)).join('');
+  rowL.innerHTML = [0,1,2,3,4,5,6].map(t =>
+    tile('C','f2',kind,rar,t,corner,pitch, t >= 5 ? 'tier ' + t + ' ·' : 'tier ' + t, thick)).join('');
+  // Every tier at every frame size, so a material can be judged at 40px and at
+  // 119px. One row per tier, its name on the left.
+  rowAll.innerHTML = [0,1,2,3,4,5].map(t =>
+    `<div style="display:flex;gap:16px;align-items:flex-end">`
+    + `<div class="cap" style="width:120px;text-align:left;margin:0 0 6px">tier ${t}<br>${MATNAME[t]}</div>`
+    + ['f1','f2','f3','f4'].map(c => tile('C', c, kind, rar, t, corner, pitch, '', thick)).join('')
+    + `</div>`).join('');
 }
 document.querySelectorAll('#pv input,#pv select').forEach(el => el.addEventListener('input', draw));
 draw();

@@ -1,4 +1,4 @@
-const BUILD = "2026-09-18 · r270 · preview: thicker bands under the label, tier-coloured shutter";
+const BUILD = "2026-09-18 · r271 · preview: iridescent at 5+, and every material at every size";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
