@@ -1,4 +1,5 @@
 const KNACK_POOL = [
+  { id:'advance_notice',  emoji:'📋',  name:'Advance Notice',   rarity:'rare',   desc:'While you hold it, its tooltip names the boss waiting at the end of the NEXT quarter. Sell it and a different boss takes that slot.' },
   { id:'contingency',     emoji:'🛡️',  name:'Contingency Plan', rarity:'rare',   desc:'Boss effects are 10% weaker - timed effects tick 10% less often, and everything else is 10% smaller.' },
   { id:'free_swaps',      emoji:'🕊️',  name:'Free Swaps',       rarity:'common', desc:'Swapping cards costs no time.' },
   { id:'free_discards',   emoji:'🪶',  name:'Free Discards',    rarity:'common', desc:'Discarding costs no time.' },

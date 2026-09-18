@@ -1517,6 +1517,156 @@ Measured: two-visit sets 66.5% -> 68.9%, tiles per run 9.97 -> 10.26.
 - `mapRender` marks legal tiles off the same `mapLegalMoves()` list, so branch
   targets light up with no rendering change.
 
+### The map speaks SCHEDULE (r260)
+
+Owner: *"The map is your schedule, sets are time slots, and each node is a...
+obligation. And the boss is a manager review."* The vocabulary, everywhere the
+player reads it:
+
+| was | is |
+|---|---|
+| The Map (mode name) | **The Schedule** |
+| set | **time slot** (`SLOT 2/6` on the bar) |
+| tile / node | **obligation** |
+| boss | **manager review** (the column reads `REVIEW`) |
+| THE MAP (the grid-screen location chip) | **SCHEDULE** |
+
+**Ids are frozen and nothing else moved** - TERMINOLOGY.md's rule. `mapTiles`,
+`MAP_SETS`, `mapCanFinishFrom`, `kind:'boss'`, `body.map-active`, the CSS class
+names and every function in `js/map-mode.js` are untouched; this is `MAP_HELP`,
+`MAP_KIND_META.boss.name`, `mapTileDesc`, the bar's labels, three toasts, the
+`enterGridScreenHud` label and the `MODES.map` name and description.
+
+- **The tile KINDS keep their names** (Round, Hard Round, Shop, Reward Grid,
+  Event, Limit Break). They say what the obligation IS, and Shop and Reward Grid
+  are named that on their own screens - renaming them here would give one thing
+  two names.
+- **`REVIEW` is six letters where `BOSS` was four, and the boss name is drawn
+  VERTICALLY in landscape with no fitter** (r238: the fitter measures
+  horizontally, so the boss is deliberately exempt). Measured: the name box is
+  20x99 inside a 79x444 column, so it fits with room to spare.
+
+### The obligations have schedule names too (r262)
+
+r260 renamed the map; the TILES still said Round, Hard Round, Shop, Reward
+Grid, Event and Limit Break. Owner's call, with the shop and the reward grid
+named directly:
+
+| was | short chip | in full |
+|---|---|---|
+| Round | ACCOUNT | Client Account |
+| Hard Round | PRIORITY | Priority Account |
+| Shop | MART | LETHE Mart |
+| Reward Grid | INCENTIVE | Incentive Program |
+| Event | MEETING | Meeting |
+| Limit Break | RAISE | Raise Request |
+| boss | REVIEW | Manager Review |
+
+- **A TILE CARRIES THE SHORT CHIP AND NOTHING LONGER.** It is 57px wide and a
+  name is one atomic word there (r182 - words never break), so "Incentive
+  Program" would shrink to nothing or truncate. `MAP_KIND_META` gained a
+  `full` field: the bar's info line prints it between the chip and the
+  description, and the tile's `title` carries full name plus description.
+- The full name is printed only when it says something the chip does not
+  (`face.full.toUpperCase() !== face.name`), so MEETING never reads
+  "MEETING Meeting".
+- **An event tile still shows THAT event's own name** when it has one;
+  MEETING is the fallback and the type's full name.
+- The shop already titles its own board COMPANY STORE (r237), so the tile
+  says where you are going and the screen says what it is.
+- Ids are frozen as ever: `kind:'level'`, `mk-shop`, `MAP_KIND_META` keys and
+  every function are untouched.
+
+Verified at 1440x820 and 420x820: 24 and 25 tiles, zero names overflowing.
+
+### The schedule takes a PEN and a LEGEND (r263) - `js/map-draw.js`
+
+Two things you can do to the schedule without changing it.
+
+**The pen.** A canvas over the board, inside `#grid`. **Right-drag draws, with
+no mode to enter**; **double right-click cycles the colour**; the cursor becomes
+a pen IN THAT COLOUR. The bar carries a pen chip (finger mode), a colour
+swatch, and undo / clear once there is ink.
+
+- **The layer is `pointer-events: none` by default**, which is the whole reason
+  a right-drag still works over a tile - and circling a tile is exactly what
+  you want to do. The events are taken on **`#grid`**, which is emptied by
+  every `mapRender` but never replaced, so one binding outlives every render.
+  Only the finger mode (`.pen-on`) makes the canvas take taps, and then it
+  swallows tile clicks wholesale rather than needing a guard in `mapTileTap`.
+- **THE CANVAS IS MOUNTED FROM THE END OF `mapRender`.** It is a child of
+  `#grid`, so it is wiped with the tiles; the STROKES live in
+  `mapDrawStrokes` and are repainted onto the new canvas.
+- **Strokes are NORMALISED to the grid box** (0..1), so they survive a render,
+  an orientation flip and a save. They are in `SAVE_VARS` with `mapPenColor`,
+  and `mapResetBoard` clears them - the ink belongs to that map.
+- **The cabinet's `zoom` means a rect is NOT the element's own px.**
+  `_mapDrawAdd` divides the pointer delta by `rect.width / offsetWidth`; the
+  r160 Trick-fan trap, and here it would put the ink at the wrong scale.
+- **THE DOUBLE-CLICK WINDOW IS STAMPED BY A CLICK, NEVER BY A DRAG.** Stamping
+  it on pointer DOWN meant a click just after a quick circle read as the second
+  half of a pair and cycled the colour instead of drawing. It is stamped at
+  pointer UP, and only when the stroke never moved. The dot the first click of
+  a real pair leaves is popped back off when the second lands.
+
+**The legend** (the `▤` chip) lists only the kinds actually on this schedule,
+in `MAP_KIND_META` order, each with the `blurb` field that table now carries.
+Hovering a row lights those obligations and drops everything else, Slay the
+Spire's move; tapping one **latches** it (`mapLegendLatch`) so it survives the
+pointer leaving the row, and tapping again releases.
+
+- It reuses `.mb-help` wholesale, so it cannot drift from the ? card in
+  placement - above the strip, never inside it (r255's reason).
+- The highlight is written straight onto the live tiles (`mt-lit` / `mt-dim`),
+  with no render, so it cannot disturb a selection or replay the deal-in. The
+  dim carries `!important` because an unreachable tile is already at 0.55.
+- **Verified in a real browser at 1440x820 and 420x820**: right-drag lays a
+  stroke (18 points, 396 inked pixels after a re-render), a double right-click
+  cycles the colour and takes the dot back, pen mode draws on a left drag and
+  takes no tile with it, a left click with the pen off still selects, the
+  legend lights 3 of 25 tiles and the card lands fully on screen in both.
+
+### The map bar is one strip, and the rules live behind a ? (r255)
+
+Owner: the bar was *"too large and persistent, and doesn't feel especially on
+theme."* It was three stacked blocks - a stats row, a two-line prose block, and
+a button row on its own line - about 100px tall, permanently across the bottom
+of the map.
+
+**It is ONE compact row now (38px)**: `SET x/6`, visits, a **? chip**, the
+picked tile's line, the skip price, credits, CONFIRM. Console material to match
+`#event-panel` (indigo plate, plastic ring) rather than a plain dark box.
+
+- **The standing "how the map works" prose is a tutorial you cannot dismiss**, so
+  it moved into `MAP_HELP` behind the ? - five one-line rules, drawn as a card
+  that opens **ABOVE** the strip. Above, because anchoring it inside the bar
+  would change the bar's height and shove the board every time it opened.
+- **`.mb-info` is `flex: 1` and CLIPPED to one line** (`text-overflow: ellipsis`,
+  `max-width: 46vw`). A long tile description would otherwise push CONFIRM off
+  the end of a `width: max-content` strip. It is `:empty { display: none }`, so
+  with nothing picked the bar shrinks to 360px.
+- **The outside-click close is armed only while the card is open.** The bar is
+  rebuilt on every map render, so a standing document listener would stack one
+  copy per render.
+- A tile's `mouseleave` clears the line now; it only ever set it.
+
+### The x/y selection readout shows only where a pick matters (r255)
+
+`#sel-count`'s live test was `gridData.length > 0` - the number of ROWS, which is
+true of a board of nulls and of every screen that merely BORROWS the grid. So
+"0/3" hung over the map, the crossroads, the payout pick and the interlude,
+describing a selection that could not be made.
+
+`updateSelectionUI` now shows it on exactly three screens: **the shop, the reward
+grid, and a live round** (`boardLive` = real cards on the board, and none of
+`map-active` / `pick-active` / `grid-screen`). Measured: hidden on the menu and
+the map, shown in a level, a reward grid and the shop.
+
+- **A class gate needs a repaint behind it.** `map-active` goes on without a
+  `render()`, so `mapRenderBar` and `mapCloseScreen` call `updateSelectionUI`
+  themselves; the payout pick's close does the same, because it renders BEFORE
+  it drops its class.
+
 ### The route runs THROUGH a 2x1, it does not cut across it (r254)
 
 A tile was ONE route node, at its head cell. A 2x1 occupies two cells, so the
@@ -1920,7 +2070,7 @@ Reward-grid penalties and card curses are the only PERMANENT damage a run takes 
 **Every option reads the same live global the penalty is stored in**, and an option with nothing to do is not offered - a screen full of choices that would do nothing is worse than a consolation payment, which is what an empty record gets instead.
 
 ## Progression (Normal mode)
-3 Acts × (5 events + 1 boss) = 18 nodes. `actNumber` (1–3), `nodeInAct` (0–4, boss at 5). `forceBossNextRound` triggers the boss after the next deal. Win at `actNumber > 3` → `onGameWin()`.
+`QUARTERS_PER_RUN` quarters × (5 events + 1 boss) = 6 nodes each. `actNumber` (1..`QUARTERS_PER_RUN`), `nodeInAct` (0–4, boss at 5). `forceBossNextRound` triggers the boss after the next deal. Win at `actNumber > QUARTERS_PER_RUN` → `onGameWin()`.
 
 ## Boss system
 
@@ -2258,6 +2408,35 @@ Beating a boss used to be: the word `VICTORY` in gold Cinzel over the still-live
 
 Player-facing only: **Q1 / Q2 / Q3**, three of them, same structure. Everything in code - `actNumber`, `nodeInAct`, `isActMode`, `actStructure` - is unchanged, so nothing about the progression moved. The strings are `js/hud.js` (`'Q' + actNumber`, the `.rp-act` line in both run-progress blocks), `js/tricks-ui.js` (the act readout, both branches), the two `<div class="rp-act">` defaults in `index.html`, and four mode descriptions in `js/menu.js`. This and **QUOTA CLEARED** are deliberate exceptions to the r178 voice rule - the owner is putting the corporate framing back on the *structural* labels while the entity and action text stays plain.
 
+### `QUARTERS_PER_RUN` (r264) - how long a run is, in one place
+
+**Four quarters, and the number is written down once** - `QUARTERS_PER_RUN` at the
+top of `js/quarter.js`. Setting it back to **3** restores the pre-r264 run exactly
+and needs no other edit; that is the whole reason it exists, because the owner
+expects to switch Q4 off for the beta.
+
+Three things read it and nothing else may hardcode the count: the rollover's win
+test (`actNumber > QUARTERS_PER_RUN` -> `onGameWin`), the quarter card's pips
+(built from it rather than `[1,2,3]`), and the run report's no-ghost-row rule
+(`rows.length < QUARTERS_PER_RUN`). Two more sites ask "is this the LAST quarter"
+and read it too: `peekNextActBoss` (there is no next boss to name) and
+`knackLiveDesc`'s Advance Notice fallback.
+
+**A fourth quarter needed no new content, and that is the point.** A quarter's
+SHAPE is 5 nodes and a boss and does not mention its own index; the goal curve
+rides `level`, which just keeps climbing; the boss bag refills itself out of 34
+presets; and map mode anchors each quarter's boss quota to the level that quarter
+opens on (`mapQuarterBossGoal`). So Q4 is six more ordinary nodes at the
+difficulty the curve has already reached.
+
+**There is deliberately NO final boss** (owner's call: not designed yet). Q4 ends
+on an ordinary boss round like every other quarter, and clearing it wins the run.
+
+**The mode blurbs say the number in words and cannot read the constant.**
+`js/menu.js` and `js/picker-mode.js` are static strings evaluated at load time,
+before `js/quarter.js` runs, so "Four quarters" / "FOUR QUARTERS" are typed out
+in four places there. Change them with the constant.
+
 ## Quarter close (r226) - `js/quarter.js` + `css/quarter.css`
 
 Three quarters used to roll over in **complete silence**: `actNumber++` happened inside `finishInterlude`, the pips redrew, the next round dealt. Eighteen rounds in a row with nothing marking the two boundaries. And the end screen was six lines of run totals that said nothing about the shape of the run.
@@ -2521,48 +2700,6 @@ a real card carries beside the logo.
 - **The resting rarity edge moved onto the CARD.** Left on the cell it outlined
   the empty slot the card is centred in, which is the one thing the letterbox
   exists to leave alone.
-
-### A Trick in the TRAY is its icon, and nothing else (r255, ships in r256)
-
-Owner's call: *"for the tricks when they're in the tray chip they should never
-have any sort of additional border or background, it should just be their icon /
-artwork."*
-
-The chip FRAME was already bare - r228 stripped the grey slab that used to fill
-the chip's slot behind the tile. What was left is the OBJECT: since r228 a Trick
-tile is a floppy disc, so the tray was drawing a rarity-tinted shell, a metal
-shutter and a cream label plate behind every icon. At 40px, six of those in a row
-read as clutter rather than as a loadout.
-
-**Only the tray changes.** The disc still draws on the reward grid, the shop, the
-Mart, Records, the Shift Change slots and the trick-lose picker - it is the thing
-that says "a Utility" on every screen where you are choosing one. The tray is the
-one place you are not choosing, only glancing.
-
-- **The disc is painted by `::before` and the NAME sits on its label**, so both go
-  with it (`.rwd-glyph`, the old star, was already hidden). The icon is then
-  re-centred over the whole chip and sized from the chip (`min(64cqw, 64cqh)`)
-  rather than from the label's upper half. `container-type: size` stays on the
-  tile, which is what keeps those cq units meaningful once the paint is gone.
-- **WHAT STAYS, because it is information and not chrome:** the cooldown ring
-  (`.cd-badge`, r209), the boss OFF stamp and its drain (`.trick-off`, r188) and
-  the improvement tier badge (`.rwd-tier`, r206). Verified live: all three still
-  render on an icon-only tray.
-- **TWO rules, because of specificity, and it is worth knowing why there are two.**
-  The tray rule carries both ids (`#stage #trick-tray-list`) and lands at
-  **(2,3,0)**. The portrait fan's tuck edge -
-  `#stage:not(.landscape) #trick-tray-list.fanned .trick-tray-chip + .trick-tray-chip > .reward-cell` -
-  is **(2,5,0)** and beat it, so portrait kept a rounded glow box floating around
-  each bare icon. It is named in its own rule rather than fought with
-  `!important`. Measured before the second rule: landscape `box-shadow: none`,
-  portrait still painting.
-- **The portrait fan's tucked tiles re-assert their own placement** after the
-  tray rule, or they lose the r171 behaviour where a tucked tile shows the LEFT
-  of a full-size icon rather than a centred one clipped through the middle.
-- **A side effect worth knowing:** rarity colour and the name are no longer shown
-  in the tray. Two Tricks that share an emoji are now told apart only by their
-  tooltip. If that wants fixing, the lever is the ICON (a per-Trick glyph nothing
-  else uses), not a border put back.
 
 ### The objects keep their RATIO everywhere, and every listing shows them (r239)
 

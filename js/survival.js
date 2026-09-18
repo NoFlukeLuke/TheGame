@@ -128,6 +128,7 @@ function survivalInitRun() {
   bossNumber               = 0;
   bossBag                  = [];
   actBossId                = null;   // Survival/Flow draw at trigger time (r238)
+  nextActBossId            = null;
   document.getElementById('stage')?.classList.add('survival-mode');
   updateSurvivalShopBtn();
 }

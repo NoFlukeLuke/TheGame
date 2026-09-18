@@ -1,4 +1,4 @@
-const BUILD = "2026-09-18 · r258 · the mode carousel plays on the monitor, and picking a mode dives in";
+const BUILD = "2026-09-18 · r265 · the mode carousel plays on the monitor, and picking a mode dives in";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -7,7 +7,7 @@ const MODES = {
   normal: {
     id: 'normal',
     name: 'Classic',
-    desc: 'Three quarters. Play rounds, path through the reward grid, and defeat bosses.',
+    desc: 'Four quarters. Play rounds, path through the reward grid, and defeat bosses.',
     winCondition: 'boss_defeat',
     enableBosses: true,
     enableShops: true,
@@ -25,7 +25,7 @@ const MODES = {
   guided: {
     id: 'guided',
     name: 'Guided',
-    desc: 'The three-quarter game on a set route. Every quarter runs reward grid, shop, reward grid, event, and so on into the boss - then a prize grid and two events.',
+    desc: 'The four-quarter game on a set route. Every quarter runs reward grid, shop, reward grid, event, and so on into the boss - then a prize grid and two events.',
     winCondition: 'boss_defeat',
     enableBosses: true,
     enableShops: true,
@@ -37,13 +37,14 @@ const MODES = {
     suitCount: 4,
     guided: true
   },
-  // The Map (r238): one act drawn as a 4-lane board you walk tile by tile.
+  // The Schedule (r238, renamed r260): a quarter drawn as a 4-lane board you
+  // walk one obligation at a time.
   // See js/map-mode.js for the rules; actStructure keeps the interlude/payout
   // machinery, and the map hooks intercept every routing seam Guided cut.
   map: {
     id: 'map',
-    name: 'The Map',
-    desc: 'One act as a map: four lanes, six sets of tiles, then the boss. Two tiles per set at most, orthogonal moves only, and everything you step on happens.',
+    name: 'The Schedule',
+    desc: 'Your quarter as a schedule: six time slots of obligations, then a manager review. Two obligations a slot at most, no diagonal moves, and everything you book happens.',
     winCondition: 'boss_defeat',
     enableBosses: true,
     enableShops: true,
@@ -79,7 +80,7 @@ const MODES = {
   sixsuits: {
     id: 'sixsuits',
     name: 'Six Suits',
-    desc: 'Same three-quarter game, but the deck has six suits - flushes are far rarer, so Flush of 3, 4, and 5 are all playable.',
+    desc: 'Same four-quarter game, but the deck has six suits - flushes are far rarer, so Flush of 3, 4, and 5 are all playable.',
     winCondition: 'boss_defeat',
     enableBosses: true,
     enableShops: true,
