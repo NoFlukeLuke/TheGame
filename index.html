@@ -553,6 +553,26 @@
     </label>
   </div>
 
+  <div class="dev-section" data-group="deck">
+    <div class="dev-section-title">Six Suits Deck</div>
+    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:-2px;">
+      Six suits but only four of each rank, so the deck is ranks x copies and the suit count no longer sets its size. Changes apply at the START OF THE NEXT ROUND. Six Suits only - Classic and Spectrum are untouched.
+    </div>
+    <div style="font-family:Cinzel,serif;font-size:9px;letter-spacing:2px;color:var(--gold-dim);margin-top:4px;">CUT RANK &middot; the one rank left out</div>
+    <div id="dev-deck-ranks" class="dev-spec-row"></div>
+    <div style="font-family:Cinzel,serif;font-size:9px;letter-spacing:2px;color:var(--gold-dim);margin-top:4px;">RUN LADDER</div>
+    <div id="dev-deck-courts" class="dev-spec-row"></div>
+    <div style="font-family:'Crimson Pro',serif;font-size:10px;color:var(--cream-dim);">
+      Without this the cut rank does almost nothing: measured, Run of 3 stays 74-77% whichever rank is cut, because a high Ace still bridges back to the King.
+    </div>
+    <div style="font-family:Cinzel,serif;font-size:9px;letter-spacing:2px;color:var(--gold-dim);margin-top:4px;">COPIES OF EACH RANK</div>
+    <div id="dev-deck-copies" class="dev-spec-row"></div>
+    <div id="dev-deck-status" style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--cream-dim);margin-top:6px;"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;">
+      <button class="dev-btn" onclick="deckDesignApplyNow()">Apply now (re-deal)</button>
+    </div>
+  </div>
+
   <div class="dev-section" data-group="spectrum">
     <div class="dev-section-title">Spectrum Deck</div>
     <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:-2px;">
@@ -1180,6 +1200,7 @@
 <script src="js/devlog.js"></script>
 <script src="js/grid-metrics.js"></script>
 <script src="js/data/cards.js"></script>
+<script src="js/deck-design.js"></script>
 <script src="js/data/audio-manifest.js"></script>
 <script src="js/data/dominoes.js"></script>
 <script src="js/data/tricks.js"></script>

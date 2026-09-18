@@ -1,4 +1,4 @@
-const BUILD = "2026-09-14 · r233 · a card's x mult fires ON THE CARD, once per replay - the whole per-card mult region now applies in scoring order [onto r232]";
+const BUILD = "2026-09-18 · r234 · the six-suit deck is DESIGNED: 6 suits but 4 of each rank, a cut rank, courts off the run ladder, crown + moon [onto r233]";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -61,7 +61,7 @@ const MODES = {
   sixsuits: {
     id: 'sixsuits',
     name: 'Six Suits',
-    desc: 'Same three-quarter game, but the deck has six suits - flushes are far rarer, so Flush of 3, 4, and 5 are all playable.',
+    desc: 'Six suits, but only four of each rank, so the deck is 48 cards rather than 78. One rank is cut, and the court cards pair and flush but never run. Flushes are rare and long runs are half as common as Classic.',
     winCondition: 'boss_defeat',
     enableBosses: true,
     enableShops: true,
@@ -275,8 +275,8 @@ const MODE_META = {
               blurb: 'The original four-suit game. Three Acts of rounds, shops, events and bosses.' },
   guided:   { accent: '#c9a0ff',         suits: '8 SLOTS',
               blurb: 'Each act is eight slots and then the boss. Every slot is either a round you play or something you buy with it - the shop, a reward grid, or one of two events on offer. Buying power always costs a round you will not get to play, and the goal climbs either way, so the question is how much of the act you spend getting stronger rather than getting further.' },
-  sixsuits: { accent: 'var(--c-mint)',   suits: '♠ ♥ ♦ ♣ ★ ▲',
-              blurb: 'Two extra suits dilute the deck, so flushes are hard-won. Flush of 3, 4 and 5 are all in play.' },
+  sixsuits: { accent: 'var(--c-mint)',   suits: '♠ ♥ ♦ ♣ ♛ ☾',
+              blurb: 'Six suits with four of each rank, so the deck is 48 cards and a suit holds only eight. One rank is cut out entirely. The crown and the moon join the four you know, and the court cards pair and flush but never make a run. Flushes are hard-won and a long run is half as common as it is in Classic.' },
   spectrum: { accent: '#ff9d3c',        suits: '🔴 🟡 🔵 🟢 🟣 🟠 ⚫ ⚪',
               blurb: 'The deck loses its suits and its court. Seven colours and the values 0 to 11, plus a lone 15 and 20. The 9s, 10s and 11s are WHITE - colourless, and they can never complete a flush. Four payout cards are shuffled in: score two hands beside one and it pays.' },
   survival: { accent: 'var(--c-coral)',  suits: 'ENDLESS',
