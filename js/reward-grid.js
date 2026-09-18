@@ -244,14 +244,16 @@ function _generateRewardContent() {
   // Limit-drain debuff: -1 to a shown limit (weight 5; only if something is drainable).
   // round_time is excluded - a 1-second drain reads like a bug, not a curse.
   {
-    const _drainable = LIMITS_DEF.filter(d => d.id !== 'round_time' && limits[d.id].current > 1);
+    // limitCanDecrement, not `current > 1` - a limit at its own floor cannot be
+    // drained, and a tile that takes nothing is worse than another penalty.
+    const _drainable = LIMITS_DEF.filter(d => d.id !== 'round_time' && limitCanDecrement(d.id));
     if (_drainable.length) {
       const _dl = pickWeightedLimits(1, _drainable)[0];
-      const _dst = limits[_dl.id].step || 1;
-      const _dto = Math.max(0, limits[_dl.id].current - _dst);
-      debuffs.push({ weight: 5, perm: true, icon: '⬇️', label: `-${_dst} ${_dl.label}`, tier: 'penalty',
-        desc: `${_dl.label}: ${limits[_dl.id].current} → ${_dto} · permanent (limits are precious!)`,
-        apply: () => { decrementLimit(_dl.id); showMessage(`-${_dst} ${_dl.label}`, 'var(--red)'); } });
+      const _dtx = limitDeltaText(_dl.id, -1);           // the REAL loss, floor included
+      const _dch = limitChangeText(_dl.id, -1);
+      debuffs.push({ weight: 5, perm: true, icon: '⬇️', label: `${_dtx} ${_dl.label}`, tier: 'penalty',
+        desc: `${_dch} · permanent (limits are precious!)`,
+        apply: () => { decrementLimit(_dl.id); showMessage(`${_dtx} ${_dl.label}`, 'var(--red)'); } });
     }
   }
   // Dark mystery: unknown until claimed - mostly bad (weight 6).
@@ -306,7 +308,7 @@ function _generateRewardContent() {
   // Trick tiles are drawn on the SHOP'S RARITY TABLE (r193), not uniformly.
   //
   // They used to be picked flat out of the eligible pool, which sounds fair and is
-  // not: TRICK_POOL is 49 common / 66 rare / 50 epic / 7 legendary / 5 mythic, so a
+  // not: TRICK_POOL is 49 common / 66 rare / 50 epic / 12 legendary, so a
   // uniform draw made an epic-or-better tile a 35% event on EVERY trick slot, and
   // a grid guarantees five of them. Sleights had gone through pickSleightByRarity
   // since the shop was written; tricks and knacks never did, which is most of why
@@ -314,8 +316,13 @@ function _generateRewardContent() {
   // Owner's call (r195): tricks and knacks draw on the SAME table as sleights,
   // rather than the slightly looser one r193 gave them. That is a further
   // tightening - epic-or-better goes from 21% of a trick tile to 13%.
+  //
+  // The PRIZE grid draws on its own table (PRIZE_TIER_W) rather than on the
+  // ordinary one with commons filtered out of the pool. A filter is not a table:
+  // it decided the floor while the weights only shared out what survived, so the
+  // printed spread and the real one could never agree. See js/data/balance.js.
   const TRICK_TIERS  = ENTITY_TIERS;
-  const TRICK_TIER_W = luckTierWeights(ENTITY_TIER_W);   // Luck tilts the ladder (js/luck.js)
+  const TRICK_TIER_W = luckTierWeights(PRIZE ? PRIZE_TIER_W : ENTITY_TIER_W);   // Luck tilts the ladder (js/luck.js)
   // pickEntityByRarity now lives in js/luck.js so the events can reach it too.
   const pickByRarity = (pool, tierOf, weights, tiers) => pickEntityByRarity(pool, tierOf, weights, tiers);
 
@@ -323,9 +330,6 @@ function _generateRewardContent() {
     if (typeof TRICK_POOL === 'undefined') return { icon: '★', label: 'Trick', tier: 'rare', entity: 'trick', rarity: 'rare', apply: applyRewardRandomTrick };
     const owned = new Set((acquiredTricks || []).map(b => b.id));
     let eligible = TRICK_POOL.filter(b => !owned.has(b.id) && !offerBanned(b.id));
-    // Prize grid takes no commons. Fall back to the full list if filtering would
-    // leave nothing - an empty tile is worse than a common one.
-    if (PRIZE) { const up = eligible.filter(b => (b.tier || 'common') !== 'common'); if (up.length) eligible = up; }
     if (eligible.length === 0) return { icon: '★', label: 'Trick', tier: 'rare', entity: 'trick', rarity: 'rare', apply: applyRewardRandomTrick };
     eligible = freshPool(eligible);
     const pick = pickByRarity(eligible, b => (b.tier || 'common'), TRICK_TIER_W, TRICK_TIERS)
@@ -338,17 +342,14 @@ function _generateRewardContent() {
     };
   }
 
-  // Prize-grid sleight draw: the shop's rarity table with 'common' cut out of it.
+  // Prize-grid sleight draw: the prize table, through the shared chokepoint.
+  // It had its own copy of the roll-and-cascade loop, which is exactly how a
+  // path drifts off the table everything else reads.
   function pickPrizeSleight() {
-    const TIERS = ['rare', 'epic', 'legendary', 'mythic'];
-    const W     = luckTierWeights([58, 28, 9, 5]);   // no commons here, but Luck still tilts it
-    const pool = freshPool(SLEIGHT_POOL.filter(j => !grantedSleightIds.has(j.id) && sleightOfferable(j) && !offerBanned(j.id) && (j.rarity || 'common') !== 'common'));
+    const pool = freshPool(SLEIGHT_POOL.filter(j => !grantedSleightIds.has(j.id) && sleightOfferable(j) && !offerBanned(j.id)));
     if (!pool.length) return null;
-    const total = W.reduce((a, b) => a + b, 0);
-    let roll = Math.random() * total, ti = 0;
-    for (let i = 0; i < W.length; i++) { roll -= W[i]; if (roll <= 0) { ti = i; break; } }
-    for (let i = ti; i >= 0; i--) { const t = pool.filter(j => j.rarity === TIERS[i]); if (t.length) return t[Math.floor(Math.random() * t.length)]; }
-    return pool[Math.floor(Math.random() * pool.length)];
+    return pickEntityByRarity(pool, j => (j.rarity || 'common'), TRICK_TIER_W, TRICK_TIERS)
+        || pool[Math.floor(Math.random() * pool.length)];
   }
 
   // ── Improve an entity you already own (r206) ───────────────────────────────
@@ -408,7 +409,6 @@ function _generateRewardContent() {
     if (typeof KNACK_POOL === 'undefined') return { icon: '♛', label: 'Knack', tier: 'rare', entity: 'knack', rarity: 'rare', apply: applyRewardKnack };
     const owned = new Set((acquiredKnacks || []).map(t => t.id));
     let eligible = KNACK_POOL.filter(t => !owned.has(t.id) && !offerBanned(t.id));
-    if (PRIZE) { const up = eligible.filter(t => (t.rarity || 'common') !== 'common'); if (up.length) eligible = up; }
     if (!eligible.length) return makeTrickPayload(); // fallback - all knacks owned
     eligible = freshPool(eligible);
     // Same rarity table as Tricks, for the same reason - KNACK_POOL is 24 common /
@@ -470,7 +470,7 @@ function _generateRewardContent() {
     // outright on the strength of the same wrong assumption ("its +1 = 1 second"),
     // which is why a limit tile could never raise your round time at all.
     // incrementLimit was always applying def.step correctly; only the label lied.
-    const eligible = LIMITS_DEF.filter(d => limits[d.id].current < limits[d.id].max);
+    const eligible = LIMITS_DEF.filter(d => limitCanIncrement(d.id));
     if (!eligible.length) return makeTrickPayload();
     const dl = pickWeightedLimits(1, eligible)[0];
     // PRINT THE STEP, not "+1". incrementLimit has always moved a limit by its
@@ -483,12 +483,15 @@ function _generateRewardContent() {
     // and `|| 1` gave back the very number this was written to stop printing. See
     // the limits reset in js/game-control.js. Seconds also get a unit, or a Round
     // Time tile reads "+15 Round Time" and could be 15 of anything.
-    const _st = limits[dl.id].step || 1;
-    const _to = Math.min(limits[dl.id].max, limits[dl.id].current + _st);
-    const _u  = dl.id === 'round_time' ? 's' : '';
-    return { icon: '⬆️', label: `+${_st}${_u} ${dl.label}`, tier: 'epic',
-      desc: `${dl.label}: ${limits[dl.id].current}${_u} → ${_to}${_u} · permanent`,
-      apply: () => { incrementLimit(dl.id); showMessage(`+${_st}${_u} ${dl.label}!`, 'var(--gold)'); } };
+    //
+    // r227: and the step is still not the gain - at 295/300 Starting Time steps
+    // by 15 and moves by 5. limitDeltaText / limitChangeText (js/limits.js) are
+    // the one place the printed number is worked out, clamp included.
+    const _tx = limitDeltaText(dl.id, 1);
+    const _ch = limitChangeText(dl.id, 1);
+    return { icon: '⬆️', label: `${_tx} ${dl.label}`, tier: 'epic',
+      desc: `${_ch} · permanent`,
+      apply: () => { incrementLimit(dl.id); showMessage(`${_tx} ${dl.label}!`, 'var(--gold)'); } };
   }
 
   // At most this many limit tiles on a prize grid, INCLUDING the guaranteed Limit
@@ -552,22 +555,28 @@ function _generateRewardContent() {
   // ── Guaranteed-tile builders (r114) ──
   // A limit-upgrade tile that raises `id` by up to `amount` (permanent). Returns
   // null if the limit is already maxed, so callers can fall back to an alternate.
-  function makeLimitUpgradeTile(id, amount) {
-    const l = limits[id]; if (!l || l.current >= l.max) return null;
+  // `amount` is how many STEPS to grant, not how many units. It used to be read
+  // as units and then applied as `gain` calls to incrementLimit, which agree only
+  // while the limit steps by 1 - every id this is called with does, so nothing was
+  // wrong, but pointing it at Focus Cap (step 3) would have promised +2 and paid
+  // +6. Now it counts steps and asks limits.js what that comes to.
+  function makeLimitUpgradeTile(id, steps) {
+    const l = limits[id]; if (!l || !limitCanIncrement(id)) return null;
     const def = LIMITS_DEF.find(d => d.id === id);
-    const cur = l.current, next = Math.min(l.max, cur + amount);
+    const cur = l.current, u = limitUnit(id);
+    const next = Math.min(l.max, cur + steps * limitStep(id));
     const gain = next - cur;
     return {
-      icon: '⬆️', label: `+${gain} ${def.label}`, tier: 'epic', rarity: 'legendary', _guaranteed: true,
-      desc: `${def.label}: ${cur} → ${next} · permanent`,
-      apply: () => { for (let k = 0; k < gain; k++) incrementLimit(id); onLimitChanged?.(id); showMessage(`+${gain} ${def.label}!`, 'var(--gold)'); }
+      icon: '⬆️', label: `+${gain}${u} ${def.label}`, tier: 'epic', rarity: 'legendary', _guaranteed: true,
+      desc: `${def.label}: ${cur}${u} → ${next}${u} · permanent`,
+      apply: () => { for (let k = 0; k < steps; k++) incrementLimit(id); onLimitChanged?.(id); showMessage(`+${gain}${u} ${def.label}!`, 'var(--gold)'); }
     };
   }
   function makeGrowthTile()      { const o = Math.random()<0.5 ? ['grid_rows','grid_cols'] : ['grid_cols','grid_rows']; for (const id of o) { const t = makeLimitUpgradeTile(id, 1); if (t) return t; } return null; }
   function makeSwapDiscardTile() { const o = Math.random()<0.5 ? ['swaps','discards'] : ['discards','swaps'];         for (const id of o) { const t = makeLimitUpgradeTile(id, 2); if (t) return t; } return null; }
   function makeLimitBreakPayload() {
     return {
-      icon: '💥', label: 'Limit Break', tier: 'mythic', rarity: 'mythic', _guaranteed: true,
+      icon: '💥', label: 'Limit Break', tier: 'legendary', rarity: 'legendary', _guaranteed: true,
       desc: 'Break a limit for free - raise any one limit permanently (opens the Limit Break screen; a second break is available for a sacrifice).',
       apply: () => { pendingLimitBreak = true; }
     };
@@ -627,7 +636,15 @@ function _generateRewardContent() {
 
   // One destination in a random buff slot (not on a prize grid - it pays out, it
   // does not route you anywhere).
-  const NO_DEST = PRIZE || (typeof guidedActive === 'function' && guidedActive());
+  // A DESTINATION tile routes the next node ('Next: Shop' / 'Next: Event'), and
+  // that only means something in the node flow. Guided buys its stops at the
+  // crossroads and MAP mode walks to them as tiles, so in both the override is
+  // cleared unread by finishInterludeRoute - the player picks 'Next: Event',
+  // pays a tile for it, and NOTHING HAPPENS. Guided was excluded when it landed
+  // and the map was missed. Owner's call: on the map an event is an event TILE.
+  const NO_DEST = PRIZE
+    || (typeof guidedActive === 'function' && guidedActive())
+    || (typeof mapActive === 'function' && mapActive());
   if (!NO_DEST) grid[shuffledBuff[0][0]][shuffledBuff[0][1]] = { kind: 'dest', payload: pickRand(destOptions) };
 
   // Guaranteed tiles first (protected from the Trick-minimum conversion below)
@@ -700,7 +717,7 @@ function _generateRewardContent() {
       else if (!high && _isEdge(r, c))  freeEdge.push([r, c]);
     }
     // Most exposed inner tile out first, into the least exposed edge cell going -
-    // so on a board with one corner free, the mythic is the tile that gets it.
+    // so on a board with one corner free, the legendary is the tile that gets it.
     highInner.sort((a, b) => _openness(b[0], b[1]) - _openness(a[0], a[1]));
     freeEdge.sort((a, b) => _openness(a[0], a[1]) - _openness(b[0], b[1]));
     const n = Math.min(highInner.length, freeEdge.length);
@@ -920,9 +937,9 @@ function maybeOpenTrickReplacePicker() {
   openTrickLosePicker(trickTray.map((trick, idx) => ({ trick, source: 'tray', idx })));
 }
 
-// Trick tiers and entity rarities are the same five words, but a Trick can carry
+// Trick tiers and entity rarities are the same four words, but a Trick can carry
 // a tier the tile has no colour for - fall back rather than paint nothing.
-const BLP_TIERS = ['common', 'rare', 'epic', 'legendary', 'mythic'];
+const BLP_TIERS = ['common', 'rare', 'epic', 'legendary'];
 function blpRarity(tier) {
   const t = String(tier || '').toLowerCase();
   return BLP_TIERS.includes(t) ? t : 'common';
@@ -1262,7 +1279,7 @@ function skipRewardGrid() {
 // A reward tile can be an "entity" (trick / sleight / knack) rendered in the
 // cabinet's CRT/neon language, a card-face tile (blessed/cursed/cull, unchanged),
 // or a plain resource/debuff/dest tile (icon + name). Rarity → neon border color.
-const REWARD_RARITIES = ['common', 'rare', 'epic', 'legendary', 'mythic'];
+const REWARD_RARITIES = ['common', 'rare', 'epic', 'legendary'];
 function rewardRarity(p) {
   const r = p.rarity || p.tier;
   return REWARD_RARITIES.includes(r) ? r : 'rare';
@@ -1291,7 +1308,14 @@ function ensureRewardTooltip() {
   if (_rewardTT && document.body.contains(_rewardTT)) return _rewardTT;
   _rewardTT = document.createElement('div');
   _rewardTT.id = 'reward-tooltip';
-  _rewardTT.innerHTML = `<div class="rtt-rar"></div><div class="rtt-name"></div><div class="rtt-desc"></div>`;
+  _rewardTT.innerHTML = `<button class="rtt-close" aria-label="Close">✕</button><div class="rtt-rar"></div><div class="rtt-name"></div><div class="rtt-desc"></div>`;
+  // The ✕ unpins as well as hides: an X'd tooltip must stay closed even though
+  // its tile is still the most recently selected one (owner spec, r237).
+  _rewardTT.querySelector('.rtt-close').onclick = (e) => {
+    e.stopPropagation();
+    rewardTipKey = null;
+    hideRewardTooltip();
+  };
   document.body.appendChild(_rewardTT);
   return _rewardTT;
 }
@@ -1303,7 +1327,11 @@ let rewardTipKey = null;
 
 // Fill and show the tooltip for one tile, anchored to it.
 function showRewardTooltipFor(r, c) {
-  const cell = rewardCells[r]?.[c];
+  // The shop shares this tooltip but keeps its stock in shopGridItems, not
+  // rewardCells - reading rewardCells there showed the PREVIOUS reward grid's
+  // tile (or nothing), which is why shop tooltips never worked (fixed r237).
+  const onShop = (typeof shopGridActive !== 'undefined' && shopGridActive);
+  const cell = onShop ? { kind: 'buff', payload: shopGridItems[r]?.[c] } : rewardCells[r]?.[c];
   if (!cell || !cell.payload || !cell.payload.desc) { hideRewardTooltip(); return; }
   const p = cell.payload;
   // Works for the on-board tiles (#grid) and the legacy overlay grid alike.
@@ -1319,10 +1347,13 @@ function showRewardTooltipFor(r, c) {
   const descText = (p._trick && typeof trickLiveDesc === 'function') ? trickLiveDesc(p._trick) : (p.desc || '');
   tt.querySelector('.rtt-desc').innerHTML   = colorizeKeywords(descText);
   tt.classList.add('show');
-  // Shared placement (js/entity-tooltip.js): roomiest side horizontally, with an
-  // above/below fallback when neither side can fit the bubble - so a tile in the
-  // right-most column pops out to the LEFT instead of squeezing against the edge.
-  placeTipSmart(el, tt, { gap: 12 });
+  // Placement. The SHOP uses the boss-peek / hand-log rule (r254): centred on
+  // the tile, below when there is room, flipped above when not, clamped - the
+  // roomiest-side rule kept opening the bubble sideways across the very shelf
+  // being read. The reward grid keeps roomiest-side: its picks are a connected
+  // path, and a bubble below the tile would sit on the next tile to take.
+  if (onShop) placeTipBelow(el, tt, { gap: 10 });
+  else placeTipSmart(el, tt, { gap: 12 });
 }
 
 // Re-show whatever tooltip was up before a re-render, since renderRewardTiles
@@ -1340,6 +1371,21 @@ function attachRewardTooltip(el, p, kind) {
   const r = +el.dataset.r, c = +el.dataset.c;
   el.addEventListener('mouseenter', () => showRewardTooltipFor(r, c));
   el.addEventListener('mouseleave', restoreRewardTooltip);
+  // Touch: press-and-hold PINS the tooltip without acting on the tile. The
+  // click that follows the release is swallowed by whoever owns the tile's
+  // click (the shop checks el._lpJustFired), so reading never costs a pick.
+  let lpTimer = null;
+  const arm = () => { lpTimer = setTimeout(() => {
+    lpTimer = null;
+    el._lpJustFired = true;
+    rewardTipKey = `${r}-${c}`;
+    showRewardTooltipFor(r, c);
+  }, 430); };
+  const disarm = () => { if (lpTimer) { clearTimeout(lpTimer); lpTimer = null; } };
+  el.addEventListener('pointerdown', e => { if (e.pointerType !== 'mouse') arm(); });
+  el.addEventListener('pointerup', disarm);
+  el.addEventListener('pointercancel', disarm);
+  el.addEventListener('pointerleave', disarm);
 }
 
 function renderRewardGrid() {
@@ -1653,7 +1699,7 @@ async function revealAndFlyMystery(tile, p, c, cols) {
 
   const out = p._rolled || (p._rolled = rollRewardMystery(p._goodChance ?? 0.7));
   tile.classList.remove('entity', 'entity-trick', 'entity-sleight', 'entity-knack',
-    'rar-common', 'rar-rare', 'rar-epic', 'rar-legendary', 'rar-mythic', 'mystery');
+    'rar-common', 'rar-rare', 'rar-epic', 'rar-legendary', 'mystery');
   tile.classList.add(out.good ? 'reward-good' : 'reward-bad', 'reward-revealed');
   tile.innerHTML = `<div class="reward-icon">${out.icon}</div><div class="rwd-name">${out.label}</div>`;
   const nm = tile.querySelector('.rwd-name'); if (nm) fitRewardName(nm);
@@ -1774,8 +1820,9 @@ function closeRewardGrid() {
     // Guided routes off it, and 5 is the post-boss prize grid.
     const _node = nodeInAct;
     const _guided = (typeof guidedActive === 'function' && guidedActive() && isActMode());
+    const _map = (typeof mapActive === 'function' && mapActive());
 
-    if (isActMode() && !_guided) {
+    if (isActMode() && !_guided && !_map) {
       if (nodeInAct === 5) {
         // Post-boss reward grid - the quarter rolls over. rolloverQuarter
         // (js/quarter.js) closes the quarter's books, does the advance, and shows
@@ -1786,7 +1833,7 @@ function closeRewardGrid() {
       } else {
         nodeInAct++;
         updateActProgressUI();
-        if (nodeInAct === 5) {
+        if (nodeInAct === 5 && (typeof bossesEnabled !== 'function' || bossesEnabled())) {
           forceBossNextRound = true;
         }
       }
@@ -1798,6 +1845,19 @@ function closeRewardGrid() {
   // Everything finishInterlude does AFTER the node/quarter bookkeeping. Split out
   // so the quarter card can run in front of it and then call it (js/quarter.js).
   function finishInterludeRoute(_node, _guided) {
+    // Map mode (r238): a grid here is either one the player LANDED ON - back to
+    // the map - or the post-boss prize grid, which is the run won. One act, so
+    // there is no quarter to roll over; mapBossArmed is what tells them apart.
+    if (typeof mapActive === 'function' && mapActive()) {
+      pendingEventOverride = null;
+      // A grid here is one the player LANDED ON - back to the map - or the
+      // post-boss PRIZE grid, which closes the quarter (r249). rolloverQuarter
+      // does the advance, shows the card, and goes to onGameWin itself past Q3,
+      // so the map never has to know how many quarters a run is.
+      if (mapBossArmed) rolloverQuarter(() => mapBeginQuarter());
+      else mapAfterTile();
+      return;
+    }
     // Guided (r218) runs its own act: slots, not nodes. A grid here is either one
     // the player BOUGHT with a slot - back to the crossroads - or the post-boss
     // prize grid, which rolls the act over. Neither uses the node routing above,
@@ -1883,13 +1943,17 @@ function resumeAfterNodeFlowShop() {
 let pendingLimitBreak   = false;  // a claimed Limit Break reward tile → open the LB screen on close
 
 // ── LIMIT BREAK EVENT ──
-// Offers 3 curated limits (2 known + 1 blind). Player breaks one for free.
-// Optionally breaks a second by sacrificing: -1 to another limit, OR a Trick, OR a Knack.
+// Offers 3 curated limits (2 known + 1 blind). Stage 1: break one for free.
+// Stage 2: optionally break a second against one of THREE rolled sacrifices.
+// See the header of js/limit-break.js for why it is two stages.
 
 let lbOffers = [];          // [{ id, blind, revealed }]
 let lbPrimaryPick = null;   // offer index chosen as free pick
-let lbSecondPick = null;    // offer index chosen as sacrifice pick
-let lbSacrifice = null;     // { type:'limit'|'trick'|'knack', id }
+let lbSecondPick = null;    // offer index chosen as the traded-for pick
+let lbSacrifice = null;     // the chosen entry of lbSacPool, plus _i
 let lbConfirmed = false;
+let lbStage = 1;            // 1 = free pick, 2 = trade for a second
+let lbSacPool = null;       // the 3 rolled sacrifices, fixed for the whole of stage 2
+let lbRevealing = false;    // the beat that shows what a blind SECOND pick turned out to be
 let lbOnClose = null;       // continuation to run after the LB screen closes (reward-grid flow)
 

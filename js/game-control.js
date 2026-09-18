@@ -110,12 +110,14 @@ function hideTimePopup() {
 // debuffs), the round's max time, and how many times it's been paused / rewound.
 function updateInteractCosts() {
   const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-  // Flow charges no time for anything - spendRoundTime is a no-op there, because its
-  // clock is the countdown to the boss rather than a round budget. Quote that, or the
-  // pop-up drifts from reality the way it did before r151.
-  if (typeof flowActive === 'function' && flowActive()) {
-    set('ic-play', '0s'); set('ic-discard', '0s'); set('ic-swap', '0s');
-    set('ic-maxtime', (typeof formatTime === 'function') ? formatTime(FLOW_SESSION_SECONDS) : `${FLOW_SESSION_SECONDS}s`);
+  // Read the SAME predicate the two charge sites read (js/round-timers.js), so
+  // the quoted cost and the billed cost cannot drift. Before r234 this branch was
+  // keyed on flowActive() while the charges were keyed on nothing at all, which is
+  // how Flow came to display 0s and bill 8s.
+  if (typeof interactTimeCostsOn === 'function' && !interactTimeCostsOn()) {
+    set('ic-play', `${playHandCostThisRound || 0}s`); set('ic-discard', '0s'); set('ic-swap', '0s');
+    const _dur = (typeof currentRoundDuration === 'function') ? currentRoundDuration() : ROUND_DURATION;
+    set('ic-maxtime', (typeof formatTime === 'function') ? formatTime(_dur) : `${_dur}s`);
     set('ic-paused',  `${pausesThisRound  || 0}×`);
     set('ic-rewound', `${rewindsThisRound || 0}×`);
     return;
@@ -281,6 +283,12 @@ function startGame() {
     // is what the copies are spread across.
     if (typeof deckDesignInstallLists === 'function') deckDesignInstallLists();
   }
+  // A picker-built mode may name a scoring model. It is installed into the live
+  // global only, never into localStorage: the dev panel's own choice is what a
+  // mode WITHOUT one falls back to, so a custom run cannot leave its model behind
+  // for the next Classic run. startGame is the single point both are set from.
+  scoringModel = ACTIVE_MODE.scoringModel
+              || (localStorage.getItem('scoringModel') || 'classic');
   // Spectrum zeroes the Flush of 3 (see applyModeHandValues); every other mode
   // gets the pristine table back.
   applyModeHandValues();
@@ -298,17 +306,14 @@ function startGame() {
   handsPlayed = 0;
   // Reset limits to base values on new game.
   //
-  // `step` MUST be carried across (r211). This rebuild dropped it, so from the
-  // first frame of every run round_time.step was undefined and focus_cap.step was
-  // undefined, and incrementLimit's `(l.step || 1)` fell back to 1. That is the
-  // real reason a Round Time upgrade granted ONE SECOND instead of 15 and a Focus
-  // Cap upgrade one node instead of 3, everywhere they could be bought - the
-  // shop, the reward grid, Limit Break, Growth Spurt, the Survival pick. The
-  // limits table in js/limits.js had the right numbers the whole time; this line
-  // threw them away at startGame and nothing read LIMITS_DEF again afterwards.
-  LIMITS_DEF.forEach(def => {
-    limits[def.id] = { current: def.base, base: def.base, max: def.max, step: def.step || 1 };
-  });
+  // THROUGH makeLimitRow (js/limits.js), never spelled out here. This rebuild
+  // used to write the row by hand and it dropped `step`, so from the first frame
+  // of every run round_time.step and focus_cap.step were undefined and
+  // incrementLimit's `(l.step || 1)` fell back to 1 - the real reason a Round Time
+  // upgrade granted ONE SECOND instead of 15, everywhere it could be bought (the
+  // shop, the reward grid, Limit Break, Growth Spurt, the Survival pick). r211
+  // fixed the field; r227 removed the second copy that let it happen.
+  LIMITS_DEF.forEach(def => { limits[def.id] = makeLimitRow(def); });
   // Match-3 modes start on a 5×5 board (owner spec). Setting it through `limits`
   // means level-ups keep the size instead of snapping back to the 4×4 base.
   if (match3Active()) {
@@ -475,6 +480,7 @@ function startGame() {
   freeSwapsLeft    = 2;
   freeDiscardsLeft = 2;
   cardsDiscardedRound = 0;
+  swapsUsedRound = 0;
   focusGenRound = 0;
   cardsScoredTotal = 0;
   nineSecondsCounter = 0;
@@ -493,6 +499,8 @@ function startGame() {
   // Seeded to the first interval, not 0: `_elapsedRound >= 0` is already true on
   // the round's first tick, which would prime a Trick one second into the run.
   understudyNextMark = BAL.understudy.interval_seconds;
+  hallmarkCardId = null; hallmarkMarkAt = -1; hallmarkPlanted = false;
+  forcedTrickIds = [];
   lastHandType = null;
   streakCount = 0;
   lastHandTime = 0;
@@ -523,6 +531,7 @@ function startGame() {
   shopFromNodeFlow = false;
   nodeFlowAfterShop = null;
   if (typeof guidedResetRun === 'function') guidedResetRun();  // Guided's slot counter + event offers
+  if (typeof mapResetRun === 'function') mapResetRun();        // Map mode: generate the board (js/map-mode.js)
   recentEventIds = [];
   sleightCapBonus = {};   // Workshop's raised charge ceilings are per run
   // Improvement tiers are per run. resetEntityTiers() also rewrites BAL back to
@@ -549,6 +558,8 @@ function startGame() {
   blockedCells = new Set();
   bossNumber = 0;
   bossBag = [];              // fresh shuffled boss bag per run (see nextBossPreset)
+  actBossId = null;          // quarter 1's boss is dealt below, once the mode is set
+  nextActBossId = null;      // and nothing has looked into the quarter after it yet
   savedRoundSeconds = 0;
   nextBossTime = GAME_DURATION - BOSS_LOOP_DURATION;
   document.getElementById('grid').classList.remove('boss-active');
@@ -564,6 +575,14 @@ function startGame() {
   document.getElementById('btn-pause').textContent = '⏸ Pause';
   document.getElementById('clock').classList.remove('urgent');
   document.getElementById('clock-bar').classList.remove('urgent');
+
+  // r238: deal QUARTER 1's boss. After the seed is installed (so it is part of
+  // the seeded run) and BEFORE initGridData, so it cannot perturb the deck
+  // draw order - bosses and the deck are separate seeded streams, but the draw
+  // still has to happen at a fixed point or "seed X, quarter 1" stops meaning
+  // one thing. isActMode() is already settled here, so Survival and Flow
+  // correctly hold nothing.
+  drawActBoss();
 
   initGridData();
   // Spectrum: shuffle the four deck fixtures in. AFTER initGridData - it assigns
@@ -582,6 +601,9 @@ function startGame() {
   // Tutorial mode: rig the opening board + goal, then start the coach-marks.
   // Must run LAST - it overwrites roundGoal/coins and re-renders the stacked grid.
   if (tutorialActive()) tutorialBeginRun();
+  // Map mode: freeze the round startTimers just armed and put the map over it.
+  // The first level tile confirmed resumes exactly this round (js/map-mode.js).
+  if (typeof mapActive === 'function' && mapActive()) mapBeginRun();
 }
 
 // ══════════════════════════════════════════════

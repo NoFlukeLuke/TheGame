@@ -57,6 +57,8 @@ function syncMatch3DevToggles() {
     const el = document.getElementById('dev-match3-type-' + t);
     if (el) el.checked = !!match3Types[t];
   });
+  const mfb = document.getElementById('dev-map-freebranch');
+  if (mfb) mfb.checked = mapFreeBranch;
 }
 
 function applyDevMode() {
@@ -136,6 +138,7 @@ const DEV_GROUPS = [
   { g:'display',  icon:'⛶', label:'Display',   sub:() => 'fullscreen' },
   { g:'save',     icon:'💾', label:'Save Run',  sub:() => { const s = savedRunSummary(); return s ? `saved · Round ${s.level}` : 'no save yet'; } },
   { g:'seed',     icon:'⚄', label:'Run Seed',  sub:() => runSeed ? `on · ${runSeed}` : 'off · random' },
+  { g:'map',      icon:'🗺', label:'Map',       sub:() => mapFreeBranch ? 'free branch ON' : 'free branch off' },
   { g:'match3',   icon:'⬚', label:'Match-3',   sub:() => 'match types · sandbox' },
   { g:'spectrum', icon:'◐', label:'Spectrum',  sub:() => `${spectrumRanks().length} values × ${spectrumColors().length} colours` },
   { g:'deck',     icon:'\u265B', label:'Deck',      sub:() => `${deckDesignRanks().length} ranks × ${deckCopiesPerRank} = ${deckDesignSize()} cards` },
@@ -518,8 +521,9 @@ function devRenderLimits() {
 }
 
 function devIncrLimit(id) {
+  const say = `${limitDeltaText(id, 1)} ${LIMITS_DEF.find(d=>d.id===id)?.label}`;   // before the increment
   const ok = incrementLimit(id);
-  if (ok) showMessage(`↑ ${LIMITS_DEF.find(d=>d.id===id)?.label}`, 'var(--gold)');
+  if (ok) showMessage(say, 'var(--gold)');
   devRenderLimits();
 }
 
@@ -913,7 +917,7 @@ function devRenderSleights() {
   list.innerHTML = SLEIGHT_POOL.map(j => {
     const owned = grantedSleightIds.has(j.id);
     return `<div class="dev-trick-item">
-      <span class="dev-trick-name">${j.emoji} ${j.name} <span style="color:var(--gold-dim);font-size:9px">${j.rarity}</span>${owned?' ✓':''}</span>
+      <span class="dev-trick-name">${j.emoji} ${j.name} <span style="color:var(--gold-dim);font-size:9px">${tierLabel('sleight', j.rarity)}</span>${owned?' ✓':''}</span>
       <button class="dev-trick-add" onclick="devAddSleight('${j.id}')" ${owned?'disabled style="opacity:0.5"':''}>
         ${owned?'Granted':'+ Add'}
       </button>

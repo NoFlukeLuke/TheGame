@@ -1,0 +1,358 @@
+/* ══════════════════════════════════════════════
+   MAP MODE (r238) - the run drawn as a board of tiles
+   The grid is borrowed exactly the way the shop borrows it; every tile is an
+   absolutely-positioned sibling at card metrics. Landscape reads left to right,
+   portrait top to bottom - the JS transposes, this file never needs to know.
+   ══════════════════════════════════════════════ */
+
+#grid .map-tile {
+  position: absolute;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 2px; padding: 3px 2px;
+  text-align: center;
+  border-radius: 6px;
+  cursor: pointer;
+  z-index: 2;
+  --rc: #8fd0ff;
+  background:
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.14) 0 2px, transparent 2px 4px),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02));
+  border: 1px solid color-mix(in srgb, var(--rc) 55%, transparent);
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+/* One colour per kind - red is the hard round and the boss, nothing else. */
+#grid .map-tile.mk-level     { --rc: #6fd08c; }
+#grid .map-tile.mk-challenge { --rc: #ff9d5c; }
+#grid .map-tile.mk-shop      { --rc: var(--c-yellow, #f5c042); }
+#grid .map-tile.mk-reward    { --rc: #8fd0ff; }
+#grid .map-tile.mk-event     { --rc: #c9a0ff; }
+#grid .map-tile.mk-limit     { --rc: #7fe3c0; }
+#grid .map-tile.mk-mystery   { --rc: #d8d0f0; }
+#grid .map-tile.mk-boss      { --rc: #ff5c5c; }
+
+#grid .map-tile.mk-blank {
+  background: #0a0812;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 0 14px rgba(0, 0, 0, 0.8);
+  cursor: default;
+}
+
+#grid .map-tile .mt-icon { font-size: 15px; line-height: 1; }
+#grid .map-tile .mt-name {
+  font-family: 'Orbitron', sans-serif; font-weight: 700;
+  font-size: 6px; letter-spacing: 0.02em; text-transform: uppercase;
+  color: var(--cream, #efe7d6); line-height: 1.15;
+  max-width: 100%; overflow: hidden;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+}
+#grid .map-tile.mk-boss .mt-icon { font-size: 22px; }
+#grid .map-tile.mk-boss .mt-name { font-size: 9px; letter-spacing: 0.25em; }
+#stage.landscape #grid .map-tile.mk-boss .mt-name { writing-mode: vertical-rl; letter-spacing: 0.3em; }
+
+/* States. A LEGAL tile glows; the SELECTED one lifts and rings; a VISITED one
+   is stamped and drained; a doomed or unreachable tile is simply dimmer -
+   readable (it is information) but plainly not on offer. */
+#grid .map-tile:not(.mt-legal):not(.mt-visited):not(.mk-blank) { opacity: 0.55; }
+#grid .map-tile.mt-legal {
+  opacity: 1;
+  border-color: var(--rc);
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5), 0 0 12px -2px var(--rc);
+  animation: map-legal-pulse 2.2s ease-in-out infinite;
+}
+#grid .map-tile.mt-legal:hover { transform: translateY(-2px); }
+@keyframes map-legal-pulse {
+  0%, 100% { box-shadow: inset 0 0 10px rgba(0,0,0,0.5), 0 0 8px -2px var(--rc); }
+  50%      { box-shadow: inset 0 0 10px rgba(0,0,0,0.5), 0 0 16px -2px var(--rc); }
+}
+#grid .map-tile.mt-selected {
+  transform: translateY(-3px);
+  outline: 2px solid var(--rc);
+  outline-offset: 1px;
+  z-index: 3;
+}
+#grid .map-tile.mt-visited {
+  opacity: 0.5; filter: saturate(0.3) brightness(0.8);
+  cursor: default;
+  animation: none;
+}
+#grid .map-tile.mt-here {
+  opacity: 0.85; filter: none;
+  outline: 2px dashed rgba(255, 255, 255, 0.65);
+  outline-offset: 1px;
+}
+#grid .map-tile .mt-stamp {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Share Tech Mono', monospace; font-size: 8px;
+  letter-spacing: 0.2em; color: rgba(255, 255, 255, 0.55);
+  transform: rotate(-14deg);
+  pointer-events: none;
+}
+#grid .map-tile.mt-here .mt-stamp { color: rgba(255,255,255,0.8); }
+
+/* ── The map bar - body-level, raw viewport px (the cabinet-zoom rule) ────── */
+/* ONE compact strip: what changes, and the button. The standing rules live
+   behind the ? chip (.mb-help), because a permanent block of instructions is a
+   tutorial the player cannot dismiss. Console material to match #event-panel. */
+#map-bar {
+  position: fixed; left: 50%; bottom: 10px; transform: translateX(-50%);
+  z-index: 260; display: none; align-items: center; gap: 9px;
+  width: max-content; max-width: calc(100vw - 20px);
+  padding: 5px 6px 5px 10px; border-radius: 5px;
+  background: linear-gradient(180deg, #171243, #0f0c26);
+  border: 2px solid rgba(150, 140, 255, 0.28);
+  box-shadow: 0 4px 18px rgba(0,0,0,0.6), 0 0 16px -6px rgba(140,120,255,0.55);
+  font-family: 'Share Tech Mono', monospace; font-size: 10px;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--cream-dim, #b9b0a0);
+}
+#map-bar.show { display: flex; }
+#map-bar .mb-set   { color: var(--c-yellow, #f5c042); font-weight: 700; }
+#map-bar .mb-coins { color: var(--c-yellow, #f5c042); }
+#map-bar .mb-skip  { opacity: 0.75; }
+/* The picked tile's line. Flexible and CLIPPED, so a long description can
+   never push CONFIRM off the end of the strip. */
+#map-bar .mb-info {
+  flex: 1 1 auto; min-width: 0; max-width: 46vw;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-family: 'Crimson Pro', serif; font-size: 12.5px; letter-spacing: 0;
+  text-transform: none; color: var(--cream, #efe7d6);
+}
+#map-bar .mb-info:empty { display: none; }
+#map-bar .mb-info b { color: var(--c-yellow, #f5c042); font-weight: 700; }
+#map-bar .mb-info i { color: var(--cream-dim, #b9b0a0); font-style: italic; }
+#map-bar .mb-q {
+  flex: 0 0 auto; width: 17px; height: 17px; border-radius: 50%; cursor: pointer;
+  font-family: 'Orbitron', sans-serif; font-size: 10px; line-height: 1;
+  color: #cfc6ff; background: rgba(150, 140, 255, 0.14);
+  border: 1px solid rgba(150, 140, 255, 0.45); padding: 0;
+}
+#map-bar .mb-q:hover { background: rgba(150, 140, 255, 0.3); color: #fff; }
+/* The help card sits ABOVE the strip rather than inside it, so opening it can
+   never change the bar's height and shove the board. */
+#map-bar .mb-help {
+  display: none; position: absolute; left: 0; right: 0; bottom: calc(100% + 7px);
+  padding: 9px 11px; border-radius: 5px;
+  background: #120e2c; border: 2px solid rgba(150, 140, 255, 0.28);
+  box-shadow: 0 4px 18px rgba(0,0,0,0.7);
+  max-height: 46vh; overflow-y: auto;
+}
+#map-bar .mb-help.show { display: block; }
+#map-bar .mb-hrow { display: flex; gap: 8px; align-items: baseline; margin-bottom: 4px; }
+#map-bar .mb-hrow:last-child { margin-bottom: 0; }
+#map-bar .mb-hrow b {
+  flex: 0 0 74px; color: var(--c-yellow, #f5c042); font-weight: 700;
+  font-family: 'Share Tech Mono', monospace; font-size: 9.5px;
+}
+#map-bar .mb-hrow span {
+  font-family: 'Crimson Pro', serif; font-size: 12.5px; letter-spacing: 0;
+  text-transform: none; color: var(--cream, #efe7d6); line-height: 1.25;
+}
+#map-bar #mb-confirm {
+  flex: 0 0 auto;
+  font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 11px;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 5px 16px; border-radius: 4px; cursor: pointer;
+  color: #08130b; background: #6fd08c; border: 1px solid #9df0b4;
+  box-shadow: 0 0 12px -2px rgba(111, 208, 140, 0.8);
+}
+#map-bar #mb-confirm:disabled {
+  background: #2a2740; color: rgba(255, 255, 255, 0.35);
+  border-color: rgba(255, 255, 255, 0.12); box-shadow: none; cursor: default;
+}
+
+/* The hard-round knack pick is drawn ON the board now - js/grid-pick.js +
+   css/grid-pick.css (r254). The #map-knack-pick console is gone. */
+
+/* While the map owns the screen, the round's action buttons are not part of the
+   conversation - the map bar carries CONFIRM. Hidden, not disabled: a greyed
+   PLAY over a board of map tiles reads as something broken. */
+body.map-active #btn-play,
+body.map-active #btn-discard,
+body.map-active #swap-indicator { visibility: hidden; pointer-events: none; }
+
+/* ══ The board under the tiles (r246) ═══════════════════════════════════════
+   The map used to be tiles on the bare stage: no surface, no sense of a route,
+   and colour only in a 1px border. Four pieces, all siblings BEHIND the tiles
+   (z-index 1 against their 2) and all built from the same cell metrics, so the
+   renderer transposes and this file never learns which way the board reads. */
+
+#grid .map-board {
+  position: absolute; z-index: 0; pointer-events: none;
+  border-radius: 10px;
+  border: 1px solid rgba(143, 208, 255, 0.14);
+  background:
+    /* the boss end glows: the board reads as a journey toward something */
+    radial-gradient(120% 140% at 100% 50%, rgba(255, 92, 92, 0.16), transparent 55%),
+    radial-gradient(90% 120% at 0% 50%, rgba(111, 208, 140, 0.10), transparent 60%),
+    /* blueprint rule, faint */
+    repeating-linear-gradient(0deg, rgba(143, 208, 255, 0.045) 0 1px, transparent 1px 14px),
+    repeating-linear-gradient(90deg, rgba(143, 208, 255, 0.045) 0 1px, transparent 1px 14px),
+    linear-gradient(160deg, #0f1430, #0a0a1c 60%, #120e1e);
+  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.75), 0 0 24px -8px rgba(143, 208, 255, 0.25);
+}
+#grid .map-board.mb-port {
+  background:
+    radial-gradient(140% 120% at 50% 100%, rgba(255, 92, 92, 0.16), transparent 55%),
+    radial-gradient(120% 90% at 50% 0%, rgba(111, 208, 140, 0.10), transparent 60%),
+    repeating-linear-gradient(0deg, rgba(143, 208, 255, 0.045) 0 1px, transparent 1px 14px),
+    repeating-linear-gradient(90deg, rgba(143, 208, 255, 0.045) 0 1px, transparent 1px 14px),
+    linear-gradient(160deg, #0f1430, #0a0a1c 60%, #120e1e);
+}
+
+/* One band per set, numbered. The band you are standing in is lit. */
+#grid .map-band {
+  position: absolute; z-index: 0; pointer-events: none;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.018);
+}
+#grid .map-band.mb-odd { background: rgba(255, 255, 255, 0.045); }
+#grid .map-band.mb-now {
+  background: rgba(245, 192, 66, 0.07);
+  box-shadow: inset 0 0 0 1px rgba(245, 192, 66, 0.22);
+}
+#grid .map-band .mbd-no {
+  position: absolute; top: 2px; left: 4px;
+  font-family: 'Share Tech Mono', monospace; font-size: 8px;
+  color: rgba(255, 255, 255, 0.22); letter-spacing: 0.1em;
+}
+#grid .map-band.mb-now .mbd-no { color: var(--c-yellow, #f5c042); opacity: 0.8; }
+
+/* The route. A rail is every step the board offers; the lit line is the one
+   you actually walked, which is the only record of the run's shape. */
+#grid .map-link {
+  position: absolute; z-index: 0; pointer-events: none;
+  height: 2px; transform-origin: 0 50%; margin-top: -1px;
+  border-radius: 2px;
+}
+#grid .map-link.ml-rail {
+  background: repeating-linear-gradient(90deg,
+    rgba(143, 208, 255, 0.20) 0 4px, transparent 4px 9px);
+}
+#grid .map-link.ml-walked {
+  height: 3px; margin-top: -1.5px;
+  background: linear-gradient(90deg, rgba(245, 192, 66, 0.55), rgba(245, 192, 66, 0.95));
+  box-shadow: 0 0 8px -1px rgba(245, 192, 66, 0.8);
+}
+
+/* ── The tiles carry their own colour, not just an edge ── */
+#grid .map-tile .mt-wash {
+  position: absolute; inset: 0; border-radius: 5px; pointer-events: none;
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--rc) 26%, transparent),
+    color-mix(in srgb, var(--rc) 6%, transparent) 55%,
+    transparent);
+}
+/* Its own glyph, huge and faint, behind the label: a kind is recognisable
+   across the board before any 6px name is read. */
+#grid .map-tile .mt-ghost {
+  position: absolute; inset: 0; pointer-events: none;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 40px; line-height: 1;
+  color: var(--rc); opacity: 0.11;
+  filter: grayscale(1) brightness(2);
+}
+#grid .map-tile .mt-icon, #grid .map-tile .mt-name { position: relative; z-index: 1; }
+#grid .map-tile .mt-name { text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9); }
+/* A coloured cap on the leading edge - the side you arrive from. */
+#grid .map-tile::before {
+  content: ''; position: absolute; border-radius: 5px 5px 0 0;
+  left: 0; right: 0; top: 0; height: 3px;
+  background: var(--rc); opacity: 0.85;
+}
+#grid .map-tile.mk-blank::before { display: none; }
+
+/* A blank is missing FLOOR, not a dark tile: crosshatch, no cap, no wash. */
+#grid .map-tile.mk-blank {
+  background:
+    repeating-linear-gradient(45deg, rgba(255,255,255,0.05) 0 1px, transparent 1px 7px),
+    repeating-linear-gradient(-45deg, rgba(255,255,255,0.05) 0 1px, transparent 1px 7px),
+    #08060f;
+  border-style: dashed;
+}
+#grid .map-tile.mk-blank .mt-wash, #grid .map-tile.mk-blank .mt-ghost { display: none; }
+
+/* The boss column: hazard stripes and a slow red breath, so the end of the
+   board looks like the end of the board. */
+#grid .map-tile.mk-boss {
+  background:
+    repeating-linear-gradient(135deg,
+      rgba(255, 92, 92, 0.10) 0 8px, transparent 8px 18px),
+    linear-gradient(180deg, rgba(255, 92, 92, 0.16), rgba(0, 0, 0, 0.3));
+  border-width: 2px;
+  animation: map-boss-breath 3.4s ease-in-out infinite;
+}
+#grid .map-tile.mk-boss .mt-ghost { font-size: 64px; opacity: 0.09; }
+@keyframes map-boss-breath {
+  0%, 100% { box-shadow: inset 0 0 18px rgba(0,0,0,0.6), 0 0 10px -4px #ff5c5c; }
+  50%      { box-shadow: inset 0 0 18px rgba(0,0,0,0.6), 0 0 26px -4px #ff5c5c; }
+}
+
+/* A taken tile keeps its colour but goes flat and stamped - the walked line is
+   what carries the eye now, so the tile must stop competing with it. */
+#grid .map-tile.mt-visited .mt-ghost { opacity: 0.05; }
+#grid .map-tile.mt-visited::before { opacity: 0.35; }
+
+/* r261: the full name beside the short chip in the bar info line */
+#map-bar .mb-full { color: #cfe0ff; opacity: .78; font-size: 8px; letter-spacing: .04em; margin-right: 2px; }
+
+/* ── The pen (r263) ───────────────────────────────────────────────────────────
+   A canvas over the tiles inside #grid. It is pointer-events:none by default
+   so a RIGHT-drag still reaches the board through it and a left tap still
+   picks an obligation; only the finger mode (.pen-on) takes the taps. */
+#grid .map-draw-layer { position: absolute; z-index: 3; pointer-events: none; }
+#grid .map-draw-layer.pen-on { pointer-events: auto; }
+
+#map-bar .mb-pen.on {
+  background: rgba(245, 192, 66, 0.22); border-color: rgba(245, 192, 66, 0.7);
+}
+#map-bar .mb-sw { display: grid; place-items: center; }
+#map-bar .mb-sw i {
+  width: 9px; height: 9px; border-radius: 50%; display: block;
+  background: #f5c042; box-shadow: 0 0 0 1px rgba(0,0,0,0.5) inset;
+}
+
+/* ── The legend (r263) ────────────────────────────────────────────────────────
+   Same card as the ? help, and it reuses .mb-help wholesale so the two can
+   never drift apart in placement (above the strip, never inside it). */
+#map-bar #map-legend { width: min(420px, calc(100vw - 24px)); }
+#map-bar .ml-row {
+  display: flex; gap: 8px; align-items: baseline; cursor: pointer;
+  padding: 3px 5px; margin: 0 -5px; border-radius: 4px;
+}
+#map-bar .ml-row:hover, #map-bar .ml-row.on { background: rgba(150, 140, 255, 0.16); }
+#map-bar .ml-chip {
+  flex: 0 0 17px; height: 17px; display: grid; place-items: center;
+  border-radius: 3px; font-size: 10px; line-height: 1;
+  color: var(--rc, #cfc6ff); border: 1px solid var(--rc, #cfc6ff);
+  background: color-mix(in srgb, var(--rc, #cfc6ff) 16%, transparent);
+}
+#map-bar .ml-row b {
+  flex: 0 0 74px; color: var(--rc, var(--c-yellow, #f5c042)); font-weight: 700;
+  font-family: 'Share Tech Mono', monospace; font-size: 9.5px;
+}
+#map-bar .ml-txt {
+  font-family: 'Crimson Pro', serif; font-size: 12.5px; letter-spacing: 0;
+  text-transform: none; color: var(--cream, #efe7d6); line-height: 1.25;
+}
+#map-bar .ml-row.mk-level     { --rc: #6fd08c; }
+#map-bar .ml-row.mk-challenge { --rc: #ff9d5c; }
+#map-bar .ml-row.mk-shop      { --rc: var(--c-yellow, #f5c042); }
+#map-bar .ml-row.mk-reward    { --rc: #8fd0ff; }
+#map-bar .ml-row.mk-event     { --rc: #c9a0ff; }
+#map-bar .ml-row.mk-limit     { --rc: #7fe3c0; }
+#map-bar .ml-row.mk-mystery   { --rc: #d8d0f0; }
+#map-bar .ml-row.mk-boss      { --rc: #ff5c5c; }
+#map-bar .ml-row.mk-blank     { --rc: #6b6480; }
+
+/* Reading the legend lights that kind and drops the rest, Slay the Spire's
+   move. Written onto the live tiles, so it must beat the resting states above
+   (an unreachable tile is already at 0.55). */
+#grid .map-tile.mt-dim  { opacity: 0.16 !important; filter: saturate(0.15); }
+#grid .map-tile.mt-lit  {
+  opacity: 1 !important;
+  box-shadow: 0 0 0 2px var(--rc, #fff), 0 0 16px -2px var(--rc, #fff);
+  z-index: 4;
+}

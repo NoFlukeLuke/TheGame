@@ -80,10 +80,13 @@ function martSleightPayload(s){ return { type:'sleight', ref:s, label:s.name, de
 function martKnackPayload(k){ return { type:'knack', ref:k, label:k.name, desc:k.desc, rarity:k.rarity||'common', emoji:k.emoji,
   price:SHOP_KNACK_PRICE, buy:()=>{ acquiredKnacks.push({...k}); if (typeof updateKnackList==='function') updateKnackList(); } }; }
 function martLimitStock(count){
-  const elig = LIMITS_DEF.filter(d => limits[d.id].current < limits[d.id].max);
+  const elig = LIMITS_DEF.filter(d => limitCanIncrement(d.id));
   return shuffle(elig).slice(0, count).map(d => {
-    const cur = limits[d.id].current, next = Math.min(limits[d.id].max, cur + (d.step||1));
-    return { type:'limit', ref:d, id:d.id, label:d.label, icon:d.icon, desc:d.desc, rarity:'common', cur, next, max:limits[d.id].max,
+    // Through limits.js so the shelf, the tooltip and the grant cannot disagree -
+    // and so Starting Time reads '180s -> 195s', not '180 -> 195' of something.
+    const u = limitUnit(d.id);
+    const cur = `${limits[d.id].current}${u}`, next = `${limits[d.id].current + limitGain(d.id)}${u}`;
+    return { type:'limit', ref:d, id:d.id, label:d.label, icon:d.icon, desc:d.desc, rarity:'common', cur, next, max:`${limits[d.id].max}${u}`,
       price:shopLimitPrice(d), buy:()=>{ incrementLimit(d.id); if (typeof onLimitChanged==='function') onLimitChanged(d.id); } };
   });
 }
@@ -272,15 +275,21 @@ function martTileHTML(p, key) {
   return `<div class="${cls}" data-key="${key}">${inner}${price}${tick}${pin}</div>`;
 }
 
-// Each shelf is its own colour-coded panel (r170). They used to be four barely
-// distinguishable dark rectangles on a dark page; --sc drives the header, the
-// rule under it, the left edge and the panel wash, so the categories separate at
-// a glance instead of having to be read.
+// Each shelf is its own panel (r170); --sc drives the header, the rule under it,
+// the left edge and the panel wash.
+//
+// r198: every section now carries the SAME chrome colour. They used to be one
+// colour each - cyan sleights, yellow knacks, mint limits - and three of those
+// are rarity colours, so a cyan SLEIGHTS panel sat directly above cyan
+// Standard-tier tiles and the palette said two different things at once. On this
+// page colour means RARITY and nothing else; a section is told apart by its
+// glyph and its heading, which is what those are for.
+const MART_SEC_CHROME = 'var(--phosphor)';
 const MART_SEC_META = {
-  tricks:   { label:'TRICKS',         glyph:'✦', sc:'var(--phosphor)', note:'scoring buffs · side tray' },
-  sleights: { label:'SLEIGHTS',       glyph:'▶', sc:'var(--c-cyan)',   note:'cards that live in your deck' },
-  knacks:   { label:'KNACKS',         glyph:'◆', sc:'var(--c-yellow)', note:'permanent rule changes' },
-  limits:   { label:'LIMIT UPGRADES', glyph:'▲', sc:'var(--c-mint)',   note:'raise a cap for the run' },
+  tricks:   { label:() => entityLabel('trick', true).toUpperCase(),   glyph:'✦', sc:MART_SEC_CHROME, note:'scoring buffs · side tray' },
+  sleights: { label:() => entityLabel('sleight', true).toUpperCase(), glyph:'▶', sc:MART_SEC_CHROME, note:'cards that live in your deck' },
+  knacks:   { label:() => entityLabel('knack', true).toUpperCase(),   glyph:'◆', sc:MART_SEC_CHROME, note:'permanent rule changes' },
+  limits:   { label:'LIMIT UPGRADES', glyph:'▲', sc:MART_SEC_CHROME, note:'raise a cap for the run' },
 };
 function martSectionHTML(cat) {
   const stock = martStock[cat] || [];
@@ -296,7 +305,7 @@ function martSectionHTML(cat) {
     if (held >= cap) notice = `<div class="m-sec-notice">⚠ TRICK ALLOCATION FULL - ${held}/${cap} · a purchase requires a replacement</div>`;
   }
   return `<div class="m-sec m-sec-${cat}" style="--sc:${meta.sc}">
-    <div class="m-sh"><span class="m-sh-l"><i class="m-sh-g">${meta.glyph}</i>${meta.label}</span>`
+    <div class="m-sh"><span class="m-sh-l"><i class="m-sh-g">${meta.glyph}</i>${resolveLabel(meta.label)}</span>`
     + `<span class="m-sh-note">${meta.note}</span>`
     + `<span class="slots">${left} left</span></div>${notice}
     <div class="m-rowc" data-cat="${cat}">${items}</div></div>`;
@@ -409,11 +418,11 @@ function renderMartMain() {
     </div>
   </div>`;
   const sections = martCats.map(martSectionHTML).join('');
-  const canSpin = coins >= BAL.wheel.cost;
+  const canSpin = coins >= priceOf(BAL.wheel.cost);
   const tools = `<div class="m-sec m-sec-tools" style="--sc:var(--c-coral)">
     <div class="m-sh"><span class="m-sh-l"><i class="m-sh-g">🛠</i>TOOLS</span><span class="m-sh-note">services, not stock</span></div>
     <div class="m-rowc">
-    <div class="m-tool m-tool-spin ${canSpin?'':'cant'}" id="mart-spin"><div class="tt"><span>◎ Spin the Wheel</span><span>💰${BAL.wheel.cost}</span></div>
+    <div class="m-tool m-tool-spin ${canSpin?'':'cant'}" id="mart-spin"><div class="tt"><span>◎ Spin the Wheel</span><span>💰${priceOf(BAL.wheel.cost)}</span></div>
       <div class="td"><span class="m-wheel"></span>Win any item · 1-in-10 jackpot.</div></div>
     <div class="m-tool"><div class="tt"><span>⚡ Recharge Bay</span><span>WIP</span></div><div class="td">Recharge sleights (built later).</div></div>
     <div class="m-tool m-tool-tinker" id="mart-tinker-btn"><div class="tt"><span>✦ Tinker Bench</span><span>💰${tinkerCost()}</span></div>
@@ -436,7 +445,7 @@ function renderMartCheckout() {
       : entityTileHTML(p, martRar(p));
     return `<div class="m-cline" data-key="${key}">`
          + `<div class="m-cthumb mc-${p.type}">${tile}</div>`
-         + `<div class="m-cinfo"><span class="m-cname">${p.label}</span><span class="m-crar">${martRar(p)} · ${p.type}</span></div>`
+         + `<div class="m-cinfo"><span class="m-cname">${p.label}</span><span class="m-crar">${tierLabel(p.type, martRar(p)).toUpperCase()} · ${entityLabel(p.type).toUpperCase()}</span></div>`
          + `<span class="m-cprice">💰${p.price}</span><span class="x" title="Remove">✕</span></div>`;
   }).join('') || '';
   // Two hints, one shown per input type (css/mart.css): there is no drag on

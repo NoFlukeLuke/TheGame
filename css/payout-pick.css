@@ -1,0 +1,55 @@
+/* THE PICK (r244) - the card operation after the payout. The bar is BODY-LEVEL
+   and placed in raw viewport px, so it must not inherit #cabinet's CSS zoom. */
+#pick-bar {
+  position: fixed; left: 50%; top: 20%;
+  transform: translate(-50%, -100%);
+  display: none; align-items: center; gap: 10px;
+  padding: 8px 12px; z-index: 9400;
+  background: #10131c; border: 2px solid #3a4a6a; border-radius: 10px;
+  box-shadow: 0 6px 26px rgba(0,0,0,.6), 0 0 0 1px rgba(0,0,0,.6);
+  font-family: 'Share Tech Mono', monospace; color: var(--cream, #e8e4d8);
+  max-width: calc(100vw - 20px); flex-wrap: wrap; justify-content: center;
+  pointer-events: auto;
+}
+/* Anchored by its BOTTOM edge above the board, by its TOP edge below it - so the
+   measured `top` means the same thing to JS in both cases. */
+#pick-bar.show { display: flex; animation: pkIn .22s ease-out; }
+#pick-bar.pk-below { transform: translate(-50%, 0); }
+@keyframes pkIn { from { opacity: 0; } }
+
+#pick-bar .pk-title {
+  font-family: 'Orbitron', sans-serif; font-size: 13px; letter-spacing: 2px;
+  color: #ffd76a; text-shadow: 0 0 10px rgba(255,215,106,.35);
+}
+#pick-bar .pk-sub { font-size: 10px; opacity: .65; letter-spacing: .5px; }
+#pick-bar .pk-ops { display: flex; gap: 6px; flex-wrap: wrap; }
+
+#pick-bar .pk-op {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 1px;
+  padding: 5px 9px; cursor: pointer;
+  background: color-mix(in srgb, var(--pko) 16%, #0c0f16);
+  border: 1.5px solid var(--pko); border-radius: 7px;
+  color: var(--cream, #e8e4d8); font-family: inherit; text-align: left;
+  transition: transform .1s ease, filter .1s ease;
+}
+#pick-bar .pk-op:hover { transform: translateY(-1px); filter: brightness(1.25); }
+#pick-bar .pk-op b { font-size: 11px; letter-spacing: 1px; color: var(--pko); }
+#pick-bar .pk-op i { font-style: normal; font-size: 9px; opacity: .78; }
+
+#pick-bar .pk-skip {
+  padding: 5px 10px; cursor: pointer; font-family: inherit;
+  font-size: 10px; letter-spacing: 1.5px;
+  background: transparent; border: 1.5px solid #4a5468; border-radius: 7px;
+  color: #98a2b8;
+}
+#pick-bar .pk-skip:hover { border-color: #6c7790; color: var(--cream, #e8e4d8); }
+
+/* The board during the pick. Every card reads as tappable, and the chosen one
+   is ringed in the bar's gold - the same "this is the one" the reward grid
+   uses, so the two screens do not need two vocabularies. */
+body.pick-active #grid [data-card-id] { cursor: pointer; }
+body.pick-active #grid [data-card-id]:hover { filter: brightness(1.12); }
+body.pick-active #grid .pk-chosen {
+  outline: 3px solid #ffd76a; outline-offset: 1px;
+  box-shadow: 0 0 16px rgba(255,215,106,.55); z-index: 8;
+}

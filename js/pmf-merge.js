@@ -139,7 +139,11 @@ async function pmfFlyToScore(opts) {
   ghost.style.cssText = `position:fixed;margin:0;z-index:700;pointer-events:none;transition:none;` +
     `left:${a.left}px;top:${a.top}px;width:${a.width}px;height:${a.height}px;transform-origin:center center;`;
   document.body.appendChild(ghost);
-  _pmfMerged.style.visibility = 'hidden';
+  // r234: the fused chip STAYS PUT and a smaller copy peels off to the total.
+  // It used to hide itself for the length of the flight, so for ~380ms the hand's
+  // score was not shown anywhere - the one number the player is waiting on
+  // vanished at exactly the moment it was being banked. The chip is the receipt;
+  // the ghost is the delivery.
 
   const dx = (b.left + b.width/2) - (a.left + a.width/2);
   const dy = (b.top  + b.height/2) - (a.top  + a.height/2);
@@ -147,16 +151,17 @@ async function pmfFlyToScore(opts) {
   await new Promise(res => {
     let done = false;
     const fin = () => { if (done) return; done = true; res(); };
+    // Starts at 0.72, not 1: the copy has to read as a SMALLER version leaving a
+    // chip that is still there, rather than as the chip itself detaching.
     const anim = ghost.animate([
-      { transform: 'translate(0,0) scale(1)', opacity: 1 },
-      { transform: `translate(${dx*0.62}px, ${dy*0.62}px) scale(0.78)`, opacity: 1, offset: 0.65 },
-      { transform: `translate(${dx}px, ${dy}px) scale(0.28)`, opacity: 0 },
+      { transform: 'translate(0,0) scale(0.72)', opacity: 0.95 },
+      { transform: `translate(${dx*0.62}px, ${dy*0.62}px) scale(0.56)`, opacity: 1, offset: 0.65 },
+      { transform: `translate(${dx}px, ${dy}px) scale(0.24)`, opacity: 0 },
     ], { duration: dur, easing: 'cubic-bezier(.4,.1,.3,1)', fill: 'forwards' });
     anim.onfinish = fin;
     setTimeout(fin, dur + 160);          // rAF is throttled to zero in a background tab
   });
   ghost.remove();
-  if (_pmfMerged) _pmfMerged.style.visibility = '';
   const box = document.getElementById('score-mid') || document.getElementById('score-center');
   if (box) { box.classList.remove('box-popping'); void box.offsetWidth; box.classList.add('box-popping'); }
   if (typeof sfxScoreTick === 'function') sfxScoreTick();

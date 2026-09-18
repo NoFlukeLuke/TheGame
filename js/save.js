@@ -55,10 +55,29 @@ const SAVE_VARS = [
   'deadCells', 'riderTrickId', 'interestFreezeRounds', 'spotCheckHand', 'spotCheckLeft', 'nextRoundGridShrink',
   'luckModifiers',
   'actNumber', 'nodeInAct', 'rewardGridsSeen', 'forceBossNextRound', 'shopFromNodeFlow',
-  // Guided's act state. guidedInStop is deliberately NOT saved: a checkpoint is
-  // only ever taken at the START OF A ROUND, and a bought stop never straddles
-  // one, so it is always false when a save is written.
-  'guidedSlot', 'guidedEventOffers',
+  // Guided's act state. guidedInStop, guidedCrossroadsOpen and guidedOffers are
+  // deliberately NOT saved: a checkpoint is only ever taken at the START OF A
+  // ROUND, and a bought stop or an open crossroads never straddles one, so all
+  // three are always at rest when a save is written.
+  //
+  // The rest of it IS saved. startGame() resets every one of these to a
+  // fresh-run value and restore lays the save on top, so anything missing here
+  // is silently forgotten: without guidedBuysThisAct a resumed run forgets the
+  // repeat-purchase surcharge, without guidedSinceLevel the forced-level
+  // cadence, without guidedLastKind the no-repeat rule.
+  'guidedSlot', 'guidedEventOffers', 'guidedBuysThisAct', 'guidedLastKind', 'guidedSinceLevel',
+  // Map mode. mapTiles is plain data by construction - challenges are stored by
+  // id and rehydrated from CHALLENGE_DEFS at confirm time.
+  'mapTiles', 'mapPos', 'mapVisits', 'mapSkips', 'mapBossGoal', 'mapBossArmed',
+  'mapDrawStrokes', 'mapPenColor',
+  'mapFirstRoundDone', 'mapPosTileId', 'swapsUsedRound',
+  // The live challenge survives a save as DATA (JSON drops its test function).
+  // guidedRehydrateChallenges re-attaches the test by id on the way in, so an
+  // active HARD ROUND resumes as one - without it roundGoal came back raised by
+  // guidedApplyPendingChallenge with no predicate to settle against, and the
+  // goal stayed up with the bonus unreachable. A mini-boss re-arms from
+  // startRoundTimer on resume.
+  'guidedPendingChallenge', 'guidedActiveChallenge',
   'pendingEventOverride', 'rewardGridContext', 'skipTrickChoiceOverlay', 'pendingLevelUps',
   'goalReachedThisRound', 'roundEnded', 'suppressScoreDisplay', 'heldBackScore',
   // ── Deck & board ──
@@ -94,6 +113,7 @@ const SAVE_VARS = [
   'bonusMult_jackpot', 'jackpotFired', 'safetyNetUsed', 'negativeTilesTakenRun',
   '_perMinuteFired', 'handsPlayedGame', 'rowColBonuses', 'leyLinePos',
   'minuteHandCharges', 'understudyNextMark',
+  'hallmarkCardId', 'hallmarkMarkAt', 'hallmarkPlanted', 'forcedTrickIds',
   'cuckooNextMinute', 'compoundNextMark', 'compoundBanked', 'nsPlays', 'nsBonus', 'retriggersThisRound', 'woodpeckerActiveBlock', 'woodpeckerPos',
   // ── Round/run counters ──
   'handsPlayedRound', 'studyHallCards', 'runsPlayedRound', 'setsPlayedRound', 'runStreak',
@@ -109,7 +129,7 @@ const SAVE_VARS = [
   'rewardSelected', 'rewardCells', 'rewardConfirmed',
   'shopRerollCount', 'shopPurchased', 'shopPurchaseCount', 'nextShopTime',
   // ── Boss ──
-  'bossActive', 'bossNumber', 'bossBag', 'nextBossTime', 'blockedCells', 'nullCells',
+  'bossActive', 'bossNumber', 'bossBag', 'actBossId', 'nextActBossId', 'nextBossTime', 'blockedCells', 'nullCells',
   // ── Challenge ──
   'challengeCard', 'challengeActive', 'trickCardPos', 'trickCardTimer',
   // ── Survival ──
@@ -183,6 +203,11 @@ function captureRunCheckpoint() {
     meta: {
       mode:  ACTIVE_MODE.id,
       modeName: ACTIVE_MODE.name,
+      // A picker-built mode is not in MODES when the page next loads - it is
+      // assembled from the answers, so the ANSWERS are what has to be saved.
+      // Without this the restore below falls back to Classic and the run resumes
+      // as a different game to the one that was saved.
+      picker: ACTIVE_MODE.picker ? { ...ACTIVE_MODE.picker } : null,
       level: typeof level === 'number' ? level : 1,
       act:   typeof actNumber === 'number' ? actNumber : 1,
       node:  typeof nodeInAct === 'number' ? nodeInAct : 0,
@@ -242,6 +267,12 @@ function resumeSavedRun() {
   const save = readSavedRun();
   if (!save) return false;
 
+  // Rebuild a picker-built mode from its saved answers before the lookup, so
+  // MODES.custom exists to be found. pickerBuildMode is pure, so this reproduces
+  // the exact mode the run was started with.
+  if (save.meta.picker && typeof pickerBuildMode === 'function') {
+    MODES.custom = pickerBuildMode(save.meta.picker);
+  }
   ACTIVE_MODE = MODES[save.meta.mode] || MODES.normal;
   // Re-pin the run's seed so reward grids and shops still follow the same
   // sequence after resuming (they key off runSeed + visit index - see seed.js).
@@ -259,6 +290,9 @@ function resumeSavedRun() {
   // plays at base values.
   if (typeof applyEntityTiers === 'function') applyEntityTiers();
   dropUnknownCurses();
+  // Guided's challenges lost their predicate to the JSON round trip - see the
+  // note beside them in SAVE_VARS.
+  if (typeof guidedRehydrateChallenges === 'function') guidedRehydrateChallenges();
   _restoringSave = false;
 
   // The board came out of the save, so the grid has to be re-measured (a saved

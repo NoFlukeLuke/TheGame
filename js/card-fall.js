@@ -3,6 +3,10 @@ function renderCardAppearance(card, r, c, {
   selIdx       = -1,
   isHandReady  = false,
   isHandValid  = false,
+  // r254: this selected card will NOT be part of the hand - the r201 "every card
+  // must be load-bearing" rule dropped it, its pips will be SUBTRACTED and the
+  // card consumed anyway. Red on the board, priced in the #hand-name label.
+  isPenalty    = false,
   isSwapPending = false,
   isReachable  = true,
   isChallenge  = false,
@@ -60,7 +64,7 @@ function renderCardAppearance(card, r, c, {
       ? '<div class="trick-upgrade-indicator">U</div>' : '';
     return {
       className: `trick-card trick-tier-${card.trick.tier}${isPendingTrick ? ' trick-pending' : ''}${stateClass}`,
-      innerHTML: `<div class="trick-tier-label">${card.trick.tier.charAt(0).toUpperCase()}</div>`
+      innerHTML: `<div class="trick-tier-label">${tierInitial('trick', card.trick.tier)}</div>`
                + `<div class="trick-name">${card.trick.name}</div>${upgradeLabel}`,
       isTappable: card._trickState === 'new' || card._trickState === 'upgradeable',
     };
@@ -131,6 +135,7 @@ function renderCardAppearance(card, r, c, {
     suitClass(_faceSuit),
     isSel        ? 'selected'    : '',
     isHandValid  ? 'hand-valid'  : '',
+    isPenalty    ? 'hand-penalty' : '',
     isHandReady  ? 'hand-ready'  : '',
     isSwapPending ? 'swap-pending' : '',
     (!isReachable && !isSel && !isSwapPending) ? 'unreachable' : '',

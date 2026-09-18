@@ -128,6 +128,8 @@ function triggerLevelUp() {
   // curve and the penalty, so it lifts whatever they produced rather than racing
   // them (js/guided-mode.js).
   if (typeof guidedApplyPendingChallenge === 'function') guidedApplyPendingChallenge();
+  // Map mode's boss quota is FIXED at map build; overrides the curve's figure.
+  if (typeof mapApplyPendingGoal === 'function') mapApplyPendingGoal();
   // Bank the completed round's score for the end-of-run display. In Survival the
   // overflow is carried to the next round, so only the counted portion is banked.
   totalScore += survivalActive() ? Math.max(0, score - _svOverflow) : score;
@@ -193,6 +195,7 @@ function triggerLevelUp() {
   freeSwapsLeft    = 2;
   freeDiscardsLeft = 2;
   cardsDiscardedRound = 0;
+  swapsUsedRound = 0;
   focusGenRound = 0;
   handsPlayedRound = 0;
   runsPlayedRound  = 0;
@@ -255,6 +258,8 @@ function triggerLevelUp() {
   cuckooNextMinute = BAL.cuckoo.interval_seconds;
   compoundNextMark = BAL.compound.interval_seconds; compoundBanked = 0;
   understudyNextMark = BAL.understudy.interval_seconds;
+  if (typeof hallmarkRollRound === 'function') hallmarkRollRound();
+  forcedTrickIds = [];
   // Clock-mark Tricks + Déjà Vu: pending bonuses and rank-history reset each round
   pendingHandPips = 0; pendingHandMult = 0; pendingCardPips = 0; minuteHandCharges = 0;
   lastHandRankKey = null;

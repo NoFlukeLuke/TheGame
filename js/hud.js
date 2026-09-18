@@ -112,9 +112,12 @@ function updateDanceSubboxes(pips, mult) {
 // Both are written here so they can never disagree about the cap.
 function updateSelectionUI() {
   const onReward = (typeof rewardOnGrid !== 'undefined' && rewardOnGrid);
-  const n   = onReward ? rewardSelected.size : selected.length;
-  const cap = onReward ? rewardSelectionCap() : limits.selection.current;
-  const min = onReward ? (typeof rewardMinPicks === 'function' ? rewardMinPicks() : 1)
+  const onShop   = (typeof shopGridActive !== 'undefined' && shopGridActive);
+  const n   = onShop ? (shopGridMode === 'buy' ? shopGridSel.size : 0)
+            : onReward ? rewardSelected.size : selected.length;
+  const cap = (onShop || !onReward) ? limits.selection.current : rewardSelectionCap();
+  const min = onShop ? 1
+            : onReward ? (typeof rewardMinPicks === 'function' ? rewardMinPicks() : 1)
                        : (typeof minSelection  === 'function' ? minSelection()  : 1);
 
   // Top bar: the limit, not the count.
@@ -130,9 +133,18 @@ function updateSelectionUI() {
   const cEl = document.getElementById('sel-count');
   const vEl = document.getElementById('sel-count-val');
   if (!cEl || !vEl) return;
-  // Only where a selection means something. The menu and the between-round screens
-  // leave the board empty, and a stale "0/3" hanging over it reads as a bug.
-  const live = onReward || (typeof gridData !== 'undefined' && gridData && gridData.length > 0);
+  // Only where a selection means something (r255). This used to be "gridData has
+  // rows", which is true of a board of NULLS and of every screen that merely
+  // BORROWS the grid - so the readout hung over the map, the crossroads, the
+  // payout pick and the interlude, saying 0/3 about nothing. The three screens
+  // where a number of picks is a real decision are the shop, the reward grid and
+  // a live round; everywhere else it is noise.
+  const body = document.body.classList;
+  const boardLive = !body.contains('map-active') && !body.contains('pick-active')
+    && !body.contains('grid-screen')
+    && typeof gridData !== 'undefined' && Array.isArray(gridData)
+    && gridData.some(row => row && row.some(c => c));
+  const live = onReward || onShop || boardLive;
   cEl.classList.toggle('on', !!live);
   if (!live) return;
   vEl.textContent = `${n}/${cap}`;
@@ -142,6 +154,8 @@ function updateSelectionUI() {
 
 function updateCoinsUI() {
   document.getElementById('coins-display').textContent = '💰 ' + coins;
+  if (typeof updateGridTopline === 'function') updateGridTopline();
+  const scc = document.getElementById('sel-count-coins'); if (scc) scc.textContent = '💰' + coins;
   const cg = document.getElementById('ci-gold'); if (cg) cg.textContent = coins;
   if (document.getElementById('shop-overlay').classList.contains('show')) refreshShopAffordability();
   if (typeof updateSurvivalShopBtn === 'function') updateSurvivalShopBtn();
@@ -166,7 +180,7 @@ function updateRunProgressUI() {
   document.querySelectorAll('.rp-block').forEach(rp => {
     rp.classList.toggle('boss-sigil', bossOn);
     const act = rp.querySelector('.rp-act');
-    // Outside the three-quarter structure (Survival) "Qn" is meaningless, but a boss
+    // Outside the quarter structure (Survival) "Qn" is meaningless, but a boss
     // still needs a name over its mark.
     if (act) act.textContent = actMode ? ('Q' + actNumber) : (bossOn ? 'BOSS' : '');
     rp.querySelectorAll('.rp-nodes span:not(.boss)').forEach((s, i) => {
@@ -198,6 +212,14 @@ function updateKnackList() {
   const _knackGrew = acquiredKnacks.length > _knackCountShown;
   _knackCountShown = acquiredKnacks.length;
   if (_knackGrew && typeof portraitShowKnacks === 'function') portraitShowKnacks();
+  // r254: losing Advance Notice VOIDS the reveal, so the next quarter re-draws
+  // its boss. Hooked here for the same reason the flip above is: this is the
+  // one function every removal path already calls (sellKnack, the grid shop's
+  // sell board, the Limit Break sacrifice, the event that takes a knack), and
+  // four call sites would have been four chances to miss one. It also covers
+  // selling it and buying it back, which should name a different boss.
+  if (typeof forgetNextActBoss === 'function'
+      && typeof hasKnack === 'function' && !hasKnack('advance_notice')) forgetNextActBoss();
   if (acquiredKnacks.length === 0) {
     el.innerHTML = '';   // empty → faint KNACKS watermark shows through (r95)
     return;
@@ -208,7 +230,11 @@ function updateKnackList() {
     `<div class="knack-chip" data-knack-id="${t.id}" tabindex="0" role="button" aria-label="${t.name}">${t.emoji}</div>`
   ).join('')}</div>`;
   const track = el.firstElementChild;
-  applyChipMarquee(el, track);
+  // Landscape scrolls the row by hand (no scrollbar - css) since r237; the
+  // marquee's duplicated chips would read as owning everything twice there.
+  // Portrait keeps the marquee.
+  const _stg = document.getElementById('stage');
+  if (!(_stg && _stg.classList.contains('landscape'))) applyChipMarquee(el, track);
   // Wire interactions on every chip (originals + marquee clones)
   el.querySelectorAll('.knack-chip').forEach(chip => {
     const id = chip.dataset.knackId;
@@ -251,15 +277,50 @@ let _knackHoverTimer = null;
 function cancelKnackHoverHide() { if (_knackHoverTimer) { clearTimeout(_knackHoverTimer); _knackHoverTimer = null; } }
 function scheduleKnackHoverHide() { cancelKnackHoverHide(); _knackHoverTimer = setTimeout(hideKnackTooltip, 160); }
 
+// A knack's description as the player should read it RIGHT NOW (r254).
+//
+// The mirror of trickLiveDesc, and it exists for the same reason: the pool's
+// `desc` is what a knack does, and some knacks also have something to SAY. It
+// is used by the HUD tooltip and by RECORDS Owned, both of which only ever
+// draw a knack you hold - so "only after it is purchased" falls out of where
+// this is called rather than needing a test. The shop tile reads the pool's
+// plain desc and therefore never spoils the reveal.
+function knackLiveDesc(k) {
+  if (!k) return '';
+  const base = k.desc || '';
+  if (k.id !== 'advance_notice') return base;
+  // Belt and braces: the dev panel can put a chip on screen for a knack the
+  // run does not own, and an unowned Advance Notice must not reveal anything.
+  if (typeof hasKnack === 'function' && !hasKnack('advance_notice')) return base;
+  const p = (typeof peekNextActBoss === 'function') ? peekNextActBoss() : null;
+  if (!p) {
+    const last = (typeof isActMode === 'function' && isActMode() && typeof actNumber === 'number' && actNumber >= QUARTERS_PER_RUN);
+    return base + `<div class="kn-reveal kn-reveal-none">${last
+      ? 'This is the last quarter. There is no next boss to name.'
+      : 'This mode has no next quarter to look into.'}</div>`;
+  }
+  const q = (typeof actNumber === 'number') ? actNumber + 1 : 2;
+  return base
+    + `<div class="kn-reveal"><span class="kn-reveal-q">Q${q} BOSS</span>`
+    + `<b>${p.name || ''}</b>`
+    + (p.brief ? `<span>${p.brief}</span>` : '')
+    + `</div>`;
+}
+
 function showKnackTooltip(chip, id) {
   const knack = KNACK_POOL.find(t => t.id === id);
   if (!knack) return;
   let tt = document.getElementById('knack-tooltip');
   if (!tt) return;
   const _sv = (typeof knackSellValue === 'function') ? knackSellValue() : 0;
+  // The live part is built separately and appended: colorizeKeywords rewrites
+  // prose and would chew through the reveal's own markup.
+  const _live = knackLiveDesc(knack);
+  const _reveal = _live.slice((knack.desc || '').length);
   tt.innerHTML = `
+    <button class="tt-close" aria-label="Close">✕</button>
     <div class="knack-tooltip-name">${knack.emoji} ${knack.name}</div>
-    <div class="knack-tooltip-desc">${colorizeKeywords(knack.desc)}</div>
+    <div class="knack-tooltip-desc">${colorizeKeywords(knack.desc)}${_reveal}</div>
     <div class="knack-tooltip-actions"><button class="knack-tooltip-sell" id="knack-tooltip-sell-btn">Sell 💰${_sv}</button></div>
   `;
   tt.dataset.knackId = id;
@@ -270,6 +331,7 @@ function showKnackTooltip(chip, id) {
     e.stopPropagation();
     sellKnack(knack);
   });
+  tt.querySelector('.tt-close')?.addEventListener('click', e => { e.stopPropagation(); hideKnackTooltip(); });
   // Opens into whichever side of the chip has the most room (was hardcoded to
   // above). One frame's wait so the bubble has been laid out and can be measured.
   tt.classList.add('show');
@@ -297,6 +359,21 @@ document.addEventListener('click', (e) => {
 // with CSS - one renderer, no per-orientation branch.
 let _handNameKey = null;   // last markup written, so render() does not thrash the DOM
 
+// r234: the label is HELD for the length of a scoring dance.
+//
+// updateHandNameLabel runs from render(), and the dance calls render() several
+// times (removeAndFall repaints, the board refills) with the selection already
+// cleared - so the one moment the player most wants to know what they played,
+// the label went blank. Holding it is the whole fix and it costs no space: the
+// name is already sitting in the 44px column beside the preview, so it stays
+// legible right through the tally, including the second component of a layered
+// hand ("RUN 3 + FLUSH 3") which is the part that was surprising people.
+//
+// A hold is released by whichever path ends the dance - the normal tail and
+// dncFinishAbort - never left to time out.
+let _handNameHeld = false;
+function holdHandNameLabel(on) { _handNameHeld = !!on; }
+
 function handLabelHTML(runs) {
   return runs.map(({ n, k }) => {
     const l = HAND_LABEL[n];
@@ -307,6 +384,7 @@ function handLabelHTML(runs) {
 }
 
 function updateHandNameLabel(result) {
+  if (_handNameHeld) return;         // a dance owns this label until it ends
   const el = document.getElementById('hand-name');
   if (!el) return;
   // handLayersFor is what calcScore pays for, so the label can never name a hand
@@ -328,7 +406,15 @@ function updateHandNameLabel(result) {
   const runs = [];
   names.forEach(n => { const last = runs[runs.length - 1]; if (last && last.n === n) last.k++; else runs.push({ n, k: 1 }); });
   names = runs;
-  const html = names.length ? handLabelHTML(names) : '';
+  let html = names.length ? handLabelHTML(names) : '';
+  // r254: the best hand DROPS some of the selection (r201's load-bearing rule).
+  // Those cards are red on the board; here is the bill - N cards, minus their
+  // pips - stated in the one place the player is already reading before commit.
+  const _pen = (result && result.penaltyCells && result.penaltyCells.length) || 0;
+  if (html && _pen > 0) {
+    html += `<span class="hn-plus">−</span>`
+          + `<span class="hn-l hn-drop"><b>DROP</b><i>${_pen} · −${result.penaltyPips || 0}</i></span>`;
+  }
   // Also compare the live DOM: other screens (Dominoes) write this element
   // directly, and a cache hit would then leave their text standing.
   if (html === _handNameKey && el.innerHTML === html) return;

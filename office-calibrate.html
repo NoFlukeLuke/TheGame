@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Office photo · screen calibration</title>
+<!-- ══════════════════════════════════════════════════════════════════════════
+     Tells js/office-photo.js where the monitor's glass is in the photograph.
+
+     The screen in a photo is a trapezoid, so this wants FOUR CORNERS, not a box.
+     Drop the image in, click its four screen corners, nudge them until the test
+     card sits on the glass, and paste the block at the bottom into OFFICE_PHOTO.
+
+     It loads the real js/office-photo.js, so the mapping you tune here is the
+     same arithmetic the game runs. If this page and the game ever disagree, the
+     page is worse than not having one.
+     ══════════════════════════════════════════════════════════════════════════ -->
+<script src="js/office-photo.js"></script>
+<style>
+  :root { --ink:#e8e4da; --dim:#8d8879; --acc:#5ad1c8; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:#15161a; color:var(--ink);
+         font-family:'Share Tech Mono',ui-monospace,monospace; font-size:13px; }
+  header { padding:14px 18px; border-bottom:1px solid #2a2c33; display:flex; gap:18px;
+           align-items:center; flex-wrap:wrap; }
+  h1 { font-size:15px; letter-spacing:3px; margin:0; text-transform:uppercase; }
+  .hint { color:var(--dim); }
+  button, label.file { background:#23252c; color:var(--ink); border:1px solid #3a3d46;
+           padding:7px 12px; border-radius:5px; cursor:pointer; font:inherit; }
+  button:hover, label.file:hover { border-color:var(--acc); color:var(--acc); }
+  input[type=file] { display:none; }
+  main { padding:18px; display:flex; gap:18px; align-items:flex-start; flex-wrap:wrap; }
+  #wrap { position:relative; line-height:0; border:1px solid #2a2c33; background:#0c0d10;
+          max-width:calc(100vw - 360px); min-width:320px; }
+  #wrap img { max-width:100%; height:auto; display:block; user-select:none; -webkit-user-drag:none; }
+  #svg { position:absolute; inset:0; width:100%; height:100%; overflow:visible; }
+  .pt { fill:var(--acc); stroke:#0c0d10; stroke-width:2; cursor:grab; }
+  .pt.sel { fill:#ffd45a; }
+  .plab { fill:#fff; font:700 11px/1 monospace; pointer-events:none; }
+  /* The test card: a real element carrying the real matrix3d, not a drawn shape.
+     Anything that only draws the outline can be right while the transform is
+     wrong, which is the one thing this page exists to rule out. */
+  #card { position:absolute; left:0; top:0; transform-origin:0 0; pointer-events:none;
+          background:linear-gradient(135deg,#101820,#06222b); overflow:hidden;
+          box-shadow:inset 0 0 0 2px rgba(90,209,200,.6); }
+  #card .g { position:absolute; inset:0;
+    background-image:linear-gradient(rgba(90,209,200,.25) 1px,transparent 1px),
+                     linear-gradient(90deg,rgba(90,209,200,.25) 1px,transparent 1px);
+    background-size:calc(100%/8) calc(100%/6); }
+  #card .t { position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    color:#7df3e8; font:900 62px/1 'Orbitron',monospace; letter-spacing:6px; text-shadow:0 0 22px #0ff6; }
+  aside { width:320px; flex:0 0 320px; }
+  .row { display:flex; align-items:center; gap:8px; margin:7px 0; }
+  .row span { color:var(--dim); width:118px; }
+  .row input[type=number] { width:78px; background:#1b1d23; border:1px solid #3a3d46;
+    color:var(--ink); padding:4px 6px; border-radius:4px; font:inherit; }
+  pre { background:#0c0d10; border:1px solid #2a2c33; padding:12px; border-radius:6px;
+        white-space:pre-wrap; word-break:break-all; color:#b9f3ec; font-size:12px; }
+  .warn { color:#ffab5a; }
+  .ok { color:#7ee081; }
+  h2 { font-size:11px; letter-spacing:2px; color:var(--dim); margin:18px 0 6px;
+       text-transform:uppercase; border-top:1px solid #2a2c33; padding-top:12px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Office photo · screen calibration</h1>
+  <label class="file">Choose image<input type="file" id="file" accept="image/*"></label>
+  <button id="reload">Reload configured path</button>
+  <button id="reset">Reset corners</button>
+  <span class="hint" id="path"></span>
+</header>
+
+<main>
+  <div id="wrap">
+    <img id="img" alt="">
+    <div id="card"><div class="g"></div><div class="t">UI</div></div>
+    <svg id="svg"></svg>
+  </div>
+
+  <aside>
+    <p class="hint">Click the monitor's four glass corners in this order:<br>
+      <b>1</b> top-left &nbsp; <b>2</b> top-right &nbsp; <b>3</b> bottom-right &nbsp; <b>4</b> bottom-left.<br>
+      Then drag them, or type exact pixels below. The test card carries the real
+      transform, so when it sits flush on the glass you are done.</p>
+
+    <div id="fields"></div>
+
+    <h2>Zoom check</h2>
+    <p id="zoom" class="hint"></p>
+
+    <h2>Paste into js/office-photo.js</h2>
+    <pre id="out">…</pre>
+    <button id="copy">Copy</button>
+  </aside>
+</main>
+
+<script>
+const IMG = document.getElementById('img'), WRAP = document.getElementById('wrap');
+const SVG = document.getElementById('svg'), CARD = document.getElementById('card');
+const LABELS = ['TL','TR','BR','BL'];
+let pts = [], drag = -1;
+
+// Displayed px -> the image's own px. The page shrinks a big photo to fit, and
+// the numbers the game wants are in the file's real pixels, never the displayed
+// ones - so every read and write crosses this factor.
+function scaleFactor() { return IMG.naturalWidth ? (IMG.clientWidth / IMG.naturalWidth) : 1; }
+
+function loadSrc(src, label) {
+  IMG.onload = () => {
+    document.getElementById('path').textContent =
+      label + '  ·  ' + IMG.naturalWidth + ' x ' + IMG.naturalHeight;
+    if (!pts.length) seedDefault();
+    draw();
+  };
+  IMG.onerror = () => { document.getElementById('path').innerHTML =
+    '<span class="warn">could not load ' + label + '</span>'; };
+  IMG.src = src;
+}
+
+// A rectangle over the middle third, purely so there is something to drag. It is
+// never a guess at where the screen is.
+function seedDefault() {
+  const w = IMG.naturalWidth, h = IMG.naturalHeight;
+  pts = [[w*0.34,h*0.30],[w*0.66,h*0.30],[w*0.66,h*0.62],[w*0.34,h*0.62]];
+}
+
+function draw() {
+  const k = scaleFactor();
+  SVG.innerHTML = '';
+  if (pts.length === 4) {
+    const poly = document.createElementNS('http://www.w3.org/2000/svg','polygon');
+    poly.setAttribute('points', pts.map(p => (p[0]*k)+','+(p[1]*k)).join(' '));
+    poly.setAttribute('fill','none');
+    poly.setAttribute('stroke','#5ad1c8');
+    poly.setAttribute('stroke-width','2');
+    poly.setAttribute('stroke-dasharray','6 4');
+    SVG.appendChild(poly);
+  }
+  pts.forEach((p,i) => {
+    const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    c.setAttribute('cx',p[0]*k); c.setAttribute('cy',p[1]*k); c.setAttribute('r',7);
+    c.setAttribute('class','pt' + (drag===i?' sel':'')); c.dataset.i = i;
+    SVG.appendChild(c);
+    const t = document.createElementNS('http://www.w3.org/2000/svg','text');
+    t.setAttribute('x',p[0]*k+11); t.setAttribute('y',p[1]*k-9);
+    t.setAttribute('class','plab'); t.textContent = (i+1)+' '+LABELS[i];
+    SVG.appendChild(t);
+  });
+  paintCard(); fields(); dump();
+}
+
+// The test card is sized to the game's real landscape stage and mapped with the
+// game's real matrix, so its aspect distortion here is exactly the distortion the
+// menu will have on that monitor.
+function paintCard() {
+  if (pts.length !== 4) { CARD.style.display='none'; return; }
+  CARD.style.display = 'block';
+  const k = scaleFactor(), W = 747, H = 420;
+  CARD.style.width = W+'px'; CARD.style.height = H+'px';
+  CARD.style.transform = officeQuadMatrix(W, H, pts.map(p => [p[0]*k, p[1]*k]));
+}
+
+function fields() {
+  const box = document.getElementById('fields');
+  box.innerHTML = '';
+  pts.forEach((p,i) => {
+    const r = document.createElement('div'); r.className='row';
+    r.innerHTML = '<span>'+(i+1)+' · '+LABELS[i]+'</span>';
+    [0,1].forEach(a => {
+      const n = document.createElement('input');
+      n.type='number'; n.value = Math.round(p[a]);
+      n.oninput = () => { pts[i][a] = +n.value || 0; paintCard(); dump(); redrawDots(); };
+      r.appendChild(n);
+    });
+    box.appendChild(r);
+  });
+}
+function redrawDots() { const d=drag; drag=-1; draw(); drag=d; }
+
+// The single number that decides whether this shot works as an opening: the zoom
+// is how many times the monitor's glass fits across the photograph. Below about
+// 2x there is barely a push and the shot reads as a slow drift.
+function dump() {
+  const q = pts.map(p => [Math.round(p[0]), Math.round(p[1])]);
+  document.getElementById('out').textContent =
+    "  file: 'assets/room/" + (window._ofName || 'office.jpg') + "',\n" +
+    '  screen: [' + q.map(p => '['+p[0]+','+p[1]+']').join(', ') + '],';
+  if (!IMG.naturalWidth) return;
+  const bb = officeQuadBBox(q);
+  const z = Math.min(IMG.naturalWidth / bb.w, IMG.naturalHeight / bb.h);
+  const cls = z < 1.8 ? 'warn' : (z > 8 ? 'warn' : 'ok');
+  const note = z < 1.8 ? ' — the monitor fills too much of the frame; there is almost no push in it.'
+             : z > 8  ? ' — the monitor is tiny; the push will be very long and the photo very magnified by the end.'
+             : ' — a good push.';
+  document.getElementById('zoom').innerHTML =
+    'Glass is <b>' + Math.round(bb.w) + ' x ' + Math.round(bb.h) + '</b> px. ' +
+    'The camera travels <b class="' + cls + '">' + z.toFixed(1) + 'x</b>' + note +
+    '<br>Glass aspect <b>' + (bb.w/bb.h).toFixed(2) + '</b> against the stage’s <b>1.78</b>' +
+    (Math.abs(bb.w/bb.h - 1.78) > 0.35
+      ? ' <span class="warn">— the UI will be visibly stretched on this monitor.</span>'
+      : ' <span class="ok">— close enough.</span>');
+}
+
+// ── input ───────────────────────────────────────────────────────────────────
+let clicks = 0;
+WRAP.addEventListener('pointerdown', e => {
+  const r = IMG.getBoundingClientRect(), k = scaleFactor();
+  const x = (e.clientX - r.left) / k, y = (e.clientY - r.top) / k;
+  if (e.target.classList.contains('pt')) { drag = +e.target.dataset.i; redrawDots(); return; }
+  if (clicks < 4) { pts[clicks] = [x,y]; clicks++; draw(); }
+});
+window.addEventListener('pointermove', e => {
+  if (drag < 0) return;
+  const r = IMG.getBoundingClientRect(), k = scaleFactor();
+  pts[drag] = [(e.clientX-r.left)/k, (e.clientY-r.top)/k];
+  draw();
+});
+window.addEventListener('pointerup', () => { if (drag>=0) { drag=-1; draw(); } });
+
+document.getElementById('file').onchange = e => {
+  const f = e.target.files[0]; if (!f) return;
+  window._ofName = f.name;
+  loadSrc(URL.createObjectURL(f), f.name);
+};
+document.getElementById('reload').onclick = () => loadSrc(OFFICE_PHOTO.file, OFFICE_PHOTO.file);
+document.getElementById('reset').onclick = () => { clicks = 0; seedDefault(); draw(); };
+document.getElementById('copy').onclick = () =>
+  navigator.clipboard.writeText(document.getElementById('out').textContent);
+window.addEventListener('resize', draw);
+
+// Open on the configured file, and on its stored corners if it already has some.
+if (Array.isArray(OFFICE_PHOTO.screen) && OFFICE_PHOTO.screen.length === 4) {
+  pts = OFFICE_PHOTO.screen.map(p => p.slice()); clicks = 4;
+}
+loadSrc(OFFICE_PHOTO.file, OFFICE_PHOTO.file);
+</script>
+</body>
+</html>

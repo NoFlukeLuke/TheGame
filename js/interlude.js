@@ -17,6 +17,11 @@ async function startInterlude(opts) {
     sfxDuckGain.connect(ctx.destination);
   }
 
+  // The Pick (r244) photographs the board HERE, above the fall - the fall
+  // discards every card to playedPile and replaces gridData with nulls, so this
+  // is the last moment the board exists to be picked from.
+  if (typeof pickTakeSnapshot === 'function') pickTakeSnapshot();
+
   // ── Stage 1: skip Success flash - goalCelebration already showed SUCCESS + confetti ──
   // Cards fall out next.
   const gridEl = document.getElementById('grid');
@@ -36,6 +41,13 @@ async function startInterlude(opts) {
   sfxDuckGain.disconnect();
   sfxDuckGain = null;
 
+  // The Pick (r244): the board comes back and one card is operated on. AFTER the
+  // payout (the round's accounting) and BEFORE any reward screen (the round's
+  // spoils), which is the order those two already read in. Awaited, so every
+  // route below - guided, map, the reward grid, the prize grid - resumes only
+  // once the player has chosen or skipped.
+  if (typeof runPayoutPick === 'function') await runPayoutPick();
+
   // Guided's elite pays out here, while the round's own counters are still live -
   // triggerLevelUp resets handsPlayedRound and handTypesRound, which is what every
   // challenge test reads (js/guided-mode.js).
@@ -49,9 +61,23 @@ async function startInterlude(opts) {
     return;
   }
 
+  // Map mode (r238): a cleared level pays its pick-of-three (and a hard round's
+  // knack pick) and goes back to the map. The post-boss PRIZE grid still opens
+  // here - its close is what routes a map run to the win (js/reward-grid.js).
+  if (typeof mapActive === 'function' && mapActive() && !opts.prize) {
+    mapAfterLevel();
+    return;
+  }
+
   // ── Reward grid replaces Trick choice - player picks spoils, then new round setup runs ──
   rewardGridContext = 'interlude';
-  if (opts.prize) openPrizeGrid(); else openRewardGrid();
+  // opts.prize is set by endBoss. With bosses switched off there is no endBoss to
+  // set it, and node 5 is an ordinary round that closes the quarter - so it is
+  // asked for here instead. Beating the quarter should pay the prize grid whether
+  // or not a boss was standing in front of it.
+  const prize = opts.prize || (typeof isActMode === 'function' && isActMode()
+                && nodeInAct === 5 && typeof bossesEnabled === 'function' && !bossesEnabled());
+  if (prize) openPrizeGrid(); else openRewardGrid();
 }
 
 async function showLevelUpScreen_fallOnly() {
@@ -208,66 +234,42 @@ async function showPayoutUI() {
     ? `10% of <span style="color:#f5c042;">◆ ${coins}</span> × ${interestMult} (Idol)`
     : `10% of <span style="color:#f5c042;">◆ ${coins}</span>`;
 
-  // Build overlay
+  // ── THE PAYOUT IS TILES ON THE BOARD (r255) ─────────────────────────────
+  // It has rendered into #grid-slot since r101, but as ONE panel, which did not
+  // read as being on the board at all. It is now a TITLE TILE and one tile per
+  // section, each falling in like a card at the moment its line is revealed -
+  // so the existing sequencing below drives the deal for free (every stage
+  // already does `.classList.add('show')` on its line).
+  //
+  // The tiles are NOT card-sized: a payout line is a row of text, so the tiles
+  // are board-width and the stack is measured against the board, not against
+  // the cell grid the pick-of-three uses.
+  //
+  // EVERY ID IS UNCHANGED between the two layouts, which is what lets the whole
+  // count-up / fast-forward machinery below stay untouched: po-interest,
+  // po-clock, po-efficiency, po-unspent, po-total, po-total-coins, po-divider,
+  // po-valued, po-ff, po-line-*, po-view-*, po-tab-*-btn.
+  // PAYOUT_TILED = false falls back to the pre-r255 panel (payoutPanelHTML).
+  const _poCtx = { interestName, interestDesc, unspentActions };
   const el = document.createElement('div');
   el.id = 'payout-overlay';
-  el.innerHTML = `
-    <div class="payout-title">Payout</div>
-    <div class="payout-tabs">
-      <button class="payout-tab active" id="po-tab-payout-btn">Payout</button>
-      <button class="payout-tab" id="po-tab-contrib-btn">Contributions</button>
-    </div>
-    <div id="po-view-contrib" class="po-view" style="display:none">
-      <div class="contrib-head">This round · ${roundHandsScored} hand${roundHandsScored===1?'':'s'} scored</div>
-      <div class="contrib-scroll">${roundContributionRowsHTML()}</div>
-    </div>
-    <div id="po-view-payout" class="po-view">
-    <div class="payout-lines">
-      <div class="payout-line" id="po-line-interest">
-        <div class="pl-left">
-          <div class="pl-name">${interestName}</div>
-          <div class="pl-desc">${interestDesc}</div>
-        </div>
-        <div class="pl-right">
-          <span class="pl-coins" id="po-interest">0</span>
-          <span class="pl-sym">◆</span>
-        </div>
-      </div>
-      <div class="payout-line" id="po-line-efficiency">
-        <div class="pl-left">
-          <div class="pl-name">Efficiency</div>
-          <div class="pl-desc">1 per ${EFFICIENCY_SECONDS_PER_COIN}s remaining</div>
-        </div>
-        <div class="pl-right">
-          <span class="pl-clock" id="po-clock">${formatTime(frozenRoundSeconds)}</span>
-          <span class="pl-coins" id="po-efficiency">0</span>
-          <span class="pl-sym">◆</span>
-        </div>
-      </div>
-      <div class="payout-line" id="po-line-unspent">
-        <div class="pl-left">
-          <div class="pl-name">Unspent</div>
-          <div class="pl-desc">${BAL._resources.unspent_credits} per unused swap or discard · ${unspentActions} left</div>
-        </div>
-        <div class="pl-right">
-          <span class="pl-coins" id="po-unspent">0</span>
-          <span class="pl-sym">◆</span>
-        </div>
-      </div>
-    </div>
-    <div class="payout-divider" id="po-divider"></div>
-    <div class="payout-total" id="po-total">
-      <span class="pt-label">Total</span>
-      <span class="pt-coins" id="po-total-coins">0 ◆</span>
-    </div>
-    </div>
-    <button class="payout-valued-btn" id="po-valued">Valued.</button>
-    <button class="payout-ff-btn" id="po-ff" title="Fast forward">»</button>`;
-  // Render the payout INTO the grid area (r101) so it lives on the board, in the
-  // beat between the cards falling out and the reward tiles coming in.
-  const _slot = document.getElementById('grid-slot');
-  if (_slot) { el.classList.add('in-grid'); _slot.appendChild(el); }
-  else document.body.appendChild(el);
+  el.innerHTML = PAYOUT_TILED ? payoutTiledHTML(_poCtx) : payoutPanelHTML(_poCtx);
+  if (PAYOUT_TILED) {
+    // The payout IS the board (r257). Take the grid over at the size this
+    // screen wants and mount INTO #grid, so the tiles are placed in the same
+    // cell units the cards are and nothing sits outside the grid's footprint.
+    // Released at the Valued tap, below - runPayoutPick (r244) brings the real
+    // board back immediately afterwards and must not inherit this one.
+    const _g = gridScreenTakeover(PAYOUT_ROWS, PAYOUT_COLS);
+    el.classList.add('in-grid', 'po-tiled');
+    (_g || document.body).appendChild(el);
+    payoutPlaceTiles(el);
+  } else {
+    // Pre-r255: one panel centred over the grid area (r101).
+    const _slot = document.getElementById('grid-slot');
+    if (_slot) { el.classList.add('in-grid'); _slot.appendChild(el); }
+    else document.body.appendChild(el);
+  }
 
   // Tab switching: Payout (coin animation) vs Contributions (round breakdown)
   const viewPayout  = el.querySelector('#po-view-payout');
@@ -393,13 +395,20 @@ async function showPayoutUI() {
 
   // ── Crossfade out payout *content* but keep the dark background up for continuity ──
   // The bg stays visible until the Trick pick overlay (which has its own dark bg) takes over.
-  el.querySelectorAll('.payout-line, .payout-divider, .payout-total, .payout-valued-btn, .payout-ff-btn, .payout-title, .payout-tabs, .po-view')
+  // On the tiled board the TILES are the content, so they are what fades.
+  el.querySelectorAll(PAYOUT_TILED
+      ? '.po-tile, .payout-ff-btn'
+      : '.payout-line, .payout-divider, .payout-total, .payout-valued-btn, .payout-ff-btn, .payout-title, .payout-tabs, .po-view')
     .forEach(node => { node.style.transition = 'opacity 0.25s ease'; node.style.opacity = '0'; });
   await wait(280);
   // Remove just the content; the overlay's own dark bg fades away when next-goal-bg or trick-choice take over
   el.classList.remove('show');
   await wait(280);
   el.remove();
+  // Hand the board back at the player's own size (r257). runPayoutPick brings
+  // the real cards back immediately after this and must not inherit the
+  // payout's board; every route on from here re-deals or re-lays for itself.
+  if (PAYOUT_TILED && typeof gridScreenRelease === 'function') gridScreenRelease();
 }
 
 async function animateCoinFromClock() {
@@ -464,6 +473,22 @@ async function showNextGoalFlash() {
   const el    = document.getElementById('next-goal-flash');
   const numEl = document.getElementById('next-goal-number');
   if (!el || !numEl) return;
+
+  // r236: THE BOARD IS HELD BACK FROM HERE, not from show321Countdown.
+  //
+  // triggerLevelUp has already repopulated gridData by the time this runs, and
+  // `dealPhase` was not set until startNewRoundDealAnims - so any render() in
+  // the ~1.75s this stamp is up (a Trick tap, a HUD sync, a resize) painted the
+  // whole new board instantly behind it. The 3-2-1 then cleared those elements
+  // and dealt the same cards again as a fall: the reported "it says NEXT QUOTA
+  // while the cards fall in, then the countdown restarts the fall".
+  //
+  // Safe to set here and nowhere earlier because this function is ALWAYS
+  // followed immediately by show321Countdown - all three callers (level-up.js,
+  // match3.js, tricks-ui.js) are `showNextGoalFlash().then(() => show321Countdown())`
+  // - and that is what clears the flag when the deal lands.
+  dealPhase = true;
+  document.getElementById('grid')?.querySelectorAll('[data-card-id]:not(.temp-anim)').forEach(e => e.remove());
 
   const bg = document.getElementById('next-goal-bg');
   bg.classList.add('show');
@@ -571,3 +596,164 @@ async function show321Countdown() {
   await countdownWait(200);
 }
 
+
+
+// ══════════════════════════════════════════════════════════════════════════
+// PAYOUT MARKUP - two layouts, ONE set of ids (r255)
+//
+// The animation code in showPayoutUI addresses everything by id and knows
+// nothing about the layout, so the two builders below are interchangeable.
+// Flip PAYOUT_TILED to go back to the pre-r255 panel.
+// ══════════════════════════════════════════════════════════════════════════
+const PAYOUT_TILED = true;
+
+// THE PAYOUT IS THE BOARD (r257). Same shape as the pick-of-three: the grid is
+// taken over at the size this screen wants and every tile is placed in CELL
+// UNITS, so the payout is made of the same furniture as every other board
+// screen rather than being a column of boxes floated over one.
+//
+// A PAYOUT_COLS x PAYOUT_ROWS board, and it closes exactly:
+//
+//     row 0   : the title tile, full width
+//     row 1   : the two tabs, 3 cells each
+//     rows 2-4: the payout's three lines (one row each), OR, on the
+//               Contributions tab, one tall tile spanning all three
+//     row 5   : Total (3 cells) and the Valued button (3 cells)
+//
+// TOTAL IS DELIBERATELY OUTSIDE #po-view-payout. It used to live inside it, so
+// switching to Contributions left row 5's left half empty - and an empty cell
+// is exactly what a board screen may not have. It is also true on both tabs.
+const PAYOUT_COLS = 6, PAYOUT_ROWS = 6;
+
+// `data-box` is "row,col,width,height" in cells; payoutPlaceTiles turns each
+// into a real box once the board has been re-laid (the metrics are not known
+// until then). Declarative here, measured there.
+function payoutTiledHTML(c) {
+  return `
+    <div class="po-tile po-tile-title show" data-box="0,0,6,1">
+      <div class="payout-title">Payout</div>
+    </div>
+    <div class="po-tile po-tile-tab show" data-box="1,0,3,1">
+      <button class="payout-tab active" id="po-tab-payout-btn">Payout</button>
+    </div>
+    <div class="po-tile po-tile-tab show" data-box="1,3,3,1">
+      <button class="payout-tab" id="po-tab-contrib-btn">Contributions</button>
+    </div>
+    <div id="po-view-contrib" class="po-view" style="display:none">
+      <div class="po-tile po-tile-contrib show" data-box="2,0,6,3">
+        <div class="contrib-head">This round · ${roundHandsScored} hand${roundHandsScored === 1 ? '' : 's'} scored</div>
+        <div class="contrib-scroll">${roundContributionRowsHTML()}</div>
+      </div>
+    </div>
+    <div id="po-view-payout" class="po-view">
+      <div class="po-tile payout-line" id="po-line-interest" data-box="2,0,6,1">
+        <div class="pl-left">
+          <div class="pl-name">${c.interestName}</div>
+          <div class="pl-desc">${c.interestDesc}</div>
+        </div>
+        <div class="pl-right">
+          <span class="pl-coins" id="po-interest">0</span>
+          <span class="pl-sym">◆</span>
+        </div>
+      </div>
+      <div class="po-tile payout-line" id="po-line-efficiency" data-box="3,0,6,1">
+        <div class="pl-left">
+          <div class="pl-name">Efficiency</div>
+          <div class="pl-desc">1 per ${EFFICIENCY_SECONDS_PER_COIN}s remaining</div>
+        </div>
+        <div class="pl-right">
+          <span class="pl-clock" id="po-clock">${formatTime(frozenRoundSeconds)}</span>
+          <span class="pl-coins" id="po-efficiency">0</span>
+          <span class="pl-sym">◆</span>
+        </div>
+      </div>
+      <div class="po-tile payout-line" id="po-line-unspent" data-box="4,0,6,1">
+        <div class="pl-left">
+          <div class="pl-name">Unspent</div>
+          <div class="pl-desc">${BAL._resources.unspent_credits} per unused swap or discard · ${c.unspentActions} left</div>
+        </div>
+        <div class="pl-right">
+          <span class="pl-coins" id="po-unspent">0</span>
+          <span class="pl-sym">◆</span>
+        </div>
+      </div>
+    </div>
+    <!-- The divider has no job on a board of tiles (the tiles ARE the
+         separation), but the stage sequencing still calls .show on it, so it
+         stays in the DOM and is hidden by css/payout-grid.css. -->
+    <div class="payout-divider" id="po-divider"></div>
+    <div class="po-tile payout-total" id="po-total" data-box="5,0,3,1">
+      <span class="pt-label">Total</span>
+      <span class="pt-coins" id="po-total-coins">0 ◆</span>
+    </div>
+    <button class="payout-valued-btn po-tile" id="po-valued" data-box="5,3,3,1">Valued.</button>
+    <button class="payout-ff-btn" id="po-ff" title="Fast forward">»</button>`;
+}
+
+// Turn every data-box into a real box, in the same cell units the cards use
+// (gpBox, js/grid-pick.js). Called after the board has been taken over, and
+// again on a re-lay.
+function payoutPlaceTiles(el) {
+  if (typeof gpBox !== 'function') return;
+  el.querySelectorAll('[data-box]').forEach(t => {
+    const [r, c, w, h] = t.dataset.box.split(',').map(Number);
+    t.style.cssText += gpBox(r, c, w, h);
+  });
+}
+
+// PRE-r255 PANEL, kept whole for revert (PAYOUT_TILED = false). One centred
+// panel over the board rather than tiles on it.
+function payoutPanelHTML(c) {
+  return `
+    <div class="payout-title">Payout</div>
+    <div class="payout-tabs">
+      <button class="payout-tab active" id="po-tab-payout-btn">Payout</button>
+      <button class="payout-tab" id="po-tab-contrib-btn">Contributions</button>
+    </div>
+    <div id="po-view-contrib" class="po-view" style="display:none">
+      <div class="contrib-head">This round · ${roundHandsScored} hand${roundHandsScored === 1 ? '' : 's'} scored</div>
+      <div class="contrib-scroll">${roundContributionRowsHTML()}</div>
+    </div>
+    <div id="po-view-payout" class="po-view">
+    <div class="payout-lines">
+      <div class="payout-line" id="po-line-interest">
+        <div class="pl-left">
+          <div class="pl-name">${c.interestName}</div>
+          <div class="pl-desc">${c.interestDesc}</div>
+        </div>
+        <div class="pl-right">
+          <span class="pl-coins" id="po-interest">0</span>
+          <span class="pl-sym">◆</span>
+        </div>
+      </div>
+      <div class="payout-line" id="po-line-efficiency">
+        <div class="pl-left">
+          <div class="pl-name">Efficiency</div>
+          <div class="pl-desc">1 per ${EFFICIENCY_SECONDS_PER_COIN}s remaining</div>
+        </div>
+        <div class="pl-right">
+          <span class="pl-clock" id="po-clock">${formatTime(frozenRoundSeconds)}</span>
+          <span class="pl-coins" id="po-efficiency">0</span>
+          <span class="pl-sym">◆</span>
+        </div>
+      </div>
+      <div class="payout-line" id="po-line-unspent">
+        <div class="pl-left">
+          <div class="pl-name">Unspent</div>
+          <div class="pl-desc">${BAL._resources.unspent_credits} per unused swap or discard · ${c.unspentActions} left</div>
+        </div>
+        <div class="pl-right">
+          <span class="pl-coins" id="po-unspent">0</span>
+          <span class="pl-sym">◆</span>
+        </div>
+      </div>
+    </div>
+    <div class="payout-divider" id="po-divider"></div>
+    <div class="payout-total" id="po-total">
+      <span class="pt-label">Total</span>
+      <span class="pt-coins" id="po-total-coins">0 ◆</span>
+    </div>
+    </div>
+    <button class="payout-valued-btn" id="po-valued">Valued.</button>
+    <button class="payout-ff-btn" id="po-ff" title="Fast forward">»</button>`;
+}

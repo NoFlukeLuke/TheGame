@@ -127,6 +127,15 @@ function recomputeFocusDecayInterval() {
 // Hand-type focus contribution table
 // Focus tracks the same difficulty order as HAND_BASE (see the note there):
 // flushes cheapest, runs dearest, sets in between.
+//
+// r234: the three EASY shapes - Pair, Flush of 3, Flush of 4 - are pinned to a
+// complexity of 1 and additionally earn only HALF the speed bonus (see
+// FOCUS_HALF_SPEED_HANDS below). They are the shapes the eye finds without
+// reading a rank, they turn up on nearly every board (Pair 100%, Flush of 3
+// 85%, Flush of 4 45% - see the table in CLAUDE.md), and paying full Focus for
+// them made spamming the easiest available shape the best way to hold the
+// meter up. The hand still scores its printed pips and mult; only its Focus
+// yield is cut.
 const HAND_FOCUS = {
   'Pair': 1,
   'Two Pair': 2,
@@ -134,7 +143,7 @@ const HAND_FOCUS = {
   'Run of 4': 3,
   'Straight': 4,
   'Flush of 3': 1,
-  'Flush of 4': 2,
+  'Flush of 4': 1,
   'Flush': 3,
   'Three of a Kind': 3,
   'Full House': 4,
@@ -152,6 +161,12 @@ const HAND_FOCUS = {
   'Flush Five': 12,
   'Flush House': 14,
 };
+
+// The hands that earn only half the speed bonus (r234). Kept beside HAND_FOCUS
+// rather than inside generateHandFocus so the two halves of the same decision -
+// what the shape is worth, and how much hurrying with it is worth - are read
+// together. generateHandFocus is the single consumer.
+const FOCUS_HALF_SPEED_HANDS = new Set(['Pair', 'Flush of 3', 'Flush of 4']);
 
 // Speed bonus formula - dev-tunable. Three formulas, params held in focusSpeedParams.
 // t = seconds since last play; returns extra focus (pre-floor).

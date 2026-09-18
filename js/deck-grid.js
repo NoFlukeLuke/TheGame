@@ -11,8 +11,8 @@ let bossNumber    = 0;
 let savedRoundSeconds = 0; // round timer value at boss start
 
 // ── Node-based progression (Normal Mode) ──
-// Each act = 5 normal events + 1 forced boss = 6 nodes. Three acts = 18 nodes total.
-let actNumber         = 1;     // current act (1–3)
+// Each quarter = 5 normal events + 1 forced boss = 6 nodes; QUARTERS_PER_RUN of them.
+let actNumber         = 1;     // current quarter (1..QUARTERS_PER_RUN, js/quarter.js)
 let nodeInAct         = 0;     // events completed in current act (0–4 normal; at 5 → boss)
 let forceBossNextRound = false; // triggers boss after next round deal animation
 
@@ -75,6 +75,19 @@ function cardBuffLines(k) {
   if (xm > 1) lines.push(`\u00d7${xm} mult`);
   if (re) lines.push(`+${re} replay`);
   return lines;
+}
+
+// Every ordinary deck card that carries at least one permanent buff (r234).
+//
+// "Two random cards leave your deck" is only a COST if the cards are worth
+// something, and on a 52-card deck a random pair almost never is - The Price was
+// selling real power for nothing. The trades that take cards now take BUFFED
+// cards, which is the only version of that cost a player can feel.
+//
+// Reads through cardBuffLines() rather than testing the seven perm* stores by
+// hand, so a buff kind added later is counted here for free.
+function buffedDeckCards() {
+  return everyDeckCard().filter(c => cardBuffLines(cardId(c)).length > 0);
 }
 
 // ── CARD CURSES (reward-grid debuffs) ──
@@ -152,6 +165,7 @@ let handTypesRound      = new Set(); // distinct hand types played this round
 let safetyNetUsed       = false; // safety_net knack: once per game
 let cardsDiscardedTotal = 0;
 let cardsDiscardedRound = 0;
+let swapsUsedRound      = 0; // swap actions this round (the No Takebacks challenge)
 let cardsScoredTotal  = 0;
 let nineSecondsCounter = 0;
 let highestHandScore = 0;

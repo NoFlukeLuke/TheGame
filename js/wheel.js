@@ -55,19 +55,19 @@ function buildJackpot(pickOne) {
   if (roll === 0) {
     const a = pickOne(), b = pickOne();
     return { type: 'jackpot', jackpot: 'double', items: [a, b], label: 'JACKPOT', emoji: '★',
-             rarity: 'mythic', desc: `Two prizes at once: ${a.label} + ${b.label}.` };
+             rarity: 'legendary', desc: `Two prizes at once: ${a.label} + ${b.label}.` };
   }
   if (roll === 1) {
     const a = pickOne();
     return { type: 'jackpot', jackpot: 'upgrade', items: [a], label: 'JACKPOT', emoji: '★',
-             rarity: 'mythic', desc: `${a.label}, upgraded a rarity tier.` };
+             rarity: 'legendary', desc: `${a.label}, upgraded a rarity tier.` };
   }
-  return { type: 'jackpot', jackpot: 'coins', label: 'JACKPOT', emoji: '★', rarity: 'mythic',
+  return { type: 'jackpot', jackpot: 'coins', label: 'JACKPOT', emoji: '★', rarity: 'legendary',
            coins: BAL.wheel.jackpot_coins, desc: `${BAL.wheel.jackpot_coins} credits.` };
 }
 
 // ── overlay ──────────────────────────────────────────────────────────────────
-const WHEEL_RARITY_COLOR = { common:'--c-mint', rare:'--c-cyan', epic:'--c-purple', legendary:'--c-yellow', mythic:'--c-magenta' };
+const WHEEL_RARITY_COLOR = { common:'--c-mint', rare:'--c-cyan', epic:'--c-purple', legendary:'--c-magenta' };
 function wheelSliceColor(p) { return `var(${WHEEL_RARITY_COLOR[p.rarity] || '--c-mint'})`; }
 
 function ensureWheelOverlay() {
@@ -114,7 +114,7 @@ function ensureWheelOverlay() {
 let wheelPaid = false;
 function openWheel() {
   if (wheelActive) return;
-  const cost = BAL.wheel.cost;
+  const cost = priceOf(BAL.wheel.cost);
   if (coins < cost) { showMessage(`The wheel costs ${cost} credits`, 'var(--red)'); return; }
   wheelActive = true; wheelSpinning = false; wheelResolved = true; wheelPaid = false;
   wheelSlots = buildWheelSlots();
@@ -133,7 +133,7 @@ function openWheel() {
 // The confirm step: this is where the credits actually go.
 function confirmWheelSpin() {
   if (wheelPaid) return;
-  const cost = BAL.wheel.cost;
+  const cost = priceOf(BAL.wheel.cost);
   if (coins < cost) { showMessage('Not enough credits', 'var(--red)'); return; }
   coins -= cost; updateCoinsUI();
   wheelPaid = true;

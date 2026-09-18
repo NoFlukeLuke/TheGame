@@ -9,15 +9,22 @@ function measureGridSlot() {
   const slot  = document.getElementById('grid-slot');
   const stage = document.getElementById('stage');
   if (!slot || !stage) return { w: GRID_FOOTPRINT_W, h: GRID_FOOTPRINT_H };
-  const zoom = parseFloat(getComputedStyle(stage).getPropertyValue('--stage-zoom')) || 1;
-  // The camera (r180) can also be scaling the whole scene - it is at the wide
-  // "cabinet on a desk" framing whenever a menu is up, and mid-dolly on the way
-  // into a run. getBoundingClientRect sees that too, so both scales come out or
-  // the cards get sized for a board 40% smaller than the one being played on.
-  const cam  = (typeof camScale === 'function') ? camScale() : 1;
-  const rect = slot.getBoundingClientRect();
-  const w = rect.width  / zoom / cam;
-  const h = rect.height / zoom / cam;
+  // MEASURED IN THE SLOT'S OWN LAYOUT UNITS, not from getBoundingClientRect.
+  //
+  // offsetWidth/offsetHeight already ARE design px and are immune to every
+  // transform above them, so the zoom and the camera scale simply do not come
+  // into it. The rect needed both divided back out (r180), and that was only ever
+  // right while the scene's transforms were plain scales.
+  //
+  // The r244 photo office broke that: the skew onto the monitor is a PERSPECTIVE
+  // map, so the rect is the TRAPEZOID'S BOUNDING BOX and no single divisor can
+  // undo it. Measured at 1440x820 - the rect path read the slot as 338 x 462
+  // where its real box is 336 x 362, a 28% over-read on the height, and the grid
+  // came out 421px tall inside a 420px stage. That is the dark shape that pokes
+  // out above and below the monitor, and it means every card was sized off a
+  // distorted measurement. Same trap as the r160 Trick fan: never mix the two.
+  const w = slot.offsetWidth;
+  const h = slot.offsetHeight;
   // Guard against pre-layout / hidden states returning ~0.
   if (w < 40 || h < 40) return { w: GRID_FOOTPRINT_W, h: GRID_FOOTPRINT_H };
   return { w, h };
