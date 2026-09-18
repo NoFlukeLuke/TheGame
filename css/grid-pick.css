@@ -1,0 +1,160 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   GRID PICK (r254, rebuilt r256) - the pick-of-three IS the board.
+   See js/grid-pick.js.
+
+   There is NO overlay and NO backdrop here. The tiles are children of #grid,
+   absolutely placed in cell units by JS exactly as the cards are, so the pick
+   inhabits the board rather than covering it.
+
+   STAGE PX throughout: #grid carries the cabinet's zoom (~1.9x on a desktop),
+   so size against a ~51x67 cell, not against the viewport.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* AMBIENCE. Inert black cards filling the rows above and below the options -
+   the board still reads as a board. Same silhouette as a dealt card, no face.
+   Never interactive: a dead cell that responds to a tap reads as broken. */
+#grid .gp-amb {
+  position: absolute; z-index: 2; pointer-events: none;
+  border-radius: 6px;
+  background: linear-gradient(180deg, #0c0a07, #060504);
+  border: 1px solid rgba(183,172,147,0.13);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.03), 0 2px 6px rgba(0,0,0,0.5);
+}
+
+/* A CHOICE - 2 cells wide, 3 tall. Neutral plastic border: rarity colour stays
+   on the object inside, where it means rarity. Contents run top-down with a
+   paragraph-sized gap, never a growing art box pushing the words to the edge. */
+#grid .gp-opt {
+  position: absolute; z-index: 3; box-sizing: border-box;
+  /* The object, name and description are ONE GROUP, centred as a block: the
+     words sit a paragraph break under the icon and whatever slack is left is
+     split top and bottom rather than pooling at the foot of the tile. */
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 2px; padding: 5px 5px 4px;
+  border-radius: 8px; cursor: pointer; overflow: hidden;
+  background: linear-gradient(180deg, rgba(27,23,16,0.96), rgba(14,12,8,0.98));
+  border: 1.5px solid rgba(183,172,147,0.5);
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.55), 0 3px 9px rgba(0,0,0,0.5);
+  transition: border-color 0.14s ease, box-shadow 0.16s ease;
+}
+#grid .gp-opt:hover {
+  border-color: var(--cream, #f0e6c8);
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.55), 0 0 13px rgba(240,230,200,0.26), 0 6px 14px rgba(0,0,0,0.55);
+}
+
+.gp-tag {
+  flex: 0 0 auto;
+  font-family: 'Share Tech Mono', monospace; font-size: 6px; letter-spacing: 1.5px;
+  color: #0e0c0a; background: var(--rc, var(--c-mint, #35d59b));
+  padding: 1px 5px; border-radius: 999px; text-transform: uppercase; font-weight: 700;
+}
+.gp-tag.rar-common    { --rc: var(--c-mint,    #35d59b); }
+.gp-tag.rar-rare      { --rc: var(--c-cyan,    #16c8d8); }
+.gp-tag.rar-epic      { --rc: var(--c-purple,  #9a6cff); }
+.gp-tag.rar-legendary { --rc: var(--c-magenta, #ff2f8e); }
+
+/* THE OBJECT. The art box is given the OBJECT'S OWN ASPECT, so the object
+   fills it rather than letterboxing inside a taller box and leaving a gap
+   between the icon and the name (r256). The frame must be position:relative -
+   r239: the object's band is an abspos pseudo anchoring to the nearest
+   positioned ancestor. Only the ART floats.
+   NOT pointer-events:none: the delegated data-et tooltip needs the hover, and
+   a click on the object still bubbles to .gp-opt and chooses. */
+.gp-art { flex: 0 0 auto; width: 100%; display: flex; justify-content: center; }
+.gp-art-trick   .gp-art { aspect-ratio: 20 / 19; }   /* the floppy's real ratio */
+.gp-art-sleight .gp-art { aspect-ratio: 1.37; }      /* the business card's */
+.gp-art-knack   .gp-art { aspect-ratio: 1; }         /* the cert diamond */
+.gp-art-plain   .gp-art { aspect-ratio: 1.2; }
+.gp-art .reward-cell {
+  position: relative; width: 100%; height: 100%; margin: 0;
+  transform: translate(var(--fx, 0px), var(--fy, 0px)) rotate(var(--fr, 0deg)) scale(var(--fs, 1));
+}
+.gp-icon {
+  width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+  font-size: 28px; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.5));
+  transform: translate(var(--fx, 0px), var(--fy, 0px)) rotate(var(--fr, 0deg));
+}
+
+/* NAME then DESCRIPTION, a paragraph break under the object - not a gap. */
+.gp-name {
+  flex: 0 0 auto; margin-top: 3px;
+  font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 9px; letter-spacing: 0.4px;
+  color: var(--cream, #f0e6c8); text-align: center; line-height: 1.12;
+}
+.gp-body { flex: 0 0 auto; width: 100%; }
+.gp-desc {
+  font-family: 'Crimson Pro', serif; font-size: 9px; line-height: 1.26;
+  color: var(--cream-dim, #9a8d70); text-align: center;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+/* THE ELLIPSIS. Only a clamped description grows one, and tapping it moves the
+   WHOLE description into the chip - the tile's copy goes visibility:hidden
+   (not display:none, so nothing in the tile jumps). */
+.gp-more { display: none; }
+.gp-opt.gp-clipped .gp-more {
+  display: block; margin: 0 auto; cursor: help;
+  font-family: 'Crimson Pro', serif; font-size: 11px; line-height: 1;
+  color: var(--c-yellow, #ffce2b); background: none; border: none; padding: 0 6px;
+  letter-spacing: 1px;
+}
+.gp-opt.gp-clipped .gp-more:hover { color: #fff2c8; }
+.gp-opt.gp-reading .gp-desc { visibility: hidden; }
+
+/* AN ACTION TILE (r256). A screen's own controls - Survival's reroll, peek,
+   breakdown and shop - are cells in the bottom row, not buttons under a panel.
+   One cell each; the cells no action claims stay ambience. */
+#grid .gp-act {
+  position: absolute; z-index: 3; box-sizing: border-box;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 1px; padding: 3px 2px; text-align: center;
+  border-radius: 6px; cursor: pointer; overflow: hidden;
+  background: linear-gradient(180deg, rgba(24,21,15,0.96), rgba(12,10,7,0.98));
+  border: 1.5px solid rgba(183,172,147,0.42);
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.5), 0 2px 7px rgba(0,0,0,0.45);
+  transition: border-color 0.14s ease, box-shadow 0.16s ease;
+}
+#grid .gp-act:hover {
+  border-color: var(--c-yellow, #ffce2b);
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.5), 0 0 11px rgba(255,206,43,0.3);
+}
+#grid .gp-act.gp-act-off { opacity: 0.42; cursor: not-allowed; }
+#grid .gp-act.gp-act-off:hover { border-color: rgba(183,172,147,0.42); box-shadow: inset 0 0 0 1px rgba(0,0,0,0.5); }
+.gp-act-icon  { font-size: 15px; line-height: 1; }
+.gp-act-label {
+  font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 6.5px; letter-spacing: 1px;
+  text-transform: uppercase; color: var(--cream, #f0e6c8); line-height: 1.1;
+}
+.gp-act-sub {
+  font-family: 'Share Tech Mono', monospace; font-size: 6px; letter-spacing: 0.5px;
+  color: var(--c-yellow, #ffce2b);
+}
+/* The shop tile is the one that costs credits, so it is the one that is gold. */
+#grid .gp-act.gp-act-buy { border-color: rgba(255,206,43,0.55); }
+
+/* ── PRE-r256 PANEL LAYOUTS, kept for revert ──────────────────────────────
+   Two earlier passes drew the pick OVER the board instead of as the board: an
+   #grid-pick overlay inside #grid-slot with a radial backdrop, first as a flex
+   row filling the slot's height (r254) and then as cell-measured tiles in a
+   centred board box (r255). Both are superseded by the takeover above; kept
+   commented rather than deleted while the on-board direction is settled.
+
+   #grid-pick { position:absolute; inset:0; z-index:44; display:none;
+     background: radial-gradient(ellipse at center, rgba(8,11,6,0.55) 0%, rgba(8,11,6,0.86) 100%); }
+   #grid-pick.show { display:flex; align-items:center; justify-content:center; }
+   #grid-pick .gp-board { position:relative; width:var(--grid-w,100%); height:var(--grid-h,100%); }
+   #grid-pick .gp-row   { position:absolute; inset:0; }
+   #grid-pick .gp-head  { position:absolute; left:0; right:0; top:0;
+     display:flex; flex-direction:column; align-items:center; justify-content:center; }
+   .gp-kicker { font-family:'Share Tech Mono',monospace; font-size:7px; letter-spacing:3px; color:var(--c-mint,#35d59b); }
+   .gp-title  { font-family:'Orbitron',sans-serif; font-weight:900; font-size:14px; letter-spacing:4px; }
+   #sv-pick-cards.gp-row { display:flex; gap:var(--gp-gap,10px); justify-content:center; align-items:flex-start; }
+   #sv-pick-cards.gp-row .gp-opt { flex:1 1 0; max-width:var(--gp-tile-w,150px); height:min(var(--gp-tile-h,200px),100%); }
+   (r254 only) .gp-art { flex:1 1 auto; min-height:0; }  .gp-desc { -webkit-line-clamp:4; }
+   ────────────────────────────────────────────────────────────────────────── */
+
+/* The x/y selection readout means nothing on ANY board-takeover screen (there
+   is no hand being built), and it sits in the slot margin right beside the
+   grid. body.gp-active is set by gridScreenTakeover, so the pick and the tiled
+   payout both get it. */
+body.gp-active #sel-count { display: none !important; }

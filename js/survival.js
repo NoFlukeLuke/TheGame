@@ -279,75 +279,66 @@ function survivalPickOverlay() {
   if (!el) {
     el = document.createElement('div');
     el.id = 'survival-pick-overlay';
-    el.innerHTML = `<div id="survival-pick-panel">
-        <div class="sv-pick-head"><span class="sv-pick-kicker">GOAL CLEARED</span><span class="sv-pick-title">CHOOSE ONE</span></div>
-        <div id="sv-pick-cards"></div>
-        <div class="sv-pick-foot">
-          <button id="sv-pick-reroll" onclick="survivalReroll()"></button>
-          <button id="sv-pick-peek" onclick="survivalTogglePeek()" title="Get the panel out of the way and watch the board">👁</button>
-          <button id="sv-pick-contrib-btn" onclick="survivalToggleContrib()" title="What contributed to your score">📊</button>
-        </div>
-        <button id="sv-pick-shop" onclick="survivalOpenShop()">🛒 Shop - entry fee 5 💰</button>
-        <div id="sv-pick-contrib"></div>
-      </div>
+    // r256: the pick IS the board now (js/grid-pick.js) - the head, the three
+    // choices and the reroll / peek / breakdown / shop buttons are all TILES in
+    // the grid. What is left over here is the breakdown READER (a text list,
+    // which is a panel by nature) and the button that brings a peeked pick
+    // back. The overlay itself is inert; only those two take pointer events.
+    el.innerHTML = `<div id="sv-pick-contrib"></div>
       <button id="sv-peek-restore" onclick="survivalTogglePeek()">CHOOSE ONE &#8250;</button>`;
-    (document.getElementById('stage') || document.body).appendChild(el);
+    (document.getElementById('grid-slot') || document.getElementById('stage') || document.body).appendChild(el);
   }
   return el;
 }
 
+// Survival's own controls, as the bottom row of the board. Padded with nulls so
+// the four sit in the middle four cells and the two ends stay ambience.
+function survivalPickActions() {
+  const cost = survivalRerollCost();
+  const free = survivalRerollsLeft > 0;
+  return [
+    null,
+    { icon: '🎲', label: 'Reroll', sub: free ? `FREE (${survivalRerollsLeft})` : `${cost} ◆`,
+      disabled: !free && coins < cost, onClick: () => survivalReroll() },
+    { icon: '👁', label: 'Peek', sub: 'watch', onClick: () => survivalTogglePeek() },
+    { icon: '📊', label: 'Round', sub: 'breakdown', onClick: () => survivalToggleContrib() },
+    { icon: '🛒', label: 'Shop', sub: `${SURVIVAL_SHOP_COST} ◆`, cls: 'gp-act-buy',
+      disabled: coins < SURVIVAL_SHOP_COST, onClick: () => survivalOpenShop() },
+    null,
+  ];
+}
+
 function survivalRenderPick() {
-  const overlay = survivalPickOverlay();
-  const kick = overlay.querySelector('.sv-pick-kicker');
-  if (kick) kick.textContent = survivalPickKicker || 'GOAL CLEARED';
-  const cards = overlay.querySelector('#sv-pick-cards');
-  cards.innerHTML = '';
-  (survivalPickOffered || []).forEach((opt, i) => {
-    const card = document.createElement('div');
-    // Type sets the SHAPE class; rarity sets the colour (r198).
-    card.className = `sv-pick-card sv-type-${opt.type} rar-${typeof tierId === 'function' ? tierId(opt.rar) : 'common'}`;
-    card.style.animationDelay = (i * 70) + 'ms';
-    // An entity option shows the REAL OBJECT - the floppy, the business card,
-    // the cert diamond the player will own - with the name and description
-    // BELOW it (owner spec, r239). Only a limit still gets the bare icon:
-    // there is no object to show.
-    const isEnt = opt.type === 'trick' || opt.type === 'sleight' || opt.type === 'knack';
-    const art = (isEnt && typeof entityTileHTML === 'function')
-      ? `<div class="sv-pick-tile">${entityTileHTML({
-            entity: opt.type, id: opt.id, emoji: opt.icon, label: opt.data.name,
-            uses: opt.type === 'sleight'
-              ? (opt.data.durability === 'infinite' ? '∞' : opt.data.durability + 'x') : undefined,
-          }, typeof tierId === 'function' ? tierId(opt.rar) : 'common')}</div>`
-      : `<div class="sv-pick-icon">${opt.icon}</div>`;
-    card.innerHTML = `
-      <div class="sv-pick-tag">${opt.tag}</div>
-      ${art}
-      <div class="sv-pick-name">${opt.name}</div>
-      <div class="sv-pick-desc">${typeof colorizeKeywords === 'function' ? colorizeKeywords(opt.desc || '') : (opt.desc || '')}</div>
-      <div class="sv-pick-kind">${opt.type}</div>`;
-    card.onclick = () => survivalChoose(i);
-    cards.appendChild(card);
+  survivalPickOverlay();
+  // The choices are the shared on-board tiles (js/grid-pick.js): the object,
+  // the name and the description, laid into the grid as 2x3 cell tiles with
+  // ambience cards above and the controls below. A limit keeps the bare icon -
+  // there is no object to show (gridPickTileHTML handles that case).
+  const offers = (survivalPickOffered || []).map(opt => ({
+    entity: opt.type, id: opt.id, emoji: opt.icon, icon: opt.icon,
+    label: opt.name, desc: opt.desc, rarity: opt.rar, tag: opt.tag,
+    uses: opt.type === 'sleight'
+      ? (opt.data.durability === 'infinite' ? '\u221e' : opt.data.durability + 'x') : undefined,
+  }));
+  const actions = survivalPickActions();
+  // A reroll swaps the offers under a board that is already dealt, so it
+  // REDRAWS rather than re-dealing - the cards should not fall in twice for one
+  // screen.
+  if (typeof gridPickState !== 'undefined' && gridPickState) gridPickRefresh(offers, actions);
+  else openGridPick({
+    title: survivalPickKicker === 'BOSS DEFEATED' ? 'BOSS REWARD' : 'CHOOSE ONE',
+    tone: 'reward', offers, actions,
+    onChoose: (i) => survivalChoose(i),
   });
-  // Fit the tiles' own labels AFTER the panel is on screen - fitting while
-  // hidden measures a zero rect and leaves a long name to clip.
-  requestAnimationFrame(() => {
-    if (typeof fitRewardName === 'function')
-      cards.querySelectorAll('.sv-pick-tile .rwd-name').forEach(nm => fitRewardName(nm));
-  });
-  survivalUpdateRerollBtn();
 }
 
 function survivalUpdateRerollBtn() {
-  const btn = document.getElementById('sv-pick-reroll');
-  if (btn) {
-    const cost = survivalRerollCost();
-    const free = survivalRerollsLeft > 0;
-    btn.textContent = free ? `🎲 Reroll - FREE (${survivalRerollsLeft} left)` : `🎲 Reroll - ${cost} 💰`;
-    btn.classList.toggle('sv-cant-afford', !free && coins < cost);
-  }
-  // Shop button lives on the pick screen now; keep its affordability live.
-  const shop = document.getElementById('sv-pick-shop');
-  if (shop) shop.classList.toggle('sv-cant-afford', coins < SURVIVAL_SHOP_COST);
+  // The reroll and shop controls are TILES on the board now (r256), so keeping
+  // their affordability live is a redraw of the action row rather than a class
+  // on a button. Called from js/hud.js, the Mart and the shop whenever credits
+  // move while the pick is up.
+  if (typeof gridPickState === 'undefined' || !gridPickState) return;
+  gridPickRefresh(null, survivalPickActions());
 }
 
 // Show the pick panel beside the preview. Called from the goal dance (after the
@@ -405,7 +396,12 @@ function survivalTogglePeek() {
   const ov = survivalPickOverlay();
   if (!ov.classList.contains('show')) return;
   ov.classList.toggle('sv-peek');
-  if (ov.classList.contains('sv-peek')) survivalHideContrib();  // the breakdown is part of the panel
+  const peeking = ov.classList.contains('sv-peek');
+  if (peeking) survivalHideContrib();
+  // r256: peek is no longer "hide a panel" - the pick IS the board, so peeking
+  // hands the BOARD back (the real cards are re-rendered at the play size) and
+  // restoring re-takes it over. gridPickState holds the offers across both.
+  if (typeof gridPickSetShown === 'function') gridPickSetShown(!peeking);
   survivalSyncPickAudio();
 }
 
@@ -445,6 +441,7 @@ function survivalChoose(i) {
   if (typeof cancelDance === 'function') cancelDance(); // stop the score count-up if still running
   survivalHideContrib();
   survivalPickOverlay().classList.remove('show', 'sv-peek');
+  if (typeof closeGridPick === 'function') closeGridPick();
   survivalPickOffered = null;
   survivalSyncPickAudio();
   survivalGrant(opt);

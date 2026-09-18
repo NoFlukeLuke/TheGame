@@ -150,6 +150,7 @@ function triggerLevelUp() {
   // Spectrum: a rank/colour change made in the dev tuner during the round lands
   // here, at the boundary - never under the player's hand mid-round.
   if (typeof spectrumApplyPendingDeck === 'function') spectrumApplyPendingDeck();
+  if (typeof deckDesignApplyPending === 'function') deckDesignApplyPending();
 
   // Bank unused resources before resetting
   if (hasKnack('carry_swaps'))    accumulatedSwaps    = Math.min(BAL.carry_swaps.max, accumulatedSwaps    + swaps);

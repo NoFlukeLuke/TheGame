@@ -115,7 +115,7 @@ body.no-shake .reward-mshake { animation: none !important; }
 body.no-shake #focus-meter-wrap, body.no-shake #focus-bar-outer { transform: none !important; }
 body.big-text #records-body,
 body.big-text #settings-body,
-body.big-text .sv-pick-desc,
+body.big-text .gp-desc,
 body.big-text .rec-ent-desc { font-size: 1.12em; }
 body.high-contrast .card { border-width: 2px !important; border-color: #2a2418 !important; }
 body.high-contrast .card .rank,

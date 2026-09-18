@@ -277,6 +277,11 @@ function startGame() {
   } else {
     ACTIVE_SUITS = (ACTIVE_MODE.suitCount === 6) ? SUITS_SIX : SUITS;
     ACTIVE_RANKS = RANKS;
+    // Six Suits deals a DESIGNED deck (js/deck-design.js): the cut rank comes out
+    // of ACTIVE_RANKS here, and expectedDeckTotal becomes ranks x copies rather
+    // than ranks x suits. It must run AFTER ACTIVE_SUITS is set - the suit list
+    // is what the copies are spread across.
+    if (typeof deckDesignInstallLists === 'function') deckDesignInstallLists();
   }
   // A picker-built mode may name a scoring model. It is installed into the live
   // global only, never into localStorage: the dev panel's own choice is what a
@@ -291,7 +296,7 @@ function startGame() {
   // rebuild the offerable pool before anything can draw from it.
   if (typeof applyModeEntityFilter === 'function') applyModeEntityFilter();
   // Reset deck audit (a full deck = one of every rank in every active suit)
-  expectedDeckTotal = ACTIVE_SUITS.length * ACTIVE_RANKS.length;
+  if (!(typeof deckDesignActive === 'function' && deckDesignActive())) expectedDeckTotal = ACTIVE_SUITS.length * ACTIVE_RANKS.length;
   dealPhase = false;
 
   // Reset all state

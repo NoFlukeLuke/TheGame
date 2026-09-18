@@ -35,8 +35,8 @@
     --suit-diamonds: #EC9F05;
     --suit-spades:   #000000;
     --suit-clubs:    #2255cc;
-    --suit-stars:    #1f9d55;
-    --suit-triangles:#9b4dff;
+    --suit-crowns:   #d8a11f;
+    --suit-moons:    #5fa8d3;
   }
 
   /* Spade ♠ on dark surfaces - warm cream halo so pure-black stays legible.
@@ -534,8 +534,8 @@
   .mini-card.suit-diamonds .mini-rank, .mini-card.suit-diamonds .mini-suit { color: var(--suit-diamonds); }
   .mini-card.suit-spades .mini-rank,   .mini-card.suit-spades .mini-suit   { color: var(--suit-spades); }
   .mini-card.suit-clubs .mini-rank,    .mini-card.suit-clubs .mini-suit    { color: var(--suit-clubs); }
-  .mini-card.suit-stars .mini-rank,    .mini-card.suit-stars .mini-suit    { color: var(--suit-stars); }
-  .mini-card.suit-triangles .mini-rank,.mini-card.suit-triangles .mini-suit{ color: var(--suit-triangles); }
+  .mini-card.suit-crowns .mini-rank,    .mini-card.suit-crowns .mini-suit    { color: var(--suit-crowns); }
+  .mini-card.suit-moons .mini-rank,.mini-card.suit-moons .mini-suit{ color: var(--suit-moons); }
 
   /* Hand-preview now mirrors the grid via renderCardAppearance(): real .card markup,
      scaled down by the local --card-w/--card-h set on #selected-cards. Cards must flow
@@ -2099,8 +2099,8 @@
   .card.suit-diamonds .rank, .card.suit-diamonds .suit { color: var(--suit-diamonds); }
   .card.suit-spades .rank,   .card.suit-spades .suit   { color: var(--suit-spades); }
   .card.suit-clubs .rank,    .card.suit-clubs .suit    { color: var(--suit-clubs); }
-  .card.suit-stars .rank,    .card.suit-stars .suit    { color: var(--suit-stars); }
-  .card.suit-triangles .rank,.card.suit-triangles .suit{ color: var(--suit-triangles); }
+  .card.suit-crowns .rank,    .card.suit-crowns .suit    { color: var(--suit-crowns); }
+  .card.suit-moons .rank,.card.suit-moons .suit{ color: var(--suit-moons); }
 
   /* ══ SPECTRUM - numeric colour deck (mode: spectrum) ══
      No suits, no court cards: the whole card face IS the colour and the value
@@ -2341,8 +2341,8 @@
   .deck-chip.suit-diamonds { background: rgba(236,159,5,0.18); color: var(--suit-diamonds); border: 1px solid rgba(236,159,5,0.35); }
   .deck-chip.suit-spades   { background: rgba(140,140,140,0.5); color: #000; border: 1px solid rgba(180,180,180,0.45); text-shadow: 0 0 2px rgba(240,230,200,0.85), 0 0 1px rgba(240,230,200,0.95); }
   .deck-chip.suit-clubs    { background: rgba(34,85,204,0.18); color: var(--suit-clubs);    border: 1px solid rgba(34,85,204,0.35); }
-  .deck-chip.suit-stars    { background: rgba(31,157,85,0.18); color: var(--suit-stars);    border: 1px solid rgba(31,157,85,0.35); }
-  .deck-chip.suit-triangles{ background: rgba(155,77,255,0.18); color: var(--suit-triangles);border: 1px solid rgba(155,77,255,0.35); }
+  .deck-chip.suit-crowns    { background: rgba(216,161,31,0.18); color: var(--suit-crowns);    border: 1px solid rgba(216,161,31,0.35); }
+  .deck-chip.suit-moons{ background: rgba(95,168,211,0.18); color: var(--suit-moons);border: 1px solid rgba(95,168,211,0.35); }
   .deck-chip.dc-present {
     box-shadow: 0 0 0 1px rgba(255,255,255,0.4), 0 0 6px rgba(255,255,255,0.15);
     border-color: rgba(255,255,255,0.45) !important;
@@ -2388,8 +2388,8 @@
   .unlock-ex-card.suit-diamonds { color: var(--suit-diamonds); }
   .unlock-ex-card.suit-spades   { color: var(--suit-spades); }
   .unlock-ex-card.suit-clubs    { color: var(--suit-clubs); }
-  .unlock-ex-card.suit-stars    { color: var(--suit-stars); }
-  .unlock-ex-card.suit-triangles{ color: var(--suit-triangles); }
+  .unlock-ex-card.suit-crowns    { color: var(--suit-crowns); }
+  .unlock-ex-card.suit-moons{ color: var(--suit-moons); }
   .unlock-ex-card .ex-suit { font-size: 11px; margin-top: 1px; }
   #unlock-trick-title { font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: 2px; color: var(--gold-dim); text-transform: uppercase; }
   #unlock-trick-options { display: flex; gap: 14px; }
@@ -2614,8 +2614,8 @@
   .svc-card.suit-diamonds { color: var(--suit-diamonds); }
   .svc-card.suit-spades   { color: var(--suit-spades); }
   .svc-card.suit-clubs    { color: var(--suit-clubs); }
-  .svc-card.suit-stars    { color: var(--suit-stars); }
-  .svc-card.suit-triangles{ color: var(--suit-triangles); }
+  .svc-card.suit-crowns    { color: var(--suit-crowns); }
+  .svc-card.suit-moons{ color: var(--suit-moons); }
   .svc-card .svc-c-suit { font-size: 11px; margin-top: 1px; }
   .svc-card .svc-c-loc { position: absolute; top: 2px; right: 3px; font-size: 7px; color: var(--cream-dim); font-family: 'Crimson Pro', serif; }
   .svc-card.selected-svc { border-color: var(--gold); transform: translateY(-4px); box-shadow: 0 0 0 2px var(--gold); }
@@ -3284,8 +3284,8 @@
   .reward-face-suit { font-size: 12px; color: #1a1a1a; }
   .reward-face.suit-hearts .reward-face-rank, .reward-face.suit-hearts .reward-face-suit,
   .reward-face.suit-diamonds .reward-face-rank, .reward-face.suit-diamonds .reward-face-suit { color: #c0392b; }
-  .reward-face.suit-stars .reward-face-rank, .reward-face.suit-stars .reward-face-suit { color: var(--suit-stars); }
-  .reward-face.suit-triangles .reward-face-rank, .reward-face.suit-triangles .reward-face-suit { color: var(--suit-triangles); }
+  .reward-face.suit-crowns .reward-face-rank, .reward-face.suit-crowns .reward-face-suit { color: var(--suit-crowns); }
+  .reward-face.suit-moons .reward-face-rank, .reward-face.suit-moons .reward-face-suit { color: var(--suit-moons); }
   .reward-label {
     font-size: 11px;
     line-height: 1.2;
@@ -4446,7 +4446,9 @@
      a Trick whose glyph changes size reads as a different, tinier object. The
      emoji keeps its full 24px and the tile's own overflow clips what doesn't
      fit, the way a real card shows part of a full-size index. */
-  #stage.landscape .trick-tray-chip { width:40px; height:53px; font-size:12px; border-radius:6px; flex-direction:column; }
+  /* No width/height here: the r182 tile-frame rule further down owns the size
+     (this one stated 40x53 for years and was always outranked by it). */
+  #stage.landscape .trick-tray-chip { font-size:12px; border-radius:6px; flex-direction:column; }
   /* money: compact single-row bar (replaces the old tall coin chip) */
   #stage.landscape #coin-info      { left:1.56%; top:84%; width:37.74%; height:6.5%; flex-direction:row; align-items:center; justify-content:flex-start; gap:10px; padding:0 10px; }
   /* TWO secondary buttons since r155: Stats/Deck/Time/Limits merged into RECORDS.
@@ -4920,10 +4922,16 @@
      The size has to be stated: the chip used to borrow `width: var(--card-w)`
      from .trick-card, and without it the chip and its child sized off each
      other's content, leaving a 68px chip wrapping a 35px card and every name
-     shrunk to fit a box a third too small. */
+     shrunk to fit a box a third too small.
+     FIXED px, never var(--card-w) (r254): --card-w is the LIVE BOARD's card
+     size, republished by recomputeGridMetrics for whatever board is on screen -
+     so a chip reading it was 62x82 beside a 4x4 round and shrank to 41x54 the
+     moment the map (a wider board) opened. The same Trick looked like two
+     different objects on two screens. A tray tile is its own object at its own
+     size; 57x75 is the base card, which is what the var resolved to at rest. */
   #stage.landscape .trick-tray-chip {
     position: relative; flex: 0 0 auto; box-sizing: border-box; cursor: pointer;
-    width: var(--card-w, 57px); height: var(--card-h, 75px);
+    width: 57px; height: 75px;
     padding: 0; border: none; background: none; box-shadow: none;
     transition: transform 0.1s ease;
   }

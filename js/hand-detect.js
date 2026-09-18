@@ -125,9 +125,8 @@ function canBeOrderedRun(cells) {
   // For combined cards use the rank that makes it part of the run
   const cards = cells.map(([r,c]) => gridData[r][c]);
   const rankValues = cards.map(card => {
-    const opts = [RANK_ORDER[card.rank]];
-    if (card.rank === 'A') opts.push(14);
-    if (card.combined && card.rank2) opts.push(RANK_ORDER[card.rank2]);
+    const opts = [...rankRunVals(card.rank)];
+    if (card.combined && card.rank2) opts.push(...rankRunVals(card.rank2));
     return opts;
   });
 
@@ -155,7 +154,7 @@ function scoringOrderCells(cells) {
 }
 
 // Rank values for adjacency (Ace counts as both low=1 and high=14). Used by Ripple.
-function _rankValsFor(rk) { return rk === 'A' ? [1, 14] : [RANK_ORDER[rk] || 0]; }
+function _rankValsFor(rk) { return rankRunVals(rk); }
 function _withinOneRank(a, b) {
   // exactly adjacent in rank (Ace counts next to both 2 and K); same rank does NOT count
   const av = _rankValsFor(a), bv = _rankValsFor(b);
@@ -289,12 +288,12 @@ function _handShape(cells) {
   );
 
   // Run check: combined cards can use either rank value - try all combos
+  // rankRunVals (js/deck-design.js) is the one source of a rank's run values and
+  // returns NOTHING for a rank that is off the ladder, so the loop below can
+  // never place it in a run. Ace-high lives in there too.
   const rankOptions = cards.map(c => {
-    const opts = [RANK_ORDER[c.rank]];
-    if (c.combined && c.rank2) opts.push(RANK_ORDER[c.rank2]);
-    // Ace high option
-    if (c.rank === 'A') opts.push(14);
-    if (c.combined && c.rank2 === 'A') opts.push(14);
+    const opts = [...rankRunVals(c.rank)];
+    if (c.combined && c.rank2) opts.push(...rankRunVals(c.rank2));
     return [...new Set(opts)];
   });
   function tryRunCombos(idx, current) {
@@ -477,8 +476,11 @@ function handComponentsFor(cells) {
   // entries rather than needing anything to remember to clear this.
   // The knack is in the cache key: granting Tagalong mid-run changes the answer
   // for cells whose cards have not moved, so the entries must not be reused.
+  // The run LADDER is in the key for the same reason the knack is: turning the
+  // courts off the ladder changes the answer for cells whose cards have not moved.
   const key = (layeredHandsEnabled ? 'L' : 'l') + flushOverlayMin
-    + (((typeof hasKnack === 'function') && hasKnack('tagalong')) ? 'T' : 't') + '|' + _compKey(cells);
+    + (((typeof hasKnack === 'function') && hasKnack('tagalong')) ? 'T' : 't')
+    + deckLadderKey() + '|' + _compKey(cells);
   if (_compCache.has(key)) return _compCache.get(key);
   if (_compCache.size > 4000) _compCache.clear();
 

@@ -190,6 +190,61 @@ function attachEntityTooltip(el, payloadOrFn) {
 }
 
 
+// ── DELEGATED TOOLTIPS (r254) - a tile that describes itself is enough ──────
+// entityTileHTML (js/entity-tile.js) stamps `data-et` (the URI-encoded payload)
+// on every frame it draws for a real entity. These two listeners are the other
+// half: hover, or a 430ms touch press, opens the shared tooltip for ANY such
+// element, so a new surface gets tooltips by drawing the tile rather than by
+// remembering to wire them. Surfaces with richer bubbles of their own (the
+// reward grid's attachRewardTooltip, the Mart shelf, the Trick tray's
+// sell/discard bubble) never carry the attribute, so the two cannot fight.
+let _etDelegateEl = null, _etDelegateLp = null;
+function _etReadData(el) {
+  try { return JSON.parse(decodeURIComponent(el.dataset.et)); } catch (e) { return null; }
+}
+document.addEventListener('pointerover', e => {
+  if (e.pointerType === 'touch') return;
+  const el = e.target && e.target.closest ? e.target.closest('[data-et]') : null;
+  if (el === _etDelegateEl) return;
+  // An interactive bubble (PIN / ADD TO CART) is a click's result - a passing
+  // hover must not tear it down.
+  if (entityTooltipInteractive()) return;
+  const wasOurs = !!_etDelegateEl;
+  _etDelegateEl = el;
+  if (!el) { if (wasOurs) hideEntityTooltip(); return; }
+  const p = _etReadData(el);
+  if (p) showEntityTooltip(el, p);
+});
+document.addEventListener('pointerdown', e => {
+  if (e.pointerType !== 'touch') return;
+  const el = e.target && e.target.closest ? e.target.closest('[data-et]') : null;
+  if (!el) return;
+  _etDelegateLp = setTimeout(() => {
+    _etDelegateLp = null;
+    if (!entityTooltipInteractive()) { const p = _etReadData(el); if (p) showEntityTooltip(el, p); }
+  }, 430);
+});
+['pointerup', 'pointercancel'].forEach(t => document.addEventListener(t, () => {
+  if (_etDelegateLp) { clearTimeout(_etDelegateLp); _etDelegateLp = null; }
+}));
+
+// The boss-peek / hand-log placement rule, shared (r254): centred on the
+// anchor, below it when there is room, flipped above when there is not,
+// clamped on screen - in raw viewport px, because every bubble that calls this
+// lives outside #cabinet. The shop's tooltip uses it (placeTipSmart's
+// roomiest-side rule kept opening across the shelf being read there).
+function placeTipBelow(anchorEl, tip, opts = {}) {
+  const GAP = opts.gap != null ? opts.gap : 8, PAD = 6;
+  const a = anchorEl.getBoundingClientRect();
+  const w = tip.offsetWidth, h = tip.offsetHeight;
+  let left = a.left + a.width / 2 - w / 2;
+  left = Math.max(PAD, Math.min(window.innerWidth - w - PAD, left));
+  let top = a.bottom + GAP;
+  if (top + h > window.innerHeight - PAD) top = Math.max(PAD, a.top - h - GAP);
+  tip.style.left = Math.round(left) + 'px';
+  tip.style.top  = Math.round(top) + 'px';
+}
+
 // ── shared placement for the OTHER tooltips ─────────────────────────────────
 // The trick-tray / knack / reward tooltips keep their own markup (they carry
 // buttons), but they should still obey the same rule: open into whichever side

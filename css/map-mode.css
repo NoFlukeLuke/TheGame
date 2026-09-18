@@ -163,32 +163,8 @@
   border-color: rgba(255, 255, 255, 0.12); box-shadow: none; cursor: default;
 }
 
-/* ── The hard-round knack pick - same console as #guided-pick3 ───────────── */
-#map-knack-pick {
-  position: fixed; inset: 0; z-index: 300;
-  display: none; align-items: center; justify-content: center;
-  background: rgba(6, 5, 16, 0.84); padding: 16px;
-}
-#map-knack-pick.show { display: flex; }
-#map-knack-pick .g3-panel {
-  width: min(420px, 100%);
-  background: linear-gradient(180deg, #171335 0%, #0f0c24 100%);
-  border: 2px solid rgba(255, 255, 255, 0.22); border-radius: 8px;
-  box-shadow: 0 0 32px -6px rgba(255, 157, 92, 0.55);
-  padding: 14px;
-}
-#map-knack-pick .g3-title {
-  font-family: 'Orbitron', sans-serif; font-size: 13px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: 0.06em;
-  color: #ff9d5c; text-align: center; margin-bottom: 10px;
-}
-#map-knack-pick .g3-row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
-#map-knack-pick .g3-opt {
-  flex: 0 0 140px; height: 180px; cursor: pointer;
-  transition: transform .12s ease;
-}
-#map-knack-pick .g3-opt:hover { transform: translateY(-4px); }
-#map-knack-pick .g3-opt > .reward-cell { width: 100%; height: 100%; }
+/* The hard-round knack pick is drawn ON the board now - js/grid-pick.js +
+   css/grid-pick.css (r254). The #map-knack-pick console is gone. */
 
 /* While the map owns the screen, the round's action buttons are not part of the
    conversation - the map bar carries CONFIRM. Hidden, not disabled: a greyed
