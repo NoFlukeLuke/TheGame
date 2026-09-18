@@ -154,6 +154,68 @@ function rankRunVals(rank) {
 // not moved - the same trap the Tagalong knack set in r201.
 function deckLadderKey() { return (deckCourtsOffLadder ? 'C' : 'c') + (deckDesignActive() ? '6' : '4'); }
 
+// ── THE RUN ORDER RULE (r272) ────────────────────────────────────────────────
+// Does a run have to be LAID OUT in sequence on the board, or is it enough that
+// the ranks are consecutive wherever they sit? Three settings, each strictly
+// tighter than the last:
+//
+//   'off'   today. Ranks consecutive, layout irrelevant beyond the selection
+//           being connected. 4-6-7-5-8 scattered around a blob is a Straight.
+//   'grow'  every card except the lowest must TOUCH a card of lower rank. This
+//           is the reading that matches the game's own tap rule: js/input.js
+//           requires each tap to be adjacent to the GROUP so far, not to the
+//           card before it, so "tap them in ascending order" is exactly this.
+//   'path'  every card must touch the card ONE RANK BELOW it, so the run is a
+//           line you could trace with a finger.
+//
+// Measured, no rank cut, 4x4, 6 suits x 5 copies:
+//            Run of 3   Run of 4   Straight
+//   off         75%        49%        34%
+//   grow        64%        28%        12%
+//   path        38%         8%         1%
+//
+// It grades difficulty BY LENGTH, which no rank cut can do - a cut moves Run of
+// 3 by 2 points whatever it removes. 'path' is deliberately available and
+// deliberately not recommended: a straight at 1% is extinct and a straight
+// flush becomes impossible.
+//
+// UNLIKE the deck knobs above this is GLOBAL, not Six Suits only. It is a rule
+// about hands, not about what is in the deck, and 'off' reproduces today's
+// behaviour exactly in every mode.
+let runOrderRule = 'off';
+const RUN_ORDER_RULES = ['off', 'grow', 'path'];
+
+// cells: [[r,c],...]  vals: the run value chosen for each cell, same order.
+// Called from _handShape once a value combination is known to be consecutive.
+function runOrderOK(cells, vals) {
+  if (runOrderRule === 'off') return true;
+  if (!cells || cells.length < 3) return true;   // two cards are never a run hand
+  const seq = cells.map((rc, i) => ({ r: rc[0], c: rc[1], v: vals[i] })).sort((a, b) => a.v - b.v);
+  const touch = (a, b) => (Math.abs(a.r - b.r) + Math.abs(a.c - b.c)) === 1;
+  for (let i = 1; i < seq.length; i++) {
+    if (runOrderRule === 'path') { if (!touch(seq[i - 1], seq[i])) return false; continue; }
+    let ok = false;
+    for (let j = 0; j < i; j++) if (touch(seq[j], seq[i])) { ok = true; break; }
+    if (!ok) return false;
+  }
+  return true;
+}
+function runOrderKey() { return runOrderRule[0]; }
+function setRunOrderRule(v) {
+  if (!RUN_ORDER_RULES.includes(v)) return;
+  runOrderRule = v;
+  try { localStorage.setItem(RUN_ORDER_KEY, v); } catch (e) {}
+  // The components cache is keyed on the rule, so nothing stale is served - but
+  // the live board has to be repainted or the hand label keeps its old answer.
+  if (typeof _compCache !== 'undefined') _compCache.clear();
+  devRenderDeckDesign();
+  if (typeof render === 'function' && typeof gridData !== 'undefined' && gridData[0]) render();
+}
+const RUN_ORDER_KEY = 'lethe.runOrder.v1';
+(function loadRunOrder() {
+  try { const v = localStorage.getItem(RUN_ORDER_KEY); if (RUN_ORDER_RULES.includes(v)) runOrderRule = v; } catch (e) {}
+})();
+
 // ── Building the deck ────────────────────────────────────────────────────────
 // Each rank takes `copies` of the six suits, and the window ROTATES by that many
 // suits each rank, which is what keeps the suits balanced: at 4 copies over 6
@@ -225,6 +287,13 @@ function devRenderDeckDesign() {
   const cp = document.getElementById('dev-deck-copies');
   if (cp) cp.innerHTML = [3, 4, 5, 6].map(n =>
     `<button class="dev-spec-chip${deckCopiesPerRank === n ? ' on' : ''}" onclick="setDeckCopiesPerRank(${n})">${n}</button>`).join('');
+  const ro = document.getElementById('dev-deck-order');
+  if (ro) ro.innerHTML = [
+    ['off',  'Anywhere'],
+    ['grow', 'Touch a lower card'],
+    ['path', 'Touch the one below'],
+  ].map(([v, lbl]) =>
+    `<button class="dev-spec-chip${runOrderRule === v ? ' on' : ''}" onclick="setRunOrderRule('${v}')">${lbl}</button>`).join('');
   const st = document.getElementById('dev-deck-status');
   if (st) {
     const ranks = deckDesignRanks(), copies = deckDesignCopies(), S = SUITS_SIX.length;

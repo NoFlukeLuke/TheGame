@@ -1,4 +1,4 @@
-const BUILD = "2026-09-18 · r271 · the six-suit deck: 5 of each rank, the courts RUN, the 8 is cut [onto r270]";
+const BUILD = "2026-09-18 · r272 · a run may have to be laid out in order: dev toggle, off / touch a lower card / touch the one below";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

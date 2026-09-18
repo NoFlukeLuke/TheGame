@@ -299,7 +299,11 @@ function _handShape(cells) {
   function tryRunCombos(idx, current) {
     if (idx === rankOptions.length) {
       const sorted = [...current].sort((a,b)=>a-b);
-      return new Set(sorted).size === sorted.length && isSeq(sorted);
+      if (new Set(sorted).size !== sorted.length || !isSeq(sorted)) return false;
+      // The ranks line up. Does the LAYOUT have to as well? runOrderOK is 'off'
+      // by default and then this is exactly the old test. `current` is the value
+      // chosen for each cell in cells order, which is what lets it sort them.
+      return runOrderOK(cells, current);
     }
     for (const v of rankOptions[idx]) {
       if (tryRunCombos(idx+1, [...current, v])) return true;
@@ -480,7 +484,7 @@ function handComponentsFor(cells) {
   // courts off the ladder changes the answer for cells whose cards have not moved.
   const key = (layeredHandsEnabled ? 'L' : 'l') + flushOverlayMin
     + (((typeof hasKnack === 'function') && hasKnack('tagalong')) ? 'T' : 't')
-    + deckLadderKey() + '|' + _compKey(cells);
+    + deckLadderKey() + runOrderKey() + '|' + _compKey(cells);
   if (_compCache.has(key)) return _compCache.get(key);
   if (_compCache.size > 4000) _compCache.clear();
 
