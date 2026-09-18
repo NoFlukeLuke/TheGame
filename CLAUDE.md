@@ -1949,14 +1949,14 @@ alone**; a card has no shutter. `entityTierClass` accepts `sleight` now.
 owner's plan is stamps with coloured backgrounds), so guessing one would be a
 third vocabulary to unpick later.
 
-**Known, and worth an owner decision: the LANDSCAPE TRAY FAN COVERS THE BANDS.**
-The fan tucks each tile under the next from the LEFT, floored at 50% visible
-(r237), and the bands live in the bottom-LEFT corner - so on every tile but the
-newest they are mostly hidden. Every other surface (reward grid, shop, Mart,
-Records, Shift Change, the picker) is unfanned and shows them in full. Moving
-them to the bottom-RIGHT would put them on the visible edge of a fanned tile;
-that is one `AXIS` value in the band rules (`to top left`), and it is left alone
-rather than changed unasked.
+**The landscape tray fan does NOT hide the bands** (measured r276, correcting an
+r275 note that said it did). `fanTrickTray` sets `--fan-z` ascending, so the tile
+to the RIGHT sits above the tile to its left: the covered strip is each tile's
+RIGHT edge, and the bottom-LEFT corner is always in view. Measured at 1440x820
+with 6 Tricks: width 110, pitch 82, so 28px of the right edge is covered and 82px
+including the whole band corner is visible. What the fan DOES clip is the `vN.0`
+stamp, which is pinned top-right - on every tile but the newest it reads `v1.` or
+`v2`. The bands say the same number, so nothing is lost.
 
 Dev panel -> **Improve**: every owned entity with its tier and what one more would read as,
 plus improve-a-random-one per type and a reset.
