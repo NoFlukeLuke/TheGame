@@ -180,7 +180,7 @@ function updateRunProgressUI() {
   document.querySelectorAll('.rp-block').forEach(rp => {
     rp.classList.toggle('boss-sigil', bossOn);
     const act = rp.querySelector('.rp-act');
-    // Outside the three-quarter structure (Survival) "Qn" is meaningless, but a boss
+    // Outside the quarter structure (Survival) "Qn" is meaningless, but a boss
     // still needs a name over its mark.
     if (act) act.textContent = actMode ? ('Q' + actNumber) : (bossOn ? 'BOSS' : '');
     rp.querySelectorAll('.rp-nodes span:not(.boss)').forEach((s, i) => {
@@ -294,7 +294,7 @@ function knackLiveDesc(k) {
   if (typeof hasKnack === 'function' && !hasKnack('advance_notice')) return base;
   const p = (typeof peekNextActBoss === 'function') ? peekNextActBoss() : null;
   if (!p) {
-    const last = (typeof isActMode === 'function' && isActMode() && typeof actNumber === 'number' && actNumber >= 3);
+    const last = (typeof isActMode === 'function' && isActMode() && typeof actNumber === 'number' && actNumber >= QUARTERS_PER_RUN);
     return base + `<div class="kn-reveal kn-reveal-none">${last
       ? 'This is the last quarter. There is no next boss to name.'
       : 'This mode has no next quarter to look into.'}</div>`;

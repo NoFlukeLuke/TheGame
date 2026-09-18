@@ -1,4 +1,4 @@
-const BUILD = "2026-09-18 · r263 · the schedule takes a pen (right-drag to draw, double right-click for colour) and a legend that lights its own obligations";
+const BUILD = "2026-09-18 · r264 · a fourth quarter (QUARTERS_PER_RUN, one constant to switch it off)";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -7,7 +7,7 @@ const MODES = {
   normal: {
     id: 'normal',
     name: 'Classic',
-    desc: 'Three quarters. Play rounds, path through the reward grid, and defeat bosses.',
+    desc: 'Four quarters. Play rounds, path through the reward grid, and defeat bosses.',
     winCondition: 'boss_defeat',
     enableBosses: true,
     enableShops: true,
@@ -25,7 +25,7 @@ const MODES = {
   guided: {
     id: 'guided',
     name: 'Guided',
-    desc: 'The three-quarter game on a set route. Every quarter runs reward grid, shop, reward grid, event, and so on into the boss - then a prize grid and two events.',
+    desc: 'The four-quarter game on a set route. Every quarter runs reward grid, shop, reward grid, event, and so on into the boss - then a prize grid and two events.',
     winCondition: 'boss_defeat',
     enableBosses: true,
     enableShops: true,
@@ -80,7 +80,7 @@ const MODES = {
   sixsuits: {
     id: 'sixsuits',
     name: 'Six Suits',
-    desc: 'Same three-quarter game, but the deck has six suits - flushes are far rarer, so Flush of 3, 4, and 5 are all playable.',
+    desc: 'Same four-quarter game, but the deck has six suits - flushes are far rarer, so Flush of 3, 4, and 5 are all playable.',
     winCondition: 'boss_defeat',
     enableBosses: true,
     enableShops: true,

@@ -722,7 +722,7 @@ function onGameWin() {
   title.className   = 'victory';
 
   // The full run report - quarter by quarter, then the run totals (js/quarter.js).
-  // A won run has already closed all three quarters through rolloverQuarter.
+  // A won run has already closed every quarter through rolloverQuarter.
   document.getElementById('end-stats').innerHTML = runReportHTML();
   overlay.classList.add('show');
 }

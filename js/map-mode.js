@@ -3,7 +3,7 @@
 // ══════════════════════════════════════════════
 // EACH QUARTER is a MAP: 4 lanes x MAP_SETS sets of tiles, then a full-width
 // boss. Beat it and the quarter closes, a fresh map is drawn, and the run is
-// three of those (r252) - the same three-quarter shape every act mode has.
+// one of those per quarter (r252) - the same shape every act mode has.
 // The grid IS the map (the same borrow the shop makes): tiles fall in like a
 // deal, you pick one, CONFIRM, the map falls out the bottom, the grid resizes
 // back to play size and the round deals in behind the 3-2-1.
@@ -118,9 +118,9 @@ function mapResetRun() {
 }
 
 // Everything a FRESH MAP needs, and nothing a fresh RUN needs. The two are not
-// the same thing since r252: a run is three quarters and each one draws its own
-// map, so `mapFirstRoundDone` (round 1 rides startGame's own deal) is reset by
-// mapResetRun ALONE and never here - Q2 and Q3 open on an ordinary level-up.
+// the same thing since r252: a run is QUARTERS_PER_RUN quarters and each one draws
+// its own map, so `mapFirstRoundDone` (round 1 rides startGame's own deal) is reset
+// by mapResetRun ALONE and never here - every later quarter opens on a level-up.
 function mapResetBoard() {
   mapTiles = []; mapPos = null; mapVisits = 0; mapSkips = 0;
   mapBossArmed = false; mapPosTileId = null;

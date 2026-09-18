@@ -11,8 +11,8 @@ let bossNumber    = 0;
 let savedRoundSeconds = 0; // round timer value at boss start
 
 // ── Node-based progression (Normal Mode) ──
-// Each act = 5 normal events + 1 forced boss = 6 nodes. Three acts = 18 nodes total.
-let actNumber         = 1;     // current act (1–3)
+// Each quarter = 5 normal events + 1 forced boss = 6 nodes; QUARTERS_PER_RUN of them.
+let actNumber         = 1;     // current quarter (1..QUARTERS_PER_RUN, js/quarter.js)
 let nodeInAct         = 0;     // events completed in current act (0–4 normal; at 5 → boss)
 let forceBossNextRound = false; // triggers boss after next round deal animation
 
