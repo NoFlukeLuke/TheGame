@@ -318,3 +318,65 @@ body.map-active #swap-indicator { visibility: hidden; pointer-events: none; }
    what carries the eye now, so the tile must stop competing with it. */
 #grid .map-tile.mt-visited .mt-ghost { opacity: 0.05; }
 #grid .map-tile.mt-visited::before { opacity: 0.35; }
+
+/* r261: the full name beside the short chip in the bar info line */
+#map-bar .mb-full { color: #cfe0ff; opacity: .78; font-size: 8px; letter-spacing: .04em; margin-right: 2px; }
+
+/* ── The pen (r263) ───────────────────────────────────────────────────────────
+   A canvas over the tiles inside #grid. It is pointer-events:none by default
+   so a RIGHT-drag still reaches the board through it and a left tap still
+   picks an obligation; only the finger mode (.pen-on) takes the taps. */
+#grid .map-draw-layer { position: absolute; z-index: 3; pointer-events: none; }
+#grid .map-draw-layer.pen-on { pointer-events: auto; }
+
+#map-bar .mb-pen.on {
+  background: rgba(245, 192, 66, 0.22); border-color: rgba(245, 192, 66, 0.7);
+}
+#map-bar .mb-sw { display: grid; place-items: center; }
+#map-bar .mb-sw i {
+  width: 9px; height: 9px; border-radius: 50%; display: block;
+  background: #f5c042; box-shadow: 0 0 0 1px rgba(0,0,0,0.5) inset;
+}
+
+/* ── The legend (r263) ────────────────────────────────────────────────────────
+   Same card as the ? help, and it reuses .mb-help wholesale so the two can
+   never drift apart in placement (above the strip, never inside it). */
+#map-bar #map-legend { width: min(420px, calc(100vw - 24px)); }
+#map-bar .ml-row {
+  display: flex; gap: 8px; align-items: baseline; cursor: pointer;
+  padding: 3px 5px; margin: 0 -5px; border-radius: 4px;
+}
+#map-bar .ml-row:hover, #map-bar .ml-row.on { background: rgba(150, 140, 255, 0.16); }
+#map-bar .ml-chip {
+  flex: 0 0 17px; height: 17px; display: grid; place-items: center;
+  border-radius: 3px; font-size: 10px; line-height: 1;
+  color: var(--rc, #cfc6ff); border: 1px solid var(--rc, #cfc6ff);
+  background: color-mix(in srgb, var(--rc, #cfc6ff) 16%, transparent);
+}
+#map-bar .ml-row b {
+  flex: 0 0 74px; color: var(--rc, var(--c-yellow, #f5c042)); font-weight: 700;
+  font-family: 'Share Tech Mono', monospace; font-size: 9.5px;
+}
+#map-bar .ml-txt {
+  font-family: 'Crimson Pro', serif; font-size: 12.5px; letter-spacing: 0;
+  text-transform: none; color: var(--cream, #efe7d6); line-height: 1.25;
+}
+#map-bar .ml-row.mk-level     { --rc: #6fd08c; }
+#map-bar .ml-row.mk-challenge { --rc: #ff9d5c; }
+#map-bar .ml-row.mk-shop      { --rc: var(--c-yellow, #f5c042); }
+#map-bar .ml-row.mk-reward    { --rc: #8fd0ff; }
+#map-bar .ml-row.mk-event     { --rc: #c9a0ff; }
+#map-bar .ml-row.mk-limit     { --rc: #7fe3c0; }
+#map-bar .ml-row.mk-mystery   { --rc: #d8d0f0; }
+#map-bar .ml-row.mk-boss      { --rc: #ff5c5c; }
+#map-bar .ml-row.mk-blank     { --rc: #6b6480; }
+
+/* Reading the legend lights that kind and drops the rest, Slay the Spire's
+   move. Written onto the live tiles, so it must beat the resting states above
+   (an unreachable tile is already at 0.55). */
+#grid .map-tile.mt-dim  { opacity: 0.16 !important; filter: saturate(0.15); }
+#grid .map-tile.mt-lit  {
+  opacity: 1 !important;
+  box-shadow: 0 0 0 2px var(--rc, #fff), 0 0 16px -2px var(--rc, #fff);
+  z-index: 4;
+}

@@ -458,9 +458,10 @@ let nextActBossId = null;
 
 function peekNextActBoss() {
   if (typeof isActMode === 'function' && !isActMode()) return null;
-  // Q3 is the last quarter. There is no next act, and saying so is better than
-  // naming a boss the run will never reach.
-  if (typeof actNumber === 'number' && actNumber >= 3) return null;
+  // The last quarter has no next act, and saying so is better than naming a
+  // boss the run will never reach. QUARTERS_PER_RUN (js/quarter.js) is the one
+  // place the run's length is written down.
+  if (typeof actNumber === 'number' && actNumber >= QUARTERS_PER_RUN) return null;
   if (!nextActBossId) {
     const p = nextBossPreset();
     nextActBossId = p ? p.id : null;
@@ -475,7 +476,8 @@ function peekNextActBoss() {
 function forgetNextActBoss() { nextActBossId = null; }
 
 // Deal the quarter's boss. Called from startGame (quarter 1) and from
-// rolloverQuarter (quarters 2 and 3), i.e. the two places a quarter begins.
+// rolloverQuarter (every quarter after it), i.e. the two places a quarter
+// begins.
 function drawActBoss() {
   if (typeof isActMode === 'function' && !isActMode()) { actBossId = null; nextActBossId = null; return null; }
   let p = null;

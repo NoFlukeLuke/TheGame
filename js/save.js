@@ -69,6 +69,7 @@ const SAVE_VARS = [
   // Map mode. mapTiles is plain data by construction - challenges are stored by
   // id and rehydrated from CHALLENGE_DEFS at confirm time.
   'mapTiles', 'mapPos', 'mapVisits', 'mapSkips', 'mapBossGoal', 'mapBossArmed',
+  'mapDrawStrokes', 'mapPenColor',
   'mapFirstRoundDone', 'mapPosTileId', 'swapsUsedRound',
   // The live challenge survives a save as DATA (JSON drops its test function).
   // guidedRehydrateChallenges re-attaches the test by id on the way in, so an
