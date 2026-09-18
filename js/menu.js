@@ -1,4 +1,4 @@
-const BUILD = "2026-09-18 · r271 · preview: iridescent at 5+, and every material at every size";
+const BUILD = "2026-09-18 · r273 · preview: iridescent at 5+, and every material at every size";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -80,7 +80,7 @@ const MODES = {
   sixsuits: {
     id: 'sixsuits',
     name: 'Six Suits',
-    desc: 'Same four-quarter game, but six suits with only four of each rank, so the deck is 48 cards rather than 78. One rank is cut, and the court cards pair and flush but never run. Flushes are rare and long runs are half as common as Classic.',
+    desc: 'Same four-quarter game, but six suits with only five of each rank, so the deck is 60 cards rather than 78. One rank is cut out of the middle, which leaves the ladder too short for long runs. Flushes are rare and sets come a little easier.',
     winCondition: 'boss_defeat',
     enableBosses: true,
     enableShops: true,
@@ -304,7 +304,7 @@ const MODE_META = {
   guided:   { accent: '#c9a0ff',         suits: '8 SLOTS',
               blurb: 'Each act is eight slots and then the boss. Every slot is either a round you play or something you buy with it - the shop, a reward grid, or one of two events on offer. Buying power always costs a round you will not get to play, and the goal climbs either way, so the question is how much of the act you spend getting stronger rather than getting further.' },
   sixsuits: { accent: 'var(--c-mint)',   suits: '♠ ♥ ♦ ♣ ♛ ☾',
-              blurb: 'Six suits with four of each rank, so the deck is 48 cards and a suit holds only eight. One rank is cut out entirely. The crown and the moon join the four you know, and the court cards pair and flush but never make a run. Flushes are hard-won and a long run is half as common as it is in Classic.' },
+              blurb: 'Six suits with five of each rank, so the deck is 60 cards and a suit holds only ten. The crown and the moon join the four you know. One rank is cut out of the middle of the ladder, so a four-card run or a straight is a good deal harder to find than in Classic, while sets come a little easier and flushes are hard-won.' },
   spectrum: { accent: '#ff9d3c',        suits: '🔴 🟡 🔵 🟢 🟣 🟠 ⚫ ⚪',
               blurb: 'The deck loses its suits and its court. Seven colours and the values 0 to 11, plus a lone 15 and 20. The 9s, 10s and 11s are WHITE - colourless, and they can never complete a flush. Four payout cards are shuffled in: score two hands beside one and it pays.' },
   survival: { accent: 'var(--c-coral)',  suits: 'ENDLESS',
