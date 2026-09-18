@@ -133,9 +133,18 @@ function updateSelectionUI() {
   const cEl = document.getElementById('sel-count');
   const vEl = document.getElementById('sel-count-val');
   if (!cEl || !vEl) return;
-  // Only where a selection means something. The menu and the between-round screens
-  // leave the board empty, and a stale "0/3" hanging over it reads as a bug.
-  const live = onReward || onShop || (typeof gridData !== 'undefined' && gridData && gridData.length > 0);
+  // Only where a selection means something (r255). This used to be "gridData has
+  // rows", which is true of a board of NULLS and of every screen that merely
+  // BORROWS the grid - so the readout hung over the map, the crossroads, the
+  // payout pick and the interlude, saying 0/3 about nothing. The three screens
+  // where a number of picks is a real decision are the shop, the reward grid and
+  // a live round; everywhere else it is noise.
+  const body = document.body.classList;
+  const boardLive = !body.contains('map-active') && !body.contains('pick-active')
+    && !body.contains('grid-screen')
+    && typeof gridData !== 'undefined' && Array.isArray(gridData)
+    && gridData.some(row => row && row.some(c => c));
+  const live = onReward || onShop || boardLive;
   cEl.classList.toggle('on', !!live);
   if (!live) return;
   vEl.textContent = `${n}/${cap}`;
@@ -171,7 +180,7 @@ function updateRunProgressUI() {
   document.querySelectorAll('.rp-block').forEach(rp => {
     rp.classList.toggle('boss-sigil', bossOn);
     const act = rp.querySelector('.rp-act');
-    // Outside the three-quarter structure (Survival) "Qn" is meaningless, but a boss
+    // Outside the quarter structure (Survival) "Qn" is meaningless, but a boss
     // still needs a name over its mark.
     if (act) act.textContent = actMode ? ('Q' + actNumber) : (bossOn ? 'BOSS' : '');
     rp.querySelectorAll('.rp-nodes span:not(.boss)').forEach((s, i) => {
@@ -203,6 +212,14 @@ function updateKnackList() {
   const _knackGrew = acquiredKnacks.length > _knackCountShown;
   _knackCountShown = acquiredKnacks.length;
   if (_knackGrew && typeof portraitShowKnacks === 'function') portraitShowKnacks();
+  // r254: losing Advance Notice VOIDS the reveal, so the next quarter re-draws
+  // its boss. Hooked here for the same reason the flip above is: this is the
+  // one function every removal path already calls (sellKnack, the grid shop's
+  // sell board, the Limit Break sacrifice, the event that takes a knack), and
+  // four call sites would have been four chances to miss one. It also covers
+  // selling it and buying it back, which should name a different boss.
+  if (typeof forgetNextActBoss === 'function'
+      && typeof hasKnack === 'function' && !hasKnack('advance_notice')) forgetNextActBoss();
   if (acquiredKnacks.length === 0) {
     el.innerHTML = '';   // empty → faint KNACKS watermark shows through (r95)
     return;
@@ -260,16 +277,50 @@ let _knackHoverTimer = null;
 function cancelKnackHoverHide() { if (_knackHoverTimer) { clearTimeout(_knackHoverTimer); _knackHoverTimer = null; } }
 function scheduleKnackHoverHide() { cancelKnackHoverHide(); _knackHoverTimer = setTimeout(hideKnackTooltip, 160); }
 
+// A knack's description as the player should read it RIGHT NOW (r254).
+//
+// The mirror of trickLiveDesc, and it exists for the same reason: the pool's
+// `desc` is what a knack does, and some knacks also have something to SAY. It
+// is used by the HUD tooltip and by RECORDS Owned, both of which only ever
+// draw a knack you hold - so "only after it is purchased" falls out of where
+// this is called rather than needing a test. The shop tile reads the pool's
+// plain desc and therefore never spoils the reveal.
+function knackLiveDesc(k) {
+  if (!k) return '';
+  const base = k.desc || '';
+  if (k.id !== 'advance_notice') return base;
+  // Belt and braces: the dev panel can put a chip on screen for a knack the
+  // run does not own, and an unowned Advance Notice must not reveal anything.
+  if (typeof hasKnack === 'function' && !hasKnack('advance_notice')) return base;
+  const p = (typeof peekNextActBoss === 'function') ? peekNextActBoss() : null;
+  if (!p) {
+    const last = (typeof isActMode === 'function' && isActMode() && typeof actNumber === 'number' && actNumber >= QUARTERS_PER_RUN);
+    return base + `<div class="kn-reveal kn-reveal-none">${last
+      ? 'This is the last quarter. There is no next boss to name.'
+      : 'This mode has no next quarter to look into.'}</div>`;
+  }
+  const q = (typeof actNumber === 'number') ? actNumber + 1 : 2;
+  return base
+    + `<div class="kn-reveal"><span class="kn-reveal-q">Q${q} BOSS</span>`
+    + `<b>${p.name || ''}</b>`
+    + (p.brief ? `<span>${p.brief}</span>` : '')
+    + `</div>`;
+}
+
 function showKnackTooltip(chip, id) {
   const knack = KNACK_POOL.find(t => t.id === id);
   if (!knack) return;
   let tt = document.getElementById('knack-tooltip');
   if (!tt) return;
   const _sv = (typeof knackSellValue === 'function') ? knackSellValue() : 0;
+  // The live part is built separately and appended: colorizeKeywords rewrites
+  // prose and would chew through the reveal's own markup.
+  const _live = knackLiveDesc(knack);
+  const _reveal = _live.slice((knack.desc || '').length);
   tt.innerHTML = `
     <button class="tt-close" aria-label="Close">✕</button>
     <div class="knack-tooltip-name">${knack.emoji} ${knack.name}</div>
-    <div class="knack-tooltip-desc">${colorizeKeywords(knack.desc)}</div>
+    <div class="knack-tooltip-desc">${colorizeKeywords(knack.desc)}${_reveal}</div>
     <div class="knack-tooltip-actions"><button class="knack-tooltip-sell" id="knack-tooltip-sell-btn">Sell 💰${_sv}</button></div>
   `;
   tt.dataset.knackId = id;
@@ -355,7 +406,15 @@ function updateHandNameLabel(result) {
   const runs = [];
   names.forEach(n => { const last = runs[runs.length - 1]; if (last && last.n === n) last.k++; else runs.push({ n, k: 1 }); });
   names = runs;
-  const html = names.length ? handLabelHTML(names) : '';
+  let html = names.length ? handLabelHTML(names) : '';
+  // r254: the best hand DROPS some of the selection (r201's load-bearing rule).
+  // Those cards are red on the board; here is the bill - N cards, minus their
+  // pips - stated in the one place the player is already reading before commit.
+  const _pen = (result && result.penaltyCells && result.penaltyCells.length) || 0;
+  if (html && _pen > 0) {
+    html += `<span class="hn-plus">−</span>`
+          + `<span class="hn-l hn-drop"><b>DROP</b><i>${_pen} · −${result.penaltyPips || 0}</i></span>`;
+  }
   // Also compare the live DOM: other screens (Dominoes) write this element
   // directly, and a cache hit would then leave their text standing.
   if (html === _handNameKey && el.innerHTML === html) return;

@@ -650,7 +650,7 @@ function guidedAfterSlot() {
 // fought a boss to reach should start by letting you play.
 //
 // rolloverQuarter (js/quarter.js) is the ONE rollover site; a won run never comes
-// back from it (actNumber > 3 goes to onGameWin and the run report).
+// back from it (actNumber past QUARTERS_PER_RUN goes to onGameWin and the report).
 function guidedAfterPrizeGrid() {
   guidedInStop = false;
   guidedSlot = 0;

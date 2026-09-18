@@ -3,7 +3,7 @@
 // ══════════════════════════════════════════════
 // EACH QUARTER is a MAP: 4 lanes x MAP_SETS sets of tiles, then a full-width
 // boss. Beat it and the quarter closes, a fresh map is drawn, and the run is
-// three of those (r252) - the same three-quarter shape every act mode has.
+// one of those per quarter (r252) - the same shape every act mode has.
 // The grid IS the map (the same borrow the shop makes): tiles fall in like a
 // deal, you pick one, CONFIRM, the map falls out the bottom, the grid resizes
 // back to play size and the round deals in behind the 3-2-1.
@@ -118,14 +118,15 @@ function mapResetRun() {
 }
 
 // Everything a FRESH MAP needs, and nothing a fresh RUN needs. The two are not
-// the same thing since r252: a run is three quarters and each one draws its own
-// map, so `mapFirstRoundDone` (round 1 rides startGame's own deal) is reset by
-// mapResetRun ALONE and never here - Q2 and Q3 open on an ordinary level-up.
+// the same thing since r252: a run is QUARTERS_PER_RUN quarters and each one draws
+// its own map, so `mapFirstRoundDone` (round 1 rides startGame's own deal) is reset
+// by mapResetRun ALONE and never here - every later quarter opens on a level-up.
 function mapResetBoard() {
   mapTiles = []; mapPos = null; mapVisits = 0; mapSkips = 0;
   mapBossArmed = false; mapPosTileId = null;
   mapScreenOpen = false; mapSelected = null; mapLastWasChallenge = false;
   mapBossGoal = mapQuarterBossGoal();
+  if (typeof mapDrawStrokes !== 'undefined') { mapDrawStrokes = []; mapPenOn = false; }
   if (mapActive()) mapGenerate();
 }
 
@@ -157,35 +158,46 @@ function mapCellSolid(lane, set) {           // a real, steppable tile lives her
   return !!t && t.kind !== 'blank';
 }
 
+// The tile's NAME is the short chip you read off the board; `full` is the
+// name in full, shown beside it in the bar and in the tile's hover tooltip.
+// Schedule vocabulary (r261): an obligation is a piece of work on your day.
 const MAP_KIND_META = {
-  level:      { icon: '▶', name: 'Round',       cls: 'mk-level' },
-  challenge:  { icon: '⚠', name: 'Hard Round',  cls: 'mk-challenge' },
-  shop:       { icon: '🛒', name: 'Shop',        cls: 'mk-shop' },
-  reward:     { icon: '▦', name: 'Reward Grid', cls: 'mk-reward' },
-  event:      { icon: '✧', name: 'Event',       cls: 'mk-event' },
-  limitbreak: { icon: '▲', name: 'Limit Break', cls: 'mk-limit' },
-  blank:      { icon: '',  name: '',            cls: 'mk-blank' },
-  boss:       { icon: '☠', name: 'BOSS',        cls: 'mk-boss' },
+  level:      { icon: '▶', name: 'ACCOUNT',   full: 'Client Account',   cls: 'mk-level',
+                blurb: 'An ordinary round. Clear it and take a pick of three.' },
+  challenge:  { icon: '⚠', name: 'PRIORITY',  full: 'Priority Account', cls: 'mk-challenge',
+                blurb: 'A round with a raised goal and one extra ask. Pays credits and a knack.' },
+  shop:       { icon: '🛒', name: 'MART',      full: 'LETHE Mart',       cls: 'mk-shop',
+                blurb: 'The company store. Spend credits on anything on the shelves.' },
+  reward:     { icon: '▦', name: 'INCENTIVE', full: 'Incentive Program', cls: 'mk-reward',
+                blurb: 'A board of rewards. Pick a connected path across it.' },
+  event:      { icon: '✧', name: 'MEETING',   full: 'Meeting',          cls: 'mk-event',
+                blurb: 'One screen, one decision. The tile names which.' },
+  limitbreak: { icon: '▲', name: 'RAISE',     full: 'Raise Request',    cls: 'mk-limit',
+                blurb: 'Raise a limit, or trade one away for credits.' },
+  blank:      { icon: '',  name: '',          full: 'Not scheduled',    cls: 'mk-blank',
+                blurb: 'Nothing booked there, and no way through it.' },
+  boss:       { icon: '☠', name: 'REVIEW',    full: 'Manager Review',   cls: 'mk-boss',
+                blurb: 'The end of the schedule, on its own quota.' },
 };
 
 function mapTileFace(t) {
   // What the PLAYER sees - a mystery hides its kind until confirmed.
-  if (t.mystery && !t.revealed) return { icon: '?', name: '???', cls: 'mk-mystery' };
+  if (t.mystery && !t.revealed) return { icon: '?', name: '???', full: 'Unconfirmed', cls: 'mk-mystery' };
   const m = MAP_KIND_META[t.kind] || MAP_KIND_META.event;
   if (t.kind === 'event' && t.eventName) return { ...m, name: t.eventName };
   return m;
 }
 function mapTileDesc(t) {
-  if (t.mystery && !t.revealed) return 'Unknown until you commit to it.';
+  if (t.mystery && !t.revealed) return 'Unconfirmed until you commit to it.';
   switch (t.kind) {
     case 'level':      return 'Play a round. Clear the goal, take the payout and a pick of three.';
     case 'challenge':  return (t.challenge ? t.challenge.label + ' ' : '')
       + `Goal +${Math.round(((t.challenge?.goalMult || 1.2) - 1) * 100)}%, pays +${t.challenge?.credits || 0} credits, plus a knack pick.`;
-    case 'shop':       return 'Buy Tricks, Sleights, Knacks and upgrades.';
+    case 'shop':       return 'The company store. Buy Tricks, Sleights, Knacks and upgrades.';
     case 'reward':     return 'Pick a path across a board of rewards.';
     case 'event':      return t.eventFlavor || 'Something happens.';
-    case 'limitbreak': return 'Raise a limit - or trade one away for credits.';
-    case 'boss':       return (peekBossPresetSafe()?.brief || 'The end of the map.')
+    case 'limitbreak': return 'Raise a limit, or trade one away for credits.';
+    case 'boss':       return (peekBossPresetSafe()?.brief || 'The end of the schedule.')
       + ` Quota: ${mapBossGoal}.`;
   }
   return '';
@@ -527,7 +539,7 @@ function mapOpen() {
   recomputeGridMetrics();
   document.getElementById('next-goal-bg')?.classList.remove('show');
   document.body.classList.add('map-active');
-  if (typeof enterGridScreenHud === 'function') enterGridScreenHud('THE MAP', 'shop');
+  if (typeof enterGridScreenHud === 'function') enterGridScreenHud('SCHEDULE', 'shop');
   try { sfxShopOpen?.(); } catch (e) {}
   mapRender(true);
   mapRenderBar();
@@ -587,8 +599,14 @@ function mapRender(animateIn) {
     const { x, y } = _mapCellXY(lane, set);
     return { x: x + CARD_W / 2, y: y + CARD_H / 2 };
   };
-  const drawLink = (a, b, cls) => {
-    const p1 = centreOf(a.lane, a.set), p2 = centreOf(b.lane, b.set);
+  // A 2x1 tile occupies TWO cells, so the route has to run STRAIGHT THROUGH it
+  // and only then turn: you enter at its head and leave from its tail. Drawing
+  // it as one node at the head instead put a single diagonal from the head to
+  // whatever you took next, which reads as a 45 degree short cut across a tile
+  // you actually walked the length of. Hence entry and exit rather than centre.
+  const entryOf = (t) => centreOf(t.lane, t.set);
+  const exitOf  = (t) => centreOf(t.lane, t.set + (t.span === 2 ? 1 : 0));
+  const drawSeg = (p1, p2, cls) => {
     const dx = p2.x - p1.x, dy = p2.y - p1.y;
     const len = Math.hypot(dx, dy);
     if (len < 1) return;
@@ -598,8 +616,11 @@ function mapRender(animateIn) {
                      + `transform:rotate(${Math.atan2(dy, dx)}rad);`;
     gridEl.appendChild(ln);
   };
+  // The spine of a 2x1: the straight run from its head to its tail.
+  const drawSpine = (t, cls) => { if (t.span === 2) drawSeg(entryOf(t), exitOf(t), cls); };
   for (const t of mapTiles) {
     if (t.kind === 'blank' || t.kind === 'boss') continue;
+    drawSpine(t, 'ml-rail');
     const fwd = t.set + (t.span === 2 ? 2 : 1);
     if (fwd > MAP_SETS) continue;
     for (let l = 0; l < MAP_LANES; l++) {
@@ -607,11 +628,13 @@ function mapRender(animateIn) {
       if (!n || n.kind === 'blank') continue;
       if (n.kind === 'boss' && l !== t.lane) continue;     // the boss is one tile
       if (Math.abs(l - t.lane) > 1) continue;              // only a lane you could reach
-      drawLink(t, { lane: n.kind === 'boss' ? t.lane : l, set: fwd }, 'ml-rail');
+      drawSeg(exitOf(t), centreOf(n.kind === 'boss' ? t.lane : l, fwd), 'ml-rail');
     }
   }
   const walked = mapTiles.filter(t => t.visited && t.step).sort((a, b) => a.step - b.step);
-  for (let i = 1; i < walked.length; i++) drawLink(walked[i - 1], walked[i], 'ml-walked');
+  walked.forEach(t => drawSpine(t, 'ml-walked'));
+  for (let i = 1; i < walked.length; i++)
+    drawSeg(exitOf(walked[i - 1]), entryOf(walked[i]), 'ml-walked');
 
   const drawTile = (t) => {
     const face = mapTileFace(t);
@@ -635,8 +658,10 @@ function mapRender(animateIn) {
       `<div class="mt-icon">${face.icon}</div>` +
       `<div class="mt-name">${face.name}</div>` +
       (t.visited ? `<div class="mt-stamp">DONE</div>` : '');
+    if (face.full) div.title = face.full + (mapTileDesc(t) ? ' - ' + mapTileDesc(t) : '');
     div.onclick = () => mapTileTap(t);
-    div.onmouseenter = () => { if (!mapSelected) mapBarInfo(t); };
+    div.onmouseenter = () => { if (!mapSelected) mapBarInfo(t, mapMoveFor(t.id)); };
+    div.onmouseleave = () => { if (!mapSelected) mapBarInfo(null); };
     gridEl.appendChild(div);
     // Long event names on a card-width tile: shrink, never break mid-word
     // (js/fit-text.js - the same fitter every entity tile uses).
@@ -662,6 +687,11 @@ function mapRender(animateIn) {
   };
 
   mapTiles.forEach(drawTile);
+
+  // The pen's canvas is a CHILD of #grid, which this function just emptied, so
+  // it is put back here; the strokes themselves live in mapDrawStrokes and are
+  // repainted onto it (js/map-draw.js).
+  if (typeof mapDrawMount === 'function') mapDrawMount(gridEl);
 }
 
 function mapTileTap(t) {
@@ -682,46 +712,125 @@ function mapTileTap(t) {
 }
 
 // ── The bar: where you are, what is picked, CONFIRM ──────────────────────────
+// ONE compact strip. The standing "how the map works" prose used to sit here as
+// a permanent two-line block, which is a tutorial you cannot dismiss; it lives
+// behind the ? chip now and the bar carries only what changes: where you are,
+// what you have picked, and the button.
+// The schedule's vocabulary (r260, owner's): the board is your SCHEDULE, a
+// column is a TIME SLOT, a tile is an OBLIGATION and the boss is a MANAGER
+// REVIEW. Ids are frozen - only what the player reads changes (TERMINOLOGY.md).
+const MAP_HELP = [
+  ['Move', 'Take a lit obligation touching where you stand. Everything you take happens.'],
+  ['Two a slot', 'A time slot will book you for two obligations at most.'],
+  ['Leaving early', 'Leaving a slot after only one obligation pays you credits.'],
+  ['Last slot', 'One obligation, then the review.'],
+  ['Blocked out', 'Nothing scheduled there, and no way through.'],
+];
 function mapRenderBar() {
   let bar = document.getElementById('map-bar');
   if (!bar) { bar = document.createElement('div'); bar.id = 'map-bar'; document.body.appendChild(bar); }
   const setNo = mapPos ? Math.min(mapPos.set + 1, MAP_SETS) : 1;
   const skipNext = MAP_SKIP_BASE + MAP_SKIP_STEP * (mapSkips + 1);
+  const visits = mapPos
+    ? `${mapFreeBranch ? mapVisitsInSet(mapPos.set) : mapVisits}/2${mapFreeBranch ? ' FREE' : ''}`
+    : 'PICK A START';
+  const inked = (typeof mapDrawStrokes !== 'undefined') && mapDrawStrokes.length > 0;
   bar.innerHTML =
-    `<div class="mb-top">` +
-      `<span class="mb-set">SET ${setNo} / ${MAP_SETS}</span>` +
-      `<span class="mb-visits">${mapPos ? `VISITS ${mapFreeBranch ? mapVisitsInSet(mapPos.set) : mapVisits}/2${mapFreeBranch ? ' · FREE BRANCH' : ''}` : 'CHOOSE A START'}</span>` +
-      `<span class="mb-skip">skip pays ${skipNext} ◆</span>` +
-      `<span class="mb-coins">${coins} ◆</span>` +
+    `<span class="mb-set">SLOT ${setNo}/${MAP_SETS}</span>` +
+    `<span class="mb-visits">${visits}</span>` +
+    `<button class="mb-q" id="mb-q" title="How the schedule works">?</button>` +
+    `<button class="mb-q" id="mb-key" title="What the obligations are">▤</button>` +
+    `<button class="mb-q mb-pen${mapPenOn ? ' on' : ''}" id="mb-pen" ` +
+      `title="Draw on the schedule (right-drag works without this; double right-click changes colour)">✎</button>` +
+    `<button class="mb-q mb-sw" id="mb-pen-sw" title="Pen colour"><i id="mb-sw-dot"></i></button>` +
+    (inked ? `<button class="mb-q" id="mb-undo" title="Undo the last stroke">↶</button>` +
+             `<button class="mb-q" id="mb-wipe" title="Clear all ink">✕</button>` : '') +
+    `<span class="mb-info" id="mb-info"></span>` +
+    `<span class="mb-skip">SKIP ${skipNext}</span>` +
+    `<span class="mb-coins">${coins} ◆</span>` +
+    `<button id="mb-confirm" disabled>CONFIRM</button>` +
+    `<div class="mb-help" id="mb-help">` +
+      MAP_HELP.map(([k, v]) => `<div class="mb-hrow"><b>${k}</b><span>${v}</span></div>`).join('') +
     `</div>` +
-    `<div class="mb-info" id="mb-info">Pick a lit tile. Moving on after one visit pays credits.</div>` +
-    `<div class="mb-actions"><button id="mb-confirm" disabled>CONFIRM</button></div>`;
+    `<div class="mb-help" id="map-legend">` +
+      (typeof mapLegendRows === 'function' ? mapLegendRows().map(r =>
+        `<div class="ml-row ${r.cls}" data-cls="${r.cls}">` +
+          `<span class="ml-chip">${r.icon}</span>` +
+          `<b>${r.name || r.full}</b><span class="ml-txt">${r.blurb}</span>` +
+        `</div>`).join('') : '') +
+    `</div>`;
   bar.classList.add('show');
   const btn = document.getElementById('mb-confirm');
   btn.onclick = () => mapConfirm();
   btn.disabled = !mapSelected;
+  // One card open at a time, and a one-shot outside-click close armed only
+  // while one IS open - a standing document listener on a bar that is rebuilt
+  // every render would stack one copy per render.
+  const cardToggle = (id, onClose) => (e) => {
+    e.stopPropagation();
+    const h = document.getElementById(id);
+    if (!h) return;
+    bar.querySelectorAll('.mb-help').forEach(c => { if (c !== h) c.classList.remove('show'); });
+    const open = h.classList.toggle('show');
+    if (!open && onClose) onClose();
+    if (open) setTimeout(() => document.addEventListener('click', function off(ev) {
+      if (bar.contains(ev.target)) return;
+      h.classList.remove('show');
+      if (onClose) onClose();
+      document.removeEventListener('click', off);
+    }), 0);
+  };
+  document.getElementById('mb-q').onclick = cardToggle('mb-help');
+  document.getElementById('mb-key').onclick = cardToggle('map-legend', () => mapLegendHighlight(null, null));
+  document.getElementById('mb-pen').onclick = () => mapPenToggle();
+  document.getElementById('mb-pen-sw').onclick = () => mapPenCycle();
+  const undoBtn = document.getElementById('mb-undo');
+  if (undoBtn) undoBtn.onclick = () => mapDrawUndo();
+  const wipeBtn = document.getElementById('mb-wipe');
+  if (wipeBtn) wipeBtn.onclick = () => mapDrawClear();
+  // A legend row lights its own kind on the board and drops everything else.
+  // Hover for a mouse, tap for a finger; the tap latches so it can be read.
+  bar.querySelectorAll('#map-legend .ml-row').forEach(row => {
+    const cls = row.dataset.cls;
+    row.onmouseenter = () => mapLegendHighlight(cls);
+    row.onmouseleave = () => mapLegendHighlight(null);
+    row.onclick = (e) => {
+      e.stopPropagation();
+      const next = (mapLegendLatch === cls) ? null : cls;   // tap again to release
+      mapLegendHighlight(next, next);
+    };
+  });
+  if (typeof mapPenSyncChrome === 'function') mapPenSyncChrome();
+  if (mapSelected) { const t = mapTiles.find(x => x.id === mapSelected); if (t) mapBarInfo(t, mapMoveFor(mapSelected)); }
+  // The x/y selection readout hides on the map (r255), and nothing else repaints
+  // it while the map is up - the class goes on without a render behind it.
+  if (typeof updateSelectionUI === 'function') updateSelectionUI();
 }
 
 function mapBarInfo(t, move) {
   const el = document.getElementById('mb-info');
   if (!el) return;
+  if (!t) { el.innerHTML = ''; return; }
   const face = mapTileFace(t);
-  let s = `<b>${face.name}</b> · ${mapTileDesc(t)}`;
+  const full = face.full && face.full.toUpperCase() !== face.name ? `<span class="mb-full">${face.full}</span> ` : '';
+  let s = `<b>${face.name}</b> ${full}${mapTileDesc(t)}`;
   if (move && !move.doomed) {
     if (move.from && move.after.set > move.from.set && move.from.visits === 1 && t.kind !== 'boss')
-      s += ` <i>Moving on now pays ${MAP_SKIP_BASE + MAP_SKIP_STEP * (mapSkips + 1)} ◆.</i>`;
-    if (t.span === 2) s += ` <i>Spans two sets - taking it moves you on.</i>`;
-  } else if (t.visited) s += ' <i>Already taken.</i>';
-  else if (move && move.doomed) s += ' <i>That path dead-ends before the boss.</i>';
-  else if (t.kind !== 'boss') s += ' <i>Not reachable from here.</i>';
+      s += ` <i>leaving now pays ${MAP_SKIP_BASE + MAP_SKIP_STEP * (mapSkips + 1)} ◆</i>`;
+    if (t.span === 2) s += ` <i>runs over two slots</i>`;
+  } else if (t.visited) s += ' <i>already taken</i>';
+  else if (move && move.doomed) s += ' <i>dead-ends before the review</i>';
+  else if (t.kind !== 'boss') s += ' <i>not reachable from here</i>';
   el.innerHTML = s;
 }
 
 function mapCloseScreen() {
   mapScreenOpen = false;
   mapSelected = null;
+  if (typeof mapLegendHighlight === 'function') mapLegendHighlight(null, null);
   document.getElementById('map-bar')?.classList.remove('show');
   document.body.classList.remove('map-active');
+  if (typeof updateSelectionUI === 'function') updateSelectionUI();
   if (typeof exitGridScreenHud === 'function') exitGridScreenHud();
   const gridEl = document.getElementById('grid');
   if (gridEl) gridEl.innerHTML = '';
@@ -767,7 +876,7 @@ function mapConfirm() {
     const pay = MAP_SKIP_BASE + MAP_SKIP_STEP * mapSkips;
     coins += pay;
     updateCoinsUI?.();
-    showMessage(`Moved on early · +${pay} credits`, 'var(--gold)');
+    showMessage(`Left the slot early · +${pay} credits`, 'var(--gold)');
   }
 
   t.visited = true;

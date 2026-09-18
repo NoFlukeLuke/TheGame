@@ -41,9 +41,9 @@ const PICKER_AXES = [
     id: 'reward', label: 'BETWEEN ROUNDS', question: 'What happens after a round?',
     note: 'This also sets the shape of the run, because the two are the same decision in the engine.',
     options: [
-      { id: 'grid',  name: 'Reward grid', tag: 'THREE QUARTERS',
-        desc: 'Payout, then a path across a board of buffs and penalties. Three quarters of five rounds and a boss, and the run ends when the third quarter closes.' },
-      { id: 'slots', name: 'Eight slots', tag: 'THREE QUARTERS',
+      { id: 'grid',  name: 'Reward grid', tag: 'FOUR QUARTERS',
+        desc: 'Payout, then a path across a board of buffs and penalties. Four quarters of five rounds and a boss, and the run ends when the last quarter closes.' },
+      { id: 'slots', name: 'Eight slots', tag: 'FOUR QUARTERS',
         desc: 'A quarter is eight slots and then the boss. At each one you are dealt four things you could do with it: play a round, or buy a shop, a grid, an event or a free pick. Buying always costs a round you will not get to play.' },
       { id: 'pick3', name: 'Pick of three', tag: 'ENDLESS',
         desc: 'Clear the goal, take one of three rewards, face a bigger goal. No reward grid, no payout screen and no end: the run lasts until you miss one. The three reward-grid-only entities are kept out of the pool.' },

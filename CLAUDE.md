@@ -723,6 +723,47 @@ They answer different questions and must not be collapsed back into one:
 
 **Junk cards rode along free between r199 and r201** - see "Every card must be load-bearing" below, which is where that ended. The minimum now costs you cards off the board AND the score of anything you cannot use.
 
+### The hand rules, stated plainly (r254) - what a selection IS
+
+The owner asked for these written out after "a fifth card keeps getting dropped
+and I cannot tell why". The rules, as the code actually is:
+
+- **Tap order NEVER matters.** `selected` is a set of cells; detection reads the
+  cards' ranks and suits and nothing else about how you picked them.
+- **The grid arrangement matters ONLY for connectivity.** The selection must be
+  one orthogonally connected group, and the smaller subset `findBestHand` falls
+  back to must itself be connected - so dropping a card CAN strand a hand if that
+  card was the bridge. Inside a connected group, position is irrelevant: 4,6,7,5
+  in any cells and any order is a Run of 4.
+- **4-6-7-5-9 is NOT a Straight.** A run needs consecutive ranks; the 9 joins no
+  component, so under r201 the five-card subset is not a hand at all.
+  `findBestHand` falls back to the 4-card Run of 4 and the 9 becomes a PENALTY
+  card: its pips are subtracted from the hand's score and it is consumed anyway.
+- **A Full House is any connected 2x + 3y.** No ordering, no shape requirement
+  beyond the whole selection being connected. Same for every set and run: the
+  rank partition does not care which cell holds which card.
+- **Measured on planted boards (r255), because the owner asked twice:**
+  `2 3 2 3 2` is a **Full House** - one component, all 5 cards used, 0 penalties,
+  285 - and `3 5 4 7 6` is a **Straight** - one component, all 5 used, 0
+  penalties, 325. Both were run in a straight line AND in a snake, and with the
+  ranks re-sorted, and all six came out identical. The physical arrangement and
+  the tap order really do not enter into it. (`4 6 7 5 9` on the same board is
+  Run of 4 + 1 penalty at 199, which is the rule above doing its job.)
+- **A dropped fifth card is r201 working as designed, plus one hard cap:**
+  `HAND_MAX_CARDS` is 7, so at Selection Size 9 at least two cards are ALWAYS
+  dropped whatever you pick. Measured over 300 real 4x4 deals (connected
+  selections, base limits): a random 5-card selection carries a penalty **80%**
+  of the time (avg 2.0 cards, -14 pips), a random 7-card one 86%, a 9-card one
+  100% by construction; even the BEST 5-card selection on a board carries one
+  29% of the time. So this is the single most common surprise in the game.
+- **What was broken was the UI, and r254 fixed that, not the rule.** A selected
+  card the best hand drops now renders **red and desaturated on the board**
+  (`.card.hand-penalty`, from `bestHandResult.penaltyCells` in `render()`), and
+  `#hand-name` prices it: `RUN 3 - DROP 2 · -14` (`.hn-drop`, red). The NEED
+  label still outranks it below the minimum selection. Tagalong lifts the rule
+  and the red state and the DROP line disappear with it, for free - both read
+  `penaltyCells`, which Tagalong empties.
+
 ### Every card must be load-bearing (r201)
 
 **A hand may not carry a passenger.** If the components do not account for every card in the subset, that subset is not a hand. `findBestHand` then falls back to the smaller subset that IS fully used, and the leftovers become **penalty cards**: their pips are subtracted, and they are consumed anyway (`toRemove` is the whole selection, not just `handCells`). A spare card went from a small bonus to a real cost.
@@ -1476,6 +1517,173 @@ Measured: two-visit sets 66.5% -> 68.9%, tiles per run 9.97 -> 10.26.
 - `mapRender` marks legal tiles off the same `mapLegalMoves()` list, so branch
   targets light up with no rendering change.
 
+### The map speaks SCHEDULE (r260)
+
+Owner: *"The map is your schedule, sets are time slots, and each node is a...
+obligation. And the boss is a manager review."* The vocabulary, everywhere the
+player reads it:
+
+| was | is |
+|---|---|
+| The Map (mode name) | **The Schedule** |
+| set | **time slot** (`SLOT 2/6` on the bar) |
+| tile / node | **obligation** |
+| boss | **manager review** (the column reads `REVIEW`) |
+| THE MAP (the grid-screen location chip) | **SCHEDULE** |
+
+**Ids are frozen and nothing else moved** - TERMINOLOGY.md's rule. `mapTiles`,
+`MAP_SETS`, `mapCanFinishFrom`, `kind:'boss'`, `body.map-active`, the CSS class
+names and every function in `js/map-mode.js` are untouched; this is `MAP_HELP`,
+`MAP_KIND_META.boss.name`, `mapTileDesc`, the bar's labels, three toasts, the
+`enterGridScreenHud` label and the `MODES.map` name and description.
+
+- **The tile KINDS keep their names** (Round, Hard Round, Shop, Reward Grid,
+  Event, Limit Break). They say what the obligation IS, and Shop and Reward Grid
+  are named that on their own screens - renaming them here would give one thing
+  two names.
+- **`REVIEW` is six letters where `BOSS` was four, and the boss name is drawn
+  VERTICALLY in landscape with no fitter** (r238: the fitter measures
+  horizontally, so the boss is deliberately exempt). Measured: the name box is
+  20x99 inside a 79x444 column, so it fits with room to spare.
+
+### The obligations have schedule names too (r262)
+
+r260 renamed the map; the TILES still said Round, Hard Round, Shop, Reward
+Grid, Event and Limit Break. Owner's call, with the shop and the reward grid
+named directly:
+
+| was | short chip | in full |
+|---|---|---|
+| Round | ACCOUNT | Client Account |
+| Hard Round | PRIORITY | Priority Account |
+| Shop | MART | LETHE Mart |
+| Reward Grid | INCENTIVE | Incentive Program |
+| Event | MEETING | Meeting |
+| Limit Break | RAISE | Raise Request |
+| boss | REVIEW | Manager Review |
+
+- **A TILE CARRIES THE SHORT CHIP AND NOTHING LONGER.** It is 57px wide and a
+  name is one atomic word there (r182 - words never break), so "Incentive
+  Program" would shrink to nothing or truncate. `MAP_KIND_META` gained a
+  `full` field: the bar's info line prints it between the chip and the
+  description, and the tile's `title` carries full name plus description.
+- The full name is printed only when it says something the chip does not
+  (`face.full.toUpperCase() !== face.name`), so MEETING never reads
+  "MEETING Meeting".
+- **An event tile still shows THAT event's own name** when it has one;
+  MEETING is the fallback and the type's full name.
+- The shop already titles its own board COMPANY STORE (r237), so the tile
+  says where you are going and the screen says what it is.
+- Ids are frozen as ever: `kind:'level'`, `mk-shop`, `MAP_KIND_META` keys and
+  every function are untouched.
+
+Verified at 1440x820 and 420x820: 24 and 25 tiles, zero names overflowing.
+
+### The schedule takes a PEN and a LEGEND (r263) - `js/map-draw.js`
+
+Two things you can do to the schedule without changing it.
+
+**The pen.** A canvas over the board, inside `#grid`. **Right-drag draws, with
+no mode to enter**; **double right-click cycles the colour**; the cursor becomes
+a pen IN THAT COLOUR. The bar carries a pen chip (finger mode), a colour
+swatch, and undo / clear once there is ink.
+
+- **The layer is `pointer-events: none` by default**, which is the whole reason
+  a right-drag still works over a tile - and circling a tile is exactly what
+  you want to do. The events are taken on **`#grid`**, which is emptied by
+  every `mapRender` but never replaced, so one binding outlives every render.
+  Only the finger mode (`.pen-on`) makes the canvas take taps, and then it
+  swallows tile clicks wholesale rather than needing a guard in `mapTileTap`.
+- **THE CANVAS IS MOUNTED FROM THE END OF `mapRender`.** It is a child of
+  `#grid`, so it is wiped with the tiles; the STROKES live in
+  `mapDrawStrokes` and are repainted onto the new canvas.
+- **Strokes are NORMALISED to the grid box** (0..1), so they survive a render,
+  an orientation flip and a save. They are in `SAVE_VARS` with `mapPenColor`,
+  and `mapResetBoard` clears them - the ink belongs to that map.
+- **The cabinet's `zoom` means a rect is NOT the element's own px.**
+  `_mapDrawAdd` divides the pointer delta by `rect.width / offsetWidth`; the
+  r160 Trick-fan trap, and here it would put the ink at the wrong scale.
+- **THE DOUBLE-CLICK WINDOW IS STAMPED BY A CLICK, NEVER BY A DRAG.** Stamping
+  it on pointer DOWN meant a click just after a quick circle read as the second
+  half of a pair and cycled the colour instead of drawing. It is stamped at
+  pointer UP, and only when the stroke never moved. The dot the first click of
+  a real pair leaves is popped back off when the second lands.
+
+**The legend** (the `▤` chip) lists only the kinds actually on this schedule,
+in `MAP_KIND_META` order, each with the `blurb` field that table now carries.
+Hovering a row lights those obligations and drops everything else, Slay the
+Spire's move; tapping one **latches** it (`mapLegendLatch`) so it survives the
+pointer leaving the row, and tapping again releases.
+
+- It reuses `.mb-help` wholesale, so it cannot drift from the ? card in
+  placement - above the strip, never inside it (r255's reason).
+- The highlight is written straight onto the live tiles (`mt-lit` / `mt-dim`),
+  with no render, so it cannot disturb a selection or replay the deal-in. The
+  dim carries `!important` because an unreachable tile is already at 0.55.
+- **Verified in a real browser at 1440x820 and 420x820**: right-drag lays a
+  stroke (18 points, 396 inked pixels after a re-render), a double right-click
+  cycles the colour and takes the dot back, pen mode draws on a left drag and
+  takes no tile with it, a left click with the pen off still selects, the
+  legend lights 3 of 25 tiles and the card lands fully on screen in both.
+
+### The map bar is one strip, and the rules live behind a ? (r255)
+
+Owner: the bar was *"too large and persistent, and doesn't feel especially on
+theme."* It was three stacked blocks - a stats row, a two-line prose block, and
+a button row on its own line - about 100px tall, permanently across the bottom
+of the map.
+
+**It is ONE compact row now (38px)**: `SET x/6`, visits, a **? chip**, the
+picked tile's line, the skip price, credits, CONFIRM. Console material to match
+`#event-panel` (indigo plate, plastic ring) rather than a plain dark box.
+
+- **The standing "how the map works" prose is a tutorial you cannot dismiss**, so
+  it moved into `MAP_HELP` behind the ? - five one-line rules, drawn as a card
+  that opens **ABOVE** the strip. Above, because anchoring it inside the bar
+  would change the bar's height and shove the board every time it opened.
+- **`.mb-info` is `flex: 1` and CLIPPED to one line** (`text-overflow: ellipsis`,
+  `max-width: 46vw`). A long tile description would otherwise push CONFIRM off
+  the end of a `width: max-content` strip. It is `:empty { display: none }`, so
+  with nothing picked the bar shrinks to 360px.
+- **The outside-click close is armed only while the card is open.** The bar is
+  rebuilt on every map render, so a standing document listener would stack one
+  copy per render.
+- A tile's `mouseleave` clears the line now; it only ever set it.
+
+### The x/y selection readout shows only where a pick matters (r255)
+
+`#sel-count`'s live test was `gridData.length > 0` - the number of ROWS, which is
+true of a board of nulls and of every screen that merely BORROWS the grid. So
+"0/3" hung over the map, the crossroads, the payout pick and the interlude,
+describing a selection that could not be made.
+
+`updateSelectionUI` now shows it on exactly three screens: **the shop, the reward
+grid, and a live round** (`boardLive` = real cards on the board, and none of
+`map-active` / `pick-active` / `grid-screen`). Measured: hidden on the menu and
+the map, shown in a level, a reward grid and the shop.
+
+- **A class gate needs a repaint behind it.** `map-active` goes on without a
+  `render()`, so `mapRenderBar` and `mapCloseScreen` call `updateSelectionUI`
+  themselves; the payout pick's close does the same, because it renders BEFORE
+  it drops its class.
+
+### The route runs THROUGH a 2x1, it does not cut across it (r254)
+
+A tile was ONE route node, at its head cell. A 2x1 occupies two cells, so the
+segment out of it started at the head and ran to whatever you took next in the
+set beyond its tail: **one diagonal reading as a 45 degree short cut across a
+tile you had actually walked the length of.**
+
+A tile now has an **entry** (its head) and an **exit** (its tail, which is the
+head for every ordinary tile), plus a **spine** - the straight run between them,
+drawn for 2x1s only. Links go exit to entry. So a 2x1 reads as a straight run
+and then a turn: two right angles, never one diagonal.
+
+- **The rails get the spine too**, not just the walked line - the rail is what
+  the board OFFERS, and it offered the same false diagonal.
+- Verified on a real legal walk through a 2x1: every walked segment is 0 or
+  +-90 degrees, spine included.
+
 ### The map has a BOARD, a ROUTE and coloured tiles (r247) - `css/map-mode.css`
 
 The map was tiles on the bare stage: no surface, no sense of a journey, and a
@@ -1862,7 +2070,7 @@ Reward-grid penalties and card curses are the only PERMANENT damage a run takes 
 **Every option reads the same live global the penalty is stored in**, and an option with nothing to do is not offered - a screen full of choices that would do nothing is worse than a consolation payment, which is what an empty record gets instead.
 
 ## Progression (Normal mode)
-3 Acts × (5 events + 1 boss) = 18 nodes. `actNumber` (1–3), `nodeInAct` (0–4, boss at 5). `forceBossNextRound` triggers the boss after the next deal. Win at `actNumber > 3` → `onGameWin()`.
+`QUARTERS_PER_RUN` quarters × (5 events + 1 boss) = 6 nodes each. `actNumber` (1..`QUARTERS_PER_RUN`), `nodeInAct` (0–4, boss at 5). `forceBossNextRound` triggers the boss after the next deal. Win at `actNumber > QUARTERS_PER_RUN` → `onGameWin()`.
 
 ## Boss system
 
@@ -2199,6 +2407,35 @@ Beating a boss used to be: the word `VICTORY` in gold Cinzel over the still-live
 ### Acts are QUARTERS (r213)
 
 Player-facing only: **Q1 / Q2 / Q3**, three of them, same structure. Everything in code - `actNumber`, `nodeInAct`, `isActMode`, `actStructure` - is unchanged, so nothing about the progression moved. The strings are `js/hud.js` (`'Q' + actNumber`, the `.rp-act` line in both run-progress blocks), `js/tricks-ui.js` (the act readout, both branches), the two `<div class="rp-act">` defaults in `index.html`, and four mode descriptions in `js/menu.js`. This and **QUOTA CLEARED** are deliberate exceptions to the r178 voice rule - the owner is putting the corporate framing back on the *structural* labels while the entity and action text stays plain.
+
+### `QUARTERS_PER_RUN` (r264) - how long a run is, in one place
+
+**Four quarters, and the number is written down once** - `QUARTERS_PER_RUN` at the
+top of `js/quarter.js`. Setting it back to **3** restores the pre-r264 run exactly
+and needs no other edit; that is the whole reason it exists, because the owner
+expects to switch Q4 off for the beta.
+
+Three things read it and nothing else may hardcode the count: the rollover's win
+test (`actNumber > QUARTERS_PER_RUN` -> `onGameWin`), the quarter card's pips
+(built from it rather than `[1,2,3]`), and the run report's no-ghost-row rule
+(`rows.length < QUARTERS_PER_RUN`). Two more sites ask "is this the LAST quarter"
+and read it too: `peekNextActBoss` (there is no next boss to name) and
+`knackLiveDesc`'s Advance Notice fallback.
+
+**A fourth quarter needed no new content, and that is the point.** A quarter's
+SHAPE is 5 nodes and a boss and does not mention its own index; the goal curve
+rides `level`, which just keeps climbing; the boss bag refills itself out of 34
+presets; and map mode anchors each quarter's boss quota to the level that quarter
+opens on (`mapQuarterBossGoal`). So Q4 is six more ordinary nodes at the
+difficulty the curve has already reached.
+
+**There is deliberately NO final boss** (owner's call: not designed yet). Q4 ends
+on an ordinary boss round like every other quarter, and clearing it wins the run.
+
+**The mode blurbs say the number in words and cannot read the constant.**
+`js/menu.js` and `js/picker-mode.js` are static strings evaluated at load time,
+before `js/quarter.js` runs, so "Four quarters" / "FOUR QUARTERS" are typed out
+in four places there. Change them with the constant.
 
 ## Quarter close (r226) - `js/quarter.js` + `css/quarter.css`
 
@@ -2636,6 +2873,14 @@ On `body.grid-screen` (reward grid, shop, crossroads), landscape:
 
 `checkBossObjective` used to call `endBoss(true)` synchronously inside playHand - before the dance drew a frame - so the boss-winning hand never got the goal finale and the screen jumped straight at the prize grid. Now the win only goes **PENDING** (`bossWinPending`); playHand routes the hand through the ordinary goal-dance exit, and the dance calls **`bossSettleWin()`** exactly where it would call `startInterlude` (normal completion, the abort path, and the legacy dance). `endBoss(true, { presented: true })` then skips its own `render()` (the finale already cleared the board - a render would pop every card back for a frame) and its own banner (`flashRoundEnd`'s `goalClearPresent` already carried the boss's name as kicker). Survival's mid-dance pick is suppressed while a boss win is pending - that hand ends in the prize grid.
 
+### The boss-winning hand keeps its bookkeeping (r254)
+
+The r237 rework's early return in `playHand` sat right after `checkBossObjective` - ABOVE Lucky Seven, `highestHandScore`, `recordQuarterBest`, the Full House streak, `checkChallengeAfterHand`, `fireSleightsOnPlay`, `fireAdjacentSleights`, `updateCounters` and `checkUnlocks` - so the boss-winning hand alone skipped all of it. Visibly: the run report's boss quarter printed **no best hand** ("·") however big the killing hand was, and on_play Sleights never fired on it. Pre-r237 all of that ran (`endBoss` was synchronous and `playHand` carried on), so the block simply MOVED DOWN to sit beside the ordinary goal check, below the shared bookkeeping. Verified in a real browser: the VICTORY report now names the boss-killing hand with its score.
+
+Also r254: **an aborted goal dance now fires `flashRoundEnd()`** from `handleDanceAbort`'s goal branch. The banner + cleared-clock state only ever fired from the score climb's goal-cross tick, which an aborted dance never reaches - so a goal hand cut short (round-end teardown, a boss firing mid-dance) won the round with no QUOTA CLEARED and no boss name. Fired BEFORE `bossSettleWin()` so `bossWinPending` still carries the kicker.
+
+**All three end-of-round variants were driven end to end in a real browser for this pass** (Playwright, 1440x820, both Pick states): ordinary goal clear -> finale -> PMF merge/throw/climb -> banner -> fall -> payout -> reward grid -> next deal; boss win -> same finale with the boss-named banner -> payout -> prize grid -> QUARTER CLOSED card -> Q2; final boss -> rolloverQuarter -> VICTORY + run report (no quarter card past Q3, by design). The r234 "fused chip stays put, a copy peels off to the total" behaviour is confirmed live in `pmfFlyToScore`; the persistent `#pmf-merged` element in the DOM after a hand is the REUSED chip without `.show`, not a leak.
+
 ## The live shop is the ON-GRID shop (r232) - `js/shop-grid-preview.js`
 
 `USE_MART_SHOP` is **false**: `triggerShop()` now opens `openShopGrid()` - the 4x5 board shop with row plates, the r230 left-column squish and the fall-in deal. Every route the Mart served lands there:
@@ -2962,18 +3207,106 @@ fifteen seconds** and settles with it centred and filling most of the shot. Touc
 photograph is gone and the UI is flat and full-screen. The monitor in the photo IS
 the machine, so the r180 arcade cabinet - housing, marquee, bezel - is hidden.
 
+### The carousel plays on the monitor; picking a mode DIVES IN (r258)
+
+Owner: *"could we make the select mode screen a little bit smaller on desktop, it's
+just all a little too big ... maybe we could just zoom back a little bit so that you
+can see the frame of the computer. And then when you select a mode, it zooms in as
+the game starts."*
+
+r248's "any button is the cut" put the mode carousel **full-screen at the cabinet
+zoom** - about twice the size it is on the glass - which is the whole of the "too
+big". The rest framing already shows the monitor's frame, its keyboard and the desk,
+so nothing had to be zoomed back: the carousel simply had to stay on the photograph.
+The beats are now **drift -> settle -> carousel on the glass -> dive -> cut**.
+
+- **A button SETTLES, it does not cut.** `officeSettleNow()` hurries the drift to
+  its end over `OFFICE_SETTLE_MS` (520) so whatever opens is at full size even
+  three seconds into a fifteen-second drift. It **carries on from where the drift
+  is**, because `camEndBootDolly` writes the final scale with no transition and a
+  drift caught at 0.6 of its travel would visibly jump.
+- **`camEnterGame` is the only cut**, which it already was as a backstop. So the
+  cut happens when a RUN STARTS - including CONTINUE - and never on Settings,
+  History, Builds or BACK. Those three are body-level panels over the photo and
+  were never on the glass anyway.
+- **The dive is what earns the full screen.** `officeCutToScreen` runs
+  `camDollyMul` from the rest framing to **k = 1** over `OFFICE_PUSH_MS` (820) and
+  fires the channel change on arrival. `officeLayout` picked the photo's scale `S`
+  so the glass COVERS the viewport at exactly k = 1, so the flat screen the flash
+  reveals is already the size the trapezoid had grown to and the cut is continuous.
+  The multiplier that gets there is `1 / camWideK`, its reciprocal.
+- **`hold: true` is load-bearing on that dolly.** It leaves `camBootMul` on its
+  TARGET instead of resetting to 1; resetting would pull the camera back out one
+  frame before the flash. The swap then calls `camEndBootDolly()` and
+  `camSetView('play')`, and that pair is behind the collapse.
+- **`camDollyMul(from, to, ms, opts)` is now the ONE rAF move** and the drift, the
+  settle and the dive all go through it. Under `reduced-motion` it still ARRIVES
+  and still calls `onDone` - returning early there, as `camPlayBootDolly` does,
+  would leave a run started with the photograph still up.
+- **Fixed in passing:** the dolly seeded `camBootMul = CAM_BOOT_OUT` after reading
+  `FROM`, so the drift painted one frame at 0.42 of the framing before the first
+  rAF corrected it.
+
+#### The carousel has to FIT the screen it is drawn on
+
+`#mode-select-overlay` is centred with `overflow: hidden`, so content taller than
+the box is clipped **equally at both ends**. Measured at **473px of content in a
+420px stage**: 26px off the SELECT MODE title and 26px off the PLAY buttons. That
+was invisible full-screen after a channel change and is the first thing you see on
+the monitor.
+
+- **The cards take the LEFTOVER room now** rather than asking for a fixed 300px
+  (`.mode-card` `min-height: 300px` -> `0`). **Every ancestor of the flexible child
+  needs `min-height: 0`** or a flex item refuses to shrink below its content:
+  `#mode-select-inner`, `#mode-carousel-wrap` and `#mode-carousel` all carry it.
+- **The blurb is the flexible part** and scrolls, with a bottom mask fade - a line
+  cut flat by the box reads as a rendering fault. The fade is always on and costs
+  nothing when the text does not reach the bottom.
+- Verified `scrollHeight === clientHeight === 420` at 1440x820, 1100x620 and
+  390x844, with the title and both PLAY buttons fully on screen.
+
+### The monitor is LANDSCAPE, so the machine shows a landscape face (r257)
+
+The skew maps **`#stage`'s whole box** onto the glass quad, so the stage's aspect and
+the quad's aspect have to be near each other or the UI is stretched. Landscape is
+747x420 (**1.78**) against a quad of **1.37**, which is the foreshortening of a
+screen seen at an angle and reads as perspective. **Portrait is 420x740 (0.57)** -
+a **2.4x horizontal crush**, and on a phone it made the menu unreadable.
+
+So while the photograph is on screen the stage is **forced landscape**, whatever the
+device is doing: `officeForcesLandscape()` is read by the one place that decides it
+(`bootstrap.js`'s `update`). It is only ever a lie for as long as the photo is up.
+
+- **`applyStageLayout` is bootstrap's own `update`, exposed.** Two paths need to
+  re-decide the orientation and neither can use `camRelayout()`, which re-uses
+  `camLastLandscape` - still the forced value: the channel change, which hands a
+  phone back its portrait layout **behind the flash**, and the photo's own `load`
+  handler, because bootstrap's first pass ran long before an image could download
+  and the stage is still portrait at that point.
+- **`OFFICE_HERO_FIT` is two numbers now.** In portrait the binding axis is the
+  WIDTH, and a landscape monitor held to 0.78 of a phone's width is a small band in
+  the middle of a very tall picture: `{ landscape: 0.78, portrait: 0.92 }`.
+- **The photo crop needed nothing.** The cover framing is already centred on the
+  monitor and cropped to the viewport's aspect, so a phone was already getting its
+  own portrait slice of the office - the owner's "middle three columns". The squish
+  was never the crop.
+
+Verified at 390x844: forced landscape while the photo is up, glass 359x262 (was
+304x222), and after a button press `landscape` is false, the stage is 420x740
+painting at 386x680 in the viewport, the camera carries no transform, the skew is
+cleared and there are no page errors. Desktop at 1440x820 is unchanged.
+
 ### The opening is a DRIFT and then a CUT (r248)
 
 There is no push on PLAY. **The drift IS the approach and the flash IS the arrival**,
 which is why the whole choreography is two numbers: `OFFICE_ATTRACT_MS` (15s) and
 `OFFICE_HERO_FIT` (0.78, the share of the viewport the glass fills at rest).
 
-- **ANY button is the cut, not just PLAY.** Settings, History and Builds open their
-  own panels, and on a monitor filling a third of the shot at a slant those are
-  decoration rather than something you can read. `officeArmMenuCut` is one delegated
-  CAPTURE-phase listener per attract screen that **does not stop the event**: the
-  button's own handler runs as it always did and its panel opens during the flash,
-  which is exactly what the flash is for.
+- **r248 cut on ANY button. r258 does not - see the section above.** A button now
+  only SETTLES the drift; the cut belongs to starting a run. `officeArmMenuCut` is
+  `officeArmMenuSettle`, still one delegated CAPTURE-phase listener per attract
+  screen that **does not stop the event**: the button's own handler runs as it
+  always did.
 - **It never pulls back out.** `officeDone` latches at the cut and
   `officeReturnToMenu` answers **`'stay'`** from then on, which camera.js reads as
   "leave the camera alone" - so a run that ends comes back to a flat full-screen

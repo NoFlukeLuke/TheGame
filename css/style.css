@@ -523,6 +523,9 @@
      two-line shape as a hand so nothing shifts when it flips to a real name. */
   #hand-name .hn-need b, #hand-name .hn-need i { color: var(--red, #d9534f); }
   #hand-name .hn-need i { opacity: 1; font-weight: 700; }
+  /* r254: the DROP segment - selected cards the hand rejects, and what they cost */
+  #hand-name .hn-drop b, #hand-name .hn-drop i { color: var(--red, #d9534f); }
+  #hand-name .hn-drop i { opacity: 1; }
   .mini-card { width: 26px; height: 34px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 3px; display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0; }
   .mini-card-empty { width: 26px; height: 34px; border: 1px dashed var(--border); border-radius: 3px; flex-shrink: 0; }
   .mini-card .mini-rank { font-family: 'Cinzel', serif; font-size: 10px; font-weight: 700; line-height: 1; color: #1a1510; }
@@ -1777,11 +1780,23 @@
     box-shadow: 0 0 8px rgba(74,158,255,0.5);
     background: var(--card-bg, #f4ead5);
   }
+  /* r254: a selected card the best hand DROPS (r201 penalty). Red over the
+     selection blue - after .hand-valid so the later rule wins at equal
+     specificity, and restated for .hand-ready below via the class pairing. */
+  .card.selected.hand-penalty {
+    border-color: var(--red, #d9534f) !important;
+    box-shadow: 0 0 8px rgba(217, 83, 79, 0.55);
+    filter: saturate(0.55) brightness(0.9);
+  }
   .card.selected.hand-ready {
     border-color: #4a9eff !important;
     border-width: 1px;
     background: var(--card-bg, #f4ead5);
     animation: handReadyPulse 0.7s ease-in-out infinite alternate;
+  }
+  .card.selected.hand-ready.hand-penalty {
+    border-color: var(--red, #d9534f) !important;
+    filter: saturate(0.55) brightness(0.9);
   }
   @keyframes handReadyPulse {
     from { transform: translate(var(--hbx,0), calc(var(--hby,0px) - 2px)) rotate(calc(var(--hbr,0deg) + var(--frzr,0deg))) scale(calc(var(--hbs,1) * 1.07)); box-shadow: 0 0 6px rgba(74,158,255,0.4); }
@@ -4216,10 +4231,19 @@
   }
 
   /* ═══════════════ MODE SELECT (scroll-sideways carousel) ═══════════════ */
+  /* THE CAROUSEL HAS TO FIT THE SCREEN IT IS DRAWN ON (r258). It is centred with
+     overflow:hidden, so content taller than the box is clipped EQUALLY AT BOTH
+     ENDS - measured at 473px of content in a 420px stage, which ate 26px off the
+     title and 26px off the PLAY buttons. That was invisible while the mode select
+     ran full-screen after a channel change; since r258 it plays on the monitor in
+     the photograph, where the clipped title is the first thing you see.
+     The chain below is what makes the cards take the LEFTOVER room rather than
+     asking for a fixed 300px: every ancestor of the flexible child needs
+     min-height:0, or a flex item refuses to shrink below its content. */
   #mode-select-overlay {
     display: none; position: fixed; inset: 0; z-index: 10000;
     flex-direction: column; align-items: center; justify-content: center;
-    padding: 24px; overflow: hidden;
+    padding: 14px; overflow: hidden;
     background:
       repeating-linear-gradient(0deg, rgba(0,0,0,0.16) 0 1px, transparent 1px 3px),
       radial-gradient(ellipse at 50% 32%, #241d3f 0%, #171235 46%, #0b0a1c 100%);
@@ -4227,7 +4251,8 @@
   #mode-select-overlay.show { display: flex; }
   #mode-select-inner {
     position: relative; z-index: 1; width: 100%; max-width: 760px;
-    display: flex; flex-direction: column; align-items: center; gap: 12px;
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    max-height: 100%; min-height: 0;
   }
   #mode-select-title {
     font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: clamp(22px, 5vw, 32px);
@@ -4238,16 +4263,18 @@
     font-family: 'Share Tech Mono', monospace; font-size: 11px; letter-spacing: 2px;
     color: var(--cream-dim); text-transform: uppercase; margin-top: -4px;
   }
-  #mode-carousel-wrap { display: flex; align-items: center; gap: 10px; width: 100%; }
+  #mode-carousel-wrap { display: flex; align-items: stretch; gap: 10px; width: 100%;
+    flex: 1 1 auto; min-height: 0; }
   #mode-carousel {
-    display: flex; gap: 18px; overflow-x: auto; flex: 1;
-    scroll-snap-type: x mandatory; padding: 12px 6px 16px; scrollbar-width: none;
+    display: flex; gap: 18px; overflow-x: auto; flex: 1 1 auto; min-width: 0;
+    align-items: stretch; min-height: 0;
+    scroll-snap-type: x mandatory; padding: 10px 6px 12px; scrollbar-width: none;
   }
   #mode-carousel::-webkit-scrollbar { display: none; }
   .mode-card {
-    scroll-snap-align: center; flex: 0 0 auto; width: 264px; min-height: 300px;
-    display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center;
-    padding: 26px 22px; border-radius: 16px;
+    scroll-snap-align: center; flex: 0 0 auto; width: 264px; min-height: 0;
+    display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center;
+    padding: 18px 22px; border-radius: 16px;
     background: linear-gradient(180deg, rgba(20,16,11,0.94), rgba(11,9,6,0.96));
     border: 1px solid rgba(255,255,255,0.06);
     box-shadow: 0 0 0 2px var(--mode-accent), inset 0 0 40px rgba(255,255,255,0.03), 0 20px 44px rgba(0,0,0,0.55);
@@ -4259,8 +4286,15 @@
   .mode-card-suits { font-size: 26px; letter-spacing: 5px; line-height: 1; color: var(--cream); }
   .mode-card-blurb {
     font-family: 'Share Tech Mono', monospace; font-size: 11px; line-height: 1.6; letter-spacing: 0.5px;
-    color: var(--cream-dim); flex: 1;
+    color: var(--cream-dim); flex: 1 1 auto; min-height: 0; overflow-y: auto;
+    scrollbar-width: none;
+    /* The one long blurb (Orientation) now scrolls inside its card, and a line cut
+       flat by the box reads as a rendering fault. The fade says there is more. It
+       is always on and costs nothing when the text does not reach the bottom. */
+    -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 14px), transparent 100%);
+            mask-image: linear-gradient(180deg, #000 calc(100% - 14px), transparent 100%);
   }
+  .mode-card-blurb::-webkit-scrollbar { display: none; }
   /* ── Difficulty picker (r193) ──────────────────────────────────────────
      Sits between the blurb and PLAY. It carries its own --tier-accent (set from
      JS off the chosen tier) rather than borrowing --mode-accent: the tier is a
@@ -4310,7 +4344,7 @@
   .mode-card-play:active { transform: translateY(3px);
     box-shadow: inset 0 2px 0 rgba(255,255,255,0.5), 0 1px 0 #b5820f; }
   .mode-arrow {
-    flex: 0 0 auto; width: 44px; height: 44px; border-radius: 50%; cursor: pointer;
+    flex: 0 0 auto; align-self: center; width: 44px; height: 44px; border-radius: 50%; cursor: pointer;
     font-size: 26px; line-height: 1; color: var(--cream);
     background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15);
     display: flex; align-items: center; justify-content: center;
@@ -5612,3 +5646,41 @@ body.reduced-motion .shop-row-label.shopg-out { animation: none; opacity: 0; }
 #shop-owned-panel .sop-copies { font-family: 'Share Tech Mono', monospace; font-size: 10px; color: var(--c-yellow, #ffce2b); font-style: normal; }
 #shop-owned-panel .sop-uses   { font-family: 'Share Tech Mono', monospace !important; font-size: 10px !important; color: var(--c-cyan, #16c8d8) !important; }
 #shop-owned-panel .sop-empty  { font-family: 'Crimson Pro', serif; font-size: 14px; color: rgba(244,234,213,0.6); text-align: center; padding: 18px 0; }
+/* ── Advance Notice: the next quarter's boss, inside the knack's tooltip (r254) ──
+   A REVEAL, not more description, so it is boxed off from the prose above it and
+   lit in the boss red the sigil and the DEFEATED flash already use. The tooltip
+   is only ever opened from a chip for a knack you hold, so nothing here needs a
+   test for ownership. */
+#knack-tooltip .kn-reveal {
+  margin-top: 7px; padding: 6px 8px 7px;
+  border-radius: 6px;
+  border: 1px solid rgba(217, 83, 79, 0.55);
+  background: rgba(217, 83, 79, 0.10);
+  display: flex; flex-direction: column; gap: 3px;
+}
+#knack-tooltip .kn-reveal-q {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 8px; letter-spacing: 3px; text-transform: uppercase;
+  color: rgba(217, 83, 79, 0.95);
+}
+#knack-tooltip .kn-reveal b {
+  font-family: 'Orbitron', sans-serif; font-weight: 900;
+  font-size: 11px; letter-spacing: 0.8px; text-transform: uppercase;
+  color: #ffe9e6;
+}
+#knack-tooltip .kn-reveal span:not(.kn-reveal-q) {
+  font-family: 'Crimson Pro', serif; font-size: 12px; line-height: 1.3;
+  color: rgba(244, 234, 213, 0.82);
+}
+/* Nothing to name (the last quarter, or a mode with no quarters): stated
+   plainly and without the alarm colour, because it is not a warning. */
+#knack-tooltip .kn-reveal-none {
+  border-color: var(--border, #33314e);
+  background: rgba(255, 255, 255, 0.04);
+  font-family: 'Crimson Pro', serif; font-size: 12px; line-height: 1.3;
+  color: rgba(244, 234, 213, 0.65);
+}
+/* RECORDS Owned draws the same reveal in its own card. */
+.rec-ent .kn-reveal { margin-top: 6px; display: block; }
+.rec-ent .kn-reveal-q { display: block; font-family: 'Share Tech Mono', monospace; font-size: 8px; letter-spacing: 2px; color: rgba(217, 83, 79, 0.95); }
+.rec-ent .kn-reveal b { display: block; font-family: 'Orbitron', sans-serif; font-size: 11px; color: #ffe9e6; }
