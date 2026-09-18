@@ -3070,6 +3070,64 @@ fifteen seconds** and settles with it centred and filling most of the shot. Touc
 photograph is gone and the UI is flat and full-screen. The monitor in the photo IS
 the machine, so the r180 arcade cabinet - housing, marquee, bezel - is hidden.
 
+### The carousel plays on the monitor; picking a mode DIVES IN (r258)
+
+Owner: *"could we make the select mode screen a little bit smaller on desktop, it's
+just all a little too big ... maybe we could just zoom back a little bit so that you
+can see the frame of the computer. And then when you select a mode, it zooms in as
+the game starts."*
+
+r248's "any button is the cut" put the mode carousel **full-screen at the cabinet
+zoom** - about twice the size it is on the glass - which is the whole of the "too
+big". The rest framing already shows the monitor's frame, its keyboard and the desk,
+so nothing had to be zoomed back: the carousel simply had to stay on the photograph.
+The beats are now **drift -> settle -> carousel on the glass -> dive -> cut**.
+
+- **A button SETTLES, it does not cut.** `officeSettleNow()` hurries the drift to
+  its end over `OFFICE_SETTLE_MS` (520) so whatever opens is at full size even
+  three seconds into a fifteen-second drift. It **carries on from where the drift
+  is**, because `camEndBootDolly` writes the final scale with no transition and a
+  drift caught at 0.6 of its travel would visibly jump.
+- **`camEnterGame` is the only cut**, which it already was as a backstop. So the
+  cut happens when a RUN STARTS - including CONTINUE - and never on Settings,
+  History, Builds or BACK. Those three are body-level panels over the photo and
+  were never on the glass anyway.
+- **The dive is what earns the full screen.** `officeCutToScreen` runs
+  `camDollyMul` from the rest framing to **k = 1** over `OFFICE_PUSH_MS` (820) and
+  fires the channel change on arrival. `officeLayout` picked the photo's scale `S`
+  so the glass COVERS the viewport at exactly k = 1, so the flat screen the flash
+  reveals is already the size the trapezoid had grown to and the cut is continuous.
+  The multiplier that gets there is `1 / camWideK`, its reciprocal.
+- **`hold: true` is load-bearing on that dolly.** It leaves `camBootMul` on its
+  TARGET instead of resetting to 1; resetting would pull the camera back out one
+  frame before the flash. The swap then calls `camEndBootDolly()` and
+  `camSetView('play')`, and that pair is behind the collapse.
+- **`camDollyMul(from, to, ms, opts)` is now the ONE rAF move** and the drift, the
+  settle and the dive all go through it. Under `reduced-motion` it still ARRIVES
+  and still calls `onDone` - returning early there, as `camPlayBootDolly` does,
+  would leave a run started with the photograph still up.
+- **Fixed in passing:** the dolly seeded `camBootMul = CAM_BOOT_OUT` after reading
+  `FROM`, so the drift painted one frame at 0.42 of the framing before the first
+  rAF corrected it.
+
+#### The carousel has to FIT the screen it is drawn on
+
+`#mode-select-overlay` is centred with `overflow: hidden`, so content taller than
+the box is clipped **equally at both ends**. Measured at **473px of content in a
+420px stage**: 26px off the SELECT MODE title and 26px off the PLAY buttons. That
+was invisible full-screen after a channel change and is the first thing you see on
+the monitor.
+
+- **The cards take the LEFTOVER room now** rather than asking for a fixed 300px
+  (`.mode-card` `min-height: 300px` -> `0`). **Every ancestor of the flexible child
+  needs `min-height: 0`** or a flex item refuses to shrink below its content:
+  `#mode-select-inner`, `#mode-carousel-wrap` and `#mode-carousel` all carry it.
+- **The blurb is the flexible part** and scrolls, with a bottom mask fade - a line
+  cut flat by the box reads as a rendering fault. The fade is always on and costs
+  nothing when the text does not reach the bottom.
+- Verified `scrollHeight === clientHeight === 420` at 1440x820, 1100x620 and
+  390x844, with the title and both PLAY buttons fully on screen.
+
 ### The monitor is LANDSCAPE, so the machine shows a landscape face (r257)
 
 The skew maps **`#stage`'s whole box** onto the glass quad, so the stage's aspect and
@@ -3107,12 +3165,11 @@ There is no push on PLAY. **The drift IS the approach and the flash IS the arriv
 which is why the whole choreography is two numbers: `OFFICE_ATTRACT_MS` (15s) and
 `OFFICE_HERO_FIT` (0.78, the share of the viewport the glass fills at rest).
 
-- **ANY button is the cut, not just PLAY.** Settings, History and Builds open their
-  own panels, and on a monitor filling a third of the shot at a slant those are
-  decoration rather than something you can read. `officeArmMenuCut` is one delegated
-  CAPTURE-phase listener per attract screen that **does not stop the event**: the
-  button's own handler runs as it always did and its panel opens during the flash,
-  which is exactly what the flash is for.
+- **r248 cut on ANY button. r258 does not - see the section above.** A button now
+  only SETTLES the drift; the cut belongs to starting a run. `officeArmMenuCut` is
+  `officeArmMenuSettle`, still one delegated CAPTURE-phase listener per attract
+  screen that **does not stop the event**: the button's own handler runs as it
+  always did.
 - **It never pulls back out.** `officeDone` latches at the cut and
   `officeReturnToMenu` answers **`'stay'`** from then on, which camera.js reads as
   "leave the camera alone" - so a run that ends comes back to a flat full-screen

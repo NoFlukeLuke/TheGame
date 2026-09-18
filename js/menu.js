@@ -1,4 +1,4 @@
-const BUILD = "2026-09-17 · r257 · the monitor in the photo is landscape, so the menu is too";
+const BUILD = "2026-09-18 · r258 · the mode carousel plays on the monitor, and picking a mode dives in";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

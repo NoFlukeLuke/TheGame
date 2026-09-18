@@ -71,15 +71,26 @@ const OFFICE_PHOTO = {
   w: 0, h: 0,
 };
 
-// THE OPENING IS ONE SLOW DRIFT AND THEN A CUT. The camera creeps in on the
-// monitor by itself for OFFICE_ATTRACT_MS while the menu waits on its screen, and
-// settles at the HERO framing - the machine centred and filling most of the shot.
-// It never pulls back out. Touch any button on that menu and a channel change
-// flashes; behind the flash the photograph is gone for good and the UI is flat and
-// full-screen. There is no second push: the drift IS the approach and the flash IS
-// the arrival, which is why the two numbers below are a duration and a size and
-// nothing else.
+// THE OPENING IS A DRIFT, THEN A PUSH, THEN THE CUT. The camera creeps in on the
+// monitor by itself for OFFICE_ATTRACT_MS while the menu waits on its screen and
+// settles at the REST framing - the machine centred, with its frame, keyboard and
+// desk still in shot. It never pulls back out.
+//
+// EVERY ATTRACT SCREEN PLAYS ON THE GLASS, the mode carousel included. A button
+// pressed mid-drift only hurries the camera to the rest framing (OFFICE_SETTLE_MS)
+// so the screen it opens is at full size; it does not leave the photograph. Only
+// STARTING A RUN does that: the camera dives into the monitor over OFFICE_PUSH_MS
+// until the glass covers the viewport, and the channel change flashes at the end of
+// the dive - behind which the photograph is gone for good and the UI is flat and
+// full-screen.
+//
+// r248 cut on ANY button instead, which put the mode carousel full-screen at the
+// cabinet zoom: about twice the size it is on the glass, and the owner's report was
+// that it read as far too big. The carousel belongs on the monitor; the push is
+// what earns the full screen.
 const OFFICE_ATTRACT_MS = 15000;  // the drift, start to settle
+const OFFICE_SETTLE_MS  = 520;    // a button pressed mid-drift: hurry to the rest framing
+const OFFICE_PUSH_MS    = 820;    // a mode picked: the dive into the screen
 // Share of the viewport the glass fills at rest. TWO numbers, because in portrait
 // the binding axis is the WIDTH and a landscape monitor held to 0.78 of a phone's
 // width is a small band in the middle of a very tall picture. 0.92 is as close as
@@ -194,7 +205,7 @@ function officeInit() {
     // race every time. End it now, or the wide framing sits at 0.85x of itself
     // for seven seconds with the edge of the photo showing.
     if (typeof camEndBootDolly === 'function') camEndBootDolly();
-    officeArmMenuCut();
+    officeArmMenuSettle();
     // LAYOUT FIRST, THEN THE DRIFT. officeWideK and officeHeroK are both still 1
     // until the viewport has been measured, and the drift is the ratio between
     // them - started above it, that ratio is 1, which the "nothing to travel"
@@ -377,20 +388,39 @@ function officeCutToScreen() {
       if (typeof recomputeGridMetrics === 'function') recomputeGridMetrics();
     }
   };
-  if (document.body.classList.contains('reduced-motion') || typeof channelChange !== 'function') swap();
-  else channelChange(swap);
+  const flash = () => {
+    if (document.body.classList.contains('reduced-motion') || typeof channelChange !== 'function') swap();
+    else channelChange(swap);
+  };
+  // THE PUSH. Dive from the rest framing until the glass COVERS the viewport, then
+  // flash. The photo's own scale S was chosen so that happens at camera scale 1
+  // (see officeLayout), so the flat screen the channel change reveals is already
+  // the size the trapezoid had grown to and the cut is continuous - which is the
+  // whole reason the dive is worth having rather than cutting from where we stood.
+  //
+  // camWideK IS the rest framing here, so the multiplier that gets k to 1 is its
+  // reciprocal. Guarded: with no travel to make (an uncalibrated photo, or a rest
+  // framing already at 1) it flashes on the spot rather than running a 0-length
+  // dolly.
+  const rest = (typeof camWideK === 'number' && camWideK > 0.01) ? camWideK : 1;
+  const to   = 1 / rest;
+  if (to <= 1.01 || typeof camDollyMul !== 'function') { flash(); return; }
+  camDollyMul(camBootMulNow(), to, OFFICE_PUSH_MS, { pow: 2.4, hold: true, onDone: flash });
 }
 
-// ANY button on the attract menu is the cut, not just PLAY. Settings, History and
-// Builds open their own panels ON the glass, and on a monitor filling a third of
-// the shot at a slant those are decoration rather than something you can read - so
-// touching anything at all is what takes you into the machine.
+// A BUTTON ENDS THE DRIFT; IT DOES NOT END THE PHOTOGRAPH. Whatever the player
+// opens - the mode carousel on the glass, or Settings / History / Builds, which are
+// body-level panels over it - they should meet it at the rest framing rather than
+// at wherever a fifteen second drift happened to be three seconds in.
+//
+// It HURRIES rather than snapping: camEndBootDolly writes the final scale with no
+// transition, so a drift caught at 0.6 of its travel would jump. Carrying on from
+// where it is over half a second reads as the camera arriving.
 //
 // One delegated listener in the CAPTURE phase, and it does NOT stop the event: the
-// button's own handler runs as it always did and its panel opens during the flash,
-// which is precisely what the flash is for. A capture-phase listener also cannot be
-// beaten to it by a handler that re-renders the menu out from under the click.
-function officeArmMenuCut() {
+// button's own handler runs as it always did. A capture-phase listener also cannot
+// be beaten to it by a handler that re-renders the menu out from under the click.
+function officeArmMenuSettle() {
   ['main-menu-overlay', 'mode-select-overlay'].forEach(id => {
     const el = document.getElementById(id);
     if (!el || el._officeCutArmed) return;
@@ -398,9 +428,15 @@ function officeArmMenuCut() {
     el.addEventListener('click', (e) => {
       if (!officeShowing || officeDone) return;
       if (!(e.target && e.target.closest && e.target.closest('button'))) return;
-      officeCutToScreen();
+      officeSettleNow();
     }, true);
   });
+}
+
+// Hurry the opening drift to its end. No-op once it has landed.
+function officeSettleNow() {
+  if (typeof camBootDollyRunning !== 'function' || !camBootDollyRunning()) return;
+  camDollyMul(camBootMulNow(), 1, OFFICE_SETTLE_MS);
 }
 
 // startGame's own hook. By the time a run starts the menu's button has almost

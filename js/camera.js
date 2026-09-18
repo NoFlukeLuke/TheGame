@@ -242,27 +242,67 @@ function camSetRoomStyle(style) {
 // the several relayouts the first second triggers (rAF pass, DOMContentLoaded,
 // load, fonts.ready - see js/bootstrap.js) recompute camWideK and re-apply
 // underneath it instead of stamping on a transition halfway through.
-function camPlayBootDolly(fromMul, ms) {
-  if (document.body.classList.contains('reduced-motion')) return;
-  const cam = camEl(); if (!cam) return;
-  const FROM = (typeof fromMul === 'number' && fromMul > 0 && fromMul < 1) ? fromMul : CAM_BOOT_OUT;
+// THE ONE rAF-DRIVEN MOVE, and everything that moves the camera without changing
+// its VIEW goes through it: the opening drift, the settle when a button is pressed
+// mid-drift, and the push into the screen when a run starts. It is a MULTIPLIER on
+// the current framing rather than a framing of its own - see r185: the first
+// seconds of a load trigger several relayouts, and a CSS transition would be
+// stamped on by the first of them, while a multiplier folded into camApply's k
+// composes with a recomputed camWideK instead.
+//
+// `hold: true` leaves camBootMul sitting on its TARGET instead of resetting it to
+// 1. That is what the push needs: it ends with the glass covering the viewport and
+// the channel change swaps to the flat screen behind the flash, so snapping the
+// multiplier back would pull the camera out again a frame before the cut.
+function camDollyMul(fromMul, toMul, ms, opts) {
+  opts = opts || {};
+  const cam = camEl(); if (!cam) return false;
+  if (camBootRaf) { cancelAnimationFrame(camBootRaf); camBootRaf = null; }
+  const FROM = (typeof fromMul === 'number' && fromMul > 0) ? fromMul : 1;
+  const TO   = (typeof toMul   === 'number' && toMul   > 0) ? toMul   : 1;
   const DUR  = (typeof ms === 'number' && ms > 0) ? ms : CAM_BOOT_MS;
+  const POW  = opts.pow || 2;
+  const land = () => {
+    if (opts.hold) { camBootMul = TO; cam.style.willChange = ''; camApply(false); }
+    else camEndBootDolly();
+    if (typeof opts.onDone === 'function') opts.onDone();
+  };
+  // Reduced motion still has to ARRIVE - onDone is what fires the channel change,
+  // so returning early here would leave a run started with the photo still up.
+  if (document.body.classList.contains('reduced-motion')) { land(); return true; }
   const t0 = performance.now();
   cam.style.willChange = 'transform';
+  // Seed from FROM, not from a constant. This line read CAM_BOOT_OUT, so the drift
+  // painted one frame at 0.42 of the framing before the first rAF corrected it.
+  camBootMul = FROM;
+  camApply(false);
   camBootRaf = requestAnimationFrame(function step(t) {
     const p = Math.min(1, (t - t0) / DUR);
     // A gentler ease-out than the cabinet's cubic. Over fifteen seconds a cubic
     // spends most of the shot already stopped, which reads as the drift having
     // finished early; squared keeps it visibly moving for most of its length.
-    const eased = 1 - Math.pow(1 - p, 2);
-    camBootMul = FROM + (1 - FROM) * eased;
+    const eased = 1 - Math.pow(1 - p, POW);
+    camBootMul = FROM + (TO - FROM) * eased;
     camApply(false);
-    camBootRaf = (p < 1) ? requestAnimationFrame(step) : null;
-    if (!camBootRaf) camEndBootDolly();
+    if (p < 1) { camBootRaf = requestAnimationFrame(step); return; }
+    camBootRaf = null;
+    land();
   });
-  camBootMul = CAM_BOOT_OUT;
-  camApply(false);
+  return true;
 }
+
+function camPlayBootDolly(fromMul, ms) {
+  if (document.body.classList.contains('reduced-motion')) return;
+  const FROM = (typeof fromMul === 'number' && fromMul > 0 && fromMul < 1) ? fromMul : CAM_BOOT_OUT;
+  const DUR  = (typeof ms === 'number' && ms > 0) ? ms : CAM_BOOT_MS;
+  camDollyMul(FROM, 1, DUR);
+}
+
+// Where the drift has got to right now. The settle and the push both start from
+// here rather than from a nominal figure, so pressing a button three seconds into
+// a fifteen second drift moves on from what is on screen instead of jumping.
+function camBootMulNow() { return camBootMul; }
+function camBootDollyRunning() { return !!camBootRaf; }
 
 function camEndBootDolly() {
   if (camBootRaf) { cancelAnimationFrame(camBootRaf); camBootRaf = null; }

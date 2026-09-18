@@ -4231,10 +4231,19 @@
   }
 
   /* ═══════════════ MODE SELECT (scroll-sideways carousel) ═══════════════ */
+  /* THE CAROUSEL HAS TO FIT THE SCREEN IT IS DRAWN ON (r258). It is centred with
+     overflow:hidden, so content taller than the box is clipped EQUALLY AT BOTH
+     ENDS - measured at 473px of content in a 420px stage, which ate 26px off the
+     title and 26px off the PLAY buttons. That was invisible while the mode select
+     ran full-screen after a channel change; since r258 it plays on the monitor in
+     the photograph, where the clipped title is the first thing you see.
+     The chain below is what makes the cards take the LEFTOVER room rather than
+     asking for a fixed 300px: every ancestor of the flexible child needs
+     min-height:0, or a flex item refuses to shrink below its content. */
   #mode-select-overlay {
     display: none; position: fixed; inset: 0; z-index: 10000;
     flex-direction: column; align-items: center; justify-content: center;
-    padding: 24px; overflow: hidden;
+    padding: 14px; overflow: hidden;
     background:
       repeating-linear-gradient(0deg, rgba(0,0,0,0.16) 0 1px, transparent 1px 3px),
       radial-gradient(ellipse at 50% 32%, #241d3f 0%, #171235 46%, #0b0a1c 100%);
@@ -4242,7 +4251,8 @@
   #mode-select-overlay.show { display: flex; }
   #mode-select-inner {
     position: relative; z-index: 1; width: 100%; max-width: 760px;
-    display: flex; flex-direction: column; align-items: center; gap: 12px;
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    max-height: 100%; min-height: 0;
   }
   #mode-select-title {
     font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: clamp(22px, 5vw, 32px);
@@ -4253,16 +4263,18 @@
     font-family: 'Share Tech Mono', monospace; font-size: 11px; letter-spacing: 2px;
     color: var(--cream-dim); text-transform: uppercase; margin-top: -4px;
   }
-  #mode-carousel-wrap { display: flex; align-items: center; gap: 10px; width: 100%; }
+  #mode-carousel-wrap { display: flex; align-items: stretch; gap: 10px; width: 100%;
+    flex: 1 1 auto; min-height: 0; }
   #mode-carousel {
-    display: flex; gap: 18px; overflow-x: auto; flex: 1;
-    scroll-snap-type: x mandatory; padding: 12px 6px 16px; scrollbar-width: none;
+    display: flex; gap: 18px; overflow-x: auto; flex: 1 1 auto; min-width: 0;
+    align-items: stretch; min-height: 0;
+    scroll-snap-type: x mandatory; padding: 10px 6px 12px; scrollbar-width: none;
   }
   #mode-carousel::-webkit-scrollbar { display: none; }
   .mode-card {
-    scroll-snap-align: center; flex: 0 0 auto; width: 264px; min-height: 300px;
-    display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center;
-    padding: 26px 22px; border-radius: 16px;
+    scroll-snap-align: center; flex: 0 0 auto; width: 264px; min-height: 0;
+    display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center;
+    padding: 18px 22px; border-radius: 16px;
     background: linear-gradient(180deg, rgba(20,16,11,0.94), rgba(11,9,6,0.96));
     border: 1px solid rgba(255,255,255,0.06);
     box-shadow: 0 0 0 2px var(--mode-accent), inset 0 0 40px rgba(255,255,255,0.03), 0 20px 44px rgba(0,0,0,0.55);
@@ -4274,8 +4286,15 @@
   .mode-card-suits { font-size: 26px; letter-spacing: 5px; line-height: 1; color: var(--cream); }
   .mode-card-blurb {
     font-family: 'Share Tech Mono', monospace; font-size: 11px; line-height: 1.6; letter-spacing: 0.5px;
-    color: var(--cream-dim); flex: 1;
+    color: var(--cream-dim); flex: 1 1 auto; min-height: 0; overflow-y: auto;
+    scrollbar-width: none;
+    /* The one long blurb (Orientation) now scrolls inside its card, and a line cut
+       flat by the box reads as a rendering fault. The fade says there is more. It
+       is always on and costs nothing when the text does not reach the bottom. */
+    -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 14px), transparent 100%);
+            mask-image: linear-gradient(180deg, #000 calc(100% - 14px), transparent 100%);
   }
+  .mode-card-blurb::-webkit-scrollbar { display: none; }
   /* ── Difficulty picker (r193) ──────────────────────────────────────────
      Sits between the blurb and PLAY. It carries its own --tier-accent (set from
      JS off the chosen tier) rather than borrowing --mode-accent: the tier is a
@@ -4325,7 +4344,7 @@
   .mode-card-play:active { transform: translateY(3px);
     box-shadow: inset 0 2px 0 rgba(255,255,255,0.5), 0 1px 0 #b5820f; }
   .mode-arrow {
-    flex: 0 0 auto; width: 44px; height: 44px; border-radius: 50%; cursor: pointer;
+    flex: 0 0 auto; align-self: center; width: 44px; height: 44px; border-radius: 50%; cursor: pointer;
     font-size: 26px; line-height: 1; color: var(--cream);
     background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15);
     display: flex; align-items: center; justify-content: center;
