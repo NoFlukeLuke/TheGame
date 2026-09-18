@@ -1,4 +1,4 @@
-const BUILD = "2026-09-18 · r267 · the pick-of-three and the payout ARE the board: cell-placed tiles on a shared takeover";
+const BUILD = "2026-09-18 · r268 · the pick-of-three and the payout ARE the board: cell-placed tiles on a shared takeover";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
