@@ -5329,12 +5329,18 @@ body.reduced-motion .efx-hit { animation-duration: 1ms; }
    (.rwd-glyph), a Sleight its tab top-left (.rwd-tab) and its charge count
    bottom-right (.rwd-uses), and the name band runs the full width along the
    bottom - the first version sat bottom-left and printed "+2CH SOIL" over it. */
+/* The improvement tier, as a BRASS VERSION STAMP (r267).
+   It was `+N` in the rarity colour, which was wrong twice: `+N` is the shape a
+   live count takes (priming now owns it, in violet, bottom-right), and painting
+   it in --rc made the one permanent property of the object look like its tier.
+   Brass says "stamped on", and the type scales with the object (r239) so a 34px
+   Records tile and a 119px shop tile draw the same picture. */
 .reward-cell .rwd-tier{
-  position:absolute; right:2px; top:2px; z-index:5;
-  font-family:'Share Tech Mono',monospace; font-size:9px; line-height:1;
-  padding:1px 3px; border-radius:3px; pointer-events:none;
-  color:#0d1117; background:var(--rc,#8fd6a8); border:1px solid rgba(0,0,0,.4);
-  box-shadow:0 0 5px var(--rc,#8fd6a8);
+  position:absolute; right:2px; top:2px; z-index:7;
+  font-family:'Share Tech Mono',monospace; font-size:max(7px,15cqw); line-height:1;
+  padding:1px 3px; border-radius:2px; pointer-events:none; white-space:nowrap;
+  color:#2a2008; background:linear-gradient(#f4dc9a,#c99c3a);
+  border:1px solid rgba(0,0,0,.5); box-shadow:0 1px 2px rgba(0,0,0,.6);
 }
 
 /* ══════════════════════════════════════════════════════════════════════════

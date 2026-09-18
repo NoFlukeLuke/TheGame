@@ -1856,6 +1856,44 @@ glyph top-left, a Sleight its tab top-left and its charge count bottom-right, an
 runs the full width along the bottom - the first version sat bottom-left and printed
 "+2CH SOIL" over the name.
 
+### The tier is a VERSION, priming is a COUNT (r267)
+
+Owner: *"the +2, what is that for? ... we need a system to represent primed status and
+count, and I think I like the +2 for that."* Two different facts were wearing one
+costume, so they were separated by SHAPE, COLOUR and CORNER:
+
+| | reads | where | looks like |
+|---|---|---|---|
+| improvement tier | **v2.0** | top right, on the object | brass stamp |
+| primed | **+2** | bottom right, on the frame | violet pill |
+
+- **`+N` is the shape a LIVE COUNT takes, so priming took it** and the tier moved to a
+  version stamp. `v2.0` reads as a property of the object; `+2` reads as something
+  pending, which is exactly what a prime is and exactly what an improvement is not.
+  The tier also came off `--rc`: painted in the rarity colour, the one permanent
+  property of the object looked like its tier.
+- **`_rank` is counted now.** `cdForTrick` read `t._primed` alone, so a Trick the Extra
+  Rep event had permanently primed showed **nothing at all** for the rest of the run,
+  despite `trickFires()` being `1 + _primed + _rank + mirrors`. It is
+  `_primed + _rank`, which is what the player is owed.
+- **A COUNT IS NOT A COUNTDOWN.** The `.cd-badge` ring is a clock face, and under a
+  charge count it drew a full circle that never moved - a timer that has stuck.
+  `.cd-b-count` overrides it to a pill: auto width, flat fill, `::before` (the ring's
+  hole) off. The countdown modes are untouched.
+- **The stamp is pinned to the OBJECT, the badge to the FRAME, and that asymmetry is
+  forced.** `entityTileInner` puts `.rwd-tier` inside the `.reward-cell`, so
+  `--lbv`/`--lbh` (half the letterbox leftover on each axis, per r239's ratios) can
+  move it onto the disc's own corner. **`cdPaint` appends `.cd-badge` to the HOST** -
+  the tray chip, the card, the knack chip - which is not a `.reward-cell` at all, so
+  those selectors cannot reach it; it is also shared with hosts that have no
+  letterbox. Its home is the tile's corner.
+- `tier-badge-preview.html` draws the shipped stamp through the REAL `.rwd-tier` rule,
+  with the old `+N` beside it as the delta, plus a third option the owner asked to see
+  (gold 45-degree service bands across a corner, one per tier) that was not taken.
+
+Verified in a real browser at 1440x820: `v2.0` / `v5.0` on the disc, `+2` / `+3` in
+violet, and a Trick carrying only `_rank` reading `+3` where it used to read nothing.
+
 Dev panel -> **Improve**: every owned entity with its tier and what one more would read as,
 plus improve-a-random-one per type and a reset.
 

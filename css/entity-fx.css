@@ -186,6 +186,41 @@
 #knack-list [data-knack-id] > .cd-badge::before { inset: 2px; }
 #knack-list [data-knack-id] > .cd-badge .cd-num { font-size: 7px; }
 
+/* A COUNT is not a COUNTDOWN (r267). The ring is a clock face; under a charge
+   count it draws a full circle that never moves, which reads as a stuck timer.
+   A count-only badge is a violet PILL instead - `+2`, meaning "fires 2 extra
+   times" - and the shape is also what tells it apart from the improvement
+   tier's brass `v2.0` in the opposite corner. It overrides the ring wholesale:
+   auto width, no conic gradient, and ::before (the ring's hole) switched off. */
+.cd-badge.cd-b-count {
+  width: auto; min-width: 0; height: auto;
+  right: 2px; bottom: 2px;
+  padding: 1px 3px; border-radius: 3px;
+  background: var(--cd-c);
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.75), 0 0 7px color-mix(in srgb, var(--cd-c) 55%, transparent);
+}
+.cd-badge.cd-b-count::before { content: none; }
+
+/* The TIER stamp sits ON THE OBJECT, not in the frame's letterbox (r267). A
+   floppy and a business card are centred bands inside their frame (r239), so a
+   badge pinned to the frame's corner floats in the dark gutter beside the
+   object. The gutter is half the leftover on each axis, so adding it to the
+   inset puts the stamp on the object's own corner at every tile size. --lbv /
+   --lbh are that leftover for each ratio; max(0px, ...) covers the axis that
+   does not letterbox in a given frame.
+
+   The COOLDOWN badge deliberately does NOT get this. cdPaint appends it to the
+   HOST - the tray chip, the card, the knack chip - not to the .reward-cell, so
+   these selectors cannot reach it, and it is a live status marker shared with
+   hosts that have no letterbox at all. Its home is the tile's corner. */
+.reward-cell.entity-trick    { --lbv: max(0px, (100cqh - 100cqw * 19 / 20) / 2);
+                               --lbh: max(0px, (100cqw - 100cqh * 20 / 19) / 2); }
+.reward-cell.entity-sleight  { --lbv: max(0px, (100cqh - 100cqw / 1.37) / 2);
+                               --lbh: max(0px, (100cqw - 100cqh * 1.37) / 2); }
+.reward-cell.entity-trick    > .rwd-tier,
+.reward-cell.entity-sleight  > .rwd-tier { right: calc(2px + var(--lbh)); top: calc(2px + var(--lbv)); }
+.cd-badge.cd-b-count .cd-num { color: #f6f2ff; text-shadow: 0 1px 2px rgba(0,0,0,0.8); }
+
 .cd-b-primed { animation: cd-primed-pulse 1.5s ease-in-out infinite; }
 @keyframes cd-primed-pulse {
   0%, 100% { box-shadow: 0 0 0 1px rgba(0,0,0,0.75), 0 0 6px color-mix(in srgb, var(--cd-c) 45%, transparent); }

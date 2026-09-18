@@ -1,4 +1,4 @@
-const BUILD = "2026-09-18 · r266 · tier-badge-preview.html: +N vs vN.0 vs gold bands";
+const BUILD = "2026-09-18 · r267 · tier reads v2.0, priming reads +2";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

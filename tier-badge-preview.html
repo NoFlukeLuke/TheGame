@@ -34,16 +34,15 @@ html,body{ margin:0; padding:0; background:#0f0d09 !important; }
 #pv .frame > .reward-cell{ width:100%; height:100%; padding:3px 2px 4px; }
 
 /* ══════════════════════════════════════════════════════════════════════════
-   OPTION B - a brass vN.0 plate. The same corner as today's +N, reworded and
-   taken off the rarity colour so it reads as a version stamped on the object
-   rather than as a live count of something.
+   OPTION B - the PRE-r267 badge, kept so the change is a visible delta rather
+   than a memory: +N in the rarity colour, at the frame's corner.
    ══════════════════════════════════════════════════════════════════════════ */
 .reward-cell .rwd-ver{
   position:absolute; right:2px; top:2px; z-index:7;
   font-family:'Share Tech Mono',monospace; font-size:max(7px,15cqw); line-height:1;
   padding:1px 3px; border-radius:2px; pointer-events:none;
-  color:#2a2008; background:linear-gradient(#f4dc9a,#c99c3a);
-  border:1px solid rgba(0,0,0,.5); box-shadow:0 1px 2px rgba(0,0,0,.6);
+  color:#0d1117; background:var(--rc,#8fd6a8);
+  border:1px solid rgba(0,0,0,.4); box-shadow:0 0 5px var(--rc,#8fd6a8);
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
@@ -71,8 +70,10 @@ html,body{ margin:0; padding:0; background:#0f0d09 !important; }
 <main id="pv">
 <h1>IMPROVEMENT TIER &middot; THREE WAYS</h1>
 <div class="note">
-  <b>A</b> &mdash; what ships today: <b>+N</b>, rarity-coloured, top right (r206).<br>
-  <b>B</b> &mdash; a brass <b>vN.0</b> plate in the same corner.<br>
+  <b>A</b> &mdash; what ships today (r267): a brass <b>vN.0</b> stamp, pinned to the object's own
+  top-right corner. Drawn by the real <code>.rwd-tier</code> rule, so this IS the game's.<br>
+  <b>B</b> &mdash; what it replaced: <b>+N</b> in the rarity colour, at the frame's corner (r206).
+  Kept for comparison; <b>+N</b> now means PRIMED, in violet, bottom right.<br>
   <b>C</b> &mdash; <b>gold bands</b> across a corner, one thin 45&deg; line per tier. No number to read.<br>
   Frames are the real ones: 40&times;53 landscape tray &middot; 47&times;64 portrait tray &middot; 57&times;76 reward grid &middot; 119&times;158 shop.
 </div>
@@ -87,8 +88,8 @@ html,body{ margin:0; padding:0; background:#0f0d09 !important; }
   <div><label>BAND PITCH <span id="pv2">7</span>%</label><input type="range" id="pitch" min="4" max="14" step="0.5" value="7"></div>
 </div>
 
-<div class="sec"><h2>A &mdash; +N pill <small>(shipping today)</small></h2><div class="row" id="rowA"></div></div>
-<div class="sec"><h2>B &mdash; vN.0 plate</h2><div class="row" id="rowB"></div></div>
+<div class="sec"><h2>A &mdash; vN.0 stamp <small>(shipping today, r267)</small></h2><div class="row" id="rowA"></div></div>
+<div class="sec"><h2>B &mdash; the old +N pill <small>(r206, replaced)</small></h2><div class="row" id="rowB"></div></div>
 <div class="sec"><h2>C &mdash; gold bands</h2><div class="row" id="rowC"></div></div>
 <div class="sec"><h2>C &mdash; the whole ladder, at portrait tray size</h2><div class="row" id="rowL"></div></div>
 </main>
@@ -120,8 +121,8 @@ function bands(n, corner, pitch){
 
 function tile(opt, size, kind, rar, n, corner, pitch, cap){
   let extra = '';
-  if (opt === 'A' && n > 0) extra = `<div class="rwd-tier">+${n}</div>`;
-  if (opt === 'B' && n > 0) extra = `<div class="rwd-ver">v${n}.0</div>`;
+  if (opt === 'A' && n > 0) extra = `<div class="rwd-tier">v${n}.0</div>`;
+  if (opt === 'B' && n > 0) extra = `<div class="rwd-ver">+${n}</div>`;
   if (opt === 'C') extra = bands(n, corner, pitch);
   return `<div class="slot"><div class="frame ${size}">`
        + `<div class="reward-cell entity entity-${kind} rar-${rar}">${inner(kind)}${extra}</div>`

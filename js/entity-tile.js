@@ -24,7 +24,11 @@ function entityTileInner(p, { mystery = false } = {}) {
   // needs the entity's id, which a caller may not pass - absent id, no badge,
   // which is the right answer for a resource or debuff tile anyway.
   const _tier = (p.id && typeof entityTierOf === 'function') ? entityTierOf(p.id) : 0;
-  const tierBadge = _tier > 0 ? `<div class="rwd-tier" title="Improved ${_tier}x">+${_tier}</div>` : '';
+  // A VERSION STAMP, not a count (r267). It used to read `+2`, which is the
+  // shape every live count in the game uses - and priming now owns `+N` on the
+  // opposite corner, so two different meanings would have worn one costume.
+  // `v2.0` reads as a property of the object; `+2` reads as something pending.
+  const tierBadge = _tier > 0 ? `<div class="rwd-tier" title="Improved ${_tier}x">v${_tier}.0</div>` : '';
 
   if (kind === 'knack')
     return `<div class="rwd-diamond"><span class="rwd-diamond-emoji">${p.emoji || p.icon || '♛'}</span></div>` + name + tierBadge;
