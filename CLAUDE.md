@@ -1579,6 +1579,53 @@ named directly:
 
 Verified at 1440x820 and 420x820: 24 and 25 tiles, zero names overflowing.
 
+### The schedule takes a PEN and a LEGEND (r263) - `js/map-draw.js`
+
+Two things you can do to the schedule without changing it.
+
+**The pen.** A canvas over the board, inside `#grid`. **Right-drag draws, with
+no mode to enter**; **double right-click cycles the colour**; the cursor becomes
+a pen IN THAT COLOUR. The bar carries a pen chip (finger mode), a colour
+swatch, and undo / clear once there is ink.
+
+- **The layer is `pointer-events: none` by default**, which is the whole reason
+  a right-drag still works over a tile - and circling a tile is exactly what
+  you want to do. The events are taken on **`#grid`**, which is emptied by
+  every `mapRender` but never replaced, so one binding outlives every render.
+  Only the finger mode (`.pen-on`) makes the canvas take taps, and then it
+  swallows tile clicks wholesale rather than needing a guard in `mapTileTap`.
+- **THE CANVAS IS MOUNTED FROM THE END OF `mapRender`.** It is a child of
+  `#grid`, so it is wiped with the tiles; the STROKES live in
+  `mapDrawStrokes` and are repainted onto the new canvas.
+- **Strokes are NORMALISED to the grid box** (0..1), so they survive a render,
+  an orientation flip and a save. They are in `SAVE_VARS` with `mapPenColor`,
+  and `mapResetBoard` clears them - the ink belongs to that map.
+- **The cabinet's `zoom` means a rect is NOT the element's own px.**
+  `_mapDrawAdd` divides the pointer delta by `rect.width / offsetWidth`; the
+  r160 Trick-fan trap, and here it would put the ink at the wrong scale.
+- **THE DOUBLE-CLICK WINDOW IS STAMPED BY A CLICK, NEVER BY A DRAG.** Stamping
+  it on pointer DOWN meant a click just after a quick circle read as the second
+  half of a pair and cycled the colour instead of drawing. It is stamped at
+  pointer UP, and only when the stroke never moved. The dot the first click of
+  a real pair leaves is popped back off when the second lands.
+
+**The legend** (the `▤` chip) lists only the kinds actually on this schedule,
+in `MAP_KIND_META` order, each with the `blurb` field that table now carries.
+Hovering a row lights those obligations and drops everything else, Slay the
+Spire's move; tapping one **latches** it (`mapLegendLatch`) so it survives the
+pointer leaving the row, and tapping again releases.
+
+- It reuses `.mb-help` wholesale, so it cannot drift from the ? card in
+  placement - above the strip, never inside it (r255's reason).
+- The highlight is written straight onto the live tiles (`mt-lit` / `mt-dim`),
+  with no render, so it cannot disturb a selection or replay the deal-in. The
+  dim carries `!important` because an unreachable tile is already at 0.55.
+- **Verified in a real browser at 1440x820 and 420x820**: right-drag lays a
+  stroke (18 points, 396 inked pixels after a re-render), a double right-click
+  cycles the colour and takes the dot back, pen mode draws on a left drag and
+  takes no tile with it, a left click with the pen off still selects, the
+  legend lights 3 of 25 tiles and the card lands fully on screen in both.
+
 ### The map bar is one strip, and the rules live behind a ? (r255)
 
 Owner: the bar was *"too large and persistent, and doesn't feel especially on

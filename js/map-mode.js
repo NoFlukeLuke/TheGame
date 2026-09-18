@@ -126,6 +126,7 @@ function mapResetBoard() {
   mapBossArmed = false; mapPosTileId = null;
   mapScreenOpen = false; mapSelected = null; mapLastWasChallenge = false;
   mapBossGoal = mapQuarterBossGoal();
+  if (typeof mapDrawStrokes !== 'undefined') { mapDrawStrokes = []; mapPenOn = false; }
   if (mapActive()) mapGenerate();
 }
 
@@ -161,14 +162,22 @@ function mapCellSolid(lane, set) {           // a real, steppable tile lives her
 // name in full, shown beside it in the bar and in the tile's hover tooltip.
 // Schedule vocabulary (r261): an obligation is a piece of work on your day.
 const MAP_KIND_META = {
-  level:      { icon: '▶', name: 'ACCOUNT',   full: 'Client Account',   cls: 'mk-level' },
-  challenge:  { icon: '⚠', name: 'PRIORITY',  full: 'Priority Account', cls: 'mk-challenge' },
-  shop:       { icon: '🛒', name: 'MART',      full: 'LETHE Mart',       cls: 'mk-shop' },
-  reward:     { icon: '▦', name: 'INCENTIVE', full: 'Incentive Program', cls: 'mk-reward' },
-  event:      { icon: '✧', name: 'MEETING',   full: 'Meeting',          cls: 'mk-event' },
-  limitbreak: { icon: '▲', name: 'RAISE',     full: 'Raise Request',    cls: 'mk-limit' },
-  blank:      { icon: '',  name: '',          full: 'Not scheduled',    cls: 'mk-blank' },
-  boss:       { icon: '☠', name: 'REVIEW',    full: 'Manager Review',   cls: 'mk-boss' },
+  level:      { icon: '▶', name: 'ACCOUNT',   full: 'Client Account',   cls: 'mk-level',
+                blurb: 'An ordinary round. Clear it and take a pick of three.' },
+  challenge:  { icon: '⚠', name: 'PRIORITY',  full: 'Priority Account', cls: 'mk-challenge',
+                blurb: 'A round with a raised goal and one extra ask. Pays credits and a knack.' },
+  shop:       { icon: '🛒', name: 'MART',      full: 'LETHE Mart',       cls: 'mk-shop',
+                blurb: 'The company store. Spend credits on anything on the shelves.' },
+  reward:     { icon: '▦', name: 'INCENTIVE', full: 'Incentive Program', cls: 'mk-reward',
+                blurb: 'A board of rewards. Pick a connected path across it.' },
+  event:      { icon: '✧', name: 'MEETING',   full: 'Meeting',          cls: 'mk-event',
+                blurb: 'One screen, one decision. The tile names which.' },
+  limitbreak: { icon: '▲', name: 'RAISE',     full: 'Raise Request',    cls: 'mk-limit',
+                blurb: 'Raise a limit, or trade one away for credits.' },
+  blank:      { icon: '',  name: '',          full: 'Not scheduled',    cls: 'mk-blank',
+                blurb: 'Nothing booked there, and no way through it.' },
+  boss:       { icon: '☠', name: 'REVIEW',    full: 'Manager Review',   cls: 'mk-boss',
+                blurb: 'The end of the schedule, on its own quota.' },
 };
 
 function mapTileFace(t) {
@@ -678,6 +687,11 @@ function mapRender(animateIn) {
   };
 
   mapTiles.forEach(drawTile);
+
+  // The pen's canvas is a CHILD of #grid, which this function just emptied, so
+  // it is put back here; the strokes themselves live in mapDrawStrokes and are
+  // repainted onto it (js/map-draw.js).
+  if (typeof mapDrawMount === 'function') mapDrawMount(gridEl);
 }
 
 function mapTileTap(t) {
@@ -720,34 +734,73 @@ function mapRenderBar() {
   const visits = mapPos
     ? `${mapFreeBranch ? mapVisitsInSet(mapPos.set) : mapVisits}/2${mapFreeBranch ? ' FREE' : ''}`
     : 'PICK A START';
+  const inked = (typeof mapDrawStrokes !== 'undefined') && mapDrawStrokes.length > 0;
   bar.innerHTML =
     `<span class="mb-set">SLOT ${setNo}/${MAP_SETS}</span>` +
     `<span class="mb-visits">${visits}</span>` +
     `<button class="mb-q" id="mb-q" title="How the schedule works">?</button>` +
+    `<button class="mb-q" id="mb-key" title="What the obligations are">▤</button>` +
+    `<button class="mb-q mb-pen${mapPenOn ? ' on' : ''}" id="mb-pen" ` +
+      `title="Draw on the schedule (right-drag works without this; double right-click changes colour)">✎</button>` +
+    `<button class="mb-q mb-sw" id="mb-pen-sw" title="Pen colour"><i id="mb-sw-dot"></i></button>` +
+    (inked ? `<button class="mb-q" id="mb-undo" title="Undo the last stroke">↶</button>` +
+             `<button class="mb-q" id="mb-wipe" title="Clear all ink">✕</button>` : '') +
     `<span class="mb-info" id="mb-info"></span>` +
     `<span class="mb-skip">SKIP ${skipNext}</span>` +
     `<span class="mb-coins">${coins} ◆</span>` +
     `<button id="mb-confirm" disabled>CONFIRM</button>` +
     `<div class="mb-help" id="mb-help">` +
       MAP_HELP.map(([k, v]) => `<div class="mb-hrow"><b>${k}</b><span>${v}</span></div>`).join('') +
+    `</div>` +
+    `<div class="mb-help" id="map-legend">` +
+      (typeof mapLegendRows === 'function' ? mapLegendRows().map(r =>
+        `<div class="ml-row ${r.cls}" data-cls="${r.cls}">` +
+          `<span class="ml-chip">${r.icon}</span>` +
+          `<b>${r.name || r.full}</b><span class="ml-txt">${r.blurb}</span>` +
+        `</div>`).join('') : '') +
     `</div>`;
   bar.classList.add('show');
   const btn = document.getElementById('mb-confirm');
   btn.onclick = () => mapConfirm();
   btn.disabled = !mapSelected;
-  document.getElementById('mb-q').onclick = (e) => {
+  // One card open at a time, and a one-shot outside-click close armed only
+  // while one IS open - a standing document listener on a bar that is rebuilt
+  // every render would stack one copy per render.
+  const cardToggle = (id, onClose) => (e) => {
     e.stopPropagation();
-    const h = document.getElementById('mb-help');
+    const h = document.getElementById(id);
     if (!h) return;
+    bar.querySelectorAll('.mb-help').forEach(c => { if (c !== h) c.classList.remove('show'); });
     const open = h.classList.toggle('show');
-    // One-shot outside-click close, armed only while it is open - a standing
-    // document listener on a bar that is rebuilt every render would stack up.
+    if (!open && onClose) onClose();
     if (open) setTimeout(() => document.addEventListener('click', function off(ev) {
       if (bar.contains(ev.target)) return;
       h.classList.remove('show');
+      if (onClose) onClose();
       document.removeEventListener('click', off);
     }), 0);
   };
+  document.getElementById('mb-q').onclick = cardToggle('mb-help');
+  document.getElementById('mb-key').onclick = cardToggle('map-legend', () => mapLegendHighlight(null, null));
+  document.getElementById('mb-pen').onclick = () => mapPenToggle();
+  document.getElementById('mb-pen-sw').onclick = () => mapPenCycle();
+  const undoBtn = document.getElementById('mb-undo');
+  if (undoBtn) undoBtn.onclick = () => mapDrawUndo();
+  const wipeBtn = document.getElementById('mb-wipe');
+  if (wipeBtn) wipeBtn.onclick = () => mapDrawClear();
+  // A legend row lights its own kind on the board and drops everything else.
+  // Hover for a mouse, tap for a finger; the tap latches so it can be read.
+  bar.querySelectorAll('#map-legend .ml-row').forEach(row => {
+    const cls = row.dataset.cls;
+    row.onmouseenter = () => mapLegendHighlight(cls);
+    row.onmouseleave = () => mapLegendHighlight(null);
+    row.onclick = (e) => {
+      e.stopPropagation();
+      const next = (mapLegendLatch === cls) ? null : cls;   // tap again to release
+      mapLegendHighlight(next, next);
+    };
+  });
+  if (typeof mapPenSyncChrome === 'function') mapPenSyncChrome();
   if (mapSelected) { const t = mapTiles.find(x => x.id === mapSelected); if (t) mapBarInfo(t, mapMoveFor(mapSelected)); }
   // The x/y selection readout hides on the map (r255), and nothing else repaints
   // it while the map is up - the class goes on without a render behind it.
@@ -774,6 +827,7 @@ function mapBarInfo(t, move) {
 function mapCloseScreen() {
   mapScreenOpen = false;
   mapSelected = null;
+  if (typeof mapLegendHighlight === 'function') mapLegendHighlight(null, null);
   document.getElementById('map-bar')?.classList.remove('show');
   document.body.classList.remove('map-active');
   if (typeof updateSelectionUI === 'function') updateSelectionUI();

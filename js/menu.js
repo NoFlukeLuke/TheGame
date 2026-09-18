@@ -1,4 +1,4 @@
-const BUILD = "2026-09-17 · r262 · schedule vocabulary for the obligations themselves: ACCOUNT, PRIORITY, MART, INCENTIVE, MEETING, RAISE";
+const BUILD = "2026-09-18 · r263 · the schedule takes a pen (right-drag to draw, double right-click for colour) and a legend that lights its own obligations";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
