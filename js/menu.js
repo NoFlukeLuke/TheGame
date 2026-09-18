@@ -1,4 +1,4 @@
-const BUILD = "2026-09-18 · r277 · fan already stacks right-over-left; bands visible";
+const BUILD = "2026-09-18 · r277 · the tray fan stops restyling the tile; stamp top-left";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

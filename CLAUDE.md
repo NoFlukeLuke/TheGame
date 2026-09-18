@@ -1994,14 +1994,38 @@ alone**; a card has no shutter. `entityTierClass` accepts `sleight` now.
 owner's plan is stamps with coloured backgrounds), so guessing one would be a
 third vocabulary to unpick later.
 
-**The landscape tray fan does NOT hide the bands** (measured r276, correcting an
-r275 note that said it did). `fanTrickTray` sets `--fan-z` ascending, so the tile
-to the RIGHT sits above the tile to its left: the covered strip is each tile's
-RIGHT edge, and the bottom-LEFT corner is always in view. Measured at 1440x820
-with 6 Tricks: width 110, pitch 82, so 28px of the right edge is covered and 82px
-including the whole band corner is visible. What the fan DOES clip is the `vN.0`
-stamp, which is pinned top-right - on every tile but the newest it reads `v1.` or
-`v2`. The bands say the same number, so nothing is lost.
+**The tier stamp sits TOP-LEFT (r277).** Top-right was the only free corner on
+the PRE-r228 tile; on the object both `.rwd-glyph` and `.rwd-tab` are
+`display:none`, so the left corner is free - and the landscape fan tucks each
+tile under the next from the RIGHT, which was clipping the stamp to `v1.` on
+every tile but the newest. The bands are unaffected either way: `fanTrickTray`
+sets `--fan-z` ascending, so the covered strip is each tile's RIGHT edge and the
+bottom-left corner is always in view (measured r276 at 1440x820, 6 Tricks: width
+110, pitch 82, so 28px covered and 82px visible).
+
+### The tray fan may not RESTYLE the tile (r277)
+
+Owner: *"the tricks have weird card like borders and the emoji goes into the
+corner weird ... I thought we made all tricks consistent in appearance no matter
+where they are."*
+
+They were, everywhere except the PORTRAIT tray, which still carried a block of
+r160/r171 overrides written against the pre-r228 chip and never revisited when
+the object landed. Each line fought the floppy disc:
+
+| the override | what it did to the object |
+|---|---|
+| an extra `box-shadow` on every tucked tile | a plastic ring and rarity glow AROUND the disc - the "card like border" |
+| `align-items:flex-start` + padding on the cell | the label's contents pulled off the label |
+| `.rwd-art { position: static }` at 23px | the emoji out of the label and into the tile's corner |
+| `.rwd-name`/`.rwd-glyph { display:none }` | the disc lost its label text |
+| `.rwd-art`/`.rwd-name` fixed px, both trays | fought r239's `cqw`, so the type drifted per surface |
+
+All of it is gone. **A fan tucks tiles; it does not redraw them.** A tucked tile
+shows the left part of the real object, which is what the landscape fan has
+always done. Verified in a real browser at 420x900 and 1440x820: five Tricks at
+tiers 1-5, emoji on the label, names present, no ring, and every `vN.0` stamp
+fully readable.
 
 Dev panel -> **Improve**: every owned entity with its tier and what one more would read as,
 plus improve-a-random-one per type and a reset.

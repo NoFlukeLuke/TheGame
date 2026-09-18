@@ -878,32 +878,16 @@
     z-index: var(--fan-z, 1);   /* set per tile so later ones sit on top */
     width: 47px; height: 64px; padding: 0; border: none; background: none; box-shadow: none;
   }
-  /* Overlapping tiles need a dark edge or the fan reads as one smeared block. */
-  #stage:not(.landscape) #trick-tray-list.fanned .trick-tray-chip + .trick-tray-chip > .reward-cell {
-    box-shadow: -3px 0 5px -1px rgba(0,0,0,0.75),
-                0 0 0 2px var(--plastic-lo), 0 0 8px -1px var(--rc), inset 0 0 12px -4px var(--rc);
-  }
-  /* A tucked tile only shows a strip of its LEFT edge. r171: the emoji KEEPS ITS
-     FULL SIZE and is simply left-aligned, so the visible strip shows the left
-     part of a full-size icon and the tile's own overflow:hidden clips the rest -
-     the way a fanned hand of real cards shows part of a full-size index. The
-     previous version shrank every tucked emoji to 13px, which made every Trick
-     but the newest one look like a different, tinier object (owner's report).
-     The name has no room in a strip and is still dropped. */
-  #stage:not(.landscape) #trick-tray-list.fanned .trick-tray-chip:not(:last-child) > .reward-cell {
-    justify-content: center; align-items: flex-start; padding: 2px 0 3px 3px;
-  }
-  #stage:not(.landscape) #trick-tray-list.fanned .trick-tray-chip:not(:last-child) .rwd-art {
-    position: static; font-size: 23px; margin: 0; line-height: 1; flex: 0 0 auto;
-  }
-  #stage:not(.landscape) #trick-tray-list.fanned .trick-tray-chip:not(:last-child) .rwd-name,
-  #stage:not(.landscape) #trick-tray-list.fanned .trick-tray-chip:not(:last-child) .rwd-glyph { display: none; }
-  /* Font size only. `top` on .rwd-art was a per-surface copy of one assumption
-     about the pre-r228 tile; the floppy and the business card own where their
-     emoji sits, and .rwd-art is emitted for nothing else. */
-  #stage:not(.landscape) #trick-tray-list .trick-tray-chip .rwd-art   { font-size: 21px; }
-  #stage:not(.landscape) #trick-tray-list .trick-tray-chip .rwd-glyph { font-size: 8px; top: 3px; }
-  #stage:not(.landscape) #trick-tray-list .trick-tray-chip .rwd-name  { font-size: 7px; letter-spacing: 0; }
+  /* r277: THE FAN NO LONGER RESTYLES THE TILE. Everything that used to sit
+     here - an extra plastic ring and rarity glow on every tucked tile, the
+     emoji pulled out of the label and left-aligned at the tile's corner, the
+     name hidden - was written in r160/r171 against the PRE-r228 chip, and each
+     line fought the floppy disc the object rule draws. The result in portrait
+     was a card-like border around a disc and an emoji sitting in the corner
+     rather than on the label. A tucked tile now simply shows the left part of
+     the real object, which is what the landscape fan has always done.
+     Per-surface font sizes are gone too: r239 scales the object's type with the
+     object (cqw), so a fixed px here is the same drift in a second costume. */
   /* Rarity colours are only assigned under .landscape, so portrait chips had no
      --rc at all and fell back to the plain border. Assign them here too. */
   #stage:not(.landscape) .trick-tray-chip.rar-common    { --rc: var(--c-mint); }
@@ -4946,9 +4930,8 @@
   #stage.landscape .trick-tray-chip:hover > .reward-cell {
     box-shadow: 0 0 0 2px var(--plastic-lo), 0 0 14px 0 var(--rc), inset 0 0 12px -4px var(--rc);
   }
-  #stage.landscape .trick-tray-chip .rwd-art   { font-size: 22px; }
-  #stage.landscape .trick-tray-chip .rwd-glyph { font-size: 9px; top: 4px; }
-  #stage.landscape .trick-tray-chip .rwd-name  { font-size: 7px; letter-spacing: 0.2px; }
+  /* No per-surface type sizes: r239 scales the object's own type with the
+     object, so a fixed px here only drifts from every other surface. */
 
   /* ── Horizontal auto-scroll marquee track (knacks always; tricks on overflow) ── */
   .chip-marquee { display: flex; flex-direction: row; align-items: center; flex: 0 0 auto; gap: 5px; }
@@ -5417,7 +5400,12 @@ body.reduced-motion .efx-hit { animation-duration: 1ms; }
 .reward-cell.entity-trick.tier-5 { --shut: linear-gradient(120deg,#ff6ec7 0%,#ffd86e 18%,#6effa8 36%,#6ed8ff 54%,#a06eff 72%,#ff6ec7 90%,#ffd86e 100%); }
 
 .reward-cell .rwd-tier{
-  position:absolute; right:2px; top:2px; z-index:7;
+  /* TOP-LEFT since r277. Top-right was the only free corner on the PRE-r228
+     tile; on the object both .rwd-glyph and .rwd-tab are display:none, so the
+     left corner is free - and the landscape tray fan tucks each tile under the
+     next from the RIGHT, which was clipping the stamp to "v1." on every tile
+     but the newest. */
+  position:absolute; left:2px; top:2px; z-index:7;
   font-family:'Share Tech Mono',monospace; font-size:max(7px,15cqw); line-height:1;
   padding:1px 3px; border-radius:2px; pointer-events:none; white-space:nowrap;
   color:#2a2008; background:linear-gradient(#f4dc9a,#c99c3a);
