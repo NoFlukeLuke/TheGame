@@ -3448,6 +3448,8 @@
      its left edge at L% and width W% sits at position-x L/(100-W)*100%. */
   .reward-cell.entity-trick {
     --body: color-mix(in srgb, var(--rc) 72%, #1b1813);
+    /* The shutter's default material: DULL GREY = unimproved (r274). */
+    --shut: linear-gradient(180deg, #9c9c98 0%, #72726f 50%, #8a8a87 100%);
     clip-path: none;
     background: none; border: none; box-shadow: none;
     justify-content: center;
@@ -3469,13 +3471,14 @@
     clip-path: polygon(0 0, 84% 0, 100% 16.8%, 100% 100%, 0 100%);
     background:
       /* the shutter's punched window */
-      linear-gradient(#24272c, #24272c) no-repeat 49.6% 12% / 18.9% 21.1%,
-      /* the metal shutter */
-      linear-gradient(180deg, #e6e9ee 0%, #9aa0a8 52%, #cfd4da 100%)
-        no-repeat 60% 6.5% / 45% 31%,
+      linear-gradient(#1b1e22, #1b1e22) no-repeat 55.2% 12% / 18.9% 21.1%,
+      /* the metal shutter - its MATERIAL is the improvement tier (r274) */
+      var(--shut) no-repeat 71.7% 7% / 54% 36%,
       /* the cream label plate */
       linear-gradient(rgba(244,238,218,0.94), rgba(244,238,218,0.94))
         no-repeat 50% 82% / 86% 50%,
+      /* the tier BANDS - see below. Under the label on purpose. */
+      var(--bands, none),
       var(--body);
     /* The clip eats an outer border, so the rarity edge is painted inside. */
     box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--rc) 55%, #000);
@@ -5343,6 +5346,65 @@ body.reduced-motion .efx-hit { animation-duration: 1ms; }
    it in --rc made the one permanent property of the object look like its tier.
    Brass says "stamped on", and the type scales with the object (r239) so a 34px
    Records tile and a 119px shop tile draw the same picture. */
+
+/* ══════════════════════════════════════════════════════════════════════════
+   THE IMPROVEMENT TIER IS ON THE OBJECT (r274) - `tier-badge-preview.html`
+
+   A Trick's improvement tier is drawn as two things on the disc itself, so it
+   reads before any badge is: GOLD BANDS across the bottom-left corner, one per
+   tier, and the SHUTTER'S MATERIAL, which climbs dull grey -> bronze -> shiny
+   silver -> gold -> shiny black -> iridescent (5 and up).
+
+   BOTH ARE BACKGROUND LAYERS OF THE DISC'S ONE ::before, and that is forced
+   rather than chosen. The shell, shutter and label are already layers of that
+   pseudo (r239 - the chamfer clip-path cannot be shared with a second one), and
+   background layers paint FIRST-LISTED ON TOP. So slotting the bands after the
+   label puts them UNDER the label, the emoji and the name, which is what was
+   asked for. A child element could only ever paint above the whole object, and
+   a child at z-index -1 would fall below the opaque shell and vanish.
+
+   The label is 94% opaque, so the bands GHOST faintly through it rather than
+   disappearing - foil under paper, and what keeps them legible at 40px.
+
+   Every length is a PERCENTAGE of the gradient's axis, so the mark is the same
+   picture on a 34px Records tile and a 119px shop tile. The axis points out of
+   the bottom-left corner, so its bands run at 45 degrees ACROSS that corner -
+   the shape a folded corner makes.
+   ══════════════════════════════════════════════════════════════════════════ */
+.reward-cell.entity-trick.tier-1 { --bands: linear-gradient(to top right,
+  transparent 13%,#f2cf72 13%,#fff6d8 14.5%,#f2cf72 16%,transparent 16%); }
+.reward-cell.entity-trick.tier-2 { --bands: linear-gradient(to top right,
+  transparent 13%,#f2cf72 13%,#fff6d8 14.5%,#f2cf72 16%,transparent 16%,
+  transparent 21%,#f2cf72 21%,#fff6d8 22.5%,#f2cf72 24%,transparent 24%); }
+.reward-cell.entity-trick.tier-3 { --bands: linear-gradient(to top right,
+  transparent 13%,#f2cf72 13%,#fff6d8 14.5%,#f2cf72 16%,transparent 16%,
+  transparent 21%,#f2cf72 21%,#fff6d8 22.5%,#f2cf72 24%,transparent 24%,
+  transparent 29%,#f2cf72 29%,#fff6d8 30.5%,#f2cf72 32%,transparent 32%); }
+.reward-cell.entity-trick.tier-4 { --bands: linear-gradient(to top right,
+  transparent 13%,#f2cf72 13%,#fff6d8 14.5%,#f2cf72 16%,transparent 16%,
+  transparent 21%,#f2cf72 21%,#fff6d8 22.5%,#f2cf72 24%,transparent 24%,
+  transparent 29%,#f2cf72 29%,#fff6d8 30.5%,#f2cf72 32%,transparent 32%,
+  transparent 37%,#f2cf72 37%,#fff6d8 38.5%,#f2cf72 40%,transparent 40%); }
+.reward-cell.entity-trick.tier-5 { --bands: linear-gradient(to top right,
+  transparent 13%,#f2cf72 13%,#fff6d8 14.5%,#f2cf72 16%,transparent 16%,
+  transparent 21%,#f2cf72 21%,#fff6d8 22.5%,#f2cf72 24%,transparent 24%,
+  transparent 29%,#f2cf72 29%,#fff6d8 30.5%,#f2cf72 32%,transparent 32%,
+  transparent 37%,#f2cf72 37%,#fff6d8 38.5%,#f2cf72 40%,transparent 40%,
+  transparent 45%,#f2cf72 45%,#fff6d8 46.5%,#f2cf72 48%,transparent 48%); }
+
+/* The shutter's material. One gradient each, and what sells which metal it is
+   is the RUN OF THE HIGHLIGHT rather than the hue: bronze and gold go warm-dark
+   to warm-light, silver carries a hard white edge, black keeps a cold rim so it
+   does not read as a hole punched in the disc. Verified legible at all four
+   real frames - 40px landscape tray, 47px portrait tray, 57px reward grid,
+   119px shop. `tier-5` is the CAP: js/entity-tile.js clamps, so tier 6 and up
+   stay iridescent and the ladder's length is this list's length. */
+.reward-cell.entity-trick.tier-1 { --shut: linear-gradient(170deg,#eec08d 0%,#b87333 34%,#7a4a1e 62%,#d9975a 100%); }
+.reward-cell.entity-trick.tier-2 { --shut: linear-gradient(170deg,#ffffff 0%,#cfd8e2 26%,#79838f 54%,#eef4fa 72%,#aab3bd 100%); }
+.reward-cell.entity-trick.tier-3 { --shut: linear-gradient(170deg,#fff0bd 0%,#e3ba50 30%,#a67c14 58%,#f6dd8e 100%); }
+.reward-cell.entity-trick.tier-4 { --shut: linear-gradient(170deg,#8b929b 0%,#1b1f25 28%,#05070a 52%,#39414b 74%,#9aa2ac 100%); }
+.reward-cell.entity-trick.tier-5 { --shut: linear-gradient(120deg,#ff6ec7 0%,#ffd86e 18%,#6effa8 36%,#6ed8ff 54%,#a06eff 72%,#ff6ec7 90%,#ffd86e 100%); }
+
 .reward-cell .rwd-tier{
   position:absolute; right:2px; top:2px; z-index:7;
   font-family:'Share Tech Mono',monospace; font-size:max(7px,15cqw); line-height:1;

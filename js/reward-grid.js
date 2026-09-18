@@ -1134,6 +1134,9 @@ function renderRewardTiles(animateIn = false) {
         p.entity ? 'entity' : '',
         p.entity ? 'entity-' + p.entity : '',
         p.entity ? 'rar-' + rewardRarity(p) : '',
+        // The improvement tier's bands + shutter material (r274). This surface
+        // builds its own cell from entityTileInner, so it adds the class itself.
+        p.entity ? entityTierClass(p) : '',
         isSel   ? 'selected'    : '',
         !isSel && canSel  ? 'selectable'  : '',
         !isSel && !canSel ? 'unselectable': '',

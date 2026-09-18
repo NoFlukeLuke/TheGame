@@ -1894,6 +1894,49 @@ costume, so they were separated by SHAPE, COLOUR and CORNER:
 Verified in a real browser at 1440x820: `v2.0` / `v5.0` on the disc, `+2` / `+3` in
 violet, and a Trick carrying only `_rank` reading `+3` where it used to read nothing.
 
+### The tier is ON THE OBJECT too (r274) - bands and a shutter material
+
+The `v2.0` stamp says the number; the DISC now says it without one. A Trick's
+improvement tier is drawn as **gold bands across the bottom-left corner, one per
+tier**, and as **the shutter's material**, which climbs:
+
+| tier | 0 | 1 | 2 | 3 | 4 | 5 and up |
+|---|---|---|---|---|---|---|
+| shutter | dull grey | bronze | shiny silver | gold | shiny black | iridescent |
+
+- **BOTH ARE BACKGROUND LAYERS OF THE DISC'S ONE `::before`, and that is forced,
+  not chosen.** The shell, shutter and label are already layers of that pseudo
+  (r239 - the chamfer clip-path cannot be shared with a second one), and
+  background layers paint **first-listed on top**. So slotting the bands AFTER
+  the label puts them **under the label, the emoji and the name**, which is the
+  owner's spec. A child element could only ever paint above the whole object,
+  and a child at `z-index: -1` would fall below the opaque shell and vanish.
+- **The label is 94% opaque, so the bands GHOST faintly through it** rather than
+  disappearing - foil under paper, and what keeps them legible at 40px.
+- **The tier arrives as a CLASS on the `.reward-cell`, and it has to.** A custom
+  property set by a CHILD cannot reach the parent's `::before`. `entityTierClass(p)`
+  (js/entity-tile.js) is in `entityTileClass`, which covers every surface that
+  goes through `entityTileHTML` - and the **two that build their own cell from
+  `entityTileInner` call it directly**: the reward grid (`renderRewardTiles`) and
+  the Mart (`martItemHTML`). Miss either and that surface silently draws every
+  Trick unimproved.
+- **`TIER_ART_MAX` (5) clamps the class**, so the ladder's length is the
+  stylesheet's length and the cap is not written down twice. Verified: a Trick at
+  tier 7 draws `tier-5` (iridescent) and still stamps `v7.0`.
+- **The shutter grew** (45% -> 54% wide, 31% -> 36% tall) with the punched window
+  re-solved to stay centred on it. A background layer at left L% width W% sits at
+  `background-position-x: L/(100-W)*100%`, so neither number could be nudged.
+- **What sells which metal it is is the RUN OF THE HIGHLIGHT, not the hue**:
+  bronze and gold go warm-dark to warm-light, silver carries a hard white edge,
+  black keeps a cold rim so it does not read as a hole punched in the disc.
+- `tier-badge-preview.html` restates the same numbers over the real tile art and
+  has live sliders for the band pitch, thickness and corner. **It and the
+  stylesheet agree today; keep it that way** (r233's rule).
+
+Verified in a real browser: all six materials live in the tray at tiers 0-5, the
+bands counting up under each label, tier 7 clamped to iridescent, and the reward
+grid still building its 16 tiles.
+
 Dev panel -> **Improve**: every owned entity with its tier and what one more would read as,
 plus improve-a-random-one per type and a reset.
 

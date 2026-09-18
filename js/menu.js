@@ -1,4 +1,4 @@
-const BUILD = "2026-09-18 · r273 · preview: iridescent at 5+, and every material at every size";
+const BUILD = "2026-09-18 · r274 · the improvement tier is on the disc: gold bands + a shutter material";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
