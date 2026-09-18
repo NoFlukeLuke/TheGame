@@ -347,7 +347,9 @@ function renderTrickTray() {
     const dir = trick._tiltDir; // -1 left, +1 right, undefined = not aimed
     const tile = { entity: 'trick', id: trick.id, label: trick.name,
                    emoji: isMirror ? (dir === -1 ? '◀' : dir === 1 ? '▶' : '◆') : trickEmoji(trick) };
-    chip.innerHTML = entityTileHTML(tile, rar) + (bossOff ? `<div class="trick-off-mark">OFF</div>` : '');
+    // tip:false - the chip's own tap bubble (read + hold for sell/discard)
+    // already covers this tile; the delegated data-et bubble would double it.
+    chip.innerHTML = entityTileHTML(tile, rar, { tip: false }) + (bossOff ? `<div class="trick-off-mark">OFF</div>` : '');
     if (isMirror) {
       chip.classList.add('trick-mirror');
       chip.title = trick.name + ' - tap to aim left/right';
@@ -722,7 +724,7 @@ function onGameWin() {
   title.className   = 'victory';
 
   // The full run report - quarter by quarter, then the run totals (js/quarter.js).
-  // A won run has already closed all three quarters through rolloverQuarter.
+  // A won run has already closed every quarter through rolloverQuarter.
   document.getElementById('end-stats').innerHTML = runReportHTML();
   overlay.classList.add('show');
 }

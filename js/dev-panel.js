@@ -141,6 +141,7 @@ const DEV_GROUPS = [
   { g:'map',      icon:'🗺', label:'Map',       sub:() => mapFreeBranch ? 'free branch ON' : 'free branch off' },
   { g:'match3',   icon:'⬚', label:'Match-3',   sub:() => 'match types · sandbox' },
   { g:'spectrum', icon:'◐', label:'Spectrum',  sub:() => `${spectrumRanks().length} values × ${spectrumColors().length} colours` },
+  { g:'deck',     icon:'\u265B', label:'Deck',      sub:() => `${deckDesignRanks().length} ranks × ${deckCopiesPerRank} = ${deckDesignSize()} cards` },
   { g:'improve',  icon:'\u2191', label:'Improve',   sub:() => devImproveSub() },
   { g:'builds',   icon:'▤', label:'Builds',    sub:() => `${discoveredIds.size} records open` },
   { g:'log',      icon:'✎', label:'Event Log', sub:() => 'in-game debug log' },
@@ -167,6 +168,7 @@ function devOpenGroup(g) {
   document.getElementById('dev-group-pop-body').scrollTop = 0;
   if (g === 'seed') devRefreshSeed();
   if (g === 'spectrum') renderSpectrumDev();
+  if (g === 'deck') devRenderDeckDesign();
   if (g === 'goals') devRenderGoalPanel();
   if (g === 'improve') devRenderImprove();
 }

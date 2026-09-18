@@ -24,7 +24,11 @@ function entityTileInner(p, { mystery = false } = {}) {
   // needs the entity's id, which a caller may not pass - absent id, no badge,
   // which is the right answer for a resource or debuff tile anyway.
   const _tier = (p.id && typeof entityTierOf === 'function') ? entityTierOf(p.id) : 0;
-  const tierBadge = _tier > 0 ? `<div class="rwd-tier" title="Improved ${_tier}x">+${_tier}</div>` : '';
+  // A VERSION STAMP, not a count (r267). It used to read `+2`, which is the
+  // shape every live count in the game uses - and priming now owns `+N` on the
+  // opposite corner, so two different meanings would have worn one costume.
+  // `v2.0` reads as a property of the object; `+2` reads as something pending.
+  const tierBadge = _tier > 0 ? `<div class="rwd-tier" title="Improved ${_tier}x">v${_tier}.0</div>` : '';
 
   if (kind === 'knack')
     return `<div class="rwd-diamond"><span class="rwd-diamond-emoji">${p.emoji || p.icon || '♛'}</span></div>` + name + tierBadge;
@@ -49,17 +53,86 @@ function entityTileInner(p, { mystery = false } = {}) {
   return `<div class="reward-icon">${p.icon || p.emoji || '▲'}</div>` + name;
 }
 
+// The improvement tier as a CLASS (r274). The disc draws its bands and its
+// shutter material from it (css/style.css) - see that block for why both have
+// to be background layers rather than elements.
+//
+// CLAMPED at TIER_ART_MAX: 5 and up are iridescent, so the ladder's length is
+// the stylesheet's length and nothing here has to know the cap twice.
+//
+// It has to land on the .reward-cell ITSELF, because a custom property set by
+// a child cannot reach the parent's ::before. Most surfaces get it through
+// entityTileClass below; the two that build their own cell from
+// entityTileInner - the reward grid and the Mart - call this directly.
+const TIER_ART_MAX = 5;
+function entityTierClass(p) {
+  const kind = p && (p.entity || p.type);
+  // Tricks AND Sleights (r275): the disc and the business card both draw the
+  // bands. A Knack has no object yet, so it is left out rather than guessed at.
+  if ((kind !== 'trick' && kind !== 'sleight') || !p.id || typeof entityTierOf !== 'function') return '';
+  const t = entityTierOf(p.id) || 0;
+  return t > 0 ? 'tier-' + Math.min(t, TIER_ART_MAX) : '';
+}
+
 // The class list for the .reward-cell that entityTileInner fills. Kept beside the
 // builder so a surface can never pair the markup with the wrong modifiers.
 function entityTileClass(p, rarity, extra) {
   const kind = p.entity || p.type;
-  return ['reward-cell', 'entity', kind ? 'entity-' + kind : '', 'rar-' + (rarity || 'common'), extra]
-    .filter(Boolean).join(' ');
+  return ['reward-cell', 'entity', kind ? 'entity-' + kind : '', 'rar-' + (rarity || 'common'),
+          entityTierClass(p), extra].filter(Boolean).join(' ');
+}
+
+// ── The tooltip payload a tile carries with it (r254) ───────────────────────
+// Tooltips used to be something each surface remembered to wire, which is why
+// the map's knack pick, the boss briefing's pools and the Shift Change slots
+// had none at all. The tile now DESCRIBES ITSELF: entityTileHTML stamps a
+// data-et attribute on the frame, and one delegated listener in
+// js/entity-tooltip.js opens showEntityTooltip for any hovered or long-pressed
+// element carrying it. A new surface gets the tooltip by drawing the tile.
+//
+// Callers rarely pass a desc, so it is RESOLVED from the pools by id (or name,
+// for the callers that pass only a label). TRICK_POOL is mode-filtered in
+// place (r160), so an owned Trick can be absent from it - TRICK_POOL_ALL is
+// the pristine fallback. No desc found means no attribute, never a blank
+// bubble.
+function entityTipPayloadFor(p, rarity) {
+  const kind = p.entity || p.type;
+  if (kind !== 'trick' && kind !== 'sleight' && kind !== 'knack') return null;
+  const label = p.label != null ? p.label : (p.name || '');
+  let desc = p.desc, rar = rarity;
+  if (!desc) {
+    const pools = kind === 'trick'
+      ? [typeof TRICK_POOL !== 'undefined' && TRICK_POOL, typeof TRICK_POOL_ALL !== 'undefined' && TRICK_POOL_ALL]
+      : kind === 'knack' ? [typeof KNACK_POOL !== 'undefined' && KNACK_POOL]
+      : [typeof SLEIGHT_POOL !== 'undefined' && SLEIGHT_POOL];
+    let def = null;
+    for (const pool of pools) {
+      if (!pool) continue;
+      def = (p.id && pool.find(e => e.id === p.id)) || pool.find(e => e.name === label);
+      if (def) break;
+    }
+    if (def) {
+      desc = (kind === 'trick' && typeof trickLiveDesc === 'function') ? trickLiveDesc(def) : def.desc;
+      rar = rar || def.tier || def.rarity;
+    }
+  }
+  if (!desc) return null;
+  return { label, desc, rarity: rar || 'common', type: kind, emoji: p.emoji || p.icon, uses: p.uses };
 }
 
 // A complete tile, frame and all - for surfaces that have no frame of their own
 // (the tray, the cart). Surfaces that DO own the frame (reward grid, Mart) build
-// their own element and call entityTileInner into it.
-function entityTileHTML(p, rarity, { mystery = false, extraClass = '' } = {}) {
-  return `<div class="${entityTileClass(p, rarity, extraClass)}">${entityTileInner(p, { mystery })}</div>`;
+// their own element and call entityTileInner into it (and wire their own richer
+// tooltips - attachRewardTooltip and the Mart's pin/cart bubble).
+//
+// `tip: false` opts a surface out of the self-describing tooltip - the Trick
+// tray uses it, because its tap already opens its own bubble with SELL/DISCARD
+// and two bubbles on one chip is one too many.
+function entityTileHTML(p, rarity, { mystery = false, extraClass = '', tip = true } = {}) {
+  let tipAttr = '';
+  if (tip && !mystery) {
+    const tp = entityTipPayloadFor(p, rarity);
+    if (tp) tipAttr = ` data-et="${encodeURIComponent(JSON.stringify(tp))}"`;
+  }
+  return `<div class="${entityTileClass(p, rarity, extraClass)}"${tipAttr}>${entityTileInner(p, { mystery })}</div>`;
 }

@@ -3,7 +3,7 @@
 // ══════════════════════════════════════════════
 // EACH QUARTER is a MAP: 4 lanes x MAP_SETS sets of tiles, then a full-width
 // boss. Beat it and the quarter closes, a fresh map is drawn, and the run is
-// three of those (r252) - the same three-quarter shape every act mode has.
+// one of those per quarter (r252) - the same shape every act mode has.
 // The grid IS the map (the same borrow the shop makes): tiles fall in like a
 // deal, you pick one, CONFIRM, the map falls out the bottom, the grid resizes
 // back to play size and the round deals in behind the 3-2-1.
@@ -118,9 +118,9 @@ function mapResetRun() {
 }
 
 // Everything a FRESH MAP needs, and nothing a fresh RUN needs. The two are not
-// the same thing since r252: a run is three quarters and each one draws its own
-// map, so `mapFirstRoundDone` (round 1 rides startGame's own deal) is reset by
-// mapResetRun ALONE and never here - Q2 and Q3 open on an ordinary level-up.
+// the same thing since r252: a run is QUARTERS_PER_RUN quarters and each one draws
+// its own map, so `mapFirstRoundDone` (round 1 rides startGame's own deal) is reset
+// by mapResetRun ALONE and never here - every later quarter opens on a level-up.
 function mapResetBoard() {
   mapTiles = []; mapPos = null; mapVisits = 0; mapSkips = 0;
   mapBossArmed = false; mapPosTileId = null;
@@ -158,7 +158,7 @@ function mapCellSolid(lane, set) {           // a real, steppable tile lives her
   return !!t && t.kind !== 'blank';
 }
 
-// A TILE IS ITS SYMBOL (r264, owner's call). `name` is the short chip and
+// A TILE IS ITS SYMBOL (r276, owner's call). `name` is the short chip and
 // `full` the name in full, and both are read in the BAR and the LEGEND - the
 // board itself carries only the glyph, so a schedule reads at a glance.
 // Schedule vocabulary (r261): an obligation is a piece of work on your day.
@@ -694,7 +694,7 @@ function mapRender(animateIn) {
       + (mapSelected === t.id ? ' mt-selected' : '')
       + (mapPosTileId === t.id ? ' mt-here' : '');
     div.style.cssText = `left:${x}px;top:${y}px;width:${w}px;height:${h}px;`;
-    // NO NAME ON THE BOARD (r264). The glyph is the whole label; the bar names
+    // NO NAME ON THE BOARD (r276). The glyph is the whole label; the bar names
     // what you hover or pick, the ? legend lists every symbol with its word,
     // and the tile's `title` still carries both for a desktop tooltip.
     div.innerHTML =
@@ -1045,29 +1045,22 @@ function mapKnackPickTwo(done) {
   }
   if (!offers.length) { done(); return; }
 
-  let el = document.getElementById('map-knack-pick');
-  if (!el) { el = document.createElement('div'); el.id = 'map-knack-pick'; document.body.appendChild(el); }
-  el.innerHTML = `<div class="g3-panel"><div class="g3-title">Hard round bonus · take a knack</div><div class="g3-row"></div></div>`;
-  const row = el.querySelector('.g3-row');
-  offers.forEach(k => {
-    const p = { entity: 'knack', icon: k.emoji || '♦', emoji: k.emoji || '♦', label: k.name,
-      desc: k.desc, tier: k.rarity || 'common', rarity: k.rarity || 'common' };
-    const t = document.createElement('div');
-    t.className = 'g3-opt';
-    t.innerHTML = (typeof entityTileHTML === 'function') ? entityTileHTML(p)
-      : `<div class="reward-cell entity"><div class="rwd-name">${k.name}</div></div>`;
-    t.onclick = () => {
+  // Drawn ON the board (js/grid-pick.js, r254), the same overlay the free
+  // pick-of-three uses - name and description under the object, and a tooltip
+  // wherever the description clamps. This screen had no tooltips at all before.
+  openGridPick({
+    title: 'TAKE A KNACK', tone: 'reward',
+    offers: offers.map(k => ({ entity: 'knack', icon: k.emoji || '♦', emoji: k.emoji || '♦',
+      id: k.id, label: k.name, desc: k.desc, rarity: k.rarity || 'common',
+      tag: (typeof tierLabel === 'function') ? tierLabel('knack', k.rarity || 'common') : '' })),
+    onChoose: (i) => {
+      const k = offers[i];
       acquiredKnacks.push({ ...k });
       updateKnackList?.();
       showMessage(`+ ${k.name}`, 'var(--gold)');
-      el.classList.remove('show');
       done();
-    };
-    row.appendChild(t);
-    const nm = t.querySelector('.rwd-name');
-    if (nm && typeof fitRewardName === 'function') fitRewardName(nm);
+    },
   });
-  el.classList.add('show');
 }
 
 // ── Run entry ────────────────────────────────────────────────────────────────

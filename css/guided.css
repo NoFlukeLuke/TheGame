@@ -80,47 +80,10 @@
 #gx-bar .gxb-note  { color: var(--cream-dim, #b9b0a0); }
 #gx-bar .gxb-coins { color: var(--c-yellow, #f5c042); }
 
-/* ── Take your pick (the free pick-of-three) ─────────────────────────────── */
-#guided-pick3 {
-  position: fixed; inset: 0; z-index: 300;
-  display: none; align-items: center; justify-content: center;
-  background: rgba(6, 5, 16, 0.84); padding: 16px;
-}
-#guided-pick3.show { display: flex; }
-#guided-pick3 .g3-panel {
-  width: min(560px, 100%);
-  background: linear-gradient(180deg, #171335 0%, #0f0c24 100%);
-  border: 2px solid rgba(255, 255, 255, 0.22); border-radius: 8px;
-  box-shadow: 0 0 32px -6px rgba(140, 110, 255, 0.55);
-  padding: 14px;
-}
-#guided-pick3 .g3-title {
-  font-family: 'Orbitron', sans-serif; font-size: 13px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: 0.06em;
-  color: var(--c-yellow, #f5c042); text-align: center; margin-bottom: 10px;
-}
-#guided-pick3 .g3-row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
-#guided-pick3 .g3-opt {
-  flex: 0 0 140px; cursor: pointer;
-  display: flex; flex-direction: column; align-items: center; gap: 6px;
-  transition: transform .12s ease;
-}
-#guided-pick3 .g3-opt:hover { transform: translateY(-4px); }
-/* The object on top at a fixed frame, the words beneath it (r239). */
-#guided-pick3 .g3-tile { pointer-events: none; }
-#guided-pick3 .g3-tile .reward-cell { position: relative; width: 72px; height: 94px; margin: 0; }
-#guided-pick3 .g3-name {
-  font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 11px;
-  letter-spacing: 0.5px; text-transform: uppercase; text-align: center;
-  color: var(--cream, #f0e6c8); line-height: 1.15;
-}
-#guided-pick3 .g3-desc {
-  font-family: 'Crimson Pro', serif; font-size: 11.5px; line-height: 1.3;
-  color: rgba(240,230,200,0.75); text-align: center;
-}
+/* The free pick-of-three is drawn ON the board now - js/grid-pick.js +
+   css/grid-pick.css (r254). The #guided-pick3 console is gone. */
 
 @media (max-width: 420px) {
-  #guided-pick3 .g3-opt { flex-basis: calc(50% - 5px); }
   #gx-bar { gap: 8px; font-size: 10px; padding: 5px 10px; }
 }
 

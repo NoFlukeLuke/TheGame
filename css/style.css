@@ -35,8 +35,8 @@
     --suit-diamonds: #EC9F05;
     --suit-spades:   #000000;
     --suit-clubs:    #2255cc;
-    --suit-stars:    #1f9d55;
-    --suit-triangles:#9b4dff;
+    --suit-crowns:   #d8a11f;
+    --suit-moons:    #5fa8d3;
   }
 
   /* Spade ♠ on dark surfaces - warm cream halo so pure-black stays legible.
@@ -534,8 +534,8 @@
   .mini-card.suit-diamonds .mini-rank, .mini-card.suit-diamonds .mini-suit { color: var(--suit-diamonds); }
   .mini-card.suit-spades .mini-rank,   .mini-card.suit-spades .mini-suit   { color: var(--suit-spades); }
   .mini-card.suit-clubs .mini-rank,    .mini-card.suit-clubs .mini-suit    { color: var(--suit-clubs); }
-  .mini-card.suit-stars .mini-rank,    .mini-card.suit-stars .mini-suit    { color: var(--suit-stars); }
-  .mini-card.suit-triangles .mini-rank,.mini-card.suit-triangles .mini-suit{ color: var(--suit-triangles); }
+  .mini-card.suit-crowns .mini-rank,    .mini-card.suit-crowns .mini-suit    { color: var(--suit-crowns); }
+  .mini-card.suit-moons .mini-rank,.mini-card.suit-moons .mini-suit{ color: var(--suit-moons); }
 
   /* Hand-preview now mirrors the grid via renderCardAppearance(): real .card markup,
      scaled down by the local --card-w/--card-h set on #selected-cards. Cards must flow
@@ -2099,8 +2099,8 @@
   .card.suit-diamonds .rank, .card.suit-diamonds .suit { color: var(--suit-diamonds); }
   .card.suit-spades .rank,   .card.suit-spades .suit   { color: var(--suit-spades); }
   .card.suit-clubs .rank,    .card.suit-clubs .suit    { color: var(--suit-clubs); }
-  .card.suit-stars .rank,    .card.suit-stars .suit    { color: var(--suit-stars); }
-  .card.suit-triangles .rank,.card.suit-triangles .suit{ color: var(--suit-triangles); }
+  .card.suit-crowns .rank,    .card.suit-crowns .suit    { color: var(--suit-crowns); }
+  .card.suit-moons .rank,.card.suit-moons .suit{ color: var(--suit-moons); }
 
   /* ══ SPECTRUM - numeric colour deck (mode: spectrum) ══
      No suits, no court cards: the whole card face IS the colour and the value
@@ -2341,8 +2341,8 @@
   .deck-chip.suit-diamonds { background: rgba(236,159,5,0.18); color: var(--suit-diamonds); border: 1px solid rgba(236,159,5,0.35); }
   .deck-chip.suit-spades   { background: rgba(140,140,140,0.5); color: #000; border: 1px solid rgba(180,180,180,0.45); text-shadow: 0 0 2px rgba(240,230,200,0.85), 0 0 1px rgba(240,230,200,0.95); }
   .deck-chip.suit-clubs    { background: rgba(34,85,204,0.18); color: var(--suit-clubs);    border: 1px solid rgba(34,85,204,0.35); }
-  .deck-chip.suit-stars    { background: rgba(31,157,85,0.18); color: var(--suit-stars);    border: 1px solid rgba(31,157,85,0.35); }
-  .deck-chip.suit-triangles{ background: rgba(155,77,255,0.18); color: var(--suit-triangles);border: 1px solid rgba(155,77,255,0.35); }
+  .deck-chip.suit-crowns    { background: rgba(216,161,31,0.18); color: var(--suit-crowns);    border: 1px solid rgba(216,161,31,0.35); }
+  .deck-chip.suit-moons{ background: rgba(95,168,211,0.18); color: var(--suit-moons);border: 1px solid rgba(95,168,211,0.35); }
   .deck-chip.dc-present {
     box-shadow: 0 0 0 1px rgba(255,255,255,0.4), 0 0 6px rgba(255,255,255,0.15);
     border-color: rgba(255,255,255,0.45) !important;
@@ -2388,8 +2388,8 @@
   .unlock-ex-card.suit-diamonds { color: var(--suit-diamonds); }
   .unlock-ex-card.suit-spades   { color: var(--suit-spades); }
   .unlock-ex-card.suit-clubs    { color: var(--suit-clubs); }
-  .unlock-ex-card.suit-stars    { color: var(--suit-stars); }
-  .unlock-ex-card.suit-triangles{ color: var(--suit-triangles); }
+  .unlock-ex-card.suit-crowns    { color: var(--suit-crowns); }
+  .unlock-ex-card.suit-moons{ color: var(--suit-moons); }
   .unlock-ex-card .ex-suit { font-size: 11px; margin-top: 1px; }
   #unlock-trick-title { font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: 2px; color: var(--gold-dim); text-transform: uppercase; }
   #unlock-trick-options { display: flex; gap: 14px; }
@@ -2614,8 +2614,8 @@
   .svc-card.suit-diamonds { color: var(--suit-diamonds); }
   .svc-card.suit-spades   { color: var(--suit-spades); }
   .svc-card.suit-clubs    { color: var(--suit-clubs); }
-  .svc-card.suit-stars    { color: var(--suit-stars); }
-  .svc-card.suit-triangles{ color: var(--suit-triangles); }
+  .svc-card.suit-crowns    { color: var(--suit-crowns); }
+  .svc-card.suit-moons{ color: var(--suit-moons); }
   .svc-card .svc-c-suit { font-size: 11px; margin-top: 1px; }
   .svc-card .svc-c-loc { position: absolute; top: 2px; right: 3px; font-size: 7px; color: var(--cream-dim); font-family: 'Crimson Pro', serif; }
   .svc-card.selected-svc { border-color: var(--gold); transform: translateY(-4px); box-shadow: 0 0 0 2px var(--gold); }
@@ -3284,8 +3284,8 @@
   .reward-face-suit { font-size: 12px; color: #1a1a1a; }
   .reward-face.suit-hearts .reward-face-rank, .reward-face.suit-hearts .reward-face-suit,
   .reward-face.suit-diamonds .reward-face-rank, .reward-face.suit-diamonds .reward-face-suit { color: #c0392b; }
-  .reward-face.suit-stars .reward-face-rank, .reward-face.suit-stars .reward-face-suit { color: var(--suit-stars); }
-  .reward-face.suit-triangles .reward-face-rank, .reward-face.suit-triangles .reward-face-suit { color: var(--suit-triangles); }
+  .reward-face.suit-crowns .reward-face-rank, .reward-face.suit-crowns .reward-face-suit { color: var(--suit-crowns); }
+  .reward-face.suit-moons .reward-face-rank, .reward-face.suit-moons .reward-face-suit { color: var(--suit-moons); }
   .reward-label {
     font-size: 11px;
     line-height: 1.2;
@@ -3448,6 +3448,8 @@
      its left edge at L% and width W% sits at position-x L/(100-W)*100%. */
   .reward-cell.entity-trick {
     --body: color-mix(in srgb, var(--rc) 72%, #1b1813);
+    /* The shutter's default material: DULL GREY = unimproved (r274). */
+    --shut: linear-gradient(180deg, #9c9c98 0%, #72726f 50%, #8a8a87 100%);
     clip-path: none;
     background: none; border: none; box-shadow: none;
     justify-content: center;
@@ -3469,13 +3471,14 @@
     clip-path: polygon(0 0, 84% 0, 100% 16.8%, 100% 100%, 0 100%);
     background:
       /* the shutter's punched window */
-      linear-gradient(#24272c, #24272c) no-repeat 49.6% 12% / 18.9% 21.1%,
-      /* the metal shutter */
-      linear-gradient(180deg, #e6e9ee 0%, #9aa0a8 52%, #cfd4da 100%)
-        no-repeat 60% 6.5% / 45% 31%,
+      linear-gradient(#1b1e22, #1b1e22) no-repeat 55.2% 12% / 18.9% 21.1%,
+      /* the metal shutter - its MATERIAL is the improvement tier (r274) */
+      var(--shut) no-repeat 71.7% 7% / 54% 36%,
       /* the cream label plate */
       linear-gradient(rgba(244,238,218,0.94), rgba(244,238,218,0.94))
         no-repeat 50% 82% / 86% 50%,
+      /* the tier BANDS - see below. Under the label on purpose. */
+      var(--bands, none),
       var(--body);
     /* The clip eats an outer border, so the rarity edge is painted inside. */
     box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--rc) 55%, #000);
@@ -3551,6 +3554,10 @@
     background:
       linear-gradient(90deg, rgba(0,0,0,0.26) 0 44%, transparent 44%)
         no-repeat 0 0 / 100% 62%,
+      /* the tier BANDS (r275) - above the card stock, below the logo plate's
+         wash, and below the logo and the name for free, because those are real
+         CHILD elements and a child always paints above its parent's ::before. */
+      var(--bands, none),
       var(--body);
     box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--rc) 70%, #000),
                 0 0 10px -2px var(--rc), 0 4px 10px rgba(0,0,0,0.5);
@@ -4231,10 +4238,19 @@
   }
 
   /* ═══════════════ MODE SELECT (scroll-sideways carousel) ═══════════════ */
+  /* THE CAROUSEL HAS TO FIT THE SCREEN IT IS DRAWN ON (r258). It is centred with
+     overflow:hidden, so content taller than the box is clipped EQUALLY AT BOTH
+     ENDS - measured at 473px of content in a 420px stage, which ate 26px off the
+     title and 26px off the PLAY buttons. That was invisible while the mode select
+     ran full-screen after a channel change; since r258 it plays on the monitor in
+     the photograph, where the clipped title is the first thing you see.
+     The chain below is what makes the cards take the LEFTOVER room rather than
+     asking for a fixed 300px: every ancestor of the flexible child needs
+     min-height:0, or a flex item refuses to shrink below its content. */
   #mode-select-overlay {
     display: none; position: fixed; inset: 0; z-index: 10000;
     flex-direction: column; align-items: center; justify-content: center;
-    padding: 24px; overflow: hidden;
+    padding: 14px; overflow: hidden;
     background:
       repeating-linear-gradient(0deg, rgba(0,0,0,0.16) 0 1px, transparent 1px 3px),
       radial-gradient(ellipse at 50% 32%, #241d3f 0%, #171235 46%, #0b0a1c 100%);
@@ -4242,7 +4258,8 @@
   #mode-select-overlay.show { display: flex; }
   #mode-select-inner {
     position: relative; z-index: 1; width: 100%; max-width: 760px;
-    display: flex; flex-direction: column; align-items: center; gap: 12px;
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    max-height: 100%; min-height: 0;
   }
   #mode-select-title {
     font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: clamp(22px, 5vw, 32px);
@@ -4253,16 +4270,18 @@
     font-family: 'Share Tech Mono', monospace; font-size: 11px; letter-spacing: 2px;
     color: var(--cream-dim); text-transform: uppercase; margin-top: -4px;
   }
-  #mode-carousel-wrap { display: flex; align-items: center; gap: 10px; width: 100%; }
+  #mode-carousel-wrap { display: flex; align-items: stretch; gap: 10px; width: 100%;
+    flex: 1 1 auto; min-height: 0; }
   #mode-carousel {
-    display: flex; gap: 18px; overflow-x: auto; flex: 1;
-    scroll-snap-type: x mandatory; padding: 12px 6px 16px; scrollbar-width: none;
+    display: flex; gap: 18px; overflow-x: auto; flex: 1 1 auto; min-width: 0;
+    align-items: stretch; min-height: 0;
+    scroll-snap-type: x mandatory; padding: 10px 6px 12px; scrollbar-width: none;
   }
   #mode-carousel::-webkit-scrollbar { display: none; }
   .mode-card {
-    scroll-snap-align: center; flex: 0 0 auto; width: 264px; min-height: 300px;
-    display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center;
-    padding: 26px 22px; border-radius: 16px;
+    scroll-snap-align: center; flex: 0 0 auto; width: 264px; min-height: 0;
+    display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center;
+    padding: 18px 22px; border-radius: 16px;
     background: linear-gradient(180deg, rgba(20,16,11,0.94), rgba(11,9,6,0.96));
     border: 1px solid rgba(255,255,255,0.06);
     box-shadow: 0 0 0 2px var(--mode-accent), inset 0 0 40px rgba(255,255,255,0.03), 0 20px 44px rgba(0,0,0,0.55);
@@ -4274,8 +4293,15 @@
   .mode-card-suits { font-size: 26px; letter-spacing: 5px; line-height: 1; color: var(--cream); }
   .mode-card-blurb {
     font-family: 'Share Tech Mono', monospace; font-size: 11px; line-height: 1.6; letter-spacing: 0.5px;
-    color: var(--cream-dim); flex: 1;
+    color: var(--cream-dim); flex: 1 1 auto; min-height: 0; overflow-y: auto;
+    scrollbar-width: none;
+    /* The one long blurb (Orientation) now scrolls inside its card, and a line cut
+       flat by the box reads as a rendering fault. The fade says there is more. It
+       is always on and costs nothing when the text does not reach the bottom. */
+    -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 14px), transparent 100%);
+            mask-image: linear-gradient(180deg, #000 calc(100% - 14px), transparent 100%);
   }
+  .mode-card-blurb::-webkit-scrollbar { display: none; }
   /* ── Difficulty picker (r193) ──────────────────────────────────────────
      Sits between the blurb and PLAY. It carries its own --tier-accent (set from
      JS off the chosen tier) rather than borrowing --mode-accent: the tier is a
@@ -4325,7 +4351,7 @@
   .mode-card-play:active { transform: translateY(3px);
     box-shadow: inset 0 2px 0 rgba(255,255,255,0.5), 0 1px 0 #b5820f; }
   .mode-arrow {
-    flex: 0 0 auto; width: 44px; height: 44px; border-radius: 50%; cursor: pointer;
+    flex: 0 0 auto; align-self: center; width: 44px; height: 44px; border-radius: 50%; cursor: pointer;
     font-size: 26px; line-height: 1; color: var(--cream);
     background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15);
     display: flex; align-items: center; justify-content: center;
@@ -4427,7 +4453,9 @@
      a Trick whose glyph changes size reads as a different, tinier object. The
      emoji keeps its full 24px and the tile's own overflow clips what doesn't
      fit, the way a real card shows part of a full-size index. */
-  #stage.landscape .trick-tray-chip { width:40px; height:53px; font-size:12px; border-radius:6px; flex-direction:column; }
+  /* No width/height here: the r182 tile-frame rule further down owns the size
+     (this one stated 40x53 for years and was always outranked by it). */
+  #stage.landscape .trick-tray-chip { font-size:12px; border-radius:6px; flex-direction:column; }
   /* money: compact single-row bar (replaces the old tall coin chip) */
   #stage.landscape #coin-info      { left:1.56%; top:84%; width:37.74%; height:6.5%; flex-direction:row; align-items:center; justify-content:flex-start; gap:10px; padding:0 10px; }
   /* TWO secondary buttons since r155: Stats/Deck/Time/Limits merged into RECORDS.
@@ -4901,10 +4929,16 @@
      The size has to be stated: the chip used to borrow `width: var(--card-w)`
      from .trick-card, and without it the chip and its child sized off each
      other's content, leaving a 68px chip wrapping a 35px card and every name
-     shrunk to fit a box a third too small. */
+     shrunk to fit a box a third too small.
+     FIXED px, never var(--card-w) (r254): --card-w is the LIVE BOARD's card
+     size, republished by recomputeGridMetrics for whatever board is on screen -
+     so a chip reading it was 62x82 beside a 4x4 round and shrank to 41x54 the
+     moment the map (a wider board) opened. The same Trick looked like two
+     different objects on two screens. A tray tile is its own object at its own
+     size; 57x75 is the base card, which is what the var resolved to at rest. */
   #stage.landscape .trick-tray-chip {
     position: relative; flex: 0 0 auto; box-sizing: border-box; cursor: pointer;
-    width: var(--card-w, 57px); height: var(--card-h, 75px);
+    width: 57px; height: 75px;
     padding: 0; border: none; background: none; box-shadow: none;
     transition: transform 0.1s ease;
   }
@@ -5310,12 +5344,84 @@ body.reduced-motion .efx-hit { animation-duration: 1ms; }
    (.rwd-glyph), a Sleight its tab top-left (.rwd-tab) and its charge count
    bottom-right (.rwd-uses), and the name band runs the full width along the
    bottom - the first version sat bottom-left and printed "+2CH SOIL" over it. */
+/* The improvement tier, as a BRASS VERSION STAMP (r267).
+   It was `+N` in the rarity colour, which was wrong twice: `+N` is the shape a
+   live count takes (priming now owns it, in violet, bottom-right), and painting
+   it in --rc made the one permanent property of the object look like its tier.
+   Brass says "stamped on", and the type scales with the object (r239) so a 34px
+   Records tile and a 119px shop tile draw the same picture. */
+
+/* ══════════════════════════════════════════════════════════════════════════
+   THE IMPROVEMENT TIER IS ON THE OBJECT (r274, r275) - tier-badge-preview.html
+
+   An improvement tier is drawn ON THE OBJECT, so it reads before any badge is.
+   GOLD BANDS across the bottom-left corner, one per tier, on BOTH the Trick's
+   floppy disc and the Sleight's business card; and on the disc alone, the
+   SHUTTER'S MATERIAL, which climbs dull grey -> bronze -> shiny silver -> gold
+   -> shiny black -> iridescent (5 and up). A Knack has no object of its own
+   yet and is deliberately left out.
+
+   Pitch 5%, thickness 3% (r275, owner's numbers).
+
+   BOTH ARE BACKGROUND LAYERS OF THE DISC'S ONE ::before, and that is forced
+   rather than chosen. The shell, shutter and label are already layers of that
+   pseudo (r239 - the chamfer clip-path cannot be shared with a second one), and
+   background layers paint FIRST-LISTED ON TOP. So slotting the bands after the
+   label puts them UNDER the label, the emoji and the name, which is what was
+   asked for. A child element could only ever paint above the whole object, and
+   a child at z-index -1 would fall below the opaque shell and vanish.
+
+   The label is 94% opaque, so the bands GHOST faintly through it rather than
+   disappearing - foil under paper, and what keeps them legible at 40px.
+
+   Every length is a PERCENTAGE of the gradient's axis, so the mark is the same
+   picture on a 34px Records tile and a 119px shop tile. The axis points out of
+   the bottom-left corner, so its bands run at 45 degrees ACROSS that corner -
+   the shape a folded corner makes.
+   ══════════════════════════════════════════════════════════════════════════ */
+/* The bands are NOT trick-only: a Vendor's business card takes the same mark
+   (r275). The selector is the tile, not the object, so a future object that
+   wants them only has to read var(--bands) in its own ::before. */
+.reward-cell.tier-1 { --bands: linear-gradient(to top right,
+  transparent 13%,#f2cf72 13%,#fff6d8 14.5%,#f2cf72 16%,transparent 16%); }
+.reward-cell.tier-2 { --bands: linear-gradient(to top right,
+  transparent 13%,#f2cf72 13%,#fff6d8 14.5%,#f2cf72 16%,transparent 16%,
+  transparent 18%,#f2cf72 18%,#fff6d8 19.5%,#f2cf72 21%,transparent 21%); }
+.reward-cell.tier-3 { --bands: linear-gradient(to top right,
+  transparent 13%,#f2cf72 13%,#fff6d8 14.5%,#f2cf72 16%,transparent 16%,
+  transparent 18%,#f2cf72 18%,#fff6d8 19.5%,#f2cf72 21%,transparent 21%,
+  transparent 23%,#f2cf72 23%,#fff6d8 24.5%,#f2cf72 26%,transparent 26%); }
+.reward-cell.tier-4 { --bands: linear-gradient(to top right,
+  transparent 13%,#f2cf72 13%,#fff6d8 14.5%,#f2cf72 16%,transparent 16%,
+  transparent 18%,#f2cf72 18%,#fff6d8 19.5%,#f2cf72 21%,transparent 21%,
+  transparent 23%,#f2cf72 23%,#fff6d8 24.5%,#f2cf72 26%,transparent 26%,
+  transparent 28%,#f2cf72 28%,#fff6d8 29.5%,#f2cf72 31%,transparent 31%); }
+.reward-cell.tier-5 { --bands: linear-gradient(to top right,
+  transparent 13%,#f2cf72 13%,#fff6d8 14.5%,#f2cf72 16%,transparent 16%,
+  transparent 18%,#f2cf72 18%,#fff6d8 19.5%,#f2cf72 21%,transparent 21%,
+  transparent 23%,#f2cf72 23%,#fff6d8 24.5%,#f2cf72 26%,transparent 26%,
+  transparent 28%,#f2cf72 28%,#fff6d8 29.5%,#f2cf72 31%,transparent 31%,
+  transparent 33%,#f2cf72 33%,#fff6d8 34.5%,#f2cf72 36%,transparent 36%); }
+
+/* The shutter's material. One gradient each, and what sells which metal it is
+   is the RUN OF THE HIGHLIGHT rather than the hue: bronze and gold go warm-dark
+   to warm-light, silver carries a hard white edge, black keeps a cold rim so it
+   does not read as a hole punched in the disc. Verified legible at all four
+   real frames - 40px landscape tray, 47px portrait tray, 57px reward grid,
+   119px shop. `tier-5` is the CAP: js/entity-tile.js clamps, so tier 6 and up
+   stay iridescent and the ladder's length is this list's length. */
+.reward-cell.entity-trick.tier-1 { --shut: linear-gradient(170deg,#eec08d 0%,#b87333 34%,#7a4a1e 62%,#d9975a 100%); }
+.reward-cell.entity-trick.tier-2 { --shut: linear-gradient(170deg,#ffffff 0%,#cfd8e2 26%,#79838f 54%,#eef4fa 72%,#aab3bd 100%); }
+.reward-cell.entity-trick.tier-3 { --shut: linear-gradient(170deg,#fff0bd 0%,#e3ba50 30%,#a67c14 58%,#f6dd8e 100%); }
+.reward-cell.entity-trick.tier-4 { --shut: linear-gradient(170deg,#8b929b 0%,#1b1f25 28%,#05070a 52%,#39414b 74%,#9aa2ac 100%); }
+.reward-cell.entity-trick.tier-5 { --shut: linear-gradient(120deg,#ff6ec7 0%,#ffd86e 18%,#6effa8 36%,#6ed8ff 54%,#a06eff 72%,#ff6ec7 90%,#ffd86e 100%); }
+
 .reward-cell .rwd-tier{
-  position:absolute; right:2px; top:2px; z-index:5;
-  font-family:'Share Tech Mono',monospace; font-size:9px; line-height:1;
-  padding:1px 3px; border-radius:3px; pointer-events:none;
-  color:#0d1117; background:var(--rc,#8fd6a8); border:1px solid rgba(0,0,0,.4);
-  box-shadow:0 0 5px var(--rc,#8fd6a8);
+  position:absolute; right:2px; top:2px; z-index:7;
+  font-family:'Share Tech Mono',monospace; font-size:max(7px,15cqw); line-height:1;
+  padding:1px 3px; border-radius:2px; pointer-events:none; white-space:nowrap;
+  color:#2a2008; background:linear-gradient(#f4dc9a,#c99c3a);
+  border:1px solid rgba(0,0,0,.5); box-shadow:0 1px 2px rgba(0,0,0,.6);
 }
 
 /* ══════════════════════════════════════════════════════════════════════════

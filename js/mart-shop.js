@@ -270,7 +270,8 @@ function martTileHTML(p, key) {
     inner = `<div class="limit reward-cell entity rar-common"><span class="ico">▲</span>`
           + `<div class="body"><span class="lname">${p.label}</span><span class="lprog">${p.cur} → ${p.next}</span></div></div>`;
   } else {
-    inner = `<div class="reward-cell entity entity-${p.type} rar-${martRar(p)}">${martEntityInner(p)}</div>`;
+    // entityTierClass: this surface builds its own cell too (r274).
+    inner = `<div class="reward-cell entity entity-${p.type} rar-${martRar(p)} ${entityTierClass(p)}">${martEntityInner(p)}</div>`;
   }
   return `<div class="${cls}" data-key="${key}">${inner}${price}${tick}${pin}</div>`;
 }

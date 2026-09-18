@@ -11,8 +11,8 @@ let bossNumber    = 0;
 let savedRoundSeconds = 0; // round timer value at boss start
 
 // ── Node-based progression (Normal Mode) ──
-// Each act = 5 normal events + 1 forced boss = 6 nodes. Three acts = 18 nodes total.
-let actNumber         = 1;     // current act (1–3)
+// Each quarter = 5 normal events + 1 forced boss = 6 nodes; QUARTERS_PER_RUN of them.
+let actNumber         = 1;     // current quarter (1..QUARTERS_PER_RUN, js/quarter.js)
 let nodeInAct         = 0;     // events completed in current act (0–4 normal; at 5 → boss)
 let forceBossNextRound = false; // triggers boss after next round deal animation
 
@@ -292,6 +292,10 @@ function recycleCard(card) {
 }
 
 function freshShuffledDeck() {
+  // The six-suit mode builds a DESIGNED deck instead of the plain cross product:
+  // six suits but only four of each rank, so the deck is ranks x copies and the
+  // suit count no longer decides its size. See js/deck-design.js.
+  if (typeof deckDesignActive === 'function' && deckDesignActive()) return deckShuffle(buildDesignedDeck());
   const d = [];
   for (const s of ACTIVE_SUITS) for (const r of ACTIVE_RANKS) d.push(stampId({ rank:r, suit:s }));
   return deckShuffle([...d]);

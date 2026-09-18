@@ -583,34 +583,14 @@ function guidedOpenPickThree(done) {
   const mk = guidedPickThreeOffers();
   if (!mk.length) { done(); return; }
 
-  let el = document.getElementById('guided-pick3');
-  if (!el) { el = document.createElement('div'); el.id = 'guided-pick3'; document.body.appendChild(el); }
-  el.innerHTML = `<div class="g3-panel"><div class="g3-title">Take one</div><div class="g3-row"></div></div>`;
-  const row = el.querySelector('.g3-row');
-  mk.forEach(p => {
-    const t = document.createElement('div');
-    t.className = 'g3-opt';
-    // The tile is the OBJECT - drawn at its own ratio, in its rarity colour
-    // (this call used to omit the rarity, so every offer read as common) - and
-    // the title and description sit BENEATH it (owner spec, r239).
-    const tile = (typeof entityTileHTML === 'function')
-      ? entityTileHTML(p, p.rarity || 'common')
-      : `<div class="reward-cell entity"><div class="rwd-name">${p.label}</div></div>`;
-    t.innerHTML = `<div class="g3-tile">${tile}</div>`
-      + `<div class="g3-name">${p.label}</div>`
-      + `<div class="g3-desc">${(typeof colorizeKeywords === 'function') ? colorizeKeywords(p.desc || '') : (p.desc || '')}</div>`;
-    t.onclick = () => {
-      try { p.apply?.(); } catch (e) {}
-      el.classList.remove('show');
-      done();
-    };
-    row.appendChild(t);
-  });
-  el.classList.add('show');
-  // Fit after .show - a hidden element measures a zero rect and never fits.
-  requestAnimationFrame(() => {
-    if (typeof fitRewardName === 'function')
-      row.querySelectorAll('.g3-tile .rwd-name').forEach(nm => fitRewardName(nm));
+  // Drawn ON the board (js/grid-pick.js, r254) - the choice is dealt into the
+  // grid slot like the crossroads tiles, not floated over it in a panel. The
+  // board is empty at this beat (the interlude's fall already ran), so the
+  // overlay covers nothing the player still needs.
+  mk.forEach(p => { p.tag = (typeof tierLabel === 'function') ? tierLabel(p.entity, p.rarity || 'common') : ''; });
+  openGridPick({
+    title: 'TAKE ONE', tone: 'reward', offers: mk,
+    onChoose: (i, p) => { try { p.apply?.(); } catch (e) {} done(); },
   });
 }
 
@@ -670,7 +650,7 @@ function guidedAfterSlot() {
 // fought a boss to reach should start by letting you play.
 //
 // rolloverQuarter (js/quarter.js) is the ONE rollover site; a won run never comes
-// back from it (actNumber > 3 goes to onGameWin and the run report).
+// back from it (actNumber past QUARTERS_PER_RUN goes to onGameWin and the report).
 function guidedAfterPrizeGrid() {
   guidedInStop = false;
   guidedSlot = 0;

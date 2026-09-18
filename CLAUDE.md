@@ -1626,7 +1626,7 @@ pointer leaving the row, and tapping again releases.
   takes no tile with it, a left click with the pen off still selects, the
   legend lights 3 of 25 tiles and the card lands fully on screen in both.
 
-### A tile is its SYMBOL (r264)
+### A tile is its SYMBOL (r276)
 
 Owner: *"Ditch the words on the schedule, just use the symbols instead. With
 the legend showing the symbol and word."* The board carries the glyph and
@@ -1648,7 +1648,7 @@ watermark glyph and the legend chip alike. `fill: currentColor` and `1em`
 sizing let it sit anywhere an emoji does; the `.mt-icon` copy takes the kind's
 `--rc`. Verified: 42 painted px against the emoji's 42 at 1440x820.
 
-### The schedule re-reads its orientation (r264)
+### The schedule re-reads its orientation (r276)
 
 `mapLandscape` decides which way the schedule reads and was captured ONCE in
 `mapOpen`. Anything that changed the orientation afterwards - a window resized
@@ -1901,6 +1901,108 @@ glyph top-left, a Sleight its tab top-left and its charge count bottom-right, an
 runs the full width along the bottom - the first version sat bottom-left and printed
 "+2CH SOIL" over the name.
 
+### The tier is a VERSION, priming is a COUNT (r267)
+
+Owner: *"the +2, what is that for? ... we need a system to represent primed status and
+count, and I think I like the +2 for that."* Two different facts were wearing one
+costume, so they were separated by SHAPE, COLOUR and CORNER:
+
+| | reads | where | looks like |
+|---|---|---|---|
+| improvement tier | **v2.0** | top right, on the object | brass stamp |
+| primed | **+2** | bottom right, on the frame | violet pill |
+
+- **`+N` is the shape a LIVE COUNT takes, so priming took it** and the tier moved to a
+  version stamp. `v2.0` reads as a property of the object; `+2` reads as something
+  pending, which is exactly what a prime is and exactly what an improvement is not.
+  The tier also came off `--rc`: painted in the rarity colour, the one permanent
+  property of the object looked like its tier.
+- **`_rank` is counted now.** `cdForTrick` read `t._primed` alone, so a Trick the Extra
+  Rep event had permanently primed showed **nothing at all** for the rest of the run,
+  despite `trickFires()` being `1 + _primed + _rank + mirrors`. It is
+  `_primed + _rank`, which is what the player is owed.
+- **A COUNT IS NOT A COUNTDOWN.** The `.cd-badge` ring is a clock face, and under a
+  charge count it drew a full circle that never moved - a timer that has stuck.
+  `.cd-b-count` overrides it to a pill: auto width, flat fill, `::before` (the ring's
+  hole) off. The countdown modes are untouched.
+- **The stamp is pinned to the OBJECT, the badge to the FRAME, and that asymmetry is
+  forced.** `entityTileInner` puts `.rwd-tier` inside the `.reward-cell`, so
+  `--lbv`/`--lbh` (half the letterbox leftover on each axis, per r239's ratios) can
+  move it onto the disc's own corner. **`cdPaint` appends `.cd-badge` to the HOST** -
+  the tray chip, the card, the knack chip - which is not a `.reward-cell` at all, so
+  those selectors cannot reach it; it is also shared with hosts that have no
+  letterbox. Its home is the tile's corner.
+- `tier-badge-preview.html` draws the shipped stamp through the REAL `.rwd-tier` rule,
+  with the old `+N` beside it as the delta, plus a third option the owner asked to see
+  (gold 45-degree service bands across a corner, one per tier) that was not taken.
+
+Verified in a real browser at 1440x820: `v2.0` / `v5.0` on the disc, `+2` / `+3` in
+violet, and a Trick carrying only `_rank` reading `+3` where it used to read nothing.
+
+### The tier is ON THE OBJECT too (r274) - bands and a shutter material
+
+The `v2.0` stamp says the number; the DISC now says it without one. A Trick's
+improvement tier is drawn as **gold bands across the bottom-left corner, one per
+tier**, and as **the shutter's material**, which climbs:
+
+| tier | 0 | 1 | 2 | 3 | 4 | 5 and up |
+|---|---|---|---|---|---|---|
+| shutter | dull grey | bronze | shiny silver | gold | shiny black | iridescent |
+
+- **BOTH ARE BACKGROUND LAYERS OF THE DISC'S ONE `::before`, and that is forced,
+  not chosen.** The shell, shutter and label are already layers of that pseudo
+  (r239 - the chamfer clip-path cannot be shared with a second one), and
+  background layers paint **first-listed on top**. So slotting the bands AFTER
+  the label puts them **under the label, the emoji and the name**, which is the
+  owner's spec. A child element could only ever paint above the whole object,
+  and a child at `z-index: -1` would fall below the opaque shell and vanish.
+- **The label is 94% opaque, so the bands GHOST faintly through it** rather than
+  disappearing - foil under paper, and what keeps them legible at 40px.
+- **The tier arrives as a CLASS on the `.reward-cell`, and it has to.** A custom
+  property set by a CHILD cannot reach the parent's `::before`. `entityTierClass(p)`
+  (js/entity-tile.js) is in `entityTileClass`, which covers every surface that
+  goes through `entityTileHTML` - and the **two that build their own cell from
+  `entityTileInner` call it directly**: the reward grid (`renderRewardTiles`) and
+  the Mart (`martItemHTML`). Miss either and that surface silently draws every
+  Trick unimproved.
+- **`TIER_ART_MAX` (5) clamps the class**, so the ladder's length is the
+  stylesheet's length and the cap is not written down twice. Verified: a Trick at
+  tier 7 draws `tier-5` (iridescent) and still stamps `v7.0`.
+- **The shutter grew** (45% -> 54% wide, 31% -> 36% tall) with the punched window
+  re-solved to stay centred on it. A background layer at left L% width W% sits at
+  `background-position-x: L/(100-W)*100%`, so neither number could be nudged.
+- **What sells which metal it is is the RUN OF THE HIGHLIGHT, not the hue**:
+  bronze and gold go warm-dark to warm-light, silver carries a hard white edge,
+  black keeps a cold rim so it does not read as a hole punched in the disc.
+- `tier-badge-preview.html` restates the same numbers over the real tile art and
+  has live sliders for the band pitch, thickness and corner. **It and the
+  stylesheet agree today; keep it that way** (r233's rule).
+
+Verified in a real browser: all six materials live in the tray at tiers 0-5, the
+bands counting up under each label, tier 7 clamped to iridescent, and the reward
+grid still building its 16 tiles.
+
+**The bands are on the BUSINESS CARD too, at pitch 5% (r275).** Owner's numbers:
+pitch 5, thickness 3. The band rules are selected on **`.reward-cell.tier-N`**,
+not on the object, so a Sleight reads them from its own `::before` with one
+added layer and a future object only has to read `var(--bands)`. On the card
+they sit above the stock and below the logo plate's wash - and below the logo
+and the name for free, because those are real CHILD elements and a child always
+paints above its parent's `::before`. The **shutter material stays the disc's
+alone**; a card has no shutter. `entityTierClass` accepts `sleight` now.
+**Knacks are deliberately out** - they have no object of their own yet (the
+owner's plan is stamps with coloured backgrounds), so guessing one would be a
+third vocabulary to unpick later.
+
+**Known, and worth an owner decision: the LANDSCAPE TRAY FAN COVERS THE BANDS.**
+The fan tucks each tile under the next from the LEFT, floored at 50% visible
+(r237), and the bands live in the bottom-LEFT corner - so on every tile but the
+newest they are mostly hidden. Every other surface (reward grid, shop, Mart,
+Records, Shift Change, the picker) is unfanned and shows them in full. Moving
+them to the bottom-RIGHT would put them on the visible edge of a fanned tile;
+that is one `AXIS` value in the band rules (`to top left`), and it is left alone
+rather than changed unasked.
+
 Dev panel -> **Improve**: every owned entity with its tier and what one more would read as,
 plus improve-a-random-one per type and a reset.
 
@@ -2115,7 +2217,7 @@ Reward-grid penalties and card curses are the only PERMANENT damage a run takes 
 **Every option reads the same live global the penalty is stored in**, and an option with nothing to do is not offered - a screen full of choices that would do nothing is worse than a consolation payment, which is what an empty record gets instead.
 
 ## Progression (Normal mode)
-3 Acts × (5 events + 1 boss) = 18 nodes. `actNumber` (1–3), `nodeInAct` (0–4, boss at 5). `forceBossNextRound` triggers the boss after the next deal. Win at `actNumber > 3` → `onGameWin()`.
+`QUARTERS_PER_RUN` quarters × (5 events + 1 boss) = 6 nodes each. `actNumber` (1..`QUARTERS_PER_RUN`), `nodeInAct` (0–4, boss at 5). `forceBossNextRound` triggers the boss after the next deal. Win at `actNumber > QUARTERS_PER_RUN` → `onGameWin()`.
 
 ## Boss system
 
@@ -2452,6 +2554,35 @@ Beating a boss used to be: the word `VICTORY` in gold Cinzel over the still-live
 ### Acts are QUARTERS (r213)
 
 Player-facing only: **Q1 / Q2 / Q3**, three of them, same structure. Everything in code - `actNumber`, `nodeInAct`, `isActMode`, `actStructure` - is unchanged, so nothing about the progression moved. The strings are `js/hud.js` (`'Q' + actNumber`, the `.rp-act` line in both run-progress blocks), `js/tricks-ui.js` (the act readout, both branches), the two `<div class="rp-act">` defaults in `index.html`, and four mode descriptions in `js/menu.js`. This and **QUOTA CLEARED** are deliberate exceptions to the r178 voice rule - the owner is putting the corporate framing back on the *structural* labels while the entity and action text stays plain.
+
+### `QUARTERS_PER_RUN` (r264) - how long a run is, in one place
+
+**Four quarters, and the number is written down once** - `QUARTERS_PER_RUN` at the
+top of `js/quarter.js`. Setting it back to **3** restores the pre-r264 run exactly
+and needs no other edit; that is the whole reason it exists, because the owner
+expects to switch Q4 off for the beta.
+
+Three things read it and nothing else may hardcode the count: the rollover's win
+test (`actNumber > QUARTERS_PER_RUN` -> `onGameWin`), the quarter card's pips
+(built from it rather than `[1,2,3]`), and the run report's no-ghost-row rule
+(`rows.length < QUARTERS_PER_RUN`). Two more sites ask "is this the LAST quarter"
+and read it too: `peekNextActBoss` (there is no next boss to name) and
+`knackLiveDesc`'s Advance Notice fallback.
+
+**A fourth quarter needed no new content, and that is the point.** A quarter's
+SHAPE is 5 nodes and a boss and does not mention its own index; the goal curve
+rides `level`, which just keeps climbing; the boss bag refills itself out of 34
+presets; and map mode anchors each quarter's boss quota to the level that quarter
+opens on (`mapQuarterBossGoal`). So Q4 is six more ordinary nodes at the
+difficulty the curve has already reached.
+
+**There is deliberately NO final boss** (owner's call: not designed yet). Q4 ends
+on an ordinary boss round like every other quarter, and clearing it wins the run.
+
+**The mode blurbs say the number in words and cannot read the constant.**
+`js/menu.js` and `js/picker-mode.js` are static strings evaluated at load time,
+before `js/quarter.js` runs, so "Four quarters" / "FOUR QUARTERS" are typed out
+in four places there. Change them with the constant.
 
 ## Quarter close (r226) - `js/quarter.js` + `css/quarter.css`
 
@@ -3223,6 +3354,64 @@ fifteen seconds** and settles with it centred and filling most of the shot. Touc
 photograph is gone and the UI is flat and full-screen. The monitor in the photo IS
 the machine, so the r180 arcade cabinet - housing, marquee, bezel - is hidden.
 
+### The carousel plays on the monitor; picking a mode DIVES IN (r258)
+
+Owner: *"could we make the select mode screen a little bit smaller on desktop, it's
+just all a little too big ... maybe we could just zoom back a little bit so that you
+can see the frame of the computer. And then when you select a mode, it zooms in as
+the game starts."*
+
+r248's "any button is the cut" put the mode carousel **full-screen at the cabinet
+zoom** - about twice the size it is on the glass - which is the whole of the "too
+big". The rest framing already shows the monitor's frame, its keyboard and the desk,
+so nothing had to be zoomed back: the carousel simply had to stay on the photograph.
+The beats are now **drift -> settle -> carousel on the glass -> dive -> cut**.
+
+- **A button SETTLES, it does not cut.** `officeSettleNow()` hurries the drift to
+  its end over `OFFICE_SETTLE_MS` (520) so whatever opens is at full size even
+  three seconds into a fifteen-second drift. It **carries on from where the drift
+  is**, because `camEndBootDolly` writes the final scale with no transition and a
+  drift caught at 0.6 of its travel would visibly jump.
+- **`camEnterGame` is the only cut**, which it already was as a backstop. So the
+  cut happens when a RUN STARTS - including CONTINUE - and never on Settings,
+  History, Builds or BACK. Those three are body-level panels over the photo and
+  were never on the glass anyway.
+- **The dive is what earns the full screen.** `officeCutToScreen` runs
+  `camDollyMul` from the rest framing to **k = 1** over `OFFICE_PUSH_MS` (820) and
+  fires the channel change on arrival. `officeLayout` picked the photo's scale `S`
+  so the glass COVERS the viewport at exactly k = 1, so the flat screen the flash
+  reveals is already the size the trapezoid had grown to and the cut is continuous.
+  The multiplier that gets there is `1 / camWideK`, its reciprocal.
+- **`hold: true` is load-bearing on that dolly.** It leaves `camBootMul` on its
+  TARGET instead of resetting to 1; resetting would pull the camera back out one
+  frame before the flash. The swap then calls `camEndBootDolly()` and
+  `camSetView('play')`, and that pair is behind the collapse.
+- **`camDollyMul(from, to, ms, opts)` is now the ONE rAF move** and the drift, the
+  settle and the dive all go through it. Under `reduced-motion` it still ARRIVES
+  and still calls `onDone` - returning early there, as `camPlayBootDolly` does,
+  would leave a run started with the photograph still up.
+- **Fixed in passing:** the dolly seeded `camBootMul = CAM_BOOT_OUT` after reading
+  `FROM`, so the drift painted one frame at 0.42 of the framing before the first
+  rAF corrected it.
+
+#### The carousel has to FIT the screen it is drawn on
+
+`#mode-select-overlay` is centred with `overflow: hidden`, so content taller than
+the box is clipped **equally at both ends**. Measured at **473px of content in a
+420px stage**: 26px off the SELECT MODE title and 26px off the PLAY buttons. That
+was invisible full-screen after a channel change and is the first thing you see on
+the monitor.
+
+- **The cards take the LEFTOVER room now** rather than asking for a fixed 300px
+  (`.mode-card` `min-height: 300px` -> `0`). **Every ancestor of the flexible child
+  needs `min-height: 0`** or a flex item refuses to shrink below its content:
+  `#mode-select-inner`, `#mode-carousel-wrap` and `#mode-carousel` all carry it.
+- **The blurb is the flexible part** and scrolls, with a bottom mask fade - a line
+  cut flat by the box reads as a rendering fault. The fade is always on and costs
+  nothing when the text does not reach the bottom.
+- Verified `scrollHeight === clientHeight === 420` at 1440x820, 1100x620 and
+  390x844, with the title and both PLAY buttons fully on screen.
+
 ### The monitor is LANDSCAPE, so the machine shows a landscape face (r257)
 
 The skew maps **`#stage`'s whole box** onto the glass quad, so the stage's aspect and
@@ -3260,12 +3449,11 @@ There is no push on PLAY. **The drift IS the approach and the flash IS the arriv
 which is why the whole choreography is two numbers: `OFFICE_ATTRACT_MS` (15s) and
 `OFFICE_HERO_FIT` (0.78, the share of the viewport the glass fills at rest).
 
-- **ANY button is the cut, not just PLAY.** Settings, History and Builds open their
-  own panels, and on a monitor filling a third of the shot at a slant those are
-  decoration rather than something you can read. `officeArmMenuCut` is one delegated
-  CAPTURE-phase listener per attract screen that **does not stop the event**: the
-  button's own handler runs as it always did and its panel opens during the flash,
-  which is exactly what the flash is for.
+- **r248 cut on ANY button. r258 does not - see the section above.** A button now
+  only SETTLES the drift; the cut belongs to starting a run. `officeArmMenuCut` is
+  `officeArmMenuSettle`, still one delegated CAPTURE-phase listener per attract
+  screen that **does not stop the event**: the button's own handler runs as it
+  always did.
 - **It never pulls back out.** `officeDone` latches at the cut and
   `officeReturnToMenu` answers **`'stay'`** from then on, which camera.js reads as
   "leave the camera alone" - so a run that ends comes back to a flat full-screen

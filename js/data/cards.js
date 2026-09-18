@@ -3,7 +3,10 @@ const SUITS = ['♠','♥','♦','♣'];
 // flushes become rare. ACTIVE_SUITS is the suit list the current game actually
 // uses - set per-mode in startGame(). Classic play leaves it equal to SUITS,
 // so nothing about the four-suit game changes.
-const SUITS_EXTRA = ['★','▲'];
+// The two suits beyond the classic four. Crown and crescent moon: they have to
+// read as SUITS at card size, so they are single filled-weight glyphs like the
+// other four rather than emoji, which would sit at a different size and weight.
+const SUITS_EXTRA = ['♛','☾'];
 const SUITS_SIX = [...SUITS, ...SUITS_EXTRA];
 let ACTIVE_SUITS = SUITS;
 const RANKS = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
@@ -208,7 +211,7 @@ const TRICK_CARD_INTERVAL = 20; // seconds
 
 function suitClass(suit) {
   return COLOR_CLASS[suit]
-      || { '♥':'suit-hearts', '♦':'suit-diamonds', '♠':'suit-spades', '♣':'suit-clubs', '★':'suit-stars', '▲':'suit-triangles' }[suit] || '';
+      || { '♥':'suit-hearts', '♦':'suit-diamonds', '♠':'suit-spades', '♣':'suit-clubs', '♛':'suit-crowns', '☾':'suit-moons' }[suit] || '';
 }
 
 // Central card capability gate - add new card types here, nowhere else

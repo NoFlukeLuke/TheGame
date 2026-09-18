@@ -1134,6 +1134,9 @@ function renderRewardTiles(animateIn = false) {
         p.entity ? 'entity' : '',
         p.entity ? 'entity-' + p.entity : '',
         p.entity ? 'rar-' + rewardRarity(p) : '',
+        // The improvement tier's bands + shutter material (r274). This surface
+        // builds its own cell from entityTileInner, so it adds the class itself.
+        p.entity ? entityTierClass(p) : '',
         isSel   ? 'selected'    : '',
         !isSel && canSel  ? 'selectable'  : '',
         !isSel && !canSel ? 'unselectable': '',
@@ -1347,10 +1350,13 @@ function showRewardTooltipFor(r, c) {
   const descText = (p._trick && typeof trickLiveDesc === 'function') ? trickLiveDesc(p._trick) : (p.desc || '');
   tt.querySelector('.rtt-desc').innerHTML   = colorizeKeywords(descText);
   tt.classList.add('show');
-  // Shared placement (js/entity-tooltip.js): roomiest side horizontally, with an
-  // above/below fallback when neither side can fit the bubble - so a tile in the
-  // right-most column pops out to the LEFT instead of squeezing against the edge.
-  placeTipSmart(el, tt, { gap: 12 });
+  // Placement. The SHOP uses the boss-peek / hand-log rule (r254): centred on
+  // the tile, below when there is room, flipped above when not, clamped - the
+  // roomiest-side rule kept opening the bubble sideways across the very shelf
+  // being read. The reward grid keeps roomiest-side: its picks are a connected
+  // path, and a bubble below the tile would sit on the next tile to take.
+  if (onShop) placeTipBelow(el, tt, { gap: 10 });
+  else placeTipSmart(el, tt, { gap: 12 });
 }
 
 // Re-show whatever tooltip was up before a re-render, since renderRewardTiles

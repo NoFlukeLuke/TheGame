@@ -1,4 +1,4 @@
-const BUILD = "2026-09-18 · r264 · the schedule is symbols only, the legend carries the words, and it always reads left to right on a desktop";
+const BUILD = "2026-09-18 · r276 · the schedule is symbols only, the legend carries the words, and it always reads left to right on a desktop";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -7,7 +7,7 @@ const MODES = {
   normal: {
     id: 'normal',
     name: 'Classic',
-    desc: 'Three quarters. Play rounds, path through the reward grid, and defeat bosses.',
+    desc: 'Four quarters. Play rounds, path through the reward grid, and defeat bosses.',
     winCondition: 'boss_defeat',
     enableBosses: true,
     enableShops: true,
@@ -25,7 +25,7 @@ const MODES = {
   guided: {
     id: 'guided',
     name: 'Guided',
-    desc: 'The three-quarter game on a set route. Every quarter runs reward grid, shop, reward grid, event, and so on into the boss - then a prize grid and two events.',
+    desc: 'The four-quarter game on a set route. Every quarter runs reward grid, shop, reward grid, event, and so on into the boss - then a prize grid and two events.',
     winCondition: 'boss_defeat',
     enableBosses: true,
     enableShops: true,
@@ -80,7 +80,7 @@ const MODES = {
   sixsuits: {
     id: 'sixsuits',
     name: 'Six Suits',
-    desc: 'Same three-quarter game, but the deck has six suits - flushes are far rarer, so Flush of 3, 4, and 5 are all playable.',
+    desc: 'Same four-quarter game, but six suits with only five of each rank, so the deck is 60 cards rather than 78. One rank is cut out of the middle, which leaves the ladder too short for long runs. Flushes are rare and sets come a little easier.',
     winCondition: 'boss_defeat',
     enableBosses: true,
     enableShops: true,
@@ -303,8 +303,8 @@ const MODE_META = {
               blurb: 'The run is a board. Four lanes, six sets of tiles - rounds, hard rounds, shops, reward grids, events, a couple of blanks and mysteries - then a full-width boss with a fixed quota you can read from the start. Orthogonal moves only, at most two tiles per set, and moving on early pays credits.' },
   guided:   { accent: '#c9a0ff',         suits: '8 SLOTS',
               blurb: 'Each act is eight slots and then the boss. Every slot is either a round you play or something you buy with it - the shop, a reward grid, or one of two events on offer. Buying power always costs a round you will not get to play, and the goal climbs either way, so the question is how much of the act you spend getting stronger rather than getting further.' },
-  sixsuits: { accent: 'var(--c-mint)',   suits: '♠ ♥ ♦ ♣ ★ ▲',
-              blurb: 'Two extra suits dilute the deck, so flushes are hard-won. Flush of 3, 4 and 5 are all in play.' },
+  sixsuits: { accent: 'var(--c-mint)',   suits: '♠ ♥ ♦ ♣ ♛ ☾',
+              blurb: 'Six suits with five of each rank, so the deck is 60 cards and a suit holds only ten. The crown and the moon join the four you know. One rank is cut out of the middle of the ladder, so a four-card run or a straight is a good deal harder to find than in Classic, while sets come a little easier and flushes are hard-won.' },
   spectrum: { accent: '#ff9d3c',        suits: '🔴 🟡 🔵 🟢 🟣 🟠 ⚫ ⚪',
               blurb: 'The deck loses its suits and its court. Seven colours and the values 0 to 11, plus a lone 15 and 20. The 9s, 10s and 11s are WHITE - colourless, and they can never complete a flush. Four payout cards are shuffled in: score two hands beside one and it pays.' },
   survival: { accent: 'var(--c-coral)',  suits: 'ENDLESS',
