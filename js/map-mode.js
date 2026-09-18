@@ -158,13 +158,23 @@ function mapCellSolid(lane, set) {           // a real, steppable tile lives her
   return !!t && t.kind !== 'blank';
 }
 
-// The tile's NAME is the short chip you read off the board; `full` is the
-// name in full, shown beside it in the bar and in the tile's hover tooltip.
+// A TILE IS ITS SYMBOL (r264, owner's call). `name` is the short chip and
+// `full` the name in full, and both are read in the BAR and the LEGEND - the
+// board itself carries only the glyph, so a schedule reads at a glance.
 // Schedule vocabulary (r261): an obligation is a piece of work on your day.
+//
+// A hard round is a PLAY SYMBOL WITH A ! IN IT, which no character in Unicode
+// is, so it is a tiny inline SVG. The bang is a HOLE (`fill-rule:evenodd`,
+// one path) rather than a second shape in the tile's colour - a hole works on
+// the wash, the watermark and the legend chip alike, and `currentColor` +
+// `1em` let it sit anywhere the emoji do.
+const MAP_ICON_PRIORITY =
+  '<svg class="mk-svg" viewBox="0 0 24 24" fill="currentColor" fill-rule="evenodd">' +
+  '<path d="M4 3 L20 12 L4 21 Z M8.3 7.4 h2.3 v6.3 h-2.3 z M8.3 15.1 h2.3 v2.3 h-2.3 z"/></svg>';
 const MAP_KIND_META = {
   level:      { icon: '▶', name: 'ACCOUNT',   full: 'Client Account',   cls: 'mk-level',
                 blurb: 'An ordinary round. Clear it and take a pick of three.' },
-  challenge:  { icon: '⚠', name: 'PRIORITY',  full: 'Priority Account', cls: 'mk-challenge',
+  challenge:  { icon: MAP_ICON_PRIORITY, name: 'PRIORITY', full: 'Priority Account', cls: 'mk-challenge',
                 blurb: 'A round with a raised goal and one extra ask. Pays credits and a knack.' },
   shop:       { icon: '🛒', name: 'MART',      full: 'LETHE Mart',       cls: 'mk-shop',
                 blurb: 'The company store. Spend credits on anything on the shelves.' },
@@ -553,9 +563,41 @@ function _mapCellXY(lane, set) {
     : { x: cellLeft(lane), y: cellTop(set) };
 }
 
+// THE ORIENTATION IS RE-READ ON EVERY RENDER, not just captured at open.
+// `mapLandscape` decides which way the schedule reads - left to right on a
+// desktop, top to bottom on a phone - and it was read ONCE in mapOpen. So any
+// change after that (a window resized across the threshold, or a first layout
+// pass that decided portrait before the office photo settled) left the board
+// reading the wrong way for the whole quarter, with no way back.
+function mapSyncOrientation() {
+  const ls = !!document.getElementById('stage')?.classList.contains('landscape');
+  if (ls === mapLandscape) return false;
+  mapLandscape = ls;
+  if (ls) { gridRows = MAP_LANES; gridCols = MAP_SETS + 1; }
+  else    { gridRows = MAP_SETS + 1; gridCols = MAP_LANES; }
+  recomputeGridMetrics();
+  return true;
+}
+// A resize does not repaint the map on its own (bootstrap's update only
+// re-sizes the cards), so the board has to be redrawn when the way it reads
+// changes underneath it. Registered once, and inert unless the map is up.
+// DEFERRED BY A TICK, and that is the whole trick: js/bootstrap.js is the LAST
+// script, so its own resize handler - the one that toggles .landscape - is
+// registered after this one and runs after it. Reading the class here
+// synchronously reads the PREVIOUS orientation, which flips the board one
+// resize late (measured: a desktop -> phone resize left it reading left to
+// right, and the resize back flipped it top down).
+window.addEventListener('resize', () => {
+  if (!mapScreenOpen) return;
+  setTimeout(() => {
+    if (mapScreenOpen && mapSyncOrientation()) { mapRender(false); mapRenderBar(); }
+  }, 0);
+});
+
 function mapRender(animateIn) {
   const gridEl = document.getElementById('grid');
   if (!gridEl) return;
+  if (mapScreenOpen) mapSyncOrientation();
   gridEl.innerHTML = '';
   const legal = mapLegalMoves();
   const legalIds  = new Set(legal.filter(m => !m.doomed).map(m => m.tile.id));
@@ -652,24 +694,19 @@ function mapRender(animateIn) {
       + (mapSelected === t.id ? ' mt-selected' : '')
       + (mapPosTileId === t.id ? ' mt-here' : '');
     div.style.cssText = `left:${x}px;top:${y}px;width:${w}px;height:${h}px;`;
+    // NO NAME ON THE BOARD (r264). The glyph is the whole label; the bar names
+    // what you hover or pick, the ? legend lists every symbol with its word,
+    // and the tile's `title` still carries both for a desktop tooltip.
     div.innerHTML =
       `<div class="mt-wash"></div>` +
       `<div class="mt-ghost">${face.icon}</div>` +
       `<div class="mt-icon">${face.icon}</div>` +
-      `<div class="mt-name">${face.name}</div>` +
       (t.visited ? `<div class="mt-stamp">DONE</div>` : '');
     if (face.full) div.title = face.full + (mapTileDesc(t) ? ' - ' + mapTileDesc(t) : '');
     div.onclick = () => mapTileTap(t);
     div.onmouseenter = () => { if (!mapSelected) mapBarInfo(t, mapMoveFor(t.id)); };
     div.onmouseleave = () => { if (!mapSelected) mapBarInfo(null); };
     gridEl.appendChild(div);
-    // Long event names on a card-width tile: shrink, never break mid-word
-    // (js/fit-text.js - the same fitter every entity tile uses).
-    // Not the boss: its name is vertical in landscape and the fitter measures
-    // horizontally, which shrank BOSS to nothing.
-    const nm = div.querySelector('.mt-name');
-    if (nm && !isBoss && typeof fitEntityName === 'function') fitEntityName(nm, { maxLines: 2, minPx: 4 });
-
     if (animateIn) {
       const rows = mapLandscape ? MAP_LANES : MAP_SETS + 1;
       const r = mapLandscape ? t.lane : t.set;

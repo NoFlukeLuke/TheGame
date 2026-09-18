@@ -1626,6 +1626,51 @@ pointer leaving the row, and tapping again releases.
   takes no tile with it, a left click with the pen off still selects, the
   legend lights 3 of 25 tiles and the card lands fully on screen in both.
 
+### A tile is its SYMBOL (r264)
+
+Owner: *"Ditch the words on the schedule, just use the symbols instead. With
+the legend showing the symbol and word."* The board carries the glyph and
+nothing else; the bar names what you hover or pick, the tile's `title` carries
+the full name and description, and the `▤` legend lists every symbol beside
+its word. `fitEntityName` is gone from the tile for the same reason - there is
+no name left to fit. The glyph went 15px -> 22px (30px on the boss column) and
+is centred in the whole tile rather than sitting above a name band.
+
+**The boss column lost REVIEW too.** "Just use the symbols" is the rule and
+the legend spells it out; a full-height hazard column with a skull in it is
+not ambiguous.
+
+**A hard round is a PLAY SYMBOL WITH A ! IN IT** (owner's spec), which no
+Unicode character is, so `MAP_ICON_PRIORITY` is a tiny inline SVG. The bang is
+a **HOLE** - one path with `fill-rule: evenodd` - rather than a second shape
+painted in the tile's colour, because a hole works over the wash, the big
+watermark glyph and the legend chip alike. `fill: currentColor` and `1em`
+sizing let it sit anywhere an emoji does; the `.mt-icon` copy takes the kind's
+`--rc`. Verified: 42 painted px against the emoji's 42 at 1440x820.
+
+### The schedule re-reads its orientation (r264)
+
+`mapLandscape` decides which way the schedule reads and was captured ONCE in
+`mapOpen`. Anything that changed the orientation afterwards - a window resized
+across the threshold, or a first layout pass that decided portrait before the
+office photo settled - left the board reading the wrong way for the whole
+quarter with no way back.
+
+`mapSyncOrientation()` re-reads `#stage.landscape` at the top of every
+`mapRender` and swaps `gridRows`/`gridCols` when it differs, and a resize
+listener redraws on a real change.
+
+- **THE RESIZE HANDLER IS DEFERRED BY A TICK, and that is the whole trick.**
+  `js/bootstrap.js` is the LAST script, so the handler that toggles
+  `.landscape` is registered AFTER this one and runs after it: reading the
+  class synchronously reads the PREVIOUS orientation. Measured before the
+  defer - a desktop -> phone resize left the board reading left to right, and
+  the resize back flipped it top down, always one step behind.
+
+Verified at 1440x820 and 420x820: 25 tiles, **0 names on the board**, the
+priority SVG on both hard rounds, the legend listing nine symbol/word rows,
+and a desktop -> portrait -> desktop resize flipping the board both ways.
+
 ### The map bar is one strip, and the rules live behind a ? (r255)
 
 Owner: the bar was *"too large and persistent, and doesn't feel especially on

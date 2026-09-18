@@ -1,4 +1,4 @@
-const BUILD = "2026-09-18 · r263 · the schedule takes a pen (right-drag to draw, double right-click for colour) and a legend that lights its own obligations";
+const BUILD = "2026-09-18 · r264 · the schedule is symbols only, the legend carries the words, and it always reads left to right on a desktop";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
