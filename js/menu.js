@@ -1,4 +1,4 @@
-const BUILD = "2026-09-18 · r263 · CARD_MECHANICS.md: hostile cards (Notices), Temps, force/prime family, area sleights, draw-order design";
+const BUILD = "2026-09-18 · r264 · CARD_MECHANICS_IDEAS: the idea register, 20 columns and a controlled vocabulary, 40 seeded rows";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

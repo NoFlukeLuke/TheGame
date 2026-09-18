@@ -4,6 +4,11 @@ Owner brainstorm, written up so it stops being scattered. Nothing here is built.
 Read `CLAUDE.md` first for how the engine is put together; this file only says what
 a new mechanic would be and which existing seam it hangs off.
 
+**The register lives beside this file.** `CARD_MECHANICS_IDEAS.xlsx` (and
+`CARD_MECHANICS_IDEAS.csv`, the version-controlled mirror) is one row per idea,
+with a controlled vocabulary on its own tab. This file is the reasoning; the sheet
+is the list. Add ideas to the sheet, not to this file.
+
 Pool sizes as of this writing: **177 Tricks · 53 Knacks · 45 Sleights**, Tricks
 sorted into 16 categories in `js/data/tricks.js`.
 
