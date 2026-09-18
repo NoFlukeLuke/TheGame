@@ -67,7 +67,9 @@ function entityTileInner(p, { mystery = false } = {}) {
 const TIER_ART_MAX = 5;
 function entityTierClass(p) {
   const kind = p && (p.entity || p.type);
-  if (kind !== 'trick' || !p.id || typeof entityTierOf !== 'function') return '';
+  // Tricks AND Sleights (r275): the disc and the business card both draw the
+  // bands. A Knack has no object yet, so it is left out rather than guessed at.
+  if ((kind !== 'trick' && kind !== 'sleight') || !p.id || typeof entityTierOf !== 'function') return '';
   const t = entityTierOf(p.id) || 0;
   return t > 0 ? 'tier-' + Math.min(t, TIER_ART_MAX) : '';
 }

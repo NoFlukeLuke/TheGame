@@ -3554,6 +3554,10 @@
     background:
       linear-gradient(90deg, rgba(0,0,0,0.26) 0 44%, transparent 44%)
         no-repeat 0 0 / 100% 62%,
+      /* the tier BANDS (r275) - above the card stock, below the logo plate's
+         wash, and below the logo and the name for free, because those are real
+         CHILD elements and a child always paints above its parent's ::before. */
+      var(--bands, none),
       var(--body);
     box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--rc) 70%, #000),
                 0 0 10px -2px var(--rc), 0 4px 10px rgba(0,0,0,0.5);
@@ -5348,12 +5352,16 @@ body.reduced-motion .efx-hit { animation-duration: 1ms; }
    Records tile and a 119px shop tile draw the same picture. */
 
 /* ══════════════════════════════════════════════════════════════════════════
-   THE IMPROVEMENT TIER IS ON THE OBJECT (r274) - `tier-badge-preview.html`
+   THE IMPROVEMENT TIER IS ON THE OBJECT (r274, r275) - tier-badge-preview.html
 
-   A Trick's improvement tier is drawn as two things on the disc itself, so it
-   reads before any badge is: GOLD BANDS across the bottom-left corner, one per
-   tier, and the SHUTTER'S MATERIAL, which climbs dull grey -> bronze -> shiny
-   silver -> gold -> shiny black -> iridescent (5 and up).
+   An improvement tier is drawn ON THE OBJECT, so it reads before any badge is.
+   GOLD BANDS across the bottom-left corner, one per tier, on BOTH the Trick's
+   floppy disc and the Sleight's business card; and on the disc alone, the
+   SHUTTER'S MATERIAL, which climbs dull grey -> bronze -> shiny silver -> gold
+   -> shiny black -> iridescent (5 and up). A Knack has no object of its own
+   yet and is deliberately left out.
+
+   Pitch 5%, thickness 3% (r275, owner's numbers).
 
    BOTH ARE BACKGROUND LAYERS OF THE DISC'S ONE ::before, and that is forced
    rather than chosen. The shell, shutter and label are already layers of that
@@ -5371,26 +5379,29 @@ body.reduced-motion .efx-hit { animation-duration: 1ms; }
    the bottom-left corner, so its bands run at 45 degrees ACROSS that corner -
    the shape a folded corner makes.
    ══════════════════════════════════════════════════════════════════════════ */
-.reward-cell.entity-trick.tier-1 { --bands: linear-gradient(to top right,
+/* The bands are NOT trick-only: a Vendor's business card takes the same mark
+   (r275). The selector is the tile, not the object, so a future object that
+   wants them only has to read var(--bands) in its own ::before. */
+.reward-cell.tier-1 { --bands: linear-gradient(to top right,
   transparent 13%,#f2cf72 13%,#fff6d8 14.5%,#f2cf72 16%,transparent 16%); }
-.reward-cell.entity-trick.tier-2 { --bands: linear-gradient(to top right,
+.reward-cell.tier-2 { --bands: linear-gradient(to top right,
   transparent 13%,#f2cf72 13%,#fff6d8 14.5%,#f2cf72 16%,transparent 16%,
-  transparent 21%,#f2cf72 21%,#fff6d8 22.5%,#f2cf72 24%,transparent 24%); }
-.reward-cell.entity-trick.tier-3 { --bands: linear-gradient(to top right,
+  transparent 18%,#f2cf72 18%,#fff6d8 19.5%,#f2cf72 21%,transparent 21%); }
+.reward-cell.tier-3 { --bands: linear-gradient(to top right,
   transparent 13%,#f2cf72 13%,#fff6d8 14.5%,#f2cf72 16%,transparent 16%,
-  transparent 21%,#f2cf72 21%,#fff6d8 22.5%,#f2cf72 24%,transparent 24%,
-  transparent 29%,#f2cf72 29%,#fff6d8 30.5%,#f2cf72 32%,transparent 32%); }
-.reward-cell.entity-trick.tier-4 { --bands: linear-gradient(to top right,
+  transparent 18%,#f2cf72 18%,#fff6d8 19.5%,#f2cf72 21%,transparent 21%,
+  transparent 23%,#f2cf72 23%,#fff6d8 24.5%,#f2cf72 26%,transparent 26%); }
+.reward-cell.tier-4 { --bands: linear-gradient(to top right,
   transparent 13%,#f2cf72 13%,#fff6d8 14.5%,#f2cf72 16%,transparent 16%,
-  transparent 21%,#f2cf72 21%,#fff6d8 22.5%,#f2cf72 24%,transparent 24%,
-  transparent 29%,#f2cf72 29%,#fff6d8 30.5%,#f2cf72 32%,transparent 32%,
-  transparent 37%,#f2cf72 37%,#fff6d8 38.5%,#f2cf72 40%,transparent 40%); }
-.reward-cell.entity-trick.tier-5 { --bands: linear-gradient(to top right,
+  transparent 18%,#f2cf72 18%,#fff6d8 19.5%,#f2cf72 21%,transparent 21%,
+  transparent 23%,#f2cf72 23%,#fff6d8 24.5%,#f2cf72 26%,transparent 26%,
+  transparent 28%,#f2cf72 28%,#fff6d8 29.5%,#f2cf72 31%,transparent 31%); }
+.reward-cell.tier-5 { --bands: linear-gradient(to top right,
   transparent 13%,#f2cf72 13%,#fff6d8 14.5%,#f2cf72 16%,transparent 16%,
-  transparent 21%,#f2cf72 21%,#fff6d8 22.5%,#f2cf72 24%,transparent 24%,
-  transparent 29%,#f2cf72 29%,#fff6d8 30.5%,#f2cf72 32%,transparent 32%,
-  transparent 37%,#f2cf72 37%,#fff6d8 38.5%,#f2cf72 40%,transparent 40%,
-  transparent 45%,#f2cf72 45%,#fff6d8 46.5%,#f2cf72 48%,transparent 48%); }
+  transparent 18%,#f2cf72 18%,#fff6d8 19.5%,#f2cf72 21%,transparent 21%,
+  transparent 23%,#f2cf72 23%,#fff6d8 24.5%,#f2cf72 26%,transparent 26%,
+  transparent 28%,#f2cf72 28%,#fff6d8 29.5%,#f2cf72 31%,transparent 31%,
+  transparent 33%,#f2cf72 33%,#fff6d8 34.5%,#f2cf72 36%,transparent 36%); }
 
 /* The shutter's material. One gradient each, and what sells which metal it is
    is the RUN OF THE HIGHLIGHT rather than the hue: bronze and gold go warm-dark

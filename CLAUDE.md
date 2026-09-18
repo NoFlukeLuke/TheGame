@@ -1937,6 +1937,27 @@ Verified in a real browser: all six materials live in the tray at tiers 0-5, the
 bands counting up under each label, tier 7 clamped to iridescent, and the reward
 grid still building its 16 tiles.
 
+**The bands are on the BUSINESS CARD too, at pitch 5% (r275).** Owner's numbers:
+pitch 5, thickness 3. The band rules are selected on **`.reward-cell.tier-N`**,
+not on the object, so a Sleight reads them from its own `::before` with one
+added layer and a future object only has to read `var(--bands)`. On the card
+they sit above the stock and below the logo plate's wash - and below the logo
+and the name for free, because those are real CHILD elements and a child always
+paints above its parent's `::before`. The **shutter material stays the disc's
+alone**; a card has no shutter. `entityTierClass` accepts `sleight` now.
+**Knacks are deliberately out** - they have no object of their own yet (the
+owner's plan is stamps with coloured backgrounds), so guessing one would be a
+third vocabulary to unpick later.
+
+**Known, and worth an owner decision: the LANDSCAPE TRAY FAN COVERS THE BANDS.**
+The fan tucks each tile under the next from the LEFT, floored at 50% visible
+(r237), and the bands live in the bottom-LEFT corner - so on every tile but the
+newest they are mostly hidden. Every other surface (reward grid, shop, Mart,
+Records, Shift Change, the picker) is unfanned and shows them in full. Moving
+them to the bottom-RIGHT would put them on the visible edge of a fanned tile;
+that is one `AXIS` value in the band rules (`to top left`), and it is left alone
+rather than changed unasked.
+
 Dev panel -> **Improve**: every owned entity with its tier and what one more would read as,
 plus improve-a-random-one per type and a reset.
 

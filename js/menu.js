@@ -1,4 +1,4 @@
-const BUILD = "2026-09-18 · r274 · the improvement tier is on the disc: gold bands + a shutter material";
+const BUILD = "2026-09-18 · r275 · bands at pitch 5%, and on the Sleight card too";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
