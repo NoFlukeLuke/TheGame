@@ -22,7 +22,7 @@
 //
 // Measured through the REAL engine (handComponentsFor over every connected
 // group on 250 fresh 4x4 deals), share of boards offering each shape, against
-// Classic 52:
+// Classic 52, AT THE PRE-r270 DEFAULTS (cut 2, courts off the ladder, 4 copies):
 //                    Classic   this deck
 //   Run of 3            99%       82%
 //   Run of 4            72%       36%     <- halved
@@ -37,8 +37,9 @@
 // 1. SETS ARE NOT EASIER AT 4 COPIES, they are flat. Set difficulty is
 //    copies - 1, and 4 copies gives exactly 3, which is Classic's number. The
 //    deck being smaller helps a little (a rank collision is 3/47 rather than
-//    3/51) and Full House does rise, but Three of a Kind measured DOWN. Five
-//    copies is what actually moves it: sets/card 3 -> 4, deck 60 cards.
+//    3/51) and Full House does rise, but Three of a Kind measured DOWN. FIVE
+//    COPIES IS THE SHIPPED DEFAULT SINCE r270 for exactly this: sets/card
+//    3 -> 4, and the deck lands on 60 cards.
 // 2. A STRAIGHT FLUSH IS IMPOSSIBLE AT 4 COPIES. It needs one suit holding five
 //    consecutive ladder ranks, and a balanced 4-of-6 assignment cannot produce
 //    one: a suit is absent from 4 of the 12 ranks, and spreading those absences
@@ -49,23 +50,50 @@
 //    That matters because Straight Flush is priced in HAND_BASE and carries a
 //    Natural Scaling accumulator, so at 4 copies both sit permanently dead.
 //
-// ── WHY THE COURTS ARE OFF THE LADDER ────────────────────────────────────────
-// `deckCourtsOffLadder` makes J/Q/K pair and flush like any card but never form
-// a run. Pictures are not numbers. It is not decoration: WITHOUT it the cut rank
-// below is a DEAD KNOB. Measured at 4 copies x 6 suits, courts running normally,
-// Run of 3 comes out 74-77% whichever rank is cut, because the ladder is still
-// about twelve rungs long and an Ace played high bridges straight back to the
-// King. Turn the courts off the ladder and the same cut moves Run of 3 between
-// 50% and 63%. Both toggles are here because neither does its job alone.
+// ── THE COURTS RUN (r270, owner's call) ──────────────────────────────────────
+// `deckCourtsOffLadder` is FALSE now: J/Q/K are part of the run ladder like any
+// other rank, and an Ace still plays high, so Q-K-A bridges the two ends.
+//
+// WHAT THAT COSTS THE CUT RANK, measured at 5 copies x 6 suits over 6000 deals
+// a row. Cutting a rank barely touches a SHORT run - Run of 3 is 72-76%
+// whichever rank goes, because a thirteen-rung ladder survives losing one rung.
+// It only bites on LONG runs, and only when the cut lands in the MIDDLE:
+//
+//   cut      Run of 3   Run of 4   Straight
+//   none        74%        49%        35%
+//   2           76%        52%        38%    <- an end cut does almost nothing
+//   5           73%        44%        25%
+//   8           73%        45%        27%    <- the shipped default
+//   10          73%        44%        26%
+//   J           72%        43%        30%
+//
+// Cutting near an END leaves the ladder essentially whole (drop the 2 and
+// A-high still reaches back through K), which is why the old default of 2 was
+// the worst available choice once the courts started running. 5, 8 and 10 all
+// split it into two pieces too short to host a five-card straight and measure
+// the same to within noise; 8 is the middle one.
+//
+// THE REAL LEVER FOR RUNS IS ORDER, NOT COMPOSITION, and it is not implemented.
+// Requiring a run to be laid out in sequence grades the difficulty BY LENGTH,
+// which no rank cut can do. Measured, no cut, 4x4:
+//   today (layout irrelevant)            Run3 75%   Run4 49%   Straight 34%
+//   each card touches an earlier one     Run3 64%   Run4 28%   Straight 12%
+//   consecutive ranks must touch         Run3 38%   Run4  8%   Straight  1%
+// The middle rule is the one that matches the game's own tap rule (a tap must
+// be adjacent to the GROUP so far, js/input.js). The strict one is too far:
+// a straight at 1% is extinct and a straight flush becomes impossible.
 const DECK_COURTS = ['J', 'Q', 'K'];
 
 // ── Tuner state ──────────────────────────────────────────────────────────────
 // Persisted so a tuning session survives a reload, exactly like the Spectrum
 // tuner (js/spectrum.js) this is modelled on.
-const DECK_DESIGN_KEY = 'lethe.deckDesign.v1';
-let deckCutRank        = '2';    // the one rank left out of the deck ('' = none)
-let deckCourtsOffLadder = true;  // J/Q/K pair and flush, never run
-let deckCopiesPerRank  = 4;      // how many of each rank, spread over the 6 suits
+// v2 (r270): the defaults changed, and a STORED value beats a default - anyone
+// who had already loaded the game would have kept the 48-card courts-off deck
+// for ever. Same reason the heartbeat's config key went to hbCfg3 in r183.
+const DECK_DESIGN_KEY = 'lethe.deckDesign.v2';
+let deckCutRank        = '8';    // the one rank left out of the deck ('' = none)
+let deckCourtsOffLadder = false; // J/Q/K run like any other rank
+let deckCopiesPerRank  = 5;      // how many of each rank, spread over the 6 suits
 // Set by a toggle, consumed at the next round start. The round being played
 // always finishes on the deck it was dealt.
 let deckDesignDirty = false;
