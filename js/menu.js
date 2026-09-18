@@ -1,4 +1,4 @@
-const BUILD = "2026-09-18 · r267 · tier reads v2.0, priming reads +2";
+const BUILD = "2026-09-18 · r268 · preview: thicker bands under the label, tier-coloured shutter";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

@@ -46,23 +46,33 @@ html,body{ margin:0; padding:0; background:#0f0d09 !important; }
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
-   OPTION C - gold service bands. N thin 45deg lines across one corner, one
-   per tier: no number and no glyph, the count IS the reading.
+   OPTION C - gold service bands, and a TIER-COLOURED SHUTTER.
 
-   It uses the OBJECT'S OWN BAND, not the frame (r239): same
-   width:min(100cqw, 100cqh*R) + aspect-ratio + corner clip as the disc, so
-   the lines sit on the floppy rather than on the letterbox around it, and
-   every length is a % so a 34px Records tile and a 119px shop tile agree.
+   The bands are a BACKGROUND LAYER ON THE DISC'S OWN ::before, slotted
+   between the cream label and the body. Background layers paint first-listed
+   on top, so putting the bands AFTER the label puts them UNDER it - which is
+   what "underneath the emoji and the title and the white part" asks for. As a
+   separate element they could only ever sit above the whole disc, because the
+   shell, shutter and label are all layers of that one pseudo (r239).
+
+   The shutter is the metal slider, and it is the one part of the object that
+   can carry a material. Tier picks it: dull grey, bronze, silver, gold, black,
+   polished gold, iridescent. It is also enlarged here (45% -> 54% wide,
+   31% -> 36% tall), with the punched window moved to stay centred on it.
    ══════════════════════════════════════════════════════════════════════════ */
-.reward-cell .rwd-bands{
-  position:absolute; z-index:7; pointer-events:none;
-  left:50%; top:50%; transform:translate(-50%,-50%);
-  width:min(100cqw, calc(100cqh * 20 / 19)); aspect-ratio:20/19;
-  clip-path:polygon(0 0, 84% 0, 100% 16.8%, 100% 100%, 0 100%);
-  filter:drop-shadow(0 1px 1px rgba(0,0,0,.65));
-}
-.reward-cell.entity-sleight .rwd-bands{      /* the business card's ratio */
-  width:min(100cqw, calc(100cqh * 1.37)); aspect-ratio:1.37; clip-path:none; border-radius:3px;
+.reward-cell.entity-trick.tb-demo::before {
+  background:
+    /* the shutter's punched window */
+    linear-gradient(#1b1e22, #1b1e22) no-repeat 55.2% 12% / 18.9% 21.1%,
+    /* the metal shutter - TIER COLOURED */
+    var(--shut, linear-gradient(180deg,#e6e9ee 0%,#9aa0a8 52%,#cfd4da 100%))
+      no-repeat 71.7% 7% / 54% 36%,
+    /* the cream label plate */
+    linear-gradient(rgba(244,238,218,0.94), rgba(244,238,218,0.94))
+      no-repeat 50% 82% / 86% 50%,
+    /* THE BANDS - below the label, above the body */
+    var(--bands, none),
+    var(--body);
 }
 </style>
 </head>
@@ -74,7 +84,9 @@ html,body{ margin:0; padding:0; background:#0f0d09 !important; }
   top-right corner. Drawn by the real <code>.rwd-tier</code> rule, so this IS the game's.<br>
   <b>B</b> &mdash; what it replaced: <b>+N</b> in the rarity colour, at the frame's corner (r206).
   Kept for comparison; <b>+N</b> now means PRIMED, in violet, bottom right.<br>
-  <b>C</b> &mdash; <b>gold bands</b> across a corner, one thin 45&deg; line per tier. No number to read.<br>
+  <b>C</b> &mdash; <b>gold bands</b> across a corner, one per tier, drawn <b>under</b> the label, the emoji
+  and the name &mdash; plus a <b>tier-coloured shutter</b>: grey &middot; bronze &middot; silver &middot; gold &middot;
+  black &middot; polished gold &middot; iridescent. The shutter is enlarged here too.<br>
   Frames are the real ones: 40&times;53 landscape tray &middot; 47&times;64 portrait tray &middot; 57&times;76 reward grid &middot; 119&times;158 shop.
 </div>
 
@@ -85,13 +97,14 @@ html,body{ margin:0; padding:0; background:#0f0d09 !important; }
   <div><label>BAND CORNER</label><select id="corner">
     <option value="bl" selected>bottom left</option><option value="br">bottom right</option>
     <option value="tl">top left</option></select></div>
-  <div><label>BAND PITCH <span id="pv2">7</span>%</label><input type="range" id="pitch" min="4" max="14" step="0.5" value="7"></div>
+  <div><label>BAND PITCH <span id="pv2">8</span>%</label><input type="range" id="pitch" min="4" max="16" step="0.5" value="8"></div>
+  <div><label>BAND THICKNESS <span id="tkv">3</span>%</label><input type="range" id="thick" min="1" max="6" step="0.5" value="3"></div>
 </div>
 
 <div class="sec"><h2>A &mdash; vN.0 stamp <small>(shipping today, r267)</small></h2><div class="row" id="rowA"></div></div>
 <div class="sec"><h2>B &mdash; the old +N pill <small>(r206, replaced)</small></h2><div class="row" id="rowB"></div></div>
 <div class="sec"><h2>C &mdash; gold bands</h2><div class="row" id="rowC"></div></div>
-<div class="sec"><h2>C &mdash; the whole ladder, at portrait tray size</h2><div class="row" id="rowL"></div></div>
+<div class="sec"><h2>C &mdash; the whole ladder, at portrait tray size <small>(tier 6 = iridescent)</small></h2><div class="row" id="rowL"></div></div>
 </main>
 
 <script>
@@ -103,40 +116,61 @@ function inner(kind){
   return `<div class="rwd-glyph">✦</div><div class="rwd-art">🌱</div><div class="rwd-name">RICH SOIL</div>`;
 }
 
-// N gold lines as explicit stops on ONE gradient. The gradient's axis points out
-// of the chosen corner, so its bands run at 45 degrees ACROSS that corner - the
-// same shape a folded corner makes. Stops are percentages of the axis, so the
-// mark keeps its proportions at every tile size.
+// N gold lines as explicit stops on ONE gradient, returned as a BACKGROUND
+// LAYER (not an element) so it can be slotted under the label plate. The
+// gradient's axis points out of the chosen corner, so its bands run at 45
+// degrees ACROSS that corner - the shape a folded corner makes. Every stop is
+// a percentage, so the mark keeps its proportions at every tile size.
 const AXIS = { bl:'to top right', br:'to top left', tl:'to bottom right' };
-function bands(n, corner, pitch){
-  if (n <= 0) return '';
-  const FIRST = 13, T = 1.5, G = '#f2cf72', CORE = '#fff6d8';
+function bandsLayer(n, corner, pitch, thick){
+  if (n <= 0) return 'none';
+  const FIRST = 13, T = thick, G = '#f2cf72', CORE = '#fff6d8';
   let stops = [];
   for (let i = 0; i < n; i++){
     const a = FIRST + i * pitch, b = a + T;
     stops.push(`transparent ${a}%`, `${G} ${a}%`, `${CORE} ${(a+b)/2}%`, `${G} ${b}%`, `transparent ${b}%`);
   }
-  return `<div class="rwd-bands" style="background:linear-gradient(${AXIS[corner]},${stops.join(',')})"></div>`;
+  return `linear-gradient(${AXIS[corner]},${stops.join(',')})`;
 }
 
-function tile(opt, size, kind, rar, n, corner, pitch, cap){
-  let extra = '';
+// The shutter's MATERIAL, by tier. Owner's ladder. Each is a plain CSS
+// gradient - a real metal would want the dough, but the run of the highlight
+// is what sells which metal it is even here: bronze and gold run warm dark to
+// warm light, silver has a hard white edge, black keeps a cold rim so it does
+// not read as a hole.
+const SHUT = [
+  /* 0 dull grey     */ 'linear-gradient(180deg,#9c9c98 0%,#72726f 50%,#8a8a87 100%)',
+  /* 1 bronze        */ 'linear-gradient(170deg,#eec08d 0%,#b87333 34%,#7a4a1e 62%,#d9975a 100%)',
+  /* 2 shiny silver  */ 'linear-gradient(170deg,#ffffff 0%,#cfd8e2 26%,#79838f 54%,#eef4fa 72%,#aab3bd 100%)',
+  /* 3 gold          */ 'linear-gradient(170deg,#fff0bd 0%,#e3ba50 30%,#a67c14 58%,#f6dd8e 100%)',
+  /* 4 shiny black   */ 'linear-gradient(170deg,#8b929b 0%,#1b1f25 28%,#05070a 52%,#39414b 74%,#9aa2ac 100%)',
+  /* 5 polished gold */ 'linear-gradient(170deg,#fffdf0 0%,#ffe89a 22%,#c79a1e 50%,#8a6206 66%,#ffe07a 100%)',
+  /* 6+ iridescent   */ 'linear-gradient(120deg,#ff6ec7 0%,#ffd86e 18%,#6effa8 36%,#6ed8ff 54%,#a06eff 72%,#ff6ec7 90%,#ffd86e 100%)',
+];
+const shutFor = n => SHUT[Math.min(n, SHUT.length - 1)];
+
+function tile(opt, size, kind, rar, n, corner, pitch, cap, thick){
+  let extra = '', cls = '', style = '';
   if (opt === 'A' && n > 0) extra = `<div class="rwd-tier">v${n}.0</div>`;
   if (opt === 'B' && n > 0) extra = `<div class="rwd-ver">+${n}</div>`;
-  if (opt === 'C') extra = bands(n, corner, pitch);
+  if (opt === 'C' && kind === 'trick'){
+    cls = ' tb-demo';
+    style = ` style="--bands:${bandsLayer(n, corner, pitch, thick)};--shut:${shutFor(n)}"`;
+  }
   return `<div class="slot"><div class="frame ${size}">`
-       + `<div class="reward-cell entity entity-${kind} rar-${rar}">${inner(kind)}${extra}</div>`
+       + `<div class="reward-cell entity entity-${kind} rar-${rar}${cls}"${style}>${inner(kind)}${extra}</div>`
        + `</div><div class="cap">${cap}</div></div>`;
 }
 
 function draw(){
   const n = +tier.value, pitch = +document.getElementById('pitch').value;
+  const thick = +document.getElementById('thick').value;
   const rar = document.getElementById('rar').value, kind = document.getElementById('kind').value;
   const corner = document.getElementById('corner').value;
-  tv.textContent = n; pv2.textContent = pitch;
+  tv.textContent = n; pv2.textContent = pitch; tkv.textContent = thick;
   for (const [opt, row] of [['A', rowA], ['B', rowB], ['C', rowC]])
-    row.innerHTML = SIZES.map(([c, cap]) => tile(opt, c, kind, rar, n, corner, pitch, cap)).join('');
-  rowL.innerHTML = [0,1,2,3,4,5].map(t => tile('C','f2',kind,rar,t,corner,pitch,'tier '+t)).join('');
+    row.innerHTML = SIZES.map(([c, cap]) => tile(opt, c, kind, rar, n, corner, pitch, cap, thick)).join('');
+  rowL.innerHTML = [0,1,2,3,4,5,6].map(t => tile('C','f2',kind,rar,t,corner,pitch,'tier '+t,thick)).join('');
 }
 document.querySelectorAll('#pv input,#pv select').forEach(el => el.addEventListener('input', draw));
 draw();
