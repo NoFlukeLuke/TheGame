@@ -18,6 +18,11 @@ function cancelDance() {
   if (typeof dncCleanupReal === 'function') dncCleanupReal();
   // Un-hide any grid cards whose fly-to-preview was cut short (they were never removed).
   if (typeof dncRestoreHiddenGridEls === 'function') dncRestoreHiddenGridEls();
+  // Put the goal finale's board back on its cells NOW (r280). The blast is a
+  // 1.2s out-and-back and the dance's own abort checkpoint is further down the
+  // step it is in, so without this the cards go on flying outward underneath
+  // whatever cut the dance short - a round ending, a boss firing, the next deal.
+  if (typeof dncSettleBlast === 'function') dncSettleBlast();
   // Restore any elements hidden by odometer overlays
   ['pips-val','mult-val','score-total-num'].forEach(id => {
     const el = document.getElementById(id);

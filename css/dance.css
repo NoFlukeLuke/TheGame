@@ -99,3 +99,38 @@ body.dance-paused #selected-cards.dnc-active * {
   text-shadow:0 0 3px #000, 0 2px 6px rgba(0,0,0,.9); }
 
 body.reduced-motion .dnc-particle .pt-box{ box-shadow:none; }
+
+/* ══════════════════════════════════════════════════════════════════
+   THE GOAL HAND'S SKIP (r280) - js/score-dance.js, dncMountFF
+   ══════════════════════════════════════════════════════════════════
+   Mounted into #selected-cards for the goal hand only. ABSOLUTELY POSITIONED,
+   so it is not a row of the dance stage and cannot push the cards around;
+   #selected-cards is a positioned element in BOTH orientations (absolute in
+   landscape, relative in portrait), so one rule anchors it in both.
+   It sits top-right: the hand-name label owns the left 44px of the landscape
+   frame, and the cards are centred. */
+/* The band above the cards is all the room there is: measured at 1440x820 the
+   dance stage starts 13.5 stage px above the preview cards, so the chip has to
+   come in under that or it sits on the hand you just played. */
+#dnc-ff {
+  position: absolute; right: 2px; top: 1px; z-index: 8;
+  display: flex; align-items: center; gap: 3px; line-height: 1;
+  padding: 1px 5px; border-radius: 4px; cursor: pointer;
+  font-family: 'Orbitron', sans-serif; font-size: 6.5px; letter-spacing: 1.2px;
+  background: rgba(10, 14, 12, 0.86);
+  color: var(--cream-dim, #8a7d60);
+  border: 1px solid var(--plastic-deep, #85795f);
+  opacity: 0.72;
+  transition: color .12s, border-color .12s, opacity .12s;
+}
+#dnc-ff:hover { opacity: 1; color: var(--phosphor, #ffb02e); border-color: var(--phosphor, #ffb02e); }
+#dnc-ff .ff-gl { font-size: 7px; line-height: 1; }
+/* Pressed: it has done its one job, so it goes quiet and stops taking taps
+   rather than disappearing - a control vanishing under the finger reads as a
+   misfire. */
+#dnc-ff.ff-on {
+  opacity: 0.4; pointer-events: none;
+  color: var(--c-mint, #35d59b); border-color: var(--c-mint, #35d59b);
+}
+#stage:not(.landscape) #dnc-ff { right: 2px; top: 1px; padding: 2px 4px; font-size: 6px; letter-spacing: 1px; }
+body.reduced-motion #dnc-ff { transition: none; }

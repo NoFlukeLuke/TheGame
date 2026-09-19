@@ -1,4 +1,4 @@
-const BUILD = "2026-09-19 · r279 · deck model picker + the WEIGHTED deck: copies per rank, so sets get easier without runs following [onto r278]";
+const BUILD = "2026-09-19 · r280 · win finale: the cards blast out and COME BACK, so the board stays up for the tally and the round-end fall is visible again + a SKIP in the hand preview [onto r279]";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
