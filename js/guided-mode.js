@@ -581,7 +581,7 @@ function guidedTagOffers(mk) {
   return mk;
 }
 
-// The action row (r281). The Schedule's pick is Survival's pick, so it carries
+// The action row (r282). The Schedule's pick is Survival's pick, so it carries
 // Survival's controls - through the SHARED reroll pool in js/grid-pick.js, which
 // is what keeps the price ladder and the free-reroll count one number rather
 // than two that drift.

@@ -1178,7 +1178,13 @@
   <div id="event-panel">
     <div id="event-bar">
       <span id="event-eyebrow">EVENT</span>
-      <span id="event-bar-dots"><i></i><i></i><i></i></span>
+      <!-- An event is a full-screen panel, so it covers #btn-pause outright and there
+           was no way into the menu from here at all. The bar is the one part of the
+           console that never scrolls away, so the chip lives in it. -->
+      <span class="con-bar-right">
+        <span id="event-bar-dots"><i></i><i></i><i></i></span>
+        <button class="con-pause" type="button" title="Pause / menu" aria-label="Pause" onclick="togglePauseMenu()">&#9208;</button>
+      </span>
     </div>
     <div id="event-name">·</div>
     <div id="event-flavor"></div>
@@ -1198,7 +1204,11 @@
   <div id="lb-panel">
     <div id="lb-bar">
       <span id="lb-eyebrow">LIMIT BREAK</span>
-      <span id="lb-bar-dots"><i></i><i></i><i></i></span>
+      <!-- Same console, same problem: it covers #btn-pause. See #event-bar above. -->
+      <span class="con-bar-right">
+        <span id="lb-bar-dots"><i></i><i></i><i></i></span>
+        <button class="con-pause" type="button" title="Pause / menu" aria-label="Pause" onclick="togglePauseMenu()">&#9208;</button>
+      </span>
     </div>
     <div id="lb-title">RAISE A LIMIT</div>
     <div id="lb-sub">Pick one. It is free.</div>

@@ -64,7 +64,7 @@ const GP_OPT_ROW = 1;             // options sit under the top ambience row
 const GP_CONFIRM_W = 2;
 const GP_ACT_COLS  = GP_COLS - GP_CONFIRM_W;
 
-// ── THE REROLL POOL (r281) - ONE pool, shared by every pick-of-three ─────────
+// ── THE REROLL POOL (r282) - ONE pool, shared by every pick-of-three ─────────
 // Survival owned this and the Schedule's pick had no reroll at all. It is RUN
 // state, not mode state - a pool of free rerolls that carries between picks and
 // grows as you beat bosses - so it lives here, with the screen, and both callers

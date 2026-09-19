@@ -201,7 +201,7 @@
    payout both get it. */
 body.gp-active #sel-count { display: none !important; }
 
-/* ── THE ROUND BREAKDOWN, READ OVER THE BOARD (r281) ────────────────────────
+/* ── THE ROUND BREAKDOWN, READ OVER THE BOARD (r282) ────────────────────────
    The reader's markup is `#survival-pick-overlay` / `#sv-pick-contrib` for
    historical reasons (it was Survival's alone until the Schedule's pick gained
    the same tile), but the behaviour belongs to THIS screen, so the rules are

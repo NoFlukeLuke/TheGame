@@ -1383,7 +1383,7 @@ pick-of-three (4 actions + CONFIRM, no overflow) and the map's 2-knack pick. A
 tap grants nothing, CONFIRM with nothing selected does nothing, the tiles are
 cleaned out of `#grid` on close, and there are no page errors.
 
-### ONE reroll pool, and the Schedule's pick is Survival's pick (r281)
+### ONE reroll pool, and the Schedule's pick is Survival's pick (r282)
 
 Owner: *"Can you make the pick 3 for schedule the same as survival with the
 rerolls and such. And make sure they both require a confirm still."*
@@ -1410,7 +1410,7 @@ copy in guided-mode.js is exactly how the two would have drifted.**
   for Survival and Flow, so seeding there left the Schedule on whatever the last
   run finished with.
 - **SAVE_VARS renamed** (`pickRerollsLeft` / `pickRerollsUsed`). A save written
-  before r281 resumes with the run-start pool of 3 instead of its own figure -
+  before r282 resumes with the run-start pool of 3 instead of its own figure -
   one value, and the alternative was two names for one pool.
 - **A reroll REDRAWS, it does not re-deal** (`gridPickRefresh`), so the tiles do
   not fall in twice for one screen - and r280's rule that new offers drop the
@@ -2465,6 +2465,76 @@ away from any boss tick, timer or future call site.
 
 The two `disabled` writes are now skipped when `shopGridActive || rewardOnGrid`,
 and the `#disc-count` / `#swap-count` writes are null-guarded.
+
+## PAUSE opens the MENU, so it has to work on every screen (r281)
+
+Owner: *"Pause doesn't work on the map screen. There's nothing to actually pause,
+but that's how you access the menu, so it needs to work everywhere. During events
+and shops as well."* It is the only way to Settings, to Home and to abandoning a
+run, and it did nothing on most of the game. Two separate causes, and fixing
+either one alone leaves half the screens broken.
+
+### 1. `pauseGame` refused to open on a screen with no clock
+
+It opened with `if (!roundInterval && !gameInterval && !countdownActive) return;`
+- "nothing to pause". True, and beside the point: there is still a menu to open.
+Measured before the fix, at 1440x820 and 420x820, the button was **reachable and
+did nothing** on the map, the shop and the reward grid - `isPaused` stayed false
+and the overlay stayed hidden.
+
+**So pause always opens now, and RESUME PUTS BACK ONLY WHAT THE PAUSE ACTUALLY
+STOPPED.** That second half is the load-bearing one: `resumeGame` ended with an
+unconditional `startRoundTimer()` and a fresh `gameInterval`, which on a takeover
+screen would **run the round behind the shop** - exactly what `screenOwnsClock()`
+exists to prevent.
+
+- **TWO flags, `pausedRoundClock` and `pausedGameClock`, not one.** The two clocks
+  are independent and **the legacy game timer is live in every mode**: `startTimers`
+  arms `gameInterval` for a Classic run as much as for a timer-mode one, and it is
+  its BODY that `!isActMode()` guards, not its existence. A single "either was
+  running" flag therefore still restarted the round clock behind every takeover
+  screen - measured, a reward grid resumed holding a `roundInterval` it did not
+  have when it opened.
+- **`!!roundInterval` is a faithful test for "the round clock is live."** Every path
+  out of a round nulls it - `stopTimers`, `triggerLevelUp`, the goal dance, a
+  takeover screen. A side effect worth knowing: pausing mid goal-dance no longer
+  restarts the clock of a round that has already been won.
+- **`if (!gameStartTime) return;`** keeps it off the main menu, where no run exists.
+- `togglePauseMenu()` is the one toggle, so the button and the chips below cannot
+  drift apart.
+
+### 2. Three screens PAINT OVER the button, which no amount of fixing `pauseGame` reaches
+
+- **An event and a Limit Break** are `position: fixed; inset: 0` panels at z-index
+  300 over the whole stage. Measured, `elementFromPoint` on `#btn-pause` returned
+  an event tile.
+- **The map's own strip.** `#map-bar` is body-level in raw viewport px and is
+  `width: max-content`, so it runs about 360px wide with nothing picked and **the
+  full width the moment an obligation is picked** (`.mb-info` fills). At 1440x820
+  that is straight over the button row; at 1100x620 it covers it even before a
+  pick. Portrait clears it, but only just.
+
+Each gets a **pause chip in its bar** - the one part of those screens that never
+scrolls away (`#event-bar` / `#lb-bar` in index.html, `#mb-pause` in
+`mapRenderBar`). `.con-pause` is one rule shared by the two console panels, which
+already share their chrome; the map's rides its existing `.mb-q` chip vocabulary
+and sits **first in the bar**, so it is in the same place however many of the pen
+and legend chips happen to be showing.
+
+**The pause overlay is z-index 420 and every one of those screens is below it**, so
+it paints on top with no per-screen work - verified, not assumed.
+
+**Records is deliberately still an exception.** It covers the button too, and it
+has its own close button and already pauses through `screenOwnsClock()`.
+
+Verified in a real browser at **1440x820, 1100x620 and 420x820**, driving the real
+click path on eleven screens each - map (with and without a pick), a live round,
+the shop, the reward grid, an event, a Limit Break, the guided crossroads, the
+payout and the boss briefing. Every one: a reachable way in, the menu opens, **the
+pause panel is the element on top**, resume closes it, **the clock state is
+identical before and after**, and the screen underneath survived. 33 of 33, zero
+page errors. The live round is the regression guard at the other end: its clock is
+measurably frozen while paused and measurably ticking again after resume.
 
 ## A fifth toast froze the whole game (r225)
 

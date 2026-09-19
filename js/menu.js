@@ -1,4 +1,4 @@
-const BUILD = "2026-09-19 · r281 · the Schedule pick gets Survival's rerolls; one shared pool";
+const BUILD = "2026-09-19 · r282 · the Schedule pick gets Survival's rerolls; one shared pool";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

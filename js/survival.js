@@ -36,7 +36,7 @@ const SURVIVAL_BOSS_TIME_CAP  = 180;  // banked leftover time feeding the boss, 
 const SURVIVAL_BOSS_MIN_TIME  = 30;   // floor so a low bank can't hand an unwinnable boss
 // Rerolls are a CARRY-OVER POOL (owner spec): 3 at run start, +2 per boss beaten.
 // They do NOT refresh each level; unspent ones roll forward to the next reward.
-// SHARED WITH THE SCHEDULE'S PICK since r281 - the pool, its price ladder and the
+// SHARED WITH THE SCHEDULE'S PICK since r282 - the pool, its price ladder and the
 // Reroll tile all live in js/grid-pick.js (PICK_REROLLS_*, pickReroll*).
 // Entities that only do something in the reward grid - survival has no reward grid,
 // so they are filtered out of every pool while it is the active mode.
@@ -367,7 +367,7 @@ function survivalShowPick(bonus = false, kicker) {
 // ── Contributions breakdown (the payout's Contributions view, surfaced on the pick
 //    because survival skips the payout). Reads the live round tally, which is still
 //    populated here - triggerLevelUp (which resets it) only runs once you choose. ──
-// THE BREAKDOWN IS A READING STATE, NOT A FLOATING PANEL (r281). The pick IS the
+// THE BREAKDOWN IS A READING STATE, NOT A FLOATING PANEL (r282). The pick IS the
 // board now (r256), and this list is ~155 stage px tall and centred - so it lay
 // straight across the middle of all three option tiles AND took their taps, with
 // almost no plate behind it to say it was there. Measured: a tile click under an

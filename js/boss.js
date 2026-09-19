@@ -998,7 +998,7 @@ function endBoss(success, opts) {
     if (!opts?.presented && typeof goalClearPresent === 'function') goalClearPresent({ kicker: _beaten, force: true });
     if (typeof recordQuarterBoss === 'function') recordQuarterBoss(_beaten);   // run report row
     // Every mode's pick-of-three draws on one reroll pool, so the grant belongs
-    // here rather than in Survival's own post-boss path (r281).
+    // here rather than in Survival's own post-boss path (r282).
     if (typeof pickRerollsGrant === 'function') pickRerollsGrant();
     if (survivalActive()) {
       // Survival: no reward grid - a bonus pick-of-three, then back to normal rounds.
