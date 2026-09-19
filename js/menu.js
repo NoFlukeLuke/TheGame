@@ -1,4 +1,4 @@
-const BUILD = "2026-09-18 · r277 · the tray fan stops restyling the tile; stamp top-left";
+const BUILD = "2026-09-19 · r278 · goal curves retuned from the Monte Carlo sweep";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

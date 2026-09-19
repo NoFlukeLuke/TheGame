@@ -74,7 +74,17 @@ function mapRollBlanks() {
 // Classic's GOAL_SCALE (1.35). Computed once at run start so the map can print
 // it before the first tile is taken.
 const MAP_BOSS_LEVELS = 9;
-const MAP_BOSS_SCALE  = 1.40;
+// r278: 1.40 -> 1.30. A Schedule level advances on every obligation, so its own
+// per-level growth (MAP_GOAL_GROWTH, read by mapGoalForLevel in js/goal-tuning.js)
+// is much flatter than Classic's - and the review quota has to flatten with it or
+// the review dwarfs everything the quarter built toward. Measured in the bot
+// sweep: at 18%/level, a 14.8x quota killed 98% of failed runs AT the review;
+// 8.2x (1.30^8) splits the deaths between late obligations and the review.
+const MAP_BOSS_SCALE  = 1.30;
+// The Schedule's per-level goal growth, percent. Its own number because the
+// Schedule advances `level` about twice as fast as Classic advances per played
+// round (bought obligations move the curve too - the mode's load-bearing rule).
+const MAP_GOAL_GROWTH = 18;
 // The knack-only pick after a challenge round rolls its rarities as if the
 // player held +20 Luck (a temporary luckModifiers bump around the draw - the
 // odds shift exactly as 20 real Luck would, and nothing is permanently added).
@@ -132,9 +142,10 @@ function mapResetBoard() {
 
 // The boss quota is FIXED at map build, and ANCHORED TO THE LEVEL THE QUARTER
 // OPENS ON: MAP_BOSS_LEVELS of the steeper curve from here. At Q1 that reads
-// goalForLevel(1) = BASE_GOAL and reproduces the r238 figure exactly (17,500);
-// Q2 and Q3 open around level 11 and 21, so they ask for what a quarter of
-// progress from THERE is worth rather than repeating Q1's number three times.
+// goalForLevel(1) = BASE_GOAL (1500 -> a 12,000 quota since the r278 retune;
+// the pre-r278 numbers were 1200 x 1.40^8 = 17,500). Q2 and Q3 open around
+// level 11 and 21, so they ask for what a quarter of progress from THERE is
+// worth rather than repeating Q1's number three times.
 function mapQuarterBossGoal() {
   const base = (typeof goalForLevel === 'function')
     ? goalForLevel(Math.max(1, level || 1))
