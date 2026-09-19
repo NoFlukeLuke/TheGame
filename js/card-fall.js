@@ -443,6 +443,13 @@ async function removeAndFall(removingCells, mode = 'play') {
   pendingAction = null;
   render();
 
+  // A Spectrum deck fixture that just paid out leaves the board HERE, not at the
+  // moment it paid: it pays inside playHand, above the dance, and the dance's own
+  // removeAndFall holds the falling lock until this point. Drained before the
+  // queued action so "it paid, then it left" is one beat rather than a card
+  // vanishing behind the next hand. (js/spectrum.js)
+  if (typeof spectrumDrainFixtureExits === 'function') spectrumDrainFixtureExits();
+
   if (queued === 'play') { dbgEvent('info', 'executing queued play'); playHand(); }
   else if (queued === 'discard') { dbgEvent('info', 'executing queued discard'); doDiscard(); }
 
