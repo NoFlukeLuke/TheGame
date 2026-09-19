@@ -41,7 +41,7 @@
   border-color: var(--cream, #f0e6c8);
   box-shadow: inset 0 0 0 1px rgba(0,0,0,0.55), 0 0 13px rgba(240,230,200,0.26), 0 6px 14px rgba(0,0,0,0.55);
 }
-/* PICKED (r276). A tap marks the tile; CONFIRM is what takes it. Mint, because
+/* PICKED (r280). A tap marks the tile; CONFIRM is what takes it. Mint, because
    that is the colour CONFIRM wears on every other screen in the flow, so the
    tile and the button that commits it read as one thing. It must beat :hover -
    the pointer is on the tile you just tapped. */
@@ -69,7 +69,7 @@
    r239: the object's band is an abspos pseudo anchoring to the nearest
    positioned ancestor. Only the ART floats.
    NOT pointer-events:none: a click on the object has to bubble to .gp-opt,
-   which is what selects it and opens the read (r276 - .gp-opt carries the
+   which is what selects it and opens the read (r280 - .gp-opt carries the
    data-et payload now, so the hover target is the whole tile). */
 .gp-art { flex: 0 0 auto; width: 100%; display: flex; justify-content: center; }
 .gp-art-trick   .gp-art { aspect-ratio: 20 / 19; }   /* the floppy's real ratio */
@@ -93,7 +93,7 @@
   color: var(--cream, #f0e6c8); text-align: center; line-height: 1.12;
 }
 .gp-body { flex: 0 0 auto; width: 100%; }
-/* 7.5px, not 9 (r276, owner's call): the tile is a fixed 2x3 cells and the only
+/* 7.5px, not 9 (r280, owner's call): the tile is a fixed 2x3 cells and the only
    way to read more of a description inside it is to set it smaller, so the
    clamp goes 3 lines -> 5 and about 80% more of the text lands on the tile
    before the tooltip is needed at all. */
@@ -145,7 +145,7 @@
 /* The shop tile is the one that costs credits, so it is the one that is gold. */
 #grid .gp-act.gp-act-buy { border-color: rgba(255,206,43,0.55); }
 
-/* CONFIRM (r276) - two cells at the end of the action row, on every screen that
+/* CONFIRM (r280) - two cells at the end of the action row, on every screen that
    comes through here. Mint, the flow's commit colour, and it names what it is
    about to take so the last thing read before committing is the choice itself.
    Same stacked layout as its neighbours in the row - only wider, greener and

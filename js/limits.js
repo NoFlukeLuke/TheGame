@@ -85,11 +85,30 @@ function limitChangeText(id, dir) {
   return `${def ? def.label : id}: ${l.current}${u} → ${to}${u}`;
 }
 
+// ── Early-limit guidance (r278, owner spec) ─────────────────────────────────
+// A run's opening should VERY LIKELY offer a Selection Size or grid-size limit
+// before the first quarter is out. ONE shared flag across every offer surface,
+// so the chances cannot stack: each surface REPLACES one of its own slots with
+// the boosted limit while the flag is live, it never adds weight on top. The
+// boost ends the moment the player TAKES one of the two - or beats the FIRST
+// boss - whichever comes first. Wired into the shop's Upgrades stock
+// (js/shop-grid-preview.js) and the Survival/Flow pick (js/survival.js); the
+// reward grid's first-5-grids guarantee (r189) already covers it there.
+// In SAVE_VARS; reset for a fresh run in startGame beside tempoInitApplied.
+let earlyLimitDone = false;
+const EARLY_LIMIT_IDS = ['selection', 'grid_rows', 'grid_cols'];
+function earlyLimitOfferId() {
+  if (earlyLimitDone || typeof limits === 'undefined') return null;
+  const open = EARLY_LIMIT_IDS.filter(id => limits[id] && limits[id].current < limits[id].max);
+  return open.length ? open[Math.floor(Math.random() * open.length)] : null;
+}
+
 // Helper: increment a limit by its step, returns true if successful
 function incrementLimit(id) {
   const l = limits[id];
   if (!l || l.current >= l.max) return false;
   l.current = Math.min(l.max, l.current + (l.step || 1));
+  if (EARLY_LIMIT_IDS.includes(id)) earlyLimitDone = true;   // guidance satisfied
   onLimitChanged(id);
   return true;
 }

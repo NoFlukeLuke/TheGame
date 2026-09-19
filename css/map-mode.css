@@ -39,7 +39,12 @@
   cursor: default;
 }
 
-#grid .map-tile .mt-icon { font-size: 15px; line-height: 1; }
+/* r276: the glyph IS the label, so it is sized like one. */
+#grid .map-tile .mt-icon { font-size: 22px; line-height: 1; }
+/* The priority account's play-with-a-bang is an inline SVG (js/map-mode.js):
+   1em + currentColor so it sits wherever an emoji would, at any size. */
+.mk-svg { width: 1em; height: 1em; display: block; }
+#grid .map-tile .mt-icon .mk-svg { color: var(--rc, #efe7d6); }
 #grid .map-tile .mt-name {
   font-family: 'Orbitron', sans-serif; font-weight: 700;
   font-size: 6px; letter-spacing: 0.02em; text-transform: uppercase;
@@ -324,13 +329,13 @@ body.map-active #swap-indicator { visibility: hidden; pointer-events: none; }
 }
 #map-bar .ml-row:hover, #map-bar .ml-row.on { background: rgba(150, 140, 255, 0.16); }
 #map-bar .ml-chip {
-  flex: 0 0 17px; height: 17px; display: grid; place-items: center;
-  border-radius: 3px; font-size: 10px; line-height: 1;
+  flex: 0 0 22px; height: 22px; display: grid; place-items: center;
+  border-radius: 3px; font-size: 13px; line-height: 1;
   color: var(--rc, #cfc6ff); border: 1px solid var(--rc, #cfc6ff);
   background: color-mix(in srgb, var(--rc, #cfc6ff) 16%, transparent);
 }
 #map-bar .ml-row b {
-  flex: 0 0 74px; color: var(--rc, var(--c-yellow, #f5c042)); font-weight: 700;
+  flex: 0 0 86px; color: var(--rc, var(--c-yellow, #f5c042)); font-weight: 700;
   font-family: 'Share Tech Mono', monospace; font-size: 9.5px;
 }
 #map-bar .ml-txt {
@@ -356,3 +361,9 @@ body.map-active #swap-indicator { visibility: hidden; pointer-events: none; }
   box-shadow: 0 0 0 2px var(--rc, #fff), 0 0 16px -2px var(--rc, #fff);
   z-index: 4;
 }
+
+/* r276: an icon-only board. The name is gone from the tile, so the glyph is
+   centred in the whole tile rather than sitting above a name band. */
+#grid .map-tile .mt-icon { position: absolute; inset: 0; display: grid; place-items: center; }
+#grid .map-tile.mk-boss .mt-icon { font-size: 30px; }
+#map-bar .ml-chip .mk-svg { width: 13px; height: 13px; }

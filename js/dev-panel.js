@@ -141,7 +141,11 @@ const DEV_GROUPS = [
   { g:'map',      icon:'🗺', label:'Map',       sub:() => mapFreeBranch ? 'free branch ON' : 'free branch off' },
   { g:'match3',   icon:'⬚', label:'Match-3',   sub:() => 'match types · sandbox' },
   { g:'spectrum', icon:'◐', label:'Spectrum',  sub:() => `${spectrumRanks().length} values × ${spectrumColors().length} colours` },
-  { g:'deck',     icon:'\u265B', label:'Deck',      sub:() => `${deckDesignRanks().length} ranks × ${deckCopiesPerRank} = ${deckDesignSize()} cards` },
+  { g:'deck',     icon:'\u265B', label:'Deck',      sub:() => { const m = deckModelNow();
+      return m === 'weighted' ? `weighted · ${deckWeightedSize()} cards · ${deckWeightedSuits().length} suits`
+           : m === 'six'      ? `six suits · ${deckDesignSize()} cards`
+           : m === 'spectrum' ? 'Spectrum owns its deck'
+           : 'four suits · 52 cards'; } },
   { g:'improve',  icon:'\u2191', label:'Improve',   sub:() => devImproveSub() },
   { g:'builds',   icon:'▤', label:'Builds',    sub:() => `${discoveredIds.size} records open` },
   { g:'log',      icon:'✎', label:'Event Log', sub:() => 'in-game debug log' },

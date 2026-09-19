@@ -218,7 +218,7 @@
 .reward-cell.entity-sleight  { --lbv: max(0px, (100cqh - 100cqw / 1.37) / 2);
                                --lbh: max(0px, (100cqw - 100cqh * 1.37) / 2); }
 .reward-cell.entity-trick    > .rwd-tier,
-.reward-cell.entity-sleight  > .rwd-tier { right: calc(2px + var(--lbh)); top: calc(2px + var(--lbv)); }
+.reward-cell.entity-sleight  > .rwd-tier { left: calc(2px + var(--lbh)); top: calc(2px + var(--lbv)); right: auto; }
 .cd-badge.cd-b-count .cd-num { color: #f6f2ff; text-shadow: 0 1px 2px rgba(0,0,0,0.8); }
 
 .cd-b-primed { animation: cd-primed-pulse 1.5s ease-in-out infinite; }

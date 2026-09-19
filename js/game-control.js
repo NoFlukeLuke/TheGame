@@ -219,8 +219,7 @@ document.addEventListener('click', (e) => {
 // screenOwnsClock() is true whenever some other screen owns the clock, and the openers below
 // skip pauseGame() in that case, so the close handler must skip resumeGame() to match.
 function screenOwnsClock() {
-  return (typeof martActive !== 'undefined' && martActive)
-      || (typeof shopGridActive !== 'undefined' && shopGridActive)
+  return (typeof shopGridActive !== 'undefined' && shopGridActive)
       || document.getElementById('shop-overlay')?.classList.contains('show')
       || (typeof rewardOnGrid !== 'undefined' && rewardOnGrid);
 }
@@ -296,7 +295,9 @@ function startGame() {
   // rebuild the offerable pool before anything can draw from it.
   if (typeof applyModeEntityFilter === 'function') applyModeEntityFilter();
   // Reset deck audit (a full deck = one of every rank in every active suit)
-  if (!(typeof deckDesignActive === 'function' && deckDesignActive())) expectedDeckTotal = ACTIVE_SUITS.length * ACTIVE_RANKS.length;
+  // A model that builds its own deck has already written the real total; a rank
+  // x suit cross product is not what it deals, so the generic line must not run.
+  if (!(typeof deckDesignOwnsDeck === 'function' && deckDesignOwnsDeck())) expectedDeckTotal = ACTIVE_SUITS.length * ACTIVE_RANKS.length;
   dealPhase = false;
 
   // Reset all state
@@ -425,6 +426,7 @@ function startGame() {
   acquiredTricks = [];
   acquiredKnacks  = [];
   tempoInitApplied = false;   // Tempo's one-time limit-set can run again for a fresh run
+  earlyLimitDone = false;     // early-limit guidance re-arms for the new run (js/limits.js)
   trickTray          = [];
   _trickReplaceQueue = [];
   syncTrickTrayUI();   // show the Trick tray (or grid-preview) to match trickTrayMode for the new game
@@ -435,8 +437,6 @@ function startGame() {
   // Mart per-run state: pinned catalog items (r171) and the Tinker bench's fee
   // ladder (r175). Pins hold payload objects with live buy() functions, which is
   // why they are NOT in SAVE_VARS - the Mart is shut at every save point anyway.
-  if (typeof martPins   !== 'undefined') martPins   = {};
-  if (typeof martTinkerN !== 'undefined') martTinkerN = 0;
   altarEffects    = [];
   sleightNextHandDouble = false;
   sleightLegacyMult    = false;
@@ -454,6 +454,7 @@ function startGame() {
   permXMult  = {};
   permRetrig = {};
   permTime   = {};
+  permCoins  = {};
   permPipsGrow = {}; permMultGrow = {};
   cardCurses = {};
   bonusMult_fives = 0;

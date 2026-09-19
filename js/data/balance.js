@@ -110,18 +110,11 @@ const BAL = {
   more_better:   { mult: 4, min_tiles: 3 },
   rain_check:    { seconds: 30 },
   temporal_rift: { pause: 3 },
-  // Spin-the-wheel (Mart special). default_sell is the fallback payout when a prize
-  // has no sell price of its own and there's no room for it.
-  wheel:         { cost: 20, slots: 10, jackpot_coins: 25, default_sell: 15 },
-  // Bundle discount: % off per ADDITIONAL item in the cart, with its own flat cap.
-  // 1 item = 0%, 2 = 5%, 3 = 10%, 4 = 15%, 5+ = 20%. Bulk Buyer doubles BOTH the
-  // rate and the cap. This used to be capped at rate × Selection Size, which tied
-  // shopping to how many CARDS you can pick for a poker hand - unrelated things.
-  shop_discount: { per_item: 5, cap: 20, bulk_per_item: 10, bulk_cap: 40 },
-  // Tinker bench (Mart → Tools): stamp a real rank + suit onto a Sleight you own,
-  // so it starts counting as a normal card in hand detection on top of whatever
-  // it already does. Price climbs per identity issued in a run.
-  tinker_identity: { cost: 18, cost_step: 8 },
+
+  // Shop multi-buy discount (js/shop-grid-preview.js): % off per ADDITIONAL item
+  // in the connected group. Bulk Buyer raises the rate to bulk_per_item. No cap of
+  // its own - Selection Size already caps the group.
+  shop_discount: { per_item: 3, bulk_per_item: 5 },
   reward_skip:   { gold: 20 },   // gold paid for skipping the whole reward grid (shown on the SKIP button)
   wild_side:     { mult_per: 3 },       // +mult per negative reward tile taken this run
   wait_for_it:   { chance_per: 0.02 },  // +replay chance per negative reward tile taken this run
@@ -170,7 +163,7 @@ const BAL = {
   // Three on offer, priced by how strong the effect is. The card itself is a copy
   // of one already in the deck, so the market can never hand out a rank or suit
   // the mode does not use (Spectrum has no courts, Six Suits has two extra suits).
-  market: { offers: 3, prices: { pips: 8, mult: 12, time: 10, replay: 18 } },
+  market: { offers: 3, prices: { pips: 8, mult: 12, time: 10, replay: 18, coin: 6 } },
   // ── Deck Trim (r211) - the frequent-removal event ──
   // Three cuts of rising size and price. first_free makes the smallest cut cost
   // nothing, so the event always does something even at 0 credits.

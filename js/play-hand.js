@@ -281,6 +281,20 @@ function playHand() {
     });
     if (_cardSecs > 0) rewindTime(_cardSecs, `⏪ +${_cardSecs}s from your cards`);
   }
+  // Card Market payday cards: credits carried by the individual cards in this
+  // hand. REPLAY-WEIGHTED (unlike permTime): a card that scored three times pays
+  // its credits three times - that is the owner's spec for the card state.
+  if (typeof permCoins !== 'undefined') {
+    let _cardCoins = 0;
+    handCells.forEach(([r, c]) => {
+      const _cd = gridData[r]?.[c];
+      if (_cd && _cd.rank) {
+        const per = permCoins[cardId(_cd)] || 0;
+        if (per) _cardCoins += per * (_handRetrigByCell[r + '-' + c] || 1);
+      }
+    });
+    if (_cardCoins > 0) { coins += _cardCoins; updateCoinsUI(); try { sfxCoin?.(); } catch (e) {} }
+  }
 
   dbgEvent('ok', 'play ' + hand, { finalScore, cards: handCells.length });
   console.log('[PLAY] hand result', { hand, finalScore, scoreAfterAdd: score + finalScore });

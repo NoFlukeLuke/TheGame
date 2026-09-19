@@ -29,7 +29,7 @@
 //  - The choices are neutral-bordered; rarity colour stays on the object,
 //    where it means rarity.
 //
-// A TAP SELECTS AND READS; ONLY CONFIRM COMMITS (r276). A tap used to APPLY the
+// A TAP SELECTS AND READS; ONLY CONFIRM COMMITS (r280). A tap used to APPLY the
 // offer on the spot, which is the one screen in the game where an unrecoverable
 // grant was one stray tap away and the description was clamped to three lines
 // while you made it. Now a tap marks the tile AND opens its full description,
