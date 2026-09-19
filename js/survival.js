@@ -148,7 +148,7 @@ function survivalAfterLevelUp(leftover, unspentActions = 0) {
   // (r218) are folded into their own coin step instead - the rule is every mode.
   const unspent = Math.max(0, unspentActions) * BAL._resources.unspent_credits;
   const gained = unspent + (_flow ? SURVIVAL_LEVEL_COINS
-                       : SURVIVAL_LEVEL_COINS + Math.floor(Math.max(0, leftover) / EFFICIENCY_SECONDS_PER_COIN) * SURVIVAL_COINS_PER_10S);
+                       : SURVIVAL_LEVEL_COINS + Math.floor(Math.max(0, leftover) / efficiencySecondsPerCoin()) * SURVIVAL_COINS_PER_10S);
   coins += gained;
   updateCoinsUI();
   if (!_flow) survivalBossTimeBank = Math.min(SURVIVAL_BOSS_TIME_CAP, survivalBossTimeBank + Math.max(0, leftover));
@@ -253,6 +253,14 @@ function survivalPickOptions(isReroll) {
   if (!isReroll) {
     if (survivalLevelsSinceLimit >= SURVIVAL_GUARANTEE_GAP && pools.limit.length) { const o = survivalDrawOne('limit', pools, used); if (o) chosen.push(o); }
     if (survivalLevelsSinceKnack >= SURVIVAL_GUARANTEE_GAP && pools.knack.length) { const o = survivalDrawOne('knack', pools, used); if (o) chosen.push(o); }
+    // Early-limit guidance (js/limits.js): while live, one option IS the boosted
+    // Selection Size / grid-size limit - it takes a slot the weighted draw would
+    // have filled, so nothing stacks.
+    const _el = (typeof earlyLimitOfferId === 'function') ? earlyLimitOfferId() : null;
+    if (_el && !chosen.some(o => o.type === 'limit' && o.id === _el)) {
+      const def = pools.limit.find(d => d.id === _el);
+      if (def && !used.limit.has(def.id)) { used.limit.add(def.id); chosen.push(survivalMakeOption('limit', def)); }
+    }
   }
 
   let guard = 0;
@@ -629,7 +637,7 @@ function survivalContinueEndless() {
 // Mart, so leaving the shop returns you to your three options.
 function survivalOpenShop() {
   if (!survivalActive()) return;
-  if (martActive || (typeof shopGridActive !== 'undefined' && shopGridActive)
+  if ((typeof shopGridActive !== 'undefined' && shopGridActive)
       || document.getElementById('shop-overlay')?.classList.contains('show')) return;
   if (coins < SURVIVAL_SHOP_COST) { showMessage(`Entry fee is ${SURVIVAL_SHOP_COST} 💰`, 'var(--red)'); return; }
   coins -= SURVIVAL_SHOP_COST;

@@ -32,7 +32,9 @@ let shopRerollCount = 0;
 // Sleights are NOT sellable - they leave only by being played, discarded, or removed in the shop.
 // Sell value = half the shop buy price, floored, min 1 (always < buy → no buy/sell exploit).
 const SELL_FRACTION = 0.5;
-function trickSellValue(trick) { return Math.max(1, Math.floor((SHOP_TRICK_PRICES[trick.tier] || 8) * SELL_FRACTION)); }
+// trickSellValue lives in js/shop-grid-preview.js (0.60, owner spec). It was
+// defined here too at 0.50 and the later load won - the r278 delete closes that
+// long-documented wart. SELL_FRACTION above is legacy-overlay only.
 function knackSellValue()      { return Math.max(1, Math.floor(SHOP_KNACK_PRICE * SELL_FRACTION)); }
 
 function sellTrick(trick) {
@@ -117,8 +119,8 @@ function _grantedSleightSet() {
 }
 
 // Legacy overlay shop (superseded by the Mart). Kept on the same positional
-// shop stream so a seed behaves identically if USE_MART_SHOP is flipped back.
-// The legacy shop is the USE_MART_SHOP=false fallback; it draws from the raw pools,
+// shop stream so a seed keeps the shop's draws isolated either way.
+// The legacy overlay shop is the USE_ONGRID_SHOP=false fallback; it draws from the raw pools,
 // so it needs the same mode ban the Mart applies (see survivalEntityBanned).
 function _shopModeBanned(id) { return typeof survivalEntityBanned === 'function' && survivalEntityBanned(id); }
 function generateShopItems() {
@@ -177,12 +179,9 @@ function triggerShop() {
   clearInterval(roundInterval);
   roundInterval = null;
   gameTimerPaused = true;
-  // LETHE Mart (r127): the off-grid shop. Preferred route; on-grid + overlay below
-  // stay as one-flag fallbacks (USE_MART_SHOP / USE_ONGRID_SHOP).
-  if (typeof USE_MART_SHOP !== 'undefined' && USE_MART_SHOP && typeof openMart === 'function') {
-    openMart();
-    return;
-  }
+  // The on-grid shop is THE shop (r232); the overlay below is a one-flag
+  // fallback (USE_ONGRID_SHOP). The Mart (the off-grid r127 shop) was deleted
+  // in r278 - the Wheel and the Tinker Bench went with it.
   if (typeof USE_ONGRID_SHOP !== 'undefined' && USE_ONGRID_SHOP && typeof openShopGrid === 'function') {
     openShopGrid();
     return;

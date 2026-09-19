@@ -1,4 +1,4 @@
-const BUILD = "2026-09-18 · r277 · the tray fan stops restyling the tile; stamp top-left";
+const BUILD = "2026-09-19 · r278 · Mart deleted; discount 3%/5%, Haggler, Time and a Half, High Roller, payday cards, buy flights, early-limit guidance";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

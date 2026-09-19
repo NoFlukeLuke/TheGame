@@ -952,6 +952,8 @@ function ensureBossGoalExtra() {
 function endBoss(success, opts) {
   if (!bossActive) return;
   bossActive = false;
+  // Early-limit guidance ends at the first boss whether or not it was taken.
+  if (typeof earlyLimitDone !== 'undefined') earlyLimitDone = true;
   bossWinPending = false;
   // The boss shares the round clock now (r205), so stop it here. Without this the
   // tick that ran the window out would keep firing at roundSeconds 0 and, with
