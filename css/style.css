@@ -882,32 +882,16 @@
     z-index: var(--fan-z, 1);   /* set per tile so later ones sit on top */
     width: 47px; height: 64px; padding: 0; border: none; background: none; box-shadow: none;
   }
-  /* Overlapping tiles need a dark edge or the fan reads as one smeared block. */
-  #stage:not(.landscape) #trick-tray-list.fanned .trick-tray-chip + .trick-tray-chip > .reward-cell {
-    box-shadow: -3px 0 5px -1px rgba(0,0,0,0.75),
-                0 0 0 2px var(--plastic-lo), 0 0 8px -1px var(--rc), inset 0 0 12px -4px var(--rc);
-  }
-  /* A tucked tile only shows a strip of its LEFT edge. r171: the emoji KEEPS ITS
-     FULL SIZE and is simply left-aligned, so the visible strip shows the left
-     part of a full-size icon and the tile's own overflow:hidden clips the rest -
-     the way a fanned hand of real cards shows part of a full-size index. The
-     previous version shrank every tucked emoji to 13px, which made every Trick
-     but the newest one look like a different, tinier object (owner's report).
-     The name has no room in a strip and is still dropped. */
-  #stage:not(.landscape) #trick-tray-list.fanned .trick-tray-chip:not(:last-child) > .reward-cell {
-    justify-content: center; align-items: flex-start; padding: 2px 0 3px 3px;
-  }
-  #stage:not(.landscape) #trick-tray-list.fanned .trick-tray-chip:not(:last-child) .rwd-art {
-    position: static; font-size: 23px; margin: 0; line-height: 1; flex: 0 0 auto;
-  }
-  #stage:not(.landscape) #trick-tray-list.fanned .trick-tray-chip:not(:last-child) .rwd-name,
-  #stage:not(.landscape) #trick-tray-list.fanned .trick-tray-chip:not(:last-child) .rwd-glyph { display: none; }
-  /* Font size only. `top` on .rwd-art was a per-surface copy of one assumption
-     about the pre-r228 tile; the floppy and the business card own where their
-     emoji sits, and .rwd-art is emitted for nothing else. */
-  #stage:not(.landscape) #trick-tray-list .trick-tray-chip .rwd-art   { font-size: 21px; }
-  #stage:not(.landscape) #trick-tray-list .trick-tray-chip .rwd-glyph { font-size: 8px; top: 3px; }
-  #stage:not(.landscape) #trick-tray-list .trick-tray-chip .rwd-name  { font-size: 7px; letter-spacing: 0; }
+  /* r277: THE FAN NO LONGER RESTYLES THE TILE. Everything that used to sit
+     here - an extra plastic ring and rarity glow on every tucked tile, the
+     emoji pulled out of the label and left-aligned at the tile's corner, the
+     name hidden - was written in r160/r171 against the PRE-r228 chip, and each
+     line fought the floppy disc the object rule draws. The result in portrait
+     was a card-like border around a disc and an emoji sitting in the corner
+     rather than on the label. A tucked tile now simply shows the left part of
+     the real object, which is what the landscape fan has always done.
+     Per-surface font sizes are gone too: r239 scales the object's type with the
+     object (cqw), so a fixed px here is the same drift in a second costume. */
   /* Rarity colours are only assigned under .landscape, so portrait chips had no
      --rc at all and fell back to the plain border. Assign them here too. */
   #stage:not(.landscape) .trick-tray-chip.rar-common    { --rc: var(--c-mint); }
@@ -3460,6 +3444,8 @@
      its left edge at L% and width W% sits at position-x L/(100-W)*100%. */
   .reward-cell.entity-trick {
     --body: color-mix(in srgb, var(--rc) 72%, #1b1813);
+    /* The shutter's default material: DULL GREY = unimproved (r274). */
+    --shut: linear-gradient(180deg, #9c9c98 0%, #72726f 50%, #8a8a87 100%);
     clip-path: none;
     background: none; border: none; box-shadow: none;
     justify-content: center;
@@ -3481,13 +3467,14 @@
     clip-path: polygon(0 0, 84% 0, 100% 16.8%, 100% 100%, 0 100%);
     background:
       /* the shutter's punched window */
-      linear-gradient(#24272c, #24272c) no-repeat 49.6% 12% / 18.9% 21.1%,
-      /* the metal shutter */
-      linear-gradient(180deg, #e6e9ee 0%, #9aa0a8 52%, #cfd4da 100%)
-        no-repeat 60% 6.5% / 45% 31%,
+      linear-gradient(#1b1e22, #1b1e22) no-repeat 55.2% 12% / 18.9% 21.1%,
+      /* the metal shutter - its MATERIAL is the improvement tier (r274) */
+      var(--shut) no-repeat 71.7% 7% / 54% 36%,
       /* the cream label plate */
       linear-gradient(rgba(244,238,218,0.94), rgba(244,238,218,0.94))
         no-repeat 50% 82% / 86% 50%,
+      /* the tier BANDS - see below. Under the label on purpose. */
+      var(--bands, none),
       var(--body);
     /* The clip eats an outer border, so the rarity edge is painted inside. */
     box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--rc) 55%, #000);
@@ -3563,6 +3550,10 @@
     background:
       linear-gradient(90deg, rgba(0,0,0,0.26) 0 44%, transparent 44%)
         no-repeat 0 0 / 100% 62%,
+      /* the tier BANDS (r275) - above the card stock, below the logo plate's
+         wash, and below the logo and the name for free, because those are real
+         CHILD elements and a child always paints above its parent's ::before. */
+      var(--bands, none),
       var(--body);
     box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--rc) 70%, #000),
                 0 0 10px -2px var(--rc), 0 4px 10px rgba(0,0,0,0.5);
@@ -4951,9 +4942,8 @@
   #stage.landscape .trick-tray-chip:hover > .reward-cell {
     box-shadow: 0 0 0 2px var(--plastic-lo), 0 0 14px 0 var(--rc), inset 0 0 12px -4px var(--rc);
   }
-  #stage.landscape .trick-tray-chip .rwd-art   { font-size: 22px; }
-  #stage.landscape .trick-tray-chip .rwd-glyph { font-size: 9px; top: 4px; }
-  #stage.landscape .trick-tray-chip .rwd-name  { font-size: 7px; letter-spacing: 0.2px; }
+  /* No per-surface type sizes: r239 scales the object's own type with the
+     object, so a fixed px here only drifts from every other surface. */
 
   /* ── Horizontal auto-scroll marquee track (knacks always; tricks on overflow) ── */
   .chip-marquee { display: flex; flex-direction: row; align-items: center; flex: 0 0 auto; gap: 5px; }
@@ -5355,8 +5345,79 @@ body.reduced-motion .efx-hit { animation-duration: 1ms; }
    it in --rc made the one permanent property of the object look like its tier.
    Brass says "stamped on", and the type scales with the object (r239) so a 34px
    Records tile and a 119px shop tile draw the same picture. */
+
+/* ══════════════════════════════════════════════════════════════════════════
+   THE IMPROVEMENT TIER IS ON THE OBJECT (r274, r275) - tier-badge-preview.html
+
+   An improvement tier is drawn ON THE OBJECT, so it reads before any badge is.
+   GOLD BANDS across the bottom-left corner, one per tier, on BOTH the Trick's
+   floppy disc and the Sleight's business card; and on the disc alone, the
+   SHUTTER'S MATERIAL, which climbs dull grey -> bronze -> shiny silver -> gold
+   -> shiny black -> iridescent (5 and up). A Knack has no object of its own
+   yet and is deliberately left out.
+
+   Pitch 5%, thickness 3% (r275, owner's numbers).
+
+   BOTH ARE BACKGROUND LAYERS OF THE DISC'S ONE ::before, and that is forced
+   rather than chosen. The shell, shutter and label are already layers of that
+   pseudo (r239 - the chamfer clip-path cannot be shared with a second one), and
+   background layers paint FIRST-LISTED ON TOP. So slotting the bands after the
+   label puts them UNDER the label, the emoji and the name, which is what was
+   asked for. A child element could only ever paint above the whole object, and
+   a child at z-index -1 would fall below the opaque shell and vanish.
+
+   The label is 94% opaque, so the bands GHOST faintly through it rather than
+   disappearing - foil under paper, and what keeps them legible at 40px.
+
+   Every length is a PERCENTAGE of the gradient's axis, so the mark is the same
+   picture on a 34px Records tile and a 119px shop tile. The axis points out of
+   the bottom-left corner, so its bands run at 45 degrees ACROSS that corner -
+   the shape a folded corner makes.
+   ══════════════════════════════════════════════════════════════════════════ */
+/* The bands are NOT trick-only: a Vendor's business card takes the same mark
+   (r275). The selector is the tile, not the object, so a future object that
+   wants them only has to read var(--bands) in its own ::before. */
+.reward-cell.tier-1 { --bands: linear-gradient(to top right,
+  transparent 13%,#f2cf72 13%,#fff6d8 14.5%,#f2cf72 16%,transparent 16%); }
+.reward-cell.tier-2 { --bands: linear-gradient(to top right,
+  transparent 13%,#f2cf72 13%,#fff6d8 14.5%,#f2cf72 16%,transparent 16%,
+  transparent 18%,#f2cf72 18%,#fff6d8 19.5%,#f2cf72 21%,transparent 21%); }
+.reward-cell.tier-3 { --bands: linear-gradient(to top right,
+  transparent 13%,#f2cf72 13%,#fff6d8 14.5%,#f2cf72 16%,transparent 16%,
+  transparent 18%,#f2cf72 18%,#fff6d8 19.5%,#f2cf72 21%,transparent 21%,
+  transparent 23%,#f2cf72 23%,#fff6d8 24.5%,#f2cf72 26%,transparent 26%); }
+.reward-cell.tier-4 { --bands: linear-gradient(to top right,
+  transparent 13%,#f2cf72 13%,#fff6d8 14.5%,#f2cf72 16%,transparent 16%,
+  transparent 18%,#f2cf72 18%,#fff6d8 19.5%,#f2cf72 21%,transparent 21%,
+  transparent 23%,#f2cf72 23%,#fff6d8 24.5%,#f2cf72 26%,transparent 26%,
+  transparent 28%,#f2cf72 28%,#fff6d8 29.5%,#f2cf72 31%,transparent 31%); }
+.reward-cell.tier-5 { --bands: linear-gradient(to top right,
+  transparent 13%,#f2cf72 13%,#fff6d8 14.5%,#f2cf72 16%,transparent 16%,
+  transparent 18%,#f2cf72 18%,#fff6d8 19.5%,#f2cf72 21%,transparent 21%,
+  transparent 23%,#f2cf72 23%,#fff6d8 24.5%,#f2cf72 26%,transparent 26%,
+  transparent 28%,#f2cf72 28%,#fff6d8 29.5%,#f2cf72 31%,transparent 31%,
+  transparent 33%,#f2cf72 33%,#fff6d8 34.5%,#f2cf72 36%,transparent 36%); }
+
+/* The shutter's material. One gradient each, and what sells which metal it is
+   is the RUN OF THE HIGHLIGHT rather than the hue: bronze and gold go warm-dark
+   to warm-light, silver carries a hard white edge, black keeps a cold rim so it
+   does not read as a hole punched in the disc. Verified legible at all four
+   real frames - 40px landscape tray, 47px portrait tray, 57px reward grid,
+   119px shop. `tier-5` is the CAP: js/entity-tile.js clamps, so tier 6 and up
+   stay iridescent and the ladder's length is this list's length. */
+.reward-cell.entity-trick.tier-1 { --shut: linear-gradient(170deg,#eec08d 0%,#b87333 34%,#7a4a1e 62%,#d9975a 100%); }
+.reward-cell.entity-trick.tier-2 { --shut: linear-gradient(170deg,#ffffff 0%,#cfd8e2 26%,#79838f 54%,#eef4fa 72%,#aab3bd 100%); }
+.reward-cell.entity-trick.tier-3 { --shut: linear-gradient(170deg,#fff0bd 0%,#e3ba50 30%,#a67c14 58%,#f6dd8e 100%); }
+.reward-cell.entity-trick.tier-4 { --shut: linear-gradient(170deg,#8b929b 0%,#1b1f25 28%,#05070a 52%,#39414b 74%,#9aa2ac 100%); }
+.reward-cell.entity-trick.tier-5 { --shut: linear-gradient(120deg,#ff6ec7 0%,#ffd86e 18%,#6effa8 36%,#6ed8ff 54%,#a06eff 72%,#ff6ec7 90%,#ffd86e 100%); }
+
 .reward-cell .rwd-tier{
-  position:absolute; right:2px; top:2px; z-index:7;
+  /* TOP-LEFT since r277. Top-right was the only free corner on the PRE-r228
+     tile; on the object both .rwd-glyph and .rwd-tab are display:none, so the
+     left corner is free - and the landscape tray fan tucks each tile under the
+     next from the RIGHT, which was clipping the stamp to "v1." on every tile
+     but the newest. */
+  position:absolute; left:2px; top:2px; z-index:7;
   font-family:'Share Tech Mono',monospace; font-size:max(7px,15cqw); line-height:1;
   padding:1px 3px; border-radius:2px; pointer-events:none; white-space:nowrap;
   color:#2a2008; background:linear-gradient(#f4dc9a,#c99c3a);

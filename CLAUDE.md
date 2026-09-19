@@ -1626,6 +1626,51 @@ pointer leaving the row, and tapping again releases.
   takes no tile with it, a left click with the pen off still selects, the
   legend lights 3 of 25 tiles and the card lands fully on screen in both.
 
+### A tile is its SYMBOL (r276)
+
+Owner: *"Ditch the words on the schedule, just use the symbols instead. With
+the legend showing the symbol and word."* The board carries the glyph and
+nothing else; the bar names what you hover or pick, the tile's `title` carries
+the full name and description, and the `▤` legend lists every symbol beside
+its word. `fitEntityName` is gone from the tile for the same reason - there is
+no name left to fit. The glyph went 15px -> 22px (30px on the boss column) and
+is centred in the whole tile rather than sitting above a name band.
+
+**The boss column lost REVIEW too.** "Just use the symbols" is the rule and
+the legend spells it out; a full-height hazard column with a skull in it is
+not ambiguous.
+
+**A hard round is a PLAY SYMBOL WITH A ! IN IT** (owner's spec), which no
+Unicode character is, so `MAP_ICON_PRIORITY` is a tiny inline SVG. The bang is
+a **HOLE** - one path with `fill-rule: evenodd` - rather than a second shape
+painted in the tile's colour, because a hole works over the wash, the big
+watermark glyph and the legend chip alike. `fill: currentColor` and `1em`
+sizing let it sit anywhere an emoji does; the `.mt-icon` copy takes the kind's
+`--rc`. Verified: 42 painted px against the emoji's 42 at 1440x820.
+
+### The schedule re-reads its orientation (r276)
+
+`mapLandscape` decides which way the schedule reads and was captured ONCE in
+`mapOpen`. Anything that changed the orientation afterwards - a window resized
+across the threshold, or a first layout pass that decided portrait before the
+office photo settled - left the board reading the wrong way for the whole
+quarter with no way back.
+
+`mapSyncOrientation()` re-reads `#stage.landscape` at the top of every
+`mapRender` and swaps `gridRows`/`gridCols` when it differs, and a resize
+listener redraws on a real change.
+
+- **THE RESIZE HANDLER IS DEFERRED BY A TICK, and that is the whole trick.**
+  `js/bootstrap.js` is the LAST script, so the handler that toggles
+  `.landscape` is registered AFTER this one and runs after it: reading the
+  class synchronously reads the PREVIOUS orientation. Measured before the
+  defer - a desktop -> phone resize left the board reading left to right, and
+  the resize back flipped it top down, always one step behind.
+
+Verified at 1440x820 and 420x820: 25 tiles, **0 names on the board**, the
+priority SVG on both hard rounds, the legend listing nine symbol/word rows,
+and a desktop -> portrait -> desktop resize flipping the board both ways.
+
 ### The map bar is one strip, and the rules live behind a ? (r255)
 
 Owner: the bar was *"too large and persistent, and doesn't feel especially on
@@ -1893,6 +1938,94 @@ costume, so they were separated by SHAPE, COLOUR and CORNER:
 
 Verified in a real browser at 1440x820: `v2.0` / `v5.0` on the disc, `+2` / `+3` in
 violet, and a Trick carrying only `_rank` reading `+3` where it used to read nothing.
+
+### The tier is ON THE OBJECT too (r274) - bands and a shutter material
+
+The `v2.0` stamp says the number; the DISC now says it without one. A Trick's
+improvement tier is drawn as **gold bands across the bottom-left corner, one per
+tier**, and as **the shutter's material**, which climbs:
+
+| tier | 0 | 1 | 2 | 3 | 4 | 5 and up |
+|---|---|---|---|---|---|---|
+| shutter | dull grey | bronze | shiny silver | gold | shiny black | iridescent |
+
+- **BOTH ARE BACKGROUND LAYERS OF THE DISC'S ONE `::before`, and that is forced,
+  not chosen.** The shell, shutter and label are already layers of that pseudo
+  (r239 - the chamfer clip-path cannot be shared with a second one), and
+  background layers paint **first-listed on top**. So slotting the bands AFTER
+  the label puts them **under the label, the emoji and the name**, which is the
+  owner's spec. A child element could only ever paint above the whole object,
+  and a child at `z-index: -1` would fall below the opaque shell and vanish.
+- **The label is 94% opaque, so the bands GHOST faintly through it** rather than
+  disappearing - foil under paper, and what keeps them legible at 40px.
+- **The tier arrives as a CLASS on the `.reward-cell`, and it has to.** A custom
+  property set by a CHILD cannot reach the parent's `::before`. `entityTierClass(p)`
+  (js/entity-tile.js) is in `entityTileClass`, which covers every surface that
+  goes through `entityTileHTML` - and the **two that build their own cell from
+  `entityTileInner` call it directly**: the reward grid (`renderRewardTiles`) and
+  the Mart (`martItemHTML`). Miss either and that surface silently draws every
+  Trick unimproved.
+- **`TIER_ART_MAX` (5) clamps the class**, so the ladder's length is the
+  stylesheet's length and the cap is not written down twice. Verified: a Trick at
+  tier 7 draws `tier-5` (iridescent) and still stamps `v7.0`.
+- **The shutter grew** (45% -> 54% wide, 31% -> 36% tall) with the punched window
+  re-solved to stay centred on it. A background layer at left L% width W% sits at
+  `background-position-x: L/(100-W)*100%`, so neither number could be nudged.
+- **What sells which metal it is is the RUN OF THE HIGHLIGHT, not the hue**:
+  bronze and gold go warm-dark to warm-light, silver carries a hard white edge,
+  black keeps a cold rim so it does not read as a hole punched in the disc.
+- `tier-badge-preview.html` restates the same numbers over the real tile art and
+  has live sliders for the band pitch, thickness and corner. **It and the
+  stylesheet agree today; keep it that way** (r233's rule).
+
+Verified in a real browser: all six materials live in the tray at tiers 0-5, the
+bands counting up under each label, tier 7 clamped to iridescent, and the reward
+grid still building its 16 tiles.
+
+**The bands are on the BUSINESS CARD too, at pitch 5% (r275).** Owner's numbers:
+pitch 5, thickness 3. The band rules are selected on **`.reward-cell.tier-N`**,
+not on the object, so a Sleight reads them from its own `::before` with one
+added layer and a future object only has to read `var(--bands)`. On the card
+they sit above the stock and below the logo plate's wash - and below the logo
+and the name for free, because those are real CHILD elements and a child always
+paints above its parent's `::before`. The **shutter material stays the disc's
+alone**; a card has no shutter. `entityTierClass` accepts `sleight` now.
+**Knacks are deliberately out** - they have no object of their own yet (the
+owner's plan is stamps with coloured backgrounds), so guessing one would be a
+third vocabulary to unpick later.
+
+**The tier stamp sits TOP-LEFT (r277).** Top-right was the only free corner on
+the PRE-r228 tile; on the object both `.rwd-glyph` and `.rwd-tab` are
+`display:none`, so the left corner is free - and the landscape fan tucks each
+tile under the next from the RIGHT, which was clipping the stamp to `v1.` on
+every tile but the newest. The bands are unaffected either way: `fanTrickTray`
+sets `--fan-z` ascending, so the covered strip is each tile's RIGHT edge and the
+bottom-left corner is always in view (measured r276 at 1440x820, 6 Tricks: width
+110, pitch 82, so 28px covered and 82px visible).
+
+### The tray fan may not RESTYLE the tile (r277)
+
+Owner: *"the tricks have weird card like borders and the emoji goes into the
+corner weird ... I thought we made all tricks consistent in appearance no matter
+where they are."*
+
+They were, everywhere except the PORTRAIT tray, which still carried a block of
+r160/r171 overrides written against the pre-r228 chip and never revisited when
+the object landed. Each line fought the floppy disc:
+
+| the override | what it did to the object |
+|---|---|
+| an extra `box-shadow` on every tucked tile | a plastic ring and rarity glow AROUND the disc - the "card like border" |
+| `align-items:flex-start` + padding on the cell | the label's contents pulled off the label |
+| `.rwd-art { position: static }` at 23px | the emoji out of the label and into the tile's corner |
+| `.rwd-name`/`.rwd-glyph { display:none }` | the disc lost its label text |
+| `.rwd-art`/`.rwd-name` fixed px, both trays | fought r239's `cqw`, so the type drifted per surface |
+
+All of it is gone. **A fan tucks tiles; it does not redraw them.** A tucked tile
+shows the left part of the real object, which is what the landscape fan has
+always done. Verified in a real browser at 420x900 and 1440x820: five Tricks at
+tiers 1-5, emoji on the label, names present, no ring, and every `vN.0` stamp
+fully readable.
 
 Dev panel -> **Improve**: every owned entity with its tier and what one more would read as,
 plus improve-a-random-one per type and a reset.
@@ -2438,9 +2571,9 @@ Beating a boss used to be: the word `VICTORY` in gold Cinzel over the still-live
 
 **The banner carries the boss's name.** `showGoalBanner(opts)` takes `opts.kicker` (replacing the word ROUND above the title) and `opts.force`. `force` exists because the banner is normally suppressed in Survival/Flow - their pick-of-three opens on that beat with its own kicker - but a boss win there opens the prize grid instead, so nothing else would say it. `.gb-boss` restyles the kicker line: a boss name at the kicker's 5px letter-spacing is wider than the stamp.
 
-### Leftover time pays double (r213) - `EFFICIENCY_SECONDS_PER_COIN`
+### Leftover time - `efficiencySecondsPerCoin()` (r278, reverting r213)
 
-**1 credit per 5 seconds left, was per 10.** Owner's call: beating the clock is the main thing a well-played round does and it was paying about a fifth of a Trick. The constant lives in `js/data/cards.js` beside `ROUND_DURATION` and is read by **three** sites that must never disagree - the payout's figure, the payout's printed "1 per Ns remaining" label, and the count-up's per-coin tick - plus **Survival's own per-clear bonus** (`survivalAfterLevelUp`), which had the 10 written into it separately. Flow is unaffected: it banks no leftover time and pays flat coins.
+**1 credit per 10 seconds left.** r213 doubled it to 5; r278 put it back (owner's call - the player ends runs drowning in credits, across every mode). The **Time and a Half** knack halves the interval, i.e. doubles the payout. Every reader goes through `efficiencySecondsPerCoin()` (`js/data/cards.js`), never the raw constant - the payout's figure, both printed "1 per Ns remaining" labels, the count-up's per-coin tick, and **Survival's per-clear bonus**. Flow is unaffected: it banks no leftover time and pays flat coins.
 
 ### Acts are QUARTERS (r213)
 
@@ -2926,15 +3059,11 @@ Also r254: **an aborted goal dance now fires `flashRoundEnd()`** from `handleDan
 - **`closeShopGrid`'s tail mirrors `closeMart`'s**: node flow -> `resumeAfterNodeFlowShop()`; match-3 -> `match3AfterShop()` (stays paused, that function unpauses itself); Survival from the pick -> restore the pick and STAY paused; Survival mid-round -> `render()` + `startRoundTimer()`.
 - **Survival's pick panel sits centred over the board, which IS the shop now.** `openShopGrid` puts it aside with the pick's own `sv-peek` mechanism, and `body.shop-active #sv-peek-restore { display:none }` (css/survival.css) stops the restore button recalling it over the shelves; `closeShopGrid` brings it back and calls `survivalSyncPickAudio`. `survivalOpenShop` also guards on `shopGridActive` so the entry fee cannot be double-charged.
 - **The tutorial's five Mart steps are four Shop steps** (board / buying / reroll+sell / leave), gated on `tutShopReady()` - `shopGridActive` AND a `.shop-tile` with a real rect, because the tiles deal in and a zero-size anchor lands the bubble centred with no spotlight.
-- **The Wheel and the Tinker Bench live only in the Mart** and are unreachable while the flag is off; the Mart is kept whole as a one-flag fallback. Guided's bought stop and the mode blurbs say "the Shop" now.
-
-## The Mart (off-grid shop, MOTHBALLED r232) - `js/mart-shop.js` + `js/wheel.js` + `css/mart.css`
-`USE_MART_SHOP` (now false) routes `triggerShop()` to the LETHE Mart: left **loadout** column (Knacks / Sleights / Tricks / Limits panels + Stats·Deck·Time chips) · centre **catalog** (3 of 4 categories, Tricks always featured, plus Spotlight/Spin/Freezer specials) · right **checkout**.
-- **Bundle discount:** `martDiscountRate()` (BAL.shop_discount, 5% - doubled by the **Bulk Buyer** knack) × per ADDITIONAL item, capped at `rate × Selection Size`. So 2 items = 5%, 3 = 10%, cap 15% at run start.
-- **Checkout** flies each bought item to its loadout panel one at a time (`flyMartTile`), firing `buy()` on landing. The flyer is a body-level clone because `renderMart()` rebuilds the catalog.
-- **Spin the Wheel** (`js/wheel.js`, `BAL.wheel.cost`): 10 spaces (BUST + JACKPOT + entities at shop rarity odds), **drag to spin** - release velocity sets the throw, with a floor guaranteeing ≥1 full turn and a random force so it can't be aimed. **No exit while spinning or before the prize resolves.** If a prize doesn't fit (Tricks vs `trick_slots`), an overflow prompt offers sell-a-Trick or sell-the-prize (`BAL.wheel.default_sell` = 15 unless the type has its own sell value).
-
-**Known wart:** `trickSellValue` is defined TWICE - `js/shop.js` (×0.5) and `js/shop-grid-preview.js` (×0.6). Same global scope, so the later load wins and the effective sell fraction is 0.6, not the 0.5 that shop.js documents. Worth reconciling.
+- **The Mart is DELETED (r278).** `js/mart-shop.js`, `js/wheel.js` and `css/mart.css` are gone (owner's call - the on-grid shop is the shop); the Wheel and the Tinker Bench went with it, and `BAL.wheel`/`tinker_identity` were removed. The `trickSellValue` double-definition wart closed with it: `js/shop-grid-preview.js` (×0.6) is the only definition now.
+- **Shop economy (r278):** the multi-buy discount is a flat **3% per extra item** (`BAL.shop_discount`), **5%** with the reworked **Bulk Buyer**; **Haggler** (knack) takes 5% off every buy price via `shopEffPrice` (read live, never applied to sell-backs). **Bought tiles fly to their loadout panel** one after another through the reward grid's own `flyRewardTile`/`rewardTargetKey`; limit payloads carry `flyTo`. State applies BEFORE the flights - presentation only.
+- **Early-limit guidance (r278, `js/limits.js`):** until the player takes a Selection Size or grid-size limit - or beats the FIRST boss - the shop's first Upgrades slot IS one of those limits and the Survival/Flow pick forces one option to be it. One shared flag (`earlyLimitDone`, in `SAVE_VARS`), each surface REPLACES a slot of its own rather than adding weight, so the chances cannot stack; the reward grid's first-5-grids guarantee already covers that surface.
+- **High Roller** (epic knack, `js/scoring.js`): each scored card replays with (credits + Luck)% chance - floor guaranteed, remainder one deterministic roll per card (`_detReplayRand`, hash offset 3301), never `luckRollDet` (Luck ADDS to the percent here, it does not scale it).
+- **Payday cards** (`permCoins`, `js/deck-grid.js`): a card state paying its credits every time the card scores, REPLAY-WEIGHTED (paid in `playHand` off `_handRetrigByCell`). Offered by the Card Market (+2 credits). In `SAVE_VARS` and `migrateCardKeysToIds`; deliberately no tooltip line (owner's call).
 
 ## Flow mode (`js/flow-mode.js`, r165) - Survival with no round clock
 

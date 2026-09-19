@@ -313,6 +313,14 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   const _encoreHand = hasTrick('encore') && isSetHand(handName) && cards.every(c => ['A','3','5','7','9'].includes(c.rank));
   // Wait For Iiiit: per-card replay chance = 2% per negative reward tile taken this run (same for every card).
   const _wfiChance = hasTrick('wait_for_it') ? negativeTilesTakenRun * BAL.wait_for_it.chance_per : 0;
+  // High Roller (knack): each card has (credits + Luck)% chance to replay. Luck
+  // ADDS to the percent (50 coins + 20 luck = 70%), it does not scale it, so this
+  // deliberately does NOT go through luckRollDet/luckChance - the floor of the
+  // total is guaranteed replays and the remainder is one deterministic roll per
+  // card (calcScore runs speculatively, so a live Math.random() here would give
+  // the preview a different answer than the score - same rule as Wait For Iiiit).
+  const _hrChance = (typeof hasKnack === 'function' && hasKnack('high_roller'))
+    ? Math.max(0, (coins + (typeof luckTotal === 'function' ? luckTotal() : 0)) / 100) : 0;
   // Low and Behold (knack): "any played hand containing the grid's LOWEST rank
   // replays the whole hand once". It was a x2 on the finished score, which is a
   // different thing entirely - THE DESCRIPTION SAYS REPLAY THE CARDS, so it is a
@@ -434,6 +442,14 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     // compares it against the luck-scaled chance, so the preview stays honest -
     // and it returns a COUNT, so past 100% a card replays more than once.
     const _wfi = _wfiChance > 0 ? luckRollDet(_wfiChance, card._id || 0, handsPlayedRound) : 0;
+    // High Roller: guaranteed floor + one deterministic roll on the remainder.
+    // Hash offset 3301 keeps its stream distinct from Wait For Iiiit's on the
+    // same card in the same hand.
+    let _hr = 0;
+    if (_hrChance > 0) {
+      _hr = Math.floor(_hrChance);
+      if (_detReplayRand((card._id || 0) + 3301, handsPlayedRound) < _hrChance - _hr) _hr++;
+    }
     if (_r2) _retrig++; if (_r8) _retrig += (_eightCount - 1); if (_rc) _retrig++; _retrig += _rl; if (_pt) _retrig++;
     if (_res) _retrig++; if (_rip) _retrig++;
     if (_refl) _retrig += BAL.reflect.extra_replays; _retrig += _soul;
@@ -442,6 +458,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     if (_rne) _retrig++; if (_ech) _retrig++; if (_wp) _retrig += BAL.woodpecker.retrigger_count;
     if (_hnm) _retrig++;
     _retrig += _wfi; // Wait For Iiiit: chance replay scaling with negative tiles taken
+    _retrig += _hr;  // High Roller: (credits + Luck)% chance replay per card
     if (_encoreHand) _retrig++; // Encore: all-odd-rank Set scores a second time
     if (_labOn) _retrig++;      // Low and Behold: the hand holds the grid's lowest rank
     if (_compReps) _retrig += (_compReps[_cKey] || 0); // Layered hand: this card scores again for each extra component it is in

@@ -53,12 +53,33 @@ function entityTileInner(p, { mystery = false } = {}) {
   return `<div class="reward-icon">${p.icon || p.emoji || '▲'}</div>` + name;
 }
 
+// The improvement tier as a CLASS (r274). The disc draws its bands and its
+// shutter material from it (css/style.css) - see that block for why both have
+// to be background layers rather than elements.
+//
+// CLAMPED at TIER_ART_MAX: 5 and up are iridescent, so the ladder's length is
+// the stylesheet's length and nothing here has to know the cap twice.
+//
+// It has to land on the .reward-cell ITSELF, because a custom property set by
+// a child cannot reach the parent's ::before. Most surfaces get it through
+// entityTileClass below; the two that build their own cell from
+// entityTileInner - the reward grid and the Mart - call this directly.
+const TIER_ART_MAX = 5;
+function entityTierClass(p) {
+  const kind = p && (p.entity || p.type);
+  // Tricks AND Sleights (r275): the disc and the business card both draw the
+  // bands. A Knack has no object yet, so it is left out rather than guessed at.
+  if ((kind !== 'trick' && kind !== 'sleight') || !p.id || typeof entityTierOf !== 'function') return '';
+  const t = entityTierOf(p.id) || 0;
+  return t > 0 ? 'tier-' + Math.min(t, TIER_ART_MAX) : '';
+}
+
 // The class list for the .reward-cell that entityTileInner fills. Kept beside the
 // builder so a surface can never pair the markup with the wrong modifiers.
 function entityTileClass(p, rarity, extra) {
   const kind = p.entity || p.type;
-  return ['reward-cell', 'entity', kind ? 'entity-' + kind : '', 'rar-' + (rarity || 'common'), extra]
-    .filter(Boolean).join(' ');
+  return ['reward-cell', 'entity', kind ? 'entity-' + kind : '', 'rar-' + (rarity || 'common'),
+          entityTierClass(p), extra].filter(Boolean).join(' ');
 }
 
 // ── The tooltip payload a tile carries with it (r254) ───────────────────────

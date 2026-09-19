@@ -1,4 +1,4 @@
-const BUILD = "2026-09-19 · r273 · deck model picker + the WEIGHTED deck: copies per rank, so sets get easier without runs following";
+const BUILD = "2026-09-19 · r279 · deck model picker + the WEIGHTED deck: copies per rank, so sets get easier without runs following [onto r278]";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

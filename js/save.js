@@ -101,7 +101,7 @@ const SAVE_VARS = [
   'sleightNextHandDouble', 'sleightLegacyMult', 'sleightAmplifierMult',
   '_dabiSwapNext', 'sleightFreeSwapPending',
   // ── Permanent card buffs / curses ──
-  'permPips', 'permMult', 'permXPips', 'permXMult', 'permRetrig', 'permTime',
+  'permPips', 'permMult', 'permXPips', 'permXMult', 'permRetrig', 'permTime', 'permCoins',
   'permPipsGrow', 'permMultGrow', 'cardCurses',
   'cardPlayCount', 'cardSwapCount', 'cardDealtCount',
   // ── Hands ──
@@ -141,7 +141,7 @@ const SAVE_VARS = [
   // ── Flow (js/flow-mode.js) ──
   'flowBossFighting', 'flowRefillClock',
   // ── Seed (keeps future reward grids / shops deterministic) ──
-  'runSeed', 'rewardVisitIndex', 'shopVisitIndex', 'martTinkerN',
+  'runSeed', 'rewardVisitIndex', 'shopVisitIndex', 'earlyLimitDone', 
 ];
 
 // `const` objects can't be reassigned, so their CONTENTS are copied instead.
@@ -340,7 +340,7 @@ function dropUnknownCurses() {
 }
 
 function migrateCardKeysToIds() {
-  const maps = [permPips, permMult, permXPips, permXMult, permRetrig,
+  const maps = [permPips, permMult, permXPips, permXMult, permRetrig, permCoins,
                 permPipsGrow, permMultGrow,
                 cardCurses, cardPlayCount, cardSwapCount, cardDealtCount];
   const olds = maps.map(m => ({ ...m }));

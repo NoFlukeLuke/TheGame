@@ -351,6 +351,7 @@ function enhanceCardKey(key, e) {
   if (e.xmult)  permXMult[key]  = (permXMult[key]  || 1) * e.xmult;
   if (e.retrig) permRetrig[key] = (permRetrig[key] || 0) + e.retrig;
   if (e.time)   permTime[key]   = (permTime[key]   || 0) + e.time;
+  if (e.coin)   permCoins[key]  = (permCoins[key]  || 0) + e.coin;
   if (e.subpips) permPips[key]  = Math.max(0, (permPips[key] || 0) - e.subpips);
 }
 // Returns the card it created. The Card Market needs that: searching the draw
@@ -1425,6 +1426,8 @@ const MARKET_BOONS = [
     say:'puts 4 seconds back on the clock every time it is played' },
   { key:'replay', icon:'🔁', rarity:'epic',   tag:'plays twice', e:{ retrig:1 },
     say:'scores twice every time it is played' },
+  { key:'coin',   icon:'💰', rarity:'common', tag:'+2 credits',  e:{ coin:2 },
+    say:'pays 2 credits every time it is played' },
 ];
 
 function renderMarket() {

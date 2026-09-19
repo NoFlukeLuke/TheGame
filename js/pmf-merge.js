@@ -120,7 +120,7 @@ async function pmfMergeIn(handScore, opts) {
 // asked to be unskippable: however hurried a hand's animation gets, the number it
 // made must always be seen leaving the PMF row and landing on the score.
 //
-// A body-level fixed clone, like flyGridCardToSlot and flyMartTile: the row can
+// A body-level fixed clone, like flyGridCardToSlot: the row can
 // re-render underneath and would otherwise yank the element out mid-flight. The
 // cabinet's CSS zoom lives on #cabinet, and this sits outside it on <body>, so
 // getBoundingClientRect coordinates map straight onto it.

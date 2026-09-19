@@ -72,7 +72,7 @@ it (Hades shows the reward type on the door). **Not built, and the reason matter
 A preview is only worth having if it is TRUE, and the two tiles worth previewing
 build their contents when they OPEN, not when they are offered:
 
-- the Mart's stock comes from `buildMartStock()`, seeded `('shop', shopVisitIndex, martRerollN)`
+- the shop's stock comes from `buildShopGridStock()` (js/shop-grid-preview.js)
 - the reward grid's comes from `generateRewardContent()`, seeded `('reward', rewardVisitIndex)`
 
 Both keys are POSITIONAL, so generating either twice at the same key should give
@@ -95,8 +95,6 @@ Small, real, and each one already measured:
 - **`cellCountsForTriggers()` is defined in `js/boss-effects.js` and called from nowhere.**
   The documented rule that a quarantined cell's card should not count for "while on the grid"
   entity triggers is therefore not actually enforced.
-- **`trickSellValue` is defined twice** - `js/shop.js` (x0.5) and `js/shop-grid-preview.js`
-  (x0.6). Same global scope, so the later load wins and the real fraction is 0.6.
 - **`jack_mult` and `heart_double` have `BAL` entries and `DESC_TEMPLATES` but no
   `TRICK_POOL` entry** - scored for, described, and unobtainable.
 - **Match-3 and Dominoes have no boss wiring at all.** That is why they are hidden behind the
