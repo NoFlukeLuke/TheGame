@@ -238,6 +238,9 @@ function startGame() {
   // the menu screens showing, so SETTINGS / HISTORY / BUILDS, which all hide the
   // main menu to open their own screen, can't push the camera in behind them.
   if (typeof camEnterGame === 'function') camEnterGame();
+  // Record that this mode has been played (js/progress-unlock.js). Read
+  // modeNeedsTutorial() BEFORE this line - it is what makes a first run a first run.
+  if (typeof markModeStarted === 'function') markModeStarted(ACTIVE_MODE && ACTIVE_MODE.id);
   // Music can differ between the menu and a run (see js/music.js); a track marked
   // 'any' plays through the change, one marked 'menu' hands over here.
   if (typeof musicSetScene === 'function') musicSetScene('game');

@@ -715,6 +715,8 @@ function updateActProgressUI() {
 
 function onGameWin() {
   stopTimers();
+  // A finished run unlocks the next mode, won or lost (js/progress-unlock.js).
+  if (typeof markModeFinished === 'function') markModeFinished(ACTIVE_MODE && ACTIVE_MODE.id);
   if (typeof hideQuarterCard === 'function') hideQuarterCard();
   if (typeof retireSavedRunIfCurrent === 'function') retireSavedRunIfCurrent();  // the run is over; its save is stale
   if (typeof recordRunToHistory === 'function') recordRunToHistory('win');       // log it before the numbers are reset
@@ -731,6 +733,8 @@ function onGameWin() {
 
 function onGameEnd(gameover) {
   stopTimers();
+  // A finished run unlocks the next mode, won or lost (js/progress-unlock.js).
+  if (typeof markModeFinished === 'function') markModeFinished(ACTIVE_MODE && ACTIVE_MODE.id);
   if (typeof hideQuarterCard === 'function') hideQuarterCard();
   if (typeof retireSavedRunIfCurrent === 'function') retireSavedRunIfCurrent();  // the run is over; its save is stale
   if (typeof recordRunToHistory === 'function') recordRunToHistory(gameover ? 'loss' : 'timeup');

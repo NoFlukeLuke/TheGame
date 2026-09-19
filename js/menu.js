@@ -1,4 +1,4 @@
-const BUILD = "2026-09-18 · r275 · bands at pitch 5%, and on the Sleight card too";
+const BUILD = "2026-09-19 · r276 · mode unlock chain: The Schedule first, the rest open one run at a time";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -292,7 +292,11 @@ function startMatch3FromMenu(modeId = 'match3') {
 // to start one expecting the game the other nine modes are. They are still whole
 // and still reachable: the dev panel's MODES group launches any entry in MODES by
 // name, which is why the split is two lists rather than a deletion.
-const MODE_SELECT_LIST = ['tutorial', 'normal', 'guided', 'map', 'sixsuits', 'spectrum', 'survival', 'flow', 'picker'];
+// The carousel's ORDER and its unlock chain both live in js/progress-unlock.js,
+// which loads before this file. Orientation is no longer a card: every mode's
+// FIRST RUN is its tutorial now, so a standalone one would be a second door to
+// the same thing. It is still reachable from the dev panel's Modes group.
+const MODE_SELECT_LIST = [...MODE_UNLOCK_CHAIN, ...MODE_FINALE_GROUP];
 const MODE_HIDDEN_LIST = ['match3', 'zen', 'dominoes'];
 const MODE_META = {
   tutorial: { accent: '#8fd0ff',         suits: 'START HERE',
@@ -386,40 +390,62 @@ function renderModeSelect() {
   const car = document.getElementById('mode-carousel');
   if (!car) return;
   car.innerHTML = '';
-  MODE_SELECT_LIST.forEach(id => {
-    const meta = MODE_META[id] || {};
-    // 'picker' is not an entry in MODES - it is the door to one. Its card carries
-    // the same tier control as the rest (the tier is a property of the RUN, not of
-    // the mode), and PLAY opens the questions instead of starting a run.
-    if (id === 'picker') {
-      const card = document.createElement('div');
-      card.className = 'mode-card';
-      card.style.setProperty('--mode-accent', meta.accent);
-      card.innerHTML =
-        `<div class="mode-card-name">Custom</div>` +
-        `<div class="mode-card-suits">${meta.suits}</div>` +
-        `<div class="mode-card-blurb">${meta.blurb}</div>` +
-        `<div class="mode-tier"></div>` +
-        `<button class="mode-card-play">BUILD</button>`;
-      renderModeTier(card, 'custom');
-      card.querySelector('.mode-card-play').onclick = () => openPickerMode();
-      car.appendChild(card);
-      return;
-    }
-    const m = MODES[id]; if (!m) return;
-    const card = document.createElement('div');
-    card.className = 'mode-card';
-    card.style.setProperty('--mode-accent', meta.accent || 'var(--c-yellow)');
-    card.innerHTML =
-      `<div class="mode-card-name">${m.name}</div>` +
-      `<div class="mode-card-suits">${meta.suits || ''}</div>` +
-      `<div class="mode-card-blurb">${meta.blurb || m.desc}</div>` +
-      `<div class="mode-tier"></div>` +
-      `<button class="mode-card-play">PLAY</button>`;
-    renderModeTier(card, id);
-    card.querySelector('.mode-card-play').onclick = () => chooseMode(id);
+  // Consumed here, not read: the fan plays on the ONE render that follows the
+  // unlock. Re-opening the carousel afterwards shows them already fanned.
+  const fan = modeFanPending; modeFanPending = false;
+  modeSelectList().forEach(id => {
+    const card = (id === MODE_STACK_ID) ? buildModeStackCard() : buildModeCard(id);
+    if (!card) return;
+    // Only the cards that just APPEARED fan. The chain's four were already on
+    // screen and sliding them too reads as the whole carousel reloading.
+    const gi = MODE_FINALE_GROUP.indexOf(id);
+    if (fan && gi >= 0) { card.classList.add('fan-in'); card.style.setProperty('--fan-i', gi); }
     car.appendChild(card);
   });
+}
+
+// A mode's display name. 'picker' is NOT an entry in MODES - it is the door to
+// one - so it cannot be looked up there, and a locked card still has to name it.
+function modeDisplayName(id) {
+  return id === 'picker' ? 'Custom' : (MODES[id] ? MODES[id].name : id);
+}
+
+function buildModeCard(id) {
+  const meta = MODE_META[id] || {};
+  const open = modeUnlocked(id);
+  // 'picker' carries the same tier control as the rest (the tier is a property
+  // of the RUN, not of the mode); PLAY opens the questions instead of starting.
+  const isPicker = id === 'picker';
+  if (!isPicker && !MODES[id]) return null;
+  const card = document.createElement('div');
+  card.className = 'mode-card' + (open ? '' : ' mode-locked');
+  card.style.setProperty('--mode-accent', meta.accent || 'var(--c-yellow)');
+  card.innerHTML =
+    `<div class="mode-card-name">${modeDisplayName(id)}</div>` +
+    `<div class="mode-card-suits">${open ? (meta.suits || '') : '\u{1F512}'}</div>` +
+    `<div class="mode-card-blurb">${meta.blurb || MODES[id].desc}</div>` +
+    (open ? `<div class="mode-tier"></div><button class="mode-card-play">${isPicker ? 'BUILD' : 'PLAY'}</button>`
+          : `<div class="mode-lock-note">Finish a run of <b>${modeDisplayName(modeUnlockedBy(id))}</b> to unlock</div>`);
+  if (open) {
+    renderModeTier(card, isPicker ? 'custom' : id);
+    card.querySelector('.mode-card-play').onclick = () => isPicker ? openPickerMode() : chooseMode(id);
+  }
+  return card;
+}
+
+// One card standing in for the whole finale group, with two backing layers so
+// it reads as a stack. Four identical padlocks say nothing four times.
+function buildModeStackCard() {
+  const names = MODE_FINALE_GROUP.map(modeDisplayName);
+  const card = document.createElement('div');
+  card.className = 'mode-card mode-locked mode-stack';
+  card.style.setProperty('--mode-accent', 'var(--c-yellow)');
+  card.innerHTML =
+    `<div class="mode-card-name">+${names.length} More</div>` +
+    `<div class="mode-card-suits">\u{1F512}</div>` +
+    `<div class="mode-card-blurb">${names.join(' \u00b7 ')}<br><br>The rest of the game, and they all open at once.</div>` +
+    `<div class="mode-lock-note">Finish a run of <b>${modeDisplayName(MODE_UNLOCK_CHAIN[MODE_UNLOCK_CHAIN.length - 1])}</b> to unlock</div>`;
+  return card;
 }
 
 // ══════════════════════════════════════════════

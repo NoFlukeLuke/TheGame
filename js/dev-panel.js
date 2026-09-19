@@ -190,11 +190,19 @@ function devRenderBosses() {
 // are: a new mode cannot go missing from the panel.
 function devRenderModes() {
   const el = document.getElementById('dev-mode-btns'); if (!el) return;
-  el.innerHTML = Object.keys(MODES).map(id => {
-    const hidden = MODE_HIDDEN_LIST.includes(id);
-    return `<button class="dev-btn" onclick="devStartMode('${id}')" title="${hidden ? 'hidden from the mode carousel' : ''}">`
-         + `${MODES[id].name || id}${hidden ? ' ·' : ''}</button>`;
-  }).join('');
+  // The unlock state is PERSISTED across runs, so without a reset here a mode's
+  // first-run tutorial can only ever be seen once per browser.
+  const done = (typeof modesFinished !== 'undefined') ? modesFinished.size : 0;
+  const seen = (typeof modesStarted  !== 'undefined') ? modesStarted.size  : 0;
+  el.innerHTML =
+    `<div class="dev-note">Unlocks: ${done} finished \u00b7 ${seen} played</div>` +
+    `<button class="dev-btn" onclick="devUnlockAllModes()">Unlock every mode</button>` +
+    `<button class="dev-btn" onclick="devResetModeProgress(); devRenderModes();">Reset unlocks + first runs</button>` +
+    Object.keys(MODES).map(id => {
+      const hidden = MODE_HIDDEN_LIST.includes(id);
+      return `<button class="dev-btn" onclick="devStartMode('${id}')" title="${hidden ? 'hidden from the mode carousel' : ''}">`
+           + `${MODES[id].name || id}${hidden ? ' \u00b7' : ''}</button>`;
+    }).join('');
 }
 
 // Launch a mode from the panel. chooseMode() is the menu's own entry point, so

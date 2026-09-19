@@ -4366,6 +4366,45 @@
   }
   #mode-back-btn:hover { background: linear-gradient(180deg, #235055, #12292c); color: #fff; }
 
+  /* ═══════════════ LOCKED MODES + THE STACK (r276) ═══════════════
+     A locked card is the same card, drained and without its PLAY button, so
+     what you are working toward is legible rather than hidden. The four modes
+     past the chain are drawn as ONE stacked card until they open together. */
+  .mode-card.mode-locked {
+    filter: saturate(0.18) brightness(0.72);
+    box-shadow: 0 0 0 2px rgba(255,255,255,0.14), inset 0 0 40px rgba(255,255,255,0.02), 0 20px 44px rgba(0,0,0,0.55);
+  }
+  .mode-card.mode-locked .mode-card-name { color: var(--cream-dim); }
+  .mode-lock-note {
+    font-family: 'Share Tech Mono', monospace; font-size: 10px; line-height: 1.5;
+    letter-spacing: 1px; color: var(--cream-dim); text-transform: uppercase;
+    text-align: center; opacity: 0.85; padding: 8px 0 2px;
+  }
+  .mode-lock-note b { color: var(--cream); }
+  /* The stack needs a containing block for its two backing layers. Only the
+     stack gets it - .mode-card is otherwise static and nothing else wants it. */
+  .mode-card.mode-stack { position: relative; }
+  .mode-card.mode-stack::before, .mode-card.mode-stack::after {
+    content: ''; position: absolute; inset: 0; border-radius: 16px; z-index: -1;
+    background: linear-gradient(180deg, rgba(20,16,11,0.94), rgba(11,9,6,0.96));
+    border: 1px solid rgba(255,255,255,0.07);
+  }
+  .mode-card.mode-stack::before { transform: translate(9px, 9px) rotate(1.6deg); }
+  .mode-card.mode-stack::after  { transform: translate(18px, 18px) rotate(3.2deg); opacity: 0.6; }
+
+  /* The fan: played ONCE, on the render where the stack became four cards.
+     `backwards` holds the start state through the stagger delay, or every card
+     would sit at full size until its own turn came round. */
+  @keyframes modeFanIn {
+    from { opacity: 0; transform: translateX(-42px) scale(0.9) rotate(-5deg); }
+    to   { opacity: 1; transform: none; }
+  }
+  .mode-card.fan-in {
+    animation: modeFanIn 0.5s cubic-bezier(0.2, 0.8, 0.3, 1) backwards;
+    animation-delay: calc(var(--fan-i, 0) * 70ms);
+  }
+  body.reduced-motion .mode-card.fan-in { animation: none; }
+
   /* ═══════════════ v7 FIXED-COORDINATE LANDSCAPE (r73) ═══════════════
      Overrides the legacy flexbox landscape rules above via source order.
      Wrapper divs become display:contents so the real leaf elements can be
