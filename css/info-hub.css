@@ -1,0 +1,140 @@
+/* ══════════════════════════════════════════════
+   THE HANDBOOK (r280) - js/info-hub.js
+
+   Body-level, OUTSIDE #cabinet, like Settings / Records / the dev panel: the
+   cabinet's CSS `zoom` would otherwise scale every px written here.
+
+   It deliberately wears the SETTINGS chrome (same plastic ring, same head bar,
+   same group headings) rather than a look of its own. It is opened from
+   Settings and closes back into it, so a different material there would read
+   as leaving the game rather than turning a page.
+
+   z-index 9999 sits it one ABOVE #settings-overlay (9998) - Settings is hidden
+   behind it on open, but a hidden panel is one class away and the ordering has
+   to hold either way.
+   ══════════════════════════════════════════════ */
+
+#info-overlay {
+  display: none;
+  position: fixed; inset: 0; z-index: 9999;
+  align-items: center; justify-content: center; padding: 4vh 3vw;
+  background:
+    repeating-linear-gradient(0deg, rgba(0,0,0,0.18) 0 1px, transparent 1px 3px),
+    radial-gradient(ellipse at 50% 40%, rgba(36,29,63,0.95) 0%, rgba(11,10,28,0.98) 72%);
+}
+#info-overlay.show { display: flex; }
+
+#info-panel {
+  width: 100%; max-width: 620px; max-height: 92vh;
+  display: flex; flex-direction: column; overflow: hidden; border-radius: 16px;
+  background: linear-gradient(180deg, rgba(20,16,11,0.97), rgba(11,9,6,0.98));
+  box-shadow: 0 0 0 2px var(--plastic-lo, #b7ac93), 0 0 0 6px #17120c, 0 24px 60px rgba(0,0,0,0.65);
+}
+
+/* IN A FLEX COLUMN A CHILD SHRINKS BY DEFAULT. #info-body is the flexible one,
+   so the head and the nav have to say `flex: 0 0 auto` or the body squeezes
+   them: measured, the chip row lost half its height and the group headings
+   scrolled up over it. */
+#info-head {
+  flex: 0 0 auto;
+  display: flex; align-items: center; gap: 10px;
+  padding: 13px 16px; border-bottom: 1px solid rgba(183,172,147,0.22);
+  background: linear-gradient(180deg, rgba(255,206,43,0.07), transparent);
+}
+.info-brand {
+  display: flex; align-items: center; gap: 8px; flex: 0 0 auto;
+  font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 13px; letter-spacing: 4px;
+  color: var(--c-yellow, #ffce2b); text-transform: uppercase;
+}
+/* The one input in the game, so it restates the text-selection exemption its
+   own way: html/body carry user-select:none and a search box that cannot be
+   selected into is not a search box. */
+#info-search {
+  flex: 1; min-width: 0;
+  font-family: 'Share Tech Mono', monospace; font-size: 12px; letter-spacing: 1px;
+  padding: 6px 10px; border-radius: 8px;
+  color: var(--cream, #f0e6c8);
+  background: rgba(0,0,0,0.35);
+  border: 1.5px solid rgba(183,172,147,0.35);
+  user-select: text; -webkit-user-select: text;
+}
+#info-search:focus { outline: none; border-color: var(--c-mint, #35d59b); }
+#info-search::placeholder { color: rgba(244,236,214,0.28); }
+
+#info-close {
+  flex: 0 0 auto;
+  cursor: pointer; border-radius: 8px; padding: 5px 11px; font-size: 14px;
+  color: var(--cream, #f0e6c8); background: rgba(255,255,255,0.05);
+  border: 1.5px solid var(--plastic-lo, #b7ac93); transition: all 0.12s ease;
+}
+#info-close:hover { border-color: var(--c-coral, #ff6a3c); color: var(--c-coral, #ff6a3c); }
+
+/* Group jump chips. Scrolls horizontally rather than wrapping to two rows and
+   eating the reading area on a phone. */
+#info-nav {
+  flex: 0 0 auto;
+  display: flex; align-items: center; gap: 6px; padding: 9px 16px;
+  overflow-x: auto; overflow-y: hidden;
+  border-bottom: 1px solid rgba(183,172,147,0.14);
+  scrollbar-width: none;
+}
+#info-nav::-webkit-scrollbar { display: none; }
+.info-chip {
+  flex: 0 0 auto; cursor: pointer;
+  font-family: 'Share Tech Mono', monospace; font-size: 9px; letter-spacing: 1.5px;
+  text-transform: uppercase; padding: 5px 10px; border-radius: 999px;
+  color: var(--cream-dim, #8a7d60);
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(183,172,147,0.22);
+  transition: all 0.12s ease;
+}
+.info-chip:hover { color: var(--c-mint, #35d59b); border-color: var(--c-mint, #35d59b); }
+
+#info-body { padding: 4px 16px 18px; overflow-y: auto; flex: 1 1 auto; min-height: 0; }
+
+.info-group-head {
+  font-family: 'Share Tech Mono', monospace; font-size: 9px; letter-spacing: 3px;
+  color: var(--c-mint, #35d59b); text-transform: uppercase;
+  margin: 16px 0 8px; padding-bottom: 4px; border-bottom: 1px solid rgba(183,172,147,0.2);
+}
+#info-body > .info-group:first-child .info-group-head { margin-top: 8px; }
+
+.info-topic {
+  padding: 10px 12px; margin-bottom: 8px; border-radius: 8px;
+  border: 1px solid rgba(183,172,147,0.12);
+  border-left: 3px solid rgba(183,172,147,0.28);
+  background: rgba(255,255,255,0.015);
+}
+.info-topic-head {
+  font-family: 'Orbitron', sans-serif; font-weight: 700;
+  font-size: 12px; letter-spacing: 1.1px;
+  color: var(--cream, #f0e6c8); margin-bottom: 7px;
+}
+.info-topic p {
+  font-family: 'Crimson Pro', serif; font-size: 14px; line-height: 1.5;
+  color: rgba(240,230,200,0.84); margin: 0 0 7px;
+}
+.info-topic p:last-child { margin-bottom: 0; }
+.info-list { margin: 0 0 7px; padding-left: 18px; }
+.info-list:last-child { margin-bottom: 0; }
+.info-list li {
+  font-family: 'Crimson Pro', serif; font-size: 13.5px; line-height: 1.45;
+  color: rgba(240,230,200,0.78); margin-bottom: 3px;
+}
+
+/* Arriving from a tip's READ MORE. A one-shot flash, restarted by removing and
+   re-adding the class (reading offsetWidth in between), because opening the
+   same topic twice in a row must not be silent. */
+.info-topic.lit {
+  animation: info-lit 1.6s ease-out;
+  border-left-color: var(--c-cyan, #35d5d5);
+}
+@keyframes info-lit {
+  0%   { background: rgba(53,213,213,0.18); box-shadow: 0 0 20px -4px var(--c-cyan, #35d5d5); }
+  100% { background: rgba(255,255,255,0.015); box-shadow: none; }
+}
+
+.info-empty {
+  font-family: 'Crimson Pro', serif; font-size: 14px;
+  color: var(--cream-dim, #8a7d60); padding: 28px 4px; text-align: center;
+}

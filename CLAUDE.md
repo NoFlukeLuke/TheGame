@@ -3231,6 +3231,118 @@ A guided first run listed **first** in the mode carousel. `MODES.tutorial` sets 
 - **Anti-stall:** a step whose `when` never flips shows anyway after `whenTimeoutMs` (20s), so a stalled predicate can't leave the orientation silently dead.
 - `tutorialHoldClock()` only releases a pause **it** took (`_tutClockHeld`), so the reward grid and Mart keep ownership of `gameTimerPaused` during their own steps.
 
+## Tips and the handbook (r280) - `js/insights.js` + `js/info-hub.js`
+
+The other two thirds of the tutorial rework. The tutorial teaches by DOING and
+has to stay short; a **tip** is the one line it did not stop for, fired once
+ever at the moment the thing turns up; the **handbook** is the long form you
+come back to.
+
+### Tips are POLLED, and that is what makes them free
+
+Every row in `INSIGHTS` is a PREDICATE over globals and DOM that already exist,
+swept by one 400ms interval. **The whole file hooks into nothing** - no edits to
+`play-hand.js`, `reward-grid.js`, `boss.js` or the twenty other places a tip's
+subject can first appear, no chokepoint to invent for a feature that has none,
+and a new tip is one row rather than a call site somebody has to remember. Same
+decision `js/tutorial.js` made, same payoff.
+
+- **A PREDICATE MAY NOT THROW, AND A THROW IS "NOT YET".** Caught and read as
+  false, exactly as `EVENT_REQUIRES` treats one: this file may never be able to
+  break the game by being wrong about something.
+- **Several read the DOM on purpose.** `bestHandResult` is a `const` INSIDE
+  `render()`, not a global, so there is nothing to poll - but `.hn-drop`,
+  `.hn-need` and `.hn-l` are the exact marks the player is looking at, which is
+  the better trigger for "explain what you are seeing" anyway.
+- **`anchor` is a LIST and the first element with a REAL RECT wins**, the same
+  rule `js/payout-fx.js` and `tutEl()` follow, because several of these readouts
+  exist in only one orientation. No anchor resolving is not a failure: the card
+  falls back to bottom-centre, which is what portrait does for `#hand-name`.
+
+### A tip NEVER blocks play
+
+The tutorial dims the screen and gates input because it is asking you to do a
+specific thing. **A tip is an aside: no dim, no gate, nothing swallowed**, and
+the ring is `pointer-events: none` so it never takes a click away from what it
+is pointing at. That difference is the whole reason this is not more
+`TUTORIAL_STEPS`. Its layer sits BELOW the tutorial's z-index on purpose - the
+two are mutually exclusive by `insightsBlocked()`, and if that ever fails the
+tutorial is the one that must win.
+
+### The three valves, and all three are needed
+
+Owner: *"i don't want to smother the player."* Resume a run at level 12 and a
+dozen rows qualify on the first tick, so a queue alone is a wall of cards:
+
+1. **ONE AT A TIME** - a queue, never a stack.
+2. **`INSIGHT_GAP` (7s)** between one closing and the next opening.
+3. **`INSIGHT_PER_ROUND` (2)**, reset from `startRoundTimer` - the one call site
+   every round start funnels through. The rest keep; they are first-time-ever
+   tips, so nothing is lost by waiting.
+
+Measured: on a fresh Classic round 1 **zero rows are true**, which is correct -
+no knacks, no curses, no lines, no buffs, nothing to explain yet. With three
+conditions live, four gap releases fire exactly two and then stop.
+
+- **A tip is marked SEEN ON SHOW, not on dismiss.** A reload with the card up
+  would otherwise re-queue it on the next load, forever.
+- **`insightsOn()` reads the SETTING, it does not keep a copy.** That is the
+  r244 payout-pick trap: `loadSettings` applies every row's stored value OR its
+  default at boot, so a module's own `localStorage` key gets stamped back over.
+  One store, one writer.
+
+### The handbook - `Settings > Help > Open the handbook`
+
+- **A TOPIC ID IS ITS TIP'S ID.** A tip's READ MORE calls `openInfoHub(row.id)`
+  and there is no mapping table between the two files. A tip with no matching
+  topic simply has no READ MORE button. A tip is the one-line version of its
+  topic and must never say something the topic contradicts.
+- **It explains MECHANICS, not CONTENT.** What a Trick IS lives here; what Rich
+  Soil does lives on Rich Soil, and RECORDS -> Owned lists what you hold.
+  Copying entity text in would be a second copy to keep in step with `BAL`,
+  which `js/improve.js` rewrites as a run goes on.
+- **Search reads the EXPANDED text**, not the stored text. A player reading
+  "Utility" on screen has to be able to search for "utility"; the stored body
+  says `{trick}`.
+
+### Both vocabularies, with TWO tools that are easy to mix up
+
+Prose is stored in the GAMER wording and run through `lexProse()` on the way to
+the screen, exactly as every entity description is (r198), so Settings ->
+Display -> Wording moves it with no second copy.
+
+| in prose | what to write | why |
+|---|---|---|
+| a stat, flowing | lower-case `pips` / `mult` | `lexProse` swaps it to work / skill |
+| a READOUT on screen | `{PIPS}` `{SCORE}` `{GOAL}` | `lexTerm`, so it matches the chip |
+| a category word | `{trick}` `{Sleights}` `{knacks}` | `entityLabel`, a lookup not a swap |
+
+- **`INFO_TERM_KEYS` is an EXPLICIT list of the six HUD concepts.** The obvious
+  shortcut - "did `lexTerm` hand back something different from the key" - is
+  wrong in gamer mode, where `lexTerm('goal')` really is `GOAL`: the identity
+  answer read as "not a term" and `{GOAL}` printed raw.
+- **The label's own case wins.** `entityLabel` returns `Cert` / `Knack` and the
+  game capitalises those everywhere else, so a lower-case placeholder does NOT
+  lower-case the answer. A first pass did and printed "You own a cert".
+- **`pips` is PLURAL and `work` is a MASS NOUN**, so a sentence using pips as a
+  plural subject breaks agreement in corporate mode: "its pips come off" becomes
+  "its work come off". Write around it ("you lose its pips"). There is a check
+  for this - render every string in both vocabularies and grep the output for
+  `work|skill` followed by a plural verb.
+
+### Two layout traps, both found by screenshotting rather than reading
+
+- **In a flex COLUMN a child shrinks by default.** `#info-body` is the flexible
+  one, so `#info-head` and `#info-nav` need `flex: 0 0 auto` or the body
+  squeezes them - measured, the chip row lost half its height and the group
+  headings scrolled up over it.
+- **The tip card is placed in RAW VIEWPORT PX and clamped to one**, the same
+  rule `.time-popup` needed: below the anchor if it fits, above if not, then
+  clamped on both axes. Verified fully on screen at 1440x820 and 420x820.
+
+Dev panel -> **Tips**: fire any row on demand (ignoring its predicate, and
+without burning one that has not been seen), reset all, open the handbook.
+
 ## RECORDS hub (`js/records.js` + `css/records.css`, r155)
 
 The four secondary chips (Stats · Deck · Time · Limits) were **merged into one chip** - `#btn-records` - that opens a large tabbed pop-up and **pauses the round** (`pauseGame(false)`, skipped when `screenOwnsClock()`). Tabs: **Deck · Hands · Personnel File · Limits · Time · Performance**, each one entry in `RECORDS_TABS` (adding a tab is a single line).

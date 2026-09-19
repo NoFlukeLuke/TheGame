@@ -51,6 +51,7 @@ function startRoundTimer() {
   if (typeof sfxSetMuffle === 'function') sfxSetMuffle(false);
   startHeartbeat();                 // the board's idle pulse runs with the round
   cdStartTicker();                  // cooldown / disable rings (js/cooldown.js)
+  insightsRoundReset();             // tips: start the sweep, reset the per-round cap (js/insights.js)
   syncDiscoveredFromOwned();        // log anything new for the Builds archive
   roundStartSeconds = roundSeconds; // mark the start of the countdown for ♠ "first 30s" exalt
   // Suspension resolves HERE, not in triggerLevelUp: it needs roundStartSeconds to

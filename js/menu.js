@@ -1,4 +1,4 @@
-const BUILD = "2026-09-19 · r279 · a Trick's tooltip sells, and that is its only disposal";
+const BUILD = "2026-09-19 · r280 · one-line tips the first time, and a handbook to read later";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

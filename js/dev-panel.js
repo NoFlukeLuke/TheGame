@@ -100,6 +100,7 @@ function openDevPanel() {
   devRenderSleights();
   devRenderBosses();
   devRenderModes();
+  devRenderTips();
   devRenderEvents();
   devRenderGroupMenu();
   devSyncFloatSliders();
@@ -144,6 +145,7 @@ const DEV_GROUPS = [
   { g:'deck',     icon:'\u265B', label:'Deck',      sub:() => `${deckDesignRanks().length} ranks × ${deckCopiesPerRank} = ${deckDesignSize()} cards` },
   { g:'improve',  icon:'\u2191', label:'Improve',   sub:() => devImproveSub() },
   { g:'builds',   icon:'▤', label:'Builds',    sub:() => `${discoveredIds.size} records open` },
+  { g:'tips',     icon:'\u2139', label:'Tips',      sub:() => `${INSIGHTS.length} tips \u00b7 ${insightsSeenCount()} seen` },
   { g:'log',      icon:'✎', label:'Event Log', sub:() => 'in-game debug log' },
 ];
 function devRenderGroupMenu() {
@@ -188,6 +190,23 @@ function devRenderBosses() {
 // Match-3, Zen and Dominoes now that MODE_SELECT_LIST hides them (js/menu.js).
 // Generated rather than hand-written for the same reason the boss and event rows
 // are: a new mode cannot go missing from the panel.
+// Tips (r280). Every row is FIRED ON DEMAND rather than waited for: most of the
+// predicates need a board state that is a nuisance to reach, and devShowInsight
+// deliberately does not burn a tip that had not been seen yet.
+function devRenderTips() {
+  const el = document.getElementById('dev-tip-btns'); if (!el) return;
+  el.innerHTML =
+    `<div class="dev-note">${insightsSeenCount()} of ${INSIGHTS.length} seen \u00b7 `
+      + `tips are ${insightsOn() ? 'ON' : 'OFF'} (Settings \u203a Help)</div>` +
+    `<button class="dev-btn" onclick="resetInsights(); devRenderTips();">Reset all</button>` +
+    `<button class="dev-btn" onclick="openInfoHub()">Open handbook</button>` +
+    INSIGHTS.map(r => {
+      const seen = insightsSeen.has(r.id);
+      return `<button class="dev-btn" onclick="devShowInsight('${r.id}')" `
+           + `title="${seen ? 'already seen' : 'not yet seen'}">${r.id}${seen ? '' : ' \u2022'}</button>`;
+    }).join('');
+}
+
 function devRenderModes() {
   const el = document.getElementById('dev-mode-btns'); if (!el) return;
   // The unlock state is PERSISTED across runs, so without a reset here a mode's
