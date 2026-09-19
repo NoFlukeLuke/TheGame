@@ -122,3 +122,45 @@ That conversion exposed a live bug worth remembering: `rewindTime` clamped to
 `ROUND_DURATION` (Classic's 180), so in Flow - whose session clock starts at 300 - a single
 Flush destroyed 110 seconds and reported nothing. The ceiling is now
 `max(currentRoundDuration(), roundStartSeconds, roundSeconds)`.
+
+## 7. Natural Scaling inverts the hand ladder, and short hands always win the race
+
+Measured r281, shipped tuning (`nsPipsPerHand` 2, `nsMultPerHand` 0, `nsEveryHands` 1).
+
+`handWorth()` reads `handBasePips` / `handBaseMult`, which include the Natural Scaling
+accumulator. So a hand type you have played a lot can out-*worth* a longer hand that the
+same cards also form. How long that takes, from a fresh run:
+
+| the short hand | out-worths | after |
+|---|---|---|
+| Run of 3 | Run of 4 | **8 plays** |
+| Flush of 3 | Flush of 4 | 8 plays |
+| Run of 4 | Straight | 11 plays |
+| Pair | Two Pair | 13 plays |
+| Pair | Three of a Kind | 17 plays |
+| Flush of 3 | Flush | 18 plays |
+| Three of a Kind | Full House | 21 plays |
+| Run of 3 | Straight | 21 plays |
+| Pair | Full House | 47 plays |
+| Three of a Kind | Four of a Kind | 53 plays |
+
+**This is r198 working as specified** - "a Three of a Kind played forty times may well
+out-score a Four of a Kind you have never played" - so it is a decision, not a bug. But
+note what it does over a whole run: NS rewards FREQUENCY, and short hands are by far the
+most frequent, so the ordering does not merely become interesting, it reliably **inverts**.
+Eight Runs of 3 is most of one round. Past that point, selecting four cards of a run and
+being paid a Run of 3 with the fourth card dropped is the correct answer, and the board
+says so only by turning that card red.
+
+Two things worth separating if this is ever retuned:
+
+- **The ladder inversion itself** (which hand the game reaches for). Levers: a lower
+  `nsPipsPerHand`, a `nsEveryHands` above 1, a cap per hand type, or scaling the bonus by
+  the hand's card count so a Pair's +2 is worth less than a Straight's.
+- **Its effect on what a selection means.** That half was a real bug and is fixed in r281
+  (see CLAUDE.md, "The partition and the load-bearing rule were fighting"): the inversion
+  used to make the longer hand *unplayable*, not merely unchosen.
+
+`nsMultPerHand` defaults to 0 and is the far sharper lever - +1 base mult on a Pair is
+worth more than +20 base pips, so a run with it tuned up inverts the ladder in a handful
+of hands rather than a handful of rounds.

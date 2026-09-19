@@ -775,6 +775,56 @@ and I cannot tell why". The rules, as the code actually is:
 - **Tagalong** (rare knack) lifts it: hands may carry cards that are not part of them, and those cards score their own pips instead of being billed as penalties. That is the whole reason it is a knack - before r201 this was free and unremarkable, so making it the default and selling it back turns "my hand has a spare in it" into something you paid for.
 - **Verified unaffected:** the 7-card `Run of 4 + Set of 3 + Flush` still scores 1870; the tutorial's board audit passed 40 of 40 deals; RECORDS renders; match-3 is byte-for-byte the same behaviour before and after (checked by running the same deal on both commits).
 
+### The partition and the load-bearing rule were fighting (r281)
+
+Owner: *"This keeps happening when I try and play set of 3... It always drops the third
+one and I can't see why."* Three 7s scored as a Pair with the third seven billed as a
+penalty; A-2-3-4 scored as a Run of 3 with the 4 dropped.
+
+**`_bestRankPartition` maximises `handWorth`, and `handWorth` reads `handBasePips` /
+`handBaseMult` - which include the NATURAL SCALING accumulator.** So once a SHORT hand
+had out-scaled the longer hand it lives inside, the partition preferred *take the short
+hand and leave a card unclaimed* - and the load-bearing rule (r201), which runs
+afterwards and knows nothing about why the partition chose what it chose, then threw the
+**whole component list** away because a card was unclaimed. The selection stopped being a
+hand at all, `findBestHand` fell back to the smaller subset, and the spare card went red.
+
+- **It is reachable on the SHIPPED tuning, early.** At `nsPipsPerHand` 2: **8 Runs of 3
+  kills every Run of 4**, 11 Runs of 4 kills the Straight, 17 Pairs kills Three of a
+  Kind, 53 Threes of a Kind kills Four of a Kind. The full table is OPEN_DECISIONS.md 7.
+- **`_bestRankPartition(cells, mustCover)`** forbids the drop branch, returning the best
+  partition that claims every card or **null** when there is none. `solve` can now return
+  null, so every recursion site has to survive that.
+- **IT IS A LAST RESORT, NOT THE FIRST ASK, and that ordering is load-bearing.** Coverage
+  is judged on the whole component list, **flush overlay included** - a card the rank
+  partition left alone is still load-bearing if the flush claims it. Constraining the
+  partition up front therefore refuses partitions the overlay would have rescued:
+  measured, that changed 1 selection in 2,400 **with no Natural Scaling in play at all**.
+  So the unrestricted answer is built first and kept whenever it already covers; the
+  covering partition is asked for only when the hand was about to be voided.
+- **Tagalong asks for the unrestricted partition directly**, because a passenger is
+  exactly what it buys. `_tagalong` is read ABOVE the partition now for that reason.
+- **This does not take the short hand away.** `findBestHand` scores every connected
+  subset on its own, so "play just the Pair and eat the penalty" is still on the table and
+  still wins when it genuinely pays more - which is r198 behaving as designed. The fix
+  only stops a partition the game is about to reject from vetoing the one it would have
+  accepted.
+- **Measured, 2,400 random connected selections over 400 boards:** with NS at zero,
+  **2,400 of 2,400 byte-identical**. With the ladder inverted (Pair +60, Run of 3 +40, and
+  all three together) every difference is an improvement and **0 hands score lower** in
+  any configuration; selections that were not a hand at all become one (`J♥ 4♣ 3♦ A♦ 2♣`:
+  no hand -> Run of 4). Verified in a real browser on both boards the owner reported.
+
+### The last slot books ONE obligation, and now says so (r281)
+
+Owner: *"It won't let me select the slot above my current slot here."* That is
+`mapLegalMoves`'s hard `set === MAP_SETS - 1` case returning only the review, which is the
+r253 rule and correct - but the bar's visits chip still printed the generic **`1/2`**
+there, so the game was telling the player a second obligation was owed and then refusing
+it. It prints **`1/1`** in the funnel, and `mapBarInfo` names the reason ("the last slot
+books one obligation, then the review") instead of the generic "not reachable from here".
+Display only; no movement rule moved.
+
 ### Natural Scaling bonus editor (r201)
 
 The dev panel's Natural Scaling group now lists **every scalable hand type with its EARNED pips and mult as typed fields**, so "what does a Run of 3 at +50 feel like?" is answered by playing it rather than by grinding forty hands first. `setNaturalScaleBonus(name, field, value)` writes the accumulator; the sliders above it still only decide how fast it grows.

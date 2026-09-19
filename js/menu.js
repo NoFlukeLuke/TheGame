@@ -1,4 +1,4 @@
-const BUILD = "2026-09-19 · r280 · the pick-of-three needs a confirm";
+const BUILD = "2026-09-19 · r281 · the third card of a set was being dropped";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

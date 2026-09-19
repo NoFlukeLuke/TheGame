@@ -768,8 +768,13 @@ function mapRenderBar() {
   if (!bar) { bar = document.createElement('div'); bar.id = 'map-bar'; document.body.appendChild(bar); }
   const setNo = mapPos ? Math.min(mapPos.set + 1, MAP_SETS) : 1;
   const skipNext = MAP_SKIP_BASE + MAP_SKIP_STEP * (mapSkips + 1);
+  // THE LAST SLOT BOOKS ONE OBLIGATION, so it must not print a cap of 2 (r281).
+  // mapLegalMoves has a hard `set === MAP_SETS - 1` case returning only the
+  // review, and this readout was still saying 1/2 there - the owner read that as
+  // a second visit being owed and the tile beside them being wrongly refused.
+  const slotCap = (mapPos && mapPos.set === MAP_SETS - 1) ? 1 : 2;
   const visits = mapPos
-    ? `${mapFreeBranch ? mapVisitsInSet(mapPos.set) : mapVisits}/2${mapFreeBranch ? ' FREE' : ''}`
+    ? `${mapFreeBranch ? mapVisitsInSet(mapPos.set) : mapVisits}/${slotCap}${mapFreeBranch ? ' FREE' : ''}`
     : 'PICK A START';
   const inked = (typeof mapDrawStrokes !== 'undefined') && mapDrawStrokes.length > 0;
   bar.innerHTML =
@@ -857,6 +862,10 @@ function mapBarInfo(t, move) {
     if (t.span === 2) s += ` <i>runs over two slots</i>`;
   } else if (t.visited) s += ' <i>already taken</i>';
   else if (move && move.doomed) s += ' <i>dead-ends before the review</i>';
+  // Standing in the last slot, every refusal is the same refusal, so name it
+  // instead of printing the generic one (r281).
+  else if (t.kind !== 'boss' && mapPos && mapPos.set === MAP_SETS - 1 && t.set === MAP_SETS - 1)
+    s += ' <i>the last slot books one obligation, then the review</i>';
   else if (t.kind !== 'boss') s += ' <i>not reachable from here</i>';
   el.innerHTML = s;
 }
