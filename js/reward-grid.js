@@ -367,11 +367,20 @@ function _generateRewardContent() {
     if (!pick) return makeTrickPayload();
     const prev = (typeof improvePreview === 'function') ? improvePreview(pick.id) : null;
     const tierTxt = prev ? ` (tier ${prev.tier}/${IMPROVE_MAX_TIER})` : '';
+    // The sentence ONCE, with the number that moves marked in place (r281).
+    // improveDeltaHTML returns null when the two descriptions are not provably
+    // the same sentence, and only then do we fall back to printing both.
+    const delta = (prev && prev.after !== prev.before && typeof improveDeltaHTML === 'function')
+                    ? improveDeltaHTML(prev.before, prev.after) : null;
     return {
       icon: ICON[type] || '\u2605', label: 'Improve: ' + pick.name,
-      desc: (prev && prev.after !== prev.before)
-              ? `${pick.name}${tierTxt}\n${prev.before}\n\u2193\n${prev.after}`
-              : `Improve your ${NOUN[type]} ${pick.name}${tierTxt}`,
+      // <br>, not \n: .rtt-desc has no `white-space: pre-line`, so a newline
+      // renders as a space and the tier line runs into the sentence.
+      desc: delta
+              ? `<b>${pick.name}${tierTxt}</b><br>${delta}`
+              : (prev && prev.after !== prev.before)
+                ? `${pick.name}${tierTxt}\n${prev.before}\n\u2193\n${prev.after}`
+                : `Improve your ${NOUN[type]} ${pick.name}${tierTxt}`,
       tier: 'rare', entity: type, rarity: pick.rarity || 'rare', _improve: true,
       apply: () => {
         if (typeof improveEntity !== 'function' || !improveEntity(pick.id)) {

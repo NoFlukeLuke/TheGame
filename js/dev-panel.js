@@ -1058,7 +1058,7 @@ function devRenderImprove() {
         <button class="dev-btn" style="padding:2px 7px" onclick="devImproveOne('${o.id}')">+1</button>
         <span style="min-width:118px;font-size:11px">${o.name}</span>
         <span style="opacity:.6;font-size:10px">tier ${t}/${IMPROVE_MAX_TIER}</span>
-        <span style="opacity:.5;font-size:10px;flex:1">${pv ? pv.after : ''}</span></div>`);
+        <span style="opacity:.5;font-size:10px;flex:1">${(typeof improveDeltaFor === 'function' && improveDeltaFor(o.id)) || (pv ? pv.after : '')}</span></div>`);
     });
   });
   el.innerHTML = rows.join('');

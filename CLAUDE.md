@@ -1383,6 +1383,97 @@ pick-of-three (4 actions + CONFIRM, no overflow) and the map's 2-knack pick. A
 tap grants nothing, CONFIRM with nothing selected does nothing, the tiles are
 cleaned out of `#grid` on close, and there are no page errors.
 
+### SELECTION IS A WHOLE-CELL STATE (r281) - and it LIFTS
+
+Owner: picking a Trick on the boss grid *"doesn't highlight the whole cell and
+it's really hard to tell if it's been selected"*, and the play grid's own
+lift-and-swell should be **25% more noticeable** on the board and in the reward
+grids. Three separate things were wrong.
+
+- **ON THE PRIZE (BOSS) GRID THE SELECTION GLOW WAS NOT PAINTED AT ALL.** The
+  per-screen gold decoration `body.reward-prize #grid .reward-cell.on-grid` is
+  **(1,4,0)** - one id and four classes - and the selection rule was
+  `.reward-cell.entity.selected` at **(0,3,0)**. So on the one grid that follows
+  a boss, the decoration won and the pick was marked by nothing but a 5% scale.
+  Measured before the fix: a selected cell there computed to the gold shadow,
+  with no violet anywhere. Hence the `!important` on the box-shadow - **a STATE
+  the player is choosing with has to beat a per-screen decoration**, which is
+  the same reason that rule's `border-color` already carried one.
+- **THE OBJECT IS LETTERBOXED, SO THE CELL IS MOSTLY EMPTY (r239).** A floppy in
+  a 120x158 cell is 120x114, and the rarity edge the tile draws belongs to the
+  OBJECT. Nothing said anything about the **cell**, which is what is being
+  picked, so the gutters above and below the disc stayed black. The wash is
+  `.reward-cell.selected::after` at `inset: 0` - a pseudo-element rather than
+  markup because **six surfaces build this tile from three different functions**,
+  and `content: none` on `::after` is the r228 object block's, so this rule has
+  to stay BELOW that block to turn it back on. (The `.reward-cell.entity::after`
+  scanlines are dead: all three subtypes override them.)
+- **THERE WAS NO LIFT AND ALMOST NO SWELL.** A reward tile only scaled 1.05,
+  under a float driver already scaling it. It takes the CARD'S OWN two numbers
+  now, at the same +25%.
+
+**"25% more noticeable" means the EFFECT x1.25, not the value.** The lift goes
+2 -> 2.5px and the swell's part above 1 goes 0.07 -> 0.0875 (i.e. `scale(1.0875)`),
+with the glow's blur and alpha scaled the same way; `handReadyPulse` moves with
+it. x1.25 on the scale FACTOR would be a 34% swell, which is a different
+animation. **Those two numbers are now the same on the play grid, the reward and
+prize grids, the shop board and the grid-pick tiles**, so "I picked this" moves
+identically everywhere.
+
+**The inside edge is near-WHITE and only the glow is violet.** Mint, cyan, purple
+and magenta are all rarity colours here, so a violet ring on its own reads as
+"that one is epic". Nothing else in the tile system is white.
+
+**A `fill: 'both'` deal-in animation OWNS `transform` for good.** That is why
+`.gp-sel`'s new lift did nothing on the grid-pick screen while the reward grid's
+worked: the reward grid rebuilds its tiles on every click, and r280's pick screen
+deliberately never redraws. `gridTileFallIn` now cancels itself on `finished` -
+its last keyframe IS the tile's resting place, so that is visually identical and
+hands the property back. **Any future CSS transform on a tile dealt in this way
+needs the same release.**
+
+Verified in a real browser at 1440x820 and 420x820, through the real tap path:
+reward grid, prize grid, on-grid shop, grid-pick and a board card all select,
+deselect clean (`::after` back to `content: none`, transform back to the float
+alone), and no page errors.
+
+### An improve offer prints its sentence ONCE (r281) - `improveDeltaHTML`
+
+Owner: *"rather than showing the entire description again just show the number
+being changed ... like `+5 (--> +10)` in bold so it's obvious."*
+
+An improve tile used to print the WHOLE description twice - old, arrow, new -
+which on a 120px reward tile is two paragraphs of near-identical prose with the
+one thing that actually changed buried in the middle of each. Worse, `.rtt-desc`
+has no `white-space: pre-line`, so the `\n` separators rendered as **spaces** and
+the two ran together into one blob.
+
+`improveDeltaHTML(before, after)` in `js/improve.js` prints the sentence once and
+marks every number that moves where it stands.
+
+- **IT WORKS BECAUSE THE TWO ARE THE SAME SENTENCE.** `applyBalDescriptions`
+  regenerates `desc` from BAL through one template, and the typed descriptions
+  are rewritten by substituting the number into the pristine text (r206), so
+  before and after are word-for-word identical apart from their numbers.
+  Splitting both on digit runs therefore pairs each number with its counterpart.
+- **IF THAT STOPS BEING TRUE THE WALK RETURNS `null`** and every caller falls
+  back to printing both. A different number COUNT, or any difference in the words
+  between two numbers, means these are not one sentence with a number in it, and
+  a delta drawn over two different sentences is a lie the player cannot check.
+- **The sign or multiplier glued to a number travels WITH it** - `+5`, `x1.5`,
+  `+x0.75`, `2x`, `25%`, `3s` - or the parenthetical reads "5 (-> 10)" beside a
+  stranded `+`. Two guards: a bare `x` is only a multiplier when it is not the
+  tail of a word (`max 60s`), and a trailing `s`/`x` is only a unit when a letter
+  does not follow it (`3s of clock`, never `15 seconds`).
+- **Measured over every entity in all three pools: 160 of 160 improvable
+  descriptions render a delta, 0 bail.**
+- Wired at all four sites (reward grid, shop, The Draw event, dev panel), and
+  `improveDeltaFor(id)` exists so they cannot drift on the fallback. The output
+  is HTML into a pipeline that was already HTML, and `highlightKeywords` composes
+  over it cleanly - **keep the `.imp-was` / `.imp-now` class names free of
+  keyword terms** (`set`, `run`, `play`, `time`, `buy`... ) or the keyword pass
+  will colour them inside the attribute.
+
 ### How it routes
 
 - **`guidedAfterSlot()` is the single place that decides "another slot, or the boss"**, so no caller has to know how long an act is.

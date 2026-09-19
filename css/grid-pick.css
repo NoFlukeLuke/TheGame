@@ -35,7 +35,7 @@
   background: linear-gradient(180deg, rgba(27,23,16,0.96), rgba(14,12,8,0.98));
   border: 1.5px solid rgba(183,172,147,0.5);
   box-shadow: inset 0 0 0 1px rgba(0,0,0,0.55), 0 3px 9px rgba(0,0,0,0.5);
-  transition: border-color 0.14s ease, box-shadow 0.16s ease;
+  transition: border-color 0.14s ease, box-shadow 0.16s ease, transform 0.12s ease;
 }
 #grid .gp-opt:hover {
   border-color: var(--cream, #f0e6c8);
@@ -45,10 +45,17 @@
    that is the colour CONFIRM wears on every other screen in the flow, so the
    tile and the button that commits it read as one thing. It must beat :hover -
    the pointer is on the tile you just tapped. */
+/* r281: it also LIFTS AND SWELLS, on the board card's own two numbers
+   (-2.5px, x1.0875 - see "SELECTION IS A WHOLE-CELL STATE" in css/style.css),
+   so "I picked this" moves the same way on every screen that asks you to pick
+   something off the board. The ring thickened to 2px with it: at 1px inset on
+   a dark tile the mint was reading as a hover. */
 #grid .gp-opt.gp-sel,
 #grid .gp-opt.gp-sel:hover {
   border-color: var(--c-mint, #35d59b);
-  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.55), 0 0 15px rgba(53,213,155,0.4), 0 6px 14px rgba(0,0,0,0.55);
+  z-index: 5;
+  transform: translateY(-2.5px) scale(1.0875);
+  box-shadow: inset 0 0 0 2px rgba(53,213,155,0.5), 0 0 19px rgba(53,213,155,0.5), 0 8px 17px rgba(0,0,0,0.6);
   background: linear-gradient(180deg, rgba(26,44,36,0.96), rgba(10,20,15,0.98));
 }
 

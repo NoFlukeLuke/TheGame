@@ -1,4 +1,4 @@
-const BUILD = "2026-09-19 · r280 · the pick-of-three needs a confirm";
+const BUILD = "2026-09-19 · r281 · selection is a whole-cell state";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
