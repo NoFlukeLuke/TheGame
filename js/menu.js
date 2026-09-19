@@ -1,4 +1,4 @@
-const BUILD = "2026-09-19 · r276 · mode unlock chain: The Schedule first, the rest open one run at a time";
+const BUILD = "2026-09-19 · r277 · Trick slots are a hard cap: the offer bounces, you sell to make room";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

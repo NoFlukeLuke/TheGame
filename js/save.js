@@ -94,7 +94,7 @@ const SAVE_VARS = [
   'focusNodes', 'focusCapBase', 'focusCapPerm', 'focusGenGame', 'focusGenRound',
   'lastCalcMult', 'lastCalcFocus', 'lastPreHandFocus', 'lastPreFocusMult',
   // ── Entities owned ──
-  'acquiredTricks', 'acquiredKnacks', 'trickTray', '_trickReplaceQueue', 'trickTrayMode',
+  'acquiredTricks', 'acquiredKnacks', 'trickTray', 'trickTrayMode',
   'grantedSleightIds', 'altarEffects', 'sleightCapBonus', 'entityTier',
   // r217: the slot machine's rotating buff cursor, and the event no-repeat memory.
   'slotBuffIdx', 'recentEventIds',

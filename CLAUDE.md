@@ -1270,14 +1270,62 @@ Reward grid destination tiles set `pendingEventOverride` → `closeRewardGrid()`
 
 **Shift Change (r182)** - `renderShiftChange` / `renderShiftRow` / `confirmShiftChange`. Tray ORDER is load-bearing (Inspirato primes first+last · Mirror borrows from its neighbour · Prime Times cycles 1st→2nd→3rd→5th→7th · the Alignment knack marks the column matching a Trick's slot · Move as One picks the lowest-rarity keyword match) and until now there was no way to change it after a Trick landed. Interaction is **tap-to-swap** (tap to lift, tap another to trade), which works the same with a finger and a mouse and needs no drag; `eventState.shiftOrder` is a copy, so nothing is committed until Confirm, and Skip leaves the tray alone. Holding fewer than 2 Tricks pays `BAL.shift_change.consolation_credits` instead. Position Tricks **keep the line they already marked** - `assignPositionMark` is guarded by `_posAssigned` and is deliberately not re-run, so reshuffling moves the Tricks and not the lines you were building around.
 
-## Trick slots full / Choose a Trick to lose (`#trick-lose-picker`)
+## Trick slots are a HARD CAP (r277) - sell to make room
 
-One screen with two jobs, both in `js/reward-grid.js`: **'lose' mode** (a debuff takes a Trick off you, `openTrickLosePicker`) and **'replace' mode** (`injectTrickAfterReward` found the tray at `trickCapacity()`, queued the new Trick in `_trickReplaceQueue` and called `maybeOpenTrickReplacePicker`). `_blpMode` decides which chrome is set.
+**A Trick you have no room for is REFUSED, not queued.** The tray used to answer
+a full house with a modal - the new Trick arrived holding itself hostage and you
+chose what it replaced on the spot - which made the cap a screen that happened TO
+you. Now the offer bounces and you free a slot by SELLING from the tray, which is
+a decision taken when you want it rather than one you are ambushed with.
 
-**r183 restyle.** It was a black sheet of grey text boxes. It is now the same console as the events, with two deliberate differences:
-- **It is RED-lit, not indigo.** Every other console gives you something; this one takes something away, and the room should say so before you read a word of it.
-- **Every row carries the real entity tile** (`entityTileHTML`, js/entity-tile.js), and in replace mode `#blp-incoming` shows the **incoming** Trick as a tile above the divider, so the trade has two visible sides. The tile keeps its own rarity colour while the ROW turns red when picked - "this is the one I am losing" must never be confused with "this is an epic". The tile's own `.rwd-name` is hidden inside a row (`.blp-item-tile`) because the row prints the name in full right beside it; the same deliberate exception the portrait tray makes when it fans its chips.
-- `#blp-count` prints live `held / cap`, the number the whole screen is about. Both panels reset `scrollTop` on open - they are reused, and reopening where the last one left off hides the title under the sticky bar.
+**`refuseTrickCapacity()` in `js/tricks-ui.js` is the ONE way that is said**, so
+the sound, the pulse and the wording cannot drift between surfaces: `sfxNoSwaps`,
+a toast, and `#trick-tray-count` growing, reddening and throbbing twice
+(`.tray-full-pulse`). `trickTrayFull()` is the test.
+
+- **`#trick-tray-count` needs `display: inline-block` in BOTH orientations.** It
+  is an inline `<span>` inside `.panel-title`, and `transform` does nothing to an
+  inline box - the pulse would be silent. Landscape restates the rule because it
+  restates the font.
+- **`pulseTrickCount()` restarts the animation** by removing the class, reading
+  `offsetWidth` to force the reflow, and re-adding it. Without that a second
+  refusal in the same second does nothing visible, which reads as being ignored.
+- **The refusal is guarded in TWO layers, and both are needed.**
+  `injectTrickAfterReward` is the chokepoint every grant passes through (the
+  shop, the reward grid, all 21 events, both picks, the wheel, the dev panel) and
+  it **returns false** when refused. But plenty of grants arrive with nothing to
+  select - a wheel prize, an event payout, a Mystery tile - so the chokepoint is
+  what stops those vanishing. On top of it, the two places where you SPEND refuse
+  at SELECTION: the shop (`onShopGridClick`) and the reward grid
+  (`onRewardCellClick`), both keyed on `payload.entity === 'trick'`. The reward
+  grid has to refuse there because a path is taken as a whole - bouncing at apply
+  would mean spending a pick on nothing.
+- **`_trickReplaceQueue`, `maybeOpenTrickReplacePicker`, `cancelTrickReplacePicker`
+  and `_blpMode` are gone**, along with the `blp-cancel` button and
+  `_trickReplaceQueue` in `SAVE_VARS`. An old save carrying it is fine - restore
+  ignores a name no longer in the manifest.
+
+### `#trick-lose-picker` now has ONE job
+
+A debuff is taking a Trick off you (`openTrickLosePicker`, `applyRewardLoseTrick`).
+It no longer doubles as the replace screen, so it always sets its own chrome
+rather than checking a mode first. `#blp-incoming` stays in the markup, unused
+and hidden.
+
+**r183 restyle.** It was a black sheet of grey text boxes. It is now the same
+console as the events, with two deliberate differences:
+- **It is RED-lit, not indigo.** Every other console gives you something; this
+  one takes something away, and the room should say so before you read a word.
+- **Every row carries the real entity tile** (`entityTileHTML`, js/entity-tile.js).
+  The tile keeps its own rarity colour while the ROW turns red when picked - "this
+  is the one I am losing" must never be confused with "this is an epic". The
+  tile's own `.rwd-name` is hidden inside a row (`.blp-item-tile`) because the row
+  prints the name in full right beside it; the same deliberate exception the
+  portrait tray makes when it fans its chips. `blpRarity()` falls back for a tier
+  the tile has no colour for.
+- `#blp-count` prints live `held / cap`. The panel resets `scrollTop` on open - it
+  is reused, and reopening where the last one left off hides the title under the
+  sticky bar.
 
 The Mart wheel has its own overflow prompt (`#wheel-overflow`, "NO ROOM", js/wheel.js) with a **different** resolution - sell one of yours, or sell the prize. It already speaks the Mart's language and was deliberately left alone.
 

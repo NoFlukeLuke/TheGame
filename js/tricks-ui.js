@@ -306,6 +306,40 @@ function attachHoverHold(el, showFn, hideFn) {
 
 // ── Trick Tray: render chips for all tray Tricks ──
 let _trickCountShown = 0;
+// ── Trick slots are a HARD cap (r277) ───────────────────────────────────────
+// The tray used to answer a full house with a modal: the new Trick arrived
+// holding itself hostage and you chose what it replaced on the spot. That made
+// the cap a screen that happened TO you. It is a refusal now - the offer bounces,
+// the count says why, and you free a slot by SELLING from the tray, which is a
+// decision you take when you want to rather than one you are ambushed with.
+//
+// refuseTrickCapacity() is the ONE way that is said, so the sound, the pulse and
+// the wording cannot drift between the shop, the reward grid and a pick.
+function trickTrayFull() {
+  return trickTrayMode && trickTray.length >= trickCapacity();
+}
+
+function pulseTrickCount() {
+  const el = document.getElementById('trick-tray-count');
+  if (!el) return;
+  // Restart the animation on a repeat refusal: removing the class and reading
+  // offsetWidth forces the reflow that makes re-adding it play again. Without it
+  // a second refusal in the same second is silent, which reads as ignored.
+  el.classList.remove('tray-full-pulse');
+  void el.offsetWidth;
+  el.classList.add('tray-full-pulse');
+  clearTimeout(pulseTrickCount._t);
+  pulseTrickCount._t = setTimeout(() => el.classList.remove('tray-full-pulse'), 1500);
+}
+
+function refuseTrickCapacity() {
+  if (typeof sfxNoSwaps === 'function') { try { sfxNoSwaps(); } catch (e) {} }
+  pulseTrickCount();
+  if (typeof portraitShowTricks === 'function') portraitShowTricks();   // portrait hides the tray behind a swap
+  showMessage(`Trick slots full (${trickTray.length}/${trickCapacity()}). Sell one first.`, 'var(--red)');
+  return false;
+}
+
 function renderTrickTray() {
   const list = document.getElementById('trick-tray-list');
   if (!list) return;

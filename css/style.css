@@ -4366,6 +4366,24 @@
   }
   #mode-back-btn:hover { background: linear-gradient(180deg, #235055, #12292c); color: #fff; }
 
+  /* ═══════════════ TRICK SLOTS ARE FULL (r277) ═══════════════
+     The refusal's whole visible half: the count grows, turns red and throbs
+     three times, so the answer to "why did that bounce" is the number itself.
+     #trick-tray-count is an inline <span> inside .panel-title and transform
+     does nothing to an inline box, hence the explicit inline-block. */
+  #trick-tray-count { display: inline-block; transition: color 0.15s ease; }
+  @keyframes trayFullPulse {
+    0%, 100% { transform: scale(1);    filter: none; }
+    18%      { transform: scale(1.75); filter: drop-shadow(0 0 7px var(--red)); }
+    45%      { transform: scale(1.15); filter: drop-shadow(0 0 3px var(--red)); }
+    63%      { transform: scale(1.6);  filter: drop-shadow(0 0 7px var(--red)); }
+  }
+  .tray-full-pulse {
+    animation: trayFullPulse 0.75s ease-in-out 2;
+    color: var(--red) !important; font-weight: 900;
+  }
+  body.reduced-motion .tray-full-pulse { animation: none; }
+
   /* ═══════════════ LOCKED MODES + THE STACK (r276) ═══════════════
      A locked card is the same card, drained and without its PLAY button, so
      what you are working toward is legible rather than hidden. The four modes
@@ -4448,7 +4466,7 @@
   #stage.landscape #knack-carousel-wrap .panel-title { display:none; }   /* no "Knacks" label */
   /* tricks: hide the word "Tricks" but keep the n/5 count pinned bottom-right */
   #stage.landscape #trick-tray-area .panel-title { position:absolute; right:7px; bottom:4px; margin:0; padding:0; font-size:0; letter-spacing:0; z-index:3; }
-  #stage.landscape #trick-tray-count { font-family:'Cinzel',serif; font-size:8px; font-weight:700; color:var(--gold-dim); }
+  #stage.landscape #trick-tray-count { font-family:'Cinzel',serif; font-size:8px; font-weight:700; color:var(--gold-dim); display:inline-block; }
 
   /* knacks: chip row only, directly under the PIPS/MULT/FOCUS chips */
   #stage.landscape #knack-carousel-wrap { left:1.56%; top:30%; width:37.74%; height:7%; display:flex; flex-direction:row; align-items:center; justify-content:flex-start; gap:5px; padding:2px 8px; overflow:hidden; }
