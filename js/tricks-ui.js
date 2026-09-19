@@ -425,7 +425,7 @@ function renderTrickTray() {
 }
 
 // Hover → show tooltip; a short grace on leave lets the pointer reach the
-// tooltip (and its Discard button) before it hides.
+// tooltip (and its Sell button) before it hides.
 let _trickHoverTimer = null;
 function cancelTrickHoverHide() { if (_trickHoverTimer) { clearTimeout(_trickHoverTimer); _trickHoverTimer = null; } }
 function scheduleTrickHoverHide() { cancelTrickHoverHide(); _trickHoverTimer = setTimeout(hideTrickTooltip, 160); }
@@ -434,11 +434,15 @@ function attachTrickHover(chip, trick) {
   chip.addEventListener('mouseleave', scheduleTrickHoverHide);
 }
 
-// r278 - ONE GESTURE. A tap (or a hover on a mouse) opens the description WITH
-// Sell and Discard on it. r182 had split those apart, so disposing of a Trick
-// needed a press-and-hold nobody could guess at; the second beat that protects
-// the player is a CONFIRM on the button itself (tipConfirmAction) rather than a
+// r279 - ONE GESTURE. A tap (or a hover on a mouse) opens the description WITH
+// Sell on it. r182 had split that apart, so disposing of a Trick needed a
+// press-and-hold nobody could guess at; the second beat that protects the
+// player is a CONFIRM on the button itself (tipConfirmAction) rather than a
 // hidden gesture in front of it.
+//
+// SELL IS THE ONLY DISPOSAL (owner's call, r279). Discarding a Trick paid
+// nothing and did nothing selling does not, so it was a second button whose
+// only distinction was being worse.
 //
 // `actions` is still a parameter because a Trick on the GRID (dev-only tray-off
 // mode) is not one you own from the tray and has nothing to sell.
@@ -451,13 +455,12 @@ function showTrickTrayTooltip(trick, anchorEl, { actions = true } = {}) {
   const _sv = (typeof trickSellValue === 'function') ? trickSellValue(trick) : 0;
   tip.innerHTML = `<button class="tt-close" aria-label="Close">✕</button><div class="trick-tooltip-name">${trick.name}</div><div class="trick-tooltip-desc">${colorizeKeywords(withSuitHalo(liveDesc))}</div>`
                 + (actions
-                    ? `<div class="trick-tooltip-actions"><button class="trick-tooltip-sell" id="trick-tooltip-sell-btn">Sell 💰${_sv}</button>`
-                      + `<button class="trick-tooltip-discard" id="trick-tooltip-discard-btn">Discard</button></div>`
+                    ? `<div class="trick-tooltip-actions"><button class="trick-tooltip-sell" id="trick-tooltip-sell-btn">Sell 💰${_sv}</button></div>`
                     : '');
   tip.style.cssText = 'position:fixed;opacity:0;z-index:300;';
   document.body.appendChild(tip);
-  // Both destructive buttons ask first. Cancel RE-SHOWS the bubble rather than
-  // restoring its markup - see tipConfirmAction.
+  // Selling asks first. Cancel RE-SHOWS the bubble rather than restoring its
+  // markup - see tipConfirmAction.
   const _row = () => tip.querySelector('.trick-tooltip-actions');
   const _reopen = () => showTrickTrayTooltip(trick, anchorEl, { actions });
   tip.querySelector('#trick-tooltip-sell-btn')?.addEventListener('click', e => {
@@ -468,16 +471,7 @@ function showTrickTrayTooltip(trick, anchorEl, { actions = true } = {}) {
     });
   });
   tip.querySelector('.tt-close')?.addEventListener('click', e => { e.stopPropagation(); hideTrickTooltip(); });
-  // Discard is the MORE destructive of the two - it pays nothing - so it is
-  // confirmed as well, and marked danger.
-  tip.querySelector('#trick-tooltip-discard-btn')?.addEventListener('click', e => {
-    e.stopPropagation();
-    tipConfirmAction(_row(), {
-      question: 'Discard for nothing?', confirmLabel: 'Discard', danger: true,
-      onYes: () => discardTrickFromTray(trick), onCancel: _reopen,
-    });
-  });
-  // Keep the bubble open while the pointer is over it (so Discard is clickable).
+  // Keep the bubble open while the pointer is over it (so Sell is clickable).
   tip.addEventListener('mouseenter', cancelTrickHoverHide);
   tip.addEventListener('mouseleave', scheduleTrickHoverHide);
   void tip.offsetWidth;
@@ -485,16 +479,6 @@ function showTrickTrayTooltip(trick, anchorEl, { actions = true } = {}) {
   // above, which put it off-screen for tray tiles near the top).
   placeTipSmart(anchorEl, tip);
   tip.style.opacity = '1';
-}
-
-function discardTrickFromTray(trick) {
-  hideTrickTooltip();
-  const idx = trickTray.findIndex(b => b.id === trick.id);
-  if (idx >= 0) trickTray.splice(idx, 1);
-  const aidx = acquiredTricks.findIndex(b => b.id === trick.id);
-  if (aidx >= 0) acquiredTricks.splice(aidx, 1);
-  showMessage(`Discarded: ${trick.name}`, 'var(--cream-dim)');
-  renderTrickTray();
 }
 
 // Sync the Trick tray / hand-preview panel visibility to the current trickTrayMode (no card migration).

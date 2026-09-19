@@ -1961,6 +1961,10 @@
      px, not a stage px. At the old 8px Cinzel and 4px padding the buttons were
      about 17px tall: a thumb target well under half what a phone needs, and
      they are now one tap away rather than behind a press-and-hold. */
+  /* r279 - the TRAY tooltip no longer offers Discard; this is left for the
+     dev-only grid-placement tooltip, where it is the ONLY disposal (sellTrick
+     splices the tray and never touches gridData, so selling a grid Trick would
+     leave it sitting on the board). */
   .trick-tooltip-discard {
     flex: 1; padding: 8px 10px; min-height: 30px; border-radius: 5px;
     background: rgba(180,40,40,0.18); border: 1px solid rgba(180,40,40,0.5);
@@ -1997,6 +2001,8 @@
     color: #e8b84b;
   }
   .tip-btn:hover { background: rgba(200,160,60,0.38); }
+  /* No caller passes danger today (r279 took Discard off the Trick tooltip);
+     kept as the seam the next destructive confirm drops into. */
   .tip-btn.danger {
     background: rgba(180,40,40,0.22); border-color: rgba(180,40,40,0.6); color: #e07070;
   }

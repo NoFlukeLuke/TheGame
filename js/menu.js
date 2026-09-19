@@ -1,4 +1,4 @@
-const BUILD = "2026-09-19 · r278 · tap opens a Trick's Sell and Discard, and both ask first";
+const BUILD = "2026-09-19 · r279 · a Trick's tooltip sells, and that is its only disposal";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

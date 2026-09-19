@@ -2932,9 +2932,15 @@ Audit script: render every name in `TRICK_POOL` / `KNACK_POOL` / `SLEIGHT_POOL` 
 - **`showEntityTooltip(anchor, payload, { actions })`** (`js/entity-tooltip.js`). Passing any action puts the bubble in **interactive mode**: `.et-card` takes pointer events and a transparent full-screen `#entity-tip-backdrop` goes in underneath, so every click that is not on the bubble dismisses it. That backdrop is what makes interactivity safe - the bubble is up to 560px wide and lies over its neighbours, and `pointer-events:auto` without it was the old "I can't add the ones on the right" bug.
 - **Mart:** hover = read-only preview (mouse only); tap/click = tooltip with **📌 Pin** and **Add to cart**. A hover never replaces an open interactive bubble, or moving the mouse off the tile would close the buttons you were reaching for. **PIN MODE** stays a bulk mode: while it is on a tap pins directly, so you can hold four things without opening four tooltips.
 - **Trick tray (r278): ONE GESTURE.** A tap, or a hover on a mouse, opens the
-  description **with Sell and Discard on it**. r182 had split those apart, so
-  disposing of a Trick needed a press-and-hold nobody could guess at;
-  `attachTrickSellHold` and `chip._sellHeld` are gone with it.
+  description **with Sell on it**. r182 had split that apart, so disposing of a
+  Trick needed a press-and-hold nobody could guess at; `attachTrickSellHold` and
+  `chip._sellHeld` are gone with it. **SELLING IS THE ONLY DISPOSAL (r279,
+  owner's call)** - Discard paid nothing and did nothing selling does not, so it
+  was a second button whose only distinction was being worse. It survives on the
+  **dev-only grid-placement tooltip** (`showTrickTooltip`, reached by a long
+  press when `trickTrayMode` is off), where it is the only disposal that works:
+  `sellTrick` splices `trickTray` and `acquiredTricks` and **never touches
+  `gridData`**, so selling a grid Trick would leave it sitting on the board.
 
 ### The second beat is a CONFIRM, not a hidden gesture (r278)
 
@@ -2952,9 +2958,9 @@ differently.
   the whole bubble, wiring and all.
 - **The confirm row inherits the action row's `display:flex`** and so has to
   restate `flex-direction: column`, or the question sits beside its buttons.
-- **DISCARD is confirmed too, and marked `danger`.** It is the more destructive
-  of the two - it pays nothing - so confirming the sell and not the discard
-  would have been backwards.
+- **`danger` has no caller now** (r279 took Discard off the Trick tooltip) and is
+  kept, with its `.tip-btn.danger` rule, as the seam the next destructive confirm
+  drops into.
 - **These bubbles are BODY-LEVEL, so every px in them is a REAL viewport px, not
   a stage px.** At the old 8px Cinzel and 4px padding the buttons were about
   17px tall, well under half a phone's thumb target, which was tolerable only
