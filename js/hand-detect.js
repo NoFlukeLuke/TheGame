@@ -447,10 +447,13 @@ function flushOverlayFor(cells) {
 //   as a penalty.
 //
 //   Owner's report: three 7s scoring as a Pair with the third seven dropped,
-//   and A-2-3-4 scoring as a Run of 3 with the 4 dropped. On the SHIPPED tuning
-//   (nsPipsPerHand 2) that needs 8 Runs of 3 to kill every Run of 4, 11 Runs of
-//   4 to kill the Straight, and 17 Pairs to kill Three of a Kind - so it is not
-//   an exotic tuning corner, it is most of the way through an ordinary run.
+//   and A-2-3-4 scoring as a Run of 3 with the 4 dropped. On the flat +2 pips a
+//   hand that shipped at the time that needed 8 Runs of 3 to kill every Run of
+//   4, 11 Runs of 4 to kill the Straight and 17 Pairs to kill Three of a Kind -
+//   not an exotic tuning corner, most of the way through an ordinary run.
+//   (r282 replaced that flat rate with a PER-HAND-TYPE table tuned to push those
+//   thresholds out to 35-180 plays, but the table is tunable and this guard is
+//   what stops any setting of it voiding a hand outright.)
 //
 // Preferring full cover does NOT take the short hand away: findBestHand scores
 // every connected subset on its own, so "play just the Pair and eat the penalty"

@@ -983,12 +983,25 @@
   .slot-linebtn { font-size: 9px; padding: 4px 7px; opacity: 0.45; }
   .slot-linebtn.on { opacity: 1; border-color: var(--c-yellow); color: var(--c-yellow); }
 
-/* Natural Scaling bonus editor (r201) - one compact row per hand type. */
-.dev-ns-row { display:flex; align-items:center; gap:6px; margin:2px 0; font-family:'Crimson Pro',serif; font-size:11px; color:var(--cream-dim); }
-.dev-ns-row .dev-ns-name { flex:1 1 auto; min-width:0; color:var(--cream); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.dev-ns-row label { flex:0 0 auto; display:flex; align-items:center; gap:3px; }
-.dev-ns-row input { width:52px; background:#1a1510; color:var(--cream); border:1px solid var(--border); border-radius:3px; padding:1px 3px; font-size:11px; }
-.dev-ns-row .dev-ns-plays { flex:0 0 58px; text-align:right; opacity:0.7; }
+/* Natural Scaling table (r282): name + the four RATE columns + the two EARNED
+   columns + a plays/growth readout. One grid template on every row INCLUDING the
+   header, so the header cannot drift out of line with the fields under it. */
+.dev-ns-row { display:grid; grid-template-columns:minmax(0,1fr) 44px 48px 44px 24px 46px 48px 62px;
+  align-items:center; gap:4px; margin:2px 0; font-family:'Crimson Pro',serif; font-size:11px; color:var(--cream-dim); }
+.dev-ns-row .dev-ns-name { min-width:0; color:var(--cream); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.dev-ns-row input { width:100%; box-sizing:border-box; background:#1a1510; color:var(--cream);
+  border:1px solid var(--border); border-radius:3px; padding:1px 3px; font-size:11px; }
+.dev-ns-row input.dev-ns-alt { width:14px; justify-self:center; accent-color:var(--gold); }
+.dev-ns-row .dev-ns-plays { text-align:right; opacity:0.7; font-family:'Share Tech Mono',monospace; font-size:10px; }
+/* The header carries no inputs, so its cells are the labels themselves. */
+.dev-ns-head { color:var(--gold-dim); font-family:'Share Tech Mono',monospace; font-size:9px;
+  letter-spacing:1px; border-bottom:1px solid var(--border); padding-bottom:2px; margin-bottom:3px; }
+.dev-ns-head > span { text-align:center; }
+.dev-ns-head .dev-ns-name { text-align:left; }
+.dev-ns-head .dev-ns-plays { text-align:right; }
+/* A row moved off the shipped table. */
+.dev-ns-row.dev-ns-tuned .dev-ns-name { color:var(--gold); }
+.dev-ns-row.dev-ns-tuned input { border-color:var(--gold-dim); }
 
 
 /* ── Weighted deck editor (r273) - one stepper per rank, 13 across ── */

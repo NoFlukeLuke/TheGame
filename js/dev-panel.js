@@ -278,14 +278,14 @@ function devResetHb() { resetHbCfg(); devSyncHbSliders(); }
 // (use "Reset accumulators" to clear them and re-measure from zero).
 function devSetNs(k, v) {
   if (k === 'enabled') { nsEnabled = !!v; localStorage.setItem('nsEnabled', v ? '1' : '0'); }
-  if (k === 'pips')    { nsPipsPerHand = parseFloat(v) || 0; localStorage.setItem('nsPipsPerHand', nsPipsPerHand); }
-  if (k === 'mult')    { nsMultPerHand = parseFloat(v) || 0; localStorage.setItem('nsMultPerHand', nsMultPerHand); }
-  if (k === 'every')   { nsEveryHands = Math.max(1, parseInt(v, 10) || 1); localStorage.setItem('nsEveryHands', nsEveryHands); }
-  const lab = document.getElementById('dev-ns-' + k + '-val');
-  if (lab) lab.textContent = (+v).toString();
   devSyncNs();
+  _devSafeRender();
 }
 function devResetNs() { resetNaturalScaling(); devSyncNs(); }
+// The RATES, not the accumulators (r282) - the two reset buttons are deliberately
+// separate, because "start this hand's growth over" and "go back to the shipped
+// growth rate" are different questions.
+function devResetNsRates() { resetNaturalScaleRates(); _nsRowsKey = ''; devSyncNs(); }
 
 // ── Natural Scaling bonus editor (r201) ──
 // A table of every scalable hand type with its EARNED pips and mult, typed
@@ -299,32 +299,65 @@ function devRenderNsRows() {
   const key = rows.map(r => r.name).join('|');
   if (key !== _nsRowsKey) {
     _nsRowsKey = key;
-    host.innerHTML = rows.map(r => `<div class="dev-ns-row">
+    host.innerHTML =
+      `<div class="dev-ns-row dev-ns-head">
+         <span class="dev-ns-name">HAND</span>
+         <span title="pips this hand earns per grant">PIPS</span>
+         <span title="mult this hand earns per grant">MULT</span>
+         <span title="a grant fires on every Nth play of this hand">EVERY</span>
+         <span title="alternate: each grant pays pips OR mult, pips first">ALT</span>
+         <span title="pips earned so far this run">+P</span>
+         <span title="mult earned so far this run">+M</span>
+         <span title="plays this run / growth in this hand's own worth per play">N</span>
+       </div>` +
+      rows.map(r => `<div class="dev-ns-row" data-nsrow="${r.name}">
       <span class="dev-ns-name">${r.name}</span>
-      <label>pips <input type="number" step="1" min="0" data-ns="${r.name}" data-f="pips"
-        oninput="devSetNsBonus(this)"></label>
-      <label>mult <input type="number" step="0.25" min="0" data-ns="${r.name}" data-f="mult"
-        oninput="devSetNsBonus(this)"></label>
+      <input type="number" step="1"    min="0" data-ns="${r.name}" data-f="rpips"  oninput="devSetNsRate(this)">
+      <input type="number" step="0.05" min="0" data-ns="${r.name}" data-f="rmult"  oninput="devSetNsRate(this)">
+      <input type="number" step="1"    min="1" data-ns="${r.name}" data-f="revery" oninput="devSetNsRate(this)">
+      <input type="checkbox" class="dev-ns-alt" data-ns="${r.name}" data-f="ralt"  onchange="devSetNsRate(this)">
+      <input type="number" step="1"    min="0" data-ns="${r.name}" data-f="pips"   oninput="devSetNsBonus(this)">
+      <input type="number" step="0.25" min="0" data-ns="${r.name}" data-f="mult"   oninput="devSetNsBonus(this)">
       <span class="dev-ns-plays"></span>
     </div>`).join('');
   }
   // Values are written separately from the markup so a live field is only
   // updated when it is not the one being typed in.
+  const V = { rpips: r => r.rate.pips, rmult: r => r.rate.mult, revery: r => r.rate.every,
+              pips: r => r.pips, mult: r => r.mult };
   rows.forEach(r => {
     host.querySelectorAll(`[data-ns="${CSS.escape(r.name)}"]`).forEach(inp => {
       if (inp === document.activeElement) return;
-      inp.value = inp.dataset.f === 'pips' ? r.pips : r.mult;
+      if (inp.dataset.f === 'ralt') inp.checked = !!r.rate.alt;
+      else inp.value = V[inp.dataset.f](r);
     });
-    const row = host.querySelector(`[data-ns="${CSS.escape(r.name)}"]`)?.closest('.dev-ns-row');
-    const pl = row && row.querySelector('.dev-ns-plays');
-    if (pl) pl.textContent = r.plays ? r.plays + ' played' : '';
+    const row = host.querySelector(`[data-nsrow="${CSS.escape(r.name)}"]`);
+    if (!row) return;
+    // A row the owner has moved off the shipped table is marked, so "what have I
+    // actually changed" is answerable without diffing against the source.
+    row.classList.toggle('dev-ns-tuned', !!r.tuned);
+    const pl = row.querySelector('.dev-ns-plays');
+    if (pl) {
+      pl.textContent = (r.plays || '0') + ' · ' + r.growth.toFixed(1) + '%';
+      pl.title = r.plays + ' played this run · this hand grows ' + r.growth.toFixed(2)
+               + '% of its own worth per play';
+    }
   });
 }
+// The accumulator - what this hand carries NOW.
 function devSetNsBonus(inp) {
   setNaturalScaleBonus(inp.dataset.ns, inp.dataset.f, inp.value);
   const st = document.getElementById('dev-ns-state');
   if (st) st.textContent = naturalScaleSummary();
   _devSafeRender();   // the live PIPS/MULT chips quote it, so repaint
+}
+// The rate - how fast it grows from here. `devSyncNs` is NOT called: it would
+// rewrite every field in the table, and the growth readout is refreshed here
+// instead so the field being typed in is left alone.
+function devSetNsRate(inp) {
+  const f = { rpips: 'pips', rmult: 'mult', revery: 'every', ralt: 'alt' }[inp.dataset.f];
+  setNaturalScaleRate(inp.dataset.ns, f, f === 'alt' ? inp.checked : inp.value);
+  devRenderNsRows();
 }
 
 // ── Layered hands (r198) - state lives in js/hand-detect.js ──
@@ -346,11 +379,7 @@ function devSetFlushOverlayMin(v) {
   _devSafeRender();
 }
 function devSyncNs() {
-  const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
   const chk = document.getElementById('dev-ns-enabled'); if (chk) chk.checked = nsEnabled;
-  set('dev-ns-pips', nsPipsPerHand); set('dev-ns-mult', nsMultPerHand); set('dev-ns-every', nsEveryHands);
-  const lab = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-  lab('dev-ns-pips-val', nsPipsPerHand); lab('dev-ns-mult-val', nsMultPerHand); lab('dev-ns-every-val', nsEveryHands);
   const st = document.getElementById('dev-ns-state');
   if (st) st.textContent = naturalScaleSummary();
   const lay = document.getElementById('dev-layered-enabled'); if (lay) lay.checked = layeredHandsEnabled;

@@ -1,4 +1,4 @@
-const BUILD = "2026-09-19 · r281 · the third card of a set was being dropped";
+const BUILD = "2026-09-19 · r282 · natural scaling is a per-hand rate table";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
