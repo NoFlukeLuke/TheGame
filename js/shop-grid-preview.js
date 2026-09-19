@@ -58,7 +58,21 @@ let shopGridRowMeta = [];
 // at open, spent by shopGridReroll.
 let shopRerollCap = 0;
 
-function shopGridDiscount(n) { return n >= 3 ? 0.25 : n >= 2 ? 0.10 : 0; }
+// Multi-buy discount: a flat rate per ADDITIONAL item in the connected group.
+// BAL.shop_discount.per_item (3%) as shipped; Bulk Buyer raises it to
+// bulk_per_item (5%). Selection Size caps the group, so no cap of its own.
+function shopGridDiscountRate() {
+  const d = (typeof BAL !== 'undefined' && BAL.shop_discount) || { per_item: 3, bulk_per_item: 5 };
+  return ((typeof hasKnack === 'function' && hasKnack('bulk_buyer')) ? d.bulk_per_item : d.per_item) / 100;
+}
+function shopGridDiscount(n) { return Math.max(0, n - 1) * shopGridDiscountRate(); }
+
+// Haggler: 5% off every shop price. Read live (the knack can be bought in this
+// very shop), and only on the BUY side - sell-back values are what YOU are paid.
+function shopEffPrice(p) {
+  const off = (typeof hasKnack === 'function' && hasKnack('haggler')) ? 0.05 : 0;
+  return Math.max(1, Math.round(p.price * (1 - off)));
+}
 
 // ── Sell-back values (owner spec) ──
 // knacks 30% of price · tricks 60% (floored) · sleights .75 × price × (charges left / max).
@@ -193,11 +207,22 @@ function shopgLimitPayloads(n) {
   // through limitUnit/limitGain (r227) so Starting Time reads '180s -> 195s'.
   const elig = LIMITS_DEF.filter(d => d.id !== 'reroll'
     && (typeof limitCanIncrement === 'function' ? limitCanIncrement(d.id) : limits[d.id].current < limits[d.id].max));
-  return shuffle(elig).slice(0, n).map(d => {
+  const picked = shuffle(elig).slice(0, n);
+  // Early-limit guidance (js/limits.js): while live, the first Upgrades slot IS
+  // the boosted limit - a replacement, not an added chance, so nothing stacks.
+  const _el = (typeof earlyLimitOfferId === 'function') ? earlyLimitOfferId() : null;
+  if (_el && picked.length && !picked.some(d => d.id === _el)) {
+    const def = LIMITS_DEF.find(d => d.id === _el);
+    if (def) picked[0] = def;
+  }
+  return picked.map(d => {
     const u = (typeof limitUnit === 'function') ? limitUnit(d.id) : '';
     const cur = limits[d.id].current;
     const gain = (typeof limitGain === 'function') ? limitGain(d.id) : (limits[d.id].step || 1);
-    return { _upgrade:true, icon:d.icon, label:d.label, desc:d.desc, sub:`${cur}${u} → ${cur + gain}${u}`, rarity:'common',
+    // flyTo aims the purchase flight: time at the clock, swaps/discards at their
+    // own readouts, everything else at the Records chip (where Limits lives).
+    const flyTo = d.id === 'round_time' ? 'clock' : d.id === 'swaps' ? 'swaps' : d.id === 'discards' ? 'discards' : 'deck';
+    return { _upgrade:true, icon:d.icon, label:d.label, desc:d.desc, sub:`${cur}${u} → ${cur + gain}${u}`, rarity:'common', flyTo,
              price: shopLimitPrice(d), buy: () => { incrementLimit(d.id); onLimitChanged?.(d.id); } };
   });
 }
@@ -762,8 +787,8 @@ function renderShopGrid(animateIn = false) {
           p._cardBuff ? 'shop-tile-card' : '', span === 2 ? 'shop-tile-wide' : '', 'rar-' + rar,
           p._sold ? 'sold' : '', sel ? 'selected' : '',
         ].filter(Boolean).join(' ');
-        const chip = p._sold ? '✓' : `💰${p.price}`;
-        div.innerHTML = buildShopTileInner(p) + `<div class="shop-price-chip ${p._sold ? 'sold' : (coins < p.price ? 'cant-afford' : '')}">${chip}</div>`;
+        const chip = p._sold ? '✓' : `💰${(shopGridMode === 'sell') ? p.price : shopEffPrice(p)}`;
+        div.innerHTML = buildShopTileInner(p) + `<div class="shop-price-chip ${p._sold ? 'sold' : (coins < ((shopGridMode === 'sell') ? p.price : shopEffPrice(p)) ? 'cant-afford' : '')}">${chip}</div>`;
         if (!p._sold) div.onclick = () => {
           if (div._lpJustFired) { div._lpJustFired = false; return; }   // that tap was a long-press read
           onShopGridClick(r, c);
@@ -860,7 +885,7 @@ function onShopGridClick(r, c) {
 
 function shopGridSelectionCost() {
   let base = 0;
-  shopGridSel.forEach(k => { const [r, c] = k.split('-').map(Number); const p = shopGridItems[r]?.[c]; if (p && !p._sold) base += p.price; });
+  shopGridSel.forEach(k => { const [r, c] = k.split('-').map(Number); const p = shopGridItems[r]?.[c]; if (p && !p._sold) base += shopEffPrice(p); });
   const d = shopGridDiscount(shopGridSel.size);
   return { base, discount: d, total: Math.round(base * (1 - d)) };
 }
@@ -873,22 +898,40 @@ function shopGridBuySelection() {
   if (coins < total) { showMessage('Not enough credits', 'var(--red)'); return; }
   coins -= total;
   updateCoinsUI();
+  const bought = [];
   [...shopGridSel].forEach(k => {
     const [r, c] = k.split('-').map(Number);
     const p = shopGridItems[r]?.[c];
     if (p && !p._sold && typeof p.buy === 'function') {
       try { p.buy(); } catch (e) { console.error('[SHOP] buy failed', e); }
-      p._sold = true;
+      p._sold = true; bought.push([r, c, p]);
       // Buying from a row PINS its category: a reroll keeps the row, refills it.
       if (r >= 1 && shopGridRowMeta[r - 1]) shopGridRowMeta[r - 1].pinned = true;
     }
   });
-  try { sfxRewardGood?.(); } catch (e) {}
-  showMessage(`Bought ${shopGridSel.size} - 💰${total}`, 'var(--gold)');
+  showMessage(`Bought ${bought.length} - 💰${total}`, 'var(--gold)');
   shopGridSel = new Set();
   shopSelOrder = [];
   if (typeof rewardTipKey !== 'undefined') rewardTipKey = null;
-  renderShopGrid();
+  shopGridFlyPurchases(bought);
+}
+
+// Each bought tile flies to the loadout panel it just landed in - the reward
+// grid's own flight and target map (flyRewardTile / rewardTargetKey, globals in
+// js/reward-grid.js). Sequential, one after another, so a multi-buy reads as
+// items being handed over in order. State is applied BEFORE the flights start;
+// this is presentation only, and the re-render at the tail repaints the sold
+// ticks whether or not every flight ran (the shop can close mid-flight).
+async function shopGridFlyPurchases(bought) {
+  const gridEl = document.getElementById('grid');
+  for (const [r, c, p] of bought) {
+    if (!shopGridActive || !gridEl) break;
+    const tile = gridEl.querySelector(`.shop-tile[data-r="${r}"][data-c="${c}"]`);
+    if (!tile) continue;
+    tile.onclick = null;
+    try { await flyRewardTile(tile, p, true); } catch (e) { break; }
+  }
+  if (shopGridActive) renderShopGrid();
 }
 
 // Sell (sell mode): tap an owned item to sell it back.
@@ -963,7 +1006,7 @@ function renderShopCostReadout() {
     const { base, discount, total } = shopGridSelectionCost();
     const n = shopGridSel.size;
     costLine = n === 0
-      ? `<div class="sc-line"><span>Select connected items</span></div><div class="sc-line"><span>2 = −10% · 3+ = −25%</span></div>`
+      ? `<div class="sc-line"><span>Select connected items</span></div><div class="sc-line"><span>−${Math.round(shopGridDiscountRate()*100)}% per extra item</span></div>`
       : (discount > 0
           ? `<div class="sc-line"><span>${n} items</span><span><s>💰${base}</s> <b>💰${total}</b> <span class="sc-off">(−${Math.round(discount*100)}%)</span></span></div>`
           : `<div class="sc-line"><span>${n} item</span><b>💰${total}</b></div>`)

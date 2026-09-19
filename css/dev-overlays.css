@@ -221,6 +221,30 @@
   #event-bar-dots i:nth-child(3) { animation-delay: 0.7s; }
   @keyframes ev-lamp { 0%,100% { opacity: 0.22; } 50% { opacity: 0.95; } }
 
+  /* The console's pause chip. An event and a Limit Break are full-screen panels
+     over the whole stage, so the play screen's PAUSE button is not merely hidden -
+     it is painted over, and the menu was unreachable for the whole screen. The bar
+     is the one part that never scrolls away, so the chip rides it, and the pause
+     overlay (z-index 420) sits above both panels so it paints correctly on top.
+     The lamps and the chip are grouped so the bar stays eyebrow-left / rest-right. */
+  .con-bar-right { display: flex; align-items: center; gap: 11px; }
+  .con-pause {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px; line-height: 1;
+    padding: 4px 8px;
+    color: #b39cf5;
+    background: rgba(140,110,230,0.10);
+    border: 1px solid #3a3560;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.14s, color 0.14s, border-color 0.14s;
+  }
+  .con-pause:hover {
+    background: rgba(140,110,230,0.26);
+    border-color: #7a63c8;
+    color: #e6dcff;
+  }
+
   #event-name {
     font-family: 'Orbitron', sans-serif; font-weight: 800;
     font-size: 19px; letter-spacing: 2.5px; text-transform: uppercase;
@@ -989,3 +1013,18 @@
 .dev-ns-row label { flex:0 0 auto; display:flex; align-items:center; gap:3px; }
 .dev-ns-row input { width:52px; background:#1a1510; color:var(--cream); border:1px solid var(--border); border-radius:3px; padding:1px 3px; font-size:11px; }
 .dev-ns-row .dev-ns-plays { flex:0 0 58px; text-align:right; opacity:0.7; }
+
+
+/* ── Weighted deck editor (r273) - one stepper per rank, 13 across ── */
+.dev-wgrid { display:flex; flex-wrap:wrap; gap:4px; margin-top:4px; }
+.dev-wrank { display:flex; align-items:center; gap:2px; padding:2px 3px;
+  border:1px solid rgba(212,175,95,0.28); border-radius:4px; background:rgba(0,0,0,0.25); }
+.dev-wrank.off { opacity:0.42; }
+.dev-wrank b { font-family:'Share Tech Mono',monospace; font-size:11px; color:var(--gold-dim);
+  min-width:16px; text-align:center; }
+.dev-wrank i { font-family:'Share Tech Mono',monospace; font-style:normal; font-size:12px;
+  color:var(--cream); min-width:16px; text-align:center; }
+.dev-wbtn { font-family:'Share Tech Mono',monospace; font-size:12px; line-height:1;
+  width:18px; height:18px; padding:0; cursor:pointer; color:var(--cream);
+  background:rgba(212,175,95,0.14); border:1px solid rgba(212,175,95,0.34); border-radius:3px; }
+.dev-wbtn:hover { background:rgba(212,175,95,0.3); }

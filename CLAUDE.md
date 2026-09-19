@@ -1372,6 +1372,131 @@ Three rewards, one of each type, take one, no charge. It is the BASE reward of t
 
 **It draws its own entities and must.** The reward grid's payload factories (`makeTrickPayload` and friends) are **NOT globals** - they are nested inside `_generateRewardContent`, the same scoping trap `shuffled()` set for the r194 events. Calling them here produced three silent nulls and an empty panel. `guidedPickThreeOffers()` draws through `pickEntityByRarity` (the shared rarity table, so Luck tilts it identically) and `survivalEntityBanned`, then grants through the ordinary paths.
 
+### A tap selects and reads; only CONFIRM commits (r280) - `js/grid-pick.js`
+
+Owner: *"Pick threes should require a confirm. Tapping on them should extend the
+description, or bring up a tooltip. But also, the text for the description can be
+a tad smaller so you can read more of it."*
+
+A tap used to APPLY the offer on the spot. That made this the one screen in the
+game where an unrecoverable grant sat one stray tap away - and it was being made
+against a description clamped to three lines, with the rest behind a 10px `…`
+that was itself the only thing on the tile that did NOT choose. Now **one tap
+marks the tile AND opens its full description**, and a **CONFIRM tile in the
+action row** is what takes it. Reading and choosing are the same gesture;
+committing is a separate one.
+
+- **CONFIRM owns the last `GP_CONFIRM_W` (2) cells of row 4 on EVERY screen that
+  comes through here**, with or without actions of its own, so the control that
+  commits is always in the same place (the shop's LEAVE and the reward grid's
+  CONFIRM are fixed for the same reason). A caller's actions fill
+  `GP_ACT_COLS` (4) to the left of it - **`survivalPickActions()` returns exactly
+  four now**, unpadded; a fifth would be sliced off rather than drawn.
+- **It names what it is about to take** ("CONFIRM / Cornered"), so the last thing
+  read before committing is the choice itself. `gridPickPaintSelection()` writes
+  it and lights the tile, and is deliberately **not a redraw**: the options deal
+  in once per screen and re-rendering for a tap would replay the fall and restart
+  every object's drift.
+- **THE READ IS THE NON-INTERACTIVE TOOLTIP, AND THAT IS LOAD-BEARING.** An
+  interactive bubble (one carrying buttons) brings a full-screen backdrop that
+  swallows the pointerdown dismissing it (r182), so moving to another option
+  would cost two taps on the one screen where comparing three things IS the task.
+  The plain bubble is `pointer-events:none` (css/tooltip.css) and a tap goes
+  straight through it to whatever is underneath, CONFIRM included. Verified: with
+  the bubble up, one tap moves the selection.
+- **`data-et` moved onto the TILE** (`tip: false` on the object). Both carrying
+  it would re-anchor the bubble every time the pointer crossed between the object
+  and the words under it, because the delegated listener keys on the NEAREST
+  `[data-et]`. It also gives a **LIMIT** offer a tooltip for the first time - it
+  has no object at all, so it was the one offer on this screen with nothing to
+  read.
+- **The ellipsis is a MARK, not a control** (`pointer-events: none`). It says the
+  description is clamped; the tap that reads the rest is the tap on the tile. A
+  player reaching for the rest of a sentence must not fail to select the thing
+  they were reading. The r255 "move the description entirely into the chip"
+  behaviour goes with it: the selected tile going blank while its own tooltip is
+  up reads as broken.
+- **NEW OFFERS DROP THE SELECTION.** A reroll swaps what is on the board out from
+  under it, so index 1 is a different entity afterwards and holding the mark there
+  would arm CONFIRM on something the player never read. An actions-only
+  `gridPickRefresh` (Survival repainting affordability as credits move) keeps it,
+  and so does the peek.
+- **The description is 7.5px, not 9, and clamps at 5 lines rather than 3.** The
+  tile is a fixed 2x3 cells, so setting it smaller is the only way to get more of
+  the text onto it - about 80% more lands before the tooltip is needed at all.
+
+Verified in a real browser at 1440x820 and 420x820, through the real tap path, on
+all three screens that use this: the guided pick-of-three, Survival's
+pick-of-three (4 actions + CONFIRM, no overflow) and the map's 2-knack pick. A
+tap grants nothing, CONFIRM with nothing selected does nothing, the tiles are
+cleaned out of `#grid` on close, and there are no page errors.
+
+### ONE reroll pool, and the Schedule's pick is Survival's pick (r282)
+
+Owner: *"Can you make the pick 3 for schedule the same as survival with the
+rerolls and such. And make sure they both require a confirm still."*
+
+**The reroll pool is RUN state, not Survival state**, so it moved into
+`js/grid-pick.js` beside the screen it belongs to and both callers read it:
+`PICK_REROLLS_START` (3) · `PICK_REROLLS_PER_BOSS` (2) · `PICK_REROLL_STEP` (5),
+with `pickRerollCost` / `pickRerollSpend` / `pickRerollAction`. Survival's
+`survivalRerollsLeft` / `survivalRerollsUsed` / `SURVIVAL_REROLL*` are gone; it
+builds its Reroll tile from `pickRerollAction` like the Schedule does. **A second
+copy in guided-mode.js is exactly how the two would have drifted.**
+
+- **FREE FIRST, THEN PRICED, and the two halves reset differently.** The POOL
+  carries between picks; the PRICE ladder (5, 10, 15) restarts per screen, via
+  `pickRerollsNewScreen()` called when a pick OPENS and never when it refreshes.
+  That split is what makes holding a free reroll for a later pick a real
+  decision. Measured on the Schedule: FREE (3) -> 2 -> dry -> 5 -> 10 -> 15, with
+  credits 40 -> 35 -> 25.
+- **The +2 per boss moved to `endBoss`'s success block**, above the per-mode
+  branch - the one site that knows a boss was beaten, so every mode's pick draws
+  on it. It used to sit in `survivalPostBossReward`, which the Schedule never
+  reaches. Survival's toast reads `PICK_REROLLS_PER_BOSS` now.
+- **`startGame` seeds the pool for every mode.** `survivalInitRun()` only runs
+  for Survival and Flow, so seeding there left the Schedule on whatever the last
+  run finished with.
+- **SAVE_VARS renamed** (`pickRerollsLeft` / `pickRerollsUsed`). A save written
+  before r282 resumes with the run-start pool of 3 instead of its own figure -
+  one value, and the alternative was two names for one pool.
+- **A reroll REDRAWS, it does not re-deal** (`gridPickRefresh`), so the tiles do
+  not fall in twice for one screen - and r280's rule that new offers drop the
+  selection means a reroll can never leave CONFIRM armed on an offer that is no
+  longer on the board. **Both screens still require CONFIRM**; verified.
+
+**Two of Survival's four actions are deliberately absent from the Schedule, and
+neither is an oversight.** PEEK puts the pick aside to look at the BOARD, which
+only exists because Survival opens its pick mid-dance over cards that are still
+there; the Schedule's pick opens after the payout, and
+`showLevelUpScreen_fallOnly` has already discarded every cell, so there is
+nothing behind it. SHOP is an obligation you walk to on the Schedule - selling a
+way in from here for a flat fee would route around the board the whole mode is.
+
+#### The breakdown was eating tile taps, on BOTH screens
+
+`#sv-pick-contrib` is ~155 stage px tall and centred in `#grid-slot`, so since
+r256 - when the pick became the board - it has lain **straight across the middle
+of all three option tiles and taken their clicks**, against almost no plate.
+Measured: a tile click under an open breakdown never lands. Sharing the tile with
+the Schedule would have spread that, so it is fixed once, in the shared place.
+
+**Opening it is a READING STATE that owns the screen**: `.sv-reading` on the
+overlay makes it take pointer events and paints a dim behind an opaque plate,
+`body.gp-reading` makes the tiles inert at 0.32, and a pointerdown anywhere off
+the list closes it (a tap ON the list is let through, so it still scrolls). One
+thing readable at a time, one tap back to picking. The rules live in
+`css/grid-pick.css` beside the tiles they dim, even though the markup ids are
+Survival's for historical reasons.
+
+Verified in a real browser at 1440x820 and 420x820: the Schedule's pick shows
+Reroll + Round + CONFIRM with no overflow in either orientation, the ladder and
+credits move as above, the breakdown opens and closes and hands the board back
+with `pointer-events: auto`, CONFIRM with nothing selected does nothing, a pick
+commits exactly one entity and leaves 0 tiles in `#grid`, `pickRerollsGrant`
+takes 1 to 3, and Survival's screen is unchanged (4 actions + CONFIRM, same
+shared pool). No page errors on any run.
+
 ### How it routes
 
 - **`guidedAfterSlot()` is the single place that decides "another slot, or the boss"**, so no caller has to know how long an act is.
@@ -1673,6 +1798,51 @@ pointer leaving the row, and tapping again releases.
   cycles the colour and takes the dot back, pen mode draws on a left drag and
   takes no tile with it, a left click with the pen off still selects, the
   legend lights 3 of 25 tiles and the card lands fully on screen in both.
+
+### A tile is its SYMBOL (r276)
+
+Owner: *"Ditch the words on the schedule, just use the symbols instead. With
+the legend showing the symbol and word."* The board carries the glyph and
+nothing else; the bar names what you hover or pick, the tile's `title` carries
+the full name and description, and the `▤` legend lists every symbol beside
+its word. `fitEntityName` is gone from the tile for the same reason - there is
+no name left to fit. The glyph went 15px -> 22px (30px on the boss column) and
+is centred in the whole tile rather than sitting above a name band.
+
+**The boss column lost REVIEW too.** "Just use the symbols" is the rule and
+the legend spells it out; a full-height hazard column with a skull in it is
+not ambiguous.
+
+**A hard round is a PLAY SYMBOL WITH A ! IN IT** (owner's spec), which no
+Unicode character is, so `MAP_ICON_PRIORITY` is a tiny inline SVG. The bang is
+a **HOLE** - one path with `fill-rule: evenodd` - rather than a second shape
+painted in the tile's colour, because a hole works over the wash, the big
+watermark glyph and the legend chip alike. `fill: currentColor` and `1em`
+sizing let it sit anywhere an emoji does; the `.mt-icon` copy takes the kind's
+`--rc`. Verified: 42 painted px against the emoji's 42 at 1440x820.
+
+### The schedule re-reads its orientation (r276)
+
+`mapLandscape` decides which way the schedule reads and was captured ONCE in
+`mapOpen`. Anything that changed the orientation afterwards - a window resized
+across the threshold, or a first layout pass that decided portrait before the
+office photo settled - left the board reading the wrong way for the whole
+quarter with no way back.
+
+`mapSyncOrientation()` re-reads `#stage.landscape` at the top of every
+`mapRender` and swaps `gridRows`/`gridCols` when it differs, and a resize
+listener redraws on a real change.
+
+- **THE RESIZE HANDLER IS DEFERRED BY A TICK, and that is the whole trick.**
+  `js/bootstrap.js` is the LAST script, so the handler that toggles
+  `.landscape` is registered AFTER this one and runs after it: reading the
+  class synchronously reads the PREVIOUS orientation. Measured before the
+  defer - a desktop -> phone resize left the board reading left to right, and
+  the resize back flipped it top down, always one step behind.
+
+Verified at 1440x820 and 420x820: 25 tiles, **0 names on the board**, the
+priority SVG on both hard rounds, the legend listing nine symbol/word rows,
+and a desktop -> portrait -> desktop resize flipping the board both ways.
 
 ### The map bar is one strip, and the rules live behind a ? (r255)
 
@@ -1997,14 +2167,38 @@ alone**; a card has no shutter. `entityTierClass` accepts `sleight` now.
 owner's plan is stamps with coloured backgrounds), so guessing one would be a
 third vocabulary to unpick later.
 
-**Known, and worth an owner decision: the LANDSCAPE TRAY FAN COVERS THE BANDS.**
-The fan tucks each tile under the next from the LEFT, floored at 50% visible
-(r237), and the bands live in the bottom-LEFT corner - so on every tile but the
-newest they are mostly hidden. Every other surface (reward grid, shop, Mart,
-Records, Shift Change, the picker) is unfanned and shows them in full. Moving
-them to the bottom-RIGHT would put them on the visible edge of a fanned tile;
-that is one `AXIS` value in the band rules (`to top left`), and it is left alone
-rather than changed unasked.
+**The tier stamp sits TOP-LEFT (r277).** Top-right was the only free corner on
+the PRE-r228 tile; on the object both `.rwd-glyph` and `.rwd-tab` are
+`display:none`, so the left corner is free - and the landscape fan tucks each
+tile under the next from the RIGHT, which was clipping the stamp to `v1.` on
+every tile but the newest. The bands are unaffected either way: `fanTrickTray`
+sets `--fan-z` ascending, so the covered strip is each tile's RIGHT edge and the
+bottom-left corner is always in view (measured r276 at 1440x820, 6 Tricks: width
+110, pitch 82, so 28px covered and 82px visible).
+
+### The tray fan may not RESTYLE the tile (r277)
+
+Owner: *"the tricks have weird card like borders and the emoji goes into the
+corner weird ... I thought we made all tricks consistent in appearance no matter
+where they are."*
+
+They were, everywhere except the PORTRAIT tray, which still carried a block of
+r160/r171 overrides written against the pre-r228 chip and never revisited when
+the object landed. Each line fought the floppy disc:
+
+| the override | what it did to the object |
+|---|---|
+| an extra `box-shadow` on every tucked tile | a plastic ring and rarity glow AROUND the disc - the "card like border" |
+| `align-items:flex-start` + padding on the cell | the label's contents pulled off the label |
+| `.rwd-art { position: static }` at 23px | the emoji out of the label and into the tile's corner |
+| `.rwd-name`/`.rwd-glyph { display:none }` | the disc lost its label text |
+| `.rwd-art`/`.rwd-name` fixed px, both trays | fought r239's `cqw`, so the type drifted per surface |
+
+All of it is gone. **A fan tucks tiles; it does not redraw them.** A tucked tile
+shows the left part of the real object, which is what the landscape fan has
+always done. Verified in a real browser at 420x900 and 1440x820: five Tricks at
+tiers 1-5, emoji on the label, names present, no ring, and every `vN.0` stamp
+fully readable.
 
 Dev panel -> **Improve**: every owned entity with its tier and what one more would read as,
 plus improve-a-random-one per type and a reset.
@@ -2320,6 +2514,76 @@ away from any boss tick, timer or future call site.
 The two `disabled` writes are now skipped when `shopGridActive || rewardOnGrid`,
 and the `#disc-count` / `#swap-count` writes are null-guarded.
 
+## PAUSE opens the MENU, so it has to work on every screen (r281)
+
+Owner: *"Pause doesn't work on the map screen. There's nothing to actually pause,
+but that's how you access the menu, so it needs to work everywhere. During events
+and shops as well."* It is the only way to Settings, to Home and to abandoning a
+run, and it did nothing on most of the game. Two separate causes, and fixing
+either one alone leaves half the screens broken.
+
+### 1. `pauseGame` refused to open on a screen with no clock
+
+It opened with `if (!roundInterval && !gameInterval && !countdownActive) return;`
+- "nothing to pause". True, and beside the point: there is still a menu to open.
+Measured before the fix, at 1440x820 and 420x820, the button was **reachable and
+did nothing** on the map, the shop and the reward grid - `isPaused` stayed false
+and the overlay stayed hidden.
+
+**So pause always opens now, and RESUME PUTS BACK ONLY WHAT THE PAUSE ACTUALLY
+STOPPED.** That second half is the load-bearing one: `resumeGame` ended with an
+unconditional `startRoundTimer()` and a fresh `gameInterval`, which on a takeover
+screen would **run the round behind the shop** - exactly what `screenOwnsClock()`
+exists to prevent.
+
+- **TWO flags, `pausedRoundClock` and `pausedGameClock`, not one.** The two clocks
+  are independent and **the legacy game timer is live in every mode**: `startTimers`
+  arms `gameInterval` for a Classic run as much as for a timer-mode one, and it is
+  its BODY that `!isActMode()` guards, not its existence. A single "either was
+  running" flag therefore still restarted the round clock behind every takeover
+  screen - measured, a reward grid resumed holding a `roundInterval` it did not
+  have when it opened.
+- **`!!roundInterval` is a faithful test for "the round clock is live."** Every path
+  out of a round nulls it - `stopTimers`, `triggerLevelUp`, the goal dance, a
+  takeover screen. A side effect worth knowing: pausing mid goal-dance no longer
+  restarts the clock of a round that has already been won.
+- **`if (!gameStartTime) return;`** keeps it off the main menu, where no run exists.
+- `togglePauseMenu()` is the one toggle, so the button and the chips below cannot
+  drift apart.
+
+### 2. Three screens PAINT OVER the button, which no amount of fixing `pauseGame` reaches
+
+- **An event and a Limit Break** are `position: fixed; inset: 0` panels at z-index
+  300 over the whole stage. Measured, `elementFromPoint` on `#btn-pause` returned
+  an event tile.
+- **The map's own strip.** `#map-bar` is body-level in raw viewport px and is
+  `width: max-content`, so it runs about 360px wide with nothing picked and **the
+  full width the moment an obligation is picked** (`.mb-info` fills). At 1440x820
+  that is straight over the button row; at 1100x620 it covers it even before a
+  pick. Portrait clears it, but only just.
+
+Each gets a **pause chip in its bar** - the one part of those screens that never
+scrolls away (`#event-bar` / `#lb-bar` in index.html, `#mb-pause` in
+`mapRenderBar`). `.con-pause` is one rule shared by the two console panels, which
+already share their chrome; the map's rides its existing `.mb-q` chip vocabulary
+and sits **first in the bar**, so it is in the same place however many of the pen
+and legend chips happen to be showing.
+
+**The pause overlay is z-index 420 and every one of those screens is below it**, so
+it paints on top with no per-screen work - verified, not assumed.
+
+**Records is deliberately still an exception.** It covers the button too, and it
+has its own close button and already pauses through `screenOwnsClock()`.
+
+Verified in a real browser at **1440x820, 1100x620 and 420x820**, driving the real
+click path on eleven screens each - map (with and without a pick), a live round,
+the shop, the reward grid, an event, a Limit Break, the guided crossroads, the
+payout and the boss briefing. Every one: a reachable way in, the menu opens, **the
+pause panel is the element on top**, resume closes it, **the clock state is
+identical before and after**, and the screen underneath survived. 33 of 33, zero
+page errors. The live round is the regression guard at the other end: its clock is
+measurably frozen while paused and measurably ticking again after resume.
+
 ## A fifth toast froze the whole game (r225)
 
 `showMessage` trims its overflow with
@@ -2550,9 +2814,9 @@ Beating a boss used to be: the word `VICTORY` in gold Cinzel over the still-live
 
 **The banner carries the boss's name.** `showGoalBanner(opts)` takes `opts.kicker` (replacing the word ROUND above the title) and `opts.force`. `force` exists because the banner is normally suppressed in Survival/Flow - their pick-of-three opens on that beat with its own kicker - but a boss win there opens the prize grid instead, so nothing else would say it. `.gb-boss` restyles the kicker line: a boss name at the kicker's 5px letter-spacing is wider than the stamp.
 
-### Leftover time pays double (r213) - `EFFICIENCY_SECONDS_PER_COIN`
+### Leftover time - `efficiencySecondsPerCoin()` (r278, reverting r213)
 
-**1 credit per 5 seconds left, was per 10.** Owner's call: beating the clock is the main thing a well-played round does and it was paying about a fifth of a Trick. The constant lives in `js/data/cards.js` beside `ROUND_DURATION` and is read by **three** sites that must never disagree - the payout's figure, the payout's printed "1 per Ns remaining" label, and the count-up's per-coin tick - plus **Survival's own per-clear bonus** (`survivalAfterLevelUp`), which had the 10 written into it separately. Flow is unaffected: it banks no leftover time and pays flat coins.
+**1 credit per 10 seconds left.** r213 doubled it to 5; r278 put it back (owner's call - the player ends runs drowning in credits, across every mode). The **Time and a Half** knack halves the interval, i.e. doubles the payout. Every reader goes through `efficiencySecondsPerCoin()` (`js/data/cards.js`), never the raw constant - the payout's figure, both printed "1 per Ns remaining" labels, the count-up's per-coin tick, and **Survival's per-clear bonus**. Flow is unaffected: it banks no leftover time and pays flat coins.
 
 ### Acts are QUARTERS (r213)
 
@@ -3077,15 +3341,11 @@ Also r254: **an aborted goal dance now fires `flashRoundEnd()`** from `handleDan
 - **`closeShopGrid`'s tail mirrors `closeMart`'s**: node flow -> `resumeAfterNodeFlowShop()`; match-3 -> `match3AfterShop()` (stays paused, that function unpauses itself); Survival from the pick -> restore the pick and STAY paused; Survival mid-round -> `render()` + `startRoundTimer()`.
 - **Survival's pick panel sits centred over the board, which IS the shop now.** `openShopGrid` puts it aside with the pick's own `sv-peek` mechanism, and `body.shop-active #sv-peek-restore { display:none }` (css/survival.css) stops the restore button recalling it over the shelves; `closeShopGrid` brings it back and calls `survivalSyncPickAudio`. `survivalOpenShop` also guards on `shopGridActive` so the entry fee cannot be double-charged.
 - **The tutorial's five Mart steps are four Shop steps** (board / buying / reroll+sell / leave), gated on `tutShopReady()` - `shopGridActive` AND a `.shop-tile` with a real rect, because the tiles deal in and a zero-size anchor lands the bubble centred with no spotlight.
-- **The Wheel and the Tinker Bench live only in the Mart** and are unreachable while the flag is off; the Mart is kept whole as a one-flag fallback. Guided's bought stop and the mode blurbs say "the Shop" now.
-
-## The Mart (off-grid shop, MOTHBALLED r232) - `js/mart-shop.js` + `js/wheel.js` + `css/mart.css`
-`USE_MART_SHOP` (now false) routes `triggerShop()` to the LETHE Mart: left **loadout** column (Knacks / Sleights / Tricks / Limits panels + Stats·Deck·Time chips) · centre **catalog** (3 of 4 categories, Tricks always featured, plus Spotlight/Spin/Freezer specials) · right **checkout**.
-- **Bundle discount:** `martDiscountRate()` (BAL.shop_discount, 5% - doubled by the **Bulk Buyer** knack) × per ADDITIONAL item, capped at `rate × Selection Size`. So 2 items = 5%, 3 = 10%, cap 15% at run start.
-- **Checkout** flies each bought item to its loadout panel one at a time (`flyMartTile`), firing `buy()` on landing. The flyer is a body-level clone because `renderMart()` rebuilds the catalog.
-- **Spin the Wheel** (`js/wheel.js`, `BAL.wheel.cost`): 10 spaces (BUST + JACKPOT + entities at shop rarity odds), **drag to spin** - release velocity sets the throw, with a floor guaranteeing ≥1 full turn and a random force so it can't be aimed. **No exit while spinning or before the prize resolves.** If a prize doesn't fit (Tricks vs `trick_slots`), an overflow prompt offers sell-a-Trick or sell-the-prize (`BAL.wheel.default_sell` = 15 unless the type has its own sell value).
-
-**Known wart:** `trickSellValue` is defined TWICE - `js/shop.js` (×0.5) and `js/shop-grid-preview.js` (×0.6). Same global scope, so the later load wins and the effective sell fraction is 0.6, not the 0.5 that shop.js documents. Worth reconciling.
+- **The Mart is DELETED (r278).** `js/mart-shop.js`, `js/wheel.js` and `css/mart.css` are gone (owner's call - the on-grid shop is the shop); the Wheel and the Tinker Bench went with it, and `BAL.wheel`/`tinker_identity` were removed. The `trickSellValue` double-definition wart closed with it: `js/shop-grid-preview.js` (×0.6) is the only definition now.
+- **Shop economy (r278):** the multi-buy discount is a flat **3% per extra item** (`BAL.shop_discount`), **5%** with the reworked **Bulk Buyer**; **Haggler** (knack) takes 5% off every buy price via `shopEffPrice` (read live, never applied to sell-backs). **Bought tiles fly to their loadout panel** one after another through the reward grid's own `flyRewardTile`/`rewardTargetKey`; limit payloads carry `flyTo`. State applies BEFORE the flights - presentation only.
+- **Early-limit guidance (r278, `js/limits.js`):** until the player takes a Selection Size or grid-size limit - or beats the FIRST boss - the shop's first Upgrades slot IS one of those limits and the Survival/Flow pick forces one option to be it. One shared flag (`earlyLimitDone`, in `SAVE_VARS`), each surface REPLACES a slot of its own rather than adding weight, so the chances cannot stack; the reward grid's first-5-grids guarantee already covers that surface.
+- **High Roller** (epic knack, `js/scoring.js`): each scored card replays with (credits + Luck)% chance - floor guaranteed, remainder one deterministic roll per card (`_detReplayRand`, hash offset 3301), never `luckRollDet` (Luck ADDS to the percent here, it does not scale it).
+- **Payday cards** (`permCoins`, `js/deck-grid.js`): a card state paying its credits every time the card scores, REPLAY-WEIGHTED (paid in `playHand` off `_handRetrigByCell`). Offered by the Card Market (+2 credits). In `SAVE_VARS` and `migrateCardKeysToIds`; deliberately no tooltip line (owner's call).
 
 ## Flow mode (`js/flow-mode.js`, r165) - Survival with no round clock
 

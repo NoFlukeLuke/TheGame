@@ -208,7 +208,7 @@ async function showPayoutUI() {
   const _frozen = interestFreezeRounds > 0;
   if (_frozen) interestFreezeRounds--;
   const interestCoins  = (_withheld || _frozen) ? 0 : Math.floor(coins / 10) * interestMult;
-  const efficiencyCoins = _withheld ? 0 : Math.floor(frozenRoundSeconds / EFFICIENCY_SECONDS_PER_COIN);
+  const efficiencyCoins = _withheld ? 0 : Math.floor(frozenRoundSeconds / efficiencySecondsPerCoin());
   // Unspent (r218): swaps and discards you did NOT use pay out. Until this, a
   // round ended with leftover manipulates worth exactly nothing, so spending them
   // on anything at all was strictly better than holding them. Now holding is a
@@ -351,7 +351,7 @@ async function showPayoutUI() {
     while (secsLeft > 0) {
       secsLeft--;
       clockEl.textContent = formatTime(secsLeft);
-      if ((frozenRoundSeconds - secsLeft) % EFFICIENCY_SECONDS_PER_COIN === 0 && secsLeft < frozenRoundSeconds) {
+      if ((frozenRoundSeconds - secsLeft) % efficiencySecondsPerCoin() === 0 && secsLeft < frozenRoundSeconds) {
         effEarned++;
         effCoinsEl.textContent = effEarned;
         tickCoin('po-efficiency');
@@ -659,7 +659,7 @@ function payoutTiledHTML(c) {
       <div class="po-tile payout-line" id="po-line-efficiency" data-box="3,0,6,1">
         <div class="pl-left">
           <div class="pl-name">Efficiency</div>
-          <div class="pl-desc">1 per ${EFFICIENCY_SECONDS_PER_COIN}s remaining</div>
+          <div class="pl-desc">1 per ${efficiencySecondsPerCoin()}s remaining</div>
         </div>
         <div class="pl-right">
           <span class="pl-clock" id="po-clock">${formatTime(frozenRoundSeconds)}</span>
@@ -729,7 +729,7 @@ function payoutPanelHTML(c) {
       <div class="payout-line" id="po-line-efficiency">
         <div class="pl-left">
           <div class="pl-name">Efficiency</div>
-          <div class="pl-desc">1 per ${EFFICIENCY_SECONDS_PER_COIN}s remaining</div>
+          <div class="pl-desc">1 per ${efficiencySecondsPerCoin()}s remaining</div>
         </div>
         <div class="pl-right">
           <span class="pl-clock" id="po-clock">${formatTime(frozenRoundSeconds)}</span>

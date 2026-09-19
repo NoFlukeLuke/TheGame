@@ -41,6 +41,16 @@
   border-color: var(--cream, #f0e6c8);
   box-shadow: inset 0 0 0 1px rgba(0,0,0,0.55), 0 0 13px rgba(240,230,200,0.26), 0 6px 14px rgba(0,0,0,0.55);
 }
+/* PICKED (r280). A tap marks the tile; CONFIRM is what takes it. Mint, because
+   that is the colour CONFIRM wears on every other screen in the flow, so the
+   tile and the button that commits it read as one thing. It must beat :hover -
+   the pointer is on the tile you just tapped. */
+#grid .gp-opt.gp-sel,
+#grid .gp-opt.gp-sel:hover {
+  border-color: var(--c-mint, #35d59b);
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.55), 0 0 15px rgba(53,213,155,0.4), 0 6px 14px rgba(0,0,0,0.55);
+  background: linear-gradient(180deg, rgba(26,44,36,0.96), rgba(10,20,15,0.98));
+}
 
 .gp-tag {
   flex: 0 0 auto;
@@ -58,8 +68,9 @@
    between the icon and the name (r256). The frame must be position:relative -
    r239: the object's band is an abspos pseudo anchoring to the nearest
    positioned ancestor. Only the ART floats.
-   NOT pointer-events:none: the delegated data-et tooltip needs the hover, and
-   a click on the object still bubbles to .gp-opt and chooses. */
+   NOT pointer-events:none: a click on the object has to bubble to .gp-opt,
+   which is what selects it and opens the read (r280 - .gp-opt carries the
+   data-et payload now, so the hover target is the whole tile). */
 .gp-art { flex: 0 0 auto; width: 100%; display: flex; justify-content: center; }
 .gp-art-trick   .gp-art { aspect-ratio: 20 / 19; }   /* the floppy's real ratio */
 .gp-art-sleight .gp-art { aspect-ratio: 1.37; }      /* the business card's */
@@ -82,24 +93,26 @@
   color: var(--cream, #f0e6c8); text-align: center; line-height: 1.12;
 }
 .gp-body { flex: 0 0 auto; width: 100%; }
+/* 7.5px, not 9 (r280, owner's call): the tile is a fixed 2x3 cells and the only
+   way to read more of a description inside it is to set it smaller, so the
+   clamp goes 3 lines -> 5 and about 80% more of the text lands on the tile
+   before the tooltip is needed at all. */
 .gp-desc {
-  font-family: 'Crimson Pro', serif; font-size: 9px; line-height: 1.26;
+  font-family: 'Crimson Pro', serif; font-size: 7.5px; line-height: 1.3;
   color: var(--cream-dim, #9a8d70); text-align: center;
-  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+  display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical;
   overflow: hidden;
 }
-/* THE ELLIPSIS. Only a clamped description grows one, and tapping it moves the
-   WHOLE description into the chip - the tile's copy goes visibility:hidden
-   (not display:none, so nothing in the tile jumps). */
+/* THE ELLIPSIS is a MARK, not a control. It says the description is clamped;
+   the tap that reads the rest is the tap on the TILE, which also picks it - so
+   this must never take a pointer event of its own or a player reaching for the
+   rest of the sentence would fail to select the thing they were reading. */
 .gp-more { display: none; }
 .gp-opt.gp-clipped .gp-more {
-  display: block; margin: 0 auto; cursor: help;
-  font-family: 'Crimson Pro', serif; font-size: 11px; line-height: 1;
-  color: var(--c-yellow, #ffce2b); background: none; border: none; padding: 0 6px;
-  letter-spacing: 1px;
+  display: block; width: 100%; text-align: center; pointer-events: none;
+  font-family: 'Crimson Pro', serif; font-size: 10px; line-height: 1;
+  color: var(--c-yellow, #ffce2b); letter-spacing: 1px;
 }
-.gp-opt.gp-clipped .gp-more:hover { color: #fff2c8; }
-.gp-opt.gp-reading .gp-desc { visibility: hidden; }
 
 /* AN ACTION TILE (r256). A screen's own controls - Survival's reroll, peek,
    breakdown and shop - are cells in the bottom row, not buttons under a panel.
@@ -132,6 +145,35 @@
 /* The shop tile is the one that costs credits, so it is the one that is gold. */
 #grid .gp-act.gp-act-buy { border-color: rgba(255,206,43,0.55); }
 
+/* CONFIRM (r280) - two cells at the end of the action row, on every screen that
+   comes through here. Mint, the flow's commit colour, and it names what it is
+   about to take so the last thing read before committing is the choice itself.
+   Same stacked layout as its neighbours in the row - only wider, greener and
+   carrying a name. */
+#grid .gp-act.gp-confirm {
+  padding: 3px 7px;
+  background: linear-gradient(180deg, rgba(31,168,119,0.30), rgba(8,32,24,0.95));
+  border-color: var(--c-mint, #35d59b);
+}
+#grid .gp-act.gp-confirm:hover {
+  border-color: #7dffce;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.5), 0 0 13px rgba(53,213,155,0.42);
+}
+#grid .gp-act.gp-confirm .gp-act-icon  { font-size: 12px; color: var(--c-mint, #35d59b); }
+#grid .gp-act.gp-confirm .gp-act-label { font-size: 8px; letter-spacing: 1.6px; }
+/* The chosen name sits under the word CONFIRM and is CLIPPED, never wrapped:
+   these names run past 12 characters and a second line would push the label out
+   of a tile one cell tall. min-width:0 is what lets a flex child shrink far
+   enough for text-overflow to bite at all. */
+#grid .gp-act.gp-confirm .gp-act-sub {
+  max-width: 100%; min-width: 0; color: var(--cream, #f0e6c8);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+/* Nothing picked yet: it says so and refuses the tap (.gp-act-off). */
+#grid .gp-act.gp-confirm.gp-act-off .gp-act-sub {
+  color: var(--cream-dim, #9a8d70); font-size: 5.5px; letter-spacing: 0.5px;
+}
+
 /* ── PRE-r256 PANEL LAYOUTS, kept for revert ──────────────────────────────
    Two earlier passes drew the pick OVER the board instead of as the board: an
    #grid-pick overlay inside #grid-slot with a radial backdrop, first as a flex
@@ -158,3 +200,28 @@
    grid. body.gp-active is set by gridScreenTakeover, so the pick and the tiled
    payout both get it. */
 body.gp-active #sel-count { display: none !important; }
+
+/* ── THE ROUND BREAKDOWN, READ OVER THE BOARD (r282) ────────────────────────
+   The reader's markup is `#survival-pick-overlay` / `#sv-pick-contrib` for
+   historical reasons (it was Survival's alone until the Schedule's pick gained
+   the same tile), but the behaviour belongs to THIS screen, so the rules are
+   here beside the tiles they dim.
+
+   The list is centred and tall enough to lie across all three options, so while
+   it is open the board is DIMMED AND INERT and the overlay takes the taps. That
+   is the fix for a reader that silently ate a tile click; see
+   survivalToggleContrib. Nothing here applies unless .sv-reading is on, so the
+   resting screen is untouched. */
+#survival-pick-overlay.sv-reading {
+  pointer-events: auto;
+  background: radial-gradient(ellipse at 50% 50%, rgba(8,11,6,0.62) 30%, rgba(8,11,6,0.86) 100%);
+}
+/* An opaque plate: the list used to be read against the option tiles behind it. */
+#survival-pick-overlay.sv-reading #sv-pick-contrib.show {
+  background: linear-gradient(180deg, rgba(24,21,15,0.985), rgba(12,10,7,0.99));
+  border-color: rgba(183,172,147,0.5);
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.6), 0 10px 26px rgba(0,0,0,0.6);
+}
+/* The board behind it is not the thing being read. */
+body.gp-reading #grid .gp-opt,
+body.gp-reading #grid .gp-act { pointer-events: none; opacity: 0.32; }

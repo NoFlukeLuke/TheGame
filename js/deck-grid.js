@@ -26,6 +26,9 @@ let permRetrig = {}; // { "A-♠": 1, ... } extra times this card scores its pip
 // card, r211). It is a rewind, not a pause: it goes through rewindTime() like
 // every other clock gain, so it respects rewindCeiling() and shows the ⏪ floater.
 let permTime   = {}; // { "<card id>": 4, ... } seconds rewound per scored copy
+// Credits this card pays when it scores (the Card Market's payday card, r278).
+// Replay-weighted: a card that scores three times pays three times.
+let permCoins  = {}; // { "<card id>": 2, ... } credits paid per score
 // ── FLAT vs SCALING card buffs (r209) ────────────────────────────────────────
 // permPips / permMult above are FLAT: the card scores that bonus, the same
 // amount, every single time it is played. The wording "permanently gains +1
@@ -295,6 +298,7 @@ function freshShuffledDeck() {
   // The six-suit mode builds a DESIGNED deck instead of the plain cross product:
   // six suits but only four of each rank, so the deck is ranks x copies and the
   // suit count no longer decides its size. See js/deck-design.js.
+  if (typeof deckWeightedActive === 'function' && deckWeightedActive()) return deckShuffle(buildWeightedDeck());
   if (typeof deckDesignActive === 'function' && deckDesignActive()) return deckShuffle(buildDesignedDeck());
   const d = [];
   for (const s of ACTIVE_SUITS) for (const r of ACTIVE_RANKS) d.push(stampId({ rank:r, suit:s }));

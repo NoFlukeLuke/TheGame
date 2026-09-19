@@ -8,6 +8,11 @@ const SUITS = ['♠','♥','♦','♣'];
 // other four rather than emoji, which would sit at a different size and weight.
 const SUITS_EXTRA = ['♛','☾'];
 const SUITS_SIX = [...SUITS, ...SUITS_EXTRA];
+// Two more, for the weighted deck's suit knob (r273). Suit count is the flush
+// dial - flush difficulty is cards-per-suit - so the editor needs to reach past
+// six to bring flushes down to where sets and runs sit.
+const SUITS_EXTRA2 = ['★', '▲'];
+const SUITS_EIGHT = [...SUITS_SIX, ...SUITS_EXTRA2];
 let ACTIVE_SUITS = SUITS;
 const RANKS = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
 const RED = new Set(['♥','♦']);
@@ -194,9 +199,16 @@ const GAME_DURATION = 1200; // 20 minutes in seconds
 const ROUND_DURATION = 180;
 // Leftover clock -> credits, the payout's "Efficiency" line (js/interlude.js) and
 // Survival's per-clear bonus (js/survival.js). ONE constant so the two economies
-// cannot drift: it was 10 in both, doubled to 5 in r213 (owner's call - beating the
-// clock is the main thing a good round does, and it paid about a fifth of a Trick).
-const EFFICIENCY_SECONDS_PER_COIN = 5;
+// cannot drift. r213 doubled it to 5; r278 puts it back to 10 (owner's call - the
+// player was ending runs drowning in credits, and this paid in every mode). The
+// Time and a Half knack halves the interval, i.e. doubles the payout.
+const EFFICIENCY_SECONDS_PER_COIN = 10;
+// Every reader goes through this, never the raw constant, so the knack reaches
+// the payout figure, the printed labels, the count-up tick and Survival at once.
+function efficiencySecondsPerCoin() {
+  return (typeof hasKnack === 'function' && hasKnack('time_and_a_half'))
+    ? EFFICIENCY_SECONDS_PER_COIN / 2 : EFFICIENCY_SECONDS_PER_COIN;
+}
 const LEVEL_UP_DURATION = 45;
 // 1200, raised from 1000 with the r178 hand retune. That retune moved value into
 // the hands players actually make (Straights, Full Houses, Two Pair) and out of
@@ -211,7 +223,8 @@ const TRICK_CARD_INTERVAL = 20; // seconds
 
 function suitClass(suit) {
   return COLOR_CLASS[suit]
-      || { '♥':'suit-hearts', '♦':'suit-diamonds', '♠':'suit-spades', '♣':'suit-clubs', '♛':'suit-crowns', '☾':'suit-moons' }[suit] || '';
+      || { '♥':'suit-hearts', '♦':'suit-diamonds', '♠':'suit-spades', '♣':'suit-clubs', '♛':'suit-crowns', '☾':'suit-moons',
+           '★':'suit-stars', '▲':'suit-triangles' }[suit] || '';
 }
 
 // Central card capability gate - add new card types here, nowhere else

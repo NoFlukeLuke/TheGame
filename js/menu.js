@@ -1,4 +1,4 @@
-const BUILD = "2026-09-19 · r280 · one-line tips the first time, and a handbook to read later";
+const BUILD = "2026-09-19 · r283 · per-mode first-run tutorials";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

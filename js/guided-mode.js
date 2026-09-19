@@ -574,23 +574,71 @@ function guidedPickThreeOffers() {
   return out;
 }
 
+// Tag the offers for the tile's rarity chip. Called on the first draw and on
+// every reroll, so a rerolled tile is labelled exactly like the one it replaced.
+function guidedTagOffers(mk) {
+  mk.forEach(p => { p.tag = (typeof tierLabel === 'function') ? tierLabel(p.entity, p.rarity || 'common') : ''; });
+  return mk;
+}
+
+// The action row (r282). The Schedule's pick is Survival's pick, so it carries
+// Survival's controls - through the SHARED reroll pool in js/grid-pick.js, which
+// is what keeps the price ladder and the free-reroll count one number rather
+// than two that drift.
+//
+// TWO OF SURVIVAL'S FOUR ARE DELIBERATELY ABSENT, and neither is an oversight:
+//  - PEEK puts the pick aside to look at the BOARD, because Survival opens its
+//    pick mid-dance over cards that are still there. This pick opens after the
+//    payout, and `showLevelUpScreen_fallOnly` has already discarded every cell -
+//    there is nothing behind it to peek at.
+//  - SHOP is an obligation you walk to on the Schedule. Selling a way in from
+//    here for a flat fee would route around the board the whole mode is.
+function guidedPickActions(redraw) {
+  return [
+    pickRerollAction(redraw),
+    { icon: '📊', label: 'Round', sub: 'breakdown', onClick: () => survivalToggleContrib() },
+  ];
+}
+
 function guidedOpenPickThree(done) {
   // The reward grid's OWN payload factories (makeTrickPayload and friends) are
   // NOT globals - they are nested inside _generateRewardContent, the same scoping
   // trap `shuffled()` set for the r194 events. Calling them here produced three
   // silent nulls and an empty panel. This draws its own, through the same shared
   // rarity table and the same ban filter.
-  const mk = guidedPickThreeOffers();
+  const mk = guidedTagOffers(guidedPickThreeOffers());
   if (!mk.length) { done(); return; }
+
+  pickRerollsNewScreen();   // the PRICE ladder restarts on a new pick; the POOL carries
+
+  // The breakdown READER is a text panel and lives in Survival's overlay, which
+  // is inert markup (pointer-events:none) holding exactly that one list. Sharing
+  // it is the same call the Reroll tile is: one implementation, two screens.
+  const ov = (typeof survivalPickOverlay === 'function') ? survivalPickOverlay() : null;
+  if (ov) { ov.classList.add('show'); ov.classList.remove('sv-peek'); }
+  if (typeof survivalHideContrib === 'function') survivalHideContrib();
+  const closePanel = () => {
+    if (typeof survivalHideContrib === 'function') survivalHideContrib();
+    if (ov) ov.classList.remove('show');
+  };
+
+  // A reroll REDRAWS rather than re-dealing - the tiles already fell in once for
+  // this screen, and gridPickRefresh drops the selection with them (r280), so a
+  // reroll can never leave CONFIRM armed on an offer that is no longer there.
+  const redraw = () => {
+    const fresh = guidedTagOffers(guidedPickThreeOffers());
+    if (!fresh.length) return;
+    if (typeof sfxShopOpen === 'function') sfxShopOpen();
+    gridPickRefresh(fresh, guidedPickActions(redraw));
+  };
 
   // Drawn ON the board (js/grid-pick.js, r254) - the choice is dealt into the
   // grid slot like the crossroads tiles, not floated over it in a panel. The
   // board is empty at this beat (the interlude's fall already ran), so the
   // overlay covers nothing the player still needs.
-  mk.forEach(p => { p.tag = (typeof tierLabel === 'function') ? tierLabel(p.entity, p.rarity || 'common') : ''; });
   openGridPick({
-    title: 'TAKE ONE', tone: 'reward', offers: mk,
-    onChoose: (i, p) => { try { p.apply?.(); } catch (e) {} done(); },
+    title: 'TAKE ONE', tone: 'reward', offers: mk, actions: guidedPickActions(redraw),
+    onChoose: (i, p) => { closePanel(); try { p.apply?.(); } catch (e) {} done(); },
   });
 }
 

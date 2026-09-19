@@ -27,7 +27,6 @@
 <link rel="stylesheet" href="css/records.css">
 <link rel="stylesheet" href="css/settings.css">
 <link rel="stylesheet" href="css/history.css">
-<link rel="stylesheet" href="css/mart.css">
 <link rel="stylesheet" href="css/tooltip.css">
 <link rel="stylesheet" href="css/boss.css">
 <link rel="stylesheet" href="css/tutorial.css">
@@ -576,6 +575,26 @@
       <input id="dev-match3-preview-select" type="checkbox" onchange="setMatch3PreviewSelect(this.checked)" style="accent-color:var(--gold);">
       Select matches for 1s before playing (interruptible)
     </label>
+  </div>
+
+  <div class="dev-section" data-group="deck">
+    <div class="dev-section-title">Deck Model</div>
+    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:-2px;">
+      Which deck a run deals from, whatever the mode says. Applies at the START OF THE NEXT ROUND. Spectrum is never overridden - its deck is welded to its card faces and its four payout fixtures; start one from dev panel &rarr; Modes.
+    </div>
+    <div id="dev-deck-model" class="dev-spec-row"></div>
+  </div>
+
+  <div class="dev-section" data-group="deck">
+    <div class="dev-section-title">Weighted Deck &middot; copies per rank</div>
+    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:-2px;">
+      A set needs several copies of ONE rank; a run needs one copy each of several ADJACENT ranks. Give the common ranks plenty of copies and keep them apart on the ladder, and sets get much easier while runs do not.
+    </div>
+    <div id="dev-deck-weights" class="dev-wgrid"></div>
+    <div style="font-family:Cinzel,serif;font-size:9px;letter-spacing:2px;color:var(--gold-dim);margin-top:4px;">SUITS &middot; the flush dial</div>
+    <div id="dev-deck-wsuits" class="dev-spec-row"></div>
+    <div id="dev-deck-wstat" style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--cream-dim);margin-top:6px;line-height:1.5;"></div>
+    <div id="dev-deck-wpreset" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;"></div>
   </div>
 
   <div class="dev-section" data-group="deck">
@@ -1168,7 +1187,13 @@
   <div id="event-panel">
     <div id="event-bar">
       <span id="event-eyebrow">EVENT</span>
-      <span id="event-bar-dots"><i></i><i></i><i></i></span>
+      <!-- An event is a full-screen panel, so it covers #btn-pause outright and there
+           was no way into the menu from here at all. The bar is the one part of the
+           console that never scrolls away, so the chip lives in it. -->
+      <span class="con-bar-right">
+        <span id="event-bar-dots"><i></i><i></i><i></i></span>
+        <button class="con-pause" type="button" title="Pause / menu" aria-label="Pause" onclick="togglePauseMenu()">&#9208;</button>
+      </span>
     </div>
     <div id="event-name">·</div>
     <div id="event-flavor"></div>
@@ -1188,7 +1213,11 @@
   <div id="lb-panel">
     <div id="lb-bar">
       <span id="lb-eyebrow">LIMIT BREAK</span>
-      <span id="lb-bar-dots"><i></i><i></i><i></i></span>
+      <!-- Same console, same problem: it covers #btn-pause. See #event-bar above. -->
+      <span class="con-bar-right">
+        <span id="lb-bar-dots"><i></i><i></i><i></i></span>
+        <button class="con-pause" type="button" title="Pause / menu" aria-label="Pause" onclick="togglePauseMenu()">&#9208;</button>
+      </span>
     </div>
     <div id="lb-title">RAISE A LIMIT</div>
     <div id="lb-sub">Pick one. It is free.</div>
@@ -1331,8 +1360,6 @@
 <script src="js/tricks-ui.js"></script>
 <script src="js/shop.js"></script>
 <script src="js/shop-grid-preview.js"></script>
-<script src="js/mart-shop.js"></script>
-<script src="js/wheel.js"></script>
 <script src="js/builds.js"></script>
 <script src="js/hands-meta.js"></script>
 <script src="js/stats.js"></script>

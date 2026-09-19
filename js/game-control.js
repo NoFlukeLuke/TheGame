@@ -1,9 +1,39 @@
+// PAUSE IS THE WAY INTO THE MENU, so it has to work on the screens that have no
+// clock to stop - the map, the shop, a reward grid, the crossroads, an event.
+// `pauseGame` used to return on `!roundInterval && !gameInterval && !countdownActive`
+// ("nothing to pause") and the button silently did nothing on every one of them:
+// measured in a real browser, the map / shop / reward grid all left `isPaused` false
+// and the overlay hidden. There IS nothing to pause there; there is still a menu to
+// open, and that is the button's other job.
+//
+// So pause now always opens the menu, and RESUME PUTS BACK ONLY WHAT THE PAUSE
+// ACTUALLY STOPPED. That is the load-bearing half: resuming unconditionally would
+// start the round timer BEHIND the map or the shop, which is the very thing
+// screenOwnsClock() exists to prevent.
+//
+// TWO flags, not one, because the two clocks are independent and the legacy game
+// timer is live in every mode - `gameInterval` is started for a Classic run as much
+// as for a timer-mode one (its BODY is what `!isActMode()` guards, not its
+// existence). Keying the round clock off "either was running" therefore still
+// restarted it behind every takeover screen: measured, a reward grid resumed with
+// roundInterval back despite having none when it opened.
+//
+// `roundInterval` is a faithful test for "the round clock is live": every path that
+// leaves the round - stopTimers, triggerLevelUp, the goal dance, a takeover screen -
+// nulls it. Pausing mid goal-dance therefore no longer restarts the clock of a round
+// that has already been won, which the old unconditional startRoundTimer() did.
+let pausedRoundClock = false;
+let pausedGameClock  = false;
+
 function pauseGame(hideGrid = true) {
   if (isPaused) return;
+  // No run has started yet (the main menu), so there is no menu to open either.
+  if (!gameStartTime) return;
   // A running 3-2-1 counts as something to pause: the round timer has not started yet,
-  // so the old `!roundInterval && !gameInterval` test made PAUSE a no-op during the deal
-  // and the round began underneath the pause menu.
-  if (!roundInterval && !gameInterval && !countdownActive) return; // nothing to pause
+  // so the old test also made PAUSE a no-op during the deal and the round began
+  // underneath the pause menu.
+  pausedRoundClock = !!roundInterval;
+  pausedGameClock  = !!gameInterval;
   isPaused = true;
   if (countdownActive) {
     countdownPaused = true;
@@ -43,8 +73,12 @@ function resumeGame() {
   }
   // One clock (r205): startBossTimer re-arms any scheduled effects still pending
   // and then starts the same round timer everything else uses.
-  else if (bossActive) startBossTimer();
-  else startRoundTimer();
+  // Guarded: paused from the map / shop / reward grid / an event there was no round
+  // clock running, and starting one now would run the round behind that screen.
+  else if (pausedRoundClock) { if (bossActive) startBossTimer(); else startRoundTimer(); }
+  pausedRoundClock = false;
+  if (!pausedGameClock) return;
+  pausedGameClock = false;
   // Restart game timer
   gameInterval = setInterval(() => {
     if (gameTimerPaused) return;
@@ -71,10 +105,18 @@ function resumeGame() {
   }, 1000);
 }
 
-document.getElementById('btn-pause').addEventListener('click', () => {
+// The one toggle. The in-stage PAUSE button uses it, and so do the pause chips on
+// the three screens that COVER that button, which fixing pauseGame alone could not
+// reach: an event and a Limit Break are full-screen panels over the whole stage
+// (#event-bar / #lb-bar in index.html), and the map's own bottom strip is body-level
+// and grows across the button row the moment an obligation is picked (#mb-pause,
+// js/map-mode.js). A chip goes in the one part of each screen that never scrolls
+// away - its bar.
+function togglePauseMenu() {
   if (isPaused) resumeGame();
   else pauseGame(true);
-});
+}
+document.getElementById('btn-pause').addEventListener('click', togglePauseMenu);
 
 document.getElementById('btn-resume').addEventListener('click', resumeGame);
 
@@ -219,8 +261,7 @@ document.addEventListener('click', (e) => {
 // screenOwnsClock() is true whenever some other screen owns the clock, and the openers below
 // skip pauseGame() in that case, so the close handler must skip resumeGame() to match.
 function screenOwnsClock() {
-  return (typeof martActive !== 'undefined' && martActive)
-      || (typeof shopGridActive !== 'undefined' && shopGridActive)
+  return (typeof shopGridActive !== 'undefined' && shopGridActive)
       || document.getElementById('shop-overlay')?.classList.contains('show')
       || (typeof rewardOnGrid !== 'undefined' && rewardOnGrid);
 }
@@ -299,7 +340,9 @@ function startGame() {
   // rebuild the offerable pool before anything can draw from it.
   if (typeof applyModeEntityFilter === 'function') applyModeEntityFilter();
   // Reset deck audit (a full deck = one of every rank in every active suit)
-  if (!(typeof deckDesignActive === 'function' && deckDesignActive())) expectedDeckTotal = ACTIVE_SUITS.length * ACTIVE_RANKS.length;
+  // A model that builds its own deck has already written the real total; a rank
+  // x suit cross product is not what it deals, so the generic line must not run.
+  if (!(typeof deckDesignOwnsDeck === 'function' && deckDesignOwnsDeck())) expectedDeckTotal = ACTIVE_SUITS.length * ACTIVE_RANKS.length;
   dealPhase = false;
 
   // Reset all state
@@ -325,6 +368,7 @@ function startGame() {
   }
   // Survival: reset its per-run state and flag the stage (shows the shop button).
   document.getElementById('stage')?.classList.toggle('survival-mode', survivalActive());
+  if (typeof pickRerollsInit === 'function') pickRerollsInit();  // the pick-of-three reroll pool (js/grid-pick.js)
   if (survivalActive()) survivalInitRun();
   if (typeof flowInitRun === 'function' && flowActive()) flowInitRun();
   // Flow hook for mode-scoped CSS (it charges no time, so the action buttons must
@@ -428,6 +472,7 @@ function startGame() {
   acquiredTricks = [];
   acquiredKnacks  = [];
   tempoInitApplied = false;   // Tempo's one-time limit-set can run again for a fresh run
+  earlyLimitDone = false;     // early-limit guidance re-arms for the new run (js/limits.js)
   trickTray          = [];
   syncTrickTrayUI();   // show the Trick tray (or grid-preview) to match trickTrayMode for the new game
   cardPlayCount   = {};
@@ -437,8 +482,6 @@ function startGame() {
   // Mart per-run state: pinned catalog items (r171) and the Tinker bench's fee
   // ladder (r175). Pins hold payload objects with live buy() functions, which is
   // why they are NOT in SAVE_VARS - the Mart is shut at every save point anyway.
-  if (typeof martPins   !== 'undefined') martPins   = {};
-  if (typeof martTinkerN !== 'undefined') martTinkerN = 0;
   altarEffects    = [];
   sleightNextHandDouble = false;
   sleightLegacyMult    = false;
@@ -456,6 +499,7 @@ function startGame() {
   permXMult  = {};
   permRetrig = {};
   permTime   = {};
+  permCoins  = {};
   permPipsGrow = {}; permMultGrow = {};
   cardCurses = {};
   bonusMult_fives = 0;
@@ -572,6 +616,7 @@ function startGame() {
   document.getElementById('grid').querySelectorAll('.blocked-cell').forEach(el => el.remove());
 
   isPaused = false;
+  pausedRoundClock = pausedGameClock = false;
   document.getElementById('pause-overlay').style.display = 'none';
   document.getElementById('grid').style.visibility = '';
   document.getElementById('btn-pause').textContent = '⏸ Pause';
