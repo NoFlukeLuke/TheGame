@@ -135,6 +135,9 @@
   border: 1px solid rgba(150, 140, 255, 0.45); padding: 0;
 }
 #map-bar .mb-q:hover { background: rgba(150, 140, 255, 0.3); color: #fff; }
+/* The pause chip is a hair wider than the round info chips: it is a menu, not a
+   footnote, and the glyph does not fit a 17px circle. */
+#map-bar .mb-pause { width: 22px; border-radius: 5px; font-size: 9px; }
 /* The help card sits ABOVE the strip rather than inside it, so opening it can
    never change the bar's height and shove the board. */
 #map-bar .mb-help {

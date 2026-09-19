@@ -773,6 +773,13 @@ function mapRenderBar() {
     : 'PICK A START';
   const inked = (typeof mapDrawStrokes !== 'undefined') && mapDrawStrokes.length > 0;
   bar.innerHTML =
+    // PAUSE lives in the bar because the bar COVERS the play screen's own PAUSE
+    // button. #map-bar is body-level in raw viewport px and grows to fit whatever
+    // the picked obligation's line says, so at 1440x820 it runs from 360px to the
+    // full width the moment a tile is picked and paints straight over the button.
+    // Measured before this: elementFromPoint on #btn-pause returned #map-bar.
+    // First in the bar, so it is in the same place however many chips are showing.
+    `<button class="mb-q mb-pause" id="mb-pause" title="Pause / menu">&#9208;</button>` +
     `<span class="mb-set">SLOT ${setNo}/${MAP_SETS}</span>` +
     `<span class="mb-visits">${visits}</span>` +
     `<button class="mb-q" id="mb-q" title="How the schedule works">?</button>` +
@@ -817,6 +824,7 @@ function mapRenderBar() {
       document.removeEventListener('click', off);
     }), 0);
   };
+  document.getElementById('mb-pause').onclick = (e) => { e.stopPropagation(); togglePauseMenu(); };
   document.getElementById('mb-q').onclick = cardToggle('mb-help');
   document.getElementById('mb-key').onclick = cardToggle('map-legend', () => mapLegendHighlight(null, null));
   document.getElementById('mb-pen').onclick = () => mapPenToggle();
