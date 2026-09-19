@@ -395,7 +395,6 @@ function renderTrickTray() {
     } else {
       chip.addEventListener('click', e => {
         e.stopPropagation();
-        if (chip._sellHeld) { chip._sellHeld = false; return; }  // the lift that ended a hold
         const existing = document.getElementById('trick-tooltip');
         if (existing) { hideTrickTooltip(); return; }
         showTrickTrayTooltip(trick, chip);
@@ -419,7 +418,7 @@ function renderTrickTray() {
   // Hover tooltips for every tile (originals + marquee clones).
   list.querySelectorAll('.trick-tray-chip').forEach(chip => {
     const trick = trickTray.find(t => t.id === chip.dataset.trickId);
-    if (trick) { attachTrickHover(chip, trick); attachTrickSellHold(chip, trick); }
+    if (trick) attachTrickHover(chip, trick);
   });
   // Names are word-atomic and shrink to fit - never broken across a letter (r182).
   fitEntityNames(list, '.trick-tray-chip .rwd-name', { maxLines: 2, minPx: 5 });
@@ -435,40 +434,15 @@ function attachTrickHover(chip, trick) {
   chip.addEventListener('mouseleave', scheduleTrickHoverHide);
 }
 
-// Press-and-hold a Trick you own to bring up its sell / discard options (r182).
-// Works with a finger and with a held mouse button, so the gesture is the same
-// on a phone and on a desktop. A hold sets chip._sellHeld, which the chip's own
-// click handler checks so the lift that ends the hold does not immediately
-// toggle the bubble back off.
-const TRICK_SELL_HOLD_MS = 430;
-function attachTrickSellHold(chip, trick) {
-  let timer = null, sx = 0, sy = 0;
-  const cancel = () => { if (timer) { clearTimeout(timer); timer = null; } };
-  chip.addEventListener('pointerdown', e => {
-    if (e.pointerType === 'mouse' && e.button !== 0) return;
-    sx = e.clientX; sy = e.clientY;
-    chip._sellHeld = false;
-    cancel();
-    timer = setTimeout(() => {
-      chip._sellHeld = true;
-      cancelTrickHoverHide();
-      showTrickTrayTooltip(trick, chip, { actions: true });
-      if (navigator.vibrate) { try { navigator.vibrate(12); } catch (err) {} }
-    }, TRICK_SELL_HOLD_MS);
-  });
-  chip.addEventListener('pointermove', e => {
-    if (timer && Math.hypot(e.clientX - sx, e.clientY - sy) > 8) cancel();
-  });
-  chip.addEventListener('pointerup', cancel);
-  chip.addEventListener('pointercancel', () => { cancel(); chip._sellHeld = false; });
-}
-
-// r182 - READING a Trick and DISPOSING of one are now two different gestures.
-//   tap / hover  → the description, nothing you can hit by accident
-//   tap-and-hold → the same bubble with SELL and DISCARD on it
-// Before this, every tap put a live Sell button under your thumb just for asking
-// what a Trick did.
-function showTrickTrayTooltip(trick, anchorEl, { actions = false } = {}) {
+// r278 - ONE GESTURE. A tap (or a hover on a mouse) opens the description WITH
+// Sell and Discard on it. r182 had split those apart, so disposing of a Trick
+// needed a press-and-hold nobody could guess at; the second beat that protects
+// the player is a CONFIRM on the button itself (tipConfirmAction) rather than a
+// hidden gesture in front of it.
+//
+// `actions` is still a parameter because a Trick on the GRID (dev-only tray-off
+// mode) is not one you own from the tray and has nothing to sell.
+function showTrickTrayTooltip(trick, anchorEl, { actions = true } = {}) {
   hideTrickTooltip();
   const tip = document.createElement('div');
   tip.id = 'trick-tooltip';
@@ -479,17 +453,29 @@ function showTrickTrayTooltip(trick, anchorEl, { actions = false } = {}) {
                 + (actions
                     ? `<div class="trick-tooltip-actions"><button class="trick-tooltip-sell" id="trick-tooltip-sell-btn">Sell 💰${_sv}</button>`
                       + `<button class="trick-tooltip-discard" id="trick-tooltip-discard-btn">Discard</button></div>`
-                    : `<div class="trick-tooltip-hint">hold for sell / discard</div>`);
+                    : '');
   tip.style.cssText = 'position:fixed;opacity:0;z-index:300;';
   document.body.appendChild(tip);
+  // Both destructive buttons ask first. Cancel RE-SHOWS the bubble rather than
+  // restoring its markup - see tipConfirmAction.
+  const _row = () => tip.querySelector('.trick-tooltip-actions');
+  const _reopen = () => showTrickTrayTooltip(trick, anchorEl, { actions });
   tip.querySelector('#trick-tooltip-sell-btn')?.addEventListener('click', e => {
     e.stopPropagation();
-    sellTrick(trick);
+    tipConfirmAction(_row(), {
+      question: `Sell for 💰${_sv}?`, confirmLabel: 'Sell',
+      onYes: () => sellTrick(trick), onCancel: _reopen,
+    });
   });
   tip.querySelector('.tt-close')?.addEventListener('click', e => { e.stopPropagation(); hideTrickTooltip(); });
+  // Discard is the MORE destructive of the two - it pays nothing - so it is
+  // confirmed as well, and marked danger.
   tip.querySelector('#trick-tooltip-discard-btn')?.addEventListener('click', e => {
     e.stopPropagation();
-    discardTrickFromTray(trick);
+    tipConfirmAction(_row(), {
+      question: 'Discard for nothing?', confirmLabel: 'Discard', danger: true,
+      onYes: () => discardTrickFromTray(trick), onCancel: _reopen,
+    });
   });
   // Keep the bubble open while the pointer is over it (so Discard is clickable).
   tip.addEventListener('mouseenter', cancelTrickHoverHide);

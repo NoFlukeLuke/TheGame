@@ -2931,7 +2931,40 @@ Audit script: render every name in `TRICK_POOL` / `KNACK_POOL` / `SLEIGHT_POOL` 
 
 - **`showEntityTooltip(anchor, payload, { actions })`** (`js/entity-tooltip.js`). Passing any action puts the bubble in **interactive mode**: `.et-card` takes pointer events and a transparent full-screen `#entity-tip-backdrop` goes in underneath, so every click that is not on the bubble dismisses it. That backdrop is what makes interactivity safe - the bubble is up to 560px wide and lies over its neighbours, and `pointer-events:auto` without it was the old "I can't add the ones on the right" bug.
 - **Mart:** hover = read-only preview (mouse only); tap/click = tooltip with **📌 Pin** and **Add to cart**. A hover never replaces an open interactive bubble, or moving the mouse off the tile would close the buttons you were reaching for. **PIN MODE** stays a bulk mode: while it is on a tap pins directly, so you can hold four things without opening four tooltips.
-- **Trick tray:** reading and disposing are now separate gestures - **tap** = description + a "hold for sell / discard" hint; **press-and-hold** (`attachTrickSellHold`, 430ms, finger or mouse) = the same bubble with **Sell** and **Discard**. Before this every tap put a live Sell button under your thumb just for asking what a Trick did. The hold sets `chip._sellHeld` so the lift that ends it does not toggle the bubble straight back off.
+- **Trick tray (r278): ONE GESTURE.** A tap, or a hover on a mouse, opens the
+  description **with Sell and Discard on it**. r182 had split those apart, so
+  disposing of a Trick needed a press-and-hold nobody could guess at;
+  `attachTrickSellHold` and `chip._sellHeld` are gone with it.
+
+### The second beat is a CONFIRM, not a hidden gesture (r278)
+
+A live Sell button one tap away is only safe if the tap does not sell.
+**`tipConfirmAction(rowEl, {...})` in `js/entity-tooltip.js` is the one way that
+is asked**, so the Trick tray and the Knack HUD cannot drift into asking
+differently.
+
+- **It swaps the action ROW IN PLACE** rather than opening a second surface. The
+  bubble is what the player is already looking at, and a modal over a 200px
+  popup is a screen for a much bigger decision than this.
+- **Cancel RE-SHOWS the bubble; it does NOT restore the markup.** Putting the
+  old innerHTML back would restore the buttons without their listeners - dead
+  controls that look alive - so the caller hands over the one call that rebuilds
+  the whole bubble, wiring and all.
+- **The confirm row inherits the action row's `display:flex`** and so has to
+  restate `flex-direction: column`, or the question sits beside its buttons.
+- **DISCARD is confirmed too, and marked `danger`.** It is the more destructive
+  of the two - it pays nothing - so confirming the sell and not the discard
+  would have been backwards.
+- **These bubbles are BODY-LEVEL, so every px in them is a REAL viewport px, not
+  a stage px.** At the old 8px Cinzel and 4px padding the buttons were about
+  17px tall, well under half a phone's thumb target, which was tolerable only
+  while they were behind a deliberate hold. They are 11px type, 8px/10px padding
+  and a 30px floor now - measured at 67x31 live.
+
+**What still needs a press-and-hold, and why:** anything on the PLAY GRID. A tap
+there is reserved for selecting a card into a hand, which is true of an ordinary
+card exactly as it is of a Sleight. The reward grid and the shop have opened on
+tap since r182/r237 and are unchanged.
 
 ## Reward grid: one tap, two meanings (r182)
 

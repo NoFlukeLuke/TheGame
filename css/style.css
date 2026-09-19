@@ -1957,23 +1957,55 @@
   .trick-tooltip-actions, .knack-tooltip-actions {
     display: flex; gap: 4px; margin-top: 6px;
   }
+  /* r278 - these bubbles are BODY-LEVEL, so every px here is a real viewport
+     px, not a stage px. At the old 8px Cinzel and 4px padding the buttons were
+     about 17px tall: a thumb target well under half what a phone needs, and
+     they are now one tap away rather than behind a press-and-hold. */
   .trick-tooltip-discard {
-    flex: 1; padding: 4px 8px; border-radius: 4px;
+    flex: 1; padding: 8px 10px; min-height: 30px; border-radius: 5px;
     background: rgba(180,40,40,0.18); border: 1px solid rgba(180,40,40,0.5);
-    color: #e07070; font-family: 'Cinzel', serif; font-size: 8px;
+    color: #e07070; font-family: 'Cinzel', serif; font-size: 11px; font-weight: 700;
     letter-spacing: 0.5px; cursor: pointer;
     transition: background 0.12s;
   }
   .trick-tooltip-discard:hover { background: rgba(180,40,40,0.35); }
   /* Sell buttons (Tricks in the tray, Knacks in the HUD) - gold, matches the credits economy */
   .trick-tooltip-sell, .knack-tooltip-sell {
-    flex: 1; padding: 4px 8px; border-radius: 4px;
+    flex: 1; padding: 8px 10px; min-height: 30px; border-radius: 5px;
     background: rgba(200,160,60,0.18); border: 1px solid rgba(200,160,60,0.55);
-    color: #e8b84b; font-family: 'Cinzel', serif; font-size: 8px;
+    color: #e8b84b; font-family: 'Cinzel', serif; font-size: 11px; font-weight: 700;
     letter-spacing: 0.5px; cursor: pointer; white-space: nowrap;
     transition: background 0.12s;
   }
   .trick-tooltip-sell:hover, .knack-tooltip-sell:hover { background: rgba(200,160,60,0.34); }
+
+  /* The in-bubble confirm (js/entity-tooltip.js, tipConfirmAction). It REPLACES
+     the action row, so it inherits that row's flex and has to restate column. */
+  .trick-tooltip-actions.tip-confirming, .knack-tooltip-actions.tip-confirming {
+    flex-direction: column; gap: 6px;
+  }
+  .tip-confirm-q {
+    font-family: 'Share Tech Mono', monospace; font-size: 11px; letter-spacing: 0.5px;
+    color: var(--cream); text-align: center; padding-top: 2px;
+  }
+  .tip-confirm-row { display: flex; gap: 6px; }
+  .tip-btn {
+    flex: 1; padding: 8px 10px; min-height: 30px; border-radius: 5px;
+    font-family: 'Cinzel', serif; font-size: 11px; font-weight: 700;
+    letter-spacing: 0.5px; cursor: pointer; transition: background 0.12s;
+    background: rgba(200,160,60,0.22); border: 1px solid rgba(200,160,60,0.6);
+    color: #e8b84b;
+  }
+  .tip-btn:hover { background: rgba(200,160,60,0.38); }
+  .tip-btn.danger {
+    background: rgba(180,40,40,0.22); border-color: rgba(180,40,40,0.6); color: #e07070;
+  }
+  .tip-btn.danger:hover { background: rgba(180,40,40,0.4); }
+  .tip-btn-no {
+    background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.2);
+    color: var(--cream-dim);
+  }
+  .tip-btn-no:hover { background: rgba(255,255,255,0.14); }
   .knack-tooltip-actions { margin-top: 5px; }
   .trick-confirm {
     font-family: 'Cinzel', serif;

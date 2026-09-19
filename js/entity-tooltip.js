@@ -271,3 +271,38 @@ function placeTipSmart(anchorEl, tip, opts = {}) {
   tip.style.left = Math.round(Math.max(PAD, Math.min(x, vw - w - PAD))) + 'px';
   tip.style.top  = Math.round(Math.max(PAD, Math.min(y, vh - h - PAD))) + 'px';
 }
+
+// ══════════════════════════════════════════════════════════════════════════
+// CONFIRM A DESTRUCTIVE ACTION, INSIDE THE BUBBLE (r278)
+//
+// Selling and discarding are one tap away now that a tap opens the actions
+// (they used to need a press-and-hold to reach), so they need a second beat
+// between the thumb and a Trick leaving the run for good.
+//
+// It swaps the action ROW IN PLACE rather than opening a second surface: the
+// bubble is what the player is already looking at, and a modal over a 200px
+// popup is a screen for a much bigger decision than this.
+//
+// **Cancel RE-SHOWS the bubble, it does not restore the markup.** Putting the
+// old innerHTML back would restore the buttons without their listeners - dead
+// controls that look alive - so the caller hands over the one call that
+// rebuilds the whole bubble, wiring and all.
+// ══════════════════════════════════════════════════════════════════════════
+function tipConfirmAction(rowEl, { question, confirmLabel = 'Yes', danger = false, onYes, onCancel }) {
+  if (!rowEl) return;
+  rowEl.classList.add('tip-confirming');
+  rowEl.innerHTML =
+    `<div class="tip-confirm-q">${question}</div>` +
+    `<div class="tip-confirm-row">` +
+      `<button class="tip-btn tip-btn-yes${danger ? ' danger' : ''}">${confirmLabel}</button>` +
+      `<button class="tip-btn tip-btn-no">Cancel</button>` +
+    `</div>`;
+  rowEl.querySelector('.tip-btn-yes').addEventListener('click', e => {
+    e.stopPropagation();
+    if (typeof onYes === 'function') onYes();
+  });
+  rowEl.querySelector('.tip-btn-no').addEventListener('click', e => {
+    e.stopPropagation();
+    if (typeof onCancel === 'function') onCancel();
+  });
+}
