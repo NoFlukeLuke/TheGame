@@ -296,7 +296,9 @@ function startGame() {
   // rebuild the offerable pool before anything can draw from it.
   if (typeof applyModeEntityFilter === 'function') applyModeEntityFilter();
   // Reset deck audit (a full deck = one of every rank in every active suit)
-  if (!(typeof deckDesignActive === 'function' && deckDesignActive())) expectedDeckTotal = ACTIVE_SUITS.length * ACTIVE_RANKS.length;
+  // A model that builds its own deck has already written the real total; a rank
+  // x suit cross product is not what it deals, so the generic line must not run.
+  if (!(typeof deckDesignOwnsDeck === 'function' && deckDesignOwnsDeck())) expectedDeckTotal = ACTIVE_SUITS.length * ACTIVE_RANKS.length;
   dealPhase = false;
 
   // Reset all state

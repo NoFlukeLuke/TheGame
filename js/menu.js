@@ -1,4 +1,4 @@
-const BUILD = "2026-09-18 · r272 · a run may have to be laid out in order: dev toggle, off / touch a lower card / touch the one below";
+const BUILD = "2026-09-19 · r273 · deck model picker + the WEIGHTED deck: copies per rank, so sets get easier without runs following";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

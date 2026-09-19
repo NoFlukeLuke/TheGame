@@ -295,6 +295,7 @@ function freshShuffledDeck() {
   // The six-suit mode builds a DESIGNED deck instead of the plain cross product:
   // six suits but only four of each rank, so the deck is ranks x copies and the
   // suit count no longer decides its size. See js/deck-design.js.
+  if (typeof deckWeightedActive === 'function' && deckWeightedActive()) return deckShuffle(buildWeightedDeck());
   if (typeof deckDesignActive === 'function' && deckDesignActive()) return deckShuffle(buildDesignedDeck());
   const d = [];
   for (const s of ACTIVE_SUITS) for (const r of ACTIVE_RANKS) d.push(stampId({ rank:r, suit:s }));

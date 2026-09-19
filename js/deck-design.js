@@ -106,24 +106,25 @@ let deckDesignDirty = false;
     if (typeof o.cut === 'string' && (o.cut === '' || RANKS.includes(o.cut))) deckCutRank = o.cut;
     if (typeof o.courtsOff === 'boolean') deckCourtsOffLadder = o.courtsOff;
     if (typeof o.copies === 'number') deckCopiesPerRank = Math.max(1, Math.min(SUITS_SIX.length, o.copies | 0));
+    if (DECK_MODELS.includes(o.model)) deckModel = o.model;
+    if (typeof o.wSuits === 'number') deckWeightSuitCount = Math.max(2, Math.min(8, o.wSuits | 0));
+    if (o.weights && typeof o.weights === 'object')
+      for (const r of DECK_W_RANKS) if (typeof o.weights[r] === 'number') deckWeights[r] = Math.max(0, Math.min(20, o.weights[r] | 0));
   } catch (e) {}
 })();
 function saveDeckDesign() {
   try {
     localStorage.setItem(DECK_DESIGN_KEY, JSON.stringify({
       cut: deckCutRank, courtsOff: deckCourtsOffLadder, copies: deckCopiesPerRank,
+      model: deckModel, wSuits: deckWeightSuitCount, weights: deckWeights,
     }));
   } catch (e) {}
 }
 
-// ── Who this applies to ──────────────────────────────────────────────────────
-// The SIX-SUIT mode only. Classic is the reference balance the whole game is
-// tuned against and is deliberately untouched; Spectrum has its own tuner and
-// its own lists, and `numeric` is what keeps this off it.
-function deckDesignActive() {
-  return !!(typeof ACTIVE_MODE !== 'undefined' && ACTIVE_MODE
-            && !ACTIVE_MODE.numeric && ACTIVE_MODE.suitCount === 6);
-}
+// ── Who the six-suit knobs apply to ─────────────────────────────────────────
+// deckDesignActive() is defined with the deck-model picker below. Classic is
+// the reference balance the whole game is tuned against and is only overridden
+// on purpose; Spectrum is never overridden at all.
 
 // The rank list a designed run deals from - always in RANKS order.
 function deckDesignRanks() {
@@ -216,6 +217,144 @@ const RUN_ORDER_KEY = 'lethe.runOrder.v1';
   try { const v = localStorage.getItem(RUN_ORDER_KEY); if (RUN_ORDER_RULES.includes(v)) runOrderRule = v; } catch (e) {}
 })();
 
+// ══════════════════════════════════════════════
+// WHICH DECK A RUN DEALS FROM (r273)
+// ══════════════════════════════════════════════
+// A dev override. 'mode' is the default and means "whatever the mode says",
+// which is what every run did before this existed. Spectrum is NEVER overridden:
+// its deck is welded to `numeric` (white cards, colour faces, the four fixtures),
+// so the picker reports it and leaves it alone. Start one from dev -> Modes.
+const DECK_MODELS = ['mode', 'classic4', 'six', 'weighted'];
+let deckModel = 'mode';
+
+function deckModelNow() {
+  if (typeof ACTIVE_MODE === 'undefined' || !ACTIVE_MODE) return 'classic4';
+  if (ACTIVE_MODE.numeric) return 'spectrum';
+  if (deckModel !== 'mode') return deckModel;
+  return ACTIVE_MODE.suitCount === 6 ? 'six' : 'classic4';
+}
+// The r271 six-suit deck (cut rank + ladder + copies) owns the build.
+function deckDesignActive()   { return deckModelNow() === 'six'; }
+// The weighted deck owns the build.
+function deckWeightedActive() { return deckModelNow() === 'weighted'; }
+// Either of the two that build their own deck rather than a rank x suit cross
+// product, so expectedDeckTotal must not be stamped over by the generic line.
+function deckDesignOwnsDeck() { const m = deckModelNow(); return m === 'six' || m === 'weighted'; }
+
+// ══════════════════════════════════════════════
+// THE WEIGHTED DECK (r273) - copies per rank, set by hand
+// ══════════════════════════════════════════════
+// A set needs k copies of ONE rank; a run needs one copy each of k ADJACENT
+// ranks. In a deck where every rank has the same number of copies those two move
+// together - C(m,3) and m*m*m both grow like m cubed - which is why every knob
+// before this traded sets against runs instead of separating them.
+//
+// Here the copy count is PER RANK. Make the common ranks never adjacent and
+// every run window is forced to contain a scarce rank, which caps runs, while
+// the common ranks pile up sets on their own.
+//
+// The shipped default is the measured one: A, 4, 7 and 10 carry NINE copies,
+// 2, 3, 5, 6, 8 and 9 carry TWO, J/Q/K are out. 48 cards, six suits. Measured
+// through the real engine against the r271 deck, share of 4x4 boards offering:
+//
+//                  today   weighted
+//   Three of a Kind   35%      78%
+//   Full House        29%      83%
+//   Four of a Kind     2%      21%
+//   Run of 3          93%      67%
+//   Run of 4          45%      44%
+//   Straight          24%      17%
+//   Flush of 3        97%      98%
+//
+// Sets up two to three times over, runs DOWN or flat everywhere, flushes level.
+//
+// THE POINT IS NOT THE NUMBERS, IT IS WHERE THE SCARCITY SITS. A run is not hard
+// because runs are hard; it is waiting on a specific scarce rank. That is what
+// makes deck manipulation worth doing (adding one 2 opens a family that was
+// closed) and what gives a Trick keyed on a heavy rank a different job from one
+// keyed on a light rank.
+//
+// KNOWN AND NOT YET DONE: this breaks HAND_BASE pricing. Four of a Kind at 21%
+// and Full House at 83% are priced as rare hands and would become bread and
+// butter, and BASE_GOAL wants re-checking for the same reason r178 moved it.
+// That is why this is a dev toggle and not the default.
+const DECK_W_RANKS = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+const DECK_W_PRESETS = {
+  balanced: { A:9, '2':2, '3':2, '4':9, '5':2, '6':2, '7':9, '8':2, '9':2, '10':9, J:0, Q:0, K:0 },
+  flat5:    { A:5, '2':5, '3':5, '4':5, '5':5, '6':5, '7':5, '8':5, '9':5, '10':5, J:5, Q:5, K:0 },
+  classic:  { A:4, '2':4, '3':4, '4':4, '5':4, '6':4, '7':4, '8':4, '9':4, '10':4, J:4, Q:4, K:4 },
+};
+let deckWeights = { ...DECK_W_PRESETS.balanced };
+let deckWeightSuitCount = 6;
+
+function deckWeightedRanks() { return DECK_W_RANKS.filter(r => (deckWeights[r] | 0) > 0); }
+function deckWeightedSuits() { return SUITS_EIGHT.slice(0, Math.max(2, Math.min(8, deckWeightSuitCount))); }
+function deckWeightedSize()  { return DECK_W_RANKS.reduce((a, r) => a + (deckWeights[r] | 0), 0); }
+
+// ── Suits: as level as the counts allow, and randomly WHICH suit gets a spare ──
+// A rank with more copies than there are suits MUST double up on some of them
+// (nine copies over six suits is 1,1,1,2,2,2), so "one of each" is not on the
+// table. What IS on the table is keeping the per-suit TOTALS level, because
+// flush difficulty is cards-per-suit and a lopsided layout would make one suit's
+// flushes easy and another's impossible while the deck size said nothing.
+//
+// Shuffle the suits, then STABLE-sort them by how many cards they are already
+// carrying. Among suits on the same count the order is uniformly random, so
+// which suit takes a rank's spare copy moves run to run while the totals stay
+// level. Sorting with a random comparator instead is NOT a uniform shuffle.
+function assignSuitsBalanced(rankCounts, suits) {
+  const S = suits.length, load = suits.map(() => 0), out = [];
+  for (const [rank, n] of rankCounts) {
+    const base = Math.floor(n / S), extra = n % S;
+    const order = suits.map((_, i) => i);
+    for (let i = order.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0; const t = order[i]; order[i] = order[j]; order[j] = t; }
+    order.sort((a, b) => load[a] - load[b]);
+    const spare = new Set(order.slice(0, extra));
+    for (let i = 0; i < S; i++) {
+      const m = base + (spare.has(i) ? 1 : 0);
+      for (let k = 0; k < m; k++) out.push({ rank, suit: suits[i] });
+      load[i] += m;
+    }
+  }
+  return out;
+}
+function buildWeightedDeck() {
+  const suits = deckWeightedSuits();
+  const pairs = deckWeightedRanks().map(r => [r, deckWeights[r] | 0]);
+  // On the deck's own seeded stream, so a seeded run deals the same layout.
+  // freshShuffledDeck runs once per run (startGame), so the layout is fixed for
+  // the whole run - a reshuffle recycles cards through flushPlayedDeck and never
+  // rebuilds, which is what stops a card's suit moving under the player.
+  const cards = withSeededRng(() => assignSuitsBalanced(pairs, suits), 'deck');
+  return cards.map(c => stampId({ rank: c.rank, suit: c.suit }));
+}
+
+// What the current weights actually produce, as densities per 10,000 random
+// draws of that many cards. This is the same closed form the design search used:
+//   set-k   = SUM over ranks C(copies, k)
+//   run-k   = SUM over windows of k consecutive values, PRODUCT of copies
+//   flush-k = SUM over suits C(cards in suit, k)
+// The editor prints it live, so the balance is visible while you type.
+function deckWeightedStats() {
+  const N = deckWeightedSize(), S = deckWeightedSuits().length;
+  const C = (n, k) => { if (k > n || k < 0) return 0; let r = 1; for (let i = 0; i < k; i++) r = r * (n - i) / (i + 1); return r; };
+  const m = {};
+  for (const r of DECK_W_RANKS) {
+    const n = deckWeights[r] | 0; if (!n) continue;
+    const v = RANK_ORDER[r]; m[v] = (m[v] || 0) + n;
+    if (r === 'A') m[14] = (m[14] || 0) + n;     // the ace plays high as well
+  }
+  const setK = k => DECK_W_RANKS.reduce((a, r) => a + C(deckWeights[r] | 0, k), 0);
+  const runK = k => Object.keys(m).map(Number).reduce((t, v) => {
+    let p = 1; for (let j = 0; j < k; j++) { const c = m[v + j]; if (!c) return t; p *= c; }
+    return t + p;
+  }, 0);
+  const d = (cnt, k) => (N >= k && C(N, k) > 0) ? cnt / C(N, k) * 1e4 : 0;
+  return { N, S, perSuit: N / S, ranks: deckWeightedRanks().length,
+           set3: d(setK(3), 3), run3: d(runK(3), 3), flush3: d(S * C(N / S, 3), 3),
+           run4: d(runK(4), 4), run5: d(runK(5), 5) };
+}
+
 // ── Building the deck ────────────────────────────────────────────────────────
 // Each rank takes `copies` of the six suits, and the window ROTATES by that many
 // suits each rank, which is what keeps the suits balanced: at 4 copies over 6
@@ -239,7 +378,17 @@ function buildDesignedDeck() {
 // Called from startGame (a new run picks up the current tuning immediately) and
 // from the round-start hook below (a change made mid-round lands at the boundary).
 function deckDesignInstallLists() {
-  if (!deckDesignActive()) return false;
+  const model = deckModelNow();
+  if (model === 'weighted') {
+    ACTIVE_SUITS = deckWeightedSuits();
+    ACTIVE_RANKS = deckWeightedRanks();
+    expectedDeckTotal = deckWeightedSize();
+    deckDesignDirty = false;
+    return true;
+  }
+  if (model === 'classic4') { ACTIVE_SUITS = SUITS; ACTIVE_RANKS = RANKS; deckDesignDirty = false; return false; }
+  if (model !== 'six') return false;
+  ACTIVE_SUITS = SUITS_SIX;
   ACTIVE_RANKS = deckDesignRanks();
   // The deck audit counts what a full deck holds. It is ranks x COPIES here, not
   // ranks x suits - miss this and every designed run reports a third of its deck
@@ -252,7 +401,7 @@ function deckDesignInstallLists() {
 // Round-start hook, called from triggerLevelUp beside the Spectrum one. A change
 // made mid-round lands here rather than under the player's hand.
 function deckDesignApplyPending() {
-  if (!deckDesignDirty || !deckDesignActive()) { deckDesignDirty = false; return; }
+  if (!deckDesignDirty) return;
   deckDesignInstallLists();
   if (typeof initGridData === 'function') initGridData();
   if (typeof render === 'function') render();
@@ -272,12 +421,74 @@ function setDeckCopiesPerRank(n) {
   deckDesignDirty = true; saveDeckDesign(); devRenderDeckDesign();
 }
 function deckDesignApplyNow() {
-  if (!deckDesignActive()) { showMessage('Six Suits only', '#ff6b6b'); return; }
+  const m = deckModelNow();
+  if (m === 'spectrum') { showMessage('Spectrum owns its own deck', '#ff6b6b'); return; }
   deckDesignDirty = true; deckDesignApplyPending();
-  showMessage('Deck rebuilt · ' + deckDesignSize() + ' cards', '#6bcf7f');
+  const n = m === 'weighted' ? deckWeightedSize() : m === 'six' ? deckDesignSize() : 52;
+  showMessage('Deck rebuilt · ' + n + ' cards', '#6bcf7f');
+}
+
+// ── Setters (dev panel) ─────────────────────────────────────────────────────
+function setDeckModel(v) {
+  if (!DECK_MODELS.includes(v)) return;
+  deckModel = v; deckDesignDirty = true; saveDeckDesign(); devRenderDeckDesign();
+}
+function setDeckWeight(rank, delta) {
+  if (!DECK_W_RANKS.includes(rank)) return;
+  deckWeights[rank] = Math.max(0, Math.min(20, (deckWeights[rank] | 0) + delta));
+  deckDesignDirty = true; saveDeckDesign(); devRenderDeckDesign();
+}
+function setDeckWeightSuits(n) {
+  deckWeightSuitCount = Math.max(2, Math.min(8, n | 0));
+  deckDesignDirty = true; saveDeckDesign(); devRenderDeckDesign();
+}
+function deckWeightPreset(name) {
+  const p = DECK_W_PRESETS[name]; if (!p) return;
+  deckWeights = { ...p };
+  deckDesignDirty = true; saveDeckDesign(); devRenderDeckDesign();
 }
 
 function devRenderDeckDesign() {
+  const model = deckModelNow();
+  const mo = document.getElementById('dev-deck-model');
+  if (mo) mo.innerHTML = [
+    ['mode',     'Mode default'],
+    ['classic4', '4 suits \u00b7 52'],
+    ['six',      '6 suits \u00b7 designed'],
+    ['weighted', 'Weighted'],
+  ].map(([v, lbl]) =>
+    `<button class="dev-spec-chip${deckModel === v ? ' on' : ''}" onclick="setDeckModel('${v}')">${lbl}</button>`).join('')
+    + `<span style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--cream-dim);margin-left:6px;">now: ${model}</span>`;
+
+  // ── the weighted editor ──
+  const wsu = document.getElementById('dev-deck-wsuits');
+  if (wsu) wsu.innerHTML = [4,5,6,7,8].map(n =>
+    `<button class="dev-spec-chip${deckWeightSuitCount === n ? ' on' : ''}" onclick="setDeckWeightSuits(${n})">${n}</button>`).join('')
+    + SUITS_EIGHT.slice(0, deckWeightSuitCount).map(g => `<span style="font-size:14px;margin-left:3px;">${g}</span>`).join('');
+  const wp = document.getElementById('dev-deck-wpreset');
+  if (wp) wp.innerHTML = [['balanced','Balanced 9/2'],['flat5','Flat 5'],['classic','Classic 4']]
+    .map(([k, lbl]) => `<button class="dev-btn" onclick="deckWeightPreset('${k}')">${lbl}</button>`).join('');
+  const we = document.getElementById('dev-deck-weights');
+  if (we) we.innerHTML = DECK_W_RANKS.map(r => {
+    const n = deckWeights[r] | 0;
+    return `<div class="dev-wrank${n ? '' : ' off'}">
+      <b>${r}</b>
+      <button class="dev-wbtn" onclick="setDeckWeight('${r}',-1)">\u2212</button>
+      <i>${n}</i>
+      <button class="dev-wbtn" onclick="setDeckWeight('${r}',1)">+</button>
+    </div>`;
+  }).join('');
+  const ws = document.getElementById('dev-deck-wstat');
+  if (ws) {
+    const t = deckWeightedStats();
+    const bad = t.N < 24 ? ' <span style="color:var(--c-coral)">too small to deal a board</span>' : '';
+    const fm = x => x.toFixed(0);
+    ws.innerHTML = `<b>${t.N} cards</b> \u00b7 ${t.ranks} ranks \u00b7 ${t.perSuit.toFixed(1)} per suit${bad}<br>`
+      + `per 10k draws \u00b7 <b>set3 ${fm(t.set3)}</b> \u00b7 <b>run3 ${fm(t.run3)}</b> \u00b7 <b>flush3 ${fm(t.flush3)}</b>`
+      + ` \u00b7 spread ${(Math.max(t.set3,t.run3,t.flush3) / Math.max(1e-9, Math.min(t.set3,t.run3,t.flush3))).toFixed(2)}x<br>`
+      + `run4 ${fm(t.run4)} \u00b7 run5 ${fm(t.run5)}${t.run5 <= 0 ? ' <span style="color:var(--c-coral)">(no straight possible)</span>' : ''}`;
+  }
+
   const rk = document.getElementById('dev-deck-ranks');
   if (rk) rk.innerHTML = RANKS.map(r =>
     `<button class="dev-spec-chip${r === deckCutRank ? '' : ' on'}" onclick="setDeckCutRank('${r}')">${r}</button>`).join('');

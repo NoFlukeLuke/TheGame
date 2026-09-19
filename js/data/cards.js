@@ -8,6 +8,11 @@ const SUITS = ['♠','♥','♦','♣'];
 // other four rather than emoji, which would sit at a different size and weight.
 const SUITS_EXTRA = ['♛','☾'];
 const SUITS_SIX = [...SUITS, ...SUITS_EXTRA];
+// Two more, for the weighted deck's suit knob (r273). Suit count is the flush
+// dial - flush difficulty is cards-per-suit - so the editor needs to reach past
+// six to bring flushes down to where sets and runs sit.
+const SUITS_EXTRA2 = ['★', '▲'];
+const SUITS_EIGHT = [...SUITS_SIX, ...SUITS_EXTRA2];
 let ACTIVE_SUITS = SUITS;
 const RANKS = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
 const RED = new Set(['♥','♦']);
@@ -211,7 +216,8 @@ const TRICK_CARD_INTERVAL = 20; // seconds
 
 function suitClass(suit) {
   return COLOR_CLASS[suit]
-      || { '♥':'suit-hearts', '♦':'suit-diamonds', '♠':'suit-spades', '♣':'suit-clubs', '♛':'suit-crowns', '☾':'suit-moons' }[suit] || '';
+      || { '♥':'suit-hearts', '♦':'suit-diamonds', '♠':'suit-spades', '♣':'suit-clubs', '♛':'suit-crowns', '☾':'suit-moons',
+           '★':'suit-stars', '▲':'suit-triangles' }[suit] || '';
 }
 
 // Central card capability gate - add new card types here, nowhere else
