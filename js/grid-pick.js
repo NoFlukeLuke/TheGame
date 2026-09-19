@@ -64,6 +64,52 @@ const GP_OPT_ROW = 1;             // options sit under the top ambience row
 const GP_CONFIRM_W = 2;
 const GP_ACT_COLS  = GP_COLS - GP_CONFIRM_W;
 
+// ── THE REROLL POOL (r281) - ONE pool, shared by every pick-of-three ─────────
+// Survival owned this and the Schedule's pick had no reroll at all. It is RUN
+// state, not mode state - a pool of free rerolls that carries between picks and
+// grows as you beat bosses - so it lives here, with the screen, and both callers
+// read it. A second copy in guided-mode.js is exactly how the two would drift.
+//
+// FREE FIRST, THEN PRICED. While the pool has any left a reroll costs nothing
+// and spends one; after that it costs PICK_REROLL_STEP x (paid rerolls on THIS
+// screen), so 5, 10, 15. The escalation resets per screen and the pool does not:
+// that is what makes holding a free reroll for a later pick a real decision.
+const PICK_REROLLS_START    = 3;   // at the start of a run
+const PICK_REROLLS_PER_BOSS = 2;   // every boss beaten, in every mode
+const PICK_REROLL_STEP      = 5;   // the price of the 1st, 2nd, 3rd PAID reroll
+
+let pickRerollsLeft = PICK_REROLLS_START;  // the carry-over pool
+let pickRerollsUsed = 0;                   // PAID rerolls on the screen that is open
+
+function pickRerollsInit()  { pickRerollsLeft = PICK_REROLLS_START; pickRerollsUsed = 0; }
+function pickRerollsGrant() { pickRerollsLeft += PICK_REROLLS_PER_BOSS; }
+// Called when a pick OPENS, never when it refreshes - the price climbing within
+// one screen is the whole point, and a reroll that reset it would be free.
+function pickRerollsNewScreen() { pickRerollsUsed = 0; }
+function pickRerollCost() { return pickRerollsLeft > 0 ? 0 : PICK_REROLL_STEP * (pickRerollsUsed + 1); }
+
+// Spend one. Returns false and says why when it cannot, so a caller can simply
+// `if (!pickRerollSpend()) return;` before drawing new offers.
+function pickRerollSpend() {
+  if (pickRerollsLeft > 0) { pickRerollsLeft--; return true; }
+  const cost = pickRerollCost();
+  if (coins < cost) { showMessage('Not enough credits', 'var(--red)'); return false; }
+  coins -= cost;
+  if (typeof updateCoinsUI === 'function') updateCoinsUI();
+  pickRerollsUsed++;   // only a PAID reroll moves the price
+  return true;
+}
+
+// The action tile, built once here so both screens print the same thing: FREE
+// with the pool's count while it lasts, then the live price.
+function pickRerollAction(onReroll) {
+  const free = pickRerollsLeft > 0, cost = pickRerollCost();
+  return { icon: '🎲', label: 'Reroll',
+           sub: free ? `FREE (${pickRerollsLeft})` : `${cost} \u25c6`,
+           disabled: !free && coins < cost,
+           onClick: () => { if (pickRerollSpend()) onReroll(); } };
+}
+
 let gridScreenSaved = null;       // { rows, cols } to restore on close
 let gridPickState = null;         // { offers, actions, onChoose } for a re-render
 

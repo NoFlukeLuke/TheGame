@@ -200,3 +200,28 @@
    grid. body.gp-active is set by gridScreenTakeover, so the pick and the tiled
    payout both get it. */
 body.gp-active #sel-count { display: none !important; }
+
+/* ── THE ROUND BREAKDOWN, READ OVER THE BOARD (r281) ────────────────────────
+   The reader's markup is `#survival-pick-overlay` / `#sv-pick-contrib` for
+   historical reasons (it was Survival's alone until the Schedule's pick gained
+   the same tile), but the behaviour belongs to THIS screen, so the rules are
+   here beside the tiles they dim.
+
+   The list is centred and tall enough to lie across all three options, so while
+   it is open the board is DIMMED AND INERT and the overlay takes the taps. That
+   is the fix for a reader that silently ate a tile click; see
+   survivalToggleContrib. Nothing here applies unless .sv-reading is on, so the
+   resting screen is untouched. */
+#survival-pick-overlay.sv-reading {
+  pointer-events: auto;
+  background: radial-gradient(ellipse at 50% 50%, rgba(8,11,6,0.62) 30%, rgba(8,11,6,0.86) 100%);
+}
+/* An opaque plate: the list used to be read against the option tiles behind it. */
+#survival-pick-overlay.sv-reading #sv-pick-contrib.show {
+  background: linear-gradient(180deg, rgba(24,21,15,0.985), rgba(12,10,7,0.99));
+  border-color: rgba(183,172,147,0.5);
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.6), 0 10px 26px rgba(0,0,0,0.6);
+}
+/* The board behind it is not the thing being read. */
+body.gp-reading #grid .gp-opt,
+body.gp-reading #grid .gp-act { pointer-events: none; opacity: 0.32; }

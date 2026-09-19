@@ -1383,6 +1383,72 @@ pick-of-three (4 actions + CONFIRM, no overflow) and the map's 2-knack pick. A
 tap grants nothing, CONFIRM with nothing selected does nothing, the tiles are
 cleaned out of `#grid` on close, and there are no page errors.
 
+### ONE reroll pool, and the Schedule's pick is Survival's pick (r281)
+
+Owner: *"Can you make the pick 3 for schedule the same as survival with the
+rerolls and such. And make sure they both require a confirm still."*
+
+**The reroll pool is RUN state, not Survival state**, so it moved into
+`js/grid-pick.js` beside the screen it belongs to and both callers read it:
+`PICK_REROLLS_START` (3) · `PICK_REROLLS_PER_BOSS` (2) · `PICK_REROLL_STEP` (5),
+with `pickRerollCost` / `pickRerollSpend` / `pickRerollAction`. Survival's
+`survivalRerollsLeft` / `survivalRerollsUsed` / `SURVIVAL_REROLL*` are gone; it
+builds its Reroll tile from `pickRerollAction` like the Schedule does. **A second
+copy in guided-mode.js is exactly how the two would have drifted.**
+
+- **FREE FIRST, THEN PRICED, and the two halves reset differently.** The POOL
+  carries between picks; the PRICE ladder (5, 10, 15) restarts per screen, via
+  `pickRerollsNewScreen()` called when a pick OPENS and never when it refreshes.
+  That split is what makes holding a free reroll for a later pick a real
+  decision. Measured on the Schedule: FREE (3) -> 2 -> dry -> 5 -> 10 -> 15, with
+  credits 40 -> 35 -> 25.
+- **The +2 per boss moved to `endBoss`'s success block**, above the per-mode
+  branch - the one site that knows a boss was beaten, so every mode's pick draws
+  on it. It used to sit in `survivalPostBossReward`, which the Schedule never
+  reaches. Survival's toast reads `PICK_REROLLS_PER_BOSS` now.
+- **`startGame` seeds the pool for every mode.** `survivalInitRun()` only runs
+  for Survival and Flow, so seeding there left the Schedule on whatever the last
+  run finished with.
+- **SAVE_VARS renamed** (`pickRerollsLeft` / `pickRerollsUsed`). A save written
+  before r281 resumes with the run-start pool of 3 instead of its own figure -
+  one value, and the alternative was two names for one pool.
+- **A reroll REDRAWS, it does not re-deal** (`gridPickRefresh`), so the tiles do
+  not fall in twice for one screen - and r280's rule that new offers drop the
+  selection means a reroll can never leave CONFIRM armed on an offer that is no
+  longer on the board. **Both screens still require CONFIRM**; verified.
+
+**Two of Survival's four actions are deliberately absent from the Schedule, and
+neither is an oversight.** PEEK puts the pick aside to look at the BOARD, which
+only exists because Survival opens its pick mid-dance over cards that are still
+there; the Schedule's pick opens after the payout, and
+`showLevelUpScreen_fallOnly` has already discarded every cell, so there is
+nothing behind it. SHOP is an obligation you walk to on the Schedule - selling a
+way in from here for a flat fee would route around the board the whole mode is.
+
+#### The breakdown was eating tile taps, on BOTH screens
+
+`#sv-pick-contrib` is ~155 stage px tall and centred in `#grid-slot`, so since
+r256 - when the pick became the board - it has lain **straight across the middle
+of all three option tiles and taken their clicks**, against almost no plate.
+Measured: a tile click under an open breakdown never lands. Sharing the tile with
+the Schedule would have spread that, so it is fixed once, in the shared place.
+
+**Opening it is a READING STATE that owns the screen**: `.sv-reading` on the
+overlay makes it take pointer events and paints a dim behind an opaque plate,
+`body.gp-reading` makes the tiles inert at 0.32, and a pointerdown anywhere off
+the list closes it (a tap ON the list is let through, so it still scrolls). One
+thing readable at a time, one tap back to picking. The rules live in
+`css/grid-pick.css` beside the tiles they dim, even though the markup ids are
+Survival's for historical reasons.
+
+Verified in a real browser at 1440x820 and 420x820: the Schedule's pick shows
+Reroll + Round + CONFIRM with no overflow in either orientation, the ladder and
+credits move as above, the breakdown opens and closes and hands the board back
+with `pointer-events: auto`, CONFIRM with nothing selected does nothing, a pick
+commits exactly one entity and leaves 0 tiles in `#grid`, `pickRerollsGrant`
+takes 1 to 3, and Survival's screen is unchanged (4 actions + CONFIRM, same
+shared pool). No page errors on any run.
+
 ### How it routes
 
 - **`guidedAfterSlot()` is the single place that decides "another slot, or the boss"**, so no caller has to know how long an act is.

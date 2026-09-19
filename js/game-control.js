@@ -323,6 +323,7 @@ function startGame() {
   }
   // Survival: reset its per-run state and flag the stage (shows the shop button).
   document.getElementById('stage')?.classList.toggle('survival-mode', survivalActive());
+  if (typeof pickRerollsInit === 'function') pickRerollsInit();  // the pick-of-three reroll pool (js/grid-pick.js)
   if (survivalActive()) survivalInitRun();
   if (typeof flowInitRun === 'function' && flowActive()) flowInitRun();
   // Flow hook for mode-scoped CSS (it charges no time, so the action buttons must

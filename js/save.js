@@ -133,10 +133,10 @@ const SAVE_VARS = [
   // ── Challenge ──
   'challengeCard', 'challengeActive', 'trickCardPos', 'trickCardTimer',
   // ── Survival ──
-  'survivalBossTimeBank', 'survivalBossPending', 'survivalLevelsSinceLimit', 'survivalRerollsUsed',
+  'survivalBossTimeBank', 'survivalBossPending', 'survivalLevelsSinceLimit', 'pickRerollsUsed',
   // The rest of the Survival loop's state. survivalBossesBeaten in particular gates the
   // 5-boss completion screen, so without it a resumed run never finishes.
-  'survivalLevelsSinceKnack', 'survivalRerollsLeft', 'survivalBossesBeaten',
+  'survivalLevelsSinceKnack', 'pickRerollsLeft', 'survivalBossesBeaten',
   'survivalSecondsToBoss', 'survivalEndless', 'survivalEndlessFromLevel',
   // ── Flow (js/flow-mode.js) ──
   'flowBossFighting', 'flowRefillClock',
