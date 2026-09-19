@@ -41,15 +41,22 @@ net, treat its win rate as a floor a real player clears by a wide margin.
 
 ## Calibration anchors (2026-09-19, pre-deck-rework)
 
-Classic, 100 runs each, handTime 12:
+**Use handTime 6, not 12.** The owner's pairs-for-Focus play (~5-6s a hand) earns
+the SPEED Focus bonus, which zeroes at 8s - so a 12s bot plays the whole run at
+Focus x1.00 while a 6s bot rides ~x1.5-3.4. Measured: at 12s the owner's
+"too easy" curve read 57% (bot artificially weak); at 6s it reads **93.8%**,
+which matches the report. The 6s figures are the calibrated ones:
 
-| curve | bot win % |
+| curve (classic, handTime 6) | bot win % |
 |---|---|
-| 1500 base, 30%/round | 57 (the owner's "a good bit too easy") |
-| 1200 base, 35%/round | 39 |
-| **1500 base, 32% then 45% from round 13 (shipped r278)** | **37** |
-| 1500 base, 40%/round | 18 |
-| 2000 base, 45%/round | 5 |
+| 1500 base, 30%/round | 93.8 (the owner's "a good bit too easy") |
+| **1500 base, 32% then 45% from round 13 (shipped r278)** | **30** |
+
+Death diagnostics (the `deathDiag` block): failed rounds die playing ~9 hands at
+Focus x3.4 and reaching ~83% of goal - wall deaths, not board stalls. About a
+third of a death round's clock goes to dry scans, mostly late at high Selection
+Size where the minimum-selection floor bites; the bot never plays High Card and
+only swaps/discards reactively, so that share is an overcount of a real player's.
 
 Schedule: shipped-r277 curve (Classic's 35%/level) = 0/100 - a wall, because a
 Schedule level advances on every obligation, ~2x Classic's rate. 18%/level with

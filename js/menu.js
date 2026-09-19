@@ -1,4 +1,4 @@
-const BUILD = "2026-09-19 · r278 · goal curves retuned from the Monte Carlo sweep";
+const BUILD = "2026-09-19 · r279 · sim recalibrated to a Focus-riding bot; curves stand";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

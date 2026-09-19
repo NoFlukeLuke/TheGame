@@ -117,7 +117,7 @@ function SIM_spend(secs) {
 // one round; assumes score already holds any carry-over, roundGoal/roundSeconds set
 function SIM_playRound() {
   let clock = roundSeconds;
-  let hands = 0, dry = 0;
+  let hands = 0, dry = 0, dryActs = 0, fmSum = 0;
   roundStartSeconds = clock;
   let decayMs = (typeof focusDecayIntervalMs === 'number' && focusDecayIntervalMs > 0) ? focusDecayIntervalMs : 2000;
   while (clock > 0 && score < roundGoal) {
@@ -144,6 +144,7 @@ function SIM_playRound() {
         clock = SIM_spend(9 + 4); acted = true;
       }
       if (!acted) clock = SIM_spend(6);
+      dryActs++;
       if (++dry > 10) break;
       continue;
     }
@@ -154,6 +155,7 @@ function SIM_playRound() {
     try { generateHandFocus(best.hand, best.cells, 0); } catch (e) {}
     // focus decay over the hand's think-time
     focusNodes = Math.max(0, focusNodes - Math.floor(SIM_CFG.handTime * 1000 / decayMs / 2));
+    try { fmSum += focusMultiplier(); } catch (e) {}
     let s = 0;
     try { s = calcScore(best.hand, best.cells); } catch (e) {}
     score += s;
@@ -162,7 +164,8 @@ function SIM_playRound() {
     SIM_removeAndRefill(best.cells);
     clock = roundSeconds;
   }
-  return { cleared: score >= roundGoal, score, hands, timeLeft: Math.max(0, clock) };
+  return { cleared: score >= roundGoal, score, hands, timeLeft: Math.max(0, clock),
+    dryActs, avgFocus: hands ? +(fmSum / hands).toFixed(2) : 1, scorePct: +(score / Math.max(1, roundGoal) * 100).toFixed(0) };
 }
 
 // ── entity grants ──
@@ -267,7 +270,7 @@ function SIM_runClassic(goalFn, quarters) {
     for (let node = 1; node <= 6; node++) {
       const isBoss = node === 6;
       const res = SIM_playRound();
-      if (!res.cleared) return { win: false, diedLevel: level, boss: isBoss };
+      if (!res.cleared) return { win: false, diedLevel: level, boss: isBoss, diag: { hands: res.hands, dryActs: res.dryActs, avgFocus: res.avgFocus, scorePct: res.scorePct } };
       // between rounds: reward grid (2 draws + early-run guaranteed limit); boss pays prize grid (2 rare+)
       gridsSeen++;
       if (isBoss) {

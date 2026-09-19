@@ -11,11 +11,20 @@ layered hands or draft synergies), so its win rate is a FLOOR: pick curves
 where the bot wins ~25-40% and a decent player lands around 60-75%.
 **Rerun the sweep after the deck rework** - one command, nothing to rebuild.
 
-## The anchor
+## The anchor (recalibrated after your playtest report)
 
-At your 1500 / 30% ("too easy"), the bot won **57%**. So the retune aims the
-bot at ~25-40% with deaths concentrated in the back half of the run, never in
-round 1.
+The bot's pace is its skill knob, and pace turns out to gate the SPEED Focus
+bonus (zero past 8s a hand). At the original 12s pace the bot never earned any
+speed Focus - your pairs-to-pump-Focus engine did not exist for it. At a 6s
+pace it plays that engine (Focus ~x1.5-3.4) and the numbers line up with your
+experience: at your 1500 / 30% it wins **93.8%** and almost never dies early -
+you reported roughly 27 of 30 rounds cleared comfortably. The shipped r278
+curve reads **30%** for that same bot; a player who also drafts synergies and
+builds 6-7 card layered hands lands well above it.
+
+Failed runs die at the wall, not on stuck boards: at death the bot is still
+playing ~9 hands in the round, at Focus x3.4, and reaches ~83% of the goal.
+Round-1 deaths are ~0% at the calibrated pace.
 
 ## What shipped, per mode
 

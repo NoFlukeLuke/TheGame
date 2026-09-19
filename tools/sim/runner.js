@@ -52,12 +52,15 @@ const errs = results.length - ok.length;
 const losses = ok.filter(r => !r.win);
 const hist = {};
 losses.forEach(r => { hist[r.diedLevel] = (hist[r.diedLevel] || 0) + 1; });
+const diags = losses.filter(r => r.diag).map(r => r.diag);
+const avg = (k) => diags.length ? +(diags.reduce((a, d) => a + (d[k] || 0), 0) / diags.length).toFixed(1) : null;
+const deathDiag = diags.length ? { hands: avg('hands'), dryActs: avg('dryActs'), avgFocus: avg('avgFocus'), scorePct: avg('scorePct') } : null;
 const bossDeaths = losses.filter(r => r.boss).length;
 console.log(JSON.stringify({
   mode, sched, handTime, runs: results.length, errs,
   winRate: ok.length ? +(wins / ok.length * 100).toFixed(1) : null,
   bossDeathShare: losses.length ? +(bossDeaths / losses.length * 100).toFixed(0) : null,
-  deathLevels: hist,
+  deathLevels: hist, deathDiag,
   msPerRun: +(ms / runs).toFixed(0),
   firstErr: results.find(r => r.err)?.err,
 }));
