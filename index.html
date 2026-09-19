@@ -38,6 +38,7 @@
 <link rel="stylesheet" href="css/goal-clear.css">
 <link rel="stylesheet" href="css/quarter.css">
 <link rel="stylesheet" href="css/entity-fx.css">
+<link rel="stylesheet" href="css/card-states.css">
 <link rel="stylesheet" href="css/audio-menu.css">
 <link rel="stylesheet" href="css/picker.css">
 </head>
@@ -125,6 +126,19 @@
       <button class="dev-btn" onclick="devResetImprove()">Reset all tiers</button>
     </div>
     <div id="dev-improve-list" style="max-height:260px;overflow-y:auto"></div>
+  </div>
+  <div class="dev-section" data-group="cardstates">
+    <h4>Card states (r278)</h4>
+    <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:6px">
+      <button class="dev-btn" onclick="devCardStateRandom()">State on a random card</button>
+      <button class="dev-btn" onclick="devMakeTempCard()">Drop a temp card on the board</button>
+      <button class="dev-btn" onclick="devClearCardStates()">Clear every state</button>
+    </div>
+    <div style="font-size:10px;opacity:0.7;margin-bottom:6px">
+      Pick a state, then tap a card on the board to charge it.
+    </div>
+    <div id="dev-card-state-list"></div>
+    <div id="dev-card-state-board" style="margin-top:8px;font-size:10px;opacity:0.8"></div>
   </div>
   <div class="dev-section" data-group="score">
     <div class="dev-section-title">Score</div>
@@ -1305,6 +1319,7 @@
 <script src="js/boss-approach.js"></script>
 <script src="js/force-trick.js"></script>
 <script src="js/hallmark.js"></script>
+<script src="js/card-states.js"></script>
 <script src="js/payout-pick.js"></script>
 <script src="js/guided-mode.js"></script>
 <script src="js/map-mode.js"></script>

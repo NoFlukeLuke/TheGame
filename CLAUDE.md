@@ -19,11 +19,13 @@ The game **used to be one giant `index.html`**. It's now split into many small f
 - `css/dev-overlays.css` - dev-panel + event-overlay styling.
 - `js/` - the game code, one file per system (list below).
 - `TERMINOLOGY.md` - **the index of what things are CALLED.** Read it before renaming anything the player sees. The governing rule: code ids are frozen, only display strings change, and every tier/category word is spelled out in `js/labels.js` and nowhere else.
+- `CARD_EFFECTS.md` - **the index of everything that can be true of ONE CARD.** Every permanent buff and debuff, every boss state, the r278 card states, and the parked design list. Read it before adding a per-card effect.
 - `OPEN_DECISIONS.md` - **the balance-audit backlog: measured findings left for the owner to decide on.** Over-tuned rares, under-tuned legendaries, the rare/epic tier inversion, and how to reproduce the measurement. Read it before any balance pass.
 - `js/entity-tile.js` - **`entityTileInner` / `entityTileHTML` (r182): the ONE way an entity is drawn.** See "One entity tile" below - change a Trick's look here and the reward grid, the Mart shelf, the cart, the loadout strip, your tray and the Shift Change event all move together.
 - `js/fit-text.js` - `fitEntityName`. Shrinks an entity name until it fits, **never breaking a word** (r182).
 - `js/dance-clock.js` - **the scoring dance's own clock (r218).** Pausable waits, a WAAPI animation registry, and the per-tick acceleration. See "The dance clock" below.
 - `js/events-upgrade.js` / `js/events-slots.js` - the r218 events. Registered in `js/events-core.js` like every other event.
+- `js/card-states.js` - **the r278 per-card charges, the per-card clock and temp cards.** See "Card states" below and CARD_EFFECTS.md.
 - `js/storage.js` - **loads FIRST**, before every other script. A safety shim for browser storage (see below). Nothing else may be moved above it.
 - `js/data/` - **the "entities": pure content/data, no logic.** Edit these to tune or add game content without touching engine code:
   - `cards.js` - suits, ranks, rank order, `HAND_BASE` values, round/goal durations, `cardCan`, **and the Spectrum colour deck** (`COLORS` / `RANKS_NUMERIC` / `ACTIVE_RANKS`).
@@ -1205,6 +1207,87 @@ Remove takes it to 51 with the card out of both piles and the board emptied. In
 every case the snapshot clears, the pick closes and the reward grid opens, with
 **the deck audit passing** and no page errors. Disabled and SKIP both leave the
 deck untouched and the audit clean.
+
+## Card states (r278) - `js/card-states.js` + `css/card-states.css`
+
+A **one-shot charge on one physical card**, with two halves: play it and it pays
+out big, or leave it alone for its fuse and the OTHER half fires instead. The idle
+half is a different outcome, never a flat penalty, and several of them are how a
+run **thins its deck** without a shop. **CARD_EFFECTS.md is the full reference** -
+the seven states, where each half is applied, the parked list, and the rule a new
+state has to meet.
+
+Three things this file owns, and the traps in each:
+
+- **The per-card clock** (`cardIdleSecs`, keyed by `cardId`). Ticked from the ROUND
+  tick, so it stops with the round, the pause menu and RECORDS with no pause
+  handling of its own, and reset every round (owner's spec) so a charged card does
+  not blow up the instant the next round deals. A **swap counts as a touch**, which
+  is the only way to hold a charge you are not ready to spend. A blocked, held or
+  quarantined cell does not age: a card you cannot touch must not have its fuse run
+  down. The tick skips while `animating || falling` (the r213 Hollow lesson).
+- **Temp cards** (`_temp`). The ONE per-card thing that is a card field rather than
+  a map entry, because it has to survive `discardToPlayed`'s rebuild so that rebuild
+  can **refuse** it. Both pile functions drop it, and that is the whole of "this
+  level only": the level-clear sweep runs `discardToPlayed` on every cell. It IS a
+  real card while it is there - a boss can curse it, a mid-round blessing can buff
+  it - and `gridCardCount()` deliberately does not count it, because the deck audit
+  is about the permanent deck. `makeCardPermanent()` is the written-but-unused seam
+  for converting one.
+- **The registry** (`CARD_STATE_DEFS`), so a new state is a row.
+
+**Two states cannot pay out in the post-commit block, and that is the interesting
+part.** `cardStatesOnUse` sits in `playHand` beside `growCardScaling` and
+`hallmarkResolve`, for their reason: a payout earned by a hand lands on the next
+one, and anything rolled inside `calcScore` fires dozens of times a selection. But:
+
+- **Callback** has to change the hand being scored, so it is READ inside `calcScore`
+  (`cardStateCallbackOn`), exactly like Low and Behold - the condition is a property
+  of the hand, the effect is +1 replay per card. Read only; the charge is spent in
+  `playHand` like every other.
+- **Roll Call** changes WHICH CARDS the hand is made of, so it runs before the hand
+  is found. It follows `ringerAugment`'s shape and for the same two reasons: it
+  ignores selection size (added after the player committed) and it ignores adjacency
+  (`findBestHand` only builds connected subsets and `detectHand` does not check
+  connectivity). It also runs **above the minimum-selection guard**, so a lone
+  charged card plus three pulls is legal at a minimum of 3. Its pull is
+  unconditional and has **three tries** - the union, the rank group alone, then the
+  hand you already had - because `handComponentsFor` refuses a hand over
+  `HAND_MAX_CARDS` or one carrying an unclaimed card. Anything the hand cannot use
+  is taken as a **penalty card**, which is the existing word for "committed,
+  consumed and billed".
+
+**Backfill's charge MOVES to the copy.** A stack of 3 is three copies one after
+another and then done. Left on the original it would be a permanent extra card on
+every play for the rest of the run; copied to both it would branch.
+
+**Self-removal costs the CLOCK and not the STOCK** (`CARD_SELF_DISCARD_COSTS_STOCK`
+flips that). A card removing itself when you are on zero discards must not be a rule
+that cannot run. **The Turnover knack pays neither** (`opts.free`): billing it at 3s
+a card costs a full board about 48 seconds of a 180-second round, so a priced
+Turnover is not a weaker Turnover, it is an unplayable one. Turnover also churns
+**one card per tick**, the longest-idle one - at a round's start every card has aged
+together, so a sweep would be a board wipe rather than churn.
+
+**`luckBadRoll` / `luckBadChance` (js/luck.js) are new and are the mirror of
+`luckRoll`**: a chance of something BAD has to get rarer as Luck climbs, or Luck is
+a stat that makes half of a duality card worse. `downgradeEntity` (js/improve.js) is
+the counterpart to `improveEntity` and goes through `applyEntityTiers` the same way,
+so a knocked-back Trick's printed description follows the number back down.
+
+**Where states come from today:** the **Hallmark** knack (an eighth outcome) and the
+dev panel's **Card States** group. Hallmark resolves AFTER the states' own spend
+block in `playHand`, or a state it granted would be consumed by the hand that
+earned it.
+
+**Verified in a real browser at 1440x820**, all seven: badges and fuse rings paint
+inside the card with 0 overflow; Fleeting recycles and the board refills; Deadline
+and Scavenger delete from the run and `expectedDeckTotal` follows; a Backfill stack
+of 3 gives exactly three temp copies and then stops; a temp card never reaches
+either pile and is gone at the level-clear sweep; Roll Call turns a lone selection
+into a Four of a Kind at a minimum selection of 3; Callback takes a Run of 3 from
+189 to 250; Turnover churns one card for 0 seconds and 0 stock; a state's own
+self-discard bills 3s and 0 stock; **the deck audit balances at every step**.
 
 ### The Hallmark knack (r234) - `js/hallmark.js`
 

@@ -207,12 +207,27 @@ function playHand() {
   // r200: the minimum selection is a rule, not just a disabled button - keyboard
   // and queued-action paths reach here without going past the button's state.
   if (typeof minSelection === 'function' && selected.length < minSelection()) {
-    dbgEvent('warn', 'play: below minimum selection', { selected: selected.length, min: minSelection() });
-    return;
+    // Roll Call (r278) pulls every card of its rank into the hand, so a selection
+    // that is short on its own can still be legal. The count is asked for BEFORE
+    // the guard decides, because "if the card is selected alone, that can ignore
+    // the minimum if there are enough cards on the board" is the whole point of
+    // the state. rollCallPullCells is pure, so asking twice costs nothing.
+    const _rcN = (typeof rollCallPullCount === 'function') ? rollCallPullCount(selected) : 0;
+    if (selected.length + _rcN < minSelection()) {
+      dbgEvent('warn', 'play: below minimum selection', { selected: selected.length, min: minSelection() });
+      return;
+    }
   }
   cancelAutoSubmit();
   console.log('[PLAY] entry', { score, goal: roundGoal, goalReachedThisRound, bonusWindowActive, animating, hasDance: !!danceAbortController });
   let result = findBestHand(selected);
+  // Roll Call (r278, js/card-states.js): every card of its rank on the board
+  // joins the hand. It runs BEFORE the no-hand bail, unlike the Ringer below,
+  // because it can MAKE the hand rather than merely improve one - a lone Roll
+  // Call 7 with three other 7s on the board is a Four of a Kind that
+  // findBestHand, which only ever builds connected subsets, could never find.
+  const _rollCall = (typeof rollCallAugment === 'function') ? rollCallAugment(result, selected) : null;
+  if (_rollCall) { result = _rollCall.result; selected = [...selected, ..._rollCall.cells]; }
   if (!result) { dbgEvent('warn', 'play: no valid hand', { selected: selected.length, animating, falling, roundEnded, dance: !!danceAbortController, swapPending: !!swapPending, swiping: isSwiping }); console.log('[PLAY] no result, exiting'); return; }
   // Abort any prior in-flight score dance ONLY now that we have a real hand to play.
   // (A spurious double-fire of Play on a now-empty selection must NOT cancel the
@@ -345,6 +360,15 @@ function playHand() {
   // score commits, exactly like growCardScaling above and recordNaturalScale
   // below - a buff earned by a hand pays out on the NEXT one. Rolling it inside
   // calcScore would fire on every speculative re-score instead.
+  // Card states (r278). Same slot and the same reason: a state's payout is
+  // earned by this hand and lands on the next one, and anything rolled inside
+  // calcScore would fire on every speculative re-score. The two states whose
+  // payout HAS to change this hand (Callback's replays, Roll Call's pull) are
+  // applied earlier and only spend their charge here, so there is one place a
+  // charge is spent. Every played card is touched, not just the scored ones -
+  // a penalty card was still committed and consumed.
+  if (typeof cardStatesTouch === 'function') cardStatesTouch(playedCells.map(([r, c]) => gridData[r]?.[c]));
+  if (typeof cardStatesOnUse === 'function') cardStatesOnUse(result.handCells.map(([r, c]) => gridData[r]?.[c]), result.handCells);
   if (typeof hallmarkResolve === 'function') hallmarkResolve(result.handCells.map(([r, c]) => gridData[r]?.[c]));
   // Forced Trick fires are spent by the hand they paid for (js/force-trick.js).
   // Cleared here rather than in calcScore for the speculative-re-score reason

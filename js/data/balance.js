@@ -212,6 +212,10 @@ const BAL = {
   minute_hand: { mult: 5, hands: 2 },
   understudy: { interval_seconds: 30 },
   hallmark:   { mult: 5, pips: 10, seconds: 3, force_scale: 1, force_cap_x: 8 },
+  turnover:   { idle_seconds: 60 },
+  // Card states (r278, js/card-states.js). Not an entity, so improve.js never
+  // touches these - they are the states' own numbers, in one place.
+  card_states: { review_up: 0.2, review_down: 0.5, roll_call_penalty: 15, fuse_seconds: 60 },
   payout_pick: { pips: 12 },
   second_hand: { pips: 5 },
   hourglass: { chance: 1/3 },
@@ -314,6 +318,7 @@ const PRIZE_TIER_W   = [30, 55, 12, 3];
 const DESC_TEMPLATES = {
   understudy: 'Every {interval_seconds} seconds one of your tricks is primed: it fires an extra time on your next hand.',
   hallmark:   'Once a round a card on the board is marked. Score it and it takes a random buff: +{mult} mult, +{pips} pips, an extra replay, {seconds}s of clock, or a trick primed or forced.',
+  turnover:   'Any card you leave alone for {idle_seconds} seconds is discarded and a fresh one falls in. Costs you nothing.',
   whetstone: 'Whenever an adjacent card is swapped or discarded, Whetstone gains +{mult_per_event} mult permanently. Hands that score a card adjacent to Whetstone score that mult.',
   entourage: 'Hands score +{mult_per_sleight} mult for every other Sleight on the grid.',
   lighthouse: 'Each round Lighthouse picks either the first or last column. All hands score +{mult} mult when Lighthouse is in that column, −{falloff_per_column} per column away (minimum 0).',

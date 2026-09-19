@@ -191,11 +191,16 @@ let playedPile = [];
 // Tracks the expected card count after intentional add/remove operations.
 // HUD shows actual vs expected; mismatch = bug.
 let expectedDeckTotal = 52;
+// The deck audit is about the PERMANENT deck, so a temp card is not one of its
+// cards - it was never drawn from a pile and will never return to one. Counting
+// it would report a mismatch for as long as it sat on the board.
 function gridCardCount() {
   let n = 0;
   for (let r = 0; r < (gridData?.length || 0); r++)
-    for (let c = 0; c < (gridData[r]?.length || 0); c++)
-      if (gridData[r][c] && !gridData[r][c]._isTrick && gridData[r][c].rank) n++;
+    for (let c = 0; c < (gridData[r]?.length || 0); c++) {
+      const cd = gridData[r][c];
+      if (cd && !cd._isTrick && !cd._temp && cd.rank) n++;
+    }
   return n;
 }
 function deckTotalActual() {
@@ -256,6 +261,11 @@ const DURABLE_CARD_FIELDS = [
   '_spadeEarlyPlays', '_spadeDiscards', '_diaPoorPlays', '_diaRichPlays',
   // Whetstone's banked mult and the Vulture's clock buff
   '_whetMult', '_vulturePause',
+  // A TEMP card (r278, js/card-states.js) exists for this level only. It is
+  // named here so the flag survives this rebuild, which is what lets the two
+  // pile functions below REFUSE it: a temp card that lost its flag on the way
+  // into the draw pile would become a permanent member of the deck.
+  '_temp',
 ];
 // Every real, ordinary card in the run, wherever it is. This is the list to pick
 // from whenever something targets "a card" - a curse, a blessing, a shop service.
@@ -337,6 +347,12 @@ function discardToDrawPile(card) {
   // Sleights are consumed on discard (their on_discard effect is fired by the caller
   // with grid position); they are not returned to the draw pile.
   if (card._isSleight) { updateDeckHud(); return; }
+  // A temp card evaporates rather than joining the deck (r278). This and
+  // discardToPlayed below are the ONLY two ways a card enters a pile, so
+  // refusing it in both is the whole of "it exists for this level only" - the
+  // level-clear sweep runs discardToPlayed on every cell, which is what makes a
+  // temp card disappear when the level ends without anything else sweeping.
+  if (card._temp) { updateDeckHud(); return; }
   drawPile.push(recycleCard(card)); updateDeckHud();
 }
 
@@ -359,6 +375,7 @@ function discardToPlayed(card) {
     }
     return;
   }
+  if (card._temp) { updateDeckHud(); return; }   // see discardToDrawPile (r278)
   playedPile.push(recycleCard(card)); updateDeckHud();
 }
 

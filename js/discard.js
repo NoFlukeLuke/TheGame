@@ -150,6 +150,7 @@ function doDiscard() {
     const _stock = Math.max(0, swaps) + Math.max(0, discards);
     if (_stock > 0) { addFocus(_stock * BAL.cull.focus_per_stock, 'cull'); showMessage(`Cull +${_stock * BAL.cull.focus_per_stock} Focus`, 'var(--gold)'); }
   }
+  if (typeof cardStatesTouch === 'function') cardStatesTouch(discardedCards);
   const toRemove = [...selected];
   selected = [];
   removeAndFall(toRemove, 'discard');

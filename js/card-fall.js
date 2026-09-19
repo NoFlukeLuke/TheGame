@@ -147,6 +147,10 @@ function renderCardAppearance(card, r, c, {
     rcPips.trim(), rcMult.trim(), rcRetrigger.trim(), rcLeyline.trim(), rcJeopardy.trim(), rcWoodpecker.trim(),
     rcOnLine.trim(), _cd.cls,
     (gp || gm) ? 'card-scaling' : '',
+    // Card states + temp cards (r278). `card-temp` is independent of any state:
+    // "this will not be here next round" is the thing a player most needs to
+    // know before building a plan around the card.
+    (typeof cardStateCardClass === 'function') ? cardStateCardClass(card) : '',
   ].filter(Boolean).join(' ');
 
   const combinedLabel = isCombined
@@ -171,6 +175,7 @@ function renderCardAppearance(card, r, c, {
     ${(gp || gm) ? `<div class="card-grow-mark" title="Scales +${gp ? gp + ' pips' : ''}${gp && gm ? ' and +' : ''}${gm ? gm + ' mult' : ''} each time it's played">\u2197</div>` : ''}
     ${lineRing}
     ${fxMark}
+    ${(typeof cardStateBadgeHTML === 'function') ? cardStateBadgeHTML(card) : ''}
     ${_cd.html}
   `;
 
@@ -208,6 +213,12 @@ async function removeAndFall(removingCells, mode = 'play') {
   const removing = new Set(removingCells.map(([r,c])=>`${r}-${c}`));
   // Clear swap mode if the pending card is about to be removed
   if (swapPending && removing.has(`${swapPending[0]}-${swapPending[1]}`)) swapPending = null;
+
+  // Card states that fire on LEAVING the board (r278, js/card-states.js). Called
+  // here, while gridData still holds the cards and before anything is nulled:
+  // Backfill queues a temp copy for this column, and by the time the fall plan
+  // below has packed the column the hole it wanted to fill is gone.
+  if (typeof cardStatesOnLeave === 'function') cardStatesOnLeave(removingCells);
 
   // Only play mode routes cards to the played pile.
   // Discard mode: the caller (doDiscard) already pushed cards to the back of the draw pile.
@@ -305,7 +316,12 @@ async function removeAndFall(removingCells, mode = 'play') {
     // New cards fill the top `removedCount` rows of playableRows
     for (let i = 0; i < removedCount; i++) {
       const finalRow = playableRows[i];
-      newCards.push({ col, finalRow, fromAbove: removedCount - i, card: drawCard() || null });
+      // A queued Backfill copy fills the hole BEFORE the deck does, so a
+      // backfilled cell costs the deck nothing: no card is drawn, the Marker's
+      // one-in-ten counter does not advance, and the audit stays balanced
+      // because a temp card is not counted as a deck card (js/card-states.js).
+      const _bf = (typeof cardStatesDrawFor === 'function') ? cardStatesDrawFor(col) : null;
+      newCards.push({ col, finalRow, fromAbove: removedCount - i, card: _bf || drawCard() || null });
     }
   }
 
