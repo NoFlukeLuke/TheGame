@@ -1137,9 +1137,12 @@ node, no slot, no credits and no clock.
 #### The un-explode
 
 The goal finale blows the board apart (`js/score-dance.js`: outward from the
-grid's centre, 200-340px, +-160deg, scale .82, fading, 900ms). Bringing the cards
+grid's centre, 200-340px, +-160deg, scale .82). Bringing the cards
 back by REVERSING that blast is what makes this read as the round being rewound
-rather than as a new screen opening. Same geometry played backwards on
+rather than as a new screen opening. **Since r280 the finale itself brings the
+surrounding cards home** (see "The win finale's cards come home" below) - this
+un-explode is still needed, and needed unchanged, because the ROUND-END FALL
+between the finale and the payout really does empty the board. Same geometry played backwards on
 `sfxRewind`, and **nearest the centre lands first**, so the board fills outward -
 the exact reverse of a blast, and what stops it reading as an ordinary deal.
 
@@ -2843,7 +2846,7 @@ Two things happen the instant the tally crosses `roundGoal` and the game said ne
 
 - **`showGoalBanner(opts)` takes a kicker and a force flag** - see the boss-win section above.
 - **`flashRoundEnd()` is the single wiring point.** It is the one function in the game that means "the tally just crossed the goal" - both dances call it and nothing else does - so `goalClearPresent()` hangs off it rather than off the dance's two call sites. `startRoundTimer()` is the single release point (it also clears any muffle, below).
-- **The banner is body-level and `position:fixed`, placed from JS in raw viewport px**, same rule as the Time / Limits pop-ups and the hand log: anything inside `#cabinet` inherits its CSS `zoom` and the coordinates get multiplied. It is centred on the **grid** rect rather than the viewport, so one rule covers both orientations. By the time it fires the board has already been cleared by the finale, so it lands on an empty grid.
+- **The banner is body-level and `position:fixed`, placed from JS in raw viewport px**, same rule as the Time / Limits pop-ups and the hand log: anything inside `#cabinet` inherits its CSS `zoom` and the coordinates get multiplied. It is centred on the **grid** rect rather than the viewport, so one rule covers both orientations. Since r280 it lands on the board the round was played on (minus the hand that just flew into the preview) rather than on an empty grid - the opaque plate is what keeps it legible over the cards.
 - **Survival and Flow get the clock state but not the banner** - their pick-of-three opens on this same beat and already carries a GOAL CLEARED kicker. **Flow does not get the clock state either**: its clock is a session countdown to the inspection, not a round clock, so it does not stop at a goal clear and marking it cleared would be a lie.
 - **Match-3 is not wired.** It never calls `flashRoundEnd` - `match3WinFinale` is its own mirror of the finale. One call there would pick it up.
 
@@ -2872,6 +2875,110 @@ When a hand is played, the escalating score animation ("dance") runs in the hand
 - **Interrupt handoff (`danceInterruptMode`, r90; reworked r116):** submitting a new hand mid-dance always cuts the old dance's grid/logic **immediately** (grid- and deck-safe - the new hand's already-computed cells can't be invalidated). A dev toggle (HUD section) picks the *visual* handoff: `ff` (rush the old score up, ~360ms - **default since r116**), `cut` (instant), `resolve` (snap + pop, ~200ms). A 260ms spam valve skips the count-up flourish on rapid chaining.
 - **Rapid-submit score resolution (r116) - was a game-wide bug.** The outgoing hand's total now **always** lands on the score display the moment it's interrupted (animated via the flourish, or snapped instantly on the `cut`/spam path). Previously the display was only written during a dance's own score-climb phase, which happens *after* the fly-in and the entire card-beat phase - so chaining hands fast left the score frozen on a stale mid-climb number until some hand was allowed to finish (or the goal hand landed). The underlying `score` was always correct; only the display lagged. The handoff also now runs **concurrently with the incoming hand's fly-in** (instead of blocking before it), so the new cards float into the preview while the old total rushes up behind them, and the new hand's beats wait on that count-up. `danceInterruptFlourish` is awaited, so it has an abort + timeout escape hatch - rAF is throttled to zero in a background tab and would otherwise stall the incoming dance.
 - **Superseded-dance guard (`dncGen`, r89):** a dance that gets superseded bails silently and never touches the shared stage/score (which the successor owns) - this fixed particles flying from a stale/detached preview box on double-submit.
+
+### The win finale's cards come home (r280)
+
+Owner: *"could we change that animation so that the cards explode out and then
+come back to their previous location."*
+
+The goal hand's finale is **jitter -> blast -> fly**, and the blast used to be
+one way: the surrounding cards flew outward, faded to nothing, and then EVERY
+card element on the board was removed alongside the winners that had flown into
+the preview. Two things followed from that and both were wrong.
+
+- **The board was empty under the whole tally.** The longest animation in the
+  game played over a blank grid, and the QUOTA CLEARED stamp landed on nothing.
+- **THE ROUND-END FALL WAS INVISIBLE, and had been for as long as this finale
+  has existed.** `showLevelUpScreen_fallOnly` (js/interlude.js) looks each card
+  up by `[data-card-id]` and skips the ones it cannot find, so on a goal hand it
+  only ever did the DECK ACCOUNTING - `discardToPlayed` on every cell - and never
+  animated a thing. The sequence the owner remembered (cards fall out, then the
+  payout) was in the code and could not be seen.
+
+The surrounding cards now go **out, hold, and come back to the cell they left**,
+and only the WINNERS are removed. The board the round was played on is still
+there under the tally, and the fall before the payout is a real fall again.
+
+- **`WIN_BLAST_CFG` (js/score-dance.js) is the whole trip.** The OUT leg is the
+  r150 explosion unchanged - same distance (200 + up to 140px along the ray from
+  the board's centre), spin (+-160deg), scale (.82) and easing - and the return
+  is **`PICK_CFG`'s**, because `pickUnexplode` (js/payout-pick.js) was already
+  written as the reverse of exactly this blast. Cards nearest the centre leave
+  first and land first, so the board empties outward and fills inward.
+- **One animation per card, four keyframes, a per-card delay** - not two chained
+  animations. A single WAAPI animation cannot be raced with itself, and the
+  apex opacity is deliberately `0.10` rather than 0: a card that reaches nothing
+  and comes back pops rather than returns.
+- **THE ANIMATIONS ARE CANCELLED, NEVER LEFT TO FILL.** The last keyframe IS the
+  resting state, so cancelling once the trip is over is seamless - and an
+  animation still filling would pin `transform` AND `opacity`, which are the two
+  properties the round-end fall then wants to animate itself. `dncSettleBlast()`
+  is that release and it is called from four places: when the animations finish,
+  from `dncFinishAbort`, from `cancelDance` (js/score-anims.js - the blast is
+  1.2s and the dance's own abort checkpoint is further down the step it is in, so
+  without this the cards fly on underneath whatever cut the dance short), and at
+  the top of the next dance.
+- **The blast deliberately OUTLIVES its step on a wide board.** The fly-in's
+  await is ~1320ms and a 16-card blast runs ~1380ms, so the tally starts while
+  the last cards are still coming home. That is why the release is hung off the
+  animations rather than off the step.
+- **`clearLineMarkers()` is no longer called by the finale.** The marked
+  row/column lines belong to a board that has not left yet; the fall drops them
+  at the same moment it drops the cards. The finale is therefore no longer one of
+  the three places card DOM is torn down without a following render.
+- **`gridData` is untouched, on purpose.** It still holds the cards that flew
+  into the preview - the fall is what discards them, and The Pick photographs the
+  board above the fall - so the winners' CELLS read as occupied while their
+  elements are gone. A stray `render()` mid-tally therefore pops the played hand
+  back onto the board for a frame. That was already true before r280 (it popped
+  the WHOLE board back), and nothing calls render there; it is why
+  `endBoss(true, {presented:true})` still skips its own render.
+- **`repaintBoardAfterBoss()` (js/boss.js) is the one thing the change forced.**
+  Two bosses change how a CARD LOOKS rather than what it does - **The Fog** hides
+  ranks (markup, from `renderCardAppearance`) and **The Gradient** scales and
+  tints by position (`--grds` plus a class) - and with the board now standing,
+  both would outlive the boss and fall still painted. It repaints only the
+  elements actually still on the board, by the same two lines `render()` uses, so
+  it cannot put the played hand back. Verified: fogged cards 11 -> 0 and gradient
+  cards 11 -> 0 the moment the boss ends, before the fall.
+
+### The goal hand has a SKIP (r280)
+
+`#dnc-ff`, mounted into the hand preview (`#selected-cards`) for the **goal hand
+only** - the one animation long enough to be worth skipping, and the one that
+ends the round. Pressing it skips the rest and goes straight on to the fall and
+the payout.
+
+- **IT IS NOT AN ABORT, and that is the whole design.** `cancelDance()` cuts the
+  presentation and leaves `handleDanceAbort` to pick up the pieces, which for a
+  goal hand means the interlude is reached by a different route with the score
+  snapped on from outside. This is the SAME dance played at `DANCE_CFG.ff` - the
+  same events in the same order, landing the same numbers, handing off from the
+  same line. Nothing downstream can tell the difference.
+- **`dncFF` already existed and nothing had ever set it.** It was the dormant
+  "illegible-fast button" the tally's `dwait`, particle flights, merge, throw and
+  climb all already divide by. A speed multiplier alone is not enough, though: it
+  cannot reach a WAAPI animation or a `setTimeout` that has already been armed.
+  Hence **two registries**, both emptied per dance by `dncResetFF`:
+  `dncFFWaiters` (an `await` that should return NOW, raced against its timer) and
+  `dncFFCuts` (an animation or timer already in flight, cut short NOW).
+- **Registering AFTER the press runs the cut immediately**, which is what lets
+  the finale's steps be written in order without each one testing `dncFF` for
+  itself. The one place that does test it is the blast, which is skipped outright
+  rather than started and cancelled a frame later.
+- **`flyGridCardToSlot` registers its own cut**, so a clone already in the air
+  lands rather than finishing its 460ms flight, and **`dur` of 0 now means
+  "reveal the slot, there is no flight to watch"** - the same path a zero-size
+  anchor already took.
+- **The chip goes quiet on press rather than disappearing.** A control vanishing
+  under the finger reads as a misfire.
+- **The band above the preview cards is all the room there is.** Measured at
+  1440x820: the dance stage starts 13.5 stage px above the cards, so the chip is
+  sized to land inside it (bottom edge 337px against a card top of 339px). Grow
+  it and it sits on the hand you just played.
+- Verified pressed during the jitter, during the blast and during the tally: the
+  board keeps its cards, the displayed total lands on the real score in every
+  case, and the fall, payout and reward grid follow as normal.
 
 ## Spectrum mode - the numeric colour deck (`MODES.spectrum`, r160–r164)
 
@@ -3237,7 +3344,7 @@ On `body.grid-screen` (reward grid, shop, crossroads), landscape:
 
 ### A boss win plays the finale now (r237)
 
-`checkBossObjective` used to call `endBoss(true)` synchronously inside playHand - before the dance drew a frame - so the boss-winning hand never got the goal finale and the screen jumped straight at the prize grid. Now the win only goes **PENDING** (`bossWinPending`); playHand routes the hand through the ordinary goal-dance exit, and the dance calls **`bossSettleWin()`** exactly where it would call `startInterlude` (normal completion, the abort path, and the legacy dance). `endBoss(true, { presented: true })` then skips its own `render()` (the finale already cleared the board - a render would pop every card back for a frame) and its own banner (`flashRoundEnd`'s `goalClearPresent` already carried the boss's name as kicker). Survival's mid-dance pick is suppressed while a boss win is pending - that hand ends in the prize grid.
+`checkBossObjective` used to call `endBoss(true)` synchronously inside playHand - before the dance drew a frame - so the boss-winning hand never got the goal finale and the screen jumped straight at the prize grid. Now the win only goes **PENDING** (`bossWinPending`); playHand routes the hand through the ordinary goal-dance exit, and the dance calls **`bossSettleWin()`** exactly where it would call `startInterlude` (normal completion, the abort path, and the legacy dance). `endBoss(true, { presented: true })` then skips its own `render()` (it would pop the played cards back onto the board the finale left standing - see r280 below, where the skipped render is replaced by `repaintBoardAfterBoss()`) and its own banner (`flashRoundEnd`'s `goalClearPresent` already carried the boss's name as kicker). Survival's mid-dance pick is suppressed while a boss win is pending - that hand ends in the prize grid.
 
 ### The boss-winning hand keeps its bookkeeping (r254)
 

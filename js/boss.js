@@ -153,6 +153,32 @@ function checkBossObjective(handName, handFinalScore) {
 }
 // Called by the dance (normal completion AND the abort path) where a goal hand
 // hands off to the interlude. Returns true when it took the handoff.
+// ── Taking the boss's paint off a board that is still standing (r280) ───────
+// Two bosses change how a CARD LOOKS rather than what it does: The Fog hides
+// ranks (markup, from renderCardAppearance) and The Gradient scales and tints by
+// position (--grds plus a class). Before r280 the goal finale removed every card
+// element, so neither outlived the boss. It does not any more - the board stays
+// up through the tally and goes out in the round-end fall - so a beaten Fog would
+// otherwise drop a boardful of rankless cards.
+//
+// **render() is not the answer here and that is the whole reason this exists.**
+// gridData still holds the cards that flew into the preview (their deck
+// accounting is the fall's job, and The Pick photographs the board above it), so
+// a full repaint would put the played hand back on the board. This repaints only
+// what is actually still on it, by the same two lines render() uses.
+function repaintBoardAfterBoss() {
+  const gridEl = document.getElementById('grid');
+  if (!gridEl || typeof renderCardAppearance !== 'function') return;
+  gridEl.querySelectorAll('[data-card-id]').forEach(el => {
+    const r = +el.dataset.row, c = +el.dataset.col;
+    const card = gridData?.[r]?.[c];
+    if (!card) return;
+    const { className, innerHTML } = renderCardAppearance(card, r, c);
+    el.className = className; el.innerHTML = innerHTML;
+  });
+  if (typeof bossGradientPaint === 'function') bossGradientPaint();
+}
+
 function bossSettleWin() {
   if (!bossWinPending) return false;
   bossWinPending = false;
@@ -990,10 +1016,14 @@ function endBoss(success, opts) {
   }
 
   if (success) {
-    // Arriving from the dance (opts.presented), the finale has already cleared
-    // the board - a render() here would pop every card back for a frame before
-    // the interlude's fall - and the banner is already up.
-    if (!opts?.presented) render();
+    // Arriving from the dance (opts.presented), the board is the one the finale
+    // left standing: the winners have flown into the preview and everything else
+    // came home from the blast (r280). A render() here would pop the played
+    // cards back onto it for a frame before the interlude's fall, so it is
+    // skipped - and the banner is already up. What the board still needs is the
+    // boss's PAINT taken off it, which repaintBoardAfterBoss does without
+    // touching the cells the played hand left empty.
+    if (!opts?.presented) render(); else repaintBoardAfterBoss();
     frozenRoundSeconds = roundSeconds;   // the payout's Efficiency line reads this
     if (!opts?.presented && typeof goalClearPresent === 'function') goalClearPresent({ kicker: _beaten, force: true });
     if (typeof recordQuarterBoss === 'function') recordQuarterBoss(_beaten);   // run report row
