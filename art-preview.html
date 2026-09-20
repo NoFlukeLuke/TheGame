@@ -81,7 +81,7 @@ h2{font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:2.5px;margin:
 
 <div id="top">
   <h1>ART DIRECTION</h1>
-  <span class="sub">docs · floppies · business cards &nbsp;·&nbsp; colour is rarity, shape is type</span>
+  <span class="sub">docs · floppies · sleight objects &nbsp;·&nbsp; colour is rarity, shape is type</span>
   <span class="sub" id="modeNote" style="margin-left:auto"></span>
 </div>
 
@@ -115,6 +115,16 @@ h2{font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:2.5px;margin:
       <div class="specimens" id="shelfBadge"></div>
     </div>
 
+    <div class="shelf">
+      <div class="hdr"><h2 style="margin:0">Keycaps</h2><span class="note">proposal · the console is a PROGRAM, so a Sleight is a key you press · name = the legend</span><span class="note" id="kcRead" style="margin-left:auto"></span></div>
+      <div class="specimens" id="shelfKeycap"></div>
+    </div>
+
+    <div class="shelf">
+      <div class="hdr"><h2 style="margin:0">Work orders</h2><span class="note">proposal · a carbonless NCR set · the COPIES are the charges</span><span class="note" id="woRead" style="margin-left:auto"></span></div>
+      <div class="specimens" id="shelfWork"></div>
+    </div>
+
     <div id="dump">
       <h2>Copy-paste config</h2>
       <textarea id="dumpText" spellcheck="false"></textarea>
@@ -135,6 +145,9 @@ const TIER_WORD = { common:'Lite', rare:'Standard', epic:'Plus', legendary:'Delu
 const HIRE_WORD = { common:'Trial', rare:'Contract', epic:'Retainer', legendary:'Partner' };
 // Real Sleight emoji, so the logo block is judged at the size it is read at.
 const BIZ_SAMPLES = ['\u{1F3ED}', '\u{1F451}', '\u{1F9F2}', '\u2699\uFE0F', '\u{1F4B5}'];
+// Real Sleight names. 'Syncopation' is the documented worst case: 11 letters,
+// one unbroken word, and words are ATOMIC (r182) - it is what decides the size.
+const SLEIGHT_NAMES = ['Whetstone', 'Syncopation', 'Flywheel', 'Petty Cash', 'Lighthouse'];
 
 // ── the tunable model ──────────────────────────────────────────────────────
 const CFG = {
@@ -160,6 +173,15 @@ const CFG = {
   // business card (a vendor's card, not an ID badge - r200)
   bizAspect:1.37,                        // a real business card is 1.75
   bizLogo:56, bizMark:'square', bizShowEmoji:1,
+  // which candidate object is scattered into the mock board
+  boardObj:'keycap',
+  // keycap (proposal) - near-square, so unlike the business card it does not
+  // letterbox in a portrait frame
+  kcAspect:1.00, kcInset:11, kcRise:9, kcTopRadius:4,
+  kcLegend:'both', kcDish:1, kcHomeBar:0, kcCount:1,
+  // work order (proposal) - a multi-part carbonless form
+  woAspect:1.30, woCopies:3, woStep:4.5, woHeader:19,
+  woStub:16, woPerf:1, woCopyTint:'tinted',
 };
 
 // ── control rail ───────────────────────────────────────────────────────────
@@ -178,7 +200,8 @@ const GROUPS = [
     {t:'seg', k:'_aspectPreset', label:'Presets', opts:[['1.316','Today 75x57'],['1','Square'],['0.76','On its side'],['0.645','Credit card']], apply:v=>{CFG.cellAspect=+v}},
     {t:'range', k:'cols', label:'Columns', min:3, max:8, step:1},
     {t:'range', k:'rows', label:'Rows',    min:3, max:8, step:1},
-    {t:'range', k:'boardMix', label:'Business cards scattered into the mock board', min:0, max:8, step:1},
+    {t:'range', k:'boardMix', label:'Sleight objects scattered into the mock board', min:0, max:8, step:1},
+    {t:'seg', k:'boardObj', label:'Which object sits among the docs', opts:[['biz','Business card'],['keycap','Keycap'],['workorder','Work order']]},
   ]},
   { name:'Doc (card)', open:true, rows:[
     {t:'seg', k:'docTab', label:'Silhouette', opts:[['fold','Document · folded corner'],['tab','Folder · tab']]},
@@ -206,6 +229,26 @@ const GROUPS = [
     {t:'seg',   k:'bizMark',   label:'Logo mark (stands in for the entity emoji)',
       opts:[['square','Square'],['circle','Circle'],['diamond','Diamond'],['chevron','Chevron'],['bars','Bars']]},
     {t:'seg',   k:'bizShowEmoji', label:'Logo block content', opts:[['1','The entity emoji'],['0','Geometric mark']]},
+  ]},
+  { name:'Keycap (proposal)', open:true, rows:[
+    {t:'range', k:'kcAspect', label:'Aspect (h/w). 1.00 = a 1u key. Near-square is the whole point - it fills the cell', min:.7, max:1.4, step:.01},
+    {t:'range', k:'kcInset',  label:'Side / back wall inset', min:2, max:25, step:.5, unit:'%'},
+    {t:'range', k:'kcRise',   label:'Front wall depth - this is the 3D. 0 = a flat tile', min:0, max:30, step:.5, unit:'%'},
+    {t:'range', k:'kcTopRadius', label:'Top face corner radius', min:0, max:14, step:.5, unit:'px'},
+    {t:'seg',   k:'kcLegend', label:'Legend', opts:[['both','Emoji + name'],['name','Name only'],['emoji','Emoji only']]},
+    {t:'seg',   k:'kcDish',   label:'Dished top (the moulded-plastic highlight)', opts:[['1','On'],['0','Off']]},
+    {t:'seg',   k:'kcHomeBar',label:'Home bar (the F/J nub)', opts:[['0','Off'],['1','On']]},
+    {t:'seg',   k:'kcCount',  label:'Charges on the front wall, where a real cap carries its second legend', opts:[['1','Show'],['0','Hide']]},
+  ]},
+  { name:'Work order (proposal)', open:true, rows:[
+    {t:'range', k:'woAspect', label:'Aspect (h/w). A form is portrait - which is also what a DOC is, the whole risk here', min:.9, max:1.7, step:.01},
+    {t:'range', k:'woCopies', label:'Copies in the set = charges left. Tear one off per use', min:1, max:4, step:1},
+    {t:'range', k:'woStep',   label:'Offset per copy - how much of each layer peeks out', min:0, max:12, step:.5, unit:'%'},
+    {t:'range', k:'woHeader', label:'Header band height', min:8, max:40, step:1, unit:'%'},
+    {t:'range', k:'woStub',   label:'Tear-off stub height', min:0, max:34, step:1, unit:'%'},
+    {t:'seg',   k:'woPerf',   label:'Perforation line', opts:[['1','On'],['0','Off']]},
+    {t:'seg',   k:'woCopyTint', label:'Copy colours - REALISTIC breaks the colour-is-rarity rule, SHADED keeps it',
+      opts:[['tinted','Realistic white/yellow/pink'],['shaded','Shades of the rarity']]},
   ]},
 ];
 
@@ -239,8 +282,10 @@ function onCtl(e){
   if (t.tagName === 'BUTTON' && t.parentElement.dataset.seg){
     const k = t.parentElement.dataset.seg, v = t.dataset.v;
     const r = GROUPS.flatMap(g=>g.rows).find(x=>x.k===k);
-    if (r && r.apply) r.apply(v); else CFG[k] = isNaN(+v) || k==='deck' ? v : (k.startsWith('badgeSlotOn') ? +v : v);
-    if (k === 'badgeSlotOn') CFG[k] = +v;
+    // A seg whose value is a NUMBER has to be stored as one. Storing the
+    // string '0' left every 0/1 toggle permanently on, because '0' is truthy -
+    // which is why "Geometric mark" never switched the emoji off.
+    if (r && r.apply) r.apply(v); else CFG[k] = (k === 'deck' || isNaN(+v)) ? v : +v;
     [...t.parentElement.children].forEach(b=>b.classList.toggle('on', b===t));
     if (r && r.apply){ // preset buttons write another key - resync its slider
       const s = document.querySelector('[data-k="cellAspect"]'); if (s){ s.value = CFG.cellAspect;
@@ -296,8 +341,14 @@ function renderFit(){
   const total = CFG.rows*CFG.cols;
   // Fixed positions, not random - the board must not reshuffle on every slider
   // nudge or you cannot see what your change actually did.
+  // The step must NOT be a multiple of the column count. The old spacing was
+  // exactly `total / boardMix`, which at 5 objects on a 5x5 board is `cols` -
+  // so every object landed in the SAME COLUMN and the mock answered a question
+  // nobody asked. A prime that does not divide `total` is coprime to it, so the
+  // positions are distinct and walk across both axes.
   const badgeAt = new Set();
-  for (let i=0;i<CFG.boardMix;i++) badgeAt.add(Math.floor((i+0.5) * total / Math.max(1,CFG.boardMix)) % total);
+  const scatter = [7,11,13,17,19].find(k => total % k !== 0) || 7;
+  for (let i=0;i<CFG.boardMix;i++) badgeAt.add((3 + i*scatter) % total);
   for (let r=0;r<CFG.rows;r++) for (let c=0;c<CFG.cols;c++){
     const i = r*CFG.cols + c;
     const L = ox+PAD*SC+c*(f.w+GAP)*SC, T = oy+PAD*SC+r*(f.h+GAP)*SC;
@@ -305,11 +356,11 @@ function renderFit(){
     const tier = TIERS[(i*3+r) % TIERS.length];
     let inner;
     if (badgeAt.has(i)){
-      // A badge is shorter than the cell, so it is bottom-anchored - centred, it
-      // floats and reads as a rendering mistake rather than as an object lying
-      // among the paperwork.
-      const bh = cw / CFG.bizAspect;
-      inner = `<div style="position:absolute;left:0;bottom:0;width:${cw}px;height:${bh}px">${bizCardSVG(tier, cw, BIZ_SAMPLES[i % BIZ_SAMPLES.length])}</div>`;
+      // An object shorter than the cell is bottom-anchored - centred, it floats
+      // and reads as a rendering mistake rather than as something lying among
+      // the paperwork.
+      const o = boardObjSVG(tier, cw, chh, i);
+      inner = `<div style="position:absolute;left:${(cw-o.w)/2}px;bottom:0;width:${o.w}px;height:${o.h}px">${o.svg}</div>`;
     } else {
       inner = docSVG('common', samples[i%samples.length], cw, chh);
     }
@@ -356,6 +407,28 @@ function fitBaseline(){
 
 // ── shape builders (SVG, so the geometry is exact and scales) ─────────────
 const esc = s => String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+
+// ── text fitting ───────────────────────────────────────────────────────────
+// MEASURED on an offscreen canvas, the way fitEntityName does it in
+// js/fit-text.js - never a per-character constant. The first pass here used
+// 0.72 em/char and both the work order's header and its name overflowed at
+// cell size, because Orbitron caps actually run 0.75 to 0.93 depending
+// entirely on which letters: WHETSTONE 0.841, SYNCOPATION 0.761, all-M 0.928.
+const _measCtx = document.createElement('canvas').getContext('2d');
+function textW(str, fs, family, weight, tracking){
+  _measCtx.font = `${weight || 800} ${fs}px ${family || 'Orbitron'}, sans-serif`;
+  // Canvas does not apply letter-spacing, so it is added by hand. The TRAILING
+  // space is not counted - that is the r182 FIT_SLOP lesson, and over-counting
+  // it is what truncated a name that fits.
+  return _measCtx.measureText(String(str)).width
+       + (tracking || 0) * fs * Math.max(0, String(str).length - 1);
+}
+// The largest font size at which `str` fits maxW, never above maxH.
+function fitFS(str, maxW, maxH, family, weight, tracking){
+  if (!str) return maxH;
+  const unit = textW(str, 100, family, weight, tracking) / 100;
+  return Math.max(1.5, Math.min(maxH, maxW / Math.max(.001, unit)));
+}
 
 // Rarity as an OUTLINE. Docs keep this; badges and floppies do not (r199) -
 // their rarity is the colour of the object itself, so borderW is normally 0
@@ -493,6 +566,189 @@ function bizCardSVG(tier, W, sampleMark){
     ${logo}${CFG.bizShowEmoji ? emoji : ''}${text}</svg>`;
 }
 
+// ══ KEYCAP (proposal) ═══════════════════════════════════════════════════════
+// The fiction as the owner states it: the console is not a deal, it is a
+// PROGRAM - a machine that turns your work into a game so you do more of it.
+// r244 already committed to that visually (the arcade housing is hidden and the
+// menu is drawn on a monitor in a photograph of an office); the objects are
+// still r228, from the cabinet era.
+//
+// So a Sleight is a key you press. Four things land without a compromise:
+//   shape  - near-SQUARE, so it fills a portrait cell instead of letterboxing
+//            to ~55% the way the business card does
+//   name   - the keycap LEGEND, which is what a legend is for
+//   rarity - the cap colour, exactly as the floppy's shell works
+//   charge - the front wall, where a real cap carries its secondary legend
+function keycapSVG(tier, W, uid, name, emoji, charges, report){
+  const H = W * CFG.kcAspect;
+  const cap  = bodyFor(tier, '#1b1813');
+  const top  = mixHex(cap, '#ffffff', .18);
+  const wall = mixHex(cap, '#000000', .34);
+  const ink  = inkOn(top);
+  const wink = inkOn(wall);
+  const r  = CFG.radius;
+  const si = W * CFG.kcInset/100;              // side walls
+  const ti = H * CFG.kcInset/100 * .7;         // back wall, shallow
+  const bi = ti + H * CFG.kcRise/100;          // front wall, deep - the 3D
+  const tw = W - si*2, th = Math.max(4, H - ti - bi);
+  const tr = Math.min(CFG.kcTopRadius, tw/2, th/2);
+  const gid = 'kc' + (uid || '');
+
+  const skirt = `<rect x="0" y="0" width="${W}" height="${H}" rx="${r}" fill="${wall}"
+    style="${rarStyle(tier, CFG.bodyBorderW)}"/>`;
+  const face  = `<rect x="${si}" y="${ti}" width="${tw}" height="${th}" rx="${tr}" fill="${top}"/>
+    <rect x="${si}" y="${ti}" width="${tw}" height="${th}" rx="${tr}" fill="url(#${gid})"/>`;
+  // A cylindrical cap is DISHED, and that highlight is most of what says
+  // "moulded plastic" rather than "rounded rectangle with a border".
+  const dish = CFG.kcDish ? `<ellipse cx="${W/2}" cy="${ti + th*.28}" rx="${tw*.44}" ry="${th*.27}"
+    fill="rgba(255,255,255,.11)"/>` : '';
+  const bar = CFG.kcHomeBar ? `<rect x="${W/2 - tw*.17}" y="${ti + th*.82}" width="${tw*.34}"
+    height="${Math.max(1.1, th*.045)}" rx="${Math.max(.5, th*.022)}" fill="${ink}" opacity=".42"/>` : '';
+
+  // fitEntityName's rule (r182): WORDS ARE ATOMIC, so the size is decided by
+  // the longest WORD and never by the whole string. Two words go on two lines.
+  const words = String(name || '').split(' ').filter(Boolean);
+  const lines = words.length > 1 ? [words[0], words.slice(1).join(' ')] : words;
+  const showEmoji = CFG.kcLegend === 'both' || CFG.kcLegend === 'emoji';
+  const showName  = CFG.kcLegend === 'both' || CFG.kcLegend === 'name';
+  const nameBudgetH = (CFG.kcLegend === 'both' ? th*.36 : th*.56) / Math.max(1, lines.length);
+  // The size is set by whichever LINE is widest once measured - not by the
+  // longest by character count, which is a different question ("PETTY" is 5
+  // characters and wider than 6-character "LEFT S").
+  const fs = lines.reduce((m, ln) => Math.min(m, fitFS(ln.toUpperCase(), tw*.84, nameBudgetH, 'Orbitron', 800, .04)), nameBudgetH);
+  if (report) report.nameFS = showName ? fs : null;
+  const emSize = Math.min(tw, th) * (CFG.kcLegend === 'emoji' ? .52 : .30);
+  const emY = CFG.kcLegend === 'emoji' ? ti + th/2 : ti + th*.31;
+  const nameTop = CFG.kcLegend === 'both' ? ti + th*.62 : ti + th/2 - (lines.length-1)*fs*.55;
+  const emojiEl = (showEmoji && emoji) ? `<text x="${W/2}" y="${emY}" font-size="${emSize}"
+    text-anchor="middle" dominant-baseline="central">${emoji}</text>` : '';
+  const nameEl = showName ? lines.map((ln, i) => `<text x="${W/2}" y="${nameTop + i*fs*1.12}"
+    fill="${ink}" font-family="Orbitron,sans-serif" font-weight="800" font-size="${fs}"
+    letter-spacing="${fs*.04}" text-anchor="middle" dominant-baseline="central">${esc(ln.toUpperCase())}</text>`).join('') : '';
+
+  // The charge count on the front wall. A real keycap prints its secondary
+  // legend exactly there, so this costs no new surface.
+  const cnt = (CFG.kcCount && bi - ti > H*.07) ? `<text x="${W - si*1.1}" y="${H - (bi - ti)*.42}"
+    fill="${wink}" opacity=".78" font-family="Share Tech Mono,monospace" font-size="${Math.max(3, (bi-ti)*.62)}"
+    text-anchor="end" dominant-baseline="central">${charges == null ? 3 : charges}</text>` : '';
+
+  return `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">
+    <defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity=".14"/>
+      <stop offset=".55" stop-color="#ffffff" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000000" stop-opacity=".16"/></linearGradient></defs>
+    ${skirt}${face}${dish}${bar}${emojiEl}${nameEl}${cnt}</svg>`;
+}
+
+// ══ WORK ORDER / multi-part form (proposal) ═════════════════════════════════
+// The paper instinct, made not-a-page. A real work order is a carbonless NCR
+// set, and THE COPIES ARE THE CHARGES: tear off pink, then yellow, then white,
+// and it is spent - the best _usesLeft mapping of anything considered.
+//
+// THE RISK THIS SHELF EXISTS TO MEASURE is that it is still portrait paper,
+// which is what a Doc already is, so it leans on the layered edge and the
+// header band to carry shape-means-type. At a 49px cell each layer is ~2px.
+// Turn woCopies down to 1 to see the silhouette with nothing left to lean on.
+const NCR_TINTS = ['#f2ecd8', '#e8d68a', '#e6aeb6', '#dcc98f'];
+
+function workOrderSVG(tier, W, uid, name, charges, report){
+  const H = W * CFG.woAspect;
+  const n = Math.max(1, Math.min(4, Math.round(charges == null ? CFG.woCopies : charges)));
+  const off = W * CFG.woStep/100;
+  const sw = W - off*(n-1), sh = H - off*(n-1);
+  const r  = Math.max(1, CFG.radius*.55);
+  const rc = CFG.rar[tier];
+  const stock = '#f4eeda';
+
+  // Drawn back to front, so the copies peek out at the right and bottom edges.
+  let layers = '';
+  for (let i = n-1; i >= 1; i--){
+    const fill = CFG.woCopyTint === 'tinted'
+      ? NCR_TINTS[i % NCR_TINTS.length]
+      : mixHex(stock, rc, Math.min(.85, .16 + i*.17));
+    layers += `<rect x="${off*i}" y="${off*i}" width="${sw}" height="${sh}" rx="${r}"
+      fill="${fill}" stroke="rgba(0,0,0,.34)" stroke-width=".6"/>`;
+  }
+
+  const hh = sh * CFG.woHeader/100;
+  const headInk = inkOn(rc);
+  const stubH = sh * CFG.woStub/100;
+  const bodyTop = hh, bodyBot = sh - stubH;
+  const pad = sw*.06;
+
+  // The name is the one thing that has to survive cell size, so it gets the
+  // widest band on the sheet, directly under the header.
+  // The NAME gets the widest band on the sheet and is measured, not estimated.
+  const nfs = fitFS(String(name||'').toUpperCase(), sw - pad*2, (bodyBot-bodyTop)*.30, 'Orbitron', 800, 0);
+  if (report) report.nameFS = nfs;
+
+  // The header title is width-bound too. It ran off the right edge of every
+  // cell-size tile when it was sized from the band's HEIGHT alone.
+  const TITLE = 'WORK ORDER';
+  const hfs = fitFS(TITLE, (sw - pad*2) * .70, hh*.50, 'Orbitron', 800, .05);
+  const numTxt = 'Nº ' + (4400 + (String(uid||'').length*7 % 90));
+  const nufs = Math.max(2, hfs*.80);
+  // The form number is DROPPED rather than overlapped when there is no room -
+  // at a 58px cell there is none, and two strings sharing one band is worse
+  // than one string.
+  const showNum = (textW(TITLE, hfs, 'Orbitron', 800, .05) + textW(numTxt, nufs, 'Share Tech Mono', 400, 0) + pad*3) <= sw;
+
+  const head = `<rect x="0" y="0" width="${sw}" height="${hh}" rx="${r}" fill="${rc}"/>
+    <rect x="0" y="${hh*.55}" width="${sw}" height="${hh*.45}" fill="${rc}"/>
+    <text x="${pad}" y="${hh*.55}" fill="${headInk}" font-family="Orbitron,sans-serif" font-weight="800"
+      font-size="${hfs}" letter-spacing="${hfs*.05}" dominant-baseline="central">${TITLE}</text>`
+    + (showNum ? `<text x="${sw-pad}" y="${hh*.55}" fill="${headInk}" opacity=".72" font-family="Share Tech Mono,monospace"
+      font-size="${nufs}" text-anchor="end" dominant-baseline="central">${numTxt}</text>` : '');
+
+  const nameEl = `<text x="${pad}" y="${bodyTop + nfs*.95}" fill="rgba(24,20,15,.90)"
+    font-family="Orbitron,sans-serif" font-weight="800" font-size="${nfs}"
+    dominant-baseline="central">${esc(String(name||'').toUpperCase())}</text>`;
+
+  // Ruled fields. Kept faint: at cell size these are texture, not information.
+  const ruleTop = bodyTop + nfs*1.9;
+  const ruleSpace = Math.max(2, (bodyBot - ruleTop - sh*.03) / 3);
+  let rules = '';
+  for (let i = 0; i < 3; i++){
+    const y = ruleTop + i*ruleSpace;
+    if (y > bodyBot - 1) break;
+    rules += `<rect x="${pad}" y="${y}" width="${(sw-pad*2)*[.86,.62,.74][i]}" height="${Math.max(.8, sh*.018)}"
+      rx=".5" fill="rgba(24,20,15,.30)" opacity="${.9 - i*.16}"/>`;
+  }
+
+  const perf = (CFG.woPerf && stubH > 2) ? `<line x1="0" y1="${bodyBot}" x2="${sw}" y2="${bodyBot}"
+    stroke="rgba(24,20,15,.45)" stroke-width=".8" stroke-dasharray="${Math.max(1.4, sw*.035)} ${Math.max(1.2, sw*.028)}"/>` : '';
+  const stub = stubH > 2 ? `<rect x="${pad}" y="${bodyBot + stubH*.30}" width="${(sw-pad*2)*.44}"
+      height="${Math.max(.9, sh*.02)}" rx=".5" fill="rgba(24,20,15,.34)"/>
+    <text x="${sw-pad}" y="${bodyBot + stubH*.52}" fill="rgba(24,20,15,.58)"
+      font-family="Share Tech Mono,monospace"
+      font-size="${fitFS(n + ' LEFT', (sw-pad*2)*.5, Math.max(2.5, stubH*.42), 'Share Tech Mono', 400, 0)}"
+      text-anchor="end" dominant-baseline="central">${n} LEFT</text>` : '';
+
+  return `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">
+    ${layers}
+    <rect x="0" y="0" width="${sw}" height="${sh}" rx="${r}" fill="${stock}"
+      style="${rarStyle(tier, CFG.bodyBorderW)}"/>
+    ${head}${nameEl}${rules}${perf}${stub}</svg>`;
+}
+
+// Which candidate lies among the docs in the board mock. Returns its height as
+// well, because the three have different aspects and the caller bottom-anchors.
+function boardObjSVG(tier, cw, ch, i){
+  const nm = SLEIGHT_NAMES[i % SLEIGHT_NAMES.length];
+  const em = BIZ_SAMPLES[i % BIZ_SAMPLES.length];
+  // LETTERBOX INTO THE CELL, both axes, the way r239 made every entity object
+  // do it. An object taller than the cell is not a tall object, it is an object
+  // drawn over its neighbour: at aspect 1.30 in a 1.12 cell the work order
+  // poked 10px into the row above and read as a rendering fault.
+  const asp = CFG.boardObj === 'keycap' ? CFG.kcAspect
+            : CFG.boardObj === 'workorder' ? CFG.woAspect
+            : 1/CFG.bizAspect;
+  const w = Math.min(cw, ch/asp), h = w*asp;
+  if (CFG.boardObj === 'keycap')    return { w, h, svg: keycapSVG(tier, w, 'b'+i, nm, em, 1 + (i % 4)) };
+  if (CFG.boardObj === 'workorder') return { w, h, svg: workOrderSVG(tier, w, 'b'+i, nm, 1 + (i % 4)) };
+  return { w, h, svg: bizCardSVG(tier, w, em) };
+}
+
 // ── render ─────────────────────────────────────────────────────────────────
 function render(){
   renderFit();
@@ -512,6 +768,31 @@ function render(){
   document.getElementById('shelfBadge').innerHTML = TIERS.map((t,i) => `
     <div class="spec">${bizCardSVG(t, f.w, BIZ_SAMPLES[i % BIZ_SAMPLES.length])}<div class="cap">${HIRE_WORD[t]}</div></div>`).join('')
     + `<div class="spec" style="opacity:.9">${bizCardSVG('epic', f.w*2.1, '\u{1F3ED}')}<div class="cap">detail</div></div>`;
+
+  // Both proposals are drawn at the REAL cell width, next to the floppy and the
+  // business card, because cell size is the only size that settles this.
+  // Each builder REPORTS the font size its name landed at, so "can you read it
+  // in a cell" is answered with a number instead of a squint. READ_FLOOR is the
+  // size below which a name on a board of cards is decoration, not information.
+  const READ_FLOOR = 5.5;
+  const kcRep = TIERS.map(() => ({})), woRep = TIERS.map(() => ({}));
+  document.getElementById('shelfKeycap').innerHTML = TIERS.map((t,i) => `
+    <div class="spec">${keycapSVG(t, f.w, 'k'+t, SLEIGHT_NAMES[i % SLEIGHT_NAMES.length], BIZ_SAMPLES[i % BIZ_SAMPLES.length], 1+i, kcRep[i])}<div class="cap">${HIRE_WORD[t]}</div></div>`).join('')
+    + `<div class="spec" style="opacity:.95">${keycapSVG('epic', 150, 'kbig', 'Syncopation', '\u2699\uFE0F', 3)}<div class="cap">detail \u00b7 worst-case name</div></div>`;
+
+  document.getElementById('shelfWork').innerHTML = TIERS.map((t,i) => `
+    <div class="spec">${workOrderSVG(t, f.w, 'w'+t, SLEIGHT_NAMES[i % SLEIGHT_NAMES.length], 1+i, woRep[i])}<div class="cap">${HIRE_WORD[t]} \u00b7 ${1+i} left</div></div>`).join('')
+    + `<div class="spec" style="opacity:.95">${workOrderSVG('epic', 150, 'wbig', 'Syncopation', 3)}<div class="cap">detail \u00b7 3 copies</div></div>`;
+
+  const readout = (reps, el) => {
+    const sizes = reps.map(r => r.nameFS).filter(v => v != null);
+    if (!sizes.length) return document.getElementById(el).textContent = '';
+    const lo = Math.min(...sizes), worst = SLEIGHT_NAMES[reps.indexOf(reps.find(r => r.nameFS === lo))] || '';
+    const node = document.getElementById(el);
+    node.textContent = `name at cell size: ${lo.toFixed(1)}px (${worst})`;
+    node.style.color = lo < READ_FLOOR ? 'var(--rar-legendary)' : 'var(--rar-common)';
+  };
+  readout(kcRep, 'kcRead'); readout(woRep, 'woRead');
 
   dump(f);
 }
@@ -544,6 +825,14 @@ const ART_CFG = {
             labelInset: ${CFG.flopLabelInset}, hub: ${CFG.flopHub} },
   biz:    { aspect: ${CFG.bizAspect}, logo: ${CFG.bizLogo}, mark: '${CFG.bizMark}',
             showEmoji: ${!!CFG.bizShowEmoji} },
+  // ── Sleight-object candidates (r290 exploration) ──
+  boardObj: '${CFG.boardObj}',
+  keycap: { aspect: ${CFG.kcAspect}, inset: ${CFG.kcInset}, rise: ${CFG.kcRise},
+            topRadius: ${CFG.kcTopRadius}, legend: '${CFG.kcLegend}', dish: ${!!CFG.kcDish},
+            homeBar: ${!!CFG.kcHomeBar}, showCharges: ${!!CFG.kcCount} },
+  workOrder: { aspect: ${CFG.woAspect}, copies: ${CFG.woCopies}, step: ${CFG.woStep},
+            header: ${CFG.woHeader}, stub: ${CFG.woStub}, perf: ${!!CFG.woPerf},
+            copyTint: '${CFG.woCopyTint}' },
 };`;
 }
 document.getElementById('copyBtn').addEventListener('click', () => {
@@ -552,6 +841,14 @@ document.getElementById('copyBtn').addEventListener('click', () => {
 });
 
 buildRail(); render();
+
+// REFIT ONCE THE WEBFONT IS REALLY LOADED. fitFS measures on a canvas, and a
+// canvas measures whatever font is resolved AT THAT MOMENT - at first paint
+// that is the fallback, not Orbitron, so every fitted string comes out sized
+// for the wrong face and overflows. Measured: the work order's name ran past
+// the sheet edge at every size until this line existed. Same family as the
+// r239 rule about fitting labels only after the panel is actually showing.
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => render());
 </script>
 </body>
 </html>
