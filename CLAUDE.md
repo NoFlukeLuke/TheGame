@@ -3602,6 +3602,97 @@ is the Classic walkthrough on demand, reachable from the dev panel; its
 `tutorial: true` is what `tutorialArmForRun` checks first, so it arms regardless
 of what has been played.
 
+### The VOICE of the walkthrough (r284)
+
+Owner: *"The way things are worded seems kind of bizarre and we justify the
+reasoning when we don't need to. You don't need to say like it's this way
+because blah blah blah or so don't do this. Just explain the mechanic and leave
+it, no additional input necessary."*
+
+Every step and every tip was rewritten against that rule, and it is the rule for
+anything added here:
+
+- **State the mechanic. Do not justify it.** Gone: "so a mis-tap never costs you
+  the choice", "so saving up is worth something", "The good ones are deliberately
+  placed behind the bad ones, so most paths cost you something", "The slots are
+  the real currency", "Rather than learn seven symbols now, use the key", "so you
+  never have to know the vocabulary first". **A sentence explaining why the
+  DESIGN is the way it is belongs in this file, not in a bubble.**
+- **Imperative for actions, declarative for rules.** "Press PLAY." "Ace is 11."
+- **No stylised framing.** "A hand cannot carry a passenger" became "Every card
+  must be used"; "Time is the cost" became "The clock".
+- **One idea per paragraph, a list where it is a list.** The limits step and the
+  Records step are label-and-dash lines rather than prose.
+
+A check worth re-running after an edit here: render every step and tip in both
+vocabularies and grep for `so that|so you can|because|the reason|deliberately|
+which is why`. It should come back empty.
+
+### The four topics r284 added
+
+Owner-specified, taking Classic from 25 steps to 29 (Schedule 26, Guided 22,
+Survival 22, Flow 21).
+
+| step | teaches |
+|---|---|
+| `hands` | the three shapes, and the flush OVERLAY |
+| `selection` | Selection Size is a cap AND a floor |
+| `limits` | what a limit is, and the eight of them |
+| `entities` | {Trick} / {Knack} / {Sleight}, on the first reward screen |
+
+- **`hands` is where the rummy half of the game is finally stated.** All 19 hand
+  types are three families - **set, run, flush** - so the step teaches those
+  rather than naming hands, and says **a pair counts**. The word "poker" is gone
+  from the walkthrough (owner's call: the rules are poker mixed with rummy).
+  **It also states the one rule a new player cannot guess at**: three or four
+  cards of one suit is NOT playable on its own (`startGame` seeds `flush3`/
+  `flush4` only at `suitCount >= 6`), but the flush OVERLAY ignores `activeHands`
+  entirely, so played inside another hand it adds a flush and **every card in it
+  scores twice** (r199).
+- **`selection` reads the live limit** through `tutSelCap()` / `tutSelMin()`, and
+  branches: at limit 3 the floor is 1 and does not bite, so it describes the rule
+  instead of quoting a meaningless number. `minSelection()` stays the one place
+  the floor is worked out (r200).
+- **`entities` is `only: ['rewardgrid', 'picks', 'crossroads']` and sits before
+  ALL THREE between-round screens.** They are mutually exclusive in a composed
+  script, so one step covers whichever this mode uses. **Guided needed the
+  crossroads clause**: it has neither reward screen in its linear script, and
+  without it the only mode with no entity explainer would have been the one whose
+  whole loop is buying them.
+
+### A tip needs the screen it is TALKING ABOUT (r284)
+
+Owner, on his first real play: *"I got a couple of random tips during the first
+reward screen for some reason."*
+
+Both were board tips, and both were genuinely true at that moment - which is the
+trap. **A tip's condition can outlive the screen its subject is on:**
+
+- `hand_layers` reads `#hand-name .hn-l`, and `#hand-name` keeps the LAST HAND'S
+  markup for the whole of the between-rounds screens.
+- `replays` reads `replaysThisRound`, which is a ROUND counter and stays above
+  zero through the payout, the reward grid and the shop.
+
+So both fired on the reward grid, anchored to readouts the reward tiles had
+covered over. **`screen` on a row is the fix, and it defaults to `'board'`**:
+`insightsBoardLive()` is checked before a board row's own `when`, and only rows
+explicitly marked `screen: 'any'` (the reward grid, prize grid, shop, payout,
+Limit Break, events, schedule, boss and the four ownership rows) may fire on a
+takeover screen. **A new row is board-scoped unless it says otherwise**, which is
+the safe default: a tip about something not on screen is worse than no tip.
+
+`insightsBoardLive()` asks the same four classes the renderer and the map already
+own (`grid-screen`, `gp-active`, `map-active`, `pick-active`, `reward-active`)
+plus `shopGridActive` and a live `#payout-overlay`, then requires real cards in
+`gridData`.
+
+**`hand_layers` is FLUSH-SPECIFIC now**, because its copy is. Owner: *"it really
+shouldn't say stacking hand types, it should say if you play a hand that is also
+a flush then each of the cards gains one replay."* The overlay is the common
+layering by a distance (r199: roughly half of all five-card hands) and the one a
+player cannot guess at, so the row tests for a `FLUSH` layer in the label rather
+than for two layers of any kind.
+
 ### The skip is PROMINENT
 
 Owner: *"The skip buttons should be prominent."* `#tut-skip` was a 9px line at
