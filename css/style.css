@@ -5026,13 +5026,33 @@
      so a chip reading it was 62x82 beside a 4x4 round and shrank to 41x54 the
      moment the map (a wider board) opened. The same Trick looked like two
      different objects on two screens. A tray tile is its own object at its own
-     size; 57x75 is the base card, which is what the var resolved to at rest. */
+     size; 57x75 is the base card, which is what the var resolved to at rest.
+
+     NEAR-SQUARE SINCE r284, AND THAT FALLS OUT OF THE DISC'S OWN RATIO. A
+     floppy is 20/19 - near square - and letterboxes inside its frame (r239),
+     so a 57x75 card-shaped chip painted a 53x50 disc with about TWELVE px of
+     dead gutter above and below it. The only way to make the object bigger is
+     to move the frame toward the object's ratio, so the chip is 73x75: the
+     disc lands 73x69.4 with ~2.8px of gutter, which puts the tier stamp about
+     5px off the top border and leaves the prime badge on its own 2px inset.
+     Owner's call, and the cost is accepted - 3 tiles sit in the column as a
+     plain row (was 4) and the fan starts scrolling at 7 (was 9). Both numbers
+     are MEASURED by fanTrickTray, so nothing else had to change. */
   #stage.landscape .trick-tray-chip {
     position: relative; flex: 0 0 auto; box-sizing: border-box; cursor: pointer;
-    width: 57px; height: 75px;
+    width: 73px; height: 75px;
     padding: 0; border: none; background: none; box-shadow: none;
     transition: transform 0.1s ease;
   }
+  /* The OTHER half of the size, and the one that is easy to miss: the shared
+     `.trick-tray-chip > .reward-cell` pads 3px 2px 4px, and the cell is the
+     container the disc letterboxes inside - so that padding came off the
+     object TWICE, once as the inset and once as the width it then scales its
+     0.95 height from. It is pre-r228 chrome for a tile that used to have a
+     border and content of its own; the cell is transparent now and its
+     ::before paints the whole object. Zeroed HERE rather than on the shared
+     rule so the (deprioritized) portrait tray is left exactly as it was. */
+  #stage.landscape .trick-tray-chip > .reward-cell { padding: 0; }
   #stage.landscape .trick-tray-chip:hover { transform: translateY(-2px); }
   #stage.landscape .trick-tray-chip:hover > .reward-cell {
     box-shadow: 0 0 0 2px var(--plastic-lo), 0 0 14px 0 var(--rc), inset 0 0 12px -4px var(--rc);
@@ -5572,7 +5592,7 @@ body.reduced-motion .efx-hit { animation-duration: 1ms; }
      portrait fan and the r176 landscape pass both landed on - a Trick whose
      glyph changes size stops reading as the same object, so the tile's own
      overflow clips instead. */
-  #stage.landscape.shop-squish .trick-tray-chip   { width:26px; height:35px; }
+  #stage.landscape.shop-squish .trick-tray-chip   { width:34px; height:35px; }
   #stage.landscape.shop-squish .m-lim,
   #stage.landscape.shop-squish #coin-info         { font-size:11px; }
 

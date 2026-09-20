@@ -2176,6 +2176,50 @@ sets `--fan-z` ascending, so the covered strip is each tile's RIGHT edge and the
 bottom-left corner is always in view (measured r276 at 1440x820, 6 Tricks: width
 110, pitch 82, so 28px covered and 82px visible).
 
+### The tray tile is NEAR-SQUARE, because the disc is (r284)
+
+Owner: *"increase the size of tricks in the chip. Theres a bit too much space
+above and below them ... when it has an improvement and a prime, there's just a
+few pixels of space between it and the borders of the chip."*
+
+**A floppy is 20/19 and LETTERBOXES inside its frame (r239), so the only way to
+make the object bigger is to move the FRAME toward the object's ratio.** The
+landscape chip was 57x75 - a playing-card shape - which painted a **53x50 disc
+with about twelve px of dead gutter above and below it**. It is **73x75** now:
+the disc lands **73x69.4** with **2.83px** of gutter, which is ~90% more object
+for the same slot. Measured, not estimated.
+
+- **The `.reward-cell` padding was the OTHER half of the size, and it is easy to
+  miss.** `.trick-tray-chip > .reward-cell` pads `3px 2px 4px`, and the cell is
+  the CONTAINER the disc letterboxes inside - so that padding came off the disc
+  **twice**, once as the inset and once as the width it then scales its 0.95
+  height from. It is pre-r228 chrome for a tile that had a border and contents
+  of its own. Zeroed in the **landscape** rule rather than on the shared one, so
+  the portrait tray is left exactly as it was (verified: 47x64 chip, 43x40.8
+  disc, padding still `3px 2px 4px`).
+- **The cost is accepted and it is small**, because `fanTrickTray` MEASURES
+  everything: 4 tiles still sit in the column (at a 7px tuck, 90% of each in
+  view), and the row starts scrolling at **7** Tricks instead of 9. No JS
+  changed.
+- The dormant `.shop-squish` size went 26x35 -> **34x35** to keep the same
+  relationship; left at 26 it would have re-opened the gutter in that state.
+
+**THE PRIME BADGE HAD TO MOVE TO THE BOTTOM-LEFT, and that is r277's rule
+again.** The fan sets `--fan-z` ascending, so a tucked tile is covered on its
+**right** edge and only its left part is guaranteed to be in view - which is
+exactly why r277 moved the tier stamp to the top-left. A bottom-right
+`.cd-badge` was fine at 57px only because the tiles barely tucked; at 73px the
+row tucks from 4, and **at 5 Tricks the "+2" measured 0/5 visible on every chip
+but the newest**. It is `left` in the tray now, in **both** orientations -
+portrait fans the same way and had the same bug - and **nowhere else**: on a
+card, a knack chip or a reward cell nothing overlaps, and there the corner is
+the badge's home (r267).
+
+Verified in a real browser at 1440x820 and 420x820, at 3/4/5/7/10 Tricks: every
+`v2.0` stamp and every `+2` badge **5/5 visible**, nothing overflowing the tray
+area, 0 names clipped, and the reward grid's own tiles unchanged. No page
+errors.
+
 ### The tray fan may not RESTYLE the tile (r277)
 
 Owner: *"the tricks have weird card like borders and the emoji goes into the
