@@ -195,7 +195,11 @@ function renderDraw() {
       icon: ent.emoji, rarity: ent.rarity,
       tile: { entity: ent.kind, id: ent.id, emoji: ent.emoji, label: ent.name },
       name: ent.name + (tier ? ` · improved ×${tier}` : ''),
-      desc: prev && prev.after !== prev.before ? prev.after : (prev ? prev.before : ''),
+      // r281: the sentence once, with the number one more tier would move
+      // marked in place. null (not provably one sentence) keeps the old read.
+      desc: ((prev && prev.after !== prev.before && typeof improveDeltaHTML === 'function')
+              ? improveDeltaHTML(prev.before, prev.after) : null)
+            || (prev && prev.after !== prev.before ? prev.after : (prev ? prev.before : '')),
       cost: ent.kind.toUpperCase(),
       onClick: () => {
         if (eventState.drawDone) return;

@@ -299,6 +299,98 @@ function improvePreview(id) {
   return { before, after, tier: was + 1 };
 }
 
+// ── THE DELTA, IN ONE SENTENCE (r281) ───────────────────────────────────────
+// An improve offer used to print the WHOLE description TWICE - the old one, an
+// arrow, the new one. On a 120px reward tile that is two paragraphs of nearly
+// identical prose with the one thing that actually changed buried in the middle
+// of each. Owner's call: print the sentence ONCE and mark the number that moves
+// where it stands, "+5 (-> +10)".
+//
+// IT WORKS BECAUSE THE TWO SENTENCES ARE THE SAME SENTENCE. applyBalDescriptions
+// regenerates `desc` from BAL through one template, and the typed descriptions
+// are rewritten by substituting the number into the pristine text - so before
+// and after are word-for-word identical apart from their numbers. Splitting both
+// on digit runs and walking them in parallel therefore pairs each number with
+// its counterpart.
+//
+// IF THAT STOPS BEING TRUE THE WALK BAILS AND RETURNS null, and every caller
+// falls back to printing both descriptions. A different number COUNT, or any
+// difference in the words between two numbers - a template that rewords itself,
+// a hand-typed sentence that says "double" at one tier and "triple" at the next
+// - means we are not looking at one sentence with a number in it, and a delta
+// drawn over two different sentences would be a lie the player cannot check.
+const _IMP_NUM_SPLIT = /(\d+(?:\.\d+)?)/;
+
+// The sign or multiplier glued to a number reads as PART of the number, so it
+// has to travel with it: "+5", "x1.5", "+x0.75", "2x", "25%", "3s". Left behind,
+// the parenthetical says "5 (-> 10)" next to a stranded +.
+function _impIsMulCh(ch) { return ch === '×' || ch === 'x' || ch === 'X'; }
+function _impTakePrefix(lit) {
+  let i = lit.length, pre = '';
+  // A bare x is only a multiplier when it is not the tail of a word ("max 60s").
+  if (i > 0 && _impIsMulCh(lit[i - 1]) &&
+      (lit[i - 1] === '×' || !/[A-Za-z]/.test(lit[i - 2] || ''))) { pre = lit[i - 1] + pre; i--; }
+  // ...and a sign is only a sign when it is not the dash of a range ("3-5").
+  if (i > 0 && (lit[i - 1] === '+' || lit[i - 1] === '-') && !/\d/.test(lit[i - 2] || '')) { pre = lit[i - 1] + pre; i--; }
+  return [lit.slice(0, i), pre];
+}
+function _impTakeSuffix(lit) {
+  const c = lit[0];
+  if (c === '%' || c === '×') return [c, lit.slice(1)];
+  // "2x mult" / "3s of clock" - but never "15 seconds", where the s opens a word.
+  if ((c === 'x' || c === 'X' || c === 's') && !/[A-Za-z]/.test(lit[1] || '')) return [c, lit.slice(1)];
+  return ['', lit];
+}
+
+// The description, once, with every number that moves marked in place.
+// Returns null when the two are not the same sentence - see above.
+function improveDeltaHTML(before, after) {
+  const a = before == null ? '' : String(before);
+  const b = after  == null ? '' : String(after);
+  if (!a || a === b) return null;
+  const pa = a.split(_IMP_NUM_SPLIT), pb = b.split(_IMP_NUM_SPLIT);
+  if (pa.length !== pb.length) return null;
+
+  const lits = [], nums = [], numsB = [];
+  for (let i = 0; i < pa.length; i++) {
+    if (i % 2 === 0) { if (pa[i] !== pb[i]) return null; lits.push(pa[i]); }
+    else { nums.push(pa[i]); numsB.push(pb[i]); }
+  }
+  const marks = [];
+  let moved = 0;
+  for (let i = 0; i < nums.length; i++) {
+    if (nums[i] === numsB[i]) { marks.push(null); continue; }
+    // Left to right, and the two takes work on OPPOSITE ends of a literal, so a
+    // literal sitting between two changed numbers can safely give up both.
+    const pre = _impTakePrefix(lits[i]);
+    lits[i] = pre[0];
+    const suf = _impTakeSuffix(lits[i + 1]);
+    lits[i + 1] = suf[1];
+    marks.push({ pre: pre[1], suf: suf[0] });
+    moved++;
+  }
+  if (!moved) return null;
+
+  let out = lits[0];
+  for (let i = 0; i < nums.length; i++) {
+    const m = marks[i];
+    out += m
+      ? `<b class="imp-was">${m.pre}${nums[i]}${m.suf}</b> <b class="imp-now">(→ ${m.pre}${numsB[i]}${m.suf})</b>`
+      : nums[i];
+    out += lits[i + 1];
+  }
+  return out;
+}
+
+// What an improve offer should print: the sentence with its deltas marked, or
+// null when that cannot be done honestly. One helper so the reward grid, the
+// shop, the events and the dev panel cannot drift apart on the fallback.
+function improveDeltaFor(id) {
+  const pv = (typeof improvePreview === 'function') ? improvePreview(id) : null;
+  if (!pv || pv.after === pv.before) return null;
+  return improveDeltaHTML(pv.before, pv.after);
+}
+
 
 // Snapshot the printed text before anything can have improved. balance.js has
 // already run applyBalDescriptions() by the time this file loads, so what is

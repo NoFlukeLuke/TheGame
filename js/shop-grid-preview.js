@@ -263,10 +263,14 @@ function shopgImprovePayloads(n) {
       const target = pickImproveTarget(type);
       if (target) {
         const prev = improvePreview(target.id);
+        // r281: one sentence with the number that moves marked in place.
+        const delta = (prev && prev.after !== prev.before && typeof improveDeltaHTML === 'function')
+                        ? improveDeltaHTML(prev.before, prev.after) : null;
         out.push({
           _improve: true, _span: 2, icon: '⬆', label: `Improve ${target.name}`,
-          desc: prev ? `Raise ${target.name} one tier.<br><b>Now:</b> ${prev.before}<br><b>After:</b> ${prev.after}`
-                     : `Raise ${target.name} one tier.`,
+          desc: delta ? `Raise ${target.name} one tier.<br>${delta}`
+              : prev  ? `Raise ${target.name} one tier.<br><b>Now:</b> ${prev.before}<br><b>After:</b> ${prev.after}`
+                      : `Raise ${target.name} one tier.`,
           rarity: target.rarity || 'rare', price: 30,
           buy: () => { if (canImprove(target.id)) improveEntity(target.id); },
         });
