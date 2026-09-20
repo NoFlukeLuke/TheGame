@@ -51,6 +51,11 @@ function startRoundTimer() {
   if (typeof sfxSetMuffle === 'function') sfxSetMuffle(false);
   startHeartbeat();                 // the board's idle pulse runs with the round
   cdStartTicker();                  // cooldown / disable rings (js/cooldown.js)
+  // A Spectrum fixture queued to leave by the GOAL hand never drained - that
+  // hand's finale explodes the board instead of calling removeAndFall - and the
+  // interlude has since discarded the whole board anyway. Drop the stale entry
+  // rather than carry it into a round whose board it is not on. (js/spectrum.js)
+  if (typeof spectrumClearFixtureExits === 'function') spectrumClearFixtureExits();
   insightsRoundReset();             // tips: start the sweep, reset the per-round cap (js/insights.js)
   syncDiscoveredFromOwned();        // log anything new for the Builds archive
   roundStartSeconds = roundSeconds; // mark the start of the countdown for ♠ "first 30s" exalt
@@ -119,6 +124,10 @@ function startRoundTimer() {
       }
     }
     if (typeof hallmarkTick === 'function') hallmarkTick(_elapsedRound);
+    // Card states (r278): ages every card on the board and fires whatever fuse
+    // came due. Hung off the ROUND tick rather than a clock of its own, so it
+    // stops with the round, with the pause menu and with RECORDS for free.
+    if (typeof cardStatesTick === 'function') cardStatesTick();
     // The Cuckoo: every 60s of round time, pause the clock by 1s for each retrigger so far this round
     if (hasTrick('cuckoo') && _elapsedRound >= cuckooNextMinute) {
       cuckooNextMinute += BAL.cuckoo.interval_seconds;

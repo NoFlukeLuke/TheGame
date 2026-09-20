@@ -19,11 +19,13 @@ The game **used to be one giant `index.html`**. It's now split into many small f
 - `css/dev-overlays.css` - dev-panel + event-overlay styling.
 - `js/` - the game code, one file per system (list below).
 - `TERMINOLOGY.md` - **the index of what things are CALLED.** Read it before renaming anything the player sees. The governing rule: code ids are frozen, only display strings change, and every tier/category word is spelled out in `js/labels.js` and nowhere else.
+- `CARD_EFFECTS.md` - **the index of everything that can be true of ONE CARD.** Every permanent buff and debuff, every boss state, the r278 card states, and the parked design list. Read it before adding a per-card effect.
 - `OPEN_DECISIONS.md` - **the balance-audit backlog: measured findings left for the owner to decide on.** Over-tuned rares, under-tuned legendaries, the rare/epic tier inversion, and how to reproduce the measurement. Read it before any balance pass.
 - `js/entity-tile.js` - **`entityTileInner` / `entityTileHTML` (r182): the ONE way an entity is drawn.** See "One entity tile" below - change a Trick's look here and the reward grid, the Mart shelf, the cart, the loadout strip, your tray and the Shift Change event all move together.
 - `js/fit-text.js` - `fitEntityName`. Shrinks an entity name until it fits, **never breaking a word** (r182).
 - `js/dance-clock.js` - **the scoring dance's own clock (r218).** Pausable waits, a WAAPI animation registry, and the per-tick acceleration. See "The dance clock" below.
 - `js/events-upgrade.js` / `js/events-slots.js` - the r218 events. Registered in `js/events-core.js` like every other event.
+- `js/card-states.js` - **the r278 per-card charges, the per-card clock and temp cards.** See "Card states" below and CARD_EFFECTS.md.
 - `js/storage.js` - **loads FIRST**, before every other script. A safety shim for browser storage (see below). Nothing else may be moved above it.
 - `js/data/` - **the "entities": pure content/data, no logic.** Edit these to tune or add game content without touching engine code:
   - `cards.js` - suits, ranks, rank order, `HAND_BASE` values, round/goal durations, `cardCan`, **and the Spectrum colour deck** (`COLORS` / `RANKS_NUMERIC` / `ACTIVE_RANKS`).
@@ -56,6 +58,31 @@ Rough guide to `js/` (engine): `labels` (tier + category words - see TERMINOLOGY
 - **Deploy:** push your feature branch, then fast-forward `main` to it: `git push origin HEAD && git push origin HEAD:main`. Pages serves from `main`.
 - **Build stamp:** bump the `BUILD` constant at the top of **`js/menu.js`** (currently `r155`) on every commit. It shows in the menu footer + dev panel so the owner can confirm the cache is fresh. Increment the `rN` each commit.
 - **Commit messages:** detailed, since a fresh Claude session re-orients from git history. End with the session URL line.
+- **A FINISHED BRANCH IS NOT A DEPLOYED BRANCH (r283).** The deploy step above is
+  two pushes and the second one is easy to skip. Seven branches finished between
+  r278 and r282 and **none of them reached `main`** - among them the goal-hand
+  SKIP, a third-card scoring bug and the retuned goal curves. The owner found it
+  by playing the site and noticing a feature was gone. No merge ever overwrote
+  anything: the work was simply never merged, which looks identical from the
+  player's seat and is much harder to find from the commit log.
+  - **THE BUILD NUMBER IS THE TELL.** `rN` is bumped per commit on a branch, so
+    parallel sessions each bump from the same base and the numbers COLLIDE - at
+    the time of writing there were two r278s, two r280s, two r281s and two r282s,
+    all different work. A duplicate `rN` across branches means at least one of
+    them never landed. `main`'s BUILD being r282 says nothing about which r282.
+  - **Before starting a session, check what is unmerged:**
+    ```
+    for b in $(git branch -r --format='%(refname:short)' | grep -v HEAD); do
+      n=$(git rev-list --count origin/main..$b); [ "$n" != 0 ] && echo "$n  $b"; done
+    ```
+  - **A stale branch merges cleanly.** All seven test-merged onto `main` with the
+    `BUILD` line in `js/menu.js` as the only conflict (plus one CLAUDE.md section
+    added at the same anchor). Resolve BUILD by keeping `main`'s, merge them all,
+    then set one new `rN` at the end - don't try to preserve each branch's number.
+  - **Two audits are worth running after any multi-branch merge**, because a merge
+    can drop a hunk silently and the syntax check will still pass: for every merge,
+    assert no file where a parent changed it but the merge result equals the base;
+    and grep each branch's own added lines for survival in the merged tree.
 - After editing, validate syntax (loads every JS file in order, exactly as the browser does):
   ```
   node -e "const fs=require('fs');const idx=fs.readFileSync('index.html','utf8');const srcs=[...idx.matchAll(/<script src=\"([^\"]+)\"><\/script>/g)].map(m=>m[1]);const code=srcs.map(s=>fs.readFileSync(s,'utf8')).join('\n');new Function(code);console.log('OK',srcs.length,'files');"
@@ -775,6 +802,129 @@ and I cannot tell why". The rules, as the code actually is:
 - **Tagalong** (rare knack) lifts it: hands may carry cards that are not part of them, and those cards score their own pips instead of being billed as penalties. That is the whole reason it is a knack - before r201 this was free and unremarkable, so making it the default and selling it back turns "my hand has a spare in it" into something you paid for.
 - **Verified unaffected:** the 7-card `Run of 4 + Set of 3 + Flush` still scores 1870; the tutorial's board audit passed 40 of 40 deals; RECORDS renders; match-3 is byte-for-byte the same behaviour before and after (checked by running the same deal on both commits).
 
+### The partition and the load-bearing rule were fighting (r281)
+
+Owner: *"This keeps happening when I try and play set of 3... It always drops the third
+one and I can't see why."* Three 7s scored as a Pair with the third seven billed as a
+penalty; A-2-3-4 scored as a Run of 3 with the 4 dropped.
+
+**`_bestRankPartition` maximises `handWorth`, and `handWorth` reads `handBasePips` /
+`handBaseMult` - which include the NATURAL SCALING accumulator.** So once a SHORT hand
+had out-scaled the longer hand it lives inside, the partition preferred *take the short
+hand and leave a card unclaimed* - and the load-bearing rule (r201), which runs
+afterwards and knows nothing about why the partition chose what it chose, then threw the
+**whole component list** away because a card was unclaimed. The selection stopped being a
+hand at all, `findBestHand` fell back to the smaller subset, and the spare card went red.
+
+- **It is reachable on the SHIPPED tuning, early.** At `nsPipsPerHand` 2: **8 Runs of 3
+  kills every Run of 4**, 11 Runs of 4 kills the Straight, 17 Pairs kills Three of a
+  Kind, 53 Threes of a Kind kills Four of a Kind. The full table is OPEN_DECISIONS.md 7.
+- **`_bestRankPartition(cells, mustCover)`** forbids the drop branch, returning the best
+  partition that claims every card or **null** when there is none. `solve` can now return
+  null, so every recursion site has to survive that.
+- **IT IS A LAST RESORT, NOT THE FIRST ASK, and that ordering is load-bearing.** Coverage
+  is judged on the whole component list, **flush overlay included** - a card the rank
+  partition left alone is still load-bearing if the flush claims it. Constraining the
+  partition up front therefore refuses partitions the overlay would have rescued:
+  measured, that changed 1 selection in 2,400 **with no Natural Scaling in play at all**.
+  So the unrestricted answer is built first and kept whenever it already covers; the
+  covering partition is asked for only when the hand was about to be voided.
+- **Tagalong asks for the unrestricted partition directly**, because a passenger is
+  exactly what it buys. `_tagalong` is read ABOVE the partition now for that reason.
+- **This does not take the short hand away.** `findBestHand` scores every connected
+  subset on its own, so "play just the Pair and eat the penalty" is still on the table and
+  still wins when it genuinely pays more - which is r198 behaving as designed. The fix
+  only stops a partition the game is about to reject from vetoing the one it would have
+  accepted.
+- **Measured, 2,400 random connected selections over 400 boards:** with NS at zero,
+  **2,400 of 2,400 byte-identical**. With the ladder inverted (Pair +60, Run of 3 +40, and
+  all three together) every difference is an improvement and **0 hands score lower** in
+  any configuration; selections that were not a hand at all become one (`J♥ 4♣ 3♦ A♦ 2♣`:
+  no hand -> Run of 4). Verified in a real browser on both boards the owner reported.
+
+### The last slot books ONE obligation, and now says so (r281)
+
+Owner: *"It won't let me select the slot above my current slot here."* That is
+`mapLegalMoves`'s hard `set === MAP_SETS - 1` case returning only the review, which is the
+r253 rule and correct - but the bar's visits chip still printed the generic **`1/2`**
+there, so the game was telling the player a second obligation was owed and then refusing
+it. It prints **`1/1`** in the funnel, and `mapBarInfo` names the reason ("the last slot
+books one obligation, then the review") instead of the generic "not reachable from here".
+Display only; no movement rule moved.
+
+### Natural Scaling is a RATE TABLE, one row per hand type (r282)
+
+Owner: *"Can we change the scaling bonus options such that each hand grants a different
+bonus per play. A column for how many hands and what the bonus is. Then a toggle for if
+it alternates between the mult and the pips."*
+
+`nsPipsPerHand` / `nsMultPerHand` / `nsEveryHands` are **gone**. Every hand type carries
+its own row in `NS_RATE_DEFAULTS` (js/natural-scaling.js):
+
+```js
+{ pips, mult, every, alt }
+```
+
+- **`every`** - the grant fires on every Nth play of THAT hand type.
+- **`alt: false`** - each grant pays the pips AND the mult.
+- **`alt: true`** - each grant pays ONE of them, alternating, **pips first**. So
+  `+2 pips, +1 mult, every 2, ALT` is +2 pips on the 2nd play, +1 mult on the 4th, +2
+  pips on the 6th. With `mult: 0` and ALT on, half the grants pay nothing, which halves
+  the pips - the growth column in the editor shows that rather than hiding it.
+
+- **THE ALTERNATION NEEDS NO STORED CURSOR, and that is the one non-obvious part.** A
+  grant only fires when `plays % every === 0`, so the grant NUMBER is `plays / every` and
+  odd/even on that decides the side. `nsPlays` is already in `SAVE_VARS`, so the
+  alternation survives a save and resume for free and there is no second counter that
+  could drift out of step with it. **Verified**: a run saved mid-sequence and restored
+  continues at grant 3 (pips) rather than restarting at grant 1.
+- **`nsRates` holds OVERRIDES ONLY**, in `localStorage` (`lethe.nsRates.v1`), exactly as
+  the goal tuner does it (r197): an untouched row tracks whatever this file ships, and
+  setting a field back to its shipped value **deletes** the override rather than pinning
+  today's number forever. It is tuning, so it is **not** in `SAVE_VARS`, and
+  `resetNaturalScaling()` (which `startGame` calls) clears the EARNED accumulators and
+  never the rates. The two reset buttons are separate for that reason.
+- **A hand type with no row scales at `NS_RATE_FALLBACK`**, the quietest rate in the
+  table, rather than at nothing - a new hand type silently not scaling is the harder
+  failure to notice.
+
+#### How the shipped numbers were chosen
+
+For a pips-only rate the growth in a hand's own WORTH (`base pips x base mult`) is just
+`pipsPerPlay / basePips` - the mult term cancels - which is what `nsGrowthPerPlay()`
+reports and what the table is tuned on. The rates set that **roughly inverse to how
+available the hand is** (the r178 board survey: Pair 100%, Run of 3 73%, Straight 34%,
+Flush 17%...), so a hand you can play on every board grows about **1% of its worth per
+play** and a hand you reach for twice a run grows **8-10%**. That ordering is the whole
+point: it is what keeps the harder hand ahead of the easy one nested inside it, which one
+flat rate could never do (OPEN_DECISIONS 7).
+
+Measured on the shipped table - plays of the short hand before it out-worths the long one
+it lives inside: **Run of 4 -> Straight 35 · Flush of 4 -> Flush 35 · Run of 3 -> Run of 4
+40 · 3oK -> Full House 63 · Flush of 3 -> Flush of 4 80 · Two Pair -> Full House 115 ·
+Pair -> Two Pair 130 · Pair -> 3oK 165 · Pair -> Full House never**, against 8-21 plays
+under the old flat rate. Over a simulated 18-round run the hands actually played finish
+at **x1.0 to x1.6** of their starting worth.
+
+**These are deliberately LOW - a conservative floor to tune up from, not a balance
+proposal.** The node model and the live engine were cross-checked and agree to the play
+on all nineteen hand types.
+
+#### The editor
+
+Dev panel -> Score -> Natural Scaling is one grid: **HAND · PIPS · MULT · EVERY · ALT**
+(the rate) **· +P · +M** (what this run has earned, still typable to jump straight to a
+value) **· N** (plays this run, and the growth-per-play figure). A row moved off the
+shipped table is drawn in gold, so "what have I actually changed" is answerable without
+diffing the source.
+
+- **One grid template on every row INCLUDING the header**, so the header cannot drift out
+  of line with the fields. Verified in a real browser: seven of the eight columns align to
+  the pixel and the eighth is the 14px ALT checkbox centred in its 24px column.
+- **`devSetNsRate` calls `devRenderNsRows`, never `devSyncNs`** - a full sync rewrites
+  every field in the table and would tear the one being typed in out from under the caret,
+  which is the same trap r201 wrote the split-value-write for.
+
 ### Natural Scaling bonus editor (r201)
 
 The dev panel's Natural Scaling group now lists **every scalable hand type with its EARNED pips and mult as typed fields**, so "what does a Run of 3 at +50 feel like?" is answered by playing it rather than by grinding forty hands first. `setNaturalScaleBonus(name, field, value)` writes the accumulator; the sliders above it still only decide how fast it grows.
@@ -800,6 +950,30 @@ The round goal was computed in **four** places, each spelling out `BASE_GOAL * G
 - **Every change applies to the round in progress** (`applyGoalTuneLive()` rewrites `roundGoal` and repaints), which is the point of tuning here rather than in the data files. **Refused during a boss**: that number is being fought right now and The Ratchet has been raising it, so recomputing would move the goalposts mid-fight and throw the Ratchet's work away. It says so instead.
 - **Round 1 is deliberately not rounded to the step.** `startGame` set the opening goal to a bare `BASE_GOAL` (1200) while the level-up formula rounded to the nearest 500 - so the shipped round-1 goal is **1200**, and rounding it in the shared function would have quietly dropped it to 1000. Round 1 never goes through the level-up path, so the two never disagreed in play; both are reproduced exactly. Verified: levels 2-25 are identical to the old formula in both curves.
 - The global multiplier folds in **before** rounding, so a scaled goal still lands on the rounding step. Zen still multiplies **after** rounding, exactly as the inline `roundGoal *= 2` did.
+
+### Goal curves retuned from measurement (r278) - `tools/sim/`
+
+Older numbers in this file (BASE_GOAL 1200, GOAL_SCALE 1.35, one growth rate for
+every mode, the 17,500 map quota) are superseded. A Monte Carlo bot plays whole
+runs through the real game code headlessly (`tools/sim/README.md` - rerun it
+after any deck or hand-value change; it reads the live files). The owner's "1500
+base / 30% is a good bit too easy" measured as a 57% bot win rate, and the
+shipped curves aim the bot at ~25-40% (a real player lands well above - the bot
+cannot build layered hands or draft synergy):
+
+- **Classic: `BASE_GOAL` 1500, `GOAL_SCALE` 1.32 to round 12, `GOAL_SCALE_LATE`
+  1.45 from `GOAL_LATE_START` (13).** Two segments on purpose: a flat 40% dies
+  too early, a bigger base kills round 1 before any Trick is owned. `classicGoalForLevel`
+  takes the two rates; new tunables `classicGrowthLate` / `classicLateStart`.
+- **The Schedule has its OWN curve now** - `mapGoalForLevel`, `MAP_GOAL_GROWTH`
+  18%/level, dispatched from `goalForLevel` on `mapActive()`. It advances `level`
+  on every obligation (~11/quarter vs Classic's 6), so sharing Classic's rate was
+  a measured 0-of-100 wall. `MAP_BOSS_SCALE` 1.40 -> **1.30** with it, or 98% of
+  failed runs died at the review.
+- **Survival: `SURVIVAL_GOAL_SCALE` 1.25**, decoupled from Classic's scale. The
+  5th boss sits at level ~25-30 and nothing survives 30%+ compounding that deep
+  in 120s rounds (0-1 of 100). If it still overshoots, the next lever is boss
+  cadence, not growth.
 
 ### Scoring models (r179) - a dev toggle, not a decision
 
@@ -1137,9 +1311,12 @@ node, no slot, no credits and no clock.
 #### The un-explode
 
 The goal finale blows the board apart (`js/score-dance.js`: outward from the
-grid's centre, 200-340px, +-160deg, scale .82, fading, 900ms). Bringing the cards
+grid's centre, 200-340px, +-160deg, scale .82). Bringing the cards
 back by REVERSING that blast is what makes this read as the round being rewound
-rather than as a new screen opening. Same geometry played backwards on
+rather than as a new screen opening. **Since r280 the finale itself brings the
+surrounding cards home** (see "The win finale's cards come home" below) - this
+un-explode is still needed, and needed unchanged, because the ROUND-END FALL
+between the finale and the payout really does empty the board. Same geometry played backwards on
 `sfxRewind`, and **nearest the centre lands first**, so the board fills outward -
 the exact reverse of a blast, and what stops it reading as an ordinary deal.
 
@@ -1205,6 +1382,87 @@ Remove takes it to 51 with the card out of both piles and the board emptied. In
 every case the snapshot clears, the pick closes and the reward grid opens, with
 **the deck audit passing** and no page errors. Disabled and SKIP both leave the
 deck untouched and the audit clean.
+
+## Card states (r278) - `js/card-states.js` + `css/card-states.css`
+
+A **one-shot charge on one physical card**, with two halves: play it and it pays
+out big, or leave it alone for its fuse and the OTHER half fires instead. The idle
+half is a different outcome, never a flat penalty, and several of them are how a
+run **thins its deck** without a shop. **CARD_EFFECTS.md is the full reference** -
+the seven states, where each half is applied, the parked list, and the rule a new
+state has to meet.
+
+Three things this file owns, and the traps in each:
+
+- **The per-card clock** (`cardIdleSecs`, keyed by `cardId`). Ticked from the ROUND
+  tick, so it stops with the round, the pause menu and RECORDS with no pause
+  handling of its own, and reset every round (owner's spec) so a charged card does
+  not blow up the instant the next round deals. A **swap counts as a touch**, which
+  is the only way to hold a charge you are not ready to spend. A blocked, held or
+  quarantined cell does not age: a card you cannot touch must not have its fuse run
+  down. The tick skips while `animating || falling` (the r213 Hollow lesson).
+- **Temp cards** (`_temp`). The ONE per-card thing that is a card field rather than
+  a map entry, because it has to survive `discardToPlayed`'s rebuild so that rebuild
+  can **refuse** it. Both pile functions drop it, and that is the whole of "this
+  level only": the level-clear sweep runs `discardToPlayed` on every cell. It IS a
+  real card while it is there - a boss can curse it, a mid-round blessing can buff
+  it - and `gridCardCount()` deliberately does not count it, because the deck audit
+  is about the permanent deck. `makeCardPermanent()` is the written-but-unused seam
+  for converting one.
+- **The registry** (`CARD_STATE_DEFS`), so a new state is a row.
+
+**Two states cannot pay out in the post-commit block, and that is the interesting
+part.** `cardStatesOnUse` sits in `playHand` beside `growCardScaling` and
+`hallmarkResolve`, for their reason: a payout earned by a hand lands on the next
+one, and anything rolled inside `calcScore` fires dozens of times a selection. But:
+
+- **Callback** has to change the hand being scored, so it is READ inside `calcScore`
+  (`cardStateCallbackOn`), exactly like Low and Behold - the condition is a property
+  of the hand, the effect is +1 replay per card. Read only; the charge is spent in
+  `playHand` like every other.
+- **Roll Call** changes WHICH CARDS the hand is made of, so it runs before the hand
+  is found. It follows `ringerAugment`'s shape and for the same two reasons: it
+  ignores selection size (added after the player committed) and it ignores adjacency
+  (`findBestHand` only builds connected subsets and `detectHand` does not check
+  connectivity). It also runs **above the minimum-selection guard**, so a lone
+  charged card plus three pulls is legal at a minimum of 3. Its pull is
+  unconditional and has **three tries** - the union, the rank group alone, then the
+  hand you already had - because `handComponentsFor` refuses a hand over
+  `HAND_MAX_CARDS` or one carrying an unclaimed card. Anything the hand cannot use
+  is taken as a **penalty card**, which is the existing word for "committed,
+  consumed and billed".
+
+**Backfill's charge MOVES to the copy.** A stack of 3 is three copies one after
+another and then done. Left on the original it would be a permanent extra card on
+every play for the rest of the run; copied to both it would branch.
+
+**Self-removal costs the CLOCK and not the STOCK** (`CARD_SELF_DISCARD_COSTS_STOCK`
+flips that). A card removing itself when you are on zero discards must not be a rule
+that cannot run. **The Turnover knack pays neither** (`opts.free`): billing it at 3s
+a card costs a full board about 48 seconds of a 180-second round, so a priced
+Turnover is not a weaker Turnover, it is an unplayable one. Turnover also churns
+**one card per tick**, the longest-idle one - at a round's start every card has aged
+together, so a sweep would be a board wipe rather than churn.
+
+**`luckBadRoll` / `luckBadChance` (js/luck.js) are new and are the mirror of
+`luckRoll`**: a chance of something BAD has to get rarer as Luck climbs, or Luck is
+a stat that makes half of a duality card worse. `downgradeEntity` (js/improve.js) is
+the counterpart to `improveEntity` and goes through `applyEntityTiers` the same way,
+so a knocked-back Trick's printed description follows the number back down.
+
+**Where states come from today:** the **Hallmark** knack (an eighth outcome) and the
+dev panel's **Card States** group. Hallmark resolves AFTER the states' own spend
+block in `playHand`, or a state it granted would be consumed by the hand that
+earned it.
+
+**Verified in a real browser at 1440x820**, all seven: badges and fuse rings paint
+inside the card with 0 overflow; Fleeting recycles and the board refills; Deadline
+and Scavenger delete from the run and `expectedDeckTotal` follows; a Backfill stack
+of 3 gives exactly three temp copies and then stops; a temp card never reaches
+either pile and is gone at the level-clear sweep; Roll Call turns a lone selection
+into a Four of a Kind at a minimum selection of 3; Callback takes a Run of 3 from
+189 to 250; Turnover churns one card for 0 seconds and 0 stock; a state's own
+self-discard bills 3s and 0 stock; **the deck audit balances at every step**.
 
 ### The Hallmark knack (r234) - `js/hallmark.js`
 
@@ -1496,6 +1754,97 @@ with `pointer-events: auto`, CONFIRM with nothing selected does nothing, a pick
 commits exactly one entity and leaves 0 tiles in `#grid`, `pickRerollsGrant`
 takes 1 to 3, and Survival's screen is unchanged (4 actions + CONFIRM, same
 shared pool). No page errors on any run.
+
+### SELECTION IS A WHOLE-CELL STATE (r281) - and it LIFTS
+
+Owner: picking a Trick on the boss grid *"doesn't highlight the whole cell and
+it's really hard to tell if it's been selected"*, and the play grid's own
+lift-and-swell should be **25% more noticeable** on the board and in the reward
+grids. Three separate things were wrong.
+
+- **ON THE PRIZE (BOSS) GRID THE SELECTION GLOW WAS NOT PAINTED AT ALL.** The
+  per-screen gold decoration `body.reward-prize #grid .reward-cell.on-grid` is
+  **(1,4,0)** - one id and four classes - and the selection rule was
+  `.reward-cell.entity.selected` at **(0,3,0)**. So on the one grid that follows
+  a boss, the decoration won and the pick was marked by nothing but a 5% scale.
+  Measured before the fix: a selected cell there computed to the gold shadow,
+  with no violet anywhere. Hence the `!important` on the box-shadow - **a STATE
+  the player is choosing with has to beat a per-screen decoration**, which is
+  the same reason that rule's `border-color` already carried one.
+- **THE OBJECT IS LETTERBOXED, SO THE CELL IS MOSTLY EMPTY (r239).** A floppy in
+  a 120x158 cell is 120x114, and the rarity edge the tile draws belongs to the
+  OBJECT. Nothing said anything about the **cell**, which is what is being
+  picked, so the gutters above and below the disc stayed black. The wash is
+  `.reward-cell.selected::after` at `inset: 0` - a pseudo-element rather than
+  markup because **six surfaces build this tile from three different functions**,
+  and `content: none` on `::after` is the r228 object block's, so this rule has
+  to stay BELOW that block to turn it back on. (The `.reward-cell.entity::after`
+  scanlines are dead: all three subtypes override them.)
+- **THERE WAS NO LIFT AND ALMOST NO SWELL.** A reward tile only scaled 1.05,
+  under a float driver already scaling it. It takes the CARD'S OWN two numbers
+  now, at the same +25%.
+
+**"25% more noticeable" means the EFFECT x1.25, not the value.** The lift goes
+2 -> 2.5px and the swell's part above 1 goes 0.07 -> 0.0875 (i.e. `scale(1.0875)`),
+with the glow's blur and alpha scaled the same way; `handReadyPulse` moves with
+it. x1.25 on the scale FACTOR would be a 34% swell, which is a different
+animation. **Those two numbers are now the same on the play grid, the reward and
+prize grids, the shop board and the grid-pick tiles**, so "I picked this" moves
+identically everywhere.
+
+**The inside edge is near-WHITE and only the glow is violet.** Mint, cyan, purple
+and magenta are all rarity colours here, so a violet ring on its own reads as
+"that one is epic". Nothing else in the tile system is white.
+
+**A `fill: 'both'` deal-in animation OWNS `transform` for good.** That is why
+`.gp-sel`'s new lift did nothing on the grid-pick screen while the reward grid's
+worked: the reward grid rebuilds its tiles on every click, and r280's pick screen
+deliberately never redraws. `gridTileFallIn` now cancels itself on `finished` -
+its last keyframe IS the tile's resting place, so that is visually identical and
+hands the property back. **Any future CSS transform on a tile dealt in this way
+needs the same release.**
+
+Verified in a real browser at 1440x820 and 420x820, through the real tap path:
+reward grid, prize grid, on-grid shop, grid-pick and a board card all select,
+deselect clean (`::after` back to `content: none`, transform back to the float
+alone), and no page errors.
+
+### An improve offer prints its sentence ONCE (r281) - `improveDeltaHTML`
+
+Owner: *"rather than showing the entire description again just show the number
+being changed ... like `+5 (--> +10)` in bold so it's obvious."*
+
+An improve tile used to print the WHOLE description twice - old, arrow, new -
+which on a 120px reward tile is two paragraphs of near-identical prose with the
+one thing that actually changed buried in the middle of each. Worse, `.rtt-desc`
+has no `white-space: pre-line`, so the `\n` separators rendered as **spaces** and
+the two ran together into one blob.
+
+`improveDeltaHTML(before, after)` in `js/improve.js` prints the sentence once and
+marks every number that moves where it stands.
+
+- **IT WORKS BECAUSE THE TWO ARE THE SAME SENTENCE.** `applyBalDescriptions`
+  regenerates `desc` from BAL through one template, and the typed descriptions
+  are rewritten by substituting the number into the pristine text (r206), so
+  before and after are word-for-word identical apart from their numbers.
+  Splitting both on digit runs therefore pairs each number with its counterpart.
+- **IF THAT STOPS BEING TRUE THE WALK RETURNS `null`** and every caller falls
+  back to printing both. A different number COUNT, or any difference in the words
+  between two numbers, means these are not one sentence with a number in it, and
+  a delta drawn over two different sentences is a lie the player cannot check.
+- **The sign or multiplier glued to a number travels WITH it** - `+5`, `x1.5`,
+  `+x0.75`, `2x`, `25%`, `3s` - or the parenthetical reads "5 (-> 10)" beside a
+  stranded `+`. Two guards: a bare `x` is only a multiplier when it is not the
+  tail of a word (`max 60s`), and a trailing `s`/`x` is only a unit when a letter
+  does not follow it (`3s of clock`, never `15 seconds`).
+- **Measured over every entity in all three pools: 160 of 160 improvable
+  descriptions render a delta, 0 bail.**
+- Wired at all four sites (reward grid, shop, The Draw event, dev panel), and
+  `improveDeltaFor(id)` exists so they cannot drift on the fallback. The output
+  is HTML into a pipeline that was already HTML, and `highlightKeywords` composes
+  over it cleanly - **keep the `.imp-was` / `.imp-now` class names free of
+  keyword terms** (`set`, `run`, `play`, `time`, `buy`... ) or the keyword pass
+  will colour them inside the attribute.
 
 ### How it routes
 
@@ -1808,6 +2157,11 @@ the full name and description, and the `▤` legend lists every symbol beside
 its word. `fitEntityName` is gone from the tile for the same reason - there is
 no name left to fit. The glyph went 15px -> 22px (30px on the boss column) and
 is centred in the whole tile rather than sitting above a name band.
+
+**The watermark is gone too (r284).** r247's `.mt-ghost` was a big faint copy
+of the glyph behind the tile's name, there so a kind could be told apart before
+a 6px name was read. With the name gone the real glyph does that job, and a
+second copy of it behind itself only muddied the tile. Owner's call.
 
 **The boss column lost REVIEW too.** "Just use the symbols" is the rule and
 the legend spells it out; a full-height hazard column with a skull in it is
@@ -2175,6 +2529,50 @@ every tile but the newest. The bands are unaffected either way: `fanTrickTray`
 sets `--fan-z` ascending, so the covered strip is each tile's RIGHT edge and the
 bottom-left corner is always in view (measured r276 at 1440x820, 6 Tricks: width
 110, pitch 82, so 28px covered and 82px visible).
+
+### The tray tile is NEAR-SQUARE, because the disc is (r284)
+
+Owner: *"increase the size of tricks in the chip. Theres a bit too much space
+above and below them ... when it has an improvement and a prime, there's just a
+few pixels of space between it and the borders of the chip."*
+
+**A floppy is 20/19 and LETTERBOXES inside its frame (r239), so the only way to
+make the object bigger is to move the FRAME toward the object's ratio.** The
+landscape chip was 57x75 - a playing-card shape - which painted a **53x50 disc
+with about twelve px of dead gutter above and below it**. It is **73x75** now:
+the disc lands **73x69.4** with **2.83px** of gutter, which is ~90% more object
+for the same slot. Measured, not estimated.
+
+- **The `.reward-cell` padding was the OTHER half of the size, and it is easy to
+  miss.** `.trick-tray-chip > .reward-cell` pads `3px 2px 4px`, and the cell is
+  the CONTAINER the disc letterboxes inside - so that padding came off the disc
+  **twice**, once as the inset and once as the width it then scales its 0.95
+  height from. It is pre-r228 chrome for a tile that had a border and contents
+  of its own. Zeroed in the **landscape** rule rather than on the shared one, so
+  the portrait tray is left exactly as it was (verified: 47x64 chip, 43x40.8
+  disc, padding still `3px 2px 4px`).
+- **The cost is accepted and it is small**, because `fanTrickTray` MEASURES
+  everything: 4 tiles still sit in the column (at a 7px tuck, 90% of each in
+  view), and the row starts scrolling at **7** Tricks instead of 9. No JS
+  changed.
+- The dormant `.shop-squish` size went 26x35 -> **34x35** to keep the same
+  relationship; left at 26 it would have re-opened the gutter in that state.
+
+**THE PRIME BADGE HAD TO MOVE TO THE BOTTOM-LEFT, and that is r277's rule
+again.** The fan sets `--fan-z` ascending, so a tucked tile is covered on its
+**right** edge and only its left part is guaranteed to be in view - which is
+exactly why r277 moved the tier stamp to the top-left. A bottom-right
+`.cd-badge` was fine at 57px only because the tiles barely tucked; at 73px the
+row tucks from 4, and **at 5 Tricks the "+2" measured 0/5 visible on every chip
+but the newest**. It is `left` in the tray now, in **both** orientations -
+portrait fans the same way and had the same bug - and **nowhere else**: on a
+card, a knack chip or a reward cell nothing overlaps, and there the corner is
+the badge's home (r267).
+
+Verified in a real browser at 1440x820 and 420x820, at 3/4/5/7/10 Tricks: every
+`v2.0` stamp and every `+2` badge **5/5 visible**, nothing overflowing the tray
+area, 0 names clipped, and the reward grid's own tiles unchanged. No page
+errors.
 
 ### The tray fan may not RESTYLE the tile (r277)
 
@@ -2891,7 +3289,7 @@ Two things happen the instant the tally crosses `roundGoal` and the game said ne
 
 - **`showGoalBanner(opts)` takes a kicker and a force flag** - see the boss-win section above.
 - **`flashRoundEnd()` is the single wiring point.** It is the one function in the game that means "the tally just crossed the goal" - both dances call it and nothing else does - so `goalClearPresent()` hangs off it rather than off the dance's two call sites. `startRoundTimer()` is the single release point (it also clears any muffle, below).
-- **The banner is body-level and `position:fixed`, placed from JS in raw viewport px**, same rule as the Time / Limits pop-ups and the hand log: anything inside `#cabinet` inherits its CSS `zoom` and the coordinates get multiplied. It is centred on the **grid** rect rather than the viewport, so one rule covers both orientations. By the time it fires the board has already been cleared by the finale, so it lands on an empty grid.
+- **The banner is body-level and `position:fixed`, placed from JS in raw viewport px**, same rule as the Time / Limits pop-ups and the hand log: anything inside `#cabinet` inherits its CSS `zoom` and the coordinates get multiplied. It is centred on the **grid** rect rather than the viewport, so one rule covers both orientations. Since r280 it lands on the board the round was played on (minus the hand that just flew into the preview) rather than on an empty grid - the opaque plate is what keeps it legible over the cards.
 - **Survival and Flow get the clock state but not the banner** - their pick-of-three opens on this same beat and already carries a GOAL CLEARED kicker. **Flow does not get the clock state either**: its clock is a session countdown to the inspection, not a round clock, so it does not stop at a goal clear and marking it cleared would be a lie.
 - **Match-3 is not wired.** It never calls `flashRoundEnd` - `match3WinFinale` is its own mirror of the finale. One call there would pick it up.
 
@@ -2920,6 +3318,110 @@ When a hand is played, the escalating score animation ("dance") runs in the hand
 - **Interrupt handoff (`danceInterruptMode`, r90; reworked r116):** submitting a new hand mid-dance always cuts the old dance's grid/logic **immediately** (grid- and deck-safe - the new hand's already-computed cells can't be invalidated). A dev toggle (HUD section) picks the *visual* handoff: `ff` (rush the old score up, ~360ms - **default since r116**), `cut` (instant), `resolve` (snap + pop, ~200ms). A 260ms spam valve skips the count-up flourish on rapid chaining.
 - **Rapid-submit score resolution (r116) - was a game-wide bug.** The outgoing hand's total now **always** lands on the score display the moment it's interrupted (animated via the flourish, or snapped instantly on the `cut`/spam path). Previously the display was only written during a dance's own score-climb phase, which happens *after* the fly-in and the entire card-beat phase - so chaining hands fast left the score frozen on a stale mid-climb number until some hand was allowed to finish (or the goal hand landed). The underlying `score` was always correct; only the display lagged. The handoff also now runs **concurrently with the incoming hand's fly-in** (instead of blocking before it), so the new cards float into the preview while the old total rushes up behind them, and the new hand's beats wait on that count-up. `danceInterruptFlourish` is awaited, so it has an abort + timeout escape hatch - rAF is throttled to zero in a background tab and would otherwise stall the incoming dance.
 - **Superseded-dance guard (`dncGen`, r89):** a dance that gets superseded bails silently and never touches the shared stage/score (which the successor owns) - this fixed particles flying from a stale/detached preview box on double-submit.
+
+### The win finale's cards come home (r280)
+
+Owner: *"could we change that animation so that the cards explode out and then
+come back to their previous location."*
+
+The goal hand's finale is **jitter -> blast -> fly**, and the blast used to be
+one way: the surrounding cards flew outward, faded to nothing, and then EVERY
+card element on the board was removed alongside the winners that had flown into
+the preview. Two things followed from that and both were wrong.
+
+- **The board was empty under the whole tally.** The longest animation in the
+  game played over a blank grid, and the QUOTA CLEARED stamp landed on nothing.
+- **THE ROUND-END FALL WAS INVISIBLE, and had been for as long as this finale
+  has existed.** `showLevelUpScreen_fallOnly` (js/interlude.js) looks each card
+  up by `[data-card-id]` and skips the ones it cannot find, so on a goal hand it
+  only ever did the DECK ACCOUNTING - `discardToPlayed` on every cell - and never
+  animated a thing. The sequence the owner remembered (cards fall out, then the
+  payout) was in the code and could not be seen.
+
+The surrounding cards now go **out, hold, and come back to the cell they left**,
+and only the WINNERS are removed. The board the round was played on is still
+there under the tally, and the fall before the payout is a real fall again.
+
+- **`WIN_BLAST_CFG` (js/score-dance.js) is the whole trip.** The OUT leg is the
+  r150 explosion unchanged - same distance (200 + up to 140px along the ray from
+  the board's centre), spin (+-160deg), scale (.82) and easing - and the return
+  is **`PICK_CFG`'s**, because `pickUnexplode` (js/payout-pick.js) was already
+  written as the reverse of exactly this blast. Cards nearest the centre leave
+  first and land first, so the board empties outward and fills inward.
+- **One animation per card, four keyframes, a per-card delay** - not two chained
+  animations. A single WAAPI animation cannot be raced with itself, and the
+  apex opacity is deliberately `0.10` rather than 0: a card that reaches nothing
+  and comes back pops rather than returns.
+- **THE ANIMATIONS ARE CANCELLED, NEVER LEFT TO FILL.** The last keyframe IS the
+  resting state, so cancelling once the trip is over is seamless - and an
+  animation still filling would pin `transform` AND `opacity`, which are the two
+  properties the round-end fall then wants to animate itself. `dncSettleBlast()`
+  is that release and it is called from four places: when the animations finish,
+  from `dncFinishAbort`, from `cancelDance` (js/score-anims.js - the blast is
+  1.2s and the dance's own abort checkpoint is further down the step it is in, so
+  without this the cards fly on underneath whatever cut the dance short), and at
+  the top of the next dance.
+- **The blast deliberately OUTLIVES its step on a wide board.** The fly-in's
+  await is ~1320ms and a 16-card blast runs ~1380ms, so the tally starts while
+  the last cards are still coming home. That is why the release is hung off the
+  animations rather than off the step.
+- **`clearLineMarkers()` is no longer called by the finale.** The marked
+  row/column lines belong to a board that has not left yet; the fall drops them
+  at the same moment it drops the cards. The finale is therefore no longer one of
+  the three places card DOM is torn down without a following render.
+- **`gridData` is untouched, on purpose.** It still holds the cards that flew
+  into the preview - the fall is what discards them, and The Pick photographs the
+  board above the fall - so the winners' CELLS read as occupied while their
+  elements are gone. A stray `render()` mid-tally therefore pops the played hand
+  back onto the board for a frame. That was already true before r280 (it popped
+  the WHOLE board back), and nothing calls render there; it is why
+  `endBoss(true, {presented:true})` still skips its own render.
+- **`repaintBoardAfterBoss()` (js/boss.js) is the one thing the change forced.**
+  Two bosses change how a CARD LOOKS rather than what it does - **The Fog** hides
+  ranks (markup, from `renderCardAppearance`) and **The Gradient** scales and
+  tints by position (`--grds` plus a class) - and with the board now standing,
+  both would outlive the boss and fall still painted. It repaints only the
+  elements actually still on the board, by the same two lines `render()` uses, so
+  it cannot put the played hand back. Verified: fogged cards 11 -> 0 and gradient
+  cards 11 -> 0 the moment the boss ends, before the fall.
+
+### The goal hand has a SKIP (r280)
+
+`#dnc-ff`, mounted into the hand preview (`#selected-cards`) for the **goal hand
+only** - the one animation long enough to be worth skipping, and the one that
+ends the round. Pressing it skips the rest and goes straight on to the fall and
+the payout.
+
+- **IT IS NOT AN ABORT, and that is the whole design.** `cancelDance()` cuts the
+  presentation and leaves `handleDanceAbort` to pick up the pieces, which for a
+  goal hand means the interlude is reached by a different route with the score
+  snapped on from outside. This is the SAME dance played at `DANCE_CFG.ff` - the
+  same events in the same order, landing the same numbers, handing off from the
+  same line. Nothing downstream can tell the difference.
+- **`dncFF` already existed and nothing had ever set it.** It was the dormant
+  "illegible-fast button" the tally's `dwait`, particle flights, merge, throw and
+  climb all already divide by. A speed multiplier alone is not enough, though: it
+  cannot reach a WAAPI animation or a `setTimeout` that has already been armed.
+  Hence **two registries**, both emptied per dance by `dncResetFF`:
+  `dncFFWaiters` (an `await` that should return NOW, raced against its timer) and
+  `dncFFCuts` (an animation or timer already in flight, cut short NOW).
+- **Registering AFTER the press runs the cut immediately**, which is what lets
+  the finale's steps be written in order without each one testing `dncFF` for
+  itself. The one place that does test it is the blast, which is skipped outright
+  rather than started and cancelled a frame later.
+- **`flyGridCardToSlot` registers its own cut**, so a clone already in the air
+  lands rather than finishing its 460ms flight, and **`dur` of 0 now means
+  "reveal the slot, there is no flight to watch"** - the same path a zero-size
+  anchor already took.
+- **The chip goes quiet on press rather than disappearing.** A control vanishing
+  under the finger reads as a misfire.
+- **The band above the preview cards is all the room there is.** Measured at
+  1440x820: the dance stage starts 13.5 stage px above the cards, so the chip is
+  sized to land inside it (bottom edge 337px against a card top of 339px). Grow
+  it and it sits on the hand you just played.
+- Verified pressed during the jitter, during the blast and during the tally: the
+  board keeps its cards, the displayed total lands on the real score in every
+  case, and the fall, payout and reward grid follow as normal.
 
 ## Spectrum mode - the numeric colour deck (`MODES.spectrum`, r160–r164)
 
@@ -2952,7 +3454,61 @@ Four extra cards shuffled into the Spectrum deck at run start. **Score two hands
 - **`SLEIGHT_FIXTURES` + `sleightOfferable()`** keep them out of every offer pool (shop, Mart, wheel, reward grid, events, survival) while leaving them IN `SLEIGHT_POOL` - `sleightDef()` and both render paths look them up there, so filtering the array would have made them render as blanks. They carry `rarity:'fixture'`, which no rarity table asks for. The only way to have one is to draw it.
 - **`fireAdjacentSleights(handCells)`** runs once per scored hand from `playHand` (right after `fireSleightsOnPlay`). A fixture touched by three cards of the same hand still counts **one** hand, and the fixture being part of the played hand doesn't count - only its NEIGHBOURS are checked.
 - **Both grid render paths show `1/2` progress** instead of the charge count - `renderCardAppearance` (fall animation, hand preview) *and* the separate sleight branch in `render()`. Miss the second and the tile shows ∞ on the board while the animation shows the counter.
-- Progress lives on the card object, so it survives falls and saves but **resets if the fixture leaves the board** (`discardToPlayed` rebuilds the sleight from a fixed field list, which doesn't include `_adjPlays`).
+- Progress lives on the card object (`_adjPlays`), so it survives falls and saves - **and, since r280, a deck cycle too**. See below.
+
+### The fixtures pay out and LEAVE (r280)
+
+Owner: *"Aren't all of them supposed to be that if you play two hands next to them
+they'll give you the reward and then discard themselves? It doesn't seem like they
+do it consistently. They also don't leave or animate."* Three separate things,
+all true.
+
+- **THE PROGRESS WAS BEING WIPED AT EVERY ROUND BOUNDARY, and that is the whole
+  "inconsistent".** `discardToPlayed` rebuilds a Sleight from a **fixed field
+  list** and `_adjPlays` was not on it - and `showLevelUpScreen_fallOnly`
+  discards the entire board through that function at the end of **every** round.
+  So a fixture you had scored one hand beside came back at 0/2 with nothing
+  saying so. Measured: **1 in, `undefined` out.** It is on the list now.
+  The counter is what the card PRINTS (`1/2`, both render paths), so a silent
+  reset is the card lying about itself.
+- **It discards itself on payout**, through the shared `discardSleightAfterUse` -
+  spin, `discardToPlayed`, `removeAndFall` - so it cycles back into the draw pile
+  with its charges (`durability: 'infinite'`) and can be drawn again. That is what
+  keeps "Repeats" true without the card squatting on the board forever. The
+  descriptions say so now rather than saying "Repeats."
+- **IT CANNOT LEAVE AT THE MOMENT IT PAYS, and that is the one real trap here.**
+  `paySpectrumFixture` runs inside `playHand`, **above** `playScoreDance`, and the
+  dance removes the played hand with its own `removeAndFall`, which takes the
+  `falling` lock. Starting a second one on top of it cuts the first short - the
+  same trap r205's Pivot had to defer around. So the exit is **queued**
+  (`spectrumFixtureExits`) and drained from the **tail of `removeAndFall`**, the
+  one moment the board is known to be settled. One at a time: the drain's own
+  `removeAndFall` re-drains from its tail.
+- **The queue holds CARD OBJECTS, never cells.** The hand that paid the fixture is
+  removed first, so the fixture has usually fallen somewhere else by the time it
+  leaves - the r192 rule, target a card and never a position.
+- **A fixture paid by the GOAL hand never drains**: that hand's finale explodes the
+  board instead of calling `removeAndFall`. The payout has already landed (state is
+  applied immediately, only the exit is deferred) and the interlude discards the
+  whole board anyway, so `startRoundTimer` clears the queue rather than carrying a
+  card into a round whose board it is not on.
+- **The payout throws the SAME plate the scoring dance throws** (`entityEffectFX` ->
+  `ptLaunch`): a `+2` from the card to the SWAP readout, `+2` to DISCARD, `+5` to
+  credits, the pause plate to the clock. `entityEffectFX` gained **`opts.srcEl`**
+  for it - the fixture is a Sleight on the PLAY GRID, not a tray tile, so there is
+  no `danceEntityEl` lookup to do when the caller already holds the card.
+  **`pauseRound`/`rewindTime` throw their own particle**, so those two are handed
+  `srcId`/`srcSource` instead of being thrown a second plate on top - two plates for
+  one payout is exactly the doubled vocabulary r233 spent a pass removing.
+- **`consumeSleightCharge` came OUT of `paySpectrumFixture`.** `discardSleightAfterUse`
+  decrements on the way out, and doing both would spend two charges for one payout
+  (invisible today at `'infinite'`, wrong the moment a finite fixture is added).
+
+Verified in a real browser at 1440x820 and 420x820, all four fixtures: the payout
+lands, a plate flies from the card to the right readout (measured mid-flight
+between the two), the toast prints, the card is off the board within ~2s, the board
+is refilled with **0 holes**, the cycled copy is back in the piles at 0/2, and a
+`discardToPlayed` round-trip carries 1/2 through. No page errors.
 - Granting happens in `startGame` **after `initGridData()`** - that call assigns `drawPile` wholesale, so anything pushed before it is thrown away.
 
 ### Deck tuner (dev panel → Spectrum, r161) - `js/spectrum.js`
@@ -3324,7 +3880,7 @@ On `body.grid-screen` (reward grid, shop, crossroads), landscape:
 
 ### A boss win plays the finale now (r237)
 
-`checkBossObjective` used to call `endBoss(true)` synchronously inside playHand - before the dance drew a frame - so the boss-winning hand never got the goal finale and the screen jumped straight at the prize grid. Now the win only goes **PENDING** (`bossWinPending`); playHand routes the hand through the ordinary goal-dance exit, and the dance calls **`bossSettleWin()`** exactly where it would call `startInterlude` (normal completion, the abort path, and the legacy dance). `endBoss(true, { presented: true })` then skips its own `render()` (the finale already cleared the board - a render would pop every card back for a frame) and its own banner (`flashRoundEnd`'s `goalClearPresent` already carried the boss's name as kicker). Survival's mid-dance pick is suppressed while a boss win is pending - that hand ends in the prize grid.
+`checkBossObjective` used to call `endBoss(true)` synchronously inside playHand - before the dance drew a frame - so the boss-winning hand never got the goal finale and the screen jumped straight at the prize grid. Now the win only goes **PENDING** (`bossWinPending`); playHand routes the hand through the ordinary goal-dance exit, and the dance calls **`bossSettleWin()`** exactly where it would call `startInterlude` (normal completion, the abort path, and the legacy dance). `endBoss(true, { presented: true })` then skips its own `render()` (it would pop the played cards back onto the board the finale left standing - see r280 below, where the skipped render is replaced by `repaintBoardAfterBoss()`) and its own banner (`flashRoundEnd`'s `goalClearPresent` already carried the boss's name as kicker). Survival's mid-dance pick is suppressed while a boss win is pending - that hand ends in the prize grid.
 
 ### The boss-winning hand keeps its bookkeeping (r254)
 

@@ -51,6 +51,13 @@ function hallmarkOutcomes() {
     { kind:'pause',  label:`+${B.seconds}s pause`,   color:'#7ec8e3' },
     { kind:'prime',  label:'a trick primed',         color:'#8a5cf0' },
     { kind:'force',  label:'a trick forced',         color:'#d9a129' },
+    // r278: a card STATE, which is the only outcome here that pays on a LATER
+    // hand rather than on the next one. That fits the rule the rest of the table
+    // follows (the mark pays forward) and it is what makes states reachable in
+    // ordinary play without a new screen. Hallmark resolves AFTER the states'
+    // own spend block in playHand, so a state granted here is not consumed by
+    // the hand that earned it.
+    { kind:'state',  label:'a card state',           color:'#c9a84c' },
   ];
 }
 
@@ -137,6 +144,16 @@ function hallmarkResolve(cards) {
       t._primed = (t._primed || 0) + 1;
       note = `${t.name} primed`;
       if (typeof renderTrickTray === 'function') renderTrickTray();
+      break;
+    }
+    case 'state': {
+      if (typeof cardStateIds !== 'function' || typeof addCardState !== 'function') {
+        note = '+' + B.pips + ' pips'; permPips[k] = (permPips[k] || 0) + B.pips; break;
+      }
+      const ids = cardStateIds();
+      const sid = ids[Math.floor(Math.random() * ids.length)];
+      addCardState(hit, sid, 1);
+      note = cardStateDef(sid).name;
       break;
     }
     case 'force': {

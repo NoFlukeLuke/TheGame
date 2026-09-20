@@ -511,6 +511,7 @@ function startGame() {
   permCoins  = {};
   permPipsGrow = {}; permMultGrow = {};
   cardCurses = {};
+  if (typeof cardStatesResetRun === 'function') cardStatesResetRun();   // r278
   bonusMult_fives = 0;
   bonusMult_nines = 0;
   bonusMult_tens = 0;
