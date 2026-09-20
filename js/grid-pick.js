@@ -280,7 +280,7 @@ function gridPickAfterRender(root, offers, onChoose) {
 function gridTileFallIn(el, { delay = 0, dist = 260 } = {}) {
   if (!el.animate) return null;
   const B = 8, S = 0.10;
-  return el.animate([
+  const anim = el.animate([
     { opacity: 0, transform: `translateY(${-dist}px) scaleY(1)` },
     { opacity: 1, transform: `translateY(${-dist}px) scaleY(1)`,        offset: 0.06 },
     { opacity: 1, transform: `translateY(${-dist * 0.45}px) scaleY(0.96)`, offset: 0.55, easing: 'ease-in' },
@@ -289,6 +289,19 @@ function gridTileFallIn(el, { delay = 0, dist = 260 } = {}) {
     { opacity: 1, transform: `translateY(${B * 0.3}px) scaleY(${1 - S * 0.2})`, offset: 0.96 },
     { opacity: 1, transform: 'translateY(0) scaleY(1)' },
   ], { duration: 420, delay, easing: 'ease-in', fill: 'both' });
+  // RELEASE THE TRANSFORM WHEN THE FALL ENDS (r281). `fill: 'both'` is what
+  // holds the tile offset and invisible through its DELAY, and it is also what
+  // makes the animation OUTLIVE the fall: a filling WAAPI animation owns
+  // `transform` for good, so any CSS transform the tile takes afterwards is
+  // silently ignored - which is why .gp-sel's lift and swell did nothing here
+  // while a selected reward tile lifted fine. The reward grid gets away with it
+  // by rebuilding its tiles on every click; this screen deliberately does not
+  // redraw (r280), so the animation has to hand the property back itself. The
+  // last keyframe IS the tile's resting place, so cancelling on finish is
+  // visually identical. The second handler swallows the AbortError a cancel
+  // from anywhere else would reject with.
+  if (anim.finished) anim.finished.then(() => { try { anim.cancel(); } catch (e) {} }, () => {});
+  return anim;
 }
 
 // Draw (or redraw) the taken-over board from gridPickState.

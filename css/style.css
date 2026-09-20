@@ -55,6 +55,18 @@
   .kw-time    { color: #0a0a0a; font-weight: 600; text-shadow: 0 0 3px rgba(255,255,255,0.95), 0 0 6px rgba(255,255,255,0.55); }
   .kw-replay  { color: #fff; font-weight: 600; text-shadow: 0 0 4px rgba(120,90,255,0.95), 0 0 7px rgba(255,80,160,0.6), 0 0 10px rgba(60,170,255,0.5); }
 
+  /* An IMPROVE offer's delta (r281, js/improve.js). The description is printed
+     once and the number that moves is marked where it stands: "+5 (-> +10)".
+     The old value stays the prose's own colour, bolded - a strike-through at
+     7.5px on a reward tile is a smear, and dimming it makes the sentence read
+     as half greyed out. The NEW value carries the mint the rest of the flow
+     already uses for "this is what you get". Both are bold: the owner's whole
+     point is that the changed number is the one thing on the tile that must
+     not be read past. */
+  .imp-was { color: var(--cream, #f0e6c8); font-weight: 700; }
+  .imp-now { color: var(--c-mint, #35d59b); font-weight: 800; white-space: nowrap;
+             text-shadow: 0 0 6px rgba(53,213,155,0.45); }
+
   body {
     background: radial-gradient(ellipse at center, #1a3a1a 0%, #0d2010 55%, #071208 100%), url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCI+CiAgPHRleHQgeD0iNSIgeT0iMjAiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4wNCkiIGZvbnQtZmFtaWx5PSJzZXJpZiI+4pmgPC90ZXh0PgogIDx0ZXh0IHg9IjM1IiB5PSIyMCIgZm9udC1zaXplPSIxNCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjA0KSIgZm9udC1mYW1pbHk9InNlcmlmIj7imaU8L3RleHQ+CiAgPHRleHQgeD0iNSIgeT0iNTAiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4wNCkiIGZvbnQtZmFtaWx5PSJzZXJpZiI+4pmjPC90ZXh0PgogIDx0ZXh0IHg9IjM1IiB5PSI1MCIgZm9udC1zaXplPSIxNCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjA0KSIgZm9udC1mYW1pbHk9InNlcmlmIj7imaY8L3RleHQ+Cjwvc3ZnPg==') repeat;
     font-family: 'Crimson Pro', serif;
@@ -1752,20 +1764,26 @@
   .buff-band.bb-thick { height:4px; }
   .buff-band.bb-tl, .buff-band.bb-br { transform: rotate(-45deg); transform-origin: center; }
   .buff-band.bb-tr, .buff-band.bb-bl { transform: rotate(45deg);  transform-origin: center; }
-  /* Selection lift + swell (r179): ~2px up, 7% bigger. Composed on top of the
-     grid heartbeat's --hb* vars, the way the base .card transform is, so a
-     selected card keeps drifting with the rest of the board instead of
-     freezing the moment it is picked. */
+  /* Selection lift + swell (r179; +25% in r281). Composed on top of the grid
+     heartbeat's --hb* vars, the way the base .card transform is, so a selected
+     card keeps drifting with the rest of the board instead of freezing the
+     moment it is picked.
+     r281, owner's call: every number here is the r179 one x1.25 - the LIFT
+     (2 -> 2.5px), the SWELL's part above 1 (0.07 -> 0.0875), and the glow's
+     blur and alpha. Scaling the effect rather than the value is the only
+     reading of "25% more noticeable" that holds for a scale factor: x1.25 on
+     1.07 would be a 34% swell, which is a different animation. The reward grid
+     is given the SAME two numbers - see "SELECTION IS A WHOLE-CELL STATE". */
   .card.selected {
     border-color: #4a9eff;
     border-width: 1px;
-    box-shadow: 0 0 6px rgba(74,158,255,0.5);
-    transform: translate(var(--hbx,0), calc(var(--hby,0px) - 2px)) rotate(calc(var(--hbr,0deg) + var(--frzr,0deg))) scale(calc(var(--hbs,1) * 1.07));
+    box-shadow: 0 0 7.5px rgba(74,158,255,0.62);
+    transform: translate(var(--hbx,0), calc(var(--hby,0px) - 2.5px)) rotate(calc(var(--hbr,0deg) + var(--frzr,0deg))) scale(calc(var(--hbs,1) * 1.0875));
   }
   .card.selected.hand-valid {
     border-color: #4a9eff !important;
     border-width: 1px;
-    box-shadow: 0 0 8px rgba(74,158,255,0.5);
+    box-shadow: 0 0 10px rgba(74,158,255,0.62);
     background: var(--card-bg, #f4ead5);
   }
   /* r254: a selected card the best hand DROPS (r201 penalty). Red over the
@@ -1787,8 +1805,8 @@
     filter: saturate(0.55) brightness(0.9);
   }
   @keyframes handReadyPulse {
-    from { transform: translate(var(--hbx,0), calc(var(--hby,0px) - 2px)) rotate(calc(var(--hbr,0deg) + var(--frzr,0deg))) scale(calc(var(--hbs,1) * 1.07)); box-shadow: 0 0 6px rgba(74,158,255,0.4); }
-    to   { transform: translate(var(--hbx,0), calc(var(--hby,0px) - 4px)) rotate(calc(var(--hbr,0deg) + var(--frzr,0deg))) scale(calc(var(--hbs,1) * 1.10)); box-shadow: 0 0 14px rgba(74,158,255,0.7); }
+    from { transform: translate(var(--hbx,0), calc(var(--hby,0px) - 2.5px)) rotate(calc(var(--hbr,0deg) + var(--frzr,0deg))) scale(calc(var(--hbs,1) * 1.0875)); box-shadow: 0 0 7.5px rgba(74,158,255,0.5); }
+    to   { transform: translate(var(--hbx,0), calc(var(--hby,0px) - 5px))   rotate(calc(var(--hbr,0deg) + var(--frzr,0deg))) scale(calc(var(--hbs,1) * 1.125));  box-shadow: 0 0 17.5px rgba(74,158,255,0.875); }
   }
   @keyframes handPulse {
     from { border-width: 1px; box-shadow: 0 0 6px rgba(74,158,255,0.4); }
@@ -3289,11 +3307,10 @@
   .reward-cell.debuff    { border-color: #b23a4a;  background: linear-gradient(160deg, #24101a, #140a10); }
   .reward-cell.dest      { border-color: #8844cc;  background: linear-gradient(160deg, #1c1030, #100a1c); }
   .reward-cell.dest .reward-tier { color: #bb88ff; }
-  .reward-cell.selected  {
-    box-shadow: 0 0 18px rgba(140,110,230,0.75), inset 0 0 12px rgba(140,110,230,0.3);
-    transform: translate(var(--fx,0), var(--fy,0)) rotate(var(--fr,0deg)) scale(calc(var(--fs,1) * 1.05));
-    border-color: #b39cf5 !important;
-  }
+  /* .reward-cell.selected is defined ONCE, further down - see
+     "SELECTION IS A WHOLE-CELL STATE" (r281). Two definitions of a state that
+     has to beat a per-screen decoration is exactly how it stopped being
+     painted on the prize grid. */
   .reward-cell.selectable:not(.selected):hover { transform: translate(var(--fx,0), var(--fy,0)) rotate(var(--fr,0deg)) scale(calc(var(--fs,1) * 1.04)); }
   .reward-cell.unselectable { opacity: 0.3; cursor: not-allowed; }
   .reward-icon {
@@ -3380,11 +3397,6 @@
     justify-content: center; gap: 8px; overflow: visible;
   }
   .reward-cell.entity-knack::after, .reward-cell.entity-knack::before { content: none; }
-  /* selection glow wins over the neon border (must come after .entity) */
-  .reward-cell.entity.selected {
-    box-shadow: 0 0 0 2px var(--plastic-lo), 0 0 18px rgba(140,110,230,0.75),
-                inset 0 0 12px rgba(140,110,230,0.3);
-  }
   .reward-cell.entity-knack.selected .rwd-diamond {
     box-shadow: 0 0 0 2px var(--plastic-deep), 0 0 16px 2px rgba(179,156,245,0.9),
                 inset 0 0 8px rgba(179,156,245,0.4);
@@ -3658,6 +3670,64 @@
     border: 2.5px solid var(--rc); box-shadow: 0 0 8px -1px var(--rc), inset 0 0 6px -2px var(--rc);
   }
   .rwd-diamond-emoji { transform: rotate(-45deg); font-size: 26px; line-height: 1; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.35)); }
+
+  /* ══ SELECTION IS A WHOLE-CELL STATE (r281) ═══════════════════════════════
+     Owner: picking a Trick on the boss grid "doesn't highlight the whole cell
+     and it's really hard to tell if it's been selected".
+
+     THREE THINGS WERE WRONG AND ALL THREE ARE HERE.
+
+     1. ON THE PRIZE (BOSS) GRID THE SELECTION GLOW WAS NOT PAINTED AT ALL.
+        `body.reward-prize #grid .reward-cell.on-grid` sets a gold box-shadow on
+        every tile at (1,4,0) - one id and four classes - and the selection rule
+        is `.reward-cell.entity.selected` at (0,3,0). So on the one grid that
+        follows a boss, the gold decoration won and the pick was marked by
+        nothing but a 5% scale. Measured: a selected cell there computed to the
+        gold shadow, no violet anywhere. Hence `!important` on the box-shadow:
+        a STATE the player is choosing with has to beat a per-screen decoration,
+        and it is the same reason the rule next to it already has an !important
+        border-colour.
+
+     2. THE OBJECT IS LETTERBOXED, SO THE CELL IS MOSTLY EMPTY (r239). A floppy
+        in a 120x158 cell is 120x114, and the rarity edge the tile draws belongs
+        to the OBJECT. Nothing said anything about the CELL, which is what the
+        player is actually picking - the gutters above and below the disc stayed
+        black. The ::after wash is what lights the whole cell up, and it is a
+        pseudo-element rather than markup because six surfaces build this tile
+        from three different functions; `content: none` on it is the object
+        block's, so this must stay BELOW that block to turn it back on.
+
+     3. THERE WAS NO LIFT AND ALMOST NO SWELL. A board card lifts and swells
+        when you pick it; a reward tile only scaled 1.05, under a float driver
+        already scaling it. It now takes the CARD'S OWN two numbers at the same
+        +25% (-2.5px, x1.0875), so "selected" moves the same way everywhere.
+
+     The colour is deliberately near-WHITE on the inside edge with the violet
+     kept for the glow: mint, cyan, purple and magenta are all rarity colours
+     here, so a violet ring alone can be read as "that one is epic". Nothing in
+     the tile system is white, so a white-hot edge can only mean one thing. */
+  .reward-cell.selected,
+  .reward-cell.selected:hover {
+    border-color: #b39cf5 !important;
+    z-index: 5;
+    transform: translate(var(--fx,0), calc(var(--fy,0px) - 2.5px)) rotate(var(--fr,0deg)) scale(calc(var(--fs,1) * 1.0875));
+    box-shadow: 0 0 0 3px rgba(239,232,255,0.95),
+                0 0 0 6px rgba(108,74,200,0.7),
+                0 0 26px 3px rgba(160,124,255,0.6),
+                0 10px 20px rgba(0,0,0,0.55) !important;
+  }
+  /* The wash. inset 0 on a pseudo of a `position: relative` cell is the whole
+     cell by construction, so it cannot drift from whatever size a surface gives
+     the tile. z-index 4 puts it over the object (::before, 0) and its children
+     (1-3) - it is a tint, not a cover, so the name stays readable under it. */
+  .reward-cell.selected::after {
+    content: '' !important;
+    position: absolute; inset: 0; z-index: 4; pointer-events: none;
+    border-radius: inherit;
+    mix-blend-mode: normal;
+    background: linear-gradient(180deg, rgba(179,156,245,0.30), rgba(179,156,245,0.12) 55%, rgba(179,156,245,0.26));
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.45), inset 0 0 16px rgba(179,156,245,0.5);
+  }
 
   /* reward tooltip chip (CRT panel, neon border) */
   #reward-tooltip {

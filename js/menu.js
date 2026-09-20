@@ -1,4 +1,4 @@
-const BUILD = "2026-09-20 · r284 · bigger Trick tiles in the tray";
+const BUILD = "2026-09-20 · r286 · bigger Trick tiles in the tray";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

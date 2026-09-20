@@ -217,8 +217,15 @@ const LEVEL_UP_DURATION = 45;
 // Measured over 800 deals each way. Left at 1000 the first round would clear in
 // ~3.0 best hands instead of ~3.6, i.e. the whole game would quietly get easier
 // as a side effect of fixing the price list. 1200 holds the old pace.
-const BASE_GOAL = 1200;
-const GOAL_SCALE = 1.35;
+// r278: retuned from the Monte Carlo bot sweep (tools/sim, SCORE_SCALING.md).
+// Base 1500 opens a touch firmer, growth runs 32% a round through round 12 and
+// then 45% a round from GOAL_LATE_START on, so the run gets a forgiving first
+// half and a back half that can actually kill it. The greedy bot wins ~37% at
+// these numbers against ~57% at 1500/30%; a real player lands well above both.
+const BASE_GOAL = 1500;
+const GOAL_SCALE = 1.32;
+const GOAL_SCALE_LATE = 1.45;  // growth once the late curve takes over
+const GOAL_LATE_START = 13;    // first level that grows at GOAL_SCALE_LATE
 const TRICK_CARD_INTERVAL = 20; // seconds
 
 function suitClass(suit) {

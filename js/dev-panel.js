@@ -148,6 +148,7 @@ const DEV_GROUPS = [
            : m === 'spectrum' ? 'Spectrum owns its deck'
            : 'four suits · 52 cards'; } },
   { g:'improve',  icon:'\u2191', label:'Improve',   sub:() => devImproveSub() },
+  { g:'cardstates', icon:'\u29c9', label:'Card States', sub:() => devCardStateSub() },
   { g:'builds',   icon:'▤', label:'Builds',    sub:() => `${discoveredIds.size} records open` },
   { g:'tips',     icon:'\u2139', label:'Tips',      sub:() => `${INSIGHTS.length} tips \u00b7 ${insightsSeenCount()} seen` },
   { g:'log',      icon:'✎', label:'Event Log', sub:() => 'in-game debug log' },
@@ -177,6 +178,7 @@ function devOpenGroup(g) {
   if (g === 'deck') devRenderDeckDesign();
   if (g === 'goals') devRenderGoalPanel();
   if (g === 'improve') devRenderImprove();
+  if (g === 'cardstates') devRenderCardStates();
 }
 function devCloseGroup() {
   document.getElementById('dev-group-menu').style.display = '';
@@ -305,14 +307,14 @@ function devResetHb() { resetHbCfg(); devSyncHbSliders(); }
 // (use "Reset accumulators" to clear them and re-measure from zero).
 function devSetNs(k, v) {
   if (k === 'enabled') { nsEnabled = !!v; localStorage.setItem('nsEnabled', v ? '1' : '0'); }
-  if (k === 'pips')    { nsPipsPerHand = parseFloat(v) || 0; localStorage.setItem('nsPipsPerHand', nsPipsPerHand); }
-  if (k === 'mult')    { nsMultPerHand = parseFloat(v) || 0; localStorage.setItem('nsMultPerHand', nsMultPerHand); }
-  if (k === 'every')   { nsEveryHands = Math.max(1, parseInt(v, 10) || 1); localStorage.setItem('nsEveryHands', nsEveryHands); }
-  const lab = document.getElementById('dev-ns-' + k + '-val');
-  if (lab) lab.textContent = (+v).toString();
   devSyncNs();
+  _devSafeRender();
 }
 function devResetNs() { resetNaturalScaling(); devSyncNs(); }
+// The RATES, not the accumulators (r282) - the two reset buttons are deliberately
+// separate, because "start this hand's growth over" and "go back to the shipped
+// growth rate" are different questions.
+function devResetNsRates() { resetNaturalScaleRates(); _nsRowsKey = ''; devSyncNs(); }
 
 // ── Natural Scaling bonus editor (r201) ──
 // A table of every scalable hand type with its EARNED pips and mult, typed
@@ -326,32 +328,65 @@ function devRenderNsRows() {
   const key = rows.map(r => r.name).join('|');
   if (key !== _nsRowsKey) {
     _nsRowsKey = key;
-    host.innerHTML = rows.map(r => `<div class="dev-ns-row">
+    host.innerHTML =
+      `<div class="dev-ns-row dev-ns-head">
+         <span class="dev-ns-name">HAND</span>
+         <span title="pips this hand earns per grant">PIPS</span>
+         <span title="mult this hand earns per grant">MULT</span>
+         <span title="a grant fires on every Nth play of this hand">EVERY</span>
+         <span title="alternate: each grant pays pips OR mult, pips first">ALT</span>
+         <span title="pips earned so far this run">+P</span>
+         <span title="mult earned so far this run">+M</span>
+         <span title="plays this run / growth in this hand's own worth per play">N</span>
+       </div>` +
+      rows.map(r => `<div class="dev-ns-row" data-nsrow="${r.name}">
       <span class="dev-ns-name">${r.name}</span>
-      <label>pips <input type="number" step="1" min="0" data-ns="${r.name}" data-f="pips"
-        oninput="devSetNsBonus(this)"></label>
-      <label>mult <input type="number" step="0.25" min="0" data-ns="${r.name}" data-f="mult"
-        oninput="devSetNsBonus(this)"></label>
+      <input type="number" step="1"    min="0" data-ns="${r.name}" data-f="rpips"  oninput="devSetNsRate(this)">
+      <input type="number" step="0.05" min="0" data-ns="${r.name}" data-f="rmult"  oninput="devSetNsRate(this)">
+      <input type="number" step="1"    min="1" data-ns="${r.name}" data-f="revery" oninput="devSetNsRate(this)">
+      <input type="checkbox" class="dev-ns-alt" data-ns="${r.name}" data-f="ralt"  onchange="devSetNsRate(this)">
+      <input type="number" step="1"    min="0" data-ns="${r.name}" data-f="pips"   oninput="devSetNsBonus(this)">
+      <input type="number" step="0.25" min="0" data-ns="${r.name}" data-f="mult"   oninput="devSetNsBonus(this)">
       <span class="dev-ns-plays"></span>
     </div>`).join('');
   }
   // Values are written separately from the markup so a live field is only
   // updated when it is not the one being typed in.
+  const V = { rpips: r => r.rate.pips, rmult: r => r.rate.mult, revery: r => r.rate.every,
+              pips: r => r.pips, mult: r => r.mult };
   rows.forEach(r => {
     host.querySelectorAll(`[data-ns="${CSS.escape(r.name)}"]`).forEach(inp => {
       if (inp === document.activeElement) return;
-      inp.value = inp.dataset.f === 'pips' ? r.pips : r.mult;
+      if (inp.dataset.f === 'ralt') inp.checked = !!r.rate.alt;
+      else inp.value = V[inp.dataset.f](r);
     });
-    const row = host.querySelector(`[data-ns="${CSS.escape(r.name)}"]`)?.closest('.dev-ns-row');
-    const pl = row && row.querySelector('.dev-ns-plays');
-    if (pl) pl.textContent = r.plays ? r.plays + ' played' : '';
+    const row = host.querySelector(`[data-nsrow="${CSS.escape(r.name)}"]`);
+    if (!row) return;
+    // A row the owner has moved off the shipped table is marked, so "what have I
+    // actually changed" is answerable without diffing against the source.
+    row.classList.toggle('dev-ns-tuned', !!r.tuned);
+    const pl = row.querySelector('.dev-ns-plays');
+    if (pl) {
+      pl.textContent = (r.plays || '0') + ' · ' + r.growth.toFixed(1) + '%';
+      pl.title = r.plays + ' played this run · this hand grows ' + r.growth.toFixed(2)
+               + '% of its own worth per play';
+    }
   });
 }
+// The accumulator - what this hand carries NOW.
 function devSetNsBonus(inp) {
   setNaturalScaleBonus(inp.dataset.ns, inp.dataset.f, inp.value);
   const st = document.getElementById('dev-ns-state');
   if (st) st.textContent = naturalScaleSummary();
   _devSafeRender();   // the live PIPS/MULT chips quote it, so repaint
+}
+// The rate - how fast it grows from here. `devSyncNs` is NOT called: it would
+// rewrite every field in the table, and the growth readout is refreshed here
+// instead so the field being typed in is left alone.
+function devSetNsRate(inp) {
+  const f = { rpips: 'pips', rmult: 'mult', revery: 'every', ralt: 'alt' }[inp.dataset.f];
+  setNaturalScaleRate(inp.dataset.ns, f, f === 'alt' ? inp.checked : inp.value);
+  devRenderNsRows();
 }
 
 // ── Layered hands (r198) - state lives in js/hand-detect.js ──
@@ -373,11 +408,7 @@ function devSetFlushOverlayMin(v) {
   _devSafeRender();
 }
 function devSyncNs() {
-  const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
   const chk = document.getElementById('dev-ns-enabled'); if (chk) chk.checked = nsEnabled;
-  set('dev-ns-pips', nsPipsPerHand); set('dev-ns-mult', nsMultPerHand); set('dev-ns-every', nsEveryHands);
-  const lab = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-  lab('dev-ns-pips-val', nsPipsPerHand); lab('dev-ns-mult-val', nsMultPerHand); lab('dev-ns-every-val', nsEveryHands);
   const st = document.getElementById('dev-ns-state');
   if (st) st.textContent = naturalScaleSummary();
   const lay = document.getElementById('dev-layered-enabled'); if (lay) lay.checked = layeredHandsEnabled;
@@ -794,6 +825,12 @@ const GOAL_TUNABLES = {
     { key: 'classicGrowth', label: 'Harder each round by',
       min: 0, max: 200, step: 1, dp: 1, unit: '%',
       get: () => goalTune('classicGrowth'), set: v => setGoalTune('classicGrowth', v) },
+    { key: 'classicGrowthLate', label: 'Late-game growth per round',
+      min: 0, max: 200, step: 1, dp: 1, unit: '%',
+      get: () => goalTune('classicGrowthLate'), set: v => setGoalTune('classicGrowthLate', v) },
+    { key: 'classicLateStart', label: 'Late growth starts at round',
+      min: 2, max: 60, step: 1, dp: 0, unit: '',
+      get: () => goalTune('classicLateStart'), set: v => setGoalTune('classicLateStart', v) },
     { key: 'classicRoundTo', label: 'Round the goal to the nearest',
       min: 1, max: 5000, step: 50, dp: 0, unit: '',
       get: () => goalTune('classicRoundTo'), set: v => setGoalTune('classicRoundTo', v) },
@@ -813,6 +850,9 @@ const GOAL_TUNABLES = {
       get: () => goalTune('endlessAccel'), set: v => setGoalTune('endlessAccel', v) },
   ],
   other: [
+    { key: 'mapGrowth', label: 'Schedule: harder each level by',
+      min: 0, max: 200, step: 1, dp: 1, unit: '%',
+      get: () => goalTune('mapGrowth'), set: v => setGoalTune('mapGrowth', v) },
     { key: 'zenMult', label: 'Zen (no clock) multiplies the classic goal by',
       min: 0.5, max: 10, step: 0.25, dp: 2, unit: 'x',
       get: () => goalTune('zenMult'), set: v => setGoalTune('zenMult', v) },
@@ -1062,6 +1102,103 @@ function devResumeRun() {
 // ── Improve (r206) - entity tiers ────────────────────────────────────────────
 // The tier system's test surface: see what you own, what tier it is at, and
 // what one more improvement would read as, without waiting for a reward grid.
+// ── Card states (r278) ──────────────────────────────────────────────────────
+// The only grant path outside the Hallmark knack today. Pick a state here, then
+// tap a card on the board: the tap intercept lives in js/input.js and is armed
+// only while devCardStatePick is set, so it can never interfere with ordinary
+// play.
+let devCardStatePick = null;
+
+function devCardStateSub() {
+  try {
+    const n = Object.keys(cardStates || {}).length;
+    const t = cardStateBoardCards().filter(([c]) => isTempCard(c)).length;
+    return `${cardStateIds().length} states \u00b7 ${n} charged \u00b7 ${t} temp on board`;
+  } catch (e) { return 'per-card charges'; }
+}
+
+function devRenderCardStates() {
+  const el = document.getElementById('dev-card-state-list');
+  if (!el) return;
+  el.innerHTML = cardStateIds().map(id => {
+    const d = cardStateDef(id);
+    const on = devCardStatePick === id;
+    return `<button class="dev-btn" style="display:block;width:100%;text-align:left;margin-bottom:3px;`
+         + `border-color:${on ? d.color : 'rgba(255,255,255,0.18)'};color:${on ? d.color : ''}"`
+         + ` onclick="devPickCardState('${id}')">`
+         + `<b>${d.icon} ${d.name}</b>${d.fuse ? ` <span style="opacity:.6">fuse ${d.fuse}s</span>` : ''}`
+         + `<br><span style="font-size:9px;opacity:.75">${d.desc}</span></button>`;
+  }).join('');
+  devRenderCardStateBoard();
+}
+
+function devRenderCardStateBoard() {
+  const el = document.getElementById('dev-card-state-board');
+  if (!el) return;
+  const rows = [];
+  try {
+    cardStateBoardCards().forEach(([card, r, c]) => {
+      const list = cardStateList(card);
+      if (!list.length && !isTempCard(card)) return;
+      const idle = cardIdleSecs[cardId(card)] || 0;
+      rows.push(`${card.rank}${card.suit} @${r},${c}`
+        + (isTempCard(card) ? ' <span style="color:#7ac4ff">TEMP</span>' : '')
+        + (list.length ? ' \u00b7 ' + list.map(s => `${s.def.name}${s.n > 1 ? ' x' + s.n : ''}`).join(', ') : '')
+        + ` \u00b7 idle ${idle}s`);
+    });
+  } catch (e) { rows.push('(no board)'); }
+  el.innerHTML = rows.length ? rows.join('<br>') : '<span style="opacity:.6">nothing charged on the board</span>';
+}
+
+function devPickCardState(id) {
+  devCardStatePick = (devCardStatePick === id) ? null : id;
+  devRenderCardStates();
+  if (devCardStatePick) showMessage(`Tap a card to make it ${cardStateDef(id).name}`, 'var(--gold)');
+}
+
+// Consumed by the tap intercept in js/input.js. Returns true if it took the tap.
+function devCardStateApplyTap(r, c) {
+  if (!devCardStatePick) return false;
+  const card = gridData[r]?.[c];
+  if (!card || !card.rank || card._isSleight || card._isStone || card._isTrick) return false;
+  const d = cardStateDef(devCardStatePick);
+  addCardState(card, devCardStatePick, 1);
+  showMessage(`${d.icon} ${card.rank}${card.suit} is ${d.name}`, d.color);
+  devCardStatePick = null;
+  devRenderCardStates();
+  render();
+  return true;
+}
+
+function devCardStateRandom() {
+  const pool = cardStateBoardCards();
+  if (!pool.length) { showMessage('No board to charge', 'var(--red)'); return; }
+  const [card] = pool[Math.floor(Math.random() * pool.length)];
+  const ids = cardStateIds();
+  const id = ids[Math.floor(Math.random() * ids.length)];
+  addCardState(card, id, 1);
+  showMessage(`${cardStateDef(id).icon} ${card.rank}${card.suit} is ${cardStateDef(id).name}`, cardStateDef(id).color);
+  devRenderCardStates(); render();
+}
+
+// Swap a board card for a temp copy of itself, so the temp look and the
+// evaporate-at-level-end rule can be checked without waiting for a Backfill.
+function devMakeTempCard() {
+  const pool = cardStateBoardCards().filter(([c]) => !isTempCard(c));
+  if (!pool.length) { showMessage('No ordinary card on the board', 'var(--red)'); return; }
+  const [card, r, c] = pool[Math.floor(Math.random() * pool.length)];
+  discardToDrawPile(card);
+  gridData[r][c] = makeTempCard(card.rank, card.suit, null);
+  showMessage(`Temp ${card.rank}${card.suit} on the board`, '#7ac4ff');
+  devRenderCardStates(); render(); updateDeckHud();
+}
+
+function devClearCardStates() {
+  cardStatesResetRun();
+  showMessage('Card states cleared', 'var(--cream-dim)');
+  devRenderCardStates(); render();
+}
+
 function devImproveSub() {
   try {
     const n = ['trick','knack','sleight'].reduce((a,t) => a + ownedImprovable(t).length, 0);
@@ -1085,7 +1222,7 @@ function devRenderImprove() {
         <button class="dev-btn" style="padding:2px 7px" onclick="devImproveOne('${o.id}')">+1</button>
         <span style="min-width:118px;font-size:11px">${o.name}</span>
         <span style="opacity:.6;font-size:10px">tier ${t}/${IMPROVE_MAX_TIER}</span>
-        <span style="opacity:.5;font-size:10px;flex:1">${pv ? pv.after : ''}</span></div>`);
+        <span style="opacity:.5;font-size:10px;flex:1">${(typeof improveDeltaFor === 'function' && improveDeltaFor(o.id)) || (pv ? pv.after : '')}</span></div>`);
     });
   });
   el.innerHTML = rows.join('');

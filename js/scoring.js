@@ -337,6 +337,13 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     }
     return lo < 99 && cards.some(c => _rankHigh(c.rank) === lo);
   })();
+  // Callback (r278, js/card-states.js): a card state, not a Trick. Same shape as
+  // Low and Behold above - the CONDITION is a property of the hand (does any card
+  // in it carry the charge) and the EFFECT is +1 replay on every card, so it is
+  // hoisted here rather than tested per card. A pure READ: the charge is spent in
+  // playHand, because calcScore runs once per connected subset inside
+  // findBestHand and again on every tap of the live preview.
+  const _cbOn = (typeof cardStateCallbackOn === 'function') && cardStateCallbackOn(cards);
   // Per-card replay count (key 'r-c' → times this card scores). Lets the post-loop
   // per-card MULT / coin / time bonuses re-fire on replay too (not just pips).
   const retrigByKey = {};
@@ -461,6 +468,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     _retrig += _hr;  // High Roller: (credits + Luck)% chance replay per card
     if (_encoreHand) _retrig++; // Encore: all-odd-rank Set scores a second time
     if (_labOn) _retrig++;      // Low and Behold: the hand holds the grid's lowest rank
+    if (_cbOn)  _retrig++;      // Callback (card state): the hand holds a charged card
     if (_compReps) _retrig += (_compReps[_cKey] || 0); // Layered hand: this card scores again for each extra component it is in
     if (_cKey === _3rdKey) _retrig += BAL.third_charm.extra_replays; // 3rd Time's a Charm: 3rd card gets +2 replays
     // The Rerun (boss): every replay past the first is a coin flip. Deterministic,
