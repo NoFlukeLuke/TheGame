@@ -1,4 +1,4 @@
-const BUILD = "2026-09-20 · r288 · tutorial voice pass";
+const BUILD = "2026-09-20 · r289 · tutorial voice pass";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

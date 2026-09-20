@@ -3829,6 +3829,80 @@ there is reserved for selecting a card into a hand, which is true of an ordinary
 card exactly as it is of a Sleight. The reward grid and the shop have opened on
 tap since r182/r237 and are unchanged.
 
+## Definitions open on a + (r288) - `js/keywords.js`
+
+Owner: *"don't automatically display the definition of every keyword. Add a plus
+in the corner of tooltips that bring those up. This should apply everywhere. Also,
+never show the definition of time, score, run, set, flush."*
+
+A tooltip used to arrive with a rail of definition cards for every mechanic word
+in its description. Measured over all 274 entity descriptions that is **2.95
+keywords each**, so a one-line Trick landed under six cards explaining pips, mult,
+score, time, play and round, and the one sentence the tooltip was opened to read
+was the smallest thing on screen.
+
+**The words are still coloured inline. Only the CARDS moved behind a +.**
+
+### Two halves, and they are separate questions
+
+- **`kwMoreHTML` / `kwDefsHTML` / `wireKwMore`** (js/keywords.js) are the shared
+  chip, rail and toggle, so the **four** tooltips that show a description cannot
+  drift into asking differently: `#entity-tip` (every entity surface - shop,
+  reward tiles, trays, events, the pick screens), `#trick-tooltip` (the tray
+  bubble AND the dev grid one), `#knack-tooltip`, `#reward-tooltip` (reward grid
+  and shop tiles). The chip prints the COUNT behind it - a + over nothing is a
+  control that does nothing, so `kwMoreHTML` returns empty at zero.
+- **`basic: true`** is the other half: a word so plain that defining it is noise
+  even when the rail IS open. It keeps its colour and never gets a card. Today:
+  **score, time, run, set, flush** (owner's list).
+
+**`keywordDefsIn` is deliberately NOT `keywordsIn`.** The second answers "which
+mechanics does this text mention", which is a different question and is the one
+`js/builds.js` groups and filters entities by - grouping the Builds browser by
+"run" is useful, explaining the word "run" to someone holding a poker hand is not,
+and one function cannot mean both.
+
+### AN OPEN RAIL IS STICKY, and that is forced rather than chosen
+
+`#entity-tip` is `pointer-events: none` (r170 - at up to 560px it would otherwise
+eat the clicks meant for the tiles it lies over), so the rail **cannot be hovered,
+scrolled or read**: the pointer falls straight through it onto the board and the
+bubble dismisses itself. Asking for the definitions is a deliberate act, so it
+turns the preview into something you are reading - the card and rail take clicks,
+`#entity-tip-backdrop` catches everything else, and `hideEntityTooltip` refuses
+any non-`now` hide while `kw-open` is set.
+
+- **The chip is the ONE part of a hover bubble that takes pointer events.** That
+  is a small, deliberate hole in r170's rule: it is ~25x19px, in the card's own
+  corner beside the anchor. The delegated hover listener bails (and cancels the
+  pending hide) when the pointer is inside `#entity-tip`, or crossing onto the
+  chip would read as "left the tile".
+- **The grid-pick screen (r280) is unaffected** while the rail is closed: the
+  bubble still passes taps through to the tiles under it. Verified live - with a
+  bubble up, one tap still moves the selection.
+
+### The reward bubble needed two more things, both found by clicking it
+
+- **The tile-hover re-show stands down while the pointer is inside the bubble.**
+  `#reward-tooltip` is pointer-events:none too, so a tile UNDERNEATH it still gets
+  `mouseenter` and swaps the bubble to itself. Harmless while the bubble was only
+  something to read; not harmless once reaching its + means crossing it. Measured
+  at 420x820: the rail opened on tile 0-0 and was replaced by tile 0-3's bubble in
+  the same gesture. `pointerOverRewardTip()` tracks the pointer on the document,
+  because the bubble cannot receive the events itself.
+- **Opening the rail PINS the tile** (`rewardTipKey`), the same "you asked for
+  this, so it stays" rule. An unpinned hover bubble is thrown away by the next
+  `renderRewardTiles` - `restoreRewardTooltip` hides it outright when nothing is
+  pinned - which took the rail with it. `showRewardTooltipFor` also carries
+  `kw-open` across a re-show of the SAME tile, since that function rebuilds the
+  whole bubble and is called constantly.
+
+Measured across all 274 descriptions: **0 basic words reach a definition card**,
+and the average tooltip now offers **2.47** definitions behind its + instead of
+showing 2.95 unasked. Verified in a real browser at 1440x820 and 420x820 on all
+four tooltips through the real click path - closed by default, the + opens and
+the - closes, the rail is readable, and no page errors.
+
 ## Reward grid: one tap, two meanings (r182)
 
 A tile answers two questions - "what is this?" and "I want it" - and the grid decides by whether the tile is one you could actually take:
