@@ -1,4 +1,4 @@
-const BUILD = "2026-09-19 · r282 · the Schedule pick gets Survival's rerolls; one shared pool";
+const BUILD = "2026-09-20 · r283 · recovered seven unmerged branches: the goal-hand SKIP + blast return, the third-card fix, card states, Spectrum fixtures, cell selection, retuned goal curves";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

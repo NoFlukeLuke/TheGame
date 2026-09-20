@@ -58,6 +58,31 @@ Rough guide to `js/` (engine): `labels` (tier + category words - see TERMINOLOGY
 - **Deploy:** push your feature branch, then fast-forward `main` to it: `git push origin HEAD && git push origin HEAD:main`. Pages serves from `main`.
 - **Build stamp:** bump the `BUILD` constant at the top of **`js/menu.js`** (currently `r155`) on every commit. It shows in the menu footer + dev panel so the owner can confirm the cache is fresh. Increment the `rN` each commit.
 - **Commit messages:** detailed, since a fresh Claude session re-orients from git history. End with the session URL line.
+- **A FINISHED BRANCH IS NOT A DEPLOYED BRANCH (r283).** The deploy step above is
+  two pushes and the second one is easy to skip. Seven branches finished between
+  r278 and r282 and **none of them reached `main`** - among them the goal-hand
+  SKIP, a third-card scoring bug and the retuned goal curves. The owner found it
+  by playing the site and noticing a feature was gone. No merge ever overwrote
+  anything: the work was simply never merged, which looks identical from the
+  player's seat and is much harder to find from the commit log.
+  - **THE BUILD NUMBER IS THE TELL.** `rN` is bumped per commit on a branch, so
+    parallel sessions each bump from the same base and the numbers COLLIDE - at
+    the time of writing there were two r278s, two r280s, two r281s and two r282s,
+    all different work. A duplicate `rN` across branches means at least one of
+    them never landed. `main`'s BUILD being r282 says nothing about which r282.
+  - **Before starting a session, check what is unmerged:**
+    ```
+    for b in $(git branch -r --format='%(refname:short)' | grep -v HEAD); do
+      n=$(git rev-list --count origin/main..$b); [ "$n" != 0 ] && echo "$n  $b"; done
+    ```
+  - **A stale branch merges cleanly.** All seven test-merged onto `main` with the
+    `BUILD` line in `js/menu.js` as the only conflict (plus one CLAUDE.md section
+    added at the same anchor). Resolve BUILD by keeping `main`'s, merge them all,
+    then set one new `rN` at the end - don't try to preserve each branch's number.
+  - **Two audits are worth running after any multi-branch merge**, because a merge
+    can drop a hunk silently and the syntax check will still pass: for every merge,
+    assert no file where a parent changed it but the merge result equals the base;
+    and grep each branch's own added lines for survival in the merged tree.
 - After editing, validate syntax (loads every JS file in order, exactly as the browser does):
   ```
   node -e "const fs=require('fs');const idx=fs.readFileSync('index.html','utf8');const srcs=[...idx.matchAll(/<script src=\"([^\"]+)\"><\/script>/g)].map(m=>m[1]);const code=srcs.map(s=>fs.readFileSync(s,'utf8')).join('\n');new Function(code);console.log('OK',srcs.length,'files');"
