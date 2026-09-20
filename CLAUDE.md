@@ -3398,10 +3398,11 @@ there under the tally, and the fall before the payout is a real fall again.
   1.2s and the dance's own abort checkpoint is further down the step it is in, so
   without this the cards fly on underneath whatever cut the dance short), and at
   the top of the next dance.
-- **The blast deliberately OUTLIVES its step on a wide board.** The fly-in's
-  await is ~1320ms and a 16-card blast runs ~1380ms, so the tally starts while
-  the last cards are still coming home. That is why the release is hung off the
-  animations rather than off the step.
+- **The blast deliberately OUTLIVES its step.** The fly-in's await is
+  1020-1330ms depending on the hand size, and the trip is longer than that at
+  every speed from 1x to about 3x, so the tally starts while the last cards are
+  still coming home. That is why the release is hung off the animations rather
+  than off the step. (r291 widened that overlap - see below.)
 - **`clearLineMarkers()` is no longer called by the finale.** The marked
   row/column lines belong to a board that has not left yet; the fall drops them
   at the same moment it drops the cards. The finale is therefore no longer one of
@@ -3413,6 +3414,68 @@ there under the tally, and the fall before the payout is a real fall again.
   back onto the board for a frame. That was already true before r280 (it popped
   the WHOLE board back), and nothing calls render there; it is why
   `endBoss(true, {presented:true})` still skips its own render.
+#### The trip is timed off the TALLY it plays under (r291)
+
+Owner: *"Could we make the cards returning to the board happen a little bit
+slower. Like if the hand animation isn't skipped it would take roughly half the
+time for the hands to animate for the cards to come back."*
+
+The trip was a flat **1180ms** whatever the hand and whatever the speed setting,
+against a tally that runs 3.4s to 6.3s at the default 2x - so it was a fifth to
+a third of the thing it opens, and at 16x, where the whole tally is 440-600ms,
+it ran more than TWICE AS LONG as the tally it was supposed to be opening.
+
+It is now **`(dur + perCard * handCells.length) / dncPace()`**, with
+`WIN_BLAST_CFG.dur` (2500) and `perCard` (495) both **ms at 1x**.
+
+- **`dncPace()` IS the Scoring speed setting at that moment**, which is what lets
+  the trip track the slider without reading it. `dncBumpAccel` has exactly ONE
+  call site - inside the particle launcher - and every payout tick is in the
+  TALLY, which has not started when the blast is built. So `dncAccel` is still 1
+  there and `dncPace() === dncSpeed === DANCE_CFG.norm`. It is also the
+  chokepoint r218 says to divide by; reading `DANCE_CFG.norm` here would work
+  today and silently opt out of anything that ever moves the pace earlier.
+- **THE STAGGER SCALES WITH IT TOO.** Left flat at 18ms it would stop merely
+  sequencing the trip and start dominating it: at 16x a 5-card hand's trip is a
+  measured 311ms, and a flat spread across 13 cards would be 234ms of that. Measured at 2x: 9ms a card,
+  117ms across a 14-card board.
+- **MORE TRICKS MAKES A TALLY SHORTER, NOT LONGER**, which inverts the obvious
+  guess and is why the fit is taken off the trick-heavy case. Every payout tick
+  compounds `dncBumpAccel`, so a 5-card hand with 10 Tricks tallies in 9.6s at 1x
+  where the same hand with none takes 12.6s. Fitting the SLOW case would leave
+  the trip outliving a fast tally; fitting the fast one keeps it under half
+  everywhere.
+- **The two numbers are a FIT on measured tallies, not a guess.** Goal hands
+  driven through the real path on planted boards, normalised to 1x:
+
+  | cards | Tricks | tally at 1x | half | trip | share |
+  |---|---|---|---|---|---|
+  | 2 | 10 | 6990 | 3495 | 3490 | 49.9% |
+  | 3 | 10 | 8456 | 4228 | 3985 | 47.1% |
+  | 4 | 10 | 8750 | 4375 | 4480 | 51.2% |
+  | 5 | 10 | 9599 | 4799 | 4975 | 51.8% |
+  | 2 | 0 | 6886 | 3443 | 3490 | 50.7% |
+  | 5 | 0 | 12618 | 6309 | 4975 | 39.4% |
+
+  **39-52% of the tally in every measured case, and never over half** - which is
+  the one hard constraint, because a trip that outlives its tally would still be
+  landing cards while the banner and the round-end fall run.
+- **`handCells.length` is the right count, not `selected.length`** - a penalty
+  card (r201) is committed and consumed but never scores, so it gets no beat and
+  must not lengthen the trip.
+- **Known gap, pre-existing and now more visible:** the blast is a WAAPI
+  animation and `reduced-motion` in this game is a body class CSS acts on, so
+  the trip does not shorten for it. It was 1.2s before and can now be ~5s at 1x.
+
+Verified in a real browser at 1440x820 by reading the live WAAPI timing off the
+board. Every combination lands on the computed duration TO THE MILLISECOND -
+2 cards at 2x **1745ms**, 5 at 2x **2488**, 5 at 1x **4975**, 5 at 4x **1244**,
+2 at 8x **436**, 5 at 16x **311** - and in all six the board still reads 16 cards
+mid-tally, with **0 displaced and 0 left holding the blast's z-index** after. The
+SKIP chip was pressed during the jitter and at 300ms, 1.4s and 2.6s into the much
+wider blast window: all four land the real score, leave 0 cards displaced and
+open the payout.
+
 - **`repaintBoardAfterBoss()` (js/boss.js) is the one thing the change forced.**
   Two bosses change how a CARD LOOKS rather than what it does - **The Fog** hides
   ranks (markup, from `renderCardAppearance`) and **The Gradient** scales and

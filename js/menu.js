@@ -1,4 +1,4 @@
-const BUILD = "2026-09-20 · r290 · 16 basic words never define; Swap, Discard and Level read live";
+const BUILD = "2026-09-20 · r291 · the win finale's cards come home at half the tally's pace, not a flat 1.2s";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
