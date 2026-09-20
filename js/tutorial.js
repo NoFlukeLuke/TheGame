@@ -538,7 +538,7 @@ const TUTORIAL_STEPS = [
     when: () => tutPickOpen(),
     eyebrow: 'Rewards',
     title: 'Take your pick',
-    body: `Three offers, one of each kind. You take one.<br><br>A tap reads an option. Press <b>CONFIRM</b> to take it.<br><br>Rerolls come out of a pool you carry for the whole run.`,
+    body: `Three offers. You take one.<br><br>A tap reads an option. Press <b>CONFIRM</b> to take it.<br><br>Rerolls come out of a pool you carry for the whole run.`,
     until: () => !tutPickOpen(),
   },
   {
