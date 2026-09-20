@@ -1963,23 +1963,61 @@
   .trick-tooltip-actions, .knack-tooltip-actions {
     display: flex; gap: 4px; margin-top: 6px;
   }
+  /* r278 - these bubbles are BODY-LEVEL, so every px here is a real viewport
+     px, not a stage px. At the old 8px Cinzel and 4px padding the buttons were
+     about 17px tall: a thumb target well under half what a phone needs, and
+     they are now one tap away rather than behind a press-and-hold. */
+  /* r279 - the TRAY tooltip no longer offers Discard; this is left for the
+     dev-only grid-placement tooltip, where it is the ONLY disposal (sellTrick
+     splices the tray and never touches gridData, so selling a grid Trick would
+     leave it sitting on the board). */
   .trick-tooltip-discard {
-    flex: 1; padding: 4px 8px; border-radius: 4px;
+    flex: 1; padding: 8px 10px; min-height: 30px; border-radius: 5px;
     background: rgba(180,40,40,0.18); border: 1px solid rgba(180,40,40,0.5);
-    color: #e07070; font-family: 'Cinzel', serif; font-size: 8px;
+    color: #e07070; font-family: 'Cinzel', serif; font-size: 11px; font-weight: 700;
     letter-spacing: 0.5px; cursor: pointer;
     transition: background 0.12s;
   }
   .trick-tooltip-discard:hover { background: rgba(180,40,40,0.35); }
   /* Sell buttons (Tricks in the tray, Knacks in the HUD) - gold, matches the credits economy */
   .trick-tooltip-sell, .knack-tooltip-sell {
-    flex: 1; padding: 4px 8px; border-radius: 4px;
+    flex: 1; padding: 8px 10px; min-height: 30px; border-radius: 5px;
     background: rgba(200,160,60,0.18); border: 1px solid rgba(200,160,60,0.55);
-    color: #e8b84b; font-family: 'Cinzel', serif; font-size: 8px;
+    color: #e8b84b; font-family: 'Cinzel', serif; font-size: 11px; font-weight: 700;
     letter-spacing: 0.5px; cursor: pointer; white-space: nowrap;
     transition: background 0.12s;
   }
   .trick-tooltip-sell:hover, .knack-tooltip-sell:hover { background: rgba(200,160,60,0.34); }
+
+  /* The in-bubble confirm (js/entity-tooltip.js, tipConfirmAction). It REPLACES
+     the action row, so it inherits that row's flex and has to restate column. */
+  .trick-tooltip-actions.tip-confirming, .knack-tooltip-actions.tip-confirming {
+    flex-direction: column; gap: 6px;
+  }
+  .tip-confirm-q {
+    font-family: 'Share Tech Mono', monospace; font-size: 11px; letter-spacing: 0.5px;
+    color: var(--cream); text-align: center; padding-top: 2px;
+  }
+  .tip-confirm-row { display: flex; gap: 6px; }
+  .tip-btn {
+    flex: 1; padding: 8px 10px; min-height: 30px; border-radius: 5px;
+    font-family: 'Cinzel', serif; font-size: 11px; font-weight: 700;
+    letter-spacing: 0.5px; cursor: pointer; transition: background 0.12s;
+    background: rgba(200,160,60,0.22); border: 1px solid rgba(200,160,60,0.6);
+    color: #e8b84b;
+  }
+  .tip-btn:hover { background: rgba(200,160,60,0.38); }
+  /* No caller passes danger today (r279 took Discard off the Trick tooltip);
+     kept as the seam the next destructive confirm drops into. */
+  .tip-btn.danger {
+    background: rgba(180,40,40,0.22); border-color: rgba(180,40,40,0.6); color: #e07070;
+  }
+  .tip-btn.danger:hover { background: rgba(180,40,40,0.4); }
+  .tip-btn-no {
+    background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.2);
+    color: var(--cream-dim);
+  }
+  .tip-btn-no:hover { background: rgba(255,255,255,0.14); }
   .knack-tooltip-actions { margin-top: 5px; }
   .trick-confirm {
     font-family: 'Cinzel', serif;
@@ -4432,6 +4470,63 @@
   }
   #mode-back-btn:hover { background: linear-gradient(180deg, #235055, #12292c); color: #fff; }
 
+  /* ═══════════════ TRICK SLOTS ARE FULL (r277) ═══════════════
+     The refusal's whole visible half: the count grows, turns red and throbs
+     three times, so the answer to "why did that bounce" is the number itself.
+     #trick-tray-count is an inline <span> inside .panel-title and transform
+     does nothing to an inline box, hence the explicit inline-block. */
+  #trick-tray-count { display: inline-block; transition: color 0.15s ease; }
+  @keyframes trayFullPulse {
+    0%, 100% { transform: scale(1);    filter: none; }
+    18%      { transform: scale(1.75); filter: drop-shadow(0 0 7px var(--red)); }
+    45%      { transform: scale(1.15); filter: drop-shadow(0 0 3px var(--red)); }
+    63%      { transform: scale(1.6);  filter: drop-shadow(0 0 7px var(--red)); }
+  }
+  .tray-full-pulse {
+    animation: trayFullPulse 0.75s ease-in-out 2;
+    color: var(--red) !important; font-weight: 900;
+  }
+  body.reduced-motion .tray-full-pulse { animation: none; }
+
+  /* ═══════════════ LOCKED MODES + THE STACK (r276) ═══════════════
+     A locked card is the same card, drained and without its PLAY button, so
+     what you are working toward is legible rather than hidden. The four modes
+     past the chain are drawn as ONE stacked card until they open together. */
+  .mode-card.mode-locked {
+    filter: saturate(0.18) brightness(0.72);
+    box-shadow: 0 0 0 2px rgba(255,255,255,0.14), inset 0 0 40px rgba(255,255,255,0.02), 0 20px 44px rgba(0,0,0,0.55);
+  }
+  .mode-card.mode-locked .mode-card-name { color: var(--cream-dim); }
+  .mode-lock-note {
+    font-family: 'Share Tech Mono', monospace; font-size: 10px; line-height: 1.5;
+    letter-spacing: 1px; color: var(--cream-dim); text-transform: uppercase;
+    text-align: center; opacity: 0.85; padding: 8px 0 2px;
+  }
+  .mode-lock-note b { color: var(--cream); }
+  /* The stack needs a containing block for its two backing layers. Only the
+     stack gets it - .mode-card is otherwise static and nothing else wants it. */
+  .mode-card.mode-stack { position: relative; }
+  .mode-card.mode-stack::before, .mode-card.mode-stack::after {
+    content: ''; position: absolute; inset: 0; border-radius: 16px; z-index: -1;
+    background: linear-gradient(180deg, rgba(20,16,11,0.94), rgba(11,9,6,0.96));
+    border: 1px solid rgba(255,255,255,0.07);
+  }
+  .mode-card.mode-stack::before { transform: translate(9px, 9px) rotate(1.6deg); }
+  .mode-card.mode-stack::after  { transform: translate(18px, 18px) rotate(3.2deg); opacity: 0.6; }
+
+  /* The fan: played ONCE, on the render where the stack became four cards.
+     `backwards` holds the start state through the stagger delay, or every card
+     would sit at full size until its own turn came round. */
+  @keyframes modeFanIn {
+    from { opacity: 0; transform: translateX(-42px) scale(0.9) rotate(-5deg); }
+    to   { opacity: 1; transform: none; }
+  }
+  .mode-card.fan-in {
+    animation: modeFanIn 0.5s cubic-bezier(0.2, 0.8, 0.3, 1) backwards;
+    animation-delay: calc(var(--fan-i, 0) * 70ms);
+  }
+  body.reduced-motion .mode-card.fan-in { animation: none; }
+
   /* ═══════════════ v7 FIXED-COORDINATE LANDSCAPE (r73) ═══════════════
      Overrides the legacy flexbox landscape rules above via source order.
      Wrapper divs become display:contents so the real leaf elements can be
@@ -4475,7 +4570,7 @@
   #stage.landscape #knack-carousel-wrap .panel-title { display:none; }   /* no "Knacks" label */
   /* tricks: hide the word "Tricks" but keep the n/5 count pinned bottom-right */
   #stage.landscape #trick-tray-area .panel-title { position:absolute; right:7px; bottom:4px; margin:0; padding:0; font-size:0; letter-spacing:0; z-index:3; }
-  #stage.landscape #trick-tray-count { font-family:'Cinzel',serif; font-size:8px; font-weight:700; color:var(--gold-dim); }
+  #stage.landscape #trick-tray-count { font-family:'Cinzel',serif; font-size:8px; font-weight:700; color:var(--gold-dim); display:inline-block; }
 
   /* knacks: chip row only, directly under the PIPS/MULT/FOCUS chips */
   #stage.landscape #knack-carousel-wrap { left:1.56%; top:30%; width:37.74%; height:7%; display:flex; flex-direction:row; align-items:center; justify-content:flex-start; gap:5px; padding:2px 8px; overflow:hidden; }

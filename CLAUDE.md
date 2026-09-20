@@ -1528,14 +1528,62 @@ Reward grid destination tiles set `pendingEventOverride` → `closeRewardGrid()`
 
 **Shift Change (r182)** - `renderShiftChange` / `renderShiftRow` / `confirmShiftChange`. Tray ORDER is load-bearing (Inspirato primes first+last · Mirror borrows from its neighbour · Prime Times cycles 1st→2nd→3rd→5th→7th · the Alignment knack marks the column matching a Trick's slot · Move as One picks the lowest-rarity keyword match) and until now there was no way to change it after a Trick landed. Interaction is **tap-to-swap** (tap to lift, tap another to trade), which works the same with a finger and a mouse and needs no drag; `eventState.shiftOrder` is a copy, so nothing is committed until Confirm, and Skip leaves the tray alone. Holding fewer than 2 Tricks pays `BAL.shift_change.consolation_credits` instead. Position Tricks **keep the line they already marked** - `assignPositionMark` is guarded by `_posAssigned` and is deliberately not re-run, so reshuffling moves the Tricks and not the lines you were building around.
 
-## Trick slots full / Choose a Trick to lose (`#trick-lose-picker`)
+## Trick slots are a HARD CAP (r277) - sell to make room
 
-One screen with two jobs, both in `js/reward-grid.js`: **'lose' mode** (a debuff takes a Trick off you, `openTrickLosePicker`) and **'replace' mode** (`injectTrickAfterReward` found the tray at `trickCapacity()`, queued the new Trick in `_trickReplaceQueue` and called `maybeOpenTrickReplacePicker`). `_blpMode` decides which chrome is set.
+**A Trick you have no room for is REFUSED, not queued.** The tray used to answer
+a full house with a modal - the new Trick arrived holding itself hostage and you
+chose what it replaced on the spot - which made the cap a screen that happened TO
+you. Now the offer bounces and you free a slot by SELLING from the tray, which is
+a decision taken when you want it rather than one you are ambushed with.
 
-**r183 restyle.** It was a black sheet of grey text boxes. It is now the same console as the events, with two deliberate differences:
-- **It is RED-lit, not indigo.** Every other console gives you something; this one takes something away, and the room should say so before you read a word of it.
-- **Every row carries the real entity tile** (`entityTileHTML`, js/entity-tile.js), and in replace mode `#blp-incoming` shows the **incoming** Trick as a tile above the divider, so the trade has two visible sides. The tile keeps its own rarity colour while the ROW turns red when picked - "this is the one I am losing" must never be confused with "this is an epic". The tile's own `.rwd-name` is hidden inside a row (`.blp-item-tile`) because the row prints the name in full right beside it; the same deliberate exception the portrait tray makes when it fans its chips.
-- `#blp-count` prints live `held / cap`, the number the whole screen is about. Both panels reset `scrollTop` on open - they are reused, and reopening where the last one left off hides the title under the sticky bar.
+**`refuseTrickCapacity()` in `js/tricks-ui.js` is the ONE way that is said**, so
+the sound, the pulse and the wording cannot drift between surfaces: `sfxNoSwaps`,
+a toast, and `#trick-tray-count` growing, reddening and throbbing twice
+(`.tray-full-pulse`). `trickTrayFull()` is the test.
+
+- **`#trick-tray-count` needs `display: inline-block` in BOTH orientations.** It
+  is an inline `<span>` inside `.panel-title`, and `transform` does nothing to an
+  inline box - the pulse would be silent. Landscape restates the rule because it
+  restates the font.
+- **`pulseTrickCount()` restarts the animation** by removing the class, reading
+  `offsetWidth` to force the reflow, and re-adding it. Without that a second
+  refusal in the same second does nothing visible, which reads as being ignored.
+- **The refusal is guarded in TWO layers, and both are needed.**
+  `injectTrickAfterReward` is the chokepoint every grant passes through (the
+  shop, the reward grid, all 21 events, both picks, the wheel, the dev panel) and
+  it **returns false** when refused. But plenty of grants arrive with nothing to
+  select - a wheel prize, an event payout, a Mystery tile - so the chokepoint is
+  what stops those vanishing. On top of it, the two places where you SPEND refuse
+  at SELECTION: the shop (`onShopGridClick`) and the reward grid
+  (`onRewardCellClick`), both keyed on `payload.entity === 'trick'`. The reward
+  grid has to refuse there because a path is taken as a whole - bouncing at apply
+  would mean spending a pick on nothing.
+- **`_trickReplaceQueue`, `maybeOpenTrickReplacePicker`, `cancelTrickReplacePicker`
+  and `_blpMode` are gone**, along with the `blp-cancel` button and
+  `_trickReplaceQueue` in `SAVE_VARS`. An old save carrying it is fine - restore
+  ignores a name no longer in the manifest.
+
+### `#trick-lose-picker` now has ONE job
+
+A debuff is taking a Trick off you (`openTrickLosePicker`, `applyRewardLoseTrick`).
+It no longer doubles as the replace screen, so it always sets its own chrome
+rather than checking a mode first. `#blp-incoming` stays in the markup, unused
+and hidden.
+
+**r183 restyle.** It was a black sheet of grey text boxes. It is now the same
+console as the events, with two deliberate differences:
+- **It is RED-lit, not indigo.** Every other console gives you something; this
+  one takes something away, and the room should say so before you read a word.
+- **Every row carries the real entity tile** (`entityTileHTML`, js/entity-tile.js).
+  The tile keeps its own rarity colour while the ROW turns red when picked - "this
+  is the one I am losing" must never be confused with "this is an epic". The
+  tile's own `.rwd-name` is hidden inside a row (`.blp-item-tile`) because the row
+  prints the name in full right beside it; the same deliberate exception the
+  portrait tray makes when it fans its chips. `blpRarity()` falls back for a tier
+  the tile has no colour for.
+- `#blp-count` prints live `held / cap`. The panel resets `scrollTop` on open - it
+  is reused, and reopening where the last one left off hides the title under the
+  sticky bar.
 
 The Mart wheel has its own overflow prompt (`#wheel-overflow`, "NO ROOM", js/wheel.js) with a **different** resolution - sell one of yours, or sell the prize. It already speaks the Mart's language and was deliberately left alone.
 
@@ -2109,6 +2157,11 @@ the full name and description, and the `▤` legend lists every symbol beside
 its word. `fitEntityName` is gone from the tile for the same reason - there is
 no name left to fit. The glyph went 15px -> 22px (30px on the boss column) and
 is centred in the whole tile rather than sitting above a name band.
+
+**The watermark is gone too (r284).** r247's `.mt-ghost` was a big faint copy
+of the glyph behind the tile's name, there so a kind could be told apart before
+a 6px name was read. With the name gone the real glyph does that job, and a
+second copy of it behind itself only muddied the tile. Owner's call.
 
 **The boss column lost REVIEW too.** "Just use the symbols" is the rule and
 the legend spells it out; a full-height hazard column with a skull in it is
@@ -3654,7 +3707,46 @@ Audit script: render every name in `TRICK_POOL` / `KNACK_POOL` / `SLEIGHT_POOL` 
 
 - **`showEntityTooltip(anchor, payload, { actions })`** (`js/entity-tooltip.js`). Passing any action puts the bubble in **interactive mode**: `.et-card` takes pointer events and a transparent full-screen `#entity-tip-backdrop` goes in underneath, so every click that is not on the bubble dismisses it. That backdrop is what makes interactivity safe - the bubble is up to 560px wide and lies over its neighbours, and `pointer-events:auto` without it was the old "I can't add the ones on the right" bug.
 - **Mart:** hover = read-only preview (mouse only); tap/click = tooltip with **📌 Pin** and **Add to cart**. A hover never replaces an open interactive bubble, or moving the mouse off the tile would close the buttons you were reaching for. **PIN MODE** stays a bulk mode: while it is on a tap pins directly, so you can hold four things without opening four tooltips.
-- **Trick tray:** reading and disposing are now separate gestures - **tap** = description + a "hold for sell / discard" hint; **press-and-hold** (`attachTrickSellHold`, 430ms, finger or mouse) = the same bubble with **Sell** and **Discard**. Before this every tap put a live Sell button under your thumb just for asking what a Trick did. The hold sets `chip._sellHeld` so the lift that ends it does not toggle the bubble straight back off.
+- **Trick tray (r278): ONE GESTURE.** A tap, or a hover on a mouse, opens the
+  description **with Sell on it**. r182 had split that apart, so disposing of a
+  Trick needed a press-and-hold nobody could guess at; `attachTrickSellHold` and
+  `chip._sellHeld` are gone with it. **SELLING IS THE ONLY DISPOSAL (r279,
+  owner's call)** - Discard paid nothing and did nothing selling does not, so it
+  was a second button whose only distinction was being worse. It survives on the
+  **dev-only grid-placement tooltip** (`showTrickTooltip`, reached by a long
+  press when `trickTrayMode` is off), where it is the only disposal that works:
+  `sellTrick` splices `trickTray` and `acquiredTricks` and **never touches
+  `gridData`**, so selling a grid Trick would leave it sitting on the board.
+
+### The second beat is a CONFIRM, not a hidden gesture (r278)
+
+A live Sell button one tap away is only safe if the tap does not sell.
+**`tipConfirmAction(rowEl, {...})` in `js/entity-tooltip.js` is the one way that
+is asked**, so the Trick tray and the Knack HUD cannot drift into asking
+differently.
+
+- **It swaps the action ROW IN PLACE** rather than opening a second surface. The
+  bubble is what the player is already looking at, and a modal over a 200px
+  popup is a screen for a much bigger decision than this.
+- **Cancel RE-SHOWS the bubble; it does NOT restore the markup.** Putting the
+  old innerHTML back would restore the buttons without their listeners - dead
+  controls that look alive - so the caller hands over the one call that rebuilds
+  the whole bubble, wiring and all.
+- **The confirm row inherits the action row's `display:flex`** and so has to
+  restate `flex-direction: column`, or the question sits beside its buttons.
+- **`danger` has no caller now** (r279 took Discard off the Trick tooltip) and is
+  kept, with its `.tip-btn.danger` rule, as the seam the next destructive confirm
+  drops into.
+- **These bubbles are BODY-LEVEL, so every px in them is a REAL viewport px, not
+  a stage px.** At the old 8px Cinzel and 4px padding the buttons were about
+  17px tall, well under half a phone's thumb target, which was tolerable only
+  while they were behind a deliberate hold. They are 11px type, 8px/10px padding
+  and a 30px floor now - measured at 67x31 live.
+
+**What still needs a press-and-hold, and why:** anything on the PLAY GRID. A tap
+there is reserved for selecting a card into a hand, which is true of an ordinary
+card exactly as it is of a Sleight. The reward grid and the shop have opened on
+tap since r182/r237 and are unchanged.
 
 ## Reward grid: one tap, two meanings (r182)
 
@@ -3910,6 +4002,249 @@ A guided first run listed **first** in the mode carousel. `MODES.tutorial` sets 
 - **Timing gotchas the steps encode:** the scoring dance runs ~6s (the step after PLAY waits on `tutIdle()` and stays hidden, so the count-up is undimmed); the payout panel counts up for ~6s (its step waits for `#po-valued.show`, not for the overlay to exist); reward tiles deal in with `rewardDealing` gating clicks; and the Mart's markup **exists while collapsed to zero size** mid-channel-change, so `tutMartReady()` tests with `tutEl`, not `getElementById`. Anchors that vanish for a frame keep their last holes (`_tutLastHoles`) so the bubble can't snap to centre and back.
 - **Anti-stall:** a step whose `when` never flips shows anyway after `whenTimeoutMs` (20s), so a stalled predicate can't leave the orientation silently dead.
 - `tutorialHoldClock()` only releases a pause **it** took (`_tutClockHeld`), so the reward grid and Mart keep ownership of `gameTimerPaused` during their own steps.
+
+## A walkthrough belongs to a MODE'S FIRST RUN (r283) - `js/tutorial.js`
+
+Owner: *"The first time you select a given mode, the first seed you should play
+should be the tutorial."*
+
+There is no longer one mode called Orientation that a player has to choose. Pick
+any mode for the first time and its first run is seeded and walked through; every
+run after that is ordinary.
+
+- **`tutorialArmed` is LATCHED in `startGame`, ABOVE `markModeStarted`.**
+  `modeNeedsTutorial()` means "never played", and that line makes it false
+  forever - so a live read anywhere later in the run would always say no. The
+  ordering is the whole mechanism and the two calls must stay in that order.
+- **It DISARMS in `tutorialEnd()`.** `tutorialActive()` gates the scripted reward
+  grid and, in `js/insights.js`, every tip; leaving it armed would script a grid
+  for someone who skipped at step 1, and would silence the tips for the whole of
+  the one run they are most useful in. The seed is read once, in `startGame`,
+  well above this.
+- **`js/save.js` now refuses to save on `ACTIVE_MODE.tutorial === true`**, not on
+  `tutorialActive()`. The ORIENTATION MODE is a scripted run not worth saving; a
+  first run of any other mode is an ordinary run that happens to carry a
+  walkthrough.
+- **`TUTORIAL_SEEDS` is one pinned seed per mode** (`LETHE-SCHEDULE`,
+  `LETHE-SURVIVAL`, ...), so everyone's first Schedule is the same board and a
+  bug report against it reproduces. A mode absent from the table takes whatever
+  seed the run would otherwise use. Nothing is stacked - the board is a real deal
+  and `tutorialQualifyBoard` re-deals until it offers the lesson.
+- Settings -> Help -> **"Play the walkthroughs again"** clears `modesStarted`
+  (`resetWalkthroughs`, js/progress-unlock.js); the **walkthrough** toggle beside
+  it switches them off entirely.
+
+### ONE script, filtered by the mode's FLAGS - never by its name
+
+The opening two thirds is identical everywhere (a board, a hand, the clock,
+Records) and only the BETWEEN-ROUNDS part differs, so a script per mode would be
+three copies of the same twelve steps waiting to drift. A step carries
+`only:` / `not:` and `tutorialBuildScript()` filters the one table.
+
+**What it filters ON is the point.** `only: 'map'` used to mean
+`ACTIVE_MODE.id === 'map'`, which **the picker breaks by construction**: a custom
+run's id is `custom` whatever it plays like, so a player who built a
+pick-of-three run would have been walked through the reward grid and the shop,
+neither of which that run ever opens. `tutModeTags()` tags off the FLAGS a
+picker-built mode already carries (`js/picker-mode.js`), so it classifies for
+free:
+
+| tag | means |
+|---|---|
+| `map` `guided` `survival` `flow` | the mode's own shape, from its flags (Flow carries `survival` too) |
+| `clocked` / `noclock` | asked through **`roundClockEndsRound()`**, never re-derived |
+| `picks` / `crossroads` / `rewardgrid` | which between-rounds screen this run uses - exactly one |
+| `payout` | a cleared round shows the payout panel (everything but Survival/Flow) |
+| `nodes` | the five-rounds-then-a-review structure |
+
+A mode's own id is a tag too, so `only: 'spectrum'` still works for anything
+really about one named mode. **`tutorialScriptRewardGrid` asks the same question
+the same way** (`tutModeTags().has('rewardgrid')`) rather than keeping a second
+list of mode names beside it. Verified: a picker run built on pick-of-three
+composes Survival's 17 steps, one built on slots composes Guided's 18.
+
+- **The Schedule and Survival share the `picks` tag and one step**, because r281
+  made the Schedule's cleared level pay through Survival's pick-of-three.
+- `_tutSteps` is **cached for the run**: six sites index into it by number, so it
+  has to be the same array every time they look.
+
+### `gp-active` means THE BOARD IS TAKEN OVER, not "a pick is up"
+
+The TILED PAYOUT goes through the same `gridScreenTakeover` (js/grid-pick.js) as
+the pick-of-three, so it carries that class for the whole of its count-up.
+Testing the class for the pick made **Classic's payout read as a pick**, which
+held every reward-grid step back behind a screen that was never going to open -
+the walkthrough simply stopped at the end of the first round. Two predicates now:
+`tutBoardTaken()` is the class, `tutPickOpen()` is `#grid .gp-opt`.
+
+### The shared round steps WAIT for a live board
+
+`tutRoundLive()` is on every step between `board` and `clear`. The modes do not
+all open on a board: the Schedule puts its map over the dealt cards before a card
+is played (`mapBeginRun`), so without it the "select these cards" step would land
+on the map. One predicate makes the linear script self-sequencing on every mode
+instead of needing a per-mode order.
+
+### Numbers in the prose are READ, not typed
+
+`tutSwapCost()` / `tutDiscardCost()` read `BAL._resources`, the payout step reads
+`efficiencySecondsPerCoin()`, the progress step reads `QUARTERS_PER_RUN`. r151's
+lesson: a quoted cost and a charged cost must come from one place or they drift,
+and they already did once. Step titles and bodies may be **functions** for that
+reason, resolved by `tutText()`, which also runs them through `infoText()` - so
+the walkthrough follows Settings -> Display -> Wording with no second copy.
+
+### What the script covers, and what it deliberately does not
+
+Owner: *"i don't want to smother the player ... if something seems really really
+obvious, just skip it. If it's something unique to this game, like limits or
+selection size or whatever, then keep it."*
+
+So the walkthrough teaches the shape of a run and nothing else: the board, a
+hand, what gets dropped from one, Focus, the quota, the clock and what
+interacting costs, a swap, a discard, how to open a tooltip, the {trick} slot
+cap, Records (**one** step for all six tabs, not six), the run's structure, the
+between-rounds screen this mode uses, and the shop. **Everything optional is left
+to the TIPS** (r280), which fire on the screen itself whenever it is first
+reached - which is also what lets this script stay linear on a mode whose screens
+arrive in an order it cannot predict.
+
+**`MODES.tutorial` ("Orientation") is kept and is no longer in the carousel.** It
+is the Classic walkthrough on demand, reachable from the dev panel; its
+`tutorial: true` is what `tutorialArmForRun` checks first, so it arms regardless
+of what has been played.
+
+### The skip is PROMINENT
+
+Owner: *"The skip buttons should be prominent."* `#tut-skip` was a 9px line at
+26% opacity with no border and no padding - a link you had to go looking for,
+which is the opposite of an escape hatch. It is a full-width outlined button
+under CONTINUE now, with a 30px tap floor, reading **SKIP THE WALKTHROUGH**
+rather than "End orientation". The tip card's GOT IT was already the filled
+primary; its `#tip-off` ("turn tips off entirely") stays quiet on purpose,
+because that one is a setting and a mis-tap costs the player every future tip.
+
+Verified end to end in a real browser at 1440x820, all seven modes through the
+real tap path: Classic / Six Suits / Spectrum run the full 25 steps to the shop
+and out, the Schedule 22 (its four schedule steps, then the round, then payout
+and the pick-of-three), Guided 18 through the crossroads, Survival 18 and Flow 17
+(no clock step, no payout). **No page errors in any of them.** At 420x820 the
+bubble lands fully on screen at every step with no page scroll. Arming is
+once-per-mode and survives nothing: first run armed and seeded, second run not,
+the Settings reset re-arms, the Settings toggle disarms, and the walkthrough
+disarms itself the moment it ends.
+
+## Tips and the handbook (r280) - `js/insights.js` + `js/info-hub.js`
+
+The other two thirds of the tutorial rework. The tutorial teaches by DOING and
+has to stay short; a **tip** is the one line it did not stop for, fired once
+ever at the moment the thing turns up; the **handbook** is the long form you
+come back to.
+
+### Tips are POLLED, and that is what makes them free
+
+Every row in `INSIGHTS` is a PREDICATE over globals and DOM that already exist,
+swept by one 400ms interval. **The whole file hooks into nothing** - no edits to
+`play-hand.js`, `reward-grid.js`, `boss.js` or the twenty other places a tip's
+subject can first appear, no chokepoint to invent for a feature that has none,
+and a new tip is one row rather than a call site somebody has to remember. Same
+decision `js/tutorial.js` made, same payoff.
+
+- **A PREDICATE MAY NOT THROW, AND A THROW IS "NOT YET".** Caught and read as
+  false, exactly as `EVENT_REQUIRES` treats one: this file may never be able to
+  break the game by being wrong about something.
+- **Several read the DOM on purpose.** `bestHandResult` is a `const` INSIDE
+  `render()`, not a global, so there is nothing to poll - but `.hn-drop`,
+  `.hn-need` and `.hn-l` are the exact marks the player is looking at, which is
+  the better trigger for "explain what you are seeing" anyway.
+- **`anchor` is a LIST and the first element with a REAL RECT wins**, the same
+  rule `js/payout-fx.js` and `tutEl()` follow, because several of these readouts
+  exist in only one orientation. No anchor resolving is not a failure: the card
+  falls back to bottom-centre, which is what portrait does for `#hand-name`.
+
+### A tip NEVER blocks play
+
+The tutorial dims the screen and gates input because it is asking you to do a
+specific thing. **A tip is an aside: no dim, no gate, nothing swallowed**, and
+the ring is `pointer-events: none` so it never takes a click away from what it
+is pointing at. That difference is the whole reason this is not more
+`TUTORIAL_STEPS`. Its layer sits BELOW the tutorial's z-index on purpose - the
+two are mutually exclusive by `insightsBlocked()`, and if that ever fails the
+tutorial is the one that must win.
+
+### The three valves, and all three are needed
+
+Owner: *"i don't want to smother the player."* Resume a run at level 12 and a
+dozen rows qualify on the first tick, so a queue alone is a wall of cards:
+
+1. **ONE AT A TIME** - a queue, never a stack.
+2. **`INSIGHT_GAP` (7s)** between one closing and the next opening.
+3. **`INSIGHT_PER_ROUND` (2)**, reset from `startRoundTimer` - the one call site
+   every round start funnels through. The rest keep; they are first-time-ever
+   tips, so nothing is lost by waiting.
+
+Measured: on a fresh Classic round 1 **zero rows are true**, which is correct -
+no knacks, no curses, no lines, no buffs, nothing to explain yet. With three
+conditions live, four gap releases fire exactly two and then stop.
+
+- **A tip is marked SEEN ON SHOW, not on dismiss.** A reload with the card up
+  would otherwise re-queue it on the next load, forever.
+- **`insightsOn()` reads the SETTING, it does not keep a copy.** That is the
+  r244 payout-pick trap: `loadSettings` applies every row's stored value OR its
+  default at boot, so a module's own `localStorage` key gets stamped back over.
+  One store, one writer.
+
+### The handbook - `Settings > Help > Open the handbook`
+
+- **A TOPIC ID IS ITS TIP'S ID.** A tip's READ MORE calls `openInfoHub(row.id)`
+  and there is no mapping table between the two files. A tip with no matching
+  topic simply has no READ MORE button. A tip is the one-line version of its
+  topic and must never say something the topic contradicts.
+- **It explains MECHANICS, not CONTENT.** What a Trick IS lives here; what Rich
+  Soil does lives on Rich Soil, and RECORDS -> Owned lists what you hold.
+  Copying entity text in would be a second copy to keep in step with `BAL`,
+  which `js/improve.js` rewrites as a run goes on.
+- **Search reads the EXPANDED text**, not the stored text. A player reading
+  "Utility" on screen has to be able to search for "utility"; the stored body
+  says `{trick}`.
+
+### Both vocabularies, with TWO tools that are easy to mix up
+
+Prose is stored in the GAMER wording and run through `lexProse()` on the way to
+the screen, exactly as every entity description is (r198), so Settings ->
+Display -> Wording moves it with no second copy.
+
+| in prose | what to write | why |
+|---|---|---|
+| a stat, flowing | lower-case `pips` / `mult` | `lexProse` swaps it to work / skill |
+| a READOUT on screen | `{PIPS}` `{SCORE}` `{GOAL}` | `lexTerm`, so it matches the chip |
+| a category word | `{trick}` `{Sleights}` `{knacks}` | `entityLabel`, a lookup not a swap |
+
+- **`INFO_TERM_KEYS` is an EXPLICIT list of the six HUD concepts.** The obvious
+  shortcut - "did `lexTerm` hand back something different from the key" - is
+  wrong in gamer mode, where `lexTerm('goal')` really is `GOAL`: the identity
+  answer read as "not a term" and `{GOAL}` printed raw.
+- **The label's own case wins.** `entityLabel` returns `Cert` / `Knack` and the
+  game capitalises those everywhere else, so a lower-case placeholder does NOT
+  lower-case the answer. A first pass did and printed "You own a cert".
+- **`pips` is PLURAL and `work` is a MASS NOUN**, so a sentence using pips as a
+  plural subject breaks agreement in corporate mode: "its pips come off" becomes
+  "its work come off". Write around it ("you lose its pips"). There is a check
+  for this - render every string in both vocabularies and grep the output for
+  `work|skill` followed by a plural verb.
+
+### Two layout traps, both found by screenshotting rather than reading
+
+- **In a flex COLUMN a child shrinks by default.** `#info-body` is the flexible
+  one, so `#info-head` and `#info-nav` need `flex: 0 0 auto` or the body
+  squeezes them - measured, the chip row lost half its height and the group
+  headings scrolled up over it.
+- **The tip card is placed in RAW VIEWPORT PX and clamped to one**, the same
+  rule `.time-popup` needed: below the anchor if it fits, above if not, then
+  clamped on both axes. Verified fully on screen at 1440x820 and 420x820.
+
+Dev panel -> **Tips**: fire any row on demand (ignoring its predicate, and
+without burning one that has not been seen), reset all, open the handbook.
 
 ## RECORDS hub (`js/records.js` + `css/records.css`, r155)
 

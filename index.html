@@ -30,6 +30,8 @@
 <link rel="stylesheet" href="css/tooltip.css">
 <link rel="stylesheet" href="css/boss.css">
 <link rel="stylesheet" href="css/tutorial.css">
+<link rel="stylesheet" href="css/insights.css">
+<link rel="stylesheet" href="css/info-hub.css">
 <link rel="stylesheet" href="css/builds.css">
 <link rel="stylesheet" href="css/room.css">
 <link rel="stylesheet" href="css/office-photo.css">
@@ -253,6 +255,14 @@
   </div>
 
   <!-- MODES - launch any mode directly, including the ones the carousel hides -->
+  <!-- TIPS -->
+  <div class="dev-section" data-group="tips">
+    <div class="dev-section-title">Tips</div>
+    <div class="dev-note">Each tip fires once ever, when its condition is first met. Firing one here ignores its condition and does not mark an unseen one as seen.</div>
+    <!-- rows generated from INSIGHTS by devRenderTips() -->
+    <div class="dev-row" style="flex-wrap:wrap;gap:4px;" id="dev-tip-btns"></div>
+  </div>
+
   <div class="dev-section" data-group="modes">
     <div class="dev-section-title">Start a mode</div>
     <div class="dev-note">Starts a fresh run immediately. Anything in progress is abandoned.</div>
@@ -1178,7 +1188,6 @@
     <div id="blp-list"></div>
     <div id="blp-actions">
       <button id="blp-confirm" disabled onclick="confirmTrickLosePicker()">Remove Selected</button>
-      <button id="blp-cancel" style="display:none" onclick="cancelTrickReplacePicker()">Skip New Trick</button>
     </div>
   </div>
 </div>
@@ -1291,6 +1300,7 @@
 
 
 <script src="js/storage.js"></script>
+<script src="js/progress-unlock.js"></script>
 <script src="js/labels.js"></script>
 <script src="js/office-photo.js"></script>
 <script src="js/camera.js"></script>
@@ -1392,6 +1402,8 @@
 <script src="js/music.js"></script>
 <script src="js/audio-menu.js"></script>
 <script src="js/tutorial.js"></script>
+<script src="js/info-hub.js"></script>
+<script src="js/insights.js"></script>
 <script src="js/dev-panel.js"></script>
 <script src="js/history.js"></script>
 <script src="js/save.js"></script>

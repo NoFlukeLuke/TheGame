@@ -94,7 +94,7 @@ const SAVE_VARS = [
   'focusNodes', 'focusCapBase', 'focusCapPerm', 'focusGenGame', 'focusGenRound',
   'lastCalcMult', 'lastCalcFocus', 'lastPreHandFocus', 'lastPreFocusMult',
   // ── Entities owned ──
-  'acquiredTricks', 'acquiredKnacks', 'trickTray', '_trickReplaceQueue', 'trickTrayMode',
+  'acquiredTricks', 'acquiredKnacks', 'trickTray', 'trickTrayMode',
   'grantedSleightIds', 'altarEffects', 'sleightCapBonus', 'entityTier',
   // r217: the slot machine's rotating buff cursor, and the event no-repeat memory.
   'slotBuffIdx', 'recentEventIds',
@@ -188,7 +188,10 @@ let _restoringSave = false;   // suppresses the checkpoint while resume deals it
 function captureRunCheckpoint() {
   if (_restoringSave) return;               // mid-restore: don't snapshot the throwaway board
   if (typeof ACTIVE_MODE === 'undefined') return;
-  if (tutorialActive && tutorialActive()) return;  // orientation is a scripted run, not worth saving
+  // The ORIENTATION MODE is a scripted run and not worth saving. A first run of
+  // any OTHER mode is an ordinary run that happens to carry a walkthrough, and
+  // `tutorialActive()` is cleared the moment that walkthrough ends anyway.
+  if (ACTIVE_MODE && ACTIVE_MODE.tutorial === true) return;
   const state = {};
   for (const name of SAVE_VARS) {
     const v = _saveRead(name);

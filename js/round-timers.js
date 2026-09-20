@@ -56,6 +56,7 @@ function startRoundTimer() {
   // interlude has since discarded the whole board anyway. Drop the stale entry
   // rather than carry it into a round whose board it is not on. (js/spectrum.js)
   if (typeof spectrumClearFixtureExits === 'function') spectrumClearFixtureExits();
+  insightsRoundReset();             // tips: start the sweep, reset the per-round cap (js/insights.js)
   syncDiscoveredFromOwned();        // log anything new for the Builds archive
   roundStartSeconds = roundSeconds; // mark the start of the countdown for ♠ "first 30s" exalt
   // Suspension resolves HERE, not in triggerLevelUp: it needs roundStartSeconds to

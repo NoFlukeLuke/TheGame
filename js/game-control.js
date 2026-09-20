@@ -279,6 +279,14 @@ function startGame() {
   // the menu screens showing, so SETTINGS / HISTORY / BUILDS, which all hide the
   // main menu to open their own screen, can't push the camera in behind them.
   if (typeof camEnterGame === 'function') camEnterGame();
+  // ARM THE WALKTHROUGH BEFORE markModeStarted, AND THAT ORDER IS THE WHOLE
+  // MECHANISM (r283). modeNeedsTutorial() is "this mode has never been played",
+  // and the very next line makes that false forever - so a live read anywhere
+  // later in the run would say no. It is latched here, once, and tutorialActive()
+  // reads the latch (js/tutorial.js).
+  if (typeof tutorialArmForRun === 'function') tutorialArmForRun();
+  // Record that this mode has been played (js/progress-unlock.js).
+  if (typeof markModeStarted === 'function') markModeStarted(ACTIVE_MODE && ACTIVE_MODE.id);
   // Music can differ between the menu and a run (see js/music.js); a track marked
   // 'any' plays through the change, one marked 'menu' hands over here.
   if (typeof musicSetScene === 'function') musicSetScene('game');
@@ -298,9 +306,13 @@ function startGame() {
 
   // Install this run's RNG BEFORE any deck is built or shuffled - startGame is
   // the single point where a run's randomness is established (see js/seed.js).
-  // A mode may pin a seed (the tutorial does); otherwise the dev panel's seed is
-  // used, and with neither the run is plain unseeded.
-  applyRunSeed(ACTIVE_MODE.seed || pendingRunSeed || null);
+  // A mode may pin a seed; a mode's FIRST run pins its own walkthrough seed, so
+  // everyone's first Schedule is the same board and a bug report against it is
+  // reproducible. Otherwise the dev panel's seed is used, and with neither the
+  // run is plain unseeded.
+  applyRunSeed(ACTIVE_MODE.seed
+    || ((typeof tutorialRunSeed === 'function') ? tutorialRunSeed() : null)
+    || pendingRunSeed || null);
 
   // Lock in this run's difficulty tier. Copied out of pendingDifficulty here, at
   // the one point a run begins, so nothing the player touches on a menu later can
@@ -471,7 +483,6 @@ function startGame() {
   tempoInitApplied = false;   // Tempo's one-time limit-set can run again for a fresh run
   earlyLimitDone = false;     // early-limit guidance re-arms for the new run (js/limits.js)
   trickTray          = [];
-  _trickReplaceQueue = [];
   syncTrickTrayUI();   // show the Trick tray (or grid-preview) to match trickTrayMode for the new game
   cardPlayCount   = {};
   cardSwapCount   = {};

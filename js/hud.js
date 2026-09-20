@@ -327,9 +327,14 @@ function showKnackTooltip(chip, id) {
   // Keep the bubble open while the pointer is over it (so Sell is clickable); wire once via props.
   tt.onmouseenter = cancelKnackHoverHide;
   tt.onmouseleave = scheduleKnackHoverHide;
+  // Same confirm the Trick tray uses, through the same helper, so the two
+  // cannot drift into asking differently (r278).
   tt.querySelector('#knack-tooltip-sell-btn')?.addEventListener('click', e => {
     e.stopPropagation();
-    sellKnack(knack);
+    tipConfirmAction(tt.querySelector('.knack-tooltip-actions'), {
+      question: `Sell for 💰${_sv}?`, confirmLabel: 'Sell',
+      onYes: () => sellKnack(knack), onCancel: () => showKnackTooltip(chip, id),
+    });
   });
   tt.querySelector('.tt-close')?.addEventListener('click', e => { e.stopPropagation(); hideKnackTooltip(); });
   // Opens into whichever side of the chip has the most room (was hardcoded to
