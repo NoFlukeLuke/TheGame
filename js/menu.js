@@ -1,4 +1,4 @@
-const BUILD = "2026-09-20 · r287 · the Schedule pick rolls its types 60/25/15, not one of each";
+const BUILD = "2026-09-20 · r288 · tooltip definitions open on a +, and the basic words never define";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

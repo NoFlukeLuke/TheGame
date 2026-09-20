@@ -197,7 +197,7 @@ function showTrickTooltip(trick, readOnly = false) {
     ? `<div class="trick-tooltip-actions"><button class="trick-tooltip-sell" id="trick-tooltip-sell-btn">Sell 💰${_sv}</button>`
       + `<button class="trick-tooltip-discard" id="trick-tooltip-discard-btn">Discard</button></div>`
     : '';
-  tip.innerHTML = `<button class="tt-close" aria-label="Close">✕</button><div class="trick-tooltip-name">${trick.name}</div><div class="trick-tooltip-desc">${colorizeKeywords(withSuitHalo(liveDesc))}</div>${hint}${actionBtns}`;
+  tip.innerHTML = `<button class="tt-close" aria-label="Close">✕</button>${kwMoreHTML(liveDesc)}<div class="trick-tooltip-name">${trick.name}</div><div class="trick-tooltip-desc">${colorizeKeywords(withSuitHalo(liveDesc))}</div>${kwDefsHTML(liveDesc)}${hint}${actionBtns}`;
   tip.style.opacity = '0';
   gridEl.appendChild(tip);
 
@@ -453,7 +453,8 @@ function showTrickTrayTooltip(trick, anchorEl, { actions = true } = {}) {
   tip.className = `trick-tooltip trick-tier-${trick.tier}` + (actions ? ' has-actions' : '');
   const liveDesc = trickLiveDesc(trick);
   const _sv = (typeof trickSellValue === 'function') ? trickSellValue(trick) : 0;
-  tip.innerHTML = `<button class="tt-close" aria-label="Close">✕</button><div class="trick-tooltip-name">${trick.name}</div><div class="trick-tooltip-desc">${colorizeKeywords(withSuitHalo(liveDesc))}</div>`
+  // The + and its rail (r288). Definitions never open unasked, here or anywhere.
+  tip.innerHTML = `<button class="tt-close" aria-label="Close">✕</button>${kwMoreHTML(liveDesc)}<div class="trick-tooltip-name">${trick.name}</div><div class="trick-tooltip-desc">${colorizeKeywords(withSuitHalo(liveDesc))}</div>${kwDefsHTML(liveDesc)}`
                 + (actions
                     ? `<div class="trick-tooltip-actions"><button class="trick-tooltip-sell" id="trick-tooltip-sell-btn">Sell 💰${_sv}</button></div>`
                     : '');
@@ -471,6 +472,9 @@ function showTrickTrayTooltip(trick, anchorEl, { actions = true } = {}) {
     });
   });
   tip.querySelector('.tt-close')?.addEventListener('click', e => { e.stopPropagation(); hideTrickTooltip(); });
+  // Opening the rail changes the bubble's height, so it has to be re-placed or
+  // a tooltip opened near the bottom of the screen grows off it.
+  wireKwMore(tip, tip, () => placeTipSmart(anchorEl, tip));
   // Keep the bubble open while the pointer is over it (so Sell is clickable).
   tip.addEventListener('mouseenter', cancelTrickHoverHide);
   tip.addEventListener('mouseleave', scheduleTrickHoverHide);

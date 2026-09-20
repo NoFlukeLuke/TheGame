@@ -318,11 +318,14 @@ function showKnackTooltip(chip, id) {
   const _live = knackLiveDesc(knack);
   const _reveal = _live.slice((knack.desc || '').length);
   tt.innerHTML = `
-    <button class="tt-close" aria-label="Close">✕</button>
+    <button class="tt-close" aria-label="Close">✕</button>${kwMoreHTML(knack.desc)}
     <div class="knack-tooltip-name">${knack.emoji} ${knack.name}</div>
     <div class="knack-tooltip-desc">${colorizeKeywords(knack.desc)}${_reveal}</div>
+    ${kwDefsHTML(knack.desc)}
     <div class="knack-tooltip-actions"><button class="knack-tooltip-sell" id="knack-tooltip-sell-btn">Sell 💰${_sv}</button></div>
   `;
+  // r288 - the + is the only way to the definitions, on every tooltip.
+  tt.classList.remove('kw-open');
   tt.dataset.knackId = id;
   // Keep the bubble open while the pointer is over it (so Sell is clickable); wire once via props.
   tt.onmouseenter = cancelKnackHoverHide;
@@ -337,6 +340,7 @@ function showKnackTooltip(chip, id) {
     });
   });
   tt.querySelector('.tt-close')?.addEventListener('click', e => { e.stopPropagation(); hideKnackTooltip(); });
+  wireKwMore(tt, tt, () => placeTipSmart(chip, tt, { gap: 8 }));
   // Opens into whichever side of the chip has the most room (was hardcoded to
   // above). One frame's wait so the bubble has been laid out and can be measured.
   tt.classList.add('show');

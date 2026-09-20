@@ -3,9 +3,17 @@
 //
 // Every keyword that appears in entity text gets a colour (matching the UI where
 // there is one to match: pips = the blue PIPS chip, mult = the red MULT chip,
-// focus = the purple FOCUS chip) and a short definition. Tooltips colour the
-// words inline AND list the definitions beside the tooltip, so a player never has
-// to already know the vocabulary to read a card.
+// focus = the purple FOCUS chip) and a short definition.
+//
+// DEFINITIONS ARE NEVER SHOWN UNASKED (r288). A tooltip colours the words inline
+// and carries a + in its corner; the definitions open only when that is pressed.
+// Showing them all by default meant a one-line Trick arrived under a rail of six
+// cards explaining pips, mult, score, time, play and round - which buries the one
+// sentence the player opened the tooltip to read.
+//
+// `basic: true` is the second half of that: a word so plain that defining it is
+// noise even when the rail IS open. It still gets its colour, it just never gets
+// a card. See keywordDefsIn below.
 //
 // The term list was built by scanning every desc in TRICK_POOL / KNACK_POOL /
 // SLEIGHT_POOL, not guessed - see the frequency counts in the r143 commit.
@@ -25,7 +33,7 @@ const KEYWORD_DEFS = [
     name:'Mult',     def:'The multiplier applied to Pips. Final score = Pips × Mult.' },
   { key:'focus',     cls:'kw-focus',   terms:['focus'],
     name:'Focus',    def:'The meter beside the grid. It builds as you play and adds a score multiplier; it decays if you stall.' },
-  { key:'score',     cls:'kw-score',   terms:['score'],
+  { key:'score',     cls:'kw-score',   terms:['score'], basic:true,
     name:'Score',    def:'Your points this round. Reach the round Goal to move on.' },
   { key:'goal',      cls:'kw-score',   terms:['goal'],
     name:'Goal',     def:'The score you must reach before the clock runs out to finish the round.' },
@@ -33,7 +41,7 @@ const KEYWORD_DEFS = [
   // ── economy / resources ──
   { key:'credits',   cls:'kw-credits', terms:['credits','credit','gold'],
     name:'Credits',  def:'The shop currency. Earned from rounds, rewards and selling.' },
-  { key:'time',      cls:'kw-time',    terms:['seconds','second','time'],
+  { key:'time',      cls:'kw-time',    terms:['seconds','second','time'], basic:true,
     name:'Time',     def:'The round clock. It runs down while you play; at zero the round ends.' },
   { key:'pause',     cls:'kw-time',    terms:['pause','paused','pauses'],
     name:'Pause',    def:'Freezes the round clock for a moment - you act for free while it is held.' },
@@ -57,11 +65,11 @@ const KEYWORD_DEFS = [
     name:'Retrigger',def:'Fire an effect a second time. Retriggered scoring counts fully again.' },
 
   // ── hand shapes ──
-  { key:'run',       cls:'kw-hand',    terms:['runs','run'],
+  { key:'run',       cls:'kw-hand',    terms:['runs','run'], basic:true,
     name:'Run',      def:'Cards in consecutive rank order, e.g. 5-6-7. Ace counts high or low.' },
-  { key:'set',       cls:'kw-hand',    terms:['sets','set'],
+  { key:'set',       cls:'kw-hand',    terms:['sets','set'], basic:true,
     name:'Set',      def:'Cards sharing the same rank, e.g. three 8s.' },
-  { key:'flush',     cls:'kw-hand',    terms:['flush'],
+  { key:'flush',     cls:'kw-hand',    terms:['flush'], basic:true,
     name:'Flush',    def:'Cards all of the same suit.' },
   { key:'pair',      cls:'kw-hand',    terms:['pair'],
     name:'Pair',     def:'Two cards of the same rank.' },
@@ -172,4 +180,57 @@ function keywordsIn(text) {
     return m;
   });
   return out;
+}
+
+// The keywords in a piece of text that are WORTH DEFINING - `keywordsIn` minus
+// every row flagged `basic` (r288). This is what a tooltip's rail is built from.
+//
+// It is deliberately NOT the same call as `keywordsIn`: that one answers "which
+// mechanics does this text mention", which is a different question and is what
+// js/builds.js groups and filters entities by. Grouping the Builds browser by
+// "run" is useful; explaining the word "run" to someone holding a poker hand is
+// not, and one function cannot mean both.
+function keywordDefsIn(text) {
+  return keywordsIn(text).filter(d => !d.basic);
+}
+
+// ── THE + (r288) ────────────────────────────────────────────────────────────
+// Shared markup and wiring, so the three tooltips that show descriptions cannot
+// drift into asking differently. A host gets:
+//   kwMoreHTML()        the chip, for the tooltip's corner
+//   kwDefsHTML(text)    the cards, collapsed until the chip is pressed
+//   wireKwMore(root)    one listener, toggling `.kw-open` on the root
+// The chip prints + when closed and - when open, and says how many definitions
+// are behind it - a + over nothing is a control that does nothing.
+function kwMoreHTML(text, cls = '') {
+  const n = keywordDefsIn(text).length;
+  if (!n) return '';
+  return `<button class="kw-more ${cls}" aria-label="Show what the highlighted words mean">`
+       + `<span class="kw-more-sign">+</span><span class="kw-more-n">${n}</span></button>`;
+}
+function kwDefsHTML(text) {
+  const defs = keywordDefsIn(text);
+  if (!defs.length) return '';
+  const lex = t => (typeof lexProse === 'function') ? lexProse(t) : String(t == null ? '' : t);
+  return `<div class="kw-defs">` + defs.map(d =>
+    `<div class="kw-def"><b class="kw ${d.cls}">${lex(d.name)}</b><span>${lex(d.def)}</span></div>`
+  ).join('') + `</div>`;
+}
+// `root` is the element that carries `.kw-open`; `host` is where the chip lives
+// (the same element unless the chip and the rail sit in different boxes, which
+// is the entity tooltip's case - its rail is a sibling of the card).
+function wireKwMore(root, host = root, onToggle) {
+  const btn = (host || root)?.querySelector('.kw-more');
+  if (!btn) return;
+  btn.addEventListener('click', e => {
+    e.stopPropagation();
+    const open = root.classList.toggle('kw-open');
+    const sign = btn.querySelector('.kw-more-sign');
+    if (sign) sign.textContent = open ? '−' : '+';
+    if (typeof onToggle === 'function') onToggle(open);
+  });
+  // The entity tooltip is pointer-events:none in hover mode and the chip is the
+  // one part that is not (see css/tooltip.css), so a pointerdown on it would
+  // otherwise reach the backdrop/board underneath.
+  btn.addEventListener('pointerdown', e => e.stopPropagation());
 }

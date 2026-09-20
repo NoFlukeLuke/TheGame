@@ -23,6 +23,7 @@ function ensureEntityTooltip() {
   _etEl.id = 'entity-tip';
   _etEl.innerHTML = `<div class="et-card">
       <div class="et-head"><span class="et-name"></span><span class="et-rar"></span></div>
+      <div class="et-more-slot"></div>
       <div class="et-type"></div>
       <div class="et-desc"></div>
       <div class="et-meta"></div>
@@ -93,10 +94,24 @@ function showEntityTooltip(anchorEl, p, opts = {}) {
   metaEl.innerHTML = meta.map(m => `<span>${m}</span>`).join('');
   metaEl.style.display = meta.length ? '' : 'none';
 
-  // definition cards for every mechanic word used
-  const defs = keywordsIn(desc);
-  el.querySelector('.et-defs').innerHTML = defs.map(d =>
-    `<div class="et-def"><b class="kw ${d.cls}">${_lexP(d.name)}</b><span>${_lexP(d.def)}</span></div>`).join('');
+  // Definition cards for every mechanic word used - BUILT, BUT COLLAPSED (r288).
+  // The rail only paints once the + in the card's corner is pressed. It is built
+  // up front rather than on demand because the tooltip is re-shown constantly by
+  // hover and a second render path would be a second thing to keep in step.
+  el.classList.remove('kw-open');
+  el.querySelector('.et-defs').innerHTML = kwDefsHTML(desc);
+  const moreSlot = el.querySelector('.et-more-slot');
+  moreSlot.innerHTML = kwMoreHTML(desc);
+  // Opening the rail makes the bubble STICKY, and that is the load-bearing part.
+  // In hover mode the card is pointer-events:none (r170), so the rail cannot be
+  // hovered, scrolled or read without the pointer falling through it onto the
+  // board and dismissing the whole thing. Asking for the definitions is a
+  // deliberate act, so it turns the preview into something you are reading: the
+  // card and rail take clicks and the backdrop catches everything else.
+  wireKwMore(el, moreSlot, (open) => {
+    if (open) ensureEntityBackdrop().classList.add('show');
+    placeEntityTooltip(anchorEl, el);
+  });
 
   // actions row - present only in interactive mode
   const acts = Array.isArray(opts.actions) ? opts.actions : [];
@@ -126,9 +141,14 @@ function showEntityTooltip(anchorEl, p, opts = {}) {
 // where a 60ms fade-out would let the next tap land on a tooltip already on its
 // way out.
 function hideEntityTooltip(now = false) {
+  // An OPEN definition rail is sticky: the player asked for it, so only an
+  // explicit dismissal (the backdrop, a new tooltip, a screen closing) takes it
+  // away. A hover drifting off the anchor must not, or the rail would be
+  // unreadable - reaching it means leaving the tile that opened it.
+  if (!now && _etEl && _etEl.classList.contains('kw-open')) return;
   clearTimeout(_etHideTimer);
   if (_etBackdrop) _etBackdrop.classList.remove('show');
-  const kill = () => { if (_etEl) { _etEl.classList.remove('show', 'interactive'); } };
+  const kill = () => { if (_etEl) { _etEl.classList.remove('show', 'interactive', 'kw-open'); } };
   if (now) kill(); else _etHideTimer = setTimeout(kill, 60);
 }
 function entityTooltipOpen() { return !!(_etEl && _etEl.classList.contains('show')); }
@@ -204,6 +224,12 @@ function _etReadData(el) {
 }
 document.addEventListener('pointerover', e => {
   if (e.pointerType === 'touch') return;
+  // The + chip is the one part of a hover bubble that takes pointer events, so
+  // the pointer CAN land inside the tooltip. Crossing onto it must keep the
+  // bubble alive rather than read as "left the tile" (r288).
+  if (e.target && e.target.closest && e.target.closest('#entity-tip')) {
+    clearTimeout(_etHideTimer); return;
+  }
   const el = e.target && e.target.closest ? e.target.closest('[data-et]') : null;
   if (el === _etDelegateEl) return;
   // An interactive bubble (PIN / ADD TO CART) is a click's result - a passing
