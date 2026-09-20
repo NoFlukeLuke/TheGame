@@ -8,15 +8,22 @@
 // footprint, because there is nothing to put one behind - the tiles ARE what
 // is on the board.
 //
-// THE LAYOUT (owner spec, r256) - a 6 x 5 board:
+// THE LAYOUT (owner spec, r288) - a 6 x 5 board with NO DEAD ROW:
 //
-//     row 0 : 6 ambience cards
-//     rows 1-3 : three options, each 2 CELLS WIDE x 3 CELLS TALL
-//     row 4 : the screen's own action tiles (Survival's reroll / peek /
-//             breakdown / shop) in the first 4 cells, then CONFIRM across the
-//             last 2; any cell no action claims stays ambience
+//     rows 0-3 : three options, each 2 CELLS WIDE x 4 CELLS TALL
+//     row 4    : the screen's own action tiles (Survival's reroll / peek /
+//                breakdown / shop) in the first 4 cells, then CONFIRM across
+//                the last 2; any cell no action claims stays ambience
 //
-// That closes exactly: 3 x (2x3) = 18 cells, plus 6 above and 6 below = 30.
+// That closes exactly: 3 x (2x4) = 24 cells, plus 6 below = 30.
+//
+// r256 opened on a full row of ambience above the options and gave each option
+// 3 cells, which its contents did not fill - so the board carried TWO dead
+// bands, one above the tiles and one inside every one of them, and the owner
+// read both as empty rows. The options start at row 0 now and take the fourth
+// cell the ambience row was spending on nothing: the ENTITY fills the top two
+// cells of the tile and the DESCRIPTION the two beneath it, which is where the
+// extra room goes.
 //
 // The title is NOT on the board - every cell is spoken for. It goes in the HUD
 // through enterGridScreenHud, the same readout the shop and the crossroads use.
@@ -53,8 +60,8 @@
 const GRID_PICK_FLOAT_SEL = '.gp-art .reward-cell, .gp-art .gp-icon';
 
 const GP_COLS = 6, GP_ROWS = 5;   // the board this screen asks for
-const GP_OPT_W = 2, GP_OPT_H = 3; // each option, in cells
-const GP_OPT_ROW = 1;             // options sit under the top ambience row
+const GP_OPT_W = 2, GP_OPT_H = 4; // each option, in cells: 2 for the entity, 2 for the words
+const GP_OPT_ROW = 0;             // options start at the top - there is no ambience row above them
 
 // CONFIRM owns the last cells of the action row, on EVERY screen that comes
 // through here, whether or not the caller brought actions of its own. A control
@@ -183,10 +190,17 @@ function gridPickTileHTML(p, i) {
   // fills it instead of letterboxing inside a taller box - that slack was the
   // big gap between the icon and the name the owner called out.
   const kind = isEnt ? p.entity : 'plain';
+  // TWO BLOCKS (r288). .gp-head is the top two cells - the entity and its name,
+  // nothing else - and .gp-body the two beneath. They are wrappers rather than
+  // four loose children because the halves have to be SIZED against the tile
+  // (css/grid-pick.css): a flat child list can only be centred as one group,
+  // which is what pooled the tile's slack at its foot and read as a dead row.
   return `<div class="gp-opt gp-art-${kind}" data-gp="${i}" data-et="${tip}">`
+    + `<div class="gp-head">`
     + (p.tag ? `<div class="gp-tag rar-${rar}">${p.tag}</div>` : '')
     + `<div class="gp-art" data-float-key="gp-${i}-${p.id || p.label || ''}">${art}</div>`
     + `<div class="gp-name">${p.label || ''}</div>`
+    + `</div>`
     + `<div class="gp-body"><div class="gp-desc">${desc}</div>`
     + `<div class="gp-more" aria-hidden="true">\u2026</div></div>`
     + `</div>`;
@@ -248,29 +262,62 @@ function gridPickConfirm() {
   gridPickState.onChoose(i, p);
 }
 
-// Wire a container of .gp-opt tiles: select on click, clamp detection on the
-// descriptions, name fitting, and the float driver.
+// THE DESCRIPTION FILLS ITS OWN CELLS (r288). The clamp was a fixed 5 lines,
+// chosen against the r280 tile of 3 cells; on the 4-cell tile that left a band
+// of bare tile under every short description and still cut the long ones early.
+// It is MEASURED now - as many whole lines as the block can hold - so the words
+// use the room the ambience row gave back.
+//
+// TWO PASSES, because the ellipsis mark is a line of the block too. The first
+// pass fills it; if that overflows, one line is handed back for the mark to sit
+// on. Without that the mark is pushed out of a block it exactly fills and the
+// tile silently stops saying there is more to read.
+//
+// The mark is a MARK, not a control: the tap that reads the rest is the tap on
+// the tile (css sets pointer-events:none on it), so it can never eat a
+// selection.
+function gpFitDesc(opt) {
+  const body = opt.querySelector('.gp-body');
+  const desc = opt.querySelector('.gp-desc');
+  if (!body || !desc) return;
+  const cs = getComputedStyle(body);
+  const lh = parseFloat(getComputedStyle(desc).lineHeight) || 10;
+  // clientHeight INCLUDES padding, and the block is padded - measuring against
+  // it would promise the text a line and a half of room it does not have.
+  const room = body.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+  if (!(lh > 0) || !(room > 0)) return;   // not laid out yet - leave the CSS default
+  let lines = Math.max(2, Math.floor(room / lh));
+  desc.style.webkitLineClamp = lines;
+  if (desc.scrollHeight > desc.clientHeight + 1 && lines > 2)
+    desc.style.webkitLineClamp = lines - 1;
+  opt.classList.toggle('gp-clipped', desc.scrollHeight > desc.clientHeight + 1);
+}
+
+// Wire a container of .gp-opt tiles: select on click, description fitting,
+// name fitting, and the float driver.
 function gridPickAfterRender(root, offers, onChoose) {
   root.querySelectorAll('.gp-opt').forEach(opt => {
     const i = +opt.dataset.gp;
     if (onChoose) opt.addEventListener('click', () => gridPickSelect(i));
 
-    const desc = opt.querySelector('.gp-desc');
-    const more = opt.querySelector('.gp-more');
-    if (desc && more) {
-      // Clamp detection needs a laid-out element - callers invoke this after
-      // the tiles are on the board (a hidden element measures zero, r239).
-      // The ellipsis is a MARK, not a control: it says there is more to read
-      // and the tap that reads it is the tap on the tile (css sets
-      // pointer-events:none on it), so it can never eat a selection.
-      requestAnimationFrame(() => {
-        opt.classList.toggle('gp-clipped', desc.scrollHeight > desc.clientHeight + 1);
-      });
-    }
   });
+  // Measuring needs laid-out elements - callers invoke this after the tiles are
+  // on the board (a hidden element measures zero, r239).
+  //
+  // NAMES BEFORE DESCRIPTIONS, in one frame: a name that shrinks or wraps
+  // changes the head block's height, and the description's line count is
+  // measured off what is left. Two frames would show the first answer first.
   requestAnimationFrame(() => {
     if (typeof fitRewardName === 'function')
       root.querySelectorAll('.gp-art .rwd-name').forEach(nm => fitRewardName(nm));
+    // The tile's own name is 11px since r288 and the tile is two cells wide, so
+    // the long single-word names (Kaleidoscope, Syncopation) no longer fit on a
+    // line. r182's rule: a name is never broken mid-word - it shrinks, and only
+    // truncates as a last resort. Without this they would simply be clipped by
+    // the tile's overflow:hidden.
+    if (typeof fitEntityName === 'function')
+      root.querySelectorAll('.gp-name').forEach(nm => fitEntityName(nm, { maxLines: 2, minPx: 7 }));
+    root.querySelectorAll('.gp-opt').forEach(opt => gpFitDesc(opt));
   });
   if (typeof startFloat === 'function') startFloat('gridpick', GRID_PICK_FLOAT_SEL);
 }

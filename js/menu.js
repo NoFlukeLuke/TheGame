@@ -1,4 +1,4 @@
-const BUILD = "2026-09-20 · r287 · the Schedule pick rolls its types 60/25/15, not one of each";
+const BUILD = "2026-09-20 · r288 · the pick-of-three loses both dead rows: entity on top, description in a block";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

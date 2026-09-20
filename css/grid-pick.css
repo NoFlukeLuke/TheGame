@@ -10,8 +10,11 @@
    so size against a ~51x67 cell, not against the viewport.
    ══════════════════════════════════════════════════════════════════════════ */
 
-/* AMBIENCE. Inert black cards filling the rows above and below the options -
-   the board still reads as a board. Same silhouette as a dealt card, no face.
+/* AMBIENCE. Inert black cards filling whatever the options and the action tiles
+   do not claim - the board still reads as a board. Since r288 the options start
+   at row 0, so that is the action row's spare cells (and, on a two-option pick,
+   the columns beside them) rather than a whole row above.
+   Same silhouette as a dealt card, no face.
    Never interactive: a dead cell that responds to a tap reads as broken. */
 #grid .gp-amb {
   position: absolute; z-index: 2; pointer-events: none;
@@ -21,15 +24,19 @@
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.03), 0 2px 6px rgba(0,0,0,0.5);
 }
 
-/* A CHOICE - 2 cells wide, 3 tall. Neutral plastic border: rarity colour stays
-   on the object inside, where it means rarity. Contents run top-down with a
-   paragraph-sized gap, never a growing art box pushing the words to the edge. */
+/* A CHOICE - 2 cells wide, 4 tall (r288). Neutral plastic border: rarity colour
+   stays on the object inside, where it means rarity.
+
+   TWO BLOCKS, NOT ONE CENTRED GROUP. The tile used to centre object + name +
+   description together as one run of children, so whatever the contents did not
+   use was split between the top and the FOOT of the tile - and that foot, the
+   same band on all three tiles at once, is the second of the two dead rows.
+   .gp-head is the top two cells (the entity and its name) and .gp-body the two
+   beneath. The leftover is now INSIDE a block that is visibly a block, rather
+   than bare tile pretending to be one. */
 #grid .gp-opt {
   position: absolute; z-index: 3; box-sizing: border-box;
-  /* The object, name and description are ONE GROUP, centred as a block: the
-     words sit a paragraph break under the icon and whatever slack is left is
-     split top and bottom rather than pooling at the foot of the tile. */
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
   gap: 2px; padding: 5px 5px 4px;
   border-radius: 8px; cursor: pointer; overflow: hidden;
   background: linear-gradient(180deg, rgba(27,23,16,0.96), rgba(14,12,8,0.98));
@@ -93,23 +100,59 @@
   transform: translate(var(--fx, 0px), var(--fy, 0px)) rotate(var(--fr, 0deg));
 }
 
-/* NAME then DESCRIPTION, a paragraph break under the object - not a gap. */
+/* NAME then DESCRIPTION, a paragraph break under the object - not a gap.
+   11px, up 2 from r280's 9 (owner's call): the name is the tile's title and the
+   fourth cell is the room to say it at a readable size. */
 .gp-name {
   flex: 0 0 auto; margin-top: 3px;
-  font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 9px; letter-spacing: 0.4px;
+  font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 11px; letter-spacing: 0.4px;
   color: var(--cream, #f0e6c8); text-align: center; line-height: 1.12;
 }
-.gp-body { flex: 0 0 auto; width: 100%; }
-/* 7.5px, not 9 (r280, owner's call): the tile is a fixed 2x3 cells and the only
-   way to read more of a description inside it is to set it smaller, so the
-   clamp goes 3 lines -> 5 and about 80% more of the text lands on the tile
-   before the tooltip is needed at all. */
+/* THE TOP BLOCK - the entity and its name, in the tile's top two cells.
+   `min-height: 50%` rather than `flex-basis: 50%`, deliberately: the basis form
+   is a HARD half and an object taller than that (a big board, a long two-line
+   name) would be cut by the tile's overflow:hidden. This way the block takes its
+   content's height and is only ever PADDED UP to half the tile, so the split is
+   exact at every board size the game can produce and safe at the ones it cannot. */
+.gp-head {
+  flex: 0 0 auto; width: 100%; min-height: 50%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+/* THE DESCRIPTION BLOCK - the bottom two cells, and a real block: a recessed
+   plate with its own edge. That is the difference between "the words sit in the
+   lower half" and "there is nothing down here" - a short description leaves room
+   INSIDE a panel, which reads as a panel, where the same gap on bare tile read as
+   a dead row. min-height:0 lets it shrink below its content so the clamp (not the
+   tile) decides how much shows; overflow:hidden keeps the ellipsis mark inside it
+   when the text and the mark both land on the last line of room. */
+.gp-body {
+  flex: 1 1 auto; width: 100%; min-height: 0; overflow: hidden;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 4px 4px 3px; border-radius: 5px;
+  background: rgba(0,0,0,0.30);
+  box-shadow: inset 0 0 0 1px rgba(183,172,147,0.11);
+}
+/* Picked: the plate lifts with the tile rather than staying a hole in it. */
+#grid .gp-opt.gp-sel .gp-body {
+  background: rgba(4,18,13,0.42);
+  box-shadow: inset 0 0 0 1px rgba(53,213,155,0.22);
+}
+/* 7.5px, not 9 (r280, owner's call): the only way to read more of a description
+   inside a fixed tile is to set it smaller. The line clamp here is only the
+   value before gpFitDesc measures the block (js/grid-pick.js) - it is a
+   pre-measure default, not the shipped number of lines. */
 .gp-desc {
   font-family: 'Crimson Pro', serif; font-size: 7.5px; line-height: 1.3;
   color: var(--cream-dim, #9a8d70); text-align: center;
-  display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical;
+  display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical;
   overflow: hidden;
 }
+/* PORTRAIT takes it one step down (owner's call). A phone's board is the same
+   6 x 5 cells in a much narrower slot, so a line of description holds far fewer
+   words there; one step smaller is one step more of the sentence per line.
+   Scoped #stage:not(.landscape) so the landscape rule above is untouched - the
+   pattern every portrait rule in this codebase follows. */
+#stage:not(.landscape) .gp-desc { font-size: 7px; }
 /* THE ELLIPSIS is a MARK, not a control. It says the description is clamped;
    the tap that reads the rest is the tap on the TILE, which also picks it - so
    this must never take a pointer event of its own or a player reaching for the

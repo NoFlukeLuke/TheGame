@@ -1667,6 +1667,71 @@ tiles, Reroll + Round breakdown + CONFIRM, a tap arms CONFIRM with the chosen
 name, CONFIRM grants exactly one entity and leaves 0 tiles in `#grid`, and no page
 errors.
 
+### The pick-of-three has no dead rows (r288) - `js/grid-pick.js`
+
+Owner: *"remove both dead rows in the pick three screen and have just the entity
+in the 2x2 at the top, with the description in a block beneath it."*
+
+There really were two, and they were different kinds of dead. **Row 0 was a full
+row of ambience cards**, and **every option tile carried a band of bare tile at
+its foot** - three tiles wide, so it read as a second empty row across the board.
+The screen is a 6 x 5 board either way; the options just take the row back:
+
+| | was | is |
+|---|---|---|
+| option footprint | 2 cells wide x **3** tall, starting at row 1 | 2 wide x **4** tall, starting at **row 0** |
+| ambience | a full row above, plus the action row's spare cells | the action row's spare cells only |
+| the tile | object + name + description centred as ONE group | **`.gp-head`** (entity + name, top two cells) over **`.gp-body`** (description, bottom two) |
+
+- **THE FOOT BAND WAS THE CENTRING, NOT THE HEIGHT.** A flat run of children
+  centred in the tile splits its slack between the top and the bottom, so making
+  the tile TALLER makes that band BIGGER - the obvious fix is the wrong way
+  round. The two halves are wrappers for exactly that reason: they can be sized
+  against the tile, where a flat child list can only be centred in it.
+- **`.gp-head` takes `min-height: 50%`, NOT `flex-basis: 50%`.** The basis form
+  is a hard half, and a block taller than it - a big board, a name that wraps to
+  two lines - would be cut by the tile's `overflow: hidden`. This way the block
+  takes its content's height and is only ever padded UP to half the tile: exact
+  at every board size the game produces, and safe at the ones it does not.
+- **A BLOCK HAS TO LOOK LIKE A BLOCK.** `.gp-body` is a recessed plate with its
+  own edge. That is the whole difference between "the words sit in the lower
+  half" and "there is nothing down here": a short description leaves room inside
+  a panel, and the identical gap on bare tile is what was being read as a row.
+- **The line clamp is MEASURED, not a number** (`gpFitDesc`). It was a fixed 5,
+  chosen against r280's 3-cell tile; on the 4-cell one that clipped long
+  descriptions early AND left short ones floating. It is now as many whole lines
+  as the block holds - **12 on a 1440x820 desktop, 11 on a phone** - in **two
+  passes**, because the ellipsis mark is a line of the block too: fill it, and if
+  that overflows hand one line back for the mark to sit on. Without the second
+  pass the mark is pushed out of a block it exactly fills and the tile silently
+  stops saying there is more to read. It reads `clientHeight` minus the block's
+  own padding; `clientHeight` includes padding and would promise a line and a
+  half of room that is not there.
+- **The tile's name is 11px** (up 2, owner's call) **and is now fitted.** At 9px
+  every name fitted a two-cell tile on its own; at 11px the long single-word ones
+  (Kaleidoscope, Syncopation) do not, and nothing was shrinking them - they would
+  simply have been clipped by `overflow: hidden`. `fitEntityName` runs on
+  `.gp-name`, so r182's rule holds: a name is never broken mid-word, it shrinks,
+  and truncates only as a last resort. **Names are fitted BEFORE descriptions, in
+  one frame**: a name that shrinks or wraps changes the head block's height, and
+  the description's line count is measured off what is left.
+- **Portrait drops the description one step, 7.5px -> 7px** (owner's call). The
+  phone's board is the same 6 x 5 cells in a much narrower slot, so the limit
+  there is words per LINE, not lines per block.
+
+Measured in a real browser at 1440x820 and 420x820, **135 freshly drawn tiles per
+viewport**: 0 names overflowing, 0 blocks overlapping, 0 tiles spilling, 0
+clipped descriptions left unmarked, and no page errors. Through the real tap
+path: a tap lights the tile and opens the read, CONFIRM names the choice and
+grants exactly one, and the screen leaves **0 tiles** in `#grid`. The map's
+two-option pick still centres (2 options, 12 ambience cells).
+
+**Known and left alone:** on a desktop the block holds 12 lines and the
+descriptions use 2-4, so it is a roomy panel rather than a full one. The lever is
+the landscape font size - r280 set it to 7.5px *because* the 3-cell tile could
+not hold more text, and that constraint is gone - but that is a balance-of-
+legibility call, not part of this change.
+
 ### A tap selects and reads; only CONFIRM commits (r280) - `js/grid-pick.js`
 
 Owner: *"Pick threes should require a confirm. Tapping on them should extend the
