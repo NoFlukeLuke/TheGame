@@ -699,7 +699,6 @@ function mapRender(animateIn) {
     // and the tile's `title` still carries both for a desktop tooltip.
     div.innerHTML =
       `<div class="mt-wash"></div>` +
-      `<div class="mt-ghost">${face.icon}</div>` +
       `<div class="mt-icon">${face.icon}</div>` +
       (t.visited ? `<div class="mt-stamp">DONE</div>` : '');
     if (face.full) div.title = face.full + (mapTileDesc(t) ? ' - ' + mapTileDesc(t) : '');

@@ -1809,6 +1809,11 @@ its word. `fitEntityName` is gone from the tile for the same reason - there is
 no name left to fit. The glyph went 15px -> 22px (30px on the boss column) and
 is centred in the whole tile rather than sitting above a name band.
 
+**The watermark is gone too (r284).** r247's `.mt-ghost` was a big faint copy
+of the glyph behind the tile's name, there so a kind could be told apart before
+a 6px name was read. With the name gone the real glyph does that job, and a
+second copy of it behind itself only muddied the tile. Owner's call.
+
 **The boss column lost REVIEW too.** "Just use the symbols" is the rule and
 the legend spells it out; a full-height hazard column with a skull in it is
 not ambiguous.

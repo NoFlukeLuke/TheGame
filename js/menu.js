@@ -1,4 +1,4 @@
-const BUILD = "2026-09-19 · r283 · per-mode first-run tutorials";
+const BUILD = "2026-09-20 · r284 · the schedule tiles drop the faint watermark glyph behind the symbol";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
