@@ -146,21 +146,21 @@
       <input id="dev-ns-enabled" type="checkbox" onchange="devSetNs('enabled', this.checked)" style="accent-color:var(--gold);">
       Natural scaling on
     </label>
-    <div class="dev-slider-row"><span>Pips per hand <b id="dev-ns-pips-val">2</b></span>
-      <input id="dev-ns-pips" type="range" min="0" max="20" value="2" step="1" oninput="devSetNs('pips', this.value)"></div>
-    <div class="dev-slider-row"><span>Mult per hand <b id="dev-ns-mult-val">0</b></span>
-      <input id="dev-ns-mult" type="range" min="0" max="5" value="0" step="0.25" oninput="devSetNs('mult', this.value)"></div>
-    <div class="dev-slider-row"><span>Every <b id="dev-ns-every-val">1</b> hand(s)</span>
-      <input id="dev-ns-every" type="range" min="1" max="5" value="1" step="1" oninput="devSetNs('every', this.value)"></div>
     <div id="dev-ns-state" style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);white-space:pre-line;margin:4px 0;"></div>
     <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin:6px 0 2px;">
-      Earned bonus per hand type - type a value to jump straight to it rather than
-      grinding the hands out. This is what the hand carries NOW; the sliders above
-      only decide how fast it grows.
+      Every hand type earns at its OWN rate. <b>PIPS</b> / <b>MULT</b> are what one grant
+      pays, <b>EVERY</b> is how many plays of that hand a grant takes, and <b>ALT</b> makes
+      each grant pay one of them instead of both, alternating, pips first - so
+      "+2 pips, +1 mult, every 2, ALT" is +2 pips on the 2nd play, +1 mult on the 4th,
+      +2 pips on the 6th. <b>+P</b> / <b>+M</b> are what the hand has earned so far this
+      run: type in those to jump straight to a value instead of grinding the hands out.
+      The last column is plays this run and how much of its own worth the hand gains per
+      play - a gold row is one you have moved off the shipped table.
     </div>
     <div id="dev-ns-rows"></div>
     <div class="dev-row">
-      <button class="dev-btn" onclick="devResetNs()">Reset accumulators</button>
+      <button class="dev-btn" onclick="devResetNs()">Reset earned</button>
+      <button class="dev-btn" onclick="devResetNsRates()">Reset rates to default</button>
     </div>
   </div>
 
