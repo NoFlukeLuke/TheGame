@@ -3416,6 +3416,20 @@
     font-size: 30px; line-height: 1; filter: drop-shadow(0 0 6px var(--rc));
   }
   .reward-cell .rwd-art-ph { color: var(--rc); opacity: 0.85; font-size: 24px; text-shadow: 0 0 12px var(--rc); }
+
+  /* THE GLYPH ITSELF, ink-normalised (r290). --egs is stamped per glyph by
+     emGlyph (js/entity-tile.js) from a cached canvas measurement, and scaling
+     by it makes FONT-SIZE MEAN INK HEIGHT - every emoji paints exactly one em
+     tall, so every box above is sized against the picture instead of against an
+     em box the picture ignores. Before this the ink was 1.22x its box on the
+     Trick disc and the emoji climbed over the shutter and sat on its own name.
+
+     A TRANSFORM ON A CHILD, never on .rwd-art itself: the art box already
+     carries `transform: translate(-50%, -50%)` to place it on the disc's band,
+     and the same is true of the knack diamond's rotate. Scaling does not change
+     the element's BOX, so the flex centring the tiles already do still centres
+     it - which is what makes this size-only correction safe. */
+  .rwd-em { display: inline-block; transform: scale(var(--egs, 1)); }
   .reward-cell.entity-trick .rwd-glyph {
     position: absolute; top: 6px; left: 0; right: 0; text-align: center; z-index: 2;
     font-size: 12px; color: var(--rc); text-shadow: 0 0 8px var(--rc);

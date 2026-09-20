@@ -227,7 +227,7 @@ function updateKnackList() {
   // Chips live in a marquee track so the row can slowly auto-scroll when it
   // overflows (no arrows / no scrollbar - r113).
   el.innerHTML = `<div class="chip-marquee">${acquiredKnacks.map(t =>
-    `<div class="knack-chip" data-knack-id="${t.id}" tabindex="0" role="button" aria-label="${t.name}">${t.emoji}</div>`
+    `<div class="knack-chip" data-knack-id="${t.id}" tabindex="0" role="button" aria-label="${t.name}">${emGlyph(t.emoji)}</div>`
   ).join('')}</div>`;
   const track = el.firstElementChild;
   // Landscape scrolls the row by hand (no scrollbar - css) since r237; the

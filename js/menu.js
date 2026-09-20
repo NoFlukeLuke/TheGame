@@ -1,4 +1,4 @@
-const BUILD = "2026-09-20 · r289 · the pick-of-three is a 6x4 board: 2x3 tiles, entity on top, description in a block";
+const BUILD = "2026-09-20 · r290 · entity emoji are ink-normalised: one size, centred, no overflow";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

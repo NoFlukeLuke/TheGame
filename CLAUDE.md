@@ -3874,6 +3874,69 @@ Two subtleties worth keeping:
 
 Audit script: render every name in `TRICK_POOL` / `KNACK_POOL` / `SLEIGHT_POOL` / `LIMITS_DEF` at 47/66/118px and assert no element has `scrollWidth > clientWidth` and no name uses more lines than it has words.
 
+### An emoji's INK is not its font-size (r290) - `emojiInkScale`, `emGlyph`
+
+Owner: *"Is it not possible to force emojis to fit on the entities? They always
+stick out weird. Can we not force a consistent centering and size?"*
+
+Yes, and the cause is one measurable fact. **Noto Color Emoji paints an ink box
+of 1.25 x 1.18 em** - measured across all 95 entity glyphs, every colour emoji
+identically - so a glyph set at 30px paints 35px tall. Every box in the tile
+system is sized as though the glyph were one em, so the picture overflowed it by
+9% at the top and 9% at the bottom. On the Trick disc that measured as **ink at
+1.22x its box**: the emoji climbing over the metal shutter and sitting on its own
+name.
+
+- **THE CENTRING WAS ALREADY RIGHT, and that was worth measuring before
+  changing anything.** With `line-height: 1` the half-leading is symmetric, so
+  the line box's centre IS the font box's centre, and the ink centre sits within
+  **0.005 em** of it for every colour emoji (0.03 em for the two text symbols).
+  The flex centring the tiles already do is correct. **Only the size was wrong**,
+  which is why this is a scale and not a scale plus an offset.
+- **They were already consistent with each other, too.** All 95 measured the
+  same except **two**: `♻` (U+267B, `Emoji_Presentation=No`, so it renders as a
+  TEXT glyph at 0.74 x 0.71 em) and `✦` (U+2726, not an emoji at all - the
+  generic fallback). `js/data/sleights.js` already wrote `♻️` with the U+FE0F
+  variation selector while `js/data/knacks.js` wrote the bare `♻`, so the same
+  symbol drew two sizes in one game. The knack now carries VS16 too.
+- **`emojiInkScale(glyph)` in `js/fit-text.js`** measures the ink on the shared
+  canvas and returns `EMOJI_INK_EM / inkRatio`, cached per glyph. **It is a PURE
+  FUNCTION OF THE GLYPH - no DOM, no layout** - which is the whole reason this
+  was cheap: `emGlyph()` in `js/entity-tile.js` can call it while building a
+  STRING and stamp `--egs` into the markup, so every surface that draws a tile
+  gets it without knowing it exists.
+- **`EMOJI_INK_EM` (0.86) is the one knob.** At 1.0 the ink exactly fills the box
+  it is centred in, which on the disc means touching the label's top edge and the
+  top of its own name. Chosen by rendering **1.0 / 0.92 / 0.86 / 0.80 side by
+  side over the real disc art** and looking. It also absorbs an error that cannot
+  be removed: Noto Color Emoji is a **BITMAP** font, so ink does not scale
+  perfectly linearly with font-size and a glyph probed at 100px lands ~3% out at
+  the 34-119px the game actually draws at.
+- **THE TRANSFORM IS ON A CHILD (`.rwd-em`), NEVER ON THE HOST.** `.rwd-art`
+  already carries `transform: translate(-50%, -50%)` to place it on the disc's
+  band (r239) and the knack diamond carries a `rotate(-45deg)`, so writing to the
+  host's transform would destroy the object's geometry. Scaling a child does not
+  change the element's BOX, so the flex centring still centres it - which is what
+  makes a size-only correction safe to drop in.
+- **SEVEN HOSTS, and three of them are outside `entityTileInner`.** The builder
+  covers the knack diamond, the Trick disc, the Sleight card and the plain
+  resource icon; the **knack HUD chip** (`js/hud.js`) and the **grid Sleight
+  card** are separate, and the grid Sleight has **TWO call sites that must agree**
+  (`js/card-fall.js` and `js/render.js` - the same trap the r161 Spectrum
+  fixtures hit, where one path showed the charge count and the other showed ∞).
+  `grep -n "emGlyph(" js/` is the inventory.
+- **The cache is cleared on `document.fonts.ready`.** Cinzel is a webfont, so a
+  TEXT-presentation glyph measured before it loads is measured in the fallback
+  serif. Colour emoji come from a system font and are right on the first
+  measurement, which is why this is a cache clear and not a re-render.
+
+Measured after, in a real browser: on the disc the ink went **1.22x its box ->
+0.88x**, and the spread across every glyph is **1.008** (they are now the same
+size as each other to within a percent). Across the live surfaces at 1440x820 and
+420x820 - tray chips, knack chips, grid Sleight cards, a full 16-tile reward grid
+and the pick-of-three - **0 glyphs overflow their box** and ink/em holds between
+0.866 and 0.911. No page errors.
+
 ## Tooltips: tap to read (r182)
 
 **One tap opens the tooltip; the tooltip carries the actions.** Tapping a Mart tile used to silently drop it in the cart, so the only way to see what you were buying was to discover the press-and-hold.
