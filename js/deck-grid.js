@@ -357,8 +357,14 @@ function discardToPlayed(card) {
       // _faceMark and _playable ride along so a Sleight keeps its printed face -
       // and a tinkered one keeps the identity it was PAID for - across a deck
       // cycle (this rebuild is a fixed field list; anything not named is lost).
+      // _adjPlays rides along too (r280): it is an 'adjacent' fixture's progress
+      // toward its payout, and the board is discarded through here at the end of
+      // EVERY round - so leaving it out silently reset a 1/2 fixture to 0/2 at
+      // every round boundary, which is what made the Spectrum fixtures read as
+      // firing at random. Measured before the fix: 1 in, undefined out.
       playedPile.push({ _isSleight: true, sleightId: card.sleightId, rank: card.rank, suit: card.suit, _id: card._id,
-                        _usesLeft: card._usesLeft, _faceMark: card._faceMark, _playable: card._playable, _drawFired: false });
+                        _usesLeft: card._usesLeft, _faceMark: card._faceMark, _playable: card._playable,
+                        _adjPlays: card._adjPlays || 0, _drawFired: false });
       updateDeckHud();
     }
     return;

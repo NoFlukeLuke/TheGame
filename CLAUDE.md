@@ -3011,7 +3011,61 @@ Four extra cards shuffled into the Spectrum deck at run start. **Score two hands
 - **`SLEIGHT_FIXTURES` + `sleightOfferable()`** keep them out of every offer pool (shop, Mart, wheel, reward grid, events, survival) while leaving them IN `SLEIGHT_POOL` - `sleightDef()` and both render paths look them up there, so filtering the array would have made them render as blanks. They carry `rarity:'fixture'`, which no rarity table asks for. The only way to have one is to draw it.
 - **`fireAdjacentSleights(handCells)`** runs once per scored hand from `playHand` (right after `fireSleightsOnPlay`). A fixture touched by three cards of the same hand still counts **one** hand, and the fixture being part of the played hand doesn't count - only its NEIGHBOURS are checked.
 - **Both grid render paths show `1/2` progress** instead of the charge count - `renderCardAppearance` (fall animation, hand preview) *and* the separate sleight branch in `render()`. Miss the second and the tile shows ∞ on the board while the animation shows the counter.
-- Progress lives on the card object, so it survives falls and saves but **resets if the fixture leaves the board** (`discardToPlayed` rebuilds the sleight from a fixed field list, which doesn't include `_adjPlays`).
+- Progress lives on the card object (`_adjPlays`), so it survives falls and saves - **and, since r280, a deck cycle too**. See below.
+
+### The fixtures pay out and LEAVE (r280)
+
+Owner: *"Aren't all of them supposed to be that if you play two hands next to them
+they'll give you the reward and then discard themselves? It doesn't seem like they
+do it consistently. They also don't leave or animate."* Three separate things,
+all true.
+
+- **THE PROGRESS WAS BEING WIPED AT EVERY ROUND BOUNDARY, and that is the whole
+  "inconsistent".** `discardToPlayed` rebuilds a Sleight from a **fixed field
+  list** and `_adjPlays` was not on it - and `showLevelUpScreen_fallOnly`
+  discards the entire board through that function at the end of **every** round.
+  So a fixture you had scored one hand beside came back at 0/2 with nothing
+  saying so. Measured: **1 in, `undefined` out.** It is on the list now.
+  The counter is what the card PRINTS (`1/2`, both render paths), so a silent
+  reset is the card lying about itself.
+- **It discards itself on payout**, through the shared `discardSleightAfterUse` -
+  spin, `discardToPlayed`, `removeAndFall` - so it cycles back into the draw pile
+  with its charges (`durability: 'infinite'`) and can be drawn again. That is what
+  keeps "Repeats" true without the card squatting on the board forever. The
+  descriptions say so now rather than saying "Repeats."
+- **IT CANNOT LEAVE AT THE MOMENT IT PAYS, and that is the one real trap here.**
+  `paySpectrumFixture` runs inside `playHand`, **above** `playScoreDance`, and the
+  dance removes the played hand with its own `removeAndFall`, which takes the
+  `falling` lock. Starting a second one on top of it cuts the first short - the
+  same trap r205's Pivot had to defer around. So the exit is **queued**
+  (`spectrumFixtureExits`) and drained from the **tail of `removeAndFall`**, the
+  one moment the board is known to be settled. One at a time: the drain's own
+  `removeAndFall` re-drains from its tail.
+- **The queue holds CARD OBJECTS, never cells.** The hand that paid the fixture is
+  removed first, so the fixture has usually fallen somewhere else by the time it
+  leaves - the r192 rule, target a card and never a position.
+- **A fixture paid by the GOAL hand never drains**: that hand's finale explodes the
+  board instead of calling `removeAndFall`. The payout has already landed (state is
+  applied immediately, only the exit is deferred) and the interlude discards the
+  whole board anyway, so `startRoundTimer` clears the queue rather than carrying a
+  card into a round whose board it is not on.
+- **The payout throws the SAME plate the scoring dance throws** (`entityEffectFX` ->
+  `ptLaunch`): a `+2` from the card to the SWAP readout, `+2` to DISCARD, `+5` to
+  credits, the pause plate to the clock. `entityEffectFX` gained **`opts.srcEl`**
+  for it - the fixture is a Sleight on the PLAY GRID, not a tray tile, so there is
+  no `danceEntityEl` lookup to do when the caller already holds the card.
+  **`pauseRound`/`rewindTime` throw their own particle**, so those two are handed
+  `srcId`/`srcSource` instead of being thrown a second plate on top - two plates for
+  one payout is exactly the doubled vocabulary r233 spent a pass removing.
+- **`consumeSleightCharge` came OUT of `paySpectrumFixture`.** `discardSleightAfterUse`
+  decrements on the way out, and doing both would spend two charges for one payout
+  (invisible today at `'infinite'`, wrong the moment a finite fixture is added).
+
+Verified in a real browser at 1440x820 and 420x820, all four fixtures: the payout
+lands, a plate flies from the card to the right readout (measured mid-flight
+between the two), the toast prints, the card is off the board within ~2s, the board
+is refilled with **0 holes**, the cycled copy is back in the piles at 0/2, and a
+`discardToPlayed` round-trip carries 1/2 through. No page errors.
 - Granting happens in `startGame` **after `initGridData()`** - that call assigns `drawPile` wholesale, so anything pushed before it is thrown away.
 
 ### Deck tuner (dev panel → Spectrum, r161) - `js/spectrum.js`

@@ -51,6 +51,11 @@ function startRoundTimer() {
   if (typeof sfxSetMuffle === 'function') sfxSetMuffle(false);
   startHeartbeat();                 // the board's idle pulse runs with the round
   cdStartTicker();                  // cooldown / disable rings (js/cooldown.js)
+  // A Spectrum fixture queued to leave by the GOAL hand never drained - that
+  // hand's finale explodes the board instead of calling removeAndFall - and the
+  // interlude has since discarded the whole board anyway. Drop the stale entry
+  // rather than carry it into a round whose board it is not on. (js/spectrum.js)
+  if (typeof spectrumClearFixtureExits === 'function') spectrumClearFixtureExits();
   syncDiscoveredFromOwned();        // log anything new for the Builds archive
   roundStartSeconds = roundSeconds; // mark the start of the countdown for ♠ "first 30s" exalt
   // Suspension resolves HERE, not in triggerLevelUp: it needs roundStartSeconds to
