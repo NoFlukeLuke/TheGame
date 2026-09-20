@@ -926,6 +926,30 @@ The round goal was computed in **four** places, each spelling out `BASE_GOAL * G
 - **Round 1 is deliberately not rounded to the step.** `startGame` set the opening goal to a bare `BASE_GOAL` (1200) while the level-up formula rounded to the nearest 500 - so the shipped round-1 goal is **1200**, and rounding it in the shared function would have quietly dropped it to 1000. Round 1 never goes through the level-up path, so the two never disagreed in play; both are reproduced exactly. Verified: levels 2-25 are identical to the old formula in both curves.
 - The global multiplier folds in **before** rounding, so a scaled goal still lands on the rounding step. Zen still multiplies **after** rounding, exactly as the inline `roundGoal *= 2` did.
 
+### Goal curves retuned from measurement (r278) - `tools/sim/`
+
+Older numbers in this file (BASE_GOAL 1200, GOAL_SCALE 1.35, one growth rate for
+every mode, the 17,500 map quota) are superseded. A Monte Carlo bot plays whole
+runs through the real game code headlessly (`tools/sim/README.md` - rerun it
+after any deck or hand-value change; it reads the live files). The owner's "1500
+base / 30% is a good bit too easy" measured as a 57% bot win rate, and the
+shipped curves aim the bot at ~25-40% (a real player lands well above - the bot
+cannot build layered hands or draft synergy):
+
+- **Classic: `BASE_GOAL` 1500, `GOAL_SCALE` 1.32 to round 12, `GOAL_SCALE_LATE`
+  1.45 from `GOAL_LATE_START` (13).** Two segments on purpose: a flat 40% dies
+  too early, a bigger base kills round 1 before any Trick is owned. `classicGoalForLevel`
+  takes the two rates; new tunables `classicGrowthLate` / `classicLateStart`.
+- **The Schedule has its OWN curve now** - `mapGoalForLevel`, `MAP_GOAL_GROWTH`
+  18%/level, dispatched from `goalForLevel` on `mapActive()`. It advances `level`
+  on every obligation (~11/quarter vs Classic's 6), so sharing Classic's rate was
+  a measured 0-of-100 wall. `MAP_BOSS_SCALE` 1.40 -> **1.30** with it, or 98% of
+  failed runs died at the review.
+- **Survival: `SURVIVAL_GOAL_SCALE` 1.25**, decoupled from Classic's scale. The
+  5th boss sits at level ~25-30 and nothing survives 30%+ compounding that deep
+  in 120s rounds (0-1 of 100). If it still overshoots, the next lever is boss
+  cadence, not growth.
+
 ### Scoring models (r179) - a dev toggle, not a decision
 
 Three ways a hand type can be worth something, switchable in the dev panel's **Focus** group so they can be played against each other rather than argued about. `scoringModel` persists in `localStorage`; `classic` is the default and the shipped balance.

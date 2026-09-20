@@ -21,7 +21,13 @@ function survivalActive() { return !!ACTIVE_MODE && ACTIVE_MODE.survival === tru
 
 // ── Tunables (all easy to change) ──
 const SURVIVAL_ROUND_SECONDS = 120;   // 2-minute rounds (owner request; was 3)
-const SURVIVAL_BASE_GOAL     = 900;   // first goal (lower than Classic's 1200; both rose 20% with the r178 hand retune)
+const SURVIVAL_BASE_GOAL     = 900;   // first goal (lower than Classic's; both rose 20% with the r178 hand retune)
+// r278: Survival's growth decoupled from Classic's GOAL_SCALE. The 5th boss
+// lands around level 25-30 (a boss every 300s of live play, 120s rounds), and
+// at 30%+ per level nothing reaches that deep: the bot sweep measured 0-1 wins
+// in 100 at 30-35% against 22 in 100 at 22%. 25% keeps the endgame reachable
+// while the last stretch still bites.
+const SURVIVAL_GOAL_SCALE    = 1.25;
 const SURVIVAL_GOAL_ROUND_TO = 50;    // goal rounding step (500 would snap 750 → 1000)
 // Endless (post-run) scaling: the per-level GROWTH accelerates 65%, i.e. Classic's
 // +35%/level becomes +57.75%/level. Applied only after the 5-boss run is continued.
