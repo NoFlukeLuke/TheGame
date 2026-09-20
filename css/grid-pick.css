@@ -24,7 +24,7 @@
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.03), 0 2px 6px rgba(0,0,0,0.5);
 }
 
-/* A CHOICE - 2 cells wide, 4 tall (r288). Neutral plastic border: rarity colour
+/* A CHOICE - 2 cells wide, 3 tall (r288). Neutral plastic border: rarity colour
    stays on the object inside, where it means rarity.
 
    TWO BLOCKS, NOT ONE CENTRED GROUP. The tile used to centre object + name +
@@ -108,17 +108,18 @@
   font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 11px; letter-spacing: 0.4px;
   color: var(--cream, #f0e6c8); text-align: center; line-height: 1.12;
 }
-/* THE TOP BLOCK - the entity and its name, in the tile's top two cells.
-   `min-height: 50%` rather than `flex-basis: 50%`, deliberately: the basis form
-   is a HARD half and an object taller than that (a big board, a long two-line
-   name) would be cut by the tile's overflow:hidden. This way the block takes its
-   content's height and is only ever PADDED UP to half the tile, so the split is
-   exact at every board size the game can produce and safe at the ones it cannot. */
+/* THE TOP BLOCK - the entity and its name, in the tile's top TWO of three cells,
+   hence 66.67%. `min-height` rather than `flex-basis`, deliberately: the basis
+   form is a HARD two thirds and a block taller than that (a big board, a name
+   that wraps to two lines) would be cut by the tile's overflow:hidden. This way
+   it takes its content's height and is only ever PADDED UP to the two cells, so
+   the split is exact at every board size the game produces and safe at the ones
+   it does not. */
 .gp-head {
-  flex: 0 0 auto; width: 100%; min-height: 50%;
+  flex: 0 0 auto; width: 100%; min-height: 66.67%;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
 }
-/* THE DESCRIPTION BLOCK - the bottom two cells, and a real block: a recessed
+/* THE DESCRIPTION BLOCK - the bottom cell, and a real block: a recessed
    plate with its own edge. That is the difference between "the words sit in the
    lower half" and "there is nothing down here" - a short description leaves room
    INSIDE a panel, which reads as a panel, where the same gap on bare tile read as

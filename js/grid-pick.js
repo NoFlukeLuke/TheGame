@@ -8,22 +8,31 @@
 // footprint, because there is nothing to put one behind - the tiles ARE what
 // is on the board.
 //
-// THE LAYOUT (owner spec, r288) - a 6 x 5 board with NO DEAD ROW:
+// THE LAYOUT (owner spec, r288) - a 6 x 4 board with NO DEAD ROW:
 //
-//     rows 0-3 : three options, each 2 CELLS WIDE x 4 CELLS TALL
-//     row 4    : the screen's own action tiles (Survival's reroll / peek /
+//     rows 0-2 : three options, each 2 CELLS WIDE x 3 CELLS TALL - the ENTITY
+//                in the top 2x2, the DESCRIPTION in the block beneath it
+//     row 3    : the screen's own action tiles (Survival's reroll / peek /
 //                breakdown / shop) in the first 4 cells, then CONFIRM across
 //                the last 2; any cell no action claims stays ambience
 //
-// That closes exactly: 3 x (2x4) = 24 cells, plus 6 below = 30.
+// That closes exactly: 3 x (2x3) = 18 cells, plus 6 below = 24.
 //
-// r256 opened on a full row of ambience above the options and gave each option
-// 3 cells, which its contents did not fill - so the board carried TWO dead
-// bands, one above the tiles and one inside every one of them, and the owner
-// read both as empty rows. The options start at row 0 now and take the fourth
-// cell the ambience row was spending on nothing: the ENTITY fills the top two
-// cells of the tile and the DESCRIPTION the two beneath it, which is where the
-// extra room goes.
+// r256 opened on a full row of ambience above the options - and the tile's own
+// contents did not reach its foot, so the board carried TWO dead bands, one
+// above the tiles and one inside every one of them, which the owner read as two
+// empty rows. THE FIX IS TO DROP A ROW, NOT TO SPEND ONE. The options keep
+// three cells and simply start at row 0, so the board is a row shorter.
+//
+// THAT IS WHY THE TILE GETS BIGGER, AND IT IS THE ONE COUNTERINTUITIVE PART.
+// `recomputeGridMetrics` holds the playing-card aspect, so a cell's width and
+// height are locked together and FEWER ROWS IN THE SAME SLOT MEANS A WIDER
+// CELL. Measured at 1440x820: 5 rows gives a 49x64 cell and a 198px tile, 4
+// rows gives 53x70 and a 214px tile. Asking for MORE rows does the reverse and
+// was measured too - at 7 rows (a 2x2 entity over a 2x4 description) the cell
+// hits its floors at 40x53, the tile drops to 163px wide, the artwork shrinks
+// by 20% and the board overflows its slot by ~117px. A taller tile is a
+// narrower tile here, and the description wants width.
 //
 // The title is NOT on the board - every cell is spoken for. It goes in the HUD
 // through enterGridScreenHud, the same readout the shop and the crossroads use.
@@ -59,8 +68,8 @@
 // The entity object AND the bare icon (a limit has no object) both drift.
 const GRID_PICK_FLOAT_SEL = '.gp-art .reward-cell, .gp-art .gp-icon';
 
-const GP_COLS = 6, GP_ROWS = 5;   // the board this screen asks for
-const GP_OPT_W = 2, GP_OPT_H = 4; // each option, in cells: 2 for the entity, 2 for the words
+const GP_COLS = 6, GP_ROWS = 4;   // the board this screen asks for
+const GP_OPT_W = 2, GP_OPT_H = 3; // each option, in cells: 2 for the entity, 1 for the words
 const GP_OPT_ROW = 0;             // options start at the top - there is no ambience row above them
 
 // CONFIRM owns the last cells of the action row, on EVERY screen that comes

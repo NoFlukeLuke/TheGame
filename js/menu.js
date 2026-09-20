@@ -1,4 +1,4 @@
-const BUILD = "2026-09-20 · r288 · the pick-of-three loses both dead rows: entity on top, description in a block";
+const BUILD = "2026-09-20 · r289 · the pick-of-three is a 6x4 board: 2x3 tiles, entity on top, description in a block";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

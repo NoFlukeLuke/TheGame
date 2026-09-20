@@ -1675,38 +1675,49 @@ in the 2x2 at the top, with the description in a block beneath it."*
 There really were two, and they were different kinds of dead. **Row 0 was a full
 row of ambience cards**, and **every option tile carried a band of bare tile at
 its foot** - three tiles wide, so it read as a second empty row across the board.
-The screen is a 6 x 5 board either way; the options just take the row back:
 
 | | was | is |
 |---|---|---|
-| option footprint | 2 cells wide x **3** tall, starting at row 1 | 2 wide x **4** tall, starting at **row 0** |
+| board | 6 x **5** | 6 x **4** |
+| option footprint | 2 cells wide x 3 tall, starting at **row 1** | 2 wide x 3 tall, starting at **row 0** |
 | ambience | a full row above, plus the action row's spare cells | the action row's spare cells only |
-| the tile | object + name + description centred as ONE group | **`.gp-head`** (entity + name, top two cells) over **`.gp-body`** (description, bottom two) |
+| the tile | object + name + description centred as ONE group | **`.gp-head`** (entity + name, top two cells) over **`.gp-body`** (description, the cell beneath) |
 
+- **THE FIX IS TO DROP A ROW, NOT TO SPEND ONE, and the first pass got that
+  backwards.** It kept the board at 5 rows and gave the option the freed cell
+  (2x4), which only moved the bare band from the tile's foot into a description
+  block twice the size of the words in it.
+- **FEWER ROWS IN THE SAME SLOT MEANS A WIDER CELL**, which is the whole reason
+  a shorter tile is the better tile here. `recomputeGridMetrics` holds the
+  playing-card aspect, so a cell's width and height are locked together.
+  Measured at 1440x820, asking for MORE rows: a 2x2 entity over a 2x4
+  description is a 7-row board, the cell hits BOTH its floors (`CARD_MIN_W` 40,
+  `CARD_MIN_H` 53), the tile drops **198px -> 163px wide**, the artwork shrinks
+  **20%**, and the grid comes out **782px tall in a ~665px slot** - spilling off
+  both ends. The description wants WIDTH, and a taller tile is a narrower one.
 - **THE FOOT BAND WAS THE CENTRING, NOT THE HEIGHT.** A flat run of children
-  centred in the tile splits its slack between the top and the bottom, so making
-  the tile TALLER makes that band BIGGER - the obvious fix is the wrong way
-  round. The two halves are wrappers for exactly that reason: they can be sized
-  against the tile, where a flat child list can only be centred in it.
-- **`.gp-head` takes `min-height: 50%`, NOT `flex-basis: 50%`.** The basis form
-  is a hard half, and a block taller than it - a big board, a name that wraps to
-  two lines - would be cut by the tile's `overflow: hidden`. This way the block
-  takes its content's height and is only ever padded UP to half the tile: exact
-  at every board size the game produces, and safe at the ones it does not.
+  centred in the tile splits its slack between the top and the bottom, so
+  growing the tile makes that band BIGGER. The two halves are wrappers for
+  exactly that reason: they can be SIZED against the tile, where a flat child
+  list can only be centred in it.
+- **`.gp-head` takes `min-height: 66.67%`, NOT `flex-basis`.** The basis form is
+  a hard two thirds, and a block taller than it - a big board, a name that wraps
+  to two lines - would be cut by the tile's `overflow: hidden`. This way it takes
+  its content's height and is only ever padded UP to the two cells: exact at
+  every board size the game produces, and safe at the ones it does not.
 - **A BLOCK HAS TO LOOK LIKE A BLOCK.** `.gp-body` is a recessed plate with its
-  own edge. That is the whole difference between "the words sit in the lower
-  half" and "there is nothing down here": a short description leaves room inside
+  own edge. That is the whole difference between "the words sit in the bottom
+  cell" and "there is nothing down here": a short description leaves room inside
   a panel, and the identical gap on bare tile is what was being read as a row.
-- **The line clamp is MEASURED, not a number** (`gpFitDesc`). It was a fixed 5,
-  chosen against r280's 3-cell tile; on the 4-cell one that clipped long
-  descriptions early AND left short ones floating. It is now as many whole lines
-  as the block holds - **12 on a 1440x820 desktop, 11 on a phone** - in **two
-  passes**, because the ellipsis mark is a line of the block too: fill it, and if
-  that overflows hand one line back for the mark to sit on. Without the second
-  pass the mark is pushed out of a block it exactly fills and the tile silently
-  stops saying there is more to read. It reads `clientHeight` minus the block's
-  own padding; `clientHeight` includes padding and would promise a line and a
-  half of room that is not there.
+- **The line clamp is MEASURED, not a number** (`gpFitDesc`). It was a fixed 5
+  written against r280's cell height, so it could not follow the block when the
+  geometry moved. It is now as many whole lines as the block actually holds - **5
+  at 1440x820 and 5 on a phone** - in **two passes**, because the ellipsis mark
+  is a line of the block too: fill it, and if that overflows hand one line back
+  for the mark to sit on. Without the second pass the mark is pushed out of a
+  block it exactly fills and the tile silently stops saying there is more to
+  read. It reads `clientHeight` minus the block's own padding; `clientHeight`
+  includes padding and would promise a line and a half of room that is not there.
 - **The tile's name is 11px** (up 2, owner's call) **and is now fitted.** At 9px
   every name fitted a two-cell tile on its own; at 11px the long single-word ones
   (Kaleidoscope, Syncopation) do not, and nothing was shrinking them - they would
@@ -1715,22 +1726,38 @@ The screen is a 6 x 5 board either way; the options just take the row back:
   and truncates only as a last resort. **Names are fitted BEFORE descriptions, in
   one frame**: a name that shrinks or wraps changes the head block's height, and
   the description's line count is measured off what is left.
-- **Portrait drops the description one step, 7.5px -> 7px** (owner's call). The
-  phone's board is the same 6 x 5 cells in a much narrower slot, so the limit
-  there is words per LINE, not lines per block.
+
+#### The description font is 7.5px because 0% of descriptions clip there
+
+Swept over **135 freshly drawn tiles per size**, counting how many needed the
+tooltip to be read in full:
+
+| landscape | 7.5px | 8px | 8.5px | 9px | 9.5px |
+|---|---|---|---|---|---|
+| clipped | **0%** | 8% | 10% | 10% | 6% |
+
+Bigger type is more legible and buys nothing here: this is the one screen where
+comparing three descriptions IS the task, so a tile that shows its whole
+description beats a larger one that hides a tenth of them behind a tap. **If the
+block ever grows again, re-run this sweep before raising it.**
+
+**Portrait drops one step, 7.5px -> 7px** (owner's call), and the measurement
+agrees: on a phone 7.5px clips **17%** and 7px clips **7%**. The phone's board is
+the same 6 x 4 cells in a much narrower slot, so the limit there is words per
+LINE, not lines per block.
 
 Measured in a real browser at 1440x820 and 420x820, **135 freshly drawn tiles per
 viewport**: 0 names overflowing, 0 blocks overlapping, 0 tiles spilling, 0
 clipped descriptions left unmarked, and no page errors. Through the real tap
 path: a tap lights the tile and opens the read, CONFIRM names the choice and
 grants exactly one, and the screen leaves **0 tiles** in `#grid`. The map's
-two-option pick still centres (2 options, 12 ambience cells).
+two-option pick still centres (2 options, 10 ambience cells).
 
-**Known and left alone:** on a desktop the block holds 12 lines and the
-descriptions use 2-4, so it is a roomy panel rather than a full one. The lever is
-the landscape font size - r280 set it to 7.5px *because* the 3-cell tile could
-not hold more text, and that constraint is gone - but that is a balance-of-
-legibility call, not part of this change.
+**The board no longer fills the slot, and that is fine.** At 4 rows the grid is
+532px in a ~665px slot and is centred, so the leftover is MARGIN around a compact
+board rather than a row of empty cards - which is what the complaint was about.
+The cell cannot use it: at 6 columns the board is width-bound, so the cards are
+already as large as the slot allows.
 
 ### A tap selects and reads; only CONFIRM commits (r280) - `js/grid-pick.js`
 
