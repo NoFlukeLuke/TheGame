@@ -103,6 +103,10 @@ const SAVE_VARS = [
   // ── Permanent card buffs / curses ──
   'permPips', 'permMult', 'permXPips', 'permXMult', 'permRetrig', 'permTime', 'permCoins',
   'permPipsGrow', 'permMultGrow', 'cardCurses',
+  // Card states (r278). cardIdleSecs is deliberately NOT saved: the save point is
+  // the START of a round and the fuses reset there anyway, so restoring last
+  // round's idle seconds would arm a fuse the resumed round never earned.
+  'cardStates',
   'cardPlayCount', 'cardSwapCount', 'cardDealtCount',
   // ── Hands ──
   'activeHands', 'unlockedHands', 'handsPendingUnlock', 'handTypesRound',

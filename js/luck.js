@@ -72,6 +72,21 @@ function luckRoll(p) {
   return n;
 }
 
+// The OTHER direction. A chance of something BAD has to get rarer as Luck
+// climbs, or Luck is a stat that makes half of a duality card worse - which is
+// exactly backwards. Dividing by the same scale is the mirror of luckChance, so
+// one number tunes both halves: at Luck 100 a 50% bad roll becomes 25%.
+function luckBadChance(p) { return Math.max(0, p / luckScale()); }
+
+// The bad-outcome counterpart to luckRoll. Same shape, so a call site reads the
+// same either way and only the helper's name says which direction Luck pushes.
+function luckBadRoll(p) {
+  const eff = luckBadChance(p);
+  let n = Math.floor(eff);
+  if (Math.random() < eff - n) n++;
+  return n;
+}
+
 // The same thing, DETERMINISTIC, for the two sites that must not call
 // Math.random(): findBestHand scores every candidate hand through calcScore, so
 // a real roll there would give the preview a different answer than the score.

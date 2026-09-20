@@ -115,6 +115,14 @@ function cdForCard(card, r, c) {
     const info = bossRecallSecondsLeft(card);
     if (info) return { mode: 'off', left: info.left, total: info.total };
   }
+  // A card-state fuse, or the Turnover knack's idle clock (r278). Mode 'primed'
+  // and NOT 'cooldown', which matters: 'off' and 'cooldown' grey the host, and a
+  // fuse is the opposite of unavailable - the card is perfectly playable and the
+  // ring is the reason to hurry up and play it.
+  if (typeof cardStateFuse === 'function') {
+    const f = cardStateFuse(card);
+    if (f && f.left > 0) return { mode: 'primed', left: f.left, total: f.total };
+  }
   return null;
 }
 

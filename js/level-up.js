@@ -259,6 +259,9 @@ function triggerLevelUp() {
   compoundNextMark = BAL.compound.interval_seconds; compoundBanked = 0;
   understudyNextMark = BAL.understudy.interval_seconds;
   if (typeof hallmarkRollRound === 'function') hallmarkRollRound();
+  // The card-state fuses refresh every level (owner's spec), so a charged card
+  // you were holding does not blow up the instant the next round deals.
+  if (typeof cardStatesResetRound === 'function') cardStatesResetRound();
   forcedTrickIds = [];
   // Clock-mark Tricks + Déjà Vu: pending bonuses and rank-history reset each round
   pendingHandPips = 0; pendingHandMult = 0; pendingCardPips = 0; minuteHandCharges = 0;

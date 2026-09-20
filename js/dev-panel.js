@@ -147,6 +147,7 @@ const DEV_GROUPS = [
            : m === 'spectrum' ? 'Spectrum owns its deck'
            : 'four suits · 52 cards'; } },
   { g:'improve',  icon:'\u2191', label:'Improve',   sub:() => devImproveSub() },
+  { g:'cardstates', icon:'\u29c9', label:'Card States', sub:() => devCardStateSub() },
   { g:'builds',   icon:'▤', label:'Builds',    sub:() => `${discoveredIds.size} records open` },
   { g:'log',      icon:'✎', label:'Event Log', sub:() => 'in-game debug log' },
 ];
@@ -175,6 +176,7 @@ function devOpenGroup(g) {
   if (g === 'deck') devRenderDeckDesign();
   if (g === 'goals') devRenderGoalPanel();
   if (g === 'improve') devRenderImprove();
+  if (g === 'cardstates') devRenderCardStates();
 }
 function devCloseGroup() {
   document.getElementById('dev-group-menu').style.display = '';
@@ -1064,6 +1066,103 @@ function devResumeRun() {
 // ── Improve (r206) - entity tiers ────────────────────────────────────────────
 // The tier system's test surface: see what you own, what tier it is at, and
 // what one more improvement would read as, without waiting for a reward grid.
+// ── Card states (r278) ──────────────────────────────────────────────────────
+// The only grant path outside the Hallmark knack today. Pick a state here, then
+// tap a card on the board: the tap intercept lives in js/input.js and is armed
+// only while devCardStatePick is set, so it can never interfere with ordinary
+// play.
+let devCardStatePick = null;
+
+function devCardStateSub() {
+  try {
+    const n = Object.keys(cardStates || {}).length;
+    const t = cardStateBoardCards().filter(([c]) => isTempCard(c)).length;
+    return `${cardStateIds().length} states \u00b7 ${n} charged \u00b7 ${t} temp on board`;
+  } catch (e) { return 'per-card charges'; }
+}
+
+function devRenderCardStates() {
+  const el = document.getElementById('dev-card-state-list');
+  if (!el) return;
+  el.innerHTML = cardStateIds().map(id => {
+    const d = cardStateDef(id);
+    const on = devCardStatePick === id;
+    return `<button class="dev-btn" style="display:block;width:100%;text-align:left;margin-bottom:3px;`
+         + `border-color:${on ? d.color : 'rgba(255,255,255,0.18)'};color:${on ? d.color : ''}"`
+         + ` onclick="devPickCardState('${id}')">`
+         + `<b>${d.icon} ${d.name}</b>${d.fuse ? ` <span style="opacity:.6">fuse ${d.fuse}s</span>` : ''}`
+         + `<br><span style="font-size:9px;opacity:.75">${d.desc}</span></button>`;
+  }).join('');
+  devRenderCardStateBoard();
+}
+
+function devRenderCardStateBoard() {
+  const el = document.getElementById('dev-card-state-board');
+  if (!el) return;
+  const rows = [];
+  try {
+    cardStateBoardCards().forEach(([card, r, c]) => {
+      const list = cardStateList(card);
+      if (!list.length && !isTempCard(card)) return;
+      const idle = cardIdleSecs[cardId(card)] || 0;
+      rows.push(`${card.rank}${card.suit} @${r},${c}`
+        + (isTempCard(card) ? ' <span style="color:#7ac4ff">TEMP</span>' : '')
+        + (list.length ? ' \u00b7 ' + list.map(s => `${s.def.name}${s.n > 1 ? ' x' + s.n : ''}`).join(', ') : '')
+        + ` \u00b7 idle ${idle}s`);
+    });
+  } catch (e) { rows.push('(no board)'); }
+  el.innerHTML = rows.length ? rows.join('<br>') : '<span style="opacity:.6">nothing charged on the board</span>';
+}
+
+function devPickCardState(id) {
+  devCardStatePick = (devCardStatePick === id) ? null : id;
+  devRenderCardStates();
+  if (devCardStatePick) showMessage(`Tap a card to make it ${cardStateDef(id).name}`, 'var(--gold)');
+}
+
+// Consumed by the tap intercept in js/input.js. Returns true if it took the tap.
+function devCardStateApplyTap(r, c) {
+  if (!devCardStatePick) return false;
+  const card = gridData[r]?.[c];
+  if (!card || !card.rank || card._isSleight || card._isStone || card._isTrick) return false;
+  const d = cardStateDef(devCardStatePick);
+  addCardState(card, devCardStatePick, 1);
+  showMessage(`${d.icon} ${card.rank}${card.suit} is ${d.name}`, d.color);
+  devCardStatePick = null;
+  devRenderCardStates();
+  render();
+  return true;
+}
+
+function devCardStateRandom() {
+  const pool = cardStateBoardCards();
+  if (!pool.length) { showMessage('No board to charge', 'var(--red)'); return; }
+  const [card] = pool[Math.floor(Math.random() * pool.length)];
+  const ids = cardStateIds();
+  const id = ids[Math.floor(Math.random() * ids.length)];
+  addCardState(card, id, 1);
+  showMessage(`${cardStateDef(id).icon} ${card.rank}${card.suit} is ${cardStateDef(id).name}`, cardStateDef(id).color);
+  devRenderCardStates(); render();
+}
+
+// Swap a board card for a temp copy of itself, so the temp look and the
+// evaporate-at-level-end rule can be checked without waiting for a Backfill.
+function devMakeTempCard() {
+  const pool = cardStateBoardCards().filter(([c]) => !isTempCard(c));
+  if (!pool.length) { showMessage('No ordinary card on the board', 'var(--red)'); return; }
+  const [card, r, c] = pool[Math.floor(Math.random() * pool.length)];
+  discardToDrawPile(card);
+  gridData[r][c] = makeTempCard(card.rank, card.suit, null);
+  showMessage(`Temp ${card.rank}${card.suit} on the board`, '#7ac4ff');
+  devRenderCardStates(); render(); updateDeckHud();
+}
+
+function devClearCardStates() {
+  cardStatesResetRun();
+  showMessage('Card states cleared', 'var(--cream-dim)');
+  devRenderCardStates(); render();
+}
+
 function devImproveSub() {
   try {
     const n = ['trick','knack','sleight'].reduce((a,t) => a + ownedImprovable(t).length, 0);

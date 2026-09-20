@@ -123,6 +123,10 @@ function startRoundTimer() {
       }
     }
     if (typeof hallmarkTick === 'function') hallmarkTick(_elapsedRound);
+    // Card states (r278): ages every card on the board and fires whatever fuse
+    // came due. Hung off the ROUND tick rather than a clock of its own, so it
+    // stops with the round, with the pause menu and with RECORDS for free.
+    if (typeof cardStatesTick === 'function') cardStatesTick();
     // The Cuckoo: every 60s of round time, pause the clock by 1s for each retrigger so far this round
     if (hasTrick('cuckoo') && _elapsedRound >= cuckooNextMinute) {
       cuckooNextMinute += BAL.cuckoo.interval_seconds;

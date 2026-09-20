@@ -239,6 +239,20 @@ function improveEntity(id) {
   return entityTier[id];
 }
 
+// Knock one tier OFF. The counterpart to improveEntity, and the first thing in
+// the game that can move a tier down (the Review card state's idle half). It
+// goes through applyEntityTiers exactly as improveEntity does, so BAL is
+// rewritten and the printed description follows the number back down - a Trick
+// that silently kept quoting its improved value would be worse than not
+// downgrading at all. Floors at 0; returns the new tier.
+function downgradeEntity(id) {
+  const cur = entityTierOf(id);
+  if (cur <= 0) return 0;
+  entityTier[id] = cur - 1;
+  applyEntityTiers();
+  return entityTier[id];
+}
+
 function resetEntityTiers() { entityTier = {}; applyEntityTiers(); }
 
 // ── Which of your entities gets improved ─────────────────────────────────────
