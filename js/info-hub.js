@@ -91,7 +91,7 @@ const INFO_TOPICS = [
       'A dropped card turns red on the board before you play, and the hand label prices it, so you can always see it coming.',
       ['A run needs consecutive ranks. 4-6-7-5-9 is not a Straight, it is a Run of 4 with the 9 dropped.',
        'A hand can be several shapes at once, so a spare card is often not spare. 2, 2, J, Q, K is a Pair and a Run of 3, and every card is used.',
-       'The hard cap is seven cards in a hand, so at the largest selection sizes some cards are always dropped.'],
+       () => `The hard cap is ${typeof HAND_MAX_CARDS !== 'undefined' ? HAND_MAX_CARDS : 7} cards in a hand, so at the largest selection sizes some cards are always dropped.`],
       'The Tagalong {knack} lifts the whole rule: your hands may carry cards that are not part of them, and those cards score normally instead of being billed.',
     ] },
 
@@ -228,8 +228,8 @@ const INFO_TOPICS = [
   { id: 'payout', group: 'between', title: 'The payout',
     body: [
       'Clearing the {GOAL} pays credits. Three lines:',
-      ['Interest on the credits you are holding.',
-       'Time left on the clock, at 1 credit per 5 seconds.',
+      () => ['Interest on the credits you are holding.',
+       `Time left on the clock, at 1 credit per ${(typeof efficiencySecondsPerCoin === 'function') ? efficiencySecondsPerCoin() : 10} seconds.`,
        'Swaps and discards you did not spend.'],
       'The Contributions view on the same screen breaks the round down by what earned it, which is the honest answer to "is this {trick} actually doing anything".',
     ] },
@@ -239,6 +239,13 @@ const INFO_TOPICS = [
       'A board of rewards. You pick a CONNECTED PATH through it and take EVERYTHING on that path, which is the whole decision: the good tile you want may only be reachable through a liability.',
       'Tap a tile you cannot reach and it just explains itself without costing you a pick. Tap one you can reach and it is picked, and explained.',
       'There is a minimum number of picks, the same idea as the board\'s. SKIP takes nothing at all and is always allowed.',
+    ] },
+
+  { id: 'pick_three', group: 'between', title: 'Take your pick',
+    body: [
+      'Three offers, one of each kind, and you take one. It is the base reward of the modes that have no reward board: the Schedule pays one out after every round you clear, and Survival after every {GOAL}.',
+      'A TAP READS an option rather than taking it. You pick, then CONFIRM, so a mis-tap can never spend the choice for you.',
+      'Rerolls come out of a pool you carry for the whole run rather than a fresh allowance each time, so one spent now is one you do not have later.',
     ] },
 
   { id: 'shop', group: 'between', title: 'The company store',
@@ -275,7 +282,7 @@ const INFO_TOPICS = [
 
   { id: 'quarter', group: 'between', title: 'Quarters',
     body: [
-      'A run is four QUARTERS. Each quarter is a handful of stops and then a manager review; beating the review closes the quarter and opens the next.',
+      () => `A run is ${typeof QUARTERS_PER_RUN !== 'undefined' ? QUARTERS_PER_RUN : 4} QUARTERS. Each quarter is a handful of stops and then a manager review; beating the review closes the quarter and opens the next.`,
       'The card that comes up between them is a summary, and a tap skips it. At the end of the run the report breaks the whole thing down quarter by quarter.',
     ] },
 
@@ -404,14 +411,28 @@ function infoHubGoTo(id) {
 // on screen has to be able to search for "utility"; the raw body says {trick}.
 function infoHubMatch(t, q) {
   if (!q) return true;
-  const flat = t.body.map(b => Array.isArray(b) ? b.join(' ') : b).join(' ');
+  const flat = t.body.map(infoBlockText).join(' ');
   const hay = infoText(t.title + ' ' + t.id + ' ' + flat).toLowerCase();
   return hay.includes(q.toLowerCase());
 }
 
+// A BODY ENTRY MAY BE A FUNCTION, and a tuning number must be one. Typing
+// "1 credit per 5 seconds" into the prose is exactly how the payout label, the
+// count-up and Survival's bonus drifted apart before r213 put them on one
+// constant - and that constant went 10 -> 5 -> 10 across three revisions. A page
+// that states a number reads it from the code that charges it.
 function infoBlockHTML(b) {
-  if (Array.isArray(b)) return `<ul class="info-list">${b.map(x => `<li>${infoText(x)}</li>`).join('')}</ul>`;
-  return `<p>${infoText(b)}</p>`;
+  const v = (typeof b === 'function') ? _infoSafe(b) : b;
+  if (Array.isArray(v)) return `<ul class="info-list">${v.map(x => `<li>${infoText(typeof x === 'function' ? _infoSafe(x) : x)}</li>`).join('')}</ul>`;
+  return `<p>${infoText(v)}</p>`;
+}
+// A topic must never be able to blank the page by reading a global that is not
+// there yet - the handbook opens from the MENU, before a run exists.
+function _infoSafe(fn) { try { return fn(); } catch (e) { return ''; } }
+function infoBlockText(b) {
+  const v = (typeof b === 'function') ? _infoSafe(b) : b;
+  return Array.isArray(v) ? v.map(x => (typeof x === 'function') ? _infoSafe(x) : x).join(' ')
+                          : String(v == null ? '' : v);
 }
 
 function renderInfoHub() {

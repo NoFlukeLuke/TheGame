@@ -23,6 +23,13 @@ const SETTINGS_DEF = [
   { group: 'Help', id: 'tips', label: 'Tips',
     hint: 'A one-line note the first time something new turns up. Each one shows once, ever, and never blocks play.',
     type: 'toggle', default: true },
+  { group: 'Help', id: 'walkthrough', label: 'First-run walkthrough',
+    hint: 'The first time you play a mode, it explains itself as you go. Each mode gets one.',
+    type: 'toggle', default: true },
+  { group: 'Help', id: 'walkthroughReset', type: 'action', label: '', hint: '',
+    buttons: () => [{ label: 'Play the walkthroughs again',
+                      fn: 'resetWalkthroughs(); renderSettings();',
+                      disabled: (typeof modesStarted === 'undefined') || modesStarted.size === 0 }] },
   { group: 'Help', id: 'tipsReset', type: 'action', label: '', hint: '',
     buttons: () => {
       const n = (typeof insightsSeenCount === 'function') ? insightsSeenCount() : 0;

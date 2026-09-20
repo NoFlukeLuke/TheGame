@@ -3491,6 +3491,137 @@ A guided first run listed **first** in the mode carousel. `MODES.tutorial` sets 
 - **Anti-stall:** a step whose `when` never flips shows anyway after `whenTimeoutMs` (20s), so a stalled predicate can't leave the orientation silently dead.
 - `tutorialHoldClock()` only releases a pause **it** took (`_tutClockHeld`), so the reward grid and Mart keep ownership of `gameTimerPaused` during their own steps.
 
+## A walkthrough belongs to a MODE'S FIRST RUN (r283) - `js/tutorial.js`
+
+Owner: *"The first time you select a given mode, the first seed you should play
+should be the tutorial."*
+
+There is no longer one mode called Orientation that a player has to choose. Pick
+any mode for the first time and its first run is seeded and walked through; every
+run after that is ordinary.
+
+- **`tutorialArmed` is LATCHED in `startGame`, ABOVE `markModeStarted`.**
+  `modeNeedsTutorial()` means "never played", and that line makes it false
+  forever - so a live read anywhere later in the run would always say no. The
+  ordering is the whole mechanism and the two calls must stay in that order.
+- **It DISARMS in `tutorialEnd()`.** `tutorialActive()` gates the scripted reward
+  grid and, in `js/insights.js`, every tip; leaving it armed would script a grid
+  for someone who skipped at step 1, and would silence the tips for the whole of
+  the one run they are most useful in. The seed is read once, in `startGame`,
+  well above this.
+- **`js/save.js` now refuses to save on `ACTIVE_MODE.tutorial === true`**, not on
+  `tutorialActive()`. The ORIENTATION MODE is a scripted run not worth saving; a
+  first run of any other mode is an ordinary run that happens to carry a
+  walkthrough.
+- **`TUTORIAL_SEEDS` is one pinned seed per mode** (`LETHE-SCHEDULE`,
+  `LETHE-SURVIVAL`, ...), so everyone's first Schedule is the same board and a
+  bug report against it reproduces. A mode absent from the table takes whatever
+  seed the run would otherwise use. Nothing is stacked - the board is a real deal
+  and `tutorialQualifyBoard` re-deals until it offers the lesson.
+- Settings -> Help -> **"Play the walkthroughs again"** clears `modesStarted`
+  (`resetWalkthroughs`, js/progress-unlock.js); the **walkthrough** toggle beside
+  it switches them off entirely.
+
+### ONE script, filtered by the mode's FLAGS - never by its name
+
+The opening two thirds is identical everywhere (a board, a hand, the clock,
+Records) and only the BETWEEN-ROUNDS part differs, so a script per mode would be
+three copies of the same twelve steps waiting to drift. A step carries
+`only:` / `not:` and `tutorialBuildScript()` filters the one table.
+
+**What it filters ON is the point.** `only: 'map'` used to mean
+`ACTIVE_MODE.id === 'map'`, which **the picker breaks by construction**: a custom
+run's id is `custom` whatever it plays like, so a player who built a
+pick-of-three run would have been walked through the reward grid and the shop,
+neither of which that run ever opens. `tutModeTags()` tags off the FLAGS a
+picker-built mode already carries (`js/picker-mode.js`), so it classifies for
+free:
+
+| tag | means |
+|---|---|
+| `map` `guided` `survival` `flow` | the mode's own shape, from its flags (Flow carries `survival` too) |
+| `clocked` / `noclock` | asked through **`roundClockEndsRound()`**, never re-derived |
+| `picks` / `crossroads` / `rewardgrid` | which between-rounds screen this run uses - exactly one |
+| `payout` | a cleared round shows the payout panel (everything but Survival/Flow) |
+| `nodes` | the five-rounds-then-a-review structure |
+
+A mode's own id is a tag too, so `only: 'spectrum'` still works for anything
+really about one named mode. **`tutorialScriptRewardGrid` asks the same question
+the same way** (`tutModeTags().has('rewardgrid')`) rather than keeping a second
+list of mode names beside it. Verified: a picker run built on pick-of-three
+composes Survival's 17 steps, one built on slots composes Guided's 18.
+
+- **The Schedule and Survival share the `picks` tag and one step**, because r281
+  made the Schedule's cleared level pay through Survival's pick-of-three.
+- `_tutSteps` is **cached for the run**: six sites index into it by number, so it
+  has to be the same array every time they look.
+
+### `gp-active` means THE BOARD IS TAKEN OVER, not "a pick is up"
+
+The TILED PAYOUT goes through the same `gridScreenTakeover` (js/grid-pick.js) as
+the pick-of-three, so it carries that class for the whole of its count-up.
+Testing the class for the pick made **Classic's payout read as a pick**, which
+held every reward-grid step back behind a screen that was never going to open -
+the walkthrough simply stopped at the end of the first round. Two predicates now:
+`tutBoardTaken()` is the class, `tutPickOpen()` is `#grid .gp-opt`.
+
+### The shared round steps WAIT for a live board
+
+`tutRoundLive()` is on every step between `board` and `clear`. The modes do not
+all open on a board: the Schedule puts its map over the dealt cards before a card
+is played (`mapBeginRun`), so without it the "select these cards" step would land
+on the map. One predicate makes the linear script self-sequencing on every mode
+instead of needing a per-mode order.
+
+### Numbers in the prose are READ, not typed
+
+`tutSwapCost()` / `tutDiscardCost()` read `BAL._resources`, the payout step reads
+`efficiencySecondsPerCoin()`, the progress step reads `QUARTERS_PER_RUN`. r151's
+lesson: a quoted cost and a charged cost must come from one place or they drift,
+and they already did once. Step titles and bodies may be **functions** for that
+reason, resolved by `tutText()`, which also runs them through `infoText()` - so
+the walkthrough follows Settings -> Display -> Wording with no second copy.
+
+### What the script covers, and what it deliberately does not
+
+Owner: *"i don't want to smother the player ... if something seems really really
+obvious, just skip it. If it's something unique to this game, like limits or
+selection size or whatever, then keep it."*
+
+So the walkthrough teaches the shape of a run and nothing else: the board, a
+hand, what gets dropped from one, Focus, the quota, the clock and what
+interacting costs, a swap, a discard, how to open a tooltip, the {trick} slot
+cap, Records (**one** step for all six tabs, not six), the run's structure, the
+between-rounds screen this mode uses, and the shop. **Everything optional is left
+to the TIPS** (r280), which fire on the screen itself whenever it is first
+reached - which is also what lets this script stay linear on a mode whose screens
+arrive in an order it cannot predict.
+
+**`MODES.tutorial` ("Orientation") is kept and is no longer in the carousel.** It
+is the Classic walkthrough on demand, reachable from the dev panel; its
+`tutorial: true` is what `tutorialArmForRun` checks first, so it arms regardless
+of what has been played.
+
+### The skip is PROMINENT
+
+Owner: *"The skip buttons should be prominent."* `#tut-skip` was a 9px line at
+26% opacity with no border and no padding - a link you had to go looking for,
+which is the opposite of an escape hatch. It is a full-width outlined button
+under CONTINUE now, with a 30px tap floor, reading **SKIP THE WALKTHROUGH**
+rather than "End orientation". The tip card's GOT IT was already the filled
+primary; its `#tip-off` ("turn tips off entirely") stays quiet on purpose,
+because that one is a setting and a mis-tap costs the player every future tip.
+
+Verified end to end in a real browser at 1440x820, all seven modes through the
+real tap path: Classic / Six Suits / Spectrum run the full 25 steps to the shop
+and out, the Schedule 22 (its four schedule steps, then the round, then payout
+and the pick-of-three), Guided 18 through the crossroads, Survival 18 and Flow 17
+(no clock step, no payout). **No page errors in any of them.** At 420x820 the
+bubble lands fully on screen at every step with no page scroll. Arming is
+once-per-mode and survives nothing: first run armed and seeded, second run not,
+the Settings reset re-arms, the Settings toggle disarms, and the walkthrough
+disarms itself the moment it ends.
+
 ## Tips and the handbook (r280) - `js/insights.js` + `js/info-hub.js`
 
 The other two thirds of the tutorial rework. The tutorial teaches by DOING and

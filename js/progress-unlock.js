@@ -117,6 +117,15 @@ function devUnlockAllModes() {
   if (typeof renderModeSelect === 'function') renderModeSelect();
 }
 
+// Settings -> Help. Clears only the FIRST-RUN marks, never the UNLOCKS: a player
+// asking to see the walkthroughs again is not asking to have their modes locked
+// again. devResetModeProgress below clears both, which is what testing wants.
+function resetWalkthroughs() {
+  modesStarted = new Set();
+  _saveModeSet('lethe.modesStarted.v1', modesStarted);
+  if (typeof showMessage === 'function') showMessage('Each mode will walk you through it again.', 'var(--c-mint)');
+}
+
 function devResetModeProgress() {
   modesStarted = new Set(); modesFinished = new Set(); modeFanPending = false;
   _saveModeSet('lethe.modesStarted.v1', modesStarted);
