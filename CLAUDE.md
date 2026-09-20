@@ -1626,9 +1626,46 @@ A round with a raised goal AND one extra requirement, paying credits for both. `
 
 ### Take your pick - the free pick-of-three (r229)
 
-Three rewards, one of each type, take one, no charge. It is the BASE reward of the mode: every other tile costs a slot and credits, so this is the one that simply pays.
+Three rewards, take one, no charge. It is the BASE reward of the mode: every other tile costs a slot and credits, so this is the one that simply pays. **The TYPE of each of the three is a weighted roll, not one of each - see r287 below.**
 
 **It draws its own entities and must.** The reward grid's payload factories (`makeTrickPayload` and friends) are **NOT globals** - they are nested inside `_generateRewardContent`, the same scoping trap `shuffled()` set for the r194 events. Calling them here produced three silent nulls and an empty panel. `guidedPickThreeOffers()` draws through `pickEntityByRarity` (the shared rarity table, so Luck tilts it identically) and `survivalEntityBanned`, then grants through the ordinary paths.
+
+### The pick rolls its types, it is not one of each (r287)
+
+Owner: *"Does the pick 3 work such that it offers one of each type of entity every
+time? ... I think it should be probably like 60% tricks 25% sleights and 15%
+knacks."* It did: `guidedPickThreeOffers` pushed exactly one Trick, then one
+Sleight, then one Knack, so every pick on the Schedule asked the same three-way
+question and the only thing that varied was which three names filled it.
+
+**`GUIDED_PICK_WEIGHTS` is the whole change**, in the shape
+`SURVIVAL_PICK_WEIGHTS` already has: a type is rolled per offer, three times,
+independently. So three Tricks is a legitimate and common outcome, and a pick
+with no Knack in it is the usual one. Measured over 4,000 draws:
+**60.3 / 24.8 / 14.9**, and one-of-each now turns up on **13.3%** of picks, which
+is the multinomial figure (6 x 0.6 x 0.25 x 0.15).
+
+- **THE WEIGHTS DECIDE THE MIX, NEVER THE COUNT.** `guidedPickType` rolls only
+  among types that still have stock, so a run that owns every Knack and has been
+  granted every Sleight still gets three offers rather than two. Verified by
+  draining both pools: 3 offers, all Tricks.
+- **The entity inside a rolled type is still `pickEntityByRarity`** (js/luck.js),
+  so Luck tilts this exactly as it tilts every other offer path, and
+  `guidedPickPools` is filtered through `survivalEntityBanned` - the single
+  chokepoint a mode's ban list is read through. A flat `pool[random]` here would
+  silently opt out of both.
+- **Each pick is removed from its pool**, so one screen never repeats an entity
+  even when it rolls the same type three times. Measured: 0 duplicates in 4,000
+  draws.
+- **A reroll runs the same function**, so the weighting applies there with no
+  extra work.
+- **The pools are why the numbers lean the way they do**: 176 offerable Tricks
+  against 36 Sleights and 56 Knacks on a fresh run.
+
+Verified in a real browser at 1440x820 and 420x820 through the real tap path: 3
+tiles, Reroll + Round breakdown + CONFIRM, a tap arms CONFIRM with the chosen
+name, CONFIRM grants exactly one entity and leaves 0 tiles in `#grid`, and no page
+errors.
 
 ### A tap selects and reads; only CONFIRM commits (r280) - `js/grid-pick.js`
 

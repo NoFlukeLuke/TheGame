@@ -529,48 +529,87 @@ function guidedSettleChallenge() {
 // Three rewards, take one, no charge. It is the BASE reward of the mode: every
 // other tile costs a slot AND credits, so this is the one that simply pays.
 //
-// Drawn through the reward grid's own payload factories, so a Trick offered here
-// is the same object, at the same rarity odds, with the same ban filtering as one
-// offered anywhere else - and it renders with the shared entity tile.
-function guidedPickThreeOffers() {
+// THE TYPE OF EACH OFFER IS A WEIGHTED ROLL (r287), NOT ONE OF EACH. It used to
+// push exactly one Trick, one Sleight and one Knack, so every pick on the
+// Schedule asked the same three-way question and the only thing that varied was
+// which three names filled it. Owner's numbers, and they follow the pools: a
+// loadout is mostly Tricks, there are 166 of them against 43 Sleights and 48
+// Knacks, and a Knack is the pick you take once in a while rather than the one
+// you are offered every time.
+//
+// Rolled INDEPENDENTLY three times, so three Tricks is a legitimate and common
+// outcome and a pick with no Knack in it is the usual one. A reroll runs the
+// same draw, so the weighting applies there for free.
+const GUIDED_PICK_WEIGHTS = { trick: 60, sleight: 25, knack: 15 };
+
+// The three pools, filtered exactly as every other offer path filters them -
+// what you already own is out, and survivalEntityBanned is the single chokepoint
+// a mode's ban list is read through (miss it and Flow's clock entities leak).
+function guidedPickPools() {
   const banned = id => (typeof survivalEntityBanned === 'function') && survivalEntityBanned(id);
-  const out = [];
-
-  // A Trick. Drawn through pickEntityByRarity (js/luck.js) - the SHARED rarity
-  // draw every other offer path uses - so Luck tilts this the same way and the
-  // odds are not a second table that can drift.
   const ownedT = new Set((acquiredTricks || []).map(t => t.id));
-  const tricks = TRICK_POOL.filter(t => !ownedT.has(t.id) && !banned(t.id));
-  const t = tricks.length
-    ? ((typeof pickEntityByRarity === 'function' && pickEntityByRarity(tricks, e => e.tier || 'common'))
-       || tricks[Math.floor(Math.random() * tricks.length)])
-    : null;
-  if (t) out.push({ entity:'trick', icon: (typeof trickEmoji === 'function') ? trickEmoji(t) : '★',
-    emoji: (typeof trickEmoji === 'function') ? trickEmoji(t) : '★',
-    label: t.name, desc: (typeof trickLiveDesc === 'function') ? trickLiveDesc(t) : t.desc,
-    tier: t.tier || 'common', rarity: t.tier || 'common',
-    apply: () => injectTrickAfterReward(t) });
-
-  // A Sleight. pickSleightByRarity IS global (js/shop.js) and already filters the
-  // fixtures and the granted set.
-  const sl = (typeof pickSleightByRarity === 'function')
-    ? (pickSleightByRarity(1, grantedSleightIds) || [])[0] : null;
-  if (sl && !banned(sl.id)) out.push({ entity:'sleight', icon: sl.emoji || '🃏', emoji: sl.emoji || '🃏',
-    label: sl.name, desc: sl.desc, tier: sl.rarity || 'common', rarity: sl.rarity || 'common',
-    uses: sl.durability === 'infinite' ? '∞' : `${sl.durability}x`,
-    apply: () => grantSleight(sl) });
-
-  // A Knack.
   const ownedK = new Set((acquiredKnacks || []).map(k => k.id));
-  const knacks = KNACK_POOL.filter(k => !ownedK.has(k.id) && !banned(k.id));
-  const k = knacks.length
-    ? ((typeof pickEntityByRarity === 'function' && pickEntityByRarity(knacks, e => e.rarity || 'common'))
-       || knacks[Math.floor(Math.random() * knacks.length)])
-    : null;
-  if (k) out.push({ entity:'knack', icon: k.emoji || '♦', emoji: k.emoji || '♦',
-    label: k.name, desc: k.desc, tier: k.rarity || 'common', rarity: k.rarity || 'common',
-    apply: () => { acquiredKnacks.push({ ...k }); updateKnackList?.(); showMessage(`+ ${k.name}`, 'var(--gold)'); } });
+  const gotSl  = (typeof grantedSleightIds !== 'undefined' && grantedSleightIds) ? grantedSleightIds : new Set();
+  return {
+    trick:   TRICK_POOL.filter(t => !ownedT.has(t.id) && !banned(t.id)),
+    // sleightOfferable keeps the four Spectrum deck FIXTURES out - they are in
+    // SLEIGHT_POOL so they can render, and the only way to have one is to draw it.
+    sleight: SLEIGHT_POOL.filter(s => !gotSl.has(s.id) && !banned(s.id)
+               && (typeof sleightOfferable !== 'function' || sleightOfferable(s))),
+    knack:   KNACK_POOL.filter(k => !ownedK.has(k.id) && !banned(k.id)),
+  };
+}
 
+// Roll a type among those that still have stock. An exhausted pool is simply not
+// in the roll, so a run that owns every Knack still gets three offers rather than
+// two - the weights decide the MIX, they must never decide the COUNT.
+function guidedPickType(pools) {
+  const types = Object.keys(GUIDED_PICK_WEIGHTS).filter(t => pools[t] && pools[t].length);
+  if (!types.length) return null;
+  const total = types.reduce((s, t) => s + GUIDED_PICK_WEIGHTS[t], 0);
+  let r = Math.random() * total;
+  for (const t of types) { r -= GUIDED_PICK_WEIGHTS[t]; if (r <= 0) return t; }
+  return types[types.length - 1];
+}
+
+// Wrap a pool entry in the payload the shared pick screen draws and grants from.
+function guidedPickOffer(type, d) {
+  if (type === 'trick') {
+    const em = (typeof trickEmoji === 'function') ? trickEmoji(d) : '★';
+    return { entity:'trick', icon: em, emoji: em, label: d.name,
+      desc: (typeof trickLiveDesc === 'function') ? trickLiveDesc(d) : d.desc,
+      tier: d.tier || 'common', rarity: d.tier || 'common',
+      apply: () => injectTrickAfterReward(d) };
+  }
+  if (type === 'sleight') return { entity:'sleight', icon: d.emoji || '🃏', emoji: d.emoji || '🃏',
+    label: d.name, desc: d.desc, tier: d.rarity || 'common', rarity: d.rarity || 'common',
+    uses: d.durability === 'infinite' ? '∞' : `${d.durability}x`,
+    apply: () => grantSleight(d) };
+  if (type === 'knack') return { entity:'knack', icon: d.emoji || '♦', emoji: d.emoji || '♦',
+    label: d.name, desc: d.desc, tier: d.rarity || 'common', rarity: d.rarity || 'common',
+    apply: () => { acquiredKnacks.push({ ...d }); updateKnackList?.(); showMessage(`+ ${d.name}`, 'var(--gold)'); } };
+  return null;
+}
+
+// Three offers. The ENTITY inside a rolled type is drawn through
+// pickEntityByRarity (js/luck.js) - the shared rarity draw every other offer path
+// uses - so Luck tilts this the same way and the odds are not a second table that
+// can drift. Each pick is removed from its pool, so one screen never repeats an
+// entity even when it rolls the same type three times.
+function guidedPickThreeOffers() {
+  const pools = guidedPickPools();
+  const out = [];
+  for (let i = 0; i < 3; i++) {
+    const type = guidedPickType(pools);
+    if (!type) break;
+    const tierOf = (type === 'trick') ? (e => e.tier || 'common') : (e => e.rarity || 'common');
+    const d = (typeof pickEntityByRarity === 'function' && pickEntityByRarity(pools[type], tierOf))
+              || pools[type][Math.floor(Math.random() * pools[type].length)];
+    if (!d) break;
+    pools[type] = pools[type].filter(x => x.id !== d.id);
+    const o = guidedPickOffer(type, d);
+    if (o) out.push(o);
+  }
   return out;
 }
 
