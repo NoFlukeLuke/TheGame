@@ -5459,6 +5459,43 @@ its own, so its row shows the consequence rather than asking for faith.
 
 ## Two vocabularies (r198) - `js/labels.js`
 
+### GAMER IS THE RESTING STATE (r293) - corporate is a state, not a default
+
+The vocabulary is **story**, not a preference. The Obliviscore is a forgetting
+machine (Lethe, the river of forgetting; *oblivisci* + score), and it already did
+its job long before the run starts: **the work words were relabelled years ago,
+and the corporate vocabulary is what COMES BACK as the machine fails.** So the
+game opens in gamer words everywhere, and corporate is somewhere the game has to
+be moved INTO.
+
+- **`activeLexicon` defaults to `'gamer'` and `lexicon()` falls back to
+  `LEXICONS.gamer`.** Corporate is no longer anything's fallback; a bad id must
+  not silently land the player in the endgame vocabulary.
+- **ONE VALUE, TWO STORES, and this is the r244 payout-pick trap again.** The
+  wording lives in `lethe.lexicon` (js/labels.js, read at load) AND in
+  `lethe.settings.v1` (js/settings.js). settings.js loads SECOND (index.html
+  1304 vs 1400) and `applyAllSettings` calls `setLexicon`, **so the settings copy
+  wins and writes labels.js's key from itself.** Flipping both defaults therefore
+  moves nobody who has already played - their stored `'corporate'` beats both.
+  `migrateLexiconDefault()` in `loadSettings` clears a stored `'corporate'`
+  exactly once, keyed on `lethe.lexicon.migrated.v2`; a deliberate pick made
+  after that runs is kept, because the flag is already set.
+- **Six hardcoded sites bypassed the toggle entirely** and said QUOTA whatever
+  the setting was: the goal-clear banner (`js/goal-clear.js`), `NEXT QUOTA` in
+  `js/hud.js`, the map's boss preview, one tip, and six lines of handbook prose.
+  `goal` is deliberately absent from the `prose` swap table, so nothing was ever
+  going to translate them. **A new string that means "the goal" writes `{GOAL}`
+  in handbook/tip prose, or calls `lexTerm('goal')`, never the word quota.**
+- **Entity and boss NAMES are unaffected**, per the r197 rule: `Quota Revision`
+  (the reward-grid penalty) and `THE QUOTA` (the boss) are content.
+- **The structural layer is deliberately still corporate**: quarters (Q1/Q2/Q3),
+  the Schedule's obligations (ACCOUNT / PRIORITY / MART / INCENTIVE / MEETING /
+  RAISE / REVIEW), the manager review, COMPANY STORE, the Lethe branding. The
+  machine relabelled its own HUD; it could not relabel the building. That split
+  is what the r213 and r260/r262 calls already encode and it is what the story
+  now needs.
+
+
 The game speaks either **corporate** (WORK / SKILL / OUTPUT / QUOTA, Utilities /
 Vendors / Certs, Lite / Standard / Plus / Deluxe) or **gamer** (PIPS / MULT /
 SCORE / GOAL, Tricks / Sleights / Knacks, Common / Rare / Epic / Legendary).

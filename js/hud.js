@@ -71,7 +71,7 @@ function updateScoreUI() {
   const goalLabel  = document.getElementById('score-goal-label');
   const barWrap    = document.getElementById('score-progress-bar-wrap');
   if (totalLabel) totalLabel.textContent = between ? 'Last round' : 'Score';
-  if (goalLabel)  goalLabel.textContent  = between ? 'NEXT QUOTA' : 'GOAL';
+  if (goalLabel)  goalLabel.textContent  = between ? 'NEXT GOAL' : 'GOAL';
   if (barWrap)    barWrap.style.visibility = between ? 'hidden' : '';
 
   const shownScore = between ? lastRoundScore : score;

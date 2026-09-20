@@ -1,4 +1,4 @@
-const BUILD = "2026-09-20 · r292 · the pick-of-three tile is 2x3 on a 6x4 board; entity emoji are ink-normalised";
+const BUILD = "2026-09-20 · r293 · gamer is the resting vocabulary; corporate is what comes back";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

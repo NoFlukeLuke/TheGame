@@ -31,7 +31,7 @@ function goalBannerEl() {
     el.innerHTML = `<div class="gb-ring"></div>
       <div class="gb-body">
         <div class="gb-kicker">ROUND</div>
-        <div class="gb-title">QUOTA CLEARED</div>
+        <div class="gb-title">GOAL CLEARED</div>
         <div class="gb-num" id="goal-banner-num"></div>
       </div>`;
     document.body.appendChild(el);

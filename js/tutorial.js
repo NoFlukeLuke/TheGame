@@ -782,7 +782,7 @@ function tutorialHoldsAutoSubmit() {
 
 // ── Scripted first reward grid ───────────────────────────────────────────────
 // Called from generateRewardContent. The reward step teaches the path rule by
-// making the associate walk one, so the first grid guarantees a row of
+// making the player walk one, so the first grid guarantees a row of
 // Trick → liability → Shop destination. The checkerboard already alternates
 // buff/debuff by (r+c) parity, so [0,0] [0,1] [0,2] is exactly buff/debuff/buff:
 // the plan drops straight into the existing layout without breaking it.

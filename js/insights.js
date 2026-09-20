@@ -235,7 +235,7 @@ const INSIGHTS = [
 
   { id: 'mini_boss', screen: 'any', title: 'The extra task is a bonus',
     anchor: ['#goal-display'],
-    body: 'The quota is raised and that is the round. Missing the extra requirement costs you the bonus, not the round.',
+    body: 'The goal is raised and that is the round. Missing the extra requirement costs you the bonus, not the round.',
     when: () => typeof miniBossActive !== 'undefined' && miniBossActive },
 ];
 

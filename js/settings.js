@@ -108,8 +108,8 @@ const SETTINGS_DEF = [
   // translated on the way to the screen, so the toggle is live and needs no
   // second copy of anything.
   { group: 'Display', id: 'lexicon', label: 'Wording',
-    hint: 'Corporate: work, skill, output, quota, Utilities and Vendors. Gamer: pips, mult, score, goal, Tricks and Sleights.',
-    type: 'select', default: 'corporate', options: [['corporate','Corporate'], ['gamer','Gamer']],
+    hint: 'Gamer: pips, mult, score, goal, Tricks and Sleights. Corporate: work, skill, output, quota, Utilities and Vendors.',
+    type: 'select', default: 'gamer', options: [['gamer','Gamer'], ['corporate','Corporate']],
     apply: v => { if (typeof setLexicon === 'function') setLexicon(v); } },
   // The room the cabinet sits in on the menu (js/camera.js + css/room.css).
   { group: 'Display', id: 'roomStyle', label: 'Office', hint: 'The room around the cabinet on the menu. Grimy is dimmer and dirtier; clean is the lit version.',
@@ -149,9 +149,30 @@ function sfxVolume() {
   return master * sfx * trim;
 }
 
+// ONE VALUE, TWO STORES - the r244 payout-pick trap in a new shape. The wording
+// lives in SETTINGS_KEY here AND in 'lethe.lexicon' over in js/labels.js, and
+// this file loads second, so THIS is the copy that wins: applyAllSettings calls
+// setLexicon, which writes labels.js's key from ours. Flipping the two defaults
+// to 'gamer' therefore moves nobody who has already played - their stored
+// 'corporate' beats both - so the old default has to be cleared out once.
+//
+// It clears a stored 'corporate' ONLY. A player who deliberately picks corporate
+// after this runs keeps it, because the flag is already set by then.
+const LEXICON_MIGRATION_KEY = 'lethe.lexicon.migrated.v2';
+function migrateLexiconDefault(saved) {
+  try {
+    if (localStorage.getItem(LEXICON_MIGRATION_KEY)) return;
+    localStorage.setItem(LEXICON_MIGRATION_KEY, '1');
+    if (saved.lexicon !== 'corporate') return;
+    delete saved.lexicon;                        // fall through to the new default
+    localStorage.removeItem('lethe.lexicon');    // and labels.js's early read with it
+  } catch (e) {}
+}
+
 function loadSettings() {
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') || {}; } catch (e) { saved = {}; }
+  migrateLexiconDefault(saved);
   SETTINGS = {};
   SETTINGS_DEF.forEach(d => { if (d.type === 'action') return; SETTINGS[d.id] = (saved[d.id] !== undefined) ? saved[d.id] : d.default; });
   applyAllSettings();
