@@ -50,10 +50,12 @@ const KEYWORD_DEFS = [
 
   // ── actions ──
   { key:'swap',      cls:'kw-swap',    terms:['swaps','swap','swapped','swapping'],
-    name:'Swap',     def:'Trade two adjacent cards’ positions. Limited per round by the Swaps limit.' },
+    name:'Swap',     def:'Trade two adjacent cards’ positions. Limited per round by the Swaps limit.',
+    live:() => `Current max: ${limits.swaps.current}.` },
   { key:'discard',   cls:'kw-discard', terms:['discards','discard','discarded','discarding'],
-    name:'Discard',  def:'Throw selected cards away and draw replacements. Limited per round by the Discards limit.' },
-  { key:'play',      cls:'kw-play',    terms:['played','plays','play'],
+    name:'Discard',  def:'Throw selected cards away and draw replacements. Limited per round by the Discards limit.',
+    live:() => `Current max: ${limits.discards.current}.` },
+  { key:'play',      cls:'kw-play',    terms:['played','plays','play'], basic:true,
     name:'Play',     def:'Submitting a selected hand to score it.' },
   { key:'sell',      cls:'kw-sell',    terms:['sell','sold','sells'],
     name:'Sell',     def:'Trade an owned Trick or Knack back for credits - always less than it cost.' },
@@ -71,13 +73,13 @@ const KEYWORD_DEFS = [
     name:'Set',      def:'Cards sharing the same rank, e.g. three 8s.' },
   { key:'flush',     cls:'kw-hand',    terms:['flush'], basic:true,
     name:'Flush',    def:'Cards all of the same suit.' },
-  { key:'pair',      cls:'kw-hand',    terms:['pair'],
+  { key:'pair',      cls:'kw-hand',    terms:['pair'], basic:true,
     name:'Pair',     def:'Two cards of the same rank.' },
-  { key:'straight',  cls:'kw-hand',    terms:['straight'],
+  { key:'straight',  cls:'kw-hand',    terms:['straight'], basic:true,
     name:'Straight', def:'Five cards in consecutive rank order.' },
   { key:'streak',    cls:'kw-streak',  terms:['streak','streaks'],
     name:'Streak',   def:'Playing the same hand type repeatedly. Streaks build bonuses and break when you switch.' },
-  { key:'hand',      cls:'kw-hand',    terms:['hands','hand'],
+  { key:'hand',      cls:'kw-hand',    terms:['hands','hand'], basic:true,
     name:'Hand',     def:'The set of connected cards you select and play together.' },
 
   // ── board ──
@@ -85,19 +87,19 @@ const KEYWORD_DEFS = [
     name:'Selection Size', def:'How many cards you can select at once. Upgradeable; also caps the shop bundle discount.' },
   { key:'adjacent',  cls:'kw-board',   terms:['adjacent','adjacency','orthogonally'],
     name:'Adjacent', def:'Sharing an edge on the grid - up, down, left or right (not diagonal).' },
-  { key:'row',       cls:'kw-board',   terms:['rows','row'],
+  { key:'row',       cls:'kw-board',   terms:['rows','row'], basic:true,
     name:'Row',      def:'A horizontal line of grid cells.' },
-  { key:'column',    cls:'kw-board',   terms:['columns','column'],
+  { key:'column',    cls:'kw-board',   terms:['columns','column'], basic:true,
     name:'Column',   def:'A vertical line of grid cells.' },
-  { key:'corner',    cls:'kw-board',   terms:['corners','corner'],
+  { key:'corner',    cls:'kw-board',   terms:['corners','corner'], basic:true,
     name:'Corner',   def:'One of the four cells at the extremes of the grid.' },
-  { key:'grid',      cls:'kw-board',   terms:['grid','board'],
+  { key:'grid',      cls:'kw-board',   terms:['grid','board'], basic:true,
     name:'Grid',     def:'The playing field of cards. Its size is upgradeable.' },
-  { key:'deck',      cls:'kw-board',   terms:['deck'],
+  { key:'deck',      cls:'kw-board',   terms:['deck'], basic:true,
     name:'Deck',     def:'Every card you own. Scored cards return to it and are reshuffled each round.' },
-  { key:'suit',      cls:'kw-board',   terms:['suits','suit'],
+  { key:'suit',      cls:'kw-board',   terms:['suits','suit'], basic:true,
     name:'Suit',     def:'♠ ♥ ♦ ♣. Suits are neutral by default - effects come from entities.' },
-  { key:'rank',      cls:'kw-board',   terms:['ranks','rank'],
+  { key:'rank',      cls:'kw-board',   terms:['ranks','rank'], basic:true,
     name:'Rank',     def:'A card’s number or letter, A through K.' },
   { key:'wild',      cls:'kw-wild',    terms:['wild','wildcard'],
     name:'Wild',     def:'Stands in for any rank and/or suit when a hand is detected.' },
@@ -120,7 +122,8 @@ const KEYWORD_DEFS = [
   { key:'round',     cls:'kw-round',   terms:['rounds','round'],
     name:'Round',    def:'One timed attempt at a Goal. Clearing it advances you a node.' },
   { key:'level',     cls:'kw-round',   terms:['level','levels'],
-    name:'Level',    def:'How far into the run you are. Goals scale with it.' },
+    name:'Level',    def:'How far into the run you are. Goals scale with it.',
+    live:() => `You are on level ${level}.` },
   { key:'reward',    cls:'kw-reward',  terms:['reward','rewards'],
     name:'Reward',   def:'The pick-a-tile grid between rounds. Skipping the whole grid pays credits instead.' },
   { key:'shop',      cls:'kw-buy',     terms:['shop','mart'],
@@ -208,13 +211,33 @@ function kwMoreHTML(text, cls = '') {
   return `<button class="kw-more ${cls}" aria-label="Show what the highlighted words mean">`
        + `<span class="kw-more-sign">+</span><span class="kw-more-n">${n}</span></button>`;
 }
+// A row may carry `live()` - a sentence read off the run as the card is drawn,
+// so Swap and Discard state the cap you ACTUALLY have and Level says which one
+// you are on. It is a second field rather than a function `def` because `def` is
+// the stored, translatable sentence that the Builds browser and any future
+// handbook read; only the tooltip wants the live half.
+//
+// A LIVE READ MAY NEVER BREAK A TOOLTIP, the same rule js/insights.js puts on
+// its predicates: it is caught and dropped, so a card missing its live line is
+// the worst that can happen.
+function kwLiveText(d) {
+  if (typeof d.live !== 'function') return '';
+  try { return d.live() || ''; } catch (e) { return ''; }
+}
+function kwDefText(d) {
+  const extra = kwLiveText(d);
+  return d.def + (extra ? ' ' + extra : '');
+}
 function kwDefsHTML(text) {
   const defs = keywordDefsIn(text);
   if (!defs.length) return '';
   const lex = t => (typeof lexProse === 'function') ? lexProse(t) : String(t == null ? '' : t);
-  return `<div class="kw-defs">` + defs.map(d =>
-    `<div class="kw-def"><b class="kw ${d.cls}">${lex(d.name)}</b><span>${lex(d.def)}</span></div>`
-  ).join('') + `</div>`;
+  return `<div class="kw-defs">` + defs.map(d => {
+    const live = kwLiveText(d);
+    return `<div class="kw-def"><b class="kw ${d.cls}">${lex(d.name)}</b><span>${lex(d.def)}`
+         + (live ? `<i class="kw-live">${lex(live)}</i>` : '')
+         + `</span></div>`;
+  }).join('') + `</div>`;
 }
 // `root` is the element that carries `.kw-open`; `host` is where the chip lives
 // (the same element unless the chip and the rail sit in different boxes, which

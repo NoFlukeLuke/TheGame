@@ -3862,6 +3862,33 @@ mechanics does this text mention", which is a different question and is the one
 "run" is useful, explaining the word "run" to someone holding a poker hand is not,
 and one function cannot mean both.
 
+### The sixteen that never define, and the three that read live (r289)
+
+Owner's list, on top of the first five: **hand, play, grid, column, row, rank,
+deck, suit, corner** and every HAND TYPE (**run, set, flush, pair, straight**),
+plus **score** and **time**. Sixteen in all - plain English, or read straight off
+the screen. `streak` is deliberately NOT among them: it is a mechanic that
+happens to sit in the hand-shapes block, not a shape.
+
+**Average definitions per description: 2.95 -> 1.64**, measured over all 274. Five
+descriptions now have nothing left to define, so they carry no + at all -
+`kwMoreHTML` returns empty at zero. **The words are all still coloured**: a
+description made only of switched-off words still highlights every one of them
+and simply offers no card (verified: 6 coloured words, no chip).
+
+**Three keywords now state their own live figure** through a `live()` on the row:
+Swap and Discard print **"Current max: N"** off `limits.*.current`, and Level
+prints **"You are on level N"**. It is a SECOND FIELD rather than a function
+`def`, because `def` is the stored, translatable sentence that the Builds browser
+reads and that a handbook entry would quote; only the tooltip wants the live half,
+and it is drawn as its own `.kw-live` line so "what the word means" and "what it
+is worth right now" are not run together.
+
+**A live read may never break a tooltip** - the same rule js/insights.js puts on
+its predicates. `kwLiveText` catches and drops, so a card missing its live line is
+the worst that can happen (verified by forcing one to throw: the card still
+builds, without the line).
+
 ### AN OPEN RAIL IS STICKY, and that is forced rather than chosen
 
 `#entity-tip` is `pointer-events: none` (r170 - at up to 560px it would otherwise
