@@ -21,7 +21,7 @@ const MODE_UNLOCK_CHAIN = ['map', 'survival', 'guided', 'sixsuits'];
 // Everything else opens AT ONCE when the chain is done, and is drawn as a
 // single stacked card until then - one locked object to work toward rather
 // than four identical padlocks.
-const MODE_FINALE_GROUP = ['normal', 'spectrum', 'flow', 'picker'];
+const MODE_FINALE_GROUP = ['normal', 'spectrum', 'flow', 'crunch', 'picker'];
 
 // The id the carousel uses for the stack itself. Not a mode; never reaches MODES.
 const MODE_STACK_ID = '__stack__';

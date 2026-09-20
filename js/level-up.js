@@ -167,7 +167,12 @@ function triggerLevelUp() {
   // Flow: swaps and discards refresh per level as usual, but the CLOCK does not -
   // the five minutes span every goal cleared inside them. flowNextRoundSeconds keeps
   // the running countdown, and only refills it at run start and after an inspection.
-  roundSeconds = (typeof flowNextRoundSeconds === 'function' && flowActive())
+  // Crunch carries for the same reason Flow does and a stronger one: the
+  // allowance is the QUARTER's, so refilling it here would hand back the whole
+  // clock at every level and the mode would have no cost at all.
+  roundSeconds = (typeof crunchActive === 'function' && crunchActive())
+               ? crunchNextRoundSeconds(roundSeconds)
+               : (typeof flowNextRoundSeconds === 'function' && flowActive())
                ? flowNextRoundSeconds(roundSeconds) : _rr.seconds;
   match3ApplyZenResources(); // Zen/infinite: refill swaps & discards to "unlimited"
   match3PendingSettle = true; // the round's fresh board settles when its timer starts
@@ -444,7 +449,12 @@ async function showLevelUpScreen() {
       render();
       if (forceBossNextRound) {
         forceBossNextRound = false;
-        triggerBoss(); // boss takes over timing - do NOT call startRoundTimer()
+        // Crunch names the window explicitly: whatever is left in the act bank.
+        // Passing it rather than letting triggerBoss default keeps the boss's
+        // clock and the bank the same number, so there is never a second
+        // countdown to keep in step. Every other mode passes null and defaults.
+        triggerBoss(null, (typeof crunchBossWindow === 'function') ? crunchBossWindow() : null);
+        // boss takes over timing - do NOT call startRoundTimer()
       } else {
         startRoundTimer();
       }

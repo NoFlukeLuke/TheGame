@@ -875,9 +875,21 @@ function mapBarInfo(t, move) {
   const full = face.full && face.full.toUpperCase() !== face.name ? `<span class="mb-full">${face.full}</span> ` : '';
   let s = `<b>${face.name}</b> ${full}${mapTileDesc(t)}`;
   if (move && !move.doomed) {
-    if (move.from && move.after.set > move.from.set && move.from.visits === 1 && t.kind !== 'boss')
+    // Crunch pays nothing for a skip (js/crunch-mode.js), so it must not be
+    // advertised here either - a bar promising credits the confirm will not pay
+    // is worse than saying nothing.
+    if (move.from && move.after.set > move.from.set && move.from.visits === 1 && t.kind !== 'boss'
+        && !(typeof crunchActive === 'function' && crunchActive()))
       s += ` <i>leaving now pays ${MAP_SKIP_BASE + MAP_SKIP_STEP * (mapSkips + 1)} ◆</i>`;
     if (t.span === 2) s += ` <i>runs over two slots</i>`;
+    // Crunch prices the booking. The fee is the decision in that mode, so it is
+    // read off the board rather than discovered after confirming.
+    if (typeof crunchActive === 'function' && crunchActive()) {
+      const _cost = crunchTileCost(t.kind);
+      if (_cost > 0) s += crunchCanAfford(t)
+        ? ` <i>booking costs ${_cost}s</i>`
+        : ` <i>costs ${_cost}s · not enough time</i>`;
+    }
   } else if (t.visited) s += ' <i>already taken</i>';
   else if (move && move.doomed) s += ' <i>dead-ends before the review</i>';
   // Standing in the last slot, every refusal is the same refusal, so name it
@@ -927,6 +939,15 @@ function mapConfirm() {
   if (!move || move.doomed) return;
   const t = move.tile;
 
+  // Crunch: refused, not discovered - the Schedule's own rule for dead ends. A
+  // booking that would empty the act bank is a tap the player could not have
+  // known was fatal, so it is turned away and the bar says why.
+  if (typeof crunchCanAfford === 'function' && !crunchCanAfford(t)) {
+    sfxNoSwaps?.();
+    showMessage('Not enough time on the clock', 'var(--red)');
+    return;
+  }
+
   // Mystery reveals AT COMMIT - that is the gamble it is.
   if (t.mystery && !t.revealed) {
     t.revealed = true;
@@ -935,13 +956,21 @@ function mapConfirm() {
 
   // Skip payout: leaving a set after exactly one visit. Checked BEFORE the
   // position moves; the boss step never pays (the funnel is one visit by design).
-  if (move.from && t.kind !== 'boss' && move.after.set > move.from.set && move.from.visits === 1) {
+  // In Crunch the skip pays nothing: moving on early already saves you the
+  // obligation's time fee, which is the whole currency of that mode, and paying
+  // credits as well would reward the same decision twice.
+  if (move.from && t.kind !== 'boss' && move.after.set > move.from.set && move.from.visits === 1
+      && !(typeof crunchActive === 'function' && crunchActive())) {
     mapSkips++;
     const pay = MAP_SKIP_BASE + MAP_SKIP_STEP * mapSkips;
     coins += pay;
     updateCoinsUI?.();
     showMessage(`Left the slot early · +${pay} credits`, 'var(--gold)');
   }
+
+  // Crunch: the obligation's time fee, debited at CONFIRM. A level, a priority
+  // account and the review are free - they cost their own play time instead.
+  if (typeof crunchChargeTile === 'function') crunchChargeTile(t);
 
   t.visited = true;
   // The walked route is drawn from this (mapRender's trail), so the tile has to
@@ -1101,6 +1130,10 @@ function mapKnackPickTwo(done) {
 // Q2 goes through drainLevelUpQueue like any other rather than trying to resume
 // a round startGame dealt two quarters ago.
 function mapBeginQuarter() {
+  // Crunch tops the act bank up BEFORE the board is drawn, so the first tile is
+  // priced against the quarter's real allowance rather than last quarter's
+  // remainder. (js/crunch-mode.js)
+  if (typeof crunchBeginQuarter === 'function') crunchBeginQuarter();
   mapResetBoard();
   if (typeof stopTimers === 'function') stopTimers();
   gameTimerPaused = true;

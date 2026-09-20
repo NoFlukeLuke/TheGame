@@ -59,6 +59,7 @@ function startRoundTimer() {
   insightsRoundReset();             // tips: start the sweep, reset the per-round cap (js/insights.js)
   syncDiscoveredFromOwned();        // log anything new for the Builds archive
   roundStartSeconds = roundSeconds; // mark the start of the countdown for ♠ "first 30s" exalt
+  if (typeof crunchNewRound === 'function') crunchNewRound();  // one write-off per round
   // Suspension resolves HERE, not in triggerLevelUp: it needs roundStartSeconds to
   // know where the round's halfway mark is, and this is the one call site every
   // round start funnels through (the same reason the save checkpoint lives here).
@@ -105,6 +106,11 @@ function startRoundTimer() {
       }
     }
     handleClockMarks(roundSeconds); // clock-mark Tricks (Tick-Tock, Quarter Chime, Minute/Second Hand, Hourglass)
+    // Crunch: a round with no swaps, no discards and no hand on the board cannot
+    // be finished, and letting its clock run out would end the RUN. It is closed
+    // out instead. The cheap tests are inside crunchCheckStuck, so the board scan
+    // only runs on the rare tick where both stocks are actually empty.
+    if (typeof crunchCheckStuck === 'function') crunchCheckStuck();
     trickCardTimer++;
     if (trickCardTimer >= TRICK_CARD_INTERVAL) { trickCardTimer = 0; assignTrickCard(); }
     const _elapsedRound = roundStartSeconds - roundSeconds;

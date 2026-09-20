@@ -2459,6 +2459,130 @@ happened**. Owner's call: on the map an event is an event TILE.
 **Guided, for this exact reason** - the map was simply missed when it landed.
 One clause. Verified: 0 destination tiles across 60 generated map reward grids.
 
+## Crunch (r293) - `js/crunch-mode.js`
+
+The Schedule's board walked against ONE clock for the whole quarter. You are given
+**13:00** at the top of the quarter and that is all of it: every second of every
+round spends it, every obligation you book that is not a round debits a flat fee,
+and the **manager review at the end is fought on whatever is left**. There is no
+second timer anywhere. Run it to zero and the run is over.
+
+`MODES.crunch` carries **`map: true`**, so `mapActive()` is true and the board, its
+generation, the dead-end DP, the route drawing, the tile routing and the quarter
+rollover are the Schedule's, untouched. This file is the clock and the money.
+
+### The act bank IS `roundSeconds`
+
+The load-bearing decision, and Flow's (r164) for the same reason: about fifteen
+sites measure "how far into the round are we" as `roundStartSeconds - roundSeconds`
+(The Swift, Sediment, the Cuckoo, the Woodpecker, the exalt window, every
+clock-mark Trick). A parallel act counter with `roundSeconds` pinned would kill all
+of them silently. So the bank is that variable, it ticks exactly as it always did,
+and only three things differ: a level-up does not refill it, obligations debit it,
+and the review's window is what remains.
+
+**Reaching zero needed no branch at all.** `onRoundEnd` -> `_onRoundEndCore` ->
+`score < roundGoal` -> the ordinary loss is already what "you lose" means here.
+
+| | answer |
+|---|---|
+| clock on non-play screens | **does not tick.** A flat fee is charged at CONFIRM instead. A mode where reading a tooltip costs you the run is a worse mode. |
+| missing a round goal | not a loss. Only the clock is. |
+| the review's clock | the bank, floored at 30s (`crunchBossWindow`, passed to `triggerBoss` as its explicit window so the two can never be different numbers) |
+| a new quarter | `min(13:00, left + 0.75 x 13:00)`. Banking is worth exactly the shortfall; you can never open above the allowance. |
+| skipping a slot | pays no credits. Moving on early already saves the fee, and paying twice for one decision is the r211 Coin Flip mistake. |
+| swaps and discards | bill the clock at the usual 8s / 3s per card, straight off the bank |
+
+### FOUR CLOCK CEILINGS WERE WRITTEN FOR A ROUND CLOCK, AND ALL FOUR CUT THE BANK
+
+The one real trap, and it is the same bug r183 took out of `rewindCeiling`, where a
+Flush in Flow cut the session clock from 290 to 180 and reported nothing. A cap of
+`ROUND_DURATION` or `limits.round_time.current` means something only where the clock
+is a ROUND's. 13:00 is four times the 3:00 round-time limit, so every one of these
+silently destroyed ten minutes:
+
+| site | was |
+|---|---|
+| **`show321Countdown`** (js/interlude.js) | the live bug: **every run opened at 3:00, not 13:00** |
+| the Altar's `time_boost` (js/events.js) | `+15s` onto 700 clamped to 240 |
+| the spade exalt payout (js/play-hand.js) | `+4s` onto 700 clamped to **180** |
+| the dev time slider | same shape |
+
+- **`crunchNoRoundCap(cap)` returns `Infinity` in Crunch and the cap untouched
+  everywhere else**, so the three ADD-time sites are one wrapper each and every
+  other mode is byte-identical.
+- **The countdown is not an add, and the guard has to be on the ANIMATION.**
+  `show321Countdown` winds `roundSeconds` from its current value up to
+  `limits.round_time.current` over 1500ms, writing the global every frame - in
+  Crunch that is a wind DOWN from 13:00 to 3:00. A first pass guarded the line
+  AFTER it, which read the already-clobbered value and did nothing. `tickRefill`
+  now returns immediately in Crunch. The round-cap PENALTY still bites; it just
+  comes off the bank instead of off a limit.
+- **`finishTimer` (js/reward-grid.js) has the same shape and is unreachable**:
+  Crunch always sets `rewardGridContext = 'interlude'`.
+
+### Par replaces leftover time
+
+The payout's Efficiency line pays `1 credit per 10s` of `frozenRoundSeconds`, which
+here is the act bank - it would pay for time the player has not finished spending,
+and pay it again at every level. It becomes **Under Par**: credits for every
+`efficiencySecondsPerCoin()` seconds this round came in under `CRUNCH_PAR_SECONDS`
+(3:00, deliberately flat for every level while the mode is tuned).
+
+- **Same rate, so Time and a Half still doubles it** without knowing this mode
+  exists.
+- **Elapsed is `roundStartSeconds - frozenRoundSeconds`**, and the payout runs
+  between the two writes, so it is this round and not the act. It includes swap and
+  discard charges on purpose: interacting eats your par exactly as playing does.
+- **`payoutClockSeconds()` / `payoutEfficiencyName()` / `payoutEfficiencyDesc()`
+  are one function each** because the count-down animation and the figure above it
+  are written in two different places and must not drift. Measured: a 5-second
+  round pays 17.
+
+### The stuck round
+
+No swaps, no discards and no hand on the board. The round cannot be finished and
+the clock would simply run out, which here is the run - so it is closed out:
+charged **up to par plus 60s**, paid nothing, and you move on. Playing badly costs
+the quarter's time; it does not end the run.
+
+- **Checked on the round tick, cheap tests first** - the `3^n` board scan only runs
+  on the rare tick where both stocks are actually empty, and never while
+  `animating || falling` (a settling board is not a stuck one).
+- **`goalReachedThisRound = true` is the ROUTING flag**, the same one the goal dance
+  sets, and what stops a late timer tick firing the legacy level-up path on top of
+  the interlude. `skipNextPayout` shows the screen with its figures zeroed, which is
+  better than no screen: the player sees what it cost.
+- **It is only reachable at a small Selection Size.** Past a minimum selection of 3
+  High Card is live (r200) and `detectHand` answers for any two cards, so there is
+  essentially always something submittable.
+- **Open question:** a written-off round still pays its pick-of-three, because that
+  is the level tile's structural reward rather than a payout. Worth a decision.
+
+### Entity bans
+
+`first_wind` and `carry_time` are banned, through `survivalEntityBanned` - the one
+chokepoint every offer pool reads. They were behind `modeHasNoRoundClock()`, which
+is **false** for Crunch (its clock does end the round), but the question those two
+actually fail is "does the clock REFILL per round", and Crunch's does not: First
+Wind measures its grace window against `ROUND_DURATION` and the bank opens far
+above it, and Carry Time would bank the same seconds at every level of the quarter.
+
+### Verified
+
+In a real browser at 1440x820 and 420x820, through the real paths: a run opens at
+**12:59** and ticks, the clock **carries across a level-up** (600 -> 600, 300 -> 300,
+120 -> 120 with the level advancing), a shop tile debits **45s** and the bar prints
+`booking costs 45s`, a booking the bank cannot cover is **refused** (45s fee, refused
+at 40 and allowed at 46), the quarter grant reads **585 / 780 / 780** from 0 / 400 /
+700, a dead board charges exactly **238s** (178 remaining par + 60), and the payout
+reads **Under Par · 1 per 10s under par (3:00)**. Zero page errors. **Classic is
+byte-identical**: 3:00 clock, `Efficiency · 1 per 10s remaining`,
+`crunchNoRoundCap(180) === 180`, both bans false.
+
+**Not built yet** (next pass): the time-restoring event (+90s for two debuffs) and
+the reward-grid equivalents.
+
 ### Mini-bosses (r239) - the second challenge kind
 
 Six CHALLENGE_DEFS entries carry `mini: { modifier, params }` instead of a task: the HANDICAP is the challenge - a boss modifier at reduced strength running inside an ordinary round - and clearing the (raised) goal pays the credits (`test: () => true`, because the settle only runs on a cleared round). Stone Lord Jr (half stones, no rubble), The Apprentice (interact x1.5, play +2s), Low Tide (-5 Focus/20s), The Intern (one card held/25s), Sour Sip (ONE suit at x0.6, rotating), Light Fog (ranks hidden for the first 60s only).

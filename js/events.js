@@ -757,7 +757,7 @@ function confirmAltar() {
 function tickAltarEffects() {
   altarEffects.forEach(eff => {
     if (eff.type === 'time_boost') {
-      roundSeconds = Math.min(roundSeconds + eff.value, limits.round_time.current + 60);
+      roundSeconds = Math.min(roundSeconds + eff.value, crunchNoRoundCap(limits.round_time.current + 60));
       updateClockUI();
     }
     eff.roundsLeft--;
