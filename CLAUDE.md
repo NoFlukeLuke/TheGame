@@ -4253,6 +4253,21 @@ Survival 22, Flow 21).
   without it the only mode with no entity explainer would have been the one whose
   whole loop is buying them.
 
+### "One of each kind" was a claim, and main changed it out from under it
+
+The `pick-three` step and the handbook's `pick_three` topic both said **"Three
+offers, one of each kind"**. That stopped being true when main's r287 made
+`guidedPickType` roll each offer's type independently at 60/25/15 - and it had
+never been true of **Survival**, which has rolled `SURVIVAL_PICK_WEIGHTS` per
+offer for far longer. Both now say "Three offers. You take one", and the topic
+states the roll.
+
+**The lesson for anything written here: a tutorial line that COUNTS or CLASSIFIES
+what a screen will show is a claim about live behaviour, and it rots.** Prefer the
+rule ("you take one") to the inventory ("one of each"). Where the number matters,
+read it - `tutSelCap()`, `efficiencySecondsPerCoin()`, `QUARTERS_PER_RUN` - rather
+than typing it.
+
 ### A tip needs the screen it is TALKING ABOUT (r284)
 
 Owner, on his first real play: *"I got a couple of random tips during the first
