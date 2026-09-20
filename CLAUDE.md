@@ -1667,7 +1667,7 @@ tiles, Reroll + Round breakdown + CONFIRM, a tap arms CONFIRM with the chosen
 name, CONFIRM grants exactly one entity and leaves 0 tiles in `#grid`, and no page
 errors.
 
-### The pick-of-three has no dead rows (r288) - `js/grid-pick.js`
+### The pick-of-three has no dead rows (r292) - `js/grid-pick.js`
 
 Owner: *"remove both dead rows in the pick three screen and have just the entity
 in the 2x2 at the top, with the description in a block beneath it."*
@@ -3490,10 +3490,11 @@ there under the tally, and the fall before the payout is a real fall again.
   1.2s and the dance's own abort checkpoint is further down the step it is in, so
   without this the cards fly on underneath whatever cut the dance short), and at
   the top of the next dance.
-- **The blast deliberately OUTLIVES its step on a wide board.** The fly-in's
-  await is ~1320ms and a 16-card blast runs ~1380ms, so the tally starts while
-  the last cards are still coming home. That is why the release is hung off the
-  animations rather than off the step.
+- **The blast deliberately OUTLIVES its step.** The fly-in's await is
+  1020-1330ms depending on the hand size, and the trip is longer than that at
+  every speed from 1x to about 3x, so the tally starts while the last cards are
+  still coming home. That is why the release is hung off the animations rather
+  than off the step. (r291 widened that overlap - see below.)
 - **`clearLineMarkers()` is no longer called by the finale.** The marked
   row/column lines belong to a board that has not left yet; the fall drops them
   at the same moment it drops the cards. The finale is therefore no longer one of
@@ -3505,6 +3506,68 @@ there under the tally, and the fall before the payout is a real fall again.
   back onto the board for a frame. That was already true before r280 (it popped
   the WHOLE board back), and nothing calls render there; it is why
   `endBoss(true, {presented:true})` still skips its own render.
+#### The trip is timed off the TALLY it plays under (r291)
+
+Owner: *"Could we make the cards returning to the board happen a little bit
+slower. Like if the hand animation isn't skipped it would take roughly half the
+time for the hands to animate for the cards to come back."*
+
+The trip was a flat **1180ms** whatever the hand and whatever the speed setting,
+against a tally that runs 3.4s to 6.3s at the default 2x - so it was a fifth to
+a third of the thing it opens, and at 16x, where the whole tally is 440-600ms,
+it ran more than TWICE AS LONG as the tally it was supposed to be opening.
+
+It is now **`(dur + perCard * handCells.length) / dncPace()`**, with
+`WIN_BLAST_CFG.dur` (2500) and `perCard` (495) both **ms at 1x**.
+
+- **`dncPace()` IS the Scoring speed setting at that moment**, which is what lets
+  the trip track the slider without reading it. `dncBumpAccel` has exactly ONE
+  call site - inside the particle launcher - and every payout tick is in the
+  TALLY, which has not started when the blast is built. So `dncAccel` is still 1
+  there and `dncPace() === dncSpeed === DANCE_CFG.norm`. It is also the
+  chokepoint r218 says to divide by; reading `DANCE_CFG.norm` here would work
+  today and silently opt out of anything that ever moves the pace earlier.
+- **THE STAGGER SCALES WITH IT TOO.** Left flat at 18ms it would stop merely
+  sequencing the trip and start dominating it: at 16x a 5-card hand's trip is a
+  measured 311ms, and a flat spread across 13 cards would be 234ms of that. Measured at 2x: 9ms a card,
+  117ms across a 14-card board.
+- **MORE TRICKS MAKES A TALLY SHORTER, NOT LONGER**, which inverts the obvious
+  guess and is why the fit is taken off the trick-heavy case. Every payout tick
+  compounds `dncBumpAccel`, so a 5-card hand with 10 Tricks tallies in 9.6s at 1x
+  where the same hand with none takes 12.6s. Fitting the SLOW case would leave
+  the trip outliving a fast tally; fitting the fast one keeps it under half
+  everywhere.
+- **The two numbers are a FIT on measured tallies, not a guess.** Goal hands
+  driven through the real path on planted boards, normalised to 1x:
+
+  | cards | Tricks | tally at 1x | half | trip | share |
+  |---|---|---|---|---|---|
+  | 2 | 10 | 6990 | 3495 | 3490 | 49.9% |
+  | 3 | 10 | 8456 | 4228 | 3985 | 47.1% |
+  | 4 | 10 | 8750 | 4375 | 4480 | 51.2% |
+  | 5 | 10 | 9599 | 4799 | 4975 | 51.8% |
+  | 2 | 0 | 6886 | 3443 | 3490 | 50.7% |
+  | 5 | 0 | 12618 | 6309 | 4975 | 39.4% |
+
+  **39-52% of the tally in every measured case, and never over half** - which is
+  the one hard constraint, because a trip that outlives its tally would still be
+  landing cards while the banner and the round-end fall run.
+- **`handCells.length` is the right count, not `selected.length`** - a penalty
+  card (r201) is committed and consumed but never scores, so it gets no beat and
+  must not lengthen the trip.
+- **Known gap, pre-existing and now more visible:** the blast is a WAAPI
+  animation and `reduced-motion` in this game is a body class CSS acts on, so
+  the trip does not shorten for it. It was 1.2s before and can now be ~5s at 1x.
+
+Verified in a real browser at 1440x820 by reading the live WAAPI timing off the
+board. Every combination lands on the computed duration TO THE MILLISECOND -
+2 cards at 2x **1745ms**, 5 at 2x **2488**, 5 at 1x **4975**, 5 at 4x **1244**,
+2 at 8x **436**, 5 at 16x **311** - and in all six the board still reads 16 cards
+mid-tally, with **0 displaced and 0 left holding the blast's z-index** after. The
+SKIP chip was pressed during the jitter and at 300ms, 1.4s and 2.6s into the much
+wider blast window: all four land the real score, leave 0 cards displaced and
+open the payout.
+
 - **`repaintBoardAfterBoss()` (js/boss.js) is the one thing the change forced.**
   Two bosses change how a CARD LOOKS rather than what it does - **The Fog** hides
   ranks (markup, from `renderCardAppearance`) and **The Gradient** scales and
@@ -3874,7 +3937,7 @@ Two subtleties worth keeping:
 
 Audit script: render every name in `TRICK_POOL` / `KNACK_POOL` / `SLEIGHT_POOL` / `LIMITS_DEF` at 47/66/118px and assert no element has `scrollWidth > clientWidth` and no name uses more lines than it has words.
 
-### An emoji's INK is not its font-size (r290) - `emojiInkScale`, `emGlyph`
+### An emoji's INK is not its font-size (r292) - `emojiInkScale`, `emGlyph`
 
 Owner: *"Is it not possible to force emojis to fit on the entities? They always
 stick out weird. Can we not force a consistent centering and size?"*
@@ -3983,6 +4046,107 @@ differently.
 there is reserved for selecting a card into a hand, which is true of an ordinary
 card exactly as it is of a Sleight. The reward grid and the shop have opened on
 tap since r182/r237 and are unchanged.
+
+## Definitions open on a + (r288) - `js/keywords.js`
+
+Owner: *"don't automatically display the definition of every keyword. Add a plus
+in the corner of tooltips that bring those up. This should apply everywhere. Also,
+never show the definition of time, score, run, set, flush."*
+
+A tooltip used to arrive with a rail of definition cards for every mechanic word
+in its description. Measured over all 274 entity descriptions that is **2.95
+keywords each**, so a one-line Trick landed under six cards explaining pips, mult,
+score, time, play and round, and the one sentence the tooltip was opened to read
+was the smallest thing on screen.
+
+**The words are still coloured inline. Only the CARDS moved behind a +.**
+
+### Two halves, and they are separate questions
+
+- **`kwMoreHTML` / `kwDefsHTML` / `wireKwMore`** (js/keywords.js) are the shared
+  chip, rail and toggle, so the **four** tooltips that show a description cannot
+  drift into asking differently: `#entity-tip` (every entity surface - shop,
+  reward tiles, trays, events, the pick screens), `#trick-tooltip` (the tray
+  bubble AND the dev grid one), `#knack-tooltip`, `#reward-tooltip` (reward grid
+  and shop tiles). The chip prints the COUNT behind it - a + over nothing is a
+  control that does nothing, so `kwMoreHTML` returns empty at zero.
+- **`basic: true`** is the other half: a word so plain that defining it is noise
+  even when the rail IS open. It keeps its colour and never gets a card. Today:
+  **score, time, run, set, flush** (owner's list).
+
+**`keywordDefsIn` is deliberately NOT `keywordsIn`.** The second answers "which
+mechanics does this text mention", which is a different question and is the one
+`js/builds.js` groups and filters entities by - grouping the Builds browser by
+"run" is useful, explaining the word "run" to someone holding a poker hand is not,
+and one function cannot mean both.
+
+### The sixteen that never define, and the three that read live (r289)
+
+Owner's list, on top of the first five: **hand, play, grid, column, row, rank,
+deck, suit, corner** and every HAND TYPE (**run, set, flush, pair, straight**),
+plus **score** and **time**. Sixteen in all - plain English, or read straight off
+the screen. `streak` is deliberately NOT among them: it is a mechanic that
+happens to sit in the hand-shapes block, not a shape.
+
+**Average definitions per description: 2.95 -> 1.64**, measured over all 274. Five
+descriptions now have nothing left to define, so they carry no + at all -
+`kwMoreHTML` returns empty at zero. **The words are all still coloured**: a
+description made only of switched-off words still highlights every one of them
+and simply offers no card (verified: 6 coloured words, no chip).
+
+**Three keywords now state their own live figure** through a `live()` on the row:
+Swap and Discard print **"Current max: N"** off `limits.*.current`, and Level
+prints **"You are on level N"**. It is a SECOND FIELD rather than a function
+`def`, because `def` is the stored, translatable sentence that the Builds browser
+reads and that a handbook entry would quote; only the tooltip wants the live half,
+and it is drawn as its own `.kw-live` line so "what the word means" and "what it
+is worth right now" are not run together.
+
+**A live read may never break a tooltip** - the same rule js/insights.js puts on
+its predicates. `kwLiveText` catches and drops, so a card missing its live line is
+the worst that can happen (verified by forcing one to throw: the card still
+builds, without the line).
+
+### AN OPEN RAIL IS STICKY, and that is forced rather than chosen
+
+`#entity-tip` is `pointer-events: none` (r170 - at up to 560px it would otherwise
+eat the clicks meant for the tiles it lies over), so the rail **cannot be hovered,
+scrolled or read**: the pointer falls straight through it onto the board and the
+bubble dismisses itself. Asking for the definitions is a deliberate act, so it
+turns the preview into something you are reading - the card and rail take clicks,
+`#entity-tip-backdrop` catches everything else, and `hideEntityTooltip` refuses
+any non-`now` hide while `kw-open` is set.
+
+- **The chip is the ONE part of a hover bubble that takes pointer events.** That
+  is a small, deliberate hole in r170's rule: it is ~25x19px, in the card's own
+  corner beside the anchor. The delegated hover listener bails (and cancels the
+  pending hide) when the pointer is inside `#entity-tip`, or crossing onto the
+  chip would read as "left the tile".
+- **The grid-pick screen (r280) is unaffected** while the rail is closed: the
+  bubble still passes taps through to the tiles under it. Verified live - with a
+  bubble up, one tap still moves the selection.
+
+### The reward bubble needed two more things, both found by clicking it
+
+- **The tile-hover re-show stands down while the pointer is inside the bubble.**
+  `#reward-tooltip` is pointer-events:none too, so a tile UNDERNEATH it still gets
+  `mouseenter` and swaps the bubble to itself. Harmless while the bubble was only
+  something to read; not harmless once reaching its + means crossing it. Measured
+  at 420x820: the rail opened on tile 0-0 and was replaced by tile 0-3's bubble in
+  the same gesture. `pointerOverRewardTip()` tracks the pointer on the document,
+  because the bubble cannot receive the events itself.
+- **Opening the rail PINS the tile** (`rewardTipKey`), the same "you asked for
+  this, so it stays" rule. An unpinned hover bubble is thrown away by the next
+  `renderRewardTiles` - `restoreRewardTooltip` hides it outright when nothing is
+  pinned - which took the rail with it. `showRewardTooltipFor` also carries
+  `kw-open` across a re-show of the SAME tile, since that function rebuilds the
+  whole bubble and is called constantly.
+
+Measured across all 274 descriptions: **0 basic words reach a definition card**,
+and the average tooltip now offers **2.47** definitions behind its + instead of
+showing 2.95 unasked. Verified in a real browser at 1440x820 and 420x820 on all
+four tooltips through the real click path - closed by default, the + opens and
+the - closes, the rail is readable, and no page errors.
 
 ## Reward grid: one tap, two meanings (r182)
 
@@ -4349,6 +4513,112 @@ arrive in an order it cannot predict.
 is the Classic walkthrough on demand, reachable from the dev panel; its
 `tutorial: true` is what `tutorialArmForRun` checks first, so it arms regardless
 of what has been played.
+
+### The VOICE of the walkthrough (r284)
+
+Owner: *"The way things are worded seems kind of bizarre and we justify the
+reasoning when we don't need to. You don't need to say like it's this way
+because blah blah blah or so don't do this. Just explain the mechanic and leave
+it, no additional input necessary."*
+
+Every step and every tip was rewritten against that rule, and it is the rule for
+anything added here:
+
+- **State the mechanic. Do not justify it.** Gone: "so a mis-tap never costs you
+  the choice", "so saving up is worth something", "The good ones are deliberately
+  placed behind the bad ones, so most paths cost you something", "The slots are
+  the real currency", "Rather than learn seven symbols now, use the key", "so you
+  never have to know the vocabulary first". **A sentence explaining why the
+  DESIGN is the way it is belongs in this file, not in a bubble.**
+- **Imperative for actions, declarative for rules.** "Press PLAY." "Ace is 11."
+- **No stylised framing.** "A hand cannot carry a passenger" became "Every card
+  must be used"; "Time is the cost" became "The clock".
+- **One idea per paragraph, a list where it is a list.** The limits step and the
+  Records step are label-and-dash lines rather than prose.
+
+A check worth re-running after an edit here: render every step and tip in both
+vocabularies and grep for `so that|so you can|because|the reason|deliberately|
+which is why`. It should come back empty.
+
+### The four topics r284 added
+
+Owner-specified, taking Classic from 25 steps to 29 (Schedule 26, Guided 22,
+Survival 22, Flow 21).
+
+| step | teaches |
+|---|---|
+| `hands` | the three shapes, and the flush OVERLAY |
+| `selection` | Selection Size is a cap AND a floor |
+| `limits` | what a limit is, and the eight of them |
+| `entities` | {Trick} / {Knack} / {Sleight}, on the first reward screen |
+
+- **`hands` is where the rummy half of the game is finally stated.** All 19 hand
+  types are three families - **set, run, flush** - so the step teaches those
+  rather than naming hands, and says **a pair counts**. The word "poker" is gone
+  from the walkthrough (owner's call: the rules are poker mixed with rummy).
+  **It also states the one rule a new player cannot guess at**: three or four
+  cards of one suit is NOT playable on its own (`startGame` seeds `flush3`/
+  `flush4` only at `suitCount >= 6`), but the flush OVERLAY ignores `activeHands`
+  entirely, so played inside another hand it adds a flush and **every card in it
+  scores twice** (r199).
+- **`selection` reads the live limit** through `tutSelCap()` / `tutSelMin()`, and
+  branches: at limit 3 the floor is 1 and does not bite, so it describes the rule
+  instead of quoting a meaningless number. `minSelection()` stays the one place
+  the floor is worked out (r200).
+- **`entities` is `only: ['rewardgrid', 'picks', 'crossroads']` and sits before
+  ALL THREE between-round screens.** They are mutually exclusive in a composed
+  script, so one step covers whichever this mode uses. **Guided needed the
+  crossroads clause**: it has neither reward screen in its linear script, and
+  without it the only mode with no entity explainer would have been the one whose
+  whole loop is buying them.
+
+### "One of each kind" was a claim, and main changed it out from under it
+
+The `pick-three` step and the handbook's `pick_three` topic both said **"Three
+offers, one of each kind"**. That stopped being true when main's r287 made
+`guidedPickType` roll each offer's type independently at 60/25/15 - and it had
+never been true of **Survival**, which has rolled `SURVIVAL_PICK_WEIGHTS` per
+offer for far longer. Both now say "Three offers. You take one", and the topic
+states the roll.
+
+**The lesson for anything written here: a tutorial line that COUNTS or CLASSIFIES
+what a screen will show is a claim about live behaviour, and it rots.** Prefer the
+rule ("you take one") to the inventory ("one of each"). Where the number matters,
+read it - `tutSelCap()`, `efficiencySecondsPerCoin()`, `QUARTERS_PER_RUN` - rather
+than typing it.
+
+### A tip needs the screen it is TALKING ABOUT (r284)
+
+Owner, on his first real play: *"I got a couple of random tips during the first
+reward screen for some reason."*
+
+Both were board tips, and both were genuinely true at that moment - which is the
+trap. **A tip's condition can outlive the screen its subject is on:**
+
+- `hand_layers` reads `#hand-name .hn-l`, and `#hand-name` keeps the LAST HAND'S
+  markup for the whole of the between-rounds screens.
+- `replays` reads `replaysThisRound`, which is a ROUND counter and stays above
+  zero through the payout, the reward grid and the shop.
+
+So both fired on the reward grid, anchored to readouts the reward tiles had
+covered over. **`screen` on a row is the fix, and it defaults to `'board'`**:
+`insightsBoardLive()` is checked before a board row's own `when`, and only rows
+explicitly marked `screen: 'any'` (the reward grid, prize grid, shop, payout,
+Limit Break, events, schedule, boss and the four ownership rows) may fire on a
+takeover screen. **A new row is board-scoped unless it says otherwise**, which is
+the safe default: a tip about something not on screen is worse than no tip.
+
+`insightsBoardLive()` asks the same four classes the renderer and the map already
+own (`grid-screen`, `gp-active`, `map-active`, `pick-active`, `reward-active`)
+plus `shopGridActive` and a live `#payout-overlay`, then requires real cards in
+`gridData`.
+
+**`hand_layers` is FLUSH-SPECIFIC now**, because its copy is. Owner: *"it really
+shouldn't say stacking hand types, it should say if you play a hand that is also
+a flush then each of the cards gains one replay."* The overlay is the common
+layering by a distance (r199: roughly half of all five-card hands) and the one a
+player cannot guess at, so the row tests for a `FLUSH` layer in the label rather
+than for two layers of any kind.
 
 ### The skip is PROMINENT
 

@@ -82,39 +82,49 @@ function insightsOn() {
 //
 // Body prose is written in the GAMER vocabulary and goes through infoText() on
 // the way to the screen, so the Wording toggle moves it (r198).
+// `screen` says WHERE a tip is allowed to fire, and it defaults to 'board'
+// (r284). Without it a tip about the board fires on a screen that has no board:
+// `#hand-name` keeps the last hand's markup and `replaysThisRound` stays true
+// for the whole round, so `hand_layers` and `replays` both landed on the first
+// reward grid, pointing at readouts the reward tiles had covered over.
 const INSIGHTS = [
   // ── the board ─────────────────────────────────────────────────────────────
   // The single most common surprise in the game: measured at r254, a random
   // 5-card selection carries a dropped card 80% of the time.
   { id: 'penalty_cards', title: 'That card is being dropped',
     anchor: ['#hand-name'],
-    body: 'A red card is not part of the hand. You lose its pips AND the card. Every card has to earn its place.',
+    body: 'A red card is not part of the hand. You lose its pips and the card.',
     when: () => !!document.querySelector('#hand-name .hn-drop') },
 
-  { id: 'min_selection', title: 'You must commit more cards',
+  { id: 'min_selection', title: 'You need more cards',
     anchor: ['#hand-name'],
-    body: 'Selection Size sets a floor as well as a ceiling. Below it the hand will not play, and the label says how many more you need.',
+    body: 'Selection Size sets a floor as well as a ceiling. The hand label says how many more to add.',
     when: () => !!document.querySelector('#hand-name .hn-need') },
 
-  { id: 'hand_layers', title: 'That is two hands at once',
+  { id: 'hand_layers', title: 'Your hand was also a flush',
     anchor: ['#hand-name'],
-    body: 'A hand can be several shapes stacked together, and every one of them pays. Cards in two of them score twice.',
+    body: 'A hand that is also a flush pays for both shapes, and every card in the flush scores twice.',
+    // FLUSH-specific, because the copy is. The overlay is by far the common
+    // layering (r199: it fires on roughly half of all five-card hands) and it is
+    // the one a player cannot guess at - a suited run pays the flush too.
     when: () => document.querySelectorAll('#hand-name .hn-l').length >= 2
-              && !document.querySelector('#hand-name .hn-need') },
+              && !document.querySelector('#hand-name .hn-need')
+              && [...document.querySelectorAll('#hand-name .hn-l b')]
+                   .some(b => /FLUSH/i.test(b.textContent || '')) },
 
   { id: 'sleight_grid', title: 'That is a {sleight}, not a card',
     anchor: ['#grid .sleight-card'],
-    body: 'It lives in your deck and falls like any other card, but it does something of its own. Press and hold it to read what.',
+    body: 'It lives in your deck and falls like any other card. Press and hold it to read what it does.',
     when: () => !!document.querySelector('#grid .sleight-card') },
 
-  { id: 'curses', title: 'A card has been cursed',
+  { id: 'curses', title: 'A card is cursed',
     anchor: ['#grid'],
-    body: 'The curse is on that ONE card, not on its rank or its suit, and it wears off by itself after the card has scored a few times.',
+    body: 'The curse is on that one card, not on its rank or its suit. It wears off after the card has scored a few times.',
     when: () => typeof cardCurses !== 'undefined' && Object.keys(cardCurses).length > 0 },
 
   { id: 'card_buffs', title: 'A card has a permanent bonus',
     anchor: ['#grid'],
-    body: 'It keeps that bonus for the rest of the run, wherever it goes in the deck. A green arrow means the bonus GROWS each time you play it.',
+    body: 'It keeps the bonus for the rest of the run, wherever it goes in the deck. A green arrow means the bonus grows each time you play it.',
     when: () => (typeof permPips !== 'undefined' && Object.keys(permPips).length > 0)
              || (typeof permMult !== 'undefined' && Object.keys(permMult).length > 0) },
 
@@ -125,7 +135,7 @@ const INSIGHTS = [
 
   { id: 'blocked_cells', title: 'Some cells are out of use',
     anchor: ['#grid'],
-    body: 'Cards there cannot be played. A countdown ring means it comes back; no ring means it does not.',
+    body: 'Cards there cannot be played. A countdown ring means the cell comes back.',
     when: () => (typeof blockedCells !== 'undefined' && blockedCells.size > 0)
              || (typeof nullCells !== 'undefined' && nullCells.size > 0)
              || (typeof bossHeldCards !== 'undefined' && Object.keys(bossHeldCards).length > 0) },
@@ -133,99 +143,99 @@ const INSIGHTS = [
   // ── scoring ───────────────────────────────────────────────────────────────
   { id: 'focus', title: '{FOCUS} is multiplying your hands',
     anchor: ['#focus-box', '#focus-meter-wrap'],
-    body: 'You earn it by playing complicated hands quickly, and it drains while you sit still. It multiplies the hand you are playing right now.',
+    body: 'You earn it by playing bigger shapes quickly, and it drains while you sit still. It multiplies the hand you are playing now.',
     when: () => typeof focusNodes !== 'undefined' && typeof FOCUS_THRESHOLD !== 'undefined'
              && focusNodes > FOCUS_THRESHOLD },
 
   { id: 'replays', title: 'A card scored twice',
     anchor: ['#selected-cards'],
-    body: 'A replay re-scores one card as if it were in the hand again. It pays what the CARD earned, not the hand\'s base.',
+    body: 'A replay scores one card again. It pays what the card earned, not the hand\'s base.',
     when: () => typeof replaysThisRound !== 'undefined' && replaysThisRound > 0 },
 
   { id: 'natural_scaling', title: 'That hand type is getting better',
     anchor: ['#hand-name'],
-    body: 'Every hand type earns a permanent bonus each time you play it, and only that type. RECORDS shows what each one is worth now.',
+    body: 'Every hand type earns a permanent bonus each time you play it, and only that type. RECORDS &rsaquo; Hands shows what each is worth now.',
     when: () => typeof nsBonus !== 'undefined'
              && Object.values(nsBonus).some(v => v && ((v.pips || 0) > 0 || (v.mult || 0) > 0)) },
 
   // ── what you own ──────────────────────────────────────────────────────────
-  { id: 'knacks', title: 'You own a {knack}',
+  { id: 'knacks', screen: 'any', title: 'You own a {knack}',
     anchor: ['#knack-list'],
-    body: 'A {knack} is a permanent rule change for the rest of the run. It is not a card and it never expires. Tap it to read it.',
+    body: 'A {knack} is a permanent rule change for the rest of the run. It is not a card and it never expires.',
     when: () => typeof acquiredKnacks !== 'undefined' && acquiredKnacks.length > 0 },
 
-  { id: 'tricks', title: 'Your {trick} slots are full',
+  { id: 'tricks', screen: 'any', title: 'Your {trick} slots are full',
     anchor: ['#trick-tray-count'],
-    body: 'The cap is hard. A new {trick} will be refused until you make room, and you make room by tapping one in the tray and selling it.',
+    body: 'A new {trick} will be refused until you make room. Tap one in the tray and sell it.',
     when: () => typeof trickTrayFull === 'function' && trickTrayFull() },
 
-  { id: 'improve', title: 'That one has been improved',
+  { id: 'improve', screen: 'any', title: 'That one has been improved',
     anchor: ['#trick-tray-list'],
-    body: 'The v2.0 stamp is its version. Its own numbers are bigger, and the gold bands on the object count the improvements.',
+    body: 'The v2.0 stamp is its version. Its numbers are bigger, and the gold bands on the object count the improvements.',
     when: () => typeof entityTier !== 'undefined'
              && Object.values(entityTier).some(v => (v || 0) > 0) },
 
-  { id: 'priming', title: 'That one is primed',
+  { id: 'priming', screen: 'any', title: 'That one is primed',
     anchor: ['#trick-tray-list'],
-    body: 'The violet +N is how many EXTRA times it fires on your next hand. It cannot fire a {trick} whose condition was not met.',
+    body: 'The violet +N is how many extra times it fires on your next hand. Its condition still has to be met.',
     when: () => typeof trickTray !== 'undefined'
              && trickTray.some(t => t && ((t._primed || 0) + (t._rank || 0)) > 0) },
 
   // ── between rounds ────────────────────────────────────────────────────────
-  { id: 'reward_grid', title: 'You take the whole path',
+  { id: 'reward_grid', screen: 'any', title: 'You take the whole path',
     anchor: ['#grid'],
-    body: 'Pick a connected run of tiles and you get EVERY tile on it, liabilities included. That is the decision: what you walk through to reach what you want.',
+    body: 'Pick a connected run of tiles and you get every tile on it, liabilities included.',
     when: () => typeof rewardOnGrid !== 'undefined' && rewardOnGrid
              && (typeof rewardGridMode === 'undefined' || rewardGridMode !== 'prize') },
 
-  { id: 'prize_grid', title: 'Nothing here is a liability',
+  { id: 'prize_grid', screen: 'any', title: 'Nothing here is a liability',
     anchor: ['#grid'],
-    body: 'A prize grid is smaller than a reward grid, every cell on it is a reward, and nothing common is on the board.',
+    body: 'A prize grid is smaller than a reward grid. Every cell on it is a reward, and nothing common is on the board.',
     when: () => typeof rewardOnGrid !== 'undefined' && rewardOnGrid
              && typeof rewardGridMode !== 'undefined' && rewardGridMode === 'prize' },
 
-  { id: 'shop', title: 'Buying together is cheaper',
+  { id: 'shop', screen: 'any', title: 'Buying together is cheaper',
     anchor: ['#grid'],
-    body: 'Pick tiles that touch each other and the bundle is discounted. Rerolling refills the shelves and costs more every time.',
+    body: 'Tiles that touch each other are discounted as a batch. Rerolling refills the shelves and costs more each time.',
     when: () => typeof shopGridActive !== 'undefined' && shopGridActive },
 
-  { id: 'payout', title: 'What the round paid',
+  { id: 'payout', screen: 'any', title: 'What the round paid',
     anchor: ['#po-valued'],
-    body: 'Interest on what you are holding, time left on the clock, and every swap and discard you did NOT spend. Leftovers are worth keeping.',
+    body: 'Interest on the credits you hold, time left on the clock, and every swap and discard you did not spend.',
     when: () => !!document.querySelector('#po-valued.show') },
 
-  { id: 'limit_break', title: 'The first pick is free',
+  { id: 'limit_break', screen: 'any', title: 'The first pick is free',
     anchor: ['#lb-panel', '#limitbreak-overlay'],
-    body: 'Lock one in and it applies at once. Only then are you offered a SECOND, and that one has a price. Walking away with just the free one is always allowed.',
+    body: 'Lock one in and it applies at once. You are then offered a second, and that one has a price. Taking just the free one is allowed.',
     when: () => !!document.querySelector('#limitbreak-overlay.show') },
 
-  { id: 'events', title: 'Skipping is a real option',
+  { id: 'events', screen: 'any', title: 'Skipping is an option',
     anchor: ['#event-panel', '#event-overlay'],
-    body: 'A meeting is one decision and then it is over. Nothing here is compulsory, and some of it is worse than nothing.',
+    body: 'A meeting is one decision and then it is over. Nothing on it is compulsory.',
     when: () => !!document.querySelector('#event-overlay.show') },
 
   // ── the schedule ──────────────────────────────────────────────────────────
-  { id: 'schedule', title: 'Read the whole schedule first',
+  { id: 'schedule', screen: 'any', title: 'Read the whole schedule first',
     anchor: ['#map-bar'],
-    body: 'Every step you take happens, and you get at most TWO stops in a time slot. Use the legend to see what is where before you move.',
+    body: 'Every step you take happens, and you get at most two stops in a time slot. Use the legend to see what is where.',
     when: () => document.body.classList.contains('map-active') },
 
-  { id: 'skip_cost', title: 'Leaving early costs credits',
+  { id: 'skip_cost', screen: 'any', title: 'Leaving early costs credits',
     anchor: ['#map-bar'],
-    body: 'Take only one stop in a time slot and you pay to move on, and the fee rises every time you do it.',
+    body: 'Take only one stop in a time slot and you pay to move on. The fee rises each time.',
     when: () => document.body.classList.contains('map-active')
              && typeof mapVisits !== 'undefined' && mapVisits === 1 },
 
   // ── pressure ──────────────────────────────────────────────────────────────
-  { id: 'boss', title: 'You can read the brief again',
+  { id: 'boss', screen: 'any', title: 'You can read the brief again',
     anchor: ['#goal-display', '#run-progress'],
-    body: 'Tap the {GOAL} chip or the progress block any time during a review to see exactly what it is doing to you.',
+    body: 'Tap the {GOAL} chip or the progress block during a review to see what it is doing to you.',
     when: () => typeof bossActive !== 'undefined' && bossActive
              && !document.querySelector('#boss-preamble.show') },
 
-  { id: 'mini_boss', title: 'The extra task is a bonus, not a trap',
+  { id: 'mini_boss', screen: 'any', title: 'The extra task is a bonus',
     anchor: ['#goal-display'],
-    body: 'The quota is raised and that IS the round. Missing the extra requirement costs you the bonus, not the round.',
+    body: 'The quota is raised and that is the round. Missing the extra requirement costs you the bonus, not the round.',
     when: () => typeof miniBossActive !== 'undefined' && miniBossActive },
 ];
 
@@ -257,14 +267,32 @@ function insightsBlocked() {
   return false;
 }
 
+// Is a LIVE ROUND BOARD on screen? A board-scoped tip needs one, because the
+// readouts it points at (#hand-name, #selected-cards, the meters) are still in
+// the DOM holding the last hand's values when a takeover screen is up, and the
+// tip would land on top of reward tiles explaining something not on screen.
+// Same three classes js/render.js and js/map-mode.js already own, plus the shop.
+function insightsBoardLive() {
+  const b = document.body.classList;
+  if (b.contains('grid-screen') || b.contains('gp-active')
+   || b.contains('map-active') || b.contains('pick-active')
+   || b.contains('reward-active')) return false;
+  if (typeof shopGridActive !== 'undefined' && shopGridActive) return false;
+  if (document.getElementById('payout-overlay')) return false;
+  if (typeof gridData === 'undefined' || !gridData.length) return false;
+  return gridData.some(row => (row || []).some(c => c && !c._isTrick));
+}
+
 // ── the sweep ───────────────────────────────────────────────────────────────
 function insightTick() {
   if (insightCurrent) return;                       // one at a time
   if (Date.now() - insightLastAt < INSIGHT_GAP) return;
   if (insightThisRound >= INSIGHT_PER_ROUND) return;
   if (insightsBlocked()) return;
+  const boardLive = insightsBoardLive();
   for (const row of INSIGHTS) {
     if (insightsSeen.has(row.id)) continue;
+    if (row.screen !== 'any' && !boardLive) continue;   // board tips need a board
     let hit = false;
     try { hit = !!row.when(); } catch (e) { hit = false; }   // a throw is "not yet"
     if (hit) { showInsight(row); return; }

@@ -1,3 +1,7 @@
 node_modules/
 package.json
 package-lock.json
+
+# Scratch browser-test drivers. They must live inside the repo so a relative
+# require of playwright-core resolves, and they are never part of the game.
+_t/

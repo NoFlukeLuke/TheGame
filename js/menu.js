@@ -1,4 +1,4 @@
-const BUILD = "2026-09-20 · r290 · entity emoji are ink-normalised: one size, centred, no overflow";
+const BUILD = "2026-09-20 · r292 · the pick-of-three tile is 2x3 on a 6x4 board; entity emoji are ink-normalised";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

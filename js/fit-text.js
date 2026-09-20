@@ -30,7 +30,7 @@ function fitCtx() {
   return _fitCtx;
 }
 
-// ── EMOJI INK NORMALISATION (r290) ─────────────────────────────────────────
+// ── EMOJI INK NORMALISATION (r292) ─────────────────────────────────────────
 // AN EMOJI'S INK IS NOT ITS FONT-SIZE, and that is the whole bug behind "the
 // emojis stick out". Measured across all 95 entity glyphs in Noto Color Emoji,
 // every colour glyph paints an ink box of 1.25 x 1.18 em - so a glyph set at

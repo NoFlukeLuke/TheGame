@@ -8,7 +8,7 @@
 // footprint, because there is nothing to put one behind - the tiles ARE what
 // is on the board.
 //
-// THE LAYOUT (owner spec, r288) - a 6 x 4 board with NO DEAD ROW:
+// THE LAYOUT (owner spec, r292) - a 6 x 4 board with NO DEAD ROW:
 //
 //     rows 0-2 : three options, each 2 CELLS WIDE x 3 CELLS TALL - the ENTITY
 //                in the top 2x2, the DESCRIPTION in the block beneath it
@@ -199,7 +199,7 @@ function gridPickTileHTML(p, i) {
   // fills it instead of letterboxing inside a taller box - that slack was the
   // big gap between the icon and the name the owner called out.
   const kind = isEnt ? p.entity : 'plain';
-  // TWO BLOCKS (r288). .gp-head is the top two cells - the entity and its name,
+  // TWO BLOCKS (r292). .gp-head is the top two cells - the entity and its name,
   // nothing else - and .gp-body the two beneath. They are wrappers rather than
   // four loose children because the halves have to be SIZED against the tile
   // (css/grid-pick.css): a flat child list can only be centred as one group,
@@ -271,7 +271,7 @@ function gridPickConfirm() {
   gridPickState.onChoose(i, p);
 }
 
-// THE DESCRIPTION FILLS ITS OWN CELLS (r288). The clamp was a fixed 5 lines,
+// THE DESCRIPTION FILLS ITS OWN CELLS (r292). The clamp was a fixed 5 lines,
 // chosen against the r280 tile of 3 cells; on the 4-cell tile that left a band
 // of bare tile under every short description and still cut the long ones early.
 // It is MEASURED now - as many whole lines as the block can hold - so the words
@@ -319,7 +319,7 @@ function gridPickAfterRender(root, offers, onChoose) {
   requestAnimationFrame(() => {
     if (typeof fitRewardName === 'function')
       root.querySelectorAll('.gp-art .rwd-name').forEach(nm => fitRewardName(nm));
-    // The tile's own name is 11px since r288 and the tile is two cells wide, so
+    // The tile's own name is 11px since r292 and the tile is two cells wide, so
     // the long single-word names (Kaleidoscope, Syncopation) no longer fit on a
     // line. r182's rule: a name is never broken mid-word - it shrinks, and only
     // truncates as a last resort. Without this they would simply be clipped by

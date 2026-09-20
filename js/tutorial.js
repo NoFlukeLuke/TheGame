@@ -252,6 +252,12 @@ function tutRoundLive() {
 // drift, and they already did once (the popup said 3s while the charge was 6s).
 function tutSwapCost()    { return (BAL._resources && BAL._resources.swap_seconds) || 8; }
 function tutDiscardCost() { return (BAL._resources && BAL._resources.discard_seconds_per_card) || 3; }
+// Selection Size, both ends of it. Read live for the same reason the costs are:
+// a limit upgrade can land before this step is reached (the reward grid's first
+// five grids guarantee one), and a quoted cap that is already stale is worse
+// than none. `minSelection()` is the one place the floor is worked out (r200).
+function tutSelCap() { try { return limits.selection.current; } catch (e) { return 3; } }
+function tutSelMin() { try { return minSelection(); } catch (e) { return 1; } }
 
 // ── The script ───────────────────────────────────────────────────────────────
 // anchor:     () => Element | Element[] | null - each element gets its own hole
@@ -274,7 +280,7 @@ const TUTORIAL_STEPS = [
     id: 'welcome', side: 'center', hold: true, next: true,
     eyebrow: 'Getting started',
     title: () => `${(ACTIVE_MODE && ACTIVE_MODE.name) || 'The game'}: first run`,
-    body: `Make poker hands out of cards on the board. Reach the {GOAL} before the clock runs out, then do it again with a bigger one.<br><br>This walkthrough runs once, on your first go at this mode. It takes a couple of minutes and you can quit it any time.`,
+    body: `Cards fall onto a board. Select cards that touch each other, make a shape, and score it.<br><br>Reach the {GOAL} before the clock runs out. The next round asks for more.<br><br>This walkthrough runs once, on your first go at this mode.`,
   },
 
   // ══ THE SCHEDULE - map mode opens on its board, before a card is played ════
@@ -282,15 +288,15 @@ const TUTORIAL_STEPS = [
     id: 'schedule-board', only: 'map', side: 'float', corner: 'right', next: true,
     when: () => tutMapOpen(),
     eyebrow: 'The schedule',
-    title: 'This is your schedule',
-    body: `You work left to right through six <b>time slots</b>. Each tile is one <b>obligation</b>: a round to play, a shop, a meeting, a reward board.<br><br>The column at the end is the <b>manager review</b>. Everything before it is you getting ready for it.`,
+    title: 'Your schedule',
+    body: `You work left to right through six <b>time slots</b>. Each tile is one <b>obligation</b>: a round, a shop, a meeting, a reward board.<br><br>The column at the end is the <b>manager review</b>.`,
   },
   {
     id: 'schedule-legend', only: 'map', anchor: () => tutEl('#mb-key'), side: 'top', gate: true,
     when: () => tutMapOpen() && !!tutEl('#mb-key'),
     eyebrow: 'The schedule',
-    title: 'What the symbols mean',
-    body: `Rather than learn seven symbols now, use the key. <b>Press it.</b><br><br>Hovering a row lights every obligation of that kind on the board and drops the rest. Tapping a tile puts its name and what it does on the bar.`,
+    title: 'The symbols',
+    body: `<b>Press the key.</b><br><br>Hovering a row lights every obligation of that kind. Tapping a tile puts its name on the bar.`,
     until: () => !!document.querySelector('#map-legend.show'),
   },
   {
@@ -298,14 +304,14 @@ const TUTORIAL_STEPS = [
     when: () => tutMapOpen(),
     eyebrow: 'The schedule',
     title: 'Two stops a slot',
-    body: `Moves are up, down or forward, never diagonal, and <b>every step you take happens</b>.<br><br>You may take at most <b>two</b> obligations in one time slot, and only if they are next to each other. Take just one and you pay a fee to move on, which rises each time you do it.<br><br>A move that would strand you is refused rather than allowed, so you cannot walk yourself into a dead end.`,
+    body: `Move up, down or forward. Never diagonal. <b>Every step you take happens.</b><br><br>You can take two obligations in one time slot if they sit next to each other. Take only one and you pay a fee to move on, and the fee rises each time.<br><br>A move that would strand you is refused.`,
   },
   {
     id: 'schedule-go', only: 'map', anchor: () => tutEls('#grid .map-tile', '#mb-confirm'), side: 'top', next: true,
     when: () => tutMapOpen(),
     eyebrow: 'The schedule',
     title: 'Pick your first stop',
-    body: `Tap an obligation you can reach, then <b>CONFIRM</b>.<br><br>The first slot is all ordinary rounds, so take one and let us get you playing.`,
+    body: `Tap an obligation you can reach, then <b>CONFIRM</b>.<br><br>The first slot is all rounds.`,
     until: () => !tutMapOpen(),
   },
 
@@ -317,22 +323,31 @@ const TUTORIAL_STEPS = [
     when: () => tutRoundLive(),
     eyebrow: 'Basics',
     title: 'Selecting cards',
-    body: `Tap cards to select them, or drag across them.<br><br>Selected cards have to touch edge to edge. Diagonals do not count. Where they sit and the order you tap them make no difference to the hand.<br><br>The highlighted cards already make a hand. <b>Select them.</b>`,
+    body: `Tap cards to select them, or drag across them.<br><br>Selected cards must touch edge to edge. Diagonals do not connect. Tap order does not matter.<br><br>The highlighted cards make a hand. <b>Select them.</b>`,
     onEnter: () => { selected = []; render(); },
     until: () => selected.length >= 2 && !!findBestHand(selected),
+  },
+  {
+    // r284: the owner's framing. All 19 hand types are three families, and the
+    // flush OVERLAY is the one rule a new player cannot guess at.
+    id: 'hands', anchor: () => tutEls('#hand-name', '#selected-cards'), side: 'bottom',
+    gate: true, hold: true, next: true, noAutoPlay: true,
+    eyebrow: 'Basics',
+    title: 'What you can play',
+    body: `<b>Set</b> - cards of the same rank. A pair counts.<br><b>Run</b> - three or more ranks in a row.<br><b>Flush</b> - five cards of one suit.<br><br>Three or four cards of one suit is not a hand on its own. Play them inside another hand and they add a flush on top, and every card in that flush scores twice.`,
   },
   {
     id: 'valuation', anchor: () => tutEl('#score-subboxes'), side: 'bottom',
     gate: true, hold: true, next: true, noAutoPlay: true,
     eyebrow: 'Scoring',
     title: 'How a hand scores',
-    body: `<b>{PIPS}</b> is your cards' face values added up, plus a bonus for the hand type. Ace is 11, face cards are 10.<br><br><b>{MULT}</b> comes from the hand type. Harder hands multiply more.<br><br><b>{FOCUS}</b> multiplies on top of both.<br><br>Score is pips x mult x focus.`,
+    body: `<b>{PIPS}</b> - your cards' values added up, plus a bonus for the shape. Ace is 11, face cards are 10.<br><br><b>{MULT}</b> - set by the shape. Bigger shapes multiply more.<br><br><b>{FOCUS}</b> - multiplies on top.<br><br>{PIPS} x {MULT} x {FOCUS} is your score for the hand.`,
   },
   {
     id: 'play', anchor: () => tutEl('#btn-play'), side: 'left', gate: true, hold: true, noAutoPlay: true,
     eyebrow: 'Scoring',
     title: 'Playing a hand',
-    body: `Press <b>PLAY</b> to score the cards you selected.<br><br>A valid selection also plays itself after two seconds if you leave it alone.`,
+    body: `Press <b>PLAY</b>.<br><br>A valid selection also plays itself after two seconds if you leave it alone.`,
     // PLAY is disabled without a valid selection and a gated step exposes only
     // PLAY - so if the selection was lost, restore it rather than strand the
     // player on a dead button.
@@ -340,37 +355,48 @@ const TUTORIAL_STEPS = [
     until: () => handsPlayed >= 1,
   },
   {
-    // EVERY CARD HAS TO EARN ITS PLACE, and this is the single most common
-    // surprise in the game (measured r254: a random five-card selection carries
-    // a dropped card 80% of the time). It is one line here and a tip on the
-    // board the first time it actually happens - the tip is the better teacher,
-    // because it fires with the red cards in front of you.
     id: 'passengers', anchor: () => tutEls('#hand-name', '#selected-cards'), side: 'bottom',
     hold: true, next: true,
-    when: () => tutIdle() && handsPlayed >= 1,
+    when: () => tutRoundLive(),
     eyebrow: 'Basics',
-    title: 'Every card has to be used',
-    body: `A hand cannot carry a passenger. Select five cards where only four make a shape and the fifth is <b>dropped</b>: you lose its pips and the card.<br><br>A card about to be dropped turns red on the board, and the label beside the preview prices it. Watch for that before you play.`,
+    title: 'Every card must be used',
+    body: `Select five cards where only four make a shape and the fifth is <b>dropped</b>. You lose its pips and the card.<br><br>A card about to be dropped turns red on the board, and the label beside the hand shows what it costs.`,
+  },
+  {
+    // r284: Selection Size is a cap AND a floor, and nothing on screen says so
+    // until the floor bites.
+    id: 'selection', anchor: () => tutEls('#sel-count', '#sel-display', '#hand-name'), side: 'bottom',
+    hold: true, next: true,
+    when: () => tutRoundLive(),
+    eyebrow: 'Basics',
+    title: 'Selection Size',
+    body: () => {
+      const cap = tutSelCap(), min = tutSelMin();
+      return `Your Selection Size is <b>${cap}</b>. That is the most cards you can put in one hand.<br><br>`
+           + (min > 2
+              ? `It carries a floor with it: you must commit at least <b>${min}</b>. Under that the hand label reads NEED.<br><br>`
+              : `Raising it also raises a floor - the most you can select, minus two - so bigger hands become the minimum as well as the maximum.<br><br>`)
+           + `The count beside the board is what you have selected over what this screen will take.`;
+    },
   },
   {
     id: 'focus', anchor: () => tutEl('#focus-meter-wrap'), side: 'right', hold: true, next: true,
-    when: () => tutIdle() && handsPlayed >= 1,
     eyebrow: 'Focus',
     title: 'The {FOCUS} meter',
-    body: `{FOCUS} is a multiplier on everything you score. It builds each time you play a hand, based on two things:<br><br>the hand type, since harder hands give more<br>how quickly you played it after the last one<br><br>It drains while you sit still, so keep playing.`,
+    body: `{FOCUS} multiplies every hand you score.<br><br>It goes up when you play a bigger shape, and when you play soon after the last hand.<br><br>It drains while you sit still.`,
   },
   {
     id: 'quota', anchor: () => tutEls('#score-center', '#score-left'), side: 'bottom', hold: true, next: true,
     eyebrow: 'Scoring',
     title: 'Score and goal',
-    body: `Your score this round, and the {GOAL} you need to hit.<br><br>Reaching it ends the round straight away. Going over earns you nothing extra, and falling short earns you nothing at all.<br><br>Score resets to zero each round. The {GOAL} gets bigger.`,
+    body: `Your score this round, and the {GOAL} you need.<br><br>Hit the {GOAL} and the round ends at once. Miss it and the run is over.<br><br>Score resets every round. The {GOAL} goes up.`,
   },
   {
     id: 'clock', anchor: () => tutEl('#vclock', '#clock-area'), side: 'bottom', hold: true, next: true,
     not: 'noclock',
     eyebrow: 'The clock',
-    title: 'Time is the cost',
-    body: () => `Playing a hand is free.<br><br>Fixing the board is not. A swap costs <b>${tutSwapCost()}s</b>. A discard costs <b>${tutDiscardCost()}s</b> per card.<br><br>Time still on the clock when you finish a round is paid out as credits, so finishing fast is worth money.`,
+    title: 'The clock',
+    body: () => `Playing a hand is free.<br><br>A swap costs <b>${tutSwapCost()}s</b>. A discard costs <b>${tutDiscardCost()}s</b> per card.<br><br>Time left when you clear the round is paid out in credits.`,
   },
   {
     // Interactive. The board was audited at deal time to guarantee an exchange
@@ -382,7 +408,7 @@ const TUTORIAL_STEPS = [
     when: () => tutRoundLive(),
     eyebrow: 'The clock',
     title: 'Swapping two cards',
-    body: () => `Two touching cards can trade places. <b>Double-tap</b> the first, then <b>tap</b> the second.<br><br>These two are highlighted because swapping them creates a hand that is not on the board right now.<br><br>Costs <b>${tutSwapCost()}s</b> and one of your swaps for this round.`,
+    body: () => `Two touching cards can trade places. <b>Double-tap</b> the first, then <b>tap</b> the second.<br><br>Swap the two highlighted cards. It makes a hand that is not on the board yet.<br><br>Costs <b>${tutSwapCost()}s</b> and one swap.`,
     onEnter: () => {
       selected = []; swapPending = null;
       tutorialSwapPlan = tutorialFindSwap();
@@ -404,7 +430,7 @@ const TUTORIAL_STEPS = [
     when: () => tutRoundLive(),
     eyebrow: 'The clock',
     title: 'Discarding cards',
-    body: () => `Cards you cannot use can be thrown back. The highlighted ones are in no hand on this board. <b>Select one, then press DISCARD.</b> Replacements fall in from above.<br><br>A discarded card goes to the <b>back of the deck</b>, so you will see it again this round. A card you <b>score</b> is set aside until the round ends. Discarding recycles a card, scoring spends it.<br><br>Costs <b>${tutDiscardCost()}s</b> per card. Swaps and discards are capped per round, and the number left is printed on each button. Any you do not spend pay out as credits.`,
+    body: () => `The highlighted cards are in no hand on this board. <b>Select one and press DISCARD.</b> Replacements fall in from above.<br><br>A discarded card goes to the back of the deck and comes round again this round. A card you score is set aside until the round ends.<br><br>Costs <b>${tutDiscardCost()}s</b> per card. The number you have left is printed on each button.`,
     onEnter: () => {
       selected = []; swapPending = null;
       tutorialDiscardPlan = tutorialFindDeadCards();
@@ -418,21 +444,29 @@ const TUTORIAL_STEPS = [
     // not obvious - so it gets its own step rather than a line buried in another.
     id: 'tooltips', anchor: () => tutEl('#grid'), side: 'left', hold: true, next: true,
     eyebrow: 'Reading the game',
-    title: 'How to pull up a tooltip',
-    body: `Anything you do not recognise will tell you what it does.<br><br>On a <b>computer</b>: hover the mouse over it.<br><br>On a <b>phone</b>: tap it. That works on a {trick} in your tray, a {knack} chip, and any tile on the reward board or in the shop. The only press-and-hold left is on the <b>play board</b>, where a tap is already how you select a card.<br><br>Every tooltip explains the coloured words inside it, so you never have to know the vocabulary first.`,
+    title: 'Reading anything on screen',
+    body: `Hover with a mouse, or tap on a phone. That works on a {trick} in your tray, a {knack} chip, and any tile on a reward board or in the shop.<br><br>On the play board a tap selects a card, so press and hold there instead.`,
+  },
+  {
+    // r284: limits are where most upgrades land, and the word meant nothing.
+    id: 'limits', anchor: () => tutEls('#btn-records', '#swap-indicator'), side: 'left',
+    hold: true, next: true,
+    eyebrow: 'What you own',
+    title: 'Limits',
+    body: `Limits are your allowances for the run. Most upgrades you buy raise one:<br><br><b>Selection Size</b> - cards per hand<br><b>Grid Rows</b> and <b>Grid Columns</b> - the size of the board<br><b>Swaps</b> and <b>Discards</b> - your stock each round<br><b>Starting Time</b> - seconds on the clock<br><b>{Trick} Slots</b> - how many you can hold<br><b>{FOCUS} Cap</b> - how high {FOCUS} goes<br><b>Luck</b> - how often rarer things are offered<br><br>RECORDS &rsaquo; Limits lists every one with its ceiling.`,
   },
   {
     id: 'tricks-cap', anchor: () => tutEls('#trick-tray-count', '#trick-tray-list'), side: 'left',
     hold: true, next: true,
     eyebrow: 'What you own',
-    title: '{Trick} slots are a hard cap',
-    body: `{Tricks} are permanent scoring bonuses and they live in the tray, not on the board. The count beside it is how many you are holding over how many you can hold.<br><br>When it is full a new one is <b>refused</b>, not swapped in. Make room first: tap a {trick} in the tray and sell it.`,
+    title: '{Trick} slots',
+    body: `{Tricks} are permanent scoring bonuses. They sit in the tray, not on the board.<br><br>The count beside the tray is how many you hold over how many you can hold. When it is full, a new {trick} is refused.<br><br>To make room, tap a {trick} in the tray and sell it.`,
   },
   {
     id: 'records-open', anchor: () => tutEl('#btn-records'), side: 'top', gate: true, hold: true,
     eyebrow: 'Records',
-    title: 'Open Records',
-    body: `Everything you might need to look up is in one place. <b>Press RECORDS.</b><br><br>The clock stops while it is open.`,
+    title: 'Open RECORDS',
+    body: `<b>Press RECORDS.</b> The clock stops while it is open.`,
     until: () => !!recordsOpen,
   },
   {
@@ -442,7 +476,7 @@ const TUTORIAL_STEPS = [
     hold: true, next: true,
     eyebrow: 'Records',
     title: 'Six tabs',
-    body: `<b>Deck</b> is every card and where it is. <b>Hands</b> is what each hand type pays. <b>Owned</b> lists your {tricks}, {sleights} and {knacks} with live descriptions. <b>Limits</b>, <b>Time</b> and <b>Performance</b> cover your allowances, where the clock went, and how the run is going.<br><br>Have a look now, then close it.<br><br>For anything this walkthrough skipped, there is a full handbook in <b>Settings &rsaquo; Help</b>.`,
+    body: `<b>Deck</b> - every card and where it is.<br><b>Hands</b> - what each shape pays.<br><b>Owned</b> - your {tricks}, {sleights} and {knacks}.<br><b>Limits</b>, <b>Time</b> and <b>Performance</b> - your allowances, where the clock went, and how the run is going.<br><br>Have a look, then close it.`,
     onExit: () => { if (recordsOpen) closeRecords(); },
   },
   {
@@ -450,19 +484,19 @@ const TUTORIAL_STEPS = [
     only: 'nodes',
     eyebrow: 'The run',
     title: 'Where you are',
-    body: () => `Five rounds, then a <b>manager review</b>. ${(typeof QUARTERS_PER_RUN === 'number') ? QUARTERS_PER_RUN : 4} sets of that and you win the run.<br><br>The {GOAL} goes up every round.`,
+    body: () => `Five rounds, then a <b>manager review</b>. ${(typeof QUARTERS_PER_RUN === 'number') ? QUARTERS_PER_RUN : 4} sets of that wins the run.<br><br>The {GOAL} goes up every round.`,
   },
   {
     id: 'progress-endless', only: 'survival', side: 'float', next: true,
     eyebrow: 'The run',
-    title: 'It does not stop',
-    body: `Clear a {GOAL}, take a reward, get a bigger {GOAL}. There is no act structure and no last round: you keep going until you miss one.<br><br>A review turns up every few minutes of play whatever you are doing.`,
+    title: 'No last round',
+    body: `Clear a {GOAL}, take a reward, get a bigger {GOAL}.<br><br>It keeps going until you miss one. A review arrives every few minutes.`,
   },
   {
     id: 'clear', side: 'float',
     eyebrow: 'Your turn',
     title: 'Go',
-    body: `The clock is running. Reach the {GOAL}. Any hands will do.`,
+    body: `Reach the {GOAL}. Any hands will do.`,
     until: () => goalReachedThisRound,
   },
 
@@ -477,8 +511,25 @@ const TUTORIAL_STEPS = [
     when: () => !!document.querySelector('#po-valued.show'),
     eyebrow: 'Payout',
     title: 'End of round pay',
-    body: () => `<b>Interest</b> pays 10% of the credits you are holding, so saving up is worth something.<br><br><b>Efficiency</b> pays 1 credit for every <b>${(typeof efficiencySecondsPerCoin === 'function') ? efficiencySecondsPerCoin() : EFFICIENCY_SECONDS_PER_COIN} seconds</b> left on the clock.<br><br><b>Unspent</b> pays for every swap and discard you did not use.`,
+    body: () => `<b>Interest</b> - 10% of the credits you are holding.<br><br><b>Efficiency</b> - 1 credit for every <b>${(typeof efficiencySecondsPerCoin === 'function') ? efficiencySecondsPerCoin() : EFFICIENCY_SECONDS_PER_COIN} seconds</b> left on the clock.<br><br><b>Unspent</b> - every swap and discard you did not use.`,
     until: () => !tutPayoutEl(),
+  },
+  {
+    // r284, owner's call: take a beat on the first reward screen and name the
+    // three things you can own. Placed before BOTH reward screens - the reward
+    // grid and the pick-of-three are mutually exclusive in a composed script,
+    // so one step covers whichever this mode uses.
+    // Guided has neither reward screen in its linear script, so it takes the
+    // beat on the CROSSROADS - the screen where it first spends on an entity.
+    id: 'entities', only: ['rewardgrid', 'picks', 'crossroads'],
+    anchor: () => tutEl('#grid'), side: 'left', next: true,
+    when: () => tutPickOpen()
+             || (tutRewardOpen() && !rewardDealing)
+             || (tutModeTags().has('crossroads')
+                 && document.body.classList.contains('grid-screen') && tutIdle()),
+    eyebrow: 'Rewards',
+    title: 'Three things you can own',
+    body: `<b>{Tricks}</b> usually raise your score. They sit in the tray and fire on their own.<br><br><b>{Knacks}</b> are permanent rule changes for the rest of the run.<br><br><b>{Sleights}</b> are part of your deck and fall onto the board like cards. They give all sorts of bonuses, and most need something done to them: played in a hand, double-tapped, swapped or discarded.`,
   },
   {
     // The pick-of-three is the reward loop in the Schedule, Survival and Flow.
@@ -487,7 +538,7 @@ const TUTORIAL_STEPS = [
     when: () => tutPickOpen(),
     eyebrow: 'Rewards',
     title: 'Take your pick',
-    body: `Three offers, one of each kind, and you take one.<br><br>A <b>tap reads</b> an option rather than taking it. Pick the one you want and then press <b>CONFIRM</b>, so a mis-tap never costs you the choice.<br><br>Rerolls come out of a pool you carry for the whole run, so spending one now is one you do not have later.`,
+    body: `Three offers. You take one.<br><br>A tap reads an option. Press <b>CONFIRM</b> to take it.<br><br>Rerolls come out of a pool you carry for the whole run.`,
     until: () => !tutPickOpen(),
   },
   {
@@ -495,7 +546,7 @@ const TUTORIAL_STEPS = [
     when: () => document.body.classList.contains('grid-screen') && tutIdle(),
     eyebrow: 'Between rounds',
     title: 'You choose what comes next',
-    body: `Four tiles, and you take one. A <b>round</b> is free and is how you earn credits; everything else costs credits AND the slot.<br><br>The slots are the real currency. Buying power always costs a round you will not get to play, and the difficulty goes up either way.`,
+    body: `Four tiles. You take one.<br><br>A <b>round</b> is free, and it is how you earn credits. Everything else costs credits and the slot.<br><br>The {GOAL} goes up either way.`,
   },
   {
     id: 'reward-intro', anchor: () => tutEl('#grid'), side: 'left', next: true,
@@ -505,14 +556,14 @@ const TUTORIAL_STEPS = [
     when: () => tutRewardOpen() && !rewardDealing,
     eyebrow: 'Rewards',
     title: 'You are picking a path',
-    body: `This is not a pick-one screen. You choose a connected run of tiles and you get <b>everything on it</b>, including the parts you do not want.<br><br>Gold tiles help you. Red tiles hurt. The good ones are deliberately placed behind the bad ones, so most paths cost you something.<br><br>Tap any tile to read it. Tapping one you cannot reach explains it without costing you a pick.`,
+    body: `Choose a connected run of tiles and you get <b>every tile on it</b>.<br><br>Gold tiles help you. Red tiles hurt.<br><br>Tap any tile to read it. Tapping one you cannot reach costs you nothing.`,
   },
   {
     id: 'pick-trick', anchor: () => tutRewardCell(tutorialRewardPlan?.trick), side: 'left', gate: true,
     only: 'rewardgrid',
     eyebrow: 'Rewards',
     title: 'Start here',
-    body: `Tap this tile to start the path.`,
+    body: `<b>Tap this tile.</b>`,
     until: () => tutRewardPicked(tutorialRewardPlan?.trick),
   },
   {
@@ -520,7 +571,7 @@ const TUTORIAL_STEPS = [
     only: 'rewardgrid',
     eyebrow: 'Rewards',
     title: 'The bad tile',
-    body: `The path has to run through this one. There is no way around it.<br><br>Tap it. Taking the downside is what pays for the tile after it.`,
+    body: `The path has to run through this one. <b>Tap it.</b>`,
     until: () => tutRewardPicked(tutorialRewardPlan?.debuff),
   },
   {
@@ -528,7 +579,7 @@ const TUTORIAL_STEPS = [
     only: 'rewardgrid',
     eyebrow: 'Rewards',
     title: 'Where you go next',
-    body: `This tile sends you to the <b>shop</b>.<br><br>Three tiles is all you get. <b>Selection Size</b> caps the path here, and it caps how many cards you can put in a hand.`,
+    body: `This tile sends you to the <b>shop</b>. <b>Tap it.</b><br><br>Your Selection Size caps how many tiles one path can take.`,
     until: () => tutRewardPicked(tutorialRewardPlan?.dest),
   },
   {
@@ -545,8 +596,8 @@ const TUTORIAL_STEPS = [
     only: 'rewardgrid',
     when: () => tutShopReady(),
     eyebrow: 'The shop',
-    title: 'The company store',
-    body: `The shop is a board too. Each row is a category with a name plate: {knacks}, {tricks}, {sleights}, card upgrades and limit upgrades.<br><br>Tap any tile to read what it does. Tiles that <b>touch each other</b> buy cheaper as a batch.`,
+    title: 'The shop',
+    body: `The shop is a board too. Each row is a category: {knacks}, {tricks}, {sleights}, card upgrades and limit upgrades.<br><br>Tap a tile to read it. Tiles that touch each other are cheaper bought together.`,
   },
   {
     id: 'shop-leave', anchor: () => tutEls('#btn-play', '#btn-discard'), side: 'left',
@@ -554,7 +605,7 @@ const TUTORIAL_STEPS = [
     when: () => tutShopReady(),
     eyebrow: 'The shop',
     title: 'Buy, then leave',
-    body: `Select what you want and press <b>BUY</b>. Reroll refreshes the shelves for a rising price, and SELL flips the board to what you own.<br><br>Press <b>LEAVE</b> when you are done. The next round deals straight away.`,
+    body: `Select what you want and press <b>BUY</b>.<br><br>Reroll refreshes the shelves for a rising price. SELL flips the board to what you own.<br><br>Press <b>LEAVE</b> when you are done.`,
     until: () => !tutShopOpen(),
   },
 
@@ -563,8 +614,8 @@ const TUTORIAL_STEPS = [
     id: 'outro', side: 'center',
     when: () => !tutShopOpen() && !tutBoardTaken() && tutIdle(),
     eyebrow: 'Done',
-    title: 'That is the shape of it',
-    body: `Everything else is built out of the parts you just used, and the game will explain each new thing the first time it turns up.<br><br>The full handbook is in <b>Settings &rsaquo; Help</b> whenever you want it.`,
+    title: 'That is everything',
+    body: `The rest of the game is built out of the parts you just used. New things explain themselves the first time they turn up.<br><br>The full handbook is in <b>Settings &rsaquo; Help</b>.`,
     actions: [
       { label: 'Play on', fn: () => tutorialEnd() },
       { label: 'Main menu', fn: () => { tutorialEnd(); stopTimers(); initMainMenu(); } },

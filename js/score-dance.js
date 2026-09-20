@@ -749,10 +749,18 @@ const WIN_BLAST_CFG = {
   spin:    160,    // max degrees at the apex, either way
   scale:   0.82,   // how small it gets at the apex
   fade:    0.10,   // opacity at the apex - deliberately NOT 0, or it pops back in
-  dur:     1180,   // ms for the whole out-hold-back trip
+  // THE TRIP IS TIMED OFF THE TALLY IT PLAYS UNDER (r291). The owner's spec is
+  // that the cards take about half as long to come home as the hand takes to
+  // score. Both figures below are ms AT 1x and are divided by the pace at the
+  // call site, so the whole trip tracks Settings > Motion > Scoring speed.
+  // Fitted from measured goal-hand tallies (see the table in CLAUDE.md):
+  // tally at 1x is about 6990ms for a 2-card hand and 989ms more per card, so
+  // half of it is 2500 + 495 per card.
+  dur:     2500,   // ms at 1x: the fixed part of the trip
+  perCard:  495,   // ms at 1x: ...plus this for every card in the hand
   outAt:   0.42,   // fraction of dur spent travelling out
   holdAt:  0.50,   // fraction at which the return starts
-  stagger: 18,     // ms between cards, nearest the centre first
+  stagger: 18,     // ms between cards at 1x, nearest the centre first
   outEase:  'cubic-bezier(.25,.6,.35,1)',
   backEase: 'cubic-bezier(.2,.75,.3,1)',
 };
@@ -1202,6 +1210,15 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
     if(!dncFF){
       sfxWinExplode();
       const C = WIN_BLAST_CFG;
+      // dncPace() IS the Scoring speed setting at this point, which is why the
+      // trip can track the slider without reading it: the accel only bumps on
+      // payout ticks (dncBumpAccel has ONE call site, in the particle launcher)
+      // and every one of those is in the tally, which has not started yet.
+      // The stagger scales with it too - left flat it would dominate the trip
+      // at high speeds instead of merely sequencing it.
+      const bPace = dncPace() || 1;
+      const bDur  = (C.dur + C.perCard * handCells.length) / bPace;
+      const bStag = C.stagger / bPace;
       const gr = gridEl.getBoundingClientRect(); const cx=gr.left+gr.width/2, cy=gr.top+gr.height/2;
       dncBlast = loseEls.map(el => {
         const r=el.getBoundingClientRect(); let ax=(r.left+r.width/2)-cx, ay=(r.top+r.height/2)-cy;
@@ -1217,9 +1234,9 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
           { transform:out,  opacity:C.fade, offset:C.outAt,  easing:'linear' },
           { transform:out,  opacity:C.fade, offset:C.holdAt, easing:C.backEase },
           { transform:home, opacity:1,      offset:1 },
-        ], { duration:C.dur, delay:i*C.stagger, fill:'both' }) };
+        ], { duration:bDur, delay:i*bStag, fill:'both' }) };
       });
-      // The blast outlives the await below on a wide board (the tally starts
+      // The blast outlives the await below at ordinary speeds (the tally starts
       // while the last cards are still coming home, which is the intent), so the
       // release is hung off the animations themselves rather than off the step.
       // A cancelled animation REJECTS `finished`, hence the catch - that is the

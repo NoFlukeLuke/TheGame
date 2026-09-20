@@ -15,7 +15,7 @@
 // p: { entity/type, label/name, emoji, icon, uses, cardFace }
 // ══════════════════════════════════════════════════════════════════════════
 
-// THE GLYPH, NORMALISED (r290). Every emoji this file draws goes through here,
+// THE GLYPH, NORMALISED (r292). Every emoji this file draws goes through here,
 // which is the whole point: the correction is stamped into the string, so the
 // reward grid, the tray, the Mart, Records, the events and the pick screens all
 // get it without any of them knowing it exists. See emojiInkScale in

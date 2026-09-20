@@ -243,7 +243,8 @@ const INFO_TOPICS = [
 
   { id: 'pick_three', group: 'between', title: 'Take your pick',
     body: [
-      'Three offers, one of each kind, and you take one. It is the base reward of the modes that have no reward board: the Schedule pays one out after every round you clear, and Survival after every {GOAL}.',
+      'Three offers, and you take one. It is the base reward of the modes that have no reward board: the Schedule pays one out after every round you clear, and Survival after every {GOAL}.',
+      'Each offer rolls its own type, so three {tricks} is a common outcome and a pick with no {knack} in it is the usual one.',
       'A TAP READS an option rather than taking it. You pick, then CONFIRM, so a mis-tap can never spend the choice for you.',
       'Rerolls come out of a pool you carry for the whole run rather than a fresh allowance each time, so one spent now is one you do not have later.',
     ] },

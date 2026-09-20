@@ -3417,7 +3417,7 @@
   }
   .reward-cell .rwd-art-ph { color: var(--rc); opacity: 0.85; font-size: 24px; text-shadow: 0 0 12px var(--rc); }
 
-  /* THE GLYPH ITSELF, ink-normalised (r290). --egs is stamped per glyph by
+  /* THE GLYPH ITSELF, ink-normalised (r292). --egs is stamped per glyph by
      emGlyph (js/entity-tile.js) from a cached canvas measurement, and scaling
      by it makes FONT-SIZE MEAN INK HEIGHT - every emoji paints exactly one em
      tall, so every box above is sized against the picture instead of against an

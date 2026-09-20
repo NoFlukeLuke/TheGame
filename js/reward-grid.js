@@ -1269,7 +1269,7 @@ function ensureRewardTooltip() {
   if (_rewardTT && document.body.contains(_rewardTT)) return _rewardTT;
   _rewardTT = document.createElement('div');
   _rewardTT.id = 'reward-tooltip';
-  _rewardTT.innerHTML = `<button class="rtt-close" aria-label="Close">✕</button><div class="rtt-rar"></div><div class="rtt-name"></div><div class="rtt-desc"></div>`;
+  _rewardTT.innerHTML = `<button class="rtt-close" aria-label="Close">✕</button><span class="rtt-more"></span><div class="rtt-rar"></div><div class="rtt-name"></div><div class="rtt-desc"></div><div class="rtt-defs"></div>`;
   // The ✕ unpins as well as hides: an X'd tooltip must stay closed even though
   // its tile is still the most recently selected one (owner spec, r237).
   _rewardTT.querySelector('.rtt-close').onclick = (e) => {
@@ -1280,7 +1280,26 @@ function ensureRewardTooltip() {
   document.body.appendChild(_rewardTT);
   return _rewardTT;
 }
-function hideRewardTooltip() { if (_rewardTT) { _rewardTT.classList.remove('show'); _rewardTT.dataset.key = ''; } }
+function hideRewardTooltip() { if (_rewardTT) { _rewardTT.classList.remove('show', 'kw-open'); _rewardTT.dataset.key = ''; } }
+
+// ── THE POINTER IS OVER THE BUBBLE (r288) ───────────────────────────────────
+// The bubble is pointer-events:none (r170 - at 214px it would otherwise eat the
+// clicks meant for the tiles it lies over), so a tile UNDERNEATH it still gets
+// `mouseenter` and swaps the bubble to itself. That was harmless while the
+// bubble was purely something to read; it is not harmless now there is a + in
+// its corner, because reaching that + means crossing the bubble, and every tile
+// crossed on the way rebuilt it - measured at 420x820, the rail opened on tile
+// 0-0 and was replaced by tile 0-3's bubble in the same gesture.
+//
+// So the tile-hover re-show stands down while the pointer is inside the bubble.
+// Tracked on the document because the bubble itself cannot receive the events.
+let _rttPt = { x: -1, y: -1 };
+document.addEventListener('pointermove', e => { _rttPt.x = e.clientX; _rttPt.y = e.clientY; }, true);
+function pointerOverRewardTip() {
+  if (!_rewardTT || !_rewardTT.classList.contains('show')) return false;
+  const r = _rewardTT.getBoundingClientRect();
+  return _rttPt.x >= r.left && _rttPt.x <= r.right && _rttPt.y >= r.top && _rttPt.y <= r.bottom;
+}
 
 // Which tile's tooltip is currently pinned open. This is the tile you most
 // recently picked (or last tapped to inspect) - see onRewardCellClick.
@@ -1299,7 +1318,14 @@ function showRewardTooltipFor(r, c) {
   const el = document.querySelector(`#grid .reward-cell[data-r="${r}"][data-c="${c}"], #reward-grid .reward-cell[data-r="${r}"][data-c="${c}"]`);
   if (!el) return;
   const tt = ensureRewardTooltip();
-  tt.className = 'rar-' + rewardRarity(p);
+  // An OPEN definition rail has to survive a re-show of the SAME tile (r288).
+  // This bubble is re-shown constantly: renderRewardTiles rebuilds the tiles and
+  // calls restoreRewardTooltip, and the hover rule snaps back to the pinned tile
+  // whenever the pointer leaves one - which is exactly what moving the pointer
+  // onto the + does when the bubble is sitting over a tile (portrait). Without
+  // this the rail opened and was rebuilt shut in the same gesture.
+  const wasOpen = tt.dataset.key === `${r}-${c}` && tt.classList.contains('kw-open');
+  tt.className = 'rar-' + rewardRarity(p);   // also clears kw-open from another tile
   tt.dataset.key = `${r}-${c}`;
   tt.querySelector('.rtt-rar').textContent  = (p.entity ? rewardRarity(p) + ' · ' : '') + rewardTypeLabel(p, cell.kind);
   tt.querySelector('.rtt-name').textContent = p.label;
@@ -1307,6 +1333,21 @@ function showRewardTooltipFor(r, c) {
   // the reward grid for round-scoped tricks - the round isn't live yet).
   const descText = (p._trick && typeof trickLiveDesc === 'function') ? trickLiveDesc(p._trick) : (p.desc || '');
   tt.querySelector('.rtt-desc').innerHTML   = colorizeKeywords(descText);
+  // r288 - definitions are never shown unasked; the + in the corner opens them.
+  // The chip is rebuilt with the text, so it is re-wired on every show.
+  tt.querySelector('.rtt-more').innerHTML = kwMoreHTML(descText);
+  tt.querySelector('.rtt-defs').innerHTML = kwDefsHTML(descText);
+  tt.classList.toggle('kw-open', wasOpen);
+  const _sign = tt.querySelector('.kw-more-sign');
+  if (_sign && wasOpen) _sign.textContent = '\u2212';
+  // Opening the rail PINS the tile, the same "you asked for this, so it stays"
+  // rule the entity tooltip's sticky mode follows. A hover-preview bubble is
+  // thrown away by the next renderRewardTiles (restoreRewardTooltip hides it
+  // outright when nothing is pinned), which would take the rail with it.
+  wireKwMore(tt, tt, (open) => {
+    if (open) rewardTipKey = `${r}-${c}`;
+    if (onShop) placeTipBelow(el, tt, { gap: 10 }); else placeTipSmart(el, tt, { gap: 12 });
+  });
   tt.classList.add('show');
   // Placement. The SHOP uses the boss-peek / hand-log rule (r254): centred on
   // the tile, below when there is room, flipped above when not, clamped - the
@@ -1330,8 +1371,8 @@ function attachRewardTooltip(el, p, kind) {
   // tooltip: leaving a tile snaps back to the tile that is actually pinned
   // rather than leaving the board with nothing explained.
   const r = +el.dataset.r, c = +el.dataset.c;
-  el.addEventListener('mouseenter', () => showRewardTooltipFor(r, c));
-  el.addEventListener('mouseleave', restoreRewardTooltip);
+  el.addEventListener('mouseenter', () => { if (!pointerOverRewardTip()) showRewardTooltipFor(r, c); });
+  el.addEventListener('mouseleave', () => { if (!pointerOverRewardTip()) restoreRewardTooltip(); });
   // Touch: press-and-hold PINS the tooltip without acting on the tile. The
   // click that follows the release is swallowed by whoever owns the tile's
   // click (the shop checks el._lpJustFired), so reading never costs a pick.
