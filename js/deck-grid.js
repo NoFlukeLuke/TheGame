@@ -109,6 +109,117 @@ function cardBuffLines(k) {
   return (typeof lexProse === 'function') ? lines.map(lexProse) : lines;
 }
 
+// ── A card's buffs are CORNER BANDS (r299) ───────────────────────────────────
+// Owner: "Can we implement the same corner marking system the tricks have ...
+// Like a diagonal line for every 5 pips or 5 mult, or 5 seconds if pause or
+// rewind or for each 1 focus or 1 replay."
+//
+// The mark is r274's: diagonal bands across a corner, one per unit, each a
+// coloured band with a bright centre line, drawn as background gradient stops
+// whose every length is a PERCENTAGE of the gradient's own axis - so it is the
+// same picture on a 40px card and a 119px one with no JS measurement, exactly as
+// the Trick disc's tier bands are. Rendered by `.card-bands` (css/style.css).
+//
+// IT LIVES HERE, BESIDE cardBuffLines, because that is the documented one place
+// a card's buffs are put into words (r209/r294) and this is the same question
+// asked in pictures. A second table of "what can a card carry" is how the two
+// would drift, which is what happened to the thing this replaces: the old
+// `buffBandHTML` tally covered pips, mult and The Vulture's pause and nothing
+// else, so a card carrying +4s of rewind or +1 replay looked unbuffed.
+//
+// THE TWO 8px `+Np` / `+Nm` TEXT LABELS ARE GONE WITH IT. A 57px card cannot
+// carry four numbers, the disc carries bands and no number for the same reason,
+// and the exact figures are one long-press away in cardBuffLines - which the
+// grid tooltip, the RECORDS deck matrix and the reward tiles all already read.
+//
+// ONE ELEMENT PER CORNER, AND THE CORNER IS THE GRADIENT'S ANGLE. A 45deg
+// gradient puts stop 0% at the bottom-left corner, 135deg at the top-left,
+// 225deg at the top-right, 315deg at the bottom-right; the stop list is
+// identical for all four, which is what keeps the four corners one object rather
+// than four hand-placed decorations. An explicit angle rather than `to top
+// right` because a card is 0.76 aspect, and a corner-to-corner gradient on a
+// tall box runs at 37 degrees - the bands have to be at 45 to read as the folded
+// corner the Trick disc's do.
+//
+// A corner is a FAMILY OF RESOURCES and the band colour says which member, so
+// two families can share one corner and be told apart. Nothing shares one today;
+// it is what a fifth family would do, because there are four corners.
+//
+// THERE IS NO PER-CARD FOCUS STORE, so the fifth family the owner named has
+// nothing to read - a card cannot grant Focus when it scores today. Adding one is
+// a row in this table plus the store and the site that pays it.
+const CARD_BAND_FAMILIES = [
+  { id: 'pips',   corner: 'tl', per: 5, color: '#3a6fca', lite: '#a9c8f7', of: (k, card) => permPips[k]   || 0 },
+  { id: 'mult',   corner: 'tr', per: 5, color: '#c0392b', lite: '#f2ada4', of: (k, card) => permMult[k]   || 0 },
+  // Seconds: the Card Market's rewind card AND The Vulture / Wait Four It /
+  // Temporal Rift's pause, summed, because the owner named them as one family
+  // ("5 seconds if pause or rewind"). The payout vocabulary makes time WHITE
+  // (PARTICLE_CFG.colors.time) and r296 proved near-white cannot mark a cream
+  // card, so the band inverts it the way r233 inverted the clock plate: a black
+  // band with a white centre line.
+  { id: 'time',   corner: 'bl', per: 5, color: '#141210', lite: '#ffffff', of: (k, card) => (permTime[k] || 0) + (card._vulturePause || 0) },
+  // Replays have no colour in the payout vocabulary and Echo Location's #e0ddd0
+  // is near-white, so green: the only high-contrast hue no other payout family
+  // has taken, and the same one the scaling arrow uses for the neighbouring idea.
+  { id: 'replay', corner: 'br', per: 1, color: '#2e9c68', lite: '#b6ecd1', of: (k, card) => permRetrig[k] || 0 },
+];
+const CARD_BAND_ANGLE = { tl: 135, tr: 225, br: 315, bl: 45 };
+// The disc's own numbers are start 13 / pitch 5 / thick 3 and it stops at five
+// bands. A CARD IS NOT THE DISC and they do not transfer: the disc's bands sit
+// under a foil label that ghosts them, while a card's face is bare cream with a
+// big centred rank on it, and a card has FOUR corners doing this at once where
+// the disc has one. At the disc's numbers six bands measured as a 105x105 wedge
+// out of a 119x158 card - most of the face, four times over. These are the same
+// picture pulled in toward the corner: six bands land in a 55x55 wedge.
+const CARD_BAND_START = 9;    // % of the axis to the first band's near edge
+const CARD_BAND_PITCH = 3.4;  // % from one band's near edge to the next
+const CARD_BAND_FULL  = 2;    // % a band is thick
+const CARD_BAND_OVER  = 4;    // % the outermost band is thick when the count runs past the cap
+const CARD_BAND_MAX   = 6;    // bands per corner: a 7th starts reaching the card's middle
+
+// A COUNT IS ROUNDED TO NEAREST AND FLOORED AT ONE, never truncated. The rate is
+// what the owner asked for - one band per 5 pips - but a floor would draw NOTHING
+// for the +4 pips The Bench hands out, which reads as the buff not having landed,
+// and a part-band drawn thin enough to mean "and a bit" comes out sub-pixel at
+// the sizes this is drawn at. So any buff at all is at least one band.
+function cardBandCount(v, per) {
+  return v > 0 ? Math.max(1, Math.round(v / per)) : 0;
+}
+
+function cardBandPaint(bands, angle) {
+  if (!bands.length) return '';
+  const stops = [];
+  bands.forEach((b, i) => {
+    const th = b.over ? CARD_BAND_OVER : CARD_BAND_FULL;
+    const s = CARD_BAND_START + i * CARD_BAND_PITCH, e = s + th, m = s + th / 2;
+    stops.push(`transparent ${s}%`, `${b.color} ${s}%`, `${b.lite} ${m}%`, `${b.color} ${e}%`, `transparent ${e}%`);
+  });
+  return `linear-gradient(${angle}deg, ${stops.join(',')})`;
+}
+
+function cardBandsHTML(card) {
+  if (!card || !card.rank) return '';
+  const k = cardId(card), byCorner = {};
+  CARD_BAND_FAMILIES.forEach(f => {
+    const n = cardBandCount(f.of(k, card) || 0, f.per);
+    if (!n) return;
+    const list = byCorner[f.corner] || (byCorner[f.corner] = []);
+    for (let i = 0; i < n; i++) list.push({ color: f.color, lite: f.lite });
+  });
+  return Object.keys(byCorner).map(corner => {
+    let list = byCorner[corner];
+    // Past the cap the OUTERMOST band is drawn double thick, which is the shape
+    // the tier ladder's own top rung has (r274: tier 5 and up is iridescent) -
+    // "this many and beyond". Clamping silently would make the mark a lie, and
+    // the exact figure is in the tooltip either way.
+    if (list.length > CARD_BAND_MAX) {
+      list = list.slice(0, CARD_BAND_MAX);
+      list[CARD_BAND_MAX - 1] = Object.assign({}, list[CARD_BAND_MAX - 1], { over: true });
+    }
+    return `<div class="card-bands" style="--cb:${cardBandPaint(list, CARD_BAND_ANGLE[corner])}"></div>`;
+  }).join('');
+}
+
 // The same vocabulary for an enhancement being OFFERED, from the `e` object
 // enhanceCardKey takes - so an offer site states exactly what it is about to
 // apply and the two cannot drift.

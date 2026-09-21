@@ -52,6 +52,16 @@ flat says *"scores +5 mult when played"*, scaling says *"scales +1 mult each tim
 it's played"*. `cardBuffLines(cardId)` in js/deck-grid.js is the single place a
 card's buffs are put into words, and every surface reads it.
 
+**On the BOARD they are corner bands** (r299) - `cardBandsHTML`, beside
+`cardBuffLines` in the same file and for the same reason. Diagonal bands across a
+corner in the Trick disc's own visual language (r274), **one per 5 pips / 5 mult /
+5 seconds / 1 replay**, coloured by family: pips blue top-left, mult red
+top-right, seconds (`permTime` + `_vulturePause`) black bottom-left, replays green
+bottom-right. `permXPips` / `permXMult` / `permCoins` deliberately have none - a
+x2 is not a tally of 5s - and there is no per-card FOCUS store to draw at all.
+Adding a family is a row in `CARD_BAND_FAMILIES`; see CLAUDE.md for the geometry
+and the traps.
+
 ### Permanent debuffs
 
 | effect | store | what it does |

@@ -1,4 +1,4 @@
-const BUILD = "2026-09-21 · r298 · a marked cell splits its highlight between its lines; the row/column axis alternates";
+const BUILD = "2026-09-21 · r299 · the line highlight is a ring only; a card's buffs are corner bands";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

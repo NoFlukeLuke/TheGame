@@ -1725,8 +1725,11 @@
      painted it dark red-brown. They also only existed for THREE of the nine
      line-marking Tricks, so Perfect Timing, Right Time, Groove, Assembly Line
      and Overtime marked cells that looked no different from unmarked ones.
-     `.rc-line-wash` (css/entity-fx.css) replaced them: one wash, divided
-     evenly between however many colours cover the cell, for all nine.
+     `.rc-line-ring` (css/entity-fx.css) is what covers all nine now, divided
+     evenly between however many colours cover the cell. r296 replaced these
+     with a divided WASH as well; r299 took the wash back out and left the ring
+     (owner: the outline is enough, and the face is wanted for the card's own
+     buff marks - see .card-bands below).
      Half of these rules were already dead - measured, the box-shadow and
      border-color both lost to later `.card` rules and only `background` was
      ever reaching the board. */
@@ -1736,11 +1739,38 @@
   .card.rc-woodpecker::after { content:''; position:absolute; inset:0; border-radius:inherit; pointer-events:none; animation: wp-ripple 0.34s ease-out 5; }
   @keyframes wp-peck { 0%,100% { transform: scale(1); } 50% { transform: scale(0.9); } }
   @keyframes wp-ripple { 0% { box-shadow: 0 0 0 0 rgba(90,170,90,0.5); } 100% { box-shadow: 0 0 0 12px rgba(90,170,90,0); } }
-  /* Permanent-buff corner tally bands (thin=1, thick=5) */
-  .buff-band { position:absolute; width:12px; height:2px; border-radius:1px; pointer-events:none; z-index:6; opacity:0.92; }
-  .buff-band.bb-thick { height:4px; }
-  .buff-band.bb-tl, .buff-band.bb-br { transform: rotate(-45deg); transform-origin: center; }
-  .buff-band.bb-tr, .buff-band.bb-bl { transform: rotate(45deg);  transform-origin: center; }
+  /* ── A card's buffs are CORNER BANDS (r299) ──────────────────────────────
+     The same mark a Trick's improvement tier wears (r274): diagonal bands
+     across a corner, one per unit, drawn as a linear-gradient at 45 degrees
+     with every length a PERCENTAGE of the gradient's own axis - so the mark is
+     the same picture on a 40px card and a 119px one, with no JS measurement.
+     One element per CORNER, and the corner is the gradient's ANGLE: 45deg puts
+     stop 0% at the bottom-left, 135deg at the top-left, 225deg top-right,
+     315deg bottom-right. The stops themselves are identical for all four, which
+     is what keeps the four corners the same object.
+     Built by cardBandsHTML (js/deck-grid.js), beside cardBuffLines - the one
+     place a card's buffs are put into words - so the mark and the tooltip
+     cannot drift about what the card carries.
+     It replaces the old `.buff-band` tally (thin=1, thick=5) and the two 8px
+     `+Np` / `+Nm` text labels: those covered pips and mult only, and the
+     numbers are in the tooltip.
+
+     z-index -1, AND IT HAS TO BE - the same trap the r296 face wash hit. `.rank`
+     and `.suit` are IN-FLOW flex children of the card, and CSS paints every
+     positioned descendant above in-flow content whatever the DOM order, so at 0
+     or auto a band crossing a corner would paint over the card's own rank. A
+     negative z-index paints above the element's BACKGROUND and below its in-flow
+     content, which is where a mark on the card's face belongs. It cannot fall
+     through the card either: `.card` carries a transform (the heartbeat), so it
+     is its own stacking context. */
+  .card-bands {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    z-index: -1;
+    background: var(--cb, none);
+  }
   /* Selection lift + swell (r179; +25% in r281). Composed on top of the grid
      heartbeat's --hb* vars, the way the base .card transform is, so a selected
      card keeps drifting with the rest of the board instead of freezing the

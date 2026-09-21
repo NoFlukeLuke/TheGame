@@ -89,38 +89,24 @@
 }
 
 /* ── "This card sits on a marked line" ────────────────────────────────────
-   Two layers, one paint. The WASH tints the card face and the RING frames it,
-   both from lineWedgePaint (js/entity-fx.js), so they always agree about which
-   half is which colour.
+   ONE LAYER: a ring around the card's own edge, from lineRingPaint
+   (js/entity-fx.js). There is no face wash - r296 added one and r299 took it
+   back out (owner: "the outline is sufficient, and that leaves more legibility
+   on the card to put its buffs"), so the face is free for the r299 corner buff
+   bands and the ring is what says the cell is on a marked line.
 
-   A card on SEVERAL marked lines DIVIDES BOTH EVENLY between their colours
+   A card on SEVERAL marked lines DIVIDES THE RING EVENLY between their colours
    (r296): a marked row crossing a marked column reads half and half, three
    lines read in thirds. Hard stops, never a blend - a blend of two Trick
    colours is a third colour that belongs to nothing, and that is what the old
    per-Trick tints in css/style.css produced (blue + red = a flat purple card).
-   Those tints are gone; these two rules are what replaced them, and unlike the
-   tints they cover all nine line-marking Tricks rather than three.
+   Those tints are gone; this rule is what replaced them, and unlike the tints
+   it covers all nine line-marking Tricks rather than three.
 
-   THE WASH IS z-index -1, AND IT HAS TO BE. `.rank` and `.suit` are IN-FLOW
-   flex children of the card, and CSS paints every positioned descendant above
-   in-flow content whatever the DOM order - so at z-index 0 or auto the wash
-   would cover the card's own rank and suit. A negative z-index paints above the
-   element's own BACKGROUND and below its in-flow content, which is exactly
-   where a wash belongs. It cannot fall through the card either: `.card` carries
-   a transform (the heartbeat), so it is its own stacking context.
-
-   THE RING IS PAINT MASKED DOWN TO THE BORDER, not a box-shadow, because a
-   box-shadow takes one colour and cannot be divided. padding sets the ring's
-   thickness; the two masks cancel everything inside the padding box, leaving
-   only the 2px frame. */
-.rc-line-wash {
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: var(--rcl-wash, transparent);
-  pointer-events: none;
-  z-index: -1;
-}
+   IT IS PAINT MASKED DOWN TO THE BORDER, not a box-shadow, because a box-shadow
+   takes one colour and cannot be divided. padding sets the ring's thickness;
+   the two masks cancel everything inside the padding box, leaving only the 2px
+   frame. */
 .rc-line-ring {
   position: absolute;
   inset: 0;

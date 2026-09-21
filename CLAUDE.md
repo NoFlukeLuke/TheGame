@@ -1207,8 +1207,9 @@ Four things r209's lines did not do. All four are owner spec.
   colour and cannot be divided. It is paint masked down to the border now
   (`padding` + two masks + `mask-composite`). Verified: 1 line is a flat fill,
   2 give two 50% wedges, 3 give three at 33.3%. **r296 gave the card's WASH the
-  same division** - see "A marked cell SPLITS its highlight" below, which is
-  where the crossing was actually being blended.
+  same division**, and **r299 took the wash back out** and left the divided ring
+  alone - see "A marked cell SPLITS its highlight" below and "A card's buffs are
+  CORNER BANDS" after it, which is what the freed face now carries.
 
 #### `clampRowColBonuses()` - and why it reads the LIMITS
 
@@ -1249,50 +1250,53 @@ based on a rule that it always alternates."*
 #### 1. The card's highlight is divided, not blended
 
 **The RING already divided itself (r223). The card's WASH did not, and the wash
-is what the player actually sees** - a 2px ring against a whole tinted card
-face. The wash came from a different system: six per-Trick rules in
-`css/style.css`, written long before r209, that had to name a COMBINED COLOUR
-for each pair of Tricks. So Right Place (blue) crossing Power Line (red) painted
-the card a flat **purple** and Power Line crossing Echo Location painted it dark
-red-brown - a colour belonging to neither Trick, which is exactly what r223
-called "a fourth colour that belongs to nothing".
+is what the player actually saw** - a 2px ring against a whole tinted card face.
+The wash came from a different system: six per-Trick rules in `css/style.css`,
+written long before r209, that had to name a COMBINED COLOUR for each pair of
+Tricks. So Right Place (blue) crossing Power Line (red) painted the card a flat
+**purple** and Power Line crossing Echo Location painted it dark red-brown - a
+colour belonging to neither Trick, which is exactly what r223 called "a fourth
+colour that belongs to nothing".
 
 They also only existed for **three of the nine** line-marking Tricks, so Perfect
 Timing, Right Time, Groove, Assembly Line and Overtime marked cells that looked
 no different from unmarked ones - the very gap r209 set out to close and only
 closed for the ring.
 
-- **One paint, two strengths.** `lineWedgePaint(metas, pct)` (js/entity-fx.js) is
-  now the single geometry: `pct` null gives the RING its solid colours, a number
-  gives the WASH the same wedges at `LINE_WASH_ALPHA` (22%). They must come from
-  one function or the ring's blue half would sit over the wash's red one.
-- **Equal wedges, hard stops, `from -45deg`** - so two colours split on the
-  card's own diagonal, one straight line corner to corner, and three read as
-  thirds. Verified in a real browser: 1 line = a flat fill, 2 = 50/50, 3 = three
-  120-degree wedges on the same card.
-- **`.rc-line-wash` is `z-index: -1`, AND IT HAS TO BE.** `.rank` and `.suit` are
-  IN-FLOW flex children, and CSS paints every positioned descendant above
-  in-flow content **whatever the DOM order** - so at `z-index: 0` or `auto` the
-  wash would cover the card's own rank and suit. A negative z-index paints above
-  the element's own BACKGROUND and below its in-flow content. It cannot fall
-  through the card either: `.card` carries a transform (the heartbeat), so it is
-  its own stacking context. Verified with `elementFromPoint` on every rank on a
-  full board, on the fall-animation clone and in the scoring dance.
-- **A LIGHT LINE COLOUR CANNOT BE A WASH ON A CREAM CARD**, and one of the nine
-  is light: Echo Location's `#e0ddd0` is near-white, so its wash measured
-  rgb(240,231,212) over a card face of rgb(244,234,213) - invisible at any alpha,
-  because no alpha makes near-white visible on near-white. `lineWashInk` darkens
-  **only** a colour over `LINE_WASH_MAX_L` (0.72 perceived luminance) down to
-  `LINE_WASH_TARGET_L` (0.55); gold, the next lightest, measures 0.64 and is left
-  alone. **The line, its end caps and the ring keep the table's colour exactly** -
-  they sit on the dark board or on the card's edge, where near-white reads best.
-  Perceived luminance is linear in the channels, so mixing k% with black scales
-  it by exactly k, which is what makes this one multiplication rather than a
-  search.
+r296 fixed both by giving the wash the ring's own divided geometry. **r299 then
+took the WASH out again and left the ring** - owner: *"I think the wash may be
+too much. Do we need the wash? I feel like the outline is sufficient, and that
+leaves more legibility on the card to put its buffs."* Which is what r299 put
+there: the corner buff bands below. The tints are still gone and the ring still
+covers all nine Tricks, which was the real gap; what went is spending the card's
+whole face on a fact its edge already states.
+
+- **Equal wedges, hard stops, `from -45deg`** (`lineRingPaint`, js/entity-fx.js) -
+  so two colours split on the card's own diagonal, one straight line corner to
+  corner, and three read as thirds. Verified in a real browser: 1 line = a flat
+  fill, 2 = 50/50, 3 = three 120-degree wedges on the same card.
+- **THE WASH WAS THE EXPENSIVE HALF, and a light line colour is why.** Echo
+  Location's `#e0ddd0` is near-white, so its wash measured rgb(240,231,212) over
+  a card face of rgb(244,234,213) - invisible at any alpha, because no alpha
+  makes near-white visible on near-white. It needed a whole luminance correction
+  (darken only a colour over 0.72 perceived luminance down to 0.55; perceived
+  luminance is linear in the channels, so mixing k% with black scales it by
+  exactly k). **On the card's EDGE, against the dark board, near-white is the
+  most legible of the nine** - so the ring takes every colour exactly as the
+  table gives it and `lineWashInk` / `LINE_WASH_*` / `lineColorLuma` went with
+  the wash. `lineWedgePaint(metas, pct)`, the one-geometry-two-strengths
+  function, is `lineRingPaint(metas)` again.
+- **The wash's `z-index: -1` is now the BANDS' z-index, for the same reason.**
+  `.rank` and `.suit` are IN-FLOW flex children, and CSS paints every positioned
+  descendant above in-flow content **whatever the DOM order** - so at `0` or
+  `auto` a face layer covers the card's own rank and suit. A negative z-index
+  paints above the element's own BACKGROUND and below its in-flow content. It
+  cannot fall through the card either: `.card` carries a transform (the
+  heartbeat), so it is its own stacking context.
 - **The Spectrum overrides went with the tints.** `.card.num-card.rc-*` existed
   only to put back the `--num-color` face the tints repainted, and drew its own
-  inset ring including the same blended purple. The shared wash and ring handle a
-  colour card as they handle a cream one.
+  inset ring including the same blended purple. The shared ring handles a colour
+  card as it handles a cream one.
 - `rc-pips` / `rc-mult` / `rc-retrigger` are **gone as classes too** - nothing
   reads them now. `rc-on-line` stays as the "this cell is on some line" marker.
   Half of the deleted rules were already dead: measured, their `box-shadow` and
@@ -1376,6 +1380,84 @@ is the id `col`, so half of every position Trick's printed description read
 "Cards scored in **col 1**". Pre-existing, but the alternation turns it from a
 coin flip into something every run shows, so it says `column` now - in the
 description and in the chooser's toast.
+
+### A card's buffs are CORNER BANDS (r299) - `cardBandsHTML`
+
+Owner: *"Can we implement the same corner marking system the tricks have ... Like
+a diagonal line for every 5 pips or 5 mult, or 5 seconds if pause or rewind or for
+each 1 focus or 1 replay."*
+
+The mark is **r274's**: diagonal bands across a corner, one per unit, each a
+coloured band with a bright centre line, drawn as background gradient stops whose
+every length is a PERCENTAGE of the gradient's own axis - so it is the same
+picture on a 40px card and a 119px one with no JS measurement. One band per **5
+pips · 5 mult · 5 seconds · 1 replay**.
+
+| corner | family | colour | reads |
+|---|---|---|---|
+| top-left | `permPips` | blue `#3a6fca` | per 5 |
+| top-right | `permMult` | red `#c0392b` | per 5 |
+| bottom-left | `permTime` + `_vulturePause` | black, white centre | per 5 |
+| bottom-right | `permRetrig` | green `#2e9c68` | per 1 |
+
+- **IT LIVES IN `js/deck-grid.js` BESIDE `cardBuffLines`**, which is the
+  documented one place a card's buffs are put into words (r209/r294) - this is the
+  same question asked in pictures. A second table of "what can a card carry" is
+  how the two would drift, and that is exactly what happened to the thing it
+  replaces: the old `buffBandHTML` (js/discard.js) covered pips, mult and The
+  Vulture's pause and nothing else, so a card carrying rewind seconds or a replay
+  looked **unbuffed**.
+- **THE TWO 8px `+Np` / `+Nm` TEXT LABELS ARE GONE WITH IT.** A 57px card cannot
+  carry four numbers, the Trick disc carries bands and no number for the same
+  reason, and the exact figures are one long-press away in `cardBuffLines` - which
+  the grid tooltip, the RECORDS deck matrix and the reward tiles already read.
+  Verified live: the tooltip on a `permRetrig` 3 card reads "+3 replay".
+- **ONE ELEMENT PER CORNER, AND THE CORNER IS THE GRADIENT'S ANGLE.** 45deg puts
+  stop 0% at the bottom-left, 135deg at the top-left, 225deg top-right, 315deg
+  bottom-right; the stop list is identical for all four, which is what keeps them
+  one object rather than four hand-placed decorations. An explicit angle rather
+  than `to top right` because a card is 0.76 aspect and a corner-to-corner
+  gradient on a tall box runs at **37 degrees** - the bands have to be at 45 to
+  read as the folded corner the disc's do.
+- **A COUNT IS ROUNDED TO NEAREST AND FLOORED AT ONE, never truncated.** The rate
+  is the owner's, but a floor would draw NOTHING for the +4 pips The Bench hands
+  out, which reads as the buff not having landed; and a part-band thin enough to
+  mean "and a bit" comes out **sub-pixel** at the sizes this draws at (1.4px on a
+  119px card, 0.7px on a 57px one). So any buff at all is at least one band.
+- **Past `CARD_BAND_MAX` (6) the OUTERMOST band is drawn double thick** - the
+  shape the tier ladder's own top rung has (r274: tier 5 and up is iridescent),
+  "this many and beyond". Clamping silently would make the mark a lie.
+- **z-index -1, and it has to be** - the r296 wash's trap, above. Verified: the
+  rank and suit paint over the bands on a 6-band card.
+- **THE DISC'S OWN NUMBERS DO NOT TRANSFER.** It is start 13 / pitch 5 / thick 3
+  and stops at five bands, under a **foil label that ghosts them**; a card's face
+  is bare cream with a big centred rank, and a card has FOUR corners doing this at
+  once. Measured at the disc's numbers: six bands are a **105x105 wedge out of a
+  119x158 card**, most of the face, four times over. Pulled in to start 9 / pitch
+  3.4 / thick 2, six bands land in a **55x55** wedge and the mark reads as a
+  corner mark.
+- **THE CENTRE HIGHLIGHT IS LOAD-BEARING ON SPECTRUM, which is the case to test
+  against.** The colour deck's ⚫ card is near-black, so a black `time` band on it
+  is invisible but for its white centre line; a green `replay` band on the green
+  card is the same story. Verified in a real browser on a full Spectrum board: all
+  four families legible on black, green, red, gold, blue and purple faces.
+- **`permXPips` / `permXMult` / `permCoins` deliberately have no band.** A x2 is
+  not a tally of 5s and the owner did not name them; a multiplier wants its own
+  vocabulary rather than a count of bands meaning something else. Known gap: a x
+  mult card (The Forge, The Price, Coin Flip) still shows nothing on the board.
+- **THERE IS NO PER-CARD FOCUS STORE**, so the fifth family the owner named has
+  nothing to read - a card cannot grant Focus when it scores today. Adding one is
+  a row in `CARD_BAND_FAMILIES` plus the store and the site that pays it. **A
+  corner is a FAMILY OF RESOURCES and the band colour says which member**, so a
+  fifth family shares a corner with its nearest relative rather than needing a
+  fifth corner. Nothing shares one today.
+
+Verified in a real browser at 1440x820 and 420x820, through the real menu and tap
+path, in Classic and Spectrum: every count draws the right number of bands (12
+pips -> 2, 4 pips -> 1, 20s -> 4, 3 replays -> 3, 30 mult -> 6, 60 mult -> 6 with
+the wide overflow), **0 bands overflow their card**, a fully buffed 16-card board
+plays a real hand through the full dance with the preview carrying its bands, and
+there are **no page errors**.
 
 ### The score panel between rounds (r223)
 
