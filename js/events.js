@@ -424,6 +424,30 @@ function evShuffle(arr) {
 // ══════════════════════════════════════════════
 // EVENT: THE FORGE  (this-or-that card enhancement)
 // ══════════════════════════════════════════════
+// AN OPTION BUFFS SEVERAL CARDS (r294, owner's numbers): a SCALING option takes
+// TWO cards, every other option takes THREE. The counts are the trade - a
+// scaling buff is worth more per card, so it reaches fewer of them - and they
+// are what makes the two kinds visibly different things to pick between rather
+// than two sentences to read closely.
+//
+// It is a real power increase on what this event used to pay, and deliberately
+// so: one card in a 52-card deck is a card you may not draw, and three of them
+// is a buff you will actually meet.
+//
+// The wording is buffOfferLine / buffOfferName (js/deck-grid.js) and not a
+// sentence typed here - see that file for why FLAT says BUFF and SCALING says
+// SCALES.
+const FORGE_SCALE_CARDS = 2;
+const FORGE_FLAT_CARDS  = 3;
+const FORGE_BOONS = [
+  { icon: '🔨',  rarity: 'common', e: { pips: 30 } },
+  { icon: '⚒️', rarity: 'rare',   e: { xpips: 2 } },
+  { icon: '✨',  rarity: 'common', e: { mult: 5 } },
+  { icon: '💥',  rarity: 'epic',   e: { xmult: 2 } },
+  { icon: '🔁',  rarity: 'rare',   e: { retrig: 1 } },
+  { icon: '📈',  rarity: 'epic',   e: { growMult: 1 } },
+  { icon: '🌱',  rarity: 'rare',   e: { growPips: 4 } },
+];
 function renderForge() {
   const body = document.getElementById('event-body');
   const all = allDeckCards();
@@ -431,44 +455,43 @@ function renderForge() {
     body.innerHTML = evEmptyHTML('No cards to upgrade.');
     setEventConfirm(true); return;
   }
-  const lbl = document.createElement('div');
-  lbl.className = 'ev-label';
-  lbl.textContent = 'PICK AN UPGRADE';
-  body.appendChild(lbl);
+  // No 'PICK AN UPGRADE' label: the panel's own title says CARD UPGRADE and its
+  // flavour line says to take one, so a third telling only cost a row of a
+  // panel that already scrolls.
 
-  // Pick 3 distinct random target cards (or reuse if deck is tiny)
-  const sh = a => { const r=[...a]; for(let i=r.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[r[i],r[j]]=[r[j],r[i]];} return r; };
-  const picks = sh(all);
-  const target = i => picks[i % picks.length];
+  // One shuffled pool handed out in order, so an option's cards are distinct
+  // and two options rarely name the same card. It WRAPS rather than running
+  // short: a deck thinned below eight cards still gets three full options, with
+  // a card appearing twice, which beats an option that silently buffs one.
+  const pool = evShuffle(all);
+  let cursor = 0;
+  const take = (n) => {
+    const out = [];
+    for (let i = 0; i < n; i++) out.push(pool[cursor++ % pool.length]);
+    return out;
+  };
 
-  const boons = [
-    // Two things at once here. Main's r209 point stands and is kept: FLAT vs
-    // SCALING must be stated in the words, because "gains +5 mult" was a flat
-    // bonus that never grew and read as one that did. On top of that the NAMES
-    // are plain now (r211) - "Temper"/"Season"/"Overcharge" told the player
-    // nothing about what they were choosing, and the card and the effect are the
-    // only two facts that matter.
-    (t) => ({ icon:'🔨', rarity:'common', name:`${cardLabel(t)}: +30 pips`, desc:`${cardLabel(t)} scores +30 pips every time it is played.`,
-              apply:()=>{ enhanceCardKey(cardId(t), {pips:30}); showMessage(`${cardLabel(t)} +30 pips when played`, 'var(--gold)'); } }),
-    (t) => ({ icon:'⚒️', rarity:'rare', name:`${cardLabel(t)}: ×2 pips`, desc:`${cardLabel(t)} scores double pips, for the rest of the run.`,
-              apply:()=>{ enhanceCardKey(cardId(t), {xpips:2}); showMessage(`${cardLabel(t)} ×2 pips`, 'var(--gold)'); } }),
-    (t) => ({ icon:'✨', rarity:'common', name:`${cardLabel(t)}: +5 mult`, desc:`${cardLabel(t)} scores +5 mult every time it is played.`,
-              apply:()=>{ enhanceCardKey(cardId(t), {mult:5}); showMessage(`${cardLabel(t)} +5 mult when played`, 'var(--gold)'); } }),
-    (t) => ({ icon:'📈', rarity:'epic', name:`${cardLabel(t)}: mult that grows`, desc:`${cardLabel(t)} gains another +1 mult each time it is played, for good.`,
-              apply:()=>{ enhanceCardKey(cardId(t), {growMult:1}); showMessage(`${cardLabel(t)} scales +1 mult per play`, 'var(--gold)'); } }),
-    (t) => ({ icon:'🌱', rarity:'rare', name:`${cardLabel(t)}: pips that grow`, desc:`${cardLabel(t)} gains another +4 pips each time it is played, for good.`,
-              apply:()=>{ enhanceCardKey(cardId(t), {growPips:4}); showMessage(`${cardLabel(t)} scales +4 pips per play`, 'var(--gold)'); } }),
-    (t) => ({ icon:'💥', rarity:'epic', name:`${cardLabel(t)}: ×2 mult`, desc:`${cardLabel(t)} doubles the mult, for the rest of the run.`,
-              apply:()=>{ enhanceCardKey(cardId(t), {xmult:2}); showMessage(`${cardLabel(t)} ×2 mult`, 'var(--gold)'); } }),
-    (t) => ({ icon:'🔁', rarity:'rare', name:`${cardLabel(t)}: plays twice`, desc:`${cardLabel(t)} scores its pips twice, for the rest of the run.`,
-              apply:()=>{ enhanceCardKey(cardId(t), {retrig:1}); showMessage(`${cardLabel(t)} replays`, 'var(--gold)'); } }),
-  ];
-  const chosen = sh(boons).slice(0, 3).map((make, i) => make(target(i)));
+  const chosen = evShuffle(FORGE_BOONS).slice(0, 3).map(b => {
+    const scaling = buffIsScaling(b.e);
+    const cards = take(scaling ? FORGE_SCALE_CARDS : FORGE_FLAT_CARDS);
+    return { ...b, cards, scaling };
+  });
+
   eventState.forgeChoice = null;
   chosen.forEach(opt => {
-    const el = makeChoiceEl({ icon:opt.icon, rarity:opt.rarity, name:opt.name, desc:opt.desc,
+    // The faces are drawn as real mini playing cards under the sentence, so the
+    // sentence says "these three cards" rather than listing them a second time.
+    const subject = cardCountPhrase(opt.cards.length);
+    const el = makeChoiceEl({
+      icon: opt.icon, rarity: opt.rarity,
+      name: buffOfferName(opt.e),
+      desc: buffOfferLine(opt.e, subject, opt.cards.length > 1),
+      cls: 'ec-forge',
+      extra: `<div class="ev-cardchips ec-facerow">` +
+        opt.cards.map(c => `<span class="ev-cardchip${['♥','♦'].includes(c.suit) ? ' red' : ''}">${cardLabel(c)}</span>`).join('') +
+        `</div>`,
       onClick: () => {
-        body.querySelectorAll('.event-choice').forEach(e=>e.classList.remove('selected'));
+        body.querySelectorAll('.event-choice').forEach(e => e.classList.remove('selected'));
         el.classList.add('selected');
         eventState.forgeChoice = opt;
         setEventConfirm(true);
@@ -477,8 +500,25 @@ function renderForge() {
     body.appendChild(el);
   });
 }
+// Every card is re-resolved at apply time: this screen was built from a
+// snapshot and a card can leave the run in between (the r192 rule).
+function applyForgeChoice(opt) {
+  const hit = [];
+  const seen = new Set();
+  opt.cards.forEach(c => {
+    const t = resolveDeckCard(c);
+    if (!t) return;
+    const k = cardId(t);
+    if (seen.has(k)) return;      // a wrapped pool can hand out one card twice
+    seen.add(k);
+    enhanceCardKey(k, opt.e);
+    hit.push(cardLabel(t));
+  });
+  if (!hit.length) { showMessage('Those cards have left the run', 'var(--c-coral)'); return; }
+  showMessage(`${buffJoin(hit)}: ${buffOfferName(opt.e)}`, 'var(--gold)');
+}
 function confirmForge() {
-  if (eventState.forgeChoice) { eventState.forgeChoice.apply(); render(); }
+  if (eventState.forgeChoice) { applyForgeChoice(eventState.forgeChoice); render(); }
   closeEvent();
 }
 
@@ -1260,12 +1300,15 @@ function renderBench() {
   eventState.benchCard = null;
   body.appendChild(evNote('Pick an upgrade, then pick the card it goes on. That card keeps it for the rest of the run.'));
 
+  // Names and sentences from buffOfferName / buffOfferLine (js/deck-grid.js).
+  // The card is picked on the NEXT step, so the subject is "this card" here.
   const boons = [
-    { icon:'🔨', rarity:'common', name:'+40 pips',  desc:'Scores 40 more pips, for the rest of the run.',        e:{ pips:40 },  say:'+40 pips'  },
-    { icon:'✨', rarity:'rare',   name:'+6 mult',   desc:'Adds 6 mult, for the rest of the run.',         e:{ mult:6 },   say:'+6 mult'   },
-    { icon:'💥', rarity:'epic',   name:'×2 mult',   desc:'Doubles the mult, for the rest of the run.',  e:{ xmult:2 },  say:'×2 mult'   },
-    { icon:'🔁', rarity:'rare',   name:'Plays twice',desc:'Scores twice, for the rest of the run.',    e:{ retrig:1 }, say:'replays'   },
-  ];
+    { icon:'🔨', rarity:'common', e:{ pips:40 }  },
+    { icon:'✨', rarity:'rare',   e:{ mult:6 }   },
+    { icon:'💥', rarity:'epic',   e:{ xmult:2 }  },
+    { icon:'🔁', rarity:'rare',   e:{ retrig:1 } },
+    { icon:'📈', rarity:'epic',   e:{ growMult:1 } },
+  ].map(b => ({ ...b, name: buffOfferName(b.e), desc: buffOfferLine(b.e, 'this card', false) }));
   const chosen = evShuffle(boons).slice(0, 3);
   chosen.forEach(b => {
     const el = makeChoiceEl({ icon:b.icon, rarity:b.rarity, name:b.name, desc:b.desc,
@@ -1317,7 +1360,7 @@ function confirmBench() {
   if (b && c) {
     // Per CARD, not per face - resolved fresh, since the pick was made before this.
     const t = resolveDeckCard(c);
-    if (t) { enhanceCardKey(cardId(t), b.e); showMessage(`${cardLabel(t)} ${b.say}`, 'var(--gold)'); }
+    if (t) { enhanceCardKey(cardId(t), b.e); showMessage(`${cardLabel(t)}: ${buffOfferName(b.e)}`, 'var(--gold)'); }
   }
   closeEvent();
 }
@@ -1481,17 +1524,17 @@ function confirmWorkshop() {
 // Multi-buy: tap to add, tap again to drop, total runs at the bottom. Confirm
 // buys everything in the basket. Nothing is charged until Confirm.
 const MARKET_BOONS = [
-  { key:'pips',   icon:'🔨', rarity:'common', tag:'+30 pips',    e:{ pips:30 },
-    say:'scores 30 extra pips every time it is played' },
-  { key:'mult',   icon:'✨', rarity:'rare',   tag:'+5 mult',     e:{ mult:5 },
-    say:'adds 5 mult every time it is played' },
-  { key:'time',   icon:'⏱',  rarity:'rare',   tag:'+4 seconds',  e:{ time:4 },
-    say:'puts 4 seconds back on the clock every time it is played' },
-  { key:'replay', icon:'🔁', rarity:'epic',   tag:'plays twice', e:{ retrig:1 },
-    say:'scores twice every time it is played' },
-  { key:'coin',   icon:'💰', rarity:'common', tag:'+2 credits',  e:{ coin:2 },
-    say:'pays 2 credits every time it is played' },
+  { key:'pips',   icon:'🔨', rarity:'common', tag:'+30 pips',    e:{ pips:30 } },
+  { key:'mult',   icon:'✨', rarity:'rare',   tag:'+5 mult',     e:{ mult:5 } },
+  { key:'time',   icon:'⏱',  rarity:'rare',   tag:'+4 seconds',  e:{ time:4 } },
+  { key:'replay', icon:'🔁', rarity:'epic',   tag:'plays twice', e:{ retrig:1 } },
+  { key:'coin',   icon:'💰', rarity:'common', tag:'+2 credits',  e:{ coin:2 } },
 ];
+// The wording is buffOfferName (js/deck-grid.js) rather than a clause typed per
+// row - these read "scores 30 extra pips every time it is played", which is the
+// sentence r294 took off the flat side everywhere else. Read at USE time, never
+// baked into the table: buffOfferName runs through lexProse, and the player can
+// change the vocabulary mid-run.
 
 function renderMarket() {
   const body = document.getElementById('event-body');
@@ -1533,7 +1576,7 @@ function renderMarket() {
     const el = makeChoiceEl({
       icon: off.boon.icon, rarity: off.boon.rarity,
       name: `${cardLabel(off.card)} · ${off.boon.tag}`,
-      desc: `A new ${cardLabel(off.card)} joins your deck. It ${off.boon.say}, for the rest of the run.`,
+      desc: `A new ${cardLabel(off.card)} joins your deck, buffed with ${buffOfferName(off.boon.e)}.`,
       cost: `${off.price} credits`,
       onClick: () => {
         const i = eventState.marketBasket.indexOf(off);

@@ -1717,42 +1717,19 @@
   }
   .card:hover:not(.unreachable) { background: #fffaee; }
 
-  /* Row/col positional bonus tints - pips=clubs(blue), mult=hearts(red), combo=spruce */
-  .card.rc-pips {
-    background: #e8eef8;
-    box-shadow: inset 0 0 10px rgba(34,85,204,0.35), 0 0 6px rgba(34,85,204,0.2);
-    border-color: rgba(34,85,204,0.5);
-  }
-  .card.rc-mult {
-    background: #f8e8e8;
-    box-shadow: inset 0 0 10px rgba(160,3,11,0.3), 0 0 6px rgba(160,3,11,0.15);
-    border-color: rgba(160,3,11,0.45);
-  }
-  .card.rc-pips.rc-mult {
-    background: #f0e8f5;
-    box-shadow: inset 0 0 12px rgba(110,40,135,0.45), 0 0 7px rgba(110,40,135,0.25);
-    border-color: rgba(110,40,135,0.55);
-  }
-  .card.rc-retrigger {
-    background: #2a2218;
-    border-color: #5a5040;
-    box-shadow: inset 0 0 8px rgba(200,200,200,0.08);
-  }
-  .card.rc-retrigger .rank,
-  .card.rc-retrigger .suit {
-    color: #e0ddd0 !important;
-    text-shadow: 0 0 8px rgba(230,225,210,0.9), 0 0 3px rgba(255,255,255,0.5);
-  }
-  .card.rc-pips.rc-retrigger {
-    background: #101828;
-    box-shadow: inset 0 0 10px rgba(34,85,204,0.25), inset 0 0 6px rgba(200,200,200,0.1);
-    border-color: rgba(34,85,204,0.4);
-  }
-  .card.rc-mult.rc-retrigger {
-    background: #281010;
-    box-shadow: inset 0 0 10px rgba(160,3,11,0.25), inset 0 0 6px rgba(200,200,200,0.1);
-    border-color: rgba(160,3,11,0.4);
-  }
+  /* The per-Trick row/col card tints lived here and are GONE (r296). They were
+     a flat background per Trick, and their whole problem was what happened
+     where two lines crossed: they had to name a COMBINED colour for each pair,
+     so Right Place (blue) crossing Power Line (red) painted a card purple - a
+     colour belonging to neither Trick - and Power Line crossing Echo Location
+     painted it dark red-brown. They also only existed for THREE of the nine
+     line-marking Tricks, so Perfect Timing, Right Time, Groove, Assembly Line
+     and Overtime marked cells that looked no different from unmarked ones.
+     `.rc-line-wash` (css/entity-fx.css) replaced them: one wash, divided
+     evenly between however many colours cover the cell, for all nine.
+     Half of these rules were already dead - measured, the box-shadow and
+     border-color both lost to later `.card` rules and only `background` was
+     ever reaching the board. */
   .card.rc-leyline { background: rgba(240,192,64,0.15); box-shadow: inset 0 0 0 1px rgba(240,192,64,0.4); }
   .card.rc-jeopardy { background: rgba(200,60,60,0.15); box-shadow: inset 0 0 0 1px rgba(200,60,60,0.5); }
   .card.rc-woodpecker { background: rgba(90,170,90,0.15); box-shadow: inset 0 0 0 1px rgba(90,170,90,0.5); animation: wp-peck 0.16s ease-in-out 5; }
@@ -2203,17 +2180,11 @@
     box-shadow: 0 0 0 3px #4a9eff, 0 0 12px rgba(74,158,255,0.55);
   }
 
-  /* Row/column marker tints would otherwise repaint the whole face, hiding the
-     card's colour - mark them with a ring instead so both stay readable. */
-  .card.num-card.rc-pips,
-  .card.num-card.rc-mult,
-  .card.num-card.rc-pips.rc-mult,
-  .card.num-card.rc-retrigger { background: var(--num-color); }
-  .card.num-card.rc-pips           { box-shadow: inset 0 0 0 3px #3a6fca; }
-  .card.num-card.rc-mult           { box-shadow: inset 0 0 0 3px #c0392b; }
-  .card.num-card.rc-pips.rc-mult   { box-shadow: inset 0 0 0 3px #9b59b6; }
-  .card.num-card.rc-retrigger      { box-shadow: inset 0 0 0 3px #e0ddd0; }
-  .card.num-card.rc-retrigger .rank { color: var(--num-ink) !important; text-shadow: 0 2px 4px rgba(0,0,0,0.32); }
+  /* Spectrum's counterpart to the tints above, gone with them (r296). It existed
+     only to put back the `--num-color` face the tints repainted, and to draw its
+     own inset ring in place of them - including the same blended purple for a
+     crossing. The shared wash and ring handle a colour card as they handle a
+     cream one, so there is nothing left to undo here. */
 
   /* Deck view / records chips: fill the chip with its colour. */
   .deck-chip.num-suit { background: var(--num-color); color: var(--num-ink); border: 1px solid rgba(0,0,0,0.35); }

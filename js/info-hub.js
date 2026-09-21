@@ -219,9 +219,9 @@ const INFO_TOPICS = [
 
   { id: 'priming', group: 'owned', title: 'Primed - the violet +2',
     body: [
-      'A PRIMED {trick} fires an extra time on your next hand. The violet pill on the tile is how many extra fires are stacked up.',
-      'Some sources prime for one hand; the Extra Rep meeting primes a {trick} PERMANENTLY, so it fires an extra time every hand for the rest of the run.',
-      'Priming replays what the {trick} paid. It cannot make a {trick} fire when its condition was not met. A FORCED fire is the other thing: it ignores the condition and pays anyway.',
+      'A PRIMED {trick} fires again on your next hand. The violet pill on the tile is how many extra fires are stacked up, and all of them go off on the same hand.',
+      'The stack is then spent. The Extra Rep meeting primes a {trick} PERMANENTLY, so that one fires an extra time every hand for the rest of the run.',
+      'A prime cannot make a {trick} fire when its condition was not met, and a {trick} that sat the hand out keeps its stack. A FORCED fire is the other thing: it ignores the condition and pays anyway.',
     ] },
 
   // ── Between rounds ────────────────────────────────────────────────────────

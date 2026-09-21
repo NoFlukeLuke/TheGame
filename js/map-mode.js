@@ -15,8 +15,10 @@
 // - Leaving a set after only ONE visit pays MAP_SKIP_BASE + MAP_SKIP_STEP * n
 //   credits (n = how many times you have skipped this run): 6, 8, 10...
 // - Set 1 is ALL LEVELS. Sets 2..5 each carry at least one level. The final
-//   set is the FUNNEL: exactly two non-level tiles on non-adjacent lanes, so
-//   you take exactly one of them before the boss.
+//   set is the FUNNEL: non-level tiles only, and how many of its four lanes
+//   carry one is a roll (r253). It books TWO like any other slot (r293) - at a
+//   two-solid funnel they sit on non-adjacent lanes, so the board is what
+//   limits you to one there, not a rule.
 // - Two BLANKS somewhere in the middle sets (never set 1). Inert by default -
 //   they cannot be stepped on or through. Up to two MYSTERY tiles hide their
 //   kind until confirmed (they still count toward the minimums underneath).
@@ -513,7 +515,20 @@ function mapLegalMoves() {
     const { lane, set } = o;
     const visits = mapFreeBranch ? mapVisitsInSet(set) : mapVisits;
     const from = { lane, set, visits };
-    if (set === MAP_SETS - 1) {         // funnel: only the boss remains
+    // THE LAST SLOT BOOKS TWO LIKE EVERY OTHER SLOT (r293, owner's call).
+    // It used to return the review and nothing else, which made the funnel the
+    // one slot in the schedule with its own rule. Forward is still always the
+    // review - there is no set beyond this one - so the only thing added is the
+    // ordinary sideways move. The dead-end DP needs no change: mapCanFinishFrom
+    // answers TRUE for every funnel cell already, because the review is
+    // reachable from all four lanes.
+    if (set === MAP_SETS - 1) {
+      if (visits < 2) {
+        for (const dl of [-1, 1]) {
+          const t = mapCellTile(lane + dl, set);
+          if (t && t.set === set) consider(t, { lane: t.lane, set, visits: visits + 1 }, from);
+        }
+      }
       const boss = mapTiles.find(t => t.kind === 'boss');
       if (boss && !boss.visited) push({ tile: boss, after: { lane, set: MAP_BOSS_SET, visits: 1 }, from });
       continue;
@@ -739,6 +754,9 @@ function mapRender(animateIn) {
   // it is put back here; the strokes themselves live in mapDrawStrokes and are
   // repainted onto it (js/map-draw.js).
   if (typeof mapDrawMount === 'function') mapDrawMount(gridEl);
+  // The legend rail is measured off #grid, and #grid has just moved (a flip, a
+  // resize, a redraw at a different size), so it is re-placed against it.
+  if (typeof mapLegendReplace === 'function') mapLegendReplace();
 }
 
 function mapTileTap(t) {
@@ -770,7 +788,7 @@ const MAP_HELP = [
   ['Move', 'Take a lit obligation touching where you stand. Everything you take happens.'],
   ['Two a slot', 'A time slot will book you for two obligations at most.'],
   ['Leaving early', 'Leaving a slot after only one obligation pays you credits.'],
-  ['Last slot', 'One obligation, then the review.'],
+  ['Last slot', 'Book it like any other, then the review.'],
   ['Blocked out', 'Nothing scheduled there, and no way through.'],
 ];
 function mapRenderBar() {
@@ -778,15 +796,11 @@ function mapRenderBar() {
   if (!bar) { bar = document.createElement('div'); bar.id = 'map-bar'; document.body.appendChild(bar); }
   const setNo = mapPos ? Math.min(mapPos.set + 1, MAP_SETS) : 1;
   const skipNext = MAP_SKIP_BASE + MAP_SKIP_STEP * (mapSkips + 1);
-  // THE LAST SLOT BOOKS ONE OBLIGATION, so it must not print a cap of 2 (r281).
-  // mapLegalMoves has a hard `set === MAP_SETS - 1` case returning only the
-  // review, and this readout was still saying 1/2 there - the owner read that as
-  // a second visit being owed and the tile beside them being wrongly refused.
-  const slotCap = (mapPos && mapPos.set === MAP_SETS - 1) ? 1 : 2;
+  // Every slot books two, the last one included (r293) - so the cap is flat.
   const visits = mapPos
-    ? `${mapFreeBranch ? mapVisitsInSet(mapPos.set) : mapVisits}/${slotCap}${mapFreeBranch ? ' FREE' : ''}`
+    ? `${mapFreeBranch ? mapVisitsInSet(mapPos.set) : mapVisits}/2${mapFreeBranch ? ' FREE' : ''}`
     : 'PICK A START';
-  const inked = (typeof mapDrawStrokes !== 'undefined') && mapDrawStrokes.length > 0;
+  const inked = (typeof mapHasInk === 'function') && mapHasInk();
   bar.innerHTML =
     // PAUSE lives in the bar because the bar COVERS the play screen's own PAUSE
     // button. #map-bar is body-level in raw viewport px and grows to fit whatever
@@ -798,7 +812,8 @@ function mapRenderBar() {
     `<span class="mb-set">SLOT ${setNo}/${MAP_SETS}</span>` +
     `<span class="mb-visits">${visits}</span>` +
     `<button class="mb-q" id="mb-q" title="How the schedule works">?</button>` +
-    `<button class="mb-q" id="mb-key" title="What the obligations are">▤</button>` +
+    `<button class="mb-q${(typeof mapLegendOpen === 'function' && mapLegendOpen()) ? ' on' : ''}" ` +
+      `id="mb-key" title="What the obligations are">▤</button>` +
     `<button class="mb-q mb-pen${mapPenOn ? ' on' : ''}" id="mb-pen" ` +
       `title="Draw on the schedule (right-drag works without this; double right-click changes colour)">✎</button>` +
     `<button class="mb-q mb-sw" id="mb-pen-sw" title="Pen colour"><i id="mb-sw-dot"></i></button>` +
@@ -810,14 +825,9 @@ function mapRenderBar() {
     `<button id="mb-confirm" disabled>CONFIRM</button>` +
     `<div class="mb-help" id="mb-help">` +
       MAP_HELP.map(([k, v]) => `<div class="mb-hrow"><b>${k}</b><span>${v}</span></div>`).join('') +
-    `</div>` +
-    `<div class="mb-help" id="map-legend">` +
-      (typeof mapLegendRows === 'function' ? mapLegendRows().map(r =>
-        `<div class="ml-row ${r.cls}" data-cls="${r.cls}">` +
-          `<span class="ml-chip">${r.icon}</span>` +
-          `<b>${r.name || r.full}</b><span class="ml-txt">${r.blurb}</span>` +
-        `</div>`).join('') : '') +
     `</div>`;
+  // The legend is NOT in here any more (r294): it is a body-level rail beside
+  // the board, so it survives this rebuild instead of being destroyed by it.
   bar.classList.add('show');
   const btn = document.getElementById('mb-confirm');
   btn.onclick = () => mapConfirm();
@@ -841,25 +851,15 @@ function mapRenderBar() {
   };
   document.getElementById('mb-pause').onclick = (e) => { e.stopPropagation(); togglePauseMenu(); };
   document.getElementById('mb-q').onclick = cardToggle('mb-help');
-  document.getElementById('mb-key').onclick = cardToggle('map-legend', () => mapLegendHighlight(null, null));
+  document.getElementById('mb-key').onclick = (e) => { e.stopPropagation(); mapLegendToggle(); };
   document.getElementById('mb-pen').onclick = () => mapPenToggle();
   document.getElementById('mb-pen-sw').onclick = () => mapPenCycle();
   const undoBtn = document.getElementById('mb-undo');
   if (undoBtn) undoBtn.onclick = () => mapDrawUndo();
   const wipeBtn = document.getElementById('mb-wipe');
   if (wipeBtn) wipeBtn.onclick = () => mapDrawClear();
-  // A legend row lights its own kind on the board and drops everything else.
-  // Hover for a mouse, tap for a finger; the tap latches so it can be read.
-  bar.querySelectorAll('#map-legend .ml-row').forEach(row => {
-    const cls = row.dataset.cls;
-    row.onmouseenter = () => mapLegendHighlight(cls);
-    row.onmouseleave = () => mapLegendHighlight(null);
-    row.onclick = (e) => {
-      e.stopPropagation();
-      const next = (mapLegendLatch === cls) ? null : cls;   // tap again to release
-      mapLegendHighlight(next, next);
-    };
-  });
+  // A legend row lights its own kind and writes its sentence into this bar's
+  // own info line; both live with the rail now (js/map-draw.js).
   if (typeof mapPenSyncChrome === 'function') mapPenSyncChrome();
   if (mapSelected) { const t = mapTiles.find(x => x.id === mapSelected); if (t) mapBarInfo(t, mapMoveFor(mapSelected)); }
   // The x/y selection readout hides on the map (r255), and nothing else repaints
@@ -878,7 +878,7 @@ function mapBarInfo(t, move) {
     // Crunch pays nothing for a skip (js/crunch-mode.js), so it must not be
     // advertised here either - a bar promising credits the confirm will not pay
     // is worse than saying nothing.
-    if (move.from && move.after.set > move.from.set && move.from.visits === 1 && t.kind !== 'boss'
+    if (move.from && move.after.set > move.from.set && move.from.visits === 1
         && !(typeof crunchActive === 'function' && crunchActive()))
       s += ` <i>leaving now pays ${MAP_SKIP_BASE + MAP_SKIP_STEP * (mapSkips + 1)} ◆</i>`;
     if (t.span === 2) s += ` <i>runs over two slots</i>`;
@@ -892,10 +892,6 @@ function mapBarInfo(t, move) {
     }
   } else if (t.visited) s += ' <i>already taken</i>';
   else if (move && move.doomed) s += ' <i>dead-ends before the review</i>';
-  // Standing in the last slot, every refusal is the same refusal, so name it
-  // instead of printing the generic one (r281).
-  else if (t.kind !== 'boss' && mapPos && mapPos.set === MAP_SETS - 1 && t.set === MAP_SETS - 1)
-    s += ' <i>the last slot books one obligation, then the review</i>';
   else if (t.kind !== 'boss') s += ' <i>not reachable from here</i>';
   el.innerHTML = s;
 }
@@ -903,6 +899,9 @@ function mapBarInfo(t, move) {
 function mapCloseScreen() {
   mapScreenOpen = false;
   mapSelected = null;
+  // Hidden directly rather than through mapLegendClose, which re-renders the
+  // bar - and the bar is being taken down two lines below.
+  if (typeof mapLegendEl === 'function') mapLegendEl()?.classList.remove('show');
   if (typeof mapLegendHighlight === 'function') mapLegendHighlight(null, null);
   document.getElementById('map-bar')?.classList.remove('show');
   document.body.classList.remove('map-active');
@@ -955,11 +954,14 @@ function mapConfirm() {
   }
 
   // Skip payout: leaving a set after exactly one visit. Checked BEFORE the
-  // position moves; the boss step never pays (the funnel is one visit by design).
-  // In Crunch the skip pays nothing: moving on early already saves you the
-  // obligation's time fee, which is the whole currency of that mode, and paying
-  // credits as well would reward the same decision twice.
-  if (move.from && t.kind !== 'boss' && move.after.set > move.from.set && move.from.visits === 1
+  // position moves. THE STEP INTO THE REVIEW PAYS IT TOO (r293): the funnel
+  // books two like every other slot now, so walking out of it after one is the
+  // same decision the help card describes, and excluding it would leave the
+  // last slot special in the one way the player can still feel.
+  // In Crunch the skip pays nothing at all: moving on early already saves you
+  // the obligation's time fee, which is the whole currency of that mode, and
+  // paying credits as well would reward the same decision twice.
+  if (move.from && move.after.set > move.from.set && move.from.visits === 1
       && !(typeof crunchActive === 'function' && crunchActive())) {
     mapSkips++;
     const pay = MAP_SKIP_BASE + MAP_SKIP_STEP * mapSkips;

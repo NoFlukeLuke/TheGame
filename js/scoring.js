@@ -162,6 +162,11 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     // not pay it again. The dance applies these on a card's first beat only.
     if (once) e.once = true;
     _tl.push(e);
+    // Returned so a caller can MARK the event it just emitted. Today that is the
+    // prime loop alone (r296), which stamps `prime` so the dance can pace it as a
+    // quick second beat rather than a full one. Growing _ev's arg list to seven
+    // positionals and then an eighth is how a signature stops being readable.
+    return e;
   };
   const bPip  = (id, d) => { if (d) { _cp[id] = (_cp[id]||0)+d; _proc(id); _ev(id, 'pip+',  d); } };
   const bMult = (id, d) => { if (d) { _cm[id] = (_cm[id]||0)+d; _proc(id); _ev(id, 'mult+', d); } };
@@ -1020,11 +1025,13 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     if (_cp[mid]) { const _d = _cp[mid]; totalPips += _d; bPip('mirror', _d); }
     if (_cm[mid]) { const _d = _cm[mid]; mult += _d; bMult('mirror', _d); }
   });
-  // Primed Tricks (Inspirato / Prime Times): a primed Trick fires its effect an extra time
-  // per prime stack the hand it naturally contributes. Stacks are consumed in playHand.
+  // Primed Tricks (Inspirato / Prime Times): a primed Trick fires its effect an extra
+  // time PER STACK on the hand it naturally contributes to, and since r296 every one
+  // of those stacks is then spent together in playHand - a prime is a charge on the
+  // next firing, not a lease on the next few hands.
   // _rank is a PERMANENT prime (Rehearsal event, r194): it fires the Trick an
   // extra time exactly as a prime stack does, but playHand's consumption block
-  // only decrements _primed, so a rank never runs out. Reusing the prime loop is
+  // only clears _primed, so a rank never runs out. Reusing the prime loop is
   // what makes a Trick upgrade generic - it needs no code in any of the 177
   // Tricks, because it duplicates whatever pip/mult delta the Trick reported.
   if (trickTrayMode) trickTray.forEach(t => {
@@ -1032,7 +1039,33 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     if (_extra <= 0) return;
     const _pd = _cp[t.id] || 0, _md = _cm[t.id] || 0;
     if (!_pd && !_md) return;
-    for (let k = 0; k < _extra; k++) { if (_pd) { totalPips += _pd; bPip('primed', _pd); } if (_md) { mult += _md; bMult('primed', _md); } }
+    // THE EVENT IS THE TRICK'S; THE LEDGER ROW IS STILL 'primed' (r294).
+    // These paid through bPip('primed') / bMult('primed'), so the timeline event
+    // carried the literal id `primed` - and danceEntityEl looks a tray chip up by
+    // Trick id, so it resolved to NOTHING. The prime's score landed and the
+    // primed Trick never popped for it: the owner's "I didn't notice the prime
+    // making the trick animate twice". Measured on a +2 Kindred: two `mult+ 6`
+    // events on the timeline, both with id 'primed', both unresolvable.
+    //
+    // So the emit is split off and re-attributed while the ledger write stays
+    // exactly where it was - the quiet variants write `_cp`/`_cm` and bill the
+    // proc without emitting, and `_ev` is called with the Trick's own id. That
+    // keeps this BALANCE-NEUTRAL, which matters for one reason: _proc feeds the
+    // RIDER penalty (2s per proc, billed per Trick id in playHand), so billing a
+    // prime's extra fires to the Trick instead of to 'primed' would make a
+    // Rider-attached Trick cost real seconds it does not cost today.
+    // `bPipQ(id, d, procs)` defaults procs to 0, so the 1 is passed explicitly to
+    // reproduce bPip's single proc per call.
+    //
+    // `prime` is PACING ONLY - the dance plays a marked event as the quick second
+    // thump of a heartbeat instead of waiting a full beat for it (r296). The
+    // events stay exactly where calcScore emits them: the timeline replay has to
+    // reproduce calcScore's arithmetic (r220), so an event may be re-TIMED and
+    // never re-ORDERED.
+    for (let k = 0; k < _extra; k++) {
+      if (_pd) { totalPips += _pd; bPipQ('primed', _pd, 1);  const e = _ev(t.id, 'pip+',  _pd); if (e) e.prime = true; }
+      if (_md) { mult      += _md; bMultQ('primed', _md, 1); const e = _ev(t.id, 'mult+', _md); if (e) e.prime = true; }
+    }
   });
   // FORCED fires (r234, js/force-trick.js). Sits here, beside priming, because it
   // is the same question - "fire this Trick again" - asked of a Trick that did
@@ -1268,6 +1301,9 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
 // ══════════════════════════════════════════════
 function contribDisplayName(source, id) {
   if (source === 'exalt') return 'Exalt / Corrupt';
+  // 'primed' is not a Trick, so it fell through to the raw id and the round's
+  // breakdown printed a lower-case `primed` row among the Trick names (r294).
+  if (id === 'primed') return 'Primed fires';
   // Sleight/knack-sourced rows resolve against their own pools (Tricks are the default).
   if (source === 'sleight') return SLEIGHT_POOL.find(s => s.id === id)?.name || id;
   if (source === 'knack')   return KNACK_POOL.find(k => k.id === id)?.name || id;
@@ -1448,7 +1484,56 @@ function trickFires(id) {
     if (t) n += (t._primed || 0) + (t._rank || 0);
     n += mirroredTrickIds().filter(m => m === id).length;
   }
+  _trickFiredThisHand.add(id);
   return n;
+}
+
+// -- The record of what fired, for the effects the ledger cannot see (r296) ---
+//
+// A prime is SPENT when its Trick fires, and until r296 "did it fire" was asked
+// of the contributions ledger alone - which carries pips and mult and nothing
+// else. So the ~71 Tricks that pay in Focus, clock seconds, credits, swaps or
+// card buffs fired their extra times (trickFires() has counted the stack since
+// r203) and NEVER SPENT THE STACK. Measured on Deluge: 15 / 30 / 45 seconds at
+// 0 / 1 / 2 primes, with the count still reading 0 / 1 / 2 afterwards. That is
+// the other half of the owner's "I've ended levels with a +2 still on some
+// tricks".
+//
+// Every one of those payouts asks trickFires(), and trickFires() is called from
+// nowhere inside calcScore (verified: 0 sites) - so unlike the ledger it never
+// runs speculatively, and a set written here is an honest record of this hand.
+//
+// THE CONTRACT TIGHTENS BY ONE WORD: a caller must only ask when it is about to
+// PAY. "Every caller is an amount being granted" was already the rule; a site
+// multiplying by a count that can be zero now has to test that count FIRST, or
+// the Trick spends its primes for a payout that never landed. That is exactly
+// the guard the pip/mult replay loop keeps with its `if (!_pd && !_md) return;`.
+let _trickFiredThisHand = new Set();
+function resetTrickFires() { _trickFiredThisHand = new Set(); }
+function trickFiredThisHand(id) { return _trickFiredThisHand.has(id); }
+
+// -- primeTrick: THE ONE PLACE A PRIME IS GRANTED (r296) ----------------------
+//
+// Four sites hand primes out - Inspirato (the first and last tray Tricks),
+// Prime Times, the Understudy knack and Hallmark's prime outcome - and the
+// Buddy System knack has to see all four. A fifth site writing `t._primed++`
+// directly silently opts out of it, which is the whole reason this exists
+// rather than the knack being tested at each site.
+//
+// `echo` is what stops the second prime priming a third for ever.
+function primeTrick(t, n = 1, opts = {}) {
+  if (!t || !(n > 0)) return null;
+  t._primed = (t._primed || 0) + n;
+  if (!opts.echo && typeof hasKnack === 'function' && hasKnack('muscle_memory')) {
+    const pool = (typeof trickTray !== 'undefined' ? trickTray : []).filter(x =>
+      x !== t && !(typeof isTrickDisabledByBoss === 'function' && isTrickDisabledByBoss(x.id)));
+    if (pool.length) {
+      const buddy = pool[Math.floor(Math.random() * pool.length)];
+      primeTrick(buddy, n, { echo: true });
+      if (typeof showMessage === 'function') showMessage('🤝 Buddy System - ' + buddy.name + ' primed', '#8a5cf0');
+    }
+  }
+  return t;
 }
 
 // Returns all row/col bonus entries matching this card position
@@ -1482,6 +1567,82 @@ function firesThisMinute(id) {
 // A manual chooser (Surveyor/Leveler) always beats Alignment. Assignment is idempotent
 // per Trick object so an upgrade (selectTrick called twice) doesn't re-roll the line.
 const POSITION_ASSIGN_IDS = ['rowcol_triple_pips','rowcol_mult','rowcol_retrigger','perfect_timing','right_time','groove','assembly_line','overtime'];
+
+// -- The AXIS alternates; only the INDEX is luck (r296) ----------------------
+// Every one of the eight above is printed as "a marked row or column" and the
+// axis was rolled along with the line: pickDefaultLine pooled all the rows AND
+// all the columns and drew one cell out of the lot. On a 4x4 board that is a
+// coin flip per Trick, so a run could hand out four position Tricks and put all
+// four on rows - and did, often.
+//
+// The axis is now the ALTERNATION and the index is still the luck: each new
+// marked line lands on the opposite axis from the one before it. Row, column,
+// row, column.
+//
+// THAT IS WHAT MAKES CROSSINGS HAPPEN, which is the part that matters beyond
+// tidiness. Ley Line and Temporal Rift both fire wherever a row effect crosses
+// a column effect (isEffectIntersection / CARD_MARK_META, js/entity-fx.js), and
+// a run that rolled all rows gives them nothing to fire on at all. It is also
+// what the divided card highlight is for - a cell can only read half and half
+// if the board produces both axes.
+//
+// POSITION_FORCED_AXIS is the exemption: a Trick whose NAME names an axis keeps
+// that axis instead of taking the cursor's. NOTHING IS IN IT TODAY - all eight
+// are named for what they do (Right Place, Power Line, Echo Location, Perfect
+// Timing, Right Time, Groove, Assembly Line, Overtime), not for which way they
+// run - and it is the row a future "Row ..." or "... Column" Trick drops into.
+// An id in here still ADVANCES the cursor off the axis it took, so the run keeps
+// alternating around it.
+const POSITION_FORCED_AXIS = {
+  // trick id: 'row' | 'col'
+};
+// The axis the NEXT position Trick marks. Per run: reset in startGame, and in
+// SAVE_VARS so a resumed run carries on where it left off rather than restarting
+// the sequence. 'row' first, deliberately fixed rather than rolled - the whole
+// point is a rule the player can learn, and randomising the start would make the
+// first Trick of every run the one unpredictable link in the chain.
+let positionAxisNext = 'row';
+function positionAxisFor(trick) {
+  return POSITION_FORCED_AXIS[trick.id] || positionAxisNext;
+}
+// Advance off the axis ACTUALLY TAKEN, never off the cursor. A forced axis, the
+// Alignment knack's column and the player's own pick in the Surveyor / Leveler
+// chooser all go through here, so none of them can leave the run out of step.
+// Idempotent, so the chooser confirming the provisional default costs nothing.
+function markPositionAxisTaken(axis) {
+  positionAxisNext = (axis === 'row') ? 'col' : 'row';
+}
+
+// A SECOND RUN USED TO GET NO LINES AT ALL (r296). assignPositionMark is
+// idempotent per TRICK OBJECT - `_posAssigned` - so that an upgrade, which calls
+// selectTrick twice, cannot re-roll a line the player is already building around.
+// The trap is that what the player owns IS the pool object: makeTrickPayload's
+// `apply: () => injectTrickAfterReward(pick)` hands over `pick` itself, unlike
+// the knack path beside it which pushes `{ ...pick }`. So the flag outlived the
+// run that set it, and `startGame` clearing `rowColBonuses` was not enough -
+// granting Right Place in run 2 returned at the guard, finalizePositionMark
+// never ran, and the registry stayed EMPTY.
+//
+// Measured before the fix: run 1 registers `rowcol_triple_pips:row1` and
+// `rowcol_mult:col2`; run 2 grants both again and registers NOTHING. Both are
+// owned, both print "a marked row or column", and neither marks a line, scores
+// a bonus or draws anything on the board. That is all eight position Tricks,
+// common through epic, dead for every run of a session after the first.
+//
+// desc is NOT restored here: the tier reset (resetEntityTiers -> applyEntityTiers
+// -> applyBalDescriptions) already rewrites every description from the pristine
+// text on a new run, and `_posDescBase` is cleared so the next mark re-captures
+// whatever that left - which matters when the Trick was improved mid-run and its
+// printed number moved.
+function resetPositionMarks() {
+  const seen = new Set();
+  [typeof TRICK_POOL_ALL !== 'undefined' ? TRICK_POOL_ALL : null, typeof TRICK_POOL !== 'undefined' ? TRICK_POOL : null]
+    .forEach(pool => (pool || []).forEach(t => {
+      if (!t || seen.has(t)) return;
+      seen.add(t);
+      delete t._posAssigned; delete t._posAxis; delete t._posIndex; delete t._posDescBase;
+    }));
+}
 
 // Keep every marked line on a line that EXISTS. Growing the board needs nothing
 // - the index is a stored number and a wider board simply has more columns past
@@ -1541,7 +1702,11 @@ function finalizePositionMark(trick, axis, index) {
   rowColBonuses = rowColBonuses.filter(b => b._trickRef !== trick);  // one line per Trick object
   rowColBonuses.push({ id: trick.id, axis, index, _trickRef: trick });
   trick._posAxis = axis; trick._posIndex = index;
-  const label = `${axis} ${index + 1}`;
+  // "column", not the `col` the axis id spells - this string is printed in the
+  // tray, in Records and in the tooltip. The alternation (r296) guarantees half
+  // the position Tricks in every run land on a column, so it is now something
+  // the player reads every run rather than on a coin flip.
+  const label = `${axis === 'row' ? 'row' : 'column'} ${index + 1}`;
   trick.desc = trick._posDescBase
     .replace('a specific row or column', label)
     .replace('a marked row or column', label)
@@ -1563,8 +1728,15 @@ function assignPositionMark(trick) {
   if (hasKnack('leveler'))  axes.push('row');
   if (hasKnack('surveyor')) axes.push('col');
   if (axes.length) {                              // manual chooser wins over Alignment
-    const prov = pickDefaultLine(axes, district); // provisional so state is always valid
+    // Owning BOTH knacks offers both axes, so the provisional default is the
+    // alternation's; owning one means that knack IS the axis and the cursor has
+    // nothing to say. Written as one test so a forced-axis Trick also keeps its
+    // axis whenever the knacks leave it on the table.
+    const want = positionAxisFor(trick);
+    const provAxes = axes.includes(want) ? [want] : axes;
+    const prov = pickDefaultLine(provAxes, district); // provisional so state is always valid
     finalizePositionMark(trick, prov.axis, prov.index);
+    markPositionAxisTaken(prov.axis);
     queuePositionChooser(trick, axes, district);
     return;
   }
@@ -1573,10 +1745,17 @@ function assignPositionMark(trick) {
     let index = ((slot % gridCols) + gridCols) % gridCols;
     if (!district) index = firstFreeAlong('col', index);
     finalizePositionMark(trick, 'col', index);
+    markPositionAxisTaken('col');                 // the knack decided; keep the run in step with it
     return;
   }
-  const prov = pickDefaultLine(['row', 'col'], district); // default: random (spreads unless District)
+  // Default: the AXIS alternates, the INDEX is random (and spreads unless
+  // District). Asking pickDefaultLine for ONE axis rather than both is the whole
+  // change. If every line on that axis is already taken it still lands there, on
+  // an occupied one - the alternation is the rule, and a board with more position
+  // Tricks than it has lines has to double up somewhere.
+  const prov = pickDefaultLine([positionAxisFor(trick)], district);
   finalizePositionMark(trick, prov.axis, prov.index);
+  markPositionAxisTaken(prov.axis);
 }
 
 // ── Surveyor / Leveler line-chooser overlay ─────────────────────────────────
@@ -1620,7 +1799,9 @@ function showNextPositionChooser() {
       b.style.cssText = `min-width:42px;padding:8px 10px;border-radius:8px;font-size:13px;`
         + (blocked ? 'border:1px solid #444;background:rgba(60,60,60,0.4);color:#666;cursor:not-allowed;'
           : `border:2px solid ${current ? 'var(--gold)' : 'rgba(201,168,76,0.5)'};background:rgba(201,168,76,${current ? '0.28' : '0.13'});color:var(--gold);cursor:pointer;`);
-      if (!blocked) b.onclick = () => { finalizePositionMark(trick, axis, i); if (typeof showMessage === 'function') showMessage(`${trick.name} → ${axis} ${i + 1}`, 'var(--gold)'); showNextPositionChooser(); };
+      // markPositionAxisTaken: the player's own pick is what the run alternates
+      // off, not the provisional default assignPositionMark already committed.
+      if (!blocked) b.onclick = () => { finalizePositionMark(trick, axis, i); markPositionAxisTaken(axis); if (typeof showMessage === 'function') showMessage(`${trick.name} → ${axis === 'row' ? 'row' : 'column'} ${i + 1}`, 'var(--gold)'); showNextPositionChooser(); };
       row.appendChild(b);
     }
     ov.appendChild(row);

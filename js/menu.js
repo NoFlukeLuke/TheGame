@@ -1,4 +1,4 @@
-const BUILD = "2026-09-21 · r295 · Crunch moves to the dev panel while it is tuned";
+const BUILD = "2026-09-21 · r299 · Crunch: the Schedule on one clock for the whole quarter (dev panel -> Modes)";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

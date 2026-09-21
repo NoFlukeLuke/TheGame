@@ -440,26 +440,20 @@ function _generateRewardContent() {
     if (!_all.length) return null;
     const card = _all[Math.floor(Math.random() * _all.length)];
     const rank = card.rank, suit = card.suit;
-    // Three blessings, and the wording now says which KIND each one is (r209).
-    // "permanently gains +1 mult" was used for a FLAT bonus, which reads as
-    // growth - a player could hold that card all run waiting for a number that
-    // was never going to move. Flat says "scores"; scaling says "scales".
+    // Three blessings, worded by buffOfferLine (js/deck-grid.js) rather than by
+    // hand - r209's point was that FLAT and SCALING must be told apart in the
+    // words, and r294's is that saying it TWO WAYS in five places is how they
+    // came to differ by one verb. Flat is the word BUFF; scaling is SCALES.
+    const face = `${rank}${suit}`;
+    const bless = (icon, label, tier, e) => ({ icon, label, tier, cardFace: { rank, suit },
+      desc: buffOfferLine(e, face, false),
+      apply: () => { const t = resolveDeckCard(card); if (!t) return;
+        enhanceCardKey(cardId(t), e);
+        showMessage(`${face}: ${buffOfferName(e)}`, 'var(--gold)'); } });
     const roll = Math.random();
-    if (roll < 0.15) return { icon: '📈', label: 'Scaling Card', tier: 'legendary', cardFace: { rank, suit },
-      desc: `${rank}${suit} scales +1 mult each time it's played.`,
-      apply: () => { const t = resolveDeckCard(card); if (!t) return; const k = cardId(t);
-        permMultGrow[k] = (permMultGrow[k] || 0) + 1;
-        showMessage(`${rank}${suit} scales: +1 mult per play`, 'var(--gold)'); } };
-    if (roll < 0.4) return { icon: '✨', label: 'Blessed Card', tier: 'epic', cardFace: { rank, suit },
-      desc: `${rank}${suit} scores +5 mult when played.`,
-      apply: () => { const t = resolveDeckCard(card); if (!t) return; const k = cardId(t);
-        permMult[k] = (permMult[k] || 0) + 5;
-        showMessage(`${rank}${suit} blessed: +5 mult when played`, 'var(--gold)'); } };
-    return { icon: '✨', label: 'Blessed Card', tier: 'rare', cardFace: { rank, suit },
-      desc: `${rank}${suit} scores +12 pips when played.`,
-      apply: () => { const t = resolveDeckCard(card); if (!t) return; const k = cardId(t);
-        permPips[k] = (permPips[k] || 0) + 12;
-        showMessage(`${rank}${suit} blessed: +12 pips when played`, 'var(--gold)'); } };
+    if (roll < 0.15) return bless('📈', 'Scaling Card', 'legendary', { growMult: 1 });
+    if (roll < 0.4)  return bless('✨', 'Blessed Card', 'epic',      { mult: 5 });
+    return bless('✨', 'Blessed Card', 'rare', { pips: 12 });
   }
   // Cull buff: deck thinning - a specific low card leaves the run for good.
   function makeCullPayload() {

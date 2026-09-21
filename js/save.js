@@ -115,7 +115,7 @@ const SAVE_VARS = [
   'bonusMult_fives', 'bonusMult_nines', 'bonusMult_tens', 'bonusMult_compound',
   'bonusPips_prolific', 'bonusFocus_acorns', 'bonusMult_morebetter', 'bonusPips_fengshui',
   'bonusMult_jackpot', 'jackpotFired', 'safetyNetUsed', 'negativeTilesTakenRun',
-  '_perMinuteFired', 'handsPlayedGame', 'rowColBonuses', 'leyLinePos',
+  '_perMinuteFired', 'handsPlayedGame', 'rowColBonuses', 'positionAxisNext', 'leyLinePos',
   'minuteHandCharges', 'understudyNextMark',
   'hallmarkCardId', 'hallmarkMarkAt', 'hallmarkPlanted', 'forcedTrickIds',
   'cuckooNextMinute', 'compoundNextMark', 'compoundBanked', 'nsPlays', 'nsBonus', 'retriggersThisRound', 'woodpeckerActiveBlock', 'woodpeckerPos',

@@ -548,6 +548,14 @@ function startGame() {
   gameStartTime    = Date.now();
   fullHouseThisRound = 0;
   rowColBonuses = [];
+  // The alternating row/column cursor (r296, js/scoring.js). Per RUN, so every
+  // run's first position Trick marks a row; left alone it would carry whatever
+  // the last run finished on.
+  positionAxisNext = 'row';
+  // ...and the per-Trick `_posAssigned` guard with it, or the pool objects the
+  // grant paths hand out carry the last run's assignment and every position
+  // Trick granted from here on silently marks nothing (js/scoring.js).
+  resetPositionMarks();
   _posChooserQueue = []; _posChooserActive = false;
   { const _pc = document.getElementById('pos-chooser'); if (_pc) _pc.remove(); }
   leyLinePos = null;

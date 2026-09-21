@@ -99,25 +99,25 @@ function renderCardAppearance(card, r, c, {
   const isCombined = !!card.combined;
   const isTrick = trickCardPos && trickCardPos[0] === r && trickCardPos[1] === c;
 
-  const rcPips      = cellHasRowColBonus(r, c, 'rowcol_triple_pips') ? ' rc-pips'      : '';
-  const rcMult      = cellHasRowColBonus(r, c, 'rowcol_mult')        ? ' rc-mult'      : '';
-  const rcRetrigger = cellHasRowColBonus(r, c, 'rowcol_retrigger')   ? ' rc-retrigger' : '';
   const rcLeyline   = leyLinePos && leyLinePos.r === r && leyLinePos.c === c ? ' rc-leyline' : '';
   const rcJeopardy  = doubleJeopardyPos && doubleJeopardyPos.r === r && doubleJeopardyPos.c === c ? ' rc-jeopardy' : '';
   const rcWoodpecker = woodpeckerPos && woodpeckerPos.r === r && woodpeckerPos.c === c ? ' rc-woodpecker' : '';
-  // r209: the shared "what affected what" marks (js/entity-fx.js). `rcOnLine`
-  // is the piece that was missing - only 3 of the 9 line-marking Tricks tinted
-  // their cards, so Perfect Timing, Right Time, Study Hall, Groove, Assembly
-  // Line and Overtime marked a line the player could not see. One ring, in the
-  // owning Trick's colour, covers all nine.
-  // A card can sit on SEVERAL marked lines at once, so the ring divides itself
-  // evenly between their colours rather than naming one of them (js/entity-fx.js).
-  const _lineMetas  = (typeof lineMetasForCell === 'function') ? lineMetasForCell(r, c) : [];
-  const rcOnLine    = _lineMetas.length ? ' rc-on-line' : '';
-  // The ring is an inner element rather than a class + a CSS variable, because
+  // The shared "what affected what" highlight (r209, divided in r296 -
+  // js/entity-fx.js). A WASH over the card face and a RING around it, both in
+  // the owning Trick's colour, and both DIVIDED EVENLY when several marked lines
+  // cross this cell rather than naming one of them or blending into a third.
+  // It covers all nine line-marking Tricks. The three per-Trick `rc-pips` /
+  // `rc-mult` / `rc-retrigger` classes that used to tint the card went with the
+  // CSS that read them: they existed for 3 of the 9, so Perfect Timing, Right
+  // Time, Groove, Assembly Line and Overtime marked a line the player could not
+  // see, and they mixed a new colour at every crossing.
+  // Both are inner elements rather than classes + CSS variables, because
   // renderCardAppearance returns className and innerHTML only - it has nowhere
-  // to hang a per-card custom property.
-  const lineRing    = (typeof lineRingHTML === 'function') ? lineRingHTML(r, c) : '';
+  // to hang a per-card custom property. The meta list is resolved ONCE here and
+  // handed to both, so a full board does not ask the registry twice per card.
+  const _lineMetas  = (typeof lineMetasForCell === 'function') ? lineMetasForCell(r, c) : [];
+  const lineWash    = (typeof lineWashHTMLFor === 'function') ? lineWashHTMLFor(_lineMetas) : '';
+  const lineRing    = (typeof lineRingHTMLFor === 'function') ? lineRingHTMLFor(_lineMetas) : '';
   const fxMark      = (typeof cardMarkHTML === 'function') ? cardMarkHTML(r, c) : '';
   // A boss hold greys the card and puts its countdown on it (js/cooldown.js).
   const _cd = (typeof cardCooldownParts === 'function') ? cardCooldownParts(card, r, c) : { cls: '', html: '' };
@@ -144,8 +144,8 @@ function renderCardAppearance(card, r, c, {
     (exaltCorruptEnabled && card._corrupted) ? 'corrupted' : '',
     curse ? 'cursed' : '',
     bothClass.trim(),
-    rcPips.trim(), rcMult.trim(), rcRetrigger.trim(), rcLeyline.trim(), rcJeopardy.trim(), rcWoodpecker.trim(),
-    rcOnLine.trim(), _cd.cls,
+    rcLeyline.trim(), rcJeopardy.trim(), rcWoodpecker.trim(),
+    _lineMetas.length ? 'rc-on-line' : '', _cd.cls,
     (gp || gm) ? 'card-scaling' : '',
     // Card states + temp cards (r278). `card-temp` is independent of any state:
     // "this will not be here next round" is the thing a player most needs to
@@ -173,6 +173,7 @@ function renderCardAppearance(card, r, c, {
     ${buffBandHTML('tr', pm, '#c0392b')}
     ${buffBandHTML('br', card._vulturePause || 0, '#111')}
     ${(gp || gm) ? `<div class="card-grow-mark" title="Scales +${gp ? gp + ' pips' : ''}${gp && gm ? ' and +' : ''}${gm ? gm + ' mult' : ''} each time it's played">\u2197</div>` : ''}
+    ${lineWash}
     ${lineRing}
     ${fxMark}
     ${(typeof cardStateBadgeHTML === 'function') ? cardStateBadgeHTML(card) : ''}

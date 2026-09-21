@@ -229,25 +229,85 @@ function cellOnMarkedLine(r, c) {
   return m.length ? m[0] : null;
 }
 
-// The ring's paint. One colour is a flat fill; several are equal wedges of a
-// conic gradient with HARD STOPS, so a card on three lines shows three thirds
-// rather than a blend - a blend of three Trick colours is a fourth colour that
-// belongs to nothing. css/entity-fx.css masks whatever this returns down to the
-// border, so the card face is never covered.
-function lineRingPaint(metas) {
-  if (!metas.length) return '';
-  if (metas.length === 1) return metas[0].color;
-  const n = metas.length, step = 100 / n;
-  const stops = metas.map((m, i) => `${m.color} ${(i * step).toFixed(3)}% ${((i + 1) * step).toFixed(3)}%`);
-  return `conic-gradient(from -45deg, ${stops.join(', ')})`;
+// ── The card-side highlight ────────────────────────────────────────────────
+// ONE geometry, two strengths. The WASH is the card face tinted in the line's
+// colour; the RING is the same paint solid, masked down to the border. They are
+// built from the same conic on purpose - the ring's blue half has to sit over
+// the wash's blue half, or a crossing reads as two unrelated decorations.
+//
+// SEVERAL COLOURS ARE EQUAL WEDGES WITH HARD STOPS, NEVER A BLEND (r296). A card
+// on a marked row and a marked column reads HALF AND HALF; one on three lines
+// reads in thirds, and so on for as many as cover it. A blend is a colour that
+// belongs to nothing - which is exactly what the card had before this: the
+// pre-r296 per-Trick tints in css/style.css painted Right Place (blue) crossing
+// Power Line (red) as a flat PURPLE card, and Power Line crossing Echo Location
+// as a dark red-brown one. Those tints are gone; this is what replaced them.
+//
+// They also covered THREE of the nine line-marking Tricks. Perfect Timing, Right
+// Time, Groove, Assembly Line and Overtime tinted nothing at all, so half the
+// marked cells on a board had a highlight and half did not. This is driven off
+// lineMetasForCell, so every line-marking Trick gets the same treatment for free
+// - which is what r209 set out to do and only did for the ring.
+const LINE_WASH_ALPHA = 22;      // % of the line's colour, laid over the card face
+
+// A LIGHT LINE COLOUR HAS NOTHING TO SAY ON A CARD FACE, and one of the nine is
+// light: Echo Location's #e0ddd0 is near-white, so at any alpha at all its wash
+// lands within a couple of points of the cream card it is tinting (measured:
+// rgb(240,231,212) over a face of rgb(244,234,213) - invisible). The LINE, its
+// end caps and the RING keep the colour exactly as the table gives it - they sit
+// on the dark board or on the card's own edge, which is where near-white reads
+// best of all - and only the WASH darkens one that is too light to register.
+// Same idea as _ptLighten deriving the score particle's border from its plate.
+//
+// Perceived luminance is LINEAR in the channels, so mixing k% of the colour with
+// black scales it by exactly k - which is what makes "bring it down to
+// LINE_WASH_TARGET_L" one multiplication rather than a search. Only a colour
+// above LINE_WASH_MAX_L is touched at all; the other eight are left alone
+// (gold, the lightest of them, measures 0.64).
+const LINE_WASH_MAX_L    = 0.72;   // a wash colour lighter than this is darkened
+const LINE_WASH_TARGET_L = 0.55;   // ...down to this
+function lineColorLuma(hex) {
+  const m = /^#([0-9a-f]{6})$/i.exec(String(hex).trim());
+  if (!m) return 0;                                  // not a hex colour: leave it alone
+  const n = parseInt(m[1], 16);
+  return (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
+}
+function lineWashInk(hex, pct) {
+  const L = lineColorLuma(hex);
+  const base = (L > LINE_WASH_MAX_L)
+    ? `color-mix(in srgb, ${hex} ${(100 * LINE_WASH_TARGET_L / L).toFixed(1)}%, #000)`
+    : hex;
+  return `color-mix(in srgb, ${base} ${pct}%, transparent)`;
 }
 
-// The whole ring element for a cell, or '' when the cell is on no marked line.
-// Built here rather than in renderCardAppearance so the reward grid and any
-// future surface can draw the same ring by asking one function.
-function lineRingHTML(r, c) {
-  const metas = lineMetasForCell(r, c);
+// pct null = solid (the ring). A number = that much of the colour over whatever
+// is behind it (the wash).
+function lineWedgePaint(metas, pct) {
   if (!metas.length) return '';
-  const title = metas.map(m => m.name).join(' · ');
+  const ink = m => (pct == null ? m.color : lineWashInk(m.color, pct));
+  if (metas.length === 1) return ink(metas[0]);
+  const n = metas.length, step = 100 / n;
+  const stops = metas.map((m, i) => `${ink(m)} ${(i * step).toFixed(3)}% ${((i + 1) * step).toFixed(3)}%`);
+  // `from -45deg` so TWO colours split on the card's own diagonal - one straight
+  // line corner to corner - rather than on the vertical, which reads as a seam.
+  return `conic-gradient(from -45deg, ${stops.join(', ')})`;
+}
+function lineRingPaint(metas) { return lineWedgePaint(metas, null); }
+function lineWashPaint(metas) { return lineWedgePaint(metas, LINE_WASH_ALPHA); }
+
+// The two elements, from an already-resolved meta list. renderCardAppearance
+// works out the list once and builds both from it; the (r, c) forms below are
+// for any caller that has a cell and not a list.
+// Built here rather than in renderCardAppearance so the reward grid and any
+// future surface can draw the same highlight by asking one function.
+function lineRingHTMLFor(metas) {
+  if (!metas.length) return '';
+  const title = metas.map(m => m.name).join(' \u00b7 ');
   return `<div class="rc-line-ring" style="--rcl-ring:${lineRingPaint(metas)}" title="${title}"></div>`;
 }
+function lineWashHTMLFor(metas) {
+  if (!metas.length) return '';
+  return `<div class="rc-line-wash" style="--rcl-wash:${lineWashPaint(metas)}"></div>`;
+}
+function lineRingHTML(r, c) { return lineRingHTMLFor(lineMetasForCell(r, c)); }
+function lineWashHTML(r, c) { return lineWashHTMLFor(lineMetasForCell(r, c)); }

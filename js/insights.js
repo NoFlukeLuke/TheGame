@@ -177,7 +177,7 @@ const INSIGHTS = [
 
   { id: 'priming', screen: 'any', title: 'That one is primed',
     anchor: ['#trick-tray-list'],
-    body: 'The violet +N is how many extra times it fires on your next hand. Its condition still has to be met.',
+    body: 'The violet +N is how many extra times it fires on your next hand, all of them at once. Its condition still has to be met.',
     when: () => typeof trickTray !== 'undefined'
              && trickTray.some(t => t && ((t._primed || 0) + (t._rank || 0)) > 0) },
 

@@ -104,6 +104,14 @@
 #map-bar {
   position: fixed; left: 50%; bottom: 10px; transform: translateX(-50%);
   z-index: 260; display: none; align-items: center; gap: 9px;
+  /* IT WRAPS (r294). The strip is `width: max-content` under a viewport cap, and
+     every chip in it is a fixed size with CONFIRM at flex:0 0 auto - so on a
+     phone the row simply overflowed its own cap and CONFIRM, being last, went
+     off the right-hand edge. Measured before this at 11px off at 420 wide,
+     41px at 390 and 71px at 360, with no way to reach the only button that
+     commits an obligation. Wrapping grows the bar UPWARD, which costs nothing:
+     it is pinned to the bottom and the board sits well above it. */
+  flex-wrap: wrap; row-gap: 5px;
   width: max-content; max-width: calc(100vw - 20px);
   padding: 5px 6px 5px 10px; border-radius: 5px;
   background: linear-gradient(180deg, #171243, #0f0c26);
@@ -117,13 +125,18 @@
 #map-bar .mb-set   { color: var(--c-yellow, #f5c042); font-weight: 700; }
 #map-bar .mb-coins { color: var(--c-yellow, #f5c042); }
 #map-bar .mb-skip  { opacity: 0.75; }
-/* The picked tile's line. Flexible and CLIPPED, so a long description can
-   never push CONFIRM off the end of the strip. */
+/* The picked tile's line - and, since r294, the legend row you are reading.
+   Still bounded, because a long description must not stretch the strip; but it
+   is TWO LINES rather than one clipped one. At 46vw on a 420-wide phone it held
+   about 30 characters, which cut "An ordinary round. Clear it and take a pick
+   of three." off at "An ordinary round....". CONFIRM is safe either way now
+   that the bar wraps. */
 #map-bar .mb-info {
-  flex: 1 1 auto; min-width: 0; max-width: 46vw;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  flex: 1 1 auto; min-width: 0; max-width: min(560px, calc(100vw - 40px));
+  overflow: hidden; white-space: normal;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
   font-family: 'Crimson Pro', serif; font-size: 12.5px; letter-spacing: 0;
-  text-transform: none; color: var(--cream, #efe7d6);
+  line-height: 1.2; text-transform: none; color: var(--cream, #efe7d6);
 }
 #map-bar .mb-info:empty { display: none; }
 #map-bar .mb-info b { color: var(--c-yellow, #f5c042); font-weight: 700; }
@@ -159,7 +172,9 @@
   text-transform: none; color: var(--cream, #efe7d6); line-height: 1.25;
 }
 #map-bar #mb-confirm {
-  flex: 0 0 auto;
+  /* Last on its line whatever wrapped above it, so the commit button is always
+     in the same corner. */
+  flex: 0 0 auto; margin-left: auto;
   font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 11px;
   letter-spacing: 0.1em; text-transform: uppercase;
   padding: 5px 16px; border-radius: 4px; cursor: pointer;
@@ -311,38 +326,84 @@ body.map-active #swap-indicator { visibility: hidden; pointer-events: none; }
   background: #f5c042; box-shadow: 0 0 0 1px rgba(0,0,0,0.5) inset;
 }
 
-/* ── The legend (r263) ────────────────────────────────────────────────────────
-   Same card as the ? help, and it reuses .mb-help wholesale so the two can
-   never drift apart in placement (above the strip, never inside it). */
-#map-bar #map-legend { width: min(420px, calc(100vw - 24px)); }
-#map-bar .ml-row {
-  display: flex; gap: 8px; align-items: baseline; cursor: pointer;
-  padding: 3px 5px; margin: 0 -5px; border-radius: 4px;
+/* ── The legend rail (r263, moved beside the board r294) ─────────────────────
+   Body-level and docked in the empty strip to the RIGHT of the schedule, in
+   raw viewport px written by mapLegendPlace (js/map-draw.js). As a card above
+   the bar it covered the whole board on a phone, which is fatal for a list
+   whose whole job is lighting obligations up.
+
+   A row is the SYMBOL and the WORD - r276's rule for the board, and the only
+   thing a ~105px strip has room for. The sentence goes to #mb-info. */
+#map-legend {
+  position: fixed; z-index: 262; display: none;
+  flex-direction: column; box-sizing: border-box;
+  padding: 5px 5px 6px; border-radius: 5px;
+  background: linear-gradient(180deg, #171243, #0f0c26);
+  border: 2px solid rgba(150, 140, 255, 0.28);
+  box-shadow: 0 4px 18px rgba(0,0,0,0.7), 0 0 16px -6px rgba(140,120,255,0.55);
+  font-family: 'Share Tech Mono', monospace;
+  letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--cream-dim, #b9b0a0);
 }
-#map-bar .ml-row:hover, #map-bar .ml-row.on { background: rgba(150, 140, 255, 0.16); }
-#map-bar .ml-chip {
-  flex: 0 0 22px; height: 22px; display: grid; place-items: center;
-  border-radius: 3px; font-size: 13px; line-height: 1;
+#map-legend.show { display: flex; }
+/* The fallback for a strip too narrow to hold a row: centred over the board.
+   Worse than the rail, and still better than the legend not opening. */
+#map-legend.ml-float {
+  left: 50%; top: 50%; transform: translate(-50%, -50%);
+  width: min(300px, calc(100vw - 24px));
+}
+#map-legend .ml-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 6px; padding: 0 2px 5px; margin-bottom: 4px; flex: 0 0 auto;
+  border-bottom: 1px solid rgba(150, 140, 255, 0.24);
+  font-size: 9px; color: var(--c-yellow, #f5c042); letter-spacing: 0.12em;
+}
+#map-legend .ml-x {
+  flex: 0 0 auto; width: 16px; height: 16px; padding: 0; border-radius: 50%;
+  font-family: 'Orbitron', sans-serif; font-size: 8px; line-height: 1; cursor: pointer;
+  color: #cfc6ff; background: rgba(150, 140, 255, 0.14);
+  border: 1px solid rgba(150, 140, 255, 0.45);
+}
+#map-legend .ml-x:hover { background: rgba(150, 140, 255, 0.3); color: #fff; }
+/* The list scrolls, the header does not - so a very short board still shows the
+   title and the close. In a flex COLUMN a child shrinks by default, which is
+   what lets the list take the leftover and the head keep its own height. */
+#map-legend .ml-list { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+#map-legend .ml-row {
+  display: flex; gap: 6px; align-items: center; cursor: pointer;
+  padding: 3px 4px; border-radius: 4px;
+}
+#map-legend .ml-row + .ml-row { margin-top: 1px; }
+#map-legend .ml-row:hover, #map-legend .ml-row.on { background: rgba(150, 140, 255, 0.16); }
+#map-legend .ml-chip {
+  flex: 0 0 20px; height: 20px; display: grid; place-items: center;
+  border-radius: 3px; font-size: 12px; line-height: 1;
   color: var(--rc, #cfc6ff); border: 1px solid var(--rc, #cfc6ff);
   background: color-mix(in srgb, var(--rc, #cfc6ff) 16%, transparent);
 }
-#map-bar .ml-row b {
-  flex: 0 0 86px; color: var(--rc, var(--c-yellow, #f5c042)); font-weight: 700;
-  font-family: 'Share Tech Mono', monospace; font-size: 9.5px;
+/* The name WRAPS between words rather than truncating - "NOT SCHEDULED" is 13
+   characters against about 65px of rail, and the rail has height to spare. */
+#map-legend .ml-row b {
+  flex: 1 1 auto; min-width: 0;
+  color: var(--rc, var(--c-yellow, #f5c042)); font-weight: 700;
+  font-size: 8.5px; line-height: 1.2; overflow-wrap: normal; word-break: keep-all;
 }
-#map-bar .ml-txt {
-  font-family: 'Crimson Pro', serif; font-size: 12.5px; letter-spacing: 0;
-  text-transform: none; color: var(--cream, #efe7d6); line-height: 1.25;
+#map-legend .ml-row.mk-level     { --rc: #6fd08c; }
+#map-legend .ml-row.mk-challenge { --rc: #ff9d5c; }
+#map-legend .ml-row.mk-shop      { --rc: var(--c-yellow, #f5c042); }
+#map-legend .ml-row.mk-reward    { --rc: #8fd0ff; }
+#map-legend .ml-row.mk-event     { --rc: #c9a0ff; }
+#map-legend .ml-row.mk-limit     { --rc: #7fe3c0; }
+#map-legend .ml-row.mk-mystery   { --rc: #d8d0f0; }
+#map-legend .ml-row.mk-boss      { --rc: #ff5c5c; }
+#map-legend .ml-row.mk-blank     { --rc: #6b6480; }
+#map-legend .ml-chip .mk-svg { width: 12px; height: 12px; }
+/* The ▤ chip lights while the rail is open, the way the pen chip does - the
+   rail is off to the side, so the chip is what says it is up. */
+#map-bar .mb-q.on {
+  background: rgba(150, 140, 255, 0.34); color: #fff;
+  border-color: rgba(190, 180, 255, 0.85);
 }
-#map-bar .ml-row.mk-level     { --rc: #6fd08c; }
-#map-bar .ml-row.mk-challenge { --rc: #ff9d5c; }
-#map-bar .ml-row.mk-shop      { --rc: var(--c-yellow, #f5c042); }
-#map-bar .ml-row.mk-reward    { --rc: #8fd0ff; }
-#map-bar .ml-row.mk-event     { --rc: #c9a0ff; }
-#map-bar .ml-row.mk-limit     { --rc: #7fe3c0; }
-#map-bar .ml-row.mk-mystery   { --rc: #d8d0f0; }
-#map-bar .ml-row.mk-boss      { --rc: #ff5c5c; }
-#map-bar .ml-row.mk-blank     { --rc: #6b6480; }
 
 /* Reading the legend lights that kind and drops the rest, Slay the Spire's
    move. Written onto the live tiles, so it must beat the resting states above
@@ -358,4 +419,3 @@ body.map-active #swap-indicator { visibility: hidden; pointer-events: none; }
    centred in the whole tile rather than sitting above a name band. */
 #grid .map-tile .mt-icon { position: absolute; inset: 0; display: grid; place-items: center; }
 #grid .map-tile.mk-boss .mt-icon { font-size: 30px; }
-#map-bar .ml-chip .mk-svg { width: 13px; height: 13px; }

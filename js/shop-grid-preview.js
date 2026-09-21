@@ -234,13 +234,16 @@ function shopgCardPayloads(n) {
   return deck.map(card => {
     const face = `${card.rank}${(typeof cardColorSuit === 'function' ? cardColorSuit(card) : card.suit) || ''}`;
     const roll = Math.random();
-    const buff = roll < 0.60 ? { e:{ pips: 12 },     txt:'scores +12 pips when played',                    price: 6  }
-               : roll < 0.85 ? { e:{ mult: 5 },      txt:'scores +5 mult when played',                     price: 10 }
-                             : { e:{ growMult: 1 },  txt:'scales +1 mult each time it is played',          price: 15 };
+    const buff = roll < 0.60 ? { e:{ pips: 12 },    price: 6  }
+               : roll < 0.85 ? { e:{ mult: 5 },     price: 10 }
+                             : { e:{ growMult: 1 }, price: 15 };
     return {
       _cardBuff: true, icon: face, label: face,
-      desc: `Buff this exact card in your deck: it ${buff.txt}.`,
-      sub: buff.e.pips ? `+${buff.e.pips} pips` : buff.e.mult ? `+${buff.e.mult} mult` : `+${buff.e.growMult} mult/play`,
+      // buffOfferLine / buffOfferName (js/deck-grid.js) - the shop said "scores
+      // +12 pips when played" beside the Forge's "scores +30 pips every time it
+      // is played" for the same kind of buff (r294).
+      desc: buffOfferLine(buff.e, `this ${face} in your deck`, false),
+      sub: buffOfferName(buff.e),
       rarity: buff.e.growMult ? 'epic' : buff.e.mult ? 'rare' : 'common',
       price: buff.price,
       buy: () => {

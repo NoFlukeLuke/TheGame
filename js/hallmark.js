@@ -141,7 +141,7 @@ function hallmarkResolve(cards) {
         !(typeof isTrickDisabledByBoss === 'function' && isTrickDisabledByBoss(t.id)));
       if (!pool.length) { note = '+' + B.pips + ' pips'; permPips[k] = (permPips[k] || 0) + B.pips; break; }
       const t = pool[Math.floor(Math.random() * pool.length)];
-      t._primed = (t._primed || 0) + 1;
+      primeTrick(t);
       note = `${t.name} primed`;
       if (typeof renderTrickTray === 'function') renderTrickTray();
       break;

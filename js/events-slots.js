@@ -44,13 +44,12 @@ const SLOT_LINES = [
 // Rotating buffs. A paying line takes the next one and the index advances, so a
 // lucky run spreads its winnings across pips, mult and replays instead of piling
 // one stat onto a handful of cards.
+// Worded by buffOfferName (js/deck-grid.js), so a paying line reports a buff in
+// the same words every other offer site uses (r294). Read at USE time - that
+// function runs through lexProse and the vocabulary can change mid-run.
 const SLOT_BUFFS = [
-  { e:{ pips:25 },  say:'+25 pips' },
-  { e:{ mult:4 },   say:'+4 mult' },
-  { e:{ pips:40 },  say:'+40 pips' },
-  { e:{ retrig:1 }, say:'replays' },
-  { e:{ mult:7 },   say:'+7 mult' },
-  { e:{ xmult:2 },  say:'×2 mult' },
+  { e:{ pips:25 } }, { e:{ mult:4 } }, { e:{ pips:40 } },
+  { e:{ retrig:1 } }, { e:{ mult:7 } }, { e:{ xmult:2 } },
 ];
 let slotBuffIdx = 0;
 
@@ -273,7 +272,7 @@ function floorResolve(host, grid) {
       enhanceCardKey(cardId(target), buff.e);
       improved++;
     });
-    said.push(`${h.ln.name} ${h.kind} run · ${buff.say}`);
+    said.push(`${h.ln.name} ${h.kind} run · ${buffOfferName(buff.e)}`);
   });
   eventState.floorWon += improved;
   const status = document.getElementById('ev-floor-status');

@@ -432,6 +432,14 @@
     font-family: 'Crimson Pro', serif; font-size: 12.5px; line-height: 1.45;
     color: rgba(240,230,200,0.8); margin-top: 7px;
   }
+  /* An offer carrying an `extra` puts it beside the sentence rather than under
+     it. flex-basis keeps the sentence from collapsing to one word before the
+     row wraps. */
+  .ec-descrow {
+    display: flex; flex-wrap: wrap; align-items: center;
+    gap: 4px 10px; margin-top: 7px;
+  }
+  .ec-descrow .ec-desc { flex: 1 1 210px; min-width: 0; margin-top: 0; }
   .ec-cost {
     font-family: 'Share Tech Mono', monospace; font-size: 10px; letter-spacing: 1px;
     color: #ff8a95; margin-top: 6px;
@@ -732,6 +740,22 @@
     opacity: 0.24; cursor: not-allowed; filter: grayscale(0.8);
   }
   .ev-cardchip.blocked:hover { transform: none; }
+
+  /* ── The Forge's face row (r294) ──────────────────────────────────────────
+     An option buffs two or three cards, so the tile has to SHOW which - the
+     same mini playing cards Clean Up's picker is made of, but as a readout
+     rather than a control: no hover lift, no pointer, and the click belongs to
+     the option underneath. Left-aligned and unwrapped, because it sits under a
+     left-aligned sentence and three faces always fit. */
+  .ec-forge .ec-facerow {
+    flex: 0 0 auto; justify-content: flex-start; flex-wrap: wrap;
+    margin-top: 0; max-width: none; max-height: none; overflow: visible;
+  }
+  .ec-forge .ec-facerow .ev-cardchip {
+    cursor: inherit; pointer-events: none;
+    padding: 4px 7px; font-size: 12px; min-width: 26px;
+  }
+  .ec-forge .ec-facerow .ev-cardchip:hover { transform: none; }
 
   /* Running total on the Card Market's basket. */
   .ev-total {

@@ -831,26 +831,92 @@ hand at all, `findBestHand` fell back to the smaller subset, and the spare card 
   covering partition is asked for only when the hand was about to be voided.
 - **Tagalong asks for the unrestricted partition directly**, because a passenger is
   exactly what it buys. `_tagalong` is read ABOVE the partition now for that reason.
-- **This does not take the short hand away.** `findBestHand` scores every connected
-  subset on its own, so "play just the Pair and eat the penalty" is still on the table and
-  still wins when it genuinely pays more - which is r198 behaving as designed. The fix
-  only stops a partition the game is about to reject from vetoing the one it would have
-  accepted.
+- **This does not take the short hand away.** Playing just the Pair is still on the
+  table - you select those two cards. (This line used to say the SEARCH would pick it for
+  you when it paid more. **r293 removed that half**: the whole selection is now always the
+  hand. See "What you selected is what you play" below.)
 - **Measured, 2,400 random connected selections over 400 boards:** with NS at zero,
   **2,400 of 2,400 byte-identical**. With the ladder inverted (Pair +60, Run of 3 +40, and
   all three together) every difference is an improvement and **0 hands score lower** in
   any configuration; selections that were not a hand at all become one (`J♥ 4♣ 3♦ A♦ 2♣`:
   no hand -> Run of 4). Verified in a real browser on both boards the owner reported.
 
-### The last slot books ONE obligation, and now says so (r281)
+### What you selected is what you play (r293)
 
-Owner: *"It won't let me select the slot above my current slot here."* That is
-`mapLegalMoves`'s hard `set === MAP_SETS - 1` case returning only the review, which is the
-r253 rule and correct - but the bar's visits chip still printed the generic **`1/2`**
-there, so the game was telling the player a second obligation was owed and then refusing
-it. It prints **`1/1`** in the funnel, and `mapBarInfo` names the reason ("the last slot
-books one obligation, then the review") instead of the generic "not reachable from here".
-Display only; no movement rule moved.
+Owner: *"if you select cards to play a certain type of hand, then that's the hand that
+should play, always."*
+
+`findBestHand` brute-forces every connected subset of the selection and returns the
+highest-SCORING one. That is not the same question as "what did the player choose", and
+r281 only fixed half of the gap: the partition stopped vetoing a hand the game was about
+to reject, but the SEARCH could still prefer a smaller subset outright and bill the rest
+as penalty cards. So three 7s could still come out as a Pair with the third seven red,
+for the reason OPEN_DECISIONS 7 describes - Natural Scaling had made the short hand worth
+more than the long one it lives inside.
+
+**If the whole selection is a hand, that is the hand.** `findBestHand` asks
+`handComponentsFor(detectionCells)` FIRST and returns it with no penalties, skipping the
+`2^n` subset search entirely. No comparison, no dropped card.
+
+- **It can score less than some subset would, and that is the point.** Predictable beats
+  optimal; the optimal play is still available by selecting those cards instead.
+- **HIGH CARD IS THE ONE EXCLUSION, and it is load-bearing.** It is the r200 escape valve
+  and it covers every cell BY DEFINITION, so treating it as "the whole selection is a
+  hand" would make it the answer for every selection carrying a passenger - a Pair beside
+  three big cards would score 30 as High Card instead of 52 as a Pair with three
+  penalties. It stays what it has always been: what a selection falls back to when the
+  search finds nothing better.
+- **r201 is untouched.** A selection with a passenger is still not a hand -
+  `handComponentsFor` voids the component list, so `_whole` is null and the search runs
+  exactly as before. `{5C 7S 7H}` is still Pair + 1 penalty. Tagalong is untouched too: it
+  makes the full selection cover, so the early return simply fires.
+- **A selection whose components are all inactive in this mode is untouched**, because
+  `handComponentsFor` returns null when nothing is playable.
+- **Past `HAND_MAX_CARDS` (7) it cannot apply** - at Selection Size 9 something must be
+  dropped - so the search still runs there.
+- **Measured, 4,000 random connected selections over 500 boards:** with Natural Scaling at
+  zero, **4,000 of 4,000 byte-identical**. With the ladder inverted the change appears and
+  is small and one-directional: Pair +60 moves **3** selections, +Run of 3 +40 moves 9,
+  and Pair +34 / Run of 3 +16 / Flush of 3 +40 moves 15 - and in **every** case the new
+  answer uses MORE cards and has NO penalty, scoring 0.74x-1.00x of the old (median
+  0.93-0.96). **0 of them lose a card.** Verified in a real browser through the real tap
+  path on both boards the owner reported: three 7s reads `SET3`, 0 red, and plays as Three
+  of a Kind; A-2-3-4 reads `RUN4`, 0 red, with Run of 3 sitting at a contrived 11,538.
+
+### The last slot books TWO, like every other slot (r293)
+
+Owner: *"It won't let me select the slot above my current slot here."* -> *"So you can do
+2 obligations in the last slot."*
+
+**r281 read that report as a display bug and it was a rule bug.** `mapLegalMoves` had a
+hard `set === MAP_SETS - 1` case returning only the review, so the funnel was the one slot
+in the schedule with its own movement rule; r281 left the rule alone and printed **`1/1`**
+there to match. The owner's answer was the other way round: the funnel books two, and the
+readout was right all along.
+
+- **The only thing added is the ordinary sideways move.** Forward is still always the
+  review, because there is no set beyond this one. The bar's cap is a flat `/2` again and
+  the funnel-specific "the last slot books one obligation" message is gone.
+- **The dead-end DP needed NO change.** `mapCanFinishFrom` already answers `true` for every
+  cell at `set >= MAP_SETS - 1` - the review is reachable from all four lanes - so a
+  sideways step in the funnel can never be doomed. Measured over 8,000 generated maps
+  walked greedily: **0 strands, 4,000 of 4,000 reaching the review** with free branching
+  off and again with it on.
+- **A 2x1 can never reach the funnel**, so that branch needs no span handling: generation
+  caps a 2x1 head at `set <= MAP_SETS - 3`, and the branch tests `t.set === set` anyway.
+- **THE STEP INTO THE REVIEW PAYS THE SKIP NOW.** "Leaving a slot after only one
+  obligation pays you credits" is what the help card says, and it is what the funnel now
+  genuinely offers - so excluding the review step would leave the last slot special in the
+  one way the player can still feel. `mapConfirm`'s payout and `mapBarInfo`'s "leaving now
+  pays N" both dropped their `t.kind !== 'boss'` clause. Verified: standing in the funnel
+  with one visit, the review quotes 6 credits and paying it takes coins 0 -> 6.
+- **Measured, free branching off:** the funnel gives two obligations on **66%** of maps
+  (2,644 of 4,000) - the rest is the BOARD refusing, not a rule, because at a two-solid
+  funnel the tiles sit on non-adjacent lanes. Tiles per run **9.98 -> 10.66**, sets giving
+  two visits **66.6% -> 78.0%**.
+- **Free branching was already routing round the old rule**, which is its own argument that
+  the rule was wrong: with it on, 2,433 of 4,000 funnels already took two, by branching
+  forward from an earlier slot into a second funnel cell.
 
 ### Natural Scaling is a RATE TABLE, one row per hand type (r282)
 
@@ -1134,13 +1200,15 @@ Four things r209's lines did not do. All four are owner spec.
   in each, which puts two lines at 25/75 and three at 17/50/83: lines hugging the
   card's edges rather than an evenly divided lane. Measured: 0.25 / 0.50 / 0.75.
 - **A card on several lines SPLITS ITS RING between their colours** - equal wedges
-  with hard stops (`lineMetasForCell` -> `lineRingPaint` -> `lineRingHTML`), so a
-  crossing reads as both things instead of whichever the registry listed first. A
-  blend of three Trick colours is a fourth colour belonging to nothing, hence hard
-  stops. **The ring had to stop being a `box-shadow` to do this**: a box-shadow
-  takes one colour and cannot be divided. It is paint masked down to the border
-  now (`padding` + two masks + `mask-composite`). Verified: 3 lines give three
-  33.3% wedges, a row/column crossing gives four at 25%.
+  with hard stops (`lineMetasForCell` -> `lineRingPaint`), so a crossing reads as
+  both things instead of whichever the registry listed first. A blend of three
+  Trick colours is a fourth colour belonging to nothing, hence hard stops. **The
+  ring had to stop being a `box-shadow` to do this**: a box-shadow takes one
+  colour and cannot be divided. It is paint masked down to the border now
+  (`padding` + two masks + `mask-composite`). Verified: 1 line is a flat fill,
+  2 give two 50% wedges, 3 give three at 33.3%. **r296 gave the card's WASH the
+  same division** - see "A marked cell SPLITS its highlight" below, which is
+  where the crossing was actually being blended.
 
 #### `clampRowColBonuses()` - and why it reads the LIMITS
 
@@ -1169,6 +1237,145 @@ the single place a limit actually moves, and everything that merely BORROWS the
 board at a smaller size clamps what it **draws** instead (above) and leaves the
 registry alone. Verified: a 4x4 prize grid drew a col-5 line at col-3 with the
 stored index still 5.
+
+### A marked cell SPLITS its highlight, and the axis ALTERNATES (r296)
+
+Owner: *"When cards are in a cell that has a row and column bonus, its highlight
+should be divided between the two colors, so it's half and half each of the
+colors. If a cell has more colors on it, continue this pattern."* and *"all of
+them except ones where the name forces a row or column decide row or column
+based on a rule that it always alternates."*
+
+#### 1. The card's highlight is divided, not blended
+
+**The RING already divided itself (r223). The card's WASH did not, and the wash
+is what the player actually sees** - a 2px ring against a whole tinted card
+face. The wash came from a different system: six per-Trick rules in
+`css/style.css`, written long before r209, that had to name a COMBINED COLOUR
+for each pair of Tricks. So Right Place (blue) crossing Power Line (red) painted
+the card a flat **purple** and Power Line crossing Echo Location painted it dark
+red-brown - a colour belonging to neither Trick, which is exactly what r223
+called "a fourth colour that belongs to nothing".
+
+They also only existed for **three of the nine** line-marking Tricks, so Perfect
+Timing, Right Time, Groove, Assembly Line and Overtime marked cells that looked
+no different from unmarked ones - the very gap r209 set out to close and only
+closed for the ring.
+
+- **One paint, two strengths.** `lineWedgePaint(metas, pct)` (js/entity-fx.js) is
+  now the single geometry: `pct` null gives the RING its solid colours, a number
+  gives the WASH the same wedges at `LINE_WASH_ALPHA` (22%). They must come from
+  one function or the ring's blue half would sit over the wash's red one.
+- **Equal wedges, hard stops, `from -45deg`** - so two colours split on the
+  card's own diagonal, one straight line corner to corner, and three read as
+  thirds. Verified in a real browser: 1 line = a flat fill, 2 = 50/50, 3 = three
+  120-degree wedges on the same card.
+- **`.rc-line-wash` is `z-index: -1`, AND IT HAS TO BE.** `.rank` and `.suit` are
+  IN-FLOW flex children, and CSS paints every positioned descendant above
+  in-flow content **whatever the DOM order** - so at `z-index: 0` or `auto` the
+  wash would cover the card's own rank and suit. A negative z-index paints above
+  the element's own BACKGROUND and below its in-flow content. It cannot fall
+  through the card either: `.card` carries a transform (the heartbeat), so it is
+  its own stacking context. Verified with `elementFromPoint` on every rank on a
+  full board, on the fall-animation clone and in the scoring dance.
+- **A LIGHT LINE COLOUR CANNOT BE A WASH ON A CREAM CARD**, and one of the nine
+  is light: Echo Location's `#e0ddd0` is near-white, so its wash measured
+  rgb(240,231,212) over a card face of rgb(244,234,213) - invisible at any alpha,
+  because no alpha makes near-white visible on near-white. `lineWashInk` darkens
+  **only** a colour over `LINE_WASH_MAX_L` (0.72 perceived luminance) down to
+  `LINE_WASH_TARGET_L` (0.55); gold, the next lightest, measures 0.64 and is left
+  alone. **The line, its end caps and the ring keep the table's colour exactly** -
+  they sit on the dark board or on the card's edge, where near-white reads best.
+  Perceived luminance is linear in the channels, so mixing k% with black scales
+  it by exactly k, which is what makes this one multiplication rather than a
+  search.
+- **The Spectrum overrides went with the tints.** `.card.num-card.rc-*` existed
+  only to put back the `--num-color` face the tints repainted, and drew its own
+  inset ring including the same blended purple. The shared wash and ring handle a
+  colour card as they handle a cream one.
+- `rc-pips` / `rc-mult` / `rc-retrigger` are **gone as classes too** - nothing
+  reads them now. `rc-on-line` stays as the "this cell is on some line" marker.
+  Half of the deleted rules were already dead: measured, their `box-shadow` and
+  `border-color` both lost to later `.card` rules and only `background` ever
+  reached the board.
+
+#### 2. The AXIS alternates; only the INDEX is luck
+
+All eight position Tricks print "a marked row or column", and `pickDefaultLine`
+pooled every row AND every column and drew one cell out of the lot - a coin flip
+per Trick. A run could put all four of its position Tricks on rows, and often
+did.
+
+`positionAxisNext` (js/scoring.js) is the cursor: **each new marked line lands on
+the opposite axis from the one before it.** Row, column, row, column. The index
+is still random, and still avoids an occupied line unless District is owned.
+
+- **THAT IS WHAT MAKES CROSSINGS HAPPEN**, which is the point beyond tidiness.
+  Ley Line and Temporal Rift both fire wherever a row effect crosses a column
+  effect (`isEffectIntersection`), and a run that rolled all rows gives them
+  nothing to fire on at all. It is also what the divided highlight above is for -
+  a cell can only read half and half if the board produces both axes.
+- **`POSITION_FORCED_AXIS` is the exemption** the owner asked for: a Trick whose
+  NAME names an axis keeps it. **NOTHING IS IN IT TODAY** - all eight are named
+  for what they do (Right Place, Power Line, Echo Location, Perfect Timing, Right
+  Time, Groove, Assembly Line, Overtime), not for which way they run. An id in
+  there still ADVANCES the cursor off the axis it took, so the run keeps
+  alternating around it. (`column_rush` / `row_power` - Stand Up and Lie Down -
+  DO name an axis but mark no line at all, so they are not in this system.)
+- **`markPositionAxisTaken(axis)` advances off the axis ACTUALLY TAKEN, never off
+  the cursor.** The Alignment knack forces a column and the Surveyor / Leveler
+  chooser lets the player pick, so all three paths call it and none can leave the
+  run out of step. It is idempotent, so the chooser confirming the provisional
+  default costs nothing.
+- **Owning BOTH position knacks offers both axes, so the chooser's provisional
+  default is the alternation's**; owning one means that knack IS the axis and the
+  cursor has nothing to say.
+- **A full axis still takes the Trick.** Asking `pickDefaultLine` for one axis
+  rather than two means that if every line on it is occupied the mark lands there
+  anyway, doubled up. The alternation is the rule, and a board with more position
+  Tricks than lines has to double up somewhere.
+- `positionAxisNext` is reset in `startGame` (every run's first position Trick
+  marks a row - fixed rather than rolled, because the whole point is a rule the
+  player can learn) and is in **`SAVE_VARS`**, so a resumed run carries on rather
+  than restarting the sequence.
+
+Measured over 40 fresh runs x 8 position Tricks through the real grant path:
+**0 sequence breaks, 160 rows and 160 columns exactly**, every index 0-3 used on
+both axes, and 8 registry entries in every run.
+
+#### 3. A SECOND RUN USED TO GET NO LINES AT ALL
+
+Found while measuring the above, and it is the reason `resetPositionMarks()`
+exists. `assignPositionMark` is idempotent per **Trick object** (`_posAssigned`)
+so an upgrade - which calls `selectTrick` twice - cannot re-roll a line the
+player is already building around. The trap is that **what the player owns IS the
+pool object**: `makeTrickPayload`'s `apply: () => injectTrickAfterReward(pick)`
+hands over `pick` itself, unlike the knack path beside it which pushes
+`{ ...pick }`. So the flag outlived the run that set it, and `startGame` clearing
+`rowColBonuses` was not enough.
+
+Measured before the fix, through the real grant path: run 1 registers
+`rowcol_triple_pips:row1` and `rowcol_mult:col2`; **run 2 grants both again and
+registers NOTHING.** Both Tricks are owned, both print "a marked row or column",
+and neither marks a line, scores a bonus or draws anything on the board - all
+eight position Tricks, common through epic, dead for every run of a session after
+the first.
+
+`resetPositionMarks()` clears `_posAssigned` / `_posAxis` / `_posIndex` /
+`_posDescBase` across `TRICK_POOL_ALL` and `TRICK_POOL` from `startGame`, beside
+`rowColBonuses = []`. It deliberately does **not** restore `desc`: the tier reset
+(`resetEntityTiers` -> `applyEntityTiers` -> `applyBalDescriptions`) already
+rewrites every description from the pristine text, and clearing `_posDescBase`
+means the next mark re-captures whatever that left - which matters when the Trick
+was improved mid-run and its printed number moved.
+
+#### 4. "col 1" is "column 1"
+
+`finalizePositionMark` built its label as `` `${axis} ${index + 1}` `` and `axis`
+is the id `col`, so half of every position Trick's printed description read
+"Cards scored in **col 1**". Pre-existing, but the alternation turns it from a
+coin flip into something every run shows, so it says `column` now - in the
+description and in the chooser's toast.
 
 ### The score panel between rounds (r223)
 
@@ -1463,6 +1670,221 @@ either pile and is gone at the level-clear sweep; Roll Call turns a lone selecti
 into a Four of a Kind at a minimum selection of 3; Callback takes a Run of 3 from
 189 to 250; Turnover churns one card for 0 seconds and 0 stock; a state's own
 self-discard bills 3s and 0 stock; **the deck audit balances at every step**.
+
+### Priming, and the three things wrong with it (r295)
+
+Owner: *"explain how priming works. I've ended levels with a +2 still on some
+tricks, and I didn't notice the prime making the trick animate twice which it
+should."* Both symptoms were real, and they had three separate causes.
+
+**What a prime IS.** `calcScore` keeps a per-Trick ledger of what each Trick paid
+this hand (`_cp` pips, `_cm` mult). A prime replays that Trick's own entry, once
+per stack - which is what makes "fire it again" generic across all 177 Tricks
+with no code in any of them, and is the same seam Mirror and `_rank` ride. Two
+consequences fall straight out of that and are NOT bugs:
+
+- **A prime cannot fire a Trick whose condition was not met.** The replay loop
+  opens with `if (!_pd && !_md) return;` - there is no delta to replay. Prime
+  Rich Soil on a hand with no clubs and you get nothing, and the stack is not
+  spent either (consumption is gated on the Trick appearing in the hand's
+  contributions). That is r234's rule and it is why a FORCED fire exists as the
+  other half.
+- **A prime only carries pips and mult.** Roughly 71 of the 177 Tricks pay in
+  Focus, seconds, credits, swaps or card buffs, and `trickFires(id)` is what
+  covers those - not this loop.
+
+| | is | consumed |
+|---|---|---|
+| `_primed` | a temporary stack (Inspirato, Prime Times, Understudy, Hallmark) | one per qualifying hand |
+| `_rank` | a PERMANENT prime (the Extra Rep event) | **never** |
+
+**The `+N` badge is `_primed + _rank`**, so a Trick carrying a rank shows a `+1`
+that is supposed to sit there for the rest of the run (r267).
+
+#### 1. The prime's payout was unattributable, so nothing popped
+
+It paid through `bPip('primed', …)` / `bMult('primed', …)` - the literal string
+`primed` as the id. `danceEntityEl` looks a tray chip up BY TRICK ID, so the
+event resolved to **nothing**: `dncReleaseReal` was never called and the primed
+Trick did not pop for its own extra fire. The particle flew from a fallback
+anchor. The contributions tab printed a lower-case `primed` row beside the Trick
+names for the same reason.
+
+**The emit is re-attributed; the ledger write is not.** `bPipQ`/`bMultQ` write
+`_cp`/`_cm` and bill the proc without emitting, and `_ev` is called with the
+Trick's own id. That split is load-bearing: **`_proc` feeds the RIDER penalty**
+(2s per proc, billed per Trick id in `playHand`), so billing a prime's extra
+fires to the Trick rather than to `primed` would make a Rider-attached Trick cost
+real seconds it does not cost today. Verified byte-identical score AND proc
+counts over **667 cases** (167 Tricks x 4 prime counts).
+
+#### 2. The dance re-scored AFTER the prime was spent
+
+**`playPreviewDance` derives its own ledger by re-running `calcScore`**
+(js/score-dance.js), synchronously on the call - there is no await between its
+entry and that line. The consumption block sat ABOVE the dance, so it decremented
+the stack and the dance then re-scored a tray that had already paid up.
+
+**So the dance animated one prime fewer than the hand was scored with, every
+time** - and with a single prime, the ordinary case, it animated NONE. Measured
+on a +1 Kindred: the hand really scored **476** (34 x 14) while the dance's own
+ledger read **mult 8** and carried **0** prime events. Over 12 primed hands,
+**12 of 12** settled the chips on a number below what was banked (one showed
+2,558 against 5,788).
+
+**The SCORE total was never wrong** - `playHand` banks the real figure - so this
+cost the player nothing but told them a smaller number on the way.
+
+**`[DANCE] timeline drift` could not catch it**, and that is worth knowing about
+that alarm: it compares the dance's walk against the dance's OWN ledger, so a
+ledger that is internally consistent and simply describes a different hand passes
+silently. It logged 0 warnings before the fix and 0 after.
+
+#### 3. The goal hand never spent its prime at all
+
+The goal-hand and boss-win paths `return` immediately after starting the dance,
+well above where this block sat - so **the hand that ends a round was the one
+hand in the game that never consumed a prime**. Measured: an ordinary hand took a
++2 Trick to +1; the goal hand left it at +2. That is the "+2 still on some
+tricks at the end of a level", and it is the same shape as r254's find, where the
+boss-winning hand was skipping every line of shared bookkeeping below its early
+return.
+
+**`runHandPriming(hand, handCells)` is the whole fix for 2 and 3**: the block is
+a function now, called AFTER `playScoreDance` from **all three** of its sites.
+After, so the dance has already taken its ledger off the intact tray; all three,
+so no path can skip it. The board is still whole there - `removeAndFall` runs
+later, inside the dance - so the recompute still reads the cards the hand was
+made of. `lastPreFocusMult` is saved across that recompute the way the dance
+saves it, because it now runs after the dance's own call rather than before.
+
+Verified: the dance's ledger carries every prime the hand was scored with (+1 ->
+1 event and mult 14, +2 -> 2 events and mult 20, both matching the banked score),
+the Trick releases **4** times on a +2 Kindred where it released 2, the goal hand
+consumes on Classic / Survival / Spectrum / Schedule, and there are no drift
+warnings and no page errors.
+
+### A prime is a charge on the next firing (r296)
+
+r295 left this as the owner's call - a stack is one extra fire, or it is "one
+extra fire per hand until spent". Owner: *"which is more fun, a trick being able
+to give its bonus a second time for multiple hands, or a bunch of times on one
+hand... And I lean the latter. So a trick can get multiple primes, and all of
+them would go off the next time that trick goes off."*
+
+**The firing half was never the question.** The replay loop has always run once
+per stack and `trickFires()` has always returned `1 + _primed + _rank`, so a +2
+already paid two extra fires. Only the SPEND was one-per-hand, so a +2 paid two
+extra fires and then one more on the hand after - three extra fires out of two
+stacks. `runHandPriming` now sets `t._primed = 0` when the Trick fires.
+Measured on Quake over a 3-card set: mult **12 / 21 / 30 / 39** at 0 / 1 / 2 / 3
+primes (a clean +9 a stack, 3 cards x +3 mult) with the count at **0** after
+every one of them, and the tray chip popping **3 / 4 / 5** times - the base fire
+plus one per prime.
+
+`_rank` is untouched: it is a PERMANENT prime and only `_primed` is cleared.
+
+#### The spend test is the ledger OR the fire record
+
+**"Did it fire" was asked of the contributions ledger alone, and that ledger
+carries pips and mult and nothing else.** So the ~71 Tricks that pay in Focus,
+clock seconds, credits, swaps or card buffs fired their extra times and **never
+spent the stack** - the other half of the owner's "I've ended levels with a +2
+still on some tricks". Measured on Deluge before the fix: **15 / 30 / 45 seconds
+at 0 / 1 / 2 primes, with the count still reading 0 / 1 / 2 afterwards.**
+
+Those payouts all go through **`trickFires()`**, which records the ask in
+`_trickFiredThisHand` (js/scoring.js), reset from `playHand` at the line Focus
+generation begins. **That is only safe because `trickFires` is called from
+nowhere inside `calcScore`** - verified, 0 sites - so unlike the ledger it never
+runs speculatively. All 33 real call sites are in `js/play-hand.js`, and
+`generateHandFocus` has exactly one caller.
+
+**THE CONTRACT TIGHTENED BY ONE WORD: ask only when you are about to PAY.**
+"Every caller is an amount being granted" was already the rule, but seven sites
+multiplied the count by something that can be zero, and a count asked for is now
+a stack spent. Rogue Wave, Gnomes, Groove, Acorns, Overtime, Threepeat and
+Hoarder House test their amount first - the idiom Lucky Sevens and Right Time
+already used. It is the same guard the pip/mult replay loop keeps with its
+`if (!_pd && !_md) return;`. Verified: Hoarder House at 0 swaps and 0 discards
+pays nothing and **keeps its +2**, and at 6 actions pays 9s and drops to 0;
+Deluge primed +2 on a hand with no Flush keeps its +2.
+
+**Rogue Wave's r203 note still holds and is why its line reads the way it does.**
+`canBeOrderedRun` reads `gridData`, which is empty between screens, so it must
+stay short-circuited by an ownership test - `hasTrick('correct_run')` does that
+exactly as `trickFires` did, and the fire count is now asked for after the
+predicate rather than before it.
+
+### A prime is the SECOND THUMP OF A HEARTBEAT (r297)
+
+Owner: *"the way the prime should animate is like a much quicker secondary beat,
+like a heart beat. Where normally it would wait for the next beat in the dance
+sequence, this one happens right after, and if there are multiple then that trend
+continues until they've all fired, then the normal pace can continue."*
+
+r295 made a primed Trick pop for its extra fire and r296 made every stack fire;
+both landed at the ordinary pace, so two fires of one Trick read as two unrelated
+payouts. A prime's event now lands right behind the beat in front of it, and a run
+of them keeps that quick pace until the last one.
+
+| | flight | rest after | one beat at 1x |
+|---|---|---|---|
+| ordinary payout | 1200ms | `tickRest` 600 | ~1800ms |
+| a prime | `primeFlight` 0.45 -> 540ms | `primeRest` 130 | ~670ms |
+
+**Measured at 1x on a 3-card set with Quake** (the gap between one plate launching
+and the next): card beats **1757 / 1597**, the first prime **1096**, each further
+prime **504 / 497 / 480**. So a prime lands in about a third of a normal beat, and
+`mult` is **12 / 21 / 30 / 39** at 0 / 1 / 2 / 3 primes - identical to r296, which
+is what proves this is pacing and nothing else.
+
+- **IT IS RE-TIMED, NEVER RE-ORDERED.** The obvious reading of "right after" is to
+  move the prime's event next to the fire it replays, and that would break r220's
+  rule: the timeline replay has to reproduce `calcScore` exactly, and `calcScore`
+  applies primes at one point in the ladder. Moving an event past a multiply
+  changes the arithmetic. The events stay where they are emitted and only their
+  pacing changes - verified, **0 `[DANCE] timeline drift` warnings** over six runs
+  including a 19-event timeline carrying 8 prime events.
+- **`_ev` RETURNS THE EVENT IT PUSHED**, and the prime loop stamps `prime` on it.
+  The alternative was a seventh positional argument and then an eighth, which is
+  how a signature stops being readable. Nothing else marks an event today.
+- **THE REST AFTER A STEP IS DECIDED BY THE STEP THAT FOLLOWS IT.** The walk is
+  written "fire, then rest", so the only way to land a prime right behind the beat
+  in front of it is to cut the rest that beat was about to take - `restAfter(si)`
+  looks at `steps[si+1]`. That also gives "then the normal pace can continue" for
+  free: the first ordinary step after a run of primes takes a full `tickRest`.
+- **A CARD BEAT RESTS INSIDE ITS REPLAY LOOP, so only the LAST rep's rest is the
+  gap before the next step.** The earlier ones separate a card from its own replay
+  and stay at full pace. Measured: the first prime after a card beat lands at 1096
+  rather than ~1450.
+- **`primeFlight` divides by the pace itself**, because `dncFly` only computes its
+  own duration when handed none. Both numbers ride `dncPace()` and `dncFF` like
+  everything else in the tally, so the Scoring speed slider and the goal-hand SKIP
+  reach them with no extra work.
+
+### The Buddy System knack (r296) - `primeTrick()`
+
+Owner: *"Maybe that knack says something like whenever a trick gets primed
+another trick also gets primed (always a different one)."* **Muscle Memory**
+("Primed Tricks stay primed for one extra hand") was the one entity built on the
+behaviour the model above removes, so it is now **Buddy System**: every prime
+carries to a second, different tray Trick. The id `muscle_memory` is frozen
+(TERMINOLOGY.md) and is unchanged, so the **Priming Press** build recipe in
+`js/combos-aim.js` needs no edit; only the display name and description moved.
+`_primeHeld` is gone.
+
+- **`primeTrick(t, n, opts)` in `js/scoring.js` is the ONE place a prime is
+  granted**, which is the whole reason the knack is two lines. Four sites hand
+  primes out - Inspirato's first and last tray Tricks, Prime Times, Understudy
+  and Hallmark's prime outcome - and a fifth writing `t._primed++` directly
+  would silently opt out of it. `grep -n "_primed = (" js/` should only ever
+  show `primeTrick`.
+- **`opts.echo` is what stops the second prime priming a third for ever.**
+  Measured over 200 grants on a 3-Trick tray: only `[1,1,0]` and `[1,0,1]` ever
+  come out, 104/96 - never a self-echo, never three primed.
+- Boss-suspended Tricks are excluded from the buddy pool, the same filter
+  Understudy and Hallmark already apply to their own draws.
 
 ### The Hallmark knack (r234) - `js/hallmark.js`
 
@@ -2139,11 +2561,13 @@ How many of its four lanes carry a real tile is rolled - `MAP_FUNNEL_SOLID_ODDS`
 **2 at 25% · 3 at 40% · 4 at 35%** (measured 25.8 / 40.7 / 33.5 over 6,000 maps).
 At two solid they still sit on NON-ADJACENT lanes, which is the old fixed shape.
 
-**Nothing about "you take exactly one before the boss" depended on those
-blanks.** `mapLegalMoves` has a hard `set === MAP_SETS - 1` case that returns
-only the boss, so the rule holds at any funnel width; the blanks were only ever
+**Nothing about the funnel's shape depended on those blanks.** `mapLegalMoves`
+had a hard `set === MAP_SETS - 1` case that returned only the boss, so "you take
+exactly one before the review" held at any funnel width; the blanks were only ever
 costing the set BEFORE the funnel a second visit, whenever your lane's funnel
-cell happened to be one of the holes. Measured with the greedy two-visit walker:
+cell happened to be one of the holes. **r293 removed that case** - the funnel books
+two like every other slot, and at a two-solid funnel the non-adjacent lanes are what
+limit you to one. See "The last slot books TWO" below. Measured with the greedy two-visit walker:
 sets giving two visits **64.6% -> 66.5%**, 0 strands over 4,000 walks.
 
 **Free branch** (dev panel -> Map, persisted as `lethe.map.freeBranch`) lets a
@@ -2276,6 +2700,196 @@ pointer leaving the row, and tapping again releases.
   cycles the colour and takes the dot back, pen mode draws on a left drag and
   takes no tile with it, a left click with the pen off still selects, the
   legend lights 3 of 25 tiles and the card lands fully on screen in both.
+
+### The legend is a RAIL BESIDE the schedule, and the ink is per orientation (r294)
+
+Owner: *"Move the legend to the area highlighted in red. The confirm button was
+off the screen for one, and the legend was just too little down there."* and
+*"If you switch between portrait and landscape modes don't carry the drawing
+over, let it just apply to its orientation when it was drawn."*
+
+**The legend covered the board it was lighting up.** It was a `.mb-help` card
+above the map bar, and at `min(420px, 100vw - 24px)` wide by up to 46vh it
+measured **396 x 303 on a phone** - over the whole schedule. Hovering a row lit
+obligations nobody could see, which is the one thing this feature exists to do.
+
+It is a body-level panel docked in the empty strip to the RIGHT of the board
+(`mapLegendBuild` / `mapLegendPlace` / `mapLegendToggle`, js/map-draw.js), in
+**raw viewport px** - the `#map-bar` rule, because anything inside `#cabinet`
+inherits its CSS zoom.
+
+- **ONE RAIL COVERS BOTH ORIENTATIONS, because the strip is the same shape in
+  both.** Measured: **142 x 494** at 1440x820, **105 x 377** at 1100x620,
+  **116 x 426** on a 420-wide phone. It is the only free space either way (in
+  landscape the left column is the HUD; in portrait the gutters inside
+  `#grid-slot` are 53px), which is what the owner circled.
+- **THE ROW IS THE SYMBOL AND THE WORD; THE SENTENCE GOES TO `#mb-info`.** That
+  is r276's rule for the board, and a 105px rail has no room for prose anyway -
+  nine rows of wrapped blurbs measured over **700px tall against a 377px
+  board**. The bar's info line is already the "what is this" readout, is as wide
+  as the bar, and is empty whenever nothing is picked. Hover writes it, leaving
+  hands it back to the picked obligation.
+- **It is re-placed from the tail of `mapRender` AND from its own resize
+  listener.** A render moves the board (a flip, a redraw at a new size); a plain
+  resize moves it with **no** render, because map-mode.js only redraws when the
+  ORIENTATION changes.
+- **A strip under `MAP_LEGEND_MIN_W` (88px) falls back to a centred card**
+  (`.ml-float`). Worse than the rail, and never nothing.
+- **It survives a bar rebuild now.** `mapRenderBar` rewrites the strip's
+  innerHTML on every tile tap; as a child of it the open legend was destroyed
+  and rebuilt each time.
+- The `▤` chip lights while the rail is up, the way the pen chip does - the rail
+  is off to the side, so the chip is what says it is open.
+
+**THE BAR WRAPS, AND THAT IS THE CONFIRM FIX.** `#map-bar` is `width:
+max-content` under `max-width: calc(100vw - 20px)`, and every chip in it is a
+fixed size with `#mb-confirm` at `flex: 0 0 auto` - so on a phone the row
+overflowed its own cap and CONFIRM, being last, went off the right-hand edge.
+Measured before: **11px off at 420 wide, 41px at 390, 71px at 360**, with no way
+to reach the only button that commits an obligation. `flex-wrap: wrap` plus
+`margin-left: auto` on the button fixes it at every width (**desktop stays one
+row at 38px**; a phone is two at 60px). The bar is pinned to the bottom, so it
+grows upward into space the board does not use.
+
+`.mb-info` went from one clipped line to **two** (`-webkit-line-clamp: 2`,
+`max-width: min(560px, calc(100vw - 40px))`). At 46vw on a 420-wide phone it
+held about 30 characters and cut "An ordinary round. Clear it and take a pick of
+three." off at *"An ordinary round...."*. The r255 reason for clipping it - a
+long description pushing CONFIRM off a `max-content` strip - is what the wrap
+now handles.
+
+#### Ink belongs to the orientation it was drawn in
+
+A stroke is normalised to the GRID BOX, which carries it through a `mapRender`
+and a save. It does **not** carry it through an orientation flip: the schedule
+TRANSPOSES there (4 lanes x 7 slots becomes 7 x 4), so a circle round slot 2
+came back as a smear across three unrelated obligations.
+
+- Each stroke is stamped `o: 'l' | 'p'` and **every reader filters**:
+  `mapDrawPaint`, `mapDrawUndo`, `mapDrawClear`, the double-right-click's
+  take-back of a stray dot, and `mapHasInk()` - which is what decides whether the
+  undo and wipe chips are offered at all. `mapInkOrient` / `mapInkHere` /
+  `mapInkStrokes` / `mapHasInk` are the whole mechanism.
+- **It is SET ASIDE, not dropped.** Flip back and that orientation's ink is
+  there. Undo and clear act on the visible orientation only - taking back
+  something invisible is worse than not offering it.
+- **A stroke saved before r294 carries no stamp and shows in BOTH**, because
+  nothing records which way the board read when it was drawn and guessing would
+  be worse than the one-time carry-over it predates. `mapDrawStrokes` keeps its
+  name and its `SAVE_VARS` entry.
+- Verified in a real browser: draw in landscape (581 inked px) -> flip to
+  portrait (**0 px, chips gone, stroke still stored**) -> draw in portrait ->
+  CLEAR (portrait's gone, landscape's survives) -> flip back (**631 px, it is
+  there**) -> UNDO (gone).
+
+Verified at 1440x820, 420x900 and 1100x620: the rail never overlaps the board,
+is fully on screen, needs no scroll, clips **0** row names, lights the board on
+hover and latches on tap; CONFIRM is on screen and enabled at 360, 390, 420 and
+462 wide. No page errors.
+
+### The lines rest BEHIND the reward tiles (r294)
+
+Owner: *"The lines from column or row specific tricks should rest behind reward
+tiles, not in front. And it just looks weird on the boss reward tile."*
+
+`css/entity-fx.css` gives `#grid > .card` / `.trick-card` / `.blocked-cell`
+**z-index 2** and `.rc-line` **1**, and **`.reward-cell` was missing from that
+list**. A reward tile carries no z-index of its own, so it sat at `auto` - and
+`z-index: 1` beats `auto` whatever the DOM order, so the lines painted straight
+across the tiles on every reward grid, prize grid, shop board and crossroads.
+One selector; measured `tileZ` **auto -> 2** and **0 lines over tiles** on a
+16-tile reward grid and a 9-tile prize grid.
+
+The prize grid is where it showed worst, which is what the owner was looking at:
+it is **two rows and columns smaller** (r179), so a marked row runs through the
+middle of a whole row of prizes rather than down a gutter. Behind the tiles the
+lines read exactly as they do on the play board - in the 3px gutters and past
+the ends of the line, which is where r209 always meant them to be picked up.
+
+### A card buff says BUFF or SCALES (r294) - `js/deck-grid.js`
+
+Owner, on the Card Upgrade event: *"it's kind of confusing that the only
+differentiation is gains +5 mult each time it's scored vs scores. All of it
+needs a new vocab pass."*
+
+The two offers on that screen were
+
+```
+A♥ gains another +4 pips each time it is played      (SCALING)
+7♠ scores +30 pips every time it is played           (FLAT)
+```
+
+Same length, same shape, same closing clause, and the only thing saying one
+number GROWS and the other does not is **gains/scores**. r209 had already been
+here once - it is the pass that added "scales" - and the wording drifted again
+because **five sites said it five ways**: the Forge, The Bench, the Card Market,
+the blessed-card reward tile and the shop's Cards row.
+
+**The two ideas are told apart by the WORD, never by the verb:**
+
+| | says | keeps "each time it's played" |
+|---|---|---|
+| FLAT | **Buff** | no |
+| SCALING | **Scales** | yes |
+
+Dropping the clause from the flat side is the whole fix. Every buff in the game
+pays when the card is played; saying so on the flat one is exactly what made the
+two read alike, and it is the clause that has to mean something on the scaling
+one.
+
+- **`buffBits` / `buffOfferName` / `buffOfferLine` / `cardCountPhrase` live
+  beside `cardBuffLines`**, which is the documented home for "a card's buffs put
+  into words". They take the same `e` object `enhanceCardKey` takes, so an offer
+  site states exactly what it is about to apply. All five sites read them.
+- **A buff you HOLD drops the clause entirely and is just the number.**
+  `cardBuffLines` now reads `+30 pips · ×2 mult · +1 replay` beside
+  `Scales +4 pips each time it's played`, which is what a stat line wants and
+  cannot be mistaken for the other kind.
+- **Both go through `lexProse`, and that closed a real gap.** A description is
+  translated on its way to the screen by `colorizeKeywords` (r198) and a NAME is
+  not - so the Forge printed **"+5 mult"** as its title with **"buff these three
+  cards with +5 skill"** directly under it. The held lines were worse: they go
+  straight into a tooltip's innerHTML and the shop's card list, neither of which
+  runs the lexicon at all. `lexProse` is idempotent (no corporate word is a gamer
+  key), so a caller that highlights afterwards is unaffected.
+- **Read at USE time, never baked into a table.** `MARKET_BOONS` and
+  `SLOT_BUFFS` were built at load; the vocabulary can change mid-run.
+
+#### The Forge buffs SEVERAL cards
+
+Owner: *"make the scaling option 2 cards and make the other options buff 3 cards
+each. So reformat the appearance to accommodate."*
+
+`FORGE_SCALE_CARDS` 2 · `FORGE_FLAT_CARDS` 3, and the count is decided by
+`buffIsScaling(b.e)` - a rule about the KIND of option, not a fixed slot, so a
+new boon lands on the right side of it for free.
+
+- **It is a real power increase and deliberately so.** One card in a 52-card deck
+  is a card you may not draw; three of them is a buff you will actually meet. The
+  counts are also the trade: a scaling buff is worth more per card, so it reaches
+  fewer of them, which is what makes the two kinds visibly different things to
+  pick between rather than two sentences to read closely.
+- **One shuffled pool handed out in order**, so an option's cards are distinct and
+  two options rarely name the same card. It WRAPS rather than running short: a
+  deck thinned below eight cards still gets three full options.
+- **Every card is re-resolved at apply time** (`resolveDeckCard`, the r192 rule) -
+  the screen is a snapshot and a card can leave the run in between.
+- **The faces are drawn as the mini playing cards Clean Up already uses**, so the
+  sentence says "these three cards" instead of listing them twice.
+  `makeChoiceEl` gained ONE option, **`extra`** - raw HTML under the description,
+  kept out of `desc` because that string goes through `colorizeKeywords` and a
+  keyword pass has no business rewriting the inside of a card chip.
+- **`extra` shares a WRAPPING ROW with the description** (`.ec-descrow`) rather
+  than taking a line of its own: the sentence and the cards it is about are one
+  thought, and on a stack of three offers a line each is 33px x 3 of a panel that
+  already scrolls. Measured, tile height **117px -> 92px** at 1440x820, and on a
+  phone **all three options and both buttons now fit with no scroll at all**.
+- The 'PICK AN UPGRADE' label is gone - the panel's title says CARD UPGRADE and
+  its flavour line says to take one.
+
+Verified at 1440x820 and 420x900 through the real tap path, over all 21 events:
+every option renders, CONFIRM applies the buff to exactly its 2 or 3 cards, the
+held wording matches the offer's, and there are no page errors.
 
 ### A tile is its SYMBOL (r276)
 
