@@ -255,7 +255,7 @@ function cellOnMarkedLine(r, c) {
 // is the most legible of the nine - so the ring takes every colour exactly as
 // the table gives it and the whole luminance correction goes with the wash.
 //
-// THE RING TURNS (r301, owner's spec: "can the highlight border rotate smoothly
+// THE RING TURNS (r302, owner's spec: "can the highlight border rotate smoothly
 // around the cards"). Every paint below is a conic gradient whose `from` angle
 // is `var(--rcl-rot)`, a custom property REGISTERED as an <angle> in
 // css/entity-fx.css - registration is what makes it animatable at all, since an

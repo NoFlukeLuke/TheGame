@@ -82,6 +82,10 @@ function currentRoundDuration() {
   // simply the mode's round length, and the clock bar needs the real denominator.
   if (bossActive) return bossWindowDuration;
   if (typeof flowActive === 'function' && flowActive()) return FLOW_SESSION_SECONDS;
+  // Crunch: the clock is the QUARTER's allowance, not a round's. This is what
+  // startGame seeds the act bank from and what the clock bar fills against, so
+  // both read the one number (js/crunch-mode.js).
+  if (typeof crunchActive === 'function' && crunchActive()) return CRUNCH_ACT_SECONDS;
   // A picker-built mode names its own round length, and it is checked BEFORE the
   // survival fallback: a custom pick-of-three run still gets the clock it asked
   // for rather than Survival's 2:00 by virtue of sharing its loop.
@@ -186,8 +190,15 @@ function survivalEntityBanned(id) {
   // (modeHasNoRoundClock) and not of the mode, and why it is no longer behind the
   // survivalActive() early return: a custom no-clock run played on reward grids
   // is not survivalActive() at all.
-  if (typeof modeHasNoRoundClock === 'function' && modeHasNoRoundClock()
-      && typeof FLOW_BANNED_ENTITIES !== 'undefined' && FLOW_BANNED_ENTITIES.has(id)) return true;
+  // Crunch has a clock that ENDS the round, so modeHasNoRoundClock is false for
+  // it - but the question those two entities actually fail is "does the clock
+  // refill per round", and Crunch's does not. First Wind measures its grace
+  // window against ROUND_DURATION and the act bank opens far above it, so decay
+  // would be held off for minutes; Carry Time would bank the same seconds at
+  // every level of the quarter.
+  const _noRefill = (typeof modeHasNoRoundClock === 'function' && modeHasNoRoundClock())
+                 || (typeof crunchActive === 'function' && crunchActive());
+  if (_noRefill && typeof FLOW_BANNED_ENTITIES !== 'undefined' && FLOW_BANNED_ENTITIES.has(id)) return true;
   return false;
 }
 

@@ -180,7 +180,7 @@ const CARD_BAND_ANGLE = { tl: 135, tr: 225, br: 315, bl: 45 };
 const CARD_BAND_START = 5;    // % of the axis to the first band's near edge
 const CARD_BAND_PITCH = 3.4;  // % from one band's near edge to the next
 const CARD_BAND_FULL  = 2;    // % a band is thick
-// THE BANDS ARE THE SAME THICKNESS AND THEY NOW LOOK IT (r301). The owner asked
+// THE BANDS ARE THE SAME THICKNESS AND THEY NOW LOOK IT (r302). The owner asked
 // why some read thicker than others; r300 measured the cause as sub-pixel phase
 // - a 2% band on a 119x158 card is 3.91px drawn at 45 degrees, where the pixel
 // grid steps 1.41px along the diagonal, so neither the thickness (2.77 steps)
@@ -192,7 +192,7 @@ const CARD_BAND_FULL  = 2;    // % a band is thick
 // color") fixes both. Measured across a row at 1px, five bands on one card:
 //
 //   r300  light centre   peak 263-281 (1.07x)   area 1030-1044
-//   r301  flat colour    peak 321-324 (1.01x)   area 1605-1610
+//   r302  flat colour    peak 321-324 (1.01x)   area 1605-1610
 //
 // so the flat band is a fifth more ink and its bands are three times closer to
 // each other. A soft edge ramp was tried on top of it and REJECTED by the same
@@ -248,7 +248,7 @@ function cardBandCount(v, per) {
   return v > 0 ? Math.max(1, Math.round(v / per)) : 0;
 }
 
-// A BAND IS ONE FLAT COLOUR (r301, owner's call - the lighter centre line is
+// A BAND IS ONE FLAT COLOUR (r302, owner's call - the lighter centre line is
 // gone). That centre line was doing a real job on Spectrum, where a black `time`
 // band on the near-black card is invisible but for its white middle, so the job
 // moved to the INK: a band that cannot be seen against the face it is drawn on

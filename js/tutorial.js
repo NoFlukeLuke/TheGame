@@ -69,6 +69,7 @@ const TUTORIAL_SEEDS = {
   sixsuits: 'LETHE-SIXSUITS',
   spectrum: 'LETHE-SPECTRUM',
   flow:     'LETHE-FLOW',
+  crunch:   'LETHE-CRUNCH',
 };
 function tutorialRunSeed() {
   if (!tutorialArmed) return null;
@@ -393,10 +394,20 @@ const TUTORIAL_STEPS = [
   },
   {
     id: 'clock', anchor: () => tutEl('#vclock', '#clock-area'), side: 'bottom', hold: true, next: true,
-    not: 'noclock',
+    not: ['noclock', 'crunch'],
     eyebrow: 'The clock',
     title: 'The clock',
     body: () => `Playing a hand is free.<br><br>A swap costs <b>${tutSwapCost()}s</b>. A discard costs <b>${tutDiscardCost()}s</b> per card.<br><br>Time left when you clear the round is paid out in credits.`,
+  },
+  {
+    // Crunch's clock is the QUARTER's, so the step above is wrong here twice
+    // over: it is not refilled between rounds, and what it pays for is beating
+    // par rather than having time left.
+    id: 'clock_crunch', anchor: () => tutEl('#vclock', '#clock-area'), side: 'bottom', hold: true, next: true,
+    only: 'crunch',
+    eyebrow: 'The clock',
+    title: 'One clock, all quarter',
+    body: () => `This is the whole quarter's time, not this round's. It does not refill.<br><br>Playing a hand is free. A swap costs <b>${tutSwapCost()}s</b>. A discard costs <b>${tutDiscardCost()}s</b> per card. Booking anything that is not a round costs a flat fee.<br><br>Clear a round under <b>${formatTime(CRUNCH_PAR_SECONDS)}</b> and you are paid for every ${efficiencySecondsPerCoin()}s you came in under.<br><br>The manager review is fought on whatever is left. Run the clock to zero and the run is over.`,
   },
   {
     // Interactive. The board was audited at deal time to guarantee an exchange

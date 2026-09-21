@@ -489,7 +489,7 @@ function closeDevPanel() {
 }
 
 function devAddTime(s) {
-  roundSeconds = Math.max(1, Math.min(ROUND_DURATION, roundSeconds + s));
+  roundSeconds = Math.max(1, Math.min(crunchNoRoundCap(ROUND_DURATION), roundSeconds + s));
   updateClockUI();
 }
 function devSetTime(s) { roundSeconds = s; updateClockUI(); }

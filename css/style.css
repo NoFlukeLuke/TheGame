@@ -1771,7 +1771,7 @@
     z-index: -1;
     background: var(--cb, none);
     /* THE ELEMENT IS A SIZE CONTAINER purely so the overflow '+' can be placed
-       (r301). A 45 degree band at p% of the axis crosses this corner's own
+       (r302). A 45 degree band at p% of the axis crosses this corner's own
        diagonal at u = v = (p/200)(W+H), which is a length neither a percentage
        nor an em can express - a percentage `left` is a share of W and a
        percentage `top` a share of H. In container-query units it is one calc

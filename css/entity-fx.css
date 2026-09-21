@@ -107,7 +107,7 @@
    takes one colour and cannot be divided. padding sets the ring's thickness;
    the two masks cancel everything inside the padding box, leaving only the 2px
    frame. */
-/* THE ROTATION (r301). --rcl-rot has to be REGISTERED as an <angle>: an
+/* THE ROTATION (r302). --rcl-rot has to be REGISTERED as an <angle>: an
    unregistered custom property is an opaque token, so a keyframe on it would
    step from 0deg to 360deg with nothing in between and the ring would not
    appear to move at all. `inherits: false` keeps it on the ring, where the

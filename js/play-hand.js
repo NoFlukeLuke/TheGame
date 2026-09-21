@@ -812,7 +812,7 @@ function playHand() {
     foldContribution(contribDisplayName('exalt'), 'coin', _ecPaid);
   }
   if (_ecPlay.time !== 0) {
-    roundSeconds = Math.max(1, Math.min(roundSeconds + _ecPlay.time, ROUND_DURATION));
+    roundSeconds = Math.max(1, Math.min(roundSeconds + _ecPlay.time, crunchNoRoundCap(ROUND_DURATION)));
     updateClockUI();
   }
 
