@@ -232,6 +232,39 @@ function findBestHand(cells) {
 
   if (detectionCells.length < 2) { restoreWilds(); return null; }
 
+  // ── WHAT YOU SELECTED IS WHAT YOU PLAY (r283) ──
+  // Owner: "if you select cards to play a certain type of hand, then that's the
+  // hand that should play, always."
+  //
+  // The search below picks the highest-SCORING connected subset, which is not
+  // the same question. Once Natural Scaling has made a short hand out-earn the
+  // longer one it lives inside (OPEN_DECISIONS 7), the winner of that contest
+  // can be a SMALLER subset - so selecting A-2-3-4 paid a Run of 3 and billed
+  // the 4 as a penalty. It was the right answer to the wrong question: the
+  // player had already said which hand they were making.
+  //
+  // So if the WHOLE selection is a hand, that is the hand. No search, no
+  // comparison, no dropped card. It can score less than some subset would and
+  // that is the point - predictable beats optimal, and the optimal play is
+  // still available by selecting those cards instead.
+  //
+  // HIGH CARD IS THE ONE EXCLUSION, and it is load-bearing. It is the r200
+  // escape valve: 0 pips, x1 mult, and it covers every cell BY DEFINITION, so
+  // treating it as "the whole selection is a hand" would make it the answer for
+  // every selection that carries a passenger - a Pair beside three big cards
+  // would score 30 as High Card instead of 52 as a Pair with three penalties.
+  // It is never a hand anyone SELECTED, so it stays what it has always been:
+  // the thing a selection falls back to when the search finds nothing better.
+  const _whole = detectionCells.length >= 2 && detectionCells.length <= HAND_MAX_CARDS
+    ? handComponentsFor(detectionCells) : null;
+  if (_whole && !(_whole.components.length === 1 && _whole.components[0].name === 'High Card')) {
+    const hand = _whole.primary;
+    const rawScore = calcScore(hand, detectionCells);
+    restoreWilds();
+    return { hand, handCells: detectionCells, penaltyCells: [],
+             rawScore, penaltyPips: 0, finalScore: Math.max(0, rawScore) };
+  }
+
   // Generate all connected subsets of 2 to HAND_MAX_CARDS cards. The cap used to
   // be 5, which is why Selection Size (max 9) bought nothing past the fifth card:
   // the extra cards could never be in the hand and were billed as penalty pips.

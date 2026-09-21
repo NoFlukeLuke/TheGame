@@ -804,26 +804,92 @@ hand at all, `findBestHand` fell back to the smaller subset, and the spare card 
   covering partition is asked for only when the hand was about to be voided.
 - **Tagalong asks for the unrestricted partition directly**, because a passenger is
   exactly what it buys. `_tagalong` is read ABOVE the partition now for that reason.
-- **This does not take the short hand away.** `findBestHand` scores every connected
-  subset on its own, so "play just the Pair and eat the penalty" is still on the table and
-  still wins when it genuinely pays more - which is r198 behaving as designed. The fix
-  only stops a partition the game is about to reject from vetoing the one it would have
-  accepted.
+- **This does not take the short hand away.** Playing just the Pair is still on the
+  table - you select those two cards. (This line used to say the SEARCH would pick it for
+  you when it paid more. **r283 removed that half**: the whole selection is now always the
+  hand. See "What you selected is what you play" below.)
 - **Measured, 2,400 random connected selections over 400 boards:** with NS at zero,
   **2,400 of 2,400 byte-identical**. With the ladder inverted (Pair +60, Run of 3 +40, and
   all three together) every difference is an improvement and **0 hands score lower** in
   any configuration; selections that were not a hand at all become one (`J♥ 4♣ 3♦ A♦ 2♣`:
   no hand -> Run of 4). Verified in a real browser on both boards the owner reported.
 
-### The last slot books ONE obligation, and now says so (r281)
+### What you selected is what you play (r283)
 
-Owner: *"It won't let me select the slot above my current slot here."* That is
-`mapLegalMoves`'s hard `set === MAP_SETS - 1` case returning only the review, which is the
-r253 rule and correct - but the bar's visits chip still printed the generic **`1/2`**
-there, so the game was telling the player a second obligation was owed and then refusing
-it. It prints **`1/1`** in the funnel, and `mapBarInfo` names the reason ("the last slot
-books one obligation, then the review") instead of the generic "not reachable from here".
-Display only; no movement rule moved.
+Owner: *"if you select cards to play a certain type of hand, then that's the hand that
+should play, always."*
+
+`findBestHand` brute-forces every connected subset of the selection and returns the
+highest-SCORING one. That is not the same question as "what did the player choose", and
+r281 only fixed half of the gap: the partition stopped vetoing a hand the game was about
+to reject, but the SEARCH could still prefer a smaller subset outright and bill the rest
+as penalty cards. So three 7s could still come out as a Pair with the third seven red,
+for the reason OPEN_DECISIONS 7 describes - Natural Scaling had made the short hand worth
+more than the long one it lives inside.
+
+**If the whole selection is a hand, that is the hand.** `findBestHand` asks
+`handComponentsFor(detectionCells)` FIRST and returns it with no penalties, skipping the
+`2^n` subset search entirely. No comparison, no dropped card.
+
+- **It can score less than some subset would, and that is the point.** Predictable beats
+  optimal; the optimal play is still available by selecting those cards instead.
+- **HIGH CARD IS THE ONE EXCLUSION, and it is load-bearing.** It is the r200 escape valve
+  and it covers every cell BY DEFINITION, so treating it as "the whole selection is a
+  hand" would make it the answer for every selection carrying a passenger - a Pair beside
+  three big cards would score 30 as High Card instead of 52 as a Pair with three
+  penalties. It stays what it has always been: what a selection falls back to when the
+  search finds nothing better.
+- **r201 is untouched.** A selection with a passenger is still not a hand -
+  `handComponentsFor` voids the component list, so `_whole` is null and the search runs
+  exactly as before. `{5C 7S 7H}` is still Pair + 1 penalty. Tagalong is untouched too: it
+  makes the full selection cover, so the early return simply fires.
+- **A selection whose components are all inactive in this mode is untouched**, because
+  `handComponentsFor` returns null when nothing is playable.
+- **Past `HAND_MAX_CARDS` (7) it cannot apply** - at Selection Size 9 something must be
+  dropped - so the search still runs there.
+- **Measured, 4,000 random connected selections over 500 boards:** with Natural Scaling at
+  zero, **4,000 of 4,000 byte-identical**. With the ladder inverted the change appears and
+  is small and one-directional: Pair +60 moves **3** selections, +Run of 3 +40 moves 9,
+  and Pair +34 / Run of 3 +16 / Flush of 3 +40 moves 15 - and in **every** case the new
+  answer uses MORE cards and has NO penalty, scoring 0.74x-1.00x of the old (median
+  0.93-0.96). **0 of them lose a card.** Verified in a real browser through the real tap
+  path on both boards the owner reported: three 7s reads `SET3`, 0 red, and plays as Three
+  of a Kind; A-2-3-4 reads `RUN4`, 0 red, with Run of 3 sitting at a contrived 11,538.
+
+### The last slot books TWO, like every other slot (r283)
+
+Owner: *"It won't let me select the slot above my current slot here."* -> *"So you can do
+2 obligations in the last slot."*
+
+**r281 read that report as a display bug and it was a rule bug.** `mapLegalMoves` had a
+hard `set === MAP_SETS - 1` case returning only the review, so the funnel was the one slot
+in the schedule with its own movement rule; r281 left the rule alone and printed **`1/1`**
+there to match. The owner's answer was the other way round: the funnel books two, and the
+readout was right all along.
+
+- **The only thing added is the ordinary sideways move.** Forward is still always the
+  review, because there is no set beyond this one. The bar's cap is a flat `/2` again and
+  the funnel-specific "the last slot books one obligation" message is gone.
+- **The dead-end DP needed NO change.** `mapCanFinishFrom` already answers `true` for every
+  cell at `set >= MAP_SETS - 1` - the review is reachable from all four lanes - so a
+  sideways step in the funnel can never be doomed. Measured over 8,000 generated maps
+  walked greedily: **0 strands, 4,000 of 4,000 reaching the review** with free branching
+  off and again with it on.
+- **A 2x1 can never reach the funnel**, so that branch needs no span handling: generation
+  caps a 2x1 head at `set <= MAP_SETS - 3`, and the branch tests `t.set === set` anyway.
+- **THE STEP INTO THE REVIEW PAYS THE SKIP NOW.** "Leaving a slot after only one
+  obligation pays you credits" is what the help card says, and it is what the funnel now
+  genuinely offers - so excluding the review step would leave the last slot special in the
+  one way the player can still feel. `mapConfirm`'s payout and `mapBarInfo`'s "leaving now
+  pays N" both dropped their `t.kind !== 'boss'` clause. Verified: standing in the funnel
+  with one visit, the review quotes 6 credits and paying it takes coins 0 -> 6.
+- **Measured, free branching off:** the funnel gives two obligations on **66%** of maps
+  (2,644 of 4,000) - the rest is the BOARD refusing, not a rule, because at a two-solid
+  funnel the tiles sit on non-adjacent lanes. Tiles per run **9.98 -> 10.66**, sets giving
+  two visits **66.6% -> 78.0%**.
+- **Free branching was already routing round the old rule**, which is its own argument that
+  the rule was wrong: with it on, 2,433 of 4,000 funnels already took two, by branching
+  forward from an earlier slot into a second funnel cell.
 
 ### Natural Scaling is a RATE TABLE, one row per hand type (r282)
 
@@ -1670,11 +1736,13 @@ How many of its four lanes carry a real tile is rolled - `MAP_FUNNEL_SOLID_ODDS`
 **2 at 25% · 3 at 40% · 4 at 35%** (measured 25.8 / 40.7 / 33.5 over 6,000 maps).
 At two solid they still sit on NON-ADJACENT lanes, which is the old fixed shape.
 
-**Nothing about "you take exactly one before the boss" depended on those
-blanks.** `mapLegalMoves` has a hard `set === MAP_SETS - 1` case that returns
-only the boss, so the rule holds at any funnel width; the blanks were only ever
+**Nothing about the funnel's shape depended on those blanks.** `mapLegalMoves`
+had a hard `set === MAP_SETS - 1` case that returned only the boss, so "you take
+exactly one before the review" held at any funnel width; the blanks were only ever
 costing the set BEFORE the funnel a second visit, whenever your lane's funnel
-cell happened to be one of the holes. Measured with the greedy two-visit walker:
+cell happened to be one of the holes. **r283 removed that case** - the funnel books
+two like every other slot, and at a two-solid funnel the non-adjacent lanes are what
+limit you to one. See "The last slot books TWO" below. Measured with the greedy two-visit walker:
 sets giving two visits **64.6% -> 66.5%**, 0 strands over 4,000 walks.
 
 **Free branch** (dev panel -> Map, persisted as `lethe.map.freeBranch`) lets a

@@ -171,6 +171,17 @@ thresholds out to the right-hand column, and it is the lever this item was askin
   rather than a handful of rounds - the `ALT` flag exists partly so a mult can be given
   to a hand at half rate rather than not at all.
 
-**The other half of this was a real bug and is fixed** (r281, CLAUDE.md "The partition
-and the load-bearing rule were fighting"): the inversion used to make the longer hand
-*unplayable*, not merely unchosen. Whatever the table is tuned to, that guard holds.
+**The two ways this used to reach the player are both closed, so the table above is now
+purely a BALANCE question:**
+
+- **r281** (CLAUDE.md "The partition and the load-bearing rule were fighting"): the
+  inversion used to make the longer hand *unplayable*, not merely unchosen - the partition
+  took the short hand, left a card unclaimed, and the load-bearing rule then voided the
+  whole selection.
+- **r283** (CLAUDE.md "What you selected is what you play"): `findBestHand` used to pick
+  the highest-scoring SUBSET, so an inverted ladder could still drop a card the player had
+  selected on purpose. The whole selection is now always the hand.
+
+So an inverted rung no longer costs the player a card or a hand - it only means the short
+hand pays more when they choose to play it, which is r198 behaving as designed. Whatever
+the table is tuned to, both guards hold.
