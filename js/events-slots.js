@@ -45,7 +45,7 @@ const SLOT_LINES = [
 // lucky run spreads its winnings across pips, mult and replays instead of piling
 // one stat onto a handful of cards.
 // Worded by buffOfferName (js/deck-grid.js), so a paying line reports a buff in
-// the same words every other offer site uses (r293). Read at USE time - that
+// the same words every other offer site uses (r294). Read at USE time - that
 // function runs through lexProse and the vocabulary can change mid-run.
 const SLOT_BUFFS = [
   { e:{ pips:25 } }, { e:{ mult:4 } }, { e:{ pips:40 } },

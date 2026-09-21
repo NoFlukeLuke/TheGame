@@ -741,7 +741,7 @@
   }
   .ev-cardchip.blocked:hover { transform: none; }
 
-  /* ── The Forge's face row (r293) ──────────────────────────────────────────
+  /* ── The Forge's face row (r294) ──────────────────────────────────────────
      An option buffs two or three cards, so the tile has to SHOW which - the
      same mini playing cards Clean Up's picker is made of, but as a readout
      rather than a control: no hover lift, no pointer, and the click belongs to

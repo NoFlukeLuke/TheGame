@@ -104,7 +104,7 @@
 #map-bar {
   position: fixed; left: 50%; bottom: 10px; transform: translateX(-50%);
   z-index: 260; display: none; align-items: center; gap: 9px;
-  /* IT WRAPS (r293). The strip is `width: max-content` under a viewport cap, and
+  /* IT WRAPS (r294). The strip is `width: max-content` under a viewport cap, and
      every chip in it is a fixed size with CONFIRM at flex:0 0 auto - so on a
      phone the row simply overflowed its own cap and CONFIRM, being last, went
      off the right-hand edge. Measured before this at 11px off at 420 wide,
@@ -125,7 +125,7 @@
 #map-bar .mb-set   { color: var(--c-yellow, #f5c042); font-weight: 700; }
 #map-bar .mb-coins { color: var(--c-yellow, #f5c042); }
 #map-bar .mb-skip  { opacity: 0.75; }
-/* The picked tile's line - and, since r293, the legend row you are reading.
+/* The picked tile's line - and, since r294, the legend row you are reading.
    Still bounded, because a long description must not stretch the strip; but it
    is TWO LINES rather than one clipped one. At 46vw on a 420-wide phone it held
    about 30 characters, which cut "An ordinary round. Clear it and take a pick
@@ -326,7 +326,7 @@ body.map-active #swap-indicator { visibility: hidden; pointer-events: none; }
   background: #f5c042; box-shadow: 0 0 0 1px rgba(0,0,0,0.5) inset;
 }
 
-/* ── The legend rail (r263, moved beside the board r293) ─────────────────────
+/* ── The legend rail (r263, moved beside the board r294) ─────────────────────
    Body-level and docked in the empty strip to the RIGHT of the schedule, in
    raw viewport px written by mapLegendPlace (js/map-draw.js). As a card above
    the bar it covered the whole board on a phone, which is fatal for a list

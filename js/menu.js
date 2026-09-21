@@ -1,4 +1,4 @@
-const BUILD = "2026-09-21 · r293 · the legend is a rail beside the schedule; a card buff says BUFF or SCALES";
+const BUILD = "2026-09-21 · r294 · the legend is a rail beside the schedule; a card buff says BUFF or SCALES";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

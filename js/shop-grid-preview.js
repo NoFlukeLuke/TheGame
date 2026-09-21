@@ -241,7 +241,7 @@ function shopgCardPayloads(n) {
       _cardBuff: true, icon: face, label: face,
       // buffOfferLine / buffOfferName (js/deck-grid.js) - the shop said "scores
       // +12 pips when played" beside the Forge's "scores +30 pips every time it
-      // is played" for the same kind of buff (r293).
+      // is played" for the same kind of buff (r294).
       desc: buffOfferLine(buff.e, `this ${face} in your deck`, false),
       sub: buffOfferName(buff.e),
       rarity: buff.e.growMult ? 'epic' : buff.e.mult ? 'rare' : 'common',

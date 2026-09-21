@@ -442,7 +442,7 @@ function _generateRewardContent() {
     const rank = card.rank, suit = card.suit;
     // Three blessings, worded by buffOfferLine (js/deck-grid.js) rather than by
     // hand - r209's point was that FLAT and SCALING must be told apart in the
-    // words, and r293's is that saying it TWO WAYS in five places is how they
+    // words, and r294's is that saying it TWO WAYS in five places is how they
     // came to differ by one verb. Flat is the word BUFF; scaling is SCALES.
     const face = `${rank}${suit}`;
     const bless = (icon, label, tier, e) => ({ icon, label, tier, cardFace: { rank, suit },

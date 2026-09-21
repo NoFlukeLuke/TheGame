@@ -9,11 +9,11 @@
 // and the pen chip in the bar turns drawing on for a finger. Strokes are
 // stored NORMALISED to the grid box, so they survive every mapRender (which
 // wipes #grid) and a save - but NOT an orientation flip, which transposes the
-// board under them (r293, below).
+// board under them (r294, below).
 //
 // The legend answers the other question and highlights as you read it, the way
 // Slay the Spire's does: hover a row and only those obligations stay lit. It is
-// a RAIL BESIDE THE BOARD since r293, not a card over it - see mapLegendPlace.
+// a RAIL BESIDE THE BOARD since r294, not a card over it - see mapLegendPlace.
 
 const MAP_PEN_COLORS = ['#f5c042', '#8fd0ff', '#6fd08c', '#ff7a7a', '#ffffff'];
 const MAP_PEN_WIDTH = 2.4;
@@ -22,7 +22,7 @@ let mapDrawStrokes = [];   // [{ c: colorIndex, o: 'l'|'p', p: [x,y,...] } ] - x
 let mapPenColor = 0;
 let mapPenOn = false;      // finger mode: the layer takes every tap
 
-// ── INK BELONGS TO THE ORIENTATION IT WAS DRAWN IN (r293) ────────────────────
+// ── INK BELONGS TO THE ORIENTATION IT WAS DRAWN IN (r294) ────────────────────
 // A stroke is normalised to the GRID BOX, which is what carries it through a
 // mapRender and a save. It does NOT carry it through an orientation flip: the
 // schedule TRANSPOSES there (4 lanes x 7 slots becomes 7 x 4), so a circle round
@@ -228,7 +228,7 @@ function mapLegendRows() {
   return rows;
 }
 
-// ── THE LEGEND IS A RAIL BESIDE THE BOARD (r293) ─────────────────────────────
+// ── THE LEGEND IS A RAIL BESIDE THE BOARD (r294) ─────────────────────────────
 // It used to be a .mb-help card above the map bar, and there it did the one
 // thing a legend must not: at 396 x 303 on a phone it LAY OVER THE WHOLE BOARD,
 // so hovering a row lit up obligations nobody could see. Owner: "the legend was

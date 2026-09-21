@@ -424,7 +424,7 @@ function evShuffle(arr) {
 // ══════════════════════════════════════════════
 // EVENT: THE FORGE  (this-or-that card enhancement)
 // ══════════════════════════════════════════════
-// AN OPTION BUFFS SEVERAL CARDS (r293, owner's numbers): a SCALING option takes
+// AN OPTION BUFFS SEVERAL CARDS (r294, owner's numbers): a SCALING option takes
 // TWO cards, every other option takes THREE. The counts are the trade - a
 // scaling buff is worth more per card, so it reaches fewer of them - and they
 // are what makes the two kinds visibly different things to pick between rather
@@ -1469,7 +1469,7 @@ const MARKET_BOONS = [
 ];
 // The wording is buffOfferName (js/deck-grid.js) rather than a clause typed per
 // row - these read "scores 30 extra pips every time it is played", which is the
-// sentence r293 took off the flat side everywhere else. Read at USE time, never
+// sentence r294 took off the flat side everywhere else. Read at USE time, never
 // baked into the table: buffOfferName runs through lexProse, and the player can
 // change the vocabulary mid-run.
 

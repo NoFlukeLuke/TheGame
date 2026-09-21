@@ -62,7 +62,7 @@ function growCardScaling(cards) {
   });
 }
 
-// ── HOW A CARD BUFF IS WORDED (r293) ─────────────────────────────────────────
+// ── HOW A CARD BUFF IS WORDED (r294) ─────────────────────────────────────────
 //
 // ONE vocabulary, for the buff you HOLD (cardBuffLines) and for the buff you are
 // being OFFERED (buffOfferLine). Five sites offered card buffs in five phrasings
@@ -103,7 +103,7 @@ function cardBuffLines(k) {
   if (re) lines.push(`+${re} replay`);
   // These go straight into a tooltip's innerHTML and into the shop's card list,
   // neither of which runs the prose lexicon - so a card's grid tooltip said
-  // "pips" while the tile that granted the buff said "work" (r198's rule, r293's
+  // "pips" while the tile that granted the buff said "work" (r198's rule, r294's
   // pass). lexProse is idempotent (no corporate word is a gamer key), so a
   // caller that highlights afterwards is unaffected.
   return (typeof lexProse === 'function') ? lines.map(lexProse) : lines;

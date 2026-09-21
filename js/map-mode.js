@@ -15,8 +15,10 @@
 // - Leaving a set after only ONE visit pays MAP_SKIP_BASE + MAP_SKIP_STEP * n
 //   credits (n = how many times you have skipped this run): 6, 8, 10...
 // - Set 1 is ALL LEVELS. Sets 2..5 each carry at least one level. The final
-//   set is the FUNNEL: exactly two non-level tiles on non-adjacent lanes, so
-//   you take exactly one of them before the boss.
+//   set is the FUNNEL: non-level tiles only, and how many of its four lanes
+//   carry one is a roll (r253). It books TWO like any other slot (r293) - at a
+//   two-solid funnel they sit on non-adjacent lanes, so the board is what
+//   limits you to one there, not a rule.
 // - Two BLANKS somewhere in the middle sets (never set 1). Inert by default -
 //   they cannot be stepped on or through. Up to two MYSTERY tiles hide their
 //   kind until confirmed (they still count toward the minimums underneath).
@@ -513,7 +515,20 @@ function mapLegalMoves() {
     const { lane, set } = o;
     const visits = mapFreeBranch ? mapVisitsInSet(set) : mapVisits;
     const from = { lane, set, visits };
-    if (set === MAP_SETS - 1) {         // funnel: only the boss remains
+    // THE LAST SLOT BOOKS TWO LIKE EVERY OTHER SLOT (r293, owner's call).
+    // It used to return the review and nothing else, which made the funnel the
+    // one slot in the schedule with its own rule. Forward is still always the
+    // review - there is no set beyond this one - so the only thing added is the
+    // ordinary sideways move. The dead-end DP needs no change: mapCanFinishFrom
+    // answers TRUE for every funnel cell already, because the review is
+    // reachable from all four lanes.
+    if (set === MAP_SETS - 1) {
+      if (visits < 2) {
+        for (const dl of [-1, 1]) {
+          const t = mapCellTile(lane + dl, set);
+          if (t && t.set === set) consider(t, { lane: t.lane, set, visits: visits + 1 }, from);
+        }
+      }
       const boss = mapTiles.find(t => t.kind === 'boss');
       if (boss && !boss.visited) push({ tile: boss, after: { lane, set: MAP_BOSS_SET, visits: 1 }, from });
       continue;
@@ -773,7 +788,7 @@ const MAP_HELP = [
   ['Move', 'Take a lit obligation touching where you stand. Everything you take happens.'],
   ['Two a slot', 'A time slot will book you for two obligations at most.'],
   ['Leaving early', 'Leaving a slot after only one obligation pays you credits.'],
-  ['Last slot', 'One obligation, then the review.'],
+  ['Last slot', 'Book it like any other, then the review.'],
   ['Blocked out', 'Nothing scheduled there, and no way through.'],
 ];
 function mapRenderBar() {
@@ -781,13 +796,9 @@ function mapRenderBar() {
   if (!bar) { bar = document.createElement('div'); bar.id = 'map-bar'; document.body.appendChild(bar); }
   const setNo = mapPos ? Math.min(mapPos.set + 1, MAP_SETS) : 1;
   const skipNext = MAP_SKIP_BASE + MAP_SKIP_STEP * (mapSkips + 1);
-  // THE LAST SLOT BOOKS ONE OBLIGATION, so it must not print a cap of 2 (r281).
-  // mapLegalMoves has a hard `set === MAP_SETS - 1` case returning only the
-  // review, and this readout was still saying 1/2 there - the owner read that as
-  // a second visit being owed and the tile beside them being wrongly refused.
-  const slotCap = (mapPos && mapPos.set === MAP_SETS - 1) ? 1 : 2;
+  // Every slot books two, the last one included (r293) - so the cap is flat.
   const visits = mapPos
-    ? `${mapFreeBranch ? mapVisitsInSet(mapPos.set) : mapVisits}/${slotCap}${mapFreeBranch ? ' FREE' : ''}`
+    ? `${mapFreeBranch ? mapVisitsInSet(mapPos.set) : mapVisits}/2${mapFreeBranch ? ' FREE' : ''}`
     : 'PICK A START';
   const inked = (typeof mapHasInk === 'function') && mapHasInk();
   bar.innerHTML =
@@ -815,7 +826,7 @@ function mapRenderBar() {
     `<div class="mb-help" id="mb-help">` +
       MAP_HELP.map(([k, v]) => `<div class="mb-hrow"><b>${k}</b><span>${v}</span></div>`).join('') +
     `</div>`;
-  // The legend is NOT in here any more (r293): it is a body-level rail beside
+  // The legend is NOT in here any more (r294): it is a body-level rail beside
   // the board, so it survives this rebuild instead of being destroyed by it.
   bar.classList.add('show');
   const btn = document.getElementById('mb-confirm');
@@ -864,15 +875,11 @@ function mapBarInfo(t, move) {
   const full = face.full && face.full.toUpperCase() !== face.name ? `<span class="mb-full">${face.full}</span> ` : '';
   let s = `<b>${face.name}</b> ${full}${mapTileDesc(t)}`;
   if (move && !move.doomed) {
-    if (move.from && move.after.set > move.from.set && move.from.visits === 1 && t.kind !== 'boss')
+    if (move.from && move.after.set > move.from.set && move.from.visits === 1)
       s += ` <i>leaving now pays ${MAP_SKIP_BASE + MAP_SKIP_STEP * (mapSkips + 1)} ◆</i>`;
     if (t.span === 2) s += ` <i>runs over two slots</i>`;
   } else if (t.visited) s += ' <i>already taken</i>';
   else if (move && move.doomed) s += ' <i>dead-ends before the review</i>';
-  // Standing in the last slot, every refusal is the same refusal, so name it
-  // instead of printing the generic one (r281).
-  else if (t.kind !== 'boss' && mapPos && mapPos.set === MAP_SETS - 1 && t.set === MAP_SETS - 1)
-    s += ' <i>the last slot books one obligation, then the review</i>';
   else if (t.kind !== 'boss') s += ' <i>not reachable from here</i>';
   el.innerHTML = s;
 }
@@ -926,8 +933,11 @@ function mapConfirm() {
   }
 
   // Skip payout: leaving a set after exactly one visit. Checked BEFORE the
-  // position moves; the boss step never pays (the funnel is one visit by design).
-  if (move.from && t.kind !== 'boss' && move.after.set > move.from.set && move.from.visits === 1) {
+  // position moves. THE STEP INTO THE REVIEW PAYS IT TOO (r293): the funnel
+  // books two like every other slot now, so walking out of it after one is the
+  // same decision the help card describes, and excluding it would leave the
+  // last slot special in the one way the player can still feel.
+  if (move.from && move.after.set > move.from.set && move.from.visits === 1) {
     mapSkips++;
     const pay = MAP_SKIP_BASE + MAP_SKIP_STEP * mapSkips;
     coins += pay;
