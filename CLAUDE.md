@@ -1764,15 +1764,127 @@ the Trick releases **4** times on a +2 Kindred where it released 2, the goal han
 consumes on Classic / Survival / Spectrum / Schedule, and there are no drift
 warnings and no page errors.
 
-#### One thing left for the owner to decide
+### A prime is a charge on the next firing (r296)
 
-**All stacks fire every hand, but only ONE is consumed per hand.** A +2 Trick
-pays two extra fires on its next qualifying hand and drops to +1, then pays one
-more on the hand after that - three extra fires out of two stacks. Either a stack
-is one extra fire (and all of them should be spent when all of them fire), or it
-is "one extra fire per hand until spent" (and the count means something else).
-It is left as it was, because both readings are defensible and the choice is a
-balance decision, not a bug fix.
+r295 left this as the owner's call - a stack is one extra fire, or it is "one
+extra fire per hand until spent". Owner: *"which is more fun, a trick being able
+to give its bonus a second time for multiple hands, or a bunch of times on one
+hand... And I lean the latter. So a trick can get multiple primes, and all of
+them would go off the next time that trick goes off."*
+
+**The firing half was never the question.** The replay loop has always run once
+per stack and `trickFires()` has always returned `1 + _primed + _rank`, so a +2
+already paid two extra fires. Only the SPEND was one-per-hand, so a +2 paid two
+extra fires and then one more on the hand after - three extra fires out of two
+stacks. `runHandPriming` now sets `t._primed = 0` when the Trick fires.
+Measured on Quake over a 3-card set: mult **12 / 21 / 30 / 39** at 0 / 1 / 2 / 3
+primes (a clean +9 a stack, 3 cards x +3 mult) with the count at **0** after
+every one of them, and the tray chip popping **3 / 4 / 5** times - the base fire
+plus one per prime.
+
+`_rank` is untouched: it is a PERMANENT prime and only `_primed` is cleared.
+
+#### The spend test is the ledger OR the fire record
+
+**"Did it fire" was asked of the contributions ledger alone, and that ledger
+carries pips and mult and nothing else.** So the ~71 Tricks that pay in Focus,
+clock seconds, credits, swaps or card buffs fired their extra times and **never
+spent the stack** - the other half of the owner's "I've ended levels with a +2
+still on some tricks". Measured on Deluge before the fix: **15 / 30 / 45 seconds
+at 0 / 1 / 2 primes, with the count still reading 0 / 1 / 2 afterwards.**
+
+Those payouts all go through **`trickFires()`**, which records the ask in
+`_trickFiredThisHand` (js/scoring.js), reset from `playHand` at the line Focus
+generation begins. **That is only safe because `trickFires` is called from
+nowhere inside `calcScore`** - verified, 0 sites - so unlike the ledger it never
+runs speculatively. All 33 real call sites are in `js/play-hand.js`, and
+`generateHandFocus` has exactly one caller.
+
+**THE CONTRACT TIGHTENED BY ONE WORD: ask only when you are about to PAY.**
+"Every caller is an amount being granted" was already the rule, but seven sites
+multiplied the count by something that can be zero, and a count asked for is now
+a stack spent. Rogue Wave, Gnomes, Groove, Acorns, Overtime, Threepeat and
+Hoarder House test their amount first - the idiom Lucky Sevens and Right Time
+already used. It is the same guard the pip/mult replay loop keeps with its
+`if (!_pd && !_md) return;`. Verified: Hoarder House at 0 swaps and 0 discards
+pays nothing and **keeps its +2**, and at 6 actions pays 9s and drops to 0;
+Deluge primed +2 on a hand with no Flush keeps its +2.
+
+**Rogue Wave's r203 note still holds and is why its line reads the way it does.**
+`canBeOrderedRun` reads `gridData`, which is empty between screens, so it must
+stay short-circuited by an ownership test - `hasTrick('correct_run')` does that
+exactly as `trickFires` did, and the fire count is now asked for after the
+predicate rather than before it.
+
+### A prime is the SECOND THUMP OF A HEARTBEAT (r297)
+
+Owner: *"the way the prime should animate is like a much quicker secondary beat,
+like a heart beat. Where normally it would wait for the next beat in the dance
+sequence, this one happens right after, and if there are multiple then that trend
+continues until they've all fired, then the normal pace can continue."*
+
+r295 made a primed Trick pop for its extra fire and r296 made every stack fire;
+both landed at the ordinary pace, so two fires of one Trick read as two unrelated
+payouts. A prime's event now lands right behind the beat in front of it, and a run
+of them keeps that quick pace until the last one.
+
+| | flight | rest after | one beat at 1x |
+|---|---|---|---|
+| ordinary payout | 1200ms | `tickRest` 600 | ~1800ms |
+| a prime | `primeFlight` 0.45 -> 540ms | `primeRest` 130 | ~670ms |
+
+**Measured at 1x on a 3-card set with Quake** (the gap between one plate launching
+and the next): card beats **1757 / 1597**, the first prime **1096**, each further
+prime **504 / 497 / 480**. So a prime lands in about a third of a normal beat, and
+`mult` is **12 / 21 / 30 / 39** at 0 / 1 / 2 / 3 primes - identical to r296, which
+is what proves this is pacing and nothing else.
+
+- **IT IS RE-TIMED, NEVER RE-ORDERED.** The obvious reading of "right after" is to
+  move the prime's event next to the fire it replays, and that would break r220's
+  rule: the timeline replay has to reproduce `calcScore` exactly, and `calcScore`
+  applies primes at one point in the ladder. Moving an event past a multiply
+  changes the arithmetic. The events stay where they are emitted and only their
+  pacing changes - verified, **0 `[DANCE] timeline drift` warnings** over six runs
+  including a 19-event timeline carrying 8 prime events.
+- **`_ev` RETURNS THE EVENT IT PUSHED**, and the prime loop stamps `prime` on it.
+  The alternative was a seventh positional argument and then an eighth, which is
+  how a signature stops being readable. Nothing else marks an event today.
+- **THE REST AFTER A STEP IS DECIDED BY THE STEP THAT FOLLOWS IT.** The walk is
+  written "fire, then rest", so the only way to land a prime right behind the beat
+  in front of it is to cut the rest that beat was about to take - `restAfter(si)`
+  looks at `steps[si+1]`. That also gives "then the normal pace can continue" for
+  free: the first ordinary step after a run of primes takes a full `tickRest`.
+- **A CARD BEAT RESTS INSIDE ITS REPLAY LOOP, so only the LAST rep's rest is the
+  gap before the next step.** The earlier ones separate a card from its own replay
+  and stay at full pace. Measured: the first prime after a card beat lands at 1096
+  rather than ~1450.
+- **`primeFlight` divides by the pace itself**, because `dncFly` only computes its
+  own duration when handed none. Both numbers ride `dncPace()` and `dncFF` like
+  everything else in the tally, so the Scoring speed slider and the goal-hand SKIP
+  reach them with no extra work.
+
+### The Buddy System knack (r296) - `primeTrick()`
+
+Owner: *"Maybe that knack says something like whenever a trick gets primed
+another trick also gets primed (always a different one)."* **Muscle Memory**
+("Primed Tricks stay primed for one extra hand") was the one entity built on the
+behaviour the model above removes, so it is now **Buddy System**: every prime
+carries to a second, different tray Trick. The id `muscle_memory` is frozen
+(TERMINOLOGY.md) and is unchanged, so the **Priming Press** build recipe in
+`js/combos-aim.js` needs no edit; only the display name and description moved.
+`_primeHeld` is gone.
+
+- **`primeTrick(t, n, opts)` in `js/scoring.js` is the ONE place a prime is
+  granted**, which is the whole reason the knack is two lines. Four sites hand
+  primes out - Inspirato's first and last tray Tricks, Prime Times, Understudy
+  and Hallmark's prime outcome - and a fifth writing `t._primed++` directly
+  would silently opt out of it. `grep -n "_primed = (" js/` should only ever
+  show `primeTrick`.
+- **`opts.echo` is what stops the second prime priming a third for ever.**
+  Measured over 200 grants on a 3-Trick tray: only `[1,1,0]` and `[1,0,1]` ever
+  come out, 104/96 - never a self-echo, never three primed.
+- Boss-suspended Tricks are excluded from the buddy pool, the same filter
+  Understudy and Hallmark already apply to their own draws.
 
 ### The Hallmark knack (r234) - `js/hallmark.js`
 

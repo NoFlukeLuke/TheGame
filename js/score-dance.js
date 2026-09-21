@@ -137,6 +137,12 @@ const DANCE_CFG = {
   actA:{cls:'dnc-pulse',dur:420,mag:1.0}, actB:{cls:'dnc-flash',dur:420,mag:0.4},
   trig:{cls:'dnc-pop',dur:260,mag:0.7}, jitInit:0.10, jitGrow:0.18,
   tickRest:600, pFlight:550, scoreClimb:1250, ff:15, pScale:2.6,
+  // A PRIME IS THE SECOND THUMP OF A HEARTBEAT (r296). An ordinary payout waits
+  // its turn - a full flight and then tickRest - but a primed Trick firing again
+  // is the SAME Trick paying twice, so it lands right behind the beat in front of
+  // it and several of them keep that quick pace until the last one has fired.
+  // Both are ms/scale at 1x and both ride dncPace() like everything else.
+  primeRest:130, primeFlight:0.45,
   // The plate's size multiplier, on top of PARTICLE_CFG.size. 1.15 is the owner's
   // "+15%". pScale above is the OLD bare-text scale and is now unused by the
   // plate shapes - it still drives the no-plate fallback.
@@ -1123,7 +1129,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
     if(ev.card >= 0){ const ci=ev.card, start=i;
       while(i<timeline.length && timeline[i].card===ci) i++;
       steps.push({ kind:'card', card:ci, slot:slotOf(ci), reps:repsByCard[ci]||1, events:timeline.slice(start,i) });
-    } else { steps.push({ kind:'hand', event:ev }); i++; }
+    } else { steps.push({ kind:'hand', event:ev, prime: !!ev.prime }); i++; }
   }
   // Every entity that will fire, so the tray can be resolved once up front. Nothing
   // is charged here - an entity stays perfectly still until its own event lands.
@@ -1360,6 +1366,16 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   const needScroll = handTrack.scrollWidth > handItems.clientWidth + 2;
   const maxScroll  = Math.max(0, handTrack.scrollWidth - handItems.clientWidth);
 
+  // THE REST AFTER A STEP IS DECIDED BY THE STEP THAT FOLLOWS IT (r296), because
+  // the walk is written "fire, then rest" - so the only way to land a prime right
+  // behind the beat in front of it is to cut the rest that beat was about to take.
+  // Consecutive primes each shorten the gap before them, and the first ordinary
+  // step after the run takes a full tickRest, which is the pace resuming.
+  const restAfter = si => (steps[si+1] && steps[si+1].prime) ? DANCE_CFG.primeRest : DANCE_CFG.tickRest;
+  // A prime's own flight is shortened to match. dncFly computes its own duration
+  // when handed none, so an override has to divide by the pace itself.
+  const primeFlight = () => Math.max(60, ptBaseFlight() * DANCE_CFG.primeFlight / (dncFF ? DANCE_CFG.ff : dncPace()));
+
   const _rnd = (v,how) => how==='int' ? Math.round(v) : how==='dp1' ? Math.round(v*10)/10 : v;
   const showPips = extra => { if(pipsEl) pipsEl.textContent = Math.round(rp + (extra||0)); dncTick(pipsEl); };
   const showMult = () => { if(multEl) multEl.textContent = fmtM(rm); dncTick(multEl); };
@@ -1418,8 +1434,8 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
       const ev = step.event;
       const anchor = (ev.from >= 0 && cardEls[slotOf(ev.from)]) ? cardEls[slotOf(ev.from)]
                    : ((ev.op==='pip+'||ev.op==='pip*') ? pipsBox : multBox);
-      await fireEvent(ev, anchor, { v:0 }, true, false);
-      await dwait(DANCE_CFG.tickRest);
+      await fireEvent(ev, anchor, { v:0 }, true, false, step.prime ? primeFlight() : undefined);
+      await dwait(restAfter(si));
       continue;
     }
 
@@ -1476,7 +1492,9 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
       // The card's pips join the hand total once its own beat has resolved, so a
       // card-scoped multiply has something of its own to multiply.
       rp += subRef.v; showPips(0);
-      await dwait(DANCE_CFG.tickRest);
+      // Only the LAST rep's rest is the gap before the next step - the earlier
+      // ones separate a card from its own replay and always run at full pace.
+      await dwait(rep === step.reps - 1 ? restAfter(si) : DANCE_CFG.tickRest);
     }
   }
   if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
