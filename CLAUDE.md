@@ -1623,15 +1623,80 @@ the Trick releases **4** times on a +2 Kindred where it released 2, the goal han
 consumes on Classic / Survival / Spectrum / Schedule, and there are no drift
 warnings and no page errors.
 
-#### One thing left for the owner to decide
+### A prime is a charge on the next firing (r296)
 
-**All stacks fire every hand, but only ONE is consumed per hand.** A +2 Trick
-pays two extra fires on its next qualifying hand and drops to +1, then pays one
-more on the hand after that - three extra fires out of two stacks. Either a stack
-is one extra fire (and all of them should be spent when all of them fire), or it
-is "one extra fire per hand until spent" (and the count means something else).
-It is left as it was, because both readings are defensible and the choice is a
-balance decision, not a bug fix.
+r295 left this as the owner's call - a stack is one extra fire, or it is "one
+extra fire per hand until spent". Owner: *"which is more fun, a trick being able
+to give its bonus a second time for multiple hands, or a bunch of times on one
+hand... And I lean the latter. So a trick can get multiple primes, and all of
+them would go off the next time that trick goes off."*
+
+**The firing half was never the question.** The replay loop has always run once
+per stack and `trickFires()` has always returned `1 + _primed + _rank`, so a +2
+already paid two extra fires. Only the SPEND was one-per-hand, so a +2 paid two
+extra fires and then one more on the hand after - three extra fires out of two
+stacks. `runHandPriming` now sets `t._primed = 0` when the Trick fires.
+Measured on Quake over a 3-card set: mult **12 / 21 / 30 / 39** at 0 / 1 / 2 / 3
+primes (a clean +9 a stack, 3 cards x +3 mult) with the count at **0** after
+every one of them, and the tray chip popping **3 / 4 / 5** times - the base fire
+plus one per prime.
+
+`_rank` is untouched: it is a PERMANENT prime and only `_primed` is cleared.
+
+#### The spend test is the ledger OR the fire record
+
+**"Did it fire" was asked of the contributions ledger alone, and that ledger
+carries pips and mult and nothing else.** So the ~71 Tricks that pay in Focus,
+clock seconds, credits, swaps or card buffs fired their extra times and **never
+spent the stack** - the other half of the owner's "I've ended levels with a +2
+still on some tricks". Measured on Deluge before the fix: **15 / 30 / 45 seconds
+at 0 / 1 / 2 primes, with the count still reading 0 / 1 / 2 afterwards.**
+
+Those payouts all go through **`trickFires()`**, which records the ask in
+`_trickFiredThisHand` (js/scoring.js), reset from `playHand` at the line Focus
+generation begins. **That is only safe because `trickFires` is called from
+nowhere inside `calcScore`** - verified, 0 sites - so unlike the ledger it never
+runs speculatively. All 33 real call sites are in `js/play-hand.js`, and
+`generateHandFocus` has exactly one caller.
+
+**THE CONTRACT TIGHTENED BY ONE WORD: ask only when you are about to PAY.**
+"Every caller is an amount being granted" was already the rule, but seven sites
+multiplied the count by something that can be zero, and a count asked for is now
+a stack spent. Rogue Wave, Gnomes, Groove, Acorns, Overtime, Threepeat and
+Hoarder House test their amount first - the idiom Lucky Sevens and Right Time
+already used. It is the same guard the pip/mult replay loop keeps with its
+`if (!_pd && !_md) return;`. Verified: Hoarder House at 0 swaps and 0 discards
+pays nothing and **keeps its +2**, and at 6 actions pays 9s and drops to 0;
+Deluge primed +2 on a hand with no Flush keeps its +2.
+
+**Rogue Wave's r203 note still holds and is why its line reads the way it does.**
+`canBeOrderedRun` reads `gridData`, which is empty between screens, so it must
+stay short-circuited by an ownership test - `hasTrick('correct_run')` does that
+exactly as `trickFires` did, and the fire count is now asked for after the
+predicate rather than before it.
+
+### The Buddy System knack (r296) - `primeTrick()`
+
+Owner: *"Maybe that knack says something like whenever a trick gets primed
+another trick also gets primed (always a different one)."* **Muscle Memory**
+("Primed Tricks stay primed for one extra hand") was the one entity built on the
+behaviour the model above removes, so it is now **Buddy System**: every prime
+carries to a second, different tray Trick. The id `muscle_memory` is frozen
+(TERMINOLOGY.md) and is unchanged, so the **Priming Press** build recipe in
+`js/combos-aim.js` needs no edit; only the display name and description moved.
+`_primeHeld` is gone.
+
+- **`primeTrick(t, n, opts)` in `js/scoring.js` is the ONE place a prime is
+  granted**, which is the whole reason the knack is two lines. Four sites hand
+  primes out - Inspirato's first and last tray Tricks, Prime Times, Understudy
+  and Hallmark's prime outcome - and a fifth writing `t._primed++` directly
+  would silently opt out of it. `grep -n "_primed = (" js/` should only ever
+  show `primeTrick`.
+- **`opts.echo` is what stops the second prime priming a third for ever.**
+  Measured over 200 grants on a 3-Trick tray: only `[1,1,0]` and `[1,0,1]` ever
+  come out, 104/96 - never a self-echo, never three primed.
+- Boss-suspended Tricks are excluded from the buddy pool, the same filter
+  Understudy and Hallmark already apply to their own draws.
 
 ### The Hallmark knack (r234) - `js/hallmark.js`
 

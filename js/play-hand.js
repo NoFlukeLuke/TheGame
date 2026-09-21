@@ -32,13 +32,13 @@ function generateHandFocus(hand, handCells, vultureSec) {
     // Run focus tricks: Torrent (+1/card), Rogue Wave (+4/card if played in sequence)
     const _isRunHand = ['Run of 3','Run of 4','Straight','Straight Flush'].includes(hand);
     if (_isRunHand) totalFocus += handCells.length * BAL.river_run.focus_per_card * trickFires('river_run');
-    // Rogue Wave's fire count is read BEFORE canBeOrderedRun, so the predicate is
-    // still short-circuited by ownership. It reads gridData, which is empty between
-    // screens, and calling it unconditionally throws there (caught in a browser run).
-    if (_isRunHand) {
-      const _crf = trickFires('correct_run');
-      if (_crf && canBeOrderedRun(handCells)) totalFocus += handCells.length * BAL.correct_run.focus_per_card * _crf;
-    }
+    // Rogue Wave asks for its fire count only once the predicate holds (r296 - a
+    // count asked for is a prime spent). hasTrick() still short-circuits
+    // canBeOrderedRun, which is what the r203 note was really protecting: it reads
+    // gridData, which is empty between screens, and calling it unconditionally
+    // throws there (caught in a browser run).
+    if (_isRunHand && hasTrick('correct_run') && canBeOrderedRun(handCells))
+      totalFocus += handCells.length * BAL.correct_run.focus_per_card * trickFires('correct_run');
     // Resonance: Pairs/Two Pairs containing a 2 or 4 add +2 Focus per card
     if ((hand === 'Pair' || hand === 'Two Pair') &&
         handCells.some(([r,c]) => gridData[r]?.[c] && (gridData[r][c].rank === '2' || gridData[r][c].rank === '4'))) {
@@ -46,11 +46,9 @@ function generateHandFocus(hand, handCells, vultureSec) {
     }
     // Gnomes: each rank-5-and-below card scored adds its rank in Focus (Ace = 1)
     {
-      const _btf = trickFires('before_the_tide');
-      if (_btf) {
-        const _rv = { A:1, '2':2, '3':3, '4':4, '5':5 };
-        handCells.forEach(([r,c]) => { const cc = gridData[r]?.[c]; if (cc && _rv[cc.rank]) totalFocus += _rv[cc.rank] * _btf; });
-      }
+      const _rv = { A:1, '2':2, '3':3, '4':4, '5':5 };
+      const _btl = handCells.reduce((s,[r,c]) => s + (_rv[gridData[r]?.[c]?.rank] || 0), 0);
+      if (_btl) totalFocus += _btl * trickFires('before_the_tide');
     }
     // Lucky Sevens: +3 Focus per 7 scored
     { const _sv = handCells.filter(([r,c]) => gridData[r]?.[c]?.rank === '7').length; if (_sv) totalFocus += _sv * BAL.lucky_sevens.focus * trickFires('lucky_sevens'); }
@@ -75,7 +73,8 @@ function generateHandFocus(hand, handCells, vultureSec) {
     // Groove / Overtime: tally cards scored from their marked line this round, then scale.
     if (hasTrick('groove')) {
       markCount_groove += handCells.filter(([r,c]) => cellHasRowColBonus(r, c, 'groove')).length;
-      totalFocus += Math.floor(markCount_groove / 2) * BAL.groove.focus_per_2 * trickFires('groove');
+      const _gvf = Math.floor(markCount_groove / 2);
+      if (_gvf > 0) totalFocus += _gvf * BAL.groove.focus_per_2 * trickFires('groove');
     }
     if (hasTrick('overtime')) {
       markCount_overtime += handCells.filter(([r,c]) => cellHasRowColBonus(r, c, 'overtime')).length;
@@ -83,7 +82,7 @@ function generateHandFocus(hand, handCells, vultureSec) {
     // 3rd Down: 3-card hands (or Pairs via Three's a Crowd) add Focus
     if (counts3CardHand(hand, handCells)) totalFocus += BAL.third_down.focus * trickFires('third_down');
     // Acorns: grant the trick's accumulated whole-number Focus (grows +0.05 per scored card, post-hand)
-    totalFocus += Math.floor(bonusFocus_acorns) * trickFires('acorns');
+    { const _acf = Math.floor(bonusFocus_acorns); if (_acf > 0) totalFocus += _acf * trickFires('acorns'); }
     // Plan Ahead: every 3rd hand of the round adds Focus = average hands per round so far
     if ((handsPlayedRound + 1) % BAL.plan_ahead.every === 0) {
       totalFocus += Math.max(1, Math.round((handsPlayedGame + 1) / Math.max(1, level))) * trickFires('plan_ahead');
@@ -278,6 +277,10 @@ function playHand() {
   // lastPreHandFocus = the multiplier the hand STARTED at (dance shows this first), then the
   // recompute below sets lastCalcFocus = the multiplier AFTER this hand's Focus (dance beats up to it).
   lastPreHandFocus = focusMultiplier();
+  // r296: every non-scoring payout below asks trickFires(), which records the ask -
+  // that record is what lets runHandPriming spend the primes of a Trick paying in
+  // Focus, seconds or credits, which the contributions ledger cannot see.
+  if (typeof resetTrickFires === 'function') resetTrickFires();
   generateHandFocus(hand, handCells, _vultureSec);
   // Re-score the winning hand now that Focus reflects this hand's own gains.
   const finalScore = Math.max(0, calcScore(hand, handCells) - penaltyPips);
@@ -510,7 +513,8 @@ function playHand() {
   // was not capped at the round length. rewindTime() does all four, and returns
   // 0 during a boss (bosses run their own clock), which is the correct no-op.
   {
-    const _os = Math.floor(markCount_overtime / 3) * BAL.overtime.seconds_per_3 * trickFires('overtime');
+    const _otf = Math.floor(markCount_overtime / 3);
+    const _os = _otf > 0 ? _otf * BAL.overtime.seconds_per_3 * trickFires('overtime') : 0;
     if (_os > 0) rewindTime(_os, `⏱ Overtime - rewound ${_os}s`);
   }
   // Right Time: each card scored in its marked line pauses the clock (rewind conversion pending, task #10)
@@ -518,8 +522,10 @@ function playHand() {
   // Threepeat: hand pip-sum divisible by 3 → rewind (r183)
   {
     const _ps = handCells.reduce((s,[r,c]) => s + (gridData[r]?.[c] ? cardPips(gridData[r][c].rank) : 0), 0);
-    const _ns = BAL.ninesong.seconds * trickFires('ninesong');
-    if (_ps % 3 === 0 && _ns > 0) rewindTime(_ns, `🔁 Threepeat - rewound ${_ns}s`);
+    if (_ps % 3 === 0) {
+      const _ns = BAL.ninesong.seconds * trickFires('ninesong');
+      if (_ns > 0) rewindTime(_ns, `🔁 Threepeat - rewound ${_ns}s`);
+    }
   }
   // Blood Diamonds: a hand with at least one heart AND one diamond grants +1 coin and +10s
   if (hasTrick('monochrome')) {
@@ -604,7 +610,8 @@ function playHand() {
 
   // Hoarder House: playing a hand rewinds the clock 1s per 2 unspent manipulate actions (swaps + discards).
   {
-    const _sec = Math.floor((swaps + discards) / BAL.magpie.actions_per_second) * trickFires('magpie');
+    const _mgf = Math.floor((swaps + discards) / BAL.magpie.actions_per_second);
+    const _sec = _mgf > 0 ? _mgf * trickFires('magpie') : 0;
     if (_sec > 0) rewindTime(_sec, `🏚️ Hoarder House - rewound ${_sec}s`);
   }
 
@@ -948,26 +955,32 @@ function runHandPriming(hand, handCells) {
     const _pc = []; calcScore(hand, handCells, _pc);
     lastPreFocusMult = _savedPFM;
     const _ids = new Set(_pc.map(e => e.id));
-    const _mm = hasKnack('muscle_memory'); // primes last one extra hand
+    // ALL OF A TRICK'S STACKS FIRE ON ONE HAND, SO ALL OF THEM ARE SPENT (r296).
+    // The firing half was never the question - the replay loop has always run
+    // once per stack and trickFires() has always returned 1 + _primed - but only
+    // ONE was spent, so a +2 paid two extra fires and then one more on the hand
+    // after. Owner's call: a prime is a charge on the NEXT firing, not a lease.
+    //
+    // The fired test is the ledger OR the fire record: _pc carries pips and mult,
+    // and a Trick paying in Focus, seconds or credits appears only in the record
+    // (js/scoring.js). Neither alone covers the tray.
     trickTray.forEach(t => {
-      if (t._primed > 0 && _ids.has(t.id)) {
-        if (_mm && !t._primeHeld) { t._primeHeld = true; } // skip this consumption once
-        else { t._primed = Math.max(0, t._primed - 1); t._primeHeld = false; }
-      }
+      if (t._primed > 0 && (_ids.has(t.id) ||
+          (typeof trickFiredThisHand === 'function' && trickFiredThisHand(t.id)))) t._primed = 0;
     });
   }
   // Inspirato: a scored Ace primes the first and last tray Tricks
   if (hasTrick('wild_heart') && trickTray.length && handCells.some(([r,c]) => gridData[r]?.[c]?.rank === 'A')) {
-    trickTray[0]._primed = (trickTray[0]._primed || 0) + 1;
+    primeTrick(trickTray[0]);
     const _last = trickTray[trickTray.length - 1];
-    if (_last !== trickTray[0]) _last._primed = (_last._primed || 0) + 1;
+    if (_last !== trickTray[0]) primeTrick(_last);
   }
   // Prime Times: a scored prime rank primes the next Trick, cycling tray positions 1st→2nd→3rd→5th→7th
   if (hasTrick('prime_times') && trickTray.length && handCells.some(([r,c]) => ['A','2','3','5','7'].includes(gridData[r]?.[c]?.rank))) {
     const _cyc = [0,1,2,4,6];
     const _tt = trickTray[_cyc[_primeTimesCursor % _cyc.length]];
     _primeTimesCursor = (_primeTimesCursor + 1) % _cyc.length;
-    if (_tt) _tt._primed = (_tt._primed || 0) + 1;
+    if (_tt) primeTrick(_tt);
   }
   if (typeof renderTrickTray === 'function') renderTrickTray();
 }

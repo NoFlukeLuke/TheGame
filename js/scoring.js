@@ -1020,11 +1020,13 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     if (_cp[mid]) { const _d = _cp[mid]; totalPips += _d; bPip('mirror', _d); }
     if (_cm[mid]) { const _d = _cm[mid]; mult += _d; bMult('mirror', _d); }
   });
-  // Primed Tricks (Inspirato / Prime Times): a primed Trick fires its effect an extra time
-  // per prime stack the hand it naturally contributes. Stacks are consumed in playHand.
+  // Primed Tricks (Inspirato / Prime Times): a primed Trick fires its effect an extra
+  // time PER STACK on the hand it naturally contributes to, and since r296 every one
+  // of those stacks is then spent together in playHand - a prime is a charge on the
+  // next firing, not a lease on the next few hands.
   // _rank is a PERMANENT prime (Rehearsal event, r194): it fires the Trick an
   // extra time exactly as a prime stack does, but playHand's consumption block
-  // only decrements _primed, so a rank never runs out. Reusing the prime loop is
+  // only clears _primed, so a rank never runs out. Reusing the prime loop is
   // what makes a Trick upgrade generic - it needs no code in any of the 177
   // Tricks, because it duplicates whatever pip/mult delta the Trick reported.
   if (trickTrayMode) trickTray.forEach(t => {
@@ -1471,7 +1473,56 @@ function trickFires(id) {
     if (t) n += (t._primed || 0) + (t._rank || 0);
     n += mirroredTrickIds().filter(m => m === id).length;
   }
+  _trickFiredThisHand.add(id);
   return n;
+}
+
+// -- The record of what fired, for the effects the ledger cannot see (r296) ---
+//
+// A prime is SPENT when its Trick fires, and until r296 "did it fire" was asked
+// of the contributions ledger alone - which carries pips and mult and nothing
+// else. So the ~71 Tricks that pay in Focus, clock seconds, credits, swaps or
+// card buffs fired their extra times (trickFires() has counted the stack since
+// r203) and NEVER SPENT THE STACK. Measured on Deluge: 15 / 30 / 45 seconds at
+// 0 / 1 / 2 primes, with the count still reading 0 / 1 / 2 afterwards. That is
+// the other half of the owner's "I've ended levels with a +2 still on some
+// tricks".
+//
+// Every one of those payouts asks trickFires(), and trickFires() is called from
+// nowhere inside calcScore (verified: 0 sites) - so unlike the ledger it never
+// runs speculatively, and a set written here is an honest record of this hand.
+//
+// THE CONTRACT TIGHTENS BY ONE WORD: a caller must only ask when it is about to
+// PAY. "Every caller is an amount being granted" was already the rule; a site
+// multiplying by a count that can be zero now has to test that count FIRST, or
+// the Trick spends its primes for a payout that never landed. That is exactly
+// the guard the pip/mult replay loop keeps with its `if (!_pd && !_md) return;`.
+let _trickFiredThisHand = new Set();
+function resetTrickFires() { _trickFiredThisHand = new Set(); }
+function trickFiredThisHand(id) { return _trickFiredThisHand.has(id); }
+
+// -- primeTrick: THE ONE PLACE A PRIME IS GRANTED (r296) ----------------------
+//
+// Four sites hand primes out - Inspirato (the first and last tray Tricks),
+// Prime Times, the Understudy knack and Hallmark's prime outcome - and the
+// Buddy System knack has to see all four. A fifth site writing `t._primed++`
+// directly silently opts out of it, which is the whole reason this exists
+// rather than the knack being tested at each site.
+//
+// `echo` is what stops the second prime priming a third for ever.
+function primeTrick(t, n = 1, opts = {}) {
+  if (!t || !(n > 0)) return null;
+  t._primed = (t._primed || 0) + n;
+  if (!opts.echo && typeof hasKnack === 'function' && hasKnack('muscle_memory')) {
+    const pool = (typeof trickTray !== 'undefined' ? trickTray : []).filter(x =>
+      x !== t && !(typeof isTrickDisabledByBoss === 'function' && isTrickDisabledByBoss(x.id)));
+    if (pool.length) {
+      const buddy = pool[Math.floor(Math.random() * pool.length)];
+      primeTrick(buddy, n, { echo: true });
+      if (typeof showMessage === 'function') showMessage('🤝 Buddy System - ' + buddy.name + ' primed', '#8a5cf0');
+    }
+  }
+  return t;
 }
 
 // Returns all row/col bonus entries matching this card position

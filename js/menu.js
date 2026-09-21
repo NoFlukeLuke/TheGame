@@ -1,4 +1,4 @@
-const BUILD = "2026-09-21 · r295 · a primed Trick animates every prime it was scored with, and the goal hand spends one";
+const BUILD = "2026-09-21 · r296 · every prime a Trick holds fires and is spent on one hand; Buddy System";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

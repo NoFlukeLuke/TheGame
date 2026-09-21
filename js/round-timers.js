@@ -118,7 +118,7 @@ function startRoundTimer() {
       const _pool = (trickTray || []).filter(t => !(typeof isTrickDisabledByBoss === 'function' && isTrickDisabledByBoss(t.id)));
       if (_pool.length) {
         const _t = _pool[Math.floor(Math.random() * _pool.length)];
-        _t._primed = (_t._primed || 0) + 1;
+        primeTrick(_t);
         showMessage(`🎭 Understudy - ${_t.name} primed`, '#8a5cf0');
         renderTrickTray?.();
       }
