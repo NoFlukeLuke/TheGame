@@ -163,6 +163,11 @@ function doSwap(r1, c1, r2, c2) {
   });
   selected = [];
   swapPending = null;
+  // Card states (r278): a swap is an INTERACTION, so it resets both cards' fuses.
+  // That is a real lever rather than a side effect - moving a charged card buys
+  // it another full fuse, at the cost of a swap and the clock, and it is the only
+  // way to hold a state you are not ready to spend yet.
+  if (typeof cardStatesTouchCells === 'function') cardStatesTouchCells([[r1, c1], [r2, c2]]);
   // on_swap sleights (Dazed reshuffle, Pivot charge/message) fire after the swap
   fireSleightsOnSwap(r1, c1, r2, c2);
   feedWhetstones([[r1, c1], [r2, c2]]);  // Whetstone sharpens on adjacent swaps
@@ -271,6 +276,11 @@ function onCardTap(r, c) {
   // ABOVE the `animating` guard - that flag is routinely still true from the
   // un-explode's flights, and a tap that silently does nothing reads as broken.
   if (typeof pickActive !== 'undefined' && pickActive) { pickSelect(r, c); return; }
+  // Dev: a card state is armed and this tap charges the card (r278). Above the
+  // `animating` guard for the Pick's reason - the dev panel's own flow is not
+  // play and a tap that silently does nothing reads as broken - and it returns
+  // false the moment nothing is armed, so ordinary play never reaches it.
+  if (typeof devCardStateApplyTap === 'function' && devCardStateApplyTap(r, c)) return;
   if (sleightSpinLock) return;   // a double-tap sleight is spinning out; ignore taps
   const _card = gridData[r]?.[c];
   const _cardStr = _card ? `${_card.rank}${_card.suit}` : 'null';

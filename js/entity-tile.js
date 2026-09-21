@@ -15,6 +15,20 @@
 // p: { entity/type, label/name, emoji, icon, uses, cardFace }
 // ══════════════════════════════════════════════════════════════════════════
 
+// THE GLYPH, NORMALISED (r292). Every emoji this file draws goes through here,
+// which is the whole point: the correction is stamped into the string, so the
+// reward grid, the tray, the Mart, Records, the events and the pick screens all
+// get it without any of them knowing it exists. See emojiInkScale in
+// js/fit-text.js for why an emoji's ink is not its font-size.
+function emGlyph(g) {
+  if (g == null || g === '') return '';
+  const s = (typeof emojiInkScale === 'function') ? emojiInkScale(g) : 1;
+  // A glyph that needs no correction is emitted without the property rather
+  // than with `--egs:1`, so the markup stays quiet in the common case.
+  return s === 1 ? `<span class="rwd-em">${g}</span>`
+                 : `<span class="rwd-em" style="--egs:${s}">${g}</span>`;
+}
+
 function entityTileInner(p, { mystery = false } = {}) {
   const kind  = p.entity || p.type;
   const label = p.label != null ? p.label : (p.name || '');
@@ -31,15 +45,15 @@ function entityTileInner(p, { mystery = false } = {}) {
   const tierBadge = _tier > 0 ? `<div class="rwd-tier" title="Improved ${_tier}x">v${_tier}.0</div>` : '';
 
   if (kind === 'knack')
-    return `<div class="rwd-diamond"><span class="rwd-diamond-emoji">${p.emoji || p.icon || '♛'}</span></div>` + name + tierBadge;
+    return `<div class="rwd-diamond"><span class="rwd-diamond-emoji">${emGlyph(p.emoji || p.icon || '♛')}</span></div>` + name + tierBadge;
 
   if (kind === 'trick')
     return `<div class="rwd-glyph">✦</div>`
-         + `<div class="rwd-art${mystery ? ' rwd-art-ph' : ''}">${mystery ? '✦' : (p.emoji || p.icon || '✦')}</div>`
+         + `<div class="rwd-art${mystery ? ' rwd-art-ph' : ''}">${emGlyph(mystery ? '✦' : (p.emoji || p.icon || '✦'))}</div>`
          + name + tierBadge;
 
   if (kind === 'sleight')
-    return `<div class="rwd-tab">▶</div><div class="rwd-art">${p.emoji || p.icon || '🃏'}</div>` + name
+    return `<div class="rwd-tab">▶</div><div class="rwd-art">${emGlyph(p.emoji || p.icon || '🃏')}</div>` + name
          + (p.uses != null ? `<div class="rwd-uses">${p.uses}</div>` : '') + tierBadge;
 
   // Card-face tiles (blessed / cursed / cull): mini playing card + name. The
@@ -50,7 +64,7 @@ function entityTileInner(p, { mystery = false } = {}) {
          + `<span class="reward-face-suit">${p.cardFace.suit}</span></div>` + name;
 
   // Plain resource / debuff / dest / mystery tile: icon + name.
-  return `<div class="reward-icon">${p.icon || p.emoji || '▲'}</div>` + name;
+  return `<div class="reward-icon">${emGlyph(p.icon || p.emoji || '▲')}</div>` + name;
 }
 
 // The improvement tier as a CLASS (r274). The disc draws its bands and its

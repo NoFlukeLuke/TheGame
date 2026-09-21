@@ -100,6 +100,7 @@ function openDevPanel() {
   devRenderSleights();
   devRenderBosses();
   devRenderModes();
+  devRenderTips();
   devRenderEvents();
   devRenderGroupMenu();
   devSyncFloatSliders();
@@ -147,7 +148,9 @@ const DEV_GROUPS = [
            : m === 'spectrum' ? 'Spectrum owns its deck'
            : 'four suits · 52 cards'; } },
   { g:'improve',  icon:'\u2191', label:'Improve',   sub:() => devImproveSub() },
+  { g:'cardstates', icon:'\u29c9', label:'Card States', sub:() => devCardStateSub() },
   { g:'builds',   icon:'▤', label:'Builds',    sub:() => `${discoveredIds.size} records open` },
+  { g:'tips',     icon:'\u2139', label:'Tips',      sub:() => `${INSIGHTS.length} tips \u00b7 ${insightsSeenCount()} seen` },
   { g:'log',      icon:'✎', label:'Event Log', sub:() => 'in-game debug log' },
 ];
 function devRenderGroupMenu() {
@@ -175,6 +178,7 @@ function devOpenGroup(g) {
   if (g === 'deck') devRenderDeckDesign();
   if (g === 'goals') devRenderGoalPanel();
   if (g === 'improve') devRenderImprove();
+  if (g === 'cardstates') devRenderCardStates();
 }
 function devCloseGroup() {
   document.getElementById('dev-group-menu').style.display = '';
@@ -192,13 +196,38 @@ function devRenderBosses() {
 // Match-3, Zen and Dominoes now that MODE_SELECT_LIST hides them (js/menu.js).
 // Generated rather than hand-written for the same reason the boss and event rows
 // are: a new mode cannot go missing from the panel.
+// Tips (r280). Every row is FIRED ON DEMAND rather than waited for: most of the
+// predicates need a board state that is a nuisance to reach, and devShowInsight
+// deliberately does not burn a tip that had not been seen yet.
+function devRenderTips() {
+  const el = document.getElementById('dev-tip-btns'); if (!el) return;
+  el.innerHTML =
+    `<div class="dev-note">${insightsSeenCount()} of ${INSIGHTS.length} seen \u00b7 `
+      + `tips are ${insightsOn() ? 'ON' : 'OFF'} (Settings \u203a Help)</div>` +
+    `<button class="dev-btn" onclick="resetInsights(); devRenderTips();">Reset all</button>` +
+    `<button class="dev-btn" onclick="openInfoHub()">Open handbook</button>` +
+    INSIGHTS.map(r => {
+      const seen = insightsSeen.has(r.id);
+      return `<button class="dev-btn" onclick="devShowInsight('${r.id}')" `
+           + `title="${seen ? 'already seen' : 'not yet seen'}">${r.id}${seen ? '' : ' \u2022'}</button>`;
+    }).join('');
+}
+
 function devRenderModes() {
   const el = document.getElementById('dev-mode-btns'); if (!el) return;
-  el.innerHTML = Object.keys(MODES).map(id => {
-    const hidden = MODE_HIDDEN_LIST.includes(id);
-    return `<button class="dev-btn" onclick="devStartMode('${id}')" title="${hidden ? 'hidden from the mode carousel' : ''}">`
-         + `${MODES[id].name || id}${hidden ? ' ·' : ''}</button>`;
-  }).join('');
+  // The unlock state is PERSISTED across runs, so without a reset here a mode's
+  // first-run tutorial can only ever be seen once per browser.
+  const done = (typeof modesFinished !== 'undefined') ? modesFinished.size : 0;
+  const seen = (typeof modesStarted  !== 'undefined') ? modesStarted.size  : 0;
+  el.innerHTML =
+    `<div class="dev-note">Unlocks: ${done} finished \u00b7 ${seen} played</div>` +
+    `<button class="dev-btn" onclick="devUnlockAllModes()">Unlock every mode</button>` +
+    `<button class="dev-btn" onclick="devResetModeProgress(); devRenderModes();">Reset unlocks + first runs</button>` +
+    Object.keys(MODES).map(id => {
+      const hidden = MODE_HIDDEN_LIST.includes(id);
+      return `<button class="dev-btn" onclick="devStartMode('${id}')" title="${hidden ? 'hidden from the mode carousel' : ''}">`
+           + `${MODES[id].name || id}${hidden ? ' \u00b7' : ''}</button>`;
+    }).join('');
 }
 
 // Launch a mode from the panel. chooseMode() is the menu's own entry point, so
@@ -796,6 +825,12 @@ const GOAL_TUNABLES = {
     { key: 'classicGrowth', label: 'Harder each round by',
       min: 0, max: 200, step: 1, dp: 1, unit: '%',
       get: () => goalTune('classicGrowth'), set: v => setGoalTune('classicGrowth', v) },
+    { key: 'classicGrowthLate', label: 'Late-game growth per round',
+      min: 0, max: 200, step: 1, dp: 1, unit: '%',
+      get: () => goalTune('classicGrowthLate'), set: v => setGoalTune('classicGrowthLate', v) },
+    { key: 'classicLateStart', label: 'Late growth starts at round',
+      min: 2, max: 60, step: 1, dp: 0, unit: '',
+      get: () => goalTune('classicLateStart'), set: v => setGoalTune('classicLateStart', v) },
     { key: 'classicRoundTo', label: 'Round the goal to the nearest',
       min: 1, max: 5000, step: 50, dp: 0, unit: '',
       get: () => goalTune('classicRoundTo'), set: v => setGoalTune('classicRoundTo', v) },
@@ -815,6 +850,9 @@ const GOAL_TUNABLES = {
       get: () => goalTune('endlessAccel'), set: v => setGoalTune('endlessAccel', v) },
   ],
   other: [
+    { key: 'mapGrowth', label: 'Schedule: harder each level by',
+      min: 0, max: 200, step: 1, dp: 1, unit: '%',
+      get: () => goalTune('mapGrowth'), set: v => setGoalTune('mapGrowth', v) },
     { key: 'zenMult', label: 'Zen (no clock) multiplies the classic goal by',
       min: 0.5, max: 10, step: 0.25, dp: 2, unit: 'x',
       get: () => goalTune('zenMult'), set: v => setGoalTune('zenMult', v) },
@@ -1064,6 +1102,103 @@ function devResumeRun() {
 // ── Improve (r206) - entity tiers ────────────────────────────────────────────
 // The tier system's test surface: see what you own, what tier it is at, and
 // what one more improvement would read as, without waiting for a reward grid.
+// ── Card states (r278) ──────────────────────────────────────────────────────
+// The only grant path outside the Hallmark knack today. Pick a state here, then
+// tap a card on the board: the tap intercept lives in js/input.js and is armed
+// only while devCardStatePick is set, so it can never interfere with ordinary
+// play.
+let devCardStatePick = null;
+
+function devCardStateSub() {
+  try {
+    const n = Object.keys(cardStates || {}).length;
+    const t = cardStateBoardCards().filter(([c]) => isTempCard(c)).length;
+    return `${cardStateIds().length} states \u00b7 ${n} charged \u00b7 ${t} temp on board`;
+  } catch (e) { return 'per-card charges'; }
+}
+
+function devRenderCardStates() {
+  const el = document.getElementById('dev-card-state-list');
+  if (!el) return;
+  el.innerHTML = cardStateIds().map(id => {
+    const d = cardStateDef(id);
+    const on = devCardStatePick === id;
+    return `<button class="dev-btn" style="display:block;width:100%;text-align:left;margin-bottom:3px;`
+         + `border-color:${on ? d.color : 'rgba(255,255,255,0.18)'};color:${on ? d.color : ''}"`
+         + ` onclick="devPickCardState('${id}')">`
+         + `<b>${d.icon} ${d.name}</b>${d.fuse ? ` <span style="opacity:.6">fuse ${d.fuse}s</span>` : ''}`
+         + `<br><span style="font-size:9px;opacity:.75">${d.desc}</span></button>`;
+  }).join('');
+  devRenderCardStateBoard();
+}
+
+function devRenderCardStateBoard() {
+  const el = document.getElementById('dev-card-state-board');
+  if (!el) return;
+  const rows = [];
+  try {
+    cardStateBoardCards().forEach(([card, r, c]) => {
+      const list = cardStateList(card);
+      if (!list.length && !isTempCard(card)) return;
+      const idle = cardIdleSecs[cardId(card)] || 0;
+      rows.push(`${card.rank}${card.suit} @${r},${c}`
+        + (isTempCard(card) ? ' <span style="color:#7ac4ff">TEMP</span>' : '')
+        + (list.length ? ' \u00b7 ' + list.map(s => `${s.def.name}${s.n > 1 ? ' x' + s.n : ''}`).join(', ') : '')
+        + ` \u00b7 idle ${idle}s`);
+    });
+  } catch (e) { rows.push('(no board)'); }
+  el.innerHTML = rows.length ? rows.join('<br>') : '<span style="opacity:.6">nothing charged on the board</span>';
+}
+
+function devPickCardState(id) {
+  devCardStatePick = (devCardStatePick === id) ? null : id;
+  devRenderCardStates();
+  if (devCardStatePick) showMessage(`Tap a card to make it ${cardStateDef(id).name}`, 'var(--gold)');
+}
+
+// Consumed by the tap intercept in js/input.js. Returns true if it took the tap.
+function devCardStateApplyTap(r, c) {
+  if (!devCardStatePick) return false;
+  const card = gridData[r]?.[c];
+  if (!card || !card.rank || card._isSleight || card._isStone || card._isTrick) return false;
+  const d = cardStateDef(devCardStatePick);
+  addCardState(card, devCardStatePick, 1);
+  showMessage(`${d.icon} ${card.rank}${card.suit} is ${d.name}`, d.color);
+  devCardStatePick = null;
+  devRenderCardStates();
+  render();
+  return true;
+}
+
+function devCardStateRandom() {
+  const pool = cardStateBoardCards();
+  if (!pool.length) { showMessage('No board to charge', 'var(--red)'); return; }
+  const [card] = pool[Math.floor(Math.random() * pool.length)];
+  const ids = cardStateIds();
+  const id = ids[Math.floor(Math.random() * ids.length)];
+  addCardState(card, id, 1);
+  showMessage(`${cardStateDef(id).icon} ${card.rank}${card.suit} is ${cardStateDef(id).name}`, cardStateDef(id).color);
+  devRenderCardStates(); render();
+}
+
+// Swap a board card for a temp copy of itself, so the temp look and the
+// evaporate-at-level-end rule can be checked without waiting for a Backfill.
+function devMakeTempCard() {
+  const pool = cardStateBoardCards().filter(([c]) => !isTempCard(c));
+  if (!pool.length) { showMessage('No ordinary card on the board', 'var(--red)'); return; }
+  const [card, r, c] = pool[Math.floor(Math.random() * pool.length)];
+  discardToDrawPile(card);
+  gridData[r][c] = makeTempCard(card.rank, card.suit, null);
+  showMessage(`Temp ${card.rank}${card.suit} on the board`, '#7ac4ff');
+  devRenderCardStates(); render(); updateDeckHud();
+}
+
+function devClearCardStates() {
+  cardStatesResetRun();
+  showMessage('Card states cleared', 'var(--cream-dim)');
+  devRenderCardStates(); render();
+}
+
 function devImproveSub() {
   try {
     const n = ['trick','knack','sleight'].reduce((a,t) => a + ownedImprovable(t).length, 0);
@@ -1087,7 +1222,7 @@ function devRenderImprove() {
         <button class="dev-btn" style="padding:2px 7px" onclick="devImproveOne('${o.id}')">+1</button>
         <span style="min-width:118px;font-size:11px">${o.name}</span>
         <span style="opacity:.6;font-size:10px">tier ${t}/${IMPROVE_MAX_TIER}</span>
-        <span style="opacity:.5;font-size:10px;flex:1">${pv ? pv.after : ''}</span></div>`);
+        <span style="opacity:.5;font-size:10px;flex:1">${(typeof improveDeltaFor === 'function' && improveDeltaFor(o.id)) || (pv ? pv.after : '')}</span></div>`);
     });
   });
   el.innerHTML = rows.join('');

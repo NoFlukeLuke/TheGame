@@ -367,11 +367,20 @@ function _generateRewardContent() {
     if (!pick) return makeTrickPayload();
     const prev = (typeof improvePreview === 'function') ? improvePreview(pick.id) : null;
     const tierTxt = prev ? ` (tier ${prev.tier}/${IMPROVE_MAX_TIER})` : '';
+    // The sentence ONCE, with the number that moves marked in place (r281).
+    // improveDeltaHTML returns null when the two descriptions are not provably
+    // the same sentence, and only then do we fall back to printing both.
+    const delta = (prev && prev.after !== prev.before && typeof improveDeltaHTML === 'function')
+                    ? improveDeltaHTML(prev.before, prev.after) : null;
     return {
       icon: ICON[type] || '\u2605', label: 'Improve: ' + pick.name,
-      desc: (prev && prev.after !== prev.before)
-              ? `${pick.name}${tierTxt}\n${prev.before}\n\u2193\n${prev.after}`
-              : `Improve your ${NOUN[type]} ${pick.name}${tierTxt}`,
+      // <br>, not \n: .rtt-desc has no `white-space: pre-line`, so a newline
+      // renders as a space and the tier line runs into the sentence.
+      desc: delta
+              ? `<b>${pick.name}${tierTxt}</b><br>${delta}`
+              : (prev && prev.after !== prev.before)
+                ? `${pick.name}${tierTxt}\n${prev.before}\n\u2193\n${prev.after}`
+                : `Improve your ${NOUN[type]} ${pick.name}${tierTxt}`,
       tier: 'rare', entity: type, rarity: pick.rarity || 'rare', _improve: true,
       apply: () => {
         if (typeof improveEntity !== 'function' || !improveEntity(pick.id)) {
@@ -840,19 +849,21 @@ function removeCardIdentityFromRun(rank, suit) {
 
 // Place a Trick card physically on the grid (middle-row inner col, displacing if needed).
 // Use this any time a Trick is granted outside the normal level-up Trick selection flow.
+// THE chokepoint every Trick grant passes through - the shop, the reward grid,
+// every event, both picks, the wheel and the dev panel. Returns false when the
+// grant was refused, so a caller about to charge for one can check first.
 function injectTrickAfterReward(trick) {
-  if (!trick) return;
+  if (!trick) return false;
   if (trickTrayMode) {
-    // Tray full (trick_slots limit) → offer replace-or-skip instead of silent grow
-    if (trickTray.length >= trickCapacity()) {
-      _trickReplaceQueue.push(trick);
-      maybeOpenTrickReplacePicker();
-      return;
-    }
+    // Slots full: REFUSED, not queued (r277). Selling is how a slot is freed.
+    // Guarding here as well as at the selection sites is deliberate - plenty of
+    // grants arrive with nothing to select (a wheel prize, an event payout, a
+    // Mystery tile), and those have to bounce rather than vanish.
+    if (trickTrayFull()) return refuseTrickCapacity();
     trickTray.push(trick);
     selectTrick(trick, true);
     renderTrickTray();
-    return;
+    return true;
   }
   const midRow = Math.floor(gridRows / 2);
   const allCols = Array.from({length: gridCols}, (_, i) => i).sort(() => Math.random() - 0.5);
@@ -876,6 +887,7 @@ function injectTrickAfterReward(trick) {
   gridData[targetRow][targetCol] = { rank: null, suit: null, _isTrick: true, _selectable: false, _trickState: 'acquired', trick, _id: trickId };
   selectTrick(trick, true); // handles acquiredTricks.push + positional assignment
   render();
+  return true;
 }
 
 // "A random Trick" - the Crossroads sacrifice trade, and makeTrickPayload's
@@ -906,36 +918,6 @@ function applyRewardLoseTrick() {
 
 let _blpOptions   = [];
 let _blpSelected  = -1;
-let _blpMode      = 'lose';        // 'lose' (debuff: must remove) | 'replace' (tray full: swap or skip)
-let _trickReplaceQueue = [];       // new Tricks waiting while the tray is at trick_slots capacity
-
-// Tray is full - show the picker in 'replace' mode for the next queued new Trick.
-// The incoming Trick is drawn as a real entity tile (js/entity-tile.js) rather
-// than quoted into the subtitle: it is the thing you are deciding about, and it
-// should look like it looks everywhere else you have met it.
-function maybeOpenTrickReplacePicker() {
-  if (!_trickReplaceQueue.length) return;
-  if (document.getElementById('trick-lose-picker').classList.contains('show')) return; // one at a time
-  const incoming = _trickReplaceQueue[0];
-  _blpMode = 'replace';
-  document.getElementById('blp-eyebrow').textContent = 'Trick slots full';
-  document.getElementById('blp-title').textContent = 'NO ROOM FOR THIS ONE';
-  document.getElementById('blp-sub').textContent =
-    'Every slot is taken. Pick the Trick it replaces, or turn the new one away.';
-  document.getElementById('blp-confirm').textContent = 'Replace Selected';
-  document.getElementById('blp-cancel').style.display = '';
-  const inc = document.getElementById('blp-incoming');
-  // Tile first: #blp-incoming is a 2-column grid and the tile spans both rows.
-  inc.innerHTML =
-    `<div class="blp-inc-tile">${entityTileHTML(
-        { entity:'trick', label: incoming.name, emoji: trickEmoji(incoming) },
-        blpRarity(incoming.tier))}</div>
-     <div class="blp-inc-label">Incoming</div>
-     <div class="blp-inc-desc">${colorizeKeywords(incoming.desc || '')}</div>`;
-  inc.classList.add('show');
-  fitEntityNames(inc, '.rwd-name', { maxLines: 3 });
-  openTrickLosePicker(trickTray.map((trick, idx) => ({ trick, source: 'tray', idx })));
-}
 
 // Trick tiers and entity rarities are the same four words, but a Trick can carry
 // a tier the tile has no colour for - fall back rather than paint nothing.
@@ -945,26 +927,15 @@ function blpRarity(tier) {
   return BLP_TIERS.includes(t) ? t : 'common';
 }
 
-function cancelTrickReplacePicker() {
-  document.getElementById('trick-lose-picker').classList.remove('show');
-  document.getElementById('blp-incoming').classList.remove('show');
-  const skipped = _trickReplaceQueue.shift();
-  if (skipped) showMessage(`Skipped ${skipped.name} (tray full)`, 'var(--cream-dim)');
-  _blpMode = 'lose';
-  setTimeout(() => maybeOpenTrickReplacePicker(), 150);
-}
-
+// ONE job now: a debuff is taking a Trick off you. The 'replace' mode this
+// screen used to double as went with the replace picker in r277.
 function openTrickLosePicker(options) {
-  if (_blpMode !== 'replace') {
-    // restore the default 'lose' chrome (replace mode pre-sets its own)
-    document.getElementById('blp-eyebrow').textContent = 'Forfeit';
-    document.getElementById('blp-title').textContent = 'CHOOSE A TRICK TO LOSE';
-    document.getElementById('blp-sub').textContent = 'Select one - it will be removed permanently.';
-    document.getElementById('blp-confirm').textContent = 'Remove Selected';
-    document.getElementById('blp-cancel').style.display = 'none';
-    const inc = document.getElementById('blp-incoming');
-    inc.innerHTML = ''; inc.classList.remove('show');
-  }
+  document.getElementById('blp-eyebrow').textContent = 'Forfeit';
+  document.getElementById('blp-title').textContent = 'CHOOSE A TRICK TO LOSE';
+  document.getElementById('blp-sub').textContent = 'Select one - it will be removed permanently.';
+  document.getElementById('blp-confirm').textContent = 'Remove Selected';
+  const inc = document.getElementById('blp-incoming');
+  if (inc) { inc.innerHTML = ''; inc.classList.remove('show'); }
   _blpOptions  = options;
   _blpSelected = -1;
   const cap = (typeof trickCapacity === 'function') ? trickCapacity() : options.length;
@@ -1015,19 +986,6 @@ function confirmTrickLosePicker() {
     const ai = acquiredTricks.findIndex(b => b.id === opt.trick.id);
     if (ai >= 0) acquiredTricks.splice(ai, 1);
     showMessage(`- ${opt.trick.name}`, 'var(--red)');
-    // Replace mode: the freed slot goes to the queued new Trick
-    if (_blpMode === 'replace') {
-      const incoming = _trickReplaceQueue.shift();
-      _blpMode = 'lose';
-      if (incoming) {
-        trickTray.push(incoming);
-        selectTrick(incoming, true);
-        showMessage(`+ ${incoming.name}`, 'var(--gold)');
-      }
-      renderTrickTray();
-      setTimeout(() => maybeOpenTrickReplacePicker(), 150);
-      return;
-    }
     renderTrickTray();
   } else {
     gridData[opt.r][opt.c] = null;
@@ -1311,7 +1269,7 @@ function ensureRewardTooltip() {
   if (_rewardTT && document.body.contains(_rewardTT)) return _rewardTT;
   _rewardTT = document.createElement('div');
   _rewardTT.id = 'reward-tooltip';
-  _rewardTT.innerHTML = `<button class="rtt-close" aria-label="Close">✕</button><div class="rtt-rar"></div><div class="rtt-name"></div><div class="rtt-desc"></div>`;
+  _rewardTT.innerHTML = `<button class="rtt-close" aria-label="Close">✕</button><span class="rtt-more"></span><div class="rtt-rar"></div><div class="rtt-name"></div><div class="rtt-desc"></div><div class="rtt-defs"></div>`;
   // The ✕ unpins as well as hides: an X'd tooltip must stay closed even though
   // its tile is still the most recently selected one (owner spec, r237).
   _rewardTT.querySelector('.rtt-close').onclick = (e) => {
@@ -1322,7 +1280,26 @@ function ensureRewardTooltip() {
   document.body.appendChild(_rewardTT);
   return _rewardTT;
 }
-function hideRewardTooltip() { if (_rewardTT) { _rewardTT.classList.remove('show'); _rewardTT.dataset.key = ''; } }
+function hideRewardTooltip() { if (_rewardTT) { _rewardTT.classList.remove('show', 'kw-open'); _rewardTT.dataset.key = ''; } }
+
+// ── THE POINTER IS OVER THE BUBBLE (r288) ───────────────────────────────────
+// The bubble is pointer-events:none (r170 - at 214px it would otherwise eat the
+// clicks meant for the tiles it lies over), so a tile UNDERNEATH it still gets
+// `mouseenter` and swaps the bubble to itself. That was harmless while the
+// bubble was purely something to read; it is not harmless now there is a + in
+// its corner, because reaching that + means crossing the bubble, and every tile
+// crossed on the way rebuilt it - measured at 420x820, the rail opened on tile
+// 0-0 and was replaced by tile 0-3's bubble in the same gesture.
+//
+// So the tile-hover re-show stands down while the pointer is inside the bubble.
+// Tracked on the document because the bubble itself cannot receive the events.
+let _rttPt = { x: -1, y: -1 };
+document.addEventListener('pointermove', e => { _rttPt.x = e.clientX; _rttPt.y = e.clientY; }, true);
+function pointerOverRewardTip() {
+  if (!_rewardTT || !_rewardTT.classList.contains('show')) return false;
+  const r = _rewardTT.getBoundingClientRect();
+  return _rttPt.x >= r.left && _rttPt.x <= r.right && _rttPt.y >= r.top && _rttPt.y <= r.bottom;
+}
 
 // Which tile's tooltip is currently pinned open. This is the tile you most
 // recently picked (or last tapped to inspect) - see onRewardCellClick.
@@ -1341,7 +1318,14 @@ function showRewardTooltipFor(r, c) {
   const el = document.querySelector(`#grid .reward-cell[data-r="${r}"][data-c="${c}"], #reward-grid .reward-cell[data-r="${r}"][data-c="${c}"]`);
   if (!el) return;
   const tt = ensureRewardTooltip();
-  tt.className = 'rar-' + rewardRarity(p);
+  // An OPEN definition rail has to survive a re-show of the SAME tile (r288).
+  // This bubble is re-shown constantly: renderRewardTiles rebuilds the tiles and
+  // calls restoreRewardTooltip, and the hover rule snaps back to the pinned tile
+  // whenever the pointer leaves one - which is exactly what moving the pointer
+  // onto the + does when the bubble is sitting over a tile (portrait). Without
+  // this the rail opened and was rebuilt shut in the same gesture.
+  const wasOpen = tt.dataset.key === `${r}-${c}` && tt.classList.contains('kw-open');
+  tt.className = 'rar-' + rewardRarity(p);   // also clears kw-open from another tile
   tt.dataset.key = `${r}-${c}`;
   tt.querySelector('.rtt-rar').textContent  = (p.entity ? rewardRarity(p) + ' · ' : '') + rewardTypeLabel(p, cell.kind);
   tt.querySelector('.rtt-name').textContent = p.label;
@@ -1349,6 +1333,21 @@ function showRewardTooltipFor(r, c) {
   // the reward grid for round-scoped tricks - the round isn't live yet).
   const descText = (p._trick && typeof trickLiveDesc === 'function') ? trickLiveDesc(p._trick) : (p.desc || '');
   tt.querySelector('.rtt-desc').innerHTML   = colorizeKeywords(descText);
+  // r288 - definitions are never shown unasked; the + in the corner opens them.
+  // The chip is rebuilt with the text, so it is re-wired on every show.
+  tt.querySelector('.rtt-more').innerHTML = kwMoreHTML(descText);
+  tt.querySelector('.rtt-defs').innerHTML = kwDefsHTML(descText);
+  tt.classList.toggle('kw-open', wasOpen);
+  const _sign = tt.querySelector('.kw-more-sign');
+  if (_sign && wasOpen) _sign.textContent = '\u2212';
+  // Opening the rail PINS the tile, the same "you asked for this, so it stays"
+  // rule the entity tooltip's sticky mode follows. A hover-preview bubble is
+  // thrown away by the next renderRewardTiles (restoreRewardTooltip hides it
+  // outright when nothing is pinned), which would take the rail with it.
+  wireKwMore(tt, tt, (open) => {
+    if (open) rewardTipKey = `${r}-${c}`;
+    if (onShop) placeTipBelow(el, tt, { gap: 10 }); else placeTipSmart(el, tt, { gap: 12 });
+  });
   tt.classList.add('show');
   // Placement. The SHOP uses the boss-peek / hand-log rule (r254): centred on
   // the tile, below when there is room, flipped above when not, clamped - the
@@ -1372,8 +1371,8 @@ function attachRewardTooltip(el, p, kind) {
   // tooltip: leaving a tile snaps back to the tile that is actually pinned
   // rather than leaving the board with nothing explained.
   const r = +el.dataset.r, c = +el.dataset.c;
-  el.addEventListener('mouseenter', () => showRewardTooltipFor(r, c));
-  el.addEventListener('mouseleave', restoreRewardTooltip);
+  el.addEventListener('mouseenter', () => { if (!pointerOverRewardTip()) showRewardTooltipFor(r, c); });
+  el.addEventListener('mouseleave', () => { if (!pointerOverRewardTip()) restoreRewardTooltip(); });
   // Touch: press-and-hold PINS the tooltip without acting on the tile. The
   // click that follows the release is swallowed by whoever owns the tile's
   // click (the shop checks el._lpJustFired), so reading never costs a pick.
@@ -1559,6 +1558,12 @@ function onRewardCellClick(r, c) {
   // Not selectable (not adjacent, cap reached, second destination tile…): this is
   // a read, not a pick. Pin its tooltip and leave the selection exactly as it was.
   if (!isRewardCellSelectable(r, c)) { rewardTipKey = key; restoreRewardTooltip(); return; }
+
+  // A Trick tile you have no room for is refused at SELECTION, not at apply: the
+  // path is taken as a whole, so bouncing it later would mean spending a pick on
+  // nothing. The tray count says why.
+  const _pay = rewardCells[r] && rewardCells[r][c] && rewardCells[r][c].payload;
+  if (_pay && _pay.entity === 'trick' && trickTrayFull()) { refuseTrickCapacity(); return; }
 
   rewardSelected.add(key);
   if (typeof sfxRewardSelect === 'function') { try { sfxRewardSelect(); } catch (e) {} }

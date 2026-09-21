@@ -125,18 +125,74 @@ function fireAdjacentSleights(handCells) {
 function paySpectrumFixture(def, card, r, c) {
   const p = def.payout || {};
   const bits = [];
-  if (p.swaps)    { swaps    += p.swaps;                       bits.push(`+${p.swaps} swaps`); }
-  if (p.discards) { discards  = Math.min(99, discards + p.discards); bits.push(`+${p.discards} discards`); }
+  // The card element is read BEFORE anything moves, because every particle below
+  // flies from it and the fixture is about to leave the board.
+  const srcEl = document.querySelector(`#grid [data-card-id="${card._id}"]`);
+  const fx = (kind, amount) => {
+    if (typeof entityEffectFX === 'function') entityEffectFX(kind, amount, { srcEl });
+  };
+  if (p.swaps)    { swaps    += p.swaps;                       bits.push(`+${p.swaps} swaps`);    fx('swaps', p.swaps); }
+  if (p.discards) { discards  = Math.min(99, discards + p.discards); bits.push(`+${p.discards} discards`); fx('discards', p.discards); }
   // The Time Clock fixture PAUSES the clock (owner spec r193) rather than rewinding
   // it. A pause is the stronger read on a card that sits still on the board: it
   // buys you a window to work in rather than topping up a number, and it stacks
   // with the rest of the pause family (Long Pause, Time Slip, the Hummingbird).
-  if (p.pause_seconds) { pauseRound(p.pause_seconds); bits.push(`${p.pause_seconds}s pause`); }
-  if (p.seconds)  { const g = rewindTime(p.seconds); if (g > 0) bits.push(`+${g}s`); }
-  if (p.coins)    { coins    += p.coins; updateCoinsUI();      bits.push(`+${p.coins} credits`); }
+  // pauseRound / rewindTime throw their OWN particle, so they are told where the
+  // payer is rather than being thrown a second one on top of it - two plates for
+  // one payout is exactly the doubled vocabulary r233 spent a pass removing.
+  if (p.pause_seconds) { pauseRound(p.pause_seconds, def.id, 'sleight'); bits.push(`${p.pause_seconds}s pause`); }
+  if (p.seconds)  { const g = rewindTime(p.seconds, null, def.id, 'sleight'); if (g > 0) bits.push(`+${g}s`); }
+  if (p.coins)    { coins    += p.coins; updateCoinsUI();      bits.push(`+${p.coins} credits`); fx('credits', p.coins); }
   showMessage(`${def.emoji} ${def.name} - ${bits.join(', ')}!`, '#ffd700');
-  consumeSleightCharge(card, r, c);   // no-op while durability is 'infinite'
+  // Paid, so it goes. The charge is NOT consumed here - spectrumFixtureExit's
+  // discardSleightAfterUse decrements it on the way out, and doing both would
+  // spend two charges for one payout.
+  spectrumQueueFixtureExit(card);
   render();
+}
+
+// ── A paid fixture leaves the board ──────────────────────────────────────────
+// It pays out and then discards itself, cycling back into the deck with its
+// charges intact (durability 'infinite', so it can be drawn again) - which is
+// what keeps "Repeats" true without the card sitting on the board forever.
+//
+// IT CANNOT LEAVE AT THE MOMENT IT PAYS. paySpectrumFixture runs inside
+// playHand, above playScoreDance, and the dance removes the played hand with its
+// own removeAndFall - which takes the `falling` lock. Starting a second one on
+// top of it cuts the first short (the same trap r205's Pivot had to defer round).
+// So the exit is QUEUED and drained at the end of removeAndFall, which is the one
+// moment the board is known to be settled. The queue holds CARD OBJECTS, never
+// cells: the hand that paid the fixture is removed first, so the fixture has
+// usually fallen somewhere else by the time it leaves (the r192 rule - target a
+// card, never a position).
+let spectrumFixtureExits = [];
+
+function spectrumQueueFixtureExit(card) {
+  if (!card || spectrumFixtureExits.includes(card)) return;
+  spectrumFixtureExits.push(card);
+}
+// Cleared at every round start: a fixture queued by the GOAL hand never drains
+// (that hand's finale explodes the board instead of calling removeAndFall) and
+// the interlude discards the whole board anyway, so the entry is stale.
+function spectrumClearFixtureExits() { spectrumFixtureExits = []; }
+
+function spectrumFindCardCell(card) {
+  for (let r = 0; r < gridRows; r++)
+    for (let c = 0; c < gridCols; c++)
+      if (gridData[r]?.[c] === card) return [r, c];
+  return null;
+}
+
+// Drained from the tail of removeAndFall (js/card-fall.js). ONE at a time:
+// discardSleightAfterUse runs its own removeAndFall, so the next exit has to wait
+// for that one to land - it re-drains from there.
+function spectrumDrainFixtureExits() {
+  if (!spectrumFixtureExits.length) return;
+  if (animating || falling) return;         // the next fall will come back for it
+  const card = spectrumFixtureExits.shift();
+  const at = spectrumFindCardCell(card);
+  if (!at) { spectrumDrainFixtureExits(); return; }   // left the board some other way
+  discardSleightAfterUse(card, at[0], at[1]);
 }
 
 // ── Dev panel - the rank / colour tuner ──────────────────────────────────────

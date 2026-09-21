@@ -91,7 +91,7 @@ function render() {
           div.className = 'trick-card sleight-card aim-sleight' + (selIdxJ >= 0 ? ' selected' : '') + _stateJ;
           div.innerHTML =
             `<div class="sleight-aim-inner" style="transform:perspective(360px) ${AIM_TILT[dir]}">` +
-              `<div class="sleight-card-emoji">${def?.emoji||'🪞'}</div>` +
+              `<div class="sleight-card-emoji">${emGlyph(def?.emoji||'🪞')}</div>` +
               `<div class="sleight-card-name">${def?.name||'Sleight'}</div>` +
             `</div>` +
             `<div class="aim-arrow aim-${dir}">${AIM_ARROW[dir]}</div>`;

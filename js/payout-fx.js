@@ -94,12 +94,17 @@ function efxFly(srcEl, currency, label, color, fxKind) {
 //
 //   entityEffectFX('credits', 8, { id:'dividend', source:'knack' })
 //   entityEffectFX('rewind', 12, { id:'overtime' })
+//   entityEffectFX('swaps', 2, { srcEl: gridCardEl })
 function entityEffectFX(kind, amount, opts) {
   const o = opts || {};
   const style = EFX_STYLE[kind] || EFX_STYLE.time;
   const currency = (kind === 'rewind' || kind === 'pause') ? 'time' : kind;
-  let srcEl = null;
-  if (o.id && typeof danceEntityEl === 'function') {
+  // `opts.srcEl` names the element outright, for a payer that is not in a tray -
+  // a Sleight sitting on the play grid (the Spectrum fixtures, r280). The id
+  // lookup below scans gridData and would work too, but the caller already has
+  // the cell and the card, so there is nothing to search for.
+  let srcEl = o.srcEl || null;
+  if (!srcEl && o.id && typeof danceEntityEl === 'function') {
     try { srcEl = danceEntityEl(o.source || 'trick', o.id); } catch (e) { srcEl = null; }
   }
   if (srcEl && typeof dncReleaseReal === 'function') dncReleaseReal(srcEl);

@@ -227,7 +227,7 @@ function updateKnackList() {
   // Chips live in a marquee track so the row can slowly auto-scroll when it
   // overflows (no arrows / no scrollbar - r113).
   el.innerHTML = `<div class="chip-marquee">${acquiredKnacks.map(t =>
-    `<div class="knack-chip" data-knack-id="${t.id}" tabindex="0" role="button" aria-label="${t.name}">${t.emoji}</div>`
+    `<div class="knack-chip" data-knack-id="${t.id}" tabindex="0" role="button" aria-label="${t.name}">${emGlyph(t.emoji)}</div>`
   ).join('')}</div>`;
   const track = el.firstElementChild;
   // Landscape scrolls the row by hand (no scrollbar - css) since r237; the
@@ -318,20 +318,29 @@ function showKnackTooltip(chip, id) {
   const _live = knackLiveDesc(knack);
   const _reveal = _live.slice((knack.desc || '').length);
   tt.innerHTML = `
-    <button class="tt-close" aria-label="Close">✕</button>
+    <button class="tt-close" aria-label="Close">✕</button>${kwMoreHTML(knack.desc)}
     <div class="knack-tooltip-name">${knack.emoji} ${knack.name}</div>
     <div class="knack-tooltip-desc">${colorizeKeywords(knack.desc)}${_reveal}</div>
+    ${kwDefsHTML(knack.desc)}
     <div class="knack-tooltip-actions"><button class="knack-tooltip-sell" id="knack-tooltip-sell-btn">Sell 💰${_sv}</button></div>
   `;
+  // r288 - the + is the only way to the definitions, on every tooltip.
+  tt.classList.remove('kw-open');
   tt.dataset.knackId = id;
   // Keep the bubble open while the pointer is over it (so Sell is clickable); wire once via props.
   tt.onmouseenter = cancelKnackHoverHide;
   tt.onmouseleave = scheduleKnackHoverHide;
+  // Same confirm the Trick tray uses, through the same helper, so the two
+  // cannot drift into asking differently (r278).
   tt.querySelector('#knack-tooltip-sell-btn')?.addEventListener('click', e => {
     e.stopPropagation();
-    sellKnack(knack);
+    tipConfirmAction(tt.querySelector('.knack-tooltip-actions'), {
+      question: `Sell for 💰${_sv}?`, confirmLabel: 'Sell',
+      onYes: () => sellKnack(knack), onCancel: () => showKnackTooltip(chip, id),
+    });
   });
   tt.querySelector('.tt-close')?.addEventListener('click', e => { e.stopPropagation(); hideKnackTooltip(); });
+  wireKwMore(tt, tt, () => placeTipSmart(chip, tt, { gap: 8 }));
   // Opens into whichever side of the chip has the most room (was hardcoded to
   // above). One frame's wait so the bubble has been laid out and can be measured.
   tt.classList.add('show');

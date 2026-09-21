@@ -135,6 +135,9 @@
   border: 1px solid rgba(150, 140, 255, 0.45); padding: 0;
 }
 #map-bar .mb-q:hover { background: rgba(150, 140, 255, 0.3); color: #fff; }
+/* The pause chip is a hair wider than the round info chips: it is a menu, not a
+   footnote, and the glyph does not fit a 17px circle. */
+#map-bar .mb-pause { width: 22px; border-radius: 5px; font-size: 9px; }
 /* The help card sits ABOVE the strip rather than inside it, so opening it can
    never change the bar's height and shove the board. */
 #map-bar .mb-help {
@@ -250,15 +253,6 @@ body.map-active #swap-indicator { visibility: hidden; pointer-events: none; }
     color-mix(in srgb, var(--rc) 6%, transparent) 55%,
     transparent);
 }
-/* Its own glyph, huge and faint, behind the label: a kind is recognisable
-   across the board before any 6px name is read. */
-#grid .map-tile .mt-ghost {
-  position: absolute; inset: 0; pointer-events: none;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 40px; line-height: 1;
-  color: var(--rc); opacity: 0.11;
-  filter: grayscale(1) brightness(2);
-}
 #grid .map-tile .mt-icon, #grid .map-tile .mt-name { position: relative; z-index: 1; }
 #grid .map-tile .mt-name { text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9); }
 /* A coloured cap on the leading edge - the side you arrive from. */
@@ -277,7 +271,7 @@ body.map-active #swap-indicator { visibility: hidden; pointer-events: none; }
     #08060f;
   border-style: dashed;
 }
-#grid .map-tile.mk-blank .mt-wash, #grid .map-tile.mk-blank .mt-ghost { display: none; }
+#grid .map-tile.mk-blank .mt-wash { display: none; }
 
 /* The boss column: hazard stripes and a slow red breath, so the end of the
    board looks like the end of the board. */
@@ -289,7 +283,6 @@ body.map-active #swap-indicator { visibility: hidden; pointer-events: none; }
   border-width: 2px;
   animation: map-boss-breath 3.4s ease-in-out infinite;
 }
-#grid .map-tile.mk-boss .mt-ghost { font-size: 64px; opacity: 0.09; }
 @keyframes map-boss-breath {
   0%, 100% { box-shadow: inset 0 0 18px rgba(0,0,0,0.6), 0 0 10px -4px #ff5c5c; }
   50%      { box-shadow: inset 0 0 18px rgba(0,0,0,0.6), 0 0 26px -4px #ff5c5c; }
@@ -297,7 +290,6 @@ body.map-active #swap-indicator { visibility: hidden; pointer-events: none; }
 
 /* A taken tile keeps its colour but goes flat and stamped - the walked line is
    what carries the eye now, so the tile must stop competing with it. */
-#grid .map-tile.mt-visited .mt-ghost { opacity: 0.05; }
 #grid .map-tile.mt-visited::before { opacity: 0.35; }
 
 /* r261: the full name beside the short chip in the bar info line */

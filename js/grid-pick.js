@@ -8,15 +8,31 @@
 // footprint, because there is nothing to put one behind - the tiles ARE what
 // is on the board.
 //
-// THE LAYOUT (owner spec, r256) - a 6 x 5 board:
+// THE LAYOUT (owner spec, r292) - a 6 x 4 board with NO DEAD ROW:
 //
-//     row 0 : 6 ambience cards
-//     rows 1-3 : three options, each 2 CELLS WIDE x 3 CELLS TALL
-//     row 4 : the screen's own action tiles (Survival's reroll / peek /
-//             breakdown / shop) in the first 4 cells, then CONFIRM across the
-//             last 2; any cell no action claims stays ambience
+//     rows 0-2 : three options, each 2 CELLS WIDE x 3 CELLS TALL - the ENTITY
+//                in the top 2x2, the DESCRIPTION in the block beneath it
+//     row 3    : the screen's own action tiles (Survival's reroll / peek /
+//                breakdown / shop) in the first 4 cells, then CONFIRM across
+//                the last 2; any cell no action claims stays ambience
 //
-// That closes exactly: 3 x (2x3) = 18 cells, plus 6 above and 6 below = 30.
+// That closes exactly: 3 x (2x3) = 18 cells, plus 6 below = 24.
+//
+// r256 opened on a full row of ambience above the options - and the tile's own
+// contents did not reach its foot, so the board carried TWO dead bands, one
+// above the tiles and one inside every one of them, which the owner read as two
+// empty rows. THE FIX IS TO DROP A ROW, NOT TO SPEND ONE. The options keep
+// three cells and simply start at row 0, so the board is a row shorter.
+//
+// THAT IS WHY THE TILE GETS BIGGER, AND IT IS THE ONE COUNTERINTUITIVE PART.
+// `recomputeGridMetrics` holds the playing-card aspect, so a cell's width and
+// height are locked together and FEWER ROWS IN THE SAME SLOT MEANS A WIDER
+// CELL. Measured at 1440x820: 5 rows gives a 49x64 cell and a 198px tile, 4
+// rows gives 53x70 and a 214px tile. Asking for MORE rows does the reverse and
+// was measured too - at 7 rows (a 2x2 entity over a 2x4 description) the cell
+// hits its floors at 40x53, the tile drops to 163px wide, the artwork shrinks
+// by 20% and the board overflows its slot by ~117px. A taller tile is a
+// narrower tile here, and the description wants width.
 //
 // The title is NOT on the board - every cell is spoken for. It goes in the HUD
 // through enterGridScreenHud, the same readout the shop and the crossroads use.
@@ -52,9 +68,9 @@
 // The entity object AND the bare icon (a limit has no object) both drift.
 const GRID_PICK_FLOAT_SEL = '.gp-art .reward-cell, .gp-art .gp-icon';
 
-const GP_COLS = 6, GP_ROWS = 5;   // the board this screen asks for
-const GP_OPT_W = 2, GP_OPT_H = 3; // each option, in cells
-const GP_OPT_ROW = 1;             // options sit under the top ambience row
+const GP_COLS = 6, GP_ROWS = 4;   // the board this screen asks for
+const GP_OPT_W = 2, GP_OPT_H = 3; // each option, in cells: 2 for the entity, 1 for the words
+const GP_OPT_ROW = 0;             // options start at the top - there is no ambience row above them
 
 // CONFIRM owns the last cells of the action row, on EVERY screen that comes
 // through here, whether or not the caller brought actions of its own. A control
@@ -63,6 +79,52 @@ const GP_OPT_ROW = 1;             // options sit under the top ambience row
 // cells a caller may fill are whatever is left to the left of it.
 const GP_CONFIRM_W = 2;
 const GP_ACT_COLS  = GP_COLS - GP_CONFIRM_W;
+
+// ── THE REROLL POOL (r282) - ONE pool, shared by every pick-of-three ─────────
+// Survival owned this and the Schedule's pick had no reroll at all. It is RUN
+// state, not mode state - a pool of free rerolls that carries between picks and
+// grows as you beat bosses - so it lives here, with the screen, and both callers
+// read it. A second copy in guided-mode.js is exactly how the two would drift.
+//
+// FREE FIRST, THEN PRICED. While the pool has any left a reroll costs nothing
+// and spends one; after that it costs PICK_REROLL_STEP x (paid rerolls on THIS
+// screen), so 5, 10, 15. The escalation resets per screen and the pool does not:
+// that is what makes holding a free reroll for a later pick a real decision.
+const PICK_REROLLS_START    = 3;   // at the start of a run
+const PICK_REROLLS_PER_BOSS = 2;   // every boss beaten, in every mode
+const PICK_REROLL_STEP      = 5;   // the price of the 1st, 2nd, 3rd PAID reroll
+
+let pickRerollsLeft = PICK_REROLLS_START;  // the carry-over pool
+let pickRerollsUsed = 0;                   // PAID rerolls on the screen that is open
+
+function pickRerollsInit()  { pickRerollsLeft = PICK_REROLLS_START; pickRerollsUsed = 0; }
+function pickRerollsGrant() { pickRerollsLeft += PICK_REROLLS_PER_BOSS; }
+// Called when a pick OPENS, never when it refreshes - the price climbing within
+// one screen is the whole point, and a reroll that reset it would be free.
+function pickRerollsNewScreen() { pickRerollsUsed = 0; }
+function pickRerollCost() { return pickRerollsLeft > 0 ? 0 : PICK_REROLL_STEP * (pickRerollsUsed + 1); }
+
+// Spend one. Returns false and says why when it cannot, so a caller can simply
+// `if (!pickRerollSpend()) return;` before drawing new offers.
+function pickRerollSpend() {
+  if (pickRerollsLeft > 0) { pickRerollsLeft--; return true; }
+  const cost = pickRerollCost();
+  if (coins < cost) { showMessage('Not enough credits', 'var(--red)'); return false; }
+  coins -= cost;
+  if (typeof updateCoinsUI === 'function') updateCoinsUI();
+  pickRerollsUsed++;   // only a PAID reroll moves the price
+  return true;
+}
+
+// The action tile, built once here so both screens print the same thing: FREE
+// with the pool's count while it lasts, then the live price.
+function pickRerollAction(onReroll) {
+  const free = pickRerollsLeft > 0, cost = pickRerollCost();
+  return { icon: '🎲', label: 'Reroll',
+           sub: free ? `FREE (${pickRerollsLeft})` : `${cost} \u25c6`,
+           disabled: !free && coins < cost,
+           onClick: () => { if (pickRerollSpend()) onReroll(); } };
+}
 
 let gridScreenSaved = null;       // { rows, cols } to restore on close
 let gridPickState = null;         // { offers, actions, onChoose } for a re-render
@@ -137,10 +199,17 @@ function gridPickTileHTML(p, i) {
   // fills it instead of letterboxing inside a taller box - that slack was the
   // big gap between the icon and the name the owner called out.
   const kind = isEnt ? p.entity : 'plain';
+  // TWO BLOCKS (r292). .gp-head is the top two cells - the entity and its name,
+  // nothing else - and .gp-body the two beneath. They are wrappers rather than
+  // four loose children because the halves have to be SIZED against the tile
+  // (css/grid-pick.css): a flat child list can only be centred as one group,
+  // which is what pooled the tile's slack at its foot and read as a dead row.
   return `<div class="gp-opt gp-art-${kind}" data-gp="${i}" data-et="${tip}">`
+    + `<div class="gp-head">`
     + (p.tag ? `<div class="gp-tag rar-${rar}">${p.tag}</div>` : '')
     + `<div class="gp-art" data-float-key="gp-${i}-${p.id || p.label || ''}">${art}</div>`
     + `<div class="gp-name">${p.label || ''}</div>`
+    + `</div>`
     + `<div class="gp-body"><div class="gp-desc">${desc}</div>`
     + `<div class="gp-more" aria-hidden="true">\u2026</div></div>`
     + `</div>`;
@@ -202,29 +271,62 @@ function gridPickConfirm() {
   gridPickState.onChoose(i, p);
 }
 
-// Wire a container of .gp-opt tiles: select on click, clamp detection on the
-// descriptions, name fitting, and the float driver.
+// THE DESCRIPTION FILLS ITS OWN CELLS (r292). The clamp was a fixed 5 lines,
+// chosen against the r280 tile of 3 cells; on the 4-cell tile that left a band
+// of bare tile under every short description and still cut the long ones early.
+// It is MEASURED now - as many whole lines as the block can hold - so the words
+// use the room the ambience row gave back.
+//
+// TWO PASSES, because the ellipsis mark is a line of the block too. The first
+// pass fills it; if that overflows, one line is handed back for the mark to sit
+// on. Without that the mark is pushed out of a block it exactly fills and the
+// tile silently stops saying there is more to read.
+//
+// The mark is a MARK, not a control: the tap that reads the rest is the tap on
+// the tile (css sets pointer-events:none on it), so it can never eat a
+// selection.
+function gpFitDesc(opt) {
+  const body = opt.querySelector('.gp-body');
+  const desc = opt.querySelector('.gp-desc');
+  if (!body || !desc) return;
+  const cs = getComputedStyle(body);
+  const lh = parseFloat(getComputedStyle(desc).lineHeight) || 10;
+  // clientHeight INCLUDES padding, and the block is padded - measuring against
+  // it would promise the text a line and a half of room it does not have.
+  const room = body.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+  if (!(lh > 0) || !(room > 0)) return;   // not laid out yet - leave the CSS default
+  let lines = Math.max(2, Math.floor(room / lh));
+  desc.style.webkitLineClamp = lines;
+  if (desc.scrollHeight > desc.clientHeight + 1 && lines > 2)
+    desc.style.webkitLineClamp = lines - 1;
+  opt.classList.toggle('gp-clipped', desc.scrollHeight > desc.clientHeight + 1);
+}
+
+// Wire a container of .gp-opt tiles: select on click, description fitting,
+// name fitting, and the float driver.
 function gridPickAfterRender(root, offers, onChoose) {
   root.querySelectorAll('.gp-opt').forEach(opt => {
     const i = +opt.dataset.gp;
     if (onChoose) opt.addEventListener('click', () => gridPickSelect(i));
 
-    const desc = opt.querySelector('.gp-desc');
-    const more = opt.querySelector('.gp-more');
-    if (desc && more) {
-      // Clamp detection needs a laid-out element - callers invoke this after
-      // the tiles are on the board (a hidden element measures zero, r239).
-      // The ellipsis is a MARK, not a control: it says there is more to read
-      // and the tap that reads it is the tap on the tile (css sets
-      // pointer-events:none on it), so it can never eat a selection.
-      requestAnimationFrame(() => {
-        opt.classList.toggle('gp-clipped', desc.scrollHeight > desc.clientHeight + 1);
-      });
-    }
   });
+  // Measuring needs laid-out elements - callers invoke this after the tiles are
+  // on the board (a hidden element measures zero, r239).
+  //
+  // NAMES BEFORE DESCRIPTIONS, in one frame: a name that shrinks or wraps
+  // changes the head block's height, and the description's line count is
+  // measured off what is left. Two frames would show the first answer first.
   requestAnimationFrame(() => {
     if (typeof fitRewardName === 'function')
       root.querySelectorAll('.gp-art .rwd-name').forEach(nm => fitRewardName(nm));
+    // The tile's own name is 11px since r292 and the tile is two cells wide, so
+    // the long single-word names (Kaleidoscope, Syncopation) no longer fit on a
+    // line. r182's rule: a name is never broken mid-word - it shrinks, and only
+    // truncates as a last resort. Without this they would simply be clipped by
+    // the tile's overflow:hidden.
+    if (typeof fitEntityName === 'function')
+      root.querySelectorAll('.gp-name').forEach(nm => fitEntityName(nm, { maxLines: 2, minPx: 7 }));
+    root.querySelectorAll('.gp-opt').forEach(opt => gpFitDesc(opt));
   });
   if (typeof startFloat === 'function') startFloat('gridpick', GRID_PICK_FLOAT_SEL);
 }
@@ -234,7 +336,7 @@ function gridPickAfterRender(root, offers, onChoose) {
 function gridTileFallIn(el, { delay = 0, dist = 260 } = {}) {
   if (!el.animate) return null;
   const B = 8, S = 0.10;
-  return el.animate([
+  const anim = el.animate([
     { opacity: 0, transform: `translateY(${-dist}px) scaleY(1)` },
     { opacity: 1, transform: `translateY(${-dist}px) scaleY(1)`,        offset: 0.06 },
     { opacity: 1, transform: `translateY(${-dist * 0.45}px) scaleY(0.96)`, offset: 0.55, easing: 'ease-in' },
@@ -243,6 +345,19 @@ function gridTileFallIn(el, { delay = 0, dist = 260 } = {}) {
     { opacity: 1, transform: `translateY(${B * 0.3}px) scaleY(${1 - S * 0.2})`, offset: 0.96 },
     { opacity: 1, transform: 'translateY(0) scaleY(1)' },
   ], { duration: 420, delay, easing: 'ease-in', fill: 'both' });
+  // RELEASE THE TRANSFORM WHEN THE FALL ENDS (r281). `fill: 'both'` is what
+  // holds the tile offset and invisible through its DELAY, and it is also what
+  // makes the animation OUTLIVE the fall: a filling WAAPI animation owns
+  // `transform` for good, so any CSS transform the tile takes afterwards is
+  // silently ignored - which is why .gp-sel's lift and swell did nothing here
+  // while a selected reward tile lifted fine. The reward grid gets away with it
+  // by rebuilding its tiles on every click; this screen deliberately does not
+  // redraw (r280), so the animation has to hand the property back itself. The
+  // last keyframe IS the tile's resting place, so cancelling on finish is
+  // visually identical. The second handler swallows the AbortError a cancel
+  // from anywhere else would reject with.
+  if (anim.finished) anim.finished.then(() => { try { anim.cancel(); } catch (e) {} }, () => {});
+  return anim;
 }
 
 // Draw (or redraw) the taken-over board from gridPickState.

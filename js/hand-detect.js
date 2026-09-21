@@ -232,7 +232,7 @@ function findBestHand(cells) {
 
   if (detectionCells.length < 2) { restoreWilds(); return null; }
 
-  // ── WHAT YOU SELECTED IS WHAT YOU PLAY (r283) ──
+  // ── WHAT YOU SELECTED IS WHAT YOU PLAY (r293) ──
   // Owner: "if you select cards to play a certain type of hand, then that's the
   // hand that should play, always."
   //

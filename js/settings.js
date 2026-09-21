@@ -10,6 +10,33 @@ const SETTINGS_KEY = 'lethe.settings.v1';
 let SETTINGS = {};
 
 const SETTINGS_DEF = [
+  // ── Help ── (r280) FIRST on purpose: a player who opens Settings looking for
+  // an explanation should not have to scroll past the volume sliders to find one.
+  // The handbook is js/info-hub.js; the tips are js/insights.js. `tips` is a
+  // plain stored setting and NOTHING ELSE PERSISTS IT - insightsOn() reads this
+  // row live. A module keeping its own copy of a settings-backed flag is the
+  // r244 payout-pick trap: loadSettings applies every row's stored value OR its
+  // default at boot, so a second store gets stamped back over on the next load.
+  { group: 'Help', id: 'handbook', type: 'action',
+    label: 'Handbook', hint: 'How everything works, in more detail than the game stops to explain.',
+    buttons: () => [{ label: 'Open the handbook', fn: 'openInfoHubFromSettings()', primary: true }] },
+  { group: 'Help', id: 'tips', label: 'Tips',
+    hint: 'A one-line note the first time something new turns up. Each one shows once, ever, and never blocks play.',
+    type: 'toggle', default: true },
+  { group: 'Help', id: 'walkthrough', label: 'First-run walkthrough',
+    hint: 'The first time you play a mode, it explains itself as you go. Each mode gets one.',
+    type: 'toggle', default: true },
+  { group: 'Help', id: 'walkthroughReset', type: 'action', label: '', hint: '',
+    buttons: () => [{ label: 'Play the walkthroughs again',
+                      fn: 'resetWalkthroughs(); renderSettings();',
+                      disabled: (typeof modesStarted === 'undefined') || modesStarted.size === 0 }] },
+  { group: 'Help', id: 'tipsReset', type: 'action', label: '', hint: '',
+    buttons: () => {
+      const n = (typeof insightsSeenCount === 'function') ? insightsSeenCount() : 0;
+      return [{ label: n ? `Show all tips again (${n} seen)` : 'Show all tips again',
+                fn: 'resetInsights(); renderSettings();', disabled: !n }];
+    } },
+
   // ── Audio ──
   // Three volumes, not one: master scales both buses, and music/effects set the
   // balance between them. Every sound multiplies by sfxVolume(), music by

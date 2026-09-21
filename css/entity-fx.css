@@ -221,6 +221,19 @@
 .reward-cell.entity-sleight  > .rwd-tier { left: calc(2px + var(--lbh)); top: calc(2px + var(--lbv)); right: auto; }
 .cd-badge.cd-b-count .cd-num { color: #f6f2ff; text-shadow: 0 1px 2px rgba(0,0,0,0.8); }
 
+/* IN THE TRAY THE BADGE GOES BOTTOM-LEFT, for the reason r277 moved the tier
+   stamp to the top-left: the fan sets --fan-z ascending, so a tucked tile is
+   covered on its RIGHT edge and only its left part is guaranteed to be in
+   view. A bottom-right badge therefore vanished under the next tile the moment
+   the row tucked - measured at 1440x820 after r284 widened the tile: at 5
+   Tricks the "+2" was 0/5 visible on every chip but the newest. The floor is
+   half a tile (fanTrickTray), and the badge is ~17px on a 73px tile, so at the
+   left edge it is always whole. Both orientations, because both trays fan the
+   same way. Nowhere else: on a card, a knack chip or a reward cell nothing
+   overlaps, and there the corner is the badge's home. */
+#trick-tray-list .trick-tray-chip > .cd-badge            { right: auto; left: 1px; }
+#trick-tray-list .trick-tray-chip > .cd-badge.cd-b-count { right: auto; left: 2px; }
+
 .cd-b-primed { animation: cd-primed-pulse 1.5s ease-in-out infinite; }
 @keyframes cd-primed-pulse {
   0%, 100% { box-shadow: 0 0 0 1px rgba(0,0,0,0.75), 0 0 6px color-mix(in srgb, var(--cd-c) 45%, transparent); }

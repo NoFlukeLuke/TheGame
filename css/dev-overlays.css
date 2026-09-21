@@ -221,6 +221,30 @@
   #event-bar-dots i:nth-child(3) { animation-delay: 0.7s; }
   @keyframes ev-lamp { 0%,100% { opacity: 0.22; } 50% { opacity: 0.95; } }
 
+  /* The console's pause chip. An event and a Limit Break are full-screen panels
+     over the whole stage, so the play screen's PAUSE button is not merely hidden -
+     it is painted over, and the menu was unreachable for the whole screen. The bar
+     is the one part that never scrolls away, so the chip rides it, and the pause
+     overlay (z-index 420) sits above both panels so it paints correctly on top.
+     The lamps and the chip are grouped so the bar stays eyebrow-left / rest-right. */
+  .con-bar-right { display: flex; align-items: center; gap: 11px; }
+  .con-pause {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px; line-height: 1;
+    padding: 4px 8px;
+    color: #b39cf5;
+    background: rgba(140,110,230,0.10);
+    border: 1px solid #3a3560;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.14s, color 0.14s, border-color 0.14s;
+  }
+  .con-pause:hover {
+    background: rgba(140,110,230,0.26);
+    border-color: #7a63c8;
+    color: #e6dcff;
+  }
+
   #event-name {
     font-family: 'Orbitron', sans-serif; font-weight: 800;
     font-size: 19px; letter-spacing: 2.5px; text-transform: uppercase;

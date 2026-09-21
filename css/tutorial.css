@@ -100,14 +100,23 @@
   background: rgba(53, 213, 213, 0.07);
 }
 
+/* PROMINENT, and that is the owner's explicit instruction: "the skip buttons
+   should be prominent". It used to be a 9px line at 26% opacity with no border
+   and no padding - a link you had to go looking for, which is the opposite of
+   an escape hatch. It is a real outlined button now, a full-width sibling of
+   CONTINUE, with a 30px tap floor (a phone's thumb target; these bubbles are
+   body-level, so every px here is a REAL viewport px, not a stage px). */
 #tut-skip {
-  display: block; margin-top: 9px; padding: 0;
-  font-family: 'Share Tech Mono', monospace; font-size: 9px; letter-spacing: 1.5px;
-  text-transform: uppercase;
-  background: none; border: none; cursor: pointer;
-  color: rgba(244, 236, 214, 0.26);
+  display: block; width: 100%; margin-top: 8px; min-height: 30px;
+  padding: 8px 13px; border-radius: 3px; cursor: pointer;
+  font-family: 'Orbitron', sans-serif; font-weight: 700;
+  font-size: 9px; letter-spacing: 2px; text-transform: uppercase;
+  color: rgba(244, 236, 214, 0.72);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(183, 172, 147, 0.42);
+  transition: color 0.12s ease, border-color 0.12s ease;
 }
-#tut-skip:hover { color: rgba(244, 236, 214, 0.6); text-decoration: underline; }
+#tut-skip:hover { color: var(--c-coral, #ff6a3c); border-color: var(--c-coral, #ff6a3c); }
 
 /* ── Arrow ── */
 #tut-arrow {

@@ -178,7 +178,7 @@ purely a BALANCE question:**
   inversion used to make the longer hand *unplayable*, not merely unchosen - the partition
   took the short hand, left a card unclaimed, and the load-bearing rule then voided the
   whole selection.
-- **r283** (CLAUDE.md "What you selected is what you play"): `findBestHand` used to pick
+- **r293** (CLAUDE.md "What you selected is what you play"): `findBestHand` used to pick
   the highest-scoring SUBSET, so an inverted ladder could still drop a card the player had
   selected on purpose. The whole selection is now always the hand.
 
