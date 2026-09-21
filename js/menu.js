@@ -1,4 +1,4 @@
-const BUILD = "2026-09-21 · r296 · every prime a Trick holds fires and is spent on one hand; Buddy System";
+const BUILD = "2026-09-21 · r297 · a prime animates as the quick second thump of a heartbeat";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

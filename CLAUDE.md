@@ -1675,6 +1675,53 @@ stay short-circuited by an ownership test - `hasTrick('correct_run')` does that
 exactly as `trickFires` did, and the fire count is now asked for after the
 predicate rather than before it.
 
+### A prime is the SECOND THUMP OF A HEARTBEAT (r297)
+
+Owner: *"the way the prime should animate is like a much quicker secondary beat,
+like a heart beat. Where normally it would wait for the next beat in the dance
+sequence, this one happens right after, and if there are multiple then that trend
+continues until they've all fired, then the normal pace can continue."*
+
+r295 made a primed Trick pop for its extra fire and r296 made every stack fire;
+both landed at the ordinary pace, so two fires of one Trick read as two unrelated
+payouts. A prime's event now lands right behind the beat in front of it, and a run
+of them keeps that quick pace until the last one.
+
+| | flight | rest after | one beat at 1x |
+|---|---|---|---|
+| ordinary payout | 1200ms | `tickRest` 600 | ~1800ms |
+| a prime | `primeFlight` 0.45 -> 540ms | `primeRest` 130 | ~670ms |
+
+**Measured at 1x on a 3-card set with Quake** (the gap between one plate launching
+and the next): card beats **1757 / 1597**, the first prime **1096**, each further
+prime **504 / 497 / 480**. So a prime lands in about a third of a normal beat, and
+`mult` is **12 / 21 / 30 / 39** at 0 / 1 / 2 / 3 primes - identical to r296, which
+is what proves this is pacing and nothing else.
+
+- **IT IS RE-TIMED, NEVER RE-ORDERED.** The obvious reading of "right after" is to
+  move the prime's event next to the fire it replays, and that would break r220's
+  rule: the timeline replay has to reproduce `calcScore` exactly, and `calcScore`
+  applies primes at one point in the ladder. Moving an event past a multiply
+  changes the arithmetic. The events stay where they are emitted and only their
+  pacing changes - verified, **0 `[DANCE] timeline drift` warnings** over six runs
+  including a 19-event timeline carrying 8 prime events.
+- **`_ev` RETURNS THE EVENT IT PUSHED**, and the prime loop stamps `prime` on it.
+  The alternative was a seventh positional argument and then an eighth, which is
+  how a signature stops being readable. Nothing else marks an event today.
+- **THE REST AFTER A STEP IS DECIDED BY THE STEP THAT FOLLOWS IT.** The walk is
+  written "fire, then rest", so the only way to land a prime right behind the beat
+  in front of it is to cut the rest that beat was about to take - `restAfter(si)`
+  looks at `steps[si+1]`. That also gives "then the normal pace can continue" for
+  free: the first ordinary step after a run of primes takes a full `tickRest`.
+- **A CARD BEAT RESTS INSIDE ITS REPLAY LOOP, so only the LAST rep's rest is the
+  gap before the next step.** The earlier ones separate a card from its own replay
+  and stay at full pace. Measured: the first prime after a card beat lands at 1096
+  rather than ~1450.
+- **`primeFlight` divides by the pace itself**, because `dncFly` only computes its
+  own duration when handed none. Both numbers ride `dncPace()` and `dncFF` like
+  everything else in the tally, so the Scoring speed slider and the goal-hand SKIP
+  reach them with no extra work.
+
 ### The Buddy System knack (r296) - `primeTrick()`
 
 Owner: *"Maybe that knack says something like whenever a trick gets primed

@@ -162,6 +162,11 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     // not pay it again. The dance applies these on a card's first beat only.
     if (once) e.once = true;
     _tl.push(e);
+    // Returned so a caller can MARK the event it just emitted. Today that is the
+    // prime loop alone (r296), which stamps `prime` so the dance can pace it as a
+    // quick second beat rather than a full one. Growing _ev's arg list to seven
+    // positionals and then an eighth is how a signature stops being readable.
+    return e;
   };
   const bPip  = (id, d) => { if (d) { _cp[id] = (_cp[id]||0)+d; _proc(id); _ev(id, 'pip+',  d); } };
   const bMult = (id, d) => { if (d) { _cm[id] = (_cm[id]||0)+d; _proc(id); _ev(id, 'mult+', d); } };
@@ -1051,9 +1056,15 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     // Rider-attached Trick cost real seconds it does not cost today.
     // `bPipQ(id, d, procs)` defaults procs to 0, so the 1 is passed explicitly to
     // reproduce bPip's single proc per call.
+    //
+    // `prime` is PACING ONLY - the dance plays a marked event as the quick second
+    // thump of a heartbeat instead of waiting a full beat for it (r296). The
+    // events stay exactly where calcScore emits them: the timeline replay has to
+    // reproduce calcScore's arithmetic (r220), so an event may be re-TIMED and
+    // never re-ORDERED.
     for (let k = 0; k < _extra; k++) {
-      if (_pd) { totalPips += _pd; bPipQ('primed', _pd, 1);  _ev(t.id, 'pip+',  _pd); }
-      if (_md) { mult      += _md; bMultQ('primed', _md, 1); _ev(t.id, 'mult+', _md); }
+      if (_pd) { totalPips += _pd; bPipQ('primed', _pd, 1);  const e = _ev(t.id, 'pip+',  _pd); if (e) e.prime = true; }
+      if (_md) { mult      += _md; bMultQ('primed', _md, 1); const e = _ev(t.id, 'mult+', _md); if (e) e.prime = true; }
     }
   });
   // FORCED fires (r234, js/force-trick.js). Sits here, beside priming, because it
