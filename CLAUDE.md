@@ -1530,6 +1530,109 @@ into a Four of a Kind at a minimum selection of 3; Callback takes a Run of 3 fro
 189 to 250; Turnover churns one card for 0 seconds and 0 stock; a state's own
 self-discard bills 3s and 0 stock; **the deck audit balances at every step**.
 
+### Priming, and the three things wrong with it (r295)
+
+Owner: *"explain how priming works. I've ended levels with a +2 still on some
+tricks, and I didn't notice the prime making the trick animate twice which it
+should."* Both symptoms were real, and they had three separate causes.
+
+**What a prime IS.** `calcScore` keeps a per-Trick ledger of what each Trick paid
+this hand (`_cp` pips, `_cm` mult). A prime replays that Trick's own entry, once
+per stack - which is what makes "fire it again" generic across all 177 Tricks
+with no code in any of them, and is the same seam Mirror and `_rank` ride. Two
+consequences fall straight out of that and are NOT bugs:
+
+- **A prime cannot fire a Trick whose condition was not met.** The replay loop
+  opens with `if (!_pd && !_md) return;` - there is no delta to replay. Prime
+  Rich Soil on a hand with no clubs and you get nothing, and the stack is not
+  spent either (consumption is gated on the Trick appearing in the hand's
+  contributions). That is r234's rule and it is why a FORCED fire exists as the
+  other half.
+- **A prime only carries pips and mult.** Roughly 71 of the 177 Tricks pay in
+  Focus, seconds, credits, swaps or card buffs, and `trickFires(id)` is what
+  covers those - not this loop.
+
+| | is | consumed |
+|---|---|---|
+| `_primed` | a temporary stack (Inspirato, Prime Times, Understudy, Hallmark) | one per qualifying hand |
+| `_rank` | a PERMANENT prime (the Extra Rep event) | **never** |
+
+**The `+N` badge is `_primed + _rank`**, so a Trick carrying a rank shows a `+1`
+that is supposed to sit there for the rest of the run (r267).
+
+#### 1. The prime's payout was unattributable, so nothing popped
+
+It paid through `bPip('primed', …)` / `bMult('primed', …)` - the literal string
+`primed` as the id. `danceEntityEl` looks a tray chip up BY TRICK ID, so the
+event resolved to **nothing**: `dncReleaseReal` was never called and the primed
+Trick did not pop for its own extra fire. The particle flew from a fallback
+anchor. The contributions tab printed a lower-case `primed` row beside the Trick
+names for the same reason.
+
+**The emit is re-attributed; the ledger write is not.** `bPipQ`/`bMultQ` write
+`_cp`/`_cm` and bill the proc without emitting, and `_ev` is called with the
+Trick's own id. That split is load-bearing: **`_proc` feeds the RIDER penalty**
+(2s per proc, billed per Trick id in `playHand`), so billing a prime's extra
+fires to the Trick rather than to `primed` would make a Rider-attached Trick cost
+real seconds it does not cost today. Verified byte-identical score AND proc
+counts over **667 cases** (167 Tricks x 4 prime counts).
+
+#### 2. The dance re-scored AFTER the prime was spent
+
+**`playPreviewDance` derives its own ledger by re-running `calcScore`**
+(js/score-dance.js), synchronously on the call - there is no await between its
+entry and that line. The consumption block sat ABOVE the dance, so it decremented
+the stack and the dance then re-scored a tray that had already paid up.
+
+**So the dance animated one prime fewer than the hand was scored with, every
+time** - and with a single prime, the ordinary case, it animated NONE. Measured
+on a +1 Kindred: the hand really scored **476** (34 x 14) while the dance's own
+ledger read **mult 8** and carried **0** prime events. Over 12 primed hands,
+**12 of 12** settled the chips on a number below what was banked (one showed
+2,558 against 5,788).
+
+**The SCORE total was never wrong** - `playHand` banks the real figure - so this
+cost the player nothing but told them a smaller number on the way.
+
+**`[DANCE] timeline drift` could not catch it**, and that is worth knowing about
+that alarm: it compares the dance's walk against the dance's OWN ledger, so a
+ledger that is internally consistent and simply describes a different hand passes
+silently. It logged 0 warnings before the fix and 0 after.
+
+#### 3. The goal hand never spent its prime at all
+
+The goal-hand and boss-win paths `return` immediately after starting the dance,
+well above where this block sat - so **the hand that ends a round was the one
+hand in the game that never consumed a prime**. Measured: an ordinary hand took a
++2 Trick to +1; the goal hand left it at +2. That is the "+2 still on some
+tricks at the end of a level", and it is the same shape as r254's find, where the
+boss-winning hand was skipping every line of shared bookkeeping below its early
+return.
+
+**`runHandPriming(hand, handCells)` is the whole fix for 2 and 3**: the block is
+a function now, called AFTER `playScoreDance` from **all three** of its sites.
+After, so the dance has already taken its ledger off the intact tray; all three,
+so no path can skip it. The board is still whole there - `removeAndFall` runs
+later, inside the dance - so the recompute still reads the cards the hand was
+made of. `lastPreFocusMult` is saved across that recompute the way the dance
+saves it, because it now runs after the dance's own call rather than before.
+
+Verified: the dance's ledger carries every prime the hand was scored with (+1 ->
+1 event and mult 14, +2 -> 2 events and mult 20, both matching the banked score),
+the Trick releases **4** times on a +2 Kindred where it released 2, the goal hand
+consumes on Classic / Survival / Spectrum / Schedule, and there are no drift
+warnings and no page errors.
+
+#### One thing left for the owner to decide
+
+**All stacks fire every hand, but only ONE is consumed per hand.** A +2 Trick
+pays two extra fires on its next qualifying hand and drops to +1, then pays one
+more on the hand after that - three extra fires out of two stacks. Either a stack
+is one extra fire (and all of them should be spent when all of them fire), or it
+is "one extra fire per hand until spent" (and the count means something else).
+It is left as it was, because both readings are defensible and the choice is a
+balance decision, not a bug fix.
+
 ### The Hallmark knack (r234) - `js/hallmark.js`
 
 A rare Knack. At a random moment in every round ONE card on the board is marked;

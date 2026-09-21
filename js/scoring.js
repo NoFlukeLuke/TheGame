@@ -1032,7 +1032,27 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     if (_extra <= 0) return;
     const _pd = _cp[t.id] || 0, _md = _cm[t.id] || 0;
     if (!_pd && !_md) return;
-    for (let k = 0; k < _extra; k++) { if (_pd) { totalPips += _pd; bPip('primed', _pd); } if (_md) { mult += _md; bMult('primed', _md); } }
+    // THE EVENT IS THE TRICK'S; THE LEDGER ROW IS STILL 'primed' (r294).
+    // These paid through bPip('primed') / bMult('primed'), so the timeline event
+    // carried the literal id `primed` - and danceEntityEl looks a tray chip up by
+    // Trick id, so it resolved to NOTHING. The prime's score landed and the
+    // primed Trick never popped for it: the owner's "I didn't notice the prime
+    // making the trick animate twice". Measured on a +2 Kindred: two `mult+ 6`
+    // events on the timeline, both with id 'primed', both unresolvable.
+    //
+    // So the emit is split off and re-attributed while the ledger write stays
+    // exactly where it was - the quiet variants write `_cp`/`_cm` and bill the
+    // proc without emitting, and `_ev` is called with the Trick's own id. That
+    // keeps this BALANCE-NEUTRAL, which matters for one reason: _proc feeds the
+    // RIDER penalty (2s per proc, billed per Trick id in playHand), so billing a
+    // prime's extra fires to the Trick instead of to 'primed' would make a
+    // Rider-attached Trick cost real seconds it does not cost today.
+    // `bPipQ(id, d, procs)` defaults procs to 0, so the 1 is passed explicitly to
+    // reproduce bPip's single proc per call.
+    for (let k = 0; k < _extra; k++) {
+      if (_pd) { totalPips += _pd; bPipQ('primed', _pd, 1);  _ev(t.id, 'pip+',  _pd); }
+      if (_md) { mult      += _md; bMultQ('primed', _md, 1); _ev(t.id, 'mult+', _md); }
+    }
   });
   // FORCED fires (r234, js/force-trick.js). Sits here, beside priming, because it
   // is the same question - "fire this Trick again" - asked of a Trick that did
@@ -1268,6 +1288,9 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
 // ══════════════════════════════════════════════
 function contribDisplayName(source, id) {
   if (source === 'exalt') return 'Exalt / Corrupt';
+  // 'primed' is not a Trick, so it fell through to the raw id and the round's
+  // breakdown printed a lower-case `primed` row among the Trick names (r294).
+  if (id === 'primed') return 'Primed fires';
   // Sleight/knack-sourced rows resolve against their own pools (Tricks are the default).
   if (source === 'sleight') return SLEIGHT_POOL.find(s => s.id === id)?.name || id;
   if (source === 'knack')   return KNACK_POOL.find(k => k.id === id)?.name || id;

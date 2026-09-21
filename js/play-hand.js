@@ -444,6 +444,7 @@ function playHand() {
     selected = [];
     commitRoundContrib(_contribSnapshot);
     playScoreDance(result, toRemove, true /* goalHand */);
+    runHandPriming(hand, handCells);
     return;
   }
 
@@ -466,6 +467,7 @@ function playHand() {
     commitRoundContrib(_contribSnapshot); // goal-clearing hand counts toward the tally
     // Run the score animation; goal interlude fires at end of dance via isGoalHand path
     playScoreDance(result, toRemove, true /* goalHand */);
+    runHandPriming(hand, handCells);
     return;
   }
 
@@ -636,34 +638,8 @@ function playHand() {
       if (_ui > 0) { grantEntityCoins(_ui, 'trick', 'undue_influence'); showMessage('Undue Influence +' + _ui + ' credits', 'var(--gold)'); }
     }
   }
-  // ── Priming (Inspirato / Prime Times) ──
-  if (trickTrayMode) {
-    // Consume primes that contributed this hand (their extra trigger already fired in scoring)
-    if (trickTray.some(t => t._primed > 0)) {
-      const _pc = []; calcScore(hand, handCells, _pc);
-      const _ids = new Set(_pc.map(e => e.id));
-      const _mm = hasKnack('muscle_memory'); // primes last one extra hand
-      trickTray.forEach(t => {
-        if (t._primed > 0 && _ids.has(t.id)) {
-          if (_mm && !t._primeHeld) { t._primeHeld = true; } // skip this consumption once
-          else { t._primed = Math.max(0, t._primed - 1); t._primeHeld = false; }
-        }
-      });
-    }
-    // Inspirato: a scored Ace primes the first and last tray Tricks
-    if (hasTrick('wild_heart') && trickTray.length && handCells.some(([r,c]) => gridData[r]?.[c]?.rank === 'A')) {
-      trickTray[0]._primed = (trickTray[0]._primed || 0) + 1;
-      const _last = trickTray[trickTray.length - 1];
-      if (_last !== trickTray[0]) _last._primed = (_last._primed || 0) + 1;
-    }
-    // Prime Times: a scored prime rank primes the next Trick, cycling tray positions 1st→2nd→3rd→5th→7th
-    if (hasTrick('prime_times') && trickTray.length && handCells.some(([r,c]) => ['A','2','3','5','7'].includes(gridData[r]?.[c]?.rank))) {
-      const _cyc = [0,1,2,4,6];
-      const _tt = trickTray[_cyc[_primeTimesCursor % _cyc.length]];
-      _primeTimesCursor = (_primeTimesCursor + 1) % _cyc.length;
-      if (_tt) _tt._primed = (_tt._primed || 0) + 1;
-    }
-  }
+  // Priming is settled AFTER the dance is handed the hand - runHandPriming, below
+  // the goal checks, called from all three dance sites (r294).
   if (hasTrick('compound_mult')) bonusMult_compound = Math.round((bonusMult_compound + BAL.compound_mult.mult_per_hand) * 10) / 10;
   if (hasTrick('prolific')) bonusPips_prolific += BAL.prolific.pips_per_hand;
   // Acorns: each card scored this hand grows the trick's stored Focus by 0.05 (per game)
@@ -930,6 +906,70 @@ function playHand() {
   commitRoundContrib(_contribSnapshot); // committed (non-goal) hand counts toward the tally
   // Kick off the score dance - it handles updateScoreUI, removeAndFall, levelUp
   playScoreDance(result, toRemove);
+  runHandPriming(hand, handCells);
+}
+
+// ── Priming, settled (Inspirato / Prime Times) ────────────────────────────────
+//
+// CALLED AFTER playScoreDance, FROM ALL THREE OF ITS SITES, and both halves of
+// that sentence are a fix (r294).
+//
+//   AFTER the dance, because playPreviewDance DERIVES ITS OWN LEDGER by
+//   re-running calcScore (js/score-dance.js), and it does so synchronously on
+//   the call - there is no await between its entry and that line. This block sat
+//   ABOVE the dance, so it decremented the prime and the dance then re-scored a
+//   tray that had already paid up. The dance therefore animated ONE PRIME FEWER
+//   than the hand was scored with, every time: with a single prime - the ordinary
+//   case - it animated NONE, which is the owner's "I didn't notice the prime
+//   making the trick animate twice". Measured on a +1 Kindred: the hand really
+//   scored 476 (34 x 14) while the dance's own ledger read mult 14 -> 8 and
+//   carried 0 prime events. The SCORE total was never wrong - playHand banks the
+//   real figure - but the MULT chip climbed to a number the hand had not been
+//   scored with.
+//
+//   FROM ALL THREE SITES, because the goal-hand and boss-win paths RETURN right
+//   after starting the dance, well above where this used to sit - so the hand
+//   that ends a round was the one hand in the game that never spent its prime.
+//   Measured: an ordinary hand took a +2 Trick to +1, the goal hand left it at
+//   +2. That is the owner's "I've ended levels with a +2 still on some tricks",
+//   and it is the same shape as r254's find, where the boss-winning hand was
+//   skipping every line of shared bookkeeping below its early return.
+//
+// The board is still intact here: removeAndFall runs later, inside the dance, so
+// the recompute below still reads the cards the hand was made of.
+function runHandPriming(hand, handCells) {
+  if (!trickTrayMode) return;
+  // Consume primes that contributed this hand (their extra trigger already fired
+  // in scoring). lastPreFocusMult is saved across the recompute the way the dance
+  // saves it: this now runs after the dance's own calcScore, so leaving it moved
+  // would hand the next read a value this speculative call produced.
+  if (trickTray.some(t => t._primed > 0)) {
+    const _savedPFM = lastPreFocusMult;
+    const _pc = []; calcScore(hand, handCells, _pc);
+    lastPreFocusMult = _savedPFM;
+    const _ids = new Set(_pc.map(e => e.id));
+    const _mm = hasKnack('muscle_memory'); // primes last one extra hand
+    trickTray.forEach(t => {
+      if (t._primed > 0 && _ids.has(t.id)) {
+        if (_mm && !t._primeHeld) { t._primeHeld = true; } // skip this consumption once
+        else { t._primed = Math.max(0, t._primed - 1); t._primeHeld = false; }
+      }
+    });
+  }
+  // Inspirato: a scored Ace primes the first and last tray Tricks
+  if (hasTrick('wild_heart') && trickTray.length && handCells.some(([r,c]) => gridData[r]?.[c]?.rank === 'A')) {
+    trickTray[0]._primed = (trickTray[0]._primed || 0) + 1;
+    const _last = trickTray[trickTray.length - 1];
+    if (_last !== trickTray[0]) _last._primed = (_last._primed || 0) + 1;
+  }
+  // Prime Times: a scored prime rank primes the next Trick, cycling tray positions 1st→2nd→3rd→5th→7th
+  if (hasTrick('prime_times') && trickTray.length && handCells.some(([r,c]) => ['A','2','3','5','7'].includes(gridData[r]?.[c]?.rank))) {
+    const _cyc = [0,1,2,4,6];
+    const _tt = trickTray[_cyc[_primeTimesCursor % _cyc.length]];
+    _primeTimesCursor = (_primeTimesCursor + 1) % _cyc.length;
+    if (_tt) _tt._primed = (_tt._primed || 0) + 1;
+  }
+  if (typeof renderTrickTray === 'function') renderTrickTray();
 }
 
 // ══════════════════════════════════════════════

@@ -1,4 +1,4 @@
-const BUILD = "2026-09-21 · r294 · the legend is a rail beside the schedule; a card buff says BUFF or SCALES";
+const BUILD = "2026-09-21 · r295 · a primed Trick animates every prime it was scored with, and the goal hand spends one";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
