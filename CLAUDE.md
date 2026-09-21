@@ -1432,10 +1432,36 @@ pips · 5 mult · 5 seconds · 1 replay**.
 - **THE DISC'S OWN NUMBERS DO NOT TRANSFER.** It is start 13 / pitch 5 / thick 3
   and stops at five bands, under a **foil label that ghosts them**; a card's face
   is bare cream with a big centred rank, and a card has FOUR corners doing this at
-  once. Measured at the disc's numbers: six bands are a **105x105 wedge out of a
-  119x158 card**, most of the face, four times over. Pulled in to start 9 / pitch
-  3.4 / thick 2, six bands land in a **55x55** wedge and the mark reads as a
-  corner mark.
+  once. Measured on a 119x158 card, the wedge six bands fill is **113x113 at the
+  disc's numbers** (most of the face, four times over), **77x77** at start 9, and
+  **66x66** at the shipped start 5. **START is the only one of the four that moves
+  the whole mark**; pitch and thickness only change how the bands sit inside it.
+  The card's corner is rounded (5 design px), which eats the first
+  `r(sqrt2 - 1)` = **2.1 design px** along the diagonal, so 5% (4.7 design px) is
+  about as close in as the first band can go and still be drawn whole - verified,
+  a lone band at +4 pips is fully visible.
+- **ALL SIX BANDS ARE THE SAME NOMINAL THICKNESS, AND THEY DO NOT RASTERIZE THAT
+  WAY.** Owner, of the preview: *"why are some lines thicker than others"*. Two
+  separate answers and only one is deliberate:
+  1. **The overflow band really is double.** Measured **6.88px against 3.91px**
+     on the same card - that is the "this many and beyond" mark, and it is the
+     outermost band only, only past `CARD_BAND_MAX`.
+  2. **The rest is SUB-PIXEL PHASE and is not a bug in the numbers.** A 2% band
+     on a 119x158 card is **3.91px**, drawn at 45 degrees, where the pixel grid's
+     step along the diagonal is **1.41px**. 3.91 is 2.77 steps and the 3.4% pitch
+     is 4.7 steps, so neither is a whole number of pixels and consecutive bands
+     land in different phase. Measured by decoding the rendered PNG and walking
+     the diagonal: the six bands come out **2.75 / 4.13 / 2.63 / 4.13 / 2.63 /
+     4.13 px**, and the thin ones are also **paler** (peak delta 190-220 against
+     253-297) because a stripe straddling a pixel boundary is spread across it.
+     So they alternate thin-and-faint / thick-and-solid.
+  **It cannot be fixed by choosing better percentages**, because the card is
+  119px on a desktop, 67px in portrait and 40px in a tray - no percentage is a
+  whole number of pixels at all three. The levers, if it ever needs one, are a
+  THICKER band (at 2% the phase error is 18% of the width; at 2.6% it is 14%) or
+  a ~0.2% ramp on the band's outer edges to absorb the phase, which costs a
+  little crispness. **The Trick disc has the same property** and nobody has
+  noticed there, because its bands sit under a 94%-opaque label.
 - **THE CENTRE HIGHLIGHT IS LOAD-BEARING ON SPECTRUM, which is the case to test
   against.** The colour deck's ⚫ card is near-black, so a black `time` band on it
   is invisible but for its white centre line; a green `replay` band on the green

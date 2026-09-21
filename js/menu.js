@@ -1,4 +1,4 @@
-const BUILD = "2026-09-21 · r299 · the line highlight is a ring only; a card's buffs are corner bands";
+const BUILD = "2026-09-21 · r300 · the card buff bands sit closer to the corner";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

@@ -168,10 +168,14 @@ const CARD_BAND_ANGLE = { tl: 135, tr: 225, br: 315, bl: 45 };
 // bands. A CARD IS NOT THE DISC and they do not transfer: the disc's bands sit
 // under a foil label that ghosts them, while a card's face is bare cream with a
 // big centred rank on it, and a card has FOUR corners doing this at once where
-// the disc has one. At the disc's numbers six bands measured as a 105x105 wedge
-// out of a 119x158 card - most of the face, four times over. These are the same
-// picture pulled in toward the corner: six bands land in a 55x55 wedge.
-const CARD_BAND_START = 9;    // % of the axis to the first band's near edge
+// the disc has one. Measured on a 119x158 card, six bands fill a wedge of
+// 113x113 at the disc's numbers - most of the face, four times over - 77x77 at
+// start 9, and 66x66 here. START IS THE ONLY ONE OF THE FOUR THAT MOVES THE
+// WHOLE MARK; pitch and thickness only change how the bands sit within it.
+// The card's corner is rounded (5 design px), which eats the first r(sqrt2-1) =
+// 2.1 design px along the diagonal, so 5% (4.7 design px) is about as close in
+// as the first band can go and still be drawn whole.
+const CARD_BAND_START = 5;    // % of the axis to the first band's near edge
 const CARD_BAND_PITCH = 3.4;  // % from one band's near edge to the next
 const CARD_BAND_FULL  = 2;    // % a band is thick
 const CARD_BAND_OVER  = 4;    // % the outermost band is thick when the count runs past the cap
