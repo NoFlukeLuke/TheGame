@@ -59,6 +59,11 @@ corner in the Trick disc's own visual language (r274), **one per 5 pips / 5 mult
 top-right, seconds (`permTime` + `_vulturePause`) black bottom-left, replays green
 bottom-right. `permXPips` / `permXMult` / `permCoins` deliberately have none - a
 x2 is not a tally of 5s - and there is no per-card FOCUS store to draw at all.
+A band is **one flat colour** (r301) and each family carries three shades - its
+own, a pale one and a dark one - so a band that cannot be seen against the card's
+face is drawn in whichever shade can be (Spectrum's near-black card, its green
+card). Past six the series ends in a **`+` at 45 degrees**, and the whole mark is
+budgeted so it can never reach the rank or the suit.
 Adding a family is a row in `CARD_BAND_FAMILIES`; see CLAUDE.md for the geometry
 and the traps.
 

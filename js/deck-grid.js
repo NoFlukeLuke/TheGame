@@ -149,19 +149,21 @@ function cardBuffLines(k) {
 // nothing to read - a card cannot grant Focus when it scores today. Adding one is
 // a row in this table plus the store and the site that pays it.
 const CARD_BAND_FAMILIES = [
-  { id: 'pips',   corner: 'tl', per: 5, color: '#3a6fca', lite: '#a9c8f7', of: (k, card) => permPips[k]   || 0 },
-  { id: 'mult',   corner: 'tr', per: 5, color: '#c0392b', lite: '#f2ada4', of: (k, card) => permMult[k]   || 0 },
+  { id: 'pips',   corner: 'tl', per: 5, color: '#3a6fca', lite: '#a9c8f7', dark: '#16305c', of: (k, card) => permPips[k] || 0 },
+  { id: 'mult',   corner: 'tr', per: 5, color: '#c0392b', lite: '#f2ada4', dark: '#5c1a13', of: (k, card) => permMult[k] || 0 },
   // Seconds: the Card Market's rewind card AND The Vulture / Wait Four It /
   // Temporal Rift's pause, summed, because the owner named them as one family
   // ("5 seconds if pause or rewind"). The payout vocabulary makes time WHITE
   // (PARTICLE_CFG.colors.time) and r296 proved near-white cannot mark a cream
-  // card, so the band inverts it the way r233 inverted the clock plate: a black
-  // band with a white centre line.
-  { id: 'time',   corner: 'bl', per: 5, color: '#141210', lite: '#ffffff', of: (k, card) => (permTime[k] || 0) + (card._vulturePause || 0) },
+  // card, so the band inverts it the way r233 inverted the clock plate - black
+  // on a cream card, and white on Spectrum's near-black one, which is what the
+  // ink rule below picks for it. Its `dark` is its own colour: black and white
+  // are already the two extremes and there is no third ink to reach for.
+  { id: 'time',   corner: 'bl', per: 5, color: '#141210', lite: '#ffffff', dark: '#141210', of: (k, card) => (permTime[k] || 0) + (card._vulturePause || 0) },
   // Replays have no colour in the payout vocabulary and Echo Location's #e0ddd0
   // is near-white, so green: the only high-contrast hue no other payout family
   // has taken, and the same one the scaling arrow uses for the neighbouring idea.
-  { id: 'replay', corner: 'br', per: 1, color: '#2e9c68', lite: '#b6ecd1', of: (k, card) => permRetrig[k] || 0 },
+  { id: 'replay', corner: 'br', per: 1, color: '#2e9c68', lite: '#b6ecd1', dark: '#0f3d27', of: (k, card) => permRetrig[k] || 0 },
 ];
 const CARD_BAND_ANGLE = { tl: 135, tr: 225, br: 315, bl: 45 };
 // The disc's own numbers are start 13 / pitch 5 / thick 3 and it stops at five
@@ -178,8 +180,64 @@ const CARD_BAND_ANGLE = { tl: 135, tr: 225, br: 315, bl: 45 };
 const CARD_BAND_START = 5;    // % of the axis to the first band's near edge
 const CARD_BAND_PITCH = 3.4;  // % from one band's near edge to the next
 const CARD_BAND_FULL  = 2;    // % a band is thick
-const CARD_BAND_OVER  = 4;    // % the outermost band is thick when the count runs past the cap
-const CARD_BAND_MAX   = 6;    // bands per corner: a 7th starts reaching the card's middle
+// THE BANDS ARE THE SAME THICKNESS AND THEY NOW LOOK IT (r301). The owner asked
+// why some read thicker than others; r300 measured the cause as sub-pixel phase
+// - a 2% band on a 119x158 card is 3.91px drawn at 45 degrees, where the pixel
+// grid steps 1.41px along the diagonal, so neither the thickness (2.77 steps)
+// nor the pitch (4.7 steps) is a whole number of pixels and consecutive bands
+// land differently against it. That is true and it was only half the story: the
+// PALE CENTRE LINE was what turned a sub-pixel difference into a visible one.
+// A band with a light middle is really two thin dark edges, and a thin edge is
+// exactly what the phase pushes around. Dropping it (the owner's "just the flat
+// color") fixes both. Measured across a row at 1px, five bands on one card:
+//
+//   r300  light centre   peak 263-281 (1.07x)   area 1030-1044
+//   r301  flat colour    peak 321-324 (1.01x)   area 1605-1610
+//
+// so the flat band is a fifth more ink and its bands are three times closer to
+// each other. A soft edge ramp was tried on top of it and REJECTED by the same
+// measurement: it left the spread where it was (1.10x against 1.11x along the
+// diagonal) and cost 20% of the ink, because the flat colour had already done
+// the whole job.
+// THE OUTERMOST MARK MAY NOT REACH THE RANK OR THE SUIT (owner's spec). A 45
+// degree band at p% of the axis lies on the line u + v = (p/100)(W+H), where u
+// and v are the distances from that corner - so "how close does a glyph come to
+// this corner" is one number, min(u+v) over the glyph's box, and it is a share
+// of (W+H) at any card size. Measured in a real browser over the rank, the suit
+// and Spectrum's big value: Classic 29.0% at 1440x820 and 29.5% in portrait,
+// SPECTRUM 27.3% - the colour deck's centred two-digit value is the tightest in
+// the game, so it is what the budget is set against.
+// The card's own BORDER spends a little of it: the band gradient is painted on
+// the .card-bands box, which is the card's PADDING box, so its origin sits one
+// border in and its axis is shorter. Measured in card coordinates the outermost
+// band lands at 25.1% rather than 24% for that reason, which still clears the
+// 26.8% floor with about 4.5px to spare on a desktop card and 2.5px in portrait.
+const CARD_BAND_LIMIT = 24;   // % of the axis the outermost mark may reach
+// DERIVED, never typed, so a retune of the three numbers above cannot put a
+// band over a glyph: how many slots fit inside the budget.
+const CARD_BAND_MAX = Math.max(1, Math.floor((CARD_BAND_LIMIT - CARD_BAND_START - CARD_BAND_FULL) / CARD_BAND_PITCH + 1e-9) + 1);
+// Past the cap the series ends in a '+' at 45 degrees instead of another band
+// (owner's spec: "if there's that many buffs just put a '+' at a 45 degree angle
+// where the last line would go"). It replaces r299's double-thick outermost
+// band, which said the same thing by being fatter.
+//
+// IT COSTS THREE SLOTS, AND THAT IS FORCED BY THE BUDGET, not chosen. A '+'
+// centred on a slot reaches S/sqrt(2) either side of it along the diagonal, so
+// it is only ever as wide as the room around the slot it stands in - and in the
+// FINAL slot that room is 1% of the axis, 3.8px on a desktop card, which is not
+// a '+', it is a speck (measured, and it looked like one). Moved back one slot
+// it has the outer 4.4% to grow into, and dropping the band that would have sat
+// beside it opens the inner side too. So THREE bands are drawn and the '+'
+// stands for the rest, with its outer vertex landing exactly where a sixth
+// band's far edge would have - the same footprint either way.
+const CARD_BAND_PLUS_SLOT  = Math.max(1, CARD_BAND_MAX - 2);       // the slot it is centred on
+const CARD_BAND_PLUS_BANDS = Math.max(0, CARD_BAND_PLUS_SLOT - 1); // bands drawn beside it
+const CARD_BAND_PLUS_MID   = CARD_BAND_START + CARD_BAND_PLUS_SLOT * CARD_BAND_PITCH + CARD_BAND_FULL / 2;
+const CARD_BAND_PLUS_AT    = CARD_BAND_PLUS_MID / 200;
+const CARD_BAND_PLUS_HALF  = Math.max(0.5, Math.min(
+  CARD_BAND_LIMIT - CARD_BAND_PLUS_MID,                                                  // out to the budget
+  CARD_BAND_PLUS_MID - (CARD_BAND_START + (CARD_BAND_PLUS_BANDS - 1) * CARD_BAND_PITCH + CARD_BAND_FULL)));
+const CARD_BAND_PLUS_SIZE = CARD_BAND_PLUS_HALF * Math.SQRT2 / 100;  // a share of the axis
 
 // A COUNT IS ROUNDED TO NEAREST AND FLOORED AT ONE, never truncated. The rate is
 // what the owner asked for - one band per 5 pips - but a floor would draw NOTHING
@@ -190,37 +248,76 @@ function cardBandCount(v, per) {
   return v > 0 ? Math.max(1, Math.round(v / per)) : 0;
 }
 
+// A BAND IS ONE FLAT COLOUR (r301, owner's call - the lighter centre line is
+// gone). That centre line was doing a real job on Spectrum, where a black `time`
+// band on the near-black card is invisible but for its white middle, so the job
+// moved to the INK: a band that cannot be seen against the face it is drawn on
+// is drawn in its family's pale or dark shade instead. Luminance is the simple
+// linear 0.299/0.587/0.114, which is all this needs - the question is only
+// whether two colours are far enough apart to tell one from the other.
+const CARD_FACE_DEFAULT = '#f5efe0';  // --card-bg, the cream card face
+const CARD_BAND_INK_MIN = 0.28;       // least luminance gap a band may sit at
+
+function cardBandLuma(hex) {
+  const h = String(hex).replace('#', '');
+  const n = h.length === 3 ? h.split('').map(c => c + c).join('') : h;
+  const v = parseInt(n, 16);
+  if (!isFinite(v)) return 0.5;
+  return (0.299 * ((v >> 16) & 255) + 0.587 * ((v >> 8) & 255) + 0.114 * (v & 255)) / 255;
+}
+
+// The face a band is drawn on. Only Spectrum moves it: the colour deck paints
+// the whole card, and `cardColorSuit` is what says which colour that is (a white
+// 9/10/11 keeps its slot's colour underneath, which is exactly the r165 split -
+// what the player SEES comes from cardColorSuit, never card.suit).
+function cardFaceColor(card) {
+  if (typeof isColorSuit === 'function' && isColorSuit(card.suit)) {
+    const c = (typeof cardColorSuit === 'function') ? cardColorSuit(card) : card.suit;
+    if (typeof COLOR_HEX === 'object' && COLOR_HEX && COLOR_HEX[c]) return COLOR_HEX[c];
+  }
+  return CARD_FACE_DEFAULT;
+}
+
+// PREFER THE FAMILY'S OWN COLOUR and only reach for a shade when it cannot be
+// seen, or every cream card in the game would be marked in navy and maroon
+// instead of blue and red. Taking the BETTER of the two shades rather than a
+// fixed one is what stops the swap making things worse: green against the yellow
+// Spectrum card is a 0.24 gap, its pale shade only 0.15, its dark shade 0.52.
+function cardBandInk(fam, faceL) {
+  const gap = hex => Math.abs(cardBandLuma(hex) - faceL);
+  if (gap(fam.color) >= CARD_BAND_INK_MIN) return fam.color;
+  return gap(fam.lite) >= gap(fam.dark) ? fam.lite : fam.dark;
+}
+
 function cardBandPaint(bands, angle) {
   if (!bands.length) return '';
   const stops = [];
   bands.forEach((b, i) => {
-    const th = b.over ? CARD_BAND_OVER : CARD_BAND_FULL;
-    const s = CARD_BAND_START + i * CARD_BAND_PITCH, e = s + th, m = s + th / 2;
-    stops.push(`transparent ${s}%`, `${b.color} ${s}%`, `${b.lite} ${m}%`, `${b.color} ${e}%`, `transparent ${e}%`);
+    const s = CARD_BAND_START + i * CARD_BAND_PITCH, e = s + CARD_BAND_FULL;
+    stops.push(`transparent ${s}%`, `${b.ink} ${s}%`, `${b.ink} ${e}%`, `transparent ${e}%`);
   });
   return `linear-gradient(${angle}deg, ${stops.join(',')})`;
 }
 
 function cardBandsHTML(card) {
   if (!card || !card.rank) return '';
-  const k = cardId(card), byCorner = {};
+  const k = cardId(card), faceL = cardBandLuma(cardFaceColor(card)), byCorner = {};
   CARD_BAND_FAMILIES.forEach(f => {
     const n = cardBandCount(f.of(k, card) || 0, f.per);
     if (!n) return;
-    const list = byCorner[f.corner] || (byCorner[f.corner] = []);
-    for (let i = 0; i < n; i++) list.push({ color: f.color, lite: f.lite });
+    const ink = cardBandInk(f, faceL);
+    const slot = byCorner[f.corner] || (byCorner[f.corner] = { bands: [], ink });
+    for (let i = 0; i < n; i++) slot.bands.push({ ink });
   });
   return Object.keys(byCorner).map(corner => {
-    let list = byCorner[corner];
-    // Past the cap the OUTERMOST band is drawn double thick, which is the shape
-    // the tier ladder's own top rung has (r274: tier 5 and up is iridescent) -
-    // "this many and beyond". Clamping silently would make the mark a lie, and
-    // the exact figure is in the tooltip either way.
+    const slot = byCorner[corner];
+    let list = slot.bands, plus = '';
     if (list.length > CARD_BAND_MAX) {
-      list = list.slice(0, CARD_BAND_MAX);
-      list[CARD_BAND_MAX - 1] = Object.assign({}, list[CARD_BAND_MAX - 1], { over: true });
+      list = list.slice(0, CARD_BAND_PLUS_BANDS);
+      plus = `<i class="card-bplus" style="--cbp:${CARD_BAND_PLUS_AT};`
+           + `--cbs:${CARD_BAND_PLUS_SIZE.toFixed(5)};--cbi:${slot.ink}"></i>`;
     }
-    return `<div class="card-bands" style="--cb:${cardBandPaint(list, CARD_BAND_ANGLE[corner])}"></div>`;
+    return `<div class="card-bands" style="--cb:${cardBandPaint(list, CARD_BAND_ANGLE[corner])}">${plus}</div>`;
   }).join('');
 }
 

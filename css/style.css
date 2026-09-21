@@ -1770,6 +1770,35 @@
     pointer-events: none;
     z-index: -1;
     background: var(--cb, none);
+    /* THE ELEMENT IS A SIZE CONTAINER purely so the overflow '+' can be placed
+       (r301). A 45 degree band at p% of the axis crosses this corner's own
+       diagonal at u = v = (p/200)(W+H), which is a length neither a percentage
+       nor an em can express - a percentage `left` is a share of W and a
+       percentage `top` a share of H. In container-query units it is one calc
+       over 100cqw + 100cqh, exact at every card size with no JS measurement,
+       which is the whole rule the bands themselves follow.
+       `container-type: size` also makes this element the containing block for
+       that absolute child, which is what we want: it is inset 0, so its box IS
+       the card's. */
+    container-type: size;
+  }
+  /* The overflow mark: a '+' at 45 degrees where the last band would have been
+     (owner's spec). Drawn as two crossing bars rather than as a glyph, so its
+     length and weight are exact at any card size and it needs no font. It takes
+     the family's own ink, so it reads as the same mark as the bands above it. */
+  .card-bplus {
+    position: absolute;
+    left: calc((100cqw + 100cqh) * var(--cbp, 0.098));
+    top:  calc((100cqw + 100cqh) * var(--cbp, 0.098));
+    width:  calc((100cqw + 100cqh) * var(--cbs, 0.034));
+    height: calc((100cqw + 100cqh) * var(--cbs, 0.034));
+    transform: translate(-50%, -50%) rotate(45deg);
+    /* Two crossing bars, each 26% of the mark's side, so the weight follows the
+       size and the '+' is the same picture on a 119px card and a 67px one. */
+    background:
+      linear-gradient(var(--cbi, #3a6fca) 0 0) center / 100% 26% no-repeat,
+      linear-gradient(var(--cbi, #3a6fca) 0 0) center / 26% 100% no-repeat;
+    pointer-events: none;
   }
   /* Selection lift + swell (r179; +25% in r281). Composed on top of the grid
      heartbeat's --hb* vars, the way the base .card transform is, so a selected

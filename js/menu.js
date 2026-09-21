@@ -1,4 +1,4 @@
-const BUILD = "2026-09-21 · r300 · the card buff bands sit closer to the corner";
+const BUILD = "2026-09-21 · r301 · flat corner bands with a + overflow, and the highlight ring turns";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

@@ -107,6 +107,17 @@
    takes one colour and cannot be divided. padding sets the ring's thickness;
    the two masks cancel everything inside the padding box, leaving only the 2px
    frame. */
+/* THE ROTATION (r301). --rcl-rot has to be REGISTERED as an <angle>: an
+   unregistered custom property is an opaque token, so a keyframe on it would
+   step from 0deg to 360deg with nothing in between and the ring would not
+   appear to move at all. `inherits: false` keeps it on the ring, where the
+   animation is - nothing else reads it, and an inherited animated property
+   would recalculate the whole subtree every frame for the same picture.
+   The DURATION and the phase offset are written inline by lineRingHTMLFor
+   (js/entity-fx.js) from one constant, so every ring on screen turns together
+   and a card repainted mid-cycle does not snap back to the start. */
+@property --rcl-rot { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
+@keyframes rcl-spin { from { --rcl-rot: 0deg; } to { --rcl-rot: 360deg; } }
 .rc-line-ring {
   position: absolute;
   inset: 0;
@@ -120,7 +131,11 @@
           mask-composite: exclude;
   pointer-events: none;
   z-index: 5;
+  animation-name: rcl-spin;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
 }
+body.reduced-motion .rc-line-ring { animation-name: none; }
 
 /* ── The per-card mark ────────────────────────────────────────────────────
    One consistent shape in one consistent corner, coloured per Trick. This is

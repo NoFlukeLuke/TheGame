@@ -254,14 +254,43 @@ function cellOnMarkedLine(r, c) {
 // had to be darkened to register. On the card's EDGE, against the dark board, it
 // is the most legible of the nine - so the ring takes every colour exactly as
 // the table gives it and the whole luminance correction goes with the wash.
+//
+// THE RING TURNS (r301, owner's spec: "can the highlight border rotate smoothly
+// around the cards"). Every paint below is a conic gradient whose `from` angle
+// is `var(--rcl-rot)`, a custom property REGISTERED as an <angle> in
+// css/entity-fx.css - registration is what makes it animatable at all, since an
+// unregistered custom property is an opaque token and cannot be interpolated.
+//
+// A SINGLE LINE NEEDS A SHEEN OR THERE IS NOTHING TO SEE TURNING, and one line
+// is the ordinary case - a card sits on a marked row OR a marked column far more
+// often than on both. So one colour is drawn as that colour with two pale
+// arcs sweeping through it, and the ring reads as a highlight travelling round
+// the card. SEVERAL colours are left as hard-stop wedges and get no sheen: the
+// wedges themselves turning IS the motion, and a pale arc laid over two Trick
+// colours is the blend r296 spent a pass removing.
+function lineRingLighten(hex, amt) {
+  const h = String(hex).replace('#', '');
+  const n = h.length === 3 ? h.split('').map(ch => ch + ch).join('') : h;
+  const v = parseInt(n, 16);
+  if (!isFinite(v)) return hex;
+  const mix = c => Math.round(c + (255 - c) * amt);
+  return `rgb(${mix((v >> 16) & 255)},${mix((v >> 8) & 255)},${mix(v & 255)})`;
+}
+const LINE_RING_SHEEN = 0.55;   // how far a sheen arc lifts the colour toward white
+const LINE_RING_SPIN_MS = 8000; // one revolution; see the note on the phase below
 function lineRingPaint(metas) {
   if (!metas.length) return '';
-  if (metas.length === 1) return metas[0].color;
+  if (metas.length === 1) {
+    const c = metas[0].color, l = lineRingLighten(c, LINE_RING_SHEEN);
+    // Seamless: the same colour at 0% and 100%, so the loop has no join in it.
+    return `conic-gradient(from var(--rcl-rot,0deg), ${c} 0%, ${l} 25%, ${c} 50%, ${l} 75%, ${c} 100%)`;
+  }
   const n = metas.length, step = 100 / n;
   const stops = metas.map((m, i) => `${m.color} ${(i * step).toFixed(3)}% ${((i + 1) * step).toFixed(3)}%`);
-  // `from -45deg` so TWO colours split on the card's own diagonal - one straight
-  // line corner to corner - rather than on the vertical, which reads as a seam.
-  return `conic-gradient(from -45deg, ${stops.join(', ')})`;
+  // `-45deg` is where the division RESTS, so TWO colours split on the card's own
+  // diagonal - one straight line corner to corner - rather than on the vertical,
+  // which reads as a seam. The rotation is added to it.
+  return `conic-gradient(from calc(-45deg + var(--rcl-rot,0deg)), ${stops.join(', ')})`;
 }
 
 // From an already-resolved meta list. renderCardAppearance works out the list
@@ -269,9 +298,31 @@ function lineRingPaint(metas) {
 // has a cell and not a list. Built here rather than in renderCardAppearance so
 // the reward grid and any future surface can draw the same ring by asking one
 // function.
+// EVERY RING ON SCREEN TURNS IN PHASE, and that takes a negative animation-delay
+// baked in here rather than a single animation on a long-lived ancestor. The ring
+// is markup inside a card, and `render()` rewrites a card's innerHTML on every
+// deal, swap and score - so an animation that starts with the element would snap
+// every ring back to 0deg each time the board repaints. Offsetting the delay by
+// how long the page has been up means a ring created now picks the cycle up
+// exactly where the ones already on screen are.
+// The alternative - animating an inherited --rcl-rot on #grid and letting the
+// rings read it - costs a custom-property style recalc over the whole subtree
+// every frame, for the same picture.
+// The DURATION is written inline from the one constant above and the stylesheet
+// holds only the name, timing and count, so the phase arithmetic here and the
+// animation can never disagree about how long a revolution is. That also leaves
+// `animation-name: none` under reduced-motion able to switch it off, which an
+// inline `animation` shorthand would have outranked.
+const LINE_RING_EPOCH = Date.now();
 function lineRingHTMLFor(metas) {
   if (!metas.length) return '';
   const title = metas.map(m => m.name).join(' · ');
-  return `<div class="rc-line-ring" style="--rcl-ring:${lineRingPaint(metas)}" title="${title}"></div>`;
+  // Rounded to the nearest frame so every ring built in one repaint gets the
+  // same delay to the millisecond - Date.now() ticks while render() walks the
+  // board, and two values 1ms apart is 0.045deg of phase and a line in any
+  // future audit that has to be explained away.
+  const off = -(Math.round((Date.now() - LINE_RING_EPOCH) / 50) * 50 % LINE_RING_SPIN_MS);
+  return `<div class="rc-line-ring" title="${title}" style="--rcl-ring:${lineRingPaint(metas)};`
+       + `animation-duration:${LINE_RING_SPIN_MS}ms;animation-delay:${off}ms"></div>`;
 }
 function lineRingHTML(r, c) { return lineRingHTMLFor(lineMetasForCell(r, c)); }

@@ -1273,7 +1273,8 @@ whole face on a fact its edge already states.
 
 - **Equal wedges, hard stops, `from -45deg`** (`lineRingPaint`, js/entity-fx.js) -
   so two colours split on the card's own diagonal, one straight line corner to
-  corner, and three read as thirds. Verified in a real browser: 1 line = a flat
+  corner, and three read as thirds. (r301 turns the whole ring, so -45deg is now
+  where the division RESTS rather than where it sits - see 1b below.) Verified in a real browser: 1 line = a flat
   fill, 2 = 50/50, 3 = three 120-degree wedges on the same card.
 - **THE WASH WAS THE EXPENSIVE HALF, and a light line colour is why.** Echo
   Location's `#e0ddd0` is near-white, so its wash measured rgb(240,231,212) over
@@ -1302,6 +1303,50 @@ whole face on a fact its edge already states.
   Half of the deleted rules were already dead: measured, their `box-shadow` and
   `border-color` both lost to later `.card` rules and only `background` ever
   reached the board.
+
+#### 1b. The ring TURNS (r301)
+
+Owner: *"can the highlight border rotate smoothly around the cards? And that
+highlight should continue into the preview area, including the spinning ideally."*
+
+Every ring paint is now a conic gradient whose `from` angle is `var(--rcl-rot)`,
+one revolution every **8s**, linear.
+
+- **`--rcl-rot` MUST BE REGISTERED as an `<angle>`** (`@property`, css/entity-fx.css).
+  An unregistered custom property is an opaque token, so a keyframe on it would
+  step 0deg -> 360deg with nothing in between and the ring would not appear to
+  move at all. `inherits: false` keeps it on the ring, where the animation is -
+  an inherited animated property would recalculate the whole subtree every frame
+  for the same picture.
+- **A SINGLE LINE NEEDS A SHEEN OR THERE IS NOTHING TO SEE TURNING**, and one line
+  is the ordinary case: a card sits on a marked row OR a marked column far more
+  often than on both. So one colour is drawn as that colour with two pale arcs
+  sweeping through it (`lineRingLighten`, 55% toward white), seamless at 0% and
+  100%. **SEVERAL colours get no sheen** - the hard-stop wedges turning IS the
+  motion, and a pale arc laid over two Trick colours is the blend r296 spent a
+  pass removing. `-45deg` is still where the division RESTS; the rotation is
+  added to it.
+- **EVERY RING ON SCREEN TURNS IN PHASE, and that takes a negative
+  `animation-delay` baked into the markup**, not one animation on a long-lived
+  ancestor. A ring is markup inside a card and `render()` rewrites a card's
+  innerHTML on every deal, swap and score, so an animation that starts with the
+  element would snap every ring back to 0deg each time the board repaints.
+  `lineRingHTMLFor` offsets the delay by how long the page has been up (rounded to
+  the nearest 50ms, so a repaint that spans a millisecond does not split the
+  board into two phases), and the DURATION is written inline from the one JS
+  constant - so the phase arithmetic and the animation cannot disagree about how
+  long a revolution is. The stylesheet keeps only the name, timing and count,
+  which is what leaves `animation-name: none` under `reduced-motion` able to
+  switch it off; an inline `animation` shorthand would have outranked it.
+- **It reaches the hand preview for free**, because `score-dance.js` builds
+  preview cards with the same `renderCardAppearance`. Verified live: 2 rings in
+  `#selected-cards` during a dance, `animation-name: rcl-spin`, angle 43deg ->
+  102deg over 1.2s.
+
+Verified in a real browser: the angle advances 124.4deg -> 191.9deg in 1.5s
+(exactly 1.5/8 of a revolution), all ten rings on a board report **one** angle and
+**one** delay after a `render()`, and `body.reduced-motion` reports
+`animation-name: none`.
 
 #### 2. The AXIS alternates; only the INDEX is luck
 
@@ -1381,23 +1426,22 @@ is the id `col`, so half of every position Trick's printed description read
 coin flip into something every run shows, so it says `column` now - in the
 description and in the chooser's toast.
 
-### A card's buffs are CORNER BANDS (r299) - `cardBandsHTML`
+### A card's buffs are CORNER BANDS (r299, finished r301) - `cardBandsHTML`
 
 Owner: *"Can we implement the same corner marking system the tricks have ... Like
 a diagonal line for every 5 pips or 5 mult, or 5 seconds if pause or rewind or for
 each 1 focus or 1 replay."*
 
-The mark is **r274's**: diagonal bands across a corner, one per unit, each a
-coloured band with a bright centre line, drawn as background gradient stops whose
-every length is a PERCENTAGE of the gradient's own axis - so it is the same
-picture on a 40px card and a 119px one with no JS measurement. One band per **5
-pips · 5 mult · 5 seconds · 1 replay**.
+The mark is **r274's**: diagonal bands across a corner, one per unit, drawn as
+background gradient stops whose every length is a PERCENTAGE of the gradient's own
+axis - so it is the same picture on a 40px card and a 119px one with no JS
+measurement. One band per **5 pips · 5 mult · 5 seconds · 1 replay**.
 
 | corner | family | colour | reads |
 |---|---|---|---|
 | top-left | `permPips` | blue `#3a6fca` | per 5 |
 | top-right | `permMult` | red `#c0392b` | per 5 |
-| bottom-left | `permTime` + `_vulturePause` | black, white centre | per 5 |
+| bottom-left | `permTime` + `_vulturePause` | black | per 5 |
 | bottom-right | `permRetrig` | green `#2e9c68` | per 1 |
 
 - **IT LIVES IN `js/deck-grid.js` BESIDE `cardBuffLines`**, which is the
@@ -1424,9 +1468,6 @@ pips · 5 mult · 5 seconds · 1 replay**.
   out, which reads as the buff not having landed; and a part-band thin enough to
   mean "and a bit" comes out **sub-pixel** at the sizes this draws at (1.4px on a
   119px card, 0.7px on a 57px one). So any buff at all is at least one band.
-- **Past `CARD_BAND_MAX` (6) the OUTERMOST band is drawn double thick** - the
-  shape the tier ladder's own top rung has (r274: tier 5 and up is iridescent),
-  "this many and beyond". Clamping silently would make the mark a lie.
 - **z-index -1, and it has to be** - the r296 wash's trap, above. Verified: the
   rank and suit paint over the bands on a 6-band card.
 - **THE DISC'S OWN NUMBERS DO NOT TRANSFER.** It is start 13 / pitch 5 / thick 3
@@ -1440,33 +1481,6 @@ pips · 5 mult · 5 seconds · 1 replay**.
   `r(sqrt2 - 1)` = **2.1 design px** along the diagonal, so 5% (4.7 design px) is
   about as close in as the first band can go and still be drawn whole - verified,
   a lone band at +4 pips is fully visible.
-- **ALL SIX BANDS ARE THE SAME NOMINAL THICKNESS, AND THEY DO NOT RASTERIZE THAT
-  WAY.** Owner, of the preview: *"why are some lines thicker than others"*. Two
-  separate answers and only one is deliberate:
-  1. **The overflow band really is double.** Measured **6.88px against 3.91px**
-     on the same card - that is the "this many and beyond" mark, and it is the
-     outermost band only, only past `CARD_BAND_MAX`.
-  2. **The rest is SUB-PIXEL PHASE and is not a bug in the numbers.** A 2% band
-     on a 119x158 card is **3.91px**, drawn at 45 degrees, where the pixel grid's
-     step along the diagonal is **1.41px**. 3.91 is 2.77 steps and the 3.4% pitch
-     is 4.7 steps, so neither is a whole number of pixels and consecutive bands
-     land in different phase. Measured by decoding the rendered PNG and walking
-     the diagonal: the six bands come out **2.75 / 4.13 / 2.63 / 4.13 / 2.63 /
-     4.13 px**, and the thin ones are also **paler** (peak delta 190-220 against
-     253-297) because a stripe straddling a pixel boundary is spread across it.
-     So they alternate thin-and-faint / thick-and-solid.
-  **It cannot be fixed by choosing better percentages**, because the card is
-  119px on a desktop, 67px in portrait and 40px in a tray - no percentage is a
-  whole number of pixels at all three. The levers, if it ever needs one, are a
-  THICKER band (at 2% the phase error is 18% of the width; at 2.6% it is 14%) or
-  a ~0.2% ramp on the band's outer edges to absorb the phase, which costs a
-  little crispness. **The Trick disc has the same property** and nobody has
-  noticed there, because its bands sit under a 94%-opaque label.
-- **THE CENTRE HIGHLIGHT IS LOAD-BEARING ON SPECTRUM, which is the case to test
-  against.** The colour deck's ⚫ card is near-black, so a black `time` band on it
-  is invisible but for its white centre line; a green `replay` band on the green
-  card is the same story. Verified in a real browser on a full Spectrum board: all
-  four families legible on black, green, red, gold, blue and purple faces.
 - **`permXPips` / `permXMult` / `permCoins` deliberately have no band.** A x2 is
   not a tally of 5s and the owner did not name them; a multiplier wants its own
   vocabulary rather than a count of bands meaning something else. Known gap: a x
@@ -1478,12 +1492,104 @@ pips · 5 mult · 5 seconds · 1 replay**.
   fifth family shares a corner with its nearest relative rather than needing a
   fifth corner. Nothing shares one today.
 
-Verified in a real browser at 1440x820 and 420x820, through the real menu and tap
-path, in Classic and Spectrum: every count draws the right number of bands (12
-pips -> 2, 4 pips -> 1, 20s -> 4, 3 replays -> 3, 30 mult -> 6, 60 mult -> 6 with
-the wide overflow), **0 bands overflow their card**, a fully buffed 16-card board
-plays a real hand through the full dance with the preview carrying its bands, and
-there are **no page errors**.
+#### A band is ONE FLAT COLOUR, and that is what fixed the uneven look (r301)
+
+Owner: *"the lines on the cards should not have that highlight effect with the
+lighter color in the middle. Just the flat color."*
+
+r300 answered the owner's earlier *"why are some lines thicker than others"* with
+sub-pixel phase: a 2% band on a 119x158 card is **3.91px** drawn at 45 degrees,
+where the pixel grid steps **1.41px** along the diagonal, so neither the thickness
+(2.77 steps) nor the 3.4% pitch (4.7 steps) is a whole number of pixels and
+consecutive bands land in different phase. **That is true and it was only half the
+story.** The PALE CENTRE LINE is what turned a sub-pixel difference into a visible
+one: a band with a light middle is really two thin dark edges, and a thin edge is
+exactly what the phase pushes around.
+
+Measured by decoding the rendered PNG **across a row at 1px** (the diagonal ray
+r300 used quantises to 1.41px and cannot resolve this), five bands on one card:
+
+| | peak delta | spread | area |
+|---|---|---|---|
+| r300, light centre | 263-281 | 1.07x | 1030-1044 |
+| r301, flat colour | 321-324 | **1.01x** | 1605-1610 |
+
+So the flat band is **a fifth more ink** and its bands are **three times closer to
+each other**. Confirmed by eye on a 6x magnification: the r300 bands read as
+hollow outlines of visibly different weight, the r301 ones as even solid stripes.
+
+- **A SOFT EDGE RAMP WAS TRIED ON TOP AND REJECTED BY THE SAME MEASUREMENT.** It
+  left the spread where it was (1.10x against 1.11x along the diagonal) and cost
+  **20% of the ink**, because the flat colour had already done the whole job. Do
+  not re-add it. **The remaining levers**, if this ever needs one, are a THICKER
+  band (at 2% the phase error is 18% of the width; at 2.6% it is 14%) - not a
+  percentage that divides evenly, because the card is 119px on a desktop, 67px in
+  portrait and smaller again in the preview, and no percentage is a whole number
+  of pixels at all three.
+- **THE CENTRE LINE WAS LOAD-BEARING ON SPECTRUM, so the job moved to the INK.**
+  The colour deck's ⚫ card is near-black, so a flat black `time` band on it is
+  invisible; a green `replay` band on the green card is the same story. Each
+  family now carries `color` / `lite` / `dark`, and `cardBandInk` **prefers the
+  family's own colour and only reaches for a shade when it cannot be seen**
+  (luminance gap under `CARD_BAND_INK_MIN`, 0.28) - otherwise every cream card in
+  the game would be marked in navy and maroon instead of blue and red.
+- **It takes the BETTER of the two shades, never a fixed one.** Swapping blind can
+  make things worse: green against Spectrum's yellow card is a 0.24 gap, its pale
+  shade only 0.15 and its dark shade 0.52. `cardFaceColor` reads the face through
+  **`cardColorSuit`**, never `card.suit` - the r165 split, so a white 9/10/11 is
+  measured against the near-white it is drawn as.
+- Verified in a real browser on a full Spectrum board: all four families legible
+  on black, white, green, red, gold, orange, blue and purple faces.
+
+#### The overflow mark is a `+` at 45 degrees (r301)
+
+Owner: *"make sure the lines can't cover the suit or number. If theres that many
+buffs just put a '+' at a 45 degree angle where the last line would go."*
+
+It replaces r299's double-thick outermost band, which said the same thing by being
+fatter and cost 4% of the axis to say it.
+
+- **"DOES A BAND REACH THE GLYPH" IS ONE NUMBER.** A 45 degree band at p% of the
+  axis lies on the line `u + v = (p/100)(W+H)`, where u and v are the distances
+  from that corner - so the question is `min(u+v)` over the glyph's box, and it is
+  a share of `(W+H)` at any card size. Measured in a real browser over the rank,
+  the suit and Spectrum's big value: **Classic 29.0%** at 1440x820 and 29.5% in
+  portrait, **SPECTRUM 26.8%** - the colour deck's centred value is the tightest
+  in the game, so it is what the budget is set against.
+- **`CARD_BAND_LIMIT` is 24% and `CARD_BAND_MAX` is DERIVED from it**, so a retune
+  of start / pitch / thickness cannot put a band over a glyph by accident.
+- **The card's own BORDER spends a little of the budget.** The gradient paints on
+  the `.card-bands` box, which is the card's PADDING box, so its origin sits one
+  border in and its axis is shorter: measured in CARD coordinates the outermost
+  band lands at **25.1%** rather than 24%. Still clear of 26.8% by ~4.5px on a
+  desktop card and 2.5px in portrait. **A measurement of this has to say which box
+  it is in** or the two disagree by the border.
+- **THE `+` COSTS THREE SLOTS, AND THAT IS FORCED BY THE BUDGET.** A `+` centred
+  on a slot reaches `S/sqrt(2)` either side of it along the diagonal, so it is only
+  ever as wide as the room around the slot it stands in - and in the FINAL slot
+  that room is 1% of the axis, **3.8px** on a desktop card, which is not a `+`, it
+  is a speck (built that way first, and it looked like one). Moved back one slot it
+  has the outer 4.4% to grow into, and dropping the band that would have sat beside
+  it opens the inner side too. So **three bands are drawn and the `+` stands for the
+  rest**, its outer vertex landing exactly where a sixth band's far edge would have:
+  the same footprint whether or not the count overflowed. Counts 1-6 draw that many
+  bands; 7 and up draw 3 and the `+`.
+- **`.card-bands` IS A SIZE CONTAINER purely so the `+` can be placed.** The mark's
+  centre is at `u = v = (p/200)(W+H)`, a length neither a percentage nor an em can
+  express - a percentage `left` is a share of W and a percentage `top` a share of H.
+  In container-query units it is one calc over `100cqw + 100cqh`, exact at every
+  card size with no JS measurement, which is the rule the bands themselves follow.
+  `container-type: size` also makes the element the containing block for that
+  absolute child, which is what we want: it is `inset: 0`, so its box IS the card's.
+- The `+` is **two crossing bars, not a glyph**, each 26% of the mark's side, so its
+  weight follows its size and it needs no font. It takes the family's own ink.
+
+Verified in a real browser at 1440x820 and 420x820, in Classic and Spectrum, over
+a board carrying every count from 1 to 9 on all four corners: **0 of 60 marks
+reach a glyph** (measured in the `u+v` metric, not by bounding box - a rotated `+`
+overlaps a glyph's BOX at the corner while its arms are nowhere near it), 0 marks
+paint outside their card, a hand plays through the full dance with the preview
+carrying its bands, and there are **no page errors**.
 
 ### The score panel between rounds (r223)
 
