@@ -1,4 +1,4 @@
-const BUILD = "2026-09-21 · r294 · Crunch, plus the Overtime event: 90s back for two downsides";
+const BUILD = "2026-09-21 · r295 · Crunch moves to the dev panel while it is tuned";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -317,12 +317,19 @@ function startMatch3FromMenu(modeId = 'match3') {
 // FIRST RUN is its tutorial now, so a standalone one would be a second door to
 // the same thing. It is still reachable from the dev panel's Modes group.
 const MODE_SELECT_LIST = [...MODE_UNLOCK_CHAIN, ...MODE_FINALE_GROUP];
-const MODE_HIDDEN_LIST = ['match3', 'zen', 'dominoes'];
+// Built but NOT in the carousel. Reachable from dev panel -> Modes, which is
+// generated from MODES itself so nothing here has to be listed twice.
+// `crunch` is here because it is a rough first pass being tuned, not because it
+// is an experiment on a different loop the way the other three are.
+const MODE_HIDDEN_LIST = ['match3', 'zen', 'dominoes', 'crunch'];
 const MODE_META = {
   tutorial: { accent: '#8fd0ff',         suits: 'START HERE',
               blurb: 'LETHE Corp staff orientation. A normal Classic run with the terminal explaining each control as you reach it - scoring, Focus, limits, the reward path, the shop. About three minutes.' },
   normal:   { accent: 'var(--c-yellow)', suits: '♠ ♥ ♦ ♣',
               blurb: 'The original four-suit game. Three Acts of rounds, shops, events and bosses.' },
+  // Crunch is in MODE_HIDDEN_LIST, so this card is not drawn today. Kept ready:
+  // promoting the mode is one entry in MODE_FINALE_GROUP and one deletion from
+  // the hidden list, with nothing to rewrite.
   crunch:   { accent: '#e8734a',         suits: '13:00 · ONE CLOCK',
               blurb: 'The schedule, against a single clock for the whole quarter. Rounds spend it as you play, booking anything that is not a round costs a flat fee, and the manager review is fought on whatever is left. Run it to zero and the run is over. Beat the review and you get most of it back.' },
   map:      { accent: '#6fd08c',         suits: '4 × 6 + BOSS',

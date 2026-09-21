@@ -2471,6 +2471,14 @@ second timer anywhere. Run it to zero and the run is over.
 generation, the dead-end DP, the route drawing, the tile routing and the quarter
 rollover are the Schedule's, untouched. This file is the clock and the money.
 
+**It is in `MODE_HIDDEN_LIST`, not the carousel** (owner's call): a rough first
+pass being tuned, so the way in is **dev panel -> Modes**, which is generated from
+`MODES` itself and needed no wiring. Its `MODE_META` card is written and kept -
+promoting it is one entry in `MODE_FINALE_GROUP` and one deletion from the hidden
+list, with nothing to rewrite. Note the other three hidden modes are hidden for a
+different reason (a different loop, and no boss wiring at all); this one is
+complete, just unproven.
+
 ### The act bank IS `roundSeconds`
 
 The load-bearing decision, and Flow's (r164) for the same reason: about fifteen
