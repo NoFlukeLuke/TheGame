@@ -1200,13 +1200,15 @@ Four things r209's lines did not do. All four are owner spec.
   in each, which puts two lines at 25/75 and three at 17/50/83: lines hugging the
   card's edges rather than an evenly divided lane. Measured: 0.25 / 0.50 / 0.75.
 - **A card on several lines SPLITS ITS RING between their colours** - equal wedges
-  with hard stops (`lineMetasForCell` -> `lineRingPaint` -> `lineRingHTML`), so a
-  crossing reads as both things instead of whichever the registry listed first. A
-  blend of three Trick colours is a fourth colour belonging to nothing, hence hard
-  stops. **The ring had to stop being a `box-shadow` to do this**: a box-shadow
-  takes one colour and cannot be divided. It is paint masked down to the border
-  now (`padding` + two masks + `mask-composite`). Verified: 3 lines give three
-  33.3% wedges, a row/column crossing gives four at 25%.
+  with hard stops (`lineMetasForCell` -> `lineRingPaint`), so a crossing reads as
+  both things instead of whichever the registry listed first. A blend of three
+  Trick colours is a fourth colour belonging to nothing, hence hard stops. **The
+  ring had to stop being a `box-shadow` to do this**: a box-shadow takes one
+  colour and cannot be divided. It is paint masked down to the border now
+  (`padding` + two masks + `mask-composite`). Verified: 1 line is a flat fill,
+  2 give two 50% wedges, 3 give three at 33.3%. **r296 gave the card's WASH the
+  same division** - see "A marked cell SPLITS its highlight" below, which is
+  where the crossing was actually being blended.
 
 #### `clampRowColBonuses()` - and why it reads the LIMITS
 
@@ -1235,6 +1237,145 @@ the single place a limit actually moves, and everything that merely BORROWS the
 board at a smaller size clamps what it **draws** instead (above) and leaves the
 registry alone. Verified: a 4x4 prize grid drew a col-5 line at col-3 with the
 stored index still 5.
+
+### A marked cell SPLITS its highlight, and the axis ALTERNATES (r296)
+
+Owner: *"When cards are in a cell that has a row and column bonus, its highlight
+should be divided between the two colors, so it's half and half each of the
+colors. If a cell has more colors on it, continue this pattern."* and *"all of
+them except ones where the name forces a row or column decide row or column
+based on a rule that it always alternates."*
+
+#### 1. The card's highlight is divided, not blended
+
+**The RING already divided itself (r223). The card's WASH did not, and the wash
+is what the player actually sees** - a 2px ring against a whole tinted card
+face. The wash came from a different system: six per-Trick rules in
+`css/style.css`, written long before r209, that had to name a COMBINED COLOUR
+for each pair of Tricks. So Right Place (blue) crossing Power Line (red) painted
+the card a flat **purple** and Power Line crossing Echo Location painted it dark
+red-brown - a colour belonging to neither Trick, which is exactly what r223
+called "a fourth colour that belongs to nothing".
+
+They also only existed for **three of the nine** line-marking Tricks, so Perfect
+Timing, Right Time, Groove, Assembly Line and Overtime marked cells that looked
+no different from unmarked ones - the very gap r209 set out to close and only
+closed for the ring.
+
+- **One paint, two strengths.** `lineWedgePaint(metas, pct)` (js/entity-fx.js) is
+  now the single geometry: `pct` null gives the RING its solid colours, a number
+  gives the WASH the same wedges at `LINE_WASH_ALPHA` (22%). They must come from
+  one function or the ring's blue half would sit over the wash's red one.
+- **Equal wedges, hard stops, `from -45deg`** - so two colours split on the
+  card's own diagonal, one straight line corner to corner, and three read as
+  thirds. Verified in a real browser: 1 line = a flat fill, 2 = 50/50, 3 = three
+  120-degree wedges on the same card.
+- **`.rc-line-wash` is `z-index: -1`, AND IT HAS TO BE.** `.rank` and `.suit` are
+  IN-FLOW flex children, and CSS paints every positioned descendant above
+  in-flow content **whatever the DOM order** - so at `z-index: 0` or `auto` the
+  wash would cover the card's own rank and suit. A negative z-index paints above
+  the element's own BACKGROUND and below its in-flow content. It cannot fall
+  through the card either: `.card` carries a transform (the heartbeat), so it is
+  its own stacking context. Verified with `elementFromPoint` on every rank on a
+  full board, on the fall-animation clone and in the scoring dance.
+- **A LIGHT LINE COLOUR CANNOT BE A WASH ON A CREAM CARD**, and one of the nine
+  is light: Echo Location's `#e0ddd0` is near-white, so its wash measured
+  rgb(240,231,212) over a card face of rgb(244,234,213) - invisible at any alpha,
+  because no alpha makes near-white visible on near-white. `lineWashInk` darkens
+  **only** a colour over `LINE_WASH_MAX_L` (0.72 perceived luminance) down to
+  `LINE_WASH_TARGET_L` (0.55); gold, the next lightest, measures 0.64 and is left
+  alone. **The line, its end caps and the ring keep the table's colour exactly** -
+  they sit on the dark board or on the card's edge, where near-white reads best.
+  Perceived luminance is linear in the channels, so mixing k% with black scales
+  it by exactly k, which is what makes this one multiplication rather than a
+  search.
+- **The Spectrum overrides went with the tints.** `.card.num-card.rc-*` existed
+  only to put back the `--num-color` face the tints repainted, and drew its own
+  inset ring including the same blended purple. The shared wash and ring handle a
+  colour card as they handle a cream one.
+- `rc-pips` / `rc-mult` / `rc-retrigger` are **gone as classes too** - nothing
+  reads them now. `rc-on-line` stays as the "this cell is on some line" marker.
+  Half of the deleted rules were already dead: measured, their `box-shadow` and
+  `border-color` both lost to later `.card` rules and only `background` ever
+  reached the board.
+
+#### 2. The AXIS alternates; only the INDEX is luck
+
+All eight position Tricks print "a marked row or column", and `pickDefaultLine`
+pooled every row AND every column and drew one cell out of the lot - a coin flip
+per Trick. A run could put all four of its position Tricks on rows, and often
+did.
+
+`positionAxisNext` (js/scoring.js) is the cursor: **each new marked line lands on
+the opposite axis from the one before it.** Row, column, row, column. The index
+is still random, and still avoids an occupied line unless District is owned.
+
+- **THAT IS WHAT MAKES CROSSINGS HAPPEN**, which is the point beyond tidiness.
+  Ley Line and Temporal Rift both fire wherever a row effect crosses a column
+  effect (`isEffectIntersection`), and a run that rolled all rows gives them
+  nothing to fire on at all. It is also what the divided highlight above is for -
+  a cell can only read half and half if the board produces both axes.
+- **`POSITION_FORCED_AXIS` is the exemption** the owner asked for: a Trick whose
+  NAME names an axis keeps it. **NOTHING IS IN IT TODAY** - all eight are named
+  for what they do (Right Place, Power Line, Echo Location, Perfect Timing, Right
+  Time, Groove, Assembly Line, Overtime), not for which way they run. An id in
+  there still ADVANCES the cursor off the axis it took, so the run keeps
+  alternating around it. (`column_rush` / `row_power` - Stand Up and Lie Down -
+  DO name an axis but mark no line at all, so they are not in this system.)
+- **`markPositionAxisTaken(axis)` advances off the axis ACTUALLY TAKEN, never off
+  the cursor.** The Alignment knack forces a column and the Surveyor / Leveler
+  chooser lets the player pick, so all three paths call it and none can leave the
+  run out of step. It is idempotent, so the chooser confirming the provisional
+  default costs nothing.
+- **Owning BOTH position knacks offers both axes, so the chooser's provisional
+  default is the alternation's**; owning one means that knack IS the axis and the
+  cursor has nothing to say.
+- **A full axis still takes the Trick.** Asking `pickDefaultLine` for one axis
+  rather than two means that if every line on it is occupied the mark lands there
+  anyway, doubled up. The alternation is the rule, and a board with more position
+  Tricks than lines has to double up somewhere.
+- `positionAxisNext` is reset in `startGame` (every run's first position Trick
+  marks a row - fixed rather than rolled, because the whole point is a rule the
+  player can learn) and is in **`SAVE_VARS`**, so a resumed run carries on rather
+  than restarting the sequence.
+
+Measured over 40 fresh runs x 8 position Tricks through the real grant path:
+**0 sequence breaks, 160 rows and 160 columns exactly**, every index 0-3 used on
+both axes, and 8 registry entries in every run.
+
+#### 3. A SECOND RUN USED TO GET NO LINES AT ALL
+
+Found while measuring the above, and it is the reason `resetPositionMarks()`
+exists. `assignPositionMark` is idempotent per **Trick object** (`_posAssigned`)
+so an upgrade - which calls `selectTrick` twice - cannot re-roll a line the
+player is already building around. The trap is that **what the player owns IS the
+pool object**: `makeTrickPayload`'s `apply: () => injectTrickAfterReward(pick)`
+hands over `pick` itself, unlike the knack path beside it which pushes
+`{ ...pick }`. So the flag outlived the run that set it, and `startGame` clearing
+`rowColBonuses` was not enough.
+
+Measured before the fix, through the real grant path: run 1 registers
+`rowcol_triple_pips:row1` and `rowcol_mult:col2`; **run 2 grants both again and
+registers NOTHING.** Both Tricks are owned, both print "a marked row or column",
+and neither marks a line, scores a bonus or draws anything on the board - all
+eight position Tricks, common through epic, dead for every run of a session after
+the first.
+
+`resetPositionMarks()` clears `_posAssigned` / `_posAxis` / `_posIndex` /
+`_posDescBase` across `TRICK_POOL_ALL` and `TRICK_POOL` from `startGame`, beside
+`rowColBonuses = []`. It deliberately does **not** restore `desc`: the tier reset
+(`resetEntityTiers` -> `applyEntityTiers` -> `applyBalDescriptions`) already
+rewrites every description from the pristine text, and clearing `_posDescBase`
+means the next mark re-captures whatever that left - which matters when the Trick
+was improved mid-run and its printed number moved.
+
+#### 4. "col 1" is "column 1"
+
+`finalizePositionMark` built its label as `` `${axis} ${index + 1}` `` and `axis`
+is the id `col`, so half of every position Trick's printed description read
+"Cards scored in **col 1**". Pre-existing, but the alternation turns it from a
+coin flip into something every run shows, so it says `column` now - in the
+description and in the chooser's toast.
 
 ### The score panel between rounds (r223)
 

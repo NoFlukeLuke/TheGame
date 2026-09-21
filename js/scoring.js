@@ -1506,6 +1506,82 @@ function firesThisMinute(id) {
 // per Trick object so an upgrade (selectTrick called twice) doesn't re-roll the line.
 const POSITION_ASSIGN_IDS = ['rowcol_triple_pips','rowcol_mult','rowcol_retrigger','perfect_timing','right_time','groove','assembly_line','overtime'];
 
+// -- The AXIS alternates; only the INDEX is luck (r296) ----------------------
+// Every one of the eight above is printed as "a marked row or column" and the
+// axis was rolled along with the line: pickDefaultLine pooled all the rows AND
+// all the columns and drew one cell out of the lot. On a 4x4 board that is a
+// coin flip per Trick, so a run could hand out four position Tricks and put all
+// four on rows - and did, often.
+//
+// The axis is now the ALTERNATION and the index is still the luck: each new
+// marked line lands on the opposite axis from the one before it. Row, column,
+// row, column.
+//
+// THAT IS WHAT MAKES CROSSINGS HAPPEN, which is the part that matters beyond
+// tidiness. Ley Line and Temporal Rift both fire wherever a row effect crosses
+// a column effect (isEffectIntersection / CARD_MARK_META, js/entity-fx.js), and
+// a run that rolled all rows gives them nothing to fire on at all. It is also
+// what the divided card highlight is for - a cell can only read half and half
+// if the board produces both axes.
+//
+// POSITION_FORCED_AXIS is the exemption: a Trick whose NAME names an axis keeps
+// that axis instead of taking the cursor's. NOTHING IS IN IT TODAY - all eight
+// are named for what they do (Right Place, Power Line, Echo Location, Perfect
+// Timing, Right Time, Groove, Assembly Line, Overtime), not for which way they
+// run - and it is the row a future "Row ..." or "... Column" Trick drops into.
+// An id in here still ADVANCES the cursor off the axis it took, so the run keeps
+// alternating around it.
+const POSITION_FORCED_AXIS = {
+  // trick id: 'row' | 'col'
+};
+// The axis the NEXT position Trick marks. Per run: reset in startGame, and in
+// SAVE_VARS so a resumed run carries on where it left off rather than restarting
+// the sequence. 'row' first, deliberately fixed rather than rolled - the whole
+// point is a rule the player can learn, and randomising the start would make the
+// first Trick of every run the one unpredictable link in the chain.
+let positionAxisNext = 'row';
+function positionAxisFor(trick) {
+  return POSITION_FORCED_AXIS[trick.id] || positionAxisNext;
+}
+// Advance off the axis ACTUALLY TAKEN, never off the cursor. A forced axis, the
+// Alignment knack's column and the player's own pick in the Surveyor / Leveler
+// chooser all go through here, so none of them can leave the run out of step.
+// Idempotent, so the chooser confirming the provisional default costs nothing.
+function markPositionAxisTaken(axis) {
+  positionAxisNext = (axis === 'row') ? 'col' : 'row';
+}
+
+// A SECOND RUN USED TO GET NO LINES AT ALL (r296). assignPositionMark is
+// idempotent per TRICK OBJECT - `_posAssigned` - so that an upgrade, which calls
+// selectTrick twice, cannot re-roll a line the player is already building around.
+// The trap is that what the player owns IS the pool object: makeTrickPayload's
+// `apply: () => injectTrickAfterReward(pick)` hands over `pick` itself, unlike
+// the knack path beside it which pushes `{ ...pick }`. So the flag outlived the
+// run that set it, and `startGame` clearing `rowColBonuses` was not enough -
+// granting Right Place in run 2 returned at the guard, finalizePositionMark
+// never ran, and the registry stayed EMPTY.
+//
+// Measured before the fix: run 1 registers `rowcol_triple_pips:row1` and
+// `rowcol_mult:col2`; run 2 grants both again and registers NOTHING. Both are
+// owned, both print "a marked row or column", and neither marks a line, scores
+// a bonus or draws anything on the board. That is all eight position Tricks,
+// common through epic, dead for every run of a session after the first.
+//
+// desc is NOT restored here: the tier reset (resetEntityTiers -> applyEntityTiers
+// -> applyBalDescriptions) already rewrites every description from the pristine
+// text on a new run, and `_posDescBase` is cleared so the next mark re-captures
+// whatever that left - which matters when the Trick was improved mid-run and its
+// printed number moved.
+function resetPositionMarks() {
+  const seen = new Set();
+  [typeof TRICK_POOL_ALL !== 'undefined' ? TRICK_POOL_ALL : null, typeof TRICK_POOL !== 'undefined' ? TRICK_POOL : null]
+    .forEach(pool => (pool || []).forEach(t => {
+      if (!t || seen.has(t)) return;
+      seen.add(t);
+      delete t._posAssigned; delete t._posAxis; delete t._posIndex; delete t._posDescBase;
+    }));
+}
+
 // Keep every marked line on a line that EXISTS. Growing the board needs nothing
 // - the index is a stored number and a wider board simply has more columns past
 // it - but shrinking one can leave a Trick marking a column that is no longer
@@ -1564,7 +1640,11 @@ function finalizePositionMark(trick, axis, index) {
   rowColBonuses = rowColBonuses.filter(b => b._trickRef !== trick);  // one line per Trick object
   rowColBonuses.push({ id: trick.id, axis, index, _trickRef: trick });
   trick._posAxis = axis; trick._posIndex = index;
-  const label = `${axis} ${index + 1}`;
+  // "column", not the `col` the axis id spells - this string is printed in the
+  // tray, in Records and in the tooltip. The alternation (r296) guarantees half
+  // the position Tricks in every run land on a column, so it is now something
+  // the player reads every run rather than on a coin flip.
+  const label = `${axis === 'row' ? 'row' : 'column'} ${index + 1}`;
   trick.desc = trick._posDescBase
     .replace('a specific row or column', label)
     .replace('a marked row or column', label)
@@ -1586,8 +1666,15 @@ function assignPositionMark(trick) {
   if (hasKnack('leveler'))  axes.push('row');
   if (hasKnack('surveyor')) axes.push('col');
   if (axes.length) {                              // manual chooser wins over Alignment
-    const prov = pickDefaultLine(axes, district); // provisional so state is always valid
+    // Owning BOTH knacks offers both axes, so the provisional default is the
+    // alternation's; owning one means that knack IS the axis and the cursor has
+    // nothing to say. Written as one test so a forced-axis Trick also keeps its
+    // axis whenever the knacks leave it on the table.
+    const want = positionAxisFor(trick);
+    const provAxes = axes.includes(want) ? [want] : axes;
+    const prov = pickDefaultLine(provAxes, district); // provisional so state is always valid
     finalizePositionMark(trick, prov.axis, prov.index);
+    markPositionAxisTaken(prov.axis);
     queuePositionChooser(trick, axes, district);
     return;
   }
@@ -1596,10 +1683,17 @@ function assignPositionMark(trick) {
     let index = ((slot % gridCols) + gridCols) % gridCols;
     if (!district) index = firstFreeAlong('col', index);
     finalizePositionMark(trick, 'col', index);
+    markPositionAxisTaken('col');                 // the knack decided; keep the run in step with it
     return;
   }
-  const prov = pickDefaultLine(['row', 'col'], district); // default: random (spreads unless District)
+  // Default: the AXIS alternates, the INDEX is random (and spreads unless
+  // District). Asking pickDefaultLine for ONE axis rather than both is the whole
+  // change. If every line on that axis is already taken it still lands there, on
+  // an occupied one - the alternation is the rule, and a board with more position
+  // Tricks than it has lines has to double up somewhere.
+  const prov = pickDefaultLine([positionAxisFor(trick)], district);
   finalizePositionMark(trick, prov.axis, prov.index);
+  markPositionAxisTaken(prov.axis);
 }
 
 // ── Surveyor / Leveler line-chooser overlay ─────────────────────────────────
@@ -1643,7 +1737,9 @@ function showNextPositionChooser() {
       b.style.cssText = `min-width:42px;padding:8px 10px;border-radius:8px;font-size:13px;`
         + (blocked ? 'border:1px solid #444;background:rgba(60,60,60,0.4);color:#666;cursor:not-allowed;'
           : `border:2px solid ${current ? 'var(--gold)' : 'rgba(201,168,76,0.5)'};background:rgba(201,168,76,${current ? '0.28' : '0.13'});color:var(--gold);cursor:pointer;`);
-      if (!blocked) b.onclick = () => { finalizePositionMark(trick, axis, i); if (typeof showMessage === 'function') showMessage(`${trick.name} → ${axis} ${i + 1}`, 'var(--gold)'); showNextPositionChooser(); };
+      // markPositionAxisTaken: the player's own pick is what the run alternates
+      // off, not the provisional default assignPositionMark already committed.
+      if (!blocked) b.onclick = () => { finalizePositionMark(trick, axis, i); markPositionAxisTaken(axis); if (typeof showMessage === 'function') showMessage(`${trick.name} → ${axis === 'row' ? 'row' : 'column'} ${i + 1}`, 'var(--gold)'); showNextPositionChooser(); };
       row.appendChild(b);
     }
     ov.appendChild(row);

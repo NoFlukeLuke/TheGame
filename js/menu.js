@@ -1,4 +1,4 @@
-const BUILD = "2026-09-21 · r295 · a primed Trick animates every prime it was scored with, and the goal hand spends one";
+const BUILD = "2026-09-21 · r296 · a marked cell splits its highlight between its lines; the row/column axis alternates";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
