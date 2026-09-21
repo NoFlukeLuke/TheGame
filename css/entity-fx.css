@@ -9,9 +9,20 @@
    render() appends new cards AFTER the markers, which would have put a card
    dealt mid-round on top of a line while its neighbours sat under one. Two
    explicit layers settle it regardless of order. Boss cell overlays are 12-15
-   and temp-anim clones are 10, so both still sit above cards, unchanged. */
+   and temp-anim clones are 10, so both still sit above cards, unchanged.
+
+   .reward-cell WAS MISSING AND THAT IS A BUG, NOT A GAP (r293). A reward tile
+   carries no z-index of its own, so it sat at `auto` - and a z-index of 1 beats
+   `auto` whatever the DOM order, so the lines painted straight across the tiles
+   on every reward grid, prize grid, shop board and crossroads. r223 put the
+   lines back on the reward grid deliberately (they are part of what the choice
+   is about) and this is what that looks like when they are in FRONT: on the
+   3x3 prize grid a marked row runs through the middle of the whole bottom row
+   of prizes, end caps and all. Behind the tiles they still read exactly as they
+   do on the play board - in the gutters, and past the ends of the line. */
 #grid > .card,
 #grid > .trick-card,
+#grid > .reward-cell,
 #grid > .blocked-cell { z-index: 2; }
 #grid > .rc-line      { z-index: 1; }
 

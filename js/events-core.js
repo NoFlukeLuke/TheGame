@@ -170,7 +170,7 @@ const EVENT_META = {
   altar:       { name:'The Investment',  flavor:'Pay now. It pays you back over the next few rounds.' },
   spring:      { name:'Clean Up',        flavor:'Cut cards out of your deck, or put back what you have lost.' },
   twin_path:   { name:'Two and a Catch', flavor:'Two Tricks. One downside, and you cannot refuse it.' },
-  forge:       { name:'Card Upgrade',    flavor:'Three upgrades, each already assigned to a card. Take one.' },
+  forge:       { name:'Card Upgrade',    flavor:'Three upgrades, each already assigned to its cards. Take one.' },
   bargain:     { name:'The Price',       flavor:'Every offer here costs you something first.' },
   wager:       { name:'Coin Flip',       flavor:'Even odds. You pick how much is riding on it.' },
   shift_change:{ name:'Tray Order',      flavor:'Put your Tricks in the order you want them to fire.' },
@@ -233,7 +233,18 @@ function renderEventShell(id) {
 const EV_TIERS = ['common', 'rare', 'epic', 'legendary'];
 
 function makeChoiceEl(opts) {
-  // opts: { icon, rarity, name, desc, cost, cls, tile, onClick }
+  // opts: { icon, rarity, name, desc, extra, cost, cls, tile, onClick }
+  //
+  // `extra` is raw HTML dropped in under the description, for an offer whose
+  // subject needs SHOWING rather than listing - the Forge's two or three card
+  // faces, drawn as the mini playing cards Clean Up already uses. It is kept
+  // out of `desc` on purpose: that string goes through colorizeKeywords, and a
+  // keyword pass has no business rewriting the inside of a card chip.
+  //
+  // It shares a WRAPPING ROW with the description rather than taking a line of
+  // its own: the sentence and the cards it is about are one thought, and on a
+  // stack of three offers a line each is 33px x 3 of a panel that already
+  // scrolls. It wraps on its own when the two do not fit side by side.
   //
   // `tile` is what makes an Event show you the real object (r211). When the
   // offer IS an entity - a Trick, a Sleight, a Knack - pass
@@ -263,7 +274,9 @@ function makeChoiceEl(opts) {
         <div class="ec-name">${opts.name}</div>
       </div>
     </div>
-    <div class="ec-desc">${colorizeKeywords(opts.desc || '')}</div>
+    ${opts.extra
+      ? `<div class="ec-descrow"><div class="ec-desc">${colorizeKeywords(opts.desc || '')}</div>${opts.extra}</div>`
+      : `<div class="ec-desc">${colorizeKeywords(opts.desc || '')}</div>`}
     ${opts.cost ? `<div class="ec-cost">${opts.cost}</div>` : ''}
   `;
   if (opts.onClick) div.addEventListener('click', opts.onClick);

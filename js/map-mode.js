@@ -739,6 +739,9 @@ function mapRender(animateIn) {
   // it is put back here; the strokes themselves live in mapDrawStrokes and are
   // repainted onto it (js/map-draw.js).
   if (typeof mapDrawMount === 'function') mapDrawMount(gridEl);
+  // The legend rail is measured off #grid, and #grid has just moved (a flip, a
+  // resize, a redraw at a different size), so it is re-placed against it.
+  if (typeof mapLegendReplace === 'function') mapLegendReplace();
 }
 
 function mapTileTap(t) {
@@ -786,7 +789,7 @@ function mapRenderBar() {
   const visits = mapPos
     ? `${mapFreeBranch ? mapVisitsInSet(mapPos.set) : mapVisits}/${slotCap}${mapFreeBranch ? ' FREE' : ''}`
     : 'PICK A START';
-  const inked = (typeof mapDrawStrokes !== 'undefined') && mapDrawStrokes.length > 0;
+  const inked = (typeof mapHasInk === 'function') && mapHasInk();
   bar.innerHTML =
     // PAUSE lives in the bar because the bar COVERS the play screen's own PAUSE
     // button. #map-bar is body-level in raw viewport px and grows to fit whatever
@@ -798,7 +801,8 @@ function mapRenderBar() {
     `<span class="mb-set">SLOT ${setNo}/${MAP_SETS}</span>` +
     `<span class="mb-visits">${visits}</span>` +
     `<button class="mb-q" id="mb-q" title="How the schedule works">?</button>` +
-    `<button class="mb-q" id="mb-key" title="What the obligations are">▤</button>` +
+    `<button class="mb-q${(typeof mapLegendOpen === 'function' && mapLegendOpen()) ? ' on' : ''}" ` +
+      `id="mb-key" title="What the obligations are">▤</button>` +
     `<button class="mb-q mb-pen${mapPenOn ? ' on' : ''}" id="mb-pen" ` +
       `title="Draw on the schedule (right-drag works without this; double right-click changes colour)">✎</button>` +
     `<button class="mb-q mb-sw" id="mb-pen-sw" title="Pen colour"><i id="mb-sw-dot"></i></button>` +
@@ -810,14 +814,9 @@ function mapRenderBar() {
     `<button id="mb-confirm" disabled>CONFIRM</button>` +
     `<div class="mb-help" id="mb-help">` +
       MAP_HELP.map(([k, v]) => `<div class="mb-hrow"><b>${k}</b><span>${v}</span></div>`).join('') +
-    `</div>` +
-    `<div class="mb-help" id="map-legend">` +
-      (typeof mapLegendRows === 'function' ? mapLegendRows().map(r =>
-        `<div class="ml-row ${r.cls}" data-cls="${r.cls}">` +
-          `<span class="ml-chip">${r.icon}</span>` +
-          `<b>${r.name || r.full}</b><span class="ml-txt">${r.blurb}</span>` +
-        `</div>`).join('') : '') +
     `</div>`;
+  // The legend is NOT in here any more (r293): it is a body-level rail beside
+  // the board, so it survives this rebuild instead of being destroyed by it.
   bar.classList.add('show');
   const btn = document.getElementById('mb-confirm');
   btn.onclick = () => mapConfirm();
@@ -841,25 +840,15 @@ function mapRenderBar() {
   };
   document.getElementById('mb-pause').onclick = (e) => { e.stopPropagation(); togglePauseMenu(); };
   document.getElementById('mb-q').onclick = cardToggle('mb-help');
-  document.getElementById('mb-key').onclick = cardToggle('map-legend', () => mapLegendHighlight(null, null));
+  document.getElementById('mb-key').onclick = (e) => { e.stopPropagation(); mapLegendToggle(); };
   document.getElementById('mb-pen').onclick = () => mapPenToggle();
   document.getElementById('mb-pen-sw').onclick = () => mapPenCycle();
   const undoBtn = document.getElementById('mb-undo');
   if (undoBtn) undoBtn.onclick = () => mapDrawUndo();
   const wipeBtn = document.getElementById('mb-wipe');
   if (wipeBtn) wipeBtn.onclick = () => mapDrawClear();
-  // A legend row lights its own kind on the board and drops everything else.
-  // Hover for a mouse, tap for a finger; the tap latches so it can be read.
-  bar.querySelectorAll('#map-legend .ml-row').forEach(row => {
-    const cls = row.dataset.cls;
-    row.onmouseenter = () => mapLegendHighlight(cls);
-    row.onmouseleave = () => mapLegendHighlight(null);
-    row.onclick = (e) => {
-      e.stopPropagation();
-      const next = (mapLegendLatch === cls) ? null : cls;   // tap again to release
-      mapLegendHighlight(next, next);
-    };
-  });
+  // A legend row lights its own kind and writes its sentence into this bar's
+  // own info line; both live with the rail now (js/map-draw.js).
   if (typeof mapPenSyncChrome === 'function') mapPenSyncChrome();
   if (mapSelected) { const t = mapTiles.find(x => x.id === mapSelected); if (t) mapBarInfo(t, mapMoveFor(mapSelected)); }
   // The x/y selection readout hides on the map (r255), and nothing else repaints
@@ -891,6 +880,9 @@ function mapBarInfo(t, move) {
 function mapCloseScreen() {
   mapScreenOpen = false;
   mapSelected = null;
+  // Hidden directly rather than through mapLegendClose, which re-renders the
+  // bar - and the bar is being taken down two lines below.
+  if (typeof mapLegendEl === 'function') mapLegendEl()?.classList.remove('show');
   if (typeof mapLegendHighlight === 'function') mapLegendHighlight(null, null);
   document.getElementById('map-bar')?.classList.remove('show');
   document.body.classList.remove('map-active');

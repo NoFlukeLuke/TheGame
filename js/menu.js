@@ -1,4 +1,4 @@
-const BUILD = "2026-09-20 · r292 · the pick-of-three tile is 2x3 on a 6x4 board; entity emoji are ink-normalised";
+const BUILD = "2026-09-21 · r293 · the legend is a rail beside the schedule; a card buff says BUFF or SCALES";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

@@ -62,9 +62,33 @@ function growCardScaling(cards) {
   });
 }
 
-// The one place a card's buffs are put into words, so the reward tile, the
-// event, the grid tooltip, the deck view and the shop cannot drift apart again.
-// Returns plain lines, strongest first.
+// ── HOW A CARD BUFF IS WORDED (r293) ─────────────────────────────────────────
+//
+// ONE vocabulary, for the buff you HOLD (cardBuffLines) and for the buff you are
+// being OFFERED (buffOfferLine). Five sites offered card buffs in five phrasings
+// for two ideas, and two of the five differed by a single verb. The Forge put
+//
+//     A\u2665 gains another +4 pips each time it is played
+//     7\u2660 scores +30 pips every time it is played
+//
+// side by side and asked the player to choose between them: same length, same
+// shape, same closing clause, and the only thing saying one number GROWS and the
+// other does not is gains/scores. Owner: "it's kind of confusing that the only
+// differentiation is gains +5 mult each time it's scored vs scores."
+//
+// So the two ideas are told apart by the WORD, never by the verb:
+//
+//   FLAT     the word BUFF, and NO "each time it is played" at all. Every buff
+//            in the game pays when the card is played - saying so on the flat
+//            one is exactly what made the two read alike, and it is the clause
+//            that has to mean something on the scaling one.
+//   SCALING  the word SCALES, and it KEEPS "each time it's played", because that
+//            clause IS the difference: the number itself climbs.
+//
+// A held buff drops the clause from the flat side entirely and is just the
+// number, which is what a stat line wants: "+30 pips" reads as a fact about the
+// card, and "Scales +4 pips each time it's played" beside it cannot be mistaken
+// for one.
 function cardBuffLines(k) {
   const lines = [];
   const pp = permPips[k] || 0, pm = permMult[k] || 0;
@@ -72,13 +96,81 @@ function cardBuffLines(k) {
   const xp = permXPips[k] || 1, xm = permXMult[k] || 1, re = permRetrig[k] || 0;
   if (gp) lines.push(`Scales +${gp} pips each time it's played`);
   if (gm) lines.push(`Scales +${gm} mult each time it's played`);
-  if (pp) lines.push(`Scores +${pp} pips when played`);
-  if (pm) lines.push(`Scores +${pm} mult when played`);
-  if (xp > 1) lines.push(`\u00d7${xp} pip score`);
+  if (pp) lines.push(`+${pp} pips`);
+  if (pm) lines.push(`+${pm} mult`);
+  if (xp > 1) lines.push(`\u00d7${xp} pips`);
   if (xm > 1) lines.push(`\u00d7${xm} mult`);
   if (re) lines.push(`+${re} replay`);
-  return lines;
+  // These go straight into a tooltip's innerHTML and into the shop's card list,
+  // neither of which runs the prose lexicon - so a card's grid tooltip said
+  // "pips" while the tile that granted the buff said "work" (r198's rule, r293's
+  // pass). lexProse is idempotent (no corporate word is a gamer key), so a
+  // caller that highlights afterwards is unaffected.
+  return (typeof lexProse === 'function') ? lines.map(lexProse) : lines;
 }
+
+// The same vocabulary for an enhancement being OFFERED, from the `e` object
+// enhanceCardKey takes - so an offer site states exactly what it is about to
+// apply and the two cannot drift.
+//
+// FLAT and SCALING are kept in separate lists because they are two different
+// sentences, not two items in one: an offer carrying both says both.
+function buffBits(e) {
+  e = e || {};
+  const flat = [], scale = [];
+  if (e.pips)     flat.push(`+${e.pips} pips`);
+  if (e.mult)     flat.push(`+${e.mult} mult`);
+  if (e.xpips)    flat.push(`\u00d7${e.xpips} pips`);
+  if (e.xmult)    flat.push(`\u00d7${e.xmult} mult`);
+  if (e.retrig)   flat.push(`+${e.retrig} replay`);
+  if (e.time)     flat.push(`+${e.time}s`);
+  if (e.coin)     flat.push(`+${e.coin} credits`);
+  if (e.growPips) scale.push(`+${e.growPips} pips`);
+  if (e.growMult) scale.push(`+${e.growMult} mult`);
+  return { flat, scale };
+}
+function buffIsScaling(e) { return buffBits(e).scale.length > 0; }
+// The short title an offer tile wears: the effect and nothing else, because the
+// tile shows WHICH cards separately. "SCALES" carries the distinction here too.
+//
+// IT GOES THROUGH lexProse ITSELF. A description is translated on its way to the
+// screen by colorizeKeywords / highlightKeywords (r198), and a NAME is not - so
+// the Forge printed "+5 mult" as its title with "buff these three cards with +5
+// skill" directly under it, the same figure in two vocabularies an inch apart.
+// Doing it here rather than in makeChoiceEl keeps every other offer's name
+// untouched, which matters: an entity name is content, not vocabulary.
+function buffOfferName(e) {
+  const b = buffBits(e);
+  const parts = [];
+  if (b.scale.length) parts.push('Scales ' + buffJoin(b.scale));
+  if (b.flat.length)  parts.push(buffJoin(b.flat));
+  const out = parts.join(' \u00b7 ');
+  return (typeof lexProse === 'function') ? lexProse(out) : out;
+}
+// `subject` is the noun phrase the sentence is about - a card face ("7\u2660"),
+// a list of them, or "these three cards" when the faces are drawn beside it.
+// `plural` decides the agreement, because "7\u2660 scales" and "these cards
+// scale" are the same sentence with two different verbs.
+function buffOfferLine(e, subject, plural) {
+  const b = buffBits(e);
+  const out = [];
+  if (b.flat.length)  out.push(`Buff ${subject} with ${buffJoin(b.flat)}.`);
+  if (b.scale.length) out.push(`${buffCapFirst(subject)} ${plural ? 'scale' : 'scales'} `
+    + `${buffJoin(b.scale)} each time ${plural ? "they're" : "it's"} played.`);
+  const line = out.join(' ');
+  return (typeof lexProse === 'function') ? lexProse(line) : line;
+}
+// "7\u2660" / "7\u2660 and 3\u2666" / "7\u2660, 3\u2666 and 9\u2663"
+function buffJoin(list) {
+  const a = (list || []).filter(Boolean);
+  if (a.length <= 1) return a[0] || '';
+  return a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1];
+}
+const _BUFF_COUNT_WORDS = ['no', 'this', 'these two', 'these three', 'these four', 'these five'];
+function cardCountPhrase(n) {
+  return n === 1 ? 'this card' : `${_BUFF_COUNT_WORDS[n] || 'these ' + n} cards`;
+}
+function buffCapFirst(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
 
 // Every ordinary deck card that carries at least one permanent buff (r234).
 //

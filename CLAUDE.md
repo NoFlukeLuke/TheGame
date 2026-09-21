@@ -2277,6 +2277,196 @@ pointer leaving the row, and tapping again releases.
   takes no tile with it, a left click with the pen off still selects, the
   legend lights 3 of 25 tiles and the card lands fully on screen in both.
 
+### The legend is a RAIL BESIDE the schedule, and the ink is per orientation (r293)
+
+Owner: *"Move the legend to the area highlighted in red. The confirm button was
+off the screen for one, and the legend was just too little down there."* and
+*"If you switch between portrait and landscape modes don't carry the drawing
+over, let it just apply to its orientation when it was drawn."*
+
+**The legend covered the board it was lighting up.** It was a `.mb-help` card
+above the map bar, and at `min(420px, 100vw - 24px)` wide by up to 46vh it
+measured **396 x 303 on a phone** - over the whole schedule. Hovering a row lit
+obligations nobody could see, which is the one thing this feature exists to do.
+
+It is a body-level panel docked in the empty strip to the RIGHT of the board
+(`mapLegendBuild` / `mapLegendPlace` / `mapLegendToggle`, js/map-draw.js), in
+**raw viewport px** - the `#map-bar` rule, because anything inside `#cabinet`
+inherits its CSS zoom.
+
+- **ONE RAIL COVERS BOTH ORIENTATIONS, because the strip is the same shape in
+  both.** Measured: **142 x 494** at 1440x820, **105 x 377** at 1100x620,
+  **116 x 426** on a 420-wide phone. It is the only free space either way (in
+  landscape the left column is the HUD; in portrait the gutters inside
+  `#grid-slot` are 53px), which is what the owner circled.
+- **THE ROW IS THE SYMBOL AND THE WORD; THE SENTENCE GOES TO `#mb-info`.** That
+  is r276's rule for the board, and a 105px rail has no room for prose anyway -
+  nine rows of wrapped blurbs measured over **700px tall against a 377px
+  board**. The bar's info line is already the "what is this" readout, is as wide
+  as the bar, and is empty whenever nothing is picked. Hover writes it, leaving
+  hands it back to the picked obligation.
+- **It is re-placed from the tail of `mapRender` AND from its own resize
+  listener.** A render moves the board (a flip, a redraw at a new size); a plain
+  resize moves it with **no** render, because map-mode.js only redraws when the
+  ORIENTATION changes.
+- **A strip under `MAP_LEGEND_MIN_W` (88px) falls back to a centred card**
+  (`.ml-float`). Worse than the rail, and never nothing.
+- **It survives a bar rebuild now.** `mapRenderBar` rewrites the strip's
+  innerHTML on every tile tap; as a child of it the open legend was destroyed
+  and rebuilt each time.
+- The `▤` chip lights while the rail is up, the way the pen chip does - the rail
+  is off to the side, so the chip is what says it is open.
+
+**THE BAR WRAPS, AND THAT IS THE CONFIRM FIX.** `#map-bar` is `width:
+max-content` under `max-width: calc(100vw - 20px)`, and every chip in it is a
+fixed size with `#mb-confirm` at `flex: 0 0 auto` - so on a phone the row
+overflowed its own cap and CONFIRM, being last, went off the right-hand edge.
+Measured before: **11px off at 420 wide, 41px at 390, 71px at 360**, with no way
+to reach the only button that commits an obligation. `flex-wrap: wrap` plus
+`margin-left: auto` on the button fixes it at every width (**desktop stays one
+row at 38px**; a phone is two at 60px). The bar is pinned to the bottom, so it
+grows upward into space the board does not use.
+
+`.mb-info` went from one clipped line to **two** (`-webkit-line-clamp: 2`,
+`max-width: min(560px, calc(100vw - 40px))`). At 46vw on a 420-wide phone it
+held about 30 characters and cut "An ordinary round. Clear it and take a pick of
+three." off at *"An ordinary round...."*. The r255 reason for clipping it - a
+long description pushing CONFIRM off a `max-content` strip - is what the wrap
+now handles.
+
+#### Ink belongs to the orientation it was drawn in
+
+A stroke is normalised to the GRID BOX, which carries it through a `mapRender`
+and a save. It does **not** carry it through an orientation flip: the schedule
+TRANSPOSES there (4 lanes x 7 slots becomes 7 x 4), so a circle round slot 2
+came back as a smear across three unrelated obligations.
+
+- Each stroke is stamped `o: 'l' | 'p'` and **every reader filters**:
+  `mapDrawPaint`, `mapDrawUndo`, `mapDrawClear`, the double-right-click's
+  take-back of a stray dot, and `mapHasInk()` - which is what decides whether the
+  undo and wipe chips are offered at all. `mapInkOrient` / `mapInkHere` /
+  `mapInkStrokes` / `mapHasInk` are the whole mechanism.
+- **It is SET ASIDE, not dropped.** Flip back and that orientation's ink is
+  there. Undo and clear act on the visible orientation only - taking back
+  something invisible is worse than not offering it.
+- **A stroke saved before r293 carries no stamp and shows in BOTH**, because
+  nothing records which way the board read when it was drawn and guessing would
+  be worse than the one-time carry-over it predates. `mapDrawStrokes` keeps its
+  name and its `SAVE_VARS` entry.
+- Verified in a real browser: draw in landscape (581 inked px) -> flip to
+  portrait (**0 px, chips gone, stroke still stored**) -> draw in portrait ->
+  CLEAR (portrait's gone, landscape's survives) -> flip back (**631 px, it is
+  there**) -> UNDO (gone).
+
+Verified at 1440x820, 420x900 and 1100x620: the rail never overlaps the board,
+is fully on screen, needs no scroll, clips **0** row names, lights the board on
+hover and latches on tap; CONFIRM is on screen and enabled at 360, 390, 420 and
+462 wide. No page errors.
+
+### The lines rest BEHIND the reward tiles (r293)
+
+Owner: *"The lines from column or row specific tricks should rest behind reward
+tiles, not in front. And it just looks weird on the boss reward tile."*
+
+`css/entity-fx.css` gives `#grid > .card` / `.trick-card` / `.blocked-cell`
+**z-index 2** and `.rc-line` **1**, and **`.reward-cell` was missing from that
+list**. A reward tile carries no z-index of its own, so it sat at `auto` - and
+`z-index: 1` beats `auto` whatever the DOM order, so the lines painted straight
+across the tiles on every reward grid, prize grid, shop board and crossroads.
+One selector; measured `tileZ` **auto -> 2** and **0 lines over tiles** on a
+16-tile reward grid and a 9-tile prize grid.
+
+The prize grid is where it showed worst, which is what the owner was looking at:
+it is **two rows and columns smaller** (r179), so a marked row runs through the
+middle of a whole row of prizes rather than down a gutter. Behind the tiles the
+lines read exactly as they do on the play board - in the 3px gutters and past
+the ends of the line, which is where r209 always meant them to be picked up.
+
+### A card buff says BUFF or SCALES (r293) - `js/deck-grid.js`
+
+Owner, on the Card Upgrade event: *"it's kind of confusing that the only
+differentiation is gains +5 mult each time it's scored vs scores. All of it
+needs a new vocab pass."*
+
+The two offers on that screen were
+
+```
+A♥ gains another +4 pips each time it is played      (SCALING)
+7♠ scores +30 pips every time it is played           (FLAT)
+```
+
+Same length, same shape, same closing clause, and the only thing saying one
+number GROWS and the other does not is **gains/scores**. r209 had already been
+here once - it is the pass that added "scales" - and the wording drifted again
+because **five sites said it five ways**: the Forge, The Bench, the Card Market,
+the blessed-card reward tile and the shop's Cards row.
+
+**The two ideas are told apart by the WORD, never by the verb:**
+
+| | says | keeps "each time it's played" |
+|---|---|---|
+| FLAT | **Buff** | no |
+| SCALING | **Scales** | yes |
+
+Dropping the clause from the flat side is the whole fix. Every buff in the game
+pays when the card is played; saying so on the flat one is exactly what made the
+two read alike, and it is the clause that has to mean something on the scaling
+one.
+
+- **`buffBits` / `buffOfferName` / `buffOfferLine` / `cardCountPhrase` live
+  beside `cardBuffLines`**, which is the documented home for "a card's buffs put
+  into words". They take the same `e` object `enhanceCardKey` takes, so an offer
+  site states exactly what it is about to apply. All five sites read them.
+- **A buff you HOLD drops the clause entirely and is just the number.**
+  `cardBuffLines` now reads `+30 pips · ×2 mult · +1 replay` beside
+  `Scales +4 pips each time it's played`, which is what a stat line wants and
+  cannot be mistaken for the other kind.
+- **Both go through `lexProse`, and that closed a real gap.** A description is
+  translated on its way to the screen by `colorizeKeywords` (r198) and a NAME is
+  not - so the Forge printed **"+5 mult"** as its title with **"buff these three
+  cards with +5 skill"** directly under it. The held lines were worse: they go
+  straight into a tooltip's innerHTML and the shop's card list, neither of which
+  runs the lexicon at all. `lexProse` is idempotent (no corporate word is a gamer
+  key), so a caller that highlights afterwards is unaffected.
+- **Read at USE time, never baked into a table.** `MARKET_BOONS` and
+  `SLOT_BUFFS` were built at load; the vocabulary can change mid-run.
+
+#### The Forge buffs SEVERAL cards
+
+Owner: *"make the scaling option 2 cards and make the other options buff 3 cards
+each. So reformat the appearance to accommodate."*
+
+`FORGE_SCALE_CARDS` 2 · `FORGE_FLAT_CARDS` 3, and the count is decided by
+`buffIsScaling(b.e)` - a rule about the KIND of option, not a fixed slot, so a
+new boon lands on the right side of it for free.
+
+- **It is a real power increase and deliberately so.** One card in a 52-card deck
+  is a card you may not draw; three of them is a buff you will actually meet. The
+  counts are also the trade: a scaling buff is worth more per card, so it reaches
+  fewer of them, which is what makes the two kinds visibly different things to
+  pick between rather than two sentences to read closely.
+- **One shuffled pool handed out in order**, so an option's cards are distinct and
+  two options rarely name the same card. It WRAPS rather than running short: a
+  deck thinned below eight cards still gets three full options.
+- **Every card is re-resolved at apply time** (`resolveDeckCard`, the r192 rule) -
+  the screen is a snapshot and a card can leave the run in between.
+- **The faces are drawn as the mini playing cards Clean Up already uses**, so the
+  sentence says "these three cards" instead of listing them twice.
+  `makeChoiceEl` gained ONE option, **`extra`** - raw HTML under the description,
+  kept out of `desc` because that string goes through `colorizeKeywords` and a
+  keyword pass has no business rewriting the inside of a card chip.
+- **`extra` shares a WRAPPING ROW with the description** (`.ec-descrow`) rather
+  than taking a line of its own: the sentence and the cards it is about are one
+  thought, and on a stack of three offers a line each is 33px x 3 of a panel that
+  already scrolls. Measured, tile height **117px -> 92px** at 1440x820, and on a
+  phone **all three options and both buttons now fit with no scroll at all**.
+- The 'PICK AN UPGRADE' label is gone - the panel's title says CARD UPGRADE and
+  its flavour line says to take one.
+
+Verified at 1440x820 and 420x900 through the real tap path, over all 21 events:
+every option renders, CONFIRM applies the buff to exactly its 2 or 3 cards, the
+held wording matches the offer's, and there are no page errors.
+
 ### A tile is its SYMBOL (r276)
 
 Owner: *"Ditch the words on the schedule, just use the symbols instead. With
