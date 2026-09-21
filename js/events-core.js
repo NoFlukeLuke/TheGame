@@ -49,6 +49,10 @@ const EVENT_NO_REPEAT = 4;
 // listed, and **an id absent from the table is ELIGIBLE** - a missing row must
 // never silently remove an event from the game.
 const EVENT_REQUIRES = {
+  // Crunch only: everywhere else the clock is a ROUND's and it refills, so +90s
+  // is either most of a round for a downside that bites next round, or clamped
+  // away. See js/crunch-mode.js.
+  overtime:     () => (typeof crunchActive === 'function') && crunchActive(),
   // Needs a Trick to reorder / rehearse / reassign, or a trade to offer.
   crossroads:   () => buildCrossroadsTrades().length > 0,   // it has NO consolation: an empty build is a blank panel
   rehearsal:    () => trickTrayMode && (trickTray || []).length > 0,
@@ -91,7 +95,7 @@ function eligibleEventIds(ids) {
 
 function openEvent(afterFn) {
   afterEventFn = afterFn || (() => drainLevelUpQueue());
-  const pool = ['confluence','crossroads','gamble','merchant','altar','spring','twin_path','forge','bargain','wager','shift_change','bench','rehearsal','workshop','market','deck_trim','reassignment','the_draw','the_floor','the_payline','clean_slate'];
+  const pool = ['confluence','crossroads','gamble','merchant','altar','spring','twin_path','forge','bargain','wager','shift_change','bench','rehearsal','workshop','market','deck_trim','reassignment','the_draw','the_floor','the_payline','clean_slate','overtime'];
   // Fall back to the full pool if the memory has eaten it - never draw a blank.
   const usable = eligibleEventIds(pool);
   const fresh = usable.filter(id => !recentEventIds.includes(id));
@@ -126,6 +130,7 @@ function setEventConfirm(enabled) {
 function confirmEvent() {
   if (!activeEventId) return;
   const handlers = {
+    overtime:    confirmOvertime,
     confluence:  confirmConfluence,
     crossroads:  confirmCrossroads,
     gamble:      confirmGamble,
@@ -163,6 +168,7 @@ function confirmEvent() {
 // openEvent's pool, confirmEvent's handler map, renderEventShell's renderer map,
 // recentEventIds and the dev panel's generated list.
 const EVENT_META = {
+  overtime:    { name:'Overtime',         flavor:'Ninety seconds back. It comes out of something else.' },
   confluence:  { name:'Theme Draft',     flavor:'Pick a theme. Then pick one reward from it.' },
   crossroads:  { name:'The Trade',       flavor:'Every offer here gives you something and takes something.' },
   gamble:      { name:'The Gamble',      flavor:'Pick blind. One of these is worth having.' },
@@ -195,6 +201,7 @@ function renderEventShell(id) {
   document.getElementById('event-skip').style.display = 'inline-block';
   document.getElementById('event-skip').textContent = 'Skip';
   const renderers = {
+    overtime:    renderOvertime,
     confluence: renderConfluence,
     crossroads:  renderCrossroads,
     gamble:      renderGamble,

@@ -1,4 +1,4 @@
-const BUILD = "2026-09-20 · r293 · Crunch: the Schedule on one clock for the whole quarter";
+const BUILD = "2026-09-21 · r294 · Crunch, plus the Overtime event: 90s back for two downsides";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

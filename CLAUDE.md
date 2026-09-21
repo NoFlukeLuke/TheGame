@@ -2580,8 +2580,34 @@ reads **Under Par · 1 per 10s under par (3:00)**. Zero page errors. **Classic i
 byte-identical**: 3:00 clock, `Efficiency · 1 per 10s remaining`,
 `crunchNoRoundCap(180) === 180`, both bans false.
 
-**Not built yet** (next pass): the time-restoring event (+90s for two debuffs) and
-the reward-grid equivalents.
+### Overtime (r293) - the only way to buy time back
+
+An event, **Crunch only** through `EVENT_REQUIRES`. **+90 seconds onto the act
+clock, and the cost is TWO permanent downsides** rather than one (owner's call),
+rolled from a table of six and **shown up front**: the decision is whether ninety
+seconds is worth exactly these two, so hiding either would make it a coin flip
+instead of a trade. Pool 21 -> 22.
+
+- **Crunch only because everywhere else the clock is a ROUND's and it refills.**
+  There, +90s is either most of a round handed over for a downside that only bites
+  next round, or clamped away entirely.
+- **It goes through `rewindTime`, never a raw `roundSeconds +=`** (r183), which is
+  what keeps the floater, the Kingfisher tally and the ceiling honest.
+- **It deliberately does NOT call `render()`.** An event opens over a board that
+  has already been cleared, and on the Schedule `#grid` holds map tiles - so
+  `gridRows`/`gridCols` and `gridData` disagree and `render()` throws on a cell
+  that is not there. This is the hazard `_devSafeRender` exists for, one step
+  worse: that guard checks `gridData` has ROWS, not that the rows hold cards.
+  Nothing here is on screen anyway and every following screen repaints. **Note
+  `renderTwinPath`'s shadow debuffs call `render()` at the same moment and have
+  the same exposure.**
+- **`evShuffle`, not `shuffled()`** - the r194 trap: `shuffled` is scoped inside
+  `_generateRewardContent` and throws the moment an event calls it.
+- Measured: 0 leaks into Classic over 400 draws, drawn on ~6% of Crunch events,
+  200 rolls give exactly 2 distinct costs every time with all 6 reachable, and a
+  confirm moves the clock 400 -> 490 with both costs applied.
+
+**Not built yet** (next pass): the reward-grid time tiles.
 
 ### Mini-bosses (r239) - the second challenge kind
 
