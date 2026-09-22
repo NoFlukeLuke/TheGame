@@ -1,4 +1,4 @@
-const BUILD = "2026-09-22 · r301 · poker-squares-preview.html v2 (no game change)";
+const BUILD = "2026-09-22 · r302 · poker-squares-preview.html v3 (no game change)";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
