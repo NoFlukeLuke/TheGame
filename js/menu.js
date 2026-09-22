@@ -1,4 +1,4 @@
-const BUILD = "2026-09-22 · r302 · poker-squares-preview.html v3 (no game change)";
+const BUILD = "2026-09-22 · r303 · Poker Squares is a mode";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -197,6 +197,25 @@ const MODES = {
   // runs, and sets of 3+ AUTO-PLAY the instant they exist, then cascade (candy-
   // crush style). The player only swaps & discards to set matches up - the
   // playing is automatic. Goal + timer progression (Normal's shape). See match3.js.
+  // POKER SQUARES (r303) - the 1930s solitaire. Polyomino tiles of real cards
+  // packed onto a 5x5 board over four turns; every row and column then scores as
+  // a five-card poker hand. No goal, no clock: ten rounds, one score. See
+  // js/squares-mode.js for why it borrows the real calcScore rather than
+  // carrying a scorer of its own.
+  squares: {
+    id: 'squares',
+    name: 'Poker Squares',
+    desc: 'Pack tiles of cards onto a 5x5 board. Every row and every column scores as a poker hand. Ten rounds, no clock, one score.',
+    winCondition: 'high_score',
+    enableBosses: false,
+    enableShops: false,
+    enableEvents: false,
+    autoRefillGrid: false,
+    timeIsCurrency: false,
+    autoPlayHands: false,
+    noWalkthrough: true,   // its own opening console teaches it (see tutorialArmForRun)
+    squares: true
+  },
   match3: {
     id: 'match3',
     name: 'Match-3 (Auto)',
@@ -316,7 +335,7 @@ function startMatch3FromMenu(modeId = 'match3') {
 // which loads before this file. Orientation is no longer a card: every mode's
 // FIRST RUN is its tutorial now, so a standalone one would be a second door to
 // the same thing. It is still reachable from the dev panel's Modes group.
-const MODE_SELECT_LIST = [...MODE_UNLOCK_CHAIN, ...MODE_FINALE_GROUP];
+const MODE_SELECT_LIST = [...MODE_UNLOCK_CHAIN, ...MODE_FINALE_GROUP, ...MODE_EXTRA_LIST];
 // Built but NOT in the carousel. Reachable from dev panel -> Modes, which is
 // generated from MODES itself so nothing here has to be listed twice.
 // `crunch` is here because it is a rough first pass being tuned, not because it
@@ -344,6 +363,8 @@ const MODE_META = {
               blurb: 'Clear escalating goals on a 2-minute clock. Each clear: pick one of three rewards from every pool. Overflow score and leftover time carry forward. Miss a goal and the run is over.' },
   flow:     { accent: '#6fd0ff',         suits: 'NO CLOCK',
               blurb: 'Survival with the round clock taken off. Nothing forces a goal, so you clear one after another for as many level-ups as you can hold together - but Focus caps at 20 and decays the moment you slow down. Five minutes of play and the inspection arrives: a boss with an objective and a quota, on its own clock.' },
+  squares:  { accent: '#7fb2ff',        suits: '5 × 5 · 10 LINES',
+              blurb: 'Poker Squares. Every turn deals three tiles of cards - tetromino shapes with real ranks and suits on them - and you pack them onto a 5x5 board. At the end of the round every row and every column is scored as a five-card poker hand, worst first. Real poker values, real poker odds: a pair is 42% of lines and a straight flush is one in 65,000. No clock and no quota - ten rounds, and whatever you can build.' },
   match3:   { accent: '#ff7ad0',         suits: '5 × 5',
               blurb: 'Matches play themselves. Line up 3+ in a row or column and it scores and cascades - you just swap and discard to set them up.' },
   zen:      { accent: '#7fe3c0',         suits: 'NO CLOCK',

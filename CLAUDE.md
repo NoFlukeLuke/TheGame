@@ -3073,6 +3073,170 @@ happened**. Owner's call: on the map an event is an event TILE.
 **Guided, for this exact reason** - the map was simply missed when it landed.
 One clause. Verified: 0 destination tiles across 60 generated map reward grids.
 
+## Poker Squares (r303) - `js/squares-mode.js` + `css/squares.css`
+
+The 1930s solitaire (Poker Solitaire / Poker Patience), as a mode. Every turn
+deals **three POLYOMINO TILES carrying real cards** - tetromino shapes with ranks
+and suits on them - and you pack them onto a **5x5 board** over four turns
+(3x4, 3x3, 3x2, 3x1). At the end of the round **every row and every column scores
+as a five-card poker hand**, ten lines, worst first. **No goal, no clock: ten
+rounds, one score.** Last card in the carousel and unlocked from a cold install.
+
+`poker-squares-preview.html` is still the standalone tuning surface - it carries
+the measurement buttons (fill, score, hand table) and a config dumper that the
+shipped mode has no home for.
+
+### It scores through the REAL `calcScore`
+
+A line is handed to `calcScore` with the poker hand it makes, **exactly as
+Match-3 hands it its own hand names**. So every Trick, every per-card buff, every
+marked row or column and the PIPS/MULT chips work with no code in this file. Two
+things are overridden and nothing else:
+
+- **`applyModeHandValues` installs the real-poker table** (`squaresInstallHandValues`)
+  and zeroes every hand the main game invented for its grid. A LINE here is five
+  cards, which is a poker hand, so it is scored as one.
+- **`handComponentsFor` returns null while the mode is live.** The flush overlay
+  ignores `activeHands`, so a component list would both pay for the same cards
+  twice and hand them a replay nothing asked for. Returning null is what
+  `calcScore` already handles when there is no component list at all.
+
+### Real poker hands only, kickers included
+
+Flush of 3 / Run of 4 and the rest of the grid-shaped hands are gone. **A pair
+with three kickers is still One Pair** - poker has never billed the kickers as
+dead cards - so every hand covers the whole line and nothing is subtracted. The
+penalty machinery is kept and is only reachable on a line the board never filled.
+
+Priced against the classic **American Poker Squares ladder** (0/2/5/10/15/20/25/50/75).
+Relative to a Pair this pays **1 / 2.3 / 4.9 / 7.5 / 10.1 / 12.4 / 24.9** against
+its 1 / 2.5 / 5 / 7.5 / 10 / 12.5 / 25. The one deliberate departure is the
+**Straight Flush**: the classic pays it 1.5x a Four of a Kind while it is
+genuinely 16x rarer, so here it is a jackpot at ~3.5x.
+
+**Measured over 15,000 bot-packed lines, against real 5-card poker in brackets:**
+High Card 50.5% (50.1) · Pair 42.1% (42.3) · Two Pair 4.4% (4.75) · Trips 2.2%
+(2.11) · Straight 0.5% (0.392) · Full House 0.2% (0.144) · Flush 0.2% (0.197).
+Every one inside half a point, which is what proves the evaluator right: the
+lines of a packed board really are random five-card hands.
+
+### The deck belongs to the RUN
+
+Pieces are dealt from the game's own `drawPile` and hold **references** to those
+card objects; the board holds the same objects. That reference is the whole of
+"a consumable's change is permanent" - RE-SUIT mutates the object, the object is
+the deck's card, and it comes back re-suited with no bookkeeping anywhere. Each
+round returns the board and the hand to `playedPile` and reshuffles the lot.
+
+**`sqConfirm` must write `cl.card`, not `{...cl.card}`.** A copy breaks every
+permanent consumable at once and looks identical until the next round.
+
+### Two ways to be paid, chosen on the opening console
+
+**SCORE ALL** pays all ten lines at the end of the round. **SELECT SCORE** cashes
+**one line per turn** - and **a cashed line is CLOSED**: `sqCellLocked` refuses a
+placement into it, which is what makes cashing early a real cost instead of a
+free harvest. The last turn cashes `SQ_FINAL_LINES` (3). Verified: 0 placeable
+cells across every empty cell of every locked line, over a full round.
+
+### What it borrows, and the four guards that took
+
+- **The board is the game's own**: real cards in `gridData`, painted by
+  `render()`, so buffs, curses, marks and tooltips work untouched. This file only
+  draws what the board does not have - the empty **slots** (`render()` only ever
+  draws CARDS, so without them a fresh board is a black rectangle with nothing to
+  aim at), the ghost, the locked hatching and the line banner.
+- **The piece hand lives in `#selected-cards`** - three polyomino tiles ARE "the
+  hand you are about to play". `render()` clears that element unconditionally, so
+  **the preview block is guarded on `squaresActive()`**; ordering around it is not
+  enough, because `render()` is called from dozens of places.
+- **The three buttons are repurposed** the way the shop repurposes them:
+  `#btn-play` CONFIRM, `#btn-discard` DISCARD, `#swap-indicator` END TURN.
+  `render()`'s `_takeover` guard gained this mode for the same reason.
+- **Board input is CAPTURE-PHASE on `#grid`, and that is not optional.**
+  `js/input.js` binds its own pointerdown there and calls `setPointerCapture` on
+  the first card it hits - a tap there means "select this card into a hand",
+  which is a gesture this mode does not have. Listening in the bubble phase left
+  the consumable picker receiving **nothing at all**.
+- **`#grid` carries the cabinet's CSS zoom**, so `sqCellAt` divides the pointer
+  delta by `rect.width / offsetWidth` rather than trusting the rect. The r160
+  Trick-fan trap.
+
+### No Focus, no clock, no goal, no walkthrough
+
+Focus is never generated, so its multiplier sits at 1 and the chip is hidden
+(with the separator that pointed at it - the chips are all divs, so
+`:last-of-type` cannot name it and `:nth-child(4)` does). There is no clock, so
+the readout and its bar are hidden and `squaresBeginRun` stops the timers the way
+`mapBeginRun` does. There is no goal, so the SCORE box prints **ROUND n/10**.
+
+**`MODES.squares` carries `noWalkthrough: true`.** The shared r283 script is a
+linear walk through a round of the main game - select cards, submit a hand, the
+clock, a swap - and this mode has none of those gestures, so every step would
+hold forever on a predicate that can never come true or point at a control that
+is not there. Its own opening console teaches it. `tutorialArmForRun` reads the
+flag; any future mode on a different loop can set it.
+
+### Consumables (9), in the knack row
+
+One chip per consumable where the knack row would otherwise sit empty. Click to
+arm, then point at the board.
+
+**SHUFFLE · CLEAR OUT · RE-DEAL · FORGE · RE-SUIT · DEMOTE · PROMOTE · BLEED ·
+ECHO.** Six are permanent (they mutate the card object, which is the deck's);
+CLEAR OUT and SHUFFLE are not, because emptying a cell and moving a card between
+cells are not properties of a card.
+
+- **A random-direction consumable ROLLS ITS DIRECTION BEFORE IT IS OFFERED**, so
+  the pick tile reads "ECHO L - the card to the left takes this rank". Rolling at
+  use time would make the tile a coin flip rather than a choice.
+- **A directional consumable REFUSES a cell with nothing to point at.** The
+  direction is printed before you take it, so aiming ECHO off the edge is a
+  mistake you can see coming, and spending the charge for nothing would make it a
+  trap. The pick is dropped and the consumable stays.
+- `need: 0` (RE-DEAL) applies the moment it is armed; FORGE and RE-SUIT collect
+  their cells first and only then open their picker.
+
+### The picks ride the SHARED pick-of-three
+
+`openGridPick` (js/grid-pick.js) - the board IS the pick, with the real entity
+tiles, the rarity tags, the shared reroll pool and the CONFIRM tile every other
+mode uses. A Trick pick then a consumable pick between every round.
+
+**`sqTrickBanned` is a PREDICATE OVER THE DESCRIPTION, not an id list**, and
+deliberately: an allowlist would mean a Trick added later silently never appears
+here, which is the harder failure to notice. Six things the main game has and
+this one does not - a clock, Focus, credits, swaps, a `level` that advances, and
+a HAND you choose to play (lines score themselves, so "your next hand" names a
+beat that never happens). Measured over the 177-Trick pool: **60 survive, 23
+common / 20 rare / 14 epic / 3 legendary** - the shape, rank, suit, replay and
+marked-line Tricks, exactly the ones a line of five cards can pay.
+
+### The tally
+
+Worst hand first, each line ~5% quicker than the last, with a wave running along
+the line and `sfxHandScored` pitched by BOTH position in the tally and the hand's
+own rank - so a round **ends on its best line**. It also teaches: the order is a
+live ranking of which lines this loadout likes, which is the only way to find out
+that Storm has quietly made your straights worth more than your flushes.
+
+**A LOCKED-LINE PICK MUST COMMIT SYNCHRONOUSLY.** `sqToggleLine` flips the phase
+to `scoring` before taking its 220ms beat; leaving it on `pickline` let a further
+click arm a SECOND tally-and-advance and skip a turn.
+
+### Known, and left for a decision
+
+**The row/column BUFF Tricks are much stronger here than in the main game**,
+because a marked line IS the whole hand rather than part of one - Power Line on a
+marked row measured x11 mult on that row's line. That is a tuning call, not a
+bug, so nothing has been quietly retuned.
+
+### `MODE_EXTRA_LIST` (js/progress-unlock.js)
+
+Appended after the finale group and **not gated**. `modeUnlocked` already answers
+true for anything in neither list, so a mode here is playable from a cold
+install. `MODE_SELECT_LIST` in js/menu.js and `devUnlockAllModes` read it too.
+
 ## Crunch (r293) - `js/crunch-mode.js`
 
 The Schedule's board walked against ONE clock for the whole quarter. You are given

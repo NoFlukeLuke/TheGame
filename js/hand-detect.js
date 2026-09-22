@@ -543,6 +543,12 @@ function _compKey(cells) {
   return cells.map(([r, c]) => { const k = gridData[r] && gridData[r][c]; return k ? r + ',' + c + ':' + k.rank + k.suit + (k._id || '') : r + ',' + c + ':-'; }).join('|');
 }
 function handComponentsFor(cells) {
+  // POKER SQUARES NAMES ITS OWN HANDS AND LAYERS NOTHING. A line there is five
+  // cards scored as one real poker hand, kickers included, so a component list
+  // would both pay for the same cards twice (the flush overlay ignores
+  // activeHands) and hand them a replay nothing asked for. Returning null is
+  // what calcScore already does when there is no component list at all.
+  if (typeof squaresActive === 'function' && squaresActive()) return null;
   if (!cells || cells.length < 2 || cells.length > HAND_MAX_CARDS) return null;
   // Keyed on the cards themselves, so a board that moves invalidates its own
   // entries rather than needing anything to remember to clear this.

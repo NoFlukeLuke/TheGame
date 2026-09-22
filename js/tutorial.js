@@ -53,6 +53,13 @@ let tutorialArmed = false;
 function tutorialArmForRun() {
   tutorialArmed = !!(ACTIVE_MODE && ACTIVE_MODE.tutorial === true);
   if (tutorialArmed) return;
+  // A MODE MAY DECLARE THAT THE SHARED SCRIPT DOES NOT DESCRIBE IT. This script
+  // is a linear walk through a round of the main game - select cards, submit a
+  // hand, the clock, a swap, a discard - and Poker Squares has none of those
+  // gestures, so every step would either hold forever on a predicate that can
+  // never come true or point at a control that is not there. Its own opening
+  // console teaches it instead.
+  if (ACTIVE_MODE && ACTIVE_MODE.noWalkthrough) return;
   // Switched off in Settings -> Help, or already played once.
   if (typeof SETTINGS !== 'undefined' && SETTINGS.walkthrough === false) return;
   if (typeof modeNeedsTutorial === 'function') tutorialArmed = modeNeedsTutorial(ACTIVE_MODE && ACTIVE_MODE.id);

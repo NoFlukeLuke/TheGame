@@ -179,7 +179,11 @@ function render() {
   const _belowMin = (typeof minSelection === 'function') && selected.length > 0 && selected.length < minSelection();
 
   // Hand preview
-  if (!danceAbortController) {
+  // POKER SQUARES OWNS THIS PANEL. Its three polyomino tiles live in
+  // #selected-cards - they ARE "the hand you are about to play" - and this block
+  // clears the element unconditionally, so any stray render() would wipe them.
+  // Guarded rather than ordered around: render() is called from dozens of places.
+  if (!danceAbortController && !(typeof squaresActive === 'function' && squaresActive())) {
     // Owner request: the preview no longer reacts to selection - it stays empty (inert)
     // until a hand is SUBMITTED, at which point the scoring dance (playPreviewDance) fills
     // #selected-cards. Selecting cards no longer renders preview cards or a hand name here.
@@ -294,7 +298,10 @@ function render() {
   // calls render() during the shop today, so this is a guard rather than a
   // sighting - but "the button that leaves is dead" is not a failure mode worth
   // leaving one repaint away.
-  const _takeover = (typeof shopGridActive !== 'undefined' && shopGridActive)
+  // Poker Squares owns all three buttons too (CONFIRM / DISCARD / END TURN) and
+  // paints them from sqPaintButtons, so render() must not write over them.
+  const _takeover = (typeof squaresActive === 'function' && squaresActive())
+                 || (typeof shopGridActive !== 'undefined' && shopGridActive)
                  || (typeof rewardOnGrid !== 'undefined' && rewardOnGrid);
   if (!_takeover) {
     // Match-3 auto-plays its matches, so Play is inert there - keep it visibly

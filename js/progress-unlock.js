@@ -23,6 +23,11 @@ const MODE_UNLOCK_CHAIN = ['map', 'survival', 'guided', 'sixsuits'];
 // than four identical padlocks.
 const MODE_FINALE_GROUP = ['normal', 'spectrum', 'flow', 'picker'];
 
+// Appended AFTER the finale group and NOT gated. `modeUnlocked` already answers
+// true for anything in neither list, so a mode here is playable from a cold
+// install - which is what "add it to the end and unlock it" asks for.
+const MODE_EXTRA_LIST = ['squares'];
+
 // The id the carousel uses for the stack itself. Not a mode; never reaches MODES.
 const MODE_STACK_ID = '__stack__';
 
@@ -100,15 +105,15 @@ function modeUnlockedBy(id) {
 // the one stack standing in for them.
 function modeSelectList() {
   return finaleUnlocked()
-    ? [...MODE_UNLOCK_CHAIN, ...MODE_FINALE_GROUP]
-    : [...MODE_UNLOCK_CHAIN, MODE_STACK_ID];
+    ? [...MODE_UNLOCK_CHAIN, ...MODE_FINALE_GROUP, ...MODE_EXTRA_LIST]
+    : [...MODE_UNLOCK_CHAIN, MODE_STACK_ID, ...MODE_EXTRA_LIST];
 }
 
 // ── Dev ─────────────────────────────────────────────────────────────────────
 // Both are needed to TEST this: without a reset a tutorial can only ever be
 // seen once per browser.
 function devUnlockAllModes() {
-  [...MODE_UNLOCK_CHAIN, ...MODE_FINALE_GROUP].forEach(id => {
+  [...MODE_UNLOCK_CHAIN, ...MODE_FINALE_GROUP, ...MODE_EXTRA_LIST].forEach(id => {
     modesStarted.add(id); modesFinished.add(id);
   });
   _saveModeSet('lethe.modesStarted.v1', modesStarted);

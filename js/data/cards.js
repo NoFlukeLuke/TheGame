@@ -190,6 +190,10 @@ function applyModeHandValues() {
   const P = _handValuesPristine;
   Object.keys(P.base).forEach(h => { HAND_BASE[h].pips = P.base[h].pips; HAND_BASE[h].mult = P.base[h].mult; });
   Object.keys(P.focus).forEach(h => { HAND_FOCUS[h] = P.focus[h]; });
+  // Poker Squares replaces the whole table with the real-poker ladder and zeroes
+  // every hand the main game invented for its grid (Flush of 3, Run of 4...): a
+  // LINE there is five cards, which is a poker hand, so it is scored as one.
+  if (typeof squaresActive === 'function' && squaresActive()) { squaresInstallHandValues(); return; }
   if (!isNumericMode()) return;
   Object.entries(NUMERIC_HAND_BASE).forEach(([h, v]) => { if (HAND_BASE[h]) { HAND_BASE[h].pips = v.pips; HAND_BASE[h].mult = v.mult; } });
   Object.entries(NUMERIC_HAND_FOCUS).forEach(([h, v]) => { HAND_FOCUS[h] = v; });

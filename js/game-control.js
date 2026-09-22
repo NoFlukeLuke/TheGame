@@ -375,6 +375,13 @@ function startGame() {
     limits.grid_rows.current = 5; limits.grid_rows.base = 5;
     limits.grid_cols.current = 5; limits.grid_cols.base = 5;
   }
+  // Poker Squares is a 5x5 board by definition - ten lines of five. Set through
+  // `limits` for match3's reason: a level-up then keeps the size instead of
+  // snapping back to the 4x4 base.
+  if (typeof squaresActive === 'function' && squaresActive()) {
+    limits.grid_rows.current = 5; limits.grid_rows.base = 5; limits.grid_rows.max = 5;
+    limits.grid_cols.current = 5; limits.grid_cols.base = 5; limits.grid_cols.max = 5;
+  }
   // Survival: reset its per-run state and flag the stage (shows the shop button).
   document.getElementById('stage')?.classList.toggle('survival-mode', survivalActive());
   if (typeof pickRerollsInit === 'function') pickRerollsInit();  // the pick-of-three reroll pool (js/grid-pick.js)
@@ -669,6 +676,9 @@ function startGame() {
   // Map mode: freeze the round startTimers just armed and put the map over it.
   // The first level tile confirmed resumes exactly this round (js/map-mode.js).
   if (typeof mapActive === 'function' && mapActive()) mapBeginRun();
+  // Poker Squares: same shape as the map's hook - stop the round startTimers
+  // just armed (there is no clock here) and take the board over.
+  if (typeof squaresActive === 'function' && squaresActive()) squaresBeginRun();
 }
 
 // ══════════════════════════════════════════════
