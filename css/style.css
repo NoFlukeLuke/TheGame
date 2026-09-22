@@ -1792,7 +1792,7 @@
     top:  calc((100cqw + 100cqh) * var(--cbp, 0.098));
     width:  calc((100cqw + 100cqh) * var(--cbs, 0.070));
     height: calc((100cqw + 100cqh) * var(--cbs, 0.070));
-    /* UPRIGHT (r303, owner's call - turned 45 degrees it read as an x). The
+    /* UPRIGHT (r305, owner's call - turned 45 degrees it read as an x). The
        bands run at 45 and the mark does not, which is also what tells it apart
        from them at a glance. */
     transform: translate(-50%, -50%);
@@ -4017,7 +4017,15 @@
     max-width: 320px; margin-bottom: 16px;
   }
   #lb-actions {
-    position: sticky; bottom: 0; z-index: 3;
+    /* `bottom: -18px` COMPENSATES THE NEGATIVE BOTTOM MARGIN, and without it the
+       footer lands on the last thing in the panel (r304). The margin pulls the bar
+       out over the panel's 18px bottom padding so it can be the panel's own bottom
+       edge, which puts its natural bottom 18px BELOW the scrollport. A sticky
+       `bottom: 0` clamps to the scrollport, so it was dragged 18px back up - and
+       whenever the content happened to fill the panel exactly (which is the normal
+       case at stage 2 on a phone) those 18px landed on the last sacrifice button.
+       Measured: the third button ran 595..625 under a footer at 617. */
+    position: sticky; bottom: -18px; z-index: 3;
     display: flex; justify-content: center;
     width: calc(100% + 36px); margin: 18px -18px -18px;
     padding: 12px 16px 14px;
@@ -4202,37 +4210,96 @@
      second heading saying RAISE A LIMIT is repeating what the receipt below it
      has just confirmed. That is the ~25px that gets the sacrifices on screen. */
   #lb-panel.stage2 #lb-title { display: none; }
-  #lb-panel.stage2 #lb-sub { font-size: 12px; margin-bottom: 6px; max-width: 420px; }
-  #lb-panel.stage2 #lb-taken { margin: 2px 0 8px; }
-  #lb-panel.stage2 #lb-second-title { padding-top: 8px; }
+  /* The sub-line goes too (r304). "You can take one more, but it costs you
+     something" is what the two NUMBERED headings below now say, in the order it
+     happens, and the panel is height-bound: inside the cabinet's zoom it gets
+     only ~383 stage px on a 1440x820 desktop, which is LESS than a phone's 490.
+     Every line that repeats itself is a line the sacrifices need. */
+  #lb-panel.stage2 #lb-sub { display: none; }
+  #lb-panel.stage2 #lb-taken { margin: 6px 0 4px; }
+  /* Both headings sit at the rows' own left edge, so "1 ·" and "2 ·" read as a
+     numbered list down the panel rather than as two unrelated captions. */
+  #lb-panel.stage2 #lb-second-title { padding-top: 4px; text-align: left; }
   #lb-second-row { width: 100%; }
+  /* ── STAGE 2 STACKS (r304) ────────────────────────────────────────────────
+     The offers and the sacrifices were side by side, on the reasoning that the
+     panel has width to spare and no height to spare. It does not have width to
+     spare: measured on a 420px phone the sacrifice column came out 103px wide
+     with 86px buttons, every label wrapped to two or three lines, and the THIRD
+     button's bottom edge sat 8px below the top of the sticky footer, so the
+     option was unreachable as well as unreadable.
+     Stacking gives each sacrifice the full 390px and turns it into one line -
+     what you lose on the left, what that costs on the right - and the two
+     numbered headings put the trade in the order it happens. The height that
+     buys comes from dropping the hint line (the headings now say it) and from
+     the buttons being one line instead of three. */
   #lb-panel.stage2 #lb-second-row {
-    display: flex; align-items: flex-start; justify-content: center;
-    gap: 16px; width: 100%; flex-wrap: wrap;   /* narrow: stack, don't overflow */
+    display: flex; flex-direction: column; align-items: stretch;
+    gap: 4px; width: 100%; flex: 0 0 auto;
   }
-  #lb-panel.stage2 #lb-offers { margin: 6px 0; flex: 0 0 auto; }
+  /* ── STAGE 2 IS ONE LIST OF ROWS (r304) ──────────────────────────────────
+     The two remaining offers were 122x144 tiles stacked above the sacrifices,
+     which on a 1440x820 desktop left only the FIRST sacrifice on screen: the
+     panel gets ~383 stage px there (less than a phone's 490, because everything
+     inside the cabinet is drawn through its zoom) and the tiles alone were 144
+     of it. As rows they are 34, the whole trade fits with no scroll on any
+     screen, and stage 2 reads as what it is - the receipt, then two things you
+     could take, then three things it would cost.
+     The tiles are untouched at STAGE 1, where the full description is the
+     decision and there is room for it. */
+  #lb-panel.stage2 #lb-offers {
+    margin: 3px 0 1px; flex: 0 0 auto; flex-direction: column;
+    gap: 5px; width: 100%; flex-wrap: nowrap;
+  }
+  #lb-panel.stage2 .lb-offer {
+    display: flex; flex-direction: row; align-items: center; justify-content: flex-start;
+    gap: 9px; text-align: left; border-width: 1px;
+  }
+  /* DOM order differs between the two tile shapes - a blind offer emits no gain
+     and no progress line - so the row order is set explicitly rather than left
+     to the source order. */
+  #lb-panel.stage2 .lb-offer-tag  { display: none; }
+  #lb-panel.stage2 .lb-offer-icon { order: 1; font-size: 17px; margin: 0; flex: 0 0 auto; }
+  #lb-panel.stage2 .lb-offer-label{ order: 2; font-size: 11px; margin: 0; flex: 0 0 auto; white-space: nowrap; }
+  #lb-panel.stage2 .lb-offer-gain { order: 3; font-size: 12px; margin: 0; flex: 0 0 auto; }
+  #lb-panel.stage2 .lb-offer-prog { order: 5; margin: 0; flex: 0 0 auto; }
+  #lb-panel.stage2 .lb-offer:hover:not(.disabled),
+  #lb-panel.stage2 .lb-offer.selected { transform: none; }
+  #lb-panel.stage2 .lb-offer.selected { box-shadow: 0 0 14px rgba(232,184,75,0.5), inset 0 0 10px rgba(232,184,75,0.22); }
   #lb-panel.stage2 #lb-sacrifice {
-    flex: 1 1 0; min-width: 0; max-width: 330px;
-    border-top: 0; border-left: 1px solid #4a3560;
-    padding: 4px 0 0 16px; align-items: stretch;
+    width: 100%; min-width: 0; max-width: none; flex: 0 0 auto;
+    border-top: 1px solid #4a3560; border-left: 0;
+    padding: 8px 0 0; align-items: stretch; gap: 5px;
   }
   #lb-panel.stage2 #lb-sacrifice-title,
   #lb-panel.stage2 #lb-sacrifice-hint { text-align: left; }
-  #lb-panel.stage2 #lb-sacrifice-options { flex-direction: column; align-items: stretch; }
+  #lb-panel.stage2 #lb-sacrifice-options { flex-direction: column; align-items: stretch; gap: 5px; }
   #lb-panel.stage2 #lb-sacrifice-hint { font-size: 11px; line-height: 1.25; }
-  #lb-panel.stage2 .lb-sac-btn { width: 100%; align-items: flex-start; text-align: left; padding: 5px 9px; }
-  #lb-panel.stage2 .lb-sac-main { font-size: 9.5px; line-height: 1.2; }
-  #lb-panel.stage2 .lb-sac-sub  { font-size: 8px; }
-  #lb-panel.stage2 .lb-offer { width: 112px; min-height: 112px; padding: 9px 7px; }
-  /* Two lines of description, then clip. The full text is on the tile in stage 1,
-     where the player read it before locking anything in. */
-  #lb-panel.stage2 .lb-offer-desc {
-    font-size: 10px; line-height: 1.25;
-    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
-    overflow: hidden;
+  /* One line per sacrifice: what goes on the left, what it costs on the right.
+     `sub` is allowed to shrink and ellipsise; the NAME is the part that has to
+     survive, so it takes the slack. */
+  #lb-panel.stage2 .lb-sac-btn {
+    width: 100%; flex-direction: row; align-items: center; justify-content: space-between;
+    gap: 10px; text-align: left; padding: 7px 11px; min-height: 30px;
   }
-  #lb-panel.stage2 .lb-offer-gain { margin-bottom: 3px; }
-  #lb-panel.stage2 #lb-sacrifice { padding-top: 10px; gap: 6px; }
+  #lb-panel.stage2 .lb-sac-main {
+    font-size: 11px; line-height: 1.2; flex: 1 1 auto; min-width: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  #lb-panel.stage2 .lb-sac-sub  {
+    font-size: 9px; line-height: 1.2; flex: 0 1 auto; min-width: 0; text-align: right;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  #lb-panel.stage2 .lb-offer { width: 100%; min-height: 0; padding: 7px 11px; }
+  /* ONE line of description, taking the slack. The full text was on the tile in
+     stage 1, where the player read it before locking anything in - here it is
+     the blind offer that needs it, because "UNKNOWN" on its own says nothing. */
+  #lb-panel.stage2 .lb-offer-desc {
+    order: 4; flex: 1 1 auto; min-width: 0; margin: 0;
+    font-size: 10px; line-height: 1.25; text-align: right;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    -webkit-line-clamp: none; display: block;
+  }
   #lb-panel.stage2 #lb-actions { margin-top: 10px; padding: 9px 16px 11px; }
 
   /* ── MAIN MENU OVERLAY ── */

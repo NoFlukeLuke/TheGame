@@ -343,6 +343,12 @@ function cardStatePickImproved() {
 // ══════════════════════════════════════════════
 // How long until this card's fuse blows, or null. Read by the board (a ring on
 // the card) and by the tick.
+// Turnover's fuse, and how much of it the player is shown. `idle_seconds` is the
+// real number and lives in BAL (so it is one edit and the printed description
+// follows it); these two are the fallback and the warning window.
+const TURNOVER_IDLE_SECONDS = 45;
+const TURNOVER_RING_AT = 15;
+
 function cardStateFuse(card) {
   if (!card) return null;
   let shortest = null;
@@ -352,17 +358,35 @@ function cardStateFuse(card) {
     if (shortest == null || left < shortest.left) shortest = { left, total: def.fuse };
   });
   // Turnover has no state of its own; it fuses every card on the board.
+  // ITS RING ONLY APPEARS IN THE LAST `TURNOVER_RING_AT` SECONDS (r304, owner's
+  // call). A state fuse is a charge you built and want to watch; Turnover fuses
+  // EVERY card on the board at once, so a ring on all sixteen from the moment
+  // the round deals is a countdown on the whole board and reads as noise rather
+  // than as a warning. Late, it is the warning it is meant to be.
+  //
+  // The eligibility test is inside the candidate rather than at the paint site
+  // (js/cooldown.js) because this function returns the SHORTEST fuse: a hidden
+  // Turnover that happened to be shorter than a live card-state fuse would win
+  // the comparison and take that card's own ring off the board with it.
   if (typeof hasKnack === 'function' && hasKnack('turnover') && card.rank) {
     const t = cardStateTurnoverSeconds();
     const left = t - (cardIdleSecs[cardId(card)] || 0);
-    if (shortest == null || left < shortest.left) shortest = { left, total: t };
+    if (left <= cardStateTurnoverRingAt() && (shortest == null || left < shortest.left)) {
+      shortest = { left, total: t };
+    }
   }
   return shortest;
 }
 
 function cardStateTurnoverSeconds() {
   const B = (typeof BAL !== 'undefined' && BAL.turnover) ? BAL.turnover : {};
-  return B.idle_seconds != null ? B.idle_seconds : 60;
+  return B.idle_seconds != null ? B.idle_seconds : TURNOVER_IDLE_SECONDS;
+}
+// How late the ring shows up. Held BELOW the fuse itself, so a Turnover tuned
+// shorter than the warning window still gets a warning rather than a ring that
+// is on from the moment the card lands.
+function cardStateTurnoverRingAt() {
+  return Math.min(TURNOVER_RING_AT, cardStateTurnoverSeconds());
 }
 
 // Every card on the board, as [card, r, c]. Blocked, held and quarantined cells

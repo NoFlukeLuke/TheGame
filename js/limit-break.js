@@ -236,11 +236,12 @@ function renderLbSacrifice() {
     optsEl.innerHTML = '';
     return;
   }
-  // The column is already headed WHAT YOU GIVE UP, so a second line saying the
-  // same thing is 22px the third sacrifice button needs. It only earns its place
-  // while there is no second pick yet, when it is the instruction.
-  hint.style.display = lbSecondPick === null ? '' : 'none';
-  hint.textContent = 'Take one of the two and give up one of these.';
+  // r304: the two headings are NUMBERED now ("1 - take one of these" over the
+  // offers, "2 - give up one of these" over this list), so a third line saying
+  // the same thing a third time is 22px the bottom button needs and nothing
+  // else. The hint element stays for the empty case above, which is the one
+  // thing the headings cannot say.
+  hint.style.display = 'none';
 
   optsEl.innerHTML = '';
   lbSacPool.forEach((opt, i) => {

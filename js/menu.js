@@ -1,4 +1,4 @@
-const BUILD = "2026-09-22 · r303 · the card buff overflow + is upright, not turned";
+const BUILD = "2026-09-22 · r305 · the card buff overflow + is upright, not turned";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

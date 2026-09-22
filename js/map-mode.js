@@ -902,6 +902,9 @@ function mapCloseScreen() {
   // Hidden directly rather than through mapLegendClose, which re-renders the
   // bar - and the bar is being taken down two lines below.
   if (typeof mapLegendEl === 'function') mapLegendEl()?.classList.remove('show');
+  // The rail slides the board left to make room for itself (r298). #grid is the
+  // PLAY board too, so a stale offset would leave every later round off-centre.
+  if (typeof mapLegendSlide === 'function') mapLegendSlide(0);
   if (typeof mapLegendHighlight === 'function') mapLegendHighlight(null, null);
   document.getElementById('map-bar')?.classList.remove('show');
   document.body.classList.remove('map-active');

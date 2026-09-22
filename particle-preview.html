@@ -166,7 +166,7 @@ button.go{background:#1d3a28;border-color:#8fd6a8;color:#bff0d0}
   <div class="note">A long tally is a crescendo. Past the first N particles of a hand each further one
     is bigger than the last, compounding to a ceiling. Also live in the dev panel under Animation.</div>
   <div class="row"><label>Grows after</label><input type="range" id="growStart" min="0" max="40" step="1" value="5" oninput="sync()"><span class="val" id="growStartV"></span></div>
-  <div class="row"><label>% per blip</label><input type="range" id="growStep" min="0" max="25" step="0.5" value="5" oninput="sync()"><span class="val" id="growStepV"></span></div>
+  <div class="row"><label>% per blip</label><input type="range" id="growStep" min="0" max="25" step="0.25" value="2.5" oninput="sync()"><span class="val" id="growStepV"></span></div>
   <div class="row"><label>Ceiling</label><input type="range" id="growMax" min="1" max="8" step="0.25" value="3" oninput="sync()"><span class="val" id="growMaxV"></span></div>
   <div class="btns"><button onclick="fireRun()">Fire a 30-blip run</button></div>
 
@@ -196,7 +196,7 @@ const SHAPES = ['','diamond','square','circle','pill','none'];
 const DEFAULTS = { shape:'diamond', size:40, font:25.5, round:0, bw:0, bl:0, glow:30,
                    ink:'#ffffff', dur:1200, pop:1.8, arc:0, spin:30, spinEnd:-5, fade:100,
                    trail:4, trailLag:0.06, trailFade:0.42,
-                   growStart:5, growStep:5, growMax:3,
+                   growStart:5, growStep:2.5, growMax:3,
                    colors:Object.fromEntries(Object.entries(KINDS).map(([k,v])=>[k,v.bg])),
                    shapes:Object.fromEntries(Object.entries(KINDS).map(([k,v])=>[k,v.shape||''])),
                    inks:Object.fromEntries(Object.entries(KINDS).map(([k,v])=>[k,v.ink||''])) };

@@ -221,7 +221,7 @@ const CARD_BAND_MAX = Math.max(1, Math.floor((CARD_BAND_LIMIT - CARD_BAND_START 
 // It replaces r299's double-thick outermost band, which said the same thing by
 // being fatter.
 //
-// IT IS UPRIGHT, NOT TURNED (r303). The owner's first spec said 45 degrees, to
+// IT IS UPRIGHT, NOT TURNED (r305). The owner's first spec said 45 degrees, to
 // sit square with the bands - and a '+' turned 45 degrees is an x, which is what
 // it read as. Owner: "make the + not rotated, it reads as an x currently."
 //
