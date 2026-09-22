@@ -216,20 +216,24 @@ const CARD_BAND_LIMIT = 24;   // % of the axis the outermost mark may reach
 // DERIVED, never typed, so a retune of the three numbers above cannot put a
 // band over a glyph: how many slots fit inside the budget.
 const CARD_BAND_MAX = Math.max(1, Math.floor((CARD_BAND_LIMIT - CARD_BAND_START - CARD_BAND_FULL) / CARD_BAND_PITCH + 1e-9) + 1);
-// Past the cap the series ends in a '+' at 45 degrees instead of another band
-// (owner's spec: "if there's that many buffs just put a '+' at a 45 degree angle
-// where the last line would go"). It replaces r299's double-thick outermost
-// band, which said the same thing by being fatter.
+// Past the cap the series ends in a '+' instead of another band (owner's spec:
+// "if there's that many buffs just put a '+' ... where the last line would go").
+// It replaces r299's double-thick outermost band, which said the same thing by
+// being fatter.
 //
-// IT COSTS THREE SLOTS, AND THAT IS FORCED BY THE BUDGET, not chosen. A '+'
-// centred on a slot reaches S/sqrt(2) either side of it along the diagonal, so
-// it is only ever as wide as the room around the slot it stands in - and in the
-// FINAL slot that room is 1% of the axis, 3.8px on a desktop card, which is not
-// a '+', it is a speck (measured, and it looked like one). Moved back one slot
-// it has the outer 4.4% to grow into, and dropping the band that would have sat
-// beside it opens the inner side too. So THREE bands are drawn and the '+'
-// stands for the rest, with its outer vertex landing exactly where a sixth
-// band's far edge would have - the same footprint either way.
+// IT IS UPRIGHT, NOT TURNED (r305). The owner's first spec said 45 degrees, to
+// sit square with the bands - and a '+' turned 45 degrees is an x, which is what
+// it read as. Owner: "make the + not rotated, it reads as an x currently."
+//
+// IT COSTS THREE SLOTS, AND THAT IS FORCED BY THE BUDGET, not chosen. A mark
+// centred on a slot reaches out along the diagonal either side of it, so it is
+// only ever as wide as the room around the slot it stands in - and in the FINAL
+// slot that room is 1% of the axis, 3.8px on a desktop card, which is not a '+',
+// it is a speck (measured, and it looked like one). Moved back one slot it has
+// the outer 4.4% to grow into, and dropping the band that would have sat beside
+// it opens the inner side too. So THREE bands are drawn and the '+' stands for
+// the rest, reaching exactly where a sixth band's far edge would have - the same
+// footprint either way.
 const CARD_BAND_PLUS_SLOT  = Math.max(1, CARD_BAND_MAX - 2);       // the slot it is centred on
 const CARD_BAND_PLUS_BANDS = Math.max(0, CARD_BAND_PLUS_SLOT - 1); // bands drawn beside it
 const CARD_BAND_PLUS_MID   = CARD_BAND_START + CARD_BAND_PLUS_SLOT * CARD_BAND_PITCH + CARD_BAND_FULL / 2;
@@ -237,7 +241,16 @@ const CARD_BAND_PLUS_AT    = CARD_BAND_PLUS_MID / 200;
 const CARD_BAND_PLUS_HALF  = Math.max(0.5, Math.min(
   CARD_BAND_LIMIT - CARD_BAND_PLUS_MID,                                                  // out to the budget
   CARD_BAND_PLUS_MID - (CARD_BAND_START + (CARD_BAND_PLUS_BANDS - 1) * CARD_BAND_PITCH + CARD_BAND_FULL)));
-const CARD_BAND_PLUS_SIZE = CARD_BAND_PLUS_HALF * Math.SQRT2 / 100;  // a share of the axis
+// HOW FAR A '+' REACHES ALONG THE DIAGONAL DEPENDS ON WHETHER IT IS TURNED, so
+// un-turning it is not just deleting a rotate. Its ink is two bars, `bar` thick
+// as a share of its side S. Turned 45 degrees the far point is an arm's TIP, at
+// S/sqrt(2) from the centre in the u+v metric. Upright the arms point at the
+// card's edges instead and the far point is a bar's outer CORNER, at
+// S * (0.5 + bar/2). So the same budget buys a different S, and the mark is
+// sized from the reach rather than the reach being hoped for.
+const CARD_BAND_PLUS_BAR  = 0.26;  // a bar's thickness, as a share of the side
+const CARD_BAND_PLUS_REACH = 0.5 + CARD_BAND_PLUS_BAR / 2;
+const CARD_BAND_PLUS_SIZE = CARD_BAND_PLUS_HALF / CARD_BAND_PLUS_REACH / 100;  // a share of the axis
 
 // A COUNT IS ROUNDED TO NEAREST AND FLOORED AT ONE, never truncated. The rate is
 // what the owner asked for - one band per 5 pips - but a floor would draw NOTHING
@@ -315,7 +328,8 @@ function cardBandsHTML(card) {
     if (list.length > CARD_BAND_MAX) {
       list = list.slice(0, CARD_BAND_PLUS_BANDS);
       plus = `<i class="card-bplus" style="--cbp:${CARD_BAND_PLUS_AT};`
-           + `--cbs:${CARD_BAND_PLUS_SIZE.toFixed(5)};--cbi:${slot.ink}"></i>`;
+           + `--cbs:${CARD_BAND_PLUS_SIZE.toFixed(5)};--cbb:${(CARD_BAND_PLUS_BAR * 100).toFixed(2)}%;`
+           + `--cbi:${slot.ink}"></i>`;
     }
     return `<div class="card-bands" style="--cb:${cardBandPaint(list, CARD_BAND_ANGLE[corner])}">${plus}</div>`;
   }).join('');

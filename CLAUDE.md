@@ -1697,13 +1697,19 @@ hollow outlines of visibly different weight, the r302 ones as even solid stripes
 - Verified in a real browser on a full Spectrum board: all four families legible
   on black, white, green, red, gold, orange, blue and purple faces.
 
-#### The overflow mark is a `+` at 45 degrees (r302)
+#### The overflow mark is a `+` (r302, upright in r305)
 
 Owner: *"make sure the lines can't cover the suit or number. If theres that many
-buffs just put a '+' at a 45 degree angle where the last line would go."*
+buffs just put a '+' at a 45 degree angle where the last line would go."* Then,
+on seeing it: *"make the + not rotated, it reads as an x currently."*
 
 It replaces r299's double-thick outermost band, which said the same thing by being
 fatter and cost 4% of the axis to say it.
+
+**A `+` turned 45 degrees IS an x**, which is the whole of the second note - 45
+degrees put it square with the bands, and squareness is not what a `+` is read by.
+Upright it also tells itself apart from the bands, which run at 45 and now do not
+share its angle.
 
 - **"DOES A BAND REACH THE GLYPH" IS ONE NUMBER.** A 45 degree band at p% of the
   axis lies on the line `u + v = (p/100)(W+H)`, where u and v are the distances
@@ -1720,16 +1726,26 @@ fatter and cost 4% of the axis to say it.
   band lands at **25.1%** rather than 24%. Still clear of 26.8% by ~4.5px on a
   desktop card and 2.5px in portrait. **A measurement of this has to say which box
   it is in** or the two disagree by the border.
-- **THE `+` COSTS THREE SLOTS, AND THAT IS FORCED BY THE BUDGET.** A `+` centred
-  on a slot reaches `S/sqrt(2)` either side of it along the diagonal, so it is only
-  ever as wide as the room around the slot it stands in - and in the FINAL slot
-  that room is 1% of the axis, **3.8px** on a desktop card, which is not a `+`, it
-  is a speck (built that way first, and it looked like one). Moved back one slot it
-  has the outer 4.4% to grow into, and dropping the band that would have sat beside
-  it opens the inner side too. So **three bands are drawn and the `+` stands for the
-  rest**, its outer vertex landing exactly where a sixth band's far edge would have:
-  the same footprint whether or not the count overflowed. Counts 1-6 draw that many
-  bands; 7 and up draw 3 and the `+`.
+- **THE `+` COSTS THREE SLOTS, AND THAT IS FORCED BY THE BUDGET.** A mark centred
+  on a slot reaches out along the diagonal either side of it, so it is only ever as
+  wide as the room around the slot it stands in - and in the FINAL slot that room is
+  1% of the axis, **3.8px** on a desktop card, which is not a `+`, it is a speck
+  (built that way first, and it looked like one). Moved back one slot it has the
+  outer 4.4% to grow into, and dropping the band that would have sat beside it opens
+  the inner side too. So **three bands are drawn and the `+` stands for the rest**,
+  reaching exactly where a sixth band's far edge would have (measured, 25.12%
+  against the bands' 25.13%): the same footprint whether or not the count
+  overflowed. Counts 1-6 draw that many bands; 7 and up draw 3 and the `+`.
+- **HOW FAR IT REACHES DEPENDS ON WHETHER IT IS TURNED, so un-turning it was not
+  just deleting a `rotate`.** Its ink is two bars, `CARD_BAND_PLUS_BAR` (26%) thick
+  as a share of its side S. Turned 45 degrees the far point is an arm's TIP, at
+  `S/sqrt(2)` from the centre in the `u+v` metric; upright the arms point at the
+  card's edges instead and the far point is a bar's outer CORNER, at
+  `S * (0.5 + bar/2)`. So the same budget buys a different S - **18.8px upright
+  against 16.7px turned**, on a desktop card - and the mark is SIZED FROM ITS REACH
+  rather than the reach being hoped for. The bar share is written into the markup
+  as `--cbb`, because the stylesheet draws with it and the derivation above needs
+  the same number.
 - **`.card-bands` IS A SIZE CONTAINER purely so the `+` can be placed.** The mark's
   centre is at `u = v = (p/200)(W+H)`, a length neither a percentage nor an em can
   express - a percentage `left` is a share of W and a percentage `top` a share of H.
@@ -1742,10 +1758,10 @@ fatter and cost 4% of the axis to say it.
 
 Verified in a real browser at 1440x820 and 420x820, in Classic and Spectrum, over
 a board carrying every count from 1 to 9 on all four corners: **0 of 60 marks
-reach a glyph** (measured in the `u+v` metric, not by bounding box - a rotated `+`
-overlaps a glyph's BOX at the corner while its arms are nowhere near it), 0 marks
-paint outside their card, a hand plays through the full dance with the preview
-carrying its bands, and there are **no page errors**.
+reach a glyph** (measured in the `u+v` metric over the mark's INK, not by bounding
+box - a `+` of either angle overlaps a glyph's BOX at the corner while its bars are
+nowhere near it), 0 marks paint outside their card, a hand plays through the full
+dance with the preview carrying its bands, and there are **no page errors**.
 
 ### The score panel between rounds (r223)
 

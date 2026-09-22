@@ -1790,14 +1790,19 @@
     position: absolute;
     left: calc((100cqw + 100cqh) * var(--cbp, 0.098));
     top:  calc((100cqw + 100cqh) * var(--cbp, 0.098));
-    width:  calc((100cqw + 100cqh) * var(--cbs, 0.034));
-    height: calc((100cqw + 100cqh) * var(--cbs, 0.034));
-    transform: translate(-50%, -50%) rotate(45deg);
-    /* Two crossing bars, each 26% of the mark's side, so the weight follows the
-       size and the '+' is the same picture on a 119px card and a 67px one. */
+    width:  calc((100cqw + 100cqh) * var(--cbs, 0.070));
+    height: calc((100cqw + 100cqh) * var(--cbs, 0.070));
+    /* UPRIGHT (r305, owner's call - turned 45 degrees it read as an x). The
+       bands run at 45 and the mark does not, which is also what tells it apart
+       from them at a glance. */
+    transform: translate(-50%, -50%);
+    /* Two crossing bars, each --cbb of the mark's side, so the weight follows
+       the size and the '+' is the same picture on a 119px card and a 67px one.
+       The share is written from js/deck-grid.js, which needs the same number to
+       work out how far the mark reaches along the diagonal. */
     background:
-      linear-gradient(var(--cbi, #3a6fca) 0 0) center / 100% 26% no-repeat,
-      linear-gradient(var(--cbi, #3a6fca) 0 0) center / 26% 100% no-repeat;
+      linear-gradient(var(--cbi, #3a6fca) 0 0) center / 100% var(--cbb, 26%) no-repeat,
+      linear-gradient(var(--cbi, #3a6fca) 0 0) center / var(--cbb, 26%) 100% no-repeat;
     pointer-events: none;
   }
   /* Selection lift + swell (r179; +25% in r281). Composed on top of the grid
