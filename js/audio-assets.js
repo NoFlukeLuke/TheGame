@@ -71,6 +71,15 @@ const SFX_CATALOG = [
   { id: 'chal_win',      fn: 'sfxChallengeWin',    group: 'Challenge', label: 'Challenge won' },
   { id: 'chal_fail',     fn: 'sfxChallengeFail',   group: 'Challenge', label: 'Challenge failed' },
 
+  // Time
+  // These three were NOT in the catalog before r234, which meant they could not
+  // be switched off, could not be auditioned, had no mixer bus and could never be
+  // covered by a pack: they played the classic version in every pack, forever.
+  { id: 'clock_tick',    fn: 'sfxClockTick',       group: 'Time',    label: 'Clock tick',
+    note: 'Once per heartbeat wave for a whole round, so it sits at the very bottom of the mix.' },
+  { id: 'tick_tock',     fn: 'sfxTickTock',        group: 'Time',    label: 'Clock frozen' },
+  { id: 'rewind',        fn: 'sfxRewind',          group: 'Time',    label: 'Time rewound' },
+
   // Match-3
   { id: 'm3_match',      fn: 'sfxMatch3Match',     group: 'Match-3', label: 'Match found',  args: [1] },
   { id: 'm3_pop',        fn: 'sfxMatch3Pop',       group: 'Match-3', label: 'Match pops',   args: [1] },
@@ -110,7 +119,15 @@ function sfxIsOn(id) { return !AUDIO_PREFS.sfxOff[id]; }
 // Both read SETTINGS (js/settings.js) so the choice persists with every other
 // player option rather than in a second store.
 function sfxUseFiles() { return SETTINGS.useSoundFiles !== false; }
-function sfxPackId()   { return SETTINGS.sfxPack || 'classic'; }
+// An id that names no live pack falls back to the default rather than to
+// 'classic'. A save from before r234 holds 'classic', 'onebit' or 'slot', none of
+// which exist now, and silently handing such a player the thin coded set is the
+// one outcome the pack replacement was meant to prevent.
+function sfxPackId() {
+  const fallback = (typeof SFX_PACK_DEFAULT !== 'undefined') ? SFX_PACK_DEFAULT : 'classic';
+  const id = SETTINGS.sfxPack || fallback;
+  return (typeof SFX_PACKS !== 'undefined' && SFX_PACKS[id]) ? id : fallback;
+}
 
 function sfxPackImpl(id) {
   const p = (typeof SFX_PACKS !== 'undefined') && SFX_PACKS[sfxPackId()];

@@ -54,7 +54,14 @@ function toggleSfx(id) { setSfxOn(id, !sfxIsOn(id)); renderSfxBoard(); }
 function sfxBoardSetPack(id) { setSetting('sfxPack', id); renderSfxBoard(); }
 function sfxBoardToggleFiles() { setSetting('useSoundFiles', !sfxUseFiles()); renderSfxBoard(); }
 
-const _SRC_LABEL = { file: 'FILE', classic: 'CODED', onebit: '1-BIT', slot: 'ARCADE' };
+// Derived from SFX_PACK_LIST rather than written out, so replacing a pack can
+// never leave a row badged with the name of a pack that no longer exists.
+function sfxSourceLabel(src) {
+  if (src === 'file') return 'FILE';
+  if (src === 'classic') return 'CODED';
+  const row = (typeof SFX_PACK_LIST !== 'undefined') && SFX_PACK_LIST.find(p => p[0] === src);
+  return row ? row[1].toUpperCase() : String(src).toUpperCase();
+}
 
 function renderSfxBoard() {
   const body = document.getElementById('sfxboard-body');
@@ -90,7 +97,7 @@ function renderSfxBoard() {
     </div>
     <div class="audio-note">
       Press <b>&#9654;</b> to hear exactly what a sound plays right now. Switching one off silences it in game.
-      Live: ${Object.keys(live).map(k => `<b>${live[k]}</b> ${_SRC_LABEL[k] || k}`).join(' &middot; ')}.
+      Live: ${Object.keys(live).map(k => `<b>${live[k]}</b> ${sfxSourceLabel(k)}`).join(' &middot; ')}.
     </div>`;
 
   body.innerHTML = head + groups.map(g => `
@@ -104,7 +111,7 @@ function renderSfxBoard() {
           <span class="audio-row-label">${e.label}</span>
           <span class="audio-row-sub"><code>${e.id}</code>${e.note ? ' &middot; ' + e.note : ''}</span>
         </span>
-        <span class="audio-src src-${src}">${_SRC_LABEL[src] || src}</span>
+        <span class="audio-src src-${src}">${sfxSourceLabel(src)}</span>
         <button class="set-switch${on ? ' on' : ''}" onclick="toggleSfx('${e.id}')"><span class="set-knob"></span></button>
       </div>`;
     }).join('')}

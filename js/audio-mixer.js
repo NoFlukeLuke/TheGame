@@ -101,6 +101,12 @@ const SFX_MIX = {
 
   // ── alert ──
   heartbeat:     { bus: 'alert' },
+
+  // Added to the catalog in r234. They had no rows because they had no catalog
+  // entries, so they landed on the default bus and could not be switched off.
+  clock_tick:    { bus: 'detail', gain: 0.80, gap: 120 },
+  tick_tock:     { bus: 'event',  gain: 0.95 },
+  rewind:        { bus: 'event' },
 };
 
 const SFX_DUCK_ATTACK  = 0.025;   // dip fast - the point is to clear the way NOW
@@ -108,7 +114,10 @@ const SFX_DUCK_RELEASE = 0.28;    // come back slowly, or the mix audibly pumps
 
 let _mixNodes = null;        // bus id -> GainNode
 let _mixCtx = null;
-let _mixTail = null;         // what the muffle chain is currently connected to
+let _mixTail = null;         // what the master chain is currently connected to
+let _mixPunch = null;        // { in, out } - the saturation + limiter insert (below)
+let _mixRoom = null;         // { send, conv, ret } - the reverb send (below)
+let _mixRoomKey = null;      // which room profile is loaded
 let _mixMuffle = null;       // { lp, g } - the always-in-line muffle insert (below)
 let _mixMuffled = false;
 let _mixCurrentId = null;    // the sound being built right now (set by the wrapper)
@@ -145,17 +154,167 @@ function sfxMixGraph() {
       g.connect(lp);
       _mixNodes[b] = g;
     });
+    _mixPunch = _buildPunch(ctx);
+    mg.connect(_mixPunch.in);
+    // The room RETURNS into the muffle insert, not into the tail, so a reverb
+    // tail is muffled and punched exactly like the dry sound that threw it.
+    _mixRoom = _buildRoom(ctx, lp);
+    _mixRoomKey = null;
     _mixTail = null;
   }
+  sfxRoomSync();
   const tail = (typeof sfxDuckGain !== 'undefined' && sfxDuckGain) ? sfxDuckGain : ctx.destination;
   if (tail !== _mixTail) {
     // Only the OUTPUT end re-patches. The buses stay wired to the muffle insert
-    // for the life of the context, so a tail swap can never bypass it.
-    try { _mixMuffle.g.disconnect(); } catch (e) {}
-    _mixMuffle.g.connect(tail);
+    // and the muffle to the punch chain for the life of the context, so a tail
+    // swap can never bypass either.
+    try { _mixPunch.out.disconnect(); } catch (e) {}
+    _mixPunch.out.connect(tail);
     _mixTail = tail;
   }
   return _mixNodes;
+}
+
+// ── The master punch (r234) ─────────────────────────────────────────────────
+// Two stages, in this order, and the order is the whole point:
+//
+//   1. SATURATION. A tanh curve, normalised so it cannot raise the peak. It adds
+//      harmonics rather than level, which is what makes a sub-bass thump audible
+//      on a laptop speaker that cannot reproduce its fundamental at all. Density,
+//      not volume.
+//   2. A LIMITER. A DynamicsCompressor at a high ratio with a hard knee and a
+//      fast attack. This is what lets the sounds themselves be written heavy: a
+//      goal blast stacking eight voices would otherwise clip the output, and the
+//      only alternative is writing every sound quieter than it wants to be.
+//
+// Makeup is deliberately modest. The loudness comes from the limiter holding the
+// ceiling steady, not from pushing everything into it.
+const SFX_DRIVE  = 1.45;   // tanh knee. Past about 2 the quiet sounds start to swell.
+const SFX_MAKEUP = 1.30;   // drive INTO the limiter, never after it - see below
+const SFX_CEIL   = -3.0;   // dB. The limiter is last, so this really is the ceiling.
+
+function _buildPunch(ctx) {
+  const inG = ctx.createGain();
+  inG.gain.value = 1;
+
+  const ws = ctx.createWaveShaper();
+  const n = 1024, curve = new Float32Array(n), norm = Math.tanh(SFX_DRIVE);
+  for (let i = 0; i < n; i++) {
+    const x = (i / (n - 1)) * 2 - 1;
+    curve[i] = Math.tanh(x * SFX_DRIVE) / norm;
+  }
+  ws.curve = curve;
+
+  // The makeup drives INTO the limiter. With it after, the limiter's ceiling is
+  // not the output's: measured at r234, 12 sounds rendered above 1.0 that way,
+  // every one of them a goal blast, a victory or a multi-goal. Gain first, limiter
+  // last, and nothing downstream can undo it.
+  const drive = ctx.createGain();
+  drive.gain.value = SFX_MAKEUP;
+
+  const lim = ctx.createDynamicsCompressor();
+  lim.threshold.value = SFX_CEIL;
+  lim.knee.value = 0;         // a limiter, not a compressor: no soft region
+  lim.attack.value = 0.002;   // fast enough to catch a transient, slow enough not to dull it
+  lim.ratio.value = 20;
+  lim.release.value = 0.12;
+
+  const out = ctx.createGain();
+  out.gain.value = 1;
+
+  inG.connect(ws); ws.connect(drive); drive.connect(lim); lim.connect(out);
+  return { in: inG, out };
+}
+
+// ── The room (r234) ─────────────────────────────────────────────────────────
+// A tail is the third layer of an impact, after the transient and the body: it
+// says where the sound happened. Without one, a synthesised hit sounds like it
+// was generated rather than struck, however heavy its body is.
+//
+// It is a SEND, not an insert, so a voice chooses its own tail (the verb argument
+// in js/audio-dsp.js). A coin and a score tick sit on the same bus and want
+// opposite amounts, which a per-bus send could never give them.
+//
+// The profile is PER PACK, because "bigger" means a different room in each: a
+// slot floor is small and hard, a cinematic one is a hall, a lounge is a warm
+// plate. Switching pack rebuilds the impulse - see sfxRoomSync.
+const SFX_ROOMS = {
+  classic:    { seconds: 0.85, decay: 3.4, tone: 0.30, mix: 0.26, pre: 0.010 },
+  vegas:      { seconds: 1.10, decay: 2.8, tone: 0.55, mix: 0.34, pre: 0.012 },
+  highroller: { seconds: 2.60, decay: 1.9, tone: 0.20, mix: 0.58, pre: 0.030 },
+  neon:       { seconds: 0.72, decay: 3.8, tone: 0.64, mix: 0.30, pre: 0.008 },
+  lounge:     { seconds: 1.75, decay: 2.4, tone: 0.15, mix: 0.44, pre: 0.020 },
+};
+function sfxRoomProfile() {
+  const id = (typeof sfxPackId === 'function') ? sfxPackId() : 'classic';
+  return SFX_ROOMS[id] || SFX_ROOMS.classic;
+}
+
+// Exponentially decaying noise, lowpassed by a one-pole whose coefficient IS the
+// tone knob, plus a handful of discrete early reflections in the first 60ms.
+// Those taps are what make it read as a room rather than as a wash: a diffuse
+// tail with no early reflections has no size, only length.
+function _makeIR(ctx, p) {
+  const sr = ctx.sampleRate;
+  const len = Math.max(64, Math.floor(sr * (p.seconds + p.pre)));
+  const buf = ctx.createBuffer(2, len, sr);
+  const pre = Math.floor(sr * p.pre);
+  const rnd = () => (typeof fxRandom === 'function') ? fxRandom() : Math.random();
+  for (let ch = 0; ch < 2; ch++) {
+    const d = buf.getChannelData(ch);
+    let lp = 0;
+    for (let i = pre; i < len; i++) {
+      const t = (i - pre) / (len - pre);
+      const env = Math.pow(1 - t, p.decay);
+      lp += ((rnd() * 2 - 1) - lp) * p.tone;
+      d[i] = lp * env;
+    }
+    // Early reflections. Offset per channel so the two ears disagree, which is
+    // where the width comes from without a panner anywhere in the graph.
+    for (let k = 0; k < 6; k++) {
+      const at = pre + Math.floor(sr * (0.004 + rnd() * 0.055) + ch * 37);
+      if (at < len) d[at] += (rnd() * 2 - 1) * 0.55 * Math.pow(0.72, k);
+    }
+  }
+  return buf;
+}
+
+function _buildRoom(ctx, returnTo) {
+  const send = ctx.createGain();
+  send.gain.value = 1;
+  const conv = ctx.createConvolver();
+  conv.normalize = true;
+  // Keep the very bottom out of the tail. Sub energy in a reverb is mud, and the
+  // thing it would smear is exactly the weight the sounds were written for.
+  const hp = ctx.createBiquadFilter();
+  hp.type = 'highpass'; hp.frequency.value = 220; hp.Q.value = 0.7071;
+  const ret = ctx.createGain();
+  ret.gain.value = 0;
+  send.connect(hp); hp.connect(conv); conv.connect(ret); ret.connect(returnTo);
+  return { send, conv, ret };
+}
+
+// Rebuild the impulse when the pack changes, and never otherwise. Generating a
+// 2.6s stereo buffer is not something to do per voice, and this is called from
+// sfxMixGraph, which every single voice goes through: the guard is a string
+// compare and the work behind it happens once per pack switch.
+function sfxRoomSync() {
+  if (!_mixRoom) return;
+  const id = (typeof sfxPackId === 'function') ? sfxPackId() : 'classic';
+  if (id === _mixRoomKey) return;
+  _mixRoomKey = id;
+  const p = sfxRoomProfile();
+  try {
+    _mixRoom.conv.buffer = _makeIR(_mixCtx, p);
+    _mixRoom.ret.gain.value = p.mix;
+  } catch (e) { _mixRoom.ret.gain.value = 0; }
+}
+
+// Where a voice sends itself to be given a tail. Null-safe: if anything about the
+// room failed to build, dRoute skips the send and the dry path has already played.
+function sfxVerbIn(ctx) {
+  sfxMixGraph();
+  return _mixRoom ? _mixRoom.send : null;
 }
 
 // ── The muffle ──────────────────────────────────────────────────────────────

@@ -91,8 +91,12 @@
    yours and which the pack is answering for. */
 .audio-src.src-file    { color: var(--c-mint, #35d59b);   border-color: rgba(53,213,155,0.5);  background: rgba(53,213,155,0.09); }
 .audio-src.src-classic { color: var(--cream-dim, #8a7d60); border-color: rgba(183,172,147,0.28); background: rgba(255,255,255,0.03); }
-.audio-src.src-onebit  { color: var(--c-cyan, #7fd4dd);   border-color: rgba(127,212,221,0.5); background: rgba(127,212,221,0.09); }
-.audio-src.src-slot    { color: var(--c-yellow, #ffce2b); border-color: rgba(255,206,43,0.5);  background: rgba(255,206,43,0.09); }
+/* One colour per pack (r234). Classic keeps the muted cream: it is the fallback
+   floor, not a choice, so a row badged CODED means a pack left that id out. */
+.audio-src.src-vegas      { color: var(--c-yellow, #ffce2b); border-color: rgba(255,206,43,0.5);  background: rgba(255,206,43,0.09); }
+.audio-src.src-highroller { color: var(--c-magenta, #e06ec8); border-color: rgba(224,110,200,0.5); background: rgba(224,110,200,0.09); }
+.audio-src.src-neon       { color: var(--c-cyan, #7fd4dd);   border-color: rgba(127,212,221,0.5); background: rgba(127,212,221,0.09); }
+.audio-src.src-lounge     { color: var(--c-mint, #35d59b);   border-color: rgba(53,213,155,0.5);  background: rgba(53,213,155,0.09); }
 
 /* ── Source picker at the top of the board ──
    The board is where you audition, so the pack switch belongs here too: flip the

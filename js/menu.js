@@ -1,4 +1,4 @@
-const BUILD = "2026-09-22 · r309 · Poker Squares: shape bag, tray below the board, runs of 3 and 4";
+const BUILD = "2026-09-22 · r310 · Poker Squares: shape bag, tray below the board, runs of 3 and 4";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
