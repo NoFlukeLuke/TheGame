@@ -208,7 +208,15 @@ async function showPayoutUI() {
   const _frozen = interestFreezeRounds > 0;
   if (_frozen) interestFreezeRounds--;
   const interestCoins  = (_withheld || _frozen) ? 0 : Math.floor(coins / 10) * interestMult;
-  const efficiencyCoins = _withheld ? 0 : Math.floor(frozenRoundSeconds / efficiencySecondsPerCoin());
+  // In Crunch the round clock IS the quarter's act bank, so paying for what is
+  // left on it would pay for time the player has not finished spending (and pay
+  // it again every level). The line becomes PAR instead: credits for every
+  // efficiencySecondsPerCoin() seconds this round came in under CRUNCH_PAR_SECONDS.
+  // Same rate, so Time and a Half still doubles it without knowing this mode exists.
+  const efficiencyCoins = _withheld ? 0
+    : (typeof crunchActive === 'function' && crunchActive())
+      ? crunchParCredits()
+      : Math.floor(frozenRoundSeconds / efficiencySecondsPerCoin());
   // Unspent (r218): swaps and discards you did NOT use pay out. Until this, a
   // round ended with leftover manipulates worth exactly nothing, so spending them
   // on anything at all was strictly better than holding them. Now holding is a
@@ -344,14 +352,18 @@ async function showPayoutUI() {
     effCoinsEl.textContent = efficiencyCoins;
     tickCoin('po-efficiency');
   } else {
+    // payoutClockSeconds() is what this line counts DOWN from: the leftover
+    // round time, or in Crunch the seconds under par. One function so the
+    // animation and the figure above can never disagree.
+    const _poSecs = payoutClockSeconds();
     const totalDuration = 2100;
-    const tickMs = totalDuration / frozenRoundSeconds;
-    let secsLeft = frozenRoundSeconds;
+    const tickMs = totalDuration / Math.max(1, _poSecs);
+    let secsLeft = _poSecs;
     let effEarned = 0;
     while (secsLeft > 0) {
       secsLeft--;
       clockEl.textContent = formatTime(secsLeft);
-      if ((frozenRoundSeconds - secsLeft) % efficiencySecondsPerCoin() === 0 && secsLeft < frozenRoundSeconds) {
+      if ((_poSecs - secsLeft) % efficiencySecondsPerCoin() === 0 && secsLeft < _poSecs) {
         effEarned++;
         effCoinsEl.textContent = effEarned;
         tickCoin('po-efficiency');
@@ -549,8 +561,16 @@ async function show321Countdown() {
   let refillDone = false;
 
   let refillPausedMs = 0, refillPauseMark = 0;
+  // In Crunch there is nothing to refill: the clock is the QUARTER's allowance
+  // and it CARRIES into this round. The animation below winds roundSeconds from
+  // its current value up to limits.round_time.current, which here is a wind DOWN
+  // from 13:00 to 3:00 - it was destroying ten minutes on the first round of
+  // every run, and doing it by writing the global rather than by reading it, so
+  // the guard has to be on the animation and not on the value it leaves behind.
+  const _crunchNoRefill = (typeof crunchActive === 'function' && crunchActive());
   function tickRefill() {
     if (refillDone) return;
+    if (_crunchNoRefill) { refillDone = true; return; }
     // The clock refill is driven off wall time too, so it has to discount paused time
     // or the clock would fill while the count is held.
     if (countdownPaused) {
@@ -584,7 +604,14 @@ async function show321Countdown() {
   // carry-over time, +15s buffs, etc.), but cap it at the penalized round-time limit so
   // permanent "-5s round cap" debuffs (roundPenaltySeconds) actually stick. Previously this
   // line force-reset to the full limit, silently wiping every time penalty.
-  roundSeconds = Math.max(10, Math.min(roundSeconds, limits.round_time.current - roundPenaltySeconds));
+  // In Crunch the clock is the QUARTER's allowance, not a round's, and it opens
+  // legitimately far above the round-time limit (13:00 against 3:00). Capping it
+  // here cut it to the limit on the first round of every run and silently
+  // destroyed ten minutes. The round-cap PENALTY still bites - it is damage the
+  // player took - it just comes off the bank instead of off a limit.
+  roundSeconds = (typeof crunchActive === 'function' && crunchActive())
+    ? Math.max(10, roundSeconds - roundPenaltySeconds)
+    : Math.max(10, Math.min(roundSeconds, limits.round_time.current - roundPenaltySeconds));
   updateClockUI();
   overlay.classList.remove('show');
 
@@ -658,11 +685,11 @@ function payoutTiledHTML(c) {
       </div>
       <div class="po-tile payout-line" id="po-line-efficiency" data-box="3,0,6,1">
         <div class="pl-left">
-          <div class="pl-name">Efficiency</div>
-          <div class="pl-desc">1 per ${efficiencySecondsPerCoin()}s remaining</div>
+          <div class="pl-name">${payoutEfficiencyName()}</div>
+          <div class="pl-desc">${payoutEfficiencyDesc()}</div>
         </div>
         <div class="pl-right">
-          <span class="pl-clock" id="po-clock">${formatTime(frozenRoundSeconds)}</span>
+          <span class="pl-clock" id="po-clock">${formatTime(payoutClockSeconds())}</span>
           <span class="pl-coins" id="po-efficiency">0</span>
           <span class="pl-sym">◆</span>
         </div>
@@ -728,11 +755,11 @@ function payoutPanelHTML(c) {
       </div>
       <div class="payout-line" id="po-line-efficiency">
         <div class="pl-left">
-          <div class="pl-name">Efficiency</div>
-          <div class="pl-desc">1 per ${efficiencySecondsPerCoin()}s remaining</div>
+          <div class="pl-name">${payoutEfficiencyName()}</div>
+          <div class="pl-desc">${payoutEfficiencyDesc()}</div>
         </div>
         <div class="pl-right">
-          <span class="pl-clock" id="po-clock">${formatTime(frozenRoundSeconds)}</span>
+          <span class="pl-clock" id="po-clock">${formatTime(payoutClockSeconds())}</span>
           <span class="pl-coins" id="po-efficiency">0</span>
           <span class="pl-sym">◆</span>
         </div>

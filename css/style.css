@@ -1717,53 +1717,89 @@
   }
   .card:hover:not(.unreachable) { background: #fffaee; }
 
-  /* Row/col positional bonus tints - pips=clubs(blue), mult=hearts(red), combo=spruce */
-  .card.rc-pips {
-    background: #e8eef8;
-    box-shadow: inset 0 0 10px rgba(34,85,204,0.35), 0 0 6px rgba(34,85,204,0.2);
-    border-color: rgba(34,85,204,0.5);
-  }
-  .card.rc-mult {
-    background: #f8e8e8;
-    box-shadow: inset 0 0 10px rgba(160,3,11,0.3), 0 0 6px rgba(160,3,11,0.15);
-    border-color: rgba(160,3,11,0.45);
-  }
-  .card.rc-pips.rc-mult {
-    background: #f0e8f5;
-    box-shadow: inset 0 0 12px rgba(110,40,135,0.45), 0 0 7px rgba(110,40,135,0.25);
-    border-color: rgba(110,40,135,0.55);
-  }
-  .card.rc-retrigger {
-    background: #2a2218;
-    border-color: #5a5040;
-    box-shadow: inset 0 0 8px rgba(200,200,200,0.08);
-  }
-  .card.rc-retrigger .rank,
-  .card.rc-retrigger .suit {
-    color: #e0ddd0 !important;
-    text-shadow: 0 0 8px rgba(230,225,210,0.9), 0 0 3px rgba(255,255,255,0.5);
-  }
-  .card.rc-pips.rc-retrigger {
-    background: #101828;
-    box-shadow: inset 0 0 10px rgba(34,85,204,0.25), inset 0 0 6px rgba(200,200,200,0.1);
-    border-color: rgba(34,85,204,0.4);
-  }
-  .card.rc-mult.rc-retrigger {
-    background: #281010;
-    box-shadow: inset 0 0 10px rgba(160,3,11,0.25), inset 0 0 6px rgba(200,200,200,0.1);
-    border-color: rgba(160,3,11,0.4);
-  }
+  /* The per-Trick row/col card tints lived here and are GONE (r296). They were
+     a flat background per Trick, and their whole problem was what happened
+     where two lines crossed: they had to name a COMBINED colour for each pair,
+     so Right Place (blue) crossing Power Line (red) painted a card purple - a
+     colour belonging to neither Trick - and Power Line crossing Echo Location
+     painted it dark red-brown. They also only existed for THREE of the nine
+     line-marking Tricks, so Perfect Timing, Right Time, Groove, Assembly Line
+     and Overtime marked cells that looked no different from unmarked ones.
+     `.rc-line-ring` (css/entity-fx.css) is what covers all nine now, divided
+     evenly between however many colours cover the cell. r296 replaced these
+     with a divided WASH as well; r299 took the wash back out and left the ring
+     (owner: the outline is enough, and the face is wanted for the card's own
+     buff marks - see .card-bands below).
+     Half of these rules were already dead - measured, the box-shadow and
+     border-color both lost to later `.card` rules and only `background` was
+     ever reaching the board. */
   .card.rc-leyline { background: rgba(240,192,64,0.15); box-shadow: inset 0 0 0 1px rgba(240,192,64,0.4); }
   .card.rc-jeopardy { background: rgba(200,60,60,0.15); box-shadow: inset 0 0 0 1px rgba(200,60,60,0.5); }
   .card.rc-woodpecker { background: rgba(90,170,90,0.15); box-shadow: inset 0 0 0 1px rgba(90,170,90,0.5); animation: wp-peck 0.16s ease-in-out 5; }
   .card.rc-woodpecker::after { content:''; position:absolute; inset:0; border-radius:inherit; pointer-events:none; animation: wp-ripple 0.34s ease-out 5; }
   @keyframes wp-peck { 0%,100% { transform: scale(1); } 50% { transform: scale(0.9); } }
   @keyframes wp-ripple { 0% { box-shadow: 0 0 0 0 rgba(90,170,90,0.5); } 100% { box-shadow: 0 0 0 12px rgba(90,170,90,0); } }
-  /* Permanent-buff corner tally bands (thin=1, thick=5) */
-  .buff-band { position:absolute; width:12px; height:2px; border-radius:1px; pointer-events:none; z-index:6; opacity:0.92; }
-  .buff-band.bb-thick { height:4px; }
-  .buff-band.bb-tl, .buff-band.bb-br { transform: rotate(-45deg); transform-origin: center; }
-  .buff-band.bb-tr, .buff-band.bb-bl { transform: rotate(45deg);  transform-origin: center; }
+  /* ── A card's buffs are CORNER BANDS (r299) ──────────────────────────────
+     The same mark a Trick's improvement tier wears (r274): diagonal bands
+     across a corner, one per unit, drawn as a linear-gradient at 45 degrees
+     with every length a PERCENTAGE of the gradient's own axis - so the mark is
+     the same picture on a 40px card and a 119px one, with no JS measurement.
+     One element per CORNER, and the corner is the gradient's ANGLE: 45deg puts
+     stop 0% at the bottom-left, 135deg at the top-left, 225deg top-right,
+     315deg bottom-right. The stops themselves are identical for all four, which
+     is what keeps the four corners the same object.
+     Built by cardBandsHTML (js/deck-grid.js), beside cardBuffLines - the one
+     place a card's buffs are put into words - so the mark and the tooltip
+     cannot drift about what the card carries.
+     It replaces the old `.buff-band` tally (thin=1, thick=5) and the two 8px
+     `+Np` / `+Nm` text labels: those covered pips and mult only, and the
+     numbers are in the tooltip.
+
+     z-index -1, AND IT HAS TO BE - the same trap the r296 face wash hit. `.rank`
+     and `.suit` are IN-FLOW flex children of the card, and CSS paints every
+     positioned descendant above in-flow content whatever the DOM order, so at 0
+     or auto a band crossing a corner would paint over the card's own rank. A
+     negative z-index paints above the element's BACKGROUND and below its in-flow
+     content, which is where a mark on the card's face belongs. It cannot fall
+     through the card either: `.card` carries a transform (the heartbeat), so it
+     is its own stacking context. */
+  .card-bands {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    z-index: -1;
+    background: var(--cb, none);
+    /* THE ELEMENT IS A SIZE CONTAINER purely so the overflow '+' can be placed
+       (r302). A 45 degree band at p% of the axis crosses this corner's own
+       diagonal at u = v = (p/200)(W+H), which is a length neither a percentage
+       nor an em can express - a percentage `left` is a share of W and a
+       percentage `top` a share of H. In container-query units it is one calc
+       over 100cqw + 100cqh, exact at every card size with no JS measurement,
+       which is the whole rule the bands themselves follow.
+       `container-type: size` also makes this element the containing block for
+       that absolute child, which is what we want: it is inset 0, so its box IS
+       the card's. */
+    container-type: size;
+  }
+  /* The overflow mark: a '+' at 45 degrees where the last band would have been
+     (owner's spec). Drawn as two crossing bars rather than as a glyph, so its
+     length and weight are exact at any card size and it needs no font. It takes
+     the family's own ink, so it reads as the same mark as the bands above it. */
+  .card-bplus {
+    position: absolute;
+    left: calc((100cqw + 100cqh) * var(--cbp, 0.098));
+    top:  calc((100cqw + 100cqh) * var(--cbp, 0.098));
+    width:  calc((100cqw + 100cqh) * var(--cbs, 0.034));
+    height: calc((100cqw + 100cqh) * var(--cbs, 0.034));
+    transform: translate(-50%, -50%) rotate(45deg);
+    /* Two crossing bars, each 26% of the mark's side, so the weight follows the
+       size and the '+' is the same picture on a 119px card and a 67px one. */
+    background:
+      linear-gradient(var(--cbi, #3a6fca) 0 0) center / 100% 26% no-repeat,
+      linear-gradient(var(--cbi, #3a6fca) 0 0) center / 26% 100% no-repeat;
+    pointer-events: none;
+  }
   /* Selection lift + swell (r179; +25% in r281). Composed on top of the grid
      heartbeat's --hb* vars, the way the base .card transform is, so a selected
      card keeps drifting with the rest of the board instead of freezing the
@@ -2203,17 +2239,11 @@
     box-shadow: 0 0 0 3px #4a9eff, 0 0 12px rgba(74,158,255,0.55);
   }
 
-  /* Row/column marker tints would otherwise repaint the whole face, hiding the
-     card's colour - mark them with a ring instead so both stay readable. */
-  .card.num-card.rc-pips,
-  .card.num-card.rc-mult,
-  .card.num-card.rc-pips.rc-mult,
-  .card.num-card.rc-retrigger { background: var(--num-color); }
-  .card.num-card.rc-pips           { box-shadow: inset 0 0 0 3px #3a6fca; }
-  .card.num-card.rc-mult           { box-shadow: inset 0 0 0 3px #c0392b; }
-  .card.num-card.rc-pips.rc-mult   { box-shadow: inset 0 0 0 3px #9b59b6; }
-  .card.num-card.rc-retrigger      { box-shadow: inset 0 0 0 3px #e0ddd0; }
-  .card.num-card.rc-retrigger .rank { color: var(--num-ink) !important; text-shadow: 0 2px 4px rgba(0,0,0,0.32); }
+  /* Spectrum's counterpart to the tints above, gone with them (r296). It existed
+     only to put back the `--num-color` face the tints repainted, and to draw its
+     own inset ring in place of them - including the same blended purple for a
+     crossing. The shared wash and ring handle a colour card as they handle a
+     cream one, so there is nothing left to undo here. */
 
   /* Deck view / records chips: fill the chip with its colour. */
   .deck-chip.num-suit { background: var(--num-color); color: var(--num-ink); border: 1px solid rgba(0,0,0,0.35); }

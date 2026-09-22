@@ -1200,13 +1200,16 @@ Four things r209's lines did not do. All four are owner spec.
   in each, which puts two lines at 25/75 and three at 17/50/83: lines hugging the
   card's edges rather than an evenly divided lane. Measured: 0.25 / 0.50 / 0.75.
 - **A card on several lines SPLITS ITS RING between their colours** - equal wedges
-  with hard stops (`lineMetasForCell` -> `lineRingPaint` -> `lineRingHTML`), so a
-  crossing reads as both things instead of whichever the registry listed first. A
-  blend of three Trick colours is a fourth colour belonging to nothing, hence hard
-  stops. **The ring had to stop being a `box-shadow` to do this**: a box-shadow
-  takes one colour and cannot be divided. It is paint masked down to the border
-  now (`padding` + two masks + `mask-composite`). Verified: 3 lines give three
-  33.3% wedges, a row/column crossing gives four at 25%.
+  with hard stops (`lineMetasForCell` -> `lineRingPaint`), so a crossing reads as
+  both things instead of whichever the registry listed first. A blend of three
+  Trick colours is a fourth colour belonging to nothing, hence hard stops. **The
+  ring had to stop being a `box-shadow` to do this**: a box-shadow takes one
+  colour and cannot be divided. It is paint masked down to the border now
+  (`padding` + two masks + `mask-composite`). Verified: 1 line is a flat fill,
+  2 give two 50% wedges, 3 give three at 33.3%. **r296 gave the card's WASH the
+  same division**, and **r299 took the wash back out** and left the divided ring
+  alone - see "A marked cell SPLITS its highlight" below and "A card's buffs are
+  CORNER BANDS" after it, which is what the freed face now carries.
 
 #### `clampRowColBonuses()` - and why it reads the LIMITS
 
@@ -1235,6 +1238,358 @@ the single place a limit actually moves, and everything that merely BORROWS the
 board at a smaller size clamps what it **draws** instead (above) and leaves the
 registry alone. Verified: a 4x4 prize grid drew a col-5 line at col-3 with the
 stored index still 5.
+
+### A marked cell SPLITS its highlight, and the axis ALTERNATES (r296)
+
+Owner: *"When cards are in a cell that has a row and column bonus, its highlight
+should be divided between the two colors, so it's half and half each of the
+colors. If a cell has more colors on it, continue this pattern."* and *"all of
+them except ones where the name forces a row or column decide row or column
+based on a rule that it always alternates."*
+
+#### 1. The card's highlight is divided, not blended
+
+**The RING already divided itself (r223). The card's WASH did not, and the wash
+is what the player actually saw** - a 2px ring against a whole tinted card face.
+The wash came from a different system: six per-Trick rules in `css/style.css`,
+written long before r209, that had to name a COMBINED COLOUR for each pair of
+Tricks. So Right Place (blue) crossing Power Line (red) painted the card a flat
+**purple** and Power Line crossing Echo Location painted it dark red-brown - a
+colour belonging to neither Trick, which is exactly what r223 called "a fourth
+colour that belongs to nothing".
+
+They also only existed for **three of the nine** line-marking Tricks, so Perfect
+Timing, Right Time, Groove, Assembly Line and Overtime marked cells that looked
+no different from unmarked ones - the very gap r209 set out to close and only
+closed for the ring.
+
+r296 fixed both by giving the wash the ring's own divided geometry. **r299 then
+took the WASH out again and left the ring** - owner: *"I think the wash may be
+too much. Do we need the wash? I feel like the outline is sufficient, and that
+leaves more legibility on the card to put its buffs."* Which is what r299 put
+there: the corner buff bands below. The tints are still gone and the ring still
+covers all nine Tricks, which was the real gap; what went is spending the card's
+whole face on a fact its edge already states.
+
+- **Equal wedges, hard stops, `from -45deg`** (`lineRingPaint`, js/entity-fx.js) -
+  so two colours split on the card's own diagonal, one straight line corner to
+  corner, and three read as thirds. (r302 turns the whole ring, so -45deg is now
+  where the division RESTS rather than where it sits - see 1b below.) Verified in a real browser: 1 line = a flat
+  fill, 2 = 50/50, 3 = three 120-degree wedges on the same card.
+- **THE WASH WAS THE EXPENSIVE HALF, and a light line colour is why.** Echo
+  Location's `#e0ddd0` is near-white, so its wash measured rgb(240,231,212) over
+  a card face of rgb(244,234,213) - invisible at any alpha, because no alpha
+  makes near-white visible on near-white. It needed a whole luminance correction
+  (darken only a colour over 0.72 perceived luminance down to 0.55; perceived
+  luminance is linear in the channels, so mixing k% with black scales it by
+  exactly k). **On the card's EDGE, against the dark board, near-white is the
+  most legible of the nine** - so the ring takes every colour exactly as the
+  table gives it and `lineWashInk` / `LINE_WASH_*` / `lineColorLuma` went with
+  the wash. `lineWedgePaint(metas, pct)`, the one-geometry-two-strengths
+  function, is `lineRingPaint(metas)` again.
+- **The wash's `z-index: -1` is now the BANDS' z-index, for the same reason.**
+  `.rank` and `.suit` are IN-FLOW flex children, and CSS paints every positioned
+  descendant above in-flow content **whatever the DOM order** - so at `0` or
+  `auto` a face layer covers the card's own rank and suit. A negative z-index
+  paints above the element's own BACKGROUND and below its in-flow content. It
+  cannot fall through the card either: `.card` carries a transform (the
+  heartbeat), so it is its own stacking context.
+- **The Spectrum overrides went with the tints.** `.card.num-card.rc-*` existed
+  only to put back the `--num-color` face the tints repainted, and drew its own
+  inset ring including the same blended purple. The shared ring handles a colour
+  card as it handles a cream one.
+- `rc-pips` / `rc-mult` / `rc-retrigger` are **gone as classes too** - nothing
+  reads them now. `rc-on-line` stays as the "this cell is on some line" marker.
+  Half of the deleted rules were already dead: measured, their `box-shadow` and
+  `border-color` both lost to later `.card` rules and only `background` ever
+  reached the board.
+
+#### 1b. The ring TURNS (r302)
+
+Owner: *"can the highlight border rotate smoothly around the cards? And that
+highlight should continue into the preview area, including the spinning ideally."*
+
+Every ring paint is now a conic gradient whose `from` angle is `var(--rcl-rot)`,
+one revolution every **8s**, linear.
+
+- **`--rcl-rot` MUST BE REGISTERED as an `<angle>`** (`@property`, css/entity-fx.css).
+  An unregistered custom property is an opaque token, so a keyframe on it would
+  step 0deg -> 360deg with nothing in between and the ring would not appear to
+  move at all. `inherits: false` keeps it on the ring, where the animation is -
+  an inherited animated property would recalculate the whole subtree every frame
+  for the same picture.
+- **A SINGLE LINE NEEDS A SHEEN OR THERE IS NOTHING TO SEE TURNING**, and one line
+  is the ordinary case: a card sits on a marked row OR a marked column far more
+  often than on both. So one colour is drawn as that colour with two pale arcs
+  sweeping through it (`lineRingLighten`, 55% toward white), seamless at 0% and
+  100%. **SEVERAL colours get no sheen** - the hard-stop wedges turning IS the
+  motion, and a pale arc laid over two Trick colours is the blend r296 spent a
+  pass removing. `-45deg` is still where the division RESTS; the rotation is
+  added to it.
+- **EVERY RING ON SCREEN TURNS IN PHASE, and that takes a negative
+  `animation-delay` baked into the markup**, not one animation on a long-lived
+  ancestor. A ring is markup inside a card and `render()` rewrites a card's
+  innerHTML on every deal, swap and score, so an animation that starts with the
+  element would snap every ring back to 0deg each time the board repaints.
+  `lineRingHTMLFor` offsets the delay by how long the page has been up (rounded to
+  the nearest 50ms, so a repaint that spans a millisecond does not split the
+  board into two phases), and the DURATION is written inline from the one JS
+  constant - so the phase arithmetic and the animation cannot disagree about how
+  long a revolution is. The stylesheet keeps only the name, timing and count,
+  which is what leaves `animation-name: none` under `reduced-motion` able to
+  switch it off; an inline `animation` shorthand would have outranked it.
+- **It reaches the hand preview for free**, because `score-dance.js` builds
+  preview cards with the same `renderCardAppearance`. Verified live: 2 rings in
+  `#selected-cards` during a dance, `animation-name: rcl-spin`, angle 43deg ->
+  102deg over 1.2s.
+
+Verified in a real browser: the angle advances 124.4deg -> 191.9deg in 1.5s
+(exactly 1.5/8 of a revolution), all ten rings on a board report **one** angle and
+**one** delay after a `render()`, and `body.reduced-motion` reports
+`animation-name: none`.
+
+#### 2. The AXIS alternates; only the INDEX is luck
+
+All eight position Tricks print "a marked row or column", and `pickDefaultLine`
+pooled every row AND every column and drew one cell out of the lot - a coin flip
+per Trick. A run could put all four of its position Tricks on rows, and often
+did.
+
+`positionAxisNext` (js/scoring.js) is the cursor: **each new marked line lands on
+the opposite axis from the one before it.** Row, column, row, column. The index
+is still random, and still avoids an occupied line unless District is owned.
+
+- **THAT IS WHAT MAKES CROSSINGS HAPPEN**, which is the point beyond tidiness.
+  Ley Line and Temporal Rift both fire wherever a row effect crosses a column
+  effect (`isEffectIntersection`), and a run that rolled all rows gives them
+  nothing to fire on at all. It is also what the divided highlight above is for -
+  a cell can only read half and half if the board produces both axes.
+- **`POSITION_FORCED_AXIS` is the exemption** the owner asked for: a Trick whose
+  NAME names an axis keeps it. **NOTHING IS IN IT TODAY** - all eight are named
+  for what they do (Right Place, Power Line, Echo Location, Perfect Timing, Right
+  Time, Groove, Assembly Line, Overtime), not for which way they run. An id in
+  there still ADVANCES the cursor off the axis it took, so the run keeps
+  alternating around it. (`column_rush` / `row_power` - Stand Up and Lie Down -
+  DO name an axis but mark no line at all, so they are not in this system.)
+- **`markPositionAxisTaken(axis)` advances off the axis ACTUALLY TAKEN, never off
+  the cursor.** The Alignment knack forces a column and the Surveyor / Leveler
+  chooser lets the player pick, so all three paths call it and none can leave the
+  run out of step. It is idempotent, so the chooser confirming the provisional
+  default costs nothing.
+- **Owning BOTH position knacks offers both axes, so the chooser's provisional
+  default is the alternation's**; owning one means that knack IS the axis and the
+  cursor has nothing to say.
+- **A full axis still takes the Trick.** Asking `pickDefaultLine` for one axis
+  rather than two means that if every line on it is occupied the mark lands there
+  anyway, doubled up. The alternation is the rule, and a board with more position
+  Tricks than lines has to double up somewhere.
+- `positionAxisNext` is reset in `startGame` (every run's first position Trick
+  marks a row - fixed rather than rolled, because the whole point is a rule the
+  player can learn) and is in **`SAVE_VARS`**, so a resumed run carries on rather
+  than restarting the sequence.
+
+Measured over 40 fresh runs x 8 position Tricks through the real grant path:
+**0 sequence breaks, 160 rows and 160 columns exactly**, every index 0-3 used on
+both axes, and 8 registry entries in every run.
+
+#### 3. A SECOND RUN USED TO GET NO LINES AT ALL
+
+Found while measuring the above, and it is the reason `resetPositionMarks()`
+exists. `assignPositionMark` is idempotent per **Trick object** (`_posAssigned`)
+so an upgrade - which calls `selectTrick` twice - cannot re-roll a line the
+player is already building around. The trap is that **what the player owns IS the
+pool object**: `makeTrickPayload`'s `apply: () => injectTrickAfterReward(pick)`
+hands over `pick` itself, unlike the knack path beside it which pushes
+`{ ...pick }`. So the flag outlived the run that set it, and `startGame` clearing
+`rowColBonuses` was not enough.
+
+Measured before the fix, through the real grant path: run 1 registers
+`rowcol_triple_pips:row1` and `rowcol_mult:col2`; **run 2 grants both again and
+registers NOTHING.** Both Tricks are owned, both print "a marked row or column",
+and neither marks a line, scores a bonus or draws anything on the board - all
+eight position Tricks, common through epic, dead for every run of a session after
+the first.
+
+`resetPositionMarks()` clears `_posAssigned` / `_posAxis` / `_posIndex` /
+`_posDescBase` across `TRICK_POOL_ALL` and `TRICK_POOL` from `startGame`, beside
+`rowColBonuses = []`. It deliberately does **not** restore `desc`: the tier reset
+(`resetEntityTiers` -> `applyEntityTiers` -> `applyBalDescriptions`) already
+rewrites every description from the pristine text, and clearing `_posDescBase`
+means the next mark re-captures whatever that left - which matters when the Trick
+was improved mid-run and its printed number moved.
+
+#### 4. "col 1" is "column 1"
+
+`finalizePositionMark` built its label as `` `${axis} ${index + 1}` `` and `axis`
+is the id `col`, so half of every position Trick's printed description read
+"Cards scored in **col 1**". Pre-existing, but the alternation turns it from a
+coin flip into something every run shows, so it says `column` now - in the
+description and in the chooser's toast.
+
+### A card's buffs are CORNER BANDS (r299, finished r302) - `cardBandsHTML`
+
+Owner: *"Can we implement the same corner marking system the tricks have ... Like
+a diagonal line for every 5 pips or 5 mult, or 5 seconds if pause or rewind or for
+each 1 focus or 1 replay."*
+
+The mark is **r274's**: diagonal bands across a corner, one per unit, drawn as
+background gradient stops whose every length is a PERCENTAGE of the gradient's own
+axis - so it is the same picture on a 40px card and a 119px one with no JS
+measurement. One band per **5 pips · 5 mult · 5 seconds · 1 replay**.
+
+| corner | family | colour | reads |
+|---|---|---|---|
+| top-left | `permPips` | blue `#3a6fca` | per 5 |
+| top-right | `permMult` | red `#c0392b` | per 5 |
+| bottom-left | `permTime` + `_vulturePause` | black | per 5 |
+| bottom-right | `permRetrig` | green `#2e9c68` | per 1 |
+
+- **IT LIVES IN `js/deck-grid.js` BESIDE `cardBuffLines`**, which is the
+  documented one place a card's buffs are put into words (r209/r294) - this is the
+  same question asked in pictures. A second table of "what can a card carry" is
+  how the two would drift, and that is exactly what happened to the thing it
+  replaces: the old `buffBandHTML` (js/discard.js) covered pips, mult and The
+  Vulture's pause and nothing else, so a card carrying rewind seconds or a replay
+  looked **unbuffed**.
+- **THE TWO 8px `+Np` / `+Nm` TEXT LABELS ARE GONE WITH IT.** A 57px card cannot
+  carry four numbers, the Trick disc carries bands and no number for the same
+  reason, and the exact figures are one long-press away in `cardBuffLines` - which
+  the grid tooltip, the RECORDS deck matrix and the reward tiles already read.
+  Verified live: the tooltip on a `permRetrig` 3 card reads "+3 replay".
+- **ONE ELEMENT PER CORNER, AND THE CORNER IS THE GRADIENT'S ANGLE.** 45deg puts
+  stop 0% at the bottom-left, 135deg at the top-left, 225deg top-right, 315deg
+  bottom-right; the stop list is identical for all four, which is what keeps them
+  one object rather than four hand-placed decorations. An explicit angle rather
+  than `to top right` because a card is 0.76 aspect and a corner-to-corner
+  gradient on a tall box runs at **37 degrees** - the bands have to be at 45 to
+  read as the folded corner the disc's do.
+- **A COUNT IS ROUNDED TO NEAREST AND FLOORED AT ONE, never truncated.** The rate
+  is the owner's, but a floor would draw NOTHING for the +4 pips The Bench hands
+  out, which reads as the buff not having landed; and a part-band thin enough to
+  mean "and a bit" comes out **sub-pixel** at the sizes this draws at (1.4px on a
+  119px card, 0.7px on a 57px one). So any buff at all is at least one band.
+- **z-index -1, and it has to be** - the r296 wash's trap, above. Verified: the
+  rank and suit paint over the bands on a 6-band card.
+- **THE DISC'S OWN NUMBERS DO NOT TRANSFER.** It is start 13 / pitch 5 / thick 3
+  and stops at five bands, under a **foil label that ghosts them**; a card's face
+  is bare cream with a big centred rank, and a card has FOUR corners doing this at
+  once. Measured on a 119x158 card, the wedge six bands fill is **113x113 at the
+  disc's numbers** (most of the face, four times over), **77x77** at start 9, and
+  **66x66** at the shipped start 5. **START is the only one of the four that moves
+  the whole mark**; pitch and thickness only change how the bands sit inside it.
+  The card's corner is rounded (5 design px), which eats the first
+  `r(sqrt2 - 1)` = **2.1 design px** along the diagonal, so 5% (4.7 design px) is
+  about as close in as the first band can go and still be drawn whole - verified,
+  a lone band at +4 pips is fully visible.
+- **`permXPips` / `permXMult` / `permCoins` deliberately have no band.** A x2 is
+  not a tally of 5s and the owner did not name them; a multiplier wants its own
+  vocabulary rather than a count of bands meaning something else. Known gap: a x
+  mult card (The Forge, The Price, Coin Flip) still shows nothing on the board.
+- **THERE IS NO PER-CARD FOCUS STORE**, so the fifth family the owner named has
+  nothing to read - a card cannot grant Focus when it scores today. Adding one is
+  a row in `CARD_BAND_FAMILIES` plus the store and the site that pays it. **A
+  corner is a FAMILY OF RESOURCES and the band colour says which member**, so a
+  fifth family shares a corner with its nearest relative rather than needing a
+  fifth corner. Nothing shares one today.
+
+#### A band is ONE FLAT COLOUR, and that is what fixed the uneven look (r302)
+
+Owner: *"the lines on the cards should not have that highlight effect with the
+lighter color in the middle. Just the flat color."*
+
+r300 answered the owner's earlier *"why are some lines thicker than others"* with
+sub-pixel phase: a 2% band on a 119x158 card is **3.91px** drawn at 45 degrees,
+where the pixel grid steps **1.41px** along the diagonal, so neither the thickness
+(2.77 steps) nor the 3.4% pitch (4.7 steps) is a whole number of pixels and
+consecutive bands land in different phase. **That is true and it was only half the
+story.** The PALE CENTRE LINE is what turned a sub-pixel difference into a visible
+one: a band with a light middle is really two thin dark edges, and a thin edge is
+exactly what the phase pushes around.
+
+Measured by decoding the rendered PNG **across a row at 1px** (the diagonal ray
+r300 used quantises to 1.41px and cannot resolve this), five bands on one card:
+
+| | peak delta | spread | area |
+|---|---|---|---|
+| r300, light centre | 263-281 | 1.07x | 1030-1044 |
+| r302, flat colour | 321-324 | **1.01x** | 1605-1610 |
+
+So the flat band is **a fifth more ink** and its bands are **three times closer to
+each other**. Confirmed by eye on a 6x magnification: the r300 bands read as
+hollow outlines of visibly different weight, the r302 ones as even solid stripes.
+
+- **A SOFT EDGE RAMP WAS TRIED ON TOP AND REJECTED BY THE SAME MEASUREMENT.** It
+  left the spread where it was (1.10x against 1.11x along the diagonal) and cost
+  **20% of the ink**, because the flat colour had already done the whole job. Do
+  not re-add it. **The remaining levers**, if this ever needs one, are a THICKER
+  band (at 2% the phase error is 18% of the width; at 2.6% it is 14%) - not a
+  percentage that divides evenly, because the card is 119px on a desktop, 67px in
+  portrait and smaller again in the preview, and no percentage is a whole number
+  of pixels at all three.
+- **THE CENTRE LINE WAS LOAD-BEARING ON SPECTRUM, so the job moved to the INK.**
+  The colour deck's ⚫ card is near-black, so a flat black `time` band on it is
+  invisible; a green `replay` band on the green card is the same story. Each
+  family now carries `color` / `lite` / `dark`, and `cardBandInk` **prefers the
+  family's own colour and only reaches for a shade when it cannot be seen**
+  (luminance gap under `CARD_BAND_INK_MIN`, 0.28) - otherwise every cream card in
+  the game would be marked in navy and maroon instead of blue and red.
+- **It takes the BETTER of the two shades, never a fixed one.** Swapping blind can
+  make things worse: green against Spectrum's yellow card is a 0.24 gap, its pale
+  shade only 0.15 and its dark shade 0.52. `cardFaceColor` reads the face through
+  **`cardColorSuit`**, never `card.suit` - the r165 split, so a white 9/10/11 is
+  measured against the near-white it is drawn as.
+- Verified in a real browser on a full Spectrum board: all four families legible
+  on black, white, green, red, gold, orange, blue and purple faces.
+
+#### The overflow mark is a `+` at 45 degrees (r302)
+
+Owner: *"make sure the lines can't cover the suit or number. If theres that many
+buffs just put a '+' at a 45 degree angle where the last line would go."*
+
+It replaces r299's double-thick outermost band, which said the same thing by being
+fatter and cost 4% of the axis to say it.
+
+- **"DOES A BAND REACH THE GLYPH" IS ONE NUMBER.** A 45 degree band at p% of the
+  axis lies on the line `u + v = (p/100)(W+H)`, where u and v are the distances
+  from that corner - so the question is `min(u+v)` over the glyph's box, and it is
+  a share of `(W+H)` at any card size. Measured in a real browser over the rank,
+  the suit and Spectrum's big value: **Classic 29.0%** at 1440x820 and 29.5% in
+  portrait, **SPECTRUM 26.8%** - the colour deck's centred value is the tightest
+  in the game, so it is what the budget is set against.
+- **`CARD_BAND_LIMIT` is 24% and `CARD_BAND_MAX` is DERIVED from it**, so a retune
+  of start / pitch / thickness cannot put a band over a glyph by accident.
+- **The card's own BORDER spends a little of the budget.** The gradient paints on
+  the `.card-bands` box, which is the card's PADDING box, so its origin sits one
+  border in and its axis is shorter: measured in CARD coordinates the outermost
+  band lands at **25.1%** rather than 24%. Still clear of 26.8% by ~4.5px on a
+  desktop card and 2.5px in portrait. **A measurement of this has to say which box
+  it is in** or the two disagree by the border.
+- **THE `+` COSTS THREE SLOTS, AND THAT IS FORCED BY THE BUDGET.** A `+` centred
+  on a slot reaches `S/sqrt(2)` either side of it along the diagonal, so it is only
+  ever as wide as the room around the slot it stands in - and in the FINAL slot
+  that room is 1% of the axis, **3.8px** on a desktop card, which is not a `+`, it
+  is a speck (built that way first, and it looked like one). Moved back one slot it
+  has the outer 4.4% to grow into, and dropping the band that would have sat beside
+  it opens the inner side too. So **three bands are drawn and the `+` stands for the
+  rest**, its outer vertex landing exactly where a sixth band's far edge would have:
+  the same footprint whether or not the count overflowed. Counts 1-6 draw that many
+  bands; 7 and up draw 3 and the `+`.
+- **`.card-bands` IS A SIZE CONTAINER purely so the `+` can be placed.** The mark's
+  centre is at `u = v = (p/200)(W+H)`, a length neither a percentage nor an em can
+  express - a percentage `left` is a share of W and a percentage `top` a share of H.
+  In container-query units it is one calc over `100cqw + 100cqh`, exact at every
+  card size with no JS measurement, which is the rule the bands themselves follow.
+  `container-type: size` also makes the element the containing block for that
+  absolute child, which is what we want: it is `inset: 0`, so its box IS the card's.
+- The `+` is **two crossing bars, not a glyph**, each 26% of the mark's side, so its
+  weight follows its size and it needs no font. It takes the family's own ink.
+
+Verified in a real browser at 1440x820 and 420x820, in Classic and Spectrum, over
+a board carrying every count from 1 to 9 on all four corners: **0 of 60 marks
+reach a glyph** (measured in the `u+v` metric, not by bounding box - a rotated `+`
+overlaps a glyph's BOX at the corner while its arms are nowhere near it), 0 marks
+paint outside their card, a hand plays through the full dance with the preview
+carrying its bands, and there are **no page errors**.
 
 ### The score panel between rounds (r223)
 
@@ -2992,6 +3347,164 @@ happened**. Owner's call: on the map an event is an event TILE.
 `NO_DEST` in `_generateRewardContent` already excluded the prize grid and
 **Guided, for this exact reason** - the map was simply missed when it landed.
 One clause. Verified: 0 destination tiles across 60 generated map reward grids.
+
+## Crunch (r293) - `js/crunch-mode.js`
+
+The Schedule's board walked against ONE clock for the whole quarter. You are given
+**13:00** at the top of the quarter and that is all of it: every second of every
+round spends it, every obligation you book that is not a round debits a flat fee,
+and the **manager review at the end is fought on whatever is left**. There is no
+second timer anywhere. Run it to zero and the run is over.
+
+`MODES.crunch` carries **`map: true`**, so `mapActive()` is true and the board, its
+generation, the dead-end DP, the route drawing, the tile routing and the quarter
+rollover are the Schedule's, untouched. This file is the clock and the money.
+
+**It is in `MODE_HIDDEN_LIST`, not the carousel** (owner's call): a rough first
+pass being tuned, so the way in is **dev panel -> Modes**, which is generated from
+`MODES` itself and needed no wiring. Its `MODE_META` card is written and kept -
+promoting it is one entry in `MODE_FINALE_GROUP` and one deletion from the hidden
+list, with nothing to rewrite. Note the other three hidden modes are hidden for a
+different reason (a different loop, and no boss wiring at all); this one is
+complete, just unproven.
+
+### The act bank IS `roundSeconds`
+
+The load-bearing decision, and Flow's (r164) for the same reason: about fifteen
+sites measure "how far into the round are we" as `roundStartSeconds - roundSeconds`
+(The Swift, Sediment, the Cuckoo, the Woodpecker, the exalt window, every
+clock-mark Trick). A parallel act counter with `roundSeconds` pinned would kill all
+of them silently. So the bank is that variable, it ticks exactly as it always did,
+and only three things differ: a level-up does not refill it, obligations debit it,
+and the review's window is what remains.
+
+**Reaching zero needed no branch at all.** `onRoundEnd` -> `_onRoundEndCore` ->
+`score < roundGoal` -> the ordinary loss is already what "you lose" means here.
+
+| | answer |
+|---|---|
+| clock on non-play screens | **does not tick.** A flat fee is charged at CONFIRM instead. A mode where reading a tooltip costs you the run is a worse mode. |
+| missing a round goal | not a loss. Only the clock is. |
+| the review's clock | the bank, floored at 30s (`crunchBossWindow`, passed to `triggerBoss` as its explicit window so the two can never be different numbers) |
+| a new quarter | `min(13:00, left + 0.75 x 13:00)`. Banking is worth exactly the shortfall; you can never open above the allowance. |
+| skipping a slot | pays no credits. Moving on early already saves the fee, and paying twice for one decision is the r211 Coin Flip mistake. |
+| swaps and discards | bill the clock at the usual 8s / 3s per card, straight off the bank |
+
+### FOUR CLOCK CEILINGS WERE WRITTEN FOR A ROUND CLOCK, AND ALL FOUR CUT THE BANK
+
+The one real trap, and it is the same bug r183 took out of `rewindCeiling`, where a
+Flush in Flow cut the session clock from 290 to 180 and reported nothing. A cap of
+`ROUND_DURATION` or `limits.round_time.current` means something only where the clock
+is a ROUND's. 13:00 is four times the 3:00 round-time limit, so every one of these
+silently destroyed ten minutes:
+
+| site | was |
+|---|---|
+| **`show321Countdown`** (js/interlude.js) | the live bug: **every run opened at 3:00, not 13:00** |
+| the Altar's `time_boost` (js/events.js) | `+15s` onto 700 clamped to 240 |
+| the spade exalt payout (js/play-hand.js) | `+4s` onto 700 clamped to **180** |
+| the dev time slider | same shape |
+
+- **`crunchNoRoundCap(cap)` returns `Infinity` in Crunch and the cap untouched
+  everywhere else**, so the three ADD-time sites are one wrapper each and every
+  other mode is byte-identical.
+- **The countdown is not an add, and the guard has to be on the ANIMATION.**
+  `show321Countdown` winds `roundSeconds` from its current value up to
+  `limits.round_time.current` over 1500ms, writing the global every frame - in
+  Crunch that is a wind DOWN from 13:00 to 3:00. A first pass guarded the line
+  AFTER it, which read the already-clobbered value and did nothing. `tickRefill`
+  now returns immediately in Crunch. The round-cap PENALTY still bites; it just
+  comes off the bank instead of off a limit.
+- **`finishTimer` (js/reward-grid.js) has the same shape and is unreachable**:
+  Crunch always sets `rewardGridContext = 'interlude'`.
+
+### Par replaces leftover time
+
+The payout's Efficiency line pays `1 credit per 10s` of `frozenRoundSeconds`, which
+here is the act bank - it would pay for time the player has not finished spending,
+and pay it again at every level. It becomes **Under Par**: credits for every
+`efficiencySecondsPerCoin()` seconds this round came in under `CRUNCH_PAR_SECONDS`
+(3:00, deliberately flat for every level while the mode is tuned).
+
+- **Same rate, so Time and a Half still doubles it** without knowing this mode
+  exists.
+- **Elapsed is `roundStartSeconds - frozenRoundSeconds`**, and the payout runs
+  between the two writes, so it is this round and not the act. It includes swap and
+  discard charges on purpose: interacting eats your par exactly as playing does.
+- **`payoutClockSeconds()` / `payoutEfficiencyName()` / `payoutEfficiencyDesc()`
+  are one function each** because the count-down animation and the figure above it
+  are written in two different places and must not drift. Measured: a 5-second
+  round pays 17.
+
+### The stuck round
+
+No swaps, no discards and no hand on the board. The round cannot be finished and
+the clock would simply run out, which here is the run - so it is closed out:
+charged **up to par plus 60s**, paid nothing, and you move on. Playing badly costs
+the quarter's time; it does not end the run.
+
+- **Checked on the round tick, cheap tests first** - the `3^n` board scan only runs
+  on the rare tick where both stocks are actually empty, and never while
+  `animating || falling` (a settling board is not a stuck one).
+- **`goalReachedThisRound = true` is the ROUTING flag**, the same one the goal dance
+  sets, and what stops a late timer tick firing the legacy level-up path on top of
+  the interlude. `skipNextPayout` shows the screen with its figures zeroed, which is
+  better than no screen: the player sees what it cost.
+- **It is only reachable at a small Selection Size.** Past a minimum selection of 3
+  High Card is live (r200) and `detectHand` answers for any two cards, so there is
+  essentially always something submittable.
+- **Open question:** a written-off round still pays its pick-of-three, because that
+  is the level tile's structural reward rather than a payout. Worth a decision.
+
+### Entity bans
+
+`first_wind` and `carry_time` are banned, through `survivalEntityBanned` - the one
+chokepoint every offer pool reads. They were behind `modeHasNoRoundClock()`, which
+is **false** for Crunch (its clock does end the round), but the question those two
+actually fail is "does the clock REFILL per round", and Crunch's does not: First
+Wind measures its grace window against `ROUND_DURATION` and the bank opens far
+above it, and Carry Time would bank the same seconds at every level of the quarter.
+
+### Verified
+
+In a real browser at 1440x820 and 420x820, through the real paths: a run opens at
+**12:59** and ticks, the clock **carries across a level-up** (600 -> 600, 300 -> 300,
+120 -> 120 with the level advancing), a shop tile debits **45s** and the bar prints
+`booking costs 45s`, a booking the bank cannot cover is **refused** (45s fee, refused
+at 40 and allowed at 46), the quarter grant reads **585 / 780 / 780** from 0 / 400 /
+700, a dead board charges exactly **238s** (178 remaining par + 60), and the payout
+reads **Under Par · 1 per 10s under par (3:00)**. Zero page errors. **Classic is
+byte-identical**: 3:00 clock, `Efficiency · 1 per 10s remaining`,
+`crunchNoRoundCap(180) === 180`, both bans false.
+
+### Overtime (r293) - the only way to buy time back
+
+An event, **Crunch only** through `EVENT_REQUIRES`. **+90 seconds onto the act
+clock, and the cost is TWO permanent downsides** rather than one (owner's call),
+rolled from a table of six and **shown up front**: the decision is whether ninety
+seconds is worth exactly these two, so hiding either would make it a coin flip
+instead of a trade. Pool 21 -> 22.
+
+- **Crunch only because everywhere else the clock is a ROUND's and it refills.**
+  There, +90s is either most of a round handed over for a downside that only bites
+  next round, or clamped away entirely.
+- **It goes through `rewindTime`, never a raw `roundSeconds +=`** (r183), which is
+  what keeps the floater, the Kingfisher tally and the ceiling honest.
+- **It deliberately does NOT call `render()`.** An event opens over a board that
+  has already been cleared, and on the Schedule `#grid` holds map tiles - so
+  `gridRows`/`gridCols` and `gridData` disagree and `render()` throws on a cell
+  that is not there. This is the hazard `_devSafeRender` exists for, one step
+  worse: that guard checks `gridData` has ROWS, not that the rows hold cards.
+  Nothing here is on screen anyway and every following screen repaints. **Note
+  `renderTwinPath`'s shadow debuffs call `render()` at the same moment and have
+  the same exposure.**
+- **`evShuffle`, not `shuffled()`** - the r194 trap: `shuffled` is scoped inside
+  `_generateRewardContent` and throws the moment an event calls it.
+- Measured: 0 leaks into Classic over 400 draws, drawn on ~6% of Crunch events,
+  200 rolls give exactly 2 distinct costs every time with all 6 reachable, and a
+  confirm moves the clock 400 -> 490 with both costs applied.
+
+**Not built yet** (next pass): the reward-grid time tiles.
 
 ### Mini-bosses (r239) - the second challenge kind
 

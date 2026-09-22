@@ -421,21 +421,10 @@ function endStopwatch() {
 // GRAVITY ANIMATION (from gravity-test.html)
 // ══════════════════════════════════════════════
 
-// Permanent-buff corner indicators: diagonal tally bands (thin = 1, thick = 5),
-// stacked inward from a corner. pips=blue/top-left, mult=red/top-right,
-// time=black/bottom-right, coins=gold/bottom-left.
-function buffBandHTML(corner, count, color) {
-  if (!count || count <= 0) return '';
-  const segs = [];
-  for (let i = 0; i < Math.floor(count / 5); i++) segs.push('bb-thick');
-  for (let i = 0; i < count % 5; i++) segs.push('bb-thin');
-  const edge = { tl:'top', tr:'top', br:'bottom', bl:'bottom' }[corner];
-  const side = { tl:'left', tr:'right', br:'right', bl:'left' }[corner];
-  return segs.map((cls, i) => {
-    const o = 2 + i * 3; // px inward from the corner along the diagonal
-    return `<div class="buff-band bb-${corner} ${cls}" style="${edge}:${o}px;${side}:${o}px;background:${color};"></div>`;
-  }).join('');
-}
+// The permanent-buff corner tally that used to live here is now cardBandsHTML in
+// js/deck-grid.js (r299), beside cardBuffLines - see the note there. It covered
+// pips, mult and The Vulture's pause and nothing else, so a card carrying rewind
+// seconds or a replay looked unbuffed.
 
 // ── Single source of truth for card visual appearance ──────────────────────────
 // Returns { className, innerHTML } describing how a card looks at position (r,c).

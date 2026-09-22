@@ -797,7 +797,7 @@ function confirmAltar() {
 function tickAltarEffects() {
   altarEffects.forEach(eff => {
     if (eff.type === 'time_boost') {
-      roundSeconds = Math.min(roundSeconds + eff.value, limits.round_time.current + 60);
+      roundSeconds = Math.min(roundSeconds + eff.value, crunchNoRoundCap(limits.round_time.current + 60));
       updateClockUI();
     }
     eff.roundsLeft--;
@@ -1015,6 +1015,69 @@ function confirmSpring() {
 // ══════════════════════════════════════════════
 // EVENT: TWIN PATH
 // ══════════════════════════════════════════════
+// ── OVERTIME (r293) - the only way to buy time back in Crunch ───────────────
+// +OVERTIME_SECONDS onto the act clock, and the cost is TWO permanent downsides
+// rather than one (owner's call). Both are rolled and SHOWN UP FRONT: the
+// decision is whether ninety seconds is worth exactly these two, so hiding
+// either would make it a coin flip instead of a trade.
+//
+// CRUNCH ONLY, through EVENT_REQUIRES. Everywhere else the clock is a ROUND's
+// and it refills, so +90s is either most of a round handed over for a downside
+// that only bites next round, or clamped away entirely.
+const OVERTIME_SECONDS = 90;
+const OVERTIME_COSTS = [
+  { icon:'🌑', name:'Quota revision', desc:'Every future round goal rises 10%. Permanent.',
+    apply:()=>{ goalPenaltyMult *= 1.10; return 'Goals +10%'; } },
+  { icon:'✖', name:'One less swap', desc:'Lose 1 swap per round. Permanent.',
+    apply:()=>{ limits.swaps.current = Math.max(limits.swaps.min || 0, limits.swaps.current - 1);
+                swaps = Math.min(swaps, limits.swaps.current); return '-1 swap'; } },
+  { icon:'☠', name:'One less discard', desc:'Lose 1 discard per round. Permanent.',
+    apply:()=>{ limits.discards.current = Math.max(limits.discards.min || 0, limits.discards.current - 1);
+                discards = Math.min(discards, limits.discards.current); return '-1 discard'; } },
+  { icon:'⏱', name:'Slower hands', desc:'Playing a hand costs 2s from then on.',
+    apply:()=>{ extraPlayCostPerm += 2; playHandCostThisRound = extraPlayCostPerm + nextRoundPlayCost; return 'Playing costs 2s'; } },
+  { icon:'🗑', name:'Costlier discards', desc:'Each discarded card costs 2s more from then on.',
+    apply:()=>{ extraDiscardCostPerm += 2; discardCostThisRound = extraDiscardCostPerm + nextRoundDiscardCost; return 'Discards cost 2s more'; } },
+  { icon:'🧊', name:'Interest frozen', desc:'No interest on the next 3 payouts.',
+    apply:()=>{ interestFreezeRounds += 3; return 'Interest frozen 3 rounds'; } },
+];
+
+function renderOvertime() {
+  const body = document.getElementById('event-body');
+  // Two DISTINCT costs. evShuffle, not shuffled() - that one is scoped inside
+  // _generateRewardContent and throws the moment an event calls it (r194).
+  eventState.overtimeCosts = evShuffle(OVERTIME_COSTS.slice()).slice(0, 2);
+
+  body.appendChild(evLabel('ON THE CLOCK'));
+  body.appendChild(makeChoiceEl({
+    icon:'⏳', name:`+${OVERTIME_SECONDS} seconds`,
+    desc:`Put ${formatTime(OVERTIME_SECONDS)} back on the quarter's clock, right now.`,
+  }));
+
+  body.appendChild(evLabel('THE COST · BOTH APPLY', true));
+  eventState.overtimeCosts.forEach(c => {
+    body.appendChild(makeChoiceEl({ icon:c.icon, name:c.name, desc:c.desc, cls:'debuff' }));
+  });
+  body.appendChild(evNote('Skip and nothing happens either way.'));
+}
+
+function confirmOvertime() {
+  const costs = eventState.overtimeCosts || [];
+  // rewindTime, never a raw roundSeconds += (r183) - that is what keeps the
+  // floater, the Kingfisher tally and rewindCeiling honest.
+  if (typeof rewindTime === 'function') rewindTime(OVERTIME_SECONDS, 'Overtime');
+  else { roundSeconds += OVERTIME_SECONDS; updateClockUI(); }
+  const notes = costs.map(c => { try { return c.apply(); } catch (e) { return null; } }).filter(Boolean);
+  // Deliberately NO render(). An event opens over a board that has already been
+  // cleared - on the Schedule the grid holds map tiles, so gridRows/gridCols and
+  // gridData disagree and render() throws on a cell that is not there. (This is
+  // the same hazard _devSafeRender exists for, one step worse: it checks that
+  // gridData has ROWS, not that the rows hold cards.) Nothing here is on screen
+  // anyway, and every screen that follows repaints - startRoundTimer for a round,
+  // mapOpen for the board.
+  showMessage(`Overtime · +${formatTime(OVERTIME_SECONDS)} · ${notes.join(' · ')}`, 'var(--gold)');
+}
+
 function renderTwinPath() {
   const ownedTrick = new Set((acquiredTricks||[]).map(b=>b.id));
   const pool = TRICK_POOL.filter(b=>!ownedTrick.has(b.id) && !offerBannedGlobal(b.id));

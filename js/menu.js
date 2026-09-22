@@ -1,4 +1,4 @@
-const BUILD = "2026-09-22 · r298 · the schedule legend docks beside the board on a phone";
+const BUILD = "2026-09-22 · r303 · the schedule legend docks beside the board on a phone";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
@@ -55,6 +55,26 @@ const MODES = {
     actStructure: true,
     suitCount: 4,
     map: true
+  },
+  // CRUNCH (r293): the Schedule on one act-long clock. Carries map:true, so the
+  // board, its generation and every routing seam are the Schedule's untouched;
+  // crunch:true is what js/crunch-mode.js reads. See that file for why the act
+  // bank is roundSeconds itself rather than a parallel counter.
+  crunch: {
+    id: 'crunch',
+    name: 'Crunch',
+    desc: 'The schedule, on one clock. Thirteen minutes for the whole quarter, every obligation you book costs some of it, and the manager review is fought on whatever is left.',
+    winCondition: 'boss_defeat',
+    enableBosses: true,
+    enableShops: true,
+    enableEvents: true,
+    autoRefillGrid: true,
+    timeIsCurrency: true,
+    autoPlayHands: false,
+    actStructure: true,
+    suitCount: 4,
+    map: true,
+    crunch: true
   },
   // Guided first run. Mechanically IDENTICAL to Classic (actStructure: true) -
   // an ordinary seeded run with coach-marks over it. See js/tutorial.js.
@@ -297,12 +317,21 @@ function startMatch3FromMenu(modeId = 'match3') {
 // FIRST RUN is its tutorial now, so a standalone one would be a second door to
 // the same thing. It is still reachable from the dev panel's Modes group.
 const MODE_SELECT_LIST = [...MODE_UNLOCK_CHAIN, ...MODE_FINALE_GROUP];
-const MODE_HIDDEN_LIST = ['match3', 'zen', 'dominoes'];
+// Built but NOT in the carousel. Reachable from dev panel -> Modes, which is
+// generated from MODES itself so nothing here has to be listed twice.
+// `crunch` is here because it is a rough first pass being tuned, not because it
+// is an experiment on a different loop the way the other three are.
+const MODE_HIDDEN_LIST = ['match3', 'zen', 'dominoes', 'crunch'];
 const MODE_META = {
   tutorial: { accent: '#8fd0ff',         suits: 'START HERE',
               blurb: 'LETHE Corp staff orientation. A normal Classic run with the terminal explaining each control as you reach it - scoring, Focus, limits, the reward path, the shop. About three minutes.' },
   normal:   { accent: 'var(--c-yellow)', suits: '♠ ♥ ♦ ♣',
               blurb: 'The original four-suit game. Three Acts of rounds, shops, events and bosses.' },
+  // Crunch is in MODE_HIDDEN_LIST, so this card is not drawn today. Kept ready:
+  // promoting the mode is one entry in MODE_FINALE_GROUP and one deletion from
+  // the hidden list, with nothing to rewrite.
+  crunch:   { accent: '#e8734a',         suits: '13:00 · ONE CLOCK',
+              blurb: 'The schedule, against a single clock for the whole quarter. Rounds spend it as you play, booking anything that is not a round costs a flat fee, and the manager review is fought on whatever is left. Run it to zero and the run is over. Beat the review and you get most of it back.' },
   map:      { accent: '#6fd08c',         suits: '4 × 6 + BOSS',
               blurb: 'The run is a board. Four lanes, six sets of tiles - rounds, hard rounds, shops, reward grids, events, a couple of blanks and mysteries - then a full-width boss with a fixed quota you can read from the start. Orthogonal moves only, at most two tiles per set, and moving on early pays credits.' },
   guided:   { accent: '#c9a0ff',         suits: '8 SLOTS',
