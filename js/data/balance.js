@@ -205,7 +205,7 @@ const BAL = {
   minute_hand: { mult: 5, hands: 2 },
   understudy: { interval_seconds: 30 },
   hallmark:   { mult: 5, pips: 10, seconds: 3, force_scale: 1, force_cap_x: 8 },
-  turnover:   { idle_seconds: 60 },
+  turnover:   { idle_seconds: 45 },
   // Card states (r278, js/card-states.js). Not an entity, so improve.js never
   // touches these - they are the states' own numbers, in one place.
   card_states: { review_up: 0.2, review_down: 0.5, roll_call_penalty: 15, fuse_seconds: 60 },
@@ -269,7 +269,7 @@ const BAL = {
   carry_discards: { max: 8 },
   carry_time: { max_seconds: 60 },
   // ── system: base resource time costs ──
-  _resources: { unspent_credits: 3, swap_seconds: 8, discard_seconds_per_card: 3 },   // play is free by default
+  _resources: { unspent_credits: 2, unspent_cap: 16, swap_seconds: 8, discard_seconds_per_card: 3 },   // play is free by default
   _exalt: { club_pips: 10, diamond_coins: 3, heart_mult: 2, spade_time: 4 },
   _corrupt: { club_pips: 25, club_mult: -3, diamond_coins: 5, diamond_pips: -20, heart_mult: 5, heart_time: -5, spade_time: 7, spade_coins: -8 },
 };
@@ -398,6 +398,7 @@ const DESC_TEMPLATES = {
   nines_mult: 'Each 9 scored permanently adds +{mult_per_nine} mult to this trick',
   fours_perm: '4-card hands permanently give the 4th card +{pips} pips',
   big_win: 'The first time a single hand scores 10,000+, permanently add +{mult} mult to this trick',
+  interest: 'Pips start at ×1 and gain +{pip_mult_per_10_credits}× for every 10 credits you hold, up to ×{max_pip_mult}',
   idol: 'Finish the round with this on your board to earn {interest_mult}× interest. (Once)',
   amplifier: 'Double-tap: the next hand scores +{mult} mult. (5 charges)',
   the_legacy: 'Discard this: the next hand played gets ×{mult_x} mult. (3 charges)',

@@ -1,4 +1,4 @@
-const BUILD = "2026-09-22 · r303 · the schedule legend docks beside the board on a phone";
+const BUILD = "2026-09-22 · r304 · particles fly from live anchors; limit break stacks; owner retunes";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

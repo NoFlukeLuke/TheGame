@@ -196,7 +196,12 @@ const PARTICLE_CFG = {
   // particles every further one is `growStep`% bigger than the one before it, so
   // a hand firing forty payouts ends much louder than it started. Compounding,
   // capped at `growMax`. Tunable in the dev panel under Animation.
-  growStart: 5, growStep: 5, growMax: 3,
+  // r304 halved `growStep` 5 -> 2.5 (owner's call: the plates were getting too
+  // big). The CEILING is untouched - what changed is how fast a hand climbs to
+  // it, which is what a realistic hand actually feels: at 40 payouts the last
+  // plate was 1.05^35 = x5.5 (clamped to the x3 ceiling) and is now 1.025^35 =
+  // x2.37, i.e. under the cap and still visibly building.
+  growStart: 5, growStep: 2.5, growMax: 3,
   colors: {
     pipAdd:  '#2f6bd8',      // pips are blue, the PIPS chip's own border colour
     pipMul:  '#0e2a5d',      // a multiply is the same hue, deeper
@@ -918,11 +923,31 @@ function ptLaunch(a, b, kind, label, color, dur, opts){
 }
 
 function dncFly(srcEl, boxEl, label, color, onLand, durOverride, kind){
-  const a=srcEl.getBoundingClientRect(), b=boxEl.getBoundingClientRect();
+  let a=srcEl?srcEl.getBoundingClientRect():null; const b=boxEl.getBoundingClientRect();
+  // BELT AND BRACES FOR THE (0,0) LAUNCH (r304). danceEntityEl now refuses a dead
+  // anchor and fireEvent re-resolves at fire time, but THE FALLBACK ANCHOR CAN BE
+  // DEAD TOO, and measurement says it routinely is: the goal hand's last card
+  // beats land while the interlude is opening, and in portrait that collapses the
+  // hand-preview half of the shared strip to 0x0 - so the preview CARD the plate
+  // flies from is still in the document and still measures {0,0,0,0}. Every
+  // particle in the game passes through here, so this is the one place that can
+  // make "flew in from the top-left corner of the screen" impossible.
+  //   no origin  -> pop the plate AT its destination rather than across the display
+  //   no destination either (the PIPS/MULT chips are display:none on every
+  //     grid-takeover screen) -> draw nothing at all. There is nothing on screen
+  //     left for it to mean, and a plate in the corner is worse than no plate.
+  // THE ARITHMETIC IS UNTOUCHED EITHER WAY: the accel still bumps and the promise
+  // still resolves after `dur`, because r220's rule is that replaying the timeline
+  // has to reproduce calcScore exactly - what may vary is only what is drawn.
+  const liveB = b.width > 0 && b.height > 0;
+  if(!a || !a.width || !a.height) a = b;
   const base = ptBaseFlight();
   const dur = durOverride || (dncFF ? Math.max(60, base/DANCE_CFG.ff) : Math.max(60, base/dncPace()));
-  ptLaunch(a, b, kind, label, color, dur,
-    { scale: dncBlipScale(), animate: dncAnimate, timeout: dncTimeout });
+  // The blip counter advances whether or not a plate is drawn, so a skipped one
+  // does not shrink the next visible plate back down the growth curve.
+  const _blip = dncBlipScale();
+  if(liveB) ptLaunch(a, b, kind, label, color, dur,
+    { scale: _blip, animate: dncAnimate, timeout: dncTimeout });
   // This particle IS a payout tick - a card's pips, a Trick's pips or mult, a
   // Sleight firing. Bump AFTER dur is read so the speed-up lands on what is
   // still to come, not on the flight that earned it.
@@ -954,17 +979,29 @@ function dncGlow(el, strong){ if(!el) return;
   el.animate([{boxShadow:'0 0 0 0 rgba(245,192,66,0)'},
     {boxShadow:`0 0 ${strong?14:8}px ${strong?4:2}px rgba(245,192,66,${strong?0.7:0.5})`, offset:.4},
     {boxShadow:'0 0 0 0 rgba(245,192,66,0)'}], {duration: strong?360:200, easing:'ease-in-out'}); }
+// AN ANCHOR IS ONLY AN ANCHOR IF IT HAS A REAL RECT (r304). The same rule
+// js/payout-fx.js and tutEl() already follow, and the one this file was missing:
+// a detached or hidden element measures {0,0,0,0}, and dncFly takes the CENTRE of
+// that rect, so the particle launches from the top-left CORNER OF THE SCREEN
+// rather than from the thing that paid it. Returning null here instead sends the
+// caller to its fallback anchor (the card that triggered it, or the chip it flies
+// into), which is always somewhere the player is already looking.
+function dncUsable(el){
+  if(!el || !el.isConnected) return null;
+  const b = el.getBoundingClientRect();
+  return (b.width > 0 && b.height > 0) ? el : null;
+}
 function danceEntityEl(source, id){
   if(source==='trick'){
-    const chip=document.querySelector(`.trick-tray-chip[data-trick-id="${CSS.escape(id)}"]`);
+    const chip=dncUsable(document.querySelector(`.trick-tray-chip[data-trick-id="${CSS.escape(id)}"]`));
     if(chip) return chip;
     for(let r=0;r<gridRows;r++)for(let c=0;c<gridCols;c++){ const cell=gridData[r]?.[c];
-      if(cell?._isTrick && cell.trick?.id===id) return document.querySelector(`#grid [data-card-id="${cell._id}"]`); }
+      if(cell?._isTrick && cell.trick?.id===id) return dncUsable(document.querySelector(`#grid [data-card-id="${cell._id}"]`)); }
   } else if(source==='knack'){
-    const k=document.querySelector(`.knack-chip[data-knack-id="${CSS.escape(id)}"]`); if(k) return k;
+    const k=dncUsable(document.querySelector(`.knack-chip[data-knack-id="${CSS.escape(id)}"]`)); if(k) return k;
   } else if(source==='sleight'){
     for(let r=0;r<gridRows;r++)for(let c=0;c<gridCols;c++){ const cell=gridData[r]?.[c];
-      if(cell?._isSleight && cell.sleightId===id) return document.querySelector(`#grid [data-card-id="${cell._id}"]`); }
+      if(cell?._isSleight && cell.sleightId===id) return dncUsable(document.querySelector(`#grid [data-card-id="${cell._id}"]`)); }
   }
   return null;
 }
@@ -1131,10 +1168,37 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
       steps.push({ kind:'card', card:ci, slot:slotOf(ci), reps:repsByCard[ci]||1, events:timeline.slice(start,i) });
     } else { steps.push({ kind:'hand', event:ev, prime: !!ev.prime }); i++; }
   }
-  // Every entity that will fire, so the tray can be resolved once up front. Nothing
-  // is charged here - an entity stays perfectly still until its own event lands.
+  // Every entity that will fire. Nothing is charged here - an entity stays
+  // perfectly still until its own event lands.
+  //
+  // THE SNAPSHOT IS A CACHE, NOT THE ANSWER (r304). It used to be resolved once
+  // here and read straight out at fire time, and a tray chip does not survive the
+  // hand: `renderTrickTray()` rebuilds `#trick-tray-list`'s children wholesale and
+  // is called DURING a hand by the cooldown/prime bookkeeping in play-hand.js and
+  // scoring.js, by boss-effects, by card-states and by hallmark. The element
+  // cached up here is then detached, `getBoundingClientRect()` reads {0,0,0,0},
+  // and every Trick particle for the rest of that hand flew from the TOP-LEFT
+  // CORNER OF THE SCREEN - measured, both orientations, from the first entity
+  // payout of the hand onward. It is far more obvious in portrait, where the tray
+  // is at the bottom of the screen, which is why it reads as a mobile bug.
+  //
+  // Chasing the call sites would not fix it - the tray is entitled to repaint
+  // mid-hand. So `dncEntEl` re-queries whenever what it holds is no longer usable,
+  // and that also puts the charge/pop back on the live chip, which had been
+  // styling a detached node for just as long.
   const elById = {};
   const entityEls = [];
+  const dncEntEl = ev => {
+    if(!ev || ev.id === '_card') return null;
+    const cached = dncUsable(elById[ev.id]);
+    if(cached) return cached;
+    const el = danceEntityEl(ev.source, ev.id);
+    elById[ev.id] = el || null;
+    // Cleanup (dncRealEls / the jitter sweep below) has to know about the element
+    // that actually got the class, not the one that was here when the hand began.
+    if(el && !entityEls.includes(el)){ entityEls.push(el); dncRealEls.push(el); }
+    return el;
+  };
   timeline.forEach(ev => {
     if(ev.id === '_card') return;
     if(elById[ev.id] !== undefined) return;
@@ -1407,7 +1471,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   // particle's own landing, so a whole beat can launch together and still apply
   // its values in emission order (see the beat loop below).
   const fireEvent = (ev, fallbackEl, subRef, awaitIt, inBeat, dur, defer) => {
-    const el = ev.id==='_card' ? null : elById[ev.id];
+    const el = dncEntEl(ev);
     if(el) dncReleaseReal(el);
     const src = el || fallbackEl;
     const box = (ev.op==='pip+'||ev.op==='pip*') ? pipsBox : multBox;

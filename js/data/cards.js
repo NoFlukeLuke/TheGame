@@ -209,6 +209,30 @@ function efficiencySecondsPerCoin() {
   return (typeof hasKnack === 'function' && hasKnack('time_and_a_half'))
     ? EFFICIENCY_SECONDS_PER_COIN / 2 : EFFICIENCY_SECONDS_PER_COIN;
 }
+// Unused swaps and discards -> credits, the payout's "Unused stock" line
+// (js/interlude.js) and its Survival/Flow mirror (js/survival.js). Same rule as
+// efficiencySecondsPerCoin above: ONE function, so the two economies and the
+// PRINTED label cannot drift - which is exactly what happened to the interact
+// costs in r151 and is why they are quoted from one place now.
+//
+// r304 took the rate 3 -> 2 and CAPPED THE LINE at BAL._resources.unspent_cap
+// (owner's call - runs were ending drowning in credits). The cap is what makes
+// the difference late: the rate alone is linear in a stock that grows all run,
+// so at 12 held actions the old line paid 36 and this one pays 16.
+function unspentPayout(actions) {
+  const R = (typeof BAL !== 'undefined' && BAL._resources) ? BAL._resources : {};
+  const rate = R.unspent_credits != null ? R.unspent_credits : 2;
+  const cap  = R.unspent_cap     != null ? R.unspent_cap     : Infinity;
+  return Math.min(cap, Math.max(0, actions) * rate);
+}
+// What the payout screen and the Time pop-up say this line pays. Quoted from the
+// same numbers that are charged, never typed alongside them.
+function unspentPayoutDesc() {
+  const R = (typeof BAL !== 'undefined' && BAL._resources) ? BAL._resources : {};
+  const rate = R.unspent_credits != null ? R.unspent_credits : 2;
+  const cap  = R.unspent_cap;
+  return `${rate} per unused swap or discard` + (cap != null ? ` · max ${cap}` : '');
+}
 const LEVEL_UP_DURATION = 45;
 // 1200, raised from 1000 with the r178 hand retune. That retune moved value into
 // the hands players actually make (Straights, Full Houses, Two Pair) and out of
