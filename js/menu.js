@@ -1,4 +1,4 @@
-const BUILD = "2026-09-21 · r302 · flat corner bands with a + overflow, and the highlight ring turns";
+const BUILD = "2026-09-22 · r303 · the card buff overflow + is upright, not turned";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
