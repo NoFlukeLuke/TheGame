@@ -216,22 +216,63 @@ function efficiencySecondsPerCoin() {
 // costs in r151 and is why they are quoted from one place now.
 //
 // r304 took the rate 3 -> 2 and CAPPED THE LINE at BAL._resources.unspent_cap
-// (owner's call - runs were ending drowning in credits). The cap is what makes
-// the difference late: the rate alone is linear in a stock that grows all run,
-// so at 12 held actions the old line paid 36 and this one pays 16.
+// (owner's call - runs were ending drowning in credits). r305 took the cap
+// 16 -> 10 and capped INTEREST as well. The cap is what does the work late: the
+// rate alone is linear in a stock that grows all run, so at 12 held actions the
+// pre-r304 line paid 36 and this one pays 10.
 function unspentPayout(actions) {
-  const R = (typeof BAL !== 'undefined' && BAL._resources) ? BAL._resources : {};
+  const R = _payoutRes();
   const rate = R.unspent_credits != null ? R.unspent_credits : 2;
-  const cap  = R.unspent_cap     != null ? R.unspent_cap     : Infinity;
-  return Math.min(cap, Math.max(0, actions) * rate);
+  return _payoutCapped(Math.max(0, actions) * rate, R.unspent_cap);
 }
-// What the payout screen and the Time pop-up say this line pays. Quoted from the
-// same numbers that are charged, never typed alongside them.
+
+// ── INTEREST, and why the cap lands on the BASE rather than the line (r305) ──
+// The runaway is `floor(coins/10)`: it COMPOUNDS, so a hoarded bank grows itself
+// every round with no ceiling, and measured over an 18-round run it was the
+// largest single source of credits in the game by a distance (340 against 208
+// from unused stock and 72 from leftover time).
+//
+// The Idol's x3 is applied AFTER the cap, deliberately. Capping the finished
+// line instead would make the Idol pay nothing at all above 4 credits held -
+// a Sleight whose whole printed effect is "x3 interest", silently doing nothing
+// for the entire second half of every run. Capped base x Idol reads as what it
+// is: the line pays at most 10, and the Idol triples that.
+function interestPayout(credits, mult) {
+  const R = _payoutRes();
+  const base = _payoutCapped(Math.floor(Math.max(0, credits) / 10), R.interest_cap);
+  return base * (mult || 1);
+}
+
+// ── ONE predicate, read by both lines AND by both printed labels ────────────
+// Gross Pay (knack) lifts every payout ceiling. It is asked here rather than at
+// each site so a line and the label above it can never disagree about whether
+// the cap is on - the r151 lesson, where a quoted cost and a charged cost drifted
+// apart because they were worked out in two places.
+function payoutCapsLifted() {
+  return typeof hasKnack === 'function' && hasKnack('gross_pay');
+}
+function _payoutRes() {
+  return (typeof BAL !== 'undefined' && BAL._resources) ? BAL._resources : {};
+}
+function _payoutCapped(n, cap) {
+  return (cap == null || payoutCapsLifted()) ? n : Math.min(cap, n);
+}
+// What the payout screen and the Time pop-up say each line pays. Quoted from the
+// same numbers that are paid, never typed alongside them.
 function unspentPayoutDesc() {
-  const R = (typeof BAL !== 'undefined' && BAL._resources) ? BAL._resources : {};
+  const R = _payoutRes();
   const rate = R.unspent_credits != null ? R.unspent_credits : 2;
-  const cap  = R.unspent_cap;
-  return `${rate} per unused swap or discard` + (cap != null ? ` · max ${cap}` : '');
+  return `${rate} per unused swap or discard` + _payoutCapNote(R.unspent_cap);
+}
+function interestPayoutDesc(credits, mult, creditsHTML) {
+  const R = _payoutRes();
+  const shown = creditsHTML != null ? creditsHTML : credits;
+  return `10% of ${shown}` + ((mult || 1) > 1 ? ` × ${mult} (Idol)` : '')
+       + _payoutCapNote(R.interest_cap, (mult || 1) > 1 ? ' before the Idol' : '');
+}
+function _payoutCapNote(cap, extra) {
+  if (cap == null) return '';
+  return payoutCapsLifted() ? ' · uncapped' : ` · max ${cap}${extra || ''}`;
 }
 const LEVEL_UP_DURATION = 45;
 // 1200, raised from 1000 with the r178 hand retune. That retune moved value into

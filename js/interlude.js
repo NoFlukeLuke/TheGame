@@ -207,7 +207,7 @@ async function showPayoutUI() {
   // well; what is frozen is the reward for HOLDING credits.
   const _frozen = interestFreezeRounds > 0;
   if (_frozen) interestFreezeRounds--;
-  const interestCoins  = (_withheld || _frozen) ? 0 : Math.floor(coins / 10) * interestMult;
+  const interestCoins  = (_withheld || _frozen) ? 0 : interestPayout(coins, interestMult);
   // In Crunch the round clock IS the quarter's act bank, so paying for what is
   // left on it would pay for time the player has not finished spending (and pay
   // it again every level). The line becomes PAR instead: credits for every
@@ -238,9 +238,8 @@ async function showPayoutUI() {
   else if (_frozen) showMessage(`Interest frozen (${interestFreezeRounds} more)`, 'var(--red)');
   // Show the Idol's tripled interest right on the payout breakdown.
   const interestName = interestMult > 1 ? `Interest <span style="color:#f5c042;">🗿 ×${interestMult}</span>` : 'Interest';
-  const interestDesc = interestMult > 1
-    ? `10% of <span style="color:#f5c042;">◆ ${coins}</span> × ${interestMult} (Idol)`
-    : `10% of <span style="color:#f5c042;">◆ ${coins}</span>`;
+  const interestDesc = interestPayoutDesc(coins, interestMult,
+    `<span style="color:#f5c042;">◆ ${coins}</span>`);
 
   // ── THE PAYOUT IS TILES ON THE BOARD (r255) ─────────────────────────────
   // It has rendered into #grid-slot since r101, but as ONE panel, which did not

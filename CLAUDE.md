@@ -1188,10 +1188,50 @@ of spending per round:
 | spend 10/round | 169 | 169 | 163 | 157 | 143 |
 
 A player who spends is barely touched; a player who sits on the bank loses most of
-the runaway. **Capping the two LINEAR lines further would not fix this** - they are
-already small and already bounded, and cutting them taxes the player who is playing
-well rather than the one who is hoarding. Not implemented: it is a balance decision,
-and the knob would be one number beside `unspent_cap`.
+the runaway.
+
+### Both lines are capped, and ONE knack lifts both (r305)
+
+Owner: *"cap interest at 10. cap unused stock at 10 as well. then add a knack that
+removes all limits on payouts."* `BAL._resources` carries **`interest_cap: 10`** and
+**`unspent_cap: 10`** (16 -> 10), and **Gross Pay** (rare knack, `gross_pay`) lifts
+every payout ceiling.
+
+| modelled over 18 rounds | end credits, no spending |
+|---|---|
+| before r304 (3/action, no caps) | 846 |
+| r304 (2/action, stock cap 16) | 620 |
+| **r305** (stock 10, interest 10) | **373** |
+| r305 holding Gross Pay | 622 |
+
+So the caps take a hoarder's run down by **56%** from where it started, and the
+knack is worth roughly the whole of that back - which is the point of a knack whose
+entire text is "your payouts are uncapped".
+
+- **THE INTEREST CAP LANDS ON THE BASE, NOT ON THE FINISHED LINE**, and that is the
+  one real decision here. The Idol's x3 is applied AFTER it. Capping the finished
+  line instead would make the Idol pay **nothing at all above 4 credits held** - a
+  Sleight whose whole printed effect is "x3 interest", silently dead for the second
+  half of every run. Capped base x Idol reads as what it is: the line pays at most
+  10, and the Idol triples that. Measured at 240 credits: **10 / 30** capped,
+  **24 / 72** with Gross Pay.
+- **`payoutCapsLifted()` is asked in ONE place** (js/data/cards.js) and read by both
+  payout functions AND by both printed labels, so a line and the label above it can
+  never disagree about whether the cap is on. That is r151's lesson - a quoted cost
+  and a charged cost drifted apart precisely because they were worked out twice.
+  The labels say `· max 10` or `· uncapped`, and with the Idol in play the interest
+  label says **`max 10 before the Idol`** rather than leaving the player to work out
+  why a x3 produced 30.
+- **`interestPayout` / `interestPayoutDesc` sit beside `unspentPayout` /
+  `unspentPayoutDesc`**, and the payout screen's two markup copies share one desc
+  string, so neither can drift from the other.
+- **Gross Pay is NOT banned in Survival or Flow**, which have no payout screen and
+  so no interest line: the unused-stock half still pays there through
+  `survivalAfterLevelUp`. A half-strength knack is not a dead pick, and
+  `survivalEntityBanned` is for entities that do nothing at all.
+- Verified at 1440x820 through the real payout screen: capped reads
+  **Interest 10 · Unused 10 · Time 4 = 24**, and with Gross Pay **24 · 28 · 4 = 56**,
+  with the labels switching in step. Consistent across all eight modes.
 
 
 ### Interact costs (r151) - ONE charge each, from `BAL._resources`

@@ -1,4 +1,4 @@
-const BUILD = "2026-09-22 · r304 · particles fly from live anchors; limit break stacks; owner retunes";
+const BUILD = "2026-09-22 · r305 · payout caps on interest and unused stock, plus Gross Pay";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

@@ -10,6 +10,7 @@ const KNACK_POOL = [
   { id:'bulk_buyer',      emoji:'🛒',  name:'Bulk Buyer',       rarity:'rare',   desc:'The shop multi-buy discount is 5% per extra item instead of 3%.' },
   { id:'haggler',         emoji:'🤝',  name:'Haggler',          rarity:'rare',   desc:'Shop prices are 5% lower.' },
   { id:'time_and_a_half', emoji:'🕰️',  name:'Time and a Half',  rarity:'rare',   desc:'Leftover round time pays double: 1 credit per 5 seconds remaining instead of 10.' },
+  { id:'gross_pay',       emoji:'🧾',  name:'Gross Pay',        rarity:'rare',   desc:'Your payout lines are uncapped. Interest and unused stock pay in full.' },
   { id:'high_roller',     emoji:'🎰',  name:'High Roller',      rarity:'epic',   desc:'Each scored card has a chance to replay equal to your credits plus your Luck, as a percent. Over 100% guarantees a replay and rolls the remainder for another.' },
   { id:'combo_keeper',    emoji:'🔥',  name:'Combo Keeper',     rarity:'rare',   desc:'Streaks survive one non-streak hand. Re-arms after 2 streak hands.' },
   { id:'lucky_seven',     emoji:'🎯',  name:'Lucky Seven',      rarity:'common', desc:'Every 7th hand played gives +1 swap.' },
