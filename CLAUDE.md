@@ -2578,10 +2578,11 @@ It is a body-level panel docked in the empty strip to the RIGHT of the board
 inherits its CSS zoom.
 
 - **ONE RAIL COVERS BOTH ORIENTATIONS, because the strip is the same shape in
-  both.** Measured: **142 x 494** at 1440x820, **105 x 377** at 1100x620,
-  **116 x 426** on a 420-wide phone. It is the only free space either way (in
-  landscape the left column is the HUD; in portrait the gutters inside
-  `#grid-slot` are 53px), which is what the owner circled.
+  both.** Measured: **142 x 494** at 1440x820, **105 x 377** at 1100x620. It is
+  the only free space either way (in landscape the left column is the HUD; in
+  portrait the gutters inside `#grid-slot` are 53px), which is what the owner
+  circled. **This line also claimed 116 x 426 on a 420-wide phone and that was
+  wrong - see r298 below, where it is what kept the rail off every phone.**
 - **THE ROW IS THE SYMBOL AND THE WORD; THE SENTENCE GOES TO `#mb-info`.** That
   is r276's rule for the board, and a 105px rail has no room for prose anyway -
   nine rows of wrapped blurbs measured over **700px tall against a 377px
@@ -2645,6 +2646,66 @@ Verified at 1440x820, 420x900 and 1100x620: the rail never overlaps the board,
 is fully on screen, needs no scroll, clips **0** row names, lights the board on
 hover and latches on tap; CONFIRM is on screen and enabled at 360, 390, 420 and
 462 wide. No page errors.
+
+### The legend really docks on a phone (r298)
+
+Owner: *"I don't see the legend in the right slot on mobile yet."* He was right,
+and r294's own measurement is why.
+
+**THE 116px WAS THE LEFTOVER ON BOTH SIDES OF A CENTRED BOARD, NOT THE STRIP.**
+At 420 wide the stage is 416 and the board 301, and 416 - 301 = 115. The strip
+on the RIGHT is half of that. Measured before the fix, on the board's own rect:
+**55px at 390, 52 at 375, 49 at 360, 59 at 412, 60 at 420** - every one below
+`MAP_LEGEND_MIN_W`, so **every phone silently took the `.ml-float` fallback**,
+which is the centred card over the board that r294 existed to remove. The rail
+had only ever been seen on a desktop, where the strip really is 142.
+
+Three things had to change, and each one is worth its own line.
+
+- **THE BOARD SLIDES LEFT WHILE THE RAIL IS DOCKED**, so the slack either side of
+  it gathers on one edge: 49-60 becomes **68-82**. `mapLegendSlide(px)` writes
+  `#grid.style.left` - a `left` offset and deliberately NOT a transform, which
+  would make `#grid` the containing block for every fixed descendant (r180) and
+  would fight the tiles' own deal-in (r281). Nothing is re-rendered and nothing
+  is resized, so the deal-in is not replayed and **the pen's ink rides along**,
+  because the canvas is a child of `#grid`. **The offset is written in the
+  element's OWN px**: `#grid` is inside `#cabinet` and carries its CSS zoom, so a
+  viewport-px figure lands about twice as far as asked - the r160 Trick-fan trap.
+  It only ever slides when the strip is too narrow as it stands, so **a desktop
+  board is never moved**.
+  **`mapCloseScreen` clears it too, not just `mapLegendClose`.** `#grid` is the
+  PLAY board, so a stale offset would leave every later round off-centre.
+  Verified: the board deals 16 cards centred 5/5 in its slot after the map.
+- **THE BOARD IS WIDER THAN `#grid`, AND THE REVIEW COLUMN IS WHY.** `#grid`
+  carries `overflow: visible` and the boss column is drawn full height and proud
+  of it - measured **16px past the right edge** - so a rail anchored on `#grid`'s
+  own rect sat over the one obligation it is least able to hide. `mapBoardRect()`
+  is the union of the board and its tiles, and is what the rail clears. Found by
+  counting tiles intersecting the rail, not by looking: **1 before, 0 after**.
+- **A ROW HAS TWO SHAPES, AND THE STRIP PICKS.** Side by side needs about 100px
+  (chip 20 + gaps + the longest unbreakable name, INCENTIVE, at 8.5px measures
+  48). A phone gets **`.ml-narrow`: the symbol OVER the word**, centred, which
+  needs about 62 - a name that cannot break (r182: a word is atomic) gets the
+  whole column instead of a 30px sliver. `MAP_LEGEND_MIN_W` is 100 and
+  `MAP_LEGEND_NARROW_W` 62; below that the float card still exists.
+  **Nine stacked rows are taller than the board**, so the narrow rail takes the
+  whole free column - the top of `#grid-slot` down to the bar - rather than the
+  board's own height. The wide rail's band is arithmetically unchanged.
+- **TWO MARGINS, NOT ONE.** `gap` (8) separates the rail from the board and has
+  to stay generous or the rail reads as part of the schedule; `edge` (4) is the
+  margin against the stage. Splitting them buys 8px, which is exactly what
+  decides whether a 360-wide phone gets a rail at all - at one shared 8 it fell
+  back to the float.
+
+**Measured in a real browser at 360x640, 375x667, 390x844, 412x915, 420x900,
+1100x620 and 1440x820**: every one docks a rail (**68 / 71 / 75 / 80 / 82 / 109 /
+146**), **0 row names clipped**, **0 tiles under the rail**, fully on screen, and
+the worst case - all nine kinds at 360x640 - fits with **no scroll at all**.
+Desktop is unchanged bar the 4px the edge margin returns. Through the real click
+path: the chip, the X and an outside click all close it and recentre the board;
+hovering a row lights the board and writes `#mb-info`; tapping latches; a
+right-drag lays ink that stays put across the rail closing; confirming an
+obligation with the rail open leaves the map clean. No page errors anywhere.
 
 ### The lines rest BEHIND the reward tiles (r294)
 

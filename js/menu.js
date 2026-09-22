@@ -1,4 +1,4 @@
-const BUILD = "2026-09-21 · r297 · a prime animates as the quick second thump of a heartbeat";
+const BUILD = "2026-09-22 · r298 · the schedule legend docks beside the board on a phone";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
