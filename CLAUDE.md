@@ -3709,6 +3709,130 @@ that Storm has quietly made your straights worth more than your flushes.
 to `scoring` before taking its 220ms beat; leaving it on `pickline` let a further
 click arm a SECOND tally-and-advance and skip a turn.
 
+### Seven owner fixes (r309)
+
+**1. THE SHAPE DRAW IS A WEIGHTED BAG.** A flat draw gave the straight piece one
+turn in two at size 3 and one in seven at size 4, and being memoryless it could
+hand you three of the same shape in one deal. `SQ_SHAPE_W` weights each form (the
+bars lightest) and the weighted list is dealt WITHOUT REPLACEMENT and reshuffled
+when it runs dry - a bag cannot repeat what it has spent. Measured over 4,000
+deals: **I went 14.3% -> 5.5%**, all-three-the-same **~2% -> 0.03%**. Two details:
+  * **THE NO-TRIPLE GUARD SEARCHES THE BAG, it does not take the next entry.** A
+    heavy form appears in the bag several times over, so the next entry is very
+    often the same form again - at size 3 the next-entry version measured 26% of
+    deals all one shape, which is what no guard at all gives.
+  * **A PIECE GETS A RANDOM RESTING ORIENTATION.** There are only 7 free
+    tetrominoes and 2 triominoes, so the shapes are the shapes; rotating each new
+    piece 0-3 times takes what the tray actually SHOWS from 7 to **19** (and from
+    2 to 6 at size 3), and at size 2 it is the only variety there is to have.
+  * **25% of size-3 deals are still all one shape and that is arithmetic**, not a
+    gap: a 1:3 bag is four entries and three tiles a deal, so one deal in four
+    holds no I3.
+
+**2. THE PIECE HAND IS BELOW THE BOARD.** It lived in `#trick-panel`, which sits
+in `#top-strip` ABOVE `#grid-and-buttons`, so on a phone you dragged UPWARD from
+the board to a tray at the top of the screen. `sqMountPanels` re-parents
+`#hand-preview-area` into `#main` between the board and the secondary buttons.
+  * **LANDSCAPE IS UNAFFECTED** - `#selected-cards` is absolutely positioned
+    there, and `#main` and `#hand-preview-area` are both `display:contents`, so
+    the box still resolves against `#stage` wherever it hangs.
+  * **THE FLEX ORDER HAD TO MOVE WITH IT.** `#stage:not(.landscape)
+    #hand-preview-area { order: 2 }` is the portrait shared-strip rule
+    (css/style.css), written when this element was half of `#trick-panel` - it
+    follows the element, so in `#main` it sorted the tray BELOW the Records/Pause
+    row. All four children of `#main` are pinned explicitly in css/squares.css.
+  * **`squaresTeardown()` puts it back**, and `startGame` calls it for every mode
+    that is not this one. Without that the NEXT run plays with its hand preview
+    in the wrong place.
+
+**3. THE MOBILE DRAG WAS `touch-action`, AND NOTHING ELSE.** Left at `auto` the
+browser claims the first movement of a finger drag as a page scroll and fires
+**pointercancel** - the owner's "it stutters on the edge of the tray". Measured
+through real CDP touch events at 420x900: **0 cancels with `touch-action: none`,
+cancelled on the first move without it**, every time. The pointer capture onto
+`document.body` and `sqSetSelClasses` (painting the selection by toggling classes
+instead of re-rendering the tray under the finger) are **insurance, not the fix**
+- Chrome retargets rather than cancelling when the held element is destroyed, and
+both measured 0 cancels on their own. They are kept so the drag does not depend
+on that being true.
+
+**4. THE SCORE CHIP NAMES ITS HAND.** Two lines - the hand in gold caps, the
+arithmetic under it, with the penalty as `- N` when there is one. The banner
+above the board says it too, but the banner is one line for the whole tally and
+the chip is the one thing sat on the line that just paid.
+
+**5. RUN OF 3 AND RUN OF 4 ARE BACK, as the two NON-KICKER hands.** Every other
+hand here IS the line, kickers and all; these two use only the cards in the run
+and the cards left over **subtract their pips**, which is the owner's original
+rule for a line that only makes a short hand.
+  * **A SHORT RUN IS A SECOND CANDIDATE, NEVER AN OVERRIDE.** `sqScoreLine` scores
+    the full-line poker hand AND the best run inside it, and takes the higher -
+    the same question `findBestHand` asks in the main game. So a Run of 3 can
+    never make a line worse than it already was: measured over 8,000 lines,
+    **1,319 (16.5%) are re-named and 0 score lower**.
+  * **Priced off measured frequency in a random five-card line**: a run of 4 turns
+    up on **4.1%** (rarer than Two Pair at 4.75%, commoner than Trips at 2.1%) and
+    a run of 3 on **19.8%** (between Pair at 42% and Two Pair), then handicapped
+    for the pips they forfeit and the penalty they carry. Run of 3 is 40 x2, Run
+    of 4 is 80 x4.
+  * **It is a real score increase and SCORE ALL rounds are not comparable with
+    pre-r309 ones.** High Card falls from **50.1% of lines to 34.1%** - a third of
+    the dead lines now pay something, which is the point - and the average line
+    goes **114 -> 135 (+19%)**.
+  * `SQ_LADDER` is in order of WORTH (pips x mult), which is what the tally's
+    tiebreak wants, and the two runs slot into it by measurement.
+
+**6. ROUND n/10 IS IN THE TOP BAR AND THE CONSUMABLES TOOK THE GOAL BOX.** The
+consumables rode `#knack-list`, which in PORTRAIT shares one half-strip with the
+hand preview (js/portrait-panel.js) - and this mode pins that strip to the
+preview, so they were behind a swap button with no reason to press it and were
+**unreachable on a phone**. The goal box is on screen in both orientations, which
+is the one thing the knack row was not.
+  * **`#sq-round` is a child of `#top-bar`**, so portrait gets it as a flex item
+    beside the other top stats for free and landscape - where `#top-bar` is
+    `display:contents` and every `.top-stat` is hidden - positions it absolutely
+    in the band the clock has vacated. It deliberately does NOT carry `.top-stat`,
+    or the landscape hide rule would take it too.
+  * **NEVER `innerHTML = ''` ON `#score-to-go`.** It owns `<span id="goal-display">`,
+    which `js/hud.js` writes on EVERY `updateScoreUI` - wiping it here left the
+    next mode's first render throwing on a null and the span gone for the rest of
+    the session. `#sq-cons-row` is appended and the span is hidden by CSS.
+  * The chips are 26px in portrait and 21px in landscape: five have to sit across
+    a box that is 129 stage px wide there against ~200 in portrait, so the phone,
+    where a tap target matters most, gets the bigger chip.
+
+**7. A LAYOUT CHANGE RE-RUNS BOTH FITS, AND A `resize` LISTENER CANNOT SEE THEM
+ALL.** The board is sized from the MEASURED slot and a poly from its tile's
+MEASURED inner box, so an orientation flip leaves every one of them fitted to a
+box that no longer exists - the owner's "the Tetris piece went over the card
+boundary".
+  * **The office photograph is why a listener is not enough.** While it is on
+    screen the stage is forced LANDSCAPE whatever the device is (r257), and the
+    channel change hands a phone back its portrait layout behind the flash by
+    calling `applyStageLayout` DIRECTLY - no resize event, no orientationchange.
+    Measured on a 420x900 phone: the first deal fitted its tiles to a **278x217
+    landscape host** and nothing ever re-measured them.
+  * So the trigger is a **ResizeObserver on `#grid-slot` and `#selected-cards`**,
+    which cannot miss a cause it has not been told about. `_sqLastBox` is what
+    stops a loop: a render only runs when a box has genuinely changed size.
+  * **`sqFitHand` also runs again on the next rAF**, because plenty of renders
+    happen before a settled layout - the first deal of a round lands while
+    `#hand-preview-area` is still settling into its new place below the board.
+    Measured: a 3-tall piece came out **156px tall in an 84px tile** on the first
+    pass and 82px on the second.
+  * **The refit is UNCONDITIONAL.** It used to refit only a poly that OVERFLOWED,
+    which is right on a first render and wrong after a layout change: a tile that
+    got WIDER kept the minis it was fitted to when it was narrow.
+
+Verified in a real browser at 1440x820, 1100x620, 420x900 and 390x844: a full
+round plays to its ten-line tally and on into the trick pick, the consumable pick
+and round 2; a real touch drag carries a tile from the tray to the board with 0
+cancels; four orientation flips mid-round leave **0 polys overflowing their tile**
+and 25 slots on the board each time; all five consumable chips fit the goal box
+and are hit-testable in both orientations; and starting any of the other eight
+modes afterwards finds the hand preview back in `#trick-panel`, `#sq-round` gone
+and the GOAL label restored. No page errors anywhere.
+
 ### Known, and left for a decision
 
 **The row/column BUFF Tricks are much stronger here than in the main game**,

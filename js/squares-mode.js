@@ -50,7 +50,9 @@ const SQ_HAND_MS     = 1400; // the first line of a tally; each one after is qui
 const SQ_ACCEL       = 5;    // % quicker per line
 
 // The shapes, by cell count. Rotation is done on the offsets, so only one
-// orientation of each is listed.
+// orientation of each is listed. Size 4 is I O T S Z J L, in that order - every
+// free tetromino there is, so the variety below is a matter of WEIGHT, not of
+// adding shapes that do not exist.
 const SQ_SHAPES = {
   1: [[[0,0]]],
   2: [[[0,0],[0,1]]],
@@ -60,6 +62,48 @@ const SQ_SHAPES = {
       [[0,0],[0,1],[1,1],[1,2]], [[0,0],[1,0],[1,1],[1,2]],
       [[0,2],[1,0],[1,1],[1,2]]],
 };
+// A WEIGHTED BAG, NOT A RE-ROLL (r309). A flat draw gave the straight piece one
+// turn in two at size 3 and one in seven at size 4, and - being memoryless - it
+// could hand you three of the same shape in a single deal. Each form carries a
+// weight (the bars are the lightest: a straight line is the least interesting
+// thing to pack, and the one the owner asked to see less of), and the weighted
+// list is dealt WITHOUT REPLACEMENT and reshuffled when it runs dry. That is
+// what stops a run of identical tiles - a bag cannot repeat what it has spent.
+const SQ_SHAPE_W = {
+  1: [1],
+  2: [1],
+  3: [1, 3],                    // I3 is a quarter of the draw, not half
+  4: [1, 3, 4, 2, 2, 3, 3],     // I O T S Z J L - I is 1 in 18, was 1 in 7
+};
+let sqBags = {};
+function sqShapeDraw(size, avoid) {
+  const forms = SQ_SHAPES[size] || SQ_SHAPES[1];
+  if (forms.length < 2) return 0;
+  let bag = sqBags[size];
+  if (!bag || !bag.length) {
+    const w = SQ_SHAPE_W[size] || forms.map(() => 1);
+    bag = [];
+    forms.forEach((f, i) => { for (let k = 0; k < (w[i] || 1); k++) bag.push(i); });
+    for (let i = bag.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [bag[i], bag[j]] = [bag[j], bag[i]]; }
+    sqBags[size] = bag;
+  }
+  let idx = bag.shift();
+  // A form already dealt twice this turn goes back into the bag at a random
+  // depth and the SHALLOWEST DIFFERENT ONE is taken instead. Taking merely the
+  // next entry is not enough - a heavy form appears in the bag several times
+  // over, so the next one is very often the same form again. Measured at size 3
+  // (two shapes, weighted 1:3): the next-entry version left 26% of deals all one
+  // shape, the same as no guard at all.
+  if (avoid && avoid.has(idx) && bag.length) {
+    const at = bag.findIndex(f => !avoid.has(f));
+    if (at >= 0) {
+      const alt = bag.splice(at, 1)[0];
+      bag.splice(Math.floor(Math.random() * (bag.length + 1)), 0, idx);
+      idx = alt;
+    }
+  }
+  return idx;
+}
 
 // ── THE VALUE TABLE ────────────────────────────────────────────────────────
 // Ranked by genuine 5-card frequency and priced against the classic American
@@ -68,10 +112,21 @@ const SQ_SHAPES = {
 // 12.5 / 25. The one deliberate departure is the Straight Flush: the classic
 // pays it 1.5x a Four of a Kind while it is genuinely 16x rarer, so here it is
 // a jackpot at ~3.5x. Something to hunt.
+//
+// RUN OF 3 AND RUN OF 4 ARE THE TWO NON-KICKER HANDS (r309, owner's call). Every
+// other hand here IS the line, kickers and all; these two use only the cards in
+// the run and the cards left over SUBTRACT their pips, which is the owner's
+// original rule for a line that only makes a short hand. Priced off their
+// measured frequency in a random five-card line - a run of 4 turns up on 4.1% of
+// lines (rarer than Two Pair at 4.75%, commoner than Trips at 2.1%) and a run of
+// 3 on 19.8% (between Pair at 42% and Two Pair) - then handicapped for the pips
+// they forfeit and the penalty they carry.
 const SQ_HAND_VALUES = {
   'High Card':       { pips: 0,   mult: 1  },
   'Pair':            { pips: 30,  mult: 2  },
+  'Run of 3':        { pips: 40,  mult: 2  },
   'Two Pair':        { pips: 65,  mult: 3  },
+  'Run of 4':        { pips: 80,  mult: 4  },
   'Three of a Kind': { pips: 125, mult: 4  },
   'Straight':        { pips: 130, mult: 6  },
   'Flush':           { pips: 155, mult: 7  },
@@ -127,7 +182,7 @@ let sqPhase = 'idle';               // idle | place | pickline | scoring | betwe
 let sqPickNeed = 0, sqPickSel = [];
 let sqCons = [], sqArmed = null, sqPicked = [];
 let sqLog = [], sqPieceId = 0;
-let sqDragging = null, sqDragEl = null;
+let sqDragging = null, sqDragEl = null, sqDragPid = null;
 
 const sqIsRow = i => i < SQ_N;
 const sqLineName = i => sqIsRow(i) ? 'ROW ' + (i + 1) : 'COL ' + (i - SQ_N + 1);
@@ -144,10 +199,28 @@ const sqFits = (p, r, c) => p.cells.every(cl => {
 const sqFilled = () => { let n = 0; for (let r = 0; r < SQ_N; r++) for (let c = 0; c < SQ_N; c++) if (gridData[r][c]) n++; return n; };
 
 // ── PIECES ─────────────────────────────────────────────────────────────────
-function sqMakePiece(size) {
+function sqMakePiece(size, avoid) {
   const forms = SQ_SHAPES[size] || SQ_SHAPES[1];
-  const f = forms[Math.floor(Math.random() * forms.length)];
-  return { id: 'sq' + (++sqPieceId), cells: f.map(([dr, dc]) => ({ dr, dc, card: sqDraw() })) };
+  const fi = sqShapeDraw(size, avoid);
+  const f = forms[fi] || forms[0];
+  const p = { id: 'sq' + (++sqPieceId), form: fi, cells: f.map(([dr, dc]) => ({ dr, dc, card: sqDraw() })) };
+  // A RANDOM RESTING ORIENTATION. Rotation is the player's, but a tray that
+  // always deals its L the same way up reads as a much smaller set of shapes
+  // than it is - and at size 2 it is the only variety there is to have.
+  const turns = Math.floor(Math.random() * 4);
+  for (let i = 0; i < turns; i++) sqRotate(p);
+  return p;
+}
+// One turn's tiles, drawn together so the no-triple guard has something to see.
+function sqDealPieces(n, size) {
+  const seen = new Map(), out = [];
+  for (let i = 0; i < n; i++) {
+    const avoid = new Set([...seen.entries()].filter(([, v]) => v >= 2).map(([k]) => k));
+    const p = sqMakePiece(size, avoid);
+    seen.set(p.form, (seen.get(p.form) || 0) + 1);
+    out.push(p);
+  }
+  return out;
 }
 function sqDraw() {
   if (!drawPile.length) flushPlayedDeck();
@@ -177,13 +250,66 @@ function sqCanPlaceAny() {
 // ══════════════════════════════════════════════
 // RUN / ROUND / TURN
 // ══════════════════════════════════════════════
+// ── WHERE THE PANELS SIT (r309) ────────────────────────────────────────────
+// Three moves, all owner-reported, and all of them DOM moves rather than CSS,
+// because the piece hand has to change its place in the PORTRAIT FLOW and the
+// consumables have to land in a box that exists in both orientations.
+//
+//  * THE PIECE HAND GOES BELOW THE BOARD. It lived in #trick-panel, which sits
+//    in #top-strip ABOVE #grid-and-buttons, so on a phone you dragged upward
+//    from the board to a tray at the top of the screen. It is re-parented into
+//    #main between the board and the secondary button row. Landscape is
+//    unaffected: #selected-cards is absolutely positioned there, and #main and
+//    #hand-preview-area are both `display:contents`, so the box still resolves
+//    against #stage wherever it hangs.
+//  * THE CONSUMABLES TAKE THE GOAL BOX. They rode #knack-list, which in PORTRAIT
+//    shares one half-strip with the hand preview (js/portrait-panel.js) - and
+//    this mode pins that strip to the preview, so the consumables were behind a
+//    swap button with no reason to press it. They were unreachable on a phone.
+//  * ROUND n/10 GOES TO THE TOP BAR, in the slot the game timer would use.
+let _sqPanelHome = null, _sqRoundEl = null;
+function sqMountPanels() {
+  const hp = document.getElementById('hand-preview-area');
+  const main = document.getElementById('main');
+  const gab = document.getElementById('grid-and-buttons');
+  if (hp && main && gab && hp.parentNode !== main) {
+    _sqPanelHome = { parent: hp.parentNode, next: hp.nextSibling };
+    main.insertBefore(hp, gab.nextSibling);
+  }
+  const bar = document.getElementById('top-bar');
+  if (bar && !document.getElementById('sq-round')) {
+    _sqRoundEl = document.createElement('div');
+    _sqRoundEl.id = 'sq-round';
+    _sqRoundEl.innerHTML = '<span class="sqr-l">ROUND</span><span class="sqr-v">1/10</span>';
+    bar.insertBefore(_sqRoundEl, bar.firstChild);
+  }
+}
+function squaresTeardown() {
+  const hp = document.getElementById('hand-preview-area');
+  if (hp && _sqPanelHome && _sqPanelHome.parent) {
+    _sqPanelHome.parent.insertBefore(hp, _sqPanelHome.next);
+  }
+  _sqPanelHome = null;
+  document.getElementById('sq-round')?.remove();
+  _sqRoundEl = null;
+  const sel = document.getElementById('selected-cards');
+  if (sel) { sel.classList.remove('sq-hand'); sel.innerHTML = ''; }
+  document.getElementById('sq-cons-row')?.remove();
+  sqUnobserveLayout();
+  document.body.classList.remove('squares-mode');
+  document.getElementById('stage')?.classList.remove('squares-mode');
+}
+
 function squaresBeginRun() {
   if (typeof _restoringSave !== 'undefined' && _restoringSave) return;
   if (typeof stopTimers === 'function') stopTimers();
   gameTimerPaused = true;
   document.body.classList.add('squares-mode');
   document.getElementById('stage')?.classList.add('squares-mode');
+  sqMountPanels();
+  sqObserveLayout();
   sqRound = 1; sqTotal = 0; sqRoundScore = 0; sqCons = []; sqLog = []; sqPieceId = 0;
+  sqBags = {};
   sqMode = 'all';
   squaresInstallHandValues();
   sqAskMode();
@@ -239,7 +365,7 @@ function sqStartTurn() {
   sqPhase = 'place';
   const sp = SQ_SCHEDULE[sqTurn];
   sqDiscards = SQ_DISCARDS;
-  if (sp) for (let i = 0; i < sp.n; i++) sqHand.push(sqMakePiece(sp.size));
+  if (sp) sqHand.push(...sqDealPieces(sp.n, sp.size));
   sqRenderAll();
 }
 
@@ -256,10 +382,6 @@ async function sqAdvance() {
 // ══════════════════════════════════════════════
 // SCORING - through the real calcScore
 // ══════════════════════════════════════════════
-const SQ_FAMILY = {
-  'Pair':'set','Two Pair':'set','Three of a Kind':'set','Full House':'set','Four of a Kind':'set',
-  'Straight':'run','Flush':'flush','Straight Flush':'run+flush',
-};
 // Name the poker hand a line makes. Kickers are implicit: the hand IS the line.
 function sqHandName(cards) {
   if (cards.length < 2) return 'High Card';
@@ -282,21 +404,65 @@ function sqHandName(cards) {
   if (cv[0] >= 2)             return 'Pair';
   return 'High Card';
 }
-const sqHandRank = n => ['High Card','Pair','Two Pair','Three of a Kind','Straight','Flush','Full House','Four of a Kind','Straight Flush'].indexOf(n);
+// The ladder, in order of what each is WORTH (pips x mult), which is what the
+// tally's tiebreak wants. The two runs slot in by measurement: a Run of 3 at 80
+// sits just above a Pair at 60, a Run of 4 at 320 between Two Pair and Trips.
+const SQ_LADDER = ['High Card','Pair','Run of 3','Two Pair','Run of 4','Three of a Kind',
+                   'Straight','Flush','Full House','Four of a Kind','Straight Flush'];
+const sqHandRank = n => SQ_LADDER.indexOf(n);
+
+// The longest run of CONSECUTIVE DISTINCT RANKS, 4 then 3, as indices into the
+// cards given. The ace is entered twice, low and high, so A-2-3-4 is a run as
+// well as J-Q-K-A; a window can never hold both, since that would need thirteen
+// consecutive values in five cards.
+function sqBestRun(cards) {
+  const m = new Map();
+  cards.forEach((c, i) => { const v = sqRank(c); if (v != null && !m.has(v)) m.set(v, i); });
+  if (m.has(14) && !m.has(1)) m.set(1, m.get(14));
+  const vals = [...m.keys()].sort((a, b) => a - b);
+  for (let len = 4; len >= 3; len--) {
+    for (let s = 0; s + len <= vals.length; s++) {
+      let ok = true;
+      for (let k = 1; k < len; k++) if (vals[s + k] !== vals[s] + k) { ok = false; break; }
+      if (ok) return { len, idx: vals.slice(s, s + len).map(v => m.get(v)) };
+    }
+  }
+  return null;
+}
 
 // Score ONE line, read-only. `calcScore` is speculative-safe by contract (it is
 // what findBestHand and the live chips call), so this may be run for every line
 // to sort them before a single one pays.
 function sqScoreLine(i) {
-  const cells = sqLineCells(i).filter(([r, c]) => gridData[r] && gridData[r][c]);
-  const cards = cells.map(([r, c]) => gridData[r][c]);
-  const name = sqHandName(cards);
+  const all = sqLineCells(i).filter(([r, c]) => gridData[r] && gridData[r][c]);
+  const cards = all.map(([r, c]) => gridData[r][c]);
+  let best = sqEvalHand(sqHandName(cards), all, []);
+  // A SHORT RUN IS A SECOND CANDIDATE, NEVER AN OVERRIDE. It uses only its own
+  // cards and bills the rest, so a line is scored as whichever is worth more -
+  // the poker hand the whole line makes, or the run inside it minus what it
+  // leaves behind. That is the same question findBestHand asks in the main game,
+  // and it is why a Run of 3 can never make a line worse than it already was.
+  const run = sqBestRun(cards);
+  if (run) {
+    const inRun = new Set(run.idx);
+    const cells = run.idx.map(k => all[k]);
+    const left  = all.filter((_, k) => !inRun.has(k)).map(([r, c]) => gridData[r][c]);
+    const alt = sqEvalHand('Run of ' + run.len, cells, left);
+    if (alt.total > best.total) best = alt;
+  }
+  return { i, ...best, r: sqHandRank(best.name) };
+}
+// `calcScore` is speculative-safe by contract (it is what findBestHand and the
+// live chips call), so this may be run for every line, twice, to sort them
+// before a single one pays.
+function sqEvalHand(name, cells, penaltyCards) {
   let total = 0;
   try { total = (typeof calcScore === 'function') ? calcScore(name, cells) : 0; } catch (e) { total = 0; }
-  return { i, name, cells, cards, total: Math.max(0, Math.round(total)),
+  const pen = penaltyCards.reduce((n, c) => n + ((typeof cardPips === 'function') ? (cardPips(c) || 0) : 0), 0);
+  return { name, cells, cards: cells.map(([r, c]) => gridData[r][c]), pen,
+           total: Math.max(0, Math.round(total - pen)),
            pips: (typeof lastCalcPips === 'number') ? lastCalcPips : 0,
-           mult: (typeof lastCalcMult === 'number') ? lastCalcMult : 1,
-           r: sqHandRank(name) };
+           mult: (typeof lastCalcMult === 'number') ? lastCalcMult : 1 };
 }
 
 const sqSleep = ms => new Promise(r => setTimeout(r, ms));
@@ -320,11 +486,12 @@ async function sqRunTally(which) {
     await sqSleep(ms * 0.48);
     sqTotal += fresh.total; sqRoundScore += fresh.total;
     sqPaintScore();
-    sqFlyChip(L.i, `${fresh.pips} × ${fresh.mult}`);
+    sqFlyChip(L.i, fresh.name, `${fresh.pips} × ${fresh.mult}` + (fresh.pen ? ` − ${fresh.pen}` : ''));
     if (typeof sfxScoreTick === 'function') sfxScoreTick();
     await sqSleep(ms * 0.52);
     sqUnwave(L.i);
-    sqLog.push(`  ${sqLineName(L.i).padEnd(6)} ${L.name.padEnd(16)} ${String(fresh.pips).padStart(5)} × ${String(fresh.mult).padStart(2)} = ${String(fresh.total).padStart(6)}`);
+    sqLog.push(`  ${sqLineName(L.i).padEnd(6)} ${L.name.padEnd(16)} ${String(fresh.pips).padStart(5)} × ${String(fresh.mult).padStart(2)}`
+             + `${fresh.pen ? ' −' + String(fresh.pen).padStart(3) : '     '} = ${String(fresh.total).padStart(6)}`);
     ms = Math.max(140, ms * (1 - SQ_ACCEL / 100));
   }
   sqSetLineBanner('');
@@ -357,8 +524,7 @@ function sqFinish() {
     `LAST ROUND\n` + sqLog.join('\n'),
     () => {
       totalScore = sqTotal;
-      document.body.classList.remove('squares-mode');
-      document.getElementById('stage')?.classList.remove('squares-mode');
+      squaresTeardown();
       if (typeof onGameWin === 'function') onGameWin();
     });
 }
@@ -578,21 +744,43 @@ function sqRenderHand() {
     host.appendChild(el);
   });
   if (!sqHand.length) { host.innerHTML = '<div class="sq-empty">no tiles left</div>'; return; }
-  // Second pass: refit each poly to the tile's real inner box.
+  sqFitHand();
+  // AND AGAIN ON THE NEXT FRAME. The fit is a MEASUREMENT, so it is only as good
+  // as the layout standing when it runs - and plenty of renders happen before
+  // one: the first deal of a round lands while #hand-preview-area is still
+  // settling into its new place below the board, and an orientation flip lands
+  // before the new stylesheet rules have been applied. Measured in portrait, a
+  // 3-tall piece came out 156px tall in an 84px tile on the first pass and 82px
+  // on the second. One rAF is the cheapest way to be right in both.
+  requestAnimationFrame(sqFitHand);
+}
+// Refit each poly to the tile's real inner box. UNCONDITIONAL (r309) - it used
+// to refit only a poly that OVERFLOWED, which is right on a first render and
+// wrong after a layout change: a tile that got WIDER kept the minis it was
+// fitted to when it was narrow. Fitting from the measured box every time is the
+// same answer in both directions, and it is idempotent, so running it twice
+// costs nothing.
+function sqFitHand() {
+  const host = document.getElementById('selected-cards'); if (!host) return;
   host.querySelectorAll('.sq-tile').forEach(el => {
     const p = sqHand.find(x => x.id === el.dataset.pid); if (!p) return;
     const w = el.clientWidth, h = el.clientHeight;
     if (w < 20 || h < 20) return;
     const poly = el.querySelector('.sq-poly'); if (!poly) return;
-    if (poly.offsetWidth <= w && poly.offsetHeight <= h) return;
     try { poly.outerHTML = sqPolyHTML(p, w - 2, h - 2); } catch (e) {}
   });
 }
 
-// ── Consumables ride the KNACK row: an owned thing you can spend, in the slot
-// this mode's knack row would otherwise sit empty in.
+// ── Consumables live in the GOAL box, which this mode has no use for and which
+// is on screen in BOTH orientations - the one thing the knack row was not.
 function sqRenderCons() {
-  const host = document.getElementById('knack-list'); if (!host) return;
+  const box = document.getElementById('score-to-go'); if (!box) return;
+  let host = document.getElementById('sq-cons-row');
+  // APPENDED, NEVER `innerHTML = ''`. #score-to-go owns <span id="goal-display">,
+  // which js/hud.js writes on every updateScoreUI - wiping the box here left the
+  // NEXT mode's first render throwing on a null, and the span was gone for the
+  // rest of the session. The span is hidden by css/squares.css instead.
+  if (!host) { host = document.createElement('div'); host.id = 'sq-cons-row'; box.appendChild(host); }
   host.innerHTML = sqCons.map((c, i) => {
     const d = sqConsDef(c.id);
     return `<div class="sq-cons${sqArmed && sqArmed.idx === i ? ' armed' : ''}" data-i="${i}" `
@@ -612,10 +800,10 @@ function sqPaintScore() {
 }
 function sqPaintHud() {
   sqPaintScore();
-  const go = document.getElementById('score-to-go');
-  if (go) go.textContent = `${sqRound}/${SQ_ROUNDS}`;
+  const rd = document.getElementById('sq-round');
+  if (rd) { const v = rd.querySelector('.sqr-v'); if (v) v.textContent = `${sqRound}/${SQ_ROUNDS}`; }
   const gl = document.getElementById('score-goal-label');
-  if (gl) gl.textContent = 'ROUND';
+  if (gl) gl.textContent = 'ITEMS';
   const tl = document.getElementById('score-total-label');
   if (tl) tl.textContent = 'SCORE';
   sqSetLineBanner(sqPhase === 'pickline'
@@ -630,12 +818,18 @@ function sqSetLineBanner(text) {
   b.textContent = text || '';
   b.classList.toggle('on', !!text);
 }
-function sqFlyChip(i, text) {
+// THE CHIP NAMES THE HAND (r309). The banner above the board says it too, but
+// the banner is one line for the whole tally and the chip is the one thing sat
+// on the line that just paid - which is where the player is looking.
+function sqFlyChip(i, name, text) {
   const g = document.getElementById('grid'); if (!g) return;
   const cells = sqLineCells(i);
   const a = cells[0], z = cells[cells.length - 1];
   const el = document.createElement('div');
-  el.className = 'sq-schip'; el.textContent = text;
+  el.className = 'sq-schip';
+  el.innerHTML = `<span class="sq-scn"></span><span class="sq-scv"></span>`;
+  el.querySelector('.sq-scn').textContent = name;
+  el.querySelector('.sq-scv').textContent = text;
   el.style.left = ((cellLeft(a[1]) + cellLeft(z[1]) + CARD_W) / 2) + 'px';
   el.style.top  = ((cellTop(a[0]) + cellTop(z[0]) + CARD_H) / 2 - 12) + 'px';
   g.appendChild(el);
@@ -715,12 +909,29 @@ function sqInstallInput() {
     const p = sqHand.find(x => x.id === tile.dataset.pid); if (!p) return;
     if (rot) { sqRotate(p); if (typeof sfxCardSelect === 'function') sfxCardSelect(); sqRenderAll(); return; }
     sqSelected = p; sqDragging = p;
+    // THE DRAG DIED AT THE EDGE OF THE TRAY ON A PHONE, and the cause is
+    // `touch-action` (css/squares.css), not anything in here: with it left at
+    // `auto` the browser claims the first movement as a page scroll and fires
+    // pointercancel. Measured through real touch events on a 420x900 phone -
+    // with touch-action none the drag survives all fourteen moves from the tray
+    // to the board with 0 cancels, and with it back at auto it is cancelled on
+    // the first move, every time.
+    //
+    // The two lines below are insurance rather than the fix, and worth keeping:
+    // a touch pointer is IMPLICITLY CAPTURED by the element it landed on, and
+    // `sqRenderAll()` rebuilds #selected-cards' children wholesale - so the tile
+    // the finger is holding is destroyed on the first frame of the drag. Chrome
+    // retargets rather than cancelling (measured: 0 cancels either way), but
+    // capturing onto the BODY, which no render ever touches, and painting the
+    // selection by toggling classes instead of re-rendering, mean the drag does
+    // not depend on that being true.
+    sqSetSelClasses();
+    try { document.body.setPointerCapture(e.pointerId); sqDragPid = e.pointerId; } catch (_) { sqDragPid = null; }
     sqDragEl = document.getElementById('sq-drag');
     if (!sqDragEl) { sqDragEl = document.createElement('div'); sqDragEl.id = 'sq-drag'; document.body.appendChild(sqDragEl); }
     sqDragEl.style.display = 'block';
     sqDragEl.innerHTML = `<div class="sq-tile drag">${sqPolyHTML(p, 96, 96)}</div>`;
     sqMoveDrag(e);
-    sqRenderAll();
     e.preventDefault();
   }, true);
 
@@ -728,12 +939,19 @@ function sqInstallInput() {
     if (!squaresActive() || !sqDragging) return;
     sqMoveDrag(e);
     const cell = sqCellAt(e.clientX, e.clientY);
-    if (cell) { sqTentative = { piece: sqDragging, r: cell[0], c: cell[1] }; sqPaintGhost(); sqPaintButtons(); }
+    if (cell) { sqTentative = { piece: sqDragging, r: cell[0], c: cell[1] }; sqPaintGhost(); sqPaintButtons(); sqSetSelClasses(); }
+  });
+
+  // A cancelled pointer (the OS taking the gesture, a context menu) must put the
+  // drag down rather than leave the ghost stuck to the screen.
+  window.addEventListener('pointercancel', () => {
+    if (!squaresActive() || !sqDragging) return;
+    sqReleaseDrag(); sqDragging = null; sqRenderAll();
   });
 
   window.addEventListener('pointerup', e => {
     if (!squaresActive()) return;
-    if (sqDragEl) { sqDragEl.style.display = 'none'; sqDragEl.innerHTML = ''; }
+    sqReleaseDrag();
     if (!sqDragging) return;
     const overDisc = !!(e.target.closest && document.elementFromPoint(e.clientX, e.clientY)?.closest('#btn-discard'));
     const p = sqDragging; sqDragging = null;
@@ -777,6 +995,18 @@ function sqMoveDrag(e) {
   if (!sqDragEl) return;
   sqDragEl.style.left = (e.clientX - 48) + 'px';
   sqDragEl.style.top  = (e.clientY - 48) + 'px';
+}
+function sqReleaseDrag() {
+  if (sqDragEl) { sqDragEl.style.display = 'none'; sqDragEl.innerHTML = ''; }
+  if (sqDragPid != null) { try { document.body.releasePointerCapture(sqDragPid); } catch (_) {} sqDragPid = null; }
+}
+// The selection state WITHOUT a re-render - see the drag note above.
+function sqSetSelClasses() {
+  document.querySelectorAll('#selected-cards .sq-tile').forEach(el => {
+    const p = sqHand.find(x => x.id === el.dataset.pid);
+    el.classList.toggle('sel', !!p && sqSelected === p);
+    el.classList.toggle('placing', !!p && !!sqTentative && sqTentative.piece === p);
+  });
 }
 
 function sqConfirm() {
@@ -894,7 +1124,7 @@ function sqApplyCons() {
       sqHand.forEach(p => p.cells.forEach(cl => playedPile.push(cl.card)));
       sqHand = [];
       const sp = SQ_SCHEDULE[sqTurn];
-      if (sp) for (let i = 0; i < sp.n; i++) sqHand.push(sqMakePiece(sp.size));
+      if (sp) sqHand.push(...sqDealPieces(sp.n, sp.size));
       sqTentative = null; sqSelected = null;
       showMessage?.('Re-dealt.', 'var(--gold)'); sqConsSpend(); return;
     }
@@ -1016,5 +1246,57 @@ function sqReport(title, body, onOk) {
   ov.querySelector('#sq-ok').onclick = () => { sqCloseOverlay(); onOk && onOk(); };
   sqShowOverlay();
 }
+
+  // A LAYOUT CHANGE HAS TO RE-RUN THE FIT. A poly is sized from the tile's
+  // MEASURED inner box, so an orientation flip or a window resize leaves every
+  // tile fitted to a box that no longer exists - which is the owner's "the
+  // Tetris piece went over the card boundary". Deferred by a tick for map
+  // mode's reason: js/bootstrap.js is the LAST script, so the handler that
+  // toggles `.landscape` is registered after this one and runs after it.
+// ── A LAYOUT CHANGE HAS TO RE-RUN BOTH FITS (r309) ─────────────────────────
+// The board is sized from the MEASURED slot and a poly from its tile's MEASURED
+// inner box, so an orientation flip leaves every one of them fitted to a box
+// that no longer exists - the owner's "the Tetris piece went over the card
+// boundary".
+//
+// A `resize` LISTENER IS NOT ENOUGH, and the reason is the office photograph.
+// While it is on screen the stage is forced LANDSCAPE whatever the device is
+// (r257), and the channel change hands a phone back its portrait layout behind
+// the flash by calling applyStageLayout DIRECTLY - no resize event, no
+// orientationchange. Measured on a 420x900 phone: the first deal fitted its
+// tiles to a 278x217 landscape host and nothing ever re-measured them.
+//
+// So the trigger is a ResizeObserver on the two boxes themselves, which cannot
+// miss a cause it has not been told about. `_sqLastBox` is what stops a loop: a
+// render is only run when a box has genuinely changed size.
+let _sqRO = null, _sqLastBox = '', _sqResizeT = null;
+function sqBoxKey() {
+  const a = document.getElementById('grid-slot'), b = document.getElementById('selected-cards');
+  return (a ? a.offsetWidth + 'x' + a.offsetHeight : '') + '|' + (b ? b.offsetWidth + 'x' + b.offsetHeight : '');
+}
+function sqSyncLayout(force) {
+  if (!squaresActive()) return;
+  const key = sqBoxKey();
+  if (!force && key === _sqLastBox) return;
+  _sqLastBox = key;
+  gridRows = SQ_N; gridCols = SQ_N;
+  if (typeof recomputeGridMetrics === 'function') recomputeGridMetrics();
+  sqRenderAll();
+}
+function sqObserveLayout() {
+  if (typeof ResizeObserver === 'undefined') return;
+  if (_sqRO) _sqRO.disconnect();
+  _sqRO = new ResizeObserver(() => sqSyncLayout());
+  ['grid-slot', 'selected-cards'].forEach(id => { const el = document.getElementById(id); if (el) _sqRO.observe(el); });
+  _sqLastBox = sqBoxKey();
+}
+function sqUnobserveLayout() { if (_sqRO) { _sqRO.disconnect(); _sqRO = null; } _sqLastBox = ''; }
+function _sqOnResize() {
+  if (!squaresActive()) return;
+  clearTimeout(_sqResizeT);
+  _sqResizeT = setTimeout(() => sqSyncLayout(true), 140);
+}
+window.addEventListener('resize', _sqOnResize);
+window.addEventListener('orientationchange', _sqOnResize);
 
 sqInstallInput();
