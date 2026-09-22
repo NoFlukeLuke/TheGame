@@ -54,9 +54,25 @@ function shopgCatLabel(cat) {
 // row PINS its category: the label wears a pin and a reroll keeps that row's
 // category (its stock still refills). Unpinned rows reroll their category too.
 let shopGridRowMeta = [];
-// Rerolls are capped by the swaps you finished the last round holding - captured
-// at open, spent by shopGridReroll.
-let shopRerollCap = 0;
+
+// ══ THE SHOP SPENDS THE ROUND'S LEFTOVER STOCK (r307) ══════════════════════
+// A SWAP moves a tile. A DISCARD rerolls a row. There is no separate shop
+// currency for either and no cap of their own: what you carried out of the
+// round IS the budget, which is the whole reason to finish a round holding
+// something back. In the node flow those globals still hold the finished
+// round's leftovers when the shop opens (the reset runs later, in
+// triggerLevelUp), and on a Survival mid-round visit spending them really does
+// cost the rest of the round.
+//
+// SWAP IS THE BOARD'S OWN GESTURE, deliberately: double-tap to lift a tile,
+// tap an orthogonal neighbour to trade them - the same two taps that swap two
+// cards during a round (onCardTap in js/input.js), with the same Free Range
+// exemption and the same Steady Hand bypass. Routing it through the SELECTION
+// instead would have been unreachable: a row label weighs 2 against Selection
+// Size (below), so lifting two of them is 4 against a cap that starts at 3.
+let shopSwapPending = null;        // "r-c" of the lifted tile, or null
+let _shopTapKey = null, _shopTapAt = 0;
+const SHOP_DBLTAP_MS = 350;        // DOUBLE_TAP_MS, matched deliberately
 
 // Multi-buy discount: a flat rate per ADDITIONAL item in the connected group.
 // BAL.shop_discount.per_item (3%) as shipped; Bulk Buyer raises it to
@@ -305,20 +321,23 @@ function shopgRowPayloads(cat, n) {
 
 // Build the whole buy board. `reroll` keeps pinned categories (shopgDrawCats);
 // stock always refills - a bought slot comes back as fresh stock, not a ✓.
+// ONE row of stock, label cell included. Shared by the board build and the
+// per-row reroll (r307) so the two can never fill a row differently.
+function shopgFillRow(cat, C) {
+  const row = [null];                                  // col 0: the label
+  shopgRowPayloads(cat, C - 1).forEach(p => {
+    if (!p || row.length >= C) return;
+    row.push(p);
+    if (p._span === 2 && row.length < C) row.push(p);   // same object = the tile's 2nd cell
+  });
+  while (row.length < C) row.push(null);
+  return row;
+}
 function buildShopGridStock(reroll) {
   shopGridRowMeta = shopgDrawCats(reroll ? shopGridRowMeta : null);
   const R = shopgRows(), C = shopgCols();
   const rows = [new Array(C).fill(null)];              // row 0: the title
-  shopGridRowMeta.forEach(m => {
-    const row = [null];                                // col 0: the label
-    shopgRowPayloads(m.cat, C - 1).forEach(p => {
-      if (!p || row.length >= C) return;
-      row.push(p);
-      if (p._span === 2 && row.length < C) row.push(p);   // same object = the tile's 2nd cell
-    });
-    while (row.length < C) row.push(null);
-    rows.push(row);
-  });
+  shopGridRowMeta.forEach(m => rows.push(shopgFillRow(m.cat, C)));
   while (rows.length < R) rows.push(new Array(C).fill(null));
   return rows;
 }
@@ -458,6 +477,29 @@ function openShopOwnedPanel(cat) {
 }
 function closeShopOwnedPanel() { document.getElementById('shop-owned-panel')?.classList.remove('show'); }
 
+// Press-and-hold a row label to see what you already own of that category. The
+// same 430ms the Trick tray uses (attachTrickSellHold, r182), and the same
+// `_lpJustFired` latch the shop tiles use, so the click that ends the hold does
+// not also select the row.
+const SHOP_LABEL_HOLD_MS = 430;
+function shopAttachLabelHold(el, cat) {
+  let timer = null, sx = 0, sy = 0;
+  const cancel = () => { if (timer) { clearTimeout(timer); timer = null; } };
+  el.addEventListener('pointerdown', e => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    sx = e.clientX; sy = e.clientY; el._lpJustFired = false; cancel();
+    timer = setTimeout(() => {
+      timer = null; el._lpJustFired = true;
+      openShopOwnedPanel(cat);
+      if (navigator.vibrate) { try { navigator.vibrate(12); } catch (err) {} }
+    }, SHOP_LABEL_HOLD_MS);
+  });
+  el.addEventListener('pointermove', e => { if (timer && Math.hypot(e.clientX - sx, e.clientY - sy) > 8) cancel(); });
+  el.addEventListener('pointerup', cancel);
+  el.addEventListener('pointercancel', () => { cancel(); el._lpJustFired = false; });
+  el.addEventListener('pointerleave', cancel);
+}
+
 // ── Open / close ──
 let _shopPrevPV = null;   // portrait panel view to restore on close
 function openShopGrid() {
@@ -466,11 +508,8 @@ function openShopGrid() {
   shopGridSel    = new Set();
   shopSelOrder   = [];
   shopRerollCount = 0;
-  // Rerolls are RATIONED by the swaps you were holding when the shop opened -
-  // in the node flow that is what the finished round left you (the reset runs
-  // later, in triggerLevelUp), and on a Survival mid-round visit it is the live
-  // count. Money alone is not enough to spin the stock forever.
-  shopRerollCap = Math.max(0, (typeof swaps === 'number' ? swaps : 0));
+  shopSwapPending = null;
+  _shopTapKey = null; _shopTapAt = 0;
   gameTimerPaused = true;
   try { sfxShopOpen?.(); } catch (e) {}
   shopGridItems  = buildShopGridStock();
@@ -658,44 +697,69 @@ let _shopgPlayHTML = null, _shopgDiscHTML = null;
 // remaining-count is the big figure because it is the decision; the price is a
 // footnote in the same place the other two caps print their time cost.
 let _shopgSwapHTML = null;
-function shopRerollCapHTML() {
-  const left = shopRerollsLeft();
-  return `<span class="srr-word">REROLL</span>`
+// The action column mirrors the board's, which is the point: the same three
+// controls spend the same three things.
+//   swap slot  - a READOUT of the swaps you have left (the gesture is on the
+//                board itself, double-tap then tap, so this is not a button)
+//   discard    - REROLL the selected rows, or LEAVE when nothing is selected
+//   play       - BUY
+// The discard button is contextual rather than split in two because it is the
+// DISCARD button in both places: on the board it spends a discard on what is
+// selected, and here it does exactly that. LEAVE is what it reads when there is
+// nothing selected to spend one on, which is the state you are in when you are
+// done - and there is a second, permanent Leave in the cost readout, so the
+// exit is never sitting behind a deselect.
+function shopSwapChipHTML() {
+  const inf = (typeof hasKnack === 'function' && hasKnack('steady_hand'));
+  const left = inf ? '\u221e' : (typeof swaps === 'number' ? swaps : 0);
+  return `<span class="srr-word">SWAP</span>`
        + `<span class="srr-left">${left}</span>`
-       + `<span class="srr-cost">${left > 0 ? '\ud83d\udcb0' + shopRerollCost() : 'none left'}</span>`;
-  // title, not a fourth line: the cap is a small box and "1 per unused swap" is
-  // the rule behind the number, not the number itself.
+       + `<span class="srr-cost">move</span>`;   // short enough for the box; 'rearrange' wraps
 }
-function syncShopRerollCap() {
+function syncShopActionChips() {
   const swap = document.getElementById('swap-indicator');
-  if (!swap || !shopGridActive) return;
-  swap.innerHTML = shopRerollCapHTML();
-  swap.title = 'Rerolls are rationed: 1 per swap you had left when the shop opened.';
-  const spent = shopGridMode === 'sell' || shopRerollsLeft() <= 0 || coins < shopRerollCost();
-  swap.classList.toggle('srr-spent', spent);
+  if (swap && shopGridActive) {
+    swap.innerHTML = shopSwapChipHTML();
+    swap.title = 'Double-tap a tile to lift it, then tap a neighbour to trade them. Two row labels trade their whole rows.';
+    swap.classList.toggle('srr-spent', shopGridMode === 'sell' || !shopSwapsLeft());
+  }
+  const disc = document.getElementById('btn-discard');
+  if (disc && shopGridActive) {
+    const rows = shopgSelRows().length;
+    const have = (typeof discards === 'number') ? discards : 0;
+    disc.classList.toggle('shop-reroll-btn', rows > 0);
+    disc.innerHTML = rows > 0 ? 'R<br>E<br>R<br>O<br>L<br>L' : 'L<br>E<br>A<br>V<br>E';
+    disc.title = rows > 0
+      ? `Reroll ${rows === 1 ? 'this row' : rows + ' rows'} \u00b7 ${rows} discard${rows === 1 ? '' : 's'} (you have ${have})`
+      : 'Leave the shop';
+    disc.disabled = rows > 0 && have < rows;
+  }
 }
 function enterShopGridButtons() {
   const play = document.getElementById('btn-play');
   const disc = document.getElementById('btn-discard');
   const swap = document.getElementById('swap-indicator');
   if (play) { if (_shopgPlayHTML === null) _shopgPlayHTML = play.innerHTML; play.classList.add('reward-buy');  play.innerHTML = 'B<br>U<br>Y'; }
-  if (disc) { if (_shopgDiscHTML === null) _shopgDiscHTML = disc.innerHTML; disc.classList.add('reward-clear'); disc.innerHTML = 'L<br>E<br>A<br>V<br>E'; disc.disabled = false; }
+  if (disc) { if (_shopgDiscHTML === null) _shopgDiscHTML = disc.innerHTML; disc.classList.add('reward-clear'); disc.disabled = false; }
   if (swap) {
     if (_shopgSwapHTML === null) _shopgSwapHTML = swap.innerHTML;
-    swap.classList.add('shop-reroll');
-    swap.onclick = (e) => { e.stopPropagation(); shopGridReroll(); };
-    syncShopRerollCap();
+    swap.classList.add('shop-swapchip');
+    swap.onclick = null;                    // a readout, not a control
   }
+  syncShopActionChips();
 }
 function exitShopGridButtons() {
   const play = document.getElementById('btn-play');
   const disc = document.getElementById('btn-discard');
   const swap = document.getElementById('swap-indicator');
   if (play && _shopgPlayHTML !== null) { play.classList.remove('reward-buy');  play.innerHTML = _shopgPlayHTML; }
-  if (disc && _shopgDiscHTML !== null) { disc.classList.remove('reward-clear'); disc.innerHTML = _shopgDiscHTML; }
+  if (disc && _shopgDiscHTML !== null) {
+    disc.classList.remove('reward-clear', 'shop-reroll-btn');
+    disc.innerHTML = _shopgDiscHTML; disc.disabled = false; disc.title = '';
+  }
   if (swap && _shopgSwapHTML !== null) {
-    swap.classList.remove('shop-reroll', 'srr-spent');
-    swap.innerHTML = _shopgSwapHTML; swap.onclick = null;
+    swap.classList.remove('shop-swapchip', 'srr-spent');
+    swap.innerHTML = _shopgSwapHTML; swap.onclick = null; swap.title = '';
     // The saved markup carries #swap-count back with it; render() refills it.
   }
 }
@@ -745,7 +809,11 @@ function renderShopGrid(animateIn = false) {
       const cat  = meta ? SHOP_CATS[meta.cat] : null;
       const catLabel = meta ? shopgCatLabel(meta.cat) : '';
       const lab = document.createElement('div');
-      lab.className = 'reward-cell on-grid shop-row-label unselectable' + (meta?.pinned ? ' pinned' : '');
+      const labKey = `${r}-0`;
+      lab.dataset.r = r; lab.dataset.c = 0;
+      lab.className = 'reward-cell on-grid shop-row-label' + (meta?.pinned ? ' pinned' : '')
+                    + (shopGridSel.has(labKey) ? ' selected' : '')
+                    + (shopSwapPending === labKey ? ' shop-lifted' : '');
       lab.style.left = cellLeft(0) + 'px';
       lab.style.top  = cellTop(r) + 'px';
       lab.style.width  = CARD_W + 'px';
@@ -754,18 +822,20 @@ function renderShopGrid(animateIn = false) {
                     + `<span class="srl-name">${catLabel}</span>`
                     + (meta?.pinned ? `<span class="srl-pin" title="Bought from: this category stays on reroll">📌</span>` : '')
                     + `<span class="srl-own">${meta ? (shopOwnedOfKind(meta.cat).length || '') : ''}</span>`;
-      // The plate opens WHAT YOU ALREADY OWN of that category. Sleights are the
-      // case that prompted it - they sit on the board, so once the shop has
-      // taken the board over there is no way at all to see what you are holding
-      // while deciding whether to buy another - but the same question is worth
-      // answering for every row, and it is one handler rather than a Sleight
-      // special case.
+      // r307: the plate is a REAL CELL now. A tap selects the row (the discard
+      // button then rerolls it), a double-tap lifts the whole row for a swap.
       //
-      // It stays `unselectable` (pointer-events are re-enabled in CSS for this
-      // rule alone): this is its own handler, so it can never route a connected
-      // pick through the heading.
+      // WHAT YOU ALREADY OWN of that category moved to a LONG PRESS, which is
+      // this game's "read more" gesture everywhere else (r182). It has to stay
+      // reachable: Sleights sit on the board, so once the shop has taken the
+      // board over there is no other way to see what you are holding while
+      // deciding whether to buy another.
       lab.classList.add('srl-openable');
-      lab.onclick = (e) => { e.stopPropagation(); openShopOwnedPanel(meta?.cat); };
+      lab.onclick = () => {
+        if (lab._lpJustFired) { lab._lpJustFired = false; return; }
+        onShopGridClick(r, 0);
+      };
+      shopAttachLabelHold(lab, meta?.cat);
       fallIn(lab, r, 0);
       gridEl.appendChild(lab);
     }
@@ -782,8 +852,13 @@ function renderShopGrid(animateIn = false) {
       if (!p) {
         // An empty slot is a filler card, never a hole - a hole in a board of
         // cards reads as something failing to load (same rule as Guided's board).
-        div.className = 'reward-cell on-grid shop-tile shop-prev-null unselectable';
+        div.className = 'reward-cell on-grid shop-tile shop-prev-null unselectable'
+                      + (shopSwapPending ? ' shop-drop-target' : '');
         div.innerHTML = `<div class="reward-icon">·</div>`;
+        // An empty slot is inert EXCEPT while a tile is lifted, when it is a
+        // place to put it down. onShopGridClick tests the lift before it tests
+        // the payload, so this handler is safe to leave attached.
+        div.onclick = () => { if (shopSwapPending) onShopGridClick(r, c); };
       } else {
         const rar = p.entity ? rewardRarity(p) : (p.rarity || 'common');
         const sel = shopGridSel.has(`${r}-${c}`);
@@ -793,6 +868,8 @@ function renderShopGrid(animateIn = false) {
           p._upgrade ? 'shop-tile-upgrade' : '', p._improve ? 'shop-tile-improve' : '',
           p._cardBuff ? 'shop-tile-card' : '', span === 2 ? 'shop-tile-wide' : '', 'rar-' + rar,
           p._sold ? 'sold' : '', sel ? 'selected' : '',
+          shopSwapPending === shopgLeadKey(r, c) ? 'shop-lifted' : '',
+          shopSwapPending ? 'shop-drop-target' : '',
         ].filter(Boolean).join(' ');
         const chip = p._sold ? '✓' : `💰${(shopGridMode === 'sell') ? p.price : shopEffPrice(p)}`;
         div.innerHTML = buildShopTileInner(p) + `<div class="shop-price-chip ${p._sold ? 'sold' : (coins < ((shopGridMode === 'sell') ? p.price : shopEffPrice(p)) ? 'cant-afford' : '')}">${chip}</div>`;
@@ -811,21 +888,49 @@ function renderShopGrid(animateIn = false) {
   if (typeof updateSelectionUI === 'function') updateSelectionUI();
   renderShopCostReadout();
   updateShopGridButtons();
-  syncShopRerollCap();
+  syncShopActionChips();
 }
 
 // ── Span-aware selection helpers ──
+// A ROW LABEL is a real, selectable cell since r307 - that is how a reroll
+// names its row and how a whole row is lifted for a swap. Row 0 is the COMPANY
+// STORE banner and stays inert; the sell board has no labels at all.
+function shopgIsLabel(r, c) {
+  return shopGridMode !== 'sell' && c === 0 && r >= 1 && !!shopGridRowMeta[r - 1];
+}
+// A row label weighs TWO against Selection Size (owner's call). It is not a
+// purchase - it commands a whole row - and the weight is what decides how many
+// rows one REROLL press can take: one at Selection Size 3 or 4, two at 5 or 6.
+const SHOP_LABEL_WEIGHT = 2;
+function shopgKeyWeight(key) {
+  const [r, c] = key.split('-').map(Number);
+  return shopgIsLabel(r, c) ? SHOP_LABEL_WEIGHT : 1;
+}
+function shopgSelWeight() { let w = 0; shopGridSel.forEach(k => { w += shopgKeyWeight(k); }); return w; }
+// The selected rows, in board order - what a REROLL press will take.
+function shopgSelRows() {
+  return [...shopGridSel]
+    .map(k => k.split('-').map(Number))
+    .filter(([r, c]) => shopgIsLabel(r, c))
+    .map(([r]) => r).sort((a, b) => a - b);
+}
+function shopgSelHasItems() {
+  return [...shopGridSel].some(k => { const [r, c] = k.split('-').map(Number); return !shopgIsLabel(r, c); });
+}
+
 // Every cell a payload covers, from any of its keys.
 function shopgCellsOf(key) {
   const [r, c] = key.split('-').map(Number);
+  if (shopgIsLabel(r, c)) return [[r, c]];
   const p = shopGridItems[r]?.[c];
   if (!p) return [[r, c]];
   const cells = [];
   for (let cc = 0; cc < (shopGridItems[r] || []).length; cc++) if (shopGridItems[r][cc] === p) cells.push([r, cc]);
   return cells.length ? cells : [[r, c]];
 }
-// The key a payload is addressed by: its leftmost cell.
+// The key a payload is addressed by: its leftmost cell. A label is its own key.
 function shopgLeadKey(r, c) {
+  if (shopgIsLabel(r, c)) return `${r}-0`;
   const p = shopGridItems[r]?.[c];
   if (!p) return null;
   let cc = c;
@@ -854,10 +959,24 @@ function shopGroupConnected(keySet) {
 // previous pick (the same shape the reward grid keeps in rewardPickOrder).
 let shopSelOrder = [];
 function onShopGridClick(r, c) {
+  // A lifted tile is waiting for its partner, so this tap is the SWAP - not a
+  // pick, and not a read. Checked first, above the empty-cell guard: sliding a
+  // tile into a gap is the most useful move on a board with a short row.
+  if (shopSwapPending) { shopResolveSwap(r, c); return; }
+  const isLabel = shopgIsLabel(r, c);
   const p = shopGridItems[r]?.[c];
-  if (!p || p._sold) return;
+  if (!isLabel && (!p || p._sold)) return;
   if (shopGridMode === 'sell') { doShopSell(r, c); return; }
+  // Double-tap lifts the tile, exactly as it does on the play board.
   const key = shopgLeadKey(r, c);
+  if (!key) return;
+  const now = Date.now();
+  if (_shopTapKey === key && now - _shopTapAt < SHOP_DBLTAP_MS) {
+    _shopTapKey = null; _shopTapAt = 0;
+    shopArmSwap(r, c);
+    return;
+  }
+  _shopTapKey = key; _shopTapAt = now;
   if (shopGridSel.has(key)) {
     const rem = new Set([...shopGridSel].filter(k => k !== key));
     if (rem.size === 0 || shopGroupConnected(rem)) {
@@ -870,7 +989,15 @@ function onShopGridClick(r, c) {
     }
     return;
   }
-  if (shopGridSel.size >= limits.selection.current) return;             // capped by Selection Size
+  // A selection is EITHER a purchase or a reroll, never both - otherwise BUY and
+  // REROLL are live over one selection and neither says what it would take.
+  // Crossing over CLEARS rather than refuses: there is no CLEAR button on this
+  // screen, so a refusal would strand the player on a pick they cannot drop.
+  if (isLabel ? shopgSelHasItems() : shopgSelRows().length > 0) {
+    shopGridSel = new Set(); shopSelOrder = [];
+    if (typeof rewardTipKey !== 'undefined') rewardTipKey = null;
+  }
+  if (shopgSelWeight() + shopgKeyWeight(key) > limits.selection.current) return;   // capped by Selection Size
   if (shopGridSel.size > 0) {
     // Adjacent to the selection through ANY cell of this tile's footprint.
     const adj = shopgCellsOf(key).some(([tr, tc]) =>
@@ -882,7 +1009,7 @@ function onShopGridClick(r, c) {
   }
   // Same rule the reward grid follows: a Trick you have no room for is refused
   // before it can be selected, let alone paid for.
-  if (p.entity === 'trick' && trickTrayFull()) { refuseTrickCapacity(); return; }
+  if (p && p.entity === 'trick' && trickTrayFull()) { refuseTrickCapacity(); return; }
   shopGridSel.add(key);
   shopSelOrder.push(key);
   // The newest pick is the one being explained (r182's reward-grid rule).
@@ -891,17 +1018,22 @@ function onShopGridClick(r, c) {
 }
 
 function shopGridSelectionCost() {
-  let base = 0;
-  shopGridSel.forEach(k => { const [r, c] = k.split('-').map(Number); const p = shopGridItems[r]?.[c]; if (p && !p._sold) base += shopEffPrice(p); });
-  const d = shopGridDiscount(shopGridSel.size);
-  return { base, discount: d, total: Math.round(base * (1 - d)) };
+  let base = 0, n = 0;
+  shopGridSel.forEach(k => {
+    const [r, c] = k.split('-').map(Number);
+    if (shopgIsLabel(r, c)) return;                 // a row label is not merchandise
+    const p = shopGridItems[r]?.[c];
+    if (p && !p._sold) { base += shopEffPrice(p); n++; }
+  });
+  const d = shopGridDiscount(n);
+  return { base, discount: d, total: Math.round(base * (1 - d)), n };
 }
 
 // Play button → BUY the selected connected group (discounted).
 function shopGridBuySelection() {
   if (shopGridMode === 'sell') return;
-  if (shopGridSel.size === 0) return;
-  const { total } = shopGridSelectionCost();
+  const { total, n } = shopGridSelectionCost();
+  if (n === 0) return;                      // label-only pick: that is a reroll, not a purchase
   if (coins < total) { showMessage('Not enough credits', 'var(--red)'); return; }
   coins -= total;
   updateCoinsUI();
@@ -970,36 +1102,131 @@ function toggleShopSellMode() {
   renderShopGrid();
 }
 
-// Reroll cost / count, in ONE place (r234). Three surfaces read these - the
-// REROLL button on the action column, the cost readout, and shopGridReroll's own
-// affordability check - and a fourth would have been a fourth copy of the ladder.
-// Scaled by PRICE_MULT like every other sink.
-// The cap is upstream's: rerolls are RATIONED by the swaps you were holding when
-// the shop opened (shopRerollCap, set in openShopGrid), not by a limit. The
-// ladder is this branch's, scaled by PRICE_MULT like every other sink.
-function shopRerollMax()   { return (typeof shopRerollCap === 'number') ? shopRerollCap : 0; }
-function shopRerollsLeft() { return Math.max(0, shopRerollMax() - shopRerollCount); }
-function shopRerollCost()  { return priceOf(10) + shopRerollCount * priceOf(5); }
-
-function shopGridReroll() {
+// ══ SWAP: rearrange the board ══════════════════════════════════════════════
+// Double-tap lifts a tile; the next tap trades it with an orthogonal neighbour.
+// Tapping the lifted tile again puts it back down.
+function shopArmSwap(r, c) {
   if (shopGridMode !== 'buy') return;
-  if (shopRerollsLeft() <= 0) { showMessage('No rerolls left · 1 per unused swap', 'var(--red)'); return; }
-  const cost = shopRerollCost();
-  if (coins < cost) { showMessage('Not enough credits', 'var(--red)'); return; }
-  coins -= cost; updateCoinsUI();
-  shopRerollCount++;
-  // Pinned rows keep their category; everything refills fresh - a bought slot
-  // comes back as new stock rather than a ✓ (buildShopGridStock, reroll=true).
-  shopGridItems = buildShopGridStock(true);
-  shopGridSel = new Set();
-  shopSelOrder = [];
-  if (typeof rewardTipKey !== 'undefined') rewardTipKey = null;
+  const isLabel = shopgIsLabel(r, c);
+  if (!isLabel && !shopGridItems[r]?.[c]) { showMessage('Nothing to lift', 'var(--cream-dim)'); return; }
+  if (!shopSwapsLeft()) { showMessage('No swaps left', 'var(--red)'); try { sfxNoSwaps?.(); } catch (e) {} return; }
+  shopSwapPending = shopgLeadKey(r, c);
+  // The lift DROPS the selection: what you are about to do is move things, and
+  // a pick left standing would be pointing at cells that are about to change.
+  shopGridSel = new Set(); shopSelOrder = [];
+  if (typeof rewardTipKey !== 'undefined') { rewardTipKey = null; hideRewardTooltip(); }
+  try { sfxCardSelect?.(); } catch (e) {}
   renderShopGrid();
+}
+// Steady Hand bypasses the swap limit on the board, so it bypasses it here too.
+function shopSwapsLeft() {
+  if (typeof hasKnack === 'function' && hasKnack('steady_hand')) return true;
+  return (typeof swaps === 'number' ? swaps : 0) > 0;
+}
+
+function shopResolveSwap(r, c) {
+  const key = shopSwapPending;
+  shopSwapPending = null;
+  const [pr, pc] = key.split('-').map(Number);
+  if (pr === r && pc === c) { renderShopGrid(); return; }        // tapped itself: put it down
+  shopSwapTiles(pr, pc, r, c);
+  renderShopGrid();
+}
+
+// The trade itself. Returns false (with a reason) rather than half-doing it.
+function shopSwapTiles(r1, c1, r2, c2) {
+  if (shopGridMode !== 'buy') return false;
+  // Adjacency is the board's rule, and Free Range lifts it here for the same
+  // reason it lifts it there.
+  const adj = Math.abs(r1 - r2) + Math.abs(c1 - c2) === 1;
+  if (!adj && !(typeof hasKnack === 'function' && hasKnack('free_range_t'))) {
+    showMessage('Trade with a tile it touches', 'var(--cream-dim)'); return false;
+  }
+  if (!shopSwapsLeft()) { showMessage('No swaps left', 'var(--red)'); try { sfxNoSwaps?.(); } catch (e) {} return false; }
+  const l1 = shopgIsLabel(r1, c1), l2 = shopgIsLabel(r2, c2);
+  if (l1 !== l2) { showMessage('A row label only trades with another row label', 'var(--cream-dim)'); return false; }
+
+  if (l1) {
+    // TWO LABELS: the WHOLE ROWS trade - stock, category, pin and all. That is
+    // the move worth having, because a connected pick cannot cross the board:
+    // bringing two categories next to each other is what lets one purchase
+    // cover both, at the multi-buy rate.
+    const a = shopGridItems[r1]; shopGridItems[r1] = shopGridItems[r2]; shopGridItems[r2] = a;
+    const m = shopGridRowMeta[r1 - 1]; shopGridRowMeta[r1 - 1] = shopGridRowMeta[r2 - 1]; shopGridRowMeta[r2 - 1] = m;
+  } else {
+    // TWO ITEM TILES. A 2-wide tile cannot trade with a 1-wide one - there is
+    // nowhere for the spare cell to go - so that pairing is refused rather than
+    // silently reshuffling the row around it. An empty cell IS a valid partner:
+    // sliding a tile into a gap is a move, and on a short row it is the move.
+    const A = shopgCellsOf(`${r1}-${c1}`), B = shopgCellsOf(`${r2}-${c2}`);
+    if (A.length !== B.length) { showMessage('Those two are different widths', 'var(--cream-dim)'); return false; }
+    const pa = shopGridItems[r1][c1], pb = shopGridItems[r2][c2];
+    if (!pa && !pb) return false;                                 // two gaps: nothing moved
+    A.forEach(([rr, cc]) => { shopGridItems[rr][cc] = pb; });
+    B.forEach(([rr, cc]) => { shopGridItems[rr][cc] = pa; });
+  }
+
+  // The charge. No TIME cost and no `swapsUsedRound` bump, deliberately: the
+  // clock on this screen belongs to a round that is already over, and the No
+  // Takebacks challenge counts what you did during a ROUND.
+  if (!(typeof hasKnack === 'function' && hasKnack('steady_hand'))) swaps = Math.max(0, swaps - 1);
+  // The board moved under the selection, so the selection goes - the same rule
+  // a rerolled pick screen follows (js/grid-pick.js).
+  shopGridSel = new Set(); shopSelOrder = [];
+  if (typeof rewardTipKey !== 'undefined') { rewardTipKey = null; hideRewardTooltip(); }
+  try { sfxCardSelect?.(); } catch (e) {}
+  return true;
+}
+
+// ══ REROLL: discards buy new stock, one row at a time ══════════════════════
+// Select a row's LABEL and press the discard button. One discard a row, and no
+// credit cost at all: the discard IS the price, which is what makes carrying
+// stock out of a round worth something here.
+function shopRerollSelectedRows() {
+  if (shopGridMode !== 'buy') return false;
+  const rows = shopgSelRows();
+  if (!rows.length) return false;
+  const have = (typeof discards === 'number') ? discards : 0;
+  if (have < rows.length) {
+    showMessage(rows.length > 1 ? `Needs ${rows.length} discards` : 'No discards left', 'var(--red)');
+    try { sfxNoSwaps?.(); } catch (e) {}
+    return false;
+  }
+  discards -= rows.length;
+  rows.forEach(shopgRerollRow);
+  shopGridSel = new Set(); shopSelOrder = [];
+  shopSwapPending = null;
+  if (typeof rewardTipKey !== 'undefined') { rewardTipKey = null; hideRewardTooltip(); }
+  showMessage(rows.length > 1 ? `Rerolled ${rows.length} rows` : 'Row rerolled', 'var(--c-mint)');
+  try { sfxShopOpen?.(); } catch (e) {}
+  renderShopGrid();
+  return true;
+}
+
+// One row, redrawn. A PINNED row (you bought from it) keeps its category and
+// only refills its stock - the promise the pin has always made. An unpinned row
+// draws a NEW category, never one already on the board and never the one it
+// just had, so a reroll always visibly changes something.
+function shopgRerollRow(r) {
+  const meta = shopGridRowMeta[r - 1];
+  if (!meta) return;
+  if (!meta.pinned) {
+    const taken = new Set(shopGridRowMeta.filter(m => m && m !== meta).map(m => m.cat));
+    const opts = Object.keys(SHOP_CATS).filter(c => !taken.has(c) && c !== meta.cat && shopgCatViable(c));
+    if (opts.length) meta.cat = opts[Math.floor(Math.random() * opts.length)];
+  }
+  shopGridItems[r] = shopgFillRow(meta.cat, shopgCols());
 }
 
 function updateShopGridButtons() {
   const play = document.getElementById('btn-play');
-  if (play) play.disabled = (shopGridMode !== 'buy') || shopGridSel.size === 0 || coins < shopGridSelectionCost().total;
+  // `n`, not shopGridSel.size: a selection of ROW LABELS is a reroll, and there
+  // is nothing in it to buy. Sizing this off the Set left BUY lit over a
+  // label-only pick, where pressing it paid 0 for 0 items.
+  if (play) {
+    const { total, n } = shopGridSelectionCost();
+    play.disabled = (shopGridMode !== 'buy') || n === 0 || coins < total;
+  }
 }
 
 // Cost / discount readout rendered INTO the hand-preview slot (#selected-cards).
@@ -1010,9 +1237,13 @@ function renderShopCostReadout() {
     costLine = `<div class="sc-line"><span>SELL MODE</span><span class="sc-off">tap to sell</span></div>`
              + `<div class="sc-line"><span>Wallet</span><b>💰${coins}</b></div>`;
   } else {
-    const { base, discount, total } = shopGridSelectionCost();
-    const n = shopGridSel.size;
-    costLine = n === 0
+    const { base, discount, total, n } = shopGridSelectionCost();
+    const rows = shopgSelRows().length;
+    costLine = rows > 0
+      // Labels selected: this is a reroll, so price it in the thing it spends.
+      ? `<div class="sc-line"><span>${rows === 1 ? '1 row' : rows + ' rows'}</span><b>${rows} ♻</b></div>`
+        + `<div class="sc-line"><span>Discards</span><b>${(typeof discards === 'number') ? discards : 0}</b></div>`
+      : n === 0
       ? `<div class="sc-line"><span>Select connected items</span></div><div class="sc-line"><span>−${Math.round(shopGridDiscountRate()*100)}% per extra item</span></div>`
       : (discount > 0
           ? `<div class="sc-line"><span>${n} items</span><span><s>💰${base}</s> <b>💰${total}</b> <span class="sc-off">(−${Math.round(discount*100)}%)</span></span></div>`
@@ -1021,12 +1252,14 @@ function renderShopCostReadout() {
   }
   sc.innerHTML =
     `<div class="shop-cost">${costLine}` +
-      // r237: REROLL lives on the swap cap now (syncShopRerollCap). Leaving the
-      // 9px chip here as well would be the same action in two places, one of
-      // them a footnote.
+      // Leave lives here as well as on the discard button, because that button
+      // reads REROLL whenever a row is selected - the way out must not depend
+      // on what you happen to have picked.
       `<div class="sc-actions">` +
         `<button id="sc-sell" class="${shopGridMode==='sell'?'sc-sell-on':''}">${shopGridMode==='sell'?'Back':'Sell'}</button>` +
+        `<button id="sc-leave">Leave</button>` +
       `</div>` +
     `</div>`;
   const sb = sc.querySelector('#sc-sell');   if (sb) sb.onclick = (e) => { e.stopPropagation(); toggleShopSellMode(); };
+  const lv = sc.querySelector('#sc-leave');  if (lv) lv.onclick = (e) => { e.stopPropagation(); closeShopGrid(); };
 }

@@ -398,6 +398,24 @@ body.map-active #swap-indicator { visibility: hidden; pointer-events: none; }
 #map-legend .ml-row.mk-boss      { --rc: #ff5c5c; }
 #map-legend .ml-row.mk-blank     { --rc: #6b6480; }
 #map-legend .ml-chip .mk-svg { width: 12px; height: 12px; }
+/* A PHONE'S STRIP IS ABOUT 75px, SO THE ROW STACKS (r298): symbol over word,
+   centred. Side by side, the name column would be ~30px against an INCENTIVE
+   that measures ~48, and the name cannot break - it is one word, and r182's
+   rule is that a word is atomic. Stacked, the name gets the whole column.
+   Nine stacked rows run taller than the board, which is why mapLegendPlace
+   gives this state the full free column rather than the board's own height. */
+#map-legend.ml-narrow { padding: 4px 3px 5px; }
+#map-legend.ml-narrow .ml-head { font-size: 7.5px; letter-spacing: 0.06em; padding-bottom: 4px; }
+#map-legend.ml-narrow .ml-x { width: 14px; height: 14px; font-size: 7px; }
+#map-legend.ml-narrow .ml-row {
+  flex-direction: column; gap: 1px; padding: 2px; text-align: center;
+}
+/* No separator gap: nine stacked rows are 9px over a 360x640 column WITH it,
+   and the hover wash is what tells one row from the next anyway. */
+#map-legend.ml-narrow .ml-row + .ml-row { margin-top: 0; }
+#map-legend.ml-narrow .ml-chip { flex: 0 0 auto; width: 18px; height: 18px; font-size: 11px; }
+#map-legend.ml-narrow .ml-chip .mk-svg { width: 11px; height: 11px; }
+#map-legend.ml-narrow .ml-row b { flex: 0 0 auto; width: 100%; font-size: 7.5px; }
 /* The ▤ chip lights while the rail is open, the way the pen chip does - the
    rail is off to the side, so the chip is what says it is up. */
 #map-bar .mb-q.on {

@@ -1051,6 +1051,29 @@
 .dev-ns-row.dev-ns-tuned .dev-ns-name { color:var(--gold); }
 .dev-ns-row.dev-ns-tuned input { border-color:var(--gold-dim); }
 
+/* ── NARROW: THE HAND NAME TAKES ITS OWN LINE (r304) ──────────────────────
+   The name column is the only flexible one (minmax(0,1fr)) and the seven field
+   columns are fixed at 316px plus gaps, so on a phone it is what gives: #dev-panel
+   is min(660px, 94vw), and at 420 and 390 wide the name measured EXACTLY 0px.
+   Every row read as a line of unlabelled numbers - the hand the numbers belong to
+   was not narrow, it was gone.
+
+   Scrolling the table sideways was the other option and is worse: the name would
+   then be the part you had to scroll AWAY from the numbers to read, which is the
+   complaint. So the name spans the full row on its own line and the fields sit
+   under it, at slightly tighter widths so the plays/growth readout still fits.
+   The header gets the same treatment, which is what keeps it in line with the
+   fields (the one rule this table has). */
+@media (max-width: 560px) {
+  .dev-ns-row { grid-template-columns:38px 42px 38px 20px 42px 42px minmax(0,1fr); gap:3px; margin:5px 0; }
+  .dev-ns-row .dev-ns-name { grid-column:1 / -1; font-size:11.5px; line-height:1.15; }
+  .dev-ns-row input { font-size:10px; padding:1px 2px; }
+  .dev-ns-head { padding-bottom:3px; }
+  .dev-ns-head .dev-ns-name { font-size:9px; letter-spacing:1px; color:var(--gold-dim); }
+  /* Each row is now two lines, so they need a line between them to read as rows. */
+  .dev-ns-row:not(.dev-ns-head) { border-top:1px solid rgba(255,255,255,0.06); padding-top:4px; }
+}
+
 
 /* ── Weighted deck editor (r273) - one stepper per rank, 13 across ── */
 .dev-wgrid { display:flex; flex-wrap:wrap; gap:4px; margin-top:4px; }

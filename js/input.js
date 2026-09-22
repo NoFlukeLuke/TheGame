@@ -95,7 +95,13 @@ function doSwap(r1, c1, r2, c2) {
     swapPending = null; render(); return;
   }
   const notAdjacent = Math.abs(r1-r2) + Math.abs(c1-c2) !== 1;
-  if (notAdjacent && !hasTrick('free_range')) {
+  // Free Range is a KNACK, `free_range_t` (js/data/knacks.js). This tested
+  // hasTrick('free_range') - a Trick id that does not exist in any pool - so
+  // the whole printed effect ("swap any two non-adjacent cards") had never
+  // once fired, while its downside DID: level-up.js takes a swap off the base
+  // for owning it. The knack was strictly negative. Found in r307 while
+  // mirroring this rule into the shop.
+  if (notAdjacent && !hasKnack('free_range_t')) {
     const btn = document.getElementById('btn-swap');
     if (btn) { btn.style.borderColor = 'var(--red)'; btn.style.color = 'var(--red)';
       setTimeout(() => { btn.style.borderColor = ''; btn.style.color = ''; }, 500); }

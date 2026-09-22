@@ -196,7 +196,7 @@ const INSIGHTS = [
 
   { id: 'shop', screen: 'any', title: 'Buying together is cheaper',
     anchor: ['#grid'],
-    body: 'Tiles that touch each other are discounted as a batch. Rerolling refills the shelves and costs more each time.',
+    body: 'Tiles that touch each other are discounted as a batch. Swaps rearrange the shelves and a discard rerolls a row, so what you carried out of the round is what you shop with.',
     when: () => typeof shopGridActive !== 'undefined' && shopGridActive },
 
   { id: 'payout', screen: 'any', title: 'What the round paid',

@@ -103,20 +103,18 @@ function renderCardAppearance(card, r, c, {
   const rcJeopardy  = doubleJeopardyPos && doubleJeopardyPos.r === r && doubleJeopardyPos.c === c ? ' rc-jeopardy' : '';
   const rcWoodpecker = woodpeckerPos && woodpeckerPos.r === r && woodpeckerPos.c === c ? ' rc-woodpecker' : '';
   // The shared "what affected what" highlight (r209, divided in r296 -
-  // js/entity-fx.js). A WASH over the card face and a RING around it, both in
-  // the owning Trick's colour, and both DIVIDED EVENLY when several marked lines
-  // cross this cell rather than naming one of them or blending into a third.
-  // It covers all nine line-marking Tricks. The three per-Trick `rc-pips` /
-  // `rc-mult` / `rc-retrigger` classes that used to tint the card went with the
-  // CSS that read them: they existed for 3 of the 9, so Perfect Timing, Right
-  // Time, Groove, Assembly Line and Overtime marked a line the player could not
-  // see, and they mixed a new colour at every crossing.
-  // Both are inner elements rather than classes + CSS variables, because
+  // js/entity-fx.js): a RING around the card in the owning Trick's colour,
+  // DIVIDED EVENLY when several marked lines cross this cell rather than naming
+  // one of them or blending into a third. It covers all nine line-marking
+  // Tricks, where the three per-Trick `rc-pips` / `rc-mult` / `rc-retrigger`
+  // tints it replaced covered three - so Perfect Timing, Right Time, Groove,
+  // Assembly Line and Overtime marked a line the player could not see.
+  // r296 also washed the card FACE and r299 took that back out: the face is the
+  // card's own, and it now carries the buff bands below instead.
+  // An inner element rather than a class + a CSS variable, because
   // renderCardAppearance returns className and innerHTML only - it has nowhere
-  // to hang a per-card custom property. The meta list is resolved ONCE here and
-  // handed to both, so a full board does not ask the registry twice per card.
+  // to hang a per-card custom property.
   const _lineMetas  = (typeof lineMetasForCell === 'function') ? lineMetasForCell(r, c) : [];
-  const lineWash    = (typeof lineWashHTMLFor === 'function') ? lineWashHTMLFor(_lineMetas) : '';
   const lineRing    = (typeof lineRingHTMLFor === 'function') ? lineRingHTMLFor(_lineMetas) : '';
   const fxMark      = (typeof cardMarkHTML === 'function') ? cardMarkHTML(r, c) : '';
   // A boss hold greys the card and puts its countdown on it (js/cooldown.js).
@@ -167,13 +165,8 @@ function renderCardAppearance(card, r, c, {
                  : `<div class="rank fog-rank">?</div><div class="suit">${card.suit}</div>`)
         : (isNum ? `<div class="rank num-rank${String(card.rank).length > 1 ? ' num-wide' : ''}">${card.rank}</div>`
                  : `<div class="rank">${card.rank}</div><div class="suit">${card.suit}</div>`)}
-    ${pp ? `<div style="position:absolute;bottom:2px;left:3px;font-size:8px;font-family:'Cinzel',serif;color:#3a6fca;font-weight:700">+${pp}p</div>` : ''}
-    ${pm ? `<div style="position:absolute;bottom:2px;right:3px;font-size:8px;font-family:'Cinzel',serif;color:#c0392b;font-weight:700">+${pm}m</div>` : ''}
-    ${buffBandHTML('tl', pp, '#3a6fca')}
-    ${buffBandHTML('tr', pm, '#c0392b')}
-    ${buffBandHTML('br', card._vulturePause || 0, '#111')}
+    ${(typeof cardBandsHTML === 'function') ? cardBandsHTML(card) : ''}
     ${(gp || gm) ? `<div class="card-grow-mark" title="Scales +${gp ? gp + ' pips' : ''}${gp && gm ? ' and +' : ''}${gm ? gm + ' mult' : ''} each time it's played">\u2197</div>` : ''}
-    ${lineWash}
     ${lineRing}
     ${fxMark}
     ${(typeof cardStateBadgeHTML === 'function') ? cardStateBadgeHTML(card) : ''}

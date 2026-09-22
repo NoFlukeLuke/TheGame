@@ -145,7 +145,7 @@ function survivalAfterLevelUp(leftover, unspentActions = 0) {
   const _flow = (typeof flowActive === 'function' && flowActive());
   // Survival and Flow skip the payout screen, so the unspent-actions credits
   // (r218) are folded into their own coin step instead - the rule is every mode.
-  const unspent = Math.max(0, unspentActions) * BAL._resources.unspent_credits;
+  const unspent = unspentPayout(unspentActions);
   const gained = unspent + (_flow ? SURVIVAL_LEVEL_COINS
                        : SURVIVAL_LEVEL_COINS + Math.floor(Math.max(0, leftover) / efficiencySecondsPerCoin()) * SURVIVAL_COINS_PER_10S);
   coins += gained;

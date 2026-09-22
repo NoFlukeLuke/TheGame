@@ -1,4 +1,4 @@
-const BUILD = "2026-09-22 · r303 · Poker Squares is a mode";
+const BUILD = "2026-09-22 · r308 · Poker Squares is a mode";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

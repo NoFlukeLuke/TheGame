@@ -1,8 +1,16 @@
 function doDiscard() {
   // Dominoes mode has its own discard flow (tiles return to the domino deck).
   if (typeof ACTIVE_MODE !== 'undefined' && ACTIVE_MODE.id === 'dominoes') { dominoDiscard(); return; }
-  // On grid-takeover screens the Discard button is repurposed: LEAVE (shop) / CLEAR (reward).
-  if (typeof shopGridActive !== 'undefined' && shopGridActive) { closeShopGrid(); return; }
+  // On grid-takeover screens the Discard button is repurposed: CLEAR (reward),
+  // and in the shop it is still THE DISCARD BUTTON (r307) - it spends a discard
+  // on what is selected. With row labels selected that is a REROLL of those
+  // rows; with nothing selected there is nothing to spend one on, so it reads
+  // and acts as LEAVE.
+  if (typeof shopGridActive !== 'undefined' && shopGridActive) {
+    if (typeof shopRerollSelectedRows === 'function' && shopRerollSelectedRows()) return;
+    if (typeof shopgSelRows === 'function' && shopgSelRows().length) return;   // refused, not an exit
+    closeShopGrid(); return;
+  }
   if (rewardOnGrid) { clearRewardSelection(); return; }
   if (roundEnded || animating) return;
   // Same gate as doSwap - a boss may refuse the discard before it commits.
@@ -421,21 +429,10 @@ function endStopwatch() {
 // GRAVITY ANIMATION (from gravity-test.html)
 // ══════════════════════════════════════════════
 
-// Permanent-buff corner indicators: diagonal tally bands (thin = 1, thick = 5),
-// stacked inward from a corner. pips=blue/top-left, mult=red/top-right,
-// time=black/bottom-right, coins=gold/bottom-left.
-function buffBandHTML(corner, count, color) {
-  if (!count || count <= 0) return '';
-  const segs = [];
-  for (let i = 0; i < Math.floor(count / 5); i++) segs.push('bb-thick');
-  for (let i = 0; i < count % 5; i++) segs.push('bb-thin');
-  const edge = { tl:'top', tr:'top', br:'bottom', bl:'bottom' }[corner];
-  const side = { tl:'left', tr:'right', br:'right', bl:'left' }[corner];
-  return segs.map((cls, i) => {
-    const o = 2 + i * 3; // px inward from the corner along the diagonal
-    return `<div class="buff-band bb-${corner} ${cls}" style="${edge}:${o}px;${side}:${o}px;background:${color};"></div>`;
-  }).join('');
-}
+// The permanent-buff corner tally that used to live here is now cardBandsHTML in
+// js/deck-grid.js (r299), beside cardBuffLines - see the note there. It covered
+// pips, mult and The Vulture's pause and nothing else, so a card carrying rewind
+// seconds or a replay looked unbuffed.
 
 // ── Single source of truth for card visual appearance ──────────────────────────
 // Returns { className, innerHTML } describing how a card looks at position (r,c).

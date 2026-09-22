@@ -581,6 +581,56 @@ beside the number doubled the label's width on a 40px diamond.
   both - the "first element with a non-zero rect wins" rule only works if at least
   one element is real, and nothing was checking that.
 
+### A particle flies from a LIVE anchor, never a remembered one (r304)
+
+Owner: *"There's a bug on mobile where sometimes the scoring particles fly in from
+the wrong place. The particles from my tricks are flying in from top left sort of
+off screen."*
+
+Top left of the screen is **(0, 0)**, and that is what `dncFly` computes when it is
+handed an element whose rect is `{0,0,0,0}` - it takes the CENTRE of the origin
+rect, so a dead anchor is not a small error, it is the corner of the display.
+
+**`playPreviewDance` resolved every entity's element ONCE at the top of the hand
+and read that snapshot at fire time.** A tray chip does not survive the hand:
+`renderTrickTray()` rebuilds `#trick-tray-list`'s children wholesale and is called
+DURING a hand by the priming/cooldown bookkeeping in `play-hand.js` and
+`scoring.js`, and by boss-effects, card-states and hallmark. From the first repaint
+onward every cached chip was **detached**, so every Trick particle for the rest of
+that hand flew from the corner - and the charge/pop was being written to a detached
+node too, so the chip did not animate either.
+
+Measured through the real tap path, `isConnected: false` and `{0,0,0,0}` on **both
+orientations**. It reads as a mobile bug because in portrait the tray is at the
+BOTTOM of the screen, so a particle from the top-left corner crosses the whole
+display; in landscape the tray is top-left already and the trip looks plausible.
+
+**Three layers, because each catches something the one above it cannot:**
+- **`dncUsable(el)`** - connected AND a non-zero rect. `danceEntityEl` runs every
+  branch through it, so an unusable tray chip falls through to the grid card and
+  then to null, and the caller uses its fallback anchor. This is the rule
+  `js/payout-fx.js` and `tutEl()` already follow and this file was missing.
+- **`dncEntEl(ev)` re-resolves at FIRE TIME.** Chasing the `renderTrickTray()` call
+  sites would not have worked - the tray is entitled to repaint mid-hand. The
+  snapshot is kept as a cache and re-queried whenever what it holds is no longer
+  usable. A re-resolved element is pushed into `entityEls` AND `dncRealEls`, or
+  cleanup would strip the classes off the element that is no longer on screen.
+- **`dncFly` itself, because THE FALLBACK ANCHOR CAN BE DEAD TOO** and measurement
+  says it routinely is. The goal hand's last card beats land while the interlude is
+  opening, and in portrait that collapses the hand-preview half of the shared strip
+  to 0x0 - so the preview CARD is still in the document and still measures zero.
+  With no usable origin the plate pops AT its destination; with no usable
+  destination either (the PIPS/MULT chips are `display:none` on every grid-takeover
+  screen) nothing is drawn at all, because a plate in the corner is worse than no
+  plate. **The arithmetic is untouched either way** - the accel still bumps, the
+  blip counter still advances and the promise still resolves after `dur`, because
+  r220's rule is that replaying the timeline reproduces `calcScore` exactly.
+
+Verified over six runs of six hands each at 420x900 and 1440x820, counting the
+plates actually DRAWN rather than the anchors passed in: **0 at the screen corner**,
+0 page errors.
+
+
 ### Scoring speed is a slider, and bursts are timed (r220)
 
 - **Settings > Motion > Scoring speed** is a **0.5x-16x slider** (was four presets),
@@ -998,6 +1048,27 @@ The dev panel's Natural Scaling group now lists **every scalable hand type with 
 - **Rows come from `naturalScaleRows()`**, which filters `HAND_BASE` by `NS_HAND_FAMILIES` - so a new hand type appears in the editor for free, and **High Card is absent** because it has no family and can never scale (`setNaturalScaleBonus` refuses it too).
 - **The markup is rebuilt only when the SET of rows changes** (`_nsRowsKey`), and values are written separately, skipping whichever field has focus. Re-rendering on every sync would tear the input out from under the caret mid-type.
 
+### The Natural Scaling table loses its hand names on a phone (r304)
+
+Owner: *"In the natural scaling settings it doesn't show you what hand they're for,
+next to the numbers."*
+
+The name is the only flexible column (`minmax(0,1fr)`) against seven fixed ones
+totalling 316px plus gaps, and `#dev-panel` is `min(660px, 94vw)`. Measured: the
+name column is 256px on a 1440px desktop and **exactly 0px at both 420 and 390**.
+Every row read as a line of unlabelled numbers - the hand was not narrow, it was
+gone.
+
+**Under 560px the name takes its own line** and the fields sit under it at tighter
+widths. Scrolling the table sideways was the other option and is worse: the name
+would then be the part you scroll AWAY from the numbers to read, which is the
+complaint. The header gets the same treatment, which is what keeps it in line with
+the fields - the one rule this table has.
+
+Verified at 1440x820, 420x900 and 390x844: 20 rows, **0 clipped names, 0 fields
+outside their row**, and nothing scrolling horizontally.
+
+
 ### The hand-type label (r198) - `#hand-name`
 
 What you are about to play, named, beside the hand preview. The preview CARDS stay inert until a hand is submitted (r99 - it is the scoring stage, not a live readout), but the NAME is live from the first selection, and with layered hands it is the only place the second hand is visible at all.
@@ -1067,16 +1138,101 @@ The Focus dev controls used to be sliders labelled with the formula itself (`Lin
 - **`_devSafeRender()` guards every repaint.** The dev panel doubles as the main menu's Settings screen, where there is no board, and `render()` reads `gridData[0]` and throws. This was a live crash on the pre-existing exalt/corrupt toggle too.
 - Both groups show a live preview of what the numbers produce (`Play after 0s: +12 · 1s: +10 …`).
 
-### Unspent actions pay out (r218)
+### Unspent actions pay out (r218, retuned r304)
 
-Swaps and discards you did NOT use pay `BAL._resources.unspent_credits` (3) each at the end of the round. Before this a round ended with leftover manipulates worth exactly nothing, so spending them on anything at all was strictly better than holding them; now the round's resources are a budget you can bank instead.
+Swaps and discards you did NOT use pay `BAL._resources.unspent_credits` (**2** since
+r304, was 3) each at the end of the round, **capped at `unspent_cap` (16)**. Before this a round ended with leftover manipulates worth exactly nothing, so spending them on anything at all was strictly better than holding them; now the round's resources are a budget you can bank instead.
 
 **There are two payment sites and they sit on OPPOSITE SIDES of the resource reset, which is the only subtle thing here.**
 
 - **Classic and the act modes** pay it as a third payout line. That screen runs from `startInterlude`, which is reached from the goal dance and happens **before** `triggerLevelUp` - the reward grid comes next, and only when it closes does `triggerLevelUp` run and reset the counts. So the payout reads the **live** `swaps`/`discards`: at that instant they still hold what the finished round had left.
 - **Survival and Flow** skip the payout screen entirely and pay from `survivalAfterLevelUp`, which runs **inside** `triggerLevelUp`, well after the reset. So they need the figure captured up front: `frozenUnspentActions`, taken at the top of `triggerLevelUp` (declared in `js/limits.js` beside the other frozen round figures).
 
+**`unspentPayout(actions)` / `unspentPayoutDesc()` in `js/data/cards.js` are the
+one place the rate, the cap and the PRINTED LABEL come from** - the same discipline
+`efficiencySecondsPerCoin()` follows, and the one r151 had to impose on the interact
+costs after a quoted cost and a charged cost drifted apart. All four readers go
+through them: both payment sites and both copies of the payout markup.
+
+**The cap is what does the work late, not the rate.** The line is linear in a stock
+that grows all run, so at 12 held actions the old line paid 36 and this one pays 16.
+Modelled over an 18-round Classic run with no spending, end-of-run credits fall
+**846 -> 620**. See the note on where a run's credits actually come from below.
+
 The capture is taken **before** the carry-over knacks bank anything, so the figure is what you finished the round holding. Carry Swaps / Carry Discards then also carry it - that is the knack doing its job, not a double-dip to design around.
+
+### Where a run's credits actually come from (r304)
+
+Owner: *"I still feel like there's an excess of gold."* Modelled over an 18-round
+Classic run (45s left at each clear, held stock growing with the limits), by line:
+
+| line | shape | total over the run |
+|---|---|---|
+| **Interest** | `floor(coins/10)`, **COMPOUNDING, uncapped** | **340** |
+| Unused stock | linear in stock, capped at 16 | 208 |
+| Leftover time | `1 per 10s`, bounded by the round clock | 72 |
+
+**Interest is the excess, and it is the only line that compounds.** It pays 10% of
+the bank every round with no ceiling, so hoarding is what runs away: at zero
+spending a run ends on **620** credits, and the other two lines together cannot do
+that no matter how they are tuned - leftover time contributes 72 over eighteen
+rounds.
+
+**A cap on the interest line is therefore the targeted lever, and it only bites a
+hoarder**, which is the point. Modelled end-of-run credits at 0 / 10 / 20 credits
+of spending per round:
+
+| interest cap | none | 15 | 10 | 8 | 5 |
+|---|---|---|---|---|---|
+| spend 0/round | 620 | 463 | 415 | 393 | 356 |
+| spend 10/round | 169 | 169 | 163 | 157 | 143 |
+
+A player who spends is barely touched; a player who sits on the bank loses most of
+the runaway.
+
+### Both lines are capped, and ONE knack lifts both (r305)
+
+Owner: *"cap interest at 10. cap unused stock at 10 as well. then add a knack that
+removes all limits on payouts."* `BAL._resources` carries **`interest_cap: 10`** and
+**`unspent_cap: 10`** (16 -> 10), and **Gross Pay** (rare knack, `gross_pay`) lifts
+every payout ceiling.
+
+| modelled over 18 rounds | end credits, no spending |
+|---|---|
+| before r304 (3/action, no caps) | 846 |
+| r304 (2/action, stock cap 16) | 620 |
+| **r305** (stock 10, interest 10) | **373** |
+| r305 holding Gross Pay | 622 |
+
+So the caps take a hoarder's run down by **56%** from where it started, and the
+knack is worth roughly the whole of that back - which is the point of a knack whose
+entire text is "your payouts are uncapped".
+
+- **THE INTEREST CAP LANDS ON THE BASE, NOT ON THE FINISHED LINE**, and that is the
+  one real decision here. The Idol's x3 is applied AFTER it. Capping the finished
+  line instead would make the Idol pay **nothing at all above 4 credits held** - a
+  Sleight whose whole printed effect is "x3 interest", silently dead for the second
+  half of every run. Capped base x Idol reads as what it is: the line pays at most
+  10, and the Idol triples that. Measured at 240 credits: **10 / 30** capped,
+  **24 / 72** with Gross Pay.
+- **`payoutCapsLifted()` is asked in ONE place** (js/data/cards.js) and read by both
+  payout functions AND by both printed labels, so a line and the label above it can
+  never disagree about whether the cap is on. That is r151's lesson - a quoted cost
+  and a charged cost drifted apart precisely because they were worked out twice.
+  The labels say `· max 10` or `· uncapped`, and with the Idol in play the interest
+  label says **`max 10 before the Idol`** rather than leaving the player to work out
+  why a x3 produced 30.
+- **`interestPayout` / `interestPayoutDesc` sit beside `unspentPayout` /
+  `unspentPayoutDesc`**, and the payout screen's two markup copies share one desc
+  string, so neither can drift from the other.
+- **Gross Pay is NOT banned in Survival or Flow**, which have no payout screen and
+  so no interest line: the unused-stock half still pays there through
+  `survivalAfterLevelUp`. A half-strength knack is not a dead pick, and
+  `survivalEntityBanned` is for entities that do nothing at all.
+- Verified at 1440x820 through the real payout screen: capped reads
+  **Interest 10 · Unused 10 · Time 4 = 24**, and with Gross Pay **24 · 28 · 4 = 56**,
+  with the labels switching in step. Consistent across all eight modes.
+
 
 ### Interact costs (r151) - ONE charge each, from `BAL._resources`
 **Discard 3s per card · Swap 8s flat · Play free.** Until r151 there were **two overlapping cost systems** and both were live: a flat `spendRoundTime(DISCARD_TIME_COST/SWAP_TIME_COST)` *and* the `BAL._resources` figures. A 1-card discard billed 3+3 = **6s**, the 3rd swap of a round billed 4+10 = **14s**, and the Free Discards knack ("costs no time") still charged the flat 3s - all while the ⏱ Time pop-up quoted 3s and 4s. `DISCARD_TIME_COST` / `SWAP_TIME_COST` are now **dead constants**, kept and commented so nothing reintroduces the double charge; `freeSwapsLeft` (the "first 2 swaps free" exemption) is dead for the same reason. Costs come from `BAL._resources` alone, and `updateInteractCosts()` reads the same source so the pop-up can't drift from reality again.
@@ -1207,8 +1363,9 @@ Four things r209's lines did not do. All four are owner spec.
   colour and cannot be divided. It is paint masked down to the border now
   (`padding` + two masks + `mask-composite`). Verified: 1 line is a flat fill,
   2 give two 50% wedges, 3 give three at 33.3%. **r296 gave the card's WASH the
-  same division** - see "A marked cell SPLITS its highlight" below, which is
-  where the crossing was actually being blended.
+  same division**, and **r299 took the wash back out** and left the divided ring
+  alone - see "A marked cell SPLITS its highlight" below and "A card's buffs are
+  CORNER BANDS" after it, which is what the freed face now carries.
 
 #### `clampRowColBonuses()` - and why it reads the LIMITS
 
@@ -1249,55 +1406,103 @@ based on a rule that it always alternates."*
 #### 1. The card's highlight is divided, not blended
 
 **The RING already divided itself (r223). The card's WASH did not, and the wash
-is what the player actually sees** - a 2px ring against a whole tinted card
-face. The wash came from a different system: six per-Trick rules in
-`css/style.css`, written long before r209, that had to name a COMBINED COLOUR
-for each pair of Tricks. So Right Place (blue) crossing Power Line (red) painted
-the card a flat **purple** and Power Line crossing Echo Location painted it dark
-red-brown - a colour belonging to neither Trick, which is exactly what r223
-called "a fourth colour that belongs to nothing".
+is what the player actually saw** - a 2px ring against a whole tinted card face.
+The wash came from a different system: six per-Trick rules in `css/style.css`,
+written long before r209, that had to name a COMBINED COLOUR for each pair of
+Tricks. So Right Place (blue) crossing Power Line (red) painted the card a flat
+**purple** and Power Line crossing Echo Location painted it dark red-brown - a
+colour belonging to neither Trick, which is exactly what r223 called "a fourth
+colour that belongs to nothing".
 
 They also only existed for **three of the nine** line-marking Tricks, so Perfect
 Timing, Right Time, Groove, Assembly Line and Overtime marked cells that looked
 no different from unmarked ones - the very gap r209 set out to close and only
 closed for the ring.
 
-- **One paint, two strengths.** `lineWedgePaint(metas, pct)` (js/entity-fx.js) is
-  now the single geometry: `pct` null gives the RING its solid colours, a number
-  gives the WASH the same wedges at `LINE_WASH_ALPHA` (22%). They must come from
-  one function or the ring's blue half would sit over the wash's red one.
-- **Equal wedges, hard stops, `from -45deg`** - so two colours split on the
-  card's own diagonal, one straight line corner to corner, and three read as
-  thirds. Verified in a real browser: 1 line = a flat fill, 2 = 50/50, 3 = three
-  120-degree wedges on the same card.
-- **`.rc-line-wash` is `z-index: -1`, AND IT HAS TO BE.** `.rank` and `.suit` are
-  IN-FLOW flex children, and CSS paints every positioned descendant above
-  in-flow content **whatever the DOM order** - so at `z-index: 0` or `auto` the
-  wash would cover the card's own rank and suit. A negative z-index paints above
-  the element's own BACKGROUND and below its in-flow content. It cannot fall
-  through the card either: `.card` carries a transform (the heartbeat), so it is
-  its own stacking context. Verified with `elementFromPoint` on every rank on a
-  full board, on the fall-animation clone and in the scoring dance.
-- **A LIGHT LINE COLOUR CANNOT BE A WASH ON A CREAM CARD**, and one of the nine
-  is light: Echo Location's `#e0ddd0` is near-white, so its wash measured
-  rgb(240,231,212) over a card face of rgb(244,234,213) - invisible at any alpha,
-  because no alpha makes near-white visible on near-white. `lineWashInk` darkens
-  **only** a colour over `LINE_WASH_MAX_L` (0.72 perceived luminance) down to
-  `LINE_WASH_TARGET_L` (0.55); gold, the next lightest, measures 0.64 and is left
-  alone. **The line, its end caps and the ring keep the table's colour exactly** -
-  they sit on the dark board or on the card's edge, where near-white reads best.
-  Perceived luminance is linear in the channels, so mixing k% with black scales
-  it by exactly k, which is what makes this one multiplication rather than a
-  search.
+r296 fixed both by giving the wash the ring's own divided geometry. **r299 then
+took the WASH out again and left the ring** - owner: *"I think the wash may be
+too much. Do we need the wash? I feel like the outline is sufficient, and that
+leaves more legibility on the card to put its buffs."* Which is what r299 put
+there: the corner buff bands below. The tints are still gone and the ring still
+covers all nine Tricks, which was the real gap; what went is spending the card's
+whole face on a fact its edge already states.
+
+- **Equal wedges, hard stops, `from -45deg`** (`lineRingPaint`, js/entity-fx.js) -
+  so two colours split on the card's own diagonal, one straight line corner to
+  corner, and three read as thirds. (r302 turns the whole ring, so -45deg is now
+  where the division RESTS rather than where it sits - see 1b below.) Verified in a real browser: 1 line = a flat
+  fill, 2 = 50/50, 3 = three 120-degree wedges on the same card.
+- **THE WASH WAS THE EXPENSIVE HALF, and a light line colour is why.** Echo
+  Location's `#e0ddd0` is near-white, so its wash measured rgb(240,231,212) over
+  a card face of rgb(244,234,213) - invisible at any alpha, because no alpha
+  makes near-white visible on near-white. It needed a whole luminance correction
+  (darken only a colour over 0.72 perceived luminance down to 0.55; perceived
+  luminance is linear in the channels, so mixing k% with black scales it by
+  exactly k). **On the card's EDGE, against the dark board, near-white is the
+  most legible of the nine** - so the ring takes every colour exactly as the
+  table gives it and `lineWashInk` / `LINE_WASH_*` / `lineColorLuma` went with
+  the wash. `lineWedgePaint(metas, pct)`, the one-geometry-two-strengths
+  function, is `lineRingPaint(metas)` again.
+- **The wash's `z-index: -1` is now the BANDS' z-index, for the same reason.**
+  `.rank` and `.suit` are IN-FLOW flex children, and CSS paints every positioned
+  descendant above in-flow content **whatever the DOM order** - so at `0` or
+  `auto` a face layer covers the card's own rank and suit. A negative z-index
+  paints above the element's own BACKGROUND and below its in-flow content. It
+  cannot fall through the card either: `.card` carries a transform (the
+  heartbeat), so it is its own stacking context.
 - **The Spectrum overrides went with the tints.** `.card.num-card.rc-*` existed
   only to put back the `--num-color` face the tints repainted, and drew its own
-  inset ring including the same blended purple. The shared wash and ring handle a
-  colour card as they handle a cream one.
+  inset ring including the same blended purple. The shared ring handles a colour
+  card as it handles a cream one.
 - `rc-pips` / `rc-mult` / `rc-retrigger` are **gone as classes too** - nothing
   reads them now. `rc-on-line` stays as the "this cell is on some line" marker.
   Half of the deleted rules were already dead: measured, their `box-shadow` and
   `border-color` both lost to later `.card` rules and only `background` ever
   reached the board.
+
+#### 1b. The ring TURNS (r302)
+
+Owner: *"can the highlight border rotate smoothly around the cards? And that
+highlight should continue into the preview area, including the spinning ideally."*
+
+Every ring paint is now a conic gradient whose `from` angle is `var(--rcl-rot)`,
+one revolution every **8s**, linear.
+
+- **`--rcl-rot` MUST BE REGISTERED as an `<angle>`** (`@property`, css/entity-fx.css).
+  An unregistered custom property is an opaque token, so a keyframe on it would
+  step 0deg -> 360deg with nothing in between and the ring would not appear to
+  move at all. `inherits: false` keeps it on the ring, where the animation is -
+  an inherited animated property would recalculate the whole subtree every frame
+  for the same picture.
+- **A SINGLE LINE NEEDS A SHEEN OR THERE IS NOTHING TO SEE TURNING**, and one line
+  is the ordinary case: a card sits on a marked row OR a marked column far more
+  often than on both. So one colour is drawn as that colour with two pale arcs
+  sweeping through it (`lineRingLighten`, 55% toward white), seamless at 0% and
+  100%. **SEVERAL colours get no sheen** - the hard-stop wedges turning IS the
+  motion, and a pale arc laid over two Trick colours is the blend r296 spent a
+  pass removing. `-45deg` is still where the division RESTS; the rotation is
+  added to it.
+- **EVERY RING ON SCREEN TURNS IN PHASE, and that takes a negative
+  `animation-delay` baked into the markup**, not one animation on a long-lived
+  ancestor. A ring is markup inside a card and `render()` rewrites a card's
+  innerHTML on every deal, swap and score, so an animation that starts with the
+  element would snap every ring back to 0deg each time the board repaints.
+  `lineRingHTMLFor` offsets the delay by how long the page has been up (rounded to
+  the nearest 50ms, so a repaint that spans a millisecond does not split the
+  board into two phases), and the DURATION is written inline from the one JS
+  constant - so the phase arithmetic and the animation cannot disagree about how
+  long a revolution is. The stylesheet keeps only the name, timing and count,
+  which is what leaves `animation-name: none` under `reduced-motion` able to
+  switch it off; an inline `animation` shorthand would have outranked it.
+- **It reaches the hand preview for free**, because `score-dance.js` builds
+  preview cards with the same `renderCardAppearance`. Verified live: 2 rings in
+  `#selected-cards` during a dance, `animation-name: rcl-spin`, angle 43deg ->
+  102deg over 1.2s.
+
+Verified in a real browser: the angle advances 124.4deg -> 191.9deg in 1.5s
+(exactly 1.5/8 of a revolution), all ten rings on a board report **one** angle and
+**one** delay after a `render()`, and `body.reduced-motion` reports
+`animation-name: none`.
 
 #### 2. The AXIS alternates; only the INDEX is luck
 
@@ -1376,6 +1581,187 @@ is the id `col`, so half of every position Trick's printed description read
 "Cards scored in **col 1**". Pre-existing, but the alternation turns it from a
 coin flip into something every run shows, so it says `column` now - in the
 description and in the chooser's toast.
+
+### A card's buffs are CORNER BANDS (r299, finished r302) - `cardBandsHTML`
+
+Owner: *"Can we implement the same corner marking system the tricks have ... Like
+a diagonal line for every 5 pips or 5 mult, or 5 seconds if pause or rewind or for
+each 1 focus or 1 replay."*
+
+The mark is **r274's**: diagonal bands across a corner, one per unit, drawn as
+background gradient stops whose every length is a PERCENTAGE of the gradient's own
+axis - so it is the same picture on a 40px card and a 119px one with no JS
+measurement. One band per **5 pips · 5 mult · 5 seconds · 1 replay**.
+
+| corner | family | colour | reads |
+|---|---|---|---|
+| top-left | `permPips` | blue `#3a6fca` | per 5 |
+| top-right | `permMult` | red `#c0392b` | per 5 |
+| bottom-left | `permTime` + `_vulturePause` | black | per 5 |
+| bottom-right | `permRetrig` | green `#2e9c68` | per 1 |
+
+- **IT LIVES IN `js/deck-grid.js` BESIDE `cardBuffLines`**, which is the
+  documented one place a card's buffs are put into words (r209/r294) - this is the
+  same question asked in pictures. A second table of "what can a card carry" is
+  how the two would drift, and that is exactly what happened to the thing it
+  replaces: the old `buffBandHTML` (js/discard.js) covered pips, mult and The
+  Vulture's pause and nothing else, so a card carrying rewind seconds or a replay
+  looked **unbuffed**.
+- **THE TWO 8px `+Np` / `+Nm` TEXT LABELS ARE GONE WITH IT.** A 57px card cannot
+  carry four numbers, the Trick disc carries bands and no number for the same
+  reason, and the exact figures are one long-press away in `cardBuffLines` - which
+  the grid tooltip, the RECORDS deck matrix and the reward tiles already read.
+  Verified live: the tooltip on a `permRetrig` 3 card reads "+3 replay".
+- **ONE ELEMENT PER CORNER, AND THE CORNER IS THE GRADIENT'S ANGLE.** 45deg puts
+  stop 0% at the bottom-left, 135deg at the top-left, 225deg top-right, 315deg
+  bottom-right; the stop list is identical for all four, which is what keeps them
+  one object rather than four hand-placed decorations. An explicit angle rather
+  than `to top right` because a card is 0.76 aspect and a corner-to-corner
+  gradient on a tall box runs at **37 degrees** - the bands have to be at 45 to
+  read as the folded corner the disc's do.
+- **A COUNT IS ROUNDED TO NEAREST AND FLOORED AT ONE, never truncated.** The rate
+  is the owner's, but a floor would draw NOTHING for the +4 pips The Bench hands
+  out, which reads as the buff not having landed; and a part-band thin enough to
+  mean "and a bit" comes out **sub-pixel** at the sizes this draws at (1.4px on a
+  119px card, 0.7px on a 57px one). So any buff at all is at least one band.
+- **z-index -1, and it has to be** - the r296 wash's trap, above. Verified: the
+  rank and suit paint over the bands on a 6-band card.
+- **THE DISC'S OWN NUMBERS DO NOT TRANSFER.** It is start 13 / pitch 5 / thick 3
+  and stops at five bands, under a **foil label that ghosts them**; a card's face
+  is bare cream with a big centred rank, and a card has FOUR corners doing this at
+  once. Measured on a 119x158 card, the wedge six bands fill is **113x113 at the
+  disc's numbers** (most of the face, four times over), **77x77** at start 9, and
+  **66x66** at the shipped start 5. **START is the only one of the four that moves
+  the whole mark**; pitch and thickness only change how the bands sit inside it.
+  The card's corner is rounded (5 design px), which eats the first
+  `r(sqrt2 - 1)` = **2.1 design px** along the diagonal, so 5% (4.7 design px) is
+  about as close in as the first band can go and still be drawn whole - verified,
+  a lone band at +4 pips is fully visible.
+- **`permXPips` / `permXMult` / `permCoins` deliberately have no band.** A x2 is
+  not a tally of 5s and the owner did not name them; a multiplier wants its own
+  vocabulary rather than a count of bands meaning something else. Known gap: a x
+  mult card (The Forge, The Price, Coin Flip) still shows nothing on the board.
+- **THERE IS NO PER-CARD FOCUS STORE**, so the fifth family the owner named has
+  nothing to read - a card cannot grant Focus when it scores today. Adding one is
+  a row in `CARD_BAND_FAMILIES` plus the store and the site that pays it. **A
+  corner is a FAMILY OF RESOURCES and the band colour says which member**, so a
+  fifth family shares a corner with its nearest relative rather than needing a
+  fifth corner. Nothing shares one today.
+
+#### A band is ONE FLAT COLOUR, and that is what fixed the uneven look (r302)
+
+Owner: *"the lines on the cards should not have that highlight effect with the
+lighter color in the middle. Just the flat color."*
+
+r300 answered the owner's earlier *"why are some lines thicker than others"* with
+sub-pixel phase: a 2% band on a 119x158 card is **3.91px** drawn at 45 degrees,
+where the pixel grid steps **1.41px** along the diagonal, so neither the thickness
+(2.77 steps) nor the 3.4% pitch (4.7 steps) is a whole number of pixels and
+consecutive bands land in different phase. **That is true and it was only half the
+story.** The PALE CENTRE LINE is what turned a sub-pixel difference into a visible
+one: a band with a light middle is really two thin dark edges, and a thin edge is
+exactly what the phase pushes around.
+
+Measured by decoding the rendered PNG **across a row at 1px** (the diagonal ray
+r300 used quantises to 1.41px and cannot resolve this), five bands on one card:
+
+| | peak delta | spread | area |
+|---|---|---|---|
+| r300, light centre | 263-281 | 1.07x | 1030-1044 |
+| r302, flat colour | 321-324 | **1.01x** | 1605-1610 |
+
+So the flat band is **a fifth more ink** and its bands are **three times closer to
+each other**. Confirmed by eye on a 6x magnification: the r300 bands read as
+hollow outlines of visibly different weight, the r302 ones as even solid stripes.
+
+- **A SOFT EDGE RAMP WAS TRIED ON TOP AND REJECTED BY THE SAME MEASUREMENT.** It
+  left the spread where it was (1.10x against 1.11x along the diagonal) and cost
+  **20% of the ink**, because the flat colour had already done the whole job. Do
+  not re-add it. **The remaining levers**, if this ever needs one, are a THICKER
+  band (at 2% the phase error is 18% of the width; at 2.6% it is 14%) - not a
+  percentage that divides evenly, because the card is 119px on a desktop, 67px in
+  portrait and smaller again in the preview, and no percentage is a whole number
+  of pixels at all three.
+- **THE CENTRE LINE WAS LOAD-BEARING ON SPECTRUM, so the job moved to the INK.**
+  The colour deck's ⚫ card is near-black, so a flat black `time` band on it is
+  invisible; a green `replay` band on the green card is the same story. Each
+  family now carries `color` / `lite` / `dark`, and `cardBandInk` **prefers the
+  family's own colour and only reaches for a shade when it cannot be seen**
+  (luminance gap under `CARD_BAND_INK_MIN`, 0.28) - otherwise every cream card in
+  the game would be marked in navy and maroon instead of blue and red.
+- **It takes the BETTER of the two shades, never a fixed one.** Swapping blind can
+  make things worse: green against Spectrum's yellow card is a 0.24 gap, its pale
+  shade only 0.15 and its dark shade 0.52. `cardFaceColor` reads the face through
+  **`cardColorSuit`**, never `card.suit` - the r165 split, so a white 9/10/11 is
+  measured against the near-white it is drawn as.
+- Verified in a real browser on a full Spectrum board: all four families legible
+  on black, white, green, red, gold, orange, blue and purple faces.
+
+#### The overflow mark is a `+` (r302, upright in r305)
+
+Owner: *"make sure the lines can't cover the suit or number. If theres that many
+buffs just put a '+' at a 45 degree angle where the last line would go."* Then,
+on seeing it: *"make the + not rotated, it reads as an x currently."*
+
+It replaces r299's double-thick outermost band, which said the same thing by being
+fatter and cost 4% of the axis to say it.
+
+**A `+` turned 45 degrees IS an x**, which is the whole of the second note - 45
+degrees put it square with the bands, and squareness is not what a `+` is read by.
+Upright it also tells itself apart from the bands, which run at 45 and now do not
+share its angle.
+
+- **"DOES A BAND REACH THE GLYPH" IS ONE NUMBER.** A 45 degree band at p% of the
+  axis lies on the line `u + v = (p/100)(W+H)`, where u and v are the distances
+  from that corner - so the question is `min(u+v)` over the glyph's box, and it is
+  a share of `(W+H)` at any card size. Measured in a real browser over the rank,
+  the suit and Spectrum's big value: **Classic 29.0%** at 1440x820 and 29.5% in
+  portrait, **SPECTRUM 26.8%** - the colour deck's centred value is the tightest
+  in the game, so it is what the budget is set against.
+- **`CARD_BAND_LIMIT` is 24% and `CARD_BAND_MAX` is DERIVED from it**, so a retune
+  of start / pitch / thickness cannot put a band over a glyph by accident.
+- **The card's own BORDER spends a little of the budget.** The gradient paints on
+  the `.card-bands` box, which is the card's PADDING box, so its origin sits one
+  border in and its axis is shorter: measured in CARD coordinates the outermost
+  band lands at **25.1%** rather than 24%. Still clear of 26.8% by ~4.5px on a
+  desktop card and 2.5px in portrait. **A measurement of this has to say which box
+  it is in** or the two disagree by the border.
+- **THE `+` COSTS THREE SLOTS, AND THAT IS FORCED BY THE BUDGET.** A mark centred
+  on a slot reaches out along the diagonal either side of it, so it is only ever as
+  wide as the room around the slot it stands in - and in the FINAL slot that room is
+  1% of the axis, **3.8px** on a desktop card, which is not a `+`, it is a speck
+  (built that way first, and it looked like one). Moved back one slot it has the
+  outer 4.4% to grow into, and dropping the band that would have sat beside it opens
+  the inner side too. So **three bands are drawn and the `+` stands for the rest**,
+  reaching exactly where a sixth band's far edge would have (measured, 25.12%
+  against the bands' 25.13%): the same footprint whether or not the count
+  overflowed. Counts 1-6 draw that many bands; 7 and up draw 3 and the `+`.
+- **HOW FAR IT REACHES DEPENDS ON WHETHER IT IS TURNED, so un-turning it was not
+  just deleting a `rotate`.** Its ink is two bars, `CARD_BAND_PLUS_BAR` (26%) thick
+  as a share of its side S. Turned 45 degrees the far point is an arm's TIP, at
+  `S/sqrt(2)` from the centre in the `u+v` metric; upright the arms point at the
+  card's edges instead and the far point is a bar's outer CORNER, at
+  `S * (0.5 + bar/2)`. So the same budget buys a different S - **18.8px upright
+  against 16.7px turned**, on a desktop card - and the mark is SIZED FROM ITS REACH
+  rather than the reach being hoped for. The bar share is written into the markup
+  as `--cbb`, because the stylesheet draws with it and the derivation above needs
+  the same number.
+- **`.card-bands` IS A SIZE CONTAINER purely so the `+` can be placed.** The mark's
+  centre is at `u = v = (p/200)(W+H)`, a length neither a percentage nor an em can
+  express - a percentage `left` is a share of W and a percentage `top` a share of H.
+  In container-query units it is one calc over `100cqw + 100cqh`, exact at every
+  card size with no JS measurement, which is the rule the bands themselves follow.
+  `container-type: size` also makes the element the containing block for that
+  absolute child, which is what we want: it is `inset: 0`, so its box IS the card's.
+- The `+` is **two crossing bars, not a glyph**, each 26% of the mark's side, so its
+  weight follows its size and it needs no font. It takes the family's own ink.
+
+Verified in a real browser at 1440x820 and 420x820, in Classic and Spectrum, over
+a board carrying every count from 1 to 9 on all four corners: **0 of 60 marks
+reach a glyph** (measured in the `u+v` metric over the mark's INK, not by bounding
+box - a `+` of either angle overlaps a glyph's BOX at the corner while its bars are
+nowhere near it), 0 marks paint outside their card, a hand plays through the full
+dance with the preview carrying its bands, and there are **no page errors**.
 
 ### The score panel between rounds (r223)
 
@@ -1670,6 +2056,44 @@ either pile and is gone at the level-clear sweep; Roll Call turns a lone selecti
 into a Four of a Kind at a minimum selection of 3; Callback takes a Run of 3 from
 189 to 250; Turnover churns one card for 0 seconds and 0 stock; a state's own
 self-discard bills 3s and 0 stock; **the deck audit balances at every step**.
+
+### Three owner retunes (r304)
+
+**Turnover fuses at 45s and only WARNS in the last 15.** `BAL.turnover.idle_seconds`
+60 -> 45, and `cardStateTurnoverRingAt()` (15) is how late the countdown ring
+appears. A card-state fuse is a charge you built and want to watch; Turnover fuses
+**every card on the board at once**, so a ring on all sixteen from the moment the
+round deals is a countdown on the whole board and reads as noise. Late, it is the
+warning it is meant to be.
+- **The window is tested inside the CANDIDATE, not at the paint site.**
+  `cardStateFuse` returns the SHORTEST fuse on a card, so a hidden Turnover that
+  happened to be shorter than a live card-state fuse would win the comparison and
+  take that card's own ring off the board with it.
+- `cardStateTurnoverRingAt()` is held BELOW the fuse itself, so a Turnover tuned
+  shorter than the warning window still warns rather than ringing from the moment
+  the card lands. Measured: nothing at 29s idle, `primed 15` at 30s, counting down
+  to 1 at 44s.
+
+**The score plates grow half as fast.** `PARTICLE_CFG.growStep` 5 -> 2.5 (owner:
+"make the size increase... 50% less"). The CEILING is untouched - what changed is
+how fast a hand climbs to it, which is what a real hand feels: at 40 payouts the
+last plate was `1.05^35` = x5.5 clamped to the x3 ceiling, and is now `1.025^35` =
+**x2.37**, under the cap and still visibly building.
+- **The `localStorage` key is bumped to `lethe.blipGrow.v2`**, the r183
+  `hbCfg2 -> hbCfg3` rule: a saved value beats a default, so anyone who had nudged
+  that slider would have kept 5% for ever.
+- `particle-preview.html` moved with it. A fresh load of that page must still dump
+  a block byte-identical to the shipped `PARTICLE_CFG` (r233).
+
+**Interest already did what it was asked to do; its DESCRIPTION did not.** Owner:
+"maybe make it so that it starts at 1x and then gets an additional .1 for every ten
+gold." `calcScore` has always computed `1 + floor(coins/10) * 0.1`, so 50 credits is
+x1.5. The printed text read **"x0.1 pips for every 10 credits you hold"**, which
+reads as a division and as the multiplier being the 0.1 rather than the step. It has
+a `DESC_TEMPLATES` entry now, so both the step and the x3 cap come out of BAL and
+the sentence cannot drift from the value again (r205's rule). **No behaviour
+changed** - verified x1.0 / x1.5 / x2.0 / x3.0 at 0 / 50 / 100 / 200 credits.
+
 
 ### Priming, and the three things wrong with it (r295)
 
@@ -2719,10 +3143,11 @@ It is a body-level panel docked in the empty strip to the RIGHT of the board
 inherits its CSS zoom.
 
 - **ONE RAIL COVERS BOTH ORIENTATIONS, because the strip is the same shape in
-  both.** Measured: **142 x 494** at 1440x820, **105 x 377** at 1100x620,
-  **116 x 426** on a 420-wide phone. It is the only free space either way (in
-  landscape the left column is the HUD; in portrait the gutters inside
-  `#grid-slot` are 53px), which is what the owner circled.
+  both.** Measured: **142 x 494** at 1440x820, **105 x 377** at 1100x620. It is
+  the only free space either way (in landscape the left column is the HUD; in
+  portrait the gutters inside `#grid-slot` are 53px), which is what the owner
+  circled. **This line also claimed 116 x 426 on a 420-wide phone and that was
+  wrong - see r298 below, where it is what kept the rail off every phone.**
 - **THE ROW IS THE SYMBOL AND THE WORD; THE SENTENCE GOES TO `#mb-info`.** That
   is r276's rule for the board, and a 105px rail has no room for prose anyway -
   nine rows of wrapped blurbs measured over **700px tall against a 377px
@@ -2786,6 +3211,66 @@ Verified at 1440x820, 420x900 and 1100x620: the rail never overlaps the board,
 is fully on screen, needs no scroll, clips **0** row names, lights the board on
 hover and latches on tap; CONFIRM is on screen and enabled at 360, 390, 420 and
 462 wide. No page errors.
+
+### The legend really docks on a phone (r298)
+
+Owner: *"I don't see the legend in the right slot on mobile yet."* He was right,
+and r294's own measurement is why.
+
+**THE 116px WAS THE LEFTOVER ON BOTH SIDES OF A CENTRED BOARD, NOT THE STRIP.**
+At 420 wide the stage is 416 and the board 301, and 416 - 301 = 115. The strip
+on the RIGHT is half of that. Measured before the fix, on the board's own rect:
+**55px at 390, 52 at 375, 49 at 360, 59 at 412, 60 at 420** - every one below
+`MAP_LEGEND_MIN_W`, so **every phone silently took the `.ml-float` fallback**,
+which is the centred card over the board that r294 existed to remove. The rail
+had only ever been seen on a desktop, where the strip really is 142.
+
+Three things had to change, and each one is worth its own line.
+
+- **THE BOARD SLIDES LEFT WHILE THE RAIL IS DOCKED**, so the slack either side of
+  it gathers on one edge: 49-60 becomes **68-82**. `mapLegendSlide(px)` writes
+  `#grid.style.left` - a `left` offset and deliberately NOT a transform, which
+  would make `#grid` the containing block for every fixed descendant (r180) and
+  would fight the tiles' own deal-in (r281). Nothing is re-rendered and nothing
+  is resized, so the deal-in is not replayed and **the pen's ink rides along**,
+  because the canvas is a child of `#grid`. **The offset is written in the
+  element's OWN px**: `#grid` is inside `#cabinet` and carries its CSS zoom, so a
+  viewport-px figure lands about twice as far as asked - the r160 Trick-fan trap.
+  It only ever slides when the strip is too narrow as it stands, so **a desktop
+  board is never moved**.
+  **`mapCloseScreen` clears it too, not just `mapLegendClose`.** `#grid` is the
+  PLAY board, so a stale offset would leave every later round off-centre.
+  Verified: the board deals 16 cards centred 5/5 in its slot after the map.
+- **THE BOARD IS WIDER THAN `#grid`, AND THE REVIEW COLUMN IS WHY.** `#grid`
+  carries `overflow: visible` and the boss column is drawn full height and proud
+  of it - measured **16px past the right edge** - so a rail anchored on `#grid`'s
+  own rect sat over the one obligation it is least able to hide. `mapBoardRect()`
+  is the union of the board and its tiles, and is what the rail clears. Found by
+  counting tiles intersecting the rail, not by looking: **1 before, 0 after**.
+- **A ROW HAS TWO SHAPES, AND THE STRIP PICKS.** Side by side needs about 100px
+  (chip 20 + gaps + the longest unbreakable name, INCENTIVE, at 8.5px measures
+  48). A phone gets **`.ml-narrow`: the symbol OVER the word**, centred, which
+  needs about 62 - a name that cannot break (r182: a word is atomic) gets the
+  whole column instead of a 30px sliver. `MAP_LEGEND_MIN_W` is 100 and
+  `MAP_LEGEND_NARROW_W` 62; below that the float card still exists.
+  **Nine stacked rows are taller than the board**, so the narrow rail takes the
+  whole free column - the top of `#grid-slot` down to the bar - rather than the
+  board's own height. The wide rail's band is arithmetically unchanged.
+- **TWO MARGINS, NOT ONE.** `gap` (8) separates the rail from the board and has
+  to stay generous or the rail reads as part of the schedule; `edge` (4) is the
+  margin against the stage. Splitting them buys 8px, which is exactly what
+  decides whether a 360-wide phone gets a rail at all - at one shared 8 it fell
+  back to the float.
+
+**Measured in a real browser at 360x640, 375x667, 390x844, 412x915, 420x900,
+1100x620 and 1440x820**: every one docks a rail (**68 / 71 / 75 / 80 / 82 / 109 /
+146**), **0 row names clipped**, **0 tiles under the rail**, fully on screen, and
+the worst case - all nine kinds at 360x640 - fits with **no scroll at all**.
+Desktop is unchanged bar the 4px the edge margin returns. Through the real click
+path: the chip, the X and an outside click all close it and recentre the board;
+hovering a row lights the board and writes `#mb-info`; tapping latches; a
+right-drag lays ink that stays put across the rail closing; confirming an
+obligation with the rail open leaves the map clean. No page errors anywhere.
 
 ### The lines rest BEHIND the reward tiles (r294)
 
@@ -5145,13 +5630,100 @@ In every one of those the `min` **cut the clock down to 180 and then returned 0*
 ## No text selection (r182)
 `html, body` carry `user-select:none` + `-webkit-touch-callout:none` + `-webkit-tap-highlight-color:transparent`, re-enabled for `input, textarea, [contenteditable], .selectable-text`. A click-drag across the board, or the press-and-hold that opens a tooltip, used to blue-highlight whatever label the finger landed on and pop iOS's copy/define callout over the card you were trying to read.
 
+## The shop spends the round's leftover stock (r307)
+
+**A SWAP moves a tile. A DISCARD rerolls a row.** There is no shop-only reroll
+currency and no cap of its own any more: what you carried out of the round IS
+the budget here, which is the whole reason to finish a round holding something
+back. In the node flow those globals still hold the finished round's leftovers
+when the shop opens (the reset runs later, in `triggerLevelUp`), and on a
+Survival mid-round visit spending them really does cost the rest of the round.
+
+- **THE `reroll` LIMIT IS DELETED**, from `LIMITS_DEF` and therefore from the
+  reward grid, Limit Break, Records and the Survival pick at once. It was
+  already filtered out of the shop's own Upgrades row as dead stock. The legacy
+  overlay shop (`USE_ONGRID_SHOP=false`) keeps its own `LEGACY_SHOP_REROLLS`
+  constant rather than reading a limit that no longer exists. An old save
+  carrying `limits.reroll` is harmless: the contents are copied key by key and
+  nothing reads it.
+- **SWAP IS THE BOARD'S OWN GESTURE, deliberately**: double-tap to lift a tile,
+  tap an orthogonal neighbour to trade them - the same two taps as `onCardTap`,
+  with the same Free Range exemption and Steady Hand bypass. **Routing it
+  through the SELECTION was impossible**: a row label weighs 2, so lifting two
+  of them is 4 against a Selection Size that starts at 3.
+- **Two ROW LABELS trade their whole rows** - stock, category and pin. That is
+  the move worth having: a connected pick cannot cross the board, so bringing
+  two categories next to each other is what lets one purchase cover both at the
+  multi-buy rate. Two ITEMS trade payloads; an empty cell is a valid partner
+  (sliding a tile into a gap is a move, and on a short row it is the move); a
+  label and an item are refused, and so are **two tiles of different widths** -
+  there is nowhere for a 2-wide tile's spare cell to go.
+- **A swap costs no TIME and does not bump `swapsUsedRound`.** The clock on this
+  screen belongs to a round that is already over, and the No Takebacks challenge
+  counts what you did during a ROUND.
+- **A reroll costs ONE DISCARD a row and no credits at all.** The discard is the
+  price. A pinned row (you bought from it) keeps its category and refills; an
+  unpinned row draws a new category, never one already on the board and never
+  the one it just had, so a reroll always visibly changes something.
+- **Any swap or reroll DROPS the selection** - the board moved under it, the
+  same rule a rerolled pick screen follows (`js/grid-pick.js`).
+
+### The row label is a real cell now
+
+- **Selectable**, and it **weighs 2** against Selection Size (owner's call). It
+  is not a purchase - it commands a whole row - and the weight is what decides
+  how many rows one REROLL press can take: one at Selection Size 3 or 4, two at
+  5 or 6. `shopgSelWeight()` is what the x/y readout counts, so the number and
+  the cap that refused the third pick agree.
+- **A selection is EITHER a purchase or a reroll, never both**, or BUY and
+  REROLL are live over one selection and neither says what it would take.
+  Crossing over CLEARS rather than refuses: there is no CLEAR button on this
+  screen, so a refusal would strand the player on a pick they cannot drop. This
+  is also what keeps the old promise that a connected pick can never route
+  through a heading.
+- **`shopGridSelectionCost()` returns `n`, and BUY sizes off `n`, not
+  `shopGridSel.size`.** A label has no price and no `buy()`, so a label-only
+  pick left BUY lit over nothing - pressing it paid 0 for 0 items.
+- **What you already OWN of that category moved to a LONG PRESS** (430ms, finger
+  or held mouse, the r182 gesture), because the tap is the selection now. It has
+  to stay reachable: Sleights sit on the board, so once the shop has taken the
+  board over there is no other way to see what you are holding.
+- The plate **dropped `.unselectable`**, which was `pointer-events:none` AND
+  30% opacity. It sits at full brightness now, which is what a heading you are
+  meant to read should always have been.
+
+### The action column mirrors the board's
+
+| slot | in the shop |
+|---|---|
+| swap | a READOUT of the swaps left (the gesture is on the board, so not a button) |
+| discard | **REROLL** the selected rows, or **LEAVE** when nothing is selected |
+| play | BUY |
+
+The discard button is contextual rather than split in two because it is the
+DISCARD button in both places: on the board it spends a discard on what is
+selected, and here it does exactly that. **A second, permanent Leave sits in the
+cost readout** (`#sc-leave`), so the exit is never behind a deselect - and with
+no discards left the big button reads REROLL and is DISABLED rather than
+silently falling through to leaving.
+
+### Free Range had never worked (found here)
+
+`doSwap` tested **`hasTrick('free_range')`** - an id that exists in no pool.
+Free Range is a KNACK, **`free_range_t`** (`js/data/knacks.js`). So its whole
+printed effect ("swap any two non-adjacent cards") had never once fired, while
+its downside did: `js/level-up.js` takes a swap off the base for owning it. The
+knack was **strictly negative**. Both sites read `hasKnack('free_range_t')` now,
+so it works on the board and in the shop. This is a live balance change - the
+knack does what it says for the first time.
+
 ## The COMPANY STORE (r237) - the shop board rebuilt
 
 The shop is the PLAYER'S BOARD now: same rows and columns as `limits.grid_rows/cols` (never the live globals - a boss can have shrunk those), so raising the board raises the shop. Row 0 is a full-width **COMPANY STORE** title tile that survives every reroll; every row below is a CATEGORY: one 1-cell label plate (bright, never greyed) + cols-1 items.
 
 - **Categories are drawn per board** from `SHOP_CATS` (tricks / sleights / knacks / **cards** / **improve** / limits), no repeats, `shopgCatViable` keeping empty sellers off. **Limits is guaranteed on the FIRST board of a visit** (bottom row); reroll it away unbought and it can leave.
 - **Buying from a row PINS its category** (`shopGridRowMeta[r].pinned`, a 📌 on the label): a reroll keeps that row's category but still REFILLS its stock - a bought slot comes back as fresh goods, not a ✓. Unpinned rows reroll their category too.
-- **Rerolls cost 10 + 5 each and are CAPPED BY THE SWAPS you were holding when the shop opened** (`shopRerollCap`, captured in openShopGrid - in the node flow that is what the finished round left, since the reset runs later in triggerLevelUp). The old `reroll` LIMIT is therefore dead stock and is filtered out of the shop's own Upgrades row - it still exists everywhere else (reward grid, Limit Break, Records), which wants an owner decision.
+- **Rerolls were a whole-board redraw on an escalating credit price, capped by leftover swaps. SUPERSEDED BY r307** (above): a reroll is per ROW and costs a discard. The `reroll` limit the note here called dead stock is deleted outright.
 - **A tile can be WIDER than one cell: the SAME payload object sits in every cell it covers.** The renderer draws the leftmost and skips the rest; `shopgLeadKey`/`shopgCellsOf`/`shopGroupConnected` expand a key to its cells so adjacency and the connected-buy discount see the whole footprint. Today only Improve uses it: a 2-wide SPECIFIC improvement (target picked at build, before/after from `improvePreview`) beside 1-wide "Random {type}" tiles - all riding `js/improve.js` (r206).
 - **Cards row** offers buffs on NAMED cards from the live deck (60% +12 pips / 25% +5 mult / 15% scaling +1 mult per play), re-resolved at apply with `resolveDeckCard` + `enhanceCardKey(cardId(t))`.
 - **Sell → Back is NOT a free reroll**: the buy board is cached (`_shopBuyCache`) and restored.
@@ -5234,6 +5806,47 @@ Two traps this encodes:
 Anything not wrapped still falls through to the shared global stream, so nothing regressed and unseeded play is untouched.
 
 - **It is still a seed, not a replay.** The pinned domains hold regardless of play, but anything downstream of a player *decision* (which Trick you took, so which Tricks remain in the pool) naturally differs. Enough for sharing a run, reproducing a bug, and pinning a tutorial's opening deal.
+
+### Limit Break stage 2 is ONE COLUMN of rows (r304)
+
+Owner: *"increase the size of this window so that the three options on the right are
+all legible. Actually it's probably just better to put the three options below."*
+
+r227 put the offers and the sacrifices side by side, on the reasoning that the panel
+has width to spare and no height to spare. **It does not have width to spare.**
+Measured at 420x900: the sacrifice column came out **103px wide with 86px buttons**,
+every label wrapped to two or three lines, and the THIRD button's bottom sat 8px
+below the top of the sticky footer **with the panel not scrolling**, so that option
+was unreachable as well as unreadable.
+
+Stage 2 is now one column - receipt, then what you could take, then what it costs -
+under two NUMBERED headings, so the trade reads in the order it happens.
+
+- **The offers became ROWS too, and that is what makes it fit.** As 122x144 tiles
+  they were 144 of the panel's height, and on a 1440x820 desktop the panel only gets
+  **~383 stage px** - LESS than a phone's 490, because everything inside `#cabinet`
+  is drawn through its zoom, so a CSS px there is about two real ones. Stacked tiles
+  left only the FIRST sacrifice on screen. As rows they are 74, and the whole trade
+  fits with **no scroll at any width measured** (1440x820, 420x900, 390x844).
+  **Stage 1 is untouched** - there the full description is the decision and there is
+  room for it.
+- **The row order is set with `order:`, not left to the source order.** A blind offer
+  emits no gain and no progress line, so the two tile shapes have different DOM
+  order and a grid would place their columns differently.
+- **`#lb-actions` needed `bottom: -18px`.** It carries `margin: 18px -18px -18px` so
+  it can be the panel's own bottom edge, which puts its natural bottom 18px BELOW the
+  scrollport - and a sticky `bottom: 0` clamps to the scrollport, dragging it back up
+  by exactly that 18px. Whenever the content happened to fill the panel (the normal
+  case at stage 2 on a phone) those 18px landed on the last sacrifice. This is the
+  real reason the third option was under the footer, and it was not new.
+- **`#lb-second-row` and `#lb-sacrifice` need `flex: 0 0 auto`** - in a flex COLUMN a
+  child shrinks by default, so they were squeezed and spilled out of their own box
+  instead of making the panel scroll. Same trap as `#info-head` / `#info-nav`.
+- **Two lines were dropped as redundant, and that is where the height came from**:
+  `#lb-sub` ("You can take one more, but it costs you something") and the sacrifice
+  HINT both said what the two numbered headings now say. The hint element stays for
+  the "nothing left to give up" case, which is the one thing the headings cannot say.
+
 
 ## Limits: the printed number IS the effect (r227)
 

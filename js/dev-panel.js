@@ -270,11 +270,11 @@ function devSetBlip(k, v) {
   const lab = document.getElementById('dev-blip-' + k + '-val');
   if (lab) lab.textContent = (+v).toString();
   try { const o = {}; BLIP_KEYS.forEach(x => o[x] = PARTICLE_CFG[x]);
-        localStorage.setItem('lethe.blipGrow.v1', JSON.stringify(o)); } catch (e) {}
+        localStorage.setItem('lethe.blipGrow.v2', JSON.stringify(o)); } catch (e) {}
 }
 function devResetBlip() {
-  try { localStorage.removeItem('lethe.blipGrow.v1'); } catch (e) {}
-  if (typeof PARTICLE_CFG !== 'undefined') { PARTICLE_CFG.growStart = 5; PARTICLE_CFG.growStep = 5; PARTICLE_CFG.growMax = 3; }
+  try { localStorage.removeItem('lethe.blipGrow.v2'); } catch (e) {}
+  if (typeof PARTICLE_CFG !== 'undefined') { PARTICLE_CFG.growStart = 5; PARTICLE_CFG.growStep = 2.5; PARTICLE_CFG.growMax = 3; }
   devSyncBlipSliders();
 }
 function devSyncBlipSliders() {
@@ -287,7 +287,7 @@ function devSyncBlipSliders() {
 }
 // Restore at load, before any hand is played.
 (function(){ try {
-  const raw = localStorage.getItem('lethe.blipGrow.v1'); if (!raw) return;
+  const raw = localStorage.getItem('lethe.blipGrow.v2'); if (!raw) return;
   const o = JSON.parse(raw); if (typeof PARTICLE_CFG === 'undefined') return;
   BLIP_KEYS.forEach(k => { if (typeof o[k] === 'number') PARTICLE_CFG[k] = o[k]; });
 } catch (e) {} })();

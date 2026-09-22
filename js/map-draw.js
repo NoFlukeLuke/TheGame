@@ -250,7 +250,20 @@ function mapLegendRows() {
 // Body-level and placed in RAW VIEWPORT PX, the same rule #map-bar and the
 // tooltips follow: anything inside #cabinet inherits its CSS zoom and would
 // have those coordinates multiplied.
-const MAP_LEGEND_MIN_W = 88;   // below this the strip cannot hold a row
+// THAT 116px WAS WRONG AND IT IS WHY THE RAIL NEVER DOCKED ON A PHONE (r298).
+// It is the leftover on BOTH sides of a centred board (stage 416 - board 301),
+// not the strip on the right - which really measures 49-60px on every phone, so
+// every one of them took the float fallback. The board is centred in its slot,
+// so the fix is to collect that slack: while the rail is docked the board SLIDES
+// LEFT to sit a gap inside the stage, and the whole leftover gathers on the
+// right. Measured strips after the slide: 83 at 390, 78 at 375, 74 at 360.
+//
+// A row then has two shapes, picked by what the strip can actually hold. Side by
+// side needs about 100px (chip 20 + gaps + the longest unbreakable name,
+// INCENTIVE, at 8.5px); a phone gets the STACKED chip instead - symbol over
+// word - which needs about 62. Below that there is still the float card.
+const MAP_LEGEND_MIN_W = 100;    // a row can hold symbol BESIDE word
+const MAP_LEGEND_NARROW_W = 62;  // a row can hold symbol OVER word
 
 function mapLegendEl() { return document.getElementById('map-legend'); }
 function mapLegendOpen() { return !!mapLegendEl()?.classList.contains('show'); }
@@ -273,6 +286,7 @@ function mapLegendToggle() {
 }
 function mapLegendClose() {
   mapLegendEl()?.classList.remove('show');
+  mapLegendSlide(0);            // the board goes back to the middle of its slot
   mapLegendHighlight(null, null);
   mapLegendBlurb(null);
   mapRenderBar();
@@ -323,25 +337,88 @@ function mapLegendBlurb(meta) {
   }
 }
 
-// Dock it in the strip beside the board, top-aligned with the board and no
-// taller than it. A strip too narrow to hold a row falls back to a centred card
-// over the board - worse, but never nothing.
+// Slide the board left so the slack either side of it gathers on the right.
+// #grid is already position:relative, so this is a `left` offset and NOT a
+// transform - a transform would make it the containing block for every fixed
+// descendant (r180's lesson), and it would fight the tiles' own deal-in.
+// Nothing is re-rendered and nothing is resized, so the deal-in is not replayed
+// and the pen's ink rides along: the canvas is a child of #grid.
+//
+// THE OFFSET IS WRITTEN IN THE ELEMENT'S OWN PX. #grid is inside #cabinet, which
+// carries the cabinet's CSS zoom, so a viewport-px figure written to `left`
+// lands about twice as far as asked. Same trap as the r160 Trick fan: divide by
+// the element's own rect/offsetWidth ratio, never mix the two.
+// THE BOARD IS WIDER THAN #grid, AND THE REVIEW COLUMN IS WHY. #grid carries
+// `overflow: visible` and the boss column is drawn full height and proud of it -
+// measured 16px past the right edge - so a rail anchored at #grid's own rect
+// sits over the one obligation it is least able to hide. The union of the board
+// and its tiles is the edge the rail has to clear.
+function mapBoardRect() {
+  const el = document.getElementById('grid');
+  if (!el) return null;
+  const r = el.getBoundingClientRect();
+  let l = r.left, t = r.top, rt = r.right, b = r.bottom;
+  el.querySelectorAll('.map-tile').forEach(q => {
+    const c = q.getBoundingClientRect();
+    if (!c.width) return;
+    l = Math.min(l, c.left); t = Math.min(t, c.top);
+    rt = Math.max(rt, c.right); b = Math.max(b, c.bottom);
+  });
+  return { left: l, top: t, right: rt, bottom: b, width: rt - l, height: b - t };
+}
+
+function mapLegendSlide(px) {
+  const el = document.getElementById('grid');
+  if (!el) return;
+  if (!px) { el.style.left = ''; return; }
+  const z = (el.getBoundingClientRect().width || 1) / (el.offsetWidth || 1);
+  el.style.left = (-px / (z || 1)).toFixed(2) + 'px';
+}
+
+// Dock it in the strip beside the board. A strip too narrow for even a stacked
+// row falls back to a centred card over the board - worse, but never nothing.
 function mapLegendPlace() {
   const el = mapLegendEl();
-  if (!el || !el.classList.contains('show')) return;
-  const g = document.getElementById('grid')?.getBoundingClientRect();
+  const gEl = document.getElementById('grid');
+  if (!el || !el.classList.contains('show') || !gEl) { mapLegendSlide(0); return; }
+  mapLegendSlide(0);                                   // measure the board at rest
+  let g = mapBoardRect();
   if (!g || !g.width) return;
   const stage = document.getElementById('stage')?.getBoundingClientRect();
-  const gap = 8;
-  const right = Math.min(stage ? stage.right : window.innerWidth, window.innerWidth) - gap;
+  // TWO margins, not one. `gap` separates the rail from the board and has to
+  // stay generous, or the rail reads as part of the schedule; `edge` is the
+  // margin against the stage, where 4px buys the 8px that decides whether the
+  // narrowest phone gets a rail at all.
+  const gap = 8, edge = 4;
+  const left  = Math.max(stage ? stage.left : 0, 0) + edge;
+  const right = Math.min(stage ? stage.right : window.innerWidth, window.innerWidth) - edge;
+
+  // Only ever slide when the strip cannot hold a row as it stands, and never
+  // further than the board's own left gutter - desktop keeps its board centred.
+  if (right - (g.right + gap) < MAP_LEGEND_MIN_W) {
+    const slack = Math.max(0, Math.round(g.left - left));
+    if (slack) { mapLegendSlide(slack); g = mapBoardRect(); }
+  }
+
   const w = right - (g.right + gap);
-  if (w >= MAP_LEGEND_MIN_W) {
+  el.classList.toggle('ml-narrow', w < MAP_LEGEND_MIN_W);
+  if (w >= MAP_LEGEND_NARROW_W) {
     el.classList.remove('ml-float');
+    // A stacked row is taller, so nine of them do not fit the board's own
+    // height - the narrow rail takes the whole free column instead, from the
+    // top of the board's slot down to the bar. It still never covers the board.
+    const slot = document.getElementById('grid-slot')?.getBoundingClientRect();
+    const bar  = document.getElementById('map-bar')?.getBoundingClientRect();
+    const wide = w >= MAP_LEGEND_MIN_W;
+    const top  = wide ? g.top : Math.max(edge, Math.min(g.top, slot ? slot.top : g.top));
+    const bot  = wide ? Math.min(g.bottom, window.innerHeight - gap)
+                      : Math.min(bar && bar.top ? bar.top - edge : Infinity, window.innerHeight - edge);
     el.style.left = Math.round(g.right + gap) + 'px';
     el.style.width = Math.round(w) + 'px';
-    el.style.top = Math.round(g.top) + 'px';
-    el.style.maxHeight = Math.round(Math.min(g.height, window.innerHeight - g.top - gap)) + 'px';
+    el.style.top = Math.round(top) + 'px';
+    el.style.maxHeight = Math.max(60, Math.round(bot - top)) + 'px';
   } else {
+    mapLegendSlide(0);
     el.classList.add('ml-float');
     el.style.left = el.style.width = el.style.top = '';
     el.style.maxHeight = Math.round(g.height) + 'px';
