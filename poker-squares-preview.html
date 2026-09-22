@@ -3,44 +3,38 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Poker Squares - placement &amp; scoring preview</title>
+<title>Poker Squares - mode preview</title>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Share+Tech+Mono&family=Crimson+Pro:wght@400;600&display=swap" rel="stylesheet">
 <style>
 /* ═══════════════════════════════════════════════════════════════════════
-   POKER SQUARES PREVIEW
-   Standalone. Nothing here is wired into the game - this is the design
-   surface for the placement interaction, the deal schedule's fill rate and
-   the per-hand scoring pace, before any of it touches the engine.
+   POKER SQUARES - design surface, wired into nothing.
    Palette and type are the game's (css/style.css :root).
    ═══════════════════════════════════════════════════════════════════════ */
 :root{
   --bg:#0e0c0a; --gold:#c9a84c; --gold-dim:#7a6030; --red:#c0392b; --green:#5a9e5a;
   --cream:#f0e6c8; --cream-dim:#8a7d60; --panel:#13110e; --border:#3a3020;
-  --card-bg:#f5efe0; --card-border:#d4c89a;
+  --card-bg:#f5efe0; --card-border:#d4c89a; --violet:#a25cd8;
   --suit-hearts:#A0030B; --suit-diamonds:#EC9F05; --suit-spades:#000; --suit-clubs:#2255cc;
   --pips:#5588ee; --mult:#dd4444;
-  --cell:74px;            /* board cell width  */
-  --cellh:88px;           /* board cell height */
-  --gap:4px;
+  --cell:70px; --cellh:84px; --gap:4px;
 }
 *{box-sizing:border-box}
-html,body{margin:0;height:100%;background:var(--bg);color:var(--cream);
-  font-family:'Share Tech Mono',monospace;user-select:none;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;min-height:100%;background:
+  radial-gradient(1200px 600px at 50% -10%, #17130e 0%, var(--bg) 60%);
+  color:var(--cream);font-family:'Share Tech Mono',monospace;user-select:none;
+  -webkit-tap-highlight-color:transparent}
 body{display:flex;flex-direction:column;align-items:center;overflow-x:hidden}
+h1{font-family:'Orbitron',sans-serif;font-size:13px;letter-spacing:4px;color:var(--gold);
+  margin:12px 0 2px;font-weight:700;text-shadow:0 0 14px rgba(201,168,76,.35)}
+.sub{font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream-dim);margin-bottom:8px}
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:8px 10px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04)}
+.plabel{font-size:8px;letter-spacing:2px;color:var(--cream-dim);margin-bottom:4px}
 
-h1{font-family:'Orbitron',sans-serif;font-size:13px;letter-spacing:3px;color:var(--gold);
-  margin:12px 0 2px;font-weight:700}
-.sub{font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream-dim);margin-bottom:10px}
-
-/* ── stage ───────────────────────────────────────────────────────────── */
-#stage{display:flex;gap:16px;align-items:flex-start}
-
-/* ── left: score + tricks ────────────────────────────────────────────── */
-#left{width:180px;display:flex;flex-direction:column;gap:8px}
-.panel{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:8px 10px}
-.plabel{font-size:8px;letter-spacing:2px;color:var(--cream-dim);margin-bottom:3px}
-#score-big{font-family:'Orbitron',sans-serif;font-size:26px;color:var(--cream);line-height:1;font-weight:700}
-#goal-line{font-size:10px;color:var(--gold);margin-top:3px}
+#stage{display:flex;gap:14px;align-items:flex-start}
+#left{width:196px;display:flex;flex-direction:column;gap:8px}
+#score-big{font-family:'Orbitron',sans-serif;font-size:27px;color:var(--cream);line-height:1;font-weight:700}
+#round-line{font-size:10px;color:var(--gold);margin-top:3px}
 .chips{display:flex;gap:6px;margin-top:8px}
 .chip{flex:1;background:#0b0a08;border:1px solid var(--border);border-radius:4px;padding:5px 2px;text-align:center}
 .chip .cv{font-family:'Orbitron',sans-serif;font-size:15px;line-height:1;font-weight:700}
@@ -49,160 +43,226 @@ h1{font-family:'Orbitron',sans-serif;font-size:13px;letter-spacing:3px;color:var
 #chip-mult .cv{color:var(--mult)} #chip-mult{border-color:#6b2b2b}
 .tricks{display:flex;flex-wrap:wrap;gap:4px}
 .tk{width:30px;height:30px;border-radius:4px;background:#1b1813;border:1px solid var(--border);
-  display:flex;align-items:center;justify-content:center;font-size:15px}
+  display:flex;align-items:center;justify-content:center;font-size:15px;cursor:default}
+.tk[data-t]{border-color:var(--gold-dim)}
 
-/* ── centre: board + hand ────────────────────────────────────────────── */
+/* ── consumables (where the hand preview used to be) ─────────────────── */
+#cons{display:flex;gap:5px;flex-wrap:wrap;min-height:58px}
+.cons{width:56px;height:58px;border-radius:5px;background:linear-gradient(180deg,#221c2e,#15111d);
+  border:1px solid var(--violet);display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:2px;cursor:pointer;position:relative;
+  box-shadow:0 2px 6px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.07)}
+.cons:hover{filter:brightness(1.3)}
+.cons.armed{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold),0 0 16px rgba(201,168,76,.6)}
+.cons .ci{font-size:17px;line-height:1}
+.cons .cn{font-size:6px;letter-spacing:.5px;color:var(--cream-dim);text-align:center;line-height:1.1}
+.cons .cd{position:absolute;top:2px;right:3px;font-size:7px;color:var(--gold)}
+#cons-hint{font-size:9px;color:var(--violet);margin-top:4px;min-height:12px;line-height:1.3}
+
+/* ── board ───────────────────────────────────────────────────────────── */
 #centre{position:relative;display:flex;flex-direction:column;align-items:center}
+#boardwrap{position:relative}
 #board{display:grid;grid-template-columns:repeat(5,var(--cell));grid-auto-rows:var(--cellh);
   gap:var(--gap);padding:10px;background:#0a0908;border:1px solid var(--border);border-radius:8px;
-  position:relative}
+  position:relative;box-shadow:inset 0 0 40px rgba(0,0,0,.8)}
 .cell{position:relative;border-radius:5px;background:#141210;border:1px dashed #241f18}
 .cell.ghost-ok{background:rgba(90,158,90,.20);border:1px solid var(--green)}
 .cell.ghost-bad{background:rgba(192,57,43,.22);border:1px solid var(--red)}
-.cell.tentative{box-shadow:0 0 0 2px var(--gold),0 0 14px rgba(201,168,76,.45);border-radius:5px}
-
-/* a real card on the board */
+.cell.tentative{box-shadow:0 0 0 2px var(--gold),0 0 14px rgba(201,168,76,.45)}
+/* An EMPTY marked cell gets the wash; an OCCUPIED one gets a RING in the same
+   paint, masked down to the border so the card's own face stays cream and the
+   rank stays crisp. Two tricks on one cell split the paint into hard wedges -
+   never a blend, which would be a third colour belonging to neither (r296). */
+.cell.marked::before{content:'';position:absolute;inset:0;border-radius:5px;
+  background:var(--mk);opacity:.32;pointer-events:none}
+.cell.marked .card::after{content:'';position:absolute;inset:0;border-radius:5px;
+  padding:3px;background:var(--mk);pointer-events:none;
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude}
+.cell.ctarget{box-shadow:0 0 0 2px var(--violet),0 0 14px rgba(162,92,216,.6);cursor:pointer}
+.cell.cpicked{box-shadow:0 0 0 3px var(--gold),0 0 18px rgba(201,168,76,.7)}
 .card{position:absolute;inset:0;background:var(--card-bg);border:1px solid var(--card-border);
   border-radius:5px;display:flex;flex-direction:column;justify-content:space-between;
   padding:3px 4px;color:#111;font-family:'Crimson Pro',serif;font-weight:600;
-  box-shadow:0 2px 5px rgba(0,0,0,.5);transition:transform .18s ease,box-shadow .18s ease}
+  box-shadow:0 2px 5px rgba(0,0,0,.5);transition:transform .2s cubic-bezier(.34,1.3,.64,1),box-shadow .2s ease,filter .2s ease}
 .card .r{font-size:15px;line-height:1}
 .card .s{font-size:15px;line-height:1;align-self:flex-end;transform:rotate(180deg)}
-.card.lift{transform:translateY(-12px) scale(1.06);
-  box-shadow:0 10px 18px rgba(0,0,0,.6),0 0 0 2px var(--gold),0 0 18px rgba(201,168,76,.5);z-index:5}
+.card.wave{transform:translateY(-16px) scale(1.09);
+  box-shadow:0 12px 22px rgba(0,0,0,.65),0 0 0 2px var(--gold),0 0 22px rgba(201,168,76,.6);z-index:6}
+.card.penal{filter:saturate(.2) brightness(.6);box-shadow:0 0 0 2px var(--red) inset}
 .card.dim{filter:saturate(.25) brightness(.55)}
 .h{color:var(--suit-hearts)} .d{color:var(--suit-diamonds)}
 .s-{color:var(--suit-spades)} .c{color:var(--suit-clubs)}
+/* locked line marker (SELECT mode) */
+.cell.locked::after{content:'';position:absolute;inset:0;border-radius:5px;
+  background:repeating-linear-gradient(45deg,rgba(0,0,0,.45) 0 5px,transparent 5px 10px);pointer-events:none}
+/* line pick buttons */
+.lbtn{position:absolute;border:1px solid var(--gold-dim);background:#15120d;color:var(--gold);
+  font-family:'Share Tech Mono',monospace;font-size:9px;border-radius:3px;cursor:pointer;
+  width:22px;height:22px;display:flex;align-items:center;justify-content:center;z-index:8}
+.lbtn:hover{background:var(--gold);color:#1a1509}
+.lbtn.off{opacity:.2;cursor:not-allowed}
+.lbtn.sel{background:var(--gold);color:#1a1509}
+#handname{position:absolute;left:50%;transform:translateX(-50%);top:-28px;
+  font-family:'Orbitron',sans-serif;font-size:13px;letter-spacing:2px;color:var(--gold);
+  opacity:0;transition:opacity .18s ease;white-space:nowrap}
+#handname.on{opacity:1}
 
-/* line labels down the side / across the top */
-.linelab{position:absolute;font-size:8px;letter-spacing:1px;color:var(--cream-dim)}
-.linelab.on{color:var(--gold)}
-
-/* ── the hand: loose cards under the board, Balatro-style ────────────── */
-#hand{position:relative;height:186px;margin-top:-14px;width:640px;
+/* ── hand ────────────────────────────────────────────────────────────── */
+#hand{position:relative;height:176px;margin-top:8px;width:640px;
   display:flex;justify-content:center;align-items:flex-start;gap:10px;
   transition:opacity .16s ease;z-index:20}
-#hand.see-through{opacity:.30}
-.hcard{position:relative;width:118px;height:168px;background:var(--card-bg);
+#hand.see-through{opacity:.28}
+.hcard{position:relative;width:114px;height:162px;background:var(--card-bg);
   border:1px solid var(--card-border);border-radius:9px;box-shadow:0 6px 14px rgba(0,0,0,.55);
-  transition:transform .16s ease,box-shadow .16s ease,opacity .16s ease;cursor:grab;
-  display:flex;align-items:center;justify-content:center;
-  /* the diamond lattice of a real card back, faint */
+  transition:transform .16s cubic-bezier(.34,1.3,.64,1),box-shadow .16s ease,opacity .16s ease;
+  cursor:grab;display:flex;align-items:center;justify-content:center;
   background-image:repeating-linear-gradient(45deg,rgba(212,200,154,.35) 0 1px,transparent 1px 9px),
                    repeating-linear-gradient(-45deg,rgba(212,200,154,.35) 0 1px,transparent 1px 9px)}
 .hcard:hover{transform:translateY(-8px)}
 .hcard.sel{transform:translateY(-26px) scale(1.04);
   box-shadow:0 16px 26px rgba(0,0,0,.6),0 0 0 3px var(--gold),0 0 22px rgba(201,168,76,.55)}
 .hcard.placing{opacity:.45;transform:translateY(-6px) scale(.97)}
-.hcard.dragging{opacity:.25}
-/* the polyomino drawn on the card as real mini cards */
+.hcard.dragging{opacity:.22}
 .poly{display:grid;gap:2px}
 .mini{background:var(--card-bg);border:1.5px solid #111;border-radius:2px;
   width:var(--mw,30px);height:var(--mh,40px);display:flex;flex-direction:column;
   justify-content:space-between;padding:1px 2px;font-family:'Crimson Pro',serif;
   font-weight:600;color:#111;box-shadow:0 1px 2px rgba(0,0,0,.28);overflow:hidden}
 .mini .r{font-size:var(--mfs,10px);line-height:1}
-.mini .s{font-size:var(--mfs,10px);line-height:1;align-self:flex-end;transform:rotate(180deg)}
+.mini .s{font-size:var(--mfs,10px);line-height:1;align-self:flex-end}
+/* A MINI DOES NOT GET THE ROTATED BOTTOM INDEX. On a full card that upside-down
+   corner is the real playing-card convention and reads correctly; at 20-25px it
+   is an illegible smudge that looks like a rendering fault. The mini shows the
+   rank upright top-left and the bare SUIT GLYPH bottom-right. */
 .mini.blank{background:transparent;border:none;box-shadow:none}
-/* rotate button, on the card itself (owner's preference) */
 .rot{position:absolute;top:4px;right:4px;width:24px;height:24px;border-radius:50%;
   background:rgba(20,18,14,.88);border:1px solid var(--gold-dim);color:var(--gold);
   font-size:13px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:3}
 .rot:hover{background:var(--gold);color:#1a1509}
-.kept{position:absolute;bottom:4px;left:4px;font-size:7px;letter-spacing:1px;color:#1a1509;
-  background:var(--gold);border-radius:3px;padding:1px 4px}
-
-/* the piece that follows the pointer while dragging */
 #drag{position:fixed;pointer-events:none;z-index:999;display:none;opacity:.92}
 
-/* ── right: the three buttons ────────────────────────────────────────── */
-#right{width:96px;display:flex;flex-direction:column;gap:8px;padding-top:2px}
-.btn{height:78px;border-radius:7px;border:2px solid;background:#15120d;cursor:pointer;
+/* ── right buttons ───────────────────────────────────────────────────── */
+#right{width:98px;display:flex;flex-direction:column;gap:8px;padding-top:2px}
+.btn{height:76px;border-radius:7px;border:2px solid;background:#15120d;cursor:pointer;
   font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:1.5px;font-weight:700;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
-  transition:filter .15s ease,transform .1s ease}
+  transition:filter .15s ease,transform .1s ease;color:var(--cream)}
 .btn small{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:.5px;
   color:var(--cream-dim);font-weight:400}
 .btn:hover:not(:disabled){filter:brightness(1.35)}
 .btn:active:not(:disabled){transform:translateY(1px)}
-.btn:disabled{opacity:.28;cursor:not-allowed}
+.btn:disabled{opacity:.26;cursor:not-allowed}
 #b-discard{border-color:var(--red);color:#e4736a}
-#b-confirm{border-color:var(--gold);color:var(--gold);height:104px}
+#b-confirm{border-color:var(--gold);color:var(--gold);height:100px}
 #b-end{border-color:var(--green);color:#8fd08f}
 #b-discard.drop-target{background:rgba(192,57,43,.35);filter:brightness(1.5)}
-
-/* ── turn readout ────────────────────────────────────────────────────── */
-#turnbar{display:flex;gap:14px;align-items:center;margin:8px 0 2px;font-size:10px;
+#turnbar{display:flex;gap:14px;align-items:center;margin:6px 0 2px;font-size:10px;
   letter-spacing:1px;color:var(--cream-dim)}
 #turnbar b{color:var(--gold);font-weight:400}
 
-/* ── scoring chip ────────────────────────────────────────────────────── */
-.schip{position:fixed;z-index:900;pointer-events:none;font-family:'Orbitron',sans-serif;
-  font-size:15px;font-weight:700;padding:5px 9px;border-radius:5px;background:#0b0a08;
-  border:2px solid var(--gold);color:var(--cream);white-space:nowrap;
-  box-shadow:0 0 18px rgba(201,168,76,.5)}
-#handname{position:absolute;left:50%;transform:translateX(-50%);top:-26px;
-  font-family:'Orbitron',sans-serif;font-size:12px;letter-spacing:2px;color:var(--gold);
-  opacity:0;transition:opacity .18s ease}
-#handname.on{opacity:1}
+/* ── overlays ────────────────────────────────────────────────────────── */
+.ov{position:fixed;inset:0;background:rgba(6,5,4,.86);z-index:500;display:none;
+  align-items:center;justify-content:center;backdrop-filter:blur(2px)}
+.ov.on{display:flex}
+.ovp{background:var(--panel);border:2px solid var(--gold-dim);border-radius:10px;padding:20px 24px;
+  max-width:820px;box-shadow:0 20px 60px rgba(0,0,0,.8),inset 0 1px 0 rgba(255,255,255,.05)}
+.ovp h3{font-family:'Orbitron',sans-serif;font-size:13px;letter-spacing:3px;color:var(--gold);
+  margin:0 0 4px;font-weight:700;text-align:center}
+.ovp .lead{font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream-dim);
+  text-align:center;margin-bottom:16px}
+.opts{display:flex;gap:14px;justify-content:center}
+.opt{width:250px;background:#100e0b;border:2px solid var(--border);border-radius:8px;padding:14px;
+  cursor:pointer;transition:border-color .15s ease,transform .15s ease}
+.opt:hover{border-color:var(--gold);transform:translateY(-3px)}
+.opt .on2{font-family:'Orbitron',sans-serif;font-size:12px;letter-spacing:2px;color:var(--gold);margin-bottom:6px}
+.opt .od{font-family:'Crimson Pro',serif;font-size:12px;color:var(--cream-dim);line-height:1.5}
+.pick{display:flex;gap:12px;justify-content:center;margin-bottom:12px}
+.pk{width:186px;background:#100e0b;border:2px solid var(--border);border-radius:8px;padding:12px;
+  cursor:pointer;text-align:center;transition:border-color .15s ease,transform .15s ease}
+.pk:hover{border-color:var(--gold);transform:translateY(-3px)}
+.pk .pi{font-size:26px;line-height:1;margin-bottom:6px}
+.pk .pn{font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:1px;color:var(--cream);margin-bottom:5px}
+.pk .pd{font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);line-height:1.4;min-height:46px}
+.pk .pt{font-size:7px;letter-spacing:1px;margin-top:6px}
+.rar-common{color:#6fd08c} .rar-rare{color:#5fc8e8} .rar-epic{color:#b07fe8} .rar-legendary{color:#e86fc8}
+.pk.sel{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold),0 0 22px rgba(201,168,76,.45);transform:translateY(-3px)}
+.pk.sel::after{content:'CLICK AGAIN TO TAKE';display:block;margin-top:8px;font-size:7px;
+  letter-spacing:1px;color:var(--gold)}
+.pk .dir{display:inline-block;margin-left:5px;padding:1px 4px;border-radius:3px;
+  background:var(--violet);color:#fff;font-size:8px;letter-spacing:.5px;vertical-align:middle}
+#suitrow2{display:flex;gap:8px;justify-content:center;margin-bottom:10px}
+.ovbtns{display:flex;gap:10px;justify-content:center}
+.ovb{background:#1b1813;border:1px solid var(--gold-dim);color:var(--gold);
+  font-family:'Share Tech Mono',monospace;font-size:11px;padding:7px 18px;border-radius:5px;cursor:pointer}
+.ovb:hover{background:var(--gold);color:#1a1509}
+.ovb:disabled{opacity:.3;cursor:not-allowed}
+/* rank+suit picker */
+#pickgrid{display:grid;grid-template-columns:repeat(13,32px);gap:4px;margin:10px 0}
+.pg{height:30px;border:1px solid var(--border);border-radius:4px;background:#100e0b;color:var(--cream);
+  font-family:'Crimson Pro',serif;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.pg:hover,.pg.on{background:var(--gold);color:#1a1509}
+#suitrow{display:flex;gap:8px;justify-content:center;margin-bottom:10px}
+.sbtn{width:44px;height:38px;border:1px solid var(--border);border-radius:5px;background:var(--card-bg);
+  font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.sbtn.on{box-shadow:0 0 0 3px var(--gold)}
 
-/* ── config ──────────────────────────────────────────────────────────── */
-#cfg{width:900px;margin:18px 0 40px;background:var(--panel);border:1px solid var(--border);
+.schip{position:fixed;z-index:900;pointer-events:none;font-family:'Orbitron',sans-serif;
+  font-size:16px;font-weight:700;padding:5px 10px;border-radius:5px;background:#0b0a08;
+  border:2px solid var(--gold);color:var(--cream);white-space:nowrap;
+  box-shadow:0 0 22px rgba(201,168,76,.6)}
+
+#cfg{width:940px;margin:14px 0 40px;background:var(--panel);border:1px solid var(--border);
   border-radius:8px;padding:12px 14px}
 #cfg h2{font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:2px;color:var(--gold);
   margin:0 0 8px;font-weight:700}
-.row{display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin-bottom:8px;font-size:11px}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:8px;font-size:11px}
 .row label{display:flex;gap:5px;align-items:center;color:var(--cream-dim)}
-.row input[type=number]{width:52px;background:#0b0a08;border:1px solid var(--border);
+.row input[type=number]{width:54px;background:#0b0a08;border:1px solid var(--border);
   color:var(--cream);font-family:'Share Tech Mono',monospace;font-size:11px;padding:3px 4px;border-radius:3px}
 .row button{background:#1b1813;border:1px solid var(--gold-dim);color:var(--gold);
   font-family:'Share Tech Mono',monospace;font-size:10px;padding:4px 10px;border-radius:4px;cursor:pointer}
 .row button:hover{background:var(--gold);color:#1a1509}
 #out{white-space:pre-wrap;font-size:10px;color:var(--cream-dim);line-height:1.5;
-  max-height:220px;overflow:auto;margin-top:8px;border-top:1px solid var(--border);padding-top:8px}
-#log{font-size:10px;color:var(--cream-dim);margin-top:4px;min-height:14px}
+  max-height:260px;overflow:auto;margin-top:8px;border-top:1px solid var(--border);padding-top:8px}
 </style>
 </head>
 <body>
-
 <h1>POKER SQUARES</h1>
-<div class="sub">placement, the deal schedule, and the per-hand scoring pace</div>
+<div class="sub">placement &middot; the two scoring modes &middot; consumables &middot; the tally</div>
 
 <div id="turnbar">
-  TURN <b id="t-n">1</b>/<b id="t-max">4</b>
-  &middot; DEALT <b id="t-deal">3 x 4</b>
-  &middot; DISCARDS <b id="t-disc">3</b>
-  &middot; FILLED <b id="t-fill">0</b>/25
+  ROUND <b id="t-r">1</b>/<b id="t-rmax">10</b>
+  &middot; TURN <b id="t-n">1</b>/4 &middot; DEALT <b id="t-deal">3 x 4</b>
+  &middot; DISCARDS <b id="t-disc">3</b> &middot; FILLED <b id="t-fill">0</b>/25
+  &middot; <b id="t-mode">SCORE ALL</b>
 </div>
 
 <div id="stage">
   <div id="left">
     <div class="panel">
-      <div class="plabel">SCORE</div>
+      <div class="plabel">TOTAL SCORE</div>
       <div id="score-big">0</div>
-      <div id="goal-line">GOAL 4,000</div>
+      <div id="round-line">ROUND 1 OF 10</div>
       <div class="chips">
         <div class="chip" id="chip-pips"><div class="cv" id="v-pips">0</div><div class="cl">PIPS</div></div>
         <div class="chip" id="chip-mult"><div class="cv" id="v-mult">0</div><div class="cl">MULT</div></div>
       </div>
     </div>
     <div class="panel">
-      <div class="plabel">TRICKS 4/5</div>
-      <div class="tricks">
-        <div class="tk">&#127807;</div><div class="tk">&#9889;</div>
-        <div class="tk">&#128142;</div><div class="tk">&#127786;</div>
-      </div>
+      <div class="plabel">TRICKS <span id="tk-n">0</span>/5</div>
+      <div class="tricks" id="tricks"></div>
     </div>
     <div class="panel">
-      <div class="plabel">NO CLOCK &middot; NO CREDITS</div>
-      <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);line-height:1.4">
-        Fill the board, then every row and column scores as its own hand.
-      </div>
+      <div class="plabel">CONSUMABLES <span id="cn-n">0</span>/4</div>
+      <div id="cons"></div>
+      <div id="cons-hint">Double-click one to use it.</div>
     </div>
   </div>
 
   <div id="centre">
-    <div style="position:relative">
+    <div id="boardwrap">
       <div id="handname"></div>
       <div id="board"></div>
     </div>
@@ -212,495 +272,933 @@ h1{font-family:'Orbitron',sans-serif;font-size:13px;letter-spacing:3px;color:var
   <div id="right">
     <button class="btn" id="b-discard">DISCARD<small id="d-left">3 left</small></button>
     <button class="btn" id="b-confirm">CONFIRM<small>place the tile</small></button>
-    <button class="btn" id="b-end">END TURN<small id="e-why">1 card max</small></button>
+    <button class="btn" id="b-end">END TURN<small id="e-why">2 to place</small></button>
   </div>
 </div>
 
 <div id="drag"></div>
+
+<!-- mode choice -->
+<div class="ov on" id="ov-mode"><div class="ovp">
+  <h3>HOW DO YOU WANT TO BE PAID</h3>
+  <div class="lead">Fill a 5x5 board over four turns. Every row and every column is a hand.</div>
+  <div class="opts">
+    <div class="opt" data-mode="all">
+      <div class="on2">SCORE ALL</div>
+      <div class="od">At the end of the round all ten lines pay, worst hand first. Every card counts
+      twice, once for its row and once for its column. Nothing to decide, everything to build.</div>
+    </div>
+    <div class="opt" data-mode="select">
+      <div class="on2">SELECT SCORE</div>
+      <div class="od">Each turn you cash <b>one</b> line and it locks for the rest of the round.
+      On the last turn you cash <b id="fin-n">3</b>. Fewer lines pay, so you choose when a line is
+      finished enough to spend.</div>
+    </div>
+  </div>
+</div></div>
+
+<!-- pick three -->
+<div class="ov" id="ov-pick"><div class="ovp">
+  <h3 id="pick-title">TAKE ONE</h3>
+  <div class="lead" id="pick-lead"></div>
+  <div class="pick" id="pick-row"></div>
+  <div class="ovbtns">
+    <button class="ovb" id="pick-reroll">REROLL (<span id="rr-n">2</span>)</button>
+    <button class="ovb" id="pick-skip">SKIP</button>
+  </div>
+</div></div>
+
+<!-- rank + suit picker for Forge -->
+<div class="ov" id="ov-forge"><div class="ovp">
+  <h3>FORGE A CARD</h3>
+  <div class="lead">Pick a rank and a suit. The cell becomes that card.</div>
+  <div id="suitrow"></div>
+  <div id="pickgrid"></div>
+  <div class="ovbtns">
+    <button class="ovb" id="forge-ok" disabled>MAKE IT</button>
+    <button class="ovb" id="forge-cancel">CANCEL</button>
+  </div>
+</div></div>
+
+<!-- suit picker for Re-suit -->
+<div class="ov" id="ov-suit"><div class="ovp">
+  <h3>CHOOSE A SUIT</h3>
+  <div class="lead">Both picked cards become this suit.</div>
+  <div id="suitrow2"></div>
+  <div class="ovbtns"><button class="ovb" id="suit-cancel">CANCEL</button></div>
+</div></div>
+
+<!-- round / run report -->
+<div class="ov" id="ov-rep"><div class="ovp">
+  <h3 id="rep-title">ROUND SCORED</h3>
+  <div id="rep-body" style="font-size:11px;line-height:1.6;white-space:pre-wrap;color:var(--cream-dim);
+       max-height:400px;overflow:auto;font-family:'Share Tech Mono',monospace"></div>
+  <div class="ovbtns" style="margin-top:12px"><button class="ovb" id="rep-ok">CONTINUE</button></div>
+</div></div>
 
 <div id="cfg">
   <h2>TUNING</h2>
   <div class="row">
     <label>discards/turn <input type="number" id="c-disc" value="3" min="0" max="9"></label>
     <label>keep/turn <input type="number" id="c-keep" value="1" min="0" max="3"></label>
-    <label>ms per hand <input type="number" id="c-hand" value="1500" min="200" max="4000" step="100"></label>
+    <label>rounds <input type="number" id="c-rounds" value="10" min="1" max="20"></label>
+    <label>final-turn lines <input type="number" id="c-fin" value="3" min="1" max="5"></label>
+    <label>ms/hand <input type="number" id="c-hand" value="1400" min="200" max="4000" step="100"></label>
+    <label>accel % <input type="number" id="c-acc" value="5" min="0" max="30"></label>
+    <label>NS %/play <input type="number" id="c-ns" value="6" min="0" max="50"></label>
+    <label>sound <input type="checkbox" id="c-snd" checked></label>
     <button id="b-restart">RESTART</button>
-    <button id="b-auto">AUTOPLAY A BOARD</button>
     <button id="b-dump">DUMP CONFIG</button>
   </div>
   <div class="row">
-    <span style="color:var(--cream-dim)">DEAL SCHEDULE</span>
-    <label>T1 <input type="number" id="s1n" value="3" min="1" max="5">x<input type="number" id="s1s" value="4" min="1" max="4"></label>
-    <label>T2 <input type="number" id="s2n" value="3" min="1" max="5">x<input type="number" id="s2s" value="3" min="1" max="4"></label>
-    <label>T3 <input type="number" id="s3n" value="2" min="1" max="5">x<input type="number" id="s3s" value="2" min="1" max="4"></label>
-    <label>T4 <input type="number" id="s4n" value="2" min="1" max="5">x<input type="number" id="s4s" value="1" min="1" max="4"></label>
-  </div>
-  <div class="row">
-    <button id="b-sim">MEASURE FILL RATE (2000 boards)</button>
-    <button id="b-simscore">MEASURE SCORES (500 boards)</button>
-    <span id="log"></span>
+    <button id="b-sim">MEASURE FILL (4000 boards)</button>
+    <button id="b-simscore">MEASURE SCORES (1500 boards)</button>
+    <button id="b-table">SHOW HAND TABLE</button>
+    <button id="b-auto">AUTOPLAY A BOARD</button>
   </div>
   <div id="out">Drag a card onto the board. Rotate with the button on the card. CONFIRM places it.
 END TURN unlocks once one card or fewer is left in hand.</div>
 </div>
-
 <script>
 /* ══════════════════════════════════════════════════════════════════════
    MODEL
-   A piece is a LIST OF {dr,dc,card}. Rotation transforms the offsets and
-   the cards ride along with their own cells, so the rank-to-cell mapping
-   can never drift and there is no reading order to get wrong.
+   A piece is a LIST OF {dr,dc,card}. Rotation transforms the offsets and the
+   cards ride along with their own cells, so the rank-to-cell mapping cannot
+   drift and there is no reading order to get wrong.
    ══════════════════════════════════════════════════════════════════════ */
-const N = 5;                               // board is 5x5
-const SUITS = ['h','d','s','c'];
-const SUIT_CH = {h:'♥', d:'♦', s:'♠', c:'♣'};
-const SUIT_CLS = {h:'h', d:'d', s:'s-', c:'c'};
-const RANKS = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
-const RANK_ORDER = {'2':2,'3':3,'4':4,'5':5,'6':6,'7':7,'8':8,'9':9,'10':10,'J':11,'Q':12,'K':13,'A':14};
+const N=5, SUITS=['h','d','s','c'];
+const SUIT_CH={h:'♥',d:'♦',s:'♠',c:'♣'};
+const SUIT_CLS={h:'h',d:'d',s:'s-',c:'c'};
+const RANKS=['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
+const RANK_ORDER={'2':2,'3':3,'4':4,'5':5,'6':6,'7':7,'8':8,'9':9,'10':10,'J':11,'Q':12,'K':13,'A':14};
+const RANK_PIPS={'J':10,'Q':10,'K':10,'A':11};
+const pipsOf=c=>RANK_PIPS[c.rank]||parseInt(c.rank,10);
 
-/* Copied from js/data/cards.js for this standalone page. If the real table
-   moves, this one has to move with it - it is here only so the preview shows
-   numbers that mean something. */
-const HAND_BASE = {
-  'Flush of 3':{pips:15,mult:2}, 'Flush of 4':{pips:20,mult:3}, 'Flush':{pips:25,mult:4},
-  'Pair':{pips:20,mult:2}, 'Two Pair':{pips:30,mult:3}, 'Three of a Kind':{pips:35,mult:3},
-  'Full House':{pips:45,mult:5}, 'Four of a Kind':{pips:60,mult:7},
-  'Run of 3':{pips:25,mult:3}, 'Run of 4':{pips:30,mult:4}, 'Straight':{pips:40,mult:5},
-  'Straight Flush':{pips:100,mult:8}, 'High Card':{pips:0,mult:1}
+/* ── HAND TABLE, ordered by REAL POKER DIFFICULTY ─────────────────────
+   Deliberately NOT the main game's r178 table. That one prices a hand by how
+   hard it is to SPOT on a grid of connected cards, which is why it puts
+   flushes cheapest - a suit match is a colour match and the eye finds one
+   without reading a rank. Here you are not spotting anything: a line is five
+   fixed cards and the work is CONSTRUCTING it over four turns. So real 5-card
+   frequency governs, which flips the famous pair back the right way round:
+   Flush (0.197%) now outranks Straight (0.392%).
+   `r` is the rank index - it sorts the tally worst-first and pitches the sound.   */
+const HAND_BASE={
+  'High Card':      {pips:0,  mult:1, r:0,  kick:1, freq:'50.1% of 5-card hands'},
+  'Flush of 3':     {pips:25, mult:2, r:1,  kick:0, freq:'three to a suit - very common'},
+  'Pair':           {pips:30, mult:2, r:2,  kick:1, freq:'42.3%'},
+  'Run of 3':       {pips:40, mult:3, r:3,  kick:0, freq:'three to a straight'},
+  'Two Pair':       {pips:50, mult:3, r:4,  kick:1, freq:'4.75%'},
+  'Flush of 4':     {pips:45, mult:4, r:5,  kick:0, freq:'~2.7% (four to a flush)'},
+  'Three of a Kind':{pips:60, mult:4, r:6,  kick:1, freq:'2.11%'},
+  'Run of 4':       {pips:55, mult:5, r:7,  kick:0, freq:'~3.5% (four to a straight)'},
+  'Straight':       {pips:85, mult:6, r:8,  kick:1, freq:'0.392%'},
+  'Flush':          {pips:110,mult:7, r:9,  kick:1, freq:'0.197%'},
+  'Full House':     {pips:140,mult:8, r:10, kick:1, freq:'0.144%'},
+  'Four of a Kind': {pips:200,mult:13,r:11, kick:1, freq:'0.0240%'},
+  'Straight Flush': {pips:320,mult:22,r:12, kick:1, freq:'0.00154%'}
 };
-const RANK_PIPS = {'J':10,'Q':10,'K':10,'A':11};
-const pipsOf = c => RANK_PIPS[c.rank] || parseInt(c.rank,10);
 
-/* Base polyominoes by cell count. Rotations are derived, not listed. */
-const SHAPES = {
-  1:[ [[0,0]] ],
-  2:[ [[0,0],[0,1]] ],
-  3:[ [[0,0],[0,1],[0,2]], [[0,0],[0,1],[1,0]] ],
-  4:[ [[0,0],[0,1],[0,2],[0,3]], [[0,0],[0,1],[1,0],[1,1]],
-      [[0,0],[0,1],[0,2],[1,1]], [[0,1],[0,2],[1,0],[1,1]],
-      [[0,0],[0,1],[1,1],[1,2]], [[0,0],[1,0],[1,1],[1,2]],
-      [[0,2],[1,0],[1,1],[1,2]] ]
+const SHAPES={
+  1:[[[0,0]]],
+  2:[[[0,0],[0,1]]],
+  3:[[[0,0],[0,1],[0,2]],[[0,0],[0,1],[1,0]]],
+  4:[[[0,0],[0,1],[0,2],[0,3]],[[0,0],[0,1],[1,0],[1,1]],
+     [[0,0],[0,1],[0,2],[1,1]],[[0,1],[0,2],[1,0],[1,1]],
+     [[0,0],[0,1],[1,1],[1,2]],[[0,0],[1,0],[1,1],[1,2]],
+     [[0,2],[1,0],[1,1],[1,2]]]
 };
 
-let CFG = { discards:3, keep:1, handMs:1500,
-            schedule:[{n:3,size:4},{n:3,size:3},{n:2,size:2},{n:2,size:1}] };
+let CFG={ discards:3, keep:1, rounds:10, finalLines:3, handMs:1400, accel:5, sound:true,
+          rerolls:2, consCap:4, trickCap:5, nsPct:6, nsEvery:2,
+          schedule:[{n:3,size:4},{n:3,size:3},{n:3,size:2},{n:3,size:1}] };
 
-/* ── deck ─────────────────────────────────────────────────────────────── */
-function freshDeck(){
-  const d=[];
-  for(const s of SUITS) for(const r of RANKS) d.push({rank:r,suit:s});
-  for(let i=d.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[d[i],d[j]]=[d[j],d[i]];}
-  return d;
-}
-/* ── pieces ───────────────────────────────────────────────────────────── */
+/* ── TRICKS kept for this mode (the audit's survivors, as a sample) ──── */
+const TRICKS=[
+  {id:'rowcol_triple_pips',i:'\u{1F3AF}',n:'Right Place',t:'common',d:'Cards scored in a marked row or column score +10 pips'},
+  {id:'rowcol_mult',   i:'⚡',n:'Power Line',  t:'common',d:'Cards scored in a marked row or column each score +2 mult'},
+  {id:'perfect_timing',i:'\u{1F501}',n:'Perfect Timing',t:'epic',d:'Cards scored in a marked row or column replay once'},
+  {id:'overgrowth',    i:'\u{1F33F}',n:'Cascade',   t:'common',d:'Runs score +10 pips per card'},
+  {id:'long_road',     i:'\u{1F300}',n:'Storm',     t:'common',d:'Runs score +2 mult per card'},
+  {id:'enriched',      i:'\u{1F48E}',n:'Enriched',  t:'rare',  d:'Flushes score +40 pips'},
+  {id:'heavy_hand',    i:'\u{1F4AA}',n:'Full Load', t:'rare',  d:'5-card hands score +6 pips per card'},
+  {id:'two_corners',   i:'\u{1F4D0}',n:'Stretch',   t:'rare',  d:'Hands using two corners score +30 pips'},
+  {id:'edge_pips',     i:'\u{1F5D3}',n:'On the Edge',t:'common',d:'Edge cards score +6 pips each'},
+  {id:'aftershock',    i:'\u{1F30A}',n:'Aftershock',t:'common',d:'Pairs score +15 pips'},
+  {id:'double_bloom',  i:'\u{1F338}',n:'Magnitude', t:'epic',  d:'Sets score x1.5 pips'},
+  {id:'last_stand',    i:'\u{1F6E1}',n:'Last Stand',t:'epic',  d:'The lowest-scoring line of the round scores x2 mult'}
+];
+/* ── CONSUMABLES, this mode's own ────────────────────────────────────── */
+const CONS_DEFS=[
+  {id:'swap2',  i:'\u{1F500}',n:'SHUFFLE', need:2, d:()=>'Swap two cells on the grid.'},
+  {id:'clear3', i:'\u{1F9F9}',n:'CLEAR OUT',need:3,d:()=>'Clear three cells from the grid.'},
+  {id:'redeal', i:'\u{1F3B4}',n:'RE-DEAL', need:0, d:()=>'Throw this turn’s cards back and deal again.'},
+  {id:'forge',  i:'⚒',   n:'FORGE',   need:1, d:()=>'Turn one cell into any card you name.'},
+  {id:'resuit', i:'\u{1F3A8}',n:'RE-SUIT', need:2, d:()=>'Set the suit of any two cards.'},
+  {id:'demote', i:'⬇',   n:'DEMOTE',  need:2, d:()=>'Lower the rank of any two cards.'},
+  {id:'promote',i:'⬆',   n:'PROMOTE', need:2, d:()=>'Raise the rank of any two cards.'},
+  {id:'bleed',  i:'\u{1F4A7}',n:'BLEED',   need:1, dirs:['LR','UD'],
+     d:dir=>`The cards ${dir==='LR'?'left and right':'above and below'} take the picked card’s suit.`},
+  {id:'echo',   i:'\u{1F4E1}',n:'ECHO',    need:1, dirs:['L','R','U','D'],
+     d:dir=>`The card ${({L:'to the left',R:'to the right',U:'above',D:'below'})[dir]} takes the picked card’s rank.`}
+];
+
+/* ── deck & pieces ────────────────────────────────────────────────────── */
+function freshDeck(){const d=[];for(const s of SUITS)for(const r of RANKS)d.push({rank:r,suit:s});
+  for(let i=d.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[d[i],d[j]]=[d[j],d[i]];}return d;}
 let _pid=0;
-function makePiece(size, deck){
-  const forms = SHAPES[size];
-  const form = forms[Math.floor(Math.random()*forms.length)];
-  return { id:'p'+(++_pid),
-           cells: form.map(([dr,dc]) => ({dr,dc,card:deck.pop()})) };
-}
-/* Rotate 90deg clockwise: (r,c) -> (c, maxR-r). The card travels with its cell. */
-function rotate(p){
-  const maxR = Math.max(...p.cells.map(c=>c.dr));
-  p.cells = p.cells.map(c=>({dr:c.dc, dc:maxR-c.dr, card:c.card}));
-  normalise(p);
-}
-function normalise(p){
-  const mr=Math.min(...p.cells.map(c=>c.dr)), mc=Math.min(...p.cells.map(c=>c.dc));
-  p.cells.forEach(c=>{c.dr-=mr;c.dc-=mc;});
-}
-const pieceW = p => Math.max(...p.cells.map(c=>c.dc))+1;
-const pieceH = p => Math.max(...p.cells.map(c=>c.dr))+1;
+function makePiece(size,deck){const f=SHAPES[size][Math.floor(Math.random()*SHAPES[size].length)];
+  return {id:'p'+(++_pid),cells:f.map(([dr,dc])=>({dr,dc,card:deck.pop()}))};}
+function rotate(p){const mx=Math.max(...p.cells.map(c=>c.dr));
+  p.cells=p.cells.map(c=>({dr:c.dc,dc:mx-c.dr,card:c.card}));norm(p);}
+function norm(p){const mr=Math.min(...p.cells.map(c=>c.dr)),mc=Math.min(...p.cells.map(c=>c.dc));
+  p.cells.forEach(c=>{c.dr-=mr;c.dc-=mc;});}
+const pW=p=>Math.max(...p.cells.map(c=>c.dc))+1, pH=p=>Math.max(...p.cells.map(c=>c.dr))+1;
 
 /* ── state ────────────────────────────────────────────────────────────── */
-let board, hand, deck, turn, discardsLeft, tentative, selected, score, kept;
+let board,hand,deck,turn,round,discardsLeft,tentative,selected,total,kept,
+    mode,locked,phase,pickNeed,pickSel,tricks,cons,armed,picked,forgeCell,resuitCells,rerolls,
+    roundScore;
 
-function newGame(){
-  board = Array.from({length:N},()=>Array(N).fill(null));
-  deck = freshDeck(); hand=[]; turn=0; score=0; kept=null;
-  tentative=null; selected=null;
-  startTurn();
-  renderAll();
+function newRun(){
+  round=1; total=0; roundScore=0; tricks=[]; cons=[]; mode=mode||'all';
+  nsPlays={}; nsBonus={}; roundLog=[]; markAxis='row';
+  newRound(); }
+function newRound(){
+  board=Array.from({length:N},()=>Array(N).fill(null));
+  deck=freshDeck(); hand=[]; turn=0; kept=null; locked=new Set();
+  tentative=null; selected=null; armed=null; picked=[]; phase='place';
+  startTurn(); renderAll();
 }
 function startTurn(){
-  const spec = CFG.schedule[turn];
-  discardsLeft = CFG.discards;
-  if(spec){
-    for(let i=0;i<spec.n;i++){
-      if(deck.length < spec.size) deck = freshDeck();
-      hand.push(makePiece(spec.size, deck));
-    }
+  const sp=CFG.schedule[turn]; discardsLeft=CFG.discards;
+  if(sp) for(let i=0;i<sp.n;i++){ if(deck.length<sp.size) deck=freshDeck(); hand.push(makePiece(sp.size,deck)); }
+}
+const fits=(p,r,c)=>p.cells.every(cl=>{const rr=r+cl.dr,cc=c+cl.dc;
+  return rr>=0&&cc>=0&&rr<N&&cc<N&&!board[rr][cc];});
+function canPlaceAny(){
+  for(const p of hand){ const save=p.cells.map(c=>({...c}));
+    for(let rot=0;rot<4;rot++){
+      for(let r=0;r<N;r++)for(let c=0;c<N;c++) if(fits(p,r,c)){ p.cells=save; return true; }
+      rotate(p); }
+    p.cells=save; }
+  return false;
+}
+const filled=()=>board.flat().filter(Boolean).length;
+
+/* ══════════════════════════════════════════════════════════════════════
+   SOUND - bright, saturated, climbing. The tally runs worst hand first, so
+   position in the tally already correlates with quality; the hand's own rank
+   adds on top, which is what makes a Four of a Kind ring higher than the
+   Pair that happened to land in the same slot.
+   ══════════════════════════════════════════════════════════════════════ */
+let AC=null; const PENT=[0,2,4,7,9,12,14,16,19,21,24,26];
+function ac(){ if(!AC) AC=new (window.AudioContext||window.webkitAudioContext)(); return AC; }
+function blip(i,rankIdx){
+  if(!CFG.sound) return;
+  const x=ac(), t=x.currentTime;
+  const semi=PENT[Math.min(i,PENT.length-1)]+Math.min(rankIdx,7);
+  const f=392*Math.pow(2,semi/12);
+  [[f,'triangle',.20],[f*2,'sine',.10],[f*3,'sine',.045]].forEach(([fr,ty,g])=>{
+    const o=x.createOscillator(),gn=x.createGain();
+    o.type=ty; o.frequency.setValueAtTime(fr,t);
+    gn.gain.setValueAtTime(0,t);
+    gn.gain.linearRampToValueAtTime(g,t+.008);
+    gn.gain.exponentialRampToValueAtTime(.0001,t+.34);
+    o.connect(gn); gn.connect(x.destination); o.start(t); o.stop(t+.36);
+  });
+  if(rankIdx>=8){ // a real hand gets a sparkle on top
+    const b=x.createBuffer(1,2200,x.sampleRate), ch=b.getChannelData(0);
+    for(let k=0;k<2200;k++) ch[k]=(Math.random()*2-1)*Math.pow(1-k/2200,3);
+    const s=x.createBufferSource(),g2=x.createGain(),hp=x.createBiquadFilter();
+    hp.type='highpass'; hp.frequency.value=3800; g2.gain.value=.16;
+    s.buffer=b; s.connect(hp); hp.connect(g2); g2.connect(x.destination); s.start(t+.02);
   }
 }
-
-/* ── placement ────────────────────────────────────────────────────────── */
-function fits(p,r,c){
-  return p.cells.every(cl=>{
-    const rr=r+cl.dr, cc=c+cl.dc;
-    return rr>=0&&cc>=0&&rr<N&&cc<N&&!board[rr][cc];
-  });
-}
-function commit(p,r,c){
-  p.cells.forEach(cl=>{ board[r+cl.dr][c+cl.dc]={...cl.card}; });
-  hand = hand.filter(x=>x!==p);
-}
-const filled = () => board.flat().filter(Boolean).length;
+function clack(){ if(!CFG.sound) return; const x=ac(),t=x.currentTime;
+  const o=x.createOscillator(),g=x.createGain();
+  o.type='square'; o.frequency.setValueAtTime(220,t);
+  o.frequency.exponentialRampToValueAtTime(90,t+.07);
+  g.gain.setValueAtTime(.10,t); g.gain.exponentialRampToValueAtTime(.0001,t+.09);
+  o.connect(g); g.connect(x.destination); o.start(t); o.stop(t+.1); }
 
 /* ══════════════════════════════════════════════════════════════════════
    RENDER
    ══════════════════════════════════════════════════════════════════════ */
-const $ = id => document.getElementById(id);
+const $=id=>document.getElementById(id);
 const boardEl=$('board'), handEl=$('hand');
+const cardHTML=(c,cls)=>`<div class="card ${cls||''}"><div class="r ${SUIT_CLS[c.suit]}">${c.rank}</div>`+
+  `<div class="s ${SUIT_CLS[c.suit]}">${c.rank}${SUIT_CH[c.suit]}</div></div>`;
 
-function cardHTML(card, cls){
-  return `<div class="card ${cls||''}"><div class="r ${SUIT_CLS[card.suit]}">${card.rank}</div>`+
-         `<div class="s ${SUIT_CLS[card.suit]}">${card.rank}${SUIT_CH[card.suit]}</div></div>`;
+/* WHICH LINE A TRICK MARKED HAS TO BE VISIBLE (r209's whole point). A cell on
+   two marked lines splits its wash between their colours, hard stops, no blend -
+   a blend of two Trick colours is a third colour belonging to neither (r296). */
+const MARK_COLOR={rowcol_triple_pips:'#4a7fd4', rowcol_mult:'#d45050', perfect_timing:'#a25cd8'};
+function markPaint(r,c){
+  const hit=tricks.filter(t=>t.mark&&(t.mark.axis==='row'?t.mark.idx===r:t.mark.idx===c))
+                  .map(t=>MARK_COLOR[t.id]).filter(Boolean);
+  if(!hit.length) return null;
+  if(hit.length===1) return hit[0];
+  const step=100/hit.length;
+  return `conic-gradient(from -45deg,`+hit.map((h,i)=>`${h} ${i*step}% ${(i+1)*step}%`).join(',')+`)`;
 }
 function renderBoard(){
   boardEl.innerHTML='';
-  for(let r=0;r<N;r++) for(let c=0;c<N;c++){
-    const d=document.createElement('div');
-    d.className='cell'; d.dataset.r=r; d.dataset.c=c;
-    if(board[r][c]) d.innerHTML = cardHTML(board[r][c]);
+  for(let r=0;r<N;r++)for(let c=0;c<N;c++){
+    const d=document.createElement('div'); d.className='cell'; d.dataset.r=r; d.dataset.c=c;
+    const mk=markPaint(r,c); if(mk){ d.classList.add('marked'); d.style.setProperty('--mk',mk); }
+    if(mode==='select'&&(locked.has(r)||locked.has(N+c))) d.classList.add('locked');
+    if(board[r][c]) d.innerHTML=cardHTML(board[r][c]);
+    if(armed&&board[r][c]) d.classList.add('ctarget');
+    if(armed&&picked.some(p=>p[0]===r&&p[1]===c)) d.classList.add('cpicked');
     boardEl.appendChild(d);
   }
-  paintTentative();
+  paintTentative(); renderLineBtns();
 }
 function paintTentative(){
   [...boardEl.children].forEach(el=>el.classList.remove('ghost-ok','ghost-bad','tentative'));
   if(!tentative) return;
-  const {piece,r,c}=tentative;
-  const ok = fits(piece,r,c);
-  piece.cells.forEach(cl=>{
-    const rr=r+cl.dr, cc=c+cl.dc;
+  const {piece,r,c}=tentative, ok=fits(piece,r,c);
+  for(let r2=0;r2<N;r2++)for(let c2=0;c2<N;c2++)
+    if(!board[r2][c2]) boardEl.children[r2*N+c2].innerHTML='';
+  piece.cells.forEach(cl=>{const rr=r+cl.dr,cc=c+cl.dc;
     if(rr<0||cc<0||rr>=N||cc>=N) return;
     const el=boardEl.children[rr*N+cc];
     el.classList.add(ok?'ghost-ok':'ghost-bad','tentative');
-    if(ok && !board[rr][cc]) el.innerHTML = cardHTML(cl.card,'dim');
-    else if(!board[rr][cc]) el.innerHTML='';
-  });
-  // clear any stale ghost cards from cells the piece no longer covers
-  for(let r2=0;r2<N;r2++) for(let c2=0;c2<N;c2++){
-    const el=boardEl.children[r2*N+c2];
-    if(!board[r2][c2] && !el.classList.contains('tentative')) el.innerHTML='';
+    if(ok&&!board[rr][cc]) el.innerHTML=cardHTML(cl.card,'dim');});
+}
+function renderLineBtns(){
+  document.querySelectorAll('.lbtn').forEach(b=>b.remove());
+  if(phase!=='pickline') return;
+  for(let i=0;i<10;i++){
+    const b=document.createElement('div');
+    b.className='lbtn'+(locked.has(i)?' off':'')+(pickSel.includes(i)?' sel':'');
+    b.textContent=i<N?'R'+(i+1):'C'+(i-N+1);
+    if(i<N){ b.style.left='-26px'; b.style.top=(10+i*(84+4)+31)+'px'; }
+    else   { b.style.top='-26px';  b.style.left=(10+(i-N)*(70+4)+24)+'px'; }
+    if(!locked.has(i)) b.onclick=()=>toggleLine(i);
+    boardEl.appendChild(b);
   }
 }
-const POLY_BOX = { w:102, h:142, gap:2, ratio:4/3 };   // usable area inside a hand card
+const POLY={w:98,h:136,gap:2,ratio:4/3};
 function polyHTML(p){
-  const w=pieceW(p), h=pieceH(p);
-  // Fit the piece to the card: solve the mini's width against BOTH axes and take
-  // the smaller, so a 4-wide I-piece and a 4-tall one both land inside.
-  const byW = (POLY_BOX.w - (w-1)*POLY_BOX.gap) / w;
-  const byH = (POLY_BOX.h - (h-1)*POLY_BOX.gap) / h / POLY_BOX.ratio;
-  const mw = Math.max(12, Math.min(30, byW, byH)), mh = mw*POLY_BOX.ratio;
-  const fs = Math.max(6, Math.round(mw*0.34));
+  const w=pW(p),h=pH(p);
+  const mw=Math.max(12,Math.min(30,(POLY.w-(w-1)*POLY.gap)/w,(POLY.h-(h-1)*POLY.gap)/h/POLY.ratio));
+  const mh=mw*POLY.ratio, fs=Math.max(6,Math.round(mw*.34));
   const map={}; p.cells.forEach(c=>map[c.dr+','+c.dc]=c.card);
-  let s=`<div class="poly" style="grid-template-columns:repeat(${w},${mw}px);`+
-        `--mw:${mw}px;--mh:${mh}px;--mfs:${fs}px">`;
-  for(let r=0;r<h;r++) for(let c=0;c<w;c++){
-    const card=map[r+','+c];
-    s += card
-      ? `<div class="mini"><div class="r ${SUIT_CLS[card.suit]}">${card.rank}</div>`+
-        `<div class="s ${SUIT_CLS[card.suit]}">${card.rank}${SUIT_CH[card.suit]}</div></div>`
-      : `<div class="mini blank"></div>`;
-  }
+  let s=`<div class="poly" style="grid-template-columns:repeat(${w},${mw}px);--mw:${mw}px;--mh:${mh}px;--mfs:${fs}px">`;
+  for(let r=0;r<h;r++)for(let c=0;c<w;c++){const cd=map[r+','+c];
+    s+=cd?`<div class="mini"><div class="r ${SUIT_CLS[cd.suit]}">${cd.rank}</div>`+
+          `<div class="s ${SUIT_CLS[cd.suit]}">${SUIT_CH[cd.suit]}</div></div>`
+        :`<div class="mini blank"></div>`;}
   return s+'</div>';
 }
 function renderHand(){
   handEl.innerHTML='';
-  hand.forEach(p=>{
-    const el=document.createElement('div');
-    el.className='hcard';
-    if(selected===p) el.classList.add('sel');
-    if(tentative&&tentative.piece===p) el.classList.add('placing');
-    if(p===kept) el.innerHTML='<div class="kept">KEPT</div>';
-    el.innerHTML += polyHTML(p) + '<div class="rot" title="rotate">↻</div>';
-    el.dataset.pid=p.id;
-    handEl.appendChild(el);
-  });
+  hand.forEach(p=>{const el=document.createElement('div');
+    el.className='hcard'+(selected===p?' sel':'')+(tentative&&tentative.piece===p?' placing':'');
+    el.innerHTML=polyHTML(p)+'<div class="rot" title="rotate">↻</div>';
+    el.dataset.pid=p.id; handEl.appendChild(el);});
+}
+function renderTricks(){
+  $('tricks').innerHTML=tricks.map(t=>{
+    const m=t.mark?` <b style="color:${MARK_COLOR[t.id]||'var(--gold)'}">`+
+      (t.mark.axis==='row'?'R':'C')+(t.mark.idx+1)+'</b>':'';
+    return `<div class="tk" title="${t.n}: ${t.d}">${t.i}${m}</div>`;}).join('');
+  $('tk-n').textContent=tricks.length;
+}
+function renderCons(){
+  $('cons').innerHTML=cons.map((c,i)=>{
+    const def=CONS_DEFS.find(d=>d.id===c.id);
+    return `<div class="cons${armed&&armed.idx===i?' armed':''}" data-i="${i}" `+
+      `title="${def.n}${c.dir?' ('+c.dir+')':''}: ${def.d(c.dir)}">`+
+      `<div class="ci">${def.i}</div><div class="cn">${def.n}</div>`+
+      (c.dir?`<div class="cd">${c.dir}</div>`:'')+`</div>`;}).join('');
+  $('cn-n').textContent=cons.length;
 }
 function renderAll(){
-  renderBoard(); renderHand();
-  $('t-n').textContent = Math.min(turn+1, CFG.schedule.length);
-  $('t-max').textContent = CFG.schedule.length;
-  const spec=CFG.schedule[turn];
-  $('t-deal').textContent = spec ? `${spec.n} x ${spec.size}` : 'scoring';
-  $('t-disc').textContent = discardsLeft;
-  $('t-fill').textContent = filled();
-  $('d-left').textContent = discardsLeft+' left';
-  $('score-big').textContent = score.toLocaleString();
-  $('b-discard').disabled = !selected || discardsLeft<=0;
-  $('b-confirm').disabled = !tentative || !fits(tentative.piece,tentative.r,tentative.c);
-  const canEnd = hand.length <= CFG.keep;
-  $('b-end').disabled = !canEnd;
-  $('e-why').textContent = canEnd ? 'ready' : `${hand.length-CFG.keep} to place`;
+  renderBoard(); renderHand(); renderTricks(); renderCons();
+  $('t-r').textContent=round; $('t-rmax').textContent=CFG.rounds;
+  $('t-n').textContent=Math.min(turn+1,CFG.schedule.length);
+  const sp=CFG.schedule[turn];
+  $('t-deal').textContent=sp?`${sp.n} x ${sp.size}`:'-';
+  $('t-disc').textContent=discardsLeft; $('t-fill').textContent=filled();
+  $('t-mode').textContent=mode==='all'?'SCORE ALL':'SELECT SCORE';
+  $('d-left').textContent=discardsLeft+' left';
+  $('score-big').textContent=total.toLocaleString();
+  $('round-line').textContent=`ROUND ${round} OF ${CFG.rounds}`;
+  const placing=phase==='place';
+  $('b-discard').disabled=!placing||!selected||discardsLeft<=0;
+  $('b-confirm').disabled=!placing||!tentative||!fits(tentative.piece,tentative.r,tentative.c);
+  /* THE VALVE. Normally you must place or discard down to the keep limit. But a
+     hand that fits nowhere and no discards left would be a soft lock, so once
+     nothing in hand can be placed in any rotation and the discards are spent,
+     END TURN opens anyway. With the shipped 3 discards a turn this is
+     unreachable - hand never exceeds keep+3 - and it is here because lowering
+     the discard count in the tuner would otherwise strand the run. */
+  const stuck=placing&&hand.length>CFG.keep&&discardsLeft<=0&&!canPlaceAny();
+  const canEnd=placing&&(hand.length<=CFG.keep||stuck);
+  $('b-end').disabled=!canEnd;
+  $('e-why').textContent=phase==='pickline'?`pick ${pickNeed-pickSel.length}`
+    :(hand.length<=CFG.keep?'ready':(stuck?'nothing fits':`${hand.length-CFG.keep} to place`));
 }
 
 /* ══════════════════════════════════════════════════════════════════════
-   INTERACTION - drag to place, rotate on the card, CONFIRM commits
+   PLACEMENT
    ══════════════════════════════════════════════════════════════════════ */
-let dragging=null;
-const dragEl=$('drag');
-
-handEl.addEventListener('pointerdown', e=>{
-  const rot = e.target.closest('.rot');
-  const hc  = e.target.closest('.hcard');
-  if(!hc) return;
-  const p = hand.find(x=>x.id===hc.dataset.pid);
-  if(!p) return;
-  if(rot){ rotate(p); if(tentative&&tentative.piece===p) paintTentative(); renderAll(); return; }
-  selected = p; renderAll();
-  dragging = p;
+let dragging=null; const dragEl=$('drag');
+handEl.addEventListener('pointerdown',e=>{
+  if(phase!=='place') return;
+  const rot=e.target.closest('.rot'), hc=e.target.closest('.hcard'); if(!hc) return;
+  const p=hand.find(x=>x.id===hc.dataset.pid); if(!p) return;
+  if(rot){ rotate(p); clack(); if(tentative&&tentative.piece===p) paintTentative(); renderAll(); return; }
+  selected=p; renderAll(); dragging=p;
   dragEl.style.display='block';
-  dragEl.innerHTML = `<div class="hcard" style="box-shadow:0 14px 26px rgba(0,0,0,.7)">${polyHTML(p)}</div>`;
-  moveDrag(e);
-  hc.classList.add('dragging');
-  e.preventDefault();
+  dragEl.innerHTML=`<div class="hcard" style="box-shadow:0 14px 26px rgba(0,0,0,.7)">${polyHTML(p)}</div>`;
+  moveDrag(e); hc.classList.add('dragging'); e.preventDefault();
 });
-function moveDrag(e){
-  dragEl.style.left=(e.clientX-59)+'px';
-  dragEl.style.top =(e.clientY-84)+'px';
-}
-window.addEventListener('pointermove', e=>{
-  // hand goes see-through while the pointer is over the board, so both read at once
-  const overBoard = !!e.target.closest && !!document.elementFromPoint(e.clientX,e.clientY)?.closest('#board');
-  handEl.classList.toggle('see-through', overBoard && !dragging ? true : !!dragging);
+const moveDrag=e=>{dragEl.style.left=(e.clientX-57)+'px';dragEl.style.top=(e.clientY-81)+'px';};
+window.addEventListener('pointermove',e=>{
+  const over=!!document.elementFromPoint(e.clientX,e.clientY)?.closest('#board');
+  handEl.classList.toggle('see-through',dragging?true:over);
   if(!dragging) return;
   moveDrag(e);
-  $('b-discard').classList.toggle('drop-target', !!document.elementFromPoint(e.clientX,e.clientY)?.closest('#b-discard'));
-  const cell = document.elementFromPoint(e.clientX,e.clientY)?.closest('.cell');
-  if(cell){ tentative={piece:dragging,r:+cell.dataset.r,c:+cell.dataset.c}; paintTentative(); renderAll(); }
+  $('b-discard').classList.toggle('drop-target',!!document.elementFromPoint(e.clientX,e.clientY)?.closest('#b-discard'));
+  const cell=document.elementFromPoint(e.clientX,e.clientY)?.closest('.cell');
+  if(cell){tentative={piece:dragging,r:+cell.dataset.r,c:+cell.dataset.c};paintTentative();renderAll();}
 });
-window.addEventListener('pointerup', e=>{
+window.addEventListener('pointerup',e=>{
   handEl.classList.remove('see-through');
   $('b-discard').classList.remove('drop-target');
   if(!dragging) return;
-  const onDiscard = !!document.elementFromPoint(e.clientX,e.clientY)?.closest('#b-discard');
+  const onD=!!document.elementFromPoint(e.clientX,e.clientY)?.closest('#b-discard');
   dragEl.style.display='none'; dragEl.innerHTML='';
   const p=dragging; dragging=null;
   document.querySelectorAll('.hcard.dragging').forEach(x=>x.classList.remove('dragging'));
-  if(onDiscard && discardsLeft>0){ doDiscard(p); return; }
+  if(onD&&discardsLeft>0){ doDiscard(p); return; }
   renderAll();
 });
-
-$('b-confirm').onclick = ()=>{
-  if(!tentative) return;
-  const {piece,r,c}=tentative;
-  if(!fits(piece,r,c)) return;
-  commit(piece,r,c);
-  tentative=null; selected=null;
-  renderAll();
+$('b-confirm').onclick=()=>{
+  if(!tentative) return; const {piece,r,c}=tentative; if(!fits(piece,r,c)) return;
+  piece.cells.forEach(cl=>{board[r+cl.dr][c+cl.dc]={...cl.card};});
+  hand=hand.filter(x=>x!==piece); tentative=null; selected=null; clack(); renderAll();
 };
-function doDiscard(p){
-  if(discardsLeft<=0) return;
-  discardsLeft--;
-  hand=hand.filter(x=>x!==p);
-  if(tentative&&tentative.piece===p) tentative=null;
-  if(selected===p) selected=null;
-  renderAll();
+function doDiscard(p){ if(discardsLeft<=0) return; discardsLeft--;
+  hand=hand.filter(x=>x!==p); if(tentative&&tentative.piece===p) tentative=null;
+  if(selected===p) selected=null; clack(); renderAll(); }
+$('b-discard').onclick=()=>{ if(selected) doDiscard(selected); };
+$('b-end').onclick=()=>{
+  kept=hand[0]||null; tentative=null; selected=null;
+  if(mode==='select'){
+    pickNeed=(turn===CFG.schedule.length-1)?CFG.finalLines:1;
+    pickNeed=Math.min(pickNeed,10-locked.size);
+    if(pickNeed<=0){ advance(); return; }
+    phase='pickline'; pickSel=[]; renderAll(); return;
+  }
+  advance();
+};
+function toggleLine(i){
+  if(phase!=='pickline') return;          // the pick is already committed
+  if(pickSel.includes(i)) pickSel=pickSel.filter(x=>x!==i);
+  else if(pickSel.length<pickNeed) pickSel.push(i);
+  else return;
+  if(pickSel.length<pickNeed){ renderAll(); return; }
+  /* COMMIT SYNCHRONOUSLY. Leaving the phase on 'pickline' for the 220ms beat
+     meant a further click still passed the `length===pickNeed` test and armed a
+     SECOND tally-and-advance, which skipped a turn. Flip the phase first, then
+     take the beat. */
+  phase='scoring'; renderAll();
+  setTimeout(async()=>{
+    await runTally(pickSel.slice());
+    pickSel.forEach(k=>locked.add(k));
+    advance();
+  },220);
 }
-$('b-discard').onclick = ()=>{ if(selected) doDiscard(selected); };
-$('b-end').onclick = ()=>{
-  kept = hand[0] || null;
-  tentative=null; selected=null;
+async function advance(){
   turn++;
-  if(turn>=CFG.schedule.length){ scoreBoard(); return; }
-  startTurn(); renderAll();
-};
+  if(turn>=CFG.schedule.length){
+    if(mode==='all'){ phase='scoring'; renderAll(); await runTally([...Array(10).keys()]); }
+    endRound(); return;
+  }
+  phase='place'; startTurn(); renderAll();
+}
 
 /* ══════════════════════════════════════════════════════════════════════
-   HAND EVALUATION - one line of up to 5 cards
+   HAND EVALUATION - one line, up to 5 cards.
+
+   THE WHOLE EVALUATOR IS ONE MAXIMISATION, and that is what makes the
+   penalty rule interesting rather than merely harsh. Every candidate
+   sub-hand is scored IN FULL - base pips, the cards it uses, the cards it
+   leaves behind as penalties, and every Trick that would fire on it - and
+   the best NET total wins. So a Pair sitting beside three big junk cards
+   loses to HIGH CARD, which by definition uses all five and pays their pips
+   at x1. The player is never punished for a line that did not come together;
+   they are punished for leaving good cards out of a shape that did.
+
+   That also removes the r281 trap by construction: there is no separate
+   "partition" step that can prefer a short hand and then have the coverage
+   rule throw the whole thing away.
    ══════════════════════════════════════════════════════════════════════ */
-function bestHand(cards){
-  const live = cards.filter(Boolean);
-  if(live.length<2) return {name:'High Card', ...HAND_BASE['High Card'], cards:live};
-  let best={name:'High Card', ...HAND_BASE['High Card'], cards:live};
-  const worth = h => Math.max(h.pips,1)*h.mult;
-  const consider = (name, sub)=>{
-    const b=HAND_BASE[name]; if(!b) return;
-    const h={name, pips:b.pips, mult:b.mult, cards:sub};
-    if(worth(h)>worth(best)) best=h;
-  };
-  const subsets=(arr,k)=>{ const out=[];
-    const go=(i,cur)=>{ if(cur.length===k){out.push([...cur]);return;} if(i>=arr.length)return;
-      cur.push(arr[i]); go(i+1,cur); cur.pop(); go(i+1,cur); };
-    go(0,[]); return out; };
+const FAMILY={
+  'Pair':'set','Two Pair':'set','Three of a Kind':'set','Full House':'set','Four of a Kind':'set',
+  'Run of 3':'run','Run of 4':'run','Straight':'run',
+  'Flush of 3':'flush','Flush of 4':'flush','Flush':'flush',
+  'Straight Flush':'run+flush'
+};
+const isFam=(n,f)=>(FAMILY[n]||'').includes(f);
+
+/* ── natural scaling: per hand TYPE, as the main game does it (r282) ──── */
+let nsPlays={}, nsBonus={};
+const nsPipsFor=n=>nsBonus[n]||0;
+function nsRecord(n){
+  if(n==='High Card') return;                       // no family, can never scale
+  nsPlays[n]=(nsPlays[n]||0)+1;
+  if(nsPlays[n]%CFG.nsEvery===0)
+    nsBonus[n]=(nsBonus[n]||0)+Math.max(1,Math.round(HAND_BASE[n].pips*CFG.nsPct/100));
+}
+
+const hasTrick=id=>tricks.some(t=>t.id===id);
+const trickOf =id=>tricks.find(t=>t.id===id);
+const onMark=(p,id)=>{ if(!p) return false; const t=trickOf(id); if(!t||!t.mark) return false;
+  return t.mark.axis==='row' ? p[0]===t.mark.idx : p[1]===t.mark.idx; };
+const isEdge  =p=>p&&(p[0]===0||p[0]===N-1||p[1]===0||p[1]===N-1);
+const isCorner=p=>p&&(p[0]===0||p[0]===N-1)&&(p[1]===0||p[1]===N-1);
+
+/* Score ONE candidate shape out of a line, in full. */
+function scoreCand(name,shape,live,posOf){
+  const b=HAND_BASE[name];
+  /* KICKERS. A real 5-card poker hand INCLUDES its spare cards - a pair with
+     three kickers is still One Pair, and that is the ranking the owner asked
+     for. The short shapes (Flush of 3, Run of 3, Flush of 4, Run of 4) are this
+     game's own extension, are NOT poker hands, and so leave the rest of the line
+     dead: those are the cards that subtract. */
+  const sub = b.kick ? live : shape;
+  const used=new Set(sub);
+  const unused=live.filter(c=>!used.has(c));
+  let pips=b.pips+nsPipsFor(name), mult=b.mult, corners=0;
+  for(const c of sub){
+    const p=posOf?posOf.get(c):null;
+    let cp=pipsOf(c);
+    if(onMark(p,'rowcol_triple_pips')) cp+=10;
+    if(hasTrick('edge_pips')&&isEdge(p)) cp+=6;
+    pips+=cp*(onMark(p,'perfect_timing')?2:1);          // a replay re-scores the CARD
+    if(onMark(p,'rowcol_mult')) mult+=2;
+    if(isCorner(p)) corners++;
+  }
+  if(isFam(name,'run')){
+    if(hasTrick('overgrowth')) pips+=10*sub.length;
+    if(hasTrick('long_road'))  mult+=2*sub.length;
+  }
+  if(isFam(name,'flush')&&hasTrick('enriched')) pips+=40;
+  if(sub.length===5&&hasTrick('heavy_hand'))    pips+=6*sub.length;
+  if(corners>=2&&hasTrick('two_corners'))       pips+=30;
+  if(name==='Pair'&&hasTrick('aftershock'))     pips+=15;
+  const penalty=unused.reduce((s,c)=>s+pipsOf(c),0);
+  pips-=penalty;
+  if(isFam(name,'set')&&hasTrick('double_bloom')) pips=Math.round(pips*1.5);
+  pips=Math.max(0,Math.round(pips));
+  return {name,r:b.r,cards:sub,unused,penalty,pips,mult,total:pips*mult};
+}
+
+function bestHand(cards,lineI){
+  const idx=lineI!=null?lineIdx(lineI):null;
+  const live=[], posOf=new Map();
+  cards.forEach((c,k)=>{ if(!c) return; live.push(c);
+    if(idx) posOf.set(c,[Math.floor(idx[k]/N), idx[k]%N]); });
+  if(!live.length) return {name:'High Card',r:0,cards:[],unused:[],penalty:0,pips:0,mult:1,total:0};
+  let best=scoreCand('High Card',live,live,posOf);     // High Card covers every card
+  const try_=(name,sub)=>{ if(!HAND_BASE[name]) return;
+    const h=scoreCand(name,sub,live,posOf); if(h.total>best.total) best=h; };
+  const subs=(a,k)=>{const o=[];const go=(i,cur)=>{if(cur.length===k){o.push([...cur]);return;}
+    if(i>=a.length)return;cur.push(a[i]);go(i+1,cur);cur.pop();go(i+1,cur);};go(0,[]);return o;};
   for(const k of [5,4,3,2]){
     if(live.length<k) continue;
-    for(const sub of subsets(live,k)){
+    for(const sub of subs(live,k)){
       const rs=sub.map(c=>RANK_ORDER[c.rank]).sort((a,b)=>a-b);
-      const flush = sub.every(c=>c.suit===sub[0].suit);
-      const run = rs.every((v,i)=>i===0||v===rs[i-1]+1);
-      const counts={}; sub.forEach(c=>counts[c.rank]=(counts[c.rank]||0)+1);
-      const cv=Object.values(counts).sort((a,b)=>b-a);
-      if(k===5){
-        if(flush&&run) consider('Straight Flush',sub);
-        if(cv[0]===4) consider('Four of a Kind',sub);
-        if(cv[0]===3&&cv[1]===2) consider('Full House',sub);
-        if(flush) consider('Flush',sub);
-        if(run) consider('Straight',sub);
-      }
-      if(k===4){ if(flush) consider('Flush of 4',sub); if(run) consider('Run of 4',sub);
-                 if(cv[0]===4) consider('Four of a Kind',sub);
-                 if(cv[0]===2&&cv[1]===2) consider('Two Pair',sub); }
-      if(k===3){ if(flush) consider('Flush of 3',sub); if(run) consider('Run of 3',sub);
-                 if(cv[0]===3) consider('Three of a Kind',sub); }
-      if(k===2){ if(cv[0]===2) consider('Pair',sub); }
+      const fl=sub.every(c=>c.suit===sub[0].suit);
+      const run=rs.every((v,i)=>i===0||v===rs[i-1]+1);
+      const cnt={}; sub.forEach(c=>cnt[c.rank]=(cnt[c.rank]||0)+1);
+      const cv=Object.values(cnt).sort((a,b)=>b-a);
+      if(k===5){ if(fl&&run)try_('Straight Flush',sub); if(cv[0]===4)try_('Four of a Kind',sub);
+        if(cv[0]===3&&cv[1]===2)try_('Full House',sub); if(fl)try_('Flush',sub); if(run)try_('Straight',sub); }
+      if(k===4){ if(fl)try_('Flush of 4',sub); if(run)try_('Run of 4',sub);
+        if(cv[0]===4)try_('Four of a Kind',sub); if(cv[0]===2&&cv[1]===2)try_('Two Pair',sub); }
+      if(k===3){ if(fl)try_('Flush of 3',sub); if(run)try_('Run of 3',sub);
+        if(cv[0]===3)try_('Three of a Kind',sub); }
+      if(k===2){ if(cv[0]===2)try_('Pair',sub); }
     }
   }
   return best;
 }
-const lineCards = i => i<N ? board[i].slice() : board.map(r=>r[i-N]);
-function lineName(i){ return i<N ? 'ROW '+(i+1) : 'COL '+(i-N+1); }
+const lineCards=i=>i<N?board[i].slice():board.map(r=>r[i-N]);
+const lineName =i=>i<N?'ROW '+(i+1):'COL '+(i-N+1);
+const lineIdx  =i=>{const a=[];for(let k=0;k<N;k++)a.push(i<N?i*N+k:k*N+(i-N));return a;};
 
 /* ══════════════════════════════════════════════════════════════════════
-   SCORING - one dance per HAND (a row or a column), 10 in all
+   THE TALLY - worst hand first, each one ~accel% quicker than the last.
+
+   Worst-first is the Bejeweled escalation: the pitch climbs with position in
+   the tally AND with the hand's own rank, so a round ENDS on its best line.
+   It also TEACHES - the order is a live ranking of which lines this loadout
+   likes, which is the only way to find out that (say) Storm has quietly made
+   your runs worth more than your flushes.
    ══════════════════════════════════════════════════════════════════════ */
-const sleep = ms => new Promise(r=>setTimeout(r,ms));
-let scoring=false;
-async function scoreBoard(){
-  if(scoring) return; scoring=true;
-  $('b-discard').disabled=$('b-confirm').disabled=$('b-end').disabled=true;
-  const lines=[];
-  for(let i=0;i<10;i++){
-    const cards=lineCards(i);
-    const h=bestHand(cards);
-    const pips = h.pips + h.cards.reduce((s,c)=>s+pipsOf(c),0);
-    lines.push({i,h,pips,total:pips*h.mult});
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+let roundLog=[];
+async function runTally(which){
+  const lines=which.map(i=>({i,...bestHand(lineCards(i),i)}))
+                   .sort((a,b)=> a.total-b.total || a.r-b.r );
+  if(lines.length&&hasTrick('last_stand')){          // the round's worst line, doubled
+    const L=lines[0]; L.mult*=2; L.total=L.pips*L.mult; L.lastStand=true;
   }
-  const t0=performance.now();
-  for(const L of lines){
-    const idx=[];
-    for(let k=0;k<N;k++) idx.push(L.i<N ? L.i*N+k : k*N+(L.i-N));
-    idx.forEach(j=>boardEl.children[j].querySelector('.card')?.classList.add('lift'));
-    $('handname').textContent = `${lineName(L.i)}  ${L.h.name.toUpperCase()}`;
+  let ms=CFG.handMs, roundTotal=0;
+  for(let k=0;k<lines.length;k++){
+    const L=lines[k], idx=lineIdx(L.i), cards=lineCards(L.i);
+    const unused=new Set(L.unused);
+    idx.forEach((j,pos)=>{ const el=boardEl.children[j].querySelector('.card'); if(!el) return;
+      const card=cards[pos];
+      setTimeout(()=>{ el.classList.add(unused.has(card)?'penal':'wave'); }, pos*(ms*0.055)); });
+    $('handname').innerHTML=`${lineName(L.i)} &middot; ${L.name.toUpperCase()}`+
+      (L.penalty?` <span style="color:var(--red)">-${L.penalty}</span>`:'')+
+      (L.lastStand?` <span style="color:var(--gold)">x2</span>`:'');
     $('handname').classList.add('on');
-    $('v-pips').textContent=L.pips; $('v-mult').textContent=L.h.mult;
-    await sleep(CFG.handMs*0.45);
-    flyChip(idx, `${L.pips} x ${L.h.mult}`);
-    score+=L.total; $('score-big').textContent=score.toLocaleString();
-    await sleep(CFG.handMs*0.55);
-    idx.forEach(j=>boardEl.children[j].querySelector('.card')?.classList.remove('lift'));
+    $('v-pips').textContent=L.pips; $('v-mult').textContent=L.mult;
+    blip(k,L.r);
+    await sleep(ms*0.48);
+    flyChip(idx,`${L.pips} x ${L.mult}`);
+    total+=L.total; roundTotal+=L.total; roundScore+=L.total;
+    $('score-big').textContent=total.toLocaleString();
+    nsRecord(L.name);
+    await sleep(ms*0.52);
+    idx.forEach(j=>{const el=boardEl.children[j].querySelector('.card');
+      if(el) el.classList.remove('wave','penal');});
+    ms=Math.max(140, ms*(1-CFG.accel/100));          // each hand a touch quicker
   }
-  const ms=Math.round(performance.now()-t0);
   $('handname').classList.remove('on');
-  $('out').textContent =
-    `BOARD SCORED\n  filled ${filled()}/25\n  total ${score.toLocaleString()}\n`+
-    `  tally took ${(ms/1000).toFixed(1)}s for 10 hands at ${CFG.handMs}ms each\n\n`+
-    lines.map(L=>`  ${lineName(L.i).padEnd(6)} ${L.h.name.padEnd(16)} ${String(L.pips).padStart(4)} x ${L.h.mult}  = ${String(L.total).padStart(5)}`).join('\n');
-  scoring=false;
-  setTimeout(()=>{ newGame(); }, 1200);
+  lines.forEach(L=>roundLog.push(
+    `  ${lineName(L.i).padEnd(6)} ${L.name.padEnd(16)} ${String(L.pips).padStart(4)} x ${String(L.mult).padStart(2)}`+
+    (L.penalty?`  (-${L.penalty})`:'       ')+` = ${String(L.total).padStart(6)}`));
+  return roundTotal;
 }
 function flyChip(idx,text){
-  const first=boardEl.children[idx[0]].getBoundingClientRect();
-  const last=boardEl.children[idx[idx.length-1]].getBoundingClientRect();
-  const el=document.createElement('div');
-  el.className='schip'; el.textContent=text;
-  el.style.left=((first.left+last.right)/2-40)+'px';
-  el.style.top=((first.top+last.bottom)/2-14)+'px';
+  const a=boardEl.children[idx[0]].getBoundingClientRect(),
+        b=boardEl.children[idx[idx.length-1]].getBoundingClientRect();
+  const el=document.createElement('div'); el.className='schip'; el.textContent=text;
+  el.style.left=((a.left+b.right)/2-42)+'px'; el.style.top=((a.top+b.bottom)/2-15)+'px';
   document.body.appendChild(el);
-  const tgt=$('score-big').getBoundingClientRect();
+  const t=$('score-big').getBoundingClientRect();
   el.animate([{transform:'translate(0,0) scale(1)',opacity:1},
-              {transform:`translate(${tgt.left-parseFloat(el.style.left)+20}px,${tgt.top-parseFloat(el.style.top)+10}px) scale(.6)`,opacity:0}],
-             {duration:CFG.handMs*0.5,easing:'cubic-bezier(.4,0,.6,1)'}).onfinish=()=>el.remove();
+    {transform:`translate(${t.left-parseFloat(el.style.left)+20}px,${t.top-parseFloat(el.style.top)+12}px) scale(.6)`,opacity:0}],
+    {duration:620,easing:'cubic-bezier(.4,0,.6,1)'}).onfinish=()=>el.remove();
 }
 
 /* ══════════════════════════════════════════════════════════════════════
-   HEADLESS MEASUREMENT - does the deal schedule actually fill the board?
-   A greedy bot: for each dealt piece try every cell and rotation, take the
-   placement that leaves the fewest isolated single-cell holes.
+   CONSUMABLES
+
+   A consumable ARMS (double-click), then takes its targets off the board, then
+   applies. Three rules the whole file rests on:
+
+   - A RANDOM-DIRECTION consumable rolls its direction BEFORE it is offered, so
+     the pick-three tile reads "ECHO - the card to the LEFT takes this rank".
+     Rolling at USE time would make the tile a coin flip rather than a choice.
+   - need:0 (RE-DEAL) applies the moment it is armed; there is nothing to point at.
+   - Anything that needs a second question (FORGE's rank+suit, RE-SUIT's suit)
+     collects its cells FIRST and only then opens its picker, so the board
+     selection is never interrupted half way through.
    ══════════════════════════════════════════════════════════════════════ */
-function simBoard(cfg){
+const consDef=id=>CONS_DEFS.find(d=>d.id===id);
+function rollCons(id){ const d=consDef(id);
+  return {id, dir: d.dirs ? d.dirs[Math.floor(Math.random()*d.dirs.length)] : null}; }
+
+function armCons(i){
+  if(phase!=='place'){ note('Consumables are for the placing phase.'); return; }
+  if(armed&&armed.idx===i){ armed=null; picked=[]; renderAll(); return; }
+  const c=cons[i], d=consDef(c.id);
+  armed={idx:i,id:c.id,dir:c.dir,need:d.need}; picked=[];
+  if(d.need===0){ applyCons(); return; }
+  note(`${d.n}: pick ${d.need} card${d.need>1?'s':''} on the grid.`);
+  renderAll();
+}
+function consPick(r,c){
+  if(!armed||!board[r][c]) return;
+  const at=picked.findIndex(p=>p[0]===r&&p[1]===c);
+  if(at>=0) picked.splice(at,1); else if(picked.length<armed.need) picked.push([r,c]);
+  renderAll();
+  if(picked.length===armed.need) setTimeout(applyCons,140);
+}
+function consSpend(){ cons.splice(armed.idx,1); armed=null; picked=[]; clack(); renderAll(); }
+const rankStep=(rank,d)=>{ const i=RANKS.indexOf(rank);
+  return RANKS[Math.max(0,Math.min(RANKS.length-1,i+d))]; };
+
+function applyCons(){
+  const id=armed.id, dir=armed.dir, P=picked.slice();
+  const at=([r,c])=>board[r][c];
+  switch(id){
+    case 'redeal':{
+      hand=[]; const sp=CFG.schedule[turn];
+      if(sp) for(let i=0;i<sp.n;i++){ if(deck.length<sp.size) deck=freshDeck(); hand.push(makePiece(sp.size,deck)); }
+      tentative=null; selected=null; note('Re-dealt.'); consSpend(); return; }
+    case 'swap2':{
+      const [a,b]=P; const t=board[a[0]][a[1]];
+      board[a[0]][a[1]]=board[b[0]][b[1]]; board[b[0]][b[1]]=t;
+      note('Swapped.'); consSpend(); return; }
+    case 'clear3':
+      P.forEach(([r,c])=>board[r][c]=null); note('Cleared.'); consSpend(); return;
+    case 'demote': case 'promote':{
+      const d=id==='promote'?1:-1;
+      P.forEach(p=>{const c=at(p); c.rank=rankStep(c.rank,d);});
+      note(id==='promote'?'Raised.':'Lowered.'); consSpend(); return; }
+    case 'bleed':{
+      const [r,c]=P[0], suit=board[r][c].suit;
+      const ds=dir==='LR'?[[0,-1],[0,1]]:[[-1,0],[1,0]];
+      ds.forEach(([dr,dc])=>{const rr=r+dr,cc=c+dc;
+        if(rr>=0&&cc>=0&&rr<N&&cc<N&&board[rr][cc]) board[rr][cc].suit=suit;});
+      note('Suit bled.'); consSpend(); return; }
+    case 'echo':{
+      const [r,c]=P[0], rank=board[r][c].rank;
+      const d={L:[0,-1],R:[0,1],U:[-1,0],D:[1,0]}[dir];
+      const rr=r+d[0],cc=c+d[1];
+      if(rr>=0&&cc>=0&&rr<N&&cc<N&&board[rr][cc]) board[rr][cc].rank=rank;
+      note('Echoed.'); consSpend(); return; }
+    case 'forge':
+      forgeCell=P[0]; forgeRank=null; forgeSuit=null;
+      $('forge-ok').disabled=true; renderForgePicker(); show('ov-forge'); renderAll(); return;
+    case 'resuit':
+      resuitCells=P; show('ov-suit'); renderAll(); return;
+  }
+}
+/* forge + re-suit pickers */
+let forgeRank=null, forgeSuit=null;
+function renderForgePicker(){
+  $('suitrow').innerHTML=SUITS.map(s=>
+    `<div class="sbtn ${SUIT_CLS[s]}${forgeSuit===s?' on':''}" data-s="${s}">${SUIT_CH[s]}</div>`).join('');
+  $('pickgrid').innerHTML=RANKS.map(r=>
+    `<div class="pg${forgeRank===r?' on':''}" data-r="${r}">${r}</div>`).join('');
+}
+$('suitrow').onclick=e=>{const b=e.target.closest('.sbtn'); if(!b) return;
+  forgeSuit=b.dataset.s; renderForgePicker(); $('forge-ok').disabled=!(forgeRank&&forgeSuit);};
+$('pickgrid').onclick=e=>{const b=e.target.closest('.pg'); if(!b) return;
+  forgeRank=b.dataset.r; renderForgePicker(); $('forge-ok').disabled=!(forgeRank&&forgeSuit);};
+$('forge-ok').onclick=()=>{ const [r,c]=forgeCell;
+  board[r][c]={rank:forgeRank,suit:forgeSuit}; hide('ov-forge'); note('Forged.'); consSpend(); };
+$('forge-cancel').onclick=()=>{ hide('ov-forge'); armed=null; picked=[]; renderAll(); };
+$('suitrow2').onclick=e=>{const b=e.target.closest('.sbtn'); if(!b) return;
+  resuitCells.forEach(([r,c])=>board[r][c].suit=b.dataset.s);
+  hide('ov-suit'); note('Re-suited.'); consSpend(); };
+$('suit-cancel').onclick=()=>{ hide('ov-suit'); armed=null; picked=[]; renderAll(); };
+function paintSuitRow2(){ $('suitrow2').innerHTML=SUITS.map(s=>
+  `<div class="sbtn ${SUIT_CLS[s]}" data-s="${s}">${SUIT_CH[s]}</div>`).join(''); }
+
+boardEl.addEventListener('click',e=>{
+  const cell=e.target.closest('.cell'); if(!cell||!armed) return;
+  consPick(+cell.dataset.r,+cell.dataset.c);
+});
+$('cons').addEventListener('dblclick',e=>{
+  const t=e.target.closest('.cons'); if(t) armCons(+t.dataset.i); });
+window.addEventListener('keydown',e=>{ if(e.key==='Escape'&&armed){armed=null;picked=[];renderAll();} });
+
+/* ══════════════════════════════════════════════════════════════════════
+   BETWEEN ROUNDS - report, then a Trick pick, then (from round 2) a
+   consumable pick. Both carry CFG.rerolls rerolls, and a reroll REDRAWS the
+   whole row rather than one tile, so it is a real second look.
+   ══════════════════════════════════════════════════════════════════════ */
+const show=id=>$(id).classList.add('on');
+const hide=id=>$(id).classList.remove('on');
+function note(t){ $('out').textContent=t; }
+
+let pickResolve=null, pickKind='trick', pickOffers=[], pickChoice=null;
+function offerTricks(){
+  const owned=new Set(tricks.map(t=>t.id));
+  const pool=TRICKS.filter(t=>!owned.has(t.id));
+  return shuffle(pool).slice(0,3);
+}
+function offerCons(){
+  return shuffle(CONS_DEFS.slice()).slice(0,3).map(d=>rollCons(d.id));
+}
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+
+function renderPick(){
+  $('rr-n').textContent=rerolls;
+  $('pick-reroll').disabled=rerolls<=0;
+  $('pick-row').innerHTML=pickOffers.map((o,i)=>{
+    if(pickKind==='trick')
+      return `<div class="pk${pickChoice===i?' sel':''}" data-i="${i}">`+
+        `<div class="pi">${o.i}</div><div class="pn">${o.n}</div>`+
+        `<div class="pd">${o.d}</div><div class="pt rar-${o.t}">${o.t.toUpperCase()}</div></div>`;
+    const d=consDef(o.id);
+    return `<div class="pk${pickChoice===i?' sel':''}" data-i="${i}">`+
+      `<div class="pi">${d.i}</div><div class="pn">${d.n}${o.dir?' <span class="dir">'+o.dir+'</span>':''}</div>`+
+      `<div class="pd">${d.d(o.dir)}</div><div class="pt rar-rare">CONSUMABLE</div></div>`;
+  }).join('');
+}
+$('pick-row').onclick=e=>{ const c=e.target.closest('.pk'); if(!c) return;
+  const i=+c.dataset.i;
+  if(pickChoice===i) return takePick();           // second click confirms
+  pickChoice=i; renderPick(); };
+$('pick-reroll').onclick=()=>{ if(rerolls<=0) return; rerolls--; pickChoice=null;
+  pickOffers = pickKind==='trick' ? offerTricks() : offerCons(); renderPick(); };
+$('pick-skip').onclick=()=>{ pickChoice=null; takePick(true); };
+function takePick(skip){
+  if(!skip&&pickChoice!=null){
+    const o=pickOffers[pickChoice];
+    if(pickKind==='trick'){
+      if(tricks.length<5){ const t={...o}; assignMark(t); tricks.push(t); }
+      else note('Trick slots are full.');
+    } else if(cons.length<CFG.consCap) cons.push({...o});
+    else note('No room for another consumable.');
+  }
+  hide('ov-pick'); const r=pickResolve; pickResolve=null; if(r) r();
+}
+function runPick(kind){
+  pickKind=kind; pickChoice=null; rerolls=CFG.rerolls;
+  pickOffers = kind==='trick' ? offerTricks() : offerCons();
+  $('pick-title').textContent = kind==='trick' ? 'TAKE A TRICK' : 'TAKE A CONSUMABLE';
+  $('pick-lead').textContent = kind==='trick'
+    ? 'Click to read it, click again to take it. Tricks are permanent.'
+    : 'Click to read it, click again to take it. A consumable is used once, whenever you like.';
+  renderPick(); show('ov-pick');
+  return new Promise(res=>{ pickResolve=res; });
+}
+/* the marked line ALTERNATES axis (r296): a run that rolled all rows would
+   never give the crossing effects anything to fire on. */
+let markAxis='row';
+function assignMark(t){
+  if(!['rowcol_triple_pips','rowcol_mult','perfect_timing'].includes(t.id)) return;
+  t.mark={axis:markAxis, idx:Math.floor(Math.random()*N)};
+  markAxis = markAxis==='row' ? 'col' : 'row';
+}
+
+function reportRound(){
+  $('rep-title').textContent=`ROUND ${round} SCORED`;
+  $('rep-body').textContent=
+    `  this round   ${roundScore.toLocaleString()}\n`+
+    `  run total    ${total.toLocaleString()}\n`+
+    `  filled       ${filled()}/25\n\n`+roundLog.join('\n');
+  show('ov-rep');
+  return new Promise(res=>{ $('rep-ok').onclick=()=>{ hide('ov-rep'); res(); }; });
+}
+function reportRun(){
+  $('rep-title').textContent='RUN COMPLETE';
+  const ns=Object.keys(nsBonus).sort((a,b)=>nsBonus[b]-nsBonus[a])
+    .map(n=>`  ${n.padEnd(16)} +${nsBonus[n]} pips  (${nsPlays[n]} plays)`).join('\n');
+  $('rep-body').textContent=
+    `  FINAL SCORE  ${total.toLocaleString()}\n`+
+    `  mode         ${mode==='all'?'SCORE ALL':'SELECT SCORE'}\n`+
+    `  rounds       ${CFG.rounds}\n`+
+    `  tricks       ${tricks.map(t=>t.n).join(', ')||'none'}\n\n`+
+    `NATURAL SCALING EARNED\n`+(ns||'  none')+`\n\nLAST ROUND\n`+roundLog.join('\n');
+  show('ov-rep');
+  $('rep-ok').onclick=()=>{ hide('ov-rep'); newRun(); };
+}
+async function endRound(){
+  phase='report'; renderAll();
+  await reportRound();
+  if(round>=CFG.rounds){ reportRun(); return; }
+  await runPick('trick');
+  await runPick('cons');                 // every level after the first
+  round++; roundScore=0; roundLog=[]; newRound();
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   MODE CHOICE, TUNING, MEASUREMENT
+   ══════════════════════════════════════════════════════════════════════ */
+document.querySelectorAll('#ov-mode .opt').forEach(o=>o.onclick=()=>{
+  mode=o.dataset.mode; hide('ov-mode'); newRun(); });
+$('fin-n').textContent=CFG.finalLines;
+
+const num=(id,f)=>$(id).addEventListener('change',e=>{f(+e.target.value);renderAll();});
+num('c-disc',v=>CFG.discards=v);  num('c-keep',v=>CFG.keep=v);
+num('c-rounds',v=>CFG.rounds=v);  num('c-fin',v=>{CFG.finalLines=v;$('fin-n').textContent=v;});
+num('c-hand',v=>CFG.handMs=v);    num('c-acc',v=>CFG.accel=v);
+num('c-ns',v=>CFG.nsPct=v);
+$('c-snd').addEventListener('change',e=>CFG.sound=e.target.checked);
+$('b-restart').onclick=()=>{ ['ov-pick','ov-rep','ov-forge','ov-suit'].forEach(hide); show('ov-mode'); };
+$('b-dump').onclick=()=>note('const CFG='+JSON.stringify(CFG,null,1)+';');
+$('b-table').onclick=()=>{
+  /* AVG is the honest column: with kickers a 5-card hand carries ~36 pips of its
+     own and a short shape nets only ~+7, so pips x mult is not the ladder. */
+  const AVG=7.31;
+  note('HAND             PIPS  MULT  KICK   AVG LINE   REAL-POKER FREQUENCY\n'+
+    Object.entries(HAND_BASE).sort((a,b)=>a[1].r-b[1].r).map(([n,h])=>{
+      const shape = n==='High Card'?5 : /of 3/.test(n)?3 : /of 4/.test(n)?4 : 5;
+      const net = h.kick ? h.pips+5*AVG : h.pips+shape*AVG-(5-shape)*AVG;
+      return `${n.padEnd(17)}${String(h.pips).padStart(4)}${String(h.mult).padStart(6)}`+
+        `${(h.kick?'  yes':'   no')}${String(Math.round(net*h.mult)).padStart(10)}   ${h.freq}`;}).join('\n'));
+};
+
+/* ── headless measurement: a bot that packs, with no idea it makes hands ── */
+function simBoard(){
+  /* A packer, not a player: it has no idea it is making poker hands, so what it
+     measures is the FLOOR - how much a board is worth before anyone thinks about
+     it. It does carry its kept piece between turns, which is the rule, and it
+     prefers the placement that strands the fewest single empty cells. */
   const b=Array.from({length:N},()=>Array(N).fill(null));
-  let dk=freshDeck(), keptPiece=null, placed=0;
-  const fitsB=(p,r,c)=>p.cells.every(cl=>{const rr=r+cl.dr,cc=c+cl.dc;
+  let dk=freshDeck(), h=[];
+  const fit=(p,r,c)=>p.cells.every(cl=>{const rr=r+cl.dr,cc=c+cl.dc;
     return rr>=0&&cc>=0&&rr<N&&cc<N&&!b[rr][cc];});
-  const holes=()=>{ let n=0;
-    for(let r=0;r<N;r++)for(let c=0;c<N;c++){ if(b[r][c])continue;
+  const strandCount=()=>{let n=0;
+    for(let r=0;r<N;r++)for(let c=0;c<N;c++){ if(b[r][c]) continue;
       let open=0;
       if(r>0&&!b[r-1][c])open++; if(r<N-1&&!b[r+1][c])open++;
       if(c>0&&!b[r][c-1])open++; if(c<N-1&&!b[r][c+1])open++;
-      if(open===0)n++; }
-    return n; };
-  for(let t=0;t<cfg.schedule.length;t++){
-    const spec=cfg.schedule[t];
-    let h=[]; if(keptPiece){h.push(keptPiece);keptPiece=null;}
-    for(let i=0;i<spec.n;i++){ if(dk.length<spec.size) dk=freshDeck(); h.push(makePiece(spec.size,dk)); }
-    let disc=cfg.discards;
-    while(h.length>cfg.keep){
+      if(!open) n++; }
+    return n;};
+  for(let t=0;t<CFG.schedule.length;t++){
+    const sp=CFG.schedule[t];
+    for(let i=0;i<sp.n;i++){ if(dk.length<sp.size) dk=freshDeck(); h.push(makePiece(sp.size,dk)); }
+    let dsc=CFG.discards;
+    while(h.length>CFG.keep){
       let best=null;
-      for(const p of h){
-        for(let rot=0;rot<4;rot++){
-          for(let r=0;r<N;r++)for(let c=0;c<N;c++){
-            if(!fitsB(p,r,c))continue;
-            p.cells.forEach(cl=>b[r+cl.dr][c+cl.dc]=cl.card);
-            const sc=holes()*10 - p.cells.length;
-            p.cells.forEach(cl=>b[r+cl.dr][c+cl.dc]=null);
-            if(!best||sc<best.sc) best={sc,p,r,c,cells:p.cells.map(x=>({...x}))};
-          }
-          rotate(p);
+      for(const p of h) for(let rot=0;rot<4;rot++){
+        for(let r=0;r<N;r++)for(let c=0;c<N;c++) if(fit(p,r,c)){
+          p.cells.forEach(cl=>b[r+cl.dr][c+cl.dc]=1);
+          const sc=strandCount()*100 + r*N+c;
+          p.cells.forEach(cl=>b[r+cl.dr][c+cl.dc]=null);
+          if(!best||sc<best.sc) best={sc,p,r,c,cells:p.cells.map(cl=>({...cl}))};
         }
+        rotate(p);
       }
-      if(best){ best.cells.forEach(cl=>b[best.r+cl.dr][best.c+cl.dc]=cl.card);
-                placed+=best.cells.length; h=h.filter(x=>x!==best.p); }
-      else if(disc>0){ disc--; h.pop(); }
+      if(best){ best.cells.forEach(cl=>b[best.r+cl.dr][best.c+cl.dc]={...cl.card});
+                h=h.filter(x=>x!==best.p); }
+      else if(dsc>0){ dsc--; h.shift(); }
       else break;
     }
-    keptPiece=h[0]||null;
   }
-  return {b, filled:placed};
+  return b;
 }
-$('b-sim').onclick = ()=>{
-  readCfg();
-  const runs=2000, dist={}; let sum=0, full=0;
-  for(let i=0;i<runs;i++){ const f=simBoard(CFG).filled; dist[f]=(dist[f]||0)+1; sum+=f; if(f>=25)full++; }
-  const keys=Object.keys(dist).map(Number).sort((a,b)=>a-b);
-  $('out').textContent =
-    `FILL RATE over ${runs} boards (greedy bot, rotation on)\n`+
-    `  schedule ${CFG.schedule.map(s=>s.n+'x'+s.size).join('  ')}\n`+
-    `  discards/turn ${CFG.discards}   keep ${CFG.keep}\n\n`+
-    `  mean filled  ${(sum/runs).toFixed(2)} / 25  (${(sum/runs/25*100).toFixed(1)}%)\n`+
-    `  reached 25   ${(full/runs*100).toFixed(1)}%\n\n`+
-    keys.map(k=>`  ${String(k).padStart(2)} cells  ${String(dist[k]).padStart(5)}  ${'#'.repeat(Math.round(dist[k]/runs*120))}`).join('\n');
+$('b-sim').onclick=()=>{
+  const runs=4000; let fill=0, full=0;
+  for(let i=0;i<runs;i++){ const b=simBoard(); const f=b.flat().filter(Boolean).length;
+    fill+=f; if(f===25) full++; }
+  note(`FILL over ${runs} boards\n  mean ${(fill/runs).toFixed(2)}/25\n`+
+       `  full boards ${(full/runs*100).toFixed(1)}%\n  schedule ${JSON.stringify(CFG.schedule)}`);
 };
-$('b-simscore').onclick = ()=>{
-  readCfg();
-  const runs=500; let sum=0, lo=1e9, hi=0; const names={};
+$('b-simscore').onclick=()=>{
+  const runs=1500; const saveB=board, saveT=tricks, saveNs=nsBonus;
+  tricks=[]; nsBonus={};
+  let sum=0, mn=1e9, mx=0; const mix={};
   for(let i=0;i<runs;i++){
-    const {b}=simBoard(CFG);
-    let tot=0;
-    for(let j=0;j<10;j++){
-      const cards = j<N ? b[j].slice() : b.map(r=>r[j-N]);
-      const h=bestHand(cards);
-      names[h.name]=(names[h.name]||0)+1;
-      tot += (h.pips + h.cards.reduce((s,c)=>s+pipsOf(c),0)) * h.mult;
-    }
-    sum+=tot; lo=Math.min(lo,tot); hi=Math.max(hi,tot);
+    board=simBoard(); let s=0;
+    for(let k=0;k<10;k++){ const h=bestHand(lineCards(k),k); s+=h.total; mix[h.name]=(mix[h.name]||0)+1; }
+    sum+=s; mn=Math.min(mn,s); mx=Math.max(mx,s);
   }
-  $('out').textContent =
-    `BOARD SCORE over ${runs} boards (no Tricks, base values only)\n\n`+
-    `  mean ${Math.round(sum/runs).toLocaleString()}   min ${lo.toLocaleString()}   max ${hi.toLocaleString()}\n\n`+
-    `  hand types across ${runs*10} lines:\n`+
-    Object.entries(names).sort((a,b)=>b[1]-a[1])
-      .map(([n,c])=>`    ${n.padEnd(17)} ${String(c).padStart(5)}  ${(c/(runs*10)*100).toFixed(1)}%`).join('\n');
+  board=saveB; tricks=saveT; nsBonus=saveNs;
+  note(`SCORE over ${runs} boards, no tricks, no scaling\n`+
+    `  mean ${Math.round(sum/runs)}   min ${mn}   max ${mx}\n\nHAND MIX (of ${runs*10} lines)\n`+
+    Object.entries(mix).sort((a,b)=>b[1]-a[1])
+      .map(([n,c])=>`  ${n.padEnd(16)} ${(c/(runs*10)*100).toFixed(1)}%`).join('\n'));
 };
-function readCfg(){
-  CFG.discards=+$('c-disc').value; CFG.keep=+$('c-keep').value; CFG.handMs=+$('c-hand').value;
-  CFG.schedule=[1,2,3,4].map(i=>({n:+$('s'+i+'n').value, size:+$('s'+i+'s').value}));
-}
-$('b-restart').onclick=()=>{ readCfg(); newGame(); };
-$('b-dump').onclick=()=>{ readCfg();
-  $('out').textContent='const PS_CFG = '+JSON.stringify(CFG,null,2)+';'; };
-$('b-auto').onclick=()=>{ readCfg();
-  const {b}=simBoard(CFG); board=b; hand=[]; turn=CFG.schedule.length;
-  renderAll(); scoreBoard(); };
+$('b-auto').onclick=()=>{ board=simBoard(); hand=[]; turn=CFG.schedule.length-1;
+  tentative=null; selected=null; renderAll(); note('Board packed by the bot. END TURN to score it.'); };
 
-/* expose for headless measurement */
-window.PS = { simBoard, bestHand, get CFG(){return CFG;}, set CFG(v){CFG=v;}, readCfg, newGame,
-              get board(){return board;}, get hand(){return hand;}, rotate, makePiece, freshDeck, pipsOf };
-
-newGame();
+/* ── boot ─────────────────────────────────────────────────────────────── */
+paintSuitRow2();
+mode='all'; newRun();
+window.PS={ get board(){return board;}, get hand(){return hand;}, get tricks(){return tricks;},
+  get cons(){return cons;}, get total(){return total;}, get state(){return {round,turn,phase,mode,filled:filled()};},
+  CFG, HAND_BASE, bestHand, lineCards, simBoard, setMode:m=>{mode=m;hide('ov-mode');newRun();},
+  armCons, consPick, runPick, grantTrick:id=>{const t={...TRICKS.find(x=>x.id===id)};assignMark(t);tricks.push(t);renderAll();},
+  grantCons:id=>{cons.push(rollCons(id));renderAll();} };
 </script>
 </body>
 </html>
