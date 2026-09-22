@@ -1,4 +1,4 @@
-const BUILD = "2026-09-22 · r311 · Poker Squares: the 3x3 and 4x4 daily grids";
+const BUILD = "2026-09-22 · r312 · Daily grids: hand values from real poker";
 
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS

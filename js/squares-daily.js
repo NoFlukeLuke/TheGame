@@ -44,35 +44,63 @@ function sqdCardValue(rank) {
 }
 
 // ── THE HAND TABLES ────────────────────────────────────────────────────────
-// PRICED BY MEASURED REACHABILITY, NOT BY POKER. A line here is 3 or 4 cards
-// and you get to choose where every card goes, so the odds have nothing to do
-// with a 5-card draw. Measured by exhaustively packing real deals and asking
-// which hands could be made AT ALL:
+// PRICED BY POKER (r312, owner: "Make the values based on poker not this
+// grid"). These are the RATIOS of the two published pay tables for the real
+// games at these hand sizes - Three Card Poker's PAIR PLUS and Four Card
+// Poker's ACES UP - so the ladder is one a poker player already knows rather
+// than one derived from how a packing puzzle happens to deal.
 //
-//   3x3 (40 deals, exhaustive): Pair 100% · Flush 100% · Run 93% · Trips 43% ·
-//                               Straight Flush 35%
-//   4x4 (12 deals):             Pair/Two Pair/Flush/Run 100% · Trips 83% ·
-//                               Straight Flush 25% · Four of a Kind 8%
+// Exact counts, brute-forced over a real deck:
 //
-// TWO PLACES THIS DISAGREES WITH POKER, and both are the geometry talking:
-//  * On a 3-card line THREE OF A KIND IS RARER THAN A STRAIGHT FLUSH is FALSE
-//    here - trips (43%) is commoner than a suited run (35%), because three
-//    suited consecutive cards are easier to find among twelve than three of one
-//    rank. So the straight flush stays on top, as in three-card poker.
-//  * On a 4-card line FOUR OF A KIND (8%) is rarer than a straight flush (25%),
-//    so it pays more. That is the reverse of the five-card game and it is what
-//    the board actually produces.
-const SQD_BASE = {
-  3: { 'High Card': 0, 'Pair': 8, 'Flush of 3': 12, 'Run of 3': 16,
+//   3 CARDS, C(52,3) = 22,100      4 CARDS, C(52,4) = 270,725
+//   Straight Flush     48 (1:460)  Four of a Kind     13 (1:20,825)
+//   Three of a Kind    52 (1:425)  Straight Flush     44 (1:6,153)
+//   Straight          720 (1:31)   Three of a Kind 2,496 (1:108)
+//   Flush           1,096 (1:20)   Straight        2,772 (1:98)
+//   Pair            3,744 (1:6)    Two Pair        2,808 (1:96)
+//                                  Flush           2,816 (1:96)
+//                                  Pair           82,368 (1:3)
+//
+// TWO THINGS THAT SURPRISE PEOPLE, and both are real poker rather than
+// anything this game invented:
+//  * ON THREE CARDS A STRAIGHT BEATS A FLUSH (720 against 1,096) and TRIPS
+//    BEATS A STRAIGHT. That inversion is exactly why three-card poker has its
+//    own ranking and does not reuse the five-card one.
+//  * ON FOUR CARDS FOUR OF A KIND BEATS A STRAIGHT FLUSH - 13 hands against
+//    44, because a fourth card of a rank is scarcer than a fourth card of a
+//    run. The five-card game is the other way round.
+//
+// STRAIGHT, TWO PAIR AND FLUSH ARE A THREE-WAY TIE ON FOUR CARDS (2,772 /
+// 2,808 / 2,816 - a 1.6% spread), so the counts cannot order them. The
+// published table's order is taken instead, which is the five-card one and the
+// one a player expects.
+const SQD_PAY = {
+  3: { 'High Card': 0, 'Pair': 1, 'Flush of 3': 4, 'Run of 3': 6,
        'Three of a Kind': 30, 'Straight Flush': 40 },
-  4: { 'High Card': 0, 'Pair': 6, 'Two Pair': 16, 'Flush of 4': 20, 'Run of 4': 24,
-       'Three of a Kind': 30, 'Straight Flush': 55, 'Four of a Kind': 90 },
+  4: { 'High Card': 0, 'Pair': 1, 'Two Pair': 3, 'Run of 4': 4, 'Flush of 4': 6,
+       'Three of a Kind': 9, 'Straight Flush': 40, 'Four of a Kind': 50 },
 };
-// The ladder, weakest first, for the tally's worst-to-best order.
-const SQD_LADDER = {
-  3: ['High Card', 'Pair', 'Flush of 3', 'Run of 3', 'Three of a Kind', 'Straight Flush'],
-  4: ['High Card', 'Pair', 'Two Pair', 'Flush of 4', 'Run of 4', 'Three of a Kind', 'Straight Flush', 'Four of a Kind'],
-};
+// The pay table is ODDS ON A BET; a line here pays PIPS. One number turns one
+// into the other, and it is the only part of this that is not poker's.
+const SQD_PAY_SCALE = 10;
+const SQD_BASE = (() => {
+  const out = {};
+  for (const n of Object.keys(SQD_PAY)) {
+    out[n] = {};
+    for (const [h, v] of Object.entries(SQD_PAY[n])) out[n][h] = v * SQD_PAY_SCALE;
+  }
+  return out;
+})();
+// The ladder, weakest first, for the tally's worst-to-best order. DERIVED from
+// the pay table rather than written out beside it, so the order a line is read
+// in can never disagree with what it paid.
+const SQD_LADDER = (() => {
+  const out = {};
+  for (const n of Object.keys(SQD_PAY)) {
+    out[n] = Object.keys(SQD_PAY[n]).sort((a, b) => SQD_PAY[n][a] - SQD_PAY[n][b]);
+  }
+  return out;
+})();
 
 // Name a 3- or 4-card line. NOT `sqHandName`, which gates runs and flushes on
 // `cards.length >= 5` - correct for the 5x5, and it would call every line here

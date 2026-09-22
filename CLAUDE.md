@@ -3888,20 +3888,75 @@ therefore pays something, which is what stops a dead row reading as a wasted row
 gates runs and flushes on `cards.length >= 5`, which is correct for the 5x5 and
 would call every line here a High Card.
 
-**THE TABLES ARE PRICED BY MEASURED REACHABILITY, NOT BY POKER.** A line is 3 or
-4 cards and you choose where every card goes, so the odds have nothing to do with
-a five-card draw. Measured by exhaustively packing real deals and asking which
-hands could be made AT ALL: **3x3** - Pair 100%, Flush 100%, Run 93%, Trips 43%,
-Straight Flush 35%. **4x4** - Pair / Two Pair / Flush / Run 100%, Trips 83%,
-Straight Flush 25%, Four of a Kind 8%.
+**THE TABLES ARE POKER'S OWN (r312).** Owner: *"Make the values based on poker
+not this grid."* They were priced off how often each hand could be MADE on these
+boards, which is a real measurement and the wrong answer: a ladder nobody
+recognises. They are now the RATIOS of the two published pay tables for the real
+games at these hand sizes - **Three Card Poker's PAIR PLUS** and **Four Card
+Poker's ACES UP** - x `SQD_PAY_SCALE` (10).
 
-Two places that disagrees with poker, and both are the geometry talking:
-- **On a 3-card line trips (43%) is COMMONER than a suited run (35%)**, because
-  three suited consecutive cards are easier to find among twelve than three of
-  one rank. So the straight flush stays on top, as in three-card poker.
-- **On a 4-card line quads (8%) is rarer than a straight flush (25%)**, so quads
-  pays more (90 against 55). That is the reverse of the five-card game and it is
-  what the board actually produces.
+| | 3 cards (Pair Plus) | | 4 cards (Aces Up) |
+|---|---|---|---|
+| Pair | 1 | Pair | 1 |
+| Flush | 4 | Two Pair | 3 |
+| Straight | 6 | Straight | 4 |
+| Three of a Kind | 30 | Flush | 6 |
+| Straight Flush | 40 | Three of a Kind | 9 |
+| | | Straight Flush | 40 |
+| | | Four of a Kind | 50 |
+
+Exact counts, brute-forced over a real deck (`/tmp` script in the r312 session;
+trivially re-derived):
+
+| 3 cards, C(52,3) = 22,100 | | 4 cards, C(52,4) = 270,725 | |
+|---|---|---|---|
+| Straight Flush | 48 (1:460) | Four of a Kind | 13 (1:20,825) |
+| Three of a Kind | 52 (1:425) | Straight Flush | 44 (1:6,153) |
+| Straight | 720 (1:31) | Three of a Kind | 2,496 (1:108) |
+| Flush | 1,096 (1:20) | Straight | 2,772 (1:98) |
+| Pair | 3,744 (1:6) | Two Pair | 2,808 (1:96) |
+| | | Flush | 2,816 (1:96) |
+| | | Pair | 82,368 (1:3) |
+
+**Two things that look wrong and are real poker:**
+- **On THREE cards a STRAIGHT BEATS A FLUSH** (720 against 1,096) and **trips
+  beats a straight**. That inversion is exactly why three-card poker has its own
+  ranking instead of reusing the five-card one.
+- **On FOUR cards FOUR OF A KIND BEATS A STRAIGHT FLUSH** - 13 hands against 44,
+  because a fourth card of a rank is scarcer than a fourth card of a run. The
+  five-card game is the other way round. (The old table had this right for the
+  wrong reason: it was justified by a board measurement rather than by poker.)
+
+**STRAIGHT, TWO PAIR AND FLUSH ARE A THREE-WAY TIE on four cards** - 2,772 /
+2,808 / 2,816, a 1.6% spread - so the counts cannot order them. The published
+table's order is taken instead, which is the five-card one and the one a player
+expects.
+
+- **`SQD_PAY` holds the RATIOS and `SQD_BASE` is built from it**, so the pay
+  table can be read against the published one line for line. **`SQD_LADDER` is
+  DERIVED by sorting `SQD_PAY`** rather than written out beside it, which is what
+  makes it impossible for the order the tally reads a line in to disagree with
+  what that line paid.
+- **`SQD_PAY_SCALE` is the one number here that is not poker's**, because a pay
+  table is odds on a bet and a line here pays pips. **10 is picked so the owner's
+  card values stay meaningful**: a pair's base is 10 against a line's 3-8 of card
+  value, and at x3 (tried) the base is swamped by the pips and the ladder stops
+  being what decides a line.
+
+**THIS IS MUCH SWINGIER THAN WHAT IT REPLACES, AND THAT IS POKER, NOT A BUG.** A
+straight flush is 40x a pair in Pair Plus, so one rare line can be most of a
+grid. Measured over 60 deals at the best packing the search finds:
+
+| | par spread | best line's share of the grid |
+|---|---|---|
+| grid-priced (r311) | 54 to 124, **2.3x** | ~20% |
+| **poker (r312)** | 112 to 804, **7.2x** | **45%** |
+
+**It also costs a little of the consistency the owner asked for in r311**, for
+the same reason: one trips is worth thirty pairs, so the best packing spends
+other lines to reach it. Lines paying a real hand, 3x3: **58% -> 55%**; 4x4:
+**75% -> 71%**. Worth a decision if it reads badly in play - the lever is
+`SQD_PAY_SCALE` or a compressed table, not the order.
 
 #### The boons
 
@@ -3985,12 +4040,13 @@ search finds, over 60 deals each:
 
 | | lines paying a real hand | the mix |
 |---|---|---|
-| **3x3** | **58%** (3.5 of 6) | Pair 23 · Flush 14 · Run 11 · SF 5 · Trips 4 |
-| **4x4** | **75%** (6.0 of 8) | Pair 28 · Run 16 · Flush 14 · Trips 12 · Two Pair 3 |
+| **3x3** | **55%** (3.3 of 6) | Run 17 · Pair 15 · Flush 14 · SF 5 · Trips 4 |
+| **4x4** | **71%** (5.7 of 8) | Pair 22 · Trips 16 · Flush 16 · Run 9 · SF 4 · Two Pair 3 · Quads 1 |
 | 5x5 (r309) | ~66% | but **Pair 42% and High Card 34% is most of it** |
 
 So on a 4x4 nearly half of every line is a hand BETTER than a pair, against the
-5x5 where pairs and dead lines are 76% of the board. **That is structural, not a
+5x5 where pairs and dead lines are 76% of the board. (Both figures fell ~3
+points when r312 put poker's values in - see the pay tables above.) **That is structural, not a
 tuning trick**: shorter lines, full information, surplus tiles and free
 placement.
 
